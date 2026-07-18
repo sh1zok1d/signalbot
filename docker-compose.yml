@@ -1,0 +1,56 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb:2.17.2-pg16
+    container_name: btcbot_timescaledb
+    restart: unless-stopped
+    environment:
+      # Single source of truth is .env (read automatically by docker compose).
+      # POSTGRES_PASSWORD here MUST match the password embedded in POSTGRES_DSN
+      # used by the bot. Default kept only for the pre-existing local dev volume;
+      # on a VPS set a strong POSTGRES_PASSWORD in .env before first `up`.
+      POSTGRES_USER: ${POSTGRES_USER:-btcbot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-btcbot_change_me}
+      POSTGRES_DB: ${POSTGRES_DB:-btcbot}
+    # Bind to loopback ONLY — never expose Postgres on the public interface.
+    # The bot runs on the host (systemd) and connects via 127.0.0.1.
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-btcbot} -d ${POSTGRES_DB:-btcbot}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: btcbot_redis
+    restart: unless-stopped
+    # Persist hot-state; loopback-only (no requirepass needed while not exposed).
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  timescale_data:
+  redis_data:

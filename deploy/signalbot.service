@@ -1,0 +1,52 @@
+[Unit]
+Description=BTC Signal Bot (stage 1: data ingestion + backfill + storage)
+Documentation=file:/opt/signalbot/docs/VPS_DEPLOY.md
+# Infra (TimescaleDB + Redis) is brought up separately by an admin via
+# `docker compose up -d` and stays up on its own (restart: unless-stopped).
+# We only order after the network/docker are up; readiness is enforced by the
+# ExecStartPre wait below (no docker access needed here).
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Dedicated unprivileged user. Create with:
+#   sudo useradd --system --home-dir /opt/signalbot --shell /usr/sbin/nologin signalbot
+# Do NOT add signalbot to the docker group.
+User=signalbot
+Group=signalbot
+WorkingDirectory=/opt/signalbot
+# .env holds the DB password. Recommended ownership root:signalbot, mode 640 —
+# systemd reads EnvironmentFile as root, the signalbot process reads it via its
+# group; no other user can. (chown root:signalbot /opt/signalbot/.env; chmod 640)
+EnvironmentFile=/opt/signalbot/.env
+# The app writes nothing to disk (logs -> journald); stop Python touching .pyc
+# under the read-only filesystem enforced below.
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+# Real readiness check (SELECT 1 / Redis PING via the project's own libs), not a
+# bare TCP probe. Uses the venv; needs no docker access.
+ExecStartPre=/opt/signalbot/.venv/bin/python /opt/signalbot/deploy/wait_for_infra.py
+ExecStart=/opt/signalbot/.venv/bin/python main.py
+
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=signalbot
+
+# --- Hardening (audited: the process performs NO filesystem writes) ---
+# ProtectSystem=strict makes the whole filesystem read-only; we add NO
+# ReadWritePaths because nothing under /opt/signalbot is written at runtime.
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# Only outbound TCP to loopback infra + exchange REST/WS is needed.
+RestrictAddressFamilies=AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

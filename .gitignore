@@ -1,0 +1,38 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.DS_Store
+soak-test-*.log
+soak-test-*.meta
+
+# local DB backups (deploy/backup.sh)
+backups/
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Runtime data
+logs/
+data/
+backups/
+*.log
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/

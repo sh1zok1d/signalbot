@@ -1,0 +1,21 @@
+# DEPRECATED (2026-07-17): superseded by deploy/signalbot.service (dedicated
+# `signalbot` user, /opt/signalbot, ExecStartPre infra wait, hardening).
+# Kept for reference only — do NOT install this file. Remove it only AFTER
+# signalbot.service is installed and confirmed running. See docs/VPS_DEPLOY.md.
+[Unit]
+Description=BTC Signal Bot (data ingestion) [DEPRECATED - use signalbot.service]
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=btcbot
+WorkingDirectory=/opt/btc-signal-bot
+ExecStart=/opt/btc-signal-bot/.venv/bin/python main.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

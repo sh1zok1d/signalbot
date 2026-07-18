@@ -1,0 +1,112 @@
+symbol: BTCUSDT
+# All exchanges the system knows how to talk to (clients + capability registry).
+exchanges: [binance, bybit, okx, bitget]
+# ACTIVE set for the MVP. Only these connect/poll/backfill/gap-fill, count toward
+# coverage, and (later) participate in percentile voting. Bitget is intentionally
+# NOT enabled: its live works but 30d historical klines backfill was deferred, so
+# it is excluded from the active MVP (its stored data is kept, client code kept).
+enabled_exchanges: [binance, bybit, okx]
+timezone: UTC
+
+infra:
+  postgres_dsn_env: POSTGRES_DSN
+  redis_url_env: REDIS_URL
+  telegram_token_env: TELEGRAM_BOT_TOKEN
+  telegram_chat_id_env: TELEGRAM_CHAT_ID
+
+percentiles:
+  window_days: 7
+  window_days_mature: 30
+  min_days_for_confidence: 3
+
+backfill:
+  window_days: 30
+  sources: [klines, volume, open_interest, funding, mark_price]
+  liquidations_orderflow_backfill: false
+  liquidations_orderflow_live_min_days: 7
+  klines_interval: 1m
+  # Some exchanges only expose historical open-interest at coarse granularity
+  # (e.g. Binance REST OI history is 5m/15m/30m/1h, not 1m). We backfill OI at
+  # the finest granularity each exchange offers and upsample/ffill to 1m at
+  # storage-read time. Flagged here so it's not silently hardcoded.
+  oi_history_interval_fallback: 5m
+
+long_capitulation:
+  price_drop_p_min: 95
+  long_liq_p_min: 95
+  oi_change_p_max: 10
+  taker_sell_p_min: 90
+  confirm_required: 3
+  atr_missed_entry_mult: 0.5
+  expiration_candles_5m: 3
+
+short_capitulation:
+  price_rise_p_min: 95
+  short_liq_p_min: 95
+  oi_change_p_max: 10
+  taker_buy_p_min: 90
+  confirm_required: 3
+
+level_sweep:
+  wick_ratio_min: 0.6
+  confirm_required: 3
+
+position_buildup:
+  range_duration_min: 45
+  range_duration_max: 180
+  range_width_p_max: 40
+  oi_growth_p_min: 80
+  volume_p_min: 50
+  breakout_volume_p_min: 80
+
+consensus:
+  # Active set is 3 exchanges (binance, bybit, okx). Bitget disabled.
+  price_oi_orderflow_min: 2        # normal consensus: >= 2 of 3
+  price_oi_orderflow_strong: 3     # strong consensus: 3 of 3
+  min_required_for_signal: 2       # 1 of 3 (or 0) forbids any signal
+  liquidations_min_sources: 2
+  market_consensus_min: 2
+
+signal_management:
+  max_active_per_symbol: 1
+  post_close_cooldown_min: 15
+  same_event_type_cooldown_min: 20
+
+target_and_rr:
+  min_rr_for_full_trigger: 1.5
+
+score_weights:
+  level_position: 10
+  move_strength: 10
+  liquidations: 15
+  oi_shift: 15
+  taker_flow: 10
+  exchange_confirmation: 10
+  level_reclaim: 15
+  vwap_structure: 10
+  risk_reward: 5
+
+score_thresholds:
+  hide_max: 39
+  early_max: 59
+  armed_max: 69
+  triggered_max: 84
+
+telegram:
+  notify_min_status: TRIGGERED
+  recipient_mode: single_private_chat
+
+reliability:
+  exchange_alert_after_min: 3
+  heartbeat_alert_after_min: 10
+  coverage_2of4_blocks_new_triggered: true
+  coverage_1of4_pauses_signal_engine: true
+
+shadow_trading:
+  min_days: 14
+
+calibration:
+  min_sample_total_triggered: 30
+  min_sample_per_setup_type: 10
+  auto_apply: false
+  config_versioning: true
