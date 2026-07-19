@@ -20,8 +20,21 @@ defaults:
   percentile_windows: [7d, 30d]
   timeframes: [1m, 5m, 15m, 1h, 4h]
   data_confidence:
-    minimum_metric_coverage: 0.95
-    minimum_exchange_coverage: 2
+    minimum_metric_coverage: 0.95      # upstream bar-completeness param; NOT a consensus-core gate
+    minimum_exchange_coverage: 2       # authoritative per-family consensus minimum (Revision 0.2.3)
+    # Data Confidence weights (Consensus Contract Revision 0.2.3, frozen). Each
+    # >= 0, finite; coverage > 0; they MUST sum to exactly 1.0. A family score
+    # uses only its applicable components (see STAGE2_SPEC.md §11) with the
+    # applicable weights renormalized to their own sum.
+    weights:
+      coverage: 0.50
+      agreement: 0.30
+      dispersion: 0.20
+  # Outlier detection (Consensus Contract Revision 0.2.3, frozen). Robust-z uses
+  # a FIXED scale constant 0.6744897501960817 (baked into the code, not config);
+  # only the threshold is configurable. Outliers are recorded, never removed.
+  outliers:
+    robust_z_threshold: 3.5            # finite, > 0; strict '>' comparison
   warmup:
     minimum_calendar_days: 7
     preferred_calendar_days: 30

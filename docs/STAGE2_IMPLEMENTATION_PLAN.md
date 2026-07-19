@@ -6,6 +6,16 @@ event detection, scoring, state machine, Telegram, or multi-symbol
 ingestion in this phase. Nothing in this plan has been executed — it is the
 proposal to approve before writing code.
 
+> **Consensus Contract Revision 0.2.3 — frozen for Stage 2.1.** The
+> cross-exchange aggregation formulas (coverage, ternary direction agreement,
+> dispersion, Data Confidence weights + applicable-component matrix, roll-ups,
+> outlier robust-z, liquidation-quality source, `is_usable` gating, replay
+> denominator) are now fully specified and frozen in `STAGE2_SPEC.md` §11. The
+> config surface for it (`data_confidence.weights`, `outliers.robust_z_threshold`)
+> ships in `config/stage2.yaml` and is validated by `common/stage2_config.py`;
+> it enters `config_hash`/`calculation_version`. `consensus.py` and its models
+> are NOT built in this step — only the contract and its config are frozen.
+
 ## Files to create — REVISED 0.1
 
 ```

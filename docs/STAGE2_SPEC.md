@@ -365,7 +365,9 @@ CREATE TABLE IF NOT EXISTS consensus_feature_vectors (
     min_coverage_ratio     DOUBLE PRECISION,   -- worst family, for quick triage
     data_confidence_overall DOUBLE PRECISION,  -- reporting only
 
-    -- direction agreement (sign-based, unit-free — safe across exchanges)
+    -- direction agreement (ternary sign −1/0/+1, unit-free — safe across
+    -- exchanges). Frozen formula in §11: max(neg,flat,pos)/available;
+    -- an all-zero (all-flat) family scores 1.0, not 0.0.
     price_direction_agreement  DOUBLE PRECISION,  -- share agreeing on sign, 0..1
     flow_direction_agreement   DOUBLE PRECISION,
     oi_direction_agreement     DOUBLE PRECISION,
@@ -402,12 +404,18 @@ CREATE TABLE IF NOT EXISTS consensus_feature_vectors (
     -- Feed quality is reported ALONGSIDE the sum, never folded into it.
     liquidation_feed_quality_by_exchange    JSONB,  -- {"binance":"snapshot","bybit":"full","okx":"aggregated"}
 
-    -- dispersion / outliers
+    -- dispersion / outliers. MAD columns exist ONLY for the three metrics that
+    -- carry outlier detection (price_move_pct, oi_change_pct, funding_rate);
+    -- funding's MAD is funding_rate_mad above.
     price_move_pct_mad         DOUBLE PRECISION,  -- median absolute deviation
     oi_change_pct_mad          DOUBLE PRECISION,
-    outlier_exchanges          JSONB,             -- {"bybit": {"metric":"oi_change_pct","z":4.1}}
+    -- Frozen metric-first shape (§11), NOT exchange-first:
+    --   {"oi_change_pct": {"bybit": {"robust_z": 4.1, "reason": "ROBUST_Z_THRESHOLD"}}}
+    -- one exchange may appear under several metrics; keys sorted on write.
+    outlier_exchanges          JSONB,
 
-    -- confidence
+    -- confidence (frozen formulas in §11). data_confidence_overall = mean of the
+    -- six family scores; consensus_confidence = min of the six.
     consensus_confidence       DOUBLE PRECISION,  -- 0..100
     is_partial_consensus       BOOLEAN NOT NULL DEFAULT FALSE,
 
@@ -643,8 +651,14 @@ defaults:
   percentile_windows: [7d, 30d]
   timeframes: [1m, 5m, 15m, 1h, 4h]
   data_confidence:
-    minimum_metric_coverage: 0.95
-    minimum_exchange_coverage: 2
+    minimum_metric_coverage: 0.95     # upstream bar-completeness param — NOT a consensus-core gate
+    minimum_exchange_coverage: 2      # authoritative per-family consensus minimum
+    weights:                          # Data Confidence weights (Revision 0.2.3, frozen; see §11)
+      coverage: 0.50                  #   each >= 0, coverage > 0, sum == 1.0
+      agreement: 0.30
+      dispersion: 0.20
+  outliers:
+    robust_z_threshold: 3.5           # finite, > 0; robust-z scale constant is fixed in code (§11)
   warmup:
     minimum_calendar_days: 7
     preferred_calendar_days: 30
@@ -1124,3 +1138,221 @@ prunable by an explicit, deliberate operation (never automatic — and not
 before the retention decision is settled, per decision H); and in normal
 operation the version only changes when config or code actually changes,
 which is infrequent.
+
+## 11. Consensus Contract — Revision 0.2.3 (FROZEN for Stage 2.1)
+
+**Consensus Contract Revision 0.2.3 — frozen for Stage 2.1.** This section is
+the single normative source for how `consensus_feature_vectors` values are
+computed. It fully specifies the formulas that earlier revisions left open, and
+**supersedes** the pre-0.2.3 language in `STAGE2_CLARIFICATIONS.md` §23.2 —
+specifically the "initial proposal" confidence weights, the "configurable
+weights" wording without a config path, any mention of *freshness* as a live
+confidence component, the exchange-first `outlier_exchanges` example, the
+ambiguous liquidation-quality source, and the binary (two-way) zero-direction
+semantics. Where those older phrasings conflict with this section, this section
+wins. The new config keys (`data_confidence.weights`, `outliers`) are part of
+the resolved config and therefore of `config_hash` and `calculation_version`
+(§10); changing any of them starts a new parallel result set.
+
+The consensus core is pure/deterministic (no DB, network, clock, env,
+subprocess, asyncio, global mutable state) and does **no** rounding internally.
+
+### 11.1 Coverage (per family)
+
+For each of the six families independently:
+
+```
+coverage_ratio = available / expected      # expected >= 1 required
+```
+
+`expected == 0` is an **invalid request**, not a working case. `available` is
+the count of venues that supplied usable data *for this bucket*. The consensus
+minimum is `defaults.data_confidence.minimum_exchange_coverage` (currently 2),
+applied **independently per family**. When `available < minimum`:
+
+- that family's numeric aggregates (medians, MADs, sums, direction agreement)
+  are **NULL**;
+- `coverage_by_metric` and `provenance_by_metric` are still written;
+- the family confidence score is computed from the coverage component **only**.
+
+### 11.2 Direction agreement
+
+Directional source per family:
+
+| Family | Sign source |
+|---|---|
+| `price_structure` | `price_move_pct` |
+| `taker_flow` | `taker_delta_notional_usd` |
+| `oi` | `oi_change_pct` |
+
+`volume`, `funding`, `liquidations` have **no** direction-agreement component.
+
+Sign is **ternary**: negative → −1, flat (exactly 0) → 0, positive → +1.
+
+```
+direction_agreement = max(negative_count, flat_count, positive_count) / available
+```
+
+An **all-zero** (all-flat) set of contributors scores **1.0** (unanimous flat),
+not 0.0.
+
+### 11.3 Dispersion
+
+Dispersion source per family:
+
+| Family | Dispersion source |
+|---|---|
+| `price_structure` | `price_move_pct` |
+| `taker_flow` | `taker_delta_notional_usd` |
+| `oi` | `oi_change_pct` |
+| `funding` | `funding_rate` |
+
+`volume`, `liquidations` have **no** dispersion component.
+
+```
+median = ordinary median of the per-exchange values
+MAD    = median(abs(value - median))
+
+dispersion_score =
+    1.0                              if MAD == 0
+    0.0                              if MAD > 0 and median == 0
+    1.0 / (1.0 + MAD / abs(median))  otherwise
+```
+
+No epsilon; no internal rounding.
+
+### 11.4 Data Confidence
+
+Config (frozen; in `config_hash`):
+
+```yaml
+defaults:
+  data_confidence:
+    minimum_exchange_coverage: 2
+    minimum_metric_coverage: 0.95      # upstream bar-completeness param, NOT a consensus gate
+    weights:
+      coverage: 0.50
+      agreement: 0.30
+      dispersion: 0.20
+```
+
+Weights are finite, `>= 0`, `coverage > 0`, and sum to exactly `1.0` (float
+tolerance `1e-9`). `coverage_score = coverage_ratio` (0..1).
+
+**Applicable component matrix** — a family uses only its applicable components,
+with the applicable weights renormalized to their own sum:
+
+| Family | coverage | agreement | dispersion |
+|---|:--:|:--:|:--:|
+| `price_structure` | ✓ | ✓ | ✓ |
+| `volume` | ✓ | | |
+| `taker_flow` | ✓ | ✓ | ✓ |
+| `oi` | ✓ | ✓ | ✓ |
+| `funding` | ✓ | | ✓ |
+| `liquidations` | ✓ | | |
+
+```
+family_score = 100 * ( Σ_applicable weight_c * component_c ) / ( Σ_applicable weight_c )
+```
+
+When `available < minimum` for a family, agreement and dispersion are treated as
+**unavailable** and the family score collapses to `coverage_score * 100`. All
+six family scores lie in `[0, 100]`.
+
+Roll-ups:
+
+```
+data_confidence_overall = arithmetic mean of the six family scores   # reporting only
+consensus_confidence    = minimum of the six family scores           # 0..100
+```
+
+**Freshness is NOT a separate confidence component in Stage 2.1.** `STALE` and
+`LATE_BAR` are represented as exclusion reasons in `provenance_by_metric` and
+reduce **coverage**. Adding a distinct freshness component later is a versioned
+change (new revision → new `calculation_version`).
+
+### 11.5 Outliers
+
+Config (frozen; in `config_hash`):
+
+```yaml
+defaults:
+  outliers:
+    robust_z_threshold: 3.5      # finite, > 0
+```
+
+The robust-z **scale constant is a fixed part of Revision 0.2.3**, baked into
+the code (never config): `0.6744897501960817`.
+
+```
+robust_z = 0.6744897501960817 * (value - median) / MAD
+```
+
+Outlier metrics: `price_move_pct`, `oi_change_pct`, `funding_rate`. Detection
+runs **only** for families that reached their minimum contributors.
+
+- `MAD > 0`: `abs(robust_z) > robust_z_threshold` → outlier, reason
+  `ROBUST_Z_THRESHOLD`. Equality to the threshold is **not** an outlier.
+- `MAD == 0`: `value == median` → not an outlier; `value != median` → outlier
+  with `robust_z = null`, reason `MAD_ZERO_NONMEDIAN`.
+
+Outliers are **recorded, never removed**: they do not change contributors, the
+aggregate, or coverage. Exact JSON shape (metric-first; keys sorted on write):
+
+```json
+{
+  "<metric>": {
+    "<exchange>": { "robust_z": <finite number or null>,
+                    "reason": "ROBUST_Z_THRESHOLD" | "MAD_ZERO_NONMEDIAN" }
+  }
+}
+```
+
+One exchange may appear under several metric maps.
+
+### 11.6 Liquidation feed quality
+
+`liquidation_feed_quality_by_exchange` includes **all expected exchanges**, not
+only contributors. The authoritative structural source is
+`symbols.registry` `FamilyCapability.coverage_type`; bucket-level availability
+comes from the EFV and does **not** replace capability quality. Example
+historical-unavailable bucket: Binance `snapshot`, Bybit `full`, OKX
+`aggregated`, while liquidation coverage is simultaneously `0/3`.
+
+- **Contributing** exchange: if the EFV `liquidation_feed_quality` disagrees
+  with the registry `coverage_type`, consensus computation **fails** (loud, no
+  silent reconciliation).
+- **Non-contributing historical** exchange: the EFV may be absent or carry
+  `unavailable`; the output still uses the registry structural quality.
+
+Feed quality never reduces availability/coverage automatically.
+
+### 11.7 `is_usable` gating
+
+EFV `is_usable` is required for contribution only for the **bar-derived**
+families: `price_structure`, `volume`, `taker_flow`. For `oi`, `funding`,
+`liquidations`, bar-level `is_usable` is **not** a gate — those sources can be
+valid independently of a gap in the OHLC bucket.
+
+### 11.8 Config authority
+
+- Authoritative consensus minimum: `stage2` `defaults.data_confidence.minimum_exchange_coverage`.
+- Stage 1's `consensus.price_oi_orderflow_min` is **not** used by the consensus core.
+- `minimum_metric_coverage` is **not** used by the consensus core directly — it
+  is an upstream bar-completeness / worker parameter.
+
+### 11.9 Replay denominator (request contract — model not built here)
+
+The future `ConsensusFeatureRequest` must receive an **explicit expected
+exchange set per family** — the exact sorted/frozen set membership, not merely a
+count. Constraints:
+
+- each family's expected set is non-empty;
+- exchanges are active/canonical only (Bitget absent);
+- the available contributors are a subset of the expected set;
+- the registry may be used for *validation*;
+- historical replay must **not** silently recompute the denominator from the
+  current registry — the denominator travels in the request so a replay is
+  reproducible and any change flows through `calculation_version`.
+
+The models themselves are not implemented in this step.

@@ -14,6 +14,7 @@ No hot reload / file watching.
 from __future__ import annotations
 
 import copy
+import math
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping
@@ -26,7 +27,14 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 STAGE2_CONFIG_PATH = ROOT_DIR / "config" / "stage2.yaml"
 
 SUPPORTED_MARKET_TYPES = ("perp",)
-_REQUIRED_DEFAULT_KEYS = ("percentile_windows", "timeframes", "data_confidence", "warmup")
+_REQUIRED_DEFAULT_KEYS = ("percentile_windows", "timeframes", "data_confidence",
+                          "warmup", "outliers")
+
+# Consensus Contract Revision 0.2.3 (frozen). Data Confidence weights: each
+# component weight is finite and >= 0, coverage must be > 0, and the three MUST
+# sum to exactly 1.0 (within float tolerance). See docs/STAGE2_SPEC.md §11.
+_CONFIDENCE_WEIGHT_KEYS = ("coverage", "agreement", "dispersion")
+_WEIGHT_SUM_TOL = 1e-9
 
 
 class Stage2ConfigError(ValueError):
@@ -177,6 +185,8 @@ class Stage2Config:
         mec = dc["minimum_exchange_coverage"]
         if not isinstance(mec, int) or isinstance(mec, bool) or mec < 1:
             raise Stage2ConfigError("minimum_exchange_coverage must be an int >= 1")
+        self._validate_confidence_weights(dc)
+        self._validate_outliers(defaults["outliers"])
 
         if not isinstance(self._raw["asset_tiers"], Mapping):
             raise Stage2ConfigError("asset_tiers must be a mapping")
@@ -185,6 +195,61 @@ class Stage2Config:
         # validate each declared symbol resolves cleanly (fail fast at load)
         for sym in self._raw["symbols"]:
             self.resolve(sym)
+
+    @staticmethod
+    def _finite_number(value: Any, name: str) -> float:
+        """A real, finite number (bool rejected, NaN/Inf rejected)."""
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            raise Stage2ConfigError(f"{name} must be a number, got {type(value).__name__}")
+        v = float(value)
+        if not math.isfinite(v):
+            raise Stage2ConfigError(f"{name} must be finite, got {value!r}")
+        return v
+
+    def _validate_confidence_weights(self, dc: Mapping) -> None:
+        """Data Confidence weights (Revision 0.2.3): the three components are
+        present, finite, >= 0; coverage > 0; and they sum to exactly 1.0 within
+        a small float tolerance. Weights land in the resolved config and thus in
+        config_hash / calculation_version."""
+        if "weights" not in dc or not isinstance(dc["weights"], Mapping):
+            raise Stage2ConfigError("data_confidence.weights must be a mapping")
+        weights = dc["weights"]
+        for key in _CONFIDENCE_WEIGHT_KEYS:
+            if key not in weights:
+                raise Stage2ConfigError(f"data_confidence.weights missing {key!r}")
+        extra = set(weights) - set(_CONFIDENCE_WEIGHT_KEYS)
+        if extra:
+            raise Stage2ConfigError(
+                f"data_confidence.weights has unknown keys: {sorted(extra)}")
+        values = {}
+        for key in _CONFIDENCE_WEIGHT_KEYS:
+            w = self._finite_number(weights[key], f"data_confidence.weights.{key}")
+            if w < 0:
+                raise Stage2ConfigError(
+                    f"data_confidence.weights.{key} must be >= 0, got {w!r}")
+            values[key] = w
+        if values["coverage"] <= 0:
+            raise Stage2ConfigError("data_confidence.weights.coverage must be > 0")
+        total = sum(values.values())
+        if abs(total - 1.0) > _WEIGHT_SUM_TOL:
+            raise Stage2ConfigError(
+                f"data_confidence.weights must sum to 1.0, got {total!r}")
+
+    def _validate_outliers(self, outliers: Any) -> None:
+        """Outlier config (Revision 0.2.3): a finite, strictly-positive robust-z
+        threshold. The robust-z scale constant is fixed in code, never config."""
+        if not isinstance(outliers, Mapping):
+            raise Stage2ConfigError("defaults.outliers must be a mapping")
+        if "robust_z_threshold" not in outliers:
+            raise Stage2ConfigError("outliers.robust_z_threshold is required")
+        extra = set(outliers) - {"robust_z_threshold"}
+        if extra:
+            raise Stage2ConfigError(f"outliers has unknown keys: {sorted(extra)}")
+        thr = self._finite_number(outliers["robust_z_threshold"],
+                                   "outliers.robust_z_threshold")
+        if thr <= 0:
+            raise Stage2ConfigError(
+                f"outliers.robust_z_threshold must be > 0, got {thr!r}")
 
     # -- resolution --------------------------------------------------------
     def resolve(self, symbol: str) -> ResolvedSymbolConfig:
