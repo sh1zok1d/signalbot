@@ -80,3 +80,28 @@ def test_resolve_code_version_unresolved_fails_explicitly(monkeypatch):
     monkeypatch.delenv("STAGE2_CODE_VERSION", raising=False)
     with pytest.raises(VersioningError):
         resolve_code_version(None, env_var="STAGE2_CODE_VERSION", allow_git=False)
+
+
+def test_resolve_code_version_blank_env_fails(monkeypatch):
+    for blank in ("", "   ", "\t"):
+        monkeypatch.setenv("STAGE2_CODE_VERSION", blank)
+        with pytest.raises(VersioningError):
+            resolve_code_version(None, env_var="STAGE2_CODE_VERSION", allow_git=False)
+
+
+def test_canonical_json_handles_mappingproxy_and_tuple():
+    from types import MappingProxyType
+    frozen = MappingProxyType({"b": (1, 2), "a": MappingProxyType({"x": 1})})
+    plain = {"a": {"x": 1}, "b": [1, 2]}
+    # frozen (mappingproxy + tuple) hashes/serializes identically to plain
+    assert canonical_json(frozen) == canonical_json(plain)
+    assert canonical_json(frozen) == '{"a":{"x":1},"b":[1,2]}'
+
+
+def test_canonical_json_rejects_nonfinite_and_unsupported():
+    with pytest.raises(ValueError):
+        canonical_json({"x": float("nan")})
+    with pytest.raises(ValueError):
+        canonical_json({"x": float("inf")})
+    with pytest.raises(TypeError):
+        canonical_json({"x": object()})

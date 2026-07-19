@@ -68,10 +68,46 @@ def test_source_mapping_not_mutated_by_resolve():
     before = copy.deepcopy(cfg._raw)
     cfg.resolve("BTCUSDT")
     assert cfg._raw == before                                # source untouched
-    # resolved object is a separate deep copy
+    # mutating the independent as_dict() copy never affects the loader source
     rc = cfg.resolve("BTCUSDT")
-    rc._data["warmup"]["minimum_calendar_days"] = 999
+    d = rc.as_dict()
+    d["warmup"]["minimum_calendar_days"] = 999
     assert cfg._raw["defaults"]["warmup"]["minimum_calendar_days"] == 7
+    assert rc["warmup"]["minimum_calendar_days"] == 7        # frozen view unaffected
+
+
+def test_resolved_config_is_deeply_immutable():
+    from common.stage2_config import Stage2ConfigError  # noqa: F401 (keep import local)
+    rc = _cfg().resolve("BTCUSDT")
+    d = rc.data
+    from types import MappingProxyType
+    assert isinstance(d, MappingProxyType)
+    assert isinstance(d["warmup"], MappingProxyType)         # nested dict frozen
+    assert isinstance(d["timeframes"], tuple)                # nested list -> tuple
+    with pytest.raises(TypeError):
+        d["enabled"] = False                                 # top level
+    with pytest.raises(TypeError):
+        d["warmup"]["minimum_calendar_days"] = 999           # nested mapping
+    with pytest.raises(AttributeError):
+        d["timeframes"].append("1d")                         # nested tuple
+
+
+def test_as_dict_isolation():
+    rc = _cfg().resolve("BTCUSDT")
+    a = rc.as_dict()
+    b = rc.as_dict()
+    assert a is not b and a == b                             # independent copies
+    a["warmup"]["minimum_calendar_days"] = -1
+    assert b["warmup"]["minimum_calendar_days"] == 7         # other copy untouched
+    assert rc["warmup"]["minimum_calendar_days"] == 7        # frozen view untouched
+
+
+def test_immutable_and_plain_give_same_config_hash():
+    from common.versioning import config_hash
+    rc = _cfg().resolve("BTCUSDT")
+    # hash over the frozen resolved config == hash over its plain-dict equivalent
+    assert rc.config_hash() == config_hash(rc.data)
+    assert rc.config_hash() == config_hash(rc.as_dict())
 
 
 # -- explicit failures -------------------------------------------------------

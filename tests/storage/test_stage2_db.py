@@ -155,6 +155,24 @@ def test_instrument_mismatch_does_not_silently_overwrite():
     assert len(conn.executed) == 1
 
 
+def test_instrument_contract_multiplier_mismatch_blocked():
+    # LKG multiplier 0.01, caller passes 0.1 -> must be blocked at the DB layer
+    existing = {
+        "exchange_instrument_id": "BTC-USDT-SWAP", "quantity_unit": "contracts",
+        "contract_multiplier": 0.01, "tick_size": 0.1,
+    }
+    conn = FakeConn(fetchrow_result=existing)
+    db = _db(conn)
+    with pytest.raises(ValueError):
+        _run(db.upsert_exchange_instrument(
+            exchange="okx", symbol="BTCUSDT", market_type="perp",
+            exchange_instrument_id="BTC-USDT-SWAP", quantity_unit="contracts",
+            contract_multiplier=0.1,                # changed 0.01 -> 0.1
+            tick_size=0.1, price_precision=None, quantity_precision=None,
+            metadata_source="exchange_api", fetched_at=None, is_stale=False))
+    assert conn.executed == []                      # no silent overwrite
+
+
 # -- Stage 1 methods still present/unchanged --------------------------------
 def test_stage1_methods_remain_callable():
     db = Database("postgresql://unused")

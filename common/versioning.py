@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import subprocess
+from collections.abc import Mapping
 from typing import Any, Optional
 
 
@@ -19,14 +21,36 @@ class VersioningError(RuntimeError):
     was provided (never falls back to a silent 'unknown')."""
 
 
+def _to_plain(obj: Any) -> Any:
+    """Recursively convert to plain JSON-safe types.
+
+    Accepts any Mapping (including MappingProxyType) and any list/tuple — so an
+    immutable resolved config (nested MappingProxyType + tuples) hashes exactly
+    like its plain-dict/list equivalent. Rejects non-finite floats and any
+    unsupported type explicitly (never silently coerces).
+    """
+    if obj is None or isinstance(obj, (str, bool, int)):
+        return obj
+    if isinstance(obj, float):
+        if not math.isfinite(obj):
+            raise ValueError(f"non-finite float not allowed in canonical JSON: {obj!r}")
+        return obj
+    if isinstance(obj, Mapping):
+        return {str(k): _to_plain(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_to_plain(v) for v in obj]
+    raise TypeError(f"unsupported type for canonical JSON: {type(obj).__name__}")
+
+
 def canonical_json(obj: Any) -> str:
     """Deterministic JSON: sorted keys, stable compact separators, UTF-8.
 
     The same semantic mapping always serializes identically regardless of the
-    original key insertion order, so hashes are stable across machines/runs.
+    original key insertion order (and regardless of dict-vs-MappingProxyType or
+    list-vs-tuple), so hashes are stable across machines/runs.
     """
     return json.dumps(
-        obj,
+        _to_plain(obj),
         sort_keys=True,
         separators=(",", ":"),
         ensure_ascii=False,

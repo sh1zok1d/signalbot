@@ -89,3 +89,24 @@ def test_bitget_not_active():
 def test_canonical_symbol_not_replaced_by_exchange_id():
     # The registry deals in canonical symbols only; no venue instrument id here.
     assert reg.get_symbol("BTCUSDT").symbol == "BTCUSDT"
+
+
+def test_live_capability_derived_from_stage1_capabilities():
+    """live_supported and coverage_type must come FROM Stage 1's declaration,
+    not be a hand-copied second source that can silently diverge."""
+    from common.capabilities import CAPABILITIES
+    stage1 = {(r[0], r[1]): r for r in CAPABILITIES}   # (ex,metric)->row
+    fam_to_metric = {
+        "price_structure": "ohlcv", "volume": "ohlcv", "taker_flow": "taker_flow",
+        "oi": "open_interest", "funding": "funding", "liquidations": "liquidations",
+    }
+    for family in reg.METRIC_FAMILIES:
+        metric = fam_to_metric[family]
+        for ex in reg.ACTIVE_EXCHANGES:
+            cap = reg.family_capability("BTCUSDT", family, ex)
+            row = stage1[(ex, metric)]
+            assert cap.live_supported == row[2]        # derived live_supported
+            assert cap.coverage_type == row[4]         # derived coverage_type
+    # historical stays a SEPARATE Stage 2 declaration (not equal to live)
+    assert reg.family_capability("BTCUSDT", "liquidations", "bybit").live_supported is True
+    assert reg.family_capability("BTCUSDT", "liquidations", "bybit").historical_supported is False

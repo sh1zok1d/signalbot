@@ -131,6 +131,17 @@ def test_fetch_failure_without_lkg_unavailable():
         _run(fetch_instrument_metadata("okx", "BTCUSDT", _fetch_failing(), lkg=None))
 
 
+def test_stale_fallback_preserves_fetched_at_and_critical_fields():
+    lkg = parse_okx(OKX_PAYLOAD, "BTCUSDT", fetched_at=FIXED)
+    m = _run(fetch_instrument_metadata("okx", "BTCUSDT", _fetch_failing(), lkg=lkg))
+    assert m.is_stale is True
+    assert m.fetched_at == FIXED                 # ORIGINAL fetched_at preserved
+    assert m.fetched_at.tzinfo is not None       # tz-aware
+    for f in ("exchange_instrument_id", "quantity_unit",
+              "contract_multiplier", "tick_size"):
+        assert getattr(m, f) == getattr(lkg, f)  # critical fields NOT changed
+
+
 # -- mismatch alarm ----------------------------------------------------------
 def test_mismatch_tick_size_detected_and_lkg_not_overwritten():
     lkg = parse_binance(BINANCE_PAYLOAD, "BTCUSDT", fetched_at=FIXED)

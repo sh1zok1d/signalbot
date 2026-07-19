@@ -45,31 +45,63 @@ def _deep_merge(base: Mapping, override: Mapping) -> dict:
     return out
 
 
-class ResolvedSymbolConfig:
-    """Immutable, deep-copied resolved config for one symbol."""
+def _freeze(obj: Any) -> Any:
+    """Recursively make a structure DEEPLY immutable: every nested mapping
+    becomes a MappingProxyType and every nested list becomes a tuple."""
+    if isinstance(obj, Mapping):
+        return MappingProxyType({k: _freeze(v) for k, v in obj.items()})
+    if isinstance(obj, (list, tuple)):
+        return tuple(_freeze(v) for v in obj)
+    return obj
 
-    __slots__ = ("_data", "symbol", "tier", "enabled", "market_types")
+
+def _thaw(obj: Any) -> Any:
+    """Inverse of _freeze: produce an independent, fully-mutable plain copy
+    (MappingProxyType -> dict, tuple -> list)."""
+    if isinstance(obj, Mapping):
+        return {k: _thaw(v) for k, v in obj.items()}
+    if isinstance(obj, tuple):
+        return [_thaw(v) for v in obj]
+    return obj
+
+
+class ResolvedSymbolConfig:
+    """DEEPLY immutable resolved config for one symbol.
+
+    `.data` is a deeply-frozen view (nested MappingProxyType / tuple) that a
+    caller cannot mutate at any depth. `as_dict()` returns a fresh, independent,
+    fully-mutable deep copy each call (mutating it never affects this object or
+    the loader). config_hash is computed over the frozen data and equals the
+    hash of the equivalent plain dict (canonical_json normalizes both)."""
+
+    __slots__ = ("symbol", "tier", "enabled", "market_types", "_frozen")
 
     def __init__(self, symbol: str, data: dict):
         self.symbol = symbol
         self.tier = data["tier"]
         self.enabled = bool(data["enabled"])
         self.market_types = tuple(data["market_types"])
-        self._data = data  # already deep-copied by caller
+        self._frozen = _freeze(copy.deepcopy(data))
+
+    @property
+    def data(self):
+        """Deeply-immutable view of the full resolved config."""
+        return self._frozen
 
     def __getitem__(self, key: str) -> Any:
-        return self._data[key]
+        return self._frozen[key]
 
     def get(self, key: str, default: Any = None) -> Any:
-        return self._data.get(key, default)
+        return self._frozen.get(key, default)
 
-    def as_dict(self) -> Mapping:
-        """Read-only view of the full resolved dict (used for config_hash)."""
-        return MappingProxyType(self._data)
+    def as_dict(self) -> dict:
+        """Independent, fully-mutable deep copy (safe to mutate freely)."""
+        return _thaw(self._frozen)
 
     def config_hash(self) -> str:
-        """sha256 of the resolved config — order-independent by construction."""
-        return _config_hash(self._data)
+        """sha256 of the resolved config — order-independent by construction and
+        identical whether computed from the frozen or plain form."""
+        return _config_hash(self._frozen)
 
 
 class Stage2Config:
