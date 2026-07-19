@@ -137,3 +137,44 @@ def test_pending_dedup_index_nulls_not_distinct_and_partial():
 def test_no_table_level_unique_in_recompute_queue():
     body = _table_block("stage2_recompute_queue")
     assert not re.search(r"\bUNIQUE\b", body, re.IGNORECASE)
+
+
+# -- reserved-keyword: percentile_window, never a bare `window` column --------
+def test_no_bare_window_column_reserved_keyword():
+    # `window` is a PostgreSQL reserved keyword; it must never be a bare column.
+    assert not re.search(r"(^|[^a-z0-9_])window[ \t]+(TEXT|VARCHAR|CHAR)",
+                         SQL, re.IGNORECASE)
+    assert "percentile_window" in SQL
+
+
+def test_percentile_snapshots_uses_percentile_window():
+    body = _table_block("percentile_snapshots")
+    assert re.search(r"^\s*percentile_window\s+TEXT\s+NOT NULL", body, re.MULTILINE)
+    pk = _primary_key("percentile_snapshots")
+    assert "percentile_window" in pk
+    assert re.search(r"\bwindow\b", pk) is None          # no bare window token
+
+
+def _strip_sql_comments(text: str) -> str:
+    return re.sub(r"--[^\n]*", "", text)
+
+
+def test_recompute_queue_uses_percentile_window():
+    body = _table_block("stage2_recompute_queue")
+    assert re.search(r"^\s*percentile_window\s+TEXT", body, re.MULTILINE)
+    # no bare `window` COLUMN (ignore explanatory comments)
+    assert re.search(r"(^|[^a-z0-9_])window[ \t]+TEXT",
+                     _strip_sql_comments(body), re.IGNORECASE) is None
+
+
+def test_dedup_index_uses_percentile_window_and_keeps_contract():
+    m = re.search(r"CREATE UNIQUE INDEX IF NOT EXISTS ux_rq_pending_job(.*?);", SQL, re.DOTALL)
+    assert m
+    idx = m.group(1)
+    assert "percentile_window" in idx
+    assert re.search(r"\bwindow\b", idx) is None         # old bare name gone
+    # ranged-queue dedup contract preserved
+    assert "calculation_version" in idx
+    assert "reason" in idx
+    assert "NULLS NOT DISTINCT" in idx
+    assert "WHERE processed_at IS NULL" in idx

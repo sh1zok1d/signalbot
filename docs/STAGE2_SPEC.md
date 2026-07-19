@@ -435,7 +435,7 @@ CREATE TABLE IF NOT EXISTS percentile_snapshots (
     market_type     TEXT NOT NULL DEFAULT 'perp',
     metric          TEXT NOT NULL,
     timeframe       TEXT NOT NULL,
-    window          TEXT NOT NULL,             -- '7d' | '30d'
+    percentile_window TEXT NOT NULL,           -- '7d' | '30d' (`window` is a reserved keyword)
     bucket_ts       TIMESTAMPTZ NOT NULL,
     value           DOUBLE PRECISION,
     percentile_rank DOUBLE PRECISION,
@@ -451,7 +451,7 @@ CREATE TABLE IF NOT EXISTS percentile_snapshots (
     code_version    TEXT NOT NULL,
     feature_schema_version INTEGER NOT NULL,
     calculation_version TEXT NOT NULL,          -- see §10; part of logical identity
-    PRIMARY KEY (scope, exchange, symbol, market_type, metric, timeframe, window, bucket_ts, calculation_version),
+    PRIMARY KEY (scope, exchange, symbol, market_type, metric, timeframe, percentile_window, bucket_ts, calculation_version),
     CONSTRAINT ck_ps_scope CHECK (scope IN ('exchange','consensus')),
     -- Look-ahead guard enforced by the DB, not just by code review.
     CONSTRAINT ck_ps_no_lookahead CHECK (
@@ -532,18 +532,18 @@ CREATE TABLE IF NOT EXISTS stage2_watermarks (
 --                              bucket; range is half-open-ish
 --                              (range_start_ts, range_end_ts]
 --
--- metric / scope / window are NULLABLE and mean "all" when NULL, so a
+-- metric / scope / percentile_window are NULLABLE and mean "all" when NULL, so a
 -- broad invalidation is one row rather than a cross-product of rows.
 -- NULL therefore carries meaning and MUST participate in dedup — see the
 -- partial unique index below, which is what actually enforces that.
 --
 -- Enqueue semantics (what the dedup index guarantees):
 --   * two identical PENDING jobs collapse to one logical pending job,
---     including when metric/scope/window are all NULL;
+--     including when metric/scope/percentile_window are all NULL;
 --   * once processed_at is set, the same logical job can be enqueued
 --     again (a later correction to the same range is not swallowed);
 --   * different calculation_version never conflict;
---   * different range, window, scope, metric or reason never conflict.
+--   * different range, percentile_window, scope, metric or reason never conflict.
 -- ============================================================
 CREATE TABLE IF NOT EXISTS stage2_recompute_queue (
     id                  BIGSERIAL PRIMARY KEY,
@@ -558,7 +558,7 @@ CREATE TABLE IF NOT EXISTS stage2_recompute_queue (
     range_end_ts        TIMESTAMPTZ NOT NULL,
     metric              TEXT,                 -- NULL = all metrics
     scope               TEXT,                 -- NULL = both ('exchange','consensus')
-    window              TEXT,                 -- NULL = all windows ('7d','30d')
+    percentile_window   TEXT,                 -- NULL = all windows ('7d','30d'); `window` is reserved
     reason              TEXT NOT NULL,        -- LATE_BAR | BACKFILL_CORRECTION | QUEUE_OVERFLOW | MANUAL
     enqueued_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
     processed_at        TIMESTAMPTZ,
@@ -573,7 +573,7 @@ CREATE TABLE IF NOT EXISTS stage2_recompute_queue (
 -- (corrected in the schema-correctness patch):
 --
 --  1. NULL semantics. In a normal UNIQUE, NULLs are DISTINCT — so two
---     "broad" jobs with metric/scope/window all NULL do NOT conflict and
+--     "broad" jobs with metric/scope/percentile_window all NULL do NOT conflict and
 --     both get inserted. The old comment claimed NULL ("all") would
 --     participate in dedup; it did not. Broad jobs are exactly the
 --     common case for PERCENTILE_INVALIDATION, so this was the case that
@@ -592,7 +592,7 @@ CREATE TABLE IF NOT EXISTS stage2_recompute_queue (
 CREATE UNIQUE INDEX IF NOT EXISTS ux_rq_pending_job
     ON stage2_recompute_queue (
         job_type, symbol, market_type, timeframe, calculation_version,
-        range_start_ts, range_end_ts, metric, scope, window, reason)
+        range_start_ts, range_end_ts, metric, scope, percentile_window, reason)
     NULLS NOT DISTINCT
     WHERE processed_at IS NULL;
 
@@ -604,7 +604,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_rq_pending_job
 --     ON stage2_recompute_queue (
 --         job_type, symbol, market_type, timeframe, calculation_version,
 --         range_start_ts, range_end_ts,
---         COALESCE(metric, '*'), COALESCE(scope, '*'), COALESCE(window, '*'),
+--         COALESCE(metric, '*'), COALESCE(scope, '*'), COALESCE(percentile_window, '*'),
 --         reason)
 --     WHERE processed_at IS NULL;
 

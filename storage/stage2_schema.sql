@@ -245,7 +245,9 @@ CREATE TABLE IF NOT EXISTS percentile_snapshots (
     market_type     TEXT NOT NULL DEFAULT 'perp',
     metric          TEXT NOT NULL,
     timeframe       TEXT NOT NULL,
-    window          TEXT NOT NULL,             -- '7d' | '30d'
+    -- NOTE: named percentile_window (not `window`) — `window` is a reserved
+    -- keyword in PostgreSQL (window functions) and cannot be a bare column.
+    percentile_window TEXT NOT NULL,           -- '7d' | '30d'
     bucket_ts       TIMESTAMPTZ NOT NULL,
     value           DOUBLE PRECISION,
     percentile_rank DOUBLE PRECISION,
@@ -259,7 +261,7 @@ CREATE TABLE IF NOT EXISTS percentile_snapshots (
     code_version    TEXT NOT NULL,
     feature_schema_version INTEGER NOT NULL,
     calculation_version TEXT NOT NULL,          -- see spec §10; part of logical identity
-    PRIMARY KEY (scope, exchange, symbol, market_type, metric, timeframe, window, bucket_ts, calculation_version),
+    PRIMARY KEY (scope, exchange, symbol, market_type, metric, timeframe, percentile_window, bucket_ts, calculation_version),
     CONSTRAINT ck_ps_scope CHECK (scope IN ('exchange','consensus')),
     -- consensus rows carry exchange='' ; exchange rows carry a real exchange.
     CONSTRAINT ck_ps_scope_exchange CHECK (
@@ -322,7 +324,7 @@ CREATE TABLE IF NOT EXISTS stage2_watermarks (
 -- ============================================================
 -- Recompute queue — populated when a late/corrected raw bar invalidates
 -- already-computed results. RANGED jobs (revision 0.2.1), one row per
--- calculation_version. metric/scope/window are NULLABLE and mean "all".
+-- calculation_version. metric/scope/percentile_window are NULLABLE, mean "all".
 -- ============================================================
 CREATE TABLE IF NOT EXISTS stage2_recompute_queue (
     id                  BIGSERIAL PRIMARY KEY,
@@ -335,7 +337,8 @@ CREATE TABLE IF NOT EXISTS stage2_recompute_queue (
     range_end_ts        TIMESTAMPTZ NOT NULL,
     metric              TEXT,                 -- NULL = all metrics
     scope               TEXT,                 -- NULL = both ('exchange','consensus')
-    window              TEXT,                 -- NULL = all windows ('7d','30d')
+    -- percentile_window (not `window` — reserved keyword in PostgreSQL).
+    percentile_window   TEXT,                 -- NULL = all windows ('7d','30d')
     reason              TEXT NOT NULL,        -- LATE_BAR | BACKFILL_CORRECTION | QUEUE_OVERFLOW | MANUAL
     enqueued_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
     processed_at        TIMESTAMPTZ,
@@ -352,7 +355,7 @@ CREATE TABLE IF NOT EXISTS stage2_recompute_queue (
 CREATE UNIQUE INDEX IF NOT EXISTS ux_rq_pending_job
     ON stage2_recompute_queue (
         job_type, symbol, market_type, timeframe, calculation_version,
-        range_start_ts, range_end_ts, metric, scope, window, reason)
+        range_start_ts, range_end_ts, metric, scope, percentile_window, reason)
     NULLS NOT DISTINCT
     WHERE processed_at IS NULL;
 
