@@ -1,5 +1,6 @@
 """
-OKX BTC-USDT-SWAP perpetual.
+OKX USDT-perpetual swap. The venue-native instrument id is derived from the
+canonical symbol via common.symbol_mapper — no hardcoded instrument literal here.
 
 WS: `trades` channel on the public WS (price/taker flow). OKX's
 `liquidation-orders` channel lives on the separate "business" WS endpoint and
@@ -24,6 +25,8 @@ import time
 import aiohttp
 import websockets
 
+from common.symbol_mapper import to_exchange_symbol
+
 from .base_client import (ExchangeClient, Trade, OpenInterest, Funding,
                            MarkPrice, Liquidation, ClientCallbacks)
 
@@ -32,7 +35,6 @@ logger = logging.getLogger(__name__)
 WS_PUBLIC_URL = "wss://ws.okx.com:8443/ws/v5/public"
 WS_BUSINESS_URL = "wss://ws.okx.com:8443/ws/v5/business"
 REST_BASE = "https://www.okx.com"
-INST_ID = "BTC-USDT-SWAP"
 
 
 class OKXClient(ExchangeClient):
@@ -41,7 +43,9 @@ class OKXClient(ExchangeClient):
     def __init__(self, symbol: str, callbacks: ClientCallbacks, poll_interval_s: float = 15.0):
         super().__init__(symbol, callbacks)
         self._poll_interval_s = poll_interval_s
-        self._inst_id = INST_ID
+        # Canonical symbol (self.symbol) stays in every outgoing object / DB row;
+        # the OKX-native instrument id is used only for API/WS requests.
+        self._inst_id = to_exchange_symbol("okx", symbol, "perp")
 
     async def _run_once(self) -> None:
         async with websockets.connect(WS_PUBLIC_URL, ping_interval=20, ping_timeout=20) as ws:

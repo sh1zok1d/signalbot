@@ -35,6 +35,7 @@ from typing import Callable, Optional
 
 import aiohttp
 
+from common.symbol_mapper import to_exchange_symbol
 from storage.db import Database
 
 logger = logging.getLogger(__name__)
@@ -180,7 +181,7 @@ async def _klines_bybit(session: aiohttp.ClientSession, symbol: str,
 async def _klines_okx(session: aiohttp.ClientSession, symbol: str,
                       start_ms: int, end_ms: int) -> list[tuple]:
     base = "https://www.okx.com"
-    inst_id = "BTC-USDT-SWAP"
+    inst_id = to_exchange_symbol("okx", symbol, "perp")
     rows: list[tuple] = []
     after_cursor = end_ms
     while True:
@@ -459,12 +460,13 @@ async def backfill_bybit(session: aiohttp.ClientSession, db: Database, symbol: s
 
 
 # ============================================================
-# OKX  (BTC-USDT-SWAP)
+# OKX  (USDT-perpetual swap; instId via common.symbol_mapper)
 # ============================================================
 async def backfill_okx(session: aiohttp.ClientSession, db: Database, symbol: str,
                         window_start: datetime, window_end: datetime) -> None:
     base = "https://www.okx.com"
-    inst_id = "BTC-USDT-SWAP"
+    # Canonical symbol stays in every stored row; inst_id is only the OKX API id.
+    inst_id = to_exchange_symbol("okx", symbol, "perp")
 
     async def klines():
         rows = await _klines_okx(session, symbol, _ms(window_start), _ms(window_end))
