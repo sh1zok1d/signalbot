@@ -16,6 +16,13 @@ import asyncpg
 logger = logging.getLogger(__name__)
 
 SCHEMA_PATH = Path(__file__).resolve().parent / "schema.sql"
+STAGE2_SCHEMA_PATH = Path(__file__).resolve().parent / "stage2_schema.sql"
+
+# Critical instrument-metadata fields whose change must NOT silently overwrite a
+# stored row (mirrors common.instrument_metadata.CRITICAL_FIELDS; duplicated as a
+# plain literal so db.py needs no import of the Stage 2 module).
+_INSTRUMENT_CRITICAL_FIELDS = (
+    "exchange_instrument_id", "quantity_unit", "contract_multiplier", "tick_size")
 
 
 def _split_sql_statements(sql: str) -> list[str]:
@@ -131,6 +138,150 @@ class Database:
             return await conn.fetch(
                 "SELECT exchange, metric, live_supported, historical_supported, "
                 "coverage_type, expected_freshness_s, note, enabled FROM exchange_capabilities")
+
+    # ===============================================================
+    # Stage 2 (ADDITIVE). All of this is gated behind stage2.enabled by the
+    # caller and is NEVER invoked from connect()/init_schema() or any Stage 1
+    # path — with stage2.enabled=false Stage 1 does not touch these at all.
+    # ===============================================================
+    async def init_stage2_schema(self) -> None:
+        """Apply storage/stage2_schema.sql (the Stage 2 tables). Separate file,
+        same statement-splitting/per-statement autocommit pattern as
+        init_schema() (needed for create_hypertable, which cannot run inside a
+        transaction block). Idempotent; must be called EXPLICITLY — it is not
+        wired into connect() or init_schema()."""
+        assert self.pool is not None
+        sql = STAGE2_SCHEMA_PATH.read_text(encoding="utf-8")
+        statements = _split_sql_statements(sql)
+        async with self.pool.acquire() as conn:
+            for stmt in statements:
+                await conn.execute(stmt)
+        logger.info("Stage 2 schema initialized / verified (%d statements)", len(statements))
+
+    async def seed_symbols(self, rows: Sequence[tuple]) -> int:
+        """Upsert the symbol registry. rows: (symbol, base_asset, quote_asset,
+        asset_tier, status, enabled, disable_policy). Idempotent."""
+        if not rows:
+            return 0
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            await conn.executemany(
+                """
+                INSERT INTO symbols
+                    (symbol, base_asset, quote_asset, asset_tier, status,
+                     enabled, disable_policy, updated_at)
+                VALUES ($1,$2,$3,$4,$5,$6,$7, now())
+                ON CONFLICT (symbol) DO UPDATE SET
+                    base_asset = EXCLUDED.base_asset,
+                    quote_asset = EXCLUDED.quote_asset,
+                    asset_tier = EXCLUDED.asset_tier,
+                    status = EXCLUDED.status,
+                    enabled = EXCLUDED.enabled,
+                    disable_policy = EXCLUDED.disable_policy,
+                    updated_at = now()
+                """,
+                rows,
+            )
+        return len(rows)
+
+    async def seed_symbol_exchange_capabilities(self, rows: Sequence[tuple]) -> int:
+        """Upsert per-(exchange, symbol, market_type, metric) capabilities.
+        rows: (exchange, symbol, market_type, metric, live_supported,
+        historical_supported, coverage_type, expected_freshness_s, enabled,
+        note). Idempotent."""
+        if not rows:
+            return 0
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            await conn.executemany(
+                """
+                INSERT INTO symbol_exchange_capabilities
+                    (exchange, symbol, market_type, metric, live_supported,
+                     historical_supported, coverage_type, expected_freshness_s,
+                     enabled, note, updated_at)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, now())
+                ON CONFLICT (exchange, symbol, market_type, metric) DO UPDATE SET
+                    live_supported = EXCLUDED.live_supported,
+                    historical_supported = EXCLUDED.historical_supported,
+                    coverage_type = EXCLUDED.coverage_type,
+                    expected_freshness_s = EXCLUDED.expected_freshness_s,
+                    enabled = EXCLUDED.enabled,
+                    note = EXCLUDED.note,
+                    updated_at = now()
+                """,
+                rows,
+            )
+        return len(rows)
+
+    async def get_exchange_instrument(self, exchange: str, symbol: str,
+                                      market_type: str = "perp"):
+        """Read one instrument row (canonical symbol + venue id kept separate),
+        or None."""
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await conn.fetchrow(
+                "SELECT * FROM exchange_instruments "
+                "WHERE exchange=$1 AND symbol=$2 AND market_type=$3",
+                exchange, symbol, market_type)
+
+    async def upsert_exchange_instrument(
+        self, *, exchange: str, symbol: str, market_type: str = "perp",
+        exchange_instrument_id: str, quantity_unit, contract_multiplier,
+        tick_size, price_precision, quantity_precision, metadata_source: str,
+        fetched_at, is_stale: bool = False, note: str = "",
+        accept_mismatch: bool = False,
+    ) -> str:
+        """Upsert an instrument row. The canonical `symbol` and the venue-native
+        `exchange_instrument_id` are stored in SEPARATE columns. Stale flag and
+        provenance are stored explicitly.
+
+        A change on a critical field (exchange_instrument_id, quantity_unit,
+        contract_multiplier, tick_size) versus the existing row is NOT silently
+        overwritten: unless `accept_mismatch=True`, this raises so the change is
+        a deliberate decision (and forks calculation_version upstream)."""
+        assert self.pool is not None
+        new_vals = {
+            "exchange_instrument_id": exchange_instrument_id,
+            "quantity_unit": quantity_unit,
+            "contract_multiplier": contract_multiplier,
+            "tick_size": tick_size,
+        }
+        existing = await self.get_exchange_instrument(exchange, symbol, market_type)
+        if existing is not None and not accept_mismatch:
+            diff = [f for f in _INSTRUMENT_CRITICAL_FIELDS if existing[f] != new_vals[f]]
+            if diff:
+                raise ValueError(
+                    f"instrument metadata mismatch on {diff} for "
+                    f"{exchange}/{symbol}/{market_type}; refusing silent overwrite "
+                    f"(pass accept_mismatch=True to accept deliberately)")
+        async with self.pool.acquire() as conn:
+            await conn.execute(
+                """
+                INSERT INTO exchange_instruments
+                    (exchange, symbol, market_type, exchange_instrument_id,
+                     quantity_unit, contract_multiplier, tick_size,
+                     price_precision, quantity_precision, metadata_source,
+                     fetched_at, is_stale, note, updated_at)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13, now())
+                ON CONFLICT (exchange, symbol, market_type) DO UPDATE SET
+                    exchange_instrument_id = EXCLUDED.exchange_instrument_id,
+                    quantity_unit = EXCLUDED.quantity_unit,
+                    contract_multiplier = EXCLUDED.contract_multiplier,
+                    tick_size = EXCLUDED.tick_size,
+                    price_precision = EXCLUDED.price_precision,
+                    quantity_precision = EXCLUDED.quantity_precision,
+                    metadata_source = EXCLUDED.metadata_source,
+                    fetched_at = EXCLUDED.fetched_at,
+                    is_stale = EXCLUDED.is_stale,
+                    note = EXCLUDED.note,
+                    updated_at = now()
+                """,
+                exchange, symbol, market_type, exchange_instrument_id,
+                quantity_unit, contract_multiplier, tick_size,
+                price_precision, quantity_precision, metadata_source,
+                fetched_at, is_stale, note,
+            )
+        return "OK"
 
     # ---------------------------------------------------------------
     # Writers
