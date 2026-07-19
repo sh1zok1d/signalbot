@@ -1,0 +1,59 @@
+# BTC Signal Bot — Stage 2 configuration (SEPARATE file, loaded by
+# common/stage2_config.py). Stage 1's config/config.yaml and .env are NOT
+# touched. Foundation parameters only — no detector/scoring thresholds.
+#
+# Inheritance (spec §3): global defaults -> asset_tier override -> symbol
+# override (symbol wins). config_hash is the sha256 of the RESOLVED per-symbol
+# config; calculation_version = sha256(feature_schema_version, config_hash,
+# code_version)[:16] (spec §10).
+
+stage2:
+  enabled: false          # master switch. While false Stage 1 is unchanged and
+                          # Stage 2 tables are NOT created automatically.
+  config_version: "2.1.0" # explicit human-set provenance version for this config
+  feature_schema_version: 1
+
+# Active venues for Stage 2 (Bitget stays disabled — not a Stage 2 venue).
+active_exchanges: [binance, bybit, okx]
+
+defaults:
+  percentile_windows: [7d, 30d]
+  timeframes: [1m, 5m, 15m, 1h, 4h]
+  data_confidence:
+    minimum_metric_coverage: 0.95
+    minimum_exchange_coverage: 2
+  warmup:
+    minimum_calendar_days: 7
+    preferred_calendar_days: 30
+  # Bar-close grace / hard deadline (spec §5.2).
+  bucket_close:
+    soft_grace_s: 5
+    hard_deadline_s: 15
+  # Late-data correction horizon (decision K).
+  correction_horizon_h: 48
+  # Notional conversion is the accepted BAR_CLOSE approximation (decision N).
+  # Switching to exact quote-volume later is a versioned change.
+  notional:
+    approximation: BAR_CLOSE
+  # Instrument metadata (ctVal/tick) is fetch-and-store; refreshed on this
+  # interval, never in the hot path (decision J). The metadata worker itself is
+  # NOT wired up in this PR — this is a declared setting only.
+  instrument_metadata:
+    refresh_interval_s: 86400   # daily
+  debug:
+    # Temporary rotating JSONL liquidation-payload capture (decision L),
+    # disabled by default. Not implemented in this PR.
+    capture_liquidation_payloads: false
+  # Historical bootstrap (spec §8.2) — declared settings only; the bootstrap
+  # worker is NOT implemented in this PR.
+  bootstrap:
+    throttle_ms: 200
+
+asset_tiers:
+  major: {}                 # BTCUSDT lives here; no overrides needed yet
+
+symbols:
+  BTCUSDT:
+    tier: major
+    enabled: true
+    market_types: [perp]    # 'spot' intentionally NOT listed — not ingested
