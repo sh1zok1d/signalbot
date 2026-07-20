@@ -20,7 +20,25 @@ from dotenv import load_dotenv
 ROOT_DIR = Path(__file__).resolve().parent.parent
 CONFIG_PATH = ROOT_DIR / "config" / "config.yaml"
 
-load_dotenv(ROOT_DIR / ".env")
+
+def _resolve_env_file() -> Path:
+    """Which dotenv file to load at import time.
+
+    Default (unchanged production behaviour): the repo-root ``.env``. An optional
+    ``SIGNALBOT_ENV_FILE`` selects a different file — QA commands set it to
+    ``.env.test`` so the test env is never confused with production. A relative
+    value is resolved against the repo root; an absolute path is honoured as-is.
+    The path is not required to exist (``load_dotenv`` is a no-op if it does not),
+    and no secret value is ever printed.
+    """
+    override = os.environ.get("SIGNALBOT_ENV_FILE")
+    if not override:
+        return ROOT_DIR / ".env"
+    p = Path(override)
+    return p if p.is_absolute() else (ROOT_DIR / p)
+
+
+load_dotenv(_resolve_env_file())
 
 
 @dataclass(frozen=True)

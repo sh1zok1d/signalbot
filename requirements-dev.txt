@@ -1,0 +1,14 @@
+# Local QA / test dependencies. Runtime deps are pulled in via the line below so
+# a single `pip install -r requirements-dev.txt` gives a working test env.
+#
+# Python: the project runs on 3.12 on the target VPS (minimum supported) and on
+# 3.14 in local dev. These pins resolve on both. Do NOT add linters, type
+# checkers, property/mutation-testing tools here — choosing those is a separate
+# QA engineering task (see docs/QA_SCOPE.md).
+-r requirements.txt
+
+pytest==9.1.1
+pytest-cov==7.1.0
+# Async test support for the future DB-writer / client / manager tests. Kept in
+# strict mode (see pytest.ini) so the existing synchronous suite is unaffected.
+pytest-asyncio==1.4.0

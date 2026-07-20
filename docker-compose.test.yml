@@ -1,0 +1,63 @@
+# QA-only stack: throwaway TimescaleDB + Redis for local testing. Completely
+# separate from the production docker-compose.yml — different ports (5433/6380),
+# volumes, and container/service names. ALWAYS drive it through the dedicated
+# Compose project so nothing can collide with production:
+#
+#   docker compose -p signalbot-qa --env-file .env.test -f docker-compose.test.yml ...
+#
+# Values default to the throwaway test credentials; --env-file .env.test keeps
+# substitution scoped to the test env (never the production ./.env). No app
+# service is defined here — the app is never started by the QA stack.
+
+services:
+  timescaledb-test:
+    # Same major line as production (2.17.x / pg16) so schema behaviour matches.
+    image: timescale/timescaledb:2.17.2-pg16
+    container_name: signalbot_qa_timescaledb
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-signalbot_test}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-signalbot_test}
+      POSTGRES_DB: ${POSTGRES_DB:-signalbot_test}
+    # Loopback ONLY, and a DIFFERENT host port from production (5433 vs 5432).
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - qa_timescale_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-signalbot_test} -d ${POSTGRES_DB:-signalbot_test}"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  redis-test:
+    image: redis:7.4-alpine
+    container_name: signalbot_qa_redis
+    # Ephemeral: no persistence for a test cache.
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    # Loopback ONLY, DIFFERENT host port from production (6380 vs 6379).
+    ports:
+      - "127.0.0.1:6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 3s
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+# Test-only named volumes. `docker compose -p signalbot-qa down -v` removes ONLY
+# these (they are namespaced under the signalbot-qa project); production volumes
+# under the default project are never touched.
+volumes:
+  qa_timescale_data:
+  qa_redis_data:

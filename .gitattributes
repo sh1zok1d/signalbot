@@ -1,0 +1,7 @@
+# Keep LF endings for files that break with CRLF (shell scripts must be LF for
+# bash on WSL; Makefile recipes and the QA/CI YAML follow suit). Scoped on
+# purpose — this is NOT a repo-wide `text=auto` renormalization.
+*.sh text eol=lf
+Makefile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
