@@ -41,6 +41,14 @@ _passed = 0
 _failed = 0
 
 
+def _redis_target_ok(url: str) -> bool:
+    """True iff the Redis URL points at the expected LOCAL test instance
+    (127.0.0.1:6380). Pure / no I/O — used for both the smoke check and its
+    fail-closed guard, and unit-testable on its own."""
+    rd = urlparse(url)
+    return rd.hostname == EXPECTED_HOST and rd.port == EXPECTED_REDIS_PORT
+
+
 def check(name: str, ok: bool, detail: str = "") -> None:
     global _passed, _failed
     mark = "PASS" if ok else "FAIL"
@@ -74,11 +82,15 @@ async def main() -> int:
         print("  refusing to continue: DSN is not the test database")
         return 1
 
-    # 3. Redis URL points at the TEST instance.
+    # 3. Redis URL points at the TEST instance — fail closed BEFORE any
+    #    RedisState is created (mirrors the Postgres guard above). Only host:port
+    #    is printed, never the URL/credentials.
     rd = urlparse(secrets.redis_url)
-    check("Redis target is the test env",
-          rd.hostname == EXPECTED_HOST and rd.port == EXPECTED_REDIS_PORT,
-          f"{rd.hostname}:{rd.port}{rd.path}")
+    redis_ok = _redis_target_ok(secrets.redis_url)
+    check("Redis target is the test env", redis_ok, f"{rd.hostname}:{rd.port}")
+    if not redis_ok:
+        print("  refusing to continue: Redis is not the test instance")
+        return 1
 
     # 4. Telegram is NOT configured for tests.
     check("Telegram unused (no token/chat)",

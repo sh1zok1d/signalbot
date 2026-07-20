@@ -101,9 +101,11 @@ qa_step "Infrastructure smoke test"
 SIGNALBOT_ENV_FILE="${QA_ENV_FILE}" "${QA_PY}" scripts/qa-smoke.py \
   || fail_hint "infra smoke failed" "check 'make qa-status' and 'make qa-logs'"
 
-# 13. Fast unit suite (no Docker/network needed).
+# 13. Fast unit suite (no Docker/network needed). Marker expression MUST match
+#     `make qa-fast` so slow/manual tests never run during bootstrap.
 qa_step "Fast test suite"
-"${QA_PY}" -m pytest -q || fail_hint "unit tests failed" "re-run 'make qa-fast' to see details"
+"${QA_PY}" -m pytest -q -m "not slow and not manual" \
+  || fail_hint "unit tests failed" "re-run 'make qa-fast' to see details"
 
 # 14. Command cheatsheet.
 qa_step "Bootstrap complete — common commands"
