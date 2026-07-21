@@ -584,3 +584,27 @@ def test_data_quality_nested_immutable():
     assert isinstance(dq, MappingProxyType)
     with pytest.raises(TypeError):
         dq["cadence_s"] = 1
+
+
+# ===== Data Quality contract-consistency (capability facts §13 relies on) =====
+def test_capability_registry_matches_frozen_historical_support():
+    """STAGE2_SPEC.md §13.3 freezes an exchange-aware historical interval mapping
+    whose 'unsupported' cells must equal historical_supported=False in the
+    capability registry. This guards the contract's factual basis."""
+    from common.capabilities import CAPABILITIES
+    hist = {(ex, m): h for (ex, m, live, h, cov, fresh, note) in CAPABILITIES}
+    # taker_flow historical: Binance only
+    assert hist[("binance", "taker_flow")] is True
+    assert hist[("bybit", "taker_flow")] is False
+    assert hist[("okx", "taker_flow")] is False
+    # open_interest historical: Binance + Bybit, NOT OKX
+    assert hist[("binance", "open_interest")] is True
+    assert hist[("bybit", "open_interest")] is True
+    assert hist[("okx", "open_interest")] is False
+    # liquidations historical: none of the active exchanges
+    for ex in ("binance", "bybit", "okx"):
+        assert hist[(ex, "liquidations")] is False
+    # ohlcv + funding historical: all three active exchanges supported
+    for ex in ("binance", "bybit", "okx"):
+        assert hist[(ex, "ohlcv")] is True
+        assert hist[(ex, "funding")] is True

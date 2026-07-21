@@ -30,10 +30,17 @@ proposal to approve before writing code.
 > Quality / gap-detection rules — deterministic `snapshot_ts` cadence; boolean
 > health model (`is_stale`/`is_usable`) with a complete ordered derived label set
 > (`not_available` / `unavailable_historical` / `disconnected` /
-> `connection_unknown` / `no_data` / `stale` / `gap_exceeded` / `ok`); raw-source
-> mapping on the real `ts` column (`ohlcv` serving price_structure+volume as one
-> row); `expected_interval_s` from the frozen `(metric, source_mode)` mapping
-> (live vs historical cadence); **fail-closed** event-driven liquidation handling
+> `connection_unknown` / `no_data` / `stale` / `gap_exceeded` / `ok`);
+> **source-mode-aware availability for every metric** (a historical request for a
+> historically-unsupported continuous metric — Bybit/OKX taker flow, OKX OI — is
+> `unavailable_historical`, never generic `no_data`); raw-source mapping on the
+> real `ts` column (`ohlcv` serving price_structure+volume as one row);
+> **exchange- and source-mode-aware `expected_interval_s`** from a frozen
+> `(exchange, metric, source_mode)` mapping grounded in
+> `config/config.yaml → backfill.klines_interval` / `backfill.oi_history_interval_fallback`,
+> the 15s client poll, and 8h funding settlement; **per-observation source
+> isolation** (`DataQualityObservation.source_mode` from raw `source`; live and
+> historical rows never pooled); **fail-closed** event-driven liquidation handling
 > (quiet ≠ stale, but unknown/absent connection ⇒ unusable); `lateness_ms`/
 > `is_stale`; interval-based gap detection with `largest_gap_s = ceil(max delta)`
 > and `gap_exceeded`; coverage window; `backfill_status` as a validated
