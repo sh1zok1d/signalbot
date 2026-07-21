@@ -1503,25 +1503,51 @@ yields a valid snapshot with `percentile_rank = NULL`.
 distribution. The current value never counts toward `sample_size` (the
 distribution is strictly earlier).
 
-Confidence tier is a function of the **calendar span** of the included samples:
+Confidence tier is a function of the **confidence span** — the age of the
+oldest included sample measured against the snapshot bucket `B = bucket_ts`, NOT
+against `sample_window_end`. Measuring `end − start` would be self-limiting:
+because samples live in `[B − W, B)`, `end − start < W` always, so `building`
+(7d) and `mature` (30d) would be mathematically unreachable. The correct span is:
 
 ```
-span_days = (sample_window_end − sample_window_start) / 1 day   # 0 when <2 samples or empty
+confidence_span_days =
+    0                                  if sample_size < 2
+    (bucket_ts − sample_window_start) / 1 day   otherwise
+
 tier =
-  'none'      if sample is empty OR span_days <  none_below_days
-  'low'       if none_below_days     <= span_days <  low_below_days
-  'building'  if low_below_days       <= span_days <  building_below_days
-  'mature'    if span_days >= building_below_days
+  'none'      if confidence_span_days <  none_below_days
+  'low'       if none_below_days     <= confidence_span_days <  low_below_days
+  'building'  if low_below_days       <= confidence_span_days <  building_below_days
+  'mature'    if confidence_span_days >= building_below_days
 ```
+
+`sample_window_start` and `sample_window_end` remain **data-derived** for the
+output schema (earliest / newest included `bucket_ts`); only the *tier* span is
+measured against `bucket_ts`. `sample_window_end` is still strictly earlier than
+`bucket_ts` (upper bound exclusive), and the current bucket still never enters
+`sample_size`.
 
 Thresholds are Stage-2 config (§12.8), frozen default `none_below_days=3`,
 `low_below_days=7`, `building_below_days=30` — numerically identical to Stage 1's
 `storage/validate.py::_confidence_tier`, but **sourced from Stage 2 config** so
 the pure core never reads the Stage 1 `Config`. Tier is **span-based, not
-row-count-based** in 2.1 (a deliberate, documented choice): a one-sample history
-spans 0 days → `'none'`; a sparse history spanning many calendar days takes the
-span-based tier even with few rows (row-count gating is a deferred future
-revision, not invented here). The 7d and 30d snapshots use the **same** tier
+row-count-based** in 2.1 (a deliberate, documented choice; row-count gating is a
+deferred future revision, not invented here).
+
+Frozen worked examples (thresholds 3 / 7 / 30; `B = bucket_ts`):
+
+| # | history | `sample_size` | `sample_window_start` | `confidence_span_days` | tier |
+|---|---|---|---|---|---|
+| 1 | one sample | 1 | that sample's ts | `0` (size < 2) | `none` |
+| 2 | ≥ 2 samples, earliest exactly `B − 3d` | ≥ 2 | `B − 3d` | `3` | `low` |
+| 3 | complete 7d window beginning exactly at `B − 7d` | many | `B − 7d` | `7` | `building` |
+| 4 | complete 30d window beginning exactly at `B − 30d` | many | `B − 30d` | `30` | `mature` |
+| 5 | earliest sample one minute later than `B − 30d` | many | `B − 30d + 1m` | `≈29.999` | `building` |
+
+**Window-reachability (frozen):** because a `W`-day window's oldest possible
+sample is at `B − W` (lower bound inclusive), `confidence_span_days` reaches at
+most `W`. Therefore the **7d** percentile window can reach at most `building`,
+and only the **30d** window can reach `mature`. Both windows use the same tier
 function over their own included samples.
 
 ### 12.7 Determinism, purity, and the request contract
@@ -1540,13 +1566,17 @@ internal rounding. Nested request/output structures are deeply immutable.
 
 ```yaml
 defaults:
+  percentile_windows: [7d, 30d]     # authoritative window key (unchanged)
   percentiles:
-    windows: [7d, 30d]            # already present as defaults.percentile_windows
-    confidence_tiers:
-      none_below_days: 3          # span < 3d  -> 'none'
-      low_below_days: 7           # [3, 7)     -> 'low'
-      building_below_days: 30     # [7, 30)    -> 'building'; >= 30 -> 'mature'
+    confidence_tiers:               # the ONLY key under `percentiles`
+      none_below_days: 3            # span < 3d  -> 'none'
+      low_below_days: 7             # [3, 7)     -> 'low'
+      building_below_days: 30       # [7, 30)    -> 'building'; >= 30 -> 'mature'
 ```
+
+There is no `percentiles.windows` key — the window list stays at
+`defaults.percentile_windows`. `defaults.percentiles` accepts **only**
+`confidence_tiers`; any other key is rejected.
 
 Validation (in `common/stage2_config.py`): three ints, each `> 0` (bool
 rejected), **strictly increasing** (`none_below < low_below < building_below`).

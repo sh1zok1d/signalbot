@@ -237,9 +237,14 @@ Required sequence, in order:
    (`suspected_duplicate BOOLEAN`), so the feature layer can choose and
    the raw record survives.
 
-Until this is resolved, liquidation-derived **percentiles** are computed
-but flagged `confidence_tier` reduced, and are not admitted to any scoring
-use (which is Phase 3 anyway).
+Until this is resolved, liquidation-derived **percentiles** are still computed
+normally, and their `percentile_snapshots.confidence_tier` remains the **generic
+sample-maturity tier** from the frozen confidence-span formula (`STAGE2_SPEC.md`
+§12.6) — unresolved liquidation dedup does **not** mutate that tier and there is
+no metric-specific tier override. Instead, liquidation percentiles are
+**prohibited from scoring / admission** until the separate liquidation
+feed-quality (provider-aware dedup) requirement is satisfied. That restriction is
+a Phase-3 admission gate, not a change to the Stage 2.1 tier.
 
 ## Storage and retention estimate
 

@@ -469,3 +469,32 @@ def test_percentile_tier_non_positive_int_rejected(bad):
     raw["defaults"]["percentiles"]["confidence_tiers"]["none_below_days"] = bad
     with pytest.raises(Stage2ConfigError):
         Stage2Config(raw)._validate()
+
+
+def test_percentiles_unknown_parent_key_rejected():
+    # a stray key under `percentiles` (e.g. a mistaken `windows`) must fail.
+    raw = _base_raw()
+    raw["defaults"]["percentiles"]["windows"] = ["7d", "30d"]
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
+
+
+def test_percentiles_missing_confidence_tiers_rejected():
+    raw = _base_raw()
+    raw["defaults"]["percentiles"] = {}          # confidence_tiers absent
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
+
+
+def test_percentiles_non_mapping_rejected():
+    raw = _base_raw()
+    raw["defaults"]["percentiles"] = ["confidence_tiers"]
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
+
+
+def test_confidence_tiers_non_mapping_rejected():
+    raw = _base_raw()
+    raw["defaults"]["percentiles"]["confidence_tiers"] = 3
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()

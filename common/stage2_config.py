@@ -263,8 +263,11 @@ class Stage2Config:
         the Stage 1 Config. Enters config_hash / calculation_version."""
         if not isinstance(percentiles, Mapping):
             raise Stage2ConfigError("defaults.percentiles must be a mapping")
-        if "confidence_tiers" not in percentiles or not isinstance(
-                percentiles["confidence_tiers"], Mapping):
+        if set(percentiles) != {"confidence_tiers"}:
+            raise Stage2ConfigError(
+                "defaults.percentiles must have exactly {'confidence_tiers'}, "
+                f"got {sorted(percentiles)}")
+        if not isinstance(percentiles["confidence_tiers"], Mapping):
             raise Stage2ConfigError("defaults.percentiles.confidence_tiers must be a mapping")
         tiers = percentiles["confidence_tiers"]
         if set(tiers) != set(_CONFIDENCE_TIER_KEYS):
