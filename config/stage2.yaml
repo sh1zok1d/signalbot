@@ -19,6 +19,15 @@ active_exchanges: [binance, bybit, okx]
 defaults:
   percentile_windows: [7d, 30d]
   timeframes: [1m, 5m, 15m, 1h, 4h]
+  # Percentile confidence tier (Percentile Contract Revision 0.2.4, frozen; see
+  # STAGE2_SPEC.md §12.6). Span-based tier thresholds in CALENDAR DAYS, sourced
+  # here (never from Stage 1 config) so the pure percentile core never depends on
+  # the Stage 1 Config. Three ints, each > 0, STRICTLY INCREASING.
+  percentiles:
+    confidence_tiers:
+      none_below_days: 3        # span < 3d  -> 'none'
+      low_below_days: 7         # [3, 7)     -> 'low'
+      building_below_days: 30   # [7, 30)    -> 'building'; >= 30 -> 'mature'
   data_confidence:
     minimum_metric_coverage: 0.95      # upstream bar-completeness param; NOT a consensus-core gate
     minimum_exchange_coverage: 2       # authoritative per-family consensus minimum (Revision 0.2.3)

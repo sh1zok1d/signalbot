@@ -23,6 +23,8 @@ def _base_raw() -> dict:
             "warmup": {"minimum_calendar_days": 7, "preferred_calendar_days": 30},
             "bucket_close": {"soft_grace_s": 5, "hard_deadline_s": 15},
             "outliers": {"robust_z_threshold": 3.5},
+            "percentiles": {"confidence_tiers": {
+                "none_below_days": 3, "low_below_days": 7, "building_below_days": 30}},
         },
         "asset_tiers": {"major": {}},
         "symbols": {"BTCUSDT": {"tier": "major", "enabled": True, "market_types": ["perp"]}},
@@ -175,6 +177,8 @@ def test_key_order_does_not_change_resolved_config_hash():
         },
         "percentile_windows": ["7d", "30d"],
         "bucket_close": {"hard_deadline_s": 15, "soft_grace_s": 5},
+        "percentiles": {"confidence_tiers": {
+            "building_below_days": 30, "none_below_days": 3, "low_below_days": 7}},
     }
     h1 = _cfg(raw1).config_hash("BTCUSDT")
     h2 = _cfg(raw2).config_hash("BTCUSDT")
@@ -416,3 +420,52 @@ def test_nonfinite_outlier_threshold_rejected():
         raw["defaults"]["outliers"]["robust_z_threshold"] = bad
         with pytest.raises(Stage2ConfigError):
             Stage2Config(raw)._validate()
+
+
+# ===== Percentile Contract Revision 0.2.4 confidence-tier config surface =====
+def test_real_file_has_percentile_confidence_tiers():
+    cfg = Stage2Config.load()
+    t = cfg.resolve("BTCUSDT")["percentiles"]["confidence_tiers"]
+    assert (t["none_below_days"], t["low_below_days"], t["building_below_days"]) == (3, 7, 30)
+
+
+def test_percentile_tiers_in_resolved_config_and_hash():
+    base = _cfg().config_hash("BTCUSDT")
+    raw = _base_raw()
+    raw["defaults"]["percentiles"]["confidence_tiers"]["building_below_days"] = 45
+    assert _cfg(raw).config_hash("BTCUSDT") != base       # thresholds affect the hash
+
+
+def test_missing_percentiles_rejected():
+    raw = _base_raw()
+    del raw["defaults"]["percentiles"]
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
+
+
+def test_percentile_tiers_unknown_or_missing_key_rejected():
+    raw = _base_raw()
+    raw["defaults"]["percentiles"]["confidence_tiers"]["extra"] = 5
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
+    raw2 = _base_raw()
+    del raw2["defaults"]["percentiles"]["confidence_tiers"]["low_below_days"]
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw2)._validate()
+
+
+def test_percentile_tiers_not_strictly_increasing_rejected():
+    for bad in ((7, 3, 30), (3, 7, 7), (3, 3, 30), (30, 7, 3)):
+        raw = _base_raw()
+        raw["defaults"]["percentiles"]["confidence_tiers"] = {
+            "none_below_days": bad[0], "low_below_days": bad[1], "building_below_days": bad[2]}
+        with pytest.raises(Stage2ConfigError):
+            Stage2Config(raw)._validate()
+
+
+@pytest.mark.parametrize("bad", [0, -1, 3.0, True, "3"])
+def test_percentile_tier_non_positive_int_rejected(bad):
+    raw = _base_raw()
+    raw["defaults"]["percentiles"]["confidence_tiers"]["none_below_days"] = bad
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
