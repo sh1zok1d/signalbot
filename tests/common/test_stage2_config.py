@@ -26,8 +26,7 @@ def _base_raw() -> dict:
             "percentiles": {"confidence_tiers": {
                 "none_below_days": 3, "low_below_days": 7, "building_below_days": 30}},
             "data_quality": {"cadence_s": 60, "coverage_window_s": 86400,
-                             "gap_tolerance_factor": 1.5, "max_usable_gap_s": 300,
-                             "short_history_min_days": 7},
+                             "gap_tolerance_factor": 1.5, "max_usable_gap_s": 300},
         },
         "asset_tiers": {"major": {}},
         "symbols": {"BTCUSDT": {"tier": "major", "enabled": True, "market_types": ["perp"]}},
@@ -182,9 +181,8 @@ def test_key_order_does_not_change_resolved_config_hash():
         "bucket_close": {"hard_deadline_s": 15, "soft_grace_s": 5},
         "percentiles": {"confidence_tiers": {
             "building_below_days": 30, "none_below_days": 3, "low_below_days": 7}},
-        "data_quality": {"short_history_min_days": 7, "max_usable_gap_s": 300,
-                         "gap_tolerance_factor": 1.5, "coverage_window_s": 86400,
-                         "cadence_s": 60},
+        "data_quality": {"max_usable_gap_s": 300, "gap_tolerance_factor": 1.5,
+                         "coverage_window_s": 86400, "cadence_s": 60},
     }
     h1 = _cfg(raw1).config_hash("BTCUSDT")
     h2 = _cfg(raw2).config_hash("BTCUSDT")
@@ -511,14 +509,13 @@ def test_real_file_has_data_quality():
     dq = Stage2Config.load().resolve("BTCUSDT")["data_quality"]
     assert dq["cadence_s"] == 60 and dq["coverage_window_s"] == 86400
     assert dq["gap_tolerance_factor"] == 1.5 and dq["max_usable_gap_s"] == 300
-    assert dq["short_history_min_days"] == 7
+    assert "short_history_min_days" not in dq          # removed in Revision 0.2.5
 
 
 def test_data_quality_in_resolved_config_and_hash():
     base = _cfg().config_hash("BTCUSDT")
     for key, val in (("cadence_s", 30), ("coverage_window_s", 43200),
-                     ("gap_tolerance_factor", 2.0), ("max_usable_gap_s", 600),
-                     ("short_history_min_days", 14)):
+                     ("gap_tolerance_factor", 2.0), ("max_usable_gap_s", 600)):
         raw = _base_raw()
         raw["defaults"]["data_quality"][key] = val
         assert _cfg(raw).config_hash("BTCUSDT") != base    # each threshold affects the hash
@@ -549,12 +546,19 @@ def test_data_quality_non_mapping_rejected():
         Stage2Config(raw)._validate()
 
 
-@pytest.mark.parametrize("key", ["cadence_s", "coverage_window_s",
-                                 "max_usable_gap_s", "short_history_min_days"])
+@pytest.mark.parametrize("key", ["cadence_s", "coverage_window_s", "max_usable_gap_s"])
 @pytest.mark.parametrize("bad", [0, -1, 1.5, True, "60"])
 def test_data_quality_int_keys_reject_bad(key, bad):
     raw = _base_raw()
     raw["defaults"]["data_quality"][key] = bad
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
+
+
+def test_data_quality_short_history_key_rejected():
+    # short_history_min_days was removed in Revision 0.2.5 — must be rejected now.
+    raw = _base_raw()
+    raw["defaults"]["data_quality"]["short_history_min_days"] = 7
     with pytest.raises(Stage2ConfigError):
         Stage2Config(raw)._validate()
 

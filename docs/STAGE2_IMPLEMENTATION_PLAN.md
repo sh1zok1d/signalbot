@@ -27,17 +27,23 @@ proposal to approve before writing code.
 > (`analytics/percentile_engine/`) is **NOT** built in this step.
 
 > **Data Quality Contract Revision 0.2.5 — frozen for Stage 2.1.** The Data
-> Quality / gap-detection rules — deterministic `snapshot_ts` cadence, the
-> boolean health model (`is_stale`/`is_usable`) with derived report labels
-> (`not_available`/`no_data`/`stale`/`short_history`/`ok`), raw-source metric
-> mapping (`ohlcv` serving price_structure+volume as one row), event-driven
-> liquidation handling (quiet ≠ stale), the `lateness_ms`/`is_stale` freshness
-> formula, interval-based gap detection (`gap_count`/`largest_gap_s`), coverage
-> window, `backfill_status` as an orchestration input, and calculation-version
-> isolation — are frozen in `STAGE2_SPEC.md` §13. Its config surface
-> (`defaults.data_quality`) ships in `config/stage2.yaml` and is validated in
-> `common/stage2_config.py`; it enters `config_hash`/`calculation_version`. The
-> Data Quality core (`analytics/data_quality/`) is **NOT** built in this step.
+> Quality / gap-detection rules — deterministic `snapshot_ts` cadence; boolean
+> health model (`is_stale`/`is_usable`) with a complete ordered derived label set
+> (`not_available` / `unavailable_historical` / `disconnected` /
+> `connection_unknown` / `no_data` / `stale` / `gap_exceeded` / `ok`); raw-source
+> mapping on the real `ts` column (`ohlcv` serving price_structure+volume as one
+> row); `expected_interval_s` from the frozen `(metric, source_mode)` mapping
+> (live vs historical cadence); **fail-closed** event-driven liquidation handling
+> (quiet ≠ stale, but unknown/absent connection ⇒ unusable); `lateness_ms`/
+> `is_stale`; interval-based gap detection with `largest_gap_s = ceil(max delta)`
+> and `gap_exceeded`; coverage window; `backfill_status` as a validated
+> orchestration input; calculation-version isolation with **raw observations
+> carrying no calculation_version** — are frozen in `STAGE2_SPEC.md` §13.
+> Historical maturity is NOT a data-quality concern (it lives in Percentile §12).
+> Its config surface (`defaults.data_quality`, four keys) ships in
+> `config/stage2.yaml` and is validated in `common/stage2_config.py`; it enters
+> `config_hash`/`calculation_version`. The Data Quality core
+> (`analytics/data_quality/`) is **NOT** built in this step.
 
 ## Files to create — REVISED 0.1
 

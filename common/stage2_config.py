@@ -30,10 +30,10 @@ SUPPORTED_MARKET_TYPES = ("perp",)
 _REQUIRED_DEFAULT_KEYS = ("percentile_windows", "timeframes", "data_confidence",
                           "warmup", "outliers", "percentiles", "data_quality")
 
-# Data Quality Contract Revision 0.2.5 (frozen). Five classification thresholds;
+# Data Quality Contract Revision 0.2.5 (frozen). Four classification thresholds;
 # ints > 0 except gap_tolerance_factor (finite number > 1). See STAGE2_SPEC.md §13.
-_DATA_QUALITY_INT_KEYS = ("cadence_s", "coverage_window_s", "max_usable_gap_s",
-                          "short_history_min_days")
+# (No short_history key — historical maturity is Percentile §12, not Data Quality.)
+_DATA_QUALITY_INT_KEYS = ("cadence_s", "coverage_window_s", "max_usable_gap_s")
 _DATA_QUALITY_KEYS = _DATA_QUALITY_INT_KEYS + ("gap_tolerance_factor",)
 
 # Percentile Contract Revision 0.2.4 (frozen). Confidence-tier span thresholds
@@ -294,9 +294,9 @@ class Stage2Config:
                 f"(none_below < low_below < building_below), got {values}")
 
     def _validate_data_quality(self, dq: Any) -> None:
-        """Data Quality thresholds (Revision 0.2.5): exactly five keys; the four
-        second-based / day counts are ints > 0, gap_tolerance_factor is a finite
-        number > 1. Bool rejected. Enters config_hash / calculation_version."""
+        """Data Quality thresholds (Revision 0.2.5): exactly four keys; the three
+        second-based ints are > 0, gap_tolerance_factor is a finite number > 1.
+        Bool rejected. Enters config_hash / calculation_version."""
         if not isinstance(dq, Mapping):
             raise Stage2ConfigError("defaults.data_quality must be a mapping")
         if set(dq) != set(_DATA_QUALITY_KEYS):
