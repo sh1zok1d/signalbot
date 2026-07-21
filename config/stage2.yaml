@@ -39,6 +39,17 @@ defaults:
       coverage: 0.50
       agreement: 0.30
       dispersion: 0.20
+  # Data Quality & Gap Detection (Data Quality Contract Revision 0.2.5, frozen;
+  # see STAGE2_SPEC.md §13). Classification thresholds only — per-metric expected
+  # intervals and freshness budgets are supplied per request from
+  # common/capabilities.py, never duplicated here. Only these five keys are
+  # allowed; all enter config_hash / calculation_version.
+  data_quality:
+    cadence_s: 60              # health snapshot cadence + snapshot_ts alignment (global)
+    coverage_window_s: 86400   # health coverage window length (24h)
+    gap_tolerance_factor: 1.5  # consecutive delta > interval * factor => a gap
+    max_usable_gap_s: 300      # largest interior gap over this => is_usable=false
+    short_history_min_days: 7  # coverage span < this => short_history (confidence only)
   # Outlier detection (Consensus Contract Revision 0.2.3, frozen). Robust-z uses
   # a FIXED scale constant 0.6744897501960817 (baked into the code, not config);
   # only the threshold is configurable. Outliers are recorded, never removed.

@@ -94,6 +94,12 @@ configurable per provider/metric.
 
 ## 4. Gap detection and provider health
 
+> The exact Data Quality / gap-detection rules are now frozen in
+> `STAGE2_SPEC.md` §13 (Data Quality Contract Revision 0.2.5) — that section is
+> authoritative for `data_health_snapshots` computation (freshness, interval-based
+> gap counting, event-driven liquidation handling, `is_usable`). The wording
+> below is background/motivation.
+
 Phase 0 must check what Stage 1 already provides (sequence gaps, missing
 candles, message lateness, out-of-order handling, WS reconnect tracking,
 REST backfill, duplicate handling, provider heartbeat, last-successful-event

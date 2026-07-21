@@ -26,6 +26,19 @@ proposal to approve before writing code.
 > `config_hash`/`calculation_version`. The Percentile Engine itself
 > (`analytics/percentile_engine/`) is **NOT** built in this step.
 
+> **Data Quality Contract Revision 0.2.5 — frozen for Stage 2.1.** The Data
+> Quality / gap-detection rules — deterministic `snapshot_ts` cadence, the
+> boolean health model (`is_stale`/`is_usable`) with derived report labels
+> (`not_available`/`no_data`/`stale`/`short_history`/`ok`), raw-source metric
+> mapping (`ohlcv` serving price_structure+volume as one row), event-driven
+> liquidation handling (quiet ≠ stale), the `lateness_ms`/`is_stale` freshness
+> formula, interval-based gap detection (`gap_count`/`largest_gap_s`), coverage
+> window, `backfill_status` as an orchestration input, and calculation-version
+> isolation — are frozen in `STAGE2_SPEC.md` §13. Its config surface
+> (`defaults.data_quality`) ships in `config/stage2.yaml` and is validated in
+> `common/stage2_config.py`; it enters `config_hash`/`calculation_version`. The
+> Data Quality core (`analytics/data_quality/`) is **NOT** built in this step.
+
 ## Files to create — REVISED 0.1
 
 ```

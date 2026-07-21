@@ -28,7 +28,13 @@ STAGE2_CONFIG_PATH = ROOT_DIR / "config" / "stage2.yaml"
 
 SUPPORTED_MARKET_TYPES = ("perp",)
 _REQUIRED_DEFAULT_KEYS = ("percentile_windows", "timeframes", "data_confidence",
-                          "warmup", "outliers", "percentiles")
+                          "warmup", "outliers", "percentiles", "data_quality")
+
+# Data Quality Contract Revision 0.2.5 (frozen). Five classification thresholds;
+# ints > 0 except gap_tolerance_factor (finite number > 1). See STAGE2_SPEC.md §13.
+_DATA_QUALITY_INT_KEYS = ("cadence_s", "coverage_window_s", "max_usable_gap_s",
+                          "short_history_min_days")
+_DATA_QUALITY_KEYS = _DATA_QUALITY_INT_KEYS + ("gap_tolerance_factor",)
 
 # Percentile Contract Revision 0.2.4 (frozen). Confidence-tier span thresholds
 # (calendar days): three ints > 0, strictly increasing. See STAGE2_SPEC.md §12.
@@ -192,6 +198,7 @@ class Stage2Config:
         self._validate_confidence_weights(dc)
         self._validate_outliers(defaults["outliers"])
         self._validate_percentiles(defaults["percentiles"])
+        self._validate_data_quality(defaults["data_quality"])
 
         if not isinstance(self._raw["asset_tiers"], Mapping):
             raise Stage2ConfigError("asset_tiers must be a mapping")
@@ -285,6 +292,27 @@ class Stage2Config:
             raise Stage2ConfigError(
                 f"percentiles.confidence_tiers must be strictly increasing "
                 f"(none_below < low_below < building_below), got {values}")
+
+    def _validate_data_quality(self, dq: Any) -> None:
+        """Data Quality thresholds (Revision 0.2.5): exactly five keys; the four
+        second-based / day counts are ints > 0, gap_tolerance_factor is a finite
+        number > 1. Bool rejected. Enters config_hash / calculation_version."""
+        if not isinstance(dq, Mapping):
+            raise Stage2ConfigError("defaults.data_quality must be a mapping")
+        if set(dq) != set(_DATA_QUALITY_KEYS):
+            raise Stage2ConfigError(
+                f"defaults.data_quality must have exactly {sorted(_DATA_QUALITY_KEYS)}, "
+                f"got {sorted(dq)}")
+        for key in _DATA_QUALITY_INT_KEYS:
+            v = dq[key]
+            if not isinstance(v, int) or isinstance(v, bool) or v <= 0:
+                raise Stage2ConfigError(
+                    f"data_quality.{key} must be an int > 0, got {v!r}")
+        factor = self._finite_number(dq["gap_tolerance_factor"],
+                                     "data_quality.gap_tolerance_factor")
+        if factor <= 1:
+            raise Stage2ConfigError(
+                f"data_quality.gap_tolerance_factor must be > 1, got {factor!r}")
 
     # -- resolution --------------------------------------------------------
     def resolve(self, symbol: str) -> ResolvedSymbolConfig:

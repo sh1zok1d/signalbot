@@ -25,6 +25,9 @@ def _base_raw() -> dict:
             "outliers": {"robust_z_threshold": 3.5},
             "percentiles": {"confidence_tiers": {
                 "none_below_days": 3, "low_below_days": 7, "building_below_days": 30}},
+            "data_quality": {"cadence_s": 60, "coverage_window_s": 86400,
+                             "gap_tolerance_factor": 1.5, "max_usable_gap_s": 300,
+                             "short_history_min_days": 7},
         },
         "asset_tiers": {"major": {}},
         "symbols": {"BTCUSDT": {"tier": "major", "enabled": True, "market_types": ["perp"]}},
@@ -179,6 +182,9 @@ def test_key_order_does_not_change_resolved_config_hash():
         "bucket_close": {"hard_deadline_s": 15, "soft_grace_s": 5},
         "percentiles": {"confidence_tiers": {
             "building_below_days": 30, "none_below_days": 3, "low_below_days": 7}},
+        "data_quality": {"short_history_min_days": 7, "max_usable_gap_s": 300,
+                         "gap_tolerance_factor": 1.5, "coverage_window_s": 86400,
+                         "cadence_s": 60},
     }
     h1 = _cfg(raw1).config_hash("BTCUSDT")
     h2 = _cfg(raw2).config_hash("BTCUSDT")
@@ -498,3 +504,79 @@ def test_confidence_tiers_non_mapping_rejected():
     raw["defaults"]["percentiles"]["confidence_tiers"] = 3
     with pytest.raises(Stage2ConfigError):
         Stage2Config(raw)._validate()
+
+
+# ============ Data Quality Contract Revision 0.2.5 config surface ===========
+def test_real_file_has_data_quality():
+    dq = Stage2Config.load().resolve("BTCUSDT")["data_quality"]
+    assert dq["cadence_s"] == 60 and dq["coverage_window_s"] == 86400
+    assert dq["gap_tolerance_factor"] == 1.5 and dq["max_usable_gap_s"] == 300
+    assert dq["short_history_min_days"] == 7
+
+
+def test_data_quality_in_resolved_config_and_hash():
+    base = _cfg().config_hash("BTCUSDT")
+    for key, val in (("cadence_s", 30), ("coverage_window_s", 43200),
+                     ("gap_tolerance_factor", 2.0), ("max_usable_gap_s", 600),
+                     ("short_history_min_days", 14)):
+        raw = _base_raw()
+        raw["defaults"]["data_quality"][key] = val
+        assert _cfg(raw).config_hash("BTCUSDT") != base    # each threshold affects the hash
+
+
+def test_missing_data_quality_rejected():
+    raw = _base_raw()
+    del raw["defaults"]["data_quality"]
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
+
+
+def test_data_quality_unknown_or_missing_key_rejected():
+    raw = _base_raw()
+    raw["defaults"]["data_quality"]["extra"] = 1
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
+    raw2 = _base_raw()
+    del raw2["defaults"]["data_quality"]["cadence_s"]
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw2)._validate()
+
+
+def test_data_quality_non_mapping_rejected():
+    raw = _base_raw()
+    raw["defaults"]["data_quality"] = [1, 2, 3]
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
+
+
+@pytest.mark.parametrize("key", ["cadence_s", "coverage_window_s",
+                                 "max_usable_gap_s", "short_history_min_days"])
+@pytest.mark.parametrize("bad", [0, -1, 1.5, True, "60"])
+def test_data_quality_int_keys_reject_bad(key, bad):
+    raw = _base_raw()
+    raw["defaults"]["data_quality"][key] = bad
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
+
+
+@pytest.mark.parametrize("bad", [1.0, 1, 0.5, 0, -2, True, "1.5",
+                                 float("nan"), float("inf")])
+def test_gap_tolerance_factor_rejects_bad(bad):
+    raw = _base_raw()
+    raw["defaults"]["data_quality"]["gap_tolerance_factor"] = bad
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
+
+
+def test_gap_tolerance_factor_accepts_gt_one():
+    raw = _base_raw()
+    raw["defaults"]["data_quality"]["gap_tolerance_factor"] = 1.0000001
+    Stage2Config(raw)._validate()          # > 1 accepted
+
+
+def test_data_quality_nested_immutable():
+    from types import MappingProxyType
+    dq = _cfg().resolve("BTCUSDT")["data_quality"]
+    assert isinstance(dq, MappingProxyType)
+    with pytest.raises(TypeError):
+        dq["cadence_s"] = 1
