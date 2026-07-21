@@ -570,8 +570,11 @@ the old name asserted a unit that is false for OKX)*
 - Hist: **live-only for bybit/okx**; Binance has historical taker split.
   This is the single biggest historical-coverage constraint in Stage 2.1 —
   cross-exchange taker-flow percentiles only become meaningful after
-  enough live history accumulates (`percentiles.min_days_for_confidence`,
-  currently 3d). Warm-up must be evaluated **per metric family**, exactly
+  enough live history accumulates. The percentile confidence-tier thresholds
+  (span-based; default `none_below_days=3`) are frozen in `STAGE2_SPEC.md` §12
+  and sourced from Stage 2 config (`defaults.percentiles.confidence_tiers`), NOT
+  the Stage 1 `percentiles.*` block. Warm-up must be evaluated **per metric
+  family**, exactly
   as clarifications §19 requires
 
 ### 23.1a Historical taker flow: one venue is not a consensus (revision 0.2.2)

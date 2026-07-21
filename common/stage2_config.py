@@ -28,7 +28,11 @@ STAGE2_CONFIG_PATH = ROOT_DIR / "config" / "stage2.yaml"
 
 SUPPORTED_MARKET_TYPES = ("perp",)
 _REQUIRED_DEFAULT_KEYS = ("percentile_windows", "timeframes", "data_confidence",
-                          "warmup", "outliers")
+                          "warmup", "outliers", "percentiles")
+
+# Percentile Contract Revision 0.2.4 (frozen). Confidence-tier span thresholds
+# (calendar days): three ints > 0, strictly increasing. See STAGE2_SPEC.md §12.
+_CONFIDENCE_TIER_KEYS = ("none_below_days", "low_below_days", "building_below_days")
 
 # Consensus Contract Revision 0.2.3 (frozen). Data Confidence weights: each
 # component weight is finite and >= 0, coverage must be > 0, and the three MUST
@@ -187,6 +191,7 @@ class Stage2Config:
             raise Stage2ConfigError("minimum_exchange_coverage must be an int >= 1")
         self._validate_confidence_weights(dc)
         self._validate_outliers(defaults["outliers"])
+        self._validate_percentiles(defaults["percentiles"])
 
         if not isinstance(self._raw["asset_tiers"], Mapping):
             raise Stage2ConfigError("asset_tiers must be a mapping")
@@ -250,6 +255,36 @@ class Stage2Config:
         if thr <= 0:
             raise Stage2ConfigError(
                 f"outliers.robust_z_threshold must be > 0, got {thr!r}")
+
+    def _validate_percentiles(self, percentiles: Any) -> None:
+        """Percentile confidence-tier thresholds (Revision 0.2.4): a
+        'confidence_tiers' mapping of exactly three int day-spans, each > 0 and
+        strictly increasing. Sourced here so the pure percentile core never reads
+        the Stage 1 Config. Enters config_hash / calculation_version."""
+        if not isinstance(percentiles, Mapping):
+            raise Stage2ConfigError("defaults.percentiles must be a mapping")
+        if set(percentiles) != {"confidence_tiers"}:
+            raise Stage2ConfigError(
+                "defaults.percentiles must have exactly {'confidence_tiers'}, "
+                f"got {sorted(percentiles)}")
+        if not isinstance(percentiles["confidence_tiers"], Mapping):
+            raise Stage2ConfigError("defaults.percentiles.confidence_tiers must be a mapping")
+        tiers = percentiles["confidence_tiers"]
+        if set(tiers) != set(_CONFIDENCE_TIER_KEYS):
+            raise Stage2ConfigError(
+                f"percentiles.confidence_tiers must have exactly "
+                f"{list(_CONFIDENCE_TIER_KEYS)}, got {sorted(tiers)}")
+        values = []
+        for key in _CONFIDENCE_TIER_KEYS:
+            v = tiers[key]
+            if not isinstance(v, int) or isinstance(v, bool) or v <= 0:
+                raise Stage2ConfigError(
+                    f"percentiles.confidence_tiers.{key} must be an int > 0, got {v!r}")
+            values.append(v)
+        if not (values[0] < values[1] < values[2]):
+            raise Stage2ConfigError(
+                f"percentiles.confidence_tiers must be strictly increasing "
+                f"(none_below < low_below < building_below), got {values}")
 
     # -- resolution --------------------------------------------------------
     def resolve(self, symbol: str) -> ResolvedSymbolConfig:

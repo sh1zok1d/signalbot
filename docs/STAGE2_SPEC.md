@@ -990,7 +990,8 @@ Model:
 Correcting a bucket at `corrected_ts` changes not only that bucket's own
 percentile row but **every later percentile snapshot whose sampling window
 contained it**. Since a window of length `W` at bucket `B` samples
-`(B − W, B)`, the corrected bucket is in `B`'s sample exactly when
+`[B − W, B)` (lower bound inclusive, upper bound exclusive — frozen in §12),
+the corrected bucket is in `B`'s sample exactly when
 `corrected_ts < B <= corrected_ts + W`. So:
 
 | Window | Percentile snapshots to recompute |
@@ -1356,3 +1357,239 @@ count. Constraints:
   reproducible and any change flows through `calculation_version`.
 
 The models themselves are not implemented in this step.
+
+## 12. Percentile Contract — Revision 0.2.4 (FROZEN for Stage 2.1)
+
+**Percentile Contract Revision 0.2.4 — frozen for Stage 2.1.** This section is
+the single normative source for how `percentile_snapshots` values are computed.
+It freezes every rule the future pure Percentile Engine needs so the
+implementation is mechanical. Where earlier prose in this spec, the
+implementation plan, or the clarifications differs, **this section wins** —
+in particular it resolves the loose `(B − W, B)` phrasing in §8.3 to the exact
+`[B − W, B)` membership defined below.
+
+The percentile core is pure/deterministic: no DB, network, wall clock, env,
+asyncio, subprocess, or global mutable state, and it does **no** internal
+rounding. The caller supplies `bucket_ts`, full identity + version fields, the
+current metric value, the historical samples, the window, and the confidence
+thresholds; live and historical replay produce field-for-field equal logical
+rows. The Percentile Engine is **not implemented in this revision** — this is a
+contract-only freeze.
+
+### 12.1 Percentile-rank definition
+
+Rank a single `value` against a historical sample of earlier values using the
+**mid-rank (mean) empirical definition**:
+
+```
+L = count(sample_values <  value)      # strictly less
+E = count(sample_values == value)      # equal (ties)
+N = sample_size                        # count of non-NULL earlier samples
+percentile_rank = (L + 0.5 * E) / N    # range 0..1, NO internal rounding
+```
+
+Ties split symmetrically (the `0.5 * E` term). The output range is **0..1**
+(not 0..100). Results are **not rounded** internally. The `value` being ranked
+is the current bucket's value and is **not** a member of the sample.
+
+Worked examples:
+
+| sample | value | L | E | N | percentile_rank |
+|---|---|---|---|---|---|
+| `[1,2,3]` | 1 | 0 | 1 | 3 | `0.5/3 = 0.16666666666666666` |
+| `[1,2,3]` | 2 | 1 | 1 | 3 | `1.5/3 = 0.5` |
+| `[1,2,3]` | 3 | 2 | 1 | 3 | `2.5/3 = 0.8333333333333334` |
+| `[1,2,2,3]` | 2 | 1 | 2 | 4 | `2.0/4 = 0.5` |
+| all equal (`[5,5,5]`) | 5 | 0 | 3 | 3 | `1.5/3 = 0.5` |
+
+### 12.2 Window membership and boundaries
+
+For a snapshot at `bucket_ts = B` with window length `W` (`7d` or `30d`), a
+historical sample `s` is in the distribution iff:
+
+```
+B − W  <=  s.bucket_ts  <  B          # lower bound INCLUSIVE, upper EXCLUSIVE
+```
+
+- The upper bound is strictly earlier (`< B`): the current and any future bucket
+  are excluded by construction; compatible with the DB guard
+  `sample_window_end IS NULL OR sample_window_end < bucket_ts`.
+- The lower bound is **inclusive**: `bucket_ts − W` itself **does** participate.
+  (This is the reading consistent with the §8.3 recompute rule
+  `corrected_ts < B <= corrected_ts + W`.)
+- `W` is exact: `7d = timedelta(days=7)`, `30d = timedelta(days=30)`.
+- Supplying a sample with `s.bucket_ts >= B` (current or future) is an **invalid
+  request** → typed error (never silently dropped).
+- `sample_window_start` = the **earliest** included sample `bucket_ts`;
+  `sample_window_end` = the **newest** included sample `bucket_ts` (data-derived,
+  auditable). Both are `NULL` when the sample is empty.
+- Empty sample (no earlier non-NULL values) → a **valid** snapshot with
+  `sample_size = 0`, `percentile_rank = NULL`, `sample_window_start/end = NULL`,
+  `confidence_tier = 'none'`.
+
+### 12.3 Scope isolation
+
+Two scopes, never mixed:
+
+- `scope='exchange'` — `exchange` is a real active venue (non-empty); the
+  distribution is that one venue's own history for the metric. Binance/Bybit/OKX
+  histories are **never pooled**.
+- `scope='consensus'` — `exchange = ''` (empty string); the distribution is the
+  **consensus series' own history**, never a concatenation of per-venue values.
+
+Every historical sample must match the request **exactly** on: `scope`, `symbol`,
+`market_type`, `timeframe`, `metric`, `calculation_version`,
+`feature_schema_version`, and — for `scope='exchange'` — `exchange`. A sample
+mismatched on any of these is an **invalid request** → typed error (the input is
+NOT treated as pre-filtered; the core validates and fails loudly, so pooling is
+impossible). `scope='exchange'` with empty `exchange`, or `scope='consensus'`
+with non-empty `exchange`, is invalid.
+
+### 12.4 Metric allow-list and source-field mapping
+
+Metric keys are the exact source column names. Frozen Stage 2.1 allow-list:
+
+**`scope='exchange'`** (source: `ExchangeFeatureVector`):
+`price_move_pct`, `range_width_pct`, `volume_notional_usd`,
+`taker_buy_notional_usd`, `taker_sell_notional_usd`, `taker_delta_notional_usd`,
+`cvd_delta_notional_usd`, `oi_change_pct`, `funding_rate`,
+`long_liquidation_notional`, `short_liquidation_notional`,
+`liquidation_event_count`.
+
+**`scope='consensus'`** (source: `ConsensusFeatureVector`):
+`price_move_pct_median`, `range_width_pct_median`, `oi_change_pct_median`,
+`funding_rate_median`, `volume_notional_usd_sum`, `taker_buy_notional_usd_sum`,
+`taker_sell_notional_usd_sum`, `taker_delta_notional_usd_sum`,
+`cvd_delta_notional_usd_sum`, `observed_long_liquidation_notional_sum`,
+`observed_short_liquidation_notional_sum`, `observed_liquidation_event_count_sum`.
+
+Invariants: raw `volume_raw` (and `volume_raw_unit`) is **never** percentiled;
+consensus **funding** percentile is over `funding_rate_median` (never a single
+venue, never pooled raw rates); consensus metrics use the **consensus series'**
+history; CVD uses the **windowed delta** (`cvd_delta_*`), never an accumulator;
+liquidation metrics use the `observed_*` names; a NULL feature value is an
+**absent observation**, never numeric zero. A metric outside the scope's
+allow-list is an **invalid request** → typed error.
+
+**Explicitly NOT percentiled in 2.1** (deferred future candidates, not invented
+here): `close_price`, `volume_raw`, `oi_unit`, all `*_mad`,
+`*_direction_agreement`, `data_confidence_*`, `consensus_confidence`,
+`min_coverage_ratio`, `exchanges_expected_max`, `is_partial_consensus`, and the
+coverage/provenance/outlier/liquidation-quality maps.
+
+### 12.5 NULL / invalid-number behavior
+
+- **Current value NULL** → valid snapshot: `value = NULL`, `percentile_rank =
+  NULL`; `sample_size`/window/tier still computed from the earlier distribution.
+- **Historical sample value NULL** → an absent observation: excluded from the
+  distribution and **not** counted in `sample_size` (NULL ≠ 0).
+- **NaN / +Inf / −Inf** in the current value or any sample → **invalid request**
+  → typed error (never silently dropped or coerced).
+- **Duplicate samples at the same `bucket_ts`**: identical value →
+  deterministically collapsed to one; **conflicting** values at the same
+  `bucket_ts` → **invalid request** → typed error.
+- **Negative values** for signed metrics (e.g. `price_move_pct`,
+  `taker_delta_*`, `oi_change_pct`, `funding_rate`) are valid and included.
+- **Zero values** are valid measured values and are included.
+
+Invalid *requests* (bad identity/version, out-of-window or future sample,
+non-finite number, conflicting duplicate, unknown metric/scope) raise a typed
+`PercentileError`. Merely *absent data* (empty sample, or current value NULL)
+yields a valid snapshot with `percentile_rank = NULL`.
+
+### 12.6 Sample size and confidence tier
+
+`sample_size` = count of **non-NULL earlier** samples that entered the
+distribution. The current value never counts toward `sample_size` (the
+distribution is strictly earlier).
+
+Confidence tier is a function of the **confidence span** — the age of the
+oldest included sample measured against the snapshot bucket `B = bucket_ts`, NOT
+against `sample_window_end`. Measuring `end − start` would be self-limiting:
+because samples live in `[B − W, B)`, `end − start < W` always, so `building`
+(7d) and `mature` (30d) would be mathematically unreachable. The correct span is:
+
+```
+confidence_span_days =
+    0                                  if sample_size < 2
+    (bucket_ts − sample_window_start) / 1 day   otherwise
+
+tier =
+  'none'      if confidence_span_days <  none_below_days
+  'low'       if none_below_days     <= confidence_span_days <  low_below_days
+  'building'  if low_below_days       <= confidence_span_days <  building_below_days
+  'mature'    if confidence_span_days >= building_below_days
+```
+
+`sample_window_start` and `sample_window_end` remain **data-derived** for the
+output schema (earliest / newest included `bucket_ts`); only the *tier* span is
+measured against `bucket_ts`. `sample_window_end` is still strictly earlier than
+`bucket_ts` (upper bound exclusive), and the current bucket still never enters
+`sample_size`.
+
+Thresholds are Stage-2 config (§12.8), frozen default `none_below_days=3`,
+`low_below_days=7`, `building_below_days=30` — numerically identical to Stage 1's
+`storage/validate.py::_confidence_tier`, but **sourced from Stage 2 config** so
+the pure core never reads the Stage 1 `Config`. Tier is **span-based, not
+row-count-based** in 2.1 (a deliberate, documented choice; row-count gating is a
+deferred future revision, not invented here).
+
+Frozen worked examples (thresholds 3 / 7 / 30; `B = bucket_ts`):
+
+| # | history | `sample_size` | `sample_window_start` | `confidence_span_days` | tier |
+|---|---|---|---|---|---|
+| 1 | one sample | 1 | that sample's ts | `0` (size < 2) | `none` |
+| 2 | ≥ 2 samples, earliest exactly `B − 3d` | ≥ 2 | `B − 3d` | `3` | `low` |
+| 3 | complete 7d window beginning exactly at `B − 7d` | many | `B − 7d` | `7` | `building` |
+| 4 | complete 30d window beginning exactly at `B − 30d` | many | `B − 30d` | `30` | `mature` |
+| 5 | earliest sample one minute later than `B − 30d` | many | `B − 30d + 1m` | `≈29.999` | `building` |
+
+**Window-reachability (frozen):** because a `W`-day window's oldest possible
+sample is at `B − W` (lower bound inclusive), `confidence_span_days` reaches at
+most `W`. Therefore the **7d** percentile window can reach at most `building`,
+and only the **30d** window can reach `mature`. Both windows use the same tier
+function over their own included samples.
+
+### 12.7 Determinism, purity, and the request contract
+
+The future `PercentileRequest` carries: `scope`, `exchange` (`''` for consensus),
+`symbol`, `market_type`, `metric`, `timeframe`, `percentile_window`,
+`bucket_ts`, the current `value` (nullable), the historical `samples`
+(each `bucket_ts` + nullable value, with identity fields for validation), the
+confidence-tier thresholds, and the version quadruple (`config_hash`,
+`config_version`, `code_version`, `feature_schema_version`,
+`calculation_version`). Input order of samples does not affect output. No DB,
+network, wall clock, env, asyncio, subprocess, or global mutable state; no
+internal rounding. Nested request/output structures are deeply immutable.
+
+### 12.8 Config surface (Stage 2, frozen)
+
+```yaml
+defaults:
+  percentile_windows: [7d, 30d]     # authoritative window key (unchanged)
+  percentiles:
+    confidence_tiers:               # the ONLY key under `percentiles`
+      none_below_days: 3            # span < 3d  -> 'none'
+      low_below_days: 7             # [3, 7)     -> 'low'
+      building_below_days: 30       # [7, 30)    -> 'building'; >= 30 -> 'mature'
+```
+
+There is no `percentiles.windows` key — the window list stays at
+`defaults.percentile_windows`. `defaults.percentiles` accepts **only**
+`confidence_tiers`; any other key is rejected.
+
+Validation (in `common/stage2_config.py`): three ints, each `> 0` (bool
+rejected), **strictly increasing** (`none_below < low_below < building_below`).
+These keys enter the resolved config and therefore `config_hash` /
+`calculation_version` (§10) — changing a threshold starts a new parallel result
+set, consistent with `calculation_version` being in the `percentile_snapshots`
+key.
+
+### 12.9 Output / schema parity
+
+The future pure output model mirrors the `percentile_snapshots` columns **except
+`computed_at`** (DB default/writer): `scope`, `exchange`, `symbol`,
+`market_type`, `metric`, `timeframe`, `percentile_window`, `bucket_ts`, `value`,
+`percentile_rank`, `sample_size`, `sample_window_start`, `sample_window_end`,
+`confidence_tier`, `config_hash`, `config_version`, `code_version`,
+`feature_schema_version`, `calculation_version`. No invented columns.

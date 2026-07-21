@@ -16,6 +16,16 @@ proposal to approve before writing code.
 > it enters `config_hash`/`calculation_version`. `consensus.py` and its models
 > are NOT built in this step — only the contract and its config are frozen.
 
+> **Percentile Contract Revision 0.2.4 — frozen for Stage 2.1.** The Percentile
+> Engine's every calculation rule — mid-rank empirical percentile (0..1, no
+> rounding), `[B − W, B)` window membership, scope isolation, the per-scope
+> metric allow-list + source mapping, NULL/NaN/duplicate behavior, span-based
+> confidence tiers, purity, and schema parity — is frozen in `STAGE2_SPEC.md`
+> §12. Its config surface (`defaults.percentiles.confidence_tiers`) ships in
+> `config/stage2.yaml` and is validated in `common/stage2_config.py`; it enters
+> `config_hash`/`calculation_version`. The Percentile Engine itself
+> (`analytics/percentile_engine/`) is **NOT** built in this step.
+
 ## Files to create — REVISED 0.1
 
 ```
@@ -227,9 +237,14 @@ Required sequence, in order:
    (`suspected_duplicate BOOLEAN`), so the feature layer can choose and
    the raw record survives.
 
-Until this is resolved, liquidation-derived **percentiles** are computed
-but flagged `confidence_tier` reduced, and are not admitted to any scoring
-use (which is Phase 3 anyway).
+Until this is resolved, liquidation-derived **percentiles** are still computed
+normally, and their `percentile_snapshots.confidence_tier` remains the **generic
+sample-maturity tier** from the frozen confidence-span formula (`STAGE2_SPEC.md`
+§12.6) — unresolved liquidation dedup does **not** mutate that tier and there is
+no metric-specific tier override. Instead, liquidation percentiles are
+**prohibited from scoring / admission** until the separate liquidation
+feed-quality (provider-aware dedup) requirement is satisfied. That restriction is
+a Phase-3 admission gate, not a change to the Stage 2.1 tier.
 
 ## Storage and retention estimate
 
