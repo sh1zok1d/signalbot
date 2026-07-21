@@ -35,8 +35,10 @@ _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 _WEIGHT_SUM_TOL = 1e-9
 
 # Required non-NULL EFV fields for a venue to contribute to each family (§11.
-# contribution rules). All are validated finite when a venue contributes.
-_REQUIRED_FIELDS: dict[str, tuple[str, ...]] = {
+# contribution rules). All are validated (finite; counts as ints) when a venue
+# contributes. Structurally immutable — shared read-only lookup, never mutable
+# module state.
+_REQUIRED_FIELDS: Mapping[str, tuple[str, ...]] = MappingProxyType({
     "price_structure": ("price_move_pct", "range_width_pct", "close_price"),
     "volume":          ("volume_notional_usd",),
     "taker_flow":      ("taker_buy_notional_usd", "taker_sell_notional_usd",
@@ -45,29 +47,18 @@ _REQUIRED_FIELDS: dict[str, tuple[str, ...]] = {
     "funding":         ("funding_rate",),
     "liquidations":    ("long_liquidation_notional", "short_liquidation_notional",
                         "liquidation_event_count"),
-}
+})
+# EFV fields that are integer counts (validated as ints, never coerced).
+_COUNT_FIELDS = frozenset({"liquidation_event_count"})
 # is_usable gates contribution ONLY for the bar-derived families (§11.7).
 _USABLE_GATED = frozenset({"price_structure", "volume", "taker_flow"})
 
-# Sign source for direction agreement (§11.2).
-_DIRECTION_SOURCE = {
-    "price_structure": "price_move_pct",
-    "taker_flow":      "taker_delta_notional_usd",
-    "oi":              "oi_change_pct",
-}
-# Value source for the dispersion confidence component (§11.3).
-_DISPERSION_SOURCE = {
-    "price_structure": "price_move_pct",
-    "taker_flow":      "taker_delta_notional_usd",
-    "oi":              "oi_change_pct",
-    "funding":         "funding_rate",
-}
-# Outlier metrics -> (family that owns them, EFV field) (§11.5).
-_OUTLIER_METRICS = {
+# Outlier metrics -> (family that owns them, EFV field) (§11.5). Immutable.
+_OUTLIER_METRICS: Mapping[str, tuple[str, str]] = MappingProxyType({
     "price_move_pct": ("price_structure", "price_move_pct"),
     "oi_change_pct":  ("oi", "oi_change_pct"),
     "funding_rate":   ("funding", "funding_rate"),
-}
+})
 
 
 # ---- small validators ------------------------------------------------------
@@ -91,6 +82,16 @@ def _finite(value, name: str) -> float:
 def _nonblank(value, name: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ConsensusError(f"{name} must be a non-empty string")
+    return value
+
+
+def _require_count(value, name: str) -> int:
+    """A real non-negative integer event count — never a bool, float, or coerced
+    value (no silent int(...))."""
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ConsensusError(f"{name} must be an int, got {type(value).__name__}")
+    if value < 0:
+        raise ConsensusError(f"{name} must be >= 0, got {value!r}")
     return value
 
 
@@ -235,9 +236,15 @@ def _contributes(family: str, efv: ExchangeFeatureVector) -> bool:
     return all(getattr(efv, f) is not None for f in _REQUIRED_FIELDS[family])
 
 
-def _validate_contributor_finite(family: str, efv: ExchangeFeatureVector) -> None:
+def _validate_contributor_values(family: str, efv: ExchangeFeatureVector) -> None:
+    """Every required field of a contributor is a real value: numeric fields
+    finite, count fields non-negative ints. Runs for all contributors (even below
+    minimum), so a bad value always fails loudly."""
     for f in _REQUIRED_FIELDS[family]:
-        _finite(getattr(efv, f), f"{efv.exchange}.{f}")
+        if f in _COUNT_FIELDS:
+            _require_count(getattr(efv, f), f"{efv.exchange}.{f}")
+        else:
+            _finite(getattr(efv, f), f"{efv.exchange}.{f}")
 
 
 # ---- entry point -----------------------------------------------------------
@@ -268,7 +275,7 @@ def compute_consensus_features(req: ConsensusFeatureRequest) -> ConsensusFeature
                 raise ConsensusError(
                     f"{family}: expected exchange {ex!r} is neither excluded nor a valid "
                     f"contributor (missing required value or is_usable gate)")
-            _validate_contributor_finite(family, efv)
+            _validate_contributor_values(family, efv)
             contributing.append(efv)
         contributors[family] = contributing
         available = len(contributing)
@@ -335,8 +342,10 @@ def compute_consensus_features(req: ConsensusFeatureRequest) -> ConsensusFeature
             _vals("liquidations", "long_liquidation_notional"))
         agg["observed_short_liquidation_notional_sum"] = math.fsum(
             _vals("liquidations", "short_liquidation_notional"))
+        # Values are already validated as non-negative ints — sum directly, no
+        # coercion. sum() of ints stays an int.
         agg["observed_liquidation_event_count_sum"] = sum(
-            int(e.liquidation_event_count) for e in contributors["liquidations"])
+            e.liquidation_event_count for e in contributors["liquidations"])
 
     # 3) Data Confidence per family.
     def _family_confidence(family: str) -> float:

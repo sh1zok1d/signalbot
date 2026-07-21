@@ -24,15 +24,17 @@ FAMILIES: tuple[str, ...] = (
     "price_structure", "volume", "taker_flow", "oi", "funding", "liquidations",
 )
 
-# Applicable Data-Confidence components per family (§11.4).
-APPLICABLE_COMPONENTS: dict[str, tuple[str, ...]] = {
+# Applicable Data-Confidence components per family (§11.4). Structurally
+# immutable (MappingProxyType + tuple values) — a shared read-only lookup, never
+# mutable module state.
+APPLICABLE_COMPONENTS: Mapping[str, tuple[str, ...]] = MappingProxyType({
     "price_structure": ("coverage", "agreement", "dispersion"),
     "volume":          ("coverage",),
     "taker_flow":      ("coverage", "agreement", "dispersion"),
     "oi":              ("coverage", "agreement", "dispersion"),
     "funding":         ("coverage", "dispersion"),
     "liquidations":    ("coverage",),
-}
+})
 
 CONFIDENCE_WEIGHT_KEYS: tuple[str, ...] = ("coverage", "agreement", "dispersion")
 
@@ -68,10 +70,6 @@ class ProvenanceEntry:
 class OutlierEntry:
     robust_z: Optional[float]     # None only for the MAD==0 non-median case
     reason: str
-
-
-def _freeze_str_seq(seq: Sequence[str]) -> tuple[str, ...]:
-    return tuple(seq)
 
 
 def _freeze_expected(m: Mapping[str, Sequence[str]]) -> Mapping[str, tuple[str, ...]]:

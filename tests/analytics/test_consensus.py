@@ -18,7 +18,10 @@ from analytics.feature_engine.models import ExchangeFeatureVector
 from analytics.feature_engine.consensus_models import (
     ConsensusFeatureRequest, ConsensusFeatureVector, FAMILIES, ROBUST_Z_SCALE,
 )
-from analytics.feature_engine.consensus import compute_consensus_features, ConsensusError
+from analytics.feature_engine.consensus_models import APPLICABLE_COMPONENTS
+from analytics.feature_engine.consensus import (
+    compute_consensus_features, ConsensusError, _OUTLIER_METRICS, _REQUIRED_FIELDS,
+)
 
 BASE = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
 CV16 = "0123456789abcdef"
@@ -434,3 +437,52 @@ def test_output_fields_match_schema_minus_computed_at():
     fields = {f.name for f in dataclasses.fields(ConsensusFeatureVector)}
     assert fields == schema_cols
     assert "computed_at" not in fields
+
+
+# =============== hardening: immutable lookups + determinism =================
+@pytest.mark.parametrize("lookup", [APPLICABLE_COMPONENTS, _REQUIRED_FIELDS, _OUTLIER_METRICS])
+def test_module_lookup_tables_are_immutable(lookup):
+    assert isinstance(lookup, MappingProxyType)
+    with pytest.raises(TypeError):
+        lookup["oi"] = ("nonsense",)          # cannot rebind a key
+    with pytest.raises(TypeError):
+        del lookup["oi"]                       # cannot delete a key
+    # values are tuples (immutable), so no in-place append is possible either
+    for v in lookup.values():
+        assert isinstance(v, tuple)
+
+
+def test_repeated_computation_is_identical():
+    req = _req(_three())
+    results = [compute_consensus_features(req) for _ in range(3)]
+    assert results[0] == results[1] == results[2]
+    # lookup tables are unchanged after repeated computation (no mutable state)
+    assert APPLICABLE_COMPONENTS["funding"] == ("coverage", "dispersion")
+    assert _REQUIRED_FIELDS["volume"] == ("volume_notional_usd",)
+
+
+# =============== hardening: liquidation_event_count validation ==============
+def test_fractional_event_count_rejected():
+    bad = dataclasses.replace(_efv("okx"), liquidation_event_count=2.5)
+    with pytest.raises(ConsensusError):
+        compute_consensus_features(_req([_efv("binance"), _efv("bybit"), bad]))
+
+
+def test_bool_event_count_rejected():
+    bad = dataclasses.replace(_efv("okx"), liquidation_event_count=True)
+    with pytest.raises(ConsensusError):
+        compute_consensus_features(_req([_efv("binance"), _efv("bybit"), bad]))
+
+
+def test_negative_event_count_rejected():
+    bad = dataclasses.replace(_efv("okx"), liquidation_event_count=-1)
+    with pytest.raises(ConsensusError):
+        compute_consensus_features(_req([_efv("binance"), _efv("bybit"), bad]))
+
+
+def test_event_count_sum_stays_int():
+    feats = [_efv("binance", liq_count=1), _efv("bybit", liq_count=2),
+             _efv("okx", liq_count=3)]
+    v = compute_consensus_features(_req(feats))
+    assert v.observed_liquidation_event_count_sum == 6
+    assert isinstance(v.observed_liquidation_event_count_sum, int)
