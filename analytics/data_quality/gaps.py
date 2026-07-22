@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Iterable
 
-from .models import DataQualityError, GapSummary
+from .models import DataQualityError, GapSummary, validate_gap_tolerance_factor
 
 _US_PER_SECOND = 1_000_000
 
@@ -47,10 +47,9 @@ def compute_gap_summary(
         raise DataQualityError(
             f"expected_interval_s must be an int > 0 for gap detection, "
             f"got {expected_interval_s!r}")
-    if not isinstance(gap_tolerance_factor, (int, float)) or isinstance(gap_tolerance_factor, bool) \
-            or not float(gap_tolerance_factor) > 1:
-        raise DataQualityError(
-            f"gap_tolerance_factor must be a real number > 1, got {gap_tolerance_factor!r}")
+    # Independently reject non-finite / bool / non-real / <=1 (this is a separately
+    # exported public helper — never assume DataQualityThresholds pre-validated).
+    validate_gap_tolerance_factor(gap_tolerance_factor)
 
     unique: list[datetime] = []
     seen = set()

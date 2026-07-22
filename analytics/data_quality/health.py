@@ -29,8 +29,10 @@ from .models import (
     VALID_METRICS,
 )
 
-_HEX16 = re.compile(r"^[0-9a-f]{16}$")
-_HEX64 = re.compile(r"^[0-9a-f]{64}$")
+# Exact hex matchers used with `.fullmatch` — no `$`, which can match before a
+# trailing newline, so `"a"*64 + "\n"` and trailing-whitespace forms are rejected.
+_HEX16 = re.compile(r"[0-9a-f]{16}")
+_HEX64 = re.compile(r"[0-9a-f]{64}")
 _EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 _MS_PER_SECOND = 1_000
 
@@ -92,10 +94,10 @@ def _validate_identity(req: DataQualityRequest) -> None:
     if not isinstance(req.feature_schema_version, int) or isinstance(req.feature_schema_version, bool) \
             or req.feature_schema_version <= 0:
         raise DataQualityError("feature_schema_version must be an int > 0")
-    if not isinstance(req.config_hash, str) or not _HEX64.match(req.config_hash):
-        raise DataQualityError("config_hash must be 64 lowercase hex chars")
-    if not isinstance(req.calculation_version, str) or not _HEX16.match(req.calculation_version):
-        raise DataQualityError("calculation_version must be 16 lowercase hex chars")
+    if not isinstance(req.config_hash, str) or not _HEX64.fullmatch(req.config_hash):
+        raise DataQualityError("config_hash must be exactly 64 lowercase hex chars")
+    if not isinstance(req.calculation_version, str) or not _HEX16.fullmatch(req.calculation_version):
+        raise DataQualityError("calculation_version must be exactly 16 lowercase hex chars")
 
 
 def _validate_snapshot_ts(req: DataQualityRequest) -> None:
@@ -244,7 +246,25 @@ def derive_data_health_status(
 ) -> str:
     """Report-layer label for a persisted snapshot (§13.5). Reads only fields on
     the snapshot plus the supplied capability/connection facts; adds NO `status`
-    column to the row."""
+    column to the row. Fails loudly on malformed supplied facts rather than
+    silently returning a plausible label."""
+    if not isinstance(snapshot, DataHealthSnapshot):
+        raise DataQualityError(
+            f"snapshot must be a DataHealthSnapshot, got {type(snapshot).__name__}")
+    if snapshot.metric not in VALID_METRICS:
+        raise DataQualityError(
+            f"snapshot.metric {snapshot.metric!r} is not a valid health metric "
+            f"(valid: {list(VALID_METRICS)})")
+    if not isinstance(live_supported, bool):
+        raise DataQualityError("live_supported must be a bool")
+    if coverage_type not in VALID_COVERAGE_TYPES:
+        raise DataQualityError(
+            f"invalid coverage_type {coverage_type!r} (expected {list(VALID_COVERAGE_TYPES)})")
+    if not (connection_up is True or connection_up is False or connection_up is None):
+        raise DataQualityError("connection_up must be True, False, or None")
+    if not isinstance(max_usable_gap_s, int) or isinstance(max_usable_gap_s, bool) \
+            or max_usable_gap_s <= 0:
+        raise DataQualityError("max_usable_gap_s must be an int > 0")
     return _derive_status(
         snapshot.metric, snapshot.last_event_at, snapshot.is_stale, snapshot.largest_gap_s,
         live_supported=live_supported, coverage_type=coverage_type,

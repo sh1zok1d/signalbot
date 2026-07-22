@@ -58,6 +58,25 @@ class DataQualityError(ValueError):
     silently coerced, dropped, filtered, or defaulted (§13.14)."""
 
 
+def validate_gap_tolerance_factor(value, name: str = "gap_tolerance_factor"):
+    """Overflow-safe finite-real > 1 check, shared by the config value object and
+    the public `compute_gap_summary` helper. bool is rejected; a huge finite int
+    is compared directly (never `float()`-converted, so no `OverflowError`
+    leaks); a float must be finite (NaN/±Inf rejected). Returns the value."""
+    if isinstance(value, bool):
+        raise DataQualityError(f"{name} must not be a bool, got {value!r}")
+    if isinstance(value, int):
+        # int is finite by definition; direct int comparison avoids OverflowError.
+        if value <= 1:
+            raise DataQualityError(f"{name} must be > 1, got {value!r}")
+        return value
+    if isinstance(value, float):
+        if not math.isfinite(value) or not value > 1:
+            raise DataQualityError(f"{name} must be a finite number > 1, got {value!r}")
+        return value
+    raise DataQualityError(f"{name} must be a real number > 1, got {value!r}")
+
+
 # ---- config value object (§13.13 / §13.6 threshold rules) ------------------
 @dataclass(frozen=True)
 class DataQualityThresholds:
@@ -76,14 +95,7 @@ class DataQualityThresholds:
             v = getattr(self, name)
             if not isinstance(v, int) or isinstance(v, bool) or v <= 0:
                 raise DataQualityError(f"{name} must be an int > 0, got {v!r}")
-        f = self.gap_tolerance_factor
-        if not isinstance(f, (int, float)) or isinstance(f, bool):
-            raise DataQualityError(
-                f"gap_tolerance_factor must be a real number, got {f!r}")
-        if not math.isfinite(float(f)):
-            raise DataQualityError(f"gap_tolerance_factor must be finite, got {f!r}")
-        if not float(f) > 1:
-            raise DataQualityError(f"gap_tolerance_factor must be > 1, got {f!r}")
+        validate_gap_tolerance_factor(self.gap_tolerance_factor)
 
 
 # ---- inputs ----------------------------------------------------------------

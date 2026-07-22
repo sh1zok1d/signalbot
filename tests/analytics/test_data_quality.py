@@ -246,6 +246,26 @@ def test_malformed_version_fields_rejected(over):
         compute_data_health_snapshot(_req(**over))
 
 
+@pytest.mark.parametrize("over", [
+    {"config_hash": "a" * 64 + "\n"},
+    {"config_hash": "a" * 64 + " "},
+    {"config_hash": "\n" + "a" * 63},
+    {"calculation_version": "b" * 16 + "\n"},
+    {"calculation_version": "b" * 16 + " "},
+    {"calculation_version": " " + "b" * 15},
+])
+def test_hex_trailing_whitespace_or_newline_rejected(over):
+    # `$` can match before a trailing newline; fullmatch on an unanchored pattern
+    # must reject any non-hex trailing/leading character.
+    with pytest.raises(DataQualityError):
+        compute_data_health_snapshot(_req(**over))
+
+
+def test_exact_length_hex_still_accepted():
+    snap = compute_data_health_snapshot(_req(config_hash="a" * 64, calculation_version="b" * 16))
+    assert snap.config_hash == "a" * 64 and snap.calculation_version == "b" * 16
+
+
 # ============================================================================
 # C. Snapshot time
 # ============================================================================
@@ -328,6 +348,42 @@ def test_gap_tolerance_factor_rejects_bad(bad):
 @pytest.mark.parametrize("good", [1.0001, 1.5, 2, 3.0])
 def test_gap_tolerance_factor_accepts_gt_one(good):
     assert DataQualityThresholds(60, 86_400, good, 300).gap_tolerance_factor == good
+
+
+def test_thresholds_huge_finite_int_factor_no_overflow():
+    # a huge finite int must NOT leak OverflowError from a blind float() conversion
+    huge = 10 ** 400
+    assert DataQualityThresholds(60, 86_400, huge, 300).gap_tolerance_factor == huge
+
+
+# ----- direct public-helper validation for compute_gap_summary (§13.8) -------
+_GAP_TS = [S - timedelta(seconds=1000), S - timedelta(seconds=100)]  # would-be huge gap
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf"),
+                                 True, False, "1.5", 1, 0.5, 0, -3, None])
+def test_compute_gap_summary_rejects_bad_factor_directly(bad):
+    # tested through the exported helper, NOT via DataQualityThresholds
+    with pytest.raises(DataQualityError):
+        compute_gap_summary(_GAP_TS, 60, bad)
+
+
+def test_positive_infinity_cannot_disable_gap_detection():
+    # +inf previously passed `float(x) > 1` and made every delta "not a gap"
+    with pytest.raises(DataQualityError):
+        compute_gap_summary(_GAP_TS, 60, float("inf"))
+
+
+def test_compute_gap_summary_huge_finite_int_factor_no_overflow():
+    # huge finite int is a legitimate factor: no OverflowError, deterministic result
+    g = compute_gap_summary(_GAP_TS, 60, 10 ** 400)
+    assert g == GapSummary(0, None)   # threshold astronomically large -> no gap
+
+
+@pytest.mark.parametrize("bad", [0, -1, 60.0, "60", True, None])
+def test_compute_gap_summary_rejects_bad_interval_directly(bad):
+    with pytest.raises(DataQualityError):
+        compute_gap_summary(_GAP_TS, bad, 1.5)
 
 
 # ============================================================================
@@ -732,6 +788,52 @@ def test_ok_status():
         snap, live_supported=True, coverage_type="full", connection_up=None,
         max_usable_gap_s=300) == "ok"
     assert snap.is_usable is True
+
+
+# ----- derive_data_health_status public-helper input validation --------------
+def _ok_snap():
+    return compute_data_health_snapshot(_req())
+
+
+def test_derive_status_rejects_non_snapshot():
+    with pytest.raises(DataQualityError):
+        derive_data_health_status(object(), live_supported=True, coverage_type="full",
+                                  connection_up=None, max_usable_gap_s=300)
+
+
+def test_derive_status_rejects_non_bool_live_supported():
+    with pytest.raises(DataQualityError):
+        derive_data_health_status(_ok_snap(), live_supported=1, coverage_type="full",
+                                  connection_up=None, max_usable_gap_s=300)
+
+
+@pytest.mark.parametrize("cov", ["garbage", "", "FULL", "partial"])
+def test_derive_status_rejects_bad_coverage_type(cov):
+    with pytest.raises(DataQualityError):
+        derive_data_health_status(_ok_snap(), live_supported=True, coverage_type=cov,
+                                  connection_up=None, max_usable_gap_s=300)
+
+
+@pytest.mark.parametrize("conn", ["down", 1, 0, "True"])
+def test_derive_status_rejects_bad_connection_up(conn):
+    with pytest.raises(DataQualityError):
+        derive_data_health_status(_ok_snap(), live_supported=True, coverage_type="full",
+                                  connection_up=conn, max_usable_gap_s=300)
+
+
+@pytest.mark.parametrize("bad", [0, -1, True, 300.0, "300", None])
+def test_derive_status_rejects_bad_max_usable_gap_s(bad):
+    with pytest.raises(DataQualityError):
+        derive_data_health_status(_ok_snap(), live_supported=True, coverage_type="full",
+                                  connection_up=None, max_usable_gap_s=bad)
+
+
+def test_derive_status_rejects_metric_not_in_allow_list():
+    # a hand-forged snapshot carrying a non-health metric must be rejected
+    bad = dataclasses.replace(_ok_snap(), metric="mark_price")
+    with pytest.raises(DataQualityError):
+        derive_data_health_status(bad, live_supported=True, coverage_type="full",
+                                  connection_up=None, max_usable_gap_s=300)
 
 
 def test_healthy_live_okx_oi_unsupported_history_still_usable():
