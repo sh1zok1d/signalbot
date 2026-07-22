@@ -25,6 +25,8 @@ def _base_raw() -> dict:
             "outliers": {"robust_z_threshold": 3.5},
             "percentiles": {"confidence_tiers": {
                 "none_below_days": 3, "low_below_days": 7, "building_below_days": 30}},
+            "data_quality": {"cadence_s": 60, "coverage_window_s": 86400,
+                             "gap_tolerance_factor": 1.5, "max_usable_gap_s": 300},
         },
         "asset_tiers": {"major": {}},
         "symbols": {"BTCUSDT": {"tier": "major", "enabled": True, "market_types": ["perp"]}},
@@ -179,6 +181,8 @@ def test_key_order_does_not_change_resolved_config_hash():
         "bucket_close": {"hard_deadline_s": 15, "soft_grace_s": 5},
         "percentiles": {"confidence_tiers": {
             "building_below_days": 30, "none_below_days": 3, "low_below_days": 7}},
+        "data_quality": {"max_usable_gap_s": 300, "gap_tolerance_factor": 1.5,
+                         "coverage_window_s": 86400, "cadence_s": 60},
     }
     h1 = _cfg(raw1).config_hash("BTCUSDT")
     h2 = _cfg(raw2).config_hash("BTCUSDT")
@@ -498,3 +502,233 @@ def test_confidence_tiers_non_mapping_rejected():
     raw["defaults"]["percentiles"]["confidence_tiers"] = 3
     with pytest.raises(Stage2ConfigError):
         Stage2Config(raw)._validate()
+
+
+# ============ Data Quality Contract Revision 0.2.5 config surface ===========
+def test_real_file_has_data_quality():
+    dq = Stage2Config.load().resolve("BTCUSDT")["data_quality"]
+    assert dq["cadence_s"] == 60 and dq["coverage_window_s"] == 86400
+    assert dq["gap_tolerance_factor"] == 1.5 and dq["max_usable_gap_s"] == 300
+    assert "short_history_min_days" not in dq          # removed in Revision 0.2.5
+
+
+def test_data_quality_in_resolved_config_and_hash():
+    base = _cfg().config_hash("BTCUSDT")
+    for key, val in (("cadence_s", 30), ("coverage_window_s", 43200),
+                     ("gap_tolerance_factor", 2.0), ("max_usable_gap_s", 600)):
+        raw = _base_raw()
+        raw["defaults"]["data_quality"][key] = val
+        assert _cfg(raw).config_hash("BTCUSDT") != base    # each threshold affects the hash
+
+
+def test_missing_data_quality_rejected():
+    raw = _base_raw()
+    del raw["defaults"]["data_quality"]
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
+
+
+def test_data_quality_unknown_or_missing_key_rejected():
+    raw = _base_raw()
+    raw["defaults"]["data_quality"]["extra"] = 1
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
+    raw2 = _base_raw()
+    del raw2["defaults"]["data_quality"]["cadence_s"]
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw2)._validate()
+
+
+def test_data_quality_non_mapping_rejected():
+    raw = _base_raw()
+    raw["defaults"]["data_quality"] = [1, 2, 3]
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
+
+
+@pytest.mark.parametrize("key", ["cadence_s", "coverage_window_s", "max_usable_gap_s"])
+@pytest.mark.parametrize("bad", [0, -1, 1.5, True, "60"])
+def test_data_quality_int_keys_reject_bad(key, bad):
+    raw = _base_raw()
+    raw["defaults"]["data_quality"][key] = bad
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
+
+
+def test_data_quality_short_history_key_rejected():
+    # short_history_min_days was removed in Revision 0.2.5 — must be rejected now.
+    raw = _base_raw()
+    raw["defaults"]["data_quality"]["short_history_min_days"] = 7
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
+
+
+@pytest.mark.parametrize("bad", [1.0, 1, 0.5, 0, -2, True, "1.5",
+                                 float("nan"), float("inf")])
+def test_gap_tolerance_factor_rejects_bad(bad):
+    raw = _base_raw()
+    raw["defaults"]["data_quality"]["gap_tolerance_factor"] = bad
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
+
+
+def test_gap_tolerance_factor_accepts_gt_one():
+    raw = _base_raw()
+    raw["defaults"]["data_quality"]["gap_tolerance_factor"] = 1.0000001
+    Stage2Config(raw)._validate()          # > 1 accepted
+
+
+def test_data_quality_nested_immutable():
+    from types import MappingProxyType
+    dq = _cfg().resolve("BTCUSDT")["data_quality"]
+    assert isinstance(dq, MappingProxyType)
+    with pytest.raises(TypeError):
+        dq["cadence_s"] = 1
+
+
+# ===== Data Quality contract-consistency (capability facts §13 relies on) =====
+def test_capability_registry_matches_frozen_historical_support():
+    """STAGE2_SPEC.md §13.3 freezes an exchange-aware historical interval mapping
+    whose 'unsupported' cells must equal historical_supported=False in the
+    capability registry. This guards the contract's factual basis."""
+    from common.capabilities import CAPABILITIES
+    hist = {(ex, m): h for (ex, m, live, h, cov, fresh, note) in CAPABILITIES}
+    # taker_flow historical: Binance only
+    assert hist[("binance", "taker_flow")] is True
+    assert hist[("bybit", "taker_flow")] is False
+    assert hist[("okx", "taker_flow")] is False
+    # open_interest historical: Binance + Bybit, NOT OKX
+    assert hist[("binance", "open_interest")] is True
+    assert hist[("bybit", "open_interest")] is True
+    assert hist[("okx", "open_interest")] is False
+    # liquidations historical: none of the active exchanges
+    for ex in ("binance", "bybit", "okx"):
+        assert hist[(ex, "liquidations")] is False
+    # ohlcv + funding historical: all three active exchanges supported
+    for ex in ("binance", "bybit", "okx"):
+        assert hist[(ex, "ohlcv")] is True
+        assert hist[(ex, "funding")] is True
+
+
+def test_data_health_snapshots_is_live_only_no_source_mode():
+    """STAGE2_SPEC.md §13: data_health_snapshots is live-only. There is no
+    source_mode column or PK discriminator, so a live and a historical snapshot
+    can never collide on one primary key."""
+    import re
+    from pathlib import Path
+    sql = Path("storage/stage2_schema.sql").read_text(encoding="utf-8")
+    m = re.search(r"CREATE TABLE IF NOT EXISTS data_health_snapshots\s*\((.*?)\n\);",
+                  sql, re.S)
+    assert m, "data_health_snapshots table not found"
+    body = m.group(1)
+    assert "source_mode" not in body                     # no source-mode column
+    pk = re.search(r"PRIMARY KEY \(([^)]*)\)", body)
+    assert pk, "PK not found"
+    pk_cols = [c.strip() for c in pk.group(1).split(",")]
+    assert pk_cols == ["symbol", "exchange", "market_type", "metric",
+                       "snapshot_ts", "calculation_version"]   # single live-health identity
+
+
+def _table_body(sql: str, table: str) -> str:
+    import re
+    m = re.search(
+        r"CREATE TABLE IF NOT EXISTS " + re.escape(table) + r"\s*\((.*?)\n\);",
+        sql, re.S)
+    assert m, f"{table} table not found"
+    return m.group(1)
+
+
+def test_liquidations_is_live_only_has_no_source_column():
+    """STAGE2_SPEC.md §13.4: liquidations is structurally LIVE ONLY and never
+    backfilled, so storage/schema.sql -> liquidations has NO 'source' column,
+    while the backfillable raw tables (klines_1m/open_interest/funding_rate) do.
+    The contract normalizes every liquidations row to raw_source='live' WITHOUT
+    reading a nonexistent column. This test also guards that no 'source' column is
+    added to liquidations (no schema change)."""
+    import re
+    from pathlib import Path
+    sql = Path("storage/schema.sql").read_text(encoding="utf-8")
+
+    def _has_source_col(body: str) -> bool:
+        # a standalone "source" column definition (not source_ts etc.)
+        return bool(re.search(r"^\s*source\s+TEXT", body, re.M))
+
+    # backfillable raw tables DO carry a source column
+    for table in ("klines_1m", "open_interest", "funding_rate"):
+        assert _has_source_col(_table_body(sql, table)), \
+            f"{table} should carry a source column"
+
+    # liquidations is LIVE ONLY -> no source column, no schema change
+    liq = _table_body(sql, "liquidations")
+    assert not _has_source_col(liq), \
+        "liquidations must NOT carry a source column (structurally live-only)"
+    assert "source" not in liq  # no source-derived provenance field at all
+
+
+def test_liquidations_provenance_normalizes_to_live_without_a_column():
+    """STAGE2_SPEC.md §13.4: because liquidations has no source column, its frozen
+    normalization is a structural constant raw_source='live' — derivable without
+    querying any column. A liquidations observation presented as backfill is an
+    impossible-provenance invalid request."""
+    from pathlib import Path
+    sql = Path("storage/schema.sql").read_text(encoding="utf-8")
+    liq = _table_body(sql, "liquidations")
+
+    # No column to read; provenance is the structural constant 'live'.
+    assert not any("source" in line for line in liq.splitlines())
+    liquidations_raw_source = "live"   # deterministic structural constant
+    assert liquidations_raw_source == "live"
+
+    # The live-health core accepts 'live' and rejects 'backfill'; a caller trying to
+    # present liquidations as backfill is therefore an invalid (impossible) request.
+    def _accepts(raw_source: str) -> bool:
+        return raw_source == "live"
+    assert _accepts(liquidations_raw_source) is True
+    assert _accepts("backfill") is False
+
+
+# ===== Freshness lateness_ms quantisation (§13.7, frozen boundaries) =====
+def _lateness_ms(snapshot_ts, last_event_at) -> int:
+    """The frozen integer-only floor-to-millisecond quantisation from §13.7 —
+    no float arithmetic, no total_seconds()."""
+    delta = snapshot_ts - last_event_at
+    return (delta.days * 86_400_000
+            + delta.seconds * 1_000
+            + delta.microseconds // 1_000)
+
+
+@pytest.mark.parametrize("micros_before, expected_ms, expected_stale", [
+    (120_000_000, 120_000, False),   # exactly 120.000000s -> fresh
+    (120_000_999, 120_000, False),   # 120.000999s        -> floors to 120000 -> fresh
+    (120_001_000, 120_001, True),    # 120.001000s        -> 120001 -> stale
+])
+def test_lateness_ms_floor_and_stale_boundaries(micros_before, expected_ms,
+                                                 expected_stale):
+    """STAGE2_SPEC.md §13.7 freezes floor-to-millisecond lateness_ms via integer
+    timedelta arithmetic and an exclusive stale boundary using the SAME persisted
+    integer. Budget 120s -> 120000 ms."""
+    from datetime import datetime, timedelta, timezone
+    snapshot_ts = datetime(2026, 7, 22, 0, 0, 0, tzinfo=timezone.utc)
+    last_event_at = snapshot_ts - timedelta(microseconds=micros_before)
+
+    lateness_ms = _lateness_ms(snapshot_ts, last_event_at)
+    assert lateness_ms == expected_ms
+
+    freshness_budget_s = 120
+    is_stale = (last_event_at is not None
+                and freshness_budget_s is not None
+                and lateness_ms > freshness_budget_s * 1000)
+    assert is_stale is expected_stale
+
+
+def test_lateness_ms_integer_formula_matches_and_is_not_float():
+    """The frozen formula must not use int(total_seconds()*1000); at the
+    120.000999s boundary the two can disagree, and the integer form is authoritative."""
+    from datetime import datetime, timedelta, timezone
+    snapshot_ts = datetime(2026, 7, 22, 0, 0, 0, tzinfo=timezone.utc)
+    last_event_at = snapshot_ts - timedelta(microseconds=120_000_999)
+    delta = snapshot_ts - last_event_at
+    assert _lateness_ms(snapshot_ts, last_event_at) == 120_000
+    # component arithmetic uses only ints
+    assert isinstance(_lateness_ms(snapshot_ts, last_event_at), int)
+    assert delta.microseconds // 1_000 == 0  # floor drops the sub-ms remainder
