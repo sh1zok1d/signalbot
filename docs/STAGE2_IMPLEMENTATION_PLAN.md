@@ -26,31 +26,29 @@ proposal to approve before writing code.
 > `config_hash`/`calculation_version`. The Percentile Engine itself
 > (`analytics/percentile_engine/`) is **NOT** built in this step.
 
-> **Data Quality Contract Revision 0.2.5 — frozen for Stage 2.1.** The Data
-> Quality / gap-detection rules — deterministic `snapshot_ts` cadence; boolean
-> health model (`is_stale`/`is_usable`) with a complete ordered derived label set
-> (`not_available` / `unavailable_historical` / `disconnected` /
-> `connection_unknown` / `no_data` / `stale` / `gap_exceeded` / `ok`);
-> **source-mode-aware availability for every metric** (a historical request for a
-> historically-unsupported continuous metric — Bybit/OKX taker flow, OKX OI — is
-> `unavailable_historical`, never generic `no_data`); raw-source mapping on the
-> real `ts` column (`ohlcv` serving price_structure+volume as one row);
-> **exchange- and source-mode-aware `expected_interval_s`** from a frozen
-> `(exchange, metric, source_mode)` mapping grounded in
-> `config/config.yaml → backfill.klines_interval` / `backfill.oi_history_interval_fallback`,
-> the 15s client poll, and 8h funding settlement; **per-observation source
-> isolation** (`DataQualityObservation.source_mode` from raw `source`; live and
-> historical rows never pooled); **fail-closed** event-driven liquidation handling
-> (quiet ≠ stale, but unknown/absent connection ⇒ unusable); `lateness_ms`/
-> `is_stale`; interval-based gap detection with `largest_gap_s = ceil(max delta)`
-> and `gap_exceeded`; coverage window; `backfill_status` as a validated
-> orchestration input; calculation-version isolation with **raw observations
-> carrying no calculation_version** — are frozen in `STAGE2_SPEC.md` §13.
-> Historical maturity is NOT a data-quality concern (it lives in Percentile §12).
-> Its config surface (`defaults.data_quality`, four keys) ships in
-> `config/stage2.yaml` and is validated in `common/stage2_config.py`; it enters
-> `config_hash`/`calculation_version`. The Data Quality core
-> (`analytics/data_quality/`) is **NOT** built in this step.
+> **Data Quality Contract Revision 0.2.5 — frozen for Stage 2.1.**
+> `data_health_snapshots` is **current LIVE operational feed health only** — one
+> logical row per schema PK, **no `source_mode`**, no second historical health
+> stream. Three separate concepts: Data Health (this) = live feed usable now;
+> Backfill readiness = `historical_supported + backfill_status`; Percentile
+> maturity = §12 `confidence_tier`. The rules — deterministic `snapshot_ts`
+> cadence; boolean model (`is_stale`/`is_usable`); ordered live-health labels
+> (`not_available` / `disconnected` / `connection_unknown` / `no_data` / `stale` /
+> `gap_exceeded` / `ok`); raw-source mapping on the real `ts` column (`ohlcv`
+> serving price_structure+volume as one row); the **live** `expected_interval_s`
+> mapping (`ohlcv`/`taker_flow`=60, `open_interest`/`funding`=15, `liquidations`
+> =NULL) grounded in `config/config.yaml → backfill.klines_interval` and the 15s
+> client poll; **per-observation provenance** (`DataQualityObservation.raw_source`;
+> a `backfill` row is rejected, so backfill can never contaminate live health);
+> **fail-closed** liquidation connection (quiet ≠ stale, but unknown/absent
+> connection ⇒ unusable); `lateness_ms`/`is_stale`; gap detection with
+> `largest_gap_s = ceil(max delta)` and `gap_exceeded`; coverage window;
+> `backfill_status` (incl. `not_applicable` for historically-unsupported sources,
+> which never makes a live feed unusable); calculation-version isolation with
+> **raw observations carrying no calculation_version** — are frozen in
+> `STAGE2_SPEC.md` §13. Its config surface (`defaults.data_quality`, four keys)
+> ships in `config/stage2.yaml` and is validated in `common/stage2_config.py`. The
+> Data Quality core (`analytics/data_quality/`) is **NOT** built in this step.
 
 ## Files to create — REVISED 0.1
 

@@ -608,3 +608,22 @@ def test_capability_registry_matches_frozen_historical_support():
     for ex in ("binance", "bybit", "okx"):
         assert hist[(ex, "ohlcv")] is True
         assert hist[(ex, "funding")] is True
+
+
+def test_data_health_snapshots_is_live_only_no_source_mode():
+    """STAGE2_SPEC.md §13: data_health_snapshots is live-only. There is no
+    source_mode column or PK discriminator, so a live and a historical snapshot
+    can never collide on one primary key."""
+    import re
+    from pathlib import Path
+    sql = Path("storage/stage2_schema.sql").read_text(encoding="utf-8")
+    m = re.search(r"CREATE TABLE IF NOT EXISTS data_health_snapshots\s*\((.*?)\n\);",
+                  sql, re.S)
+    assert m, "data_health_snapshots table not found"
+    body = m.group(1)
+    assert "source_mode" not in body                     # no source-mode column
+    pk = re.search(r"PRIMARY KEY \(([^)]*)\)", body)
+    assert pk, "PK not found"
+    pk_cols = [c.strip() for c in pk.group(1).split(",")]
+    assert pk_cols == ["symbol", "exchange", "market_type", "metric",
+                       "snapshot_ts", "calculation_version"]   # single live-health identity

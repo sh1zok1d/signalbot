@@ -1604,55 +1604,69 @@ this spec, the implementation plan, the clarifications, or the data audit
 differs, **this section wins**. The Data Quality core is **not implemented in
 this revision** — this is a contract-only freeze.
 
+`data_health_snapshots` is **current LIVE operational feed health only**. Data
+Quality answers exactly one question: *"is the current live raw feed for this
+`(exchange, metric)` usable right now?"* It is **not** a second, historical
+health stream. Three concepts are kept strictly separate (§13.2):
+
+```
+Data Health        = current live operational feed health  (this section)
+Backfill readiness = historical_supported + backfill_status (§13.10)
+Percentile maturity = Percentile §12 confidence_tier
+```
+
 The core is pure/deterministic: no DB, network, wall clock, env, Redis, asyncio,
 subprocess, or global mutable state, and it does **no** internal rounding of the
 classification math. **The caller supplies everything**: identity, `snapshot_ts`
-(the reference "now"), `source_mode`, the per-metric capability facts,
-`expected_interval_s`, connection/backfill state, the configuration thresholds,
-and the observations. Same logical input → same output; observation order does
-not matter; live and historical replay produce field-for-field equal logical
-rows.
+(the reference "now"), the per-metric capability facts, `expected_interval_s`,
+connection/backfill state, the configuration thresholds, and the observations.
+Same logical input → same output; observation order does not matter; a replay
+produces field-for-field equal logical rows.
 
-Operational health is **separate from percentile-history maturity**. Data
-Quality answers *"is this metric's recent raw feed usable right now?"* It does
-**not** measure how many days of history exist and does **not** feed the
-percentile `confidence_tier` — historical maturity belongs **exclusively** to
-Percentile Contract §12. An operationally healthy metric is usable regardless of
-percentile-history maturity; backfill completeness is represented separately by
-`backfill_status` (§13.10).
-
-### 13.1 Snapshot identity, cadence, and `source_mode`
+### 13.1 Snapshot identity and cadence — one live-health row per PK
 
 - **Identity / PK** (matches `data_health_snapshots`): `(symbol, exchange,
   market_type, metric, snapshot_ts, calculation_version)`.
-- `snapshot_ts` is the **END** of the health interval — the reference time for
-  freshness. Deterministic: timezone-aware **UTC** (offset 0), aligned to the
-  health **cadence** (`(epoch_seconds % cadence_s) == 0`, whole second, zero
-  microsecond). A non-aligned / non-UTC / naive `snapshot_ts` is invalid.
-- **Cadence is global** (`data_quality.cadence_s`) — not per metric or symbol.
-- **`source_mode`** ∈ `{'live', 'historical'}` is a required **request** field
-  selecting which raw feed's health is being evaluated (live operational feed vs
-  the historical/backfill source). It is **not** "is this a replayed past
-  timestamp": a snapshot computed from rows the **live** process collected is
-  `source_mode='live'` even when replayed for a past `snapshot_ts`. `source_mode`
-  is **not** in the PK (it is not a `data_health_snapshots` column); it drives the
-  interval lookup, availability rule, and observation isolation.
-- **Replay**: all inputs are supplied ⇒ identical logical rows. `computed_at` is
-  wall-clock metadata only, not in the key.
-- **Two calculation versions coexist**: `calculation_version` is in the PK (§13.11).
+- The Data Quality request is **implicitly and exclusively LIVE**. There is **no
+  `source_mode`** — it is not a `data_health_snapshots` column, not in the PK, not
+  in the output model, and **not** smuggled into `calculation_version`.
+  `calculation_version` remains config/code identity (§10) only.
+- **There is exactly one logical Data Health row per PK.** No hidden second
+  (historical) mode exists, so the same identity + `snapshot_ts` +
+  `calculation_version` can **never** produce two semantically different rows. See
+  the identity example in §13.11.
+- `snapshot_ts` is the **END** of the live health interval and the freshness
+  reference: timezone-aware **UTC** (offset 0), aligned to the health cadence
+  (`(epoch_seconds % cadence_s) == 0`, whole second, zero microsecond). A
+  non-aligned / non-UTC / naive `snapshot_ts` is invalid. Cadence is **global**
+  (`data_quality.cadence_s`).
+- **Replay** of rows originally collected live is valid even for an old
+  `snapshot_ts`, because their provenance remains `live` (§13.4); replay is not
+  historical health.
+- `computed_at` is wall-clock metadata only, not in the key. Snapshots under
+  different `calculation_version`s coexist (§13.11).
 - Output = the `data_health_snapshots` columns **except `computed_at`** (§13.12).
 
-### 13.2 Health status model (booleans persisted; labels derived)
+### 13.2 Three separate concepts (never conflated)
 
-The schema persists **booleans + numeric facts**, not a status string. The report
-classification (§13.5) is **derived**, never a new column. Persisted: `is_stale`,
-`is_usable`, `lateness_ms`, `last_event_at`, `expected_interval_s`, `gap_count`,
-`largest_gap_s`, `coverage_window_start`, `coverage_window_end`,
-`backfill_status`.
+- **Data Health** (this section, persisted in `data_health_snapshots`) — is the
+  **current live feed** usable now? Driven by `live_supported`, `coverage_type`,
+  live connection state, live observations, freshness, and interior gaps.
+- **Backfill readiness** (§13.10, a separate report) — is the historical/backfill
+  source applicable and how far has it progressed? Driven by
+  `historical_supported` + `backfill_status`. A continuous metric with **no**
+  historical endpoint (e.g. OKX open interest) still has a perfectly usable live
+  feed; its lack of history is a `backfill_status='not_applicable'` fact, **not**
+  a live-health problem.
+- **Percentile maturity** (§12) — how much history exists for a percentile
+  distribution? Driven by the percentile `confidence_tier`.
+
+These must never be conflated; the persisted live-health row reflects **only** the
+first.
 
 ### 13.3 Metrics, raw source mapping, capability inputs, and `expected_interval_s`
 
-Health is computed on **raw Stage 1 sources**. The raw timestamp column is
+Health is computed on **raw Stage 1 live rows**. The raw timestamp column is
 **`ts`** in every source table (`storage/schema.sql`):
 
 | health `metric` | raw table | source ts col | serves families | continuous? | freshness-gated? |
@@ -1669,25 +1683,19 @@ Health is computed on **raw Stage 1 sources**. The raw timestamp column is
   metric (a `klines_1m` row with NULL taker columns is not a `taker_flow`
   observation).
 
-**Capability inputs (frozen, supplied per request).** From
+**Capability inputs (frozen, supplied per request)** from
 `common/capabilities.py` / `exchange_capabilities` — never re-declared, never
 inferred:
 
 ```python
-live_supported: bool
-historical_supported: bool
-coverage_type: str    # full | snapshot | aggregated | unavailable
+live_supported: bool         # affects current live usability
+coverage_type: str           # full|snapshot|aggregated|unavailable — live usability
+historical_supported: bool   # affects backfill readiness ONLY (§13.10), never live is_usable
 ```
 
-**`expected_interval_s` — authoritative, exchange- and source-mode-aware
-(frozen).** `expected_interval_s` is an **explicit, required, validated request
-input**. The caller MUST derive it from the frozen `(exchange, metric,
-source_mode)` mapping below (equivalently `(metric, source_mode,
-historical_supported)`). Values come from the real repo — never the freshness
-budget, never invented.
-
-**Live** (all active exchanges — binance, bybit, okx — subject to
-`live_supported`):
+**`expected_interval_s` — LIVE mapping (frozen).** An explicit, required,
+validated request input for continuous metrics (`NULL` for `liquidations`), for
+active exchanges binance / bybit / okx:
 
 | metric | live interval_s | repo authority |
 |---|---|---|
@@ -1695,130 +1703,92 @@ budget, never invented.
 | `taker_flow` | 60 | same `klines_1m` bars (taker columns) |
 | `open_interest` | 15 | client `poll_interval_s = 15.0` (live REST poll) |
 | `funding` | 15 | client `poll_interval_s = 15.0` (each poll writes a `funding_rate` row) |
-| `liquidations` | `NULL` | event-driven (§13.4) |
+| `liquidations` | `NULL` | event-driven (§13.6) |
 
-**Historical** (per active exchange — matches the capability registry exactly):
+The core validates the supplied `expected_interval_s` against this **live**
+mapping (positive int for continuous metrics equal to the mapping value; `NULL`
+for `liquidations`); any other value is a `DataQualityError`. The value is
+**echoed** to the output. There is **no historical interval table in the persisted
+snapshot contract** — historical/backfill cadence values (`ohlcv` 60, `taker_flow`
+60 binance-only, `open_interest` 300, `funding` 28800 per settlement) remain
+documented as backfill facts in the data audit / §13.10 context but do **not**
+define a second `data_health_snapshots` identity or judge live freshness/gaps.
 
-| metric | binance | bybit | okx |
-|---|---|---|---|
-| `ohlcv` | 60 | 60 | 60 |
-| `taker_flow` | 60 | **unsupported** | **unsupported** |
-| `open_interest` | 300 | 300 | **unsupported** |
-| `funding` | 28800 | 28800 | 28800 |
-| `liquidations` | **unsupported** | **unsupported** | **unsupported** |
+### 13.4 Observation provenance — live-only, no pooling
 
-Historical-interval authority: `ohlcv`/`taker_flow` 60 = 1-minute bars
-(`backfill.klines_interval`); `open_interest` 300 =
-`config/config.yaml → backfill.oi_history_interval_fallback = 5m`; `funding`
-28800 = 8-hour settlement of the historical funding-rate history. "unsupported"
-⇔ `historical_supported == false` in `common/capabilities.py`.
-
-**Validation & contradiction rule.** The core validates the
-`(exchange, metric, source_mode, live_supported, historical_supported,
-coverage_type, expected_interval_s)` tuple:
-
-- an **unsupported** `(exchange, metric, historical)` combination is **not** a
-  malformed request — with `historical_supported == false` it produces a **valid
-  unusable** snapshot labeled `unavailable_historical` (`expected_interval_s`
-  supplied as `NULL`, no observations required);
-- a **supported** continuous combination requires a positive-int
-  `expected_interval_s` equal to the mapping value; `liquidations` requires
-  `NULL`;
-- a **contradiction** between capability inputs and the mapping (e.g.
-  `historical_supported == true` but the mapping says unsupported, or an interval
-  ≠ the frozen value, or a positive interval where `NULL` is required) is an
-  **invalid request** → `DataQualityError`.
-
-`expected_interval_s` is **echoed** to the output column.
-
-### 13.4 Observation provenance and isolation
-
-A request-level `source_mode` alone is insufficient — the core must be able to
-reject mixed live/backfill rows. Stage 1 raw tables carry a `source` column
-(`'live' | 'backfill'`). The frozen normalized observation:
+Stage 1 raw tables carry a `source` column (`'live' | 'backfill'`). The frozen
+normalized observation carries that provenance so backfill rows can never
+contaminate live health:
 
 ```python
 DataQualityObservation(
     exchange: str, symbol: str, market_type: str, metric: str,
-    ts: datetime, source_mode: str,   # 'live' | 'historical'
-)   # NO calculation_version
+    ts: datetime, raw_source: str,   # normalized from Stage 1: 'live' | 'backfill'
+)   # NO source_mode, NO calculation_version
 ```
 
-Frozen raw→normalized mapping: `raw.source == 'live' → 'live'`;
-`raw.source == 'backfill' → 'historical'`.
-
-Every observation must match the request **exactly** on `exchange`, `symbol`,
-`market_type`, `metric`, and `source_mode`; any mismatch raises
-`DataQualityError`. The core **never silently pools** live+historical rows,
-multiple exchanges, symbols, or metrics — so 15-second live OI/funding rows and
-coarse historical rows can never be scored under one wrong interval.
-Consequently:
-
-- a **live** operational-health snapshot uses **only** live observations;
-- a **historical/backfill** snapshot uses **only** historical observations;
-- backfill rows cannot make a broken live feed look healthy;
-- live rows cannot make an unavailable historical source look complete.
-
-Observations carry **no `calculation_version`** (§13.11); duplicate `ts` collapse
-deterministically; order is irrelevant.
-
-### 13.5 Availability + derived report classification (complete, ordered)
-
-Availability is **source-mode-aware for every metric** (continuous and
-event-driven alike), evaluated first:
+Frozen raw→normalized mapping: `raw.source == 'live' → raw_source='live'`;
+`raw.source == 'backfill' → raw_source='backfill'`. For the persisted live-health
+core:
 
 ```
-if source_mode == 'live' and not live_supported:            -> not_available (is_usable=false)
-elif source_mode == 'live' and coverage_type == 'unavailable': -> not_available (is_usable=false)
-elif source_mode == 'historical' and not historical_supported: -> unavailable_historical (is_usable=false)
+raw_source == 'live'      -> accepted
+raw_source == 'backfill'  -> DataQualityError
 ```
 
-The report label is the **first** matching rule (highest precedence first):
+Every observation must also match the request **exactly** on `exchange`,
+`symbol`, `market_type`, `metric`; any mismatch raises `DataQualityError`. The
+core **never pools** exchanges, symbols, metrics, or raw sources. A **replay** of
+rows originally collected live remains valid because their provenance stays
+`live`, even at an old `snapshot_ts`. Observations carry **no
+`calculation_version`** (§13.11); duplicate `ts` collapse deterministically;
+order is irrelevant.
+
+### 13.5 Live-health report classification (complete, ordered)
+
+The persisted live-health report label is the **first** matching rule (highest
+precedence first). `unavailable_historical` is **not** in this ladder — historical
+availability is a backfill-readiness concept (§13.10), not a live-health label.
 
 | # | label | condition |
 |---|---|---|
-| 1 | `not_available` | `source_mode=='live'` and (`not live_supported` or `coverage_type=='unavailable'`) |
-| 2 | `unavailable_historical` | `source_mode=='historical'` and `not historical_supported` |
-| 3 | `disconnected` | event-driven, live-available, `connection_up == false` |
-| 4 | `connection_unknown` | event-driven, live-available, `connection_up is None` |
-| 5 | `no_data` | continuous, available for this mode, zero observations |
-| 6 | `stale` | continuous, `is_stale == true` |
-| 7 | `gap_exceeded` | continuous, `largest_gap_s is not NULL and largest_gap_s > max_usable_gap_s` |
-| 8 | `ok` | none of the above |
+| 1 | `not_available` | `not live_supported` OR `coverage_type == 'unavailable'` |
+| 2 | `disconnected` | event-driven, live-available, `connection_up == false` |
+| 3 | `connection_unknown` | event-driven, live-available, `connection_up is None` |
+| 4 | `no_data` | continuous, live-available, zero accepted live observations |
+| 5 | `stale` | continuous, live-available, `is_stale == true` |
+| 6 | `gap_exceeded` | continuous, live-available, `largest_gap_s > max_usable_gap_s` |
+| 7 | `ok` | none of the above |
 
-- Availability (1–2) wins over everything. For **historical** mode with
-  `historical_supported == false`, `unavailable_historical` wins **before** any
-  connection check. **Continuous** historical-unsupported metrics therefore
-  become `unavailable_historical`, **never** generic `no_data`.
-- Connection labels (3–4) apply **only** in `live` mode for event-driven metrics,
-  and only **after** live structural availability (1) has passed.
+Connection labels (2–3) apply **only** to event-driven metrics, only after live
+structural availability (1) passes. A continuous metric whose historical endpoint
+does not exist is **still `ok`** on a healthy live feed (its `backfill_status` is
+`not_applicable`, §13.10) — historical support **never** makes a live feed
+unusable.
 
-**Report reconstruction.** Labels 5–8 are derivable from the **persisted snapshot
-plus the resolved config for its `config_hash` / `calculation_version`** —
+**Report reconstruction.** Labels 4–7 derive from the **persisted snapshot plus
+the resolved config for its `config_hash` / `calculation_version`** —
 `gap_exceeded` compares the persisted `largest_gap_s` against the versioned
-`max_usable_gap_s`, which is not stored in the row but is recoverable from the
-resolved config for that `config_hash`. Labels 1–4 additionally require the
-supplied **capability + connection** inputs (`live_supported`,
-`historical_supported`, `coverage_type`, `connection_up`, `source_mode`) — they
-are not reconstructable from the persisted snapshot alone. **No `status` column
-is added.**
+`max_usable_gap_s`, recoverable from the resolved config for that `config_hash`
+(not stored in the row). Labels 1–3 additionally require the supplied capability +
+connection inputs. **No `status` column is added.**
 
 ### 13.6 Liquidations (event-driven; fail-closed connection)
 
 `is_stale` is **always false**; `gap_count = 0`; `largest_gap_s = NULL`;
-`expected_interval_s = NULL`. After the availability rule (§13.5 lines 1–2),
-usability is **fail-closed** by connection state:
+`expected_interval_s = NULL`. After availability (§13.5 rule 1), usability is
+**fail-closed** by live connection state:
 
-| situation (live mode, live-available) | `is_usable` | label |
+| situation (live-available) | `is_usable` | label |
 |---|---|---|
 | `connection_up == true`, quiet (zero events) | **true** | `ok` |
 | `connection_up == false` | **false** | `disconnected` |
 | `connection_up is None` (no positive evidence) | **false** | `connection_unknown` |
 
-Historical liquidations: `historical_supported == false` on every exchange ⇒
-`unavailable_historical` (wins before any connection check). `last_event_at` =
-newest liquidation observation in window (or `NULL`); `NULL` on a healthy
-connected feed is absence of events — never a measured zero, never staleness.
+`last_event_at` = newest liquidation observation in window (or `NULL`); `NULL` on
+a healthy connected feed is absence of events — never a measured zero, never
+staleness. (Historical liquidation availability is a backfill fact, §13.10, not a
+live-health row.)
 
 ### 13.7 Freshness (`lateness_ms`, `is_stale`)
 
@@ -1834,12 +1804,12 @@ is_stale = (last_event_at is not NULL) and (budget is not NULL)
 ```
 
 Exactly at budget → fresh. `last_event_at is NULL` → `is_stale=false` (that is
-`no_data`). Negative lateness impossible (observation `>= snapshot_ts` is
+`no_data`). Negative lateness impossible (an observation `>= snapshot_ts` is
 invalid, §13.9). Per-metric independent.
 
 ### 13.8 Gap detection (interval-based; continuous metrics only)
 
-Over the in-window observation timestamps (deduped, sorted), with `I =
+Over the in-window live observation timestamps (deduped, sorted), with `I =
 expected_interval_s`, `factor = gap_tolerance_factor`; for each consecutive pair
 with exact delta `d` seconds (microsecond precision):
 
@@ -1853,7 +1823,7 @@ gap_exceeded    = (largest_gap_s is not NULL) and (largest_gap_s > max_usable_ga
 `gap_count` counts contiguous runs (each oversized delta is one run), not missing
 points. `largest_gap_s` uses **`ceil`** so a fractional gap just above a threshold
 cannot round down into "usable" (`300.000s`→`300`; `300.001s`→`301`). Edges are
-not interior gaps (leading = presence; trailing = freshness).
+not interior gaps.
 
 ### 13.9 Coverage window and observation validity
 
@@ -1863,37 +1833,53 @@ not interior gaps (leading = presence; trailing = freshness).
   snapshot_ts` or `< coverage_window_start` is an **invalid request**.
 - **Empty window** → valid snapshot: `last_event_at=NULL`, `lateness_ms=NULL`,
   `gap_count=0`, `largest_gap_s=NULL`, `is_stale=false`, `is_usable=false` (unless
-  event-driven live-connected), window bounds populated.
-- The health coverage window (recent operational health) is **distinct** from the
-  percentile 7d/30d windows (§12).
+  event-driven `connection_up==true`), window bounds populated.
+- The health coverage window (recent live operational health) is **distinct** from
+  the percentile 7d/30d windows (§12).
 
-### 13.10 `is_usable` and `backfill_status`
+### 13.10 `is_usable`, backfill readiness, and `backfill_status`
 
-`is_usable = false` when any of: availability failed (`not_available` /
-`unavailable_historical`); event-driven and not positively connected
-(`connection_up != true`); continuous `no_data`; continuous `is_stale`;
+`is_usable = false` when any of: `not_available`; event-driven and not positively
+connected (`connection_up != true`); continuous `no_data`; continuous `is_stale`;
 continuous `gap_exceeded`. `is_usable = true` otherwise — including a valid
 **partial** history (interior gaps within tolerance) and a **quiet connected**
-event feed. Percentile maturity never affects `is_usable`; it does **not** reuse
-the consensus `minimum_exchange_coverage`.
+event feed. `is_usable` **never** depends on `historical_supported` or percentile
+maturity, and does not reuse the consensus `minimum_exchange_coverage`.
 
-`backfill_status` is a validated **orchestration input**, echoed (`NULL` = not
-tracked). Allowed: `not_applicable`, `not_started`, `in_progress`, `complete`,
-`partial`, `failed`. Frozen mapping from Stage 1 backfill-run state: running →
-`in_progress`; complete → `complete`; partial → `partial`; failed → `failed`; no
-run yet → `not_started`; not supported / live-only → `not_applicable`. Never
-inferred from observation timestamps.
+**Backfill readiness is a separate report**, `historical_supported +
+backfill_status`, NOT a second health snapshot row. `backfill_status` (an
+`data_health_snapshots` column, validated & echoed, orchestration-supplied):
 
-### 13.11 Calculation-version isolation
+| Stage 1 backfill run state / capability | normalized `backfill_status` |
+|---|---|
+| historically unsupported source (`historical_supported == false`) | `not_applicable` |
+| supported, no run yet | `not_started` |
+| running | `in_progress` |
+| complete | `complete` |
+| partial | `partial` |
+| failed | `failed` |
+
+Never inferred from observation timestamps. A metric with
+`backfill_status='not_applicable'` can still have live health `ok`.
+
+### 13.11 Calculation-version isolation and the identity example
 
 Health classification is config-dependent: the `data_quality` thresholds enter
 the resolved config → `config_hash` → `calculation_version` (§10). Snapshots
-under different `calculation_version`s **coexist** (PK). **Raw observations are
-NOT calculation-versioned**: they carry only `(exchange, symbol, market_type,
-metric, ts, source_mode)` and are validated only on those + timestamp semantics.
-The **same** raw history computes multiple parallel snapshots under different
-`calculation_version`s; changing a threshold recomputes a separate output row
-from that same raw history. There is no `calculation_version` on Stage 1 raw data.
+under different `calculation_version`s coexist (PK). **Raw observations are NOT
+calculation-versioned**: they carry only `(exchange, symbol, market_type, metric,
+ts, raw_source)`. The **same** raw live history computes multiple parallel
+snapshots under different `calculation_version`s (a threshold change), each a
+distinct PK.
+
+**No live/historical PK collision** (the resolved blocker): because there is no
+`source_mode`, `(symbol=BTCUSDT, exchange=binance, market_type=perp,
+metric=open_interest, snapshot_ts=S, calculation_version=X)` maps to **exactly one**
+live-health row — computed from live `open_interest` observations with the single
+live `expected_interval_s=15`. There is no second (historical, interval 300) row
+competing for the same PK; historical OI is expressed only via `backfill_status`,
+never as a `data_health_snapshots` row. The same identity therefore can never
+produce two semantically different rows under one `calculation_version`.
 
 ### 13.12 Output / schema parity
 
@@ -1902,8 +1888,9 @@ Output mirrors `data_health_snapshots` **except `computed_at`**: `symbol`,
 `expected_interval_s`, `lateness_ms`, `gap_count`, `largest_gap_s`,
 `backfill_status`, `coverage_window_start`, `coverage_window_end`, `is_stale`,
 `is_usable`, `config_hash`, `config_version`, `code_version`,
-`feature_schema_version`, `calculation_version`. No invented columns.
-(`source_mode` is a request/observation field, not a snapshot column.)
+`feature_schema_version`, `calculation_version`. No invented columns. `raw_source`
+is an observation field only; there is **no** `source_mode` field anywhere in the
+request, observation, or output.
 
 ### 13.13 Config surface (Stage 2, frozen)
 
@@ -1917,83 +1904,59 @@ defaults:
 ```
 
 `data_quality` accepts **only** these four keys (any other rejected). There is
-**no `short_history_min_days`** — historical maturity is Percentile §12, not Data
-Quality. Validation (`common/stage2_config.py`): `cadence_s`,
-`coverage_window_s`, `max_usable_gap_s` are ints `> 0`; `gap_tolerance_factor` is
-a finite number `> 1`; bool rejected. All four enter `config_hash` /
-`calculation_version`. Per-metric `expected_interval_s` (§13.3) and
-`freshness_budget_s` are supplied per request, never in this config.
+**no `short_history_min_days`** — historical maturity is Percentile §12.
+Validation (`common/stage2_config.py`): `cadence_s`, `coverage_window_s`,
+`max_usable_gap_s` are ints `> 0`; `gap_tolerance_factor` is a finite number `>
+1`; bool rejected. All four enter `config_hash` / `calculation_version`. Per-metric
+`expected_interval_s` (§13.3) and `freshness_budget_s` are supplied per request.
 
 ### 13.14 Errors
 
 `DataQualityError` for invalid **requests**: bad identity / version fields;
 non-UTC / non-cadence-aligned / naive `snapshot_ts`; unknown metric or
-`source_mode`; unknown `backfill_status`; an observation out of window, at/after
-`snapshot_ts`, or mismatched on `exchange`/`symbol`/`market_type`/`metric`/
-`source_mode`; a non-finite (NaN/±Inf) or bool numeric input; a contradiction
-between capability inputs and the `(exchange, metric, source_mode)` interval
-mapping; an invalid config threshold. Merely **absent data** (empty window, quiet
-connected feed, an unsupported historical source) yields a **valid** snapshot per
-the rules above — absence is never an error and never a zero.
+`backfill_status`; an observation with `raw_source == 'backfill'`; an observation
+out of window, at/after `snapshot_ts`, or mismatched on
+`exchange`/`symbol`/`market_type`/`metric`; a non-finite (NaN/±Inf) or bool
+numeric input; an `expected_interval_s` not matching the live mapping; an invalid
+config threshold. Merely **absent data** (empty window, quiet connected feed)
+yields a **valid** snapshot per the rules above — absence is never an error and
+never a zero.
 
 ### 13.15 Worked examples
 
 Defaults `cadence_s=60`, `coverage_window_s=86400`, `gap_tolerance_factor=1.5`,
-`max_usable_gap_s=300`; `S = snapshot_ts`; **every observation lies inside
-`[S − 86400s, S)`**.
+`max_usable_gap_s=300`; `S = snapshot_ts`; all observations `raw_source='live'`
+and inside `[S − 86400s, S)`.
 
-1. **24h healthy live OHLCV** — `ohlcv`/`live`, `I=60`, a bar every minute,
-   newest `S−60s`: `lateness_ms=60000 ≤ 120000` → `is_stale=false`; deltas all
-   `60 ≤ 90` → `gap_count=0`; `is_usable=true`, `ok`.
+1. **Healthy live OHLCV** — `ohlcv`, `I=60`, a bar every minute, newest `S−60s`:
+   `lateness_ms=60000 ≤ 120000` → `is_stale=false`; deltas all `60 ≤ 90` →
+   `gap_count=0`; `is_usable=true`, `ok`.
 2. **Exact freshness boundary** — newest `S−120s` → `lateness_ms=120000`,
    `120000 > 120000` false → `is_stale=false`, `ok`.
-3. **1 ms beyond freshness** — `lateness_ms=120001` → `is_stale=true`,
-   `is_usable=false`, `stale`.
-4. **No-data live continuous** — `open_interest`/`live`, `live_supported`, zero
+3. **Stale live metric** — newest `S−120.001s` → `lateness_ms=120001` →
+   `is_stale=true`, `is_usable=false`, `stale`.
+4. **Live no-data metric** — `open_interest`, `live_supported`, zero accepted
    observations → `last_event_at=NULL`, `is_usable=false`, `no_data`.
-5. **Structural unavailable** — `liquidations`/`live` on `bitget`
-   (`live_supported=false`) → `is_usable=false`, `not_available`.
-6. **One missing point** — `ohlcv`/`live`, delta `120s > 90s` → `gap_count=1`,
-   `largest_gap_s=120`, usable.
-7. **Two adjacent missing points** — one delta `180s` → `gap_count=1`,
-   `largest_gap_s=180`, usable.
-8. **Two separated gap runs** — deltas `120s` and `180s` → `gap_count=2`,
-   `largest_gap_s=180`, usable.
-9. **Exact max-usable gap** — largest delta `300.000s` → `largest_gap_s=300`;
-   `300 > 300` false → not exceeded, `is_usable=true`, `ok`.
-10. **Fractional gap just above max** — `300.001s` → `largest_gap_s=ceil=301`;
-    `301 > 300` → `gap_exceeded`, `is_usable=false`.
-11. **Quiet connected liquidations** — `live`, `connection_up=true`, zero events →
-    `is_stale=false`, `expected_interval_s=NULL`, `is_usable=true`, `ok`.
-12. **Disconnected liquidations** — `connection_up=false` → `is_usable=false`,
-    `disconnected`.
-13. **Unknown-connection liquidations** — `connection_up is None` → fail-closed
-    `is_usable=false`, `connection_unknown`.
-14. **Historical Binance taker flow → supported** — `taker_flow`/`historical`,
-    `binance`, `historical_supported=true`, `expected_interval_s=60`, 60s bars →
-    gaps within tolerance → `is_usable=true`, `ok`.
-15. **Historical Bybit taker flow → unavailable_historical** — `taker_flow`/
-    `historical`, `bybit`, `historical_supported=false` → `is_usable=false`,
-    `unavailable_historical` (NOT `no_data`); `expected_interval_s=NULL`.
-16. **Historical OKX open interest → unavailable_historical** —
-    `open_interest`/`historical`, `okx`, `historical_supported=false` →
-    `is_usable=false`, `unavailable_historical`.
-17. **Live OKX open interest → valid** — `open_interest`/`live`, `okx`,
-    `live_supported=true`, `expected_interval_s=15`, fresh polls → `is_usable=
-    true`, `ok`.
-18. **Live request with a historical observation → error** — request
-    `source_mode='live'` but an observation carries `source_mode='historical'`
-    (raw `source='backfill'`) → `DataQualityError` (no pooling).
-19. **Historical request with a live observation → error** — request
-    `source_mode='historical'`, observation `source_mode='live'` →
-    `DataQualityError`.
-20. **Replay of live-collected rows stays live** — a past `snapshot_ts` computed
-    from observations whose raw `source='live'` → `source_mode='live'`,
-    classified normally (e.g. `ok`); it is **not** automatically
-    `unavailable_historical`.
-21. **Two calculation versions from identical raw data** — same 24h `ohlcv`
+5. **Excessive live gap** — largest interior delta `300.001s` →
+   `largest_gap_s=ceil=301`; `301 > 300` → `gap_exceeded`, `is_usable=false`.
+6. **Quiet connected liquidations** — `connection_up=true`, zero events →
+   `is_stale=false`, `expected_interval_s=NULL`, `is_usable=true`, `ok`.
+7. **Disconnected liquidations** — `connection_up=false` → `is_usable=false`,
+   `disconnected`.
+8. **Unknown-connection liquidations** — `connection_up is None` → fail-closed
+   `is_usable=false`, `connection_unknown`.
+9. **Backfill observation to live-health request → error** — any observation with
+   `raw_source='backfill'` → `DataQualityError` (no live/backfill mixing).
+10. **Replay of originally-live rows at an old `snapshot_ts` → valid** — a past
+    `snapshot_ts` computed from observations whose `raw_source='live'` classifies
+    normally (e.g. `ok`); provenance stays `live`, so it is **not** rejected and
+    not a historical snapshot.
+11. **Historically-unsupported metric, live still ok** — OKX `open_interest`
+    (`historical_supported=false`) with a healthy 15s live poll →
+    `backfill_status='not_applicable'` **and** live health `is_usable=true`, `ok`.
+    The missing historical endpoint never makes the live feed unusable.
+12. **Two calculation versions from identical live raw data** — same 24h `ohlcv`
     history with `largest_gap_s=200`: config A `max_usable_gap_s=300` →
     `is_usable=true`; config B `max_usable_gap_s=150` → `gap_exceeded`,
     `is_usable=false`. Different `config_hash` → different `calculation_version`;
-    both rows coexist, from the **same** raw observations (no calculation_version
-    on raw data).
+    both rows coexist (distinct PK) from the **same** raw live observations.
