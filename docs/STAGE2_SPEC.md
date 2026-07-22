@@ -1716,9 +1716,8 @@ define a second `data_health_snapshots` identity or judge live freshness/gaps.
 
 ### 13.4 Observation provenance — live-only, no pooling
 
-Stage 1 raw tables carry a `source` column (`'live' | 'backfill'`). The frozen
-normalized observation carries that provenance so backfill rows can never
-contaminate live health:
+The normalized observation carries a `raw_source` provenance so backfill rows can
+never contaminate live health:
 
 ```python
 DataQualityObservation(
@@ -1727,14 +1726,45 @@ DataQualityObservation(
 )   # NO source_mode, NO calculation_version
 ```
 
-Frozen raw→normalized mapping: `raw.source == 'live' → raw_source='live'`;
-`raw.source == 'backfill' → raw_source='backfill'`. For the persisted live-health
-core:
+**Raw provenance is table-specific — not every Stage 1 raw table carries a
+`source` column.** `klines_1m`, `open_interest`, and `funding_rate` each have a
+`source TEXT` column (`'live' | 'backfill'`); `liquidations` has **no `source`
+column** because it is structurally **LIVE ONLY** and never backfilled
+(`storage/schema.sql`; spec §2 `liquidations_and_orderflow: NOT_BACKFILLED`). The
+frozen, exact per-table `raw_source` normalization is therefore:
+
+```
+klines_1m:
+    raw source='live'     -> DataQualityObservation.raw_source='live'
+    raw source='backfill' -> DataQualityObservation.raw_source='backfill'
+
+open_interest:
+    same mapping from its source column
+
+funding_rate:
+    same mapping from its source column
+
+liquidations:
+    no source column exists
+    every stored row deterministically normalizes to raw_source='live'
+    because the table is LIVE ONLY / never backfilled
+```
+
+The `liquidations` normalization queries **no** column — `raw_source='live'` is a
+structural constant, not a read of a nonexistent field. No `source` column is
+added to `liquidations` and the Stage 1 schema is unchanged.
+
+For the persisted live-health core:
 
 ```
 raw_source == 'live'      -> accepted
 raw_source == 'backfill'  -> DataQualityError
 ```
+
+Because `liquidations` is structurally live, a caller that presents a
+`liquidations` observation as `raw_source='backfill'` is making an **invalid
+request** — such provenance is impossible under the Stage 1 schema — and it raises
+`DataQualityError`.
 
 Every observation must also match the request **exactly** on `exchange`,
 `symbol`, `market_type`, `metric`; any mismatch raises `DataQualityError`. The
@@ -1798,9 +1828,38 @@ Reference is `snapshot_ts` (never a wall clock). Budget = supplied capability
 ```
 last_event_at = max(observation_ts)   or NULL if none
 lateness_ms   = NULL                                     if last_event_at is NULL
-              = whole milliseconds in (snapshot_ts − last_event_at)   otherwise
-is_stale = (last_event_at is not NULL) and (budget is not NULL)
-           and (lateness_ms > budget_s * 1000)           # boundary EXCLUSIVE
+              = floor-to-millisecond of (snapshot_ts − last_event_at)  otherwise
+is_stale = (last_event_at is not NULL) and (freshness_budget_s is not NULL)
+           and (lateness_ms > freshness_budget_s * 1000)  # boundary EXCLUSIVE
+```
+
+**Exact `lateness_ms` quantisation (frozen, integer-only, no float arithmetic).**
+`data_health_snapshots.lateness_ms` is an integer. It is computed by flooring the
+`timedelta` to whole milliseconds using integer arithmetic on the `timedelta`
+components — never via `total_seconds()` float conversion:
+
+```python
+delta = snapshot_ts - last_event_at
+
+lateness_ms = (
+    delta.days * 86_400_000
+    + delta.seconds * 1_000
+    + delta.microseconds // 1_000
+)
+```
+
+Do **not** use `int(delta.total_seconds() * 1000)`: the float multiply is
+unnecessary and can introduce boundary instability. The stale decision uses this
+**same persisted integer** `lateness_ms`; the raw (unrounded) duration is never
+compared separately.
+
+Frozen sub-millisecond boundaries (with `freshness_budget_s = 120`, so the budget
+is `120 * 1000 = 120000` ms):
+
+```
+exactly 120.000000s -> lateness_ms=120000 -> 120000 > 120000 false -> fresh
+120.000999s         -> lateness_ms=120000 -> 120000 > 120000 false -> fresh
+120.001000s         -> lateness_ms=120001 -> 120001 > 120000 true  -> stale
 ```
 
 Exactly at budget → fresh. `last_event_at is NULL` → `is_stale=false` (that is

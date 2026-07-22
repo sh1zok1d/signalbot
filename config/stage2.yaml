@@ -41,7 +41,7 @@ defaults:
       dispersion: 0.20
   # Data Quality & Gap Detection (Data Quality Contract Revision 0.2.5, frozen;
   # see STAGE2_SPEC.md §13). Classification thresholds only. Per-metric
-  # expected_interval_s (from the frozen source-mode mapping, §13.3) and freshness
+  # expected_interval_s (from the frozen live metric mapping, §13.3) and freshness
   # budgets (capabilities.expected_freshness_s) are supplied per request, never
   # duplicated here. Historical maturity is NOT a data-quality concern — it lives
   # in Percentile §12 confidence_tier. Only these four keys are allowed; all enter

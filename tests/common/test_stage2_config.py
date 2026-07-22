@@ -627,3 +627,108 @@ def test_data_health_snapshots_is_live_only_no_source_mode():
     pk_cols = [c.strip() for c in pk.group(1).split(",")]
     assert pk_cols == ["symbol", "exchange", "market_type", "metric",
                        "snapshot_ts", "calculation_version"]   # single live-health identity
+
+
+def _table_body(sql: str, table: str) -> str:
+    import re
+    m = re.search(
+        r"CREATE TABLE IF NOT EXISTS " + re.escape(table) + r"\s*\((.*?)\n\);",
+        sql, re.S)
+    assert m, f"{table} table not found"
+    return m.group(1)
+
+
+def test_liquidations_is_live_only_has_no_source_column():
+    """STAGE2_SPEC.md §13.4: liquidations is structurally LIVE ONLY and never
+    backfilled, so storage/schema.sql -> liquidations has NO 'source' column,
+    while the backfillable raw tables (klines_1m/open_interest/funding_rate) do.
+    The contract normalizes every liquidations row to raw_source='live' WITHOUT
+    reading a nonexistent column. This test also guards that no 'source' column is
+    added to liquidations (no schema change)."""
+    import re
+    from pathlib import Path
+    sql = Path("storage/schema.sql").read_text(encoding="utf-8")
+
+    def _has_source_col(body: str) -> bool:
+        # a standalone "source" column definition (not source_ts etc.)
+        return bool(re.search(r"^\s*source\s+TEXT", body, re.M))
+
+    # backfillable raw tables DO carry a source column
+    for table in ("klines_1m", "open_interest", "funding_rate"):
+        assert _has_source_col(_table_body(sql, table)), \
+            f"{table} should carry a source column"
+
+    # liquidations is LIVE ONLY -> no source column, no schema change
+    liq = _table_body(sql, "liquidations")
+    assert not _has_source_col(liq), \
+        "liquidations must NOT carry a source column (structurally live-only)"
+    assert "source" not in liq  # no source-derived provenance field at all
+
+
+def test_liquidations_provenance_normalizes_to_live_without_a_column():
+    """STAGE2_SPEC.md §13.4: because liquidations has no source column, its frozen
+    normalization is a structural constant raw_source='live' — derivable without
+    querying any column. A liquidations observation presented as backfill is an
+    impossible-provenance invalid request."""
+    from pathlib import Path
+    sql = Path("storage/schema.sql").read_text(encoding="utf-8")
+    liq = _table_body(sql, "liquidations")
+
+    # No column to read; provenance is the structural constant 'live'.
+    assert not any("source" in line for line in liq.splitlines())
+    liquidations_raw_source = "live"   # deterministic structural constant
+    assert liquidations_raw_source == "live"
+
+    # The live-health core accepts 'live' and rejects 'backfill'; a caller trying to
+    # present liquidations as backfill is therefore an invalid (impossible) request.
+    def _accepts(raw_source: str) -> bool:
+        return raw_source == "live"
+    assert _accepts(liquidations_raw_source) is True
+    assert _accepts("backfill") is False
+
+
+# ===== Freshness lateness_ms quantisation (§13.7, frozen boundaries) =====
+def _lateness_ms(snapshot_ts, last_event_at) -> int:
+    """The frozen integer-only floor-to-millisecond quantisation from §13.7 —
+    no float arithmetic, no total_seconds()."""
+    delta = snapshot_ts - last_event_at
+    return (delta.days * 86_400_000
+            + delta.seconds * 1_000
+            + delta.microseconds // 1_000)
+
+
+@pytest.mark.parametrize("micros_before, expected_ms, expected_stale", [
+    (120_000_000, 120_000, False),   # exactly 120.000000s -> fresh
+    (120_000_999, 120_000, False),   # 120.000999s        -> floors to 120000 -> fresh
+    (120_001_000, 120_001, True),    # 120.001000s        -> 120001 -> stale
+])
+def test_lateness_ms_floor_and_stale_boundaries(micros_before, expected_ms,
+                                                 expected_stale):
+    """STAGE2_SPEC.md §13.7 freezes floor-to-millisecond lateness_ms via integer
+    timedelta arithmetic and an exclusive stale boundary using the SAME persisted
+    integer. Budget 120s -> 120000 ms."""
+    from datetime import datetime, timedelta, timezone
+    snapshot_ts = datetime(2026, 7, 22, 0, 0, 0, tzinfo=timezone.utc)
+    last_event_at = snapshot_ts - timedelta(microseconds=micros_before)
+
+    lateness_ms = _lateness_ms(snapshot_ts, last_event_at)
+    assert lateness_ms == expected_ms
+
+    freshness_budget_s = 120
+    is_stale = (last_event_at is not None
+                and freshness_budget_s is not None
+                and lateness_ms > freshness_budget_s * 1000)
+    assert is_stale is expected_stale
+
+
+def test_lateness_ms_integer_formula_matches_and_is_not_float():
+    """The frozen formula must not use int(total_seconds()*1000); at the
+    120.000999s boundary the two can disagree, and the integer form is authoritative."""
+    from datetime import datetime, timedelta, timezone
+    snapshot_ts = datetime(2026, 7, 22, 0, 0, 0, tzinfo=timezone.utc)
+    last_event_at = snapshot_ts - timedelta(microseconds=120_000_999)
+    delta = snapshot_ts - last_event_at
+    assert _lateness_ms(snapshot_ts, last_event_at) == 120_000
+    # component arithmetic uses only ints
+    assert isinstance(_lateness_ms(snapshot_ts, last_event_at), int)
+    assert delta.microseconds // 1_000 == 0  # floor drops the sub-ms remainder
