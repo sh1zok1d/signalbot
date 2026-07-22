@@ -9,9 +9,16 @@ import logging
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import TYPE_CHECKING, Iterable, Sequence
 
 import asyncpg
+
+if TYPE_CHECKING:  # annotation-only; keeps Stage 2 analytics out of Stage 1 startup
+    from analytics.data_quality.models import DataHealthSnapshot
+    from analytics.feature_engine.consensus_models import ConsensusFeatureVector
+    from analytics.feature_engine.models import ExchangeFeatureVector
+    from analytics.percentile_engine.models import PercentileSnapshot
+    from storage.stage2_serialization import Stage2WriterSpec
 
 logger = logging.getLogger(__name__)
 
@@ -459,3 +466,48 @@ class Database:
                 exchange, symbol, source, window_start,
             )
         return row is not None
+
+    # ---------------------------------------------------------------
+    # Stage 2 output writers — persist the four already-computed pure
+    # analytics outputs into their existing Stage 2 tables. Additive and
+    # idempotent: ON CONFLICT (…, calculation_version) DO UPDATE refreshes the
+    # derived values and stamps computed_at=now(), so a deterministic replay
+    # keeps one logical row and a legitimate late-data correction updates it,
+    # while a different calculation_version is always a separate row. These read
+    # no raw market data and are never called from connect()/init_schema(). The
+    # serialization bridge is imported lazily so Stage 1 startup never eagerly
+    # pulls in the Stage 2 analytics packages.
+    # ---------------------------------------------------------------
+    async def _upsert_stage2(self, spec: "Stage2WriterSpec",
+                             rows: Sequence) -> int:
+        """Shared batch upsert. Empty batch returns 0 without acquiring a
+        connection; a non-empty batch is validated + serialized in full (raising
+        before any DB call), then written with a single executemany."""
+        if not rows:
+            return 0
+        from storage.stage2_serialization import serialize_batch
+        params = serialize_batch(spec, rows)   # whole-batch validation, no DB yet
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            await conn.executemany(spec.insert_sql, params)
+        return len(rows)
+
+    async def upsert_exchange_feature_vectors(
+        self, rows: "Sequence[ExchangeFeatureVector]") -> int:
+        from storage.stage2_serialization import EXCHANGE_FEATURE_SPEC
+        return await self._upsert_stage2(EXCHANGE_FEATURE_SPEC, rows)
+
+    async def upsert_consensus_feature_vectors(
+        self, rows: "Sequence[ConsensusFeatureVector]") -> int:
+        from storage.stage2_serialization import CONSENSUS_FEATURE_SPEC
+        return await self._upsert_stage2(CONSENSUS_FEATURE_SPEC, rows)
+
+    async def upsert_percentile_snapshots(
+        self, rows: "Sequence[PercentileSnapshot]") -> int:
+        from storage.stage2_serialization import PERCENTILE_SNAPSHOT_SPEC
+        return await self._upsert_stage2(PERCENTILE_SNAPSHOT_SPEC, rows)
+
+    async def upsert_data_health_snapshots(
+        self, rows: "Sequence[DataHealthSnapshot]") -> int:
+        from storage.stage2_serialization import DATA_HEALTH_SNAPSHOT_SPEC
+        return await self._upsert_stage2(DATA_HEALTH_SNAPSHOT_SPEC, rows)
