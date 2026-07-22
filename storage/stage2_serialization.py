@@ -23,6 +23,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import math
+from collections.abc import Sequence as _AbcSequence
 from dataclasses import dataclass
 from dataclasses import fields as dataclass_fields
 from typing import Any, Mapping, Sequence
@@ -181,10 +182,19 @@ DATA_HEALTH_SNAPSHOT_SPEC = _make_spec(
 
 
 def serialize_batch(spec: Stage2WriterSpec, rows: Sequence[Any]) -> list[tuple]:
-    """Validate the WHOLE batch (exact model type, then JSONB serialization) and
-    return one parameter tuple per row. Raises `Stage2SerializationError` before
-    the caller touches the database, so a type or serialization fault can never
-    yield a partially-written batch."""
+    """Validate the batch CONTAINER, then the WHOLE batch (exact model type, then
+    JSONB serialization), returning one parameter tuple per row. Raises
+    `Stage2SerializationError` before the caller touches the database, so a
+    malformed container or a type/serialization fault can never acquire a
+    connection or yield a partially-written batch.
+
+    The public contract is `Sequence[...]`: a runtime `collections.abc.Sequence`
+    excluding `str`/`bytes`/`bytearray`. `None`, bool, int/float, mappings,
+    sets, and generators/iterators are rejected — an arbitrary iterable is NOT
+    materialized and accepted."""
+    if isinstance(rows, (str, bytes, bytearray)) or not isinstance(rows, _AbcSequence):
+        raise Stage2SerializationError(
+            f"rows must be a Sequence (list/tuple), not {type(rows).__name__}")
     params: list[tuple] = []
     for i, obj in enumerate(rows):
         if type(obj) is not spec.model:

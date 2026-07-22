@@ -195,11 +195,84 @@ def _make(spec, **over):
 # A. General writer behavior (all four)
 # ============================================================================
 @pytest.mark.parametrize("spec", ALL_SPECS, ids=lambda s: s.table)
-def test_empty_batch_returns_zero_and_does_not_acquire(spec):
+def test_empty_list_returns_zero_and_does_not_acquire(spec):
     db = _db()
     assert _run(_writer(db, spec)([])) == 0
     assert db.pool.acquire_count == 0
     assert db.pool.conn.executemany_calls == []
+
+
+@pytest.mark.parametrize("spec", ALL_SPECS, ids=lambda s: s.table)
+def test_empty_tuple_returns_zero_and_does_not_acquire(spec):
+    db = _db()
+    assert _run(_writer(db, spec)(())) == 0
+    assert db.pool.acquire_count == 0
+    assert db.pool.conn.executemany_calls == []
+
+
+# Malformed batch CONTAINERS must fail before any pool assertion / acquire / DB
+# call. str/bytes/bytearray are Sequences but are excluded; dict/set/generator
+# and falsey non-sequences (None/False/0/"") are rejected, never treated as an
+# empty batch.
+_BAD_CONTAINERS = [
+    None, False, True, 0, 3.5, "", "abc", b"", b"x", bytearray(b"x"),
+    {}, {"a": 1}, set(), frozenset(), (i for i in range(3)), object(),
+]
+
+
+@pytest.mark.parametrize("spec", ALL_SPECS, ids=lambda s: s.table)
+@pytest.mark.parametrize("bad", _BAD_CONTAINERS,
+                         ids=lambda b: type(b).__name__ + repr(b)[:6])
+def test_malformed_container_rejected_before_acquire(spec, bad):
+    db = _db()
+    with pytest.raises(Stage2SerializationError):
+        _run(_writer(db, spec)(bad))
+    assert db.pool.acquire_count == 0
+    assert db.pool.conn.executemany_calls == []
+
+
+def test_nonempty_generator_rejected_before_acquire_not_consumed():
+    db = _db()
+    consumed = []
+
+    def gen():
+        for r in [make_efv(), make_efv(calculation_version="c" * 16)]:
+            consumed.append(r)
+            yield r
+
+    with pytest.raises(Stage2SerializationError):
+        _run(db.upsert_exchange_feature_vectors(gen()))
+    assert db.pool.acquire_count == 0
+    assert db.pool.conn.executemany_calls == []
+    assert consumed == []                      # generator was NOT consumed
+
+
+def test_no_pool_but_empty_valid_batch_returns_zero_without_error():
+    # a valid empty Sequence returns 0 even with no pool (no acquire attempted)
+    db = Database("postgresql://unused")       # pool is None
+    assert _run(db.upsert_percentile_snapshots([])) == 0
+
+
+def test_return_count_from_validated_params_no_post_write_len_failure():
+    # count is derived from validated params, not len(rows); a valid batch writes
+    # and returns cleanly with exactly one executemany.
+    db = _db()
+    rows = [make_health(calculation_version="1" * 16), make_health(calculation_version="2" * 16)]
+    n = _run(db.upsert_data_health_snapshots(rows))
+    assert n == 2 == len(db.pool.conn.executemany_calls[0][1])
+
+
+@pytest.mark.parametrize("bad", _BAD_CONTAINERS,
+                         ids=lambda b: type(b).__name__ + repr(b)[:6])
+def test_serialize_batch_rejects_malformed_container_directly(bad):
+    # serialize_batch is independently importable/testable — validate it directly
+    with pytest.raises(Stage2SerializationError):
+        serialize_batch(EXCHANGE_FEATURE_SPEC, bad)
+
+
+@pytest.mark.parametrize("empty", [[], ()])
+def test_serialize_batch_empty_sequence_returns_empty_list(empty):
+    assert serialize_batch(EXCHANGE_FEATURE_SPEC, empty) == []
 
 
 @pytest.mark.parametrize("spec", ALL_SPECS, ids=lambda s: s.table)
@@ -518,10 +591,31 @@ def _schema_columns(table: str) -> set[str]:
     return cols
 
 
+def _schema_table_body(table: str) -> str:
+    sql = Path("storage/stage2_schema.sql").read_text(encoding="utf-8")
+    m = re.search(r"CREATE TABLE IF NOT EXISTS " + table + r"\s*\((.*?)\n\);", sql, re.S)
+    assert m, f"{table} not found"
+    return m.group(1)
+
+
+def _schema_primary_key(table: str) -> list[str]:
+    """Independently read `PRIMARY KEY (...)` from the real table DDL."""
+    body = _schema_table_body(table)
+    m = re.search(r"PRIMARY KEY \(([^)]*)\)", body)
+    assert m, f"PRIMARY KEY not found for {table}"
+    return [c.strip() for c in m.group(1).split(",")]
+
+
 def _parse_insert_columns(sql: str) -> list[str]:
     m = re.search(r"INSERT INTO \w+\s*\(([^)]*)\)", sql, re.S)
     assert m
     return [c.strip() for c in m.group(1).split(",")]
+
+
+def _parse_placeholders(sql: str) -> list[str]:
+    m = re.search(r"VALUES \(([^)]*)\)", sql, re.S)
+    assert m
+    return [p.strip() for p in m.group(1).split(",")]
 
 
 def _parse_conflict_target(sql: str) -> list[str]:
@@ -557,12 +651,36 @@ def test_full_parity_schema_model_writer(spec, model):
     assert "computed_at" not in spec.columns
     # 3. INSERT column list == frozen writer column tuple
     assert _parse_insert_columns(spec.insert_sql) == list(spec.columns)
-    # 4. conflict target == real table PK
-    assert _parse_conflict_target(spec.insert_sql) == list(spec.pk)
+    # 4. conflict target == real table PK, parsed INDEPENDENTLY from the schema —
+    #    not just Python-spec vs Python-derived SQL agreeing with each other.
+    schema_pk = _schema_primary_key(spec.table)
+    conflict_target = _parse_conflict_target(spec.insert_sql)
+    assert schema_pk == list(spec.pk)          # real DDL PK == Python spec.pk
+    assert schema_pk == conflict_target        # real DDL PK == ON CONFLICT target
+    assert "calculation_version" in schema_pk  # never omitted
     # 5. DO UPDATE SET excludes every PK column
     updates = _parse_update_assignments(spec.insert_sql)
     for pk_col in spec.pk:
         assert pk_col not in updates
+
+
+@pytest.mark.parametrize("spec", ALL_SPECS, ids=lambda s: s.table)
+def test_placeholders_are_exactly_positional_with_jsonb_only_on_consensus(spec):
+    placeholders = _parse_placeholders(spec.insert_sql)
+    columns = _parse_insert_columns(spec.insert_sql)
+    assert len(placeholders) == len(columns) == len(spec.columns)
+    for i, (col, ph) in enumerate(zip(columns, placeholders), start=1):
+        if col in spec.jsonb_columns:
+            assert ph == f"${i}::jsonb"        # ::jsonb ONLY as a suffix on JSONB cols
+        else:
+            assert ph == f"${i}"               # exactly positional, no cast
+
+
+@pytest.mark.parametrize("spec", ALL_SPECS, ids=lambda s: s.table)
+def test_serialized_param_tuple_length_equals_column_count(spec):
+    params = serialize_batch(spec, [_make(spec)])
+    assert len(params) == 1
+    assert len(params[0]) == len(spec.columns) == len(_parse_insert_columns(spec.insert_sql))
 
 
 @pytest.mark.parametrize("spec", ALL_SPECS, ids=lambda s: s.table)

@@ -480,17 +480,20 @@ class Database:
     # ---------------------------------------------------------------
     async def _upsert_stage2(self, spec: "Stage2WriterSpec",
                              rows: Sequence) -> int:
-        """Shared batch upsert. Empty batch returns 0 without acquiring a
-        connection; a non-empty batch is validated + serialized in full (raising
-        before any DB call), then written with a single executemany."""
-        if not rows:
-            return 0
+        """Shared batch upsert. The batch container + every row are validated and
+        serialized FIRST (raising before any pool assertion, acquire, or DB call),
+        so a malformed container / wrong type can never partially write. An empty
+        (but valid) list/tuple returns 0 without acquiring a connection. The
+        returned count comes from the validated parameters — there is no
+        post-write `len(rows)` path that could fail after the executemany."""
         from storage.stage2_serialization import serialize_batch
-        params = serialize_batch(spec, rows)   # whole-batch validation, no DB yet
+        params = serialize_batch(spec, rows)   # container + whole-batch validation
+        if not params:
+            return 0
         assert self.pool is not None
         async with self.pool.acquire() as conn:
             await conn.executemany(spec.insert_sql, params)
-        return len(rows)
+        return len(params)
 
     async def upsert_exchange_feature_vectors(
         self, rows: "Sequence[ExchangeFeatureVector]") -> int:
