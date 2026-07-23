@@ -17,6 +17,7 @@ if TYPE_CHECKING:  # annotation-only; keeps Stage 2 analytics out of Stage 1 sta
     from analytics.data_quality.models import DataHealthSnapshot
     from analytics.feature_engine.consensus_models import ConsensusFeatureVector
     from analytics.feature_engine.models import ExchangeFeatureVector
+    from analytics.forecasting.persistence import ForecastPrediction
     from analytics.percentile_engine.models import PercentileSnapshot
     from storage.stage2_readers import ExchangeFeatureRawBundle
     from storage.stage2_serialization import Stage2WriterSpec
@@ -490,14 +491,18 @@ class Database:
         return row is not None
 
     # ---------------------------------------------------------------
-    # Stage 2 output writers — persist the four already-computed pure
-    # analytics outputs into their existing Stage 2 tables. Additive and
-    # idempotent: ON CONFLICT (…, calculation_version) DO UPDATE refreshes the
-    # derived values and stamps computed_at=now(), so a deterministic replay
-    # keeps one logical row and a legitimate late-data correction updates it,
-    # while a different calculation_version is always a separate row. These read
-    # no raw market data and are never called from connect()/init_schema(). The
-    # serialization bridge is imported lazily so Stage 1 startup never eagerly
+    # Stage 2 output writers. Two disciplines:
+    #   * DERIVED feature snapshots (the four upsert_* methods below) — a
+    #     correction-friendly upsert: ON CONFLICT (…, calculation_version)
+    #     DO UPDATE refreshes the derived values and stamps computed_at=now(), so
+    #     a deterministic replay keeps one logical row and a legitimate late-data
+    #     correction updates it.
+    #   * FORECAST PREDICTIONS (insert_forecast_prediction) — an immutable
+    #     insert-once EVENT: INSERT ... ON CONFLICT DO NOTHING. A stored prediction
+    #     is historical truth; late data must NOT rewrite it, so it is never routed
+    #     through _upsert_stage2.
+    # All read no raw market data and are never called from connect()/init_schema().
+    # The serialization bridge is imported lazily so Stage 1 startup never eagerly
     # pulls in the Stage 2 analytics packages.
     # ---------------------------------------------------------------
     async def _upsert_stage2(self, spec: "Stage2WriterSpec",
@@ -536,3 +541,17 @@ class Database:
         self, rows: "Sequence[DataHealthSnapshot]") -> int:
         from storage.stage2_serialization import DATA_HEALTH_SNAPSHOT_SPEC
         return await self._upsert_stage2(DATA_HEALTH_SNAPSHOT_SPEC, rows)
+
+    async def insert_forecast_prediction(self, row: "ForecastPrediction") -> bool:
+        """Insert ONE immutable forecast prediction as an event. Validates +
+        serializes before acquiring a connection, then runs exactly one
+        INSERT ... ON CONFLICT DO NOTHING RETURNING TRUE. Returns True on a first
+        insert and False on a duplicate logical identity; it never overwrites a
+        prior prediction (no _upsert_stage2, no DO UPDATE) and never reads back.
+        DB exceptions propagate unchanged."""
+        from storage.stage2_serialization import FORECAST_PREDICTION_SPEC, serialize_batch
+        params = serialize_batch(FORECAST_PREDICTION_SPEC, (row,))[0]  # validation before any DB call
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            inserted = await conn.fetchval(FORECAST_PREDICTION_SPEC.insert_sql, *params)
+        return inserted is True

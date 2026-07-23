@@ -13,6 +13,9 @@ EXPECTED_TABLES = [
     "symbol_exchange_capabilities", "exchange_feature_vectors",
     "consensus_feature_vectors", "percentile_snapshots",
     "data_health_snapshots", "stage2_watermarks", "stage2_recompute_queue",
+    # additive shadow-forecast insert-once event table (details in
+    # tests/storage/test_forecast_prediction_schema.py)
+    "forecast_predictions",
 ]
 
 
@@ -33,7 +36,7 @@ def _primary_key(name: str) -> str:
 # -- table set ---------------------------------------------------------------
 def test_exactly_ten_create_table_statements():
     creates = re.findall(r"^CREATE TABLE IF NOT EXISTS (\w+)", SQL, re.MULTILINE)
-    assert len(creates) == 10
+    assert len(creates) == len(EXPECTED_TABLES)
     assert creates == EXPECTED_TABLES
 
 
