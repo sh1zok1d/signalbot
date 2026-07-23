@@ -10,10 +10,18 @@ from .input_adapter import (
     assemble_exchange_feature_request, build_assembly_context,
     load_exchange_feature_request,
 )
+from .consensus_input_adapter import (
+    ConsensusInputError, build_consensus_feature_request,
+)
+from .consensus_pipeline import (
+    ConsensusFeatureWriter, process_consensus_feature_bucket,
+)
 
 __all__ = [
     "AssemblyContext", "FeatureInputError", "RawBundleReader",
     "assemble_exchange_feature_request", "build_assembly_context",
     "load_exchange_feature_request",
     "ExchangeFeatureWriter", "process_exchange_feature_bucket",
+    "ConsensusInputError", "build_consensus_feature_request",
+    "ConsensusFeatureWriter", "process_consensus_feature_bucket",
 ]
