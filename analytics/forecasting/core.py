@@ -11,14 +11,17 @@ fails with `ForecastInputError`. No DB, network, asyncio, clock, env, filesystem
 config file, randomness, or ML — same consensus vector + same rule set always
 produce an equal decision. Nothing is rounded internally.
 
+A real healthy `ConsensusFeatureVector` from the merged consensus core is accepted
+directly: `consensus_confidence` / `data_confidence_overall` are read on their
+upstream 0–100 scale, `min_coverage_ratio` and the direction agreements on 0–1. No
+copied or renormalized vector is required.
+
 `confidence` is an uncalibrated deterministic action-strength score in [0, 1], NOT
 a probability of profit.
 """
 from __future__ import annotations
 
 import math
-import re
-from datetime import datetime, timedelta
 
 from analytics.feature_engine.consensus_models import ConsensusFeatureVector
 
@@ -30,16 +33,8 @@ from .models import (
     LIQUIDATIONS_BEARISH, LIQUIDATIONS_BULLISH, LONG, LOW_CONSENSUS_CONFIDENCE,
     NEUTRAL, OI_BEARISH_CONTRIBUTION, OI_BULLISH_CONTRIBUTION, PARTIAL_CONSENSUS,
     PRICE_BEARISH, PRICE_BULLISH, SCORE_BELOW_ACTION_THRESHOLD, SHORT,
-    WEAK_PRIMARY_SIGNAL, _finite_number, _in_range, _nonblank,
+    WEAK_PRIMARY_SIGNAL, _finite_number, _in_range, _validate_scope_identity,
 )
-
-_SUPPORTED_SYMBOL = "BTCUSDT"
-_SUPPORTED_MARKET_TYPE = "perp"
-_SUPPORTED_TIMEFRAME = "5m"
-_TIMEFRAME_MINUTES = 5
-
-_HEX16 = re.compile(r"[0-9a-f]{16}")
-_HEX64 = re.compile(r"[0-9a-f]{64}")
 
 
 # ---- pure score helpers ----------------------------------------------------
@@ -62,9 +57,19 @@ def _num_or_none(value, name: str):
 
 
 def _ratio_or_none(value, name: str):
+    """Finite value in [0, 1], or None (a true 0–1 ratio)."""
     if value is None:
         return None
     return _in_range(_finite_number(value, name), name, 0.0, 1.0)
+
+
+def _percent_or_none(value, name: str):
+    """Finite value on the upstream consensus 0–100 confidence scale, or None.
+    Deliberately distinct from `_ratio_or_none` so a 0–100 confidence is never
+    mislabeled a 0–1 ratio."""
+    if value is None:
+        return None
+    return _in_range(_finite_number(value, name), name, 0.0, 100.0)
 
 
 def _nonneg_or_none(value, name: str):
@@ -77,37 +82,11 @@ def _nonneg_or_none(value, name: str):
 
 
 def _validate_identity(cf: ConsensusFeatureVector) -> None:
-    if cf.symbol != _SUPPORTED_SYMBOL:
-        raise ForecastInputError(
-            f"unsupported symbol {cf.symbol!r} (shadow scope is {_SUPPORTED_SYMBOL})")
-    if cf.market_type != _SUPPORTED_MARKET_TYPE:
-        raise ForecastInputError(
-            f"unsupported market_type {cf.market_type!r} (shadow scope is {_SUPPORTED_MARKET_TYPE})")
-    if cf.timeframe != _SUPPORTED_TIMEFRAME:
-        raise ForecastInputError(
-            f"unsupported timeframe {cf.timeframe!r} (shadow scope is {_SUPPORTED_TIMEFRAME})")
-
-    ts = cf.bucket_ts
-    if not isinstance(ts, datetime):
-        raise ForecastInputError(f"bucket_ts must be a datetime, got {type(ts).__name__}")
-    if ts.tzinfo is None or ts.utcoffset() is None:
-        raise ForecastInputError("bucket_ts must be timezone-aware")
-    if ts.utcoffset() != timedelta(0):
-        raise ForecastInputError(f"bucket_ts must be UTC (offset 0), got {ts.utcoffset()}")
-    if ts.second != 0 or ts.microsecond != 0:
-        raise ForecastInputError("bucket_ts must be on a whole minute")
-    if ts.minute % _TIMEFRAME_MINUTES != 0:
-        raise ForecastInputError("bucket_ts must be aligned to the 5m grid")
-
-    if not isinstance(cf.feature_schema_version, int) or isinstance(cf.feature_schema_version, bool) \
-            or cf.feature_schema_version <= 0:
-        raise ForecastInputError("feature_schema_version must be an int > 0")
-    if not isinstance(cf.calculation_version, str) or not _HEX16.fullmatch(cf.calculation_version):
-        raise ForecastInputError("calculation_version must be exactly 16 lowercase hex chars")
-    if not isinstance(cf.config_hash, str) or not _HEX64.fullmatch(cf.config_hash):
-        raise ForecastInputError("config_hash must be exactly 64 lowercase hex chars")
-    _nonblank(cf.config_version, "config_version")
-    _nonblank(cf.code_version, "code_version")
+    # shared BTCUSDT/perp/5m identity + version rules
+    _validate_scope_identity(
+        cf.symbol, cf.market_type, cf.timeframe, cf.bucket_ts,
+        cf.feature_schema_version, cf.calculation_version,
+        cf.config_hash, cf.config_version, cf.code_version)
     if not isinstance(cf.is_partial_consensus, bool):
         raise ForecastInputError("is_partial_consensus must be a bool")
     if not isinstance(cf.exchanges_expected_max, int) or isinstance(cf.exchanges_expected_max, bool) \
@@ -116,13 +95,15 @@ def _validate_identity(cf: ConsensusFeatureVector) -> None:
 
 
 def _validate_numerics(cf: ConsensusFeatureVector) -> dict:
-    """Validate + collect the numeric fields the core reads. Ratio/confidence
-    fields are [0, 1]; the notional sums used in ratios are >= 0; the rest are
-    finite (any sign). None stays None (handled per component / per gate)."""
+    """Validate + collect the numeric fields the core reads, each on its REAL
+    upstream scale: `consensus_confidence`/`data_confidence_overall` in [0, 100];
+    `min_coverage_ratio` and the direction agreements in [0, 1]; the notional sums
+    used in ratios >= 0; the rest finite (any sign). None stays None (handled per
+    component / per gate)."""
     return {
         "min_coverage_ratio": _ratio_or_none(cf.min_coverage_ratio, "min_coverage_ratio"),
-        "data_confidence_overall": _ratio_or_none(cf.data_confidence_overall, "data_confidence_overall"),
-        "consensus_confidence": _ratio_or_none(cf.consensus_confidence, "consensus_confidence"),
+        "data_confidence_overall": _percent_or_none(cf.data_confidence_overall, "data_confidence_overall"),
+        "consensus_confidence": _percent_or_none(cf.consensus_confidence, "consensus_confidence"),
         "price_direction_agreement": _ratio_or_none(cf.price_direction_agreement, "price_direction_agreement"),
         "flow_direction_agreement": _ratio_or_none(cf.flow_direction_agreement, "flow_direction_agreement"),
         "oi_direction_agreement": _ratio_or_none(cf.oi_direction_agreement, "oi_direction_agreement"),
@@ -288,8 +269,9 @@ def compute_forecast_decision(
         direction = LONG if final_score > 0 else SHORT
         reasons = _actionable_reasons(
             direction, component_scores, rules, consensus_feature.is_partial_consensus)
-        # cc and mcr are guaranteed non-None here (gates passed).
-        quality_multiplier = math.sqrt(cc * mcr)
+        # cc (0–100) and mcr (0–1) are guaranteed non-None here (gates passed);
+        # normalize the confidence percent to a 0–1 quality factor.
+        quality_multiplier = math.sqrt((cc / 100.0) * mcr)
         confidence = _clamp(abs(final_score) * quality_multiplier, 0.0, 1.0)
 
     return ForecastDecision(

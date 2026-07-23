@@ -11,19 +11,28 @@ is an uncalibrated, deterministic ACTION-STRENGTH score in [0, 1]; it is NOT a
 probability of profit and is never turned into a percentage or passed through a
 sigmoid/logistic transform.
 
-The ratio/confidence inputs the core reads (`consensus_confidence`,
-`data_confidence_overall`, the direction agreements, `min_coverage_ratio`) are
-validated as normalized [0, 1] values; a future integration layer is responsible
-for presenting the consensus vector on that normalized scale.
+The core reads the merged consensus core's fields on their real upstream scales:
+`consensus_confidence` and `data_confidence_overall` are 0–100, while
+`min_coverage_ratio` and the direction agreements are 0–1. A real healthy
+`ConsensusFeatureVector` is accepted directly — no copied or renormalized vector.
 """
 from __future__ import annotations
 
 import math
+import re
 from collections.abc import Mapping as _AbcMapping, Sequence as _AbcSequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from types import MappingProxyType
 from typing import Mapping, Sequence
+
+# ---- current shadow scope (BTCUSDT / perp / 5m only) -----------------------
+SUPPORTED_SYMBOL = "BTCUSDT"
+SUPPORTED_MARKET_TYPE = "perp"
+SUPPORTED_TIMEFRAME = "5m"
+_TIMEFRAME_MINUTES = 5
+_HEX16 = re.compile(r"[0-9a-f]{16}")
+_HEX64 = re.compile(r"[0-9a-f]{64}")
 
 # ---- directions ------------------------------------------------------------
 LONG = "LONG"
@@ -107,6 +116,65 @@ def _nonblank(value, name: str) -> str:
     return value
 
 
+def _validate_str_sequence(value, name: str) -> tuple:
+    """A runtime Sequence (never str/bytes/bytearray) of non-empty, unique
+    strings — validated BEFORE detaching to a tuple so a str/bytes can never be
+    silently exploded into characters."""
+    if isinstance(value, (str, bytes, bytearray)) or not isinstance(value, _AbcSequence):
+        raise ForecastInputError(
+            f"{name} must be a Sequence (list/tuple), got {type(value).__name__}")
+    if len(value) == 0:
+        raise ForecastInputError(f"{name} must be non-empty")
+    seen = set()
+    for item in value:
+        _nonblank(item, f"{name} item")
+        if item in seen:
+            raise ForecastInputError(f"duplicate {name} item {item!r}")
+        seen.add(item)
+    return tuple(value)
+
+
+def _validate_scope_bucket_ts(ts, name: str = "bucket_ts") -> datetime:
+    if not isinstance(ts, datetime):
+        raise ForecastInputError(f"{name} must be a datetime, got {type(ts).__name__}")
+    if ts.tzinfo is None or ts.utcoffset() is None:
+        raise ForecastInputError(f"{name} must be timezone-aware")
+    if ts.utcoffset() != timedelta(0):
+        raise ForecastInputError(f"{name} must be UTC (offset 0), got {ts.utcoffset()}")
+    if ts.second != 0 or ts.microsecond != 0:
+        raise ForecastInputError(f"{name} must be on a whole minute")
+    if ts.minute % _TIMEFRAME_MINUTES != 0:
+        raise ForecastInputError(f"{name} must be aligned to the 5m grid")
+    return ts
+
+
+def _validate_scope_identity(symbol, market_type, timeframe, bucket_ts,
+                             feature_schema_version, calculation_version,
+                             config_hash, config_version, code_version) -> None:
+    """Shared BTCUSDT/perp/5m identity + version validation, used by both the
+    forecast core (on its consensus input) and the ForecastDecision model (on its
+    own copied fields), so a stored decision can never be invalid."""
+    if symbol != SUPPORTED_SYMBOL:
+        raise ForecastInputError(
+            f"unsupported symbol {symbol!r} (shadow scope is {SUPPORTED_SYMBOL})")
+    if market_type != SUPPORTED_MARKET_TYPE:
+        raise ForecastInputError(
+            f"unsupported market_type {market_type!r} (shadow scope is {SUPPORTED_MARKET_TYPE})")
+    if timeframe != SUPPORTED_TIMEFRAME:
+        raise ForecastInputError(
+            f"unsupported timeframe {timeframe!r} (shadow scope is {SUPPORTED_TIMEFRAME})")
+    _validate_scope_bucket_ts(bucket_ts)
+    if not isinstance(feature_schema_version, int) or isinstance(feature_schema_version, bool) \
+            or feature_schema_version <= 0:
+        raise ForecastInputError("feature_schema_version must be an int > 0")
+    if not isinstance(calculation_version, str) or not _HEX16.fullmatch(calculation_version):
+        raise ForecastInputError("calculation_version must be exactly 16 lowercase hex chars")
+    if not isinstance(config_hash, str) or not _HEX64.fullmatch(config_hash):
+        raise ForecastInputError("config_hash must be exactly 64 lowercase hex chars")
+    _nonblank(config_version, "config_version")
+    _nonblank(code_version, "code_version")
+
+
 # ---- rule set --------------------------------------------------------------
 @dataclass(frozen=True)
 class ForecastRuleSet:
@@ -130,11 +198,7 @@ class ForecastRuleSet:
     def __post_init__(self):
         # Detach/freeze the container fields (checking shape BEFORE tuple/dict so a
         # str/bytes horizons or a non-mapping weights can never be silently taken).
-        h = self.horizons
-        if isinstance(h, (str, bytes, bytearray)) or not isinstance(h, _AbcSequence):
-            raise ForecastInputError(
-                f"horizons must be a Sequence (list/tuple), got {type(h).__name__}")
-        object.__setattr__(self, "horizons", tuple(h))
+        object.__setattr__(self, "horizons", _validate_str_sequence(self.horizons, "horizon"))
         w = self.component_weights
         if not isinstance(w, _AbcMapping):
             raise ForecastInputError(
@@ -145,20 +209,12 @@ class ForecastRuleSet:
     def _validate(self) -> None:
         _nonblank(self.rule_version, "rule_version")
 
-        if len(self.horizons) == 0:
-            raise ForecastInputError("horizons must be non-empty")
-        seen = set()
-        for h in self.horizons:
-            _nonblank(h, "horizon")
-            if h in seen:
-                raise ForecastInputError(f"duplicate horizon {h!r}")
-            seen.add(h)
-
-        # unit-interval thresholds (with the exact open/closed bounds from the spec)
+        # coverage ratio + primary/reason score thresholds are unit-interval;
+        # consensus confidence is on the upstream 0–100 consensus scale.
         _in_range(_finite_number(self.minimum_coverage_ratio, "minimum_coverage_ratio"),
                   "minimum_coverage_ratio", 0.0, 1.0, low_inclusive=False)
         _in_range(_finite_number(self.minimum_consensus_confidence, "minimum_consensus_confidence"),
-                  "minimum_consensus_confidence", 0.0, 1.0)
+                  "minimum_consensus_confidence", 0.0, 100.0)
         _in_range(_finite_number(self.minimum_primary_score, "minimum_primary_score"),
                   "minimum_primary_score", 0.0, 1.0)
         _in_range(_finite_number(self.action_score_threshold, "action_score_threshold"),
@@ -199,7 +255,7 @@ DEFAULT_FORECAST_RULES = ForecastRuleSet(
     horizons=DEFAULT_FORECAST_HORIZONS,
 
     minimum_coverage_ratio=2.0 / 3.0,
-    minimum_consensus_confidence=0.50,
+    minimum_consensus_confidence=50.0,     # upstream consensus 0–100 scale
     minimum_primary_score=0.10,
     action_score_threshold=0.30,
     reason_score_threshold=0.10,
@@ -247,8 +303,10 @@ class ForecastDecision:
     code_version: str
 
     def __post_init__(self):
-        object.__setattr__(self, "horizon_set", tuple(self.horizon_set))
-        object.__setattr__(self, "reasons", tuple(self.reasons))
+        # Validate the container shape BEFORE detaching (rejecting str/bytes and
+        # non-Sequences) so a stored decision can never be malformed.
+        object.__setattr__(self, "horizon_set", _validate_str_sequence(self.horizon_set, "horizon_set"))
+        object.__setattr__(self, "reasons", _validate_str_sequence(self.reasons, "reason"))
         cs = self.component_scores
         if not isinstance(cs, _AbcMapping):
             raise ForecastInputError(
@@ -257,6 +315,14 @@ class ForecastDecision:
         self._validate()
 
     def _validate(self) -> None:
+        # identity/version — the public model cannot represent an out-of-scope or
+        # malformed stored decision.
+        _validate_scope_identity(
+            self.symbol, self.market_type, self.timeframe, self.bucket_ts,
+            self.feature_schema_version, self.calculation_version,
+            self.config_hash, self.config_version, self.code_version)
+        _nonblank(self.rule_version, "rule_version")
+
         if self.direction not in DIRECTIONS:
             raise ForecastInputError(
                 f"direction must be one of {list(DIRECTIONS)}, got {self.direction!r}")
@@ -270,14 +336,3 @@ class ForecastDecision:
         for k in FORECAST_COMPONENTS:
             _in_range(_finite_number(self.component_scores[k], f"component_scores.{k}"),
                       f"component_scores.{k}", -1.0, 1.0)
-
-        if len(self.reasons) == 0:
-            raise ForecastInputError("reasons must contain at least one reason")
-        seen = set()
-        for r in self.reasons:
-            _nonblank(r, "reason")
-            if r in seen:
-                raise ForecastInputError(f"duplicate reason {r!r}")
-            seen.add(r)
-
-        _nonblank(self.rule_version, "rule_version")

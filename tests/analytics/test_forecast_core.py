@@ -38,7 +38,7 @@ def _cf(**over) -> ConsensusFeatureVector:
         feature_schema_version=1, calculation_version=CV16,
         coverage_by_metric=MappingProxyType({}), provenance_by_metric=MappingProxyType({}),
         data_confidence_by_metric=MappingProxyType({}),
-        exchanges_expected_max=3, min_coverage_ratio=1.0, data_confidence_overall=0.8,
+        exchanges_expected_max=3, min_coverage_ratio=1.0, data_confidence_overall=80.0,
         price_direction_agreement=1.0, flow_direction_agreement=1.0, oi_direction_agreement=1.0,
         price_move_pct_median=0.4, range_width_pct_median=1.0, oi_change_pct_median=0.5,
         funding_rate_median=0.0001, funding_rate_mad=0.0,
@@ -50,7 +50,7 @@ def _cf(**over) -> ConsensusFeatureVector:
         observed_liquidation_event_count_sum=5,
         liquidation_feed_quality_by_exchange=MappingProxyType({}),
         price_move_pct_mad=0.0, oi_change_pct_mad=0.0, outlier_exchanges=MappingProxyType({}),
-        consensus_confidence=0.8, is_partial_consensus=False,
+        consensus_confidence=80.0, is_partial_consensus=False,  # upstream 0–100 scale
         config_hash=CH64, config_version="2.1.0", code_version="code-v1")
     base.update(over)
     return ConsensusFeatureVector(**base)
@@ -123,7 +123,7 @@ def test_rules_bad_numeric_field(field, bad):
 
 @pytest.mark.parametrize("field,bad", [
     ("minimum_coverage_ratio", 0.0), ("minimum_coverage_ratio", 1.5),
-    ("minimum_consensus_confidence", -0.1), ("minimum_consensus_confidence", 1.1),
+    ("minimum_consensus_confidence", -0.1), ("minimum_consensus_confidence", 100.1),
     ("minimum_primary_score", -0.01), ("minimum_primary_score", 1.01),
     ("action_score_threshold", 0.0), ("action_score_threshold", 1.01),
     ("reason_score_threshold", -0.1), ("reason_score_threshold", 1.1),
@@ -236,13 +236,46 @@ def test_decision_empty_and_duplicate_reasons():
 def test_decision_deep_immutability_and_detachment():
     reasons = [INSUFFICIENT_COVERAGE]
     cs = {k: 0.0 for k in FORECAST_COMPONENTS}
-    d = _decision(reasons=reasons, component_scores=cs)
+    hz = ["15m", "1h"]
+    d = _decision(reasons=reasons, component_scores=cs, horizon_set=hz)
     reasons.append("x")
     cs["price"] = 0.9
+    hz.append("mut")
     assert d.reasons == (INSUFFICIENT_COVERAGE,)
+    assert d.horizon_set == ("15m", "1h")               # detached from caller list
     assert d.component_scores["price"] == 0.0
     with pytest.raises(TypeError):
         d.component_scores["price"] = 1.0
+
+
+# ---- B. ForecastDecision container + identity validation -------------------
+@pytest.mark.parametrize("bad", ["15m", b"15m", bytearray(b"15m"), 5, None,
+                                 (), ("15m", "15m"), ("15m", "")])
+def test_decision_bad_horizon_set(bad):
+    with pytest.raises(ForecastInputError):
+        _decision(horizon_set=bad)
+
+
+@pytest.mark.parametrize("bad", ["COMPOSITE_BULLISH", b"x", bytearray(b"x"), 5, None,
+                                 (), (INSUFFICIENT_COVERAGE, INSUFFICIENT_COVERAGE),
+                                 (INSUFFICIENT_COVERAGE, "")])
+def test_decision_bad_reasons(bad):
+    with pytest.raises(ForecastInputError):
+        _decision(reasons=bad)
+
+
+@pytest.mark.parametrize("over", [
+    {"symbol": "ETHUSDT"}, {"market_type": "spot"}, {"timeframe": "1m"},
+    {"bucket_ts": datetime(2026, 3, 1, 0, 5, 0)},                            # naive
+    {"bucket_ts": datetime(2026, 3, 1, 0, 5, 30, tzinfo=timezone.utc)},      # not whole minute
+    {"bucket_ts": datetime(2026, 3, 1, 0, 3, 0, tzinfo=timezone.utc)},       # not 5m aligned
+    {"feature_schema_version": 0}, {"feature_schema_version": True},
+    {"calculation_version": "xyz"}, {"config_hash": "a" * 63},
+    {"config_version": " "}, {"code_version": ""}, {"rule_version": " "},
+])
+def test_decision_bad_identity_or_version(over):
+    with pytest.raises(ForecastInputError):
+        _decision(**over)
 
 
 # ============================================================================
@@ -284,9 +317,10 @@ def test_rejects_bad_identity(over):
     {"price_move_pct_median": True}, {"price_move_pct_median": float("nan")},
     {"funding_rate_median": float("inf")}, {"oi_change_pct_median": float("-inf")},
     {"min_coverage_ratio": -0.1}, {"min_coverage_ratio": 1.1},
-    {"consensus_confidence": 1.5}, {"price_direction_agreement": -0.01},
+    {"consensus_confidence": 150.0}, {"consensus_confidence": -1.0},
+    {"price_direction_agreement": -0.01},
     {"flow_direction_agreement": 1.2}, {"oi_direction_agreement": 2.0},
-    {"data_confidence_overall": 1.5},
+    {"data_confidence_overall": 150.0}, {"data_confidence_overall": -1.0},
     {"taker_buy_notional_usd_sum": -1.0}, {"taker_sell_notional_usd_sum": -5.0},
     {"observed_long_liquidation_notional_sum": -1.0},
     {"observed_short_liquidation_notional_sum": -1.0},
@@ -421,7 +455,7 @@ def test_E_one_of_three_neutral():
 
 
 def test_F_low_consensus_confidence_neutral():
-    d = compute_forecast_decision(_cf(consensus_confidence=0.4))
+    d = compute_forecast_decision(_cf(consensus_confidence=40.0))    # 0–100 scale, below 50
     assert d.direction == NEUTRAL
     assert LOW_CONSENSUS_CONFIDENCE in d.reasons
 
@@ -433,8 +467,8 @@ def test_G_missing_consensus_confidence_neutral():
 
 
 def test_H_exact_threshold_boundaries_pass():
-    # coverage == threshold, consensus_confidence == threshold both pass
-    d = compute_forecast_decision(_cf(min_coverage_ratio=2.0 / 3.0, consensus_confidence=0.50))
+    # coverage == threshold, consensus_confidence == threshold (50.0) both pass
+    d = compute_forecast_decision(_cf(min_coverage_ratio=2.0 / 3.0, consensus_confidence=50.0))
     assert INSUFFICIENT_COVERAGE not in d.reasons
     assert LOW_CONSENSUS_CONFIDENCE not in d.reasons
     # primary anchor == minimum passes (custom rule set to the known anchor 0.9)
@@ -456,13 +490,14 @@ def test_I_conflicting_evidence_preserved():
 
 def test_J_confidence_formula_and_monotonicity():
     d = compute_forecast_decision(_cf())
-    expected = min(1.0, abs(d.final_score) * math.sqrt(0.8 * 1.0))
+    # confidence normalizes the 0–100 consensus_confidence to a 0–1 quality factor
+    expected = min(1.0, abs(d.final_score) * math.sqrt((80.0 / 100.0) * 1.0))
     assert d.confidence == pytest.approx(expected)
     # stronger score -> larger confidence at equal quality
     weaker = compute_forecast_decision(_cf(price_move_pct_median=0.2))
     assert d.confidence > weaker.confidence
     # lower coverage/confidence -> smaller confidence
-    lower_q = compute_forecast_decision(_cf(consensus_confidence=0.6, min_coverage_ratio=2.0 / 3.0))
+    lower_q = compute_forecast_decision(_cf(consensus_confidence=60.0, min_coverage_ratio=2.0 / 3.0))
     assert lower_q.confidence < d.confidence
     assert 0.0 <= d.confidence <= 1.0
 
@@ -496,6 +531,77 @@ def test_no_internal_rounding():
     # a fully-precise irrational-ish confidence is preserved (not rounded)
     d = compute_forecast_decision(_cf())
     assert repr(d.confidence).count("0000000") == 0 or d.confidence != round(d.confidence, 4)
+
+
+# ============================================================================
+# C. real consensus core -> forecast integration (no hand-normalized fixture)
+# ============================================================================
+from analytics.feature_engine.models import ExchangeFeatureVector
+from analytics.feature_engine.consensus_models import ConsensusFeatureRequest, FAMILIES
+from analytics.feature_engine.consensus import compute_consensus_features
+
+_LQ = {"binance": "snapshot", "bybit": "full", "okx": "aggregated"}
+_CWEIGHTS = {"coverage": 0.50, "agreement": 0.30, "dispersion": 0.20}
+
+
+def _real_efv(ex, **over):
+    base = dict(
+        exchange=ex, symbol="BTCUSDT", market_type="perp", timeframe="5m",
+        bucket_ts=B, feature_schema_version=1, calculation_version=CV16,
+        price_move_pct=0.4, range_width_pct=5.0, close_price=100.0,
+        volume_raw=10.0, volume_raw_unit="base", volume_notional_usd=1000.0,
+        taker_buy_notional_usd=800.0, taker_sell_notional_usd=200.0,
+        taker_delta_notional_usd=600.0, cvd_delta_notional_usd=600.0,
+        oi_change_pct=2.0, oi_unit="base", funding_rate=0.0001,
+        long_liquidation_notional=100.0, short_liquidation_notional=900.0,
+        liquidation_event_count=5, liquidation_feed_quality=_LQ[ex],
+        is_snapshot_feed=(ex == "binance"),
+        bars_expected=5, bars_present=5, has_gap=False, is_usable=True,
+        config_hash=CH64, config_version="2.1.0", code_version="code-v1")
+    base.update(over)
+    return ExchangeFeatureVector(**base)
+
+
+def _real_consensus(exchanges=("binance", "bybit", "okx"), **efv_over):
+    feats = [_real_efv(ex, **efv_over) for ex in exchanges]
+    req = ConsensusFeatureRequest(
+        symbol="BTCUSDT", market_type="perp", timeframe="5m", bucket_ts=B,
+        feature_schema_version=1, calculation_version=CV16, config_hash=CH64,
+        config_version="2.1.0", code_version="code-v1", exchange_features=feats,
+        expected_exchanges_by_family={f: tuple(exchanges) for f in FAMILIES},
+        exclusion_reasons_by_family={}, minimum_exchange_coverage=2,
+        confidence_weights=_CWEIGHTS, robust_z_threshold=3.5)
+    return compute_consensus_features(req)
+
+
+def test_real_consensus_vector_accepted_directly():
+    cv = _real_consensus()
+    # upstream consensus confidence is on the 0–100 scale (not 0–1)
+    assert cv.consensus_confidence is not None and cv.consensus_confidence > 1.0
+    assert 0.0 <= cv.consensus_confidence <= 100.0
+    # accepted directly — no copied/normalized vector
+    d = compute_forecast_decision(cv)
+    assert d.direction == LONG
+    assert 0.0 <= d.confidence <= 1.0
+    expected = min(1.0, abs(d.final_score) * math.sqrt((cv.consensus_confidence / 100.0) * cv.min_coverage_ratio))
+    assert d.confidence == pytest.approx(expected)
+    # identity/version copied through unchanged
+    for f in ("symbol", "market_type", "timeframe", "bucket_ts", "feature_schema_version",
+              "calculation_version", "config_hash", "config_version", "code_version"):
+        assert getattr(d, f) == getattr(cv, f)
+
+
+def test_real_consensus_confidence_gate_boundary():
+    cv = _real_consensus()
+    base = cv.consensus_confidence
+    assert base >= 50.0
+    # consensus_confidence == 50.0 passes the confidence gate
+    at = dataclasses.replace(cv, consensus_confidence=50.0)
+    assert LOW_CONSENSUS_CONFIDENCE not in compute_forecast_decision(at).reasons
+    # immediately below 50.0 fails with LOW_CONSENSUS_CONFIDENCE
+    below = dataclasses.replace(cv, consensus_confidence=math.nextafter(50.0, 0.0))
+    db = compute_forecast_decision(below)
+    assert db.direction == NEUTRAL and LOW_CONSENSUS_CONFIDENCE in db.reasons
 
 
 # ============================================================================
