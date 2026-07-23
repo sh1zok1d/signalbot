@@ -18,6 +18,7 @@ if TYPE_CHECKING:  # annotation-only; keeps Stage 2 analytics out of Stage 1 sta
     from analytics.feature_engine.consensus_models import ConsensusFeatureVector
     from analytics.feature_engine.models import ExchangeFeatureVector
     from analytics.percentile_engine.models import PercentileSnapshot
+    from storage.stage2_readers import ExchangeFeatureRawBundle
     from storage.stage2_serialization import Stage2WriterSpec
 
 logger = logging.getLogger(__name__)
@@ -164,6 +165,27 @@ class Database:
             for stmt in statements:
                 await conn.execute(stmt)
         logger.info("Stage 2 schema initialized / verified (%d statements)", len(statements))
+
+    async def fetch_exchange_feature_raw_bundle(
+        self, *, exchange: str, symbol: str, market_type: str,
+        bucket_start: datetime, bucket_end: datetime,
+    ) -> "ExchangeFeatureRawBundle":
+        """Read-only: fetch the fixed raw inputs for ONE ExchangeFeatureRequest
+        (one exchange/symbol/market_type/bucket) and return an immutable,
+        connection-independent bundle. Arguments are validated BEFORE a
+        connection is acquired; all six reads run on a single acquired
+        connection. No analytics, no writes, no wall clock. SQL lives in
+        storage/stage2_readers.py (static/trusted)."""
+        from storage.stage2_readers import (  # local import: no analytics coupling
+            read_exchange_feature_raw_bundle, validate_raw_bundle_args)
+        validate_raw_bundle_args(exchange=exchange, symbol=symbol,
+                                 market_type=market_type, bucket_start=bucket_start,
+                                 bucket_end=bucket_end)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_exchange_feature_raw_bundle(
+                conn, exchange=exchange, symbol=symbol, market_type=market_type,
+                bucket_start=bucket_start, bucket_end=bucket_end)
 
     async def seed_symbols(self, rows: Sequence[tuple]) -> int:
         """Upsert the symbol registry. rows: (symbol, base_asset, quote_asset,
