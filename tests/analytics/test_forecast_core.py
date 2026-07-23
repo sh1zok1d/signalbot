@@ -534,6 +534,59 @@ def test_no_internal_rounding():
 
 
 # ============================================================================
+# zero-threshold edge cases
+# ============================================================================
+# A. a zero component score emits NO reason, even with reason_score_threshold == 0.
+@pytest.mark.parametrize("over,prefix", [
+    ({"price_move_pct_median": 0.0}, "PRICE"),
+    ({"taker_delta_notional_usd_sum": 0.0}, "FLOW"),
+    ({"oi_change_pct_median": 0.0}, "OI"),
+    ({"funding_rate_median": 0.0}, "FUNDING"),
+    ({"observed_long_liquidation_notional_sum": 500.0,
+      "observed_short_liquidation_notional_sum": 500.0}, "LIQUIDATION"),
+    ({"price_direction_agreement": 0.5, "flow_direction_agreement": 0.5,
+      "oi_direction_agreement": 0.5}, "AGREEMENT"),
+])
+def test_zero_component_emits_no_reason_at_zero_threshold(over, prefix):
+    d = compute_forecast_decision(_cf(**over), rules=_rules(reason_score_threshold=0.0))
+    assert d.component_scores[
+        {"PRICE": "price", "FLOW": "flow", "OI": "oi", "FUNDING": "funding",
+         "LIQUIDATION": "liquidations", "AGREEMENT": "agreement"}[prefix]] == 0.0
+    assert not any(r.startswith(prefix) for r in d.reasons)   # neither bull nor bear
+
+
+def test_zero_threshold_nonzero_components_still_emit_and_composite_first():
+    R0 = _rules(reason_score_threshold=0.0)
+    d = compute_forecast_decision(_cf(), rules=R0)            # strongly bullish
+    assert d.direction == LONG and d.reasons[0] == COMPOSITE_BULLISH
+    assert PRICE_BULLISH in d.reasons and FLOW_BULLISH in d.reasons
+    assert "FUNDING_BEARISH_CONTRARIAN" in d.reasons          # opposing evidence kept
+    db = compute_forecast_decision(_cf(**_bear_over()), rules=R0)
+    assert db.reasons[0] == COMPOSITE_BEARISH and "PRICE_BEARISH" in db.reasons
+
+
+# B. an exactly-zero primary anchor is NEVER actionable, even with
+#    minimum_primary_score == 0.0 — auxiliary components alone cannot act.
+def test_zero_primary_threshold_auxiliary_only_stays_neutral():
+    d = compute_forecast_decision(
+        _cf(price_move_pct_median=None, taker_delta_notional_usd_sum=None,
+            funding_rate_median=-0.01,
+            observed_long_liquidation_notional_sum=0.0,
+            observed_short_liquidation_notional_sum=1000.0),
+        rules=_rules(minimum_primary_score=0.0))
+    assert d.component_scores["price"] == 0.0 and d.component_scores["flow"] == 0.0
+    assert abs(d.final_score) > 0.0                           # funding + liquidations non-zero
+    assert d.direction == NEUTRAL
+    assert WEAK_PRIMARY_SIGNAL in d.reasons
+    assert d.confidence == 0.0
+
+
+def test_zero_primary_threshold_nonzero_anchor_can_act():
+    d = compute_forecast_decision(_cf(), rules=_rules(minimum_primary_score=0.0))
+    assert d.direction == LONG and WEAK_PRIMARY_SIGNAL not in d.reasons
+
+
+# ============================================================================
 # C. real consensus core -> forecast integration (no hand-normalized fixture)
 # ============================================================================
 from analytics.feature_engine.models import ExchangeFeatureVector

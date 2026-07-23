@@ -201,9 +201,11 @@ def _actionable_reasons(direction: str, component_scores: dict, rules: ForecastR
     reasons = [COMPOSITE_BULLISH if direction == LONG else COMPOSITE_BEARISH]
     for name in FORECAST_COMPONENTS:
         score = component_scores[name]
-        if abs(score) >= rules.reason_score_threshold:
+        # A zero component is neither bullish nor bearish: it emits no reason even
+        # when reason_score_threshold == 0.0. Opposing (non-zero) evidence is
+        # preserved (never filtered to match the final direction).
+        if score != 0.0 and abs(score) >= rules.reason_score_threshold:
             bull, bear = _REASON_BY_COMPONENT[name]
-            # Opposing evidence is preserved (never filtered to match direction).
             reasons.append(bull if score > 0 else bear)
     if is_partial:
         reasons.append(PARTIAL_CONSENSUS)
@@ -256,7 +258,9 @@ def compute_forecast_decision(
         gate_reasons.append(INSUFFICIENT_COVERAGE)
     if cc is None or cc < rules.minimum_consensus_confidence:
         gate_reasons.append(LOW_CONSENSUS_CONFIDENCE)
-    if abs(primary_anchor) < rules.minimum_primary_score:
+    # A zero anchor sign (no price/flow direction) is NEVER actionable, even when
+    # minimum_primary_score == 0.0 — auxiliary components alone cannot act.
+    if anchor_sign == 0.0 or abs(primary_anchor) < rules.minimum_primary_score:
         gate_reasons.append(WEAK_PRIMARY_SIGNAL)
     if abs(final_score) < rules.action_score_threshold:
         gate_reasons.append(SCORE_BELOW_ACTION_THRESHOLD)
