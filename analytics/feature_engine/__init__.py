@@ -16,6 +16,11 @@ from .consensus_input_adapter import (
 from .consensus_pipeline import (
     ConsensusFeatureWriter, process_consensus_feature_bucket,
 )
+from .bucket_coordinator import (
+    BAR_DATA_UNUSABLE, BucketCoordinatorError, EXCHANGE_PROCESSING_FAILED,
+    ExchangeBucketFailure, LIQUIDATION_UNAVAILABLE, METRIC_UNAVAILABLE,
+    Stage2BucketResult, process_stage2_bucket,
+)
 
 __all__ = [
     "AssemblyContext", "FeatureInputError", "RawBundleReader",
@@ -24,4 +29,7 @@ __all__ = [
     "ExchangeFeatureWriter", "process_exchange_feature_bucket",
     "ConsensusInputError", "build_consensus_feature_request",
     "ConsensusFeatureWriter", "process_consensus_feature_bucket",
+    "BucketCoordinatorError", "ExchangeBucketFailure", "Stage2BucketResult",
+    "process_stage2_bucket", "EXCHANGE_PROCESSING_FAILED", "BAR_DATA_UNUSABLE",
+    "METRIC_UNAVAILABLE", "LIQUIDATION_UNAVAILABLE",
 ]
