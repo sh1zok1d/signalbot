@@ -191,6 +191,10 @@ async def process_shadow_cycle(
         code_version=code_version,
         liquidation_feed_available_by_exchange=liquidation_feed_available_by_exchange,
     )
+    if type(bucket_result) is not Stage2BucketResult:
+        raise ShadowCycleError(
+            "process_stage2_bucket must return exactly Stage2BucketResult"
+        )
 
     decision: Optional[ForecastDecision] = None
     prediction: Optional[ForecastPrediction] = None
@@ -299,8 +303,8 @@ def _assert_prediction_matches(prediction: ForecastPrediction, decision: Optiona
     for field in ("symbol", "market_type", "timeframe", "bucket_ts", "feature_schema_version", "calculation_version", "config_hash", "config_version", "code_version"):
         if getattr(prediction, field) != getattr(consensus, field):
             raise ShadowCycleError(f"prediction {field} does not match consensus")
-    if prediction.consensus_snapshot != consensus:
-        raise ShadowCycleError("prediction consensus_snapshot does not match consensus")
+    if prediction.consensus_snapshot is not consensus:
+        raise ShadowCycleError("prediction consensus_snapshot is not the consensus used")
     if decision is None:
         raise ShadowCycleError("prediction requires decision")
     for field in ("direction", "confidence", "horizon_set", "reasons", "component_scores", "final_score", "rule_version"):
@@ -308,30 +312,53 @@ def _assert_prediction_matches(prediction: ForecastPrediction, decision: Optiona
             raise ShadowCycleError(f"prediction {field} does not match decision")
 
 
-def _resolve_reference_vector(bucket_result: Stage2BucketResult, reference_exchange: str) -> Optional[ExchangeFeatureVector]:
-    matches = [v for v in bucket_result.exchange_features if v.exchange == reference_exchange]
+def _resolve_reference_vector(
+    bucket_result: Stage2BucketResult,
+    reference_exchange: str,
+) -> Optional[ExchangeFeatureVector]:
+    matches: list[ExchangeFeatureVector] = []
+    for vector in bucket_result.exchange_features:
+        if type(vector) is not ExchangeFeatureVector:
+            raise ShadowCycleError(
+                "exchange_features items must be exactly ExchangeFeatureVector"
+            )
+        if vector.exchange == reference_exchange:
+            matches.append(vector)
     if len(matches) > 1:
         raise ShadowCycleError("multiple reference exchange feature vectors found")
     if not matches:
         return None
     vector = matches[0]
-    if type(vector) is not ExchangeFeatureVector:
-        raise ShadowCycleError("exchange_features items must be exactly ExchangeFeatureVector")
     if vector.is_usable is not True:
         return None
     if vector.has_gap is not False:
         return None
-    if vector.bars_present != vector.bars_expected:
+    _validate_reference_bar_counts(vector.bars_expected, vector.bars_present)
+    if vector.bars_present != 5:
         return None
     if vector.close_price is None:
         return None
     return vector
 
 
+def _validate_reference_bar_counts(bars_expected, bars_present) -> None:
+    if type(bars_expected) is not int:
+        raise ShadowCycleError("reference bars_expected must be exactly int")
+    if type(bars_present) is not int:
+        raise ShadowCycleError("reference bars_present must be exactly int")
+    if bars_expected != 5:
+        raise ShadowCycleError("reference bars_expected must be exactly 5")
+    if not (0 <= bars_present <= 5):
+        raise ShadowCycleError("reference bars_present must be in [0, 5]")
+
+
 def _validate_reference_price(value) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ShadowCycleError("reference close_price must be a real number")
-    price = float(value)
+    try:
+        price = float(value)
+    except OverflowError as exc:
+        raise ShadowCycleError("reference close_price must be finite and > 0") from exc
     if not math.isfinite(price) or price <= 0:
         raise ShadowCycleError("reference close_price must be finite and > 0")
     return value

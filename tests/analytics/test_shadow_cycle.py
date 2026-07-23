@@ -3,7 +3,6 @@ from __future__ import annotations
 import ast
 import asyncio
 import dataclasses
-import math
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import MappingProxyType
@@ -14,10 +13,10 @@ from analytics.feature_engine.bucket_coordinator import Stage2BucketResult
 from analytics.feature_engine.consensus_models import ConsensusFeatureVector
 from analytics.feature_engine.models import ExchangeFeatureVector
 from analytics.forecasting.core import compute_forecast_decision
-from analytics.forecasting.models import DEFAULT_FORECAST_RULES, FORECAST_COMPONENTS, ForecastDecision, ForecastRuleSet, NEUTRAL
+from analytics.forecasting.models import NEUTRAL
 from analytics.forecasting.outcomes import DEFAULT_OUTCOME_VERSION, EVALUATION_PRICE_SOURCE, OUTCOME_COMPLETE, OUTCOME_INCOMPLETE, ForecastOutcomeEvaluation, OutcomePriceBar, build_forecast_outcome_window
-from analytics.forecasting.outcome_pipeline import process_forecast_outcome_horizon
-from analytics.forecasting.persistence import ForecastPrediction, build_forecast_prediction
+from analytics.forecasting.persistence import build_forecast_prediction
+from storage.stage2_readers import ExchangeFeatureRawBundle
 from analytics.forecasting.shadow_cycle import (
     DueOutcomeJob, PREDICTION_DUPLICATE, PREDICTION_INSERTED,
     PREDICTION_SKIPPED_NO_CONSENSUS, PREDICTION_SKIPPED_REFERENCE_UNAVAILABLE,
@@ -28,6 +27,10 @@ from common.stage2_config import Stage2Config
 UTC = timezone.utc
 B = datetime(2026, 3, 1, 0, 0, tzinfo=UTC)
 CFG = Stage2Config({})
+_UNSET = object()
+SYM, MT = "BTCUSDT", "perp"
+EXS = ("binance", "bybit", "okx")
+COV = {"binance": "snapshot", "bybit": "full", "okx": "aggregated"}
 
 
 def _cv(**over):
@@ -68,10 +71,12 @@ def _efv(exchange="binance", **over):
     return ExchangeFeatureVector(**base)
 
 
-def _bucket(consensus=None, features=None, failures=()):
+def _bucket(*, consensus=_UNSET, features=None, failures=()):
+    if consensus is _UNSET:
+        consensus = _cv()
     return Stage2BucketResult(
         exchange_features=features if features is not None else [_efv("binance"), _efv("bybit"), _efv("okx")],
-        consensus_feature=consensus if consensus is not None else _cv(), failures=failures,
+        consensus_feature=consensus, failures=failures,
         expected_exchanges_by_family={"price_structure": ("binance", "bybit", "okx")},
         exclusion_reasons_by_family={"price_structure": {}},
     )
@@ -83,20 +88,95 @@ def _prediction(**cv_over):
 
 
 def _eval(status=OUTCOME_INCOMPLETE, horizon="15m", bars_present=0):
-    w = build_forecast_outcome_window(_prediction(), horizon=horizon, evaluation_exchange="binance")
+    prediction = _prediction()
+    w = build_forecast_outcome_window(
+        prediction, horizon=horizon, evaluation_exchange="binance"
+    )
+    if status == OUTCOME_COMPLETE:
+        rows = [
+            OutcomePriceBar(
+                "binance", "BTCUSDT", w.evaluation_start_ts + timedelta(minutes=i),
+                100.0, 101.0, 99.0, 100.0,
+            )
+            for i in range(w.bars_expected)
+        ]
+        from analytics.forecasting.outcomes import evaluate_forecast_outcome
+        return evaluate_forecast_outcome(prediction, w, price_bars=rows)
+    missing = tuple(
+        w.evaluation_start_ts + timedelta(minutes=i)
+        for i in range(bars_present, w.bars_expected)
+    )
     return ForecastOutcomeEvaluation(
-        horizon=horizon, outcome_version=DEFAULT_OUTCOME_VERSION, evaluation_exchange="binance",
-        evaluation_price_source=EVALUATION_PRICE_SOURCE, evaluation_start_ts=w.evaluation_start_ts,
-        evaluation_end_ts=w.evaluation_end_ts, status=status, bars_expected=w.bars_expected,
-        bars_present=bars_present, missing_bar_ts=(), outcome=None)
+        horizon=horizon, outcome_version=DEFAULT_OUTCOME_VERSION,
+        evaluation_exchange="binance", evaluation_price_source=EVALUATION_PRICE_SOURCE,
+        evaluation_start_ts=w.evaluation_start_ts, evaluation_end_ts=w.evaluation_end_ts,
+        status=status, bars_expected=w.bars_expected, bars_present=bars_present,
+        missing_bar_ts=missing, outcome=None,
+    )
+
+
+def _m(**kw):
+    return MappingProxyType(dict(kw))
+
+
+def _kline(ex, minute, *, close=None):
+    close = 101.0 + minute if close is None else close
+    return _m(exchange=ex, symbol=SYM, ts=B + timedelta(minutes=minute),
+              open=100.0 + minute, high=110.0 + minute, low=95.0 + minute,
+              close=close, volume=10.0 + minute,
+              taker_buy_volume=1.0 + minute, taker_sell_volume=0.5 + minute)
+
+
+def _oi(ex, minute, value):
+    return _m(exchange=ex, symbol=SYM, ts=B + timedelta(minutes=minute),
+              oi_raw=value, oi_unit="base")
+
+
+def _fund(ex):
+    return _m(exchange=ex, symbol=SYM, ts=B - timedelta(minutes=1), funding_rate=0.0001)
+
+
+def _liq(ex, id_, minute, side="long"):
+    return _m(id=id_, exchange=ex, symbol=SYM, ts=B + timedelta(minutes=minute),
+              side=side, notional=100.0, is_snapshot_feed=(COV[ex] == "snapshot"))
+
+
+def _inst(ex):
+    return _m(exchange=ex, symbol=SYM, market_type=MT, exchange_instrument_id="BTCUSDT",
+              quantity_unit="base", contract_multiplier=None, tick_size=0.1,
+              price_precision=None, quantity_precision=None,
+              metadata_source="exchange_api", fetched_at=B, is_stale=False, note=None)
+
+
+def _cap(ex):
+    return _m(exchange=ex, symbol=SYM, market_type=MT, metric="liquidations",
+              live_supported=True, historical_supported=False, coverage_type=COV[ex],
+              expected_freshness_s=None, enabled=True)
+
+
+def _bundle(ex, *, n_klines=5, final_close=None):
+    return ExchangeFeatureRawBundle(
+        klines=tuple(_kline(ex, i, close=final_close if i == 4 else None)
+                     for i in range(n_klines)),
+        open_interest=(_oi(ex, 0, 100.0), _oi(ex, 4, 110.0)),
+        latest_funding=_fund(ex),
+        liquidations=(_liq(ex, 1, 1), _liq(ex, 2, 2, "short")),
+        instrument=_inst(ex),
+        liquidation_capability=_cap(ex),
+    )
 
 
 class FakeRW:
-    def __init__(self, *, inserted=True, rows=()):
+    def __init__(self, *, inserted=True, rows=(), bundles=None, fail_raw=(), block_first_read=None):
         self.calls = []
         self.inserted = inserted
         self.rows = list(rows)
+        self.bundles = bundles or {}
+        self.fail_raw = set(fail_raw)
+        self.block_first_read = block_first_read
         self.inserted_rows = []
+        self.exchange_upserts = []
+        self.consensus_upserts = []
         self.outcome_upserts = []
 
     async def insert_forecast_prediction(self, row):
@@ -116,13 +196,24 @@ class FakeRW:
         return len(rows)
 
     async def fetch_exchange_feature_raw_bundle(self, **kw):
-        self.calls.append(("raw", kw)); return None
+        exchange = kw["exchange"]
+        self.calls.append(("raw", exchange))
+        if self.block_first_read is not None and len([c for c in self.calls if c[0] == "raw"]) == 1:
+            self.block_first_read["started"].set()
+            await self.block_first_read["release"].wait()
+        if exchange in self.fail_raw:
+            raise ValueError(f"raw boom {exchange}")
+        return self.bundles[exchange]
 
     async def upsert_exchange_feature_vectors(self, rows):
-        self.calls.append(("efv", rows)); return len(rows)
+        self.calls.append(("efv", rows[0].exchange))
+        self.exchange_upserts.append(tuple(rows))
+        return len(rows)
 
     async def upsert_consensus_feature_vectors(self, rows):
-        self.calls.append(("consensus", rows)); return len(rows)
+        self.calls.append(("consensus",))
+        self.consensus_upserts.append(tuple(rows))
+        return len(rows)
 
 
 def run(coro):
@@ -319,6 +410,21 @@ def test_result_detaches_and_is_frozen():
         result.prediction_status = "x"
 
 
+def test_result_rejects_copied_consensus_snapshot_identity():
+    consensus = _cv()
+    copied = dataclasses.replace(consensus)
+    decision = compute_forecast_decision(consensus)
+    prediction = build_forecast_prediction(
+        decision, copied, reference_price=105.0,
+        reference_price_source="binance_close_5m",
+    )
+    with pytest.raises(ShadowCycleError):
+        ShadowCycleResult(
+            _bucket(consensus=consensus), PREDICTION_INSERTED, decision,
+            prediction, True, [],
+        )
+
+
 @pytest.mark.parametrize("kwargs", [
     dict(bucket_result=object()), dict(prediction_status="BAD"), dict(outcome_evaluations=iter([])),
     dict(outcome_evaluations=[object()]), dict(prediction_status=PREDICTION_INSERTED, prediction_inserted=False),
@@ -333,6 +439,168 @@ def test_result_rejects_invariants(kwargs):
         base["bucket_result"] = _bucket(consensus=None, features=[])
     with pytest.raises(ShadowCycleError):
         ShadowCycleResult(**base)
+
+
+@pytest.mark.parametrize("expected,present,ok_status", [
+    (5, 5, PREDICTION_INSERTED),
+    (5, 4, PREDICTION_SKIPPED_REFERENCE_UNAVAILABLE),
+])
+def test_reference_bar_count_valid_cases(monkeypatch, expected, present, ok_status):
+    async def fake_stage2(*a, **k):
+        return _bucket(features=[_efv("binance", bars_expected=expected, bars_present=present)])
+    monkeypatch.setattr("analytics.forecasting.shadow_cycle.process_stage2_bucket", fake_stage2)
+    result = run(_cycle(FakeRW()))
+    assert result.prediction_status == ok_status
+
+
+@pytest.mark.parametrize("expected,present", [
+    (4, 4), (3, 3), (0, 0), (True, 5), (5, True), (5.0, 5),
+    (5, 5.0), ("5", 5), (5, "5"), (5, -1), (5, 6),
+])
+def test_reference_bar_count_malformed_rejected(monkeypatch, expected, present):
+    async def fake_stage2(*a, **k):
+        return _bucket(features=[_efv("binance", bars_expected=expected, bars_present=present)])
+    monkeypatch.setattr("analytics.forecasting.shadow_cycle.process_stage2_bucket", fake_stage2)
+    with pytest.raises(ShadowCycleError):
+        run(_cycle(FakeRW()))
+
+
+def test_huge_int_reference_close_rejected(monkeypatch):
+    async def fake_stage2(*a, **k):
+        return _bucket(features=[_efv("binance", close_price=10 ** 400)])
+    monkeypatch.setattr("analytics.forecasting.shadow_cycle.process_stage2_bucket", fake_stage2)
+    with pytest.raises(ShadowCycleError):
+        run(_cycle(FakeRW()))
+
+
+@pytest.mark.parametrize("returned", [None, 0, 1, "true", object()])
+def test_prediction_writer_must_return_actual_bool(monkeypatch, returned):
+    async def fake_stage2(*a, **k): return _bucket()
+    monkeypatch.setattr("analytics.forecasting.shadow_cycle.process_stage2_bucket", fake_stage2)
+    with pytest.raises(ShadowCycleError):
+        run(_cycle(FakeRW(inserted=returned)))
+
+
+def test_process_stage2_bucket_must_return_stage2_bucket_result(monkeypatch):
+    async def fake_stage2(*a, **k): return object()
+    monkeypatch.setattr("analytics.forecasting.shadow_cycle.process_stage2_bucket", fake_stage2)
+    with pytest.raises(ShadowCycleError):
+        run(_cycle(FakeRW()))
+
+
+def test_malformed_exchange_feature_item_rejected_before_attribute_access(monkeypatch):
+    async def fake_stage2(*a, **k): return _bucket(features=[object()])
+    monkeypatch.setattr("analytics.forecasting.shadow_cycle.process_stage2_bucket", fake_stage2)
+    with pytest.raises(ShadowCycleError):
+        run(_cycle(FakeRW()))
+
+
+def test_multiple_reference_vectors_rejected(monkeypatch):
+    async def fake_stage2(*a, **k): return _bucket(features=[_efv("binance"), _efv("binance")])
+    monkeypatch.setattr("analytics.forecasting.shadow_cycle.process_stage2_bucket", fake_stage2)
+    with pytest.raises(ShadowCycleError):
+        run(_cycle(FakeRW()))
+
+
+def test_real_coordinator_integration_three_exchanges():
+    cfg = Stage2Config.load()
+    rw = FakeRW(bundles={ex: _bundle(ex, final_close=777.0 if ex == "binance" else None) for ex in EXS})
+    result = run(process_shadow_cycle(
+        rw, rw, cfg, exchanges=list(EXS), symbol=SYM, market_type=MT, timeframe="5m",
+        bucket_ts=B, code_version="code-v1",
+        liquidation_feed_available_by_exchange={ex: True for ex in EXS},
+        reference_exchange="binance",
+    ))
+    assert [c[0] for c in rw.calls] == ["raw", "efv", "raw", "efv", "raw", "efv", "consensus", "insert"]
+    assert len(rw.exchange_upserts) == 3
+    assert len(rw.consensus_upserts) == 1
+    assert len(rw.inserted_rows) == 1
+    assert result.bucket_result.consensus_feature is rw.consensus_upserts[0][0]
+    assert result.prediction.reference_price == 777.0
+    assert result.prediction.reference_price_source == "binance_close_5m"
+
+
+def test_partial_consensus_non_reference_failure_still_inserts():
+    cfg = Stage2Config.load()
+    rw = FakeRW(bundles={ex: _bundle(ex) for ex in EXS}, fail_raw={"okx"})
+    result = run(process_shadow_cycle(
+        rw, rw, cfg, exchanges=list(EXS), symbol=SYM, market_type=MT, timeframe="5m",
+        bucket_ts=B, code_version="code-v1",
+        liquidation_feed_available_by_exchange={ex: True for ex in EXS},
+        reference_exchange="binance",
+    ))
+    assert len(result.bucket_result.failures) == 1
+    assert result.bucket_result.failures[0].exchange == "okx"
+    assert tuple(result.bucket_result.expected_exchanges_by_family["price_structure"]) == EXS
+    assert result.bucket_result.consensus_feature.is_partial_consensus is True
+    assert result.prediction_status == PREDICTION_INSERTED
+    assert len(rw.inserted_rows) == 1
+
+
+def test_multiple_due_jobs_preserve_order_and_persistence(monkeypatch):
+    p = _prediction()
+    complete_window = build_forecast_outcome_window(p, horizon="15m", evaluation_exchange="binance")
+    complete_rows = [dict(exchange="binance", symbol="BTCUSDT", ts=complete_window.evaluation_start_ts + timedelta(minutes=i),
+                          open=100.0, high=101.0, low=99.0, close=100.0) for i in range(15)]
+    class SequencedRW(FakeRW):
+        def __init__(self):
+            super().__init__()
+            self.read_count = 0
+        async def fetch_forecast_outcome_klines(self, **kw):
+            self.calls.append(("outcome_read", kw["window_end"]))
+            self.read_count += 1
+            return complete_rows if self.read_count == 1 else []
+    async def fake_stage2(*a, **k): return _bucket()
+    monkeypatch.setattr("analytics.forecasting.shadow_cycle.process_stage2_bucket", fake_stage2)
+    rw = SequencedRW()
+    result = run(_cycle(rw, due_outcome_jobs=[DueOutcomeJob(p, "15m", "binance"), DueOutcomeJob(_prediction(bucket_ts=B + timedelta(minutes=5)), "15m", "binance")]))
+    assert [ev.status for ev in result.outcome_evaluations] == [OUTCOME_COMPLETE, OUTCOME_INCOMPLETE]
+    assert isinstance(result.outcome_evaluations, tuple)
+    assert len(rw.outcome_upserts) == 1
+    assert rw.outcome_upserts[0][0] is result.outcome_evaluations[0].outcome
+
+
+def test_reference_unavailable_still_runs_due_jobs(monkeypatch):
+    p = _prediction()
+    window = build_forecast_outcome_window(p, horizon="15m", evaluation_exchange="binance")
+    rows = [dict(exchange="binance", symbol="BTCUSDT", ts=window.evaluation_start_ts + timedelta(minutes=i),
+                 open=100.0, high=101.0, low=99.0, close=100.0) for i in range(15)]
+    async def fake_stage2(*a, **k): return _bucket(features=[_efv("binance", bars_present=4), _efv("bybit")])
+    monkeypatch.setattr("analytics.forecasting.shadow_cycle.process_stage2_bucket", fake_stage2)
+    rw = FakeRW(rows=rows)
+    result = run(_cycle(rw, due_outcome_jobs=[DueOutcomeJob(p, "15m", "binance")]))
+    assert result.prediction_status == PREDICTION_SKIPPED_REFERENCE_UNAVAILABLE
+    assert result.prediction is None and rw.inserted_rows == []
+    assert result.outcome_evaluations[0].status == OUTCOME_COMPLETE
+
+
+def test_mutable_inputs_snapshot(monkeypatch):
+    p = _prediction()
+    started, release = asyncio.Event(), asyncio.Event()
+    rw = FakeRW(
+        bundles={ex: _bundle(ex) for ex in EXS},
+        rows=[],
+        block_first_read={"started": started, "release": release},
+    )
+    exchanges = ["binance", "bybit", "okx"]
+    jobs = [DueOutcomeJob(p, "15m", "binance")]
+    async def main():
+        task = asyncio.create_task(process_shadow_cycle(
+            rw, rw, Stage2Config.load(), exchanges=exchanges, symbol=SYM, market_type=MT,
+            timeframe="5m", bucket_ts=B, code_version="code-v1",
+            liquidation_feed_available_by_exchange={ex: True for ex in EXS},
+            reference_exchange="binance", due_outcome_jobs=jobs,
+        ))
+        await started.wait()
+        exchanges[:] = ["binance"]
+        jobs.clear()
+        jobs.append(DueOutcomeJob(_prediction(bucket_ts=B + timedelta(minutes=5)), "15m", "binance"))
+        release.set()
+        return await task
+    result = run(main())
+    assert [call for call in rw.calls if call[0] == "raw"] == [("raw", "binance"), ("raw", "bybit"), ("raw", "okx")]
+    assert len(result.outcome_evaluations) == 1
+    assert result.outcome_evaluations[0].evaluation_start_ts == B + timedelta(minutes=5)
 
 
 def test_architecture_no_forbidden_imports_or_runtime_patterns():
