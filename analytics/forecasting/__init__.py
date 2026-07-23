@@ -3,6 +3,7 @@
 for the BTCUSDT / perp / 5m shadow scope only. No DB, clock, network, or ML;
 `confidence` is uncalibrated action strength, not a probability of profit."""
 from .core import compute_forecast_decision
+from .persistence import ForecastPrediction, build_forecast_prediction
 from .models import (
     AGREEMENT_BEARISH, AGREEMENT_BULLISH, COMPOSITE_BEARISH, COMPOSITE_BULLISH,
     DEFAULT_FORECAST_HORIZONS, DEFAULT_FORECAST_RULES, DIRECTIONS,
@@ -17,6 +18,7 @@ from .models import (
 
 __all__ = [
     "compute_forecast_decision",
+    "ForecastPrediction", "build_forecast_prediction",
     "ForecastInputError", "ForecastRuleSet", "ForecastDecision",
     "DEFAULT_FORECAST_RULES", "DEFAULT_FORECAST_HORIZONS", "FORECAST_COMPONENTS",
     "DIRECTIONS", "LONG", "SHORT", "NEUTRAL",

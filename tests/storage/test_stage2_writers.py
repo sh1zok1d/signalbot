@@ -23,11 +23,14 @@ from analytics.feature_engine.consensus_models import (
 )
 from analytics.feature_engine.models import ExchangeFeatureVector
 from analytics.percentile_engine.models import PercentileSnapshot
+from analytics.forecasting import (
+    ForecastPrediction, build_forecast_prediction, compute_forecast_decision,
+)
 from storage.db import Database
 from storage.stage2_serialization import (
     CONSENSUS_FEATURE_SPEC, DATA_HEALTH_SNAPSHOT_SPEC, EXCHANGE_FEATURE_SPEC,
-    PERCENTILE_SNAPSHOT_SPEC, Stage2SerializationError, dumps_canonical_jsonb,
-    serialize_batch, to_jsonable,
+    FORECAST_PREDICTION_SPEC, PERCENTILE_SNAPSHOT_SPEC, Stage2SerializationError,
+    dumps_canonical_jsonb, serialize_batch, to_jsonable,
 )
 
 UTC = timezone.utc
@@ -43,6 +46,8 @@ class FakeConn:
     def __init__(self):
         self.executemany_calls: list[tuple] = []
         self.execute_calls: list[tuple] = []
+        self.fetchval_calls: list[tuple] = []
+        self.fetchval_result = True         # first-insert default; set None for a duplicate
 
     async def executemany(self, sql, rows):
         self.executemany_calls.append((sql, list(rows)))
@@ -50,6 +55,10 @@ class FakeConn:
     async def execute(self, sql, *args):
         self.execute_calls.append((sql, args))
         return "OK"
+
+    async def fetchval(self, sql, *args):
+        self.fetchval_calls.append((sql, args))
+        return self.fetchval_result
 
 
 class _Acquire:
@@ -723,3 +732,179 @@ def test_to_jsonable_none_passthrough():
 
 def test_to_jsonable_nested_dataclass():
     assert to_jsonable(CoverageEntry(1, 2, 0.5)) == {"available": 1, "expected": 2, "ratio": 0.5}
+
+
+# ============================================================================
+# Forecast predictions — INSERT-ONCE event writer (separate from ALL_SPECS)
+# ============================================================================
+def make_prediction(*, reference_price=65000.0, reference_price_source="binance_close_5m",
+                    consensus=None) -> ForecastPrediction:
+    cv = consensus if consensus is not None else make_consensus()
+    decision = compute_forecast_decision(cv)
+    return build_forecast_prediction(
+        decision, cv, reference_price=reference_price,
+        reference_price_source=reference_price_source)
+
+
+# ---- 1. spec / model parity ------------------------------------------------
+def test_forecast_spec_model_parity():
+    model_fields = tuple(f.name for f in dataclasses.fields(ForecastPrediction))
+    assert FORECAST_PREDICTION_SPEC.columns == model_fields
+    assert "created_at" not in FORECAST_PREDICTION_SPEC.columns
+    assert FORECAST_PREDICTION_SPEC.pk == (
+        "symbol", "market_type", "timeframe", "bucket_ts", "calculation_version",
+        "rule_version")
+    assert FORECAST_PREDICTION_SPEC.jsonb_columns == frozenset({
+        "horizon_set", "reasons", "component_scores", "consensus_snapshot"})
+
+
+def test_forecast_spec_not_in_all_specs():
+    assert FORECAST_PREDICTION_SPEC not in ALL_SPECS
+
+
+# ---- 2. SQL contract (insert-once) -----------------------------------------
+def test_forecast_sql_is_insert_once():
+    sql = FORECAST_PREDICTION_SPEC.insert_sql
+    assert sql.startswith("INSERT INTO forecast_predictions")
+    assert "ON CONFLICT (symbol, market_type, timeframe, bucket_ts, " \
+           "calculation_version, rule_version) DO NOTHING" in sql
+    assert "RETURNING TRUE" in sql
+    assert "DO UPDATE" not in sql
+    assert "computed_at" not in sql
+    # JSONB placeholders cast to ::jsonb; others plain positional
+    cols = _parse_insert_columns(sql)
+    placeholders = _parse_placeholders(sql)
+    assert len(cols) == len(placeholders) == len(FORECAST_PREDICTION_SPEC.columns)
+    for i, (col, ph) in enumerate(zip(cols, placeholders), start=1):
+        if col in FORECAST_PREDICTION_SPEC.jsonb_columns:
+            assert ph == f"${i}::jsonb"
+        else:
+            assert ph == f"${i}"
+
+
+# ---- 3. successful first insert --------------------------------------------
+def test_forecast_first_insert_returns_true_single_call():
+    db = _db()
+    db.pool.conn.fetchval_result = True
+    p = make_prediction()
+    result = _run(db.insert_forecast_prediction(p))
+    assert result is True
+    assert db.pool.acquire_count == 1
+    assert len(db.pool.conn.fetchval_calls) == 1
+    assert db.pool.conn.executemany_calls == []          # never an upsert path
+    sql, args = db.pool.conn.fetchval_calls[0]
+    assert sql == FORECAST_PREDICTION_SPEC.insert_sql
+    assert len(args) == len(FORECAST_PREDICTION_SPEC.columns)
+
+
+# ---- 4. duplicate ----------------------------------------------------------
+def test_forecast_duplicate_returns_false_single_call():
+    db = _db()
+    db.pool.conn.fetchval_result = None                  # ON CONFLICT DO NOTHING -> no row
+    result = _run(db.insert_forecast_prediction(make_prediction()))
+    assert result is False
+    assert db.pool.acquire_count == 1
+    assert len(db.pool.conn.fetchval_calls) == 1
+    assert db.pool.conn.execute_calls == []              # no follow-up update query
+
+
+# ---- 5. wrong row type rejected before acquire -----------------------------
+@pytest.mark.parametrize("bad", [object(), make_consensus(), None, {"symbol": "BTCUSDT"}])
+def test_forecast_wrong_type_rejected_before_acquire(bad):
+    db = _db()
+    with pytest.raises(Stage2SerializationError):
+        _run(db.insert_forecast_prediction(bad))
+    assert db.pool.acquire_count == 0
+    assert db.pool.conn.fetchval_calls == []
+
+
+# ---- 6. no pool ------------------------------------------------------------
+def test_forecast_no_pool_valid_row_hits_assertion():
+    db = Database("postgresql://unused")                 # pool is None
+    with pytest.raises(AssertionError):
+        _run(db.insert_forecast_prediction(make_prediction()))
+
+
+def test_forecast_no_pool_malformed_row_fails_serialization_first():
+    db = Database("postgresql://unused")
+    with pytest.raises(Stage2SerializationError):
+        _run(db.insert_forecast_prediction(object()))
+
+
+# ---- 7. JSONB serialization ------------------------------------------------
+def test_forecast_jsonb_columns_serialized_and_roundtrip():
+    p = make_prediction()
+    params = dict(zip(FORECAST_PREDICTION_SPEC.columns,
+                      serialize_batch(FORECAST_PREDICTION_SPEC, (p,))[0]))
+    for col in ("horizon_set", "reasons", "component_scores", "consensus_snapshot"):
+        assert isinstance(params[col], str)
+    assert json.loads(params["horizon_set"]) == list(p.horizon_set)     # order preserved
+    assert json.loads(params["reasons"]) == list(p.reasons)             # order preserved
+    assert json.loads(params["component_scores"]) == dict(p.component_scores)
+    snap = json.loads(params["consensus_snapshot"])
+    assert snap["bucket_ts"] == p.bucket_ts.isoformat()                 # ISO-8601 ...+00:00
+    assert snap["bucket_ts"].endswith("+00:00")
+    assert "coverage_by_metric" in snap and "provenance_by_metric" in snap
+    assert snap["consensus_confidence"] == p.consensus_snapshot.consensus_confidence
+    assert snap["symbol"] == "BTCUSDT" and snap["calculation_version"] == p.calculation_version
+    # non-JSONB scalars pass through unchanged
+    assert params["reference_price"] == 65000.0
+    assert params["direction"] == p.direction
+
+
+# ---- 8. datetime serializer ------------------------------------------------
+def test_to_jsonable_datetime_aware_utc():
+    dt = datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)
+    assert to_jsonable(dt) == "2026-01-02T03:04:05+00:00"
+    assert to_jsonable(dt) == to_jsonable(dt)             # deterministic
+
+
+def test_to_jsonable_datetime_naive_rejected():
+    with pytest.raises(Stage2SerializationError):
+        to_jsonable(datetime(2026, 1, 2, 3, 4, 5))
+
+
+def test_to_jsonable_datetime_non_utc_rejected():
+    from datetime import timedelta as _td
+    with pytest.raises(Stage2SerializationError):
+        to_jsonable(datetime(2026, 1, 2, 3, 4, 5, tzinfo=timezone(_td(hours=2))))
+
+
+def test_existing_non_datetime_json_unchanged():
+    assert to_jsonable(True) is True and to_jsonable(3) == 3
+    assert to_jsonable(MappingProxyType({"a": 1})) == {"a": 1}
+    assert to_jsonable(("x", "y")) == ["x", "y"]
+
+
+# ---- 9. inputs unchanged ----------------------------------------------------
+def test_forecast_inputs_unchanged_after_serialize_and_write():
+    p = make_prediction()
+    before = (p.direction, tuple(p.horizon_set), tuple(p.reasons),
+              dict(p.component_scores), p.reference_price, p.consensus_snapshot)
+    db = _db()
+    _run(db.insert_forecast_prediction(p))
+    assert (p.direction, tuple(p.horizon_set), tuple(p.reasons),
+            dict(p.component_scores), p.reference_price, p.consensus_snapshot) == before
+
+
+# ---- 15. idempotency architectural regression ------------------------------
+def test_forecast_writer_cannot_overwrite_existing_prediction():
+    # The SQL policy itself is the guarantee in this no-Postgres suite:
+    # a late-data recompute under the same (calculation_version, rule_version)
+    # must not rewrite what was originally predicted; a deliberate new forecast
+    # uses a new rule_version and/or calculation_version.
+    sql = FORECAST_PREDICTION_SPEC.insert_sql
+    assert "DO NOTHING" in sql and "DO UPDATE" not in sql
+    # the forecast writer never routes through the correction-friendly upsert path
+    import ast
+    import inspect
+    import textwrap
+    tree = ast.parse(textwrap.dedent(inspect.getsource(Database.insert_forecast_prediction)))
+    called_attrs = {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+    assert "_upsert_stage2" not in called_attrs      # not the correction-friendly path
+    assert "executemany" not in called_attrs
+    assert "fetchval" in called_attrs
+    # duplicate identity returns False (no overwrite)
+    db = _db()
+    db.pool.conn.fetchval_result = None
+    assert _run(db.insert_forecast_prediction(make_prediction())) is False

@@ -9,6 +9,12 @@
 -- faithful transcription of that final normative DDL plus the three percentile
 -- CHECK constraints required for Stage 2.1 (ck_ps_scope, ck_ps_scope_exchange,
 -- ck_ps_no_lookahead). No FK constraints declared in Stage 2.1 (spec §4).
+--
+-- It ALSO carries the additive shadow-forecast `forecast_predictions` table
+-- (appended at the end): unlike the four derived Stage 2.1 output tables, which
+-- are correction-friendly upserts, a forecast prediction is an insert-once EVENT
+-- (INSERT ... ON CONFLICT DO NOTHING) — historical truth that late data must not
+-- rewrite. No forecast_outcomes table exists yet (deferred to the evaluator).
 
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 
@@ -361,3 +367,125 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_rq_pending_job
 
 CREATE INDEX IF NOT EXISTS ix_rq_pending
     ON stage2_recompute_queue (enqueued_at) WHERE processed_at IS NULL;
+
+-- ============================================================
+-- Shadow forecast predictions — ADDITIVE, INSERT-ONCE EVENTS. A prediction is
+-- what the bot actually decided for one bucket under one calculation_version and
+-- one rule_version. Unlike the derived feature/consensus/health tables above
+-- (correction-friendly upserts), a stored prediction is historical truth: it is
+-- written with INSERT ... ON CONFLICT DO NOTHING and NEVER updated. A late-data
+-- recomputation under the same (calculation_version, rule_version) must not
+-- rewrite the original; a deliberately new forecast uses a new rule_version
+-- and/or calculation_version. created_at is metadata only (not in the model/key).
+-- The consensus_snapshot column stores the complete ConsensusFeatureVector the
+-- decision was computed from, so every prediction is reproducible.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS forecast_predictions (
+    symbol                    TEXT NOT NULL,
+    market_type               TEXT NOT NULL,
+    timeframe                 TEXT NOT NULL,
+    bucket_ts                 TIMESTAMPTZ NOT NULL,
+
+    feature_schema_version    INTEGER NOT NULL,
+    calculation_version       TEXT NOT NULL,
+    rule_version              TEXT NOT NULL,
+
+    direction                 TEXT NOT NULL,
+    confidence                DOUBLE PRECISION NOT NULL,
+    horizon_set               JSONB NOT NULL,
+    reasons                   JSONB NOT NULL,
+    component_scores          JSONB NOT NULL,
+    final_score               DOUBLE PRECISION NOT NULL,
+
+    reference_price           DOUBLE PRECISION NOT NULL,
+    reference_price_source    TEXT NOT NULL,
+
+    exchanges_expected_max    INTEGER NOT NULL,
+    min_coverage_ratio        DOUBLE PRECISION,
+    data_confidence_overall   DOUBLE PRECISION,
+    consensus_confidence      DOUBLE PRECISION,
+    is_partial_consensus      BOOLEAN NOT NULL,
+
+    consensus_snapshot        JSONB NOT NULL,
+
+    config_hash               TEXT NOT NULL,
+    config_version            TEXT NOT NULL,
+    code_version              TEXT NOT NULL,
+
+    created_at                TIMESTAMPTZ NOT NULL DEFAULT now(),  -- metadata only
+
+    PRIMARY KEY (
+        symbol,
+        market_type,
+        timeframe,
+        bucket_ts,
+        calculation_version,
+        rule_version
+    ),
+
+    CONSTRAINT ck_fp_direction
+        CHECK (direction IN ('LONG','SHORT','NEUTRAL')),
+
+    CONSTRAINT ck_fp_confidence
+        CHECK (confidence >= 0.0 AND confidence <= 1.0),
+
+    CONSTRAINT ck_fp_final_score
+        CHECK (final_score >= -1.0 AND final_score <= 1.0),
+
+    CONSTRAINT ck_fp_reference_price
+        CHECK (reference_price > 0.0),
+
+    CONSTRAINT ck_fp_reference_price_source
+        CHECK (length(btrim(reference_price_source)) > 0),
+
+    CONSTRAINT ck_fp_exchanges_expected
+        CHECK (exchanges_expected_max >= 1),
+
+    CONSTRAINT ck_fp_coverage
+        CHECK (
+            min_coverage_ratio IS NULL
+            OR (min_coverage_ratio >= 0.0 AND min_coverage_ratio <= 1.0)
+        ),
+
+    CONSTRAINT ck_fp_data_confidence
+        CHECK (
+            data_confidence_overall IS NULL
+            OR (
+                data_confidence_overall >= 0.0
+                AND data_confidence_overall <= 100.0
+            )
+        ),
+
+    CONSTRAINT ck_fp_consensus_confidence
+        CHECK (
+            consensus_confidence IS NULL
+            OR (
+                consensus_confidence >= 0.0
+                AND consensus_confidence <= 100.0
+            )
+        ),
+
+    CONSTRAINT ck_fp_horizons_json
+        CHECK (jsonb_typeof(horizon_set) = 'array'),
+
+    CONSTRAINT ck_fp_reasons_json
+        CHECK (jsonb_typeof(reasons) = 'array'),
+
+    CONSTRAINT ck_fp_components_json
+        CHECK (jsonb_typeof(component_scores) = 'object'),
+
+    CONSTRAINT ck_fp_consensus_snapshot_json
+        CHECK (jsonb_typeof(consensus_snapshot) = 'object')
+);
+
+SELECT create_hypertable(
+    'forecast_predictions',
+    'bucket_ts',
+    if_not_exists => TRUE
+);
+
+CREATE INDEX IF NOT EXISTS ix_fp_symbol_tf_ts
+    ON forecast_predictions (symbol, timeframe, bucket_ts DESC);
+
+CREATE INDEX IF NOT EXISTS ix_fp_direction_ts
+    ON forecast_predictions (direction, bucket_ts DESC);

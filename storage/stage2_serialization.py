@@ -1,22 +1,30 @@
 """
 Stage 2.1 output-row serialization for the storage writers (storage/db.py).
 
-Narrow, isolated bridge between the four immutable analytics output models and
-their existing Stage 2 tables. It is imported **lazily** by the writer methods so
-Stage 1 startup never eagerly pulls in the Stage 2 analytics packages.
+Narrow, isolated bridge between the FIVE persisted analytics outputs and their
+Stage 2 tables. It is imported **lazily** by the writer methods so Stage 1
+startup never eagerly pulls in the Stage 2 analytics packages.
+
+Two write disciplines are represented:
+  * the four DERIVED feature/consensus/percentile/health rows — correction-friendly
+    upserts (`_build_insert_sql`, `ON CONFLICT DO UPDATE`, refresh `computed_at`);
+  * the shadow `forecast_predictions` rows — INSERT-ONCE EVENTS
+    (`_build_insert_once_sql`, `ON CONFLICT DO NOTHING RETURNING TRUE`); a stored
+    prediction is historical truth and is never rewritten.
 
 Responsibilities (and nothing more):
   * frozen column / primary-key tuples per table, derived from the output model
     so a field can never be silently dropped and an invented one can never be
     written;
-  * one canonical, deterministic recursive JSON conversion for the consensus
-    JSONB columns (MappingProxyType / frozen dataclasses / tuples), failing loud
-    on NaN/±Inf, non-string keys, and unsupported objects;
+  * one canonical, deterministic recursive JSON conversion for the JSONB
+    columns (MappingProxyType / frozen dataclasses / tuples / tz-aware-UTC
+    datetimes), failing loud on NaN/±Inf, non-string keys, naive/non-UTC
+    datetimes, and unsupported objects;
   * whole-batch type validation + parameter-tuple construction, so a malformed
     batch is rejected before any DB connection is acquired.
 
-No DB handle, no clock, no I/O. `computed_at` is never emitted — the table
-default fills it on insert and the writer sets `computed_at = now()` on conflict.
+No DB handle, no clock, no I/O. `computed_at` (derived rows) and `created_at`
+(forecast predictions) are never emitted — the table default fills them.
 """
 from __future__ import annotations
 
@@ -26,11 +34,13 @@ import math
 from collections.abc import Sequence as _AbcSequence
 from dataclasses import dataclass
 from dataclasses import fields as dataclass_fields
+from datetime import datetime, timedelta
 from typing import Any, Mapping, Sequence
 
 from analytics.data_quality.models import DataHealthSnapshot
 from analytics.feature_engine.consensus_models import ConsensusFeatureVector
 from analytics.feature_engine.models import ExchangeFeatureVector
+from analytics.forecasting.persistence import ForecastPrediction
 from analytics.percentile_engine.models import PercentileSnapshot
 
 
@@ -75,6 +85,17 @@ def to_jsonable(value: Any) -> Any:
         return out
     if isinstance(value, (tuple, list)):
         return [to_jsonable(v) for v in value]
+    # tz-aware UTC datetime -> deterministic ISO-8601 with explicit +00:00. Naive
+    # or non-UTC datetimes are rejected (never silently normalized); no other
+    # date/time class is supported and the current clock is never read.
+    if isinstance(value, datetime):
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise Stage2SerializationError(
+                f"datetime must be timezone-aware for JSONB, got naive {value!r}")
+        if value.utcoffset() != timedelta(0):
+            raise Stage2SerializationError(
+                f"datetime must be UTC (offset 0) for JSONB, got {value.utcoffset()}")
+        return value.isoformat()
     raise Stage2SerializationError(
         f"unsupported JSON value of type {type(value).__name__}: {value!r}")
 
@@ -178,6 +199,56 @@ DATA_HEALTH_SNAPSHOT_SPEC = _make_spec(
     "data_health_snapshots",
     pk=("symbol", "exchange", "market_type", "metric", "snapshot_ts",
         "calculation_version"),
+)
+
+
+# ---- insert-once (event) writer spec ---------------------------------------
+def _build_insert_once_sql(table: str, columns: tuple[str, ...], pk: tuple[str, ...],
+                           jsonb_columns: frozenset) -> str:
+    """Static parameterized INSERT ... ON CONFLICT DO NOTHING RETURNING TRUE for
+    an insert-once EVENT row. Identifiers come only from trusted constants; JSONB
+    placeholders get an explicit `::jsonb` cast. There is NO `DO UPDATE` clause, so
+    a stored row can never be rewritten; `RETURNING TRUE` lets the writer tell a
+    first insert (row -> True) from a duplicate (no row -> None)."""
+    placeholders = []
+    for i, col in enumerate(columns, start=1):
+        ph = f"${i}::jsonb" if col in jsonb_columns else f"${i}"
+        placeholders.append(ph)
+    return (
+        f"INSERT INTO {table}\n"
+        f"    ({', '.join(columns)})\n"
+        f"VALUES ({', '.join(placeholders)})\n"
+        f"ON CONFLICT ({', '.join(pk)}) DO NOTHING\n"
+        f"RETURNING TRUE"
+    )
+
+
+def _make_insert_once_spec(model: type, table: str, pk: tuple[str, ...],
+                           jsonb_columns: frozenset) -> Stage2WriterSpec:
+    columns = tuple(f.name for f in dataclass_fields(model))
+    missing_pk = [c for c in pk if c not in columns]
+    if missing_pk:
+        raise Stage2SerializationError(f"{table} PK names not in model: {missing_pk}")
+    missing_json = [c for c in jsonb_columns if c not in columns]
+    if missing_json:
+        raise Stage2SerializationError(f"{table} JSONB names not in model: {missing_json}")
+    return Stage2WriterSpec(
+        model=model, table=table, columns=columns, pk=pk,
+        jsonb_columns=jsonb_columns,
+        insert_sql=_build_insert_once_sql(table, columns, pk, jsonb_columns),
+    )
+
+
+# Forecast predictions are insert-once events — NOT part of the correction-friendly
+# upsert specs above and never routed through `_upsert_stage2`.
+FORECAST_PREDICTION_SPEC = _make_insert_once_spec(
+    ForecastPrediction,
+    "forecast_predictions",
+    pk=("symbol", "market_type", "timeframe", "bucket_ts", "calculation_version",
+        "rule_version"),
+    jsonb_columns=frozenset({
+        "horizon_set", "reasons", "component_scores", "consensus_snapshot",
+    }),
 )
 
 
