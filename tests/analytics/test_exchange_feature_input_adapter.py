@@ -505,3 +505,183 @@ def test_load_calls_reader_once_with_bucket_bounds():
     assert r.calls[0]["bucket_start"] == B
     assert r.calls[0]["bucket_end"] == B + timedelta(minutes=5)
     assert isinstance(req.calculation_version, str)
+
+
+# ============================================================================
+# K. Fail-loud amendment (PR #12): non-finite/overflow numerics, liquidation id,
+#    capability drift, resolved symbol enablement.
+# ============================================================================
+_HUGE_INT = 10 ** 400   # not representable as a float
+
+
+# --- 1. non-finite / overflowing numeric values -----------------------------
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf"), _HUGE_INT])
+@pytest.mark.parametrize("field", ["open", "high", "low", "close", "volume"])
+def test_kline_non_finite_or_overflow_rejected(field, bad):
+    with pytest.raises(FeatureInputError):
+        assemble_exchange_feature_request(_ctx(), _bundle(klines=[_kline(0, **{field: bad})]))
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), _HUGE_INT])
+def test_kline_taker_non_finite_rejected(bad):
+    with pytest.raises(FeatureInputError):
+        assemble_exchange_feature_request(_ctx(), _bundle(klines=[_kline(0, taker_buy_volume=bad)]))
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf"), _HUGE_INT])
+def test_oi_raw_non_finite_or_overflow_rejected(bad):
+    with pytest.raises(FeatureInputError):
+        assemble_exchange_feature_request(_ctx(), _bundle(oi=[_oi(0, oi_raw=bad)]))
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf"), _HUGE_INT])
+def test_funding_rate_non_finite_or_overflow_rejected(bad):
+    with pytest.raises(FeatureInputError):
+        assemble_exchange_feature_request(_ctx(), _bundle(funding=_fund(-1, funding_rate=bad)))
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf"), _HUGE_INT, -0.01])
+def test_liquidation_notional_non_finite_overflow_or_negative_rejected(bad):
+    with pytest.raises(FeatureInputError):
+        assemble_exchange_feature_request(_ctx(), _bundle(liqs=[_liq(1, 1, notional=bad)]))
+
+
+def test_liquidation_notional_measured_zero_still_valid():
+    req = assemble_exchange_feature_request(
+        _ctx(), _bundle(klines=[_kline(0)], liqs=[_liq(1, 1, notional=0.0)]))
+    assert req.liquidations[0].notional == 0.0
+
+
+@pytest.mark.parametrize("field", ["contract_multiplier", "tick_size"])
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf"), _HUGE_INT, 0.0, -1.0])
+def test_instrument_multiplier_tick_non_finite_or_nonpositive_rejected(field, bad):
+    with pytest.raises(FeatureInputError):
+        assemble_exchange_feature_request(_ctx(), _bundle(inst=_inst(**{field: bad})))
+
+
+def test_instrument_missing_multiplier_still_allowed_and_degrades_fail_closed():
+    # a NaN multiplier must NOT be able to masquerade as "missing metadata" and
+    # silently null the notional — it must be rejected; None stays valid.
+    with pytest.raises(FeatureInputError):
+        assemble_exchange_feature_request(_ctx(), _bundle(
+            klines=_five_bars(), inst=_inst(quantity_unit="contracts",
+                                            contract_multiplier=float("nan"))))
+    req = assemble_exchange_feature_request(_ctx(), _bundle(
+        klines=_five_bars(), inst=_inst(quantity_unit="contracts", contract_multiplier=None)))
+    v = compute_exchange_features(req)
+    assert v.volume_raw is not None and v.volume_notional_usd is None   # fail-closed, no default
+
+
+@pytest.mark.parametrize("bad", [_HUGE_INT, float("nan"), float("inf"), float("-inf"),
+                                 True, "0.95", 0, -0.1, 1.0001, 2])
+def test_allowed_missing_bars_rejects_bad_without_overflow(bad):
+    with pytest.raises(FeatureInputError):
+        _allowed_missing_bars("1h", bad)
+
+
+# --- 2. liquidation event id ------------------------------------------------
+@pytest.mark.parametrize("bad_id", [True, False, 0, -1, -5, 1.0, "1", None])
+def test_liquidation_id_malformed_rejected(bad_id):
+    with pytest.raises(FeatureInputError):
+        assemble_exchange_feature_request(_ctx(), _bundle(liqs=[_liq(bad_id, 1)]))
+
+
+def test_liquidation_mixed_ids_same_ts_raise_not_sort_typeerror():
+    # two events at the same ts, one with a malformed id -> FeatureInputError,
+    # never a TypeError leaking from sorting int vs str.
+    with pytest.raises(FeatureInputError):
+        assemble_exchange_feature_request(
+            _ctx(), _bundle(liqs=[_liq(1, 1), _liq("x", 1)]))
+
+
+def test_liquidation_same_ts_valid_distinct_ids_preserved_and_ordered():
+    req = assemble_exchange_feature_request(_ctx(), _bundle(
+        klines=[_kline(0)], liqs=[_liq(3, 1), _liq(1, 1), _liq(2, 1)]))
+    assert len(req.liquidations) == 3           # all preserved, none dropped
+
+
+@pytest.mark.parametrize("bad_side", ["up", "LONG", "", "buy", 1, None])
+def test_liquidation_side_not_in_allow_list_rejected(bad_side):
+    with pytest.raises(FeatureInputError):
+        assemble_exchange_feature_request(_ctx(), _bundle(liqs=[_liq(1, 1, side=bad_side)]))
+
+
+# --- 3. liquidation capability drift ----------------------------------------
+@pytest.mark.parametrize("cov", ["snapshot", "full", "aggregated"])
+def test_capability_accepts_only_live_coverage_types(cov):
+    snap = cov == "snapshot"
+    req = assemble_exchange_feature_request(_ctx(), _bundle(
+        klines=[_kline(0)], liqs=[_liq(1, 1, snap=snap)], cap=_cap(coverage_type=cov)))
+    assert req.liquidation_feed_state.coverage_type == cov
+
+
+@pytest.mark.parametrize("drift", [
+    {"live_supported": False},
+    {"historical_supported": True},
+    {"expected_freshness_s": 30},
+    {"expected_freshness_s": 0},
+    {"coverage_type": "unavailable"},
+    {"enabled": False},
+    {"live_supported": "yes"},
+    {"historical_supported": 1},
+    {"enabled": 1},
+])
+def test_capability_drift_rejected(drift):
+    with pytest.raises(FeatureInputError):
+        assemble_exchange_feature_request(_ctx(), _bundle(cap=_cap(**drift)))
+
+
+def test_capability_feed_available_true_without_live_support_rejected():
+    with pytest.raises(FeatureInputError):
+        assemble_exchange_feature_request(
+            _ctx(liquidation_feed_available=True),
+            _bundle(cap=_cap(live_supported=False)))
+
+
+def test_capability_identity_and_snapshot_flag_still_checked():
+    # identity drift still fails, and event snapshot flag must match coverage type
+    with pytest.raises(FeatureInputError):
+        assemble_exchange_feature_request(_ctx(), _bundle(cap=_cap(exchange="okx")))
+    with pytest.raises(FeatureInputError):
+        assemble_exchange_feature_request(_ctx(), _bundle(
+            liqs=[_liq(1, 1, snap=False)], cap=_cap(coverage_type="snapshot")))
+
+
+# --- 4. resolved symbol enablement ------------------------------------------
+def _disabled_symbol_cfg():
+    raw = copy.deepcopy(CFG._raw)
+    raw["symbols"]["BTCUSDT"]["enabled"] = False
+    cfg = Stage2Config(raw)
+    cfg._validate()
+    return cfg
+
+
+def test_resolved_symbol_disabled_rejects_build_context():
+    cfg = _disabled_symbol_cfg()
+    with pytest.raises(FeatureInputError):
+        build_assembly_context(cfg, exchange=EX, symbol=SYM, market_type=MT,
+                               timeframe="5m", bucket_ts=B, code_version="v",
+                               liquidation_feed_available=True)
+
+
+def test_resolved_symbol_disabled_causes_zero_reader_calls():
+    cfg = _disabled_symbol_cfg()
+
+    class Reader:
+        def __init__(self): self.calls = 0
+
+        async def fetch_exchange_feature_raw_bundle(self, **kw):
+            self.calls += 1
+            return _bundle()
+    r = Reader()
+    with pytest.raises(FeatureInputError):
+        _run(load_exchange_feature_request(
+            r, cfg, exchange=EX, symbol=SYM, market_type=MT, timeframe="5m",
+            bucket_ts=B, code_version="v", liquidation_feed_available=True))
+    assert r.calls == 0
+
+
+def test_master_switch_still_not_required():
+    # stage2.enabled stays false; a per-symbol-enabled config still builds fine.
+    assert CFG.enabled is False
+    assert _ctx().calculation_version

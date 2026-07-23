@@ -29,12 +29,15 @@ from symbols.registry import ACTIVE_EXCHANGES, active_symbols
 
 from .models import (
     ExchangeFeatureRequest, FundingObservation, KlineBar, LiquidationEvent,
-    LiquidationFeedState, LIQUIDATION_COVERAGE_TYPES, OpenInterestObservation,
-    SUPPORTED_MARKET_TYPES, TIMEFRAME_MINUTES,
+    LiquidationFeedState, LIQUIDATION_SIDES,
+    OpenInterestObservation, SUPPORTED_MARKET_TYPES, TIMEFRAME_MINUTES,
 )
 
 _INSTRUMENT_SOURCES = ("exchange_api", "declared_fallback", "manual")
 _QUANTITY_UNITS = ("base", "contracts")
+# Authoritative liquidations LIVE coverage types for the active Stage 2 venues —
+# 'unavailable' is drift (live liquidation feeds exist on all three venues).
+_LIQ_LIVE_COVERAGE_TYPES = ("snapshot", "full", "aggregated")
 _MISSING = object()
 
 
@@ -104,14 +107,9 @@ def _validate_bucket_alignment(bucket_ts: datetime, timeframe: str) -> None:
 def _allowed_missing_bars(timeframe: str, minimum_metric_coverage) -> int:
     """ceil(expected * coverage) present required; allowed_missing = expected -
     that, computed with exact Decimal arithmetic (no float rounding surprises)."""
-    if isinstance(minimum_metric_coverage, bool) or not isinstance(
-            minimum_metric_coverage, (int, float)):
-        raise FeatureInputError(
-            f"minimum_metric_coverage must be a number, "
-            f"got {type(minimum_metric_coverage).__name__}")
-    cov_f = float(minimum_metric_coverage)
-    if not math.isfinite(cov_f):
-        raise FeatureInputError(f"minimum_metric_coverage must be finite, got {minimum_metric_coverage!r}")
+    # Overflow-safe finite validation (bool/non-number/NaN/±Inf/huge-int rejected)
+    # before the range check, so 10**400 can never leak a raw OverflowError.
+    cov_f = _number(minimum_metric_coverage, "minimum_metric_coverage")
     if not (0 < cov_f <= 1):
         raise FeatureInputError(
             f"minimum_metric_coverage must be in (0, 1], got {minimum_metric_coverage!r}")
@@ -151,6 +149,15 @@ def build_assembly_context(
         raise FeatureInputError("liquidation_feed_available must be a bool")
 
     resolved = stage2_config.resolve(symbol)
+    # Honour resolved per-symbol enablement (distinct from the registry check
+    # above and from the global stage2.enabled master switch, which stays NOT
+    # required). Registry/config drift must fail loudly here — before any reader.
+    if resolved.enabled is not True:
+        raise FeatureInputError(f"symbol {symbol!r} is disabled in the resolved config")
+    if market_type not in resolved.market_types:
+        raise FeatureInputError(
+            f"market_type {market_type!r} not in resolved market_types "
+            f"{list(resolved.market_types)} for {symbol}")
     enabled_timeframes = resolved["timeframes"]
     if timeframe not in enabled_timeframes:
         raise FeatureInputError(
@@ -194,13 +201,37 @@ def _required(row: Mapping, key: str, name: str):
 
 
 def _number(value, name: str) -> float:
+    """A finite real number as float. bool rejected; NaN/±Inf rejected; a huge
+    int that cannot be represented as a float raises FeatureInputError (never a
+    raw OverflowError). The adapter must never build a request holding a
+    non-finite number."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise FeatureInputError(f"{name} must be a number, got {type(value).__name__}")
-    return float(value)
+    try:
+        f = float(value)
+    except OverflowError:
+        raise FeatureInputError(
+            f"{name} is too large to represent as a float: {value!r}") from None
+    if not math.isfinite(f):
+        raise FeatureInputError(f"{name} must be finite, got {value!r}")
+    return f
 
 
 def _number_or_none(value, name: str) -> Optional[float]:
     return None if value is None else _number(value, name)
+
+
+def _positive_number_or_none(value, name: str) -> Optional[float]:
+    """A finite number strictly > 0, or None. Used for instrument
+    contract_multiplier / tick_size: a present value must be positive, but
+    absence stays allowed so notional degrades fail-closed in the core — never a
+    default here."""
+    if value is None:
+        return None
+    f = _number(value, name)
+    if not (f > 0):
+        raise FeatureInputError(f"{name} must be > 0 when present, got {value!r}")
+    return f
 
 
 def _int_or_none(value, name: str) -> Optional[int]:
@@ -287,17 +318,27 @@ def _liquidation_events(ctx: AssemblyContext, rows) -> list[tuple]:
     for row in rows:
         _require_mapping(row, "liquidation")
         _match_identity(row, ctx, "liquidation")
+        # BIGSERIAL id drives deterministic same-ts ordering — validate BEFORE
+        # sorting so a malformed id fails loudly instead of leaking a sort
+        # TypeError. type(id) is int excludes bool; must be strictly positive.
         event_id = _required(row, "id", "liquidation")
+        if type(event_id) is not int or event_id <= 0:
+            raise FeatureInputError(
+                f"liquidation.id must be a positive int, got {event_id!r}")
         ts = _req_datetime(row, "ts", "liquidation")
         side = _required(row, "side", "liquidation")
-        if not isinstance(side, str) or not side.strip():
-            raise FeatureInputError("liquidation.side must be a non-empty string")
+        if side not in LIQUIDATION_SIDES:
+            raise FeatureInputError(
+                f"liquidation.side {side!r} must be one of {list(LIQUIDATION_SIDES)}")
         notional = row.get("notional")
         if notional is None:
             raise FeatureInputError(
                 "liquidation.notional is NULL — refusing to derive it from price*qty "
                 "(unsafe for contract-denominated venues)")
-        notional = _number(notional, "liquidation.notional")   # measured zero preserved
+        notional = _number(notional, "liquidation.notional")   # finite, measured zero preserved
+        if notional < 0:
+            raise FeatureInputError(
+                f"liquidation.notional must be >= 0, got {notional!r}")
         is_snapshot = row.get("is_snapshot_feed")
         if not isinstance(is_snapshot, bool):
             raise FeatureInputError("liquidation.is_snapshot_feed must be a bool")
@@ -326,17 +367,29 @@ def _liquidation_capability(ctx: AssemblyContext, cap: Optional[Mapping]) -> str
                         (enabled, "enabled")):
         if not isinstance(flag, bool):
             raise FeatureInputError(f"capability.{fname} must be a bool")
-    coverage_type = cap.get("coverage_type")
-    if coverage_type not in LIQUIDATION_COVERAGE_TYPES:
-        raise FeatureInputError(f"capability.coverage_type {coverage_type!r} invalid")
-    if not enabled:
-        raise FeatureInputError("liquidations capability row is disabled (enabled=False)")
-    # structural consistency between live support and coverage type
-    if live and coverage_type == "unavailable":
-        raise FeatureInputError("capability live_supported=True with coverage_type='unavailable'")
-    if (not live) and coverage_type != "unavailable":
+    # A runtime feed cannot claim availability with no structural live support.
+    if ctx.liquidation_feed_available and not live:
         raise FeatureInputError(
-            f"capability live_supported=False with coverage_type {coverage_type!r}")
+            "liquidation_feed_available=True but structural live support is unavailable")
+    # Drift detection against the authoritative capability table: for the active
+    # Stage 2 venues liquidations are exactly enabled + live + never-backfilled +
+    # event-driven (no freshness budget), with a live coverage_type.
+    if enabled is not True:
+        raise FeatureInputError("liquidations capability must be enabled=True")
+    if live is not True:
+        raise FeatureInputError("liquidations capability must have live_supported=True")
+    if hist is not False:
+        raise FeatureInputError(
+            "liquidations capability must have historical_supported=False (never backfilled)")
+    freshness = cap.get("expected_freshness_s")
+    if freshness is not None:
+        raise FeatureInputError(
+            "liquidations capability expected_freshness_s must be None (event-driven)")
+    coverage_type = cap.get("coverage_type")
+    if coverage_type not in _LIQ_LIVE_COVERAGE_TYPES:
+        raise FeatureInputError(
+            f"liquidations coverage_type {coverage_type!r} must be one of "
+            f"{list(_LIQ_LIVE_COVERAGE_TYPES)} (got drift/'unavailable'?)")
     return coverage_type
 
 
@@ -369,8 +422,9 @@ def _instrument_metadata(ctx: AssemblyContext, inst: Optional[Mapping]) -> Optio
         exchange=ctx.exchange, symbol=ctx.symbol, market_type=ctx.market_type,
         exchange_instrument_id=exchange_instrument_id,
         quantity_unit=quantity_unit,
-        contract_multiplier=_number_or_none(inst.get("contract_multiplier"), "instrument.contract_multiplier"),
-        tick_size=_number_or_none(inst.get("tick_size"), "instrument.tick_size"),
+        contract_multiplier=_positive_number_or_none(
+            inst.get("contract_multiplier"), "instrument.contract_multiplier"),
+        tick_size=_positive_number_or_none(inst.get("tick_size"), "instrument.tick_size"),
         price_precision=_int_or_none(inst.get("price_precision"), "instrument.price_precision"),
         quantity_precision=_int_or_none(inst.get("quantity_precision"), "instrument.quantity_precision"),
         metadata_source=metadata_source, fetched_at=fetched_at, is_stale=is_stale, note=note)
