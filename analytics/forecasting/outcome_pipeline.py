@@ -57,9 +57,12 @@ def _adapt_price_bars(rows: Sequence[Mapping]) -> list[OutcomePriceBar]:
             raise ForecastOutcomeInputError(
                 f"kline row {i} must be a mapping, got {type(row).__name__}")
         if set(row.keys()) != set(_REQUIRED_KLINE_KEYS):
+            # sort by repr, never by the keys themselves: a mapping with mixed key
+            # types (e.g. str and int) would raise TypeError from sorted() and mask
+            # the intended ForecastOutcomeInputError.
             raise ForecastOutcomeInputError(
                 f"kline row {i} keys must be exactly {list(_REQUIRED_KLINE_KEYS)}, "
-                f"got {sorted(row.keys())}")
+                f"got {sorted(repr(key) for key in row.keys())}")
         bars.append(OutcomePriceBar(
             exchange=row["exchange"], symbol=row["symbol"], ts=row["ts"],
             open=row["open"], high=row["high"], low=row["low"], close=row["close"]))

@@ -294,6 +294,32 @@ def test_readonly_mapping_rows_are_adapted():
 
 
 # ============================================================================
+# adapter error contract: a mapping with mixed key types must raise
+# ForecastOutcomeInputError, never a raw TypeError from sorting unlike keys.
+# ============================================================================
+def test_mixed_key_row_raises_input_error_not_typeerror():
+    p = _pred_long()
+    window = build_forecast_outcome_window(p, horizon="15m", evaluation_exchange="binance")
+    rows = _raw_grid(window)
+    rows[0] = {**rows[0], 7: "surprise"}          # str keys + one int key -> set mismatch
+    r = FakeReader(rows)
+    w = FakeWriter()
+    with pytest.raises(ForecastOutcomeInputError):  # would be TypeError without the repr sort
+        _run(process_forecast_outcome_horizon(r, w, p,
+             horizon="15m", evaluation_exchange="binance"))
+    assert w.calls == []
+
+
+def test_adapt_price_bars_mixed_keys_direct():
+    from analytics.forecasting.outcome_pipeline import _adapt_price_bars
+    bad = [{"exchange": "binance", "symbol": "BTCUSDT",
+            "ts": B + timedelta(minutes=5), "open": 1.0, "high": 1.0,
+            "low": 1.0, "close": 1.0, 7: "surprise"}]     # mixed str/int keys
+    with pytest.raises(ForecastOutcomeInputError):
+        _adapt_price_bars(bad)
+
+
+# ============================================================================
 # exception propagation
 # ============================================================================
 def test_reader_exception_propagates_no_writer():

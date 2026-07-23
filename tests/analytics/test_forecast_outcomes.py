@@ -10,7 +10,7 @@ import dataclasses
 import math
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from types import MappingProxyType
+from types import MappingProxyType, SimpleNamespace
 
 import pytest
 
@@ -410,6 +410,178 @@ def test_direct_evaluation_invariants():
     with pytest.raises(ForecastOutcomeInputError):
         ForecastOutcomeEvaluation(status=OUTCOME_INCOMPLETE, bars_expected=15, bars_present=14,
                                   missing_bar_ts=(o.evaluation_start_ts,), outcome=o, **common)
+
+
+# ============================================================================
+# K2. ForecastOutcome window is bound to the prediction bucket (start == bucket+5m)
+# ============================================================================
+def test_outcome_window_must_be_bound_to_bucket():
+    o = _valid_outcome()
+    # shift the whole window five minutes forward (still internally self-consistent:
+    # end == start+15m, target == end-1m) but leave bucket_ts unchanged.
+    with pytest.raises(ForecastOutcomeInputError):
+        dataclasses.replace(
+            o,
+            evaluation_start_ts=o.evaluation_start_ts + timedelta(minutes=5),
+            evaluation_end_ts=o.evaluation_end_ts + timedelta(minutes=5),
+            target_bar_ts=o.target_bar_ts + timedelta(minutes=5))
+
+
+def test_outcome_valid_window_still_accepted():
+    o = _valid_outcome()
+    assert o.evaluation_start_ts == o.bucket_ts + timedelta(minutes=5)
+
+
+# ============================================================================
+# K3. ForecastOutcomeWindow.bars_expected must be an exact int
+# ============================================================================
+@pytest.mark.parametrize("bars_expected", [15.0, True, "15"])
+def test_window_bars_expected_must_be_exact_int(bars_expected):
+    good = dict(horizon="15m", outcome_version="v", evaluation_exchange="binance",
+                evaluation_price_source=EVALUATION_PRICE_SOURCE,
+                evaluation_start_ts=B + timedelta(minutes=5),
+                evaluation_end_ts=B + timedelta(minutes=20),
+                target_bar_ts=B + timedelta(minutes=19), bars_expected=bars_expected)
+    with pytest.raises(ForecastOutcomeInputError):
+        ForecastOutcomeWindow(**good)
+
+
+# ============================================================================
+# K4. ForecastOutcomeEvaluation full validation (COMPLETE and INCOMPLETE)
+# ============================================================================
+def _incomplete_eval(**over) -> ForecastOutcomeEvaluation:
+    """A real INCOMPLETE evaluation (target bar dropped: 14/15) for regressions."""
+    p = _pred_long()
+    w = build_forecast_outcome_window(p, horizon="15m", evaluation_exchange="binance")
+    ev = evaluate_forecast_outcome(p, w, price_bars=_grid(w, _ohlc_known)[:-1])
+    assert ev.status == OUTCOME_INCOMPLETE and ev.bars_present == 14
+    if over:
+        return dataclasses.replace(ev, **over)
+    return ev
+
+
+def test_incomplete_eval_baseline_valid():
+    ev = _incomplete_eval()
+    assert ev.status == OUTCOME_INCOMPLETE and len(ev.missing_bar_ts) == 1
+
+
+# start / end used by the direct-construction cases below
+_S = B + timedelta(minutes=5)      # evaluation_start (bucket + 5m)
+_E = B + timedelta(minutes=20)     # evaluation_end (15m horizon)
+_GRID15 = tuple(_S + timedelta(minutes=i) for i in range(15))
+
+
+@pytest.mark.parametrize("over", [
+    dict(horizon="30m"),                                   # unsupported horizon
+    dict(horizon="5m"),                                    # unsupported horizon
+    dict(outcome_version="  "),                            # blank outcome version
+    dict(evaluation_exchange="kraken"),                    # unknown exchange
+    dict(evaluation_price_source="other"),                 # wrong evaluation source
+    dict(evaluation_start_ts=_S.replace(tzinfo=None)),     # naive timestamp
+    dict(evaluation_start_ts=datetime(2026, 3, 1, 0, 5,    # non-UTC offset
+                                      tzinfo=timezone(timedelta(hours=2)))),
+    dict(evaluation_start_ts=B + timedelta(minutes=5, seconds=30)),  # not whole minute
+    dict(evaluation_end_ts=B + timedelta(minutes=21)),     # wrong duration (end)
+    dict(bars_expected=15.0),                              # float bars_expected
+    dict(bars_expected=True),                              # bool bars_expected
+    dict(bars_present=13.0),                               # float bars_present
+    dict(bars_present=True),                               # bool bars_present
+    dict(bars_present=-1),                                 # negative bars_present
+])
+def test_incomplete_eval_rejects_bad_window_or_counts(over):
+    with pytest.raises(ForecastOutcomeInputError):
+        _incomplete_eval(**over)
+
+
+@pytest.mark.parametrize("bad_missing", [
+    "abc", b"x", bytearray(b"x"),                          # str/bytes/bytearray
+    {"a": 1},                                              # mapping
+    {_S},                                                  # set
+    frozenset({_S}),                                       # frozenset
+    (t for t in (_S,)),                                    # generator
+    iter([_S]),                                            # iterator
+    123,                                                   # arbitrary non-Sequence
+])
+def test_incomplete_eval_rejects_malformed_missing_container(bad_missing):
+    with pytest.raises(ForecastOutcomeInputError):
+        _incomplete_eval(missing_bar_ts=bad_missing)
+
+
+def test_incomplete_eval_rejects_missing_ts_outside_grid():
+    # a timestamp not on the exact start..end-1m grid (here the bucket open, 5m early)
+    with pytest.raises(ForecastOutcomeInputError):
+        _incomplete_eval(missing_bar_ts=(B,), bars_present=14)
+
+
+def test_incomplete_eval_rejects_missing_ts_not_whole_minute():
+    off = _S + timedelta(seconds=30)
+    with pytest.raises(ForecastOutcomeInputError):
+        _incomplete_eval(missing_bar_ts=(off,), bars_present=14)
+
+
+def _direct_eval(**over):
+    base = dict(
+        horizon="15m", outcome_version=DEFAULT_OUTCOME_VERSION,
+        evaluation_exchange="binance", evaluation_price_source=EVALUATION_PRICE_SOURCE,
+        evaluation_start_ts=_S, evaluation_end_ts=_E,
+        status=OUTCOME_INCOMPLETE, bars_expected=15, bars_present=0,
+        missing_bar_ts=_GRID15, outcome=None)
+    base.update(over)
+    return ForecastOutcomeEvaluation(**base)
+
+
+def test_incomplete_eval_zero_of_fifteen_accepted():
+    # a valid 0/15 incomplete evaluation with ALL fifteen expected timestamps missing
+    ev = _direct_eval()
+    assert ev.status == OUTCOME_INCOMPLETE
+    assert ev.bars_present == 0 and ev.bars_expected == 15
+    assert ev.missing_bar_ts == _GRID15 and len(ev.missing_bar_ts) == 15
+
+
+def test_incomplete_eval_len_mismatch_rejected():
+    # 14 missing but bars_present=0 (should be 15 missing)
+    with pytest.raises(ForecastOutcomeInputError):
+        _direct_eval(missing_bar_ts=_GRID15[:14])
+
+
+def test_direct_eval_complete_matches_outcome():
+    o = _valid_outcome()
+    ev = ForecastOutcomeEvaluation(
+        horizon=o.horizon, outcome_version=o.outcome_version,
+        evaluation_exchange=o.evaluation_exchange,
+        evaluation_price_source=o.evaluation_price_source,
+        evaluation_start_ts=o.evaluation_start_ts, evaluation_end_ts=o.evaluation_end_ts,
+        status=OUTCOME_COMPLETE, bars_expected=o.bars_expected, bars_present=o.bars_present,
+        missing_bar_ts=(), outcome=o)
+    assert ev.status == OUTCOME_COMPLETE and ev.outcome is o
+
+
+# ============================================================================
+# K5. exact public model types (no subclass / duck-typed substitutes)
+# ============================================================================
+def _ns_from(dc):
+    return SimpleNamespace(**{f.name: getattr(dc, f.name) for f in dataclasses.fields(dc)})
+
+
+def test_build_window_rejects_ducktyped_prediction():
+    p = _pred_long()
+    fake = _ns_from(p)
+    with pytest.raises(ForecastOutcomeInputError):
+        build_forecast_outcome_window(fake, horizon="15m", evaluation_exchange="binance")
+
+
+def test_evaluate_rejects_ducktyped_prediction():
+    p = _pred_long()
+    w = build_forecast_outcome_window(p, horizon="15m", evaluation_exchange="binance")
+    with pytest.raises(ForecastOutcomeInputError):
+        evaluate_forecast_outcome(_ns_from(p), w, price_bars=_grid(w, _ohlc_known))
+
+
+def test_evaluate_rejects_ducktyped_window():
+    p = _pred_long()
+    w = build_forecast_outcome_window(p, horizon="15m", evaluation_exchange="binance")
+    with pytest.raises(ForecastOutcomeInputError):
+        evaluate_forecast_outcome(p, _ns_from(w), price_bars=_grid(w, _ohlc_known))
 
 
 # ============================================================================

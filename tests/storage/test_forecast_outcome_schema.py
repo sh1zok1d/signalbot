@@ -148,6 +148,20 @@ def test_window_order_and_target_bar_checks():
     assert re.search(r"target_bar_ts\s*=\s*evaluation_end_ts\s*-\s*INTERVAL\s*'1 minute'", _FO_BODY)
 
 
+def test_evaluation_start_bound_to_bucket_check():
+    # ck_fo_evaluation_start: the window start is bucket_ts + 5m.
+    assert "ck_fo_evaluation_start" in _FO_BODY
+    assert re.search(
+        r"evaluation_start_ts\s*=\s*bucket_ts\s*\+\s*INTERVAL\s*'5 minutes'", _FO_BODY)
+
+
+def test_reference_alignment_check():
+    # ck_fo_reference_alignment: DB-enforce the frozen V0 same-exchange source rule.
+    assert "ck_fo_reference_alignment" in _FO_BODY
+    assert re.search(
+        r"reference_price_source\s*=\s*evaluation_exchange\s*\|\|\s*'_close_5m'", _FO_BODY)
+
+
 def test_bars_check():
     assert re.search(r"bars_expected\s*>\s*0", _FO_BODY)
     assert re.search(r"bars_present\s*=\s*bars_expected", _FO_BODY)

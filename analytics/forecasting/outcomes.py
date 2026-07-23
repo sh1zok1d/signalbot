@@ -202,6 +202,9 @@ class ForecastOutcomeWindow:
         _whole_minute(self.evaluation_end_ts, "evaluation_end_ts")
         _whole_minute(self.target_bar_ts, "target_bar_ts")
         expected = OUTCOME_HORIZON_MINUTES[self.horizon]
+        if type(self.bars_expected) is not int:      # exact int: reject bool and 15.0
+            raise ForecastOutcomeInputError(
+                f"bars_expected must be an int, got {type(self.bars_expected).__name__}")
         if self.bars_expected != expected:
             raise ForecastOutcomeInputError(
                 f"bars_expected must be {expected} for {self.horizon}, got {self.bars_expected!r}")
@@ -220,7 +223,7 @@ def build_forecast_outcome_window(
 ) -> ForecastOutcomeWindow:
     """Pure builder for one horizon's evaluation window. See module docstring for
     the exact 5m-bucket -> [start, end) semantics."""
-    if not isinstance(prediction, ForecastPrediction):
+    if type(prediction) is not ForecastPrediction:
         raise ForecastOutcomeInputError(
             f"prediction must be a ForecastPrediction, got {type(prediction).__name__}")
     if horizon not in OUTCOME_HORIZONS:
@@ -324,6 +327,12 @@ class ForecastOutcome:
             evaluation_start_ts=self.evaluation_start_ts,
             evaluation_end_ts=self.evaluation_end_ts, target_bar_ts=self.target_bar_ts,
             bars_expected=self.bars_expected)
+        # bind the (already self-consistent) window to this prediction's bucket, so a
+        # directly constructed/persisted outcome cannot carry a valid window that
+        # belongs to a different point in time than bucket_ts.
+        if self.evaluation_start_ts != self.bucket_ts + timedelta(minutes=_PREDICTION_TIMEFRAME_MINUTES):
+            raise ForecastOutcomeInputError(
+                "evaluation_start_ts must equal bucket_ts + 5 minutes")
         if not isinstance(self.bars_present, int) or isinstance(self.bars_present, bool):
             raise ForecastOutcomeInputError("bars_present must be an int")
         if self.bars_present <= 0:
@@ -403,20 +412,59 @@ class ForecastOutcomeEvaluation:
     outcome: Optional[ForecastOutcome]
 
     def __post_init__(self):
-        missing = tuple(self.missing_bar_ts)
-        for ts in missing:
-            _whole_minute(ts, "missing_bar_ts")
-        if len(set(missing)) != len(missing):
-            raise ForecastOutcomeInputError("missing_bar_ts must be unique")
-        if list(missing) != sorted(missing):
-            raise ForecastOutcomeInputError("missing_bar_ts must be chronological")
+        # 1. missing_bar_ts must be a real Sequence — reject str/bytes/bytearray,
+        # mapping, set/frozenset, generator/iterator, and any non-Sequence — then
+        # detach to an immutable tuple.
+        raw = self.missing_bar_ts
+        if isinstance(raw, (str, bytes, bytearray)) or not isinstance(raw, _AbcSequence):
+            raise ForecastOutcomeInputError(
+                f"missing_bar_ts must be a Sequence (list/tuple), got {type(raw).__name__}")
+        missing = tuple(raw)
         object.__setattr__(self, "missing_bar_ts", missing)
 
         if self.status not in OUTCOME_STATUSES:
             raise ForecastOutcomeInputError(f"invalid status {self.status!r}")
 
+        # 2. validate the evaluation window for BOTH COMPLETE and INCOMPLETE via a
+        # temporary real ForecastOutcomeWindow (supported horizon, non-blank outcome
+        # version, active exchange, exact price source, UTC whole-minute timestamps,
+        # exact horizon duration, exact int bars_expected). Pre-check the two window
+        # timestamps so the target-bar arithmetic below cannot raise a raw TypeError.
+        _whole_minute(self.evaluation_start_ts, "evaluation_start_ts")
+        _whole_minute(self.evaluation_end_ts, "evaluation_end_ts")
+        ForecastOutcomeWindow(
+            horizon=self.horizon, outcome_version=self.outcome_version,
+            evaluation_exchange=self.evaluation_exchange,
+            evaluation_price_source=self.evaluation_price_source,
+            evaluation_start_ts=self.evaluation_start_ts,
+            evaluation_end_ts=self.evaluation_end_ts,
+            target_bar_ts=self.evaluation_end_ts - timedelta(minutes=1),
+            bars_expected=self.bars_expected)
+
+        # 3. bars_present must be an actual int in [0, bars_expected] (bool rejected).
+        if type(self.bars_present) is not int:
+            raise ForecastOutcomeInputError("bars_present must be an int (bool rejected)")
+        if not (0 <= self.bars_present <= self.bars_expected):
+            raise ForecastOutcomeInputError("bars_present must be in [0, bars_expected]")
+
+        # 4. every missing timestamp is UTC whole-minute, on the exact start..end-1m
+        # grid, unique, and chronological.
+        grid = [self.evaluation_start_ts + timedelta(minutes=i)
+                for i in range(self.bars_expected)]
+        grid_set = set(grid)
+        for ts in missing:
+            _whole_minute(ts, "missing_bar_ts")
+            if ts not in grid_set:
+                raise ForecastOutcomeInputError(
+                    f"missing_bar_ts {ts.isoformat()} not on the evaluation grid")
+        if len(set(missing)) != len(missing):
+            raise ForecastOutcomeInputError("missing_bar_ts must be unique")
+        if list(missing) != sorted(missing):
+            raise ForecastOutcomeInputError("missing_bar_ts must be chronological")
+
+        # 5. status-specific invariants
         if self.status == OUTCOME_COMPLETE:
-            if not isinstance(self.outcome, ForecastOutcome):
+            if type(self.outcome) is not ForecastOutcome:
                 raise ForecastOutcomeInputError("COMPLETE requires a ForecastOutcome")
             if self.bars_present != self.bars_expected:
                 raise ForecastOutcomeInputError("COMPLETE requires bars_present == bars_expected")
@@ -450,10 +498,10 @@ def evaluate_forecast_outcome(
 ) -> ForecastOutcomeEvaluation:
     """Pure: measure one horizon outcome from the complete future 1m window. See
     module docstring. Missing bars -> INCOMPLETE (no error, no partial metrics)."""
-    if not isinstance(prediction, ForecastPrediction):
+    if type(prediction) is not ForecastPrediction:
         raise ForecastOutcomeInputError(
             f"prediction must be a ForecastPrediction, got {type(prediction).__name__}")
-    if not isinstance(window, ForecastOutcomeWindow):
+    if type(window) is not ForecastOutcomeWindow:
         raise ForecastOutcomeInputError(
             f"window must be a ForecastOutcomeWindow, got {type(window).__name__}")
     if isinstance(price_bars, (str, bytes, bytearray)) or not isinstance(price_bars, _AbcSequence):

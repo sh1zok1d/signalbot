@@ -588,11 +588,27 @@ CREATE TABLE IF NOT EXISTS forecast_outcomes (
     CONSTRAINT ck_fo_reference_source
         CHECK (length(btrim(reference_price_source)) > 0),
 
+    -- V0 same-exchange source rule (also enforced in the pure evaluator): the
+    -- prediction's reference price must be the evaluation exchange's 5m close.
+    CONSTRAINT ck_fo_reference_alignment
+        CHECK (
+            reference_price_source =
+                evaluation_exchange || '_close_5m'
+        ),
+
     CONSTRAINT ck_fo_evaluation_exchange
         CHECK (length(btrim(evaluation_exchange)) > 0),
 
     CONSTRAINT ck_fo_evaluation_source
         CHECK (evaluation_price_source = 'klines_1m'),
+
+    -- bind the evaluation window to the prediction bucket: start is bucket + 5m
+    -- (the closed 5m bucket OPEN that produced the prediction).
+    CONSTRAINT ck_fo_evaluation_start
+        CHECK (
+            evaluation_start_ts =
+                bucket_ts + INTERVAL '5 minutes'
+        ),
 
     CONSTRAINT ck_fo_window_order
         CHECK (evaluation_end_ts > evaluation_start_ts),
