@@ -16,6 +16,9 @@ EXPECTED_TABLES = [
     # additive shadow-forecast insert-once event table (details in
     # tests/storage/test_forecast_prediction_schema.py)
     "forecast_predictions",
+    # additive shadow-forecast correction-friendly derived outcome table (details
+    # in tests/storage/test_forecast_outcome_schema.py)
+    "forecast_outcomes",
 ]
 
 
@@ -34,7 +37,7 @@ def _primary_key(name: str) -> str:
 
 
 # -- table set ---------------------------------------------------------------
-def test_exactly_ten_create_table_statements():
+def test_create_table_statements_match_expected_tables():
     creates = re.findall(r"^CREATE TABLE IF NOT EXISTS (\w+)", SQL, re.MULTILINE)
     assert len(creates) == len(EXPECTED_TABLES)
     assert creates == EXPECTED_TABLES

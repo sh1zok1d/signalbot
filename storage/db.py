@@ -17,6 +17,7 @@ if TYPE_CHECKING:  # annotation-only; keeps Stage 2 analytics out of Stage 1 sta
     from analytics.data_quality.models import DataHealthSnapshot
     from analytics.feature_engine.consensus_models import ConsensusFeatureVector
     from analytics.feature_engine.models import ExchangeFeatureVector
+    from analytics.forecasting.outcomes import ForecastOutcome
     from analytics.forecasting.persistence import ForecastPrediction
     from analytics.percentile_engine.models import PercentileSnapshot
     from storage.stage2_readers import ExchangeFeatureRawBundle
@@ -555,3 +556,36 @@ class Database:
         async with self.pool.acquire() as conn:
             inserted = await conn.fetchval(FORECAST_PREDICTION_SPEC.insert_sql, *params)
         return inserted is True
+
+    async def upsert_forecast_outcomes(
+        self, rows: "Sequence[ForecastOutcome]") -> int:
+        """Correction-friendly upsert of DERIVED forecast outcomes. Unlike the
+        immutable insert_forecast_prediction event, an outcome measures future raw
+        bars, so a corrected/filled bar may legitimately correct it — routed
+        through the shared ON CONFLICT DO UPDATE path (computed_at=now())."""
+        from storage.stage2_serialization import FORECAST_OUTCOME_SPEC
+        return await self._upsert_stage2(FORECAST_OUTCOME_SPEC, rows)
+
+    async def fetch_forecast_outcome_klines(
+        self,
+        *,
+        exchange: str,
+        symbol: str,
+        window_start: datetime,
+        window_end: datetime,
+    ) -> tuple:
+        """Read the future 1m klines for one horizon evaluation window. Validates
+        args before acquiring, then one fetch on one connection; returns a detached
+        tuple of MappingProxyType rows in chronological order. No analytics, no
+        writes, no clock. (forecast_predictions are NOT read from DB in this path —
+        the shadow cycle already holds the ForecastPrediction in memory.)"""
+        from storage.forecast_outcome_readers import (
+            read_forecast_outcome_klines, validate_forecast_outcome_reader_args)
+        validate_forecast_outcome_reader_args(
+            exchange=exchange, symbol=symbol,
+            window_start=window_start, window_end=window_end)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_forecast_outcome_klines(
+                conn, exchange=exchange, symbol=symbol,
+                window_start=window_start, window_end=window_end)

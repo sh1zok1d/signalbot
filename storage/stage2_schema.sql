@@ -10,11 +10,13 @@
 -- CHECK constraints required for Stage 2.1 (ck_ps_scope, ck_ps_scope_exchange,
 -- ck_ps_no_lookahead). No FK constraints declared in Stage 2.1 (spec §4).
 --
--- It ALSO carries the additive shadow-forecast `forecast_predictions` table
--- (appended at the end): unlike the four derived Stage 2.1 output tables, which
--- are correction-friendly upserts, a forecast prediction is an insert-once EVENT
--- (INSERT ... ON CONFLICT DO NOTHING) — historical truth that late data must not
--- rewrite. No forecast_outcomes table exists yet (deferred to the evaluator).
+-- It ALSO carries the additive shadow-forecast tables (appended at the end):
+--   * `forecast_predictions` — an insert-once EVENT (INSERT ... ON CONFLICT DO
+--     NOTHING): historical truth, what the bot decided; late data must NOT rewrite it.
+--   * `forecast_outcomes` — a correction-friendly DERIVED evaluation row (upsert):
+--     a measurement of future raw bars for a horizon, which MAY legitimately be
+--     recomputed/corrected when future raw bars are corrected or filled;
+--     outcome_version separates changes in evaluator semantics.
 
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 
@@ -489,3 +491,195 @@ CREATE INDEX IF NOT EXISTS ix_fp_symbol_tf_ts
 
 CREATE INDEX IF NOT EXISTS ix_fp_direction_ts
     ON forecast_predictions (direction, bucket_ts DESC);
+
+-- ============================================================
+-- Shadow forecast OUTCOMES — ADDITIVE, correction-friendly DERIVED rows. One row
+-- per (prediction identity, horizon, evaluation_exchange, evaluation source,
+-- outcome_version): a deterministic measurement of the future 1m price window
+-- (target close at end-1m; window high/low; raw + direction-aware return/MFE/MAE).
+-- Unlike forecast_predictions (immutable insert-once), an outcome is a derived
+-- measurement of future raw bars, so it is a CORRECTION-FRIENDLY upsert
+-- (ON CONFLICT DO UPDATE, computed_at=now()) — a corrected/filled future bar may
+-- legitimately correct the outcome; a new outcome_version is a distinct result.
+-- computed_at is metadata only. Only COMPLETE evaluations are persisted.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS forecast_outcomes (
+    symbol                    TEXT NOT NULL,
+    market_type               TEXT NOT NULL,
+    timeframe                 TEXT NOT NULL,
+    bucket_ts                 TIMESTAMPTZ NOT NULL,
+
+    feature_schema_version    INTEGER NOT NULL,
+    calculation_version       TEXT NOT NULL,
+    rule_version              TEXT NOT NULL,
+
+    horizon                   TEXT NOT NULL,
+    outcome_version           TEXT NOT NULL,
+
+    direction                 TEXT NOT NULL,
+    prediction_confidence     DOUBLE PRECISION NOT NULL,
+    prediction_final_score    DOUBLE PRECISION NOT NULL,
+
+    reference_price           DOUBLE PRECISION NOT NULL,
+    reference_price_source    TEXT NOT NULL,
+
+    evaluation_exchange       TEXT NOT NULL,
+    evaluation_price_source   TEXT NOT NULL,
+
+    evaluation_start_ts       TIMESTAMPTZ NOT NULL,
+    evaluation_end_ts         TIMESTAMPTZ NOT NULL,
+    target_bar_ts             TIMESTAMPTZ NOT NULL,
+
+    bars_expected             INTEGER NOT NULL,
+    bars_present              INTEGER NOT NULL,
+
+    target_close_price        DOUBLE PRECISION NOT NULL,
+    window_high_price         DOUBLE PRECISION NOT NULL,
+    window_low_price          DOUBLE PRECISION NOT NULL,
+
+    market_return_pct         DOUBLE PRECISION NOT NULL,
+    peak_return_pct           DOUBLE PRECISION NOT NULL,
+    trough_return_pct         DOUBLE PRECISION NOT NULL,
+
+    directional_return_pct    DOUBLE PRECISION,
+    mfe_pct                   DOUBLE PRECISION,
+    mae_pct                   DOUBLE PRECISION,
+
+    config_hash               TEXT NOT NULL,
+    config_version            TEXT NOT NULL,
+    code_version              TEXT NOT NULL,
+
+    computed_at               TIMESTAMPTZ NOT NULL DEFAULT now(),  -- metadata only
+
+    PRIMARY KEY (
+        symbol,
+        market_type,
+        timeframe,
+        bucket_ts,
+        calculation_version,
+        rule_version,
+        horizon,
+        evaluation_exchange,
+        evaluation_price_source,
+        outcome_version
+    ),
+
+    CONSTRAINT ck_fo_horizon
+        CHECK (horizon IN ('15m','1h','4h')),
+
+    CONSTRAINT ck_fo_direction
+        CHECK (direction IN ('LONG','SHORT','NEUTRAL')),
+
+    CONSTRAINT ck_fo_prediction_confidence
+        CHECK (
+            prediction_confidence >= 0.0
+            AND prediction_confidence <= 1.0
+        ),
+
+    CONSTRAINT ck_fo_prediction_final_score
+        CHECK (
+            prediction_final_score >= -1.0
+            AND prediction_final_score <= 1.0
+        ),
+
+    CONSTRAINT ck_fo_reference_price
+        CHECK (reference_price > 0.0),
+
+    CONSTRAINT ck_fo_reference_source
+        CHECK (length(btrim(reference_price_source)) > 0),
+
+    CONSTRAINT ck_fo_evaluation_exchange
+        CHECK (length(btrim(evaluation_exchange)) > 0),
+
+    CONSTRAINT ck_fo_evaluation_source
+        CHECK (evaluation_price_source = 'klines_1m'),
+
+    CONSTRAINT ck_fo_window_order
+        CHECK (evaluation_end_ts > evaluation_start_ts),
+
+    CONSTRAINT ck_fo_target_bar
+        CHECK (
+            target_bar_ts = evaluation_end_ts - INTERVAL '1 minute'
+        ),
+
+    CONSTRAINT ck_fo_bars
+        CHECK (
+            bars_expected > 0
+            AND bars_present = bars_expected
+        ),
+
+    CONSTRAINT ck_fo_horizon_window
+        CHECK (
+            (
+                horizon = '15m'
+                AND bars_expected = 15
+                AND evaluation_end_ts =
+                    evaluation_start_ts + INTERVAL '15 minutes'
+            )
+            OR
+            (
+                horizon = '1h'
+                AND bars_expected = 60
+                AND evaluation_end_ts =
+                    evaluation_start_ts + INTERVAL '1 hour'
+            )
+            OR
+            (
+                horizon = '4h'
+                AND bars_expected = 240
+                AND evaluation_end_ts =
+                    evaluation_start_ts + INTERVAL '4 hours'
+            )
+        ),
+
+    CONSTRAINT ck_fo_prices
+        CHECK (
+            target_close_price > 0.0
+            AND window_high_price > 0.0
+            AND window_low_price > 0.0
+            AND window_low_price <= target_close_price
+            AND target_close_price <= window_high_price
+        ),
+
+    CONSTRAINT ck_fo_return_order
+        CHECK (peak_return_pct >= trough_return_pct),
+
+    CONSTRAINT ck_fo_directional_metrics
+        CHECK (
+            (
+                direction = 'NEUTRAL'
+                AND directional_return_pct IS NULL
+                AND mfe_pct IS NULL
+                AND mae_pct IS NULL
+            )
+            OR
+            (
+                direction IN ('LONG','SHORT')
+                AND directional_return_pct IS NOT NULL
+                AND mfe_pct IS NOT NULL
+                AND mae_pct IS NOT NULL
+                AND mfe_pct >= 0.0
+                AND mae_pct <= 0.0
+            )
+        )
+);
+
+SELECT create_hypertable(
+    'forecast_outcomes',
+    'bucket_ts',
+    if_not_exists => TRUE
+);
+
+CREATE INDEX IF NOT EXISTS ix_fo_symbol_horizon_ts
+    ON forecast_outcomes (
+        symbol,
+        horizon,
+        bucket_ts DESC
+    );
+
+CREATE INDEX IF NOT EXISTS ix_fo_direction_horizon_ts
+    ON forecast_outcomes (
+        direction,
+        horizon,
+        bucket_ts DESC
+    );

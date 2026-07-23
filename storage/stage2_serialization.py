@@ -1,13 +1,15 @@
 """
 Stage 2.1 output-row serialization for the storage writers (storage/db.py).
 
-Narrow, isolated bridge between the FIVE persisted analytics outputs and their
+Narrow, isolated bridge between the SIX persisted analytics outputs and their
 Stage 2 tables. It is imported **lazily** by the writer methods so Stage 1
 startup never eagerly pulls in the Stage 2 analytics packages.
 
 Two write disciplines are represented:
-  * the four DERIVED feature/consensus/percentile/health rows — correction-friendly
-    upserts (`_build_insert_sql`, `ON CONFLICT DO UPDATE`, refresh `computed_at`);
+  * the five DERIVED rows — exchange features, consensus, percentiles, health, and
+    forecast OUTCOMES — correction-friendly upserts (`_build_insert_sql`,
+    `ON CONFLICT DO UPDATE`, refresh `computed_at`); a corrected/filled future bar
+    may legitimately correct a stored outcome;
   * the shadow `forecast_predictions` rows — INSERT-ONCE EVENTS
     (`_build_insert_once_sql`, `ON CONFLICT DO NOTHING RETURNING TRUE`); a stored
     prediction is historical truth and is never rewritten.
@@ -40,6 +42,7 @@ from typing import Any, Mapping, Sequence
 from analytics.data_quality.models import DataHealthSnapshot
 from analytics.feature_engine.consensus_models import ConsensusFeatureVector
 from analytics.feature_engine.models import ExchangeFeatureVector
+from analytics.forecasting.outcomes import ForecastOutcome
 from analytics.forecasting.persistence import ForecastPrediction
 from analytics.percentile_engine.models import PercentileSnapshot
 
@@ -199,6 +202,17 @@ DATA_HEALTH_SNAPSHOT_SPEC = _make_spec(
     "data_health_snapshots",
     pk=("symbol", "exchange", "market_type", "metric", "snapshot_ts",
         "calculation_version"),
+)
+
+# Forecast OUTCOMES are correction-friendly DERIVED rows (a measurement of future
+# raw bars), so they use the same _build_insert_sql upsert path as the other four
+# derived specs — NOT the insert-once forecast-prediction path. No JSONB columns.
+FORECAST_OUTCOME_SPEC = _make_spec(
+    ForecastOutcome,
+    "forecast_outcomes",
+    pk=("symbol", "market_type", "timeframe", "bucket_ts", "calculation_version",
+        "rule_version", "horizon", "evaluation_exchange", "evaluation_price_source",
+        "outcome_version"),
 )
 
 

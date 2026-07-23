@@ -25,8 +25,9 @@ def _strip_sql_comments(text: str) -> str:
 
 
 _FP_BODY = _table_body("forecast_predictions")
-# forecast section = from its banner comment to EOF (Stage-1/2 tables are above it)
-_FP_SECTION = SQL[SQL.index("Shadow forecast predictions"):]
+# forecast-predictions section = from its banner comment up to (but not including)
+# the forecast_outcomes section that follows it in the same file.
+_FP_SECTION = SQL[SQL.index("Shadow forecast predictions"):SQL.index("Shadow forecast OUTCOMES")]
 _FP_SECTION_CODE = _strip_sql_comments(_FP_SECTION)     # comments removed, DDL only
 _SQL_CODE = _strip_sql_comments(SQL)
 
@@ -59,9 +60,11 @@ def test_exactly_one_forecast_predictions_table():
     assert len(re.findall(r"CREATE TABLE IF NOT EXISTS forecast_predictions\b", SQL)) == 1
 
 
-def test_no_forecast_outcomes_table():
-    assert not re.search(r"CREATE TABLE IF NOT EXISTS forecast_outcomes\b", SQL)
-    assert "forecast_outcomes" not in _SQL_CODE          # not in DDL (only in a deferral comment)
+def test_predictions_section_defines_only_forecast_predictions():
+    # The forecast_outcomes table lives in its own section (covered by
+    # test_forecast_outcome_schema.py); the predictions section must not define it.
+    assert not re.search(r"CREATE TABLE IF NOT EXISTS forecast_outcomes\b", _FP_SECTION)
+    assert re.search(r"CREATE TABLE IF NOT EXISTS forecast_predictions\b", _FP_SECTION)
 
 
 def test_existing_stage2_tables_still_present():

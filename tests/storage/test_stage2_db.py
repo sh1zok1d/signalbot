@@ -64,7 +64,10 @@ def test_init_stage2_reads_separate_file_and_is_explicit():
     joined = " ".join(sql for sql, _ in conn.executed)
     assert "stage2_recompute_queue" in joined
     assert "exchange_instruments" in joined
-    assert "klines_1m" not in joined            # did NOT run the Stage 1 schema
+    # did NOT run the Stage 1 schema: its klines_1m TABLE is absent. (The Stage 2
+    # forecast_outcomes CHECK references the string literal 'klines_1m' as its
+    # evaluation price source, which is not the Stage 1 table DDL.)
+    assert "CREATE TABLE IF NOT EXISTS klines_1m" not in joined
     assert len(conn.executed) >= 10
 
 
