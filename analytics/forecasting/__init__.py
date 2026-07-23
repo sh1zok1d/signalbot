@@ -4,6 +4,16 @@ for the BTCUSDT / perp / 5m shadow scope only. No DB, clock, network, or ML;
 `confidence` is uncalibrated action strength, not a probability of profit."""
 from .core import compute_forecast_decision
 from .persistence import ForecastPrediction, build_forecast_prediction
+from .outcomes import (
+    DEFAULT_OUTCOME_VERSION, EVALUATION_PRICE_SOURCE, ForecastOutcome,
+    ForecastOutcomeEvaluation, ForecastOutcomeInputError, ForecastOutcomeWindow,
+    OUTCOME_COMPLETE, OUTCOME_HORIZON_MINUTES, OUTCOME_HORIZONS, OUTCOME_INCOMPLETE,
+    OUTCOME_STATUSES, OutcomePriceBar, build_forecast_outcome_window,
+    evaluate_forecast_outcome,
+)
+from .outcome_pipeline import (
+    ForecastOutcomeReader, ForecastOutcomeWriter, process_forecast_outcome_horizon,
+)
 from .models import (
     AGREEMENT_BEARISH, AGREEMENT_BULLISH, COMPOSITE_BEARISH, COMPOSITE_BULLISH,
     DEFAULT_FORECAST_HORIZONS, DEFAULT_FORECAST_RULES, DIRECTIONS,
@@ -19,6 +29,14 @@ from .models import (
 __all__ = [
     "compute_forecast_decision",
     "ForecastPrediction", "build_forecast_prediction",
+    # outcome evaluator
+    "ForecastOutcomeInputError", "OutcomePriceBar", "ForecastOutcomeWindow",
+    "ForecastOutcome", "ForecastOutcomeEvaluation",
+    "OUTCOME_COMPLETE", "OUTCOME_INCOMPLETE", "OUTCOME_STATUSES",
+    "OUTCOME_HORIZONS", "OUTCOME_HORIZON_MINUTES", "DEFAULT_OUTCOME_VERSION",
+    "EVALUATION_PRICE_SOURCE", "build_forecast_outcome_window",
+    "evaluate_forecast_outcome", "ForecastOutcomeReader", "ForecastOutcomeWriter",
+    "process_forecast_outcome_horizon",
     "ForecastInputError", "ForecastRuleSet", "ForecastDecision",
     "DEFAULT_FORECAST_RULES", "DEFAULT_FORECAST_HORIZONS", "FORECAST_COMPONENTS",
     "DIRECTIONS", "LONG", "SHORT", "NEUTRAL",

@@ -11,7 +11,7 @@ import asyncio
 import dataclasses
 import json
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import MappingProxyType
 
@@ -26,11 +26,15 @@ from analytics.percentile_engine.models import PercentileSnapshot
 from analytics.forecasting import (
     ForecastPrediction, build_forecast_prediction, compute_forecast_decision,
 )
+from analytics.forecasting.outcomes import (
+    ForecastOutcome, LONG, NEUTRAL, SHORT, OutcomePriceBar,
+    build_forecast_outcome_window, evaluate_forecast_outcome,
+)
 from storage.db import Database
 from storage.stage2_serialization import (
     CONSENSUS_FEATURE_SPEC, DATA_HEALTH_SNAPSHOT_SPEC, EXCHANGE_FEATURE_SPEC,
-    FORECAST_PREDICTION_SPEC, PERCENTILE_SNAPSHOT_SPEC, Stage2SerializationError,
-    dumps_canonical_jsonb, serialize_batch, to_jsonable,
+    FORECAST_OUTCOME_SPEC, FORECAST_PREDICTION_SPEC, PERCENTILE_SNAPSHOT_SPEC,
+    Stage2SerializationError, dumps_canonical_jsonb, serialize_batch, to_jsonable,
 )
 
 UTC = timezone.utc
@@ -908,3 +912,269 @@ def test_forecast_writer_cannot_overwrite_existing_prediction():
     db = _db()
     db.pool.conn.fetchval_result = None
     assert _run(db.insert_forecast_prediction(make_prediction())) is False
+
+
+# ============================================================================
+# Forecast OUTCOMES — correction-friendly DERIVED upsert writer
+# ============================================================================
+def _full_bars(window, ohlc):
+    start = window.evaluation_start_ts
+    return [OutcomePriceBar(window.evaluation_exchange, "BTCUSDT",
+                            start + timedelta(minutes=i), *ohlc(i))
+            for i in range(window.bars_expected)]
+
+
+def _rising(i):
+    # window high 110 @ bar0, low 95 @ bar0, target close 105 @ last bar
+    if i == 0:
+        return (100.0, 110.0, 95.0, 100.0)
+    return (104.0, 106.0, 103.0, 105.0)
+
+
+def _flat(i):
+    return (100.0, 100.0, 100.0, 100.0)
+
+
+def make_outcome(*, direction=LONG, horizon="15m", outcome_version="forecast-outcome-v0.1.0",
+                 evaluation_exchange="binance", ohlc=_rising) -> ForecastOutcome:
+    """A self-consistent ForecastOutcome produced through the real evaluator, so its
+    directional-formula invariants always hold (no hand-tuned magic numbers)."""
+    if direction == LONG:
+        cv = make_consensus()
+    elif direction == SHORT:
+        cv = make_consensus(
+            price_move_pct_median=-0.4, taker_buy_notional_usd_sum=7_000_000.0,
+            taker_sell_notional_usd_sum=9_000_000.0, taker_delta_notional_usd_sum=-2_000_000.0,
+            flow_direction_agreement=0.66, funding_rate_median=-0.0001)
+    else:
+        cv = make_consensus(min_coverage_ratio=1.0 / 3.0)
+    p = build_forecast_prediction(
+        compute_forecast_decision(cv), cv,
+        reference_price=100.0, reference_price_source=f"{evaluation_exchange}_close_5m")
+    assert p.direction == direction, f"factory produced {p.direction}, wanted {direction}"
+    window = build_forecast_outcome_window(
+        p, horizon=horizon, evaluation_exchange=evaluation_exchange,
+        outcome_version=outcome_version)
+    ev = evaluate_forecast_outcome(p, window, price_bars=_full_bars(window, ohlc))
+    assert ev.outcome is not None
+    return ev.outcome
+
+
+# ---- spec / model parity ---------------------------------------------------
+def test_outcome_spec_model_parity():
+    model_fields = tuple(f.name for f in dataclasses.fields(ForecastOutcome))
+    assert FORECAST_OUTCOME_SPEC.columns == model_fields
+    assert "computed_at" not in FORECAST_OUTCOME_SPEC.columns
+    assert FORECAST_OUTCOME_SPEC.pk == (
+        "symbol", "market_type", "timeframe", "bucket_ts", "calculation_version",
+        "rule_version", "horizon", "evaluation_exchange", "evaluation_price_source",
+        "outcome_version")
+    assert len(FORECAST_OUTCOME_SPEC.pk) == 10
+    assert FORECAST_OUTCOME_SPEC.jsonb_columns == frozenset()          # no JSONB
+
+
+def test_outcome_spec_is_a_derived_upsert_spec():
+    # Derived correction-friendly spec, distinct from the four consensus/percentile
+    # specs but built by the SAME upsert path (not the insert-once event path).
+    assert FORECAST_OUTCOME_SPEC not in ALL_SPECS
+    assert FORECAST_OUTCOME_SPEC is not FORECAST_PREDICTION_SPEC
+
+
+# ---- SQL contract (correction-friendly upsert) -----------------------------
+def test_outcome_sql_is_correction_friendly_upsert():
+    sql = FORECAST_OUTCOME_SPEC.insert_sql
+    assert sql.startswith("INSERT INTO forecast_outcomes")
+    assert "ON CONFLICT" in sql and "DO UPDATE SET" in sql
+    assert "DO NOTHING" not in sql
+    assert "RETURNING TRUE" not in sql
+    for banned in ("DELETE", "TRUNCATE", "REPLACE"):
+        assert banned not in sql.upper()
+
+
+def test_outcome_conflict_target_is_the_ten_col_pk():
+    conflict = _parse_conflict_target(FORECAST_OUTCOME_SPEC.insert_sql)
+    assert conflict == list(FORECAST_OUTCOME_SPEC.pk)
+
+
+def test_outcome_updates_all_non_pk_and_computed_at_now():
+    updates = _parse_update_assignments(FORECAST_OUTCOME_SPEC.insert_sql)
+    non_pk = [c for c in FORECAST_OUTCOME_SPEC.columns if c not in FORECAST_OUTCOME_SPEC.pk]
+    for c in non_pk:
+        assert updates.get(c) == f"EXCLUDED.{c}"
+    assert updates.get("computed_at") == "now()"
+    for pk_col in FORECAST_OUTCOME_SPEC.pk:
+        assert pk_col not in updates                                   # PK never rewritten
+
+
+def test_outcome_placeholders_all_positional_no_jsonb():
+    sql = FORECAST_OUTCOME_SPEC.insert_sql
+    cols = _parse_insert_columns(sql)
+    placeholders = _parse_placeholders(sql)
+    assert cols == list(FORECAST_OUTCOME_SPEC.columns)
+    assert len(placeholders) == len(FORECAST_OUTCOME_SPEC.columns)
+    for i, ph in enumerate(placeholders, start=1):
+        assert ph == f"${i}"                                           # no ::jsonb casts
+
+
+# ---- schema / model / writer parity ----------------------------------------
+def test_outcome_full_parity_schema_model_writer():
+    schema_cols = _schema_columns("forecast_outcomes")
+    model_cols = {f.name for f in dataclasses.fields(ForecastOutcome)}
+    assert "computed_at" in schema_cols
+    assert model_cols == schema_cols - {"computed_at"}
+    assert FORECAST_OUTCOME_SPEC.columns == tuple(f.name for f in dataclasses.fields(ForecastOutcome))
+    assert _parse_insert_columns(FORECAST_OUTCOME_SPEC.insert_sql) == list(FORECAST_OUTCOME_SPEC.columns)
+    assert _parse_conflict_target(FORECAST_OUTCOME_SPEC.insert_sql) == _schema_primary_key("forecast_outcomes")
+
+
+# ---- batch behavior --------------------------------------------------------
+def test_outcome_empty_list_returns_zero_no_acquire():
+    db = _db()
+    assert _run(db.upsert_forecast_outcomes([])) == 0
+    assert db.pool.acquire_count == 0
+    assert db.pool.conn.executemany_calls == []
+
+
+def test_outcome_one_row_single_acquire_single_executemany():
+    db = _db()
+    assert _run(db.upsert_forecast_outcomes([make_outcome()])) == 1
+    assert db.pool.acquire_count == 1
+    assert len(db.pool.conn.executemany_calls) == 1
+    sql, rows = db.pool.conn.executemany_calls[0]
+    assert sql == FORECAST_OUTCOME_SPEC.insert_sql
+    assert len(rows) == 1 and len(rows[0]) == len(FORECAST_OUTCOME_SPEC.columns)
+
+
+def test_outcome_multi_row_one_executemany_returns_count():
+    db = _db()
+    rows = [make_outcome(horizon="15m"), make_outcome(horizon="1h"),
+            make_outcome(horizon="4h")]
+    assert _run(db.upsert_forecast_outcomes(rows)) == 3
+    assert len(db.pool.conn.executemany_calls) == 1                    # one batched call
+    assert len(db.pool.conn.executemany_calls[0][1]) == 3
+
+
+@pytest.mark.parametrize("bad", [123, "row", b"row", None, {"symbol": "x"}])
+def test_outcome_malformed_container_rejected_before_acquire(bad):
+    db = _db()
+    with pytest.raises(Stage2SerializationError):
+        _run(db.upsert_forecast_outcomes(bad))
+    assert db.pool.acquire_count == 0
+
+
+@pytest.mark.parametrize("bad", [object(), make_prediction(), make_consensus(), None])
+def test_outcome_wrong_row_type_rejected_before_acquire(bad):
+    db = _db()
+    with pytest.raises(Stage2SerializationError):
+        _run(db.upsert_forecast_outcomes([bad]))
+    assert db.pool.acquire_count == 0
+    assert db.pool.conn.executemany_calls == []
+
+
+def test_outcome_mixed_batch_rejected_before_acquire():
+    db = _db()
+    with pytest.raises(Stage2SerializationError):
+        _run(db.upsert_forecast_outcomes([make_outcome(), make_prediction()]))
+    assert db.pool.acquire_count == 0
+
+
+# ---- NEUTRAL NULL directional metrics survive serialization ----------------
+def test_outcome_neutral_directional_metrics_serialize_to_none():
+    o = make_outcome(direction=NEUTRAL)
+    assert o.direction == NEUTRAL
+    params = dict(zip(FORECAST_OUTCOME_SPEC.columns,
+                      serialize_batch(FORECAST_OUTCOME_SPEC, (o,))[0]))
+    assert params["directional_return_pct"] is None
+    assert params["mfe_pct"] is None and params["mae_pct"] is None
+    # raw (non-directional) metrics remain real numbers
+    assert isinstance(params["market_return_pct"], float)
+    assert isinstance(params["peak_return_pct"], float)
+
+
+def test_outcome_short_directional_metrics_present():
+    o = make_outcome(direction=SHORT)
+    assert o.direction == SHORT
+    params = dict(zip(FORECAST_OUTCOME_SPEC.columns,
+                      serialize_batch(FORECAST_OUTCOME_SPEC, (o,))[0]))
+    assert params["directional_return_pct"] is not None
+    assert params["mfe_pct"] >= 0.0 and params["mae_pct"] <= 0.0
+
+
+def test_outcome_flat_window_zero_returns_preserved():
+    o = make_outcome(direction=LONG, ohlc=_flat)
+    params = dict(zip(FORECAST_OUTCOME_SPEC.columns,
+                      serialize_batch(FORECAST_OUTCOME_SPEC, (o,))[0]))
+    assert params["market_return_pct"] == 0.0
+    assert params["peak_return_pct"] == 0.0 and params["trough_return_pct"] == 0.0
+    assert params["mfe_pct"] == 0.0 and params["mae_pct"] == 0.0       # zeros stay zero
+
+
+# ---- objects unchanged / distinct logical identity -------------------------
+def test_outcome_objects_unchanged_after_write():
+    o = make_outcome()
+    before = dataclasses.astuple(o)
+    db = _db()
+    _run(db.upsert_forecast_outcomes([o]))
+    assert dataclasses.astuple(o) == before
+
+
+def test_outcome_version_and_exchange_are_distinct_identities():
+    # Same prediction identity, different outcome_version / evaluation_exchange ->
+    # two logically distinct rows in one batch (PK carries both).
+    db = _db()
+    rows = [
+        make_outcome(outcome_version="forecast-outcome-v0.1.0"),
+        make_outcome(outcome_version="forecast-outcome-v0.2.0"),
+    ]
+    assert _run(db.upsert_forecast_outcomes(rows)) == 2
+    params = db.pool.conn.executemany_calls[0][1]
+    ov_idx = FORECAST_OUTCOME_SPEC.columns.index("outcome_version")
+    assert {params[0][ov_idx], params[1][ov_idx]} == {
+        "forecast-outcome-v0.1.0", "forecast-outcome-v0.2.0"}
+
+
+def test_outcome_distinct_evaluation_exchange_is_distinct_identity():
+    db = _db()
+    rows = [make_outcome(evaluation_exchange="binance"),
+            make_outcome(evaluation_exchange="bybit")]
+    assert _run(db.upsert_forecast_outcomes(rows)) == 2
+    params = db.pool.conn.executemany_calls[0][1]
+    ex_idx = FORECAST_OUTCOME_SPEC.columns.index("evaluation_exchange")
+    assert {params[0][ex_idx], params[1][ex_idx]} == {"binance", "bybit"}
+
+
+def test_outcome_db_exception_propagates():
+    db = _db()
+
+    async def boom(sql, rows):
+        raise RuntimeError("outcome db boom")
+
+    db.pool.conn.executemany = boom
+    with pytest.raises(RuntimeError, match="outcome db boom"):
+        _run(db.upsert_forecast_outcomes([make_outcome()]))
+
+
+# ---- regression: prediction event writer and derived specs unchanged -------
+def test_prediction_spec_still_insert_once_after_outcome_added():
+    sql = FORECAST_PREDICTION_SPEC.insert_sql
+    assert "DO NOTHING" in sql and "RETURNING TRUE" in sql
+    assert "DO UPDATE" not in sql
+
+
+def test_outcome_writer_never_routes_through_insert_once():
+    import ast
+    import inspect
+    import textwrap
+    tree = ast.parse(textwrap.dedent(inspect.getsource(Database.upsert_forecast_outcomes)))
+    called_attrs = {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+    assert "_upsert_stage2" in called_attrs          # the correction-friendly path
+    assert "fetchval" not in called_attrs            # never the insert-once event path
+
+
+def test_four_derived_specs_unchanged_after_outcome_added():
+    # The outcome spec is additive; the original four upsert specs keep their PKs.
+    assert [s.table for s in ALL_SPECS] == [
+        "exchange_feature_vectors", "consensus_feature_vectors",
+        "percentile_snapshots", "data_health_snapshots"]
+    for s in ALL_SPECS:
+        assert "DO UPDATE SET" in s.insert_sql and "RETURNING TRUE" not in s.insert_sql
