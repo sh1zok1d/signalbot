@@ -138,7 +138,7 @@ def _derive_family_exclusions(efv: ExchangeFeatureVector) -> dict[str, str]:
 def _validate_shared_inputs(
     stage2_config, exchanges, symbol, market_type, timeframe, bucket_ts,
     code_version, liquidation_feed_available_by_exchange,
-) -> tuple[str, ...]:
+) -> tuple[tuple[str, ...], Mapping[str, bool]]:
     if not isinstance(stage2_config, Stage2Config):
         raise BucketCoordinatorError(
             f"stage2_config must be a Stage2Config, got {type(stage2_config).__name__}")
@@ -180,6 +180,14 @@ def _validate_shared_inputs(
                 f"liquidation_feed_available_by_exchange[{ex!r}] must be a bool, "
                 f"got {type(v).__name__}")
 
+    # Detached snapshot in requested order — the coordinator must NOT read the
+    # caller-owned mapping again after the first await, or a concurrent mutation
+    # could feed later exchanges different runtime facts (or turn a KeyError into
+    # a false EXCHANGE_PROCESSING_FAILED).
+    availability_snapshot: Mapping[str, bool] = MappingProxyType({
+        ex: liquidation_feed_available_by_exchange[ex] for ex in exchanges
+    })
+
     # Reuse the pure exchange-context boundary for every requested exchange so
     # malformed shared identity/config fails loudly BEFORE any partial writes.
     for ex in exchanges:
@@ -187,12 +195,12 @@ def _validate_shared_inputs(
             build_assembly_context(
                 stage2_config, exchange=ex, symbol=symbol, market_type=market_type,
                 timeframe=timeframe, bucket_ts=bucket_ts, code_version=code_version,
-                liquidation_feed_available=liquidation_feed_available_by_exchange[ex])
+                liquidation_feed_available=availability_snapshot[ex])
         except Exception as exc:  # noqa: BLE001 - convert to a coordinator arg error
             raise BucketCoordinatorError(
                 f"invalid shared bucket context for exchange {ex!r}: {exc}") from exc
 
-    return exchanges
+    return exchanges, availability_snapshot
 
 
 # ---- public coordinator ----------------------------------------------------
@@ -211,9 +219,12 @@ async def process_stage2_bucket(
     liquidation_feed_available_by_exchange: Mapping[str, bool],
 ) -> Stage2BucketResult:
     """Coordinate exactly one closed Stage 2 bucket. See module docstring."""
-    exchanges = _validate_shared_inputs(
+    exchanges, availability = _validate_shared_inputs(
         stage2_config, exchanges, symbol, market_type, timeframe, bucket_ts,
         code_version, liquidation_feed_available_by_exchange)
+    # From here on only the detached `availability` snapshot is read — never the
+    # caller-owned `liquidation_feed_available_by_exchange` (which could mutate
+    # across the awaits below).
 
     # Explicit replay denominator: ALL requested exchanges, every family, in the
     # canonical FAMILIES order. Never shrinks on failure; never registry-derived.
@@ -234,7 +245,7 @@ async def process_stage2_bucket(
                 reader, exchange_writer, stage2_config,
                 exchange=ex, symbol=symbol, market_type=market_type,
                 timeframe=timeframe, bucket_ts=bucket_ts, code_version=code_version,
-                liquidation_feed_available=liquidation_feed_available_by_exchange[ex])
+                liquidation_feed_available=availability[ex])
         except Exception as exc:  # noqa: BLE001 - isolate ordinary per-exchange failures only
             failures.append(ExchangeBucketFailure(
                 exchange=ex, reason=EXCHANGE_PROCESSING_FAILED,

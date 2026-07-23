@@ -551,6 +551,65 @@ def test_requested_order_preserved_for_vectors_and_failures():
     assert [fl.exchange for fl in res.failures] == ["binance"]
 
 
+def test_original_availability_mapping_not_mutated_by_coordinator():
+    av = _avail()
+    before = dict(av)
+    _process(Reader(), ExWriter(), CoWriter(), liquidation_feed_available_by_exchange=av)
+    assert av == before                                                  # coordinator never writes it
+
+
+def test_availability_snapshot_isolates_concurrent_mutation_after_await():
+    # The caller-owned availability mapping must be snapshotted at preflight and
+    # never re-read after the first await: a concurrent flip/remove/add during
+    # processing must NOT reach later exchanges or fabricate a failure.
+    async def _inner():
+        started = asyncio.Event()
+        release = asyncio.Event()
+        av = {"binance": True, "bybit": True, "okx": True}
+
+        class BlockingReader(Reader):
+            def __init__(self):
+                super().__init__()
+                self._blocked = False
+
+            async def fetch_exchange_feature_raw_bundle(self, *, exchange, **kw):
+                self.calls.append(exchange)
+                if not self._blocked:                                     # block the FIRST exchange
+                    self._blocked = True
+                    started.set()
+                    await release.wait()
+                return _bundle(exchange)
+
+        r, ew, cw = BlockingReader(), ExWriter(), CoWriter()
+        task = asyncio.ensure_future(process_stage2_bucket(
+            r, ew, cw, CFG, exchanges=list(EXS), symbol=SYM, market_type=MT,
+            timeframe="5m", bucket_ts=B, code_version="code-v1",
+            liquidation_feed_available_by_exchange=av))
+        await started.wait()
+        # mutate the ORIGINAL mapping mid-flight, before bybit/okx are processed:
+        av["bybit"] = False        # flip (would error with events if re-read)
+        av["okx"] = False          # flip
+        del av["binance"]          # remove (would KeyError if re-read)
+        av["kraken"] = True        # add extra
+        release.set()
+        res = await task
+        return res, av
+
+    res, av = _run(_inner())
+    # every exchange succeeded using its ORIGINAL (True) availability fact: with
+    # events present, a re-read False would have raised (unavailable + events) and
+    # a removed key would have KeyError'd — either way a false failure. Instead all
+    # three produced measured (non-None) liquidation metrics.
+    assert res.failures == ()
+    assert [v.exchange for v in res.exchange_features] == list(EXS)
+    assert all(v.long_liquidation_notional is not None
+               and v.liquidation_event_count is not None
+               for v in res.exchange_features)
+    assert res.consensus_feature is not None
+    # the coordinator did not repair/mutate the caller's dict (only our edits show)
+    assert av == {"bybit": False, "okx": False, "kraken": True}
+
+
 # ============================================================================
 # 19. architecture
 # ============================================================================
