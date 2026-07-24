@@ -3,7 +3,8 @@
 This module is a thin composition boundary for one caller-selected, already
 closed 5m bucket plus a caller-supplied sequence of already-due outcome jobs.
 It does not choose buckets, inspect wall-clock time, discover pending
-predictions, retry, or provide cross-table transaction semantics.
+predictions, re-attempt failed work, or provide cross-table transaction
+semantics.
 
 Execution order is fixed:
 1. orchestration-specific preflight;

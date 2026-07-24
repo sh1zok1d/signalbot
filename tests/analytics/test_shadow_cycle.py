@@ -121,8 +121,13 @@ def _m(**kw):
 
 def _kline(ex, minute, *, close=None):
     close = 101.0 + minute if close is None else close
+    open_ = 100.0 + minute
+    # bracket high/low around both open and the (possibly injected) close so the bar
+    # is always valid OHLC, even when a custom final close is supplied.
+    high = max(110.0 + minute, open_, close)
+    low = min(95.0 + minute, open_, close)
     return _m(exchange=ex, symbol=SYM, ts=B + timedelta(minutes=minute),
-              open=100.0 + minute, high=110.0 + minute, low=95.0 + minute,
+              open=open_, high=high, low=low,
               close=close, volume=10.0 + minute,
               taker_buy_volume=1.0 + minute, taker_sell_volume=0.5 + minute)
 
@@ -403,7 +408,14 @@ def test_exceptions_propagate(monkeypatch, exc_attr):
 
 def test_result_detaches_and_is_frozen():
     evs = [_eval()]
-    result = ShadowCycleResult(_bucket(), PREDICTION_INSERTED, compute_forecast_decision(_cv()), _prediction(), True, evs)
+    bucket = _bucket()
+    consensus = bucket.consensus_feature
+    decision = compute_forecast_decision(consensus)
+    prediction = build_forecast_prediction(
+        decision, consensus, reference_price=105.0,
+        reference_price_source="binance_close_5m",
+    )
+    result = ShadowCycleResult(bucket, PREDICTION_INSERTED, decision, prediction, True, evs)
     evs.clear()
     assert len(result.outcome_evaluations) == 1 and isinstance(result.outcome_evaluations, tuple)
     with pytest.raises(dataclasses.FrozenInstanceError):
