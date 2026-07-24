@@ -363,9 +363,79 @@ def test_doc_rollback_preserves_state():
     assert ".env" in DOC.read_text()
 
 
+def test_doc_ff_only_update_runbook():
+    text = DOC.read_text()
+    low = text.lower()
+    # fail-closed working-tree update (git fetch alone is insufficient)
+    assert "git switch main" in text
+    assert "git pull --ff-only origin main" in text
+    # HEAD and origin/main verification
+    assert "git rev-parse HEAD" in text
+    assert "git rev-parse origin/main" in text
+    # clean-tree checks both BEFORE and AFTER the pull
+    assert text.count("git status --short") >= 2
+    # reset --hard appears ONLY as an explicit prohibition
+    assert "reset --hard" in low and "do not" in low
+    # no forced checkout / clean / force-fetch
+    for forced in ("checkout -f", "checkout --force", "git clean", "-f origin"):
+        assert forced not in text
+
+
+def test_doc_readonly_postrun_verification_command():
+    text = DOC.read_text()
+    low = text.lower()
+    # the exact read-only status verification, piped to json.tool
+    assert "--shadow-status --shadow-json" in text
+    assert "python3 -m json.tool" in text
+    assert '`state` == `"READY"`' in text
+    assert "`latest_prediction` is **not** null" in text
+    assert 'reference_price_source` == `"binance_close_5m"' in text
+    assert "bucket_ts" in text
+    assert "no secret" in low
+    # the verification introduces no raw SQL statement and exposes no DSN literal
+    assert "SELECT " not in text
+    assert "postgresql://" not in low
+
+
 # ============================================================================
 # G. optional systemd-analyze syntax validation
 # ============================================================================
+# The ONE authoring-host diagnostic we tolerate is the ExecStart binary not
+# existing (that path is only present on the VPS).
+_MISSING_HOST_PATH = "/opt/signalbot/.venv/bin/python"
+
+
+def accept_systemd_analyze(returncode: int, stderr: str) -> bool:
+    """Exact acceptance contract for a `systemd-analyze verify` result.
+
+    - no diagnostics on stderr  -> accept ONLY when returncode == 0;
+    - diagnostics present       -> accept ONLY when returncode is nonzero AND
+                                   every nonblank diagnostic is the known
+                                   authoring-host missing-path diagnostic
+                                   (involving the venv python). A missing-path
+                                   diagnostic is never claimed with exit 0.
+    """
+    diagnostics = [ln for ln in stderr.splitlines() if ln.strip()]
+    if not diagnostics:
+        return returncode == 0
+    if returncode == 0:
+        return False
+    return all(_MISSING_HOST_PATH in ln for ln in diagnostics)
+
+
+@pytest.mark.parametrize("rc,stderr,expected", [
+    (0, "", True),                                                        # clean rc=0
+    (1, f"unit.service: Command {_MISSING_HOST_PATH} is not executable: "
+        "No such file or directory", True),                              # missing host path rc=1
+    (1, "unit.service: Unknown key name 'Frobnicate' in section 'Service'", False),  # unrelated
+    (0, "unit.service: warning about something", False),                 # diagnostic with rc=0
+    (1, "", False),                                                       # rc=1 empty stderr
+    (3, f"a: Command {_MISSING_HOST_PATH} missing\n\nb: real syntax error", False),  # mixed
+])
+def test_systemd_analyze_classifier(rc, stderr, expected):
+    assert accept_systemd_analyze(rc, stderr) is expected
+
+
 def test_optional_systemd_analyze_verify():
     analyze = shutil.which("systemd-analyze")
     if analyze is None:
@@ -374,12 +444,26 @@ def test_optional_systemd_analyze_verify():
     result = subprocess.run(
         [analyze, "verify", str(SERVICE), str(TIMER)],
         capture_output=True, text=True)
-    # Tolerate ONLY host-path diagnostics: on the authoring machine /opt/signalbot
-    # does not exist, so the ExecStart binary / EnvironmentFile cannot be resolved.
-    # Any OTHER diagnostic indicates a genuine unit-syntax problem.
-    offending = [
-        ln for ln in result.stderr.splitlines()
-        if ln.strip() and "/opt/signalbot" not in ln
-    ]
-    assert not offending, "systemd-analyze reported non-environmental issues:\n" + \
-        "\n".join(offending)
+    assert accept_systemd_analyze(result.returncode, result.stderr), (
+        f"systemd-analyze verify rc={result.returncode} stderr:\n{result.stderr}")
+
+
+# ============================================================================
+# D. repository executable modes
+# ============================================================================
+def _git_mode(path: Path) -> str:
+    rel = str(path.relative_to(ROOT))
+    out = subprocess.run(["git", "ls-files", "-s", "--", rel],
+                         cwd=ROOT, capture_output=True, text=True).stdout
+    assert out.strip(), f"{rel} is not tracked by git"
+    return out.split()[0]
+
+
+def test_shell_scripts_are_git_executable():
+    assert _git_mode(INSTALL) == "100755"
+    assert _git_mode(CHECK) == "100755"
+
+
+def test_unit_files_are_not_executable():
+    assert _git_mode(SERVICE) == "100644"
+    assert _git_mode(TIMER) == "100644"

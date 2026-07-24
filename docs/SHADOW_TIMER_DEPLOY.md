@@ -30,14 +30,47 @@ installed, no timer was enabled, and no production `--shadow-once` was run.
 The operator performs these steps **on the server**, in order, when server
 access is available. All commands are safe and explicit.
 
-### 1. Pull merged `main` and verify the revision
+### 1. Update the checked-out working tree to merged `main` (fail-closed)
+
+`git fetch` alone does **not** update the checked-out working tree, so the later
+tests and installation could run against an old revision. Update the working tree
+with a fast-forward-only pull, and stop if anything is unexpected.
+
+First require a clean tree before touching anything:
 
 ```
 cd /opt/signalbot
-sudo -u signalbot git fetch origin
-sudo -u signalbot git status --short          # expect a clean tree
-sudo -u signalbot git rev-parse HEAD          # record the deployed revision
+sudo -u signalbot git status --short          # MUST be empty before continuing
 ```
+
+If that output is not empty, **stop and investigate** — do not proceed, do not
+`git reset --hard`, and do not discard local changes.
+
+Then fetch and fast-forward the working tree onto `main`:
+
+```
+sudo -u signalbot git fetch origin
+sudo -u signalbot git switch main
+sudo -u signalbot git pull --ff-only origin main
+```
+
+Then verify the update landed exactly on the merged revision:
+
+```
+sudo -u signalbot git status --short          # MUST still be empty
+sudo -u signalbot git rev-parse HEAD          # record the deployed revision
+sudo -u signalbot git rev-parse origin/main
+```
+
+Requirements:
+
+- the two SHAs (`HEAD` and `origin/main`) **must match**;
+- the working tree **must remain clean** (empty `git status --short`) both before
+  and after the pull;
+- **do not** use `git reset --hard`;
+- **do not** discard local changes or force the checkout;
+- if the tree is dirty, or `git pull --ff-only` cannot fast-forward, **stop and
+  investigate** — never force the update.
 
 ### 2. Activate the project virtualenv and run tests
 
@@ -105,8 +138,28 @@ sudo journalctl -u signalbot-shadow.service -f
 
 ### 9. Verify a `forecast_predictions` row was written
 
-After a timer firing has completed, confirm a prediction row exists for the
-processed bucket (read-only inspection; use the operator's normal DB access).
+After a timer firing (or the manual smoke below) has completed, confirm the
+prediction landed using the existing **read-only** CLI — no raw SQL, no DSN
+exposure:
+
+```
+sudo -u signalbot /opt/signalbot/.venv/bin/python \
+  /opt/signalbot/main.py --shadow-status --shadow-json \
+  | python3 -m json.tool
+```
+
+Check the pretty-printed JSON:
+
+- `state` == `"READY"`;
+- `latest_prediction` is **not** null;
+- `latest_prediction.bucket_ts` corresponds to the newly processed closed bucket
+  (the `bucket_ts` the timer just ran, i.e. the previous closed 5-minute bucket);
+- `latest_prediction.reference_price_source` == `"binance_close_5m"`;
+- **no secret** is printed (the status report never emits the DSN, `.env`
+  values, Redis URL, or any token).
+
+This reads the just-written `forecast_predictions` row through the same status
+path used everywhere else — it performs no writes.
 
 ---
 
