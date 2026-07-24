@@ -180,3 +180,49 @@ def live_liquidation_quality(symbol: str) -> dict[str, str]:
         raise SymbolRegistryError(f"unknown symbol {symbol!r}")
     return {ex: family_capability(symbol, "liquidations", ex).coverage_type
             for ex in ACTIVE_EXCHANGES}
+
+
+# ---- structural seed rows (pure; no DB / clock / network) ------------------
+def symbol_seed_rows() -> tuple[tuple, ...]:
+    """Rows in EXACT column order for Database.seed_symbols:
+    (symbol, base_asset, quote_asset, asset_tier, status, enabled,
+    disable_policy). One row per ACTIVE symbol, in registry declaration order.
+    Sourced entirely from the existing SymbolDefinition facts — no restatement."""
+    return tuple(
+        (s.symbol, s.base_asset, s.quote_asset, s.asset_tier, s.status,
+         s.enabled, s.disable_policy)
+        for s in active_symbols()
+    )
+
+
+def symbol_exchange_capability_seed_rows() -> tuple[tuple, ...]:
+    """Rows in EXACT column order for Database.seed_symbol_exchange_capabilities:
+    (exchange, symbol, market_type, metric, live_supported, historical_supported,
+    coverage_type, expected_freshness_s, enabled, note).
+
+    One row for every (active symbol, declared market_type, ACTIVE_EXCHANGE,
+    METRIC_FAMILY). live_supported / coverage_type / expected_freshness_s / note
+    come from the Stage 1 common.capabilities declaration (via the existing
+    family -> Stage 1 metric mapping); historical_supported comes from this
+    module's own _HISTORICAL_SUPPORTED declaration. No capability fact is
+    restated. Deterministic order: symbol -> market_type -> exchange ->
+    METRIC_FAMILIES. Pure: no DB, clock, or network."""
+    rows: list[tuple] = []
+    for sym in active_symbols():
+        for market_type in sym.market_types:
+            for exchange in ACTIVE_EXCHANGES:
+                for family in METRIC_FAMILIES:
+                    stage1 = _stage1_row(exchange, _FAMILY_TO_STAGE1_METRIC[family])
+                    rows.append((
+                        exchange,
+                        sym.symbol,
+                        market_type,
+                        family,
+                        bool(stage1[2]),                                     # live_supported
+                        _HISTORICAL_SUPPORTED[sym.symbol][family][exchange],  # historical_supported
+                        stage1[4],                                            # coverage_type
+                        stage1[5],                                            # expected_freshness_s
+                        True,                                                 # enabled (active venue)
+                        stage1[6],                                            # note
+                    ))
+    return tuple(rows)

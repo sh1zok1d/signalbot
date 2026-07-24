@@ -9,7 +9,7 @@ import logging
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterable, Sequence
+from typing import TYPE_CHECKING, Iterable, Mapping, Sequence
 
 import asyncpg
 
@@ -565,6 +565,54 @@ class Database:
         through the shared ON CONFLICT DO UPDATE path (computed_at=now())."""
         from storage.stage2_serialization import FORECAST_OUTCOME_SPEC
         return await self._upsert_stage2(FORECAST_OUTCOME_SPEC, rows)
+
+    async def fetch_shadow_liquidation_availability(
+        self,
+        *,
+        exchanges: "Sequence[str]",
+        symbol: str,
+        market_type: str,
+    ) -> "Mapping[str, bool]":
+        """Read the operational-CLI liquidation availability mapping for the
+        shadow cycle. Validates args BEFORE acquiring, then one fetch on one
+        connection; returns a detached immutable {exchange: bool} in caller order.
+        No analytics import, no writes, no clock."""
+        from storage.shadow_cli_readers import (
+            read_shadow_liquidation_availability, validate_liquidation_availability_args)
+        # Snapshot the validated, detached exchange tuple BEFORE acquire, then use
+        # only it — never the caller-owned `exchanges` container, which could be
+        # mutated across the await.
+        validated_exchanges = validate_liquidation_availability_args(
+            exchanges=exchanges, symbol=symbol, market_type=market_type)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_shadow_liquidation_availability(
+                conn, exchanges=validated_exchanges, symbol=symbol, market_type=market_type)
+
+    async def fetch_shadow_status(
+        self,
+        *,
+        exchanges: "Sequence[str]",
+        symbol: str,
+        market_type: str,
+        timeframe: str,
+    ) -> "Mapping":
+        """Read-only shadow status snapshot. Validates args BEFORE acquiring, then
+        runs the fixed status reads on ONE acquired connection; returns a detached
+        immutable snapshot. No transaction, no writes, no clock, no analytics
+        import. A fresh DB yields NOT_INITIALIZED rather than raising."""
+        from storage.shadow_cli_readers import (
+            read_shadow_status, validate_shadow_status_args)
+        # Snapshot the validated, detached exchange tuple BEFORE acquire, then use
+        # only it — never the caller-owned `exchanges` container.
+        validated_exchanges = validate_shadow_status_args(
+            exchanges=exchanges, symbol=symbol, market_type=market_type,
+            timeframe=timeframe)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_shadow_status(
+                conn, exchanges=validated_exchanges, symbol=symbol,
+                market_type=market_type, timeframe=timeframe)
 
     async def fetch_forecast_outcome_klines(
         self,

@@ -6,11 +6,15 @@ Run:
     python main.py --backfill-only # run backfill and exit, don't start live WS
     python main.py --skip-backfill # skip backfill, go straight to live ingestion
     python main.py --validate      # read-only data validation report, then exit
+    python main.py --shadow-once   # run ONE explicit shadow forecast cycle (writes)
+    python main.py --shadow-dry-run # run ONE shadow cycle, write nothing
+    python main.py --shadow-status # read-only shadow status report, then exit
 
 Telegram / signal_engine / percentile_engine are NOT part of this stage per
 the spec's staged rollout - this process only ingests, backfills, and
-persists. Confirm this stage looks right before we move to stage 2
-(percentile_engine + signal_engine).
+persists. The three --shadow-* commands are deliberate MANUAL operations that
+delegate to runtime.shadow_cli; they do not activate any automatic Stage 2
+runtime (Stage 2 stays globally disabled).
 """
 from __future__ import annotations
 
@@ -19,9 +23,11 @@ import asyncio
 import contextlib
 import logging
 import signal
+import sys
 
 from common.config import Config, load_secrets
 from common.logging_setup import setup_logging
+from runtime.shadow_cli import is_shadow_command, run_shadow_cli_command
 from storage.db import Database
 from storage.redis_client import RedisState
 from backfill.backfill import run_backfill, run_gap_fill
@@ -34,6 +40,14 @@ logger = logging.getLogger("main")
 async def run(args: argparse.Namespace) -> None:
     cfg = Config.load()
     secrets = load_secrets(cfg)
+
+    # A shadow command is a deliberate manual operation that branches BEFORE any
+    # Stage 1 startup (schema init, capability seeding, stale-backfill sweep,
+    # Redis, backfill, gap-fill, IngestionManager). Shadow commands use
+    # PostgreSQL only and never connect Redis.
+    if is_shadow_command(args):
+        await run_shadow_cli_command(args, cfg, secrets)
+        return
 
     db = Database(secrets.postgres_dsn)
     await db.connect()
@@ -131,7 +145,10 @@ async def _run_cancellable(coro, stop_event: asyncio.Event) -> None:
             await stopper
 
 
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
+    """Construct the flag-based CLI parser (no argparse subcommands). Extracted so
+    parser behavior is unit-testable; main() adds nothing beyond this + the
+    cross-flag validation below."""
     parser = argparse.ArgumentParser(description="BTC signal bot - stage 1 (ingestion/backfill/storage)")
     parser.add_argument("--backfill-only", action="store_true")
     parser.add_argument("--skip-backfill", action="store_true")
@@ -139,9 +156,87 @@ def main() -> None:
                         help="Print a read-only data validation report and exit "
                              "(no backfill, no live ingestion).")
     parser.add_argument("--log-level", default="INFO")
-    args = parser.parse_args()
 
+    # Three mutually-exclusive deliberate manual shadow commands (delegated to
+    # runtime.shadow_cli). argparse enforces one-of; cross-flag rules below.
+    shadow = parser.add_mutually_exclusive_group()
+    shadow.add_argument("--shadow-once", action="store_true",
+                        help="Run ONE explicit shadow forecast cycle (writes Stage 2 rows).")
+    shadow.add_argument("--shadow-dry-run", action="store_true",
+                        help="Run ONE shadow forecast cycle but persist nothing.")
+    shadow.add_argument("--shadow-status", action="store_true",
+                        help="Print a read-only shadow status report and exit.")
+
+    # Shadow-only options. Default None so we can tell whether they were supplied;
+    # reference exchange defaults to binance at execution time when omitted.
+    parser.add_argument("--shadow-bucket-ts", default=None,
+                        help="Explicit ISO-8601 UTC 5m bucket open (shadow-once/dry-run only).")
+    parser.add_argument("--shadow-reference-exchange", default=None,
+                        help="Reference exchange for the prediction (default: binance; "
+                             "shadow-once/dry-run only).")
+    parser.add_argument("--shadow-code-version", default=None,
+                        help="Explicit analytics code version (shadow-once/dry-run only).")
+    parser.add_argument("--shadow-json", action="store_true",
+                        help="Emit the shadow report as one JSON object (all shadow commands).")
+    return parser
+
+
+def _validate_shadow_arg_combos(parser: argparse.ArgumentParser,
+                                args: argparse.Namespace) -> None:
+    """Enforce the flag-compatibility rules argparse cannot express directly."""
+    shadow_selected = is_shadow_command(args)
+    execution_shadow = bool(args.shadow_once or args.shadow_dry_run)
+
+    if shadow_selected:
+        for flag, value in (("--validate", args.validate),
+                            ("--backfill-only", args.backfill_only),
+                            ("--skip-backfill", args.skip_backfill)):
+            if value:
+                parser.error(f"{flag} cannot be combined with a --shadow-* command")
+
+    # bucket-ts / reference-exchange / code-version are only valid for
+    # shadow-once / shadow-dry-run.
+    for flag, value in (("--shadow-bucket-ts", args.shadow_bucket_ts),
+                        ("--shadow-reference-exchange", args.shadow_reference_exchange),
+                        ("--shadow-code-version", args.shadow_code_version)):
+        if value is not None and not execution_shadow:
+            parser.error(f"{flag} is only valid with --shadow-once or --shadow-dry-run")
+
+    if args.shadow_json and not shadow_selected:
+        parser.error("--shadow-json is only valid with a --shadow-* command")
+
+
+def parse_args(argv=None) -> argparse.Namespace:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    _validate_shadow_arg_combos(parser, args)
+    return args
+
+
+def configure_cli_logging(args: argparse.Namespace) -> None:
+    """Configure logging for a CLI invocation.
+
+    Normally identical to `setup_logging(args.log_level)` — Stage 1 commands and
+    human shadow commands keep their existing stdout logging behavior untouched.
+
+    For a `--shadow-json` command, stdout must carry exactly one machine-readable
+    JSON object, so logging stays fully ENABLED but the root StreamHandler(s)
+    currently targeting stdout are redirected to stderr (logs are never disabled
+    or discarded; the format is not duplicated; normal Stage 1 logs are not moved).
+    """
     setup_logging(args.log_level)
+    if getattr(args, "shadow_json", False):
+        root = logging.getLogger()
+        for handler in root.handlers:
+            if isinstance(handler, logging.StreamHandler) \
+                    and getattr(handler, "stream", None) is sys.stdout:
+                handler.setStream(sys.stderr)
+
+
+def main() -> None:
+    args = parse_args()
+
+    configure_cli_logging(args)
     asyncio.run(run(args))
 
 
