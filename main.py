@@ -23,6 +23,7 @@ import asyncio
 import contextlib
 import logging
 import signal
+import sys
 
 from common.config import Config, load_secrets
 from common.logging_setup import setup_logging
@@ -212,10 +213,30 @@ def parse_args(argv=None) -> argparse.Namespace:
     return args
 
 
+def configure_cli_logging(args: argparse.Namespace) -> None:
+    """Configure logging for a CLI invocation.
+
+    Normally identical to `setup_logging(args.log_level)` — Stage 1 commands and
+    human shadow commands keep their existing stdout logging behavior untouched.
+
+    For a `--shadow-json` command, stdout must carry exactly one machine-readable
+    JSON object, so logging stays fully ENABLED but the root StreamHandler(s)
+    currently targeting stdout are redirected to stderr (logs are never disabled
+    or discarded; the format is not duplicated; normal Stage 1 logs are not moved).
+    """
+    setup_logging(args.log_level)
+    if getattr(args, "shadow_json", False):
+        root = logging.getLogger()
+        for handler in root.handlers:
+            if isinstance(handler, logging.StreamHandler) \
+                    and getattr(handler, "stream", None) is sys.stdout:
+                handler.setStream(sys.stderr)
+
+
 def main() -> None:
     args = parse_args()
 
-    setup_logging(args.log_level)
+    configure_cli_logging(args)
     asyncio.run(run(args))
 
 

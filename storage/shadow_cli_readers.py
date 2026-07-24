@@ -166,8 +166,14 @@ async def read_shadow_liquidation_availability(
     requested exchange (missing/duplicate/unexpected rows are rejected — a missing
     exchange is never silently filled with False). Availability =
     live_supported is True AND enabled is True AND coverage_type != 'unavailable'.
-    Args are NOT re-validated here (the Database method validates first)."""
-    requested = tuple(exchanges)
+
+    Enforces its public contract BEFORE any DB access via
+    `validate_liquidation_availability_args`, then uses only the detached tuple it
+    returns — so a direct caller is safe even without the Database wrapper. (The
+    Database method also validates first, before acquiring; that double validation
+    is intentional.)"""
+    requested = validate_liquidation_availability_args(
+        exchanges=exchanges, symbol=symbol, market_type=market_type)
     records = await conn.fetch(
         SHADOW_LIQUIDATION_AVAILABILITY_SQL, list(requested), symbol, market_type)
     by_exchange: dict[str, dict] = {}
@@ -209,9 +215,15 @@ async def read_shadow_status(
 ) -> Mapping:
     """Run the fixed read-only status queries on `conn` and return a detached,
     immutable snapshot. Reads only tables that exist (to_regclass-gated), so a
-    fresh DB yields NOT_INITIALIZED instead of raising UndefinedTable. Args are
-    NOT re-validated here (the Database method validates first)."""
-    requested = tuple(exchanges)
+    fresh DB yields NOT_INITIALIZED instead of raising UndefinedTable.
+
+    Enforces its public contract BEFORE any DB access via
+    `validate_shadow_status_args`, then uses only the detached tuple it returns —
+    so a direct caller is safe even without the Database wrapper. (The Database
+    method also validates first, before acquiring; that double validation is
+    intentional.)"""
+    requested = validate_shadow_status_args(
+        exchanges=exchanges, symbol=symbol, market_type=market_type, timeframe=timeframe)
     schema_row = await conn.fetchrow(SHADOW_SCHEMA_STATE_SQL)
     present = _schema_presence(schema_row)
     all_present = all(present.values())

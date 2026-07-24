@@ -579,12 +579,15 @@ class Database:
         No analytics import, no writes, no clock."""
         from storage.shadow_cli_readers import (
             read_shadow_liquidation_availability, validate_liquidation_availability_args)
-        validate_liquidation_availability_args(
+        # Snapshot the validated, detached exchange tuple BEFORE acquire, then use
+        # only it — never the caller-owned `exchanges` container, which could be
+        # mutated across the await.
+        validated_exchanges = validate_liquidation_availability_args(
             exchanges=exchanges, symbol=symbol, market_type=market_type)
         assert self.pool is not None
         async with self.pool.acquire() as conn:
             return await read_shadow_liquidation_availability(
-                conn, exchanges=exchanges, symbol=symbol, market_type=market_type)
+                conn, exchanges=validated_exchanges, symbol=symbol, market_type=market_type)
 
     async def fetch_shadow_status(
         self,
@@ -600,13 +603,15 @@ class Database:
         import. A fresh DB yields NOT_INITIALIZED rather than raising."""
         from storage.shadow_cli_readers import (
             read_shadow_status, validate_shadow_status_args)
-        validate_shadow_status_args(
+        # Snapshot the validated, detached exchange tuple BEFORE acquire, then use
+        # only it — never the caller-owned `exchanges` container.
+        validated_exchanges = validate_shadow_status_args(
             exchanges=exchanges, symbol=symbol, market_type=market_type,
             timeframe=timeframe)
         assert self.pool is not None
         async with self.pool.acquire() as conn:
             return await read_shadow_status(
-                conn, exchanges=exchanges, symbol=symbol,
+                conn, exchanges=validated_exchanges, symbol=symbol,
                 market_type=market_type, timeframe=timeframe)
 
     async def fetch_forecast_outcome_klines(

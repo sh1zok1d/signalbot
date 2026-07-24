@@ -6,6 +6,10 @@ ingestion manager) and that existing Stage 1 invocations are unchanged.
 from __future__ import annotations
 
 import asyncio
+import json
+import logging
+import sys
+from types import MappingProxyType
 
 import pytest
 
@@ -14,6 +18,22 @@ import main
 
 def _run(coro):
     return asyncio.run(coro)
+
+
+class _isolate_root_logging:
+    """Context manager that clears root logging handlers (so main's basicConfig
+    actually attaches a fresh stdout handler bound to the capsys stream) and
+    restores the original handlers afterwards."""
+
+    def __enter__(self):
+        self._root = logging.getLogger()
+        self._saved = self._root.handlers[:]
+        self._root.handlers.clear()
+        return self
+
+    def __exit__(self, *exc):
+        self._root.handlers[:] = self._saved
+        return False
 
 
 # ============================================================================
@@ -248,3 +268,114 @@ def test_validate_follows_existing_path(monkeypatch):
     _run(main.run(main.parse_args(["--validate"])))
     assert events.count("validate") == 1
     assert "init_schema" in events
+
+
+# ============================================================================
+# --shadow-json: stdout is exactly one machine-valid JSON object; logs -> stderr
+# ============================================================================
+def _patch_config_only(monkeypatch):
+    monkeypatch.setattr(main.Config, "load", staticmethod(lambda: _FakeCfg()))
+    monkeypatch.setattr(main, "load_secrets",
+                        lambda cfg: type("S", (), {"postgres_dsn": "postgresql://secret",
+                                                   "redis_url": "redis://secret",
+                                                   "telegram_token": None,
+                                                   "telegram_chat_id": None})())
+
+
+@pytest.mark.parametrize("cmd", ["--shadow-once", "--shadow-dry-run", "--shadow-status"])
+def test_shadow_json_stdout_is_single_json_object(monkeypatch, capsys, cmd):
+    _patch_config_only(monkeypatch)
+
+    async def fake_shadow(args, cfg, secrets):
+        # a real diagnostic INFO log emitted during async execution
+        logging.getLogger("main").info("Connected to TimescaleDB")
+        print(json.dumps({"command": cmd, "state": "NOT_INITIALIZED"}))
+
+    monkeypatch.setattr(main, "run_shadow_cli_command", fake_shadow)
+    monkeypatch.setattr(sys, "argv", ["main.py", cmd, "--shadow-json"])
+
+    with _isolate_root_logging():
+        main.main()                          # real logging setup + stdout/stderr routing
+    out, err = capsys.readouterr()
+
+    # stdout: exactly one JSON object, no log prefix
+    parsed = json.loads(out)                 # succeeds -> machine-valid
+    assert isinstance(parsed, dict) and parsed["command"] == cmd
+    assert out.strip().count("\n") == 0      # a single JSON value (one line)
+    assert "| INFO" not in out and "Connected to TimescaleDB" not in out
+
+    # the INFO diagnostic went to stderr, and no secret is on stdout
+    assert "Connected to TimescaleDB" in err
+    for secret in ("postgresql://", "redis://", "secret"):
+        assert secret not in out
+
+
+def test_shadow_json_full_cli_path_status_smoke(monkeypatch, capsys):
+    """Faithful section-F smoke: the REAL run_shadow_cli_command +
+    execute_shadow_status + renderer + print run over a fake Database, with
+    logging enabled — proving the complete CLI stdout is directly json.loads-able."""
+    _patch_config_only(monkeypatch)
+
+    class _FakeStatusDB:
+        def __init__(self, dsn):
+            pass
+
+        async def connect(self):
+            logging.getLogger("storage.db").info("Connected to TimescaleDB")
+
+        async def close(self):
+            pass
+
+        async def fetch_shadow_status(self, *, exchanges, symbol, market_type, timeframe):
+            return MappingProxyType({"state": "NOT_INITIALIZED", "prerequisites": (),
+                                     "latest_prediction": None, "outcomes": ()})
+
+    import runtime.shadow_cli as sc
+    monkeypatch.setattr(sc, "Database", _FakeStatusDB)
+    monkeypatch.setattr(sys, "argv", ["main.py", "--shadow-status", "--shadow-json"])
+
+    with _isolate_root_logging():
+        main.main()
+    out, err = capsys.readouterr()
+
+    parsed = json.loads(out)                 # the complete CLI path emitted valid JSON
+    assert parsed["state"] == "NOT_INITIALIZED"
+    assert parsed["symbol"] == "BTCUSDT"
+    assert "Connected to TimescaleDB" in err and "Connected to TimescaleDB" not in out
+
+
+def test_human_shadow_logging_unchanged(monkeypatch, capsys):
+    """A human (non-JSON) shadow command keeps logging on stdout (unchanged)."""
+    _patch_config_only(monkeypatch)
+
+    async def fake_shadow(args, cfg, secrets):
+        logging.getLogger("main").info("diagnostic-line")
+        print("=== SHADOW STATUS ===")
+
+    monkeypatch.setattr(main, "run_shadow_cli_command", fake_shadow)
+    monkeypatch.setattr(sys, "argv", ["main.py", "--shadow-status"])
+
+    with _isolate_root_logging():
+        main.main()
+    out, err = capsys.readouterr()
+    assert "=== SHADOW STATUS ===" in out
+    assert "diagnostic-line" in out          # human command: logs stay on stdout
+    assert "diagnostic-line" not in err
+
+
+def test_configure_cli_logging_redirects_only_for_json(capsys):
+    """Routing logic: --shadow-json redirects the stdout handler to stderr;
+    every other invocation leaves normal stdout logging in place."""
+    with _isolate_root_logging():
+        root = logging.getLogger()
+
+        main.configure_cli_logging(main.parse_args([]))          # normal Stage 1
+        stream_handlers = [h for h in root.handlers if isinstance(h, logging.StreamHandler)]
+        assert stream_handlers and all(h.stream is sys.stdout for h in stream_handlers)
+
+        root.handlers.clear()
+        main.configure_cli_logging(main.parse_args(["--shadow-status", "--shadow-json"]))
+        stream_handlers = [h for h in root.handlers if isinstance(h, logging.StreamHandler)]
+        assert stream_handlers
+        assert all(h.stream is not sys.stdout for h in stream_handlers)
+        assert any(h.stream is sys.stderr for h in stream_handlers)

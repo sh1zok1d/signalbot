@@ -394,3 +394,118 @@ def test_reader_module_has_no_clock():
     src = SRC.read_text()
     for banned in ("datetime.now", "utcnow", "time.time", "now()"):
         assert banned not in src, banned
+
+
+# ============================================================================
+# H. direct readers validate BEFORE any DB access
+# ============================================================================
+@pytest.mark.parametrize("over", [
+    {"exchanges": []}, {"exchanges": "binance"}, {"exchanges": ["binance", "binance"]},
+    {"exchanges": [5]}, {"symbol": ""}, {"market_type": "  "},
+])
+def test_direct_availability_reader_validates_before_io(over):
+    conn = FakeConn(fetch_map={SHADOW_LIQUIDATION_AVAILABILITY_SQL: [_cap_row("binance")]})
+    kw = dict(exchanges=["binance"], symbol="BTCUSDT", market_type="perp")
+    kw.update(over)
+    with pytest.raises(ShadowCliReaderError):
+        _run(read_shadow_liquidation_availability(conn, **kw))
+    assert conn.fetch_calls == []                     # no DB access happened
+
+
+@pytest.mark.parametrize("over", [
+    {"exchanges": []}, {"exchanges": "binance"}, {"exchanges": ["a", "a"]},
+    {"symbol": ""}, {"market_type": ""}, {"timeframe": "  "},
+])
+def test_direct_status_reader_validates_before_io(over):
+    conn = FakeConn(fetchrow_map={SHADOW_SCHEMA_STATE_SQL: lambda a: _schema_row(())})
+    kw = dict(exchanges=["binance"], symbol="BTCUSDT", market_type="perp", timeframe="5m")
+    kw.update(over)
+    with pytest.raises(ShadowCliReaderError):
+        _run(read_shadow_status(conn, **kw))
+    assert conn.fetch_calls == [] and conn.fetchrow_calls == []   # no DB access
+
+
+# ============================================================================
+# I. mutation-race: the validated exchange snapshot survives a blocked acquire
+# ============================================================================
+class GatedPool:
+    """A pool whose acquire() blocks inside __aenter__ until `release` is set,
+    letting a test mutate the caller's exchanges list mid-acquire."""
+
+    def __init__(self, conn, started, release):
+        self.conn = conn
+        self.started = started
+        self.release = release
+        self.acquire_count = 0
+
+    def acquire(self):
+        pool = self
+
+        class _Acq:
+            async def __aenter__(self_):
+                pool.acquire_count += 1
+                pool.started.set()
+                await pool.release.wait()
+                return pool.conn
+
+            async def __aexit__(self_, *a):
+                return False
+        return _Acq()
+
+
+def _gated_db(conn):
+    started, release = asyncio.Event(), asyncio.Event()
+    db = Database("postgresql://ignored")
+    db.pool = GatedPool(conn, started, release)
+    return db, started, release
+
+
+def test_availability_uses_validated_snapshot_across_acquire():
+    conn = FakeConn(fetch_map={SHADOW_LIQUIDATION_AVAILABILITY_SQL: lambda a: [
+        _cap_row("binance"), _cap_row("bybit"), _cap_row("okx")]})
+    exchanges = ["binance", "bybit", "okx"]
+
+    async def scenario():
+        db, started, release = _gated_db(conn)
+        task = asyncio.create_task(db.fetch_shadow_liquidation_availability(
+            exchanges=exchanges, symbol="BTCUSDT", market_type="perp"))
+        await started.wait()
+        # mutate the caller list while acquire is blocked: add, remove, reorder
+        exchanges.append("kraken")
+        exchanges[0] = "okx"
+        del exchanges[1]
+        release.set()
+        return await task
+
+    result = _run(scenario())
+    sql, args = conn.fetch_calls[0]
+    assert args[0] == ["binance", "bybit", "okx"]            # only the original snapshot
+    assert list(result.keys()) == ["binance", "bybit", "okx"]  # snapshot order preserved
+
+
+def test_status_uses_validated_snapshot_across_acquire():
+    conn = FakeConn(
+        fetchrow_map={
+            SHADOW_SCHEMA_STATE_SQL: lambda a: _schema_row(SHADOW_STATUS_TABLES),
+            LATEST_SHADOW_PREDICTION_SQL: lambda a: None,      # EMPTY -> prereqs queried
+        },
+        fetch_map={
+            SHADOW_PREREQUISITES_SQL: lambda a: [],
+        })
+    exchanges = ["binance", "bybit", "okx"]
+
+    async def scenario():
+        db, started, release = _gated_db(conn)
+        task = asyncio.create_task(db.fetch_shadow_status(
+            exchanges=exchanges, symbol="BTCUSDT", market_type="perp", timeframe="5m"))
+        await started.wait()
+        exchanges.append("kraken")
+        exchanges[0] = "okx"
+        del exchanges[1]
+        release.set()
+        return await task
+
+    snap = _run(scenario())
+    assert snap["state"] == "EMPTY"
+    prereq_call = [c for c in conn.fetch_calls if c[0] == SHADOW_PREREQUISITES_SQL][0]
+    assert prereq_call[1][0] == ["binance", "bybit", "okx"]   # only the original snapshot
