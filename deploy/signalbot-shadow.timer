@@ -1,0 +1,21 @@
+[Unit]
+Description=Run Signalbot shadow forecast every five minutes
+Documentation=file:/opt/signalbot/docs/SHADOW_TIMER_DEPLOY.md
+
+[Timer]
+# Calendar-aligned to UTC 5-minute boundaries, firing at second :05 — this lines
+# up with the shadow CLI's soft-grace latest-closed-bucket selection. Calendar
+# alignment (not OnUnitActiveSec) means the schedule never drifts based on the
+# previous run's completion time.
+OnCalendar=*-*-* *:00/5:05 UTC
+AccuracySec=1s
+RandomizedDelaySec=0
+# Persistent=true may trigger ONE current invocation after downtime. This is NOT
+# full catch-up: it does not replay every missed 5-minute bucket, does not
+# discover missing predictions, and does not process missing outcomes. Those
+# belong to the later recovery/catch-up PR.
+Persistent=true
+Unit=signalbot-shadow.service
+
+[Install]
+WantedBy=timers.target
