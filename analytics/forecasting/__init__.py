@@ -14,6 +14,15 @@ from .outcomes import (
 from .outcome_pipeline import (
     ForecastOutcomeReader, ForecastOutcomeWriter, process_forecast_outcome_horizon,
 )
+
+from .shadow_cycle import (
+    DueOutcomeJob, PREDICTION_DUPLICATE, PREDICTION_INSERTED,
+    PREDICTION_SKIPPED_NO_CONSENSUS,
+    PREDICTION_SKIPPED_REFERENCE_UNAVAILABLE, PREDICTION_STATUSES,
+    ShadowCycleError, ShadowCycleReader, ShadowCycleResult, ShadowCycleWriter,
+    process_shadow_cycle,
+)
+
 from .models import (
     AGREEMENT_BEARISH, AGREEMENT_BULLISH, COMPOSITE_BEARISH, COMPOSITE_BULLISH,
     DEFAULT_FORECAST_HORIZONS, DEFAULT_FORECAST_RULES, DIRECTIONS,
@@ -48,4 +57,10 @@ __all__ = [
     "FUNDING_BULLISH_CONTRARIAN", "FUNDING_BEARISH_CONTRARIAN",
     "LIQUIDATIONS_BULLISH", "LIQUIDATIONS_BEARISH",
     "AGREEMENT_BULLISH", "AGREEMENT_BEARISH", "PARTIAL_CONSENSUS",
+    # explicit shadow cycle orchestration
+    "ShadowCycleError", "ShadowCycleReader", "ShadowCycleWriter",
+    "DueOutcomeJob", "ShadowCycleResult", "PREDICTION_INSERTED",
+    "PREDICTION_DUPLICATE", "PREDICTION_SKIPPED_NO_CONSENSUS",
+    "PREDICTION_SKIPPED_REFERENCE_UNAVAILABLE", "PREDICTION_STATUSES",
+    "process_shadow_cycle",
 ]
