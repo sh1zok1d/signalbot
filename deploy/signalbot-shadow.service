@@ -1,0 +1,52 @@
+[Unit]
+Description=Signalbot shadow forecast one-shot
+Documentation=file:/opt/signalbot/docs/SHADOW_TIMER_DEPLOY.md
+# Ordering only — this bounded one-shot is INDEPENDENT of the Stage 1 ingestion
+# service (signalbot.service). It never requires, starts, stops, or restarts it.
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Same dedicated unprivileged user/group as the Stage 1 service.
+User=signalbot
+Group=signalbot
+WorkingDirectory=/opt/signalbot
+# .env holds the DB password; systemd reads it as root, the process via its group.
+EnvironmentFile=/opt/signalbot/.env
+# The bounded CLI writes nothing to disk (report -> journald); keep Python from
+# touching .pyc under the read-only filesystem enforced below.
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+# Fail fast, without a shell, if the deployment layout is wrong.
+ExecStartPre=/usr/bin/test -x /opt/signalbot/.venv/bin/python
+ExecStartPre=/usr/bin/test -r /opt/signalbot/.env
+ExecStartPre=/usr/bin/test -f /opt/signalbot/main.py
+# One bounded shadow cycle: automatic latest-closed bucket, explicit binance
+# reference, JSON on stdout for structured journald records. No explicit bucket,
+# no due-outcome jobs, no Redis, no loop, no shell/retry wrapper.
+ExecStart=/opt/signalbot/.venv/bin/python /opt/signalbot/main.py --shadow-once --shadow-json --shadow-reference-exchange binance --log-level INFO
+
+# Bounded lifetime: the process cannot linger past the next 5-minute interval.
+# No Restart/RestartSec/RemainAfterExit — the timer makes the next attempt.
+TimeoutStartSec=240
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=signalbot-shadow
+
+# --- Hardening (same audited profile as deploy/signalbot.service) ---
+# ProtectSystem=strict makes the whole filesystem read-only; NO ReadWritePaths
+# are added because the bounded CLI writes only to PostgreSQL and journald.
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# Only outbound TCP to loopback Postgres + exchange REST is needed.
+RestrictAddressFamilies=AF_INET AF_INET6
+UMask=0077
+
+# No [Install] section: the timer (signalbot-shadow.timer) owns activation.
