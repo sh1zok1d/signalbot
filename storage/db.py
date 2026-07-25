@@ -738,3 +738,155 @@ class Database:
             return await read_forecast_outcome_klines(
                 conn, exchange=exchange, symbol=symbol,
                 window_start=window_start, window_end=window_end)
+
+    # ---------------------------------------------------------------
+    # Telegram forecast notifier (independent advisory lock + durable outbox)
+    # ---------------------------------------------------------------
+    @contextlib.asynccontextmanager
+    async def telegram_notifier_lock(self, key: int):
+        """Hold a SESSION-scoped PostgreSQL advisory lock on ONE dedicated
+        connection for the whole Telegram notifier pass. Intentionally a
+        SEPARATE lock namespace from `shadow_recovery_lock` (a different key
+        space entirely — Telegram reading/sending must never block shadow
+        prediction/outcome processing). Yields True if acquired, False if
+        another notifier runner holds it. Always released; the connection is
+        always returned to the pool."""
+        if type(key) is not int:
+            raise ValueError("advisory lock key must be an int")
+        assert self.pool is not None
+        conn = await self.pool.acquire()
+        acquired = False
+        try:
+            acquired = bool(await conn.fetchval(
+                "SELECT pg_try_advisory_lock($1)", key))
+            yield acquired
+        finally:
+            try:
+                if acquired:
+                    await conn.fetchval("SELECT pg_advisory_unlock($1)", key)
+            finally:
+                await self.pool.release(conn)
+
+    async def fetch_telegram_schema_state(self) -> "Mapping[str, bool]":
+        """Read-only: which of the two Telegram tables exist. No lock, no writes."""
+        from storage.telegram_notification_readers import read_telegram_schema_state
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_telegram_schema_state(conn)
+
+    async def ensure_telegram_notifier_state(
+        self, *, runner_name: str, channel: str, recipient_fingerprint: str,
+        now: datetime,
+    ) -> tuple:
+        """Return (started_at, bootstrapped). Validates before acquire; one
+        connection for the read + (if needed) insert + re-read."""
+        from storage.telegram_notification_readers import (
+            ensure_notifier_started_at, validate_notifier_scope)
+        validate_notifier_scope(runner_name=runner_name, channel=channel,
+                                recipient_fingerprint=recipient_fingerprint)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await ensure_notifier_started_at(
+                conn, runner_name=runner_name, channel=channel,
+                recipient_fingerprint=recipient_fingerprint, now=now)
+
+    async def materialize_telegram_deliveries(
+        self, *, channel: str, recipient_fingerprint: str, symbol: str,
+        market_type: str, timeframe: str, started_at: datetime, limit: int,
+    ) -> int:
+        """Insert missing pending delivery rows for LONG/SHORT predictions with
+        created_at >= started_at (real NOT EXISTS anti-join, ON CONFLICT DO
+        NOTHING, capped, oldest-first). Validates before acquire."""
+        from storage.telegram_notification_readers import (
+            materialize_telegram_deliveries, validate_recipient_scope)
+        validate_recipient_scope(channel=channel, recipient_fingerprint=recipient_fingerprint)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await materialize_telegram_deliveries(
+                conn, channel=channel, recipient_fingerprint=recipient_fingerprint,
+                symbol=symbol, market_type=market_type, timeframe=timeframe,
+                started_at=started_at, limit=limit)
+
+    async def fetch_pending_telegram_deliveries(
+        self, *, channel: str, recipient_fingerprint: str, now: datetime, limit: int,
+    ) -> tuple:
+        """Due unsent deliveries joined to their prediction (explicit columns, no
+        consensus_snapshot), deterministic oldest-next_attempt_at-first order,
+        capped, detached. Validates before acquire."""
+        from storage.telegram_notification_readers import (
+            read_pending_telegram_deliveries, validate_recipient_scope)
+        validate_recipient_scope(channel=channel, recipient_fingerprint=recipient_fingerprint)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_pending_telegram_deliveries(
+                conn, channel=channel, recipient_fingerprint=recipient_fingerprint,
+                now=now, limit=limit)
+
+    async def record_telegram_attempt_start(
+        self, *, channel: str, recipient_fingerprint: str, symbol: str, market_type: str,
+        timeframe: str, bucket_ts: datetime, calculation_version: str, rule_version: str,
+    ) -> int:
+        from storage.telegram_notification_readers import record_delivery_attempt_start
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await record_delivery_attempt_start(
+                conn, channel=channel, recipient_fingerprint=recipient_fingerprint,
+                symbol=symbol, market_type=market_type, timeframe=timeframe,
+                bucket_ts=bucket_ts, calculation_version=calculation_version,
+                rule_version=rule_version)
+
+    async def record_telegram_sent(
+        self, *, channel: str, recipient_fingerprint: str, symbol: str, market_type: str,
+        timeframe: str, bucket_ts: datetime, calculation_version: str, rule_version: str,
+        telegram_message_id: int,
+    ) -> None:
+        from storage.telegram_notification_readers import record_delivery_sent
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            await record_delivery_sent(
+                conn, channel=channel, recipient_fingerprint=recipient_fingerprint,
+                symbol=symbol, market_type=market_type, timeframe=timeframe,
+                bucket_ts=bucket_ts, calculation_version=calculation_version,
+                rule_version=rule_version, telegram_message_id=telegram_message_id)
+
+    async def record_telegram_failure(
+        self, *, channel: str, recipient_fingerprint: str, symbol: str, market_type: str,
+        timeframe: str, bucket_ts: datetime, calculation_version: str, rule_version: str,
+        next_attempt_at: datetime, error_class: str, error_summary: str,
+    ) -> None:
+        from storage.telegram_notification_readers import record_delivery_failure
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            await record_delivery_failure(
+                conn, channel=channel, recipient_fingerprint=recipient_fingerprint,
+                symbol=symbol, market_type=market_type, timeframe=timeframe,
+                bucket_ts=bucket_ts, calculation_version=calculation_version,
+                rule_version=rule_version, next_attempt_at=next_attempt_at,
+                error_class=error_class, error_summary=error_summary)
+
+    async def fetch_telegram_notifier_status(
+        self, *, channel: str, recipient_fingerprint: str, now: datetime,
+    ) -> "Mapping":
+        """Read-only aggregate status (no schema init, no lock, no writes)."""
+        from storage.telegram_notification_readers import (
+            read_notifier_status_aggregate, validate_recipient_scope)
+        validate_recipient_scope(channel=channel, recipient_fingerprint=recipient_fingerprint)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_notifier_status_aggregate(
+                conn, channel=channel, recipient_fingerprint=recipient_fingerprint, now=now)
+
+    async def fetch_telegram_notifier_started_at(
+        self, *, runner_name: str, channel: str, recipient_fingerprint: str,
+    ) -> "Optional[datetime]":
+        """READ-ONLY started_at lookup (no insert/bootstrap side effect) — used by
+        --telegram-status, which must never write."""
+        from storage.telegram_notification_readers import (
+            read_notifier_started_at, validate_notifier_scope)
+        validate_notifier_scope(runner_name=runner_name, channel=channel,
+                                recipient_fingerprint=recipient_fingerprint)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_notifier_started_at(
+                conn, runner_name=runner_name, channel=channel,
+                recipient_fingerprint=recipient_fingerprint)

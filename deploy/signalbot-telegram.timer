@@ -1,0 +1,21 @@
+[Unit]
+Description=Run Signalbot Telegram forecast notifier every five minutes
+Documentation=file:/opt/signalbot/docs/TELEGRAM_NOTIFIER_DEPLOY.md
+
+[Timer]
+# Calendar-aligned to UTC 5-minute boundaries, firing at second :35 — offset
+# 30s after the shadow timer's :05 firing so the notifier scans predictions
+# that the shadow pass has already had time to persist. Calendar alignment
+# (not OnUnitActiveSec) means the schedule never drifts based on the previous
+# run's completion time.
+OnCalendar=*-*-* *:00/5:35 UTC
+AccuracySec=1s
+RandomizedDelaySec=0
+# Persistent=true may trigger ONE current invocation after downtime. This is
+# NOT full catch-up: the notifier's outbox scan is bounded by --telegram-max-
+# scan and --telegram-max-send, exactly as any other invocation.
+Persistent=true
+Unit=signalbot-telegram.service
+
+[Install]
+WantedBy=timers.target

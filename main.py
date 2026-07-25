@@ -9,12 +9,17 @@ Run:
     python main.py --shadow-once   # run ONE explicit shadow forecast cycle (writes)
     python main.py --shadow-dry-run # run ONE shadow cycle, write nothing
     python main.py --shadow-status # read-only shadow status report, then exit
+    python main.py --telegram-once   # send bounded pending forecast notifications
+    python main.py --telegram-status # read-only Telegram notifier status, then exit
 
-Telegram / signal_engine / percentile_engine are NOT part of this stage per
-the spec's staged rollout - this process only ingests, backfills, and
-persists. The three --shadow-* commands are deliberate MANUAL operations that
-delegate to runtime.shadow_cli; they do not activate any automatic Stage 2
-runtime (Stage 2 stays globally disabled).
+signal_engine / percentile_engine are NOT part of this stage per the spec's
+staged rollout - this process only ingests, backfills, and persists. The three
+--shadow-* commands are deliberate MANUAL operations that delegate to
+runtime.shadow_cli; they do not activate any automatic Stage 2 runtime (Stage 2
+stays globally disabled). The --telegram-* commands are a SEPARATE, isolated
+notification worker (runtime.telegram_cli) with its own systemd timer and its
+own PostgreSQL advisory lock — it never blocks or changes shadow prediction/
+outcome processing, and NEUTRAL predictions never produce a notification.
 """
 from __future__ import annotations
 
@@ -28,6 +33,7 @@ import sys
 from common.config import Config, load_secrets
 from common.logging_setup import setup_logging
 from runtime.shadow_cli import is_shadow_command, run_shadow_cli_command
+from runtime.telegram_cli import is_telegram_command, run_telegram_cli_command
 from storage.db import Database
 from storage.redis_client import RedisState
 from backfill.backfill import run_backfill, run_gap_fill
@@ -47,6 +53,13 @@ async def run(args: argparse.Namespace) -> None:
     # PostgreSQL only and never connect Redis.
     if is_shadow_command(args):
         await run_shadow_cli_command(args, cfg, secrets)
+        return
+
+    # A Telegram command is the same kind of deliberate manual/timer operation,
+    # fully isolated from the shadow forecast pass (separate lock, separate
+    # tables, separate systemd timer). PostgreSQL only, never Redis.
+    if is_telegram_command(args):
+        await run_telegram_cli_command(args, cfg, secrets)
         return
 
     db = Database(secrets.postgres_dsn)
@@ -185,6 +198,26 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--shadow-max-outcome-jobs", type=int, default=None,
                         help="Max due outcome evaluations this run "
                              "(automatic --shadow-once only; default 100).")
+
+    # Three mutually-exclusive deliberate Telegram notifier commands (delegated
+    # to runtime.telegram_cli). Fully isolated from the shadow group above —
+    # cross-group exclusivity is enforced manually below.
+    telegram = parser.add_mutually_exclusive_group()
+    telegram.add_argument("--telegram-once", action="store_true",
+                          help="Send bounded pending Telegram forecast notifications.")
+    telegram.add_argument("--telegram-status", action="store_true",
+                          help="Print a read-only Telegram notifier status report and exit.")
+    telegram.add_argument("--telegram-test", action="store_true",
+                          help="Send ONE fixed connectivity-test message (no outbox mutation).")
+
+    parser.add_argument("--telegram-json", action="store_true",
+                        help="Emit the Telegram report as one JSON object (all telegram commands).")
+    parser.add_argument("--telegram-max-scan", type=int, default=None,
+                        help="Max forecast_predictions rows to scan for materialization "
+                             "(--telegram-once only; default 200).")
+    parser.add_argument("--telegram-max-send", type=int, default=None,
+                        help="Max pending deliveries to attempt this run "
+                             "(--telegram-once only; default 20).")
     return parser
 
 
@@ -193,6 +226,7 @@ def _validate_shadow_arg_combos(parser: argparse.ArgumentParser,
     """Enforce the flag-compatibility rules argparse cannot express directly."""
     shadow_selected = is_shadow_command(args)
     execution_shadow = bool(args.shadow_once or args.shadow_dry_run)
+    telegram_selected = is_telegram_command(args)
 
     if shadow_selected:
         for flag, value in (("--validate", args.validate),
@@ -223,6 +257,26 @@ def _validate_shadow_arg_combos(parser: argparse.ArgumentParser,
                 parser.error(f"{flag} is not valid with --shadow-bucket-ts "
                              "(an explicit bucket performs no catch-up)")
 
+    # Telegram commands are fully isolated: never combined with a shadow
+    # command, --validate, --backfill-only, or --skip-backfill.
+    if telegram_selected:
+        for flag, value in (("--validate", args.validate),
+                            ("--backfill-only", args.backfill_only),
+                            ("--skip-backfill", args.skip_backfill)):
+            if value:
+                parser.error(f"{flag} cannot be combined with a --telegram-* command")
+        if shadow_selected:
+            parser.error("a --telegram-* command cannot be combined with a --shadow-* command")
+
+    if args.telegram_json and not telegram_selected:
+        parser.error("--telegram-json is only valid with a --telegram-* command")
+
+    # Scan/send caps apply only to --telegram-once.
+    for flag, value in (("--telegram-max-scan", args.telegram_max_scan),
+                        ("--telegram-max-send", args.telegram_max_send)):
+        if value is not None and not args.telegram_once:
+            parser.error(f"{flag} is only valid with --telegram-once")
+
 
 def parse_args(argv=None) -> argparse.Namespace:
     parser = build_parser()
@@ -235,15 +289,17 @@ def configure_cli_logging(args: argparse.Namespace) -> None:
     """Configure logging for a CLI invocation.
 
     Normally identical to `setup_logging(args.log_level)` — Stage 1 commands and
-    human shadow commands keep their existing stdout logging behavior untouched.
+    human shadow/telegram commands keep their existing stdout logging behavior
+    untouched.
 
-    For a `--shadow-json` command, stdout must carry exactly one machine-readable
-    JSON object, so logging stays fully ENABLED but the root StreamHandler(s)
-    currently targeting stdout are redirected to stderr (logs are never disabled
-    or discarded; the format is not duplicated; normal Stage 1 logs are not moved).
+    For a `--shadow-json` or `--telegram-json` command, stdout must carry
+    exactly one machine-readable JSON object, so logging stays fully ENABLED
+    but the root StreamHandler(s) currently targeting stdout are redirected to
+    stderr (logs are never disabled or discarded; the format is not
+    duplicated; normal Stage 1 logs are not moved).
     """
     setup_logging(args.log_level)
-    if getattr(args, "shadow_json", False):
+    if getattr(args, "shadow_json", False) or getattr(args, "telegram_json", False):
         root = logging.getLogger()
         for handler in root.handlers:
             if isinstance(handler, logging.StreamHandler) \
