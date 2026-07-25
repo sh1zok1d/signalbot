@@ -178,6 +178,13 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Explicit analytics code version (shadow-once/dry-run only).")
     parser.add_argument("--shadow-json", action="store_true",
                         help="Emit the shadow report as one JSON object (all shadow commands).")
+    # Automatic-recovery caps (--shadow-once WITHOUT --shadow-bucket-ts only).
+    parser.add_argument("--shadow-max-catchup-buckets", type=int, default=None,
+                        help="Max missed 5m prediction buckets to recover this run "
+                             "(automatic --shadow-once only; default 12).")
+    parser.add_argument("--shadow-max-outcome-jobs", type=int, default=None,
+                        help="Max due outcome evaluations this run "
+                             "(automatic --shadow-once only; default 100).")
     return parser
 
 
@@ -204,6 +211,17 @@ def _validate_shadow_arg_combos(parser: argparse.ArgumentParser,
 
     if args.shadow_json and not shadow_selected:
         parser.error("--shadow-json is only valid with a --shadow-* command")
+
+    # Automatic-recovery caps apply only to automatic --shadow-once (no explicit
+    # bucket, which does deterministic one-bucket work with no catch-up).
+    for flag, value in (("--shadow-max-catchup-buckets", args.shadow_max_catchup_buckets),
+                        ("--shadow-max-outcome-jobs", args.shadow_max_outcome_jobs)):
+        if value is not None:
+            if not args.shadow_once:
+                parser.error(f"{flag} is only valid with --shadow-once")
+            if args.shadow_bucket_ts is not None:
+                parser.error(f"{flag} is not valid with --shadow-bucket-ts "
+                             "(an explicit bucket performs no catch-up)")
 
 
 def parse_args(argv=None) -> argparse.Namespace:

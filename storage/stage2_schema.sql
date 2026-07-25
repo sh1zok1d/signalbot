@@ -699,3 +699,24 @@ CREATE INDEX IF NOT EXISTS ix_fo_direction_horizon_ts
         horizon,
         bucket_ts DESC
     );
+
+-- ============================================================
+-- Shadow recovery watermark — ADDITIVE. A tiny durable key/value marking the
+-- newest closed 5m bucket the AUTOMATIC shadow runner has fully attempted, per
+-- (runner_name, symbol, market_type, timeframe). It is advanced only after a
+-- bucket's process_shadow_cycle returns successfully, and only ever moves
+-- forward (monotonic). Not a hypertable (one row per runner/scope). It is NOT
+-- consulted for explicit manual --shadow-bucket-ts execution.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS shadow_recovery_watermarks (
+    runner_name               TEXT NOT NULL,
+    symbol                    TEXT NOT NULL,
+    market_type               TEXT NOT NULL DEFAULT 'perp',
+    timeframe                 TEXT NOT NULL,
+    last_completed_bucket_ts  TIMESTAMPTZ NOT NULL,
+    updated_at                TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (runner_name, symbol, market_type, timeframe),
+    CONSTRAINT ck_srw_runner       CHECK (length(btrim(runner_name)) > 0),
+    CONSTRAINT ck_srw_bucket_5m
+        CHECK (date_part('epoch', last_completed_bucket_ts)::bigint % 300 = 0)
+);

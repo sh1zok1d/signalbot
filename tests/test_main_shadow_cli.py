@@ -379,3 +379,110 @@ def test_configure_cli_logging_redirects_only_for_json(capsys):
         assert stream_handlers
         assert all(h.stream is not sys.stdout for h in stream_handlers)
         assert any(h.stream is sys.stderr for h in stream_handlers)
+
+
+# ============================================================================
+# recovery CLI options + automatic --shadow-once dispatch
+# ============================================================================
+def test_recovery_caps_valid_with_shadow_once():
+    a = main.parse_args(["--shadow-once", "--shadow-max-catchup-buckets", "6",
+                         "--shadow-max-outcome-jobs", "50"])
+    assert a.shadow_max_catchup_buckets == 6 and a.shadow_max_outcome_jobs == 50
+
+
+@pytest.mark.parametrize("combo", [
+    ["--shadow-max-catchup-buckets", "6"],                       # no command
+    ["--shadow-dry-run", "--shadow-max-catchup-buckets", "6"],   # dry-run
+    ["--shadow-status", "--shadow-max-outcome-jobs", "5"],       # status
+    ["--shadow-once", "--shadow-bucket-ts", "2026-07-24T05:00:00Z",
+     "--shadow-max-catchup-buckets", "6"],                       # explicit bucket
+])
+def test_recovery_caps_rejected_out_of_scope(combo):
+    with pytest.raises(SystemExit):
+        main.parse_args(combo)
+
+
+def _recovery_report():
+    from datetime import datetime, timezone
+    from runtime.shadow_recovery import ShadowRecoveryReport, LOCK_ACQUIRED
+    return ShadowRecoveryReport(
+        lock_status=LOCK_ACQUIRED, latest_closed_bucket=datetime(2026, 3, 1, tzinfo=timezone.utc),
+        recovery_lookback_buckets=288, catchup_truncated_by_lookback=False,
+        catchup_truncated_by_cap=False, watermark_before=None, watermark_after=None,
+        prediction_buckets_planned=1, prediction_buckets_attempted=1,
+        per_bucket_status=(), outcome_jobs_discovered=0, outcome_jobs_attempted=0,
+        outcome_evaluations_complete=0, outcome_evaluations_incomplete=0,
+        horizons_represented=(), writes_enabled=True, stage2_global_enabled=False,
+        reference_exchange="binance", code_version="cli")
+
+
+def test_automatic_shadow_once_dispatches_to_recovery(monkeypatch, capsys):
+    import runtime.shadow_cli as shadow_cli
+    import runtime.shadow_recovery as shadow_recovery
+    calls = {"recovery": 0, "once": 0}
+
+    async def fake_recovery(*a, **k):
+        calls["recovery"] += 1
+        return _recovery_report()
+
+    async def fake_once(*a, **k):
+        calls["once"] += 1
+        raise AssertionError("execute_shadow_once must not run for automatic --shadow-once")
+
+    class _DB:
+        def __init__(self, dsn): pass
+        async def connect(self): pass
+        async def close(self): pass
+
+    monkeypatch.setattr(shadow_recovery, "execute_shadow_recovery", fake_recovery)
+    monkeypatch.setattr(shadow_cli, "execute_shadow_once", fake_once)
+    monkeypatch.setattr(shadow_cli, "Database", _DB)
+
+    args = main.parse_args(["--shadow-once", "--shadow-json"])
+    cfg = _FakeCfg()
+    secrets = type("S", (), {"postgres_dsn": "postgresql://x", "redis_url": "redis://x",
+                             "telegram_token": None, "telegram_chat_id": None})()
+    _run(shadow_cli.run_shadow_cli_command(args, cfg, secrets))
+    out, _err = capsys.readouterr()
+    assert calls["recovery"] == 1 and calls["once"] == 0
+    assert json.loads(out)["command"] == "SHADOW_RECOVERY"
+
+
+def test_explicit_bucket_shadow_once_does_not_dispatch_to_recovery(monkeypatch, capsys):
+    import runtime.shadow_cli as shadow_cli
+    import runtime.shadow_recovery as shadow_recovery
+    calls = {"recovery": 0, "once": 0}
+
+    async def fake_recovery(*a, **k):
+        calls["recovery"] += 1
+        raise AssertionError("recovery must not run for an explicit bucket")
+
+    async def fake_once(*a, **k):
+        calls["once"] += 1
+        # minimal object the JSON renderer can consume
+        from runtime.shadow_cli import render_execution_report_json  # noqa
+        return _FakeExecReport()
+
+    monkeypatch.setattr(shadow_recovery, "execute_shadow_recovery", fake_recovery)
+    monkeypatch.setattr(shadow_cli, "execute_shadow_once", fake_once)
+    monkeypatch.setattr(shadow_cli, "render_execution_report_json", lambda r: '{"command":"SHADOW_ONCE"}')
+
+    class _DB:
+        def __init__(self, dsn): pass
+        async def connect(self): pass
+        async def close(self): pass
+
+    monkeypatch.setattr(shadow_cli, "Database", _DB)
+    args = main.parse_args(["--shadow-once", "--shadow-bucket-ts", "2026-07-24T05:00:00Z",
+                            "--shadow-json"])
+    cfg = _FakeCfg()
+    secrets = type("S", (), {"postgres_dsn": "postgresql://x", "redis_url": "redis://x",
+                             "telegram_token": None, "telegram_chat_id": None})()
+    _run(shadow_cli.run_shadow_cli_command(args, cfg, secrets))
+    out, _err = capsys.readouterr()
+    assert calls["once"] == 1 and calls["recovery"] == 0
+    assert json.loads(out)["command"] == "SHADOW_ONCE"
+
+
+class _FakeExecReport:
+    pass

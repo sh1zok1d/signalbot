@@ -9,8 +9,12 @@ instrument-metadata bootstrap, render human/JSON output, and perform Database
 I/O. It duplicates NO analytics formula (features, consensus, forecast, outcome),
 contains NO SQL, and adds NO loop/scheduler/recovery/discovery/Telegram/trading.
 
-Bounded to exactly ONE caller-selected closed 5m bucket, always with
-`due_outcome_jobs=()`. Pending-outcome discovery and recovery are a later PR.
+The one-shot execution APIs here stay bounded to exactly ONE caller-selected
+closed 5m bucket, always with `due_outcome_jobs=()`. The bounded automatic
+recovery pass (advisory lock, prediction catch-up, outcome maturation) lives in
+runtime/shadow_recovery.py; `run_shadow_cli_command` routes an automatic
+`--shadow-once` (no explicit bucket) to it, while an explicit `--shadow-bucket-ts`
+keeps the deterministic one-bucket behavior here.
 """
 from __future__ import annotations
 
@@ -734,13 +738,33 @@ async def run_shadow_cli_command(args, stage1_config: Config, secrets: Secrets) 
             output = (render_execution_report_json(report) if use_json
                       else render_shadow_execution_report(report))
         elif args.shadow_once:
-            report = await execute_shadow_once(
-                db, stage1_config, stage2_config, now=datetime.now(timezone.utc),
-                explicit_bucket_ts=args.shadow_bucket_ts,
-                reference_exchange=reference_exchange,
-                explicit_code_version=args.shadow_code_version)
-            output = (render_execution_report_json(report) if use_json
-                      else render_shadow_execution_report(report))
+            if args.shadow_bucket_ts is None:
+                # Automatic bucket selection -> ONE bounded recovery pass
+                # (advisory lock, prediction catch-up, outcome maturation).
+                from runtime.shadow_recovery import (
+                    execute_shadow_recovery, render_shadow_recovery_report,
+                    render_shadow_recovery_report_json,
+                    DEFAULT_MAX_CATCHUP_BUCKETS, DEFAULT_MAX_OUTCOME_JOBS)
+                recovery = await execute_shadow_recovery(
+                    db, stage1_config, stage2_config, now=datetime.now(timezone.utc),
+                    reference_exchange=reference_exchange,
+                    explicit_code_version=args.shadow_code_version,
+                    max_catchup_buckets=getattr(args, "shadow_max_catchup_buckets", None)
+                    or DEFAULT_MAX_CATCHUP_BUCKETS,
+                    max_outcome_jobs=getattr(args, "shadow_max_outcome_jobs", None)
+                    or DEFAULT_MAX_OUTCOME_JOBS)
+                output = (render_shadow_recovery_report_json(recovery) if use_json
+                          else render_shadow_recovery_report(recovery))
+            else:
+                # Explicit --shadow-bucket-ts -> deterministic ONE-bucket run,
+                # no watermark, no catch-up (unchanged behavior).
+                report = await execute_shadow_once(
+                    db, stage1_config, stage2_config, now=datetime.now(timezone.utc),
+                    explicit_bucket_ts=args.shadow_bucket_ts,
+                    reference_exchange=reference_exchange,
+                    explicit_code_version=args.shadow_code_version)
+                output = (render_execution_report_json(report) if use_json
+                          else render_shadow_execution_report(report))
         else:
             raise ShadowCliError("no shadow command selected")
         print(output)

@@ -214,20 +214,73 @@ Rollback is safe and leaves the rest of the system intact:
 
 ---
 
-## Current limitations (predictions only)
+## Automatic recovery behavior (bounded)
 
-This timer is deliberately minimal:
+An automatic `--shadow-once` (no `--shadow-bucket-ts`) now runs **one bounded
+recovery pass**, then exits. There is no background worker, no sleep, and no loop
+across invocations — the timer still fires one bounded process every five minutes.
 
-- it produces **automatic predictions only**;
-- `due_outcome_jobs` remains **empty** on every invocation;
-- there is **no automatic 15m / 1h / 4h outcome processing** yet;
-- there is **no replay of every missed 5-minute bucket** (`Persistent=true` may
-  trigger at most one current invocation after downtime — not full catch-up);
-- there is **no pending-prediction discovery**;
-- there are **no watermarks**;
-- there are **no cross-process locks**;
-- there is **no Telegram**;
-- there is **no trading**.
+- **Cross-process lock.** The pass first takes a non-blocking PostgreSQL advisory
+  lock (deterministic id per runner/scope, held on one dedicated connection). If
+  another runner (a manual run and the timer overlapping) holds it, this run exits
+  cleanly with `lock_status=LOCK_HELD_SKIPPED` and **zero writes**. The lock is
+  always released. No Redis or filesystem lock is used.
+- **Prediction catch-up.** The pass plans the missing closed 5m buckets
+  **oldest-first** and processes each with the existing one-bucket cycle. A durable
+  **watermark** (`shadow_recovery_watermarks`, runner `shadow_forecast_v1`) is
+  advanced **only after** a bucket returns successfully, and only ever moves
+  forward (monotonic). `PREDICTION_INSERTED`, `PREDICTION_DUPLICATE`,
+  `PREDICTION_SKIPPED_NO_CONSENSUS`, and `PREDICTION_SKIPPED_REFERENCE_UNAVAILABLE`
+  are all completed attempts. If a bucket raises, the watermark does **not** move
+  past it; the next run retries it (the insert-once prediction write makes this
+  safe).
+- **First deployment / bootstrap.** With **no** watermark but existing predictions,
+  the start position is derived from the newest stored prediction. With **neither**
+  watermark nor prediction, only the **current** latest closed bucket is processed
+  — never a historical replay. A hard **lookback bound** (24h = 288 buckets) caps
+  how far back a stale runner reaches; older missing buckets are intentionally
+  truncated and reported (`catchup_truncated_by_lookback`).
+- **Per-invocation cap.** At most `--shadow-max-catchup-buckets` (default **12**)
+  prediction buckets are processed per run (oldest kept, so the watermark keeps
+  advancing across runs); truncation is reported (`catchup_truncated_by_cap`).
+- **Outcome maturation.** After catch-up, the pass discovers **due** outcomes
+  (a horizon whose evaluation window has ended by the UTC clock + soft grace) that
+  are **missing** from `forecast_outcomes` (a real anti-join), for recent
+  predictions within the lookback, capped at `--shadow-max-outcome-jobs`
+  (default **100**). Each is evaluated sequentially with the existing outcome
+  pipeline. Only `COMPLETE` outcomes are persisted.
+- **INCOMPLETE retry.** An `INCOMPLETE` window (future 1m bars not all present yet)
+  is **not** persisted, so it stays discoverable and is retried on a later run once
+  the bars exist. A `COMPLETE` outcome is never re-evaluated under the same
+  identity.
+- **No six-month replay.** The lookback + per-invocation caps make each run
+  bounded; there is no long-term replay/backtesting framework.
 
-The next **recovery / catch-up PR** will address missed predictions and the
-maturation of 15m / 1h / 4h outcomes.
+An explicit `--shadow-bucket-ts` still runs deterministic **one-bucket** work: it
+does not read or advance the watermark, performs no catch-up, and (this PR) does
+no broad outcome discovery.
+
+`stage2.enabled` remains **false** and is reported as `stage2_global_enabled:false`
+in every report — a shadow command is an explicit operational invocation, never
+the Stage 2 master switch.
+
+## STAGE2_CODE_VERSION (required for the systemd service)
+
+The service user cannot run `git describe` in the root-owned repository, so the
+analytics **code version must be supplied via the environment**. Set
+`STAGE2_CODE_VERSION` in `/opt/signalbot/.env`:
+
+- it is **required/recommended** for the systemd service (otherwise the run fails
+  closed rather than using a silent `"unknown"`);
+- it **must equal** the deployed `git rev-parse HEAD`;
+- **refresh it after each deployment** (update `.env`) **before** the shadow timer
+  next fires or is restarted;
+- never print the full `.env` (set the single variable in place).
+
+## Remaining limitations
+
+- **no Telegram**, no notifications;
+- **no trading** or order execution;
+- **no calibration UI / long-term replay / backtesting framework**;
+- **no ML / adaptive thresholds** — forecast/consensus/outcome formulas are
+  unchanged.
