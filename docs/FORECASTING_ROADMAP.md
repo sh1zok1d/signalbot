@@ -1,0 +1,366 @@
+# Forecasting Roadmap — V1 Freeze and V2 Product Direction
+
+This is the **canonical source of truth for the forecasting product
+direction**. It supersedes any other document as the place to look for "what
+is the forecasting product doing next" — historical Stage 2 planning
+documents (`STAGE2_SPEC.md`, `STAGE2_IMPLEMENTATION_PLAN.md`,
+`STAGE2_CLARIFICATIONS.md`, `STAGE2_DATA_AUDIT.md`) remain valid records of
+what was decided and built for the Stage 2 **foundation** (ingestion,
+per-exchange/consensus feature computation, data confidence, percentile
+engine), but they do not describe the current or future forecasting product
+direction going forward.
+
+This document uses the conceptual labels **V1** and **V2** to distinguish the
+current shadow forecast heuristic from the planned multi-timeframe product.
+These are planning labels, not identifiers minted anywhere in the schema —
+see [§A](#a-decision-status) for what that does and does not imply.
+
+---
+
+## A. Decision status
+
+- Further **product development of the current V1 forecast logic is
+  frozen** as of this PR. "Product development" means tuning V1's
+  behavior or signal output — see [§C](#c-v1-freeze-policy) for the exact
+  boundary between allowed maintenance and disallowed product work.
+- **V1 remains an operational research baseline.** It keeps running exactly
+  as deployed: the shadow forecast timer, the Telegram notifier, prediction
+  persistence, and outcome evaluation are unaffected by this decision.
+- The project now moves to **V2 planning and implementation**, starting with
+  this transition PR and continuing through the staged roadmap in
+  [§I](#i-high-level-delivery-roadmap).
+- This decision does **not** disable or pause ingestion, feature computation,
+  prediction persistence, outcome evaluation, shadow recovery/catch-up, or
+  any other existing infrastructure. Nothing about the running system
+  changes as a result of this PR.
+
+This PR does **not** rename or reinterpret any persisted `rule_version` or
+`calculation_version` value — those remain exactly what they are today,
+scoped to V1. A `model_family` column / model registry, which would let the
+schema distinguish V1 from a future V2 model at the row level, is explicitly
+**future work** for a later PR (see [§I](#i-high-level-delivery-roadmap),
+stage 2). Until that PR lands, "V1" and "V2" are documentation-level
+concepts only.
+
+---
+
+## B. Honest characterization of V1
+
+V1 is the forecast logic implemented in `analytics/forecasting/core.py`
+(`compute_forecast_decision`) together with its rule set in
+`analytics/forecasting/models.py`. Concretely, and verified directly against
+the current code:
+
+- It is a **5m cross-exchange momentum/continuation baseline**: a weighted
+  combination of price, taker flow, open interest, funding, liquidation, and
+  cross-exchange agreement component scores, gated by coverage/confidence/
+  primary-signal thresholds (`analytics/forecasting/core.py`,
+  `analytics/forecasting/models.py`).
+- It is **computed from one closed 5m consensus bucket** — the module
+  docstring is explicit that scope is "the CURRENT shadow scope only:
+  BTCUSDT / perp / 5m", and `runtime/shadow_cli.py` hardcodes
+  `_TIMEFRAME = "5m"` for the live pipeline. `analytics/forecasting/
+  shadow_cycle.py` is, in its own words, "a thin composition boundary for
+  one caller-selected, already closed 5m bucket."
+- It has been **useful for validating the engineering platform** — ingestion,
+  feature computation, consensus aggregation, prediction persistence,
+  outcome evaluation, recovery/catch-up, and now durable Telegram delivery
+  all exist and are exercised end to end because V1 gave the platform
+  something concrete to compute and deliver.
+- It has been useful for **testing a simple forecast hypothesis**: does a
+  single-bucket weighted heuristic over price/flow/OI/funding/liquidation
+  agreement produce an actionable directional signal.
+- It is **not currently accepted as a useful intraday trading assistant**.
+  See the limitations below and the operator observation at the end of this
+  section.
+
+### Observed product limitations
+
+- **Signals may repeat every five minutes during one market episode.** Since
+  V1 evaluates one closed 5m bucket independently each cycle, a single
+  sustained move can produce a new `LONG`/`SHORT` prediction on consecutive
+  buckets.
+- **Repeated signals are correlated observations, not independent
+  forecasts.** Nothing in the current design links consecutive bucket
+  decisions into one tracked episode — each is scored and persisted on its
+  own.
+- **Signals can arrive after the visible move has already started.** A 5m
+  bucket only closes, and is only evaluated, after the price action within
+  it has already happened.
+- **V1 lacks 4h/1h/15m structural context.** The single consensus vector fed
+  into `compute_forecast_decision` carries no higher-timeframe regime, bias,
+  or setup information.
+- **The current 15m/1h/4h horizons are outcome-evaluation windows, not
+  forecast inputs.** `analytics/forecasting/outcomes.py` computes horizon
+  outcome metrics (return, MFE/MAE) for what happens in the 15m/1h/4h
+  *after* a 5m prediction — its own docstring calls it "the Stage 2 shadow
+  forecast OUTCOME evaluator (15m/1h/4h)." These horizons measure the
+  prediction's future performance; they are not read by
+  `compute_forecast_decision` as multi-timeframe context.
+- **Telegram output can therefore behave more like momentum confirmation or
+  nowcasting than an early 1–4 hour forecast** — the mechanics above mean a
+  notification is more likely to describe a move already underway than to
+  anticipate one 1–4 hours ahead.
+
+### Operator observation (not a validated statistic)
+
+The operator has **informally observed** low practical accuracy — roughly
+around 30% — and substantial lateness when using V1's live Telegram output
+during manual review. This is stated here explicitly as an **informal
+operator observation that still requires formal reporting**, not as a number
+computed from `forecast_outcomes` or any other database aggregate. No
+statement in this document should be read as claiming V1 has a formally
+measured or validated win rate, nor that V1 has proven negative expectancy —
+the repository does not currently contain that analysis. Producing a rigorous
+accuracy/expectancy report from the persisted `forecast_predictions` /
+`forecast_outcomes` history is out of scope for this PR and is not listed as
+a precondition for the V1 freeze: the freeze is a product-direction decision,
+not a claim that a formal evaluation has already been completed.
+
+---
+
+## C. V1 freeze policy
+
+V1 stays in place and keeps running so it can serve as a **stable comparison
+baseline for V2** — future evaluation work can compare V2 episodes against
+what the simpler single-bucket heuristic would have said, using an unchanged
+reference implementation.
+
+### Allowed V1 changes
+
+- Critical bug fixes.
+- Security fixes.
+- Data-loss prevention.
+- Operational reliability fixes (e.g. the durable Telegram outbox/retry work,
+  recovery/catch-up correctness).
+- Compatibility fixes required to keep the baseline running (dependency
+  upgrades, deprecated API replacements, etc.).
+- Corrections necessary to preserve **valid historical evaluation** (e.g. a
+  bug that would corrupt outcome measurement for already-persisted
+  predictions).
+
+### Disallowed V1 product work
+
+- Tuning V1's component weights or actionability thresholds.
+- Adding new V1 signal reasons.
+- Redesigning V1's confidence calculation.
+- Adding more V1 trading setups.
+- Trying to improve V1's Telegram signal frequency.
+- Adding external market data sources specifically to improve V1.
+- Turning V1 into the future multi-timeframe model through incremental
+  patches — that work belongs to V2's dedicated contract and implementation
+  PRs ([§I](#i-high-level-delivery-roadmap)), not to changes layered onto V1.
+
+This PR makes **no runtime or Telegram behavior change** to V1. Any future
+operational notification change (e.g. pausing V1 Telegram delivery once V2
+ships) requires its own explicit PR or deployment action — it is not implied
+or authorized by this document.
+
+---
+
+## D. Adopted V2 product direction
+
+**V2** is adopted as the forecasting product's direction going forward: a
+**multi-timeframe intraday scenario-monitoring system** targeting
+approximately **1–4 hour trades**.
+
+Its purpose:
+
+- Detect a trade scenario **before most of the expected move is completed**.
+- Provide an **early scenario notification**.
+- Provide **model confidence**, clearly distinguished from a calibrated
+  historical success probability (see [§H](#h-v2-evaluation-priorities)).
+- Provide an **entry zone**.
+- Provide a **structural invalidation** level.
+- Provide an **expected horizon**.
+- **Continue monitoring** the same scenario over time rather than emitting
+  one-off independent signals.
+- Send **material updates** when evidence strengthens or weakens.
+- **Invalidate** a broken scenario.
+- Report a **reversal candidate** only when the opposite scenario
+  **independently** begins satisfying its own entry conditions — a reversal
+  is never inferred merely from the original scenario invalidating.
+- **Suppress trading notifications** when the entry zone has already been
+  missed.
+- Still **retain late/non-actionable model decisions for research
+  statistics**, even when no notification is sent.
+- Remain **decision support only**: the user performs their own chart
+  analysis and decides whether to enter. V2 does not tell the user to
+  execute a trade.
+- **Never execute trades automatically** in the initial V2 scope.
+
+This direction is a return to, and a formalization of, the multi-timeframe
+context (`docs/PRODUCT_SPEC_V0.md`: "Контекст (старшие таймфреймы): 15m, 1h,
+4h") and staged signal lifecycle (`EARLY → ARMED → TRIGGERED →
+INVALIDATED/EXPIRED`) already present in the original product spec, which
+V1 deliberately simplified away in order to validate the platform first.
+
+---
+
+## E. Multi-timeframe responsibilities
+
+The high-level role split across timeframes is frozen as:
+
+| Timeframe | Responsibility |
+|---|---|
+| `4h` | Market regime |
+| `1h` | Directional bias |
+| `15m` | Setup formation |
+| `5m` | Trigger and ongoing monitoring |
+
+These four timeframes do **not** provide four independent votes. Each has a
+distinct semantic responsibility specifically so the same underlying price
+movement is not double-counted across timeframes (e.g. a single strong move
+should not simultaneously register as "4h regime confirmation" and "1h bias
+confirmation" and "15m setup" as if they were three independent pieces of
+evidence).
+
+**Only fully closed buckets may be used** as input at every timeframe — no
+timeframe may read a bucket that has not yet closed. The precise timestamp
+alignment and no-lookahead semantics across four simultaneous timeframes are
+non-trivial and are **deferred to the dedicated V2 correctness-contract PR**
+([§I](#i-high-level-delivery-roadmap), stage 2/6) rather than decided here.
+
+---
+
+## F. Initial V2 setup scope
+
+The initial V2 scope contains exactly **three** setup families:
+
+1. `TREND_PULLBACK`
+2. `COMPRESSION_BREAKOUT`
+3. `CONFIRMED_BREAKOUT`
+
+**Countertrend trading signals are excluded** from the initial V2 release.
+
+The first V2 implementation must use only **existing perp data** already
+ingested by this platform:
+
+- Price and volume.
+- Taker flow.
+- Open interest.
+- Funding.
+- Liquidations.
+- Binance / Bybit / OKX consensus.
+
+Explicitly deferred (not in the initial V2 scope):
+
+- Spot ingestion.
+- Orderbook ingestion.
+- CoinGlass or other third-party vendor data.
+- Market-cap feeds.
+- ML models.
+- Automatic execution.
+- Portfolio sizing.
+- Multi-symbol expansion.
+
+---
+
+## G. Signal episode concept
+
+V2 adopts a high-level episode lifecycle:
+
+```
+EARLY_SIGNAL → CONFIRMED → WEAKENING → INVALIDATED
+                        ↘ REVERSAL_CANDIDATE
+             → EXPIRED
+             → COMPLETED
+```
+
+States:
+
+- `EARLY_SIGNAL`
+- `CONFIRMED`
+- `WEAKENING`
+- `INVALIDATED`
+- `REVERSAL_CANDIDATE`
+- `EXPIRED`
+- `COMPLETED`
+
+V2 tracks **one episode over time** — from first detection through
+invalidation, expiry, or completion — instead of emitting a new independent
+signal every five minutes the way V1 does.
+
+Exact transition rules, persistence identity, thresholds, cooldowns, and
+notification policy for this lifecycle are intentionally **deferred to later
+contract and implementation PRs** ([§I](#i-high-level-delivery-roadmap),
+stages 2 and 6). This section freezes the *concept*, not the state machine's
+implementation.
+
+---
+
+## H. V2 evaluation priorities
+
+The order of evaluation priorities is frozen as:
+
+1. **Entry feasibility after real notification delay** — can a user
+   realistically still take the trade after the time it takes to notice and
+   act on a notification.
+2. **Low MAE** (maximum adverse excursion) — how much the trade moves against
+   the entry before resolving.
+3. **Sufficient MFE** (maximum favorable excursion) — enough favorable room
+   for the scenario to be worth taking.
+4. **Performance after estimated fees and execution delay.**
+5. **Ordinary directional accuracy.**
+
+**Ordinary accuracy alone is not the promotion criterion** for V2 — a setup
+that is "usually right" but consistently late, or right in a way that leaves
+no feasible entry, does not qualify on accuracy alone.
+
+A **calibrated historical success probability must not be displayed** to
+users until (a) enough comparable completed episodes exist to support a
+calibration, and (b) the calibration methodology itself has been frozen in a
+future contract PR. Until then, V2 confidence is reported the same way V1's
+is today: an explicit model confidence, never presented as a calibrated
+probability.
+
+---
+
+## I. High-level delivery roadmap
+
+The accepted ten implementation stages after this transition PR:
+
+1. V2 Product Contract
+2. Multi-model Framework
+3. Multi-timeframe Alignment
+4. Context Engines
+5. Setup Detectors
+6. Episode State Machine
+7. Entry Feasibility
+8. V2 Outcome Evaluator
+9. Telegram V2
+10. Parallel Shadow Deployment
+
+Planned PR sizing:
+
+| Stage | Planned PRs |
+|---|---|
+| This transition PR | 1 |
+| 1. V2 Product Contract | 2 |
+| 2. Multi-model Framework | 3 |
+| 3. Multi-timeframe Alignment | 3 |
+| 4. Context Engines | 3 |
+| 5. Setup Detectors | 4 |
+| 6. Episode State Machine | 3 |
+| 7. Entry Feasibility | 2 |
+| 8. V2 Outcome Evaluator | 3 |
+| 9. Telegram V2 | 2 |
+| 10. Parallel Shadow Deployment | 2 |
+| **Total planned scope** | **28** |
+
+This sizing is a **planning estimate**, not a requirement to force unsafe or
+poorly-reviewable changes into fixed PR boundaries. A PR may be split further
+whenever reviewability or risk requires it — the numbers above describe
+current intent, not a contract that overrides sound engineering judgment.
+
+---
+
+## J. Current and next status
+
+- **V1**: implemented, running as a frozen baseline (see
+  [§C](#c-v1-freeze-policy)).
+- **V2**: adopted direction only, **not yet implemented**.
+- **No V2 model should be coded** before the V2 product contract and the V2
+  correctness/acceptance contract are reviewed and merged.
+
+**Next planned PR:** `docs: freeze V2 product contract`

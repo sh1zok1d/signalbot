@@ -11,6 +11,15 @@
 > `config.enabled_exchanges` (данные/код сохранены). Подробности и критерии
 > повторного включения — в `docs/STAGE1_ACCEPTANCE.md`.
 
+> **Forecasting status:** the codebase has since grown a Stage 2 shadow
+> forecasting subsystem (`analytics/forecasting/`, a 5m single-bucket
+> heuristic, plus a durable Telegram notifier). Further product development
+> of that current forecast logic ("V1") is now **frozen** as a stable
+> research baseline; the forecasting product now moves to a planned
+> multi-timeframe direction ("V2"). See **`docs/FORECASTING_ROADMAP.md`** —
+> the canonical source of truth for where the forecasting product is headed.
+> This does not affect Stage 1 ingestion, described below.
+
 ## Что поправлено при ревью (эта итерация)
 
 1. **Блокирующий баг инициализации схемы.** `init_schema` выполнял весь
