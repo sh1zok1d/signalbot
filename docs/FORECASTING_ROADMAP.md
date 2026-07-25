@@ -218,8 +218,10 @@ evidence).
 **Only fully closed buckets may be used** as input at every timeframe — no
 timeframe may read a bucket that has not yet closed. The precise timestamp
 alignment and no-lookahead semantics across four simultaneous timeframes are
-non-trivial and are **deferred to the dedicated V2 correctness-contract PR**
-([§I](#i-high-level-delivery-roadmap), stage 2/6) rather than decided here.
+non-trivial and are **deferred to the dedicated V2 correctness and
+acceptance contract, planned as the second documentation PR of Stage 1**
+([§I](#i-high-level-delivery-roadmap): "1. V2 Product Contract") rather than
+decided here.
 
 ---
 
@@ -283,9 +285,11 @@ signal every five minutes the way V1 does.
 
 Exact transition rules, persistence identity, thresholds, cooldowns, and
 notification policy for this lifecycle are intentionally **deferred to later
-contract and implementation PRs** ([§I](#i-high-level-delivery-roadmap),
-stages 2 and 6). This section freezes the *concept*, not the state machine's
-implementation.
+contract and implementation PRs** — the V2 correctness and acceptance
+contract, planned as the second documentation PR of Stage 1, and the Episode
+State Machine implementation
+([§I](#i-high-level-delivery-roadmap): "6. Episode State Machine"). This
+section freezes the *concept*, not the state machine's implementation.
 
 ---
 
