@@ -5,11 +5,12 @@ both backfill/ and data_ingestion/.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Iterable, Mapping, Optional, Sequence
 
 import asyncpg
 
@@ -613,6 +614,106 @@ class Database:
             return await read_shadow_status(
                 conn, exchanges=validated_exchanges, symbol=symbol,
                 market_type=market_type, timeframe=timeframe)
+
+    # ---------------------------------------------------------------
+    # Shadow recovery (advisory lock + watermark + bounded discovery)
+    # ---------------------------------------------------------------
+    @contextlib.asynccontextmanager
+    async def shadow_recovery_lock(self, key: int):
+        """Hold a SESSION-scoped PostgreSQL advisory lock on ONE dedicated
+        connection for the whole recovery pass. Yields True if acquired (this
+        runner may proceed) or False if another runner holds it (skip, zero
+        writes). The lock is always released (pg_advisory_unlock) and the
+        connection returned to the pool on every exit path. It is NOT acquired
+        through a helper that immediately releases the connection — the same
+        connection is held for the lifetime of the `async with`."""
+        if type(key) is not int:
+            raise ValueError("advisory lock key must be an int")
+        assert self.pool is not None
+        conn = await self.pool.acquire()
+        acquired = False
+        try:
+            acquired = bool(await conn.fetchval(
+                "SELECT pg_try_advisory_lock($1)", key))
+            yield acquired
+        finally:
+            try:
+                if acquired:
+                    await conn.fetchval("SELECT pg_advisory_unlock($1)", key)
+            finally:
+                await self.pool.release(conn)
+
+    async def fetch_shadow_watermark(
+        self, *, runner_name: str, symbol: str, market_type: str, timeframe: str,
+    ) -> "Optional[datetime]":
+        """Read the automatic runner's last completed bucket (or None). Validates
+        before acquire; one connection; no writes."""
+        from storage.shadow_recovery_readers import read_shadow_watermark, validate_runner_scope
+        validate_runner_scope(runner_name=runner_name, symbol=symbol,
+                              market_type=market_type, timeframe=timeframe)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_shadow_watermark(
+                conn, runner_name=runner_name, symbol=symbol,
+                market_type=market_type, timeframe=timeframe)
+
+    async def advance_shadow_watermark(
+        self, *, runner_name: str, symbol: str, market_type: str, timeframe: str,
+        bucket_ts: datetime,
+    ) -> None:
+        """Monotonically advance the runner watermark (GREATEST — never backwards).
+        Validates before acquire; one connection."""
+        from storage.shadow_recovery_readers import advance_shadow_watermark, validate_runner_scope
+        validate_runner_scope(runner_name=runner_name, symbol=symbol,
+                              market_type=market_type, timeframe=timeframe)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            await advance_shadow_watermark(
+                conn, runner_name=runner_name, symbol=symbol, market_type=market_type,
+                timeframe=timeframe, bucket_ts=bucket_ts)
+
+    async def fetch_newest_prediction_bucket(
+        self, *, symbol: str, market_type: str, timeframe: str,
+    ) -> "Optional[datetime]":
+        """Newest persisted prediction bucket_ts for this scope (or None). One
+        connection; no writes; used only to bootstrap the recovery position."""
+        from storage.shadow_recovery_readers import read_newest_prediction_bucket, validate_scope
+        validate_scope(symbol=symbol, market_type=market_type, timeframe=timeframe)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_newest_prediction_bucket(
+                conn, symbol=symbol, market_type=market_type, timeframe=timeframe)
+
+    async def fetch_recovery_prediction_candidates(
+        self, *, symbol: str, market_type: str, timeframe: str,
+        lookback_start: datetime, limit: int,
+    ) -> tuple:
+        """Bounded, deterministically-ordered candidate prediction rows within the
+        recovery lookback (detached MappingProxyType, JSONB parsed). No analytics,
+        no writes."""
+        from storage.shadow_recovery_readers import (
+            read_recovery_prediction_candidates, validate_scope)
+        validate_scope(symbol=symbol, market_type=market_type, timeframe=timeframe)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_recovery_prediction_candidates(
+                conn, symbol=symbol, market_type=market_type, timeframe=timeframe,
+                lookback_start=lookback_start, limit=limit)
+
+    async def fetch_missing_outcome_identities(
+        self, *, symbol: str, market_type: str, timeframe: str,
+        candidates: "Sequence", evaluation_price_source: str,
+    ) -> tuple:
+        """Anti-join the caller's candidate outcome identities against
+        forecast_outcomes; return the MISSING subset in caller order (detached)."""
+        from storage.shadow_recovery_readers import (
+            read_missing_outcome_identities, validate_scope)
+        validate_scope(symbol=symbol, market_type=market_type, timeframe=timeframe)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_missing_outcome_identities(
+                conn, symbol=symbol, market_type=market_type, timeframe=timeframe,
+                candidates=candidates, evaluation_price_source=evaluation_price_source)
 
     async def fetch_forecast_outcome_klines(
         self,

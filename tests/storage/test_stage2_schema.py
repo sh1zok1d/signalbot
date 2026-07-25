@@ -19,6 +19,9 @@ EXPECTED_TABLES = [
     # additive shadow-forecast correction-friendly derived outcome table (details
     # in tests/storage/test_forecast_outcome_schema.py)
     "forecast_outcomes",
+    # additive automatic-shadow-runner recovery watermark (details in
+    # tests/storage/test_shadow_recovery_storage.py)
+    "shadow_recovery_watermarks",
 ]
 
 

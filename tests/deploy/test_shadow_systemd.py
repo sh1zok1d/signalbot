@@ -350,10 +350,17 @@ def test_doc_covers_required_sections():
     assert "forecast_predictions" in text
     # rollback
     assert "systemctl disable --now signalbot-shadow.timer" in text
-    # limitations / deferrals
-    assert "current limitations" in low
-    assert "due_outcome_jobs" in text and "empty" in low
-    assert "recovery" in low and ("catch-up" in low or "later" in low)
+    # bounded automatic recovery contract (added by the recovery PR)
+    assert "automatic recovery behavior" in low
+    assert "watermark" in low                       # durable prediction watermark
+    assert "lock_held_skipped" in low.upper().lower() or "lock_held_skipped" in text.lower()
+    assert "outcome maturation" in low
+    assert "incomplete" in low                      # INCOMPLETE retry
+    assert "no six-month replay" in low
+    assert "stage2.enabled" in low and "false" in low
+    assert "STAGE2_CODE_VERSION" in text            # deployment requirement
+    assert "remaining limitations" in low
+    assert "no trading" in low and "no telegram" in low
 
 
 def test_doc_rollback_preserves_state():
