@@ -308,7 +308,13 @@ async def execute_telegram_once(
                 delay_s = compute_retry_delay(attempt_count, retry_after=exc.retry_after)
                 next_attempt_at = now + timedelta(seconds=delay_s)
                 error_class = type(exc).__name__
-                error_summary = sanitize_telegram_error(exc, token=token)
+                # Defensive re-sanitization: even though TelegramSender already
+                # sanitizes before raising, an injected TelegramSenderProtocol
+                # implementation could raise with an unsanitized message, so the
+                # runtime boundary sanitizes again with BOTH secrets before any
+                # persistence/reporting — the raw token and raw chat id must
+                # never reach storage or a report.
+                error_summary = sanitize_telegram_error(exc, token=token, chat_id=chat_id)
                 await db.record_telegram_failure(
                     channel=channel, recipient_fingerprint=recipient_fingerprint,
                     symbol=candidate.symbol, market_type=candidate.market_type,

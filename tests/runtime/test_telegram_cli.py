@@ -143,6 +143,22 @@ class FakeSenderFail:
         raise TelegramSendError("boom", retry_after=self.retry_after)
 
 
+class FakeSenderLeakyFail:
+    """Simulates an injected sender whose raised exception text carelessly
+    embeds the raw token/chat id (as a real python-telegram-bot error might) —
+    proves the RUNTIME boundary defensively re-sanitizes before persistence,
+    not just TelegramSender itself."""
+    def __init__(self, *, token: str, chat_id: str):
+        self.token = token
+        self.chat_id = chat_id
+        self.calls: list = []
+
+    async def send_message(self, *, chat_id, html):
+        self.calls.append((chat_id, html))
+        raise TelegramSendError(
+            f"Forbidden: bot was blocked by chat {chat_id} (token {self.token})")
+
+
 class FakeSenderCounting:
     """Fails once then succeeds — used to prove sequential (not concurrent)
     per-delivery handling."""
@@ -347,6 +363,22 @@ def test_failure_path_records_retry_and_does_not_raise():
     assert db.failed[0]["next_attempt_at"] == B + timedelta(seconds=60)   # base 60s > retry_after 30s
 
 
+def test_failure_persistence_receives_only_redacted_summary_defense_in_depth():
+    """Even if an injected sender's exception text carelessly embeds the raw
+    token/chat id, the runtime boundary must re-sanitize with BOTH secrets
+    before the summary is ever persisted via record_telegram_failure."""
+    db = FakeDB(pending_rows=[_row()])
+    sender = FakeSenderLeakyFail(token=FakeSecrets.telegram_token, chat_id=FakeSecrets.telegram_chat_id)
+    report = _run(tc.execute_telegram_once(db, FakeCfg(), FakeSecrets(), now=B, telegram_sender=sender))
+    assert report.failed_count == 1
+    persisted_summary = db.failed[0]["error_summary"]
+    assert FakeSecrets.telegram_chat_id not in persisted_summary
+    assert FakeSecrets.telegram_token not in persisted_summary
+    # the report's failures list must also carry only the redacted summary
+    assert FakeSecrets.telegram_chat_id not in report.failures[0]["error_summary"]
+    assert FakeSecrets.telegram_token not in report.failures[0]["error_summary"]
+
+
 def test_failure_does_not_abort_remaining_deliveries():
     rows = [_row(bucket_ts=B), _row(bucket_ts=B + timedelta(minutes=5))]
     db = FakeDB(pending_rows=rows)
@@ -468,6 +500,18 @@ def test_execution_report_json_has_no_secrets():
     assert "12345" not in js   # raw chat id never appears; only its fingerprint
     parsed = json.loads(js)
     assert parsed["recipient_fingerprint"] == FP
+
+
+def test_execution_report_json_has_no_raw_chat_id_even_on_leaky_failure():
+    db = FakeDB(pending_rows=[_row()])
+    sender = FakeSenderLeakyFail(token=FakeSecrets.telegram_token, chat_id=FakeSecrets.telegram_chat_id)
+    report = _run(tc.execute_telegram_once(db, FakeCfg(), FakeSecrets(), now=B, telegram_sender=sender))
+    js = tc.render_execution_report_json(report)
+    assert FakeSecrets.telegram_chat_id not in js
+    assert FakeSecrets.telegram_token not in js
+    text = tc.render_execution_report(report)
+    assert FakeSecrets.telegram_chat_id not in text
+    assert FakeSecrets.telegram_token not in text
 
 
 def test_status_report_json_has_no_secrets():

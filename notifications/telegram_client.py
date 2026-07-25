@@ -41,13 +41,17 @@ class TelegramSenderProtocol(Protocol):
         ...
 
 
-def sanitize_telegram_error(exc: BaseException, *, token: str = "") -> str:
+def sanitize_telegram_error(exc: BaseException, *, token: str = "", chat_id: str = "") -> str:
     """A short, deterministic, secret-free summary of a send failure. Strips the
-    bot token (if present in the message) and any bot-API URL, so a sanitized
-    summary can be safely stored/reported without ever leaking credentials."""
+    bot token, the raw chat id (if present in the message), and any bot-API URL,
+    so a sanitized summary can be safely stored/reported without ever leaking
+    credentials or the recipient's raw chat id. A blank `token`/`chat_id` is a
+    no-op for that argument (never replaces harmless substrings)."""
     text = str(exc)
     if token:
         text = text.replace(token, "***")
+    if chat_id:
+        text = text.replace(chat_id, "***")
     # Telegram Bot API URLs embed the token as a path segment: redact defensively
     # even if the token string itself doesn't literally match (e.g. re-encoded).
     text = _redact_bot_api_urls(text)
@@ -88,8 +92,9 @@ class TelegramSender:
             message = await bot.send_message(chat_id=chat_id, text=html, parse_mode="HTML")
         except RetryAfter as exc:
             raise TelegramSendError(
-                sanitize_telegram_error(exc, token=self._token),
+                sanitize_telegram_error(exc, token=self._token, chat_id=chat_id),
                 retry_after=float(exc.retry_after)) from exc
         except TelegramError as exc:
-            raise TelegramSendError(sanitize_telegram_error(exc, token=self._token)) from exc
+            raise TelegramSendError(
+                sanitize_telegram_error(exc, token=self._token, chat_id=chat_id)) from exc
         return TelegramSendResult(message_id=message.message_id)

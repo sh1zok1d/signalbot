@@ -1,12 +1,14 @@
 """Unit tests for the pure Telegram HTML formatter. No DB/network/clock access."""
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta, timezone
 
 import pytest
 
 from notifications.telegram_formatter import (
-    MAX_MESSAGE_LENGTH, MAX_REASONS, render_telegram_forecast_message,
+    MAX_HORIZON_UNITS, MAX_MESSAGE_LENGTH, MAX_REASON_UNITS, MAX_REASONS,
+    MAX_SYMBOL_UNITS, _utf16_len, render_telegram_forecast_message,
 )
 from notifications.telegram_models import NotificationCandidate, TelegramModelError
 
@@ -141,7 +143,7 @@ def test_only_intentional_bold_tag_survives():
 
 
 # ============================================================================
-# reason truncation
+# reason truncation (count-based, MAX_REASONS)
 # ============================================================================
 def test_reasons_under_limit_all_kept():
     reasons = tuple(f"reason {i}" for i in range(MAX_REASONS))
@@ -167,33 +169,179 @@ def test_no_reasons_shows_placeholder():
 
 
 # ============================================================================
-# overall length safety net + truncation never splits a tag/entity
+# UTF-16 code-unit measurement (not Python len / code points)
 # ============================================================================
-def test_message_never_exceeds_max_length_plus_truncation_marker():
+def test_utf16_len_matches_python_len_for_bmp_text():
+    assert _utf16_len("hello") == 5
+    assert _utf16_len("привет") == 6   # Cyrillic is BMP: 1 unit per char
+
+
+def test_utf16_len_counts_astral_emoji_as_two_units():
+    # U+1F600 GRINNING FACE is astral (outside the BMP): 2 UTF-16 units, 1 Python char
+    emoji = "\U0001F600"
+    assert len(emoji) == 1
+    assert _utf16_len(emoji) == 2
+
+
+def test_utf16_len_mixed_bmp_and_astral():
+    text = "A" + "\U0001F600" + "B"
+    assert len(text) == 3
+    assert _utf16_len(text) == 4
+
+
+# ============================================================================
+# per-field bounding: oversized symbol / horizon / reason
+# ============================================================================
+def test_oversized_symbol_is_bounded_and_still_valid_html():
+    huge_symbol = "X" * 5000
+    msg = render_telegram_forecast_message(_candidate(symbol=huge_symbol))
+    assert huge_symbol not in msg
+    assert "…" in msg
+    assert _utf16_len(msg) <= MAX_MESSAGE_LENGTH
+    _assert_no_dangling_entity(msg)
+
+
+def test_oversized_symbol_with_html_injection_stays_escaped_after_truncation():
+    huge_symbol = "<script>" * 2000
+    msg = render_telegram_forecast_message(_candidate(symbol=huge_symbol))
+    assert "<script>" not in msg
+    _assert_no_dangling_entity(msg)
+
+
+def test_oversized_horizon_is_bounded_and_still_valid_html():
+    huge_horizon = "h" * 5000
+    msg = render_telegram_forecast_message(_candidate(horizon_set=(huge_horizon, "1h")))
+    assert huge_horizon not in msg
+    assert "1h" in msg
+    assert _utf16_len(msg) <= MAX_MESSAGE_LENGTH
+    _assert_no_dangling_entity(msg)
+
+
+def test_oversized_single_reason_is_bounded_and_still_valid_html():
+    huge_reason = "reason text " * 2000
+    msg = render_telegram_forecast_message(_candidate(reasons=(huge_reason,)))
+    assert huge_reason not in msg
+    assert "…" in msg
+    assert _utf16_len(msg) <= MAX_MESSAGE_LENGTH
+    _assert_no_dangling_entity(msg)
+
+
+def test_field_truncation_visible_marker_present():
+    msg = render_telegram_forecast_message(_candidate(symbol="X" * 5000))
+    assert "…" in msg   # per-field ellipsis marker
+
+
+# ============================================================================
+# repeated &, <, > and combinations with emoji
+# ============================================================================
+def test_repeated_ampersand_lt_gt_in_reason_stays_valid_after_truncation():
+    huge_reason = "<tag> & <another> & " * 500
+    msg = render_telegram_forecast_message(_candidate(reasons=(huge_reason,)))
+    assert "<tag>" not in msg
+    assert "<another>" not in msg
+    _assert_no_dangling_entity(msg)
+    assert _utf16_len(msg) <= MAX_MESSAGE_LENGTH
+
+
+def test_thousands_of_astral_emoji_in_reason_bounded_correctly():
+    huge_reason = "\U0001F600" * 5000   # thousands of 2-unit astral chars
+    msg = render_telegram_forecast_message(_candidate(reasons=(huge_reason,)))
+    assert _utf16_len(msg) <= MAX_MESSAGE_LENGTH
+    # every kept emoji must be a complete code point (no lone surrogate),
+    # otherwise re-encoding to utf-16 would raise
+    msg.encode("utf-16-le")
+
+
+def test_emoji_combined_with_escaped_entities_in_reason():
+    huge_reason = ("\U0001F600<b>&amp;</b>" * 500)
+    msg = render_telegram_forecast_message(_candidate(reasons=(huge_reason,)))
+    assert "<b>" not in msg.replace("<b>LONG</b>", "")   # only the intentional tag survives
+    _assert_no_dangling_entity(msg)
+    assert _utf16_len(msg) <= MAX_MESSAGE_LENGTH
+    msg.encode("utf-16-le")   # no lone surrogate
+
+
+# ============================================================================
+# overall length safety net + truncation never splits a tag/entity/surrogate
+# ============================================================================
+def _assert_no_dangling_entity(msg: str) -> None:
+    # no dangling partial entity like "&am" or "&l" anywhere a cut could have
+    # landed; every "&" must begin a COMPLETE, terminated entity reference.
+    for m in re.finditer(r"&[a-zA-Z0-9#]*(;?)", msg):
+        assert m.group(1) == ";", f"dangling entity fragment: {m.group(0)!r}"
+
+
+def test_message_never_exceeds_configured_utf16_bound():
     reasons = tuple(f"a very long reason describing the signal in detail number {i} " * 3
                      for i in range(200))
     msg = render_telegram_forecast_message(_candidate(reasons=reasons))
-    # bounded: either under the reasons cap (8) or under the hard safety net
-    assert len(msg) <= MAX_MESSAGE_LENGTH + len("\n… (message truncated)") + 1
+    assert _utf16_len(msg) <= MAX_MESSAGE_LENGTH
 
 
 def test_truncation_never_splits_html_entity_or_tag():
-    # force the hard safety-net truncation with an oversized single reason that
-    # itself contains many escaped entities, so a naive char-cut would slice
-    # straight through an "&amp;" or "&lt;...&gt;" sequence.
     huge_reason = ("<tag> & entities " * 500)
     msg = render_telegram_forecast_message(_candidate(reasons=(huge_reason,)))
-    assert len(msg) <= MAX_MESSAGE_LENGTH + len("\n… (message truncated)") + 1
-    # no dangling partial entity like "&am" or "&l" at the very end before the marker
-    if "message truncated" in msg:
-        body = msg.rsplit("\n… (message truncated)", 1)[0]
-        assert not body.endswith("&")
-        # never ends mid-entity (a truncated named/numeric reference)
-        import re
-        assert re.search(r"&[a-zA-Z#0-9]*$", body) is None or body.rstrip().endswith(";")
+    assert _utf16_len(msg) <= MAX_MESSAGE_LENGTH
+    _assert_no_dangling_entity(msg)
 
 
-def test_truncation_visible_marker_present_when_triggered():
+def test_truncation_never_splits_surrogate_pair():
+    # an oversized reason made ENTIRELY of astral characters: if truncation
+    # cut by raw index/byte instead of code point, this would produce a lone
+    # surrogate that fails to re-encode.
+    huge_reason = "\U0001F602" * 4000
+    msg = render_telegram_forecast_message(_candidate(reasons=(huge_reason,)))
+    msg.encode("utf-16-le")   # raises if a lone surrogate is present
+
+
+def test_truncation_visible_marker_present_when_triggered_via_field_bound():
     huge_reason = "x" * 10000
     msg = render_telegram_forecast_message(_candidate(reasons=(huge_reason,)))
-    assert "message truncated" in msg
+    assert "…" in msg
+
+
+def test_final_safety_net_truncation_marker_when_many_oversized_fields_combine():
+    # push well past the per-field bounds on every dynamic field at once so the
+    # final message-level safety net itself must engage.
+    reasons = tuple("r" * MAX_REASON_UNITS * 2 for _ in range(MAX_REASONS))
+    msg = render_telegram_forecast_message(_candidate(
+        symbol="S" * 500, horizon_set=tuple(f"h{i}" * 100 for i in range(20)),
+        reasons=reasons))
+    assert _utf16_len(msg) <= MAX_MESSAGE_LENGTH
+    _assert_no_dangling_entity(msg)
+
+
+def test_balanced_intentional_bold_tag_survives_heavy_truncation():
+    huge_reason = "z" * 100000
+    msg = render_telegram_forecast_message(_candidate(reasons=(huge_reason,)))
+    assert msg.count("<b>") == msg.count("</b>") == 1
+    assert "<b>LONG</b>" in msg
+
+
+def test_deterministic_output_for_oversized_fields():
+    c = _candidate(symbol="X" * 5000, reasons=("y" * 5000,))
+    assert render_telegram_forecast_message(c) == render_telegram_forecast_message(c)
+
+
+def test_normal_message_unchanged_by_utf16_rework():
+    msg = render_telegram_forecast_message(_candidate())
+    assert msg == (
+        "\U0001F7E2 BTCUSDT — <b>LONG</b>\n"
+        "\n"
+        "Режим: shadow forecast\n"
+        "\n"
+        "Цена: 64 126.30\n"
+        "Уверенность: 75%\n"
+        "Score: +0.400\n"
+        "Bucket: 2026-03-01 12:05 UTC\n"
+        "Горизонты: 15m / 1h\n"
+        "\n"
+        "Качество данных:\n"
+        "Data confidence: 80%\n"
+        "Consensus confidence: 90%\n"
+        "Partial consensus: no\n"
+        "\n"
+        "Причины:\n"
+        "• strong momentum\n"
+        "• breakout confirmed"
+    )
