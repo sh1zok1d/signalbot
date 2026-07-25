@@ -1,5 +1,18 @@
 # Stage 2.1 — Implementation Plan (Phase 0 output)
 
+> **Forecasting product status — superseded for product direction, not for
+> engineering foundation.** The Stage 2.1 foundation planned and frozen
+> below (Feature Engine, Percentile Engine, Data Confidence, consensus
+> contract) was implemented and **remains valid** — it is not being redone.
+> What has changed is downstream of it: the 5m forecast application built on
+> top of this foundation (`analytics/forecasting/`) is now frozen as **V1**,
+> a research baseline. Future forecasting *product* work — the multi-
+> timeframe direction, setup families, episode lifecycle — follows
+> `docs/FORECASTING_ROADMAP.md`, not this document. This plan is a historical
+> record of Phase 0 decisions for the Stage 2.1 foundation; it must not be
+> read or rewritten as though it originally described that later multi-
+> timeframe (V2) direction.
+
 Scope: **Stage 2.1 Foundation only** (Feature Engine + Percentile Engine +
 Data Confidence + validation CLI, BTCUSDT only, 3 active exchanges). No
 event detection, scoring, state machine, Telegram, or multi-symbol

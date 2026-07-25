@@ -1,5 +1,14 @@
 # Stage 2 — Clarifications
 
+> **Pointer:** for the current forecasting *product* direction (V1 freeze,
+> V2 multi-timeframe plan), see `docs/FORECASTING_ROADMAP.md`. Some sections
+> below (e.g. §1 "Entry, invalidation, targets") describe an earlier,
+> broader `signal_engine` concept from Phase 0 planning that was **not**
+> built as written — what was actually implemented is the simpler V1
+> single-bucket heuristic in `analytics/forecasting/`. Do not read this
+> document as a description of the current or future forecasting product;
+> it is a historical record of Stage 2 foundation decisions.
+
 Consolidated decisions supplementing `docs/STAGE2_SPEC.md` and
 `docs/STAGE2_IMPLEMENTATION_PLAN.md`. All threshold values below are
 **starting parameters for testing, not final calibration** — everything

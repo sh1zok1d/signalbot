@@ -1,5 +1,11 @@
 # Stage 2 — Technical Specification (Phase 0 output)
 
+> **Pointer:** for the current forecasting *product* direction (V1 freeze,
+> V2 multi-timeframe plan), see `docs/FORECASTING_ROADMAP.md`. This document
+> is the historical Stage 2 foundation design (schema, feature/consensus/
+> percentile/data-quality contracts) and remains valid for that scope; it
+> does not describe the forecasting product's forward direction.
+
 This document proposes the Stage 2 architecture, DB schema, config schema,
 symbol lifecycle model, worker/cadence model, and structural-level design,
 adapted to what `STAGE2_DATA_AUDIT.md` found in the actual Stage 1 codebase.
