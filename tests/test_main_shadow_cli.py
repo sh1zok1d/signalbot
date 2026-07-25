@@ -449,23 +449,29 @@ def test_automatic_shadow_once_dispatches_to_recovery(monkeypatch, capsys):
 
 
 def test_explicit_bucket_shadow_once_does_not_dispatch_to_recovery(monkeypatch, capsys):
+    # CONTRACT CHANGE (locking hardening): an explicit --shadow-bucket-ts run now
+    # goes through execute_shadow_once_locked (same advisory lock as automatic
+    # recovery, deterministic one-bucket work internally via execute_shadow_once)
+    # instead of calling execute_shadow_once directly and unlocked. This test
+    # asserts the CLI dispatches to the LOCKED explicit wrapper, never to the
+    # automatic recovery pass.
     import runtime.shadow_cli as shadow_cli
     import runtime.shadow_recovery as shadow_recovery
-    calls = {"recovery": 0, "once": 0}
+    calls = {"recovery": 0, "locked_once": 0}
 
     async def fake_recovery(*a, **k):
         calls["recovery"] += 1
-        raise AssertionError("recovery must not run for an explicit bucket")
+        raise AssertionError("automatic recovery must not run for an explicit bucket")
 
-    async def fake_once(*a, **k):
-        calls["once"] += 1
-        # minimal object the JSON renderer can consume
-        from runtime.shadow_cli import render_execution_report_json  # noqa
-        return _FakeExecReport()
+    async def fake_locked_once(*a, **kw):
+        calls["locked_once"] += 1
+        assert kw["explicit_bucket_ts"] == "2026-07-24T05:00:00Z"
+        return "locked-report-sentinel"
 
     monkeypatch.setattr(shadow_recovery, "execute_shadow_recovery", fake_recovery)
-    monkeypatch.setattr(shadow_cli, "execute_shadow_once", fake_once)
-    monkeypatch.setattr(shadow_cli, "render_execution_report_json", lambda r: '{"command":"SHADOW_ONCE"}')
+    monkeypatch.setattr(shadow_recovery, "execute_shadow_once_locked", fake_locked_once)
+    monkeypatch.setattr(shadow_recovery, "render_locked_once_report_json",
+                        lambda r: '{"command":"SHADOW_ONCE"}')
 
     class _DB:
         def __init__(self, dsn): pass
@@ -480,9 +486,99 @@ def test_explicit_bucket_shadow_once_does_not_dispatch_to_recovery(monkeypatch, 
                              "telegram_token": None, "telegram_chat_id": None})()
     _run(shadow_cli.run_shadow_cli_command(args, cfg, secrets))
     out, _err = capsys.readouterr()
-    assert calls["once"] == 1 and calls["recovery"] == 0
+    assert calls["locked_once"] == 1 and calls["recovery"] == 0
     assert json.loads(out)["command"] == "SHADOW_ONCE"
 
 
-class _FakeExecReport:
-    pass
+# ============================================================================
+# amendment: zero caps must never be silently replaced by defaults
+# ============================================================================
+def _cap_secrets():
+    return type("S", (), {"postgres_dsn": "postgresql://x", "redis_url": "redis://x",
+                          "telegram_token": None, "telegram_chat_id": None})()
+
+
+class _NoOpDB:
+    """Only connect/close are implemented — proves validate_operational_cap
+    rejects a bad cap BEFORE any recovery DB method (lock/schema/seed/etc.) is
+    ever reached, since any other attribute access would AttributeError."""
+
+    def __init__(self, dsn):
+        pass
+
+    async def connect(self):
+        pass
+
+    async def close(self):
+        pass
+
+
+def test_omitted_caps_use_defaults_end_to_end(monkeypatch):
+    import runtime.shadow_cli as shadow_cli
+    import runtime.shadow_recovery as shadow_recovery
+    seen = {}
+
+    async def fake_recovery(*a, **kw):
+        seen["max_catchup_buckets"] = kw["max_catchup_buckets"]
+        seen["max_outcome_jobs"] = kw["max_outcome_jobs"]
+        return _recovery_report()
+
+    monkeypatch.setattr(shadow_recovery, "execute_shadow_recovery", fake_recovery)
+    monkeypatch.setattr(shadow_cli, "Database", _NoOpDB)
+    args = main.parse_args(["--shadow-once", "--shadow-json"])   # both caps omitted
+    _run(shadow_cli.run_shadow_cli_command(args, _FakeCfg(), _cap_secrets()))
+    assert seen == {"max_catchup_buckets": 12, "max_outcome_jobs": 100}
+
+
+def test_explicit_one_passes_through_unchanged(monkeypatch):
+    import runtime.shadow_cli as shadow_cli
+    import runtime.shadow_recovery as shadow_recovery
+    seen = {}
+
+    async def fake_recovery(*a, **kw):
+        seen["max_catchup_buckets"] = kw["max_catchup_buckets"]
+        seen["max_outcome_jobs"] = kw["max_outcome_jobs"]
+        return _recovery_report()
+
+    monkeypatch.setattr(shadow_recovery, "execute_shadow_recovery", fake_recovery)
+    monkeypatch.setattr(shadow_cli, "Database", _NoOpDB)
+    args = main.parse_args(["--shadow-once", "--shadow-json",
+                           "--shadow-max-catchup-buckets", "1",
+                           "--shadow-max-outcome-jobs", "1"])
+    _run(shadow_cli.run_shadow_cli_command(args, _FakeCfg(), _cap_secrets()))
+    assert seen == {"max_catchup_buckets": 1, "max_outcome_jobs": 1}   # 1, never coerced
+
+
+@pytest.mark.parametrize("flag", ["--shadow-max-catchup-buckets", "--shadow-max-outcome-jobs"])
+@pytest.mark.parametrize("value", ["0", "-1", "99999"])
+def test_explicit_zero_negative_over_limit_rejected_before_recovery_work(monkeypatch, flag, value):
+    import runtime.shadow_cli as shadow_cli
+    from runtime.shadow_recovery import ShadowRecoveryError
+    monkeypatch.setattr(shadow_cli, "Database", _NoOpDB)
+    args = main.parse_args(["--shadow-once", flag, value])
+    with pytest.raises(ShadowRecoveryError):
+        _run(shadow_cli.run_shadow_cli_command(args, _FakeCfg(), _cap_secrets()))
+    # _NoOpDB has no lock/schema/seed methods: reaching any of them would
+    # AttributeError instead of the expected ShadowRecoveryError, proving the
+    # bad cap was rejected before any recovery DB work began.
+
+
+def test_recovery_executor_never_receives_zero_as_defaulted_value(monkeypatch):
+    """Directly exercises the shadow_cli dispatch branch with catchup omitted
+    (None) and outcomes explicitly 0: the executor must see (12, 0) — never
+    (12, 12) or any other silent substitution for the explicit zero."""
+    import runtime.shadow_cli as shadow_cli
+    import runtime.shadow_recovery as shadow_recovery
+    seen = {}
+
+    async def fake_recovery(*a, **kw):
+        seen["max_catchup_buckets"] = kw["max_catchup_buckets"]
+        seen["max_outcome_jobs"] = kw["max_outcome_jobs"]
+        raise shadow_recovery.ShadowRecoveryError("stop before any DB work")
+
+    monkeypatch.setattr(shadow_recovery, "execute_shadow_recovery", fake_recovery)
+    monkeypatch.setattr(shadow_cli, "Database", _NoOpDB)
+    args = main.parse_args(["--shadow-once", "--shadow-max-outcome-jobs", "0"])
+    with pytest.raises(shadow_recovery.ShadowRecoveryError):
+        _run(shadow_cli.run_shadow_cli_command(args, _FakeCfg(), _cap_secrets()))
+    assert seen == {"max_catchup_buckets": 12, "max_outcome_jobs": 0}   # 0 reached the executor intact

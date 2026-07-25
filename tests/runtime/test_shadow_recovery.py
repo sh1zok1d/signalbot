@@ -25,11 +25,14 @@ from storage.stage2_serialization import to_jsonable
 
 import runtime.shadow_recovery as sr
 from runtime.shadow_recovery import (
-    LOCK_ACQUIRED, LOCK_HELD_SKIPPED, PredictionPlan, ShadowRecoveryError,
-    derive_evaluation_exchange, due_horizons, execute_shadow_recovery,
+    LOCK_ACQUIRED, LOCK_HELD_SKIPPED, LockedOnceReport, PredictionPlan,
+    ShadowRecoveryError, derive_evaluation_exchange, due_horizons,
+    execute_shadow_once_locked, execute_shadow_recovery,
     hydrate_consensus_snapshot, hydrate_forecast_prediction, plan_prediction_buckets,
+    render_locked_once_report, render_locked_once_report_json,
     shadow_recovery_lock_key, validate_operational_cap,
 )
+from runtime.shadow_cli import execute_shadow_dry_run, execute_shadow_status
 from analytics.forecasting.core import compute_forecast_decision
 from analytics.forecasting.persistence import build_forecast_prediction
 from analytics.forecasting.shadow_cycle import (
@@ -555,3 +558,147 @@ def test_recovery_module_has_no_raw_sql():
     src = _SRC.read_text()
     for kw in ("SELECT", "INSERT", "UPDATE", "DELETE", "FROM"):
         assert not __import__("re").search(rf"\b{kw}\b", src), kw
+
+
+# ============================================================================
+# 8. explicit --shadow-bucket-ts run shares the SAME advisory lock as automatic
+#    recovery (locking hardening amendment)
+# ============================================================================
+class StatusCapableDB(RecoveryDB):
+    """RecoveryDB + fetch_shadow_status, for exercising execute_shadow_status /
+    execute_shadow_dry_run (neither of which should ever touch the recovery lock)."""
+
+    async def fetch_shadow_status(self, **kw):
+        self.calls.append("status")
+        return MappingProxyType({
+            "state": "EMPTY",
+            "prerequisites": tuple(MappingProxyType({
+                "exchange": ex, "instrument_present": True, "instrument_is_stale": False,
+                "liquidation_capability_present": True, "liquidation_live_supported": True,
+                "liquidation_enabled": True, "liquidation_coverage_type": COV[ex]})
+                for ex in EXS),
+            "latest_prediction": None, "outcomes": ()})
+
+
+def _locked_once(db, *, bucket_ts="2026-03-01T00:00:00Z", now=None):
+    c1, c2 = _cfgs()
+    now = now or datetime(2026, 3, 1, 0, 10, tzinfo=UTC)
+    return _run(execute_shadow_once_locked(
+        db, c1, c2, now=now, explicit_bucket_ts=bucket_ts,
+        reference_exchange="binance", explicit_code_version="cli",
+        metadata_fetch_json=_fetch_json))
+
+
+def test_explicit_and_automatic_derive_same_lock_key():
+    db_auto = RecoveryDB(watermark=None, newest_pred=None)
+    _recover(db_auto, now=datetime(2026, 3, 1, 0, 10, tzinfo=UTC))
+    auto_key = next(v for (tag, v) in db_auto.calls if tag == "lock")
+
+    db_explicit = RecoveryDB(watermark=None)
+    _locked_once(db_explicit)
+    explicit_key = next(v for (tag, v) in db_explicit.calls if tag == "lock")
+
+    assert auto_key == explicit_key                 # one lock namespace, same identity
+    assert auto_key == shadow_recovery_lock_key("shadow_forecast_v1", "BTCUSDT", "perp", "5m")
+
+
+def test_explicit_run_acquires_and_releases_lock():
+    db = RecoveryDB(watermark=None)
+    rep = _locked_once(db)
+    assert rep.lock_status == LOCK_ACQUIRED
+    tags = [c[0] for c in db.calls if isinstance(c, tuple)]
+    assert tags.count("lock") == 1 and tags.count("unlock") == 1
+    assert tags.index("lock") < tags.index("unlock")
+
+
+def test_explicit_run_releases_lock_after_exception(monkeypatch):
+    async def boom(*a, **k):
+        raise RuntimeError("explicit boom")
+
+    monkeypatch.setattr(sr, "execute_shadow_once", boom)
+    db = RecoveryDB(watermark=None)
+    with pytest.raises(RuntimeError, match="explicit boom"):
+        _locked_once(db)
+    tags = [c[0] for c in db.calls if isinstance(c, tuple)]
+    assert "lock" in tags and "unlock" in tags       # released even after the exception
+
+
+def test_explicit_run_with_held_lock_zero_work():
+    db = RecoveryDB(lock_free=False, watermark=None)
+    rep = _locked_once(db)
+    assert rep.lock_status == LOCK_HELD_SKIPPED and rep.execution is None
+    verbs = [c if isinstance(c, str) else c[0] for c in db.calls]
+    for forbidden in ("init_stage2_schema", "seed_symbols", "seed_caps", "upsert_instr",
+                      "insert_pred", "outcome_upsert", "wm_read", "wm_advance",
+                      "candidates", "antijoin", "raw"):
+        assert forbidden not in verbs
+    assert verbs == ["lock", "unlock"]               # nothing else ran at all
+
+
+def test_explicit_run_with_acquired_lock_processes_one_bucket():
+    db = RecoveryDB(watermark=None)                 # fresh consensus -> real insert
+    rep = _locked_once(db)
+    assert rep.lock_status == LOCK_ACQUIRED
+    assert rep.execution.result.prediction_status == PREDICTION_INSERTED
+    verbs = [c if isinstance(c, str) else c[0] for c in db.calls]
+    assert verbs.count("insert_pred") == 1
+    assert verbs.count("raw") == 3                   # one bucket, one read per exchange
+
+
+def test_explicit_run_never_reads_or_advances_watermark():
+    db = RecoveryDB(watermark=B - timedelta(minutes=15))  # would imply catch-up if it were read
+    _locked_once(db, bucket_ts="2026-03-01T00:00:00Z")
+    verbs = [c if isinstance(c, str) else c[0] for c in db.calls]
+    assert "wm_read" not in verbs and "wm_advance" not in verbs
+    assert db.advanced == []
+
+
+def test_explicit_run_no_catchup_no_outcome_discovery():
+    db = RecoveryDB(watermark=None)
+    _locked_once(db)
+    verbs = [c if isinstance(c, str) else c[0] for c in db.calls]
+    assert "candidates" not in verbs and "antijoin" not in verbs
+    assert verbs.count("raw") == 3                   # exactly the one selected bucket
+
+
+def test_status_and_dry_run_do_not_acquire_recovery_lock():
+    c1, c2 = _cfgs()
+    db_status = StatusCapableDB(watermark=None)
+    _run(execute_shadow_status(db_status, c1, c2))
+    assert not any(isinstance(c, tuple) and c[0] == "lock" for c in db_status.calls)
+
+    db_dry = StatusCapableDB(watermark=None)
+    report = _run(execute_shadow_dry_run(
+        db_dry, c1, c2, now=datetime(2026, 3, 1, 0, 10, tzinfo=UTC),
+        explicit_bucket_ts=None, reference_exchange="binance",
+        explicit_code_version="cli", metadata_fetch_json=_fetch_json))
+    assert report.writes_enabled is False
+    assert not any(isinstance(c, tuple) and c[0] == "lock" for c in db_dry.calls)
+
+
+def test_locked_once_report_json_and_human_have_lock_status():
+    db = RecoveryDB(watermark=None)
+    rep = _locked_once(db)
+    js = json.loads(render_locked_once_report_json(rep))
+    assert js["lock_status"] == LOCK_ACQUIRED
+    assert "lock_status" in js and "lock:" in render_locked_once_report(rep)
+
+    held = RecoveryDB(lock_free=False, watermark=None)
+    rep2 = _locked_once(held)
+    js2 = json.loads(render_locked_once_report_json(rep2))
+    assert js2["lock_status"] == LOCK_HELD_SKIPPED and js2["writes_enabled"] is False
+
+
+def test_locked_once_report_invariants():
+    with pytest.raises(ShadowRecoveryError):
+        LockedOnceReport(lock_status="BOGUS", execution=None, bucket_ts=B,
+                         reference_exchange="binance", code_version="c",
+                         stage2_global_enabled=False)
+    with pytest.raises(ShadowRecoveryError):
+        LockedOnceReport(lock_status=LOCK_ACQUIRED, execution=None, bucket_ts=B,
+                         reference_exchange="binance", code_version="c",
+                         stage2_global_enabled=False)
+    with pytest.raises(ShadowRecoveryError):
+        LockedOnceReport(lock_status=LOCK_HELD_SKIPPED, execution=object(), bucket_ts=B,
+                         reference_exchange="binance", code_version="c",
+                         stage2_global_enabled=False)

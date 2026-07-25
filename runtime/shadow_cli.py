@@ -745,26 +745,35 @@ async def run_shadow_cli_command(args, stage1_config: Config, secrets: Secrets) 
                     execute_shadow_recovery, render_shadow_recovery_report,
                     render_shadow_recovery_report_json,
                     DEFAULT_MAX_CATCHUP_BUCKETS, DEFAULT_MAX_OUTCOME_JOBS)
+                # Explicit `is None` fallback: a genuinely omitted option gets the
+                # default; a supplied 0 (or any invalid value) is passed through and
+                # rejected by execute_shadow_recovery BEFORE any lock/DB work — it is
+                # never silently coerced to the default.
+                catchup = getattr(args, "shadow_max_catchup_buckets", None)
+                outcomes = getattr(args, "shadow_max_outcome_jobs", None)
                 recovery = await execute_shadow_recovery(
                     db, stage1_config, stage2_config, now=datetime.now(timezone.utc),
                     reference_exchange=reference_exchange,
                     explicit_code_version=args.shadow_code_version,
-                    max_catchup_buckets=getattr(args, "shadow_max_catchup_buckets", None)
-                    or DEFAULT_MAX_CATCHUP_BUCKETS,
-                    max_outcome_jobs=getattr(args, "shadow_max_outcome_jobs", None)
-                    or DEFAULT_MAX_OUTCOME_JOBS)
+                    max_catchup_buckets=(DEFAULT_MAX_CATCHUP_BUCKETS if catchup is None else catchup),
+                    max_outcome_jobs=(DEFAULT_MAX_OUTCOME_JOBS if outcomes is None else outcomes))
                 output = (render_shadow_recovery_report_json(recovery) if use_json
                           else render_shadow_recovery_report(recovery))
             else:
-                # Explicit --shadow-bucket-ts -> deterministic ONE-bucket run,
-                # no watermark, no catch-up (unchanged behavior).
-                report = await execute_shadow_once(
+                # Explicit --shadow-bucket-ts -> deterministic ONE-bucket run under
+                # the SAME advisory lock as automatic recovery (a manual write run
+                # and the timer must never run concurrently). No watermark, no
+                # catch-up, no broad outcome discovery.
+                from runtime.shadow_recovery import (
+                    execute_shadow_once_locked, render_locked_once_report,
+                    render_locked_once_report_json)
+                locked = await execute_shadow_once_locked(
                     db, stage1_config, stage2_config, now=datetime.now(timezone.utc),
                     explicit_bucket_ts=args.shadow_bucket_ts,
                     reference_exchange=reference_exchange,
                     explicit_code_version=args.shadow_code_version)
-                output = (render_execution_report_json(report) if use_json
-                          else render_shadow_execution_report(report))
+                output = (render_locked_once_report_json(locked) if use_json
+                          else render_locked_once_report(locked))
         else:
             raise ShadowCliError("no shadow command selected")
         print(output)

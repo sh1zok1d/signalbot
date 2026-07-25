@@ -53,8 +53,11 @@ from analytics.forecasting.shadow_cycle import (
 )
 
 from runtime.shadow_cli import (
-    _BUCKET_MINUTES, _MARKET_TYPE, _TIMEFRAME, _bootstrap_instrument_metadata,
-    _iso_utc, _resolve_shadow_scope, select_latest_closed_5m_bucket,
+    BUCKET_EXPLICIT, SHADOW_ONCE, ShadowExecutionReport, _BUCKET_MINUTES,
+    _MARKET_TYPE, _TIMEFRAME, _bootstrap_instrument_metadata, _iso_utc,
+    _resolve_shadow_scope, execute_shadow_once, execution_report_to_jsonable,
+    parse_shadow_bucket_ts, render_shadow_execution_report,
+    select_latest_closed_5m_bucket,
 )
 
 # ---- stable constants ------------------------------------------------------
@@ -546,3 +549,117 @@ async def execute_shadow_recovery(
             horizons_represented=horizons_represented, writes_enabled=True,
             stage2_global_enabled=stage2_config.enabled,
             reference_exchange=reference_exchange, code_version=code_version)
+
+
+# ============================================================================
+# Explicit --shadow-bucket-ts, under the SAME advisory lock as automatic
+# recovery. A manual write run and the timer must never run concurrently: both
+# invocations derive the identical deterministic lock key
+# (shadow_recovery_lock_key(RUNNER_NAME, symbol, market_type, timeframe)) — there
+# is exactly one lock namespace for every write-capable --shadow-once path.
+# ============================================================================
+@dataclass(frozen=True)
+class LockedOnceReport:
+    lock_status: str
+    execution: Optional[ShadowExecutionReport]
+    bucket_ts: datetime
+    reference_exchange: str
+    code_version: str
+    stage2_global_enabled: bool
+
+    def __post_init__(self) -> None:
+        if self.lock_status not in (LOCK_ACQUIRED, LOCK_HELD_SKIPPED):
+            raise ShadowRecoveryError(f"invalid lock_status {self.lock_status!r}")
+        if self.lock_status == LOCK_ACQUIRED:
+            if type(self.execution) is not ShadowExecutionReport:
+                raise ShadowRecoveryError("ACQUIRED requires an exact ShadowExecutionReport")
+        elif self.execution is not None:
+            raise ShadowRecoveryError("LOCK_HELD_SKIPPED must have execution=None")
+
+
+async def execute_shadow_once_locked(
+    db,
+    stage1_config,
+    stage2_config,
+    *,
+    now: datetime,
+    explicit_bucket_ts: str,
+    reference_exchange: str,
+    explicit_code_version: Optional[str],
+    metadata_fetch_json=None,
+) -> LockedOnceReport:
+    """Explicit one-bucket `--shadow-once --shadow-bucket-ts ...` run, guarded by
+    the SAME deterministic advisory lock as automatic recovery (never a second
+    lock namespace). Processes exactly the one selected bucket via the existing
+    `execute_shadow_once` — it does NOT read or advance the recovery watermark,
+    perform catch-up, or discover/process broad outcomes. If another runner
+    (the timer, or a concurrent manual run) holds the lock, this exits cleanly
+    with zero schema/seed/metadata/feature/consensus/prediction writes."""
+    if not isinstance(explicit_bucket_ts, str) or not explicit_bucket_ts.strip():
+        raise ShadowRecoveryError(
+            "execute_shadow_once_locked requires a non-empty explicit bucket timestamp")
+    # All CLI/config/time validation happens BEFORE the lock is even requested.
+    symbol, exchanges, resolved = _resolve_shadow_scope(
+        stage1_config, stage2_config, reference_exchange=reference_exchange)
+    bucket_ts = parse_shadow_bucket_ts(explicit_bucket_ts, now=now)
+    code_version = resolve_code_version(explicit=explicit_code_version)
+    lock_key = shadow_recovery_lock_key(RUNNER_NAME, symbol, _MARKET_TYPE, _TIMEFRAME)
+
+    async with db.shadow_recovery_lock(lock_key) as acquired:
+        if not acquired:
+            return LockedOnceReport(
+                lock_status=LOCK_HELD_SKIPPED, execution=None, bucket_ts=bucket_ts,
+                reference_exchange=reference_exchange, code_version=code_version,
+                stage2_global_enabled=stage2_config.enabled)
+        execution = await execute_shadow_once(
+            db, stage1_config, stage2_config, now=now,
+            explicit_bucket_ts=explicit_bucket_ts, reference_exchange=reference_exchange,
+            explicit_code_version=explicit_code_version, metadata_fetch_json=metadata_fetch_json)
+        return LockedOnceReport(
+            lock_status=LOCK_ACQUIRED, execution=execution, bucket_ts=bucket_ts,
+            reference_exchange=reference_exchange, code_version=code_version,
+            stage2_global_enabled=stage2_config.enabled)
+
+
+def _locked_once_to_jsonable(report: LockedOnceReport) -> dict:
+    """Preserve the existing one-bucket JSON fields exactly (via
+    execution_report_to_jsonable) when the lock was acquired, plus the new
+    `lock_status` field. On LOCK_HELD_SKIPPED (no execution ran) report the
+    minimal equivalent shape with writes_enabled=False."""
+    if report.execution is not None:
+        body = execution_report_to_jsonable(report.execution)
+    else:
+        body = {
+            "command": SHADOW_ONCE,
+            "bucket_selection": BUCKET_EXPLICIT,
+            "bucket_ts": _iso_utc(report.bucket_ts),
+            "stage2_global_enabled": report.stage2_global_enabled,
+            "writes_enabled": False,
+            "reference_exchange": report.reference_exchange,
+            "code_version": report.code_version,
+        }
+    body["lock_status"] = report.lock_status
+    return body
+
+
+def render_locked_once_report_json(report: LockedOnceReport) -> str:
+    import json
+    return json.dumps(_locked_once_to_jsonable(report), sort_keys=True,
+                      separators=(",", ":"), allow_nan=False)
+
+
+def render_locked_once_report(report: LockedOnceReport) -> str:
+    """When the lock was acquired, the body is EXACTLY the existing one-bucket
+    human report (preserved as-is), with a leading lock-status line. When the
+    lock was held, render the minimal equivalent (zero writes performed)."""
+    if report.execution is not None:
+        return f"lock:             {report.lock_status}\n" + render_shadow_execution_report(report.execution)
+    return "\n".join([
+        "=== SHADOW ONCE ===",
+        f"lock:             {report.lock_status}",
+        f"bucket_ts:        {_iso_utc(report.bucket_ts)} ({BUCKET_EXPLICIT})",
+        f"stage2_enabled:   {report.stage2_global_enabled}",
+        "writes_enabled:   no",
+        f"reference:        {report.reference_exchange}",
+        f"code_version:     {report.code_version}",
+    ])

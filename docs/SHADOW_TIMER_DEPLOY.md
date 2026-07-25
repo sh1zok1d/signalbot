@@ -220,11 +220,20 @@ An automatic `--shadow-once` (no `--shadow-bucket-ts`) now runs **one bounded
 recovery pass**, then exits. There is no background worker, no sleep, and no loop
 across invocations — the timer still fires one bounded process every five minutes.
 
-- **Cross-process lock.** The pass first takes a non-blocking PostgreSQL advisory
-  lock (deterministic id per runner/scope, held on one dedicated connection). If
-  another runner (a manual run and the timer overlapping) holds it, this run exits
-  cleanly with `lock_status=LOCK_HELD_SKIPPED` and **zero writes**. The lock is
-  always released. No Redis or filesystem lock is used.
+- **Cross-process lock (covers EVERY write-capable `--shadow-once` invocation).**
+  Before any write, the run takes a non-blocking PostgreSQL advisory lock
+  (deterministic id per runner/scope, held on one dedicated connection, released
+  in `finally` after success **and** after any exception). This is the SAME lock
+  — same deterministic key, one lock namespace — for **both**:
+  - the automatic recovery pass (no `--shadow-bucket-ts`);
+  - an explicit one-bucket run (`--shadow-once --shadow-bucket-ts ...`).
+
+  If another runner already holds it (the timer and a manual write overlapping,
+  or two manual runs overlapping), the later invocation exits cleanly with
+  `lock_status=LOCK_HELD_SKIPPED` and **zero writes** — no schema/seed/metadata/
+  feature/consensus/prediction writes occur. `--shadow-status` and
+  `--shadow-dry-run` never acquire this lock (status is read-only; dry-run is
+  zero-write by construction). No Redis or filesystem lock is used.
 - **Prediction catch-up.** The pass plans the missing closed 5m buckets
   **oldest-first** and processes each with the existing one-bucket cycle. A durable
   **watermark** (`shadow_recovery_watermarks`, runner `shadow_forecast_v1`) is
@@ -256,9 +265,10 @@ across invocations — the timer still fires one bounded process every five minu
 - **No six-month replay.** The lookback + per-invocation caps make each run
   bounded; there is no long-term replay/backtesting framework.
 
-An explicit `--shadow-bucket-ts` still runs deterministic **one-bucket** work: it
-does not read or advance the watermark, performs no catch-up, and (this PR) does
-no broad outcome discovery.
+An explicit `--shadow-bucket-ts` still runs deterministic **one-bucket** work
+under that same advisory lock: it does not read or advance the watermark,
+performs no catch-up, and does no broad outcome discovery — only the one
+selected bucket is processed (or, if the lock is held, nothing is processed).
 
 `stage2.enabled` remains **false** and is reported as `stage2_global_enabled:false`
 in every report — a shadow command is an explicit operational invocation, never
