@@ -492,6 +492,13 @@ CREATE INDEX IF NOT EXISTS ix_fp_symbol_tf_ts
 CREATE INDEX IF NOT EXISTS ix_fp_direction_ts
     ON forecast_predictions (direction, bucket_ts DESC);
 
+-- Actionable (LONG/SHORT) predictions ordered by insertion time — supports the
+-- Telegram notifier's created_at-based discovery scan (late inserts for older
+-- bucket_ts make bucket_ts alone unsuitable as the discovery cursor).
+CREATE INDEX IF NOT EXISTS ix_fp_actionable_created_at
+    ON forecast_predictions (created_at ASC)
+    WHERE direction IN ('LONG','SHORT');
+
 -- ============================================================
 -- Shadow forecast OUTCOMES — ADDITIVE, correction-friendly DERIVED rows. One row
 -- per (prediction identity, horizon, evaluation_exchange, evaluation source,
@@ -720,3 +727,84 @@ CREATE TABLE IF NOT EXISTS shadow_recovery_watermarks (
     CONSTRAINT ck_srw_bucket_5m
         CHECK (date_part('epoch', last_completed_bucket_ts)::bigint % 300 = 0)
 );
+
+-- ============================================================
+-- Telegram forecast notifier — ADDITIVE. Isolated durable outbox for the
+-- separate Telegram notification worker (runtime/telegram_cli.py). NEVER
+-- referenced by process_shadow_cycle or runtime/shadow_recovery.py — the
+-- shadow prediction/outcome timer is fully independent of Telegram delivery.
+--
+-- telegram_notifier_state: ONE row per (runner_name, channel,
+-- recipient_fingerprint), recording when this notifier scope first started
+-- watching for actionable predictions (started_at). This prevents
+-- historical-message spam on first deployment: only a prediction with
+-- created_at >= started_at is ever enqueued. recipient_fingerprint is a
+-- deterministic sha256 hex digest of the chat id — the raw chat id is NEVER
+-- stored.
+--
+-- telegram_notification_deliveries: ONE row per (channel,
+-- recipient_fingerprint, prediction identity) — a durable delivery outbox.
+-- Rows are updated in place for attempt bookkeeping (correction-friendly),
+-- but the underlying forecast_predictions / forecast_outcomes rows are NEVER
+-- written here, and no raw bot token or chat id is ever stored. Delivery rows
+-- remain after success as audit history.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS telegram_notifier_state (
+    runner_name             TEXT NOT NULL,
+    channel                 TEXT NOT NULL,
+    recipient_fingerprint   TEXT NOT NULL,
+    started_at              TIMESTAMPTZ NOT NULL,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (runner_name, channel, recipient_fingerprint),
+    CONSTRAINT ck_tns_runner      CHECK (length(btrim(runner_name)) > 0),
+    CONSTRAINT ck_tns_channel     CHECK (length(btrim(channel)) > 0),
+    CONSTRAINT ck_tns_fingerprint CHECK (recipient_fingerprint ~ '^[0-9a-f]{64}$')
+);
+
+CREATE TABLE IF NOT EXISTS telegram_notification_deliveries (
+    channel                 TEXT NOT NULL,
+    recipient_fingerprint   TEXT NOT NULL,
+
+    symbol                  TEXT NOT NULL,
+    market_type             TEXT NOT NULL,
+    timeframe               TEXT NOT NULL,
+    bucket_ts               TIMESTAMPTZ NOT NULL,
+    calculation_version     TEXT NOT NULL,
+    rule_version             TEXT NOT NULL,
+
+    attempt_count           INTEGER NOT NULL DEFAULT 0,
+    next_attempt_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_attempt_at         TIMESTAMPTZ,
+    sent_at                 TIMESTAMPTZ,
+    telegram_message_id     BIGINT,
+    last_error_class        TEXT,
+    last_error_summary      TEXT,
+
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+    PRIMARY KEY (
+        channel,
+        recipient_fingerprint,
+        symbol,
+        market_type,
+        timeframe,
+        bucket_ts,
+        calculation_version,
+        rule_version
+    ),
+
+    CONSTRAINT ck_tnd_channel     CHECK (length(btrim(channel)) > 0),
+    CONSTRAINT ck_tnd_fingerprint CHECK (recipient_fingerprint ~ '^[0-9a-f]{64}$'),
+    CONSTRAINT ck_tnd_attempt_count CHECK (attempt_count >= 0),
+    CONSTRAINT ck_tnd_sent_pair CHECK (
+        (sent_at IS NULL AND telegram_message_id IS NULL)
+        OR (sent_at IS NOT NULL AND telegram_message_id IS NOT NULL)
+    )
+);
+
+-- Supports the pending-delivery scan: unsent rows ordered by next_attempt_at.
+CREATE INDEX IF NOT EXISTS ix_tnd_pending_next_attempt
+    ON telegram_notification_deliveries (next_attempt_at ASC)
+    WHERE sent_at IS NULL;

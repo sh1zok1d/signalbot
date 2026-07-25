@@ -22,6 +22,10 @@ EXPECTED_TABLES = [
     # additive automatic-shadow-runner recovery watermark (details in
     # tests/storage/test_shadow_recovery_storage.py)
     "shadow_recovery_watermarks",
+    # additive Telegram notifier bootstrap state + durable delivery outbox
+    # (details in tests/storage/test_telegram_notification_readers.py)
+    "telegram_notifier_state",
+    "telegram_notification_deliveries",
 ]
 
 
