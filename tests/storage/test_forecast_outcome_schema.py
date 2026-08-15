@@ -62,13 +62,34 @@ def test_forecast_predictions_still_separate_table():
 
 def test_outcome_section_does_not_modify_stage1_or_prediction_tables():
     code = _FO_SECTION_CODE
-    assert "ALTER TABLE" not in code
+    # The only ALTER TABLE permitted anywhere in this section (predictions
+    # banner to EOF, comments stripped) is the additive, idempotent
+    # model_family upgrade on forecast_outcomes itself (Multi-model Framework
+    # foundation PR) — never on forecast_predictions, and never on a Stage 1
+    # table. Clause spans the ADD COLUMN line and the following CONSTRAINT
+    # line (matching DEFAULT + CHECK).
+    alters = re.findall(r"ALTER TABLE\s+(\w+)\s*\n\s*(ADD COLUMN[^;]*)", code)
+    assert len(alters) == 1
+    table, clause = alters[0]
+    assert table == "forecast_outcomes"
+    assert clause == (
+        "ADD COLUMN IF NOT EXISTS model_family TEXT NOT NULL DEFAULT 'v1'\n"
+        "        CONSTRAINT ck_fo_model_family CHECK (model_family = 'v1')")
+    assert code.count("ALTER TABLE") == 1
     # klines_1m appears ONLY inside the evaluation-source CHECK literal 'klines_1m',
     # never as a table the section creates/alters.
     assert not re.search(r"(CREATE|ALTER)\s+TABLE[^\n]*klines_1m", code)
     for t in ("open_interest", "funding_rate", "mark_price", "liquidations",
               "exchange_capabilities", "forecast_predictions"):
         assert not re.search(r"(CREATE|ALTER)\s+TABLE[^\n]*\b" + t + r"\b", code), t
+
+
+def test_forecast_outcomes_migration_is_additive_only():
+    code = _FO_SECTION_CODE.upper()
+    assert "DROP TABLE" not in code
+    assert "DROP COLUMN" not in code
+    assert "RENAME" not in code
+    assert "ADD COLUMN IF NOT EXISTS MODEL_FAMILY" in code
 
 
 # ---- columns ---------------------------------------------------------------
@@ -83,7 +104,7 @@ def test_required_columns_present_in_order():
         "window_high_price", "window_low_price", "market_return_pct",
         "peak_return_pct", "trough_return_pct", "directional_return_pct",
         "mfe_pct", "mae_pct", "config_hash", "config_version", "code_version",
-        "computed_at",
+        "computed_at", "model_family",
     ]
     assert _columns(_FO_BODY) == expected
 
@@ -92,6 +113,45 @@ def test_computed_at_in_schema_but_not_model():
     assert "computed_at" in _columns(_FO_BODY)
     model_fields = {f.name for f in dataclasses.fields(ForecastOutcome)}
     assert "computed_at" not in model_fields
+
+
+# ---- model_family (DB-owned V1/V2 discriminator, not a model field) -------
+def test_model_family_in_schema_but_not_model():
+    assert "model_family" in _columns(_FO_BODY)
+    model_fields = {f.name for f in dataclasses.fields(ForecastOutcome)}
+    assert "model_family" not in model_fields
+
+
+def test_model_family_not_null_default_v1():
+    assert re.search(r"model_family\s+TEXT\s+NOT\s+NULL\s+DEFAULT\s+'v1'", _FO_BODY)
+
+
+def test_model_family_pinned_to_v1_check():
+    # This table is V1-shaped in this PR (Multi-model Framework foundation):
+    # model_family is PINNED to 'v1', not merely non-blank — it must reject
+    # 'v2' or any other value, since this table does not accept V2
+    # episode-outcome rows yet.
+    assert "ck_fo_model_family" in _FO_BODY
+    assert re.search(r"model_family\s*=\s*'v1'", _FO_BODY)
+
+
+def test_model_family_check_on_alter_path_matches_create_path():
+    # Fresh-DB (CREATE TABLE) and existing-DB (ALTER TABLE ADD COLUMN)
+    # migration paths MUST produce IDENTICAL integrity constraints, not just
+    # the same column — this is the exact bug this test guards against.
+    alter_clause = re.search(
+        r"ALTER TABLE forecast_outcomes\s*\n\s*(ADD COLUMN[^;]*)", SQL, re.S)
+    assert alter_clause, "forecast_outcomes ALTER migration not found"
+    clause = alter_clause.group(1)
+    assert "IF NOT EXISTS model_family" in clause
+    assert "NOT NULL DEFAULT 'v1'" in clause
+    assert "ck_fo_model_family" in clause
+    assert re.search(r"CHECK\s*\(\s*model_family\s*=\s*'v1'\s*\)", clause)
+
+
+def test_rule_version_column_unchanged():
+    assert re.search(r"rule_version\s+TEXT\s+NOT\s+NULL", _FO_BODY)
+    assert "rules_version" not in _FO_BODY
 
 
 def test_computed_at_defaults_to_now():
@@ -215,7 +275,10 @@ def test_no_fk_or_trigger():
 
 # ---- schema / model / spec parity ------------------------------------------
 def test_schema_columns_minus_computed_at_equal_spec_columns():
-    sql_cols = [c for c in _columns(_FO_BODY) if c != "computed_at"]
+    # computed_at and model_family are both DB-owned (default-supplied, never
+    # written by the model/writer spec) — excluded here narrowly, by name,
+    # not via a general "ignore anything not in the model" rule.
+    sql_cols = [c for c in _columns(_FO_BODY) if c not in ("computed_at", "model_family")]
     assert tuple(sql_cols) == FORECAST_OUTCOME_SPEC.columns
 
 

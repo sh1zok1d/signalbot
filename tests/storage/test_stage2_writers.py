@@ -1021,7 +1021,10 @@ def test_outcome_full_parity_schema_model_writer():
     schema_cols = _schema_columns("forecast_outcomes")
     model_cols = {f.name for f in dataclasses.fields(ForecastOutcome)}
     assert "computed_at" in schema_cols
-    assert model_cols == schema_cols - {"computed_at"}
+    # model_family is DB-owned (default-supplied, Multi-model Framework
+    # foundation PR) — same exception as computed_at, never a model field.
+    assert "model_family" in schema_cols
+    assert model_cols == schema_cols - {"computed_at", "model_family"}
     assert FORECAST_OUTCOME_SPEC.columns == tuple(f.name for f in dataclasses.fields(ForecastOutcome))
     assert _parse_insert_columns(FORECAST_OUTCOME_SPEC.insert_sql) == list(FORECAST_OUTCOME_SPEC.columns)
     assert _parse_conflict_target(FORECAST_OUTCOME_SPEC.insert_sql) == _schema_primary_key("forecast_outcomes")
