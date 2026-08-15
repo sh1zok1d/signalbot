@@ -13,10 +13,10 @@ direction going forward.
 Once V2 planning moves past this roadmap's high-level direction, more
 detailed contracts take over: **`docs/V2_PRODUCT_CONTRACT.md`** freezes what
 V2 product behavior must be (mission/scope, setup families, episode
-lifecycle, confidence semantics, notification rules), and a later **V2
-correctness and acceptance contract** (not yet written) will freeze the
-exact deterministic formulas/thresholds and promotion criteria. See §D and
-§I below.
+lifecycle, confidence semantics, notification rules), and
+**`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md`** freezes the exact
+deterministic formulas/thresholds and promotion criteria. Both are now
+frozen. See §D and §I below.
 
 This document uses the conceptual labels **V1** and **V2** to distinguish the
 current shadow forecast heuristic from the planned multi-timeframe product.
@@ -234,10 +234,9 @@ evidence).
 **Only fully closed buckets may be used** as input at every timeframe — no
 timeframe may read a bucket that has not yet closed. The precise timestamp
 alignment and no-lookahead semantics across four simultaneous timeframes are
-non-trivial and are **deferred to the dedicated V2 correctness and
-acceptance contract, planned as the second documentation PR of Stage 1**
-([§I](#i-high-level-delivery-roadmap): "1. V2 Product Contract") rather than
-decided here.
+non-trivial and are now **frozen in
+`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §1–§2** rather than decided
+here.
 
 ---
 
@@ -297,13 +296,12 @@ breaking.
 
 This roadmap deliberately does **not** diagram an exact transition graph.
 Which edges are allowed, exact recovery behavior from `WEAKENING`, and
-terminal-state mechanics are **deferred to later contract and
-implementation PRs** — the V2 correctness and acceptance contract, planned
-as the second documentation PR of Stage 1, and the Episode State Machine
-implementation
+terminal-state mechanics are now **frozen in
+`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §13**; only the physical
+Episode State Machine implementation remains a later stage
 ([§I](#i-high-level-delivery-roadmap): "6. Episode State Machine"). This
 section freezes the *state set and the product invariants above*, not a
-transition graph or the state machine's implementation.
+transition graph — the graph itself now lives in the correctness contract.
 
 ---
 
@@ -377,13 +375,32 @@ current intent, not a contract that overrides sound engineering judgment.
 
 - **V1**: implemented, running as a frozen baseline (see
   [§C](#c-v1-freeze-policy)).
-- **V2**: adopted direction only, **not yet implemented**. Its product
-  behavior is now frozen in `docs/V2_PRODUCT_CONTRACT.md` (mission/scope,
+- **V2**: adopted direction only, **still not implemented**. Its product
+  behavior is frozen in `docs/V2_PRODUCT_CONTRACT.md` (mission/scope,
   timeframe responsibilities, episode concept, initial setup families,
   episode lifecycle, confidence semantics, entry-feasibility/notification
   product rules, and hard gates carried forward from
-  `docs/PRODUCT_SPEC_V0.md`) — no V2 code exists yet.
-- **No V2 model should be coded** before the V2 product contract and the V2
-  correctness/acceptance contract are reviewed and merged.
+  `docs/PRODUCT_SPEC_V0.md`), and its exact deterministic behavior and
+  acceptance criteria are frozen in
+  `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` (alignment/no-lookahead,
+  model/version identity, context formulas, setup-detector formulas,
+  confidence/entry-zone/invalidation semantics, episode identity/lifecycle,
+  entry feasibility, evaluation/replay methodology, acceptance sample and
+  promotion criteria) — no V2 code exists yet.
+- **Stage 1 — V2 Product Contract documentation phase is complete**: both
+  planned PRs (`docs/V2_PRODUCT_CONTRACT.md`, PR #28, and
+  `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md`, this PR) are merged.
+- **No V2 model should be coded** before these two contracts are reviewed
+  and merged — that condition is now satisfied; implementation may begin
+  in a future PR, but does **not** begin as part of this one.
 
-**Next planned PR:** `docs: freeze V2 correctness and acceptance contract`
+**Next stage:** Stage 2 — Multi-model Framework (3 planned PRs, §I above).
+A sensible first PR under that stage is a small, self-contained
+**foundation** PR — not the whole multi-timeframe/detector/episode
+implementation at once — scoped to: introducing the `model_family` /
+`rules_version` identity conventions frozen in
+`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §3 into the actual schema/config
+(the physical encoding this document deliberately did not do), and standing
+up the empty V2 module scaffolding (mirroring how `analytics/forecasting/`
+itself started) with no detector, scoring, or episode logic yet. This PR
+does **not** start that work.
