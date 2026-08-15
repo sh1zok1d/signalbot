@@ -416,6 +416,15 @@ CREATE TABLE IF NOT EXISTS forecast_predictions (
 
     created_at                TIMESTAMPTZ NOT NULL DEFAULT now(),  -- metadata only
 
+    -- DB-owned V1/V2 history discriminator (ADDITIVE, Multi-model Framework
+    -- foundation PR). Every row inserted by the current V1 writer
+    -- (analytics/forecasting/persistence.py) omits this column, so Postgres
+    -- supplies 'v1' via the DEFAULT below — existing and future V1 rows
+    -- become physically identifiable without any INSERT-statement change.
+    -- This table remains V1-shaped; it does not accept V2 episode rows in
+    -- this PR (docs/FORECASTING_ROADMAP.md §A, §J).
+    model_family              TEXT NOT NULL DEFAULT 'v1',
+
     PRIMARY KEY (
         symbol,
         market_type,
@@ -424,6 +433,9 @@ CREATE TABLE IF NOT EXISTS forecast_predictions (
         calculation_version,
         rule_version
     ),
+
+    CONSTRAINT ck_fp_model_family
+        CHECK (length(btrim(model_family)) > 0),
 
     CONSTRAINT ck_fp_direction
         CHECK (direction IN ('LONG','SHORT','NEUTRAL')),
@@ -479,6 +491,16 @@ CREATE TABLE IF NOT EXISTS forecast_predictions (
     CONSTRAINT ck_fp_consensus_snapshot_json
         CHECK (jsonb_typeof(consensus_snapshot) = 'object')
 );
+
+-- Idempotent upgrade path for a database created before model_family
+-- existed: a no-op here on a fresh DB (the CREATE TABLE above already
+-- includes the column), and additive-only on an existing installation — no
+-- data rewritten, no historical row's meaning changed, existing PK/rule_version
+-- untouched. Ordinary ALTER TABLE ADD COLUMN on a TimescaleDB hypertable is
+-- supported the same as on a plain table (this hypertable carries no
+-- compression policy, so no additional caveats apply).
+ALTER TABLE forecast_predictions
+    ADD COLUMN IF NOT EXISTS model_family TEXT NOT NULL DEFAULT 'v1';
 
 SELECT create_hypertable(
     'forecast_predictions',
@@ -558,6 +580,13 @@ CREATE TABLE IF NOT EXISTS forecast_outcomes (
 
     computed_at               TIMESTAMPTZ NOT NULL DEFAULT now(),  -- metadata only
 
+    -- DB-owned V1/V2 history discriminator (ADDITIVE, Multi-model Framework
+    -- foundation PR) — same pattern/rationale as the shadow forecast events
+    -- table above: every row from the current V1 outcome writer omits this
+    -- column, so Postgres supplies 'v1' via the DEFAULT below. This table
+    -- remains V1-shaped; it does not accept V2 episode-outcome rows in this PR.
+    model_family              TEXT NOT NULL DEFAULT 'v1',
+
     PRIMARY KEY (
         symbol,
         market_type,
@@ -570,6 +599,9 @@ CREATE TABLE IF NOT EXISTS forecast_outcomes (
         evaluation_price_source,
         outcome_version
     ),
+
+    CONSTRAINT ck_fo_model_family
+        CHECK (length(btrim(model_family)) > 0),
 
     CONSTRAINT ck_fo_horizon
         CHECK (horizon IN ('15m','1h','4h')),
@@ -686,6 +718,12 @@ CREATE TABLE IF NOT EXISTS forecast_outcomes (
             )
         )
 );
+
+-- Idempotent upgrade path for a database created before model_family
+-- existed — same rationale as forecast_predictions' identical statement
+-- above: a no-op on a fresh DB, additive-only on an existing installation.
+ALTER TABLE forecast_outcomes
+    ADD COLUMN IF NOT EXISTS model_family TEXT NOT NULL DEFAULT 'v1';
 
 SELECT create_hypertable(
     'forecast_outcomes',

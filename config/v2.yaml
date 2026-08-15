@@ -1,0 +1,29 @@
+# BTC Signal Bot — V2 identity configuration (SEPARATE from Stage 2's
+# config/stage2.yaml, which is NOT touched by this file and does not read it).
+#
+# This is FOUNDATION-ONLY configuration for the Multi-model Framework's first
+# PR (docs/FORECASTING_ROADMAP.md §I stage 2). It carries the `model_family` /
+# `rules_version` identity conventions frozen in
+# docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §3 — nothing else.
+#
+# Do NOT add detector thresholds, confidence weights, entry-feasibility
+# parameters, notification thresholds, or outcome thresholds here. Those
+# belong to their owning modules in later Multi-model Framework PRs, once
+# those modules exist. Adding them here ahead of that would let config racing
+# ahead of implementation reintroduce exactly the "config is not a loophole"
+# problem §23 of the correctness contract explicitly guards against.
+#
+# v2.enabled: master switch. While false, V2 is not wired into any runtime
+#   path (there is no such wiring yet in this PR) and produces no output.
+# v2.model_family: the logical constant identifying V2 rows, distinct from
+#   V1's implicit model_family="v1" (docs/FORECASTING_ROADMAP.md §A).
+# v2.rules_version: identifies the exact set of V2-v0 numeric parameters an
+#   implementation PR will freeze (namespace: "v2-rules-v<major>.<minor>.<patch>",
+#   V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §3). Changing ANY V2-v0 parameter in
+#   a future PR MUST bump this string — it is never a silent behavior change
+#   under an unchanged version.
+
+v2:
+  enabled: false
+  model_family: "v2"
+  rules_version: "v2-rules-v0.1.0"

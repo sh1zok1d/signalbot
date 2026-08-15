@@ -387,22 +387,30 @@ current intent, not a contract that overrides sound engineering judgment.
   confidence/entry-zone/invalidation semantics, episode identity/lifecycle,
   entry feasibility, evaluation/replay methodology, acceptance sample and
   promotion criteria) — no V2 code exists yet.
-- **Stage 1 — V2 Product Contract documentation phase**: both of its
-  planned documentation PRs are authored — `docs/V2_PRODUCT_CONTRACT.md`
-  (PR #28) and `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` (PR #29). This
-  phase is complete once both are reviewed and merged to `main`; this
-  document does not assert that state ahead of it actually being true.
-- **No V2 model should be coded** before both contracts are reviewed and
-  merged. Once that condition is satisfied, implementation may begin in a
-  future PR — it does **not** begin as part of either contract PR itself.
+- **Stage 1 — V2 Product Contract documentation phase: complete.** Both
+  planned documentation PRs are authored, reviewed, and merged to `main` —
+  `docs/V2_PRODUCT_CONTRACT.md` (PR #28) and
+  `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` (PR #29).
+- **Stage 2 — Multi-model Framework: begun.** A small, self-contained
+  **foundation PR** ("feat: add V2 multi-model foundation") introduces
+  **only** the identity/config/module foundation the rest of the stage
+  builds on: the `model_family` / `rules_version` identity conventions
+  frozen in `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §3, physically
+  encoded as `config/v2.yaml` + `common/v2_config.py` (a strict loader,
+  independent of `common/stage2_config.py`) and
+  `analytics/forecasting_v2/identity.py` (a pure `V2ModelIdentity` value
+  object); plus a DB-owned, additive `model_family` column on
+  `forecast_predictions` / `forecast_outcomes` (defaulting existing and
+  future V1 rows to `'v1'`, per §A below). This foundation PR deliberately
+  implements **no** forecasting logic: no multi-timeframe alignment, no 4h
+  regime / 1h bias / context engines, no setup detectors, no episode
+  lifecycle/state machine, no entry-feasibility evaluation, no V2 outcome
+  evaluator, no V2 Telegram, and no runtime wiring of any kind — `v2.enabled`
+  stays `false` and nothing reads `config/v2.yaml` outside its own loader and
+  tests. **V1 remains the running baseline**, entirely unaffected.
+- **V2 still has no forecasting logic of any kind** beyond this identity
+  foundation — no MTF alignment/context/setup/episode runtime exists yet.
 
-**Next stage:** Stage 2 — Multi-model Framework (3 planned PRs, §I above).
-A sensible first PR under that stage is a small, self-contained
-**foundation** PR — not the whole multi-timeframe/detector/episode
-implementation at once — scoped to: introducing the `model_family` /
-`rules_version` identity conventions frozen in
-`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §3 into the actual schema/config
-(the physical encoding this document deliberately did not do), and standing
-up the empty V2 module scaffolding (mirroring how `analytics/forecasting/`
-itself started) with no detector, scoring, or episode logic yet. This PR
-does **not** start that work.
+**Next planned PR:** Multi-model Framework PR 2 of 3 (§I above) — not yet
+Context Engines (stage 4); the Multi-model Framework stage's own remaining
+scope comes first.
