@@ -17,8 +17,10 @@
 > of that current forecast logic ("V1") is now **frozen** as a stable
 > research baseline; the forecasting product now moves to a planned
 > multi-timeframe direction ("V2"). See **`docs/FORECASTING_ROADMAP.md`** —
-> the canonical source of truth for where the forecasting product is headed.
-> This does not affect Stage 1 ingestion, described below.
+> the canonical source of truth for where the forecasting product is headed
+> — and **`docs/V2_PRODUCT_CONTRACT.md`** for what V2 product behavior is
+> frozen to mean. V2 is not yet implemented. This does not affect Stage 1
+> ingestion, described below.
 
 ## Что поправлено при ревью (эта итерация)
 
