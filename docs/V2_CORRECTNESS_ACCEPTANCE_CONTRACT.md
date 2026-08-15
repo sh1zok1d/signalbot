@@ -700,7 +700,7 @@ valid iff PULLBACK_MIN_MULT * RANGE_PROXY_pct(15m,14,B15)
 
 **Candidate age.** Max `PULLBACK_MAX_AGE = 8` closed 15m buckets (2h,
 V2-v0) from first detection to confirmation, else → `EXPIRED`
-([§14](#14-lifecycle-transitions)).
+([§13](#13-lifecycle-transition-semantics)).
 
 **5m confirmation (trigger).** At `B5 = selected_bucket(5m, T)`: the
 consensus `price_move_pct_median` sign matches the trend direction (ternary
@@ -920,7 +920,7 @@ renormalization**, reusing the Data Confidence family-score pattern
 remaining applicable weights are renormalized to their own sum before the
 weighted sum is taken. If **all** components are `UNAVAILABLE`, confidence
 is itself `UNAVAILABLE` and the episode cannot be scored (fails closed,
-[§18](#18-failure--fail-closed-rules)).
+[§21](#21-failure--fail-closed-rules)).
 
 ```text
 model_confidence = Σ (weight_c * component_c) / Σ (weight_c for c not UNAVAILABLE)     # range [0,1]
@@ -1168,18 +1168,19 @@ excursion) — both are covered above, resolving
 
 **`WEAKENING → CONFIRMED` recovery is explicitly allowed** — this resolves
 the Product Contract's deferred "whether, and under what conditions, a
-`WEAKENING` episode can recover" ([§5.1](#51-state-meanings) there): yes,
-it can, whenever the evidence-quality criteria that triggered `WEAKENING`
-are no longer met and the episode has not since invalidated or completed.
+`WEAKENING` episode can recover" (`V2_PRODUCT_CONTRACT.md` §5.1 there):
+yes, it can, whenever the evidence-quality criteria that triggered
+`WEAKENING` are no longer met and the episode has not since invalidated or
+completed.
 
 **Completion vs. expiry, precisely (V2-v0):**
 
 ```text
-MIN_MFE_R_FOR_COMPLETION = 0.5   # R-multiple, see §17
+MIN_MFE_R_FOR_COMPLETION = 0.5   # R-multiple, see §18
 ```
 
 At horizon end (from `CONFIRMED` or `WEAKENING`), if the episode's `MFE_R`
-(peak favorable excursion in R, [§17](#17-r-based-metrics)) reached `>=
+(peak favorable excursion in R, [§18](#18-r-based-metrics)) reached `>=
 0.5` at any point during its life, it transitions to `COMPLETED` — "the
 scenario played out and moved meaningfully in the intended direction at
 some point," even if it later gave the move back. If `MFE_R` never reached
