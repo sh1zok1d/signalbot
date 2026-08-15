@@ -228,8 +228,18 @@ immediately beforehand.
 ### 4.4 Boundaries
 
 - **Countertrend trading signals are excluded** from the initial V2 release.
-  A detector **MUST NOT** emit a scenario whose direction opposes the
-  established `4h`/`1h` regime/bias under any of the three families above.
+  V2 **MUST NOT** deliberately emit a scenario that trades **against** an
+  established, firmly directional higher-timeframe context (a `4h` regime or
+  `1h` bias that genuinely points a direction). Where the `4h` regime or
+  `1h` bias is neutral, non-directional, or not firmly established, that
+  **absence MUST NOT itself be treated as a countertrend condition** —
+  `COMPRESSION_BREAKOUT` ([§4.2](#42-compression_breakout)) in particular may
+  legitimately form without a firm `1h` bias, and this contract does not
+  require every setup to have an explicit same-direction `4h`+`1h` vote
+  before it is valid. The exact directional-context compatibility rules —
+  how "established"/"firm" is determined, and how each setup family's
+  detector must reconcile with `4h`/`1h` context — belong to the correctness
+  contract ([§12](#12-deferred-to-later-contracts)).
   (`REVERSAL_CANDIDATE`, [§5](#5-episode-lifecycle), is a distinct episode
   concept — an independently-qualifying opposite scenario reported against
   an existing episode — not a countertrend variant of these three families.)
@@ -264,9 +274,10 @@ V2 adopts the following episode states:
   remains necessary) and is the episode's actionable core state.
   Non-terminal.
 - **`WEAKENING`** — evidence for the scenario is deteriorating but has not
-  yet reached invalidation. Non-terminal; a `WEAKENING` episode **MAY**
-  recover toward `CONFIRMED` or continue to `INVALIDATED` — this contract
-  does not force a one-directional walk.
+  yet reached invalidation. Non-terminal. Whether, and under what
+  conditions, a `WEAKENING` episode can recover is **DEFERRED**
+  ([§12](#12-deferred-to-later-contracts)) — this contract does not freeze a
+  recovery edge here.
 - **`INVALIDATED`** — the scenario's structural premise has broken.
   Terminal for this episode.
 - **`REVERSAL_CANDIDATE`** — the **opposite** direction has independently
@@ -279,38 +290,46 @@ V2 adopts the following episode states:
 - **`COMPLETED`** — the scenario played out to its evaluated conclusion (its
   expected horizon and outcome were reached from `CONFIRMED`). Terminal.
 
-### 5.2 High-level allowed lifecycle
+### 5.2 Illustrative lifecycle sketch (non-normative)
+
+The sketch below shows one *possible* path through the states above, purely
+to aid intuition. It is **not** a frozen transition graph: it does not
+enumerate every allowed edge, and an implementation **MUST NOT** treat it as
+an exhaustive specification of which state may follow which.
 
 ```text
-EARLY_SIGNAL
-    ↓
-CONFIRMED  ──────────────→ COMPLETED
-    ↓
-WEAKENING
-    ↓
-INVALIDATED
-
-EARLY_SIGNAL  ──→ EXPIRED
-CONFIRMED     ──→ EXPIRED   (if applicable — see below)
-
-any non-terminal state ──→ REVERSAL_CANDIDATE
-    (only when the opposite scenario independently qualifies — §5.3)
+EARLY_SIGNAL  ⇢  CONFIRMED  ⇢  WEAKENING  ⇢  INVALIDATED
+                      ⇢  COMPLETED
 ```
 
-`Terminal` states are `INVALIDATED`, `EXPIRED`, and `COMPLETED` — an episode
-in one of these states **MUST NOT** transition to any other state. An
-implementation **MUST NOT** force every episode through every non-terminal
-state; e.g. an `EARLY_SIGNAL` **MAY** go straight to `INVALIDATED` or
-`EXPIRED` without ever reaching `CONFIRMED`, and a `CONFIRMED` episode **MAY**
-go straight to `INVALIDATED` without passing through `WEAKENING`, if the
-evidence genuinely breaks abruptly rather than gradually.
+What this contract actually freezes, at the product level:
 
-Exact transition thresholds and whether `EXPIRED` is reachable from
-`CONFIRMED` in every case (as opposed to always resolving to `COMPLETED` or
-`INVALIDATED` once confirmed) are **DEFERRED**
-([§12](#12-deferred-to-later-contracts)) — this contract freezes the state
-set and the terminal/non-terminal classification, not the exact transition
-graph edge weights.
+- V2 **MUST** track **one episode over time**, rather than emitting a new
+  independent signal every five minutes the way V1 does.
+- An episode **MUST NOT** be forced through every state — e.g. an episode
+  **MAY** move directly from `EARLY_SIGNAL` (or `CONFIRMED`) to
+  `INVALIDATED` or `EXPIRED` without visiting the states in between, if
+  evidence breaks abruptly rather than gradually.
+- `INVALIDATED`, `EXPIRED`, and `COMPLETED` mark that this episode is **no
+  longer being actively monitored in its original form** — they are the
+  concepts that close out an episode, as opposed to the actively-tracked
+  `EARLY_SIGNAL` / `CONFIRMED` / `WEAKENING` states.
+- **Invalidation does not, by itself, imply reversal** — see
+  [§5.3](#53-reversal-is-never-automatic).
+- `REVERSAL_CANDIDATE` is **not** a fixed step along any single path — it is
+  a cross-cutting observation that **MAY** be reported alongside an
+  existing episode whenever the opposite scenario **independently**
+  qualifies on its own merits ([§5.3](#53-reversal-is-never-automatic)). It
+  is never implied by, or wired to, any specific state transition.
+
+The **exact allowed transition edges** — including whether/how `WEAKENING`
+can recover, whether `EXPIRED` is reachable from `CONFIRMED` in every case,
+and the full transition graph and its thresholds — are **DEFERRED**
+([§12](#12-deferred-to-later-contracts)) to the V2 correctness and
+acceptance contract and the Episode State Machine implementation stage
+(`docs/FORECASTING_ROADMAP.md` §I, stage 6). This contract freezes the
+**state set, their product meanings, and the invariants above** — not a
+transition graph.
 
 ### 5.3 Reversal is never automatic
 
@@ -483,18 +502,27 @@ V2, unless explicitly superseded above:
   how much cross-exchange data backed a scenario, independent of what
   direction the scenario claims.
 - **Cross-exchange evidence MUST NOT be silently replaced with
-  single-exchange certainty.** V2 reuses the Stage 2 foundation's existing
-  per-family minimum-exchange-coverage consensus gating; V2 **MUST NOT**
-  bypass it for any timeframe's feature computation.
+  single-exchange certainty.** At every timeframe, V2 **MUST** use
+  cross-exchange evidence: missing exchange data for a bucket **MUST NOT**
+  be treated as if it were confirming certainty, and a single exchange's
+  data **MUST NOT** masquerade as full cross-exchange consensus. Coverage
+  **MUST** remain separately observable, per the requirement above.
 - **A high setup/model score MUST NOT bypass a mandatory hard gate.** Same
   principle as `PRODUCT_SPEC_V0.md`'s "high Setup Score does not cancel the
   mandatory hard gates above," applied to V2's setup families and episode
   confirmation.
 
-This contract deliberately does **not** invent new numerical consensus gates
-beyond what is already frozen in the Stage 2 foundation
-(`docs/STAGE2_SPEC.md` §11, `config/stage2.yaml`) and already applicable
-because V2 consumes the same consensus feature layer V1 does.
+This contract freezes the **product invariants** above, not a specific
+implementation mechanism. The Stage 2 foundation already implements a
+per-family minimum-exchange-coverage consensus gate that satisfies these
+invariants for the existing 5m pipeline (`docs/STAGE2_SPEC.md` §11,
+`config/stage2.yaml`). Whether that exact gate — including its current
+numeric parameters — carries over unchanged to `15m`/`1h`/`4h` feature
+computation, or is adapted for multi-timeframe use, is **DEFERRED**
+([§12](#12-deferred-to-later-contracts)) to the V2 correctness and
+acceptance contract. This document does not invent, and does not expand the
+frozen scope of, a numerical consensus gate beyond what is already decided
+for the existing pipeline.
 
 ### Terminology note: `TRIGGERED` is not renamed to `CONFIRMED`
 

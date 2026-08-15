@@ -276,16 +276,8 @@ Explicitly deferred (not in the initial V2 scope):
 
 ## G. Signal episode concept
 
-V2 adopts a high-level episode lifecycle:
-
-```
-EARLY_SIGNAL → CONFIRMED → WEAKENING → INVALIDATED
-                        ↘ REVERSAL_CANDIDATE
-             → EXPIRED
-             → COMPLETED
-```
-
-States:
+V2 adopts a set of high-level episode states — their full product meaning
+is frozen in `docs/V2_PRODUCT_CONTRACT.md` §5:
 
 - `EARLY_SIGNAL`
 - `CONFIRMED`
@@ -295,17 +287,23 @@ States:
 - `EXPIRED`
 - `COMPLETED`
 
-V2 tracks **one episode over time** — from first detection through
-invalidation, expiry, or completion — instead of emitting a new independent
-signal every five minutes the way V1 does.
+V2 tracks **one episode over time** — instead of emitting a new independent
+signal every five minutes the way V1 does. An episode need not visit every
+state before reaching `INVALIDATED`/`EXPIRED`/`COMPLETED`; invalidation does
+**not**, by itself, imply reversal; and `REVERSAL_CANDIDATE` requires the
+opposite direction to **independently** satisfy its own scenario-entry
+requirements, rather than being inferred from the original scenario
+breaking.
 
-Exact transition rules, persistence identity, thresholds, cooldowns, and
-notification policy for this lifecycle are intentionally **deferred to later
-contract and implementation PRs** — the V2 correctness and acceptance
-contract, planned as the second documentation PR of Stage 1, and the Episode
-State Machine implementation
+This roadmap deliberately does **not** diagram an exact transition graph.
+Which edges are allowed, exact recovery behavior from `WEAKENING`, and
+terminal-state mechanics are **deferred to later contract and
+implementation PRs** — the V2 correctness and acceptance contract, planned
+as the second documentation PR of Stage 1, and the Episode State Machine
+implementation
 ([§I](#i-high-level-delivery-roadmap): "6. Episode State Machine"). This
-section freezes the *concept*, not the state machine's implementation.
+section freezes the *state set and the product invariants above*, not a
+transition graph or the state machine's implementation.
 
 ---
 
