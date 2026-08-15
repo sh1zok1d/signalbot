@@ -644,7 +644,7 @@ the same weighted score replayed at a different timeframe:
 |---|---|---|
 | Window | 30d | 7d |
 | Threshold | `0.40` (stricter) | `0.25` (looser) |
-| OI confirmation | **Required** (can veto) | Not used |
+| OI role | Optional confirm/veto modulator — falling, sufficiently strong OI (`oi_confirmation <= REGIME_OI_VETO`, [§4.2](#42-4h-regime)) **may veto** a would-be trending call; OI **availability is not required** to establish direction (`oi_confirmation UNAVAILABLE` does not by itself make regime `INSUFFICIENT_DATA`, [§4.2](#42-4h-regime)); OI never selects `LONG`/`SHORT` on its own | Not used |
 | Compression awareness | Yes (`is_compressed` flag) | Not used |
 | Role | "Is there an established, OI-confirmed higher-timeframe trend?" | "Which way does the nearer-term tape lean, if at all?" |
 
@@ -1059,16 +1059,54 @@ valid iff PULLBACK_MIN_MULT * RANGE_PROXY_pct(15m,14,B15)
           PULLBACK_MAX_MULT * RANGE_PROXY_pct(15m,14,B15)
 ```
 
+**`EARLY_SIGNAL` creation (exact decision boundary, V2-v0).** `T_detect` is
+the **first** 15m decision boundary `T` at which both the Preconditions
+above hold **and** a valid retracement (per the range above) exists. The
+episode is created in `EARLY_SIGNAL` **at `T_detect`**, exactly once
+(subsequent 15m boundaries while still `EARLY_SIGNAL` are pre-confirmation
+re-evaluations of the same episode, not new detections):
+
+```text
+detection_timestamp = T_detect
+B15_detect = selected_bucket(15m, T_detect)          # == B15 evaluated at T_detect
+B5_detect  = selected_bucket(5m,  T_detect)          # most recent closed 5m bucket as of T_detect;
+                                                       # since 15m boundaries are also 5m boundaries,
+                                                       # bucket_ts(B5_detect) == T_detect
+```
+
 **Candidate age.** Max `PULLBACK_MAX_AGE = 8` closed 15m buckets (2h,
-V2-v0) from first detection to confirmation, else → `EXPIRED`
+V2-v0) from `T_detect` to `T_confirm`, else → `EXPIRED`
 ([§13](#13-lifecycle-transition-semantics)).
 
-**5m confirmation (trigger).** At `B5 = selected_bucket(5m, T)`: the
-consensus `price_move_pct_median` sign matches the trend direction (ternary
-sign, per `STAGE2_SPEC.md` §11.2) **and** `price_direction_agreement >=
-2/3`, for **one** closed 5m bucket (`RESUMPTION_MIN_BUCKETS = 1`, V2-v0 —
-deliberately the loosest possible, since 5m's role is trigger, not
-strength-scoring, [§5.1](#51-percentile-lookback--window)).
+**5m confirmation (trigger) — exact `CONFIRMED` decision boundary.** The
+resumption trigger is evaluated at 5m decision boundaries (finer-grained
+than the 15m boundary that produced `T_detect`). At a 5m decision boundary
+`T'`, let `B5' = selected_bucket(5m, T')`. The trigger condition
+(unchanged): the consensus `price_move_pct_median` sign matches the trend
+direction (ternary sign, per `STAGE2_SPEC.md` §11.2) **and**
+`price_direction_agreement >= 2/3`, for **one** closed 5m bucket
+(`RESUMPTION_MIN_BUCKETS = 1`, V2-v0 — deliberately the loosest possible,
+since 5m's role is trigger, not strength-scoring,
+[§5.1](#51-percentile-lookback--window)).
+
+`T_confirm` is the **first** such `T'` for which the trigger condition
+holds on a bucket `B5'` that is **strictly later** than the detection-time
+bucket:
+
+```text
+CONFIRMED at T_confirm  iff  trigger condition holds for B5'
+                              AND bucket_ts(B5') > bucket_ts(B5_detect)
+```
+
+This last clause is load-bearing: because `bucket_ts(B5_detect) ==
+T_detect` (a 15m boundary always coincides with a 5m boundary), the 5m
+bucket that was *already closed and already known* at the moment
+`EARLY_SIGNAL` was created can never itself serve as the confirming
+bucket, even if it happens to already satisfy the trigger condition. The
+earliest possible `B5'` is the *next* closed 5m bucket after `B5_detect`,
+so `T_confirm >= T_detect + 5m`, strictly — `T_confirm > T_detect` always
+holds, and a new episode can never be created and immediately `CONFIRMED`
+from the same already-known 5m bucket.
 
 **Structural invalidation.** `pullback_extreme` = the deepest `close_price`
 reached during the retracement (min for bullish, max for bearish, reference
@@ -1084,13 +1122,45 @@ crosses beyond `invalidation_price` — a single closed candle, never a wick
 ([§10](#10-structural-invalidation) explains the close-vs-wick,
 single-vs-multiple choice generally).
 
-**Entry zone.**
+**Entry zone.** No field of the `EARLY_SIGNAL` zone may depend on data that
+does not exist yet at `T_detect` — in particular `confirmation_close_price`
+(defined below) does not exist until `T_confirm` and MUST NOT appear in the
+`EARLY_SIGNAL` zone ([§9](#9-entry-zone-semantics)).
+
+*At `EARLY_SIGNAL` (established at `T_detect`, using only data already
+known at `T_detect`):*
+```text
+LONG:  [pullback_extreme_low,  close_price(B15_detect, reference_exchange)]
+SHORT: [close_price(B15_detect, reference_exchange), pullback_extreme_high]
+```
+The dynamic bound is the current 15m close — the same already-observed
+structural price the retracement itself is measured against — never
+`confirmation_close_price`.
+
+*Pre-confirmation updates (while still `EARLY_SIGNAL`, per
+[§9](#9-entry-zone-semantics)'s general "may move only pre-`CONFIRMED`"
+rule):* at each later 15m decision boundary `T'` with `T_detect < T' <
+T_confirm`, the dynamic bound re-evaluates against `B15' =
+selected_bucket(15m, T')`, using only data already closed as of `T'`:
+```text
+LONG:  [pullback_extreme_low,  close_price(B15', reference_exchange)]
+SHORT: [close_price(B15', reference_exchange), pullback_extreme_high]
+```
+`pullback_extreme_low`/`pullback_extreme_high` themselves update only if
+the retracement deepens further (same "deepest close so far" rule above) —
+never as a function of anything not yet closed.
+
+*At `CONFIRMED` (`T_confirm`, using the confirming bucket `B5'`):* the zone
+updates **one final time**, now that
+`confirmation_close_price = close_price(B5', reference_exchange)` exists:
 ```text
 LONG:  [pullback_extreme_low,  confirmation_close_price]
 SHORT: [confirmation_close_price, pullback_extreme_high]
 ```
-Both bounds are already-observed structural prices (the deepest retracement
-point and the confirming close), not an arbitrary ± band.
+and is then **frozen** — [§9](#9-entry-zone-semantics)'s generic
+freeze-on-`CONFIRMED` and historical-truth rules apply unchanged: any
+pre-`CONFIRMED` zone value already notified is preserved in event history,
+never silently rewritten.
 
 **Expected horizon:** `2h` from `CONFIRMED` ([§14](#14-candidate-expiry-and-expected-horizons)).
 
@@ -1205,13 +1275,23 @@ one fails, **no episode is created** — this is not a rejected candidate
 with hidden state, it simply never begins.
 
 **`CONFIRMED`.** Within `CONFIRMATION_MAX_AGE = 3` closed 5m buckets (15
-min, V2-v0) of the `EARLY_SIGNAL` bucket, the **next** closed 5m bucket
-(reference exchange) also closes beyond the **same** boundary (same
-candidate direction) → `CONFIRMED`. (`CONFIRMATION_CLOSES = 2` total
-consecutive qualifying closes, counting the `EARLY_SIGNAL` bucket itself as
-the first — the same "count consecutive confirming closes" convention
-`CONFIRMED_BREAKOUT` uses, [§7.3](#73-confirmed_breakout), so both breakout
-families now share one canonical two-close confirmation shape.)
+min, V2-v0) of the `EARLY_SIGNAL` bucket, the **first subsequent** closed
+5m bucket (reference exchange) that closes **strictly beyond** the
+**same** boundary (same candidate direction) → `CONFIRMED` — **provided no
+intervening closed 5m bucket produced an invalidating close** (False-break,
+below). This confirming close is **not** required to be the immediately
+next bucket: any number of intervening buckets that neither confirm (don't
+close strictly beyond the boundary) nor invalidate (don't close on the
+wrong side; a boundary-equality close, below, does neither) may sit
+between the `EARLY_SIGNAL` bucket and the confirming one, up to
+`CONFIRMATION_MAX_AGE`.
+
+V2-v0 deliberately does **not** describe this as "consecutive" qualifying
+closes — the episode's confirmation shape is **first breakout close**
+(`EARLY_SIGNAL`) **+ a later confirming close, with no intervening
+invalidating close** in between. This is the same shape `CONFIRMED_BREAKOUT`
+uses, [§7.3](#73-confirmed_breakout), so both breakout families now share
+one canonical confirmation shape.
 
 **False-break, direction-aware, one-sided → `INVALIDATED` (re-amended —
 covers overshoot through the opposite side, not only re-entry).** An
@@ -1232,7 +1312,7 @@ range specifically:
 LONG EARLY_SIGNAL (broken above range_high):
     holds       iff close >= range_high
     INVALIDATED on ANY closed 5m bucket (reference exchange, before the
-        second confirming close) with close < range_high — this covers
+        confirming close) with close < range_high — this covers
         BOTH ordinary re-entry (range_low < close < range_high) AND
         overshoot clean through to the opposite side (close <= range_low)
         with the same single check.
@@ -1246,10 +1326,16 @@ SHORT EARLY_SIGNAL (broken below range_low):
 
 **Boundary equality (V2-v0 convention, stated explicitly):** a close
 **exactly at** the broken level (`close == range_high` for `LONG`,
-`close == range_low` for `SHORT`) is treated as still **holding** — the
-level has been retested, not yet reclaimed on the wrong side. A close on
-the wrong side of the level by any amount, including the smallest tick,
-invalidates. The structural premise has broken → `INVALIDATED` (not a
+`close == range_low` for `SHORT`) is a **neutral HOLD** — it neither
+confirms nor invalidates. It does not invalidate: the level has been
+retested, not yet reclaimed on the wrong side (see False-break above,
+which requires `close < range_high` / `close > range_low`, strictly, to
+fire). It does not confirm either: `CONFIRMED` (above) requires a close
+**strictly beyond** the boundary, and equality is not beyond it. A
+boundary-equality bucket simply consumes one bucket of
+`CONFIRMATION_MAX_AGE` while the episode continues waiting. A close on the
+wrong side of the level by any amount, including the smallest tick, does
+invalidate — the structural premise has broken → `INVALIDATED` (not a
 silent non-creation — the episode already exists as `EARLY_SIGNAL` at this
 point, and this is a real lifecycle transition,
 [§13](#13-lifecycle-transition-semantics)). A stronger failure is never
@@ -1257,9 +1343,10 @@ exempted from invalidation merely because it moved "too far" to still be
 sitting inside the original range.
 
 **Deadline elapses → `EXPIRED`.** If `CONFIRMATION_MAX_AGE` elapses with
-neither a second confirming close nor a false-break re-entry (e.g. price
-sits exactly at the boundary without a clean close on either side) →
-`EXPIRED`.
+neither a confirming close (strictly beyond the boundary) nor a
+false-break (wrong-side close) — e.g. every intervening bucket sits
+exactly at the boundary, or on the correct side but never strictly beyond
+it — → `EXPIRED`.
 
 These three outcomes (`CONFIRMED` / `INVALIDATED` via false break /
 `EXPIRED` via timeout) are mutually exclusive and exhaustive for an
@@ -1326,34 +1413,53 @@ the entry zone is established here ([§9](#9-entry-zone-semantics)). There
 is no taker-flow confirmation requirement for this family (see the
 comparison below).
 
-**`CONFIRMED`.** `CONFIRMATION_CLOSES = 2` total consecutive closed 5m
-buckets closing beyond the level — the `EARLY_SIGNAL` bucket itself counts
-as the first, so `CONFIRMED` requires exactly **one more** consecutive
-qualifying close — within `CONFIRMATION_MAX_AGE = 8` closed 5m buckets (40
-min, V2-v0) of `EARLY_SIGNAL`. This is the structural difference from
-`COMPRESSION_BREAKOUT`'s 15-minute window: `CONFIRMED_BREAKOUT` is the
-general case with *no* preceding-compression precondition, so it allows
-more time for the second confirming close in exchange for not requiring a
-compression regime.
+**`CONFIRMED`.** Within `CONFIRMATION_MAX_AGE = 8` closed 5m buckets (40
+min, V2-v0) of the `EARLY_SIGNAL` bucket, the **first subsequent** closed
+5m bucket that closes **strictly beyond** the level (same candidate
+direction) → `CONFIRMED` — provided no intervening closed 5m bucket
+produced an invalidating close (False-break, below). As with
+`COMPRESSION_BREAKOUT` ([§7.2](#72-compression_breakout)), this confirming
+close is **not** required to be the immediately next bucket, and V2-v0 does
+not describe this as "consecutive" closes — the confirmation shape is
+**first breakout close** (`EARLY_SIGNAL`) **+ a later confirming close,
+with no intervening invalidating close**. This is the structural
+difference from `COMPRESSION_BREAKOUT`'s 15-minute window:
+`CONFIRMED_BREAKOUT` is the general case with *no* preceding-compression
+precondition, so it allows more time for the confirming close in exchange
+for not requiring a compression regime.
 
-**False-break re-entry → `INVALIDATED`.** If, before the second confirming
-close arrives, a closed 5m bucket (reference exchange) closes back beyond
-the level on the **opposite** side (i.e. undoes the break: below
+**Boundary equality (V2-v0 convention, same as `COMPRESSION_BREAKOUT`,
+[§7.2](#72-compression_breakout)):** a close **exactly at** the level
+(`close == resistance_level` for `LONG`, `close == support_level` for
+`SHORT`) is a **neutral HOLD** — it neither confirms (`CONFIRMED` above
+requires a close strictly beyond the level) nor invalidates (False-break,
+below, requires closing back beyond the level on the *opposite* side). It
+simply consumes one bucket of `CONFIRMATION_MAX_AGE` while the episode
+continues waiting.
+
+**False-break re-entry → `INVALIDATED`.** If, before a confirming close
+arrives, a closed 5m bucket (reference exchange) closes back beyond the
+level on the **opposite** side (i.e. undoes the break: below
 `resistance_level` for a `LONG` candidate, above `support_level` for a
 `SHORT` candidate) → `INVALIDATED` — the same false-break-re-entry pattern
 as `COMPRESSION_BREAKOUT` ([§7.2](#72-compression_breakout)), not a silent
 non-creation.
 
 **Deadline elapses → `EXPIRED`.** If `CONFIRMATION_MAX_AGE` elapses with
-neither a second confirming close nor a false-break re-entry → `EXPIRED`.
+neither a confirming close (strictly beyond the level) nor a false-break
+(wrong-side close) — e.g. every intervening bucket sits exactly at the
+level — → `EXPIRED`.
 
 Both breakout families therefore now share **one canonical lifecycle
 shape** — `EARLY_SIGNAL` on the first qualifying close, `CONFIRMED` on the
-`CONFIRMATION_CLOSES`-th consecutive qualifying close within a deadline,
-false-break re-entry → `INVALIDATED`, deadline timeout → `EXPIRED` —
-differing only in `CONFIRMATION_CLOSES`/window length and each family's
-own qualification checks ([§7.4](#74-setup-family-precedence-and-deduplication)'s
-comparison table records the differences).
+first later close that closes strictly beyond the same boundary with no
+intervening invalidating close, a boundary-equality close treated as a
+neutral hold (consumes a bucket of the deadline but neither confirms nor
+invalidates), false-break re-entry → `INVALIDATED`, deadline timeout →
+`EXPIRED` — differing only in `CONFIRMATION_MAX_AGE`/window length and
+each family's own qualification checks
+([§7.4](#74-setup-family-precedence-and-deduplication)'s comparison table
+records the differences).
 
 **Invalidation once `CONFIRMED`.**
 ```text
@@ -1374,9 +1480,9 @@ lookback (vs. 15m compression window), allows a **40-minute** confirmation
 window (vs. 15 minutes), and has **no** taker-flow confirmation requirement
 (compression's volume-confirmation gate does not carry over — a generic
 level break is not defined by the preceding volatility regime the way a
-compression breakout is). Both share the same `CONFIRMATION_CLOSES = 2`
-two-close shape and the same `directional_context_gate` compatibility
-check (§7.0b).
+compression breakout is). Both share the same **first breakout close +
+later confirming close, no intervening invalidating close** shape and the
+same `directional_context_gate` compatibility check (§7.0b).
 
 **Candidate expiry / horizon:** max age from `EARLY_SIGNAL` to `CONFIRMED`
 is `40 min` (above); expected horizon `2.5h` from `CONFIRMED`.
@@ -1837,8 +1943,8 @@ independently satisfy its own scenario-entry requirements."
 | Setup family | Max candidate age (`EARLY_SIGNAL → CONFIRMED` deadline) | Expected horizon (from `CONFIRMED`) |
 |---|---|---|
 | `TREND_PULLBACK` | 2h (8 × 15m buckets) | 2h |
-| `COMPRESSION_BREAKOUT` | 15 min (3 × 5m buckets, `EARLY_SIGNAL` → second confirming close, [§7.2](#72-compression_breakout)) | 1.5h |
-| `CONFIRMED_BREAKOUT` | 40 min (8 × 5m buckets, `EARLY_SIGNAL` → second confirming close, [§7.3](#73-confirmed_breakout)) | 2.5h |
+| `COMPRESSION_BREAKOUT` | 15 min (3 × 5m buckets, `EARLY_SIGNAL` → later confirming close, [§7.2](#72-compression_breakout)) | 1.5h |
+| `CONFIRMED_BREAKOUT` | 40 min (8 × 5m buckets, `EARLY_SIGNAL` → later confirming close, [§7.3](#73-confirmed_breakout)) | 2.5h |
 
 All V2-v0, `rules_version`-participating, chosen so every family's total
 candidate-to-resolution lifecycle fits within the Product Contract's
@@ -1868,6 +1974,15 @@ Two genuinely distinct concepts:
    trade is still enterable.
 2. **Real-world actionability** — whether, after a realistic reaction
    delay, price is still within reach of the published entry zone.
+
+This section freezes **two separate, decision-boundary-scoped** feasibility
+checks — [§15.1](#151-confirmed_actionability_feasibility) for the
+`CONFIRMED` transition, and [§15.2](#152-early_notification_feasibility)
+for the first `EARLY_SIGNAL`. Each is evaluated using only the data
+available at its own decision boundary; neither may use the other's
+(earlier- or later-arriving) inputs.
+
+### 15.1 `confirmed_actionability_feasibility`
 
 **V2-v0 delay assumption:**
 
@@ -1923,14 +2038,67 @@ A late/infeasible `CONFIRMED` episode is **stored and evaluated exactly
 like any other** — it simply never produces an actionable notification
 ([§16](#16-notification-materiality--anti-spam-thresholds)).
 
+### 15.2 `early_notification_feasibility`
+
+The first `EARLY_SIGNAL` notification ([§16](#16-notification-materiality--anti-spam-thresholds))
+is graded by a **structurally identical but independently-scoped** check —
+using only values that exist **at the `EARLY_SIGNAL` decision boundary
+itself**, never the (later, not-yet-existing) `CONFIRMED` zone,
+`confirmation_close_price`, or any subsequent price data.
+
+```text
+early_notification_reference_time = detection_timestamp        # T_detect, per-detector (§7)
+early_assumed_entry_time = early_notification_reference_time + ASSUMED_NOTIFICATION_DELAY_S
+```
+
+The same `ASSUMED_NOTIFICATION_DELAY_S = 90` is reused (V2-v0 does not
+freeze a second, separate delay constant), and the same sampled-price
+convention as [§15.1](#151-confirmed_actionability_feasibility) applies:
+the reference exchange's 1-minute kline close of the bar whose close
+timestamp is the smallest one `>= early_assumed_entry_time`.
+
+**Feasibility (V2-v0):** the same shape as
+[§15.1](#151-confirmed_actionability_feasibility), but every input is the
+`EARLY_SIGNAL`-time value — the entry zone as it existed at
+`detection_timestamp` (its initial value, [§9](#9-entry-zone-semantics))
+and the structural invalidation level known as of that same event
+(per-detector, [§7](#7-setup-detectors)):
+
+```text
+early_entry_zone_upper / early_entry_zone_lower = the EARLY_SIGNAL entry zone AS OF detection_timestamp
+early_invalidation_price = the structural invalidation level known AS OF detection_timestamp
+OVERSHOOT_TOLERANCE = 0.25 * protection_buffer(setup_timeframe, B, reference_price)   # same as §15.1
+
+LONG:  early-feasible iff sampled_price <= early_entry_zone_upper + OVERSHOOT_TOLERANCE
+                            AND early_invalidation_price not yet breached (reference exchange,
+                                closed 5m bucket) as of early_assumed_entry_time
+SHORT: early-feasible iff sampled_price >= early_entry_zone_lower - OVERSHOOT_TOLERANCE
+                            AND early_invalidation_price not yet breached as of early_assumed_entry_time
+```
+
+**Suppression ("already late" at `EARLY_SIGNAL`):** if `early-feasible` is
+false, the first `EARLY_SIGNAL` notification
+([§16](#16-notification-materiality--anti-spam-thresholds)) is suppressed —
+the episode is still created, stored, and evaluated exactly like any other
+([§17](#17-outcome--evaluation-model)); it simply never produces the
+initial actionable notification. This suppression has **no effect** on the
+later, independent [§15.1](#151-confirmed_actionability_feasibility) check
+at `CONFIRMED`: an episode suppressed at `EARLY_SIGNAL` for being already
+late can still notify normally at `CONFIRMED` if `CONFIRMED`'s own
+check (using `CONFIRMED`-time inputs) passes, and vice versa. The later
+`CONFIRMED` zone or later price data MUST NOT retroactively decide whether
+the earlier `EARLY_SIGNAL` notification was feasible — each check is
+frozen to its own decision boundary's inputs, permanently
+([§9](#9-entry-zone-semantics)'s historical-truth rule).
+
 ---
 
 ## 16. Notification materiality / anti-spam thresholds
 
 | Event | Material? | V2-v0 condition |
 |---|---|---|
-| First `EARLY_SIGNAL` | Only if feasible at detection (rare — feasibility is mainly a `CONFIRMED`-time concept, but a pathologically late `EARLY_SIGNAL` is still suppressed) | — |
-| `CONFIRMED` | **Always material, if feasible** ([§15](#15-entry-feasibility-evaluation)) | — |
+| First `EARLY_SIGNAL` | Only if `early-feasible` ([§15.2](#152-early_notification_feasibility)) — rare to suppress, but a pathologically late `EARLY_SIGNAL` is still not notified | — |
+| `CONFIRMED` | **Always material, if `confirmed_actionability_feasibility` holds** ([§15.1](#151-confirmed_actionability_feasibility)) | — |
 | Confidence-only update | Material iff `|Δ model_confidence| >= 0.15` (V2-v0) on the unit-interval scale | — |
 | Zone update | Material only pre-`CONFIRMED` (zone is frozen after, [§9](#9-entry-zone-semantics)) and only if the zone bound moves by more than `0.5 * protection_buffer` (V2-v0) | — |
 | `WEAKENING` | Always material (state change) | — |
@@ -1949,6 +2117,62 @@ ago (15 min, V2-v0) — **except** a state-change transition (`CONFIRMED`,
 Routine 5m re-evaluation that changes no state and moves confidence by
 less than the threshold is, by construction, never notification-worthy —
 this is the anti-spam invariant `V2_PRODUCT_CONTRACT.md` §3/§9 requires.
+
+### 16.1 `EARLY_SIGNAL` notification content and history invariants (V2-v0)
+
+When the first `EARLY_SIGNAL` notification is material
+([§15.2](#152-early_notification_feasibility)), its content is a
+**complete, user-visible semantic record**, entirely determined by data
+already closed as of `detection_timestamp`:
+
+```text
+EARLY_SIGNAL notification content:
+  direction               # LONG | SHORT — per-detector, §7
+  setup_family            # TREND_PULLBACK | COMPRESSION_BREAKOUT | CONFIRMED_BREAKOUT
+  state                   # EARLY_SIGNAL
+  entry_zone              # the EARLY_SIGNAL zone AS OF detection_timestamp, §9 / per-detector §7
+  invalidation_price      # the structural invalidation level AS OF detection_timestamp, §10 / per-detector §7
+  expected_horizon        # per-family, §14 (informational at EARLY_SIGNAL — the horizon clock
+                           # itself only starts counting from CONFIRMED, §14)
+  model_confidence        # §8, computed from data closed as of detection_timestamp
+  data_coverage           # min_coverage_ratio / consensus_confidence, as of detection_timestamp
+  feasibility_status      # early-feasible | suppressed, §15.2
+```
+
+**No field above may depend on data that does not exist yet at
+`detection_timestamp`** — in particular none of them may read
+`confirmation_close_price`, the `CONFIRMED`-time entry zone, or any
+`CONFIRMED`/`ACTIONABLE`-only metric
+([§18](#18-risk-normalized-metrics-planned-risk-vs-execution-risk)), all of
+which are undefined until `T_confirm`/`CONFIRMED`. This is the same
+no-future-information constraint
+[§2](#2-no-lookahead-semantics-per-input-family) already freezes for
+feature computation generally, applied here to the notification content
+itself.
+
+**History preservation.** A value already published in the `EARLY_SIGNAL`
+notification (the initial entry zone, invalidation level, confidence,
+etc.) is never silently rewritten by a later event. `CONFIRMED` **may**
+update and then freeze the entry zone ([§9](#9-entry-zone-semantics)) and
+re-evaluate confidence/coverage, but this is recorded as a **new** event in
+`episode_state_history` ([§17](#17-outcome--evaluation-model)) alongside
+the episode — it never overwrites or erases the historical `EARLY_SIGNAL`
+notification's own recorded values. This reuses the same
+insert-once-per-event pattern
+[§2.1](#21-replay-behavior-for-late-arriving--corrected-data) already
+freezes for feature snapshots.
+
+**Replay determinism.** Given the same input data and the same
+`rules_version`/`calculation_version` ([§3](#3-v2-modelversion-identity)),
+replay MUST produce **exactly the same sequence** of `EARLY_SIGNAL` and
+`CONFIRMED` events — same `detection_timestamp`, same `T_confirm` (or
+`EXPIRED`/`INVALIDATED` outcome), same zone/invalidation values at each
+step — as the original live evaluation. This follows directly from
+[§2](#2-no-lookahead-semantics-per-input-family)'s no-lookahead,
+closed-bucket-only decision clock ([§1](#1-the-v2-decision-clock)): every
+field in the record above is a pure function of already-closed data as of
+its own decision boundary, so there is nothing for replay to compute
+differently.
 
 ---
 
@@ -2309,8 +2533,9 @@ normalized-evidence formula and its sign-preservation invariants
 confirmation/opposition (never independent-direction) rule
 ([§4.2](#42-4h-regime)), the directional-context compatibility gate
 ([§7.0b](#70b-directional-context-compatibility-gate-amended--closes-a-countertrend-gap)),
-the three detectors' qualitative structure and shared two-close breakout
-lifecycle shape ([§7](#7-setup-detectors)), the confidence-formula shape and
+the three detectors' qualitative structure and shared breakout confirmation
+shape — first breakout close + later confirming close, no intervening
+invalidating close ([§7](#7-setup-detectors)), the confidence-formula shape and
 its non-renormalizing, provably-monotonic sum rule
 ([§8](#8-model-confidence-semantics)), episode identity and precedence
 rules ([§12](#12-episode-identity-and-deduplication),
@@ -2330,8 +2555,8 @@ frozen by this document and every one of them participates in
 version): every numeric constant introduced in this document —
 `REGIME_TREND_THRESHOLD`, `BIAS_THRESHOLD`, `REGIME_OI_VETO`,
 `COMPRESSION_THRESHOLD`, `PULLBACK_MIN_MULT`/`PULLBACK_MAX_MULT`,
-`BUFFER_MULTIPLIER`, `CONFIRMATION_CLOSES`/`CONFIRMATION_MAX_AGE` for both
-breakout families, all per-family age/horizon numbers
+`BUFFER_MULTIPLIER`, `CONFIRMATION_MAX_AGE` for both breakout families,
+all per-family age/horizon numbers
 ([§14](#14-candidate-expiry-and-expected-horizons)),
 `ASSUMED_NOTIFICATION_DELAY_S`, `OVERSHOOT_TOLERANCE`'s multiplier,
 `ASSUMED_ROUND_TRIP_COST_BPS`, `MIN_VALID_PLANNED_RISK`'s tick multiplier, confidence
@@ -2862,31 +3087,79 @@ negative OI + upper-half rank  -> weak/zero opposition    (Vector 5, oi_rank=0.9
 
 ### 29.6 Setup vectors
 
-**Valid `TREND_PULLBACK` (LONG).** 4h regime `BULLISH_TRENDING`
-(`price_evi=0.55`, `agreement=0.80`, `oi_confirmation=+0.20` — no veto, per
-[§4.2](#42-4h-regime)'s corrected OI treatment). 1h bias `BULLISH`
-(`bias_evi=0.30`, `agreement=0.75`). Directional context: both regime and
-bias already align with the candidate `LONG` direction by precondition
-([§7.1](#71-trend_pullback) requires exact agreement, stricter than the
+**Valid `TREND_PULLBACK` (LONG), full `EARLY_SIGNAL → CONFIRMED` lifecycle
+(`T_detect`/`T_confirm`, [§7.1](#71-trend_pullback)).** 4h regime
+`BULLISH_TRENDING` (`price_evi=0.55`, `agreement=0.80`,
+`oi_confirmation=+0.20` — no veto, per [§4.2](#42-4h-regime)'s corrected OI
+treatment). 1h bias `BULLISH` (`bias_evi=0.30`, `agreement=0.75`).
+Directional context: both regime and bias already align with the candidate
+`LONG` direction by precondition ([§7.1](#71-trend_pullback) requires exact
+agreement, stricter than the
 [§7.0b](#70b-directional-context-compatibility-gate-amended--closes-a-countertrend-gap)
-gate used by the breakout families). 15m: `trend_leg_extreme (high) =
-65,000`, current `close = 64,350`, `retracement_pct =
-(65000-64350)/65000*100 = 1.0%`; `RANGE_PROXY_pct(15m,14,B) = 0.4%`; valid
-range is `[0.5*0.4, 3.0*0.4] = [0.20%, 1.20%]` — `1.0%` is inside → valid
-pullback. 5m: consensus `price_move_pct_median` sign `+1`,
-`price_direction_agreement = 0.75 >= 2/3` on one closed bucket → confirmed.
-`pullback_extreme_low = 64,300`, `protection_buffer(15m,B,64350) ≈
-max(3*tick, 64350*0.4%*0.5) ≈ 128.7` (using `tick_size=0.1` for
-illustration) → `invalidation_price ≈ 64,171.3`. `confirmation_reference_price
-= 64,350` (the confirming 5m close) →
-`planned_risk_distance = |64350 - 64171.3| ≈ 178.7 > MIN_VALID_PLANNED_RISK`
-→ valid, `CONFIRMED` reached. Entry zone `[64,300, 64,350]`. →
-`TREND_PULLBACK`, `LONG`, `CONFIRMED`.
+gate used by the breakout families). `trend_leg_extreme (high) = 65,000`.
 
-**Rejected `TREND_PULLBACK`.** Same 4h/1h context, but
-`retracement_pct = 1.8%` against the same `[0.20%,1.20%]` valid range →
-exceeds `PULLBACK_MAX_MULT` → classified as trend failure, not a pullback
-→ **no candidate formed**.
+```text
+T1 (15m decision boundary = T_detect; also a 5m boundary):
+   close(B15_detect) = 64,350.
+   retracement_pct = (65,000-64,350)/65,000*100 = 1.0%;
+   RANGE_PROXY_pct(15m,14,B15_detect) = 0.4%; valid range = [0.20%,1.20%] -> valid pullback.
+   pullback_extreme_low = 64,300 (deepest close reached during the retracement).
+   protection_buffer(15m,B15_detect,64,350) ≈ max(3*tick, 64,350*0.4%*0.5) ≈ 128.7
+      (tick_size=0.1 for illustration).
+   invalidation_price ≈ 64,300 - 128.7 = 64,171.3.
+   B5_detect = selected_bucket(5m, T1); bucket_ts(B5_detect) == T1 (a 15m
+      boundary always coincides with a 5m boundary). B5_detect's own close
+      (64,350) ALREADY satisfies the 5m resumption trigger on its own
+      (price_move_pct_median sign +1, price_direction_agreement =
+      0.75 >= 2/3) -- but per the T_confirm > T_detect rule above this does
+      NOT confirm: bucket_ts(B5_detect) == T_detect, not strictly later, so
+      it can never itself serve as the confirming bucket.
+   => EARLY_SIGNAL at T1. detection_timestamp = T1.
+      Entry zone (EARLY_SIGNAL entry-zone rule above): [pullback_extreme_low, close(B15_detect)]
+                                        = [64,300, 64,350].
+
+T2 (the very next 5m decision boundary, B5' with bucket_ts(B5') =
+    T1 + 5m > bucket_ts(B5_detect)):
+   B5' closes at 64,350 (price steady). price_move_pct_median sign +1,
+   price_direction_agreement = 0.75 >= 2/3 on B5' -> resumption trigger
+   holds on this later, distinct bucket.
+   confirmation_close_price = close(B5') = 64,350.
+   => CONFIRMED at T2 (T2 = T1 + 5m > T1, strictly).
+      Entry zone updates one final time and freezes (CONFIRMED entry-zone
+      rule above): [64,300, 64,350] (numerically unchanged here since price
+      was steady between T1 and T2 -- the zone still legitimately
+      re-derives from confirmation_close_price, not from the stale
+      EARLY_SIGNAL value).
+      planned_risk_distance = |64,350 - 64,171.3| ≈ 178.7 > MIN_VALID_PLANNED_RISK -> valid.
+```
+→ `TREND_PULLBACK`, `LONG`, `EARLY_SIGNAL` at `T1` (zone `[64,300,
+64,350]`, `invalidation_price ≈ 64,171.3`), `CONFIRMED` at `T2 = T1 + 5m`
+(zone frozen at `[64,300, 64,350]`) — this is the precise case the
+`T_confirm > T_detect` rule guards against: `B5_detect` already qualified
+for resumption at `T1` itself, yet the episode is **not** confirmed until
+the next, distinct 5m bucket at `T2`.
+
+**Rejected `TREND_PULLBACK` (invalid retracement magnitude — no candidate
+ever formed).** Same 4h/1h context, but `retracement_pct = 1.8%` against
+the same `[0.20%,1.20%]` valid range → exceeds `PULLBACK_MAX_MULT` →
+classified as trend failure, not a pullback → **no candidate formed**
+(never reaches `EARLY_SIGNAL`).
+
+**`TREND_PULLBACK` expiry vector (`EARLY_SIGNAL` formed, resumption never
+arrives).** Same `EARLY_SIGNAL` at `T1` as the valid vector above (valid
+retracement, `detection_timestamp = T1`, `B5_detect` at `T1` already
+showing a matching-sign move that — per the `T_confirm > T_detect` rule —
+cannot itself confirm). Over the following `PULLBACK_MAX_AGE(8×15m)`
+closed 15m buckets, no 5m bucket strictly after `B5_detect` ever satisfies
+the resumption trigger (`price_move_pct_median` sign matching **and**
+`price_direction_agreement >= 2/3`) — price chops sideways without a
+qualifying resumption close. The entry zone may still update
+pre-confirmation at each later 15m boundary per the pre-confirmation
+update rule above, but no `T_confirm` is ever reached. At
+`T1 + PULLBACK_MAX_AGE`
+→ `EXPIRED` ([§13](#13-lifecycle-transition-semantics)). The episode
+**did** exist from `T1` onward (`EARLY_SIGNAL`), so this is a real
+lifecycle transition with a recorded outcome, not a silent non-creation.
 
 **Valid `COMPRESSION_BREAKOUT` (SHORT), full `EARLY_SIGNAL → CONFIRMED`
 lifecycle.** Within the 16-bucket `COMPRESSION_LOOKBACK` ending at `B15`,
@@ -2916,15 +3189,15 @@ T1 (bucket 1): reference exchange closes at 63,740 < 63,800 (range_low).
       [range_low - buffer, range_low] ≈ [63,670, 63,800].
 
 T2 (bucket 2, next closed 5m bucket): reference exchange closes at 63,710
-   (also < 63,800 — same side as T1).
-   => CONFIRMED_CLOSES(2) reached => CONFIRMED at T2.
+   (strictly < 63,800 — same side as T1, no intervening invalidating close).
+   => later confirming close reached => CONFIRMED at T2.
       invalidation_price = 63,800 + protection_buffer(...) ≈ 63,930.
 ```
 → `COMPRESSION_BREAKOUT`, `SHORT`, `EARLY_SIGNAL` at T1, `CONFIRMED` at T2.
 
 **`COMPRESSION_BREAKOUT` false-break vector (re-entry case).** Same
 `EARLY_SIGNAL` (`SHORT`, broken below `range_low = 63,800`) as above at T1.
-At T2 (before the second confirming close), the reference exchange instead
+At T2 (before a confirming close arrives), the reference exchange instead
 closes at `63,850`. Under the direction-aware rule: `SHORT` holds iff
 `close <= range_low (63,800)`; `63,850 > 63,800` → does **not** hold →
 `INVALIDATED` at T2, never reaching `CONFIRMED`. (This is also, incidentally,
@@ -2949,11 +3222,34 @@ direction-aware rule: `SHORT` holds iff `close <= range_low (63,800)`;
 check catches this case exactly because it never asks "is price back
 inside the range," only "does the breakout side still hold."
 
+**`COMPRESSION_BREAKOUT` boundary-equality hold vector (later qualifying
+close within deadline).** Same `EARLY_SIGNAL` (`SHORT`, broken
+below `range_low = 63,800`) as above at T1.
+
+```text
+T2 (next closed 5m bucket): reference exchange closes at exactly 63,800
+   (boundary equality). Neither confirms (CONFIRMED requires a close
+   strictly beyond the boundary, i.e. strictly < 63,800 for SHORT) nor
+   invalidates (SHORT holds iff close <= range_low, and 63,800 <= 63,800).
+   => neutral HOLD at T2 -- consumes one bucket of CONFIRMATION_MAX_AGE(3x5m),
+      episode remains EARLY_SIGNAL.
+
+T3 (next closed 5m bucket, still within CONFIRMATION_MAX_AGE): reference
+   exchange closes at 63,720 (strictly < 63,800, no intervening
+   invalidating close between T1 and T3 -- T2's boundary-equality close
+   does not count as one).
+   => later confirming close reached => CONFIRMED at T3.
+```
+→ `COMPRESSION_BREAKOUT`, `SHORT`, `EARLY_SIGNAL` at T1, neutral hold at
+T2, `CONFIRMED` at T3 — demonstrating the confirming close is not required
+to be immediately adjacent to `EARLY_SIGNAL`, only to arrive within
+`CONFIRMATION_MAX_AGE` with no intervening invalidating close.
+
 **`COMPRESSION_BREAKOUT` expiry vector.** Same `EARLY_SIGNAL` at T1. Over
 the next `CONFIRMATION_MAX_AGE(3×5m)` closed buckets, price oscillates
-exactly at `63,800` without a clean second confirming close beyond it and
-without closing back inside the range either → deadline elapses →
-`EXPIRED`.
+exactly at `63,800` (boundary equality, neutral hold each time) without
+ever closing strictly beyond it and without closing back inside the range
+either → deadline elapses → `EXPIRED`.
 
 **Rejected `COMPRESSION_BREAKOUT` (insufficient compression duration).**
 `compression_score` reaches `0.75` for only `4 < COMPRESSION_MIN_DURATION(6)`
@@ -3013,8 +3309,9 @@ T1: reference exchange closes at 66,240 (beyond resistance_level).
    => EARLY_SIGNAL at T1. detection_timestamp = T1.
 
 T2 (next closed 5m bucket, within CONFIRMATION_MAX_AGE(8×5m)):
-   reference exchange closes at 66,290 (also beyond resistance_level).
-   => CONFIRMATION_CLOSES(2) reached => CONFIRMED at T2.
+   reference exchange closes at 66,290 (strictly beyond resistance_level,
+   no intervening invalidating close between T1 and T2).
+   => later confirming close reached => CONFIRMED at T2.
       invalidation_price = 66,200 - protection_buffer(1h,...) ≈ 66,050.
 ```
 → `CONFIRMED_BREAKOUT`, `LONG`, `EARLY_SIGNAL` at T1, `CONFIRMED` at T2.
@@ -3137,6 +3434,45 @@ Contrast: if E1 were still ACTIVE (e.g. WEAKENING, not yet INVALIDATED) at
 ```
 
 ### 29.11 Entry-feasibility vector
+
+**`EARLY_SIGNAL` feasibility — eligible ([§15.2](#152-early_notification_feasibility)).**
+Same `TREND_PULLBACK` `LONG` `EARLY_SIGNAL` as [§29.6](#296-setup-vectors)'s
+valid vector: `detection_timestamp = T1`, entry zone `[64,300, 64,350]`,
+`invalidation_price ≈ 64,171.3`.
+
+```text
+early_notification_reference_time = T1.
+early_assumed_entry_time = T1 + 90s.
+Sampled reference-exchange 1m close at/after early_assumed_entry_time: 64,360.
+OVERSHOOT_TOLERANCE = 0.25 * protection_buffer(...) ≈ 32.2
+early_entry_zone_upper + OVERSHOOT_TOLERANCE = 64,350 + 32.2 = 64,382.2
+64,360 <= 64,382.2 -> within tolerance. invalidation_price (64,171.3) not
+   breached as of early_assumed_entry_time.
+=> early-feasible = TRUE. The first EARLY_SIGNAL notification is sent,
+   using exactly the EARLY_SIGNAL-time zone/invalidation/confidence/coverage
+   (§16.1) -- never any later CONFIRMED-time value.
+```
+
+**`EARLY_SIGNAL` feasibility — suppressed ([§15.2](#152-early_notification_feasibility)).**
+Same `EARLY_SIGNAL` as above (`T1`, zone `[64,300, 64,350]`,
+`invalidation_price ≈ 64,171.3`), but price moves away from the zone
+faster:
+
+```text
+Sampled reference-exchange 1m close at/after early_assumed_entry_time (T1+90s): 64,420.
+early_entry_zone_upper + OVERSHOOT_TOLERANCE = 64,382.2 (same as above).
+64,420 > 64,382.2 -> outside tolerance, moved away from the zone.
+=> early-feasible = FALSE. The first EARLY_SIGNAL notification is
+   suppressed as already late -- the episode is still created, stored, and
+   evaluated exactly like any other (§17); it simply never produces the
+   initial actionable notification. This has no effect on the later,
+   independent CONFIRMED-time check (§15.1): if this same episode later
+   reaches CONFIRMED and CONFIRMED's own feasibility check
+   (using CONFIRMED-time inputs only) passes, the CONFIRMED notification
+   fires normally regardless of the earlier suppression.
+```
+
+**`CONFIRMED` feasibility — infeasible/late ([§15.1](#151-confirmed_actionability_feasibility)).**
 
 ```text
 CONFIRMED at T (TREND_PULLBACK LONG), entry_zone = [64,300, 64,350].

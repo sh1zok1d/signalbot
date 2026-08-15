@@ -452,12 +452,17 @@ This is a core V2 product requirement, not a nice-to-have.
   delay — a scenario is not "feasible" merely because the entry zone was
   valid at the moment of detection if, realistically, the user cannot act on
   it in time.
+- This applies **separately** to each notification: the first `EARLY_SIGNAL`
+  (early scenario information, graded against what was known at its own
+  detection) and the later `CONFIRMED` transition (fully price-confirmed
+  state) are each graded for feasibility using only what existed at that
+  event — never each other's, or any later, information.
 
 This contract deliberately does **not** freeze exact delay seconds,
 price-distance tolerances, ATR multiples, slippage assumptions, or any
 feasibility formula. Those are **FROZEN** in
-`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §15
-([§12](#12-deferred-to-later-contracts)).
+`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §15.1 (`CONFIRMED`) and §15.2
+(`EARLY_SIGNAL`) ([§12](#12-deferred-to-later-contracts)).
 
 ---
 
