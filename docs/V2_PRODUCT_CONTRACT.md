@@ -448,21 +448,32 @@ This is a core V2 product requirement, not a nice-to-have.
   it.
 - A late/non-actionable scenario **MUST NOT** generate a normal actionable
   trading notification ([§9](#9-notification-product-contract)).
-- Entry feasibility **MUST** account for real-world notification/decision
-  delay — a scenario is not "feasible" merely because the entry zone was
-  valid at the moment of detection if, realistically, the user cannot act on
-  it in time.
+- Two genuinely distinct feasibility concepts exist, and V2 **MUST NOT**
+  conflate them:
+  - a **live, no-future-data** check, evaluated at the moment a
+    notification would be sent, using only information already available
+    at that instant — this decides whether the notification is actually
+    emitted;
+  - a **retrospective, delayed-reaction evaluation** — accounting for
+    realistic notification/decision delay — computed only once the
+    necessary future data exists, used to grade an *already-emitted* (or
+    already-suppressed) scenario for research/acceptance purposes. This
+    delayed evaluation **MUST NOT** retroactively decide whether the
+    earlier notification was sent — a live notifier cannot wait for data
+    that has not arrived yet.
 - This applies **separately** to each notification: the first `EARLY_SIGNAL`
-  (early scenario information, graded against what was known at its own
-  detection) and the later `CONFIRMED` transition (fully price-confirmed
-  state) are each graded for feasibility using only what existed at that
-  event — never each other's, or any later, information.
+  (early scenario information) and the later `CONFIRMED` transition (fully
+  price-confirmed state) are each graded independently by both concepts
+  above, using only what existed at that event — never each other's, or
+  any later, information.
 
 This contract deliberately does **not** freeze exact delay seconds,
 price-distance tolerances, ATR multiples, slippage assumptions, or any
 feasibility formula. Those are **FROZEN** in
-`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §15.1 (`CONFIRMED`) and §15.2
-(`EARLY_SIGNAL`) ([§12](#12-deferred-to-later-contracts)).
+`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §15.1 (the live send-time
+eligibility gate) and §15.2 (the retrospective delayed-evaluation grade),
+each applied to both `EARLY_SIGNAL` and `CONFIRMED`
+([§12](#12-deferred-to-later-contracts)).
 
 ---
 

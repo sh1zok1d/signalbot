@@ -646,11 +646,12 @@ the same weighted score replayed at a different timeframe:
 | Threshold | `0.40` (stricter) | `0.25` (looser) |
 | OI role | Optional confirm/veto modulator — falling, sufficiently strong OI (`oi_confirmation <= REGIME_OI_VETO`, [§4.2](#42-4h-regime)) **may veto** a would-be trending call; OI **availability is not required** to establish direction (`oi_confirmation UNAVAILABLE` does not by itself make regime `INSUFFICIENT_DATA`, [§4.2](#42-4h-regime)); OI never selects `LONG`/`SHORT` on its own | Not used |
 | Compression awareness | Yes (`is_compressed` flag) | Not used |
-| Role | "Is there an established, OI-confirmed higher-timeframe trend?" | "Which way does the nearer-term tape lean, if at all?" |
+| Role | "Is there an established higher-timeframe price trend, optionally confirmed/vetoed by available OI context?" | "Which way does the nearer-term tape lean, if at all?" |
 
 A single strong impulsive 4h move is read by regime as one thing (a
-30d-relative price+OI-confirmed extreme) and by bias as a *different* thing
-(a 7d-relative price lean) — they can and often will agree, but they are
+30d-relative price extreme, optionally OI-modulated per the row above) and
+by bias as a *different* thing (a 7d-relative price lean) — they can and
+often will agree, but they are
 never computed from the same window, the same threshold, or the same
 evidence set, so the same market impulse is never summed as two
 independent votes. `TREND_PULLBACK` ([§7.1](#71-trend_pullback)) is the
@@ -761,7 +762,7 @@ other number in this document.
 | Coverage state | Direction computable? | Setup allowed? |
 |---|---|---|
 | `min_coverage_ratio >= 2/3` at the relevant timeframe(s), `consensus_confidence >= 50.0` | Yes | Yes, subject to the detector's own gates. |
-| `min_coverage_ratio < 2/3` for a **context** timeframe (4h/1h) | No — that context input is `INSUFFICIENT_DATA`/`UNAVAILABLE` ([§4](#4-multi-timeframe-context-contract)) | Detector-dependent: `TREND_PULLBACK` requires both regime and bias, so it fails closed; `COMPRESSION_BREAKOUT` requires only that its own gates pass (a neutral/unavailable 1h bias is not itself disqualifying per the Product Contract, but `INSUFFICIENT_DATA` 4h regime **is** disqualifying — "insufficient data" is not the same as "neutral"). |
+| `min_coverage_ratio < 2/3` for a **context** timeframe (4h/1h) | No — that context input is `INSUFFICIENT_DATA`/`UNAVAILABLE` ([§4](#4-multi-timeframe-context-contract)) | Detector-dependent: `TREND_PULLBACK` requires both regime and bias, so it fails closed on either. The breakout families (`COMPRESSION_BREAKOUT`, `CONFIRMED_BREAKOUT`) go through the shared `directional_context_gate` ([§7.0b](#70b-directional-context-compatibility-gate-amended--closes-a-countertrend-gap)): a genuinely measured `NEUTRAL_NOT_ESTABLISHED` 1h bias (or `NON_DIRECTIONAL` 4h regime) is **not** disqualifying — but `INSUFFICIENT_DATA` 4h regime **and** `UNAVAILABLE` 1h bias **both** fail closed for new episode formation, as two data-availability reasons distinct from the countertrend check. "Insufficient/unavailable data" is never treated the same as "neutral" for either timeframe. |
 | `min_coverage_ratio < 2/3` for the **5m trigger** bucket | No | No new candidate may transition to `CONFIRMED` at that boundary; an already-`CONFIRMED` episode is not auto-invalidated by this alone (missing evidence is not structural invalidation, [§10](#10-structural-invalidation)) but also cannot be strengthened/re-confirmed on that boundary. |
 | Single-exchange contribution to any family | Coverage `< 2/3` (1-of-3) → fails the gate above by construction (the frozen consensus minimum, `STAGE2_SPEC.md` §11.1, already refuses a single exchange). **A single exchange's data MUST NOT masquerade as consensus** — this is enforced by the existing `minimum_exchange_coverage` gate, reused unchanged, not re-implemented. | — |
 
@@ -1069,9 +1070,10 @@ re-evaluations of the same episode, not new detections):
 ```text
 detection_timestamp = T_detect
 B15_detect = selected_bucket(15m, T_detect)          # == B15 evaluated at T_detect
-B5_detect  = selected_bucket(5m,  T_detect)          # most recent closed 5m bucket as of T_detect;
-                                                       # since 15m boundaries are also 5m boundaries,
-                                                       # bucket_ts(B5_detect) == T_detect
+B5_detect  = selected_bucket(5m,  T_detect)          # the freshest legal 5m input at T_detect.
+                                                       # Per §1.3, selected_bucket(5m, T) = [T-5m, T):
+                                                       #   bucket_ts(B5_detect)  = T_detect - 5m
+                                                       #   bucket_end(B5_detect) = T_detect
 ```
 
 **Candidate age.** Max `PULLBACK_MAX_AGE = 8` closed 15m buckets (2h,
@@ -1080,33 +1082,58 @@ V2-v0) from `T_detect` to `T_confirm`, else → `EXPIRED`
 
 **5m confirmation (trigger) — exact `CONFIRMED` decision boundary.** The
 resumption trigger is evaluated at 5m decision boundaries (finer-grained
-than the 15m boundary that produced `T_detect`). At a 5m decision boundary
-`T'`, let `B5' = selected_bucket(5m, T')`. The trigger condition
-(unchanged): the consensus `price_move_pct_median` sign matches the trend
-direction (ternary sign, per `STAGE2_SPEC.md` §11.2) **and**
+than the 15m boundary that produced `T_detect`). Confirmation may only be
+evaluated at a **later** decision boundary `T' > T_detect` — never at
+`T_detect` itself. At such a `T'`, let `B5_confirm = selected_bucket(5m,
+T')` (per §1.3, `bucket_ts(B5_confirm) = T' - 5m`,
+`bucket_end(B5_confirm) = T'`). The trigger condition (unchanged): the
+consensus `price_move_pct_median` sign matches the trend direction
+(ternary sign, per `STAGE2_SPEC.md` §11.2) **and**
 `price_direction_agreement >= 2/3`, for **one** closed 5m bucket
 (`RESUMPTION_MIN_BUCKETS = 1`, V2-v0 — deliberately the loosest possible,
 since 5m's role is trigger, not strength-scoring,
 [§5.1](#51-percentile-lookback--window)).
 
-`T_confirm` is the **first** such `T'` for which the trigger condition
-holds on a bucket `B5'` that is **strictly later** than the detection-time
-bucket:
+`T_confirm` is the **first** such `T' > T_detect` for which the trigger
+condition holds on `B5_confirm`:
 
 ```text
-CONFIRMED at T_confirm  iff  trigger condition holds for B5'
-                              AND bucket_ts(B5') > bucket_ts(B5_detect)
+CONFIRMED at T_confirm  iff  T' > T_detect
+                              AND trigger condition holds for B5_confirm = selected_bucket(5m, T')
+                              AND T_confirm = T'  (the first such T')
 ```
 
-This last clause is load-bearing: because `bucket_ts(B5_detect) ==
-T_detect` (a 15m boundary always coincides with a 5m boundary), the 5m
-bucket that was *already closed and already known* at the moment
-`EARLY_SIGNAL` was created can never itself serve as the confirming
-bucket, even if it happens to already satisfy the trigger condition. The
-earliest possible `B5'` is the *next* closed 5m bucket after `B5_detect`,
-so `T_confirm >= T_detect + 5m`, strictly — `T_confirm > T_detect` always
-holds, and a new episode can never be created and immediately `CONFIRMED`
-from the same already-known 5m bucket.
+This is load-bearing by construction, not by a bucket-equality check:
+confirmation is only ever *evaluated* at a decision boundary strictly
+later than `T_detect`, so `B5_confirm` can never be `B5_detect` —
+`bucket_end(B5_detect) = T_detect` while `bucket_end(B5_confirm) =
+T_confirm > T_detect`, so the two buckets are never the same closed
+interval. The earliest possible confirmation is `T_confirm = T_detect +
+5m`, at which point `B5_confirm = selected_bucket(5m, T_detect + 5m) =
+[T_detect, T_detect + 5m)` — i.e. `bucket_ts(B5_confirm) = T_detect` (**not**
+`T_detect + 5m`; the bucket's *start*, not its *end*, coincides with
+`T_detect`) and `bucket_end(B5_confirm) = T_detect + 5m`. `T_confirm >
+T_detect` always holds, and a new episode can never be created and
+immediately `CONFIRMED` from the same already-known 5m bucket — even
+though `B5_confirm`'s own *start* is `T_detect`, `B5_confirm` itself is a
+closed interval that did not exist as a closed bucket until `T_detect +
+5m`, strictly after `EARLY_SIGNAL` was created.
+
+**Concrete timestamp vector (agrees exactly with §1.3):**
+
+```text
+T_detect = 12:15
+B15_detect = selected_bucket(15m, 12:15) = [12:00, 12:15)
+B5_detect  = selected_bucket(5m,  12:15) = [12:10, 12:15)   # bucket_ts=12:10, bucket_end=12:15=T_detect
+
+=> EARLY_SIGNAL at T_detect = 12:15.
+
+Earliest possible confirmation:
+T_confirm = 12:20 (= T_detect + 5m)
+B5_confirm = selected_bucket(5m, 12:20) = [12:15, 12:20)    # bucket_ts=12:15=T_detect, bucket_end=12:20=T_confirm
+
+trigger holds on B5_confirm => CONFIRMED at T_confirm = 12:20 > T_detect = 12:15.
+```
 
 **Structural invalidation.** `pullback_extreme` = the deepest `close_price`
 reached during the retracement (min for bullish, max for bearish, reference
@@ -1150,9 +1177,9 @@ SHORT: [close_price(B15', reference_exchange), pullback_extreme_high]
 the retracement deepens further (same "deepest close so far" rule above) —
 never as a function of anything not yet closed.
 
-*At `CONFIRMED` (`T_confirm`, using the confirming bucket `B5'`):* the zone
-updates **one final time**, now that
-`confirmation_close_price = close_price(B5', reference_exchange)` exists:
+*At `CONFIRMED` (`T_confirm`, using the confirming bucket `B5_confirm`):*
+the zone updates **one final time**, now that
+`confirmation_close_price = close_price(B5_confirm, reference_exchange)` exists:
 ```text
 LONG:  [pullback_extreme_low,  confirmation_close_price]
 SHORT: [confirmation_close_price, pullback_extreme_high]
@@ -1353,13 +1380,37 @@ These three outcomes (`CONFIRMED` / `INVALIDATED` via false break /
 `EARLY_SIGNAL` `COMPRESSION_BREAKOUT` episode — there is no fourth, hidden
 resolution.
 
-**Structural invalidation once `CONFIRMED`.**
+**Structural invalidation — computable at `EARLY_SIGNAL`, active once
+`CONFIRMED` (amended — an earlier draft's "once `CONFIRMED`" heading
+wrongly implied this level does not exist until then).** `range_low` and
+`range_high` are already fixed as of the compression window's own
+selection (above), *before* `EARLY_SIGNAL` is even reached, so this level
+is fully computable — and MUST be included in the `EARLY_SIGNAL`
+notification's `invalidation_price` field
+([§16.1](#161-early_signal-notification-content-and-history-invariants-v2-v0))
+— from the moment the episode is created:
+
 ```text
 LONG:  invalidation_price = range_low  - protection_buffer(15m, B15, reference_price)
 SHORT: invalidation_price = range_high + protection_buffer(15m, B15, reference_price)
 ```
-same close-based, single-bucket rule as [§7.1](#71-trend_pullback) and
-[§10](#10-structural-invalidation).
+
+This is the same close-based, single-bucket formula as
+[§7.1](#71-trend_pullback) and [§10](#10-structural-invalidation), and
+applies in **two roles** with an intentionally clean handoff between them:
+
+- **Pre-`CONFIRMED` (`EARLY_SIGNAL` only):** the **False-break rule above**
+  is the operative, *stricter* invalidation check during this window — it
+  fires on any close that no longer holds the breakout side (including a
+  simple re-entry, well before price would reach this formula's wider
+  `invalidation_price`). This planned `invalidation_price` is shown to the
+  user in the `EARLY_SIGNAL` notification as the level the episode is
+  *planning toward*, but it is **not yet the active invalidation trigger**
+  — the False-break rule is.
+- **At and after `CONFIRMED`:** this planned level **becomes** the active,
+  frozen, post-confirmation structural invalidation trigger — unchanged
+  from an earlier draft's behavior, just correctly described as already
+  computed rather than newly created at `CONFIRMED`.
 
 **Entry zone.** `[range boundary, range boundary ± protection_buffer]` —
 i.e. `[range_high, range_high + protection_buffer]` (LONG) /
@@ -1461,15 +1512,29 @@ each family's own qualification checks
 ([§7.4](#74-setup-family-precedence-and-deduplication)'s comparison table
 records the differences).
 
-**Invalidation once `CONFIRMED`.**
+**Structural invalidation — computable at `EARLY_SIGNAL`, active once
+`CONFIRMED`** (same amended shape as
+[§7.2](#72-compression_breakout)'s: `resistance_level`/`support_level` are
+already fixed as of the 1h structural lookback (above), before
+`EARLY_SIGNAL` is reached, so this level is fully computable — and MUST be
+included in the `EARLY_SIGNAL` notification's `invalidation_price` field
+([§16.1](#161-early_signal-notification-content-and-history-invariants-v2-v0))
+— from the moment the episode is created:
+
 ```text
 LONG:  invalidation_price = resistance_level - protection_buffer(1h, B1h, reference_price)
 SHORT: invalidation_price = support_level    + protection_buffer(1h, B1h, reference_price)
 ```
+
 i.e. beyond the broken level itself (not the retest extreme — unlike the
 Stage 2 Clarifications' historical sweep/reclaim design, V2's
 `CONFIRMED_BREAKOUT` has no retest-extreme concept; the broken level is the
-only structural anchor).
+only structural anchor). As with `COMPRESSION_BREAKOUT`: pre-`CONFIRMED`,
+the **False-break re-entry rule above** is the operative, stricter
+invalidation check (this planned level is shown to the user but is not yet
+the active trigger); at and after `CONFIRMED`, this planned level
+**becomes** the active, frozen, post-confirmation structural invalidation
+trigger.
 
 **Entry zone.** `[level, level ± protection_buffer]`, same construction as
 `COMPRESSION_BREAKOUT`'s.
@@ -1652,17 +1717,35 @@ this example — see the proof above.
   forming). **Once `CONFIRMED`, the entry zone is frozen** — it MUST NOT
   widen or narrow afterward. This mirrors [§10](#10-structural-invalidation)'s
   treatment of invalidation as a hard, stable gate once confirmed.
-- **Historical-truth rule:** an entry zone already shown to the user
-  (i.e. published in a `CONFIRMED` or later notification) **MUST NOT** be
-  silently rewritten. If a pre-`CONFIRMED` update legitimately changes the
-  zone, the prior published value is conceptually preserved in the
+- **Historical-truth rule (amended — `EARLY_SIGNAL` is user-visible too,
+  not only `CONFIRMED`).** An entry zone already shown to the user in
+  **any** already-published episode event — the initial `EARLY_SIGNAL`
+  notification, any subsequent material pre-`CONFIRMED` zone-update
+  notification, or `CONFIRMED` itself — **MUST NOT** be silently
+  rewritten. Concretely:
+  - the zone published in the `EARLY_SIGNAL` notification
+    ([§16.1](#161-early_signal-notification-content-and-history-invariants-v2-v0))
+    is immutable historical truth from the moment it is sent;
+  - a later pre-`CONFIRMED` zone change (material or not, per the next
+    bullet) is recorded as a **new** episode event — it never edits the
+    `EARLY_SIGNAL` notification's own recorded value;
+  - `CONFIRMED` may compute and freeze a new, final zone value — again a
+    new event, never a rewrite of any earlier one.
+
+  Every such prior published value is conceptually preserved in the
   episode's event history — reusing the same insert-once-per-event pattern
   frozen in [§2.1](#21-replay-behavior-for-late-arriving--corrected-data)
-  for feature snapshots. This is a logical requirement; physical event-history
-  persistence is implementation work, not specified here.
-- **What update requires a new material notification:** a pre-`CONFIRMED`
-  zone change is **not** itself material ([§16](#16-notification-materiality--anti-spam-thresholds));
-  the `CONFIRMED` transition (which freezes the zone) is always material.
+  for feature snapshots. This is a logical requirement; physical
+  event-history persistence is implementation work, not specified here.
+- **What update requires a new material notification (see
+  [§16](#16-notification-materiality--anti-spam-thresholds) for the exact,
+  normative threshold — stated here only as a pointer, not restated, to
+  avoid two normative copies of the same rule):** not every pre-`CONFIRMED`
+  zone change is material — only one whose bound moves by more than
+  `0.5 * protection_buffer` (V2-v0), subject to
+  [§16](#16-notification-materiality--anti-spam-thresholds)'s cooldown.
+  The `CONFIRMED` transition (which freezes the zone) is **always**
+  material, regardless of how small the final move was.
 
 ---
 
@@ -1967,38 +2050,118 @@ duration.
 
 ## 15. Entry-feasibility evaluation
 
-Two genuinely distinct concepts:
+Three genuinely distinct concepts (re-amended — separates a **LIVE,
+no-future-data** notification gate from a **retrospective, future-data**
+evaluation grade, which an earlier draft conflated by using a `T+90s`
+sampled price to decide whether the earlier notification at `T` was sent —
+impossible for a live notifier, which cannot wait for a bar that has not
+closed yet):
 
 1. **Analytical setup validity** — the detector's own gates in
    [§7](#7-setup-detectors) are satisfied. This alone does not mean the
    trade is still enterable.
-2. **Real-world actionability** — whether, after a realistic reaction
-   delay, price is still within reach of the published entry zone.
+2. **`send_time_notification_eligibility`**
+   ([§15.1](#151-send_time_notification_eligibility)) — evaluated **at the
+   moment an event is emitted** (`EARLY_SIGNAL` or `CONFIRMED`), using
+   **only data already closed as of that event's own decision boundary**.
+   This is the live gate deciding whether the event is allowed to produce
+   a normal actionable notification *right now*. **No future data
+   participates.**
+3. **`assumed_entry_feasibility`**
+   ([§15.2](#152-assumed_entry_feasibility)) — a retrospective,
+   evaluation-only grade of an event that has *already* been emitted (or
+   already suppressed), computed once the required future 1-minute bar
+   actually exists. It answers "would the scenario still have been
+   realistically enterable after a realistic reaction/delivery delay?" and
+   feeds `lateness_status`/acceptance metrics. It **never** decides whether
+   the earlier notification was sent — that data did not exist at send
+   time.
 
-This section freezes **two separate, decision-boundary-scoped** feasibility
-checks — [§15.1](#151-confirmed_actionability_feasibility) for the
-`CONFIRMED` transition, and [§15.2](#152-early_notification_feasibility)
-for the first `EARLY_SIGNAL`. Each is evaluated using only the data
-available at its own decision boundary; neither may use the other's
-(earlier- or later-arriving) inputs.
+Both checks apply **independently to both `EARLY_SIGNAL` and `CONFIRMED`**,
+each scoped to that event's own decision boundary; no check — live or
+retrospective — may use the *other event's* inputs (an `EARLY_SIGNAL`
+check never uses `CONFIRMED`-time data, and vice versa, per
+[§9](#9-entry-zone-semantics)'s historical-truth rule).
 
-### 15.1 `confirmed_actionability_feasibility`
+### 15.1 `send_time_notification_eligibility`
 
-**V2-v0 delay assumption:**
+**LIVE — no future data.** Evaluated at the exact decision boundary an
+event is emitted (`EARLY_SIGNAL`'s `detection_timestamp`, or `CONFIRMED`'s
+own decision boundary), using only values the detector has **already
+computed** to reach that event — never a separately sampled future price.
 
 ```text
-ASSUMED_NOTIFICATION_DELAY_S = 90   # seconds
+event_reference_time  = detection_timestamp                          # EARLY_SIGNAL
+                       = the CONFIRMED decision boundary (T_confirm)  # CONFIRMED
+event_reference_price = the reference exchange's closed price the detector
+                         already used to decide THIS event -- e.g.
+                         close_price(B15_detect) for TREND_PULLBACK's
+                         EARLY_SIGNAL, confirmation_close_price for any
+                         family's CONFIRMED, the breakout bucket's own
+                         close for a breakout family's EARLY_SIGNAL
+                         (per-detector, §7 -- always a value already
+                         computed to reach this event, never sampled
+                         separately)
+event_entry_zone_upper / event_entry_zone_lower = the entry zone AS IT
+                         EXISTS at event_reference_time (the EARLY_SIGNAL
+                         zone for EARLY_SIGNAL; the just-frozen CONFIRMED
+                         zone for CONFIRMED, §9)
+event_invalidation_price = the structural invalidation level known AS OF
+                         event_reference_time (per-detector, §7)
+OVERSHOOT_TOLERANCE = 0.25 * protection_buffer(setup_timeframe, B, reference_price)
+
+LONG:  send-eligible iff event_reference_price <= event_entry_zone_upper + OVERSHOOT_TOLERANCE
+                          AND event_invalidation_price not yet breached (reference exchange,
+                              closed 5m bucket) as of event_reference_time
+SHORT: send-eligible iff event_reference_price >= event_entry_zone_lower - OVERSHOOT_TOLERANCE
+                          AND event_invalidation_price not yet breached as of event_reference_time
+```
+
+Every input above already exists at `event_reference_time` because the
+detector computed it to reach this event in the first place
+([§2](#2-no-lookahead-semantics-per-input-family)'s no-lookahead rule) —
+**no `T + delay` sample of any kind participates in this check.**
+
+**If `send-eligible` is false:** the normal actionable notification for
+this event is suppressed **immediately, at send time** — the episode is
+still created/updated, stored, and evaluated exactly like any other
+([§17](#17-outcome--evaluation-model)); it simply never produces that
+particular actionable notification
+([§16](#16-notification-materiality--anti-spam-thresholds)). This applies
+independently to `EARLY_SIGNAL` and `CONFIRMED` — an `EARLY_SIGNAL`
+suppressed at send time has **no bearing** on `CONFIRMED`'s own, later,
+independent check, and vice versa. A `CONFIRMED` episode whose send-time
+check fails still transitions through the normal lifecycle rules
+([§13](#13-lifecycle-transition-semantics)) exactly as before.
+
+### 15.2 `assumed_entry_feasibility`
+
+**Retrospective evaluation only — future data permitted as outcome
+input, never as a decision input.** This is a **grading concept, not a
+send-time gate**, computed **after the fact**, once the required future
+1-minute bar has actually closed — chronologically later than, and never
+an input to, [§15.1](#151-send_time_notification_eligibility) above.
+
+```text
+ASSUMED_USER_ACTION_DELAY_S = 90   # seconds -- renamed from an earlier draft's
+                                    # ASSUMED_NOTIFICATION_DELAY_S. That name
+                                    # invited confusing "how long before
+                                    # Telegram sends the message" (zero — see
+                                    # §15.1) with "how long before a real user
+                                    # could realistically act" (this constant).
 ```
 
 This is an **evaluation assumption used to grade V2's own output**, not a
 promise that any given user reacts within 90 seconds — stated explicitly,
 per the Product Contract's requirement that this number not be read as a
 guarantee. It is deliberately conservative (fast enough to be meaningful,
-slow enough not to flatter V2 by assuming instant reaction).
+slow enough not to flatter V2 by assuming instant reaction). It
+`rules_version`-participates exactly as its predecessor did
+([§3](#3-v2-modelversion-identity)).
 
 ```text
-notification_reference_time = T of the decision boundary at which CONFIRMED was reached
-assumed_entry_time = notification_reference_time + ASSUMED_NOTIFICATION_DELAY_S
+assumed_entry_time = event_reference_time + ASSUMED_USER_ACTION_DELAY_S
+   # event_reference_time as defined in §15.1, separately for EARLY_SIGNAL and CONFIRMED
 ```
 
 **Price sampled after the delay:** the reference exchange's 1-minute kline
@@ -2006,19 +2169,26 @@ close of the bar whose close timestamp is the smallest one `>=
 assumed_entry_time` — the same "sample at a well-defined discrete close
 instant" convention V1's outcome evaluator already uses
 (`analytics/forecasting/outcomes.py`: `target_bar_ts = end − 1m`, evaluated
-at that bar's close).
+at that bar's close). **This bar does not exist at `event_reference_time`**
+— it is chronologically future data relative to the event, permitted here
+**only** because this is outcome/evaluation computation run once that bar
+has actually closed, never a live decision input
+([§2](#2-no-lookahead-semantics-per-input-family) still governs every
+*decision*; this is evaluation, not a decision).
 
 **Feasibility (V2-v0):**
 
 ```text
-OVERSHOOT_TOLERANCE = 0.25 * protection_buffer(setup_timeframe, B, reference_price)
-
-LONG:  feasible iff sampled_price <= entry_zone_upper + OVERSHOOT_TOLERANCE
-                     AND invalidation_price not yet breached (reference exchange,
-                         closed 5m bucket) as of assumed_entry_time
-SHORT: feasible iff sampled_price >= entry_zone_lower - OVERSHOOT_TOLERANCE
-                     AND invalidation_price not yet breached as of assumed_entry_time
+LONG:  assumed-feasible iff sampled_price <= event_entry_zone_upper + OVERSHOOT_TOLERANCE
+                             AND event_invalidation_price not yet breached (reference exchange,
+                                 closed 5m bucket) as of assumed_entry_time
+SHORT: assumed-feasible iff sampled_price >= event_entry_zone_lower - OVERSHOOT_TOLERANCE
+                             AND event_invalidation_price not yet breached as of assumed_entry_time
 ```
+
+(`event_entry_zone_upper`/`event_entry_zone_lower`/`event_invalidation_price`/
+`OVERSHOOT_TOLERANCE` are the same values [§15.1](#151-send_time_notification_eligibility)
+defines for the same event.)
 
 A price that moved *further into* the zone (a deeper LONG pullback price,
 a lower SHORT breakout retrace) is **more** favorable, never infeasible —
@@ -2027,69 +2197,37 @@ only price moving *away* from the zone by more than the tolerance is
 regardless of how strong the analytical setup was — an obviously missed
 move MUST NOT be counted as a successful actionable V2 call.
 
-**If invalidation was already reached before the assumed entry time:** the
-episode is marked infeasible for this purpose (no actionable notification
-is generated for it) and still transitions to `INVALIDATED` through the
-normal lifecycle rules ([§13](#13-lifecycle-transition-semantics)) — it is
-retained for research ([§17](#17-outcome--evaluation-model)) but never
-published as an actionable trade idea.
+**What this feeds:** `assumed-feasible` (for `CONFIRMED`) drives
+`lateness_status` (`ACTIONABLE` vs. `LATE`/`INVALIDATED_BEFORE_ENTRY`,
+[§17](#17-outcome--evaluation-model)), the feasibility acceptance metric
+([§27](#27-acceptance-metric-hierarchy)), `feasible_entry_price`, and every
+`execution_*` metric
+([§18.3](#183-execution-risk-and-execution-r-normalized-metrics-actionable-only)).
+The `EARLY_SIGNAL`-event version of the same check is recorded purely as
+research/evaluation context on the episode's own history — it never
+retroactively edits whether the `EARLY_SIGNAL` notification was sent
+([§16.1](#161-early_signal-notification-content-and-history-invariants-v2-v0)).
 
-A late/infeasible `CONFIRMED` episode is **stored and evaluated exactly
-like any other** — it simply never produces an actionable notification
-([§16](#16-notification-materiality--anti-spam-thresholds)).
-
-### 15.2 `early_notification_feasibility`
-
-The first `EARLY_SIGNAL` notification ([§16](#16-notification-materiality--anti-spam-thresholds))
-is graded by a **structurally identical but independently-scoped** check —
-using only values that exist **at the `EARLY_SIGNAL` decision boundary
-itself**, never the (later, not-yet-existing) `CONFIRMED` zone,
-`confirmation_close_price`, or any subsequent price data.
+**It MUST NOT decide whether a notification was sent.** A scenario may
+therefore legitimately be:
 
 ```text
-early_notification_reference_time = detection_timestamp        # T_detect, per-detector (§7)
-early_assumed_entry_time = early_notification_reference_time + ASSUMED_NOTIFICATION_DELAY_S
+send-eligible at event_reference_time (§15.1 -- notification IS emitted)
+but later graded assumed-infeasible/LATE under the 90s evaluation (§15.2)
 ```
 
-The same `ASSUMED_NOTIFICATION_DELAY_S = 90` is reused (V2-v0 does not
-freeze a second, separate delay constant), and the same sampled-price
-convention as [§15.1](#151-confirmed_actionability_feasibility) applies:
-the reference exchange's 1-minute kline close of the bar whose close
-timestamp is the smallest one `>= early_assumed_entry_time`.
-
-**Feasibility (V2-v0):** the same shape as
-[§15.1](#151-confirmed_actionability_feasibility), but every input is the
-`EARLY_SIGNAL`-time value — the entry zone as it existed at
-`detection_timestamp` (its initial value, [§9](#9-entry-zone-semantics))
-and the structural invalidation level known as of that same event
-(per-detector, [§7](#7-setup-detectors)):
-
-```text
-early_entry_zone_upper / early_entry_zone_lower = the EARLY_SIGNAL entry zone AS OF detection_timestamp
-early_invalidation_price = the structural invalidation level known AS OF detection_timestamp
-OVERSHOOT_TOLERANCE = 0.25 * protection_buffer(setup_timeframe, B, reference_price)   # same as §15.1
-
-LONG:  early-feasible iff sampled_price <= early_entry_zone_upper + OVERSHOOT_TOLERANCE
-                            AND early_invalidation_price not yet breached (reference exchange,
-                                closed 5m bucket) as of early_assumed_entry_time
-SHORT: early-feasible iff sampled_price >= early_entry_zone_lower - OVERSHOOT_TOLERANCE
-                            AND early_invalidation_price not yet breached as of early_assumed_entry_time
-```
-
-**Suppression ("already late" at `EARLY_SIGNAL`):** if `early-feasible` is
-false, the first `EARLY_SIGNAL` notification
-([§16](#16-notification-materiality--anti-spam-thresholds)) is suppressed —
-the episode is still created, stored, and evaluated exactly like any other
-([§17](#17-outcome--evaluation-model)); it simply never produces the
-initial actionable notification. This suppression has **no effect** on the
-later, independent [§15.1](#151-confirmed_actionability_feasibility) check
-at `CONFIRMED`: an episode suppressed at `EARLY_SIGNAL` for being already
-late can still notify normally at `CONFIRMED` if `CONFIRMED`'s own
-check (using `CONFIRMED`-time inputs) passes, and vice versa. The later
-`CONFIRMED` zone or later price data MUST NOT retroactively decide whether
-the earlier `EARLY_SIGNAL` notification was feasible — each check is
-frozen to its own decision boundary's inputs, permanently
-([§9](#9-entry-zone-semantics)'s historical-truth rule).
+That is not a contradiction — it is precisely what the feasibility
+acceptance metric measures: whether a scenario V2 was willing to publish
+*live* would, in hindsight, still have been realistically enterable. The
+converse also holds: an event already send-suppressed at
+`event_reference_time` (§15.1) obviously will not later be counted as a
+successful actionable call, regardless of what the 90s-delayed price does
+— it never had a chance to be `ACTIONABLE` in the first place. A
+`CONFIRMED` episode whose `assumed-feasible` check fails, or whose
+invalidation was already reached before `assumed_entry_time`, is **stored
+and evaluated exactly like any other** ([§17](#17-outcome--evaluation-model))
+— it simply never counts in the `ACTIONABLE` population
+([§26.1](#261-episode-population-definitions)).
 
 ---
 
@@ -2097,8 +2235,8 @@ frozen to its own decision boundary's inputs, permanently
 
 | Event | Material? | V2-v0 condition |
 |---|---|---|
-| First `EARLY_SIGNAL` | Only if `early-feasible` ([§15.2](#152-early_notification_feasibility)) — rare to suppress, but a pathologically late `EARLY_SIGNAL` is still not notified | — |
-| `CONFIRMED` | **Always material, if `confirmed_actionability_feasibility` holds** ([§15.1](#151-confirmed_actionability_feasibility)) | — |
+| First `EARLY_SIGNAL` | Only if `send_time_notification_eligibility` passes ([§15.1](#151-send_time_notification_eligibility)) — a live, no-future-data check; rare to fail, but a breakout already blown past its own zone+tolerance at the deciding close is suppressed immediately | — |
+| `CONFIRMED` | **Always material, if `send_time_notification_eligibility` passes** ([§15.1](#151-send_time_notification_eligibility)) — same live, no-future-data check, evaluated at `CONFIRMED`'s own decision boundary | — |
 | Confidence-only update | Material iff `|Δ model_confidence| >= 0.15` (V2-v0) on the unit-interval scale | — |
 | Zone update | Material only pre-`CONFIRMED` (zone is frozen after, [§9](#9-entry-zone-semantics)) and only if the zone bound moves by more than `0.5 * protection_buffer` (V2-v0) | — |
 | `WEAKENING` | Always material (state change) | — |
@@ -2118,10 +2256,22 @@ Routine 5m re-evaluation that changes no state and moves confidence by
 less than the threshold is, by construction, never notification-worthy —
 this is the anti-spam invariant `V2_PRODUCT_CONTRACT.md` §3/§9 requires.
 
+**`assumed_entry_feasibility` ([§15.2](#152-assumed_entry_feasibility)) is
+not a materiality input.** The retrospective 90-second evaluation grade —
+computed later, once the required future 1-minute bar exists — does
+**not** decide whether `First EARLY_SIGNAL` or `CONFIRMED` above was
+material/emitted; that decision is made **once**, live, by
+`send_time_notification_eligibility`. The 90s grade only later labels an
+*already-emitted* event's `lateness_status` for research/acceptance
+purposes ([§17](#17-outcome--evaluation-model),
+[§27](#27-acceptance-metric-hierarchy)) — it never retroactively creates,
+cancels, or un-sends a notification.
+
 ### 16.1 `EARLY_SIGNAL` notification content and history invariants (V2-v0)
 
-When the first `EARLY_SIGNAL` notification is material
-([§15.2](#152-early_notification_feasibility)), its content is a
+When the first `EARLY_SIGNAL` notification is material —
+`send_time_notification_eligibility` passes,
+[§15.1](#151-send_time_notification_eligibility) — its content is a
 **complete, user-visible semantic record**, entirely determined by data
 already closed as of `detection_timestamp`:
 
@@ -2136,19 +2286,34 @@ EARLY_SIGNAL notification content:
                            # itself only starts counting from CONFIRMED, §14)
   model_confidence        # §8, computed from data closed as of detection_timestamp
   data_coverage           # min_coverage_ratio / consensus_confidence, as of detection_timestamp
-  feasibility_status      # early-feasible | suppressed, §15.2
+  send_eligibility_status # eligible | suppressed -- computed LIVE, at detection_timestamp itself,
+                           # from data the detector already has (§15.1). This is the ONLY
+                           # feasibility-shaped field the notification record carries at
+                           # EARLY_SIGNAL time.
 ```
 
 **No field above may depend on data that does not exist yet at
 `detection_timestamp`** — in particular none of them may read
-`confirmation_close_price`, the `CONFIRMED`-time entry zone, or any
+`confirmation_close_price`, the `CONFIRMED`-time entry zone, any
 `CONFIRMED`/`ACTIONABLE`-only metric
-([§18](#18-risk-normalized-metrics-planned-risk-vs-execution-risk)), all of
-which are undefined until `T_confirm`/`CONFIRMED`. This is the same
-no-future-information constraint
-[§2](#2-no-lookahead-semantics-per-input-family) already freezes for
-feature computation generally, applied here to the notification content
-itself.
+([§18](#18-risk-normalized-metrics-planned-risk-vs-execution-risk)), or the
+`T + ASSUMED_USER_ACTION_DELAY_S` sampled price
+([§15.2](#152-assumed_entry_feasibility)) — all of which are undefined
+until `T_confirm`/`CONFIRMED`, or until the future 1-minute bar has
+actually closed, respectively. This is the same no-future-information
+constraint [§2](#2-no-lookahead-semantics-per-input-family) already
+freezes for feature computation generally, applied here to the
+notification content itself. The later `assumed_entry_feasibility` grade
+([§15.2](#152-assumed_entry_feasibility)) is recorded **separately**, as a
+later outcome/evaluation fact on the episode's outcome record
+([§17](#17-outcome--evaluation-model): `assumed_feasible_entry_timestamp`,
+`feasible_entry_price_or_status`) — it is never retroactively attached to
+the `EARLY_SIGNAL` notification event itself, as if it had been known at
+`detection_timestamp`. Replay reproduces these as **two separate
+deterministic facts**: the same live `send_eligibility_status` from
+event-time inputs, and — chronologically later — the same
+`assumed_entry_feasibility` outcome from the same future inputs a live run
+would eventually have observed too.
 
 **History preservation.** A value already published in the `EARLY_SIGNAL`
 notification (the initial entry zone, invalidation level, confidence,
@@ -2256,7 +2421,7 @@ invalidation_price|` and used it **both** as a hard fail-closed gate at
 `CONFIRMED` **and** as the denominator for every R-normalized outcome
 metric. That is an impossible timing dependency: `feasible_entry_price`
 ([§15](#15-entry-feasibility-evaluation)) is sampled only
-`ASSUMED_NOTIFICATION_DELAY_S = 90` seconds **after** the `CONFIRMED`
+`ASSUMED_USER_ACTION_DELAY_S = 90` seconds **after** the `CONFIRMED`
 decision boundary, and only exists at all when `lateness_status ==
 ACTIONABLE`. A quantity that does not yet exist at `CONFIRMED` cannot gate
 whether an episode is allowed to reach `CONFIRMED`. This section fixes that
@@ -2558,7 +2723,7 @@ version): every numeric constant introduced in this document —
 `BUFFER_MULTIPLIER`, `CONFIRMATION_MAX_AGE` for both breakout families,
 all per-family age/horizon numbers
 ([§14](#14-candidate-expiry-and-expected-horizons)),
-`ASSUMED_NOTIFICATION_DELAY_S`, `OVERSHOOT_TOLERANCE`'s multiplier,
+`ASSUMED_USER_ACTION_DELAY_S`, `OVERSHOOT_TOLERANCE`'s multiplier,
 `ASSUMED_ROUND_TRIP_COST_BPS`, `MIN_VALID_PLANNED_RISK`'s tick multiplier, confidence
 weights (the count-based partial-evidence cap from an earlier draft has
 been **removed**, [§8](#8-model-confidence-semantics) — the corrected
@@ -3099,7 +3264,8 @@ agreement, stricter than the
 gate used by the breakout families). `trend_leg_extreme (high) = 65,000`.
 
 ```text
-T1 (15m decision boundary = T_detect; also a 5m boundary):
+T1 = T_detect = 12:15 (a 15m decision boundary, also a 5m boundary):
+   B15_detect = selected_bucket(15m, 12:15) = [12:00, 12:15).
    close(B15_detect) = 64,350.
    retracement_pct = (65,000-64,350)/65,000*100 = 1.0%;
    RANGE_PROXY_pct(15m,14,B15_detect) = 0.4%; valid range = [0.20%,1.20%] -> valid pullback.
@@ -3107,24 +3273,32 @@ T1 (15m decision boundary = T_detect; also a 5m boundary):
    protection_buffer(15m,B15_detect,64,350) ≈ max(3*tick, 64,350*0.4%*0.5) ≈ 128.7
       (tick_size=0.1 for illustration).
    invalidation_price ≈ 64,300 - 128.7 = 64,171.3.
-   B5_detect = selected_bucket(5m, T1); bucket_ts(B5_detect) == T1 (a 15m
-      boundary always coincides with a 5m boundary). B5_detect's own close
-      (64,350) ALREADY satisfies the 5m resumption trigger on its own
-      (price_move_pct_median sign +1, price_direction_agreement =
+   B5_detect = selected_bucket(5m, 12:15) = [12:10, 12:15)
+      (bucket_ts=12:10, bucket_end=12:15=T_detect -- per §1.3). B5_detect's
+      own close (64,350) ALREADY satisfies the 5m resumption trigger on its
+      own (price_move_pct_median sign +1, price_direction_agreement =
       0.75 >= 2/3) -- but per the T_confirm > T_detect rule above this does
-      NOT confirm: bucket_ts(B5_detect) == T_detect, not strictly later, so
-      it can never itself serve as the confirming bucket.
-   => EARLY_SIGNAL at T1. detection_timestamp = T1.
+      NOT confirm: confirmation is only ever evaluated at a decision
+      boundary strictly later than T_detect, so B5_detect (whose bucket_end
+      == T_detect itself) can never be the confirming bucket.
+   => EARLY_SIGNAL at T1 = 12:15. detection_timestamp = 12:15.
       Entry zone (EARLY_SIGNAL entry-zone rule above): [pullback_extreme_low, close(B15_detect)]
                                         = [64,300, 64,350].
 
-T2 (the very next 5m decision boundary, B5' with bucket_ts(B5') =
-    T1 + 5m > bucket_ts(B5_detect)):
-   B5' closes at 64,350 (price steady). price_move_pct_median sign +1,
-   price_direction_agreement = 0.75 >= 2/3 on B5' -> resumption trigger
-   holds on this later, distinct bucket.
-   confirmation_close_price = close(B5') = 64,350.
-   => CONFIRMED at T2 (T2 = T1 + 5m > T1, strictly).
+T2 = T_confirm = 12:20 (the earliest possible confirmation boundary,
+    T_confirm = T_detect + 5m):
+   B5_confirm = selected_bucket(5m, 12:20) = [12:15, 12:20)
+      (bucket_ts=12:15=T_detect, bucket_end=12:20=T_confirm -- per §1.3;
+      note bucket_ts(B5_confirm) == T_detect, NOT T_detect+5m -- it is the
+      bucket's END, 12:20, that equals T_confirm). This is a different
+      closed interval from B5_detect=[12:10,12:15), so it legitimately
+      serves as the confirming bucket even though its start coincides with
+      T_detect.
+   B5_confirm closes at 64,350 (price steady). price_move_pct_median sign
+   +1, price_direction_agreement = 0.75 >= 2/3 on B5_confirm -> resumption
+   trigger holds on this later, distinct bucket.
+   confirmation_close_price = close(B5_confirm) = 64,350.
+   => CONFIRMED at T2 = 12:20 (T_confirm = 12:20 > T_detect = 12:15, strictly).
       Entry zone updates one final time and freezes (CONFIRMED entry-zone
       rule above): [64,300, 64,350] (numerically unchanged here since price
       was steady between T1 and T2 -- the zone still legitimately
@@ -3132,12 +3306,13 @@ T2 (the very next 5m decision boundary, B5' with bucket_ts(B5') =
       EARLY_SIGNAL value).
       planned_risk_distance = |64,350 - 64,171.3| ≈ 178.7 > MIN_VALID_PLANNED_RISK -> valid.
 ```
-→ `TREND_PULLBACK`, `LONG`, `EARLY_SIGNAL` at `T1` (zone `[64,300,
-64,350]`, `invalidation_price ≈ 64,171.3`), `CONFIRMED` at `T2 = T1 + 5m`
-(zone frozen at `[64,300, 64,350]`) — this is the precise case the
-`T_confirm > T_detect` rule guards against: `B5_detect` already qualified
-for resumption at `T1` itself, yet the episode is **not** confirmed until
-the next, distinct 5m bucket at `T2`.
+→ `TREND_PULLBACK`, `LONG`, `EARLY_SIGNAL` at `T_detect = 12:15` (zone
+`[64,300, 64,350]`, `invalidation_price ≈ 64,171.3`), `CONFIRMED` at
+`T_confirm = 12:20 = T_detect + 5m` (zone frozen at `[64,300, 64,350]`) —
+this is the precise case the `T_confirm > T_detect` rule guards against:
+`B5_detect` already qualified for resumption at `T_detect` itself, yet the
+episode is **not** confirmed until the next, distinct 5m bucket
+`B5_confirm` at `T_confirm`.
 
 **Rejected `TREND_PULLBACK` (invalid retracement magnitude — no candidate
 ever formed).** Same 4h/1h context, but `retracement_pct = 1.8%` against
@@ -3433,59 +3608,92 @@ Contrast: if E1 were still ACTIVE (e.g. WEAKENING, not yet INVALIDATED) at
     entirely by E2's independent qualification, never by E1's own state.
 ```
 
-### 29.11 Entry-feasibility vector
+### 29.11 Notification-eligibility and entry-feasibility vector
 
-**`EARLY_SIGNAL` feasibility — eligible ([§15.2](#152-early_notification_feasibility)).**
-Same `TREND_PULLBACK` `LONG` `EARLY_SIGNAL` as [§29.6](#296-setup-vectors)'s
-valid vector: `detection_timestamp = T1`, entry zone `[64,300, 64,350]`,
-`invalidation_price ≈ 64,171.3`.
-
-```text
-early_notification_reference_time = T1.
-early_assumed_entry_time = T1 + 90s.
-Sampled reference-exchange 1m close at/after early_assumed_entry_time: 64,360.
-OVERSHOOT_TOLERANCE = 0.25 * protection_buffer(...) ≈ 32.2
-early_entry_zone_upper + OVERSHOOT_TOLERANCE = 64,350 + 32.2 = 64,382.2
-64,360 <= 64,382.2 -> within tolerance. invalidation_price (64,171.3) not
-   breached as of early_assumed_entry_time.
-=> early-feasible = TRUE. The first EARLY_SIGNAL notification is sent,
-   using exactly the EARLY_SIGNAL-time zone/invalidation/confidence/coverage
-   (§16.1) -- never any later CONFIRMED-time value.
-```
-
-**`EARLY_SIGNAL` feasibility — suppressed ([§15.2](#152-early_notification_feasibility)).**
-Same `EARLY_SIGNAL` as above (`T1`, zone `[64,300, 64,350]`,
-`invalidation_price ≈ 64,171.3`), but price moves away from the zone
-faster:
+**Send-eligible now, graded `LATE` later ([§15.1](#151-send_time_notification_eligibility)
++ [§15.2](#152-assumed_entry_feasibility)).** Same `TREND_PULLBACK` `LONG`
+`EARLY_SIGNAL` as [§29.6](#296-setup-vectors)'s valid vector:
+`T_detect = 12:15`, entry zone `[64,300, 64,350]`, `invalidation_price ≈
+64,171.3`.
 
 ```text
-Sampled reference-exchange 1m close at/after early_assumed_entry_time (T1+90s): 64,420.
-early_entry_zone_upper + OVERSHOOT_TOLERANCE = 64,382.2 (same as above).
-64,420 > 64,382.2 -> outside tolerance, moved away from the zone.
-=> early-feasible = FALSE. The first EARLY_SIGNAL notification is
-   suppressed as already late -- the episode is still created, stored, and
-   evaluated exactly like any other (§17); it simply never produces the
-   initial actionable notification. This has no effect on the later,
-   independent CONFIRMED-time check (§15.1): if this same episode later
-   reaches CONFIRMED and CONFIRMED's own feasibility check
-   (using CONFIRMED-time inputs only) passes, the CONFIRMED notification
-   fires normally regardless of the earlier suppression.
-```
+LIVE, at T_detect = 12:15 (§15.1 -- no future data):
+   event_reference_time = T_detect = 12:15.
+   event_reference_price = close(B15_detect) = 64,350 -- by construction
+      the SAME value the EARLY_SIGNAL zone's dynamic bound is built from
+      (§7.1), so for TREND_PULLBACK this value always sits exactly at the
+      zone boundary at send time.
+   OVERSHOOT_TOLERANCE = 0.25 * protection_buffer(...) ≈ 32.2
+   event_entry_zone_upper + OVERSHOOT_TOLERANCE = 64,350 + 32.2 = 64,382.2
+   64,350 <= 64,382.2 (trivially, since it IS the zone bound) -> within tolerance.
+      invalidation_price (64,171.3) not yet breached at T_detect.
+   => send-eligible = TRUE. The first EARLY_SIGNAL notification is EMITTED
+      at T_detect = 12:15, using only data closed as of T_detect.
 
-**`CONFIRMED` feasibility — infeasible/late ([§15.1](#151-confirmed_actionability_feasibility)).**
+RETROSPECTIVE, at assumed_entry_time = T_detect + 90s = 12:16:30 (§15.2
+-- future data permitted as outcome input only):
+   Sampled reference-exchange 1m close at/after 12:16:30: 64,420.
+   64,420 > 64,382.2 -> outside tolerance, moved away from the zone.
+   => assumed-feasible = FALSE. This EARLY_SIGNAL event's lateness_status
+      = LATE (evaluation-only fact).
+```
+→ The notification **was already sent** at `T_detect = 12:15` — that
+historical fact ([§16.1](#161-early_signal-notification-content-and-history-invariants-v2-v0))
+is **never rewritten** by the later grade. The `LATE` grade only affects
+whether this event counts in the `ACTIONABLE` numerator
+([§26.1](#261-episode-population-definitions)) — it does **not** retract,
+hide, or annotate the notification as "shouldn't have been sent." This is
+exactly what the feasibility acceptance metric measures: a scenario V2 was
+willing to publish live can still, in hindsight, have been unactionable —
+future data grades the notification, it never decides whether the earlier,
+already-historical notification was sent.
+
+**Immediate send suppression ([§15.1](#151-send_time_notification_eligibility),
+no future data needed).** `COMPRESSION_BREAKOUT` `SHORT`, reusing
+[§29.6](#296-setup-vectors)'s valid vector's `range_low = 63,800`, entry
+zone `[range_low - buffer, range_low] ≈ [63,670, 63,800]` — but with a far
+more violent breaking 5m candle than that vector's `63,740`, closing
+instead at `63,600`:
+
+```text
+LIVE, at T1 (§15.1 -- no future data):
+   event_reference_time = T1.
+   event_reference_price = 63,600 (the breakout bucket's own close -- the
+      same value the detector already used to decide this EARLY_SIGNAL
+      event, never sampled separately).
+   OVERSHOOT_TOLERANCE = 0.25 * protection_buffer(...) ≈ 32.2 (same order
+      as the compression window's own protection_buffer).
+   event_entry_zone_lower - OVERSHOOT_TOLERANCE = 63,670 - 32.2 = 63,637.8
+   63,600 < 63,637.8 -> already beyond tolerance AT THE MOMENT OF DETECTION.
+   => send-eligible = FALSE. No normal actionable notification is emitted
+      for this EARLY_SIGNAL. The episode is still created and persisted /
+      research-visible (§17) -- it simply never produces that particular
+      actionable notification.
+```
+→ This is exactly the case the live send gate exists for: a breakout so
+violent that price has already run past the entry zone's tolerance by the
+time the detector's own deciding candle closes — recognizable
+**immediately**, from data the detector already has; no `T+90s` sample is
+needed or used.
+
+**`CONFIRMED` graded `LATE` retrospectively ([§15.2](#152-assumed_entry_feasibility)).**
 
 ```text
 CONFIRMED at T (TREND_PULLBACK LONG), entry_zone = [64,300, 64,350].
-ASSUMED_NOTIFICATION_DELAY_S = 90 -> assumed_entry_time = T + 90s.
+   event_reference_price = confirmation_close_price = 64,350 -> send-eligible
+   = TRUE at T (same "trivially at the zone bound" property as EARLY_SIGNAL
+   above) -> the CONFIRMED notification IS emitted at T.
+
+ASSUMED_USER_ACTION_DELAY_S = 90 -> assumed_entry_time = T + 90s.
 Sampled reference-exchange 1m close at/after assumed_entry_time: 64,410.
 OVERSHOOT_TOLERANCE = 0.25 * protection_buffer(...) ≈ 32.2
 entry_zone_upper + OVERSHOOT_TOLERANCE = 64,350 + 32.2 = 64,382.2
-64,410 > 64,382.2 -> INFEASIBLE / LATE. lateness_status = LATE.
+64,410 > 64,382.2 -> ASSUMED-INFEASIBLE / LATE. lateness_status = LATE.
 
-=> The episode is analytically CONFIRMED and structurally sound (never
-   invalidated), but is retained for research only (§17) — it MUST NOT
-   generate an actionable notification, and MUST NOT count as a
-   successful actionable V2 call in acceptance metrics' feasibility rate
+=> The CONFIRMED notification was already sent (send-eligible at T); the
+   episode is analytically CONFIRMED and structurally sound (never
+   invalidated), but is retrospectively graded LATE — it MUST NOT count as
+   a successful actionable V2 call in acceptance metrics' feasibility rate
    numerator (§27, priority 1). directional_return_pct/mfe_pct/mae_pct are
    still computed for it (against confirmation_reference_price, §17); its
    execution_MFE_R/execution_MAE_R/execution_terminal_return_R are
