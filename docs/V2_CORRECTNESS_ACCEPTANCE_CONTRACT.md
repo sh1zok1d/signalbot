@@ -487,22 +487,42 @@ oi_rank        = percentile_rank(oi_change_pct_median, consensus, 4h, 30d, B)   
 oi_agreement   = ConsensusFeatureVector.oi_direction_agreement        # 0..1, at bucket B
 ```
 
-**OI confirmation primitive** — magnitude-only percentile distance from the
-median (`oi_magnitude`, direction-agnostic by construction), scaled by
-cross-exchange OI-direction agreement (mirroring V1's `_oi_score`'s
-`strength = clamp(abs(oi)/full_scale, 0, 1) * oa`), then signed by whether
-OI is rising or falling — **never** by whether it agrees with price:
+**OI confirmation primitive (re-amended — corrects a percentile-distance
+sign error).** A prior draft of this primitive used
+`oi_magnitude = 2.0 * abs(oi_rank - 0.5) * oi_agreement` — the *distance of
+`oi_rank` from the median*, regardless of which side of the median it fell
+on. That repeats, inside the OI formula specifically, the same category of
+error [§4.1](#41-normalized-evidence-primitive-used-throughout-47) already
+corrected generally: `abs(oi_rank - 0.5)` cannot distinguish "a rising OI
+reading that is extreme *because it is unusually large*" from "a rising OI
+reading that is extreme *because it is unusually small*" — both sit equally
+far from `0.5`. Concretely, `oi_raw = +0.10%` (rising, but weak — a small
+positive move) with `oi_rank = 0.10` (this bucket's OI change ranks in the
+bottom decile of its own history) produced
+`oi_magnitude = 2*|0.10-0.5| = 0.80` — reporting a *weak* rising-OI
+observation as **strong** confirmation, simply because its rank happened to
+fall on the low side of the median rather than the high side.
+
+The fix reuses [§4.1](#41-normalized-evidence-primitive-used-throughout-47)'s
+already-frozen shape directly: direction comes from `oi_raw`'s own sign
+only (never from rank), and `oi_rank` is read as a **one-sided tail
+distance in the direction consistent with that sign** — the upper tail for
+a positive raw value, the lower tail for a negative one — never as an
+undirected distance from `0.5`:
 
 ```text
 oi_confirmation(B):
     if oi_raw is None or oi_rank is None or oi_agreement is None
        or the oi_rank snapshot's confidence_tier is below "building":
         return UNAVAILABLE                       # never 0.0
-    oi_magnitude = 2.0 * abs(oi_rank - 0.5) * oi_agreement   # 0..1, symmetric, no direction
     if oi_raw > 0:
-        return +oi_magnitude    # rising OI: CONFIRMS the anchor, whichever direction it is
+        oi_strength = max(0.0, 2.0 * oi_rank - 1.0)      # 0..1; grows toward 1 ONLY as
+                                                            # oi_rank approaches the UPPER tail
+        return +oi_strength * oi_agreement    # rising OI: CONFIRMS the anchor, whichever direction it is
     elif oi_raw < 0:
-        return -oi_magnitude    # falling OI: OPPOSES the anchor, whichever direction it is
+        oi_strength = max(0.0, 1.0 - 2.0 * oi_rank)      # 0..1; grows toward 1 ONLY as
+                                                            # oi_rank approaches the LOWER tail
+        return -oi_strength * oi_agreement    # falling OI: OPPOSES the anchor, whichever direction it is
     else:
         return 0.0               # flat OI: neither confirms nor opposes
 ```
@@ -511,7 +531,22 @@ oi_confirmation(B):
 it never appears on its own as "bullish" or "bearish"; it only ever
 modulates a price-established candidate direction, and it is symmetric by
 construction (rising OI always confirms, falling OI always opposes,
-regardless of which direction the price anchor points).
+regardless of which direction the price anchor points). By construction
+this also preserves every invariant the prior formula was already required
+to satisfy — **and now additionally guarantees**:
+
+```text
+positive OI + upper-tail rank (oi_rank -> 1)   =>  oi_strength -> 1  =>  strong confirmation
+positive OI + lower-half rank (oi_rank <= 0.5) =>  oi_strength == 0  =>  weak/zero confirmation
+negative OI + lower-tail rank (oi_rank -> 0)   =>  oi_strength -> 1  =>  strong opposition
+negative OI + upper-half rank (oi_rank >= 0.5) =>  oi_strength == 0  =>  weak/zero opposition
+rising OI  (oi_raw > 0)  =>  oi_confirmation >= 0   (rising OI can never oppose)
+falling OI (oi_raw < 0)  =>  oi_confirmation <= 0   (falling OI can never confirm)
+oi_raw == 0               =>  oi_confirmation == 0.0
+OI's sign never depends on price_evi, and OI never selects LONG vs. SHORT
+  — see the surrounding formula in §4.2/§4.3, which use oi_confirmation only
+  as a confirm/veto modulator on a price-established candidate direction.
+```
 
 **V2-v0 parameters:**
 
@@ -842,6 +877,25 @@ explicit compatibility gate at all. Both are corrected by one shared,
 explicit gate, reused by both families ([§7.2](#72-compression_breakout),
 [§7.3](#73-confirmed_breakout)):
 
+**Correctness note (re-amended — `UNAVAILABLE` is not the same as
+`NEUTRAL`).** An earlier draft of this gate treated `bias == UNAVAILABLE`
+identically to `NEUTRAL_NOT_ESTABLISHED` ("a genuinely unreadable bias
+represents no established opposing view either"). That blurs a distinction
+this document elsewhere treats as fundamental
+([§21](#21-failure--fail-closed-rules): **Unavailable** — a required input
+simply could not be computed right now — is a different category from
+**Neutral** — a real, measured value that genuinely says "no lean").
+`NEUTRAL_NOT_ESTABLISHED` is a successful measurement the 1h bias detector
+actually produced; `UNAVAILABLE` means the detector could not run at all.
+Treating an unreadable input the same as a successfully-computed neutral
+reading would let a **new** actionable breakout episode form while a
+required context check was never actually performed —
+`V2_PRODUCT_CONTRACT.md` §4.4's "missing context is not a countertrend
+signal" does not mean V2 should pretend a check that could not run actually
+passed. The gate now fails closed on an `UNAVAILABLE` 1h bias for new
+episode formation, as its own distinct reason, separate from the
+countertrend check:
+
 ```text
 directional_context_gate(breakout_direction, B4h, B1h):
     # 4h regime
@@ -855,30 +909,39 @@ directional_context_gate(breakout_direction, B4h, B1h):
 
     # 1h bias
     bias = 1h bias at B1h (§4.3)
+    if bias == UNAVAILABLE:
+        REJECT   # data-availability failure — distinct reason from countertrend;
+                 # UNAVAILABLE is NEVER treated as NEUTRAL_NOT_ESTABLISHED (amended)
     if bias in {BULLISH, BEARISH} and bias's direction OPPOSES breakout_direction:
         REJECT   # established opposite bias — countertrend, forbidden
-    # otherwise (NEUTRAL_NOT_ESTABLISHED, UNAVAILABLE, or bias ALIGNED): pass
+    # otherwise (NEUTRAL_NOT_ESTABLISHED, or bias ALIGNED with breakout_direction): pass
 
     ACCEPT
 ```
 
-Per `V2_PRODUCT_CONTRACT.md` §4.4, "absence MUST NOT itself be treated as a
-countertrend condition" — this is why `NON_DIRECTIONAL` regime and
-`NEUTRAL_NOT_ESTABLISHED` bias both **pass**: they represent the *absence*
-of an established directional context, not an opposing one, and the
-Product Contract is explicit that `COMPRESSION_BREAKOUT` in particular "may
-legitimately form without a firm 1h bias." **`bias == UNAVAILABLE` is
-treated the same as `NEUTRAL_NOT_ESTABLISHED` for this gate specifically**
-— a genuinely unreadable bias represents no *established* opposing view
-either, so it cannot be the "established opposite context" the countertrend
-prohibition is about; this is a deliberate, narrow exception to
-[§21](#21-failure--fail-closed-rules)'s general "unavailable is not the
-same as neutral" posture, scoped to this one compatibility check, stated
-explicitly here rather than left implicit. This gate does **not** apply to
-`TREND_PULLBACK`, which already requires 4h regime and 1h bias to both
-*firmly agree* with the candidate direction as its own, stricter
-precondition ([§7.1](#71-trend_pullback)) — a gate that additionally rejects
-neutral/unavailable context would be redundant there.
+`4h regime == INSUFFICIENT_DATA` already failed closed in the prior draft
+(unchanged, restated above for symmetry); `1h bias == UNAVAILABLE` now
+fails closed the same way and for the same reason — a required context
+input that could not be computed, never an established opposing view.
+**`NEUTRAL_NOT_ESTABLISHED` remains fully accepted**, unchanged: per
+`V2_PRODUCT_CONTRACT.md` §4.4, "a neutral/non-directional/not-firmly-established
+4h regime or 1h bias is explicitly NOT itself a countertrend condition," and
+`COMPRESSION_BREAKOUT` specifically "may legitimately form without a firm
+1h bias" — a **real, measured** `NEUTRAL_NOT_ESTABLISHED` reading is exactly
+that permitted case. An `UNAVAILABLE` reading is not the same thing and
+does not inherit that permission. This distinction governs **new** episode
+formation (`EARLY_SIGNAL`) for both breakout families — see
+[§7.2](#72-compression_breakout)/[§7.3](#73-confirmed_breakout) for how each
+invokes this gate; it does **not** retroactively invalidate an
+already-`CONFIRMED` episode merely because a later 1h bias reading becomes
+`UNAVAILABLE` — that is a data-availability condition for detector
+evaluation, not one of [§10](#10-structural-invalidation)'s structural
+invalidation triggers.
+
+This gate does **not** apply to `TREND_PULLBACK`, which already requires 4h
+regime and 1h bias to both *firmly agree* with the candidate direction as
+its own, stricter precondition ([§7.1](#71-trend_pullback)) — a gate that
+additionally rejects neutral/unavailable context would be redundant there.
 
 `V2_PRODUCT_CONTRACT.md` §4.3's `CONFIRMED_BREAKOUT` description ("1h
 establishes directional context aligned with the break") describes the
@@ -887,6 +950,70 @@ exist — the general boundary rule in Product Contract §4.4 governs all
 three families uniformly, so this document does **not** turn a neutral 1h
 bias into an automatic `CONFIRMED_BREAKOUT` rejection; only an established
 **opposite** bias rejects.
+
+### 7.0c Extreme tie-breaking (deterministic structural-anchor selection)
+
+**New — freezes a case the prior draft left unspecified.** Two structural
+anchors are defined as "the bucket achieving an extreme value over a
+lookback": `TREND_PULLBACK`'s `trend_leg_extreme`
+([§7.1](#71-trend_pullback)) and `CONFIRMED_BREAKOUT`'s
+`resistance_level`/`support_level` ([§7.3](#73-confirmed_breakout)). Both
+feed `structural_anchor`, which participates in `episode_logical_key`
+([§12](#12-episode-identity-and-deduplication)). If two or more buckets in
+the relevant lookback share the *identical* extreme value, the prior draft
+did not say which `bucket_ts` becomes the anchor — meaning two conforming
+implementations, given byte-identical input data, could compute two
+different episode identities. This document does not permit that kind of
+ambiguity anywhere else, and closes it here with one rule, applied
+globally:
+
+```text
+when two or more buckets/bars in the relevant lookback share the identical
+extreme value (the same max, or the same min, compared at full stored
+precision — no rounding before comparison):
+    select the MOST RECENT bucket_ts among the tied candidates as the
+    anchor bucket
+```
+
+**Rationale.** "Most recent" needs no further justification beyond
+determinism itself, but it is also the same directional bias this document
+already uses whenever a choice among otherwise-equal candidates is
+required (e.g. [§7.2](#72-compression_breakout)'s "most recent qualifying
+[compression] run" selection) — a tied, more recent bucket is, all else
+equal, at least as representative of the *current* structural context as
+an older one, so preferring it is never a worse choice than preferring the
+older tie.
+
+**Applies to** (anchors where *which* bucket achieved the extreme is
+identity-bearing):
+
+- `TREND_PULLBACK`'s `trend_leg_extreme` ([§7.1](#71-trend_pullback)) —
+  `max(close_price)`/`min(close_price)` over `LOOKBACK_15M`;
+- `CONFIRMED_BREAKOUT`'s `resistance_level`/`support_level`
+  ([§7.3](#73-confirmed_breakout)) — `max`/`min` of `HTF_high`/`HTF_low`
+  over `LEVEL_LOOKBACK`.
+
+**Does not apply to** `COMPRESSION_BREAKOUT`'s `range_high`/`range_low`
+([§7.2](#72-compression_breakout)): those are plain numeric price levels —
+`max()`/`min()` of a set of numbers is already fully deterministic
+regardless of *which* bucket achieved it, so no bucket-identity ambiguity
+exists there. That family's identity-bearing anchor
+(`compression_start_bucket`) is instead determined by the compression-window
+selection rule ([§7.2](#72-compression_breakout)), which is its own
+separately-frozen deterministic rule.
+
+**Test vector (deterministic tie).** Two 15m buckets in a `TREND_PULLBACK`
+LONG's `LOOKBACK_15M` window both close at exactly `65,000.0` — the
+lookback's highest close, tied: `b[10]` (older) and `b[30]` (more recent,
+still within the lookback). Under the tie-break rule: `trend_leg_extreme`'s
+value is `65,000.0` (unambiguous — both candidates agree on the number
+itself), and its anchor `bucket_ts` is `b[30]`'s (the more recent of the
+two), **not** `b[10]`'s. `structural_anchor` for this episode is therefore
+deterministically `b[30]`'s `bucket_ts` — a second, independently-running
+conforming implementation given the identical input data **MUST** compute
+the same `b[30]` anchor and therefore the same `episode_logical_key`
+([§12](#12-episode-identity-and-deduplication)), never a different one
+depending on which tied bucket it happened to iterate to first.
 
 ### 7.1 `TREND_PULLBACK`
 
@@ -912,6 +1039,12 @@ trend_leg_extreme = max(close_price) over the lookback, for a bullish trend
 retracement_pct = (trend_leg_extreme - current_close) / trend_leg_extreme * 100   # bullish
 retracement_pct = (current_close - trend_leg_extreme) / trend_leg_extreme * 100   # bearish
 ```
+
+`trend_leg_extreme`'s anchor `bucket_ts` (used for `structural_anchor`,
+[§12](#12-episode-identity-and-deduplication)) is tie-broken per
+[§7.0c](#70c-extreme-tie-breaking-deterministic-structural-anchor-selection)
+when two or more buckets in the lookback share the identical extreme
+`close_price`.
 
 Valid pullback range (V2-v0, expressed as multiples of the 15m range
 proxy rather than a folklore Fibonacci ratio, so it is grounded in actually
@@ -987,13 +1120,60 @@ exists yet at this point (mirroring how `TREND_PULLBACK`'s regime/bias
 precondition, [§7.1](#71-trend_pullback), is also detector-internal, not an
 episode state).
 
-**Breakout boundary.** The compression range's bounds, from the same 15m
-window used to establish compression, using the [§7.0a](#70a-structural-highlow-derivation-amended--corrects-a-nonexistent-field-error)
+**Deterministic compression-window selection (amended — "the compression
+window" was previously underspecified).** `>= COMPRESSION_MIN_DURATION`
+consecutive compressed buckets *somewhere* within `COMPRESSION_LOOKBACK`
+does not, by itself, identify a unique window — a 16-bucket lookback can
+contain one run of 6 followed later by a run of 7, one continuous run of 9,
+two distinct runs of exactly 6, or other shapes, and `range_high`/`range_low`
+(below) need one unambiguous window to be computed from. This is now
+frozen precisely:
+
+```text
+1. Within the COMPRESSION_LOOKBACK most recent closed 15m buckets ending at
+   B15, partition the compressed buckets (compression_score >=
+   COMPRESSION_THRESHOLD) into MAXIMAL runs of CONSECUTIVE compressed
+   buckets — a run is bounded by a non-compressed bucket, or by the edge
+   of the lookback window.
+2. A run QUALIFIES iff its length >= COMPRESSION_MIN_DURATION (6).
+3. If zero runs qualify: compressed = False; no COMPRESSION_BREAKOUT
+   candidate can form from this bucket.
+4. If one or more runs qualify: select the run whose END bucket (its most
+   recent bucket) is closest to B15 — i.e. the MOST RECENT qualifying run.
+   (Precedence, stated in full for robustness even though a unique run
+   already follows from step 4 alone — two distinct maximal runs can never
+   share an end bucket, so "longest run" and "latest end bucket"
+   tie-breaks below are never actually invoked in practice, only defined
+   for completeness: (a) most recent qualifying run wins; (b) if that were
+   ever ambiguous, the longest qualifying run wins; (c) if still tied, the
+   run with the latest end bucket wins.)
+5. compression_start_bucket = the selected run's oldest (first) bucket_ts
+   compression_end_bucket   = the selected run's most recent (last) bucket_ts
+   compression_length       = number of buckets in the selected run (>= 6)
+6. "The compression window" (below, and in range_high/range_low) means the
+   FULL selected run, inclusive of every bucket from compression_start_bucket
+   through compression_end_bucket — not merely a truncated 6-bucket slice
+   of it. A longer qualifying run contributes its entire observed tight
+   range, not just the minimum qualifying length.
+```
+
+`compression_start_bucket` is exactly the value `COMPRESSION_BREAKOUT`'s
+`structural_anchor` already uses for episode identity
+([§12](#12-episode-identity-and-deduplication)) — this section is what
+makes that value itself unambiguous. `compression_end_bucket` and
+`compression_length` are additionally frozen here because a future
+detector/evaluator needs them to reconstruct the exact window
+deterministically, not only its start.
+
+**Breakout boundary.** The compression range's bounds, from the exact
+selected window (`compression_start_bucket` through
+`compression_end_bucket`, above — never an ambiguous "somewhere in the
+lookback"), using the [§7.0a](#70a-structural-highlow-derivation-amended--corrects-a-nonexistent-field-error)
 extrema derivation (never a nonexistent `ExchangeFeatureVector.high/low`):
 
 ```text
-range_high = max(HTF_high(15m, b, reference_exchange) for b in the compression window)
-range_low  = min(HTF_low(15m, b, reference_exchange)  for b in the compression window)
+range_high = max(HTF_high(15m, b, reference_exchange) for b in [compression_start_bucket, compression_end_bucket])
+range_low  = min(HTF_low(15m, b, reference_exchange)  for b in [compression_start_bucket, compression_end_bucket])
 ```
 `UNAVAILABLE` for any bucket `b` in the window makes `range_high`/`range_low`
 `UNAVAILABLE` for the whole window ([§7.0a](#70a-structural-highlow-derivation-amended--corrects-a-nonexistent-field-error)) — no candidate can form.
@@ -1012,9 +1192,10 @@ direction `SHORT`), **all** of the following must hold simultaneously:
    (reuses already-ingested consensus taker-flow sums, no new field).
 3. Directional-context compatibility: directional_context_gate(candidate_direction,
    B4h = selected_bucket(4h, T), B1h = selected_bucket(1h, T)) == ACCEPT
-   (§7.0b) — an established OPPOSITE 4h regime or 1h bias rejects; a
-   NON_DIRECTIONAL regime or NEUTRAL_NOT_ESTABLISHED/UNAVAILABLE bias does
-   NOT reject, per V2_PRODUCT_CONTRACT.md §4.4.
+   (§7.0b) — an established OPPOSITE 4h regime or 1h bias rejects (countertrend);
+   4h INSUFFICIENT_DATA or 1h UNAVAILABLE also rejects (data-availability,
+   distinct reason); a NON_DIRECTIONAL regime or a real measured
+   NEUTRAL_NOT_ESTABLISHED bias does NOT reject, per V2_PRODUCT_CONTRACT.md §4.4.
 ```
 
 If all three hold, the episode is created in state `EARLY_SIGNAL` at this
@@ -1032,12 +1213,48 @@ the first — the same "count consecutive confirming closes" convention
 `CONFIRMED_BREAKOUT` uses, [§7.3](#73-confirmed_breakout), so both breakout
 families now share one canonical two-close confirmation shape.)
 
-**False-break re-entry → `INVALIDATED`.** If, before the second confirming
-close arrives, a closed 5m bucket (reference exchange) closes back **inside**
-the compression range (`range_low < close < range_high`), the structural
-premise has broken → `INVALIDATED` (not a silent non-creation — the episode
-already exists as `EARLY_SIGNAL` at this point, and this is a real
-lifecycle transition, [§13](#13-lifecycle-transition-semantics)).
+**False-break, direction-aware, one-sided → `INVALIDATED` (re-amended —
+covers overshoot through the opposite side, not only re-entry).** An
+earlier draft invalidated only when a later pre-confirmation close fell
+strictly **inside** the compression range (`range_low < close < range_high`).
+That predicate cannot fire for a violent reversal that closes **through**
+the entire range and beyond its *opposite* boundary — e.g. for a `LONG`
+`EARLY_SIGNAL` broken above `range_high`, a later close below `range_low`
+does not satisfy `range_low < close < range_high` (it fails the "inside the
+range" test on the low side too), so under the old rule it would **not**
+have been recognized as a false break — even though it is a *stronger*
+repudiation of the breakout than an ordinary re-entry. The rule is now
+direction-aware and one-sided: it checks only whether the **breakout side**
+still holds, not whether price happens to sit back inside the original
+range specifically:
+
+```text
+LONG EARLY_SIGNAL (broken above range_high):
+    holds       iff close >= range_high
+    INVALIDATED on ANY closed 5m bucket (reference exchange, before the
+        second confirming close) with close < range_high — this covers
+        BOTH ordinary re-entry (range_low < close < range_high) AND
+        overshoot clean through to the opposite side (close <= range_low)
+        with the same single check.
+
+SHORT EARLY_SIGNAL (broken below range_low):
+    holds       iff close <= range_low
+    INVALIDATED on ANY closed 5m bucket with close > range_low — covers
+        BOTH re-entry AND overshoot beyond range_high (close >= range_high)
+        with the same single check.
+```
+
+**Boundary equality (V2-v0 convention, stated explicitly):** a close
+**exactly at** the broken level (`close == range_high` for `LONG`,
+`close == range_low` for `SHORT`) is treated as still **holding** — the
+level has been retested, not yet reclaimed on the wrong side. A close on
+the wrong side of the level by any amount, including the smallest tick,
+invalidates. The structural premise has broken → `INVALIDATED` (not a
+silent non-creation — the episode already exists as `EARLY_SIGNAL` at this
+point, and this is a real lifecycle transition,
+[§13](#13-lifecycle-transition-semantics)). A stronger failure is never
+exempted from invalidation merely because it moved "too far" to still be
+sitting inside the original range.
 
 **Deadline elapses → `EXPIRED`.** If `CONFIRMATION_MAX_AGE` elapses with
 neither a second confirming close nor a false-break re-entry (e.g. price
@@ -1084,7 +1301,12 @@ resistance_level = max(HTF_high(1h, b, reference_exchange) for b in the LEVEL_LO
 support_level     = min(HTF_low(1h, b, reference_exchange)  for b in the LEVEL_LOOKBACK buckets)
 ```
 `UNAVAILABLE` for any bucket `b` in the lookback makes `resistance_level`/
-`support_level` `UNAVAILABLE` — no candidate can form.
+`support_level` `UNAVAILABLE` — no candidate can form. The anchor
+`bucket_ts` used for `structural_anchor`
+([§12](#12-episode-identity-and-deduplication)) is tie-broken per
+[§7.0c](#70c-extreme-tie-breaking-deterministic-structural-anchor-selection)
+when two or more buckets in the lookback share the identical extreme
+`HTF_high`/`HTF_low` value.
 
 **`EARLY_SIGNAL` — the one exact moment this episode is created (amended,
 resolves a prior EARLY_SIGNAL/candidate inconsistency).** An earlier draft
@@ -1511,8 +1733,8 @@ EARLY_SIGNAL -> EXPIRED       max candidate age elapsed without confirming (§14
 
 CONFIRMED    -> WEAKENING     evidence-quality degradation (below)
 CONFIRMED    -> INVALIDATED   structural invalidation reached
-CONFIRMED    -> COMPLETED     horizon elapsed, MFE_R reached MIN_MFE_R_FOR_COMPLETION at some point (§17)
-CONFIRMED    -> EXPIRED       horizon elapsed, MFE_R never reached MIN_MFE_R_FOR_COMPLETION, not invalidated
+CONFIRMED    -> COMPLETED     horizon elapsed, analytical_MFE_R reached MIN_MFE_R_FOR_COMPLETION at some point (§18.2)
+CONFIRMED    -> EXPIRED       horizon elapsed, analytical_MFE_R never reached MIN_MFE_R_FOR_COMPLETION, not invalidated
 
 WEAKENING    -> CONFIRMED     recovery: evidence-quality criteria restored (below)
 WEAKENING    -> INVALIDATED   structural invalidation reached
@@ -1533,20 +1755,40 @@ yes, it can, whenever the evidence-quality criteria that triggered
 `WEAKENING` are no longer met and the episode has not since invalidated or
 completed.
 
-**Completion vs. expiry, precisely (V2-v0):**
+**Completion vs. expiry, precisely (V2-v0; re-amended — uses the
+all-`CONFIRMED` analytical metric, never an `ACTIONABLE`-only one).** An
+earlier draft gated this transition on `MFE_R`, which (per
+[§18](#18-risk-normalized-metrics-planned-risk-vs-execution-risk)) is
+defined only for `ACTIONABLE` episodes — that left every `LATE` /
+`INVALIDATED_BEFORE_ENTRY` `CONFIRMED` episode with **no deterministic
+terminal state** at horizon end, since it has no `feasible_entry_price` and
+therefore no `MFE_R` to compare. Lifecycle state MUST NOT depend on whether
+a hypothetical human could have entered 90 seconds later — analytical
+episode lifecycle and execution/actionability evaluation are separate
+concerns. This transition now uses
+[§18.2](#182-analytical-r-normalized-metrics-every-confirmed-episode)'s
+`analytical_MFE_R`, which is defined for **every** `CONFIRMED` episode
+regardless of `lateness_status`:
 
 ```text
-MIN_MFE_R_FOR_COMPLETION = 0.5   # R-multiple, see §18
+MIN_MFE_R_FOR_COMPLETION = 0.5   # R-multiple, see §18.2
 ```
 
-At horizon end (from `CONFIRMED` or `WEAKENING`), if the episode's `MFE_R`
-(peak favorable excursion in R, [§18](#18-r-based-metrics)) reached `>=
-0.5` at any point during its life, it transitions to `COMPLETED` — "the
-scenario played out and moved meaningfully in the intended direction at
-some point," even if it later gave the move back. If `MFE_R` never reached
-`0.5`, it transitions to `EXPIRED` — "the trade never got going before
-time ran out." This is a deterministic, evaluation-relevant distinction,
-not a cosmetic label choice.
+At horizon end (from `CONFIRMED` or `WEAKENING`), if the episode's
+`analytical_MFE_R` (peak favorable excursion from
+`confirmation_reference_price`, normalized by `planned_risk_distance`,
+[§18.2](#182-analytical-r-normalized-metrics-every-confirmed-episode))
+reached `>= 0.5` at any point during its life, it transitions to
+`COMPLETED` — "the scenario played out and moved meaningfully in the
+intended direction at some point," even if it later gave the move back. If
+`analytical_MFE_R` never reached `0.5`, it transitions to `EXPIRED` — "the
+trade never got going before time ran out." This is a deterministic,
+evaluation-relevant distinction, not a cosmetic label choice, and it is now
+computable for `LATE` episodes exactly the same way as for `ACTIONABLE`
+ones — only the separate, `ACTIONABLE`-only `execution_MFE_R`
+([§18.3](#183-execution-risk-and-execution-r-normalized-metrics-actionable-only))
+remains undefined for `LATE` episodes, and it plays no role in lifecycle
+state.
 
 ### 13.2a `WEAKENING` and recovery criteria (V2-v0)
 
@@ -1731,9 +1973,14 @@ episode outcome record (logical shape, not a schema):
   horizon_completion_status      # COMPLETED | EXPIRED, per §13.2
   directional_return_pct         # §17 population: ALL CONFIRMED episodes
   mfe_pct / mae_pct              # §17 population: ALL CONFIRMED episodes
-  mfe_r / mae_r                  # §18 population: ACTIONABLE episodes only
-  terminal_return_r              # §18 population: ACTIONABLE episodes only
-  cost_adjusted_return_r         # §19 population: ACTIONABLE episodes only
+  planned_risk_distance          # §18.1 population: ALL CONFIRMED episodes
+                                  # (available at CONFIRMED itself — no future info)
+  analytical_mfe_r               # §18.2 population: ALL CONFIRMED episodes —
+                                  # drives the COMPLETED/EXPIRED lifecycle decision (§13.2)
+  execution_r                    # §18.3 population: ACTIONABLE episodes only
+  execution_mfe_r / execution_mae_r   # §18.3 population: ACTIONABLE episodes only
+  execution_terminal_return_r    # §18.3 population: ACTIONABLE episodes only
+  execution_cost_adjusted_return_r    # §19 population: ACTIONABLE episodes only
   lateness_status                # ACTIONABLE | LATE | INVALIDATED_BEFORE_ENTRY
   setup_family
   episode_state_history          # ordered list of (T, from_state, to_state, reason)
@@ -1744,10 +1991,11 @@ episode outcome record (logical shape, not a schema):
 
 **No take-profit target is required** (per `V2_PRODUCT_CONTRACT.md` §6):
 outcome is measured purely via horizon-based MFE/MAE/terminal-return and
-their R-normalized forms ([§18](#18-r-based-metrics)) — an episode that
-never reaches a fixed target can still be a fully evaluated, meaningful
-outcome (`COMPLETED` requires only `MIN_MFE_R_FOR_COMPLETION`, not a hit
-target).
+their R-normalized forms
+([§18](#18-risk-normalized-metrics-planned-risk-vs-execution-risk)) — an
+episode that never reaches a fixed target can still be a fully evaluated,
+meaningful outcome (`COMPLETED` requires only `MIN_MFE_R_FOR_COMPLETION` via
+`analytical_MFE_R`, not a hit target).
 
 **Two distinct price baselines, and why (amended for population clarity).**
 `directional_return_pct` / `mfe_pct` / `mae_pct` are computed against
@@ -1760,74 +2008,165 @@ question meaningful even for a `LATE` episode. They reuse V1's exact
 direction-aware sign convention (`outcomes.py`: for `LONG`,
 `mfe = max(0, peak_return)`, `mae = min(0, trough_return)`; mirrored for
 `SHORT`), applied over the episode's own monitored window instead of a
-fixed 15m/1h/4h horizon-from-prediction window. `MFE_R`/`MAE_R` and every
-other R-normalized metric ([§18](#18-r-based-metrics)), by contrast,
-require `feasible_entry_price`, which is only defined when
-`lateness_status == ACTIONABLE` — this is why the R-normalized metrics have
-a narrower population than the percentage ones; [§26.1](#261-episode-population-definitions)
-freezes this distinction precisely so a future evaluator never has to
-choose its own denominator.
+fixed 15m/1h/4h horizon-from-prediction window.
+[§18.2](#182-analytical-r-normalized-metrics-every-confirmed-episode)'s
+`analytical_MFE_R` normalizes this same all-`CONFIRMED` percentage metric
+by `planned_risk_distance`, so it shares this population — it does **not**
+require `feasible_entry_price`. The `ACTIONABLE`-only
+`execution_MFE_R`/`execution_MAE_R`/`execution_terminal_return_R`
+([§18.3](#183-execution-risk-and-execution-r-normalized-metrics-actionable-only)),
+by contrast, require `feasible_entry_price`, which is only defined when
+`lateness_status == ACTIONABLE` — this is why those execution-scoped
+R-normalized metrics have a narrower population than the percentage ones
+and `analytical_MFE_R`; [§26.1](#261-episode-population-definitions) freezes
+this distinction precisely so a future evaluator never has to choose its
+own denominator.
 
 ---
 
-## 18. R-based metrics
+## 18. Risk-normalized metrics: planned risk vs. execution risk
+
+**Correctness note (re-amended — separates two previously-conflated
+concepts).** An earlier draft defined a single `R = |feasible_entry_price -
+invalidation_price|` and used it **both** as a hard fail-closed gate at
+`CONFIRMED` **and** as the denominator for every R-normalized outcome
+metric. That is an impossible timing dependency: `feasible_entry_price`
+([§15](#15-entry-feasibility-evaluation)) is sampled only
+`ASSUMED_NOTIFICATION_DELAY_S = 90` seconds **after** the `CONFIRMED`
+decision boundary, and only exists at all when `lateness_status ==
+ACTIONABLE`. A quantity that does not yet exist at `CONFIRMED` cannot gate
+whether an episode is allowed to reach `CONFIRMED`. This section fixes that
+by defining two genuinely distinct, separately-named concepts — **never
+both called simply `R`** anywhere in this document from this point on.
+
+### 18.1 Planned risk (structural, available at `CONFIRMED`)
 
 ```text
-R = |feasible_entry_price - invalidation_price|
-
-MIN_VALID_R = 3 * tick_size   # V2-v0 — reused from the same tick-buffer
-                                # reasoning as protection_buffer (§7)
-
-if R is zero, non-finite, or R < MIN_VALID_R:
-    FAIL CLOSED: the episode cannot reach CONFIRMED (this is checked at
-    confirmation time, not only at evaluation time — a degenerate risk
-    distance means the structural premise itself is not well-formed)
+planned_risk_distance = |confirmation_reference_price - invalidation_price|
 ```
 
-Because `R`'s validity is already a **hard gate at `CONFIRMED`** (above),
-every `CONFIRMED` episode has a valid `R` by construction — "invalid `R`"
-is never a separate acceptance-population case to handle; it is excluded
-upstream, before an episode can even become `CONFIRMED`.
-
-Given a valid `R` (guaranteed) and a feasible entry
-(`lateness_status == ACTIONABLE`, [§15](#15-entry-feasibility-evaluation)):
+Both inputs are already fixed no later than the `CONFIRMED` decision
+boundary: `confirmation_reference_price` is the reference exchange's
+`close_price` at that exact boundary ([§17](#17-outcome--evaluation-model)),
+and `invalidation_price` is the detector's structural level
+([§7](#7-setup-detectors), [§10](#10-structural-invalidation)), which has
+already stopped moving by `CONFIRMED` (mirroring the entry zone's freeze
+rule, [§9](#9-entry-zone-semantics)). `planned_risk_distance` therefore
+requires **no future information** and is computable at the exact instant
+an episode reaches `CONFIRMED` — unlike the old single `R`, it genuinely
+CAN gate confirmation.
 
 ```text
-MFE_R  = mfe_pct_over_episode_life  * feasible_entry_price / 100 / R
-MAE_R  = mae_pct_over_episode_life  * feasible_entry_price / 100 / R
-terminal_return_R = directional_return_pct * feasible_entry_price / 100 / R
+MIN_VALID_PLANNED_RISK = 3 * tick_size   # V2-v0 — reused from the same tick-buffer
+                                            # reasoning as protection_buffer (§7);
+                                            # replaces the old MIN_VALID_R name/role
+
+if planned_risk_distance is zero, non-finite, or < MIN_VALID_PLANNED_RISK:
+    FAIL CLOSED: the episode cannot reach CONFIRMED (checked at
+    confirmation time — a degenerate structural risk distance means the
+    structural premise itself is not well-formed)
 ```
 
-(the `* feasible_entry_price / 100` term converts a percentage return back
-to an absolute price distance before dividing by the absolute distance
-`R`, so `MFE_R`/`MAE_R`/`terminal_return_R` are dimensionless R-multiples).
-**`mfe_pct_over_episode_life`/`mae_pct_over_episode_life`/`directional_return_pct`
-here are recomputed against `feasible_entry_price`, not
-`confirmation_reference_price`** — the R-normalized metrics measure
-performance from the price an `ACTIONABLE` user could actually have
-entered at, distinct from the percentage metrics in [§17](#17-outcome--evaluation-model),
-which measure performance from the `CONFIRMED`-time reference price
-regardless of feasibility. Both are legitimate, differently-scoped
-measurements; neither is a substitute for the other, and
+Because this is now a hard gate on a quantity that genuinely exists at
+`CONFIRMED`, every `CONFIRMED` episode has a valid `planned_risk_distance`
+by construction — "invalid planned risk" is never a separate
+acceptance-population case to handle; it is excluded upstream, before an
+episode can even become `CONFIRMED`.
+
+**`planned_risk_distance` is used for:** the confirmation-time
+structural-validity / degenerate-risk fail-closed gate above, and
+[§18.2](#182-analytical-r-normalized-metrics-every-confirmed-episode)'s
+`analytical_MFE_R` — any quantity that must exist for **every** `CONFIRMED`
+episode, including `LATE` ones, never only for `ACTIONABLE` ones.
+
+### 18.2 Analytical R-normalized metrics (every `CONFIRMED` episode)
+
+Normalizes the percentage metric [§17](#17-outcome--evaluation-model)
+already computes for every `CONFIRMED` episode (against
+`confirmation_reference_price`) by `planned_risk_distance`, so a
+risk-normalized figure exists **regardless of `lateness_status`**. This is
+what makes the lifecycle's `COMPLETED`/`EXPIRED` decision well-defined for
+`LATE` episodes too ([§13.2](#132-allowed-transitions),
+[§18.3](#183-execution-risk-and-execution-r-normalized-metrics-actionable-only)
+below remains `ACTIONABLE`-only and plays no role in lifecycle state):
+
+```text
+analytical_MFE_R = mfe_pct_over_episode_life * confirmation_reference_price / 100 / planned_risk_distance
+```
+
+(`mfe_pct_over_episode_life` here is the exact same all-`CONFIRMED`
+population value already defined in [§17](#17-outcome--evaluation-model),
+computed against `confirmation_reference_price` — **never** against
+`feasible_entry_price`.) `analytical_MFE_R` becomes available the instant a
+favorable excursion is observed after `CONFIRMED`, independent of whether
+the episode ever reaches `ACTIONABLE` status — lifecycle state MUST NOT
+depend on whether a hypothetical human could have entered 90 seconds later.
+
+### 18.3 Execution risk and execution R-normalized metrics (`ACTIONABLE` only)
+
+Distinct from planned risk — this is the risk distance from the price an
+`ACTIONABLE` user could actually have entered at, meaningful only once that
+price exists:
+
+```text
+execution_R = |feasible_entry_price - invalidation_price|
+```
+
+`feasible_entry_price` exists only when `lateness_status == ACTIONABLE`
+([§15](#15-entry-feasibility-evaluation)), so `execution_R` — and every
+metric normalized by it below — is defined **only** for `ACTIONABLE`
+episodes. `execution_R` is **never** used as a confirmation-time gate (that
+is exclusively `planned_risk_distance`'s role,
+[§18.1](#181-planned-risk-structural-available-at-confirmed)); by the time
+`execution_R` can exist, the episode is already `CONFIRMED`.
+
+```text
+execution_MFE_R             = execution_mfe_pct_over_episode_life * feasible_entry_price / 100 / execution_R
+execution_MAE_R             = execution_mae_pct_over_episode_life * feasible_entry_price / 100 / execution_R
+execution_terminal_return_R = execution_directional_return_pct    * feasible_entry_price / 100 / execution_R
+```
+
+(renamed from an earlier draft's bare `MFE_R`/`MAE_R`/`terminal_return_R` —
+same formulas, now unambiguously scoped by name; the `* feasible_entry_price
+/ 100` term converts a percentage return back to an absolute price distance
+before dividing by `execution_R`, so these remain dimensionless
+R-multiples). `execution_mfe_pct_over_episode_life` /
+`execution_mae_pct_over_episode_life` / `execution_directional_return_pct`
+are recomputed against `feasible_entry_price`, not
+`confirmation_reference_price` — distinct from
+[§17](#17-outcome--evaluation-model)'s all-`CONFIRMED` percentage metrics
+and from [§18.2](#182-analytical-r-normalized-metrics-every-confirmed-episode)'s
+`analytical_MFE_R`. All three — the `CONFIRMED`-population percentage
+metrics, the `CONFIRMED`-population `analytical_MFE_R`, and the
+`ACTIONABLE`-only `execution_*` metrics — are legitimate, differently-scoped
+measurements; none substitutes for another, and
 [§26.1](#261-episode-population-definitions) states exactly which
 population each feeds into an acceptance metric.
 
 **`LATE` and `INVALIDATED_BEFORE_ENTRY` episodes are never dropped from the
-evaluation sample** — they simply have no `MFE_R`/`MAE_R`/`terminal_return_R`/
-`cost_adjusted_return_R` (population = `ACTIONABLE` only, by definition of
-requiring `feasible_entry_price`). They remain fully counted in the
-percentage metrics ([§17](#17-outcome--evaluation-model)), in the sample-size
-requirement ([§26](#26-acceptance-sample-requirements)), and — critically —
-in the feasibility-rate metric's denominator ([§27](#27-acceptance-metric-hierarchy)
-priority 1), which is precisely how a family that is frequently late gets
-penalized rather than having its late episodes silently vanish from
-acceptance.
+evaluation sample** — they simply have no `execution_R` /
+`execution_MFE_R` / `execution_MAE_R` / `execution_terminal_return_R` /
+`execution_cost_adjusted_return_R` ([§19](#19-execution-cost-assumptions),
+population = `ACTIONABLE` only, by definition of requiring
+`feasible_entry_price`). They remain fully counted in the percentage
+metrics and in `analytical_MFE_R`
+([§17](#17-outcome--evaluation-model),
+[§18.2](#182-analytical-r-normalized-metrics-every-confirmed-episode)), in
+the sample-size requirement ([§26](#26-acceptance-sample-requirements)),
+and — critically — in the feasibility-rate metric's denominator
+([§27](#27-acceptance-metric-hierarchy) priority 1), which is precisely how
+a family that is frequently late gets penalized rather than having its late
+episodes silently vanish from acceptance. **They also always reach a
+deterministic lifecycle terminal state**
+([§13.2](#132-allowed-transitions)) via `analytical_MFE_R`, regardless of
+`lateness_status`.
 
-**Behavior when `R` is invalid:** the episode fails closed at
-confirmation time (above); it never reaches an evaluable `CONFIRMED` state
-that would need an `R`-based metric. There is no divide-by-zero case to
-handle at evaluation time because it cannot occur — invalid `R` is
-rejected earlier in the lifecycle, not caught after the fact.
+**Behavior when `planned_risk_distance` is invalid:** the episode fails
+closed at confirmation time
+([§18.1](#181-planned-risk-structural-available-at-confirmed)); it never
+reaches an evaluable `CONFIRMED` state at all, so no
+`execution_R`-based metric question can even arise. There is no
+divide-by-zero case to handle at evaluation time because it cannot occur.
 
 ---
 
@@ -1847,8 +2186,15 @@ profile can be substituted without silently rewriting historical results
 under the old assumption's identity.
 
 ```text
-cost_adjusted_return_R = terminal_return_R - (ASSUMED_ROUND_TRIP_COST_BPS / 10000 * feasible_entry_price) / R
+execution_cost_adjusted_return_R = execution_terminal_return_R - (ASSUMED_ROUND_TRIP_COST_BPS / 10000 * feasible_entry_price) / execution_R
 ```
+
+(renamed from an earlier draft's `cost_adjusted_return_R` /
+`terminal_return_R` / bare `R` —
+[§18](#18-risk-normalized-metrics-planned-risk-vs-execution-risk)'s
+naming split applies here identically: this is an `ACTIONABLE`-only,
+execution-scoped metric, built from `execution_terminal_return_R` and
+`execution_R`, never from `planned_risk_distance` or `analytical_MFE_R`.)
 
 Evaluation infrastructure **MUST** support recomputing outcomes under an
 alternative, separately versioned cost profile later without overwriting
@@ -1922,7 +2268,7 @@ than collapsing them into one:
 |---|---|---|
 | **Unavailable** | The required input simply does not exist / cannot be computed right now. | Required timeframe's `ConsensusFeatureVector` missing for the selected bucket; a percentile below `MIN_PCTL_TIER`; missing structural level history (fewer than the lookback requires). |
 | **Neutral** | The input exists and is valid, but genuinely indicates "no lean" — a real measured value, not an absence. | `NEUTRAL_NOT_ESTABLISHED` 1h bias; `bias_strength = 0.0` in confidence scoring. |
-| **Rejected** | The input exists, but a hard gate explicitly disqualifies it. | Insufficient cross-exchange coverage (`< 2/3`); malformed/non-finite numeric values; `calculation_version`/`rules_version` mismatch across inputs that must agree; contradictory context violating a setup's hard gate (e.g. `TREND_PULLBACK` attempted against a `NON_DIRECTIONAL` regime); `R < MIN_VALID_R` ([§18](#18-r-based-metrics)); an already-breached invalidation level discovered before confirmation. |
+| **Rejected** | The input exists, but a hard gate explicitly disqualifies it. | Insufficient cross-exchange coverage (`< 2/3`); malformed/non-finite numeric values; `calculation_version`/`rules_version` mismatch across inputs that must agree; contradictory context violating a setup's hard gate (e.g. `TREND_PULLBACK` attempted against a `NON_DIRECTIONAL` regime); `planned_risk_distance < MIN_VALID_PLANNED_RISK` ([§18.1](#181-planned-risk-structural-available-at-confirmed)); an already-breached invalidation level discovered before confirmation. |
 | **Late / non-actionable** | The input and gates are all otherwise satisfied, but real-world entry feasibility fails. | [§15](#15-entry-feasibility-evaluation)'s infeasible/late verdict — analytically valid, still stored for research, never published as actionable. |
 
 Every failure additionally requires: no future/leaking data (enforced
@@ -1946,7 +2292,7 @@ never an ad hoc runtime decision:
 - missing exchange → treat remaining exchange(s) as full consensus (forbidden by the reused `minimum_exchange_coverage` gate, [§6.3](#63-coverage--degraded-behavior--fail-closed));
 - missing 4h → infer from 1h (forbidden — [§4.2](#42-4h-regime) fails closed to `INSUFFICIENT_DATA` instead);
 - missing 15m → infer from 5m (forbidden — no such substitution exists anywhere in [§7](#7-setup-detectors));
-- missing structural level → synthesize one from current price (forbidden — [§18](#18-r-based-metrics)'s `R < MIN_VALID_R` fail-closed rule exists specifically to prevent this);
+- missing structural level → synthesize one from current price (forbidden — [§18.1](#181-planned-risk-structural-available-at-confirmed)'s `planned_risk_distance < MIN_VALID_PLANNED_RISK` fail-closed rule exists specifically to prevent this);
 - unavailable percentile → assume median (forbidden — [§5.2](#52-missing-percentile-handling--never-none--0)'s `UNAVAILABLE` sentinel exists specifically to prevent this);
 - unavailable canonical reference price → silently switch exchanges (forbidden — [§11](#11-reference-price-semantics) fails closed instead).
 
@@ -1988,7 +2334,7 @@ version): every numeric constant introduced in this document —
 breakout families, all per-family age/horizon numbers
 ([§14](#14-candidate-expiry-and-expected-horizons)),
 `ASSUMED_NOTIFICATION_DELAY_S`, `OVERSHOOT_TOLERANCE`'s multiplier,
-`ASSUMED_ROUND_TRIP_COST_BPS`, `MIN_VALID_R`'s tick multiplier, confidence
+`ASSUMED_ROUND_TRIP_COST_BPS`, `MIN_VALID_PLANNED_RISK`'s tick multiplier, confidence
 weights (the count-based partial-evidence cap from an earlier draft has
 been **removed**, [§8](#8-model-confidence-semantics) — the corrected
 formula is self-limiting and needs no separate cap), cooldown lengths, the
@@ -2129,17 +2475,17 @@ no future evaluator chooses its own population:
 
 | Population name | Definition |
 |---|---|
-| `CONFIRMED` (sample base) | Episodes that reached `CONFIRMED` at least once and later reached a terminal lifecycle state (above). |
-| `ACTIONABLE` | The subset of `CONFIRMED` with `lateness_status == ACTIONABLE` ([§15](#15-entry-feasibility-evaluation)) — has a defined `feasible_entry_price`, and therefore `R`, `MFE_R`, `MAE_R`, `terminal_return_R`, `cost_adjusted_return_R` ([§18](#18-r-based-metrics), [§19](#19-execution-cost-assumptions)). |
-| `LATE` / `INVALIDATED_BEFORE_ENTRY` | The remaining `CONFIRMED` episodes ([§15](#15-entry-feasibility-evaluation)) — no `feasible_entry_price`, so no R-normalized metrics; still fully counted in `CONFIRMED` and in the percentage metrics ([§17](#17-outcome--evaluation-model), computed from `confirmation_reference_price`). |
+| `CONFIRMED` (sample base) | Episodes that reached `CONFIRMED` at least once and later reached a terminal lifecycle state (above). Every episode in this population has a `planned_risk_distance` and an `analytical_MFE_R` ([§18.1](#181-planned-risk-structural-available-at-confirmed)/[§18.2](#182-analytical-r-normalized-metrics-every-confirmed-episode)) — both available at `CONFIRMED` itself, independent of `lateness_status`. |
+| `ACTIONABLE` | The subset of `CONFIRMED` with `lateness_status == ACTIONABLE` ([§15](#15-entry-feasibility-evaluation)) — has a defined `feasible_entry_price`, and therefore `execution_R`, `execution_MFE_R`, `execution_MAE_R`, `execution_terminal_return_R`, `execution_cost_adjusted_return_R` ([§18.3](#183-execution-risk-and-execution-r-normalized-metrics-actionable-only), [§19](#19-execution-cost-assumptions)). |
+| `LATE` / `INVALIDATED_BEFORE_ENTRY` | The remaining `CONFIRMED` episodes ([§15](#15-entry-feasibility-evaluation)) — no `feasible_entry_price`, so no execution-scoped R-normalized metrics; still fully counted in `CONFIRMED`, in the percentage metrics ([§17](#17-outcome--evaluation-model), computed from `confirmation_reference_price`), and in `analytical_MFE_R` ([§18.2](#182-analytical-r-normalized-metrics-every-confirmed-episode)) — which is why they still reach a deterministic lifecycle terminal state ([§13.2](#132-allowed-transitions)). |
 
 | Metric | Population (exact) |
 |---|---|
 | `MIN_COMPLETED_EPISODES_AGGREGATE` / `_PER_FAMILY` ([§26](#26-acceptance-sample-requirements)) | `CONFIRMED` (all lateness statuses). |
 | Actionable-entry feasibility rate, missed/late rate ([§27](#27-acceptance-metric-hierarchy) priority 1) | `CONFIRMED` — numerator `ACTIONABLE`, denominator `CONFIRMED`. `LATE` and `INVALIDATED_BEFORE_ENTRY` are exactly the episodes counted against the rate, not episodes that disappear from it. |
-| Median/90th-percentile `MAE_R`, median `MFE_R`, proportion reaching `MFE_R >= 0.5` ([§27](#27-acceptance-metric-hierarchy) priorities 2–3) | `ACTIONABLE` only — undefined for `LATE`/`INVALIDATED_BEFORE_ENTRY` by construction (no `feasible_entry_price`). |
-| Mean `cost_adjusted_return_R` ([§27](#27-acceptance-metric-hierarchy) priority 4) | `ACTIONABLE` only, same reason. |
-| Directional accuracy, `terminal_return_R > 0` ([§27](#27-acceptance-metric-hierarchy) priority 5) | `ACTIONABLE` only — `terminal_return_R` is itself an `R`-based metric. (A supplementary, non-gating percentage-based accuracy figure — `directional_return_pct > 0` over **all** `CONFIRMED` episodes — **MAY** additionally be reported, since that percentage metric's population is broader; it carries no threshold either way, consistent with priority 5 never being a gate.) |
+| Median/90th-percentile `execution_MAE_R`, median `execution_MFE_R`, proportion reaching `execution_MFE_R >= 0.5` ([§27](#27-acceptance-metric-hierarchy) priorities 2–3) | `ACTIONABLE` only — undefined for `LATE`/`INVALIDATED_BEFORE_ENTRY` by construction (no `feasible_entry_price`). |
+| Mean `execution_cost_adjusted_return_R` ([§27](#27-acceptance-metric-hierarchy) priority 4) | `ACTIONABLE` only, same reason. |
+| Directional accuracy, `execution_terminal_return_R > 0` ([§27](#27-acceptance-metric-hierarchy) priority 5) | `ACTIONABLE` only — `execution_terminal_return_R` is itself an execution-scoped R-based metric. (A supplementary, non-gating percentage-based accuracy figure — `directional_return_pct > 0` over **all** `CONFIRMED` episodes — **MAY** additionally be reported, since that percentage metric's population is broader; it carries no threshold either way, consistent with priority 5 never being a gate.) |
 
 ---
 
@@ -2149,18 +2495,22 @@ Preserving the roadmap's priority order (`docs/FORECASTING_ROADMAP.md` §H)
 exactly, with concrete V2-v0 metrics/thresholds per priority. **Population**
 column values are defined precisely in
 [§26.1](#261-episode-population-definitions) — no metric below has an
-implicit or evaluator-chosen denominator:
+implicit or evaluator-chosen denominator. Every metric here is
+**execution-scoped** (`ACTIONABLE`-only, [§18.3](#183-execution-risk-and-execution-r-normalized-metrics-actionable-only)) —
+distinct from [§18.2](#182-analytical-r-normalized-metrics-every-confirmed-episode)'s
+`analytical_MFE_R`, which drives lifecycle completion for **every**
+`CONFIRMED` episode but is not itself an acceptance-gating metric:
 
 | Priority | Roadmap priority | Metric | Population | V2-v0 threshold |
 |---|---|---|---|---|
 | 1 | Entry feasibility after real delay | Actionable-entry feasibility rate (`ACTIONABLE / CONFIRMED`, [§15](#15-entry-feasibility-evaluation)) | `CONFIRMED` | `>= 0.60` |
 | 1b | (complement) | Missed/late rate | `CONFIRMED` | `<= 0.40` |
-| 2 | Low MAE | Median `MAE_R` | `ACTIONABLE` | `<= 1.0R` |
-| 2b | (tail) | 90th-percentile `MAE_R` | `ACTIONABLE` | `<= 2.0R` |
-| 3 | Sufficient MFE | Median `MFE_R` | `ACTIONABLE` | `>= 1.0R` |
-| 3b | (breadth) | Proportion of episodes reaching `MFE_R >= 0.5` before invalidation | `ACTIONABLE` | `>= 0.50` |
-| 4 | Performance after costs/delay | Mean `cost_adjusted_return_R` ([§19](#19-execution-cost-assumptions)) | `ACTIONABLE` | `> 0.10R` |
-| 5 | Ordinary directional accuracy | `CONFIRMED` episodes where `terminal_return_R > 0` | `ACTIONABLE` | Reported only, **no threshold** — explicitly not a gate, per roadmap §H ("ordinary accuracy alone is not the promotion criterion"). |
+| 2 | Low MAE | Median `execution_MAE_R` | `ACTIONABLE` | `<= 1.0R` |
+| 2b | (tail) | 90th-percentile `execution_MAE_R` | `ACTIONABLE` | `<= 2.0R` |
+| 3 | Sufficient MFE | Median `execution_MFE_R` | `ACTIONABLE` | `>= 1.0R` |
+| 3b | (breadth) | Proportion of episodes reaching `execution_MFE_R >= 0.5` before invalidation | `ACTIONABLE` | `>= 0.50` |
+| 4 | Performance after costs/delay | Mean `execution_cost_adjusted_return_R` ([§19](#19-execution-cost-assumptions)) | `ACTIONABLE` | `> 0.10R` |
+| 5 | Ordinary directional accuracy | `CONFIRMED` episodes where `execution_terminal_return_R > 0` | `ACTIONABLE` | Reported only, **no threshold** — explicitly not a gate, per roadmap §H ("ordinary accuracy alone is not the promotion criterion"). |
 
 All V2-v0, `rules_version`-participating, explicitly not empirically
 proven. **Win rate is never the sole promotion criterion** — priority 5
@@ -2179,8 +2529,8 @@ having those episodes silently vanish from the evaluation.
 Any of the following alone fails promotion, regardless of any other metric:
 
 - Sample requirements ([§26](#26-acceptance-sample-requirements)) not met (aggregate or per-family, as applicable).
-- Mean `cost_adjusted_return_R <= 0` — a non-positive cost-adjusted expectancy is an unconditional fail, independent of accuracy or MFE.
-- Median `MAE_R > 1.0` — exceeding the risk-control threshold.
+- Mean `execution_cost_adjusted_return_R <= 0` — a non-positive cost-adjusted expectancy is an unconditional fail, independent of accuracy or MFE.
+- Median `execution_MAE_R > 1.0` — exceeding the risk-control threshold.
 - Actionable-entry feasibility rate `< 0.60` — a setup that's "usually right" but consistently too late to act on does not qualify (directly implementing the roadmap's stated rejection of that failure mode).
 
 ### 28.2 Promotion levels
@@ -2218,12 +2568,77 @@ RESEARCH_ONLY        -> SHADOW_ELIGIBLE       -> USER_FACING_ELIGIBLE       (-> 
 |---|---|---|
 | `RESEARCH_ONLY` | Default — code exists and produces persisted episodes/outcomes. No gating. | Internal analysis only. No shadow run, no notifications. |
 | `SHADOW_ELIGIBLE` | Aggregate sample minimums met ([§26](#26-acceptance-sample-requirements)), from historical replay and/or live evidence. | Parallel shadow evaluation (`docs/FORECASTING_ROADMAP.md` §I, stage 10) — internally computed, not user-visible. This is precisely how the metric hierarchy in [§27](#27-acceptance-metric-hierarchy) *and* the live-shadow requirement below get evaluated; passing either is not a precondition of reaching this level. |
-| `USER_FACING_ELIGIBLE` | **Both**, per setup family: (a) full acceptance metric hierarchy ([§27](#27-acceptance-metric-hierarchy)) passes over the aggregate sample ([§26](#26-acceptance-sample-requirements)), **and** (b) the live-shadow evidence requirement ([§28.2a](#282a-live-shadow-evidence-requirement)) is independently satisfied for that family. A family failing either — including a family with excellent historical replay metrics but insufficient live-shadow evidence — stays `SHADOW_ELIGIBLE`. | User-facing V2 notifications for the qualifying family/families only. |
+| `USER_FACING_ELIGIBLE` | **Both, evaluated per setup family, against that family's OWN population — never against the aggregate as a substitute** (amended, [§28.2's per-family gate](#282-promotion-levels) below): (a) the full acceptance metric hierarchy ([§27](#27-acceptance-metric-hierarchy)) passes over **that family's own** historical/replay sample meeting `MIN_COMPLETED_EPISODES_PER_FAMILY` ([§26](#26-acceptance-sample-requirements)), **and** (b) the live-shadow evidence requirement ([§28.2a](#282a-live-shadow-evidence-requirement)) is independently satisfied, also computed from **that family's own** live-shadow-only population. A family failing either — including a family with excellent historical replay metrics but insufficient live-shadow evidence, **or** a family whose own historical metrics fail despite the aggregate V2 sample passing and the other families performing well — stays `SHADOW_ELIGIBLE`. | User-facing V2 notifications for the qualifying family/families only. |
 | `V1_RETIRABLE` | A **separate, explicit decision** comparing V2 against V1 on overlapping calendar periods, using only metrics genuinely comparable between the two ([§28.3](#283-v1-comparison)). Not automatic on reaching `USER_FACING_ELIGIBLE`. | V1 Telegram delivery may be paused/retired — requires its own explicit PR/deployment action, exactly as `docs/FORECASTING_ROADMAP.md` §C already states. |
 
 No level above is reached automatically by finishing implementation. **No
 production/notification action is authorized by this document** — every
 transition above requires a subsequent, explicit human decision.
+
+**Per-family promotion gate (re-amended — closes an aggregate-substitution
+gap).** An earlier draft's `USER_FACING_ELIGIBLE` wording required "the
+full acceptance metric hierarchy passes over **the aggregate sample**" for
+part (a), combined with a **per-family** live-shadow requirement for part
+(b). That shape allows a historically poor setup family to reach
+`USER_FACING_ELIGIBLE` by riding on the other families' good aggregate
+performance — e.g. the aggregate V2 sample clears every §27 threshold
+because `COMPRESSION_BREAKOUT` and `TREND_PULLBACK` are excellent, while
+`CONFIRMED_BREAKOUT`'s own historical metrics are actually poor; under the
+old wording, `CONFIRMED_BREAKOUT` could still reach `USER_FACING_ELIGIBLE`
+purely because it separately satisfied its own live-shadow minimum. That is
+not acceptable — a setup family's own historical performance must stand on
+its own. Both (a) and (b) are now evaluated **per family, against that
+family's own population, with no aggregate substitution for either**:
+
+```text
+For setup family F to reach USER_FACING_ELIGIBLE, BOTH of the following
+MUST independently hold for F specifically:
+
+(a) Historical/replay gate for F:
+    - F has >= MIN_COMPLETED_EPISODES_PER_FAMILY completed episodes (§26)
+      in its own historical/replay population;
+    - the full §27 acceptance metric hierarchy passes when computed ONLY
+      over F's own historical/replay population (never the aggregate
+      V2-wide population as a stand-in).
+
+(b) Live-shadow gate for F ([§28.2a](#282a-live-shadow-evidence-requirement)):
+    - F has >= LIVE_SHADOW_MIN_CONFIRMED_EPISODES_PER_FAMILY live-shadow
+      episodes over >= LIVE_SHADOW_MIN_CALENDAR_DAYS;
+    - the full §27 acceptance metric hierarchy passes when computed ONLY
+      over F's own live-shadow-only population.
+
+The aggregate V2-wide population (§26/§27 computed over all families
+combined) MAY still be reported and MAY serve as an additional global
+health gate (e.g. "is V2 as a whole minimally viable at all") — but it
+MUST NOT substitute for, or be averaged into, any individual family's own
+gates above. A family failing either (a) or (b) on its OWN population stays
+SHADOW_ELIGIBLE, even if the aggregate V2 population passes and the other
+two families are excellent.
+```
+
+**Normative promotion vector (aggregate cannot rescue a failing family):**
+
+```text
+Aggregate V2 population (all 3 families combined): passes every §26 sample
+    minimum and every §27 acceptance metric threshold.
+TREND_PULLBACK's OWN historical/replay population: fails §27 priority 2
+    (median execution_MAE_R = 1.4 > 1.0) — its own metrics do not pass,
+    even though the aggregate (dominated by the other two families' larger,
+    better-performing samples) does.
+TREND_PULLBACK's live-shadow sample: passes every LIVE_SHADOW_MIN_* minimum
+    and every §27 threshold computed over that live-shadow-only population.
+
+=> TREND_PULLBACK is NOT USER_FACING_ELIGIBLE — gate (a) failed on TREND_
+   PULLBACK's own historical population, and passing the aggregate instead
+   of TREND_PULLBACK's own population is exactly the substitution this
+   amendment forbids. TREND_PULLBACK remains SHADOW_ELIGIBLE regardless of
+   its live-shadow gate (b) having passed, and regardless of how well
+   COMPRESSION_BREAKOUT/CONFIRMED_BREAKOUT perform. See
+   [§29.14a](#2914a-promotion-per-family-gate-aggregate-cannot-rescue-a-failing-family-vector)
+   for the full worked vector, and
+   [§29.14](#2914-promotion-live-shadow-requirement-vector) for the
+   companion live-shadow-only failure case.
+```
 
 ### 28.2a Live-shadow evidence requirement
 
@@ -2261,8 +2676,11 @@ minimums above:**
 - **Acceptance metrics computed from the live-shadow sample itself.** The
   full acceptance metric hierarchy ([§27](#27-acceptance-metric-hierarchy))
   is evaluated **against the live-shadow-only population** meeting the
-  minimums above, in addition to (not instead of) the full historical/replay
-  sample — both must pass for that family.
+  minimums above, in addition to (not instead of) that same family's own
+  historical/replay population ([§28.2](#282-promotion-levels)'s per-family
+  gate) — both must independently pass, both computed from **that specific
+  family's own data**, never from the aggregate V2-wide population as a
+  substitute for either.
 
 **A family without enough live-shadow evidence remains non-user-facing even
 if its historical replay looks excellent** — this is the explicit,
@@ -2368,21 +2786,23 @@ worked with real numbers.
 
 Demonstrates [§4.2](#42-4h-regime)'s corrected, symmetric OI treatment —
 rising OI confirms **either** direction; falling OI opposes **either**
-direction; OI never independently picks LONG vs. SHORT:
+direction; OI never independently picks LONG vs. SHORT; and (re-amended)
+that a same-signed OI reading with a rank on the *wrong* side of its own
+history produces weak/zero strength, never strong strength:
 
 ```text
-Vector 1 — bullish price + rising OI (confirms):
+Vector 1 — bullish price + rising OI, upper-tail rank (confirms, strongly):
   price_evi = +0.55 (candidate direction: BULLISH), agreement = 0.80
   oi_raw = +2.1% (rising), oi_rank = 0.92, oi_agreement = 0.85
-  oi_magnitude = 2*|0.92-0.5|*0.85 = 2*0.42*0.85 = 0.714
-  oi_confirmation = +0.714   (rising OI => positive, regardless of price direction)
+  oi_strength = max(0, 2*0.92 - 1) = max(0, 0.84) = 0.84
+  oi_confirmation = +0.84*0.85 = +0.714   (rising OI => positive, regardless of price direction)
   veto check: oi_confirmation <= REGIME_OI_VETO(-0.40)? +0.714 <= -0.40 is FALSE => no veto
   => regime = BULLISH_TRENDING (rising OI confirmed, did not veto)
 
-Vector 2 — bearish price + rising OI (ALSO confirms — the required symmetry):
+Vector 2 — bearish price + rising OI, upper-tail rank (ALSO confirms — the required symmetry):
   price_evi = -0.55 (candidate direction: BEARISH), agreement = 0.80
   oi_raw = +2.1% (rising — SAME raw OI reading as Vector 1), oi_rank = 0.92, oi_agreement = 0.85
-  oi_magnitude = 0.714 (identical computation — oi_confirmation does not read price_evi at all)
+  oi_strength = 0.84 (identical computation — oi_confirmation does not read price_evi at all)
   oi_confirmation = +0.714   (rising OI => positive, SAME sign as Vector 1, despite opposite price direction)
   veto check: +0.714 <= -0.40 is FALSE => no veto
   => regime = BEARISH_TRENDING (rising OI ALSO confirmed the bearish anchor)
@@ -2390,16 +2810,54 @@ Vector 2 — bearish price + rising OI (ALSO confirms — the required symmetry)
   BOTH a bullish anchor (Vector 1) and a bearish anchor (Vector 2) — OI
   never independently selected a direction; price_evi's own sign did.
 
-Vector 3 — falling OI opposes either anchor (veto):
+Vector 3 — falling OI, lower-tail rank, opposes either anchor (veto):
   price_evi = +0.55 (candidate direction: BULLISH), agreement = 0.80
   oi_raw = -1.8% (falling), oi_rank = 0.08, oi_agreement = 0.90
-  oi_magnitude = 2*|0.08-0.5|*0.90 = 2*0.42*0.90 = 0.756
-  oi_confirmation = -0.756   (falling OI => negative)
+  oi_strength = max(0, 1 - 2*0.08) = max(0, 0.84) = 0.84
+  oi_confirmation = -0.84*0.90 = -0.756   (falling OI => negative)
   veto check: -0.756 <= -0.40 is TRUE => VETOED
   => regime = NON_DIRECTIONAL (price alone cleared REGIME_TREND_THRESHOLD,
      but falling OI vetoed the trend call)
   Symmetric case (bearish price + the same falling OI) would ALSO be
   vetoed — falling OI opposes whichever anchor price proposes, never just one side.
+
+Vector 4 — weak positive OI, LOW rank (bug-repro: must be weak/zero
+confirmation, not strong). This is the exact case the amendment fixes —
+under the prior, incorrect `oi_magnitude = 2*|oi_rank-0.5|*oi_agreement`
+formula, this vector produced `2*|0.10-0.5| = 0.80` (reported as STRONG
+confirmation, which was wrong):
+  oi_raw = +0.10% (rising, but a small/weak move), oi_rank = 0.10
+    (this bucket's OI change ranks in the bottom decile of its own history
+    — i.e. RISING OI THAT IS UNUSUALLY SMALL, not unusually large),
+    oi_agreement = 0.85
+  oi_strength = max(0, 2*0.10 - 1) = max(0, -0.80) = 0.0   (correct: a rising
+    move that ranks in the LOWER half of its history is not an extreme
+    rising move, so it must not be reported as strong)
+  oi_confirmation = +0.0*0.85 = 0.0   (weak/zero confirmation — CORRECTED
+    from the prior formula's erroneous +0.68)
+  => rising OI still confirms in sign (>= 0), but contributes no strength —
+     matches "positive OI + lower-half rank -> weak/zero confirmation."
+
+Vector 5 — strong negative OI, HIGH rank (symmetric bug-repro: must be
+weak/zero opposition, not strong):
+  oi_raw = -0.10% (falling, but a small/weak move), oi_rank = 0.90
+    (this bucket's OI change ranks in the top decile — i.e. FALLING OI
+    THAT IS UNUSUALLY SMALL/SHALLOW relative to typically deeper declines
+    in its own history), oi_agreement = 0.85
+  oi_strength = max(0, 1 - 2*0.90) = max(0, -0.80) = 0.0
+  oi_confirmation = -0.0*0.85 = 0.0   (weak/zero opposition, not strong)
+  => falling OI still opposes in sign (<= 0), but contributes no strength —
+     matches "negative OI + upper-half rank -> weak/zero opposition."
+```
+
+**Normative invariant vectors (exhaustive quadrant, re-stated for
+traceability):**
+
+```text
+positive OI + upper-tail rank  -> strong confirmation   (Vector 1/2, oi_rank=0.92)
+positive OI + lower-half rank  -> weak/zero confirmation (Vector 4, oi_rank=0.10)
+negative OI + lower-tail rank  -> strong opposition       (Vector 3, oi_rank=0.08)
+negative OI + upper-half rank  -> weak/zero opposition    (Vector 5, oi_rank=0.90)
 ```
 
 ### 29.6 Setup vectors
@@ -2419,8 +2877,10 @@ pullback. 5m: consensus `price_move_pct_median` sign `+1`,
 `price_direction_agreement = 0.75 >= 2/3` on one closed bucket → confirmed.
 `pullback_extreme_low = 64,300`, `protection_buffer(15m,B,64350) ≈
 max(3*tick, 64350*0.4%*0.5) ≈ 128.7` (using `tick_size=0.1` for
-illustration) → `invalidation_price ≈ 64,171.3`. `R = |64350 - 64171.3| ≈
-178.7 > MIN_VALID_R` → valid. Entry zone `[64,300, 64,350]`. →
+illustration) → `invalidation_price ≈ 64,171.3`. `confirmation_reference_price
+= 64,350` (the confirming 5m close) →
+`planned_risk_distance = |64350 - 64171.3| ≈ 178.7 > MIN_VALID_PLANNED_RISK`
+→ valid, `CONFIRMED` reached. Entry zone `[64,300, 64,350]`. →
 `TREND_PULLBACK`, `LONG`, `CONFIRMED`.
 
 **Rejected `TREND_PULLBACK`.** Same 4h/1h context, but
@@ -2429,9 +2889,18 @@ exceeds `PULLBACK_MAX_MULT` → classified as trend failure, not a pullback
 → **no candidate formed**.
 
 **Valid `COMPRESSION_BREAKOUT` (SHORT), full `EARLY_SIGNAL → CONFIRMED`
-lifecycle.** `compression_score(15m,30d,B15) = 0.82 >= 0.75` for
-`7 >= COMPRESSION_MIN_DURATION(6)` consecutive 15m buckets.
-`range_low = HTF_low`-derived `= 63,800` ([§7.0a](#70a-structural-highlow-derivation-amended--corrects-a-nonexistent-field-error)).
+lifecycle.** Within the 16-bucket `COMPRESSION_LOOKBACK` ending at `B15`,
+exactly one maximal run of compressed buckets qualifies: buckets `b[9]`
+through `b[15]` (the 7 most recent), `compression_score(15m,30d,B15) =
+0.82 >= 0.75` throughout. Compression-window selection
+([§7.2](#72-compression_breakout)): one qualifying run of length
+`7 >= COMPRESSION_MIN_DURATION(6)` → trivially selected (the "most recent
+qualifying run" rule has nothing else to choose among here — see the
+dedicated multi-run vector below for the disambiguating case) →
+`compression_start_bucket = b[9]`, `compression_end_bucket = b[15] = B15`,
+`compression_length = 7`. `range_low = HTF_low`-derived over
+`[compression_start_bucket, compression_end_bucket]` `= 63,800`
+([§7.0a](#70a-structural-highlow-derivation-amended--corrects-a-nonexistent-field-error)).
 4h regime `NON_DIRECTIONAL`, 1h bias `NEUTRAL_NOT_ESTABLISHED` →
 `directional_context_gate(SHORT, ...) = ACCEPT` (neither is an established
 opposite, [§7.0b](#70b-directional-context-compatibility-gate-amended--closes-a-countertrend-gap)) —
@@ -2453,13 +2922,32 @@ T2 (bucket 2, next closed 5m bucket): reference exchange closes at 63,710
 ```
 → `COMPRESSION_BREAKOUT`, `SHORT`, `EARLY_SIGNAL` at T1, `CONFIRMED` at T2.
 
-**`COMPRESSION_BREAKOUT` false-break vector.** Same `EARLY_SIGNAL` as
-above at T1. At T2 (before the second confirming close), the reference
-exchange instead closes at `63,850` (back **inside** the compression range,
-`63,800 < 63,850 < range_high`) → false-break re-entry → `INVALIDATED` at
-T2, never reaching `CONFIRMED`. The episode existed (it was `EARLY_SIGNAL`
-from T1), so this is a real lifecycle transition, not a silent
-non-creation.
+**`COMPRESSION_BREAKOUT` false-break vector (re-entry case).** Same
+`EARLY_SIGNAL` (`SHORT`, broken below `range_low = 63,800`) as above at T1.
+At T2 (before the second confirming close), the reference exchange instead
+closes at `63,850`. Under the direction-aware rule: `SHORT` holds iff
+`close <= range_low (63,800)`; `63,850 > 63,800` → does **not** hold →
+`INVALIDATED` at T2, never reaching `CONFIRMED`. (This is also, incidentally,
+back inside the compression range — but the rule that fires is "the
+breakout side no longer holds," not "price re-entered the range"; see the
+overshoot vector below for why that distinction matters.) The episode
+existed (it was `EARLY_SIGNAL` from T1), so this is a real lifecycle
+transition, not a silent non-creation.
+
+**`COMPRESSION_BREAKOUT` false-break vector (overshoot case — the exact
+gap the amendment fixes).** Same `EARLY_SIGNAL` (`SHORT`, `range_low =
+63,800`, `range_high = 64,100` for this vector) as above at T1. At T2, a
+violent reversal closes at `64,150` — **beyond `range_high`**, i.e. it blew
+straight through the entire compression range to the opposite side, not
+merely back inside it. Under the **prior** "inside range" predicate
+(`range_low < close < range_high`, i.e. `63,800 < 64,150 < 64,100`), this
+is **FALSE** (`64,150` is not `< 64,100`) — the old rule would have
+incorrectly let this episode continue toward `CONFIRMED` despite an even
+stronger repudiation than a simple re-entry. Under the **corrected**
+direction-aware rule: `SHORT` holds iff `close <= range_low (63,800)`;
+`64,150 > 63,800` → does not hold → `INVALIDATED` at T2. The one-sided
+check catches this case exactly because it never asks "is price back
+inside the range," only "does the breakout side still hold."
 
 **`COMPRESSION_BREAKOUT` expiry vector.** Same `EARLY_SIGNAL` at T1. Over
 the next `CONFIRMATION_MAX_AGE(3×5m)` closed buckets, price oscillates
@@ -2473,6 +2961,43 @@ consecutive buckets before dropping below threshold → compression never
 qualifies as sustained → **no episode is ever created**, even though a
 later strong directional 5m move occurs — a big move alone, without the
 sustained-compression precondition, never becomes `COMPRESSION_BREAKOUT`.
+
+**`COMPRESSION_BREAKOUT` multi-run window-selection vector (deterministic
+disambiguation, [§7.2](#72-compression_breakout)).** Within the 16-bucket
+`COMPRESSION_LOOKBACK` ending at `B15`, compression status by bucket index
+(`b[0]` oldest .. `b[15] = B15` most recent):
+
+```text
+b[0]..b[5]:   compressed (score >= 0.75)   -> a maximal run of length 6, qualifies
+b[6]:         NOT compressed                -> breaks the first run
+b[7]..b[13]:  compressed (score >= 0.75)   -> a maximal run of length 7, qualifies
+b[14]..b[15]: NOT compressed
+
+Two DISTINCT qualifying runs exist: [b[0]..b[5]] (length 6) and
+[b[7]..b[13]] (length 7).
+
+Selection: "most recent qualifying run" -> the run ending at b[13] is more
+recent than the run ending at b[5] -> [b[7]..b[13]] is selected, REGARDLESS
+of the other run being shorter.
+  compression_start_bucket = b[7]
+  compression_end_bucket   = b[13]
+  compression_length       = 7
+
+range_high/range_low are computed ONLY over [b[7], b[13]] — buckets
+b[0]..b[5] (the earlier, non-selected qualifying run) contribute NOTHING
+to the structural range, even though they also satisfied
+COMPRESSION_MIN_DURATION on their own.
+```
+
+This resolves all three ambiguous shapes the amendment was written to
+cover: "one run of 6 and a later run of 7" (exactly this vector — the later
+run wins regardless of the shorter run's earlier qualification); "one
+continuous run of 9" (a single maximal run — no ambiguity, the whole run of
+9 becomes the window per step 6's "full selected run" rule, not a truncated
+6-bucket slice); and "two distinct runs of exactly 6" (the more recent of
+the two wins by the same "most recent end bucket" rule, with no need for
+the length or latest-end-bucket tiebreakers, since two distinct maximal
+runs can never share an end bucket).
 
 **Valid `CONFIRMED_BREAKOUT` (LONG), full `EARLY_SIGNAL → CONFIRMED`
 lifecycle, aligned HTF context.** `resistance_level = HTF_high`-derived
@@ -2519,12 +3044,14 @@ at all.
 
 ### 29.7 Countertrend-context gate vectors
 
-Consolidates the three required cases from
+Consolidates the four required cases from
 [§7.0b](#70b-directional-context-compatibility-gate-amended--closes-a-countertrend-gap)
-in one place (each also appears inline above with full detector mechanics):
+in one place (the first three also appear inline above with full detector
+mechanics):
 
 ```text
-1. Valid breakout, NEUTRAL/non-established HTF context (allowed):
+1. Valid breakout, NEUTRAL/non-established HTF context (allowed — a REAL
+   measured neutral reading, not missing data):
    regime = NON_DIRECTIONAL, bias = NEUTRAL_NOT_ESTABLISHED
    => directional_context_gate(either direction) = ACCEPT
    (§29.6's valid COMPRESSION_BREAKOUT vector)
@@ -2538,6 +3065,23 @@ in one place (each also appears inline above with full detector mechanics):
    regime = BEARISH_TRENDING (firmly established), candidate = LONG
    => directional_context_gate(LONG) = REJECT, no episode created
    (§29.6's rejected CONFIRMED_BREAKOUT vector)
+
+4. Rejected breakout, UNAVAILABLE 1h bias (forbidden — data-availability,
+   NOT the same rejection reason as case 3, and NOT the same outcome as
+   case 1's NEUTRAL_NOT_ESTABLISHED despite both being "absence of a firm
+   bias" in casual language):
+   regime = NON_DIRECTIONAL (or even BULLISH_TRENDING aligned with candidate),
+   bias = UNAVAILABLE (the 1h bias detector could not compute a reading —
+     e.g. consensus coverage below minimum, or percentile confidence tier
+     below "building", §4.1/§5.2), candidate = LONG
+   => directional_context_gate(LONG): bias == UNAVAILABLE => REJECT
+      (data-availability failure) — no episode created, even though regime
+      alone would have permitted or even supported the direction.
+   Contrast with case 1: had bias been a genuinely computed
+   NEUTRAL_NOT_ESTABLISHED instead of UNAVAILABLE, the identical regime
+   would have ACCEPTed. The only difference between ACCEPT and REJECT here
+   is whether the 1h bias detector actually produced a measurement —
+   exactly the distinction this amendment exists to enforce.
 ```
 
 ### 29.8 Confidence monotonicity vector
@@ -2559,8 +3103,12 @@ T3 (WEAKEN_BUCKETS=2 later): price_direction_agreement(5m) opposes
     direction for 2 consecutive closed 5m buckets -> WEAKENING
 T4 (RECOVER_BUCKETS=1 later): opposing-agreement condition no longer holds
     -> CONFIRMED (recovery, §13.2a)
-T5 (horizon elapses, 2h after T2 per §14): MFE_R reached 0.7 at some point
-    during T2..T5 (>= MIN_MFE_R_FOR_COMPLETION=0.5) -> COMPLETED
+T5 (horizon elapses, 2h after T2 per §14): analytical_MFE_R (peak favorable
+    excursion from confirmation_reference_price, normalized by
+    planned_risk_distance, §18.2) reached 0.7 at some point during T2..T5
+    (>= MIN_MFE_R_FOR_COMPLETION=0.5) -> COMPLETED. This holds regardless of
+    this episode's lateness_status — see §29.11 for the same deterministic
+    resolution on a LATE episode.
 ```
 
 ### 29.10 Reversal vector
@@ -2604,9 +3152,23 @@ entry_zone_upper + OVERSHOOT_TOLERANCE = 64,350 + 32.2 = 64,382.2
    successful actionable V2 call in acceptance metrics' feasibility rate
    numerator (§27, priority 1). directional_return_pct/mfe_pct/mae_pct are
    still computed for it (against confirmation_reference_price, §17); its
-   MFE_R/MAE_R/terminal_return_R are undefined (no feasible_entry_price,
-   §26.1) — it is excluded from the ACTIONABLE population but counted in
-   CONFIRMED.
+   execution_MFE_R/execution_MAE_R/execution_terminal_return_R are
+   undefined (no feasible_entry_price, §26.1) — it is excluded from the
+   ACTIONABLE population but counted in CONFIRMED.
+
+Lifecycle completion for this same LATE episode (re-amended — resolves what
+was previously an undefined case, §13.2): planned_risk_distance was already
+fixed at CONFIRMED (T), e.g. `planned_risk_distance ≈ 178.7` (§29.6's
+TREND_PULLBACK vector). Suppose price later reaches a peak favorable
+excursion of `mfe_pct_over_episode_life = +0.28%` against
+`confirmation_reference_price = 64,350` before horizon end:
+
+```text
+analytical_MFE_R = 0.28/100 * 64,350 / 178.7 ≈ 1.008   (>= MIN_MFE_R_FOR_COMPLETION=0.5)
+=> COMPLETED at horizon end — a deterministic terminal state, even though
+   this episode's lateness_status is LATE and it has no execution_MFE_R at
+   all. Lifecycle state never depended on whether a hypothetical delayed
+   entry was feasible.
 ```
 
 ### 29.12 Acceptance-population vector
@@ -2623,7 +3185,7 @@ Sample: 10 CONFIRMED TREND_PULLBACK episodes, all later terminal:
 Sample-size count (§26, MIN_COMPLETED_EPISODES_*):        10  (all CONFIRMED, any lateness_status)
 Actionable-entry feasibility rate (§27 priority 1):        6 / 10 = 0.60   (denominator = CONFIRMED = 10)
 Missed/late rate:                                          4 / 10 = 0.40   (the 3 LATE + 1 INVALIDATED_BEFORE_ENTRY)
-Median MAE_R / median MFE_R / mean cost_adjusted_return_R:  computed over the 6 ACTIONABLE episodes only
+Median execution_MAE_R / median execution_MFE_R / mean execution_cost_adjusted_return_R:  computed over the 6 ACTIONABLE episodes only
                                                              (denominator = 6, NOT 10 — the 4 non-actionable
                                                              episodes have no feasible_entry_price and are
                                                              correctly excluded from this population, not
@@ -2642,13 +3204,13 @@ candidate-rejection statistic.
 Sample: 120 completed CONFIRMED_BREAKOUT episodes over 65 calendar days
         (passes §26: >= 30 per-family, >= 60 days).
 
-Directional accuracy: 68% of ACTIONABLE episodes have terminal_return_R > 0.
+Directional accuracy: 68% of ACTIONABLE episodes have execution_terminal_return_R > 0.
     (Looks strong in isolation.)
 
 But:
   actionable-entry feasibility rate = 0.52   (< 0.60 threshold, §27 priority 1, population = CONFIRMED)
-  median MAE_R = 1.35                          (> 1.0 threshold, §27 priority 2, population = ACTIONABLE)
-  mean cost_adjusted_return_R = -0.05          (<= 0, §28.1 hard fail, population = ACTIONABLE)
+  median execution_MAE_R = 1.35                (> 1.0 threshold, §27 priority 2, population = ACTIONABLE)
+  mean execution_cost_adjusted_return_R = -0.05   (<= 0, §28.1 hard fail, population = ACTIONABLE)
 
 => PROMOTION FAILS for CONFIRMED_BREAKOUT despite the eye-catching 68%
    directional accuracy, because priority-1 feasibility, priority-2 MAE,
@@ -2663,8 +3225,9 @@ But:
 ```text
 CONFIRMED_BREAKOUT: historical replay over 90 days produces 150 CONFIRMED
 episodes, passing every §26 sample minimum and every §27 acceptance metric
-threshold at the aggregate and per-family level — by replay evidence alone,
-this family "looks" ready for USER_FACING_ELIGIBLE.
+threshold computed over CONFIRMED_BREAKOUT's OWN historical/replay
+population — by replay evidence alone, this family "looks" ready for
+USER_FACING_ELIGIBLE.
 
 Live parallel-shadow evaluation (§28.2a) has been running for only 12
 calendar days with 6 live CONFIRMED episodes for this family — below
@@ -2676,6 +3239,39 @@ LIVE_SHADOW_MIN_CALENDAR_DAYS(30) and LIVE_SHADOW_MIN_CONFIRMED_EPISODES_PER_FAM
    (already true here) but MUST NOT, by itself, authorize user-facing
    notifications — the live-shadow minimum in §28.2a must be independently
    satisfied first, for this specific family.
+```
+
+### 29.14a Promotion (per-family gate, aggregate cannot rescue a failing family) vector
+
+Demonstrates [§28.2](#282-promotion-levels)'s re-amended per-family gate —
+the aggregate V2-wide population passing is **not** a substitute for a
+family's own historical metrics:
+
+```text
+Aggregate V2 population (TREND_PULLBACK + COMPRESSION_BREAKOUT +
+CONFIRMED_BREAKOUT combined): 340 CONFIRMED episodes, passes every §26
+sample minimum and every §27 acceptance metric threshold — driven mostly by
+COMPRESSION_BREAKOUT's and CONFIRMED_BREAKOUT's strong, larger samples.
+
+TREND_PULLBACK's OWN historical/replay population (35 CONFIRMED episodes,
+passes MIN_COMPLETED_EPISODES_PER_FAMILY(30)):
+  median execution_MAE_R = 1.40   (> 1.0 threshold, §27 priority 2 — FAILS
+    on TREND_PULLBACK's own population, even though the aggregate figure
+    computed across all 340 episodes would have passed).
+
+TREND_PULLBACK's live-shadow sample: 14 live CONFIRMED episodes over 32
+calendar days — passes every LIVE_SHADOW_MIN_* minimum, and passes every
+§27 threshold when computed over TREND_PULLBACK's live-shadow-only
+population.
+
+=> TREND_PULLBACK is NOT USER_FACING_ELIGIBLE. Gate (a) — the historical/
+   replay gate — failed on TREND_PULLBACK's OWN population; passing
+   live-shadow (gate (b)) does not compensate for that, and the aggregate
+   V2 population passing does not either, because gate (a) is defined
+   against that family's own population, never the aggregate. TREND_PULLBACK
+   remains SHADOW_ELIGIBLE. COMPRESSION_BREAKOUT and CONFIRMED_BREAKOUT are
+   each evaluated entirely independently on their own (a)/(b) gates and are
+   unaffected by TREND_PULLBACK's result in either direction.
 ```
 
 ---
