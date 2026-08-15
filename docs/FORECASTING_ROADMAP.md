@@ -10,6 +10,14 @@ per-exchange/consensus feature computation, data confidence, percentile
 engine), but they do not describe the current or future forecasting product
 direction going forward.
 
+Once V2 planning moves past this roadmap's high-level direction, more
+detailed contracts take over: **`docs/V2_PRODUCT_CONTRACT.md`** freezes what
+V2 product behavior must be (mission/scope, setup families, episode
+lifecycle, confidence semantics, notification rules), and a later **V2
+correctness and acceptance contract** (not yet written) will freeze the
+exact deterministic formulas/thresholds and promotion criteria. See §D and
+§I below.
+
 This document uses the conceptual labels **V1** and **V2** to distinguish the
 current shadow forecast heuristic from the planned multi-timeframe product.
 These are planning labels, not identifiers minted anywhere in the schema —
@@ -195,6 +203,14 @@ context (`docs/PRODUCT_SPEC_V0.md`: "Контекст (старшие таймф
 INVALIDATED/EXPIRED`) already present in the original product spec, which
 V1 deliberately simplified away in order to validate the platform first.
 
+The detailed, normative freeze of what V2 product behavior means — mission
+and scope boundaries, the setup-family definitions, the full episode
+lifecycle, the user-visible scenario information contract, confidence
+semantics, entry-feasibility/lateness behavior, and the notification
+anti-spam contract — lives in **`docs/V2_PRODUCT_CONTRACT.md`**, not in this
+section. This roadmap remains the canonical source for *product direction*;
+that document is the canonical source for *what V2 must do*.
+
 ---
 
 ## E. Multi-timeframe responsibilities
@@ -260,16 +276,8 @@ Explicitly deferred (not in the initial V2 scope):
 
 ## G. Signal episode concept
 
-V2 adopts a high-level episode lifecycle:
-
-```
-EARLY_SIGNAL → CONFIRMED → WEAKENING → INVALIDATED
-                        ↘ REVERSAL_CANDIDATE
-             → EXPIRED
-             → COMPLETED
-```
-
-States:
+V2 adopts a set of high-level episode states — their full product meaning
+is frozen in `docs/V2_PRODUCT_CONTRACT.md` §5:
 
 - `EARLY_SIGNAL`
 - `CONFIRMED`
@@ -279,17 +287,23 @@ States:
 - `EXPIRED`
 - `COMPLETED`
 
-V2 tracks **one episode over time** — from first detection through
-invalidation, expiry, or completion — instead of emitting a new independent
-signal every five minutes the way V1 does.
+V2 tracks **one episode over time** — instead of emitting a new independent
+signal every five minutes the way V1 does. An episode need not visit every
+state before reaching `INVALIDATED`/`EXPIRED`/`COMPLETED`; invalidation does
+**not**, by itself, imply reversal; and `REVERSAL_CANDIDATE` requires the
+opposite direction to **independently** satisfy its own scenario-entry
+requirements, rather than being inferred from the original scenario
+breaking.
 
-Exact transition rules, persistence identity, thresholds, cooldowns, and
-notification policy for this lifecycle are intentionally **deferred to later
-contract and implementation PRs** — the V2 correctness and acceptance
-contract, planned as the second documentation PR of Stage 1, and the Episode
-State Machine implementation
+This roadmap deliberately does **not** diagram an exact transition graph.
+Which edges are allowed, exact recovery behavior from `WEAKENING`, and
+terminal-state mechanics are **deferred to later contract and
+implementation PRs** — the V2 correctness and acceptance contract, planned
+as the second documentation PR of Stage 1, and the Episode State Machine
+implementation
 ([§I](#i-high-level-delivery-roadmap): "6. Episode State Machine"). This
-section freezes the *concept*, not the state machine's implementation.
+section freezes the *state set and the product invariants above*, not a
+transition graph or the state machine's implementation.
 
 ---
 
@@ -363,8 +377,13 @@ current intent, not a contract that overrides sound engineering judgment.
 
 - **V1**: implemented, running as a frozen baseline (see
   [§C](#c-v1-freeze-policy)).
-- **V2**: adopted direction only, **not yet implemented**.
+- **V2**: adopted direction only, **not yet implemented**. Its product
+  behavior is now frozen in `docs/V2_PRODUCT_CONTRACT.md` (mission/scope,
+  timeframe responsibilities, episode concept, initial setup families,
+  episode lifecycle, confidence semantics, entry-feasibility/notification
+  product rules, and hard gates carried forward from
+  `docs/PRODUCT_SPEC_V0.md`) — no V2 code exists yet.
 - **No V2 model should be coded** before the V2 product contract and the V2
   correctness/acceptance contract are reviewed and merged.
 
-**Next planned PR:** `docs: freeze V2 product contract`
+**Next planned PR:** `docs: freeze V2 correctness and acceptance contract`
