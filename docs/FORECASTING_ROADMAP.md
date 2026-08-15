@@ -387,12 +387,14 @@ current intent, not a contract that overrides sound engineering judgment.
   confidence/entry-zone/invalidation semantics, episode identity/lifecycle,
   entry feasibility, evaluation/replay methodology, acceptance sample and
   promotion criteria) — no V2 code exists yet.
-- **Stage 1 — V2 Product Contract documentation phase is complete**: both
-  planned PRs (`docs/V2_PRODUCT_CONTRACT.md`, PR #28, and
-  `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md`, this PR) are merged.
-- **No V2 model should be coded** before these two contracts are reviewed
-  and merged — that condition is now satisfied; implementation may begin
-  in a future PR, but does **not** begin as part of this one.
+- **Stage 1 — V2 Product Contract documentation phase**: both of its
+  planned documentation PRs are authored — `docs/V2_PRODUCT_CONTRACT.md`
+  (PR #28) and `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` (PR #29). This
+  phase is complete once both are reviewed and merged to `main`; this
+  document does not assert that state ahead of it actually being true.
+- **No V2 model should be coded** before both contracts are reviewed and
+  merged. Once that condition is satisfied, implementation may begin in a
+  future PR — it does **not** begin as part of either contract PR itself.
 
 **Next stage:** Stage 2 — Multi-model Framework (3 planned PRs, §I above).
 A sensible first PR under that stage is a small, self-contained

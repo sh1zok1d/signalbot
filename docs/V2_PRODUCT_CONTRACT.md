@@ -287,7 +287,14 @@ V2 adopts the following episode states:
 - **`REVERSAL_CANDIDATE`** — the **opposite** direction has independently
   begun satisfying its own scenario-entry requirements. See
   [§5.3](#53-reversal-is-never-automatic) — this is never a passive
-  consequence of `INVALIDATED`.
+  consequence of `INVALIDATED`. Although listed here among the adopted
+  lifecycle labels for completeness, `REVERSAL_CANDIDATE` is **not** a
+  primary persisted state that replaces or supersedes the original
+  episode's own state — it is an event/label attached alongside a
+  separately, independently qualifying opposite-direction episode; see
+  [§5.2](#52-illustrative-lifecycle-sketch-non-normative) and
+  `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §13.3 for the exact
+  mechanics.
 - **`EXPIRED`** — the scenario's expected horizon elapsed without
   confirmation (from `EARLY_SIGNAL`) or without completion (from
   `CONFIRMED`, if applicable). Terminal.
