@@ -20,6 +20,7 @@ if TYPE_CHECKING:  # annotation-only; keeps Stage 2 analytics out of Stage 1 sta
     from analytics.feature_engine.models import ExchangeFeatureVector
     from analytics.forecasting.outcomes import ForecastOutcome
     from analytics.forecasting.persistence import ForecastPrediction
+    from analytics.forecasting_v2.events import V2EpisodeEvent
     from analytics.percentile_engine.models import PercentileSnapshot
     from storage.stage2_readers import ExchangeFeatureRawBundle
     from storage.stage2_serialization import Stage2WriterSpec
@@ -566,6 +567,48 @@ class Database:
         through the shared ON CONFLICT DO UPDATE path (computed_at=now())."""
         from storage.stage2_serialization import FORECAST_OUTCOME_SPEC
         return await self._upsert_stage2(FORECAST_OUTCOME_SPEC, rows)
+
+    # ---------------------------------------------------------------
+    # V2 (Multi-model Framework, ADDITIVE). Immutable episode-event
+    # persistence boundary only (docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md
+    # §2.1) — this method does NOT decide when an event should exist, what
+    # state an episode transitions to, or how any detector value is
+    # computed; it validates and stores an already-decided V2EpisodeEvent.
+    # NOT called from connect()/init_schema()/init_stage2_schema(), and NOT
+    # wired into any runtime path in this PR — v2.enabled has no bearing on
+    # whether this method exists, only on whether anything ever calls it.
+    # ---------------------------------------------------------------
+    async def insert_v2_episode_events(
+        self, rows: "Sequence[V2EpisodeEvent]") -> int:
+        """Batch insert-once write for immutable V2 episode events. The whole
+        batch is validated and serialized BEFORE any connection is acquired
+        (same discipline as `_upsert_stage2`/`insert_forecast_prediction`), so
+        a malformed container or a wrong-typed row can never partially write.
+        An empty (but valid) list/tuple returns 0 without acquiring a
+        connection.
+
+        Each row is inserted with its own
+        `ON CONFLICT (run_kind, run_id, event_id) DO NOTHING RETURNING TRUE`
+        — the returned count is an HONEST count of rows actually inserted; a
+        duplicate `(run_kind, run_id, event_id)` is silently skipped, never
+        overwritten, and not counted. Rows are inserted one at a time (not
+        `executemany`) specifically so each row's own TRUE/NULL RETURNING
+        result is observable — `executemany` would only tell us the batch
+        ran, not which rows were duplicates. There is no `DO UPDATE` path for
+        this table anywhere in this codebase; historical event truth is
+        immutable. DB exceptions propagate unchanged."""
+        from storage.v2_serialization import V2_EPISODE_EVENT_SPEC, serialize_batch
+        params = serialize_batch(V2_EPISODE_EVENT_SPEC, rows)  # validation before any DB call
+        if not params:
+            return 0
+        assert self.pool is not None
+        inserted = 0
+        async with self.pool.acquire() as conn:
+            for row_params in params:
+                result = await conn.fetchval(V2_EPISODE_EVENT_SPEC.insert_sql, *row_params)
+                if result is True:
+                    inserted += 1
+        return inserted
 
     async def fetch_shadow_liquidation_availability(
         self,

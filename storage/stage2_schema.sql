@@ -858,3 +858,122 @@ CREATE TABLE IF NOT EXISTS telegram_notification_deliveries (
 CREATE INDEX IF NOT EXISTS ix_tnd_pending_next_attempt
     ON telegram_notification_deliveries (next_attempt_at ASC)
     WHERE sent_at IS NULL;
+
+-- ============================================================
+-- V2 episode events — ADDITIVE (Multi-model Framework PR 2,
+-- docs/FORECASTING_ROADMAP.md §I stage 2). Immutable, INSERT-ONCE historical
+-- truth for one already-decided V2 episode event. This table is the
+-- PERSISTENCE BOUNDARY docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §2.1
+-- requires: `decision_snapshot` (what the event decided FROM) and
+-- `event_payload` (what the event decided/emitted) are stored BY VALUE
+-- (JSONB), never by a row reference alone, so a later correction to
+-- exchange_feature_vectors / consensus_feature_vectors / percentile_snapshots
+-- can never rewrite what a past event already recorded.
+--
+-- This table does NOT implement the Episode State Machine — a future PR
+-- constructs V2EpisodeEvent rows (analytics/forecasting_v2/events.py) and
+-- calls Database.insert_v2_episode_events(); nothing in this schema or its
+-- writer decides when an event should exist, what state it transitions to,
+-- or how structural_anchor is computed. No FK to feature tables — by-value
+-- historical truth is the authority, never a reference that could later
+-- change meaning underneath an already-published event.
+--
+-- run_kind/run_id/event_id namespace LIVE vs. REPLAY execution (§2.1: "a
+-- separate, explicitly provenanced recomputation... MUST carry its own
+-- distinct provenance... from the live decision it is re-evaluating") — a
+-- REPLAY run can legitimately reproduce an event_id a LIVE run already used
+-- without colliding, because the primary key includes run_kind/run_id.
+--
+-- episode_state holds the six ACTUAL lifecycle states (§13.2).
+-- REVERSAL_CANDIDATE is deliberately NOT a legal value here — per §13.3 it
+-- is a cross-cutting event attached to an existing episode's history while
+-- that episode's own state is unchanged, not a state itself
+-- (V2_PRODUCT_CONTRACT.md §5.1).
+--
+-- Plain PostgreSQL table, NOT a TimescaleDB hypertable: material V2 episode
+-- events are low-volume relative to raw per-bucket features (one row per
+-- lifecycle-material event, not one per closed 5m/15m/1h/4h bucket) — the
+-- same reasoning shadow_recovery_watermarks / telegram_notification_deliveries
+-- above already use for their own low-volume additive tables.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS v2_episode_events (
+    run_kind               TEXT NOT NULL,
+    run_id                 TEXT NOT NULL,
+    event_id               TEXT NOT NULL,
+    episode_id             TEXT NOT NULL,
+
+    model_family           TEXT NOT NULL,
+    rules_version          TEXT NOT NULL,
+
+    symbol                 TEXT NOT NULL,
+    market_type            TEXT NOT NULL,
+    direction              TEXT NOT NULL,
+    setup_family           TEXT NOT NULL,
+    structural_anchor      JSONB NOT NULL,
+
+    episode_state          TEXT NOT NULL,
+    decision_boundary      TIMESTAMPTZ NOT NULL,
+
+    feature_schema_version INTEGER NOT NULL,
+    calculation_version    TEXT NOT NULL,
+    config_hash            TEXT NOT NULL,
+    config_version         TEXT NOT NULL,
+    code_version           TEXT NOT NULL,
+
+    decision_snapshot      JSONB NOT NULL,
+    event_payload          JSONB NOT NULL,
+
+    created_at             TIMESTAMPTZ NOT NULL DEFAULT now(),  -- metadata only
+
+    PRIMARY KEY (run_kind, run_id, event_id),
+
+    CONSTRAINT ck_v2ee_run_kind
+        CHECK (run_kind IN ('LIVE','REPLAY')),
+    CONSTRAINT ck_v2ee_run_id       CHECK (length(btrim(run_id)) > 0),
+    CONSTRAINT ck_v2ee_event_id     CHECK (length(btrim(event_id)) > 0),
+    CONSTRAINT ck_v2ee_episode_id   CHECK (length(btrim(episode_id)) > 0),
+
+    CONSTRAINT ck_v2ee_model_family
+        CHECK (model_family = 'v2'),
+    -- Mirrors common/v2_config.py's RULES_VERSION_RE exactly (no leading
+    -- zeros in any component except a lone '0') so the DB-side and
+    -- Python-side rules never silently diverge.
+    CONSTRAINT ck_v2ee_rules_version
+        CHECK (rules_version ~ '^v2-rules-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'),
+
+    CONSTRAINT ck_v2ee_symbol       CHECK (symbol = 'BTCUSDT'),
+    CONSTRAINT ck_v2ee_market_type  CHECK (market_type = 'perp'),
+    CONSTRAINT ck_v2ee_direction
+        CHECK (direction IN ('LONG','SHORT')),
+    CONSTRAINT ck_v2ee_setup_family
+        CHECK (setup_family IN ('TREND_PULLBACK','COMPRESSION_BREAKOUT','CONFIRMED_BREAKOUT')),
+    CONSTRAINT ck_v2ee_structural_anchor_json
+        CHECK (jsonb_typeof(structural_anchor) = 'object'),
+
+    -- REVERSAL_CANDIDATE intentionally excluded — see banner comment above.
+    CONSTRAINT ck_v2ee_episode_state
+        CHECK (episode_state IN
+            ('EARLY_SIGNAL','CONFIRMED','WEAKENING','INVALIDATED','EXPIRED','COMPLETED')),
+
+    CONSTRAINT ck_v2ee_feature_schema_version
+        CHECK (feature_schema_version > 0),
+    CONSTRAINT ck_v2ee_calculation_version
+        CHECK (calculation_version ~ '^[0-9a-f]{16}$'),
+    CONSTRAINT ck_v2ee_config_hash
+        CHECK (config_hash ~ '^[0-9a-f]{64}$'),
+    CONSTRAINT ck_v2ee_config_version   CHECK (length(btrim(config_version)) > 0),
+    CONSTRAINT ck_v2ee_code_version     CHECK (length(btrim(code_version)) > 0),
+
+    CONSTRAINT ck_v2ee_decision_snapshot_json
+        CHECK (jsonb_typeof(decision_snapshot) = 'object'),
+    CONSTRAINT ck_v2ee_event_payload_json
+        CHECK (jsonb_typeof(event_payload) = 'object')
+);
+
+-- Reconstruct one episode's full event history in order (one run's view).
+CREATE INDEX IF NOT EXISTS ix_v2ee_episode_history
+    ON v2_episode_events (run_kind, run_id, episode_id, decision_boundary ASC);
+
+-- Recent V2 event inspection across episodes, for one symbol.
+CREATE INDEX IF NOT EXISTS ix_v2ee_symbol_recent
+    ON v2_episode_events (symbol, decision_boundary DESC);

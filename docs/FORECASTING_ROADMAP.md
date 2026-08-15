@@ -20,8 +20,11 @@ frozen. See §D and §I below.
 
 This document uses the conceptual labels **V1** and **V2** to distinguish the
 current shadow forecast heuristic from the planned multi-timeframe product.
-These are planning labels, not identifiers minted anywhere in the schema —
-see [§A](#a-decision-status) for what that does and does not imply.
+They started as planning labels only; `model_family` now physically encodes
+them as a schema-level identity (`'v1'` pinned on `forecast_predictions` /
+`forecast_outcomes`, `'v2'` pinned on the new `v2_episode_events` table) —
+see [§A](#a-decision-status) and [§J](#j-current-and-next-status) for
+exactly what that does and does not imply.
 
 ---
 
@@ -45,10 +48,18 @@ see [§A](#a-decision-status) for what that does and does not imply.
 This PR does **not** rename or reinterpret any persisted `rule_version` or
 `calculation_version` value — those remain exactly what they are today,
 scoped to V1. A `model_family` column / model registry, which would let the
-schema distinguish V1 from a future V2 model at the row level, is explicitly
-**future work** for a later PR (see [§I](#i-high-level-delivery-roadmap),
-stage 2). Until that PR lands, "V1" and "V2" are documentation-level
-concepts only.
+schema distinguish V1 from a future V2 model at the row level, was
+**future work** for a later PR at the time this transition PR was written
+(see [§I](#i-high-level-delivery-roadmap), stage 2). That later PR
+("feat: add V2 multi-model foundation") has since landed: `forecast_predictions`
+and `forecast_outcomes` now carry a DB-owned, additive `model_family` column
+pinned to `'v1'` by CHECK constraint, and `config/v2.yaml` /
+`common/v2_config.py` / `analytics/forecasting_v2/identity.py` physically
+encode the `model_family` / `rules_version` identity conventions a future V2
+model will use. "V1" and "V2" are no longer purely documentation-level
+concepts — see [§J](#j-current-and-next-status) for the current, precise
+state of what physically exists versus what is still unimplemented
+forecasting/runtime logic.
 
 ---
 
@@ -398,26 +409,45 @@ current intent, not a contract that overrides sound engineering judgment.
   planned documentation PRs are authored, reviewed, and merged to `main` —
   `docs/V2_PRODUCT_CONTRACT.md` (PR #28) and
   `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` (PR #29).
-- **Stage 2 — Multi-model Framework: begun.** A small, self-contained
-  **foundation PR** ("feat: add V2 multi-model foundation") introduces
-  **only** the identity/config/module foundation the rest of the stage
-  builds on: the `model_family` / `rules_version` identity conventions
-  frozen in `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §3, physically
-  encoded as `config/v2.yaml` + `common/v2_config.py` (a strict loader,
-  independent of `common/stage2_config.py`) and
-  `analytics/forecasting_v2/identity.py` (a pure `V2ModelIdentity` value
-  object); plus a DB-owned, additive `model_family` column on
-  `forecast_predictions` / `forecast_outcomes` (defaulting existing and
-  future V1 rows to `'v1'`, per §A below). This foundation PR deliberately
-  implements **no** forecasting logic: no multi-timeframe alignment, no 4h
-  regime / 1h bias / context engines, no setup detectors, no episode
-  lifecycle/state machine, no entry-feasibility evaluation, no V2 outcome
-  evaluator, no V2 Telegram, and no runtime wiring of any kind — `v2.enabled`
-  stays `false` and nothing reads `config/v2.yaml` outside its own loader and
-  tests. **V1 remains the running baseline**, entirely unaffected.
-- **V2 still has no forecasting logic of any kind** beyond this identity
-  foundation — no MTF alignment/context/setup/episode runtime exists yet.
+- **Stage 2 — Multi-model Framework: in progress.**
+  - **PR 1 of ~3 — foundation: merged.** A small, self-contained
+    **foundation PR** ("feat: add V2 multi-model foundation") introduced
+    **only** the identity/config/module foundation the rest of the stage
+    builds on: the `model_family` / `rules_version` identity conventions
+    frozen in `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §3, physically
+    encoded as `config/v2.yaml` + `common/v2_config.py` (a strict loader,
+    independent of `common/stage2_config.py`) and
+    `analytics/forecasting_v2/identity.py` (a pure `V2ModelIdentity` value
+    object); plus a DB-owned, additive `model_family` column on
+    `forecast_predictions` / `forecast_outcomes` (pinned to `'v1'` by CHECK
+    constraint on both the fresh-create and upgrade paths, per §A above).
+    That foundation PR deliberately implemented **no** forecasting logic: no
+    multi-timeframe alignment, no 4h regime / 1h bias / context engines, no
+    setup detectors, no episode lifecycle/state machine, no
+    entry-feasibility evaluation, no V2 outcome evaluator, no V2 Telegram,
+    and no runtime wiring of any kind.
+  - **PR 2 of ~3 — immutable episode-event persistence: this PR**
+    ("feat: add immutable V2 episode event persistence"). Adds the durable
+    **persistence boundary** for future V2 episode events: a
+    `V2EpisodeEvent` value object (`analytics/forecasting_v2/events.py`),
+    an additive `v2_episode_events` table
+    (`storage/stage2_schema.sql`, keyed on `(run_kind, run_id, event_id)`
+    so `LIVE` and `REPLAY` runs never collide), and an insert-once writer
+    (`storage/v2_serialization.py`, `Database.insert_v2_episode_events`)
+    that stores an already-decided event's inputs/outputs **by value** and
+    never rewrites a stored row (`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md`
+    §2.1). This PR deliberately implements **no** episode state machine: it
+    does not decide whether an event should exist, compute
+    `structural_anchor`, run MTF alignment/context/setup-detector logic, or
+    wire anything into a runtime path — `v2.enabled` stays `false` and
+    nothing calls the new writer outside its own tests.
+  - `v2.enabled` remains `false` throughout Stage 2. **V1 remains the
+    running baseline**, entirely unaffected by either PR.
+- **V2 still has no forecasting logic of any kind** beyond the identity and
+  persistence foundation above — no MTF alignment/context/setup-detector/
+  episode-state-machine runtime exists yet, and nothing yet decides what a
+  `V2EpisodeEvent` should contain.
 
-**Next planned PR:** Multi-model Framework PR 2 of 3 (§I above) — not yet
+**Next planned PR:** Multi-model Framework PR 3 of ~3 (§I above) — not yet
 Context Engines (stage 4); the Multi-model Framework stage's own remaining
 scope comes first.

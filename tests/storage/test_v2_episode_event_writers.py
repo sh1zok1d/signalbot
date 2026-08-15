@@ -1,0 +1,474 @@
+"""V2 episode-event insert-once writer against a fake asyncpg pool (no real
+DB). Mirrors `tests/storage/test_stage2_writers.py`'s forecast-prediction
+writer tests, extended for the batch return count `insert_v2_episode_events`
+needs (each row's own `RETURNING TRUE`/`NULL`, not one batch-wide result).
+
+Covers: `storage.v2_serialization` spec/SQL contract, `Database.
+insert_v2_episode_events` batch behavior, JSONB round-tripping, caller-input
+immutability after write, and the §2.1 historical-truth/no-rewrite
+guarantee (insert-once SQL, no `DO UPDATE`, no update/trigger path
+anywhere). No Docker / PostgreSQL / network / env required.
+"""
+from __future__ import annotations
+
+import ast
+import asyncio
+import dataclasses
+import inspect
+import json
+import re
+import textwrap
+from datetime import datetime, timezone
+
+import pytest
+
+from analytics.forecasting_v2.events import (
+    COMPRESSION_BREAKOUT, CONFIRMED, EARLY_SIGNAL, LIVE, LONG, REPLAY, SHORT,
+    TREND_PULLBACK, V2EpisodeEvent, V2EventInputError,
+)
+from storage.db import Database
+from storage.stage2_serialization import Stage2SerializationError as _CoreSerializationError
+from storage.v2_serialization import (
+    V2_EPISODE_EVENT_SPEC, Stage2SerializationError, serialize_batch,
+)
+
+UTC = timezone.utc
+B = datetime(2026, 7, 22, 12, 15, 0, tzinfo=UTC)
+H64 = "a" * 64
+H16 = "b" * 16
+
+
+# ---- fake asyncpg pool (per-row fetchval, like insert_forecast_prediction) --
+class FakeConn:
+    def __init__(self):
+        self.executemany_calls: list[tuple] = []
+        self.execute_calls: list[tuple] = []
+        self.fetchval_calls: list[tuple] = []
+        # queue of results consumed in call order; falls back to `default`
+        # once exhausted so single-row tests don't need to prime a queue.
+        self.fetchval_results: list = []
+        self.fetchval_default = True
+
+    async def executemany(self, sql, rows):
+        self.executemany_calls.append((sql, list(rows)))
+
+    async def execute(self, sql, *args):
+        self.execute_calls.append((sql, args))
+        return "OK"
+
+    async def fetchval(self, sql, *args):
+        self.fetchval_calls.append((sql, args))
+        if self.fetchval_results:
+            return self.fetchval_results.pop(0)
+        return self.fetchval_default
+
+
+class _Acquire:
+    def __init__(self, pool):
+        self.pool = pool
+
+    async def __aenter__(self):
+        self.pool.acquire_count += 1
+        return self.pool.conn
+
+    async def __aexit__(self, *exc):
+        return False
+
+
+class FakePool:
+    def __init__(self):
+        self.conn = FakeConn()
+        self.acquire_count = 0
+
+    def acquire(self):
+        return _Acquire(self)
+
+
+def _db():
+    db = Database("postgresql://unused")
+    db.pool = FakePool()
+    return db
+
+
+def _run(coro):
+    return asyncio.run(coro)
+
+
+# ---- model factory ----------------------------------------------------------
+def make_event(**over) -> V2EpisodeEvent:
+    base = dict(
+        run_kind=LIVE, run_id="live-shadow", event_id="evt-1", episode_id="ep-1",
+        model_family="v2", rules_version="v2-rules-v0.1.0",
+        symbol="BTCUSDT", market_type="perp", direction=LONG,
+        setup_family=TREND_PULLBACK, structural_anchor={"bucket_ts": "2026-07-22T12:10:00+00:00"},
+        episode_state=EARLY_SIGNAL, decision_boundary=B,
+        feature_schema_version=1, calculation_version=H16, config_hash=H64,
+        config_version="2.1.0", code_version="deadbeef",
+        decision_snapshot={"consensus_confidence": 87.5, "components": {"a": 1}},
+        event_payload={"entry_zone": {"low": 64500.0, "high": 65000.0}, "reasons": ["x", "y"]},
+    )
+    base.update(over)
+    return V2EpisodeEvent(**base)
+
+
+# ============================================================================
+# 1. spec / model parity
+# ============================================================================
+def test_spec_model_parity():
+    model_fields = tuple(f.name for f in dataclasses.fields(V2EpisodeEvent))
+    assert V2_EPISODE_EVENT_SPEC.columns == model_fields
+    assert "created_at" not in V2_EPISODE_EVENT_SPEC.columns
+    assert V2_EPISODE_EVENT_SPEC.table == "v2_episode_events"
+    assert V2_EPISODE_EVENT_SPEC.pk == ("run_kind", "run_id", "event_id")
+    assert V2_EPISODE_EVENT_SPEC.jsonb_columns == frozenset(
+        {"structural_anchor", "decision_snapshot", "event_payload"})
+
+
+def test_episode_id_not_in_pk():
+    # episode_id is a LOGICAL identity component (§12), not part of the
+    # storage identity — the persisted row's PK is (run_kind, run_id, event_id).
+    assert "episode_id" not in V2_EPISODE_EVENT_SPEC.pk
+
+
+def test_serialize_batch_reexported_matches_core():
+    # storage.v2_serialization re-exports the SAME serialize_batch/error type
+    # storage.stage2_serialization defines — it does not fork its own.
+    assert Stage2SerializationError is _CoreSerializationError
+
+
+# ============================================================================
+# 2. SQL contract (insert-once, no DO UPDATE anywhere)
+# ============================================================================
+def _parse_insert_columns(sql: str) -> list[str]:
+    m = re.search(r"INSERT INTO \w+\s*\(([^)]*)\)", sql, re.S)
+    assert m
+    return [c.strip() for c in m.group(1).split(",")]
+
+
+def _parse_placeholders(sql: str) -> list[str]:
+    m = re.search(r"VALUES \(([^)]*)\)", sql, re.S)
+    assert m
+    return [p.strip() for p in m.group(1).split(",")]
+
+
+def test_sql_is_insert_once():
+    sql = V2_EPISODE_EVENT_SPEC.insert_sql
+    assert sql.startswith("INSERT INTO v2_episode_events")
+    assert "ON CONFLICT (run_kind, run_id, event_id) DO NOTHING" in sql
+    assert "RETURNING TRUE" in sql
+    assert "DO UPDATE" not in sql
+    assert "UPDATE" not in sql.replace("RETURNING TRUE", "")  # no stray UPDATE keyword
+    assert "created_at" not in sql
+
+
+def test_placeholders_jsonb_cast_matches_spec():
+    sql = V2_EPISODE_EVENT_SPEC.insert_sql
+    cols = _parse_insert_columns(sql)
+    placeholders = _parse_placeholders(sql)
+    assert cols == list(V2_EPISODE_EVENT_SPEC.columns)
+    assert len(cols) == len(placeholders) == len(V2_EPISODE_EVENT_SPEC.columns)
+    for i, (col, ph) in enumerate(zip(cols, placeholders), start=1):
+        if col in V2_EPISODE_EVENT_SPEC.jsonb_columns:
+            assert ph == f"${i}::jsonb"
+        else:
+            assert ph == f"${i}"
+
+
+def test_conflict_target_is_exact_pk_no_more_no_less():
+    sql = V2_EPISODE_EVENT_SPEC.insert_sql
+    m = re.search(r"ON CONFLICT \(([^)]*)\)", sql)
+    assert m
+    target = tuple(c.strip() for c in m.group(1).split(","))
+    assert target == V2_EPISODE_EVENT_SPEC.pk
+
+
+# ============================================================================
+# 3. successful first insert
+# ============================================================================
+def test_first_insert_returns_one_single_row():
+    db = _db()
+    db.pool.conn.fetchval_default = True
+    result = _run(db.insert_v2_episode_events([make_event()]))
+    assert result == 1
+    assert db.pool.acquire_count == 1
+    assert len(db.pool.conn.fetchval_calls) == 1
+    assert db.pool.conn.executemany_calls == []          # never the correction-friendly path
+    assert db.pool.conn.execute_calls == []
+    sql, args = db.pool.conn.fetchval_calls[0]
+    assert sql == V2_EPISODE_EVENT_SPEC.insert_sql
+    assert len(args) == len(V2_EPISODE_EVENT_SPEC.columns)
+
+
+# ============================================================================
+# 4. duplicate
+# ============================================================================
+def test_duplicate_returns_zero_single_call():
+    db = _db()
+    db.pool.conn.fetchval_default = None                 # ON CONFLICT DO NOTHING -> no row
+    result = _run(db.insert_v2_episode_events([make_event()]))
+    assert result == 0
+    assert db.pool.acquire_count == 1
+    assert len(db.pool.conn.fetchval_calls) == 1
+    assert db.pool.conn.execute_calls == []               # no follow-up update query
+
+
+# ============================================================================
+# 5. honest per-row batch count (mixed insert/duplicate)
+# ============================================================================
+def test_batch_honest_count_mixed_insert_and_duplicate():
+    db = _db()
+    # row 0 -> inserted, row 1 -> duplicate, row 2 -> inserted
+    db.pool.conn.fetchval_results = [True, None, True]
+    rows = [make_event(event_id="evt-1"), make_event(event_id="evt-2"),
+            make_event(event_id="evt-3")]
+    result = _run(db.insert_v2_episode_events(rows))
+    assert result == 2
+    assert db.pool.acquire_count == 1                     # one connection acquired for the batch
+    assert len(db.pool.conn.fetchval_calls) == 3           # one fetchval per row, not executemany
+    assert db.pool.conn.executemany_calls == []
+
+
+def test_all_duplicates_returns_zero():
+    db = _db()
+    db.pool.conn.fetchval_results = [None, None]
+    rows = [make_event(event_id="evt-1"), make_event(event_id="evt-2")]
+    assert _run(db.insert_v2_episode_events(rows)) == 0
+
+
+# ============================================================================
+# 6. empty batch
+# ============================================================================
+@pytest.mark.parametrize("empty", [[], ()])
+def test_empty_batch_returns_zero_without_acquiring(empty):
+    db = _db()
+    result = _run(db.insert_v2_episode_events(empty))
+    assert result == 0
+    assert db.pool.acquire_count == 0
+    assert db.pool.conn.fetchval_calls == []
+
+
+# ============================================================================
+# 7. wrong row type / malformed container rejected before acquire
+# ============================================================================
+@pytest.mark.parametrize("bad", [object(), None, {"run_kind": "LIVE"}, "not-a-row"])
+def test_wrong_type_rejected_before_acquire(bad):
+    db = _db()
+    with pytest.raises(Stage2SerializationError):
+        _run(db.insert_v2_episode_events([bad]))
+    assert db.pool.acquire_count == 0
+    assert db.pool.conn.fetchval_calls == []
+
+
+def test_mixed_batch_rejected_before_acquire():
+    db = _db()
+    with pytest.raises(Stage2SerializationError):
+        _run(db.insert_v2_episode_events([make_event(), object()]))
+    assert db.pool.acquire_count == 0
+    assert db.pool.conn.fetchval_calls == []
+
+
+def test_malformed_container_rejected_before_acquire():
+    db = _db()
+    with pytest.raises(Stage2SerializationError):
+        _run(db.insert_v2_episode_events(make_event()))   # a single row, not a Sequence of rows
+    assert db.pool.acquire_count == 0
+
+
+def test_generator_rejected_not_consumed():
+    db = _db()
+
+    def gen():
+        yield make_event()
+
+    with pytest.raises(Stage2SerializationError):
+        _run(db.insert_v2_episode_events(gen()))
+    assert db.pool.acquire_count == 0
+
+
+# ============================================================================
+# 8. no pool
+# ============================================================================
+def test_no_pool_valid_batch_hits_assertion():
+    db = Database("postgresql://unused")                  # pool is None
+    with pytest.raises(AssertionError):
+        _run(db.insert_v2_episode_events([make_event()]))
+
+
+def test_no_pool_malformed_batch_fails_serialization_first():
+    db = Database("postgresql://unused")
+    with pytest.raises(Stage2SerializationError):
+        _run(db.insert_v2_episode_events([object()]))
+
+
+def test_no_pool_empty_batch_returns_zero_without_error():
+    db = Database("postgresql://unused")
+    assert _run(db.insert_v2_episode_events([])) == 0
+
+
+# ============================================================================
+# 9. JSONB serialization + round-trip
+# ============================================================================
+def test_jsonb_columns_serialized_and_roundtrip():
+    ev = make_event()
+    params = dict(zip(V2_EPISODE_EVENT_SPEC.columns,
+                      serialize_batch(V2_EPISODE_EVENT_SPEC, (ev,))[0]))
+    for col in ("structural_anchor", "decision_snapshot", "event_payload"):
+        assert isinstance(params[col], str)
+    assert json.loads(params["structural_anchor"]) == dict(ev.structural_anchor)
+    assert json.loads(params["decision_snapshot"]) == {
+        "consensus_confidence": 87.5, "components": {"a": 1}}
+    assert json.loads(params["event_payload"]) == {
+        "entry_zone": {"low": 64500.0, "high": 65000.0}, "reasons": ["x", "y"]}
+    # non-JSONB scalars pass through unchanged
+    assert params["run_kind"] == LIVE
+    assert params["direction"] == LONG
+    assert params["decision_boundary"] == B
+
+
+def test_decision_boundary_passed_as_datetime_not_stringified():
+    # decision_boundary is a plain TIMESTAMPTZ column, not JSONB — asyncpg
+    # gets the real datetime object, not an ISO string.
+    ev = make_event()
+    params = dict(zip(V2_EPISODE_EVENT_SPEC.columns,
+                      serialize_batch(V2_EPISODE_EVENT_SPEC, (ev,))[0]))
+    assert isinstance(params["decision_boundary"], datetime)
+
+
+# ============================================================================
+# 10. caller-input immutability after write
+# ============================================================================
+def test_inputs_unchanged_after_serialize_and_write():
+    ev = make_event()
+    before = (ev.run_kind, ev.event_id, dict(ev.structural_anchor),
+              dict(ev.decision_snapshot), dict(ev.event_payload))
+    db = _db()
+    _run(db.insert_v2_episode_events([ev]))
+    after = (ev.run_kind, ev.event_id, dict(ev.structural_anchor),
+             dict(ev.decision_snapshot), dict(ev.event_payload))
+    assert before == after
+
+
+def test_mutating_caller_source_dict_after_construction_does_not_leak_into_write():
+    payload = {"entry_zone": {"low": 64500.0}, "reasons": ["x"]}
+    ev = make_event(event_payload=payload)
+    payload["reasons"].append("mutated-after-construction")
+    payload["entry_zone"]["low"] = -1.0
+    params = dict(zip(V2_EPISODE_EVENT_SPEC.columns,
+                      serialize_batch(V2_EPISODE_EVENT_SPEC, (ev,))[0]))
+    stored = json.loads(params["event_payload"])
+    assert stored["reasons"] == ["x"]
+    assert stored["entry_zone"]["low"] == 64500.0
+
+
+# ============================================================================
+# 11. LIVE vs REPLAY provenance — writer-level coexistence
+# ============================================================================
+def test_live_and_replay_same_event_id_are_distinct_params_not_merged():
+    live = make_event(run_kind=LIVE, run_id="live-shadow", event_id="abc")
+    replay = make_event(run_kind=REPLAY, run_id="replay-001", event_id="abc")
+    params = serialize_batch(V2_EPISODE_EVENT_SPEC, (live, replay))
+    assert len(params) == 2
+    live_row = dict(zip(V2_EPISODE_EVENT_SPEC.columns, params[0]))
+    replay_row = dict(zip(V2_EPISODE_EVENT_SPEC.columns, params[1]))
+    assert live_row["run_kind"] == "LIVE" and live_row["run_id"] == "live-shadow"
+    assert replay_row["run_kind"] == "REPLAY" and replay_row["run_id"] == "replay-001"
+    assert live_row["event_id"] == replay_row["event_id"] == "abc"
+    # the storage PK tuple differs even though event_id collides
+    live_pk = tuple(live_row[c] for c in V2_EPISODE_EVENT_SPEC.pk)
+    replay_pk = tuple(replay_row[c] for c in V2_EPISODE_EVENT_SPEC.pk)
+    assert live_pk != replay_pk
+
+
+def test_two_replay_runs_remain_distinguishable_by_run_id():
+    r1 = make_event(run_kind=REPLAY, run_id="replay-001", event_id="abc")
+    r2 = make_event(run_kind=REPLAY, run_id="replay-002", event_id="abc")
+    params = serialize_batch(V2_EPISODE_EVENT_SPEC, (r1, r2))
+    row1 = dict(zip(V2_EPISODE_EVENT_SPEC.columns, params[0]))
+    row2 = dict(zip(V2_EPISODE_EVENT_SPEC.columns, params[1]))
+    pk1 = tuple(row1[c] for c in V2_EPISODE_EVENT_SPEC.pk)
+    pk2 = tuple(row2[c] for c in V2_EPISODE_EVENT_SPEC.pk)
+    assert pk1 != pk2
+
+
+def test_live_and_replay_batch_write_both_insert_independently():
+    db = _db()
+    db.pool.conn.fetchval_default = True
+    live = make_event(run_kind=LIVE, run_id="live-shadow", event_id="abc")
+    replay = make_event(run_kind=REPLAY, run_id="replay-001", event_id="abc")
+    result = _run(db.insert_v2_episode_events([live, replay]))
+    assert result == 2
+    assert len(db.pool.conn.fetchval_calls) == 2
+
+
+# ============================================================================
+# 12. historical truth / no-rewrite architectural regression
+# ============================================================================
+def test_writer_cannot_overwrite_existing_event():
+    # The SQL policy itself is the guarantee in this no-Postgres suite: a
+    # later write under the same (run_kind, run_id, event_id) is silently
+    # skipped, never rewritten. A corrected research result must use a
+    # different REPLAY run_id, never an update to an existing row.
+    sql = V2_EPISODE_EVENT_SPEC.insert_sql
+    assert "DO NOTHING" in sql and "DO UPDATE" not in sql
+    db = _db()
+    db.pool.conn.fetchval_default = None                  # simulate "already stored"
+    assert _run(db.insert_v2_episode_events([make_event()])) == 0
+
+
+def test_writer_does_not_route_through_correction_friendly_upsert_path():
+    tree = ast.parse(textwrap.dedent(inspect.getsource(Database.insert_v2_episode_events)))
+    called_attrs = {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+    assert "_upsert_stage2" not in called_attrs
+    assert "executemany" not in called_attrs
+    assert "fetchval" in called_attrs
+
+
+def test_writer_source_has_no_update_or_delete_calls():
+    # The docstring legitimately *says* "no DO UPDATE path" in prose — strip
+    # the docstring and check only the executable body for a stray UPDATE/
+    # DELETE statement or call.
+    tree = ast.parse(textwrap.dedent(inspect.getsource(Database.insert_v2_episode_events)))
+    fn = tree.body[0]
+    fn.body = fn.body[1:] if isinstance(fn.body[0], ast.Expr) and isinstance(
+        fn.body[0].value, ast.Constant) and isinstance(fn.body[0].value.value, str) else fn.body
+    body_src = ast.unparse(fn)
+    assert "UPDATE" not in body_src.upper()
+    assert "DELETE" not in body_src.upper()
+
+
+def test_writer_never_calls_clock_or_random_or_uuid():
+    src = inspect.getsource(Database.insert_v2_episode_events)
+    for forbidden in ("datetime.now(", "time.time(", "uuid.uuid4(", "random."):
+        assert forbidden not in src
+
+
+def test_writer_not_called_from_connect_or_init_schema():
+    # This PR must not wire the writer into any startup/runtime path.
+    src = inspect.getsource(Database)
+    # exclude the method's own definition line and docstring occurrences
+    call_sites = [
+        m.start() for m in re.finditer(r"\bself\.insert_v2_episode_events\(", src)]
+    assert call_sites == []
+
+
+# ============================================================================
+# 13. model-level rejection still applies at the writer boundary
+# ============================================================================
+def test_reversal_candidate_not_constructible_as_episode_state():
+    with pytest.raises(V2EventInputError):
+        make_event(episode_state="REVERSAL_CANDIDATE")
+
+
+def test_neutral_direction_not_constructible():
+    with pytest.raises(V2EventInputError):
+        make_event(direction="NEUTRAL")
+
+
+def test_confirmed_state_and_compression_breakout_family_round_trip():
+    ev = make_event(episode_state=CONFIRMED, setup_family=COMPRESSION_BREAKOUT,
+                     direction=SHORT, structural_anchor={"bucket_ts": "x", "price": 64000.0})
+    params = dict(zip(V2_EPISODE_EVENT_SPEC.columns,
+                      serialize_batch(V2_EPISODE_EVENT_SPEC, (ev,))[0]))
+    assert params["episode_state"] == "CONFIRMED"
+    assert params["setup_family"] == "COMPRESSION_BREAKOUT"
+    assert params["direction"] == "SHORT"
