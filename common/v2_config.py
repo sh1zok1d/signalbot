@@ -9,9 +9,11 @@ here; see config/v2.yaml's own header comment for why.
 
 No hot reload / file watching, no environment-variable override: every value
 comes from the checked-in YAML file only, so `V2Config.load()` is
-deterministic across processes/hosts. Unknown keys in the `v2:` block raise
-rather than being silently ignored, so a config typo fails loudly instead of
-resolving to whatever default the missing key would have produced.
+deterministic across processes/hosts. Unknown keys raise rather than being
+silently ignored — both inside the `v2:` block and at the YAML top level
+(only `v2:` is a permitted top-level key) — so a config typo (e.g. a stray
+`vv2:` sibling) fails loudly instead of resolving to whatever default the
+missing/misplaced key would have produced.
 
 Layering note: `MODEL_FAMILY` and the `rules_version` naming-convention
 validator live here (not in `analytics/forecasting_v2/identity.py`) because
@@ -99,6 +101,15 @@ class V2Config:
             raise V2ConfigError(f"{path}: top-level YAML must be a mapping")
         if "v2" not in raw:
             raise V2ConfigError(f"{path}: missing required top-level key: 'v2'")
+        # config/v2.yaml is deliberately a tiny, strict identity config —
+        # only the "v2" top-level key is permitted, so a stray sibling key
+        # (a typo like "vv2:", or a future field added in the wrong place)
+        # fails loudly instead of being silently ignored.
+        unknown_top_level = sorted(set(raw) - {"v2"})
+        if unknown_top_level:
+            raise V2ConfigError(
+                f"{path}: unknown top-level key(s): {unknown_top_level} — "
+                "only 'v2' is permitted")
         block = raw["v2"]
         if not isinstance(block, Mapping):
             raise V2ConfigError(f"{path}: 'v2' must be a mapping")

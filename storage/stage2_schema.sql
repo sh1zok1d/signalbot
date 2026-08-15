@@ -421,8 +421,11 @@ CREATE TABLE IF NOT EXISTS forecast_predictions (
     -- (analytics/forecasting/persistence.py) omits this column, so Postgres
     -- supplies 'v1' via the DEFAULT below — existing and future V1 rows
     -- become physically identifiable without any INSERT-statement change.
-    -- This table remains V1-shaped; it does not accept V2 episode rows in
-    -- this PR (docs/FORECASTING_ROADMAP.md §A, §J).
+    -- This table remains V1-shaped in this PR: model_family is PINNED to
+    -- 'v1', not merely non-blank — it does not accept V2 episode rows
+    -- (docs/FORECASTING_ROADMAP.md §A, §J). A future Multi-model Framework
+    -- PR that actually stores V2 episode rows here (if that ever becomes the
+    -- chosen design) must relax this CHECK explicitly, not silently.
     model_family              TEXT NOT NULL DEFAULT 'v1',
 
     PRIMARY KEY (
@@ -435,7 +438,7 @@ CREATE TABLE IF NOT EXISTS forecast_predictions (
     ),
 
     CONSTRAINT ck_fp_model_family
-        CHECK (length(btrim(model_family)) > 0),
+        CHECK (model_family = 'v1'),
 
     CONSTRAINT ck_fp_direction
         CHECK (direction IN ('LONG','SHORT','NEUTRAL')),
@@ -498,9 +501,13 @@ CREATE TABLE IF NOT EXISTS forecast_predictions (
 -- data rewritten, no historical row's meaning changed, existing PK/rule_version
 -- untouched. Ordinary ALTER TABLE ADD COLUMN on a TimescaleDB hypertable is
 -- supported the same as on a plain table (this hypertable carries no
--- compression policy, so no additional caveats apply).
+-- compression policy, so no additional caveats apply). Carries the SAME
+-- DEFAULT + CHECK as the CREATE TABLE definition above (ck_fp_model_family,
+-- model_family = 'v1') so a fresh DB and an upgraded DB end up with
+-- IDENTICAL integrity constraints, not merely the same column.
 ALTER TABLE forecast_predictions
-    ADD COLUMN IF NOT EXISTS model_family TEXT NOT NULL DEFAULT 'v1';
+    ADD COLUMN IF NOT EXISTS model_family TEXT NOT NULL DEFAULT 'v1'
+        CONSTRAINT ck_fp_model_family CHECK (model_family = 'v1');
 
 SELECT create_hypertable(
     'forecast_predictions',
@@ -584,7 +591,8 @@ CREATE TABLE IF NOT EXISTS forecast_outcomes (
     -- foundation PR) — same pattern/rationale as the shadow forecast events
     -- table above: every row from the current V1 outcome writer omits this
     -- column, so Postgres supplies 'v1' via the DEFAULT below. This table
-    -- remains V1-shaped; it does not accept V2 episode-outcome rows in this PR.
+    -- remains V1-shaped in this PR: model_family is PINNED to 'v1', not
+    -- merely non-blank — it does not accept V2 episode-outcome rows.
     model_family              TEXT NOT NULL DEFAULT 'v1',
 
     PRIMARY KEY (
@@ -601,7 +609,7 @@ CREATE TABLE IF NOT EXISTS forecast_outcomes (
     ),
 
     CONSTRAINT ck_fo_model_family
-        CHECK (length(btrim(model_family)) > 0),
+        CHECK (model_family = 'v1'),
 
     CONSTRAINT ck_fo_horizon
         CHECK (horizon IN ('15m','1h','4h')),
@@ -720,10 +728,14 @@ CREATE TABLE IF NOT EXISTS forecast_outcomes (
 );
 
 -- Idempotent upgrade path for a database created before model_family
--- existed — same rationale as forecast_predictions' identical statement
--- above: a no-op on a fresh DB, additive-only on an existing installation.
+-- existed — same rationale as the shadow forecast events table's identical
+-- statement above: a no-op on a fresh DB, additive-only on an existing
+-- installation. Carries the SAME DEFAULT + CHECK as the CREATE TABLE
+-- definition above (ck_fo_model_family, model_family = 'v1') so a fresh DB
+-- and an upgraded DB end up with IDENTICAL integrity constraints.
 ALTER TABLE forecast_outcomes
-    ADD COLUMN IF NOT EXISTS model_family TEXT NOT NULL DEFAULT 'v1';
+    ADD COLUMN IF NOT EXISTS model_family TEXT NOT NULL DEFAULT 'v1'
+        CONSTRAINT ck_fo_model_family CHECK (model_family = 'v1');
 
 SELECT create_hypertable(
     'forecast_outcomes',

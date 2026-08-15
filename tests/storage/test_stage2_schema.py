@@ -66,13 +66,26 @@ _ALLOWED_MODEL_FAMILY_ALTERS = {
 
 def test_no_alter_drop_truncate_delete():
     code = re.sub(r"--[^\n]*", "", SQL)  # comments stripped, so prose can't false-positive
-    alters = re.findall(r"ALTER\s+TABLE\s+(\w+)\s*\n\s*(ADD COLUMN IF NOT EXISTS[^\n;]*)",
+    # Full clause (ADD COLUMN line + its CONSTRAINT/CHECK line), up to the
+    # terminating ';' — not just the ADD COLUMN line alone — so this test
+    # actually proves the fresh-DB CREATE TABLE CHECK and the existing-DB
+    # ALTER TABLE CHECK are identical, not merely that both add the column.
+    alters = re.findall(r"ALTER\s+TABLE\s+(\w+)\s*\n\s*(ADD COLUMN IF NOT EXISTS[^;]*)",
                         code, re.IGNORECASE)
     assert {t for t, _ in alters} == _ALLOWED_MODEL_FAMILY_ALTERS
     assert len(alters) == len(_ALLOWED_MODEL_FAMILY_ALTERS)  # exactly one per table, no more
-    for _, clause in alters:
+    expected_constraint_name = {
+        "forecast_predictions": "ck_fp_model_family",
+        "forecast_outcomes": "ck_fo_model_family",
+    }
+    for table, clause in alters:
         assert re.match(r"ADD COLUMN IF NOT EXISTS model_family TEXT NOT NULL DEFAULT 'v1'",
                         clause, re.IGNORECASE)
+        # V1-only pin, matching the CREATE TABLE definition's CHECK exactly
+        # (never the weaker "just non-blank" shape), under the same
+        # constraint name the CREATE TABLE definition uses.
+        assert re.search(r"CHECK\s*\(\s*model_family\s*=\s*'v1'\s*\)", clause, re.IGNORECASE)
+        assert expected_constraint_name[table] in clause
     assert code.count("ALTER TABLE") == len(_ALLOWED_MODEL_FAMILY_ALTERS)
     assert not re.search(r"\bDROP\s+TABLE\b", SQL, re.IGNORECASE)
     assert not re.search(r"\bDROP\s+COLUMN\b", SQL, re.IGNORECASE)
@@ -98,6 +111,8 @@ def test_only_additive_objects():
             assert table in _ALLOWED_MODEL_FAMILY_ALTERS, f"unexpected ALTER target: {table!r}"
             assert re.search(r"ADD COLUMN IF NOT EXISTS model_family TEXT NOT NULL DEFAULT 'v1'",
                              st, re.IGNORECASE), f"unexpected ALTER body: {st[:80]!r}"
+            assert re.search(r"CHECK\s*\(\s*model_family\s*=\s*'v1'\s*\)", st, re.IGNORECASE), \
+                f"ALTER on {table!r} missing the V1-only CHECK: {st[:120]!r}"
             alter_count += 1
             continue
         assert head in {"CREATE", "SELECT"}, f"unexpected statement head: {st[:40]!r}"

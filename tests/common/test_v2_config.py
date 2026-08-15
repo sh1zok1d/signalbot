@@ -132,6 +132,54 @@ def test_load_v2_block_not_a_mapping_rejected(tmp_path):
         V2Config.load(bad)
 
 
+def test_load_unknown_sibling_top_level_key_rejected(tmp_path):
+    # A plausible typo of "v2:" sitting alongside a valid v2 block must not
+    # be silently ignored — config/v2.yaml is a strict identity config, only
+    # "v2" is permitted at the top level.
+    bad = tmp_path / "v2.yaml"
+    bad.write_text(
+        "v2:\n"
+        "  enabled: false\n"
+        "  model_family: \"v2\"\n"
+        "  rules_version: \"v2-rules-v0.1.0\"\n"
+        "vv2:\n"
+        "  enabled: false\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(V2ConfigError, match="unknown top-level key"):
+        V2Config.load(bad)
+
+
+def test_load_unknown_extra_top_level_key_rejected(tmp_path):
+    bad = tmp_path / "v2.yaml"
+    bad.write_text(
+        "v2:\n"
+        "  enabled: false\n"
+        "  model_family: \"v2\"\n"
+        "  rules_version: \"v2-rules-v0.1.0\"\n"
+        "extra:\n"
+        "  anything: true\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(V2ConfigError, match="unknown top-level key"):
+        V2Config.load(bad)
+
+
+def test_load_only_v2_top_level_key_still_accepted(tmp_path):
+    # Sanity: the real checked-in shape (only "v2:") still loads cleanly
+    # after the top-level strictness hardening.
+    good = tmp_path / "v2.yaml"
+    good.write_text(
+        "v2:\n"
+        "  enabled: false\n"
+        "  model_family: \"v2\"\n"
+        "  rules_version: \"v2-rules-v0.1.0\"\n",
+        encoding="utf-8",
+    )
+    cfg = V2Config.load(good)
+    assert cfg.model_family == "v2"
+
+
 # -- no mutation of caller's parsed state ----------------------------------------
 def test_from_mapping_does_not_mutate_caller_dict():
     block = _base_block()

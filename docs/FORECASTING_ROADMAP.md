@@ -375,18 +375,25 @@ current intent, not a contract that overrides sound engineering judgment.
 
 - **V1**: implemented, running as a frozen baseline (see
   [§C](#c-v1-freeze-policy)).
-- **V2**: adopted direction only, **still not implemented**. Its product
-  behavior is frozen in `docs/V2_PRODUCT_CONTRACT.md` (mission/scope,
-  timeframe responsibilities, episode concept, initial setup families,
-  episode lifecycle, confidence semantics, entry-feasibility/notification
-  product rules, and hard gates carried forward from
+- **V2**: adopted direction. Its **forecasting/runtime behavior is still not
+  implemented** — no multi-timeframe alignment, context engine (4h regime /
+  1h bias), setup detector, episode state machine, entry-feasibility
+  evaluation, V2 outcome evaluator, Telegram V2, or runtime V2 execution
+  exists anywhere in the codebase. The Multi-model Framework's
+  identity/config/schema **foundation** now exists (see the Stage 2 bullet
+  below) — that is physical scaffolding for later stages to build on, not
+  forecasting logic itself. Product behavior is frozen in
+  `docs/V2_PRODUCT_CONTRACT.md`
+  (mission/scope, timeframe responsibilities, episode concept, initial setup
+  families, episode lifecycle, confidence semantics, entry-feasibility/
+  notification product rules, and hard gates carried forward from
   `docs/PRODUCT_SPEC_V0.md`), and its exact deterministic behavior and
   acceptance criteria are frozen in
   `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` (alignment/no-lookahead,
   model/version identity, context formulas, setup-detector formulas,
   confidence/entry-zone/invalidation semantics, episode identity/lifecycle,
   entry feasibility, evaluation/replay methodology, acceptance sample and
-  promotion criteria) — no V2 code exists yet.
+  promotion criteria).
 - **Stage 1 — V2 Product Contract documentation phase: complete.** Both
   planned documentation PRs are authored, reviewed, and merged to `main` —
   `docs/V2_PRODUCT_CONTRACT.md` (PR #28) and

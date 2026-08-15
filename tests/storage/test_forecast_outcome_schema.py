@@ -66,9 +66,15 @@ def test_outcome_section_does_not_modify_stage1_or_prediction_tables():
     # banner to EOF, comments stripped) is the additive, idempotent
     # model_family upgrade on forecast_outcomes itself (Multi-model Framework
     # foundation PR) — never on forecast_predictions, and never on a Stage 1
-    # table.
-    alters = re.findall(r"ALTER TABLE\s+(\w+)\s*\n\s*(ADD COLUMN[^\n;]*)", code)
-    assert alters == [("forecast_outcomes", "ADD COLUMN IF NOT EXISTS model_family TEXT NOT NULL DEFAULT 'v1'")]
+    # table. Clause spans the ADD COLUMN line and the following CONSTRAINT
+    # line (matching DEFAULT + CHECK).
+    alters = re.findall(r"ALTER TABLE\s+(\w+)\s*\n\s*(ADD COLUMN[^;]*)", code)
+    assert len(alters) == 1
+    table, clause = alters[0]
+    assert table == "forecast_outcomes"
+    assert clause == (
+        "ADD COLUMN IF NOT EXISTS model_family TEXT NOT NULL DEFAULT 'v1'\n"
+        "        CONSTRAINT ck_fo_model_family CHECK (model_family = 'v1')")
     assert code.count("ALTER TABLE") == 1
     # klines_1m appears ONLY inside the evaluation-source CHECK literal 'klines_1m',
     # never as a table the section creates/alters.
@@ -120,9 +126,27 @@ def test_model_family_not_null_default_v1():
     assert re.search(r"model_family\s+TEXT\s+NOT\s+NULL\s+DEFAULT\s+'v1'", _FO_BODY)
 
 
-def test_model_family_nonblank_check():
+def test_model_family_pinned_to_v1_check():
+    # This table is V1-shaped in this PR (Multi-model Framework foundation):
+    # model_family is PINNED to 'v1', not merely non-blank — it must reject
+    # 'v2' or any other value, since this table does not accept V2
+    # episode-outcome rows yet.
     assert "ck_fo_model_family" in _FO_BODY
-    assert "length(btrim(model_family))" in _FO_BODY
+    assert re.search(r"model_family\s*=\s*'v1'", _FO_BODY)
+
+
+def test_model_family_check_on_alter_path_matches_create_path():
+    # Fresh-DB (CREATE TABLE) and existing-DB (ALTER TABLE ADD COLUMN)
+    # migration paths MUST produce IDENTICAL integrity constraints, not just
+    # the same column — this is the exact bug this test guards against.
+    alter_clause = re.search(
+        r"ALTER TABLE forecast_outcomes\s*\n\s*(ADD COLUMN[^;]*)", SQL, re.S)
+    assert alter_clause, "forecast_outcomes ALTER migration not found"
+    clause = alter_clause.group(1)
+    assert "IF NOT EXISTS model_family" in clause
+    assert "NOT NULL DEFAULT 'v1'" in clause
+    assert "ck_fo_model_family" in clause
+    assert re.search(r"CHECK\s*\(\s*model_family\s*=\s*'v1'\s*\)", clause)
 
 
 def test_rule_version_column_unchanged():
