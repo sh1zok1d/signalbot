@@ -2,10 +2,11 @@
 
 This document freezes **what V2 is supposed to be** — the intended product
 behavior, scope, and vocabulary. It does **not** freeze the exact algorithms,
-formulas, thresholds, database schema, or state-machine implementation used
-to build it. Those belong to the planned **V2 correctness and acceptance
-contract** and the later implementation-stage PRs (see
-[§0](#0-documentation-hierarchy) and [§12](#12-deferred-to-later-contracts)).
+formulas, or thresholds used to build it — those are frozen in
+**`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md`** — nor the database schema
+or state-machine implementation, which belong to the later
+implementation-stage PRs (see [§0](#0-documentation-hierarchy) and
+[§12](#12-deferred-to-later-contracts)).
 
 This document exists so that later implementation PRs cannot quietly change
 the intended product while claiming to be "V2." Any implementation PR whose
@@ -40,13 +41,13 @@ question, the hierarchy is:
    document is more specific than the roadmap about V2, this document
    governs V2 product behavior; it does not contradict or expand the scope
    the roadmap already adopted.
-3. **The upcoming V2 correctness and acceptance contract** (planned as the
-   second documentation PR of Stage 1 — see
-   `docs/FORECASTING_ROADMAP.md` §I "1. V2 Product Contract") — canonical
+3. **`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md`** — canonical
    **deterministic correctness and acceptance criteria**: exact formulas,
    thresholds, timestamp/no-lookahead mechanics, persistence identity,
    promotion criteria. Answers "how exactly is this computed and how do we
-   know it's correct/good enough." Not yet written.
+   know it's correct/good enough." **Frozen** — see that document's own
+   traceability matrix (§24) for exactly which of this contract's §12
+   deferrals it resolves.
 4. **Historical Stage 2 documents** (`docs/STAGE2_SPEC.md`,
    `docs/STAGE2_IMPLEMENTATION_PLAN.md`, `docs/STAGE2_CLARIFICATIONS.md`,
    `docs/STAGE2_DATA_AUDIT.md`) — foundation/history. They record what was
@@ -133,7 +134,7 @@ at every timeframe — no timeframe may read a bucket that has not yet closed.
 The exact cross-timeframe timestamp alignment rules and no-lookahead
 mechanics (how a 5m trigger reconciles its "current" state against a 4h
 bucket that closed hours earlier, exact clock/latency handling, etc.) are
-**DEFERRED** to the V2 correctness and acceptance contract
+**FROZEN** in `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §1–§2
 ([§12](#12-deferred-to-later-contracts)). This contract only freezes the
 role split and the closed-bucket-only requirement.
 
@@ -248,8 +249,9 @@ immediately beforehand.
   constants for any of the three families. A detector implementation
   **MUST NOT** claim conformance with this contract merely because it
   produces a `TREND_PULLBACK` label — it must also match the semantic
-  boundary above. Precise, numeric detection criteria are
-  **DEFERRED** ([§12](#12-deferred-to-later-contracts)).
+  boundary above. Precise, numeric detection criteria are **FROZEN** in
+  `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §7
+  ([§12](#12-deferred-to-later-contracts)).
 
 ---
 
@@ -275,15 +277,24 @@ V2 adopts the following episode states:
   Non-terminal.
 - **`WEAKENING`** — evidence for the scenario is deteriorating but has not
   yet reached invalidation. Non-terminal. Whether, and under what
-  conditions, a `WEAKENING` episode can recover is **DEFERRED**
-  ([§12](#12-deferred-to-later-contracts)) — this contract does not freeze a
-  recovery edge here.
+  conditions, a `WEAKENING` episode can recover is **FROZEN** in
+  `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §13.2/§13.2a (recovery to
+  `CONFIRMED` is allowed) ([§12](#12-deferred-to-later-contracts)) — this
+  contract does not itself draw the recovery edge, it only confirms one
+  exists.
 - **`INVALIDATED`** — the scenario's structural premise has broken.
   Terminal for this episode.
 - **`REVERSAL_CANDIDATE`** — the **opposite** direction has independently
   begun satisfying its own scenario-entry requirements. See
   [§5.3](#53-reversal-is-never-automatic) — this is never a passive
-  consequence of `INVALIDATED`.
+  consequence of `INVALIDATED`. Although listed here among the adopted
+  lifecycle labels for completeness, `REVERSAL_CANDIDATE` is **not** a
+  primary persisted state that replaces or supersedes the original
+  episode's own state — it is an event/label attached alongside a
+  separately, independently qualifying opposite-direction episode; see
+  [§5.2](#52-illustrative-lifecycle-sketch-non-normative) and
+  `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §13.3 for the exact
+  mechanics.
 - **`EXPIRED`** — the scenario's expected horizon elapsed without
   confirmation (from `EARLY_SIGNAL`) or without completion (from
   `CONFIRMED`, if applicable). Terminal.
@@ -320,16 +331,21 @@ What this contract actually freezes, at the product level:
   a cross-cutting observation that **MAY** be reported alongside an
   existing episode whenever the opposite scenario **independently**
   qualifies on its own merits ([§5.3](#53-reversal-is-never-automatic)). It
-  is never implied by, or wired to, any specific state transition.
+  is never implied by, or wired to, any specific state transition. The
+  exact mechanics (when the event fires, what it attaches to, and how it
+  relates to a newly created opposite-direction episode) are frozen in
+  `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §13.3, consistent with —
+  not overriding — this section.
 
 The **exact allowed transition edges** — including whether/how `WEAKENING`
 can recover, whether `EXPIRED` is reachable from `CONFIRMED` in every case,
-and the full transition graph and its thresholds — are **DEFERRED**
-([§12](#12-deferred-to-later-contracts)) to the V2 correctness and
-acceptance contract and the Episode State Machine implementation stage
+and the full transition graph and its thresholds — are **FROZEN** in
+`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §13
+([§12](#12-deferred-to-later-contracts)); the physical Episode State
+Machine implementation itself remains a later stage
 (`docs/FORECASTING_ROADMAP.md` §I, stage 6). This contract freezes the
 **state set, their product meanings, and the invariants above** — not a
-transition graph.
+transition graph; the graph now lives in the correctness contract.
 
 ### 5.3 Reversal is never automatic
 
@@ -432,14 +448,31 @@ This is a core V2 product requirement, not a nice-to-have.
   it.
 - A late/non-actionable scenario **MUST NOT** generate a normal actionable
   trading notification ([§9](#9-notification-product-contract)).
-- Entry feasibility **MUST** account for real-world notification/decision
-  delay — a scenario is not "feasible" merely because the entry zone was
-  valid at the moment of detection if, realistically, the user cannot act on
-  it in time.
+- Two genuinely distinct feasibility concepts exist, and V2 **MUST NOT**
+  conflate them:
+  - a **live, no-future-data** check, evaluated at the moment a
+    notification would be sent, using only information already available
+    at that instant — this decides whether the notification is actually
+    emitted;
+  - a **retrospective, delayed-reaction evaluation** — accounting for
+    realistic notification/decision delay — computed only once the
+    necessary future data exists, used to grade an *already-emitted* (or
+    already-suppressed) scenario for research/acceptance purposes. This
+    delayed evaluation **MUST NOT** retroactively decide whether the
+    earlier notification was sent — a live notifier cannot wait for data
+    that has not arrived yet.
+- This applies **separately** to each notification: the first `EARLY_SIGNAL`
+  (early scenario information) and the later `CONFIRMED` transition (fully
+  price-confirmed state) are each graded independently by both concepts
+  above, using only what existed at that event — never each other's, or
+  any later, information.
 
 This contract deliberately does **not** freeze exact delay seconds,
 price-distance tolerances, ATR multiples, slippage assumptions, or any
-feasibility formula. Those are **DEFERRED**
+feasibility formula. Those are **FROZEN** in
+`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §15.1 (the live send-time
+eligibility gate) and §15.2 (the retrospective delayed-evaluation grade),
+each applied to both `EARLY_SIGNAL` and `CONFIRMED`
 ([§12](#12-deferred-to-later-contracts)).
 
 ---
@@ -518,11 +551,13 @@ per-family minimum-exchange-coverage consensus gate that satisfies these
 invariants for the existing 5m pipeline (`docs/STAGE2_SPEC.md` §11,
 `config/stage2.yaml`). Whether that exact gate — including its current
 numeric parameters — carries over unchanged to `15m`/`1h`/`4h` feature
-computation, or is adapted for multi-timeframe use, is **DEFERRED**
-([§12](#12-deferred-to-later-contracts)) to the V2 correctness and
-acceptance contract. This document does not invent, and does not expand the
-frozen scope of, a numerical consensus gate beyond what is already decided
-for the existing pipeline.
+computation, or is adapted for multi-timeframe use, is now **FROZEN** in
+`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §6
+([§12](#12-deferred-to-later-contracts)) — the same coverage ratio and
+confidence floor are reused at every timeframe as the V2-v0 starting gate.
+This document does not invent, and does not expand the frozen scope of, a
+numerical consensus gate beyond what is already decided for the existing
+pipeline.
 
 ### Terminology note: `TRIGGERED` is not renamed to `CONFIRMED`
 
@@ -560,44 +595,43 @@ machine around it.
 
 ## 12. Deferred to later contracts
 
-The following are explicitly **DEFERRED** — not decided here, not implied by
-omission, and not to be invented by an implementation PR without a prior
-contract decision. They are owned by the planned **`docs: freeze V2
-correctness and acceptance contract`** PR, or by the later implementation
-stages in `docs/FORECASTING_ROADMAP.md` §I where noted:
+Almost everything originally listed here is now **FROZEN** in
+`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` — see that document's §24
+traceability matrix for the item-by-item disposition. This section is kept
+short deliberately: it no longer restates formulas or thresholds (that
+would duplicate, and risk drifting from, the correctness contract), it only
+records what remains genuinely open after both contract PRs:
 
-- Exact cross-timeframe timestamp alignment.
-- No-lookahead mechanics.
-- Exact closed-bucket selection rules.
-- Setup formulas (for `TREND_PULLBACK`, `COMPRESSION_BREAKOUT`,
-  `CONFIRMED_BREAKOUT`).
-- Scoring formulas.
-- Thresholds.
-- Percentile cutoffs.
-- Confidence weighting.
-- Entry-zone calculation.
-- Invalidation calculation.
-- Entry-feasibility numerical tolerance.
-- Assumed human/notification delay.
-- Episode persistence identity / database key.
-- Exact state transition thresholds.
-- Cooldowns.
-- Material-update thresholds.
-- Replay/backtest methodology.
-- Evaluation sample-size requirements.
-- Promotion thresholds.
-- Acceptance metrics.
-- Calibration methodology.
+- **Calibration methodology** — genuinely **deferred beyond initial V2**
+  (`V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §25): initial V2 has no
+  calibrated win probability, `model_confidence` stays non-probabilistic,
+  and calibration cannot be added without a future contract/version
+  change. This is deferred for a substantive reason (no completed-episode
+  sample can exist before V2 runs), not for difficulty.
+- **Physical persistence** — table schema, database keys, config YAML, and
+  runtime code are **not** decided by either contract PR (both are
+  documentation-only by design, see
+  `docs/FORECASTING_ROADMAP.md` §I stage 2 "Multi-model Framework"). The
+  *logical* identities, semantics, and thresholds that schema/config will
+  encode are frozen; their physical encoding is implementation work.
 
-Where this contract does not state a number, that is deliberate — this
-document does not invent a threshold merely to appear complete. A missing
-number here means "not yet legitimately decided," not "left as an
-implementation detail to guess."
+Everything else previously listed here — cross-timeframe alignment,
+no-lookahead mechanics, closed-bucket selection, setup formulas, scoring,
+thresholds, percentiles, confidence weighting, entry zone, invalidation,
+entry-feasibility tolerance, notification delay, episode identity, state
+transitions, cooldowns, material updates, replay/backtest methodology,
+sample requirements, promotion thresholds, and acceptance metrics — is
+**FROZEN** in `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md`. Where that
+document does not state a number, the same discipline applies as before:
+it is deliberate, not an oversight.
 
 ---
 
 ## Status
 
 - **V2 Product Contract: frozen** (this document).
+- **V2 Correctness & Acceptance Contract: frozen**
+  (`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md`).
 - **V2: still not implemented.**
-- **Next planned PR:** `docs: freeze V2 correctness and acceptance contract`.
+- **Next planned stage:** Stage 2 — Multi-model Framework
+  (`docs/FORECASTING_ROADMAP.md` §I).

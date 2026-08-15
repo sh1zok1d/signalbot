@@ -18,9 +18,11 @@
 > research baseline; the forecasting product now moves to a planned
 > multi-timeframe direction ("V2"). See **`docs/FORECASTING_ROADMAP.md`** —
 > the canonical source of truth for where the forecasting product is headed
-> — and **`docs/V2_PRODUCT_CONTRACT.md`** for what V2 product behavior is
-> frozen to mean. V2 is not yet implemented. This does not affect Stage 1
-> ingestion, described below.
+> — **`docs/V2_PRODUCT_CONTRACT.md`** for what V2 product behavior is
+> frozen to mean, and **`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md`** for
+> the exact deterministic formulas, thresholds, and promotion criteria V2
+> implementation must follow. V2 is not yet implemented. This does not
+> affect Stage 1 ingestion, described below.
 
 ## Что поправлено при ревью (эта итерация)
 
