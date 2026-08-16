@@ -475,8 +475,8 @@ current intent, not a contract that overrides sound engineering judgment.
     contain. (See the Stage 3 bullet below for what has since begun.)
 - **Stage 3 — Multi-timeframe Alignment: IN PROGRESS.**
   - **PR 1 of ~3 — deterministic decision clock + closed-bucket alignment:
-    this PR** (#33, "feat: add V2 multi-timeframe decision alignment").
-    Implements exactly the two pure timestamp-selection layers
+    MERGED** (#33, "feat: add V2 multi-timeframe decision alignment").
+    Implemented exactly the two pure timestamp-selection layers
     `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §1 freezes:
     `decision_boundary(now, soft_grace_s=...)` (wall-clock processing time
     -> the logical closed-5m decision boundary `T`, reusing —
@@ -487,22 +487,44 @@ current intent, not a contract that overrides sound engineering judgment.
     deterministically selects the legal closed bucket START for `5m`/
     `15m`/`1h`/`4h`, using integer minutes-since-UTC-epoch grid math so 4h
     boundaries land on `00:00/04:00/08:00/12:00/16:00/20:00` UTC without
-    special-casing hours). This PR's scope is exactly Layer 1/Layer 2
-    timestamp selection — it does **not** yet read
+    special-casing hours). That PR's scope was exactly Layer 1/Layer 2
+    timestamp selection — it did **not** read
     `exchange_feature_vectors`/`consensus_feature_vectors`/
-    `percentile_snapshots`/`data_health_snapshots`, does not implement 4h
-    regime/1h bias/normalized evidence/OI confirmation, and does not touch
+    `percentile_snapshots`/`data_health_snapshots`, did not implement 4h
+    regime/1h bias/normalized evidence/OI confirmation, and did not touch
     any setup detector, episode identity, episode state machine, entry
     feasibility, outcome evaluation, Telegram, or runtime wiring.
-    `v2.enabled` stays `false`; `v2.rules_version` is unchanged
-    (`v2-rules-v0.1.0`) since this PR implements behavior already frozen in
-    the correctness contract, not a new or tuned V2-v0 parameter.
-  - **V2 still has no data-reading, context, setup-detector, or
-    episode/state-machine logic of any kind** — this stage has only
-    established which closed bucket timestamps are legal to decide from,
-    not what to do with them.
+  - **PR 2 of ~3 — deterministic Stage 2 aligned input readers: this PR**
+    (#34, "feat: add V2 aligned input readers"). Answers the read-side
+    question PR 1 left open: given an already-selected legal timestamp/
+    cutoff, how to read EXACTLY the corresponding Stage 2 data row(s), not
+    what those rows mean. Adds `storage/v2_alignment_readers.py` (three
+    read primitives — `read_v2_consensus_feature`,
+    `read_v2_consensus_percentiles`, `read_v2_data_health_at_cutoff` — plus
+    matching `storage.db.Database` wrappers): the ONE
+    `consensus_feature_vectors` row at an EXACT `bucket_ts` (never `<=`,
+    never a latest-bucket fallback); every consensus-scope
+    `percentile_snapshots` row at that same EXACT `bucket_ts`
+    (`scope='consensus'`/`exchange=''`, exchange-scoped percentiles out of
+    scope); and, for `data_health_snapshots`, the bounded-latest row per
+    `(exchange, metric)` with `snapshot_ts <= cutoff_ts` — an explicit,
+    caller-supplied historical cutoff, never `now()`/wall clock, with a
+    row exactly at the cutoff eligible. `calculation_version` is required
+    and explicit on every read; a missing exact-bucket row returns `None`/
+    `()`, never an older bucket; a missing requested health pair is
+    explicitly `None` in the result, never fabricated as healthy.
+    `computed_at` is never used to decide historical legality (Stage 2
+    corrections upsert in place under the same `calculation_version`,
+    §2.1). No context/scoring interpretation, no raw structural OHLC
+    (`klines_1m`) reads, no `exchange_feature_vectors` reads. `v2.enabled`
+    stays `false`; `v2.rules_version` is unchanged (`v2-rules-v0.1.0`) —
+    this PR implements already-frozen data-selection semantics, not a new
+    or tuned V2-v0 parameter; no schema/config change.
+  - **V2 still has no context, setup-detector, or episode/state-machine
+    logic of any kind** — this stage has established which closed bucket
+    timestamps are legal (PR 1) and how to read exactly the Stage 2 data
+    those timestamps identify (PR 2), not what to do with either.
 
 **Next planned work (after this PR merges):** Stage 3 — Multi-timeframe
-Alignment, PR 2 of ~3 (§I above) — NOT Context Engines (stage 4); Stage 3's
-own remaining scope (DB/data-input alignment for the buckets this PR
-selects) comes first.
+Alignment, PR 3 of ~3 (§I above) — NOT Context Engines (stage 4); Stage 3's
+own remaining scope comes first.
