@@ -1,31 +1,39 @@
-"""V2 (Multi-model Framework + Multi-timeframe Alignment) analytics package.
+"""V2 (Multi-model Framework + Multi-timeframe Alignment + Context Engines)
+analytics package.
 
 This package contains identity primitives, the immutable episode-event
 PERSISTENCE model, the provenance/construction/dependency boundaries the
-Multi-model Framework stage built (complete), and — Stage 3, Multi-
-timeframe Alignment (complete as of this package version) — the full
-deterministic read/alignment boundary: the decision clock
-(`decision_boundary()`/`selected_bucket()`, alignment.py), deterministic
-Stage 2 reads (via `storage/v2_alignment_readers.py`, reached only through
-the `V2AlignedInputReader` port, never imported directly here), canonical
+Multi-model Framework stage built (complete), the full deterministic
+read/alignment boundary Stage 3 — Multi-timeframe Alignment built
+(complete): the decision clock (`decision_boundary()`/`selected_bucket()`,
+alignment.py), deterministic Stage 2 reads (via
+`storage/v2_alignment_readers.py`, reached only through the
+`V2AlignedInputReader` port, never imported directly here), canonical
 Binance reference-input preparation, and the final immutable
 `V2AlignedInputs` snapshot (`load_v2_aligned_inputs()`, aligned_inputs.py)
-Stage 4 Context Engines will consume. It does **not** contain a state
-machine, detector, scoring, or context engine of any kind — no
-`normalized_evidence`, 4h regime, 1h bias, OI confirmation, setup
-detector, `structural_anchor`, episode identity, or lifecycle logic exists
-anywhere in this package. `V2EpisodeEvent` (events.py) validates and
-freezes an already-decided event a future Episode State Machine PR will
-construct; `V2EventProvenance` (provenance.py) is a frozen snapshot of one
+— and now, Stage 4 — Context Engines' first PR: the shared evidence
+mathematics (`context_evidence.py`) both the future 4h regime engine and
+1h bias engine will consume: exact consensus-percentile lookup
+(`find_consensus_percentile()`), the corrected signed evidence primitive
+(`normalized_evidence()`), its unsigned compression companion
+(`compression_score()`), and the corrected OI confirmation/opposition
+primitive (`oi_confirmation()`). It does **not** yet contain a state
+machine, setup detector, or any context/regime/bias CLASSIFICATION — no
+4h regime, no 1h bias, `directional_context_gate`, `structural_anchor`,
+episode identity, or lifecycle logic exists anywhere in this package.
+`V2EpisodeEvent` (events.py) validates and freezes an already-decided
+event a future Episode State Machine PR will construct;
+`V2EventProvenance` (provenance.py) is a frozen snapshot of one
 event-construction operation's identity; `build_v2_episode_event()`
 (event_factory.py) is the one canonical way to combine the two;
 `V2EpisodeEventWriter`/`V2AlignedInputReader` (ports.py) are the narrow
 structural-typing dependency ports future orchestration code depends on
 instead of importing `storage.db.Database` directly. None of this decides
 what state an episode should be in, when an event should be emitted, or
-what a setup/regime/bias IS — only which data is legal to decide from and
-how to read it deterministically. See docs/FORECASTING_ROADMAP.md §I for
-where each of those still-missing pieces lands (Stage 4 onward). V1
+what a setup/regime/bias IS — only which data is legal to decide from, how
+to read it deterministically, and the shared mathematical vocabulary later
+stages will interpret it with. See docs/FORECASTING_ROADMAP.md §I for
+where each of the still-missing pieces lands (Stage 4 PR 2/~3 onward). V1
 (`analytics/forecasting/`) is untouched and continues running unchanged."""
 from .aligned_inputs import (
     ALIGNED_TIMEFRAMES, STRUCTURAL_OHLC_TIMEFRAMES, V2_REFERENCE_EXCHANGE,
@@ -34,6 +42,10 @@ from .aligned_inputs import (
 )
 from .alignment import (
     TIMEFRAME_MINUTES, V2AlignmentError, decision_boundary, selected_bucket,
+)
+from .context_evidence import (
+    MIN_PCTL_TIER, V2ContextEvidenceError, compression_score,
+    find_consensus_percentile, normalized_evidence, oi_confirmation,
 )
 from .event_factory import build_v2_episode_event
 from .events import (
@@ -64,4 +76,7 @@ __all__ = [
     "ALIGNED_TIMEFRAMES", "STRUCTURAL_OHLC_TIMEFRAMES",
     "V2AlignedInputRequest", "V2ReferenceExtrema", "V2TimeframeInputs",
     "V2AlignedInputs", "load_v2_aligned_inputs",
+    "V2ContextEvidenceError", "MIN_PCTL_TIER",
+    "find_consensus_percentile", "normalized_evidence", "compression_score",
+    "oi_confirmation",
 ]
