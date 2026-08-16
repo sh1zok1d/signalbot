@@ -80,6 +80,51 @@ corruption-precedence hardening. A `V2ContextEvidenceError` raised by a
 PR 1 primitive is never silently downgraded to `INSUFFICIENT_DATA`; it is
 re-raised as `V2RegimeError` (exception-chained, cause preserved).
 
+**Numeric-representation hardening at the two derived-arithmetic
+boundaries (load-bearing).** §4.2's decision boundaries are inclusive
+(`>=`/`<=`) at exact V2-v0 literals (`REGIME_TREND_THRESHOLD = 0.40`,
+`REGIME_OI_VETO = -0.40`). `0.40` is not a dyadic rational, so it has no
+exact IEEE-754 double representation, and — more importantly — the
+VALUES being compared against it are not read directly; they are the
+OUTPUT of PR 1's affine `normalized_evidence` transform
+(`2p-1`/`1-2p`) or the `oi_confirmation` product (`strength *
+agreement`). §23.1 states the frozen mathematical equivalence
+`price_evi >= 0.40 iff percentile_rank >= 0.70` (and the negative-branch
+mirror at `p <= 0.30`) — but evaluating `2.0*0.70 - 1.0` in Python
+produces `0.3999999999999999`, one to a few ULPs below the literal
+`0.40`, purely from double-rounding in that arithmetic chain (verified:
+the negative-branch mirror at `p=0.30` happens to round-trip to exactly
+`-0.4`, which is why this class of bug is easy to miss — it does not
+reproduce symmetrically). Comparing the literal `>= REGIME_TREND_THRESHOLD`
+therefore incorrectly rejects the mathematically-exact contract boundary
+for the positive branch, while accepting it for the negative branch —
+an unintended sign asymmetry. The same class of rounding affects the OI
+veto product (e.g. `oi_rank=0.20`, `agreement=2/3` is mathematically
+exactly `-0.40`, but the float product lands one ULP above it).
+
+The fix (`_ge_inclusive`/`_le_inclusive` below) is NOT a model/product
+tolerance — it is numeric-representation hardening, derived SOLELY from
+the threshold literal's own IEEE-754 ULP spacing via `math.nextafter`,
+applied ONLY at these two comparisons (`abs(price_evi) >=
+REGIME_TREND_THRESHOLD`, `oi <= REGIME_OI_VETO`) where a derived
+floating-point computation is compared against a non-dyadic literal. It
+is not exposed as configuration, does not change
+`REGIME_TREND_THRESHOLD`/`REGIME_OI_VETO`'s own values, and a value that
+is genuinely — in real, non-representational terms — below the frozen
+threshold remains classified as below it (the tolerance is a few ULPs
+wide, many orders of magnitude narrower than any realistic "just below
+threshold" test vector). The other four thresholds
+(`REGIME_MIN_CONFIDENCE`, `REGIME_MIN_COVERAGE`, `REGIME_MIN_AGREEMENT`,
+`REGIME_COMPRESSION`) are NOT widened this way: `consensus_confidence`/
+`min_coverage_ratio`/`price_direction_agreement` are read directly off
+`inputs.consensus` with no derived arithmetic applied by this module (a
+caller-supplied `2.0/3.0` compares bit-identically against this module's
+own `2.0/3.0` literal), and `compression_score`'s `1.0 - percentile_rank`
+happens to be exactly reachable at `REGIME_COMPRESSION = 0.75` (both
+`0.25` and `0.75` are exact dyadic rationals, so no rounding occurs) — so
+none of the other four have the representational gap the trend/OI-veto
+boundaries do, and none needed adjustment.
+
 **Pure module.** No DB, no `asyncpg`, no network, no filesystem, no
 clock, no config loading, no `random`/`uuid`/`subprocess`. Consumes only
 the already-immutable Stage 3 `V2TimeframeInputs` and PR 1's public
@@ -89,9 +134,10 @@ function is synchronous.
 """
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping as _AbcMapping
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from analytics.forecasting_v2.aligned_inputs import V2TimeframeInputs
@@ -157,6 +203,23 @@ _PRICE_METRIC = "price_move_pct_median"
 _COMPRESSION_METRIC = "range_width_pct_median"
 
 
+# ---- UTC-whole-minute datetime validation (mirrors the same posture
+# storage/v2_alignment_readers.py, aligned_inputs.py, and
+# context_evidence.py already use elsewhere in V2 — a small local,
+# private copy, not a cross-module import) ----------------------------------
+def _validate_utc_datetime(value: Any, name: str) -> datetime:
+    if type(value) is not datetime:
+        raise V2RegimeError(f"{name} must be a datetime, got {type(value).__name__}: {value!r}")
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise V2RegimeError(f"{name} must be timezone-aware, got {value!r}")
+    if value.utcoffset() != timedelta(0):
+        raise V2RegimeError(f"{name} must be UTC (offset 0), got offset {value.utcoffset()}")
+    if value.second != 0 or value.microsecond != 0:
+        raise V2RegimeError(
+            f"{name} must be a whole minute (no seconds/microseconds), got {value!r}")
+    return value
+
+
 @dataclass(frozen=True)
 class V2RegimeResult:
     """One immutable 4h regime classification, for exactly one aligned 4h
@@ -170,9 +233,7 @@ class V2RegimeResult:
     is_compressed: Optional[bool]
 
     def __post_init__(self) -> None:
-        if not isinstance(self.bucket_ts, datetime):
-            raise V2RegimeError(
-                f"bucket_ts must be a datetime, got {type(self.bucket_ts).__name__}")
+        _validate_utc_datetime(self.bucket_ts, "bucket_ts")
         if self.regime not in REGIMES:
             raise V2RegimeError(f"regime must be one of {REGIMES}, got {self.regime!r}")
         if self.regime == NON_DIRECTIONAL:
@@ -216,6 +277,48 @@ def _validate_unit_ratio(value: Any, name: str) -> float:
     if not (0.0 <= v <= 1.0):
         raise V2RegimeError(f"{name} must be within [0.0, 1.0], got {v!r}")
     return v
+
+
+# ---- IEEE-754 representation hardening for the two derived-arithmetic
+# inclusive boundaries only (see module docstring's numeric-hardening
+# section for the full rationale and the concrete counter-example) ---------
+# A handful of ULPs comfortably covers the observed 1-2 ULP rounding gaps
+# from the affine normalized_evidence transform and the OI strength*
+# agreement product, while remaining many orders of magnitude narrower
+# than any realistic "genuinely below threshold" percentile-rank vector.
+_BOUNDARY_ULP_TOLERANCE = 4
+
+
+def _floor_by_ulps(threshold: float, ulps: int) -> float:
+    """`threshold`, walked `ulps` IEEE-754 steps toward -infinity."""
+    value = threshold
+    for _ in range(ulps):
+        value = math.nextafter(value, -math.inf)
+    return value
+
+
+def _ceil_by_ulps(threshold: float, ulps: int) -> float:
+    """`threshold`, walked `ulps` IEEE-754 steps toward +infinity."""
+    value = threshold
+    for _ in range(ulps):
+        value = math.nextafter(value, math.inf)
+    return value
+
+
+def _ge_inclusive(value: float, threshold: float) -> bool:
+    """`value >= threshold`, tolerant of up to `_BOUNDARY_ULP_TOLERANCE`
+    ULPs of floating-point representation error AT `threshold`'s own
+    magnitude — never a decimal/model epsilon. Used only for
+    `abs(price_evi) >= REGIME_TREND_THRESHOLD`."""
+    return value >= _floor_by_ulps(threshold, _BOUNDARY_ULP_TOLERANCE)
+
+
+def _le_inclusive(value: float, threshold: float) -> bool:
+    """`value <= threshold`, tolerant of up to `_BOUNDARY_ULP_TOLERANCE`
+    ULPs of floating-point representation error AT `threshold`'s own
+    magnitude — never a decimal/model epsilon. Used only for
+    `oi_confirmation <= REGIME_OI_VETO`."""
+    return value <= _ceil_by_ulps(threshold, _BOUNDARY_ULP_TOLERANCE)
 
 
 def _is_missing_data(inputs: V2TimeframeInputs, *, metric: str) -> bool:
@@ -322,7 +425,7 @@ def classify_4h_regime(inputs: V2TimeframeInputs) -> V2RegimeResult:
     # when there is no candidate to modulate). ------------------------------
     if (
         price_evi is not None
-        and abs(price_evi) >= REGIME_TREND_THRESHOLD
+        and _ge_inclusive(abs(price_evi), REGIME_TREND_THRESHOLD)
         and agreement is not None
         and agreement >= REGIME_MIN_AGREEMENT
     ):
@@ -331,7 +434,7 @@ def classify_4h_regime(inputs: V2TimeframeInputs) -> V2RegimeResult:
         except V2ContextEvidenceError as exc:
             raise V2RegimeError(f"malformed OI evidence input: {exc}") from exc
 
-        vetoed = oi is not None and oi <= REGIME_OI_VETO
+        vetoed = oi is not None and _le_inclusive(oi, REGIME_OI_VETO)
         if not vetoed:
             if price_evi > 0:
                 return V2RegimeResult(

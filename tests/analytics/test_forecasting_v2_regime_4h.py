@@ -13,19 +13,31 @@ gates; the missing-DATA-vs-tier-only-unavailable distinction that decides
 corruption-precedence posture (malformed PRESENT data is never masked by
 an unrelated missing-field/threshold short-circuit).
 
-Floating-point note: `REGIME_TREND_THRESHOLD`/`REGIME_OI_VETO` (0.40 /
--0.40) are NOT reachable bit-exactly via `normalized_evidence`'s POSITIVE
-branch (`max(0.0, 2.0*p-1.0)`) for any percentile rank `p` — 0.4 is not a
-dyadic rational, and IEEE754 double rounding of `p` itself means no `p`
-round-trips to exactly `0.4` through that formula (verified exhaustively
-at authoring time). The NEGATIVE branch (`-max(0.0, 1.0-2.0*p)`), however,
-DOES land exactly on `-0.4` at `p=0.30` (`1.0 - 2.0*0.30 == 0.4` bit-for-
-bit in Python). Since the source code applies the identical
-`abs(price_evi) >= REGIME_TREND_THRESHOLD` comparison to both signs, the
-exact-boundary tests below deliberately use the negative (bearish) branch
-to prove inclusivity bit-exactly, while the positive (bullish) branch is
-covered with clear, unambiguous margins — this is a sufficient and
-rigorous test of the same comparison, not a weaker substitute.
+Floating-point note (amended — the bullish boundary IS directly tested,
+not merely inferred from the bearish one). `docs/V2_CORRECTNESS_ACCEPTANCE_
+CONTRACT.md` §23.1 freezes the mathematical equivalence `price_evi >= 0.40
+iff percentile_rank >= 0.70` for the POSITIVE `normalized_evidence` branch
+(`max(0.0, 2.0*p-1.0)`). Evaluating that formula at `p=0.70` in Python
+double arithmetic produces `0.3999999999999999` — one to a few ULPs below
+the literal `0.4` (0.4 is not a dyadic rational, so it has no exact
+IEEE-754 double representation, and this specific arithmetic chain does
+not round back to it). The NEGATIVE branch (`-max(0.0, 1.0-2.0*p)`)
+happens to round-trip to exactly `-0.4` at `p=0.30`, which is precisely
+why this class of bug does not reproduce symmetrically and is easy to
+miss if only the negative branch is exercised: a naive plain
+`abs(price_evi) >= REGIME_TREND_THRESHOLD` comparison REJECTS the
+mathematically-exact bullish boundary while ACCEPTING the mathematically-
+exact bearish one. `regime_4h.py` fixes this with `_ge_inclusive`/
+`_le_inclusive` — a narrow (`_BOUNDARY_ULP_TOLERANCE`-wide) IEEE-754 ULP
+comparison derived solely from the threshold literal's own representable
+neighbors (see that module's docstring for the full rationale), applied
+ONLY to `abs(price_evi) >= REGIME_TREND_THRESHOLD` and `oi_confirmation <=
+REGIME_OI_VETO`. The tests below therefore exercise BOTH signs directly,
+using the real `normalized_evidence`/`oi_confirmation` primitives (never a
+faked evidence value) — the positive branch at `p=0.70`, and the negative
+branch at `p=0.30` — to prove the fix restores symmetric inclusive
+behavior, plus explicit below-boundary vectors proving the tolerance does
+not swallow genuinely non-trending values.
 """
 from __future__ import annotations
 
@@ -120,6 +132,20 @@ def _default_gates(**consensus_over):
 # ============================================================================
 # 1. CORE TREND MATRIX (§4.2 step 2) — bullish/bearish symmetry
 # ============================================================================
+def test_bullish_exact_threshold_boundary_is_inclusive():
+    # §23.1's own frozen equivalence: percentile_rank=0.70 IS the
+    # mathematically-exact bullish price_evi>=0.40 boundary. The REAL
+    # normalized_evidence primitive computes 2.0*0.70-1.0 ==
+    # 0.3999999999999999 (a few ULPs below the 0.4 literal) -- a plain
+    # `>=` comparison would incorrectly reject this. This is the primary
+    # regression this amendment exists to lock in.
+    price_row = make_price_row(value=1.0, percentile_rank=0.70)
+    inputs = make_inputs(percentiles=[price_row, NEUTRAL_COMP_ROW], consensus=make_consensus())
+    result = classify_4h_regime(inputs)
+    assert result.regime == BULLISH_TRENDING
+    assert result.is_compressed is None
+
+
 def test_bearish_exact_threshold_boundary_is_inclusive():
     # -0.40 EXACTLY (bit-for-bit) via the negative branch at rank=0.30 --
     # see module docstring's floating-point note.
@@ -132,6 +158,21 @@ def test_bearish_exact_threshold_boundary_is_inclusive():
     assert result.is_compressed is None
 
 
+@pytest.mark.parametrize("value,rank,expected", [
+    (1.0, 0.70, BULLISH_TRENDING),
+    (-1.0, 0.30, BEARISH_TRENDING),
+])
+def test_trend_boundary_is_classified_symmetrically(value, rank, expected):
+    # Behavioral proof (not merely "same source comparison"): the
+    # mathematically-symmetric +0.40/-0.40 boundary must classify
+    # symmetrically, using the real evidence primitive both times.
+    price_row = make_price_row(value=value, percentile_rank=rank)
+    consensus_over = {"price_move_pct_median": value} if value < 0 else {}
+    inputs = make_inputs(
+        percentiles=[price_row, NEUTRAL_COMP_ROW], consensus=make_consensus(**consensus_over))
+    assert classify_4h_regime(inputs).regime == expected
+
+
 def test_bullish_clears_trend_threshold_with_margin():
     price_row = make_price_row(value=1.0, percentile_rank=0.71)  # price_evi ~= 0.42
     inputs = make_inputs(percentiles=[price_row, NEUTRAL_COMP_ROW], consensus=make_consensus())
@@ -142,6 +183,15 @@ def test_bullish_clears_trend_threshold_with_margin():
 
 def test_bullish_just_below_threshold_is_non_directional():
     price_row = make_price_row(value=1.0, percentile_rank=0.69)  # price_evi ~= 0.38
+    inputs = make_inputs(percentiles=[price_row, NEUTRAL_COMP_ROW], consensus=make_consensus())
+    assert classify_4h_regime(inputs).regime == NON_DIRECTIONAL
+
+
+def test_bullish_genuinely_just_below_threshold_is_non_directional():
+    # A percentile rank fractionally below 0.70 -- the tolerance fix must
+    # NOT smear the boundary: this is meaningfully (many ULPs) below 0.4
+    # in real terms, not floating-point noise at the exact boundary.
+    price_row = make_price_row(value=1.0, percentile_rank=0.699999)
     inputs = make_inputs(percentiles=[price_row, NEUTRAL_COMP_ROW], consensus=make_consensus())
     assert classify_4h_regime(inputs).regime == NON_DIRECTIONAL
 
@@ -197,6 +247,44 @@ def test_oi_veto_symmetric_for_bearish_candidate():
         consensus=make_consensus(
             price_move_pct_median=-1.0, oi_change_pct_median=-0.1, oi_direction_agreement=1.0))
     assert classify_4h_regime(inputs).regime == NON_DIRECTIONAL
+
+
+def test_oi_veto_boundary_vector_2_vetoes_bullish_candidate():
+    # A DIFFERENT arithmetic shape reaching the same mathematically exact
+    # -0.40 veto boundary: oi_rank=0.20, agreement=2/3 ->
+    # strength=1-2*0.20=0.60, oi_confirmation=0.60*(2/3)==-0.40 exactly in
+    # real terms. The float product (max(0.0, 1.0-2.0*0.20) * (2.0/3.0))
+    # lands one ULP ABOVE -0.40, which a plain `<=` comparison would
+    # incorrectly treat as a non-veto.
+    price_row = make_price_row(value=1.0, percentile_rank=0.71)
+    oi_row = make_oi_row(value=-0.1, percentile_rank=0.20)
+    inputs = make_inputs(
+        percentiles=[price_row, NEUTRAL_COMP_ROW, oi_row],
+        consensus=make_consensus(oi_change_pct_median=-0.1, oi_direction_agreement=2.0 / 3.0))
+    assert classify_4h_regime(inputs).regime == NON_DIRECTIONAL
+
+
+def test_oi_veto_boundary_vector_2_vetoes_bearish_candidate():
+    price_row = make_price_row(value=-1.0, percentile_rank=0.30)
+    oi_row = make_oi_row(value=-0.1, percentile_rank=0.20)
+    inputs = make_inputs(
+        percentiles=[price_row, NEUTRAL_COMP_ROW, oi_row],
+        consensus=make_consensus(
+            price_move_pct_median=-1.0, oi_change_pct_median=-0.1,
+            oi_direction_agreement=2.0 / 3.0))
+    assert classify_4h_regime(inputs).regime == NON_DIRECTIONAL
+
+
+def test_oi_slightly_weaker_than_boundary_vector_2_does_not_veto():
+    # rank=0.21 (vs. the boundary's 0.20) -> strength=1-2*0.21=0.58,
+    # oi_confirmation ~= -0.3866..., comfortably (not by ULPs) above
+    # -0.40 -- the tolerance must not swallow this.
+    price_row = make_price_row(value=1.0, percentile_rank=0.71)
+    oi_row = make_oi_row(value=-0.1, percentile_rank=0.21)
+    inputs = make_inputs(
+        percentiles=[price_row, NEUTRAL_COMP_ROW, oi_row],
+        consensus=make_consensus(oi_change_pct_median=-0.1, oi_direction_agreement=2.0 / 3.0))
+    assert classify_4h_regime(inputs).regime == BULLISH_TRENDING
 
 
 def test_strong_positive_oi_never_vetoes_bearish_candidate():
@@ -618,6 +706,34 @@ def test_result_is_frozen():
     result = V2RegimeResult(bucket_ts=B, regime=NON_DIRECTIONAL, is_compressed=True)
     with pytest.raises((AttributeError, TypeError)):
         result.regime = BULLISH_TRENDING  # type: ignore[misc]
+
+
+def test_result_accepts_valid_utc_whole_minute_bucket_ts():
+    result = V2RegimeResult(bucket_ts=B, regime=NON_DIRECTIONAL, is_compressed=True)
+    assert result.bucket_ts == B
+
+
+def test_result_rejects_naive_bucket_ts():
+    naive = datetime(2026, 8, 15, 12, 0)  # no tzinfo
+    with pytest.raises(V2RegimeError, match="timezone-aware"):
+        V2RegimeResult(bucket_ts=naive, regime=NON_DIRECTIONAL, is_compressed=True)
+
+
+def test_result_rejects_non_utc_bucket_ts():
+    non_utc = datetime(2026, 8, 15, 15, 0, tzinfo=timezone(timedelta(hours=3)))
+    with pytest.raises(V2RegimeError, match="must be UTC"):
+        V2RegimeResult(bucket_ts=non_utc, regime=NON_DIRECTIONAL, is_compressed=True)
+
+
+def test_result_rejects_bucket_ts_with_seconds():
+    with pytest.raises(V2RegimeError, match="whole minute"):
+        V2RegimeResult(bucket_ts=B.replace(second=1), regime=NON_DIRECTIONAL, is_compressed=True)
+
+
+def test_result_rejects_bucket_ts_with_microseconds():
+    with pytest.raises(V2RegimeError, match="whole minute"):
+        V2RegimeResult(
+            bucket_ts=B.replace(microsecond=1), regime=NON_DIRECTIONAL, is_compressed=True)
 
 
 @pytest.mark.parametrize("is_compressed", [True, False])
