@@ -26,6 +26,9 @@ EXPECTED_TABLES = [
     # (details in tests/storage/test_telegram_notification_readers.py)
     "telegram_notifier_state",
     "telegram_notification_deliveries",
+    # additive V2 immutable episode-event persistence boundary (Multi-model
+    # Framework PR 2; details in tests/storage/test_v2_episode_event_schema.py)
+    "v2_episode_events",
 ]
 
 
