@@ -171,6 +171,7 @@ def test_rules_version_is_copied_never_inferred_from_calculation_version():
 @pytest.mark.parametrize("field,value", [
     ("model_family", "v1"),
     ("rules_version", "v2-rules-v9.9.9"),
+    ("feature_schema_version", 999),
     ("calculation_version", "9" * 16),
     ("config_hash", "9" * 64),
     ("config_version", "9.9.9"),

@@ -129,6 +129,17 @@ def test_rules_version_reuses_shared_validator_not_a_second_regex():
     assert _prov_mod.validate_rules_version is validate_rules_version
 
 
+# -- rules_version exact-identity hardening propagation (common.v2_config) -----
+def test_trailing_newline_rules_version_rejected():
+    with pytest.raises(V2ProvenanceError, match="rules_version"):
+        make_provenance(rules_version="v2-rules-v0.1.0\n")
+
+
+def test_unicode_decimal_digit_rules_version_rejected():
+    with pytest.raises(V2ProvenanceError, match="rules_version"):
+        make_provenance(rules_version="v2-rules-v1٢.0.0")
+
+
 # ---- symbol / market_type ----------------------------------------------------
 def test_btcusdt_accepted():
     assert make_provenance(symbol="BTCUSDT").symbol == "BTCUSDT"

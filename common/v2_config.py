@@ -36,18 +36,35 @@ import yaml
 ROOT_DIR = Path(__file__).resolve().parent.parent
 V2_CONFIG_PATH = ROOT_DIR / "config" / "v2.yaml"
 
-# The logical model_family constant V2 rows will carry once a model_family
-# column/registry exists at the row level (docs/FORECASTING_ROADMAP.md §A).
-# V1's own rows carry model_family="v1" implicitly (see
-# storage/stage2_schema.sql's DB-owned DEFAULT 'v1' on forecast_predictions /
-# forecast_outcomes) — never "v1" vs. "V2"/"2"/anything else ad hoc.
+# The logical model_family constant every V2 row physically carries at the
+# row level. storage/stage2_schema.sql pins this on both sides: V1's own
+# rows carry model_family='v1' by a DB-owned DEFAULT + CHECK constraint on
+# forecast_predictions / forecast_outcomes, and the additive v2_episode_events
+# table (Multi-model Framework PR 2) CHECK-constrains model_family='v2' —
+# never "v1" vs. "V2"/"2"/anything else ad hoc.
 MODEL_FAMILY = "v2"
 
 # v2-rules-v<major>.<minor>.<patch> — the exact namespace
 # docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §3 freezes. A V1 rule_version
 # (e.g. "forecast-rules-v0.1.0") can never match this pattern, and vice versa
 # — the two namespaces are disjoint by construction (differing prefixes).
-RULES_VERSION_RE = re.compile(r"^v2-rules-v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
+#
+# ASCII digits ONLY: [0-9], never \d — \d is Unicode-aware for str patterns
+# in Python (it also matches non-ASCII decimal digits, e.g. Arabic-Indic
+# "١٢" or Devanagari "१"), which would let a byte-for-byte-different string
+# masquerade as a valid version. Validated with `fullmatch()`, never
+# `match()` with a `^...$` anchor pair — `$` can match immediately before a
+# trailing `\n`, so `match()` would silently accept "v2-rules-v0.1.0\n".
+# `rules_version` is an exact persisted historical identity string: no
+# trailing newline/CR/tab/space or extra byte is valid, and no non-ASCII
+# digit is valid, matching the equally-strict SQL CHECK constraint in
+# storage/stage2_schema.sql.
+RULES_VERSION_RE = re.compile(
+    r"v2-rules-v"
+    r"(0|[1-9][0-9]*)\."
+    r"(0|[1-9][0-9]*)\."
+    r"(0|[1-9][0-9]*)"
+)
 
 _REQUIRED_KEYS = ("enabled", "model_family", "rules_version")
 _ALLOWED_KEYS = frozenset(_REQUIRED_KEYS)
@@ -61,17 +78,22 @@ class V2ConfigError(ValueError):
 def validate_rules_version(value: Any) -> str:
     """Validate a candidate `rules_version` string against the frozen
     `v2-rules-v<major>.<minor>.<patch>` namespace. Returns it unchanged on
-    success (never coerces/normalizes); raises V2ConfigError otherwise. Pure:
-    no I/O, no side effects."""
+    success (never coerces/normalizes, never `.strip()`s) — a malformed
+    input fails rather than being silently normalized; raises V2ConfigError
+    otherwise. Uses `fullmatch()` (exact full-string match, no `^...$`
+    anchor-vs-trailing-newline ambiguity) against an ASCII-digit-only
+    pattern — see `RULES_VERSION_RE`'s own comment for why both of those
+    matter. Pure: no I/O, no side effects."""
     if not isinstance(value, str) or not value:
         raise V2ConfigError(
             f"rules_version must be a non-empty string, got {value!r}")
-    if not RULES_VERSION_RE.match(value):
+    if not RULES_VERSION_RE.fullmatch(value):
         raise V2ConfigError(
             f"rules_version {value!r} does not match the frozen "
             "'v2-rules-v<major>.<minor>.<patch>' namespace "
             "(V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §3) — refusing to accept "
-            "a V1-style rule_version or any other unrecognized shape")
+            "a V1-style rule_version, a trailing newline/CR/space, a "
+            "non-ASCII decimal digit, or any other unrecognized shape")
     return value
 
 

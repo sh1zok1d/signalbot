@@ -116,6 +116,17 @@ def test_malformed_rules_version_rejected(bad_version):
         _event(rules_version=bad_version)
 
 
+# -- rules_version exact-identity hardening propagation (common.v2_config) -----
+def test_trailing_newline_rules_version_rejected():
+    with pytest.raises(V2EventInputError, match="rules_version"):
+        _event(rules_version="v2-rules-v0.1.0\n")
+
+
+def test_unicode_decimal_digit_rules_version_rejected():
+    with pytest.raises(V2EventInputError, match="rules_version"):
+        _event(rules_version="v2-rules-v1٢.0.0")
+
+
 # ---- symbol / market_type (initial V2 scope) -----------------------------------
 def test_initial_scope_constants():
     assert SUPPORTED_SYMBOL == "BTCUSDT"

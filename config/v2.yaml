@@ -1,24 +1,33 @@
 # BTC Signal Bot — V2 identity configuration (SEPARATE from Stage 2's
 # config/stage2.yaml, which is NOT touched by this file and does not read it).
 #
-# This is FOUNDATION-ONLY configuration for the Multi-model Framework's first
-# PR (docs/FORECASTING_ROADMAP.md §I stage 2). It carries the `model_family` /
-# `rules_version` identity conventions frozen in
-# docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §3 — nothing else.
+# This remains IDENTITY-ONLY configuration, permanently — not merely for the
+# Multi-model Framework stage. It carries the `model_family` / `rules_version`
+# identity conventions frozen in docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §3
+# — nothing else. The Multi-model Framework stage
+# (docs/FORECASTING_ROADMAP.md §I stage 2) is complete once the PR that
+# introduces this comment's amendment merges; this file's scope does not grow
+# alongside later stages.
 #
 # Do NOT add detector thresholds, confidence weights, entry-feasibility
 # parameters, notification thresholds, or outcome thresholds here. Those
-# belong to their owning modules in later Multi-model Framework PRs, once
-# those modules exist. Adding them here ahead of that would let config racing
-# ahead of implementation reintroduce exactly the "config is not a loophole"
-# problem §23 of the correctness contract explicitly guards against.
+# belong to their own later OWNING STAGES/MODULES (context engines, setup
+# detectors, the episode state machine, entry feasibility, the V2 outcome
+# evaluator — docs/FORECASTING_ROADMAP.md §I stages 4-8), each with its own
+# config surface when it lands, never this file. Adding them here ahead of
+# that would let config race ahead of implementation, reintroducing exactly
+# the "config is not a loophole" problem §23 of the correctness contract
+# explicitly guards against.
 #
 # v2.enabled: master switch. While false, V2 is not wired into any runtime
-#   path (there is no such wiring yet in this PR) and produces no output.
-# v2.model_family: the logical constant identifying V2 rows, distinct from
-#   V1's implicit model_family="v1" (docs/FORECASTING_ROADMAP.md §A).
-# v2.rules_version: identifies the exact set of V2-v0 numeric parameters an
-#   implementation PR will freeze (namespace: "v2-rules-v<major>.<minor>.<patch>",
+#   path (there is no such wiring yet) and produces no output.
+# v2.model_family: the logical constant identifying V2 rows — physically
+#   pinned by CHECK constraint on the additive v2_episode_events table
+#   (storage/stage2_schema.sql, Multi-model Framework PR 2), distinct from
+#   V1's own model_family='v1', pinned the same way on forecast_predictions /
+#   forecast_outcomes (docs/FORECASTING_ROADMAP.md §A).
+# v2.rules_version: identifies the exact set of V2-v0 numeric parameters a
+#   later implementation freezes (namespace: "v2-rules-v<major>.<minor>.<patch>",
 #   V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §3). Changing ANY V2-v0 parameter in
 #   a future PR MUST bump this string — it is never a silent behavior change
 #   under an unchanged version.

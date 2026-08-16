@@ -81,6 +81,102 @@ def test_validate_rules_version_standalone():
         validate_rules_version("bogus")
 
 
+# -- exact-identity hardening: ASCII-only digits, full-string match only --------
+# rules_version is an exact persisted historical identity string (§3): no
+# trailing newline/CR/space or non-ASCII digit is ever valid, and none of
+# them may be silently stripped/normalized away.
+def test_validate_rules_version_rejects_trailing_newline():
+    with pytest.raises(V2ConfigError, match="rules_version"):
+        validate_rules_version("v2-rules-v0.1.0\n")
+
+
+def test_validate_rules_version_rejects_trailing_carriage_return():
+    with pytest.raises(V2ConfigError, match="rules_version"):
+        validate_rules_version("v2-rules-v0.1.0\r")
+
+
+def test_validate_rules_version_rejects_trailing_and_leading_space():
+    with pytest.raises(V2ConfigError, match="rules_version"):
+        validate_rules_version("v2-rules-v0.1.0 ")
+    with pytest.raises(V2ConfigError, match="rules_version"):
+        validate_rules_version(" v2-rules-v0.1.0")
+
+
+@pytest.mark.parametrize("unicode_digit_version", [
+    "v2-rules-v1٢.0.0",   # Arabic-Indic digit ٢ (U+0662)
+    "v2-rules-v1१.0.0",   # Devanagari digit १ (U+0967)
+    "v2-rules-v٠.1.0",    # Arabic-Indic zero ٠ (U+0660)
+])
+def test_validate_rules_version_rejects_unicode_decimal_digits(unicode_digit_version):
+    # Python's \d is Unicode-aware for str patterns; the validator's regex
+    # must use explicit [0-9] so a non-ASCII decimal digit can never
+    # masquerade as a valid version component.
+    with pytest.raises(V2ConfigError, match="rules_version"):
+        validate_rules_version(unicode_digit_version)
+
+
+@pytest.mark.parametrize("leading_zero_version", [
+    "v2-rules-v01.0.0",   # leading zero, major
+    "v2-rules-v0.01.0",   # leading zero, minor
+    "v2-rules-v0.1.00",   # leading zero, patch
+])
+def test_validate_rules_version_rejects_leading_zeros_in_any_component(leading_zero_version):
+    with pytest.raises(V2ConfigError, match="rules_version"):
+        validate_rules_version(leading_zero_version)
+
+
+def test_validate_rules_version_accepts_standalone_zero_component():
+    # A lone "0" (not "00"/"01") is the one legal zero shape per component.
+    assert validate_rules_version("v2-rules-v0.0.0") == "v2-rules-v0.0.0"
+
+
+def test_validate_rules_version_never_coerces_or_strips():
+    # A malformed input fails outright; it is never silently normalized
+    # (e.g. stripped of whitespace) into something that would then pass.
+    with pytest.raises(V2ConfigError):
+        validate_rules_version("  v2-rules-v0.1.0  ")
+
+
+def test_validate_rules_version_uses_fullmatch_semantics():
+    # fullmatch(), never match() with a bare ^...$ pair: match() can accept
+    # a trailing newline because Python's $ matches immediately before one.
+    import inspect
+
+    import common.v2_config as v2_config_module
+    src = inspect.getsource(v2_config_module.validate_rules_version)
+    assert "fullmatch" in src
+    assert ".match(" not in src
+
+
+def test_rules_version_regex_uses_ascii_digit_class_not_unicode_d():
+    from common.v2_config import RULES_VERSION_RE
+    assert r"\d" not in RULES_VERSION_RE.pattern
+    assert "[0-9]" in RULES_VERSION_RE.pattern
+
+
+# -- V2Config.from_mapping() inherits the same strict rules_version behavior ---
+def test_from_mapping_rejects_rules_version_with_trailing_newline():
+    block = _base_block()
+    block["rules_version"] = "v2-rules-v0.1.0\n"
+    with pytest.raises(V2ConfigError, match="rules_version"):
+        V2Config.from_mapping(block)
+
+
+def test_from_mapping_rejects_rules_version_with_unicode_digit():
+    block = _base_block()
+    block["rules_version"] = "v2-rules-v1٢.0.0"
+    with pytest.raises(V2ConfigError, match="rules_version"):
+        V2Config.from_mapping(block)
+
+
+def test_from_mapping_still_accepts_valid_rules_version_after_hardening():
+    # Regression guard: the hardening must not become over-strict.
+    block = _base_block()
+    block["rules_version"] = "v2-rules-v12.34.56"
+    cfg = V2Config.from_mapping(block)
+    assert cfg.rules_version == "v2-rules-v12.34.56"
+
+
 # -- missing required fields ----------------------------------------------------
 @pytest.mark.parametrize("missing_key", ["enabled", "model_family", "rules_version"])
 def test_missing_required_key_rejected(missing_key):
