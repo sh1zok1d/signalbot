@@ -610,6 +610,76 @@ class Database:
                     inserted += 1
         return inserted
 
+    # ---------------------------------------------------------------
+    # V2 aligned-input readers (Stage 3 — Multi-timeframe Alignment PR 2,
+    # ADDITIVE, READ-ONLY). Delegates all SQL/row-parsing to
+    # storage/v2_alignment_readers.py; arguments are validated BEFORE a
+    # connection is acquired. No analytics decision is made here — these
+    # wrappers exist to return exactly the requested Stage 2 identity, or
+    # an explicit absence, never a wall-clock "latest".
+    # ---------------------------------------------------------------
+    async def fetch_v2_consensus_feature(
+        self, *, symbol: str, market_type: str, timeframe: str,
+        bucket_ts: datetime, calculation_version: str,
+    ) -> "Optional[Mapping]":
+        """Read-only: the ONE `consensus_feature_vectors` row at the EXACT
+        `(symbol, market_type, timeframe, bucket_ts, calculation_version)`
+        identity, or `None` if absent — never an older bucket. See
+        `storage/v2_alignment_readers.py::read_v2_consensus_feature` for
+        the full contract."""
+        from storage.v2_alignment_readers import (
+            read_v2_consensus_feature, validate_consensus_feature_args)
+        validate_consensus_feature_args(
+            symbol=symbol, market_type=market_type, timeframe=timeframe,
+            bucket_ts=bucket_ts, calculation_version=calculation_version)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_v2_consensus_feature(
+                conn, symbol=symbol, market_type=market_type, timeframe=timeframe,
+                bucket_ts=bucket_ts, calculation_version=calculation_version)
+
+    async def fetch_v2_consensus_percentiles(
+        self, *, symbol: str, market_type: str, timeframe: str,
+        bucket_ts: datetime, calculation_version: str,
+    ) -> "tuple[Mapping, ...]":
+        """Read-only: every consensus-scope `percentile_snapshots` row at
+        the EXACT `(symbol, market_type, timeframe, bucket_ts,
+        calculation_version)` identity — never an older bucket, never an
+        exchange-scoped row. `()` if none exist. See
+        `storage/v2_alignment_readers.py::read_v2_consensus_percentiles`
+        for the full contract."""
+        from storage.v2_alignment_readers import (
+            read_v2_consensus_percentiles, validate_consensus_feature_args)
+        validate_consensus_feature_args(
+            symbol=symbol, market_type=market_type, timeframe=timeframe,
+            bucket_ts=bucket_ts, calculation_version=calculation_version)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_v2_consensus_percentiles(
+                conn, symbol=symbol, market_type=market_type, timeframe=timeframe,
+                bucket_ts=bucket_ts, calculation_version=calculation_version)
+
+    async def fetch_v2_data_health_at_cutoff(
+        self, *, symbol: str, market_type: str, exchanges: "Sequence[str]",
+        metrics: "Sequence[str]", cutoff_ts: datetime, calculation_version: str,
+    ) -> "Mapping":
+        """Read-only: for every requested `(exchange, metric)` pair, the
+        LATEST `data_health_snapshots` row with `snapshot_ts <= cutoff_ts`
+        (an explicit, caller-supplied historical cutoff — never
+        `now()`/wall clock), or `None` for that pair if none is eligible.
+        See `storage/v2_alignment_readers.py::read_v2_data_health_at_cutoff`
+        for the full contract."""
+        from storage.v2_alignment_readers import (
+            read_v2_data_health_at_cutoff, validate_data_health_args)
+        validate_data_health_args(
+            symbol=symbol, market_type=market_type, exchanges=exchanges,
+            metrics=metrics, cutoff_ts=cutoff_ts, calculation_version=calculation_version)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_v2_data_health_at_cutoff(
+                conn, symbol=symbol, market_type=market_type, exchanges=exchanges,
+                metrics=metrics, cutoff_ts=cutoff_ts, calculation_version=calculation_version)
+
     async def fetch_shadow_liquidation_availability(
         self,
         *,
