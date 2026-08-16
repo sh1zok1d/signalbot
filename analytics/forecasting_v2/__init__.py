@@ -11,26 +11,42 @@ alignment.py), deterministic Stage 2 reads (via
 `V2AlignedInputReader` port, never imported directly here), canonical
 Binance reference-input preparation, and the final immutable
 `V2AlignedInputs` snapshot (`load_v2_aligned_inputs()`, aligned_inputs.py)
-— and now, Stage 4 — Context Engines, PR 1/~3 and PR 2/~3: the shared
-evidence mathematics (`context_evidence.py`) both the 4h regime engine
-and the future 1h bias engine consume — exact consensus-percentile
-lookup (`find_consensus_percentile()`), the corrected signed evidence
-primitive (`normalized_evidence()`), its unsigned compression companion
-(`compression_score()`), and the corrected OI confirmation/opposition
-primitive (`oi_confirmation()`) — and the 4h regime engine itself
-(`regime_4h.py`): `classify_4h_regime()` deterministically classifies one
-already-aligned 4h `V2TimeframeInputs` into exactly one of
+— and now, Stage 4 — Context Engines (PR 1/~3, PR 2/~3, and this PR,
+3/~3, the FINAL planned Stage 4 PR): the shared evidence mathematics
+(`context_evidence.py`) the 4h regime and 1h bias engines both consume —
+exact consensus-percentile lookup (`find_consensus_percentile()`), the
+corrected signed evidence primitive (`normalized_evidence()`), its
+unsigned compression companion (`compression_score()`), and the corrected
+OI confirmation/opposition primitive (`oi_confirmation()`) — the 4h
+regime engine (`regime_4h.py`): `classify_4h_regime()` deterministically
+classifies one already-aligned 4h `V2TimeframeInputs` into exactly one of
 `BULLISH_TRENDING`/`BEARISH_TRENDING`/`NON_DIRECTIONAL` (with an attached
-`is_compressed` flag) /`INSUFFICIENT_DATA`, per the frozen §4.2 decision
+`is_compressed` flag)/`INSUFFICIENT_DATA`, per the frozen §4.2 decision
 tree — direction always decided by price alone, cross-exchange agreement
 as a gate only, OI as an optional symmetric veto only (never a
 directional vote), and a careful distinction between genuinely MISSING
 mandatory evidence (forces `INSUFFICIENT_DATA`) and evidence that is
-merely below the percentile confidence-tier floor (does not). It does
-**not** yet contain a state machine, setup detector, 1h bias
-classification, or a combined context snapshot — no `BIAS_*` threshold,
-`NEUTRAL_NOT_ESTABLISHED`, `directional_context_gate`, `structural_anchor`,
-episode identity, or lifecycle logic exists anywhere in this package.
+merely below the percentile confidence-tier floor (does not) — the 1h
+bias engine (`bias_1h.py`): `classify_1h_bias()` deterministically
+classifies one already-aligned 1h `V2TimeframeInputs` into exactly one of
+`BULLISH`/`BEARISH`/`NEUTRAL_NOT_ESTABLISHED`/`"UNAVAILABLE"`, per the
+frozen §4.3 decision tree — a deliberately lighter, faster-adapting
+sibling of the 4h regime (7d window, `BIAS_THRESHOLD=0.25`, no OI/
+compression reads at all, per §4.4's independence/anti-double-counting
+boundary), with `NEUTRAL_NOT_ESTABLISHED` a real, successfully-computed
+result kept distinct from `"UNAVAILABLE"` — and the final combined
+context snapshot (`context_snapshot.py`): `build_v2_context_snapshot()`
+combines the 4h regime and 1h bias already computed for ONE
+`V2AlignedInputs` into a single immutable `V2ContextSnapshot`, preserving
+both facts SEPARATELY (no overall/combined direction — §4.4) and failing
+closed against pairing results from two different decision boundaries.
+Stage 4 is now COMPLETE.
+
+This package still does **not** contain a setup detector, `directional_
+context_gate`, episode state machine, or runtime wiring of any kind — no
+`TREND_PULLBACK`/`COMPRESSION_BREAKOUT`/`CONFIRMED_BREAKOUT`,
+`structural_anchor`, episode identity, or lifecycle logic exists anywhere
+in this package; that is Stage 5 — Setup Detectors, not started.
 `V2EpisodeEvent` (events.py) validates and freezes an already-decided
 event a future Episode State Machine PR will construct;
 `V2EventProvenance` (provenance.py) is a frozen snapshot of one
@@ -40,10 +56,10 @@ event-construction operation's identity; `build_v2_episode_event()`
 structural-typing dependency ports future orchestration code depends on
 instead of importing `storage.db.Database` directly. None of this decides
 what state an episode should be in, when an event should be emitted, or
-what a setup/bias IS — only which data is legal to decide from, how to
-read it deterministically, the shared mathematical vocabulary, and now
-the established 4h regime. See docs/FORECASTING_ROADMAP.md §I for where
-each of the still-missing pieces lands (Stage 4 PR 3/~3 onward). V1
+what a setup IS — only which data is legal to decide from, how to read it
+deterministically, the shared mathematical vocabulary, and now the
+complete Stage 4 context (4h regime, 1h bias, and their combined
+snapshot). See docs/FORECASTING_ROADMAP.md §I for where Stage 5 lands. V1
 (`analytics/forecasting/`) is untouched and continues running unchanged."""
 from .aligned_inputs import (
     ALIGNED_TIMEFRAMES, STRUCTURAL_OHLC_TIMEFRAMES, V2_REFERENCE_EXCHANGE,
@@ -53,9 +69,17 @@ from .aligned_inputs import (
 from .alignment import (
     TIMEFRAME_MINUTES, V2AlignmentError, decision_boundary, selected_bucket,
 )
+from .bias_1h import (
+    BEARISH, BIAS_MIN_AGREEMENT, BIAS_MIN_COVERAGE, BIAS_THRESHOLD,
+    BIAS_MIN_CONFIDENCE, BIAS_UNAVAILABLE, BIASES, BULLISH,
+    NEUTRAL_NOT_ESTABLISHED, V2BiasError, V2BiasResult, classify_1h_bias,
+)
 from .context_evidence import (
     MIN_PCTL_TIER, V2ContextEvidenceError, compression_score,
     find_consensus_percentile, normalized_evidence, oi_confirmation,
+)
+from .context_snapshot import (
+    V2ContextSnapshot, V2ContextSnapshotError, build_v2_context_snapshot,
 )
 from .event_factory import build_v2_episode_event
 from .events import (
@@ -100,4 +124,8 @@ __all__ = [
     "REGIMES",
     "REGIME_MIN_CONFIDENCE", "REGIME_MIN_COVERAGE", "REGIME_TREND_THRESHOLD",
     "REGIME_MIN_AGREEMENT", "REGIME_OI_VETO", "REGIME_COMPRESSION",
+    "V2BiasError", "V2BiasResult", "classify_1h_bias",
+    "BULLISH", "BEARISH", "NEUTRAL_NOT_ESTABLISHED", "BIAS_UNAVAILABLE", "BIASES",
+    "BIAS_MIN_CONFIDENCE", "BIAS_MIN_COVERAGE", "BIAS_THRESHOLD", "BIAS_MIN_AGREEMENT",
+    "V2ContextSnapshotError", "V2ContextSnapshot", "build_v2_context_snapshot",
 ]
