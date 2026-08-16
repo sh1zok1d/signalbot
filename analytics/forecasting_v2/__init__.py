@@ -2,26 +2,36 @@
 
 This package contains identity primitives, the immutable episode-event
 PERSISTENCE model, the provenance/construction/dependency boundaries the
-Multi-model Framework stage built (now complete), and — starting with
-Stage 3, Multi-timeframe Alignment — deterministic decision-clock /
-bucket-alignment primitives. It does **not** contain a state machine,
-detector, scoring, or context engine, and does **not** yet read any
-feature/percentile/health data. `V2EpisodeEvent` (events.py) validates and
+Multi-model Framework stage built (complete), and — Stage 3, Multi-
+timeframe Alignment (complete as of this package version) — the full
+deterministic read/alignment boundary: the decision clock
+(`decision_boundary()`/`selected_bucket()`, alignment.py), deterministic
+Stage 2 reads (via `storage/v2_alignment_readers.py`, reached only through
+the `V2AlignedInputReader` port, never imported directly here), canonical
+Binance reference-input preparation, and the final immutable
+`V2AlignedInputs` snapshot (`load_v2_aligned_inputs()`, aligned_inputs.py)
+Stage 4 Context Engines will consume. It does **not** contain a state
+machine, detector, scoring, or context engine of any kind — no
+`normalized_evidence`, 4h regime, 1h bias, OI confirmation, setup
+detector, `structural_anchor`, episode identity, or lifecycle logic exists
+anywhere in this package. `V2EpisodeEvent` (events.py) validates and
 freezes an already-decided event a future Episode State Machine PR will
 construct; `V2EventProvenance` (provenance.py) is a frozen snapshot of one
 event-construction operation's identity; `build_v2_episode_event()`
 (event_factory.py) is the one canonical way to combine the two;
-`V2EpisodeEventWriter` (ports.py) is the narrow structural-typing
-dependency port future orchestration code depends on instead of importing
-`storage.db.Database` directly; `decision_boundary()`/`selected_bucket()`
-(alignment.py) are the two pure timestamp-selection layers
-`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §1 freezes — which closed 5m/
-15m/1h/4h bucket timestamps are legal to decide from, nothing about what to
-do with them. None of this decides what state an episode should be in,
-when an event should be emitted, or reads any actual market/feature data.
-See docs/FORECASTING_ROADMAP.md §I for where each of those still-missing
-pieces lands. V1 (`analytics/forecasting/`) is untouched and continues
-running unchanged."""
+`V2EpisodeEventWriter`/`V2AlignedInputReader` (ports.py) are the narrow
+structural-typing dependency ports future orchestration code depends on
+instead of importing `storage.db.Database` directly. None of this decides
+what state an episode should be in, when an event should be emitted, or
+what a setup/regime/bias IS — only which data is legal to decide from and
+how to read it deterministically. See docs/FORECASTING_ROADMAP.md §I for
+where each of those still-missing pieces lands (Stage 4 onward). V1
+(`analytics/forecasting/`) is untouched and continues running unchanged."""
+from .aligned_inputs import (
+    ALIGNED_TIMEFRAMES, STRUCTURAL_OHLC_TIMEFRAMES, V2_REFERENCE_EXCHANGE,
+    V2AlignedInputError, V2AlignedInputRequest, V2AlignedInputs,
+    V2ReferenceExtrema, V2TimeframeInputs, load_v2_aligned_inputs,
+)
 from .alignment import (
     TIMEFRAME_MINUTES, V2AlignmentError, decision_boundary, selected_bucket,
 )
@@ -34,7 +44,7 @@ from .events import (
     WEAKENING,
 )
 from .identity import MODEL_FAMILY, V2IdentityError, V2ModelIdentity
-from .ports import V2EpisodeEventWriter
+from .ports import V2AlignedInputReader, V2EpisodeEventWriter
 from .provenance import V2EventProvenance, V2ProvenanceError
 
 __all__ = [
@@ -48,6 +58,10 @@ __all__ = [
     "SUPPORTED_SYMBOL", "SUPPORTED_MARKET_TYPE",
     "V2EventProvenance", "V2ProvenanceError",
     "build_v2_episode_event",
-    "V2EpisodeEventWriter",
+    "V2EpisodeEventWriter", "V2AlignedInputReader",
     "V2AlignmentError", "TIMEFRAME_MINUTES", "decision_boundary", "selected_bucket",
+    "V2AlignedInputError", "V2_REFERENCE_EXCHANGE",
+    "ALIGNED_TIMEFRAMES", "STRUCTURAL_OHLC_TIMEFRAMES",
+    "V2AlignedInputRequest", "V2ReferenceExtrema", "V2TimeframeInputs",
+    "V2AlignedInputs", "load_v2_aligned_inputs",
 ]
