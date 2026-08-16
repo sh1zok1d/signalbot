@@ -668,17 +668,28 @@ class Database:
         (an explicit, caller-supplied historical cutoff — never
         `now()`/wall clock), or `None` for that pair if none is eligible.
         See `storage/v2_alignment_readers.py::read_v2_data_health_at_cutoff`
-        for the full contract."""
+        for the full contract.
+
+        `exchanges`/`metrics` are validated — and their DETACHED tuple
+        values captured — BEFORE `pool.acquire()`. Only those detached
+        tuples are passed onward, never the caller's original (possibly
+        mutable) sequences: this closes a TOCTOU window where a caller
+        could otherwise mutate its own `exchanges`/`metrics` list between
+        this validation and the connection actually being acquired,
+        changing the query's identity out from under the validation that
+        already ran. The reader itself validates again from the detached
+        tuples it is given; that double validation is intentional."""
         from storage.v2_alignment_readers import (
             read_v2_data_health_at_cutoff, validate_data_health_args)
-        validate_data_health_args(
+        validated_exchanges, validated_metrics = validate_data_health_args(
             symbol=symbol, market_type=market_type, exchanges=exchanges,
             metrics=metrics, cutoff_ts=cutoff_ts, calculation_version=calculation_version)
         assert self.pool is not None
         async with self.pool.acquire() as conn:
             return await read_v2_data_health_at_cutoff(
-                conn, symbol=symbol, market_type=market_type, exchanges=exchanges,
-                metrics=metrics, cutoff_ts=cutoff_ts, calculation_version=calculation_version)
+                conn, symbol=symbol, market_type=market_type,
+                exchanges=validated_exchanges, metrics=validated_metrics,
+                cutoff_ts=cutoff_ts, calculation_version=calculation_version)
 
     async def fetch_shadow_liquidation_availability(
         self,

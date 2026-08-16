@@ -51,12 +51,21 @@ column) is timeframe-value-agnostic in any case. Strict V2 semantic
 timeframe enumeration remains `analytics.forecasting_v2.alignment`'s job;
 a caller here is trusted to have already picked a legal value there.
 
+Fail-closed validation happens TWICE, deliberately, mirroring
+`storage/shadow_cli_readers.py`'s own posture: each public
+`read_v2_*` function enforces its full argument contract itself, before
+`conn.fetch()` — so a direct caller (no `Database` wrapper involved) can
+never issue a malformed query — and each `storage.db.Database.fetch_v2_*`
+wrapper additionally validates before `pool.acquire()`, so a malformed
+call never even reaches a connection. Neither layer trusts the other to
+have already checked.
+
 Pure storage layer: static, trusted, explicit-column SQL only (no
 `SELECT *`, no dynamic identifiers, no query-builder abstraction); every
-argument is validated BEFORE a connection is touched; every returned row
-is detached (a plain, deeply-immutable `Mapping`, MappingProxyType/tuple
-throughout, JSONB parsed and frozen) so nothing here retains the
-connection or a mutable reference into a DB-returned object. No writes —
+returned row is detached (a plain, deeply-immutable `Mapping`,
+MappingProxyType/tuple throughout, JSONB parsed and frozen) so nothing
+here retains the connection or a mutable reference into a DB-returned
+object. No writes —
 no `INSERT`/`UPDATE`/`DELETE`/`UPSERT`/`ON CONFLICT` appears in this
 module's SQL. No wall clock (`datetime.now()`/`utcnow()`/`time.time()`),
 no `random`/`uuid`, no imports from `runtime`/`main`/`notifications`, and
@@ -293,15 +302,22 @@ def validate_consensus_feature_args(*, symbol: str, market_type: str, timeframe:
 
 def validate_data_health_args(*, symbol: str, market_type: str, exchanges: Sequence[str],
                               metrics: Sequence[str], cutoff_ts: datetime,
-                              calculation_version: str) -> None:
-    """Validate every argument for `read_v2_data_health_at_cutoff`. Raises
-    `V2AlignmentReaderError`; performs no I/O."""
+                              calculation_version: str) -> "tuple[tuple[str, ...], tuple[str, ...]]":
+    """Validate every argument for `read_v2_data_health_at_cutoff` and
+    return the validated `(exchanges, metrics)` as DETACHED tuples (caller
+    order preserved, no sorting, no content normalization). Returning the
+    detached values — not just validating in place — closes a TOCTOU
+    window: a caller holding the original mutable `exchanges`/`metrics`
+    lists cannot change what was actually validated by mutating them after
+    this function returns; only the tuple values captured here are ever
+    used downstream. Raises `V2AlignmentReaderError`; performs no I/O."""
     _nonblank(symbol, "symbol")
     _nonblank(market_type, "market_type")
-    _validate_identifier_sequence(exchanges, "exchanges")
-    _validate_identifier_sequence(metrics, "metrics")
+    validated_exchanges = _validate_identifier_sequence(exchanges, "exchanges")
+    validated_metrics = _validate_identifier_sequence(metrics, "metrics")
     _validate_whole_minute_utc(cutoff_ts, "cutoff_ts")
     _validate_calculation_version(calculation_version)
+    return validated_exchanges, validated_metrics
 
 
 # ---- the three read primitives (run on a single caller-supplied connection) -
@@ -314,8 +330,16 @@ async def read_v2_consensus_feature(
     identity — never an older bucket, never a different
     `calculation_version`. `None` if no such row exists; this absence is
     itself meaningful information for a future decision layer, never
-    silently papered over with a fallback. Arguments must already be
-    validated (`validate_consensus_feature_args`)."""
+    silently papered over with a fallback.
+
+    Enforces its own public contract BEFORE any DB access, via
+    `validate_consensus_feature_args` — so a direct caller is safe even
+    without the `Database` wrapper. (`Database.fetch_v2_consensus_feature`
+    additionally validates before acquiring a pool connection; that double
+    validation is intentional.)"""
+    validate_consensus_feature_args(
+        symbol=symbol, market_type=market_type, timeframe=timeframe,
+        bucket_ts=bucket_ts, calculation_version=calculation_version)
     rows = await conn.fetch(
         _CONSENSUS_FEATURE_SQL, symbol, market_type, timeframe, bucket_ts, calculation_version)
     if not rows:
@@ -344,8 +368,17 @@ async def read_v2_consensus_percentiles(
     `scope='consensus'`/`exchange=''` — exchange-scoped percentiles are
     never read here. `()` if no such rows exist; no older-bucket fallback.
     Deterministically ordered by `(metric, percentile_window)`. Which
-    metric/window matters is NOT decided here. Arguments must already be
-    validated (`validate_consensus_feature_args`)."""
+    metric/window matters is NOT decided here.
+
+    Enforces its own public contract BEFORE any DB access, via
+    `validate_consensus_feature_args` (the two consensus-family readers
+    share an identical identity shape) — so a direct caller is safe even
+    without the `Database` wrapper. (`Database.
+    fetch_v2_consensus_percentiles` additionally validates before
+    acquiring a pool connection; that double validation is intentional.)"""
+    validate_consensus_feature_args(
+        symbol=symbol, market_type=market_type, timeframe=timeframe,
+        bucket_ts=bucket_ts, calculation_version=calculation_version)
     rows = await conn.fetch(
         _CONSENSUS_PERCENTILES_SQL, symbol, market_type, timeframe, bucket_ts,
         calculation_version)
@@ -379,10 +412,22 @@ async def read_v2_data_health_at_cutoff(
     (§2's health no-lookahead mechanism). A pair with no eligible row maps
     to `None`, explicitly present in the result — never silently omitted,
     and never backfilled with a fabricated healthy default
-    (`is_stale=False`/`is_usable=True`/`gap_count=0`). Arguments must
-    already be validated (`validate_data_health_args`)."""
-    exchanges = tuple(exchanges)
-    metrics = tuple(metrics)
+    (`is_stale=False`/`is_usable=True`/`gap_count=0`).
+
+    Enforces its own public contract BEFORE any DB access, via
+    `validate_data_health_args` — so a direct caller is safe even without
+    the `Database` wrapper. Only the DETACHED `(exchanges, metrics)` tuples
+    that validation returns are used from here on (for the SQL parameters,
+    requested-pair validation, and the output cross product) — never the
+    caller's original `exchanges`/`metrics` arguments again, so a caller
+    mutating those original sequences after calling this function cannot
+    retroactively change what was actually validated and queried.
+    (`Database.fetch_v2_data_health_at_cutoff` additionally validates —
+    and captures its own detached tuples — before acquiring a pool
+    connection; that double validation is intentional.)"""
+    exchanges, metrics = validate_data_health_args(
+        symbol=symbol, market_type=market_type, exchanges=exchanges,
+        metrics=metrics, cutoff_ts=cutoff_ts, calculation_version=calculation_version)
     rows = await conn.fetch(
         _DATA_HEALTH_AT_CUTOFF_SQL, symbol, market_type, calculation_version,
         list(exchanges), list(metrics), cutoff_ts)

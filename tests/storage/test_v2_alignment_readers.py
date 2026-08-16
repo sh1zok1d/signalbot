@@ -763,3 +763,164 @@ def test_wrapper_no_pool_raises_assertion_after_validation():
         _run(db.fetch_v2_consensus_feature(
             symbol="BTCUSDT", market_type="perp", timeframe="5m",
             bucket_ts=B, calculation_version=H16))
+
+
+# ============================================================================
+# 8. DIRECT READERS SELF-VALIDATE (fail-closed even without the Database
+# wrapper) — a direct caller must never be able to issue a malformed query.
+# ============================================================================
+def test_direct_consensus_feature_reader_rejects_malformed_symbol_zero_fetches():
+    conn = FakeConn([])
+    with pytest.raises(V2AlignmentReaderError, match="symbol"):
+        _run(read_v2_consensus_feature(
+            conn, symbol="", market_type="perp", timeframe="5m",
+            bucket_ts=B, calculation_version=H16))
+    assert conn.fetch_calls == []
+
+
+def test_direct_consensus_percentiles_reader_rejects_malformed_timeframe_zero_fetches():
+    conn = FakeConn([])
+    with pytest.raises(V2AlignmentReaderError, match="timeframe"):
+        _run(read_v2_consensus_percentiles(
+            conn, symbol="BTCUSDT", market_type="perp", timeframe="",
+            bucket_ts=B, calculation_version=H16))
+    assert conn.fetch_calls == []
+
+
+def test_direct_consensus_percentiles_reader_rejects_malformed_bucket_ts_zero_fetches():
+    conn = FakeConn([])
+    naive = datetime(2026, 8, 15, 12, 0)  # no tzinfo
+    with pytest.raises(V2AlignmentReaderError, match="bucket_ts"):
+        _run(read_v2_consensus_percentiles(
+            conn, symbol="BTCUSDT", market_type="perp", timeframe="5m",
+            bucket_ts=naive, calculation_version=H16))
+    assert conn.fetch_calls == []
+
+
+def test_direct_health_reader_rejects_empty_exchanges_zero_fetches():
+    conn = FakeConn([])
+    with pytest.raises(V2AlignmentReaderError, match="exchanges"):
+        _run(read_v2_data_health_at_cutoff(
+            conn, symbol="BTCUSDT", market_type="perp", exchanges=[],
+            metrics=["price"], cutoff_ts=B, calculation_version=H16))
+    assert conn.fetch_calls == []
+
+
+def test_direct_health_reader_rejects_empty_metrics_zero_fetches():
+    conn = FakeConn([])
+    with pytest.raises(V2AlignmentReaderError, match="metrics"):
+        _run(read_v2_data_health_at_cutoff(
+            conn, symbol="BTCUSDT", market_type="perp", exchanges=["binance"],
+            metrics=[], cutoff_ts=B, calculation_version=H16))
+    assert conn.fetch_calls == []
+
+
+def test_direct_health_reader_rejects_str_as_exchanges_zero_fetches():
+    conn = FakeConn([])
+    with pytest.raises(V2AlignmentReaderError, match="exchanges"):
+        _run(read_v2_data_health_at_cutoff(
+            conn, symbol="BTCUSDT", market_type="perp", exchanges="binance",
+            metrics=["price"], cutoff_ts=B, calculation_version=H16))
+    assert conn.fetch_calls == []
+
+
+def test_direct_health_reader_rejects_duplicate_exchanges_zero_fetches():
+    conn = FakeConn([])
+    with pytest.raises(V2AlignmentReaderError, match="exchanges"):
+        _run(read_v2_data_health_at_cutoff(
+            conn, symbol="BTCUSDT", market_type="perp",
+            exchanges=["binance", "binance"], metrics=["price"],
+            cutoff_ts=B, calculation_version=H16))
+    assert conn.fetch_calls == []
+
+
+def test_direct_health_reader_rejects_blank_metric_zero_fetches():
+    conn = FakeConn([])
+    with pytest.raises(V2AlignmentReaderError, match="metrics"):
+        _run(read_v2_data_health_at_cutoff(
+            conn, symbol="BTCUSDT", market_type="perp", exchanges=["binance"],
+            metrics=["price", "   "], cutoff_ts=B, calculation_version=H16))
+    assert conn.fetch_calls == []
+
+
+def test_direct_readers_still_succeed_on_valid_args_after_self_validation():
+    # Self-validation must not become double work that breaks the happy path.
+    conn = ExactMatchConsensusConn([make_consensus_row()])
+    result = _run(read_v2_consensus_feature(
+        conn, symbol="BTCUSDT", market_type="perp", timeframe="5m",
+        bucket_ts=B, calculation_version=H16))
+    assert result is not None
+    assert len(conn.fetch_calls) == 1
+
+
+def test_validate_data_health_args_returns_detached_tuples_preserving_order():
+    from storage.v2_alignment_readers import validate_data_health_args
+    exchanges = ["bybit", "binance"]
+    metrics = ["oi", "price"]
+    result_exchanges, result_metrics = validate_data_health_args(
+        symbol="BTCUSDT", market_type="perp", exchanges=exchanges, metrics=metrics,
+        cutoff_ts=B, calculation_version=H16)
+    assert result_exchanges == ("bybit", "binance")
+    assert result_metrics == ("oi", "price")
+    assert isinstance(result_exchanges, tuple) and isinstance(result_metrics, tuple)
+    # mutating the caller's original lists afterward must not affect the
+    # already-returned detached tuples.
+    exchanges.append("okx")
+    metrics.append("funding")
+    assert result_exchanges == ("bybit", "binance")
+    assert result_metrics == ("oi", "price")
+
+
+# ============================================================================
+# 9. TOCTOU: Database health wrapper must not use caller-owned mutable
+# sequences after its own pre-acquire validation.
+# ============================================================================
+class _MutatingAcquire:
+    """Simulates a caller mutating its own exchanges/metrics lists during
+    the window between Database-wrapper validation and the connection
+    actually being acquired/used — deterministic, no sleep/timing involved."""
+    def __init__(self, pool, exchanges_list, metrics_list):
+        self.pool = pool
+        self.exchanges_list = exchanges_list
+        self.metrics_list = metrics_list
+
+    async def __aenter__(self):
+        self.pool.acquire_count += 1
+        self.exchanges_list[:] = ["okx"]
+        self.metrics_list[:] = ["funding"]
+        return self.pool.conn
+
+    async def __aexit__(self, *exc):
+        return False
+
+
+class _MutatingPool:
+    def __init__(self, conn, exchanges_list, metrics_list):
+        self.conn = conn
+        self.exchanges_list = exchanges_list
+        self.metrics_list = metrics_list
+        self.acquire_count = 0
+
+    def acquire(self):
+        return _MutatingAcquire(self, self.exchanges_list, self.metrics_list)
+
+
+def test_wrapper_health_query_unaffected_by_post_validation_list_mutation():
+    exchanges = ["binance"]
+    metrics = ["ohlcv"]
+    conn = FakeConn([])
+    db = Database("postgresql://unused")
+    db.pool = _MutatingPool(conn, exchanges, metrics)
+
+    _run(db.fetch_v2_data_health_at_cutoff(
+        symbol="BTCUSDT", market_type="perp", exchanges=exchanges, metrics=metrics,
+        cutoff_ts=B, calculation_version=H16))
+
+    # the original caller lists WERE mutated during acquire (proving the
+    # test setup is real), but the actual query must reflect only the
+    # PRE-mutation validated values.
+    assert exchanges == ["okx"]
+    assert metrics == ["funding"]
+    sql, args = conn.fetch_calls[0]
+    assert args[3] == ["binance"]
+    assert args[4] == ["ohlcv"]
