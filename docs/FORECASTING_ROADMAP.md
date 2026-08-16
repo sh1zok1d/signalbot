@@ -622,10 +622,27 @@ current intent, not a contract that overrides sound engineering judgment.
     is unchanged (`v2-rules-v0.1.0`) — this PR implements already-frozen
     §4.1/§4.2 formulas, not a new or tuned V2-v0 parameter; no
     schema/config change.
-  - **PR 2 of ~3 — 4h regime engine: THIS PR** (#37,
-    "feat: add V2 4h regime engine"). Answers exactly one question with
-    PR 1's shared evidence primitives — §4.2's own framing — "what is
-    the established 4h market regime?" Adds
+  - **PR 2 of ~3 — 4h regime engine: MERGED** (#37,
+    "feat: add V2 4h regime engine"). Includes both the initial
+    implementation and a pre-merge hardening amendment (fixed head
+    `510c492`): the exact §4.2/§23.1 `price_evi >= 0.40`/`oi_confirmation
+    <= -0.40` boundaries are compared through a narrow, IEEE-754
+    ULP-derived inclusive comparison (`_ge_inclusive`/`_le_inclusive`,
+    `math.nextafter`-based) rather than a plain `>=`/`<=`, because those
+    values are OUTPUTS of `normalized_evidence`'s affine transform/
+    `oi_confirmation`'s product, not literals — e.g. the frozen bullish
+    boundary `percentile_rank=0.70` computes `2.0*0.70-1.0 ==
+    0.3999999999999999` in real Python arithmetic, a few ULPs below the
+    `0.40` literal, which a plain comparison incorrectly rejected (the
+    mirrored bearish boundary at `p=0.30` happens to round-trip exactly,
+    which is why the asymmetry was easy to miss); this is numeric-
+    representation hardening only, never a model/product tolerance — no
+    public threshold value changed, nothing became configurable, no
+    `rules_version` bump. The amendment also hardened `V2RegimeResult.
+    __post_init__` to fail closed on a hand-constructed `bucket_ts` that
+    is naive, non-UTC, or not a whole minute. Answers exactly one
+    question with PR 1's shared evidence primitives — §4.2's own framing
+    — "what is the established 4h market regime?" Adds
     `analytics/forecasting_v2/regime_4h.py`:
     `classify_4h_regime(inputs: V2TimeframeInputs) -> V2RegimeResult`,
     deterministically classifying one already-aligned 4h bucket into
@@ -669,12 +686,84 @@ current intent, not a contract that overrides sound engineering judgment.
     `false`; `v2.rules_version` is unchanged (`v2-rules-v0.1.0`) — this
     PR implements already-frozen §4.2 formulas/thresholds, not a new or
     tuned V2-v0 parameter; no schema/config change.
-  - **V2 still classifies no 1h bias, and has no combined context
-    snapshot** — PR 1 established the shared evidence mathematics and PR
-    2 established the 4h regime; nothing yet decides `BULLISH`/`BEARISH`/
-    `NEUTRAL_NOT_ESTABLISHED`, and no single object yet combines a 4h
-    regime with a 1h bias for a future setup detector to consume.
+  - **PR 3 of ~3 — 1h bias engine + final combined context snapshot:
+    THIS PR** (#38, "feat: complete V2 context engines"), the **final
+    planned PR** of the Context Engines stage. Adds
+    `analytics/forecasting_v2/bias_1h.py`:
+    `classify_1h_bias(inputs: V2TimeframeInputs) -> V2BiasResult`,
+    deterministically classifying one already-aligned 1h bucket into
+    exactly one of `BULLISH`/`BEARISH`/`NEUTRAL_NOT_ESTABLISHED`/
+    `"UNAVAILABLE"`, per §4.3's frozen decision tree and its four exact
+    V2-v0 thresholds (`BIAS_MIN_CONFIDENCE=50.0`, `BIAS_MIN_COVERAGE=2/3`,
+    `BIAS_THRESHOLD=0.25`, `BIAS_MIN_AGREEMENT=2/3`) — a deliberately
+    lighter, faster-adapting sibling of the 4h regime (7d window vs.
+    30d, a looser `0.25` threshold vs. `0.40`), reusing PR 1's
+    `normalized_evidence()` and **nothing else** from PR 1: no
+    `oi_confirmation`/`oi_change_pct_median`/`oi_direction_agreement`, no
+    `compression_score`/`range_width_pct_median` — §4.4's independence/
+    anti-double-counting boundary assigns OI/compression to the 4h regime
+    exclusively. Direction is decided by `bias_evi`'s own sign ALONE;
+    `price_direction_agreement` is a GATE only. Unlike the 4h regime's
+    "missing DATA vs. tier-only UNAVAILABLE" distinction, §4.3 is
+    unconditional — every cause `normalized_evidence()` collapses into
+    `None` yields `bias = "UNAVAILABLE"` here, with no special-casing.
+    `NEUTRAL_NOT_ESTABLISHED` is a real, successfully-computed result
+    (usable-but-below-threshold evidence, a genuinely flat raw price, or
+    weak/missing agreement) kept strictly distinct from `"UNAVAILABLE"`
+    (the computation could not run at all) — Stage 5's `directional_
+    context_gate` (§7.0b) will rely on this exact distinction. Verified
+    directly that `BIAS_THRESHOLD=0.25`'s own exact percentile boundaries
+    (`p=0.625` for `+0.25`, `p=0.375` for `-0.25`) land bit-exact through
+    `normalized_evidence`'s arithmetic on both signed branches, so no ULP
+    tolerance (unlike PR 2's `0.40`/`-0.40`) was needed or added here.
+    Every PRESENT consensus field this engine reads is validated for
+    corruption BEFORE any unavailable/threshold short-circuit can hide it
+    (mirroring PR 1/PR 2's corruption-precedence posture); a
+    `V2ContextEvidenceError` from `normalized_evidence()` is re-raised as
+    `V2BiasError`, exception-chained. Also adds
+    `analytics/forecasting_v2/context_snapshot.py`:
+    `build_v2_context_snapshot(aligned: V2AlignedInputs) -> V2ContextSnapshot`,
+    the ONE canonical way to combine an already-aligned Stage 3 snapshot's
+    already-computed 4h regime and 1h bias into one immutable
+    `V2ContextSnapshot` (`T`, `symbol`, `market_type`,
+    `calculation_version`, `feature_schema_version`, `regime_4h`,
+    `bias_1h`) — deliberately accepting exactly ONE `V2AlignedInputs`
+    (never two independent `regime_inputs`/`bias_inputs` objects), since
+    Stage 3's entire purpose is that every timeframe is selected from ONE
+    explicit decision boundary `T`; a `regime_inputs`/`bias_inputs`-shaped
+    API could let a caller accidentally pair contexts computed from two
+    different `T`s. `V2ContextSnapshot.__post_init__` fails closed against
+    exactly that: it re-validates `T` as a legal V2 decision boundary via
+    `selected_bucket("5m", T)`, then requires `regime_4h.bucket_ts ==
+    selected_bucket("4h", T)` and `bias_1h.bucket_ts == selected_bucket
+    ("1h", T)` exactly — whether the snapshot is built through
+    `build_v2_context_snapshot` or hand-constructed directly. A
+    legitimately-computed `INSUFFICIENT_DATA` 4h regime or
+    `"UNAVAILABLE"` 1h bias is a VALID context result, not a failure — the
+    snapshot is still built and returned; `V2ContextSnapshotError` is
+    reserved for malformed containers, an impossible mixed-boundary
+    pairing, and wrapped classifier errors. `V2ContextSnapshot` carries NO
+    overall/combined direction field (`overall_direction`/
+    `trade_direction`/`setup_allowed`/`trade_allowed`/a compatibility
+    score) — §4.4 keeps regime and bias deliberately independent so
+    different Stage 5 detector families can consume them differently;
+    collapsing them here would destroy information Stage 5 needs. Only
+    `aligned.by_timeframe["4h"]`/`["1h"]` are ever read — `5m`/`15m` are
+    never inspected for a Stage 4 context decision. Both new modules are
+    pure — no DB, no network, no clock, no config loading, no `T`/reader/
+    wall-clock parameter beyond what `aligned.T` already fixes. No
+    `directional_context_gate` (§7.0b), no setup-detector
+    (`TREND_PULLBACK`/`COMPRESSION_BREAKOUT`/`CONFIRMED_BREAKOUT`), no
+    episode/state-machine/runtime logic of any kind exists anywhere in
+    this PR — those are Stage 5. `v2.enabled` stays `false`;
+    `v2.rules_version` is unchanged (`v2-rules-v0.1.0`) — this PR
+    implements already-frozen §4.3 formulas/thresholds, not a new or
+    tuned V2-v0 parameter; no schema/config change.
+  - **Stage 4 — Context Engines remains IN PROGRESS while PR #38 is
+    open; it becomes COMPLETE when PR #38 merges.** Do not read this
+    stage as complete before that merge.
 
-**Next planned work (after this PR merges):** Stage 4 — Context Engines,
-PR 3 of ~3 (§I above) — the 1h bias engine plus the final combined
-context snapshot that completes Stage 4; NOT Setup Detectors (stage 5).
+**Next planned work (after PR #38 merges):** Stage 5 — Setup Detectors,
+PR 1 of ~4 (§I above). The exact detector split for Stage 5's four
+planned PRs is not yet frozen here and should not be assumed from this
+document alone.
