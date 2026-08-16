@@ -1,12 +1,19 @@
 """
-V2 model/version identity primitives (Multi-model Framework foundation PR 1,
+V2 model/version identity primitives (Multi-model Framework PR 1,
 docs/FORECASTING_ROADMAP.md §I stage 2).
 
 Freezes exactly the identity model docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md
 §3 defines — `model_family` and `rules_version` — as a small, immutable,
-self-validating value object. Nothing else: no detector, scoring, episode,
-context, or lifecycle logic exists in this package yet, deliberately (that
-section's own framing: "V2 introduces one new logical identity of its own").
+self-validating value object (that section's own framing: "V2 introduces one
+new logical identity of its own"). The rest of `analytics/forecasting_v2/`
+(added across the Multi-model Framework stage's later PRs) builds on this
+identity to persist and construct already-decided V2 episode events
+(`events.py`, `provenance.py`, `event_factory.py`, `ports.py`) — but none of
+it decides what an episode's state is, computes a detector's
+`structural_anchor`, or runs any context/lifecycle logic. That decision-making
+work — detectors, context engines, the episode state machine — does not
+exist anywhere in this package yet; only identity and the persistence/
+construction boundary around an already-decided event do.
 
 Pure only: no clock, DB, network, or filesystem access. `V2ModelIdentity`
 never reads config/v2.yaml itself — a caller resolves the active identity via

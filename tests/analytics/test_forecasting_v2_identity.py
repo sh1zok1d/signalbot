@@ -86,3 +86,25 @@ def test_identity_equality_by_value():
     c = V2ModelIdentity(model_family="v2", rules_version="v2-rules-v0.2.0")
     assert a == b
     assert a != c
+
+
+# -- rules_version exact-identity hardening propagation (common.v2_config) -----
+# V2ModelIdentity must reuse common.v2_config.validate_rules_version's exact
+# semantics unchanged, never its own looser/competing check.
+def test_trailing_newline_rules_version_rejected():
+    with pytest.raises(V2IdentityError, match="rules_version"):
+        V2ModelIdentity(model_family="v2", rules_version="v2-rules-v0.1.0\n")
+
+
+def test_unicode_decimal_digit_rules_version_rejected():
+    with pytest.raises(V2IdentityError, match="rules_version"):
+        V2ModelIdentity(model_family="v2", rules_version="v2-rules-v1٢.0.0")
+
+
+def test_identity_module_reuses_shared_validator_not_a_second_regex():
+    import inspect
+
+    import analytics.forecasting_v2.identity as identity_module
+    src = inspect.getsource(identity_module)
+    assert "validate_rules_version" in src
+    assert "re.compile" not in src

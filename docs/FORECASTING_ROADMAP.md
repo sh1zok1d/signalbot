@@ -426,8 +426,8 @@ current intent, not a contract that overrides sound engineering judgment.
     setup detectors, no episode lifecycle/state machine, no
     entry-feasibility evaluation, no V2 outcome evaluator, no V2 Telegram,
     and no runtime wiring of any kind.
-  - **PR 2 of ~3 — immutable episode-event persistence: this PR**
-    ("feat: add immutable V2 episode event persistence"). Adds the durable
+  - **PR 2 of ~3 — immutable episode-event persistence: merged.**
+    ("feat: add immutable V2 episode event persistence"). Added the durable
     **persistence boundary** for future V2 episode events: a
     `V2EpisodeEvent` value object (`analytics/forecasting_v2/events.py`),
     an additive `v2_episode_events` table
@@ -436,18 +436,43 @@ current intent, not a contract that overrides sound engineering judgment.
     (`storage/v2_serialization.py`, `Database.insert_v2_episode_events`)
     that stores an already-decided event's inputs/outputs **by value** and
     never rewrites a stored row (`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md`
-    §2.1). This PR deliberately implements **no** episode state machine: it
+    §2.1). That PR deliberately implemented **no** episode state machine: it
     does not decide whether an event should exist, compute
     `structural_anchor`, run MTF alignment/context/setup-detector logic, or
-    wire anything into a runtime path — `v2.enabled` stays `false` and
-    nothing calls the new writer outside its own tests.
+    wire anything into a runtime path.
+  - **PR 3 of ~3 — event construction boundary: this PR**
+    ("feat: complete V2 multi-model event boundary"), the **final planned
+    PR** of the Multi-model Framework stage. Completes the framework with a
+    pure, narrow event-construction/provenance boundary so later V2 modules
+    do not each hand-assemble `V2EpisodeEvent`'s twenty fields at every call
+    site: `V2EventProvenance` (`analytics/forecasting_v2/provenance.py`), a
+    frozen snapshot of one event-construction operation's run/model/shared
+    Stage 2 provenance; `build_v2_episode_event()`
+    (`analytics/forecasting_v2/event_factory.py`), the one canonical pure
+    factory combining a `V2EventProvenance` with already-decided
+    event-specific facts into a `V2EpisodeEvent` — provenance-owned fields
+    (`run_kind`, `run_id`, `model_family`, `rules_version`, `symbol`,
+    `market_type`, and the shared Stage 2 provenance fields) are not
+    parameters of this function, so a caller cannot override them; and
+    `V2EpisodeEventWriter` (`analytics/forecasting_v2/ports.py`), a narrow
+    structural-typing `Protocol` future orchestration code depends on
+    instead of importing `storage.db.Database` directly. This PR also
+    hardens `V2EpisodeEvent`'s JSON-leaf validation (non-finite floats and
+    naive/non-UTC datetimes inside `structural_anchor`/`decision_snapshot`/
+    `event_payload` now fail at construction, aligned with the canonical
+    serializer) and makes **no** DB schema change beyond a comment. Like PR
+    2, this PR deliberately implements **no** episode state machine, no MTF
+    alignment, no context engine, no setup detector, and no runtime wiring
+    — `v2.enabled` stays `false` and nothing calls the new factory/writer
+    port outside its own tests.
   - `v2.enabled` remains `false` throughout Stage 2. **V1 remains the
-    running baseline**, entirely unaffected by either PR.
-- **V2 still has no forecasting logic of any kind** beyond the identity and
-  persistence foundation above — no MTF alignment/context/setup-detector/
-  episode-state-machine runtime exists yet, and nothing yet decides what a
-  `V2EpisodeEvent` should contain.
+    running baseline**, entirely unaffected by any Stage 2 PR.
+- **V2 still has no forecasting logic of any kind** beyond the identity,
+  persistence, and construction-boundary foundation above — no MTF
+  alignment/context/setup-detector/episode-state-machine runtime exists
+  yet, and nothing yet decides what a `V2EpisodeEvent` should contain.
 
-**Next planned PR:** Multi-model Framework PR 3 of ~3 (§I above) — not yet
-Context Engines (stage 4); the Multi-model Framework stage's own remaining
-scope comes first.
+**Next planned work (after this PR merges):** Stage 2 — Multi-model
+Framework will be **complete**. The next stage is **Stage 3 —
+Multi-timeframe Alignment, PR 1 of ~3** (§I above) — NOT Context Engines
+(stage 4); Stage 3 comes first.

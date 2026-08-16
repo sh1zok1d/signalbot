@@ -150,17 +150,53 @@ def test_rules_version_namespace_check():
 
 
 def test_rules_version_check_matches_python_validator():
-    # The DB regex must accept/reject the exact same shapes as
-    # common.v2_config.RULES_VERSION_RE (no leading zeros except a lone 0).
+    # HONESTY NOTE: this is a structural/semantic PROXY, not a real
+    # PostgreSQL integration test — no ephemeral Postgres/Timescale harness
+    # is available in this environment (see PR #31's/#32's own final
+    # reports). It compiles the SQL CHECK's own regex TEXT with Python's
+    # `re` and exercises it against the same accept/reject vectors
+    # `common.v2_config.RULES_VERSION_RE` / `validate_rules_version` are
+    # tested against (tests/common/test_v2_config.py), so a divergence
+    # between the two independently-maintained patterns fails loudly here.
+    # It does NOT prove PostgreSQL's own POSIX ERE engine (via `~`) accepts
+    # exactly this set — POSIX ERE and Python `re` are different engines —
+    # only that the two patterns' *source text* implies the same accepted
+    # shape under a careful, `fullmatch()`-based reading.
+    #
+    # Using `.fullmatch()`, never `.match()`: Python's `$` can match
+    # immediately before a trailing newline even without MULTILINE, so
+    # `match()` would silently accept "v2-rules-v0.1.0\n" as if it fully
+    # matched. `fullmatch()` requires the pattern to consume the entire
+    # string, so a trailing LF/CR/space is correctly rejected regardless of
+    # whether the extracted pattern text still carries its own `^...$`
+    # anchors (harmless but redundant under fullmatch).
     m = re.search(r"CHECK \(rules_version ~ '(\^v2-rules-v.*?\$)'\)", _V2EE_BODY)
     assert m, "rules_version CHECK pattern not found"
     sql_pattern = m.group(1)
-    py_re = re.compile(sql_pattern)  # Postgres POSIX ERE and Python re agree on this shape
-    assert py_re.match("v2-rules-v0.1.0")
-    assert py_re.match("v2-rules-v12.34.56")
-    assert not py_re.match("v2-rules-v01.0.0")
-    assert not py_re.match("v2-rules-v0.1")
-    assert not py_re.match("forecast-rules-v0.1.0")
+    py_re = re.compile(sql_pattern)
+
+    accept = [
+        "v2-rules-v0.1.0",
+        "v2-rules-v12.34.56",
+        "v2-rules-v0.0.0",
+    ]
+    reject = [
+        "v2-rules-v01.0.0",       # leading zero, major
+        "v2-rules-v0.01.0",       # leading zero, minor
+        "v2-rules-v0.1.00",       # leading zero, patch
+        "v2-rules-v0.1",          # missing patch component
+        "forecast-rules-v0.1.0",  # V1 namespace
+        "v2-rules-v0.1.0\n",      # trailing LF
+        "v2-rules-v0.1.0\r",      # trailing CR
+        "v2-rules-v0.1.0 ",       # trailing space
+        " v2-rules-v0.1.0",       # leading space
+        "v2-rules-v1٢.0.0",       # Arabic-Indic digit (non-ASCII)
+        "v2-rules-v1१.0.0",       # Devanagari digit (non-ASCII)
+    ]
+    for good in accept:
+        assert py_re.fullmatch(good), f"expected ACCEPT: {good!r}"
+    for bad in reject:
+        assert not py_re.fullmatch(bad), f"expected REJECT: {bad!r}"
 
 
 # ---- CHECK constraints: episode logical dimensions -----------------------------
