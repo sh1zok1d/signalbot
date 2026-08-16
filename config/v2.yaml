@@ -5,9 +5,9 @@
 # Multi-model Framework stage. It carries the `model_family` / `rules_version`
 # identity conventions frozen in docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §3
 # — nothing else. The Multi-model Framework stage
-# (docs/FORECASTING_ROADMAP.md §I stage 2) is complete once the PR that
-# introduces this comment's amendment merges; this file's scope does not grow
-# alongside later stages.
+# (docs/FORECASTING_ROADMAP.md §I stage 2) is complete (PR #32 merged);
+# this file's scope does not grow alongside later stages (Multi-timeframe
+# Alignment and beyond).
 #
 # Do NOT add detector thresholds, confidence weights, entry-feasibility
 # parameters, notification thresholds, or outcome thresholds here. Those

@@ -409,7 +409,8 @@ current intent, not a contract that overrides sound engineering judgment.
   planned documentation PRs are authored, reviewed, and merged to `main` —
   `docs/V2_PRODUCT_CONTRACT.md` (PR #28) and
   `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` (PR #29).
-- **Stage 2 — Multi-model Framework: in progress.**
+- **Stage 2 — Multi-model Framework: COMPLETE.** All three planned PRs are
+  merged to `main`.
   - **PR 1 of ~3 — foundation: merged.** A small, self-contained
     **foundation PR** ("feat: add V2 multi-model foundation") introduced
     **only** the identity/config/module foundation the rest of the stage
@@ -440,9 +441,9 @@ current intent, not a contract that overrides sound engineering judgment.
     does not decide whether an event should exist, compute
     `structural_anchor`, run MTF alignment/context/setup-detector logic, or
     wire anything into a runtime path.
-  - **PR 3 of ~3 — event construction boundary: this PR**
+  - **PR 3 of ~3 — event construction boundary: merged.**
     ("feat: complete V2 multi-model event boundary"), the **final planned
-    PR** of the Multi-model Framework stage. Completes the framework with a
+    PR** of the Multi-model Framework stage. Completed the framework with a
     pure, narrow event-construction/provenance boundary so later V2 modules
     do not each hand-assemble `V2EpisodeEvent`'s twenty fields at every call
     site: `V2EventProvenance` (`analytics/forecasting_v2/provenance.py`), a
@@ -465,14 +466,43 @@ current intent, not a contract that overrides sound engineering judgment.
     alignment, no context engine, no setup detector, and no runtime wiring
     — `v2.enabled` stays `false` and nothing calls the new factory/writer
     port outside its own tests.
-  - `v2.enabled` remains `false` throughout Stage 2. **V1 remains the
+  - `v2.enabled` remained `false` throughout Stage 2. **V1 remains the
     running baseline**, entirely unaffected by any Stage 2 PR.
-- **V2 still has no forecasting logic of any kind** beyond the identity,
-  persistence, and construction-boundary foundation above — no MTF
-  alignment/context/setup-detector/episode-state-machine runtime exists
-  yet, and nothing yet decides what a `V2EpisodeEvent` should contain.
+  - **V2 still had no forecasting logic of any kind** beyond the identity,
+    persistence, and construction-boundary foundation Stage 2 built — no
+    MTF alignment/context/setup-detector/episode-state-machine runtime
+    existed yet, and nothing yet decided what a `V2EpisodeEvent` should
+    contain. (See the Stage 3 bullet below for what has since begun.)
+- **Stage 3 — Multi-timeframe Alignment: IN PROGRESS.**
+  - **PR 1 of ~3 — deterministic decision clock + closed-bucket alignment:
+    this PR** (#33, "feat: add V2 multi-timeframe decision alignment").
+    Implements exactly the two pure timestamp-selection layers
+    `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §1 freezes:
+    `decision_boundary(now, soft_grace_s=...)` (wall-clock processing time
+    -> the logical closed-5m decision boundary `T`, reusing —
+    re-implemented locally, never imported, to avoid an `analytics ->
+    runtime` dependency — the exact algorithm already frozen and shipped in
+    `runtime/shadow_cli.py::select_latest_closed_5m_bucket`, proven
+    equivalent by test) and `selected_bucket(timeframe, T)` (given `T`,
+    deterministically selects the legal closed bucket START for `5m`/
+    `15m`/`1h`/`4h`, using integer minutes-since-UTC-epoch grid math so 4h
+    boundaries land on `00:00/04:00/08:00/12:00/16:00/20:00` UTC without
+    special-casing hours). This PR's scope is exactly Layer 1/Layer 2
+    timestamp selection — it does **not** yet read
+    `exchange_feature_vectors`/`consensus_feature_vectors`/
+    `percentile_snapshots`/`data_health_snapshots`, does not implement 4h
+    regime/1h bias/normalized evidence/OI confirmation, and does not touch
+    any setup detector, episode identity, episode state machine, entry
+    feasibility, outcome evaluation, Telegram, or runtime wiring.
+    `v2.enabled` stays `false`; `v2.rules_version` is unchanged
+    (`v2-rules-v0.1.0`) since this PR implements behavior already frozen in
+    the correctness contract, not a new or tuned V2-v0 parameter.
+  - **V2 still has no data-reading, context, setup-detector, or
+    episode/state-machine logic of any kind** — this stage has only
+    established which closed bucket timestamps are legal to decide from,
+    not what to do with them.
 
-**Next planned work (after this PR merges):** Stage 2 — Multi-model
-Framework will be **complete**. The next stage is **Stage 3 —
-Multi-timeframe Alignment, PR 1 of ~3** (§I above) — NOT Context Engines
-(stage 4); Stage 3 comes first.
+**Next planned work (after this PR merges):** Stage 3 — Multi-timeframe
+Alignment, PR 2 of ~3 (§I above) — NOT Context Engines (stage 4); Stage 3's
+own remaining scope (DB/data-input alignment for the buckets this PR
+selects) comes first.
