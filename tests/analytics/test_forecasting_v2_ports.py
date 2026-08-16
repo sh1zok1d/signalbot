@@ -1,11 +1,15 @@
-"""Tests for analytics/forecasting_v2/ports.py's V2EpisodeEventWriter and
-V2AlignedInputReader.
+"""Tests for analytics/forecasting_v2/ports.py's V2EpisodeEventWriter,
+V2AlignedInputReader, and V2SetupHistoryReader.
 
 Proves each Protocol stays a narrow, structural-typing dependency boundary:
 a minimal fake satisfies it without importing storage/db.py, the concrete
 storage.db.Database satisfies it WITHOUT being made to inherit from the
-Protocol, and an object missing a method does not satisfy it. No runtime
-behavior is exercised here — this module only asserts type shape.
+Protocol, and an object missing a method does not satisfy it. Also proves
+V2SetupHistoryReader (Stage 5) and V2AlignedInputReader (Stage 3) are
+deliberately SEPARATE Protocols with no inheritance relationship between
+them — a fake satisfying only one does not automatically satisfy the
+other. No runtime behavior is exercised here — this module only asserts
+type shape.
 """
 from __future__ import annotations
 
@@ -14,7 +18,9 @@ import inspect
 
 import pytest
 
-from analytics.forecasting_v2.ports import V2AlignedInputReader, V2EpisodeEventWriter
+from analytics.forecasting_v2.ports import (
+    V2AlignedInputReader, V2EpisodeEventWriter, V2SetupHistoryReader,
+)
 
 
 # ---- a minimal fake writer, built with zero storage/db.py import --------------
@@ -164,12 +170,14 @@ def test_ports_module_does_not_import_storage_db():
 
 def test_ports_module_does_not_wire_anything_into_runtime():
     import analytics.forecasting_v2.ports as ports_mod
-    # the module namespace should expose only the two Protocols and their
-    # error-free supporting typing imports — no stray callable side effect
-    # object.
+    # the module namespace should expose only the three Protocols and
+    # their error-free supporting typing imports — no stray callable side
+    # effect object.
     public = [n for n in dir(ports_mod) if not n.startswith("_")]
     assert set(ports_mod.__all__) <= set(public)
-    assert ports_mod.__all__ == ["V2EpisodeEventWriter", "V2AlignedInputReader"]
+    assert ports_mod.__all__ == [
+        "V2EpisodeEventWriter", "V2AlignedInputReader", "V2SetupHistoryReader",
+    ]
 
 
 # ============================================================================
@@ -280,3 +288,142 @@ def test_aligned_input_reader_protocol_adds_no_behavior_beyond_the_type_shape():
     )
     for token in forbidden:
         assert token not in body_src, f"unexpected behavior token found in ports.py body: {token!r}"
+
+
+# ============================================================================
+# V2SetupHistoryReader (Stage 5) — a minimal fake reader, built with zero
+# storage/db.py import
+# ============================================================================
+class FakeSetupHistoryReader:
+    def __init__(self):
+        self.calls = []
+
+    async def fetch_v2_consensus_feature_window(self, **kw):
+        self.calls.append(("consensus_feature_window", kw))
+        return ()
+
+    async def fetch_v2_consensus_percentile_window(self, **kw):
+        self.calls.append(("consensus_percentile_window", kw))
+        return ()
+
+    async def fetch_v2_reference_feature_window(self, **kw):
+        self.calls.append(("reference_feature_window", kw))
+        return ()
+
+    async def fetch_v2_reference_klines(self, **kw):
+        self.calls.append(("reference_klines", kw))
+        return ()
+
+    async def fetch_v2_instrument(self, **kw):
+        self.calls.append(("instrument", kw))
+        return None
+
+
+def test_fake_setup_history_reader_satisfies_the_protocol_structurally():
+    assert isinstance(FakeSetupHistoryReader(), V2SetupHistoryReader)
+
+
+def test_fake_setup_history_reader_module_never_imports_storage_db():
+    import sys
+    imported = _imported_module_names(
+        sys.modules[FakeSetupHistoryReader.__module__], top_level_only=True)
+    assert not any(name == "storage.db" or name.startswith("storage.db.")
+                   for name in imported)
+
+
+class NotASetupHistoryReader:
+    async def fetch_v2_consensus_feature_window(self, **kw):
+        return ()
+    # missing the other four methods
+
+
+def test_object_missing_methods_does_not_satisfy_setup_history_reader_protocol():
+    assert not isinstance(NotASetupHistoryReader(), V2SetupHistoryReader)
+
+
+def test_plain_object_does_not_satisfy_setup_history_reader_protocol():
+    assert not isinstance(object(), V2SetupHistoryReader)
+
+
+def test_database_satisfies_setup_history_reader_protocol_without_inheritance():
+    from storage.db import Database
+    assert V2SetupHistoryReader not in Database.__mro__
+    db = Database("postgresql://unused")
+    assert isinstance(db, V2SetupHistoryReader)
+
+
+@pytest.mark.parametrize("method_name", [
+    "fetch_v2_consensus_feature_window", "fetch_v2_consensus_percentile_window",
+    "fetch_v2_reference_feature_window", "fetch_v2_reference_klines", "fetch_v2_instrument",
+])
+def test_database_has_matching_setup_history_coroutine_methods(method_name):
+    from storage.db import Database
+    assert hasattr(Database, method_name)
+    assert inspect.iscoroutinefunction(getattr(Database, method_name))
+
+
+def test_setup_history_reader_protocol_defines_exactly_five_methods():
+    members = [
+        name for name, val in vars(V2SetupHistoryReader).items()
+        if not name.startswith("_") and callable(val)
+    ]
+    assert sorted(members) == sorted([
+        "fetch_v2_consensus_feature_window", "fetch_v2_consensus_percentile_window",
+        "fetch_v2_reference_feature_window", "fetch_v2_reference_klines", "fetch_v2_instrument",
+    ])
+
+
+@pytest.mark.parametrize("method_name", [
+    "fetch_v2_consensus_feature_window", "fetch_v2_consensus_percentile_window",
+    "fetch_v2_reference_feature_window", "fetch_v2_reference_klines", "fetch_v2_instrument",
+])
+def test_setup_history_reader_protocol_methods_are_async(method_name):
+    assert inspect.iscoroutinefunction(getattr(V2SetupHistoryReader, method_name))
+
+
+def test_setup_history_reader_protocol_is_runtime_checkable():
+    assert getattr(V2SetupHistoryReader, "_is_runtime_protocol", False) is True
+
+
+def test_setup_history_reader_protocol_adds_no_behavior_beyond_the_type_shape():
+    import analytics.forecasting_v2.ports as ports_mod
+    body_src = _executable_body_source(ports_mod)
+    forbidden = (
+        "retry", "transaction", "fetch(", "fetchval(", "execute(",
+        "asyncpg", "datetime.now(", "time.time(", "uuid.uuid4(", "random.",
+        "connect(", "await ",
+    )
+    for token in forbidden:
+        assert token not in body_src, f"unexpected behavior token found in ports.py body: {token!r}"
+
+
+# ============================================================================
+# V2SetupHistoryReader / V2AlignedInputReader — deliberately SEPARATE
+# Protocols, no inheritance relationship between them
+# ============================================================================
+def test_setup_history_reader_and_aligned_input_reader_share_no_inheritance():
+    assert V2SetupHistoryReader not in V2AlignedInputReader.__mro__
+    assert V2AlignedInputReader not in V2SetupHistoryReader.__mro__
+
+
+def test_stage3_only_fake_does_not_need_stage5_methods():
+    # A fake implementing ONLY the original five Stage 3 methods still
+    # satisfies V2AlignedInputReader -- it is not retroactively required
+    # to grow Stage 5 methods just because V2SetupHistoryReader now exists.
+    assert isinstance(FakeAlignedInputReader(), V2AlignedInputReader)
+    assert not isinstance(FakeAlignedInputReader(), V2SetupHistoryReader)
+
+
+def test_stage5_only_fake_does_not_satisfy_aligned_input_reader():
+    # Symmetric: a fake implementing only the Stage 5 methods does not
+    # satisfy V2AlignedInputReader (it lacks fetch_v2_consensus_feature,
+    # fetch_v2_consensus_percentiles, fetch_v2_data_health_at_cutoff).
+    assert isinstance(FakeSetupHistoryReader(), V2SetupHistoryReader)
+    assert not isinstance(FakeSetupHistoryReader(), V2AlignedInputReader)
+
+
+def test_database_satisfies_both_protocols_simultaneously():
+    from storage.db import Database
+    db = Database("postgresql://unused")
+    assert isinstance(db, V2AlignedInputReader)
+    assert isinstance(db, V2SetupHistoryReader)

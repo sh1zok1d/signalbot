@@ -576,7 +576,8 @@ current intent, not a contract that overrides sound engineering judgment.
     timestamps identify (PR 2), and how to assemble those reads plus the
     canonical reference-exchange path into one immutable snapshot (PR 3) —
     not what to do with any of it.
-- **Stage 4 — Context Engines: IN PROGRESS.**
+- **Stage 4 — Context Engines: COMPLETE.** All three planned PRs are
+  merged to `main`.
   - **PR 1 of ~3 — shared context evidence primitives: MERGED** (#36,
     "feat: add V2 context evidence primitives"). Includes both the
     initial implementation and a pre-merge hardening amendment (fixed
@@ -687,8 +688,25 @@ current intent, not a contract that overrides sound engineering judgment.
     PR implements already-frozen §4.2 formulas/thresholds, not a new or
     tuned V2-v0 parameter; no schema/config change.
   - **PR 3 of ~3 — 1h bias engine + final combined context snapshot:
-    THIS PR** (#38, "feat: complete V2 context engines"), the **final
-    planned PR** of the Context Engines stage. Adds
+    MERGED** (#38, "feat: complete V2 context engines"), the **final
+    planned PR** of the Context Engines stage. Includes both the initial
+    implementation and a pre-merge hardening amendment (fixed head
+    `97d69dd`): a package-docstring status-truth fix (the docstring
+    briefly claimed Stage 4 was already complete while #38 was still
+    open — corrected to defer to this document's own merge-state truth),
+    and a builder-level source-identity hardening gap fix —
+    `build_v2_context_snapshot()` now calls a private
+    `_validate_context_input_identity()` for `"4h"`/`"1h"` BEFORE
+    classification, tying each `V2TimeframeInputs`' `bucket_ts` and any
+    PRESENT `consensus`/`percentiles` row's `symbol`/`market_type`/
+    `timeframe`/`bucket_ts`/`calculation_version`/`feature_schema_version`
+    back to `aligned`'s own top-level identity — closing a gap where a
+    hand-constructed `V2AlignedInputs` (never `load_v2_aligned_inputs()`
+    itself, which already guarantees this by construction) could
+    silently mislabel evidence from one logical identity (e.g. a
+    different symbol) under another's top-level identity. `None`
+    consensus and empty `percentiles` remain legitimate missingness, not
+    corruption. Adds
     `analytics/forecasting_v2/bias_1h.py`:
     `classify_1h_bias(inputs: V2TimeframeInputs) -> V2BiasResult`,
     deterministically classifying one already-aligned 1h bucket into
@@ -759,11 +777,82 @@ current intent, not a contract that overrides sound engineering judgment.
     `v2.rules_version` is unchanged (`v2-rules-v0.1.0`) — this PR
     implements already-frozen §4.3 formulas/thresholds, not a new or
     tuned V2-v0 parameter; no schema/config change.
-  - **Stage 4 — Context Engines remains IN PROGRESS while PR #38 is
-    open; it becomes COMPLETE when PR #38 merges.** Do not read this
-    stage as complete before that merge.
+- **Stage 5 — Setup Detectors: IN PROGRESS.**
+  - **PR 1 of ~4 — shared detector foundation: THIS PR** (#39, "feat:
+    add V2 setup detector foundation"). Implements ONLY the
+    detector-independent shared math/context-compatibility/historical-
+    read infrastructure all three Stage 5 families need — ZERO actual
+    setup detection. Adds `analytics/forecasting_v2/setup_common.py`:
+    `directional_context_gate(context: V2ContextSnapshot,
+    breakout_direction: str) -> V2DirectionalContextDecision` — §7.0b's
+    frozen decision tree (4h availability, 4h opposition, 1h
+    availability, 1h opposition, otherwise ACCEPT, evaluated in that
+    exact order), preserving all FOUR distinct rejection categories
+    (`REJECT_REGIME_UNAVAILABLE`/`REJECT_REGIME_OPPOSES`/
+    `REJECT_BIAS_UNAVAILABLE`/`REJECT_BIAS_OPPOSES`) rather than
+    collapsing them into an opaque `bool`; consumed by
+    `COMPRESSION_BREAKOUT`/`CONFIRMED_BREAKOUT` only — never
+    `TREND_PULLBACK`, whose own stricter "4h trending AND 1h same
+    direction" precondition makes this gate redundant there.
+    `range_proxy_pct(rows, *, timeframe, bucket_ts) -> Optional[float]`
+    — §7's `RANGE_PROXY_pct(timeframe, N=14, B)` rolling-mean volatility
+    proxy, restricted to exactly `SETUP_RANGE_TIMEFRAMES = ("15m",
+    "1h")` (the only timeframes the frozen detectors use), `N=14`
+    hard-coded (not caller-tunable, since §23 freezes its V2-v0 value as
+    a versioned parameter); returns `None` for an incomplete exact-14
+    window or a present-but-missing metric value, never a partial mean;
+    every PRESENT row is validated for corruption BEFORE the
+    completeness check (mirroring PR #36-#38's precedence posture).
+    `protection_buffer(*, reference_price, range_proxy_pct_value,
+    tick_size) -> Optional[float]` — §7's `max(MIN_TICK_BUFFER_TICKS=3 *
+    tick_size, reference_price * range_proxy_pct_value / 100 *
+    BUFFER_MULTIPLIER=0.5)`, a pure function of an already-computed
+    `range_proxy_pct` value (no I/O, no timeframe/window concept of its
+    own); returns `None` only because the volatility input itself is
+    unavailable, after `reference_price`/`tick_size` are already
+    confirmed valid. `select_extreme_anchor(candidates, *, mode) ->
+    Optional[V2ExtremeAnchor]` — §7.0c's deterministic most-recent-tie
+    rule for identity-bearing lookback extrema (compares full stored
+    precision, no rounding; input order never affects the result), for
+    `TREND_PULLBACK`'s `trend_leg_extreme`/`CONFIRMED_BREAKOUT`'s
+    `resistance_level`/`support_level` — never `COMPRESSION_BREAKOUT`'s
+    plain-numeric `range_high`/`range_low`, which §7.0c explicitly
+    excludes. Also adds `storage/v2_setup_readers.py`:
+    `read_v2_consensus_feature_window`/`read_v2_consensus_percentile_
+    window`/`read_v2_reference_feature_window` (deterministic historical
+    rows over a caller-supplied INCLUSIVE `[bucket_start, bucket_end]`
+    bucket-START interval — missing buckets are preserved as absence,
+    never fabricated) and `read_v2_instrument` (a single-row, read-only
+    `exchange_instruments` lookup grounding `protection_buffer`'s
+    `tick_size` input directly in the existing schema, reusing
+    `storage/stage2_readers.py::INSTRUMENT_SQL`'s column set as its own
+    standalone read rather than a second pseudo-schema). Raw `klines_1m`
+    history reuses Stage 3's existing `read_v2_reference_klines`
+    UNCHANGED — no second raw-kline window API. A NEW, separate
+    `V2SetupHistoryReader` `Protocol` (`ports.py`) names this read
+    surface; `V2AlignedInputReader` is UNCHANGED (no inheritance between
+    the two Protocols). `storage.db.Database` gains matching
+    `fetch_v2_consensus_feature_window`/`fetch_v2_consensus_percentile_
+    window`/`fetch_v2_reference_feature_window`/`fetch_v2_instrument`
+    wrappers, validating BEFORE `pool.acquire()` (same defense-in-depth
+    posture as the Stage 3 wrappers). No `TREND_PULLBACK`/
+    `COMPRESSION_BREAKOUT`/`CONFIRMED_BREAKOUT` detection logic, no
+    `EARLY_SIGNAL`/`CONFIRMED` transition, no entry zone, no per-episode
+    invalidation price, no `structural_anchor`/episode-identity
+    construction, no episode lifecycle/state machine, no confidence
+    scoring, no entry feasibility, no runtime wiring exists anywhere in
+    this PR. `v2.enabled` stays `false`; `v2.rules_version` is unchanged
+    (`v2-rules-v0.1.0`) — this PR implements already-frozen §7/§7.0b/
+    §7.0c formulas/thresholds, not new or tuned V2-v0 parameters; no
+    schema/config change.
+  - **PR 2 of ~4 — `TREND_PULLBACK` (planned, not started).**
+  - **PR 3 of ~4 — `COMPRESSION_BREAKOUT` (planned, not started).**
+  - **PR 4 of ~4 — `CONFIRMED_BREAKOUT` + Stage 5 completion (planned,
+    not started).**
+  - This PR-count split is an IMPLEMENTATION/reviewability plan, not a
+    new correctness contract — the existing Product/Correctness
+    contracts remain authoritative, and this split may be adjusted if
+    reviewability or risk requires it.
 
-**Next planned work (after PR #38 merges):** Stage 5 — Setup Detectors,
-PR 1 of ~4 (§I above). The exact detector split for Stage 5's four
-planned PRs is not yet frozen here and should not be assumed from this
-document alone.
+**Next planned work (after PR #39 merges):** Stage 5 — Setup Detectors,
+PR 2 of ~4 (`TREND_PULLBACK`, §I above).
