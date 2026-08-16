@@ -402,3 +402,106 @@ def test_structural_anchor_stored_verbatim_no_detector_math():
     anchor = {"bucket_ts": "2026-08-15T12:00:00+00:00", "arbitrary_future_field": 12345}
     ev = _event(structural_anchor=anchor)
     assert dict(ev.structural_anchor) == anchor
+
+
+# ============================================================================
+# §11 hardening (Multi-model Framework PR 3): JSON-leaf validation aligned
+# with the canonical serializer (storage/stage2_serialization.py's
+# to_jsonable) -- a malformed float/datetime leaf must fail HERE, at
+# V2EpisodeEvent construction, never survive to serialize_batch() time.
+# Exercised across all three by-value JSON fields, and both top-level and
+# nested-inside-a-list positions.
+# ============================================================================
+JSON_FIELDS = ["structural_anchor", "decision_snapshot", "event_payload"]
+
+
+@pytest.mark.parametrize("field", JSON_FIELDS)
+def test_finite_float_leaf_accepted(field):
+    ev = _event(**{field: {"value": 64123.456, "negative": -0.001, "zero": 0.0}})
+    assert dict(getattr(ev, field))["value"] == 64123.456
+
+
+@pytest.mark.parametrize("field", JSON_FIELDS)
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])
+def test_non_finite_float_leaf_rejected_at_construction(field, bad):
+    with pytest.raises(V2EventInputError, match=field):
+        _event(**{field: {"value": bad}})
+
+
+@pytest.mark.parametrize("field", JSON_FIELDS)
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])
+def test_non_finite_float_leaf_rejected_nested_in_list(field, bad):
+    with pytest.raises(V2EventInputError, match=field):
+        _event(**{field: {"values": [1.0, 2.0, bad]}})
+
+
+@pytest.mark.parametrize("field", JSON_FIELDS)
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])
+def test_non_finite_float_leaf_rejected_nested_in_mapping(field, bad):
+    with pytest.raises(V2EventInputError, match=field):
+        _event(**{field: {"nested": {"deep": {"value": bad}}}})
+
+
+def test_non_finite_float_leaf_fails_before_serialize_batch_not_only_there():
+    # This is the load-bearing distinction §11 asks for: construction must
+    # already reject it, not merely the storage-layer serializer later.
+    with pytest.raises(V2EventInputError):
+        _event(event_payload={"value": float("nan")})
+    # And prove the storage-layer serializer independently rejects the same
+    # shape too, for defense in depth (both layers agree, neither is looser).
+    from storage.stage2_serialization import Stage2SerializationError, to_jsonable
+    with pytest.raises(Stage2SerializationError):
+        to_jsonable({"value": float("nan")})
+
+
+@pytest.mark.parametrize("field", JSON_FIELDS)
+def test_timezone_aware_utc_datetime_leaf_accepted(field):
+    dt = datetime(2026, 8, 15, 12, 0, tzinfo=timezone.utc)
+    ev = _event(**{field: {"as_of": dt}})
+    assert getattr(ev, field)["as_of"] == dt
+
+
+@pytest.mark.parametrize("field", JSON_FIELDS)
+def test_naive_datetime_leaf_rejected_at_construction(field):
+    with pytest.raises(V2EventInputError, match=field):
+        _event(**{field: {"as_of": datetime(2026, 8, 15, 12, 0)}})  # no tzinfo
+
+
+@pytest.mark.parametrize("field", JSON_FIELDS)
+def test_non_utc_datetime_leaf_rejected_at_construction(field):
+    non_utc = datetime(2026, 8, 15, 12, 0, tzinfo=timezone(timedelta(hours=2)))
+    with pytest.raises(V2EventInputError, match=field):
+        _event(**{field: {"as_of": non_utc}})
+
+
+@pytest.mark.parametrize("field", JSON_FIELDS)
+def test_naive_datetime_leaf_rejected_nested_in_list(field):
+    with pytest.raises(V2EventInputError, match=field):
+        _event(**{field: {"timestamps": [datetime(2026, 8, 15, 12, 0)]}})
+
+
+@pytest.mark.parametrize("field", JSON_FIELDS)
+def test_non_utc_datetime_leaf_rejected_nested_in_tuple(field):
+    non_utc = datetime(2026, 8, 15, 12, 0, tzinfo=timezone(timedelta(hours=-5)))
+    with pytest.raises(V2EventInputError, match=field):
+        _event(**{field: {"timestamps": (non_utc,)}})
+
+
+def test_naive_datetime_leaf_fails_before_serialize_batch_not_only_there():
+    with pytest.raises(V2EventInputError):
+        _event(decision_snapshot={"as_of": datetime(2026, 8, 15, 12, 0)})
+    from storage.stage2_serialization import Stage2SerializationError, to_jsonable
+    with pytest.raises(Stage2SerializationError):
+        to_jsonable({"as_of": datetime(2026, 8, 15, 12, 0)})
+
+
+def test_valid_construction_still_accepts_finite_floats_and_utc_datetimes_together():
+    # Regression guard: the hardening must not become over-strict and reject
+    # legitimate values that were always allowed.
+    ev = _event(event_payload={
+        "confidence": 87.5,
+        "as_of": datetime(2026, 8, 15, 12, 0, tzinfo=timezone.utc),
+        "nested": {"values": [1, 2.5, "x", None, True], "when": [
+            datetime(2026, 8, 15, 12, 5, tzinfo=timezone.utc)]},
+    })
+    assert ev.event_payload["confidence"] == 87.5

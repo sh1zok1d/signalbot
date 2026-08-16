@@ -890,11 +890,15 @@ CREATE INDEX IF NOT EXISTS ix_tnd_pending_next_attempt
 -- that episode's own state is unchanged, not a state itself
 -- (V2_PRODUCT_CONTRACT.md §5.1).
 --
--- Plain PostgreSQL table, NOT a TimescaleDB hypertable: material V2 episode
--- events are low-volume relative to raw per-bucket features (one row per
--- lifecycle-material event, not one per closed 5m/15m/1h/4h bucket) — the
--- same reasoning shadow_recovery_watermarks / telegram_notification_deliveries
--- above already use for their own low-volume additive tables.
+-- Plain PostgreSQL table, NOT a TimescaleDB hypertable: this is low-volume
+-- immutable episode-event history relative to raw per-bucket features (one
+-- row per persisted lifecycle event, not one per closed 5m/15m/1h/4h
+-- bucket) — the same reasoning shadow_recovery_watermarks /
+-- telegram_notification_deliveries above already use for their own
+-- low-volume additive tables. This deliberately does NOT claim every row
+-- is notification-worthy: a historical episode update may be persisted
+-- here without producing a material Telegram notification (notification
+-- materiality is Stage 9 / state-machine semantics, out of scope here).
 -- ============================================================
 CREATE TABLE IF NOT EXISTS v2_episode_events (
     run_kind               TEXT NOT NULL,

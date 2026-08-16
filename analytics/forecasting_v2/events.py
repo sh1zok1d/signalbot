@@ -27,13 +27,18 @@ freezes what it is given.
 """
 from __future__ import annotations
 
-import re
+import math
 from collections.abc import Mapping as _AbcMapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from types import MappingProxyType
 from typing import Any, Mapping
 
+from analytics.forecasting_v2._validation import (
+    SUPPORTED_MARKET_TYPE, SUPPORTED_SYMBOL, nonblank, one_of,
+    validate_calculation_version, validate_config_hash,
+    validate_feature_schema_version, validate_market_type, validate_symbol,
+)
 from common.v2_config import MODEL_FAMILY, validate_rules_version
 
 __all__ = [
@@ -84,35 +89,12 @@ COMPLETED = "COMPLETED"
 EPISODE_STATES = (EARLY_SIGNAL, CONFIRMED, WEAKENING, INVALIDATED, EXPIRED, COMPLETED)
 
 # ---- initial V2 scope (V2_PRODUCT_CONTRACT.md §1: "Symbol: BTCUSDT... USDT
-# perpetual") — frozen locally, deliberately NOT imported from
-# analytics/forecasting/models.py's SUPPORTED_SYMBOL/SUPPORTED_MARKET_TYPE:
-# V1's shadow scope and V2's product scope are independently declared and
-# must be able to diverge without coupling one module's constant to the
-# other's.
-SUPPORTED_SYMBOL = "BTCUSDT"
-SUPPORTED_MARKET_TYPE = "perp"
-
-# Shared Stage 2 identity formats (common/versioning.py): calculation_version
-# is sha256(...)[:16] hex, config_hash is a full sha256 hex digest. Same
-# convention analytics/forecasting/models.py already validates against for
-# V1 — re-stated locally (not imported) so V2's own identity validation does
-# not depend on a V1-owned module.
-_HEX16 = re.compile(r"[0-9a-f]{16}")
-_HEX64 = re.compile(r"[0-9a-f]{64}")
-
-_JSON_LEAF_TYPES = (str, int, float, bool, type(None), datetime)
-
-
-def _nonblank(value: Any, name: str) -> str:
-    if not isinstance(value, str) or not value.strip():
-        raise V2EventInputError(f"{name} must be a non-empty string")
-    return value
-
-
-def _one_of(value: Any, name: str, allowed: tuple) -> str:
-    if value not in allowed:
-        raise V2EventInputError(f"{name} must be one of {allowed}, got {value!r}")
-    return value
+# perpetual") — SUPPORTED_SYMBOL/SUPPORTED_MARKET_TYPE are imported above
+# from the shared _validation module (bound at module level by that import
+# statement, and re-exported here via __all__) so both V2 value objects
+# (this event model and provenance.py's V2EventProvenance) pin the
+# identical constants without either importing from
+# analytics/forecasting/models.py (V1-owned).
 
 
 def _deep_freeze(value: Any, name: str) -> Any:
@@ -120,11 +102,19 @@ def _deep_freeze(value: Any, name: str) -> Any:
     immutable form (MappingProxyType / tuple), rejecting anything that is
     not a JSON-compatible shape. This is the "by value" enforcement §2.1
     requires: once frozen, no caller-held reference to a nested dict/list can
-    mutate what this event recorded. Booleans/ints/floats/strings/None and
-    tz-aware datetimes pass through unchanged as leaves (bool is checked via
-    isinstance before int, matching storage/stage2_serialization.py's own
-    `to_jsonable` ordering, though bool IS accepted here — only isinstance
-    checks care about the ordering, not acceptance)."""
+    mutate what this event recorded.
+
+    Leaf validation is aligned with the canonical serializer
+    (`storage/stage2_serialization.py`'s `to_jsonable`) so a malformed leaf
+    fails HERE, at `V2EpisodeEvent` construction, rather than surviving
+    construction and only failing later at `serialize_batch()` time:
+      - `bool`/`str`/`int`/`None` pass through unchanged.
+      - `float` must be finite — NaN/+Inf/-Inf are rejected.
+      - `datetime` must be timezone-aware with a zero UTC offset — a naive
+        or non-UTC datetime is rejected, never silently normalized.
+    `bool` is checked before `float`/`int` only because it is a subclass of
+    `int` in Python; the acceptance behavior itself does not depend on the
+    check order."""
     if isinstance(value, _AbcMapping):
         out = {}
         for k, v in value.items():
@@ -135,7 +125,22 @@ def _deep_freeze(value: Any, name: str) -> Any:
         return MappingProxyType(out)
     if isinstance(value, (list, tuple)):
         return tuple(_deep_freeze(v, f"{name}[]") for v in value)
-    if isinstance(value, _JSON_LEAF_TYPES):
+    if value is None or isinstance(value, (bool, str, int)):
+        return value
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise V2EventInputError(
+                f"{name}: non-finite float is not allowed in a JSON leaf "
+                f"(NaN/+Inf/-Inf), got {value!r}")
+        return value
+    if isinstance(value, datetime):
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise V2EventInputError(
+                f"{name}: datetime must be timezone-aware, got naive {value!r}")
+        if value.utcoffset() != timedelta(0):
+            raise V2EventInputError(
+                f"{name}: datetime must be UTC (offset 0), got {value!r} "
+                f"(offset {value.utcoffset()})")
         return value
     raise V2EventInputError(
         f"{name}: unsupported value of type {type(value).__name__} "
@@ -229,10 +234,10 @@ class V2EpisodeEvent:
     event_payload: Mapping
 
     def __post_init__(self):
-        _one_of(self.run_kind, "run_kind", RUN_KINDS)
-        _nonblank(self.run_id, "run_id")
-        _nonblank(self.event_id, "event_id")
-        _nonblank(self.episode_id, "episode_id")
+        one_of(self.run_kind, "run_kind", RUN_KINDS, V2EventInputError)
+        nonblank(self.run_id, "run_id", V2EventInputError)
+        nonblank(self.event_id, "event_id", V2EventInputError)
+        nonblank(self.episode_id, "episode_id", V2EventInputError)
 
         if self.model_family != MODEL_FAMILY:
             raise V2EventInputError(
@@ -242,33 +247,23 @@ class V2EpisodeEvent:
         except ValueError as exc:
             raise V2EventInputError(str(exc)) from exc
 
-        if self.symbol != SUPPORTED_SYMBOL:
-            raise V2EventInputError(
-                f"unsupported symbol {self.symbol!r} (V2 initial scope is {SUPPORTED_SYMBOL!r})")
-        if self.market_type != SUPPORTED_MARKET_TYPE:
-            raise V2EventInputError(
-                f"unsupported market_type {self.market_type!r} "
-                f"(V2 initial scope is {SUPPORTED_MARKET_TYPE!r})")
-        _one_of(self.direction, "direction", DIRECTIONS)
-        _one_of(self.setup_family, "setup_family", SETUP_FAMILIES)
+        validate_symbol(self.symbol, V2EventInputError)
+        validate_market_type(self.market_type, V2EventInputError)
+        one_of(self.direction, "direction", DIRECTIONS, V2EventInputError)
+        one_of(self.setup_family, "setup_family", SETUP_FAMILIES, V2EventInputError)
         object.__setattr__(
             self, "structural_anchor",
             _validate_json_object(self.structural_anchor, "structural_anchor"))
 
-        _one_of(self.episode_state, "episode_state", EPISODE_STATES)
+        one_of(self.episode_state, "episode_state", EPISODE_STATES, V2EventInputError)
         object.__setattr__(
             self, "decision_boundary", _validate_decision_boundary(self.decision_boundary))
 
-        if not isinstance(self.feature_schema_version, int) \
-                or isinstance(self.feature_schema_version, bool) \
-                or self.feature_schema_version <= 0:
-            raise V2EventInputError("feature_schema_version must be an int > 0")
-        if not isinstance(self.calculation_version, str) or not _HEX16.fullmatch(self.calculation_version):
-            raise V2EventInputError("calculation_version must be exactly 16 lowercase hex chars")
-        if not isinstance(self.config_hash, str) or not _HEX64.fullmatch(self.config_hash):
-            raise V2EventInputError("config_hash must be exactly 64 lowercase hex chars")
-        _nonblank(self.config_version, "config_version")
-        _nonblank(self.code_version, "code_version")
+        validate_feature_schema_version(self.feature_schema_version, V2EventInputError)
+        validate_calculation_version(self.calculation_version, V2EventInputError)
+        validate_config_hash(self.config_hash, V2EventInputError)
+        nonblank(self.config_version, "config_version", V2EventInputError)
+        nonblank(self.code_version, "code_version", V2EventInputError)
 
         object.__setattr__(
             self, "decision_snapshot",
