@@ -577,13 +577,21 @@ current intent, not a contract that overrides sound engineering judgment.
     canonical reference-exchange path into one immutable snapshot (PR 3) —
     not what to do with any of it.
 - **Stage 4 — Context Engines: IN PROGRESS.**
-  - **PR 1 of ~3 — shared context evidence primitives: THIS PR** (#36,
-    "feat: add V2 context evidence primitives"). Begins the first stage
-    where V2 starts INTERPRETING already-aligned market data, but
-    implements ONLY the small, reusable mathematical vocabulary the
-    future 4h regime engine and 1h bias engine both need — no
-    classification of either yet. Adds
-    `analytics/forecasting_v2/context_evidence.py`:
+  - **PR 1 of ~3 — shared context evidence primitives: MERGED** (#36,
+    "feat: add V2 context evidence primitives"). Includes both the
+    initial implementation and a pre-merge hardening amendment (fixed
+    head `48466b0`): a corruption-precedence fix (every PRESENT field a
+    primitive reads is now validated for corruption BEFORE any
+    missingness/tier-floor short-circuit, so e.g. a `NaN` value can no
+    longer be masked by a coincidentally-low confidence tier), plus
+    `find_consensus_percentile` row-type and timestamp domain-error
+    hardening (a malformed percentile-row type or a naive/non-UTC
+    timestamp now raises `V2ContextEvidenceError` instead of leaking a
+    bare `TypeError`/`AttributeError`). Begins the first stage where V2
+    starts INTERPRETING already-aligned market data, but implements ONLY
+    the small, reusable mathematical vocabulary the future 4h regime
+    engine and 1h bias engine both need — no classification of either
+    yet. Adds `analytics/forecasting_v2/context_evidence.py`:
     `find_consensus_percentile()` (exact `(metric, percentile_window)`
     lookup over one `V2TimeframeInputs`' already-aligned percentile rows,
     no cross-window fallback); `normalized_evidence()` (§4.1's corrected
@@ -614,12 +622,59 @@ current intent, not a contract that overrides sound engineering judgment.
     is unchanged (`v2-rules-v0.1.0`) — this PR implements already-frozen
     §4.1/§4.2 formulas, not a new or tuned V2-v0 parameter; no
     schema/config change.
-  - **V2 still classifies no 4h regime and no 1h bias** — this PR
-    established only the shared evidence mathematics; nothing yet decides
-    `BULLISH_TRENDING`/`BEARISH_TRENDING`/`NON_DIRECTIONAL`/
-    `INSUFFICIENT_DATA` or `BULLISH`/`BEARISH`/`NEUTRAL_NOT_ESTABLISHED`.
+  - **PR 2 of ~3 — 4h regime engine: THIS PR** (#37,
+    "feat: add V2 4h regime engine"). Answers exactly one question with
+    PR 1's shared evidence primitives — §4.2's own framing — "what is
+    the established 4h market regime?" Adds
+    `analytics/forecasting_v2/regime_4h.py`:
+    `classify_4h_regime(inputs: V2TimeframeInputs) -> V2RegimeResult`,
+    deterministically classifying one already-aligned 4h bucket into
+    exactly one of `BULLISH_TRENDING`/`BEARISH_TRENDING`/
+    `NON_DIRECTIONAL` (carrying an `is_compressed: bool` flag)/
+    `INSUFFICIENT_DATA`, per §4.2's frozen decision tree and its six
+    exact V2-v0 thresholds (`REGIME_MIN_CONFIDENCE=50.0`,
+    `REGIME_MIN_COVERAGE=2/3`, `REGIME_TREND_THRESHOLD=0.40`,
+    `REGIME_MIN_AGREEMENT=2/3`, `REGIME_OI_VETO=-0.40`,
+    `REGIME_COMPRESSION=0.75`). Direction is decided by `price_evi`'s own
+    sign ALONE; cross-exchange `price_direction_agreement` is a GATE only
+    (it can never itself create direction); `oi_confirmation` is an
+    OPTIONAL, symmetric VETO only, evaluated ONLY once a price+agreement
+    candidate already exists — rising OI can never veto, falling OI vetoes
+    either candidate direction symmetrically, and an unavailable OI
+    reading does not by itself force `INSUFFICIENT_DATA`. Carefully
+    preserves §4.2's "missing DATA (not merely tier)" distinction: a
+    genuinely-missing exact price/compression percentile row (or a
+    `None` `value`/`percentile_rank`) forces `INSUFFICIENT_DATA`, but a
+    fully-PRESENT row whose `confidence_tier` merely sits below
+    `MIN_PCTL_TIER` is a *different*, non-`INSUFFICIENT_DATA` case (falls
+    through to `NON_DIRECTIONAL`) — re-derived independently via PR 1's
+    own `find_consensus_percentile()`, never conflated with
+    `normalized_evidence()`/`compression_score()`'s collapsed `None`.
+    `consensus_confidence`/`min_coverage_ratio` are mandatory step-1 hard
+    gates (missing or below floor -> `INSUFFICIENT_DATA`);
+    `price_direction_agreement` is not (missing simply means the trend
+    condition cannot be established -> `NON_DIRECTIONAL`, assuming step 1
+    otherwise passes). Every PRESENT consensus field this engine reads is
+    validated for corruption BEFORE any missingness/threshold
+    short-circuit can hide it (mirroring PR 1's own corruption-precedence
+    posture); a `V2ContextEvidenceError` from a PR 1 primitive is
+    re-raised as `V2RegimeError`, exception-chained, never silently
+    downgraded to `INSUFFICIENT_DATA`. Pure module — no DB, no network,
+    no clock, no config loading, no `T`/reader/wall-clock parameter;
+    consumes only the already-immutable Stage 3 `V2TimeframeInputs` and
+    PR 1's public evidence primitives. No 1h bias, no combined context
+    snapshot, no setup-detector, no `directional_context_gate`, no
+    episode/state-machine/runtime logic of any kind exists anywhere in
+    this PR — those are Stage 4 PR 3/~3 and Stage 5. `v2.enabled` stays
+    `false`; `v2.rules_version` is unchanged (`v2-rules-v0.1.0`) — this
+    PR implements already-frozen §4.2 formulas/thresholds, not a new or
+    tuned V2-v0 parameter; no schema/config change.
+  - **V2 still classifies no 1h bias, and has no combined context
+    snapshot** — PR 1 established the shared evidence mathematics and PR
+    2 established the 4h regime; nothing yet decides `BULLISH`/`BEARISH`/
+    `NEUTRAL_NOT_ESTABLISHED`, and no single object yet combines a 4h
+    regime with a 1h bias for a future setup detector to consume.
 
 **Next planned work (after this PR merges):** Stage 4 — Context Engines,
-PR 2 of ~3 (§I above) — the 4h regime engine, built on this PR's shared
-evidence primitives; NOT the 1h bias engine yet, and NOT Setup Detectors
-(stage 5).
+PR 3 of ~3 (§I above) — the 1h bias engine plus the final combined
+context snapshot that completes Stage 4; NOT Setup Detectors (stage 5).
