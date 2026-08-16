@@ -473,10 +473,8 @@ current intent, not a contract that overrides sound engineering judgment.
     MTF alignment/context/setup-detector/episode-state-machine runtime
     existed yet, and nothing yet decided what a `V2EpisodeEvent` should
     contain. (See the Stage 3 bullet below for what has since begun.)
-- **Stage 3 — Multi-timeframe Alignment: IN PROGRESS.** PRs 1 and 2 of ~3
-  are merged to `main`; PR 3 of ~3 (#35) is open, not yet merged. **Stage 3
-  becomes COMPLETE when PR #35 merges** — until then this section describes
-  the branch/PR state, not `main`.
+- **Stage 3 — Multi-timeframe Alignment: COMPLETE.** All three planned PRs
+  are merged to `main`.
   - **PR 1 of ~3 — deterministic decision clock + closed-bucket alignment:
     MERGED** (#33, "feat: add V2 multi-timeframe decision alignment").
     Implemented exactly the two pure timestamp-selection layers
@@ -523,11 +521,24 @@ current intent, not a contract that overrides sound engineering judgment.
     stays `false`; `v2.rules_version` is unchanged (`v2-rules-v0.1.0`) —
     this PR implements already-frozen data-selection semantics, not a new
     or tuned V2-v0 parameter; no schema/config change.
-  - **PR 3 of ~3 — aligned-input snapshot assembly: THIS PR** (#35,
+  - **PR 3 of ~3 — aligned-input snapshot assembly: MERGED** (#35,
     "feat: complete V2 multi-timeframe input alignment"), the **final
-    planned PR** of the Multi-timeframe Alignment stage, currently OPEN
-    and under review — not yet merged to `main`. Composes PR 1's
-    decision clock and PR 2's exact-bucket/bounded-cutoff Stage 2 readers,
+    planned PR** of the Multi-timeframe Alignment stage. Includes both
+    the initial implementation and a pre-merge hardening amendment (fixed
+    head `8deaa3e`): deep immutability at the aligned-snapshot boundary
+    (every family — consensus/percentiles/health/reference_feature/
+    reference_klines — is recursively detached into new
+    `MappingProxyType`/`tuple` structures before being stored, so the
+    snapshot never retains a reader-owned mutable reference), the
+    explicit health-missingness contract enforced defensively at this
+    boundary too (the result mapping always contains EVERY requested
+    `(exchange, metric)` key, explicit `None` when no eligible snapshot
+    exists — a reader silently omitting or adding a key is treated as
+    corruption), strengthened percentile identity re-validation, and
+    fail-closed raw-kline timestamp validation (a malformed `ts` raises
+    the documented domain error, never a bare `TypeError`/`AttributeError`).
+    Composes PR 1's decision clock and PR 2's exact-bucket/bounded-cutoff
+    Stage 2 readers,
     plus two NEW canonical Binance reference-exchange read primitives
     (`read_v2_reference_feature` — the ONE `exchange_feature_vectors` row
     at an EXACT `(exchange, symbol, market_type, timeframe, bucket_ts,
@@ -565,8 +576,50 @@ current intent, not a contract that overrides sound engineering judgment.
     timestamps identify (PR 2), and how to assemble those reads plus the
     canonical reference-exchange path into one immutable snapshot (PR 3) —
     not what to do with any of it.
+- **Stage 4 — Context Engines: IN PROGRESS.**
+  - **PR 1 of ~3 — shared context evidence primitives: THIS PR** (#36,
+    "feat: add V2 context evidence primitives"). Begins the first stage
+    where V2 starts INTERPRETING already-aligned market data, but
+    implements ONLY the small, reusable mathematical vocabulary the
+    future 4h regime engine and 1h bias engine both need — no
+    classification of either yet. Adds
+    `analytics/forecasting_v2/context_evidence.py`:
+    `find_consensus_percentile()` (exact `(metric, percentile_window)`
+    lookup over one `V2TimeframeInputs`' already-aligned percentile rows,
+    no cross-window fallback); `normalized_evidence()` (§4.1's corrected
+    signed-evidence primitive — the raw metric's own sign chooses the
+    evidence's sign, percentile rank chooses magnitude/extremity within
+    that sign ONLY, so a positive raw value can never produce bearish
+    evidence and a negative raw value can never produce bullish
+    evidence); `compression_score()` (§4.1's unsigned companion,
+    `1.0 - percentile_rank` of `range_width_pct_median`, no signed math);
+    `oi_confirmation()` (§4.2's corrected OI confirmation/opposition
+    primitive — a one-sided tail distance relative to `oi_raw`'s own
+    sign, never `abs(oi_rank - 0.5)`; OI never selects LONG/SHORT, it only
+    confirms or opposes whichever anchor direction is established
+    elsewhere; its public signature accepts no `direction`/`regime`/`bias`
+    parameter). `MIN_PCTL_TIER = "building"` (frozen V2-v0 parameter,
+    reusing `analytics.percentile_engine.models.CONFIDENCE_TIERS`'
+    canonical ordering rather than a second one). Missing/UNAVAILABLE is
+    always `None`, never `0.0`; malformed/impossible data (an unknown
+    confidence tier, a non-finite or out-of-range numeric value, a
+    duplicate exact percentile row, a lookahead-violating
+    `sample_window_end`) raises `V2ContextEvidenceError`. Pure module —
+    no DB, no network, no clock, no config loading; consumes only the
+    already-immutable Stage 3 `V2TimeframeInputs`. No 4h regime, no 1h
+    bias, no `REGIME_*`/`BIAS_*` threshold, no
+    `directional_context_gate`, no setup-detector logic of any kind
+    exists anywhere in this PR — those are Stage 4 PR 2/~3, PR 3/~3, and
+    Stage 5 respectively. `v2.enabled` stays `false`; `v2.rules_version`
+    is unchanged (`v2-rules-v0.1.0`) — this PR implements already-frozen
+    §4.1/§4.2 formulas, not a new or tuned V2-v0 parameter; no
+    schema/config change.
+  - **V2 still classifies no 4h regime and no 1h bias** — this PR
+    established only the shared evidence mathematics; nothing yet decides
+    `BULLISH_TRENDING`/`BEARISH_TRENDING`/`NON_DIRECTIONAL`/
+    `INSUFFICIENT_DATA` or `BULLISH`/`BEARISH`/`NEUTRAL_NOT_ESTABLISHED`.
 
 **Next planned work (after this PR merges):** Stage 4 — Context Engines,
-PR 1 of ~3 (§I above) — shared percentile/evidence primitives, NOT the 4h
-regime engine or 1h bias engine yet, and NOT Setup Detectors (stage 5);
-Stage 4's own scope comes first.
+PR 2 of ~3 (§I above) — the 4h regime engine, built on this PR's shared
+evidence primitives; NOT the 1h bias engine yet, and NOT Setup Detectors
+(stage 5).
