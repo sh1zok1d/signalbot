@@ -61,6 +61,55 @@ here would destroy information a later stage needs. `directional_context_
 gate` (§7.0b) is Stage 5 setup-detector logic and is explicitly NOT
 implemented anywhere in this module.
 
+**Source identity hardening (load-bearing, pre-merge amendment).** A real
+`load_v2_aligned_inputs()` snapshot already guarantees every nested
+consensus/percentile row belongs to the SAME logical identity as its own
+top-level `symbol`/`market_type`/`calculation_version`/
+`feature_schema_version` (`aligned_inputs.py`'s own `_check_provenance`/
+`_validate_consensus_row`/`_validate_percentile_rows`). But
+`V2AlignedInputs` is a plain frozen dataclass with no `__post_init__` of
+its own enforcing that — and this module explicitly supports a
+hand-constructed one too (tests, a future replay harness). Without an
+extra check here, a hand-built `V2AlignedInputs` could carry a top-level
+identity (e.g. `symbol="BTCUSDT"`) while its nested 4h/1h consensus/
+percentile rows actually belong to a DIFFERENT identity (a different
+symbol, market type, `calculation_version`, or `feature_schema_version`)
+— `classify_4h_regime`/`classify_1h_bias` only ever see the narrower
+`V2TimeframeInputs` and have no way to compare it against the top-level
+aligned identity, so this final boundary is the only place left that
+still can. `build_v2_context_snapshot` therefore calls
+`_validate_context_input_identity` for `"4h"`/`"1h"` BEFORE
+classification: it re-derives `selected_bucket(timeframe, aligned.T)` and
+requires `inputs.bucket_ts` to match it; requires a PRESENT
+`inputs.consensus` to be a `Mapping` whose `symbol`/`market_type`/
+`timeframe`/`bucket_ts`/`calculation_version`/`feature_schema_version`
+all equal the aligned top-level identity (`inputs.consensus is None`
+remains legitimate missingness, never an error); and requires EVERY row
+in `inputs.percentiles` to be a `Mapping` with `scope == "consensus"`,
+`exchange == ""`, and the same `symbol`/`market_type`/`timeframe`/
+`bucket_ts`/`calculation_version`/`feature_schema_version` — an empty
+`inputs.percentiles` tuple remains legitimate and simply yields the
+frozen `INSUFFICIENT_DATA`/`"UNAVAILABLE"` result downstream. This
+checks ONLY identity fields, never percentile-rank math, confidence-tier
+ordering, sample windows, or the metric allow-list — those remain PR 1's
+(`context_evidence.py`'s) own responsibility, not re-implemented here.
+Health/`reference_feature`/`reference_klines`/`reference_extrema`/5m/15m
+are never inspected — not consumed by Stage 4 context classification at
+all, and out of scope for this identity check too.
+
+`V2ContextSnapshot.__post_init__`'s own decision-boundary check (see
+above) is a SECOND, independent defensive layer, not a replacement for
+this one: the builder validates SOURCE inputs before computing; the
+result validates the resulting `regime_4h`/`bias_1h` bucket pairing
+after computing (or on direct construction). A hand-constructed
+`V2ContextSnapshot` built directly (bypassing `build_v2_context_snapshot`
+entirely) is validated ONLY by `__post_init__` — it can prove the
+`T`/bucket pairing the snapshot's own fields actually carry, but it
+cannot prove the underlying evidence's provenance, because
+`V2RegimeResult`/`V2BiasResult` (frozen in PR 2/this PR, never modified
+here) carry no `symbol`/`calculation_version`/`feature_schema_version`
+fields of their own to check against.
+
 **Pure module.** No DB, no `asyncpg`, no network, no filesystem, no
 clock, no config loading, no `random`/`uuid`/`subprocess`. Consumes only
 the already-immutable Stage 3 `V2AlignedInputs` and this PR's own
@@ -96,16 +145,22 @@ class V2ContextSnapshotError(ValueError):
     """Malformed top-level input/container (a non-`V2AlignedInputs`
     argument, a non-`Mapping` `by_timeframe`, a missing `"4h"`/`"1h"`
     key, a wrong value type or mismatched `.timeframe` under either key),
-    an impossible mixed-decision-boundary pairing (a `regime_4h`/`bias_1h`
-    whose own `bucket_ts` does not match `selected_bucket("4h"|"1h", T)`),
-    a malformed top-level identity field (`T`/`symbol`/`market_type`/
+    a source-identity mismatch between `aligned`'s own top-level
+    `symbol`/`market_type`/`calculation_version`/`feature_schema_version`
+    and a PRESENT `"4h"`/`"1h"` consensus row or any PRESENT percentile
+    row (`_validate_context_input_identity`; see module docstring's
+    "Source identity hardening" section), an impossible
+    mixed-decision-boundary pairing (a `regime_4h`/`bias_1h` whose own
+    `bucket_ts` does not match `selected_bucket("4h"|"1h", T)`), a
+    malformed top-level identity field (`T`/`symbol`/`market_type`/
     `calculation_version`/`feature_schema_version`), or a `V2RegimeError`/
     `V2BiasError` raised by the underlying classifiers for genuinely
     corrupted (not missing/unavailable) evidence — always re-raised as
     this type, exception-chained, never swallowed. Never raised for a
     legitimately-computed `INSUFFICIENT_DATA` 4h regime or `"UNAVAILABLE"`
-    1h bias — those are VALID context results the snapshot still carries;
-    see module docstring."""
+    1h bias, a `None` `inputs.consensus`, or an empty `inputs.percentiles`
+    — those are all VALID/legitimate context inputs/results the snapshot
+    still carries; see module docstring."""
 
 
 def _require_timeframe_inputs(by_timeframe: Mapping, timeframe: str) -> V2TimeframeInputs:
@@ -125,6 +180,103 @@ def _require_timeframe_inputs(by_timeframe: Mapping, timeframe: str) -> V2Timefr
             f"aligned.by_timeframe[{timeframe!r}].timeframe does not match its own key "
             f"(got {value.timeframe!r})")
     return value
+
+
+def _validate_context_input_identity(
+    aligned: V2AlignedInputs, inputs: V2TimeframeInputs, timeframe: str,
+) -> None:
+    """Ties `inputs` (already known to be a `V2TimeframeInputs` whose own
+    `.timeframe` matches `timeframe` — `_require_timeframe_inputs`'s job)
+    back to `aligned`'s own top-level identity, BEFORE classification (see
+    module docstring's "Source identity hardening" section for the full
+    rationale and the concrete counter-example this closes). Checks ONLY
+    the identity fields the context evidence this module actually
+    consumes depends on — never percentile-rank math, confidence-tier
+    ordering, sample windows, or the metric allow-list (PR 1's own
+    responsibility)."""
+    try:
+        expected_bucket = selected_bucket(timeframe, aligned.T)
+    except V2AlignmentError as exc:
+        raise V2ContextSnapshotError(
+            f"aligned.T must be a legal V2 decision boundary: {exc}") from exc
+    if inputs.bucket_ts != expected_bucket:
+        raise V2ContextSnapshotError(
+            f"{timeframe} inputs.bucket_ts does not match "
+            f"selected_bucket({timeframe!r}, aligned.T) — expected {expected_bucket!r}, "
+            f"got {inputs.bucket_ts!r}")
+
+    consensus = inputs.consensus
+    if consensus is not None:
+        if not isinstance(consensus, _AbcMapping):
+            raise V2ContextSnapshotError(
+                f"{timeframe} inputs.consensus must be a Mapping, got "
+                f"{type(consensus).__name__}")
+        if consensus.get("symbol") != aligned.symbol:
+            raise V2ContextSnapshotError(
+                f"{timeframe} consensus symbol does not match the aligned identity — "
+                f"expected {aligned.symbol!r}, got {consensus.get('symbol')!r}")
+        if consensus.get("market_type") != aligned.market_type:
+            raise V2ContextSnapshotError(
+                f"{timeframe} consensus market_type does not match the aligned identity — "
+                f"expected {aligned.market_type!r}, got {consensus.get('market_type')!r}")
+        if consensus.get("timeframe") != timeframe:
+            raise V2ContextSnapshotError(
+                f"{timeframe} consensus timeframe does not match the aligned identity — "
+                f"expected {timeframe!r}, got {consensus.get('timeframe')!r}")
+        if consensus.get("bucket_ts") != inputs.bucket_ts:
+            raise V2ContextSnapshotError(
+                f"{timeframe} consensus bucket_ts does not match inputs.bucket_ts — "
+                f"expected {inputs.bucket_ts!r}, got {consensus.get('bucket_ts')!r}")
+        if consensus.get("calculation_version") != aligned.calculation_version:
+            raise V2ContextSnapshotError(
+                f"{timeframe} consensus calculation_version does not match the aligned "
+                f"identity — expected {aligned.calculation_version!r}, "
+                f"got {consensus.get('calculation_version')!r}")
+        if consensus.get("feature_schema_version") != aligned.feature_schema_version:
+            raise V2ContextSnapshotError(
+                f"{timeframe} consensus feature_schema_version does not match the aligned "
+                f"identity — expected {aligned.feature_schema_version!r}, "
+                f"got {consensus.get('feature_schema_version')!r}")
+
+    for row in inputs.percentiles:
+        if not isinstance(row, _AbcMapping):
+            raise V2ContextSnapshotError(
+                f"{timeframe} inputs.percentiles must contain only Mapping rows, got "
+                f"{type(row).__name__}: {row!r}")
+        if row.get("scope") != "consensus":
+            raise V2ContextSnapshotError(
+                f"{timeframe} percentile row scope must be 'consensus', "
+                f"got {row.get('scope')!r}")
+        if row.get("exchange") != "":
+            raise V2ContextSnapshotError(
+                f"{timeframe} percentile row exchange must be '' for consensus-scope rows, "
+                f"got {row.get('exchange')!r}")
+        if row.get("symbol") != aligned.symbol:
+            raise V2ContextSnapshotError(
+                f"{timeframe} percentile row symbol does not match the aligned identity — "
+                f"expected {aligned.symbol!r}, got {row.get('symbol')!r}")
+        if row.get("market_type") != aligned.market_type:
+            raise V2ContextSnapshotError(
+                f"{timeframe} percentile row market_type does not match the aligned "
+                f"identity — expected {aligned.market_type!r}, got {row.get('market_type')!r}")
+        if row.get("timeframe") != timeframe:
+            raise V2ContextSnapshotError(
+                f"{timeframe} percentile row timeframe does not match the aligned identity — "
+                f"expected {timeframe!r}, got {row.get('timeframe')!r}")
+        if row.get("bucket_ts") != inputs.bucket_ts:
+            raise V2ContextSnapshotError(
+                f"{timeframe} percentile row bucket_ts does not match inputs.bucket_ts — "
+                f"expected {inputs.bucket_ts!r}, got {row.get('bucket_ts')!r}")
+        if row.get("calculation_version") != aligned.calculation_version:
+            raise V2ContextSnapshotError(
+                f"{timeframe} percentile row calculation_version does not match the "
+                f"aligned identity — expected {aligned.calculation_version!r}, "
+                f"got {row.get('calculation_version')!r}")
+        if row.get("feature_schema_version") != aligned.feature_schema_version:
+            raise V2ContextSnapshotError(
+                f"{timeframe} percentile row feature_schema_version does not match the "
+                f"aligned identity — expected {aligned.feature_schema_version!r}, "
+                f"got {row.get('feature_schema_version')!r}")
 
 
 @dataclass(frozen=True)
@@ -185,20 +337,31 @@ def build_v2_context_snapshot(aligned: V2AlignedInputs) -> V2ContextSnapshot:
     never two independent `regime_inputs`/`bias_inputs` arguments).
 
     Deterministic call order: (1) obtain/validate the `"4h"`/`"1h"`
-    entries from `aligned.by_timeframe`; (2) `classify_4h_regime`;
-    (3) `classify_1h_bias`; (4) construct the final `V2ContextSnapshot`
-    (whose own `__post_init__` re-validates the decision-boundary
-    pairing). Only `"4h"`/`"1h"` are ever read — `"5m"`/`"15m"` are never
-    inspected here.
+    entries from `aligned.by_timeframe`; (2) tie each to `aligned`'s own
+    top-level identity (`_validate_context_input_identity` — see module
+    docstring's "Source identity hardening" section); (3)
+    `classify_4h_regime`; (4) `classify_1h_bias`; (5) construct the final
+    `V2ContextSnapshot` (whose own `__post_init__` re-validates the
+    decision-boundary pairing as a second, independent defensive layer).
+    Only `"4h"`/`"1h"` are ever read — `"5m"`/`"15m"` are never inspected
+    here.
 
     Raises `V2ContextSnapshotError` for: a non-`V2AlignedInputs` `aligned`;
     a non-`Mapping` `aligned.by_timeframe`; a missing `"4h"`/`"1h"` key; a
     wrong value type or mismatched `.timeframe` under either key; a
-    `V2RegimeError`/`V2BiasError` from the underlying classifiers for
-    genuinely corrupted (not missing/unavailable) evidence — re-raised
-    here, exception-chained. A legitimately-computed `INSUFFICIENT_DATA`
-    4h regime or `"UNAVAILABLE"` 1h bias is NOT an error — the snapshot is
-    still built and returned; see module docstring."""
+    `"4h"`/`"1h"` `inputs.bucket_ts` that does not match
+    `selected_bucket(timeframe, aligned.T)`; a PRESENT `inputs.consensus`
+    that is not a `Mapping`, or whose `symbol`/`market_type`/`timeframe`/
+    `bucket_ts`/`calculation_version`/`feature_schema_version` do not
+    match `aligned`'s own; any PRESENT `inputs.percentiles` row that is
+    not a `Mapping`, or whose `scope`/`exchange`/`symbol`/`market_type`/
+    `timeframe`/`bucket_ts`/`calculation_version`/`feature_schema_version`
+    do not match; or a `V2RegimeError`/`V2BiasError` from the underlying
+    classifiers for genuinely corrupted (not missing/unavailable)
+    evidence — re-raised here, exception-chained. A legitimately-computed
+    `INSUFFICIENT_DATA` 4h regime, `"UNAVAILABLE"` 1h bias, a `None`
+    `inputs.consensus`, or an empty `inputs.percentiles` is NOT an error —
+    the snapshot is still built and returned; see module docstring."""
     if not isinstance(aligned, V2AlignedInputs):
         raise V2ContextSnapshotError(
             f"aligned must be a V2AlignedInputs, got {type(aligned).__name__}")
@@ -210,6 +373,9 @@ def build_v2_context_snapshot(aligned: V2AlignedInputs) -> V2ContextSnapshot:
 
     inputs_4h = _require_timeframe_inputs(by_timeframe, "4h")
     inputs_1h = _require_timeframe_inputs(by_timeframe, "1h")
+
+    _validate_context_input_identity(aligned, inputs_4h, "4h")
+    _validate_context_input_identity(aligned, inputs_1h, "1h")
 
     try:
         regime_result = classify_4h_regime(inputs_4h)

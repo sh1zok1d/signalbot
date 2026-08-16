@@ -40,7 +40,10 @@ combines the 4h regime and 1h bias already computed for ONE
 `V2AlignedInputs` into a single immutable `V2ContextSnapshot`, preserving
 both facts SEPARATELY (no overall/combined direction — §4.4) and failing
 closed against pairing results from two different decision boundaries.
-Stage 4 is now COMPLETE.
+This PR completes the implementation required for Stage 4, and Stage 4
+becomes COMPLETE when this PR merges (see
+docs/FORECASTING_ROADMAP.md §J for the authoritative merge-state truth —
+do not infer it from this docstring alone).
 
 This package still does **not** contain a setup detector, `directional_
 context_gate`, episode state machine, or runtime wiring of any kind — no
@@ -57,9 +60,9 @@ structural-typing dependency ports future orchestration code depends on
 instead of importing `storage.db.Database` directly. None of this decides
 what state an episode should be in, when an event should be emitted, or
 what a setup IS — only which data is legal to decide from, how to read it
-deterministically, the shared mathematical vocabulary, and now the
-complete Stage 4 context (4h regime, 1h bias, and their combined
-snapshot). See docs/FORECASTING_ROADMAP.md §I for where Stage 5 lands. V1
+deterministically, the shared mathematical vocabulary, and now this
+PR's 4h regime, 1h bias, and combined context snapshot. See
+docs/FORECASTING_ROADMAP.md §I for where Stage 5 lands. V1
 (`analytics/forecasting/`) is untouched and continues running unchanged."""
 from .aligned_inputs import (
     ALIGNED_TIMEFRAMES, STRUCTURAL_OHLC_TIMEFRAMES, V2_REFERENCE_EXCHANGE,

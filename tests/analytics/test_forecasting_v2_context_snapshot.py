@@ -65,8 +65,8 @@ B1H = selected_bucket("1h", T)  # 2026-08-15 11:00 UTC
 # ============================================================================
 # fixtures
 # ============================================================================
-def make_price_row(*, timeframe, bucket_ts, window, value, rank, tier="mature"):
-    return dict(
+def make_price_row(*, timeframe, bucket_ts, window, value, rank, tier="mature", **over):
+    base = dict(
         scope="consensus", exchange="", symbol="BTCUSDT", market_type="perp",
         metric="price_move_pct_median", timeframe=timeframe, percentile_window=window,
         bucket_ts=bucket_ts, value=value, percentile_rank=rank, sample_size=100,
@@ -74,10 +74,12 @@ def make_price_row(*, timeframe, bucket_ts, window, value, rank, tier="mature"):
         sample_window_end=bucket_ts - timedelta(minutes=5),
         confidence_tier=tier, feature_schema_version=1, calculation_version=H16,
     )
+    base.update(over)
+    return base
 
 
-def make_comp_row(*, timeframe, bucket_ts, window, rank=0.5):
-    return dict(
+def make_comp_row(*, timeframe, bucket_ts, window, rank=0.5, **over):
+    base = dict(
         scope="consensus", exchange="", symbol="BTCUSDT", market_type="perp",
         metric="range_width_pct_median", timeframe=timeframe, percentile_window=window,
         bucket_ts=bucket_ts, value=2.0, percentile_rank=rank, sample_size=100,
@@ -85,16 +87,26 @@ def make_comp_row(*, timeframe, bucket_ts, window, rank=0.5):
         sample_window_end=bucket_ts - timedelta(minutes=5),
         confidence_tier="mature", feature_schema_version=1, calculation_version=H16,
     )
+    base.update(over)
+    return base
 
 
 def make_consensus(*, timeframe, bucket_ts, value=1.0, agreement=2.0 / 3.0,
-                   confidence=50.0, coverage=2.0 / 3.0):
-    return dict(
+                   confidence=50.0, coverage=2.0 / 3.0, **over):
+    # Mirrors the REAL Stage 3 consensus row shape (aligned_inputs.py's
+    # own `_check_provenance`): a genuine consensus row always carries
+    # calculation_version/feature_schema_version too, even though the
+    # regime/bias classifiers themselves never read them -- the final
+    # context-snapshot builder's source-identity check does (see
+    # context_snapshot.py's own docstring).
+    base = dict(
         symbol="BTCUSDT", market_type="perp", timeframe=timeframe, bucket_ts=bucket_ts,
         price_move_pct_median=value, oi_change_pct_median=0.1, oi_direction_agreement=0.75,
         price_direction_agreement=agreement, consensus_confidence=confidence,
-        min_coverage_ratio=coverage,
+        min_coverage_ratio=coverage, calculation_version=H16, feature_schema_version=1,
     )
+    base.update(over)
+    return base
 
 
 def make_4h_inputs(*, bucket_ts=B4H, value=1.0, rank=0.9, agreement=2.0 / 3.0,
@@ -279,6 +291,146 @@ def test_matching_buckets_via_build_v2_context_snapshot_never_mismatch():
 
 
 # ============================================================================
+# 4B. SOURCE IDENTITY VALIDATION — a hand-constructed V2AlignedInputs whose
+# nested consensus/percentile rows disagree with its own top-level identity
+# must be rejected by the builder BEFORE classification (pre-merge
+# amendment; see context_snapshot.py's own "Source identity hardening"
+# docstring section). The real load_v2_aligned_inputs() already guarantees
+# this by construction -- this defends the same boundary against a
+# hand-built V2AlignedInputs (tests, a future replay harness).
+# ============================================================================
+def test_4h_inputs_bucket_ts_mismatch_is_rejected():
+    wrong_bucket_4h = make_4h_inputs(bucket_ts=B4H - timedelta(hours=4))
+    with pytest.raises(V2ContextSnapshotError):
+        build_v2_context_snapshot(make_aligned(inputs_4h=wrong_bucket_4h))
+
+
+def test_1h_inputs_bucket_ts_mismatch_is_rejected():
+    wrong_bucket_1h = make_1h_inputs(bucket_ts=B1H + timedelta(hours=1))
+    with pytest.raises(V2ContextSnapshotError):
+        build_v2_context_snapshot(make_aligned(inputs_1h=wrong_bucket_1h))
+
+
+def test_A_consensus_symbol_mismatch_1h_is_rejected():
+    bad_consensus = make_consensus(timeframe="1h", bucket_ts=B1H, symbol="ETHUSDT")
+    bad_1h = make_1h_inputs(consensus_override=bad_consensus)
+    with pytest.raises(V2ContextSnapshotError):
+        build_v2_context_snapshot(make_aligned(inputs_1h=bad_1h))
+
+
+def test_B_consensus_market_type_mismatch_4h_is_rejected():
+    bad_consensus = make_consensus(timeframe="4h", bucket_ts=B4H, market_type="spot")
+    bad_4h = make_4h_inputs(consensus_override=bad_consensus)
+    with pytest.raises(V2ContextSnapshotError):
+        build_v2_context_snapshot(make_aligned(inputs_4h=bad_4h))
+
+
+def test_C_consensus_calculation_version_mismatch_1h_is_rejected():
+    bad_consensus = make_consensus(
+        timeframe="1h", bucket_ts=B1H, calculation_version="b" * 16)
+    bad_1h = make_1h_inputs(consensus_override=bad_consensus)
+    with pytest.raises(V2ContextSnapshotError):
+        build_v2_context_snapshot(make_aligned(inputs_1h=bad_1h))
+
+
+def test_D_consensus_feature_schema_version_mismatch_4h_is_rejected():
+    bad_consensus = make_consensus(timeframe="4h", bucket_ts=B4H, feature_schema_version=2)
+    bad_4h = make_4h_inputs(consensus_override=bad_consensus)
+    with pytest.raises(V2ContextSnapshotError):
+        build_v2_context_snapshot(make_aligned(inputs_4h=bad_4h))
+
+
+def test_E_percentile_symbol_mismatch_1h_is_rejected():
+    bad_row = make_price_row(
+        timeframe="1h", bucket_ts=B1H, window="7d", value=1.0, rank=0.9, tier="building",
+        symbol="ETHUSDT")
+    bad_1h = make_1h_inputs(percentiles_override=[bad_row])
+    with pytest.raises(V2ContextSnapshotError):
+        build_v2_context_snapshot(make_aligned(inputs_1h=bad_1h))
+
+
+def test_F_percentile_market_type_mismatch_4h_is_rejected():
+    bad_row = make_price_row(
+        timeframe="4h", bucket_ts=B4H, window="30d", value=1.0, rank=0.9, market_type="spot")
+    comp_row = make_comp_row(timeframe="4h", bucket_ts=B4H, window="30d")
+    bad_4h = make_4h_inputs(percentiles_override=[bad_row, comp_row])
+    with pytest.raises(V2ContextSnapshotError):
+        build_v2_context_snapshot(make_aligned(inputs_4h=bad_4h))
+
+
+def test_G_percentile_calculation_version_mismatch_1h_is_rejected():
+    bad_row = make_price_row(
+        timeframe="1h", bucket_ts=B1H, window="7d", value=1.0, rank=0.9, tier="building",
+        calculation_version="c" * 16)
+    bad_1h = make_1h_inputs(percentiles_override=[bad_row])
+    with pytest.raises(V2ContextSnapshotError):
+        build_v2_context_snapshot(make_aligned(inputs_1h=bad_1h))
+
+
+def test_H_percentile_feature_schema_version_mismatch_4h_is_rejected():
+    bad_row = make_price_row(
+        timeframe="4h", bucket_ts=B4H, window="30d", value=1.0, rank=0.9,
+        feature_schema_version=2)
+    comp_row = make_comp_row(timeframe="4h", bucket_ts=B4H, window="30d")
+    bad_4h = make_4h_inputs(percentiles_override=[bad_row, comp_row])
+    with pytest.raises(V2ContextSnapshotError):
+        build_v2_context_snapshot(make_aligned(inputs_4h=bad_4h))
+
+
+def test_I_percentile_row_from_wrong_bucket_1h_is_rejected():
+    bad_row = make_price_row(
+        timeframe="1h", bucket_ts=B1H - timedelta(hours=1), window="7d", value=1.0,
+        rank=0.9, tier="building")
+    bad_1h = make_1h_inputs(percentiles_override=[bad_row])
+    with pytest.raises(V2ContextSnapshotError):
+        build_v2_context_snapshot(make_aligned(inputs_1h=bad_1h))
+
+
+@pytest.mark.parametrize("override", [
+    {"scope": "exchange"},
+    {"exchange": "binance"},
+])
+def test_J_percentile_row_wrong_scope_or_exchange_4h_is_rejected(override):
+    bad_row = make_price_row(
+        timeframe="4h", bucket_ts=B4H, window="30d", value=1.0, rank=0.9, **override)
+    comp_row = make_comp_row(timeframe="4h", bucket_ts=B4H, window="30d")
+    bad_4h = make_4h_inputs(percentiles_override=[bad_row, comp_row])
+    with pytest.raises(V2ContextSnapshotError):
+        build_v2_context_snapshot(make_aligned(inputs_4h=bad_4h))
+
+
+def test_K_malformed_percentile_non_mapping_raises_domain_error_not_attributeerror():
+    bad_1h = make_1h_inputs(percentiles_override=["not-a-mapping"])
+    with pytest.raises(V2ContextSnapshotError):
+        build_v2_context_snapshot(make_aligned(inputs_1h=bad_1h))
+
+
+def test_L_empty_percentiles_remain_legitimate_for_both_4h_and_1h():
+    empty_4h = make_4h_inputs(percentiles_override=[])
+    empty_1h = make_1h_inputs(percentiles_override=[])
+    snap = build_v2_context_snapshot(make_aligned(inputs_4h=empty_4h, inputs_1h=empty_1h))
+    assert snap.regime_4h.regime == INSUFFICIENT_DATA
+    assert snap.bias_1h.bias == BIAS_UNAVAILABLE
+
+
+def test_consensus_none_remains_legitimate_for_both_4h_and_1h():
+    no_consensus_4h = V2TimeframeInputs(
+        timeframe="4h", bucket_ts=B4H, bucket_end=B4H + timedelta(hours=4),
+        consensus=None, percentiles=(), health={},
+        reference_feature=None, reference_klines=None, reference_extrema=None,
+    )
+    no_consensus_1h = V2TimeframeInputs(
+        timeframe="1h", bucket_ts=B1H, bucket_end=B1H + timedelta(hours=1),
+        consensus=None, percentiles=(), health={},
+        reference_feature=None, reference_klines=None, reference_extrema=None,
+    )
+    snap = build_v2_context_snapshot(
+        make_aligned(inputs_4h=no_consensus_4h, inputs_1h=no_consensus_1h))
+    assert snap.regime_4h.regime == INSUFFICIENT_DATA
+    assert snap.bias_1h.bias == BIAS_UNAVAILABLE
+
+
+# ============================================================================
 # 5. SNAPSHOT T VALIDATION (§56) — no silent flooring/normalization
 # ============================================================================
 def _valid_regime_bias():
@@ -404,8 +556,12 @@ def test_only_4h_and_1h_are_ever_dereferenced():
 # 7. CLASSIFIER ERROR WRAPPING (§58)
 # ============================================================================
 def test_regime_error_is_wrapped_with_cause_preserved():
+    # Identity-correct (passes _validate_context_input_identity), but a
+    # malformed PRESENT numeric field the identity check does not
+    # inspect at all -- classify_4h_regime itself must reject it.
     bad_4h = make_4h_inputs(
-        consensus_override=make_consensus(timeframe="1h", bucket_ts=B4H))
+        consensus_override=make_consensus(
+            timeframe="4h", bucket_ts=B4H, confidence=float("nan")))
     with pytest.raises(V2ContextSnapshotError) as excinfo:
         build_v2_context_snapshot(make_aligned(inputs_4h=bad_4h))
     assert isinstance(excinfo.value.__cause__, V2RegimeError)
@@ -413,7 +569,8 @@ def test_regime_error_is_wrapped_with_cause_preserved():
 
 def test_bias_error_is_wrapped_with_cause_preserved():
     bad_1h = make_1h_inputs(
-        consensus_override=make_consensus(timeframe="4h", bucket_ts=B1H))
+        consensus_override=make_consensus(
+            timeframe="1h", bucket_ts=B1H, confidence=float("nan")))
     with pytest.raises(V2ContextSnapshotError) as excinfo:
         build_v2_context_snapshot(make_aligned(inputs_1h=bad_1h))
     assert isinstance(excinfo.value.__cause__, V2BiasError)
