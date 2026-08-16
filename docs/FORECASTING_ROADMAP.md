@@ -473,8 +473,10 @@ current intent, not a contract that overrides sound engineering judgment.
     MTF alignment/context/setup-detector/episode-state-machine runtime
     existed yet, and nothing yet decided what a `V2EpisodeEvent` should
     contain. (See the Stage 3 bullet below for what has since begun.)
-- **Stage 3 — Multi-timeframe Alignment: COMPLETE.** All three planned PRs
-  are merged to `main`.
+- **Stage 3 — Multi-timeframe Alignment: IN PROGRESS.** PRs 1 and 2 of ~3
+  are merged to `main`; PR 3 of ~3 (#35) is open, not yet merged. **Stage 3
+  becomes COMPLETE when PR #35 merges** — until then this section describes
+  the branch/PR state, not `main`.
   - **PR 1 of ~3 — deterministic decision clock + closed-bucket alignment:
     MERGED** (#33, "feat: add V2 multi-timeframe decision alignment").
     Implemented exactly the two pure timestamp-selection layers
@@ -521,9 +523,10 @@ current intent, not a contract that overrides sound engineering judgment.
     stays `false`; `v2.rules_version` is unchanged (`v2-rules-v0.1.0`) —
     this PR implements already-frozen data-selection semantics, not a new
     or tuned V2-v0 parameter; no schema/config change.
-  - **PR 3 of ~3 — aligned-input snapshot assembly: MERGED** (#35,
+  - **PR 3 of ~3 — aligned-input snapshot assembly: THIS PR** (#35,
     "feat: complete V2 multi-timeframe input alignment"), the **final
-    planned PR** of the Multi-timeframe Alignment stage. Composes PR 1's
+    planned PR** of the Multi-timeframe Alignment stage, currently OPEN
+    and under review — not yet merged to `main`. Composes PR 1's
     decision clock and PR 2's exact-bucket/bounded-cutoff Stage 2 readers,
     plus two NEW canonical Binance reference-exchange read primitives
     (`read_v2_reference_feature` — the ONE `exchange_feature_vectors` row

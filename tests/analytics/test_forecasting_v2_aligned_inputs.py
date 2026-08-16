@@ -124,8 +124,15 @@ class RecordingReader:
     """Satisfies `V2AlignedInputReader` structurally. Each `fetch_v2_*`
     method looks up its response from a per-timeframe (or per-cutoff, for
     health) table; a missing entry returns the family's own "legitimately
-    absent" value (`None`/`()`/`{}`) — matching a real empty-result read,
-    never an error. Every call's exact kwargs are recorded for assertion."""
+    absent" value (`None`/`()`) — matching a real empty-result read, never
+    an error. Every call's exact kwargs are recorded for assertion.
+
+    `fetch_v2_data_health_at_cutoff` emulates the REAL PR #34 contract
+    (`storage/v2_alignment_readers.py::read_v2_data_health_at_cutoff`):
+    the result always contains EVERY requested `(exchange, metric)` key —
+    defaulting to `None` — never a silently omitted pair; `health_by_cutoff`
+    only supplies the OVERRIDES for pairs that have an actual eligible
+    snapshot, keyed `cutoff_ts -> {(exchange, metric): row}`."""
     def __init__(self, *, consensus=None, percentiles=None, health_by_cutoff=None,
                 reference_feature=None, reference_klines=None):
         self._consensus = consensus or {}
@@ -145,7 +152,12 @@ class RecordingReader:
 
     async def fetch_v2_data_health_at_cutoff(self, **kw):
         self.calls.append(("data_health_at_cutoff", kw))
-        return self._health_by_cutoff.get(kw["cutoff_ts"], {})
+        overrides = self._health_by_cutoff.get(kw["cutoff_ts"], {})
+        return {
+            (exchange, metric): overrides.get((exchange, metric))
+            for exchange in kw["exchanges"]
+            for metric in kw["metrics"]
+        }
 
     async def fetch_v2_reference_feature(self, **kw):
         self.calls.append(("reference_feature", kw))
@@ -514,6 +526,32 @@ def test_extrema_rejects_timeframes_outside_structural_set():
             reference_klines=make_klines(bucket_ts, 5))
 
 
+# ---- malformed bar ts: a structurally-conforming but broken/fake reader
+# can bypass storage's own ts validation entirely, so this module's own
+# defense must fire -- V2AlignedInputError, never a bare
+# TypeError/AttributeError leaking out of a comparison or .isoformat() call.
+def test_extrema_string_bar_ts_rejected_not_a_bare_exception():
+    bucket_ts = dt(2026, 8, 15, 11, 0)
+    ref = make_reference_feature_row(bucket_ts=bucket_ts, timeframe="15m", bars_expected=15)
+    klines = list(make_klines(bucket_ts, 15))
+    klines[0] = dict(klines[0], ts="2026-08-15T11:00:00Z")
+    with pytest.raises(V2AlignedInputError, match="must be a datetime"):
+        derive_reference_extrema(
+            timeframe="15m", bucket_ts=bucket_ts, reference_feature=ref,
+            reference_klines=tuple(klines))
+
+
+def test_extrema_naive_bar_ts_rejected_not_a_bare_exception():
+    bucket_ts = dt(2026, 8, 15, 11, 0)
+    ref = make_reference_feature_row(bucket_ts=bucket_ts, timeframe="15m", bars_expected=15)
+    klines = list(make_klines(bucket_ts, 15))
+    klines[0] = dict(klines[0], ts=datetime(2026, 8, 15, 11, 0))  # no tzinfo
+    with pytest.raises(V2AlignedInputError, match="timezone-aware"):
+        derive_reference_extrema(
+            timeframe="15m", bucket_ts=bucket_ts, reference_feature=ref,
+            reference_klines=tuple(klines))
+
+
 # ---- end-to-end: the assembler skips the raw fetch when the gate fails ----
 def test_assembler_skips_raw_kline_fetch_when_reference_feature_missing():
     reader = RecordingReader()  # no reference_feature entries at all
@@ -683,6 +721,97 @@ def test_percentile_wrong_calculation_version_rejected():
         _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
 
 
+def test_percentile_wrong_scope_rejected():
+    bucket_ts = dt(2026, 8, 15, 12, 5)
+    reader = RecordingReader(percentiles={"5m": (make_percentile_row(
+        bucket_ts=bucket_ts, timeframe="5m", metric="price_move_pct_median",
+        percentile_window="7d", scope="exchange"),)})
+    with pytest.raises(V2AlignedInputError, match="scope"):
+        _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+
+
+def test_percentile_nonblank_exchange_rejected():
+    bucket_ts = dt(2026, 8, 15, 12, 5)
+    reader = RecordingReader(percentiles={"5m": (make_percentile_row(
+        bucket_ts=bucket_ts, timeframe="5m", metric="price_move_pct_median",
+        percentile_window="7d", exchange="binance"),)})
+    with pytest.raises(V2AlignedInputError, match="exchange"):
+        _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+
+
+def test_percentile_wrong_symbol_rejected():
+    bucket_ts = dt(2026, 8, 15, 12, 5)
+    reader = RecordingReader(percentiles={"5m": (make_percentile_row(
+        bucket_ts=bucket_ts, timeframe="5m", metric="price_move_pct_median",
+        percentile_window="7d", symbol="ETHUSDT"),)})
+    with pytest.raises(V2AlignedInputError, match="symbol"):
+        _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+
+
+def test_percentile_duplicate_metric_window_pair_rejected():
+    bucket_ts = dt(2026, 8, 15, 12, 5)
+    row = make_percentile_row(
+        bucket_ts=bucket_ts, timeframe="5m", metric="price_move_pct_median",
+        percentile_window="7d")
+    reader = RecordingReader(percentiles={"5m": (row, dict(row))})
+    with pytest.raises(V2AlignedInputError, match="duplicate"):
+        _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+
+
+def test_health_reader_omitting_a_requested_key_rejected():
+    # A broken/malformed reader that silently drops a requested pair
+    # instead of returning it as an explicit None -- reader-side
+    # corruption, must fail loudly rather than being patched up here.
+    class OmittingReader(RecordingReader):
+        async def fetch_v2_data_health_at_cutoff(self, **kw):
+            self.calls.append(("data_health_at_cutoff", kw))
+            return {}  # omits the requested ("binance", "price") key entirely
+
+    reader = OmittingReader()
+    with pytest.raises(V2AlignedInputError, match="missing"):
+        _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+
+
+def test_health_reader_returning_an_unrequested_key_rejected():
+    class ExtraKeyReader(RecordingReader):
+        async def fetch_v2_data_health_at_cutoff(self, **kw):
+            self.calls.append(("data_health_at_cutoff", kw))
+            return {("binance", "price"): None, ("okx", "funding"): None}
+
+    reader = ExtraKeyReader()
+    with pytest.raises(V2AlignedInputError, match="unexpected"):
+        _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+
+
+def test_health_row_exchange_metric_mismatch_with_its_key_rejected():
+    bucket_end_5m = dt(2026, 8, 15, 12, 10)
+    reader = RecordingReader(health_by_cutoff={
+        bucket_end_5m: {("binance", "price"): make_health_row(
+            snapshot_ts=bucket_end_5m, exchange="bybit", metric="price")},
+    })
+    with pytest.raises(V2AlignedInputError, match="exchange/metric"):
+        _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+
+
+def test_health_row_wrong_symbol_rejected():
+    bucket_end_5m = dt(2026, 8, 15, 12, 10)
+    reader = RecordingReader(health_by_cutoff={
+        bucket_end_5m: {("binance", "price"): make_health_row(
+            snapshot_ts=bucket_end_5m, symbol="ETHUSDT")},
+    })
+    with pytest.raises(V2AlignedInputError, match="symbol"):
+        _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+
+
+def test_health_row_malformed_snapshot_ts_rejected():
+    bucket_end_5m = dt(2026, 8, 15, 12, 10)
+    reader = RecordingReader(health_by_cutoff={
+        bucket_end_5m: {("binance", "price"): make_health_row(snapshot_ts="not-a-datetime")},
+    })
+    with pytest.raises(V2AlignedInputError, match="snapshot_ts"):
+        _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+
+
 # ============================================================================
 # 6. MISSINGNESS IS PRESERVED — never a fallback, never fails the snapshot
 # ============================================================================
@@ -701,10 +830,15 @@ def test_missing_percentiles_is_empty_tuple_not_an_error():
 
 
 def test_missing_health_pair_is_none_not_an_error():
-    reader = RecordingReader()  # empty health map for every cutoff
+    # PR #34's frozen contract: the health result mapping contains EVERY
+    # requested (exchange, metric) key, explicitly mapped to None when no
+    # eligible snapshot exists — the key is never silently omitted.
+    reader = RecordingReader()  # no overrides -> every requested pair is None
     result = _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
     for tf in ALIGNED_TIMEFRAMES:
-        assert result.by_timeframe[tf].health == {}
+        health = result.by_timeframe[tf].health
+        assert ("binance", "price") in health
+        assert health[("binance", "price")] is None
 
 
 def test_missing_reference_feature_is_none_not_an_error():
@@ -746,6 +880,125 @@ def test_reference_extrema_is_frozen():
     extrema = V2ReferenceExtrema(high=1.0, low=0.5)
     with pytest.raises((AttributeError, TypeError)):
         extrema.high = 2.0  # type: ignore[misc]
+
+
+# ---- deep freeze: a frozen dataclass only stops REASSIGNING its own
+# fields -- it does nothing about a nested dict/list a field points at.
+# `V2AlignedInputReader` is a structural Protocol (every reader here is a
+# plain mutable dict), so the snapshot must own DETACHED, deeply immutable
+# copies: mutating the reader's ORIGINAL objects after load must never be
+# visible in the snapshot, and mutating the snapshot's own nested output
+# must fail.
+def test_deep_freeze_consensus_immutable_and_independent_of_original():
+    bucket_ts = dt(2026, 8, 15, 12, 5)
+    nested_values = [1, 2, 3]
+    consensus = make_consensus_row(
+        bucket_ts=bucket_ts, timeframe="5m", nested={"values": nested_values})
+    reader = RecordingReader(consensus={"5m": consensus})
+    result = _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+    snapshot = result.by_timeframe["5m"].consensus
+
+    nested_values.append(4)
+    consensus["price_move_pct_median"] = 999
+
+    assert snapshot["price_move_pct_median"] == 0.1
+    assert snapshot["nested"]["values"] == (1, 2, 3)
+    assert isinstance(snapshot, MappingProxyType)
+    assert isinstance(snapshot["nested"], MappingProxyType)
+    assert isinstance(snapshot["nested"]["values"], tuple)
+    with pytest.raises(TypeError):
+        snapshot["price_move_pct_median"] = 111
+    with pytest.raises(TypeError):
+        snapshot["nested"]["x"] = 1
+
+
+def test_deep_freeze_percentile_row_immutable_and_independent_of_original():
+    bucket_ts = dt(2026, 8, 15, 12, 5)
+    nested_values = [1, 2, 3]
+    row = make_percentile_row(
+        bucket_ts=bucket_ts, timeframe="5m", metric="price_move_pct_median",
+        percentile_window="7d", nested={"values": nested_values})
+    reader = RecordingReader(percentiles={"5m": (row,)})
+    result = _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+    percentiles = result.by_timeframe["5m"].percentiles
+    assert isinstance(percentiles, tuple)
+    snapshot = percentiles[0]
+
+    nested_values.append(4)
+    row["value"] = 999
+
+    assert snapshot["value"] == 0.1
+    assert snapshot["nested"]["values"] == (1, 2, 3)
+    with pytest.raises(TypeError):
+        snapshot["value"] = 111
+
+
+def test_deep_freeze_health_row_immutable_and_independent_of_original():
+    bucket_end_5m = dt(2026, 8, 15, 12, 10)
+    nested_values = [1, 2, 3]
+    row = make_health_row(snapshot_ts=bucket_end_5m, nested={"values": nested_values})
+    reader = RecordingReader(health_by_cutoff={bucket_end_5m: {("binance", "price"): row}})
+    result = _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+    health = result.by_timeframe["5m"].health
+    assert isinstance(health, MappingProxyType)
+    snapshot = health[("binance", "price")]
+
+    nested_values.append(4)
+    row["is_usable"] = False
+
+    assert snapshot["is_usable"] is True
+    assert snapshot["nested"]["values"] == (1, 2, 3)
+    with pytest.raises(TypeError):
+        snapshot["is_usable"] = False
+
+
+def test_deep_freeze_reference_feature_immutable_and_independent_of_original():
+    bucket_ts = dt(2026, 8, 15, 12, 5)
+    nested_values = [1, 2, 3]
+    row = make_reference_feature_row(
+        bucket_ts=bucket_ts, timeframe="5m", nested={"values": nested_values})
+    reader = RecordingReader(reference_feature={"5m": row})
+    result = _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+    snapshot = result.by_timeframe["5m"].reference_feature
+
+    nested_values.append(4)
+    row["close_price"] = 0.0
+
+    assert snapshot["close_price"] == 65000.0
+    assert snapshot["nested"]["values"] == (1, 2, 3)
+    with pytest.raises(TypeError):
+        snapshot["close_price"] = 0.0
+
+
+def test_deep_freeze_reference_kline_immutable_and_independent_of_original():
+    bucket_ts = dt(2026, 8, 15, 11, 45)  # 15m bucket for T=12:10
+    nested_values = [1, 2, 3]
+    klines = list(make_klines(bucket_ts, 15))
+    klines[0] = dict(klines[0], nested={"values": nested_values})
+    reader = RecordingReader(
+        reference_feature={"15m": make_reference_feature_row(
+            bucket_ts=bucket_ts, timeframe="15m", bars_expected=15)},
+        reference_klines={bucket_ts: tuple(klines)},
+    )
+    result = _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+    snapshot_klines = result.by_timeframe["15m"].reference_klines
+    assert isinstance(snapshot_klines, tuple)
+    snapshot = snapshot_klines[0]
+
+    nested_values.append(4)
+    klines[0]["high"] = 0.0
+
+    assert snapshot["nested"]["values"] == (1, 2, 3)
+    with pytest.raises(TypeError):
+        snapshot["high"] = 0.0
+
+
+def test_deep_freeze_rejects_unrecognized_value_type():
+    bucket_ts = dt(2026, 8, 15, 12, 5)
+    consensus = make_consensus_row(bucket_ts=bucket_ts, timeframe="5m", weird=frozenset({1, 2}))
+    reader = RecordingReader(consensus={"5m": consensus})
+    with pytest.raises(V2AlignedInputError, match="unrecognized type"):
+        _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
 
 
 # ============================================================================

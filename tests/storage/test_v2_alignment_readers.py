@@ -1141,6 +1141,25 @@ def test_reference_klines_duplicate_ts_rejected():
             bucket_start=BUCKET_START, bucket_end=BUCKET_END))
 
 
+def test_reference_klines_string_ts_from_broken_conn_rejected_not_a_bare_exception():
+    # A broken/fake connection returning a non-datetime ts must fail with
+    # the domain error, never a bare TypeError/AttributeError leaking out
+    # of the interval comparison or .isoformat() calls below.
+    conn = FakeConn([make_kline_row(ts="2026-08-15T12:00:00Z")])
+    with pytest.raises(V2AlignmentReaderError, match="ts must be a datetime"):
+        _run(read_v2_reference_klines(
+            conn, exchange="binance", symbol="BTCUSDT",
+            bucket_start=BUCKET_START, bucket_end=BUCKET_END))
+
+
+def test_reference_klines_naive_ts_from_broken_conn_rejected():
+    conn = FakeConn([make_kline_row(ts=datetime(2026, 8, 15, 12, 0))])  # no tzinfo
+    with pytest.raises(V2AlignmentReaderError, match="ts must be timezone-aware"):
+        _run(read_v2_reference_klines(
+            conn, exchange="binance", symbol="BTCUSDT",
+            bucket_start=BUCKET_START, bucket_end=BUCKET_END))
+
+
 def test_reference_klines_non_ascending_ts_from_broken_conn_rejected():
     conn = FakeConn([
         make_kline_row(ts=BUCKET_START + timedelta(minutes=2)),

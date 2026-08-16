@@ -58,6 +58,19 @@ full coverage but whose raw bar set is incomplete/misaligned) is a
 blindly, mirroring `storage/v2_alignment_readers.py`'s own posture at the
 storage boundary.
 
+**Deep immutability.** `V2AlignedInputs`/`V2TimeframeInputs` are frozen
+dataclasses, but a frozen dataclass only stops a caller from REASSIGNING
+one of its own fields — it does nothing about a nested dict/list a field
+happens to point at. Because `V2AlignedInputReader` is a structural
+`Protocol`, a conforming reader may legitimately hand back a plain
+mutable dict/list it still owns elsewhere (every test double in this
+codebase does exactly that). `_deep_freeze` recursively detaches every
+family (consensus/percentiles/health/reference_feature/reference_klines)
+into a brand-new, deeply immutable structure (`MappingProxyType`/`tuple`,
+never `MappingProxyType(original)`) immediately before it is stored, so
+the returned snapshot never retains a live reference the reader (or its
+caller) can mutate afterward.
+
 **Determinism.** `load_v2_aligned_inputs()` performs I/O only through the
 `V2AlignedInputReader` port. It never reads `datetime.now()`/`utcnow()`/
 `time.time()`, the environment, a config file, or generates a random/uuid
@@ -70,6 +83,7 @@ user-visible truth is preserved elsewhere, by value, in immutable
 """
 from __future__ import annotations
 
+from collections.abc import Mapping as _AbcMapping
 from collections.abc import Sequence as _AbcSequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -282,9 +296,12 @@ def derive_reference_extrema(
     downgraded to "unavailable") if the reference feature CLAIMS full,
     usable coverage but the supplied raw bar set does not actually match
     the required exact 1-minute constituent grid: wrong count, a
-    duplicate minute, a gap, a bar outside `[bucket_ts, bucket_end)`, or a
-    non-finite/impossible (`high < low`) price. No partial-window extreme
-    is ever computed from an incomplete set."""
+    duplicate minute, a gap, a bar outside `[bucket_ts, bucket_end)`, a
+    malformed `ts` (not an aware, UTC, whole-minute `datetime` —
+    `_validate_bar_ts`, defensive against a structurally-conforming but
+    broken/fake `V2AlignedInputReader` bypassing storage's own `ts`
+    validation), or a non-finite/impossible (`high < low`) price. No
+    partial-window extreme is ever computed from an incomplete set."""
     if timeframe not in STRUCTURAL_OHLC_TIMEFRAMES:
         raise V2AlignedInputError(
             f"structural extrema are only defined for {STRUCTURAL_OHLC_TIMEFRAMES}, "
@@ -314,7 +331,7 @@ def derive_reference_extrema(
     highs: list = []
     lows: list = []
     for bar in klines:
-        ts = bar["ts"]
+        ts = _validate_bar_ts(bar["ts"], timeframe=timeframe, bucket_ts=bucket_ts)
         if ts in seen_ts:
             raise V2AlignedInputError(
                 f"duplicate constituent bar ts {ts.isoformat()} for {timeframe} bucket "
@@ -339,6 +356,85 @@ def derive_reference_extrema(
             f"{[m.isoformat() for m in missing]}")
 
     return V2ReferenceExtrema(high=max(highs), low=min(lows))
+
+
+# ---- deep immutability (never store a reader-owned mutable reference) -----
+# A frozen dataclass (V2TimeframeInputs/V2AlignedInputs) only prevents
+# REASSIGNING its own fields — it does nothing to stop a caller from
+# mutating a nested dict/list one of those fields happens to point at.
+# `V2AlignedInputReader` is a structural Protocol: a conforming reader (as
+# every test double in this codebase does) may hand back a plain mutable
+# dict/list it still owns elsewhere. `_deep_freeze` is applied to every
+# family (consensus/percentiles/health/reference_feature/reference_klines)
+# immediately before it is stored in `V2TimeframeInputs`, so the final
+# snapshot never retains a live reference into anything the reader (or ITS
+# caller) still owns and could mutate after `load_v2_aligned_inputs`
+# returns.
+_IMMUTABLE_SCALAR_TYPES = (str, int, float, bool, bytes, type(None))
+
+
+def _deep_freeze(value: Any) -> Any:
+    """Recursively detach `value` into a deeply immutable structure.
+
+    `Mapping` -> a NEW `dict` is built first (never `MappingProxyType
+    (original)`, which would still let mutating `original` mutate the
+    visible proxy), then wrapped as `MappingProxyType`, with every VALUE
+    recursively frozen. Keys are passed through unchanged — health-map
+    keys are `(exchange, metric)` tuples, not `str`, so this layer does
+    not assume every mapping key is a string; nested JSON objects inside
+    a Stage 2 row normally use `str` keys already (and, via a real
+    `storage.db.Database`, arrive here already frozen by
+    `storage/v2_alignment_readers.py`'s own JSON detachment — re-freezing
+    an already-frozen `MappingProxyType` here is idempotent, not harmful).
+
+    `list`/`tuple` -> a NEW `tuple`, each item recursively frozen.
+
+    `datetime` and plain immutable scalars (`str`/`int`/`float`/`bool`/
+    `bytes`/`None`) are returned as-is — already immutable, nothing to do.
+
+    Anything else (an unrecognized, potentially-mutable type) raises
+    `V2AlignedInputError` rather than being silently stored by reference —
+    this module has no general way to guarantee an unknown type's
+    immutability, and silently trusting it would reopen exactly the hole
+    this helper exists to close."""
+    if isinstance(value, _AbcMapping):
+        return MappingProxyType({key: _deep_freeze(v) for key, v in value.items()})
+    if isinstance(value, (list, tuple)):
+        return tuple(_deep_freeze(v) for v in value)
+    if isinstance(value, datetime) or isinstance(value, _IMMUTABLE_SCALAR_TYPES):
+        return value
+    raise V2AlignedInputError(
+        f"cannot freeze a value of unrecognized type {type(value).__name__} into the "
+        f"immutable aligned-input snapshot: {value!r}")
+
+
+def _validate_bar_ts(value: Any, *, timeframe: str, bucket_ts: datetime) -> datetime:
+    """Defensive UTC-whole-minute `datetime` check for one raw kline bar's
+    `ts`, applied BEFORE any comparison/`.isoformat()` use in
+    `derive_reference_extrema`. `storage/v2_alignment_readers.py` already
+    enforces this at the real storage boundary — this is a SEPARATE,
+    analytics-owned re-check, because `V2AlignedInputReader` is a
+    structural Protocol: a conforming-but-broken/fake reader can bypass
+    storage validation entirely, and without this check a malformed
+    `ts` (a string, a naive datetime, ...) would otherwise leak a bare
+    `TypeError`/`AttributeError` out of this module instead of the
+    documented `V2AlignedInputError`. Mirrors
+    `storage/v2_alignment_readers.py::_validate_whole_minute_utc`'s exact
+    rules (exact `datetime` type, timezone-aware, UTC offset zero, whole
+    minute) without importing it — `storage -> analytics` reads are fine,
+    but this module is not `storage/v2_alignment_readers.py` and raises
+    its own `V2AlignedInputError`, never `V2AlignmentReaderError`."""
+    label = f"{timeframe} bucket {bucket_ts.isoformat()}: constituent bar ts"
+    if type(value) is not datetime:
+        raise V2AlignedInputError(f"{label} must be a datetime, got {type(value).__name__}: {value!r}")
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise V2AlignedInputError(f"{label} must be timezone-aware, got {value!r}")
+    if value.utcoffset() != timedelta(0):
+        raise V2AlignedInputError(f"{label} must be UTC (offset 0), got offset {value.utcoffset()}")
+    if value.second != 0 or value.microsecond != 0:
+        raise V2AlignedInputError(
+            f"{label} must be a whole minute (no seconds/microseconds), got {value!r}")
+    return value
 
 
 # ---- cross-family provenance / identity defense (never trust a reader) -----
@@ -367,8 +463,27 @@ def _validate_consensus_row(row: Optional[Mapping], *, timeframe: str, bucket_ts
 
 def _validate_percentile_rows(rows: "tuple[Mapping, ...]", *, timeframe: str,
                               bucket_ts: datetime, request: V2AlignedInputRequest) -> None:
+    """Re-validate every percentile row's own identity — NOT its metric
+    values (this module never interprets what a metric means, only
+    whether the row it arrived in legitimately belongs where it was
+    requested). `storage/v2_alignment_readers.py`'s real reader already
+    protects this at the DB boundary; this recheck exists because
+    `V2AlignedInputReader` is a structural Protocol Stage 4 can hand a
+    DIFFERENT, non-`Database` implementation to — the aligned snapshot
+    must be trustworthy on its own, without a caller re-deriving these
+    storage-layer identity checks itself."""
+    seen_logical_keys: set = set()
     for row in rows:
         _check_provenance(row, request=request, label="percentile")
+        if row.get("scope") != "consensus":
+            raise V2AlignedInputError(
+                f"percentile: scope must be 'consensus', got {row.get('scope')!r}")
+        if row.get("exchange") != "":
+            raise V2AlignedInputError(
+                f"percentile: exchange must be '' for consensus-scope rows, got "
+                f"{row.get('exchange')!r}")
+        if row.get("symbol") != request.symbol or row.get("market_type") != request.market_type:
+            raise V2AlignedInputError("percentile: symbol/market_type does not match the request")
         if row.get("bucket_ts") != bucket_ts:
             raise V2AlignedInputError("percentile: bucket_ts does not match the selected bucket")
         if row.get("timeframe") != timeframe:
@@ -378,15 +493,53 @@ def _validate_percentile_rows(rows: "tuple[Mapping, ...]", *, timeframe: str,
             raise V2AlignedInputError(
                 "percentile: sample_window_end must be strictly before bucket_ts "
                 "(no-lookahead defense) — equality is not allowed")
+        logical_key = (row.get("metric"), row.get("percentile_window"))
+        if logical_key in seen_logical_keys:
+            raise V2AlignedInputError(
+                f"percentile: duplicate (metric, percentile_window)={logical_key!r} row "
+                f"for {timeframe} bucket {bucket_ts.isoformat()}")
+        seen_logical_keys.add(logical_key)
 
 
 def _validate_health_map(health: Mapping, *, bucket_end: datetime,
                          request: V2AlignedInputRequest) -> None:
-    for row in health.values():
+    """PR #34 froze the health-missingness contract: the result mapping
+    MUST contain every requested `(exchange, metric)` key, mapped to
+    `None` when no eligible snapshot exists — never a silently omitted
+    pair. Enforce that here too (the real `Database` reader already
+    guarantees it; a different structural `V2AlignedInputReader` might
+    not): the actual key set must equal exactly the requested
+    `health_exchanges x health_metrics` cross product — a reader silently
+    dropping a requested pair, or inventing an unrequested one, is
+    reader-side corruption, not legitimate missingness, and fails loudly
+    rather than being silently patched up here."""
+    expected_keys = {
+        (exchange, metric)
+        for exchange in request.health_exchanges
+        for metric in request.health_metrics
+    }
+    actual_keys = set(health.keys())
+    if actual_keys != expected_keys:
+        missing = sorted(expected_keys - actual_keys)
+        unexpected = sorted(actual_keys - expected_keys)
+        raise V2AlignedInputError(
+            "health: reader result key set does not match the requested "
+            f"(exchange, metric) cross product — missing={missing!r}, "
+            f"unexpected={unexpected!r}")
+    for (exchange, metric), row in health.items():
         if row is None:
             continue
         _check_provenance(row, request=request, label="health")
-        if row.get("snapshot_ts") > bucket_end:
+        if row.get("exchange") != exchange or row.get("metric") != metric:
+            raise V2AlignedInputError(
+                "health: row exchange/metric does not match its (exchange, metric) key")
+        if row.get("symbol") != request.symbol or row.get("market_type") != request.market_type:
+            raise V2AlignedInputError("health: symbol/market_type does not match the request")
+        snapshot_ts = row.get("snapshot_ts")
+        if not isinstance(snapshot_ts, datetime):
+            raise V2AlignedInputError(
+                f"health: row for {(exchange, metric)!r} has a missing/malformed snapshot_ts")
+        if snapshot_ts > bucket_end:
             raise V2AlignedInputError(
                 "health: snapshot_ts is after the bucket-end cutoff (no-lookahead defense)")
 
@@ -506,10 +659,16 @@ async def load_v2_aligned_inputs(
             # else: gate fails or reference_feature missing -> no raw fetch;
             # reference_klines/reference_extrema stay None (§30).
 
+        # Deep-freeze every family right before it is stored: the reader
+        # is a structural Protocol, not necessarily storage.db.Database,
+        # so nothing above can be assumed to have already detached its
+        # nested dict/list values (see `_deep_freeze`'s own docstring).
         by_timeframe[timeframe] = V2TimeframeInputs(
             timeframe=timeframe, bucket_ts=bucket_ts, bucket_end=bucket_end,
-            consensus=consensus, percentiles=percentiles, health=health,
-            reference_feature=reference_feature, reference_klines=reference_klines,
+            consensus=_deep_freeze(consensus), percentiles=_deep_freeze(percentiles),
+            health=_deep_freeze(health),
+            reference_feature=_deep_freeze(reference_feature),
+            reference_klines=_deep_freeze(reference_klines),
             reference_extrema=reference_extrema,
         )
 

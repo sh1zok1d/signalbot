@@ -587,11 +587,17 @@ async def read_v2_reference_klines(
     -supplied half-open interval `[bucket_start, bucket_end)` — deterministic
     historical boundaries only, never derived from a wall clock. Every
     returned row is re-validated: exact requested `exchange`/`symbol`, `ts`
-    strictly inside `[bucket_start, bucket_end)` (a bar at or after
-    `bucket_end`, or before `bucket_start`, is rejected — not silently
-    filtered), no duplicate `ts`, and non-descending `ts` order (a broken
-    or fake connection returning an unsorted/inconsistent set fails loudly
-    rather than being silently accepted).
+    itself is a proper aware-UTC whole-minute `datetime`
+    (`_validate_whole_minute_utc` — a malformed `ts` from a broken/fake
+    connection, e.g. a string or a naive datetime, raises
+    `V2AlignmentReaderError` here rather than leaking a bare
+    `TypeError`/`AttributeError` out of the interval comparison or
+    `.isoformat()` calls below), strictly inside `[bucket_start,
+    bucket_end)` (a bar at or after `bucket_end`, or before
+    `bucket_start`, is rejected — not silently filtered), no duplicate
+    `ts`, and non-descending `ts` order (a broken or fake connection
+    returning an unsorted/inconsistent set fails loudly rather than being
+    silently accepted).
 
     Enforces its own public contract BEFORE any DB access, via
     `validate_reference_klines_args` — so a direct caller is safe even
@@ -608,7 +614,7 @@ async def read_v2_reference_klines(
         if rec["exchange"] != exchange or rec["symbol"] != symbol:
             raise V2AlignmentReaderError(
                 "klines_1m row identity does not match the requested exchange/symbol")
-        ts = rec["ts"]
+        ts = _validate_whole_minute_utc(rec["ts"], "ts")
         if not (bucket_start <= ts < bucket_end):
             raise V2AlignmentReaderError(
                 f"klines_1m row ts {ts.isoformat()} is outside the requested half-open "
