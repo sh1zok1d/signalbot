@@ -1,11 +1,11 @@
-"""Tests for analytics/forecasting_v2/ports.py's V2EpisodeEventWriter.
+"""Tests for analytics/forecasting_v2/ports.py's V2EpisodeEventWriter and
+V2AlignedInputReader.
 
-Proves the Protocol stays a narrow, structural-typing dependency boundary:
-a minimal fake writer satisfies it without importing storage/db.py, the
-concrete storage.db.Database satisfies it WITHOUT being made to inherit
-from the Protocol, and an object missing the method does not satisfy it.
-No runtime behavior is exercised here — this module only asserts type
-shape.
+Proves each Protocol stays a narrow, structural-typing dependency boundary:
+a minimal fake satisfies it without importing storage/db.py, the concrete
+storage.db.Database satisfies it WITHOUT being made to inherit from the
+Protocol, and an object missing a method does not satisfy it. No runtime
+behavior is exercised here — this module only asserts type shape.
 """
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ import inspect
 
 import pytest
 
-from analytics.forecasting_v2.ports import V2EpisodeEventWriter
+from analytics.forecasting_v2.ports import V2AlignedInputReader, V2EpisodeEventWriter
 
 
 # ---- a minimal fake writer, built with zero storage/db.py import --------------
@@ -164,8 +164,119 @@ def test_ports_module_does_not_import_storage_db():
 
 def test_ports_module_does_not_wire_anything_into_runtime():
     import analytics.forecasting_v2.ports as ports_mod
-    # the module namespace should expose only the Protocol and its error-free
-    # supporting typing imports — no stray callable side effect object.
+    # the module namespace should expose only the two Protocols and their
+    # error-free supporting typing imports — no stray callable side effect
+    # object.
     public = [n for n in dir(ports_mod) if not n.startswith("_")]
     assert set(ports_mod.__all__) <= set(public)
-    assert ports_mod.__all__ == ["V2EpisodeEventWriter"]
+    assert ports_mod.__all__ == ["V2EpisodeEventWriter", "V2AlignedInputReader"]
+
+
+# ============================================================================
+# V2AlignedInputReader — a minimal fake reader, built with zero storage/db.py
+# import
+# ============================================================================
+class FakeAlignedInputReader:
+    def __init__(self):
+        self.calls = []
+
+    async def fetch_v2_consensus_feature(self, **kw):
+        self.calls.append(("consensus_feature", kw))
+        return None
+
+    async def fetch_v2_consensus_percentiles(self, **kw):
+        self.calls.append(("consensus_percentiles", kw))
+        return ()
+
+    async def fetch_v2_data_health_at_cutoff(self, **kw):
+        self.calls.append(("data_health_at_cutoff", kw))
+        return {}
+
+    async def fetch_v2_reference_feature(self, **kw):
+        self.calls.append(("reference_feature", kw))
+        return None
+
+    async def fetch_v2_reference_klines(self, **kw):
+        self.calls.append(("reference_klines", kw))
+        return ()
+
+
+def test_fake_aligned_input_reader_satisfies_the_protocol_structurally():
+    assert isinstance(FakeAlignedInputReader(), V2AlignedInputReader)
+
+
+def test_fake_aligned_input_reader_module_never_imports_storage_db():
+    import sys
+    imported = _imported_module_names(
+        sys.modules[FakeAlignedInputReader.__module__], top_level_only=True)
+    assert not any(name == "storage.db" or name.startswith("storage.db.")
+                   for name in imported)
+
+
+class NotAnAlignedInputReader:
+    async def fetch_v2_consensus_feature(self, **kw):
+        return None
+    # missing the other four methods
+
+
+def test_object_missing_methods_does_not_satisfy_aligned_input_reader_protocol():
+    assert not isinstance(NotAnAlignedInputReader(), V2AlignedInputReader)
+
+
+def test_plain_object_does_not_satisfy_aligned_input_reader_protocol():
+    assert not isinstance(object(), V2AlignedInputReader)
+
+
+def test_database_satisfies_aligned_input_reader_protocol_without_inheritance():
+    from storage.db import Database
+    assert V2AlignedInputReader not in Database.__mro__
+    db = Database("postgresql://unused")
+    assert isinstance(db, V2AlignedInputReader)
+
+
+@pytest.mark.parametrize("method_name", [
+    "fetch_v2_consensus_feature", "fetch_v2_consensus_percentiles",
+    "fetch_v2_data_health_at_cutoff", "fetch_v2_reference_feature",
+    "fetch_v2_reference_klines",
+])
+def test_database_has_matching_coroutine_methods(method_name):
+    from storage.db import Database
+    assert hasattr(Database, method_name)
+    assert inspect.iscoroutinefunction(getattr(Database, method_name))
+
+
+def test_aligned_input_reader_protocol_defines_exactly_five_methods():
+    members = [
+        name for name, val in vars(V2AlignedInputReader).items()
+        if not name.startswith("_") and callable(val)
+    ]
+    assert sorted(members) == sorted([
+        "fetch_v2_consensus_feature", "fetch_v2_consensus_percentiles",
+        "fetch_v2_data_health_at_cutoff", "fetch_v2_reference_feature",
+        "fetch_v2_reference_klines",
+    ])
+
+
+@pytest.mark.parametrize("method_name", [
+    "fetch_v2_consensus_feature", "fetch_v2_consensus_percentiles",
+    "fetch_v2_data_health_at_cutoff", "fetch_v2_reference_feature",
+    "fetch_v2_reference_klines",
+])
+def test_aligned_input_reader_protocol_methods_are_async(method_name):
+    assert inspect.iscoroutinefunction(getattr(V2AlignedInputReader, method_name))
+
+
+def test_aligned_input_reader_protocol_is_runtime_checkable():
+    assert getattr(V2AlignedInputReader, "_is_runtime_protocol", False) is True
+
+
+def test_aligned_input_reader_protocol_adds_no_behavior_beyond_the_type_shape():
+    import analytics.forecasting_v2.ports as ports_mod
+    body_src = _executable_body_source(ports_mod)
+    forbidden = (
+        "retry", "transaction", "fetch(", "fetchval(", "execute(",
+        "asyncpg", "datetime.now(", "time.time(", "uuid.uuid4(", "random.",
+        "connect(", "await ",
+    )
+    for token in forbidden:
+        assert token not in body_src, f"unexpected behavior token found in ports.py body: {token!r}"

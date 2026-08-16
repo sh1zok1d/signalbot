@@ -1,15 +1,17 @@
 """Tests for storage/v2_alignment_readers.py (Stage 3 — Multi-timeframe
-Alignment PR 2) and its storage.db.Database wrappers. No real DB — fake
-asyncpg-like connections/pools only, following the existing storage test
-style (tests/storage/test_stage2_writers.py,
+Alignment PR 2/PR 3) and its storage.db.Database wrappers. No real DB —
+fake asyncpg-like connections/pools only, following the existing storage
+test style (tests/storage/test_stage2_writers.py,
 tests/storage/test_v2_episode_event_writers.py).
 
-Exercises the three read primitives' central contract: EXACT-bucket
-consensus/percentile identity (no older-bucket fallback), bounded-latest
-health-at-cutoff (never a row after the cutoff, exact-cutoff eligible),
-explicit calculation_version everywhere, JSONB detachment/immutability,
-fail-closed argument validation before any connection is acquired, and
-negative SQL-shape checks proving no forbidden "latest now" semantics.
+Exercises the five read primitives' central contract: EXACT-bucket
+consensus/percentile/reference-feature identity (no older-bucket
+fallback), bounded-latest health-at-cutoff (never a row after the cutoff,
+exact-cutoff eligible), half-open `[bucket_start, bucket_end)` raw
+`klines_1m` reads, explicit calculation_version everywhere (except raw
+klines, which carry none), JSONB detachment/immutability, fail-closed
+argument validation before any connection is acquired, and negative
+SQL-shape checks proving no forbidden "latest now"/fallback semantics.
 """
 from __future__ import annotations
 
@@ -24,8 +26,10 @@ from storage.db import Database
 from storage.v2_alignment_readers import (
     V2AlignmentReaderError,
     read_v2_consensus_feature, read_v2_consensus_percentiles,
-    read_v2_data_health_at_cutoff, validate_consensus_feature_args,
-    validate_data_health_args,
+    read_v2_data_health_at_cutoff, read_v2_reference_feature,
+    read_v2_reference_klines, validate_consensus_feature_args,
+    validate_data_health_args, validate_reference_feature_args,
+    validate_reference_klines_args,
 )
 from storage import v2_alignment_readers as readers_module
 
@@ -924,3 +928,472 @@ def test_wrapper_health_query_unaffected_by_post_validation_list_mutation():
     sql, args = conn.fetch_calls[0]
     assert args[3] == ["binance"]
     assert args[4] == ["ohlcv"]
+
+
+# ============================================================================
+# 10. REFERENCE FEATURE / REFERENCE KLINES — row factories + behavior-
+# simulating fake connections (PR 3: the two new canonical-reference-
+# exchange read primitives)
+# ============================================================================
+def make_reference_feature_row(**over):
+    base = dict(
+        exchange="binance", symbol="BTCUSDT", market_type="perp", timeframe="15m",
+        bucket_ts=B, feature_schema_version=1, calculation_version=H16,
+        price_move_pct=0.1, range_width_pct=1.0, close_price=65000.0,
+        volume_raw=100.0, volume_raw_unit="base", volume_notional_usd=1000.0,
+        taker_buy_notional_usd=600.0, taker_sell_notional_usd=400.0,
+        taker_delta_notional_usd=200.0, cvd_delta_notional_usd=200.0,
+        oi_change_pct=0.02, oi_unit="usd", funding_rate=0.0001,
+        long_liquidation_notional=None, short_liquidation_notional=None,
+        liquidation_event_count=None, liquidation_feed_quality=None, is_snapshot_feed=False,
+        bars_expected=15, bars_present=15, has_gap=False, is_usable=True,
+        computed_at=B, config_hash=H64, config_version="2.1.0", code_version="deadbeef",
+    )
+    base.update(over)
+    return base
+
+
+def make_kline_row(**over):
+    base = dict(exchange="binance", symbol="BTCUSDT", ts=B,
+                open=64900.0, high=65100.0, low=64800.0, close=65000.0)
+    base.update(over)
+    return base
+
+
+class ExactMatchReferenceFeatureConn:
+    """Simulates exchange_feature_vectors' exact-identity WHERE clause."""
+    def __init__(self, rows):
+        self.rows = rows
+        self.fetch_calls = []
+
+    async def fetch(self, sql, exchange, symbol, market_type, timeframe, bucket_ts,
+                    calculation_version):
+        self.fetch_calls.append(
+            (sql, (exchange, symbol, market_type, timeframe, bucket_ts, calculation_version)))
+        return [r for r in self.rows if (
+            r["exchange"], r["symbol"], r["market_type"], r["timeframe"], r["bucket_ts"],
+            r["calculation_version"]
+        ) == (exchange, symbol, market_type, timeframe, bucket_ts, calculation_version)]
+
+
+class HalfOpenKlinesConn:
+    """Simulates klines_1m's half-open [bucket_start, bucket_end) WHERE
+    clause, returning rows ordered by ts ASC."""
+    def __init__(self, rows):
+        self.rows = rows
+        self.fetch_calls = []
+
+    async def fetch(self, sql, exchange, symbol, bucket_start, bucket_end):
+        self.fetch_calls.append((sql, (exchange, symbol, bucket_start, bucket_end)))
+        matched = [r for r in self.rows if (
+            r["exchange"] == exchange and r["symbol"] == symbol
+            and bucket_start <= r["ts"] < bucket_end)]
+        return sorted(matched, key=lambda r: r["ts"])
+
+
+# ============================================================================
+# 11. REFERENCE FEATURE
+# ============================================================================
+def test_reference_feature_exact_identity_hit():
+    conn = ExactMatchReferenceFeatureConn([make_reference_feature_row()])
+    result = _run(read_v2_reference_feature(
+        conn, exchange="binance", symbol="BTCUSDT", market_type="perp", timeframe="15m",
+        bucket_ts=B, calculation_version=H16))
+    assert result is not None
+    assert result["exchange"] == "binance" and result["bucket_ts"] == B
+    assert isinstance(result, MappingProxyType)
+
+
+def test_reference_feature_missing_returns_none():
+    conn = ExactMatchReferenceFeatureConn([])
+    result = _run(read_v2_reference_feature(
+        conn, exchange="binance", symbol="BTCUSDT", market_type="perp", timeframe="15m",
+        bucket_ts=B, calculation_version=H16))
+    assert result is None
+
+
+def test_reference_feature_older_bucket_no_fallback():
+    older = make_reference_feature_row(bucket_ts=B - timedelta(minutes=15))
+    conn = ExactMatchReferenceFeatureConn([older])
+    result = _run(read_v2_reference_feature(
+        conn, exchange="binance", symbol="BTCUSDT", market_type="perp", timeframe="15m",
+        bucket_ts=B, calculation_version=H16))
+    assert result is None
+
+
+def test_reference_feature_wrong_exchange_no_fallback():
+    # a bybit row exists at the exact bucket, but "binance" was requested —
+    # storage stays generic; the analytics layer pins the canonical
+    # exchange, but this reader itself must never substitute exchanges.
+    other = make_reference_feature_row(exchange="bybit")
+    conn = ExactMatchReferenceFeatureConn([other])
+    result = _run(read_v2_reference_feature(
+        conn, exchange="binance", symbol="BTCUSDT", market_type="perp", timeframe="15m",
+        bucket_ts=B, calculation_version=H16))
+    assert result is None
+
+
+def test_reference_feature_wrong_calculation_version_excluded():
+    row = make_reference_feature_row(calculation_version="c" * 16)
+    conn = ExactMatchReferenceFeatureConn([row])
+    result = _run(read_v2_reference_feature(
+        conn, exchange="binance", symbol="BTCUSDT", market_type="perp", timeframe="15m",
+        bucket_ts=B, calculation_version=H16))
+    assert result is None
+
+
+def test_reference_feature_more_than_one_row_fails_loudly():
+    conn = FakeConn([make_reference_feature_row(), make_reference_feature_row()])
+    with pytest.raises(V2AlignmentReaderError, match="expected at most one"):
+        _run(read_v2_reference_feature(
+            conn, exchange="binance", symbol="BTCUSDT", market_type="perp", timeframe="15m",
+            bucket_ts=B, calculation_version=H16))
+
+
+def test_reference_feature_row_identity_mismatch_rejected():
+    conn = FakeConn([make_reference_feature_row(timeframe="1h")])
+    with pytest.raises(V2AlignmentReaderError, match="does not match"):
+        _run(read_v2_reference_feature(
+            conn, exchange="binance", symbol="BTCUSDT", market_type="perp", timeframe="15m",
+            bucket_ts=B, calculation_version=H16))
+
+
+def test_reference_feature_result_is_immutable():
+    conn = ExactMatchReferenceFeatureConn([make_reference_feature_row()])
+    result = _run(read_v2_reference_feature(
+        conn, exchange="binance", symbol="BTCUSDT", market_type="perp", timeframe="15m",
+        bucket_ts=B, calculation_version=H16))
+    assert isinstance(result, MappingProxyType)
+    with pytest.raises(TypeError):
+        result["close_price"] = 0.0
+
+
+# ============================================================================
+# 12. REFERENCE KLINES — half-open interval, no market_type/calculation_version
+# ============================================================================
+BUCKET_START = B
+BUCKET_END = B + timedelta(minutes=15)
+
+
+def test_reference_klines_half_open_interval_start_included_end_excluded():
+    rows = [
+        make_kline_row(ts=BUCKET_START),                          # included: == start
+        make_kline_row(ts=BUCKET_START + timedelta(minutes=5)),   # included: inside
+        make_kline_row(ts=BUCKET_END - timedelta(minutes=1)),     # included: last minute
+        make_kline_row(ts=BUCKET_END),                            # excluded: == end
+        make_kline_row(ts=BUCKET_END + timedelta(minutes=5)),     # excluded: after end
+        make_kline_row(ts=BUCKET_START - timedelta(minutes=1)),   # excluded: before start
+    ]
+    conn = HalfOpenKlinesConn(rows)
+    result = _run(read_v2_reference_klines(
+        conn, exchange="binance", symbol="BTCUSDT",
+        bucket_start=BUCKET_START, bucket_end=BUCKET_END))
+    assert [r["ts"] for r in result] == [
+        BUCKET_START, BUCKET_START + timedelta(minutes=5), BUCKET_END - timedelta(minutes=1)]
+
+
+def test_reference_klines_empty_result_is_empty_tuple():
+    conn = HalfOpenKlinesConn([])
+    result = _run(read_v2_reference_klines(
+        conn, exchange="binance", symbol="BTCUSDT",
+        bucket_start=BUCKET_START, bucket_end=BUCKET_END))
+    assert result == ()
+    assert isinstance(result, tuple)
+
+
+def test_reference_klines_wrong_exchange_or_symbol_rejected():
+    conn = FakeConn([make_kline_row(exchange="bybit")])
+    with pytest.raises(V2AlignmentReaderError, match="does not match"):
+        _run(read_v2_reference_klines(
+            conn, exchange="binance", symbol="BTCUSDT",
+            bucket_start=BUCKET_START, bucket_end=BUCKET_END))
+
+
+def test_reference_klines_ts_at_bucket_end_rejected():
+    conn = FakeConn([make_kline_row(ts=BUCKET_END)])
+    with pytest.raises(V2AlignmentReaderError, match="outside the requested half-open"):
+        _run(read_v2_reference_klines(
+            conn, exchange="binance", symbol="BTCUSDT",
+            bucket_start=BUCKET_START, bucket_end=BUCKET_END))
+
+
+def test_reference_klines_ts_after_bucket_end_rejected():
+    conn = FakeConn([make_kline_row(ts=BUCKET_END + timedelta(minutes=1))])
+    with pytest.raises(V2AlignmentReaderError, match="outside the requested half-open"):
+        _run(read_v2_reference_klines(
+            conn, exchange="binance", symbol="BTCUSDT",
+            bucket_start=BUCKET_START, bucket_end=BUCKET_END))
+
+
+def test_reference_klines_ts_before_bucket_start_rejected():
+    conn = FakeConn([make_kline_row(ts=BUCKET_START - timedelta(minutes=1))])
+    with pytest.raises(V2AlignmentReaderError, match="outside the requested half-open"):
+        _run(read_v2_reference_klines(
+            conn, exchange="binance", symbol="BTCUSDT",
+            bucket_start=BUCKET_START, bucket_end=BUCKET_END))
+
+
+def test_reference_klines_duplicate_ts_rejected():
+    conn = FakeConn([make_kline_row(ts=BUCKET_START), make_kline_row(ts=BUCKET_START)])
+    with pytest.raises(V2AlignmentReaderError, match="duplicate"):
+        _run(read_v2_reference_klines(
+            conn, exchange="binance", symbol="BTCUSDT",
+            bucket_start=BUCKET_START, bucket_end=BUCKET_END))
+
+
+def test_reference_klines_string_ts_from_broken_conn_rejected_not_a_bare_exception():
+    # A broken/fake connection returning a non-datetime ts must fail with
+    # the domain error, never a bare TypeError/AttributeError leaking out
+    # of the interval comparison or .isoformat() calls below.
+    conn = FakeConn([make_kline_row(ts="2026-08-15T12:00:00Z")])
+    with pytest.raises(V2AlignmentReaderError, match="ts must be a datetime"):
+        _run(read_v2_reference_klines(
+            conn, exchange="binance", symbol="BTCUSDT",
+            bucket_start=BUCKET_START, bucket_end=BUCKET_END))
+
+
+def test_reference_klines_naive_ts_from_broken_conn_rejected():
+    conn = FakeConn([make_kline_row(ts=datetime(2026, 8, 15, 12, 0))])  # no tzinfo
+    with pytest.raises(V2AlignmentReaderError, match="ts must be timezone-aware"):
+        _run(read_v2_reference_klines(
+            conn, exchange="binance", symbol="BTCUSDT",
+            bucket_start=BUCKET_START, bucket_end=BUCKET_END))
+
+
+def test_reference_klines_non_ascending_ts_from_broken_conn_rejected():
+    conn = FakeConn([
+        make_kline_row(ts=BUCKET_START + timedelta(minutes=2)),
+        make_kline_row(ts=BUCKET_START + timedelta(minutes=1)),
+    ])
+    with pytest.raises(V2AlignmentReaderError, match="non-descending"):
+        _run(read_v2_reference_klines(
+            conn, exchange="binance", symbol="BTCUSDT",
+            bucket_start=BUCKET_START, bucket_end=BUCKET_END))
+
+
+def test_reference_klines_rows_are_immutable():
+    conn = HalfOpenKlinesConn([make_kline_row(ts=BUCKET_START)])
+    result = _run(read_v2_reference_klines(
+        conn, exchange="binance", symbol="BTCUSDT",
+        bucket_start=BUCKET_START, bucket_end=BUCKET_END))
+    assert isinstance(result[0], MappingProxyType)
+    with pytest.raises(TypeError):
+        result[0]["close"] = 0.0
+
+
+def test_reference_klines_full_15m_bucket_returns_exactly_15_ascending_bars():
+    rows = [make_kline_row(ts=BUCKET_START + timedelta(minutes=i)) for i in range(15)]
+    conn = HalfOpenKlinesConn(rows)
+    result = _run(read_v2_reference_klines(
+        conn, exchange="binance", symbol="BTCUSDT",
+        bucket_start=BUCKET_START, bucket_end=BUCKET_END))
+    assert len(result) == 15
+    assert [r["ts"] for r in result] == [BUCKET_START + timedelta(minutes=i) for i in range(15)]
+
+
+# ============================================================================
+# 13. ARGUMENT VALIDATION — reference feature / reference klines
+# ============================================================================
+@pytest.mark.parametrize("field", ["exchange", "symbol", "market_type", "timeframe"])
+@pytest.mark.parametrize("bad", ["", "   ", None, 5])
+def test_reference_feature_args_nonblank_strings(field, bad):
+    kwargs = dict(exchange="binance", symbol="BTCUSDT", market_type="perp", timeframe="15m",
+                  bucket_ts=B, calculation_version=H16)
+    kwargs[field] = bad
+    with pytest.raises(V2AlignmentReaderError, match=field):
+        validate_reference_feature_args(**kwargs)
+
+
+def test_reference_feature_args_valid_passes():
+    validate_reference_feature_args(
+        exchange="binance", symbol="BTCUSDT", market_type="perp", timeframe="15m",
+        bucket_ts=B, calculation_version=H16)  # no raise
+
+
+@pytest.mark.parametrize("field", ["exchange", "symbol"])
+@pytest.mark.parametrize("bad", ["", "   ", None, 5])
+def test_reference_klines_args_nonblank_strings(field, bad):
+    kwargs = dict(exchange="binance", symbol="BTCUSDT",
+                  bucket_start=BUCKET_START, bucket_end=BUCKET_END)
+    kwargs[field] = bad
+    with pytest.raises(V2AlignmentReaderError, match=field):
+        validate_reference_klines_args(**kwargs)
+
+
+def test_reference_klines_args_bucket_start_not_before_end_rejected():
+    with pytest.raises(V2AlignmentReaderError, match="bucket_start"):
+        validate_reference_klines_args(
+            exchange="binance", symbol="BTCUSDT",
+            bucket_start=BUCKET_END, bucket_end=BUCKET_START)
+
+
+def test_reference_klines_args_equal_bounds_rejected():
+    with pytest.raises(V2AlignmentReaderError, match="bucket_start"):
+        validate_reference_klines_args(
+            exchange="binance", symbol="BTCUSDT",
+            bucket_start=B, bucket_end=B)
+
+
+def test_reference_klines_args_valid_passes():
+    validate_reference_klines_args(
+        exchange="binance", symbol="BTCUSDT",
+        bucket_start=BUCKET_START, bucket_end=BUCKET_END)  # no raise
+
+
+# ============================================================================
+# 14. NEGATIVE SQL-SHAPE TESTS — reference feature / reference klines
+# ============================================================================
+def test_reference_feature_sql_uses_exact_bucket_ts_equality():
+    sql = readers_module._REFERENCE_FEATURE_SQL
+    assert "bucket_ts = $5" in sql
+    assert "bucket_ts <=" not in sql
+    assert "ORDER BY bucket_ts DESC" not in sql
+    assert "LIMIT 1" not in sql
+    assert "calculation_version = $6" in sql
+    assert "exchange = $1" in sql
+
+
+def test_reference_klines_sql_is_half_open_no_market_type_no_calculation_version():
+    sql = readers_module._REFERENCE_KLINES_SQL
+    assert "ts >= $3" in sql
+    assert "ts < $4" in sql
+    assert "ts <= " not in sql
+    assert "market_type" not in sql
+    assert "calculation_version" not in sql
+    assert "ORDER BY ts ASC" in sql
+
+
+@pytest.mark.parametrize("sql_const", ["_REFERENCE_FEATURE_SQL", "_REFERENCE_KLINES_SQL"])
+def test_no_writes_in_reference_sql(sql_const):
+    sql = getattr(readers_module, sql_const).upper()
+    for forbidden in ("INSERT", "UPDATE", "DELETE", "UPSERT", "ON CONFLICT", "TRUNCATE", "DROP"):
+        assert forbidden not in sql
+
+
+@pytest.mark.parametrize("sql_const", ["_REFERENCE_FEATURE_SQL", "_REFERENCE_KLINES_SQL"])
+def test_no_select_star_reference_sql(sql_const):
+    sql = getattr(readers_module, sql_const).upper()
+    assert "SELECT *" not in sql
+
+
+def test_reference_feature_and_klines_functions_are_coroutines():
+    assert inspect.iscoroutinefunction(read_v2_reference_feature)
+    assert inspect.iscoroutinefunction(read_v2_reference_klines)
+
+
+def test_reference_validators_are_plain_sync_functions():
+    assert not inspect.iscoroutinefunction(validate_reference_feature_args)
+    assert not inspect.iscoroutinefunction(validate_reference_klines_args)
+
+
+# ============================================================================
+# 15. Database WRAPPERS — reference feature / reference klines
+# ============================================================================
+def test_wrapper_reference_feature_validates_before_acquire():
+    db = _db()
+    with pytest.raises(V2AlignmentReaderError):
+        _run(db.fetch_v2_reference_feature(
+            exchange="", symbol="BTCUSDT", market_type="perp", timeframe="15m",
+            bucket_ts=B, calculation_version=H16))
+    assert db.pool.acquire_count == 0
+
+
+def test_wrapper_reference_feature_acquires_and_returns_none_on_empty():
+    db = _db(FakeConn([]))
+    result = _run(db.fetch_v2_reference_feature(
+        exchange="binance", symbol="BTCUSDT", market_type="perp", timeframe="15m",
+        bucket_ts=B, calculation_version=H16))
+    assert result is None
+    assert db.pool.acquire_count == 1
+
+
+def test_wrapper_reference_feature_delegates_correct_sql():
+    conn = FakeConn([])
+    db = _db(conn)
+    _run(db.fetch_v2_reference_feature(
+        exchange="binance", symbol="BTCUSDT", market_type="perp", timeframe="15m",
+        bucket_ts=B, calculation_version=H16))
+    assert conn.fetch_calls[0][0] == readers_module._REFERENCE_FEATURE_SQL
+
+
+def test_wrapper_reference_klines_validates_before_acquire():
+    db = _db()
+    with pytest.raises(V2AlignmentReaderError):
+        _run(db.fetch_v2_reference_klines(
+            exchange="binance", symbol="BTCUSDT",
+            bucket_start=BUCKET_END, bucket_end=BUCKET_START))  # inverted
+    assert db.pool.acquire_count == 0
+
+
+def test_wrapper_reference_klines_acquires_and_returns_detached_tuple():
+    conn = FakeConn([make_kline_row(ts=BUCKET_START)])
+    db = _db(conn)
+    result = _run(db.fetch_v2_reference_klines(
+        exchange="binance", symbol="BTCUSDT",
+        bucket_start=BUCKET_START, bucket_end=BUCKET_END))
+    assert isinstance(result, tuple) and len(result) == 1
+    assert db.pool.acquire_count == 1
+
+
+def test_wrapper_reference_klines_delegates_correct_sql():
+    conn = FakeConn([])
+    db = _db(conn)
+    _run(db.fetch_v2_reference_klines(
+        exchange="binance", symbol="BTCUSDT",
+        bucket_start=BUCKET_START, bucket_end=BUCKET_END))
+    assert conn.fetch_calls[0][0] == readers_module._REFERENCE_KLINES_SQL
+
+
+def test_wrapper_reference_feature_no_pool_raises_assertion_after_validation():
+    db = Database("postgresql://unused")  # pool is None
+    with pytest.raises(AssertionError):
+        _run(db.fetch_v2_reference_feature(
+            exchange="binance", symbol="BTCUSDT", market_type="perp", timeframe="15m",
+            bucket_ts=B, calculation_version=H16))
+
+
+def test_wrapper_reference_klines_no_pool_raises_assertion_after_validation():
+    db = Database("postgresql://unused")  # pool is None
+    with pytest.raises(AssertionError):
+        _run(db.fetch_v2_reference_klines(
+            exchange="binance", symbol="BTCUSDT",
+            bucket_start=BUCKET_START, bucket_end=BUCKET_END))
+
+
+# ============================================================================
+# 16. DIRECT READERS SELF-VALIDATE — reference feature / reference klines
+# ============================================================================
+def test_direct_reference_feature_reader_rejects_malformed_exchange_zero_fetches():
+    conn = FakeConn([])
+    with pytest.raises(V2AlignmentReaderError, match="exchange"):
+        _run(read_v2_reference_feature(
+            conn, exchange="", symbol="BTCUSDT", market_type="perp", timeframe="15m",
+            bucket_ts=B, calculation_version=H16))
+    assert conn.fetch_calls == []
+
+
+def test_direct_reference_klines_reader_rejects_malformed_symbol_zero_fetches():
+    conn = FakeConn([])
+    with pytest.raises(V2AlignmentReaderError, match="symbol"):
+        _run(read_v2_reference_klines(
+            conn, exchange="binance", symbol="",
+            bucket_start=BUCKET_START, bucket_end=BUCKET_END))
+    assert conn.fetch_calls == []
+
+
+def test_direct_reference_klines_reader_rejects_inverted_bounds_zero_fetches():
+    conn = FakeConn([])
+    with pytest.raises(V2AlignmentReaderError, match="bucket_start"):
+        _run(read_v2_reference_klines(
+            conn, exchange="binance", symbol="BTCUSDT",
+            bucket_start=BUCKET_END, bucket_end=BUCKET_START))
+    assert conn.fetch_calls == []
+
+
+def test_direct_readers_still_succeed_on_valid_reference_args_after_self_validation():
+    conn = ExactMatchReferenceFeatureConn([make_reference_feature_row()])
+    result = _run(read_v2_reference_feature(
+        conn, exchange="binance", symbol="BTCUSDT", market_type="perp", timeframe="15m",
+        bucket_ts=B, calculation_version=H16))
+    assert result is not None
+    assert len(conn.fetch_calls) == 1

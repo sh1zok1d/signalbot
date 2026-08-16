@@ -691,6 +691,48 @@ class Database:
                 exchanges=validated_exchanges, metrics=validated_metrics,
                 cutoff_ts=cutoff_ts, calculation_version=calculation_version)
 
+    async def fetch_v2_reference_feature(
+        self, *, exchange: str, symbol: str, market_type: str, timeframe: str,
+        bucket_ts: datetime, calculation_version: str,
+    ) -> "Optional[Mapping]":
+        """Read-only: the ONE `exchange_feature_vectors` row at the EXACT
+        `(exchange, symbol, market_type, timeframe, bucket_ts,
+        calculation_version)` identity, or `None` if absent — never an
+        older bucket. This wrapper is generic about `exchange`; pinning it
+        to the canonical V2 reference exchange is the analytics layer's
+        job (`analytics/forecasting_v2/aligned_inputs.py`, §11). See
+        `storage/v2_alignment_readers.py::read_v2_reference_feature` for
+        the full contract."""
+        from storage.v2_alignment_readers import (
+            read_v2_reference_feature, validate_reference_feature_args)
+        validate_reference_feature_args(
+            exchange=exchange, symbol=symbol, market_type=market_type, timeframe=timeframe,
+            bucket_ts=bucket_ts, calculation_version=calculation_version)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_v2_reference_feature(
+                conn, exchange=exchange, symbol=symbol, market_type=market_type,
+                timeframe=timeframe, bucket_ts=bucket_ts, calculation_version=calculation_version)
+
+    async def fetch_v2_reference_klines(
+        self, *, exchange: str, symbol: str, bucket_start: datetime, bucket_end: datetime,
+    ) -> "tuple[Mapping, ...]":
+        """Read-only: raw `klines_1m` bars for one `exchange`/`symbol`
+        inside the caller-supplied half-open interval `[bucket_start,
+        bucket_end)` — deterministic historical boundaries only, never a
+        wall clock. See
+        `storage/v2_alignment_readers.py::read_v2_reference_klines` for
+        the full contract."""
+        from storage.v2_alignment_readers import (
+            read_v2_reference_klines, validate_reference_klines_args)
+        validate_reference_klines_args(
+            exchange=exchange, symbol=symbol, bucket_start=bucket_start, bucket_end=bucket_end)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_v2_reference_klines(
+                conn, exchange=exchange, symbol=symbol,
+                bucket_start=bucket_start, bucket_end=bucket_end)
+
     async def fetch_shadow_liquidation_availability(
         self,
         *,

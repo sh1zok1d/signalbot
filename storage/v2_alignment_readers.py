@@ -1,6 +1,6 @@
 """
 V2 aligned-input storage readers (Stage 3 — Multi-timeframe Alignment,
-PR 2 of ~3, docs/FORECASTING_ROADMAP.md §I stage 3).
+PR 2/PR 3 of ~3, docs/FORECASTING_ROADMAP.md §I stage 3).
 
 PR 1 (`analytics/forecasting_v2/alignment.py`) answered "which closed
 bucket timestamp is legal?" This module answers the next, and only the
@@ -8,7 +8,7 @@ next, question: "given an already-selected legal timestamp/cutoff, how do
 I read EXACTLY the corresponding Stage 2 data row(s)?" It does not decide
 what those rows mean.
 
-Three read primitives, each scoped to an explicit, caller-supplied
+Five read primitives, each scoped to an explicit, caller-supplied
 identity — never a wall-clock "latest":
 
   - `read_v2_consensus_feature` — the ONE `consensus_feature_vectors` row
@@ -28,6 +28,20 @@ identity — never a wall-clock "latest":
     legitimate (`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §2's own
     per-family table: health's no-lookahead mechanism IS a cutoff-bounded
     read, unlike consensus/percentiles' exact-bucket-identity mechanism).
+  - `read_v2_reference_feature` — the ONE `exchange_feature_vectors` row
+    at an EXACT `(exchange, symbol, market_type, timeframe, bucket_ts,
+    calculation_version)` identity — same exact-bucket, no-fallback
+    discipline as consensus. This module stays generic about `exchange`;
+    pinning it to the canonical V2 reference exchange (`"binance"`,
+    `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §11) is the ANALYTICS
+    layer's job (`analytics/forecasting_v2/aligned_inputs.py`), not this
+    module's — storage has no opinion about which exchange is canonical.
+  - `read_v2_reference_klines` — the raw `klines_1m` bars for one
+    `exchange`/`symbol` inside a caller-supplied half-open interval
+    `[bucket_start, bucket_end)`. Raw source truth: no `market_type`
+    column exists on `klines_1m` (Stage 1 raw data), and no
+    `calculation_version` — a raw bar is not a Stage 2 derived value and
+    carries no derived-computation identity to scope by.
 
 Every read requires an explicit `calculation_version` — never inferred,
 never the newest available, never omitted. `computed_at` (Stage 2's
@@ -86,6 +100,8 @@ __all__ = [
     "read_v2_consensus_feature",
     "read_v2_consensus_percentiles",
     "read_v2_data_health_at_cutoff",
+    "read_v2_reference_feature",
+    "read_v2_reference_klines",
 ]
 
 
@@ -167,6 +183,36 @@ WHERE symbol = $1 AND market_type = $2 AND calculation_version = $3
 ORDER BY exchange, metric, snapshot_ts DESC
 """
 
+# EXACT bucket_ts match on exchange_feature_vectors — the same exact-bucket,
+# no-fallback discipline as consensus. `exchange` is a plain parameter here;
+# this module has no opinion about which exchange is canonical (the
+# analytics layer pins it to "binance", §11).
+_REFERENCE_FEATURE_SQL = """
+SELECT exchange, symbol, market_type, timeframe, bucket_ts, feature_schema_version,
+       calculation_version,
+       price_move_pct, range_width_pct, close_price,
+       volume_raw, volume_raw_unit, volume_notional_usd, taker_buy_notional_usd,
+       taker_sell_notional_usd, taker_delta_notional_usd, cvd_delta_notional_usd,
+       oi_change_pct, oi_unit, funding_rate,
+       long_liquidation_notional, short_liquidation_notional, liquidation_event_count,
+       liquidation_feed_quality, is_snapshot_feed,
+       bars_expected, bars_present, has_gap, is_usable,
+       computed_at, config_hash, config_version, code_version
+FROM exchange_feature_vectors
+WHERE exchange = $1 AND symbol = $2 AND market_type = $3 AND timeframe = $4
+  AND bucket_ts = $5 AND calculation_version = $6
+"""
+
+# Raw source truth, half-open [bucket_start, bucket_end) on ts — no
+# market_type column exists on klines_1m (Stage 1 raw data), and no
+# calculation_version (a raw bar has no derived-computation identity).
+_REFERENCE_KLINES_SQL = """
+SELECT exchange, symbol, ts, open, high, low, close
+FROM klines_1m
+WHERE exchange = $1 AND symbol = $2 AND ts >= $3 AND ts < $4
+ORDER BY ts ASC
+"""
+
 
 # ---- JSONB detachment --------------------------------------------------------
 def _freeze_json_value(value: Any, name: str) -> Any:
@@ -236,6 +282,14 @@ def _detach_percentile_row(rec) -> Mapping:
 
 
 def _detach_health_row(rec) -> Mapping:
+    return MappingProxyType(dict(rec))
+
+
+def _detach_reference_feature_row(rec) -> Mapping:
+    return MappingProxyType(dict(rec))
+
+
+def _detach_kline_row(rec) -> Mapping:
     return MappingProxyType(dict(rec))
 
 
@@ -320,7 +374,34 @@ def validate_data_health_args(*, symbol: str, market_type: str, exchanges: Seque
     return validated_exchanges, validated_metrics
 
 
-# ---- the three read primitives (run on a single caller-supplied connection) -
+def validate_reference_feature_args(*, exchange: str, symbol: str, market_type: str,
+                                    timeframe: str, bucket_ts: datetime,
+                                    calculation_version: str) -> None:
+    """Validate every argument for `read_v2_reference_feature`. Raises
+    `V2AlignmentReaderError`; performs no I/O."""
+    _nonblank(exchange, "exchange")
+    _nonblank(symbol, "symbol")
+    _nonblank(market_type, "market_type")
+    _nonblank(timeframe, "timeframe")
+    _validate_whole_minute_utc(bucket_ts, "bucket_ts")
+    _validate_calculation_version(calculation_version)
+
+
+def validate_reference_klines_args(*, exchange: str, symbol: str,
+                                   bucket_start: datetime, bucket_end: datetime) -> None:
+    """Validate every argument for `read_v2_reference_klines`. Raises
+    `V2AlignmentReaderError`; performs no I/O."""
+    _nonblank(exchange, "exchange")
+    _nonblank(symbol, "symbol")
+    _validate_whole_minute_utc(bucket_start, "bucket_start")
+    _validate_whole_minute_utc(bucket_end, "bucket_end")
+    if not (bucket_start < bucket_end):
+        raise V2AlignmentReaderError(
+            f"bucket_start ({bucket_start.isoformat()}) must be < bucket_end "
+            f"({bucket_end.isoformat()})")
+
+
+# ---- the five read primitives (run on a single caller-supplied connection) --
 async def read_v2_consensus_feature(
     conn, *, symbol: str, market_type: str, timeframe: str,
     bucket_ts: datetime, calculation_version: str,
@@ -459,3 +540,91 @@ async def read_v2_data_health_at_cutoff(
         for metric in metrics:
             result[(exchange, metric)] = by_pair.get((exchange, metric))
     return MappingProxyType(result)
+
+
+async def read_v2_reference_feature(
+    conn, *, exchange: str, symbol: str, market_type: str, timeframe: str,
+    bucket_ts: datetime, calculation_version: str,
+) -> Optional[Mapping]:
+    """The ONE `exchange_feature_vectors` row at the EXACT `(exchange,
+    symbol, market_type, timeframe, bucket_ts, calculation_version)`
+    identity — never an older bucket, never a different
+    `calculation_version`. `None` if no such row exists; no fallback.
+    This module is generic about `exchange` — pinning it to the canonical
+    V2 reference exchange is the analytics layer's job (§11).
+
+    Enforces its own public contract BEFORE any DB access, via
+    `validate_reference_feature_args` — so a direct caller is safe even
+    without the `Database` wrapper. (`Database.fetch_v2_reference_feature`
+    additionally validates before acquiring a pool connection; that double
+    validation is intentional.)"""
+    validate_reference_feature_args(
+        exchange=exchange, symbol=symbol, market_type=market_type, timeframe=timeframe,
+        bucket_ts=bucket_ts, calculation_version=calculation_version)
+    rows = await conn.fetch(
+        _REFERENCE_FEATURE_SQL, exchange, symbol, market_type, timeframe, bucket_ts,
+        calculation_version)
+    if not rows:
+        return None
+    if len(rows) > 1:
+        raise V2AlignmentReaderError(
+            f"expected at most one exchange_feature_vectors row for "
+            f"({exchange!r}, {symbol!r}, {market_type!r}, {timeframe!r}, "
+            f"{bucket_ts.isoformat()!r}, {calculation_version!r}), got {len(rows)}")
+    rec = rows[0]
+    if (rec["exchange"], rec["symbol"], rec["market_type"], rec["timeframe"], rec["bucket_ts"],
+            rec["calculation_version"]) != (exchange, symbol, market_type, timeframe, bucket_ts,
+                                            calculation_version):
+        raise V2AlignmentReaderError(
+            "exchange_feature_vectors row identity does not match the requested identity")
+    return _detach_reference_feature_row(rec)
+
+
+async def read_v2_reference_klines(
+    conn, *, exchange: str, symbol: str, bucket_start: datetime, bucket_end: datetime,
+) -> tuple[Mapping, ...]:
+    """Raw `klines_1m` bars for one `exchange`/`symbol` inside the caller
+    -supplied half-open interval `[bucket_start, bucket_end)` — deterministic
+    historical boundaries only, never derived from a wall clock. Every
+    returned row is re-validated: exact requested `exchange`/`symbol`, `ts`
+    itself is a proper aware-UTC whole-minute `datetime`
+    (`_validate_whole_minute_utc` — a malformed `ts` from a broken/fake
+    connection, e.g. a string or a naive datetime, raises
+    `V2AlignmentReaderError` here rather than leaking a bare
+    `TypeError`/`AttributeError` out of the interval comparison or
+    `.isoformat()` calls below), strictly inside `[bucket_start,
+    bucket_end)` (a bar at or after `bucket_end`, or before
+    `bucket_start`, is rejected — not silently filtered), no duplicate
+    `ts`, and non-descending `ts` order (a broken or fake connection
+    returning an unsorted/inconsistent set fails loudly rather than being
+    silently accepted).
+
+    Enforces its own public contract BEFORE any DB access, via
+    `validate_reference_klines_args` — so a direct caller is safe even
+    without the `Database` wrapper. (`Database.fetch_v2_reference_klines`
+    additionally validates before acquiring a pool connection; that double
+    validation is intentional.)"""
+    validate_reference_klines_args(
+        exchange=exchange, symbol=symbol, bucket_start=bucket_start, bucket_end=bucket_end)
+    rows = await conn.fetch(_REFERENCE_KLINES_SQL, exchange, symbol, bucket_start, bucket_end)
+    detached = []
+    seen_ts: set = set()
+    prev_ts = None
+    for rec in rows:
+        if rec["exchange"] != exchange or rec["symbol"] != symbol:
+            raise V2AlignmentReaderError(
+                "klines_1m row identity does not match the requested exchange/symbol")
+        ts = _validate_whole_minute_utc(rec["ts"], "ts")
+        if not (bucket_start <= ts < bucket_end):
+            raise V2AlignmentReaderError(
+                f"klines_1m row ts {ts.isoformat()} is outside the requested half-open "
+                f"interval [{bucket_start.isoformat()}, {bucket_end.isoformat()})")
+        if ts in seen_ts:
+            raise V2AlignmentReaderError(f"duplicate klines_1m row for ts {ts.isoformat()}")
+        if prev_ts is not None and ts < prev_ts:
+            raise V2AlignmentReaderError(
+                "klines_1m rows must be non-descending in ts (broken/fake connection)")
+        seen_ts.add(ts)
+        prev_ts = ts
+        detached.append(_detach_kline_row(rec))
+    return tuple(detached)

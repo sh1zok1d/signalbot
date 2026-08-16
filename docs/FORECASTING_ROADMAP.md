@@ -473,7 +473,10 @@ current intent, not a contract that overrides sound engineering judgment.
     MTF alignment/context/setup-detector/episode-state-machine runtime
     existed yet, and nothing yet decided what a `V2EpisodeEvent` should
     contain. (See the Stage 3 bullet below for what has since begun.)
-- **Stage 3 — Multi-timeframe Alignment: IN PROGRESS.**
+- **Stage 3 — Multi-timeframe Alignment: IN PROGRESS.** PRs 1 and 2 of ~3
+  are merged to `main`; PR 3 of ~3 (#35) is open, not yet merged. **Stage 3
+  becomes COMPLETE when PR #35 merges** — until then this section describes
+  the branch/PR state, not `main`.
   - **PR 1 of ~3 — deterministic decision clock + closed-bucket alignment:
     MERGED** (#33, "feat: add V2 multi-timeframe decision alignment").
     Implemented exactly the two pure timestamp-selection layers
@@ -494,7 +497,7 @@ current intent, not a contract that overrides sound engineering judgment.
     regime/1h bias/normalized evidence/OI confirmation, and did not touch
     any setup detector, episode identity, episode state machine, entry
     feasibility, outcome evaluation, Telegram, or runtime wiring.
-  - **PR 2 of ~3 — deterministic Stage 2 aligned input readers: this PR**
+  - **PR 2 of ~3 — deterministic Stage 2 aligned input readers: MERGED**
     (#34, "feat: add V2 aligned input readers"). Answers the read-side
     question PR 1 left open: given an already-selected legal timestamp/
     cutoff, how to read EXACTLY the corresponding Stage 2 data row(s), not
@@ -520,11 +523,50 @@ current intent, not a contract that overrides sound engineering judgment.
     stays `false`; `v2.rules_version` is unchanged (`v2-rules-v0.1.0`) —
     this PR implements already-frozen data-selection semantics, not a new
     or tuned V2-v0 parameter; no schema/config change.
+  - **PR 3 of ~3 — aligned-input snapshot assembly: THIS PR** (#35,
+    "feat: complete V2 multi-timeframe input alignment"), the **final
+    planned PR** of the Multi-timeframe Alignment stage, currently OPEN
+    and under review — not yet merged to `main`. Composes PR 1's
+    decision clock and PR 2's exact-bucket/bounded-cutoff Stage 2 readers,
+    plus two NEW canonical Binance reference-exchange read primitives
+    (`read_v2_reference_feature` — the ONE `exchange_feature_vectors` row
+    at an EXACT `(exchange, symbol, market_type, timeframe, bucket_ts,
+    calculation_version)` identity; `read_v2_reference_klines` — raw
+    `klines_1m` bars inside a caller-supplied half-open `[bucket_start,
+    bucket_end)` interval, storage-layer-generic about `exchange`), into
+    ONE immutable, deterministic `V2AlignedInputs` snapshot
+    (`analytics/forecasting_v2/aligned_inputs.py::load_v2_aligned_inputs`)
+    future Stage 4 Context Engines will consume. Pins the canonical V2
+    reference exchange (§11) to exactly `V2_REFERENCE_EXCHANGE = "binance"`
+    — no caller-overridable parameter, no silent Bybit/OKX failover ever;
+    if Binance's reference vector for a bucket fails the frozen §11 gate
+    (`is_usable`/`has_gap`/`bars_present==bars_expected`/`close_price`),
+    only that timeframe's `reference_extrema` becomes `None` — the whole
+    snapshot never fails for legitimately missing/ungated reference data.
+    Implements §7.0a's per-bucket `HTF_high`/`HTF_low`
+    (`derive_reference_extrema`) for `15m`/`1h` only, from the reference
+    exchange's own exact constituent raw 1m bars — never a partial/gapped
+    set; if the reference vector CLAIMS full/usable coverage but the raw
+    bar set is actually incomplete or misaligned, this is treated as
+    internally INCONSISTENT reader output and raises
+    `V2AlignedInputError`, never silently downgraded to "unavailable" —
+    missingness and corruption are deliberately never conflated. Enforces
+    the load-bearing rule that each timeframe's health-at-cutoff read uses
+    THAT bucket's own `bucket_end` as the cutoff, never the global decision
+    boundary `T`. No context/scoring/detector logic of any kind — no
+    `normalized_evidence`, `compression_score`, regime, bias, OI
+    confirmation, or setup-detector logic exists anywhere in this PR.
+    `v2.enabled` stays `false`; `v2.rules_version` is unchanged
+    (`v2-rules-v0.1.0`) — this PR implements already-frozen §7.0a/§11
+    semantics, not a new or tuned V2-v0 parameter; no schema/config change.
   - **V2 still has no context, setup-detector, or episode/state-machine
     logic of any kind** — this stage has established which closed bucket
-    timestamps are legal (PR 1) and how to read exactly the Stage 2 data
-    those timestamps identify (PR 2), not what to do with either.
+    timestamps are legal (PR 1), how to read exactly the Stage 2 data those
+    timestamps identify (PR 2), and how to assemble those reads plus the
+    canonical reference-exchange path into one immutable snapshot (PR 3) —
+    not what to do with any of it.
 
-**Next planned work (after this PR merges):** Stage 3 — Multi-timeframe
-Alignment, PR 3 of ~3 (§I above) — NOT Context Engines (stage 4); Stage 3's
-own remaining scope comes first.
+**Next planned work (after this PR merges):** Stage 4 — Context Engines,
+PR 1 of ~3 (§I above) — shared percentile/evidence primitives, NOT the 4h
+regime engine or 1h bias engine yet, and NOT Setup Detectors (stage 5);
+Stage 4's own scope comes first.
