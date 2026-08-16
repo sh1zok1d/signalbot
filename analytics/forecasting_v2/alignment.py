@@ -222,7 +222,13 @@ def selected_bucket(timeframe: str, T: datetime) -> datetime:
     Never reads a clock, config, or any external state — deterministic in
     `(timeframe, T)` alone. Raises `V2AlignmentError` for an unsupported
     `timeframe` or a malformed `T`."""
-    if timeframe not in TIMEFRAME_MINUTES:
+    # Exact-type check FIRST (consistent with this module's exact-type
+    # validation posture elsewhere — `_validate_utc_datetime`,
+    # `_validate_soft_grace_s`): an unhashable value (list/dict/set) would
+    # otherwise raise TypeError from the `in` membership check below before
+    # this function's own fail-closed V2AlignmentError ever gets a chance
+    # to fire, silently widening the public API's error surface.
+    if type(timeframe) is not str or timeframe not in TIMEFRAME_MINUTES:
         raise V2AlignmentError(
             f"unsupported timeframe {timeframe!r} "
             f"(supported: {sorted(TIMEFRAME_MINUTES)})")

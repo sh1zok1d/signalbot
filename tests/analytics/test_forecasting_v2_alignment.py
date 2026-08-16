@@ -49,6 +49,16 @@ def test_unsupported_timeframe_rejected(bad_tf):
         selected_bucket(bad_tf, dt(2026, 8, 15, 12, 10))
 
 
+@pytest.mark.parametrize("unhashable_tf", [[], {}, set()])
+def test_unhashable_timeframe_rejected_with_alignment_error_not_typeerror(unhashable_tf):
+    # Regression: `timeframe not in TIMEFRAME_MINUTES` alone would raise a
+    # bare TypeError for an unhashable value (list/dict/set) before this
+    # function's own fail-closed V2AlignmentError ever got a chance to
+    # fire — the exact-type check must come first.
+    with pytest.raises(V2AlignmentError, match="timeframe"):
+        selected_bucket(unhashable_tf, dt(2026, 8, 15, 12, 10))
+
+
 # ============================================================================
 # §1.4 worked alignment vectors — exact contract table
 # ============================================================================
