@@ -177,7 +177,60 @@ def test_lookup_none_sample_window_end_is_fine():
 def test_lookup_malformed_sample_window_end_type_raises_domain_error():
     row = make_percentile_row(sample_window_end="not-a-datetime")
     inputs = make_inputs(percentiles=[row])
-    with pytest.raises(V2ContextEvidenceError, match="cannot be compared"):
+    with pytest.raises(V2ContextEvidenceError, match="sample_window_end must be a datetime"):
+        find_consensus_percentile(inputs, metric="price_move_pct_median", percentile_window="30d")
+
+
+# ---- malformed row TYPE in the collection (checked for ALL rows, not
+# just the matching one) -- must never leak AttributeError. ----
+def test_lookup_malformed_row_type_among_percentiles_raises_not_attribute_error():
+    valid_other_row = make_percentile_row(metric="oi_change_pct_median")
+    inputs = make_inputs(percentiles=[valid_other_row, "broken-row"])
+    with pytest.raises(V2ContextEvidenceError, match="must contain only Mapping rows"):
+        find_consensus_percentile(inputs, metric="price_move_pct_median", percentile_window="30d")
+
+
+def test_lookup_malformed_row_type_raises_even_when_no_row_would_have_matched():
+    # The corrupted collection is corruption regardless of whether the
+    # requested (metric, window) pair would ever have matched it.
+    inputs = make_inputs(percentiles=[object()])
+    with pytest.raises(V2ContextEvidenceError, match="must contain only Mapping rows"):
+        find_consensus_percentile(inputs, metric="oi_change_pct_median", percentile_window="7d")
+
+
+# ---- timestamp domain hardening: aware, UTC, whole-minute datetimes only,
+# for inputs.bucket_ts, the matching row's bucket_ts, and sample_window_end.
+def test_lookup_naive_sample_window_end_raises_domain_error():
+    row = make_percentile_row(sample_window_end=datetime(2026, 8, 15, 11, 55))  # no tzinfo
+    inputs = make_inputs(percentiles=[row])
+    with pytest.raises(V2ContextEvidenceError, match="timezone-aware"):
+        find_consensus_percentile(inputs, metric="price_move_pct_median", percentile_window="30d")
+
+
+def test_lookup_non_utc_sample_window_end_raises_domain_error():
+    non_utc = datetime(2026, 8, 15, 14, 55, tzinfo=timezone(timedelta(hours=3)))
+    row = make_percentile_row(sample_window_end=non_utc)
+    inputs = make_inputs(percentiles=[row])
+    with pytest.raises(V2ContextEvidenceError, match="must be UTC"):
+        find_consensus_percentile(inputs, metric="price_move_pct_median", percentile_window="30d")
+
+
+def test_lookup_naive_inputs_bucket_ts_raises_domain_error():
+    naive_B = datetime(2026, 8, 15, 12, 0)
+    row = make_percentile_row(bucket_ts=naive_B)
+    inputs = V2TimeframeInputs(
+        timeframe="4h", bucket_ts=naive_B, bucket_end=naive_B + timedelta(hours=4),
+        consensus=None, percentiles=(row,), health={},
+        reference_feature=None, reference_klines=None, reference_extrema=None)
+    with pytest.raises(V2ContextEvidenceError, match="inputs.bucket_ts must be"):
+        find_consensus_percentile(inputs, metric="price_move_pct_median", percentile_window="30d")
+
+
+def test_lookup_row_bucket_ts_non_utc_raises_domain_error():
+    non_utc = datetime(2026, 8, 15, 15, 0, tzinfo=timezone(timedelta(hours=3)))
+    row = make_percentile_row(bucket_ts=non_utc)
+    inputs = make_inputs(percentiles=[row])
+    with pytest.raises(V2ContextEvidenceError, match="percentile row bucket_ts must be"):
         find_consensus_percentile(inputs, metric="price_move_pct_median", percentile_window="30d")
 
 
@@ -607,3 +660,118 @@ def test_confidence_tiers_reused_from_percentile_engine_not_redeclared():
     # literal — it imports and reuses percentile_engine's canonical one.
     assert "CONFIDENCE_TIERS" in inspect.getsource(ce_module)
     assert CONFIDENCE_TIERS == ("none", "low", "building", "mature")
+
+
+# ============================================================================
+# 8. CORRUPTION PRECEDENCE — malformed PRESENT data must never be masked
+# by a legitimate-missingness/tier-floor short-circuit on a DIFFERENT
+# field. Each primitive validates every present field it reads BEFORE
+# any None/tier-floor short-circuit runs.
+# ============================================================================
+def test_normalized_evidence_nan_value_beats_low_tier():
+    row = make_percentile_row(value=float("nan"), confidence_tier="low")
+    inputs = make_inputs(percentiles=[row])
+    with pytest.raises(V2ContextEvidenceError):
+        normalized_evidence(inputs, metric="price_move_pct_median", percentile_window="30d")
+
+
+def test_normalized_evidence_bad_rank_beats_low_tier():
+    row = make_percentile_row(percentile_rank=float("nan"), confidence_tier="low")
+    inputs = make_inputs(percentiles=[row])
+    with pytest.raises(V2ContextEvidenceError):
+        normalized_evidence(inputs, metric="price_move_pct_median", percentile_window="30d")
+
+
+def test_normalized_evidence_unknown_tier_beats_none_value():
+    row = make_percentile_row(value=None, confidence_tier="legendary")
+    inputs = make_inputs(percentiles=[row])
+    with pytest.raises(V2ContextEvidenceError, match="unknown confidence_tier"):
+        normalized_evidence(inputs, metric="price_move_pct_median", percentile_window="30d")
+
+
+def test_normalized_evidence_none_value_with_known_low_tier_is_still_none():
+    # The opposite case: proves missing and malformed remain genuinely
+    # separate categories -- a KNOWN low tier alongside a legitimately
+    # missing value is still unavailable, never an error.
+    row = make_percentile_row(value=None, confidence_tier="low")
+    inputs = make_inputs(percentiles=[row])
+    assert normalized_evidence(inputs, metric="price_move_pct_median", percentile_window="30d") is None
+
+
+def test_compression_score_negative_value_beats_low_tier():
+    row = make_percentile_row(metric="range_width_pct_median", value=-1.0, confidence_tier="low")
+    inputs = make_inputs(percentiles=[row])
+    with pytest.raises(V2ContextEvidenceError, match=">= 0"):
+        compression_score(inputs, percentile_window="30d")
+
+
+def test_compression_score_nan_rank_beats_low_tier():
+    row = make_percentile_row(metric="range_width_pct_median", percentile_rank=float("nan"),
+                              confidence_tier="low")
+    inputs = make_inputs(percentiles=[row])
+    with pytest.raises(V2ContextEvidenceError):
+        compression_score(inputs, percentile_window="30d")
+
+
+def test_compression_score_none_value_with_known_low_tier_is_still_none():
+    row = make_percentile_row(metric="range_width_pct_median", value=None, confidence_tier="low")
+    inputs = make_inputs(percentiles=[row])
+    assert compression_score(inputs, percentile_window="30d") is None
+
+
+def test_oi_confirmation_malformed_raw_beats_missing_percentile():
+    consensus = make_consensus(oi_change_pct_median=float("nan"))
+    inputs = make_inputs(percentiles=[], consensus=consensus)
+    with pytest.raises(V2ContextEvidenceError):
+        oi_confirmation(inputs, percentile_window="30d")
+
+
+def test_oi_confirmation_malformed_agreement_beats_missing_percentile():
+    consensus = make_consensus(oi_direction_agreement=1.5)
+    inputs = make_inputs(percentiles=[], consensus=consensus)
+    with pytest.raises(V2ContextEvidenceError):
+        oi_confirmation(inputs, percentile_window="30d")
+
+
+def test_oi_confirmation_malformed_raw_beats_missing_agreement():
+    consensus = make_consensus(oi_change_pct_median=float("nan"), oi_direction_agreement=None)
+    inputs = make_inputs(percentiles=[], consensus=consensus)
+    with pytest.raises(V2ContextEvidenceError):
+        oi_confirmation(inputs, percentile_window="30d")
+
+
+def test_oi_confirmation_malformed_agreement_beats_missing_raw():
+    consensus = make_consensus(oi_change_pct_median=None, oi_direction_agreement=1.5)
+    inputs = make_inputs(percentiles=[], consensus=consensus)
+    with pytest.raises(V2ContextEvidenceError):
+        oi_confirmation(inputs, percentile_window="30d")
+
+
+def test_oi_confirmation_none_raw_with_valid_agreement_is_still_none():
+    consensus = make_consensus(oi_change_pct_median=None, oi_direction_agreement=0.75)
+    inputs = make_inputs(percentiles=[], consensus=consensus)
+    assert oi_confirmation(inputs, percentile_window="30d") is None
+
+
+def test_oi_confirmation_valid_raw_agreement_with_missing_percentile_is_still_none():
+    consensus = make_consensus(oi_change_pct_median=0.10, oi_direction_agreement=0.75)
+    inputs = make_inputs(percentiles=[], consensus=consensus)
+    assert oi_confirmation(inputs, percentile_window="30d") is None
+
+
+def test_oi_confirmation_malformed_rank_beats_low_tier():
+    consensus = make_consensus()
+    row = make_percentile_row(metric="oi_change_pct_median", percentile_rank=float("nan"),
+                              confidence_tier="low")
+    inputs = make_inputs(percentiles=[row], consensus=consensus)
+    with pytest.raises(V2ContextEvidenceError):
+        oi_confirmation(inputs, percentile_window="30d")
+
+
+def test_oi_confirmation_unknown_tier_beats_missing_rank():
+    consensus = make_consensus()
+    row = make_percentile_row(metric="oi_change_pct_median", percentile_rank=None,
+                              confidence_tier="legendary")
+    inputs = make_inputs(percentiles=[row], consensus=consensus)
+    with pytest.raises(V2ContextEvidenceError, match="unknown confidence_tier"):
+        oi_confirmation(inputs, percentile_window="30d")

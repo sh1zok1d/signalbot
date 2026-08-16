@@ -92,6 +92,8 @@ to add.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping as _AbcMapping
+from datetime import datetime, timedelta
 from typing import Any, Mapping, Optional
 
 from analytics.forecasting_v2.aligned_inputs import V2TimeframeInputs
@@ -166,6 +168,30 @@ def _validate_unit_interval(value: Any, name: str) -> float:
     return v
 
 
+def _validate_utc_datetime(value: Any, name: str) -> datetime:
+    """Exact-type, timezone-aware, UTC, whole-minute `datetime` check —
+    mirrors the same posture `storage/v2_alignment_readers.py::
+    _validate_whole_minute_utc` and `aligned_inputs.py::_validate_bar_ts`
+    already use elsewhere in V2, restated locally (never imported — this
+    module raises its own `V2ContextEvidenceError`, not a foreign
+    exception type). Stage 3 already guarantees this for a real
+    `V2AlignedInputs`, but `find_consensus_percentile` explicitly supports
+    a hand-constructed `V2TimeframeInputs` too (tests, a future replay
+    harness); a malformed timestamp there must raise this domain error,
+    never a bare `TypeError` leaking out of a `<`/`!=` comparison. Never
+    normalizes/floors/converts — a value that fails is rejected outright."""
+    if type(value) is not datetime:
+        raise V2ContextEvidenceError(f"{name} must be a datetime, got {type(value).__name__}: {value!r}")
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise V2ContextEvidenceError(f"{name} must be timezone-aware, got {value!r}")
+    if value.utcoffset() != timedelta(0):
+        raise V2ContextEvidenceError(f"{name} must be UTC (offset 0), got offset {value.utcoffset()}")
+    if value.second != 0 or value.microsecond != 0:
+        raise V2ContextEvidenceError(
+            f"{name} must be a whole minute (no seconds/microseconds), got {value!r}")
+    return value
+
+
 def find_consensus_percentile(
     inputs: V2TimeframeInputs, *, metric: str, percentile_window: str,
 ) -> Optional[Mapping]:
@@ -187,7 +213,16 @@ def find_consensus_percentile(
     `metric` must be one of `CONSENSUS_SCOPE_METRICS`
     (`analytics.percentile_engine.models`) and `percentile_window` must be
     one of `VALID_WINDOWS` (`"7d"`/`"30d"`) — no string coercion, no
-    aliasing, no fuzzy matching."""
+    aliasing, no fuzzy matching.
+
+    Every item in `inputs.percentiles` must be a `Mapping` — checked for
+    ALL rows, not only a matching one, so a malformed non-matching row
+    (a broken/fake caller's corrupted collection) is treated as
+    corruption rather than silently ignored. `inputs.bucket_ts`, the
+    matching row's `bucket_ts`, and its `sample_window_end` (when present)
+    are each validated as proper aware-UTC whole-minute `datetime`s before
+    any comparison — a malformed value raises `V2ContextEvidenceError`,
+    never a bare `TypeError`/`AttributeError`."""
     if not isinstance(metric, str) or metric not in CONSENSUS_SCOPE_METRICS:
         raise V2ContextEvidenceError(
             f"metric must be one of {CONSENSUS_SCOPE_METRICS}, got {metric!r}")
@@ -195,10 +230,17 @@ def find_consensus_percentile(
         raise V2ContextEvidenceError(
             f"percentile_window must be one of {VALID_WINDOWS}, got {percentile_window!r}")
 
-    matches = [
-        row for row in inputs.percentiles
-        if row.get("metric") == metric and row.get("percentile_window") == percentile_window
-    ]
+    bucket_ts = _validate_utc_datetime(inputs.bucket_ts, "inputs.bucket_ts")
+
+    matches = []
+    for row in inputs.percentiles:
+        if not isinstance(row, _AbcMapping):
+            raise V2ContextEvidenceError(
+                f"inputs.percentiles must contain only Mapping rows, got "
+                f"{type(row).__name__}: {row!r}")
+        if row.get("metric") == metric and row.get("percentile_window") == percentile_window:
+            matches.append(row)
+
     if not matches:
         return None
     if len(matches) > 1:
@@ -217,19 +259,17 @@ def find_consensus_percentile(
     if row.get("timeframe") != inputs.timeframe:
         raise V2ContextEvidenceError(
             "percentile row timeframe does not match the aligned timeframe")
-    if row.get("bucket_ts") != inputs.bucket_ts:
+
+    row_bucket_ts = _validate_utc_datetime(row.get("bucket_ts"), "percentile row bucket_ts")
+    if row_bucket_ts != bucket_ts:
         raise V2ContextEvidenceError(
             "percentile row bucket_ts does not match the aligned bucket")
 
     sample_window_end = row.get("sample_window_end")
     if sample_window_end is not None:
-        try:
-            before_bucket = sample_window_end < inputs.bucket_ts
-        except TypeError as exc:
-            raise V2ContextEvidenceError(
-                f"percentile row sample_window_end ({sample_window_end!r}) cannot be "
-                f"compared to bucket_ts ({inputs.bucket_ts!r})") from exc
-        if not before_bucket:
+        sample_window_end = _validate_utc_datetime(
+            sample_window_end, "percentile row sample_window_end")
+        if not (sample_window_end < bucket_ts):
             raise V2ContextEvidenceError(
                 "percentile row sample_window_end must be strictly before bucket_ts "
                 "(no-lookahead defense) — equality is not allowed")
@@ -255,6 +295,15 @@ def normalized_evidence(
     non-numeric, `percentile_rank` outside `[0.0, 1.0]`) or an unknown
     confidence tier — never silently coerced or clamped.
 
+    **Validation order (load-bearing).** Every PRESENT field this
+    function reads (`confidence_tier`, `value`, `percentile_rank`) is
+    validated for corruption BEFORE any missingness/tier-floor
+    short-circuit runs — an unknown tier, a non-finite `value`, or an
+    out-of-range `percentile_rank` is never masked just because a
+    DIFFERENT field on the same row happens to be legitimately missing or
+    the tier happens to be below the usable floor. Only once every
+    PRESENT field is known valid do the `None`/tier-floor rules apply.
+
     Rejects `metric == "range_width_pct_median"` outright: that is an
     UNSIGNED range metric with no sign to preserve — use
     `compression_score()` instead (§23: this primitive must not silently
@@ -267,17 +316,25 @@ def normalized_evidence(
     snapshot = find_consensus_percentile(inputs, metric=metric, percentile_window=percentile_window)
     if snapshot is None:
         return None
-    value = snapshot.get("value")
-    if value is None:
-        return None
-    rank = snapshot.get("percentile_rank")
-    if rank is None:
-        return None
-    if not _percentile_tier_usable(snapshot.get("confidence_tier")):
-        return None
 
-    v = _validate_finite_numeric(value, "value")
-    p = _validate_unit_interval(rank, "percentile_rank")
+    value = snapshot.get("value")
+    rank = snapshot.get("percentile_rank")
+    tier = snapshot.get("confidence_tier")
+
+    # Validate every PRESENT field first — an unknown tier, or a
+    # malformed present value/rank, must never be hidden behind a
+    # coincidentally-missing peer field.
+    tier_usable = _percentile_tier_usable(tier)
+    v = _validate_finite_numeric(value, "value") if value is not None else None
+    p = _validate_unit_interval(rank, "percentile_rank") if rank is not None else None
+
+    # Only now: legitimate-missingness / tier-floor short-circuits.
+    if v is None:
+        return None
+    if p is None:
+        return None
+    if not tier_usable:
+        return None
 
     if v > 0:
         return max(0.0, 2.0 * p - 1.0)
@@ -298,25 +355,40 @@ def compression_score(inputs: V2TimeframeInputs, *, percentile_window: str) -> O
     Same `None`/tier-floor rules as `normalized_evidence` (missing
     snapshot/value/rank, or a below-floor tier, -> `None`). A PRESENT
     `value` must be finite and `>= 0.0` — a negative range width is
-    corrupted data (`V2ContextEvidenceError`), never silently accepted."""
+    corrupted data (`V2ContextEvidenceError`), never silently accepted.
+
+    **Validation order (load-bearing)**, same posture as
+    `normalized_evidence`: every PRESENT field (`confidence_tier`,
+    `value`, `percentile_rank`) is validated for corruption BEFORE any
+    missingness/tier-floor short-circuit — a negative/non-finite PRESENT
+    `value`, an out-of-range `percentile_rank`, or an unknown tier is
+    never masked by a coincidentally-missing peer field or a below-floor
+    tier on the same row."""
     snapshot = find_consensus_percentile(
         inputs, metric=_COMPRESSION_METRIC, percentile_window=percentile_window)
     if snapshot is None:
         return None
-    value = snapshot.get("value")
-    if value is None:
-        return None
-    rank = snapshot.get("percentile_rank")
-    if rank is None:
-        return None
-    if not _percentile_tier_usable(snapshot.get("confidence_tier")):
-        return None
 
-    v = _validate_finite_numeric(value, f"{_COMPRESSION_METRIC} value")
-    if v < 0:
-        raise V2ContextEvidenceError(
-            f"{_COMPRESSION_METRIC} must be >= 0 (unsigned range metric), got {v!r}")
-    p = _validate_unit_interval(rank, "percentile_rank")
+    value = snapshot.get("value")
+    rank = snapshot.get("percentile_rank")
+    tier = snapshot.get("confidence_tier")
+
+    tier_usable = _percentile_tier_usable(tier)
+    if value is not None:
+        v = _validate_finite_numeric(value, f"{_COMPRESSION_METRIC} value")
+        if v < 0:
+            raise V2ContextEvidenceError(
+                f"{_COMPRESSION_METRIC} must be >= 0 (unsigned range metric), got {v!r}")
+    else:
+        v = None
+    p = _validate_unit_interval(rank, "percentile_rank") if rank is not None else None
+
+    if v is None:
+        return None
+    if p is None:
+        return None
+    if not tier_usable:
+        return None
 
     return 1.0 - p
 
@@ -354,28 +426,47 @@ def oi_confirmation(inputs: V2TimeframeInputs, *, percentile_window: str) -> Opt
     confidence tier is below `MIN_PCTL_TIER`. `V2ContextEvidenceError` for
     a malformed PRESENT `oi_change_pct_median`/`percentile_rank`/
     `oi_direction_agreement` (non-finite, non-numeric, an agreement/rank
-    outside `[0.0, 1.0]`) — never clamped."""
+    outside `[0.0, 1.0]`) — never clamped.
+
+    **Validation order (load-bearing).** Every PRESENT consensus value
+    (`oi_change_pct_median`, `oi_direction_agreement`) is validated for
+    corruption BEFORE checking whether the OTHER one is missing or
+    looking up the percentile row at all — a malformed present raw OI or
+    agreement is never masked by a coincidentally-missing peer field or a
+    missing percentile row. Symmetrically, once a percentile row is
+    found, its `confidence_tier` and any PRESENT `percentile_rank` are
+    validated before the `None`/tier-floor short-circuits run."""
     consensus = inputs.consensus
     if consensus is None:
         return None
+
     oi_raw = consensus.get("oi_change_pct_median")
     oi_agreement = consensus.get("oi_direction_agreement")
-    if oi_raw is None or oi_agreement is None:
+
+    # Validate every PRESENT consensus value before checking whether the
+    # OTHER one is missing or looking up the percentile row.
+    oi_raw_v = (_validate_finite_numeric(oi_raw, "consensus.oi_change_pct_median")
+                if oi_raw is not None else None)
+    oi_agreement_v = (_validate_unit_interval(oi_agreement, "consensus.oi_direction_agreement")
+                       if oi_agreement is not None else None)
+
+    if oi_raw_v is None or oi_agreement_v is None:
         return None
 
     snapshot = find_consensus_percentile(
         inputs, metric=_OI_METRIC, percentile_window=percentile_window)
     if snapshot is None:
         return None
-    rank = snapshot.get("percentile_rank")
-    if rank is None:
-        return None
-    if not _percentile_tier_usable(snapshot.get("confidence_tier")):
-        return None
 
-    oi_raw_v = _validate_finite_numeric(oi_raw, "consensus.oi_change_pct_median")
-    oi_rank = _validate_unit_interval(rank, "percentile_rank")
-    oi_agreement_v = _validate_unit_interval(oi_agreement, "consensus.oi_direction_agreement")
+    rank = snapshot.get("percentile_rank")
+    tier = snapshot.get("confidence_tier")
+    tier_usable = _percentile_tier_usable(tier)
+    oi_rank = _validate_unit_interval(rank, "percentile_rank") if rank is not None else None
+
+    if oi_rank is None:
+        return None
+    if not tier_usable:
+        return None
 
     if oi_raw_v > 0:
         strength = max(0.0, 2.0 * oi_rank - 1.0)
