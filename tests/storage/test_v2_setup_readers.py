@@ -829,3 +829,112 @@ def test_direct_instrument_reader_rejects_malformed_market_type_zero_fetches():
     with pytest.raises(V2SetupReaderError, match="market_type"):
         _run(read_v2_instrument(conn, exchange="binance", symbol="BTCUSDT", market_type=""))
     assert conn.fetch_calls == []
+
+
+# ============================================================================
+# 11. RETURNED-ROW SHAPE HARDENING (pre-merge amendment) — a broken/fake
+# connection returning {}, a partial dict, or a bare non-Mapping value must
+# never leak a bare KeyError/AttributeError/TypeError: it must always
+# surface as this module's own V2SetupReaderError. "Missing key" (a
+# structurally incomplete row) is a categorically different failure from
+# "present key, SQL NULL" — the latter remains legitimate and unaffected by
+# this hardening (see the pre-existing nullable-JSON/sample_window_end
+# tests above, all still passing unchanged).
+# ============================================================================
+def _drop(row: dict, *keys: str) -> dict:
+    row = dict(row)
+    for k in keys:
+        row.pop(k, None)
+    return row
+
+
+@pytest.mark.parametrize("bad_row", [
+    {},
+    "not-a-row",
+    None,
+    ["symbol", "BTCUSDT"],
+])
+def test_consensus_window_rejects_malformed_row_shape(bad_row):
+    conn = FakeConn([bad_row])
+    with pytest.raises(V2SetupReaderError):
+        _run(read_v2_consensus_feature_window(
+            conn, symbol="BTCUSDT", market_type="perp", timeframe="15m",
+            bucket_start=B, bucket_end=B, calculation_version=H16))
+
+
+@pytest.mark.parametrize("missing_field", ["symbol", "bucket_ts"])
+def test_consensus_window_rejects_row_missing_required_field(missing_field):
+    conn = FakeConn([_drop(make_consensus_row(), missing_field)])
+    with pytest.raises(V2SetupReaderError, match=missing_field):
+        _run(read_v2_consensus_feature_window(
+            conn, symbol="BTCUSDT", market_type="perp", timeframe="15m",
+            bucket_start=B, bucket_end=B, calculation_version=H16))
+
+
+@pytest.mark.parametrize("bad_row", [{}, "not-a-row", None])
+def test_percentile_window_rejects_malformed_row_shape(bad_row):
+    conn = FakeConn([bad_row])
+    with pytest.raises(V2SetupReaderError):
+        _run(read_v2_consensus_percentile_window(
+            conn, symbol="BTCUSDT", market_type="perp", metric="range_width_pct_median",
+            timeframe="15m", percentile_window="30d", bucket_start=B, bucket_end=B,
+            calculation_version=H16))
+
+
+@pytest.mark.parametrize("missing_field", ["scope", "sample_window_end", "bucket_ts"])
+def test_percentile_window_rejects_row_missing_required_field(missing_field):
+    conn = FakeConn([_drop(make_percentile_row(), missing_field)])
+    with pytest.raises(V2SetupReaderError, match=missing_field):
+        _run(read_v2_consensus_percentile_window(
+            conn, symbol="BTCUSDT", market_type="perp", metric="range_width_pct_median",
+            timeframe="15m", percentile_window="30d", bucket_start=B, bucket_end=B,
+            calculation_version=H16))
+
+
+@pytest.mark.parametrize("bad_row", [{}, "not-a-row", None])
+def test_reference_window_rejects_malformed_row_shape(bad_row):
+    conn = FakeConn([bad_row])
+    with pytest.raises(V2SetupReaderError):
+        _run(read_v2_reference_feature_window(
+            conn, exchange="binance", symbol="BTCUSDT", market_type="perp", timeframe="15m",
+            bucket_start=B, bucket_end=B, calculation_version=H16))
+
+
+@pytest.mark.parametrize("missing_field", ["exchange", "bucket_ts"])
+def test_reference_window_rejects_row_missing_required_field(missing_field):
+    conn = FakeConn([_drop(make_reference_row(), missing_field)])
+    with pytest.raises(V2SetupReaderError, match=missing_field):
+        _run(read_v2_reference_feature_window(
+            conn, exchange="binance", symbol="BTCUSDT", market_type="perp", timeframe="15m",
+            bucket_start=B, bucket_end=B, calculation_version=H16))
+
+
+@pytest.mark.parametrize("bad_row", [{}, "not-a-row", None])
+def test_instrument_rejects_malformed_row_shape(bad_row):
+    conn = FakeConn([bad_row])
+    with pytest.raises(V2SetupReaderError):
+        _run(read_v2_instrument(conn, exchange="binance", symbol="BTCUSDT", market_type="perp"))
+
+
+@pytest.mark.parametrize("missing_field", ["exchange", "tick_size"])
+def test_instrument_rejects_row_missing_required_field(missing_field):
+    conn = FakeConn([_drop(make_instrument_row(), missing_field)])
+    with pytest.raises(V2SetupReaderError, match=missing_field):
+        _run(read_v2_instrument(conn, exchange="binance", symbol="BTCUSDT", market_type="perp"))
+
+
+def test_instrument_missing_row_still_returns_none_unchanged():
+    # Unchanged behavior: an entirely absent row is NOT a shape error.
+    conn = FakeConn([])
+    result = _run(read_v2_instrument(
+        conn, exchange="binance", symbol="BTCUSDT", market_type="perp"))
+    assert result is None
+
+
+def test_instrument_duplicate_rows_still_fails_loudly_unchanged():
+    # Unchanged behavior: more than one row remains its own distinct error,
+    # not something the new shape check should ever mask or alter.
+    conn = FakeConn([make_instrument_row(), make_instrument_row()])
+    with pytest.raises(V2SetupReaderError):
+        _run(read_v2_instrument(
+            conn, exchange="binance", symbol="BTCUSDT", market_type="perp"))

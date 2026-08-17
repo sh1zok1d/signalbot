@@ -161,6 +161,30 @@ _CONSENSUS_JSON_COLUMNS = (
 _CONSENSUS_REQUIRED_JSON_COLUMNS = frozenset(
     {"coverage_by_metric", "provenance_by_metric", "data_confidence_by_metric"})
 
+# The FULL explicit column set _CONSENSUS_FEATURE_WINDOW_SQL selects — a
+# required-row-shape check, not merely the identity subset this module
+# directly indexes: _detach_consensus_row() blindly iterates `rec.keys()`,
+# so a row silently MISSING a key (not SQL NULL, an absent key entirely)
+# would otherwise produce a silently-incomplete detached row rather than
+# a domain error.
+_CONSENSUS_FEATURE_REQUIRED_FIELDS = (
+    "symbol", "market_type", "timeframe", "bucket_ts", "feature_schema_version",
+    "calculation_version",
+    "coverage_by_metric", "provenance_by_metric", "data_confidence_by_metric",
+    "exchanges_expected_max", "min_coverage_ratio", "data_confidence_overall",
+    "price_direction_agreement", "flow_direction_agreement", "oi_direction_agreement",
+    "price_move_pct_median", "range_width_pct_median", "oi_change_pct_median",
+    "funding_rate_median", "funding_rate_mad",
+    "volume_notional_usd_sum", "taker_buy_notional_usd_sum",
+    "taker_sell_notional_usd_sum", "taker_delta_notional_usd_sum",
+    "cvd_delta_notional_usd_sum",
+    "observed_long_liquidation_notional_sum", "observed_short_liquidation_notional_sum",
+    "observed_liquidation_event_count_sum", "liquidation_feed_quality_by_exchange",
+    "price_move_pct_mad", "oi_change_pct_mad", "outlier_exchanges",
+    "consensus_confidence", "is_partial_consensus",
+    "computed_at", "config_hash", "config_version", "code_version",
+)
+
 # scope/exchange pinned at SQL level, same as Stage 3's percentile reader.
 # EXACT metric/timeframe/percentile_window, inclusive bucket-START interval.
 _CONSENSUS_PERCENTILE_WINDOW_SQL = """
@@ -176,6 +200,15 @@ WHERE scope = 'consensus' AND exchange = ''
   AND bucket_ts >= $7 AND bucket_ts <= $8
 ORDER BY bucket_ts ASC
 """
+
+# The FULL explicit column set _CONSENSUS_PERCENTILE_WINDOW_SQL selects.
+_CONSENSUS_PERCENTILE_REQUIRED_FIELDS = (
+    "scope", "exchange", "symbol", "market_type", "metric", "timeframe", "percentile_window",
+    "bucket_ts", "value", "percentile_rank", "sample_size",
+    "sample_window_start", "sample_window_end", "confidence_tier",
+    "computed_at", "config_hash", "config_version", "code_version",
+    "feature_schema_version", "calculation_version",
+)
 
 # Identical explicit column set to v2_alignment_readers.py's
 # _REFERENCE_FEATURE_SQL, widened to an inclusive bucket-START interval.
@@ -197,6 +230,20 @@ WHERE exchange = $1 AND symbol = $2 AND market_type = $3 AND timeframe = $4
 ORDER BY bucket_ts ASC
 """
 
+# The FULL explicit column set _REFERENCE_FEATURE_WINDOW_SQL selects.
+_REFERENCE_FEATURE_REQUIRED_FIELDS = (
+    "exchange", "symbol", "market_type", "timeframe", "bucket_ts", "feature_schema_version",
+    "calculation_version",
+    "price_move_pct", "range_width_pct", "close_price",
+    "volume_raw", "volume_raw_unit", "volume_notional_usd", "taker_buy_notional_usd",
+    "taker_sell_notional_usd", "taker_delta_notional_usd", "cvd_delta_notional_usd",
+    "oi_change_pct", "oi_unit", "funding_rate",
+    "long_liquidation_notional", "short_liquidation_notional", "liquidation_event_count",
+    "liquidation_feed_quality", "is_snapshot_feed",
+    "bars_expected", "bars_present", "has_gap", "is_usable",
+    "computed_at", "config_hash", "config_version", "code_version",
+)
+
 # Single-row instrument metadata lookup — NOT bucket-scoped (instrument
 # metadata is not time-bucketed). Same explicit column set as
 # storage/stage2_readers.py::INSTRUMENT_SQL, as its own standalone read.
@@ -207,6 +254,13 @@ SELECT exchange, symbol, market_type, exchange_instrument_id, quantity_unit,
 FROM exchange_instruments
 WHERE exchange = $1 AND symbol = $2 AND market_type = $3
 """
+
+# The FULL explicit column set _INSTRUMENT_SQL selects.
+_INSTRUMENT_REQUIRED_FIELDS = (
+    "exchange", "symbol", "market_type", "exchange_instrument_id", "quantity_unit",
+    "contract_multiplier", "tick_size", "price_precision", "quantity_precision",
+    "metadata_source", "fetched_at", "is_stale", "note", "updated_at",
+)
 
 
 # ---- JSONB detachment (identical posture to v2_alignment_readers.py) -------
@@ -246,6 +300,33 @@ def _parse_nullable_json_column(value: Any, name: str) -> Optional[Any]:
     if value is None:
         return None
     return _parse_json_column(value, name)
+
+
+# ---- returned-row shape hardening (load-bearing, pre-merge amendment) -----
+# A broken/fake connection (or a genuinely corrupted real one) can return
+# something that is not row-shaped at all ({}, a partial dict, a bare
+# string, None). Without this check, the post-fetch identity/detachment
+# code below would leak a bare KeyError/AttributeError/TypeError instead
+# of this module's own documented V2SetupReaderError. This checks ONLY
+# that the row supports the exact Mapping/asyncpg.Record-like access
+# pattern already used elsewhere in this module (`.keys()` + indexing)
+# and that every REQUIRED column is PRESENT as a key — never that a
+# present column's VALUE is non-NULL (SQL NULL is a legitimate value for
+# a nullable column; a missing key is a structurally different failure,
+# and this check never conflates the two).
+def _require_row_fields(rec: Any, required_fields: "tuple[str, ...]", family: str) -> None:
+    if not hasattr(rec, "keys") or not hasattr(rec, "__getitem__"):
+        raise V2SetupReaderError(
+            f"{family} row must be Mapping/Record-like (support .keys()/indexing), "
+            f"got {type(rec).__name__}: {rec!r}")
+    try:
+        present = set(rec.keys())
+    except TypeError as exc:
+        raise V2SetupReaderError(f"{family} row .keys() failed: {exc}") from exc
+    missing = [col for col in required_fields if col not in present]
+    if missing:
+        raise V2SetupReaderError(
+            f"{family} row is missing required field(s) {missing!r}")
 
 
 def _detach_consensus_row(rec) -> Mapping:
@@ -385,6 +466,7 @@ async def read_v2_consensus_feature_window(
     seen_bucket_ts: set = set()
     prev_ts: Optional[datetime] = None
     for rec in rows:
+        _require_row_fields(rec, _CONSENSUS_FEATURE_REQUIRED_FIELDS, "consensus_feature_vectors")
         if (rec["symbol"], rec["market_type"], rec["timeframe"], rec["calculation_version"]) != (
                 symbol, market_type, timeframe, calculation_version):
             raise V2SetupReaderError(
@@ -443,6 +525,7 @@ async def read_v2_consensus_percentile_window(
     seen_bucket_ts: set = set()
     prev_ts: Optional[datetime] = None
     for rec in rows:
+        _require_row_fields(rec, _CONSENSUS_PERCENTILE_REQUIRED_FIELDS, "percentile_snapshots")
         if (rec["scope"], rec["exchange"], rec["symbol"], rec["market_type"], rec["metric"],
                 rec["timeframe"], rec["percentile_window"], rec["calculation_version"]) != (
                 "consensus", "", symbol, market_type, metric, timeframe, percentile_window,
@@ -503,6 +586,7 @@ async def read_v2_reference_feature_window(
     seen_bucket_ts: set = set()
     prev_ts: Optional[datetime] = None
     for rec in rows:
+        _require_row_fields(rec, _REFERENCE_FEATURE_REQUIRED_FIELDS, "exchange_feature_vectors")
         if (rec["exchange"], rec["symbol"], rec["market_type"], rec["timeframe"],
                 rec["calculation_version"]) != (
                 exchange, symbol, market_type, timeframe, calculation_version):
@@ -552,6 +636,7 @@ async def read_v2_instrument(
             f"expected at most one exchange_instruments row for ({exchange!r}, {symbol!r}, "
             f"{market_type!r}), got {len(rows)}")
     rec = rows[0]
+    _require_row_fields(rec, _INSTRUMENT_REQUIRED_FIELDS, "exchange_instruments")
     if (rec["exchange"], rec["symbol"], rec["market_type"]) != (exchange, symbol, market_type):
         raise V2SetupReaderError(
             "exchange_instruments row identity does not match the requested identity")

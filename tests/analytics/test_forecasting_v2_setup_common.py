@@ -331,6 +331,88 @@ def test_range_proxy_n_is_exactly_14():
 
 
 # ============================================================================
+# 4b. RANGE PROXY — bucket-grid alignment hardening (pre-merge amendment).
+# bucket_ts must be a legal CLOSED-bucket START on timeframe's own
+# canonical UTC grid, not merely aware/UTC/whole-minute. Illegal vectors
+# are exercised with rows=[] -- the grid check runs BEFORE any row
+# iteration, so an illegal bucket_ts raises regardless of what `rows`
+# contains. Legal vectors (including non-midnight/historical ones) are
+# exercised the same way and must NOT raise -- an empty `rows` still
+# legitimately returns None (incomplete window), never an error.
+# ============================================================================
+def test_range_proxy_15m_legal_bucket_start_accepted():
+    assert range_proxy_pct([], timeframe="15m", bucket_ts=B15) is None  # no exception
+
+
+@pytest.mark.parametrize("bad_minute", [1, 7, 14])
+def test_range_proxy_15m_illegal_bucket_start_raises(bad_minute):
+    bad_bucket_ts = B15.replace(minute=bad_minute)
+    with pytest.raises(V2SetupFoundationError):
+        range_proxy_pct([], timeframe="15m", bucket_ts=bad_bucket_ts)
+
+
+def test_range_proxy_1h_legal_bucket_start_accepted():
+    assert range_proxy_pct([], timeframe="1h", bucket_ts=B1H_GRID) is None  # no exception
+
+
+@pytest.mark.parametrize("bad_minute", [5, 30])
+def test_range_proxy_1h_illegal_bucket_start_raises(bad_minute):
+    bad_bucket_ts = B1H_GRID.replace(minute=bad_minute)
+    with pytest.raises(V2SetupFoundationError):
+        range_proxy_pct([], timeframe="1h", bucket_ts=bad_bucket_ts)
+
+
+def test_range_proxy_15m_legal_non_midnight_historical_bucket_accepted():
+    # A legal 15m bucket start far from the module's default fixture time
+    # and not on the hour -- proves the grid check is a real grid
+    # invariant, not merely "matches B15 by coincidence."
+    historical = datetime(2020, 3, 1, 13, 45, tzinfo=UTC)
+    rows = _grid_rows(historical, "15m", 15, [3.0] * RANGE_PROXY_N)
+    assert range_proxy_pct(rows, timeframe="15m", bucket_ts=historical) == 3.0
+
+
+def test_range_proxy_1h_legal_non_midnight_historical_bucket_accepted():
+    historical = datetime(2020, 3, 1, 5, 0, tzinfo=UTC)
+    rows = _grid_rows(historical, "1h", 60, [4.0] * RANGE_PROXY_N)
+    assert range_proxy_pct(rows, timeframe="1h", bucket_ts=historical) == 4.0
+
+
+def test_range_proxy_illegal_bucket_start_never_silently_floored():
+    # The bucket-grid check must reject, never floor bucket_ts=12:07 down
+    # to 12:00 on the caller's behalf -- confirmed by the fact this raises
+    # rather than silently returning the same result as bucket_ts=12:00
+    # would (see test_range_proxy_15m_illegal_bucket_start_raises above).
+    with pytest.raises(V2SetupFoundationError):
+        range_proxy_pct([], timeframe="15m", bucket_ts=B15.replace(minute=7))
+
+
+# ============================================================================
+# 4c. TOP-LEVEL ROW/CANDIDATE CONTAINER HARDENING (pre-merge amendment) --
+# range_proxy_pct(rows=...)/select_extreme_anchor(candidates=...) must
+# reject a top-level argument that is not a legitimate row/candidate
+# container (None, a bare str) with V2SetupFoundationError rather than an
+# incidental Python iteration error -- never treating a string/bytes value
+# as if it were a sequence of rows.
+# ============================================================================
+@pytest.mark.parametrize("bad_rows", [None, "not rows"])
+def test_range_proxy_rejects_non_sequence_rows(bad_rows):
+    with pytest.raises(V2SetupFoundationError):
+        range_proxy_pct(bad_rows, timeframe="15m", bucket_ts=B15)
+
+
+@pytest.mark.parametrize("bad_candidates", [None, "not candidates"])
+def test_extreme_rejects_non_sequence_candidates(bad_candidates):
+    with pytest.raises(V2SetupFoundationError):
+        select_extreme_anchor(bad_candidates, mode="max")
+
+
+def test_extreme_empty_list_still_returns_none_unchanged():
+    # A legitimate empty sequence remains distinct from a malformed
+    # top-level container -- must not be swept up by the new hardening.
+    assert select_extreme_anchor([], mode="max") is None
+
+
+# ============================================================================
 # 5. PROTECTION BUFFER — §15-17
 # ============================================================================
 def test_protection_buffer_tick_floor_wins():
@@ -495,6 +577,52 @@ def test_extreme_anchor_is_frozen():
     anchor = V2ExtremeAnchor(bucket_ts=datetime(2026, 8, 15, 10, 0, tzinfo=UTC), value=1.0)
     with pytest.raises(Exception):
         anchor.value = 2.0  # type: ignore[misc]
+
+
+# ============================================================================
+# 6b. V2ExtremeAnchor DIRECT-CONSTRUCTION SELF-VALIDATION (pre-merge
+# amendment) -- public Stage 5 API; must self-validate on ANY direct
+# construction, not only via select_extreme_anchor()'s own builder path.
+# ============================================================================
+def test_extreme_anchor_valid_direct_construction_accepted():
+    anchor = V2ExtremeAnchor(bucket_ts=datetime(2026, 8, 15, 10, 0, tzinfo=UTC), value=65000.5)
+    assert anchor.bucket_ts == datetime(2026, 8, 15, 10, 0, tzinfo=UTC)
+    assert anchor.value == 65000.5
+
+
+def test_extreme_anchor_rejects_naive_bucket_ts():
+    with pytest.raises(V2SetupFoundationError):
+        V2ExtremeAnchor(bucket_ts=datetime(2026, 8, 15, 10, 0), value=1.0)
+
+
+def test_extreme_anchor_rejects_non_utc_bucket_ts():
+    with pytest.raises(V2SetupFoundationError):
+        V2ExtremeAnchor(
+            bucket_ts=datetime(2026, 8, 15, 13, 0, tzinfo=timezone(timedelta(hours=3))),
+            value=1.0)
+
+
+def test_extreme_anchor_rejects_seconds_bucket_ts():
+    with pytest.raises(V2SetupFoundationError):
+        V2ExtremeAnchor(bucket_ts=datetime(2026, 8, 15, 10, 0, 1, tzinfo=UTC), value=1.0)
+
+
+def test_extreme_anchor_rejects_microseconds_bucket_ts():
+    with pytest.raises(V2SetupFoundationError):
+        V2ExtremeAnchor(bucket_ts=datetime(2026, 8, 15, 10, 0, 0, 1, tzinfo=UTC), value=1.0)
+
+
+@pytest.mark.parametrize("bad_value", [float("nan"), float("inf"), float("-inf"), True, False, "1.0"])
+def test_extreme_anchor_rejects_malformed_value(bad_value):
+    with pytest.raises(V2SetupFoundationError):
+        V2ExtremeAnchor(bucket_ts=datetime(2026, 8, 15, 10, 0, tzinfo=UTC), value=bad_value)
+
+
+def test_extreme_anchor_does_not_restrict_value_sign():
+    # An abstract extreme helper may legitimately select any finite
+    # numeric value -- negative values are not rejected.
+    anchor = V2ExtremeAnchor(bucket_ts=datetime(2026, 8, 15, 10, 0, tzinfo=UTC), value=-500.0)
+    assert anchor.value == -500.0
 
 
 # ============================================================================

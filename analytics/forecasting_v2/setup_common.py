@@ -76,7 +76,9 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Mapping, Optional, Sequence
 
-from analytics.forecasting_v2.alignment import TIMEFRAME_MINUTES
+from analytics.forecasting_v2.alignment import (
+    TIMEFRAME_MINUTES, V2AlignmentError, selected_bucket,
+)
 from analytics.forecasting_v2.bias_1h import (
     BEARISH as BIAS_BEARISH,
     BIAS_UNAVAILABLE,
@@ -163,6 +165,28 @@ def _validate_nonnegative_finite(value: Any, name: str) -> float:
     if v < 0.0:
         raise V2SetupFoundationError(f"{name} must be >= 0.0, got {v!r}")
     return v
+
+
+def _validate_row_sequence(rows: Any, name: str) -> Any:
+    """Fail closed on a top-level `rows`/`candidates` argument that is not
+    even a legitimate iterable-of-rows container — `None`, or a bare
+    `str`/`bytes`/`bytearray` (which *is* iterable, character-by-character,
+    and would otherwise silently produce a confusing per-character
+    "row must be a Mapping" error instead of a clear container-shape
+    error). A genuinely empty sequence (`[]`/`()`) is NOT rejected here —
+    that remains each caller's own legitimate "no rows"/"no candidates"
+    case, handled by that caller's own downstream logic."""
+    if rows is None or isinstance(rows, (str, bytes, bytearray)):
+        raise V2SetupFoundationError(
+            f"{name} must be a Sequence of Mapping rows (not None/str/bytes), got "
+            f"{type(rows).__name__}: {rows!r}")
+    try:
+        iter(rows)
+    except TypeError as exc:
+        raise V2SetupFoundationError(
+            f"{name} must be an iterable Sequence of Mapping rows, got "
+            f"{type(rows).__name__}: {exc}") from exc
+    return rows
 
 
 # ============================================================================
@@ -315,10 +339,37 @@ def range_proxy_pct(
     malformed present value is never masked merely because a DIFFERENT
     expected bucket happens to be legitimately missing elsewhere in the
     same window."""
+    rows = _validate_row_sequence(rows, "rows")
     if timeframe not in SETUP_RANGE_TIMEFRAMES:
         raise V2SetupFoundationError(
             f"timeframe must be one of {SETUP_RANGE_TIMEFRAMES}, got {timeframe!r}")
     bucket_ts = _validate_utc_datetime(bucket_ts, "bucket_ts")
+
+    # bucket_ts must be a legal CLOSED-bucket START on timeframe's own
+    # canonical UTC grid (§7), not merely an aware/UTC/whole-minute
+    # datetime — e.g. 12:07 is whole-minute-valid but not a legal 15m
+    # bucket start. Reuses alignment.py's existing pure grid primitives
+    # rather than inventing a second, competing grid convention here:
+    # bucket_ts is a legal timeframe bucket start iff treating
+    # (bucket_ts + one timeframe interval) as a decision boundary T and
+    # selecting timeframe's bucket for that T round-trips back to
+    # bucket_ts exactly. selected_bucket() itself already enforces T is a
+    # legal 5m-grid-aligned decision boundary, so many misalignments raise
+    # V2AlignmentError from inside selected_bucket(); any remaining
+    # misalignment (still 5m-aligned, but not aligned to the LARGER
+    # timeframe's own grid) is caught by the explicit inequality check
+    # below. Never floors/normalizes bucket_ts on the caller's behalf.
+    try:
+        canonical_start = selected_bucket(
+            timeframe, bucket_ts + timedelta(minutes=TIMEFRAME_MINUTES[timeframe]))
+    except V2AlignmentError as exc:
+        raise V2SetupFoundationError(
+            f"bucket_ts {bucket_ts.isoformat()} is not a legal {timeframe} bucket start: "
+            f"{exc}") from exc
+    if canonical_start != bucket_ts:
+        raise V2SetupFoundationError(
+            f"bucket_ts {bucket_ts.isoformat()} is not aligned to the canonical {timeframe} "
+            f"bucket grid (expected bucket start {canonical_start.isoformat()})")
 
     tf_delta = timedelta(minutes=TIMEFRAME_MINUTES[timeframe])
     expected_grid = tuple(
@@ -414,9 +465,22 @@ class V2ExtremeAnchor:
     `trend_leg_extreme`, `CONFIRMED_BREAKOUT`'s `resistance_level`/
     `support_level`) — NEVER for `COMPRESSION_BREAKOUT`'s `range_high`/
     `range_low`, which are plain numeric extrema with no bucket-identity
-    ambiguity (§7.0c explicitly excludes them)."""
+    ambiguity (§7.0c explicitly excludes them).
+
+    Public Stage 5 API — self-validates on ANY direct construction (not
+    only via `select_extreme_anchor()`), reusing this module's own
+    existing `_validate_utc_datetime`/`_validate_finite_numeric`
+    primitives so a hand-built instance can never carry a naive/non-UTC/
+    non-whole-minute `bucket_ts` or a non-finite/`bool` `value`. `value`
+    is deliberately NOT restricted to positive/nonnegative — an abstract
+    extreme helper may legitimately select any finite numeric value — and
+    is validated but never coerced/reassigned."""
     bucket_ts: datetime
     value: float
+
+    def __post_init__(self) -> None:
+        _validate_utc_datetime(self.bucket_ts, "bucket_ts")
+        _validate_finite_numeric(self.value, "value")
 
 
 def select_extreme_anchor(
@@ -446,6 +510,7 @@ def select_extreme_anchor(
     cannot legitimately claim the same bucket)."""
     if mode not in ("max", "min"):
         raise V2SetupFoundationError(f"mode must be 'max' or 'min', got {mode!r}")
+    candidates = _validate_row_sequence(candidates, "candidates")
 
     validated: "list[tuple[datetime, float]]" = []
     seen_bucket_ts: set = set()
