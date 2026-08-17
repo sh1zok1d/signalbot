@@ -368,12 +368,12 @@ Planned PR sizing:
 | 3. Multi-timeframe Alignment | 3 |
 | 4. Context Engines | 3 |
 | 5. Setup Detectors | 4 |
-| 6. Episode State Machine | ~5 (revised from 3; see §J) |
+| 6. Episode State Machine | ~6 (revised from 3; see §J) |
 | 7. Entry Feasibility | 2 |
 | 8. V2 Outcome Evaluator | 3 |
 | 9. Telegram V2 | 2 |
 | 10. Parallel Shadow Deployment | 2 |
-| **Total planned scope** | **~30** |
+| **Total planned scope** | **~31** |
 
 This sizing is a **planning estimate**, not a requirement to force unsafe or
 poorly-reviewable changes into fixed PR boundaries. A PR may be split further
@@ -1120,45 +1120,67 @@ transitions, expiry, weakening, and persistence orchestration, has NOT
 started.
 
 - **Stage 6 — Episode State Machine: IN PROGRESS.**
-  - **PR 1 of ~5 — identity/dedup contract hardening: THIS PR** (#43,
-    "docs: freeze V2 episode identity and dedup semantics"). Before any
+  - **PR 1 of ~6 — identity/dedup contract hardening: THIS PR** (#43,
+    "docs: freeze V2 episode identity and dedup semantics", amended twice
+    post-open following a full semantic-ambiguity audit). Before any
     executable Stage 6 code, this narrow **documentation-only** PR closes
-    deterministic ambiguities the frozen `§12`/`§7.4` left open: creation
-    identity vs. later-observed anchor drift (episode identity is fixed
-    once at creation and never mutates), exact non-material-vs-material
+    deterministic ambiguities the frozen `§12`/`§7.4`/`§13.3` left open:
+    creation identity vs. later-observed anchor drift (episode identity is
+    fixed once at creation and never mutates), exact non-material-vs-material
     drift math for all three families (`TREND_PULLBACK`/
     `COMPRESSION_BREAKOUT`'s 15m bucket-count distance,
     `CONFIRMED_BREAKOUT`'s tick-normalized-price drift against the active
-    episode's *creation-time* `protection_buffer`), a single deterministic
-    tick-normalization rule (`Decimal`/`ROUND_HALF_UP`, applied strictly
-    after `§7.0c`'s raw extreme selection), explicit "suppressed, not
-    queued" semantics (no hidden pending-episode queue, no stale-candidate
-    resurrection), the exact terminal-cooldown clock
+    episode's *creation-time* `protection_buffer` and *creation-time* tick
+    grid, `§12.5a`), a single deterministic tick-normalization rule
+    (`Decimal`/`ROUND_HALF_UP`, applied strictly after `§7.0c`'s raw
+    extreme selection), explicit "suppressed, not queued" semantics with
+    same-slot/cooldown/family-precedence suppression kept as three
+    genuinely distinct, sequential mechanisms (no hidden pending-episode
+    queue, no stale-candidate resurrection, no persistent cross-family
+    blocker), the exact terminal-cooldown clock
     (`T_terminal + 3*5m`/`T_terminal + 1*5m`), a precise closed-interval
     structural-overlap predicate for `§7.4` reusing Stage 5's existing
     `entry_zone_lower`/`entry_zone_upper` fields, a deterministic
-    family-precedence arbitration algorithm, and an explicit
+    family-precedence arbitration algorithm that never overrides a
+    family's own detector-formation cadence (`§7.4.2`), an explicit
     non-retroactivity clarification (precedence arbitrates new candidates
-    only — it never mutates or terminates an already-active episode).
-    Adds no code, no schema, no config. `v2.enabled` stays `false`;
-    `v2.rules_version` is unchanged (`v2-rules-v0.1.0`) — this PR resolves
-    behavior the frozen text left underspecified, it does not tune an
-    implemented threshold or reinterpret any persisted V2 history (none
-    exists).
-  - **PR 2 of ~5 — episode identity + persisted-history read foundation**
-    (#44, not yet started).
-  - **PR 3 of ~5 — candidate arbitration / `EARLY_SIGNAL` creation / dedup
-    / cooldown / reversal cross-reference** (#45, not yet started).
-  - **PR 4 of ~5 — family confirmation, false-break, and candidate-expiry
-    transitions** (#46, not yet started).
-  - **PR 5 of ~5 — `CONFIRMED`/`WEAKENING` lifecycle, structural
-    invalidation, horizon terminal resolution, and Stage 6 completion**
-    (#47, not yet started).
+    only), exact `REVERSAL_CANDIDATE` cardinality (pairwise
+    cross-references between every surviving pre-existing opposite episode
+    and every newly-created opposite episode at one boundary, `§13.3.1`),
+    one frozen same-boundary orchestration order (`§13.4`), the `LIVE`/
+    `REPLAY` execution-namespace read scope required before `#44` can be
+    written (`§12.10`), and the separation between episode-identity
+    routing and persisted-event necessity (`§12.11` — routing to the same
+    episode never implies an event must be written every decision
+    boundary). Adds no code, no schema, no config. `v2.enabled` stays
+    `false`; `v2.rules_version` is unchanged (`v2-rules-v0.1.0`) — this PR
+    resolves behavior the frozen text left underspecified, it does not
+    tune an implemented threshold or reinterpret any persisted V2 history
+    (none exists).
+  - **PR 2 of ~6 — episode identity + persisted-history read foundation**
+    (#44, not yet started). Reads the `LIVE`/`REPLAY` execution-namespace
+    scope frozen in `§12.10`.
+  - **PR 3 of ~6 — candidate classification/arbitration, `EARLY_SIGNAL`
+    creation, same-slot/cooldown eligibility** (#45, not yet started).
+    Deliberately does **not** include `REVERSAL_CANDIDATE` integration —
+    that requires the full same-boundary orchestration order (`§13.4`),
+    which in turn depends on lifecycle-transition helpers this PR does not
+    yet build (moved to #48, see below).
+  - **PR 4 of ~6 — `EARLY_SIGNAL` family confirmation, false-break, and
+    candidate-expiry transitions** (#46, not yet started).
+  - **PR 5 of ~6 — `CONFIRMED`/`WEAKENING` lifecycle, structural
+    invalidation, horizon terminal resolution** (#47, not yet started).
+  - **PR 6 of ~6 — same-boundary orchestration order + `REVERSAL_CANDIDATE`
+    pairwise cross-reference integration + Stage 6 completion** (#48, not
+    yet started). Implements `§13.4`'s frozen boundary-processing order and
+    `§13.3.1`'s exact cardinality now that all the lifecycle-transition
+    helpers (#44–#47) it depends on exist — placing this earlier would
+    have required placeholder lifecycle semantics.
   - This PR-count split is an IMPLEMENTATION/reviewability plan, not a new
     correctness contract — the existing Product/Correctness contracts
     (as amended by #43) remain authoritative, and this split may be
     adjusted if reviewability or risk requires it. It is not a claim that
     the exact PR count or boundaries are immutable.
 
-**Next planned work (after PR #43 merges):** Stage 6 PR 2 of ~5 — episode
+**Next planned work (after PR #43 merges):** Stage 6 PR 2 of ~6 — episode
 identity + persisted-history read foundation (#44, not yet started).

@@ -1655,6 +1655,26 @@ had mutually overlapped instead, only `COMPRESSION_BREAKOUT` would be
 created; `CONFIRMED_BREAKOUT` and `TREND_PULLBACK` would both be suppressed
 against it.
 
+**Invariant: §7.4 never changes detector cadence.** Step 1 above says
+"independently-qualified... candidates for this direction at `T`" — this
+means candidates that **actually, independently qualify at `T` under their
+own family's Stage 5 contract**, never a hypothetical or synthesized
+candidate. §7.4 arbitrates only among whatever candidates genuinely exist
+at `T`; it never creates, backdates, or "waits for" a candidate from a
+family whose own detector cannot form a new candidate at that `T`. Each
+family's new-candidate formation cadence remains exactly as frozen in §7:
+
+| Family | New-candidate (`EARLY_SIGNAL`) formation cadence |
+|---|---|
+| `TREND_PULLBACK` | Only at its own frozen **15m decision boundaries** — the first such boundary `T_detect` at which [§7.1](#71-trend_pullback)'s preconditions and valid-retracement test hold. `TREND_PULLBACK` has **no** new-candidate formation at 5m boundaries that are not also 15m boundaries. |
+| `COMPRESSION_BREAKOUT` | Every legal 5m decision boundary `T` at which [§7.2](#72-compression_breakout)'s fresh-cross qualification holds. |
+| `CONFIRMED_BREAKOUT` | Every legal 5m decision boundary `T` at which [§7.3](#73-confirmed_breakout)'s fresh-cross qualification holds. |
+
+Consequently, at a 5m `T` that is not a 15m boundary, `TREND_PULLBACK`
+simply has no new candidate to submit to §7.4 arbitration at all — this is
+a fact about detector cadence, not a §7.4 rule, and §7.4 must not be read
+to override it.
+
 #### 7.4.3 Precedence applies to new creation only
 
 §7.4 arbitrates **simultaneous new candidates at the same decision
@@ -2049,14 +2069,20 @@ different volatility environment):
 
 ```text
 active_creation_normalized_level_price = tick-normalized level price recorded
-                                          when the active episode was created
+                                          when the active episode was created,
+                                          normalized against that episode's
+                                          OWN creation_identity_tick_size (§12.5a)
                                           (a Decimal, per §12.5)
 active_creation_protection_buffer      = protection_buffer recorded when the
                                           active episode was created (the
                                           detector's native numeric value)
 
-candidate_normalized_level_price = candidate's newly observed level price,
-                                    tick-normalized per §12.5 (a Decimal)
+candidate_comparison_normalized_level_price =
+    candidate's newly observed RAW level price, normalized per §12.5's
+    algorithm against the ACTIVE EPISODE'S creation_identity_tick_size
+    (§12.5a) -- NEVER against the candidate's own current/decision-time
+    tick_size, even if the instrument's tick_size has since changed
+    (a Decimal)
 ```
 
 **Decimal domain (frozen; matches §12.5's rule exactly — the comparison
@@ -2065,7 +2091,7 @@ tolerance fudge):**
 
 ```text
 creation_buffer_decimal = Decimal(str(active_creation_protection_buffer))
-level_drift_decimal     = abs(candidate_normalized_level_price
+level_drift_decimal     = abs(candidate_comparison_normalized_level_price
                                - active_creation_normalized_level_price)
 threshold_decimal       = Decimal("2") * creation_buffer_decimal
 
@@ -2096,10 +2122,19 @@ for materiality). The episode's original `structural_anchor`/
 observation's extreme happened to land in, exactly as
 [§12.2](#122-creation-identity-is-immutable) requires.
 
+Both `active_creation_normalized_level_price` and
+`candidate_comparison_normalized_level_price` above are normalized against
+the **same** grid — the active episode's `creation_identity_tick_size`
+([§12.5a](#125a-tick-grid-is-frozen-at-episode-creation-confirmed_breakout))
+— which is what makes `level_drift_decimal` a genuine market-price-drift
+measurement rather than an artifact of comparing two different rounding
+grids.
+
 **Worked decimal-arithmetic example** (deliberately awkward inputs, to
 exercise the `Decimal(str(...))` conversion): creation normalized level
 `Decimal("66000.1")`, creation `protection_buffer` the `float` `164.5`,
-candidate normalized level `Decimal("66329.1")`.
+candidate normalized level `Decimal("66329.1")` (both normalized against
+the same creation `tick_size`).
 
 ```text
 creation_buffer_decimal = Decimal(str(164.5))  = Decimal("164.5")
@@ -2156,6 +2191,103 @@ Worked examples (`tick_size = 0.1`):
 | `66200.05` | `662001` (half rounds up) | `66200.1` |
 | `66200.06` | `662001` | `66200.1` |
 
+### 12.5a Tick grid is frozen at episode creation (`CONFIRMED_BREAKOUT`)
+
+§12.5 freezes *how* a raw price is normalized. It does not, by itself, say
+*which* `tick_size` a later candidate's price is normalized against when
+comparing it to an already-active episode — and that is ambiguous if the
+reference exchange's instrument metadata (`tick_size`) changes during the
+episode's life. This is now frozen:
+
+```text
+creation_identity_tick_size = the validated reference-exchange tick_size
+                               KNOWN AT T_create -- the same decision-time
+                               instrument input the Stage 5 detector itself
+                               used to compute protection_buffer/entry
+                               zone/invalidation at creation
+```
+
+`creation_identity_tick_size` is an **immutable creation-time supporting
+fact** of the episode — like `structural_anchor` itself
+([§12.2](#122-creation-identity-is-immutable)), it is fixed once, at
+`EARLY_SIGNAL` creation, and **MUST NOT** change for the life of the
+episode, regardless of any later instrument-metadata change. It is **not**
+an extra dimension of `episode_logical_key` — the logical structural
+anchor remains conceptually `(level_anchor_bucket, normalized_level_price)`
+([§12.1](#121-logical-identity-not-a-database-key)) — it is the grid
+`normalized_level_price` is defined against, frozen alongside it.
+
+```text
+identity_tick_decimal = Decimal(str(creation_identity_tick_size))
+```
+
+The active episode's own `creation_normalized_level_price`/`tick_index`
+(§12.5) are computed against `identity_tick_decimal` once, at creation.
+
+**Comparing a later candidate against this active episode**
+([§12.3](#123-per-decision-classification-of-a-same-slot-candidate)/
+[§12.4](#124-exact-driftmateriality-formulas)) **MUST** normalize the
+candidate's `raw_level_price` using the **active episode's**
+`creation_identity_tick_size` — **never** the candidate's own
+decision-time (possibly different, if the instrument's `tick_size`
+changed) `tick_size`:
+
+```text
+candidate_comparison_normalized_level_price =
+    normalize(candidate.raw_level_price, active_episode.creation_identity_tick_size)   # §12.5's algorithm, active episode's grid
+```
+
+The current, decision-time instrument `tick_size` **MAY** still
+legitimately affect the *candidate's own* Stage 5 outputs where an
+existing detector rule already says so (e.g. its own freshly-computed
+`protection_buffer`) — that is unrelated to, and unchanged by, this
+freeze. What this section forbids is re-normalizing the *active episode's*
+identity/comparison grid using anything other than that episode's own
+creation-time `tick_size`. A brand-**new** episode, created after the old
+one reaches a terminal state, uses the new candidate's own decision-time
+validated `tick_size` as **its own** `creation_identity_tick_size` — grids
+are per-episode, fixed at that episode's creation, never shared or
+inherited across episodes.
+
+**Persistence:** `creation_identity_tick_size` (and the `tick_index`/
+`normalized_level_price` it produces) **MUST** be recorded **by value** in
+the episode's creation event/history, so that state reconstruction after a
+process restart ([§12.10](#1210-execution-namespace-livereplay-history-scope))
+never needs to re-read *today's* instrument metadata to know what grid an
+existing active episode's identity was built on. This document freezes the
+required logical fact only — it does not prescribe a physical JSON
+key/schema for it (that remains implementation work, per
+[§0.1](#01-what-this-document-is-not)).
+
+**Worked vector — instrument `tick_size` changes after episode creation:**
+
+```text
+Episode created:
+    raw level = 100.04
+    creation_identity_tick_size = 0.1
+    -> identity_tick_decimal = Decimal("0.1")
+    -> creation_normalized_level_price = Decimal("100.0")
+    -> creation tick_index = 1000
+
+Later, the reference exchange's instrument metadata changes:
+    current (decision-time) tick_size is now 0.01
+
+A candidate arrives with raw level = 100.04, compared against the
+still-ACTIVE episode above:
+
+  CORRECT (creation grid, per this section):
+    candidate_comparison_normalized_level_price
+        = normalize(100.04, creation_identity_tick_size=0.1)
+        = Decimal("100.0")   (tick_index 1000)
+    -> level_drift_decimal = abs(Decimal("100.0") - Decimal("100.0")) = 0
+    -> exact match on price (case A/B per §12.3, depending on level_anchor_bucket)
+
+  NON-CONFORMING (current grid -- MUST NOT be done):
+    100.04 / 0.01 => tick_index 10004, normalized 100.04
+    -> would introduce spurious drift purely from a metadata change,
+       not a real market move -- forbidden by this section.
+```
+
 ### 12.6 Suppression: at most one active episode per slot
 
 ```text
@@ -2175,6 +2307,14 @@ it does **not** let one old episode block *all* future BTC setups — only
 same-`slot` candidates are suppressed; a different family, or the opposite
 direction, is free to open independently.
 
+This same-slot suppression mechanism is scoped **exactly** to "an ACTIVE
+episode occupies this slot" — it ends at the precise decision boundary
+that episode becomes terminal, never one moment before or after. What
+happens immediately after that boundary (the terminal-episode cooldown) is
+a **separate** mechanism, frozen in
+[§12.8](#128-terminal-episode-cooldown-exact-clock) and kept explicitly
+distinct from this one in [§12.7](#127-suppression-is-not-a-queue).
+
 ### 12.7 Suppression is not a queue
 
 A candidate can be suppressed under three distinct mechanisms — same-slot
@@ -2189,14 +2329,23 @@ subsequently clears. The three mechanisms have **distinct** clearing
 conditions, and only a mechanism's own condition ends *that* mechanism's
 suppression — never a wall-clock timeout, never "the market moved back":
 
-- **Same-slot suppression** ([§12.6](#126-suppression-at-most-one-active-episode-per-slot)):
-  blocks a materially-different candidate for as long as the active
-  episode in that `slot` remains non-terminal. It clears once that
-  episode reaches a terminal state (`INVALIDATED`/`EXPIRED`/`COMPLETED`)
-  **and** the terminal-episode cooldown below has also elapsed.
+- **Same-slot ACTIVE suppression** ([§12.6](#126-suppression-at-most-one-active-episode-per-slot)):
+  exists **only** while an `ACTIVE` (non-terminal) episode occupies that
+  `slot`. This mechanism, specifically, ends **at** the decision boundary
+  the active episode transitions to a terminal state
+  (`INVALIDATED`/`EXPIRED`/`COMPLETED`, per [§13](#13-lifecycle-transition-semantics))
+  — not one moment later. It does **not**, itself, extend into or overlap
+  with the cooldown window below; the two are separate mechanisms with
+  separate, non-overlapping reasons, evaluated back-to-back in time.
 - **Cooldown suppression** ([§12.8](#128-terminal-episode-cooldown-exact-clock)):
-  blocks a new same-slot episode until the cooldown's first eligible
-  decision boundary is reached.
+  begins immediately once same-slot ACTIVE suppression ends (i.e. at
+  `T_terminal`, the same boundary the episode became terminal — see
+  §12.8) and blocks a new same-slot episode until the cooldown's first
+  eligible decision boundary is reached. Between `T_terminal` and that
+  first eligible boundary, a same-slot candidate is suppressed **by the
+  cooldown mechanism**, not by same-slot ACTIVE suppression — the active
+  episode that used to occupy the slot is already terminal by then, so
+  there is nothing left for same-slot ACTIVE suppression to block on.
 - **Family-precedence suppression** ([§7.4](#74-setup-family-precedence-and-deduplication)):
   blocks a lower-precedence candidate **only at the one decision boundary
   `T`** where the arbitration ran
@@ -2228,32 +2377,67 @@ suppressed candidate. This matters because V2 must not open a stale setup,
 anchored to a price/time the market has since moved away from, just
 because an older episode or arbitration outcome happened to lapse.
 
-**Worked vector — family-precedence suppression is not a persistent
-blocker:**
+**Worked vector — same-slot ACTIVE suppression and cooldown are sequential,
+never merged into one mechanism:**
 
 ```text
-T=12:20: LONG COMPRESSION_BREAKOUT candidate, region [100,110]
+An active episode in slot (symbol, market_type, LONG, TREND_PULLBACK)
+transitions to INVALIDATED at T_terminal = 14:00.
+
+At T=14:00 (T_terminal itself): same-slot ACTIVE suppression ENDS here --
+  the episode that occupied the slot is now terminal, so there is no
+  longer an ACTIVE episode for §12.6 to suppress against.
+
+From T=14:00 onward, a DIFFERENT mechanism -- terminal cooldown (§12.8) --
+  is what blocks a new same-slot episode:
+    cooldown buckets (INVALIDATED, 3*5m): [14:00,14:05), [14:05,14:10), [14:10,14:15)
+    T=14:05 and T=14:10: a same-slot candidate is suppressed BY COOLDOWN,
+      not by same-slot ACTIVE suppression (nothing ACTIVE remains in the
+      slot at that point).
+    T=14:15: cooldown's first eligible boundary. A same-slot candidate
+      that independently qualifies here MAY create a new episode.
+
+Overall, the slot remains blocked continuously from 14:00 to 14:15, but
+for two DIFFERENT, non-overlapping reasons in sequence -- never one merged
+"still blocked somehow" mechanism: same-slot ACTIVE suppression accounts
+for none of this window (it already ended exactly at 14:00); cooldown
+accounts for all of it (14:00 through 14:15).
+```
+
+**Worked vector — family-precedence suppression is not a persistent
+blocker.** `T=12:15` and `T=12:30` are both legal `TREND_PULLBACK`
+new-candidate boundaries (both are 15m boundaries,
+[§7.4.2](#742-deterministic-arbitration-algorithm)'s cadence invariant) —
+this vector deliberately does **not** use a 5m-only boundary for
+`TREND_PULLBACK`, since it has no new candidate to offer there at all:
+
+```text
+T=12:15: LONG COMPRESSION_BREAKOUT candidate, region [100,110]
          LONG TREND_PULLBACK    candidate, region [105,108]
          both independently qualified and creation-eligible
+         (T=12:15 is a legal 15m boundary for TREND_PULLBACK's own cadence)
 
-§7.4 arbitration at T=12:20 (§7.4.2): COMPRESSION_BREAKOUT precedes
+§7.4 arbitration at T=12:15 (§7.4.2): COMPRESSION_BREAKOUT precedes
 TREND_PULLBACK; regions overlap (max(100,105)=105 <= min(110,108)=108)
   -> COMPRESSION_BREAKOUT episode created (ACTIVE)
-  -> TREND_PULLBACK suppressed FOR T=12:20 ONLY, cross-referenced to the
+  -> TREND_PULLBACK suppressed FOR T=12:15 ONLY, cross-referenced to the
      COMPRESSION_BREAKOUT episode's history
 
-T=12:25: TREND_PULLBACK's own slot (symbol, market_type, LONG,
+T=12:30: the NEXT legal 15m TREND_PULLBACK formation boundary.
+         TREND_PULLBACK's own slot (symbol, market_type, LONG,
          TREND_PULLBACK) has no active episode and no cooldown in effect.
          TREND_PULLBACK independently qualifies again with a valid region.
          No other same-direction, overlapping, creation-eligible NEW
-         candidate exists at T=12:25 (the COMPRESSION_BREAKOUT episode is
+         candidate exists at T=12:30 (the COMPRESSION_BREAKOUT episode is
          already-created and ACTIVE -- it is not itself a "new candidate
-         at T=12:25", so §7.4 has nothing to arbitrate at T=12:25).
+         at T=12:30", so §7.4 has nothing to arbitrate at T=12:30).
 
-  -> TREND_PULLBACK MAY create its own episode at T=12:25.
-  -> The ACTIVE COMPRESSION_BREAKOUT episode created at T=12:20 does NOT
+  -> TREND_PULLBACK MAY create its own episode at T=12:30.
+  -> The ACTIVE COMPRESSION_BREAKOUT episode created at T=12:15 does NOT
      block it -- family-precedence suppression does not persist past the
-     decision boundary at which it was evaluated (§7.4.3).
+     decision boundary at which it was evaluated (§7.4.3), and §7.4 never
+     alters TREND_PULLBACK's own 15m formation cadence
+     (§7.4.2's cadence invariant).
 ```
 
 ### 12.8 Terminal-episode cooldown — exact clock
@@ -2342,6 +2526,174 @@ materiality multiplier, cooldown lengths) are V2-v0 parameters,
     eligible decision boundary at or after `T=14:15`, evaluated fresh
     against that boundary's own data, per
     [§12.7](#127-suppression-is-not-a-queue).
+
+### 12.10 Execution namespace: `LIVE`/`REPLAY` history scope
+
+This is required before `#44` (the persisted-history read foundation)
+because it defines the exact scope a state-machine history read is
+allowed to see. The Multi-model Framework already stores every
+`V2EpisodeEvent` namespaced by `run_kind` and `run_id`
+([§3](#3-v2-modelversion-identity), `storage/stage2_schema.sql`'s
+`v2_episode_events` key). This freezes the state-machine's read scope in
+terms of that existing namespace — it adds **no** new schema:
+
+```text
+execution_stream = (run_kind, run_id)
+```
+
+Episode-identity reconstruction, same-slot/active-episode lookup
+([§12.3](#123-per-decision-classification-of-a-same-slot-candidate)/
+[§12.6](#126-suppression-at-most-one-active-episode-per-slot)), cooldown
+lookup ([§12.8](#128-terminal-episode-cooldown-exact-clock)), and
+`preexisting_opposite_active_set(T)` lookup
+([§13.3.1](#1331-exact-cardinality-preexisting_opposite_active_set-and-pairwise-cross-references))
+**MUST NEVER** mix:
+
+- `LIVE` history with `REPLAY` history;
+- one `REPLAY` `run_id`'s history with a different `REPLAY` `run_id`'s
+  history.
+
+**`REPLAY`:** every research replay run has its own explicitly-distinct
+`run_id` and sees, and can ever see, only its own `execution_stream`'s
+episode history. Two replay runs over the same or overlapping historical
+data remain fully isolated from each other.
+
+**`LIVE`:** a `LIVE` `run_id` represents a **logical live stream** — not
+an individual OS process's lifetime. A `LIVE` `run_id` used by a
+deployed/shadow V2 stream **MUST remain stable** across:
+
+- process restart;
+- systemd service restart;
+- host process recreation;
+
+for the same logical live deployment stream. **Do NOT generate a fresh
+random `LIVE` `run_id` on every process start.** A restart that mints a
+new `run_id` would make the state machine's `execution_stream` view start
+empty — its active episodes and cooldowns would silently disappear from
+that view — which would incorrectly permit duplicate/new episodes to be
+created for slots that, from the real market's perspective, already have
+an active episode. This is a correctness requirement, not an operational
+nicety: the state machine's entire same-slot/cooldown/reversal apparatus
+([§12](#12-episode-identity-and-deduplication)/[§13](#13-lifecycle-transition-semantics))
+is meaningless if its own restart silently resets what it can see.
+
+If an operator **intentionally** starts a genuinely new, isolated `LIVE`
+stream under a deliberately different `run_id` (e.g. standing up a second
+parallel shadow deployment), that is an explicit **new** execution
+namespace by design — not a normal restart, and not a violation of the
+stability requirement above.
+
+**This does not add `run_id` to `episode_logical_key`.** Two distinct
+concepts stay distinct:
+
+```text
+execution namespace:  (run_kind, run_id)                                            -- §3, this section
+market episode logical key: (symbol, market_type, direction, setup_family,
+                              structural_anchor)                                      -- §12.1
+```
+
+One-active-episode-per-`slot` and cooldown semantics
+([§12.6](#126-suppression-at-most-one-active-episode-per-slot)/
+[§12.8](#128-terminal-episode-cooldown-exact-clock)) are enforced
+**within** one `execution_stream` — never across two different
+`execution_stream`s, even for the identical `slot`.
+
+**Worked vectors:**
+
+- **`LIVE` process restart preserves the active-episode view.** A `LIVE`
+  stream with `run_kind=LIVE`, `run_id="v2-shadow-live"` has an episode
+  `ACTIVE` in some `slot` at `T=12:20`. The process crashes and a new
+  process starts at `T=12:23`, resuming with the **same**
+  `run_kind=LIVE`, `run_id="v2-shadow-live"`. The `#44` history
+  reconstruction for this `execution_stream` **MUST** see the `12:20`
+  active episode and its full lifecycle history — exactly as if the
+  process had never restarted. Minting a new random `run_id` at restart
+  would be **non-conforming** behavior for a normal `LIVE` restart.
+- **`REPLAY` isolation.** A replay run `run_kind=REPLAY`,
+  `run_id="replay-2026-08-17-001"` does not see, and cannot mutate, the
+  `LIVE`/`"v2-shadow-live"` execution stream's history (or any other
+  `REPLAY` run's history) — its same-slot/cooldown/reversal state is
+  computed purely from its own `execution_stream`'s events.
+
+### 12.11 Identity classification is not the same question as "does a persisted event exist"
+
+Cases (A) and (B) in [§12.3](#123-per-decision-classification-of-a-same-slot-candidate)
+say a matching/non-materially-drifted candidate is an "observation/update"
+of the existing active episode. This answers **which episode** a
+candidate belongs to — it does **not**, by itself, answer **whether this
+decision boundary requires a new persisted history event**. These are two
+separate questions, and conflating them would turn "the same episode
+tracked over time" (the Product Contract's core requirement,
+`V2_PRODUCT_CONTRACT.md` §5.2) into "the same `episode_id`, but an
+immutable-history event spammed every single decision boundary solely
+because the detector returned the same or similarly-anchored candidate
+again" — which defeats the purpose of tracking one episode instead of
+emitting a new signal every 5m the way V1 does.
+
+Freeze the separation explicitly:
+
+```text
+identity classification (§12.3, case A or B)
+    answers: WHICH episode does this decision's candidate belong to?
+    -- routes the candidate to the existing episode;
+    -- never creates a second episode;
+    -- never mutates the episode's creation identity.
+
+persisted-event necessity
+    answers: DOES this decision boundary require a new immutable history
+    event for that episode?
+    -- governed by OTHER, already-frozen rules -- never implied merely by
+       case A/B classification itself.
+```
+
+A new persisted event is required only when another already-frozen rule
+says a history fact/event exists at that decision boundary — for example
+(non-exhaustive, each already frozen elsewhere in this document):
+
+- a lifecycle state transition ([§13](#13-lifecycle-transition-semantics));
+- a required pre-`CONFIRMED` entry-zone change that
+  [§9](#9-entry-zone-semantics)'s historical-truth rule requires recording
+  as a new event (never a silent rewrite of an earlier notification's
+  values);
+- a required cross-reference/event, e.g. a `REVERSAL_CANDIDATE`
+  ([§13.3](#133-reversal_candidate-mechanics)/[§13.3.1](#1331-exact-cardinality-preexisting_opposite_active_set-and-pairwise-cross-references))
+  or a family-precedence suppression cross-reference
+  ([§7.4.2](#742-deterministic-arbitration-algorithm));
+- any other explicitly-frozen material/history-worthy update (e.g. a
+  materiality-threshold-crossing notification update,
+  [§16](#16-notification-materiality--anti-spam-thresholds)).
+
+If **none** of those other rules require an event at that decision
+boundary — no episode-visible fact changed, and no other section of this
+document requires a record — then an exact-match or non-material-drift
+re-observation **MAY** be a pure no-op with respect to the immutable
+event history: it routes to the existing episode (per §12.3) but writes
+**no** new `V2EpisodeEvent`. This document does **not** require, and does
+**not** permit, minting one insert-only event every 5m *solely* because
+the detector happened to return the same (or non-materially-drifted)
+candidate again.
+
+This distinction is load-bearing precisely because it prevents "the same
+episode tracked over time" (correct) from silently becoming "the same
+`episode_id`, but arbitrary event spam every decision boundary"
+(incorrect, and a direct violation of the reduced-notification-noise
+intent `V2_PRODUCT_CONTRACT.md` §5.2/§9 already establish). It does
+**not** alter [§9](#9-entry-zone-semantics)'s existing historical-truth
+requirement in the other direction either: when §9 says a zone change
+**MUST** be recorded as a new event, it still **MUST** be recorded — this
+section only clarifies that *routing* (§12.3) is not, by itself, a
+sufficient condition to write one.
+
+**Worked vector — Case A repeat observation, no changed episode-visible
+fact, no persisted event required:** an active `TREND_PULLBACK` episode's
+creation anchor is `12:00`. At `T=12:15`, a candidate is observed again
+with `structural_anchor = 12:00` (case A, exact match) and no other
+episode-visible fact has changed (no lifecycle transition, no §9 zone
+change, no cross-reference to record). This decision boundary routes to
+the same episode (§12.3, case A) and requires **no** new persisted
+history event — it is a legitimate no-op in the event history, not a
+violation of "one episode over time," and not evidence of a missing
+event.
 
 ---
 
@@ -2454,18 +2806,20 @@ plus independent creation/qualification of a genuinely separate
 opposite-direction episode — not a destructive conversion.
 
 ```text
-REVERSAL_CANDIDATE event fires exactly when:
-    a NEW opposite-direction episode reaches EARLY_SIGNAL (§7, any family)
-    while there exists any ACTIVE (non-terminal) same-symbol episode of
-    the other direction
+REVERSAL_CANDIDATE cross-references fire exactly when:
+    one or more NEW opposite-direction episodes reach EARLY_SIGNAL at one
+    decision boundary T (§7, any family)
+    AND
+    preexisting_opposite_active_set(T) (§13.3.1) is non-empty
 
-effect:
-    - the new opposite-direction episode is created and begins its own,
-      fully independent lifecycle under this document's normal rules
-      (§12, §13) — it is not a special episode type;
-    - a REVERSAL_CANDIDATE event is attached to the pre-existing episode's
-      history as an informational cross-reference; the pre-existing
-      episode's own state is UNCHANGED by this event.
+effect (§13.3.1 freezes the exact cardinality):
+    - each newly-created opposite-direction episode begins its own, fully
+      independent lifecycle under this document's normal rules (§12, §13)
+      — it is not a special episode type;
+    - for EVERY newly-created episode N at T and EVERY episode E in
+      preexisting_opposite_active_set(T), exactly ONE REVERSAL_CANDIDATE
+      event is attached to E's history as an informational
+      cross-reference E -> N; E's own state is UNCHANGED by this event.
 ```
 
 **Hard invariant:** `INVALIDATED` alone **never** creates a
@@ -2475,6 +2829,146 @@ episode independently reached `EARLY_SIGNAL`" — an episode transitioning to
 **no** `REVERSAL_CANDIDATE` event, full stop. This directly implements
 `V2_PRODUCT_CONTRACT.md` §5.3's "MUST require the opposite direction to
 independently satisfy its own scenario-entry requirements."
+
+#### 13.3.1 Exact cardinality: `preexisting_opposite_active_set` and pairwise cross-references
+
+The prior text said a `REVERSAL_CANDIDATE` event attaches to "the
+pre-existing episode" (singular), which is ambiguous — multiple
+different-family episodes of one direction **MAY** be simultaneously
+active ([§12](#12-episode-identity-and-deduplication)). This freezes
+deterministic cardinality:
+
+```text
+preexisting_opposite_active_set(T) =
+    the set of episodes, of the direction OPPOSITE the newly-created
+    episode(s), that:
+      - existed BEFORE decision boundary T (created at some T' < T);
+      - remain ACTIVE (non-terminal) AFTER their own lifecycle
+        transitions for T are applied (§13.4 step 2) -- i.e. are still
+        non-terminal at the point new-episode creation for T is
+        finalized (§13.4 step 7).
+
+Episodes newly CREATED at T itself are NEVER members of this set --
+"pre-existing" excludes same-T creations, on either side of the
+direction split.
+```
+
+For **every** newly-created episode `N` at `T` and **every** `E` in
+`preexisting_opposite_active_set(T)`, create exactly **one**
+`REVERSAL_CANDIDATE` cross-reference `E -> N`. If `k` pre-existing
+opposite episodes survive `T` and `m` new opposite-direction episodes are
+created at `T`, exactly `k * m` pairwise cross-references are created —
+never fewer (no "first-match-only" shortcut that drops some pairs), never
+more (no duplicate cross-references, no cross-reference for a candidate
+that did not survive to `EARLY_SIGNAL`).
+
+**Only an episode that actually reaches `EARLY_SIGNAL` creation
+participates.** A candidate suppressed under
+[§12.6](#126-suppression-at-most-one-active-episode-per-slot)/
+[§12.8](#128-terminal-episode-cooldown-exact-clock)/
+[§7.4](#74-setup-family-precedence-and-deduplication) never reaches
+`EARLY_SIGNAL` and therefore **never** generates, and never receives, a
+`REVERSAL_CANDIDATE` cross-reference — a suppressed candidate is not an
+episode at all ([§12.7](#127-suppression-is-not-a-queue) — suppressed,
+not queued).
+
+**Two brand-new opposite-direction episodes created at the same `T` do
+NOT cross-reference each other.** Both are, by construction, excluded
+from `preexisting_opposite_active_set(T)` — neither existed before `T` —
+so no `REVERSAL_CANDIDATE` is created between them; simultaneous same-`T`
+creation on both sides of the direction split is not itself a reversal
+relationship.
+
+**Worked vectors:**
+
+- **Two pre-existing opposite episodes, one new episode.** Two `SHORT`
+  episodes (`SHORT#1`, `SHORT#2`, different families) are `ACTIVE` and
+  survive their own lifecycle evaluation at `T`. One new `LONG` episode
+  is created at `T`. `preexisting_opposite_active_set(T) = {SHORT#1,
+  SHORT#2}`. Result: exactly 2 cross-references — `SHORT#1 -> LONG_new`,
+  `SHORT#2 -> LONG_new`.
+- **Two pre-existing opposite episodes, two new episodes.** Same two
+  surviving `SHORT` episodes; two independently-created `LONG` episodes
+  at `T` (`LONG#1`, `LONG#2`, from two different families that both
+  survived §7.4 arbitration with non-overlapping regions). Result:
+  `2 * 2 = 4` pairwise cross-references — `SHORT#1 -> LONG#1`,
+  `SHORT#1 -> LONG#2`, `SHORT#2 -> LONG#1`, `SHORT#2 -> LONG#2`.
+- **Suppressed opposite candidate creates zero cross-references.** A
+  `SHORT` candidate at `T` is suppressed by §7.4 family precedence (never
+  reaches `EARLY_SIGNAL`). A pre-existing `ACTIVE` `LONG` episode exists.
+  Result: **zero** `REVERSAL_CANDIDATE` cross-references — the suppressed
+  candidate is not an episode and cannot participate as `N`.
+- **No pre-existing opposite episode.** Two brand-new `LONG` episodes are
+  created at the same `T` (different families, non-overlapping regions);
+  no `SHORT` episode exists at all. `preexisting_opposite_active_set(T) =
+  {}` (empty — the two new `LONG` episodes are excluded from each other's
+  set by the "same-`T` creations are never pre-existing" rule, and there
+  is no `SHORT` episode to populate it otherwise). Result: **zero**
+  `REVERSAL_CANDIDATE` cross-references.
+
+### 13.4 Same-boundary orchestration order
+
+[§12.7](#127-suppression-is-not-a-queue)'s same-`T`-only family-precedence
+scoping and [§13.3.1](#1331-exact-cardinality-preexisting_opposite_active_set-and-pairwise-cross-references)'s
+`preexisting_opposite_active_set(T)` both depend on one deterministic
+ordering of what happens at a single decision boundary `T`. This is a
+**semantic** freeze — it constrains the required *outcome* at every `T`,
+not a mandate that a Stage 6 implementation must literally execute these
+as eight sequential passes:
+
+```text
+1. Reconstruct the episodes ACTIVE immediately before T (the outcome of
+   the previous decision boundary).
+2. Evaluate and apply lifecycle transitions (§13.1/§13.2/§13.2a) for
+   those existing episodes, AT T.
+3. The surviving non-terminal episodes from step 2 form "the active set
+   at T" -- this is the set used by same-slot eligibility
+   (§12.3/§12.6), cooldown (§12.8), and preexisting_opposite_active_set(T)
+   (§13.3.1). It is fixed BEFORE any of steps 4-8 run.
+4. Evaluate independently-qualified NEW detector candidates for T, per
+   each family's own formation cadence (§7.4.2's cadence invariant).
+5. Apply same-slot/cooldown creation eligibility (§12.3/§12.6/§12.8) to
+   those NEW candidates.
+6. Apply §7.4 family precedence among the creation-eligible NEW
+   candidates that remain.
+7. Create the accepted EARLY_SIGNAL episodes.
+8. Emit REVERSAL_CANDIDATE pairwise cross-references (§13.3.1) from each
+   E in preexisting_opposite_active_set(T) (fixed in step 3, BEFORE any
+   of this T's own new creations) to each newly-created opposite-
+   direction episode from step 7.
+```
+
+This ordering exists specifically to prevent three order-dependent bugs:
+
+- **A same-boundary terminal transition must not be treated as still
+  `ACTIVE` for reversal purposes at that same `T`.** Step 3 (the active
+  set used by `preexisting_opposite_active_set`) runs *after* step 2
+  applies that `T`'s own lifecycle transitions, so an episode that became
+  `INVALIDATED`/`EXPIRED`/`COMPLETED` at `T` is already excluded.
+- **Two new opposite-direction episodes created at the same `T` must not
+  be treated as "pre-existing" relative to each other.** Step 3's set is
+  fixed *before* steps 4–7 run, so neither of two same-`T` creations can
+  ever appear in the other's `preexisting_opposite_active_set(T)` — this
+  is the same fact [§13.3.1](#1331-exact-cardinality-preexisting_opposite_active_set-and-pairwise-cross-references)
+  states directly.
+- **Candidate input iteration order must not change the reversal
+  output.** Step 3's set membership does not depend on the order in which
+  step 4's candidates are enumerated or step 6's arbitration walk visits
+  them.
+
+This section does not require any future implementation PR to literally
+structure its code as eight sequential passes — only that the
+**observable outcome** at every `T` is indistinguishable from having
+followed this order. An implementation that computes an equivalent result
+through a different internal mechanism (e.g. a single pass over
+memoized pre-`T` state) remains conforming.
+
+No contradiction with an already-frozen lifecycle rule was found while
+deriving this ordering — in particular, it does not change
+[§13.3](#133-reversal_candidate-mechanics)'s hard invariant that
+`INVALIDATED` alone never creates a `REVERSAL_CANDIDATE` event (a
+same-`T` `INVALIDATED` transition in step 2 simply removes that episode
+from step 3's set; it still never itself triggers a cross-reference).
 
 ---
 
