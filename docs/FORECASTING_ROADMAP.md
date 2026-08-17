@@ -368,12 +368,12 @@ Planned PR sizing:
 | 3. Multi-timeframe Alignment | 3 |
 | 4. Context Engines | 3 |
 | 5. Setup Detectors | 4 |
-| 6. Episode State Machine | 3 |
+| 6. Episode State Machine | ~5 (revised from 3; see §J) |
 | 7. Entry Feasibility | 2 |
 | 8. V2 Outcome Evaluator | 3 |
 | 9. Telegram V2 | 2 |
 | 10. Parallel Shadow Deployment | 2 |
-| **Total planned scope** | **28** |
+| **Total planned scope** | **~30** |
 
 This sizing is a **planning estimate**, not a requirement to force unsafe or
 poorly-reviewable changes into fixed PR boundaries. A PR may be split further
@@ -777,7 +777,7 @@ current intent, not a contract that overrides sound engineering judgment.
     `v2.rules_version` is unchanged (`v2-rules-v0.1.0`) — this PR
     implements already-frozen §4.3 formulas/thresholds, not a new or
     tuned V2-v0 parameter; no schema/config change.
-- **Stage 5 — Setup Detectors: IN PROGRESS.**
+- **Stage 5 — Setup Detectors: COMPLETE.**
   - **PR 1 of ~4 — shared detector foundation: MERGED** (#39, "feat:
     add V2 setup detector foundation"). Includes both the initial
     implementation and a pre-merge hardening amendment (fixed head
@@ -1025,7 +1025,7 @@ current intent, not a contract that overrides sound engineering judgment.
     `v2.enabled` stays `false`; `v2.rules_version` is unchanged
     (`v2-rules-v0.1.0`) — this PR implements already-frozen §7.2/§7.0a/
     §7.0b formulas/thresholds, not new or tuned V2-v0 parameters.
-  - **PR 4 of ~4 — `CONFIRMED_BREAKOUT` + Stage 5 completion: THIS PR**
+  - **PR 4 of ~4 — `CONFIRMED_BREAKOUT` + Stage 5 completion: MERGED**
     (#42, "feat: add V2 confirmed breakout detector"), the FINAL planned
     Stage 5 detector PR. Adds `analytics/forecasting_v2/
     confirmed_breakout.py`: `detect_confirmed_breakout(inputs:
@@ -1110,14 +1110,55 @@ current intent, not a contract that overrides sound engineering judgment.
     contracts remain authoritative, and this split may be adjusted if
     reviewability or risk requires it.
 
-**Stage 5's detector-implementation portion becomes COMPLETE when #42
-merges** — all three frozen setup families (`TREND_PULLBACK`,
-`COMPRESSION_BREAKOUT`, `CONFIRMED_BREAKOUT`) then have a deterministic
+**Stage 5's detector-implementation portion is COMPLETE — #39, #40, #41,
+#42 are all MERGED.** All three frozen setup families (`TREND_PULLBACK`,
+`COMPRESSION_BREAKOUT`, `CONFIRMED_BREAKOUT`) now have a deterministic
 Stage 5 qualification implementation. This does NOT mean the V2 trading
 product is complete — Stage 6 (Episode State Machine), which owns episode
 identity/dedup, family precedence (§7.4), confirmation, false-break
 transitions, expiry, weakening, and persistence orchestration, has NOT
 started.
 
-**Next planned work (after PR #42 merges):** Stage 6 — Episode State
-Machine (not yet started).
+- **Stage 6 — Episode State Machine: IN PROGRESS.**
+  - **PR 1 of ~5 — identity/dedup contract hardening: THIS PR** (#43,
+    "docs: freeze V2 episode identity and dedup semantics"). Before any
+    executable Stage 6 code, this narrow **documentation-only** PR closes
+    deterministic ambiguities the frozen `§12`/`§7.4` left open: creation
+    identity vs. later-observed anchor drift (episode identity is fixed
+    once at creation and never mutates), exact non-material-vs-material
+    drift math for all three families (`TREND_PULLBACK`/
+    `COMPRESSION_BREAKOUT`'s 15m bucket-count distance,
+    `CONFIRMED_BREAKOUT`'s tick-normalized-price drift against the active
+    episode's *creation-time* `protection_buffer`), a single deterministic
+    tick-normalization rule (`Decimal`/`ROUND_HALF_UP`, applied strictly
+    after `§7.0c`'s raw extreme selection), explicit "suppressed, not
+    queued" semantics (no hidden pending-episode queue, no stale-candidate
+    resurrection), the exact terminal-cooldown clock
+    (`T_terminal + 3*5m`/`T_terminal + 1*5m`), a precise closed-interval
+    structural-overlap predicate for `§7.4` reusing Stage 5's existing
+    `entry_zone_lower`/`entry_zone_upper` fields, a deterministic
+    family-precedence arbitration algorithm, and an explicit
+    non-retroactivity clarification (precedence arbitrates new candidates
+    only — it never mutates or terminates an already-active episode).
+    Adds no code, no schema, no config. `v2.enabled` stays `false`;
+    `v2.rules_version` is unchanged (`v2-rules-v0.1.0`) — this PR resolves
+    behavior the frozen text left underspecified, it does not tune an
+    implemented threshold or reinterpret any persisted V2 history (none
+    exists).
+  - **PR 2 of ~5 — episode identity + persisted-history read foundation**
+    (#44, not yet started).
+  - **PR 3 of ~5 — candidate arbitration / `EARLY_SIGNAL` creation / dedup
+    / cooldown / reversal cross-reference** (#45, not yet started).
+  - **PR 4 of ~5 — family confirmation, false-break, and candidate-expiry
+    transitions** (#46, not yet started).
+  - **PR 5 of ~5 — `CONFIRMED`/`WEAKENING` lifecycle, structural
+    invalidation, horizon terminal resolution, and Stage 6 completion**
+    (#47, not yet started).
+  - This PR-count split is an IMPLEMENTATION/reviewability plan, not a new
+    correctness contract — the existing Product/Correctness contracts
+    (as amended by #43) remain authoritative, and this split may be
+    adjusted if reviewability or risk requires it. It is not a claim that
+    the exact PR count or boundaries are immutable.
+
+**Next planned work (after PR #43 merges):** Stage 6 PR 2 of ~5 — episode
+identity + persisted-history read foundation (#44, not yet started).

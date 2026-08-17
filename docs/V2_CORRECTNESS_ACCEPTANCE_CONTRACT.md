@@ -1583,6 +1583,119 @@ different market ideas and may coexist as distinct episodes, subject to
 the one-active-episode-per-`(direction, family)` rule in
 [§12](#12-episode-identity-and-deduplication).
 
+#### 7.4.1 Structural region and overlap predicate (exact)
+
+The prior text used "overlapping structural region" without a precise
+predicate. This is now frozen using geometry Stage 5 already produces —
+**no new field, tolerance, or geometry is invented.**
+
+Every candidate exposes `entry_zone_lower`/`entry_zone_upper`
+([§9](#9-entry-zone-semantics), with `entry_zone_lower <= entry_zone_upper`)
+at the moment it qualifies (its `EARLY_SIGNAL` entry zone). For §7.4
+arbitration, a candidate's **structural region** is exactly the closed
+interval `[entry_zone_lower, entry_zone_upper]` — nothing else.
+
+Two candidates' structural regions overlap **iff** their closed intervals
+have a non-empty intersection:
+
+```text
+overlap(A, B) iff max(lower_A, lower_B) <= min(upper_A, upper_B)
+```
+
+Boundary-touching counts as overlap (the predicate uses `<=`, not `<`).
+No percentage tolerance, extra tick tolerance, ATR tolerance, or "nearby
+enough" fuzz is added — the already-versioned structural entry zones are
+the entire comparison geometry.
+
+Examples:
+
+| A | B | Overlap? |
+|---|---|---|
+| `[100, 110]` | `[105, 120]` | Yes — intervals genuinely intersect. |
+| `[100, 110]` | `[110, 120]` | Yes — touching at `110` counts. |
+| `[100, 109.9]` | `[110, 120]` | No — `max(100,110)=110 > min(109.9,120)=109.9`. |
+
+#### 7.4.2 Deterministic arbitration algorithm
+
+For **new** episode candidates that have already survived same-slot
+active/cooldown eligibility ([§12.3](#123-per-decision-classification-of-a-same-slot-candidate)/
+[§12.6](#126-suppression-at-most-one-active-episode-per-slot)/
+[§12.8](#128-terminal-episode-cooldown-exact-clock)) at one decision
+boundary `T`, arbitrate **separately per direction**:
+
+```text
+1. Start with all independently-qualified, creation-eligible candidates
+   for this direction at T.
+2. Order them by family precedence, high to low:
+       COMPRESSION_BREAKOUT > CONFIRMED_BREAKOUT > TREND_PULLBACK
+3. Walk the ordered list. For each candidate:
+   4. Accept it iff its structural region (§7.4.1) does NOT overlap the
+      structural region of any candidate already accepted earlier in this
+      walk (i.e. any already-accepted higher-or-equal-precedence
+      candidate).
+   5. Otherwise, suppress it (§12.7 — suppressed, not queued) and record a
+      cross-reference from its family/reason to the accepted
+      higher-precedence winner in that winner's event history.
+```
+
+Because the walk is strictly precedence-ordered and each step compares
+only against already-*accepted* candidates, the result is deterministic
+and order-independent with respect to any incidental input ordering.
+
+Worked example: at one `T`, one direction, three independently-qualified
+candidates — `COMPRESSION_BREAKOUT` region `[100,110]`, `CONFIRMED_BREAKOUT`
+region `[105,115]`, `TREND_PULLBACK` region `[150,160]`. Walk:
+`COMPRESSION_BREAKOUT` accepted first (nothing accepted yet).
+`CONFIRMED_BREAKOUT` overlaps `[100,110]` (`max(105,100)=105 <=
+min(115,110)=110`) → suppressed, cross-referenced to the `COMPRESSION_BREAKOUT`
+episode. `TREND_PULLBACK` `[150,160]` does not overlap `[100,110]` (the only
+accepted region so far) → accepted. Result: create `COMPRESSION_BREAKOUT`,
+suppress `CONFIRMED_BREAKOUT`, create `TREND_PULLBACK`. If all three regions
+had mutually overlapped instead, only `COMPRESSION_BREAKOUT` would be
+created; `CONFIRMED_BREAKOUT` and `TREND_PULLBACK` would both be suppressed
+against it.
+
+#### 7.4.3 Precedence applies to new creation only
+
+§7.4 arbitrates **simultaneous new candidates at the same decision
+boundary** — it is **not** an inter-family kill switch for
+already-created episodes. Explicitly:
+
+- §7.4 **MUST NOT** retroactively destroy, replace, or mutate an
+  already-active episode merely because a higher-precedence family
+  candidate qualifies at some later decision boundary.
+- Different-family active episodes **MAY** coexist, exactly as
+  [§12](#12-episode-identity-and-deduplication) already allows — the
+  precedence order in this section governs only which brand-new
+  candidate(s) get created when two or more independently qualify at the
+  *same* `T` over overlapping regions.
+- No active episode is ever terminally transitioned (`INVALIDATED` /
+  `EXPIRED` / `COMPLETED`) because a higher-precedence family's candidate
+  later appeared — an active episode's lifecycle transitions are governed
+  exclusively by [§13](#13-lifecycle-transition-semantics), never by §7.4.
+
+#### 7.4.4 Worked vectors
+
+11. **Boundary-touching entry zones count as overlap.** Candidate A's entry
+    zone `[100, 110]`, candidate B's entry zone `[110, 120]`, same
+    direction, same `T`. `max(100,110)=110 <= min(110,120)=110` → overlap.
+    If A is `COMPRESSION_BREAKOUT` and B is `TREND_PULLBACK`, A is created
+    and B is suppressed, cross-referenced to A.
+12. **Three-family precedence.** As worked in
+    [§7.4.2](#742-deterministic-arbitration-algorithm):
+    `COMPRESSION_BREAKOUT [100,110]`, `CONFIRMED_BREAKOUT [105,115]`,
+    `TREND_PULLBACK [150,160]` → create `COMPRESSION_BREAKOUT`, suppress
+    `CONFIRMED_BREAKOUT`, create `TREND_PULLBACK`. If all three regions
+    mutually overlapped, only `COMPRESSION_BREAKOUT` would be created.
+13. **Different direction is unaffected.** A `LONG` `COMPRESSION_BREAKOUT`
+    candidate with region `[100,110]` and a `SHORT` `TREND_PULLBACK`
+    candidate with region `[100,110]` at the same `T` are **never**
+    arbitrated against each other by §7.4 — arbitration runs **separately
+    per direction** ([§7.4.2](#742-deterministic-arbitration-algorithm)
+    step 1). Both may be created independently; any cross-direction
+    relationship is exclusively the `REVERSAL_CANDIDATE` mechanism
+    ([§13.3](#133-reversal_candidate-mechanics)), never §7.4.
+
 ---
 
 ## 8. Model confidence semantics
@@ -1824,7 +1937,7 @@ this document does not conflate them.
 
 ## 12. Episode identity and deduplication
 
-**Logical identity (not a database key):**
+### 12.1 Logical identity (not a database key)
 
 ```text
 episode_logical_key = (symbol, market_type, direction, setup_family, structural_anchor)
@@ -1837,44 +1950,195 @@ already-closed data:
 |---|---|
 | `TREND_PULLBACK` | the `bucket_ts` of the 15m bucket establishing `trend_leg_extreme` ([§7.1](#71-trend_pullback)). |
 | `COMPRESSION_BREAKOUT` | the `bucket_ts` of the first 15m bucket in the qualifying compression window ([§7.2](#72-compression_breakout)). |
-| `CONFIRMED_BREAKOUT` | the `(bucket_ts, price)` of the 1h extreme defining the broken level, price rounded to the reference exchange's `tick_size` ([§7.3](#73-confirmed_breakout)). |
+| `CONFIRMED_BREAKOUT` | the `(bucket_ts, price)` of the 1h extreme defining the broken level, price **tick-normalized** per the exact deterministic rule in [§12.5](#125-tick-normalization-confirmed_breakout-structural-price) ([§7.3](#73-confirmed_breakout)). |
 
-**New observation vs. new episode.** A new detector qualification updates
-an existing **active** (non-terminal) episode iff its
-`episode_logical_key` matches exactly. A qualification with the same
-`(direction, setup_family)` but a **materially different**
-`structural_anchor` — defined as: for `TREND_PULLBACK`/`COMPRESSION_BREAKOUT`,
-a different anchor bucket more than `ANCHOR_DRIFT_BUCKETS = 4` buckets
-away at that family's own timeframe; for `CONFIRMED_BREAKOUT`, a level
-price differing by more than `2 * protection_buffer` — is treated as
-follows:
+### 12.2 Creation identity is immutable
+
+`episode_logical_key` is established **exactly once**, at the decision
+boundary an episode is first created (its `EARLY_SIGNAL`), and **MUST NOT
+mutate** for the rest of that episode's life — regardless of what later
+decisions observe. This is the resolution to an ambiguity the original
+text left open: it distinguished a qualification's *creation* identity
+from a *later, newly observed* candidate anchor only implicitly. This
+section makes the distinction explicit and normative:
+
+- The **creation identity** is the `episode_logical_key` (and, for
+  `CONFIRMED_BREAKOUT`, the creation-time tick-normalized level price and
+  the creation-time `protection_buffer`) recorded when the episode was
+  first created. It is the episode's permanent historical identity.
+- An **observed candidate anchor** on any later decision — a fresh
+  `trend_leg_extreme`/`compression_start_bucket`/`level_anchor_bucket`
+  independently produced by the Stage 5 detector at that decision boundary
+  — is compared **against the active episode's creation identity**, never
+  against another observation's anchor, and never against a running
+  average. Observing a shifted anchor on a later decision does **not**, by
+  itself, rewrite the episode's creation identity.
+
+### 12.3 Per-decision classification of a same-slot candidate
+
+Define `slot = (symbol, market_type, direction, setup_family)`. At most one
+**active** (non-terminal) episode may exist per `slot`
+([§12.6](#126-suppression-at-most-one-active-episode-per-slot)). When a
+Stage 5 detector produces a qualifying candidate for a `slot` that already
+has an active episode, the candidate's structural anchor is classified
+against that active episode's **creation identity**
+([§12.2](#122-creation-identity-is-immutable)) into exactly one of three
+outcomes:
+
+| Case | Condition | Outcome |
+|---|---|---|
+| **(A) Exact match** | Candidate's canonical structural anchor equals the active episode's creation `structural_anchor` exactly (bucket-for-bucket for `TREND_PULLBACK`/`COMPRESSION_BREAKOUT`; tick-normalized-price-for-tick-normalized-price for `CONFIRMED_BREAKOUT`). | **Observation/update** of the existing active episode. `episode_logical_key` is unchanged (it already matched). |
+| **(B) Non-material drift** | Candidate's anchor differs from the active episode's creation anchor, but the drift is within the family's frozen non-material threshold ([§12.4](#124-exact-driftmateriality-formulas)). | **Also an observation/update** of the *same* active episode. `episode_logical_key` **remains the original creation key** — the original persisted `structural_anchor` (and, for `CONFIRMED_BREAKOUT`, the original tick-normalized level price) stays the episode's immutable historical identity. The newly observed candidate anchor **MAY** be recorded by value in the new event's `decision_snapshot`/event payload as an observational fact, but **MUST NOT** silently rewrite `episode_logical_key` or the episode's original `structural_anchor`. |
+| **(C) Material drift** | Candidate's anchor differs from the active episode's creation anchor by more than the family's frozen materiality threshold. | The candidate is **suppressed** for that decision ([§12.6](#126-suppression-at-most-one-active-episode-per-slot)/[§12.7](#127-suppression-is-not-a-queue)) — no second episode is created in the same `slot` while the active episode remains non-terminal. |
+
+Case (A) and case (B) are both "update the existing active episode" from
+`episode_logical_key`'s point of view — the only operational difference is
+whether a newly observed anchor exists to optionally record as an
+observation. Neither case ever produces a second episode in the same
+`slot`, and neither case ever mutates the creation identity.
+
+### 12.4 Exact drift/materiality formulas
+
+**`TREND_PULLBACK` / `COMPRESSION_BREAKOUT`** (both use 15m anchor buckets,
+`ANCHOR_DRIFT_BUCKETS = 4`, kept frozen from the prior text):
+
+```text
+A = active episode's creation structural_anchor (15m bucket_ts)
+C = candidate's newly observed structural_anchor (15m bucket_ts)
+
+bucket_distance = abs(C - A) / 15m      # exact integer bucket-count distance,
+                                          # never approximate wall-clock seconds
+
+bucket_distance <= ANCHOR_DRIFT_BUCKETS (4)  -> NON-MATERIAL (case B, §12.3)
+bucket_distance >  ANCHOR_DRIFT_BUCKETS (4)  -> MATERIAL     (case C, §12.3)
+```
+
+`bucket_distance` **MUST** be computed as an exact integer count of aligned
+15m buckets (`abs(C - A)` is always an exact multiple of `15m` because both
+`A` and `C` are 15m bucket boundaries) — never as an approximate wall-clock
+`abs(C - A).total_seconds() / 900` comparison, which is equivalent here but
+is not the frozen form. Exactly `4` buckets away passes as non-material;
+`5` buckets away is material. This rule is identical, independently, for
+both `TREND_PULLBACK` and `COMPRESSION_BREAKOUT` — same threshold, same
+15m bucket-count semantics, evaluated against each family's own
+`structural_anchor`.
+
+**`CONFIRMED_BREAKOUT`** (tick-normalized structural level price, compared
+using the **active episode's creation-time** `protection_buffer` — never a
+buffer recomputed at the candidate's own decision boundary, so the
+threshold cannot move merely because a later candidate observed a
+different volatility environment):
+
+```text
+active_creation_normalized_level_price = tick-normalized level price recorded
+                                          when the active episode was created
+active_creation_protection_buffer      = protection_buffer recorded when the
+                                          active episode was created
+
+candidate_normalized_level_price = candidate's newly observed level price,
+                                    tick-normalized per §12.5
+
+level_drift = abs(candidate_normalized_level_price - active_creation_normalized_level_price)
+
+level_drift <= 2 * active_creation_protection_buffer  -> NON-MATERIAL (case B, §12.3)
+level_drift >  2 * active_creation_protection_buffer  -> MATERIAL     (case C, §12.3)
+```
+
+Exactly `2 * active_creation_protection_buffer` of drift passes as
+non-material (the boundary itself is inclusive on the non-material side).
+A candidate whose `level_anchor_bucket` differs from the active episode's
+creation `level_anchor_bucket` does **not**, by itself, make the candidate
+material — only the tick-normalized price drift is compared. The
+episode's original `structural_anchor`/`episode_logical_key` stays frozen
+regardless of which 1h bucket a later observation's extreme happened to
+land in, exactly as [§12.2](#122-creation-identity-is-immutable) requires.
+
+### 12.5 Tick normalization (`CONFIRMED_BREAKOUT` structural price)
+
+The prior text said `CONFIRMED_BREAKOUT`'s structural price is "rounded to
+the reference exchange's `tick_size`" without freezing the exact rounding
+rule. This is now frozen as one deterministic algorithm, using decimal
+arithmetic (never binary-float modulo tricks, and never Python's built-in
+`round()`, whose binary-float/round-half-to-even semantics are not the
+contract being frozen here):
+
+```text
+price_decimal = Decimal(str(raw_level_price))
+tick_decimal  = Decimal(str(tick_size))
+
+tick_index = (price_decimal / tick_decimal) rounded to the nearest integer
+             using ROUND_HALF_UP
+
+normalized_level_price = tick_index * tick_decimal
+```
+
+Inputs (`raw_level_price`, `tick_size`) are always positive. String
+construction (`Decimal(str(x))`) is required specifically to avoid binary
+float artifacts that `Decimal(x)` on a `float` would otherwise introduce.
+The integer `tick_index` is the canonical **equality identity** for the
+normalized price (two prices are the "same" tick iff their `tick_index`
+values are equal); `normalized_level_price` is its human-readable decimal
+equivalent.
+
+**Ordering constraint (load-bearing):** this normalization happens **only
+after** the raw structural extreme has already been selected at full
+stored precision by [§7.0c](#70c-extreme-tie-breaking-deterministic-structural-anchor-selection)'s
+tie-breaking rule. It **MUST NOT** influence, and **MUST NOT** run before,
+`§7.0c`'s extreme comparison/tie-breaking — `level_anchor_bucket`/
+`level_price` as exposed by the Stage 5 `CONFIRMED_BREAKOUT` detector
+(`analytics/forecasting_v2/confirmed_breakout.py`'s `structural_anchor`
+property) remain the RAW, un-normalized facts; tick normalization is a
+Stage 6 episode-identity/materiality construction step applied strictly
+downstream of that raw fact, never a preprocessing step applied to the
+inputs `§7.0c` compares.
+
+Worked examples (`tick_size = 0.1`):
+
+| Raw price | `tick_index` | `normalized_level_price` |
+|---|---|---|
+| `66200.04` | `662000` | `66200.0` |
+| `66200.05` | `662001` (half rounds up) | `66200.1` |
+| `66200.06` | `662001` | `66200.1` |
+
+### 12.6 Suppression: at most one active episode per slot
 
 ```text
 at most ONE active (non-terminal) episode per (symbol, market_type, direction, setup_family)
 
-if a materially-different candidate qualifies while an active episode of
-the same (direction, family) already exists:
+if a candidate is classified as materially different (case C, §12.3) while
+an active episode of the same slot already exists:
     the new candidate is SUPPRESSED (not created) until the active episode
     reaches a terminal state (INVALIDATED / EXPIRED / COMPLETED)
 ```
 
 This directly resolves both failure modes the Product Contract flags: it
-does **not** mint a new episode every 5m bucket (only a materially
-different anchor is even eligible to be "new," and even then it queues
-rather than spawning a concurrent duplicate), and it does **not** let one
-old episode block *all* future BTC setups — only same-`(direction, family)`
-candidates are suppressed; a different family, or the opposite direction,
-is free to open independently.
+does **not** mint a new episode every 5m bucket (an exact match or
+non-material drift both update the same episode, per
+[§12.3](#123-per-decision-classification-of-a-same-slot-candidate)), and
+it does **not** let one old episode block *all* future BTC setups — only
+same-`slot` candidates are suppressed; a different family, or the opposite
+direction, is free to open independently.
 
-**Different families, same direction:** MAY coexist as distinct episodes
-(different market ideas), subject to the precedence/dedup rule in
-[§7.4](#74-setup-family-precedence-and-deduplication) when they structurally
-overlap.
+### 12.7 Suppression is not a queue
 
-**Opposite direction:** MAY open independently and concurrently at any
-time — this is what makes `REVERSAL_CANDIDATE` possible
-([§13.3](#133-reversal_candidate-mechanics)). Episodes are never mutually
-exclusive across direction.
+A candidate suppressed under [§12.6](#126-suppression-at-most-one-active-episode-per-slot)
+(same-slot active episode exists), under the terminal cooldown
+([§12.8](#128-terminal-episode-cooldown-exact-clock)), or under family
+precedence ([§7.4](#74-setup-family-precedence-and-deduplication)) is
+**suppressed, not queued**. It is suppressed **for that one decision only**
+— it is **not** stored as a pending future episode, and it **MUST NOT**
+automatically become an episode later merely because the blocking
+condition subsequently clears. Once the blocking condition clears (the
+active episode reaches a terminal state, the cooldown elapses, or the
+higher-precedence episode is no longer active), opening a new episode
+requires a candidate that **independently** qualifies according to the
+normal detector/state-machine rules **at an eligible decision boundary** —
+never a resurrection of the earlier, stale, suppressed candidate. This
+matters because V2 must not open a stale setup, anchored to a price/time
+the market has since moved away from, just because an older episode
+happened to terminate.
+
+### 12.8 Terminal-episode cooldown — exact clock
 
 **Terminal-episode cooldown (V2-v0):**
 
@@ -1883,8 +2147,83 @@ exclusive across direction.
 | `INVALIDATED` | `3` closed 5m buckets (15 min) — prevents immediate flip-flop re-triggering right at the broken level. |
 | `EXPIRED` / `COMPLETED` | `1` closed 5m bucket (5 min) — a clean resolution, not a broken premise, needs less cooldown. |
 
-All of the above (`ANCHOR_DRIFT_BUCKETS`, cooldown lengths) are V2-v0
-parameters, `rules_version`-participating.
+The exact clock, frozen precisely:
+
+```text
+T_terminal = the decision boundary of the terminal event (the decision at
+             which the episode transitioned to INVALIDATED / EXPIRED / COMPLETED)
+
+cooldown buckets = the CLOSED 5m buckets strictly AFTER T_terminal
+
+earliest eligible new-episode decision boundary:
+    INVALIDATED          -> T_terminal + 3 * 5m = T_terminal + 15m
+    EXPIRED / COMPLETED  -> T_terminal + 1 * 5m = T_terminal + 5m
+```
+
+A candidate arriving at exactly the first eligible decision boundary
+**MAY** create a new episode if it genuinely, independently qualifies at
+that boundary — the boundary being reached is not itself a qualification.
+Cooldown scope remains the `slot` — `(symbol, market_type, direction,
+setup_family)` — **not** the structural anchor; it applies regardless of
+whether a later candidate's anchor would have matched the terminated
+episode's anchor. Cooldown suppression is governed by
+[§12.7](#127-suppression-is-not-a-queue) — suppressed, not queued.
+
+All of the above (`ANCHOR_DRIFT_BUCKETS`, the `2x` `CONFIRMED_BREAKOUT`
+materiality multiplier, cooldown lengths) are V2-v0 parameters,
+`rules_version`-participating.
+
+### 12.9 Worked vectors
+
+1. **Exact-key match.** Active `TREND_PULLBACK` episode created with
+   `structural_anchor = 12:00` (15m bucket). A later candidate observes
+   `trend_leg_extreme.bucket_ts = 12:00` again. Case (A): update the
+   existing episode; `episode_logical_key` unchanged.
+2. **`TREND_PULLBACK` drift exactly 4 buckets.** Creation anchor `12:00`;
+   candidate anchor `13:00`. `bucket_distance = abs(13:00 - 12:00) / 15m =
+   4`. `4 <= 4` → case (B), non-material: update the existing episode;
+   `episode_logical_key` remains anchored at `12:00`.
+3. **`TREND_PULLBACK` drift 5 buckets.** Creation anchor `12:00`; candidate
+   anchor `13:15`. `bucket_distance = abs(13:15 - 12:00) / 15m = 5`. `5 >
+   4` → case (C), material: candidate suppressed while the `12:00`-anchored
+   episode remains active.
+4. **`COMPRESSION_BREAKOUT`, same symmetric rule.** Creation
+   `compression_start_bucket = 09:00`; candidate `10:00` → `bucket_distance
+   = 4` → non-material, update. Candidate `10:15` → `bucket_distance = 5` →
+   material, suppressed. Identical mechanics to vectors 2–3, evaluated
+   against `COMPRESSION_BREAKOUT`'s own `structural_anchor`.
+5. **`CONFIRMED_BREAKOUT` drift exactly `2 * creation_buffer`.** Active
+   episode created at level `66000`, creation `protection_buffer = 150`.
+   Candidate tick-normalized level `66300`: `level_drift = abs(66300 -
+   66000) = 300 = 2 * 150`. `300 <= 300` → case (B), non-material: update
+   the existing episode; original level `66000` remains the identity.
+6. **`CONFIRMED_BREAKOUT` drift `> 2 * creation_buffer`.** Same active
+   episode (`66000`, buffer `150`). Candidate tick-normalized level
+   `66300.1` (assuming the tick-normalized difference genuinely exceeds
+   `300`): `level_drift > 300` → case (C), material: candidate suppressed
+   while the `66000`-anchored episode remains active. (Note: `66299` also
+   remains non-material, `level_drift = 299 <= 300`.)
+7. **Tick normalization, below/at/above the tick midpoint** (`tick_size =
+   0.1`): `66200.04 → tick_index 662000 → 66200.0`; `66200.05 → tick_index
+   662001 (exact half, rounds up) → 66200.1`; `66200.06 → tick_index 662001
+   → 66200.1`.
+8. **`INVALIDATED` terminal at `12:20`.** `T_terminal = 12:20`. Cooldown
+   buckets: `[12:20,12:25)`, `[12:25,12:30)`, `[12:30,12:35)`. A same-slot
+   candidate at `T=12:25` or `T=12:30` remains suppressed. The earliest
+   eligible decision boundary for a new same-slot episode is `T=12:35`.
+9. **`COMPLETED`/`EXPIRED` terminal at `12:20`.** `T_terminal = 12:20`.
+   Cooldown bucket: `[12:20,12:25)`. Earliest eligible decision boundary is
+   `T=12:25`.
+10. **Suppressed candidate is not automatically resurrected.** A
+    materially-different `TREND_PULLBACK` candidate is suppressed at `T=13:15`
+    (vector 3) while an active episode anchored at `12:00` exists. The
+    `12:00` episode later reaches `INVALIDATED` at `T=14:00`; cooldown
+    clears at `T=14:15`. The `13:15` candidate is **not** resurrected at
+    `T=14:15` merely because the blocker cleared — a new episode may only
+    be created by a candidate that **independently qualifies** at an
+    eligible decision boundary at or after `T=14:15`, evaluated fresh
+    against that boundary's own data, per
+    [§12.7](#127-suppression-is-not-a-queue).
 
 ---
 
