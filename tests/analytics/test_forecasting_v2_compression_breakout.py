@@ -251,17 +251,40 @@ def test_qualifies_at_a_non_15m_formation_boundary():
 
 
 def test_qualifies_exactly_at_a_15m_formation_boundary_too():
+    # Physically-coherent T=12:15 vector. A 5m close INSIDE B15's own
+    # [12:00,12:15) window can never legitimately fall below B15's own
+    # raw-1m-derived HTF_low if B15 itself were part of the selected
+    # compression run -- so the selected run here ends BEFORE B15
+    # (indices 8..14, i.e. up to B15-15m) and B15's own raw 1m bars never
+    # participate in range_high/range_low. B15 itself stays healthy
+    # (valid consensus quality + valid reference close for RANGE_PROXY/
+    # protection_buffer) but is deliberately NOT compressed, so it cannot
+    # extend the selected run. Only then may the current B5 (contained
+    # inside B15) legitimately cross the already-established range.
     t2 = datetime(2024, 1, 1, 12, 15, tzinfo=UTC)  # B15=12:00, B15+15m==t2
     b5_t2 = datetime(2024, 1, 1, 12, 10, tzinfo=UTC)  # selected_bucket("5m", t2)
+    run_indices = tuple(range(8, 15))  # length 7, ends at LOOKBACK_GRID[14] == B15 - 15m
+    consensus_rows, percentile_rows = build_compression_grid_rows(compressed_indices=run_indices)
+    reference_15m_rows, raw_1m_rows = build_structural_rows(run_indices=run_indices)
+    # B15 itself is required for RANGE_PROXY's current-bucket gate and the
+    # protection_buffer reference price, even though it is NOT part of the
+    # selected run and contributes zero raw 1m bars to the structural range.
+    reference_15m_rows = reference_15m_rows + (make_reference_15m_row(B15, close=64_000.0),)
     context = make_context(t=t2)
     result = detect_compression_breakout(build_valid_short_inputs(
         context=context,
+        consensus_15m_rows=consensus_rows, percentile_15m_rows=percentile_rows,
+        reference_15m_rows=reference_15m_rows, reference_1m_rows=raw_1m_rows,
         reference_5m_rows=(
             make_reference_5m_row(b5_t2 - FIVE, close=63_820.0),
             make_reference_5m_row(b5_t2, close=63_740.0),
         ),
         consensus_5m_rows=(make_trigger_5m_row(bucket_ts=b5_t2, taker=-1000.0),)))
     assert result is not None
+    assert result.compression_end_bucket == LOOKBACK_GRID[14]
+    assert result.compression_end_bucket < B15
+    assert result.range_high == RANGE_HIGH
+    assert result.range_low == RANGE_LOW
 
 
 def test_wrong_inputs_type_raises():
@@ -545,6 +568,19 @@ def test_current_b15_quality_below_threshold_no_candidate_even_if_older_run_qual
 def test_current_b15_row_missing_no_candidate():
     consensus_rows, percentile_rows = build_compression_grid_rows()
     consensus_rows = tuple(r for r in consensus_rows if r["bucket_ts"] != B15)
+    result = detect_compression_breakout(build_valid_short_inputs(
+        consensus_15m_rows=consensus_rows, percentile_15m_rows=percentile_rows))
+    assert result is None
+
+
+def test_missing_non_run_range_proxy_peer_returns_none_not_keyerror():
+    # LOOKBACK_GRID[2] is inside the final RANGE_PROXY_N=14 grid
+    # (indices 2..15) but OUTSIDE the selected compression run (9..15).
+    # The qualifying run is untouched, B15 itself is healthy, but this
+    # ONE other RANGE_PROXY peer bucket is entirely missing -- that must
+    # be legitimate UNAVAILABLE input (None), never a bare KeyError.
+    consensus_rows, percentile_rows = build_compression_grid_rows()
+    consensus_rows = tuple(r for r in consensus_rows if r["bucket_ts"] != LOOKBACK_GRID[2])
     result = detect_compression_breakout(build_valid_short_inputs(
         consensus_15m_rows=consensus_rows, percentile_15m_rows=percentile_rows))
     assert result is None

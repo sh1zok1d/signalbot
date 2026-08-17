@@ -1041,9 +1041,19 @@ def detect_compression_breakout(
     if current_coverage < SETUP_MIN_COVERAGE or current_confidence < SETUP_MIN_CONFIDENCE:
         return None
 
-    range_proxy_window = frozenset(lookback_grid[COMPRESSION_LOOKBACK - RANGE_PROXY_N:])
-    proxy_input_rows = tuple(
-        consensus_by_bucket[b] for b in lookback_grid if b in range_proxy_window)
+    # §7 RANGE_PROXY_pct(15m,14,B15) reuses the final RANGE_PROXY_N=14 rows
+    # of the already-validated 16-bucket consensus window -- no second
+    # storage read. A bucket in that exact 14-bucket grid legitimately
+    # missing from `consensus_by_bucket` (present identity-validated rows
+    # don't cover every expected bucket) is UNAVAILABLE input, exactly like
+    # any other incomplete historical window (§21) -- fail closed to
+    # `None` BEFORE ever indexing `consensus_by_bucket`, never a bare
+    # KeyError, never a fabricated/substituted row, never a shortened or
+    # re-anchored window.
+    proxy_grid = lookback_grid[-RANGE_PROXY_N:]
+    if any(b not in consensus_by_bucket for b in proxy_grid):
+        return None
+    proxy_input_rows = tuple(consensus_by_bucket[b] for b in proxy_grid)
     try:
         proxy = range_proxy_pct(proxy_input_rows, timeframe="15m", bucket_ts=B15)
     except V2SetupFoundationError as exc:
