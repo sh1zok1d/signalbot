@@ -1987,9 +1987,27 @@ outcomes:
 
 | Case | Condition | Outcome |
 |---|---|---|
-| **(A) Exact match** | Candidate's canonical structural anchor equals the active episode's creation `structural_anchor` exactly (bucket-for-bucket for `TREND_PULLBACK`/`COMPRESSION_BREAKOUT`; tick-normalized-price-for-tick-normalized-price for `CONFIRMED_BREAKOUT`). | **Observation/update** of the existing active episode. `episode_logical_key` is unchanged (it already matched). |
+| **(A) Exact match** | Candidate's canonical structural anchor equals the active episode's creation `structural_anchor` exactly. For `TREND_PULLBACK`/`COMPRESSION_BREAKOUT`: the same 15m anchor bucket. For `CONFIRMED_BREAKOUT`: **both** dimensions of the `(level_anchor_bucket, tick-normalized price)` pair ([§12.1](#121-logical-identity-not-a-database-key)) match — `candidate.level_anchor_bucket == creation.level_anchor_bucket` **AND** `candidate.tick_index == creation.tick_index`. Identical price with a *different* `level_anchor_bucket` is **not** case (A) — see the note below. | **Observation/update** of the existing active episode. `episode_logical_key` is unchanged (it already matched). |
 | **(B) Non-material drift** | Candidate's anchor differs from the active episode's creation anchor, but the drift is within the family's frozen non-material threshold ([§12.4](#124-exact-driftmateriality-formulas)). | **Also an observation/update** of the *same* active episode. `episode_logical_key` **remains the original creation key** — the original persisted `structural_anchor` (and, for `CONFIRMED_BREAKOUT`, the original tick-normalized level price) stays the episode's immutable historical identity. The newly observed candidate anchor **MAY** be recorded by value in the new event's `decision_snapshot`/event payload as an observational fact, but **MUST NOT** silently rewrite `episode_logical_key` or the episode's original `structural_anchor`. |
 | **(C) Material drift** | Candidate's anchor differs from the active episode's creation anchor by more than the family's frozen materiality threshold. | The candidate is **suppressed** for that decision ([§12.6](#126-suppression-at-most-one-active-episode-per-slot)/[§12.7](#127-suppression-is-not-a-queue)) — no second episode is created in the same `slot` while the active episode remains non-terminal. |
+
+**`CONFIRMED_BREAKOUT`'s exact-match dimension is the whole pair, never
+price alone.** [§12.1](#121-logical-identity-not-a-database-key) freezes
+`CONFIRMED_BREAKOUT`'s `structural_anchor` as `(level_anchor_bucket,
+tick-normalized price)` — a pair, not a scalar. Case (A) therefore
+requires **both** components to match; a candidate whose tick-normalized
+price equals the creation price exactly but whose `level_anchor_bucket`
+differs is **not** an exact match, because the two `structural_anchor`
+tuples are unequal. Such a candidate falls to case (B) or (C) purely on
+the [§12.4](#124-exact-driftmateriality-formulas) price-drift formula —
+`level_anchor_bucket` inequality by itself never makes it case (A), and
+(per §12.4) never makes it material either. Example: creation
+`(level_anchor_bucket=10:00, tick_index=660000)`; candidate
+`(level_anchor_bucket=11:00, tick_index=660000)` — same tick, different
+bucket → **not** case (A); `level_drift = 0`, which is `<= 2 *
+active_creation_protection_buffer` → case (B), non-material drift; update
+the existing episode; the creation logical key remains `(10:00,
+tick_index=660000)`.
 
 Case (A) and case (B) are both "update the existing active episode" from
 `episode_logical_key`'s point of view — the only operational difference is
@@ -2032,26 +2050,64 @@ different volatility environment):
 ```text
 active_creation_normalized_level_price = tick-normalized level price recorded
                                           when the active episode was created
+                                          (a Decimal, per §12.5)
 active_creation_protection_buffer      = protection_buffer recorded when the
-                                          active episode was created
+                                          active episode was created (the
+                                          detector's native numeric value)
 
 candidate_normalized_level_price = candidate's newly observed level price,
-                                    tick-normalized per §12.5
-
-level_drift = abs(candidate_normalized_level_price - active_creation_normalized_level_price)
-
-level_drift <= 2 * active_creation_protection_buffer  -> NON-MATERIAL (case B, §12.3)
-level_drift >  2 * active_creation_protection_buffer  -> MATERIAL     (case C, §12.3)
+                                    tick-normalized per §12.5 (a Decimal)
 ```
 
-Exactly `2 * active_creation_protection_buffer` of drift passes as
-non-material (the boundary itself is inclusive on the non-material side).
-A candidate whose `level_anchor_bucket` differs from the active episode's
-creation `level_anchor_bucket` does **not**, by itself, make the candidate
-material — only the tick-normalized price drift is compared. The
-episode's original `structural_anchor`/`episode_logical_key` stays frozen
-regardless of which 1h bucket a later observation's extreme happened to
-land in, exactly as [§12.2](#122-creation-identity-is-immutable) requires.
+**Decimal domain (frozen; matches §12.5's rule exactly — the comparison
+never crosses back into binary `float`, and never uses an epsilon/
+tolerance fudge):**
+
+```text
+creation_buffer_decimal = Decimal(str(active_creation_protection_buffer))
+level_drift_decimal     = abs(candidate_normalized_level_price
+                               - active_creation_normalized_level_price)
+threshold_decimal       = Decimal("2") * creation_buffer_decimal
+
+level_drift_decimal <= threshold_decimal  -> NON-MATERIAL (case B, §12.3)
+level_drift_decimal >  threshold_decimal  -> MATERIAL     (case C, §12.3)
+```
+
+`active_creation_protection_buffer` — the detector's native numeric
+value — is converted to `Decimal` the same way [§12.5](#125-tick-normalization-confirmed_breakout-structural-price)
+converts prices: via `Decimal(str(x))`, **never** `Decimal(x)` applied
+directly to a `float` (which would carry that float's binary-fraction
+artifacts into the comparison), and the resulting `level_drift_decimal`/
+`threshold_decimal` are **never** converted back to `float` for the
+comparison — the comparison itself happens entirely in the `Decimal`
+domain. This freezes the deterministic *arithmetic representation* only;
+it does **not** change the threshold value, which remains exactly `2 *
+active_creation_protection_buffer`.
+
+Exactly `threshold_decimal` of drift passes as non-material (the boundary
+itself is inclusive on the non-material side). A candidate whose
+`level_anchor_bucket` differs from the active episode's creation
+`level_anchor_bucket` does **not**, by itself, make the candidate material
+— only `level_drift_decimal` is compared (see also the case-(A) note in
+[§12.3](#123-per-decision-classification-of-a-same-slot-candidate) for why
+a bucket difference alone is not even an exact match, let alone a reason
+for materiality). The episode's original `structural_anchor`/
+`episode_logical_key` stays frozen regardless of which 1h bucket a later
+observation's extreme happened to land in, exactly as
+[§12.2](#122-creation-identity-is-immutable) requires.
+
+**Worked decimal-arithmetic example** (deliberately awkward inputs, to
+exercise the `Decimal(str(...))` conversion): creation normalized level
+`Decimal("66000.1")`, creation `protection_buffer` the `float` `164.5`,
+candidate normalized level `Decimal("66329.1")`.
+
+```text
+creation_buffer_decimal = Decimal(str(164.5))  = Decimal("164.5")
+threshold_decimal       = Decimal("2") * Decimal("164.5") = Decimal("329.0")
+level_drift_decimal     = abs(Decimal("66329.1") - Decimal("66000.1")) = Decimal("329.0")
+
+Decimal("329.0") <= Decimal("329.0")  -> exact boundary -> NON-MATERIAL
+```
 
 ### 12.5 Tick normalization (`CONFIRMED_BREAKOUT` structural price)
 
@@ -2121,22 +2177,84 @@ direction, is free to open independently.
 
 ### 12.7 Suppression is not a queue
 
-A candidate suppressed under [§12.6](#126-suppression-at-most-one-active-episode-per-slot)
-(same-slot active episode exists), under the terminal cooldown
-([§12.8](#128-terminal-episode-cooldown-exact-clock)), or under family
-precedence ([§7.4](#74-setup-family-precedence-and-deduplication)) is
-**suppressed, not queued**. It is suppressed **for that one decision only**
-— it is **not** stored as a pending future episode, and it **MUST NOT**
-automatically become an episode later merely because the blocking
-condition subsequently clears. Once the blocking condition clears (the
-active episode reaches a terminal state, the cooldown elapses, or the
-higher-precedence episode is no longer active), opening a new episode
-requires a candidate that **independently** qualifies according to the
-normal detector/state-machine rules **at an eligible decision boundary** —
-never a resurrection of the earlier, stale, suppressed candidate. This
-matters because V2 must not open a stale setup, anchored to a price/time
-the market has since moved away from, just because an older episode
-happened to terminate.
+A candidate can be suppressed under three distinct mechanisms — same-slot
+active-episode existence ([§12.6](#126-suppression-at-most-one-active-episode-per-slot),
+case C of [§12.3](#123-per-decision-classification-of-a-same-slot-candidate)),
+terminal cooldown ([§12.8](#128-terminal-episode-cooldown-exact-clock)), or
+family precedence ([§7.4](#74-setup-family-precedence-and-deduplication))
+— and all three share one invariant: **suppressed, not queued**. No
+suppressed candidate is ever stored as a pending future episode, and none
+automatically becomes an episode later merely because a blocking condition
+subsequently clears. The three mechanisms have **distinct** clearing
+conditions, and only a mechanism's own condition ends *that* mechanism's
+suppression — never a wall-clock timeout, never "the market moved back":
+
+- **Same-slot suppression** ([§12.6](#126-suppression-at-most-one-active-episode-per-slot)):
+  blocks a materially-different candidate for as long as the active
+  episode in that `slot` remains non-terminal. It clears once that
+  episode reaches a terminal state (`INVALIDATED`/`EXPIRED`/`COMPLETED`)
+  **and** the terminal-episode cooldown below has also elapsed.
+- **Cooldown suppression** ([§12.8](#128-terminal-episode-cooldown-exact-clock)):
+  blocks a new same-slot episode until the cooldown's first eligible
+  decision boundary is reached.
+- **Family-precedence suppression** ([§7.4](#74-setup-family-precedence-and-deduplication)):
+  blocks a lower-precedence candidate **only at the one decision boundary
+  `T`** where the arbitration ran
+  ([§7.4.2](#742-deterministic-arbitration-algorithm)). It is **not** a
+  persistent blocker tied to the higher-precedence episode's lifecycle —
+  that episode remaining `ACTIVE` at a later decision boundary is **not**,
+  by itself, a reason to keep suppressing the lower-precedence family.
+  [§7.4.3](#743-precedence-applies-to-new-creation-only) is explicit that
+  precedence never retroactively affects an already-created episode and
+  arbitrates only simultaneous new candidates at the same `T`; this
+  section must not be read to contradict that. Concretely: if a
+  lower-precedence candidate loses arbitration at `T`, and later — at any
+  `T' > T` — the same detector independently qualifies again with a fresh
+  candidate, that candidate is evaluated purely against **its own
+  family's** same-slot/cooldown rules
+  ([§12.3](#123-per-decision-classification-of-a-same-slot-candidate)/
+  [§12.6](#126-suppression-at-most-one-active-episode-per-slot)/
+  [§12.8](#128-terminal-episode-cooldown-exact-clock)) at `T'`. It is
+  **not** compared against, and **not** blocked by, the still-active
+  higher-precedence episode created at `T`; `§7.4` arbitration at `T'`
+  runs only if another same-direction, overlapping, creation-eligible
+  *new* candidate also exists at `T'` itself.
+
+In every case, once the specific blocking condition clears, opening a new
+episode still requires a candidate that **independently qualifies**
+according to the normal detector/state-machine rules **at an eligible
+decision boundary** — never a resurrection of the earlier, stale,
+suppressed candidate. This matters because V2 must not open a stale setup,
+anchored to a price/time the market has since moved away from, just
+because an older episode or arbitration outcome happened to lapse.
+
+**Worked vector — family-precedence suppression is not a persistent
+blocker:**
+
+```text
+T=12:20: LONG COMPRESSION_BREAKOUT candidate, region [100,110]
+         LONG TREND_PULLBACK    candidate, region [105,108]
+         both independently qualified and creation-eligible
+
+§7.4 arbitration at T=12:20 (§7.4.2): COMPRESSION_BREAKOUT precedes
+TREND_PULLBACK; regions overlap (max(100,105)=105 <= min(110,108)=108)
+  -> COMPRESSION_BREAKOUT episode created (ACTIVE)
+  -> TREND_PULLBACK suppressed FOR T=12:20 ONLY, cross-referenced to the
+     COMPRESSION_BREAKOUT episode's history
+
+T=12:25: TREND_PULLBACK's own slot (symbol, market_type, LONG,
+         TREND_PULLBACK) has no active episode and no cooldown in effect.
+         TREND_PULLBACK independently qualifies again with a valid region.
+         No other same-direction, overlapping, creation-eligible NEW
+         candidate exists at T=12:25 (the COMPRESSION_BREAKOUT episode is
+         already-created and ACTIVE -- it is not itself a "new candidate
+         at T=12:25", so §7.4 has nothing to arbitrate at T=12:25).
+
+  -> TREND_PULLBACK MAY create its own episode at T=12:25.
+  -> The ACTIVE COMPRESSION_BREAKOUT episode created at T=12:20 does NOT
+     block it -- family-precedence suppression does not persist past the
+     decision boundary at which it was evaluated (§7.4.3).
+```
 
 ### 12.8 Terminal-episode cooldown — exact clock
 
