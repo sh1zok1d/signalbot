@@ -54,7 +54,7 @@ a source-identity mismatch.
     `exchange_instruments` tick-size lookup — reached only through the
     separate `V2SetupHistoryReader` port, `ports.py`; `V2AlignedInputReader`
     is UNCHANGED). Implemented ZERO setup detection itself.
-  - **PR 2 of ~4 — `TREND_PULLBACK`: THIS PR** (#40, "feat: add V2 trend
+  - **PR 2 of ~4 — `TREND_PULLBACK`: MERGED** (#40, "feat: add V2 trend
     pullback detector"), the FIRST actual V2 setup detector. Adds
     `trend_pullback.py`: `detect_trend_pullback(inputs:
     V2TrendPullbackInputs) -> Optional[V2TrendPullbackCandidate]` —
@@ -91,7 +91,44 @@ a source-identity mismatch.
     age against `PULLBACK_MAX_AGE_15M_BUCKETS` (exposed only as frozen
     family metadata), and never computes `model_confidence` (§8). All of
     that is Stage 6 (Episode State Machine).
-  - **PR 3 of ~4 — `COMPRESSION_BREAKOUT` (planned, not started).**
+  - **PR 3 of ~4 — `COMPRESSION_BREAKOUT`: THIS PR** (#41, "feat: add V2
+    compression breakout detector"). Adds `compression_breakout.py`:
+    `detect_compression_breakout(inputs: V2CompressionBreakoutInputs) ->
+    Optional[V2CompressionBreakoutCandidate]` -- evaluated at EVERY legal
+    5m V2 decision boundary (not restricted to 15m formation boundaries,
+    unlike `TREND_PULLBACK`); the exact `COMPRESSION_LOOKBACK=16`-bucket
+    15m compression-evidence grid, gated per-bucket by the SAME §6.2/§6.3
+    quality gate PLUS `context_evidence.compression_score()` (reused
+    unchanged) `>= COMPRESSION_THRESHOLD=0.75`; the new deterministic
+    maximal-consecutive-run partition + most-recent-end selection
+    (`COMPRESSION_MIN_DURATION=6`, full run length used, never truncated);
+    the selected run's structural `range_high`/`range_low` via
+    `aligned_inputs.derive_reference_extrema()` (reused unchanged, §7.0a)
+    over ONLY that run's own buckets; the fresh 5m-crossing check (current
+    vs. immediately-previous closed Binance 5m reference closes,
+    distinguishing a NEW cross from merely remaining outside an
+    already-broken level); the 5m trigger's quality/
+    `BREAKOUT_MIN_AGREEMENT=2/3` directional-agreement/taker-flow-sign
+    gates; the shared §7.0b `directional_context_gate()` (reused
+    unchanged, deliberately NOT `TREND_PULLBACK`'s own stricter
+    precondition); and `protection_buffer()`/entry-zone/
+    `invalidation_price` structural facts (the 15m reference close AT
+    `B15`, never the 5m breakout close itself). Also adds
+    `compression_breakout_inputs.py`: `load_compression_breakout_inputs()`,
+    a narrow async assembler over `V2SetupHistoryReader` issuing exactly 7
+    reads (16-bucket 15m consensus + matching percentile + matching
+    reference-feature windows, one raw-1m-kline window, the two closed 5m
+    reference buckets, the current 5m consensus trigger row, and the
+    instrument row) -- no formation-boundary skip, since every 5m boundary
+    is a possible breakout instant. **Deliberately implements ONLY the
+    qualification question**, exactly like `TREND_PULLBACK`: never
+    constructs `episode_id`/`event_id`, never transitions
+    `EARLY_SIGNAL`/`CONFIRMED`/`WEAKENING`/`INVALIDATED`/`EXPIRED`/
+    `COMPLETED`, never evaluates the direction-aware false-break rule or
+    the boundary-equality HOLD convention, never counts candidate age
+    against `COMPRESSION_CONFIRMATION_MAX_AGE_5M_BUCKETS` (exposed only as
+    frozen family metadata), and never applies §7.4 family precedence
+    against `CONFIRMED_BREAKOUT`/`TREND_PULLBACK`. All of that is Stage 6.
   - **PR 4 of ~4 — `CONFIRMED_BREAKOUT` + Stage 5 completion (planned,
     not started).**
 
@@ -125,6 +162,14 @@ from .bias_1h import (
     BIAS_MIN_CONFIDENCE, BIAS_UNAVAILABLE, BIASES, BULLISH,
     NEUTRAL_NOT_ESTABLISHED, V2BiasError, V2BiasResult, classify_1h_bias,
 )
+from .compression_breakout import (
+    BREAKOUT_MIN_AGREEMENT, COMPRESSION_CONFIRMATION_MAX_AGE_5M_BUCKETS,
+    COMPRESSION_LOOKBACK, COMPRESSION_MIN_DURATION, COMPRESSION_PERCENTILE_WINDOW,
+    COMPRESSION_THRESHOLD, V2CompressionBreakoutCandidate, V2CompressionBreakoutError,
+    V2CompressionBreakoutInputs, detect_compression_breakout,
+)
+from .compression_breakout import EXPECTED_HORIZON as COMPRESSION_BREAKOUT_EXPECTED_HORIZON
+from .compression_breakout_inputs import load_compression_breakout_inputs
 from .context_evidence import (
     MIN_PCTL_TIER, V2ContextEvidenceError, compression_score,
     find_consensus_percentile, normalized_evidence, oi_confirmation,
@@ -206,4 +251,10 @@ __all__ = [
     "PULLBACK_MAX_AGE_15M_BUCKETS", "RESUMPTION_MIN_BUCKETS", "EXPECTED_HORIZON",
     "V2TrendPullbackInputs", "V2TrendPullbackCandidate", "detect_trend_pullback",
     "load_trend_pullback_inputs",
+    "V2CompressionBreakoutError",
+    "COMPRESSION_LOOKBACK", "COMPRESSION_MIN_DURATION", "COMPRESSION_THRESHOLD",
+    "COMPRESSION_PERCENTILE_WINDOW", "BREAKOUT_MIN_AGREEMENT",
+    "COMPRESSION_CONFIRMATION_MAX_AGE_5M_BUCKETS", "COMPRESSION_BREAKOUT_EXPECTED_HORIZON",
+    "V2CompressionBreakoutInputs", "V2CompressionBreakoutCandidate",
+    "detect_compression_breakout", "load_compression_breakout_inputs",
 ]

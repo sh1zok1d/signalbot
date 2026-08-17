@@ -861,7 +861,7 @@ current intent, not a contract that overrides sound engineering judgment.
     (`v2-rules-v0.1.0`) — this PR implements already-frozen §7/§7.0b/
     §7.0c formulas/thresholds, not new or tuned V2-v0 parameters; no
     schema/config change.
-  - **PR 2 of ~4 — `TREND_PULLBACK`: THIS PR** (#40, "feat: add V2 trend
+  - **PR 2 of ~4 — `TREND_PULLBACK`: MERGED** (#40, "feat: add V2 trend
     pullback detector"), the FIRST actual V2 setup detector. Adds
     `analytics/forecasting_v2/trend_pullback.py`: `detect_trend_pullback(
     inputs: V2TrendPullbackInputs) -> Optional[V2TrendPullbackCandidate]`
@@ -929,7 +929,102 @@ current intent, not a contract that overrides sound engineering judgment.
     `v2.enabled` stays `false`; `v2.rules_version` is unchanged
     (`v2-rules-v0.1.0`) — this PR implements already-frozen §7.1/§7.0c
     formulas/thresholds, not new or tuned V2-v0 parameters.
-  - **PR 3 of ~4 — `COMPRESSION_BREAKOUT` (planned, not started).**
+  - **PR 3 of ~4 — `COMPRESSION_BREAKOUT`: THIS PR** (#41, "feat: add V2
+    compression breakout detector"). Adds `analytics/forecasting_v2/
+    compression_breakout.py`: `detect_compression_breakout(inputs:
+    V2CompressionBreakoutInputs) -> Optional[V2CompressionBreakoutCandidate]`
+    — §7.2's compression-precondition + fresh-breakout qualification.
+    **Decision clock differs from `TREND_PULLBACK` (load-bearing):**
+    evaluated at EVERY legal 5m V2 decision boundary `T` (`B5 =
+    selected_bucket(5m, T)`, `B15 = selected_bucket(15m, T)`), NOT
+    restricted to 15m formation boundaries — the breakout trigger is a
+    5m-close event. For each of the EXACT `COMPRESSION_LOOKBACK=16`
+    expected 15m buckets ending at `B15`, a bucket counts as compressed
+    iff its OWN 15m consensus row passes the same frozen §6.2/§6.3
+    quality gate (`min_coverage_ratio>=2/3`, `consensus_confidence>=50`)
+    AND `context_evidence.compression_score(15m, "30d", b)` (PR 1 of
+    Stage 4's own primitive, reused unchanged — never a private
+    `1.0 - percentile_rank` reimplementation) is available and
+    `>= COMPRESSION_THRESHOLD=0.75` (boundary-inclusive). This PR owns an
+    EXTRA identity pre-validation layer over every PRESENT percentile row
+    (`scope`/`exchange`/`symbol`/`market_type`/`metric`/`timeframe`/
+    `percentile_window`/`calculation_version`/`feature_schema_version`/
+    `bucket_ts`) that `find_consensus_percentile()` alone does not check,
+    since a bare `V2TimeframeInputs` carries no `symbol`/`market_type`.
+    The 16 chronological buckets are partitioned into MAXIMAL consecutive
+    compressed runs; a run qualifies iff its length
+    `>= COMPRESSION_MIN_DURATION=6` (full run length used, never
+    truncated to the most recent 6); among all qualifying runs, the one
+    with the MOST RECENT end bucket is deterministically selected — `B15`
+    itself need not be part of, or adjacent to, the selected run. The
+    selected run's structural `range_high = max(HTF_high)`/
+    `range_low = min(HTF_low)` are derived via `aligned_inputs.derive_
+    reference_extrema()` (§7.0a, reused unchanged) over ONLY that run's
+    own buckets — an enormous high/low from an UNSELECTED older run never
+    leaks in; any selected-run bucket's extrema being unavailable makes
+    the whole range unavailable, fail-closed. The fresh 5m-crossing check
+    uses the current AND immediately-previous closed Binance 5m reference
+    closes (`LONG: previous<=range_high AND current>range_high`; `SHORT:
+    previous>=range_low AND current<range_low`) — distinguishes a NEW
+    cross from merely remaining outside an already-broken level; a
+    non-fresh outside-range condition never repeatedly re-qualifies every
+    5m tick. Once a fresh direction is derived, the current `B5` 5m
+    trigger row must independently pass the same §6.2/§6.3 quality gate,
+    `price_direction_agreement >= BREAKOUT_MIN_AGREEMENT=2/3` (a quality
+    gate only — direction is NEVER derived from agreement), and
+    `taker_delta_notional_usd_sum` matching sign (`>0` LONG, `<0` SHORT,
+    zero matches neither), plus the shared §7.0b `directional_context_
+    gate()` (PR 1, reused unchanged — deliberately NOT `TREND_PULLBACK`'s
+    own stricter precondition) returning `accepted is True`.
+    `protection_buffer()` (PR 1, reused unchanged) uses the canonical
+    Binance 15m `close_price` AT `B15` as its reference price — never the
+    5m breakout close itself (§7 scopes the buffer to `timeframe=15m`).
+    Entry zone/`invalidation_price` are STRUCTURAL FACTS
+    (`LONG: entry=[range_high,range_high+buffer],
+    invalidation=range_low-buffer`; `SHORT: entry=[range_low-buffer,
+    range_low], invalidation=range_high+buffer`) computed once at `T`,
+    never a live false-break/HOLD/CONFIRMED check. Verified against a
+    worked SHORT vector matching §29.6's structural setup (16-bucket
+    lookback, selected run `b[9..15]` length 7, `range_low=63,800`,
+    `range_high=64,100`, fresh SHORT cross `63,820 -> 63,740`) and a
+    symmetric LONG vector, proving formula symmetry directly — **note:**
+    §29.6's own prose illustration for the resulting `invalidation_price`
+    (`≈63,930`, apparently derived from `range_low + buffer`) does not
+    match §7.2's own frozen SHORT formula (`invalidation_price =
+    range_high + protection_buffer`); this PR implements the frozen
+    formula exactly (`range_high=64,100` + `buffer≈96` ⇒
+    `invalidation_price≈64,196`), per this document's own §0.2 grounding
+    rule that the frozen formula wins over an illustrative approximate
+    number — flagged here rather than silently reconciled. Also adds
+    `analytics/forecasting_v2/compression_breakout_inputs.py`:
+    `load_compression_breakout_inputs(reader: V2SetupHistoryReader, *,
+    context: V2ContextSnapshot) -> V2CompressionBreakoutInputs` — UNLIKE
+    `trend_pullback_inputs.py`, there is no formation-boundary skip (every
+    5m boundary is a possible breakout instant), so this loader always
+    issues its full read set: exactly 7 reads (the 16-bucket 15m
+    consensus window, the matching 16-bucket percentile window, the
+    matching 16-bucket reference-feature window, ONE raw-1m-kline window
+    covering the whole lookback, the two closed 5m reference buckets, the
+    current 5m consensus trigger row, and the instrument row) — zero
+    percentile/kline/OI/funding/liquidation/health reads beyond that, and
+    no second 14-row `RANGE_PROXY` query (reuses the 16-bucket consensus
+    window's own final 14 rows). **Deliberately implements ONLY the
+    qualification question, never episode/lifecycle logic (same Stage 5/6
+    boundary as PR 2):** never constructs `episode_id`/`event_id`, never
+    transitions `EARLY_SIGNAL`/`CONFIRMED`/`WEAKENING`/`INVALIDATED`/
+    `EXPIRED`/`COMPLETED`, never evaluates the direction-aware false-break
+    rule or the boundary-equality HOLD convention (§7.2), never counts
+    candidate age against `COMPRESSION_CONFIRMATION_MAX_AGE_5M_BUCKETS`
+    (exposed only as frozen family metadata alongside
+    `EXPECTED_HORIZON=90m`, exported at package level as
+    `COMPRESSION_BREAKOUT_EXPECTED_HORIZON` to avoid colliding with
+    `TREND_PULLBACK`'s already-exported package-level `EXPECTED_HORIZON`),
+    and never applies §7.4 family precedence against `CONFIRMED_BREAKOUT`/
+    `TREND_PULLBACK` — all Stage 6 (Episode State Machine) or later. No
+    runtime wiring, no schema/config change anywhere in this PR.
+    `v2.enabled` stays `false`; `v2.rules_version` is unchanged
+    (`v2-rules-v0.1.0`) — this PR implements already-frozen §7.2/§7.0a/
+    §7.0b formulas/thresholds, not new or tuned V2-v0 parameters.
   - **PR 4 of ~4 — `CONFIRMED_BREAKOUT` + Stage 5 completion (planned,
     not started).**
   - This PR-count split is an IMPLEMENTATION/reviewability plan, not a
@@ -937,5 +1032,5 @@ current intent, not a contract that overrides sound engineering judgment.
     contracts remain authoritative, and this split may be adjusted if
     reviewability or risk requires it.
 
-**Next planned work (after PR #40 merges):** Stage 5 — Setup Detectors,
-PR 3 of ~4 (`COMPRESSION_BREAKOUT`, §I above).
+**Next planned work (after PR #41 merges):** Stage 5 — Setup Detectors,
+PR 4 of ~4 (`CONFIRMED_BREAKOUT` + Stage 5 completion, §I above).
