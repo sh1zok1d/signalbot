@@ -733,6 +733,106 @@ class Database:
                 conn, exchange=exchange, symbol=symbol,
                 bucket_start=bucket_start, bucket_end=bucket_end)
 
+    # ---------------------------------------------------------------
+    # V2 setup-detector historical-window readers (Stage 5 — Setup
+    # Detectors PR 1, ADDITIVE, READ-ONLY). Delegates all SQL/row-parsing
+    # to storage/v2_setup_readers.py; arguments are validated BEFORE a
+    # connection is acquired. No analytics decision is made here — these
+    # wrappers exist to return exactly the requested historical Stage 2
+    # rows, or whichever subset physically exists, never a fabricated or
+    # wall-clock "latest" substitute.
+    # ---------------------------------------------------------------
+    async def fetch_v2_consensus_feature_window(
+        self, *, symbol: str, market_type: str, timeframe: str,
+        bucket_start: datetime, bucket_end: datetime, calculation_version: str,
+    ) -> "tuple[Mapping, ...]":
+        """Read-only: every `consensus_feature_vectors` row for one exact
+        `(symbol, market_type, timeframe, calculation_version)` identity
+        whose `bucket_ts` falls inside the INCLUSIVE `[bucket_start,
+        bucket_end]` interval, ordered ascending by `bucket_ts`. Only
+        physically present rows are returned. See
+        `storage/v2_setup_readers.py::read_v2_consensus_feature_window`
+        for the full contract."""
+        from storage.v2_setup_readers import (
+            read_v2_consensus_feature_window, validate_consensus_feature_window_args)
+        validate_consensus_feature_window_args(
+            symbol=symbol, market_type=market_type, timeframe=timeframe,
+            bucket_start=bucket_start, bucket_end=bucket_end,
+            calculation_version=calculation_version)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_v2_consensus_feature_window(
+                conn, symbol=symbol, market_type=market_type, timeframe=timeframe,
+                bucket_start=bucket_start, bucket_end=bucket_end,
+                calculation_version=calculation_version)
+
+    async def fetch_v2_consensus_percentile_window(
+        self, *, symbol: str, market_type: str, metric: str, timeframe: str,
+        percentile_window: str, bucket_start: datetime, bucket_end: datetime,
+        calculation_version: str,
+    ) -> "tuple[Mapping, ...]":
+        """Read-only: every consensus-scope `percentile_snapshots` row for
+        one exact `(symbol, market_type, metric, timeframe,
+        percentile_window, calculation_version)` identity whose
+        `bucket_ts` falls inside the INCLUSIVE `[bucket_start,
+        bucket_end]` interval, ordered ascending by `bucket_ts`. See
+        `storage/v2_setup_readers.py::read_v2_consensus_percentile_window`
+        for the full contract."""
+        from storage.v2_setup_readers import (
+            read_v2_consensus_percentile_window, validate_consensus_percentile_window_args)
+        validate_consensus_percentile_window_args(
+            symbol=symbol, market_type=market_type, metric=metric, timeframe=timeframe,
+            percentile_window=percentile_window, bucket_start=bucket_start,
+            bucket_end=bucket_end, calculation_version=calculation_version)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_v2_consensus_percentile_window(
+                conn, symbol=symbol, market_type=market_type, metric=metric,
+                timeframe=timeframe, percentile_window=percentile_window,
+                bucket_start=bucket_start, bucket_end=bucket_end,
+                calculation_version=calculation_version)
+
+    async def fetch_v2_reference_feature_window(
+        self, *, exchange: str, symbol: str, market_type: str, timeframe: str,
+        bucket_start: datetime, bucket_end: datetime, calculation_version: str,
+    ) -> "tuple[Mapping, ...]":
+        """Read-only: every `exchange_feature_vectors` row for one exact
+        `(exchange, symbol, market_type, timeframe, calculation_version)`
+        identity whose `bucket_ts` falls inside the INCLUSIVE
+        `[bucket_start, bucket_end]` interval, ordered ascending by
+        `bucket_ts`. This wrapper is generic about `exchange`; pinning it
+        to the canonical V2 reference exchange remains the analytics
+        layer's job (§11). See
+        `storage/v2_setup_readers.py::read_v2_reference_feature_window`
+        for the full contract."""
+        from storage.v2_setup_readers import (
+            read_v2_reference_feature_window, validate_reference_feature_window_args)
+        validate_reference_feature_window_args(
+            exchange=exchange, symbol=symbol, market_type=market_type, timeframe=timeframe,
+            bucket_start=bucket_start, bucket_end=bucket_end,
+            calculation_version=calculation_version)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_v2_reference_feature_window(
+                conn, exchange=exchange, symbol=symbol, market_type=market_type,
+                timeframe=timeframe, bucket_start=bucket_start, bucket_end=bucket_end,
+                calculation_version=calculation_version)
+
+    async def fetch_v2_instrument(
+        self, *, exchange: str, symbol: str, market_type: str,
+    ) -> "Optional[Mapping]":
+        """Read-only: the ONE `exchange_instruments` row at the EXACT
+        `(exchange, symbol, market_type)` identity, or `None` if absent —
+        not bucket-scoped (instrument metadata is not time-bucketed). See
+        `storage/v2_setup_readers.py::read_v2_instrument` for the full
+        contract."""
+        from storage.v2_setup_readers import read_v2_instrument, validate_instrument_args
+        validate_instrument_args(exchange=exchange, symbol=symbol, market_type=market_type)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_v2_instrument(
+                conn, exchange=exchange, symbol=symbol, market_type=market_type)
+
     async def fetch_shadow_liquidation_availability(
         self,
         *,

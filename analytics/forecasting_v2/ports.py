@@ -1,9 +1,11 @@
 """
 Narrow V2 storage dependency ports (Multi-model Framework PR 3 /
-Multi-timeframe Alignment PR 3, docs/FORECASTING_ROADMAP.md §I stages 2-3).
+Multi-timeframe Alignment PR 3 / Setup Detectors PR 1,
+docs/FORECASTING_ROADMAP.md §I stages 2-3, 5).
 
-Two structural-typing `Protocol`s future V2 orchestration/analytics code
-should depend on, instead of importing the concrete `storage.db.Database`:
+Three structural-typing `Protocol`s future V2 orchestration/analytics
+code should depend on, instead of importing the concrete
+`storage.db.Database`:
 
   - `V2EpisodeEventWriter` — the narrow write port for immutable
     `V2EpisodeEvent` persistence (Multi-model Framework PR 2).
@@ -11,8 +13,22 @@ should depend on, instead of importing the concrete `storage.db.Database`:
     assembler (`analytics/forecasting_v2/aligned_inputs.py`) depends on:
     exact-bucket consensus/percentile reads, bounded health-at-cutoff
     reads, and exact-bucket reference-exchange feature/raw-kline reads.
+  - `V2SetupHistoryReader` — the narrow read port future Stage 5 detector
+    assemblers (PR 2/~4 onward) will depend on: deterministic HISTORICAL
+    WINDOW reads (`storage/v2_setup_readers.py`) plus the existing
+    Stage 3 raw-kline window read reused unchanged
+    (`read_v2_reference_klines`). Deliberately a SEPARATE Protocol from
+    `V2AlignedInputReader`, not an extension of it — Stage 3's exact
+    single-bucket reads and Stage 5's historical-window reads are
+    different semantic scopes, and widening `V2AlignedInputReader` would
+    unnecessarily change the Stage 3 interface and could invalidate
+    existing Stage 3 test doubles that only ever needed to satisfy the
+    original five-method shape. There is no inheritance relationship
+    between the two Protocols; a fake satisfying only
+    `V2AlignedInputReader` does not need to implement any
+    `V2SetupHistoryReader` method, and vice versa.
 
-`storage.db.Database` already implements both shapes — nothing here
+`storage.db.Database` already implements all three shapes — nothing here
 changes those methods or wires them into anything; this module only names
 the narrow slices of `Database`'s surface a future V2 caller is allowed to
 depend on.
@@ -46,7 +62,7 @@ from typing import Mapping, Optional, Protocol, Sequence, runtime_checkable
 
 from analytics.forecasting_v2.events import V2EpisodeEvent
 
-__all__ = ["V2EpisodeEventWriter", "V2AlignedInputReader"]
+__all__ = ["V2EpisodeEventWriter", "V2AlignedInputReader", "V2SetupHistoryReader"]
 
 
 @runtime_checkable
@@ -112,4 +128,55 @@ class V2AlignedInputReader(Protocol):
     async def fetch_v2_reference_klines(
         self, *, exchange: str, symbol: str, bucket_start: datetime, bucket_end: datetime,
     ) -> "tuple[Mapping, ...]":
+        ...
+
+
+@runtime_checkable
+class V2SetupHistoryReader(Protocol):
+    """Structural port for the deterministic historical-window reads
+    future Stage 5 detector assemblers (PR 2/~4 onward) will need: a
+    `consensus_feature_vectors` window, a consensus-scope
+    `percentile_snapshots` window, an `exchange_feature_vectors` window,
+    the existing raw-kline half-open-interval read (reused unchanged from
+    Stage 3, `read_v2_reference_klines` — no second raw-kline window API
+    exists), and a single-row `exchange_instruments` lookup for
+    `protection_buffer()`'s `tick_size` input. Every method's contract
+    (inclusive bucket-START interval semantics, no fallback, explicit
+    `calculation_version`, missing rows preserved as absence rather than
+    fabricated) is owned by `storage/v2_setup_readers.py`, not by this
+    Protocol.
+
+    `storage.db.Database` matches this shape structurally today (its
+    Stage 5 `fetch_v2_*` methods plus the Stage 3
+    `fetch_v2_reference_klines` it already had); this Protocol does not
+    import or reference that class, so a caller depending on
+    `V2SetupHistoryReader` never needs to import `storage/db.py`."""
+
+    async def fetch_v2_consensus_feature_window(
+        self, *, symbol: str, market_type: str, timeframe: str,
+        bucket_start: datetime, bucket_end: datetime, calculation_version: str,
+    ) -> "tuple[Mapping, ...]":
+        ...
+
+    async def fetch_v2_consensus_percentile_window(
+        self, *, symbol: str, market_type: str, metric: str, timeframe: str,
+        percentile_window: str, bucket_start: datetime, bucket_end: datetime,
+        calculation_version: str,
+    ) -> "tuple[Mapping, ...]":
+        ...
+
+    async def fetch_v2_reference_feature_window(
+        self, *, exchange: str, symbol: str, market_type: str, timeframe: str,
+        bucket_start: datetime, bucket_end: datetime, calculation_version: str,
+    ) -> "tuple[Mapping, ...]":
+        ...
+
+    async def fetch_v2_reference_klines(
+        self, *, exchange: str, symbol: str, bucket_start: datetime, bucket_end: datetime,
+    ) -> "tuple[Mapping, ...]":
+        ...
+
+    async def fetch_v2_instrument(
+        self, *, exchange: str, symbol: str, market_type: str,
+    ) -> Optional[Mapping]:
         ...
