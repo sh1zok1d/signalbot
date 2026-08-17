@@ -206,28 +206,80 @@ def test_qualifies_at_a_non_1h_boundary():
     assert result.bucket_1h == B1H
 
 
-def test_qualifies_exactly_at_a_1h_boundary_too_physically_coherent():
+def test_exact_1h_boundary_coherent_data_cannot_fresh_cross_own_b1h_extreme():
     # T=13:00 -- a legal 1h boundary too. B1h=[12:00,13:00), B5=[12:55,13:00)
-    # is CONTAINED inside B1h -- so B5's close cannot legitimately fall
-    # outside B1h's own raw high/low (same hardening lesson as #41's
-    # physically-coherent T=12:15 vector). Use a structural level whose
-    # anchor bucket is strictly BEFORE B1h so B1h's own raw bars never
-    # participate in the level, making a fresh cross from within B1h's
-    # own window physically legitimate.
+    # is CONTAINED inside B1h. The structural level is max/min over ALL
+    # 48 buckets INCLUDING B1h itself -- it does NOT matter that a
+    # winning anchor bucket happens to be older; B1h's own raw high/low
+    # still PARTICIPATES in that max()/min(). So if a 5m close of 66,240
+    # legitimately occurred within B1h's own window, B1h's own raw high
+    # must physically be >=66,240 too, which means resistance_level (a
+    # max over a set that includes B1h) must ALSO be >=66,240 -- the same
+    # close can therefore never satisfy `current_close > resistance_level`.
+    # A physically coherent fresh LONG breakout at the exact 1h boundary
+    # is structurally impossible; this follows from the frozen §7.3
+    # formula itself, not from any executable 1h-boundary special-case
+    # (there is none -- see test_detector_still_processes_and_validates_
+    # at_exact_1h_boundary_not_skipped below).
     t2 = datetime(2024, 1, 1, 13, 0, tzinfo=UTC)
-    b1h_t2 = selected_bucket("1h", t2)  # == B1H (12:00)
     b5_t2 = selected_bucket("5m", t2)   # 12:55
-    assert b1h_t2 == B1H
+    assert selected_bucket("1h", t2) == B1H
+    # Make the vector coherent: B1h's own raw high >= the current 5m close.
+    reference_1h_rows, raw_1m_rows = build_structural_rows(
+        resistance_bucket=B1H, resistance_value=66_240.0)
     context = make_context(t=t2)
     result = detect_confirmed_breakout(build_valid_long_inputs(
         context=context,
+        reference_1h_rows=reference_1h_rows, reference_1m_rows=raw_1m_rows,
         reference_5m_rows=(
             make_reference_5m_row(b5_t2 - FIVE, close=66_180.0),
             make_reference_5m_row(b5_t2, close=66_240.0),
         )))
-    assert result is not None
-    assert result.level_anchor_bucket == RESISTANCE_BUCKET
-    assert result.level_anchor_bucket < B1H
+    assert result is None
+
+
+def test_exact_1h_boundary_coherent_data_cannot_fresh_cross_own_b1h_extreme_short():
+    # Symmetric SHORT case: a 5m close of 64,980 occurring within B1h's
+    # own window means B1h's own raw low must physically be <=64,980,
+    # which forces support_level <=64,980 too -- the same close can
+    # never satisfy `current_close < support_level` either.
+    t2 = datetime(2024, 1, 1, 13, 0, tzinfo=UTC)
+    b5_t2 = selected_bucket("5m", t2)
+    reference_1h_rows, raw_1m_rows = build_structural_rows(
+        support_bucket=B1H, support_value=64_980.0)
+    context = make_context(t=t2)
+    result = detect_confirmed_breakout(build_valid_short_inputs(
+        context=context,
+        reference_1h_rows=reference_1h_rows, reference_1m_rows=raw_1m_rows,
+        reference_5m_rows=(
+            make_reference_5m_row(b5_t2 - FIVE, close=65_020.0),
+            make_reference_5m_row(b5_t2, close=64_980.0),
+        )))
+    assert result is None
+
+
+def test_detector_still_processes_and_validates_at_exact_1h_boundary_not_skipped():
+    # Prove T=13:00 (an exact 1h boundary) is genuinely EVALUATED, not
+    # silently skipped by some executable "if bucket_1h + 1h == T: return
+    # None" special-case: inject a malformed structural row and confirm
+    # detect_confirmed_breakout() still raises. A skip-branch would have
+    # returned None before ever reaching (and rejecting) this row --
+    # "evaluated at every legal T" is not the same claim as "capable of
+    # qualifying on every legal T" (module docstring).
+    t2 = datetime(2024, 1, 1, 13, 0, tzinfo=UTC)
+    b5_t2 = selected_bucket("5m", t2)
+    reference_1h_rows, raw_1m_rows = build_structural_rows()
+    reference_1h_rows = tuple(
+        {**r, "bars_expected": 59, "bars_present": 59} if r["bucket_ts"] == LEVEL_GRID[10] else r
+        for r in reference_1h_rows)
+    context = make_context(t=t2)
+    with pytest.raises(V2ConfirmedBreakoutError):
+        detect_confirmed_breakout(build_valid_long_inputs(
+            context=context, reference_1h_rows=reference_1h_rows, reference_1m_rows=raw_1m_rows,
+            reference_5m_rows=(
+                make_reference_5m_row(b5_t2 - FIVE, close=66_180.0),
+                make_reference_5m_row(b5_t2, close=66_240.0),
+            )))
 
 
 def test_physically_coherent_vector_inside_b1h_cannot_cross_its_own_extrema():
@@ -671,6 +723,52 @@ def test_missing_non_current_range_proxy_peer_returns_none_not_keyerror():
     proxy_rows = tuple(r for r in build_proxy_rows() if r["bucket_ts"] != proxy_start)
     result = detect_confirmed_breakout(build_valid_long_inputs(consensus_1h_rows=proxy_rows))
     assert result is None
+
+
+def test_malformed_present_range_proxy_value_raises_even_with_different_missing_peer():
+    # A missing peer must NEVER mask a malformed PRESENT peer elsewhere in
+    # the same exact 14-bucket RANGE_PROXY window -- range_proxy_pct()
+    # itself validates every PRESENT row's range_width_pct_median BEFORE
+    # its own exact-grid-completeness check runs; the caller must hand it
+    # every PRESENT row (filtered only by presence, never short-circuited
+    # by a separate "any missing" check) so that contract actually holds.
+    proxy_start = B1H - (RANGE_PROXY_N - 1) * ONE_HOUR
+    corrupt_bucket = proxy_start + 5 * ONE_HOUR
+    assert corrupt_bucket != proxy_start
+    proxy_rows = [r for r in build_proxy_rows() if r["bucket_ts"] != proxy_start]  # drop one peer
+    proxy_rows = [
+        make_consensus_1h_row(r["bucket_ts"], range_width="not-a-number")
+        if r["bucket_ts"] == corrupt_bucket else r
+        for r in proxy_rows
+    ]
+    with pytest.raises(V2ConfirmedBreakoutError):
+        detect_confirmed_breakout(build_valid_long_inputs(consensus_1h_rows=tuple(proxy_rows)))
+
+
+def test_malformed_present_range_proxy_value_nan_raises_even_with_different_missing_peer():
+    proxy_start = B1H - (RANGE_PROXY_N - 1) * ONE_HOUR
+    corrupt_bucket = proxy_start + 5 * ONE_HOUR
+    proxy_rows = [r for r in build_proxy_rows() if r["bucket_ts"] != proxy_start]
+    proxy_rows = [
+        make_consensus_1h_row(r["bucket_ts"], range_width=float("nan"))
+        if r["bucket_ts"] == corrupt_bucket else r
+        for r in proxy_rows
+    ]
+    with pytest.raises(V2ConfirmedBreakoutError):
+        detect_confirmed_breakout(build_valid_long_inputs(consensus_1h_rows=tuple(proxy_rows)))
+
+
+def test_malformed_present_range_proxy_value_negative_raises_even_with_different_missing_peer():
+    proxy_start = B1H - (RANGE_PROXY_N - 1) * ONE_HOUR
+    corrupt_bucket = proxy_start + 5 * ONE_HOUR
+    proxy_rows = [r for r in build_proxy_rows() if r["bucket_ts"] != proxy_start]
+    proxy_rows = [
+        make_consensus_1h_row(r["bucket_ts"], range_width=-1.0)
+        if r["bucket_ts"] == corrupt_bucket else r
+        for r in proxy_rows
+    ]
+    with pytest.raises(V2ConfirmedBreakoutError):
+        detect_confirmed_breakout(build_valid_long_inputs(consensus_1h_rows=tuple(proxy_rows)))
 
 
 def test_malformed_current_b1h_quality_raises_even_with_missing_peer_elsewhere():

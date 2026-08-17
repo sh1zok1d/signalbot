@@ -1046,14 +1046,21 @@ def detect_compression_breakout(
     # storage read. A bucket in that exact 14-bucket grid legitimately
     # missing from `consensus_by_bucket` (present identity-validated rows
     # don't cover every expected bucket) is UNAVAILABLE input, exactly like
-    # any other incomplete historical window (§21) -- fail closed to
-    # `None` BEFORE ever indexing `consensus_by_bucket`, never a bare
-    # KeyError, never a fabricated/substituted row, never a shortened or
-    # re-anchored window.
+    # any other incomplete historical window (§21) -- but the completeness
+    # check and the PRESENT-row corruption check both belong to
+    # `range_proxy_pct()` itself, which already validates every PRESENT
+    # row's `range_width_pct_median` BEFORE its own exact-grid-completeness
+    # check runs (corruption precedence). Filtering to only the PRESENT
+    # rows here (never indexing a missing bucket) avoids a bare `KeyError`
+    # while still handing the shared primitive every PRESENT row to
+    # validate -- a manual "any missing -> None" short-circuit here would
+    # incorrectly mask a malformed PRESENT peer whenever a DIFFERENT peer
+    # also happens to be missing, bypassing that corruption-precedence
+    # contract. No fabricated/substituted row, no shortened or re-anchored
+    # window.
     proxy_grid = lookback_grid[-RANGE_PROXY_N:]
-    if any(b not in consensus_by_bucket for b in proxy_grid):
-        return None
-    proxy_input_rows = tuple(consensus_by_bucket[b] for b in proxy_grid)
+    proxy_input_rows = tuple(
+        consensus_by_bucket[b] for b in proxy_grid if b in consensus_by_bucket)
     try:
         proxy = range_proxy_pct(proxy_input_rows, timeframe="15m", bucket_ts=B15)
     except V2SetupFoundationError as exc:

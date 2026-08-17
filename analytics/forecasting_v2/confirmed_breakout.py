@@ -42,11 +42,19 @@ precondition, no taker-flow confirmation requirement, and no invented
 two EARLY_SIGNAL requirements: (1) the first closed reference-exchange 5m
 bucket whose close crosses beyond the structural level, and (2)
 `directional_context_gate(candidate_direction, context) == ACCEPT`.
-`price_direction_agreement`/taker-flow sign become relevant only to a
-LATER (Stage 6) EARLY_SIGNAL -> CONFIRMED evaluation and to §8's future
-`setup_strength` scoring — never a Stage 5 qualification gate for this
-family. This module therefore reads no current-B5 5m CONSENSUS row at
-all (only the reference-exchange 5m CLOSE, for the fresh-cross check).
+`CONFIRMED_BREAKOUT` has NO taker-flow requirement under the frozen
+contract, at EITHER `EARLY_SIGNAL` or the later `EARLY_SIGNAL ->
+CONFIRMED` evaluation (§7.3: "no taker-flow confirmation requirement...
+compression's volume-confirmation gate does not carry over"). This Stage
+5 detector therefore reads no current-B5 5m CONSENSUS row at all (only
+the reference-exchange 5m CLOSE, for the fresh-cross check). Later
+(Stage 6) stages MAY read the confirming closed 5m bucket's own consensus
+row for the frozen §6.3 quality gate applicable at confirmation time,
+§8's future `trigger_strength`/`setup_strength` scoring, and lifecycle
+evidence more generally — but must NOT invent either a taker-flow
+requirement or a `price_direction_agreement >= 2/3` confirmation
+threshold for this family; no such gate exists anywhere in §7.3's frozen
+`CONFIRMED_BREAKOUT` lifecycle.
 
 **Decision clock — every legal 5m boundary, like `COMPRESSION_BREAKOUT`.**
 Given `context.T`: `B5 = selected_bucket("5m", T)`,
@@ -817,11 +825,19 @@ def detect_confirmed_breakout(
     # ---- §17/§18 RANGE_PROXY_pct(1h,14,B1h), via the shared primitive -----
     # A bucket in the exact 14-bucket grid legitimately missing from
     # `consensus_by_bucket` is UNAVAILABLE input, exactly like any other
-    # incomplete historical window (§21) -- fail closed to `None` BEFORE
-    # ever indexing `consensus_by_bucket`, never a bare KeyError.
-    if any(b not in consensus_by_bucket for b in proxy_grid):
-        return None
-    proxy_input_rows = tuple(consensus_by_bucket[b] for b in proxy_grid)
+    # incomplete historical window (§21) -- but the completeness check
+    # and the PRESENT-row corruption check both belong to `range_proxy_
+    # pct()` itself, which already validates every PRESENT row's
+    # `range_width_pct_median` BEFORE its own exact-grid-completeness
+    # check runs (corruption precedence). Filtering to only the PRESENT
+    # rows here (never indexing a missing bucket) avoids a bare
+    # `KeyError` while still handing the shared primitive every PRESENT
+    # row to validate -- a manual "any missing -> None" short-circuit
+    # here would incorrectly mask a malformed PRESENT peer whenever a
+    # DIFFERENT peer also happens to be missing, bypassing that
+    # corruption-precedence contract.
+    proxy_input_rows = tuple(
+        consensus_by_bucket[b] for b in proxy_grid if b in consensus_by_bucket)
     try:
         proxy = range_proxy_pct(proxy_input_rows, timeframe="1h", bucket_ts=B1h)
     except V2SetupFoundationError as exc:
