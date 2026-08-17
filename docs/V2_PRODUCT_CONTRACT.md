@@ -218,13 +218,25 @@ its defining precondition — it is defined by the break of a meaningful
 structural level plus confirmation, whatever the price structure looked like
 immediately beforehand.
 
-- `4h` establishes that the structural level being broken is significant
-  within the current regime.
-- `1h` establishes directional context aligned with the break.
-- `15m` forms the setup around the specific structural level and the
-  confirmation requirement.
-- `5m` provides the trigger/timing and ongoing monitoring of the
-  confirmed break.
+- `4h` and `1h` together gate the break's directional context (an
+  established, firmly opposite `4h` regime or `1h` bias rejects the
+  candidate) — the same `directional_context_gate` mechanism every family
+  reuses (`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §7.0b).
+- `1h` additionally **forms the structural level itself** — the broken
+  resistance/support level is a `1h` high/low structural fact, not a `15m`
+  one. This is the one respect in which `CONFIRMED_BREAKOUT` deliberately
+  differs from `TREND_PULLBACK`/`COMPRESSION_BREAKOUT`'s shared `15m`
+  setup-formation timeframe: **this family's structural level is a `1h`
+  fact, and it has no `15m` formation role at all** — precisely because it
+  does not require a preceding compression or pullback structure to form
+  around, unlike the other two families.
+- `5m` provides the fresh breakout-cross trigger, the confirmation window,
+  and ongoing monitoring of the confirmed break.
+
+The exact mechanics — which `1h` lookback window, the fresh-`5m`-cross
+trigger, and the confirmation predicate — are **FROZEN** in
+`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §7.3
+([§12](#12-deferred-to-later-contracts)).
 
 ### 4.4 Boundaries
 

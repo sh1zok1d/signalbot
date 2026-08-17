@@ -284,6 +284,74 @@ one. This is a logical behavior freeze, not a schema — the exact storage
 mechanism for "embed by value, insert-once" is Multi-model Framework
 implementation work.
 
+### 2.1a Atomic persistence of one logical decision boundary
+(clean-room audit finding — implementation debt, not yet fixed)
+
+**Finding.** `Database.insert_v2_episode_events` (`storage/db.py`)
+correctly validates and serializes its entire input batch **before**
+acquiring a connection (so a malformed row can never partially write) and
+correctly uses `ON CONFLICT ... DO NOTHING` per row (so a retried batch
+never double-inserts or overwrites). It does **not**, however, wrap the
+batch's `INSERT`s in one explicit SQL transaction — each row is its own
+`fetchval` call inside a loop over one acquired connection, so each row
+commits independently. A single logical Stage 6 decision boundary can
+legitimately need to persist **more than one** `V2EpisodeEvent` at once
+(e.g. a lifecycle transition plus a `REVERSAL_CANDIDATE` cross-reference,
+[§13.4](#134-same-boundary-orchestration-order) step 8; or an entry-zone
+update alongside a confirmation). If the DB connection fails or the
+process crashes after row `N-1` of such a batch commits but before row `N`
+does, that one logical decision boundary is left **partially persisted**.
+
+**Frozen correctness requirement (implementation in a future pre-Stage-6
+persistence hardening PR, not `#43`):** all `V2EpisodeEvent` rows produced
+by **one** logical Stage 6 decision boundary **MUST** commit atomically —
+either all of them are durably persisted, or none are. A future
+implementation satisfying this MAY do so via one explicit database
+transaction wrapping the whole batch's inserts (the natural mechanism,
+compatible with the existing `ON CONFLICT DO NOTHING` per-row idempotency
+— a retried transaction after a crash simply re-attempts the same
+`ON CONFLICT`-guarded inserts and is a safe no-op for any row that already
+committed before the crash), or via an equivalent deterministic recovery
+model that provably reconstructs the same final history after a retry.
+This document freezes the **requirement**, not the physical mechanism, per
+[§0.1](#01-what-this-document-is-not).
+
+**Related, equally frozen requirement: deterministic, reproducible
+`episode_id`/`event_id`.** This document deliberately does not invent the
+exact `episode_id`/`event_id` hashing/construction scheme itself — that
+remains a future Stage 6 foundation PR's implementation choice, reviewed
+separately, compatible with `events.py`/`event_factory.py`'s existing
+`V2EpisodeEvent`/`v2_episode_events` shape (the same scope limit this
+document has held since its identity/dedup freeze). Whatever scheme that
+future PR chooses, it **MUST NOT** use a random UUID or any other
+non-reproducible source. IDs **MUST** be deterministically
+reconstructable from already-known decision inputs (e.g. a hash of
+`execution_stream` ([§12.10](#1210-execution-namespace-livereplay-history-scope)),
+`episode_logical_key` ([§12.1](#121-logical-identity-not-a-database-key)),
+and the decision boundary `T`/event kind), so that a retried write after a
+partial failure (§2.1a above) or a replay run over the same historical
+data produces the **same** IDs, never new ones — this is what makes
+`ON CONFLICT (run_kind, run_id, event_id) DO NOTHING` an actually-safe
+retry mechanism rather than merely a duplicate-prevention heuristic that
+happens to work when IDs are already known to match.
+
+**Related, equally frozen requirement: one deterministic same-`T`
+multi-event history model.** When one decision boundary produces more than
+one `V2EpisodeEvent` for the same episode (or across episodes, per
+[§13.4](#134-same-boundary-orchestration-order)), the resulting history
+**MUST** be reconstructable in one deterministic order — never relying on
+incidental database row-insertion order or an unindexed secondary
+timestamp. A future persistence-hardening PR MUST freeze either (a) at
+most one canonical persisted event per episode per decision boundary, with
+all same-`T` facts deterministically aggregated into it, or (b) an
+explicit, reconstructable event-kind/sequence ordering within one `T`
+(e.g. a frozen enum ordering matching [§13.4](#134-same-boundary-orchestration-order)'s
+own step order). This document does not choose between (a) and (b) here —
+either is conforming — but freezes that **one** of them MUST be chosen and
+frozen before `#44`'s persisted-history reader can be written, since a
+reader cannot deterministically reconstruct state from an
+under-specified event ordering.
+
 ---
 
 ## 3. V2 model/version identity
@@ -771,6 +839,83 @@ renormalize-or-fail rule as [§5.2](#52-missing-percentile-handling--never-none-
 a family below its minimum coverage contributes `UNAVAILABLE`, which is
 either excluded-and-renormalized (evidence scoring) or a hard fail
 (context sufficiency gates), never a silent zero.
+
+### 6.3a Per-family metric-scoped quality gates (clean-room audit amendment
+— closes a global-worst-family gap that contradicts an already-frozen
+invariant)
+
+**The problem.** `ConsensusFeatureVector.min_coverage_ratio` /
+`.consensus_confidence` (used throughout §6.3's table above, and by every
+currently-merged Stage 4/5 quality gate —
+`analytics/forecasting_v2/regime_4h.py`, `bias_1h.py`, `trend_pullback.py`,
+`compression_breakout.py`, `confirmed_breakout.py`) are each the **global
+minimum/worst-case across all six Stage 2 metric families**
+(`analytics/feature_engine/consensus.py`:
+`min_coverage_ratio = min(coverage[family].ratio for family in FAMILIES)`,
+`consensus_confidence = min(family_scores)`, `FAMILIES = (price_structure,
+volume, taker_flow, oi, funding, liquidations)`). Every currently-merged
+V2 quality gate reads **only** this global rollup — none reads Stage 2's
+separately-persisted, already-available per-family
+`coverage_by_metric`/`data_confidence_by_metric` maps
+(`ConsensusFeatureVector`, same module). This directly contradicts an
+**already-frozen** invariant one layer up: `§4.2`'s own text (the "OI
+role" row, [§4.4](#44-independence--anti-double-counting)) freezes that
+"OI availability is **not** required to establish [4h regime] direction"
+— yet the coarser, currently-merged global quality gate can fail closed
+on 4h regime computation entirely merely because **OI** (or `funding`, or
+`liquidations`) coverage is poor, even though `price_structure` coverage
+— the only family 4h regime direction actually needs — is perfectly
+adequate. The same problem applies, more severely, to a purely
+price-based setup like `TREND_PULLBACK`: zero historical `liquidations`
+coverage (a family `TREND_PULLBACK` never reads at all) would currently
+suppress it via the global `min_coverage_ratio` gate, even though nothing
+about `TREND_PULLBACK`'s own formula depends on liquidation data.
+
+**Frozen resolution: gate on the metric families a decision actually
+consumes, using data ALREADY persisted — no new field.** Every V2
+decision below has an exact, frozen set of **required metric families**;
+its quality gate MUST use `coverage_by_metric`/`data_confidence_by_metric`
+restricted to *exactly* those families — never the global
+`min_coverage_ratio`/`consensus_confidence` rollup as a precondition for a
+decision that does not consume every family:
+
+| V2 decision | Required metric families (must individually satisfy the family-scoped `2/3` coverage / `50.0` confidence gate) | Notes |
+|---|---|---|
+| 4h regime direction + compression flag | `price_structure` | `oi` is read for the veto only (below) — its absence never blocks direction, per the already-frozen §4.2 OI-role invariant this amendment now makes consistent with the quality gate. |
+| 4h regime OI veto | `oi`, when present | `UNAVAILABLE` `oi` simply means the veto cannot apply — never a reason to fail the whole regime computation (§4.2, unchanged). |
+| 1h bias | `price_structure` | Same shape as 4h regime direction. |
+| `TREND_PULLBACK` formation + confirmation | `price_structure` | Uses only `close_price`-derived retracement/extreme facts — no `volume`/`taker_flow`/`oi`/`funding`/`liquidations` input anywhere in §7.1. |
+| `COMPRESSION_BREAKOUT` formation (compression window) | `price_structure` | `compression_score` is a `price_structure`-derived (`range_width_pct`) quantity, [§4.1](#41-normalized-evidence-primitive-used-throughout-47). |
+| `COMPRESSION_BREAKOUT` EARLY_SIGNAL trigger | `price_structure`, `taker_flow` | §7.2's fresh-cross uses `price_structure`; the `price_direction_agreement >= 2/3` gate and `taker_delta_notional_usd_sum` sign check are `taker_flow`-family facts. |
+| `COMPRESSION_BREAKOUT` confirmation (false-break/HOLD) | `price_structure` | Confirmation is a pure closed-5m-close check, §7.2. |
+| `CONFIRMED_BREAKOUT` formation + confirmation | `price_structure` | §7.3 explicitly carries **no** `taker_flow` requirement at all (unlike `COMPRESSION_BREAKOUT`) — see `analytics/forecasting_v2/confirmed_breakout.py`'s own docstring, "no taker-flow confirmation requirement." |
+| `WEAKENING` / recovery | `price_structure` | [§13.2a](#132a-weakening-and-recovery-criteria-v2-v0)/[§F below] use `price_move_pct_median`/`price_direction_agreement`, both `price_structure`-family facts. |
+
+An unrelated missing/degraded metric family **MUST NOT** suppress a
+decision that does not consume it — this directly resolves the concrete
+example this amendment audited: historical `liquidations` coverage `= 0`
+**MUST NOT** automatically suppress a `TREND_PULLBACK` candidate, because
+`TREND_PULLBACK` never reads the `liquidations` family.
+
+**This is an executable behavior correction, not a documentation-only
+clarification.** Every currently-merged V2 quality-gate call site listed
+above reads the global rollup fields today; switching to per-family
+`coverage_by_metric`/`data_confidence_by_metric` scoped reads is a real
+change to V2-v0's decision output on some inputs (a candidate that is
+currently incorrectly suppressed by an unrelated family's poor coverage
+will, after the fix, correctly proceed). Per
+[§3](#3-v2-modelversion-identity)'s versioning invariants, this **MUST**
+ship under a new `rules_version` — **`v2-rules-v0.2.0`** — when a future
+executable hardening PR implements it; `config/v2.yaml` is **not** edited
+by this docs-only amendment (`#43`), and `v2.enabled`/`rules_version`
+remain unchanged here. See
+[§23](#23-configurability-vs-frozen-behavior) for the "config is not a
+loophole" principle this correction must respect: the family-scoped gate
+threshold *values* themselves (`2/3` coverage, `50.0` confidence) are
+**not** changing, only which family/families each decision's gate is
+scoped to — but because it changes which candidates the same raw input
+data produces, it is a `rules_version`-participating behavior change
+regardless.
 
 ---
 
@@ -1732,9 +1877,41 @@ probability of profit").
 |---|---|
 | `regime_strength` | `|price_evi|` from [§4.2](#42-4h-regime) if regime is `BULLISH_TRENDING`/`BEARISH_TRENDING`; `comp` (compression_score) if `NON_DIRECTIONAL` with `is_compressed`; else `UNAVAILABLE`. |
 | `bias_strength` | `|bias_evi|` from [§4.3](#43-1h-bias) if bias is `BULLISH`/`BEARISH`; `0.0` (a genuine, valid zero — "no lean" is a real measured value, not missing data) if `NEUTRAL_NOT_ESTABLISHED`; `UNAVAILABLE` if `UNAVAILABLE`. |
-| `setup_strength` | Detector-specific: `TREND_PULLBACK` → `1 − (retracement_pct / (PULLBACK_MAX_MULT * RANGE_PROXY_pct))` clamped `[0,1]` (deeper-but-still-valid retracements score lower); `COMPRESSION_BREAKOUT` → `comp` at the compression bucket; `CONFIRMED_BREAKOUT` → `min(1.0, (breakout_distance_beyond_level) / protection_buffer)` clamped `[0,1]`. |
+| `setup_strength` | Detector-specific: `TREND_PULLBACK` → `1 − (retracement_pct / (PULLBACK_MAX_MULT * RANGE_PROXY_pct))` clamped `[0,1]` (deeper-but-still-valid retracements score lower); `COMPRESSION_BREAKOUT` → `comp` (`compression_score`) **at `compression_end_bucket`** — the exact bucket is frozen below; `CONFIRMED_BREAKOUT` → `min(1.0, (breakout_distance_beyond_level) / protection_buffer)` clamped `[0,1]`. |
 | `trigger_strength` | `price_direction_agreement` at the confirming 5m bucket (already `∈[0,1]`). |
-| `data_confidence` | `consensus_confidence / 100.0` (already `∈[0,1]`) at the setup-formation timeframe's bucket. |
+| `data_confidence` | The `price_structure`-family-scoped confidence (`data_confidence_by_metric["price_structure"] / 100.0`, [§6.3a](#63a-per-family-metric-scoped-quality-gates-clean-room-audit-amendment--closes-a-global-worst-family-gap-that-contradicts-an-already-frozen-invariant)) at the setup-formation timeframe's bucket — **not** the global `consensus_confidence` rollup, for the same reason §6.3a freezes per-family quality gates: a setup's own confidence score must not be dragged down by an unrelated family's poor coverage. |
+
+**`COMPRESSION_BREAKOUT`'s `setup_strength` bucket, frozen exactly (clean-room
+audit amendment — an earlier draft's "`comp` at the compression bucket" was
+ambiguous, since the selected compression run spans
+`[compression_start_bucket, compression_end_bucket]`, multiple 15m
+buckets).** `setup_strength = compression_score(15m, 30d,
+compression_end_bucket)` — the score at the **most recent** bucket of the
+selected run, which by [§7.2](#72-compression_breakout)'s own construction
+always equals `B15` (the decision-time 15m bucket). This is the canonical
+choice for three reasons: (1) it answers "how compressed is the market
+**right now**, at the moment of breakout" — the same "current-moment"
+framing `CONFIRMED_BREAKOUT`'s `breakout_distance_beyond_level` and
+`trigger_strength`'s confirming-bucket agreement already use, rather than
+a historical average over the whole run; (2) the detector's own
+compression-window-selection walk ([§7.2](#72-compression_breakout))
+already necessarily computes `compression_score` at `B15` (it must know
+whether `B15` itself is compressed, since `B15 = compression_end_bucket`
+by construction) — so no extra computation is introduced; (3) it avoids
+an arbitrary choice among start/end/min/max/mean that the frozen text
+must otherwise justify from nothing. **Implementation debt (owned by a
+future Stage 5 hardening PR, not `#43`):** the current
+`V2CompressionBreakoutCandidate` (`analytics/forecasting_v2/compression_breakout.py`)
+does not yet expose this per-bucket `compression_score` value as a field
+— it is computed internally during window selection but discarded after
+determining the selected run's boundaries. A future PR must carry it
+forward BY VALUE (e.g. a `compression_score_at_end: float` field) so
+Stage 6 can compute `setup_strength` without re-running
+`compression_score()` against Stage 2 data Stage 5 has already read —
+this is the general "a stage that owns a calculation must expose the
+canonical downstream fact it computed, by value, rather than making a
+later stage recompute it" handoff invariant this audit also applies to
+`CONFIRMED_BREAKOUT`'s `tick_size`/`protection_buffer` inputs (§12.5a).
 
 **Weights (V2-v0, `rules_version`-participating):**
 
@@ -1993,6 +2170,67 @@ section makes the distinction explicit and normative:
   against another observation's anchor, and never against a running
   average. Observing a shifted anchor on a later decision does **not**, by
   itself, rewrite the episode's creation identity.
+
+### 12.2a Creation-time OPERATIONAL structural facts are equally frozen
+(clean-room audit amendment — closes a gap left by §12.2's identity-only
+scope)
+
+§12.2 above freezes the **identity** tuple (`episode_logical_key`). It
+does not, by itself, say whether the **operational** structural facts a
+family's own lifecycle logic (confirmation, false-break, post-confirmation
+invalidation, [§7](#7-setup-detectors)/[§13](#13-lifecycle-transition-semantics))
+consumes are drawn from the same frozen creation moment, or could be
+silently re-derived from a later Case-(B) non-materially-drifted
+observation. This is now frozen explicitly, generalizing §12.2's principle
+from "the identity tuple" to "every creation-time structural fact a
+family's operational lifecycle logic depends on":
+
+```text
+For the ENTIRE active (non-terminal) life of an episode, every operational
+structural fact its OWN family's confirmation / false-break / post-
+confirmation-invalidation logic (§7, §13) consumes is the value recorded
+AT CREATION -- never a value re-derived from a later Case (B) observation.
+```
+
+Per family:
+
+- **`TREND_PULLBACK`.** Its `§7.1` confirmation trigger (fresh 5m
+  `price_move_pct_median` sign + `price_direction_agreement >= 2/3`) does
+  **not** reference `trend_leg_extreme`/`structural_anchor` at all — it is
+  a pure fresh-5m price-direction check, independent of this section by
+  construction. `trend_leg_extreme` (and the entry zone/invalidation it
+  feeds, pre-`CONFIRMED`, [§9](#9-entry-zone-semantics)) is a creation-time
+  fact used for the episode's **displayed** structural context, but
+  confirmation itself never re-reads it.
+- **`COMPRESSION_BREAKOUT`.** `range_low`/`range_high` (and the
+  `invalidation_price`/entry zone they produce, [§7.2](#72-compression_breakout))
+  are the values from the episode's **creation** compression-window
+  selection — the exact `range_low`/`range_high` `EARLY_SIGNAL` itself was
+  detected against. The False-break rule ("`SHORT` holds iff `close <=
+  range_low`") and the post-`CONFIRMED` structural invalidation trigger
+  **always** evaluate against these same creation-time values for the
+  entire active life of the episode — **never** a `range_low`/`range_high`
+  re-derived from a later, non-materially-drifted candidate's own
+  independently-computed compression window, even though such a candidate
+  is a legitimate case-(B) observation of the *same* episode per
+  [§12.3](#123-per-decision-classification-of-a-same-slot-candidate).
+- **`CONFIRMED_BREAKOUT`.** The broken level (`level_anchor_bucket`/
+  `level_price`, tick-normalized per [§12.5](#125-tick-normalization-confirmed_breakout-structural-price)/
+  [§12.5a](#125a-tick-grid-is-frozen-at-episode-creation-confirmed_breakout))
+  and `protection_buffer` used by `§7.3`'s structural-invalidation trigger
+  are the **creation-time** values — already explicit in
+  [§12.4](#124-exact-driftmateriality-formulas)'s "the episode's original
+  `structural_anchor`/`episode_logical_key` stays frozen"; this section
+  makes clear the same freeze applies to the *operational* invalidation
+  check, not merely the identity comparison.
+
+A later Case-(B) observation's freshly-detected anchor/level/range
+([§12.3](#123-per-decision-classification-of-a-same-slot-candidate)) MAY
+still be recorded **by value**, as an observational fact, in that
+decision's event `decision_snapshot` — this section does not forbid
+recording it, only forbids **using** it operationally in place of the
+frozen creation-time fact for confirmation/false-break/invalidation
+purposes.
 
 ### 12.3 Per-decision classification of a same-slot candidate
 
@@ -2287,6 +2525,85 @@ still-ACTIVE episode above:
     -> would introduce spurious drift purely from a metadata change,
        not a real market move -- forbidden by this section.
 ```
+
+**Clean-room audit finding: instrument metadata has no as-of/historical
+model today — this is a gap upstream of episode creation, not just of the
+active-episode comparison above.** `creation_identity_tick_size` (frozen
+above) solves comparison against an *already-created* episode. But the
+detector's very first read of `tick_size` — at the moment a candidate is
+first evaluated, before any episode exists — is itself not yet
+historically reproducible: `storage/stage2_schema.sql`'s
+`exchange_instruments` table holds **one mutable row per `(exchange,
+symbol, market_type)`**, and `Database.fetch_v2_instrument`/
+`storage/v2_setup_readers.py`'s `read_v2_instrument` read "the ONE row at
+the EXACT `(exchange, symbol, market_type)`" — there is no `bucket_ts`/
+as-of scoping. Replaying historical decision `T` **after** the reference
+exchange's `tick_size` has since changed reads **today's** `tick_size`,
+not the value that was actually in effect at `T` — so a REPLAY run cannot
+exactly reproduce a LIVE run's historical `protection_buffer`, entry zone,
+invalidation price, `normalized_level_price`, or
+`MIN_VALID_PLANNED_RISK`-tick check for that historical decision. This is
+a **genuine replay-correctness gap**, distinct from (and upstream of)
+`creation_identity_tick_size`'s active-episode-comparison freeze above.
+**Not fixed in this docs-only PR** — freezing the required target: every
+Stage 5 candidate that depends on `tick_size` **MUST** carry the actual
+validated decision-time `tick_size` **by value** in its own output (this
+already effectively happens for `CONFIRMED_BREAKOUT`'s
+`creation_identity_tick_size` once an episode is created downstream of
+it — the gap is the *detector's own* read of "current" instrument
+metadata, before that point). Whether the correct fix is (a) an as-of/
+historical `exchange_instruments` model (versioned rows, each with an
+effective-from `bucket_ts`), or (b) accepting that `tick_size` changes are
+rare enough that "the value in effect at ingestion time was already
+persisted somewhere in Stage 1/2 and Stage 5 should read *that* historical
+value instead of the current row," is **implementation work for a future
+pre-Stage-6 hardening PR** — this document freezes the requirement
+("historical decisions MUST be exactly reproducible from data that was
+actually in effect at that historical `T`"), not the physical mechanism.
+
+**Clean-room audit finding: `Decimal` is a deterministic-arithmetic
+mechanism, never a JSON persistence leaf.** [§12.5](#125-tick-normalization-confirmed_breakout-structural-price)
+freezes `Decimal(str(...))`/`ROUND_HALF_UP` as the **arithmetic**
+mechanism for tick normalization — but `analytics/forecasting_v2/events.py`'s
+`V2EpisodeEvent` JSON-leaf validator (`_deep_freeze`) accepts only
+`bool`/`str`/`int`/`None`/finite-`float`/UTC-`datetime` as leaves; a raw
+`Decimal` is **not** an accepted leaf type and would raise
+`V2EventInputError` at construction. This document therefore freezes the
+persisted, JSON-safe representation of every `Decimal`-computed fact
+**separately** from the arithmetic mechanism that produces it:
+
+```text
+tick_index                  -> persist as a plain int (the canonical
+                                equality identity, §12.5 -- exact, no
+                                precision loss possible for an int)
+normalized_level_price       -> persist as a canonical decimal STRING
+                                (str(the_decimal_value), e.g. "66200.1") --
+                                NEVER as a bare float leaf, which could
+                                silently reintroduce the exact binary-
+                                float imprecision §12.5's whole point is
+                                to avoid
+creation_identity_tick_size  -> persist as a canonical decimal STRING
+                                (str(the_validated_tick_size)), for the
+                                same reason
+raw_level_price               -> persist as the detector's own raw,
+                                un-normalized numeric fact (a float, since
+                                it is exactly what the Stage 5 candidate
+                                already exposes, never re-derived through
+                                Decimal) — kept as a SEPARATE historical
+                                fact from normalized_level_price, never
+                                conflated with it
+```
+
+`tick_index` (an exact `int`) remains the canonical equality identity for
+comparisons reconstructed from persisted history (§12.5); the
+decimal-string forms of `normalized_level_price`/
+`creation_identity_tick_size` are exactly reconstructable back into
+`Decimal(the_string)` without ever round-tripping through binary `float`.
+This freezes the **required JSON-safe shape** only — the exact physical
+JSON key names remain implementation work for the future Stage 6
+foundation PR that first constructs `structural_anchor`/`decision_snapshot`
+for a `CONFIRMED_BREAKOUT` episode, per
+[§0.1](#01-what-this-document-is-not)'s "not a schema" scope limit.
 
 ### 12.6 Suppression: at most one active episode per slot
 
@@ -2722,6 +3039,34 @@ other evidence says, directly extending
 `V2_PRODUCT_CONTRACT.md` §10's "a high score MUST NOT bypass a mandatory
 hard gate" to state transitions.
 
+**The final candidate-age-eligible bucket is never simultaneously a
+confirmation opportunity AND an expiry (clean-room audit amendment — closes
+a potential off-by-one/precedence ambiguity).** Precedence level 2
+(completion/expiry) is evaluated *before* level 3 (confirmation) at one
+boundary — this ordering is only safe if candidate-age expiry's own
+trigger condition, by construction, can **never** be true at a boundary
+that also legitimately confirms. This is now frozen explicitly:
+**candidate-age expiry (`§14`) fires iff the deadline decision boundary is
+reached AND that same boundary's own confirmation check did not hold** —
+never "age reached the limit" evaluated as an independent fact blind to
+whether this exact boundary also confirmed. Concretely, for a family whose
+`CONFIRMATION_MAX_AGE` (or `PULLBACK_MAX_AGE`) is `N` buckets: the `N`-th
+eligible bucket **is** still a fully valid confirmation opportunity — "the
+deadline elapses" means bucket `N` closed *without* the confirming
+condition holding on it, not merely that bucket `N` was reached. If
+bucket `N`'s own close satisfies the family's confirmation trigger, the
+episode transitions to `CONFIRMED` at that boundary — `EXPIRED` is reached
+only if bucket `N` closes and the confirming condition does **not** hold.
+Framed the same way [§13.1](#131-transition-precedence) already frames
+completion/expiry: **confirmation and candidate-age expiry are mutually
+exclusive by construction**, exactly like completion/expiry above — this
+is a clarification of an existing, already-intended shape, not a new rule,
+and it removes any dependency on the precedence-order list to arbitrate
+between the two at the exact deadline boundary (there is nothing left to
+arbitrate, since they cannot both be true). See
+[§14](#14-candidate-expiry-and-expected-horizons) for the exact worked
+vectors, one per family, demonstrating this at the deadline bucket itself.
+
 ### 13.2 Allowed transitions
 
 ```text
@@ -2790,13 +3135,73 @@ state.
 
 ### 13.2a `WEAKENING` and recovery criteria (V2-v0)
 
-`CONFIRMED → WEAKENING` when, on a closed 5m bucket after confirmation,
-`price_direction_agreement(5m)` opposes the episode's direction (i.e. more
-than half of contributing exchanges now disagree) for `WEAKEN_BUCKETS = 2`
-consecutive closed 5m buckets — an evidence-quality signal, never itself a
-price-level check (that's invalidation's job). `WEAKENING → CONFIRMED`
-recovery requires the opposing-agreement condition to no longer hold for
+**Exact executable predicate (clean-room audit amendment — the prior text's
+"`price_direction_agreement(5m)` opposes the episode's direction" was not,
+by itself, computable).** `ConsensusFeatureVector.price_direction_agreement`
+(`analytics/feature_engine/consensus.py`'s `_direction_agreement`) is an
+**unsigned** `[0,1]` magnitude — "what fraction of exchanges agree with
+*whichever* majority sign," with the majority's own sign discarded by
+construction (`max(neg, flat, pos) / len(values)`). It cannot, alone,
+answer "opposes the episode's direction," because it does not carry a
+direction at all. The signed fact is a **separate** field,
+`price_move_pct_median` (same module) — the frozen predicate combines
+both:
+
+```text
+opposing_5m_bucket(direction, consensus_row) iff:
+    LONG:  price_move_pct_median < 0  AND  price_direction_agreement >= 0.5
+    SHORT: price_move_pct_median > 0  AND  price_direction_agreement >= 0.5
+```
+
+`price_direction_agreement >= 0.5` reads as "at least half the
+contributing exchanges agree with the (opposing) majority sign" — this is
+the executable form of the prior text's "more than half of contributing
+exchanges now disagree" (`>=` rather than strict `>`, matching this
+document's general boundary-inclusive convention elsewhere, e.g.
+[§12.4](#124-exact-driftmateriality-formulas)'s `<=` non-material
+boundary). `CONFIRMED → WEAKENING` fires when `opposing_5m_bucket` is
+`TRUE` for `WEAKEN_BUCKETS = 2` **consecutive** closed 5m buckets — an
+evidence-quality signal, never itself a price-level check (that is
+invalidation's job, [§10](#10-structural-invalidation)). `WEAKENING →
+CONFIRMED` recovery requires `opposing_5m_bucket` to be `FALSE` for
 `RECOVER_BUCKETS = 1` closed 5m bucket.
+
+**Edge cases, frozen exactly:**
+
+| Case | `opposing_5m_bucket` value |
+|---|---|
+| `price_direction_agreement == 0.5` exactly | Evaluated normally — `>= 0.5` is inclusive, so this counts as opposing (given the sign condition also holds). |
+| `price_move_pct_median == 0` | `FALSE` — neither `< 0` nor `> 0` holds for either direction; a flat median is neutral, not opposing. |
+| `price_direction_agreement` or `price_move_pct_median` is `None`/missing from the consensus row | **`UNAVAILABLE`**, not `FALSE` and not `TRUE` — see below. |
+| The `price_structure` family fails its own coverage/confidence gate ([§6.3a](#63a-per-family-metric-scoped-quality-gates-clean-room-audit-amendment--closes-a-global-worst-family-gap-that-contradicts-an-already-frozen-invariant)) for this bucket | **`UNAVAILABLE`** — a corrupted/unusable `price_structure` reading is never treated as evidence either way. |
+| The 5m bucket itself is `UNAVAILABLE` (missing entirely, [§6.3](#63-coverage--degraded-behavior--fail-closed)) | **`UNAVAILABLE`**. |
+
+**`UNAVAILABLE` is a third value, never coerced to `FALSE` or `TRUE`.**
+Missing/corrupted/unusable data is evidence of nothing — per this
+document's general principle ([§5.2](#52-missing-percentile-handling--never-none--0),
+[§6.3](#63-coverage--degraded-behavior--fail-closed)), it MUST NOT be
+silently read as "recovery" (that would let a data outage masquerade as
+the market un-opposing) and MUST NOT be silently read as "still opposing"
+either (that would let a data outage manufacture a false weakening/prevent
+a genuine recovery from ever registering).
+
+**Consecutive-streak behavior under `UNAVAILABLE` (frozen): PAUSE, never
+reset, never advance.** An `UNAVAILABLE` bucket neither counts toward
+`WEAKEN_BUCKETS`/`RECOVER_BUCKETS` nor resets an in-progress streak — the
+streak's count simply does not change on that bucket, and the next
+genuinely `TRUE`/`FALSE` bucket resumes counting from where the streak
+left off. This is the deliberate choice among three options: **advancing**
+the streak on unknown data would count missing evidence as evidence
+(forbidden); **resetting** the streak would let a single data hiccup
+unfairly erase an otherwise-genuine 2-bucket opposing streak (or a
+recovery already in progress), which is inconsistent with treating missing
+data as "no information" rather than "information that resets prior
+information." Worked vector: two consecutive `TRUE` (opposing) buckets,
+then one `UNAVAILABLE` bucket (data outage), then a third bucket also
+`TRUE` — since `WEAKEN_BUCKETS = 2` was already satisfied by the first two
+`TRUE` buckets *before* the outage, `WEAKENING` fires at the second `TRUE`
+bucket, unaffected by the later outage; the outage bucket itself
+contributes nothing either way.
 
 ### 13.3 `REVERSAL_CANDIDATE` mechanics
 
@@ -2920,55 +3325,137 @@ as eight sequential passes:
 1. Reconstruct the episodes ACTIVE immediately before T (the outcome of
    the previous decision boundary).
 2. Evaluate and apply lifecycle transitions (§13.1/§13.2/§13.2a) for
-   those existing episodes, AT T.
-3. The surviving non-terminal episodes from step 2 form "the active set
-   at T" -- this is the set used by same-slot eligibility
-   (§12.3/§12.6), cooldown (§12.8), and preexisting_opposite_active_set(T)
-   (§13.3.1). It is fixed BEFORE any of steps 4-8 run.
+   those existing episodes, AT T. Record, for any episode that transitions
+   to a terminal state (INVALIDATED/EXPIRED/COMPLETED) in this step, that
+   its T_terminal = T (§12.8).
+3. Derive TWO SEPARATE views from step 2's outcome -- they are NOT the
+   same set, and neither may substitute for the other (see the
+   "two distinct views" note below):
+   3a. surviving_active_set(T) = the non-terminal episodes remaining
+       after step 2. Used ONLY for same-slot ACTIVE occupancy (§12.6)
+       and preexisting_opposite_active_set(T) (§13.3.1).
+   3b. per-slot terminal/cooldown state as of T = each slot's most
+       recent terminal episode and that episode's T_terminal, drawn from
+       PERSISTED terminal-episode history -- which INCLUDES an episode
+       that transitioned to terminal in step 2 of THIS SAME T
+       (T_terminal = T is a valid, immediately-effective value, per
+       §12.8). Used ONLY for cooldown eligibility (§12.8).
+   Both views are fixed BEFORE any of steps 4-8 run.
 4. Evaluate independently-qualified NEW detector candidates for T, per
    each family's own formation cadence (§7.4.2's cadence invariant).
-5. Apply same-slot/cooldown creation eligibility (§12.3/§12.6/§12.8) to
-   those NEW candidates.
+5. Apply same-slot/cooldown creation eligibility to those NEW candidates:
+   a slot is creation-eligible at T iff (i) surviving_active_set(T) (3a)
+   has no episode in that slot, AND (ii) per 3b, T is at or after that
+   slot's earliest eligible new-episode decision boundary (§12.8) --
+   INCLUDING when the slot's most recent terminal episode became
+   terminal at this very T (T_terminal = T), which always makes T itself
+   ineligible (§12.8's cooldown is >= 1 bucket in every case).
 6. Apply §7.4 family precedence among the creation-eligible NEW
    candidates that remain.
 7. Create the accepted EARLY_SIGNAL episodes.
 8. Emit REVERSAL_CANDIDATE pairwise cross-references (§13.3.1) from each
-   E in preexisting_opposite_active_set(T) (fixed in step 3, BEFORE any
-   of this T's own new creations) to each newly-created opposite-
-   direction episode from step 7.
+   E in preexisting_opposite_active_set(T) (3a, fixed BEFORE any of this
+   T's own new creations) to each newly-created opposite-direction
+   episode from step 7.
 ```
 
-This ordering exists specifically to prevent three order-dependent bugs:
+**Two distinct views, never conflated (this corrects an internal
+inconsistency in an earlier draft of this section, which claimed a single
+"active set at `T`" served both same-slot occupancy *and* cooldown
+lookup):** `surviving_active_set(T)` (3a) answers "is there currently an
+`ACTIVE` episode occupying this slot?" — an episode that became terminal
+in step 2 of this same `T` is, correctly, **excluded** from it. Cooldown
+eligibility (3b) answers a **different** question — "has enough time
+elapsed since this slot's *most recent* terminal episode?" — and that
+question's answer depends on the terminal episode's `T_terminal`
+regardless of whether `T_terminal` is `T` itself or many boundaries
+earlier; excluding a same-`T` terminal episode from 3a must **never** be
+misread as excluding it from 3b's cooldown lookup too. Concretely: a slot
+whose sole occupant became terminal *at this exact `T`* has **no**
+surviving active episode (3a is empty for that slot) **and** is
+**simultaneously** within its just-started cooldown window as of this
+same `T` (3b) — [§12.6](#126-suppression-at-most-one-active-episode-per-slot)'s
+same-slot ACTIVE blocker and [§12.8](#128-terminal-episode-cooldown-exact-clock)'s
+cooldown blocker are sequential, never both empty at once, exactly as
+[§12.7](#127-suppression-is-not-a-queue) already freezes — this section's
+job is only to make sure the *orchestration order* doesn't accidentally
+produce a gap between them by consulting the wrong view for cooldown.
+
+This ordering exists specifically to prevent four order-dependent bugs:
 
 - **A same-boundary terminal transition must not be treated as still
-  `ACTIVE` for reversal purposes at that same `T`.** Step 3 (the active
-  set used by `preexisting_opposite_active_set`) runs *after* step 2
-  applies that `T`'s own lifecycle transitions, so an episode that became
-  `INVALIDATED`/`EXPIRED`/`COMPLETED` at `T` is already excluded.
+  `ACTIVE` for reversal purposes at that same `T`.** `surviving_active_set(T)`
+  (3a) is derived *after* step 2 applies that `T`'s own lifecycle
+  transitions, so an episode that became `INVALIDATED`/`EXPIRED`/
+  `COMPLETED` at `T` is already excluded from it.
+- **A same-boundary terminal transition must NOT be read as leaving the
+  slot immediately open.** Because 3b's cooldown lookup is sourced from
+  persisted terminal history (which includes this `T`'s own transition),
+  not from 3a's survivor set, a fresh same-slot candidate at this exact
+  `T` is still correctly cooldown-suppressed — see the worked vectors
+  below.
 - **Two new opposite-direction episodes created at the same `T` must not
-  be treated as "pre-existing" relative to each other.** Step 3's set is
-  fixed *before* steps 4–7 run, so neither of two same-`T` creations can
-  ever appear in the other's `preexisting_opposite_active_set(T)` — this
-  is the same fact [§13.3.1](#1331-exact-cardinality-preexisting_opposite_active_set-and-pairwise-cross-references)
+  be treated as "pre-existing" relative to each other.** 3a is fixed
+  *before* steps 4–7 run, so neither of two same-`T` creations can ever
+  appear in the other's `preexisting_opposite_active_set(T)` — this is
+  the same fact [§13.3.1](#1331-exact-cardinality-preexisting_opposite_active_set-and-pairwise-cross-references)
   states directly.
 - **Candidate input iteration order must not change the reversal
-  output.** Step 3's set membership does not depend on the order in which
-  step 4's candidates are enumerated or step 6's arbitration walk visits
-  them.
+  output.** 3a's membership does not depend on the order in which step
+  4's candidates are enumerated or step 6's arbitration walk visits them.
 
 This section does not require any future implementation PR to literally
-structure its code as eight sequential passes — only that the
-**observable outcome** at every `T` is indistinguishable from having
-followed this order. An implementation that computes an equivalent result
-through a different internal mechanism (e.g. a single pass over
-memoized pre-`T` state) remains conforming.
+structure its code as eight sequential passes, nor to maintain 3a/3b as
+two physically separate data structures — only that the **observable
+outcome** at every `T` is indistinguishable from having followed this
+order and this two-view distinction. An implementation that computes an
+equivalent result through a different internal mechanism (e.g. one
+per-slot state lookup that already accounts for both facts) remains
+conforming.
 
 No contradiction with an already-frozen lifecycle rule was found while
 deriving this ordering — in particular, it does not change
 [§13.3](#133-reversal_candidate-mechanics)'s hard invariant that
 `INVALIDATED` alone never creates a `REVERSAL_CANDIDATE` event (a
 same-`T` `INVALIDATED` transition in step 2 simply removes that episode
-from step 3's set; it still never itself triggers a cross-reference).
+from 3a's survivor set; it still never itself triggers a cross-reference).
+
+**Worked vectors — same-`T` terminal transition and cooldown:**
+
+```text
+Before T=14:00: an ACTIVE LONG TREND_PULLBACK episode occupies slot
+    (symbol, market_type, LONG, TREND_PULLBACK).
+
+At T=14:00 (a legal 15m boundary, both for lifecycle transitions and for
+TREND_PULLBACK's own new-candidate cadence):
+    step 2: the existing episode transitions to INVALIDATED. T_terminal = 14:00.
+    step 3a: surviving_active_set(14:00) does NOT include this episode
+             (it is now terminal) -- the slot has no surviving ACTIVE occupant.
+    step 3b: per-slot cooldown state for this slot: most recent terminal
+             episode's T_terminal = 14:00 (INVALIDATED, 3*5m cooldown,
+             §12.8) -- earliest eligible new-episode boundary = 14:15.
+    step 4: a FRESH LONG TREND_PULLBACK candidate independently qualifies
+             at this same T=14:00.
+    step 5: same-slot/cooldown eligibility for this fresh candidate:
+             (i) 3a has no ACTIVE occupant for this slot -- passes;
+             (ii) 3b: T=14:00 is NOT >= 14:15 (the slot's earliest
+                  eligible boundary) -- FAILS.
+    -> the fresh candidate is SUPPRESSED BY COOLDOWN (§12.8), not created.
+       No new episode at T=14:00, even though the same-slot ACTIVE
+       blocker (§12.6) alone had already cleared.
+
+Same structure, EXPIRED/COMPLETED terminal at T=14:00 (1*5m cooldown):
+    T_terminal = 14:00 -> earliest eligible new-episode boundary = 14:05.
+    A fresh same-slot candidate at this same T=14:00 is likewise
+    SUPPRESSED BY COOLDOWN (14:00 is not >= 14:05).
+
+In every one of these cases, the same-slot ACTIVE blocker (§12.6) and the
+cooldown blocker (§12.8) are never simultaneously absent for a slot whose
+occupant just went terminal -- the moment §12.6's blocker clears (exactly
+at T_terminal), §12.8's cooldown blocker is already, unbrokenly, in
+effect for that identical T, per [§12.7](#127-suppression-is-not-a-queue)'s
+"sequential, never merged, never a gap" framing.
+```
 
 ---
 
@@ -2996,6 +3483,63 @@ duration.
 
 `COMPLETED` vs. `EXPIRED` at horizon end are defined in
 [§13.2](#132-allowed-transitions) (`MIN_MFE_R_FOR_COMPLETION`).
+
+**Worked vectors — the final candidate-age-eligible bucket, per family
+(clean-room audit amendment, [§13.1](#131-transition-precedence)):**
+
+```text
+TREND_PULLBACK (PULLBACK_MAX_AGE = 8 x 15m buckets):
+  T_detect = 12:00. Eligible confirmation boundaries: T_detect+15m (12:15)
+  through T_detect+8*15m (14:00) -- 8 buckets, bucket 8 closing at 14:00.
+  No qualifying resumption trigger holds on buckets 1-7 (12:15..13:45).
+  At T=14:00 (bucket 8, the deadline bucket itself), the resumption
+  trigger (price_move_pct_median sign matches + price_direction_agreement
+  >= 2/3) DOES hold on B5_confirm.
+  => CONFIRMED at T=14:00 -- the deadline bucket is a valid confirmation
+     opportunity, not an automatic expiry. Had bucket 8 NOT triggered,
+     T=14:00 would instead be EXPIRED (deadline elapsed without
+     confirming) -- the two outcomes are mutually exclusive by
+     construction, never both computed as independently "true" at 14:00.
+
+COMPRESSION_BREAKOUT (CONFIRMATION_MAX_AGE = 3 x 5m buckets):
+  EARLY_SIGNAL at T1=12:00. Eligible confirming buckets: T1+5m (12:05),
+  T1+10m (12:10), T1+15m (12:15) -- bucket 3 (the deadline) closes at
+  12:15. Buckets 1-2 neither confirm nor false-break (boundary-equality
+  HOLD, §7.2). At T=12:15 (bucket 3), the close is strictly beyond the
+  breakout boundary -- confirming.
+  => CONFIRMED at T=12:15. Had bucket 3 instead been a HOLD (neither
+     confirming nor invalidating), T=12:15 would be EXPIRED.
+
+CONFIRMED_BREAKOUT (CONFIRMATION_MAX_AGE = 8 x 5m buckets): identical
+  shape -- the 8th eligible bucket (T1 + 40m) is a valid confirmation
+  opportunity; EXPIRED fires only if that same bucket does not confirm.
+```
+
+**Worked vector — invalidation and confirmation both apparent on the final
+eligible bucket.** Same `COMPRESSION_BREAKOUT` setup as above
+(`EARLY_SIGNAL` `SHORT` at `T1=12:00`, broken below `range_low`). Suppose
+at the deadline bucket `T=12:15` the reference exchange's close is
+**simultaneously** read two ways depending on which side of the range one
+naively compares it to — this cannot actually happen under the frozen
+one-sided direction-aware rule ([§7.2](#72-compression_breakout)): a
+`SHORT` candidate's confirming condition ("closes strictly below
+`range_low`") and its false-break/invalidating condition ("`close >
+range_low`," the negation) are **logical complements** of the same
+one-sided comparison — exactly one of them is true for any given close
+value, never both. [§13.1](#131-transition-precedence)'s level-1
+"invalidation always wins" therefore never actually has to arbitrate a
+tie against level-3 confirmation at the deadline bucket either — like the
+expiry/confirmation pair above, invalidation and confirmation are mutually
+exclusive by construction at the same boundary, for the same underlying
+reason (one-sided, complementary comparisons never both hold). The
+precedence list's ordering remains correct and necessary for genuinely
+independent conditions (e.g. a `CONFIRMED` episode's post-confirmation
+invalidation trigger racing against an unrelated same-boundary
+`WEAKENING`/recovery evidence-quality signal, where the two conditions are
+**not** logical complements of one comparison) — it is not, however, ever
+actually exercised between confirmation and either candidate-age-expiry or
+structural invalidation at the `EARLY_SIGNAL -> CONFIRMED` boundary,
+because those pairs cannot both be true there.
 
 ---
 
@@ -3148,6 +3692,34 @@ only price moving *away* from the zone by more than the tolerance is
 regardless of how strong the analytical setup was — an obviously missed
 move MUST NOT be counted as a successful actionable V2 call.
 
+**`INVALIDATED_BEFORE_ENTRY` reachability under V2-v0 (clean-room audit
+finding — reserved/currently-unreachable, not removed from the schema).**
+`INVALIDATED_BEFORE_ENTRY` requires `event_invalidation_price` to have been
+breached, on a **closed 5m bucket**, *as of* `assumed_entry_time =
+T_confirm + ASSUMED_USER_ACTION_DELAY_S (90s)`. Under V2-v0's frozen
+timing this is **not reachable** by the ordinary post-confirmation path:
+structural invalidation is always checked on **closed 5m buckets**
+([§10](#10-structural-invalidation)), and the earliest closed 5m bucket
+strictly after the `CONFIRMED` bucket itself closes at `T_confirm + 5m
+(300s)` — after `assumed_entry_time (T_confirm + 90s)`. As of
+`assumed_entry_time`, the most recently closed 5m bucket is still the
+`CONFIRMED` bucket itself (or earlier), and that bucket cannot itself have
+been an invalidating close — [§13.1](#131-transition-precedence)'s
+precedence rule means a boundary where invalidation and confirmation are
+both true always resolves to `INVALIDATED`, never `CONFIRMED`, so an
+episode that reached `CONFIRMED` at `T_confirm` provably did **not**
+breach `event_invalidation_price` at `T_confirm` either. There is
+therefore no closed 5m bucket, at or before `assumed_entry_time`, on which
+a fresh invalidating close could have occurred for a genuinely `CONFIRMED`
+episode. **`INVALIDATED_BEFORE_ENTRY` is accordingly reserved as a
+currently-unreachable `lateness_status` value under V2-v0's frozen
+`ASSUMED_USER_ACTION_DELAY_S = 90s` / 5m-close-only invalidation timing** —
+it remains a valid enum value (a future `rules_version` could reach it,
+e.g. by lengthening `ASSUMED_USER_ACTION_DELAY_S` past `300s`, or by
+adding a legitimate faster invalidation check), but no current V2-v0
+worked vector may present it as an ordinarily-occurring population member;
+see the corrected [§29.12](#2912-acceptance-population-vector) vector.
+
 **What this feeds:** `assumed-feasible` (for `CONFIRMED`) drives
 `lateness_status` (`ACTIONABLE` vs. `LATE`/`INVALIDATED_BEFORE_ENTRY`,
 [§17](#17-outcome--evaluation-model)), the feasibility acceptance metric
@@ -3193,15 +3765,32 @@ and evaluated exactly like any other** ([§17](#17-outcome--evaluation-model))
 | `WEAKENING` | Always material (state change) | — |
 | Recovery (`WEAKENING → CONFIRMED`) | Always material (state change) | — |
 | `INVALIDATED` | Always material (state change) | — |
-| `REVERSAL_CANDIDATE` | Always material (state change, [§13.3](#133-reversal_candidate-mechanics)) | — |
+| `REVERSAL_CANDIDATE` | Always material — **NOT itself a state change** on the episode it is attached to; it is an informational/cross-reference event fired because a *separate*, independently-created opposite-direction episode reached `EARLY_SIGNAL` ([§13.3](#133-reversal_candidate-mechanics)). The pre-existing episode's own `episode_state` is unchanged by this event — see the correction note below. | — |
 | Routine 5m re-evaluation with no state change and `|Δconfidence| < 0.15` | **Never material** | — |
+
+**Correction: `REVERSAL_CANDIDATE` is not a lifecycle state transition.**
+An earlier draft of this table (and the cooldown-override sentence below)
+grouped `REVERSAL_CANDIDATE` together with `WEAKENING`/recovery/
+`INVALIDATED` under the label "state change." That mislabeling is fixed
+here: [§13.3](#133-reversal_candidate-mechanics) is explicit that a
+`REVERSAL_CANDIDATE` event leaves the pre-existing episode's own
+`episode_state` **UNCHANGED** — it is purely an informational
+cross-reference attached to that episode's history, never a transition in
+[§13.2](#132-allowed-transitions)'s transition graph. It remains **always
+material** (the notification-materiality behavior itself does not change)
+for the independent reason that a newly-detected opposite-direction setup
+is inherently noteworthy information for the user — not because it is a
+state transition.
 
 **Cooldown / duplicate suppression:** a material non-state-change update
 (confidence-only or zone-only) is additionally suppressed if the episode's
 last notification was fewer than `MATERIAL_COOLDOWN = 3` closed 5m buckets
-ago (15 min, V2-v0) — **except** a state-change transition (`CONFIRMED`,
-`WEAKENING`, recovery, `INVALIDATED`, `REVERSAL_CANDIDATE`), which
-**always overrides cooldown** and is never suppressed.
+ago (15 min, V2-v0) — **except** a genuine lifecycle state-change
+transition (`CONFIRMED`, `WEAKENING`, recovery, `INVALIDATED`) or a
+`REVERSAL_CANDIDATE` cross-reference (informational, not a state change,
+but carrying the same "always overrides cooldown" treatment for the
+independent reason above) — none of these five are ever suppressed by
+this cooldown.
 
 Routine 5m re-evaluation that changes no state and moves confidence by
 less than the threshold is, by construction, never notification-worthy —
@@ -4298,7 +4887,8 @@ qualifying run" rule has nothing else to choose among here — see the
 dedicated multi-run vector below for the disambiguating case) →
 `compression_start_bucket = b[9]`, `compression_end_bucket = b[15] = B15`,
 `compression_length = 7`. `range_low = HTF_low`-derived over
-`[compression_start_bucket, compression_end_bucket]` `= 63,800`
+`[compression_start_bucket, compression_end_bucket]` `= 63,800`;
+`range_high` (same derivation, `HTF_high`) `= 64,100`
 ([§7.0a](#70a-structural-highlow-derivation-amended--corrects-a-nonexistent-field-error)).
 4h regime `NON_DIRECTIONAL`, 1h bias `NEUTRAL_NOT_ESTABLISHED` →
 `directional_context_gate(SHORT, ...) = ACCEPT` (neither is an established
@@ -4317,7 +4907,15 @@ T1 (bucket 1): reference exchange closes at 63,740 < 63,800 (range_low).
 T2 (bucket 2, next closed 5m bucket): reference exchange closes at 63,710
    (strictly < 63,800 — same side as T1, no intervening invalidating close).
    => later confirming close reached => CONFIRMED at T2.
-      invalidation_price = 63,800 + protection_buffer(...) ≈ 63,930.
+      SHORT invalidation_price = range_high + protection_buffer(...)
+                                = 64,100 + buffer(≈96) ≈ 64,196
+      (§7.2's frozen SHORT formula uses range_high, the OPPOSITE side of
+      the compression range from the broken range_low boundary that
+      triggered this SHORT episode — never range_low itself; an earlier
+      draft of this vector incorrectly wrote "63,800 + buffer ≈ 63,930",
+      which used the wrong boundary — already flagged, but not yet fixed
+      here, by `docs/FORECASTING_ROADMAP.md`'s PR41 entry, which verified
+      the correct value against the actual implemented formula).
 ```
 → `COMPRESSION_BREAKOUT`, `SHORT`, `EARLY_SIGNAL` at T1, `CONFIRMED` at T2.
 
@@ -4673,15 +5271,17 @@ denominators with a small concrete sample:
 
 ```text
 Sample: 10 CONFIRMED TREND_PULLBACK episodes, all later terminal:
-  6 ACTIONABLE (feasible entry reached)
+  7 ACTIONABLE (feasible entry reached)
   3 LATE (feasibility check failed, §15)
-  1 INVALIDATED_BEFORE_ENTRY (invalidation reached before assumed_entry_time)
+  0 INVALIDATED_BEFORE_ENTRY -- reserved/currently-unreachable under
+    V2-v0's frozen timing (§15.2's reachability note); a real acceptance
+    sample under the current rules_version never populates this bucket
 
 Sample-size count (§26, MIN_COMPLETED_EPISODES_*):        10  (all CONFIRMED, any lateness_status)
-Actionable-entry feasibility rate (§27 priority 1):        6 / 10 = 0.60   (denominator = CONFIRMED = 10)
-Missed/late rate:                                          4 / 10 = 0.40   (the 3 LATE + 1 INVALIDATED_BEFORE_ENTRY)
-Median execution_MAE_R / median execution_MFE_R / mean execution_cost_adjusted_return_R:  computed over the 6 ACTIONABLE episodes only
-                                                             (denominator = 6, NOT 10 — the 4 non-actionable
+Actionable-entry feasibility rate (§27 priority 1):        7 / 10 = 0.70   (denominator = CONFIRMED = 10)
+Missed/late rate:                                          3 / 10 = 0.30   (the 3 LATE; INVALIDATED_BEFORE_ENTRY unreachable under current rules)
+Median execution_MAE_R / median execution_MFE_R / mean execution_cost_adjusted_return_R:  computed over the 7 ACTIONABLE episodes only
+                                                             (denominator = 7, NOT 10 — the 3 non-actionable
                                                              episodes have no feasible_entry_price and are
                                                              correctly excluded from this population, not
                                                              silently dropped from the sample as a whole)
