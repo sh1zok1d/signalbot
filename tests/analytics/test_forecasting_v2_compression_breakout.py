@@ -586,6 +586,52 @@ def test_missing_non_run_range_proxy_peer_returns_none_not_keyerror():
     assert result is None
 
 
+def test_malformed_present_range_proxy_value_raises_even_with_different_missing_peer():
+    # A missing peer must NEVER mask a malformed PRESENT peer elsewhere in
+    # the same exact final-14 RANGE_PROXY grid (indices 2..15) --
+    # range_proxy_pct() itself validates every PRESENT row's range_width_
+    # pct_median BEFORE its own exact-grid-completeness check runs; the
+    # caller must hand it every PRESENT row (filtered only by presence,
+    # never short-circuited by a separate "any missing" check) so that
+    # contract actually holds.
+    consensus_rows, percentile_rows = build_compression_grid_rows()
+    consensus_rows = [r for r in consensus_rows if r["bucket_ts"] != LOOKBACK_GRID[2]]  # missing peer
+    consensus_rows = [
+        make_consensus_15m_row(r["bucket_ts"], range_width="not-a-number")
+        if r["bucket_ts"] == LOOKBACK_GRID[5] else r  # a DIFFERENT present peer, corrupted
+        for r in consensus_rows
+    ]
+    with pytest.raises(V2CompressionBreakoutError):
+        detect_compression_breakout(build_valid_short_inputs(
+            consensus_15m_rows=tuple(consensus_rows), percentile_15m_rows=percentile_rows))
+
+
+def test_malformed_present_range_proxy_value_nan_raises_even_with_different_missing_peer():
+    consensus_rows, percentile_rows = build_compression_grid_rows()
+    consensus_rows = [r for r in consensus_rows if r["bucket_ts"] != LOOKBACK_GRID[2]]
+    consensus_rows = [
+        make_consensus_15m_row(r["bucket_ts"], range_width=float("nan"))
+        if r["bucket_ts"] == LOOKBACK_GRID[5] else r
+        for r in consensus_rows
+    ]
+    with pytest.raises(V2CompressionBreakoutError):
+        detect_compression_breakout(build_valid_short_inputs(
+            consensus_15m_rows=tuple(consensus_rows), percentile_15m_rows=percentile_rows))
+
+
+def test_malformed_present_range_proxy_value_negative_raises_even_with_different_missing_peer():
+    consensus_rows, percentile_rows = build_compression_grid_rows()
+    consensus_rows = [r for r in consensus_rows if r["bucket_ts"] != LOOKBACK_GRID[2]]
+    consensus_rows = [
+        make_consensus_15m_row(r["bucket_ts"], range_width=-1.0)
+        if r["bucket_ts"] == LOOKBACK_GRID[5] else r
+        for r in consensus_rows
+    ]
+    with pytest.raises(V2CompressionBreakoutError):
+        detect_compression_breakout(build_valid_short_inputs(
+            consensus_15m_rows=tuple(consensus_rows), percentile_15m_rows=percentile_rows))
+
+
 # ============================================================================
 # 5. structural extrema tests
 # ============================================================================

@@ -34,7 +34,8 @@ both facts SEPARATELY (no overall/combined direction, §4.4) and failing
 closed against pairing results from two different decision boundaries or
 a source-identity mismatch.
 
-**Stage 5 — Setup Detectors: IN PROGRESS.**
+**Stage 5 — Setup Detectors: completes the implementation required for
+Stage 5's three frozen detector families when #42 merges.**
 
   - **PR 1 of ~4 — shared detector foundation: MERGED** (#39, "feat: add
     V2 setup detector foundation"). Added `setup_common.py`: the
@@ -91,7 +92,7 @@ a source-identity mismatch.
     age against `PULLBACK_MAX_AGE_15M_BUCKETS` (exposed only as frozen
     family metadata), and never computes `model_confidence` (§8). All of
     that is Stage 6 (Episode State Machine).
-  - **PR 3 of ~4 — `COMPRESSION_BREAKOUT`: THIS PR** (#41, "feat: add V2
+  - **PR 3 of ~4 — `COMPRESSION_BREAKOUT`: MERGED** (#41, "feat: add V2
     compression breakout detector"). Adds `compression_breakout.py`:
     `detect_compression_breakout(inputs: V2CompressionBreakoutInputs) ->
     Optional[V2CompressionBreakoutCandidate]` -- evaluated at EVERY legal
@@ -129,8 +130,61 @@ a source-identity mismatch.
     against `COMPRESSION_CONFIRMATION_MAX_AGE_5M_BUCKETS` (exposed only as
     frozen family metadata), and never applies §7.4 family precedence
     against `CONFIRMED_BREAKOUT`/`TREND_PULLBACK`. All of that is Stage 6.
-  - **PR 4 of ~4 — `CONFIRMED_BREAKOUT` + Stage 5 completion (planned,
-    not started).**
+  - **PR 4 of ~4 — `CONFIRMED_BREAKOUT` + Stage 5 completion: THIS PR**
+    (#42, "feat: add V2 confirmed breakout detector"), the FINAL planned
+    Stage 5 detector PR. Adds `confirmed_breakout.py`:
+    `detect_confirmed_breakout(inputs: V2ConfirmedBreakoutInputs) ->
+    Optional[V2ConfirmedBreakoutCandidate]` -- evaluated at EVERY legal
+    5m V2 decision boundary like `COMPRESSION_BREAKOUT` (no 1h-boundary
+    restriction); the exact `LEVEL_LOOKBACK=48`-bucket 1h structural
+    lookback (`resistance_level = max(HTF_high)`,
+    `support_level = min(HTF_low)`, via `aligned_inputs.derive_reference_
+    extrema()` reused unchanged, §7.0a) -- ANY one of the 48 buckets
+    unavailable makes the whole level unavailable (intentionally
+    stricter than #41's selected-run subset, since there is no
+    "selected run" concept here); the deterministic latest-tie
+    resistance/support anchor selection via the real `select_extreme_
+    anchor()` (§7.0c, reused unchanged); the fresh 5m-crossing check
+    (current vs. immediately-previous closed Binance 5m reference
+    closes); the shared §7.0b `directional_context_gate()` (reused
+    unchanged); and `protection_buffer()`/entry-zone/`invalidation_price`
+    structural facts (the 1h reference close AT `B1h`, never the 5m
+    breakout close itself; a SEPARATE, smaller 14-bucket 1h consensus
+    window for `RANGE_PROXY_pct(1h,14,B1h)` and the current-B1h quality
+    gate, distinct from the 48-bucket structural window which carries no
+    consensus rows at all). **`CONFIRMED_BREAKOUT` is deliberately NOT
+    `COMPRESSION_BREAKOUT` without compression (load-bearing, §7.3): no
+    preceding-compression precondition, no taker-flow confirmation
+    requirement, and no invented `price_direction_agreement >= 2/3`
+    EARLY_SIGNAL gate** -- §7.3 freezes exactly two EARLY_SIGNAL
+    requirements (the fresh structural-level crossing and
+    `directional_context_gate` acceptance), so `V2ConfirmedBreakoutCandidate`
+    carries no `price_direction_agreement`/`taker_delta_notional_usd_sum`
+    fields at all. Also adds `confirmed_breakout_inputs.py`:
+    `load_confirmed_breakout_inputs()`, a narrow async assembler over
+    `V2SetupHistoryReader` issuing exactly 5 reads (14-bucket 1h consensus
+    window, 48-bucket 1h reference-feature window, one raw-1m-kline
+    window, the two closed 5m reference buckets, the instrument row) --
+    deliberately NO current-B5 5m consensus read (load-bearing difference
+    from #41's loader, since this family has no taker-flow/agreement gate
+    to feed). **Deliberately implements ONLY the qualification question**,
+    exactly like `TREND_PULLBACK`/`COMPRESSION_BREAKOUT`: never constructs
+    `episode_id`/`event_id`/`episode_logical_key`, never transitions
+    `EARLY_SIGNAL`/`CONFIRMED`/`WEAKENING`/`INVALIDATED`/`EXPIRED`/
+    `COMPLETED`, never evaluates the direction-aware false-break rule or
+    the boundary-equality HOLD convention, never counts candidate age
+    against `CONFIRMED_BREAKOUT_CONFIRMATION_MAX_AGE_5M_BUCKETS` (exposed
+    only as frozen family metadata), and never applies §7.4 family
+    precedence against `COMPRESSION_BREAKOUT`/`TREND_PULLBACK`. All of
+    that is Stage 6.
+
+Stage 5's detector-implementation portion becomes COMPLETE when #42
+merges -- all three frozen setup families (`TREND_PULLBACK`,
+`COMPRESSION_BREAKOUT`, `CONFIRMED_BREAKOUT`) then have a deterministic
+Stage 5 qualification implementation. This does NOT mean the V2 trading
+product is complete: Stage 6 (Episode State Machine) -- episode identity/
+dedup, family precedence, confirmation, false-break transitions, expiry,
+weakening, persistence orchestration -- has not started.
 
 `V2EpisodeEvent` (events.py) validates and freezes an already-decided
 event a future Episode State Machine PR will construct;
@@ -170,6 +224,13 @@ from .compression_breakout import (
 )
 from .compression_breakout import EXPECTED_HORIZON as COMPRESSION_BREAKOUT_EXPECTED_HORIZON
 from .compression_breakout_inputs import load_compression_breakout_inputs
+from .confirmed_breakout import (
+    CONFIRMED_BREAKOUT_CONFIRMATION_MAX_AGE_5M_BUCKETS, LEVEL_LOOKBACK,
+    V2ConfirmedBreakoutCandidate, V2ConfirmedBreakoutError, V2ConfirmedBreakoutInputs,
+    detect_confirmed_breakout,
+)
+from .confirmed_breakout import EXPECTED_HORIZON as CONFIRMED_BREAKOUT_EXPECTED_HORIZON
+from .confirmed_breakout_inputs import load_confirmed_breakout_inputs
 from .context_evidence import (
     MIN_PCTL_TIER, V2ContextEvidenceError, compression_score,
     find_consensus_percentile, normalized_evidence, oi_confirmation,
@@ -257,4 +318,9 @@ __all__ = [
     "COMPRESSION_CONFIRMATION_MAX_AGE_5M_BUCKETS", "COMPRESSION_BREAKOUT_EXPECTED_HORIZON",
     "V2CompressionBreakoutInputs", "V2CompressionBreakoutCandidate",
     "detect_compression_breakout", "load_compression_breakout_inputs",
+    "V2ConfirmedBreakoutError",
+    "LEVEL_LOOKBACK", "CONFIRMED_BREAKOUT_CONFIRMATION_MAX_AGE_5M_BUCKETS",
+    "CONFIRMED_BREAKOUT_EXPECTED_HORIZON",
+    "V2ConfirmedBreakoutInputs", "V2ConfirmedBreakoutCandidate",
+    "detect_confirmed_breakout", "load_confirmed_breakout_inputs",
 ]
