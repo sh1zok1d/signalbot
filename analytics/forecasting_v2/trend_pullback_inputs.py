@@ -59,7 +59,9 @@ structural `Protocol` -- never imports `storage.db.Database` or
 to import `storage/` at all), `context_snapshot.V2ContextSnapshot`,
 `alignment.selected_bucket`, `aligned_inputs.V2_REFERENCE_EXCHANGE`, and
 this package's own `trend_pullback.py` (`LOOKBACK_15M`,
-`V2TrendPullbackInputs`, `V2TrendPullbackError`). If `reader` itself
+`V2TrendPullbackInputs`, `V2TrendPullbackError` -- the last one only for
+this module's own cheap non-`V2ContextSnapshot` `context` boundary check,
+never for re-validating detector semantics). If `reader` itself
 raises (a real/fake reader's own domain error, e.g.
 `V2SetupReaderError`), this module never swallows it into `None` --
 propagated unchanged, exactly like `aligned_inputs.py` never wraps a
@@ -79,7 +81,9 @@ from analytics.forecasting_v2.alignment import TIMEFRAME_MINUTES, selected_bucke
 from analytics.forecasting_v2.context_snapshot import V2ContextSnapshot
 from analytics.forecasting_v2.ports import V2SetupHistoryReader
 from analytics.forecasting_v2.setup_common import RANGE_PROXY_N
-from analytics.forecasting_v2.trend_pullback import LOOKBACK_15M, V2TrendPullbackInputs
+from analytics.forecasting_v2.trend_pullback import (
+    LOOKBACK_15M, V2TrendPullbackError, V2TrendPullbackInputs,
+)
 
 __all__ = ["load_trend_pullback_inputs"]
 
@@ -100,7 +104,17 @@ async def load_trend_pullback_inputs(
 
     Never reads a clock, environment, config file, or generates a
     random/uuid value. Propagates any exception `reader` itself raises,
-    unchanged."""
+    unchanged.
+
+    Raises `V2TrendPullbackError` for a non-`V2ContextSnapshot` `context`
+    (cheap public-boundary hardening, checked before `context.T` is ever
+    accessed) -- this is the only validation this module performs; it
+    never re-validates detector semantics (that remains `detect_trend_
+    pullback()`'s own job)."""
+    if not isinstance(context, V2ContextSnapshot):
+        raise V2TrendPullbackError(
+            f"context must be a V2ContextSnapshot, got {type(context).__name__}")
+
     B15 = selected_bucket("15m", context.T)
     if B15 + _FIFTEEN_MIN != context.T:
         return None  # not a 15m formation boundary -- zero storage reads

@@ -39,6 +39,8 @@ from analytics.forecasting_v2.setup_common import (
     REJECT_BIAS_UNAVAILABLE,
     REJECT_REGIME_OPPOSES,
     REJECT_REGIME_UNAVAILABLE,
+    SETUP_MIN_CONFIDENCE,
+    SETUP_MIN_COVERAGE,
     SETUP_RANGE_TIMEFRAMES,
     V2DirectionalContextDecision,
     V2ExtremeAnchor,
@@ -328,6 +330,18 @@ def test_setup_range_timeframes_is_exactly_15m_and_1h():
 
 def test_range_proxy_n_is_exactly_14():
     assert RANGE_PROXY_N == 14
+
+
+# ============================================================================
+# 3b. SHARED SETUP-TIMEFRAME CONSENSUS QUALITY GATE — §6.2/§6.3, reused
+# at every timeframe (not a new parameter).
+# ============================================================================
+def test_setup_min_coverage_is_exactly_two_thirds():
+    assert SETUP_MIN_COVERAGE == pytest.approx(2.0 / 3.0)
+
+
+def test_setup_min_confidence_is_exactly_50():
+    assert SETUP_MIN_CONFIDENCE == 50.0
 
 
 # ============================================================================

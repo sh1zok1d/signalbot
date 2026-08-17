@@ -34,7 +34,9 @@ from analytics.forecasting_v2.events import LONG, SHORT
 from analytics.forecasting_v2.regime_4h import (
     BEARISH_TRENDING, BULLISH_TRENDING, INSUFFICIENT_DATA, NON_DIRECTIONAL, V2RegimeResult,
 )
-from analytics.forecasting_v2.setup_common import RANGE_PROXY_N, V2ExtremeAnchor
+from analytics.forecasting_v2.setup_common import (
+    RANGE_PROXY_N, SETUP_MIN_CONFIDENCE, SETUP_MIN_COVERAGE, V2ExtremeAnchor,
+)
 from analytics.forecasting_v2.trend_pullback import (
     EXPECTED_HORIZON,
     LOOKBACK_15M,
@@ -85,11 +87,13 @@ def make_reference_row(bucket_ts, close_price=64_000.0, **over):
     return base
 
 
-def make_proxy_row(bucket_ts, value=0.4, **over):
+def make_proxy_row(bucket_ts, value=0.4, *, min_coverage_ratio=1.0, consensus_confidence=100.0,
+                   **over):
     base = dict(
         symbol=SYMBOL, market_type=MARKET_TYPE, timeframe="15m",
         calculation_version=H16, feature_schema_version=1,
         bucket_ts=bucket_ts, range_width_pct_median=value,
+        min_coverage_ratio=min_coverage_ratio, consensus_confidence=consensus_confidence,
     )
     base.update(over)
     return base
@@ -570,6 +574,50 @@ def test_malformed_present_value_never_masked_by_a_different_missing_bucket():
 
 
 # ============================================================================
+# 9b. FULL 15m REFERENCE BAR COUNT — §11/§12/§13
+# ============================================================================
+def test_reference_row_bars_expected_15_present_15_is_usable():
+    rows = list(build_lookback_rows(closes_by_offset=_LONG_CLOSES))
+    rows[5] = {**rows[5], "bars_expected": 15, "bars_present": 15}
+    inputs = make_valid_long_inputs(reference_15m_rows=tuple(rows))
+    assert detect_trend_pullback(inputs) is not None
+
+
+def test_reference_row_bars_expected_15_present_14_is_unavailable():
+    rows = list(build_lookback_rows(closes_by_offset=_LONG_CLOSES))
+    rows[5] = {**rows[5], "bars_expected": 15, "bars_present": 14}
+    inputs = make_valid_long_inputs(reference_15m_rows=tuple(rows))
+    assert detect_trend_pullback(inputs) is None
+
+
+def test_reference_row_bars_expected_14_is_impossible_identity_raises():
+    # bars_expected != 15 for a 15m bucket is corrupted/impossible
+    # identity metadata -- not ordinary "one bar missing" -- so it must
+    # raise even though bars_present == bars_expected (14 == 14).
+    rows = list(build_lookback_rows(closes_by_offset=_LONG_CLOSES))
+    rows[5] = {**rows[5], "bars_expected": 14, "bars_present": 14}
+    inputs = make_valid_long_inputs(reference_15m_rows=tuple(rows))
+    with pytest.raises(V2TrendPullbackError):
+        detect_trend_pullback(inputs)
+
+
+def test_reference_row_bars_expected_16_raises():
+    rows = list(build_lookback_rows(closes_by_offset=_LONG_CLOSES))
+    rows[5] = {**rows[5], "bars_expected": 16, "bars_present": 16}
+    inputs = make_valid_long_inputs(reference_15m_rows=tuple(rows))
+    with pytest.raises(V2TrendPullbackError):
+        detect_trend_pullback(inputs)
+
+
+def test_reference_row_bars_present_exceeds_bars_expected_raises():
+    rows = list(build_lookback_rows(closes_by_offset=_LONG_CLOSES))
+    rows[5] = {**rows[5], "bars_expected": 15, "bars_present": 16}
+    inputs = make_valid_long_inputs(reference_15m_rows=tuple(rows))
+    with pytest.raises(V2TrendPullbackError):
+        detect_trend_pullback(inputs)
+
+
+# ============================================================================
 # 10. RANGE PROXY THROUGH THE REAL DETECTOR — §18/§50
 # ============================================================================
 def test_range_proxy_exact_14_rows_may_qualify():
@@ -619,6 +667,7 @@ def test_range_proxy_row_wrong_calculation_version_raises():
 
 @pytest.mark.parametrize("missing_field", [
     "symbol", "market_type", "timeframe", "calculation_version", "feature_schema_version",
+    "bucket_ts",
 ])
 def test_range_proxy_row_missing_identity_field_raises(missing_field):
     rows = list(build_proxy_rows())
@@ -628,6 +677,138 @@ def test_range_proxy_row_missing_identity_field_raises(missing_field):
     inputs = make_valid_long_inputs(range_proxy_15m_rows=tuple(rows))
     with pytest.raises(V2TrendPullbackError, match=missing_field):
         detect_trend_pullback(inputs)
+
+
+@pytest.mark.parametrize("bad_bucket_ts", [
+    "not-a-datetime",
+    datetime(2026, 8, 15, 12, 0),  # naive
+    datetime(2026, 8, 15, 15, 0, tzinfo=timezone(timedelta(hours=3))),  # non-UTC
+    B15.replace(second=1),
+    B15.replace(microsecond=1),
+])
+def test_range_proxy_row_malformed_bucket_ts_raises(bad_bucket_ts):
+    rows = list(build_proxy_rows())
+    rows[0] = {**rows[0], "bucket_ts": bad_bucket_ts}
+    inputs = make_valid_long_inputs(range_proxy_15m_rows=tuple(rows))
+    with pytest.raises(V2TrendPullbackError):
+        detect_trend_pullback(inputs)
+
+
+def test_range_proxy_row_bucket_ts_never_normalized_or_floored():
+    # A malformed bucket_ts must raise, never be silently floored to a
+    # legal grid instant on the caller's behalf.
+    rows = list(build_proxy_rows())
+    rows[0] = {**rows[0], "bucket_ts": B15.replace(second=1)}
+    inputs = make_valid_long_inputs(range_proxy_15m_rows=tuple(rows))
+    with pytest.raises(V2TrendPullbackError):
+        detect_trend_pullback(inputs)
+
+
+def _set_current_b15_proxy_row(rows, **over):
+    """Replace the row whose bucket_ts == B15 (the last one, per
+    build_proxy_rows' ascending construction) with an overridden copy."""
+    rows = list(rows)
+    for i, row in enumerate(rows):
+        if row["bucket_ts"] == B15:
+            rows[i] = {**row, **over}
+            return rows
+    raise AssertionError("no proxy row at bucket_ts == B15 to override")
+
+
+# ============================================================================
+# 10b. SETUP-TIMEFRAME CONSENSUS QUALITY GATE — §6.2/§6.3, current B15
+# consensus row only, no extra storage read.
+# ============================================================================
+def test_quality_exact_min_coverage_and_min_confidence_qualifies():
+    rows = _set_current_b15_proxy_row(
+        build_proxy_rows(), min_coverage_ratio=SETUP_MIN_COVERAGE,
+        consensus_confidence=SETUP_MIN_CONFIDENCE)
+    inputs = make_valid_long_inputs(range_proxy_15m_rows=tuple(rows))
+    assert detect_trend_pullback(inputs) is not None
+
+
+def test_quality_coverage_just_below_minimum_is_none():
+    rows = _set_current_b15_proxy_row(
+        build_proxy_rows(), min_coverage_ratio=SETUP_MIN_COVERAGE - 0.01)
+    inputs = make_valid_long_inputs(range_proxy_15m_rows=tuple(rows))
+    assert detect_trend_pullback(inputs) is None
+
+
+def test_quality_confidence_just_below_minimum_is_none():
+    rows = _set_current_b15_proxy_row(build_proxy_rows(), consensus_confidence=49.999)
+    inputs = make_valid_long_inputs(range_proxy_15m_rows=tuple(rows))
+    assert detect_trend_pullback(inputs) is None
+
+
+def test_quality_coverage_none_is_unavailable():
+    rows = _set_current_b15_proxy_row(build_proxy_rows(), min_coverage_ratio=None)
+    inputs = make_valid_long_inputs(range_proxy_15m_rows=tuple(rows))
+    assert detect_trend_pullback(inputs) is None
+
+
+def test_quality_confidence_none_is_unavailable():
+    rows = _set_current_b15_proxy_row(build_proxy_rows(), consensus_confidence=None)
+    inputs = make_valid_long_inputs(range_proxy_15m_rows=tuple(rows))
+    assert detect_trend_pullback(inputs) is None
+
+
+@pytest.mark.parametrize("bad_coverage", [
+    float("nan"), float("inf"), -0.1, 1.1, True, "0.8",
+])
+def test_quality_malformed_present_coverage_raises(bad_coverage):
+    rows = _set_current_b15_proxy_row(build_proxy_rows(), min_coverage_ratio=bad_coverage)
+    inputs = make_valid_long_inputs(range_proxy_15m_rows=tuple(rows))
+    with pytest.raises(V2TrendPullbackError):
+        detect_trend_pullback(inputs)
+
+
+@pytest.mark.parametrize("bad_confidence", [
+    float("nan"), float("inf"), -1, 101, True, "80",
+])
+def test_quality_malformed_present_confidence_raises(bad_confidence):
+    rows = _set_current_b15_proxy_row(build_proxy_rows(), consensus_confidence=bad_confidence)
+    inputs = make_valid_long_inputs(range_proxy_15m_rows=tuple(rows))
+    with pytest.raises(V2TrendPullbackError):
+        detect_trend_pullback(inputs)
+
+
+@pytest.mark.parametrize("missing_field", ["min_coverage_ratio", "consensus_confidence"])
+def test_quality_missing_required_field_raises(missing_field):
+    rows = build_proxy_rows()
+    new_rows = []
+    for row in rows:
+        if row["bucket_ts"] == B15:
+            row = dict(row)
+            del row[missing_field]
+        new_rows.append(row)
+    inputs = make_valid_long_inputs(range_proxy_15m_rows=tuple(new_rows))
+    with pytest.raises(V2TrendPullbackError, match=missing_field):
+        detect_trend_pullback(inputs)
+
+
+def test_quality_corruption_precedence_malformed_confidence_plus_missing_historical_peer():
+    # Malformed PRESENT current-B15 confidence AND a DIFFERENT, older
+    # RANGE_PROXY peer bucket entirely missing -- must raise, never
+    # silently return None because of the unrelated missing peer.
+    rows = _set_current_b15_proxy_row(build_proxy_rows(), consensus_confidence=float("nan"))
+    rows = [r for r in rows if r["bucket_ts"] != B15 - 5 * FIFTEEN]
+    inputs = make_valid_long_inputs(range_proxy_15m_rows=tuple(rows))
+    with pytest.raises(V2TrendPullbackError):
+        detect_trend_pullback(inputs)
+
+
+def test_quality_current_row_entirely_absent_is_legitimate_none():
+    # No fabrication: if the current B15 row is missing entirely, the
+    # window is incomplete anyway -- legitimate None, not an error.
+    rows = [r for r in build_proxy_rows() if r["bucket_ts"] != B15]
+    inputs = make_valid_long_inputs(range_proxy_15m_rows=tuple(rows))
+    assert detect_trend_pullback(inputs) is None
+
+
+def test_quality_gate_applies_to_short_direction_too():
+    rows = _set_current_b15_proxy_row(build_proxy_rows(), consensus_confidence=10.0)
+    inputs = make_valid_short_inputs(range_proxy_15m_rows=tuple(rows))
+    assert detect_trend_pullback(inputs) is None
 
 
 # ============================================================================
@@ -675,6 +856,45 @@ def test_instrument_no_hard_coded_tick_fallback():
     candidate = detect_trend_pullback(inputs)
     assert candidate is not None
     assert candidate.protection_buffer >= 3 * 1.2345
+
+
+def test_instrument_wrong_exchange_raises_no_foreign_influence():
+    # A foreign (non-Binance) instrument must never silently influence a
+    # BTCUSDT/perp/Binance-reference candidate's protection buffer.
+    inputs = make_valid_long_inputs(instrument=make_instrument(exchange="bybit"))
+    with pytest.raises(V2TrendPullbackError):
+        detect_trend_pullback(inputs)
+
+
+def test_instrument_wrong_symbol_raises():
+    inputs = make_valid_long_inputs(instrument=make_instrument(symbol="ETHUSDT"))
+    with pytest.raises(V2TrendPullbackError):
+        detect_trend_pullback(inputs)
+
+
+def test_instrument_wrong_market_type_raises():
+    inputs = make_valid_long_inputs(instrument=make_instrument(market_type="spot"))
+    with pytest.raises(V2TrendPullbackError):
+        detect_trend_pullback(inputs)
+
+
+@pytest.mark.parametrize("missing_field", ["exchange", "symbol", "market_type", "tick_size"])
+def test_instrument_missing_identity_field_raises(missing_field):
+    row = make_instrument()
+    del row[missing_field]
+    inputs = make_valid_long_inputs(instrument=row)
+    with pytest.raises(V2TrendPullbackError, match=missing_field):
+        detect_trend_pullback(inputs)
+
+
+def test_instrument_full_hand_built_foreign_row_cannot_influence_candidate():
+    # The exact scenario the amendment closes: a hand-built instrument
+    # for a completely different exchange/symbol/market_type must not be
+    # silently accepted just because tick_size is present and valid.
+    foreign = dict(exchange="bybit", symbol="ETHUSDT", market_type="spot", tick_size=0.1)
+    inputs = make_valid_long_inputs(instrument=foreign)
+    with pytest.raises(V2TrendPullbackError):
+        detect_trend_pullback(inputs)
 
 
 # ============================================================================

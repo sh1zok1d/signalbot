@@ -96,9 +96,39 @@ legitimately missing/gate-failed buckets in either window is UNAVAILABLE
 setup input (`None`), never a partial computation. Every reference 15m
 bucket is gated by §11's exact reference-vector usability rule
 (`is_usable is True`, `has_gap is False`, `bars_present == bars_expected`,
-`close_price is not None`) — reused unchanged, never re-derived. No
-failover to a non-canonical exchange anywhere (`V2_REFERENCE_EXCHANGE`,
+`close_price is not None`) — reused unchanged, never re-derived. A 15m
+bucket's `bars_expected` must additionally equal EXACTLY the canonical
+full constituent-bar count for that timeframe (`15`, §11) — any other
+value is corrupted/impossible identity metadata (`V2TrendPullbackError`),
+never merely "one bar missing" (`bars_present < bars_expected` remains
+the ordinary, legitimate incompleteness case). No failover to a
+non-canonical exchange anywhere (`V2_REFERENCE_EXCHANGE`,
 `aligned_inputs.py`, reused unchanged).
+
+**Setup-timeframe consensus quality gate (§6.2/§6.3) — the SAME frozen
+numeric gate reused at every V2 timeframe.** The PRESENT consensus row
+whose `bucket_ts == B15` (found among the SAME `range_proxy_15m_rows`
+window `RANGE_PROXY_pct` already consumes — no fourth storage read) must
+satisfy `min_coverage_ratio >= SETUP_MIN_COVERAGE (2/3)` AND
+`consensus_confidence >= SETUP_MIN_CONFIDENCE (50.0)`; otherwise no
+candidate forms (`None`) — the same currently-degraded-data posture §6.3
+already freezes for every other timeframe. A missing required key is
+corruption (`V2TrendPullbackError`); a present key that is legitimately
+SQL `NULL` is unavailable quality (`None`), validated for corruption
+BEFORE any unrelated missing historical `RANGE_PROXY` peer bucket can
+short-circuit the result (corruption precedence, mirrors #36-#40's
+posture). A current-B15 row that is entirely absent is not fabricated —
+`RANGE_PROXY_pct` itself will also legitimately return `None` for the
+same incomplete window.
+
+**Instrument identity (§11) — no foreign instrument can influence a
+candidate.** The `tick_size` source is validated for EXACT
+`exchange`/`symbol`/`market_type` identity against `V2_REFERENCE_
+EXCHANGE`/`context.symbol`/`context.market_type` before its `tick_size`
+is ever trusted — a hand-built instrument row for a different exchange/
+symbol/market cannot silently feed this candidate's `protection_buffer`.
+Only the identity fields this module actually relies on are checked here
+(the storage reader already validates its own full SQL row shape).
 
 **Structural facts only, no future data (§9/§10).** `protection_buffer`
 (`setup_common.protection_buffer()` unchanged) and `invalidation_price =
@@ -149,8 +179,8 @@ from analytics.forecasting_v2.context_snapshot import V2ContextSnapshot
 from analytics.forecasting_v2.events import DIRECTIONS, LONG, SHORT
 from analytics.forecasting_v2.regime_4h import BEARISH_TRENDING, BULLISH_TRENDING
 from analytics.forecasting_v2.setup_common import (
-    V2ExtremeAnchor, V2SetupFoundationError, protection_buffer, range_proxy_pct,
-    select_extreme_anchor,
+    SETUP_MIN_CONFIDENCE, SETUP_MIN_COVERAGE, V2ExtremeAnchor, V2SetupFoundationError,
+    protection_buffer, range_proxy_pct, select_extreme_anchor,
 )
 
 __all__ = [
@@ -169,17 +199,22 @@ __all__ = [
 
 class V2TrendPullbackError(ValueError):
     """Malformed PRESENT input to this module: a non-`V2TrendPullbackInputs`
-    argument, a non-`V2ContextSnapshot` `inputs.context`, a non-Mapping or
+    argument, a non-`V2ContextSnapshot` `inputs.context` (or, in
+    `trend_pullback_inputs.py`, `context`), a non-Mapping or
     identity-mismatched/duplicate/out-of-grid history row, a required
     field missing entirely from a returned row, a non-finite/non-positive/
     `bool` numeric value where a real number is required, an impossible
-    negative retracement, or a wrapped `V2SetupFoundationError` from one of
-    the shared #39 primitives (`range_proxy_pct`/`protection_buffer`/
-    `select_extreme_anchor`) for genuinely corrupted (not missing) data.
-    Never raised for a legitimate non-qualification — see module
-    docstring's exhaustive list of `None` cases (not a 15m formation
-    boundary, context precondition not met, incomplete required history,
-    unavailable `RANGE_PROXY_pct`, retracement outside the valid band,
+    negative retracement, a `bars_expected` that is not exactly the
+    canonical full 15m constituent-bar count, a malformed PRESENT
+    `min_coverage_ratio`/`consensus_confidence` on the current-B15
+    consensus row, an identity-mismatched/incomplete instrument row, or a
+    wrapped `V2SetupFoundationError` from one of the shared #39 primitives
+    (`range_proxy_pct`/`protection_buffer`/`select_extreme_anchor`) for
+    genuinely corrupted (not missing) data. Never raised for a legitimate
+    non-qualification — see module docstring's exhaustive list of `None`
+    cases (not a 15m formation boundary, context precondition not met,
+    incomplete required history, unavailable `RANGE_PROXY_pct`, degraded
+    current-B15 consensus quality, retracement outside the valid band,
     unavailable instrument/tick metadata)."""
 
 
@@ -204,6 +239,10 @@ RESUMPTION_MIN_BUCKETS = 1
 EXPECTED_HORIZON = timedelta(hours=2)
 
 _FIFTEEN_MIN = timedelta(minutes=TIMEFRAME_MINUTES["15m"])
+# The FULL expected constituent 1m-bar count for a complete 15m
+# ExchangeFeatureVector bucket (§11) -- canonical, not a magic second
+# value: a 15m bucket is exactly 15 one-minute bars by construction.
+_FULL_15M_BAR_COUNT = TIMEFRAME_MINUTES["15m"]
 
 
 # ---- shared numeric validation (small local private copy, matching the
@@ -406,7 +445,10 @@ _REFERENCE_REQUIRED_FIELDS = _REFERENCE_IDENTITY_FIELDS + _REFERENCE_GATE_FIELDS
 
 _PROXY_IDENTITY_FIELDS = (
     "symbol", "market_type", "timeframe", "calculation_version", "feature_schema_version",
+    "bucket_ts",
 )
+_SETUP_QUALITY_FIELDS = ("min_coverage_ratio", "consensus_confidence")
+_INSTRUMENT_REQUIRED_FIELDS = ("exchange", "symbol", "market_type", "tick_size")
 
 
 def _validate_reference_row(
@@ -465,8 +507,22 @@ def _validate_reference_row(
         if isinstance(value, bool) or not isinstance(value, int):
             raise V2TrendPullbackError(
                 f"reference row {name} must be an int, got {type(value).__name__}")
-        if value < 0:
-            raise V2TrendPullbackError(f"reference row {name} must be >= 0, got {value!r}")
+    # §11: a complete 15m ExchangeFeatureVector bucket has EXACTLY
+    # _FULL_15M_BAR_COUNT=15 expected constituent 1m bars -- any other
+    # bars_expected is corrupted/impossible identity metadata (not
+    # ordinary "one bar missing"), so it raises rather than merely
+    # failing the usability gate.
+    if bars_expected != _FULL_15M_BAR_COUNT:
+        raise V2TrendPullbackError(
+            f"reference row bars_expected must be exactly {_FULL_15M_BAR_COUNT} for a "
+            f"15m bucket, got {bars_expected!r}")
+    if bars_present < 0:
+        raise V2TrendPullbackError(
+            f"reference row bars_present must be >= 0, got {bars_present!r}")
+    if bars_present > bars_expected:
+        raise V2TrendPullbackError(
+            f"reference row bars_present ({bars_present!r}) must not exceed bars_expected "
+            f"({bars_expected!r})")
 
     close_price = row["close_price"]
     if close_price is not None:
@@ -479,11 +535,15 @@ def _validate_reference_row(
     return bucket_ts, (close_price if gate_passes else None)
 
 
-def _validate_proxy_row_identity(row: Any, *, context: V2ContextSnapshot) -> None:
+def _validate_proxy_row_identity(row: Any, *, context: V2ContextSnapshot) -> datetime:
     """Defensively re-validate a PRESENT range-proxy 15m row's identity
     (§18) BEFORE it ever reaches `range_proxy_pct()` -- exact bucket
-    identity/completeness/value validation remains that shared primitive's
-    own job, never duplicated here."""
+    GRID/completeness/value validation remains that shared primitive's own
+    job, never duplicated here; this only checks that PRESENT `bucket_ts`
+    is a well-formed aware/UTC/whole-minute `datetime` (never normalized/
+    floored), so the caller can also use it to locate the current B15 row
+    for the §6.2/§6.3 setup-quality gate without a second storage read.
+    Returns the validated `bucket_ts`."""
     _require_fields(row, _PROXY_IDENTITY_FIELDS, "range-proxy 15m row")
     if row["symbol"] != context.symbol:
         raise V2TrendPullbackError(
@@ -503,6 +563,47 @@ def _validate_proxy_row_identity(row: Any, *, context: V2ContextSnapshot) -> Non
         raise V2TrendPullbackError(
             f"range-proxy row feature_schema_version must be "
             f"{context.feature_schema_version!r}, got {row['feature_schema_version']!r}")
+    return _validate_utc_whole_minute(row["bucket_ts"], "range-proxy row bucket_ts")
+
+
+def _validate_setup_quality_row(row: Mapping) -> "Optional[tuple[float, float]]":
+    """Validate the current-B15 consensus row's §6.2/§6.3 setup-quality
+    fields (`min_coverage_ratio`, `consensus_confidence`) -- the SAME
+    frozen numeric gate reused at every V2 timeframe, applied here at
+    TREND_PULLBACK's own 15m setup-formation bucket. A missing required
+    key is corruption (raises). A present key whose value is SQL
+    NULL/`None` is legitimate unavailable quality -- but BOTH fields are
+    validated for corruption BEFORE either's missingness can short-circuit
+    the other (corruption precedence, mirrors #36-#40's posture: a
+    malformed PRESENT value is never masked by a sibling field's
+    legitimate absence, nor by a different missing historical `RANGE_
+    PROXY` peer bucket, since this function is called independently of
+    that completeness check). Returns `(coverage, confidence)` if both are
+    present and valid, or `None` if either is legitimately unavailable."""
+    missing = [f for f in _SETUP_QUALITY_FIELDS if f not in row]
+    if missing:
+        raise V2TrendPullbackError(
+            f"current 15m consensus row is missing required field(s) {missing!r}")
+
+    coverage_raw = row["min_coverage_ratio"]
+    coverage: Optional[float] = None
+    if coverage_raw is not None:
+        coverage = _validate_finite_numeric(coverage_raw, "min_coverage_ratio")
+        if not (0.0 <= coverage <= 1.0):
+            raise V2TrendPullbackError(
+                f"min_coverage_ratio must be within [0.0, 1.0], got {coverage!r}")
+
+    confidence_raw = row["consensus_confidence"]
+    confidence: Optional[float] = None
+    if confidence_raw is not None:
+        confidence = _validate_finite_numeric(confidence_raw, "consensus_confidence")
+        if not (0.0 <= confidence <= 100.0):
+            raise V2TrendPullbackError(
+                f"consensus_confidence must be within [0.0, 100.0], got {confidence!r}")
+
+    if coverage is None or confidence is None:
+        return None
+    return coverage, confidence
 
 
 def detect_trend_pullback(inputs: V2TrendPullbackInputs) -> Optional[V2TrendPullbackCandidate]:
@@ -514,7 +615,8 @@ def detect_trend_pullback(inputs: V2TrendPullbackInputs) -> Optional[V2TrendPull
     Returns `None` for every legitimate non-qualification (see module
     docstring's `V2TrendPullbackError` list for the full inventory: not a
     15m formation boundary, context precondition not met, incomplete
-    required 48-bucket history, an unavailable `RANGE_PROXY_pct`, a
+    required 48-bucket history, an unavailable `RANGE_PROXY_pct`, degraded
+    or unavailable current-B15 consensus quality (§6.2/§6.3), a
     retracement outside `[0.5,3.0] * RANGE_PROXY_pct`, or unavailable
     instrument/tick metadata). Raises `V2TrendPullbackError` for malformed
     PRESENT input of any kind."""
@@ -589,14 +691,37 @@ def detect_trend_pullback(inputs: V2TrendPullbackInputs) -> Optional[V2TrendPull
 
     # ---- §7.1/§18 RANGE_PROXY_pct(15m,14,B15), via the shared primitive -
     proxy_rows = _validate_row_container(inputs.range_proxy_15m_rows, "range_proxy_15m_rows")
+    quality_row_by_bucket_ts: "dict[datetime, Mapping]" = {}
     for row in proxy_rows:
-        _validate_proxy_row_identity(row, context=context)
+        row_bucket_ts = _validate_proxy_row_identity(row, context=context)
+        quality_row_by_bucket_ts.setdefault(row_bucket_ts, row)
+
+    # ---- §6.2/§6.3 setup-timeframe consensus quality gate, at the SAME
+    # current B15 row range_proxy_pct's own window already carries -- no
+    # fourth storage read. Validated BEFORE the range_proxy_pct() call so
+    # a malformed PRESENT quality field is never masked by some OTHER,
+    # unrelated historical RANGE_PROXY peer bucket happening to be
+    # missing (corruption precedence). A B15 row that is entirely absent
+    # is legitimate incompleteness -- range_proxy_pct() will itself
+    # return None for the same reason below; no quality is fabricated
+    # here for it.
+    current_quality_row = quality_row_by_bucket_ts.get(B15)
+    quality = (
+        _validate_setup_quality_row(current_quality_row)
+        if current_quality_row is not None else None)
+
     try:
         proxy = range_proxy_pct(proxy_rows, timeframe="15m", bucket_ts=B15)
     except V2SetupFoundationError as exc:
         raise V2TrendPullbackError(f"range_proxy_pct failed: {exc}") from exc
     if proxy is None:
         return None
+
+    if quality is None:
+        return None  # current B15 consensus quality legitimately unavailable
+    current_coverage, current_confidence = quality
+    if current_coverage < SETUP_MIN_COVERAGE or current_confidence < SETUP_MIN_CONFIDENCE:
+        return None  # degraded current 15m consensus quality -- no candidate
 
     min_retracement = PULLBACK_MIN_MULT * proxy
     max_retracement = PULLBACK_MAX_MULT * proxy
@@ -608,15 +733,24 @@ def detect_trend_pullback(inputs: V2TrendPullbackInputs) -> Optional[V2TrendPull
     span_closes = [closes_by_bucket[ts] for ts in span_bucket_ts]
     pullback_extreme = min(span_closes) if direction == LONG else max(span_closes)
 
-    # ---- §7/§11 tick_size (instrument metadata, generic reader) --------
+    # ---- §7/§11 tick_size (instrument metadata, identity-checked so no
+    # foreign exchange/symbol/market_type instrument row can silently
+    # influence this candidate's protection buffer) ----------------------
     instrument = inputs.instrument
     if instrument is None:
         return None  # no protection buffer can be constructed
-    if not isinstance(instrument, _AbcMapping):
+    _require_fields(instrument, _INSTRUMENT_REQUIRED_FIELDS, "instrument row")
+    if instrument["exchange"] != V2_REFERENCE_EXCHANGE:
         raise V2TrendPullbackError(
-            f"instrument must be a Mapping or None, got {type(instrument).__name__}")
-    if "tick_size" not in instrument:
-        raise V2TrendPullbackError("instrument row is missing required field 'tick_size'")
+            f"instrument row exchange must be {V2_REFERENCE_EXCHANGE!r}, got "
+            f"{instrument['exchange']!r}")
+    if instrument["symbol"] != context.symbol:
+        raise V2TrendPullbackError(
+            f"instrument row symbol must be {context.symbol!r}, got {instrument['symbol']!r}")
+    if instrument["market_type"] != context.market_type:
+        raise V2TrendPullbackError(
+            f"instrument row market_type must be {context.market_type!r}, got "
+            f"{instrument['market_type']!r}")
     tick_size_raw = instrument["tick_size"]
     if tick_size_raw is None:
         return None  # tick_size genuinely unavailable

@@ -152,7 +152,8 @@ from .regime_4h import (
 from .setup_common import (
     BUFFER_MULTIPLIER, CONTEXT_ACCEPT, MIN_TICK_BUFFER_TICKS, RANGE_PROXY_N,
     REJECT_BIAS_OPPOSES, REJECT_BIAS_UNAVAILABLE, REJECT_REGIME_OPPOSES,
-    REJECT_REGIME_UNAVAILABLE, SETUP_RANGE_TIMEFRAMES, V2DirectionalContextDecision,
+    REJECT_REGIME_UNAVAILABLE, SETUP_MIN_CONFIDENCE, SETUP_MIN_COVERAGE,
+    SETUP_RANGE_TIMEFRAMES, V2DirectionalContextDecision,
     V2ExtremeAnchor, V2SetupFoundationError, directional_context_gate,
     protection_buffer, range_proxy_pct, select_extreme_anchor,
 )
@@ -199,6 +200,7 @@ __all__ = [
     "RANGE_PROXY_N", "SETUP_RANGE_TIMEFRAMES", "range_proxy_pct",
     "MIN_TICK_BUFFER_TICKS", "BUFFER_MULTIPLIER", "protection_buffer",
     "V2ExtremeAnchor", "select_extreme_anchor",
+    "SETUP_MIN_COVERAGE", "SETUP_MIN_CONFIDENCE",
     "V2TrendPullbackError",
     "LOOKBACK_15M", "PULLBACK_MIN_MULT", "PULLBACK_MAX_MULT",
     "PULLBACK_MAX_AGE_15M_BUCKETS", "RESUMPTION_MIN_BUCKETS", "EXPECTED_HORIZON",

@@ -10,8 +10,9 @@ window`/`fetch_v2_instrument`, with the exact `LOOKBACK_15M=48`/
 `RANGE_PROXY_N=14` inclusive intervals and exact identity, and ZERO calls
 to `fetch_v2_consensus_percentile_window`/`fetch_v2_reference_klines`;
 that the assembler never decides the setup itself (it returns whatever
-history physically exists, unfiltered); and that it depends only on the
-`V2SetupHistoryReader` Protocol, never a concrete storage import."""
+history physically exists, unfiltered); that it depends only on the
+`V2SetupHistoryReader` Protocol, never a concrete storage import; and the
+cheap non-`V2ContextSnapshot` `context` boundary check."""
 from __future__ import annotations
 
 import ast
@@ -26,7 +27,9 @@ from analytics.forecasting_v2.bias_1h import BULLISH, V2BiasResult
 from analytics.forecasting_v2.context_snapshot import V2ContextSnapshot
 from analytics.forecasting_v2.regime_4h import BULLISH_TRENDING, V2RegimeResult
 from analytics.forecasting_v2.setup_common import RANGE_PROXY_N
-from analytics.forecasting_v2.trend_pullback import LOOKBACK_15M, V2TrendPullbackInputs
+from analytics.forecasting_v2.trend_pullback import (
+    LOOKBACK_15M, V2TrendPullbackError, V2TrendPullbackInputs,
+)
 from analytics.forecasting_v2.trend_pullback_inputs import load_trend_pullback_inputs
 
 UTC = timezone.utc
@@ -249,6 +252,16 @@ def test_reader_error_propagates_unwrapped():
     context = make_context()
     with pytest.raises(RaisingReader._BoomError):
         _run(load_trend_pullback_inputs(reader, context=context))
+
+
+# ============================================================================
+# 4b. CHEAP PUBLIC-BOUNDARY HARDENING — non-V2ContextSnapshot context
+# ============================================================================
+def test_non_v2contextsnapshot_context_raises_before_any_access():
+    reader = RecordingReader()
+    with pytest.raises(V2TrendPullbackError):
+        _run(load_trend_pullback_inputs(reader, context="not-a-context"))  # type: ignore[arg-type]
+    assert reader.calls == []
 
 
 # ============================================================================
