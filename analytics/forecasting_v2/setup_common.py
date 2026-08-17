@@ -107,6 +107,8 @@ __all__ = [
     "protection_buffer",
     "V2ExtremeAnchor",
     "select_extreme_anchor",
+    "SETUP_MIN_COVERAGE",
+    "SETUP_MIN_CONFIDENCE",
 ]
 
 
@@ -187,6 +189,21 @@ def _validate_row_sequence(rows: Any, name: str) -> Any:
             f"{name} must be an iterable Sequence of Mapping rows, got "
             f"{type(rows).__name__}: {exc}") from exc
     return rows
+
+
+# ============================================================================
+# §6.2/§6.3 — the same frozen consensus-quality gate reused at EVERY
+# timeframe (V1's 5m-only `minimum_coverage_ratio`/`minimum_consensus_
+# confidence` values, generalized here as V2-v0's timeframe-invariant
+# starting hypothesis — not a new parameter, not re-derived per family).
+# Each Stage 5 setup detector applies this at its OWN setup-formation
+# timeframe's current bucket (e.g. TREND_PULLBACK at 15m/B15) — this
+# module only exposes the shared frozen numbers, never the per-family
+# "which row is the current one" decision, which stays each detector's
+# own job.
+# ============================================================================
+SETUP_MIN_COVERAGE = 2.0 / 3.0
+SETUP_MIN_CONFIDENCE = 50.0
 
 
 # ============================================================================

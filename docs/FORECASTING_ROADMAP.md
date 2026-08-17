@@ -778,8 +778,24 @@ current intent, not a contract that overrides sound engineering judgment.
     implements already-frozen §4.3 formulas/thresholds, not a new or
     tuned V2-v0 parameter; no schema/config change.
 - **Stage 5 — Setup Detectors: IN PROGRESS.**
-  - **PR 1 of ~4 — shared detector foundation: THIS PR** (#39, "feat:
-    add V2 setup detector foundation"). Implements ONLY the
+  - **PR 1 of ~4 — shared detector foundation: MERGED** (#39, "feat:
+    add V2 setup detector foundation"). Includes both the initial
+    implementation and a pre-merge hardening amendment (fixed head
+    `3d2cde1`): a shared `_require_row_fields()` returned-row shape
+    validator wired into all four `storage/v2_setup_readers.py` readers
+    (a broken/fake connection returning `{}`/a partial row/a non-Mapping
+    value now raises `V2SetupReaderError` instead of leaking a bare
+    `KeyError`/`AttributeError`/`TypeError`; a present key that is
+    legitimately SQL `NULL` remains unaffected), a `range_proxy_pct()`
+    bucket-grid alignment check (`bucket_ts` must now be aligned to
+    `timeframe`'s own canonical UTC grid, reusing `alignment.py`'s
+    `selected_bucket()` round-trip rather than a new grid convention),
+    top-level `rows`/`candidates` container hardening (`None`/`str`/
+    `bytes` now raise `V2SetupFoundationError` instead of an incidental
+    Python iteration error), and `V2ExtremeAnchor.__post_init__`
+    self-validation (naive/non-UTC/non-whole-minute `bucket_ts` and
+    non-finite/`bool` `value` now rejected on direct construction).
+    Implements ONLY the
     detector-independent shared math/context-compatibility/historical-
     read infrastructure all three Stage 5 families need — ZERO actual
     setup detection. Adds `analytics/forecasting_v2/setup_common.py`:
@@ -845,7 +861,74 @@ current intent, not a contract that overrides sound engineering judgment.
     (`v2-rules-v0.1.0`) — this PR implements already-frozen §7/§7.0b/
     §7.0c formulas/thresholds, not new or tuned V2-v0 parameters; no
     schema/config change.
-  - **PR 2 of ~4 — `TREND_PULLBACK` (planned, not started).**
+  - **PR 2 of ~4 — `TREND_PULLBACK`: THIS PR** (#40, "feat: add V2 trend
+    pullback detector"), the FIRST actual V2 setup detector. Adds
+    `analytics/forecasting_v2/trend_pullback.py`: `detect_trend_pullback(
+    inputs: V2TrendPullbackInputs) -> Optional[V2TrendPullbackCandidate]`
+    — §7.1's frozen STRICT precondition, deliberately NOT §7.0b's
+    `directional_context_gate` (never imported here): candidate `LONG`
+    iff 4h regime `== BULLISH_TRENDING` AND 1h bias `== BULLISH`;
+    candidate `SHORT` iff 4h regime `== BEARISH_TRENDING` AND 1h bias
+    `== BEARISH`; every other combination (`NON_DIRECTIONAL`,
+    `INSUFFICIENT_DATA`, `NEUTRAL_NOT_ESTABLISHED`, `UNAVAILABLE`, or an
+    opposite-direction regime/bias) never qualifies. Evaluated ONLY on
+    legal 15m formation boundaries (`B15 = selected_bucket(15m, T)`,
+    valid iff `B15 + 15m == T` — `T=12:15` qualifies, `T=12:20`/`T=12:25`
+    do not, never floored) — this is what stops the same closed 15m
+    structure from being independently "detected" three times as `T`
+    walks forward on the 5m grid. Requires the EXACT `LOOKBACK_15M=48`-
+    bucket reference-close window (canonical `V2_REFERENCE_EXCHANGE`
+    only, §11's exact usability gate reused unchanged, no partial window,
+    no failover); `trend_leg_extreme` is `max`/`min` `close_price` over
+    that window, tie-broken per §7.0c via PR 1's own `select_extreme_
+    anchor()` (most-recent tie wins — reused, never re-implemented).
+    `retracement_pct` uses the exact §7.1 formulas and must fall within
+    the INCLUSIVE `[PULLBACK_MIN_MULT=0.5, PULLBACK_MAX_MULT=3.0] *
+    RANGE_PROXY_pct(15m,14,B15)` band (PR 1's `range_proxy_pct()` reused
+    unchanged for both the exact-14-bucket math and the bucket-grid
+    validation). `pullback_extreme` (the deepest close reached DURING the
+    retracement) is derived ONLY from the contiguous span from `trend_
+    leg_extreme`'s own anchor bucket THROUGH `B15` inclusive — buckets
+    strictly older than the anchor never participate, even though they
+    contributed to selecting the anchor itself. `protection_buffer()`
+    (PR 1, reused unchanged) and `invalidation_price = pullback_extreme
+    -/+ protection_buffer` (LONG/SHORT) are STRUCTURAL FACTS computed at
+    `T`, never a live invalidation check. The `EARLY_SIGNAL`-time entry
+    zone uses ONLY already-known `T`-time data (`current_close =
+    close_price(B15)`) — never a future `confirmation_close_price`.
+    Verified bit-for-bit against the exact §29.6 worked LONG vector
+    (`trend_leg_extreme=65,000`, `current_close=64,350`,
+    `retracement_pct=1.0%`, `proxy=0.4%`, `pullback_extreme=64,300`,
+    `protection_buffer≈128.7`, `invalidation_price≈64,171.3`,
+    `zone=[64,300,64,350]`) and a symmetric SHORT vector, proving LONG/
+    SHORT formula symmetry directly. Also adds `analytics/forecasting_v2/
+    trend_pullback_inputs.py`: `load_trend_pullback_inputs(reader:
+    V2SetupHistoryReader, *, context: V2ContextSnapshot) ->
+    Optional[V2TrendPullbackInputs]`, a narrow async assembler mirroring
+    Stage 3's own pure-detector/async-assembler module split — returns
+    `None` WITHOUT any storage read for a non-15m-formation `T`;
+    otherwise issues exactly the three reads this detector needs (the
+    48-bucket reference window, the 14-bucket consensus window, the
+    single instrument row) and ZERO percentile-window/raw-kline/5m/1h/4h/
+    health/OI/funding/liquidation reads — the already-computed `context`
+    already supplies the 4h/1h facts. **Deliberately implements ONLY the
+    qualification question, never episode/lifecycle logic (load-bearing
+    Stage 5/6 boundary):** a stateless detector cannot know whether a
+    qualification is a brand-new episode's `T_detect` or a
+    pre-confirmation re-evaluation of an already-active `EARLY_SIGNAL`,
+    so this PR never constructs `episode_id`/`event_id`, never
+    transitions `EARLY_SIGNAL`/`CONFIRMED`/`WEAKENING`/`INVALIDATED`/
+    `EXPIRED`/`COMPLETED`, never evaluates the §7.1 5m resumption/
+    confirmation trigger (only meaningful relative to an already-existing
+    episode's own `T_detect`), never counts candidate age against
+    `PULLBACK_MAX_AGE_15M_BUCKETS` (exposed only as frozen family
+    metadata alongside `RESUMPTION_MIN_BUCKETS`/`EXPECTED_HORIZON=2h`),
+    and never computes `model_confidence` (§8) — all Stage 6 (Episode
+    State Machine). No `COMPRESSION_BREAKOUT`/`CONFIRMED_BREAKOUT`, no
+    runtime wiring, no schema/config change anywhere in this PR.
+    `v2.enabled` stays `false`; `v2.rules_version` is unchanged
+    (`v2-rules-v0.1.0`) — this PR implements already-frozen §7.1/§7.0c
+    formulas/thresholds, not new or tuned V2-v0 parameters.
   - **PR 3 of ~4 — `COMPRESSION_BREAKOUT` (planned, not started).**
   - **PR 4 of ~4 — `CONFIRMED_BREAKOUT` + Stage 5 completion (planned,
     not started).**
@@ -854,5 +937,5 @@ current intent, not a contract that overrides sound engineering judgment.
     contracts remain authoritative, and this split may be adjusted if
     reviewability or risk requires it.
 
-**Next planned work (after PR #39 merges):** Stage 5 — Setup Detectors,
-PR 2 of ~4 (`TREND_PULLBACK`, §I above).
+**Next planned work (after PR #40 merges):** Stage 5 — Setup Detectors,
+PR 3 of ~4 (`COMPRESSION_BREAKOUT`, §I above).
