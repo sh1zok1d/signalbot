@@ -929,7 +929,7 @@ current intent, not a contract that overrides sound engineering judgment.
     `v2.enabled` stays `false`; `v2.rules_version` is unchanged
     (`v2-rules-v0.1.0`) — this PR implements already-frozen §7.1/§7.0c
     formulas/thresholds, not new or tuned V2-v0 parameters.
-  - **PR 3 of ~4 — `COMPRESSION_BREAKOUT`: THIS PR** (#41, "feat: add V2
+  - **PR 3 of ~4 — `COMPRESSION_BREAKOUT`: MERGED** (#41, "feat: add V2
     compression breakout detector"). Adds `analytics/forecasting_v2/
     compression_breakout.py`: `detect_compression_breakout(inputs:
     V2CompressionBreakoutInputs) -> Optional[V2CompressionBreakoutCandidate]`
@@ -1025,12 +1025,99 @@ current intent, not a contract that overrides sound engineering judgment.
     `v2.enabled` stays `false`; `v2.rules_version` is unchanged
     (`v2-rules-v0.1.0`) — this PR implements already-frozen §7.2/§7.0a/
     §7.0b formulas/thresholds, not new or tuned V2-v0 parameters.
-  - **PR 4 of ~4 — `CONFIRMED_BREAKOUT` + Stage 5 completion (planned,
-    not started).**
+  - **PR 4 of ~4 — `CONFIRMED_BREAKOUT` + Stage 5 completion: THIS PR**
+    (#42, "feat: add V2 confirmed breakout detector"), the FINAL planned
+    Stage 5 detector PR. Adds `analytics/forecasting_v2/
+    confirmed_breakout.py`: `detect_confirmed_breakout(inputs:
+    V2ConfirmedBreakoutInputs) -> Optional[V2ConfirmedBreakoutCandidate]`
+    — §7.3's structural-level-break qualification. Evaluated at EVERY
+    legal 5m V2 decision boundary `T` (`B5 = selected_bucket(5m, T)`,
+    `B1h = selected_bucket(1h, T)`), no 1h-boundary restriction — a
+    physically natural instant is `T=13:05` (`B1h=[12:00,13:00)` already
+    closed, `B5=[13:00,13:05)` the newly closed 5m bucket that may break
+    it). The structural level uses the EXACT `LEVEL_LOOKBACK=48`-bucket
+    1h grid ending at `B1h`: `resistance_level = max(HTF_high(1h, b))`,
+    `support_level = min(HTF_low(1h, b))` over ALL 48 buckets, via
+    `aligned_inputs.derive_reference_extrema()` (§7.0a, reused
+    unchanged, from raw Binance `klines_1m` — never `close_price`/
+    consensus/current-5m-price). ANY one of the 48 buckets being
+    unavailable makes the WHOLE level unavailable — intentionally
+    stricter than `COMPRESSION_BREAKOUT`'s selected-run subset, since
+    there is no "selected run" concept for this family: every bucket
+    structurally contributes. The tie-broken anchor bucket (§7.0c) uses
+    the real `setup_common.select_extreme_anchor()` for both
+    `mode="max"` (resistance) and `mode="min"` (support) — never a
+    private tie-break; a latest-bucket-wins tie test proves input order
+    never influences the result. The fresh 5m-crossing check
+    (`LONG: previous<=resistance AND current>resistance`;
+    `SHORT: previous>=support AND current<support`) uses the current and
+    immediately-previous closed Binance 5m reference closes, the same
+    clean interpretation `COMPRESSION_BREAKOUT` established.
+    **`CONFIRMED_BREAKOUT` is deliberately NOT `COMPRESSION_BREAKOUT`
+    without compression (load-bearing, §7.3, do not cargo-cult #41):**
+    no preceding-compression precondition, a 1h (not 15m) structural
+    lookback, a 40-minute (not 15-minute) confirmation window (metadata
+    only — never evaluated by this Stage 5 PR), and critically **no
+    taker-flow confirmation requirement and no invented
+    `price_direction_agreement >= 2/3` EARLY_SIGNAL gate** — §7.3
+    freezes exactly two EARLY_SIGNAL requirements: the fresh
+    reference-exchange 5m crossing, and
+    `directional_context_gate(candidate_direction, context) == ACCEPT`
+    (§7.0b, reused unchanged). `V2ConfirmedBreakoutCandidate` therefore
+    carries NO `price_direction_agreement`/`taker_delta_notional_usd_sum`
+    fields at all, and the detector reads no current-B5 5m consensus row
+    of any kind. `protection_buffer()`/entry-zone/`invalidation_price`
+    are structural facts computed once, using the canonical Binance 1h
+    `close_price` AT `B1h` (never the 5m breakout close) and a SEPARATE,
+    smaller 14-bucket 1h consensus window for `RANGE_PROXY_pct(1h,14,
+    B1h)` and the current-B1h §6.2/§6.3 quality gate — distinct from the
+    48-bucket structural window, which carries no consensus rows at all.
+    The structural anchor (`level_anchor_bucket`/`level_price`, exposed
+    at full stored precision) is the RAW Stage 5 fact only — §12's
+    actual `episode_logical_key` (tick-normalized price) remains Stage
+    6's job; this PR invents no rounding algorithm. Also adds
+    `analytics/forecasting_v2/confirmed_breakout_inputs.py`:
+    `load_confirmed_breakout_inputs(reader: V2SetupHistoryReader, *,
+    context: V2ContextSnapshot) -> V2ConfirmedBreakoutInputs` — like
+    `COMPRESSION_BREAKOUT`'s loader, no formation-boundary skip (every
+    5m boundary is a possible breakout instant), issuing exactly 5 reads
+    (14-bucket 1h consensus window, 48-bucket 1h reference-feature
+    window, one raw-1m-kline window covering the 48h lookback, the two
+    closed 5m reference buckets, the instrument row) — deliberately NO
+    current-B5 5m consensus read (load-bearing difference from #41's
+    seven-read loader, since this family has no taker-flow/agreement
+    gate to feed), no percentile read, no 15m/4h historical window.
+    **Deliberately implements ONLY the qualification question**,
+    exactly like `TREND_PULLBACK`/`COMPRESSION_BREAKOUT`: never
+    constructs `episode_id`/`event_id`/`episode_logical_key`, never
+    transitions `EARLY_SIGNAL`/`CONFIRMED`/`WEAKENING`/`INVALIDATED`/
+    `EXPIRED`/`COMPLETED`, never evaluates the direction-aware
+    false-break rule or the boundary-equality HOLD convention, never
+    counts candidate age against
+    `CONFIRMED_BREAKOUT_CONFIRMATION_MAX_AGE_5M_BUCKETS=8` (exposed only
+    as frozen family metadata alongside `EXPECTED_HORIZON=2.5h`, exported
+    at package level as `CONFIRMED_BREAKOUT_EXPECTED_HORIZON` to avoid
+    colliding with `TREND_PULLBACK`'s and `COMPRESSION_BREAKOUT`'s own
+    already-exported package-level `EXPECTED_HORIZON` names), and never
+    applies §7.4 family precedence against `COMPRESSION_BREAKOUT`/
+    `TREND_PULLBACK` — all Stage 6 (Episode State Machine) or later. No
+    runtime wiring, no schema/config change anywhere in this PR.
+    `v2.enabled` stays `false`; `v2.rules_version` is unchanged
+    (`v2-rules-v0.1.0`) — this PR implements already-frozen §7.3/§7.0a/
+    §7.0b/§7.0c formulas/thresholds, not new or tuned V2-v0 parameters.
   - This PR-count split is an IMPLEMENTATION/reviewability plan, not a
     new correctness contract — the existing Product/Correctness
     contracts remain authoritative, and this split may be adjusted if
     reviewability or risk requires it.
 
-**Next planned work (after PR #41 merges):** Stage 5 — Setup Detectors,
-PR 4 of ~4 (`CONFIRMED_BREAKOUT` + Stage 5 completion, §I above).
+**Stage 5's detector-implementation portion becomes COMPLETE when #42
+merges** — all three frozen setup families (`TREND_PULLBACK`,
+`COMPRESSION_BREAKOUT`, `CONFIRMED_BREAKOUT`) then have a deterministic
+Stage 5 qualification implementation. This does NOT mean the V2 trading
+product is complete — Stage 6 (Episode State Machine), which owns episode
+identity/dedup, family precedence (§7.4), confirmation, false-break
+transitions, expiry, weakening, and persistence orchestration, has NOT
+started.
+
+**Next planned work (after PR #42 merges):** Stage 6 — Episode State
+Machine (not yet started).
