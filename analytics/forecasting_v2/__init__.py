@@ -34,36 +34,66 @@ both facts SEPARATELY (no overall/combined direction, §4.4) and failing
 closed against pairing results from two different decision boundaries or
 a source-identity mismatch.
 
-**Stage 5 — Setup Detectors: IN PROGRESS**, started by this PR (#39, PR 1
-of ~4 — shared detector FOUNDATION only, no detector itself). Adds
-`setup_common.py`: the canonical §7.0b breakout directional-context
-compatibility gate (`directional_context_gate()` ->
-`V2DirectionalContextDecision`, consumed by `COMPRESSION_BREAKOUT`/
-`CONFIRMED_BREAKOUT` only — never `TREND_PULLBACK`, whose own stricter
-"4h trending AND 1h same direction" precondition makes this gate
-redundant there); §7's `RANGE_PROXY_pct(timeframe, N=14, B)` rolling-mean
-volatility proxy (`range_proxy_pct()`, `15m`/`1h` only); §7's
-`protection_buffer()` structural-invalidation buffer (`max(3*tick_size,
-reference_price*RANGE_PROXY_pct/100*0.5)`); and §7.0c's deterministic
-most-recent-tie extreme selection (`select_extreme_anchor()` ->
-`V2ExtremeAnchor`, for `TREND_PULLBACK`'s `trend_leg_extreme`/
-`CONFIRMED_BREAKOUT`'s `resistance_level`/`support_level` — never
-`COMPRESSION_BREAKOUT`'s plain-numeric `range_high`/`range_low`). Also
-adds `storage/v2_setup_readers.py` (deterministic historical-window
-reads: `consensus_feature_vectors`, consensus-scope `percentile_
-snapshots`, `exchange_feature_vectors`, and a single-row `exchange_
-instruments` tick-size lookup — reached only through the NEW, separate
-`V2SetupHistoryReader` port, `ports.py`; `V2AlignedInputReader` is
-UNCHANGED). **Still ZERO setup detection anywhere in this package** — no
-`TREND_PULLBACK`/`COMPRESSION_BREAKOUT`/`CONFIRMED_BREAKOUT` candidate
-can be produced by anything here: no `EARLY_SIGNAL`/`CONFIRMED`
-transition, no entry zone, no per-episode invalidation price, no
-`structural_anchor`/episode-identity construction, no episode
-lifecycle/state machine, no confidence scoring, no entry feasibility, no
-runtime wiring. Those are PR 2/~4 (`TREND_PULLBACK`), PR 3/~4
-(`COMPRESSION_BREAKOUT`), and PR 4/~4 (`CONFIRMED_BREAKOUT` + Stage 5
-completion) — do not read this docstring as claiming any of them exist
-while Stage 5 remains IN PROGRESS.
+**Stage 5 — Setup Detectors: IN PROGRESS.**
+
+  - **PR 1 of ~4 — shared detector foundation: MERGED** (#39, "feat: add
+    V2 setup detector foundation"). Added `setup_common.py`: the
+    canonical §7.0b breakout directional-context compatibility gate
+    (`directional_context_gate()` -> `V2DirectionalContextDecision`,
+    consumed by `COMPRESSION_BREAKOUT`/`CONFIRMED_BREAKOUT` only — never
+    `TREND_PULLBACK`, whose own stricter "4h trending AND 1h same
+    direction" precondition makes this gate redundant there); §7's
+    `RANGE_PROXY_pct(timeframe, N=14, B)` rolling-mean volatility proxy
+    (`range_proxy_pct()`, `15m`/`1h` only); §7's `protection_buffer()`
+    structural-invalidation buffer (`max(3*tick_size, reference_price*
+    RANGE_PROXY_pct/100*0.5)`); and §7.0c's deterministic most-recent-tie
+    extreme selection (`select_extreme_anchor()` -> `V2ExtremeAnchor`).
+    Also added `storage/v2_setup_readers.py` (deterministic historical-
+    window reads: `consensus_feature_vectors`, consensus-scope
+    `percentile_snapshots`, `exchange_feature_vectors`, and a single-row
+    `exchange_instruments` tick-size lookup — reached only through the
+    separate `V2SetupHistoryReader` port, `ports.py`; `V2AlignedInputReader`
+    is UNCHANGED). Implemented ZERO setup detection itself.
+  - **PR 2 of ~4 — `TREND_PULLBACK`: THIS PR** (#40, "feat: add V2 trend
+    pullback detector"), the FIRST actual V2 setup detector. Adds
+    `trend_pullback.py`: `detect_trend_pullback(inputs:
+    V2TrendPullbackInputs) -> Optional[V2TrendPullbackCandidate]` —
+    §7.1's frozen strict precondition (4h regime AND 1h bias must both
+    firmly agree with the candidate direction; `directional_context_gate`
+    is deliberately never used here), evaluated only on 15m formation
+    boundaries (`selected_bucket("15m", T) + 15m == T`, never floored);
+    the exact `LOOKBACK_15M=48`-bucket reference-close retracement
+    structure with §7.0c's tie-broken `trend_leg_extreme` (reusing PR 1's
+    `select_extreme_anchor()` unchanged); the exact retracement formulas
+    and inclusive `[PULLBACK_MIN_MULT=0.5, PULLBACK_MAX_MULT=3.0] *
+    RANGE_PROXY_pct(15m,14,B15)` valid band; the `pullback_extreme`
+    structural span (`trend_leg_extreme`'s own anchor bucket THROUGH
+    `B15` inclusive — never the full 48-bucket extreme, never buckets
+    strictly older than the anchor); `protection_buffer()`/entry-zone/
+    `invalidation_price` structural facts (reusing PR 1's
+    `protection_buffer()` unchanged, no future `confirmation_close_price`).
+    Also adds `trend_pullback_inputs.py`: `load_trend_pullback_inputs()`,
+    a narrow async assembler over `V2SetupHistoryReader` fetching exactly
+    the 48-bucket reference window, the 14-bucket consensus window, and
+    the single instrument row this detector needs (zero percentile/kline/
+    5m/1h/4h/health/OI/funding/liquidation reads) — mirroring Stage 3's
+    own pure-detector/async-assembler module split.
+    **Deliberately implements ONLY the qualification question** ("does
+    the current structure qualify as `TREND_PULLBACK` at this exact `T`,
+    and what are its deterministic structural facts") — a stateless
+    detector cannot know whether a qualification is a brand-new episode's
+    `T_detect` or a pre-confirmation re-evaluation of an already-active
+    `EARLY_SIGNAL`, so this PR never constructs `episode_id`/`event_id`,
+    never transitions `EARLY_SIGNAL`/`CONFIRMED`/`WEAKENING`/
+    `INVALIDATED`/`EXPIRED`/`COMPLETED`, never evaluates the §7.1 5m
+    resumption/confirmation trigger (which is only meaningful relative to
+    an ALREADY-EXISTING episode's own `T_detect`), never counts candidate
+    age against `PULLBACK_MAX_AGE_15M_BUCKETS` (exposed only as frozen
+    family metadata), and never computes `model_confidence` (§8). All of
+    that is Stage 6 (Episode State Machine).
+  - **PR 3 of ~4 — `COMPRESSION_BREAKOUT` (planned, not started).**
+  - **PR 4 of ~4 — `CONFIRMED_BREAKOUT` + Stage 5 completion (planned,
+    not started).**
 
 `V2EpisodeEvent` (events.py) validates and freezes an already-decided
 event a future Episode State Machine PR will construct;
@@ -74,13 +104,14 @@ event-construction operation's identity; `build_v2_episode_event()`
 (ports.py) are the narrow structural-typing dependency ports future
 orchestration code depends on instead of importing `storage.db.Database`
 directly. None of this decides what state an episode should be in, when
-an event should be emitted, or what a setup IS — only which data is
-legal to decide from, how to read it deterministically, the shared
-mathematical vocabulary, the complete Stage 4 context, and now Stage 5's
-shared detector math/context-gate/historical-read foundation. See
-docs/FORECASTING_ROADMAP.md §I for the full stage breakdown and §J for
-the authoritative current merge-state truth. V1 (`analytics/forecasting/`)
-is untouched and continues running unchanged."""
+an event should be emitted — only which data is legal to decide from, how
+to read it deterministically, the shared mathematical vocabulary, the
+complete Stage 4 context, Stage 5's shared detector math/context-gate/
+historical-read foundation, and now (#40) the first concrete setup
+qualification, `TREND_PULLBACK`. See docs/FORECASTING_ROADMAP.md §I for
+the full stage breakdown and §J for the authoritative current merge-state
+truth. V1 (`analytics/forecasting/`) is untouched and continues running
+unchanged."""
 from .aligned_inputs import (
     ALIGNED_TIMEFRAMES, STRUCTURAL_OHLC_TIMEFRAMES, V2_REFERENCE_EXCHANGE,
     V2AlignedInputError, V2AlignedInputRequest, V2AlignedInputs,
@@ -125,6 +156,12 @@ from .setup_common import (
     V2ExtremeAnchor, V2SetupFoundationError, directional_context_gate,
     protection_buffer, range_proxy_pct, select_extreme_anchor,
 )
+from .trend_pullback import (
+    EXPECTED_HORIZON, LOOKBACK_15M, PULLBACK_MAX_AGE_15M_BUCKETS, PULLBACK_MAX_MULT,
+    PULLBACK_MIN_MULT, RESUMPTION_MIN_BUCKETS, V2TrendPullbackCandidate,
+    V2TrendPullbackError, V2TrendPullbackInputs, detect_trend_pullback,
+)
+from .trend_pullback_inputs import load_trend_pullback_inputs
 
 __all__ = [
     "MODEL_FAMILY", "V2IdentityError", "V2ModelIdentity",
@@ -162,4 +199,9 @@ __all__ = [
     "RANGE_PROXY_N", "SETUP_RANGE_TIMEFRAMES", "range_proxy_pct",
     "MIN_TICK_BUFFER_TICKS", "BUFFER_MULTIPLIER", "protection_buffer",
     "V2ExtremeAnchor", "select_extreme_anchor",
+    "V2TrendPullbackError",
+    "LOOKBACK_15M", "PULLBACK_MIN_MULT", "PULLBACK_MAX_MULT",
+    "PULLBACK_MAX_AGE_15M_BUCKETS", "RESUMPTION_MIN_BUCKETS", "EXPECTED_HORIZON",
+    "V2TrendPullbackInputs", "V2TrendPullbackCandidate", "detect_trend_pullback",
+    "load_trend_pullback_inputs",
 ]
