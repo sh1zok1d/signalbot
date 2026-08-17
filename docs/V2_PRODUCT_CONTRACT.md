@@ -22,8 +22,14 @@ Normative language in this document follows standard usage:
   but must be deliberate and justified, not accidental.
 - **MAY** — genuinely optional or explicitly out of scope for now.
 
-No V2 code exists yet. This PR is documentation only. The currently deployed
-V1 forecast (`analytics/forecasting/`) is unaffected — see
+**This document originated as documentation-only (PR #28), written before
+any V2 code existed.** Current repository status (updated by `#43`'s
+pre-Stage-6 amendments): Stage 2–5 (Multi-model Framework, Multi-timeframe
+Alignment, Context Engines, Setup Detectors) have since been implemented
+and merged (`docs/FORECASTING_ROADMAP.md` §J); executable Stage 6
+(Episode State Machine) has **not** started — pre-Stage-6 contract/code
+hardening is the current phase. The currently deployed V1 forecast
+(`analytics/forecasting/`) remains unaffected throughout — see
 [§11](#11-v1--v2-coexistence).
 
 ---
@@ -644,6 +650,10 @@ it is deliberate, not an oversight.
 - **V2 Product Contract: frozen** (this document).
 - **V2 Correctness & Acceptance Contract: frozen**
   (`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md`).
-- **V2: still not implemented.**
-- **Next planned stage:** Stage 2 — Multi-model Framework
-  (`docs/FORECASTING_ROADMAP.md` §I).
+- **V2 implementation status (updated by `#43`):** Stage 2 (Multi-model
+  Framework), Stage 3 (Multi-timeframe Alignment), Stage 4 (Context
+  Engines), and Stage 5 (Setup Detectors) are implemented and merged.
+  Executable Stage 6 (Episode State Machine) has **not** started —
+  pre-Stage-6 contract/code hardening is the current phase.
+- **Next planned stage:** Stage 6 — Episode State Machine, gated on
+  pre-Stage-6 hardening PRs (`docs/FORECASTING_ROADMAP.md` §I/§J).
