@@ -55,7 +55,11 @@ is never floored/re-derived to force a match.
 **Strict context precondition (§7.1) — deliberately NOT §7.0b's
 `directional_context_gate`.** `TREND_PULLBACK` requires 4h regime and 1h
 bias to both FIRMLY AGREE with the candidate direction, stricter than the
-breakout families' gate (which also accepts neutral/unavailable context):
+breakout families' gate, which permits genuinely measured neutral/
+non-directional context (`NON_DIRECTIONAL` 4h regime,
+`NEUTRAL_NOT_ESTABLISHED` 1h bias) but fails closed on
+`INSUFFICIENT_DATA`/`UNAVAILABLE` context (§7.0b's own distinct
+data-availability rejection reasons):
 
     LONG  iff regime_4h.regime == BULLISH_TRENDING and bias_1h.bias == BULLISH
     SHORT iff regime_4h.regime == BEARISH_TRENDING and bias_1h.bias == BEARISH
@@ -66,9 +70,11 @@ breakout families' gate (which also accepts neutral/unavailable context):
 Direction is ALWAYS derived from `context` this way — `detect_trend_
 pullback()` accepts no caller-supplied direction parameter, and
 `directional_context_gate` is never imported here (§7.0b explicitly
-excludes `TREND_PULLBACK`, for which a gate that also accepts
-neutral/unavailable context would be redundant against this strictly
-stronger precondition).
+excludes `TREND_PULLBACK`: a gate that permits neutral/non-directional
+context would still be insufficient for `TREND_PULLBACK`'s stronger
+firm-agreement requirement, since permitting a merely-non-opposing
+context is not the same as requiring the candidate direction to be
+firmly established).
 
 **Retracement structure (§7.1, over `LOOKBACK_15M=48` closed 15m
 buckets, the reference exchange's own `close_price`).**
