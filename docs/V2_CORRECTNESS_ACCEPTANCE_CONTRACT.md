@@ -851,20 +851,45 @@ D -- process restart while OLD is draining:
   drain_complete_at = 09:25, T_activate = 09:30, unaffected by the
   restart.
 
-E -- proof OLD cannot make drain infinite by replenishing itself:
-  By construction (the frozen rule above), OLD MUST NOT create any new
-  episode at any boundary from T_request onward, unconditionally --
-  not "unless it's a strong signal," not "unless the slot is empty."
-  OLD's non-terminal-episode count can therefore only ever decrease
-  (via terminal transitions, §13) or stay the same between consecutive
-  DRAINING boundaries -- it can never increase. A strictly
-  non-increasing, non-negative integer sequence bounded below by 0
-  reaches 0 in finite time (bounded by the number of episodes active at
-  T_request, each bounded by its own family's maximum candidate-age /
-  cooldown clock, §12.8/§14). The same argument applies to active
-  cooldown count once episodes stop terminalizing. Drain is therefore
-  guaranteed finite by construction, not merely expected to finish in
-  practice.
+E -- proof OLD cannot make drain infinite by replenishing itself
+  (re-amended -- tech-lead/red-team finding: the round-5 proof's "a
+  non-increasing, non-negative integer sequence reaches zero in finite
+  time" is mathematically false on its own -- the constant sequence
+  1, 1, 1, ... is non-increasing and bounded below by 0 but never
+  reaches 0. The DRAIN behavior itself does not change; only the
+  finiteness argument is corrected, below, to one that is actually
+  valid):
+  1. By construction (the frozen rule above), OLD MUST NOT create any
+     new episode at any boundary from T_request onward, unconditionally
+     -- not "unless it's a strong signal," not "unless the slot is
+     empty." Therefore the SET of OLD-tuple episodes present at
+     T_request can never grow -- it is exactly the finite set that
+     already existed at T_request, for the rest of the drain.
+  2. Every one of those pre-existing active episodes has an
+     already-frozen, FINITE lifecycle deadline of its own: an
+     EARLY_SIGNAL candidate has a finite max-candidate-age expiry
+     (§14); a CONFIRMED/WEAKENING episode has a finite expected horizon
+     (§14) or an earlier structural invalidation, whichever comes
+     first (§13.1) -- every path through §13's transition graph reaches
+     a terminal state in bounded time from T_request, for every
+     individual episode.
+  3. Every terminal-episode cooldown (§12.8) is itself finite (1x5m or
+     3x5m depending on terminal state) -- a bounded additional delay
+     after each episode's own terminal transition.
+  4. Since the SET of episodes at T_request is finite (step 1) and each
+     one's own remaining lifecycle-to-terminal-plus-cooldown duration is
+     individually finite (steps 2-3), the MAXIMUM such duration across
+     that finite set is itself a finite number -- not because the count
+     is decreasing, but because it is a finite max of finite numbers.
+  5. At T_request + (that finite maximum), by definition every
+     pre-existing OLD episode has both reached a terminal state and had
+     its cooldown elapse -- old non-terminal episode count = 0 AND old
+     active cooldown count = 0 -- so drain_complete_at is reached no
+     later than that bound.
+  Drain is therefore guaranteed to complete in finite, bounded time by
+  construction -- via a finite set of episodes each individually bounded
+  in remaining lifetime, not via an unjustified "decreasing sequence
+  must hit zero" claim.
 ```
 
 ### 3.2 Decision provenance tuple, frozen normatively
@@ -4803,18 +4828,30 @@ episode outcome record (logical shape, not a schema):
                                   # incomplete-observation expiry; only meaningful
                                   # for COMPLETED/EXPIRED via the horizon path
                                   # (null for INVALIDATED/EARLY_SIGNAL-EXPIRED)
-  analytical_path_complete       # bool, per §18.2a.1 -- TRUE iff EVERY expected
-                                  # 1m bar on the full exact grid [T_confirm,
-                                  # horizon_end) is present and valid; FALSE if
-                                  # any is missing/unusable. INDEPENDENT of
+  analytical_path_complete       # bool|null, per §18.2a.1 -- TRUE iff EVERY
+                                  # expected 1m bar on [T_confirm, T_terminal)
+                                  # is present and valid, where T_terminal is
+                                  # this episode's OWN terminal decision
+                                  # boundary (horizon_end for COMPLETED/EXPIRED;
+                                  # T_invalidation/invalidation_reached_at for
+                                  # INVALIDATED); FALSE if any required bar is
+                                  # missing/unusable. INDEPENDENT of
                                   # terminal_reason/episode_state -- a COMPLETED
                                   # episode CAN have analytical_path_complete =
                                   # FALSE (favorable-excursion threshold proven
                                   # by observed bars before a later gap, §18.2a.1
-                                  # case A). Only meaningful for COMPLETED/EXPIRED
-                                  # via the horizon path (null for INVALIDATED/
-                                  # EARLY_SIGNAL-EXPIRED, same population as
-                                  # terminal_reason above)
+                                  # case A), and a CONFIRMED/WEAKENING ->
+                                  # INVALIDATED episode has its OWN TRUE/FALSE
+                                  # value from its own required
+                                  # pre-invalidation path -- NEVER null merely
+                                  # because it terminalized via INVALIDATED.
+                                  # ALWAYS boolean for every episode that
+                                  # reached CONFIRMED and later reached ANY
+                                  # terminal state; null ONLY for an episode
+                                  # that never reached CONFIRMED at all
+                                  # (EARLY_SIGNAL -> INVALIDATED/EXPIRED),
+                                  # which is outside the CONFIRMED acceptance
+                                  # sample entirely (§26)
   directional_return_pct         # §17 population: ALL CONFIRMED episodes
   mfe_pct / mae_pct              # §17 population: ALL CONFIRMED episodes
   planned_risk_distance          # §18.1 population: ALL CONFIRMED episodes
@@ -5143,26 +5180,102 @@ unaffected — `lateness_status` and `terminal_reason` are independent
 facts on the same outcome record).
 
 **`analytical_path_complete`, an explicit path-completeness fact,
-independent of `terminal_reason` (new — tech-lead/red-team finding:
-`terminal_reason` alone does not fully encode path completeness, because
-case (A) above shows a `COMPLETED`/`HORIZON_COMPLETION` episode CAN still
-have a missing later interval).** Frozen exactly:
+independent of `terminal_reason` (re-amended — tech-lead/red-team
+finding: the round-5 definition scoped the required path to
+`[T_confirm, horizon_end)` unconditionally, which is correct for
+horizon-terminal episodes but wrongly leaves `analytical_path_complete =
+NULL` for `CONFIRMED`/`WEAKENING → INVALIDATED` episodes — silently
+excluding every such episode from `PATH_COMPLETE_ACTIONABLE` and the
+path-dependent acceptance metrics below regardless of whether its own,
+shorter, actually-required observed path was complete. `INVALIDATED` is
+frequently precisely the adverse outcome that MUST remain in the
+performance population when its own price path is complete — excluding
+it unconditionally is a survivorship bias, not a data-quality safeguard).**
+Generalized to every episode that reached `CONFIRMED` at least once and
+later reached **any** terminal state — `COMPLETED`, `EXPIRED`, or
+`INVALIDATED` alike — by scoping the required path to that specific
+episode's own terminal boundary, not always to `horizon_end`:
 
 ```text
+T_confirm  = the episode's CONFIRMED decision boundary
+T_terminal = the SAME T_terminal already frozen in
+             [§12.8](#128-terminal-episode-cooldown-exact-clock) -- "the
+             decision boundary of the terminal event (the decision at
+             which the episode transitioned to INVALIDATED / EXPIRED /
+             COMPLETED)":
+                 horizon_end                      for COMPLETED/EXPIRED
+                     (terminal_reason = HORIZON_COMPLETION,
+                      HORIZON_NO_COMPLETION, or DATA_INCOMPLETE -- §14
+                      already fixes the expected horizon per family, so
+                      horizon_end is exactly §18.2a's existing value,
+                      UNCHANGED from before this amendment)
+                 T_invalidation (invalidation_reached_at, §17)
+                                                   for INVALIDATED
+
+required analytical path  = [T_confirm, T_terminal)
+expected 1m bar grid      = T_confirm, T_confirm + 1m, ..., T_terminal - 1m
+                             -- same frozen 1m bar-start / closed-bar rules
+                             already defined above in this section (a bar
+                             with bucket_ts = B is usable only once
+                             observation time >= B + 1m)
+
 analytical_path_complete = TRUE
-    iff EVERY expected 1m bar on the full exact grid
-    [T_confirm, horizon_end) is present and valid.
+    iff EVERY expected 1m bar on [T_confirm, T_terminal) is present and
+    valid.
 
 analytical_path_complete = FALSE
-    iff one or more expected bars on that grid are missing/unusable.
+    iff one or more expected bars on [T_confirm, T_terminal) are
+    missing/unusable.
+
+analytical_path_complete = NULL
+    iff the episode NEVER reached CONFIRMED at all (EARLY_SIGNAL ->
+    INVALIDATED, EARLY_SIGNAL -> EXPIRED via candidate-age limit, §14) --
+    there is no post-confirmation analytical path to evaluate at all in
+    that case, which is a fundamentally different fact from "a path
+    exists but wasn't fully observed."
 ```
 
-This fact is orthogonal to `episode_state`/`terminal_reason` — it answers
-"was the full future price path actually observed," not "did the episode
-complete." The four combinations that matter:
+**Invariant, frozen explicitly: inside the `CONFIRMED` acceptance sample
+(every episode that reached `CONFIRMED` and later reached a terminal
+state, [§26](#26-acceptance-sample-requirements)), `analytical_path_complete`
+is ALWAYS boolean — `TRUE` or `FALSE` — and is NEVER `NULL`.** `NULL` is
+reserved exclusively for episodes that never reached `CONFIRMED` in the
+first place, which are outside the `CONFIRMED` acceptance sample by
+construction ([§26](#26-acceptance-sample-requirements)) and therefore
+never need to be checked for path completeness in an acceptance
+computation.
+
+**For horizon-terminal episodes (`COMPLETED`/`EXPIRED`), nothing changes
+from the round-5 definition** — `T_terminal = horizon_end` exactly as
+already frozen, so the required path remains exactly `[T_confirm,
+horizon_end)`, the `(A)`/`(B)`/`(C)` missing-bar cases above are
+unaffected, and `DATA_INCOMPLETE` continues to mean exactly what it
+already means: one or more required bars before `horizon_end` missing
+and the observed bars not already proving completion.
+
+**For `INVALIDATED` episodes (`CONFIRMED → INVALIDATED` or `WEAKENING →
+INVALIDATED`, [§13.2](#132-allowed-transitions)):** the episode's own
+analytical path ends at `T_invalidation` — bars **after**
+`T_invalidation` are irrelevant to `analytical_path_complete` and MUST
+NOT be required, since the episode was already terminal at that point and
+no further post-invalidation excursion is part of its own observed
+history. `terminal_reason` is **not** touched by this amendment — it
+remains exactly the horizon-terminal-reason vocabulary
+(`HORIZON_COMPLETION`/`HORIZON_NO_COMPLETION`/`DATA_INCOMPLETE`), `null`
+for `INVALIDATED` exactly as already frozen ([§17](#17-outcome--evaluation-model)) —
+this section does **not** invent a `HORIZON_*`-style `terminal_reason`
+for structural invalidation; the `episode_state = INVALIDATED` value
+itself already explains that terminalization, and `analytical_path_complete`
+is orthogonal to it, exactly as it is orthogonal to `terminal_reason` for
+the horizon-terminal cases above.
+
+This fact is orthogonal to `episode_state`/`terminal_reason` in every
+case — it answers "was this episode's own required post-confirmation
+price path actually observed," never "did the episode complete." The
+combinations that matter:
 
 ```text
-COMPLETE path, threshold reached:
+COMPLETE path, threshold reached (horizon-terminal):
     episode_state = COMPLETED, terminal_reason = HORIZON_COMPLETION,
     analytical_path_complete = TRUE.
 INCOMPLETE path, observed bars already prove the threshold (case A):
@@ -5174,17 +5287,31 @@ INCOMPLETE path, threshold not proven (case B):
 COMPLETE path, threshold never reached (case C):
     episode_state = EXPIRED, terminal_reason = HORIZON_NO_COMPLETION,
     analytical_path_complete = TRUE.
+INVALIDATED, own required pre-invalidation path complete:
+    episode_state = INVALIDATED, terminal_reason = null,
+    analytical_path_complete = TRUE.
+INVALIDATED, own required pre-invalidation path incomplete (a required
+bar strictly before T_invalidation is missing):
+    episode_state = INVALIDATED, terminal_reason = null,
+    analytical_path_complete = FALSE.
+Never reached CONFIRMED (EARLY_SIGNAL -> INVALIDATED/EXPIRED):
+    analytical_path_complete = NULL -- outside the CONFIRMED acceptance
+    sample entirely, per §26.
 ```
 
 `terminal_reason = DATA_INCOMPLETE` therefore always implies
 `analytical_path_complete = FALSE` (case B is exactly the "missing AND
 not proven" branch), but the converse does not hold —
 `analytical_path_complete = FALSE` can coexist with
-`terminal_reason = HORIZON_COMPLETION` (case A). Reading `terminal_reason
-!= DATA_INCOMPLETE` as "the path was complete" is therefore **wrong** —
-`analytical_path_complete` is the one fact that answers that question,
-and it MUST be checked directly, never inferred from `terminal_reason`
-alone.
+`terminal_reason = HORIZON_COMPLETION` (case A), and can equally occur on
+an `INVALIDATED` episode whose `terminal_reason` is `null`. Reading
+`terminal_reason != DATA_INCOMPLETE` as "the path was complete" is
+therefore **wrong** in every case — `analytical_path_complete` is the one
+fact that answers that question, and it MUST be checked directly for
+every `CONFIRMED`-then-terminal episode, never inferred from
+`terminal_reason` alone, and never assumed `NULL`/inapplicable merely
+because the episode terminalized via `INVALIDATED` rather than the
+horizon path.
 
 **`DATA_INCOMPLETE` / `analytical_path_complete = FALSE`, exact treatment
 (no longer an open evaluator choice — re-amended, closes a contradiction
@@ -5207,7 +5334,12 @@ with §26.1's "no future evaluator chooses its own population" claim):**
   no-silent-exclude-and-pass promotion safety rule this implies are frozen
   in [§26.1](#261-episode-population-definitions)/[§28.2](#282-promotion-levels)
   below — this is no longer an implementation choice left to a future
-  acceptance-metric definition; it is fixed here and now.
+  acceptance-metric definition; it is fixed here and now. This treatment
+  applies identically whether the episode's incomplete path arose from a
+  horizon-terminal `DATA_INCOMPLETE` expiry or from a structurally
+  `INVALIDATED` episode whose own pre-invalidation path had a data gap —
+  both are `analytical_path_complete = FALSE`, both are excluded from
+  path-dependent metrics by the same rule.
 
 **Worked vectors (including `analytical_path_complete`):**
 
@@ -5242,6 +5374,22 @@ Vector 4 -- missing path, threshold NOT proven by observed bars:
      the missing 10:51-11:59 interval could have contained a favorable
      excursion the system never observed; the system cannot truthfully
      claim the threshold was never reached.
+
+Vector 5 -- CONFIRMED -> INVALIDATED, complete own path:
+  CONFIRMED at 10:00. Structural INVALIDATED at 10:25
+  (T_invalidation=10:25). Required path = [10:00, 10:25) -- bars 10:00
+  through 10:24, all present.
+  => episode_state=INVALIDATED, terminal_reason=null,
+     analytical_path_complete=TRUE. Bars after 10:25 (if any exist) are
+     irrelevant and are never checked -- the episode was already
+     terminal at 10:25.
+
+Vector 6 -- CONFIRMED -> INVALIDATED, incomplete own path:
+  Same episode as Vector 5, but the 10:13 bar is missing.
+  => analytical_path_complete=FALSE -- a required bar strictly inside
+     [T_confirm, T_invalidation) is missing, even though the episode's
+     own terminal boundary (10:25) has long since passed and no
+     "horizon" is even relevant to this episode's terminalization.
 ```
 
 **Stage 8 MUST reuse this exact primitive rather than reimplement it** —
@@ -5627,9 +5775,9 @@ no future evaluator chooses its own population:
 
 | Population name | Definition |
 |---|---|
-| `CONFIRMED` (sample base) | Episodes that reached `CONFIRMED` at least once and later reached a terminal lifecycle state (above). Every episode in this population has a `planned_risk_distance` and an `analytical_MFE_R` ([§18.1](#181-planned-risk-structural-available-at-confirmed)/[§18.2](#182-analytical-r-normalized-metrics-every-confirmed-episode)) — both available at `CONFIRMED` itself, independent of `lateness_status`. Membership does **not** depend on `analytical_path_complete` ([§18.2a.1](#182a1-missing-bar-behavior-and-terminal_reason)) — an episode with `analytical_path_complete = FALSE` (e.g. `terminal_reason = DATA_INCOMPLETE`, or a `COMPLETED` episode whose threshold was proven before a later gap) is still fully counted here. |
-| `ACTIONABLE` | The subset of `CONFIRMED` with `lateness_status == ACTIONABLE` ([§15](#15-entry-feasibility-evaluation)) — has a defined `feasible_entry_price`, and therefore `execution_R` ([§18.3](#183-execution-risk-and-execution-r-normalized-metrics-actionable-only)), which is a purely structural quantity (`\|feasible_entry_price - invalidation_price\|`) requiring no future price-path data. **`ACTIONABLE` membership alone does NOT imply a complete `execution_MFE_R`/`execution_MAE_R`/`execution_terminal_return_R`** (re-amended — tech-lead/red-team finding: an `ACTIONABLE` episode can still have `analytical_path_complete = FALSE`, since `execution_mfe_pct_over_episode_life`/`execution_mae_pct_over_episode_life`/`execution_directional_return_pct` are computed over the same underlying post-confirmation 1m price path as `analytical_MFE_R`, just baselined against `feasible_entry_price` instead of `confirmation_reference_price`). `ACTIONABLE` means **entry feasibility exists**; it does not by itself mean the full future path exists — see `PATH_COMPLETE_ACTIONABLE` below for the population that means both. |
-| `PATH_COMPLETE_ACTIONABLE` (new) | `ACTIONABLE` episodes with `analytical_path_complete == TRUE` ([§18.2a.1](#182a1-missing-bar-behavior-and-terminal_reason)) — i.e. entry feasibility exists **AND** the full future post-confirmation price path was actually observed. This is the population every path-dependent execution-scoped R-normalized metric below actually requires; `ACTIONABLE` and `PATH_COMPLETE_ACTIONABLE` are deliberately **not** conflated. |
+| `CONFIRMED` (sample base) | Episodes that reached `CONFIRMED` at least once and later reached a terminal lifecycle state (above — `COMPLETED`, `EXPIRED`, or `INVALIDATED`). Every episode in this population has a `planned_risk_distance`, which genuinely is fixed and available at `CONFIRMED` itself ([§18.1](#181-planned-risk-structural-available-at-confirmed)); and a **defined** `analytical_MFE_R` ([§18.2](#182-analytical-r-normalized-metrics-every-confirmed-episode)) — but, corrected here (re-amended — tech-lead/red-team finding: the prior wording wrongly claimed `analytical_MFE_R` is "available at `CONFIRMED` itself" the same way `planned_risk_distance` is), `analytical_MFE_R`'s *value* only becomes knowable progressively as closed post-confirmation 1m bars arrive (§18.2's own already-correct statement — a closed bar is required before any excursion it would reveal is known) and is only **finalized** at the episode's own terminal boundary (`T_terminal`, [§12.8](#128-terminal-episode-cooldown-exact-clock)/[§18.2a.1](#182a1-missing-bar-behavior-and-terminal_reason)) — never at `CONFIRMED` itself. Membership in `CONFIRMED` does **not** depend on `analytical_path_complete` — an episode with `analytical_path_complete = FALSE` (e.g. `terminal_reason = DATA_INCOMPLETE`, a `COMPLETED` episode whose threshold was proven before a later gap, or an `INVALIDATED` episode with a gap in its own pre-invalidation path) is still fully counted here. Inside this population, `analytical_path_complete` is always boolean (`TRUE`/`FALSE`) — never `NULL` ([§18.2a.1](#182a1-missing-bar-behavior-and-terminal_reason)); `NULL` occurs only for episodes that never reached `CONFIRMED`, which are outside this population by definition. |
+| `ACTIONABLE` | The subset of `CONFIRMED` with `lateness_status == ACTIONABLE` ([§15](#15-entry-feasibility-evaluation)) — has a defined `feasible_entry_price`, and therefore `execution_R` ([§18.3](#183-execution-risk-and-execution-r-normalized-metrics-actionable-only)), which is a purely structural quantity (`\|feasible_entry_price - invalidation_price\|`) requiring no future price-path data. **`ACTIONABLE` membership alone does NOT imply a complete `execution_MFE_R`/`execution_MAE_R`/`execution_terminal_return_R`** (re-amended — tech-lead/red-team finding: an `ACTIONABLE` episode can still have `analytical_path_complete = FALSE`, since `execution_mfe_pct_over_episode_life`/`execution_mae_pct_over_episode_life`/`execution_directional_return_pct` are computed over the same underlying post-confirmation 1m price path as `analytical_MFE_R`, just baselined against `feasible_entry_price` instead of `confirmation_reference_price`, and — whether the episode is horizon-terminal or `INVALIDATED` — that price path is only fully observed once `analytical_path_complete = TRUE`). `ACTIONABLE` means **entry feasibility exists**; it does not by itself mean the episode's own required future path was fully observed — see `PATH_COMPLETE_ACTIONABLE` below for the population that means both. |
+| `PATH_COMPLETE_ACTIONABLE` (new) | `ACTIONABLE` episodes with `analytical_path_complete == TRUE` ([§18.2a.1](#182a1-missing-bar-behavior-and-terminal_reason)) — i.e. entry feasibility exists **AND** the episode's own required post-confirmation price path (through `T_terminal` — `horizon_end` for `COMPLETED`/`EXPIRED`, or `T_invalidation` for `INVALIDATED`) was actually, fully observed. This correctly includes `ACTIONABLE` episodes that terminalized via `COMPLETED`, `EXPIRED`, **or** structural `INVALIDATED` alike, whenever each episode's own required path is complete — `INVALIDATED` is not itself grounds for exclusion; only an actually-incomplete own path is. This is the population every path-dependent execution-scoped R-normalized metric below actually requires; `ACTIONABLE` and `PATH_COMPLETE_ACTIONABLE` are deliberately **not** conflated. |
 | `LATE` / `INVALIDATED_BEFORE_ENTRY` | The remaining `CONFIRMED` episodes ([§15](#15-entry-feasibility-evaluation)) — no `feasible_entry_price`, so no execution-scoped R-normalized metrics; still fully counted in `CONFIRMED`, in the percentage metrics ([§17](#17-outcome--evaluation-model), computed from `confirmation_reference_price`), and in `analytical_MFE_R` ([§18.2](#182-analytical-r-normalized-metrics-every-confirmed-episode)) — which is why they still reach a deterministic lifecycle terminal state ([§13.2](#132-allowed-transitions)). A data gap after confirmation MUST NOT remove a `LATE`/`INVALIDATED_BEFORE_ENTRY` episode from the feasibility denominator — that denominator does not require future-path completeness at all (below). |
 
 | Metric | Population (exact) |
@@ -6747,6 +6895,43 @@ VECTOR C -- fully path-complete family sample (baseline case):
      qualifier -- §28.2b's rule is satisfied vacuously (zero incomplete
      paths), and the family's historical/replay gate (§28.2(a)) proceeds
      to evaluate priorities 1-5 exactly as already frozen.
+
+VECTOR D -- survivorship-bias check: INVALIDATED outcomes MUST NOT
+disappear from path-dependent metrics (re-amended, closes the round-5
+gap where analytical_path_complete was unconditionally NULL for
+INVALIDATED, §18.2a.1):
+  TREND_PULLBACK's historical/replay sample: 70 ACTIONABLE episodes --
+      50 reach a horizon terminal (COMPLETED/EXPIRED) with a complete
+          own path (analytical_path_complete = TRUE);
+      20 reach structural INVALIDATED, each with a complete own
+          pre-invalidation path [T_confirm, T_invalidation)
+          (analytical_path_complete = TRUE for all 20).
+  => ALL 70 are members of PATH_COMPLETE_ACTIONABLE -- the 20 INVALIDATED
+     episodes are NOT excluded merely because they are INVALIDATED.
+     Median/90th-percentile execution_MAE_R, median execution_MFE_R, the
+     >=0.5 proportion, mean execution_cost_adjusted_return_R, and
+     execution_terminal_return_R directional accuracy (§27 priorities
+     2-5) MUST be computed over all 70, including the 20 INVALIDATED
+     outcomes' own execution_MAE_R/execution_MFE_R/execution_terminal_return_R
+     -- an adverse INVALIDATED outcome is exactly the kind of result a
+     path-dependent risk metric like execution_MAE_R exists to capture;
+     computing these metrics from only the 50 horizon-terminal episodes
+     would be a survivorship-bias exclusion, not conforming V2-v0
+     behavior.
+
+  Now suppose one of the 20 INVALIDATED episodes turns out to have one
+  missing required 1m bar strictly inside its own
+  [T_confirm, T_invalidation) interval (bars after its own
+  T_invalidation remain irrelevant and are never checked, §18.2a.1):
+  => that one episode's analytical_path_complete becomes FALSE.
+     Per §28.2b: the family's historical/replay path-dependent
+     USER_FACING gate becomes NOT EVALUABLE / INCOMPLETE DATA for this
+     sample, in full -- exactly as it would if any horizon-terminal
+     episode had an incomplete path. The evaluator MUST NOT simply drop
+     that one INVALIDATED episode and compute priorities 2-5 from the
+     remaining 69 -- that is precisely the silent exclude-and-pass
+     §28.2b forbids, regardless of whether the excluded episode's own
+     terminal state was COMPLETED, EXPIRED, or INVALIDATED.
 ```
 
 ---

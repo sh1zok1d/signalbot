@@ -1288,6 +1288,29 @@ semantics remain owned by `#45` (below, updated accordingly), and the
 later Stage 6/Stage 8 evaluator implementation, not a new PR of their
 own.
 
+**`#43` amendment round 5.1 (micro-fix, closes a survivorship-bias gap in
+round 5's own definition).** Round 5's `analytical_path_complete`
+scoped the required observed path to `[T_confirm, horizon_end)`
+unconditionally, which left it `NULL` for `CONFIRMED`/`WEAKENING →
+INVALIDATED` episodes regardless of whether their own, shorter,
+pre-invalidation path was actually complete — silently excluding every
+`ACTIONABLE`+`INVALIDATED` outcome from `PATH_COMPLETE_ACTIONABLE` and
+the path-dependent acceptance metrics, a survivorship bias since
+`INVALIDATED` is frequently exactly the adverse outcome those metrics
+exist to capture. `analytical_path_complete` is now generalized to every
+episode that reached `CONFIRMED` and later reached any terminal state
+(`COMPLETED`/`EXPIRED`/`INVALIDATED`), scoped to that episode's own
+terminal boundary (`horizon_end` for the horizon path, `T_invalidation`
+for `INVALIDATED`) — always boolean inside the `CONFIRMED` acceptance
+sample, `NULL` only for episodes that never reached `CONFIRMED` at all.
+Also corrected: `§26.1`'s wording wrongly claimed `analytical_MFE_R` is
+"available at `CONFIRMED` itself" the same way `planned_risk_distance`
+is (it is only progressively knowable and finalized at `T_terminal`);
+and `§3.1`'s drain-finiteness proof relied on a false "non-increasing
+sequence reaches zero" claim, replaced with a valid finite-set/
+finite-deadline argument. No `DRAIN` behavior, no horizon-terminal
+semantics, and no other already-accepted decision changed.
+
 **Revised pre-Stage-6 sequence (a reviewability plan, not a new
 correctness contract — subject to change if audit findings evolve):**
 
