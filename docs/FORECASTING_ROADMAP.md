@@ -1229,6 +1229,65 @@ DRAIN-BEFORE-ACTIVATE policy (`§3.1`); and `§17`'s outcome-record
 global rollup. `v2.enabled` stays `false`; `v2.rules_version` remains
 `v2-rules-v0.1.0` for `#43` itself.
 
+**`#43` amendment round 5 (final narrow contract closure).** A tech-lead
+review plus an independent red-team pass found three remaining seams in
+round 4's own text and closed exactly those, without reopening any
+already-accepted decision:
+
+- **Finite `DRAIN-BEFORE-ACTIVATE` semantics (`§3.1`).** The prior text
+  did not clearly forbid the OLD tuple from creating new episodes once a
+  version switch request started, which could let OLD's active
+  population replenish itself and make drain never actually finish; it
+  also wrongly claimed a `LIVE` stream always has exactly one
+  active-for-new-creation tuple, which is false during an active drain.
+  Now frozen exactly: from the switch request onward, **zero** tuples are
+  active for new-episode creation until drain completes (OLD may only
+  keep evaluating/cooling down its pre-existing episodes, never create
+  new ones); drain completion and NEW's activation are resolved at
+  different decision boundaries (`drain_complete_at` vs. `T_activate =
+  drain_complete_at + 5m`) to avoid a same-boundary provenance ambiguity;
+  and a normal process restart must not reopen OLD creation, activate
+  NEW early, or reset drain progress. The physical switch-state
+  persistence mechanism remains `#45` implementation work (below); the
+  observable correctness invariant is frozen now.
+- **Corrected 1m post-confirmation no-lookahead wording (`§18.2a`).** The
+  prior text wrongly claimed the `bucket_ts = T_confirm` bar is "already
+  closed data as of `T_confirm`" — it is not; like every other bucket in
+  this document, its `bucket_ts` is the bar's START, so
+  `[T_confirm, T_confirm + 1m)` has only just begun at `T_confirm` and is
+  first readable at `T_confirm + 1m`. No frozen value changed (canonical
+  exchange, granularity, the `[T_confirm, horizon_end)` interval, MFE/MAE
+  semantics, terminal-return bar, or completion threshold) — only the
+  temporal explanation, now stated exactly, with a worked bar-timing
+  vector.
+- **Explicit `analytical_path_complete` fact and deterministic
+  `DATA_INCOMPLETE` acceptance/promotion treatment (`§18.2a.1`, `§26.1`,
+  `§27`, `§28.2b`).** `terminal_reason` alone does not fully encode path
+  completeness — a `COMPLETED` episode can still have an incomplete
+  future price path if the completion threshold was proven before a
+  later data gap. A new, `terminal_reason`-independent
+  `analytical_path_complete` fact is now frozen, together with a new
+  `PATH_COMPLETE_ACTIONABLE` population (`ACTIONABLE` episodes with a
+  complete path) that every path-dependent acceptance metric (§27
+  priorities 2–5) actually requires — `ACTIONABLE` alone is not
+  sufficient population membership for those. A new, deterministic
+  promotion-safety rule (`§28.2b`) freezes that **any**
+  `analytical_path_complete = FALSE` episode in a family's evaluated
+  historical/replay or live-shadow `CONFIRMED` sample makes that sample's
+  path-dependent metrics `NOT EVALUABLE` for `USER_FACING_ELIGIBLE` — a
+  family MUST NOT silently exclude incomplete-path episodes and pass on
+  the remaining cleaner subset. This is contract-level (what the future
+  evaluator must do), not new executable code; the acceptance-metric
+  evaluator itself remains later Stage 6/Stage 8 implementation work.
+
+`v2.enabled` stays `false`; `v2.rules_version` remains `v2-rules-v0.1.0`
+for `#43` itself — this round changes no runtime threshold. This
+amendment does not create a new hardening PR — the finite `DRAIN`
+semantics remain owned by `#45` (below, updated accordingly), and the
+`analytical_path_complete`/acceptance semantics are contract facts for
+later Stage 6/Stage 8 evaluator implementation, not a new PR of their
+own.
+
 **Revised pre-Stage-6 sequence (a reviewability plan, not a new
 correctness contract — subject to change if audit findings evolve):**
 
@@ -1256,10 +1315,15 @@ correctness contract — subject to change if audit findings evolve):**
   dimension, distinct from Stage 2's own feature `code_version`); `§3.3`'s
   feature-code/calculation-version identity isolation (an unrelated repo
   change MUST NOT fork Stage 2's `calculation_version`) and version
-  activation readiness (fail-closed, no silent fallback); an as-of/
-  historical model (or equivalent) for `exchange_instruments` so a
-  historical decision's `tick_size` is exactly reproducible under replay
-  (`§12.5a`); `§2.1b`'s raw-kline-backfill no-downgrade fix (CONFIRMED
+  activation readiness (fail-closed, no silent fallback); `§3.1`'s finite
+  `DRAIN-BEFORE-ACTIVATE` version-switch state machine (round-5 closure —
+  zero tuples active for new-episode creation throughout an active drain,
+  `drain_complete_at`/`T_activate` resolved at separate decision
+  boundaries, and drain state/progress durably surviving a normal process
+  restart); an as-of/historical model (or equivalent) for
+  `exchange_instruments` so a historical decision's `tick_size` is exactly
+  reproducible under replay (`§12.5a`); `§2.1b`'s raw-kline-backfill
+  no-downgrade fix (CONFIRMED
   against live-traced `insert_klines`/`backfill.py` code — an
   unconditional `ON CONFLICT` overwrite currently lets a lower-fidelity
   backfill NULL out known live `taker_buy_volume`/`taker_sell_volume`/

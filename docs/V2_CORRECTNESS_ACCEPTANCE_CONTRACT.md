@@ -683,14 +683,189 @@ active same-slot cooldowns (§12.8)
 
 **Do NOT** reinterpret an old episode under a new rules/calculation/
 decision-code tuple. **Do NOT** silently mix old-tuple active state with
-new-tuple new creation within the same logical `LIVE` stream — at any
-given moment, a `LIVE` stream has exactly one **active-for-new-creation**
-tuple, even though old-tuple episodes may still be legitimately draining
-in the background. This is deliberately the simplest correct V2-v0
-policy — a future explicit multi-version concurrent-dispatch design (e.g.
-running two tuples' new-episode creation simultaneously in one stream)
-would be a genuinely new architecture requiring its own versioned
-contract change, not an extension of this one.
+new-tuple new creation within the same logical `LIVE` stream.
+
+**Finite, exact V2-v0 switch state machine (re-amended — tech-lead/
+red-team finding: the prior wording did not clearly forbid the OLD tuple
+from continuing to create new episodes once a switch request started,
+which could let OLD's active population keep replenishing itself and make
+drain never actually finish; it also wrongly stated a `LIVE` stream
+"has exactly one active-for-new-creation tuple" at every moment, which is
+false during an active drain).** Assume an operator/runtime requests a
+transition from `OLD = (rules_old, calculation_old, decision_code_old)`
+to `NEW = (rules_new, calculation_new, decision_code_new)`, and the
+request becomes effective at one legal 5m decision boundary `T_request`:
+
+```text
+At T_request:
+    OLD enters DRAINING for new-episode creation.
+    NEW is PENDING.
+
+From T_request onward, while OLD is DRAINING:
+    OLD:
+        MAY continue lifecycle evaluation of episodes that already
+        existed before T_request (confirmation, WEAKENING/recovery,
+        invalidation, horizon resolution -- all still under OLD's own
+        frozen semantics).
+        MAY continue processing cooldowns (§12.8) belonging to those
+        old episodes.
+        MUST NOT create ANY new episode -- not even one that would,
+        under OLD's own rules, otherwise have qualified. There is no
+        "grandfathering" of new OLD-tuple episodes once DRAINING begins.
+    NEW:
+        MUST NOT create any new episode while OLD still has:
+            any non-terminal episode
+            OR
+            any active cooldown.
+
+Therefore, for the entire DRAINING interval:
+    active_for_new_creation_tuple_count = 0
+
+-- not 1. Zero tuples are creating new episodes during an active drain;
+this is the mechanism that guarantees OLD's population can only shrink
+(existing episodes terminalizing, cooldowns elapsing) and never
+replenish, so drain is a strictly finite process that always reaches
+zero non-terminal episodes and zero active cooldowns in bounded time.
+```
+
+**Exact drain-completion / activation boundary (avoids a same-`T`
+provenance ambiguity).** At each legal 5m decision boundary while OLD is
+DRAINING:
+
+```text
+1. Process OLD's lifecycle/cooldown state at this boundary under OLD's
+   own provenance tuple, exactly as if no switch were pending.
+2. Determine the post-boundary OLD drain state.
+3. If, after processing boundary T_drain:
+       old non-terminal episode count == 0
+       AND
+       old active cooldown count == 0
+   then:
+       drain_complete_at = T_drain
+       NEW does NOT create an episode at T_drain itself -- T_drain's
+       entire computation already belongs to OLD's provenance.
+       NEW becomes active-for-new-creation beginning at the NEXT legal
+       5m decision boundary:
+           T_activate = T_drain + 5m
+```
+
+This deliberately rules out one logical decision boundary being partially
+computed under OLD provenance and partially under NEW provenance — the
+boundary that observes drain completion is still entirely an OLD-tuple
+boundary (it only ever evaluates OLD state); NEW's first possible
+new-creation boundary is strictly later. If OLD is already fully drained
+(zero non-terminal episodes, zero active cooldowns) at `T_request` itself,
+treat `T_request` as `drain_complete_at`, and NEW becomes active beginning
+at `T_request + 5m` — never at `T_request` itself, for the same reason.
+
+**Restart during drain.** A normal process/service restart **MUST NOT**:
+
+```text
+cancel the pending NEW tuple;
+re-enable OLD new-episode creation;
+activate NEW early;
+reset drain progress.
+```
+
+The logical `LIVE` stream **MUST** reconstruct or durably retain enough
+switch state (at minimum: that OLD is `DRAINING`, that NEW is `PENDING`,
+and OLD's current non-terminal-episode/active-cooldown counts) to resume
+the identical `OLD = DRAINING` / `NEW = PENDING` / drain-progress
+semantics after restart, exactly as if the process had never stopped. The
+physical mechanism (a persisted switch-state row, a recomputed-from-episode-
+state derivation, or an equivalent durable representation) remains #45/#46
+implementation work — this document freezes only the observable
+correctness invariant that a restart cannot silently reopen OLD
+new-episode creation or silently fast-forward NEW's activation.
+
+**Reconciled invariant.** The correct statement, replacing the prior
+"exactly one active-for-new-creation tuple at any moment" claim:
+
+```text
+Outside a version transition:
+    exactly one tuple may be active for new creation.
+During DRAINING:
+    zero tuples are active for new creation.
+Never, under any circumstance:
+    more than one tuple active for new creation.
+
+i.e. active_for_new_creation_tuple_count <= 1, and it is exactly 0
+throughout DRAINING -- not "OLD, until NEW takes over," and never both.
+```
+
+This is deliberately the simplest correct V2-v0 policy — a future
+explicit multi-version concurrent-dispatch design (e.g. running two
+tuples' new-episode creation simultaneously in one stream) would be a
+genuinely new architecture requiring its own versioned contract change,
+not an extension of this one.
+
+**Worked vectors:**
+
+```text
+A -- old episode remains active well past the request:
+  T_request = 09:00 (rules_v1 -> rules_v2 requested).
+  OLD has one non-terminal TREND_PULLBACK episode, still CONFIRMED at
+  09:00, that does not reach a terminal state until 09:20.
+  From 09:00 through 09:20: OLD is DRAINING (may keep evaluating that
+  episode's lifecycle; MUST NOT create any new episode under rules_v1).
+  NEW (rules_v2) MUST NOT create any episode in this window either --
+  active_for_new_creation_tuple_count = 0 throughout.
+  At 09:20 the episode reaches EXPIRED. Its terminal cooldown (§12.8,
+  1x5m for EXPIRED) elapses at 09:25.
+  At the 09:25 boundary: old non-terminal count == 0 AND old active
+  cooldown count == 0 -> drain_complete_at = 09:25.
+  NEW does NOT create at 09:25 itself. T_activate = 09:25 + 5m = 09:30.
+  From 09:30 onward, rules_v2 is active for new-episode creation.
+
+B -- old episode terminalizes, cooldown ends later, no replenishment:
+  Same as A, but suppose at 09:05 (while DRAINING) OLD's detector would,
+  under rules_v1, have otherwise produced a fresh qualifying
+  COMPRESSION_BREAKOUT EARLY_SIGNAL for an unrelated slot.
+  Per the frozen rule above: OLD MUST NOT create it -- DRAINING forbids
+  ANY new OLD-tuple episode, regardless of slot. No new OLD episode
+  exists to extend the drain. OLD's only remaining non-terminal episode
+  (the TREND_PULLBACK from vector A) still terminalizes at 09:20 and its
+  cooldown still elapses at 09:25, exactly as in A -- drain_complete_at
+  is unaffected by the would-have-qualified candidate that was correctly
+  refused.
+
+C -- no old active/cooldown exists at request time:
+  T_request = 14:00. OLD has zero non-terminal episodes and zero active
+  cooldowns already, at 14:00.
+  drain_complete_at = T_request = 14:00 (already-drained case).
+  T_activate = 14:00 + 5m = 14:05 -- NEW does not activate at 14:00
+  itself, for the same same-boundary-provenance reason as the general
+  case, even though there was nothing to actually wait for.
+
+D -- process restart while OLD is draining:
+  At 09:10 (mid-drain, per vector A: OLD still has its one non-terminal
+  episode, drain not yet complete), the LIVE process restarts.
+  On restart, the stream reconstructs: OLD = DRAINING, NEW = PENDING,
+  OLD's non-terminal-episode/cooldown state exactly as it stood before
+  the restart (one non-terminal episode, still active).
+  The restarted process MUST NOT: treat the restart as cancelling the
+  pending rules_v2 switch; resume creating new episodes under rules_v1;
+  or activate rules_v2 early because "the process is fresh."
+  Drain continues exactly as in vector A -- the episode still
+  terminalizes at 09:20, cooldown still elapses at 09:25,
+  drain_complete_at = 09:25, T_activate = 09:30, unaffected by the
+  restart.
+
+E -- proof OLD cannot make drain infinite by replenishing itself:
+  By construction (the frozen rule above), OLD MUST NOT create any new
+  episode at any boundary from T_request onward, unconditionally --
+  not "unless it's a strong signal," not "unless the slot is empty."
+  OLD's non-terminal-episode count can therefore only ever decrease
+  (via terminal transitions, §13) or stay the same between consecutive
+  DRAINING boundaries -- it can never increase. A strictly
+  non-increasing, non-negative integer sequence bounded below by 0
+  reaches 0 in finite time (bounded by the number of episodes active at
+  T_request, each bounded by its own family's maximum candidate-age /
+  cooldown clock, §12.8/§14). The same argument applies to active
+  cooldown count once episodes stop terminalizing. Drain is therefore
+  guaranteed finite by construction, not merely expected to finish in
+  practice.
+```
 
 ### 3.2 Decision provenance tuple, frozen normatively
 
@@ -4628,6 +4803,18 @@ episode outcome record (logical shape, not a schema):
                                   # incomplete-observation expiry; only meaningful
                                   # for COMPLETED/EXPIRED via the horizon path
                                   # (null for INVALIDATED/EARLY_SIGNAL-EXPIRED)
+  analytical_path_complete       # bool, per §18.2a.1 -- TRUE iff EVERY expected
+                                  # 1m bar on the full exact grid [T_confirm,
+                                  # horizon_end) is present and valid; FALSE if
+                                  # any is missing/unusable. INDEPENDENT of
+                                  # terminal_reason/episode_state -- a COMPLETED
+                                  # episode CAN have analytical_path_complete =
+                                  # FALSE (favorable-excursion threshold proven
+                                  # by observed bars before a later gap, §18.2a.1
+                                  # case A). Only meaningful for COMPLETED/EXPIRED
+                                  # via the horizon path (null for INVALIDATED/
+                                  # EARLY_SIGNAL-EXPIRED, same population as
+                                  # terminal_reason above)
   directional_return_pct         # §17 population: ALL CONFIRMED episodes
   mfe_pct / mae_pct              # §17 population: ALL CONFIRMED episodes
   planned_risk_distance          # §18.1 population: ALL CONFIRMED episodes
@@ -4786,10 +4973,12 @@ analytical_MFE_R = mfe_pct_over_episode_life * confirmation_reference_price / 10
 (`mfe_pct_over_episode_life` here is the exact same all-`CONFIRMED`
 population value already defined in [§17](#17-outcome--evaluation-model),
 computed against `confirmation_reference_price` — **never** against
-`feasible_entry_price`.) `analytical_MFE_R` becomes available the instant a
-favorable excursion is observed after `CONFIRMED`, independent of whether
-the episode ever reaches `ACTIONABLE` status — lifecycle state MUST NOT
-depend on whether a hypothetical human could have entered 90 seconds later.
+`feasible_entry_price`.) `analytical_MFE_R` progress becomes knowable as
+soon as a **closed** expected 1m bar proves it (never from an in-progress,
+not-yet-closed 1m bar — see §18.2a's exact bar-time semantics below),
+independent of whether the episode ever reaches `ACTIONABLE` status —
+lifecycle state MUST NOT depend on whether a hypothetical human could have
+entered 90 seconds later.
 
 ### 18.2a Analytical excursion source data
 
@@ -4823,12 +5012,70 @@ expected 1m bar grid (every whole-minute bar timestamp expected present):
     T_confirm, T_confirm + 1m, T_confirm + 2m, ..., horizon_end - 1m
 ```
 
-The first eligible 1m bar starts **exactly at** `T_confirm` (not
-`T_confirm + 1m` — the confirming decision boundary's own minute is
-already closed data as of `T_confirm`, so it is eligible). **No partially
-formed 1m bar may be used** — only bars whose own close timestamp has
-already passed are ever read, per this document's general no-lookahead
-discipline ([§2](#2-no-lookahead-semantics-per-input-family)).
+**Exact bar-time semantics (re-amended — tech-lead/red-team finding: the
+prior text wrongly claimed the `bucket_ts = T_confirm` bar is "already
+closed data as of `T_confirm`"; it is not — Signalbot's raw-kline bucket
+timestamp is the bar's START, not its end, exactly as every other bucket
+convention in this document already uses,
+[§1.3](#13-layer-2-selected_buckettimeframe-t-pure)).** For an expected
+bar with `bucket_ts = B`, its interval is `[B, B + 1m)`, and — per this
+document's general no-lookahead discipline
+([§2](#2-no-lookahead-semantics-per-input-family)) — it becomes a usable,
+closed observation only once:
+
+```text
+current logical observation/evaluation time >= B + 1m
+```
+
+**No partially formed 1m bar may be used**, without exception. Applied to
+the expected grid above:
+
+```text
+At T_confirm itself:
+    ZERO post-confirmation 1m bars from the evaluation interval are yet
+    closed -- the bar with bucket_ts = T_confirm represents
+    [T_confirm, T_confirm + 1m), which has only just started at
+    T_confirm and is still future, in-progress data at that instant.
+
+At T_confirm + 1m:
+    the bar [T_confirm, T_confirm + 1m) is now closed and may first be
+    consumed (it may now contribute its HIGH/LOW to MFE/MAE).
+
+At horizon_end:
+    every expected bar in [T_confirm, horizon_end) SHOULD by now be
+    closed and available -- the final expected bar, bucket_ts =
+    horizon_end - 1m, represents [horizon_end - 1m, horizon_end), which
+    closes exactly at horizon_end -- unless there is a genuine data gap
+    (§18.2a.1 below).
+```
+
+The `bucket_ts = T_confirm` bar being eligible for the interval (i.e.
+belonging to the expected grid at all) is a separate fact from that same
+bar being *closed* at `T_confirm` — it belongs to the grid because
+`T_confirm` is the interval's own lower (inclusive) bound, but like every
+other bar on the grid it is only *readable* once its own close has
+passed, exactly `T_confirm + 1m` seconds later.
+
+**Concrete bar-timing vector:**
+
+```text
+T_confirm = 10:00, H = 2h -> horizon_end = 12:00.
+
+Expected first bar:
+    bucket_ts = 10:00, interval = [10:00, 10:01).
+    At 10:00: NOT closed -- cannot be read.
+    At 10:01: closed -- may now contribute its HIGH/LOW to MFE/MAE.
+
+Expected final bar:
+    bucket_ts = 11:59, interval = [11:59, 12:00).
+    At horizon_end = 12:00: now closed -- provides the terminal close,
+    if present.
+```
+
+This aligns exactly with the rest of the repository's bucket-start
+convention ([§1.3](#13-layer-2-selected_buckettimeframe-t-pure)): a
+bucket's `bucket_ts` is always its START, never its end, and a bucket is
+never readable before its own close has passed.
 
 **MFE / MAE:** use 1-minute `HIGH`/`LOW` extrema across the evaluation
 interval, direction-aware exactly like V1's existing outcome sign
@@ -4895,53 +5142,106 @@ alongside the state, not a third state, and not a fourth
 unaffected — `lateness_status` and `terminal_reason` are independent
 facts on the same outcome record).
 
-**`DATA_INCOMPLETE` expiry, exact treatment:**
+**`analytical_path_complete`, an explicit path-completeness fact,
+independent of `terminal_reason` (new — tech-lead/red-team finding:
+`terminal_reason` alone does not fully encode path completeness, because
+case (A) above shows a `COMPLETED`/`HORIZON_COMPLETION` episode CAN still
+have a missing later interval).** Frozen exactly:
+
+```text
+analytical_path_complete = TRUE
+    iff EVERY expected 1m bar on the full exact grid
+    [T_confirm, horizon_end) is present and valid.
+
+analytical_path_complete = FALSE
+    iff one or more expected bars on that grid are missing/unusable.
+```
+
+This fact is orthogonal to `episode_state`/`terminal_reason` — it answers
+"was the full future price path actually observed," not "did the episode
+complete." The four combinations that matter:
+
+```text
+COMPLETE path, threshold reached:
+    episode_state = COMPLETED, terminal_reason = HORIZON_COMPLETION,
+    analytical_path_complete = TRUE.
+INCOMPLETE path, observed bars already prove the threshold (case A):
+    episode_state = COMPLETED, terminal_reason = HORIZON_COMPLETION,
+    analytical_path_complete = FALSE.
+INCOMPLETE path, threshold not proven (case B):
+    episode_state = EXPIRED, terminal_reason = DATA_INCOMPLETE,
+    analytical_path_complete = FALSE.
+COMPLETE path, threshold never reached (case C):
+    episode_state = EXPIRED, terminal_reason = HORIZON_NO_COMPLETION,
+    analytical_path_complete = TRUE.
+```
+
+`terminal_reason = DATA_INCOMPLETE` therefore always implies
+`analytical_path_complete = FALSE` (case B is exactly the "missing AND
+not proven" branch), but the converse does not hold —
+`analytical_path_complete = FALSE` can coexist with
+`terminal_reason = HORIZON_COMPLETION` (case A). Reading `terminal_reason
+!= DATA_INCOMPLETE` as "the path was complete" is therefore **wrong** —
+`analytical_path_complete` is the one fact that answers that question,
+and it MUST be checked directly, never inferred from `terminal_reason`
+alone.
+
+**`DATA_INCOMPLETE` / `analytical_path_complete = FALSE`, exact treatment
+(no longer an open evaluator choice — re-amended, closes a contradiction
+with §26.1's "no future evaluator chooses its own population" claim):**
 
 - **MUST NOT** be counted as evidence that the setup failed to reach
   `MIN_MFE_R_FOR_COMPLETION` — it proves nothing about the missing
   interval, favorable or not.
 - **MUST** be visible in data-quality/evaluation accounting (a distinct,
   queryable `terminal_reason` value, never silently merged into ordinary
-  `HORIZON_NO_COMPLETION` expiry).
+  `HORIZON_NO_COMPLETION` expiry; likewise `analytical_path_complete`
+  itself MUST be a distinct, queryable fact, not merged into
+  `terminal_reason`).
 - Remains part of the historical `CONFIRMED` episode population (still
   counted in `CONFIRMED`, per [§26.1](#261-episode-population-definitions)'s
-  population definitions) but is **excluded** from performance metrics
-  whose truth requires a complete excursion path (e.g. a
-  completion-rate metric would need to decide whether to treat
-  `DATA_INCOMPLETE` episodes as excluded-and-renormalized or as a
-  separately-reported data-quality statistic — that choice belongs to the
-  later acceptance-metric definitions, [§26](#26-acceptance-sample-requirements)/
-  [§27](#27-acceptance-metric-hierarchy), not to this section).
+  population definitions) but is **excluded by frozen rule** — not by a
+  later evaluator's discretionary choice — from every acceptance/promotion
+  metric whose truth requires a complete excursion path. The exact
+  population split (`PATH_COMPLETE_ACTIONABLE`) and the deterministic
+  no-silent-exclude-and-pass promotion safety rule this implies are frozen
+  in [§26.1](#261-episode-population-definitions)/[§28.2](#282-promotion-levels)
+  below — this is no longer an implementation choice left to a future
+  acceptance-metric definition; it is fixed here and now.
 
-**Worked vectors:**
+**Worked vectors (including `analytical_path_complete`):**
 
 ```text
 Vector 1 -- complete path, threshold reached:
   T_confirm=10:00, H=2h -> evaluation interval [10:00, 12:00).
   Full 1m grid present (120 bars). analytical_MFE_R reaches 0.62 at 10:47.
-  => at horizon_end=12:00: COMPLETED, terminal_reason=HORIZON_COMPLETION.
+  => at horizon_end=12:00: COMPLETED, terminal_reason=HORIZON_COMPLETION,
+     analytical_path_complete=TRUE.
 
 Vector 2 -- complete path, threshold not reached:
   Same interval, full 1m grid present. Peak analytical_MFE_R over the
   whole interval = 0.31 (< MIN_MFE_R_FOR_COMPLETION=0.5).
-  => at horizon_end=12:00: EXPIRED, terminal_reason=HORIZON_NO_COMPLETION.
+  => at horizon_end=12:00: EXPIRED, terminal_reason=HORIZON_NO_COMPLETION,
+     analytical_path_complete=TRUE.
 
 Vector 3 -- missing path, threshold ALREADY proven by observed bars:
   Bars 10:00-10:50 present; analytical_MFE_R computed from THOSE bars
   alone already reaches 0.71 at 10:33. Bars 10:51-11:59 are missing
   (data gap).
-  => at horizon_end=12:00: COMPLETED, terminal_reason=HORIZON_COMPLETION
-     -- the missing later bars cannot retroactively un-prove a threshold
-     crossing that already-observed data established.
+  => at horizon_end=12:00: COMPLETED, terminal_reason=HORIZON_COMPLETION,
+     analytical_path_complete=FALSE -- the missing later bars cannot
+     retroactively un-prove a threshold crossing that already-observed
+     data established, but the path itself is still incomplete: this
+     episode proves COMPLETED != proof of a complete analytical path.
 
 Vector 4 -- missing path, threshold NOT proven by observed bars:
   Bars 10:00-10:50 present; peak analytical_MFE_R from those bars = 0.22.
   Bars 10:51-11:59 are missing.
-  => at horizon_end=12:00: EXPIRED, terminal_reason=DATA_INCOMPLETE
-     -- NOT HORIZON_NO_COMPLETION, because the missing 10:51-11:59
-     interval could have contained a favorable excursion the system never
-     observed; the system cannot truthfully claim the threshold was never
-     reached.
+  => at horizon_end=12:00: EXPIRED, terminal_reason=DATA_INCOMPLETE,
+     analytical_path_complete=FALSE -- NOT HORIZON_NO_COMPLETION, because
+     the missing 10:51-11:59 interval could have contained a favorable
+     excursion the system never observed; the system cannot truthfully
+     claim the threshold was never reached.
 ```
 
 **Stage 8 MUST reuse this exact primitive rather than reimplement it** —
@@ -5327,17 +5627,31 @@ no future evaluator chooses its own population:
 
 | Population name | Definition |
 |---|---|
-| `CONFIRMED` (sample base) | Episodes that reached `CONFIRMED` at least once and later reached a terminal lifecycle state (above). Every episode in this population has a `planned_risk_distance` and an `analytical_MFE_R` ([§18.1](#181-planned-risk-structural-available-at-confirmed)/[§18.2](#182-analytical-r-normalized-metrics-every-confirmed-episode)) — both available at `CONFIRMED` itself, independent of `lateness_status`. |
-| `ACTIONABLE` | The subset of `CONFIRMED` with `lateness_status == ACTIONABLE` ([§15](#15-entry-feasibility-evaluation)) — has a defined `feasible_entry_price`, and therefore `execution_R`, `execution_MFE_R`, `execution_MAE_R`, `execution_terminal_return_R`, `execution_cost_adjusted_return_R` ([§18.3](#183-execution-risk-and-execution-r-normalized-metrics-actionable-only), [§19](#19-execution-cost-assumptions)). |
-| `LATE` / `INVALIDATED_BEFORE_ENTRY` | The remaining `CONFIRMED` episodes ([§15](#15-entry-feasibility-evaluation)) — no `feasible_entry_price`, so no execution-scoped R-normalized metrics; still fully counted in `CONFIRMED`, in the percentage metrics ([§17](#17-outcome--evaluation-model), computed from `confirmation_reference_price`), and in `analytical_MFE_R` ([§18.2](#182-analytical-r-normalized-metrics-every-confirmed-episode)) — which is why they still reach a deterministic lifecycle terminal state ([§13.2](#132-allowed-transitions)). |
+| `CONFIRMED` (sample base) | Episodes that reached `CONFIRMED` at least once and later reached a terminal lifecycle state (above). Every episode in this population has a `planned_risk_distance` and an `analytical_MFE_R` ([§18.1](#181-planned-risk-structural-available-at-confirmed)/[§18.2](#182-analytical-r-normalized-metrics-every-confirmed-episode)) — both available at `CONFIRMED` itself, independent of `lateness_status`. Membership does **not** depend on `analytical_path_complete` ([§18.2a.1](#182a1-missing-bar-behavior-and-terminal_reason)) — an episode with `analytical_path_complete = FALSE` (e.g. `terminal_reason = DATA_INCOMPLETE`, or a `COMPLETED` episode whose threshold was proven before a later gap) is still fully counted here. |
+| `ACTIONABLE` | The subset of `CONFIRMED` with `lateness_status == ACTIONABLE` ([§15](#15-entry-feasibility-evaluation)) — has a defined `feasible_entry_price`, and therefore `execution_R` ([§18.3](#183-execution-risk-and-execution-r-normalized-metrics-actionable-only)), which is a purely structural quantity (`\|feasible_entry_price - invalidation_price\|`) requiring no future price-path data. **`ACTIONABLE` membership alone does NOT imply a complete `execution_MFE_R`/`execution_MAE_R`/`execution_terminal_return_R`** (re-amended — tech-lead/red-team finding: an `ACTIONABLE` episode can still have `analytical_path_complete = FALSE`, since `execution_mfe_pct_over_episode_life`/`execution_mae_pct_over_episode_life`/`execution_directional_return_pct` are computed over the same underlying post-confirmation 1m price path as `analytical_MFE_R`, just baselined against `feasible_entry_price` instead of `confirmation_reference_price`). `ACTIONABLE` means **entry feasibility exists**; it does not by itself mean the full future path exists — see `PATH_COMPLETE_ACTIONABLE` below for the population that means both. |
+| `PATH_COMPLETE_ACTIONABLE` (new) | `ACTIONABLE` episodes with `analytical_path_complete == TRUE` ([§18.2a.1](#182a1-missing-bar-behavior-and-terminal_reason)) — i.e. entry feasibility exists **AND** the full future post-confirmation price path was actually observed. This is the population every path-dependent execution-scoped R-normalized metric below actually requires; `ACTIONABLE` and `PATH_COMPLETE_ACTIONABLE` are deliberately **not** conflated. |
+| `LATE` / `INVALIDATED_BEFORE_ENTRY` | The remaining `CONFIRMED` episodes ([§15](#15-entry-feasibility-evaluation)) — no `feasible_entry_price`, so no execution-scoped R-normalized metrics; still fully counted in `CONFIRMED`, in the percentage metrics ([§17](#17-outcome--evaluation-model), computed from `confirmation_reference_price`), and in `analytical_MFE_R` ([§18.2](#182-analytical-r-normalized-metrics-every-confirmed-episode)) — which is why they still reach a deterministic lifecycle terminal state ([§13.2](#132-allowed-transitions)). A data gap after confirmation MUST NOT remove a `LATE`/`INVALIDATED_BEFORE_ENTRY` episode from the feasibility denominator — that denominator does not require future-path completeness at all (below). |
 
 | Metric | Population (exact) |
 |---|---|
-| `MIN_COMPLETED_EPISODES_AGGREGATE` / `_PER_FAMILY` ([§26](#26-acceptance-sample-requirements)) | `CONFIRMED` (all lateness statuses). |
-| Actionable-entry feasibility rate, missed/late rate ([§27](#27-acceptance-metric-hierarchy) priority 1) | `CONFIRMED` — numerator `ACTIONABLE`, denominator `CONFIRMED`. `LATE` and `INVALIDATED_BEFORE_ENTRY` are exactly the episodes counted against the rate, not episodes that disappear from it. |
-| Median/90th-percentile `execution_MAE_R`, median `execution_MFE_R`, proportion reaching `execution_MFE_R >= 0.5` ([§27](#27-acceptance-metric-hierarchy) priorities 2–3) | `ACTIONABLE` only — undefined for `LATE`/`INVALIDATED_BEFORE_ENTRY` by construction (no `feasible_entry_price`). |
-| Mean `execution_cost_adjusted_return_R` ([§27](#27-acceptance-metric-hierarchy) priority 4) | `ACTIONABLE` only, same reason. |
-| Directional accuracy, `execution_terminal_return_R > 0` ([§27](#27-acceptance-metric-hierarchy) priority 5) | `ACTIONABLE` only — `execution_terminal_return_R` is itself an execution-scoped R-based metric. (A supplementary, non-gating percentage-based accuracy figure — `directional_return_pct > 0` over **all** `CONFIRMED` episodes — **MAY** additionally be reported, since that percentage metric's population is broader; it carries no threshold either way, consistent with priority 5 never being a gate.) |
+| `MIN_COMPLETED_EPISODES_AGGREGATE` / `_PER_FAMILY` ([§26](#26-acceptance-sample-requirements)) | `CONFIRMED` (all lateness statuses, all `analytical_path_complete` values). |
+| Actionable-entry feasibility rate, missed/late rate ([§27](#27-acceptance-metric-hierarchy) priority 1) | `CONFIRMED` — numerator `ACTIONABLE`, denominator `CONFIRMED`. `LATE` and `INVALIDATED_BEFORE_ENTRY` are exactly the episodes counted against the rate, not episodes that disappear from it. **This population does NOT require `analytical_path_complete` at all** — feasibility is decided at `assumed_feasible_entry_timestamp` ([§15](#15-entry-feasibility-evaluation)), long before the future price path in question even exists, so an incomplete future path can never change ACTIONABLE/CONFIRMED denominator membership. |
+| Median/90th-percentile `execution_MAE_R`, median `execution_MFE_R`, proportion reaching `execution_MFE_R >= 0.5` ([§27](#27-acceptance-metric-hierarchy) priorities 2–3) | `PATH_COMPLETE_ACTIONABLE` (re-amended — was `ACTIONABLE`; these are path-dependent metrics and require the complete post-confirmation price path, not merely entry feasibility). Still undefined for `LATE`/`INVALIDATED_BEFORE_ENTRY` by construction (no `feasible_entry_price`). |
+| Mean `execution_cost_adjusted_return_R` ([§27](#27-acceptance-metric-hierarchy) priority 4) | `PATH_COMPLETE_ACTIONABLE`, same reason. |
+| Directional accuracy, `execution_terminal_return_R > 0` ([§27](#27-acceptance-metric-hierarchy) priority 5) | `PATH_COMPLETE_ACTIONABLE` — `execution_terminal_return_R` is itself a path-dependent, execution-scoped R-based metric. (A supplementary, non-gating percentage-based accuracy figure — `directional_return_pct > 0` over **all** `CONFIRMED` episodes — **MAY** additionally be reported, since that percentage metric's population is broader; it carries no threshold either way, consistent with priority 5 never being a gate.) |
+
+**Path-dependent metrics MUST NOT silently exclude-and-renormalize over
+`PATH_COMPLETE_ACTIONABLE` to reach a promotion decision** —
+[§28.2b](#282b-path-completeness-promotion-safety-rule--no-silent-exclude-and-pass)
+freezes the exact, conservative V2-v0 treatment: **any**
+`analytical_path_complete = FALSE` episode inside a family's evaluated
+`CONFIRMED` acceptance sample makes that family's path-dependent metrics
+`NOT EVALUABLE` for the `USER_FACING_ELIGIBLE` gate on that sample, in
+full — computing priorities 2–5 over only the remaining path-complete
+episodes and declaring a pass is **not** conforming V2-v0 behavior. See
+[§28.2b](#282b-path-completeness-promotion-safety-rule--no-silent-exclude-and-pass)
+and [§29.14b](#2914b-path-completeness-acceptance-vectors)'s worked
+vectors.
 
 ---
 
@@ -5347,9 +5661,14 @@ Preserving the roadmap's priority order (`docs/FORECASTING_ROADMAP.md` §H)
 exactly, with concrete V2-v0 metrics/thresholds per priority. **Population**
 column values are defined precisely in
 [§26.1](#261-episode-population-definitions) — no metric below has an
-implicit or evaluator-chosen denominator. Every metric here is
-**execution-scoped** (`ACTIONABLE`-only, [§18.3](#183-execution-risk-and-execution-r-normalized-metrics-actionable-only)) —
-distinct from [§18.2](#182-analytical-r-normalized-metrics-every-confirmed-episode)'s
+implicit or evaluator-chosen denominator. Priorities 2–5 are
+**path-dependent, execution-scoped** metrics
+(`PATH_COMPLETE_ACTIONABLE`-only, re-amended per
+[§26.1](#261-episode-population-definitions) — `ACTIONABLE` alone is not
+sufficient population membership for these, since an `ACTIONABLE` episode
+can still have `analytical_path_complete = FALSE`,
+[§18.3](#183-execution-risk-and-execution-r-normalized-metrics-actionable-only))
+— distinct from [§18.2](#182-analytical-r-normalized-metrics-every-confirmed-episode)'s
 `analytical_MFE_R`, which drives lifecycle completion for **every**
 `CONFIRMED` episode but is not itself an acceptance-gating metric:
 
@@ -5357,12 +5676,20 @@ distinct from [§18.2](#182-analytical-r-normalized-metrics-every-confirmed-epis
 |---|---|---|---|---|
 | 1 | Entry feasibility after real delay | Actionable-entry feasibility rate (`ACTIONABLE / CONFIRMED`, [§15](#15-entry-feasibility-evaluation)) | `CONFIRMED` | `>= 0.60` |
 | 1b | (complement) | Missed/late rate | `CONFIRMED` | `<= 0.40` |
-| 2 | Low MAE | Median `execution_MAE_R` | `ACTIONABLE` | `<= 1.0R` |
-| 2b | (tail) | 90th-percentile `execution_MAE_R` | `ACTIONABLE` | `<= 2.0R` |
-| 3 | Sufficient MFE | Median `execution_MFE_R` | `ACTIONABLE` | `>= 1.0R` |
-| 3b | (breadth) | Proportion of episodes reaching `execution_MFE_R >= 0.5` before invalidation | `ACTIONABLE` | `>= 0.50` |
-| 4 | Performance after costs/delay | Mean `execution_cost_adjusted_return_R` ([§19](#19-execution-cost-assumptions)) | `ACTIONABLE` | `> 0.10R` |
-| 5 | Ordinary directional accuracy | `CONFIRMED` episodes where `execution_terminal_return_R > 0` | `ACTIONABLE` | Reported only, **no threshold** — explicitly not a gate, per roadmap §H ("ordinary accuracy alone is not the promotion criterion"). |
+| 2 | Low MAE | Median `execution_MAE_R` | `PATH_COMPLETE_ACTIONABLE` | `<= 1.0R` |
+| 2b | (tail) | 90th-percentile `execution_MAE_R` | `PATH_COMPLETE_ACTIONABLE` | `<= 2.0R` |
+| 3 | Sufficient MFE | Median `execution_MFE_R` | `PATH_COMPLETE_ACTIONABLE` | `>= 1.0R` |
+| 3b | (breadth) | Proportion of episodes reaching `execution_MFE_R >= 0.5` before invalidation | `PATH_COMPLETE_ACTIONABLE` | `>= 0.50` |
+| 4 | Performance after costs/delay | Mean `execution_cost_adjusted_return_R` ([§19](#19-execution-cost-assumptions)) | `PATH_COMPLETE_ACTIONABLE` | `> 0.10R` |
+| 5 | Ordinary directional accuracy | `CONFIRMED` episodes where `execution_terminal_return_R > 0` | `PATH_COMPLETE_ACTIONABLE` | Reported only, **no threshold** — explicitly not a gate, per roadmap §H ("ordinary accuracy alone is not the promotion criterion"). |
+
+**Priority 1/1b's population remains plain `CONFIRMED`/`ACTIONABLE`,
+deliberately not `PATH_COMPLETE_ACTIONABLE`** — entry feasibility is
+decided long before the future price path in question exists, so it is
+not itself a path-dependent question, and requiring path-completeness
+for it would incorrectly make a late-arriving data gap change how many
+episodes even qualify as `ACTIONABLE`/`CONFIRMED` for the feasibility
+rate ([§26.1](#261-episode-population-definitions)).
 
 All V2-v0, `rules_version`-participating, explicitly not empirically
 proven. **Win rate is never the sole promotion criterion** — priority 5
@@ -5420,7 +5747,7 @@ RESEARCH_ONLY        -> SHADOW_ELIGIBLE       -> USER_FACING_ELIGIBLE       (-> 
 |---|---|---|
 | `RESEARCH_ONLY` | Default — code exists and produces persisted episodes/outcomes. No gating. | Internal analysis only. No shadow run, no notifications. |
 | `SHADOW_ELIGIBLE` | Aggregate sample minimums met ([§26](#26-acceptance-sample-requirements)), from historical replay and/or live evidence. | Parallel shadow evaluation (`docs/FORECASTING_ROADMAP.md` §I, stage 10) — internally computed, not user-visible. This is precisely how the metric hierarchy in [§27](#27-acceptance-metric-hierarchy) *and* the live-shadow requirement below get evaluated; passing either is not a precondition of reaching this level. |
-| `USER_FACING_ELIGIBLE` | **Both, evaluated per setup family, against that family's OWN population — never against the aggregate as a substitute** (amended, [§28.2's per-family gate](#282-promotion-levels) below): (a) the full acceptance metric hierarchy ([§27](#27-acceptance-metric-hierarchy)) passes over **that family's own** historical/replay sample meeting `MIN_COMPLETED_EPISODES_PER_FAMILY` ([§26](#26-acceptance-sample-requirements)), **and** (b) the live-shadow evidence requirement ([§28.2a](#282a-live-shadow-evidence-requirement)) is independently satisfied, also computed from **that family's own** live-shadow-only population. A family failing either — including a family with excellent historical replay metrics but insufficient live-shadow evidence, **or** a family whose own historical metrics fail despite the aggregate V2 sample passing and the other families performing well — stays `SHADOW_ELIGIBLE`. | User-facing V2 notifications for the qualifying family/families only. |
+| `USER_FACING_ELIGIBLE` | **Both, evaluated per setup family, against that family's OWN population — never against the aggregate as a substitute** (amended, [§28.2's per-family gate](#282-promotion-levels) below): (a) the full acceptance metric hierarchy ([§27](#27-acceptance-metric-hierarchy)) passes over **that family's own** historical/replay sample meeting `MIN_COMPLETED_EPISODES_PER_FAMILY` ([§26](#26-acceptance-sample-requirements)), **and** (b) the live-shadow evidence requirement ([§28.2a](#282a-live-shadow-evidence-requirement)) is independently satisfied, also computed from **that family's own** live-shadow-only population. **Both (a) and (b) additionally require zero `analytical_path_complete = FALSE` episodes in the sample being evaluated** ([§28.2b](#282b-path-completeness-promotion-safety-rule--no-silent-exclude-and-pass)) — a sample containing any incomplete analytical path is `NOT EVALUABLE` for its path-dependent priorities, not silently passed on the remaining subset. A family failing (a), (b), or the path-completeness requirement — including a family with excellent historical replay metrics but insufficient live-shadow evidence, **or** a family whose own historical metrics fail despite the aggregate V2 sample passing and the other families performing well, **or** a family with an otherwise-passing sample that contains even one incomplete analytical path — stays `SHADOW_ELIGIBLE`. | User-facing V2 notifications for the qualifying family/families only. |
 | `V1_RETIRABLE` | A **separate, explicit decision** comparing V2 against V1 on overlapping calendar periods, using only metrics genuinely comparable between the two ([§28.3](#283-v1-comparison)). Not automatic on reaching `USER_FACING_ELIGIBLE`. | V1 Telegram delivery may be paused/retired — requires its own explicit PR/deployment action, exactly as `docs/FORECASTING_ROADMAP.md` §C already states. |
 
 No level above is reached automatically by finishing implementation. **No
@@ -5540,6 +5867,78 @@ intended consequence of this gate, not an edge case to work around.
 `V1_RETIRABLE` ([§28.3](#283-v1-comparison)) remains a still-separate,
 later decision, unaffected by this gate beyond depending on
 `USER_FACING_ELIGIBLE` having been reached first.
+
+### 28.2b Path-completeness promotion safety rule — no silent exclude-and-pass
+
+**New (tech-lead/red-team finding, closes a gap the `analytical_path_complete`
+fact — [§18.2a.1](#182a1-missing-bar-behavior-and-terminal_reason) —
+otherwise leaves open).** [§28.2](#282-promotion-levels)'s gate (a) and
+this section's gate (b) both compute the full §27 acceptance metric
+hierarchy over a family's own `CONFIRMED` sample. Priorities 2–5 of that
+hierarchy are path-dependent (`PATH_COMPLETE_ACTIONABLE`-only,
+[§26.1](#261-episode-population-definitions)/[§27](#27-acceptance-metric-hierarchy)).
+Simply computing those priorities over whichever episodes happen to be
+path-complete, silently dropping the rest, and declaring a pass is **not**
+sufficient — that would let a family with real data-quality gaps still
+reach `USER_FACING_ELIGIBLE` on an artificially cleaner subset, a
+survivorship/data-quality bias this document does not accept.
+
+**Frozen V2-v0 rule, deliberately conservative and deterministic — no new
+percentage threshold:**
+
+```text
+For a setup family F's historical/replay acceptance gate (§28.2(a)):
+    IF any episode in F's evaluated CONFIRMED acceptance sample has
+        analytical_path_complete == FALSE
+    THEN the path-dependent portion of F's §27 acceptance hierarchy
+        (priorities 2-5) is: NOT EVALUABLE / INCOMPLETE DATA
+    AND F MUST NOT pass the historical/replay USER_FACING_ELIGIBLE gate
+        on that sample.
+    F remains at most SHADOW_ELIGIBLE until the missing analytical path
+    is repaired/recomputed (e.g. a backfill closes the data gap and the
+    episode's outcome is recomputed) or a later, explicitly-versioned
+    contract change revises this policy.
+
+Likewise, for setup family F's live-shadow gate (§28.2a above):
+    IF any episode in F's evaluated live-shadow CONFIRMED sample has
+        analytical_path_complete == FALSE
+    THEN that live-shadow USER_FACING_ELIGIBLE gate is NOT satisfied for F.
+
+The V2-v0 requirement for a promotion-evaluable sample is exactly:
+    ZERO incomplete analytical paths (analytical_path_complete == FALSE)
+    inside that exact evaluated family sample (historical/replay OR
+    live-shadow, evaluated independently for each).
+```
+
+**Do NOT treat `analytical_path_complete = FALSE` as a strategy failure**
+(it is not evidence the setup underperformed) **and do NOT treat it as
+successful evidence** (it is not evidence the setup performed well) — it
+is **insufficient evaluation evidence**, and the family's path-dependent
+promotion decision simply cannot be made from that sample yet.
+
+**This does not touch [§26](#26-acceptance-sample-requirements)'s basic
+`CONFIRMED` sample-size accounting.** `DATA_INCOMPLETE`/
+`analytical_path_complete = FALSE` episodes remain historical `CONFIRMED`
+episodes and remain fully visible in sample-size/data-quality accounting
+([§26.1](#261-episode-population-definitions)) — the freeze here is
+narrower and specific: they cannot be **silently excluded** so that a
+`USER_FACING_ELIGIBLE` promotion gate passes on only the cleaner subset.
+`SHADOW_ELIGIBLE` ([§28.2](#282-promotion-levels)) may still be reached
+under the existing aggregate sample-minimum semantics regardless of this
+rule — it only authorizes further parallel-shadow evaluation, not
+user-facing delivery, so it carries no path-completeness requirement.
+`USER_FACING_ELIGIBLE` is the level this rule actually gates, and it
+requires **both** the relevant historical/replay **and** live-shadow
+evaluation samples to be path-complete under the rule above, for that
+family, independently.
+
+See [§29.14b](#2914b-path-completeness-acceptance-vectors) for the
+required worked vectors (an incomplete `ACTIONABLE` episode that must not
+be silently dropped from the feasibility rate but does block the
+path-dependent gate; a `COMPLETED` episode with an incomplete path,
+proving `COMPLETED != analytical_path_complete`; and the fully
+path-complete baseline case where §27's populations/thresholds apply
+normally).
 
 ### 28.3 V1 comparison
 
@@ -6289,6 +6688,65 @@ population.
    remains SHADOW_ELIGIBLE. COMPRESSION_BREAKOUT and CONFIRMED_BREAKOUT are
    each evaluated entirely independently on their own (a)/(b) gates and are
    unaffected by TREND_PULLBACK's result in either direction.
+```
+
+### 29.14b Path-completeness acceptance vectors
+
+Demonstrates [§18.2a.1](#182a1-missing-bar-behavior-and-terminal_reason)'s
+`analytical_path_complete` fact and
+[§28.2b](#282b-path-completeness-promotion-safety-rule--no-silent-exclude-and-pass)'s
+no-silent-exclude-and-pass promotion safety rule:
+
+```text
+VECTOR A -- incomplete ACTIONABLE episode blocks the path-dependent gate
+but not the feasibility rate:
+  COMPRESSION_BREAKOUT's historical/replay sample: 100 CONFIRMED episodes,
+  70 ACTIONABLE. One of those 70 ACTIONABLE episodes has
+  analytical_path_complete = FALSE (a late data gap after a proven
+  favorable-excursion threshold crossing -- COMPLETED, terminal_reason=
+  HORIZON_COMPLETION, analytical_path_complete=FALSE, per §18.2a.1 case A).
+
+  Actionable-entry feasibility rate (§27 priority 1, population = CONFIRMED,
+  §26.1): 70 / 100 = 0.70 -- still valid and reportable exactly as
+  computed; the one incomplete-path episode is NOT removed from either
+  the numerator (it IS ACTIONABLE) or the denominator (it IS CONFIRMED) --
+  feasibility does not require analytical_path_complete at all (§26.1/§27).
+
+  Priorities 2-5 (population = PATH_COMPLETE_ACTIONABLE, §26.1/§27):
+  => NOT EVALUABLE / INCOMPLETE DATA for this family's sample, per
+     §28.2b -- because at least one episode in the evaluated CONFIRMED
+     sample has analytical_path_complete = FALSE. The correct treatment
+     is NOT to compute priorities 2-5 over the other 69 path-complete
+     ACTIONABLE episodes and declare a pass -- that would be exactly the
+     silent exclude-and-pass §28.2b forbids. COMPRESSION_BREAKOUT's
+     historical/replay gate (§28.2(a)) is therefore NOT satisfied on this
+     sample; the family remains at most SHADOW_ELIGIBLE until the gap is
+     repaired/recomputed.
+
+VECTOR B -- a COMPLETED episode with an incomplete path:
+  T_confirm=14:00, H=1.5h -> evaluation interval [14:00, 15:30).
+  analytical_MFE_R reaches 0.55 (>= MIN_MFE_R_FOR_COMPLETION=0.5) at 14:22,
+  proven entirely from bars 14:00-14:30. Bars 14:31-15:29 are then missing
+  (a later data-collection gap).
+  => episode_state = COMPLETED, terminal_reason = HORIZON_COMPLETION,
+     analytical_path_complete = FALSE (§18.2a.1 case A).
+  This proves directly: COMPLETED does NOT imply a complete analytical
+  path, and terminal_reason alone (HORIZON_COMPLETION, which contains no
+  hint of incompleteness) does NOT fully encode path completeness --
+  analytical_path_complete MUST be checked as its own, independent fact
+  for every episode entering a path-dependent metric computation, exactly
+  as §18.2a.1 freezes.
+
+VECTOR C -- fully path-complete family sample (baseline case):
+  CONFIRMED_BREAKOUT's historical/replay sample: 45 CONFIRMED episodes, 30
+  ACTIONABLE, analytical_path_complete = TRUE for every one of the 45
+  episodes (no data gaps in this sample).
+  => ACTIONABLE == PATH_COMPLETE_ACTIONABLE for this sample (30 == 30, no
+     episode excluded by the path-completeness rule). §27's existing
+     populations/thresholds apply normally, with no NOT EVALUABLE
+     qualifier -- §28.2b's rule is satisfied vacuously (zero incomplete
+     paths), and the family's historical/replay gate (§28.2(a)) proceeds
+     to evaluate priorities 1-5 exactly as already frozen.
 ```
 
 ---
