@@ -368,12 +368,13 @@ Planned PR sizing:
 | 3. Multi-timeframe Alignment | 3 |
 | 4. Context Engines | 3 |
 | 5. Setup Detectors | 4 |
-| 6. Episode State Machine | 3 |
+| Pre-Stage-6 hardening (new phase; contract consolidation + quality/scoring + replay/provenance/coherence + persistence/idempotency) | 4 (revised from 0; see §J) |
+| 6. Episode State Machine | 5 (revised from 3; see §J — the hardening work above was split OUT of this stage, not added to it; five distinct implementation units are listed in the prose, not forced into four merely to preserve an old count) |
 | 7. Entry Feasibility | 2 |
 | 8. V2 Outcome Evaluator | 3 |
 | 9. Telegram V2 | 2 |
 | 10. Parallel Shadow Deployment | 2 |
-| **Total planned scope** | **28** |
+| **Total planned scope** | **~34** |
 
 This sizing is a **planning estimate**, not a requirement to force unsafe or
 poorly-reviewable changes into fixed PR boundaries. A PR may be split further
@@ -777,7 +778,7 @@ current intent, not a contract that overrides sound engineering judgment.
     `v2.rules_version` is unchanged (`v2-rules-v0.1.0`) — this PR
     implements already-frozen §4.3 formulas/thresholds, not a new or
     tuned V2-v0 parameter; no schema/config change.
-- **Stage 5 — Setup Detectors: IN PROGRESS.**
+- **Stage 5 — Setup Detectors: COMPLETE.**
   - **PR 1 of ~4 — shared detector foundation: MERGED** (#39, "feat:
     add V2 setup detector foundation"). Includes both the initial
     implementation and a pre-merge hardening amendment (fixed head
@@ -989,13 +990,15 @@ current intent, not a contract that overrides sound engineering judgment.
     `range_high=64,100`, fresh SHORT cross `63,820 -> 63,740`) and a
     symmetric LONG vector, proving formula symmetry directly — **note:**
     §29.6's own prose illustration for the resulting `invalidation_price`
-    (`≈63,930`, apparently derived from `range_low + buffer`) does not
+    (`≈63,930`, apparently derived from `range_low + buffer`) did not
     match §7.2's own frozen SHORT formula (`invalidation_price =
     range_high + protection_buffer`); this PR implements the frozen
     formula exactly (`range_high=64,100` + `buffer≈96` ⇒
     `invalidation_price≈64,196`), per this document's own §0.2 grounding
     rule that the frozen formula wins over an illustrative approximate
-    number — flagged here rather than silently reconciled. Also adds
+    number — flagged here when first found by PR41, and since corrected
+    directly in §29.6 by the pre-Stage-6 contract audit (#43 amendment 3).
+    Also adds
     `analytics/forecasting_v2/compression_breakout_inputs.py`:
     `load_compression_breakout_inputs(reader: V2SetupHistoryReader, *,
     context: V2ContextSnapshot) -> V2CompressionBreakoutInputs` — UNLIKE
@@ -1025,7 +1028,7 @@ current intent, not a contract that overrides sound engineering judgment.
     `v2.enabled` stays `false`; `v2.rules_version` is unchanged
     (`v2-rules-v0.1.0`) — this PR implements already-frozen §7.2/§7.0a/
     §7.0b formulas/thresholds, not new or tuned V2-v0 parameters.
-  - **PR 4 of ~4 — `CONFIRMED_BREAKOUT` + Stage 5 completion: THIS PR**
+  - **PR 4 of ~4 — `CONFIRMED_BREAKOUT` + Stage 5 completion: MERGED**
     (#42, "feat: add V2 confirmed breakout detector"), the FINAL planned
     Stage 5 detector PR. Adds `analytics/forecasting_v2/
     confirmed_breakout.py`: `detect_confirmed_breakout(inputs:
@@ -1110,14 +1113,289 @@ current intent, not a contract that overrides sound engineering judgment.
     contracts remain authoritative, and this split may be adjusted if
     reviewability or risk requires it.
 
-**Stage 5's detector-implementation portion becomes COMPLETE when #42
-merges** — all three frozen setup families (`TREND_PULLBACK`,
-`COMPRESSION_BREAKOUT`, `CONFIRMED_BREAKOUT`) then have a deterministic
+**Stage 5's detector-implementation portion is COMPLETE — #39, #40, #41,
+#42 are all MERGED.** All three frozen setup families (`TREND_PULLBACK`,
+`COMPRESSION_BREAKOUT`, `CONFIRMED_BREAKOUT`) now have a deterministic
 Stage 5 qualification implementation. This does NOT mean the V2 trading
 product is complete — Stage 6 (Episode State Machine), which owns episode
 identity/dedup, family precedence (§7.4), confirmation, false-break
 transitions, expiry, weakening, and persistence orchestration, has NOT
 started.
 
-**Next planned work (after PR #42 merges):** Stage 6 — Episode State
-Machine (not yet started).
+**Executable Stage 6 has NOT started.** `#43` — including its two
+post-open amendment rounds and this clean-room pre-Stage-6 contract
+consolidation and cross-stage audit — is documentation-only contract work
+that precedes Stage 6, never Stage 6 implementation itself. The correct
+status, corrected here after this audit found the prior "Stage 6: IN
+PROGRESS" framing to be inaccurate:
+
+- **Stage 6 — Episode State Machine: NOT STARTED.**
+- **PRE-STAGE-6 HARDENING: IN PROGRESS.** `#43` is the contract-consolidation
+  member of this phase; the audit below identified additional cross-stage
+  correctness gaps between the currently-merged Stage 2–5 implementation
+  and the frozen contracts that must be closed — in code, not just docs —
+  before executable Stage 6 can safely consume Stage 2–5's boundaries.
+
+**`#43` — contract consolidation and cross-stage audit (this PR, amended
+three times post-open).** Round 1 froze creation identity vs.
+later-observed anchor drift, exact non-material/material drift math per
+family, `Decimal`/`ROUND_HALF_UP` tick normalization, "suppressed, not
+queued," the exact terminal-cooldown clock, the `§7.4` structural-overlap
+predicate, and deterministic family-precedence arbitration. Round 2 fixed
+an invalid precedence worked vector (illegal `TREND_PULLBACK` cadence),
+fully separated same-slot suppression from cooldown, froze
+`creation_identity_tick_size` (`§12.5a`), froze `REVERSAL_CANDIDATE`
+pairwise cardinality (`§13.3.1`), froze one same-boundary orchestration
+order (`§13.4`), froze the `LIVE`/`REPLAY` execution-namespace scope
+(`§12.10`), and separated identity-routing from persisted-event necessity
+(`§12.11`). Round 3 (this audit) is a clean-room rebuild from the actual
+merged Stage 2–5 implementation, independent of the prior two rounds'
+conclusions — it found and fixed: a same-`T` terminal-transition/cooldown
+contradiction introduced by round 2's own `§13.4` (`§13.4`'s "active set"
+wording incorrectly implied cooldown consults the same view as same-slot
+occupancy — corrected by splitting `surviving_active_set(T)` from
+per-slot terminal/cooldown history); a genuine executable defect where
+every currently-merged V2 quality gate reads the **global** worst-family
+`min_coverage_ratio`/`consensus_confidence` rollup instead of the
+metric-family(ies) a given decision actually consumes, contradicting the
+already-frozen "OI availability is not required" invariant (`§6.3a`,
+targeted for a future `v2-rules-v0.2.0` executable correction); an
+ambiguous `COMPRESSION_BREAKOUT` `setup_strength` bucket, now frozen as
+`compression_score` at `compression_end_bucket` (`§8`); the missing
+freeze of exactly which bucket a `Decimal`-computed fact is persisted as
+in `V2EpisodeEvent`'s JSON-only leaf model, and the missing freeze of
+historical/as-of instrument-metadata reproducibility for replay (`§12.5a`);
+an unexecutable `§13.2a` `WEAKENING` predicate (`price_direction_agreement`
+is an unsigned magnitude — the predicate needed `price_move_pct_median`'s
+sign too), now frozen exactly with `UNAVAILABLE`-pauses-the-streak
+semantics; a wrong `COMPRESSION_BREAKOUT` SHORT worked-vector number
+(`§29.6`, `range_low + buffer` used where the frozen formula is
+`range_high + buffer` — already flagged but not yet fixed by `#41`'s own
+roadmap entry, now corrected in `§29.6` directly); a `V2_PRODUCT_CONTRACT.md`
+§4.3 timeframe-role claim ("`15m` forms the setup") that contradicted the
+already-implemented, deliberately-15m-free `§7.3` `CONFIRMED_BREAKOUT`
+design (corrected in the Product Contract); a `REVERSAL_CANDIDATE`
+notification-materiality table entry mislabeled as a "state change" when
+`§13.3` is explicit it is not; and confirmed `INVALIDATED_BEFORE_ENTRY` is
+currently unreachable under V2-v0's frozen 90s-delay/5m-close-only
+invalidation timing (marked reserved, its `§29.12` sample vector
+corrected to `0` occurrences). `v2.enabled` stays `false`;
+`v2.rules_version` remains `v2-rules-v0.1.0` for `#43` itself — the
+metric-family quality-gate correction is real executable behavior change
+and is explicitly targeted at a future `v2-rules-v0.2.0`, not bundled into
+this docs-only PR.
+
+**`#43` amendment round 4 (tech-lead corrective pass).** A live tech-lead
+review of the round-3 clean-room audit found several of its own contract
+resolutions were themselves wrong, and several findings marked
+"implementation debt" were actually still-open contract ambiguity.
+Corrected: the `WEAKENING` threshold (`price_direction_agreement > 0.5`
+STRICT, not `>=` — a two-exchange 50/50 tie is not a majority) and its
+consecutive-streak semantics (`UNAVAILABLE` RESETS the streak, it does
+not merely pause it — `TRUE → UNAVAILABLE → TRUE` is not two consecutive
+buckets); a wrong `TREND_PULLBACK` deadline worked vector (confirmation
+is checked at every later 5m boundary within the 2h age window, not at
+8 boundaries spaced 15m apart — 15m cadence governs only new-candidate
+*formation*); §12.2a's generic "all operational facts frozen at
+creation" rule, which contradicted `TREND_PULLBACK`'s own already-frozen
+pre-confirmation `pullback_extreme` update mechanic (rewritten per
+family: `TREND_PULLBACK` genuinely updates pre-confirmation,
+`COMPRESSION_BREAKOUT`/`CONFIRMED_BREAKOUT` do not); `COMPRESSION_BREAKOUT`
+`setup_strength`'s "`compression_end_bucket` always equals `B15`" claim,
+which the contract's own already-frozen multi-run worked vector disproves
+(`setup_strength` is now the mean `compression_score` over the full
+selected run); the broader Stage 4→5/6 numerical-evidence handoff gap
+(`§4.1a`, not just the compression fix); `§8`'s `data_confidence` source
+(now exact per family, `COMPRESSION_BREAKOUT` using `min()` of its two
+mandatory families); a mislabeled `§6.3a` family note
+(`price_direction_agreement` is `price_structure`, not `taker_flow`); `G`
+(analytical excursion) fully frozen with exact 1m-grid semantics and a
+new `DATA_INCOMPLETE` vs. `HORIZON_NO_COMPLETION` `terminal_reason`
+distinction (no new lifecycle state); `H`'s same-`T` event model
+(option (a), at most one event per episode per decision boundary, is now
+the ONLY conforming V2-v0 model — option (b) rejected) and semantic ID
+dimensions (`execution_stream` explicitly excluded — physical row
+namespace, never semantic identity); `I`'s transaction-retry explanation
+(no partial row commits inside one atomic transaction); `J` and `P`
+upgraded from unverified to CONFIRMED against live-traced code
+(`insert_klines`'s unconditional `ON CONFLICT` overwrite; `aligned_inputs.py`'s
+naive-datetime `TypeError` leak); `O`'s residual gap made concrete
+(`TREND_PULLBACK`'s candidate lacks `COMPRESSION_BREAKOUT`-grade
+exact-formula self-validation); `S`/`T`/`U` promoted from roadmap-only
+debt to normative Correctness Contract requirements (`§3.2`–`§3.4`); a
+`§3` LIVE/REPLAY version-switch policy gap closed with a frozen
+DRAIN-BEFORE-ACTIVATE policy (`§3.1`); and `§17`'s outcome-record
+`data_coverage_at_confirmation` field, which still used the forbidden
+global rollup. `v2.enabled` stays `false`; `v2.rules_version` remains
+`v2-rules-v0.1.0` for `#43` itself.
+
+**`#43` amendment round 5 (final narrow contract closure).** A tech-lead
+review plus an independent red-team pass found three remaining seams in
+round 4's own text and closed exactly those, without reopening any
+already-accepted decision:
+
+- **Finite `DRAIN-BEFORE-ACTIVATE` semantics (`§3.1`).** The prior text
+  did not clearly forbid the OLD tuple from creating new episodes once a
+  version switch request started, which could let OLD's active
+  population replenish itself and make drain never actually finish; it
+  also wrongly claimed a `LIVE` stream always has exactly one
+  active-for-new-creation tuple, which is false during an active drain.
+  Now frozen exactly: from the switch request onward, **zero** tuples are
+  active for new-episode creation until drain completes (OLD may only
+  keep evaluating/cooling down its pre-existing episodes, never create
+  new ones); drain completion and NEW's activation are resolved at
+  different decision boundaries (`drain_complete_at` vs. `T_activate =
+  drain_complete_at + 5m`) to avoid a same-boundary provenance ambiguity;
+  and a normal process restart must not reopen OLD creation, activate
+  NEW early, or reset drain progress. The physical switch-state
+  persistence mechanism remains `#45` implementation work (below); the
+  observable correctness invariant is frozen now.
+- **Corrected 1m post-confirmation no-lookahead wording (`§18.2a`).** The
+  prior text wrongly claimed the `bucket_ts = T_confirm` bar is "already
+  closed data as of `T_confirm`" — it is not; like every other bucket in
+  this document, its `bucket_ts` is the bar's START, so
+  `[T_confirm, T_confirm + 1m)` has only just begun at `T_confirm` and is
+  first readable at `T_confirm + 1m`. No frozen value changed (canonical
+  exchange, granularity, the `[T_confirm, horizon_end)` interval, MFE/MAE
+  semantics, terminal-return bar, or completion threshold) — only the
+  temporal explanation, now stated exactly, with a worked bar-timing
+  vector.
+- **Explicit `analytical_path_complete` fact and deterministic
+  `DATA_INCOMPLETE` acceptance/promotion treatment (`§18.2a.1`, `§26.1`,
+  `§27`, `§28.2b`).** `terminal_reason` alone does not fully encode path
+  completeness — a `COMPLETED` episode can still have an incomplete
+  future price path if the completion threshold was proven before a
+  later data gap. A new, `terminal_reason`-independent
+  `analytical_path_complete` fact is now frozen, together with a new
+  `PATH_COMPLETE_ACTIONABLE` population (`ACTIONABLE` episodes with a
+  complete path) that every path-dependent acceptance metric (§27
+  priorities 2–5) actually requires — `ACTIONABLE` alone is not
+  sufficient population membership for those. A new, deterministic
+  promotion-safety rule (`§28.2b`) freezes that **any**
+  `analytical_path_complete = FALSE` episode in a family's evaluated
+  historical/replay or live-shadow `CONFIRMED` sample makes that sample's
+  path-dependent metrics `NOT EVALUABLE` for `USER_FACING_ELIGIBLE` — a
+  family MUST NOT silently exclude incomplete-path episodes and pass on
+  the remaining cleaner subset. This is contract-level (what the future
+  evaluator must do), not new executable code; the acceptance-metric
+  evaluator itself remains later Stage 6/Stage 8 implementation work.
+
+`v2.enabled` stays `false`; `v2.rules_version` remains `v2-rules-v0.1.0`
+for `#43` itself — this round changes no runtime threshold. This
+amendment does not create a new hardening PR — the finite `DRAIN`
+semantics remain owned by `#45` (below, updated accordingly), and the
+`analytical_path_complete`/acceptance semantics are contract facts for
+later Stage 6/Stage 8 evaluator implementation, not a new PR of their
+own.
+
+**`#43` amendment round 5.1 (micro-fix, closes a survivorship-bias gap in
+round 5's own definition).** Round 5's `analytical_path_complete`
+scoped the required observed path to `[T_confirm, horizon_end)`
+unconditionally, which left it `NULL` for `CONFIRMED`/`WEAKENING →
+INVALIDATED` episodes regardless of whether their own, shorter,
+pre-invalidation path was actually complete — silently excluding every
+`ACTIONABLE`+`INVALIDATED` outcome from `PATH_COMPLETE_ACTIONABLE` and
+the path-dependent acceptance metrics, a survivorship bias since
+`INVALIDATED` is frequently exactly the adverse outcome those metrics
+exist to capture. `analytical_path_complete` is now generalized to every
+episode that reached `CONFIRMED` and later reached any terminal state
+(`COMPLETED`/`EXPIRED`/`INVALIDATED`), scoped to that episode's own
+terminal boundary (`horizon_end` for the horizon path, `T_invalidation`
+for `INVALIDATED`) — always boolean inside the `CONFIRMED` acceptance
+sample, `NULL` only for episodes that never reached `CONFIRMED` at all.
+Also corrected: `§26.1`'s wording wrongly claimed `analytical_MFE_R` is
+"available at `CONFIRMED` itself" the same way `planned_risk_distance`
+is (it is only progressively knowable and finalized at `T_terminal`);
+and `§3.1`'s drain-finiteness proof relied on a false "non-increasing
+sequence reaches zero" claim, replaced with a valid finite-set/
+finite-deadline argument. No `DRAIN` behavior, no horizon-terminal
+semantics, and no other already-accepted decision changed.
+
+**Revised pre-Stage-6 sequence (a reviewability plan, not a new
+correctness contract — subject to change if audit findings evolve):**
+
+- **`#44` — Quality/scoring boundary hardening.** Implements `§6.3a`'s
+  per-family metric-scoped quality gates across every Stage 4/5 call site
+  (`regime_4h.py`, `bias_1h.py`, `trend_pullback.py`,
+  `compression_breakout.py`, `confirmed_breakout.py`); adds the Stage 4
+  numerical-evidence handoff (`§4.1a`: `price_evi`/`compression_score`/
+  `bias_evi` carried forward by value, not discarded after
+  regime/bias-label computation) and the Stage 5 scoring/quality handoff
+  (the `COMPRESSION_BREAKOUT` per-run mean `compression_score`, and every
+  other canonical setup/scoring/quality fact `§8`/Stage 6 needs, carried
+  forward by value); hardens `TREND_PULLBACK` candidate self-validation to
+  `COMPRESSION_BREAKOUT`-grade exact-formula invariants (`§7.1`'s
+  self-validation note); adds a lightweight rules/version integrity check
+  (a version-participating constant changing without a `rules_version`
+  bump fails CI). Ships under `v2-rules-v0.2.0`. **MUST NOT** touch
+  episode identity/lifecycle (`§12`/`§13`) or any Stage 6 concept — Stage
+  6 still does not exist.
+- **`#45` — Replay/provenance/data-coherence hardening.** Implements
+  `§3.4`'s one-coherent-data-view-per-decision invariant (Stage 3+5 input
+  assembly; Stage 2 correction-publication completeness); `§3.2`'s
+  decision-provenance-tuple continuity (resolved before Stage 3/4/5/6
+  computation begins, including the new `decision_code_version`
+  dimension, distinct from Stage 2's own feature `code_version`); `§3.3`'s
+  feature-code/calculation-version identity isolation (an unrelated repo
+  change MUST NOT fork Stage 2's `calculation_version`) and version
+  activation readiness (fail-closed, no silent fallback); `§3.1`'s finite
+  `DRAIN-BEFORE-ACTIVATE` version-switch state machine (round-5 closure —
+  zero tuples active for new-episode creation throughout an active drain,
+  `drain_complete_at`/`T_activate` resolved at separate decision
+  boundaries, and drain state/progress durably surviving a normal process
+  restart); an as-of/historical model (or equivalent) for
+  `exchange_instruments` so a historical decision's `tick_size` is exactly
+  reproducible under replay (`§12.5a`); `§2.1b`'s raw-kline-backfill
+  no-downgrade fix (CONFIRMED
+  against live-traced `insert_klines`/`backfill.py` code — an
+  unconditional `ON CONFLICT` overwrite currently lets a lower-fidelity
+  backfill NULL out known live `taker_buy_volume`/`taker_sell_volume`/
+  `trades_count`); `§2.1c`'s residual aligned-input defensive hardening
+  (CONFIRMED against live-traced `aligned_inputs.py` — a naive
+  `snapshot_ts`/malformed `sample_window_end` currently leaks a raw
+  `TypeError` instead of the domain `V2AlignedInputError`). **MUST NOT**
+  implement Stage 6 state transitions.
+- **`#46` — Persistence/idempotency hardening.** Implements `§2.1a`'s NOW
+  singular same-`T` event model (option (a) only: at most one
+  `V2EpisodeEvent` per `(execution_stream, episode_id, decision_boundary)`,
+  same-`T` facts aggregated into it — option (b), multiple rows with a
+  secondary ordering, is explicitly rejected as non-conforming); `§2.1a`'s
+  deterministic semantic `episode_id`/`event_id` construction (frozen
+  semantic input dimensions — `model_family`/`rules_version`/
+  `calculation_version`/`symbol`/`market_type`/`direction`/`setup_family`/
+  creation `structural_anchor`/`T_create` for `episode_id`;
+  `episode_id`+`decision_boundary` for `event_id` — explicitly EXCLUDING
+  `execution_stream`/`run_kind`/`run_id`, which remain the physical row
+  namespace only, never semantic identity); the corresponding
+  `(run_kind, run_id, episode_id, decision_boundary)` DB uniqueness
+  invariant; wraps one logical Stage 6 decision boundary's full
+  event-insert batch in one true atomic transaction
+  (`Database.insert_v2_episode_events` currently validates the whole batch
+  before I/O but does not yet transactionally guarantee all-or-nothing
+  persistence — `§2.1a`'s corrected retry-model explanation is the target
+  behavior); confirms/hardens `LIVE` `run_id` stability across restart
+  (`§12.10`). **MUST NOT** implement Stage 6 state transitions.
+- **Stage 6 — Episode State Machine** (**5 PRs** — corrected from an
+  earlier "4" that force-fit five genuinely distinct implementation units
+  into four merely to preserve an old count; unchanged in *content* from
+  the prior plan, renumbered to follow the pre-Stage-6 hardening above):
+  (1) episode identity + persisted-history read foundation (consumes
+  `#44`–`#46`'s hardened boundaries, including `§3.2`'s provenance tuple
+  and `§2.1a`'s deterministic IDs/one-event-per-T model); (2) candidate
+  classification/arbitration/`EARLY_SIGNAL` creation/same-slot/cooldown
+  eligibility; (3) family confirmation/false-break/candidate-expiry
+  transitions; (4) `CONFIRMED`/`WEAKENING`/structural invalidation/horizon
+  terminal resolution (requires `§18.2a`'s now-fully-frozen analytical-
+  excursion primitive — shared with, not duplicated against, the later
+  Stage 8 V2 Outcome Evaluator); (5) same-boundary orchestration order
+  (`§13.4`) + `REVERSAL_CANDIDATE` cardinality (`§13.3.1`) integration +
+  Stage 6 completion.
+
+This split is an implementation/reviewability plan; the existing Product/
+Correctness contracts (as amended by `#43`) remain authoritative, and this
+split may be adjusted if reviewability, risk, or further audit findings
+require it. It is not a claim that the exact PR count, numbering, or
+boundaries are immutable.
+
+**Next planned work (after `#43` merges):** `#44` — quality/scoring
+boundary hardening (not yet started).
