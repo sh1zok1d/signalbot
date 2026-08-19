@@ -47,6 +47,36 @@ require_cmd() { command -v "$1" >/dev/null 2>&1 || { echo "[offsite] ERROR: miss
 require_cmd rclone
 require_cmd date
 
+# ---- canonical backup-filename validator -----------------------------
+# ONE rule, reused everywhere a name is asked to participate in backup
+# semantics (the local upload candidate, weekly/monthly representative
+# discovery, retention candidate selection): a name is a recognized
+# backup object only if it is EXACTLY "btcbot_YYYYMMDDTHHMMSSZ.sql.gz"
+# (all-numeric fields, no more/fewer characters) AND its embedded
+# timestamp is a REAL UTC calendar date/time. Both are required -- digit
+# SHAPE alone (e.g. "btcbot_20260819T999999Z.sql.gz", a nonexistent time)
+# or date shape alone (e.g. "btcbot_20260230T030000Z.sql.gz", a
+# nonexistent date) is not enough. Never prints anything -- callers that
+# want a loud, fatal error (the local dump gate) construct their own
+# message; callers that use this purely to recognize/filter remote
+# objects (weekly/monthly dedup, retention) silently skip on failure.
+#
+# Verification is a strict, self-checking round-trip: parse the extracted
+# Y-M-D H:M:S as UTC, format back to the exact same "%Y%m%dT%H%M%SZ"
+# shape, and require byte-for-byte equality with the original timestamp.
+# Returns 0 (valid) or 1 (invalid, for any reason) -- never aborts the
+# script itself (no `set -e` interaction to worry about at call sites).
+_valid_backup_filename() {
+  local name="$1"
+  [[ "$name" =~ ^btcbot_([0-9]{4})([0-9]{2})([0-9]{2})T([0-9]{2})([0-9]{2})([0-9]{2})Z\.sql\.gz$ ]] || return 1
+  local ts y mo d h mi s formatted
+  ts="${name#btcbot_}"; ts="${ts%.sql.gz}"   # e.g. "20260819T031500Z"
+  y="${BASH_REMATCH[1]}"; mo="${BASH_REMATCH[2]}"; d="${BASH_REMATCH[3]}"
+  h="${BASH_REMATCH[4]}"; mi="${BASH_REMATCH[5]}"; s="${BASH_REMATCH[6]}"
+  formatted="$(date -u -d "${y}-${mo}-${d} ${h}:${mi}:${s}" +%Y%m%dT%H%M%SZ 2>/dev/null)" || return 1
+  [ "$formatted" = "$ts" ]
+}
+
 # ---- 1. remote configuration: required, and must not be an ambiguous root ----
 # A bare "name:" or "name" (no path component) would make retention pruning
 # operate on the remote's root — refuse that outright, fail closed.
@@ -103,18 +133,32 @@ gzip -t "$dump" 2>/dev/null || { echo "[offsite] ERROR: not a valid gzip: ${dump
 fname="$(basename "$dump")"
 echo "[offsite] using local backup: ${fname}"
 
-# Only filenames of the expected shape carry a chronologically-sortable,
-# unambiguous timestamp; anything else is never something this script
-# uploads, lists as a tier representative, or deletes.
-case "$fname" in
-  btcbot_????????T??????Z.sql.gz) : ;;
-  *) echo "[offsite] ERROR: unexpected dump filename shape: ${fname}" >&2; exit 1 ;;
-esac
+# ---- 2b. canonical filename + calendar/time validation, BEFORE ANY
+#          rclone invocation (not even `rclone mkdir`) -- a malformed
+#          local dump must never create so much as an empty tier
+#          directory on the remote. deploy/backup.sh always emits
+#          `date -u +%Y%m%dT%H%M%SZ`, so this is the exact producer
+#          format, not merely field WIDTH: a `?`-wildcard shape check (the
+#          original approach) accepts non-numeric junk like
+#          "btcbot_abcdefghTijklmnZ.sql.gz" as long as the widths line up
+#          -- that junk would then reach `rclone copyto` for daily/ before
+#          a LATER `date` call ever caught it. Uses the same
+#          `_valid_backup_filename` helper the remote-side checks below
+#          reuse, so there is exactly one definition of "valid" -- this is
+#          the only call site that turns a failure into a loud, fatal
+#          error (before any rclone invocation); the remote-side call
+#          sites below use it purely to recognize/skip foreign objects. ----
+if ! _valid_backup_filename "$fname"; then
+  echo "[offsite] ERROR: dump filename is not a valid" \
+       "btcbot_YYYYMMDDTHHMMSSZ.sql.gz timestamp: ${fname}" >&2
+  exit 1
+fi
 
 # ---- helpers -----------------------------------------------------------
 # btcbot_YYYYMMDDTHHMMSSZ.sql.gz -> YYYYMMDD (fixed-width, so lexicographic
 # order over the full filename IS chronological order — no date parsing
-# needed for sorting/retention).
+# needed for sorting/retention). Only ever called on a name that has
+# already passed `_valid_backup_filename`.
 _ymd_of() { local n="$1"; n="${n#btcbot_}"; echo "${n:0:8}"; }
 
 _iso_week_of() {  # -> "GGGG-VV" ISO week-based year+week, from YYYYMMDD
@@ -178,7 +222,18 @@ _sync_period_tier() {
   existing="$(_list_tier "$tier")"
   while IFS= read -r name; do
     [ -n "$name" ] || continue
-    case "$name" in btcbot_????????T??????Z.sql.gz) : ;; *) continue ;; esac
+    # Full canonical validity (shape AND real calendar/time), via the
+    # SAME helper the local dump gate above uses -- not merely a digit-
+    # width shape check. That distinction is exactly what closes the
+    # "invalid remotes suppress tier uploads" gap: `_iso_week_of` only
+    # ever examined the DATE portion (never HHMMSS), so a remote object
+    # with an impossible TIME (e.g. "...T999999Z...") previously computed
+    # a normal-looking ISO week and could silently masquerade as an
+    # already-present representative, suppressing a genuinely valid
+    # upload; `_month_of` performed no date/time validation at all. A
+    # remote object failing this check is simply skipped -- it is never
+    # treated as a same-period representative, and it is never deleted.
+    _valid_backup_filename "$name" || continue
     candidate_ymd="$(_ymd_of "$name")"
     candidate_key="$("$keyfn" "$candidate_ymd")"
     if [ "$candidate_key" = "$this_key" ]; then
@@ -208,12 +263,25 @@ _sync_period_tier monthly "$this_month" _month_of
 #         pruning candidate) -- "best effort success" is never masked. ----
 _prune_tier() {
   local tier="$1" keep="$2"
-  local names sorted_desc i=0 name
+  local names valid_names="" sorted_desc i=0 name
   names="$(_list_tier "$tier")"
   [ -n "$names" ] || return 0
-  # Filter to expected-shape names only, then sort descending (lexicographic
-  # == chronological for this fixed-width timestamp format).
-  sorted_desc="$(printf '%s\n' "$names" | grep -E '^btcbot_[0-9]{8}T[0-9]{6}Z\.sql\.gz$' | sort -r)"
+  # Filter to fully valid backup objects only (shape AND real calendar/
+  # time -- the same `_valid_backup_filename` helper used everywhere
+  # else), THEN sort descending (lexicographic == chronological for this
+  # fixed-width timestamp format). A shape-only filter (the previous
+  # `grep -E '^btcbot_[0-9]{8}T[0-9]{6}Z\.sql\.gz$'`) would let a digit-
+  # shaped-but-impossible timestamp (e.g. a malformed future-looking
+  # object) participate in this ordering and consume one of the `keep`
+  # retention slots, displacing a genuinely valid backup. An excluded
+  # object is simply never counted -- it is NOT deleted by this pass.
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    _valid_backup_filename "$name" || continue
+    valid_names+="${name}"$'\n'
+  done <<< "$names"
+  [ -n "$valid_names" ] || return 0
+  sorted_desc="$(printf '%s' "$valid_names" | sort -r)"
   [ -n "$sorted_desc" ] || return 0
   while IFS= read -r name; do
     [ -n "$name" ] || continue

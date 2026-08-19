@@ -80,7 +80,10 @@ TimescaleDB -> deploy/backup.sh -> LOCAL (newest 7) -> deploy/sync_backup_offsit
 
 - selects the newest **completed** local dump by default (`btcbot_*.sql.gz`,
   never a `.partial`), or accepts an explicit path as `$1`;
-- re-validates the dump locally before upload (non-empty, `gzip -t` valid);
+- re-validates the dump locally before upload (non-empty, `gzip -t` valid,
+  and an **exact** `btcbot_YYYYMMDDTHHMMSSZ.sql.gz` filename whose embedded
+  timestamp is a real, all-numeric UTC calendar date/time — validated
+  before any `rclone` command runs at all, not merely a same-width string);
 - requires `rclone` and an explicitly configured remote — refuses to run
   otherwise (fail closed, never assumes a default provider);
 - uploads to `<remote>/daily/`, then conditionally to `<remote>/weekly/` and
