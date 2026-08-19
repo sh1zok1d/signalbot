@@ -456,14 +456,37 @@ def _validate_utc_instant(value: Any, *, label: str) -> datetime:
     absent/`None`) is a completely separate, already-solved case — callers
     check for `None` themselves BEFORE calling this, exactly the
     missingness-vs-corruption precedence this module's docstring already
-    freezes elsewhere."""
+    freezes elsewhere.
+
+    (V2-H2d Qodo amendment, finding 1) `value.tzinfo` is itself an
+    arbitrary object a `V2AlignedInputReader` structural Protocol could
+    hand back attached to an otherwise well-typed `datetime` -- a
+    malformed/malicious `tzinfo.utcoffset()` implementation can raise on
+    its own, which would leak THAT raw exception past this boundary
+    exactly as a naive datetime's bare comparison used to. `utcoffset()`
+    is therefore called EXACTLY ONCE, inside a `try`/`except` that
+    translates ANY exception it raises into `V2AlignedInputError`, and the
+    resulting `offset` value is reused for every subsequent check/error
+    message -- `utcoffset()` is never invoked a second time (including
+    while formatting an error), so a tzinfo that raises on one call but
+    not consistently can never accidentally look "fine" on a retry, and a
+    tzinfo whose OWN error formatting is also malformed cannot be
+    triggered by this function's own messages."""
     if type(value) is not datetime:
         raise V2AlignedInputError(
             f"{label} must be a datetime, got {type(value).__name__}: {value!r}")
-    if value.tzinfo is None or value.utcoffset() is None:
+    if value.tzinfo is None:
         raise V2AlignedInputError(f"{label} must be timezone-aware, got {value!r}")
-    if value.utcoffset() != timedelta(0):
-        raise V2AlignedInputError(f"{label} must be UTC (offset 0), got offset {value.utcoffset()}")
+    try:
+        offset = value.utcoffset()
+    except Exception as exc:  # noqa: BLE001 - malformed/malicious tzinfo.utcoffset()
+        raise V2AlignedInputError(
+            f"{label} has a tzinfo whose utcoffset() raised "
+            f"{type(exc).__name__}: {exc}") from exc
+    if offset is None:
+        raise V2AlignedInputError(f"{label} must be timezone-aware, got {value!r}")
+    if offset != timedelta(0):
+        raise V2AlignedInputError(f"{label} must be UTC (offset 0), got offset {offset!r}")
     return value
 
 

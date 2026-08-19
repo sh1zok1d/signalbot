@@ -5,30 +5,38 @@ Deliberately NOT a FakeConn/SQL-string-inspection test (see
 tests/storage/test_stage2_db.py's existing style for that layer) — the
 whole point of §2.1b is real PostgreSQL `ON CONFLICT ... DO UPDATE`
 row-merge behavior, which a mocked connection cannot exercise. This module
-runs `insert_klines` against a REAL, ephemeral `klines_1m` table and reads
-the row back with a real `SELECT`, asserting on actual before/after column
-values -- not on the SQL text sent.
+runs `insert_klines` against a REAL `klines_1m` table and reads the row
+back with a real `SELECT`, asserting on actual before/after column values
+— not on the SQL text sent.
 
-Requires a reachable PostgreSQL server. Configure via the `KLINES_TEST_DSN`
-environment variable; defaults to a local throwaway database
-(`postgresql://postgres:postgres@127.0.0.1:5432/signalbot_test`, matching
-this repo's existing `POSTGRES_DSN` convention in common/config.py). If no
-server is reachable, every test in this module is SKIPPED (not failed) at
-setup time, exactly the same posture as any other environment-dependent
-integration suite -- there is no proof value in ALSO exercising this
-against a FakeConn, since a fake cannot execute real SQL.
+Isolation (Qodo amendment, finding 2): every test runs inside its OWN
+uniquely-named PostgreSQL SCHEMA, never the connection's default/shared
+schema. A per-test schema is created via an unscoped "admin" connection,
+then `Database` itself is connected via a DSN carrying the libpq
+`options=-csearch_path=<schema>` query parameter — every connection
+`asyncpg.create_pool()` opens for that DSN (including every connection
+`Database.insert_klines()` internally acquires) therefore resolves the
+unqualified `klines_1m` name inside that one schema, with zero production
+code changes. Cleanup issues exactly one `DROP SCHEMA "<generated-name>"
+CASCADE` against that same generated name — never a bare `DROP TABLE
+klines_1m` against whatever schema happened to be default. A concurrently
+running test process gets its own `uuid4`-suffixed schema name, so two
+runs against the same server cannot collide.
 
-Each test runs its whole setup/body/teardown inside ONE `asyncio.run()` /
-ONE event loop deliberately -- `asyncpg.Pool` (and the `Database` wrapping
-it) is bound to the loop that created it, so acquiring/using it from a
-DIFFERENT loop (e.g. a fixture's own separate `asyncio.run()` call) hangs
-rather than raising, which is exactly why this module does not use a
-pytest fixture returning an already-connected `Database`.
+Fail-vs-skip contract (Qodo amendment, finding 3): if `KLINES_TEST_DSN` is
+NOT set, this suite is a best-effort local convenience — a connection
+failure SKIPS (the default local DSN points at a throwaway database that
+may simply not exist on a given machine). If `KLINES_TEST_DSN` IS
+explicitly set (as CI now does, see .github/workflows/ci.yml), a
+connection/setup failure is a genuine TEST FAILURE, never a skip — CI must
+not silently pass without ever having exercised this SQL.
 """
 from __future__ import annotations
 
 import asyncio
 import os
+import urllib.parse
+import uuid
 from datetime import datetime, timezone
 
 import asyncpg
@@ -36,11 +44,11 @@ import pytest
 
 from storage.db import Database
 
-DSN = os.environ.get(
-    "KLINES_TEST_DSN", "postgresql://postgres:postgres@127.0.0.1:5432/signalbot_test")
+_EXPLICIT_DSN = os.environ.get("KLINES_TEST_DSN")
+BASE_DSN = _EXPLICIT_DSN or "postgresql://postgres:postgres@127.0.0.1:5432/signalbot_test"
 
 _KLINES_1M_DDL = """
-CREATE TABLE IF NOT EXISTS klines_1m (
+CREATE TABLE klines_1m (
     exchange            TEXT NOT NULL,
     symbol              TEXT NOT NULL,
     ts                  TIMESTAMPTZ NOT NULL,
@@ -60,6 +68,74 @@ CREATE TABLE IF NOT EXISTS klines_1m (
 # definition, minus the TimescaleDB `create_hypertable()` call -- ON
 # CONFLICT row-merge semantics are identical on a plain table, and this
 # suite must not require the timescaledb extension to be installed.
+# Deliberately unqualified (no "public." / "<schema>." prefix) -- it is
+# created through a search_path-scoped connection, so it lands inside
+# that one connection's resolved schema, never a shared default.
+
+
+def _scoped_dsn(base_dsn: str, schema: str) -> str:
+    """`base_dsn` + the libpq `options=-csearch_path=<schema>` query
+    parameter, merged onto whatever query string `base_dsn` already
+    carries (e.g. `sslmode=...`) rather than clobbering it."""
+    parts = urllib.parse.urlsplit(base_dsn)
+    query = urllib.parse.parse_qsl(parts.query, keep_blank_values=True)
+    query.append(("options", f"-csearch_path={schema}"))
+    new_query = urllib.parse.urlencode(query)
+    return urllib.parse.urlunsplit(
+        (parts.scheme, parts.netloc, parts.path, new_query, parts.fragment))
+
+
+async def _connect_admin() -> asyncpg.Connection:
+    """A plain connection to `BASE_DSN` (the caller's default/whatever
+    schema `search_path` normally resolves to) -- used ONLY to create and
+    later drop this test's own uniquely-named schema. Never issues any
+    statement against `klines_1m` itself."""
+    try:
+        return await asyncpg.connect(BASE_DSN, timeout=3)
+    except Exception as exc:  # noqa: BLE001 - any connection failure
+        if _EXPLICIT_DSN:
+            # KLINES_TEST_DSN was deliberately configured (CI) -- a
+            # connection failure here is a genuine test FAILURE, not a
+            # skip; CI must not silently pass without ever running this.
+            raise
+        pytest.skip(f"no reachable PostgreSQL test server at {BASE_DSN!r}: {exc}")
+        raise AssertionError("unreachable")  # pragma: no cover - pytest.skip() always raises
+
+
+def _unique_schema_name() -> str:
+    return "v2h2d_test_" + uuid.uuid4().hex[:16]
+
+
+async def _with_isolated_klines_table(body):
+    """Create a fresh, uniquely-named schema, connect `Database` to it via
+    `_scoped_dsn`, create ONE `klines_1m` table inside that schema, run
+    `body(db)`, then unconditionally drop that exact schema (and nothing
+    else) -- all inside the SAME event loop (asyncpg pools are bound to
+    the loop that created them, so a fixture using a SEPARATE
+    `asyncio.run()` call would hang trying to reuse a pool across loops)."""
+    schema = _unique_schema_name()
+    admin = await _connect_admin()
+    try:
+        await admin.execute(f'CREATE SCHEMA "{schema}"')
+    finally:
+        await admin.close()
+
+    db = Database(_scoped_dsn(BASE_DSN, schema))
+    await db.connect()
+    try:
+        async with db.pool.acquire() as conn:
+            await conn.execute(_KLINES_1M_DDL)
+        await body(db)
+    finally:
+        await db.close()
+        cleanup = await _connect_admin()
+        try:
+            # Exactly one statement, targeting exactly the schema THIS
+            # run created above -- never a bare "klines_1m" name, never
+            # any other schema.
+            await cleanup.execute(f'DROP SCHEMA "{schema}" CASCADE')
+        finally:
+            await cleanup.close()
 
 
 def _ts(minute: int) -> datetime:
@@ -75,33 +151,8 @@ async def _fetch_row(db: Database, *, exchange: str, symbol: str, ts: datetime) 
     return dict(row)
 
 
-async def _with_fresh_klines_table(body):
-    """Connect, (re)create a fresh klines_1m table, run `body(db)`, then
-    drop the table and disconnect -- all inside the SAME event loop.
-    Skips the whole test (not a failure) if no server is reachable."""
-    try:
-        conn = await asyncpg.connect(DSN, timeout=3)
-    except Exception as exc:  # noqa: BLE001 - any connection failure -> skip
-        pytest.skip(f"no reachable PostgreSQL test server at {DSN!r}: {exc}")
-        return
-    try:
-        await conn.execute("DROP TABLE IF EXISTS klines_1m")
-        await conn.execute(_KLINES_1M_DDL)
-    finally:
-        await conn.close()
-
-    db = Database(DSN)
-    await db.connect()
-    try:
-        await body(db)
-    finally:
-        async with db.pool.acquire() as conn:
-            await conn.execute("DROP TABLE IF EXISTS klines_1m")
-        await db.close()
-
-
 def _run(body):
-    asyncio.run(_with_fresh_klines_table(body))
+    asyncio.run(_with_isolated_klines_table(body))
 
 
 # ============================================================================
@@ -261,3 +312,81 @@ def test_source_never_protected_when_stored_row_was_never_live():
         assert after["source"] == "backfill"
 
     _run(body)
+
+
+# ============================================================================
+# 7. isolation-harness safety (Qodo amendment, finding 2): a pre-existing
+# klines_1m table in the DEFAULT/shared schema this DSN normally resolves
+# to (simulating a real shared/production table) must survive a full
+# isolated test cycle -- setup, insert_klines calls, and cleanup --
+# completely untouched: same row count, same sentinel row.
+# ============================================================================
+def test_isolated_harness_does_not_touch_a_preexisting_shared_klines_1m_table():
+    async def scenario():
+        admin = await _connect_admin()
+        we_created_it = False
+        try:
+            existing = await admin.fetchval(
+                "SELECT to_regclass('klines_1m')")
+            if existing is None:
+                we_created_it = True
+                await admin.execute(_KLINES_1M_DDL)
+                sentinel = ("sentinel-exchange", "SENTINELUSDT", _ts(59),
+                            1.0, 2.0, 0.5, 1.5, 10.0, None, None, None, "backfill")
+                await admin.execute(
+                    """INSERT INTO klines_1m
+                       (exchange, symbol, ts, open, high, low, close, volume,
+                        taker_buy_volume, taker_sell_volume, trades_count, source)
+                       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)""",
+                    *sentinel)
+            before_count = await admin.fetchval("SELECT count(*) FROM klines_1m")
+            before_rows = {tuple(r.values())
+                           for r in await admin.fetch("SELECT * FROM klines_1m")}
+        finally:
+            await admin.close()
+
+        # Run one full isolated cycle -- its own schema, its own
+        # klines_1m, real insert_klines calls -- completely separate from
+        # the "shared" table above.
+        async def body(db):
+            row = ("binance", "BTCUSDT", _ts(58), 1.0, 2.0, 0.5, 1.5, 10.0,
+                   3.0, 2.0, 5)
+            await db.insert_klines([row], source="live")
+
+        await _with_isolated_klines_table(body)
+
+        admin2 = await _connect_admin()
+        try:
+            after_count = await admin2.fetchval("SELECT count(*) FROM klines_1m")
+            after_rows = {tuple(r.values())
+                          for r in await admin2.fetch("SELECT * FROM klines_1m")}
+            assert after_count == before_count, (
+                "the shared klines_1m row count must be unchanged by an isolated test cycle")
+            assert after_rows == before_rows, (
+                "the shared klines_1m row CONTENTS must be byte-for-byte unchanged")
+            if we_created_it:
+                # disposable scaffold this test itself created for the
+                # proof -- safe to remove; a table that already existed
+                # before this test ran is left completely alone.
+                await admin2.execute("DROP TABLE klines_1m")
+        finally:
+            await admin2.close()
+
+    asyncio.run(scenario())
+
+
+def test_core_isolation_helper_never_issues_a_bare_drop_against_the_default_schema():
+    """Structural regression: `_with_isolated_klines_table` -- the ONE
+    setup/teardown helper every no-downgrade test above routes through --
+    must never contain the fixed word sequence naming a direct removal of
+    the shared table by its bare name. Its only DROP statement must be
+    `DROP SCHEMA "<generated-name>" CASCADE`, scoped to the dynamically-
+    generated `schema` variable. (Scoped to this ONE function, not the
+    whole module, because the separate harness-safety proof test above
+    legitimately drops a table it created ITSELF as disposable scaffolding
+    -- that is not the regression this checks for.)"""
+    import inspect
+    source = inspect.getsource(_with_isolated_klines_table)
+    forbidden = "DROP" + " " + "TABLE" + " klines_1m"
+    assert forbidden.lower() not in source.lower()
+    assert 'DROP SCHEMA "{schema}"' in source
