@@ -1,0 +1,41 @@
+[Unit]
+Description=Signalbot restore self-test (throwaway DB; NEVER touches the live DB)
+Documentation=file:/opt/signalbot/docs/DATA_DURABILITY_RUNBOOK.md
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Same trust boundary as signalbot-backup.service — restoring into even a
+# throwaway DB needs `docker exec`/`psql` against the TimescaleDB container.
+User=root
+WorkingDirectory=/opt/signalbot
+EnvironmentFile=/opt/signalbot/.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+ExecStartPre=/usr/bin/test -x /opt/signalbot/deploy/restore.sh
+# Reuses deploy/restore.sh's OWN --self-test path verbatim — this unit adds
+# no second restore implementation. --self-test restores the latest local
+# dump into a throwaway `btcbot_restore_selftest_<ts>` DB, verifies
+# klines_1m has rows, then drops it. It never accepts --force-live and never
+# targets POSTGRES_DB (the live database).
+ExecStart=/opt/signalbot/deploy/restore.sh --self-test
+
+TimeoutStartSec=1800
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=signalbot-backup-verify
+
+# --- Hardening (same rationale as signalbot-backup.service) ---
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+UMask=0077
+
+# No [Install] section: the timer (signalbot-backup-verify.timer) owns
+# activation.

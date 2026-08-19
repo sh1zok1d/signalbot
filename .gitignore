@@ -17,6 +17,11 @@ backups/
 !.env.example
 *.pem
 *.key
+# rclone remote credentials belong in /etc/signalbot or ~/.config/rclone on
+# the VPS (see docs/DATA_DURABILITY_RUNBOOK.md), never in this repo — ignored
+# defensively in case one is ever dropped into a working tree by mistake.
+rclone.conf
+backup.env
 
 # Python
 .venv/

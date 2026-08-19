@@ -1,0 +1,18 @@
+[Unit]
+Description=Run Signalbot restore self-test approximately monthly
+Documentation=file:/opt/signalbot/docs/DATA_DURABILITY_RUNBOOK.md
+
+[Timer]
+# Approximately monthly: the 1st of each UTC month, after the daily backup
+# timer (03:15) has had time to produce a fresh local dump to restore.
+OnCalendar=*-*-01 04:00:00 UTC
+AccuracySec=1min
+RandomizedDelaySec=0
+# A missed run (VPS offline on the 1st) fires ONE catch-up run on return —
+# this is NOT full catch-up of every missed month, just "restore verification
+# does not silently go a full extra month without running at all."
+Persistent=true
+Unit=signalbot-backup-verify.service
+
+[Install]
+WantedBy=timers.target
