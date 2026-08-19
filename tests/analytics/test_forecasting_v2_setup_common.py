@@ -67,7 +67,10 @@ _PRICE_EVI_FOR_REGIME = {
     BULLISH_TRENDING: 0.5, BEARISH_TRENDING: -0.5, NON_DIRECTIONAL: None, INSUFFICIENT_DATA: None,
 }
 _BIAS_EVI_FOR_BIAS = {
-    BULLISH: 0.5, BEARISH: -0.5, NEUTRAL_NOT_ESTABLISHED: None, BIAS_UNAVAILABLE: None,
+    # NEUTRAL_NOT_ESTABLISHED requires a real, measured bias_evi (tech-lead
+    # amendment round 2) -- 0.0 is genuinely neutral, never a stand-in for
+    # missing evidence. BIAS_UNAVAILABLE may legitimately carry None.
+    BULLISH: 0.5, BEARISH: -0.5, NEUTRAL_NOT_ESTABLISHED: 0.0, BIAS_UNAVAILABLE: None,
 }
 
 

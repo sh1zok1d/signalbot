@@ -59,7 +59,7 @@ def make_context(*, t=T, b4h=B4H, b1h=B1H) -> V2ContextSnapshot:
         regime_4h=V2RegimeResult(
             bucket_ts=b4h, regime=NON_DIRECTIONAL, is_compressed=False,
             price_evi=None, compression_score=0.5),
-        bias_1h=V2BiasResult(bucket_ts=b1h, bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=None),
+        bias_1h=V2BiasResult(bucket_ts=b1h, bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=0.0),
     )
 
 

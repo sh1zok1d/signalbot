@@ -516,12 +516,16 @@ def test_inputs_not_v2timeframeinputs_raises():
 
 
 _BIAS_EVI_FOR = {
-    BULLISH: 0.5, BEARISH: -0.5, NEUTRAL_NOT_ESTABLISHED: None, BIAS_UNAVAILABLE: None,
+    # NEUTRAL_NOT_ESTABLISHED requires a real, measured bias_evi (tech-lead
+    # amendment round 2) -- 0.0 is a genuinely neutral measured value, never
+    # a stand-in for missing evidence. BIAS_UNAVAILABLE may legitimately
+    # carry None (the computation could not run at all).
+    BULLISH: 0.5, BEARISH: -0.5, NEUTRAL_NOT_ESTABLISHED: 0.0, BIAS_UNAVAILABLE: None,
 }
 
 
 def test_result_is_frozen():
-    result = V2BiasResult(bucket_ts=B, bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=None)
+    result = V2BiasResult(bucket_ts=B, bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=0.0)
     with pytest.raises(Exception):
         result.bias = BULLISH  # type: ignore[misc]
 
@@ -537,27 +541,91 @@ def test_result_rejects_invalid_bias_state():
         V2BiasResult(bucket_ts=B, bias="WEAK_BULLISH", bias_evi=None)
 
 
+# ============================================================================
+# 4.5 Tech-lead amendment round 2 -- NEUTRAL_NOT_ESTABLISHED requires a
+# measured bias_evi; BIAS_UNAVAILABLE may carry None OR numeric evidence.
+# ============================================================================
+def test_neutral_not_established_rejects_none_bias_evi():
+    with pytest.raises(V2BiasError):
+        V2BiasResult(bucket_ts=B, bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=None)
+
+
+def test_neutral_not_established_accepts_zero_bias_evi():
+    result = V2BiasResult(bucket_ts=B, bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=0.0)
+    assert result.bias_evi == 0.0
+
+
+def test_neutral_not_established_accepts_strong_numeric_evidence():
+    # Proves NEUTRAL_NOT_ESTABLISHED is NOT assumed to mean below-threshold
+    # evidence -- agreement (not carried by this result) could have failed
+    # even with bias_evi well beyond BIAS_THRESHOLD.
+    result = V2BiasResult(bucket_ts=B, bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=0.8)
+    assert result.bias_evi == 0.8
+
+
+def test_bias_unavailable_accepts_none_bias_evi():
+    result = V2BiasResult(bucket_ts=B, bias=BIAS_UNAVAILABLE, bias_evi=None)
+    assert result.bias_evi is None
+
+
+def test_bias_unavailable_accepts_numeric_bias_evi():
+    # Preserves the family-quality-failure path: a numeric bias_evi can
+    # exist while required price_structure family coverage/confidence
+    # fails, producing BIAS_UNAVAILABLE with real evidence attached.
+    result = V2BiasResult(bucket_ts=B, bias=BIAS_UNAVAILABLE, bias_evi=0.8)
+    assert result.bias_evi == 0.8
+
+
+def test_missing_bias_evidence_cannot_masquerade_as_measured_neutral():
+    # Cross-stage regression: proves there is no path by which direct/
+    # replay construction can convert missing bias evidence into the
+    # NEUTRAL_NOT_ESTABLISHED label directional_context_gate() accepts.
+    from analytics.forecasting_v2.alignment import selected_bucket
+    from analytics.forecasting_v2.setup_common import directional_context_gate
+    from analytics.forecasting_v2.context_snapshot import V2ContextSnapshot
+    from analytics.forecasting_v2.regime_4h import NON_DIRECTIONAL, V2RegimeResult
+    from analytics.forecasting_v2.events import LONG
+
+    # A genuinely-measured neutral context is accepted, exactly as before.
+    context = V2ContextSnapshot(
+        T=B, symbol="BTCUSDT", market_type="perp", calculation_version="a" * 16,
+        feature_schema_version=1,
+        regime_4h=V2RegimeResult(
+            bucket_ts=selected_bucket("4h", B), regime=NON_DIRECTIONAL, is_compressed=False,
+            price_evi=None, compression_score=0.5),
+        bias_1h=V2BiasResult(
+            bucket_ts=selected_bucket("1h", B), bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=0.0),
+    )
+    assert directional_context_gate(context, LONG).accepted is True
+
+    # A missing-evidence "neutral" cannot even be constructed -- the seam
+    # is closed at the Stage-4 result boundary, before it could ever reach
+    # directional_context_gate().
+    with pytest.raises(V2BiasError):
+        V2BiasResult(bucket_ts=B, bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=None)
+
+
 def test_result_rejects_naive_bucket_ts():
     naive = datetime(2026, 8, 15, 11, 0)
     with pytest.raises(V2BiasError, match="timezone-aware"):
-        V2BiasResult(bucket_ts=naive, bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=None)
+        V2BiasResult(bucket_ts=naive, bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=0.0)
 
 
 def test_result_rejects_non_utc_bucket_ts():
     non_utc = datetime(2026, 8, 15, 14, 0, tzinfo=timezone(timedelta(hours=3)))
     with pytest.raises(V2BiasError, match="must be UTC"):
-        V2BiasResult(bucket_ts=non_utc, bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=None)
+        V2BiasResult(bucket_ts=non_utc, bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=0.0)
 
 
 def test_result_rejects_bucket_ts_with_seconds():
     with pytest.raises(V2BiasError, match="whole minute"):
-        V2BiasResult(bucket_ts=B.replace(second=1), bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=None)
+        V2BiasResult(bucket_ts=B.replace(second=1), bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=0.0)
 
 
 def test_result_rejects_bucket_ts_with_microseconds():
     with pytest.raises(V2BiasError, match="whole minute"):
         V2BiasResult(
-            bucket_ts=B.replace(microsecond=1), bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=None)
+            bucket_ts=B.replace(microsecond=1), bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=0.0)
 
 
 def test_result_accepts_valid_utc_whole_minute_bucket_ts():

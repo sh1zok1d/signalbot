@@ -194,10 +194,21 @@ class V2BiasResult:
     `bias_evi` (§4.1a) preserves BY VALUE the exact `normalized_evidence`
     PR 1 evidence this engine itself computed while deciding `bias` --
     never recomputed downstream (Stage 5/6 read this field instead of
-    re-deriving it from Stage 3 percentile history). May legitimately be
-    `None` (the same UNAVAILABLE semantics `normalized_evidence()` itself
-    returns); a `None` here is never itself an error, only a value
-    inconsistent with `bias` is."""
+    re-deriving it from Stage 3 percentile history).
+
+    `bias_evi=None` is legitimate ONLY for `BIAS_UNAVAILABLE` -- and even
+    there it is not REQUIRED: STEP 1's gate can fail on family confidence/
+    coverage alone while `bias_evi` itself is a present, numeric value, so
+    `BIAS_UNAVAILABLE` may carry either `None` or a real number.
+    `NEUTRAL_NOT_ESTABLISHED` is a successfully-computed, measured
+    non-established bias (module docstring's own framing) -- it therefore
+    REQUIRES a real, numeric `bias_evi`; `None` there would silently
+    convert missing/unavailable evidence into the neutral label Stage 5's
+    `directional_context_gate()` accepts (unlike `BIAS_UNAVAILABLE`, which
+    it rejects), corrupting the exact availability-vs-neutral distinction
+    this module's decision tree exists to preserve. `BULLISH`/`BEARISH`
+    each further require `bias_evi` to actually clear their own signed
+    threshold (checked below)."""
     bucket_ts: datetime
     bias: str
     bias_evi: Optional[float]
@@ -215,11 +226,10 @@ class V2BiasResult:
 
         # §4.1a: label and numerical evidence must be internally consistent
         # -- a directly-constructed impossible/malformed result fails closed.
-        # `BIAS_UNAVAILABLE`/`NEUTRAL_NOT_ESTABLISHED` carry no sign/None
-        # constraint beyond the domain/finiteness check above: STEP 1's gate
-        # can fail on confidence/coverage alone even when bias_evi itself is
-        # present, and NEUTRAL_NOT_ESTABLISHED can legitimately arise from
-        # the agreement gate failing even when bias_evi is beyond threshold.
+        # `BIAS_UNAVAILABLE` carries no sign/None constraint beyond the
+        # domain/finiteness check above: STEP 1's gate can fail on family
+        # confidence/coverage alone even when bias_evi itself is present and
+        # numeric -- both a None and a numeric bias_evi are legitimate there.
         if self.bias == BULLISH:
             if bias_evi is None or not (bias_evi >= BIAS_THRESHOLD):
                 raise V2BiasError(
@@ -230,6 +240,23 @@ class V2BiasResult:
                 raise V2BiasError(
                     f"bias_evi must be <= {-BIAS_THRESHOLD!r} for bias {BEARISH!r}, got "
                     f"{self.bias_evi!r}")
+        elif self.bias == NEUTRAL_NOT_ESTABLISHED:
+            # Tech-lead amendment round 2: NEUTRAL_NOT_ESTABLISHED means the
+            # computation SUCCEEDED (a real bias_evi was measured) but a
+            # directional lean could not be firmly established -- it is NOT
+            # a spelling of missingness. Only bias_evi's presence is
+            # required here, never a magnitude constraint: NEUTRAL_NOT_
+            # ESTABLISHED can legitimately arise with bias_evi at or beyond
+            # BIAS_THRESHOLD when agreement is absent/below its own gate
+            # (agreement is not carried by this result, so that state is
+            # indistinguishable from -- and just as valid as -- a
+            # genuinely below-threshold bias_evi).
+            if bias_evi is None:
+                raise V2BiasError(
+                    f"bias_evi must not be None for bias {NEUTRAL_NOT_ESTABLISHED!r} -- "
+                    "NEUTRAL_NOT_ESTABLISHED is a successfully-measured non-established bias, "
+                    "never a spelling of missing/unavailable evidence (that is "
+                    f"{BIAS_UNAVAILABLE!r}), got {self.bias_evi!r}")
 
 
 # ---- numeric validation (mirrors context_evidence.py/regime_4h.py's own
