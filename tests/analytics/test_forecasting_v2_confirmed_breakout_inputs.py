@@ -52,8 +52,9 @@ def make_context(*, t=T) -> V2ContextSnapshot:
         T=t, symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=H16,
         feature_schema_version=1,
         regime_4h=V2RegimeResult(bucket_ts=selected_bucket("4h", t), regime=NON_DIRECTIONAL,
-                                 is_compressed=False),
-        bias_1h=V2BiasResult(bucket_ts=selected_bucket("1h", t), bias=NEUTRAL_NOT_ESTABLISHED),
+                                 is_compressed=False, price_evi=None, compression_score=None),
+        bias_1h=V2BiasResult(bucket_ts=selected_bucket("1h", t), bias=NEUTRAL_NOT_ESTABLISHED,
+                             bias_evi=None),
     )
 
 
@@ -399,6 +400,8 @@ def test_loader_output_feeds_real_detector_to_a_valid_candidate():
         "calculation_version": H16, "feature_schema_version": 1,
         "bucket_ts": proxy_start + i * ONE_HOUR,
         "min_coverage_ratio": 0.9, "consensus_confidence": 80.0, "range_width_pct_median": 0.5,
+        "coverage_by_metric": {"price_structure": {"available": 3, "expected": 3, "ratio": 0.9}},
+        "data_confidence_by_metric": {"price_structure": 80.0},
     } for i in range(RANGE_PROXY_N))
 
     reference_5m_rows = (

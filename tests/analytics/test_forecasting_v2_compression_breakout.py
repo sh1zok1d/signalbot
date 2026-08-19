@@ -72,24 +72,65 @@ RANGE_HIGH = 64_100.0
 # ============================================================================
 # fixtures
 # ============================================================================
+_FAMILIES = ("price_structure", "volume", "taker_flow", "oi", "funding", "liquidations")
+_PRICE_EVI_FOR_REGIME = {
+    BULLISH_TRENDING: 0.5, BEARISH_TRENDING: -0.5, NON_DIRECTIONAL: None, INSUFFICIENT_DATA: None,
+}
+_BIAS_EVI_FOR_BIAS = {
+    BULLISH: 0.5, BEARISH: -0.5, NEUTRAL_NOT_ESTABLISHED: None, BIAS_UNAVAILABLE: None,
+}
+
+
 def make_context(regime=NON_DIRECTIONAL, bias=NEUTRAL_NOT_ESTABLISHED, *, t=T, b4h=B4H, b1h=B1H,
                  is_compressed=None) -> V2ContextSnapshot:
     if is_compressed is None and regime == NON_DIRECTIONAL:
         is_compressed = False
+    compression_score = None
+    if regime == NON_DIRECTIONAL:
+        compression_score = 0.9 if is_compressed else 0.5
     return V2ContextSnapshot(
         T=t, symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=H16,
         feature_schema_version=1,
-        regime_4h=V2RegimeResult(bucket_ts=b4h, regime=regime, is_compressed=is_compressed),
-        bias_1h=V2BiasResult(bucket_ts=b1h, bias=bias),
+        regime_4h=V2RegimeResult(
+            bucket_ts=b4h, regime=regime, is_compressed=is_compressed,
+            price_evi=_PRICE_EVI_FOR_REGIME[regime], compression_score=compression_score),
+        bias_1h=V2BiasResult(bucket_ts=b1h, bias=bias, bias_evi=_BIAS_EVI_FOR_BIAS[bias]),
     )
 
 
+def _family_maps(*, price_coverage, price_confidence, taker_coverage=None, taker_confidence=None):
+    """§6.3a per-family maps -- `price_structure` (every gate in this
+    family) and `taker_flow` (the fresh 5m trigger's SECOND mandatory
+    family, `taker_*` defaults to the SAME values as `price_*` unless
+    overridden) driven explicitly; the other four families always fully
+    healthy (irrelevant to every test in this file)."""
+    if taker_coverage is None:
+        taker_coverage = price_coverage
+    if taker_confidence is None:
+        taker_confidence = price_confidence
+    per_family = {
+        "price_structure": (price_coverage, price_confidence),
+        "taker_flow": (taker_coverage, taker_confidence),
+    }
+    coverage_by_metric = {}
+    data_confidence_by_metric = {}
+    for family in _FAMILIES:
+        ratio, confidence = per_family.get(family, (1.0, 100.0))
+        coverage_by_metric[family] = {"available": 3, "expected": 3, "ratio": ratio}
+        data_confidence_by_metric[family] = confidence
+    return coverage_by_metric, data_confidence_by_metric
+
+
 def make_consensus_15m_row(bucket_ts, *, coverage=0.9, confidence=80.0, range_width=0.3, **over):
+    coverage_by_metric, data_confidence_by_metric = _family_maps(
+        price_coverage=coverage, price_confidence=confidence)
     base = dict(
         symbol=SYMBOL, market_type=MARKET_TYPE, timeframe="15m",
         calculation_version=H16, feature_schema_version=1, bucket_ts=bucket_ts,
         min_coverage_ratio=coverage, consensus_confidence=confidence,
         range_width_pct_median=range_width,
+        coverage_by_metric=coverage_by_metric,
+        data_confidence_by_metric=data_confidence_by_metric,
     )
     base.update(over)
     return base
@@ -141,12 +182,17 @@ def make_raw_1m_rows(bucket_ts, *, high=64_050.0, low=63_950.0, count=15):
 
 
 def make_trigger_5m_row(bucket_ts=B5, *, coverage=0.9, confidence=80.0, agreement=0.8,
-                        taker=-1000.0, **over):
+                        taker=-1000.0, taker_coverage=None, taker_confidence=None, **over):
+    coverage_by_metric, data_confidence_by_metric = _family_maps(
+        price_coverage=coverage, price_confidence=confidence,
+        taker_coverage=taker_coverage, taker_confidence=taker_confidence)
     base = dict(
         symbol=SYMBOL, market_type=MARKET_TYPE, timeframe="5m",
         calculation_version=H16, feature_schema_version=1, bucket_ts=bucket_ts,
         min_coverage_ratio=coverage, consensus_confidence=confidence,
         price_direction_agreement=agreement, taker_delta_notional_usd_sum=taker,
+        coverage_by_metric=coverage_by_metric,
+        data_confidence_by_metric=data_confidence_by_metric,
     )
     base.update(over)
     return base
@@ -347,6 +393,98 @@ def test_9_consecutive_uses_full_length_not_truncated():
     assert result is not None
     assert result.compression_length == 9
     assert result.compression_start_bucket == LOOKBACK_GRID[7]
+
+
+def test_setup_strength_is_full_run_mean_not_end_bucket_only():
+    # §8.2 LOAD-BEARING: setup_strength = mean(compression_score) over the
+    # ENTIRE selected run, never just the end bucket's own score. Every
+    # bucket in the 7-long run gets a DIFFERENT compression_score (still
+    # all >= COMPRESSION_THRESHOLD so the run itself still qualifies) --
+    # if the implementation regressed to "end-bucket-only", the assertion
+    # against the true mean would fail, and it would visibly differ from
+    # the (wrong) end-bucket-only value asserted separately below.
+    per_bucket_scores = [0.80, 0.99, 0.76, 0.93, 0.75, 0.88, 0.97]  # indices 9..15
+    assert len(per_bucket_scores) == RUN_LENGTH
+    consensus_rows = []
+    percentile_rows = []
+    for i, b in enumerate(LOOKBACK_GRID):
+        consensus_rows.append(make_consensus_15m_row(b))
+        if i in _RUN_INDICES:
+            score = per_bucket_scores[_RUN_INDICES.index(i)]
+        else:
+            score = 0.10
+        percentile_rows.append(make_percentile_row(b, score=score))
+    result = detect_compression_breakout(build_valid_short_inputs(
+        consensus_15m_rows=tuple(consensus_rows), percentile_15m_rows=tuple(percentile_rows)))
+    assert result is not None
+    true_mean = sum(per_bucket_scores) / len(per_bucket_scores)
+    end_bucket_only = per_bucket_scores[-1]
+    assert true_mean != end_bucket_only  # the vector is only meaningful if these differ
+    assert result.setup_strength == pytest.approx(true_mean)
+    assert result.setup_strength != pytest.approx(end_bucket_only)
+
+
+def test_setup_strength_full_run_mean_when_run_ends_before_current_b15():
+    # Adversarial vector B: the qualifying run ends strictly BEFORE the
+    # current B15 bucket (buckets after the run are simply below
+    # threshold, not fabricated/extended) -- setup_strength must still be
+    # the mean over exactly the selected run's own buckets, not smeared
+    # across the gap to B15.
+    older_run = tuple(range(0, 9))  # indices 0..8, ends well before B15 (index 15)
+    per_bucket_scores = [0.80, 0.99, 0.76, 0.93, 0.75, 0.88, 0.97, 0.79, 0.82]
+    assert len(per_bucket_scores) == len(older_run)
+    consensus_rows = []
+    percentile_rows = []
+    for i, b in enumerate(LOOKBACK_GRID):
+        consensus_rows.append(make_consensus_15m_row(b))
+        if i in older_run:
+            score = per_bucket_scores[older_run.index(i)]
+        else:
+            score = 0.10
+        percentile_rows.append(make_percentile_row(b, score=score))
+    reference_15m_rows, raw_1m_rows = build_structural_rows(run_indices=older_run)
+    # B15 itself still needs its own reference-feature row for the §34 15m
+    # close lookup, independent of run membership.
+    reference_15m_rows = reference_15m_rows + (make_reference_15m_row(B15, close=64_000.0),)
+    result = detect_compression_breakout(build_valid_short_inputs(
+        consensus_15m_rows=tuple(consensus_rows), percentile_15m_rows=tuple(percentile_rows),
+        reference_15m_rows=reference_15m_rows, reference_1m_rows=raw_1m_rows))
+    assert result is not None
+    assert result.compression_end_bucket == LOOKBACK_GRID[8]
+    assert result.compression_end_bucket != B15
+    assert result.setup_strength == pytest.approx(sum(per_bucket_scores) / len(per_bucket_scores))
+
+
+def test_setup_strength_selects_newer_runs_own_scores_not_older_runs():
+    # Adversarial vector C: two separated qualifying runs. The selection
+    # itself already picks the most recent one (proven elsewhere) -- this
+    # vector proves setup_strength is computed from the SELECTED (newer)
+    # run's own scores, not accidentally averaged with (or substituted by)
+    # the older run's scores.
+    older_run = tuple(range(0, 9))
+    newer_run = tuple(range(10, 16))
+    older_scores = [0.90] * len(older_run)  # deliberately a different constant
+    newer_scores = [0.80, 0.99, 0.76, 0.93, 0.75, 0.88]
+    assert len(newer_scores) == len(newer_run)
+    consensus_rows = []
+    percentile_rows = []
+    for i, b in enumerate(LOOKBACK_GRID):
+        consensus_rows.append(make_consensus_15m_row(b))
+        if i in older_run:
+            score = older_scores[older_run.index(i)]
+        elif i in newer_run:
+            score = newer_scores[newer_run.index(i)]
+        else:
+            score = 0.10
+        percentile_rows.append(make_percentile_row(b, score=score))
+    reference_15m_rows, raw_1m_rows = build_structural_rows(run_indices=newer_run)
+    result = detect_compression_breakout(build_valid_short_inputs(
+        consensus_15m_rows=tuple(consensus_rows), percentile_15m_rows=tuple(percentile_rows),
+        reference_15m_rows=reference_15m_rows, reference_1m_rows=raw_1m_rows))
+    assert result is not None
+    assert result.compression_start_bucket == LOOKBACK_GRID[10]
+    assert result.setup_strength == pytest.approx(sum(newer_scores) / len(newer_scores))
+    assert result.setup_strength != pytest.approx(0.90)  # never the older run's constant
 
 
 def test_two_qualifying_runs_selects_newer_even_if_shorter():
@@ -563,6 +701,29 @@ def test_current_b15_quality_below_threshold_no_candidate_even_if_older_run_qual
         consensus_15m_rows=tuple(consensus_rows), percentile_15m_rows=percentile_rows,
         reference_15m_rows=reference_15m_rows, reference_1m_rows=raw_1m_rows))
     assert result is None
+
+
+@pytest.mark.parametrize("family", ["volume", "taker_flow", "oi", "funding", "liquidations"])
+def test_formation_window_only_reads_price_structure_other_families_cannot_break_run(family):
+    # §6.3a required matrix: the formation-window per-bucket quality gate
+    # (COMPRESSION_BREAKOUT's run detection) is scoped to price_structure
+    # ONLY, even though the fresh 5m trigger later ALSO reads taker_flow --
+    # the two gates are on different rows/timeframes. Zeroing any other
+    # family at the CURRENT B15 formation bucket must have zero effect.
+    consensus_rows, percentile_rows = build_compression_grid_rows()
+    consensus_rows = list(consensus_rows)
+    current = dict(consensus_rows[15])
+    assert current["bucket_ts"] == B15
+    coverage_by_metric = dict(current["coverage_by_metric"])
+    coverage_by_metric[family] = {"available": 0, "expected": 3, "ratio": 0.0}
+    current["coverage_by_metric"] = coverage_by_metric
+    data_confidence_by_metric = dict(current["data_confidence_by_metric"])
+    data_confidence_by_metric[family] = 0.0
+    current["data_confidence_by_metric"] = data_confidence_by_metric
+    consensus_rows[15] = current
+    result = detect_compression_breakout(build_valid_short_inputs(
+        consensus_15m_rows=tuple(consensus_rows), percentile_15m_rows=percentile_rows))
+    assert result is not None
 
 
 def test_current_b15_row_missing_no_candidate():
@@ -856,6 +1017,42 @@ def test_duplicate_trigger_row_raises():
             consensus_5m_rows=(make_trigger_5m_row(), make_trigger_5m_row())))
 
 
+def test_5m_trigger_taker_flow_poor_alone_rejects_even_with_healthy_price_structure():
+    # §6.3a required matrix: the fresh 5m trigger requires price_structure
+    # AND taker_flow BOTH independently passing. price_structure healthy,
+    # taker_flow below floor -- must still reject.
+    result = detect_compression_breakout(build_valid_short_inputs(
+        consensus_5m_rows=(make_trigger_5m_row(
+            coverage=SETUP_MIN_COVERAGE, confidence=SETUP_MIN_CONFIDENCE,
+            taker_coverage=SETUP_MIN_COVERAGE - 1e-9, taker_confidence=SETUP_MIN_CONFIDENCE),)))
+    assert result is None
+
+
+def test_5m_trigger_price_structure_poor_alone_rejects_even_with_healthy_taker_flow():
+    # Symmetric case: taker_flow healthy, price_structure below floor --
+    # must still reject.
+    result = detect_compression_breakout(build_valid_short_inputs(
+        consensus_5m_rows=(make_trigger_5m_row(
+            coverage=SETUP_MIN_COVERAGE - 1e-9, confidence=SETUP_MIN_CONFIDENCE,
+            taker_coverage=SETUP_MIN_COVERAGE, taker_confidence=SETUP_MIN_CONFIDENCE),)))
+    assert result is None
+
+
+@pytest.mark.parametrize("family", ["volume", "oi", "funding", "liquidations"])
+def test_5m_trigger_other_families_cannot_suppress(family):
+    # Only price_structure and taker_flow are read for the fresh 5m
+    # trigger -- zeroing any other family must have zero effect.
+    row = make_trigger_5m_row(coverage=SETUP_MIN_COVERAGE, confidence=SETUP_MIN_CONFIDENCE)
+    coverage_by_metric = dict(row["coverage_by_metric"])
+    coverage_by_metric[family] = {"available": 0, "expected": 3, "ratio": 0.0}
+    row = dict(row, coverage_by_metric=coverage_by_metric)
+    data_confidence_by_metric = dict(row["data_confidence_by_metric"])
+    data_confidence_by_metric[family] = 0.0
+    row["data_confidence_by_metric"] = data_confidence_by_metric
+    result = detect_compression_breakout(build_valid_short_inputs(consensus_5m_rows=(row,)))
+    assert result is not None
+
+
 # ============================================================================
 # 8. directional-context gate tests
 # ============================================================================
@@ -991,6 +1188,7 @@ def _valid_candidate_kwargs(**over):
         entry_zone_lower=RANGE_LOW - 96.0, entry_zone_upper=RANGE_LOW,
         invalidation_price=RANGE_HIGH + 96.0,
         price_direction_agreement=0.8, taker_delta_notional_usd_sum=-1000.0,
+        setup_strength=0.5, data_confidence=0.5,
     )
     base.update(over)
     return base
@@ -1096,6 +1294,29 @@ def test_candidate_rejects_invalidation_on_wrong_side():
 def test_candidate_rejects_fresh_cross_invariant_violation():
     with pytest.raises(V2CompressionBreakoutError):
         V2CompressionBreakoutCandidate(**_valid_candidate_kwargs(breakout_close=RANGE_LOW + 10.0))
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf"), -0.001, 1.001, True, "0.5"])
+def test_candidate_rejects_malformed_setup_strength(bad):
+    with pytest.raises(V2CompressionBreakoutError):
+        V2CompressionBreakoutCandidate(**_valid_candidate_kwargs(setup_strength=bad))
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf"), -0.001, 1.001, True, "0.5"])
+def test_candidate_rejects_malformed_data_confidence(bad):
+    with pytest.raises(V2CompressionBreakoutError):
+        V2CompressionBreakoutCandidate(**_valid_candidate_kwargs(data_confidence=bad))
+
+
+def test_candidate_accepts_setup_strength_and_data_confidence_at_domain_boundaries():
+    c = V2CompressionBreakoutCandidate(**_valid_candidate_kwargs(
+        setup_strength=0.0, data_confidence=0.0))
+    assert c.setup_strength == 0.0
+    assert c.data_confidence == 0.0
+    c = V2CompressionBreakoutCandidate(**_valid_candidate_kwargs(
+        setup_strength=1.0, data_confidence=1.0))
+    assert c.setup_strength == 1.0
+    assert c.data_confidence == 1.0
 
 
 def test_candidate_is_frozen():

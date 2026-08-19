@@ -75,11 +75,25 @@ def make_price_row(**over):
     return base
 
 
+_FAMILIES = ("price_structure", "volume", "taker_flow", "oi", "funding", "liquidations")
+
+
 def make_consensus(**over):
+    coverage = over.pop("min_coverage_ratio", 2.0 / 3.0)
+    confidence = over.pop("consensus_confidence", 50.0)
+    coverage_by_metric = {
+        family: {"available": 3, "expected": 3, "ratio": (coverage if family == "price_structure" else 1.0)}
+        for family in _FAMILIES
+    }
+    data_confidence_by_metric = {
+        family: (confidence if family == "price_structure" else 100.0) for family in _FAMILIES
+    }
     base = dict(
         symbol="BTCUSDT", market_type="perp", timeframe="1h", bucket_ts=B,
         price_move_pct_median=1.0, price_direction_agreement=2.0 / 3.0,
-        consensus_confidence=50.0, min_coverage_ratio=2.0 / 3.0,
+        consensus_confidence=confidence, min_coverage_ratio=coverage,
+        coverage_by_metric=coverage_by_metric,
+        data_confidence_by_metric=data_confidence_by_metric,
     )
     base.update(over)
     return base
@@ -364,6 +378,24 @@ def test_coverage_at_floor_passes():
     assert classify_1h_bias(inputs).bias == BULLISH
 
 
+@pytest.mark.parametrize("family", ["volume", "taker_flow", "oi", "funding", "liquidations"])
+def test_gate_only_reads_price_structure_other_families_cannot_force_unavailable(family):
+    # §6.3a required matrix: BIAS's quality gate is scoped to
+    # price_structure ONLY. Zeroing coverage AND confidence for any other
+    # family must have zero effect -- must still classify BULLISH, never
+    # BIAS_UNAVAILABLE.
+    price_row = make_price_row(value=1.0, percentile_rank=0.9)
+    consensus = make_consensus()
+    coverage_by_metric = dict(consensus["coverage_by_metric"])
+    coverage_by_metric[family] = {"available": 0, "expected": 3, "ratio": 0.0}
+    consensus["coverage_by_metric"] = coverage_by_metric
+    data_confidence_by_metric = dict(consensus["data_confidence_by_metric"])
+    data_confidence_by_metric[family] = 0.0
+    consensus["data_confidence_by_metric"] = data_confidence_by_metric
+    inputs = make_inputs(percentiles=[price_row], consensus=consensus)
+    assert classify_1h_bias(inputs).bias == BULLISH
+
+
 def test_confidence_and_coverage_dont_help_if_evidence_unavailable():
     # Even with maximally strong confidence/coverage, missing price
     # evidence still forces UNAVAILABLE.
@@ -483,47 +515,53 @@ def test_inputs_not_v2timeframeinputs_raises():
         classify_1h_bias("not-inputs")
 
 
+_BIAS_EVI_FOR = {
+    BULLISH: 0.5, BEARISH: -0.5, NEUTRAL_NOT_ESTABLISHED: None, BIAS_UNAVAILABLE: None,
+}
+
+
 def test_result_is_frozen():
-    result = V2BiasResult(bucket_ts=B, bias=NEUTRAL_NOT_ESTABLISHED)
+    result = V2BiasResult(bucket_ts=B, bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=None)
     with pytest.raises(Exception):
         result.bias = BULLISH  # type: ignore[misc]
 
 
 @pytest.mark.parametrize("bias", list(BIASES))
 def test_result_accepts_all_four_valid_bias_states(bias):
-    result = V2BiasResult(bucket_ts=B, bias=bias)
+    result = V2BiasResult(bucket_ts=B, bias=bias, bias_evi=_BIAS_EVI_FOR[bias])
     assert result.bias == bias
 
 
 def test_result_rejects_invalid_bias_state():
     with pytest.raises(V2BiasError):
-        V2BiasResult(bucket_ts=B, bias="WEAK_BULLISH")
+        V2BiasResult(bucket_ts=B, bias="WEAK_BULLISH", bias_evi=None)
 
 
 def test_result_rejects_naive_bucket_ts():
     naive = datetime(2026, 8, 15, 11, 0)
     with pytest.raises(V2BiasError, match="timezone-aware"):
-        V2BiasResult(bucket_ts=naive, bias=NEUTRAL_NOT_ESTABLISHED)
+        V2BiasResult(bucket_ts=naive, bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=None)
 
 
 def test_result_rejects_non_utc_bucket_ts():
     non_utc = datetime(2026, 8, 15, 14, 0, tzinfo=timezone(timedelta(hours=3)))
     with pytest.raises(V2BiasError, match="must be UTC"):
-        V2BiasResult(bucket_ts=non_utc, bias=NEUTRAL_NOT_ESTABLISHED)
+        V2BiasResult(bucket_ts=non_utc, bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=None)
 
 
 def test_result_rejects_bucket_ts_with_seconds():
     with pytest.raises(V2BiasError, match="whole minute"):
-        V2BiasResult(bucket_ts=B.replace(second=1), bias=NEUTRAL_NOT_ESTABLISHED)
+        V2BiasResult(bucket_ts=B.replace(second=1), bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=None)
 
 
 def test_result_rejects_bucket_ts_with_microseconds():
     with pytest.raises(V2BiasError, match="whole minute"):
-        V2BiasResult(bucket_ts=B.replace(microsecond=1), bias=NEUTRAL_NOT_ESTABLISHED)
+        V2BiasResult(
+            bucket_ts=B.replace(microsecond=1), bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=None)
 
 
 def test_result_accepts_valid_utc_whole_minute_bucket_ts():
-    result = V2BiasResult(bucket_ts=B, bias=BULLISH)
+    result = V2BiasResult(bucket_ts=B, bias=BULLISH, bias_evi=0.5)
     assert result.bucket_ts == B
 
 

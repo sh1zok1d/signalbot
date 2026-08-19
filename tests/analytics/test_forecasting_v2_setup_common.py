@@ -63,14 +63,27 @@ B1H_GRID = datetime(2026, 8, 15, 12, 0, tzinfo=UTC)
 # ============================================================================
 # fixtures
 # ============================================================================
+_PRICE_EVI_FOR_REGIME = {
+    BULLISH_TRENDING: 0.5, BEARISH_TRENDING: -0.5, NON_DIRECTIONAL: None, INSUFFICIENT_DATA: None,
+}
+_BIAS_EVI_FOR_BIAS = {
+    BULLISH: 0.5, BEARISH: -0.5, NEUTRAL_NOT_ESTABLISHED: None, BIAS_UNAVAILABLE: None,
+}
+
+
 def make_snapshot(regime: str, bias: str, *, is_compressed=None) -> V2ContextSnapshot:
     if is_compressed is None and regime == NON_DIRECTIONAL:
         is_compressed = False
+    compression_score = None
+    if regime == NON_DIRECTIONAL:
+        compression_score = 0.9 if is_compressed else 0.5
     return V2ContextSnapshot(
         T=T, symbol="BTCUSDT", market_type="perp", calculation_version=H16,
         feature_schema_version=1,
-        regime_4h=V2RegimeResult(bucket_ts=B4H, regime=regime, is_compressed=is_compressed),
-        bias_1h=V2BiasResult(bucket_ts=B1H, bias=bias),
+        regime_4h=V2RegimeResult(
+            bucket_ts=B4H, regime=regime, is_compressed=is_compressed,
+            price_evi=_PRICE_EVI_FOR_REGIME[regime], compression_score=compression_score),
+        bias_1h=V2BiasResult(bucket_ts=B1H, bias=bias, bias_evi=_BIAS_EVI_FOR_BIAS[bias]),
     )
 
 

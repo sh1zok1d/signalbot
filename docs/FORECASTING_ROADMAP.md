@@ -1130,13 +1130,16 @@ status, corrected here after this audit found the prior "Stage 6: IN
 PROGRESS" framing to be inaccurate:
 
 - **Stage 6 — Episode State Machine: NOT STARTED.**
-- **PRE-STAGE-6 HARDENING: IN PROGRESS.** `#43` is the contract-consolidation
-  member of this phase; the audit below identified additional cross-stage
+- **PRE-STAGE-6 HARDENING: IN PROGRESS.** `#43` (contract consolidation,
+  below) is **MERGED**. `#44` (Quality/scoring boundary hardening, below)
+  is the FIRST EXECUTABLE (code, not docs) hardening PR in this phase —
+  currently in review, ships under `v2-rules-v0.2.0`. `#45`/`#46` are
+  **NOT STARTED**. The audit below identified additional cross-stage
   correctness gaps between the currently-merged Stage 2–5 implementation
   and the frozen contracts that must be closed — in code, not just docs —
   before executable Stage 6 can safely consume Stage 2–5's boundaries.
 
-**`#43` — contract consolidation and cross-stage audit (this PR, amended
+**`#43` — contract consolidation and cross-stage audit (MERGED, amended
 three times post-open).** Round 1 froze creation identity vs.
 later-observed anchor drift, exact non-material/material drift math per
 family, `Decimal`/`ROUND_HALF_UP` tick normalization, "suppressed, not
@@ -1314,7 +1317,9 @@ semantics, and no other already-accepted decision changed.
 **Revised pre-Stage-6 sequence (a reviewability plan, not a new
 correctness contract — subject to change if audit findings evolve):**
 
-- **`#44` — Quality/scoring boundary hardening.** Implements `§6.3a`'s
+- **`#44` — Quality/scoring boundary hardening (THIS PR, currently in
+  review — the first EXECUTABLE, not docs-only, pre-Stage-6 hardening
+  PR).** Implements `§6.3a`'s
   per-family metric-scoped quality gates across every Stage 4/5 call site
   (`regime_4h.py`, `bias_1h.py`, `trend_pullback.py`,
   `compression_breakout.py`, `confirmed_breakout.py`); adds the Stage 4

@@ -130,7 +130,7 @@ Stage 5's three frozen detector families when #42 merges.**
     against `COMPRESSION_CONFIRMATION_MAX_AGE_5M_BUCKETS` (exposed only as
     frozen family metadata), and never applies §7.4 family precedence
     against `CONFIRMED_BREAKOUT`/`TREND_PULLBACK`. All of that is Stage 6.
-  - **PR 4 of ~4 — `CONFIRMED_BREAKOUT` + Stage 5 completion: THIS PR**
+  - **PR 4 of ~4 — `CONFIRMED_BREAKOUT` + Stage 5 completion: MERGED**
     (#42, "feat: add V2 confirmed breakout detector"), the FINAL planned
     Stage 5 detector PR. Adds `confirmed_breakout.py`:
     `detect_confirmed_breakout(inputs: V2ConfirmedBreakoutInputs) ->
@@ -178,13 +178,29 @@ Stage 5's three frozen detector families when #42 merges.**
     precedence against `COMPRESSION_BREAKOUT`/`TREND_PULLBACK`. All of
     that is Stage 6.
 
-Stage 5's detector-implementation portion becomes COMPLETE when #42
-merges -- all three frozen setup families (`TREND_PULLBACK`,
-`COMPRESSION_BREAKOUT`, `CONFIRMED_BREAKOUT`) then have a deterministic
-Stage 5 qualification implementation. This does NOT mean the V2 trading
-product is complete: Stage 6 (Episode State Machine) -- episode identity/
-dedup, family precedence, confirmation, false-break transitions, expiry,
-weakening, persistence orchestration -- has not started.
+Stage 5's detector-implementation portion is COMPLETE (#39/#40/#41/#42 all
+MERGED) -- all three frozen setup families (`TREND_PULLBACK`,
+`COMPRESSION_BREAKOUT`, `CONFIRMED_BREAKOUT`) have a deterministic Stage 5
+qualification implementation. This does NOT mean the V2 trading product is
+complete: Stage 6 (Episode State Machine) -- episode identity/dedup,
+family precedence, confirmation, false-break transitions, expiry,
+weakening, persistence orchestration -- has NOT started.
+
+**PRE-STAGE-6 HARDENING — #43 (contracts): MERGED.** #44 ("fix: harden
+V2 quality and scoring boundaries", THIS PR) is the first EXECUTABLE
+pre-Stage-6 hardening PR: it makes Stage 4/5 code conform to #43's merged
+`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §6.3a (per-family
+metric-scoped quality gates, `family_quality.py` -- a required family a
+decision does not consume, e.g. `liquidations` for `TREND_PULLBACK`, can
+no longer suppress it), §4.1a (Stage 4 `price_evi`/`bias_evi`/
+`compression_score` numerical-evidence handoff, preserved by value on
+`V2RegimeResult`/`V2BiasResult`), and §8/§9 (Stage 5 `setup_strength`/
+`data_confidence` exact per-family scoring formulas, carried by value on
+every setup candidate). Ships under `rules_version = "v2-rules-v0.2.0"`
+(bumped from `v2-rules-v0.1.0` — an executable V2 rules behavior change);
+`v2.enabled` remains `false`. #45 (coherent DB snapshot / decision
+provenance / calculation-version architecture) and #46 (episode identity
+persistence) are NOT started and remain required before Stage 6 begins.
 
 `V2EpisodeEvent` (events.py) validates and freezes an already-decided
 event a future Episode State Machine PR will construct;
@@ -239,6 +255,10 @@ from .context_snapshot import (
     V2ContextSnapshot, V2ContextSnapshotError, build_v2_context_snapshot,
 )
 from .event_factory import build_v2_episode_event
+from .family_quality import (
+    FAMILIES, FAMILY_MIN_CONFIDENCE, FAMILY_MIN_COVERAGE, V2FamilyQuality,
+    V2FamilyQualityError, family_quality, family_quality_ok,
+)
 from .events import (
     COMPRESSION_BREAKOUT, CONFIRMED, CONFIRMED_BREAKOUT, DIRECTIONS,
     EARLY_SIGNAL, EPISODE_STATES, EXPIRED, COMPLETED, INVALIDATED, LIVE,
@@ -254,6 +274,10 @@ from .regime_4h import (
     REGIME_COMPRESSION, REGIME_MIN_AGREEMENT, REGIME_MIN_COVERAGE,
     REGIME_MIN_CONFIDENCE, REGIME_OI_VETO, REGIME_TREND_THRESHOLD, REGIMES,
     V2RegimeError, V2RegimeResult, classify_4h_regime,
+)
+from .rules_manifest import (
+    EXPECTED_FINGERPRINTS_BY_RULES_VERSION, V2RulesManifestError,
+    assert_rules_manifest_matches_version, build_rules_manifest, compute_rules_fingerprint,
 )
 from .setup_common import (
     BUFFER_MULTIPLIER, CONTEXT_ACCEPT, MIN_TICK_BUFFER_TICKS, RANGE_PROXY_N,
@@ -281,6 +305,8 @@ __all__ = [
     "SUPPORTED_SYMBOL", "SUPPORTED_MARKET_TYPE",
     "V2EventProvenance", "V2ProvenanceError",
     "build_v2_episode_event",
+    "V2FamilyQualityError", "FAMILIES", "FAMILY_MIN_COVERAGE", "FAMILY_MIN_CONFIDENCE",
+    "V2FamilyQuality", "family_quality", "family_quality_ok",
     "V2EpisodeEventWriter", "V2AlignedInputReader", "V2SetupHistoryReader",
     "V2AlignmentError", "TIMEFRAME_MINUTES", "decision_boundary", "selected_bucket",
     "V2AlignedInputError", "V2_REFERENCE_EXCHANGE",
@@ -323,4 +349,7 @@ __all__ = [
     "CONFIRMED_BREAKOUT_EXPECTED_HORIZON",
     "V2ConfirmedBreakoutInputs", "V2ConfirmedBreakoutCandidate",
     "detect_confirmed_breakout", "load_confirmed_breakout_inputs",
+    "V2RulesManifestError", "EXPECTED_FINGERPRINTS_BY_RULES_VERSION",
+    "build_rules_manifest", "compute_rules_fingerprint",
+    "assert_rules_manifest_matches_version",
 ]

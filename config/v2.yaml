@@ -30,9 +30,12 @@
 #   later implementation freezes (namespace: "v2-rules-v<major>.<minor>.<patch>",
 #   V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §3). Changing ANY V2-v0 parameter in
 #   a future PR MUST bump this string — it is never a silent behavior change
-#   under an unchanged version.
+#   under an unchanged version. Bumped to v0.2.0 by the pre-Stage-6 quality/
+#   scoring boundary hardening PR (§6.3a per-family quality gates, §8/§9
+#   setup_strength/data_confidence) — an executable V2 rules behavior change,
+#   not a documentation-only one.
 
 v2:
   enabled: false
   model_family: "v2"
-  rules_version: "v2-rules-v0.1.0"
+  rules_version: "v2-rules-v0.2.0"

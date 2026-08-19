@@ -65,14 +65,27 @@ FIFTEEN = timedelta(minutes=15)
 # ============================================================================
 # fixtures
 # ============================================================================
+_PRICE_EVI_FOR_REGIME = {
+    BULLISH_TRENDING: 0.5, BEARISH_TRENDING: -0.5, NON_DIRECTIONAL: None, INSUFFICIENT_DATA: None,
+}
+_BIAS_EVI_FOR_BIAS = {
+    BULLISH: 0.5, BEARISH: -0.5, NEUTRAL_NOT_ESTABLISHED: None, BIAS_UNAVAILABLE: None,
+}
+
+
 def make_context(regime, bias, *, t=T, b4h=B4H, b1h=B1H, is_compressed=None) -> V2ContextSnapshot:
     if is_compressed is None and regime == NON_DIRECTIONAL:
         is_compressed = False
+    compression_score = None
+    if regime == NON_DIRECTIONAL:
+        compression_score = 0.9 if is_compressed else 0.5
     return V2ContextSnapshot(
         T=t, symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=H16,
         feature_schema_version=1,
-        regime_4h=V2RegimeResult(bucket_ts=b4h, regime=regime, is_compressed=is_compressed),
-        bias_1h=V2BiasResult(bucket_ts=b1h, bias=bias),
+        regime_4h=V2RegimeResult(
+            bucket_ts=b4h, regime=regime, is_compressed=is_compressed,
+            price_evi=_PRICE_EVI_FOR_REGIME[regime], compression_score=compression_score),
+        bias_1h=V2BiasResult(bucket_ts=b1h, bias=bias, bias_evi=_BIAS_EVI_FOR_BIAS[bias]),
     )
 
 
@@ -87,13 +100,29 @@ def make_reference_row(bucket_ts, close_price=64_000.0, **over):
     return base
 
 
+_FAMILIES = ("price_structure", "volume", "taker_flow", "oi", "funding", "liquidations")
+
+
 def make_proxy_row(bucket_ts, value=0.4, *, min_coverage_ratio=1.0, consensus_confidence=100.0,
                    **over):
+    coverage_by_metric = {
+        family: {
+            "available": 3, "expected": 3,
+            "ratio": (min_coverage_ratio if family == "price_structure" else 1.0),
+        }
+        for family in _FAMILIES
+    }
+    data_confidence_by_metric = {
+        family: (consensus_confidence if family == "price_structure" else 100.0)
+        for family in _FAMILIES
+    }
     base = dict(
         symbol=SYMBOL, market_type=MARKET_TYPE, timeframe="15m",
         calculation_version=H16, feature_schema_version=1,
         bucket_ts=bucket_ts, range_width_pct_median=value,
         min_coverage_ratio=min_coverage_ratio, consensus_confidence=consensus_confidence,
+        coverage_by_metric=coverage_by_metric,
+        data_confidence_by_metric=data_confidence_by_metric,
     )
     base.update(over)
     return base
@@ -706,11 +735,27 @@ def test_range_proxy_row_bucket_ts_never_normalized_or_floored():
 
 def _set_current_b15_proxy_row(rows, **over):
     """Replace the row whose bucket_ts == B15 (the last one, per
-    build_proxy_rows' ascending construction) with an overridden copy."""
+    build_proxy_rows' ascending construction) with an overridden copy.
+    `min_coverage_ratio`/`consensus_confidence` overrides also propagate
+    into the nested `coverage_by_metric`/`data_confidence_by_metric`
+    `price_structure` entry (the SAME shallow-merge convenience these
+    tests already rely on for the flat fields -- §6.3a's actual gate
+    source is the nested per-family map, so an override that only touched
+    the now-unread flat field would silently stop testing anything)."""
     rows = list(rows)
     for i, row in enumerate(rows):
         if row["bucket_ts"] == B15:
-            rows[i] = {**row, **over}
+            merged = {**row, **over}
+            if "min_coverage_ratio" in over:
+                coverage_by_metric = dict(merged["coverage_by_metric"])
+                coverage_by_metric["price_structure"] = {
+                    **coverage_by_metric["price_structure"], "ratio": over["min_coverage_ratio"]}
+                merged["coverage_by_metric"] = coverage_by_metric
+            if "consensus_confidence" in over:
+                data_confidence_by_metric = dict(merged["data_confidence_by_metric"])
+                data_confidence_by_metric["price_structure"] = over["consensus_confidence"]
+                merged["data_confidence_by_metric"] = data_confidence_by_metric
+            rows[i] = merged
             return rows
     raise AssertionError("no proxy row at bucket_ts == B15 to override")
 
@@ -772,8 +817,13 @@ def test_quality_malformed_present_confidence_raises(bad_confidence):
         detect_trend_pullback(inputs)
 
 
-@pytest.mark.parametrize("missing_field", ["min_coverage_ratio", "consensus_confidence"])
+@pytest.mark.parametrize("missing_field", ["coverage_by_metric", "data_confidence_by_metric"])
 def test_quality_missing_required_field_raises(missing_field):
+    # §6.3a: the current-B15 quality gate is now sourced from the nested
+    # per-family coverage_by_metric/data_confidence_by_metric maps, never
+    # the flat min_coverage_ratio/consensus_confidence rollup -- a row
+    # missing either nested map entirely is malformed (raises), exactly
+    # like the old flat-field-missing case used to.
     rows = build_proxy_rows()
     new_rows = []
     for row in rows:
@@ -809,6 +859,29 @@ def test_quality_gate_applies_to_short_direction_too():
     rows = _set_current_b15_proxy_row(build_proxy_rows(), consensus_confidence=10.0)
     inputs = make_valid_short_inputs(range_proxy_15m_rows=tuple(rows))
     assert detect_trend_pullback(inputs) is None
+
+
+@pytest.mark.parametrize("family", ["volume", "taker_flow", "oi", "funding", "liquidations"])
+def test_quality_only_price_structure_family_is_read_other_families_cannot_suppress(family):
+    # §6.3a required matrix: TREND_PULLBACK's quality gate is scoped to
+    # price_structure ONLY. Zeroing out coverage AND confidence for any
+    # non-price_structure family at the current B15 bucket must have zero
+    # effect on the decision -- proves the gate is truly family-scoped, not
+    # an accidental all-families-must-pass check.
+    rows = build_proxy_rows()
+    new_rows = []
+    for row in rows:
+        if row["bucket_ts"] == B15:
+            row = dict(row)
+            coverage_by_metric = dict(row["coverage_by_metric"])
+            coverage_by_metric[family] = {"available": 0, "expected": 3, "ratio": 0.0}
+            row["coverage_by_metric"] = coverage_by_metric
+            data_confidence_by_metric = dict(row["data_confidence_by_metric"])
+            data_confidence_by_metric[family] = 0.0
+            row["data_confidence_by_metric"] = data_confidence_by_metric
+        new_rows.append(row)
+    inputs = make_valid_long_inputs(range_proxy_15m_rows=tuple(new_rows))
+    assert detect_trend_pullback(inputs) is not None
 
 
 # ============================================================================
@@ -930,14 +1003,21 @@ def test_range_proxy_rows_container_hardening(bad_rows):
 # 13. RESULT SELF-VALIDATION — V2TrendPullbackCandidate direct construction
 # ============================================================================
 def _valid_candidate_kwargs():
+    retracement_pct = 1.0
+    range_proxy_pct = 0.4
     return dict(
         T=T, direction=LONG, bucket_15m=B15,
         bucket_5m_at_T=datetime(2026, 8, 15, 12, 10, tzinfo=UTC),
         trend_leg_extreme=V2ExtremeAnchor(bucket_ts=B15 - 5 * FIFTEEN, value=65_000.0),
-        current_close=64_350.0, retracement_pct=1.0, range_proxy_pct=0.4,
+        current_close=64_350.0, retracement_pct=retracement_pct, range_proxy_pct=range_proxy_pct,
         pullback_extreme=64_300.0, protection_buffer=128.7,
         entry_zone_lower=64_300.0, entry_zone_upper=64_350.0,
         invalidation_price=64_171.3,
+        # §8.1's real formula, via the module's own helper -- keeps this
+        # fixture self-consistent with __post_init__'s exact-formula
+        # cross-check without hand-duplicating/hardcoding the arithmetic.
+        setup_strength=tp_module._trend_pullback_setup_strength(retracement_pct, range_proxy_pct),
+        data_confidence=0.5,
     )
 
 
@@ -1048,6 +1128,55 @@ def test_candidate_trend_leg_extreme_must_be_v2extremeanchor():
     kwargs["trend_leg_extreme"] = {"bucket_ts": B15, "value": 65_000.0}
     with pytest.raises(V2TrendPullbackError):
         V2TrendPullbackCandidate(**kwargs)
+
+
+def test_candidate_rejects_setup_strength_mismatching_the_exact_formula():
+    # §8.1 exact-formula cross-check (LOAD-BEARING): a setup_strength that
+    # does NOT equal 1 - (retracement_pct / (PULLBACK_MAX_MULT *
+    # range_proxy_pct)) for the candidate's own retracement_pct/
+    # range_proxy_pct must be rejected, even though it is itself a
+    # perfectly in-domain [0,1] float.
+    kwargs = _valid_candidate_kwargs()
+    real = tp_module._trend_pullback_setup_strength(
+        kwargs["retracement_pct"], kwargs["range_proxy_pct"])
+    kwargs["setup_strength"] = min(1.0, real + 0.2)  # in-domain but wrong
+    assert kwargs["setup_strength"] != real
+    with pytest.raises(V2TrendPullbackError):
+        V2TrendPullbackCandidate(**kwargs)
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf"), -0.001, 1.001, True, "0.5"])
+def test_candidate_rejects_malformed_setup_strength(bad):
+    kwargs = _valid_candidate_kwargs()
+    kwargs["setup_strength"] = bad
+    with pytest.raises(V2TrendPullbackError):
+        V2TrendPullbackCandidate(**kwargs)
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf"), -0.001, 1.001, True, "0.5"])
+def test_candidate_rejects_malformed_data_confidence(bad):
+    kwargs = _valid_candidate_kwargs()
+    kwargs["data_confidence"] = bad
+    with pytest.raises(V2TrendPullbackError):
+        V2TrendPullbackCandidate(**kwargs)
+
+
+def test_trend_pullback_setup_strength_zero_retracement_zero_range_proxy_is_one():
+    # §8.1's documented 0/0 edge case: retracement_pct==0.0 AND
+    # range_proxy_pct==0.0 (reachable via the qualifying-band constraint
+    # forcing retracement_pct to also be exactly 0.0) is defined as 1.0
+    # (maximal strength) by convention, never a ZeroDivisionError/NaN.
+    assert tp_module._trend_pullback_setup_strength(0.0, 0.0) == 1.0
+
+
+def test_trend_pullback_setup_strength_exact_formula_values():
+    # A few independent exact-formula spot checks away from either edge.
+    assert tp_module._trend_pullback_setup_strength(0.0, 0.4) == pytest.approx(1.0)
+    assert tp_module._trend_pullback_setup_strength(
+        1.2, 0.4) == pytest.approx(1.0 - (1.2 / (PULLBACK_MAX_MULT * 0.4)))
+    # retracement at the max qualifying multiple clamps to 0.0, not negative.
+    assert tp_module._trend_pullback_setup_strength(
+        PULLBACK_MAX_MULT * 0.4, 0.4) == pytest.approx(0.0)
 
 
 # ============================================================================

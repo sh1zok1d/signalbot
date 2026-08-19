@@ -194,6 +194,7 @@ from analytics.forecasting_v2.alignment import (
 from analytics.forecasting_v2.context_evidence import V2ContextEvidenceError, compression_score
 from analytics.forecasting_v2.context_snapshot import V2ContextSnapshot
 from analytics.forecasting_v2.events import DIRECTIONS, LONG, SHORT
+from analytics.forecasting_v2.family_quality import V2FamilyQualityError, family_quality
 from analytics.forecasting_v2.setup_common import (
     RANGE_PROXY_N, SETUP_MIN_CONFIDENCE, SETUP_MIN_COVERAGE, V2SetupFoundationError,
     directional_context_gate, protection_buffer, range_proxy_pct,
@@ -390,7 +391,19 @@ class V2CompressionBreakoutCandidate:
     `structural_anchor` (the `bucket_ts` `episode_logical_key`, §12, will
     later use) is intentionally exposed only as a read-only property
     derived from `compression_start_bucket` -- never a second,
-    independently-settable field that could silently disagree with it."""
+    independently-settable field that could silently disagree with it.
+
+    `setup_strength` (§8.2, LOAD-BEARING) is `mean(compression_score)`
+    over the ENTIRE SELECTED MAXIMAL COMPRESSION RUN
+    (`compression_start_bucket` through `compression_end_bucket`
+    inclusive) -- explicitly NOT the current-B15 score, NOT
+    `compression_end_bucket`-only score, NOT a mean over the whole
+    16-bucket lookback, and NOT a mean from `compression_end_bucket` to
+    now. `data_confidence` (§9) is `min(price_structure, taker_flow)`
+    family confidence at the SAME fresh 5m trigger bucket, `/100.0` --
+    never `consensus_confidence`/`data_confidence_overall`, and never a
+    different bucket for either family. Both carried BY VALUE, never
+    recomputed downstream."""
     T: datetime
     direction: str
     bucket_5m: datetime
@@ -409,6 +422,8 @@ class V2CompressionBreakoutCandidate:
     invalidation_price: float
     price_direction_agreement: float
     taker_delta_notional_usd_sum: float
+    setup_strength: float
+    data_confidence: float
 
     def __post_init__(self) -> None:
         if self.direction not in DIRECTIONS:
@@ -538,6 +553,26 @@ class V2CompressionBreakoutCandidate:
                     f"SHORT invalidation_price must be > range_high ({range_high!r}), got "
                     f"{invalidation!r}")
 
+        # §8.2/§9 setup_strength/data_confidence -- canonical creation-time
+        # scoring/quality facts. setup_strength's exact full-selected-run
+        # mean-compression-score formula is a function of the SELECTED
+        # RUN's own per-bucket compression_score values, which this
+        # candidate deliberately does not carry as a separate array (no
+        # duplicate representation of Stage 5 raw evidence beyond what §8
+        # requires) -- so, unlike TREND_PULLBACK's setup_strength (fully
+        # reconstructible from this candidate's own retracement_pct/
+        # range_proxy_pct fields), direct construction here is checked only
+        # to its exact [0,1] domain, not cross-checked against a formula.
+        setup_strength = _validate_finite_numeric(self.setup_strength, "setup_strength")
+        if not (0.0 <= setup_strength <= 1.0):
+            raise V2CompressionBreakoutError(
+                f"setup_strength must be within [0.0, 1.0], got {setup_strength!r}")
+
+        data_confidence = _validate_finite_numeric(self.data_confidence, "data_confidence")
+        if not (0.0 <= data_confidence <= 1.0):
+            raise V2CompressionBreakoutError(
+                f"data_confidence must be within [0.0, 1.0], got {data_confidence!r}")
+
     @property
     def structural_anchor(self) -> datetime:
         """§12's `episode_logical_key` structural anchor for
@@ -557,7 +592,6 @@ _CONSENSUS_15M_IDENTITY_FIELDS = (
     "symbol", "market_type", "timeframe", "calculation_version", "feature_schema_version",
     "bucket_ts",
 )
-_QUALITY_FIELDS = ("min_coverage_ratio", "consensus_confidence")
 _REFERENCE_IDENTITY_FIELDS = (
     "exchange", "symbol", "market_type", "timeframe", "calculation_version",
     "feature_schema_version", "bucket_ts",
@@ -669,39 +703,24 @@ def _validate_consensus_15m_row_identity(
     return bucket_ts
 
 
-def _validate_quality_fields(row: Mapping) -> "Optional[tuple[float, float]]":
-    """§6.2/§6.3's frozen timeframe-invariant consensus-quality gate,
-    applied at whichever bucket the caller is currently evaluating (a 15m
-    compression-lookback bucket, or the 5m trigger bucket -- same two
-    field names either way). A missing required key is corruption
-    (raises). A present key whose value is SQL NULL is legitimate
-    unavailable quality -- but BOTH fields are validated for corruption
-    BEFORE either's missingness can short-circuit the other (corruption
-    precedence)."""
-    missing = [f for f in _QUALITY_FIELDS if f not in row]
-    if missing:
+def _validate_quality_fields(row: Mapping, *, family: str) -> "Optional[tuple[float, float]]":
+    """§6.3a's per-family metric-scoped quality gate, applied at whichever
+    bucket the caller is currently evaluating (a 15m compression-lookback
+    bucket, or the 5m trigger bucket) for exactly `family` -- sourced from
+    the row's own `coverage_by_metric`/`data_confidence_by_metric` maps,
+    never the global `min_coverage_ratio`/`consensus_confidence` rollup a
+    family this decision does not consume could otherwise drag down. A
+    malformed PRESENT per-family map raises `V2CompressionBreakoutError`
+    (chained from `V2FamilyQualityError`), never silently downgraded to
+    ordinary unavailability."""
+    try:
+        quality = family_quality(row, family=family)
+    except V2FamilyQualityError as exc:
         raise V2CompressionBreakoutError(
-            f"consensus row is missing required field(s) {missing!r}")
-
-    coverage_raw = row["min_coverage_ratio"]
-    coverage: Optional[float] = None
-    if coverage_raw is not None:
-        coverage = _validate_finite_numeric(coverage_raw, "min_coverage_ratio")
-        if not (0.0 <= coverage <= 1.0):
-            raise V2CompressionBreakoutError(
-                f"min_coverage_ratio must be within [0.0, 1.0], got {coverage!r}")
-
-    confidence_raw = row["consensus_confidence"]
-    confidence: Optional[float] = None
-    if confidence_raw is not None:
-        confidence = _validate_finite_numeric(confidence_raw, "consensus_confidence")
-        if not (0.0 <= confidence <= 100.0):
-            raise V2CompressionBreakoutError(
-                f"consensus_confidence must be within [0.0, 100.0], got {confidence!r}")
-
-    if coverage is None or confidence is None:
+            f"malformed {family} family quality: {exc}") from exc
+    if quality.coverage_ratio is None or quality.confidence is None:
         return None
-    return coverage, confidence
+    return quality.coverage_ratio, quality.confidence
 
 
 def _validate_reference_row(
@@ -940,19 +959,28 @@ def detect_compression_breakout(
                 f"duplicate compression percentile row for bucket_ts {bucket_ts.isoformat()}")
         percentile_by_bucket[bucket_ts] = row
 
-    # ---- per-bucket §6.2/§6.3 quality gate + compression_score() ----------
+    # ---- per-bucket §6.3a price_structure-family quality gate +
+    # compression_score() -- `score_by_bucket` retains each bucket's own
+    # already-computed canonical compression_score (§8.2: the later
+    # full-selected-run setup_strength mean reuses these exact values, no
+    # second DB read, no silent use of an unrelated latest bucket). -------
     quality_by_bucket: "dict[datetime, Optional[tuple[float, float]]]" = {}
     compressed_flags: "dict[datetime, bool]" = {}
+    score_by_bucket: "dict[datetime, Optional[float]]" = {}
     for b in lookback_grid:
         row = consensus_by_bucket.get(b)
-        quality = _validate_quality_fields(row) if row is not None else None
+        quality = (
+            _validate_quality_fields(row, family="price_structure")
+            if row is not None else None)
         quality_by_bucket[b] = quality
         if quality is None:
             compressed_flags[b] = False
+            score_by_bucket[b] = None
             continue
         coverage, confidence = quality
         if coverage < SETUP_MIN_COVERAGE or confidence < SETUP_MIN_CONFIDENCE:
             compressed_flags[b] = False
+            score_by_bucket[b] = None
             continue
 
         percentile_row = percentile_by_bucket.get(b)
@@ -966,6 +994,7 @@ def detect_compression_breakout(
         except V2ContextEvidenceError as exc:
             raise V2CompressionBreakoutError(
                 f"compression_score failed for 15m bucket {b.isoformat()}: {exc}") from exc
+        score_by_bucket[b] = score
         compressed_flags[b] = (score is not None and score >= COMPRESSION_THRESHOLD)
 
     # ---- §7.2 deterministic maximal-run selection --------------------------
@@ -974,6 +1003,22 @@ def detect_compression_breakout(
         return None
     run_start, run_end, run_length = selected
     run_buckets = tuple(run_start + i * _FIFTEEN_MIN for i in range(run_length))
+
+    # ---- §8.2 setup_strength (LOAD-BEARING): mean(compression_score) over
+    # the ENTIRE selected maximal run -- explicitly NOT current-B15 score,
+    # NOT compression_end_bucket-only score, NOT mean-of-whole-lookback,
+    # NOT mean-from-compression_end-to-now. Every bucket in `run_buckets`
+    # was required to have `compressed_flags[b] is True` to be part of a
+    # qualifying run at all, which itself required `score_by_bucket[b]` to
+    # be a real float >= COMPRESSION_THRESHOLD (see the per-bucket loop
+    # above) -- so this reuses each bucket's already-computed canonical
+    # score from already-read data, never a second DB read.
+    run_scores = [score_by_bucket[b] for b in run_buckets]
+    if any(s is None for s in run_scores):
+        raise V2CompressionBreakoutError(
+            "selected compression run contains a bucket with no compression_score -- "
+            "impossible for a qualifying run (compressed_flags requires a real score)")
+    setup_strength = sum(run_scores) / len(run_scores)
 
     # ---- §7.0a selected-run structural range -------------------------------
     reference_15m_rows = _validate_row_container(inputs.reference_15m_rows, "reference_15m_rows")
@@ -1125,7 +1170,13 @@ def detect_compression_breakout(
 
     # Corruption precedence: validate every PRESENT trigger value BEFORE any
     # missingness/threshold short-circuit applies any of the sequential gates.
-    trigger_quality = _validate_quality_fields(trigger_row)
+    # §5.2/§6.3a: the fresh 5m trigger requires price_structure AND
+    # taker_flow to BOTH independently pass their own family-scoped
+    # quality gate -- neither alone is sufficient, and this is the ONE
+    # place in the three Stage 5 families where two families are
+    # mandatory simultaneously.
+    price_trigger_quality = _validate_quality_fields(trigger_row, family="price_structure")
+    taker_trigger_quality = _validate_quality_fields(trigger_row, family="taker_flow")
     agreement_raw = trigger_row["price_direction_agreement"]
     agreement = (
         _validate_finite_numeric(agreement_raw, "price_direction_agreement")
@@ -1138,10 +1189,16 @@ def detect_compression_breakout(
         _validate_finite_numeric(taker_raw, "taker_delta_notional_usd_sum")
         if taker_raw is not None else None)
 
-    if trigger_quality is None:
+    if price_trigger_quality is None or taker_trigger_quality is None:
         return None
-    trigger_coverage, trigger_confidence = trigger_quality
-    if trigger_coverage < SETUP_MIN_COVERAGE or trigger_confidence < SETUP_MIN_CONFIDENCE:
+    price_trigger_coverage, price_trigger_confidence = price_trigger_quality
+    taker_trigger_coverage, taker_trigger_confidence = taker_trigger_quality
+    if (
+        price_trigger_coverage < SETUP_MIN_COVERAGE
+        or price_trigger_confidence < SETUP_MIN_CONFIDENCE
+        or taker_trigger_coverage < SETUP_MIN_COVERAGE
+        or taker_trigger_confidence < SETUP_MIN_CONFIDENCE
+    ):
         return None
 
     if agreement is None:
@@ -1155,6 +1212,12 @@ def detect_compression_breakout(
         return None
     if direction == SHORT and not (taker < 0):
         return None
+
+    # ---- §9 data_confidence: min(price_structure, taker_flow) family
+    # confidence at this SAME fresh 5m trigger bucket, /100.0 -- reuses the
+    # two family-confidences already read above for the quality gate,
+    # never a second lookup or a different bucket. ------------------------
+    data_confidence = min(price_trigger_confidence, taker_trigger_confidence) / 100.0
 
     # ---- §7.0b canonical directional-context compatibility gate -----------
     decision = directional_context_gate(context, direction)
@@ -1224,4 +1287,6 @@ def detect_compression_breakout(
         invalidation_price=invalidation_price,
         price_direction_agreement=agreement,
         taker_delta_notional_usd_sum=taker,
+        setup_strength=setup_strength,
+        data_confidence=data_confidence,
     )

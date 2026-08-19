@@ -147,6 +147,7 @@ from analytics.forecasting_v2.alignment import (
 )
 from analytics.forecasting_v2.context_snapshot import V2ContextSnapshot
 from analytics.forecasting_v2.events import DIRECTIONS, LONG, SHORT
+from analytics.forecasting_v2.family_quality import V2FamilyQualityError, family_quality
 from analytics.forecasting_v2.setup_common import (
     RANGE_PROXY_N, SETUP_MIN_CONFIDENCE, SETUP_MIN_COVERAGE, V2ExtremeAnchor,
     V2SetupFoundationError, directional_context_gate, protection_buffer, range_proxy_pct,
@@ -267,6 +268,21 @@ def _validate_1h_bucket_start(value: Any, name: str) -> datetime:
     return v
 
 
+def _confirmed_breakout_setup_strength(
+    breakout_distance_beyond_level: float, protection_buffer_value: float,
+) -> float:
+    """§8.3's exact `setup_strength` formula:
+    `min(1.0, breakout_distance_beyond_level / protection_buffer)`,
+    clamped to `[0.0, 1.0]`, using the candidate's own canonical
+    Stage-5-owned values -- never recomputing `protection_buffer`
+    differently. `protection_buffer_value` is always `> 0` (validated
+    positive-finite before this is ever called), so no zero-division
+    guard is needed here (unlike TREND_PULLBACK's `range_proxy_pct`,
+    which can legitimately be exactly `0.0`)."""
+    raw = breakout_distance_beyond_level / protection_buffer_value
+    return min(1.0, max(0.0, raw))
+
+
 def _validate_row_container(rows: Any, name: str) -> Any:
     if rows is None or isinstance(rows, (str, bytes, bytearray)):
         raise V2ConfirmedBreakoutError(
@@ -357,6 +373,8 @@ class V2ConfirmedBreakoutCandidate:
     entry_zone_lower: float
     entry_zone_upper: float
     invalidation_price: float
+    setup_strength: float
+    data_confidence: float
 
     def __post_init__(self) -> None:
         if self.direction not in DIRECTIONS:
@@ -441,6 +459,30 @@ class V2ConfirmedBreakoutCandidate:
                     f"SHORT invalidation_price must be > level_price ({level_price!r}), got "
                     f"{invalidation!r}")
 
+        # §8.3/§9 setup_strength/data_confidence -- canonical creation-time
+        # scoring/quality facts. setup_strength is cross-checked against
+        # this candidate's own canonical breakout_distance_beyond_level/
+        # protection_buffer (never recomputing protection_buffer
+        # differently); data_confidence is validated only to its exact
+        # [0,1] domain (no separate raw-confidence field on this candidate
+        # to cross-check against).
+        setup_strength = _validate_finite_numeric(self.setup_strength, "setup_strength")
+        if not (0.0 <= setup_strength <= 1.0):
+            raise V2ConfirmedBreakoutError(
+                f"setup_strength must be within [0.0, 1.0], got {setup_strength!r}")
+        expected_setup_strength = _confirmed_breakout_setup_strength(
+            self.breakout_distance_beyond_level, buf)
+        if setup_strength != expected_setup_strength:
+            raise V2ConfirmedBreakoutError(
+                "setup_strength is inconsistent with breakout_distance_beyond_level/"
+                f"protection_buffer -- expected {expected_setup_strength!r}, got "
+                f"{setup_strength!r}")
+
+        data_confidence = _validate_finite_numeric(self.data_confidence, "data_confidence")
+        if not (0.0 <= data_confidence <= 1.0):
+            raise V2ConfirmedBreakoutError(
+                f"data_confidence must be within [0.0, 1.0], got {data_confidence!r}")
+
     @property
     def structural_anchor(self) -> datetime:
         """RAW Stage 5 structural anchor fact -- always exactly
@@ -492,7 +534,6 @@ _CONSENSUS_1H_VALUE_FIELDS = (
     "min_coverage_ratio", "consensus_confidence", "range_width_pct_median",
 )
 _CONSENSUS_1H_REQUIRED_FIELDS = _CONSENSUS_1H_IDENTITY_FIELDS + _CONSENSUS_1H_VALUE_FIELDS
-_QUALITY_FIELDS = ("min_coverage_ratio", "consensus_confidence")
 _REFERENCE_IDENTITY_FIELDS = (
     "exchange", "symbol", "market_type", "timeframe", "calculation_version",
     "feature_schema_version", "bucket_ts",
@@ -541,37 +582,23 @@ def _validate_consensus_1h_row_identity(
 
 
 def _validate_quality_fields(row: Mapping) -> "Optional[tuple[float, float]]":
-    """§6.2/§6.3's frozen timeframe-invariant consensus-quality gate,
-    applied to the current-B1h row. A missing required key is corruption
-    (raises, though `_validate_consensus_1h_row_identity` already
-    guarantees presence for every row in this family). A present key
-    whose value is SQL NULL is legitimate unavailable quality -- but BOTH
-    fields are validated for corruption BEFORE either's missingness can
-    short-circuit the other (corruption precedence)."""
-    missing = [f for f in _QUALITY_FIELDS if f not in row]
-    if missing:
+    """§6.3a's per-family metric-scoped quality gate, applied to the
+    current-B1h row for exactly the `price_structure` family (this
+    family's ONLY required family -- CONFIRMED_BREAKOUT MUST NOT acquire
+    a taker_flow requirement, §5.2) -- sourced from the row's own
+    `coverage_by_metric`/`data_confidence_by_metric` maps, never the
+    global `min_coverage_ratio`/`consensus_confidence` rollup. A
+    malformed PRESENT per-family map raises `V2ConfirmedBreakoutError`
+    (chained from `V2FamilyQualityError`), never silently downgraded to
+    ordinary unavailability."""
+    try:
+        quality = family_quality(row, family="price_structure")
+    except V2FamilyQualityError as exc:
         raise V2ConfirmedBreakoutError(
-            f"1h consensus row is missing required field(s) {missing!r}")
-
-    coverage_raw = row["min_coverage_ratio"]
-    coverage: Optional[float] = None
-    if coverage_raw is not None:
-        coverage = _validate_finite_numeric(coverage_raw, "min_coverage_ratio")
-        if not (0.0 <= coverage <= 1.0):
-            raise V2ConfirmedBreakoutError(
-                f"min_coverage_ratio must be within [0.0, 1.0], got {coverage!r}")
-
-    confidence_raw = row["consensus_confidence"]
-    confidence: Optional[float] = None
-    if confidence_raw is not None:
-        confidence = _validate_finite_numeric(confidence_raw, "consensus_confidence")
-        if not (0.0 <= confidence <= 100.0):
-            raise V2ConfirmedBreakoutError(
-                f"consensus_confidence must be within [0.0, 100.0], got {confidence!r}")
-
-    if coverage is None or confidence is None:
+            f"malformed price_structure family quality: {exc}") from exc
+    if quality.coverage_ratio is None or quality.confidence is None:
         return None
-    return coverage, confidence
+    return quality.coverage_ratio, quality.confidence
 
 
 def _validate_reference_row(
@@ -943,6 +970,20 @@ def detect_confirmed_breakout(
             f"entry_zone_lower ({entry_zone_lower!r}) exceeds entry_zone_upper "
             f"({entry_zone_upper!r})")
 
+    # ---- §8.3/§9 setup_strength/data_confidence, canonical creation-time
+    # scoring/quality facts carried BY VALUE -- never recomputed
+    # downstream. setup_strength reuses this candidate's own canonical
+    # breakout distance beyond the level and protection_buffer (no
+    # differently-recomputed protection_buffer); data_confidence is the
+    # SAME price_structure family confidence already read for the
+    # current-B1h quality gate above (current_confidence), at CONFIRMED_
+    # BREAKOUT's canonical 1h structural setup context -- never a second
+    # lookup, never a different bucket.
+    breakout_distance_beyond_level = (
+        current_close - level_price if direction == LONG else level_price - current_close)
+    setup_strength = _confirmed_breakout_setup_strength(breakout_distance_beyond_level, buffer)
+    data_confidence = current_confidence / 100.0
+
     return V2ConfirmedBreakoutCandidate(
         T=T,
         direction=direction,
@@ -957,4 +998,6 @@ def detect_confirmed_breakout(
         entry_zone_lower=entry_zone_lower,
         entry_zone_upper=entry_zone_upper,
         invalidation_price=invalidation_price,
+        setup_strength=setup_strength,
+        data_confidence=data_confidence,
     )

@@ -15,7 +15,7 @@ def test_real_file_loads_and_is_disabled():
     cfg = V2Config.load()
     assert cfg.enabled is False
     assert cfg.model_family == "v2"
-    assert cfg.rules_version == "v2-rules-v0.1.0"
+    assert cfg.rules_version == "v2-rules-v0.2.0"
 
 
 def test_real_file_rules_version_is_valid_shape():

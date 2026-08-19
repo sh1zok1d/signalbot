@@ -183,6 +183,7 @@ from analytics.forecasting_v2.alignment import TIMEFRAME_MINUTES, selected_bucke
 from analytics.forecasting_v2.bias_1h import BEARISH, BULLISH
 from analytics.forecasting_v2.context_snapshot import V2ContextSnapshot
 from analytics.forecasting_v2.events import DIRECTIONS, LONG, SHORT
+from analytics.forecasting_v2.family_quality import V2FamilyQualityError, family_quality
 from analytics.forecasting_v2.regime_4h import BEARISH_TRENDING, BULLISH_TRENDING
 from analytics.forecasting_v2.setup_common import (
     SETUP_MIN_CONFIDENCE, SETUP_MIN_COVERAGE, V2ExtremeAnchor, V2SetupFoundationError,
@@ -294,6 +295,26 @@ def _validate_utc_whole_minute(value: Any, name: str) -> datetime:
     return value
 
 
+def _trend_pullback_setup_strength(retracement_pct: float, range_proxy_pct_value: float) -> float:
+    """§8.1's exact `setup_strength` formula: `1 - (retracement_pct /
+    (PULLBACK_MAX_MULT * range_proxy_pct))`, clamped to `[0.0, 1.0]`,
+    using the candidate's own already-computed canonical
+    `retracement_pct`/`range_proxy_pct` -- never a reload/recompute from
+    historical rows. The formation band check (`min_retracement <=
+    retracement_pct <= max_retracement`, both derived from the SAME
+    `range_proxy_pct_value`) guarantees `retracement_pct == 0.0` whenever
+    `range_proxy_pct_value == 0.0` (a genuinely flat reference window
+    collapses the band to the single point `0`), so that degenerate
+    `0/0` case is defined as maximal strength (`1.0`, no pullback at all
+    relative to a flat reference) rather than raising or propagating a
+    NaN."""
+    denom = PULLBACK_MAX_MULT * range_proxy_pct_value
+    if denom == 0.0:
+        return 1.0
+    raw = 1.0 - (retracement_pct / denom)
+    return min(1.0, max(0.0, raw))
+
+
 def _validate_row_container(rows: Any, name: str) -> Any:
     """Reject a top-level rows argument that is not a legitimate
     iterable-of-rows container -- `None`, or a bare `str`/`bytes`/
@@ -357,7 +378,19 @@ class V2TrendPullbackCandidate:
     `structural_anchor` (the `bucket_ts` `episode_logical_key`, §12, will
     later use) is intentionally exposed only as a read-only property
     derived from `trend_leg_extreme.bucket_ts` -- never a second,
-    independently-settable field that could silently disagree with it."""
+    independently-settable field that could silently disagree with it.
+
+    `setup_strength`/`data_confidence` (§8/§9) are canonical creation-time
+    scoring/quality facts, carried BY VALUE from this candidate's own
+    already-computed `retracement_pct`/`range_proxy_pct` and the
+    setup-formation 15m bucket's own `price_structure` family confidence
+    -- never recomputed by a later stage. `__post_init__` cross-checks
+    both against the candidate's own canonical fields (never silently
+    trusting a directly-constructed value), and enforces the EXACT §7.1
+    entry-zone/invalidation geometry (not merely `lower <= upper`/
+    "invalidation is on the correct side") -- a directly-constructed
+    candidate whose fields are internally inconsistent with the
+    detector's own arithmetic fails closed."""
     T: datetime
     direction: str
     bucket_15m: datetime
@@ -371,6 +404,8 @@ class V2TrendPullbackCandidate:
     entry_zone_lower: float
     entry_zone_upper: float
     invalidation_price: float
+    setup_strength: float
+    data_confidence: float
 
     def __post_init__(self) -> None:
         if self.direction not in DIRECTIONS:
@@ -410,26 +445,77 @@ class V2TrendPullbackCandidate:
         entry_upper = _validate_positive_finite(self.entry_zone_upper, "entry_zone_upper")
         invalidation_price = _validate_positive_finite(
             self.invalidation_price, "invalidation_price")
-        _validate_nonnegative_finite(self.retracement_pct, "retracement_pct")
-        _validate_nonnegative_finite(self.range_proxy_pct, "range_proxy_pct")
+        retracement_pct = _validate_nonnegative_finite(self.retracement_pct, "retracement_pct")
+        proxy = _validate_nonnegative_finite(self.range_proxy_pct, "range_proxy_pct")
 
         if not (entry_lower <= entry_upper):
             raise V2TrendPullbackError(
                 f"entry_zone_lower ({entry_lower!r}) must be <= entry_zone_upper "
                 f"({entry_upper!r})")
 
+        # §7.1/§10 exact entry-zone/invalidation geometry -- NOT merely
+        # "lower <= upper"/"invalidation is on the correct side": every
+        # field must equal the detector's own exact arithmetic bit-for-bit
+        # (deterministic numeric comparison, no invented tolerance).
         if self.direction == LONG:
+            if entry_lower != pullback_extreme:
+                raise V2TrendPullbackError(
+                    "LONG entry_zone_lower must exactly equal pullback_extreme -- expected "
+                    f"{pullback_extreme!r}, got {entry_lower!r}")
+            if entry_upper != current_close:
+                raise V2TrendPullbackError(
+                    "LONG entry_zone_upper must exactly equal current_close -- expected "
+                    f"{current_close!r}, got {entry_upper!r}")
+            expected_invalidation = pullback_extreme - buf
+            if invalidation_price != expected_invalidation:
+                raise V2TrendPullbackError(
+                    "LONG invalidation_price is inconsistent with pullback_extreme/"
+                    f"protection_buffer -- expected {expected_invalidation!r}, got "
+                    f"{invalidation_price!r}")
             if not (invalidation_price < pullback_extreme):
                 raise V2TrendPullbackError(
                     "LONG invalidation_price must be < pullback_extreme, got "
                     f"invalidation_price={invalidation_price!r}, "
                     f"pullback_extreme={pullback_extreme!r}")
         else:
+            if entry_lower != current_close:
+                raise V2TrendPullbackError(
+                    "SHORT entry_zone_lower must exactly equal current_close -- expected "
+                    f"{current_close!r}, got {entry_lower!r}")
+            if entry_upper != pullback_extreme:
+                raise V2TrendPullbackError(
+                    "SHORT entry_zone_upper must exactly equal pullback_extreme -- expected "
+                    f"{pullback_extreme!r}, got {entry_upper!r}")
+            expected_invalidation = pullback_extreme + buf
+            if invalidation_price != expected_invalidation:
+                raise V2TrendPullbackError(
+                    "SHORT invalidation_price is inconsistent with pullback_extreme/"
+                    f"protection_buffer -- expected {expected_invalidation!r}, got "
+                    f"{invalidation_price!r}")
             if not (invalidation_price > pullback_extreme):
                 raise V2TrendPullbackError(
                     "SHORT invalidation_price must be > pullback_extreme, got "
                     f"invalidation_price={invalidation_price!r}, "
                     f"pullback_extreme={pullback_extreme!r}")
+
+        # §8.1/§9 setup_strength/data_confidence -- canonical creation-time
+        # scoring/quality facts, cross-checked against this candidate's own
+        # already-computed retracement_pct/range_proxy_pct (setup_strength)
+        # and validated to their exact [0,1] domain (both).
+        setup_strength = _validate_finite_numeric(self.setup_strength, "setup_strength")
+        if not (0.0 <= setup_strength <= 1.0):
+            raise V2TrendPullbackError(
+                f"setup_strength must be within [0.0, 1.0], got {setup_strength!r}")
+        expected_setup_strength = _trend_pullback_setup_strength(retracement_pct, proxy)
+        if setup_strength != expected_setup_strength:
+            raise V2TrendPullbackError(
+                "setup_strength is inconsistent with retracement_pct/range_proxy_pct -- "
+                f"expected {expected_setup_strength!r}, got {setup_strength!r}")
+
+        data_confidence = _validate_finite_numeric(self.data_confidence, "data_confidence")
+        if not (0.0 <= data_confidence <= 1.0):
+            raise V2TrendPullbackError(
+                f"data_confidence must be within [0.0, 1.0], got {data_confidence!r}")
 
     @property
     def structural_anchor(self) -> datetime:
@@ -453,7 +539,6 @@ _PROXY_IDENTITY_FIELDS = (
     "symbol", "market_type", "timeframe", "calculation_version", "feature_schema_version",
     "bucket_ts",
 )
-_SETUP_QUALITY_FIELDS = ("min_coverage_ratio", "consensus_confidence")
 _INSTRUMENT_REQUIRED_FIELDS = ("exchange", "symbol", "market_type", "tick_size")
 
 
@@ -573,43 +658,23 @@ def _validate_proxy_row_identity(row: Any, *, context: V2ContextSnapshot) -> dat
 
 
 def _validate_setup_quality_row(row: Mapping) -> "Optional[tuple[float, float]]":
-    """Validate the current-B15 consensus row's §6.2/§6.3 setup-quality
-    fields (`min_coverage_ratio`, `consensus_confidence`) -- the SAME
-    frozen numeric gate reused at every V2 timeframe, applied here at
-    TREND_PULLBACK's own 15m setup-formation bucket. A missing required
-    key is corruption (raises). A present key whose value is SQL
-    NULL/`None` is legitimate unavailable quality -- but BOTH fields are
-    validated for corruption BEFORE either's missingness can short-circuit
-    the other (corruption precedence, mirrors #36-#40's posture: a
-    malformed PRESENT value is never masked by a sibling field's
-    legitimate absence, nor by a different missing historical `RANGE_
-    PROXY` peer bucket, since this function is called independently of
-    that completeness check). Returns `(coverage, confidence)` if both are
-    present and valid, or `None` if either is legitimately unavailable."""
-    missing = [f for f in _SETUP_QUALITY_FIELDS if f not in row]
-    if missing:
-        raise V2TrendPullbackError(
-            f"current 15m consensus row is missing required field(s) {missing!r}")
-
-    coverage_raw = row["min_coverage_ratio"]
-    coverage: Optional[float] = None
-    if coverage_raw is not None:
-        coverage = _validate_finite_numeric(coverage_raw, "min_coverage_ratio")
-        if not (0.0 <= coverage <= 1.0):
-            raise V2TrendPullbackError(
-                f"min_coverage_ratio must be within [0.0, 1.0], got {coverage!r}")
-
-    confidence_raw = row["consensus_confidence"]
-    confidence: Optional[float] = None
-    if confidence_raw is not None:
-        confidence = _validate_finite_numeric(confidence_raw, "consensus_confidence")
-        if not (0.0 <= confidence <= 100.0):
-            raise V2TrendPullbackError(
-                f"consensus_confidence must be within [0.0, 100.0], got {confidence!r}")
-
-    if coverage is None or confidence is None:
+    """§6.3a: the current-B15 setup-quality gate is scoped to the
+    `price_structure` FAMILY alone -- sourced from the row's own
+    `coverage_by_metric`/`data_confidence_by_metric` per-family maps,
+    never the global `min_coverage_ratio`/`consensus_confidence` rollup a
+    family this detector does not consume (e.g. `liquidations`) could
+    otherwise drag down. A malformed PRESENT per-family map raises
+    `V2TrendPullbackError` (chained from `V2FamilyQualityError`), never
+    silently downgraded to ordinary unavailability. Returns `(coverage,
+    confidence)` if both are present and valid, or `None` if either is
+    legitimately unavailable."""
+    try:
+        price_family = family_quality(row, family="price_structure")
+    except V2FamilyQualityError as exc:
+        raise V2TrendPullbackError(f"malformed price_structure family quality: {exc}") from exc
+    if price_family.coverage_ratio is None or price_family.confidence is None:
         return None
-    return coverage, confidence
+    return price_family.coverage_ratio, price_family.confidence
 
 
 def detect_trend_pullback(inputs: V2TrendPullbackInputs) -> Optional[V2TrendPullbackCandidate]:
@@ -785,6 +850,16 @@ def detect_trend_pullback(inputs: V2TrendPullbackInputs) -> Optional[V2TrendPull
             f"entry_zone_lower ({entry_zone_lower!r}) exceeds entry_zone_upper "
             f"({entry_zone_upper!r})")
 
+    # ---- §8.1/§9 setup_strength/data_confidence, canonical creation-time
+    # scoring/quality facts carried BY VALUE on the candidate -- never
+    # recomputed downstream. setup_strength reuses this candidate's own
+    # already-computed retracement_pct/range_proxy_pct (no reload/
+    # recompute from historical rows); data_confidence is the SAME
+    # price_structure family confidence already read for the current-B15
+    # quality gate above (current_confidence), never a second lookup.
+    setup_strength = _trend_pullback_setup_strength(retracement_pct, proxy)
+    data_confidence = current_confidence / 100.0
+
     return V2TrendPullbackCandidate(
         T=T,
         direction=direction,
@@ -798,5 +873,7 @@ def detect_trend_pullback(inputs: V2TrendPullbackInputs) -> Optional[V2TrendPull
         protection_buffer=buffer,
         entry_zone_lower=entry_zone_lower,
         entry_zone_upper=entry_zone_upper,
+        setup_strength=setup_strength,
+        data_confidence=data_confidence,
         invalidation_price=invalidation_price,
     )

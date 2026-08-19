@@ -56,8 +56,10 @@ def make_context(*, t=T, b4h=B4H, b1h=B1H) -> V2ContextSnapshot:
     return V2ContextSnapshot(
         T=t, symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=H16,
         feature_schema_version=1,
-        regime_4h=V2RegimeResult(bucket_ts=b4h, regime=NON_DIRECTIONAL, is_compressed=False),
-        bias_1h=V2BiasResult(bucket_ts=b1h, bias=NEUTRAL_NOT_ESTABLISHED),
+        regime_4h=V2RegimeResult(
+            bucket_ts=b4h, regime=NON_DIRECTIONAL, is_compressed=False,
+            price_evi=None, compression_score=0.5),
+        bias_1h=V2BiasResult(bucket_ts=b1h, bias=NEUTRAL_NOT_ESTABLISHED, bias_evi=None),
     )
 
 
@@ -398,6 +400,24 @@ def test_load_compression_breakout_inputs_is_a_coroutine_function():
 # ============================================================================
 # 9. END-TO-END: loader output feeds the real detector to a candidate
 # ============================================================================
+_FAMILIES = ("price_structure", "volume", "taker_flow", "oi", "funding", "liquidations")
+
+
+def _family_maps(*, price_coverage=0.9, price_confidence=80.0, taker_coverage=0.9,
+                 taker_confidence=80.0):
+    per_family = {
+        "price_structure": (price_coverage, price_confidence),
+        "taker_flow": (taker_coverage, taker_confidence),
+    }
+    coverage_by_metric = {}
+    data_confidence_by_metric = {}
+    for family in _FAMILIES:
+        ratio, confidence = per_family.get(family, (1.0, 100.0))
+        coverage_by_metric[family] = {"available": 3, "expected": 3, "ratio": ratio}
+        data_confidence_by_metric[family] = confidence
+    return coverage_by_metric, data_confidence_by_metric
+
+
 def test_loader_output_feeds_real_detector_to_a_valid_candidate():
     from analytics.forecasting_v2.compression_breakout import detect_compression_breakout
 
@@ -407,11 +427,14 @@ def test_loader_output_feeds_real_detector_to_a_valid_candidate():
     consensus_rows = []
     percentile_rows = []
     for i, b in enumerate(lookback_grid):
+        coverage_by_metric, data_confidence_by_metric = _family_maps()
         consensus_rows.append({
             "symbol": SYMBOL, "market_type": MARKET_TYPE, "timeframe": "15m",
             "calculation_version": H16, "feature_schema_version": 1, "bucket_ts": b,
             "min_coverage_ratio": 0.9, "consensus_confidence": 80.0,
             "range_width_pct_median": 0.3,
+            "coverage_by_metric": coverage_by_metric,
+            "data_confidence_by_metric": data_confidence_by_metric,
         })
         score = 0.82 if i in compressed_idx else 0.10
         percentile_rows.append({
@@ -451,11 +474,14 @@ def test_loader_output_feeds_real_detector_to_a_valid_candidate():
          "is_usable": True, "has_gap": False, "bars_present": 5, "bars_expected": 5,
          "close_price": 63_740.0},
     )
+    trigger_coverage_by_metric, trigger_data_confidence_by_metric = _family_maps()
     consensus_5m_rows = ({
         "symbol": SYMBOL, "market_type": MARKET_TYPE, "timeframe": "5m",
         "calculation_version": H16, "feature_schema_version": 1, "bucket_ts": B5,
         "min_coverage_ratio": 0.9, "consensus_confidence": 80.0,
         "price_direction_agreement": 0.8, "taker_delta_notional_usd_sum": -1000.0,
+        "coverage_by_metric": trigger_coverage_by_metric,
+        "data_confidence_by_metric": trigger_data_confidence_by_metric,
     },)
     instrument = {"exchange": "binance", "symbol": SYMBOL, "market_type": MARKET_TYPE,
                  "tick_size": 0.1}
