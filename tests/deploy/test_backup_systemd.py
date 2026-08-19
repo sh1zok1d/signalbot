@@ -74,6 +74,18 @@ def test_backup_files_exist():
         assert p.is_file(), f"missing {p}"
 
 
+def test_runbook_and_systemd_credential_path_agree():
+    doc_text = DOC.read_text()
+    service_text = BACKUP_SERVICE.read_text()
+    install_text = INSTALL.read_text()
+    assert "RCLONE_CONFIG=/etc/signalbot/rclone.conf" in service_text
+    assert "/etc/signalbot/rclone.conf" in doc_text
+    assert "RCLONE_CONFIG_FILE=/etc/signalbot/rclone.conf" in install_text
+    # the runbook must not still tell the operator to rely on the
+    # interactive default the service's ProtectHome=true makes unreachable
+    assert "the OAuth token) into\n`/root/.config/rclone" not in doc_text
+
+
 # ============================================================================
 # B. signalbot-backup.service
 # ============================================================================
@@ -128,6 +140,41 @@ def test_backup_service_no_secret_literal_in_unit_source():
 def test_backup_service_readwritepaths_scoped_to_backups_dir():
     svc = _parse_unit(BACKUP_SERVICE.read_text())["Service"]
     assert _one(svc, "ReadWritePaths") == "/opt/signalbot/backups"
+
+
+# ----------------------------------------------------------------------------
+# Tech-lead amendment round 1, item 1: ProtectHome=true must stay enabled AND
+# rclone must be pointed at an explicit config path OUTSIDE /root -- a
+# credential file at rclone's interactive default
+# (~/.config/rclone/rclone.conf, i.e. /root/.config/rclone/rclone.conf for
+# this root-run unit) would be exactly what ProtectHome=true makes
+# unreachable, so a config that works when an admin runs rclone
+# interactively must not silently fail only once systemd runs it.
+# ----------------------------------------------------------------------------
+def test_backup_service_protecthome_remains_enabled():
+    svc = _parse_unit(BACKUP_SERVICE.read_text())["Service"]
+    assert _one(svc, "ProtectHome") == "true"
+
+
+def test_backup_service_explicit_rclone_config_outside_root():
+    svc = _parse_unit(BACKUP_SERVICE.read_text())["Service"]
+    envs = _values(svc, "Environment")
+    assert "RCLONE_CONFIG=/etc/signalbot/rclone.conf" in envs
+    # the configured path must not be under /root -- that's exactly what
+    # ProtectHome=true makes unreachable
+    rclone_config_envs = [e for e in envs if e.startswith("RCLONE_CONFIG=")]
+    assert len(rclone_config_envs) == 1
+    path = rclone_config_envs[0].split("=", 1)[1]
+    assert not path.startswith("/root/")
+    assert not path.startswith("~")
+
+
+def test_backup_service_never_relies_on_root_home_rclone_config():
+    # real unit directives only -- not the explanatory comment that
+    # deliberately names the forbidden default to document why it's avoided
+    code = _unit_code(BACKUP_SERVICE.read_text())
+    assert "/root/.config/rclone" not in code
+    assert "~/.config/rclone" not in code
 
 
 def test_backup_service_no_restart_or_remain():
@@ -258,6 +305,46 @@ def test_installer_installs_all_four_units_mode_0644():
     assert "signalbot-backup.timer" in text
     assert "signalbot-backup-verify.service" in text
     assert "signalbot-backup-verify.timer" in text
+
+
+# ----------------------------------------------------------------------------
+# Tech-lead amendment round 1, item 1: fail closed before --enable-now
+# activates anything if rclone/its config aren't ready. Must exercise the
+# SAME explicit path signalbot-backup.service itself reads.
+# ----------------------------------------------------------------------------
+def test_installer_rclone_config_path_matches_service():
+    install_text = INSTALL.read_text()
+    service_text = BACKUP_SERVICE.read_text()
+    assert "RCLONE_CONFIG_FILE=/etc/signalbot/rclone.conf" in install_text
+    assert "RCLONE_CONFIG=/etc/signalbot/rclone.conf" in service_text
+
+
+def test_installer_checks_rclone_and_config_before_enabling():
+    text = INSTALL.read_text()
+    i_enable_block = text.index('if [[ "${ENABLE_NOW}" -eq 1 ]]')
+    i_rclone_cmd_check = text.index("command -v rclone")
+    i_rclone_config_check = text.index('[[ -r "${RCLONE_CONFIG_FILE}" ]]')
+    i_systemctl_enable = text.index("systemctl enable --now")
+    # both checks live inside the --enable-now branch, strictly before the
+    # actual activation call
+    assert i_enable_block < i_rclone_cmd_check < i_systemctl_enable
+    assert i_enable_block < i_rclone_config_check < i_systemctl_enable
+
+
+def test_installer_rclone_checks_print_no_credential_value():
+    code = _shell_code(INSTALL.read_text())
+    # only path/existence checks -- never dumping the config file's contents
+    for banned in ("cat ${RCLONE_CONFIG_FILE}", "cat \"${RCLONE_CONFIG_FILE}\"", "token"):
+        assert banned not in code
+
+
+def test_installer_does_not_require_rclone_for_install_only_default():
+    # the rclone/config checks are scoped inside the --enable-now branch
+    # (asserted above) -- confirm they are NOT part of the unconditional
+    # preflight checks that run for a plain install-only invocation.
+    text = INSTALL.read_text()
+    i_preflight_end = text.index("src_paths=()")
+    assert "command -v rclone" not in text[:i_preflight_end]
 
 
 def test_check_script_has_no_mutating_systemctl_verbs():

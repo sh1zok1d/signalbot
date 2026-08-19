@@ -1138,7 +1138,7 @@ PROGRESS" framing to be inaccurate:
   and `#44` (Quality/scoring boundary hardening, including its round-2
   amendment closing the `V2BiasResult` `NEUTRAL_NOT_ESTABLISHED`/
   `BIAS_UNAVAILABLE` handoff gap) are both **MERGED**, ships under
-  `v2-rules-v0.2.0`. `#45`/`#46` are **NOT STARTED**. The audit below
+  `v2-rules-v0.2.0`. `V2-H2`/`V2-H3` are **NOT STARTED**. The audit below
   identified additional cross-stage correctness gaps between the
   currently-merged Stage 2–5 implementation and the frozen contracts that
   must be closed — in code, not just docs — before executable Stage 6 can
@@ -1146,10 +1146,19 @@ PROGRESS" framing to be inaccurate:
 - **INFRA-D1 — Data Durability & Off-site Backup: IN PROGRESS (parallel
   infrastructure track, not a V2 forecasting stage — see the dedicated
   subsection below).** Runs alongside the pre-Stage-6 hardening sequence;
-  does not block `#45`/`#46` design or implementation correctness, but is
+  does not block `V2-H2`/`V2-H3` design or implementation correctness, but is
   prioritized now because the live historical dataset already exists and
   keeps accumulating with every ingestion cycle, and must be durable
   before the first serious V2 historical replay/shadow evaluation.
+  **Naming note:** GitHub has assigned this track the actual repository PR
+  number **`#45`**. That number belongs to INFRA-D1 alone — it is NOT the
+  same thing as `V2-H2` below (the future replay/provenance/data-coherence
+  hardening work, informally called "`#45`" in earlier drafts of this
+  document before INFRA-D1 existed). `V2-H2`/`V2-H3` are stable *logical*
+  labels, not GitHub PR numbers; their real PR numbers will be whatever
+  GitHub assigns next when each is actually opened, and may or may not
+  turn out to be `#46`/`#47`. Historical merged PR numbers (`#43`, `#44`)
+  are not renumbered.
 
 **`#43` — contract consolidation and cross-stage audit (MERGED, amended
 three times post-open).** Round 1 froze creation identity vs.
@@ -1263,7 +1272,7 @@ already-accepted decision:
   drain_complete_at + 5m`) to avoid a same-boundary provenance ambiguity;
   and a normal process restart must not reopen OLD creation, activate
   NEW early, or reset drain progress. The physical switch-state
-  persistence mechanism remains `#45` implementation work (below); the
+  persistence mechanism remains `V2-H2` implementation work (below); the
   observable correctness invariant is frozen now.
 - **Corrected 1m post-confirmation no-lookahead wording (`§18.2a`).** The
   prior text wrongly claimed the `bucket_ts = T_confirm` bar is "already
@@ -1298,7 +1307,7 @@ already-accepted decision:
 `v2.enabled` stays `false`; `v2.rules_version` remains `v2-rules-v0.1.0`
 for `#43` itself — this round changes no runtime threshold. This
 amendment does not create a new hardening PR — the finite `DRAIN`
-semantics remain owned by `#45` (below, updated accordingly), and the
+semantics remain owned by `V2-H2` (below, updated accordingly), and the
 `analytical_path_complete`/acceptance semantics are contract facts for
 later Stage 6/Stage 8 evaluator implementation, not a new PR of their
 own.
@@ -1354,7 +1363,7 @@ correctness contract — subject to change if audit findings evolve):**
   hand-constructed/replayed evidence could previously let missing data
   masquerade as an accepted neutral context in `directional_context_gate()`.
 - **`INFRA-D1` — Data Durability & Off-site Backup (parallel
-  infrastructure track, runs alongside `#45`/`#46`, not a numbered V2
+  infrastructure track, runs alongside `V2-H2`/`V2-H3`, not a numbered V2
   forecasting-stage PR).** Extends the existing `deploy/backup.sh`/
   `deploy/restore.sh` local-backup foundation with an off-site copy (via a
   generic, operator-configured `rclone` remote — Google Drive documented
@@ -1367,14 +1376,14 @@ correctness contract — subject to change if audit findings evolve):**
   (`docs/DATA_DURABILITY_RUNBOOK.md`). Changes no trading semantics, no
   V1/V2 rules, no `rules_version`/`calculation_version`, no schema — it
   protects already-persisted data, it does not compute anything.
-  Prioritized now (not deferred to after `#45`/`#46`/Stage 6) because
+  Prioritized now (not deferred to after `V2-H2`/`V2-H3`/Stage 6) because
   historical data is already accruing daily and local-only backup remains
-  a single point of failure until this lands; does not block `#45`/`#46`
+  a single point of failure until this lands; does not block `V2-H2`/`V2-H3`
   design or implementation correctness. **MUST NOT** implement Stage 6,
   touch V1/V2 rule code, or perform any production deployment itself —
   deployment/configuration on the actual VPS is a separate explicit
   operator action after review/merge.
-- **`#45` — Replay/provenance/data-coherence hardening.** Implements
+- **`V2-H2` — Replay/provenance/data-coherence hardening.** Implements
   `§3.4`'s one-coherent-data-view-per-decision invariant (Stage 3+5 input
   assembly; Stage 2 correction-publication completeness); `§3.2`'s
   decision-provenance-tuple continuity (resolved before Stage 3/4/5/6
@@ -1399,7 +1408,7 @@ correctness contract — subject to change if audit findings evolve):**
   `snapshot_ts`/malformed `sample_window_end` currently leaks a raw
   `TypeError` instead of the domain `V2AlignedInputError`). **MUST NOT**
   implement Stage 6 state transitions.
-- **`#46` — Persistence/idempotency hardening.** Implements `§2.1a`'s NOW
+- **`V2-H3` — Persistence/idempotency hardening.** Implements `§2.1a`'s NOW
   singular same-`T` event model (option (a) only: at most one
   `V2EpisodeEvent` per `(execution_stream, episode_id, decision_boundary)`,
   same-`T` facts aggregated into it — option (b), multiple rows with a
@@ -1424,7 +1433,7 @@ correctness contract — subject to change if audit findings evolve):**
   into four merely to preserve an old count; unchanged in *content* from
   the prior plan, renumbered to follow the pre-Stage-6 hardening above):
   (1) episode identity + persisted-history read foundation (consumes
-  `#44`–`#46`'s hardened boundaries, including `§3.2`'s provenance tuple
+  `#44`, `V2-H2`, and `V2-H3`'s hardened boundaries, including `§3.2`'s provenance tuple
   and `§2.1a`'s deterministic IDs/one-event-per-T model); (2) candidate
   classification/arbitration/`EARLY_SIGNAL` creation/same-slot/cooldown
   eligibility; (3) family confirmation/false-break/candidate-expiry
@@ -1441,8 +1450,22 @@ split may be adjusted if reviewability, risk, or further audit findings
 require it. It is not a claim that the exact PR count, numbering, or
 boundaries are immutable.
 
-**Next planned work (after `#43` and `#44` merged):** `INFRA-D1` —
-off-site data durability (parallel infrastructure, currently in review)
-and `#45` — replay/provenance/data-coherence hardening (not yet started).
-INFRA-D1 does not block `#45` and may land before, after, or interleaved
-with it.
+**Next planned work (after `#43` and `#44` merged):** `INFRA-D1` (actual
+GitHub PR `#45`) — off-site data durability, currently in review — and
+`V2-H2` — replay/provenance/data-coherence hardening (not yet started,
+real PR number not yet assigned). INFRA-D1 does not block `V2-H2` and may
+land before, after, or interleaved with it.
+
+Conceptual planning order going forward (logical labels, not a claim about
+future GitHub PR numbers — those are assigned only when each PR is
+actually opened):
+
+```
+merged #43  (contract consolidation)
+merged #44  (quality/scoring boundary hardening)
+INFRA-D1    (actual GitHub PR #45 -- parallel infrastructure, not a V2 stage)
+V2-H2       (replay / provenance / data coherence hardening)
+V2-H3       (persistence / idempotency hardening)
+convergence gate (V2-H2 + V2-H3 both merged, before Stage 6 begins)
+Stage 6     (Episode State Machine, 5 PRs)
+```

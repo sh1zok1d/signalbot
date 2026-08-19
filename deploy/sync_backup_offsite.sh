@@ -59,9 +59,19 @@ case "$REMOTE" in
   *) echo "[offsite] ERROR: SIGNALBOT_BACKUP_REMOTE must be 'remote:path' (got '${REMOTE}')" >&2; exit 1 ;;
 esac
 _remote_path="${REMOTE#*:}"
-if [ -z "$_remote_path" ]; then
-  echo "[offsite] ERROR: SIGNALBOT_BACKUP_REMOTE must include a non-empty path" \
-       "after the colon — refusing to operate against a remote root" >&2
+# Reject every root-equivalent spelling, not just a literally empty path:
+# "gdrive:", "gdrive:/", "gdrive://", "gdrive:///" all denote the remote's
+# root once slashes are disregarded. Stripping EVERY '/' from the path
+# component and checking what's left catches all of them in one test,
+# while still allowing a real (even slash-prefixed) path like
+# "gdrive:/signalbot-backups" or "gdrive:a/b" to pass, since those retain
+# a non-slash character. This check runs BEFORE any trailing-slash
+# normalization below, so normalization can never turn a path that passed
+# validation into a root-equivalent form afterward.
+_remote_path_no_slashes="${_remote_path//\//}"
+if [ -z "$_remote_path_no_slashes" ]; then
+  echo "[offsite] ERROR: SIGNALBOT_BACKUP_REMOTE must include a real, non-root path" \
+       "after the colon (got '${REMOTE}') — refusing to operate against a remote root" >&2
   exit 1
 fi
 # Strip a trailing slash so "${REMOTE}/daily" never becomes "...//daily".
@@ -117,12 +127,37 @@ _month_of() {  # -> "YYYY-MM", from YYYYMMDD
   echo "${ymd:0:4}-${ymd:4:2}"
 }
 
-# List filenames present under "${REMOTE}/<tier>/" — tolerate a not-yet-
-# existing prefix (empty listing) without treating that as an error.
+# List filenames present under "${REMOTE}/<tier>/". Does NOT swallow
+# failures: an auth/network/permission/backend error from `rclone lsf` must
+# never be silently reinterpreted as "tier has no objects" -- that would let
+# a real listing failure masquerade as an empty remote and let the job
+# report success. `_ensure_tier_dirs` (below) creates all three tier
+# directories up front specifically so "the directory doesn't exist yet" is
+# never a reason `lsf` needs to fail here -- by the time this is called, a
+# non-zero exit from `rclone lsf` is a REAL failure, and it is left to
+# propagate (via `set -e`) to whichever caller invoked this in a plain
+# assignment, aborting the whole run non-zero. No caller may treat a failed
+# call as an empty list.
 _list_tier() {
   local tier="$1"
-  rclone lsf "${REMOTE}/${tier}/" 2>/dev/null || true
+  rclone lsf "${REMOTE}/${tier}/"
 }
+
+# Create the three tier directories if they don't already exist yet (e.g.
+# the very first run against a fresh remote). Idempotent -- a no-op against
+# an already-existing directory on every provider rclone supports. This
+# exists so a later `_list_tier` failure can be trusted to mean a REAL
+# error (auth/network/permission/backend), never "directory not found yet".
+_ensure_tier_dirs() {
+  local tier
+  for tier in daily weekly monthly; do
+    if ! rclone mkdir "${REMOTE}/${tier}"; then
+      echo "[offsite] ERROR: failed to ensure remote directory ${REMOTE}/${tier} exists; job failed" >&2
+      exit 1
+    fi
+  done
+}
+_ensure_tier_dirs
 
 # ---- 3. DAILY: every successful backup may participate ----
 echo "[offsite] uploading -> ${REMOTE}/daily/${fname}"

@@ -30,6 +30,14 @@ _map() { # remote:path -> $STORE/path
   echo "${STORE}/${arg#*:}"
 }
 case "$cmd" in
+  mkdir)
+    if [ "${FAKE_RCLONE_FAIL_MKDIR:-0}" = "1" ]; then
+      echo "fake rclone: simulated mkdir failure" >&2
+      exit 1
+    fi
+    dir="$(_map "$1")"
+    mkdir -p "$dir"
+    ;;
   copyto)
     src="$1"; dst="$(_map "$2")"
     if [ "${FAKE_RCLONE_FAIL_UPLOAD:-0}" = "1" ]; then
@@ -40,6 +48,10 @@ case "$cmd" in
     cp "$src" "$dst"
     ;;
   lsf)
+    if [ "${FAKE_RCLONE_FAIL_LSF:-0}" = "1" ]; then
+      echo "fake rclone: simulated listing failure (auth/network/backend)" >&2
+      exit 1
+    fi
     dir="$(_map "$1")"
     if [ -d "$dir" ]; then
       ls -1 "$dir"
@@ -212,6 +224,37 @@ def test_refuses_remote_without_path_component(fake_rclone, backup_dir):
     assert "root" in result2.stderr.lower()
 
 
+@pytest.mark.parametrize("remote", ["gdrive:/", "gdrive://", "gdrive:///"])
+def test_refuses_root_equivalent_slash_only_remote(fake_rclone, backup_dir, remote):
+    # each of these normalizes (by stripping a single trailing slash) to the
+    # exact bare-root form ("gdrive:") the code already claims to forbid --
+    # the validation must catch them BEFORE any such normalization, not after.
+    _make_dump(backup_dir / "btcbot_20260801T030000Z.sql.gz")
+    result = _run(fake_rclone, backup_dir, remote=remote)
+    assert result.returncode != 0, f"{remote!r} must be rejected as root-equivalent"
+    assert "root" in result.stderr.lower()
+    assert _remote_files(fake_rclone, "daily") == []
+
+
+def test_accepts_slash_prefixed_nested_remote_path(fake_rclone, backup_dir):
+    # a real path is allowed even when it happens to start with '/' or
+    # contains internal '/' -- only an ALL-slashes (or empty) path is root-
+    # equivalent and rejected.
+    _make_dump(backup_dir / "btcbot_20260801T030000Z.sql.gz")
+    result = _run(fake_rclone, backup_dir, remote="gdrive:/signalbot-backups")
+    assert result.returncode == 0, result.stderr
+    assert _remote_files(fake_rclone, "daily", prefix="signalbot-backups") == [
+        "btcbot_20260801T030000Z.sql.gz"]
+
+
+def test_accepts_nested_nonroot_remote_path(fake_rclone, backup_dir):
+    _make_dump(backup_dir / "btcbot_20260801T030000Z.sql.gz")
+    result = _run(fake_rclone, backup_dir, remote="gdrive:a/b")
+    assert result.returncode == 0, result.stderr
+    assert _remote_files(fake_rclone, "daily", prefix="a/b") == [
+        "btcbot_20260801T030000Z.sql.gz"]
+
+
 # ============================================================================
 # D. upload success/failure (spec §14 items 5-7)
 # ============================================================================
@@ -236,6 +279,72 @@ def test_local_backup_survives_remote_failure(fake_rclone, backup_dir):
     assert result.returncode != 0
     assert dump.is_file()
     assert dump.read_bytes() == before
+
+
+# ============================================================================
+# D2. remote LISTING failures must never be reinterpreted as "tier is empty"
+#     (tech-lead amendment round 1, item 2: a swallowed `rclone lsf` error
+#     previously let an auth/network/backend failure masquerade as an empty
+#     remote, and the job could go on to report success.)
+# ============================================================================
+def test_lsf_failure_returns_nonzero(fake_rclone, backup_dir):
+    _make_dump(backup_dir / "btcbot_20260801T030000Z.sql.gz")
+    result = _run(fake_rclone, backup_dir, extra_env={"FAKE_RCLONE_FAIL_LSF": "1"})
+    assert result.returncode != 0
+
+
+def test_local_backup_survives_lsf_failure(fake_rclone, backup_dir):
+    dump = _make_dump(backup_dir / "btcbot_20260801T030000Z.sql.gz")
+    before = dump.read_bytes()
+    result = _run(fake_rclone, backup_dir, extra_env={"FAKE_RCLONE_FAIL_LSF": "1"})
+    assert result.returncode != 0
+    assert dump.is_file()
+    assert dump.read_bytes() == before
+
+
+def test_job_never_reports_done_after_lsf_failure(fake_rclone, backup_dir):
+    _make_dump(backup_dir / "btcbot_20260801T030000Z.sql.gz")
+    result = _run(fake_rclone, backup_dir, extra_env={"FAKE_RCLONE_FAIL_LSF": "1"})
+    assert result.returncode != 0
+    assert "[offsite] done." not in result.stdout
+
+
+def test_lsf_failure_during_retention_is_not_treated_as_empty_tier(fake_rclone, backup_dir):
+    # A pre-existing object sits in daily/. If the listing failure were ever
+    # swallowed into an empty list (the old bug), retention pruning would
+    # proceed believing there was nothing to prune/compare against. Instead
+    # the whole run must abort before pruning ever runs, leaving the
+    # pre-existing object completely untouched.
+    _, store = fake_rclone
+    daily_dir = store / "signalbot-backups" / "daily"
+    daily_dir.mkdir(parents=True)
+    _make_dump(daily_dir / "btcbot_20260701T030000Z.sql.gz")
+    _make_dump(backup_dir / "btcbot_20260801T030000Z.sql.gz")
+    result = _run(fake_rclone, backup_dir, extra_env={
+        "FAKE_RCLONE_FAIL_LSF": "1",
+        "SIGNALBOT_BACKUP_DAILY_RETENTION": "1",
+    })
+    assert result.returncode != 0
+    # the pre-existing object was never pruned by a run that never validly
+    # observed the tier's true contents
+    assert "btcbot_20260701T030000Z.sql.gz" in _remote_files(fake_rclone, "daily")
+
+
+def test_weekly_dedup_does_not_silently_continue_on_untrusted_listing(fake_rclone, backup_dir):
+    # A weekly representative already exists. If the listing failure were
+    # ever swallowed into "no representative found", the script would
+    # proceed to upload a second, duplicate weekly representative for the
+    # same UTC week. Instead the run must abort at the listing call itself,
+    # uploading nothing further.
+    _, store = fake_rclone
+    weekly_dir = store / "signalbot-backups" / "weekly"
+    weekly_dir.mkdir(parents=True)
+    _make_dump(weekly_dir / "btcbot_20260803T030000Z.sql.gz")
+    _make_dump(backup_dir / "btcbot_20260804T030000Z.sql.gz")  # same ISO week
+    result = _run(fake_rclone, backup_dir, extra_env={"FAKE_RCLONE_FAIL_LSF": "1"})
+    assert result.returncode != 0
+    # still exactly the original single representative -- no duplicate landed
+    assert _remote_files(fake_rclone, "weekly") == ["btcbot_20260803T030000Z.sql.gz"]
 
 
 # ============================================================================

@@ -107,7 +107,16 @@ nothing in `deploy/sync_backup_offsite.sh` references Google or Drive.
 On the VPS, as the admin/root user (see §F for why root):
 
 ```bash
-rclone config
+# Create the config directory and point THIS invocation at the same
+# explicit path signalbot-backup.service uses (RCLONE_CONFIG=
+# /etc/signalbot/rclone.conf) -- NOT rclone's interactive default of
+# ~/.config/rclone/rclone.conf (/root/.config/rclone/rclone.conf for root).
+# Using the same explicit path here means this manual setup exercises the
+# EXACT credential surface the systemd timer will read later -- a config
+# that only works when run interactively as root, but not from the timer,
+# is exactly the failure mode this avoids. See §1 rationale below.
+sudo install -d -m 0700 -o root -g root /etc/signalbot
+sudo RCLONE_CONFIG=/etc/signalbot/rclone.conf rclone config
 # n) New remote
 # name>            gdrive
 # Storage>         (select "Google Drive" / "drive" from the list)
@@ -119,10 +128,17 @@ rclone config
 # Edit advanced config? n
 # Use auto config?  y   (opens a browser OAuth flow; use `rclone authorize`
 #                        from a machine with a browser if the VPS is headless)
+
+# rclone writes the config file itself as 0600; confirm/enforce ownership+mode:
+sudo chown root:root /etc/signalbot/rclone.conf
+sudo chmod 600 /etc/signalbot/rclone.conf
 ```
 
 This writes the remote definition (including the OAuth token) into
-`/root/.config/rclone/rclone.conf`. Then set, in `/etc/signalbot/backup.env`
+`/etc/signalbot/rclone.conf` — the explicit, non-default path
+`signalbot-backup.service` itself is configured with
+(`Environment=RCLONE_CONFIG=/etc/signalbot/rclone.conf`), never rclone's
+interactive default under `/root`. Then set, in `/etc/signalbot/backup.env`
 (see §I):
 
 ```
@@ -138,12 +154,25 @@ SIGNALBOT_BACKUP_REMOTE=gdrive:signalbot-backups
   install script (https://rclone.org/install/) — an operator action, not
   part of this repository.
 - Run `rclone config` **as root** (the same user `signalbot-backup.service`
-  runs as — see §G for why). This writes
-  `/root/.config/rclone/rclone.conf`, mode `0600`, owned by `root:root` —
-  readable by root only, never by the unprivileged `signalbot` application
-  user, never checked into git (it is outside the repository entirely), and
-  never referenced by path in any script or unit file in this repository —
-  `rclone` finds it at its own default location automatically.
+  runs as), with `RCLONE_CONFIG=/etc/signalbot/rclone.conf` explicitly set
+  (§E) — **not** rclone's interactive default of
+  `~/.config/rclone/rclone.conf` (`/root/.config/rclone/rclone.conf` for
+  root). `signalbot-backup.service` runs with `ProtectHome=true`, which
+  makes `/root` (and every other home directory) inaccessible to it — a
+  config file placed there would work when an admin runs `rclone`
+  interactively, then silently fail to be found only once the *timer* fires
+  unattended. Using the same explicit, non-`/root` path both interactively
+  and in the unit avoids that trap entirely, and lets `ProtectHome=true`
+  stay fully enabled rather than being weakened just to reach a credential
+  file.
+- The resulting `/etc/signalbot/rclone.conf` must be mode `0600`, owned by
+  `root:root` — readable by root only, never by the unprivileged
+  `signalbot` application user, never checked into git (it is outside the
+  repository entirely), and never referenced by *value* in any script or
+  unit file in this repository. Its *path* is referenced explicitly (by
+  `signalbot-backup.service`'s `RCLONE_CONFIG=` and by
+  `install_backup_timer.sh`'s pre-activation check) — the path itself is
+  not a secret; only the file's contents are.
 - The remote **name and path** (`SIGNALBOT_BACKUP_REMOTE=gdrive:signalbot-backups`)
   is not itself a secret and lives in `/etc/signalbot/backup.env` (§I) — the
   token/credential stays exclusively in `rclone.conf`.
@@ -152,6 +181,10 @@ SIGNALBOT_BACKUP_REMOTE=gdrive:signalbot-backups
   repository's tests
   (`tests/deploy/test_backup_systemd.py::test_backup_service_no_secret_literal_in_unit_source`)
   statically check the unit sources contain no such literal.
+- `install_backup_timer.sh --enable-now` fails closed, before activating
+  either timer, if `rclone` is not on `PATH` or
+  `/etc/signalbot/rclone.conf` is missing/unreadable — printing only that
+  fact, never the file's contents.
 
 ## G. Enabling the systemd backup timer
 
@@ -177,7 +210,10 @@ sudo chmod 600 /etc/signalbot/backup.env
 #    shadow/telegram installer contract):
 sudo /opt/signalbot/deploy/install_backup_timer.sh
 
-# 3. Explicitly activate both timers:
+# 3. Explicitly activate both timers. This step fails closed (before
+#    enabling anything) unless `rclone` is on PATH AND
+#    /etc/signalbot/rclone.conf is present/readable -- complete §E/§F
+#    (rclone install + `rclone config` at that exact path) BEFORE this step:
 sudo /opt/signalbot/deploy/install_backup_timer.sh --enable-now
 ```
 
@@ -211,8 +247,12 @@ journalctl -u signalbot-backup-verify.service -n 50 --no-pager
 ```
 
 **Local files:** `ls -lht /opt/signalbot/backups/`
-**Remote files:** `rclone lsf gdrive:signalbot-backups/daily/` (substitute
-`weekly`/`monthly`, and your actual remote name/path).
+**Remote files:** `sudo RCLONE_CONFIG=/etc/signalbot/rclone.conf rclone lsf
+gdrive:signalbot-backups/daily/` (substitute `weekly`/`monthly`, and your
+actual remote name/path). The explicit `RCLONE_CONFIG=` here exercises the
+same credential file the timer itself reads (§F) — omitting it falls back
+to rclone's interactive default, which may not even exist for the `root`
+user if the config was only ever created at the explicit path.
 
 ## I. Manually running one backup
 
@@ -239,10 +279,14 @@ NEW VPS
   -> install Docker + project OS-level dependencies (git, python3-venv, ...)
   -> git clone <signalbot repo> /opt/signalbot
   -> restore/reconfigure rclone credentials:
-       install rclone; `rclone config` (or copy a securely-transferred
-       rclone.conf back to /root/.config/rclone/rclone.conf, mode 0600)
+       install rclone; `sudo RCLONE_CONFIG=/etc/signalbot/rclone.conf rclone
+       config` (or copy a securely-transferred rclone.conf back to
+       /etc/signalbot/rclone.conf, mode 0600 owned root:root -- the SAME
+       explicit path signalbot-backup.service uses, never
+       /root/.config/rclone/rclone.conf)
   -> download the selected remote backup:
-       rclone copyto gdrive:signalbot-backups/daily/btcbot_<TS>.sql.gz \
+       sudo RCLONE_CONFIG=/etc/signalbot/rclone.conf rclone copyto \
+           gdrive:signalbot-backups/daily/btcbot_<TS>.sql.gz \
            /opt/signalbot/backups/btcbot_<TS>.sql.gz
        # or pick a weekly/monthly representative instead of daily/, depending
        # on how far back you need to go

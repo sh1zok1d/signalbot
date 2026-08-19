@@ -23,6 +23,11 @@ set -euo pipefail
 APP_DIR=/opt/signalbot
 UNIT_DIR=/etc/systemd/system
 BACKUP_ENV_FILE=/etc/signalbot/backup.env
+# Must match signalbot-backup.service's Environment=RCLONE_CONFIG=... exactly
+# -- deliberately NOT rclone's interactive default (~/.config/rclone/
+# rclone.conf under /root), which ProtectHome=true makes unreachable to that
+# service. See docs/DATA_DURABILITY_RUNBOOK.md.
+RCLONE_CONFIG_FILE=/etc/signalbot/rclone.conf
 
 UNITS=(
   signalbot-backup.service
@@ -83,6 +88,21 @@ done
 systemctl daemon-reload
 
 if [[ "${ENABLE_NOW}" -eq 1 ]]; then
+  # Fail closed BEFORE activating anything: a config that works when an
+  # admin runs rclone interactively must not silently fail only once the
+  # timer fires unattended. Prints no credential -- only existence/
+  # readability of the config PATH is checked, never its contents.
+  command -v rclone >/dev/null 2>&1 || {
+    echo "error: rclone is not installed/on PATH -- required before enabling the backup timer" >&2
+    echo "       See docs/DATA_DURABILITY_RUNBOOK.md." >&2
+    exit 1
+  }
+  [[ -r "${RCLONE_CONFIG_FILE}" ]] || {
+    echo "error: rclone config not found/readable at ${RCLONE_CONFIG_FILE}" >&2
+    echo "       -- required before enabling the backup timer. Create it (root-owned," >&2
+    echo "       mode 600) per docs/DATA_DURABILITY_RUNBOOK.md before retrying." >&2
+    exit 1
+  }
   echo "Enabling and starting ${TIMERS[*]} (explicit --enable-now)..."
   systemctl enable --now "${TIMERS[@]}"
   echo "Backup + restore-verify timers activated."

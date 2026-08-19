@@ -23,12 +23,20 @@ EnvironmentFile=/opt/signalbot/.env
 # Off-site remote + retention configuration (SIGNALBOT_BACKUP_REMOTE,
 # SIGNALBOT_BACKUP_{DAILY,WEEKLY,MONTHLY}_RETENTION) — root-only, OUTSIDE
 # this repository and OUTSIDE /opt/signalbot/.env (which is group-readable
-# by the unprivileged signalbot user). Contains no OAuth/API token itself —
-# rclone's own credentials live in root's rclone config
-# (default: /root/.config/rclone/rclone.conf), never referenced here or in
-# any script/unit source. See docs/DATA_DURABILITY_RUNBOOK.md.
+# by the unprivileged signalbot user). Contains no OAuth/API token itself.
+# See docs/DATA_DURABILITY_RUNBOOK.md.
 EnvironmentFile=/etc/signalbot/backup.env
 Environment=PYTHONDONTWRITEBYTECODE=1
+# rclone's own credentials live at this explicit, non-default path — NEVER
+# rclone's interactive default of ~/.config/rclone/rclone.conf (i.e.
+# /root/.config/rclone/rclone.conf for this root-run unit). That default
+# sits under /root, which ProtectHome=true below makes inaccessible to this
+# service; pointing rclone at an explicit path OUTSIDE /root instead lets
+# the sandbox stay fully enabled rather than being weakened just to reach a
+# credential file. The path itself is not a secret — only the config FILE's
+# contents are, and that file's value is never referenced here. Documented
+# required posture: /etc/signalbot/rclone.conf, owned root:root, mode 0600.
+Environment=RCLONE_CONFIG=/etc/signalbot/rclone.conf
 
 ExecStartPre=/usr/bin/test -x /opt/signalbot/deploy/backup.sh
 ExecStartPre=/usr/bin/test -x /opt/signalbot/deploy/sync_backup_offsite.sh
