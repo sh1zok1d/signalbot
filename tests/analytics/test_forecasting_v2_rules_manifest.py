@@ -65,7 +65,7 @@ def test_manifest_covers_the_expected_selector_constants_per_module():
         "REGIME_MIN_CONFIDENCE", "REGIME_MIN_COVERAGE", "REGIME_TREND_THRESHOLD",
         "REGIME_MIN_AGREEMENT", "REGIME_OI_VETO", "REGIME_COMPRESSION",
         "_REGIME_TIMEFRAME", "_REGIME_PERCENTILE_WINDOW", "_PRICE_METRIC",
-        "_COMPRESSION_METRIC",
+        "_COMPRESSION_METRIC", "_BOUNDARY_ULP_TOLERANCE",
     }
     assert set(manifest["bias_1h"].keys()) == {
         "BIAS_MIN_CONFIDENCE", "BIAS_MIN_COVERAGE", "BIAS_THRESHOLD", "BIAS_MIN_AGREEMENT",
@@ -201,6 +201,20 @@ def test_mutating_regime_percentile_window_changes_the_fingerprint(monkeypatch):
     baseline = compute_rules_fingerprint(build_rules_manifest())
     import analytics.forecasting_v2.regime_4h as regime_module
     monkeypatch.setattr(regime_module, "_REGIME_PERCENTILE_WINDOW", "7d")
+    mutated = compute_rules_fingerprint(build_rules_manifest())
+    assert mutated != baseline
+
+
+def test_mutating_boundary_ulp_tolerance_changes_the_fingerprint(monkeypatch):
+    # regime_4h._BOUNDARY_ULP_TOLERANCE is behavior-affecting -- it is the
+    # width _ge_inclusive()/_le_inclusive() walk by at the
+    # REGIME_TREND_THRESHOLD/REGIME_OI_VETO inclusive boundaries, so
+    # changing it while holding every other input fixed can move a regime
+    # decision across those boundaries. It must participate in the
+    # fingerprint just like any other manifest-covered constant.
+    baseline = compute_rules_fingerprint(build_rules_manifest())
+    import analytics.forecasting_v2.regime_4h as regime_module
+    monkeypatch.setattr(regime_module, "_BOUNDARY_ULP_TOLERANCE", 5)
     mutated = compute_rules_fingerprint(build_rules_manifest())
     assert mutated != baseline
 
