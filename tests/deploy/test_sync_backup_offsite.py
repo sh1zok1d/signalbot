@@ -553,3 +553,132 @@ def test_next_month_gets_its_own_representative(fake_rclone, backup_dir):
     assert r1.returncode == 0 and r2.returncode == 0
     assert _remote_files(fake_rclone, "monthly") == [
         "btcbot_20260803T030000Z.sql.gz", "btcbot_20260903T030000Z.sql.gz"]
+
+
+# ============================================================================
+# G. malformed/foreign REMOTE objects have no semantic standing (PR #46
+#    tech-lead amendment: closes the "invalid remotes suppress tier uploads"
+#    Qodo finding). `_iso_week_of` used to examine only the DATE portion of a
+#    remote candidate (never HHMMSS), and `_month_of` performed no date/time
+#    validation at all, so a digit-shaped-but-impossible remote object could
+#    still compute a normal-looking period key and silently masquerade as an
+#    already-present representative -- suppressing a genuinely valid weekly
+#    or monthly upload. Retention's shape-only grep had the same disease: a
+#    digit-shaped-but-impossible timestamp could consume one of the `keep`
+#    slots and displace a genuinely valid backup from being retained. The
+#    fix routes ALL three call sites (local dump gate, weekly/monthly
+#    dedup, retention accounting) through the one `_valid_backup_filename`
+#    helper. A malformed/foreign remote object must never suppress a valid
+#    upload, never count toward retention, and -- just as importantly -- is
+#    never automatically deleted; it simply has no semantic standing.
+# ============================================================================
+def test_invalid_time_remote_object_does_not_suppress_weekly_upload(fake_rclone, backup_dir):
+    _, store = fake_rclone
+    weekly_dir = store / "signalbot-backups" / "weekly"
+    weekly_dir.mkdir(parents=True)
+    # digit-shaped but an impossible TIME (99:99:99). `_iso_week_of` only
+    # ever looked at the DATE portion, so under the old shape-only remote
+    # filter this would compute a normal-looking ISO week matching the
+    # incoming valid dump below and masquerade as an already-present
+    # representative -- suppressing the valid upload.
+    malformed = _make_dump(weekly_dir / "btcbot_20260803T999999Z.sql.gz")
+    before = malformed.read_bytes()
+    _make_dump(backup_dir / "btcbot_20260804T030000Z.sql.gz")  # same ISO week as 2026-08-03
+    result = _run(fake_rclone, backup_dir)
+    assert result.returncode == 0, result.stderr
+    weekly_files = _remote_files(fake_rclone, "weekly")
+    assert "btcbot_20260804T030000Z.sql.gz" in weekly_files, \
+        "a genuinely valid weekly upload must not be suppressed by a malformed remote object"
+    # the malformed object is left completely untouched -- excluded from
+    # semantics, never deleted
+    assert "btcbot_20260803T999999Z.sql.gz" in weekly_files
+    assert malformed.read_bytes() == before
+
+
+def test_invalid_time_remote_object_does_not_suppress_monthly_upload(fake_rclone, backup_dir):
+    _, store = fake_rclone
+    monthly_dir = store / "signalbot-backups" / "monthly"
+    monthly_dir.mkdir(parents=True)
+    malformed = _make_dump(monthly_dir / "btcbot_20260803T999999Z.sql.gz")
+    before = malformed.read_bytes()
+    _make_dump(backup_dir / "btcbot_20260825T030000Z.sql.gz")  # same month, different week
+    result = _run(fake_rclone, backup_dir)
+    assert result.returncode == 0, result.stderr
+    monthly_files = _remote_files(fake_rclone, "monthly")
+    assert "btcbot_20260825T030000Z.sql.gz" in monthly_files, \
+        "a genuinely valid monthly upload must not be suppressed by a malformed remote object"
+    assert "btcbot_20260803T999999Z.sql.gz" in monthly_files
+    assert malformed.read_bytes() == before
+
+
+def test_impossible_date_remote_object_does_not_suppress_monthly_upload(fake_rclone, backup_dir):
+    _, store = fake_rclone
+    monthly_dir = store / "signalbot-backups" / "monthly"
+    monthly_dir.mkdir(parents=True)
+    # digit-shaped but an impossible DATE (Feb 30). `_month_of` performed no
+    # date/time validation at all, so under the old code this would slice
+    # out "2026-02" and masquerade as an already-present February
+    # representative.
+    malformed = _make_dump(monthly_dir / "btcbot_20260230T030000Z.sql.gz")
+    before = malformed.read_bytes()
+    _make_dump(backup_dir / "btcbot_20260228T030000Z.sql.gz")
+    result = _run(fake_rclone, backup_dir)
+    assert result.returncode == 0, result.stderr
+    monthly_files = _remote_files(fake_rclone, "monthly")
+    assert "btcbot_20260228T030000Z.sql.gz" in monthly_files, \
+        "a genuinely valid monthly upload must not be suppressed by an impossible-date remote object"
+    assert "btcbot_20260230T030000Z.sql.gz" in monthly_files
+    assert malformed.read_bytes() == before
+
+
+def test_malformed_remote_names_are_skipped_without_crashing(fake_rclone, backup_dir):
+    _, store = fake_rclone
+    for tier in ("daily", "weekly", "monthly"):
+        d = store / "signalbot-backups" / tier
+        d.mkdir(parents=True)
+        (d / "not-a-backup.txt").write_text("unrelated file")
+        _make_dump(d / "btcbot_garbageTgarbageZ.sql.gz")
+    _make_dump(backup_dir / "btcbot_20260819T030000Z.sql.gz")
+    result = _run(fake_rclone, backup_dir)
+    assert result.returncode == 0, result.stderr
+    for tier in ("daily", "weekly", "monthly"):
+        files = _remote_files(fake_rclone, tier)
+        assert "btcbot_20260819T030000Z.sql.gz" in files
+        # the foreign/malformed objects are left completely untouched
+        assert "not-a-backup.txt" in files
+        assert "btcbot_garbageTgarbageZ.sql.gz" in files
+
+
+def test_retention_poisoning_malformed_object_does_not_consume_slot(fake_rclone, backup_dir):
+    _, store = fake_rclone
+    daily_dir = store / "signalbot-backups" / "daily"
+    daily_dir.mkdir(parents=True)
+    for day in ("01", "02", "03", "04", "05"):
+        _make_dump(daily_dir / f"btcbot_202608{day}T030000Z.sql.gz")
+    # digit-shaped, lexicographically "future" (a far year), but calendar-
+    # IMPOSSIBLE (month 13). A shape-only retention filter would sort this
+    # first (newest) and let it consume one of the `keep` slots, displacing
+    # a genuinely valid backup from being retained.
+    malformed = _make_dump(daily_dir / "btcbot_29991301T030000Z.sql.gz")
+    before = malformed.read_bytes()
+    _make_dump(backup_dir / "btcbot_20260806T030000Z.sql.gz")
+    result = _run(fake_rclone, backup_dir, extra_env={
+        "SIGNALBOT_BACKUP_DAILY_RETENTION": "3",
+        "SIGNALBOT_BACKUP_WEEKLY_RETENTION": "12",
+        "SIGNALBOT_BACKUP_MONTHLY_RETENTION": "12",
+    })
+    assert result.returncode == 0, result.stderr
+    daily_files = _remote_files(fake_rclone, "daily")
+    # newest 3 VALID backups (04, 05, 06) survive -- the malformed object,
+    # despite sorting first, must never have consumed a retention slot
+    assert "btcbot_20260804T030000Z.sql.gz" in daily_files
+    assert "btcbot_20260805T030000Z.sql.gz" in daily_files
+    assert "btcbot_20260806T030000Z.sql.gz" in daily_files
+    # excess VALID objects beyond the newest 3 are pruned
+    assert "btcbot_20260801T030000Z.sql.gz" not in daily_files
+    assert "btcbot_20260802T030000Z.sql.gz" not in daily_files
+    assert "btcbot_20260803T030000Z.sql.gz" not in daily_files
+    # the malformed object itself is excluded from accounting, but left
+    # completely untouched -- never a `deletefile` target
+    assert "btcbot_29991301T030000Z.sql.gz" in daily_files
+    assert malformed.read_bytes() == before
