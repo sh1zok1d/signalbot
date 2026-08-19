@@ -1,0 +1,67 @@
+[Unit]
+Description=Signalbot database backup (local dump + off-site sync)
+Documentation=file:/opt/signalbot/docs/DATA_DURABILITY_RUNBOOK.md
+# Ordering only — independent of the Stage 1 ingestion service and the
+# bounded shadow/telegram one-shots. Never requires, starts, stops, or
+# restarts any of them.
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Runs as root, NOT the unprivileged `signalbot` application user (see
+# deploy/signalbot.service: "Do NOT add signalbot to the docker group").
+# deploy/backup.sh needs `docker exec` into the TimescaleDB container to run
+# pg_dump — that is a real privilege the app user intentionally lacks. This
+# keeps that privileged path on the existing admin/root trust boundary
+# instead of weakening the app user's Docker/socket permissions to reach it.
+User=root
+WorkingDirectory=/opt/signalbot
+# .env: same POSTGRES_*/BTCBOT_PG_CONTAINER values deploy/backup.sh already
+# defaults from, single source of truth with docker-compose (see .env.example).
+EnvironmentFile=/opt/signalbot/.env
+# Off-site remote + retention configuration (SIGNALBOT_BACKUP_REMOTE,
+# SIGNALBOT_BACKUP_{DAILY,WEEKLY,MONTHLY}_RETENTION) — root-only, OUTSIDE
+# this repository and OUTSIDE /opt/signalbot/.env (which is group-readable
+# by the unprivileged signalbot user). Contains no OAuth/API token itself —
+# rclone's own credentials live in root's rclone config
+# (default: /root/.config/rclone/rclone.conf), never referenced here or in
+# any script/unit source. See docs/DATA_DURABILITY_RUNBOOK.md.
+EnvironmentFile=/etc/signalbot/backup.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+ExecStartPre=/usr/bin/test -x /opt/signalbot/deploy/backup.sh
+ExecStartPre=/usr/bin/test -x /opt/signalbot/deploy/sync_backup_offsite.sh
+# Two ExecStart lines, run in order for Type=oneshot: if the LOCAL dump (1st)
+# fails, systemd never runs the OFF-SITE sync (2nd) — freezing "LOCAL dump
+# fails -> remote sync MUST NOT run" without extra script glue.
+ExecStart=/opt/signalbot/deploy/backup.sh
+ExecStart=/opt/signalbot/deploy/sync_backup_offsite.sh
+
+# Bounded lifetime: a full dump + off-site upload of the current dataset size
+# must complete well within this. No Restart/RestartSec/RemainAfterExit — the
+# timer makes the next attempt; a partial/failed run never masks as success.
+TimeoutStartSec=1800
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=signalbot-backup
+
+# --- Hardening ---
+# Lighter than the unprivileged one-shots (signalbot-shadow/-telegram): this
+# unit runs as root and must reach the Docker socket + `docker`/`gzip`/
+# `rclone` binaries, so ProtectSystem=strict is intentionally NOT applied
+# here (it would risk breaking Docker CLI/socket access for a marginal gain
+# on a unit that is root anyway). ReadWritePaths is scoped to exactly the
+# one directory this unit writes.
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/opt/signalbot/backups
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+UMask=0077
+
+# No [Install] section: the timer (signalbot-backup.timer) owns activation.

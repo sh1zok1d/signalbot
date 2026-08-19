@@ -374,12 +374,16 @@ Planned PR sizing:
 | 8. V2 Outcome Evaluator | 3 |
 | 9. Telegram V2 | 2 |
 | 10. Parallel Shadow Deployment | 2 |
-| **Total planned scope** | **~34** |
+| INFRA-D1 — Data Durability & Off-site Backup (parallel infrastructure track, **not** a V2 forecasting stage — counted separately below) | 1 |
+| **Total planned scope** | **~35** (revised from ~34: the pre-Stage-6/Stage-6/... rows above remain the V2 forecasting-product scope at ~34; INFRA-D1 is one additional, parallel infrastructure PR, not a new forecasting stage) |
 
 This sizing is a **planning estimate**, not a requirement to force unsafe or
 poorly-reviewable changes into fixed PR boundaries. A PR may be split further
 whenever reviewability or risk requires it — the numbers above describe
 current intent, not a contract that overrides sound engineering judgment.
+INFRA-D1 does not alter, extend, or reinterpret any frozen V2 product or
+correctness contract — it is infrastructure for the data those contracts
+already assume is durable.
 
 ---
 
@@ -1130,14 +1134,22 @@ status, corrected here after this audit found the prior "Stage 6: IN
 PROGRESS" framing to be inaccurate:
 
 - **Stage 6 — Episode State Machine: NOT STARTED.**
-- **PRE-STAGE-6 HARDENING: IN PROGRESS.** `#43` (contract consolidation,
-  below) is **MERGED**. `#44` (Quality/scoring boundary hardening, below)
-  is the FIRST EXECUTABLE (code, not docs) hardening PR in this phase —
-  currently in review, ships under `v2-rules-v0.2.0`. `#45`/`#46` are
-  **NOT STARTED**. The audit below identified additional cross-stage
-  correctness gaps between the currently-merged Stage 2–5 implementation
-  and the frozen contracts that must be closed — in code, not just docs —
-  before executable Stage 6 can safely consume Stage 2–5's boundaries.
+- **PRE-STAGE-6 HARDENING: IN PROGRESS.** `#43` (contract consolidation)
+  and `#44` (Quality/scoring boundary hardening, including its round-2
+  amendment closing the `V2BiasResult` `NEUTRAL_NOT_ESTABLISHED`/
+  `BIAS_UNAVAILABLE` handoff gap) are both **MERGED**, ships under
+  `v2-rules-v0.2.0`. `#45`/`#46` are **NOT STARTED**. The audit below
+  identified additional cross-stage correctness gaps between the
+  currently-merged Stage 2–5 implementation and the frozen contracts that
+  must be closed — in code, not just docs — before executable Stage 6 can
+  safely consume Stage 2–5's boundaries.
+- **INFRA-D1 — Data Durability & Off-site Backup: IN PROGRESS (parallel
+  infrastructure track, not a V2 forecasting stage — see the dedicated
+  subsection below).** Runs alongside the pre-Stage-6 hardening sequence;
+  does not block `#45`/`#46` design or implementation correctness, but is
+  prioritized now because the live historical dataset already exists and
+  keeps accumulating with every ingestion cycle, and must be durable
+  before the first serious V2 historical replay/shadow evaluation.
 
 **`#43` — contract consolidation and cross-stage audit (MERGED, amended
 three times post-open).** Round 1 froze creation identity vs.
@@ -1317,9 +1329,8 @@ semantics, and no other already-accepted decision changed.
 **Revised pre-Stage-6 sequence (a reviewability plan, not a new
 correctness contract — subject to change if audit findings evolve):**
 
-- **`#44` — Quality/scoring boundary hardening (THIS PR, currently in
-  review — the first EXECUTABLE, not docs-only, pre-Stage-6 hardening
-  PR).** Implements `§6.3a`'s
+- **`#44` — Quality/scoring boundary hardening (MERGED, including a
+  round-2 amendment).** Implements `§6.3a`'s
   per-family metric-scoped quality gates across every Stage 4/5 call site
   (`regime_4h.py`, `bias_1h.py`, `trend_pullback.py`,
   `compression_breakout.py`, `confirmed_breakout.py`); adds the Stage 4
@@ -1334,7 +1345,35 @@ correctness contract — subject to change if audit findings evolve):**
   (a version-participating constant changing without a `rules_version`
   bump fails CI). Ships under `v2-rules-v0.2.0`. **MUST NOT** touch
   episode identity/lifecycle (`§12`/`§13`) or any Stage 6 concept — Stage
-  6 still does not exist.
+  6 still does not exist. Its round-2 amendment additionally closed a
+  Stage 4→5 handoff gap: `V2BiasResult.__post_init__` now requires a
+  measured, non-`None` `bias_evi` whenever `bias == NEUTRAL_NOT_ESTABLISHED`
+  (that label is only reachable in the real classifier after evidence was
+  successfully computed), while `BIAS_UNAVAILABLE` continues to accept
+  either `None` or a numeric `bias_evi` — closing a path by which
+  hand-constructed/replayed evidence could previously let missing data
+  masquerade as an accepted neutral context in `directional_context_gate()`.
+- **`INFRA-D1` — Data Durability & Off-site Backup (parallel
+  infrastructure track, runs alongside `#45`/`#46`, not a numbered V2
+  forecasting-stage PR).** Extends the existing `deploy/backup.sh`/
+  `deploy/restore.sh` local-backup foundation with an off-site copy (via a
+  generic, operator-configured `rclone` remote — Google Drive documented
+  as the initial example, never hardcoded) so the accumulating live
+  historical dataset survives total VPS/provider loss, not just local disk
+  corruption. Adds daily/weekly/monthly remote retention tiers, systemd
+  automation (`signalbot-backup.service`/`.timer`,
+  `signalbot-backup-verify.service`/`.timer` reusing `restore.sh
+  --self-test`, never `--force-live`), and a disaster-recovery runbook
+  (`docs/DATA_DURABILITY_RUNBOOK.md`). Changes no trading semantics, no
+  V1/V2 rules, no `rules_version`/`calculation_version`, no schema — it
+  protects already-persisted data, it does not compute anything.
+  Prioritized now (not deferred to after `#45`/`#46`/Stage 6) because
+  historical data is already accruing daily and local-only backup remains
+  a single point of failure until this lands; does not block `#45`/`#46`
+  design or implementation correctness. **MUST NOT** implement Stage 6,
+  touch V1/V2 rule code, or perform any production deployment itself —
+  deployment/configuration on the actual VPS is a separate explicit
+  operator action after review/merge.
 - **`#45` — Replay/provenance/data-coherence hardening.** Implements
   `§3.4`'s one-coherent-data-view-per-decision invariant (Stage 3+5 input
   assembly; Stage 2 correction-publication completeness); `§3.2`'s
@@ -1402,5 +1441,8 @@ split may be adjusted if reviewability, risk, or further audit findings
 require it. It is not a claim that the exact PR count, numbering, or
 boundaries are immutable.
 
-**Next planned work (after `#43` merges):** `#44` — quality/scoring
-boundary hardening (not yet started).
+**Next planned work (after `#43` and `#44` merged):** `INFRA-D1` —
+off-site data durability (parallel infrastructure, currently in review)
+and `#45` — replay/provenance/data-coherence hardening (not yet started).
+INFRA-D1 does not block `#45` and may land before, after, or interleaved
+with it.
