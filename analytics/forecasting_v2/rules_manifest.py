@@ -158,6 +158,7 @@ def build_rules_manifest() -> "dict[str, Any]":
             "_REGIME_PERCENTILE_WINDOW": _regime_4h._REGIME_PERCENTILE_WINDOW,
             "_PRICE_METRIC": _regime_4h._PRICE_METRIC,
             "_COMPRESSION_METRIC": _regime_4h._COMPRESSION_METRIC,
+            "_BOUNDARY_ULP_TOLERANCE": _regime_4h._BOUNDARY_ULP_TOLERANCE,
         },
         "bias_1h": {
             "BIAS_MIN_CONFIDENCE": _bias_1h.BIAS_MIN_CONFIDENCE,
@@ -226,14 +227,22 @@ def compute_rules_fingerprint(manifest: Mapping[str, Any]) -> str:
 # `rules_version` string is exactly what trips `V2RulesManifestError`,
 # rather than the anchor silently following the drift.
 EXPECTED_FINGERPRINTS_BY_RULES_VERSION: "dict[str, str]" = {
-    # Recomputed by tech-lead amendment round 1, item 3: the manifest
-    # surface grew (aligned_inputs.V2_REFERENCE_EXCHANGE, context_evidence,
-    # and the fixed timeframe/percentile-window/metric selectors on
-    # regime_4h/bias_1h/setup_common/compression_breakout) to actually
-    # cover every behavior-affecting constant this module claims to. This
-    # is a correction to the INTEGRITY GUARD itself -- no executable V2
-    # rule behavior changed -- so rules_version stays v2-rules-v0.2.0.
-    "v2-rules-v0.2.0": "e20a135952dde02e61a4e0d72101d3d4248eda9916205ea3daaf66742b482d5a",
+    # Recomputed twice, both times as INTEGRITY-GUARD coverage corrections
+    # under the SAME rules_version -- neither changed any executable V2
+    # rule behavior:
+    #   1. Tech-lead amendment round 1, item 3: the manifest surface grew
+    #      (aligned_inputs.V2_REFERENCE_EXCHANGE, context_evidence, and the
+    #      fixed timeframe/percentile-window/metric selectors on
+    #      regime_4h/bias_1h/setup_common/compression_breakout) to actually
+    #      cover every behavior-affecting constant this module claims to.
+    #   2. regime_4h._BOUNDARY_ULP_TOLERANCE (the IEEE-754 representation-
+    #      hardening width `_ge_inclusive`/`_le_inclusive` walk by, at the
+    #      `REGIME_TREND_THRESHOLD`/`REGIME_OI_VETO` boundaries) was itself
+    #      already behavior-affecting -- changing it while holding every
+    #      other input fixed can move a decision across those inclusive
+    #      boundaries -- but was missing from the manifest. Now included;
+    #      the constant's own value (4) is unchanged.
+    "v2-rules-v0.2.0": "46a1952b84edcce01ce0e8edbce1a17b34c1751351d913e4752e093ca7e8558a",
 }
 
 
