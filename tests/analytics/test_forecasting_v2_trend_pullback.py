@@ -1161,22 +1161,61 @@ def test_candidate_rejects_malformed_data_confidence(bad):
         V2TrendPullbackCandidate(**kwargs)
 
 
-def test_trend_pullback_setup_strength_zero_retracement_zero_range_proxy_is_one():
-    # §8.1's documented 0/0 edge case: retracement_pct==0.0 AND
-    # range_proxy_pct==0.0 (reachable via the qualifying-band constraint
-    # forcing retracement_pct to also be exactly 0.0) is defined as 1.0
-    # (maximal strength) by convention, never a ZeroDivisionError/NaN.
-    assert tp_module._trend_pullback_setup_strength(0.0, 0.0) == 1.0
+def test_trend_pullback_setup_strength_zero_denominator_is_unavailable_none():
+    # Tech-lead amendment round 1, item 2: the frozen contract does NOT
+    # define a value for the 0/0 case (PULLBACK_MAX_MULT * range_proxy_pct
+    # == 0.0) -- §8 explicitly allows a scoring component to be [0,1] OR
+    # UNAVAILABLE. This must be genuinely UNAVAILABLE (None), never a
+    # fabricated 1.0/0.0, and never a ZeroDivisionError/NaN.
+    assert tp_module._trend_pullback_setup_strength(0.0, 0.0) is None
 
 
 def test_trend_pullback_setup_strength_exact_formula_values():
-    # A few independent exact-formula spot checks away from either edge.
+    # A few independent exact-formula spot checks away from the zero-
+    # denominator edge.
     assert tp_module._trend_pullback_setup_strength(0.0, 0.4) == pytest.approx(1.0)
     assert tp_module._trend_pullback_setup_strength(
         1.2, 0.4) == pytest.approx(1.0 - (1.2 / (PULLBACK_MAX_MULT * 0.4)))
     # retracement at the max qualifying multiple clamps to 0.0, not negative.
     assert tp_module._trend_pullback_setup_strength(
         PULLBACK_MAX_MULT * 0.4, 0.4) == pytest.approx(0.0)
+
+
+def test_candidate_zero_denominator_requires_none_setup_strength():
+    # Direct construction with a zero-denominator geometry (retracement_pct
+    # == range_proxy_pct == 0.0, reachable via the qualifying-band
+    # constraint) and setup_strength=None must succeed -- the structural
+    # qualification and the scoring component are separate facts.
+    kwargs = _valid_candidate_kwargs()
+    kwargs["retracement_pct"] = 0.0
+    kwargs["range_proxy_pct"] = 0.0
+    kwargs["setup_strength"] = None
+    candidate = V2TrendPullbackCandidate(**kwargs)
+    assert candidate.setup_strength is None
+
+
+@pytest.mark.parametrize("bad_value", [1.0, 0.0, 0.5])
+def test_candidate_zero_denominator_with_numeric_setup_strength_raises(bad_value):
+    # A numeric setup_strength when the denominator is zero is inconsistent
+    # -- the formula defines no value for that case -- and must raise,
+    # never silently accepted as a fabricated number.
+    kwargs = _valid_candidate_kwargs()
+    kwargs["retracement_pct"] = 0.0
+    kwargs["range_proxy_pct"] = 0.0
+    kwargs["setup_strength"] = bad_value
+    with pytest.raises(V2TrendPullbackError):
+        V2TrendPullbackCandidate(**kwargs)
+
+
+def test_candidate_nonzero_denominator_with_none_setup_strength_raises():
+    # A None setup_strength when the denominator is > 0 (a real numeric
+    # value IS expected/computable) is inconsistent and must raise -- None
+    # is never coerced to zero, and it is never silently accepted when a
+    # real value is expected.
+    kwargs = _valid_candidate_kwargs()  # retracement_pct=1.0, range_proxy_pct=0.4 -> denom > 0
+    kwargs["setup_strength"] = None
+    with pytest.raises(V2TrendPullbackError):
+        V2TrendPullbackCandidate(**kwargs)
 
 
 # ============================================================================

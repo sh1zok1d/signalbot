@@ -303,11 +303,31 @@ class V2RegimeResult:
                 raise V2RegimeError(
                     f"price_evi must be a positive float for regime {BULLISH_TRENDING!r}, "
                     f"got {self.price_evi!r}")
+            # Tech-lead amendment round 1, item 4: classify_4h_regime()
+            # requires abs(price_evi) >= REGIME_TREND_THRESHOLD (via the
+            # SAME representation-safe _ge_inclusive() the real classifier
+            # uses, never an invented epsilon) to ever produce a trending
+            # label -- a directly-constructed result claiming
+            # BULLISH_TRENDING with evidence below that threshold is
+            # impossible under the owning classifier and must fail closed.
+            # Only this NECESSARY condition (provable from price_evi alone)
+            # is enforced -- never agreement/OI veto, which this result
+            # does not carry by value.
+            if not _ge_inclusive(abs(price_evi), REGIME_TREND_THRESHOLD):
+                raise V2RegimeError(
+                    f"price_evi ({price_evi!r}) must satisfy abs(price_evi) >= "
+                    f"REGIME_TREND_THRESHOLD ({REGIME_TREND_THRESHOLD!r}) for regime "
+                    f"{BULLISH_TRENDING!r}")
         elif self.regime == BEARISH_TRENDING:
             if price_evi is None or not (price_evi < 0):
                 raise V2RegimeError(
                     f"price_evi must be a negative float for regime {BEARISH_TRENDING!r}, "
                     f"got {self.price_evi!r}")
+            if not _ge_inclusive(abs(price_evi), REGIME_TREND_THRESHOLD):
+                raise V2RegimeError(
+                    f"price_evi ({price_evi!r}) must satisfy abs(price_evi) >= "
+                    f"REGIME_TREND_THRESHOLD ({REGIME_TREND_THRESHOLD!r}) for regime "
+                    f"{BEARISH_TRENDING!r}")
         elif self.regime == NON_DIRECTIONAL:
             expected_compressed = comp is not None and comp >= REGIME_COMPRESSION
             if self.is_compressed != expected_compressed:

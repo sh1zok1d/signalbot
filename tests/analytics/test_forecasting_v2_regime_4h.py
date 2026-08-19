@@ -852,6 +852,59 @@ def test_non_nondirectional_regimes_accept_none_is_compressed(regime):
     assert result.is_compressed is None
 
 
+def test_bullish_trending_rejects_price_evi_below_trend_threshold():
+    # Tech-lead amendment round 1, item 4: classify_4h_regime() requires
+    # abs(price_evi) >= REGIME_TREND_THRESHOLD to ever produce a trending
+    # label -- a direct result claiming BULLISH_TRENDING with evidence
+    # below that threshold is impossible under the owning classifier.
+    with pytest.raises(V2RegimeError):
+        V2RegimeResult(
+            bucket_ts=B, regime=BULLISH_TRENDING, is_compressed=None,
+            price_evi=0.01, compression_score=None)
+
+
+def test_bearish_trending_rejects_price_evi_above_negative_trend_threshold():
+    with pytest.raises(V2RegimeError):
+        V2RegimeResult(
+            bucket_ts=B, regime=BEARISH_TRENDING, is_compressed=None,
+            price_evi=-0.01, compression_score=None)
+
+
+def test_bullish_trending_accepts_exact_representation_sensitive_threshold_vector():
+    # The SAME representation-sensitive value classify_4h_regime() itself
+    # accepts (§23.1's own frozen equivalence: percentile_rank=0.70 ->
+    # price_evi == 2.0*0.70-1.0 == 0.3999999999999999, a few ULPs below the
+    # 0.4 literal) -- a direct result with this exact value must also be
+    # accepted via the SAME _ge_inclusive() primitive, never rejected by
+    # an invented stricter/exact comparison here.
+    price_evi = 2.0 * 0.70 - 1.0
+    assert price_evi != 0.4  # confirms this genuinely exercises the ULP tolerance
+    result = V2RegimeResult(
+        bucket_ts=B, regime=BULLISH_TRENDING, is_compressed=None,
+        price_evi=price_evi, compression_score=None)
+    assert result.price_evi == price_evi
+
+
+def test_bearish_trending_accepts_exact_representation_sensitive_threshold_vector():
+    price_evi = -(2.0 * 0.70 - 1.0)
+    assert price_evi != -0.4
+    result = V2RegimeResult(
+        bucket_ts=B, regime=BEARISH_TRENDING, is_compressed=None,
+        price_evi=price_evi, compression_score=None)
+    assert result.price_evi == price_evi
+
+
+def test_bullish_bearish_trending_accept_normal_half_evidence():
+    bullish = V2RegimeResult(
+        bucket_ts=B, regime=BULLISH_TRENDING, is_compressed=None,
+        price_evi=0.5, compression_score=None)
+    assert bullish.price_evi == 0.5
+    bearish = V2RegimeResult(
+        bucket_ts=B, regime=BEARISH_TRENDING, is_compressed=None,
+        price_evi=-0.5, compression_score=None)
+    assert bearish.price_evi == -0.5
+
+
 def test_invalid_regime_string_raises():
     with pytest.raises(V2RegimeError, match="regime"):
         V2RegimeResult(

@@ -295,22 +295,29 @@ def _validate_utc_whole_minute(value: Any, name: str) -> datetime:
     return value
 
 
-def _trend_pullback_setup_strength(retracement_pct: float, range_proxy_pct_value: float) -> float:
+def _trend_pullback_setup_strength(
+    retracement_pct: float, range_proxy_pct_value: float,
+) -> Optional[float]:
     """§8.1's exact `setup_strength` formula: `1 - (retracement_pct /
     (PULLBACK_MAX_MULT * range_proxy_pct))`, clamped to `[0.0, 1.0]`,
     using the candidate's own already-computed canonical
     `retracement_pct`/`range_proxy_pct` -- never a reload/recompute from
-    historical rows. The formation band check (`min_retracement <=
-    retracement_pct <= max_retracement`, both derived from the SAME
-    `range_proxy_pct_value`) guarantees `retracement_pct == 0.0` whenever
-    `range_proxy_pct_value == 0.0` (a genuinely flat reference window
-    collapses the band to the single point `0`), so that degenerate
-    `0/0` case is defined as maximal strength (`1.0`, no pullback at all
-    relative to a flat reference) rather than raising or propagating a
-    NaN."""
+    historical rows.
+
+    The formation band check (`min_retracement <= retracement_pct <=
+    max_retracement`, both derived from the SAME `range_proxy_pct_value`)
+    guarantees `retracement_pct == 0.0` whenever `range_proxy_pct_value ==
+    0.0` (a genuinely flat reference window collapses the band to the
+    single point `0`) -- but the frozen contract does NOT define a value
+    for this `0/0` case, and §8 explicitly allows a scoring component to
+    be `[0,1]` OR UNAVAILABLE. This is therefore genuinely UNAVAILABLE
+    (`None`), never a fabricated `1.0` (or any other invented numeric
+    confidence) -- the setup ITSELF (the structural qualification) and
+    this scoring component are separate facts; a `None` here does not by
+    itself reject the candidate."""
     denom = PULLBACK_MAX_MULT * range_proxy_pct_value
     if denom == 0.0:
-        return 1.0
+        return None
     raw = 1.0 - (retracement_pct / denom)
     return min(1.0, max(0.0, raw))
 
@@ -384,9 +391,17 @@ class V2TrendPullbackCandidate:
     scoring/quality facts, carried BY VALUE from this candidate's own
     already-computed `retracement_pct`/`range_proxy_pct` and the
     setup-formation 15m bucket's own `price_structure` family confidence
-    -- never recomputed by a later stage. `__post_init__` cross-checks
-    both against the candidate's own canonical fields (never silently
-    trusting a directly-constructed value), and enforces the EXACT §7.1
+    -- never recomputed by a later stage. `setup_strength` is `Optional`:
+    genuinely UNAVAILABLE (`None`), never a fabricated numeric value,
+    whenever `PULLBACK_MAX_MULT * range_proxy_pct == 0.0` (the frozen
+    formula defines no value for that degenerate case; §8 explicitly
+    allows a scoring component to be `[0,1]` OR UNAVAILABLE) -- this does
+    not by itself reject the candidate, since the setup's own structural
+    qualification and this scoring component are separate facts.
+    `__post_init__` cross-checks both against the candidate's own
+    canonical fields (never silently trusting a directly-constructed
+    value, including the None-vs-numeric branch itself), and enforces
+    the EXACT §7.1
     entry-zone/invalidation geometry (not merely `lower <= upper`/
     "invalidation is on the correct side") -- a directly-constructed
     candidate whose fields are internally inconsistent with the
@@ -404,7 +419,7 @@ class V2TrendPullbackCandidate:
     entry_zone_lower: float
     entry_zone_upper: float
     invalidation_price: float
-    setup_strength: float
+    setup_strength: Optional[float]
     data_confidence: float
 
     def __post_init__(self) -> None:
@@ -500,17 +515,38 @@ class V2TrendPullbackCandidate:
 
         # §8.1/§9 setup_strength/data_confidence -- canonical creation-time
         # scoring/quality facts, cross-checked against this candidate's own
-        # already-computed retracement_pct/range_proxy_pct (setup_strength)
-        # and validated to their exact [0,1] domain (both).
-        setup_strength = _validate_finite_numeric(self.setup_strength, "setup_strength")
-        if not (0.0 <= setup_strength <= 1.0):
-            raise V2TrendPullbackError(
-                f"setup_strength must be within [0.0, 1.0], got {setup_strength!r}")
+        # already-computed retracement_pct/range_proxy_pct (setup_strength).
+        # setup_strength is genuinely UNAVAILABLE (`None`) whenever
+        # PULLBACK_MAX_MULT * range_proxy_pct == 0.0 (the frozen contract
+        # does not define a value for that 0/0 case, and §8 explicitly
+        # allows a scoring component to be [0,1] OR UNAVAILABLE) -- never
+        # a fabricated numeric value in that case. Cross-checked exactly
+        # against `_trend_pullback_setup_strength()`'s own real formula
+        # either way, so a directly-constructed candidate whose
+        # setup_strength disagrees with the denominator-zero-ness of its
+        # own retracement_pct/range_proxy_pct fails closed in BOTH
+        # directions (a numeric value when it must be None; a None when a
+        # real numeric value is expected).
         expected_setup_strength = _trend_pullback_setup_strength(retracement_pct, proxy)
-        if setup_strength != expected_setup_strength:
-            raise V2TrendPullbackError(
-                "setup_strength is inconsistent with retracement_pct/range_proxy_pct -- "
-                f"expected {expected_setup_strength!r}, got {setup_strength!r}")
+        if expected_setup_strength is None:
+            if self.setup_strength is not None:
+                raise V2TrendPullbackError(
+                    "setup_strength must be None (UNAVAILABLE) when "
+                    "PULLBACK_MAX_MULT * range_proxy_pct == 0.0 -- the frozen formula defines "
+                    f"no numeric value for this case, got {self.setup_strength!r}")
+        else:
+            if self.setup_strength is None:
+                raise V2TrendPullbackError(
+                    "setup_strength must be a numeric value (not None) when "
+                    "PULLBACK_MAX_MULT * range_proxy_pct != 0.0")
+            setup_strength = _validate_finite_numeric(self.setup_strength, "setup_strength")
+            if not (0.0 <= setup_strength <= 1.0):
+                raise V2TrendPullbackError(
+                    f"setup_strength must be within [0.0, 1.0], got {setup_strength!r}")
+            if setup_strength != expected_setup_strength:
+                raise V2TrendPullbackError(
+                    "setup_strength is inconsistent with retracement_pct/range_proxy_pct -- "
+                    f"expected {expected_setup_strength!r}, got {setup_strength!r}")
 
         data_confidence = _validate_finite_numeric(self.data_confidence, "data_confidence")
         if not (0.0 <= data_confidence <= 1.0):

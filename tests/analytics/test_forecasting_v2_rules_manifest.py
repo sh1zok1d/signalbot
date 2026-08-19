@@ -40,20 +40,60 @@ def test_manifest_is_json_serializable():
     json.dumps(manifest)
 
 
-def test_manifest_covers_every_currently_implemented_module():
+def test_manifest_covers_the_full_expected_surface():
+    # Tech-lead amendment round 1, item 3: the manifest must cover every
+    # module owning a behavior-affecting frozen V2-v0 constant across the
+    # currently-implemented Stage 3/4/5 surface -- not merely the modules
+    # that happened to have NUMERIC gate thresholds. `aligned_inputs`
+    # (the canonical reference-exchange selector) and `context_evidence`
+    # (the shared evidence-computation selectors) own such constants too.
     manifest = build_rules_manifest()
     assert set(manifest.keys()) == {
-        "family_quality", "regime_4h", "bias_1h", "setup_common",
-        "trend_pullback", "compression_breakout", "confirmed_breakout",
+        "aligned_inputs", "context_evidence", "family_quality", "regime_4h", "bias_1h",
+        "setup_common", "trend_pullback", "compression_breakout", "confirmed_breakout",
     }
 
 
-def test_manifest_leaves_are_scalars_only():
+def test_manifest_covers_the_expected_selector_constants_per_module():
+    # Explicit expected-key test per module -- catches a constant silently
+    # dropped from the manifest just as readily as one silently added.
+    manifest = build_rules_manifest()
+    assert set(manifest["aligned_inputs"].keys()) == {"V2_REFERENCE_EXCHANGE"}
+    assert set(manifest["context_evidence"].keys()) == {
+        "MIN_PCTL_TIER", "_COMPRESSION_METRIC", "_OI_METRIC"}
+    assert set(manifest["regime_4h"].keys()) == {
+        "REGIME_MIN_CONFIDENCE", "REGIME_MIN_COVERAGE", "REGIME_TREND_THRESHOLD",
+        "REGIME_MIN_AGREEMENT", "REGIME_OI_VETO", "REGIME_COMPRESSION",
+        "_REGIME_TIMEFRAME", "_REGIME_PERCENTILE_WINDOW", "_PRICE_METRIC",
+        "_COMPRESSION_METRIC",
+    }
+    assert set(manifest["bias_1h"].keys()) == {
+        "BIAS_MIN_CONFIDENCE", "BIAS_MIN_COVERAGE", "BIAS_THRESHOLD", "BIAS_MIN_AGREEMENT",
+        "_BIAS_TIMEFRAME", "_BIAS_PERCENTILE_WINDOW", "_PRICE_METRIC",
+    }
+    assert set(manifest["setup_common"].keys()) == {
+        "SETUP_MIN_COVERAGE", "SETUP_MIN_CONFIDENCE", "RANGE_PROXY_N",
+        "MIN_TICK_BUFFER_TICKS", "BUFFER_MULTIPLIER", "SETUP_RANGE_TIMEFRAMES",
+        "_RANGE_METRIC",
+    }
+    assert set(manifest["compression_breakout"].keys()) == {
+        "COMPRESSION_LOOKBACK", "COMPRESSION_MIN_DURATION", "COMPRESSION_THRESHOLD",
+        "COMPRESSION_PERCENTILE_WINDOW", "BREAKOUT_MIN_AGREEMENT",
+        "COMPRESSION_CONFIRMATION_MAX_AGE_5M_BUCKETS", "EXPECTED_HORIZON_SECONDS",
+        "_COMPRESSION_METRIC",
+    }
+    assert manifest["setup_common"]["SETUP_RANGE_TIMEFRAMES"] == ["15m", "1h"]
+
+
+def test_manifest_leaves_are_scalars_or_string_lists_only():
     manifest = build_rules_manifest()
     for group_name, group in manifest.items():
         assert isinstance(group, dict), group_name
         for key, value in group.items():
-            assert isinstance(value, (bool, int, float, str)), (group_name, key, type(value))
+            if isinstance(value, list):
+                assert all(isinstance(item, str) for item in value), (group_name, key, value)
+            else:
+                assert isinstance(value, (bool, int, float, str)), (group_name, key, type(value))
 
 
 def test_manifest_is_pure_repeated_calls_identical():
@@ -142,6 +182,51 @@ def test_real_v2_yaml_rules_version_has_a_recorded_expected_fingerprint():
 def test_real_v2_yaml_rules_version_manifest_actually_verifies():
     config = V2Config.load()
     assert_rules_manifest_matches_version(config.rules_version)  # must not raise
+
+
+# ============================================================================
+# 4.5 MUTATION REGRESSIONS -- proves the newly-covered selectors actually
+# participate in the fingerprint (tech-lead amendment round 1, item 3.2).
+# Monkeypatched on the real source modules, never permanently mutated.
+# ============================================================================
+def test_mutating_min_pctl_tier_changes_the_fingerprint(monkeypatch):
+    baseline = compute_rules_fingerprint(build_rules_manifest())
+    import analytics.forecasting_v2.context_evidence as ce_module
+    monkeypatch.setattr(ce_module, "MIN_PCTL_TIER", "mature")
+    mutated = compute_rules_fingerprint(build_rules_manifest())
+    assert mutated != baseline
+
+
+def test_mutating_regime_percentile_window_changes_the_fingerprint(monkeypatch):
+    baseline = compute_rules_fingerprint(build_rules_manifest())
+    import analytics.forecasting_v2.regime_4h as regime_module
+    monkeypatch.setattr(regime_module, "_REGIME_PERCENTILE_WINDOW", "7d")
+    mutated = compute_rules_fingerprint(build_rules_manifest())
+    assert mutated != baseline
+
+
+def test_mutating_bias_percentile_window_changes_the_fingerprint(monkeypatch):
+    baseline = compute_rules_fingerprint(build_rules_manifest())
+    import analytics.forecasting_v2.bias_1h as bias_module
+    monkeypatch.setattr(bias_module, "_BIAS_PERCENTILE_WINDOW", "30d")
+    mutated = compute_rules_fingerprint(build_rules_manifest())
+    assert mutated != baseline
+
+
+def test_mutating_reference_exchange_changes_the_fingerprint(monkeypatch):
+    baseline = compute_rules_fingerprint(build_rules_manifest())
+    import analytics.forecasting_v2.aligned_inputs as aligned_module
+    monkeypatch.setattr(aligned_module, "V2_REFERENCE_EXCHANGE", "coinbase")
+    mutated = compute_rules_fingerprint(build_rules_manifest())
+    assert mutated != baseline
+
+
+def test_mutating_setup_range_timeframes_changes_the_fingerprint(monkeypatch):
+    baseline = compute_rules_fingerprint(build_rules_manifest())
+    import analytics.forecasting_v2.setup_common as setup_module
+    monkeypatch.setattr(setup_module, "SETUP_RANGE_TIMEFRAMES", ("15m", "1h", "4h"))
+    mutated = compute_rules_fingerprint(build_rules_manifest())
+    assert mutated != baseline
 
 
 # ============================================================================
