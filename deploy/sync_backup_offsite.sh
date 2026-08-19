@@ -103,13 +103,39 @@ gzip -t "$dump" 2>/dev/null || { echo "[offsite] ERROR: not a valid gzip: ${dump
 fname="$(basename "$dump")"
 echo "[offsite] using local backup: ${fname}"
 
-# Only filenames of the expected shape carry a chronologically-sortable,
-# unambiguous timestamp; anything else is never something this script
-# uploads, lists as a tier representative, or deletes.
-case "$fname" in
-  btcbot_????????T??????Z.sql.gz) : ;;
-  *) echo "[offsite] ERROR: unexpected dump filename shape: ${fname}" >&2; exit 1 ;;
-esac
+# ---- 2b. strict filename + calendar/time validation, BEFORE ANY rclone
+#          invocation (not even `rclone mkdir`) -- a malformed local dump
+#          must never create so much as an empty tier directory on the
+#          remote. deploy/backup.sh always emits `date -u +%Y%m%dT%H%M%SZ`,
+#          so this is the exact producer format, not merely field WIDTH:
+#          a `?`-wildcard shape check (the previous approach) accepts
+#          non-numeric junk like "btcbot_abcdefghTijklmnZ.sql.gz" as long
+#          as the widths line up -- that junk would then reach `rclone
+#          copyto` for daily/ before a LATER `date` call (originally only
+#          triggered while computing the weekly/monthly period key,
+#          strictly after the daily upload) ever caught it. Both the exact
+#          digit shape AND real UTC calendar/time validity are enforced
+#          here, up front, so nothing malformed reaches rclone at all. ----
+if [[ "$fname" =~ ^btcbot_([0-9]{4})([0-9]{2})([0-9]{2})T([0-9]{2})([0-9]{2})([0-9]{2})Z\.sql\.gz$ ]]; then
+  _ts="${fname#btcbot_}"; _ts="${_ts%.sql.gz}"   # e.g. "20260819T031500Z"
+  _y="${BASH_REMATCH[1]}"; _mo="${BASH_REMATCH[2]}"; _d="${BASH_REMATCH[3]}"
+  _h="${BASH_REMATCH[4]}"; _mi="${BASH_REMATCH[5]}"; _s="${BASH_REMATCH[6]}"
+  # Canonical round-trip: parse as UTC, format back the same way, and
+  # require EXACT equality with the original timestamp. GNU `date -d`
+  # already rejects impossible calendar dates/times outright (Feb 30,
+  # month 13, hour 25, minute 61, second 60, ...) for this "Y-M-D H:M:S"
+  # form, but the round-trip is kept as the explicit, self-verifying
+  # contract rather than depending on that rejection behavior alone.
+  _formatted="$(date -u -d "${_y}-${_mo}-${_d} ${_h}:${_mi}:${_s}" +%Y%m%dT%H%M%SZ 2>/dev/null)" || _formatted=""
+  if [ -z "$_formatted" ] || [ "$_formatted" != "$_ts" ]; then
+    echo "[offsite] ERROR: dump filename timestamp is not a real UTC calendar date/time: ${fname}" >&2
+    exit 1
+  fi
+else
+  echo "[offsite] ERROR: unexpected dump filename shape (expected exactly" \
+       "btcbot_YYYYMMDDTHHMMSSZ.sql.gz, all-numeric fields): ${fname}" >&2
+  exit 1
+fi
 
 # ---- helpers -----------------------------------------------------------
 # btcbot_YYYYMMDDTHHMMSSZ.sql.gz -> YYYYMMDD (fixed-width, so lexicographic
@@ -178,9 +204,16 @@ _sync_period_tier() {
   existing="$(_list_tier "$tier")"
   while IFS= read -r name; do
     [ -n "$name" ] || continue
-    case "$name" in btcbot_????????T??????Z.sql.gz) : ;; *) continue ;; esac
+    # Strict digit-only shape (same producer format required of the local
+    # dump above) -- never the old `?`-width-only wildcard. A remote may in
+    # principle carry a legacy/foreign object; it is simply skipped, never
+    # treated as a same-period representative.
+    [[ "$name" =~ ^btcbot_[0-9]{8}T[0-9]{6}Z\.sql\.gz$ ]] || continue
     candidate_ymd="$(_ymd_of "$name")"
-    candidate_key="$("$keyfn" "$candidate_ymd")"
+    # A digit-shaped but calendar-impossible legacy remote name (e.g. from
+    # before this validation existed) must not crash the whole run -- skip
+    # it rather than let `date` inside $keyfn abort the script.
+    candidate_key="$("$keyfn" "$candidate_ymd" 2>/dev/null)" || continue
     if [ "$candidate_key" = "$this_key" ]; then
       found=1
       break

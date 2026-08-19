@@ -24,6 +24,12 @@ SCRIPT = DEPLOY / "sync_backup_offsite.sh"
 FAKE_RCLONE = r"""#!/usr/bin/env bash
 set -euo pipefail
 STORE="${FAKE_RCLONE_STORE:?FAKE_RCLONE_STORE not set}"
+# Record every single invocation (any subcommand), unconditionally, before
+# any other logic -- this lets tests prove a malformed local dump causes
+# ZERO rclone invocations of any kind, not merely "no upload landed".
+if [ -n "${FAKE_RCLONE_CALL_LOG:-}" ]; then
+  printf '%s\n' "$*" >> "${FAKE_RCLONE_CALL_LOG}"
+fi
 cmd="$1"; shift
 _map() { # remote:path -> $STORE/path
   local arg="$1"
@@ -99,11 +105,24 @@ def backup_dir(tmp_path: Path) -> Path:
     return d
 
 
+def _call_log_path(fake_rclone) -> Path:
+    _, store = fake_rclone
+    return store.parent / "rclone_calls.log"
+
+
+def _call_log_lines(fake_rclone) -> list[str]:
+    p = _call_log_path(fake_rclone)
+    if not p.is_file():
+        return []
+    return [ln for ln in p.read_text().splitlines() if ln]
+
+
 def _run(fake_rclone, backup_dir, args=(), extra_env=None, remote="fake:signalbot-backups"):
     bindir, store = fake_rclone
     env = dict(os.environ)
     env["PATH"] = f"{bindir}{os.pathsep}{env['PATH']}"
     env["FAKE_RCLONE_STORE"] = str(store)
+    env["FAKE_RCLONE_CALL_LOG"] = str(_call_log_path(fake_rclone))
     env["BACKUP_DIR"] = str(backup_dir)
     if remote is not None:
         env["SIGNALBOT_BACKUP_REMOTE"] = remote
@@ -253,6 +272,87 @@ def test_accepts_nested_nonroot_remote_path(fake_rclone, backup_dir):
     assert result.returncode == 0, result.stderr
     assert _remote_files(fake_rclone, "daily", prefix="a/b") == [
         "btcbot_20260801T030000Z.sql.gz"]
+
+
+# ============================================================================
+# C2. strict backup timestamp validation (INFRA-D1 follow-up: closes the
+#     "malformed timestamps upload first" Qodo finding on merged PR #45).
+#     A `?`-wildcard shape check validated field WIDTH only, so a malformed
+#     but gzip-valid filename like "btcbot_abcdefghTijklmnZ.sql.gz" used to
+#     pass, reach `rclone copyto` for daily/, and only fail LATER while
+#     computing the weekly/monthly period key -- after the malformed object
+#     was already uploaded. The exact digit shape AND real UTC calendar/
+#     time validity are now both enforced before any rclone invocation.
+# ============================================================================
+def test_nonnumeric_timestamp_rejected_with_zero_rclone_calls(fake_rclone, backup_dir):
+    dump = _make_dump(backup_dir / "btcbot_abcdefghTijklmnZ.sql.gz")
+    before = dump.read_bytes()
+    result = _run(fake_rclone, backup_dir)
+    assert result.returncode != 0
+    assert "filename shape" in result.stderr.lower() or "timestamp" in result.stderr.lower()
+    assert _call_log_lines(fake_rclone) == [], "malformed timestamp must cause ZERO rclone invocations"
+    assert _remote_files(fake_rclone, "daily") == []
+    assert _remote_files(fake_rclone, "weekly") == []
+    assert _remote_files(fake_rclone, "monthly") == []
+    assert dump.is_file()
+    assert dump.read_bytes() == before
+
+
+@pytest.mark.parametrize("fname,label", [
+    ("btcbot_20260230T030000Z.sql.gz", "impossible calendar date (Feb 30)"),
+    ("btcbot_20261301T030000Z.sql.gz", "invalid month (13)"),
+    ("btcbot_20260819T250000Z.sql.gz", "invalid hour (25)"),
+    ("btcbot_20260819T236100Z.sql.gz", "invalid minute (61)"),
+    ("btcbot_20260819T235960Z.sql.gz", "invalid second (60)"),
+])
+def test_impossible_or_invalid_datetime_rejected_with_zero_rclone_calls(fake_rclone, backup_dir, fname, label):
+    dump = _make_dump(backup_dir / fname)
+    before = dump.read_bytes()
+    result = _run(fake_rclone, backup_dir)
+    assert result.returncode != 0, f"{label} ({fname}) must be rejected"
+    assert _call_log_lines(fake_rclone) == [], f"{label}: must cause ZERO rclone invocations"
+    assert _remote_files(fake_rclone, "daily") == []
+    assert _remote_files(fake_rclone, "weekly") == []
+    assert _remote_files(fake_rclone, "monthly") == []
+    assert dump.is_file()
+    assert dump.read_bytes() == before
+
+
+def test_valid_leap_day_accepted(fake_rclone, backup_dir):
+    _make_dump(backup_dir / "btcbot_20280229T030000Z.sql.gz")
+    result = _run(fake_rclone, backup_dir)
+    assert result.returncode == 0, result.stderr
+    assert _remote_files(fake_rclone, "daily") == ["btcbot_20280229T030000Z.sql.gz"]
+    assert _remote_files(fake_rclone, "weekly") == ["btcbot_20280229T030000Z.sql.gz"]
+    assert _remote_files(fake_rclone, "monthly") == ["btcbot_20280229T030000Z.sql.gz"]
+
+
+def test_valid_normal_timestamp_still_accepted(fake_rclone, backup_dir):
+    # confirms the strict validation is not a regression for real producer
+    # output (deploy/backup.sh's `date -u +%Y%m%dT%H%M%SZ`).
+    _make_dump(backup_dir / "btcbot_20260819T031500Z.sql.gz")
+    result = _run(fake_rclone, backup_dir)
+    assert result.returncode == 0, result.stderr
+    assert _remote_files(fake_rclone, "daily") == ["btcbot_20260819T031500Z.sql.gz"]
+    # at least one rclone call did happen for a genuinely valid dump --
+    # contrasts with the zero-invocation assertions above
+    assert len(_call_log_lines(fake_rclone)) > 0
+
+
+def test_trailing_garbage_after_extension_rejected(fake_rclone, backup_dir):
+    dump = _make_dump(backup_dir / "btcbot_20260819T030000Z.sql.gz.extra")
+    before = dump.read_bytes()
+    result = _run(fake_rclone, backup_dir, args=[str(dump)])
+    assert result.returncode != 0
+    assert _call_log_lines(fake_rclone) == []
+    assert dump.read_bytes() == before
+
+
+def test_missing_z_suffix_rejected(fake_rclone, backup_dir):
+    dump = _make_dump(backup_dir / "btcbot_20260819T030000.sql.gz")
+    result = _run(fake_rclone, backup_dir, args=[str(dump)])
+    assert result.returncode != 0
+    assert _call_log_lines(fake_rclone) == []
 
 
 # ============================================================================
