@@ -437,6 +437,36 @@ def _validate_bar_ts(value: Any, *, timeframe: str, bucket_ts: datetime) -> date
     return value
 
 
+def _validate_utc_instant(value: Any, *, label: str) -> datetime:
+    """(V2-H2d, §2.1c) Defensive UTC `datetime` check for a PRESENT
+    timestamp FIELD (`health.snapshot_ts`, `percentile.sample_window_end`)
+    that this module is about to compare against another datetime. Shares
+    `_validate_bar_ts`'s exact type/timezone-awareness/UTC-offset rules but
+    deliberately OMITS its whole-minute requirement — these two fields are
+    sub-minute-precision provenance timestamps (when a snapshot/percentile
+    window was actually computed), not grid-aligned bucket boundaries, so
+    requiring `:00.000000` here would reject legitimate values.
+
+    Without this check, a naive `datetime` (passes a bare `isinstance`
+    check but is not timezone-comparable) or any other malformed-but-
+    PRESENT value reaching a direct `>`/`<` comparison downstream raises a
+    raw `TypeError` — corruption that must fail as the documented
+    `V2AlignedInputError`, never leak a bare Python exception past this
+    module's boundary. Legitimately MISSING data (the field is simply
+    absent/`None`) is a completely separate, already-solved case — callers
+    check for `None` themselves BEFORE calling this, exactly the
+    missingness-vs-corruption precedence this module's docstring already
+    freezes elsewhere."""
+    if type(value) is not datetime:
+        raise V2AlignedInputError(
+            f"{label} must be a datetime, got {type(value).__name__}: {value!r}")
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise V2AlignedInputError(f"{label} must be timezone-aware, got {value!r}")
+    if value.utcoffset() != timedelta(0):
+        raise V2AlignedInputError(f"{label} must be UTC (offset 0), got offset {value.utcoffset()}")
+    return value
+
+
 # ---- cross-family provenance / identity defense (never trust a reader) -----
 def _check_provenance(row: Optional[Mapping], *, request: V2AlignedInputRequest,
                       label: str) -> None:
@@ -489,10 +519,13 @@ def _validate_percentile_rows(rows: "tuple[Mapping, ...]", *, timeframe: str,
         if row.get("timeframe") != timeframe:
             raise V2AlignedInputError("percentile: timeframe does not match the request")
         sample_window_end = row.get("sample_window_end")
-        if sample_window_end is not None and not (sample_window_end < row.get("bucket_ts")):
-            raise V2AlignedInputError(
-                "percentile: sample_window_end must be strictly before bucket_ts "
-                "(no-lookahead defense) — equality is not allowed")
+        if sample_window_end is not None:
+            sample_window_end = _validate_utc_instant(
+                sample_window_end, label="percentile: sample_window_end")
+            if not (sample_window_end < row.get("bucket_ts")):
+                raise V2AlignedInputError(
+                    "percentile: sample_window_end must be strictly before bucket_ts "
+                    "(no-lookahead defense) — equality is not allowed")
         logical_key = (row.get("metric"), row.get("percentile_window"))
         if logical_key in seen_logical_keys:
             raise V2AlignedInputError(
@@ -536,9 +569,11 @@ def _validate_health_map(health: Mapping, *, bucket_end: datetime,
         if row.get("symbol") != request.symbol or row.get("market_type") != request.market_type:
             raise V2AlignedInputError("health: symbol/market_type does not match the request")
         snapshot_ts = row.get("snapshot_ts")
-        if not isinstance(snapshot_ts, datetime):
+        if snapshot_ts is None:
             raise V2AlignedInputError(
                 f"health: row for {(exchange, metric)!r} has a missing/malformed snapshot_ts")
+        snapshot_ts = _validate_utc_instant(
+            snapshot_ts, label=f"health: row for {(exchange, metric)!r} snapshot_ts")
         if snapshot_ts > bucket_end:
             raise V2AlignedInputError(
                 "health: snapshot_ts is after the bucket-end cutoff (no-lookahead defense)")

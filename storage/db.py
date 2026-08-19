@@ -321,7 +321,43 @@ class Database:
     # ---------------------------------------------------------------
     async def insert_klines(self, rows: Sequence[tuple], source: str) -> int:
         """rows: (exchange, symbol, ts, open, high, low, close, volume,
-        taker_buy_volume, taker_sell_volume, trades_count)"""
+        taker_buy_volume, taker_sell_volume, trades_count)
+
+        Conflict semantics (V2-H2d, docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md
+        §2.1b) -- per-column, NOT a blanket COALESCE-everything rule:
+
+        - open/high/low/close/volume: unconditionally overwritten with
+          EXCLUDED.* on every write, live or backfill. `klines_1m` declares
+          all five NOT NULL (schema.sql), so no source ever supplies NULL
+          here -- there is no "downgrade" risk for these columns, and a
+          later write (e.g. a backfill re-read of the exchange's own
+          authoritative closed-bar REST data) legitimately correcting an
+          earlier live-computed aggregate MUST still be able to overwrite,
+          exactly as the frozen contract requires.
+        - taker_buy_volume/taker_sell_volume/trades_count: OPTIONAL
+          fidelity fields (nullable) -- only Binance backfill and live
+          ingestion populate them; Bybit/OKX/Bitget historical klines never
+          carry a taker-buy/sell split, so their backfill rows always pass
+          NULL for these three (backfill/backfill.py). `COALESCE(EXCLUDED.x,
+          klines_1m.x)` prefers the INCOMING value whenever it is
+          non-NULL (a genuine upgrade from unknown, or a legitimate
+          correction of an already-known value) and otherwise preserves
+          the already-known stored value -- an incoming NULL (a
+          lower-fidelity backfill row) can never erase already-known data.
+        - source: 'live' | 'backfill' provenance tag. Because the three
+          optional fields above can now survive an overwriting write, the
+          tag must not silently relabel a row 'backfill' when its retained
+          optional fields are still exclusively live-sourced -- that would
+          misrepresent where the row's actual (surviving) data came from.
+          The CASE below preserves the stored 'live' tag only when the
+          incoming row supplies NO taker-fidelity data of its own (all
+          three columns NULL) -- i.e. exactly the case where every
+          retained optional-field value came from the OLD row. The moment
+          the incoming row supplies real data in ANY of the three columns
+          (a genuine upgrade or correction) -- or the stored row was never
+          'live' to begin with -- the incoming write's own source label is
+          trusted, since it is now genuinely contributing to (or fully
+          re-asserting) the row's content."""
         if not rows:
             return 0
         assert self.pool is not None
@@ -336,10 +372,20 @@ class Database:
                     open = EXCLUDED.open, high = EXCLUDED.high,
                     low = EXCLUDED.low, close = EXCLUDED.close,
                     volume = EXCLUDED.volume,
-                    taker_buy_volume = EXCLUDED.taker_buy_volume,
-                    taker_sell_volume = EXCLUDED.taker_sell_volume,
-                    trades_count = EXCLUDED.trades_count,
-                    source = EXCLUDED.source
+                    taker_buy_volume = COALESCE(EXCLUDED.taker_buy_volume,
+                                                 klines_1m.taker_buy_volume),
+                    taker_sell_volume = COALESCE(EXCLUDED.taker_sell_volume,
+                                                  klines_1m.taker_sell_volume),
+                    trades_count = COALESCE(EXCLUDED.trades_count,
+                                             klines_1m.trades_count),
+                    source = CASE
+                        WHEN klines_1m.source = 'live'
+                             AND EXCLUDED.taker_buy_volume IS NULL
+                             AND EXCLUDED.taker_sell_volume IS NULL
+                             AND EXCLUDED.trades_count IS NULL
+                        THEN klines_1m.source
+                        ELSE EXCLUDED.source
+                    END
                 """,
                 [r + (source,) for r in rows],
             )
