@@ -98,12 +98,51 @@ def make_oi_row(**over):
     return base
 
 
+_FAMILIES = ("price_structure", "volume", "taker_flow", "oi", "funding", "liquidations")
+
+
+def _family_maps(*, price_coverage, price_confidence, oi_coverage=None, oi_confidence=None):
+    """§6.3a per-family `coverage_by_metric`/`data_confidence_by_metric`
+    maps for all six families -- `price_structure` (STEP 1's own gate) and
+    `oi` (the OI-veto gate) driven by the given ratio/confidence (`oi_*`
+    defaults to the SAME values as `price_*` unless overridden, so a bare
+    `make_consensus(consensus_confidence=X, min_coverage_ratio=Y)` call
+    keeps clearing both gates exactly like before this module's per-family
+    hardening); the four families `regime_4h.py` never reads
+    (volume/taker_flow/funding/liquidations) are always fully healthy --
+    proving THEY can never influence any test in this file."""
+    if oi_coverage is None:
+        oi_coverage = price_coverage
+    if oi_confidence is None:
+        oi_confidence = price_confidence
+    per_family = {
+        "price_structure": (price_coverage, price_confidence),
+        "oi": (oi_coverage, oi_confidence),
+    }
+    coverage_by_metric = {}
+    data_confidence_by_metric = {}
+    for family in _FAMILIES:
+        ratio, confidence = per_family.get(family, (1.0, 100.0))
+        coverage_by_metric[family] = {"available": 3, "expected": 3, "ratio": ratio}
+        data_confidence_by_metric[family] = confidence
+    return coverage_by_metric, data_confidence_by_metric
+
+
 def make_consensus(**over):
+    coverage = over.pop("min_coverage_ratio", 2.0 / 3.0)
+    confidence = over.pop("consensus_confidence", 50.0)
+    oi_coverage = over.pop("oi_coverage_ratio", None)
+    oi_confidence = over.pop("oi_confidence", None)
+    coverage_by_metric, data_confidence_by_metric = _family_maps(
+        price_coverage=coverage, price_confidence=confidence,
+        oi_coverage=oi_coverage, oi_confidence=oi_confidence)
     base = dict(
         symbol="BTCUSDT", market_type="perp", timeframe="4h", bucket_ts=B,
         price_move_pct_median=1.0, oi_change_pct_median=0.1,
         oi_direction_agreement=0.75, price_direction_agreement=2.0 / 3.0,
-        consensus_confidence=50.0, min_coverage_ratio=2.0 / 3.0,
+        consensus_confidence=confidence, min_coverage_ratio=coverage,
+        coverage_by_metric=coverage_by_metric,
+        data_confidence_by_metric=data_confidence_by_metric,
     )
     base.update(over)
     return base
@@ -311,6 +350,21 @@ def test_unavailable_oi_does_not_block_a_valid_bearish_candidate():
         percentiles=[price_row, NEUTRAL_COMP_ROW],
         consensus=make_consensus(price_move_pct_median=-1.0))
     assert classify_4h_regime(inputs).regime == BEARISH_TRENDING
+
+
+def test_oi_family_own_poor_quality_never_forces_insufficient_data():
+    # §6.3a required matrix: OI unavailable/poor-quality gates OUT the veto
+    # itself (no veto applied), it must NEVER force the overall regime to
+    # INSUFFICIENT_DATA -- that outcome is reserved for price_structure's
+    # own gate alone. A strong confirming OI percentile row is present, but
+    # the OI FAMILY's own coverage/confidence are both zeroed.
+    price_row = make_price_row(value=1.0, percentile_rank=0.71)
+    oi_row = make_oi_row(value=0.5, percentile_rank=0.99)
+    inputs = make_inputs(
+        percentiles=[price_row, NEUTRAL_COMP_ROW, oi_row],
+        consensus=make_consensus(oi_coverage_ratio=0.0, oi_confidence=0.0))
+    result = classify_4h_regime(inputs)
+    assert result.regime == BULLISH_TRENDING
 
 
 def test_strong_positive_oi_with_weak_price_is_non_directional():
@@ -544,6 +598,24 @@ def test_coverage_malformed_raises(bad_coverage):
         classify_4h_regime(inputs)
 
 
+@pytest.mark.parametrize("family", ["volume", "taker_flow", "funding", "liquidations"])
+def test_step1_gate_only_reads_price_structure_other_families_cannot_force_insufficient(family):
+    # §6.3a required matrix: STEP 1's quality gate (direction + compression)
+    # is scoped to price_structure ONLY. Zeroing coverage AND confidence
+    # for any of the four families this module never reads must have zero
+    # effect -- must still classify normally, never INSUFFICIENT_DATA.
+    price_row = make_price_row(value=-1.0, percentile_rank=0.30)
+    consensus = make_consensus(price_move_pct_median=-1.0)
+    coverage_by_metric = dict(consensus["coverage_by_metric"])
+    coverage_by_metric[family] = {"available": 0, "expected": 3, "ratio": 0.0}
+    consensus["coverage_by_metric"] = coverage_by_metric
+    data_confidence_by_metric = dict(consensus["data_confidence_by_metric"])
+    data_confidence_by_metric[family] = 0.0
+    consensus["data_confidence_by_metric"] = data_confidence_by_metric
+    inputs = make_inputs(percentiles=[price_row, NEUTRAL_COMP_ROW], consensus=consensus)
+    assert classify_4h_regime(inputs).regime == BEARISH_TRENDING
+
+
 # ============================================================================
 # 7. COMPRESSION FLAG — belongs only to NON_DIRECTIONAL
 # ============================================================================
@@ -703,65 +775,141 @@ def test_malformed_oi_raises_once_a_price_candidate_exists():
 # 11. RESULT MODEL
 # ============================================================================
 def test_result_is_frozen():
-    result = V2RegimeResult(bucket_ts=B, regime=NON_DIRECTIONAL, is_compressed=True)
+    result = V2RegimeResult(
+        bucket_ts=B, regime=NON_DIRECTIONAL, is_compressed=True,
+        price_evi=None, compression_score=0.9)
     with pytest.raises((AttributeError, TypeError)):
         result.regime = BULLISH_TRENDING  # type: ignore[misc]
 
 
 def test_result_accepts_valid_utc_whole_minute_bucket_ts():
-    result = V2RegimeResult(bucket_ts=B, regime=NON_DIRECTIONAL, is_compressed=True)
+    result = V2RegimeResult(
+        bucket_ts=B, regime=NON_DIRECTIONAL, is_compressed=True,
+        price_evi=None, compression_score=0.9)
     assert result.bucket_ts == B
 
 
 def test_result_rejects_naive_bucket_ts():
     naive = datetime(2026, 8, 15, 12, 0)  # no tzinfo
     with pytest.raises(V2RegimeError, match="timezone-aware"):
-        V2RegimeResult(bucket_ts=naive, regime=NON_DIRECTIONAL, is_compressed=True)
+        V2RegimeResult(
+            bucket_ts=naive, regime=NON_DIRECTIONAL, is_compressed=True,
+            price_evi=None, compression_score=0.9)
 
 
 def test_result_rejects_non_utc_bucket_ts():
     non_utc = datetime(2026, 8, 15, 15, 0, tzinfo=timezone(timedelta(hours=3)))
     with pytest.raises(V2RegimeError, match="must be UTC"):
-        V2RegimeResult(bucket_ts=non_utc, regime=NON_DIRECTIONAL, is_compressed=True)
+        V2RegimeResult(
+            bucket_ts=non_utc, regime=NON_DIRECTIONAL, is_compressed=True,
+            price_evi=None, compression_score=0.9)
 
 
 def test_result_rejects_bucket_ts_with_seconds():
     with pytest.raises(V2RegimeError, match="whole minute"):
-        V2RegimeResult(bucket_ts=B.replace(second=1), regime=NON_DIRECTIONAL, is_compressed=True)
+        V2RegimeResult(
+            bucket_ts=B.replace(second=1), regime=NON_DIRECTIONAL, is_compressed=True,
+            price_evi=None, compression_score=0.9)
 
 
 def test_result_rejects_bucket_ts_with_microseconds():
     with pytest.raises(V2RegimeError, match="whole minute"):
         V2RegimeResult(
-            bucket_ts=B.replace(microsecond=1), regime=NON_DIRECTIONAL, is_compressed=True)
+            bucket_ts=B.replace(microsecond=1), regime=NON_DIRECTIONAL, is_compressed=True,
+            price_evi=None, compression_score=0.9)
 
 
 @pytest.mark.parametrize("is_compressed", [True, False])
 def test_non_directional_accepts_bool_is_compressed(is_compressed):
-    result = V2RegimeResult(bucket_ts=B, regime=NON_DIRECTIONAL, is_compressed=is_compressed)
+    comp = 0.9 if is_compressed else 0.5
+    result = V2RegimeResult(
+        bucket_ts=B, regime=NON_DIRECTIONAL, is_compressed=is_compressed,
+        price_evi=None, compression_score=comp)
     assert result.is_compressed is is_compressed
 
 
 def test_non_directional_rejects_none_is_compressed():
     with pytest.raises(V2RegimeError, match="is_compressed"):
-        V2RegimeResult(bucket_ts=B, regime=NON_DIRECTIONAL, is_compressed=None)
+        V2RegimeResult(
+            bucket_ts=B, regime=NON_DIRECTIONAL, is_compressed=None,
+            price_evi=None, compression_score=None)
 
 
 @pytest.mark.parametrize("regime", [BULLISH_TRENDING, BEARISH_TRENDING, INSUFFICIENT_DATA])
 def test_non_nondirectional_regimes_reject_bool_is_compressed(regime):
     with pytest.raises(V2RegimeError, match="is_compressed"):
-        V2RegimeResult(bucket_ts=B, regime=regime, is_compressed=True)
+        V2RegimeResult(
+            bucket_ts=B, regime=regime, is_compressed=True,
+            price_evi=None, compression_score=None)
 
 
 @pytest.mark.parametrize("regime", [BULLISH_TRENDING, BEARISH_TRENDING, INSUFFICIENT_DATA])
 def test_non_nondirectional_regimes_accept_none_is_compressed(regime):
-    result = V2RegimeResult(bucket_ts=B, regime=regime, is_compressed=None)
+    price_evi = {BULLISH_TRENDING: 0.5, BEARISH_TRENDING: -0.5, INSUFFICIENT_DATA: None}[regime]
+    result = V2RegimeResult(
+        bucket_ts=B, regime=regime, is_compressed=None,
+        price_evi=price_evi, compression_score=None)
     assert result.is_compressed is None
+
+
+def test_bullish_trending_rejects_price_evi_below_trend_threshold():
+    # Tech-lead amendment round 1, item 4: classify_4h_regime() requires
+    # abs(price_evi) >= REGIME_TREND_THRESHOLD to ever produce a trending
+    # label -- a direct result claiming BULLISH_TRENDING with evidence
+    # below that threshold is impossible under the owning classifier.
+    with pytest.raises(V2RegimeError):
+        V2RegimeResult(
+            bucket_ts=B, regime=BULLISH_TRENDING, is_compressed=None,
+            price_evi=0.01, compression_score=None)
+
+
+def test_bearish_trending_rejects_price_evi_above_negative_trend_threshold():
+    with pytest.raises(V2RegimeError):
+        V2RegimeResult(
+            bucket_ts=B, regime=BEARISH_TRENDING, is_compressed=None,
+            price_evi=-0.01, compression_score=None)
+
+
+def test_bullish_trending_accepts_exact_representation_sensitive_threshold_vector():
+    # The SAME representation-sensitive value classify_4h_regime() itself
+    # accepts (§23.1's own frozen equivalence: percentile_rank=0.70 ->
+    # price_evi == 2.0*0.70-1.0 == 0.3999999999999999, a few ULPs below the
+    # 0.4 literal) -- a direct result with this exact value must also be
+    # accepted via the SAME _ge_inclusive() primitive, never rejected by
+    # an invented stricter/exact comparison here.
+    price_evi = 2.0 * 0.70 - 1.0
+    assert price_evi != 0.4  # confirms this genuinely exercises the ULP tolerance
+    result = V2RegimeResult(
+        bucket_ts=B, regime=BULLISH_TRENDING, is_compressed=None,
+        price_evi=price_evi, compression_score=None)
+    assert result.price_evi == price_evi
+
+
+def test_bearish_trending_accepts_exact_representation_sensitive_threshold_vector():
+    price_evi = -(2.0 * 0.70 - 1.0)
+    assert price_evi != -0.4
+    result = V2RegimeResult(
+        bucket_ts=B, regime=BEARISH_TRENDING, is_compressed=None,
+        price_evi=price_evi, compression_score=None)
+    assert result.price_evi == price_evi
+
+
+def test_bullish_bearish_trending_accept_normal_half_evidence():
+    bullish = V2RegimeResult(
+        bucket_ts=B, regime=BULLISH_TRENDING, is_compressed=None,
+        price_evi=0.5, compression_score=None)
+    assert bullish.price_evi == 0.5
+    bearish = V2RegimeResult(
+        bucket_ts=B, regime=BEARISH_TRENDING, is_compressed=None,
+        price_evi=-0.5, compression_score=None)
+    assert bearish.price_evi == -0.5
 
 
 def test_invalid_regime_string_raises():
     with pytest.raises(V2RegimeError, match="regime"):
-        V2RegimeResult(bucket_ts=B, regime="SIDEWAYS", is_compressed=None)
+        V2RegimeResult(
+            bucket_ts=B, regime="SIDEWAYS", is_compressed=None,
+            price_evi=None, compression_score=None)
 
 
 def test_regimes_tuple_is_exactly_four():

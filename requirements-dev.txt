@@ -1,0 +1,9 @@
+# Development/test-only dependencies, layered on top of the production
+# requirements.txt (never merged into it -- CI/local dev tooling has no
+# business being installed in a production deploy). Install with:
+#
+#   pip install -r requirements-dev.txt
+#
+-r requirements.txt
+
+pytest==9.1.1

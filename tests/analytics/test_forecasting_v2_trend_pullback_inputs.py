@@ -48,8 +48,10 @@ def make_context(*, t=T, b4h=B4H, b1h=B1H) -> V2ContextSnapshot:
     return V2ContextSnapshot(
         T=t, symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=H16,
         feature_schema_version=1,
-        regime_4h=V2RegimeResult(bucket_ts=b4h, regime=BULLISH_TRENDING, is_compressed=None),
-        bias_1h=V2BiasResult(bucket_ts=b1h, bias=BULLISH),
+        regime_4h=V2RegimeResult(
+            bucket_ts=b4h, regime=BULLISH_TRENDING, is_compressed=None,
+            price_evi=0.5, compression_score=None),
+        bias_1h=V2BiasResult(bucket_ts=b1h, bias=BULLISH, bias_evi=0.5),
     )
 
 

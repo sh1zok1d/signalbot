@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Compile check (syntax)
+        run: python -m compileall -q .
+
+      - name: Full test suite
+        run: python -m pytest -q
+
+      - name: V2 rules/manifest integrity (focused)
+        run: python -m pytest -q tests/analytics/test_forecasting_v2_rules_manifest.py tests/analytics/test_forecasting_v2_family_quality.py
+
+      - name: V2 Stage 4/5 detectors (focused)
+        run: >
+          python -m pytest -q
+          tests/analytics/test_forecasting_v2_regime_4h.py
+          tests/analytics/test_forecasting_v2_bias_1h.py
+          tests/analytics/test_forecasting_v2_context_snapshot.py
+          tests/analytics/test_forecasting_v2_setup_common.py
+          tests/analytics/test_forecasting_v2_trend_pullback.py
+          tests/analytics/test_forecasting_v2_trend_pullback_inputs.py
+          tests/analytics/test_forecasting_v2_compression_breakout.py
+          tests/analytics/test_forecasting_v2_compression_breakout_inputs.py
+          tests/analytics/test_forecasting_v2_confirmed_breakout.py
+          tests/analytics/test_forecasting_v2_confirmed_breakout_inputs.py

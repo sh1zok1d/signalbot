@@ -26,21 +26,40 @@ are Stage 4 PR 3/~3 and Stage 5.
 **Frozen §4.2 decision tree (evaluated in order):**
 
     1. if price_evi or comp is UNAVAILABLE due to missing DATA (not
-       merely tier), or consensus is missing, or confidence/coverage are
-       missing or below their floors:
+       merely tier), or consensus is missing, or the price_structure
+       FAMILY's own confidence/coverage (§6.3a — never the global
+       consensus_confidence/min_coverage_ratio rollup) are missing or
+       below their floors:
            regime = INSUFFICIENT_DATA
        (oi_confirmation UNAVAILABLE does NOT by itself force this — OI is
        a modulating veto input, not a required directional one.)
 
     2. elif |price_evi| >= REGIME_TREND_THRESHOLD
          and agreement >= REGIME_MIN_AGREEMENT
-         and not (oi_confirmation is available and
-                  oi_confirmation <= REGIME_OI_VETO):
+         and not (oi_confirmation is available
+                  and the oi FAMILY's own confidence/coverage (§6.3a) pass
+                  and oi_confirmation <= REGIME_OI_VETO):
            regime = BULLISH_TRENDING if price_evi > 0 else BEARISH_TRENDING
+       (§6.3a: if OI itself is unavailable or fails its OWN family
+       quality gate, the veto simply cannot apply — this never forces the
+       whole regime to INSUFFICIENT_DATA solely because OI's family
+       quality is insufficient.)
 
     3. else:
            regime = NON_DIRECTIONAL, is_compressed = (comp is not None
                                                         and comp >= REGIME_COMPRESSION)
+
+**Per-family quality gating (§6.3a, `family_quality.py`).** STEP 1's
+confidence/coverage floor and STEP 2's OI-veto quality precondition are
+each scoped to exactly the ONE metric family the decision actually
+consumes (`price_structure` for STEP 1, `oi` for the veto) — sourced from
+the already-persisted `coverage_by_metric`/`data_confidence_by_metric`
+per-family maps, never the global `consensus_confidence`/
+`min_coverage_ratio` rollup a family this decision does not consume
+(`volume`/`taker_flow`/`funding`/`liquidations`) could otherwise silently
+drag down. A malformed PRESENT per-family map raises `V2RegimeError`
+(chained from `V2FamilyQualityError`), never silently downgraded to
+ordinary unavailability.
 
 Direction is **always** decided by `price_evi`'s own sign alone —
 `agreement` is a gate only (it can never itself create direction), and
@@ -148,6 +167,11 @@ from analytics.forecasting_v2.context_evidence import (
     normalized_evidence,
     oi_confirmation,
 )
+from analytics.forecasting_v2.family_quality import (
+    V2FamilyQualityError,
+    family_quality,
+    family_quality_ok,
+)
 
 __all__ = [
     "V2RegimeError",
@@ -227,10 +251,23 @@ class V2RegimeResult:
     NON_DIRECTIONAL` — §4.2 attaches the compression flag specifically to
     the non-directional case; every other regime carries `is_compressed
     = None` (compression is never itself a regime identity, and is never
-    computed/attached for a trending or insufficient-data result)."""
+    computed/attached for a trending or insufficient-data result).
+
+    `price_evi`/`compression_score` (§4.1a) preserve BY VALUE the exact
+    `normalized_evidence`/`compression_score` PR 1 evidence this engine
+    itself computed while deciding `regime`/`is_compressed` — never
+    recomputed downstream (Stage 5/6 read these fields instead of
+    re-deriving them from Stage 3 percentile history). Either may
+    legitimately be `None` (the same UNAVAILABLE semantics PR 1's own
+    primitives already return — missing data, tier-only-unavailable, or
+    simply not computed for a branch that never needed it); a `None` here
+    is never itself an error, only a value inconsistent with `regime`/
+    `is_compressed` is."""
     bucket_ts: datetime
     regime: str
     is_compressed: Optional[bool]
+    price_evi: Optional[float]
+    compression_score: Optional[float]
 
     def __post_init__(self) -> None:
         _validate_utc_datetime(self.bucket_ts, "bucket_ts")
@@ -245,6 +282,59 @@ class V2RegimeResult:
             raise V2RegimeError(
                 f"is_compressed must be None for regime {self.regime!r}, "
                 f"got {self.is_compressed!r}")
+
+        price_evi: Optional[float] = None
+        if self.price_evi is not None:
+            price_evi = _validate_finite_numeric(self.price_evi, "price_evi")
+            if not (-1.0 <= price_evi <= 1.0):
+                raise V2RegimeError(f"price_evi must be within [-1.0, 1.0], got {price_evi!r}")
+
+        comp: Optional[float] = None
+        if self.compression_score is not None:
+            comp = _validate_finite_numeric(self.compression_score, "compression_score")
+            if not (0.0 <= comp <= 1.0):
+                raise V2RegimeError(
+                    f"compression_score must be within [0.0, 1.0], got {comp!r}")
+
+        # §4.1a: label and numerical evidence must be internally consistent
+        # -- a directly-constructed impossible/malformed result fails closed.
+        if self.regime == BULLISH_TRENDING:
+            if price_evi is None or not (price_evi > 0):
+                raise V2RegimeError(
+                    f"price_evi must be a positive float for regime {BULLISH_TRENDING!r}, "
+                    f"got {self.price_evi!r}")
+            # Tech-lead amendment round 1, item 4: classify_4h_regime()
+            # requires abs(price_evi) >= REGIME_TREND_THRESHOLD (via the
+            # SAME representation-safe _ge_inclusive() the real classifier
+            # uses, never an invented epsilon) to ever produce a trending
+            # label -- a directly-constructed result claiming
+            # BULLISH_TRENDING with evidence below that threshold is
+            # impossible under the owning classifier and must fail closed.
+            # Only this NECESSARY condition (provable from price_evi alone)
+            # is enforced -- never agreement/OI veto, which this result
+            # does not carry by value.
+            if not _ge_inclusive(abs(price_evi), REGIME_TREND_THRESHOLD):
+                raise V2RegimeError(
+                    f"price_evi ({price_evi!r}) must satisfy abs(price_evi) >= "
+                    f"REGIME_TREND_THRESHOLD ({REGIME_TREND_THRESHOLD!r}) for regime "
+                    f"{BULLISH_TRENDING!r}")
+        elif self.regime == BEARISH_TRENDING:
+            if price_evi is None or not (price_evi < 0):
+                raise V2RegimeError(
+                    f"price_evi must be a negative float for regime {BEARISH_TRENDING!r}, "
+                    f"got {self.price_evi!r}")
+            if not _ge_inclusive(abs(price_evi), REGIME_TREND_THRESHOLD):
+                raise V2RegimeError(
+                    f"price_evi ({price_evi!r}) must satisfy abs(price_evi) >= "
+                    f"REGIME_TREND_THRESHOLD ({REGIME_TREND_THRESHOLD!r}) for regime "
+                    f"{BEARISH_TRENDING!r}")
+        elif self.regime == NON_DIRECTIONAL:
+            expected_compressed = comp is not None and comp >= REGIME_COMPRESSION
+            if self.is_compressed != expected_compressed:
+                raise V2RegimeError(
+                    "is_compressed is inconsistent with compression_score -- expected "
+                    f"{expected_compressed!r} (compression_score={self.compression_score!r}), "
+                    f"got {self.is_compressed!r}")
 
 
 # ---- numeric validation (mirrors context_evidence.py's own posture; a
@@ -262,13 +352,6 @@ def _validate_finite_numeric(value: Any, name: str) -> float:
     v = float(value)
     if not _is_finite(v):
         raise V2RegimeError(f"{name} must be finite, got {value!r}")
-    return v
-
-
-def _validate_confidence(value: Any) -> float:
-    v = _validate_finite_numeric(value, "consensus_confidence")
-    if not (0.0 <= v <= 100.0):
-        raise V2RegimeError(f"consensus_confidence must be within [0.0, 100.0], got {v!r}")
     return v
 
 
@@ -384,8 +467,6 @@ def classify_4h_regime(inputs: V2TimeframeInputs) -> V2RegimeResult:
     # precedence: every present field is validated here, unconditionally,
     # BEFORE step 1's threshold comparisons ever run). ----------------------
     consensus = inputs.consensus
-    confidence: Optional[float] = None
-    coverage: Optional[float] = None
     agreement: Optional[float] = None
     if consensus is not None:
         if not isinstance(consensus, _AbcMapping):
@@ -397,32 +478,49 @@ def classify_4h_regime(inputs: V2TimeframeInputs) -> V2RegimeResult:
         if consensus.get("bucket_ts") != inputs.bucket_ts:
             raise V2RegimeError("inputs.consensus.bucket_ts does not match inputs.bucket_ts")
 
-        raw_confidence = consensus.get("consensus_confidence")
-        raw_coverage = consensus.get("min_coverage_ratio")
         raw_agreement = consensus.get("price_direction_agreement")
-
-        if raw_confidence is not None:
-            confidence = _validate_confidence(raw_confidence)
-        if raw_coverage is not None:
-            coverage = _validate_unit_ratio(raw_coverage, "min_coverage_ratio")
         if raw_agreement is not None:
             agreement = _validate_unit_ratio(raw_agreement, "price_direction_agreement")
+
+    # ---- §6.3a: STEP 1's confidence/coverage gate is scoped to the
+    # price_structure family alone -- never the global consensus_confidence/
+    # min_coverage_ratio rollup, which a family this decision does not
+    # consume (volume/taker_flow/oi/funding/liquidations) could otherwise
+    # drag down. `consensus is None` collapses into `confidence is None or
+    # coverage is None` below, since family_quality(None, ...) returns
+    # (None, None) -- the same "no row at all" unavailability.
+    try:
+        price_family = family_quality(consensus, family="price_structure")
+    except V2FamilyQualityError as exc:
+        raise V2RegimeError(f"malformed price_structure family quality: {exc}") from exc
+    confidence = price_family.confidence
+    coverage = price_family.coverage_ratio
+
+    def _result(regime: str, *, is_compressed: Optional[bool]) -> V2RegimeResult:
+        return V2RegimeResult(
+            bucket_ts=inputs.bucket_ts, regime=regime, is_compressed=is_compressed,
+            price_evi=price_evi, compression_score=comp)
 
     # ---- STEP 1: mandatory-data hard gate ----------------------------------
     if (
         price_missing_data
         or comp_missing_data
-        or consensus is None
         or confidence is None
         or coverage is None
         or confidence < REGIME_MIN_CONFIDENCE
         or coverage < REGIME_MIN_COVERAGE
     ):
-        return V2RegimeResult(bucket_ts=inputs.bucket_ts, regime=INSUFFICIENT_DATA, is_compressed=None)
+        return _result(INSUFFICIENT_DATA, is_compressed=None)
 
     # ---- STEP 2: price+agreement candidate, OI evaluated ONLY here as an
     # optional symmetric veto (never a directional vote, never consulted
-    # when there is no candidate to modulate). ------------------------------
+    # when there is no candidate to modulate). §6.3a: the veto itself also
+    # requires OI's OWN family quality to pass -- if OI family quality is
+    # insufficient, the veto is UNAVAILABLE/cannot apply, and this MUST NOT
+    # force the whole regime to INSUFFICIENT_DATA (OI is a modulating veto
+    # input, not a required directional one; that already-frozen §4.2
+    # posture is unchanged, only OI's own quality SOURCE is now
+    # family-scoped rather than implicitly trusted). ------------------------
     if (
         price_evi is not None
         and _ge_inclusive(abs(price_evi), REGIME_TREND_THRESHOLD)
@@ -433,20 +531,21 @@ def classify_4h_regime(inputs: V2TimeframeInputs) -> V2RegimeResult:
             oi = oi_confirmation(inputs, percentile_window=_REGIME_PERCENTILE_WINDOW)
         except V2ContextEvidenceError as exc:
             raise V2RegimeError(f"malformed OI evidence input: {exc}") from exc
+        try:
+            oi_quality_ok = family_quality_ok(consensus, family="oi")
+        except V2FamilyQualityError as exc:
+            raise V2RegimeError(f"malformed oi family quality: {exc}") from exc
 
-        vetoed = oi is not None and _le_inclusive(oi, REGIME_OI_VETO)
+        vetoed = oi is not None and oi_quality_ok and _le_inclusive(oi, REGIME_OI_VETO)
         if not vetoed:
             if price_evi > 0:
-                return V2RegimeResult(
-                    bucket_ts=inputs.bucket_ts, regime=BULLISH_TRENDING, is_compressed=None)
+                return _result(BULLISH_TRENDING, is_compressed=None)
             elif price_evi < 0:
-                return V2RegimeResult(
-                    bucket_ts=inputs.bucket_ts, regime=BEARISH_TRENDING, is_compressed=None)
+                return _result(BEARISH_TRENDING, is_compressed=None)
             # price_evi == 0.0 cannot satisfy abs(price_evi) >= REGIME_TREND_THRESHOLD
             # (a strictly positive threshold) -- unreachable, but falls through to
             # STEP 3 rather than asserting, matching this module's fail-safe posture.
 
     # ---- STEP 3: NON_DIRECTIONAL, with the compression flag -----------------
     is_compressed = comp is not None and comp >= REGIME_COMPRESSION
-    return V2RegimeResult(
-        bucket_ts=inputs.bucket_ts, regime=NON_DIRECTIONAL, is_compressed=is_compressed)
+    return _result(NON_DIRECTIONAL, is_compressed=is_compressed)

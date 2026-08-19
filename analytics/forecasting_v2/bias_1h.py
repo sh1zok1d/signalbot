@@ -17,8 +17,9 @@ Exactly four bias states (§4.3):
 
 **Frozen §4.3 decision tree (evaluated in order):**
 
-    1. if bias_evi is UNAVAILABLE, or confidence < BIAS_MIN_CONFIDENCE,
-       or coverage < BIAS_MIN_COVERAGE:
+    1. if bias_evi is UNAVAILABLE, or the price_structure FAMILY's own
+       confidence (§6.3a — never the global consensus_confidence rollup)
+       < BIAS_MIN_CONFIDENCE, or its own coverage < BIAS_MIN_COVERAGE:
            bias = UNAVAILABLE
 
     2. elif bias_evi >= BIAS_THRESHOLD and agreement >= BIAS_MIN_AGREEMENT:
@@ -110,6 +111,7 @@ from analytics.forecasting_v2.context_evidence import (
     V2ContextEvidenceError,
     normalized_evidence,
 )
+from analytics.forecasting_v2.family_quality import V2FamilyQualityError, family_quality
 
 __all__ = [
     "V2BiasError",
@@ -187,14 +189,74 @@ def _validate_utc_datetime(value: Any, name: str) -> datetime:
 @dataclass(frozen=True)
 class V2BiasResult:
     """One immutable 1h bias classification, for exactly one aligned 1h
-    bucket."""
+    bucket.
+
+    `bias_evi` (§4.1a) preserves BY VALUE the exact `normalized_evidence`
+    PR 1 evidence this engine itself computed while deciding `bias` --
+    never recomputed downstream (Stage 5/6 read this field instead of
+    re-deriving it from Stage 3 percentile history).
+
+    `bias_evi=None` is legitimate ONLY for `BIAS_UNAVAILABLE` -- and even
+    there it is not REQUIRED: STEP 1's gate can fail on family confidence/
+    coverage alone while `bias_evi` itself is a present, numeric value, so
+    `BIAS_UNAVAILABLE` may carry either `None` or a real number.
+    `NEUTRAL_NOT_ESTABLISHED` is a successfully-computed, measured
+    non-established bias (module docstring's own framing) -- it therefore
+    REQUIRES a real, numeric `bias_evi`; `None` there would silently
+    convert missing/unavailable evidence into the neutral label Stage 5's
+    `directional_context_gate()` accepts (unlike `BIAS_UNAVAILABLE`, which
+    it rejects), corrupting the exact availability-vs-neutral distinction
+    this module's decision tree exists to preserve. `BULLISH`/`BEARISH`
+    each further require `bias_evi` to actually clear their own signed
+    threshold (checked below)."""
     bucket_ts: datetime
     bias: str
+    bias_evi: Optional[float]
 
     def __post_init__(self) -> None:
         _validate_utc_datetime(self.bucket_ts, "bucket_ts")
         if self.bias not in BIASES:
             raise V2BiasError(f"bias must be one of {BIASES}, got {self.bias!r}")
+
+        bias_evi: Optional[float] = None
+        if self.bias_evi is not None:
+            bias_evi = _validate_finite_numeric(self.bias_evi, "bias_evi")
+            if not (-1.0 <= bias_evi <= 1.0):
+                raise V2BiasError(f"bias_evi must be within [-1.0, 1.0], got {bias_evi!r}")
+
+        # §4.1a: label and numerical evidence must be internally consistent
+        # -- a directly-constructed impossible/malformed result fails closed.
+        # `BIAS_UNAVAILABLE` carries no sign/None constraint beyond the
+        # domain/finiteness check above: STEP 1's gate can fail on family
+        # confidence/coverage alone even when bias_evi itself is present and
+        # numeric -- both a None and a numeric bias_evi are legitimate there.
+        if self.bias == BULLISH:
+            if bias_evi is None or not (bias_evi >= BIAS_THRESHOLD):
+                raise V2BiasError(
+                    f"bias_evi must be >= {BIAS_THRESHOLD!r} for bias {BULLISH!r}, got "
+                    f"{self.bias_evi!r}")
+        elif self.bias == BEARISH:
+            if bias_evi is None or not (bias_evi <= -BIAS_THRESHOLD):
+                raise V2BiasError(
+                    f"bias_evi must be <= {-BIAS_THRESHOLD!r} for bias {BEARISH!r}, got "
+                    f"{self.bias_evi!r}")
+        elif self.bias == NEUTRAL_NOT_ESTABLISHED:
+            # Tech-lead amendment round 2: NEUTRAL_NOT_ESTABLISHED means the
+            # computation SUCCEEDED (a real bias_evi was measured) but a
+            # directional lean could not be firmly established -- it is NOT
+            # a spelling of missingness. Only bias_evi's presence is
+            # required here, never a magnitude constraint: NEUTRAL_NOT_
+            # ESTABLISHED can legitimately arise with bias_evi at or beyond
+            # BIAS_THRESHOLD when agreement is absent/below its own gate
+            # (agreement is not carried by this result, so that state is
+            # indistinguishable from -- and just as valid as -- a
+            # genuinely below-threshold bias_evi).
+            if bias_evi is None:
+                raise V2BiasError(
+                    f"bias_evi must not be None for bias {NEUTRAL_NOT_ESTABLISHED!r} -- "
+                    "NEUTRAL_NOT_ESTABLISHED is a successfully-measured non-established bias, "
+                    "never a spelling of missing/unavailable evidence (that is "
+                    f"{BIAS_UNAVAILABLE!r}), got {self.bias_evi!r}")
 
 
 # ---- numeric validation (mirrors context_evidence.py/regime_4h.py's own
@@ -212,13 +274,6 @@ def _validate_finite_numeric(value: Any, name: str) -> float:
     v = float(value)
     if not _is_finite(v):
         raise V2BiasError(f"{name} must be finite, got {value!r}")
-    return v
-
-
-def _validate_confidence(value: Any) -> float:
-    v = _validate_finite_numeric(value, "consensus_confidence")
-    if not (0.0 <= v <= 100.0):
-        raise V2BiasError(f"consensus_confidence must be within [0.0, 100.0], got {v!r}")
     return v
 
 
@@ -266,8 +321,6 @@ def classify_1h_bias(inputs: V2TimeframeInputs) -> V2BiasResult:
     # precedence: every present field is validated here, unconditionally,
     # BEFORE step 1's threshold comparisons ever run). ----------------------
     consensus = inputs.consensus
-    confidence: Optional[float] = None
-    coverage: Optional[float] = None
     agreement: Optional[float] = None
     if consensus is not None:
         if not isinstance(consensus, _AbcMapping):
@@ -279,36 +332,44 @@ def classify_1h_bias(inputs: V2TimeframeInputs) -> V2BiasResult:
         if consensus.get("bucket_ts") != inputs.bucket_ts:
             raise V2BiasError("inputs.consensus.bucket_ts does not match inputs.bucket_ts")
 
-        raw_confidence = consensus.get("consensus_confidence")
-        raw_coverage = consensus.get("min_coverage_ratio")
         raw_agreement = consensus.get("price_direction_agreement")
-
-        if raw_confidence is not None:
-            confidence = _validate_confidence(raw_confidence)
-        if raw_coverage is not None:
-            coverage = _validate_unit_ratio(raw_coverage, "min_coverage_ratio")
         if raw_agreement is not None:
             agreement = _validate_unit_ratio(raw_agreement, "price_direction_agreement")
+
+    # ---- §6.3a: STEP 1's confidence/coverage gate is scoped to the
+    # price_structure family alone -- never the global consensus_confidence/
+    # min_coverage_ratio rollup, which a family this decision does not
+    # consume could otherwise silently drag down. `consensus is None`
+    # collapses into `confidence is None or coverage is None` below, since
+    # family_quality(None, ...) returns (None, None).
+    try:
+        price_family = family_quality(consensus, family="price_structure")
+    except V2FamilyQualityError as exc:
+        raise V2BiasError(f"malformed price_structure family quality: {exc}") from exc
+    confidence = price_family.confidence
+    coverage = price_family.coverage_ratio
+
+    def _result(bias: str) -> V2BiasResult:
+        return V2BiasResult(bucket_ts=inputs.bucket_ts, bias=bias, bias_evi=bias_evi)
 
     # ---- STEP 1: UNAVAILABLE hard gate -------------------------------------
     if (
         bias_evi is None
-        or consensus is None
         or confidence is None
         or coverage is None
         or confidence < BIAS_MIN_CONFIDENCE
         or coverage < BIAS_MIN_COVERAGE
     ):
-        return V2BiasResult(bucket_ts=inputs.bucket_ts, bias=BIAS_UNAVAILABLE)
+        return _result(BIAS_UNAVAILABLE)
 
     # ---- STEP 2/3: directional candidate, agreement as a gate only (never
     # itself a direction source); 0.25/-0.25 need no ULP tolerance (see
     # module docstring). -----------------------------------------------------
     if bias_evi >= BIAS_THRESHOLD and agreement is not None and agreement >= BIAS_MIN_AGREEMENT:
-        return V2BiasResult(bucket_ts=inputs.bucket_ts, bias=BULLISH)
+        return _result(BULLISH)
     if bias_evi <= -BIAS_THRESHOLD and agreement is not None and agreement >= BIAS_MIN_AGREEMENT:
-        return V2BiasResult(bucket_ts=inputs.bucket_ts, bias=BEARISH)
+        return _result(BEARISH)
 
     # ---- STEP 4: NEUTRAL_NOT_ESTABLISHED -- a real, successfully-computed
     # result, never confused with BIAS_UNAVAILABLE (see module docstring). --
-    return V2BiasResult(bucket_ts=inputs.bucket_ts, bias=NEUTRAL_NOT_ESTABLISHED)
+    return _result(NEUTRAL_NOT_ESTABLISHED)

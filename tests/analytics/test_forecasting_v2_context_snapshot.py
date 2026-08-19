@@ -91,6 +91,9 @@ def make_comp_row(*, timeframe, bucket_ts, window, rank=0.5, **over):
     return base
 
 
+_FAMILIES = ("price_structure", "volume", "taker_flow", "oi", "funding", "liquidations")
+
+
 def make_consensus(*, timeframe, bucket_ts, value=1.0, agreement=2.0 / 3.0,
                    confidence=50.0, coverage=2.0 / 3.0, **over):
     # Mirrors the REAL Stage 3 consensus row shape (aligned_inputs.py's
@@ -98,12 +101,29 @@ def make_consensus(*, timeframe, bucket_ts, value=1.0, agreement=2.0 / 3.0,
     # calculation_version/feature_schema_version too, even though the
     # regime/bias classifiers themselves never read them -- the final
     # context-snapshot builder's source-identity check does (see
-    # context_snapshot.py's own docstring).
+    # context_snapshot.py's own docstring). `coverage_by_metric`/
+    # `data_confidence_by_metric` are §6.3a's own per-family gate source
+    # (never the flat min_coverage_ratio/consensus_confidence rollup) --
+    # price_structure driven by `coverage`/`confidence`, the other five
+    # families always fully healthy (irrelevant to regime_4h.py/bias_1h.py,
+    # which only ever read price_structure).
+    coverage_by_metric = {
+        family: {
+            "available": 3, "expected": 3,
+            "ratio": (coverage if family == "price_structure" else 1.0),
+        }
+        for family in _FAMILIES
+    }
+    data_confidence_by_metric = {
+        family: (confidence if family == "price_structure" else 100.0) for family in _FAMILIES
+    }
     base = dict(
         symbol="BTCUSDT", market_type="perp", timeframe=timeframe, bucket_ts=bucket_ts,
         price_move_pct_median=value, oi_change_pct_median=0.1, oi_direction_agreement=0.75,
         price_direction_agreement=agreement, consensus_confidence=confidence,
         min_coverage_ratio=coverage, calculation_version=H16, feature_schema_version=1,
+        coverage_by_metric=coverage_by_metric,
+        data_confidence_by_metric=data_confidence_by_metric,
     )
     base.update(over)
     return base
@@ -255,7 +275,8 @@ def test_neutral_and_unavailable_bias_remain_distinct_in_snapshot():
 # ============================================================================
 def test_mixed_4h_bucket_is_rejected():
     wrong_regime = V2RegimeResult(
-        bucket_ts=B4H - timedelta(hours=4), regime=INSUFFICIENT_DATA, is_compressed=None)
+        bucket_ts=B4H - timedelta(hours=4), regime=INSUFFICIENT_DATA, is_compressed=None,
+        price_evi=None, compression_score=None)
     correct_bias = classify_1h_bias(make_1h_inputs())
     with pytest.raises(V2ContextSnapshotError):
         V2ContextSnapshot(
@@ -265,7 +286,8 @@ def test_mixed_4h_bucket_is_rejected():
 
 def test_mixed_1h_bucket_is_rejected():
     correct_regime = classify_4h_regime(make_4h_inputs())
-    wrong_bias = V2BiasResult(bucket_ts=B1H + timedelta(hours=1), bias=BIAS_UNAVAILABLE)
+    wrong_bias = V2BiasResult(
+        bucket_ts=B1H + timedelta(hours=1), bias=BIAS_UNAVAILABLE, bias_evi=None)
     with pytest.raises(V2ContextSnapshotError):
         V2ContextSnapshot(
             T=T, symbol="BTCUSDT", market_type="perp", calculation_version=H16,
