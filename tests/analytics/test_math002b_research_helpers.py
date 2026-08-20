@@ -49,6 +49,34 @@ def test_absolute_median_delta_none_when_missing():
     assert c.absolute_median_delta is None
 
 
+def test_absolute_median_delta_is_true_magnitude_for_negative_signed_difference():
+    """Tech-lead review round 1, finding 1: a negative signed difference
+    (pair_median < full3_median) must still report a POSITIVE
+    absolute_median_delta -- the prior implementation silently returned the
+    signed value under an "absolute" name."""
+    c = _cmp(full3_median=100.0, pair_median=1.0)
+    signed = c.signed_median_delta
+    assert signed == pytest.approx(-99.0)
+    assert signed < 0
+    assert c.absolute_median_delta == pytest.approx(99.0)
+    assert c.absolute_median_delta > 0
+
+
+def test_signed_median_delta_preserves_direction():
+    c = _cmp(full3_median=1.0, pair_median=100.0)
+    assert c.signed_median_delta == pytest.approx(99.0)
+    c2 = _cmp(full3_median=100.0, pair_median=1.0)
+    assert c2.signed_median_delta == pytest.approx(-99.0)
+    # Both directions collapse to the same magnitude.
+    assert c.absolute_median_delta == c2.absolute_median_delta == pytest.approx(99.0)
+
+
+def test_signed_median_delta_none_when_missing():
+    c = _cmp(pair_median=None)
+    assert c.signed_median_delta is None
+    assert c.absolute_median_delta is None
+
+
 def test_relative_median_delta_stable_case():
     c = _cmp(full3_median=10.0, pair_median=15.0)
     assert c.relative_median_delta == pytest.approx(0.5)

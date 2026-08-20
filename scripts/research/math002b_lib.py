@@ -65,10 +65,26 @@ class PairComparison:
 
     # ---- predeclared deltas (§12) ------------------------------------------
     @property
-    def absolute_median_delta(self) -> Optional[float]:
+    def signed_median_delta(self) -> Optional[float]:
+        """The RAW signed difference (`pair_median - full3_median`) -- honestly
+        named as signed, never labeled "absolute". Use this when direction
+        matters (e.g. as an input to `sign_flipped`); use
+        `absolute_median_delta` for magnitude/distortion-size reporting."""
         if self.full3_median is None or self.pair_median is None:
             return None
         return self.pair_median - self.full3_median
+
+    @property
+    def absolute_median_delta(self) -> Optional[float]:
+        """TRUE magnitude of the median distortion -- always >= 0 (tech-lead
+        review round 1, finding 1: the prior implementation returned the raw
+        SIGNED difference under an "absolute" name, which could understate
+        large negative distortions in percentile/max summaries). Callers that
+        need the signed value use `signed_median_delta` instead."""
+        signed = self.signed_median_delta
+        if signed is None:
+            return None
+        return abs(signed)
 
     @property
     def relative_median_delta(self) -> Optional[float]:

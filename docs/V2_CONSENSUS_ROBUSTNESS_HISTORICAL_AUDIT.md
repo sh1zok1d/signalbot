@@ -1,6 +1,10 @@
 # V2 Consensus Robustness — Historical Audit (MATH-002B / issue #52)
 
-Status: **DATA_ACCESS_BLOCKED for the historical study (§B). MATH-002A deterministic coverage repair (§A) is COMPLETE.**
+**Honest scope (tech-lead review round 1, finding 5): this PR is "MATH-002
+deterministic completion + historical research harness" — it is NOT "MATH-002
+end-to-end". Issue #52 / MATH-002B remains open and incomplete.**
+
+Status: **DATA_ACCESS_BLOCKED for the historical study (§B). MATH-002A deterministic coverage repair (§A) is COMPLETE. §B's harness is PARTIAL** — the controlled `FULL3 -> BB/BO/BYO` recomputation (task §8's own designated PRIMARY measurement) and the `BINANCE_ONLY_RESEARCH_BASELINE` diagnostic are implemented and unit-tested; the natural (non-controlled) 2/3 prevalence study, percentile-variant series, regime/bias/Stage-5 replay, and extreme-example extraction are explicitly NOT implemented (§B.3, §B.8) — deliberately, rather than building unvalidated infrastructure with no real data to check it against.
 
 This document is the required MATH-002B artifact (issue #52, following the
 merged MATH-002A characterization in PR #56). It has two parts, matching the
@@ -178,7 +182,37 @@ BYO   = Bybit + OKX,      omit Binance (minimum_exchange_coverage=2, unchanged)
 request with `minimum_exchange_coverage=1` — used ONLY to see what a
 single-venue reference would have shown, **never** presented as, or
 substituted for, current `2/3` production behavior (task §8 explicit
-prohibition).
+prohibition). **Amendment (tech-lead review round 1, finding 5): this is
+now actually computed and reported** by
+`compute_binance_only_diagnostic()`, not merely imported/labeled as an
+earlier revision of this harness left it.
+
+**Amendment (tech-lead review round 1, findings 2/3/4): request
+construction now reuses production semantics exactly**, not a hand-rolled
+approximation:
+
+- per-family exclusion facts for every PRESENT venue are derived via the
+  SAME `analytics.feature_engine.bucket_coordinator._derive_family_exclusions()`
+  production uses — a venue whose row is guaranteed valid for the TARGET
+  family (the price/OI discovery SQL below only guarantees THAT family's
+  own fields) can legitimately have `NULL`s in a non-target family, and is
+  now excluded from exactly those families honestly, rather than either
+  fabricated or left to make `compute_consensus_features()`'s own
+  validation fail before the target family is ever reached;
+- `config_hash`/`config_version`/`feature_schema_version`/
+  `calculation_version`/confidence weights/`robust_z_threshold`/
+  `minimum_exchange_coverage` for the FULL3/BB/BO/BYO path all come from
+  the real `analytics.feature_engine.consensus_input_adapter.
+  build_consensus_feature_request()` against a resolved `Stage2Config` —
+  never independently hardcoded. If a historical row's stored
+  `calculation_version` cannot be reproduced by the currently-resolved
+  config, the run raises `Math002BCalculationVersionUnsupported`
+  explicitly rather than silently mixing identities;
+- exact-3/3 bucket discovery and per-bucket row fetch SQL are restricted
+  explicitly to `exchange IN ('binance','bybit','okx')` — `HAVING
+  COUNT(DISTINCT exchange) = 3` alone could otherwise admit any three
+  exchange names, and `complete_3of3_bucket_count` now counts only buckets
+  actually analyzed as canonical Binance+Bybit+OKX.
 
 **Secondary measurement (§9):** naturally-degraded 2/3 buckets, stratified
 by family / timeframe / missing venue / date period / reason. Reconstructing
@@ -258,17 +292,38 @@ but fails every named agreement floor. Historical flip *rate* is undetermined.
 `tests/analytics/test_math002b_research_helpers.py` (pure `math002b_lib.py`
 unit tests) and
 `tests/analytics/test_math002b_consensus_robustness_script.py` (synthetic
-`ExchangeFeatureVector` fixtures run through the harness's real
-`compare_bucket()`/`_summarize_study()`) confirm the harness itself is
-correct: it reproduces the exact MATH-002A `[1,1,100]`/`[1,100]` numbers via
-its own independent recomputation path, correctly detects sign flips, and
-its distribution/delta helpers handle the near-zero-denominator and
-small-sample-p99 edge cases safely. Writing this second, independent test
-surface caught one real harness bug before it could run against real data:
-`_build_request()` originally hardcoded a synthetic `code_version` instead
-of reusing the fetched row's own `code_version`, which would have made
-every real historical `compute_consensus_features()` call raise
-`ConsensusError: EFV identity mismatch` immediately. Fixed in this branch.
+`ExchangeFeatureVector` fixtures, stamped with the REAL identity
+`config/stage2.yaml` resolves, run through the harness's real
+`compare_bucket()`/`compute_binance_only_diagnostic()`/`_summarize_study()`)
+confirm the harness itself is correct: it reproduces the exact MATH-002A
+`[1,1,100]`/`[1,100]` numbers via its own independent recomputation path,
+correctly detects sign flips, correctly reports a POSITIVE
+`absolute_median_delta` even when the pair median drops relative to FULL3,
+correctly recomputes a target family when a present venue has legitimate
+non-target-family `NULL`s, correctly raises
+`Math002BCalculationVersionUnsupported` for an EFV whose stored identity
+doesn't match what the resolved config derives, and its distribution/delta
+helpers handle the near-zero-denominator and small-sample-p99 edge cases
+safely. Writing this second, independent test surface caught two real
+harness bugs before either could run against real data:
+
+1. (original round) `_build_request()` hardcoded a synthetic `code_version`
+   instead of reusing the fetched row's own, which would have made every
+   real historical `compute_consensus_features()` call raise
+   `ConsensusError: EFV identity mismatch` immediately.
+2. (tech-lead review round 1) `absolute_median_delta` returned the raw
+   SIGNED difference under an "absolute" name (finding 1); request
+   construction excluded only the deliberately-omitted variant venue and
+   never derived honest per-family exclusions for the two remaining
+   present venues, so a present-but-non-target-family-NULL row would have
+   made `compute_consensus_features()` raise before reaching the target
+   family (finding 2); `_WEIGHTS`/`_ROBUST_Z_THRESHOLD` were independently
+   hardcoded rather than coupled to the resolved config identity (finding
+   3); exact-3/3 discovery SQL was not restricted to the three canonical
+   study venues (finding 4). All four fixed in this amendment; see this
+   module's own docstring for the exact production functions now reused
+   (`build_consensus_feature_request()`,
+   `bucket_coordinator._derive_family_exclusions()`).
 
 ### B.10 Extreme historical examples
 
@@ -276,10 +331,16 @@ every real historical `compute_consensus_features()` call raise
 
 ### B.11 Binance-only research baseline
 
-**Not available historically.** The harness's `_build_request()` supports
-constructing this SEPARATE `minimum_exchange_coverage=1` diagnostic request
-(never the production `minimum_exchange_coverage=2` path) — exercised only
-by unit tests here, never against real data.
+**Historical numbers: not available (DATA_ACCESS_BLOCKED). Implementation:
+COMPLETE as of this amendment.** `compute_binance_only_diagnostic()`
+actually computes this SEPARATE `minimum_exchange_coverage=1` diagnostic
+request (reusing the resolved config's real confidence weights/
+`robust_z_threshold`, never the production `minimum_exchange_coverage=2`
+path) and `_summarize_study()` reports it under
+`binance_only_research_baseline` with `implemented: true` and an explicit
+`RESEARCH ONLY` note — exercised end-to-end by
+`test_compute_binance_only_diagnostic_is_actually_computed` against
+synthetic fixtures; never yet against real data.
 
 ---
 
