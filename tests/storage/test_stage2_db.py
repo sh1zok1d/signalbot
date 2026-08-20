@@ -183,3 +183,34 @@ def test_stage1_methods_remain_callable():
                  "seed_capabilities", "get_capabilities", "cancel_stale_backfill_runs"):
         assert callable(getattr(db, name))
     assert SCHEMA_PATH.name == "schema.sql"    # init_schema still targets Stage 1 file
+
+
+# -- insert_klines conflict-clause shape (V2-H2d, §2.1b) --------------------
+# A fast, DB-less sanity check that the SQL sent actually uses the intended
+# per-column conflict clauses -- the REAL proof of the no-downgrade
+# behavior is tests/storage/test_klines_no_downgrade.py's real-Postgres
+# before/after row assertions; this only guards against the SQL text
+# itself silently regressing back to a blanket EXCLUDED.* overwrite.
+def test_insert_klines_conflict_clause_coalesces_optional_fields_not_ohlcv():
+    conn = FakeConn()
+    db = _db(conn)
+    row = ("binance", "BTCUSDT", "2026-08-19T12:00:00Z", 1.0, 2.0, 0.5, 1.5, 100.0,
+           None, None, None)
+    _run(db.insert_klines([row], source="backfill"))
+    assert len(conn.executemany_calls) == 1
+    sql, _rows = conn.executemany_calls[0]
+    normalized_sql = " ".join(sql.split())  # collapse whitespace/newlines for substring checks
+    # OHLCV: unconditional EXCLUDED.* overwrite (no downgrade risk -- these
+    # columns are NOT NULL from every source).
+    for col in ("open", "high", "low", "close", "volume"):
+        assert f"{col} = EXCLUDED.{col}" in normalized_sql, (
+            f"{col} must be unconditionally overwritten")
+    # Optional fidelity fields: COALESCE(EXCLUDED.x, klines_1m.x) -- never
+    # a blanket EXCLUDED.x overwrite.
+    for col in ("taker_buy_volume", "taker_sell_volume", "trades_count"):
+        assert f"{col} = EXCLUDED.{col}" not in normalized_sql, (
+            f"{col} must NOT be unconditionally overwritten (no-downgrade)")
+        assert f"COALESCE(EXCLUDED.{col}, klines_1m.{col})" in normalized_sql
+    # source: CASE-guarded, never a blanket EXCLUDED.source overwrite.
+    assert "source = EXCLUDED.source" not in normalized_sql
+    assert "CASE" in normalized_sql and "klines_1m.source = 'live'" in normalized_sql

@@ -19,7 +19,7 @@ anywhere in this module yet.
 from __future__ import annotations
 
 import inspect
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, tzinfo
 from types import MappingProxyType
 
 import pytest
@@ -662,6 +662,133 @@ def test_health_snapshot_after_bucket_end_cutoff_rejected():
             snapshot_ts=bucket_end_5m + timedelta(minutes=1))},
     })
     with pytest.raises(V2AlignedInputError, match="no-lookahead"):
+        _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+
+
+# ============================================================================
+# 5b. DOMAIN-ERROR HARDENING FOR MALFORMED PRESENT TIMESTAMPS (V2-H2d,
+# docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §2.1c). Confirmed live bug:
+# `snapshot_ts`/`sample_window_end` used to be compared directly with no
+# (or an incomplete) type/timezone check first, so a naive/non-UTC/
+# wrong-type PRESENT value leaked a raw TypeError instead of failing as
+# the documented V2AlignedInputError. Corruption precedence: these are
+# malformed PRESENT values, never treated as ordinary missingness.
+# ============================================================================
+def test_percentile_sample_window_end_wrong_type_rejected_not_a_bare_exception():
+    bucket_ts = dt(2026, 8, 15, 12, 5)
+    reader = RecordingReader(percentiles={"5m": (make_percentile_row(
+        bucket_ts=bucket_ts, timeframe="5m", metric="price_move_pct_median",
+        percentile_window="7d", sample_window_end="not-a-datetime"),)})
+    with pytest.raises(V2AlignedInputError, match="sample_window_end"):
+        _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+
+
+def test_percentile_sample_window_end_naive_datetime_rejected_not_a_bare_typeerror():
+    bucket_ts = dt(2026, 8, 15, 12, 5)
+    naive = datetime(2026, 8, 15, 12, 0)  # no tzinfo -- would raise a raw
+                                           # TypeError comparing against an
+                                           # aware bucket_ts, pre-fix
+    reader = RecordingReader(percentiles={"5m": (make_percentile_row(
+        bucket_ts=bucket_ts, timeframe="5m", metric="price_move_pct_median",
+        percentile_window="7d", sample_window_end=naive),)})
+    with pytest.raises(V2AlignedInputError, match="sample_window_end"):
+        _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+
+
+def test_percentile_sample_window_end_non_utc_rejected():
+    bucket_ts = dt(2026, 8, 15, 12, 5)
+    non_utc = datetime(2026, 8, 15, 11, 0, tzinfo=timezone(timedelta(hours=1)))
+    reader = RecordingReader(percentiles={"5m": (make_percentile_row(
+        bucket_ts=bucket_ts, timeframe="5m", metric="price_move_pct_median",
+        percentile_window="7d", sample_window_end=non_utc),)})
+    with pytest.raises(V2AlignedInputError, match="sample_window_end"):
+        _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+
+
+def test_percentile_sample_window_end_strictly_after_bucket_ts_rejected():
+    # A well-typed UTC value that is simply in the FUTURE relative to
+    # bucket_ts (not merely equal to it, the case test_percentile_
+    # lookahead_violation_rejected above already covers) must also be
+    # rejected by the same no-lookahead check.
+    bucket_ts = dt(2026, 8, 15, 12, 5)
+    reader = RecordingReader(percentiles={"5m": (make_percentile_row(
+        bucket_ts=bucket_ts, timeframe="5m", metric="price_move_pct_median",
+        percentile_window="7d", sample_window_end=bucket_ts + timedelta(minutes=1)),)})
+    with pytest.raises(V2AlignedInputError, match="no-lookahead"):
+        _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+
+
+def test_health_snapshot_ts_wrong_type_rejected_not_a_bare_exception():
+    bucket_end_5m = dt(2026, 8, 15, 12, 10)
+    reader = RecordingReader(health_by_cutoff={
+        bucket_end_5m: {("binance", "price"): make_health_row(snapshot_ts="not-a-datetime")},
+    })
+    with pytest.raises(V2AlignedInputError, match="snapshot_ts"):
+        _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+
+
+def test_health_snapshot_ts_naive_datetime_rejected_not_a_bare_typeerror():
+    bucket_end_5m = dt(2026, 8, 15, 12, 10)
+    naive = datetime(2026, 8, 15, 12, 0)  # no tzinfo -- would raise a raw
+                                           # TypeError comparing against an
+                                           # aware bucket_end, pre-fix
+    reader = RecordingReader(health_by_cutoff={
+        bucket_end_5m: {("binance", "price"): make_health_row(snapshot_ts=naive)},
+    })
+    with pytest.raises(V2AlignedInputError, match="snapshot_ts"):
+        _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+
+
+def test_health_snapshot_ts_non_utc_rejected():
+    bucket_end_5m = dt(2026, 8, 15, 12, 10)
+    non_utc = datetime(2026, 8, 15, 11, 5, tzinfo=timezone(timedelta(hours=1)))
+    reader = RecordingReader(health_by_cutoff={
+        bucket_end_5m: {("binance", "price"): make_health_row(snapshot_ts=non_utc)},
+    })
+    with pytest.raises(V2AlignedInputError, match="snapshot_ts"):
+        _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+
+
+# ---- malformed custom tzinfo implementations (Qodo amendment, finding 1) --
+# A `V2AlignedInputReader` structural Protocol can hand back a well-typed
+# `datetime` whose `tzinfo` is itself an arbitrary, possibly malformed/
+# malicious object. `_validate_utc_instant` must translate ANY exception
+# `tzinfo.utcoffset()` raises into `V2AlignedInputError`, never let it
+# leak as a raw RuntimeError/whatever the malformed tzinfo happens to
+# raise.
+class _RaisingTzInfo(tzinfo):
+    """utcoffset() always raises -- the exact class of bug finding 1
+    flags: a naive/non-UTC/wrong-type check alone cannot catch this,
+    because `value.tzinfo is not None` is true and `type(value) is
+    datetime` is true; only actually CALLING utcoffset() (and catching
+    what it raises) can."""
+    def utcoffset(self, dt_value):
+        raise RuntimeError("boom: malformed tzinfo.utcoffset()")
+
+    def tzname(self, dt_value):
+        return "MALFORMED"
+
+    def dst(self, dt_value):
+        return None
+
+
+def test_percentile_sample_window_end_tzinfo_utcoffset_raises_rejected_not_a_bare_exception():
+    bucket_ts = dt(2026, 8, 15, 12, 5)
+    malformed = datetime(2026, 8, 15, 12, 0, tzinfo=_RaisingTzInfo())
+    reader = RecordingReader(percentiles={"5m": (make_percentile_row(
+        bucket_ts=bucket_ts, timeframe="5m", metric="price_move_pct_median",
+        percentile_window="7d", sample_window_end=malformed),)})
+    with pytest.raises(V2AlignedInputError, match="sample_window_end"):
+        _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
+
+
+def test_health_snapshot_ts_tzinfo_utcoffset_raises_rejected_not_a_bare_exception():
+    bucket_end_5m = dt(2026, 8, 15, 12, 10)
+    malformed = datetime(2026, 8, 15, 12, 0, tzinfo=_RaisingTzInfo())
+    reader = RecordingReader(health_by_cutoff={
+        bucket_end_5m: {("binance", "price"): make_health_row(snapshot_ts=malformed)},
+    })
+    with pytest.raises(V2AlignedInputError, match="snapshot_ts"):
         _run(load_v2_aligned_inputs(reader, _default_request(dt(2026, 8, 15, 12, 10))))
 
 
