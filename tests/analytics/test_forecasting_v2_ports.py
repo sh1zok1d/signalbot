@@ -436,14 +436,26 @@ def test_database_satisfies_both_protocols_simultaneously():
 # implementation yet (Stage 6 does not exist); only fakes satisfy it.
 # ============================================================================
 class FakeDrainStatusReader:
-    def __init__(self, fact=None):
-        from analytics.forecasting_v2.version_switch import V2DrainFact
-        self._fact = fact if fact is not None else V2DrainFact(0, 0)
+    """Returns a properly SELF-SCOPED V2DrainFact -- matching the exact
+    run_kind/run_id/old_tuple/as_of it was called with, as a real
+    Stage-6-backed implementation would have to (§3.1, finding 3)."""
+    def __init__(self, *, non_terminal=0, cooldown=0):
+        self._non_terminal = non_terminal
+        self._cooldown = cooldown
         self.calls = []
 
     async def fetch_v2_version_drain_status(self, **kw):
+        from analytics.forecasting_v2.version_switch import V2DrainFact, V2SemanticTuple
         self.calls.append(kw)
-        return self._fact
+        return V2DrainFact(
+            run_kind=kw["run_kind"], run_id=kw["run_id"],
+            old_tuple=V2SemanticTuple(
+                rules_version=kw["rules_version"],
+                calculation_version=kw["calculation_version"],
+                decision_code_version=kw["decision_code_version"]),
+            as_of=kw["as_of"],
+            non_terminal_episode_count=self._non_terminal,
+            active_cooldown_count=self._cooldown)
 
 
 def test_fake_drain_status_reader_satisfies_the_protocol_structurally():

@@ -34,8 +34,8 @@ import pytest
 from analytics.forecasting_v2.alignment import selected_bucket
 from analytics.forecasting_v2.version_switch import (
     ACTION_ACTIVATED, ACTION_DRAIN_COMPLETE, ACTION_DRAIN_CONTINUES,
-    ACTION_NO_OP, PHASE_AWAITING_ACTIVATION_READINESS, PHASE_DRAINING,
-    PHASE_NO_PENDING_SWITCH, V2DrainFact, V2SemanticTuple,
+    ACTION_INITIAL_ACTIVATED, ACTION_NO_OP, PHASE_AWAITING_ACTIVATION_READINESS,
+    PHASE_DRAINING, PHASE_NO_PENDING_SWITCH, V2DrainFact, V2SemanticTuple,
 )
 from storage.db import Database
 
@@ -219,11 +219,23 @@ class _ReadyReadinessReader:
 
 
 class _FixedDrainReader:
-    def __init__(self, fact: V2DrainFact):
-        self._fact = fact
+    """Returns a properly SELF-SCOPED V2DrainFact (finding 3) -- matching
+    the exact run_kind/run_id/old_tuple/as_of it was called with, as a
+    real Stage-6-backed implementation would have to."""
+    def __init__(self, *, non_terminal: int = 0, cooldown: int = 0):
+        self._non_terminal = non_terminal
+        self._cooldown = cooldown
 
     async def fetch_v2_version_drain_status(self, **kw):
-        return self._fact
+        return V2DrainFact(
+            run_kind=kw["run_kind"], run_id=kw["run_id"],
+            old_tuple=V2SemanticTuple(
+                rules_version=kw["rules_version"],
+                calculation_version=kw["calculation_version"],
+                decision_code_version=kw["decision_code_version"]),
+            as_of=kw["as_of"],
+            non_terminal_episode_count=self._non_terminal,
+            active_cooldown_count=self._cooldown)
 
 
 # ============================================================================
@@ -235,7 +247,7 @@ def test_bootstrap_creates_no_pending_switch_row():
             run_kind=RUN_KIND, run_id=RUN_ID, decision_boundary=_t(0),
             symbol=SYMBOL, market_type=MARKET_TYPE, requested=None,
             readiness_reader=_NeverCalledReadinessReader(),
-            drain_reader=_FixedDrainReader(V2DrainFact(0, 0)))
+            drain_reader=_FixedDrainReader(non_terminal=0, cooldown=0))
         assert result.action == ACTION_NO_OP
         assert result.state.phase == PHASE_NO_PENDING_SWITCH
         assert result.state.active is None
@@ -249,51 +261,48 @@ def test_bootstrap_creates_no_pending_switch_row():
 # ============================================================================
 def test_full_flow_persists_across_restart_drain_then_activate():
     async def body(db, scoped_dsn):
+        # Initial provisioning (finding 2): immediate, no drain/delay -- a
+        # fresh stream's first tuple activates the SAME boundary it becomes
+        # ready, never +5m later.
         r1 = await db.evaluate_v2_version_switch(
             run_kind=RUN_KIND, run_id=RUN_ID, decision_boundary=_t(0),
             symbol=SYMBOL, market_type=MARKET_TYPE, requested=OLD,
-            readiness_reader=_NeverCalledReadinessReader(),
-            drain_reader=_FixedDrainReader(V2DrainFact(0, 0)))
-        assert r1.action == ACTION_DRAIN_COMPLETE  # bootstrap: vacuous OLD, already drained.
-
-        r2 = await db.evaluate_v2_version_switch(
-            run_kind=RUN_KIND, run_id=RUN_ID, decision_boundary=_t(1),
-            symbol=SYMBOL, market_type=MARKET_TYPE, requested=None,
             readiness_reader=_ReadyReadinessReader(),
-            drain_reader=_FixedDrainReader(V2DrainFact(0, 0)))
-        assert r2.action == ACTION_ACTIVATED
-        assert r2.state.active == OLD
+            drain_reader=_FixedDrainReader(non_terminal=0, cooldown=0))
+        assert r1.action == ACTION_INITIAL_ACTIVATED
+        assert r1.state.active == OLD
+        assert r1.state.phase == PHASE_NO_PENDING_SWITCH
 
         # Request a switch to NEW while OLD still has one lingering episode.
-        r3 = await db.evaluate_v2_version_switch(
-            run_kind=RUN_KIND, run_id=RUN_ID, decision_boundary=_t(2),
+        r2 = await db.evaluate_v2_version_switch(
+            run_kind=RUN_KIND, run_id=RUN_ID, decision_boundary=_t(1),
             symbol=SYMBOL, market_type=MARKET_TYPE, requested=NEW,
             readiness_reader=_NeverCalledReadinessReader(),
-            drain_reader=_FixedDrainReader(V2DrainFact(1, 0)))
-        assert r3.action == ACTION_DRAIN_CONTINUES
-        assert r3.state.phase == PHASE_DRAINING
+            drain_reader=_FixedDrainReader(non_terminal=1, cooldown=0))
+        assert r2.action == ACTION_DRAIN_CONTINUES
+        assert r2.state.phase == PHASE_DRAINING
 
         # "Restart": a genuinely FRESH Database instance/connection pool
         # against the SAME underlying schema.
         restarted = Database(scoped_dsn)
         await restarted.connect()
         try:
+            r3 = await restarted.evaluate_v2_version_switch(
+                run_kind=RUN_KIND, run_id=RUN_ID, decision_boundary=_t(2),
+                symbol=SYMBOL, market_type=MARKET_TYPE, requested=None,
+                readiness_reader=_NeverCalledReadinessReader(),
+                drain_reader=_FixedDrainReader(non_terminal=0, cooldown=0))
+            assert r3.action == ACTION_DRAIN_COMPLETE
+            assert r3.state.phase == PHASE_AWAITING_ACTIVATION_READINESS
+            assert r3.state.pending == NEW  # never cancelled/reset by "restart".
+
             r4 = await restarted.evaluate_v2_version_switch(
                 run_kind=RUN_KIND, run_id=RUN_ID, decision_boundary=_t(3),
                 symbol=SYMBOL, market_type=MARKET_TYPE, requested=None,
-                readiness_reader=_NeverCalledReadinessReader(),
-                drain_reader=_FixedDrainReader(V2DrainFact(0, 0)))
-            assert r4.action == ACTION_DRAIN_COMPLETE
-            assert r4.state.phase == PHASE_AWAITING_ACTIVATION_READINESS
-            assert r4.state.pending == NEW  # never cancelled/reset by "restart".
-
-            r5 = await restarted.evaluate_v2_version_switch(
-                run_kind=RUN_KIND, run_id=RUN_ID, decision_boundary=_t(4),
-                symbol=SYMBOL, market_type=MARKET_TYPE, requested=None,
                 readiness_reader=_ReadyReadinessReader(),
-                drain_reader=_FixedDrainReader(V2DrainFact(0, 0)))
-            assert r5.action == ACTION_ACTIVATED
-            assert r5.state.active == NEW
+                drain_reader=_FixedDrainReader(non_terminal=0, cooldown=0))
+            assert r4.action == ACTION_ACTIVATED
+            assert r4.state.active == NEW
         finally:
             await restarted.close()
 
@@ -309,22 +318,17 @@ def test_concurrent_evaluations_serialize_never_duplicate_transition():
         r1 = await db.evaluate_v2_version_switch(
             run_kind=RUN_KIND, run_id=RUN_ID, decision_boundary=_t(0),
             symbol=SYMBOL, market_type=MARKET_TYPE, requested=OLD,
-            readiness_reader=_NeverCalledReadinessReader(),
-            drain_reader=_FixedDrainReader(V2DrainFact(0, 0)))
-        assert r1.action == ACTION_DRAIN_COMPLETE
-        r2 = await db.evaluate_v2_version_switch(
-            run_kind=RUN_KIND, run_id=RUN_ID, decision_boundary=_t(1),
-            symbol=SYMBOL, market_type=MARKET_TYPE, requested=None,
             readiness_reader=_ReadyReadinessReader(),
-            drain_reader=_FixedDrainReader(V2DrainFact(0, 0)))
-        assert r2.action == ACTION_ACTIVATED
+            drain_reader=_FixedDrainReader(non_terminal=0, cooldown=0))
+        assert r1.action == ACTION_INITIAL_ACTIVATED
+        assert r1.state.active == OLD
 
         async def _attempt():
             return await db.evaluate_v2_version_switch(
-                run_kind=RUN_KIND, run_id=RUN_ID, decision_boundary=_t(2),
+                run_kind=RUN_KIND, run_id=RUN_ID, decision_boundary=_t(1),
                 symbol=SYMBOL, market_type=MARKET_TYPE, requested=NEW,
                 readiness_reader=_NeverCalledReadinessReader(),
-                drain_reader=_FixedDrainReader(V2DrainFact(1, 0)))
+                drain_reader=_FixedDrainReader(non_terminal=1, cooldown=0))
 
         results = await asyncio.gather(_attempt(), _attempt())
         accepted_flags = sorted(r.request_accepted for r in results)
@@ -346,10 +350,21 @@ def test_transaction_failure_leaves_no_partial_activation_state():
         r1 = await db.evaluate_v2_version_switch(
             run_kind=RUN_KIND, run_id=RUN_ID, decision_boundary=_t(0),
             symbol=SYMBOL, market_type=MARKET_TYPE, requested=OLD,
+            readiness_reader=_ReadyReadinessReader(),
+            drain_reader=_FixedDrainReader(non_terminal=0, cooldown=0))
+        assert r1.action == ACTION_INITIAL_ACTIVATED
+        assert r1.state.active == OLD
+
+        # A genuine OLD->NEW switch, already drained at request time -- this
+        # is the state we will attempt (and fail) to activate out of.
+        r2 = await db.evaluate_v2_version_switch(
+            run_kind=RUN_KIND, run_id=RUN_ID, decision_boundary=_t(1),
+            symbol=SYMBOL, market_type=MARKET_TYPE, requested=NEW,
             readiness_reader=_NeverCalledReadinessReader(),
-            drain_reader=_FixedDrainReader(V2DrainFact(0, 0)))
-        assert r1.action == ACTION_DRAIN_COMPLETE
-        before = r1.state
+            drain_reader=_FixedDrainReader(non_terminal=0, cooldown=0))
+        assert r2.action == ACTION_DRAIN_COMPLETE
+        assert r2.state.phase == PHASE_AWAITING_ACTIVATION_READINESS
+        before = r2.state
 
         from analytics.forecasting_v2.version_switch import ACTION_ACTIVATED as _ACTIVATED
         from analytics.forecasting_v2.version_switch_orchestrator import (
@@ -366,10 +381,10 @@ def test_transaction_failure_leaves_no_partial_activation_state():
                     state = await bootstrap_and_lock_v2_version_switch_state(
                         conn, run_kind=RUN_KIND, run_id=RUN_ID)
                     result = await resolve_version_switch_transition(
-                        state=state, decision_boundary=_t(1), symbol=SYMBOL,
+                        state=state, decision_boundary=_t(2), symbol=SYMBOL,
                         market_type=MARKET_TYPE, requested=None,
                         readiness_reader=_ReadyReadinessReader(),
-                        drain_reader=_FixedDrainReader(V2DrainFact(0, 0)))
+                        drain_reader=_FixedDrainReader(non_terminal=0, cooldown=0))
                     assert result.action == _ACTIVATED  # would-be activation.
                     await persist_v2_version_switch_state(conn, result.state)
                     raise _Boom("simulated failure after write, before commit")
@@ -382,6 +397,7 @@ def test_transaction_failure_leaves_no_partial_activation_state():
                     conn, run_kind=RUN_KIND, run_id=RUN_ID)
         assert reread == before
         assert reread.phase == PHASE_AWAITING_ACTIVATION_READINESS
-        assert reread.active is None
+        assert reread.active == OLD
+        assert reread.pending == NEW
 
     _run(body)

@@ -3,7 +3,7 @@ Narrow V2 storage dependency ports (Multi-model Framework PR 3 /
 Multi-timeframe Alignment PR 3 / Setup Detectors PR 1,
 docs/FORECASTING_ROADMAP.md §I stages 2-3, 5).
 
-Three structural-typing `Protocol`s future V2 orchestration/analytics
+Four structural-typing `Protocol`s future V2 orchestration/analytics
 code should depend on, instead of importing the concrete
 `storage.db.Database`:
 
@@ -44,10 +44,16 @@ code should depend on, instead of importing the concrete
     answer this question for real; wiring it to `storage.db.Database` is
     NOT this PR's job.
 
-`storage.db.Database` already implements all three shapes — nothing here
-changes those methods or wires them into anything; this module only names
-the narrow slices of `Database`'s surface a future V2 caller is allowed to
-depend on.
+`storage.db.Database` already implements the first three shapes
+(`V2EpisodeEventWriter`/`V2AlignedInputReader`/`V2SetupHistoryReader`) —
+nothing here changes those methods or wires them into anything; this
+module only names the narrow slices of `Database`'s surface a future V2
+caller is allowed to depend on. The fourth Protocol,
+`V2VersionDrainStatusReader`, is deliberately DIFFERENT: `Database` does
+NOT implement it (see that Protocol's own docstring) — no concrete,
+real implementation of it exists anywhere in this codebase yet, only
+deterministic fakes in tests, since the Stage 6 query it would wrap does
+not exist.
 
 Why a `Protocol` and not a base class: `storage.db.Database` is not made to
 inherit from either Protocol, and no wrapper subclass is introduced either —
