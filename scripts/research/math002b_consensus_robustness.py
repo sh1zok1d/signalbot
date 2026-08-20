@@ -54,9 +54,9 @@ Implemented (tech-lead review round 1, HEAD cd32ac3 -> this amendment):
 * `_summarize_study()` reports every metric this harness actually computes:
   true absolute (magnitude) AND signed median-delta distributions,
   relative-delta distribution (where stable), agreement-delta distribution,
-  confidence-delta distribution, outlier/quality-gate flip rates, exact
-  analyzed bucket count, and per-pair provenance (contributing/omitted
-  venues).
+  confidence-delta distribution, outlier/family-quality-gate flip rates,
+  exact analyzed bucket count, and per-pair provenance (contributing/
+  omitted venues).
 
 Explicitly NOT implemented (documented, not silently claimed -- see
 `docs/V2_CONSENSUS_ROBUSTNESS_HISTORICAL_AUDIT.md` §B.3/§B.8 for why):
@@ -90,7 +90,13 @@ from analytics.feature_engine.consensus_input_adapter import (
 )
 from analytics.feature_engine.consensus_models import FAMILIES, ConsensusFeatureRequest
 from analytics.feature_engine.models import ExchangeFeatureVector
-from analytics.forecasting_v2.regime_4h import REGIME_MIN_CONFIDENCE, REGIME_MIN_COVERAGE
+# The GENERIC §6.3a per-family coverage/confidence floor -- NOT
+# regime_4h's own REGIME_MIN_COVERAGE/REGIME_MIN_CONFIDENCE (tech-lead
+# review round 2: this helper runs across every timeframe/family this
+# harness studies, not just the 4h regime consumer; the two threshold
+# pairs happen to share the same numeric value today but are owned by
+# different consumers and must not be conflated).
+from analytics.forecasting_v2.family_quality import FAMILY_MIN_CONFIDENCE, FAMILY_MIN_COVERAGE
 from common.stage2_config import Stage2Config
 from common.versioning import compute_calculation_version
 from scripts.research.math002b_lib import (
@@ -100,8 +106,8 @@ from scripts.research.math002b_lib import (
     BYO,
     FULL3,
     PairComparison,
+    family_quality_gate_flip_rate,
     outlier_report_flip_rate,
-    quality_gate_flip_rate,
     sign_flip_rate,
     summarize,
 )
@@ -318,10 +324,19 @@ _AGREEMENT_FIELD = {"price_structure": "price_direction_agreement", "oi": "oi_di
 _MAD_FIELD = {"price_structure": "price_move_pct_mad", "oi": "oi_change_pct_mad"}
 
 
-def _quality_gate_pass(consensus, family: str) -> bool:
+def _family_quality_gate_pass(consensus, family: str) -> bool:
+    """The GENERIC §6.3a per-family coverage/confidence gate
+    (`family_quality.FAMILY_MIN_COVERAGE`/`FAMILY_MIN_CONFIDENCE`) -- used
+    identically across every timeframe/family this harness studies, never
+    the 4h-regime-specific `REGIME_MIN_COVERAGE`/`REGIME_MIN_CONFIDENCE`.
+    Reads `coverage_by_metric[family].ratio`/`data_confidence_by_metric[family]`
+    directly off the already-computed `ConsensusFeatureVector` (the same
+    facts `family_quality.family_quality()` reads, just from the vector's
+    own attributes rather than a JSON-decoded row -- both scoped to exactly
+    ONE metric family, never the global rollup)."""
     return (
-        consensus.coverage_by_metric[family].ratio >= REGIME_MIN_COVERAGE
-        and consensus.data_confidence_by_metric[family] >= REGIME_MIN_CONFIDENCE
+        consensus.coverage_by_metric[family].ratio >= FAMILY_MIN_COVERAGE
+        and consensus.data_confidence_by_metric[family] >= FAMILY_MIN_CONFIDENCE
     )
 
 
@@ -338,7 +353,7 @@ def compare_bucket(
 
     metric = _outlier_metric_for_family(family)
     full3_has_outlier = metric is not None and metric in full3.outlier_exchanges
-    full3_quality_pass = _quality_gate_pass(full3, family)
+    full3_family_quality_pass = _family_quality_gate_pass(full3, family)
 
     comparisons: list[PairComparison] = []
     for pair_name in PAIRS:
@@ -346,7 +361,7 @@ def compare_bucket(
         pair_request = _build_variant_request(stage2_config, efv_by_exchange, omit=omitted)
         pair = compute_consensus_features(pair_request)
         pair_has_outlier = metric is not None and metric in pair.outlier_exchanges
-        pair_quality_pass = _quality_gate_pass(pair, family)
+        pair_family_quality_pass = _family_quality_gate_pass(pair, family)
         comparisons.append(PairComparison(
             bucket_ts=full3_request.bucket_ts, timeframe=timeframe, family=family,
             pair_name=pair_name, omitted_venue=omitted,
@@ -358,8 +373,8 @@ def compare_bucket(
             full3_confidence=full3.data_confidence_by_metric[family],
             pair_confidence=pair.data_confidence_by_metric[family],
             full3_has_outlier=full3_has_outlier, pair_has_outlier=pair_has_outlier,
-            full3_quality_gate_pass=full3_quality_pass,
-            pair_quality_gate_pass=pair_quality_pass,
+            full3_family_quality_gate_pass=full3_family_quality_pass,
+            pair_family_quality_gate_pass=pair_family_quality_pass,
         ))
     return comparisons
 
@@ -452,8 +467,9 @@ def _summarize_study(
     """Report every predeclared metric this harness actually computes (tech-
     lead review round 1, finding 5): true absolute AND signed median-delta
     distributions, relative-delta distribution (where stable), agreement-
-    delta distribution, confidence-delta distribution, outlier/quality-gate
-    flip rates, exact analyzed bucket count, and per-pair provenance."""
+    delta distribution, confidence-delta distribution, outlier/family-
+    quality-gate flip rates, exact analyzed bucket count, and per-pair
+    provenance."""
     by_pair: dict[str, list[PairComparison]] = {p: [] for p in PAIRS}
     for c in comparisons:
         by_pair[c.pair_name].append(c)
@@ -497,7 +513,7 @@ def _summarize_study(
             "confidence_delta": asdict(summarize(confidence_deltas)),
             "sign_flip_rate": sign_flip_rate(pair_comparisons),
             "outlier_report_flip_rate": outlier_report_flip_rate(pair_comparisons),
-            "quality_gate_flip_rate": quality_gate_flip_rate(pair_comparisons),
+            "family_quality_gate_flip_rate": family_quality_gate_flip_rate(pair_comparisons),
         }
     return out
 

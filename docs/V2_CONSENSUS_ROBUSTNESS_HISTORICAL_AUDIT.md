@@ -234,9 +234,28 @@ fixtures) by `compare_bucket()`/`_summarize_study()` in
   abs_tol=1e-9)` — otherwise `None`, never an unstable/fabricated
   percentage);
 - sign flip rate;
-- agreement delta; family-confidence delta; outlier-report flip rate;
-- quality-gate flip rate (checked against `REGIME_MIN_COVERAGE`/
-  `REGIME_MIN_CONFIDENCE` per §A.4's named floors);
+- agreement delta (kept as a SEPARATE diagnostic, never folded into the
+  family-quality gate below -- a passing gate does not by itself mean a
+  regime/bias/setup would "qualify"); family-confidence delta; outlier-report
+  flip rate;
+- family-quality-gate flip rate: the GENERIC §6.3a per-family
+  coverage/confidence gate (`analytics.forecasting_v2.family_quality.
+  FAMILY_MIN_COVERAGE`/`FAMILY_MIN_CONFIDENCE`), used identically across
+  every timeframe/family this harness studies. **Amendment (tech-lead
+  review round 2):** an earlier version of this harness sourced this check
+  from `regime_4h.REGIME_MIN_COVERAGE`/`REGIME_MIN_CONFIDENCE` instead --
+  the 4h-regime-specific floors from §A.4. The two constant pairs are
+  numerically equal today (2/3, 50.0) but are owned by different consumers;
+  conflating them would misrepresent a generic per-family diagnostic as a
+  4h-regime-specific one. The harness now imports `FAMILY_MIN_COVERAGE`/
+  `FAMILY_MIN_CONFIDENCE` from `analytics.forecasting_v2.family_quality`
+  directly, and `PairComparison`'s fields/JSON output are named
+  `full3_family_quality_gate_pass`/`pair_family_quality_gate_pass`/
+  `family_quality_gate_flip`/`family_quality_gate_flip_rate` so the metric
+  cannot be mistaken for a complete V2 regime/bias/setup decision gate. See
+  `tests/analytics/test_math002b_consensus_robustness_script.py::
+  test_family_quality_gate_sources_from_family_quality_module_not_regime`
+  for the regression proving semantic sourcing (not numeric coincidence);
 - distribution summaries: count/median/p75/p90/p95/p99 (p99 withheld below
   n=100, never presented from an inadequate sample)/max.
 - No `"bad distortion > X%"` threshold is defined anywhere in the harness —

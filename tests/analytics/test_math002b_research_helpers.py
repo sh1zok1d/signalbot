@@ -14,8 +14,8 @@ from scripts.research.math002b_lib import (
     BB,
     BO,
     PairComparison,
+    family_quality_gate_flip_rate,
     outlier_report_flip_rate,
-    quality_gate_flip_rate,
     sign_flip_rate,
     summarize,
 )
@@ -28,7 +28,7 @@ def _cmp(**over):
         full3_mad=0.0, pair_mad=0.0, full3_agreement=1.0, pair_agreement=1.0,
         full3_confidence=100.0, pair_confidence=100.0,
         full3_has_outlier=False, pair_has_outlier=False,
-        full3_quality_gate_pass=True, pair_quality_gate_pass=True,
+        full3_family_quality_gate_pass=True, pair_family_quality_gate_pass=True,
     )
     base.update(over)
     return PairComparison(**base)
@@ -121,11 +121,11 @@ def test_outlier_report_flip():
     assert c2.outlier_report_flip is False
 
 
-def test_quality_gate_flip():
-    c = _cmp(full3_quality_gate_pass=True, pair_quality_gate_pass=False)
-    assert c.quality_gate_flip is True
-    c2 = _cmp(full3_quality_gate_pass=None, pair_quality_gate_pass=False)
-    assert c2.quality_gate_flip is None
+def test_family_quality_gate_flip():
+    c = _cmp(full3_family_quality_gate_pass=True, pair_family_quality_gate_pass=False)
+    assert c.family_quality_gate_flip is True
+    c2 = _cmp(full3_family_quality_gate_pass=None, pair_family_quality_gate_pass=False)
+    assert c2.family_quality_gate_flip is None
 
 
 def test_summarize_empty():
@@ -177,10 +177,10 @@ def test_outlier_report_flip_rate():
     assert outlier_report_flip_rate(comparisons) == pytest.approx(0.5)
 
 
-def test_quality_gate_flip_rate():
+def test_family_quality_gate_flip_rate():
     comparisons = [
-        _cmp(full3_quality_gate_pass=True, pair_quality_gate_pass=False),
-        _cmp(full3_quality_gate_pass=True, pair_quality_gate_pass=True),
-        _cmp(pair_name=BO, full3_quality_gate_pass=None, pair_quality_gate_pass=None),
+        _cmp(full3_family_quality_gate_pass=True, pair_family_quality_gate_pass=False),
+        _cmp(full3_family_quality_gate_pass=True, pair_family_quality_gate_pass=True),
+        _cmp(pair_name=BO, full3_family_quality_gate_pass=None, pair_family_quality_gate_pass=None),
     ]
-    assert quality_gate_flip_rate(comparisons) == pytest.approx(0.5)
+    assert family_quality_gate_flip_rate(comparisons) == pytest.approx(0.5)

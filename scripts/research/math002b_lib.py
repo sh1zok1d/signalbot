@@ -56,8 +56,21 @@ class PairComparison:
     full3_has_outlier: bool
     pair_has_outlier: bool
 
-    full3_quality_gate_pass: Optional[bool]
-    pair_quality_gate_pass: Optional[bool]
+    # Named `family_quality`, not `quality`/`regime_quality`: this is the
+    # GENERIC §6.3a per-family coverage/confidence gate
+    # (`analytics.forecasting_v2.family_quality.FAMILY_MIN_COVERAGE`/
+    # `FAMILY_MIN_CONFIDENCE`), used identically across every timeframe
+    # (4h/1h/15m/5m) and both study families -- NOT the 4h-regime-specific
+    # `REGIME_MIN_COVERAGE`/`REGIME_MIN_CONFIDENCE` (tech-lead review round
+    # 2, the two constants pairs happen to share the same numeric values
+    # today but are semantically distinct and owned by different consumers).
+    # A `True` here means ONLY "this family's row-level coverage/confidence
+    # clears the generic §6.3a floor" -- it does NOT mean a 4h regime, 1h
+    # bias, or Stage-5 setup would actually qualify; those layers have
+    # additional conditions (agreement, structural preconditions, etc.) not
+    # replayed by this research harness.
+    full3_family_quality_gate_pass: Optional[bool]
+    pair_family_quality_gate_pass: Optional[bool]
 
     def __post_init__(self) -> None:
         if self.pair_name not in CONTROLLED_PAIR_NAMES:
@@ -121,10 +134,13 @@ class PairComparison:
         return self.full3_has_outlier != self.pair_has_outlier
 
     @property
-    def quality_gate_flip(self) -> Optional[bool]:
-        if self.full3_quality_gate_pass is None or self.pair_quality_gate_pass is None:
+    def family_quality_gate_flip(self) -> Optional[bool]:
+        """Whether the GENERIC §6.3a per-family coverage/confidence gate
+        (see field docstring above) flips between FULL3 and the pair --
+        never a claim that a regime/bias/setup decision itself flips."""
+        if self.full3_family_quality_gate_pass is None or self.pair_family_quality_gate_pass is None:
             return None
-        return self.full3_quality_gate_pass != self.pair_quality_gate_pass
+        return self.full3_family_quality_gate_pass != self.pair_family_quality_gate_pass
 
 
 def _sign(value: float) -> int:
@@ -189,8 +205,11 @@ def outlier_report_flip_rate(comparisons: Sequence[PairComparison]) -> Optional[
     return sum(1 for c in comparisons if c.outlier_report_flip) / len(comparisons)
 
 
-def quality_gate_flip_rate(comparisons: Sequence[PairComparison]) -> Optional[float]:
-    flips = [c.quality_gate_flip for c in comparisons if c.quality_gate_flip is not None]
+def family_quality_gate_flip_rate(comparisons: Sequence[PairComparison]) -> Optional[float]:
+    """Rate of `family_quality_gate_flip` across `comparisons` -- the
+    GENERIC §6.3a per-family coverage/confidence gate flip rate, never a
+    regime/bias/setup qualification flip rate."""
+    flips = [c.family_quality_gate_flip for c in comparisons if c.family_quality_gate_flip is not None]
     if not flips:
         return None
     return sum(1 for f in flips if f) / len(flips)

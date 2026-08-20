@@ -144,7 +144,53 @@ def test_compare_bucket_quality_gate_stays_true_for_moderate_distortion():
     comparisons = compare_bucket(_STAGE2_CONFIG, efvs, family="price_structure", timeframe="4h")
     for c in comparisons:
         if c.pair_agreement == 1.0:
-            assert c.pair_quality_gate_pass is True
+            assert c.pair_family_quality_gate_pass is True
+
+
+def test_family_quality_gate_sources_from_family_quality_module_not_regime():
+    """Tech-lead review round 2 regression: the generic historical
+    family-quality gate must be semantically SOURCED from
+    `analytics.forecasting_v2.family_quality.FAMILY_MIN_COVERAGE`/
+    `FAMILY_MIN_CONFIDENCE` (§6.3a, the generic per-family gate reused
+    across every timeframe/family this harness studies) -- never
+    `regime_4h.REGIME_MIN_COVERAGE`/`REGIME_MIN_CONFIDENCE` (the 4h-regime
+    consumer's own floor). The two pairs happen to share the same numeric
+    value today, so a bare equality assertion would pass regardless of
+    which module the harness actually imports from -- this proves SOURCE,
+    not coincidence, by patching FAMILY_MIN_COVERAGE to a value
+    `REGIME_MIN_COVERAGE` does NOT share and confirming the harness's gate
+    result follows the patched FAMILY_MIN_COVERAGE, not the unpatched
+    REGIME_MIN_COVERAGE."""
+    import scripts.research.math002b_consensus_robustness as harness_module
+    from analytics.forecasting_v2.regime_4h import REGIME_MIN_COVERAGE
+
+    efvs = _bucket({"binance": 1.0, "bybit": 1.0, "okx": 100.0})
+    comparisons = compare_bucket(_STAGE2_CONFIG, efvs, family="price_structure", timeframe="4h")
+    full3_coverage_ratio = 1.0  # FULL3 always has all 3 canonical venues contributing
+    assert full3_coverage_ratio >= REGIME_MIN_COVERAGE  # sanity: unpatched regime floor still passes
+
+    # Patch ONLY the harness module's imported FAMILY_MIN_COVERAGE name to a
+    # value the (untouched) REGIME_MIN_COVERAGE does not satisfy the same way.
+    original = harness_module.FAMILY_MIN_COVERAGE
+    try:
+        harness_module.FAMILY_MIN_COVERAGE = 1.5  # impossible to satisfy (max ratio is 1.0)
+        patched_comparisons = compare_bucket(
+            _STAGE2_CONFIG, efvs, family="price_structure", timeframe="4h")
+        for c in patched_comparisons:
+            assert c.full3_family_quality_gate_pass is False
+        # Prove this was really driven by FAMILY_MIN_COVERAGE, not a side
+        # effect: REGIME_MIN_COVERAGE is untouched and FULL3 coverage still
+        # satisfies it, so a REGIME_MIN_COVERAGE-sourced gate would NOT
+        # have flipped to False here.
+        assert full3_coverage_ratio >= REGIME_MIN_COVERAGE
+    finally:
+        harness_module.FAMILY_MIN_COVERAGE = original
+
+    # With the constant restored, the gate passes again (matches the
+    # unpatched `comparisons` computed above).
+    restored_comparisons = compare_bucket(_STAGE2_CONFIG, efvs, family="price_structure", timeframe="4h")
+    for c, orig_c in zip(restored_comparisons, comparisons):
+        assert c.full3_family_quality_gate_pass == orig_c.full3_family_quality_gate_pass
 
 
 def test_compare_bucket_derives_honest_non_target_family_exclusions():
