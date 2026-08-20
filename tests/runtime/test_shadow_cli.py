@@ -391,7 +391,7 @@ def test_code_version_resolver_failure_propagates(monkeypatch):
     def boom(explicit=None, **kw):
         raise VersioningError("no version")
 
-    monkeypatch.setattr(sc, "resolve_code_version", boom)
+    monkeypatch.setattr(sc, "resolve_feature_code_version", boom)
     db = FakeDB()
     with pytest.raises(VersioningError):
         _run(execute_shadow_once(

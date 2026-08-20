@@ -198,9 +198,74 @@ no longer suppress it), §4.1a (Stage 4 `price_evi`/`bias_evi`/
 `data_confidence` exact per-family scoring formulas, carried by value on
 every setup candidate). Ships under `rules_version = "v2-rules-v0.2.0"`
 (bumped from `v2-rules-v0.1.0` — an executable V2 rules behavior change);
-`v2.enabled` remains `false`. #45 (coherent DB snapshot / decision
-provenance / calculation-version architecture) and #46 (episode identity
-persistence) are NOT started and remain required before Stage 6 begins.
+`v2.enabled` remains `false`.
+
+**V2-H2a — decision provenance + activation readiness + coherent decision
+view: THIS PR.** Implements `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md`
+§3.2 in full, §3.3 in full, and §3.4's identity/coherent-view half (never
+its Stage 2 correction-publication-completeness half, which remains
+unimplemented — V2-H2e). Adds `decision_provenance.py`
+(`V2DecisionProvenance`, the §3.2 identity tuple a future orchestration
+layer must resolve once per decision boundary before Stage 3/4/5/6
+computation begins — a superset of `provenance.py`'s `V2EventProvenance`
+adding `decision_boundary` and `decision_code_version`, the Stage 4/5/6
+decision-code identity kept deliberately separate from Stage 2's
+`code_version`); `activation_readiness.py`
+(`check_activation_readiness()`, the §3.3b fail-closed predicate for
+whether a `calculation_version` has sufficient materialized percentile
+history to be decision-eligible, reusing every family's already-frozen
+percentile-window/metric/timeframe selectors and `MIN_PCTL_TIER` rather
+than inventing a new threshold); and `decision_view.py`
+(`V2DecisionView`/`resolve_decision_view()`, composing the two into one
+coherent per-`T` identity, §3.4). `common/versioning.py` gains
+`resolve_feature_code_version()` (§3.3a): a path-scoped replacement for
+`resolve_code_version()`'s whole-repo `git describe --dirty` fallback, so
+an unrelated repo change (docs, Stage 6, Telegram) can no longer fork
+Stage 2's `calculation_version` namespace; `runtime/shadow_cli.py`'s two
+`code_version` call sites now use it. None of this is wired into any
+runtime orchestration path (no such orchestration exists yet) — every
+new object is caller-constructed, never resolved from a live system by
+this PR. DRAIN-BEFORE-ACTIVATE's version-switch state machine (§3.1,
+V2-H2b), as-of/historical instrument metadata (§12.5a, V2-H2c), and
+Stage 2 correction-publication completeness plus the replay-determinism
+harness (§3.4's other half, V2-H2e) remain NOT started.
+
+**V2-H2a, Qodo amendment round 1 (6 findings + 1 tech-lead finding, all
+fixed on the same branch/PR).** Readiness now reads the EXACT fully-closed
+bucket `alignment.selected_bucket(timeframe, T)` per requirement (never a
+`[T - timeframe_width, T]` window, which for a non-timeframe-aligned `T`
+started strictly AFTER the bucket a live detector actually consumes).
+`DEFAULT_FEATURE_CODE_PATHS` now covers the FULL transitive import closure
+of `analytics/feature_engine/`+`analytics/percentile_engine/` (was missing
+`analytics/percentile_engine/` itself plus `common/instrument_metadata.py`/
+`common/symbol_mapper.py`/`symbols/registry.py`/`common/capabilities.py`).
+`V2ActivationReadinessResult` now carries `symbol`/`market_type` (the exact
+queried scope) and self-validates `ready == all(status.ready ...)` in
+`__post_init__` — no longer forgeable by direct construction.
+`V2DecisionView`'s coherence checks (type, `symbol`, `market_type`,
+`calculation_version`, `decision_boundary`) now live in its OWN
+`__post_init__`, not only in `resolve_decision_view()` — direct
+construction can no longer bypass them. Both new decision-boundary
+validators now delegate to `alignment.selected_bucket("5m", T)` (never a
+locally-duplicated, weaker whole-minute-only check) and, in doing so, no
+longer call `.utcoffset()` themselves at all — closing the same
+malformed-tzinfo raw-exception-leak class PR #49/H2d already fixed
+elsewhere, without touching `alignment.py` itself (out of scope).
+
+**V2-H2a, tech-lead amendment round 2 (full canonical coverage, never a
+partial probe).** `check_activation_readiness()` no longer accepts a
+public `requirements=` override -- it always evaluates the full
+`MANDATORY_PERCENTILE_COVERAGE`, so there is no public way to weaken
+activation readiness by probing a subset. `V2ActivationReadinessResult.
+__post_init__` additionally requires `statuses` to cover EXACTLY the
+canonical mandatory set (no missing requirement, no extra/noncanonical
+one) -- a one-requirement or three-of-four subset can never be
+constructed into a result at all, ready or not (§3.3b: activation
+readiness means ALL mandatory prerequisites are materialized, not "the
+ones a caller happened to ask about"). Focused/internal per-requirement
+evaluation is still available via the private `_evaluate_requirements()`
+helper, which returns bare `V2CoverageStatus` tuples and can never itself
+produce a `V2ActivationReadinessResult`.
 
 `V2EpisodeEvent` (events.py) validates and freezes an already-decided
 event a future Episode State Machine PR will construct;
@@ -223,6 +288,11 @@ from .aligned_inputs import (
     ALIGNED_TIMEFRAMES, STRUCTURAL_OHLC_TIMEFRAMES, V2_REFERENCE_EXCHANGE,
     V2AlignedInputError, V2AlignedInputRequest, V2AlignedInputs,
     V2ReferenceExtrema, V2TimeframeInputs, load_v2_aligned_inputs,
+)
+from .activation_readiness import (
+    MANDATORY_PERCENTILE_COVERAGE, V2ActivationReadinessError,
+    V2ActivationReadinessResult, V2CoverageStatus, V2RequiredPercentileCoverage,
+    check_activation_readiness,
 )
 from .alignment import (
     TIMEFRAME_MINUTES, V2AlignmentError, decision_boundary, selected_bucket,
@@ -254,6 +324,8 @@ from .context_evidence import (
 from .context_snapshot import (
     V2ContextSnapshot, V2ContextSnapshotError, build_v2_context_snapshot,
 )
+from .decision_provenance import V2DecisionProvenance, V2DecisionProvenanceError
+from .decision_view import V2DecisionView, V2DecisionViewError, resolve_decision_view
 from .event_factory import build_v2_episode_event
 from .family_quality import (
     FAMILIES, FAMILY_MIN_CONFIDENCE, FAMILY_MIN_COVERAGE, V2FamilyQuality,
@@ -352,4 +424,9 @@ __all__ = [
     "V2RulesManifestError", "EXPECTED_FINGERPRINTS_BY_RULES_VERSION",
     "build_rules_manifest", "compute_rules_fingerprint",
     "assert_rules_manifest_matches_version",
+    "V2DecisionProvenanceError", "V2DecisionProvenance",
+    "V2ActivationReadinessError", "V2RequiredPercentileCoverage",
+    "MANDATORY_PERCENTILE_COVERAGE", "V2CoverageStatus",
+    "V2ActivationReadinessResult", "check_activation_readiness",
+    "V2DecisionViewError", "V2DecisionView", "resolve_decision_view",
 ]

@@ -28,7 +28,7 @@ from typing import Mapping, Optional, Sequence
 from common.config import Config, Secrets
 from common.instrument_metadata import InstrumentMetadata, fetch_instrument_metadata
 from common.stage2_config import Stage2Config
-from common.versioning import resolve_code_version
+from common.versioning import resolve_feature_code_version
 from storage.db import Database
 from symbols.registry import (
     ACTIVE_EXCHANGES, symbol_exchange_capability_seed_rows, symbol_seed_rows,
@@ -369,7 +369,7 @@ async def execute_shadow_once(
     symbol, exchanges, resolved = _resolve_shadow_scope(
         stage1_config, stage2_config, reference_exchange=reference_exchange)
     bucket_selection, bucket_ts = _resolve_bucket(now, explicit_bucket_ts, resolved)
-    code_version = resolve_code_version(explicit=explicit_code_version)
+    code_version = resolve_feature_code_version(explicit=explicit_code_version)
 
     await db.init_stage2_schema()
     await db.seed_symbols(symbol_seed_rows())
@@ -410,7 +410,7 @@ async def execute_shadow_dry_run(
     symbol, exchanges, resolved = _resolve_shadow_scope(
         stage1_config, stage2_config, reference_exchange=reference_exchange)
     bucket_selection, bucket_ts = _resolve_bucket(now, explicit_bucket_ts, resolved)
-    code_version = resolve_code_version(explicit=explicit_code_version)
+    code_version = resolve_feature_code_version(explicit=explicit_code_version)
 
     status = await db.fetch_shadow_status(
         exchanges=exchanges, symbol=symbol, market_type=_MARKET_TYPE, timeframe=_TIMEFRAME)
