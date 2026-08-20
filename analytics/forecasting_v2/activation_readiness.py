@@ -4,12 +4,13 @@ V2 activation readiness (V2-H2a; `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md`
 
 Fail-closed predicate: whether one `calculation_version` has enough
 materialized historical percentile prerequisites to be eligible for V2
-decision processing at one decision boundary `T`. §3.3b requires this be
-checked "per §4-§7's own frozen percentile-window/lookback requirements" --
-this module REUSES those already-frozen per-family selectors (never
-re-derives new ones) and REUSES the already-frozen `MIN_PCTL_TIER`
-confidence floor (`context_evidence.py`) as the exact "sufficiently
-materialized" bar, rather than inventing a new threshold.
+decision processing at one decision boundary `T`, for one `symbol`/
+`market_type` scope. §3.3b requires this be checked "per §4-§7's own frozen
+percentile-window/lookback requirements" -- this module REUSES those
+already-frozen per-family selectors (never re-derives new ones) and REUSES
+the already-frozen `MIN_PCTL_TIER` confidence floor (`context_evidence.py`)
+as the exact "sufficiently materialized" bar, rather than inventing a new
+threshold.
 
 Why `confidence_tier` alone is the right signal (not a separately-invented
 coverage-ratio/day-count check): `percentile_engine`'s `confidence_tier`
@@ -22,6 +23,22 @@ module's readiness check is therefore exactly the question "if a live
 detector ran against this `calculation_version` right now at `T`, would it
 see real evidence (not a missing-data short-circuit) for every mandatory
 family" -- no new tunable parameter, no new rules-manifest surface.
+
+**Exact bucket, not a lookback window (Qodo amendment round 1, finding 1).**
+Each mandatory requirement is checked against EXACTLY the fully-closed
+bucket the associated detector itself consumes for `T` --
+`alignment.selected_bucket(req.timeframe, T)`, the SAME function
+`context_snapshot.py`/`compression_breakout_inputs.py`/
+`trend_pullback_inputs.py` already derive their own buckets from. A prior
+version of this module queried an ad-hoc `[T - timeframe_width, T]` window
+instead, which for a non-timeframe-aligned `T` (e.g. `T=12:05`) starts
+AFTER the bucket a live detector would actually read (`selected_bucket
+("4h", 12:05) == 08:00`, well before `08:05`) -- silently reporting
+NOT_READY for perfectly materialized history, or in principle accepting a
+newer/unrelated snapshot the detector itself would never consume. Using
+`selected_bucket()` directly makes "the bucket readiness inspects" and "the
+bucket the detector reads" provably the SAME expression, not two
+independently-maintained ones that can drift apart.
 
 Scope, deliberately narrow: covers exactly the MANDATORY (hard-gated, never
 optional/veto-only) percentile prerequisites of the currently-implemented
@@ -60,15 +77,28 @@ A reader's own domain error (corrupted/inconsistent row) is NEVER downgraded
 to NOT_READY here -- it propagates unchanged, so genuine corruption is never
 silently confused with legitimate absence (missingness and corruption stay
 distinct, matching every other V2-v0 module's posture).
+
+**Self-validating result (Qodo amendment round 1, findings 3 and 4).**
+`V2ActivationReadinessResult` now carries `symbol`/`market_type` (the exact
+scope the reads were issued for -- previously discarded, letting
+`resolve_decision_view()` compose readiness computed for one scope with
+provenance for a DIFFERENT scope whenever `calculation_version`/
+`decision_boundary` happened to match) and validates its own `ready ==
+all(status.ready for status in statuses)` invariant in `__post_init__` --
+every construction path, not just `check_activation_readiness()`'s own
+return, is guaranteed internally consistent; there is no way to
+hand-construct a forged `ready=True` result with empty or failing statuses.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from importlib import import_module
 from typing import Any, Optional, Sequence
 
-from analytics.forecasting_v2.alignment import TIMEFRAME_MINUTES
+from analytics.forecasting_v2.alignment import (
+    TIMEFRAME_MINUTES, V2AlignmentError, selected_bucket,
+)
 from analytics.forecasting_v2.context_evidence import MIN_PCTL_TIER
 from analytics.forecasting_v2.ports import V2SetupHistoryReader
 from analytics.percentile_engine.models import CONFIDENCE_TIERS
@@ -95,11 +125,39 @@ __all__ = [
 
 class V2ActivationReadinessError(ValueError):
     """Malformed readiness-check input (bad symbol/market_type/
-    calculation_version/decision_boundary/requirements). Never raised for
+    calculation_version/decision_boundary/requirements), or a
+    self-validation failure on `V2ActivationReadinessResult`/
+    `V2CoverageStatus` construction (a forged/inconsistent `ready` flag,
+    empty/malformed `statuses`, a duplicate requirement). Never raised for
     legitimately missing/immature history -- that is a NOT_READY result,
     not an error. A reader's own domain error for genuinely INCONSISTENT
     row data is not wrapped here -- it propagates as the reader's own
     exception type unchanged."""
+
+
+def _validate_decision_boundary(value: Any) -> datetime:
+    """A legal V2 5m decision boundary -- delegated to
+    `alignment.selected_bucket("5m", value)`, exactly like
+    `decision_provenance.py::_validate_decision_boundary` (see that
+    function's docstring for the full rationale: this is the single
+    canonical source of truth for "is T a legal V2 5m decision boundary",
+    and delegating to it means this function never itself calls
+    `.utcoffset()` -- any exception `selected_bucket()` raises (the
+    expected `V2AlignmentError`, or an unexpected one from a
+    malformed/malicious custom `tzinfo`) is translated into
+    `V2ActivationReadinessError` exactly once, right here, never leaked
+    past this module's boundary as a raw exception)."""
+    try:
+        selected_bucket("5m", value)
+    except V2AlignmentError as exc:
+        raise V2ActivationReadinessError(f"decision_boundary: {exc}") from exc
+    except Exception as exc:  # noqa: BLE001 - malformed/malicious tzinfo, or any
+        # other unexpected failure inside the delegated alignment check --
+        # never leaked past this module's boundary as a raw exception.
+        raise V2ActivationReadinessError(
+            f"decision_boundary failed alignment validation: "
+            f"{type(exc).__name__}: {exc}") from exc
+    return value
 
 
 @dataclass(frozen=True)
@@ -165,11 +223,10 @@ def _tier_usable(tier: Any) -> bool:
     imported -- `_percentile_tier_usable` is not exported
     (`context_evidence.__all__` omits it) and every other V2-v0 module
     that needs this exact comparison already keeps its own local copy
-    rather than reaching into another module's private surface (see
-    `decision_provenance.py`'s `_validate_decision_boundary` docstring for
-    the same convention). Compares by canonical `CONFIDENCE_TIERS` index,
-    never alphabetically. An unknown tier string is corrupted input, not a
-    legitimately low-maturity one."""
+    rather than reaching into another module's private surface. Compares
+    by canonical `CONFIDENCE_TIERS` index, never alphabetically. An
+    unknown tier string is corrupted input, not a legitimately
+    low-maturity one."""
     if tier not in CONFIDENCE_TIERS:
         raise V2ActivationReadinessError(
             f"unknown confidence_tier {tier!r} (expected one of {CONFIDENCE_TIERS})")
@@ -180,37 +237,86 @@ def _tier_usable(tier: Any) -> bool:
 class V2CoverageStatus:
     """Per-requirement diagnostic: whether ONE mandatory percentile
     prerequisite has a usable (present, non-missing,
-    at-or-above-`MIN_PCTL_TIER`) latest snapshot at-or-before `T`."""
+    at-or-above-`MIN_PCTL_TIER`) snapshot at the exact bucket the
+    associated detector consumes for `T`. Self-validates its own field
+    shape -- a caller hand-constructing a `V2CoverageStatus` cannot slip
+    a wrong-typed `requirement`/`ready`/`reason`/`latest_bucket_ts` past
+    `V2ActivationReadinessResult.__post_init__`'s `isinstance` check,
+    since that check only confirms the TYPE, not the substance; this
+    class's own `__post_init__` confirms the substance."""
     requirement: V2RequiredPercentileCoverage
     ready: bool
     reason: str
     latest_bucket_ts: Optional[datetime]
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.requirement, V2RequiredPercentileCoverage):
+            raise V2ActivationReadinessError(
+                f"requirement must be a V2RequiredPercentileCoverage, "
+                f"got {type(self.requirement).__name__}")
+        if not isinstance(self.ready, bool):
+            raise V2ActivationReadinessError(
+                f"ready must be a bool, got {type(self.ready).__name__}")
+        if not isinstance(self.reason, str) or not self.reason.strip():
+            raise V2ActivationReadinessError("reason must be a non-empty string")
+        if self.latest_bucket_ts is not None and type(self.latest_bucket_ts) is not datetime:
+            raise V2ActivationReadinessError(
+                f"latest_bucket_ts must be None or a datetime, "
+                f"got {type(self.latest_bucket_ts).__name__}")
+
 
 @dataclass(frozen=True)
 class V2ActivationReadinessResult:
-    """Fail-closed readiness verdict for one `(calculation_version,
-    decision_boundary)` pair: `ready` is `True` iff EVERY status in
-    `statuses` is itself ready -- never a partial/majority pass."""
+    """Fail-closed, self-validating readiness verdict for one `(symbol,
+    market_type, calculation_version, decision_boundary)` identity:
+    `ready` is `True` iff EVERY status in `statuses` is itself ready --
+    never a partial/majority pass, and never independently settable by a
+    caller. `symbol`/`market_type` are the exact scope the underlying
+    reads were issued for -- carried here so `resolve_decision_view()`
+    can refuse to compose readiness computed for one scope with
+    provenance for a different one (Qodo amendment round 1, finding 3).
+
+    Constructing an instance with a mismatched `ready` flag, empty/
+    malformed `statuses`, a duplicate requirement, or a malformed identity
+    field raises `V2ActivationReadinessError` -- there is no way to
+    "forge" a ready result by hand-constructing this type; the invariant
+    holds for EVERY construction path, not just `check_activation_
+    readiness()`'s own return (Qodo amendment round 1, finding 4)."""
+    symbol: str
+    market_type: str
     calculation_version: str
     decision_boundary: datetime
     ready: bool
     statuses: "tuple[V2CoverageStatus, ...]"
 
-
-def _validate_decision_boundary(value: Any) -> datetime:
-    if type(value) is not datetime:
-        raise V2ActivationReadinessError(
-            f"decision_boundary must be a datetime, got {type(value).__name__}")
-    if value.tzinfo is None or value.utcoffset() is None:
-        raise V2ActivationReadinessError("decision_boundary must be timezone-aware")
-    if value.utcoffset() != timedelta(0):
-        raise V2ActivationReadinessError(
-            f"decision_boundary must be UTC (offset 0), got {value.utcoffset()}")
-    if value.second != 0 or value.microsecond != 0:
-        raise V2ActivationReadinessError(
-            "decision_boundary must be a whole minute (no seconds/microseconds)")
-    return value
+    def __post_init__(self) -> None:
+        if not isinstance(self.symbol, str) or not self.symbol.strip():
+            raise V2ActivationReadinessError("symbol must be a non-empty string")
+        if not isinstance(self.market_type, str) or not self.market_type.strip():
+            raise V2ActivationReadinessError("market_type must be a non-empty string")
+        if not isinstance(self.calculation_version, str) or not self.calculation_version.strip():
+            raise V2ActivationReadinessError("calculation_version must be a non-empty string")
+        _validate_decision_boundary(self.decision_boundary)
+        if not isinstance(self.ready, bool):
+            raise V2ActivationReadinessError(
+                f"ready must be a bool, got {type(self.ready).__name__}")
+        if not isinstance(self.statuses, tuple) or not self.statuses:
+            raise V2ActivationReadinessError("statuses must be a non-empty tuple")
+        seen_requirements: set = set()
+        for status in self.statuses:
+            if not isinstance(status, V2CoverageStatus):
+                raise V2ActivationReadinessError(
+                    f"every status must be a V2CoverageStatus, got {type(status).__name__}")
+            if status.requirement in seen_requirements:
+                raise V2ActivationReadinessError(
+                    f"duplicate requirement {status.requirement!r} in statuses")
+            seen_requirements.add(status.requirement)
+        expected_ready = all(status.ready for status in self.statuses)
+        if self.ready != expected_ready:
+            raise V2ActivationReadinessError(
+                f"ready={self.ready!r} does not match "
+                f"all(status.ready for status in statuses)={expected_ready!r} -- the class "
+                "invariant 'ready iff every status is ready' would be violated")
 
 
 async def check_activation_readiness(
@@ -219,27 +325,21 @@ async def check_activation_readiness(
     requirements: Sequence[V2RequiredPercentileCoverage] = MANDATORY_PERCENTILE_COVERAGE,
 ) -> V2ActivationReadinessResult:
     """Fail-closed: the returned result's `ready` is `True` iff EVERY
-    requirement in `requirements` has a usable latest `percentile_snapshots`
-    row at-or-before `decision_boundary` under `calculation_version`. A
+    requirement in `requirements` has a usable `percentile_snapshots` row
+    at EXACTLY `alignment.selected_bucket(req.timeframe, decision_boundary)`
+    -- the same fully-closed bucket a live detector consumes for that
+    timeframe at `decision_boundary` -- under `calculation_version`. A
     missing row, a `None` `value`/`percentile_rank`, or a below-floor
     `confidence_tier` for even ONE requirement makes the WHOLE result
     NOT_READY -- never a silent partial pass, never a fallback to an older
-    `calculation_version` or to stale data (this function never queries any
-    version/window other than exactly the ones the caller supplied).
-
-    Per-requirement lookback window is exactly one bucket-width of that
-    requirement's own `timeframe` ending at `decision_boundary`
-    (`[decision_boundary - timeframe_width, decision_boundary]`) -- wide
-    enough to find the most recently expected snapshot for that timeframe's
-    own cadence, deliberately NOT widened further: a version whose most
-    recent expected snapshot for a mandatory family is simply absent is
-    correctly NOT_READY, not silently satisfied by an older, stale row from
-    further back.
+    `calculation_version`, an unrelated bucket, or stale data (this
+    function never queries any version/bucket other than exactly the ones
+    implied by the caller's `calculation_version`/`decision_boundary`).
 
     `calculation_version` is passed straight through to `reader` (never
     derived here, never defaulted) -- a caller checking readiness for a
     version OTHER than the one currently active can never accidentally
-    query the wrong window."""
+    query the wrong bucket."""
     if not isinstance(symbol, str) or not symbol.strip():
         raise V2ActivationReadinessError("symbol must be a non-empty string")
     if not isinstance(market_type, str) or not market_type.strip():
@@ -257,42 +357,50 @@ async def check_activation_readiness(
 
     statuses: "list[V2CoverageStatus]" = []
     for req in requirements:
-        window = timedelta(minutes=TIMEFRAME_MINUTES[req.timeframe])
-        window_start = decision_boundary - window
+        # The exact bucket a live detector would read for this
+        # requirement's timeframe at `decision_boundary` -- never a
+        # window, never anything wider (see module docstring, finding 1).
+        bucket = selected_bucket(req.timeframe, decision_boundary)
         rows = await reader.fetch_v2_consensus_percentile_window(
             symbol=symbol, market_type=market_type, metric=req.metric,
             timeframe=req.timeframe, percentile_window=req.percentile_window,
-            bucket_start=window_start, bucket_end=decision_boundary,
+            bucket_start=bucket, bucket_end=bucket,
             calculation_version=calculation_version)
         if not rows:
             statuses.append(V2CoverageStatus(
                 requirement=req, ready=False,
-                reason="no percentile_snapshots row in the expected lookback window",
+                reason=f"no percentile_snapshots row at the exact bucket {bucket.isoformat()}",
                 latest_bucket_ts=None))
             continue
-        # The reader's own contract guarantees ascending, non-descending
-        # `bucket_ts` order -- the LAST row is the latest.
-        latest = rows[-1]
-        latest_bucket_ts = latest.get("bucket_ts")
-        if latest.get("value") is None or latest.get("percentile_rank") is None:
+        if len(rows) > 1:
+            # Defense-in-depth against a fake/misbehaving reader -- the
+            # real reader's own contract already forbids more than one row
+            # per exact `(scope/exchange/symbol/market_type/metric/
+            # timeframe/percentile_window/bucket_ts/calculation_version)`
+            # identity, and `bucket_start == bucket_end` here narrows the
+            # requested interval to that single `bucket_ts`.
+            raise V2ActivationReadinessError(
+                f"reader returned {len(rows)} rows for the single exact bucket "
+                f"{bucket.isoformat()} (requirement={req.source!r}) -- expected at most 1")
+        row = rows[0]
+        if row.get("value") is None or row.get("percentile_rank") is None:
             statuses.append(V2CoverageStatus(
                 requirement=req, ready=False,
-                reason="latest percentile_snapshots row is missing value/percentile_rank",
-                latest_bucket_ts=latest_bucket_ts))
+                reason="percentile_snapshots row is missing value/percentile_rank",
+                latest_bucket_ts=row.get("bucket_ts")))
             continue
-        if not _tier_usable(latest.get("confidence_tier")):
+        if not _tier_usable(row.get("confidence_tier")):
             statuses.append(V2CoverageStatus(
                 requirement=req, ready=False,
                 reason=(
-                    f"latest percentile_snapshots row confidence_tier "
-                    f"{latest.get('confidence_tier')!r} is below MIN_PCTL_TIER "
-                    f"{MIN_PCTL_TIER!r}"),
-                latest_bucket_ts=latest_bucket_ts))
+                    f"percentile_snapshots row confidence_tier "
+                    f"{row.get('confidence_tier')!r} is below MIN_PCTL_TIER {MIN_PCTL_TIER!r}"),
+                latest_bucket_ts=row.get("bucket_ts")))
             continue
         statuses.append(V2CoverageStatus(
-            requirement=req, ready=True, reason="ready", latest_bucket_ts=latest_bucket_ts))
+            requirement=req, ready=True, reason="ready", latest_bucket_ts=row.get("bucket_ts")))
 
     ready = all(status.ready for status in statuses)
     return V2ActivationReadinessResult(
-        calculation_version=calculation_version, decision_boundary=decision_boundary,
-        ready=ready, statuses=tuple(statuses))
+        symbol=symbol, market_type=market_type, calculation_version=calculation_version,
+        decision_boundary=decision_boundary, ready=ready, statuses=tuple(statuses))

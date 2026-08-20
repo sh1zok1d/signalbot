@@ -230,6 +230,28 @@ V2-H2b), as-of/historical instrument metadata (§12.5a, V2-H2c), and
 Stage 2 correction-publication completeness plus the replay-determinism
 harness (§3.4's other half, V2-H2e) remain NOT started.
 
+**V2-H2a, Qodo amendment round 1 (6 findings + 1 tech-lead finding, all
+fixed on the same branch/PR).** Readiness now reads the EXACT fully-closed
+bucket `alignment.selected_bucket(timeframe, T)` per requirement (never a
+`[T - timeframe_width, T]` window, which for a non-timeframe-aligned `T`
+started strictly AFTER the bucket a live detector actually consumes).
+`DEFAULT_FEATURE_CODE_PATHS` now covers the FULL transitive import closure
+of `analytics/feature_engine/`+`analytics/percentile_engine/` (was missing
+`analytics/percentile_engine/` itself plus `common/instrument_metadata.py`/
+`common/symbol_mapper.py`/`symbols/registry.py`/`common/capabilities.py`).
+`V2ActivationReadinessResult` now carries `symbol`/`market_type` (the exact
+queried scope) and self-validates `ready == all(status.ready ...)` in
+`__post_init__` — no longer forgeable by direct construction.
+`V2DecisionView`'s coherence checks (type, `symbol`, `market_type`,
+`calculation_version`, `decision_boundary`) now live in its OWN
+`__post_init__`, not only in `resolve_decision_view()` — direct
+construction can no longer bypass them. Both new decision-boundary
+validators now delegate to `alignment.selected_bucket("5m", T)` (never a
+locally-duplicated, weaker whole-minute-only check) and, in doing so, no
+longer call `.utcoffset()` themselves at all — closing the same
+malformed-tzinfo raw-exception-leak class PR #49/H2d already fixed
+elsewhere, without touching `alignment.py` itself (out of scope).
+
 `V2EpisodeEvent` (events.py) validates and freezes an already-decided
 event a future Episode State Machine PR will construct;
 `V2EventProvenance` (provenance.py) is a frozen snapshot of one

@@ -56,13 +56,14 @@ Deliberately NOT included here (out of scope for V2-H2a):
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 from analytics.forecasting_v2._validation import (
     nonblank, one_of, validate_calculation_version, validate_config_hash,
     validate_feature_schema_version, validate_market_type, validate_symbol,
 )
+from analytics.forecasting_v2.alignment import V2AlignmentError, selected_bucket
 from analytics.forecasting_v2.events import RUN_KINDS
 from common.v2_config import MODEL_FAMILY, validate_rules_version
 
@@ -71,32 +72,56 @@ __all__ = ["V2DecisionProvenanceError", "V2DecisionProvenance"]
 
 class V2DecisionProvenanceError(ValueError):
     """Malformed V2DecisionProvenance input: bad run identity, a decision
-    boundary that is not an aware/UTC/whole-minute instant, unsupported
-    scope, an invalid model/version identity, or a malformed shared Stage 2
-    or decision-code provenance field. Never silently coerced."""
+    boundary that is not a legal V2 5m-grid-aligned decision boundary,
+    unsupported scope, an invalid model/version identity, or a malformed
+    shared Stage 2 or decision-code provenance field. Never silently
+    coerced."""
 
 
 def _validate_decision_boundary(value: Any) -> datetime:
-    """Aware, UTC, whole-minute `datetime` -- the exact same posture every
-    other V2-v0 module's local `_validate_utc_whole_minute`/
-    `_validate_utc_datetime` helper already enforces for `T`
-    (`compression_breakout.py`, `trend_pullback.py`, `regime_4h.py`,
-    `bias_1h.py`, `context_evidence.py`, `alignment.py`). Re-implemented
-    locally rather than imported from any one of those modules: none of
-    them exports it as public API, and each already keeps its own private
-    copy by established convention -- this module follows the same
-    precedent rather than inventing a new shared cross-module dependency."""
-    if type(value) is not datetime:
+    """A legal V2 5m decision boundary -- delegated to
+    `alignment.selected_bucket("5m", value)`, the single canonical source
+    of truth for "is T a legal V2 5m decision boundary" (type,
+    timezone-aware, UTC, whole-minute, AND aligned to the 5m grid).
+
+    Two problems this closes at once (Qodo amendment round 1, findings 6
+    and the accompanying tech-lead finding):
+
+    1. A local re-implementation here previously stopped at whole-minute
+       precision, so an off-grid value like 12:03 would pass THIS
+       module's check and then be rejected by every downstream V2 module
+       that calls `selected_bucket()` itself -- letting a provenance
+       tuple exist for a `T` no legal V2 computation could ever consume.
+       `selected_bucket()` is the exact function every Stage 4/5 detector
+       already derives its own bucket from (`context_snapshot.py`,
+       `compression_breakout_inputs.py`, `trend_pullback_inputs.py`,
+       ...); delegating to it here means "legal decision boundary" can
+       never silently drift between this module and the rest of the
+       package -- there is exactly one implementation, not a duplicate.
+    2. The local re-implementation called `value.utcoffset()` twice with
+       no exception translation -- a malformed/malicious custom `tzinfo`
+       whose `utcoffset()` raises would leak a raw, non-
+       `V2DecisionProvenanceError` exception straight through this
+       module's boundary (the same class of bug PR #49/H2d fixed in
+       `aligned_inputs.py::_validate_utc_instant`). `alignment.py` itself
+       is out of scope for V2-H2a (an already-merged Stage 3 module) and
+       is not modified here. Instead, THIS function calls
+       `selected_bucket()` exactly once and wraps that single call so
+       ANY exception it raises -- `V2AlignmentError` for the expected
+       malformed-input case, or anything else a misbehaving `tzinfo`
+       might throw -- is translated into `V2DecisionProvenanceError`
+       right here, at this module's own public boundary. This function
+       itself never calls `.utcoffset()`."""
+    try:
+        selected_bucket("5m", value)
+    except V2AlignmentError as exc:
+        raise V2DecisionProvenanceError(f"decision_boundary: {exc}") from exc
+    except Exception as exc:  # noqa: BLE001 - malformed/malicious tzinfo, or any
+        # other unexpected failure inside the delegated alignment check --
+        # never leaked past this module's boundary as a raw exception.
         raise V2DecisionProvenanceError(
-            f"decision_boundary must be a datetime, got {type(value).__name__}")
-    if value.tzinfo is None or value.utcoffset() is None:
-        raise V2DecisionProvenanceError("decision_boundary must be timezone-aware")
-    if value.utcoffset() != timedelta(0):
-        raise V2DecisionProvenanceError(
-            f"decision_boundary must be UTC (offset 0), got {value.utcoffset()}")
-    if value.second != 0 or value.microsecond != 0:
-        raise V2DecisionProvenanceError(
-            "decision_boundary must be a whole minute (no seconds/microseconds)")
+            f"decision_boundary failed alignment validation: "
+            f"{type(exc).__name__}: {exc}") from exc
     return value
 
 
@@ -110,7 +135,9 @@ class V2DecisionProvenance:
       - execution stream: `run_kind` (`LIVE`|`REPLAY`), `run_id` (non-empty
         caller-supplied namespace for the execution).
       - `decision_boundary`: the decision boundary `T` this tuple is bound
-        to -- aware, UTC, whole-minute.
+        to -- a legal V2 5m decision boundary (aware, UTC, whole-minute,
+        AND aligned to the 5m grid; validated via `alignment.
+        selected_bucket("5m", T)`, never a weaker duplicate check).
       - scope: `symbol`, `market_type` -- pinned to the same
         `SUPPORTED_SYMBOL`/`SUPPORTED_MARKET_TYPE` constants every other V2
         value object enforces.

@@ -13,6 +13,7 @@ second competing implementation) and adds coverage for the two fields
 from __future__ import annotations
 
 import dataclasses
+import datetime as _dt_module
 import inspect
 from datetime import datetime, timedelta, timezone
 
@@ -103,6 +104,83 @@ def test_decision_boundary_must_be_whole_minute(bad):
 def test_decision_boundary_preserved_exactly():
     t = datetime(2026, 8, 20, 12, 5, tzinfo=timezone.utc)
     assert make_provenance(decision_boundary=t).decision_boundary == t
+
+
+# ---- Qodo amendment round 1, finding 6: reuse the canonical alignment
+# validator -- illegal (off-5m-grid) boundaries must be rejected, not just
+# whole-minute ones ----------------------------------------------------------
+@pytest.mark.parametrize("bad_minute", [1, 2, 3, 4, 6, 7, 8, 9])
+def test_off_5m_grid_whole_minute_decision_boundary_rejected(bad_minute):
+    """12:03 etc. are whole-minute but NOT aligned to the 5m grid --
+    downstream alignment (`selected_bucket`) would reject the same T, so
+    provenance must never accept it either."""
+    off_grid = datetime(2026, 8, 20, 12, bad_minute, tzinfo=timezone.utc)
+    with pytest.raises(V2DecisionProvenanceError, match="decision_boundary"):
+        make_provenance(decision_boundary=off_grid)
+
+
+def test_decision_boundary_validation_delegates_to_selected_bucket_no_duplicate_regex():
+    """No locally-maintained weaker duplicate grid-alignment check."""
+    src = inspect.getsource(
+        __import__("analytics.forecasting_v2.decision_provenance", fromlist=["decision_provenance"]))
+    assert "selected_bucket(" in src
+    assert "% 5" not in src  # no local re-derivation of the 5m-grid modulus check
+
+
+def test_15m_1h_4h_grid_aligned_boundaries_accepted():
+    """Every 5m-grid-aligned instant is a legal decision boundary --
+    aligning to a COARSER grid (15m/1h/4h) is not itself required, only
+    5m-grid alignment (matches alignment.selected_bucket()'s own
+    contract)."""
+    for t in (
+        datetime(2026, 8, 20, 12, 5, tzinfo=timezone.utc),
+        datetime(2026, 8, 20, 12, 10, tzinfo=timezone.utc),
+        datetime(2026, 8, 20, 0, 0, tzinfo=timezone.utc),
+    ):
+        assert make_provenance(decision_boundary=t).decision_boundary == t
+
+
+# ---- tech-lead amendment: malformed tzinfo never leaks a raw exception -----
+class _RaisingTzinfo(_dt_module.tzinfo):
+    """A malformed/malicious custom `tzinfo` whose `utcoffset()` raises on
+    every call."""
+    def utcoffset(self, dt):  # noqa: D102 - deliberately misbehaving
+        raise RuntimeError("malformed tzinfo: utcoffset() always raises")
+
+    def tzname(self, dt):
+        return "RAISING"
+
+    def dst(self, dt):
+        return timedelta(0)
+
+
+def test_malformed_tzinfo_utcoffset_never_leaks_raw_exception():
+    bad_dt = datetime(2026, 8, 20, 12, 0, tzinfo=_RaisingTzinfo())
+    with pytest.raises(V2DecisionProvenanceError) as exc_info:
+        make_provenance(decision_boundary=bad_dt)
+    assert "RuntimeError" in str(exc_info.value) or isinstance(
+        exc_info.value.__cause__, RuntimeError)
+
+
+def test_validator_itself_never_calls_utcoffset_directly():
+    """This module's own `_validate_decision_boundary` delegates entirely
+    to `alignment.selected_bucket()` and never itself calls `.utcoffset()`
+    -- confirmed by AST inspection of the function's actual CODE (not its
+    docstring, which mentions `.utcoffset()` in prose), so a future edit
+    can't silently reintroduce the un-translated multi-call pattern this
+    amendment fixes."""
+    import ast
+    func = (
+        __import__("analytics.forecasting_v2.decision_provenance", fromlist=["decision_provenance"])
+        ._validate_decision_boundary)
+    tree = ast.parse(inspect.getsource(func))
+    utcoffset_calls = [
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "utcoffset"
+    ]
+    assert utcoffset_calls == []
 
 
 # ---- decision_code_version ---------------------------------------------------

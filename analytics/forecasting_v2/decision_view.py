@@ -18,17 +18,28 @@ Stage 3 begins reading, then thread that same view's provenance
 read -- never re-resolve provenance or re-check readiness mid-computation
 for the same `T`.
 
-`resolve_decision_view()` is the ONE constructor path: it requires the
-provenance's `calculation_version` to equal the readiness result's
-`calculation_version`, and the provenance's `decision_boundary` to equal the
-readiness result's `decision_boundary` -- a caller cannot accidentally
-compose a provenance for version A with a readiness result computed for
-version B, or for a different `T`, and get a silently-mismatched view back.
+**Coherence is enforced at `V2DecisionView`'s own construction boundary,
+not only by `resolve_decision_view()` (Qodo amendment round 1, finding
+5).** `V2DecisionView.__post_init__` itself requires the provenance's
+`symbol`/`market_type`/`calculation_version`/`decision_boundary` to equal
+the readiness result's -- a caller cannot bypass the coherence checks by
+constructing `V2DecisionView(...)` directly instead of going through
+`resolve_decision_view()`; there is exactly one way for this type to exist
+with a mismatched identity, and that is never. Binding `symbol`/
+`market_type` (not just `calculation_version`/`decision_boundary`) closes
+the scope-confusion gap `V2ActivationReadinessResult` used to have before
+it started carrying its own queried scope (Qodo amendment round 1, finding
+3) -- readiness computed for a different symbol/market can no longer be
+composed with provenance for another just because the other two fields
+happen to match. `resolve_decision_view()` remains as a small,
+explicitly-named convenience wrapper over the constructor -- it adds
+nothing `V2DecisionView(...)` does not already enforce on its own.
+
 A `NOT_READY` view is still a legitimately constructed, informative
-object -- `resolve_decision_view()` never raises merely because
-`readiness.ready` is `False`; what a caller does with a `NOT_READY` view
-(block, alert, keep draining) is left to the future orchestration layer,
-not this module.
+object -- neither `V2DecisionView.__post_init__` nor `resolve_decision_
+view()` raises merely because `readiness.ready` is `False`; what a caller
+does with a `NOT_READY` view (block, alert, keep draining) is left to the
+future orchestration layer, not this module.
 
 This module composes ONLY; it resolves nothing itself:
   - it does not call `check_activation_readiness()` (the caller's job --
@@ -55,19 +66,49 @@ __all__ = ["V2DecisionViewError", "V2DecisionView", "resolve_decision_view"]
 
 class V2DecisionViewError(ValueError):
     """The supplied provenance and readiness result do not describe the
-    same `(calculation_version, decision_boundary)` identity -- refused,
-    never silently composed anyway. Also raised for a wrong-typed
-    argument."""
+    same `(symbol, market_type, calculation_version, decision_boundary)`
+    identity -- refused, never silently composed anyway. Also raised for a
+    wrong-typed argument. Raised from `V2DecisionView.__post_init__`
+    itself, so this holds for EVERY construction path, including a direct
+    `V2DecisionView(...)` call -- not only `resolve_decision_view()`."""
 
 
 @dataclass(frozen=True)
 class V2DecisionView:
     """Immutable composition of one decision boundary's resolved identity
-    (`provenance`) and its readiness verdict (`readiness`). Only ever
-    constructed via `resolve_decision_view()`, which enforces the two
-    objects actually describe the same identity."""
+    (`provenance`) and its readiness verdict (`readiness`). Self-validates
+    in `__post_init__`: both arguments must be the expected type, and
+    their `symbol`/`market_type`/`calculation_version`/`decision_boundary`
+    must all agree -- there is no construction path (direct call or via
+    `resolve_decision_view()`) that can produce a mismatched instance."""
     provenance: V2DecisionProvenance
     readiness: V2ActivationReadinessResult
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.provenance, V2DecisionProvenance):
+            raise V2DecisionViewError(
+                f"provenance must be a V2DecisionProvenance, "
+                f"got {type(self.provenance).__name__}")
+        if not isinstance(self.readiness, V2ActivationReadinessResult):
+            raise V2DecisionViewError(
+                f"readiness must be a V2ActivationReadinessResult, "
+                f"got {type(self.readiness).__name__}")
+        if self.provenance.symbol != self.readiness.symbol:
+            raise V2DecisionViewError(
+                "provenance.symbol does not match readiness.symbol -- refusing to compose "
+                "a decision view for mismatched identities")
+        if self.provenance.market_type != self.readiness.market_type:
+            raise V2DecisionViewError(
+                "provenance.market_type does not match readiness.market_type -- refusing to "
+                "compose a decision view for mismatched identities")
+        if self.provenance.calculation_version != self.readiness.calculation_version:
+            raise V2DecisionViewError(
+                "provenance.calculation_version does not match readiness.calculation_version -- "
+                "refusing to compose a decision view for mismatched identities")
+        if self.provenance.decision_boundary != self.readiness.decision_boundary:
+            raise V2DecisionViewError(
+                "provenance.decision_boundary does not match readiness.decision_boundary -- "
+                "refusing to compose a decision view for mismatched identities")
 
     @property
     def ready(self) -> bool:
@@ -80,24 +121,10 @@ class V2DecisionView:
 def resolve_decision_view(
     provenance: V2DecisionProvenance, readiness: V2ActivationReadinessResult,
 ) -> V2DecisionView:
-    """The one constructor path for `V2DecisionView`. Raises
-    `V2DecisionViewError` if `provenance` and `readiness` do not describe
-    the same `(calculation_version, decision_boundary)` identity, or if
-    either argument is not the expected type. Never re-validates the
-    individual objects' own fields -- both already self-validated in their
-    own `__post_init__`."""
-    if not isinstance(provenance, V2DecisionProvenance):
-        raise V2DecisionViewError(
-            f"provenance must be a V2DecisionProvenance, got {type(provenance).__name__}")
-    if not isinstance(readiness, V2ActivationReadinessResult):
-        raise V2DecisionViewError(
-            f"readiness must be a V2ActivationReadinessResult, got {type(readiness).__name__}")
-    if provenance.calculation_version != readiness.calculation_version:
-        raise V2DecisionViewError(
-            "provenance.calculation_version does not match readiness.calculation_version -- "
-            "refusing to compose a decision view for mismatched identities")
-    if provenance.decision_boundary != readiness.decision_boundary:
-        raise V2DecisionViewError(
-            "provenance.decision_boundary does not match readiness.decision_boundary -- "
-            "refusing to compose a decision view for mismatched identities")
+    """A small, explicitly-named convenience wrapper over
+    `V2DecisionView(...)`. All coherence/type checks live in
+    `V2DecisionView.__post_init__` itself (so they run for every
+    construction path, not only this function) -- this wrapper adds
+    nothing beyond a descriptive call site for callers who prefer a
+    function name to a bare constructor call."""
     return V2DecisionView(provenance=provenance, readiness=readiness)

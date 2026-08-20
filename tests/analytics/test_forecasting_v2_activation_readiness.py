@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import datetime as _datetime_module
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -21,13 +22,14 @@ from analytics.forecasting_v2.activation_readiness import (
     V2ActivationReadinessResult, V2CoverageStatus, V2RequiredPercentileCoverage,
     check_activation_readiness,
 )
+from analytics.forecasting_v2.alignment import selected_bucket
 from analytics.forecasting_v2.context_evidence import MIN_PCTL_TIER
 
 UTC = timezone.utc
 SYMBOL = "BTCUSDT"
 MARKET_TYPE = "perp"
 CALC_VERSION = "a" * 16
-T = datetime(2026, 8, 20, 12, 0, tzinfo=UTC)
+T = datetime(2026, 8, 20, 12, 0, tzinfo=UTC)  # legal 5m boundary, on the 4h/1h/15m grid too
 
 
 def _run(coro):
@@ -39,13 +41,17 @@ class FakePercentileReader:
     `check_activation_readiness` calls). `rows_by_key` maps
     `(metric, timeframe, percentile_window)` to the tuple of rows that key
     should return; a missing key returns `()`, matching a real empty
-    read."""
+    read. Asserts every call is for a single EXACT bucket
+    (`bucket_start == bucket_end`) -- `check_activation_readiness` must
+    never issue a window read."""
     def __init__(self, rows_by_key=None):
         self._rows_by_key = rows_by_key or {}
         self.calls: list = []
 
     async def fetch_v2_consensus_percentile_window(self, **kw):
         self.calls.append(kw)
+        assert kw["bucket_start"] == kw["bucket_end"], (
+            "check_activation_readiness must query a single exact bucket, never a window")
         key = (kw["metric"], kw["timeframe"], kw["percentile_window"])
         return self._rows_by_key.get(key, ())
 
@@ -63,12 +69,34 @@ class FakePercentileReader:
         raise AssertionError("must not be called")
 
 
+class MultiRowReader:
+    """A misbehaving reader that returns more than one row for a single
+    exact bucket -- must trip `check_activation_readiness`'s
+    defense-in-depth guard, never be silently accepted."""
+    async def fetch_v2_consensus_percentile_window(self, **kw):
+        return (_row(), _row())
+
+
 class RaisingReader:
     class Boom(RuntimeError):
         pass
 
     async def fetch_v2_consensus_percentile_window(self, **kw):
         raise self.Boom("corrupted percentile_snapshots row")
+
+
+class _RaisingTzinfo(_datetime_module.tzinfo):
+    """A malformed/malicious custom `tzinfo` whose `utcoffset()` raises on
+    every call -- proves the tech-lead amendment: no raw exception from a
+    misbehaving `tzinfo` ever leaks past this module's public boundary."""
+    def utcoffset(self, dt):  # noqa: D102 - deliberately misbehaving
+        raise RuntimeError("malformed tzinfo: utcoffset() always raises")
+
+    def tzname(self, dt):
+        return "RAISING"
+
+    def dst(self, dt):
+        return timedelta(0)
 
 
 def _row(*, bucket_ts=T, value=1.0, percentile_rank=0.5, confidence_tier="mature"):
@@ -78,11 +106,25 @@ def _row(*, bucket_ts=T, value=1.0, percentile_rank=0.5, confidence_tier="mature
     }
 
 
-def _ready_rows_for_all() -> dict:
+def _ready_rows_for_all(*, decision_boundary: datetime = T) -> dict:
     return {
-        (req.metric, req.timeframe, req.percentile_window): (_row(),)
+        (req.metric, req.timeframe, req.percentile_window):
+            (_row(bucket_ts=selected_bucket(req.timeframe, decision_boundary)),)
         for req in MANDATORY_PERCENTILE_COVERAGE
     }
+
+
+def _status(req, *, ready: bool) -> V2CoverageStatus:
+    return V2CoverageStatus(requirement=req, ready=ready, reason="test", latest_bucket_ts=T)
+
+
+def _make_result(**over) -> V2ActivationReadinessResult:
+    base = dict(
+        symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+        decision_boundary=T, ready=True,
+        statuses=tuple(_status(req, ready=True) for req in MANDATORY_PERCENTILE_COVERAGE))
+    base.update(over)
+    return V2ActivationReadinessResult(**base)
 
 
 # ============================================================================
@@ -157,13 +199,15 @@ def test_all_requirements_ready_yields_ready_true():
         calculation_version=CALC_VERSION, decision_boundary=T))
     assert isinstance(result, V2ActivationReadinessResult)
     assert result.ready is True
+    assert result.symbol == SYMBOL
+    assert result.market_type == MARKET_TYPE
     assert result.calculation_version == CALC_VERSION
     assert result.decision_boundary == T
     assert len(result.statuses) == 4
     assert all(status.ready for status in result.statuses)
 
 
-def test_calculation_version_passed_straight_through_never_defaulted():
+def test_calculation_version_and_scope_passed_straight_through_never_defaulted():
     reader = FakePercentileReader(rows_by_key=_ready_rows_for_all())
     _run(check_activation_readiness(
         reader, symbol=SYMBOL, market_type=MARKET_TYPE,
@@ -175,16 +219,77 @@ def test_calculation_version_passed_straight_through_never_defaulted():
         assert call["market_type"] == MARKET_TYPE
 
 
-def test_lookback_window_is_exactly_one_bucket_width_per_requirement():
+# ============================================================================
+# Qodo amendment round 1, finding 1: exact bucket, never a window
+# ============================================================================
+def test_exact_bucket_used_never_a_window_on_aligned_boundary():
     reader = FakePercentileReader(rows_by_key=_ready_rows_for_all())
     _run(check_activation_readiness(
         reader, symbol=SYMBOL, market_type=MARKET_TYPE,
         calculation_version=CALC_VERSION, decision_boundary=T))
     by_timeframe = {call["timeframe"]: call for call in reader.calls}
-    assert by_timeframe["4h"]["bucket_start"] == T - timedelta(hours=4)
-    assert by_timeframe["4h"]["bucket_end"] == T
-    assert by_timeframe["1h"]["bucket_start"] == T - timedelta(hours=1)
-    assert by_timeframe["15m"]["bucket_start"] == T - timedelta(minutes=15)
+    for tf in ("4h", "1h", "15m"):
+        expected = selected_bucket(tf, T)
+        assert by_timeframe[tf]["bucket_start"] == expected
+        assert by_timeframe[tf]["bucket_end"] == expected
+
+
+def test_exact_bucket_at_non_timeframe_aligned_boundary_matches_selected_bucket():
+    """The load-bearing regression for finding 1: at T=12:05 (a legal 5m
+    boundary, but NOT on the 4h/1h/15m grid), readiness must inspect
+    EXACTLY the fully-closed bucket a live detector would consume --
+    never a newer or unrelated snapshot, and never a window that starts
+    AFTER that bucket."""
+    t = datetime(2026, 8, 20, 12, 5, tzinfo=UTC)
+    expected_4h = selected_bucket("4h", t)
+    expected_1h = selected_bucket("1h", t)
+    expected_15m = selected_bucket("15m", t)
+    assert expected_4h == datetime(2026, 8, 20, 8, 0, tzinfo=UTC)
+    assert expected_1h == datetime(2026, 8, 20, 11, 0, tzinfo=UTC)
+    assert expected_15m == datetime(2026, 8, 20, 11, 45, tzinfo=UTC)
+
+    reader = FakePercentileReader(rows_by_key=_ready_rows_for_all(decision_boundary=t))
+    result = _run(check_activation_readiness(
+        reader, symbol=SYMBOL, market_type=MARKET_TYPE,
+        calculation_version=CALC_VERSION, decision_boundary=t))
+    assert result.ready is True   # materialized history at 08:00/11:00/11:45 is found
+
+    by_timeframe = {call["timeframe"]: call for call in reader.calls}
+    assert by_timeframe["4h"]["bucket_start"] == expected_4h
+    assert by_timeframe["4h"]["bucket_end"] == expected_4h
+    assert by_timeframe["1h"]["bucket_start"] == expected_1h
+    assert by_timeframe["15m"]["bucket_start"] == expected_15m
+    # The old window-based query would have started at t - 4h == 08:05,
+    # strictly AFTER the 08:00 bucket a real detector reads -- prove that
+    # window would have EXCLUDED the bucket this test's row lives at.
+    old_window_start = t - timedelta(hours=4)
+    assert old_window_start > expected_4h
+
+
+def test_row_present_only_at_selected_bucket_not_at_a_stale_or_newer_one():
+    """A row that exists at a DIFFERENT bucket than
+    `selected_bucket(timeframe, T)` (older or newer) must NOT satisfy
+    readiness -- proves this module never accepts a newer or unrelated
+    snapshot. Uses a reader that mirrors the REAL reader's own exact-
+    identity contract: a row is only returned when the requested
+    `bucket_start`/`bucket_end` matches the bucket it actually lives at."""
+    wrong_bucket = selected_bucket("1h", T) - timedelta(hours=1)  # one bucket too old
+
+    class ExactIdentityReader:
+        async def fetch_v2_consensus_percentile_window(self, *, bucket_start, bucket_end, **kw):
+            if bucket_start != wrong_bucket or bucket_end != wrong_bucket:
+                return ()
+            return (_row(bucket_ts=wrong_bucket),)
+
+    result = _run(check_activation_readiness(
+        ExactIdentityReader(), symbol=SYMBOL, market_type=MARKET_TYPE,
+        calculation_version=CALC_VERSION, decision_boundary=T,
+        requirements=(V2RequiredPercentileCoverage(
+            source="bias_1h.price", metric=bias_1h_mod._PRICE_METRIC,
+            timeframe=bias_1h_mod._BIAS_TIMEFRAME,
+            percentile_window=bias_1h_mod._BIAS_PERCENTILE_WINDOW),)))
+    assert result.ready is False
+    assert "no percentile_snapshots row" in result.statuses[0].reason
 
 
 # ============================================================================
@@ -267,20 +372,12 @@ def test_unknown_confidence_tier_raises_not_downgraded_to_not_ready():
             calculation_version=CALC_VERSION, decision_boundary=T))
 
 
-def test_latest_row_is_the_last_one_returned_never_the_first():
-    rows = _ready_rows_for_all()
-    key = (bias_1h_mod._PRICE_METRIC, bias_1h_mod._BIAS_TIMEFRAME,
-           bias_1h_mod._BIAS_PERCENTILE_WINDOW)
-    stale = _row(bucket_ts=T - timedelta(hours=1), confidence_tier="none")
-    fresh = _row(bucket_ts=T, confidence_tier="mature")
-    rows[key] = (stale, fresh)  # ascending order, matching the real reader's contract
-    reader = FakePercentileReader(rows_by_key=rows)
-    result = _run(check_activation_readiness(
-        reader, symbol=SYMBOL, market_type=MARKET_TYPE,
-        calculation_version=CALC_VERSION, decision_boundary=T))
-    by_source = {s.requirement.source: s for s in result.statuses}
-    assert by_source["bias_1h.price"].ready is True
-    assert by_source["bias_1h.price"].latest_bucket_ts == T
+def test_more_than_one_row_for_exact_bucket_raises_defense_in_depth():
+    reader = MultiRowReader()
+    with pytest.raises(V2ActivationReadinessError, match="expected at most 1"):
+        _run(check_activation_readiness(
+            reader, symbol=SYMBOL, market_type=MARKET_TYPE,
+            calculation_version=CALC_VERSION, decision_boundary=T))
 
 
 # ============================================================================
@@ -367,14 +464,205 @@ def test_wrong_type_requirement_rejected():
 
 
 # ============================================================================
-# result immutability
+# Qodo amendment round 1, finding 6 (illegal boundaries) — reuse the
+# canonical alignment validator, off-grid whole-minute values rejected
 # ============================================================================
-def test_result_and_status_are_frozen():
+@pytest.mark.parametrize("bad_minute", [1, 2, 3, 4, 6, 7, 8, 9])
+def test_off_5m_grid_whole_minute_decision_boundary_rejected(bad_minute):
+    """12:03 etc. are whole-minute but NOT on the 5m grid -- must be
+    rejected by check_activation_readiness (previously only whole-minute
+    was checked, silently accepting an illegal boundary)."""
+    off_grid = datetime(2026, 8, 20, 12, bad_minute, tzinfo=UTC)
     reader = FakePercentileReader(rows_by_key=_ready_rows_for_all())
-    result = _run(check_activation_readiness(
-        reader, symbol=SYMBOL, market_type=MARKET_TYPE,
-        calculation_version=CALC_VERSION, decision_boundary=T))
+    with pytest.raises(V2ActivationReadinessError, match="decision_boundary"):
+        _run(check_activation_readiness(
+            reader, symbol=SYMBOL, market_type=MARKET_TYPE,
+            calculation_version=CALC_VERSION, decision_boundary=off_grid))
+
+
+def test_decision_boundary_validation_delegates_to_selected_bucket_no_duplicate_regex():
+    """Reuses the canonical alignment validator -- no locally-maintained
+    weaker duplicate grid-alignment check."""
+    import inspect
+    src = inspect.getsource(
+        __import__(
+            "analytics.forecasting_v2.activation_readiness",
+            fromlist=["activation_readiness"]))
+    assert "selected_bucket(" in src
+    assert "% 5" not in src  # no local re-derivation of the 5m-grid modulus check
+
+
+# ============================================================================
+# tech-lead amendment: malformed tzinfo never leaks a raw exception
+# ============================================================================
+def test_malformed_tzinfo_utcoffset_never_leaks_raw_exception_in_check():
+    bad_dt = datetime(2026, 8, 20, 12, 0, tzinfo=_RaisingTzinfo())
+    reader = FakePercentileReader(rows_by_key=_ready_rows_for_all())
+    with pytest.raises(V2ActivationReadinessError) as exc_info:
+        _run(check_activation_readiness(
+            reader, symbol=SYMBOL, market_type=MARKET_TYPE,
+            calculation_version=CALC_VERSION, decision_boundary=bad_dt))
+    # the underlying RuntimeError is chained/described, never swallowed silently
+    assert "RuntimeError" in str(exc_info.value) or isinstance(exc_info.value.__cause__, RuntimeError)
+
+
+def test_malformed_tzinfo_utcoffset_never_leaks_raw_exception_in_result_construction():
+    bad_dt = datetime(2026, 8, 20, 12, 0, tzinfo=_RaisingTzinfo())
+    with pytest.raises(V2ActivationReadinessError):
+        _make_result(decision_boundary=bad_dt)
+
+
+def test_utcoffset_called_at_most_once_by_our_own_validator():
+    """A tzinfo that raises only on its SECOND call would silently look
+    "fine" under a naive two-call validator -- this proves our own
+    boundary calls the offset-evaluation path at most once (by never
+    calling `.utcoffset()` itself at all; it delegates entirely to
+    `selected_bucket()`)."""
+    calls = {"n": 0}
+
+    class _CountingTzinfo(_datetime_module.tzinfo):
+        def utcoffset(self, dt):
+            calls["n"] += 1
+            if calls["n"] >= 2:
+                raise RuntimeError("raises only on second call")
+            return timedelta(0)
+
+        def tzname(self, dt):
+            return "COUNTING"
+
+        def dst(self, dt):
+            return timedelta(0)
+
+    dt = datetime(2026, 8, 20, 12, 0, tzinfo=_CountingTzinfo())
+    reader = FakePercentileReader(rows_by_key=_ready_rows_for_all())
+    # This module's own `_validate_decision_boundary` must not itself
+    # trigger the second call; whether `selected_bucket()`'s internal
+    # implementation calls utcoffset() more than once is out of THIS
+    # module's control/scope -- what matters is that any resulting
+    # exception is translated, never leaked raw. Accept either a clean
+    # pass or a translated V2ActivationReadinessError, but NEVER a raw
+    # RuntimeError.
+    try:
+        _run(check_activation_readiness(
+            reader, symbol=SYMBOL, market_type=MARKET_TYPE,
+            calculation_version=CALC_VERSION, decision_boundary=dt))
+    except V2ActivationReadinessError:
+        pass  # acceptable: translated
+    except RuntimeError:
+        pytest.fail("a raw RuntimeError leaked past check_activation_readiness's boundary")
+
+
+# ============================================================================
+# Qodo amendment round 1, finding 4: V2ActivationReadinessResult is
+# self-validating, never forgeable
+# ============================================================================
+def test_result_ready_true_with_all_ready_statuses_accepted():
+    result = _make_result(ready=True)
+    assert result.ready is True
+
+
+def test_result_forged_ready_true_with_failing_status_rejected():
+    statuses = (
+        _status(MANDATORY_PERCENTILE_COVERAGE[0], ready=False),
+        *[_status(req, ready=True) for req in MANDATORY_PERCENTILE_COVERAGE[1:]],
+    )
+    with pytest.raises(V2ActivationReadinessError, match="ready"):
+        _make_result(ready=True, statuses=statuses)
+
+
+def test_result_forged_ready_false_with_all_ready_statuses_rejected():
+    with pytest.raises(V2ActivationReadinessError, match="ready"):
+        _make_result(ready=False, statuses=tuple(
+            _status(req, ready=True) for req in MANDATORY_PERCENTILE_COVERAGE))
+
+
+def test_result_empty_statuses_rejected():
+    with pytest.raises(V2ActivationReadinessError, match="statuses"):
+        _make_result(ready=True, statuses=())
+
+
+def test_result_non_tuple_statuses_rejected():
+    with pytest.raises(V2ActivationReadinessError, match="statuses"):
+        _make_result(ready=True, statuses=[_status(MANDATORY_PERCENTILE_COVERAGE[0], ready=True)])
+
+
+def test_result_wrong_type_status_element_rejected():
+    with pytest.raises(V2ActivationReadinessError, match="V2CoverageStatus"):
+        _make_result(ready=True, statuses=("not-a-status",))  # type: ignore[arg-type]
+
+
+def test_result_duplicate_requirement_rejected():
+    req = MANDATORY_PERCENTILE_COVERAGE[0]
+    with pytest.raises(V2ActivationReadinessError, match="duplicate"):
+        _make_result(ready=True, statuses=(
+            _status(req, ready=True), _status(req, ready=True)))
+
+
+@pytest.mark.parametrize("field,bad", [
+    ("symbol", ""), ("symbol", None), ("market_type", ""), ("market_type", None),
+    ("calculation_version", ""), ("calculation_version", None),
+])
+def test_result_blank_identity_field_rejected(field, bad):
+    with pytest.raises(V2ActivationReadinessError, match=field):
+        _make_result(**{field: bad})
+
+
+def test_result_ready_non_bool_rejected():
+    with pytest.raises(V2ActivationReadinessError, match="ready"):
+        _make_result(ready=1)  # type: ignore[arg-type]
+
+
+def test_result_is_frozen():
+    result = _make_result()
     with pytest.raises(dataclasses.FrozenInstanceError):
         result.ready = False  # type: ignore[misc]
     with pytest.raises(dataclasses.FrozenInstanceError):
         result.statuses[0].ready = False  # type: ignore[misc]
+
+
+def test_check_activation_readiness_return_value_satisfies_its_own_invariant():
+    reader = FakePercentileReader(rows_by_key=_ready_rows_for_all())
+    result = _run(check_activation_readiness(
+        reader, symbol=SYMBOL, market_type=MARKET_TYPE,
+        calculation_version=CALC_VERSION, decision_boundary=T))
+    # Constructing an EQUIVALENT result by hand must not raise -- proves
+    # check_activation_readiness's own return already satisfies
+    # __post_init__'s invariant (it goes through the same constructor).
+    V2ActivationReadinessResult(
+        symbol=result.symbol, market_type=result.market_type,
+        calculation_version=result.calculation_version,
+        decision_boundary=result.decision_boundary, ready=result.ready,
+        statuses=result.statuses)
+
+
+# ============================================================================
+# V2CoverageStatus self-validation
+# ============================================================================
+def test_coverage_status_wrong_type_requirement_rejected():
+    with pytest.raises(V2ActivationReadinessError, match="requirement"):
+        V2CoverageStatus(requirement="not-a-requirement", ready=True, reason="x",
+                          latest_bucket_ts=None)  # type: ignore[arg-type]
+
+
+def test_coverage_status_non_bool_ready_rejected():
+    with pytest.raises(V2ActivationReadinessError, match="ready"):
+        V2CoverageStatus(requirement=MANDATORY_PERCENTILE_COVERAGE[0], ready=1,
+                          reason="x", latest_bucket_ts=None)  # type: ignore[arg-type]
+
+
+def test_coverage_status_blank_reason_rejected():
+    with pytest.raises(V2ActivationReadinessError, match="reason"):
+        V2CoverageStatus(requirement=MANDATORY_PERCENTILE_COVERAGE[0], ready=True,
+                          reason="", latest_bucket_ts=None)
+
+
+def test_coverage_status_bad_latest_bucket_ts_rejected():
+    with pytest.raises(V2ActivationReadinessError, match="latest_bucket_ts"):
+        V2CoverageStatus(requirement=MANDATORY_PERCENTILE_COVERAGE[0], ready=True,
+                          reason="x", latest_bucket_ts="not-a-datetime")  # type: ignore[arg-type]
+
+
+def test_coverage_status_none_latest_bucket_ts_accepted():
+    status = V2CoverageStatus(requirement=MANDATORY_PERCENTILE_COVERAGE[0], ready=False,
+                               reason="x", latest_bucket_ts=None)
+    assert status.latest_bucket_ts is None

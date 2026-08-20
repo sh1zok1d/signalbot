@@ -141,23 +141,44 @@ def resolve_code_version(explicit: Optional[str] = None, *,
 # ============================================================================
 
 # The feature-computation code surface that participates in Stage 2's
-# `calculation_version` identity, as of the currently-implemented pipeline
-# (`analytics/feature_engine/pipeline.py` and
-# `analytics/feature_engine/consensus_pipeline.py`, which import ONLY from
-# `common/stage2_config.py`, this module, and their own package -- confirmed
-# by direct inspection, never introspected/guessed at call time). Deliberately
-# EXCLUDES `analytics/percentile_engine/` and `analytics/data_quality/`:
-# neither is imported by the feature-computation pipeline itself, so neither
-# participates in COMPUTING a feature vector's identity (percentile
-# computation is a separate, downstream consumer of already-identified
-# features, not a producer of that identity). An explicit, reviewable list --
-# same "never `vars()`/`dir()` introspection" philosophy
+# `calculation_version` identity. §3.3a's own literal wording is:
+# "scoped to `analytics/feature_engine/`+`analytics/percentile_engine/` and
+# their direct dependencies" -- this is that scope, resolved by DIRECT
+# IMPORT-GRAPH INSPECTION (never introspected/guessed at call time), not
+# merely the two paths a first pass happened to touch (Qodo amendment
+# round 1, finding 2: `analytics/percentile_engine/` and several direct
+# feature-engine dependencies were originally omitted even though they
+# demonstrably affect Stage 2 output).
+#
+# Full transitive closure, confirmed by reading every `from`/`import` line
+# in both packages:
+#   analytics/feature_engine/*.py    imports common.instrument_metadata,
+#                                     common.stage2_config, common.versioning,
+#                                     symbols.registry
+#   analytics/percentile_engine/*.py imports symbols.registry
+#   common/instrument_metadata.py    imports common.symbol_mapper
+#   common/stage2_config.py          imports common.versioning (already listed)
+#   symbols/registry.py              imports common.capabilities
+#   common/symbol_mapper.py          imports nothing further (leaf)
+#   common/capabilities.py           imports nothing further (leaf)
+# `analytics/data_quality/` remains excluded: it is not imported by either
+# package, so it does not participate in COMPUTING a feature vector's or a
+# percentile snapshot's identity. An explicit, reviewable list -- same
+# "never `vars()`/`dir()` introspection" philosophy
 # `analytics/forecasting_v2/rules_manifest.py` already uses for the analogous
-# problem on the V2-rules side.
+# problem on the V2-rules side. `tests/common/test_versioning.py` proves,
+# via hermetic throwaway git repos mirroring this exact path set, that
+# changing ANY one of these forks the resolved identity while an unrelated
+# docs/Stage-6/Telegram-analog change does not.
 DEFAULT_FEATURE_CODE_PATHS: "tuple[str, ...]" = (
     "analytics/feature_engine",
+    "analytics/percentile_engine",
     "common/stage2_config.py",
     "common/versioning.py",
+    "common/instrument_metadata.py",
+    "common/symbol_mapper.py",
+    "symbols/registry.py",
+    "common/capabilities.py",
 )
 
 
