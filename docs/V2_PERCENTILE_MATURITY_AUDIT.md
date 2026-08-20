@@ -98,6 +98,7 @@ The dedicated regression file `tests/analytics/test_percentile_maturity_audit.py
 - two identical sparse samples;
 - sparse-long-span versus dense-short-span behavior;
 - exact 3d / 7d / 30d tier boundaries with only two observations;
+- two closely-spaced old samples (e.g. `B-30d` and `B-30d+1m`, or the `7d` analog) proving the SECOND sample's position is irrelevant to maturity -- only the earliest sample's age relative to `bucket_ts` is evaluated (`test_two_closely_spaced_old_samples_still_reach_mature`, `test_two_closely_spaced_old_samples_still_reach_building_at_7d`; tech-lead amendment round 2);
 - the four mandatory V2 percentile identities:
   - 4h / 30d `price_move_pct_median`;
   - 4h / 30d `range_width_pct_median`;
@@ -110,11 +111,11 @@ Existing branch regressions in `test_forecasting_v2_context_evidence.py` and `te
 
 ## 7. Classification
 
-**Combination:**
+**CURRENT: `DOCUMENTATION_MISMATCH`.** Confirmed now, against the currently-live system. Existing V2 wording (`activation_readiness.py`, `V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §4.1) overstated what Stage 2 `confidence_tier` guarantees; the wording is corrected in this branch. No currently-reachable production defect exists, because no live percentile-computation orchestrator exists yet.
 
-- `DOCUMENTATION_MISMATCH` — confirmed now. Existing V2 wording overstated what Stage 2 `confidence_tier` guarantees.
-- `STATISTICAL_VALIDITY_GAP` — confirmed as a **future empirical/runtime risk**, not as a currently active production-path defect, because no live percentile-computation orchestrator exists yet.
-- `CORRECTNESS_BUG` — **not established** in the percentile core. The core matches its frozen Revision 0.2.4 contract exactly.
+**FORWARD: `DEFERRED STATISTICAL_VALIDITY_GAP` — `R-023`.** The gap is real for any future consumer of a materialized `percentile_snapshots` row: `normalized_evidence()`/`compression_score()`/activation readiness accept a `confidence_tier`-usable row with no independent density check. Tracked as `docs/PROJECT_RISK_AND_DEBT_REGISTER.md` R-023, status `DEFERRED`, with an explicit re-entry condition (before a real percentile orchestrator ships, or before percentile-based V2 evidence is treated as empirically meaningful) — not resolved by this audit, and deliberately not resolved by inventing a density threshold here.
+
+**`CORRECTNESS_BUG` — not established** in the percentile core. The core matches its frozen Revision 0.2.4 contract exactly.
 
 ## 8. Narrowest resolution
 

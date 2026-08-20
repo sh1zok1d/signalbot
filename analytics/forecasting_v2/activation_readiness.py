@@ -28,15 +28,24 @@ density guarantee (research audit, issue #51/MATH-001 -- corrects an
 earlier, INCORRECT claim in this docstring).** `STAGE2_SPEC.md` §12.6 is
 explicit that `confidence_tier` is span-based, not row-count-based, and
 that row-count/density gating is "a deferred future revision, not
-invented here". Reaching `MIN_PCTL_TIER = "building"` therefore proves
-only that `sample_size >= 2` AND the earliest-to-latest sample span is
-`>= low_below_days` (7 calendar days, `config/stage2.yaml`) -- it does
-**not** prove that a window's *expected* sample density has
-materialized. A distribution with exactly two non-null historical
-samples spanning >= 7 (or >= 30, for `"mature"`) calendar days reaches
-this floor identically to a densely-populated one (frozen regression:
-`tests/analytics/test_percentile_engine.py::
-test_sparse_long_span_follows_span_contract`). This module's readiness
+invented here". Once `sample_size >= 2`, tier is computed from exactly
+one quantity -- `confidence_age = bucket_ts - sample_window_start`, the
+age of the EARLIEST included non-null historical sample relative to the
+current snapshot bucket. `sample_window_end` (the newest historical
+sample) never participates in the tier computation at all. Reaching
+`MIN_PCTL_TIER = "building"` therefore proves only that `sample_size >= 2`
+AND `confidence_age >= low_below_days` (7 calendar days,
+`config/stage2.yaml`) -- it does **not** prove that a window's *expected*
+sample density has materialized, and it says nothing about where the
+newest sample falls. A distribution with exactly two non-null historical
+samples -- the earliest at `sample_window_start`, the newest anywhere up
+to `bucket_ts` (including one minute after `sample_window_start` itself)
+-- reaches this floor once `confidence_age >= 7` (or `>= 30`, for
+`"mature"`) calendar days, identically to a densely-populated one (frozen
+regressions: `tests/analytics/test_percentile_engine.py::
+test_sparse_long_span_follows_span_contract`,
+`tests/analytics/test_percentile_maturity_audit.py::
+test_two_closely_spaced_old_samples_still_reach_mature`). This module's readiness
 check therefore answers "is real (non-missing, non-tier-floored)
 evidence available", not "is the evidence statistically dense" -- those
 are the SAME distinction `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md`

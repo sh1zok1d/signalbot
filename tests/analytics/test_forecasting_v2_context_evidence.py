@@ -824,9 +824,10 @@ def test_normalized_evidence_sparse_two_sample_can_reach_full_magnitude():
 
 def test_compression_score_sparse_two_sample_can_reach_full_compression():
     """Symmetric vector for the unsigned compression companion: a 2-sample
-    row where the current value ranks below its sole historical sample
-    yields compression_score=1.0 -- comfortably clearing
-    COMPRESSION_THRESHOLD (0.75) from a maximally sparse distribution."""
+    row (sample_size=2 -- two historical samples, not one) where the
+    current value ranks below both of them (percentile_rank=0.0) yields
+    compression_score=1.0 -- comfortably clearing COMPRESSION_THRESHOLD
+    (0.75) from a maximally sparse distribution."""
     row = make_percentile_row(metric="range_width_pct_median", sample_size=2,
                               confidence_tier="mature", value=0.01, percentile_rank=0.0)
     inputs = make_inputs(percentiles=[row])

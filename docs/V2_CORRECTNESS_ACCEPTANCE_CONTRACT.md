@@ -1144,20 +1144,32 @@ than `STAGE2_SPEC.md` §12.6 actually specifies, and than
 `compute_percentile_snapshot()` actually computes. §12.6 is explicit that
 tier is **span-based, not row-count-based** ("a deliberate, documented
 choice; row-count gating is a deferred future revision, not invented
-here"): `confidence_tier` is `"none"` only when `sample_size < 2` OR the
-earliest-to-latest calendar span is under `none_below_days`; once
-`sample_size >= 2` and the span requirement is met, tier climbs on span
-alone, regardless of how many samples actually populate that span. A
-distribution with **exactly two** non-null historical samples — one near
-`sample_window_start`, one near `bucket_ts` — reaches `"building"` once
-those two samples are `>= 7` calendar days apart, and reaches `"mature"`
-once they are `>= 30` days apart (frozen regression:
-`tests/analytics/test_percentile_engine.py::
-test_sparse_long_span_follows_span_contract`). `MIN_PCTL_TIER` therefore
-excludes only the `sample_size < 2` / sub-`none_below_days` case, never a
-sparse-but-wide-span distribution — it is **not**, by itself, a
-guarantee that a percentile-window's *expected* sample density (e.g. a
-30d window's ~30 daily buckets) has actually materialized. This is not a
+here"): once `sample_size >= 2`, tier is computed from a single quantity,
+`confidence_age = bucket_ts - sample_window_start` — the age of the
+**earliest** included non-null historical sample relative to the current
+snapshot bucket. `sample_window_end` (the *newest* historical sample) does
+**not** participate in the tier calculation at all — it plays no role in
+`confidence_age` and no role in the tier thresholds. `confidence_tier` is
+`"none"` only when `sample_size < 2` OR `confidence_age < none_below_days`;
+once `sample_size >= 2` and `confidence_age` clears the relevant threshold,
+tier climbs on that single earliest-sample age alone, regardless of how
+many samples exist or where between `sample_window_start` and `bucket_ts`
+any of them (including the newest) actually falls. Concretely: a
+distribution with **exactly two** non-null historical samples — the
+earliest at `sample_window_start`, the newest anywhere at or after it up to
+`bucket_ts` (including immediately adjacent to `sample_window_start`
+itself, e.g. one minute later) — reaches `"building"` once
+`bucket_ts - sample_window_start >= 7` calendar days, and reaches
+`"mature"` once `bucket_ts - sample_window_start >= 30` days, with the
+second sample's own position never entering the computation (frozen
+regressions: `tests/analytics/test_percentile_engine.py::
+test_sparse_long_span_follows_span_contract`,
+`tests/analytics/test_percentile_maturity_audit.py::
+test_two_closely_spaced_old_samples_still_reach_mature`). `MIN_PCTL_TIER`
+therefore excludes only the `sample_size < 2` / sub-`none_below_days`
+case, never a sparse-but-old-enough distribution — it is **not**, by
+itself, a guarantee that a percentile-window's *expected* sample density
+(e.g. a 30d window's ~30 daily buckets) has actually materialized. This is not a
 correctness defect in the percentile engine (§12.6 chose this
 deliberately) or in how §4.1/§4.2/§4.3 consume `normalized_evidence()`/
 `compression_score()` today — no upstream production pipeline currently

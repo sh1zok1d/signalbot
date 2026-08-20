@@ -182,6 +182,64 @@ def test_small_n_midrank_resolution_examples(n, current, expected_rank):
     assert snap.percentile_rank == expected_rank
 
 
+# ---- tech-lead amendment round 2: prove the wider failure envelope -------
+# `_snapshot()` above always places the SECOND sample near B, which only
+# demonstrates the (oldest, newest-near-B) case. The frozen formula
+# (`STAGE2_SPEC.md` §12.6) is `confidence_age = bucket_ts -
+# sample_window_start` -- the age of the EARLIEST included non-null sample
+# relative to `bucket_ts` -- and `sample_window_end` (the newest sample)
+# never participates in the tier computation at all. These vectors place
+# BOTH samples close together near the OLD edge of the window to prove the
+# newest sample's position is irrelevant to maturity.
+def test_two_closely_spaced_old_samples_still_reach_mature():
+    """Both historical samples sit one minute apart, entirely near the OLD
+    edge of the 30d window -- nothing is near `bucket_ts`. Maturity is
+    reached anyway because only the EARLIEST sample's age matters."""
+    samples = (
+        _sample(ts=B - 30 * DAY, value=1.0, metric="price_move_pct_median", timeframe="4h"),
+        _sample(ts=B - 30 * DAY + MINUTE, value=2.0, metric="price_move_pct_median", timeframe="4h"),
+    )
+    snap = compute_percentile_snapshot(
+        PercentileRequest(
+            scope="consensus", exchange="", symbol="BTCUSDT", market_type="perp",
+            metric="price_move_pct_median", timeframe="4h", percentile_window="30d",
+            bucket_ts=B, value=999.0, samples=samples,
+            confidence_tier_thresholds=THRESHOLDS, config_hash=CFG,
+            config_version="2.1.0", code_version="audit",
+            feature_schema_version=1, calculation_version=CV,
+        )
+    )
+    assert snap.sample_size == 2
+    assert snap.sample_window_start == B - 30 * DAY
+    assert snap.sample_window_end == B - 30 * DAY + MINUTE
+    assert snap.confidence_tier == "mature"
+
+
+def test_two_closely_spaced_old_samples_still_reach_building_at_7d():
+    """Same shape at the 7d/'building' boundary: both samples sit together
+    right at the old edge of a 7d-old distribution, nothing near
+    `bucket_ts` -- still reaches 'building' because only the earliest
+    sample's age against `bucket_ts` is evaluated."""
+    samples = (
+        _sample(ts=B - 7 * DAY, value=1.0, metric="price_move_pct_median", timeframe="1h"),
+        _sample(ts=B - 7 * DAY + MINUTE, value=2.0, metric="price_move_pct_median", timeframe="1h"),
+    )
+    snap = compute_percentile_snapshot(
+        PercentileRequest(
+            scope="consensus", exchange="", symbol="BTCUSDT", market_type="perp",
+            metric="price_move_pct_median", timeframe="1h", percentile_window="7d",
+            bucket_ts=B, value=999.0, samples=samples,
+            confidence_tier_thresholds=THRESHOLDS, config_hash=CFG,
+            config_version="2.1.0", code_version="audit",
+            feature_schema_version=1, calculation_version=CV,
+        )
+    )
+    assert snap.sample_size == 2
+    assert snap.sample_window_start == B - 7 * DAY
+    assert snap.sample_window_end == B - 7 * DAY + MINUTE
+    assert snap.confidence_tier == "building"
+
+
 def test_two_sample_rank_can_cross_all_frozen_v2_percentile_thresholds():
     """Numerical reachability only; this is NOT evidence that N=2 is reliable."""
     # Positive price evidence: p=.75 -> E=.50, clearing both 4h=.40 and 1h=.25.
