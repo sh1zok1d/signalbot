@@ -789,10 +789,10 @@ def test_oi_confirmation_unknown_tier_beats_missing_rank():
 # This module (`normalized_evidence`/`compression_score`) gates PURELY on
 # `MIN_PCTL_TIER` via the tier string -- it has no independent `sample_size`
 # check. A row with `sample_size=2` and a `confidence_tier` that has
-# genuinely reached `MIN_PCTL_TIER` (because its two samples happen to span
-# enough calendar time) is therefore accepted identically to a densely
-# populated row -- exactly as `compute_percentile_snapshot()` and
-# `STAGE2_SPEC.md` §12.6 intend today.
+# genuinely reached `MIN_PCTL_TIER` (because `sample_size >= 2` and the
+# earliest included non-null sample is old enough relative to `bucket_ts`)
+# is therefore accepted identically to a densely populated row -- exactly as
+# `compute_percentile_snapshot()` and `STAGE2_SPEC.md` §12.6 intend today.
 # ============================================================================
 def test_normalized_evidence_accepts_sparse_two_sample_building_tier():
     """A 2-sample row at exactly MIN_PCTL_TIER ("building") is fully usable
@@ -808,9 +808,8 @@ def test_normalized_evidence_sparse_two_sample_can_reach_full_magnitude():
     """A sparse 2-sample distribution can produce the MAXIMUM possible
     normalized_evidence magnitude (1.0) -- there is no density-based
     dampening. 1.0 comfortably clears REGIME_TREND_THRESHOLD (0.40) and
-    BIAS_THRESHOLD (0.25); at N=2 the coarsest nonzero attainable magnitude
-    (0.5, a tie against the single historical sample) already clears both
-    thresholds too."""
+    BIAS_THRESHOLD (0.25); at N=2 an attainable rank of 0.75 already gives
+    magnitude 0.5 and clears both thresholds too."""
     row = make_percentile_row(sample_size=2, confidence_tier="mature",
                               value=1000.0, percentile_rank=1.0)
     inputs = make_inputs(percentiles=[row])
