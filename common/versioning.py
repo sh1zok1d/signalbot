@@ -13,7 +13,8 @@ import math
 import os
 import subprocess
 from collections.abc import Mapping
-from typing import Any, Optional
+from pathlib import Path
+from typing import Any, Optional, Sequence
 
 
 class VersioningError(RuntimeError):
@@ -120,3 +121,140 @@ def resolve_code_version(explicit: Optional[str] = None, *,
         "cannot determine code_version: pass it explicitly or set "
         f"${env_var} (git describe unavailable)"
     )
+
+
+# ============================================================================
+# Path-scoped feature-computation code identity (V2-H2a;
+# docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §3.3a).
+#
+# `resolve_code_version()` above resolves its git fallback via a WHOLE-REPO
+# `git describe --dirty` -- any uncommitted change ANYWHERE in the working
+# tree (a docs edit, a Stage 6 module, a Telegram notifier change) flips the
+# `-dirty` suffix and therefore forks Stage 2's `calculation_version`
+# namespace, even though none of those changes touch feature-computation
+# semantics. §3.3a is explicit that Stage 2 feature-computation identity
+# "must represent ONLY feature-computation semantics" and that an unrelated
+# repo change "MUST NOT" fork it. `resolve_feature_code_version()` is the
+# conforming replacement: it is scoped to an explicit set of
+# feature-computation-relevant paths and is provably insensitive to any
+# change outside them, committed or not.
+# ============================================================================
+
+# The feature-computation code surface that participates in Stage 2's
+# `calculation_version` identity, as of the currently-implemented pipeline
+# (`analytics/feature_engine/pipeline.py` and
+# `analytics/feature_engine/consensus_pipeline.py`, which import ONLY from
+# `common/stage2_config.py`, this module, and their own package -- confirmed
+# by direct inspection, never introspected/guessed at call time). Deliberately
+# EXCLUDES `analytics/percentile_engine/` and `analytics/data_quality/`:
+# neither is imported by the feature-computation pipeline itself, so neither
+# participates in COMPUTING a feature vector's identity (percentile
+# computation is a separate, downstream consumer of already-identified
+# features, not a producer of that identity). An explicit, reviewable list --
+# same "never `vars()`/`dir()` introspection" philosophy
+# `analytics/forecasting_v2/rules_manifest.py` already uses for the analogous
+# problem on the V2-rules side.
+DEFAULT_FEATURE_CODE_PATHS: "tuple[str, ...]" = (
+    "analytics/feature_engine",
+    "common/stage2_config.py",
+    "common/versioning.py",
+)
+
+
+def _repo_root() -> Path:
+    """This file's own repository root (`common/versioning.py` -> `common/`
+    -> repo root). Computed from `__file__`, never from `os.getcwd()` -- a
+    caller invoked from a different working directory must still resolve
+    the same paths."""
+    return Path(__file__).resolve().parent.parent
+
+
+def _git_scoped(args: "list[str]", *, cwd: Path, timeout: float = 5) -> str:
+    out = subprocess.run(
+        ["git", *args], cwd=cwd, capture_output=True, text=True, timeout=timeout, check=True,
+    )
+    return out.stdout
+
+
+def resolve_feature_code_version(explicit: Optional[str] = None, *,
+                                 env_var: str = "STAGE2_CODE_VERSION",
+                                 paths: Sequence[str] = DEFAULT_FEATURE_CODE_PATHS,
+                                 allow_git: bool = True,
+                                 repo_root: Optional[Path] = None) -> str:
+    """Resolve the Stage 2 FEATURE-computation code version, scoped to
+    `paths` only (§3.3a). Order: explicit argument > environment variable >
+    git, PATH-SCOPED to `paths` > raise. Never falls back to a whole-repo
+    `git describe`/`--dirty` -- this is the entire point of this function
+    existing alongside `resolve_code_version()`.
+
+    Git resolution has two parts, both scoped to `paths`:
+      1. The most recent commit that touched any of `paths`
+         (`git log -1 --format=%H -- <paths>`) -- unaffected by commits that
+         touch only files outside `paths`.
+      2. Whether any of `paths` currently has an uncommitted change (working
+         tree, staged, or untracked -- `git diff`/`git diff --cached`/
+         `git ls-files --others` each scoped to `paths`). If so, a
+         deterministic content hash of exactly those changed files (sorted
+         path order, path + bytes) is appended as a `-dirty-<hex12>` suffix
+         -- reproducible from the working tree alone, never a timestamp or
+         anything nondeterministic. A change to a file OUTSIDE `paths`
+         (dirty or not) can never affect this value, satisfying §3.3a's
+         "MUST NOT fork" requirement directly, not just by convention.
+
+    Raises `VersioningError` if none of explicit/env/git yields a value --
+    this must never silently fall back to whole-repo `resolve_code_version()`
+    or to `resolve_code_version()`'s own `'unknown'`-refusal posture; a
+    caller wanting THAT fallback chain must ask for it explicitly."""
+    if explicit is not None and explicit.strip():
+        return explicit.strip()
+    env_val = os.environ.get(env_var)
+    if env_val and env_val.strip():
+        return env_val.strip()
+    if not allow_git:
+        raise VersioningError(
+            "cannot determine feature code_version: pass it explicitly, set "
+            f"${env_var}, or enable git resolution (allow_git=False)"
+        )
+    if not paths:
+        raise VersioningError("resolve_feature_code_version: paths must be non-empty")
+
+    root = repo_root if repo_root is not None else _repo_root()
+    path_args = list(paths)
+    try:
+        commit = _git_scoped(["log", "-1", "--format=%H", "--", *path_args], cwd=root).strip()
+        working = set(_git_scoped(["diff", "--name-only", "--", *path_args], cwd=root).splitlines())
+        staged = set(
+            _git_scoped(["diff", "--cached", "--name-only", "--", *path_args], cwd=root).splitlines())
+        untracked = set(
+            _git_scoped(
+                ["ls-files", "--others", "--exclude-standard", "--", *path_args], cwd=root
+            ).splitlines())
+    except Exception as exc:  # noqa: BLE001 - fall through to explicit error
+        raise VersioningError(
+            "cannot determine feature code_version: git path-scoped resolution failed "
+            f"({type(exc).__name__}: {exc}) -- pass it explicitly or set ${env_var}"
+        ) from exc
+
+    dirty_files = sorted(working | staged | untracked)
+    if not commit and not dirty_files:
+        raise VersioningError(
+            "cannot determine feature code_version: no commit touches the configured "
+            f"feature-computation paths {tuple(path_args)!r} and none are dirty -- pass it "
+            f"explicitly or set ${env_var}"
+        )
+    if not dirty_files:
+        return commit
+
+    hasher = hashlib.sha256()
+    for rel_path in dirty_files:
+        abs_path = root / rel_path
+        hasher.update(rel_path.encode("utf-8"))
+        hasher.update(b"\x00")
+        if abs_path.exists() and abs_path.is_file():
+            hasher.update(abs_path.read_bytes())
+        else:
+            hasher.update(b"<absent>")
+        hasher.update(b"\x00")
+    dirty_suffix = hasher.hexdigest()[:12]
+    base = commit if commit else "none"
+    return f"{base}-dirty-{dirty_suffix}"
