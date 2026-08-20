@@ -657,6 +657,56 @@ class Database:
         return inserted
 
     # ---------------------------------------------------------------
+    # V2-H2b: DRAIN-BEFORE-ACTIVATE version-switch state
+    # (docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §3.1). Delegates all
+    # SQL/row-parsing to storage/v2_version_switch_readers.py and the pure
+    # transition decision to
+    # analytics/forecasting_v2/version_switch_orchestrator.py — this
+    # method owns ONLY the real transactional row lock/atomicity.
+    # ---------------------------------------------------------------
+    async def evaluate_v2_version_switch(
+        self, *, run_kind: str, run_id: str, decision_boundary: datetime,
+        symbol: str, market_type: str, requested=None,
+        readiness_reader, drain_reader,
+    ):
+        """Real, atomic entry point for one legal 5m decision boundary's
+        version-switch evaluation. Wraps `bootstrap_and_lock_v2_version_
+        switch_state()` (idempotent bootstrap + `SELECT ... FOR UPDATE`
+        row lock) and `resolve_version_switch_transition()` (the async
+        orchestration boundary, which itself calls the PURE
+        `version_switch.evaluate_version_switch_transition()`) inside ONE
+        transaction on ONE connection, then persists the resolved next
+        state on the SAME connection/transaction before releasing the
+        lock. A concurrent caller evaluating the SAME `(run_kind, run_id)`
+        blocks at the row lock until this transaction commits or rolls
+        back — no torn/interleaved read, no partial-write state ever
+        becomes visible (a raised exception anywhere inside this method
+        rolls the whole transaction back; the row is left exactly as it
+        was before this call — `conn.transaction()`'s own guarantee, not
+        anything this method implements itself).
+
+        Returns the `V2VersionSwitchTransitionResult` — see
+        `analytics/forecasting_v2/version_switch.py`/
+        `version_switch_orchestrator.py` for its shape and the exact
+        contract semantics this implements."""
+        from analytics.forecasting_v2.version_switch_orchestrator import (
+            resolve_version_switch_transition)
+        from storage.v2_version_switch_readers import (
+            bootstrap_and_lock_v2_version_switch_state, persist_v2_version_switch_state)
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                state = await bootstrap_and_lock_v2_version_switch_state(
+                    conn, run_kind=run_kind, run_id=run_id)
+                result = await resolve_version_switch_transition(
+                    state=state, decision_boundary=decision_boundary, symbol=symbol,
+                    market_type=market_type, requested=requested,
+                    readiness_reader=readiness_reader, drain_reader=drain_reader)
+                if result.state != state:
+                    await persist_v2_version_switch_state(conn, result.state)
+                return result
+
+    # ---------------------------------------------------------------
     # V2 aligned-input readers (Stage 3 — Multi-timeframe Alignment PR 2,
     # ADDITIVE, READ-ONLY). Delegates all SQL/row-parsing to
     # storage/v2_alignment_readers.py; arguments are validated BEFORE a

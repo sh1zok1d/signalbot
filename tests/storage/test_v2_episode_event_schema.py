@@ -26,7 +26,9 @@ def _strip_sql_comments(text: str) -> str:
 
 
 _V2EE_BODY = _table_body("v2_episode_events")
-_V2EE_SECTION = SQL[SQL.index("V2 episode events"):]
+_V2EE_SECTION = SQL[
+    SQL.index("V2 episode events"):
+    SQL.index("V2-H2b: DRAIN-BEFORE-ACTIVATE version-switch durable state")]
 _V2EE_SECTION_CODE = _strip_sql_comments(_V2EE_SECTION)
 
 

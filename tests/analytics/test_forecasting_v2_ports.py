@@ -20,6 +20,7 @@ import pytest
 
 from analytics.forecasting_v2.ports import (
     V2AlignedInputReader, V2EpisodeEventWriter, V2SetupHistoryReader,
+    V2VersionDrainStatusReader,
 )
 
 
@@ -170,13 +171,14 @@ def test_ports_module_does_not_import_storage_db():
 
 def test_ports_module_does_not_wire_anything_into_runtime():
     import analytics.forecasting_v2.ports as ports_mod
-    # the module namespace should expose only the three Protocols and
+    # the module namespace should expose only the four Protocols and
     # their error-free supporting typing imports — no stray callable side
     # effect object.
     public = [n for n in dir(ports_mod) if not n.startswith("_")]
     assert set(ports_mod.__all__) <= set(public)
     assert ports_mod.__all__ == [
         "V2EpisodeEventWriter", "V2AlignedInputReader", "V2SetupHistoryReader",
+        "V2VersionDrainStatusReader",
     ]
 
 
@@ -427,3 +429,68 @@ def test_database_satisfies_both_protocols_simultaneously():
     db = Database("postgresql://unused")
     assert isinstance(db, V2AlignedInputReader)
     assert isinstance(db, V2SetupHistoryReader)
+
+
+# ============================================================================
+# V2VersionDrainStatusReader (V2-H2b) — deliberately has NO concrete
+# implementation yet (Stage 6 does not exist); only fakes satisfy it.
+# ============================================================================
+class FakeDrainStatusReader:
+    def __init__(self, fact=None):
+        from analytics.forecasting_v2.version_switch import V2DrainFact
+        self._fact = fact if fact is not None else V2DrainFact(0, 0)
+        self.calls = []
+
+    async def fetch_v2_version_drain_status(self, **kw):
+        self.calls.append(kw)
+        return self._fact
+
+
+def test_fake_drain_status_reader_satisfies_the_protocol_structurally():
+    assert isinstance(FakeDrainStatusReader(), V2VersionDrainStatusReader)
+
+
+def test_fake_drain_status_reader_module_never_imports_storage_db():
+    import sys
+    imported = _imported_module_names(
+        sys.modules[FakeDrainStatusReader.__module__], top_level_only=True)
+    assert not any(name == "storage.db" or name.startswith("storage.db.")
+                   for name in imported)
+
+
+class NotADrainStatusReader:
+    pass
+
+
+def test_object_missing_method_does_not_satisfy_drain_status_reader_protocol():
+    assert not isinstance(NotADrainStatusReader(), V2VersionDrainStatusReader)
+
+
+def test_plain_object_does_not_satisfy_drain_status_reader_protocol():
+    assert not isinstance(object(), V2VersionDrainStatusReader)
+
+
+def test_drain_status_reader_protocol_defines_exactly_one_method():
+    methods = [name for name in vars(V2VersionDrainStatusReader)
+               if not name.startswith("_") and callable(getattr(V2VersionDrainStatusReader, name))]
+    assert methods == ["fetch_v2_version_drain_status"]
+
+
+def test_drain_status_reader_protocol_method_is_async():
+    method = getattr(V2VersionDrainStatusReader, "fetch_v2_version_drain_status")
+    assert inspect.iscoroutinefunction(method)
+
+
+def test_drain_status_reader_protocol_is_runtime_checkable():
+    assert getattr(V2VersionDrainStatusReader, "_is_runtime_protocol", False) is True
+
+
+def test_database_does_not_satisfy_drain_status_reader_protocol():
+    """Deliberate: Stage 6 (which would own a real non-terminal-episode/
+    active-cooldown count) does not exist yet -- storage.db.Database has no
+    `fetch_v2_version_drain_status` method, and must not, until a real
+    Stage-6-backed implementation is written as its own future work."""
+    from storage.db import Database
+    db = Database("postgresql://unused")
+    assert not isinstance(db, V2VersionDrainStatusReader)
+    assert not hasattr(db, "fetch_v2_version_drain_status")

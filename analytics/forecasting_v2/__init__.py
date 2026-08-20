@@ -267,6 +267,46 @@ evaluation is still available via the private `_evaluate_requirements()`
 helper, which returns bare `V2CoverageStatus` tuples and can never itself
 produce a `V2ActivationReadinessResult`.
 
+**V2-H2b — DRAIN-BEFORE-ACTIVATE version-switch state machine: THIS PR.**
+Implements `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §3.1 exactly (see
+`version_switch.py`'s module docstring for the full restated semantics).
+Closes risk `C-001` (`docs/PROJECT_RISK_AND_DEBT_REGISTER.md`): a version
+switch must never mix old/new model semantics mid-episode. Adds
+`version_switch.py`: the PURE, deterministic state machine
+(`V2SemanticTuple` — `(rules_version, calculation_version,
+decision_code_version)`, excluding the always-constant `model_family`;
+`V2DrainFact` — OLD's non-terminal-episode/active-cooldown population;
+`V2VersionSwitchState` — durable per-`execution_stream` switch identity,
+`PHASE_NO_PENDING_SWITCH`/`PHASE_DRAINING`/
+`PHASE_AWAITING_ACTIVATION_READINESS`; `evaluate_version_switch_
+transition()` — the exact transition function, composing §3.1's drain
+condition with §3.3's activation readiness (never activating before BOTH
+hold); `assert_provenance_matches_active_tuple()` — refuses to compose a
+`V2DecisionProvenance` under a version identity other than what the switch
+actually resolved as active). Adds `version_switch_orchestrator.py`: the
+ONE thin async boundary (`resolve_version_switch_transition()`) that loads
+facts ONLY when a call could actually need them, via the already-merged
+H2a `check_activation_readiness()` and the new narrow
+`V2VersionDrainStatusReader` port (`ports.py`) — no concrete
+implementation of that port exists yet, since Stage 6 (which would own a
+real non-terminal-episode/cooldown count) has deliberately not been
+implemented as part of this PR; only deterministic test fakes satisfy it.
+Adds `storage/stage2_schema.sql`'s `v2_version_switch_state` table (one row
+per `execution_stream`, `PRIMARY KEY (run_kind, run_id)`, with CHECK
+constraints enforcing every phase-shape invariant `V2VersionSwitchState.
+__post_init__` already enforces in Python — belt-and-suspenders, never
+relying on Python validation alone for an invariant the DB can cheaply
+own) and `storage/v2_version_switch_readers.py`/`Database.
+evaluate_v2_version_switch()` (real `SELECT ... FOR UPDATE` row-locked
+transactional read-compute-write, proven against a real PostgreSQL
+concurrency test — two callers racing the same `execution_stream` produce
+exactly one winning durable transition, never a torn/contradictory state).
+No Stage 6 candidate arbitration, `EARLY_SIGNAL` creation, confirmation,
+`WEAKENING`, invalidation, horizon expiry, or reversal semantics anywhere
+in this PR. `V2-H2c` (as-of/historical instrument metadata, §12.5a) and
+`V2-H2e` (Stage 2 correction-publication completeness + replay-determinism
+harness, §3.4's other half) remain NOT started.
+
 `V2EpisodeEvent` (events.py) validates and freezes an already-decided
 event a future Episode State Machine PR will construct;
 `V2EventProvenance` (provenance.py) is a frozen snapshot of one
@@ -339,7 +379,10 @@ from .events import (
     WEAKENING,
 )
 from .identity import MODEL_FAMILY, V2IdentityError, V2ModelIdentity
-from .ports import V2AlignedInputReader, V2EpisodeEventWriter, V2SetupHistoryReader
+from .ports import (
+    V2AlignedInputReader, V2EpisodeEventWriter, V2SetupHistoryReader,
+    V2VersionDrainStatusReader,
+)
 from .provenance import V2EventProvenance, V2ProvenanceError
 from .regime_4h import (
     BEARISH_TRENDING, BULLISH_TRENDING, INSUFFICIENT_DATA, NON_DIRECTIONAL,
@@ -365,6 +408,15 @@ from .trend_pullback import (
     V2TrendPullbackError, V2TrendPullbackInputs, detect_trend_pullback,
 )
 from .trend_pullback_inputs import load_trend_pullback_inputs
+from .version_switch import (
+    ACTION_ACTIVATED, ACTION_AWAITING_READINESS, ACTION_DRAIN_COMPLETE,
+    ACTION_DRAIN_CONTINUES, ACTION_NO_OP, PHASE_AWAITING_ACTIVATION_READINESS,
+    PHASE_DRAINING, PHASE_NO_PENDING_SWITCH, SWITCH_ACTIONS, SWITCH_PHASES,
+    V2DrainFact, V2SemanticTuple, V2VersionSwitchError, V2VersionSwitchState,
+    V2VersionSwitchTransitionResult, assert_provenance_matches_active_tuple,
+    evaluate_version_switch_transition, initial_switch_state,
+)
+from .version_switch_orchestrator import resolve_version_switch_transition
 
 __all__ = [
     "MODEL_FAMILY", "V2IdentityError", "V2ModelIdentity",
@@ -429,4 +481,12 @@ __all__ = [
     "MANDATORY_PERCENTILE_COVERAGE", "V2CoverageStatus",
     "V2ActivationReadinessResult", "check_activation_readiness",
     "V2DecisionViewError", "V2DecisionView", "resolve_decision_view",
+    "V2VersionDrainStatusReader",
+    "V2VersionSwitchError", "V2SemanticTuple", "V2DrainFact",
+    "PHASE_NO_PENDING_SWITCH", "PHASE_DRAINING", "PHASE_AWAITING_ACTIVATION_READINESS",
+    "SWITCH_PHASES", "V2VersionSwitchState", "initial_switch_state",
+    "ACTION_NO_OP", "ACTION_DRAIN_CONTINUES", "ACTION_DRAIN_COMPLETE",
+    "ACTION_AWAITING_READINESS", "ACTION_ACTIVATED", "SWITCH_ACTIONS",
+    "V2VersionSwitchTransitionResult", "evaluate_version_switch_transition",
+    "assert_provenance_matches_active_tuple", "resolve_version_switch_transition",
 ]

@@ -29,6 +29,9 @@ EXPECTED_TABLES = [
     # additive V2 immutable episode-event persistence boundary (Multi-model
     # Framework PR 2; details in tests/storage/test_v2_episode_event_schema.py)
     "v2_episode_events",
+    # additive V2-H2b DRAIN-BEFORE-ACTIVATE version-switch durable state
+    # (details in tests/storage/test_v2_version_switch_schema.py)
+    "v2_version_switch_state",
 ]
 
 

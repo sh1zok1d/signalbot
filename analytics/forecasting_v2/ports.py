@@ -27,6 +27,22 @@ code should depend on, instead of importing the concrete
     between the two Protocols; a fake satisfying only
     `V2AlignedInputReader` does not need to implement any
     `V2SetupHistoryReader` method, and vice versa.
+  - `V2VersionDrainStatusReader` — the narrow read port V2-H2b's
+    orchestration layer (`analytics/forecasting_v2/
+    version_switch_orchestrator.py`) depends on for the ONE fact
+    `version_switch.py`'s pure state machine needs while a switch is
+    `DRAINING`: OLD's non-terminal-episode/active-cooldown counts, scoped
+    to exactly one `execution_stream` and exactly the OLD semantic tuple
+    (§3.1/§12.10). Deliberately abstract: Stage 6 (the episode state
+    machine that would own a real `v2_episode_events`-backed answer to
+    "how many non-terminal episodes/active cooldowns does this tuple have
+    right now") has NOT been implemented yet (out of scope for V2-H2b by
+    explicit task instruction) — there is today no concrete, real
+    implementation of this Protocol anywhere in the codebase, only
+    deterministic fakes in tests. A real Stage-6-backed implementation is
+    deferred, explicitly, to whichever future Stage 6 PR first needs to
+    answer this question for real; wiring it to `storage.db.Database` is
+    NOT this PR's job.
 
 `storage.db.Database` already implements all three shapes — nothing here
 changes those methods or wires them into anything; this module only names
@@ -61,8 +77,12 @@ from datetime import datetime
 from typing import Mapping, Optional, Protocol, Sequence, runtime_checkable
 
 from analytics.forecasting_v2.events import V2EpisodeEvent
+from analytics.forecasting_v2.version_switch import V2DrainFact
 
-__all__ = ["V2EpisodeEventWriter", "V2AlignedInputReader", "V2SetupHistoryReader"]
+__all__ = [
+    "V2EpisodeEventWriter", "V2AlignedInputReader", "V2SetupHistoryReader",
+    "V2VersionDrainStatusReader",
+]
 
 
 @runtime_checkable
@@ -179,4 +199,33 @@ class V2SetupHistoryReader(Protocol):
     async def fetch_v2_instrument(
         self, *, exchange: str, symbol: str, market_type: str,
     ) -> Optional[Mapping]:
+        ...
+
+
+@runtime_checkable
+class V2VersionDrainStatusReader(Protocol):
+    """Structural port for the ONE fact V2-H2b's orchestration layer
+    (`version_switch_orchestrator.py`) needs while a version switch is
+    `DRAINING`: OLD's non-terminal-episode/active-cooldown population,
+    scoped to exactly one `execution_stream` and exactly the OLD semantic
+    tuple (`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §3.1/§12.10).
+
+    No concrete implementation of this Protocol exists in this codebase
+    today — Stage 6 (the episode state machine that would own a real
+    `v2_episode_events`-backed count of non-terminal episodes and active
+    same-slot cooldowns) has deliberately NOT been implemented as part of
+    V2-H2b (out of scope by explicit task instruction; see
+    `analytics/forecasting_v2/version_switch.py`'s module docstring). Only
+    deterministic test fakes satisfy this Protocol for now. Wiring a real
+    `storage.db.Database`-backed implementation is future Stage-6-adjacent
+    work, not this PR's job — this Protocol exists so V2-H2b's
+    orchestration boundary and its tests can be written and proven correct
+    against the exact fact shape the pure state machine
+    (`version_switch.py`'s `V2DrainFact`) needs, without inventing a real
+    query against a table this repository does not yet populate."""
+
+    async def fetch_v2_version_drain_status(
+        self, *, run_kind: str, run_id: str, rules_version: str,
+        calculation_version: str, decision_code_version: str, as_of: datetime,
+    ) -> "V2DrainFact":
         ...
