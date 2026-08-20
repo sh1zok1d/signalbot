@@ -20,7 +20,7 @@ from analytics.forecasting_v2 import regime_4h as regime_4h_mod
 from analytics.forecasting_v2.activation_readiness import (
     MANDATORY_PERCENTILE_COVERAGE, V2ActivationReadinessError,
     V2ActivationReadinessResult, V2CoverageStatus, V2RequiredPercentileCoverage,
-    check_activation_readiness,
+    _evaluate_requirements, check_activation_readiness,
 )
 from analytics.forecasting_v2.alignment import selected_bucket
 from analytics.forecasting_v2.context_evidence import MIN_PCTL_TIER
@@ -281,15 +281,19 @@ def test_row_present_only_at_selected_bucket_not_at_a_stale_or_newer_one():
                 return ()
             return (_row(bucket_ts=wrong_bucket),)
 
-    result = _run(check_activation_readiness(
+    # A production V2ActivationReadinessResult can only represent the full
+    # canonical mandatory set (tech-lead amendment round 2) -- this
+    # per-requirement bucket-identity behavior is exercised directly via
+    # the private evaluator, not through check_activation_readiness().
+    statuses = _run(_evaluate_requirements(
         ExactIdentityReader(), symbol=SYMBOL, market_type=MARKET_TYPE,
         calculation_version=CALC_VERSION, decision_boundary=T,
         requirements=(V2RequiredPercentileCoverage(
             source="bias_1h.price", metric=bias_1h_mod._PRICE_METRIC,
             timeframe=bias_1h_mod._BIAS_TIMEFRAME,
             percentile_window=bias_1h_mod._BIAS_PERCENTILE_WINDOW),)))
-    assert result.ready is False
-    assert "no percentile_snapshots row" in result.statuses[0].reason
+    assert statuses[0].ready is False
+    assert "no percentile_snapshots row" in statuses[0].reason
 
 
 # ============================================================================
@@ -447,9 +451,12 @@ def test_non_whole_minute_decision_boundary_rejected():
 
 
 def test_empty_requirements_rejected():
+    """Exercised via the private evaluator -- the public
+    check_activation_readiness() no longer accepts a `requirements=`
+    override at all (tech-lead amendment round 2)."""
     reader = FakePercentileReader(rows_by_key=_ready_rows_for_all())
     with pytest.raises(V2ActivationReadinessError, match="requirements"):
-        _run(check_activation_readiness(
+        _run(_evaluate_requirements(
             reader, symbol=SYMBOL, market_type=MARKET_TYPE,
             calculation_version=CALC_VERSION, decision_boundary=T, requirements=()))
 
@@ -457,10 +464,18 @@ def test_empty_requirements_rejected():
 def test_wrong_type_requirement_rejected():
     reader = FakePercentileReader(rows_by_key=_ready_rows_for_all())
     with pytest.raises(V2ActivationReadinessError, match="V2RequiredPercentileCoverage"):
-        _run(check_activation_readiness(
+        _run(_evaluate_requirements(
             reader, symbol=SYMBOL, market_type=MARKET_TYPE,
             calculation_version=CALC_VERSION, decision_boundary=T,
             requirements=("not-a-requirement",)))  # type: ignore[arg-type]
+
+
+def test_check_activation_readiness_has_no_public_requirements_parameter():
+    """The public entry point cannot be weakened by a caller-supplied
+    subset -- confirmed by signature inspection, not just behavior."""
+    import inspect
+    sig = inspect.signature(check_activation_readiness)
+    assert "requirements" not in sig.parameters
 
 
 # ============================================================================
@@ -596,6 +611,112 @@ def test_result_duplicate_requirement_rejected():
     with pytest.raises(V2ActivationReadinessError, match="duplicate"):
         _make_result(ready=True, statuses=(
             _status(req, ready=True), _status(req, ready=True)))
+
+
+# ============================================================================
+# tech-lead amendment round 2: full canonical coverage, never a partial probe
+# ============================================================================
+def test_1_one_requirement_subset_can_never_create_a_globally_ready_result():
+    """A one-requirement subset -- even if that one requirement is
+    ready -- can never be represented as a globally activation-ready
+    result."""
+    with pytest.raises(V2ActivationReadinessError, match="MANDATORY_PERCENTILE_COVERAGE"):
+        _make_result(ready=True, statuses=(
+            _status(MANDATORY_PERCENTILE_COVERAGE[0], ready=True),))
+    # Not ready=False either -- the object cannot be constructed AT ALL.
+    with pytest.raises(V2ActivationReadinessError, match="MANDATORY_PERCENTILE_COVERAGE"):
+        _make_result(ready=False, statuses=(
+            _status(MANDATORY_PERCENTILE_COVERAGE[0], ready=True),))
+
+
+def test_2_three_of_four_mandatory_requirements_cannot_create_a_result():
+    subset = tuple(_status(req, ready=True) for req in MANDATORY_PERCENTILE_COVERAGE[:3])
+    assert len(subset) == 3
+    with pytest.raises(V2ActivationReadinessError, match="MANDATORY_PERCENTILE_COVERAGE"):
+        _make_result(ready=True, statuses=subset)
+
+
+def test_3_full_four_of_four_ready_coverage_succeeds():
+    statuses = tuple(_status(req, ready=True) for req in MANDATORY_PERCENTILE_COVERAGE)
+    assert len(statuses) == 4
+    result = _make_result(ready=True, statuses=statuses)
+    assert result.ready is True
+    assert len(result.statuses) == 4
+
+
+def test_4_full_coverage_with_one_failing_requirement_yields_ready_false():
+    statuses = (
+        _status(MANDATORY_PERCENTILE_COVERAGE[0], ready=False),
+        *[_status(req, ready=True) for req in MANDATORY_PERCENTILE_COVERAGE[1:]],
+    )
+    assert len(statuses) == 4
+    result = _make_result(ready=False, statuses=statuses)
+    assert result.ready is False
+    # The SAME full coverage marked ready=True must be rejected (finding
+    # 4's invariant, still enforced together with the new coverage check).
+    with pytest.raises(V2ActivationReadinessError, match="ready"):
+        _make_result(ready=True, statuses=statuses)
+
+
+def test_5_extra_noncanonical_requirement_is_rejected():
+    extra_req = V2RequiredPercentileCoverage(
+        source="not_a_real_mandatory_requirement", metric="some_metric",
+        timeframe="4h", percentile_window="30d")
+    statuses = (
+        *[_status(req, ready=True) for req in MANDATORY_PERCENTILE_COVERAGE],
+        _status(extra_req, ready=True),
+    )
+    assert len(statuses) == 5
+    with pytest.raises(V2ActivationReadinessError, match="MANDATORY_PERCENTILE_COVERAGE"):
+        _make_result(ready=True, statuses=statuses)
+
+
+def test_6_direct_construction_cannot_bypass_the_canonical_coverage_invariant():
+    """Bypassing check_activation_readiness() entirely and constructing
+    V2ActivationReadinessResult directly with a partial/extra/mismatched
+    statuses tuple must STILL raise -- __post_init__ is the actual
+    enforcement point for every construction path."""
+    # partial
+    with pytest.raises(V2ActivationReadinessError, match="MANDATORY_PERCENTILE_COVERAGE"):
+        V2ActivationReadinessResult(
+            symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+            decision_boundary=T, ready=True,
+            statuses=(_status(MANDATORY_PERCENTILE_COVERAGE[0], ready=True),))
+    # full coverage, direct construction, succeeds
+    result = V2ActivationReadinessResult(
+        symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+        decision_boundary=T, ready=True,
+        statuses=tuple(_status(req, ready=True) for req in MANDATORY_PERCENTILE_COVERAGE))
+    assert result.ready is True
+
+
+def test_7_decision_view_cannot_receive_a_partial_but_ready_readiness_object():
+    """The full closed loop: since V2ActivationReadinessResult itself
+    cannot be constructed from a partial requirement set, V2DecisionView
+    (which only type-checks + identity-checks an already-constructed
+    V2ActivationReadinessResult) can never end up composed with a partial-
+    but-ready readiness object -- there is no such object to compose."""
+    from analytics.forecasting_v2.decision_provenance import V2DecisionProvenance
+    from analytics.forecasting_v2.decision_view import resolve_decision_view
+    from analytics.forecasting_v2.events import LIVE
+
+    # A partial readiness result cannot even be constructed to attempt
+    # composing it -- this IS the proof.
+    with pytest.raises(V2ActivationReadinessError, match="MANDATORY_PERCENTILE_COVERAGE"):
+        _make_result(ready=True, statuses=(
+            _status(MANDATORY_PERCENTILE_COVERAGE[0], ready=True),))
+
+    # And a full-coverage, genuinely ready result composes cleanly.
+    provenance = V2DecisionProvenance(
+        run_kind=LIVE, run_id="live-shadow", decision_boundary=T,
+        model_family="v2", rules_version="v2-rules-v0.2.0",
+        symbol=SYMBOL, market_type=MARKET_TYPE,
+        feature_schema_version=1, calculation_version=CALC_VERSION, config_hash="a" * 64,
+        config_version="2.1.0", code_version="deadbeef",
+        decision_code_version="decision-code-v1")
+    readiness = _make_result(ready=True)
+    view = resolve_decision_view(provenance, readiness)
+    assert view.ready is True
 
 
 @pytest.mark.parametrize("field,bad", [

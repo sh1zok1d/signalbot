@@ -88,6 +88,24 @@ all(status.ready for status in statuses)` invariant in `__post_init__` --
 every construction path, not just `check_activation_readiness()`'s own
 return, is guaranteed internally consistent; there is no way to
 hand-construct a forged `ready=True` result with empty or failing statuses.
+
+**Full canonical coverage, never a partial probe (tech-lead amendment
+round 2).** §3.3b's activation readiness means ALL mandatory V2 historical
+feature/percentile prerequisites are sufficiently materialized -- not
+"the ones a caller happened to ask about". `V2ActivationReadinessResult.
+__post_init__` therefore also requires `statuses` to cover EXACTLY
+`MANDATORY_PERCENTILE_COVERAGE` (no missing requirement, no extra/
+noncanonical one, no duplicate) -- a result built from a one-requirement
+or three-of-four subset can never be constructed, ready or not. The
+public `check_activation_readiness()` no longer accepts a caller-supplied
+`requirements` override at all, so there is no public way to weaken
+activation readiness by probing a subset and having it silently pass as a
+global verdict. Focused/internal evaluation of an arbitrary requirement
+subset is still available -- `_evaluate_requirements()`, a private
+helper that returns bare `V2CoverageStatus` tuples, never a
+`V2ActivationReadinessResult` -- so unit tests can still exercise
+per-requirement behavior without being able to manufacture a production
+"globally ready" object out of partial evidence.
 """
 from __future__ import annotations
 
@@ -128,11 +146,12 @@ class V2ActivationReadinessError(ValueError):
     calculation_version/decision_boundary/requirements), or a
     self-validation failure on `V2ActivationReadinessResult`/
     `V2CoverageStatus` construction (a forged/inconsistent `ready` flag,
-    empty/malformed `statuses`, a duplicate requirement). Never raised for
-    legitimately missing/immature history -- that is a NOT_READY result,
-    not an error. A reader's own domain error for genuinely INCONSISTENT
-    row data is not wrapped here -- it propagates as the reader's own
-    exception type unchanged."""
+    empty/malformed `statuses`, a duplicate requirement, or `statuses` not
+    covering EXACTLY `MANDATORY_PERCENTILE_COVERAGE` -- missing or extra).
+    Never raised for legitimately missing/immature history -- that is a
+    NOT_READY result, not an error. A reader's own domain error for
+    genuinely INCONSISTENT row data is not wrapped here -- it propagates
+    as the reader's own exception type unchanged."""
 
 
 def _validate_decision_boundary(value: Any) -> datetime:
@@ -311,6 +330,21 @@ class V2ActivationReadinessResult:
                 raise V2ActivationReadinessError(
                     f"duplicate requirement {status.requirement!r} in statuses")
             seen_requirements.add(status.requirement)
+        # §3.3b: activation readiness means ALL mandatory prerequisites are
+        # materialized -- never "the subset a caller happened to ask
+        # about". `statuses` must cover EXACTLY the canonical mandatory
+        # set: no missing requirement, no extra/noncanonical one. Order
+        # does not matter -- the contract nowhere makes evaluation order
+        # significant, only membership.
+        canonical = set(MANDATORY_PERCENTILE_COVERAGE)
+        if seen_requirements != canonical:
+            missing = canonical - seen_requirements
+            extra = seen_requirements - canonical
+            raise V2ActivationReadinessError(
+                "statuses must cover EXACTLY MANDATORY_PERCENTILE_COVERAGE -- "
+                f"missing={sorted(r.source for r in missing)!r}, "
+                f"extra={sorted(r.source for r in extra)!r} -- a partial probe can never "
+                "be represented as a global activation-readiness result")
         expected_ready = all(status.ready for status in self.statuses)
         if self.ready != expected_ready:
             raise V2ActivationReadinessError(
@@ -319,27 +353,28 @@ class V2ActivationReadinessResult:
                 "invariant 'ready iff every status is ready' would be violated")
 
 
-async def check_activation_readiness(
+async def _evaluate_requirements(
     reader: V2SetupHistoryReader, *, symbol: str, market_type: str,
     calculation_version: str, decision_boundary: datetime,
-    requirements: Sequence[V2RequiredPercentileCoverage] = MANDATORY_PERCENTILE_COVERAGE,
-) -> V2ActivationReadinessResult:
-    """Fail-closed: the returned result's `ready` is `True` iff EVERY
-    requirement in `requirements` has a usable `percentile_snapshots` row
-    at EXACTLY `alignment.selected_bucket(req.timeframe, decision_boundary)`
-    -- the same fully-closed bucket a live detector consumes for that
-    timeframe at `decision_boundary` -- under `calculation_version`. A
-    missing row, a `None` `value`/`percentile_rank`, or a below-floor
-    `confidence_tier` for even ONE requirement makes the WHOLE result
-    NOT_READY -- never a silent partial pass, never a fallback to an older
-    `calculation_version`, an unrelated bucket, or stale data (this
-    function never queries any version/bucket other than exactly the ones
-    implied by the caller's `calculation_version`/`decision_boundary`).
+    requirements: Sequence[V2RequiredPercentileCoverage],
+) -> "tuple[V2CoverageStatus, ...]":
+    """Private: evaluate an ARBITRARY `requirements` sequence and return
+    bare `V2CoverageStatus` tuples -- never a `V2ActivationReadinessResult`
+    (that type can only represent EXACT `MANDATORY_PERCENTILE_COVERAGE`
+    coverage, see its own `__post_init__`). This is the shared per-
+    requirement evaluation logic `check_activation_readiness()` calls with
+    the canonical requirement set; it also exists so unit tests (and any
+    future internal decomposition) can exercise per-requirement behavior
+    against a focused subset WITHOUT being able to construct a production
+    object that misrepresents a partial probe as global activation
+    readiness. Not exported (absent from `__all__`) -- never call this
+    from outside this module expecting a production readiness verdict.
 
-    `calculation_version` is passed straight through to `reader` (never
-    derived here, never defaulted) -- a caller checking readiness for a
-    version OTHER than the one currently active can never accidentally
-    query the wrong bucket."""
+    For each requirement, reads exactly
+    `alignment.selected_bucket(req.timeframe, decision_boundary)` -- the
+    same fully-closed bucket a live detector consumes for that timeframe
+    at `decision_boundary` -- under `calculation_version`, never a window,
+    never a fallback to an older version or a stale/unrelated bucket."""
     if not isinstance(symbol, str) or not symbol.strip():
         raise V2ActivationReadinessError("symbol must be a non-empty string")
     if not isinstance(market_type, str) or not market_type.strip():
@@ -400,7 +435,35 @@ async def check_activation_readiness(
         statuses.append(V2CoverageStatus(
             requirement=req, ready=True, reason="ready", latest_bucket_ts=row.get("bucket_ts")))
 
+    return tuple(statuses)
+
+
+async def check_activation_readiness(
+    reader: V2SetupHistoryReader, *, symbol: str, market_type: str,
+    calculation_version: str, decision_boundary: datetime,
+) -> V2ActivationReadinessResult:
+    """Fail-closed, production entry point: always evaluates the FULL
+    canonical `MANDATORY_PERCENTILE_COVERAGE` -- there is no public way to
+    weaken activation readiness by supplying a caller-chosen subset (tech-
+    lead amendment round 2). The returned result's `ready` is `True` iff
+    EVERY mandatory requirement has a usable `percentile_snapshots` row at
+    EXACTLY `alignment.selected_bucket(req.timeframe, decision_boundary)`
+    -- the same fully-closed bucket a live detector consumes for that
+    timeframe at `decision_boundary` -- under `calculation_version`. A
+    missing row, a `None` `value`/`percentile_rank`, or a below-floor
+    `confidence_tier` for even ONE mandatory requirement makes the WHOLE
+    result NOT_READY -- never a silent partial pass, never a fallback to
+    an older `calculation_version`, an unrelated bucket, or stale data.
+
+    `calculation_version` is passed straight through to `reader` (never
+    derived here, never defaulted) -- a caller checking readiness for a
+    version OTHER than the one currently active can never accidentally
+    query the wrong bucket."""
+    statuses = await _evaluate_requirements(
+        reader, symbol=symbol, market_type=market_type,
+        calculation_version=calculation_version, decision_boundary=decision_boundary,
+        requirements=MANDATORY_PERCENTILE_COVERAGE)
     ready = all(status.ready for status in statuses)
     return V2ActivationReadinessResult(
         symbol=symbol, market_type=market_type, calculation_version=calculation_version,
-        decision_boundary=decision_boundary, ready=ready, statuses=tuple(statuses))
+        decision_boundary=decision_boundary, ready=ready, statuses=statuses)

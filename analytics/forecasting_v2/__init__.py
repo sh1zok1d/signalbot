@@ -252,6 +252,21 @@ longer call `.utcoffset()` themselves at all — closing the same
 malformed-tzinfo raw-exception-leak class PR #49/H2d already fixed
 elsewhere, without touching `alignment.py` itself (out of scope).
 
+**V2-H2a, tech-lead amendment round 2 (full canonical coverage, never a
+partial probe).** `check_activation_readiness()` no longer accepts a
+public `requirements=` override -- it always evaluates the full
+`MANDATORY_PERCENTILE_COVERAGE`, so there is no public way to weaken
+activation readiness by probing a subset. `V2ActivationReadinessResult.
+__post_init__` additionally requires `statuses` to cover EXACTLY the
+canonical mandatory set (no missing requirement, no extra/noncanonical
+one) -- a one-requirement or three-of-four subset can never be
+constructed into a result at all, ready or not (§3.3b: activation
+readiness means ALL mandatory prerequisites are materialized, not "the
+ones a caller happened to ask about"). Focused/internal per-requirement
+evaluation is still available via the private `_evaluate_requirements()`
+helper, which returns bare `V2CoverageStatus` tuples and can never itself
+produce a `V2ActivationReadinessResult`.
+
 `V2EpisodeEvent` (events.py) validates and freezes an already-decided
 event a future Episode State Machine PR will construct;
 `V2EventProvenance` (provenance.py) is a frozen snapshot of one
