@@ -12,17 +12,41 @@ the already-frozen `MIN_PCTL_TIER` confidence floor (`context_evidence.py`)
 as the exact "sufficiently materialized" bar, rather than inventing a new
 threshold.
 
-Why `confidence_tier` alone is the right signal (not a separately-invented
-coverage-ratio/day-count check): `percentile_engine`'s `confidence_tier`
-already IS the materialization signal -- `MIN_PCTL_TIER`'s own frozen
-definition (§4.1) is "the loosest confidence-tier floor that still excludes
-brand-new, single-digit-sample distributions". A percentile snapshot whose
-`confidence_tier` has reached `MIN_PCTL_TIER` has, by construction, already
-accumulated the sample history its own percentile-window requires. This
-module's readiness check is therefore exactly the question "if a live
-detector ran against this `calculation_version` right now at `T`, would it
-see real evidence (not a missing-data short-circuit) for every mandatory
-family" -- no new tunable parameter, no new rules-manifest surface.
+Why `confidence_tier` alone is the signal used here (not a separately-
+invented coverage-ratio/day-count check): `MIN_PCTL_TIER` is the same
+frozen usability floor `context_evidence.py`'s `normalized_evidence()`/
+`compression_score()` already gate real evidence on (§4.1) -- so this
+module's readiness check is exactly the question "if a live detector ran
+against this `calculation_version` right now at `T`, would it see real
+evidence (not a missing-data OR tier-floor short-circuit) for every
+mandatory family" -- no new tunable parameter, no new rules-manifest
+surface, and no gate here that is stricter than the gate the decision
+logic itself already applies.
+
+**`confidence_tier` is a calendar-maturity signal, not a statistical-
+density guarantee (research audit, issue #51/MATH-001 -- corrects an
+earlier, INCORRECT claim in this docstring).** `STAGE2_SPEC.md` §12.6 is
+explicit that `confidence_tier` is span-based, not row-count-based, and
+that row-count/density gating is "a deferred future revision, not
+invented here". Reaching `MIN_PCTL_TIER = "building"` therefore proves
+only that `sample_size >= 2` AND the earliest-to-latest sample span is
+`>= low_below_days` (7 calendar days, `config/stage2.yaml`) -- it does
+**not** prove that a window's *expected* sample density has
+materialized. A distribution with exactly two non-null historical
+samples spanning >= 7 (or >= 30, for `"mature"`) calendar days reaches
+this floor identically to a densely-populated one (frozen regression:
+`tests/analytics/test_percentile_engine.py::
+test_sparse_long_span_follows_span_contract`). This module's readiness
+check therefore answers "is real (non-missing, non-tier-floored)
+evidence available", not "is the evidence statistically dense" -- those
+are the SAME distinction `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md`
+§4.1 (as amended) now makes explicit. This is not currently a live-
+decision concern: no production code anywhere constructs a
+`PercentileRequest` or writes `percentile_snapshots` today (tracked as
+`docs/PROJECT_RISK_AND_DEBT_REGISTER.md` R-023) -- but MUST be
+re-examined once a real percentile-computation orchestrator exists and
+before any V2 evidence produced under `MIN_PCTL_TIER` is treated as
+empirically meaningful.
 
 **Exact bucket, not a lookback window (Qodo amendment round 1, finding 1).**
 Each mandatory requirement is checked against EXACTLY the fully-closed

@@ -46,6 +46,7 @@ Severity:
 | R-020 | HIGH | OPEN | Live shadow may diverge from replay | Explicit replay-vs-live comparison and contract-mandated independent shadow evidence | G5 |
 | R-021 | MEDIUM | OPEN | Automatic/new feature expansion can become response to weak evidence | Expansion freeze until G4; new ideas ledger-only | until G4 |
 | R-022 | HIGH | OPEN | Many future configurations can create backtest-overfitting probability | Track number of tested configs; freeze method for multiple-testing/PBO-style analysis if search surface grows | G4 |
+| R-023 | MEDIUM | DEFERRED | Percentile `confidence_tier` is calendar-span-only (`STAGE2_SPEC.md` §12.6, deliberate); reaching `MIN_PCTL_TIER` proves `sample_size >= 2` and a wide-enough span, never statistical density. Once a real Stage 2 percentile orchestrator exists, V2 evidence (`normalized_evidence`/`compression_score`) and activation readiness could accept an extremely sparse (e.g. 2-sample) distribution as fully usable, materially misleading the empirical program (issue #51/MATH-001) | Either (a) a percentile-computation orchestrator ships with an explicit, mathematically/structurally justified minimum-density invariant reviewed and frozen at that time, or (b) an explicit, documented product/research decision to accept span-only maturity permanently | before any percentile orchestrator ships / before treating V2 evidence as empirically meaningful |
 
 ---
 

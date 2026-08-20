@@ -1134,8 +1134,43 @@ Reused reasoning: the 7d window can never reach `"mature"` at all
 possible sample is 7 days old, so it structurally cannot satisfy the
 30-day `mature` threshold). Requiring `"mature"` everywhere would make
 7d-windowed evidence permanently unusable; `"building"` is the loosest
-floor that still excludes brand-new, single-digit-sample distributions
-(`"none"`/`"low"`).
+floor that still excludes the two lowest tiers (`"none"`/`"low"`).
+
+**Amendment (research audit, issue #51/MATH-001) — `confidence_tier` is a
+calendar-maturity signal, not a statistical-density guarantee.** The
+previous wording above ("excludes brand-new, single-digit-sample
+distributions") was an imprecise motivating aside that read more strongly
+than `STAGE2_SPEC.md` §12.6 actually specifies, and than
+`compute_percentile_snapshot()` actually computes. §12.6 is explicit that
+tier is **span-based, not row-count-based** ("a deliberate, documented
+choice; row-count gating is a deferred future revision, not invented
+here"): `confidence_tier` is `"none"` only when `sample_size < 2` OR the
+earliest-to-latest calendar span is under `none_below_days`; once
+`sample_size >= 2` and the span requirement is met, tier climbs on span
+alone, regardless of how many samples actually populate that span. A
+distribution with **exactly two** non-null historical samples — one near
+`sample_window_start`, one near `bucket_ts` — reaches `"building"` once
+those two samples are `>= 7` calendar days apart, and reaches `"mature"`
+once they are `>= 30` days apart (frozen regression:
+`tests/analytics/test_percentile_engine.py::
+test_sparse_long_span_follows_span_contract`). `MIN_PCTL_TIER` therefore
+excludes only the `sample_size < 2` / sub-`none_below_days` case, never a
+sparse-but-wide-span distribution — it is **not**, by itself, a
+guarantee that a percentile-window's *expected* sample density (e.g. a
+30d window's ~30 daily buckets) has actually materialized. This is not a
+correctness defect in the percentile engine (§12.6 chose this
+deliberately) or in how §4.1/§4.2/§4.3 consume `normalized_evidence()`/
+`compression_score()` today — no upstream production pipeline currently
+constructs `PercentileRequest`s or writes `percentile_snapshots` at all
+(tracked as `docs/PROJECT_RISK_AND_DEBT_REGISTER.md` R-023), so this gap
+is not yet reachable by any live V2 decision. It **is** a correction to
+this section's own prose, and a note that MUST be re-read before any
+future Stage 2 percentile-computation orchestrator is built or before any
+V2 evidence produced under `MIN_PCTL_TIER` is treated as empirically
+meaningful (`docs/V2_EMPIRICAL_RED_TEAM_PLAN.md` §3.4's provider-
+granularity discipline applies the same caution). `MIN_PCTL_TIER`'s
+*value* (`"building"`) is unchanged — this amendment corrects only the
+motivating prose, not the frozen parameter.
 
 ### 4.1a Stage 4 numerical evidence must survive the Stage 4→5/6 boundary
 (clean-room audit amendment — closes a broader gap than the
