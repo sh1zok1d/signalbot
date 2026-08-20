@@ -775,3 +775,73 @@ def test_oi_confirmation_unknown_tier_beats_missing_rank():
     inputs = make_inputs(percentiles=[row], consensus=consensus)
     with pytest.raises(V2ContextEvidenceError, match="unknown confidence_tier"):
         oi_confirmation(inputs, percentile_window="30d")
+
+
+# ============================================================================
+# MATH-001 / issue #51 -- `confidence_tier` is a CALENDAR-SPAN signal, not a
+# statistical-density guarantee (docs/STAGE2_SPEC.md §12.6: "span-based, not
+# row-count-based ... a deliberate, documented choice"). These regressions
+# lock in the CURRENT, INTENTIONAL behavior explicitly and by name, so a
+# future change cannot silently narrow or widen it without a deliberate,
+# reviewed edit to a named test. See docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md
+# §4.1 (amendment) and docs/PROJECT_RISK_AND_DEBT_REGISTER.md R-023.
+#
+# This module (`normalized_evidence`/`compression_score`) gates PURELY on
+# `MIN_PCTL_TIER` via the tier string -- it has no independent `sample_size`
+# check. A row with `sample_size=2` and a `confidence_tier` that has
+# genuinely reached `MIN_PCTL_TIER` (because `sample_size >= 2` and the
+# earliest included non-null sample is old enough relative to `bucket_ts`)
+# is therefore accepted identically to a densely populated row -- exactly as
+# `compute_percentile_snapshot()` and `STAGE2_SPEC.md` §12.6 intend today.
+# ============================================================================
+def test_normalized_evidence_accepts_sparse_two_sample_building_tier():
+    """A 2-sample row at exactly MIN_PCTL_TIER ("building") is fully usable
+    -- `sample_size` is never independently consulted."""
+    row = make_percentile_row(sample_size=2, confidence_tier="building",
+                              value=1000.0, percentile_rank=1.0)
+    inputs = make_inputs(percentiles=[row])
+    assert normalized_evidence(inputs, metric="price_move_pct_median",
+                               percentile_window="30d") == 1.0
+
+
+def test_normalized_evidence_sparse_two_sample_can_reach_full_magnitude():
+    """A sparse 2-sample distribution can produce the MAXIMUM possible
+    normalized_evidence magnitude (1.0) -- there is no density-based
+    dampening. 1.0 comfortably clears REGIME_TREND_THRESHOLD (0.40) and
+    BIAS_THRESHOLD (0.25); at N=2 an attainable rank of 0.75 already gives
+    magnitude 0.5 and clears both thresholds too."""
+    row = make_percentile_row(sample_size=2, confidence_tier="mature",
+                              value=1000.0, percentile_rank=1.0)
+    inputs = make_inputs(percentiles=[row])
+    evi = normalized_evidence(inputs, metric="price_move_pct_median", percentile_window="30d")
+    assert evi == 1.0
+    from analytics.forecasting_v2.regime_4h import REGIME_TREND_THRESHOLD
+    from analytics.forecasting_v2.bias_1h import BIAS_THRESHOLD
+    assert evi >= REGIME_TREND_THRESHOLD
+    assert evi >= BIAS_THRESHOLD
+
+
+def test_compression_score_sparse_two_sample_can_reach_full_compression():
+    """Symmetric vector for the unsigned compression companion: a 2-sample
+    row (sample_size=2 -- two historical samples, not one) where the
+    current value ranks below both of them (percentile_rank=0.0) yields
+    compression_score=1.0 -- comfortably clearing COMPRESSION_THRESHOLD
+    (0.75) from a maximally sparse distribution."""
+    row = make_percentile_row(metric="range_width_pct_median", sample_size=2,
+                              confidence_tier="mature", value=0.01, percentile_rank=0.0)
+    inputs = make_inputs(percentiles=[row])
+    score = compression_score(inputs, percentile_window="30d")
+    assert score == 1.0
+    from analytics.forecasting_v2.compression_breakout import COMPRESSION_THRESHOLD
+    assert score >= COMPRESSION_THRESHOLD
+
+
+def test_normalized_evidence_below_min_tier_still_none_regardless_of_sample_size():
+    """Sanity converse: a below-floor tier is still rejected even when
+    `sample_size` is large -- `sample_size` is not silently treated as an
+    alternate qualifying signal in either direction."""
+    row = make_percentile_row(sample_size=500, confidence_tier="low",
+                              value=1000.0, percentile_rank=1.0)
+    inputs = make_inputs(percentiles=[row])
+    assert normalized_evidence(inputs, metric="price_move_pct_median",
+                               percentile_window="30d") is None

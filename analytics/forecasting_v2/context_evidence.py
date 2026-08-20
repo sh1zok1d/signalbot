@@ -58,7 +58,13 @@ the canonical Stage 2 tier ordering (`analytics.percentile_engine.models
 inventing a second one — `"building"`/`"mature"` are usable, `"none"`/
 `"low"` are legitimately-immature UNAVAILABLE, and an unknown tier string
 is corrupted input (`V2ContextEvidenceError`), never silently treated as
-unavailable.
+unavailable. Per `STAGE2_SPEC.md` §12.6 this tier is a **calendar-span
+maturity signal, not a row-count/statistical-density guarantee**. A valid
+`building` or `mature` row can therefore have a very small `sample_size`;
+this module deliberately does not invent an independent density threshold.
+Issue #51 / MATH-001 tracks the requirement to resolve empirical-density
+eligibility before a real percentile orchestrator makes such evidence part
+of a research claim.
 
 **Layering.** `analytics.forecasting_v2 -> analytics.percentile_engine`
 is the correct direction here (this module reuses percentile_engine's own
@@ -121,9 +127,10 @@ class V2ContextEvidenceError(ValueError):
     an error."""
 
 
-# Frozen V2-v0 parameter (§4.1): the loosest confidence-tier floor that
-# still excludes brand-new, single-digit-sample distributions. Reused
-# canonical ordering, not re-declared — see module docstring.
+# Frozen V2-v0 parameter (§4.1): the loosest frozen calendar-maturity tier
+# floor usable by both 7d and 30d windows. Per Stage 2 §12.6 it is span-based,
+# NOT a row-count/statistical-density guarantee; issue #51/MATH-001 tracks the
+# future empirical-density eligibility decision before percentile orchestration.
 MIN_PCTL_TIER = "building"
 _MIN_TIER_INDEX = CONFIDENCE_TIERS.index(MIN_PCTL_TIER)
 

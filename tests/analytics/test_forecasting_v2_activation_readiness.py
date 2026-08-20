@@ -362,6 +362,43 @@ def test_confidence_tier_floor_is_min_pctl_tier(tier, expected_ready):
     assert result.ready is expected_ready
 
 
+def test_readiness_ignores_sample_size_entirely_math001():
+    """MATH-001 / issue #51 regression. `_row()`/`FakePercentileReader`
+    never carry a `sample_size` field at all -- `check_activation_
+    readiness()` never reads one. This locks in, by name, that a
+    `percentile_snapshots` row reporting `confidence_tier="building"`
+    (`MIN_PCTL_TIER`, reachable per `STAGE2_SPEC.md` §12.6 once
+    `sample_size >= 2` AND the age of the EARLIEST non-null historical
+    sample relative to `bucket_ts` is `>= 7` calendar days -- the newest
+    sample's position is irrelevant; see `tests/analytics/
+    test_percentile_engine.py::test_sparse_long_span_follows_span_
+    contract`) is treated as globally READY here, identically to a
+    densely-populated distribution. This is the CURRENT, INTENTIONAL
+    behavior (docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §4.1 amendment;
+    docs/PROJECT_RISK_AND_DEBT_REGISTER.md R-023) -- readiness answers "is
+    real, non-tier-floored evidence available", not "is the evidence
+    statistically dense". A future change that narrows or widens this must
+    edit this test deliberately, not by accident.
+
+    Qodo amendment: each row's `bucket_ts` is preserved from
+    `_ready_rows_for_all()`'s already-aligned `selected_bucket(req.
+    timeframe, decision_boundary)` value -- overwriting it with `_row()`'s
+    default (`bucket_ts=T`) would stop exercising the exact-bucket
+    invariant `check_activation_readiness()` relies on (4h/1h/15m buckets
+    all differ from `T` itself)."""
+    rows = _ready_rows_for_all()
+    for key, existing_rows in rows.items():
+        existing_ts = existing_rows[0]["bucket_ts"]
+        rows[key] = (_row(bucket_ts=existing_ts, confidence_tier="building",
+                          value=1000.0, percentile_rank=1.0),)
+    reader = FakePercentileReader(rows_by_key=rows)
+    result = _run(check_activation_readiness(
+        reader, symbol=SYMBOL, market_type=MARKET_TYPE,
+        calculation_version=CALC_VERSION, decision_boundary=T))
+    assert result.ready is True
+    assert all(status.ready for status in result.statuses)
+
+
 def test_unknown_confidence_tier_raises_not_downgraded_to_not_ready():
     """Corruption (an impossible tier string) is never silently treated as
     a legitimate NOT_READY -- it is a real error."""

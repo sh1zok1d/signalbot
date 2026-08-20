@@ -1134,8 +1134,55 @@ Reused reasoning: the 7d window can never reach `"mature"` at all
 possible sample is 7 days old, so it structurally cannot satisfy the
 30-day `mature` threshold). Requiring `"mature"` everywhere would make
 7d-windowed evidence permanently unusable; `"building"` is the loosest
-floor that still excludes brand-new, single-digit-sample distributions
-(`"none"`/`"low"`).
+floor that still excludes the two lowest tiers (`"none"`/`"low"`).
+
+**Amendment (research audit, issue #51/MATH-001) — `confidence_tier` is a
+calendar-maturity signal, not a statistical-density guarantee.** The
+previous wording above ("excludes brand-new, single-digit-sample
+distributions") was an imprecise motivating aside that read more strongly
+than `STAGE2_SPEC.md` §12.6 actually specifies, and than
+`compute_percentile_snapshot()` actually computes. §12.6 is explicit that
+tier is **span-based, not row-count-based** ("a deliberate, documented
+choice; row-count gating is a deferred future revision, not invented
+here"): once `sample_size >= 2`, tier is computed from a single quantity,
+`confidence_age = bucket_ts - sample_window_start` — the age of the
+**earliest** included non-null historical sample relative to the current
+snapshot bucket. `sample_window_end` (the *newest* historical sample) does
+**not** participate in the tier calculation at all — it plays no role in
+`confidence_age` and no role in the tier thresholds. `confidence_tier` is
+`"none"` only when `sample_size < 2` OR `confidence_age < none_below_days`;
+once `sample_size >= 2` and `confidence_age` clears the relevant threshold,
+tier climbs on that single earliest-sample age alone, regardless of how
+many samples exist or where between `sample_window_start` and `bucket_ts`
+any of them (including the newest) actually falls. Concretely: a
+distribution with **exactly two** non-null historical samples — the
+earliest at `sample_window_start`, the newest anywhere at or after it up to
+`bucket_ts` (including immediately adjacent to `sample_window_start`
+itself, e.g. one minute later) — reaches `"building"` once
+`bucket_ts - sample_window_start >= 7` calendar days, and reaches
+`"mature"` once `bucket_ts - sample_window_start >= 30` days, with the
+second sample's own position never entering the computation (frozen
+regressions: `tests/analytics/test_percentile_engine.py::
+test_sparse_long_span_follows_span_contract`,
+`tests/analytics/test_percentile_maturity_audit.py::
+test_two_closely_spaced_old_samples_still_reach_mature`). `MIN_PCTL_TIER`
+therefore excludes only the `sample_size < 2` / sub-`none_below_days`
+case, never a sparse-but-old-enough distribution — it is **not**, by
+itself, a guarantee that a percentile-window's *expected* sample density
+(e.g. a 30d window's ~30 daily buckets) has actually materialized. This is not a
+correctness defect in the percentile engine (§12.6 chose this
+deliberately) or in how §4.1/§4.2/§4.3 consume `normalized_evidence()`/
+`compression_score()` today — no upstream production pipeline currently
+constructs `PercentileRequest`s or writes `percentile_snapshots` at all
+(tracked as `docs/PROJECT_RISK_AND_DEBT_REGISTER.md` R-023), so this gap
+is not yet reachable by any live V2 decision. It **is** a correction to
+this section's own prose, and a note that MUST be re-read before any
+future Stage 2 percentile-computation orchestrator is built or before any
+V2 evidence produced under `MIN_PCTL_TIER` is treated as empirically
+meaningful (`docs/V2_EMPIRICAL_RED_TEAM_PLAN.md` §3.4's provider-
+granularity discipline applies the same caution). `MIN_PCTL_TIER`'s
+*value* (`"building"`) is unchanged — this amendment corrects only the
+motivating prose, not the frozen parameter.
 
 ### 4.1a Stage 4 numerical evidence must survive the Stage 4→5/6 boundary
 (clean-room audit amendment — closes a broader gap than the
