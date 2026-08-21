@@ -35,8 +35,11 @@ at all; the already-computed `context` supplies the 4h/1h facts):**
   2. `reader.fetch_v2_consensus_feature_window(...)` -- the exact
      `RANGE_PROXY_N=14`-bucket consensus window `[B15 - 13*15m, B15]`,
      the same interval `setup_common.range_proxy_pct()` itself expects.
-  3. `reader.fetch_v2_instrument(...)` -- the single canonical-exchange
-     `exchange_instruments` row for `protection_buffer()`'s `tick_size`.
+  3. `reader.fetch_v2_instrument(..., as_of=context.T)` -- the single
+     canonical-exchange historical metadata version actually in effect at
+     `context.T` (V2-H2c), for `protection_buffer()`'s `tick_size`. Never
+     the current `exchange_instruments` LKG row -- see `ports.py`'s
+     `V2SetupHistoryReader.fetch_v2_instrument` docstring.
 
 Sequential awaits, in that order (no `asyncio.gather` -- deterministic,
 easy-to-audit call order, mirroring `aligned_inputs.py`'s own posture, not
@@ -130,7 +133,8 @@ async def load_trend_pullback_inputs(
         calculation_version=context.calculation_version)
 
     instrument = await reader.fetch_v2_instrument(
-        exchange=V2_REFERENCE_EXCHANGE, symbol=context.symbol, market_type=context.market_type)
+        exchange=V2_REFERENCE_EXCHANGE, symbol=context.symbol, market_type=context.market_type,
+        as_of=context.T)
 
     return V2TrendPullbackInputs(
         context=context,

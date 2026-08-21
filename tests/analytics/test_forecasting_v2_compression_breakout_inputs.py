@@ -217,13 +217,17 @@ def test_exact_consensus_5m_window_call_current_b5_only():
 
 def test_exact_instrument_call():
     reader = RecordingReader()
-    _run(load_compression_breakout_inputs(reader, context=make_context()))
+    context = make_context()
+    _run(load_compression_breakout_inputs(reader, context=context))
     calls = [kw for name, kw in reader.calls if name == "instrument"]
     assert len(calls) == 1
     kw = calls[0]
     assert kw["exchange"] == V2_REFERENCE_EXCHANGE
     assert kw["symbol"] == SYMBOL
     assert kw["market_type"] == MARKET_TYPE
+    # V2-H2c adversarial vector 13: instrument metadata is resolved as-of
+    # the exact frozen decision boundary (context.T), not any other time.
+    assert kw["as_of"] == context.T
 
 
 def test_call_order_is_deterministic():

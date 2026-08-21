@@ -1393,13 +1393,18 @@ correctness contract — subject to change if audit findings evolve):**
   identity/coherent-view half) is **MERGED**. `V2-H2d` (`§2.1b` raw-kline-
   backfill no-downgrade, `§2.1c` aligned-input defensive hardening) is
   **MERGED**. `V2-H2b` (`§3.1`'s finite `DRAIN-BEFORE-ACTIVATE` version-
-  switch state machine) is the PR that added this note — see its own PR
-  body for the exact durable state/transition-table/atomicity details; not
-  yet merged as of this note. `V2-H2c` (as-of/historical `exchange_
-  instruments`/`tick_size` reproducibility, `§12.5a`) and `V2-H2e` (`§3.4`'s
-  Stage-2-correction-publication-completeness half + replay-determinism
-  harness) remain **NOT STARTED**. The bullet below is left otherwise
-  unedited as a historical record of the original combined scope.
+  switch state machine) is **MERGED** (PR #58, merge commit
+  `19f3b1d5075df642a3f1e8decb0f53ea0b3d8b48`). `V2-H2c` (as-of/historical
+  `exchange_instrument_history`/`tick_size` reproducibility, `§12.5a`) is
+  the PR that added this note — a `[effective_from, effective_until)`
+  half-open interval model resolves the exact metadata version in effect
+  at each Stage 5 detector's own `context.T`, never the current
+  `exchange_instruments` LKG row; see its own PR body for the full
+  consumer audit, interval semantics, and real-PostgreSQL tests; not yet
+  merged as of this note. `V2-H2e` (`§3.4`'s Stage-2-correction-
+  publication-completeness half + replay-determinism harness) remains
+  **NOT STARTED**. The bullet below is left otherwise unedited as a
+  historical record of the original combined scope.
 - **`V2-H2` — Replay/provenance/data-coherence hardening.** Implements
   `§3.4`'s one-coherent-data-view-per-decision invariant (Stage 3+5 input
   assembly; Stage 2 correction-publication completeness); `§3.2`'s
@@ -1469,11 +1474,11 @@ boundaries are immutable.
 
 **Next planned work (after `#43` and `#44` merged):** `INFRA-D1` (actual
 GitHub PR `#45`) — off-site data durability. `V2-H2` has since split into
-sub-PRs as it landed (see the naming note above): `V2-H2a`/`V2-H2d`
-**MERGED**; `V2-H2b` (`DRAIN-BEFORE-ACTIVATE` version-switch state
-machine) is the PR that introduced this update, not yet merged as of this
-note; `V2-H2c`/`V2-H2e` remain not started. INFRA-D1 does not block any
-`V2-H2*` sub-PR and may land before, after, or interleaved with them.
+sub-PRs as it landed (see the naming note above): `V2-H2a`/`V2-H2d`/`V2-H2b`
+**MERGED** (`V2-H2b` via PR #58); `V2-H2c` (as-of instrument metadata) is
+the PR that introduced this update, not yet merged as of this note;
+`V2-H2e` remains not started. INFRA-D1 does not block any `V2-H2*` sub-PR
+and may land before, after, or interleaved with them.
 
 Conceptual planning order going forward (logical labels, not a claim about
 future GitHub PR numbers — those are assigned only when each PR is

@@ -60,7 +60,7 @@ Severity:
 | D-004 | HIGH | OPEN | Historical OI/taker/liquidation coverage differs by venue | Capability/evidence matrix included with each research window | G1/G4 |
 | D-005 | HIGH | OPEN | Provider/API semantics can change over calendar time | Historically versioned feed-semantics/capability record or equivalent research manifest | G4/reproducibility |
 | D-006 | HIGH | OPEN | Data outages/gaps may correlate with volatility | Missingness-by-regime/outage analysis and denominator transparency | G4/G5 |
-| D-007 | HIGH | PLANNED | Historical/as-of instrument metadata/tick size correctness | H2c implementation + replay tests | G0 |
+| D-007 | HIGH | IN_PROGRESS | Historical/as-of instrument metadata/tick size correctness | H2c as-of `exchange_instrument_history` model implemented (`storage/stage2_schema.sql`, `storage/v2_setup_readers.py::read_v2_instrument`, `storage/db.py::Database.upsert_exchange_instrument`/`fetch_v2_instrument`, `analytics/forecasting_v2/ports.py`) with pure-reader, schema, and real-PostgreSQL as-of/overlap/restart/concurrency tests — hardening/v2-h2c-asof-instrument-metadata, draft, not yet merged. Closure per §I requires MERGED implementation + tests, not draft. | G0 |
 | D-008 | HIGH | PLANNED | Stage-2 corrections can produce incoherent historical views | H2e publication-completeness/coherent-view/replay determinism | G0/G1 |
 | D-009 | HIGH | OPEN | Research reports may depend on mutable/revised database state | Data snapshot/revision identity in validation artifacts; rerun reproducibility proof | G4 |
 | D-010 | MEDIUM | OPEN | Cross-venue metrics can compare unlike measurement instruments | Feature-specific comparability rules and report flags | G4 |
@@ -71,7 +71,7 @@ Severity:
 
 | ID | Severity | Status | Risk / debt | Required closure evidence | Gate |
 |---|---|---|---|---|---|
-| C-001 | HIGH | IN_PROGRESS | Version switch can mix old/new model semantics mid-episode | H2b durable DRAIN-BEFORE-ACTIVATE state machine implemented (`analytics/forecasting_v2/version_switch.py` + `version_switch_orchestrator.py`, `storage/v2_version_switch_readers.py`, `v2_version_switch_state` table) with pure-transition, orchestration-boundary, schema, and real-PostgreSQL row-locking/atomicity/restart tests — hardening/v2-h2b-drain-before-activate, draft, not yet merged. Closure per §I requires MERGED implementation + tests, not draft. | G0 |
+| C-001 | HIGH | CLOSED | Version switch can mix old/new model semantics mid-episode | H2b durable DRAIN-BEFORE-ACTIVATE state machine implemented (`analytics/forecasting_v2/version_switch.py` + `version_switch_orchestrator.py`, `storage/v2_version_switch_readers.py`, `v2_version_switch_state` table) with pure-transition, orchestration-boundary, schema, and real-PostgreSQL row-locking/atomicity/restart tests — MERGED via PR #58, merge commit `19f3b1d5075df642a3f1e8decb0f53ea0b3d8b48`. | G0 |
 | C-002 | HIGH | PLANNED | Event persistence/idempotency may duplicate or partially persist same-T decisions | H3 deterministic IDs, uniqueness, atomic batch tests, restart identity | G0 |
 | C-003 | HIGH | PLANNED | Full episode transition semantics not implemented | Stage 6 completion and contract-vector tests | G3 |
 | C-004 | HIGH | PLANNED | Entry feasibility not implemented | Stage 7 completion | G3 |

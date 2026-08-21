@@ -36,6 +36,17 @@ STAGE2_SCHEMA_PATH = Path(__file__).resolve().parent / "stage2_schema.sql"
 _INSTRUMENT_CRITICAL_FIELDS = (
     "exchange_instrument_id", "quantity_unit", "contract_multiplier", "tick_size")
 
+# (V2-H2c) The full value-field set exchange_instrument_history compares to
+# decide whether an upsert actually changed anything -- wider than
+# _INSTRUMENT_CRITICAL_FIELDS above (which gates the LKG mismatch ALARM
+# only): price_precision/quantity_precision are not alarm-worthy on their
+# own, but a historical replay must still see the exact value that was
+# actually in effect, so a change to either of them still opens a new
+# history interval.
+_INSTRUMENT_HISTORY_VALUE_FIELDS = (
+    "exchange_instrument_id", "quantity_unit", "contract_multiplier",
+    "tick_size", "price_precision", "quantity_precision")
+
 
 def _split_sql_statements(sql: str) -> list[str]:
     """Split a plain-DDL script into individual statements.
@@ -271,49 +282,133 @@ class Database:
         A change on a critical field (exchange_instrument_id, quantity_unit,
         contract_multiplier, tick_size) versus the existing row is NOT silently
         overwritten: unless `accept_mismatch=True`, this raises so the change is
-        a deliberate decision (and forks calculation_version upstream)."""
+        a deliberate decision (and forks calculation_version upstream).
+
+        (V2-H2c) Runs inside ONE transaction, serialized by a
+        transaction-scoped Postgres advisory lock keyed to `(exchange,
+        symbol, market_type)` -- this closes a pre-existing TOCTOU (the
+        mismatch check previously read the current LKG row via a
+        SEPARATE, unlocked `pool.acquire()`/`get_exchange_instrument()`
+        call before writing) and gives the `exchange_instrument_history`
+        append below the same serialization guarantee, without requiring
+        a placeholder row to lock before this call's final accepted
+        values are known (an advisory lock works even when no
+        `exchange_instruments` row exists yet, e.g. this identity's very
+        first bootstrap).
+
+        Whenever `fetched_at` is not `None` AND this call's own value
+        fields (`exchange_instrument_id`/`quantity_unit`/
+        `contract_multiplier`/`tick_size`/`price_precision`/
+        `quantity_precision`) differ from the currently-open
+        `exchange_instrument_history` interval (or none is open yet),
+        exactly ONE new interval is opened -- closing the previously-open
+        one first, in the SAME transaction -- using THIS call's own
+        `fetched_at` as the new interval's `effective_from`/`observed_at`
+        (never a fabricated earlier instant; see
+        `storage/stage2_schema.sql`'s `exchange_instrument_history` table
+        comment). An idempotent refresh whose value fields are unchanged
+        never opens a spurious extra interval. `fetched_at=None` (a
+        caller with no honest observation timestamp -- e.g. a bare
+        `manual`/`declared_fallback` value with no real fetch) never
+        opens or closes any interval either: this table only ever
+        records what a real observation actually implies, never a
+        fabricated timestamp -- a historical `as_of` read for such an
+        identity legitimately returns `None` (NOT_EVALUABLE) until a real
+        observed fetch establishes an interval."""
         assert self.pool is not None
         new_vals = {
             "exchange_instrument_id": exchange_instrument_id,
             "quantity_unit": quantity_unit,
             "contract_multiplier": contract_multiplier,
             "tick_size": tick_size,
+            "price_precision": price_precision,
+            "quantity_precision": quantity_precision,
         }
-        existing = await self.get_exchange_instrument(exchange, symbol, market_type)
-        if existing is not None and not accept_mismatch:
-            diff = [f for f in _INSTRUMENT_CRITICAL_FIELDS if existing[f] != new_vals[f]]
-            if diff:
-                raise ValueError(
-                    f"instrument metadata mismatch on {diff} for "
-                    f"{exchange}/{symbol}/{market_type}; refusing silent overwrite "
-                    f"(pass accept_mismatch=True to accept deliberately)")
+        history_vals = tuple(new_vals[f] for f in _INSTRUMENT_HISTORY_VALUE_FIELDS)
         async with self.pool.acquire() as conn:
-            await conn.execute(
-                """
-                INSERT INTO exchange_instruments
-                    (exchange, symbol, market_type, exchange_instrument_id,
-                     quantity_unit, contract_multiplier, tick_size,
-                     price_precision, quantity_precision, metadata_source,
-                     fetched_at, is_stale, note, updated_at)
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13, now())
-                ON CONFLICT (exchange, symbol, market_type) DO UPDATE SET
-                    exchange_instrument_id = EXCLUDED.exchange_instrument_id,
-                    quantity_unit = EXCLUDED.quantity_unit,
-                    contract_multiplier = EXCLUDED.contract_multiplier,
-                    tick_size = EXCLUDED.tick_size,
-                    price_precision = EXCLUDED.price_precision,
-                    quantity_precision = EXCLUDED.quantity_precision,
-                    metadata_source = EXCLUDED.metadata_source,
-                    fetched_at = EXCLUDED.fetched_at,
-                    is_stale = EXCLUDED.is_stale,
-                    note = EXCLUDED.note,
-                    updated_at = now()
-                """,
-                exchange, symbol, market_type, exchange_instrument_id,
-                quantity_unit, contract_multiplier, tick_size,
-                price_precision, quantity_precision, metadata_source,
-                fetched_at, is_stale, note,
-            )
+            async with conn.transaction():
+                await conn.execute(
+                    "SELECT pg_advisory_xact_lock(hashtext($1))",
+                    f"{exchange}:{symbol}:{market_type}")
+                existing = await conn.fetchrow(
+                    "SELECT * FROM exchange_instruments "
+                    "WHERE exchange=$1 AND symbol=$2 AND market_type=$3",
+                    exchange, symbol, market_type)
+                if existing is not None and not accept_mismatch:
+                    diff = [f for f in _INSTRUMENT_CRITICAL_FIELDS if existing[f] != new_vals[f]]
+                    if diff:
+                        raise ValueError(
+                            f"instrument metadata mismatch on {diff} for "
+                            f"{exchange}/{symbol}/{market_type}; refusing silent overwrite "
+                            f"(pass accept_mismatch=True to accept deliberately)")
+                await conn.execute(
+                    """
+                    INSERT INTO exchange_instruments
+                        (exchange, symbol, market_type, exchange_instrument_id,
+                         quantity_unit, contract_multiplier, tick_size,
+                         price_precision, quantity_precision, metadata_source,
+                         fetched_at, is_stale, note, updated_at)
+                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13, now())
+                    ON CONFLICT (exchange, symbol, market_type) DO UPDATE SET
+                        exchange_instrument_id = EXCLUDED.exchange_instrument_id,
+                        quantity_unit = EXCLUDED.quantity_unit,
+                        contract_multiplier = EXCLUDED.contract_multiplier,
+                        tick_size = EXCLUDED.tick_size,
+                        price_precision = EXCLUDED.price_precision,
+                        quantity_precision = EXCLUDED.quantity_precision,
+                        metadata_source = EXCLUDED.metadata_source,
+                        fetched_at = EXCLUDED.fetched_at,
+                        is_stale = EXCLUDED.is_stale,
+                        note = EXCLUDED.note,
+                        updated_at = now()
+                    """,
+                    exchange, symbol, market_type, exchange_instrument_id,
+                    quantity_unit, contract_multiplier, tick_size,
+                    price_precision, quantity_precision, metadata_source,
+                    fetched_at, is_stale, note,
+                )
+
+                if fetched_at is not None:
+                    current = await conn.fetchrow(
+                        "SELECT effective_from, exchange_instrument_id, quantity_unit, "
+                        "contract_multiplier, tick_size, price_precision, quantity_precision "
+                        "FROM exchange_instrument_history "
+                        "WHERE exchange=$1 AND symbol=$2 AND market_type=$3 "
+                        "AND effective_until IS NULL",
+                        exchange, symbol, market_type)
+                    current_vals = None
+                    if current is not None:
+                        current_vals = tuple(current[f] for f in _INSTRUMENT_HISTORY_VALUE_FIELDS)
+                    if current_vals != history_vals:
+                        if current is not None:
+                            if fetched_at <= current["effective_from"]:
+                                raise ValueError(
+                                    f"instrument history for {exchange}/{symbol}/{market_type}: "
+                                    f"fetched_at {fetched_at!r} is not strictly after the "
+                                    f"currently-open interval's own effective_from "
+                                    f"{current['effective_from']!r} -- history must be "
+                                    "appended in non-decreasing observed_at order, never "
+                                    "reordered")
+                            await conn.execute(
+                                "UPDATE exchange_instrument_history SET effective_until = $1 "
+                                "WHERE exchange=$2 AND symbol=$3 AND market_type=$4 "
+                                "AND effective_from=$5",
+                                fetched_at, exchange, symbol, market_type,
+                                current["effective_from"])
+                        await conn.execute(
+                            """
+                            INSERT INTO exchange_instrument_history
+                                (exchange, symbol, market_type, exchange_instrument_id,
+                                 quantity_unit, contract_multiplier, tick_size,
+                                 price_precision, quantity_precision, metadata_source,
+                                 observed_at, effective_from, effective_until, note)
+                            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$11,NULL,$12)
+                            """,
+                            exchange, symbol, market_type, exchange_instrument_id,
+                            quantity_unit, contract_multiplier, tick_size,
+                            price_precision, quantity_precision, metadata_source,
+                            fetched_at, note,
+                        )
         return "OK"
 
     # ---------------------------------------------------------------
@@ -915,19 +1010,21 @@ class Database:
                 calculation_version=calculation_version)
 
     async def fetch_v2_instrument(
-        self, *, exchange: str, symbol: str, market_type: str,
+        self, *, exchange: str, symbol: str, market_type: str, as_of: datetime,
     ) -> "Optional[Mapping]":
-        """Read-only: the ONE `exchange_instruments` row at the EXACT
-        `(exchange, symbol, market_type)` identity, or `None` if absent —
-        not bucket-scoped (instrument metadata is not time-bucketed). See
+        """Read-only (V2-H2c): the ONE `exchange_instrument_history` row
+        whose validity interval covers `as_of`, for the EXACT `(exchange,
+        symbol, market_type)` identity, or `None` if no such historical
+        version exists — never the current `exchange_instruments` LKG
+        row, never a future version. See
         `storage/v2_setup_readers.py::read_v2_instrument` for the full
         contract."""
         from storage.v2_setup_readers import read_v2_instrument, validate_instrument_args
-        validate_instrument_args(exchange=exchange, symbol=symbol, market_type=market_type)
+        validate_instrument_args(exchange=exchange, symbol=symbol, market_type=market_type, as_of=as_of)
         assert self.pool is not None
         async with self.pool.acquire() as conn:
             return await read_v2_instrument(
-                conn, exchange=exchange, symbol=symbol, market_type=market_type)
+                conn, exchange=exchange, symbol=symbol, market_type=market_type, as_of=as_of)
 
     async def fetch_shadow_liquidation_availability(
         self,

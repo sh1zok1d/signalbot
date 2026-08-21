@@ -32,6 +32,9 @@ EXPECTED_TABLES = [
     # additive V2-H2b DRAIN-BEFORE-ACTIVATE version-switch durable state
     # (details in tests/storage/test_v2_version_switch_schema.py)
     "v2_version_switch_state",
+    # additive V2-H2c as-of/historical instrument metadata (details in
+    # tests/storage/test_v2_instrument_history_schema.py)
+    "exchange_instrument_history",
 ]
 
 

@@ -1122,3 +1122,90 @@ CREATE TABLE IF NOT EXISTS v2_version_switch_state (
         phase = 'NO_PENDING_SWITCH' OR active_rules_version IS NOT NULL
     )
 );
+
+-- ============================================================
+-- V2-H2c: as-of/historical instrument metadata
+-- (docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §12.5a's "Clean-room audit
+-- finding: instrument metadata has no as-of/historical model today").
+--
+-- `exchange_instruments` (above) remains the CURRENT/last-known-good
+-- snapshot -- the operational row LIVE ingestion/`runtime/shadow_cli.py`
+-- bootstrap reads and writes, UNCHANGED by this table. A historical V2
+-- Stage 5 decision at boundary T must instead resolve the metadata
+-- VERSION that was actually in effect at T -- never the current row,
+-- never the newest fetch, never a future version.
+--
+-- Append-only, effective-dated history: ONE row per accepted metadata
+-- VERSION for one (exchange, symbol, market_type) identity. Interval
+-- convention is frozen as HALF-OPEN [effective_from, effective_until):
+--   effective_from <= T  AND  (effective_until IS NULL OR T < effective_until)
+-- means "this version applies at T". At a boundary exactly equal to the
+-- NEXT version's effective_from, the NEW version applies -- the previous
+-- row no longer does (same convention Python encodes,
+-- storage/v2_instrument_history.py, and the same convention every test in
+-- tests/storage/test_v2_instrument_history*.py exercises).
+--
+-- `effective_from` is deliberately the ACCEPTED value's own `observed_at`
+-- (the fetch timestamp that produced it) -- NEVER a fabricated
+-- exchange-side change instant. An `observed_at` fetch timestamp proves
+-- only "we observed this value as of this time", not "the exchange
+-- changed the value at exactly this instant" -- this table never claims
+-- more than that. Consequently there is NO migration that assigns
+-- `effective_from = -infinity` or any arbitrary project-start date for
+-- pre-existing `exchange_instruments` rows; history begins only at each
+-- version's own first-known observation. A historical T earlier than the
+-- oldest known `effective_from` for an identity has NO row here --
+-- legitimately NOT_EVALUABLE, never silently satisfied by extrapolating
+-- today's value backward.
+--
+-- Non-overlap is enforced by TWO cheap mechanisms rather than a
+-- btree_gist exclusion constraint (disproportionate complexity for this
+-- narrow need): (1) `ux_eih_one_open_interval_per_identity` below
+-- guarantees AT MOST ONE currently-open (`effective_until IS NULL`) row
+-- per identity at the DB level; (2) the writer
+-- (`storage/v2_instrument_history.py::append_exchange_instrument_history`)
+-- always locks that one open row (`SELECT ... FOR UPDATE`) and closes it
+-- in the SAME transaction as opening the next one, so no two accepted
+-- writes for the same identity can ever race into overlapping closed
+-- intervals either. The as-of reader independently re-checks: more than
+-- one row matching a requested `as_of` is corruption/overlap and FAILS
+-- CLOSED (`V2InstrumentHistoryError`), never silently picks one.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS exchange_instrument_history (
+    exchange              TEXT NOT NULL,
+    symbol                TEXT NOT NULL,
+    market_type           TEXT NOT NULL DEFAULT 'perp',
+    exchange_instrument_id TEXT NOT NULL,
+    quantity_unit         TEXT,
+    contract_multiplier   DOUBLE PRECISION,
+    tick_size             DOUBLE PRECISION,
+    price_precision       INTEGER,
+    quantity_precision    INTEGER,
+    metadata_source       TEXT NOT NULL,          -- 'exchange_api' | 'declared_fallback' | 'manual'
+    observed_at           TIMESTAMPTZ NOT NULL,   -- fetch time that produced this version ("we saw this at T")
+    effective_from        TIMESTAMPTZ NOT NULL,   -- validity interval start == observed_at (never fabricated earlier)
+    effective_until       TIMESTAMPTZ,            -- NULL = still the currently-open version
+    note                  TEXT,
+    recorded_at           TIMESTAMPTZ NOT NULL DEFAULT now(),  -- DB-owned insert bookkeeping only
+    PRIMARY KEY (exchange, symbol, market_type, effective_from),
+    CONSTRAINT ck_eih_quantity_unit CHECK (
+        quantity_unit IS NULL OR quantity_unit IN ('base','contracts')),
+    CONSTRAINT ck_eih_metadata_source CHECK (
+        metadata_source IN ('exchange_api','declared_fallback','manual')),
+    CONSTRAINT ck_eih_tick_size_positive CHECK (tick_size IS NULL OR tick_size > 0),
+    CONSTRAINT ck_eih_contract_multiplier_positive CHECK (
+        contract_multiplier IS NULL OR contract_multiplier > 0),
+    CONSTRAINT ck_eih_price_precision_nonneg CHECK (
+        price_precision IS NULL OR price_precision >= 0),
+    CONSTRAINT ck_eih_quantity_precision_nonneg CHECK (
+        quantity_precision IS NULL OR quantity_precision >= 0),
+    CONSTRAINT ck_eih_interval_well_formed CHECK (
+        effective_until IS NULL OR effective_until > effective_from)
+);
+
+-- At most one currently-open (still-valid) history row per identity --
+-- see the table-level comment above for why this, plus transactional
+-- close-then-open, is chosen over a btree_gist exclusion constraint.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_eih_one_open_interval_per_identity
+    ON exchange_instrument_history (exchange, symbol, market_type)
+    WHERE effective_until IS NULL;

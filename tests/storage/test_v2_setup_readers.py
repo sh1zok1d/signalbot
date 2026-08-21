@@ -140,11 +140,14 @@ def make_reference_row(bucket_ts=B, **over):
 
 
 def make_instrument_row(**over):
+    """One `exchange_instrument_history` row (V2-H2c) -- an OPEN interval
+    (`effective_until=None`) starting at `B` by default, which every
+    `read_v2_instrument(..., as_of=B)` call below resolves against."""
     base = dict(
         exchange="binance", symbol="BTCUSDT", market_type="perp",
         exchange_instrument_id="BTCUSDT", quantity_unit="base", contract_multiplier=1.0,
         tick_size=0.1, price_precision=1, quantity_precision=3, metadata_source="exchange_api",
-        fetched_at=B, is_stale=False, note=None, updated_at=B,
+        observed_at=B, effective_from=B, effective_until=None, note=None,
     )
     base.update(over)
     return base
@@ -395,14 +398,14 @@ def test_reference_window_empty_result_is_empty_tuple():
 def test_instrument_hit_returns_tick_size():
     conn = FakeConn([make_instrument_row(tick_size=0.5)])
     result = _run(read_v2_instrument(
-        conn, exchange="binance", symbol="BTCUSDT", market_type="perp"))
+        conn, exchange="binance", symbol="BTCUSDT", market_type="perp", as_of=B))
     assert result["tick_size"] == 0.5
 
 
 def test_instrument_missing_returns_none():
     conn = FakeConn([])
     result = _run(read_v2_instrument(
-        conn, exchange="binance", symbol="BTCUSDT", market_type="perp"))
+        conn, exchange="binance", symbol="BTCUSDT", market_type="perp", as_of=B))
     assert result is None
 
 
@@ -410,24 +413,107 @@ def test_instrument_more_than_one_row_fails_loudly():
     conn = FakeConn([make_instrument_row(), make_instrument_row()])
     with pytest.raises(V2SetupReaderError):
         _run(read_v2_instrument(
-            conn, exchange="binance", symbol="BTCUSDT", market_type="perp"))
+            conn, exchange="binance", symbol="BTCUSDT", market_type="perp", as_of=B))
 
 
 def test_instrument_identity_mismatch_rejected():
     conn = FakeConn([make_instrument_row(symbol="ETHUSDT")])
     with pytest.raises(V2SetupReaderError):
         _run(read_v2_instrument(
-            conn, exchange="binance", symbol="BTCUSDT", market_type="perp"))
+            conn, exchange="binance", symbol="BTCUSDT", market_type="perp", as_of=B))
 
 
 def test_instrument_result_is_immutable():
     from types import MappingProxyType
     conn = FakeConn([make_instrument_row()])
     result = _run(read_v2_instrument(
-        conn, exchange="binance", symbol="BTCUSDT", market_type="perp"))
+        conn, exchange="binance", symbol="BTCUSDT", market_type="perp", as_of=B))
     assert isinstance(result, MappingProxyType)
     with pytest.raises(TypeError):
         result["tick_size"] = 999.0  # type: ignore[index]
+
+
+# ============================================================================
+# 4a. V2-H2c AS-OF SEMANTICS: interval resolution, missing history, overlap,
+# malformed-numeric fail-closed (adversarial vectors 2-5, 7, 8, 10, 11)
+# ============================================================================
+def test_instrument_as_of_before_effective_from_returns_none():
+    """Vector 2: T before the first (only) known version -- absence, not
+    the current LKG. `FakeConn` just returns whatever rows it's given, so
+    this exercises the CONTRACT (this module never itself filters by
+    `as_of` in Python -- that is the SQL's job, proven for real in
+    tests/storage/test_v2_instrument_history_readers.py); here we assert
+    the fake, honestly empty result still round-trips as `None`."""
+    conn = FakeConn([])
+    result = _run(read_v2_instrument(
+        conn, exchange="binance", symbol="BTCUSDT", market_type="perp",
+        as_of=B - timedelta(days=1)))
+    assert result is None
+
+
+def test_instrument_as_of_within_open_interval_returns_row():
+    """Vector 1/3: T inside a still-open interval -- exact row."""
+    conn = FakeConn([make_instrument_row(effective_from=B, effective_until=None)])
+    result = _run(read_v2_instrument(
+        conn, exchange="binance", symbol="BTCUSDT", market_type="perp",
+        as_of=B + timedelta(minutes=5)))
+    assert result["tick_size"] == 0.1
+
+
+def test_instrument_overlapping_history_rows_fail_closed():
+    """Vector 8: more than one row claims to cover the same `as_of` --
+    ambiguous/overlapping history. Never silently pick one."""
+    conn = FakeConn([
+        make_instrument_row(tick_size=0.1, effective_from=B, effective_until=None),
+        make_instrument_row(tick_size=0.5, effective_from=B, effective_until=None),
+    ])
+    with pytest.raises(V2SetupReaderError, match="overlapping|ambiguous"):
+        _run(read_v2_instrument(
+            conn, exchange="binance", symbol="BTCUSDT", market_type="perp", as_of=B))
+
+
+@pytest.mark.parametrize("bad_tick", [0, -0.1, float("nan"), float("inf"), float("-inf")])
+def test_instrument_rejects_malformed_tick_size_as_corruption(bad_tick):
+    """Vectors 10/11: a PRESENT tick_size of 0/negative/NaN/inf is
+    corruption, never legitimate absence, never silently passed through."""
+    conn = FakeConn([make_instrument_row(tick_size=bad_tick)])
+    with pytest.raises(V2SetupReaderError, match="tick_size"):
+        _run(read_v2_instrument(
+            conn, exchange="binance", symbol="BTCUSDT", market_type="perp", as_of=B))
+
+
+def test_instrument_none_tick_size_is_legitimate_absence_not_corruption():
+    conn = FakeConn([make_instrument_row(tick_size=None)])
+    result = _run(read_v2_instrument(
+        conn, exchange="binance", symbol="BTCUSDT", market_type="perp", as_of=B))
+    assert result["tick_size"] is None
+
+
+@pytest.mark.parametrize("bad_mult", [0, -0.01, float("nan"), float("inf")])
+def test_instrument_rejects_malformed_contract_multiplier_as_corruption(bad_mult):
+    """Vector 12 (OKX contracts metadata with invalid multiplier) --
+    preserves the existing fail-closed posture at the storage layer too,
+    not only at fetch-time (`common/instrument_metadata.py`)."""
+    conn = FakeConn([make_instrument_row(contract_multiplier=bad_mult)])
+    with pytest.raises(V2SetupReaderError, match="contract_multiplier"):
+        _run(read_v2_instrument(
+            conn, exchange="binance", symbol="BTCUSDT", market_type="perp", as_of=B))
+
+
+def test_instrument_none_contract_multiplier_is_legitimate_absence():
+    conn = FakeConn([make_instrument_row(contract_multiplier=None)])
+    result = _run(read_v2_instrument(
+        conn, exchange="binance", symbol="BTCUSDT", market_type="perp", as_of=B))
+    assert result["contract_multiplier"] is None
+
+
+def test_instrument_as_of_validates_before_any_fetch():
+    conn = FakeConn([])
+    with pytest.raises(V2SetupReaderError, match="as_of"):
+        _run(read_v2_instrument(
+            conn, exchange="binance", symbol="BTCUSDT", market_type="perp",
+            as_of=datetime(2026, 8, 15, 12, 0)))  # naive -- rejected
+    assert conn.fetch_calls == []
 
 
 # ============================================================================
@@ -512,7 +598,7 @@ def test_reference_window_rejects_blank_identifiers(field):
 @pytest.mark.parametrize("field", ["exchange", "symbol", "market_type"])
 def test_instrument_rejects_blank_identifiers(field):
     conn = FakeConn([])
-    kwargs = dict(exchange="binance", symbol="BTCUSDT", market_type="perp")
+    kwargs = dict(exchange="binance", symbol="BTCUSDT", market_type="perp", as_of=B)
     kwargs[field] = ""
     with pytest.raises(V2SetupReaderError, match=field):
         _run(read_v2_instrument(conn, **kwargs))
@@ -539,7 +625,7 @@ def test_validate_reference_feature_window_args_valid_passes():
 
 
 def test_validate_instrument_args_valid_passes():
-    validate_instrument_args(exchange="binance", symbol="BTCUSDT", market_type="perp")
+    validate_instrument_args(exchange="binance", symbol="BTCUSDT", market_type="perp", as_of=B)
 
 
 # ============================================================================
@@ -609,6 +695,11 @@ def test_instrument_sql_shape():
     assert "market_type = $3" in sql
     assert "SELECT *" not in sql
     assert "bucket_ts" not in sql  # not time-bucketed
+    # V2-H2c: reads the as-of history table, never the current LKG table.
+    assert "FROM exchange_instrument_history" in sql
+    assert "exchange_instruments" not in sql.replace("exchange_instrument_history", "")
+    assert "effective_from <= $4" in sql
+    assert "effective_until IS NULL OR $4 <" in sql
 
 
 @pytest.mark.parametrize("sql_const", [
@@ -766,13 +857,13 @@ def test_wrapper_reference_feature_window_delegates_correct_sql():
 def test_wrapper_instrument_validates_before_acquire():
     db = _db()
     with pytest.raises(V2SetupReaderError):
-        _run(db.fetch_v2_instrument(exchange="binance", symbol="", market_type="perp"))
+        _run(db.fetch_v2_instrument(exchange="binance", symbol="", market_type="perp", as_of=B))
     assert db.pool.acquire_count == 0
 
 
 def test_wrapper_instrument_returns_none_on_empty():
     db = _db(FakeConn([]))
-    result = _run(db.fetch_v2_instrument(exchange="binance", symbol="BTCUSDT", market_type="perp"))
+    result = _run(db.fetch_v2_instrument(exchange="binance", symbol="BTCUSDT", market_type="perp", as_of=B))
     assert result is None
     assert db.pool.acquire_count == 1
 
@@ -780,7 +871,7 @@ def test_wrapper_instrument_returns_none_on_empty():
 def test_wrapper_instrument_delegates_correct_sql():
     conn = FakeConn([make_instrument_row()])
     db = _db(conn)
-    _run(db.fetch_v2_instrument(exchange="binance", symbol="BTCUSDT", market_type="perp"))
+    _run(db.fetch_v2_instrument(exchange="binance", symbol="BTCUSDT", market_type="perp", as_of=B))
     assert conn.fetch_calls[0][0] == readers_module._INSTRUMENT_SQL
 
 
@@ -827,7 +918,7 @@ def test_direct_reference_window_reader_rejects_malformed_exchange_zero_fetches(
 def test_direct_instrument_reader_rejects_malformed_market_type_zero_fetches():
     conn = FakeConn([])
     with pytest.raises(V2SetupReaderError, match="market_type"):
-        _run(read_v2_instrument(conn, exchange="binance", symbol="BTCUSDT", market_type=""))
+        _run(read_v2_instrument(conn, exchange="binance", symbol="BTCUSDT", market_type="", as_of=B))
     assert conn.fetch_calls == []
 
 
@@ -913,21 +1004,21 @@ def test_reference_window_rejects_row_missing_required_field(missing_field):
 def test_instrument_rejects_malformed_row_shape(bad_row):
     conn = FakeConn([bad_row])
     with pytest.raises(V2SetupReaderError):
-        _run(read_v2_instrument(conn, exchange="binance", symbol="BTCUSDT", market_type="perp"))
+        _run(read_v2_instrument(conn, exchange="binance", symbol="BTCUSDT", market_type="perp", as_of=B))
 
 
 @pytest.mark.parametrize("missing_field", ["exchange", "tick_size"])
 def test_instrument_rejects_row_missing_required_field(missing_field):
     conn = FakeConn([_drop(make_instrument_row(), missing_field)])
     with pytest.raises(V2SetupReaderError, match=missing_field):
-        _run(read_v2_instrument(conn, exchange="binance", symbol="BTCUSDT", market_type="perp"))
+        _run(read_v2_instrument(conn, exchange="binance", symbol="BTCUSDT", market_type="perp", as_of=B))
 
 
 def test_instrument_missing_row_still_returns_none_unchanged():
     # Unchanged behavior: an entirely absent row is NOT a shape error.
     conn = FakeConn([])
     result = _run(read_v2_instrument(
-        conn, exchange="binance", symbol="BTCUSDT", market_type="perp"))
+        conn, exchange="binance", symbol="BTCUSDT", market_type="perp", as_of=B))
     assert result is None
 
 
@@ -937,4 +1028,4 @@ def test_instrument_duplicate_rows_still_fails_loudly_unchanged():
     conn = FakeConn([make_instrument_row(), make_instrument_row()])
     with pytest.raises(V2SetupReaderError):
         _run(read_v2_instrument(
-            conn, exchange="binance", symbol="BTCUSDT", market_type="perp"))
+            conn, exchange="binance", symbol="BTCUSDT", market_type="perp", as_of=B))
