@@ -71,10 +71,10 @@ from datetime import datetime
 from typing import Optional
 
 __all__ = [
-    "PublicationState", "PublicationStateError", "V2PublicationDirtyError",
-    "V2StalePublicationError", "Stage2PublicationResult",
-    "read_raw_revision", "bump_raw_revision", "read_publication_state",
-    "mark_publication_clean_cas", "validate_publication_scope_args",
+    "PublicationState", "PublicationStateError", "Stage2PublicationResult",
+    "V2PublicationDirtyError", "V2StalePublicationError",
+    "bootstrap_raw_revision", "bump_raw_revision", "mark_publication_clean_cas",
+    "read_publication_state", "read_raw_revision", "validate_publication_scope_args",
 ]
 
 

@@ -274,13 +274,18 @@ async def _bootstrap_stage2_schema_and_revision(
     not swallow or soften that; a stale deployed config must be fixed by
     the operator, never silently overwritten.
 
-    (V2-H2e) Also idempotently bootstraps `stage2_publication_state` for
-    `(symbol, _MARKET_TYPE)` CLEAN at generation 0 if it has never been
-    seeded -- the correction-publication coherence barrier
-    (`Database.open_v2_coherent_read_session`, §3.4) fails closed on an
-    unseeded scope exactly like a DIRTY one, so a fresh deployment must
-    start CLEAN rather than being permanently locked out with no prior
-    correction having ever happened."""
+    (V2-H2e) Also idempotently bootstraps `stage2_raw_revision` for
+    `(symbol, _MARKET_TYPE)` at revision 0 if it has never been seeded --
+    ONLY that counter, never `stage2_publication_state`. This does NOT
+    make the correction-publication coherence barrier
+    (`Database.open_v2_coherent_read_session`, §3.4) report CLEAN: a scope
+    with no `stage2_publication_state` row for a given
+    `calculation_version` reads `NEVER_PUBLISHED` (fail-closed,
+    structurally identical to STALE) regardless of what `stage2_raw_revision`
+    says. Only a real, CAS-verified `Database.publish_stage2_correction`
+    call ever creates/updates a `stage2_publication_state` row -- there is
+    no automatic CLEAN bootstrap for any scope, fresh or legacy (see
+    `storage/stage2_publication_state.py`'s module docstring)."""
     await db.init_stage2_schema()
     await db.bootstrap_instrument_metadata_revision(
         initial_revision=stage2_config.instrument_metadata_revision)

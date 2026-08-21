@@ -169,7 +169,7 @@ class RecoveryDB:
         return "SEEDED"
 
     async def bootstrap_stage2_raw_revision(self, *, symbol, market_type):
-        self.calls.append(("bootstrap_publication_state", symbol, market_type))
+        self.calls.append(("bootstrap_raw_revision", symbol, market_type))
         return "SEEDED"
 
     async def seed_symbols(self, rows):
@@ -465,6 +465,13 @@ def test_automatic_single_bucket_real_cycle():
     raw_indices = [i for i, v in enumerate(verbs) if v == "raw"]
     assert all(bootstrap_idx < i for i in upsert_indices)
     assert all(bootstrap_idx < i for i in raw_indices)
+    # (CodeRabbit review, tech-lead review round 3, finding 3) assert the
+    # ACTUAL (symbol, market_type) scope forwarded to
+    # bootstrap_stage2_raw_revision -- the V2-H2e raw-revision COUNTER seed
+    # only, never a stage2_publication_state CLEAN bootstrap (that no
+    # longer exists for the automatic recovery path either).
+    raw_revision_calls = [c for c in db.calls if isinstance(c, tuple) and c[0] == "bootstrap_raw_revision"]
+    assert raw_revision_calls == [("bootstrap_raw_revision", SYM, MT)]
 
 
 def test_several_missed_buckets_recovered_oldest_first():

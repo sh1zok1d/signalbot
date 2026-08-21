@@ -525,6 +525,84 @@ def test_first_insert_into_published_5m_bucket_bumps_revision():
     _run(body)
 
 
+# -- CodeRabbit review (tech-lead review round 3): exact per-timeframe
+# containment boundaries, and the fail-closed unknown-timeframe fix --------
+@pytest.mark.parametrize("timeframe,minutes", [
+    ("1m", 1), ("5m", 5), ("15m", 15), ("1h", 60), ("4h", 240),
+])
+def test_every_known_timeframe_maps_to_its_correct_containing_interval(timeframe, minutes):
+    """Every one of the five Stage-2-supported timeframes
+    (`analytics/feature_engine/models.py::TIMEFRAME_MINUTES`) must map to
+    its OWN exact half-open `[bucket_ts, bucket_ts + timeframe)` window --
+    the bucket's own start bumps, one minute before it does not, the last
+    minute inside the window bumps, and the bucket's own end (exclusive)
+    does not."""
+    async def body(db, _dsn):
+        async with db.pool.acquire() as conn:
+            await _seed_published_efv_bucket(conn, timeframe=timeframe, bucket_ts=_t(100))
+
+        # One minute BEFORE the bucket start -- outside, must not bump.
+        await _seed_kline(db, ts=_t(99), close=1.0, source="backfill")
+        assert await db.fetch_stage2_raw_revision(symbol=SYMBOL, market_type=MARKET_TYPE) == 0
+
+        # The bucket's own start -- inside (inclusive), must bump.
+        await _seed_kline(db, ts=_t(100), close=1.0, source="backfill")
+        assert await db.fetch_stage2_raw_revision(symbol=SYMBOL, market_type=MARKET_TYPE) == 1
+
+        # The last minute still inside the window -- must bump (new pair,
+        # fresh scope, so re-use a NEW symbol to isolate from the bump above).
+        async with db.pool.acquire() as conn:
+            await _seed_published_efv_bucket(conn, timeframe=timeframe, bucket_ts=_t(300))
+        last_minute_inside = _t(300 + minutes - 1)
+        await _seed_kline(db, ts=last_minute_inside, close=1.0, source="backfill")
+        assert await db.fetch_stage2_raw_revision(symbol=SYMBOL, market_type=MARKET_TYPE) == 2
+
+        # The bucket's own end -- exclusive, outside, must NOT bump.
+        bucket_end = _t(300 + minutes)
+        await _seed_kline(db, ts=bucket_end, close=1.0, source="backfill")
+        assert await db.fetch_stage2_raw_revision(symbol=SYMBOL, market_type=MARKET_TYPE) == 2
+
+    _run(body)
+
+
+def test_unknown_timeframe_fails_closed_and_always_bumps():
+    """CodeRabbit finding (tech-lead review round 3): `exchange_feature_vectors
+    .timeframe` is not structurally constrained anywhere (no DB CHECK, no
+    dataclass validation) -- an unrecognized value must NEVER silently
+    behave as an always-false containment window (the old `ELSE interval
+    '0'` bug). A first-ever insert at a timestamp far outside any
+    "reasonable" window must still bump when an existing row carries an
+    unrecognized timeframe."""
+    async def body(db, _dsn):
+        async with db.pool.acquire() as conn:
+            await _seed_published_efv_bucket(conn, timeframe="3m", bucket_ts=_t(0))
+
+        # Far outside any plausible bucket width -- would NOT have bumped
+        # under the old `ELSE interval '0'` behavior (which always
+        # evaluates the containment predicate to false), but MUST bump now.
+        await _seed_kline(db, ts=_t(99_999), close=1.0, source="backfill")
+        rev = await db.fetch_stage2_raw_revision(symbol=SYMBOL, market_type=MARKET_TYPE)
+        assert rev == 1, "an unrecognized timeframe must fail closed, never silently exclude"
+
+    _run(body)
+
+
+def test_known_timeframe_unaffected_rows_still_do_not_bump():
+    """Sanity companion to the fail-closed fix: an existing row with a
+    RECOGNIZED timeframe whose window genuinely does not contain the fresh
+    ts must still correctly NOT bump (the fix only changes behavior for
+    unrecognized timeframes, never adds false positives for known ones)."""
+    async def body(db, _dsn):
+        async with db.pool.acquire() as conn:
+            await _seed_published_efv_bucket(conn, timeframe="1h", bucket_ts=_t(0))
+
+        await _seed_kline(db, ts=_t(9999), close=1.0, source="backfill")
+        rev = await db.fetch_stage2_raw_revision(symbol=SYMBOL, market_type=MARKET_TYPE)
+        assert rev == 0
+
+    _run(body)
+
+
 # -- finding 7: raw-writer regression hardening ------------------------------
 def test_insert_klines_rejects_ragged_batch_before_any_db_call():
     async def body(db, _dsn):
@@ -1194,6 +1272,84 @@ def test_vector_7_overlapping_corrections_stale_publisher_cas_rejected():
         state2 = await db.fetch_stage2_publication_state(
             symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION)
         assert state2.is_clean
+
+    _run(body)
+
+
+def test_cas_row_lock_serializes_concurrent_publisher_and_corrector():
+    """CodeRabbit finding (tech-lead review round 3): `test_vector_7` above
+    proves the CAS *outcome* (a stale `expected_raw_revision` is rejected),
+    but correction #2 there already committed before the publisher even
+    attempted its CAS -- it does not prove `SELECT ... FOR UPDATE` itself
+    actually SERIALIZES a genuinely concurrent publisher and corrector on
+    the SAME `stage2_raw_revision` row. This test proves the row lock
+    itself, via a real held-open transaction plus a bounded-timeout,
+    task-based non-completion assertion (never sleep alone as the proof):
+
+      1. Publisher A starts a transaction and runs `mark_publication_clean_cas`
+         (which internally locks the row `FOR UPDATE`) -- the transaction
+         is deliberately left OPEN (not yet committed), so the row lock is
+         still held.
+      2. Corrector B, on a FULLY SEPARATE connection, concurrently attempts
+         `bump_raw_revision` for the SAME `(symbol, market_type)`. Its
+         `INSERT ... ON CONFLICT DO UPDATE` must acquire the same row's
+         lock, so it cannot complete while A's transaction is open --
+         proven by `asyncio.wait_for(..., timeout=...)` raising
+         `TimeoutError` (a bounded wait to keep the test fast, not the
+         proof mechanism itself) and `bump_task.done()` being False.
+      3. Publisher A commits -- releases the lock.
+      4. Corrector B's bump NOW completes.
+      5. Final state: publication remains at the OLD (pre-correction)
+         revision; the current raw_revision has advanced -- the scope is
+         STALE, exactly as §3.4 requires."""
+    async def body(db, scoped_dsn):
+        from storage.stage2_publication_state import bump_raw_revision, mark_publication_clean_cas
+
+        conn_a = await asyncpg.connect(scoped_dsn)
+        conn_b = await asyncpg.connect(scoped_dsn)
+        try:
+            tx_a = conn_a.transaction()
+            await tx_a.start()
+            # Publisher A: CAS at the never-published baseline (revision 0)
+            # -- holds stage2_raw_revision's row lock for as long as tx_a
+            # stays open (SELECT ... FOR UPDATE inside mark_publication_clean_cas).
+            gen = await mark_publication_clean_cas(
+                conn_a, symbol=SYMBOL, market_type=MARKET_TYPE,
+                calculation_version=CALC_VERSION, expected_raw_revision=0)
+            assert gen == 1
+
+            # Corrector B: a fully independent connection concurrently
+            # attempts to bump the SAME scope's revision.
+            bump_task = asyncio.create_task(
+                bump_raw_revision(conn_b, symbol=SYMBOL, market_type=MARKET_TYPE,
+                                   reason="CONCURRENT_WHILE_LOCKED"))
+
+            # Bounded wait proving B does NOT complete while A's
+            # transaction (and lock) is still open. `asyncio.shield` keeps
+            # bump_task itself alive/uncancelled across this timeout so it
+            # can be awaited for real once A releases the lock.
+            with pytest.raises(asyncio.TimeoutError):
+                await asyncio.wait_for(asyncio.shield(bump_task), timeout=0.5)
+            assert not bump_task.done(), "the row lock must genuinely block the concurrent bump"
+
+            # Publisher A commits -- releases the lock.
+            await tx_a.commit()
+
+            # NOW corrector B's bump completes (bounded only to keep the
+            # test from hanging forever on a genuine regression).
+            new_rev = await asyncio.wait_for(bump_task, timeout=5)
+            assert new_rev == 1
+
+            # Final state: publication is stuck at the OLD revision (0);
+            # the authoritative revision has moved on to 1 -- STALE.
+            state = await db.fetch_stage2_publication_state(
+                symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION)
+            assert state.published_raw_revision == 0
+            assert state.raw_revision == 1
+            assert not state.is_clean
+        finally:
+            await conn_a.close()
+            await conn_b.close()
 
     _run(body)
 

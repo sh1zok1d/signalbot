@@ -841,7 +841,23 @@ class Database:
         one, so if an exchange-scoped bucket already exists here, treating
         the scope as invalidated is a safe, conservative signal regardless
         of whether consensus/percentiles happen to exist yet too. One
-        query for the whole `fresh_ts` batch (never one query per row)."""
+        query for the whole `fresh_ts` batch (never one query per row).
+
+        Fail-closed for an unrecognized `timeframe` (CodeRabbit finding,
+        tech-lead review round 3): `exchange_feature_vectors.timeframe` is
+        NOT structurally constrained anywhere today -- no DB `CHECK`, no
+        dataclass validation (`analytics/feature_engine/models.py`'s own
+        `TIMEFRAME_MINUTES` is an unenforced, phase-scoped "supported
+        dimensions" constant, not a frozen contract this PR is positioned
+        to encode as new schema DDL with its own legacy-migration story).
+        A row whose `timeframe` is NOT one of the five known values
+        (`'1m'`, `'5m'`, `'15m'`, `'1h'`, `'4h'`) is therefore treated as
+        an UNCONDITIONAL match for its `(exchange, symbol)` -- never
+        silently excluded via an `ELSE interval '0'` containment window
+        that would always evaluate to false. This mirrors the same
+        "over-marking is always safe, silently under-marking never is"
+        discipline `storage/stage2_publication_state.py` already documents
+        for the correction-detection side."""
         if not fresh_ts:
             return False
         return bool(await conn.fetchval(
@@ -849,17 +865,19 @@ class Database:
             SELECT EXISTS (
                 SELECT 1 FROM exchange_feature_vectors efv
                 WHERE efv.exchange = $1 AND efv.symbol = $2
-                  AND EXISTS (
-                    SELECT 1 FROM unnest($3::timestamptz[]) AS fresh(ts)
-                    WHERE fresh.ts >= efv.bucket_ts
-                      AND fresh.ts < efv.bucket_ts + (CASE efv.timeframe
-                            WHEN '1m'  THEN interval '1 minute'
-                            WHEN '5m'  THEN interval '5 minutes'
-                            WHEN '15m' THEN interval '15 minutes'
-                            WHEN '1h'  THEN interval '1 hour'
-                            WHEN '4h'  THEN interval '4 hours'
-                            ELSE interval '0'
-                        END)
+                  AND (
+                    efv.timeframe NOT IN ('1m', '5m', '15m', '1h', '4h')
+                    OR EXISTS (
+                        SELECT 1 FROM unnest($3::timestamptz[]) AS fresh(ts)
+                        WHERE fresh.ts >= efv.bucket_ts
+                          AND fresh.ts < efv.bucket_ts + (CASE efv.timeframe
+                                WHEN '1m'  THEN interval '1 minute'
+                                WHEN '5m'  THEN interval '5 minutes'
+                                WHEN '15m' THEN interval '15 minutes'
+                                WHEN '1h'  THEN interval '1 hour'
+                                WHEN '4h'  THEN interval '4 hours'
+                            END)
+                    )
                   )
             )
             """,
