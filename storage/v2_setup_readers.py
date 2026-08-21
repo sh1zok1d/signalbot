@@ -33,16 +33,22 @@ single-bucket semantic scope:
     Generic about `exchange`; pinning it to the canonical V2 reference
     exchange (`"binance"`, §11) remains an ANALYTICS decision, never made
     here — same posture as Stage 3's `read_v2_reference_feature`.
-  - `read_v2_instrument` — the ONE `exchange_instruments` row for one
-    exact `(exchange, symbol, market_type)` identity (not bucket-scoped —
-    instrument metadata is not time-bucketed). Exists so
-    `protection_buffer()`'s `tick_size` input has a narrowly-scoped,
-    read-only, schema-grounded source; reuses
-    `storage/stage2_readers.py::INSTRUMENT_SQL`'s exact column set rather
-    than inventing a second one, but as its OWN standalone single-row
-    read (that existing reader is bundled inside a heavier six-table
-    per-bucket `ExchangeFeatureRawBundle` fetch that is not a good fit
-    for a bucket-independent metadata lookup).
+  - `read_v2_instrument` — the ONE `exchange_instrument_history` row whose
+    validity interval covers a caller-supplied `as_of` boundary, for one
+    exact `(exchange, symbol, market_type)` identity (V2-H2c,
+    `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §12.5a's "instrument
+    metadata has no as-of/historical model today" clean-room finding).
+    Exists so `protection_buffer()`'s `tick_size` input is exactly
+    reproducible under replay: the CURRENT `exchange_instruments` table
+    (this module never reads it) remains the separate, mutable,
+    last-known-good snapshot LIVE ingestion writes; THIS read resolves
+    the metadata VERSION that was actually in effect `as_of` the
+    caller's own decision boundary, never today's row, never a future
+    version. See `storage/stage2_schema.sql`'s `exchange_instrument_history`
+    table comment for the frozen half-open `[effective_from,
+    effective_until)` interval convention this function encodes exactly,
+    and `storage/db.py::Database.upsert_exchange_instrument` for how new
+    versions are recorded into it.
 
 Raw `klines_1m` history reuses Stage 3's existing
 `read_v2_reference_klines`/`Database.fetch_v2_reference_klines`
@@ -103,6 +109,7 @@ connection or a mutable reference into a DB-returned object.
 from __future__ import annotations
 
 import json
+import math
 import re
 from collections.abc import Mapping as _AbcMapping
 from datetime import datetime, timedelta
@@ -244,22 +251,29 @@ _REFERENCE_FEATURE_REQUIRED_FIELDS = (
     "computed_at", "config_hash", "config_version", "code_version",
 )
 
-# Single-row instrument metadata lookup — NOT bucket-scoped (instrument
-# metadata is not time-bucketed). Same explicit column set as
-# storage/stage2_readers.py::INSTRUMENT_SQL, as its own standalone read.
+# As-of instrument-metadata lookup (V2-H2c) — resolves the ONE
+# exchange_instrument_history row whose half-open validity interval
+# [effective_from, effective_until) covers the caller's `as_of` boundary,
+# for one exact (exchange, symbol, market_type) identity. Deliberately
+# reads exchange_instrument_history, NEVER exchange_instruments (the
+# separate, mutable, current/LKG snapshot table) — see
+# storage/stage2_schema.sql's table comment for the frozen interval
+# convention this WHERE clause encodes exactly.
 _INSTRUMENT_SQL = """
 SELECT exchange, symbol, market_type, exchange_instrument_id, quantity_unit,
        contract_multiplier, tick_size, price_precision, quantity_precision,
-       metadata_source, fetched_at, is_stale, note, updated_at
-FROM exchange_instruments
+       metadata_source, observed_at, effective_from, effective_until, note
+FROM exchange_instrument_history
 WHERE exchange = $1 AND symbol = $2 AND market_type = $3
+  AND effective_from <= $4
+  AND (effective_until IS NULL OR $4 < effective_until)
 """
 
 # The FULL explicit column set _INSTRUMENT_SQL selects.
 _INSTRUMENT_REQUIRED_FIELDS = (
     "exchange", "symbol", "market_type", "exchange_instrument_id", "quantity_unit",
     "contract_multiplier", "tick_size", "price_precision", "quantity_precision",
-    "metadata_source", "fetched_at", "is_stale", "note", "updated_at",
+    "metadata_source", "observed_at", "effective_from", "effective_until", "note",
 )
 
 
@@ -424,12 +438,19 @@ def validate_reference_feature_window_args(
     _validate_calculation_version(calculation_version)
 
 
-def validate_instrument_args(*, exchange: str, symbol: str, market_type: str) -> None:
+def validate_instrument_args(
+    *, exchange: str, symbol: str, market_type: str, as_of: datetime,
+) -> None:
     """Validate every argument for `read_v2_instrument`. Raises
-    `V2SetupReaderError`; performs no I/O."""
+    `V2SetupReaderError`; performs no I/O. `as_of` (V2-H2c) is validated
+    with the SAME `_validate_whole_minute_utc` every other boundary
+    argument in this module uses — a legal V2 5m-bucket alignment check
+    remains the analytics layer's job (`context.T` is already validated
+    as such by `V2ContextSnapshot`), never re-derived here."""
     _nonblank(exchange, "exchange")
     _nonblank(symbol, "symbol")
     _nonblank(market_type, "market_type")
+    _validate_whole_minute_utc(as_of, "as_of")
 
 
 # ---- the four read primitives (run on a single caller-supplied connection) -
@@ -611,33 +632,73 @@ async def read_v2_reference_feature_window(
     return tuple(detached)
 
 
+def _require_finite_positive_or_none(value: Any, field: str) -> None:
+    """(V2-H2c) `None` is legitimate absence (an unknown/never-set field) --
+    but a PRESENT value that is not a finite, strictly-positive number is
+    corruption, never silently accepted as-is and never silently coerced.
+    Catches `0`/negative/`NaN`/`inf` explicitly. `exchange_instrument_
+    history`'s own DB CHECK constraints (`storage/stage2_schema.sql`) were
+    tightened to `v > 0 AND v < 'Infinity'::float8` specifically to also
+    reject `NaN`/`+Infinity` at the schema level (a naive `CHECK (... > 0)`
+    alone cannot: PostgreSQL's float8 ordering treats both as "greater than
+    any value"). This Python-level check remains a SEPARATE, independent
+    authority regardless -- defense-in-depth, never removed just because the
+    schema now also catches the same cases."""
+    if value is None:
+        return
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise V2SetupReaderError(f"{field} must be a finite positive number, got {value!r}")
+    if not math.isfinite(value) or value <= 0:
+        raise V2SetupReaderError(f"{field} must be finite and > 0, got {value!r}")
+
+
 async def read_v2_instrument(
-    conn, *, exchange: str, symbol: str, market_type: str,
+    conn, *, exchange: str, symbol: str, market_type: str, as_of: datetime,
 ) -> Optional[Mapping]:
-    """The ONE `exchange_instruments` row at the EXACT `(exchange, symbol,
-    market_type)` identity — instrument metadata is not time-bucketed, so
-    there is no `bucket_ts`/`calculation_version` dimension here. `None`
-    if no such row exists; no fallback to a different exchange/symbol.
-    Exists to give `protection_buffer()`'s `tick_size` input
-    (`analytics/forecasting_v2/setup_common.py`) a narrowly-scoped,
-    read-only, schema-grounded source — this module has no opinion about
-    which exchange is canonical (that remains the analytics layer's job,
-    §11).
+    """(V2-H2c) The ONE `exchange_instrument_history` row whose half-open
+    `[effective_from, effective_until)` validity interval covers `as_of`,
+    for the EXACT `(exchange, symbol, market_type)` identity — never the
+    current `exchange_instruments` LKG row, never a future version.
+
+    `None` if no such row exists (legitimate absence -- e.g. `as_of` is
+    earlier than this identity's oldest known history, or this identity
+    has never been observed at all): a caller MUST treat this exactly
+    like any other legitimately-missing historical input (the detector's
+    own existing insufficient-data/NOT_READY path), NEVER as permission
+    to fall back to the current LKG row, a different identity, or a
+    hard-coded default. No fallback to a different exchange/symbol either.
+
+    More than one matching row is corruption/overlap (this module's own
+    writer -- `storage/db.py::Database.upsert_exchange_instrument` --
+    and `storage/stage2_schema.sql`'s `ux_eih_one_open_interval_per_
+    identity` partial unique index are both designed to make this
+    unreachable in practice) and FAILS CLOSED with `V2SetupReaderError`,
+    exactly like `test_v2_instrument_history_readers.py`'s adversarial
+    overlap vector proves against a real PostgreSQL instance -- never
+    silently picks the first/most-recent row.
+
+    A PRESENT-but-malformed `tick_size`/`contract_multiplier` (non-finite,
+    zero, negative) is corruption, categorically distinct from legitimate
+    absence (`NULL`) -- raises `V2SetupReaderError`, never silently
+    passed through for `protection_buffer()` to fail on less clearly.
 
     Enforces its own public contract BEFORE any DB access, via
     `validate_instrument_args`. The single returned row (if any) is
     re-validated against the exact requested identity."""
-    validate_instrument_args(exchange=exchange, symbol=symbol, market_type=market_type)
-    rows = await conn.fetch(_INSTRUMENT_SQL, exchange, symbol, market_type)
+    validate_instrument_args(exchange=exchange, symbol=symbol, market_type=market_type, as_of=as_of)
+    rows = await conn.fetch(_INSTRUMENT_SQL, exchange, symbol, market_type, as_of)
     if not rows:
         return None
     if len(rows) > 1:
         raise V2SetupReaderError(
-            f"expected at most one exchange_instruments row for ({exchange!r}, {symbol!r}, "
-            f"{market_type!r}), got {len(rows)}")
+            f"expected at most one exchange_instrument_history row valid as-of "
+            f"{as_of.isoformat()} for ({exchange!r}, {symbol!r}, {market_type!r}), got "
+            f"{len(rows)} -- overlapping/ambiguous history, refusing to silently pick one")
     rec = rows[0]
-    _require_row_fields(rec, _INSTRUMENT_REQUIRED_FIELDS, "exchange_instruments")
+    _require_row_fields(rec, _INSTRUMENT_REQUIRED_FIELDS, "exchange_instrument_history")
     if (rec["exchange"], rec["symbol"], rec["market_type"]) != (exchange, symbol, market_type):
         raise V2SetupReaderError(
-            "exchange_instruments row identity does not match the requested identity")
+            "exchange_instrument_history row identity does not match the requested identity")
+    _require_finite_positive_or_none(rec["tick_size"], "tick_size")
+    _require_finite_positive_or_none(rec["contract_multiplier"], "contract_multiplier")
     return _detach_row(rec)

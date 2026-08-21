@@ -36,6 +36,17 @@ STAGE2_SCHEMA_PATH = Path(__file__).resolve().parent / "stage2_schema.sql"
 _INSTRUMENT_CRITICAL_FIELDS = (
     "exchange_instrument_id", "quantity_unit", "contract_multiplier", "tick_size")
 
+# (V2-H2c) The full value-field set exchange_instrument_history compares to
+# decide whether an upsert actually changed anything -- wider than
+# _INSTRUMENT_CRITICAL_FIELDS above (which gates the LKG mismatch ALARM
+# only): price_precision/quantity_precision are not alarm-worthy on their
+# own, but a historical replay must still see the exact value that was
+# actually in effect, so a change to either of them still opens a new
+# history interval.
+_INSTRUMENT_HISTORY_VALUE_FIELDS = (
+    "exchange_instrument_id", "quantity_unit", "contract_multiplier",
+    "tick_size", "price_precision", "quantity_precision")
+
 
 def _split_sql_statements(sql: str) -> list[str]:
     """Split a plain-DDL script into individual statements.
@@ -177,9 +188,38 @@ class Database:
         """Read-only: fetch the fixed raw inputs for ONE ExchangeFeatureRequest
         (one exchange/symbol/market_type/bucket) and return an immutable,
         connection-independent bundle. Arguments are validated BEFORE a
-        connection is acquired; all six reads run on a single acquired
-        connection. No analytics, no writes, no wall clock. SQL lives in
-        storage/stage2_readers.py (static/trusted)."""
+        connection is acquired; all SEVEN reads (klines, open_interest,
+        funding, liquidations, instrument, liquidation capability,
+        required_metadata_revision) run inside ONE `REPEATABLE READ`
+        read-only transaction on a single acquired connection -- never as
+        separate autocommit statements.
+
+        (CodeRabbit finding, tech-lead-classified BLOCKER) Under plain
+        `READ COMMITTED` autocommit, each of the seven SELECTs could observe
+        a DIFFERENT PostgreSQL snapshot: e.g. `INSTRUMENT_SQL` reads OLD
+        instrument metadata, then a concurrent transaction deliberately
+        accepts a critical metadata change and commits (NEW
+        `exchange_instruments` + NEW history interval + NEW
+        `stage2_instrument_metadata_state.required_revision`) before
+        `REQUIRED_METADATA_REVISION_SQL` runs -- the returned bundle would
+        then mix OLD instrument metadata with the NEW required revision,
+        exactly the incoherence the H2c calculation_version fork gate
+        (`analytics/feature_engine/input_adapter.py::
+        assemble_exchange_feature_request`) depends on never happening. A
+        `REPEATABLE READ` transaction takes ONE consistent snapshot at its
+        first statement and every subsequent statement in it sees that SAME
+        snapshot, so all seven reads are guaranteed internally coherent
+        (either all-OLD or all-NEW, never mixed) regardless of what any
+        concurrent transaction commits in between. `readonly=True` is a
+        genuine safety property here (this method issues seven SELECTs and
+        nothing else) and lets PostgreSQL avoid serialization-failure
+        bookkeeping it would otherwise do for a read/write REPEATABLE READ
+        transaction. This does NOT change `compute_calculation_version`'s
+        formula or `stage2_instrument_metadata_state`'s revision semantics
+        -- it only guarantees the bundle the analytics layer receives is a
+        single, self-consistent point-in-time view. No analytics, no
+        writes, no wall clock. SQL lives in storage/stage2_readers.py
+        (static/trusted)."""
         from storage.stage2_readers import (  # local import: no analytics coupling
             read_exchange_feature_raw_bundle, validate_raw_bundle_args)
         validate_raw_bundle_args(exchange=exchange, symbol=symbol,
@@ -187,9 +227,10 @@ class Database:
                                  bucket_end=bucket_end)
         assert self.pool is not None
         async with self.pool.acquire() as conn:
-            return await read_exchange_feature_raw_bundle(
-                conn, exchange=exchange, symbol=symbol, market_type=market_type,
-                bucket_start=bucket_start, bucket_end=bucket_end)
+            async with conn.transaction(isolation="repeatable_read", readonly=True):
+                return await read_exchange_feature_raw_bundle(
+                    conn, exchange=exchange, symbol=symbol, market_type=market_type,
+                    bucket_start=bucket_start, bucket_end=bucket_end)
 
     async def seed_symbols(self, rows: Sequence[tuple]) -> int:
         """Upsert the symbol registry. rows: (symbol, base_asset, quote_asset,
@@ -263,6 +304,8 @@ class Database:
         tick_size, price_precision, quantity_precision, metadata_source: str,
         fetched_at, is_stale: bool = False, note: str = "",
         accept_mismatch: bool = False,
+        effective_from=None,
+        target_metadata_revision: "Optional[int]" = None,
     ) -> str:
         """Upsert an instrument row. The canonical `symbol` and the venue-native
         `exchange_instrument_id` are stored in SEPARATE columns. Stale flag and
@@ -271,50 +314,451 @@ class Database:
         A change on a critical field (exchange_instrument_id, quantity_unit,
         contract_multiplier, tick_size) versus the existing row is NOT silently
         overwritten: unless `accept_mismatch=True`, this raises so the change is
-        a deliberate decision (and forks calculation_version upstream)."""
+        a deliberate decision.
+
+        **`calculation_version` fork enforcement, connected end-to-end
+        (tech-lead review 4991738511; supersedes review 4990482334's
+        `accepted_code_version`, which proved only that two STORED LABELS
+        differed, never that the live Stage-2 feature-assembly path was
+        mechanically prevented from consuming NEW critical metadata under
+        an OLD `calculation_version` -- that column/parameter is REMOVED,
+        not kept alongside this one).** Accepting (`accept_mismatch=True`)
+        a genuine change on any `_INSTRUMENT_CRITICAL_FIELDS` field
+        additionally REQUIRES `target_metadata_revision` (a plain int,
+        never a timestamp): the new value for the ONE global,
+        Stage-2-wide `stage2_instrument_metadata_state.required_revision`
+        row this deliberate acceptance is declaring. It MUST be strictly
+        GREATER than that row's own CURRENT value (read here under
+        `SELECT ... FOR UPDATE`, serializing against any OTHER identity's
+        concurrent critical acceptance too, not just this one) -- the
+        same or a lower value raises, refusing the acceptance outright.
+        On success this method atomically UPDATEs that row to the new
+        value, in the SAME transaction as the LKG upsert and the history
+        interval close/open below, so no external observer can ever see
+        NEW metadata paired with the OLD required revision or vice versa.
+
+        This is what actually closes the loop to feature computation:
+        `defaults.instrument_metadata_revision` (`config/stage2.yaml`) is
+        part of the RESOLVED per-symbol config, hence part of
+        `config_hash`, hence part of `calculation_version` -- with ZERO
+        change to `compute_calculation_version`'s formula/format. Every
+        live feature computation's raw-bundle read
+        (`storage/stage2_readers.py::read_exchange_feature_raw_bundle`)
+        reads this SAME `stage2_instrument_metadata_state` row, and
+        `analytics/feature_engine/input_adapter.py::
+        assemble_exchange_feature_request` FAILS CLOSED
+        (`FeatureInputError`, before constructing any
+        `ExchangeFeatureRequest`) the instant the resolved config's own
+        `instrument_metadata_revision` no longer matches it -- i.e. the
+        moment this method bumps this row, EVERY exchange/symbol's Stage 2
+        computation (not just this identity's) refuses to persist a
+        feature vector until an operator explicitly updates
+        `config/stage2.yaml` to adopt the new revision (which is exactly
+        what forks `calculation_version` for real). Deliberately ONE
+        GLOBAL row, not one per identity: `calculation_version` is a
+        SHARED Stage-2 computation namespace, so an accepted critical
+        change on any single venue must fork it for ALL venues together.
+        See `storage/stage2_schema.sql::stage2_instrument_metadata_state`'s
+        own comment for the full mechanism and
+        `tests/analytics/test_stage2_metadata_revision_fork.py`'s executable
+        end-to-end proof (old config+new metadata fails closed; updated
+        config+new metadata succeeds with a genuinely different
+        `calculation_version`).
+
+        A non-critical value change (e.g. price_precision-only) never
+        requires or bumps `target_metadata_revision` -- it inherits
+        whatever the CURRENT global `required_revision` already is,
+        stamped onto its own history row's `accepted_metadata_revision`
+        purely for provenance (never reset to NULL/None -- finding 10).
+
+        Runs inside ONE transaction, serialized by a transaction-scoped
+        Postgres advisory lock keyed to `(exchange, symbol, market_type)`
+        -- this closes a pre-existing TOCTOU (the mismatch check
+        previously read the current LKG row via a SEPARATE, unlocked
+        `pool.acquire()`/`get_exchange_instrument()` call before writing)
+        and gives the `exchange_instrument_history` append below the same
+        serialization guarantee, without requiring a placeholder row to
+        lock before this call's final accepted values are known (an
+        advisory lock works even when no `exchange_instruments` row
+        exists yet, e.g. this identity's very first bootstrap).
+
+        **`fetched_at` vs `effective_from` (tech-lead review 4990482334,
+        finding 1) -- two DISTINCT timestamps, never conflated.**
+        `fetched_at` is `observed_at`: PROVENANCE ONLY, when this value
+        was actually fetched/observed -- it does NOT by itself determine
+        when the value becomes eligible for V2 decision boundaries to
+        use. `effective_from` is the EXPLICIT V2 decision-time activation
+        boundary. Whenever this call's own value fields
+        (`exchange_instrument_id`/`quantity_unit`/`contract_multiplier`/
+        `tick_size`/`price_precision`/`quantity_precision`) genuinely
+        differ from the currently-open `exchange_instrument_history`
+        interval:
+
+          - if an interval is ALREADY open (a real value CHANGE, not a
+            first-ever value) and `effective_from` was not explicitly
+            supplied, this RAISES rather than silently defaulting to
+            `fetched_at` -- auto-backdating a deliberately-accepted
+            mismatch to its (possibly much earlier) observation time
+            would let a REPLAY see the new value at decision boundaries
+            where the actual LIVE run still correctly used the OLD one.
+            The caller MUST supply the real acceptance boundary
+            explicitly.
+          - if NO interval is open yet (this identity's first-ever
+            accepted value) and `effective_from` is not supplied, it
+            safely defaults to `fetched_at` -- there is no OLD value's
+            already-made LIVE decisions to protect against.
+          - `fetched_at` (`observed_at`) MUST be `<= effective_from` when
+            both are given (a value cannot become effective before it
+            was even observed) -- raises otherwise.
+          - `fetched_at=None` (no honest observation timestamp -- e.g. a
+            bare `manual`/`declared_fallback` value) is legal PROVIDED
+            `effective_from` is supplied explicitly; with neither given,
+            no interval is opened or closed at all.
+
+        The previously-open interval (if any) is closed at the NEW
+        interval's own `effective_from` (never at `fetched_at`), in the
+        SAME transaction as opening the next one. An idempotent refresh
+        whose value fields are unchanged never opens a spurious extra
+        interval, regardless of what `fetched_at`/`effective_from` were
+        passed."""
         assert self.pool is not None
         new_vals = {
             "exchange_instrument_id": exchange_instrument_id,
             "quantity_unit": quantity_unit,
             "contract_multiplier": contract_multiplier,
             "tick_size": tick_size,
+            "price_precision": price_precision,
+            "quantity_precision": quantity_precision,
         }
-        existing = await self.get_exchange_instrument(exchange, symbol, market_type)
-        if existing is not None and not accept_mismatch:
-            diff = [f for f in _INSTRUMENT_CRITICAL_FIELDS if existing[f] != new_vals[f]]
-            if diff:
-                raise ValueError(
-                    f"instrument metadata mismatch on {diff} for "
-                    f"{exchange}/{symbol}/{market_type}; refusing silent overwrite "
-                    f"(pass accept_mismatch=True to accept deliberately)")
+        history_vals = tuple(new_vals[f] for f in _INSTRUMENT_HISTORY_VALUE_FIELDS)
+        if fetched_at is not None and effective_from is not None and fetched_at > effective_from:
+            raise ValueError(
+                f"instrument history for {exchange}/{symbol}/{market_type}: fetched_at "
+                f"(observed_at) {fetched_at!r} is AFTER effective_from {effective_from!r} -- "
+                "a value cannot become effective before it was even observed")
         async with self.pool.acquire() as conn:
-            await conn.execute(
-                """
-                INSERT INTO exchange_instruments
-                    (exchange, symbol, market_type, exchange_instrument_id,
-                     quantity_unit, contract_multiplier, tick_size,
-                     price_precision, quantity_precision, metadata_source,
-                     fetched_at, is_stale, note, updated_at)
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13, now())
-                ON CONFLICT (exchange, symbol, market_type) DO UPDATE SET
-                    exchange_instrument_id = EXCLUDED.exchange_instrument_id,
-                    quantity_unit = EXCLUDED.quantity_unit,
-                    contract_multiplier = EXCLUDED.contract_multiplier,
-                    tick_size = EXCLUDED.tick_size,
-                    price_precision = EXCLUDED.price_precision,
-                    quantity_precision = EXCLUDED.quantity_precision,
-                    metadata_source = EXCLUDED.metadata_source,
-                    fetched_at = EXCLUDED.fetched_at,
-                    is_stale = EXCLUDED.is_stale,
-                    note = EXCLUDED.note,
-                    updated_at = now()
-                """,
-                exchange, symbol, market_type, exchange_instrument_id,
-                quantity_unit, contract_multiplier, tick_size,
-                price_precision, quantity_precision, metadata_source,
-                fetched_at, is_stale, note,
-            )
+            async with conn.transaction():
+                await conn.execute(
+                    "SELECT pg_advisory_xact_lock(hashtext($1))",
+                    f"{exchange}:{symbol}:{market_type}")
+                existing = await conn.fetchrow(
+                    "SELECT * FROM exchange_instruments "
+                    "WHERE exchange=$1 AND symbol=$2 AND market_type=$3",
+                    exchange, symbol, market_type)
+                critical_diff = (
+                    [f for f in _INSTRUMENT_CRITICAL_FIELDS if existing[f] != new_vals[f]]
+                    if existing is not None else [])
+                if existing is not None and not accept_mismatch:
+                    if critical_diff:
+                        raise ValueError(
+                            f"instrument metadata mismatch on {critical_diff} for "
+                            f"{exchange}/{symbol}/{market_type}; refusing silent overwrite "
+                            f"(pass accept_mismatch=True to accept deliberately)")
+                revision_for_history_row = None
+                if critical_diff:
+                    # (tech-lead review 4991738511) A genuine deliberately-
+                    # accepted CRITICAL metadata change must declare a NEW,
+                    # strictly-greater required instrument-metadata revision
+                    # -- never silently continue under the OLD one. This is
+                    # the REAL, end-to-end fork mechanism: bumping this ONE
+                    # global row is what the live Stage 2 feature-assembly
+                    # path (analytics/feature_engine/input_adapter.py::
+                    # assemble_exchange_feature_request) checks against and
+                    # fails closed on for EVERY exchange/symbol, until an
+                    # operator explicitly updates config/stage2.yaml's
+                    # defaults.instrument_metadata_revision to match (which
+                    # forks calculation_version for real, since that config
+                    # value is part of config_hash).
+                    if target_metadata_revision is None:
+                        raise ValueError(
+                            f"instrument metadata critical-field change on {critical_diff} for "
+                            f"{exchange}/{symbol}/{market_type} is being accepted, but no "
+                            "target_metadata_revision was supplied -- a genuine critical "
+                            "metadata acceptance must declare the NEW required instrument-"
+                            "metadata revision, so calculation_version can fork end-to-end; "
+                            "refusing to silently continue under the old revision")
+                    if not isinstance(target_metadata_revision, int) or isinstance(
+                            target_metadata_revision, bool):
+                        raise ValueError(
+                            f"target_metadata_revision must be an int, got "
+                            f"{type(target_metadata_revision).__name__}")
+                    if target_metadata_revision <= 0:
+                        raise ValueError(
+                            f"target_metadata_revision must be > 0, got {target_metadata_revision!r}")
+                    current_revision_row = await conn.fetchrow(
+                        "SELECT required_revision FROM stage2_instrument_metadata_state "
+                        "FOR UPDATE")
+                    if current_revision_row is None:
+                        raise ValueError(
+                            "stage2_instrument_metadata_state has no row -- schema not "
+                            "bootstrapped (call Database.bootstrap_instrument_metadata_revision "
+                            "first)")
+                    current_revision = current_revision_row["required_revision"]
+                    if target_metadata_revision <= current_revision:
+                        raise ValueError(
+                            f"instrument metadata critical-field change on {critical_diff} for "
+                            f"{exchange}/{symbol}/{market_type}: target_metadata_revision "
+                            f"{target_metadata_revision!r} is not strictly greater than the "
+                            f"currently required instrument-metadata revision "
+                            f"{current_revision!r} -- a genuine critical metadata change must "
+                            "fork to a NEW, higher revision, never reuse or lower the current "
+                            "one, or subsequent Stage 2 computations could silently continue "
+                            "under the OLD calculation_version")
+                    await conn.execute(
+                        "UPDATE stage2_instrument_metadata_state "
+                        "SET required_revision = $1, updated_at = now()",
+                        target_metadata_revision)
+                    revision_for_history_row = target_metadata_revision
+                await conn.execute(
+                    """
+                    INSERT INTO exchange_instruments
+                        (exchange, symbol, market_type, exchange_instrument_id,
+                         quantity_unit, contract_multiplier, tick_size,
+                         price_precision, quantity_precision, metadata_source,
+                         fetched_at, is_stale, note, updated_at)
+                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13, now())
+                    ON CONFLICT (exchange, symbol, market_type) DO UPDATE SET
+                        exchange_instrument_id = EXCLUDED.exchange_instrument_id,
+                        quantity_unit = EXCLUDED.quantity_unit,
+                        contract_multiplier = EXCLUDED.contract_multiplier,
+                        tick_size = EXCLUDED.tick_size,
+                        price_precision = EXCLUDED.price_precision,
+                        quantity_precision = EXCLUDED.quantity_precision,
+                        metadata_source = EXCLUDED.metadata_source,
+                        fetched_at = EXCLUDED.fetched_at,
+                        is_stale = EXCLUDED.is_stale,
+                        note = EXCLUDED.note,
+                        updated_at = now()
+                    """,
+                    exchange, symbol, market_type, exchange_instrument_id,
+                    quantity_unit, contract_multiplier, tick_size,
+                    price_precision, quantity_precision, metadata_source,
+                    fetched_at, is_stale, note,
+                )
+
+                if fetched_at is not None or effective_from is not None:
+                    current = await conn.fetchrow(
+                        "SELECT effective_from, exchange_instrument_id, quantity_unit, "
+                        "contract_multiplier, tick_size, price_precision, quantity_precision "
+                        "FROM exchange_instrument_history "
+                        "WHERE exchange=$1 AND symbol=$2 AND market_type=$3 "
+                        "AND effective_until IS NULL",
+                        exchange, symbol, market_type)
+                    current_vals = None
+                    if current is not None:
+                        current_vals = tuple(current[f] for f in _INSTRUMENT_HISTORY_VALUE_FIELDS)
+                    if current_vals != history_vals:
+                        resolved_effective_from = effective_from
+                        if resolved_effective_from is None:
+                            if current is not None:
+                                raise ValueError(
+                                    f"instrument history for {exchange}/{symbol}/{market_type}: "
+                                    "this is a genuine value CHANGE against an already-open "
+                                    "interval -- effective_from must be supplied explicitly "
+                                    "(the real V2 decision-time acceptance boundary); refusing "
+                                    "to silently backdate to fetched_at (observed_at)")
+                            resolved_effective_from = fetched_at   # first-ever value: safe default
+                        if current is not None:
+                            if resolved_effective_from <= current["effective_from"]:
+                                raise ValueError(
+                                    f"instrument history for {exchange}/{symbol}/{market_type}: "
+                                    f"effective_from {resolved_effective_from!r} is not strictly "
+                                    f"after the currently-open interval's own effective_from "
+                                    f"{current['effective_from']!r} -- history must be appended "
+                                    "in non-decreasing effective_from order, never reordered")
+                            # (CodeRabbit finding, harmless semantic hardening --
+                            # NOT a fix for duplicate-effective_from corruption:
+                            # the table's own PRIMARY KEY (exchange, symbol,
+                            # market_type, effective_from) already makes that
+                            # impossible.) `AND effective_until IS NULL` makes
+                            # this UPDATE's intent explicit: it only ever closes
+                            # the ONE currently-open interval this same
+                            # transaction just read as `current`, never an
+                            # already-closed row that happens to share this
+                            # identity's `effective_from`.
+                            await conn.execute(
+                                "UPDATE exchange_instrument_history SET effective_until = $1 "
+                                "WHERE exchange=$2 AND symbol=$3 AND market_type=$4 "
+                                "AND effective_from=$5 AND effective_until IS NULL",
+                                resolved_effective_from, exchange, symbol, market_type,
+                                current["effective_from"])
+                        if revision_for_history_row is None:
+                            # Non-critical value change (e.g. price_precision-
+                            # only): inherit whatever the CURRENT global
+                            # required revision already is, for provenance
+                            # only -- never reset to NULL/None (finding 10).
+                            rev_row = await conn.fetchrow(
+                                "SELECT required_revision FROM stage2_instrument_metadata_state")
+                            if rev_row is None:
+                                raise ValueError(
+                                    "stage2_instrument_metadata_state has no row -- schema not "
+                                    "bootstrapped (call "
+                                    "Database.bootstrap_instrument_metadata_revision first)")
+                            revision_for_history_row = rev_row["required_revision"]
+                        await conn.execute(
+                            """
+                            INSERT INTO exchange_instrument_history
+                                (exchange, symbol, market_type, exchange_instrument_id,
+                                 quantity_unit, contract_multiplier, tick_size,
+                                 price_precision, quantity_precision, metadata_source,
+                                 observed_at, effective_from, effective_until, note,
+                                 accepted_metadata_revision)
+                            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NULL,$13,$14)
+                            """,
+                            exchange, symbol, market_type, exchange_instrument_id,
+                            quantity_unit, contract_multiplier, tick_size,
+                            price_precision, quantity_precision, metadata_source,
+                            fetched_at, resolved_effective_from, note,
+                            revision_for_history_row,
+                        )
         return "OK"
+
+    async def seed_current_instrument_history(
+        self, *, exchange: str, symbol: str, market_type: str, effective_from,
+    ) -> str:
+        """(Tech-lead review 4990482334, finding 3) Explicit, conservative,
+        idempotent bootstrap: seeds `exchange_instrument_history` from an
+        ALREADY-ACCEPTED, pre-existing `exchange_instruments` LKG row that
+        has no history yet -- without this, a production identity that was
+        accepted before H2c landed would have a real current LKG row but
+        `fetch_v2_instrument(..., as_of=T)` would return `None` forever
+        (never falling back to the LKG row -- that remains correct; this
+        method is the honest way to give it real history instead).
+
+        `effective_from` is the caller's own EXPLICIT, truthful V2
+        decision-time boundary from which the LKG's current value is
+        actually known/willing to be treated as historically valid --
+        this method NEVER extrapolates backward past it (no `-infinity`,
+        no project-start date, no hidden `now()`); a historical `as_of`
+        earlier than `effective_from` still correctly resolves to `None`.
+
+        Returns `"NO_LKG"` if no `exchange_instruments` row exists for
+        this identity (nothing to seed). Returns `"ALREADY_HAS_HISTORY"`
+        without writing anything if this identity already has ANY
+        `exchange_instrument_history` row (open or closed) -- this method
+        NEVER overwrites/duplicates real history; safe to call repeatedly
+        (idempotent), including after a prior successful seed. Returns
+        `"SEEDED"` when it actually inserted the one new open interval.
+
+        Runs inside ONE transaction, serialized by the SAME
+        transaction-scoped advisory lock `upsert_exchange_instrument` uses
+        for this identity. Never modifies `exchange_instruments` itself --
+        the existing LKG row is preserved exactly as-is."""
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute(
+                    "SELECT pg_advisory_xact_lock(hashtext($1))",
+                    f"{exchange}:{symbol}:{market_type}")
+                lkg = await conn.fetchrow(
+                    "SELECT * FROM exchange_instruments "
+                    "WHERE exchange=$1 AND symbol=$2 AND market_type=$3",
+                    exchange, symbol, market_type)
+                if lkg is None:
+                    return "NO_LKG"
+                any_history = await conn.fetchrow(
+                    "SELECT 1 FROM exchange_instrument_history "
+                    "WHERE exchange=$1 AND symbol=$2 AND market_type=$3 LIMIT 1",
+                    exchange, symbol, market_type)
+                if any_history is not None:
+                    return "ALREADY_HAS_HISTORY"
+                # (Tech-lead review 4991738511) Stamp the CURRENT global
+                # required revision onto this seeded row for provenance
+                # ONLY -- bootstrapping never forks anything itself, so it
+                # simply records whatever revision is already live.
+                rev_row = await conn.fetchrow(
+                    "SELECT required_revision FROM stage2_instrument_metadata_state")
+                if rev_row is None:
+                    raise ValueError(
+                        "stage2_instrument_metadata_state has no row -- schema not "
+                        "bootstrapped (call Database.bootstrap_instrument_metadata_revision "
+                        "before seeding instrument history)")
+                await conn.execute(
+                    """
+                    INSERT INTO exchange_instrument_history
+                        (exchange, symbol, market_type, exchange_instrument_id,
+                         quantity_unit, contract_multiplier, tick_size,
+                         price_precision, quantity_precision, metadata_source,
+                         observed_at, effective_from, effective_until, note,
+                         accepted_metadata_revision)
+                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NULL,$13,$14)
+                    """,
+                    exchange, symbol, market_type, lkg["exchange_instrument_id"],
+                    lkg["quantity_unit"], lkg["contract_multiplier"], lkg["tick_size"],
+                    lkg["price_precision"], lkg["quantity_precision"], lkg["metadata_source"],
+                    lkg["fetched_at"], effective_from,
+                    f"seeded from pre-existing exchange_instruments LKG row "
+                    f"(its own fetched_at={lkg['fetched_at']!r})",
+                    rev_row["required_revision"],
+                )
+        return "SEEDED"
+
+    async def bootstrap_instrument_metadata_revision(self, *, initial_revision: int) -> str:
+        """(Tech-lead review 4991738511, finding 11; tightened by tech-lead
+        review 4992495660, finding 3) Explicit, conservative bootstrap AND
+        verification of the ONE global `stage2_instrument_metadata_state`
+        row -- the durable current required instrument-metadata revision
+        every Stage 2 feature computation (any exchange, any symbol) must
+        agree with. Mirrors `seed_current_instrument_history`'s own
+        explicit/conservative shape.
+
+        `initial_revision` MUST be established explicitly from the caller's
+        own resolved Stage 2 configuration (`stage2_config.
+        instrument_metadata_revision`) -- never invented, never a
+        timestamp, never hardcoded silently in this method or in schema
+        DDL. This is a RUNTIME BOOTSTRAP BOUNDARY, not a passive read, so
+        it verifies as well as seeds:
+
+          - no row exists yet -> inserts `initial_revision` -> `"SEEDED"`.
+          - a row exists and its `required_revision` EQUALS
+            `initial_revision` -> `"ALREADY_INITIALIZED"`, no write
+            (idempotent restart/re-run).
+          - a row exists and its `required_revision` DIFFERS from
+            `initial_revision` -> raises `ValueError`, NO overwrite. This
+            is deliberately NOT silently tolerated: the durable value may
+            have been bumped by a deliberately-accepted critical metadata
+            change (`Database.upsert_exchange_instrument`'s
+            `accept_mismatch=True` path) that this deployment's
+            `config/stage2.yaml` has not yet been updated to adopt --
+            continuing under a stale `initial_revision` would let this
+            runtime silently compute under the WRONG resolved
+            `instrument_metadata_revision` (and therefore the wrong
+            `calculation_version`) instead of failing closed, exactly the
+            gap `analytics/feature_engine/input_adapter.py::
+            assemble_exchange_feature_request`'s own fail-closed gate
+            exists to prevent. The operator must reconcile
+            `config/stage2.yaml` (or investigate why the durable value
+            changed) before retrying."""
+        if not isinstance(initial_revision, int) or isinstance(initial_revision, bool):
+            raise ValueError(
+                f"initial_revision must be an int, got {type(initial_revision).__name__}")
+        if initial_revision <= 0:
+            raise ValueError(f"initial_revision must be > 0, got {initial_revision!r}")
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute(
+                    "SELECT pg_advisory_xact_lock(hashtext('stage2_instrument_metadata_state'))")
+                existing = await conn.fetchrow(
+                    "SELECT required_revision FROM stage2_instrument_metadata_state")
+                if existing is None:
+                    await conn.execute(
+                        "INSERT INTO stage2_instrument_metadata_state "
+                        "(singleton, required_revision, updated_at) VALUES (TRUE, $1, now())",
+                        initial_revision)
+                    return "SEEDED"
+                persisted = existing["required_revision"]
+                if persisted != initial_revision:
+                    raise ValueError(
+                        f"stage2_instrument_metadata_state.required_revision is "
+                        f"{persisted!r}, but this deployment's resolved "
+                        f"instrument_metadata_revision is {initial_revision!r} -- "
+                        "refusing to silently overwrite the durable value (it may "
+                        "have been legitimately bumped by an accepted critical "
+                        "metadata change this config has not yet adopted); update "
+                        "config/stage2.yaml's defaults.instrument_metadata_revision "
+                        "to match, or investigate why it differs, before retrying")
+        return "ALREADY_INITIALIZED"
 
     # ---------------------------------------------------------------
     # Writers
@@ -915,19 +1359,21 @@ class Database:
                 calculation_version=calculation_version)
 
     async def fetch_v2_instrument(
-        self, *, exchange: str, symbol: str, market_type: str,
+        self, *, exchange: str, symbol: str, market_type: str, as_of: datetime,
     ) -> "Optional[Mapping]":
-        """Read-only: the ONE `exchange_instruments` row at the EXACT
-        `(exchange, symbol, market_type)` identity, or `None` if absent —
-        not bucket-scoped (instrument metadata is not time-bucketed). See
+        """Read-only (V2-H2c): the ONE `exchange_instrument_history` row
+        whose validity interval covers `as_of`, for the EXACT `(exchange,
+        symbol, market_type)` identity, or `None` if no such historical
+        version exists — never the current `exchange_instruments` LKG
+        row, never a future version. See
         `storage/v2_setup_readers.py::read_v2_instrument` for the full
         contract."""
         from storage.v2_setup_readers import read_v2_instrument, validate_instrument_args
-        validate_instrument_args(exchange=exchange, symbol=symbol, market_type=market_type)
+        validate_instrument_args(exchange=exchange, symbol=symbol, market_type=market_type, as_of=as_of)
         assert self.pool is not None
         async with self.pool.acquire() as conn:
             return await read_v2_instrument(
-                conn, exchange=exchange, symbol=symbol, market_type=market_type)
+                conn, exchange=exchange, symbol=symbol, market_type=market_type, as_of=as_of)
 
     async def fetch_shadow_liquidation_availability(
         self,

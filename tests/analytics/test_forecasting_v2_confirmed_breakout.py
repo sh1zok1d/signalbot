@@ -887,6 +887,21 @@ def test_instrument_tick_zero_raises():
         detect_confirmed_breakout(build_valid_long_inputs(instrument=make_instrument(tick_size=0.0)))
 
 
+@pytest.mark.parametrize("tick_a,tick_b", [(0.10, 0.50), (1.0, 2.5)])
+def test_decision_tick_size_matches_instrument_row_exactly_for_two_versions(tick_a, tick_b):
+    """V2-H2c, tech-lead review 4990482334, findings 5/6: instrument tick
+    A -> candidate.decision_tick_size == A, instrument tick B ->
+    candidate.decision_tick_size == B."""
+    candidate_a = detect_confirmed_breakout(
+        build_valid_long_inputs(instrument=make_instrument(tick_size=tick_a)))
+    candidate_b = detect_confirmed_breakout(
+        build_valid_long_inputs(instrument=make_instrument(tick_size=tick_b)))
+    assert candidate_a.decision_tick_size == tick_a
+    assert candidate_b.decision_tick_size == tick_b
+    assert candidate_a.protection_buffer >= 3 * tick_a
+    assert candidate_b.protection_buffer >= 3 * tick_b
+
+
 # ============================================================================
 # 12. protection buffer tests
 # ============================================================================
@@ -926,7 +941,7 @@ def _valid_candidate_kwargs(**over):
         T=T, direction=LONG, bucket_5m=B5, bucket_1h=B1H,
         previous_5m_close=66_180.0, breakout_close=breakout_close,
         level_anchor_bucket=RESISTANCE_BUCKET, level_price=level_price,
-        range_proxy_pct=0.5, protection_buffer=protection_buffer,
+        range_proxy_pct=0.5, protection_buffer=protection_buffer, decision_tick_size=0.1,
         entry_zone_lower=level_price, entry_zone_upper=66_364.5,
         invalidation_price=66_035.5,
         # §8.3's real formula, via the module's own helper -- keeps this
@@ -1013,6 +1028,17 @@ def test_candidate_rejects_nonpositive_buffer():
         V2ConfirmedBreakoutCandidate(**_valid_candidate_kwargs(protection_buffer=0.0))
 
 
+@pytest.mark.parametrize("bad_tick", [0, 0.0, -0.1, float("nan"), float("inf"), True])
+def test_candidate_rejects_malformed_decision_tick_size(bad_tick):
+    with pytest.raises(V2ConfirmedBreakoutError):
+        V2ConfirmedBreakoutCandidate(**_valid_candidate_kwargs(decision_tick_size=bad_tick))
+
+
+def test_candidate_rejects_protection_buffer_inconsistent_with_decision_tick_size():
+    with pytest.raises(V2ConfirmedBreakoutError):
+        V2ConfirmedBreakoutCandidate(**_valid_candidate_kwargs(decision_tick_size=1000.0))
+
+
 def test_candidate_rejects_entry_zone_mismatch():
     with pytest.raises(V2ConfirmedBreakoutError):
         V2ConfirmedBreakoutCandidate(**_valid_candidate_kwargs(entry_zone_lower=66_150.0))
@@ -1039,7 +1065,7 @@ def test_candidate_short_symmetric_construction():
         T=T, direction=SHORT, bucket_5m=B5, bucket_1h=B1H,
         previous_5m_close=65_020.0, breakout_close=64_980.0,
         level_anchor_bucket=SUPPORT_BUCKET, level_price=65_000.0,
-        range_proxy_pct=0.5, protection_buffer=100.0,
+        range_proxy_pct=0.5, protection_buffer=100.0, decision_tick_size=0.1,
         entry_zone_lower=64_900.0, entry_zone_upper=65_000.0,
         invalidation_price=65_100.0,
         setup_strength=cb_module._confirmed_breakout_setup_strength(20.0, 100.0),

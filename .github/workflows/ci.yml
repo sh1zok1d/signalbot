@@ -37,6 +37,10 @@ jobs:
       # real row-locking/atomicity/restart suite --
       # tests/storage/test_v2_version_switch_readers.py.
       V2_VERSION_SWITCH_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_test
+      # Same contract, same already-running postgres service, for V2-H2c's
+      # real as-of/historical-interval/overlap/restart suite --
+      # tests/storage/test_v2_instrument_history_readers.py.
+      V2_INSTRUMENT_HISTORY_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_test
     steps:
       - uses: actions/checkout@v4
 
@@ -60,6 +64,9 @@ jobs:
       - name: V2-H2b DRAIN-BEFORE-ACTIVATE version switch (real PostgreSQL, explicit)
         run: python -m pytest -q tests/storage/test_v2_version_switch_readers.py -v
 
+      - name: V2-H2c as-of instrument metadata (real PostgreSQL, explicit)
+        run: python -m pytest -q tests/storage/test_v2_instrument_history_readers.py -v
+
       - name: V2 rules/manifest integrity (focused)
         run: python -m pytest -q tests/analytics/test_forecasting_v2_rules_manifest.py tests/analytics/test_forecasting_v2_family_quality.py
 
@@ -71,6 +78,9 @@ jobs:
           tests/analytics/test_forecasting_v2_version_switch.py
           tests/analytics/test_forecasting_v2_version_switch_orchestrator.py
           tests/storage/test_v2_version_switch_schema.py
+          tests/storage/test_v2_instrument_history_schema.py
+          tests/storage/test_v2_setup_readers.py
+          tests/storage/test_stage2_db.py
 
       - name: V2 Stage 4/5 detectors (focused)
         run: >

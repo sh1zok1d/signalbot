@@ -13,6 +13,7 @@ def _base_raw() -> dict:
         "stage2": {"enabled": False, "config_version": "2.1.0", "feature_schema_version": 1},
         "active_exchanges": ["binance", "bybit", "okx"],
         "defaults": {
+            "instrument_metadata_revision": 1,
             "percentile_windows": ["7d", "30d"],
             "timeframes": ["1m", "5m", "15m", "1h", "4h"],
             "data_confidence": {
@@ -183,6 +184,7 @@ def test_key_order_does_not_change_resolved_config_hash():
             "building_below_days": 30, "none_below_days": 3, "low_below_days": 7}},
         "data_quality": {"max_usable_gap_s": 300, "gap_tolerance_factor": 1.5,
                          "coverage_window_s": 86400, "cadence_s": 60},
+        "instrument_metadata_revision": 1,
     }
     h1 = _cfg(raw1).config_hash("BTCUSDT")
     h2 = _cfg(raw2).config_hash("BTCUSDT")
@@ -732,3 +734,87 @@ def test_lateness_ms_integer_formula_matches_and_is_not_float():
     # component arithmetic uses only ints
     assert isinstance(_lateness_ms(snapshot_ts, last_event_at), int)
     assert delta.microseconds // 1_000 == 0  # floor drops the sub-ms remainder
+
+
+# ============================================================================
+# Tech-lead review 4991738511: defaults.instrument_metadata_revision -- the
+# single Stage-2-wide, GLOBAL required instrument-metadata revision identity
+# (storage/stage2_schema.sql::stage2_instrument_metadata_state's config-side
+# counterpart). Part of config_hash/calculation_version; never overridable
+# per asset_tier/symbol.
+# ============================================================================
+def test_real_file_has_instrument_metadata_revision():
+    cfg = Stage2Config.load()
+    rc = cfg.resolve("BTCUSDT")
+    assert rc["instrument_metadata_revision"] == 1
+    assert cfg.instrument_metadata_revision == 1
+
+
+def test_instrument_metadata_revision_in_resolved_config_and_hash():
+    base = _cfg().config_hash("BTCUSDT")
+    raw = _base_raw()
+    raw["defaults"]["instrument_metadata_revision"] = 2
+    assert _cfg(raw).resolve("BTCUSDT")["instrument_metadata_revision"] == 2
+    assert _cfg(raw).config_hash("BTCUSDT") != base
+
+
+def test_config_hash_changes_when_instrument_metadata_revision_changes():
+    base = _cfg().config_hash("BTCUSDT")
+    raw = _base_raw()
+    raw["defaults"]["instrument_metadata_revision"] = 2
+    assert _cfg(raw).config_hash("BTCUSDT") != base
+
+
+def test_calculation_version_changes_when_instrument_metadata_revision_changes():
+    base = _calc_version(_cfg())
+    raw = _base_raw()
+    raw["defaults"]["instrument_metadata_revision"] = 2
+    assert _calc_version(_cfg(raw)) != base
+
+
+def test_missing_instrument_metadata_revision_rejected():
+    raw = _base_raw()
+    del raw["defaults"]["instrument_metadata_revision"]
+    with pytest.raises(Stage2ConfigError, match="instrument_metadata_revision"):
+        Stage2Config(raw)._validate()
+
+
+def test_bool_instrument_metadata_revision_rejected():
+    raw = _base_raw()
+    raw["defaults"]["instrument_metadata_revision"] = True
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
+
+
+@pytest.mark.parametrize("bad", [0, -1, -5])
+def test_nonpositive_instrument_metadata_revision_rejected(bad):
+    raw = _base_raw()
+    raw["defaults"]["instrument_metadata_revision"] = bad
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
+
+
+@pytest.mark.parametrize("bad", [1.5, "1", None, float("nan")])
+def test_non_int_instrument_metadata_revision_rejected(bad):
+    raw = _base_raw()
+    raw["defaults"]["instrument_metadata_revision"] = bad
+    with pytest.raises(Stage2ConfigError):
+        Stage2Config(raw)._validate()
+
+
+def test_instrument_metadata_revision_tier_override_rejected():
+    """(Finding 15) Must remain a SINGLE Stage-2-wide value -- never
+    fragmented into a per-tier sub-namespace."""
+    raw = _base_raw()
+    raw["asset_tiers"]["major"] = {"instrument_metadata_revision": 2}
+    with pytest.raises(Stage2ConfigError, match="instrument_metadata_revision"):
+        Stage2Config(raw)._validate()
+
+
+def test_instrument_metadata_revision_symbol_override_rejected():
+    """(Finding 15) Must remain a SINGLE Stage-2-wide value -- never
+    fragmented into a per-symbol sub-namespace."""
+    raw = _base_raw()
+    raw["symbols"]["BTCUSDT"]["instrument_metadata_revision"] = 2
+    with pytest.raises(Stage2ConfigError, match="instrument_metadata_revision"):
+        Stage2Config(raw)._validate()

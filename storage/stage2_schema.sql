@@ -1122,3 +1122,233 @@ CREATE TABLE IF NOT EXISTS v2_version_switch_state (
         phase = 'NO_PENDING_SWITCH' OR active_rules_version IS NOT NULL
     )
 );
+
+-- ============================================================
+-- V2-H2c: as-of/historical instrument metadata
+-- (docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §12.5a's "Clean-room audit
+-- finding: instrument metadata has no as-of/historical model today").
+--
+-- `exchange_instruments` (above) remains the CURRENT/last-known-good
+-- snapshot -- the operational row LIVE ingestion/`runtime/shadow_cli.py`
+-- bootstrap reads and writes, UNCHANGED by this table. A historical V2
+-- Stage 5 decision at boundary T must instead resolve the metadata
+-- VERSION that was actually in effect at T -- never the current row,
+-- never the newest fetch, never a future version.
+--
+-- Effective-dated history of immutable value versions, with interval
+-- closure: ONE row per accepted metadata VERSION for one (exchange,
+-- symbol, market_type) identity. A row's own value columns never change
+-- once written -- only `effective_until` is later updated, exactly once,
+-- to close that version's interval when the NEXT version is accepted (see
+-- `storage/db.py::Database.upsert_exchange_instrument`). This is
+-- deliberately NOT called "append-only": an UPDATE does happen, but it
+-- only ever closes an interval, never rewrites a value.
+--
+-- Interval convention is frozen as HALF-OPEN [effective_from,
+-- effective_until):
+--   effective_from <= T  AND  (effective_until IS NULL OR T < effective_until)
+-- means "this version applies at T". At a boundary exactly equal to the
+-- NEXT version's effective_from, the NEW version applies -- the previous
+-- row no longer does (same convention Python encodes,
+-- storage/db.py/storage/v2_setup_readers.py, and the same convention
+-- every test in tests/storage/test_v2_instrument_history*.py exercises).
+--
+-- TWO DISTINCT TIMESTAMPS, deliberately never conflated (tech-lead review
+-- 4990482334, finding 1) -- `observed_at` is PROVENANCE ONLY: when the
+-- external value was fetched/observed. It NEVER by itself determines
+-- `effective_from`. `effective_from` is the EXPLICIT V2 decision-time
+-- activation boundary the caller supplies -- when this version actually
+-- became eligible for V2 decision boundaries to use. For an ordinary
+-- fetch with no pre-existing conflicting value, the caller MAY choose
+-- `effective_from == observed_at` (there is no earlier LIVE decision to
+-- protect). For a DELIBERATELY-ACCEPTED metadata mismatch (the existing
+-- `common/instrument_metadata.py`/`Database.upsert_exchange_instrument`
+-- `accept_mismatch=True` flow), the two are generally DIFFERENT: the
+-- mismatch may be *observed* well before an operator *accepts* it, and
+-- every LIVE decision in between correctly used the OLD value --
+-- `effective_from` MUST be the later acceptance boundary, never
+-- auto-backdated to `observed_at`. `Database.upsert_exchange_instrument`
+-- enforces this: it refuses (raises) to guess `effective_from` for a
+-- genuine value change against an already-open interval -- the caller
+-- must supply it explicitly. `observed_at` MAY be NULL (a `manual`/
+-- `declared_fallback` value with no honest fetch timestamp) -- but
+-- `effective_from` is still always required before that value can affect
+-- any historical/replay V2 decision. Consequently there is NO migration
+-- that assigns `effective_from = -infinity` or any arbitrary
+-- project-start date for pre-existing `exchange_instruments` rows;
+-- history begins only at each version's own explicit, truthful
+-- `effective_from`. A historical T earlier than the oldest known
+-- `effective_from` for an identity has NO row here -- legitimately
+-- NOT_EVALUABLE, never silently satisfied by extrapolating today's value
+-- backward. `Database.seed_current_instrument_history` provides the
+-- explicit, conservative, idempotent bootstrap path for an
+-- already-accepted pre-H2c `exchange_instruments` row that has no history
+-- yet -- see that method's own docstring; it NEVER extrapolates
+-- backward either, only from its own caller-supplied `effective_from`
+-- forward.
+--
+-- Non-overlap is enforced by TWO cheap mechanisms rather than a
+-- btree_gist exclusion constraint (disproportionate complexity for this
+-- narrow need): (1) `ux_eih_one_open_interval_per_identity` below
+-- guarantees AT MOST ONE currently-open (`effective_until IS NULL`) row
+-- per identity at the DB level; (2) the writer
+-- (`storage/db.py::Database.upsert_exchange_instrument`) always locks the
+-- identity (a transaction-scoped Postgres advisory lock) and closes that
+-- one open row in the SAME transaction as opening the next one, so no two
+-- accepted writes for the same identity can ever race into overlapping
+-- closed intervals either. The as-of reader independently re-checks:
+-- more than one row matching a requested `as_of` is corruption/overlap
+-- and FAILS CLOSED (`V2SetupReaderError`,
+-- `storage/v2_setup_readers.py::read_v2_instrument`), never silently
+-- picks one.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS exchange_instrument_history (
+    exchange              TEXT NOT NULL,
+    symbol                TEXT NOT NULL,
+    market_type           TEXT NOT NULL DEFAULT 'perp',
+    exchange_instrument_id TEXT NOT NULL,
+    quantity_unit         TEXT,
+    contract_multiplier   DOUBLE PRECISION,
+    tick_size             DOUBLE PRECISION,
+    price_precision       INTEGER,
+    quantity_precision    INTEGER,
+    metadata_source       TEXT NOT NULL,          -- 'exchange_api' | 'declared_fallback' | 'manual'
+    observed_at           TIMESTAMPTZ,            -- PROVENANCE ONLY: when fetched/observed; NULL for a manual/declared value with no honest fetch timestamp; NEVER itself the activation boundary
+    effective_from        TIMESTAMPTZ NOT NULL,   -- the EXPLICIT V2 decision-time activation boundary -- when this version actually became eligible for decisions to use; caller-supplied, never auto-derived from observed_at for a genuine value change
+    effective_until       TIMESTAMPTZ,            -- NULL = still the currently-open version
+    note                  TEXT,
+    -- (tech-lead review 4991738511) PROVENANCE ONLY: the shared, GLOBAL
+    -- `stage2_instrument_metadata_state.required_revision` that was
+    -- current at the moment this row was written -- inherited unchanged
+    -- for a non-critical value change (e.g. price_precision-only), and
+    -- set to the NEW, just-bumped revision for a deliberately-accepted
+    -- CRITICAL-field change. This column NEVER itself enforces anything
+    -- (a decorative label was exactly what tech-lead review 4990482334's
+    -- `accepted_code_version` predecessor turned out to be, per review
+    -- 4991738511's finding 2 -- see that review for the full audit); the
+    -- REAL, executable enforcement is `stage2_instrument_metadata_state`
+    -- (below) compared against the resolved Stage2Config's OWN
+    -- `defaults.instrument_metadata_revision` in
+    -- `analytics/feature_engine/input_adapter.py::
+    -- assemble_exchange_feature_request` -- see that function and table
+    -- for the mechanism. Never reset to NULL merely because a given row
+    -- was not itself a critical acceptance (finding 10).
+    accepted_metadata_revision INTEGER,
+    recorded_at           TIMESTAMPTZ NOT NULL DEFAULT now(),  -- DB-owned insert bookkeeping only
+    PRIMARY KEY (exchange, symbol, market_type, effective_from),
+    CONSTRAINT ck_eih_quantity_unit CHECK (
+        quantity_unit IS NULL OR quantity_unit IN ('base','contracts')),
+    CONSTRAINT ck_eih_metadata_source CHECK (
+        metadata_source IN ('exchange_api','declared_fallback','manual')),
+    -- (CodeRabbit finding, defense-in-depth) A plain `> 0` CHECK on a
+    -- float8 column does NOT reject NaN/+Infinity: PostgreSQL's float8
+    -- ordering treats both as "greater than any value", so `'NaN'::float8
+    -- > 0` and `'Infinity'::float8 > 0` both evaluate true. `v = v` does
+    -- NOT reject NaN either (PostgreSQL defines NaN equal to itself for
+    -- ordering consistency, unlike IEEE754). The correct, PostgreSQL-
+    -- specific finiteness test is `v > 0 AND v < 'Infinity'::float8`:
+    -- NaN and +Infinity both fail `< 'Infinity'::float8` (neither is
+    -- strictly less than it), while -Infinity/0/negative already fail
+    -- `> 0`. This is still defense-in-depth only -- the Python reader
+    -- (`storage/v2_setup_readers.py::read_v2_instrument`) keeps its own
+    -- `math.isfinite()` check as the primary authority and is NOT removed.
+    CONSTRAINT ck_eih_tick_size_positive CHECK (
+        tick_size IS NULL OR (tick_size > 0 AND tick_size < 'Infinity'::float8)),
+    CONSTRAINT ck_eih_contract_multiplier_positive CHECK (
+        contract_multiplier IS NULL OR
+        (contract_multiplier > 0 AND contract_multiplier < 'Infinity'::float8)),
+    CONSTRAINT ck_eih_price_precision_nonneg CHECK (
+        price_precision IS NULL OR price_precision >= 0),
+    CONSTRAINT ck_eih_quantity_precision_nonneg CHECK (
+        quantity_precision IS NULL OR quantity_precision >= 0),
+    CONSTRAINT ck_eih_interval_well_formed CHECK (
+        effective_until IS NULL OR effective_until > effective_from),
+    -- (finding 2) A value cannot become accepted/effective before it was
+    -- even observed -- the DB-level mirror of the same Python check in
+    -- Database.upsert_exchange_instrument/seed_current_instrument_history.
+    CONSTRAINT ck_eih_observed_at_not_after_effective_from CHECK (
+        observed_at IS NULL OR observed_at <= effective_from),
+    CONSTRAINT ck_eih_accepted_metadata_revision_positive CHECK (
+        accepted_metadata_revision IS NULL OR accepted_metadata_revision > 0)
+);
+
+-- At most one currently-open (still-valid) history row per identity --
+-- see the table-level comment above for why this, plus transactional
+-- close-then-open, is chosen over a btree_gist exclusion constraint.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_eih_one_open_interval_per_identity
+    ON exchange_instrument_history (exchange, symbol, market_type)
+    WHERE effective_until IS NULL;
+
+-- ============================================================
+-- Tech-lead review 4991738511: calculation_version fork enforcement,
+-- connected end-to-end to the REAL Stage-2 feature-computation path.
+--
+-- The previous round's `accepted_code_version` column (removed above,
+-- replaced by `accepted_metadata_revision`) was correctly rejected: it
+-- proved only that two stored LABELS differed, never that the live
+-- Stage-2 assembly path (`analytics/feature_engine/input_adapter.py::
+-- build_assembly_context`/`assemble_exchange_feature_request`) was
+-- mechanically prevented from consuming NEW critical metadata under an
+-- OLD `calculation_version`. `calculation_version` is computed BEFORE
+-- any instrument metadata is even read (see `build_assembly_context`),
+-- from `compute_calculation_version(feature_schema_version, config_hash,
+-- code_version)` -- a formula/format this PR still does NOT change.
+--
+-- This table is the SINGLE GLOBAL source of truth for "what instrument-
+-- metadata revision does Stage 2 feature computation currently require,
+-- across ALL exchanges and symbols" -- deliberately ONE shared row, not
+-- one per (exchange, symbol, market_type): `calculation_version` is a
+-- SHARED Stage-2 computation namespace (`common/stage2_config.py`'s
+-- `defaults.instrument_metadata_revision` applies identically to every
+-- resolved per-symbol config, and `Stage2Config._validate()` refuses any
+-- asset_tier/symbol override of that key) -- a critical metadata change
+-- accepted for even ONE venue must fork the coherent namespace for ALL
+-- venues together, never fragment it into per-venue sub-namespaces the
+-- existing consensus contract does not support.
+--
+-- Mechanism, closing the loop all the way to feature persistence:
+--   1. `defaults.instrument_metadata_revision` (config/stage2.yaml) is
+--      part of the RESOLVED per-symbol config, hence part of
+--      `config_hash`, hence part of `calculation_version` -- changing it
+--      genuinely forks `calculation_version`, with ZERO changes to
+--      `compute_calculation_version`'s formula/format.
+--   2. `Database.upsert_exchange_instrument`'s `accept_mismatch=True`
+--      path, on a genuine CRITICAL-field diff, REQUIRES an explicit
+--      `target_metadata_revision` strictly greater than this table's
+--      current `required_revision` -- and atomically bumps it, in the
+--      SAME transaction as the LKG upsert and the history interval
+--      close/open (serialized additionally by `SELECT ... FOR UPDATE`
+--      on this table's one row, so two concurrent critical acceptances
+--      for DIFFERENT identities cannot race past each other).
+--   3. `storage/stage2_readers.py::read_exchange_feature_raw_bundle`
+--      reads this table's CURRENT `required_revision` as part of the
+--      SAME fixed raw-bundle read every live feature computation already
+--      performs (`ExchangeFeatureRawBundle.required_metadata_revision`).
+--   4. `analytics/feature_engine/input_adapter.py::
+--      assemble_exchange_feature_request` compares the resolved config's
+--      OWN `instrument_metadata_revision` (already baked into this
+--      request's `calculation_version`) against that live value and
+--      FAILS CLOSED (`FeatureInputError`, before any `ExchangeFeatureRequest`
+--      is constructed) on a mismatch.
+-- Until an operator explicitly updates `config/stage2.yaml` to adopt the
+-- new revision (which forks `calculation_version` per step 1), ANY
+-- Stage 2 computation for ANY venue/symbol refuses to persist a feature
+-- vector at all -- it can never silently continue computing under the
+-- OLD `calculation_version` against the NEW metadata. A non-critical
+-- value change (e.g. price_precision-only) never bumps this table --
+-- only a deliberately-accepted CRITICAL change does (finding 10).
+--
+-- Bootstrapped explicitly (never a hardcoded DDL literal) via
+-- `Database.bootstrap_instrument_metadata_revision`, established from
+-- the resolved Stage 2 configuration's OWN initial
+-- `instrument_metadata_revision` -- idempotent, never overwrites an
+-- already-initialized row.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS stage2_instrument_metadata_state (
+    singleton         BOOLEAN NOT NULL DEFAULT TRUE,
+    required_revision INTEGER NOT NULL,
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (singleton),
+    CONSTRAINT ck_s2ims_singleton_true CHECK (singleton),
+    CONSTRAINT ck_s2ims_revision_positive CHECK (required_revision > 0)
+);

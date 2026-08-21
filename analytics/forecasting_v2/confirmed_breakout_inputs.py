@@ -43,8 +43,11 @@ see `confirmed_breakout.py`'s own docstring):**
   4. `reader.fetch_v2_reference_feature_window(...)` -- exactly the two
      closed 5m reference-feature buckets `[B5-5m, B5]` the fresh-cross
      check needs.
-  5. `reader.fetch_v2_instrument(...)` -- the single canonical-exchange
-     `exchange_instruments` row for `protection_buffer()`'s `tick_size`.
+  5. `reader.fetch_v2_instrument(..., as_of=context.T)` -- the single
+     canonical-exchange historical metadata version actually in effect at
+     `context.T` (V2-H2c), for `protection_buffer()`'s `tick_size`. Never
+     the current `exchange_instruments` LKG row -- see `ports.py`'s
+     `V2SetupHistoryReader.fetch_v2_instrument` docstring.
 
 No 1h/5m percentile read, no current-B5 5m consensus read, no 15m/4h
 historical window, no OI/funding/liquidation/health/orderbook/spot/
@@ -154,7 +157,8 @@ async def load_confirmed_breakout_inputs(
         calculation_version=context.calculation_version)
 
     instrument = await reader.fetch_v2_instrument(
-        exchange=V2_REFERENCE_EXCHANGE, symbol=context.symbol, market_type=context.market_type)
+        exchange=V2_REFERENCE_EXCHANGE, symbol=context.symbol, market_type=context.market_type,
+        as_of=context.T)
 
     return V2ConfirmedBreakoutInputs(
         context=context,

@@ -77,18 +77,39 @@ FROM symbol_exchange_capabilities
 WHERE exchange = $1 AND symbol = $2 AND market_type = $3 AND metric = $4
 """
 
+# G. Required instrument-metadata revision (tech-lead review 4991738511) --
+# the ONE global, Stage-2-wide row every feature computation (any exchange,
+# any symbol) must agree with before a feature vector may be constructed;
+# see storage/stage2_schema.sql::stage2_instrument_metadata_state and
+# analytics/feature_engine/input_adapter.py::assemble_exchange_feature_request.
+REQUIRED_METADATA_REVISION_SQL = """
+SELECT required_revision FROM stage2_instrument_metadata_state
+"""
+
 
 # ---- immutable raw bundle ---------------------------------------------------
 @dataclass(frozen=True)
 class ExchangeFeatureRawBundle:
     """Detached, connection-independent, deeply-immutable raw inputs. Every row
-    is a read-only mapping; collection fields are tuples. No analytics types."""
+    is a read-only mapping; collection fields are tuples. No analytics types.
+
+    `required_metadata_revision` (tech-lead review 4991738511) is the
+    GLOBAL, Stage-2-wide `stage2_instrument_metadata_state.required_revision`
+    value read at the SAME time as everything else in this bundle --
+    independent of whether `instrument` itself is present, since it is a
+    shared cross-venue namespace identity, not a per-identity fact. Defaults
+    to `1` (matching `config/stage2.yaml`'s own initial
+    `defaults.instrument_metadata_revision`) so hand-built bundles in
+    existing pipeline/bucket-coordinator tests that predate this mechanism
+    and don't care about it keep constructing unchanged; the REAL reader
+    below always supplies the live value explicitly."""
     klines: tuple[Mapping, ...]
     open_interest: tuple[Mapping, ...]
     latest_funding: Optional[Mapping]
     liquidations: tuple[Mapping, ...]
     instrument: Optional[Mapping]
     liquidation_capability: Optional[Mapping]
+    required_metadata_revision: int = 1
 
 
 def _freeze_row(record) -> Mapping:
@@ -138,9 +159,19 @@ async def read_exchange_feature_raw_bundle(
     conn, *, exchange: str, symbol: str, market_type: str,
     bucket_start: datetime, bucket_end: datetime,
 ) -> ExchangeFeatureRawBundle:
-    """Run the six fixed reads on ONE already-acquired connection and return an
-    immutable bundle. Arguments must already be validated. No writes, no clock.
-    """
+    """Run the seven fixed reads (klines, open_interest, funding, liquidations,
+    instrument, liquidation capability, required_metadata_revision) on ONE
+    already-acquired connection and return an immutable bundle. Arguments must
+    already be validated. No writes, no clock.
+
+    This function itself does not open a transaction -- the caller
+    (`storage/db.py::Database.fetch_exchange_feature_raw_bundle`) MUST run it
+    inside a single `REPEATABLE READ` read-only transaction so all seven
+    SELECTs observe the SAME PostgreSQL snapshot; otherwise a concurrent
+    critical-metadata acceptance could commit between two of these reads and
+    produce an internally-incoherent bundle (e.g. OLD instrument metadata
+    paired with a NEW `required_metadata_revision`), silently violating the
+    coherence the H2c calculation_version fork gate depends on."""
     klines = await conn.fetch(KLINES_SQL, exchange, symbol, bucket_start, bucket_end)
     open_interest = await conn.fetch(OPEN_INTEREST_SQL, exchange, symbol,
                                      bucket_start, bucket_end)
@@ -150,6 +181,12 @@ async def read_exchange_feature_raw_bundle(
     instrument_row = await conn.fetchrow(INSTRUMENT_SQL, exchange, symbol, market_type)
     capability_row = await conn.fetchrow(
         LIQUIDATION_CAPABILITY_SQL, exchange, symbol, market_type, "liquidations")
+    revision_row = await conn.fetchrow(REQUIRED_METADATA_REVISION_SQL)
+    if revision_row is None:
+        raise Stage2ReaderError(
+            "stage2_instrument_metadata_state has no row -- schema not properly "
+            "bootstrapped (expected exactly one singleton row seeded by "
+            "Database.bootstrap_instrument_metadata_revision)")
 
     return ExchangeFeatureRawBundle(
         klines=_freeze_rows(klines),
@@ -159,4 +196,5 @@ async def read_exchange_feature_raw_bundle(
         instrument=_freeze_row(instrument_row) if instrument_row is not None else None,
         liquidation_capability=(_freeze_row(capability_row)
                                 if capability_row is not None else None),
+        required_metadata_revision=revision_row["required_revision"],
     )

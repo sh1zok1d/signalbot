@@ -17,7 +17,8 @@ import pytest
 from storage.db import Database
 from storage.stage2_readers import (
     ExchangeFeatureRawBundle, KLINES_SQL, LATEST_FUNDING_SQL, LIQUIDATIONS_SQL,
-    OPEN_INTEREST_SQL, INSTRUMENT_SQL, LIQUIDATION_CAPABILITY_SQL, Stage2ReaderError,
+    OPEN_INTEREST_SQL, INSTRUMENT_SQL, LIQUIDATION_CAPABILITY_SQL,
+    REQUIRED_METADATA_REVISION_SQL, Stage2ReaderError,
 )
 
 B0 = datetime(2026, 3, 1, 0, 0, 0, tzinfo=timezone.utc)
@@ -30,10 +31,24 @@ def _run(coro):
     return asyncio.run(coro)
 
 
+class _NoOpTransaction:
+    """(CodeRabbit snapshot-coherence fix) fetch_exchange_feature_raw_bundle
+    now wraps its seven reads in `conn.transaction(isolation="repeatable_read",
+    readonly=True)` -- a plain no-op async context manager is sufficient for
+    these mocked-pool tests; the real PostgreSQL snapshot-coherence guarantee
+    is proven for real in tests/storage/test_v2_instrument_history_readers.py."""
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+
 class FakeConn:
     def __init__(self, fetch_results, fetchrow_results):
         self.fetch_calls = []
         self.fetchrow_calls = []
+        self.transaction_calls = []
         self._fetch = list(fetch_results)
         self._fetchrow = list(fetchrow_results)
 
@@ -50,6 +65,10 @@ class FakeConn:
 
     async def executemany(self, *a, **k):      # pragma: no cover
         raise AssertionError("executemany() must not be called")
+
+    def transaction(self, **kw):
+        self.transaction_calls.append(kw)
+        return _NoOpTransaction()
 
 
 class FakePool:
@@ -77,10 +96,11 @@ def _db(conn) -> Database:
 
 
 def _default_conn():
-    # fetch order: klines, open_interest, liquidations ; fetchrow: funding, instrument, capability
+    # fetch order: klines, open_interest, liquidations ; fetchrow: funding,
+    # instrument, capability, required_metadata_revision
     return FakeConn(
         fetch_results=[[{"exchange": "binance", "symbol": "BTCUSDT", "ts": B0}], [], []],
-        fetchrow_results=[None, None, None])
+        fetchrow_results=[None, None, None, {"required_revision": 1}])
 
 
 def _call(db, **over):
@@ -110,16 +130,17 @@ def test_invalid_args_rejected_before_acquire(over):
 
 
 # ============================== B. execution ================================
-def test_execution_one_acquire_six_reads_exact_sql_and_args():
+def test_execution_one_acquire_seven_reads_exact_sql_and_args():
     conn = _default_conn()
     db = _db(conn)
     _call(db)
     assert db.pool.acquire_count == 1                     # exactly one acquisition
     assert len(conn.fetch_calls) == 3                     # klines, oi, liquidations
-    assert len(conn.fetchrow_calls) == 3                  # funding, instrument, capability
+    assert len(conn.fetchrow_calls) == 4                  # funding, instrument, capability,
+                                                           # required_metadata_revision
 
     (k_sql, k_args), (oi_sql, oi_args), (liq_sql, liq_args) = conn.fetch_calls
-    (f_sql, f_args), (i_sql, i_args), (c_sql, c_args) = conn.fetchrow_calls
+    (f_sql, f_args), (i_sql, i_args), (c_sql, c_args), (r_sql, r_args) = conn.fetchrow_calls
 
     assert k_sql == KLINES_SQL and k_args == ("binance", "BTCUSDT", B0, B1)
     assert oi_sql == OPEN_INTEREST_SQL and oi_args == ("binance", "BTCUSDT", B0, B1)
@@ -128,6 +149,17 @@ def test_execution_one_acquire_six_reads_exact_sql_and_args():
     assert i_sql == INSTRUMENT_SQL and i_args == ("binance", "BTCUSDT", "perp")
     assert c_sql == LIQUIDATION_CAPABILITY_SQL
     assert c_args == ("binance", "BTCUSDT", "perp", "liquidations")
+    assert r_sql == REQUIRED_METADATA_REVISION_SQL and r_args == ()
+
+
+def test_all_seven_reads_run_inside_one_repeatable_read_readonly_transaction():
+    """(CodeRabbit finding, tech-lead-classified BLOCKER) All seven reads must
+    share ONE PostgreSQL snapshot -- exactly one transaction() call, with
+    isolation="repeatable_read" and readonly=True, wrapping the whole read."""
+    conn = _default_conn()
+    db = _db(conn)
+    _call(db)
+    assert conn.transaction_calls == [{"isolation": "repeatable_read", "readonly": True}]
 
 
 def test_static_sql_shape():
@@ -148,7 +180,8 @@ def test_static_sql_shape():
 
 # =============================== C. bundle ==================================
 def test_bundle_empty_collections_and_none_scalars():
-    conn = FakeConn(fetch_results=[[], [], []], fetchrow_results=[None, None, None])
+    conn = FakeConn(fetch_results=[[], [], []],
+                    fetchrow_results=[None, None, None, {"required_revision": 1}])
     db = _db(conn)
     bundle = _call(db)
     assert isinstance(bundle, ExchangeFeatureRawBundle)
@@ -156,13 +189,15 @@ def test_bundle_empty_collections_and_none_scalars():
     assert bundle.latest_funding is None
     assert bundle.instrument is None
     assert bundle.liquidation_capability is None          # preserved for the adapter to reject
+    assert bundle.required_metadata_revision == 1
 
 
 def test_bundle_rows_detached_immutable_and_isolated():
     krow = {"exchange": "binance", "symbol": "BTCUSDT", "ts": B0, "close": 1.0}
     klist = [krow]
     frow = {"exchange": "binance", "symbol": "BTCUSDT", "ts": B0, "funding_rate": 0.1}
-    conn = FakeConn(fetch_results=[klist, [], []], fetchrow_results=[frow, None, None])
+    conn = FakeConn(fetch_results=[klist, [], []],
+                    fetchrow_results=[frow, None, None, {"required_revision": 1}])
     db = _db(conn)
     bundle = _call(db)
 
@@ -176,3 +211,24 @@ def test_bundle_rows_detached_immutable_and_isolated():
     assert bundle.klines[0]["close"] == 1.0 and len(bundle.klines) == 1   # bundle isolated
     with pytest.raises(dataclasses.FrozenInstanceError):
         bundle.klines = ()
+
+
+# ==================== D. required_metadata_revision (review 4991738511) ====
+def test_bundle_carries_required_metadata_revision_from_singleton_row():
+    conn = FakeConn(fetch_results=[[], [], []],
+                    fetchrow_results=[None, None, None, {"required_revision": 7}])
+    db = _db(conn)
+    bundle = _call(db)
+    assert bundle.required_metadata_revision == 7
+
+
+def test_missing_singleton_row_fails_closed():
+    """No `stage2_instrument_metadata_state` row at all (schema created but
+    never bootstrapped) must raise -- never silently default to `1` or any
+    other value on the read side; only the dataclass's own OWN default
+    (for hand-built bundles that predate this mechanism) is `1`, never
+    the real reader's own behavior on a genuinely missing row."""
+    conn = FakeConn(fetch_results=[[], [], []], fetchrow_results=[None, None, None, None])
+    db = _db(conn)
+    with pytest.raises(Stage2ReaderError, match="not properly bootstrapped"):
+        _call(db)

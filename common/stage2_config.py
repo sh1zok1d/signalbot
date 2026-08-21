@@ -28,7 +28,8 @@ STAGE2_CONFIG_PATH = ROOT_DIR / "config" / "stage2.yaml"
 
 SUPPORTED_MARKET_TYPES = ("perp",)
 _REQUIRED_DEFAULT_KEYS = ("percentile_windows", "timeframes", "data_confidence",
-                          "warmup", "outliers", "percentiles", "data_quality")
+                          "warmup", "outliers", "percentiles", "data_quality",
+                          "instrument_metadata_revision")
 
 # Data Quality Contract Revision 0.2.5 (frozen). Four classification thresholds;
 # ints > 0 except gap_tolerance_factor (finite number > 1). See STAGE2_SPEC.md §13.
@@ -169,6 +170,16 @@ class Stage2Config:
             raise Stage2ConfigError("stage2.feature_schema_version must be an int")
         return v
 
+    @property
+    def instrument_metadata_revision(self) -> int:
+        """The single Stage-2-wide `defaults.instrument_metadata_revision`
+        (tech-lead review 4991738511) -- a direct read, independent of any
+        particular symbol's resolution (every symbol resolves to the SAME
+        value; `_validate` refuses any tier/symbol override)."""
+        v = self._raw.get("defaults", {}).get("instrument_metadata_revision")
+        self._validate_instrument_metadata_revision(v)
+        return v
+
     # -- validation --------------------------------------------------------
     def _validate(self) -> None:
         for key in ("stage2", "defaults", "asset_tiers", "symbols"):
@@ -199,11 +210,31 @@ class Stage2Config:
         self._validate_outliers(defaults["outliers"])
         self._validate_percentiles(defaults["percentiles"])
         self._validate_data_quality(defaults["data_quality"])
+        self._validate_instrument_metadata_revision(defaults["instrument_metadata_revision"])
 
         if not isinstance(self._raw["asset_tiers"], Mapping):
             raise Stage2ConfigError("asset_tiers must be a mapping")
         if not isinstance(self._raw["symbols"], Mapping) or not self._raw["symbols"]:
             raise Stage2ConfigError("symbols must be a non-empty mapping")
+        # (tech-lead review 4991738511) instrument_metadata_revision must
+        # stay a SINGLE Stage-2-wide value -- calculation_version is a
+        # SHARED computation namespace across every venue/symbol, so no
+        # asset_tier/symbol override may fragment it into per-venue or
+        # per-symbol sub-namespaces the existing consensus contract does
+        # not support (see storage/stage2_schema.sql's
+        # stage2_instrument_metadata_state comment for the full mechanism).
+        for tier_name, tier_over in self._raw["asset_tiers"].items():
+            if isinstance(tier_over, Mapping) and "instrument_metadata_revision" in tier_over:
+                raise Stage2ConfigError(
+                    f"asset_tiers.{tier_name}.instrument_metadata_revision is not allowed -- "
+                    "instrument_metadata_revision must remain a single Stage-2-wide value "
+                    "(defaults only), never overridden per tier")
+        for sym_name, sym_over in self._raw["symbols"].items():
+            if isinstance(sym_over, Mapping) and "instrument_metadata_revision" in sym_over:
+                raise Stage2ConfigError(
+                    f"symbols.{sym_name}.instrument_metadata_revision is not allowed -- "
+                    "instrument_metadata_revision must remain a single Stage-2-wide value "
+                    "(defaults only), never overridden per symbol")
         # validate each declared symbol resolves cleanly (fail fast at load)
         for sym in self._raw["symbols"]:
             self.resolve(sym)
@@ -292,6 +323,29 @@ class Stage2Config:
             raise Stage2ConfigError(
                 f"percentiles.confidence_tiers must be strictly increasing "
                 f"(none_below < low_below < building_below), got {values}")
+
+    def _validate_instrument_metadata_revision(self, value: Any) -> None:
+        """(Tech-lead review 4991738511) `defaults.instrument_metadata_revision`
+        is the durable, Stage-2-wide, GLOBAL identity of "which instrument-
+        metadata revision Stage 2 feature computation currently requires" --
+        it lives in `defaults` (never `asset_tiers`/`symbols`, enforced in
+        `_validate` above) so it applies identically to every resolved
+        per-symbol config and therefore enters every symbol's `config_hash`
+        / `calculation_version` uniformly. Must be a plain int (bool
+        rejected) strictly > 0. Never a timestamp -- an operator-controlled,
+        monotonically-advancing identity only, matching
+        `storage/stage2_schema.sql::stage2_instrument_metadata_state`'s own
+        `required_revision` column, which this must equal before
+        `analytics/feature_engine/input_adapter.py::
+        assemble_exchange_feature_request` will construct a feature
+        request."""
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise Stage2ConfigError(
+                f"defaults.instrument_metadata_revision must be an int, "
+                f"got {type(value).__name__}")
+        if value <= 0:
+            raise Stage2ConfigError(
+                f"defaults.instrument_metadata_revision must be > 0, got {value!r}")
 
     def _validate_data_quality(self, dq: Any) -> None:
         """Data Quality thresholds (Revision 0.2.5): exactly four keys; the three

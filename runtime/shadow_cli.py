@@ -216,7 +216,15 @@ async def _bootstrap_one_instrument(db, exchange, symbol, fetch_json) -> None:
         tick_size=fresh.tick_size, price_precision=fresh.price_precision,
         quantity_precision=fresh.quantity_precision, metadata_source=fresh.metadata_source,
         fetched_at=fresh.fetched_at, is_stale=fresh.is_stale, note=fresh.note or "",
-        accept_mismatch=False)
+        accept_mismatch=False,
+        # V2-H2c (tech-lead review 4990482334, finding 1): this bootstrap
+        # path never deliberately accepts a CRITICAL mismatch (accept_
+        # mismatch=False -- fetch_instrument_metadata() itself already
+        # raised MetadataMismatchError upstream before fresh could differ
+        # on any critical field vs the existing LKG), so there is no OLD
+        # value's already-made LIVE decisions to protect against here --
+        # effective_from safely equals this fetch's own observation time.
+        effective_from=fresh.fetched_at)
 
 
 async def _bootstrap_instrument_metadata(db, exchanges, symbol, *, metadata_fetch_json) -> None:
@@ -236,6 +244,36 @@ async def _bootstrap_instrument_metadata(db, exchanges, symbol, *, metadata_fetc
 
         for exchange in exchanges:
             await _bootstrap_one_instrument(db, exchange, symbol, fetch_json)
+
+
+async def _bootstrap_stage2_schema_and_revision(db, stage2_config: Stage2Config) -> None:
+    """(Tech-lead review 4992495660, findings 1/2) The ONE shared bootstrap
+    order both write-capable Stage 2 entry points (`execute_shadow_once` and
+    `runtime/shadow_recovery.py::execute_shadow_recovery`) must follow --
+    never duplicated separately, never reordered.
+
+    `stage2_instrument_metadata_state` is now a MANDATORY prerequisite for
+    every Stage-2 raw-bundle read (`storage/stage2_readers.py::
+    read_exchange_feature_raw_bundle` raises if its one singleton row is
+    absent) and for every deliberate critical-metadata acceptance
+    (`Database.upsert_exchange_instrument`'s `accept_mismatch=True` path).
+    `init_stage2_schema()` only CREATEs the table -- it does not, and must
+    not, seed a row (no hardcoded DDL literal; see that table's own
+    schema comment). This helper establishes/verifies that row explicitly,
+    from `stage2_config.instrument_metadata_revision`, immediately after
+    schema init and strictly BEFORE any structural seed, any instrument-
+    metadata upsert, or any Stage-2 raw-bundle read -- never bootstrapped
+    separately per exchange/symbol (it is one GLOBAL row, not a per-
+    identity fact).
+
+    `Database.bootstrap_instrument_metadata_revision` itself fails closed
+    (raises) if a persisted `required_revision` already exists and differs
+    from `stage2_config.instrument_metadata_revision` -- this helper does
+    not swallow or soften that; a stale deployed config must be fixed by
+    the operator, never silently overwritten."""
+    await db.init_stage2_schema()
+    await db.bootstrap_instrument_metadata_revision(
+        initial_revision=stage2_config.instrument_metadata_revision)
 
 
 # ============================================================================
@@ -327,12 +365,28 @@ class ShadowStatusReport:
     prerequisites: Sequence[Mapping]
     latest_prediction: Optional[Mapping]
     outcomes: Sequence[Mapping]
+    # (Tech-lead review 4992495660, finding 7) Read-only diagnostics for the
+    # instrument_metadata_revision fork-enforcement mechanism -- surfaced
+    # here so an operator can see WHY a dry-run/live run is about to fail
+    # closed without needing direct DB access. `durable_instrument_metadata_
+    # revision` is `None` exactly when the singleton row is absent (missing
+    # table or an interrupted bootstrap; see storage/shadow_cli_readers.py).
+    configured_instrument_metadata_revision: int
+    durable_instrument_metadata_revision: Optional[int]
 
     def __post_init__(self) -> None:
         if self.state not in _STATUS_STATES:
             raise ShadowCliError(f"invalid status state {self.state!r}")
         if type(self.stage2_global_enabled) is not bool:
             raise ShadowCliError("stage2_global_enabled must be a bool")
+        if not isinstance(self.configured_instrument_metadata_revision, int) or isinstance(
+                self.configured_instrument_metadata_revision, bool):
+            raise ShadowCliError("configured_instrument_metadata_revision must be an int")
+        if self.durable_instrument_metadata_revision is not None and (
+                not isinstance(self.durable_instrument_metadata_revision, int)
+                or isinstance(self.durable_instrument_metadata_revision, bool)):
+            raise ShadowCliError(
+                "durable_instrument_metadata_revision must be an int or None")
         object.__setattr__(self, "exchanges", tuple(self.exchanges))
         object.__setattr__(self, "prerequisites",
                            tuple(MappingProxyType(dict(p)) for p in self.prerequisites))
@@ -363,15 +417,17 @@ async def execute_shadow_once(
     explicit_code_version: Optional[str],
     metadata_fetch_json=None,
 ) -> ShadowExecutionReport:
-    """One-shot: init Stage 2 schema, structural seed, metadata bootstrap, then
-    ONE `process_shadow_cycle` with due_outcome_jobs=(). All CLI/config/time
-    validation happens before any DB write. Does not call Stage 1 init_schema."""
+    """One-shot: init Stage 2 schema + the instrument-metadata-revision
+    singleton (`_bootstrap_stage2_schema_and_revision`), structural seed,
+    metadata bootstrap, then ONE `process_shadow_cycle` with
+    due_outcome_jobs=(). All CLI/config/time validation happens before any
+    DB write. Does not call Stage 1 init_schema."""
     symbol, exchanges, resolved = _resolve_shadow_scope(
         stage1_config, stage2_config, reference_exchange=reference_exchange)
     bucket_selection, bucket_ts = _resolve_bucket(now, explicit_bucket_ts, resolved)
     code_version = resolve_feature_code_version(explicit=explicit_code_version)
 
-    await db.init_stage2_schema()
+    await _bootstrap_stage2_schema_and_revision(db, stage2_config)
     await db.seed_symbols(symbol_seed_rows())
     await db.seed_symbol_exchange_capabilities(symbol_exchange_capability_seed_rows())
     await _bootstrap_instrument_metadata(
@@ -405,8 +461,13 @@ async def execute_shadow_dry_run(
     metadata_fetch_json=None,
 ) -> ShadowExecutionReport:
     """Dry-run: real reads, an in-memory writer, and ZERO writes. No schema init,
-    no seeds, no metadata network/write. Requires the Stage 2 reader prerequisites
-    to already exist (explicit ShadowCliError listing what is missing otherwise)."""
+    no seeds, no metadata network/write, and NEVER calls
+    `Database.bootstrap_instrument_metadata_revision` (tech-lead review
+    4992495660, finding 6 -- dry-run must remain read-only). Requires the
+    Stage 2 reader prerequisites to already exist AND the durable
+    `stage2_instrument_metadata_state.required_revision` to match this
+    deployment's resolved `instrument_metadata_revision` (explicit
+    ShadowCliError listing what is missing/mismatched otherwise)."""
     symbol, exchanges, resolved = _resolve_shadow_scope(
         stage1_config, stage2_config, reference_exchange=reference_exchange)
     bucket_selection, bucket_ts = _resolve_bucket(now, explicit_bucket_ts, resolved)
@@ -414,7 +475,7 @@ async def execute_shadow_dry_run(
 
     status = await db.fetch_shadow_status(
         exchanges=exchanges, symbol=symbol, market_type=_MARKET_TYPE, timeframe=_TIMEFRAME)
-    _require_dry_run_prerequisites(status, exchanges)
+    _require_dry_run_prerequisites(status, exchanges, stage2_config)
 
     availability = await db.fetch_shadow_liquidation_availability(
         exchanges=exchanges, symbol=symbol, market_type=_MARKET_TYPE)
@@ -433,11 +494,34 @@ async def execute_shadow_dry_run(
         reference_exchange=reference_exchange, code_version=code_version, result=result)
 
 
-def _require_dry_run_prerequisites(status, exchanges) -> None:
+def _require_dry_run_prerequisites(status, exchanges, stage2_config: Stage2Config) -> None:
+    """`--shadow-dry-run` is read-only: it NEVER bootstraps or writes anything
+    (tech-lead review 4992495660, finding 6) -- it only validates, against
+    the already-persisted state, that a raw-bundle read/feature computation
+    could actually succeed, failing closed with a clear `ShadowCliError`
+    otherwise. `status["state"] in (NOT_INITIALIZED, PARTIAL_SCHEMA)` already
+    catches BOTH a missing `stage2_instrument_metadata_state` table AND a
+    present-but-empty singleton row (see `storage/shadow_cli_readers.py`'s
+    own state-machine fold, finding 5) -- both correctly refuse here with no
+    write ever attempted. What that state check does NOT catch is a
+    genuinely PRESENT but STALE revision (finding 6): the durable required
+    revision resolves fine, but this deployment's OWN resolved config no
+    longer matches it (e.g. a critical metadata change was accepted after
+    this config was last updated) -- checked explicitly below."""
     if status["state"] in (STATUS_NOT_INITIALIZED, STATUS_PARTIAL_SCHEMA):
         raise ShadowCliError(
             f"Stage 2 schema is not fully initialized (state={status['state']}); "
             f"run --shadow-once first")
+    durable_revision = status["instrument_metadata_revision"]
+    configured_revision = stage2_config.instrument_metadata_revision
+    if durable_revision != configured_revision:
+        raise ShadowCliError(
+            f"instrument_metadata_revision mismatch: durable "
+            f"required_revision={durable_revision!r} but this deployment's "
+            f"resolved config has instrument_metadata_revision="
+            f"{configured_revision!r}; update config/stage2.yaml (or "
+            f"investigate why the durable value changed) before retrying "
+            f"-- refusing to read/compute under a stale revision")
     prereq_by_exchange = {p["exchange"]: p for p in status["prerequisites"]}
     missing: list[str] = []
     for ex in exchanges:
@@ -465,7 +549,9 @@ async def execute_shadow_status(
         state=snapshot["state"], stage2_global_enabled=stage2_config.enabled,
         symbol=symbol, market_type=_MARKET_TYPE, timeframe=_TIMEFRAME,
         exchanges=exchanges, prerequisites=snapshot["prerequisites"],
-        latest_prediction=snapshot["latest_prediction"], outcomes=snapshot["outcomes"])
+        latest_prediction=snapshot["latest_prediction"], outcomes=snapshot["outcomes"],
+        configured_instrument_metadata_revision=stage2_config.instrument_metadata_revision,
+        durable_instrument_metadata_revision=snapshot["instrument_metadata_revision"])
 
 
 # ============================================================================
@@ -578,6 +664,10 @@ def status_report_to_jsonable(report: ShadowStatusReport) -> dict:
         "market_type": report.market_type,
         "timeframe": report.timeframe,
         "exchanges": list(report.exchanges),
+        "configured_instrument_metadata_revision":
+            report.configured_instrument_metadata_revision,
+        "durable_instrument_metadata_revision":
+            report.durable_instrument_metadata_revision,
         "prerequisites": [_to_jsonable(p) for p in report.prerequisites],
         "latest_prediction": _to_jsonable(report.latest_prediction),
         "outcomes_by_horizon": _outcomes_by_horizon(report),
@@ -661,6 +751,12 @@ def render_shadow_status_report(report: ShadowStatusReport) -> str:
         f"stage2_enabled:   {report.stage2_global_enabled}",
         f"scope:            {report.symbol} / {report.market_type} / {report.timeframe}",
         f"exchanges:        {', '.join(report.exchanges)}",
+        f"instrument_metadata_revision: configured="
+        f"{report.configured_instrument_metadata_revision} "
+        f"durable={_fmt(report.durable_instrument_metadata_revision)}"
+        + ("  (MISMATCH)" if report.durable_instrument_metadata_revision is not None
+           and report.durable_instrument_metadata_revision
+           != report.configured_instrument_metadata_revision else ""),
         "prerequisites:",
     ]
     if report.prerequisites:

@@ -27,6 +27,13 @@ class ShadowCliReaderError(ValueError):
 
 
 # The Stage 2 tables the status state-machine reasons about, in a stable order.
+# (Tech-lead review 4992495660, finding 4) `stage2_instrument_metadata_state`
+# is now a MANDATORY prerequisite for every Stage-2 raw-bundle read
+# (storage/stage2_readers.py::read_exchange_feature_raw_bundle raises if its
+# one singleton row is absent) -- a legacy pre-H2c database that has every
+# OTHER Stage 2 table but not this one must report PARTIAL_SCHEMA, never
+# EMPTY/READY (which would wrongly imply the next raw-bundle read will
+# succeed).
 SHADOW_STATUS_TABLES = (
     "symbols",
     "exchange_instruments",
@@ -35,6 +42,7 @@ SHADOW_STATUS_TABLES = (
     "consensus_feature_vectors",
     "forecast_predictions",
     "forecast_outcomes",
+    "stage2_instrument_metadata_state",
 )
 
 # The subset that must exist before per-exchange prerequisites can be read.
@@ -59,7 +67,16 @@ SELECT
     to_regclass('public.exchange_feature_vectors')::text      AS exchange_feature_vectors,
     to_regclass('public.consensus_feature_vectors')::text     AS consensus_feature_vectors,
     to_regclass('public.forecast_predictions')::text          AS forecast_predictions,
-    to_regclass('public.forecast_outcomes')::text             AS forecast_outcomes
+    to_regclass('public.forecast_outcomes')::text             AS forecast_outcomes,
+    to_regclass('public.stage2_instrument_metadata_state')::text AS stage2_instrument_metadata_state
+"""
+
+# (Finding 5) Table EXISTENCE (to_regclass, above) is not enough -- an
+# interrupted bootstrap can leave the table present with zero rows. Read
+# ONLY when the table itself is known present (guarded in read_shadow_status
+# below), never blindly -- a missing table would raise UndefinedTable.
+REQUIRED_METADATA_REVISION_STATUS_SQL = """
+SELECT required_revision FROM stage2_instrument_metadata_state
 """
 
 SHADOW_PREREQUISITES_SQL = """
@@ -217,6 +234,20 @@ async def read_shadow_status(
     immutable snapshot. Reads only tables that exist (to_regclass-gated), so a
     fresh DB yields NOT_INITIALIZED instead of raising UndefinedTable.
 
+    (Tech-lead review 4992495660, findings 4/5) `stage2_instrument_metadata_state`
+    is now one of `SHADOW_STATUS_TABLES`, so a legacy DB missing that table
+    (but with every other Stage 2 table present) correctly reports
+    PARTIAL_SCHEMA. Table EXISTENCE alone is insufficient, though: an
+    interrupted bootstrap can leave the table present with zero rows. This
+    reader ALSO reads the singleton row itself (only once the table is known
+    present) and folds "table exists but the row is missing" into the SAME
+    PARTIAL_SCHEMA state (the smallest extension of the existing state
+    machine, not a new status value) -- this snapshot must never claim
+    READY/EMPTY while a subsequent raw-bundle read would still raise. The
+    durable `required_revision` (or `None` if absent) is always exposed as
+    `instrument_metadata_revision`, for `--shadow-dry-run`'s and
+    `--shadow-status`'s own fail-closed/diagnostic checks.
+
     Enforces its public contract BEFORE any DB access via
     `validate_shadow_status_args`, then uses only the detached tuple it returns —
     so a direct caller is safe even without the Database wrapper. (The Database
@@ -232,14 +263,27 @@ async def read_shadow_status(
     prerequisites: tuple = ()
     latest_prediction = None
     outcomes: tuple = ()
+    instrument_metadata_revision = None
+
+    if present.get("stage2_instrument_metadata_state"):
+        revision_row = await conn.fetchrow(REQUIRED_METADATA_REVISION_STATUS_SQL)
+        if revision_row is not None:
+            instrument_metadata_revision = revision_row["required_revision"]
 
     if none_present:
         state = "NOT_INITIALIZED"
     elif not all_present:
         state = "PARTIAL_SCHEMA"
+    elif instrument_metadata_revision is None:
+        # Every table exists, including stage2_instrument_metadata_state,
+        # but its one mandatory row does not -- an interrupted/incomplete
+        # bootstrap. Reported the same way a missing TABLE would be: not
+        # ready for a raw-bundle read yet.
+        state = "PARTIAL_SCHEMA"
     else:
-        # All required tables exist: safe to read prerequisites, the latest
-        # prediction, and (only if a prediction exists) its recorded outcomes.
+        # All required tables exist AND the revision singleton is present:
+        # safe to read prerequisites, the latest prediction, and (only if a
+        # prediction exists) its recorded outcomes.
         prereq_records = await conn.fetch(
             SHADOW_PREREQUISITES_SQL, list(requested), symbol, market_type)
         prerequisites = tuple(_detach_prerequisite(rec) for rec in prereq_records)
@@ -260,6 +304,7 @@ async def read_shadow_status(
     return MappingProxyType({
         "state": state,
         "schema_present": MappingProxyType(dict(present)),
+        "instrument_metadata_revision": instrument_metadata_revision,
         "prerequisites": prerequisites,
         "latest_prediction": latest_prediction,
         "outcomes": outcomes,

@@ -26,7 +26,14 @@ code should depend on, instead of importing the concrete
     original five-method shape. There is no inheritance relationship
     between the two Protocols; a fake satisfying only
     `V2AlignedInputReader` does not need to implement any
-    `V2SetupHistoryReader` method, and vice versa.
+    `V2SetupHistoryReader` method, and vice versa. `fetch_v2_instrument`
+    requires an explicit `as_of` (V2-H2c,
+    `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §12.5a): it resolves the
+    `exchange_instrument_history` version actually in effect at `as_of`,
+    never the current `exchange_instruments` LKG row and never a future
+    version — see `storage/v2_setup_readers.py::read_v2_instrument`'s own
+    docstring for the exact interval semantics this method's
+    implementation encodes.
   - `V2VersionDrainStatusReader` — the narrow read port V2-H2b's
     orchestration layer (`analytics/forecasting_v2/
     version_switch_orchestrator.py`) depends on for the ONE fact
@@ -46,9 +53,13 @@ code should depend on, instead of importing the concrete
 
 `storage.db.Database` already implements the first three shapes
 (`V2EpisodeEventWriter`/`V2AlignedInputReader`/`V2SetupHistoryReader`) —
-nothing here changes those methods or wires them into anything; this
-module only names the narrow slices of `Database`'s surface a future V2
-caller is allowed to depend on. The fourth Protocol,
+this module only names the narrow slices of `Database`'s surface a
+future V2 caller is allowed to depend on; it does not itself wire
+anything. (V2-H2c changed `Database.fetch_v2_instrument`'s own signature
+to require `as_of`, matching this Protocol's method exactly — this
+module's own definition of the method is what changed here, not an
+independent edit to `Database` that this Protocol merely happens to
+describe.) The fourth Protocol,
 `V2VersionDrainStatusReader`, is deliberately DIFFERENT: `Database` does
 NOT implement it (see that Protocol's own docstring) — no concrete,
 real implementation of it exists anywhere in this codebase yet, only
@@ -165,8 +176,8 @@ class V2SetupHistoryReader(Protocol):
     `percentile_snapshots` window, an `exchange_feature_vectors` window,
     the existing raw-kline half-open-interval read (reused unchanged from
     Stage 3, `read_v2_reference_klines` — no second raw-kline window API
-    exists), and a single-row `exchange_instruments` lookup for
-    `protection_buffer()`'s `tick_size` input. Every method's contract
+    exists), and an as-of `exchange_instrument_history` lookup (V2-H2c)
+    for `protection_buffer()`'s `tick_size` input. Every method's contract
     (inclusive bucket-START interval semantics, no fallback, explicit
     `calculation_version`, missing rows preserved as absence rather than
     fabricated) is owned by `storage/v2_setup_readers.py`, not by this
@@ -203,7 +214,7 @@ class V2SetupHistoryReader(Protocol):
         ...
 
     async def fetch_v2_instrument(
-        self, *, exchange: str, symbol: str, market_type: str,
+        self, *, exchange: str, symbol: str, market_type: str, as_of: datetime,
     ) -> Optional[Mapping]:
         ...
 

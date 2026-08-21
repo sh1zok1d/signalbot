@@ -170,6 +170,9 @@ def test_exact_instrument_call():
     assert kw["exchange"] == V2_REFERENCE_EXCHANGE
     assert kw["symbol"] == SYMBOL
     assert kw["market_type"] == MARKET_TYPE
+    # V2-H2c adversarial vector 13: instrument metadata is resolved as-of
+    # the exact frozen decision boundary (context.T), not any other time.
+    assert kw["as_of"] == context.T
 
 
 def test_zero_percentile_window_or_kline_reads():

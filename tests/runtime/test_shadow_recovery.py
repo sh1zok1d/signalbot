@@ -164,6 +164,10 @@ class RecoveryDB:
     async def init_stage2_schema(self):
         self.calls.append("init_stage2_schema")
 
+    async def bootstrap_instrument_metadata_revision(self, *, initial_revision):
+        self.calls.append(("bootstrap_revision", initial_revision))
+        return "SEEDED"
+
     async def seed_symbols(self, rows):
         self.calls.append("seed_symbols"); return len(rows)
 
@@ -301,8 +305,8 @@ def test_lock_held_does_zero_work():
     rep = _recover(db, now=datetime(2026, 3, 1, 0, 10, tzinfo=UTC))
     assert rep.lock_status == LOCK_HELD_SKIPPED and rep.writes_enabled is False
     verbs = [c if isinstance(c, str) else c[0] for c in db.calls]
-    for forbidden in ("init_stage2_schema", "seed_symbols", "seed_caps", "wm_advance",
-                      "insert_pred", "outcome_upsert"):
+    for forbidden in ("init_stage2_schema", "bootstrap_revision", "seed_symbols", "seed_caps",
+                      "wm_advance", "insert_pred", "outcome_upsert"):
         assert forbidden not in verbs
     assert db.advanced == []
 
@@ -441,7 +445,22 @@ def test_automatic_single_bucket_real_cycle():
     assert len(db.advanced) == 1
     verbs = [c if isinstance(c, str) else c[0] for c in db.calls]
     assert verbs.count("init_stage2_schema") == 1       # bootstrap once
+    assert verbs.count("bootstrap_revision") == 1
     assert verbs.count("seed_symbols") == 1 and verbs.count("seed_caps") == 1
+    # (Tech-lead review 4992495660, finding 10) revision bootstrap must
+    # complete strictly BEFORE any instrument upsert or raw-bundle read, for
+    # the AUTOMATIC recovery path too (not just the explicit one-bucket path).
+    bootstrap_idx = verbs.index("bootstrap_revision")
+    assert bootstrap_idx > verbs.index("init_stage2_schema")
+    # (CodeRabbit finding 5C) assert the ACTUAL forwarded value, not merely
+    # that SOME call named "bootstrap_revision" happened.
+    _, expected_cfg = _cfgs()
+    bootstrap_calls = [c for c in db.calls if isinstance(c, tuple) and c[0] == "bootstrap_revision"]
+    assert bootstrap_calls == [("bootstrap_revision", expected_cfg.instrument_metadata_revision)]
+    upsert_indices = [i for i, v in enumerate(verbs) if v == "upsert_instr"]
+    raw_indices = [i for i, v in enumerate(verbs) if v == "raw"]
+    assert all(bootstrap_idx < i for i in upsert_indices)
+    assert all(bootstrap_idx < i for i in raw_indices)
 
 
 def test_several_missed_buckets_recovered_oldest_first():
@@ -572,6 +591,7 @@ class StatusCapableDB(RecoveryDB):
         self.calls.append("status")
         return MappingProxyType({
             "state": "EMPTY",
+            "instrument_metadata_revision": 1,
             "prerequisites": tuple(MappingProxyType({
                 "exchange": ex, "instrument_present": True, "instrument_is_stale": False,
                 "liquidation_capability_present": True, "liquidation_live_supported": True,
@@ -628,8 +648,8 @@ def test_explicit_run_with_held_lock_zero_work():
     rep = _locked_once(db)
     assert rep.lock_status == LOCK_HELD_SKIPPED and rep.execution is None
     verbs = [c if isinstance(c, str) else c[0] for c in db.calls]
-    for forbidden in ("init_stage2_schema", "seed_symbols", "seed_caps", "upsert_instr",
-                      "insert_pred", "outcome_upsert", "wm_read", "wm_advance",
+    for forbidden in ("init_stage2_schema", "bootstrap_revision", "seed_symbols", "seed_caps",
+                      "upsert_instr", "insert_pred", "outcome_upsert", "wm_read", "wm_advance",
                       "candidates", "antijoin", "raw"):
         assert forbidden not in verbs
     assert verbs == ["lock", "unlock"]               # nothing else ran at all

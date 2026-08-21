@@ -15,9 +15,9 @@ import pytest
 from storage.db import Database
 from storage.shadow_cli_readers import (
     LATEST_SHADOW_OUTCOMES_SQL, LATEST_SHADOW_PREDICTION_SQL,
-    SHADOW_LIQUIDATION_AVAILABILITY_SQL, SHADOW_PREREQUISITES_SQL,
-    SHADOW_SCHEMA_STATE_SQL, SHADOW_STATUS_TABLES, ShadowCliReaderError,
-    read_shadow_liquidation_availability, read_shadow_status,
+    REQUIRED_METADATA_REVISION_STATUS_SQL, SHADOW_LIQUIDATION_AVAILABILITY_SQL,
+    SHADOW_PREREQUISITES_SQL, SHADOW_SCHEMA_STATE_SQL, SHADOW_STATUS_TABLES,
+    ShadowCliReaderError, read_shadow_liquidation_availability, read_shadow_status,
 )
 
 UTC = timezone.utc
@@ -280,17 +280,28 @@ def _outcome_row(horizon):
             "directional_return_pct": 1.0, "mfe_pct": 2.0, "mae_pct": -0.5, "computed_at": B}
 
 
-def _status(schema_present, *, pred=None, outcomes=(), exchanges=("binance", "bybit", "okx")):
+def _status(schema_present, *, pred=None, outcomes=(), exchanges=("binance", "bybit", "okx"),
+            revision=1):
+    """`revision`: the canned `stage2_instrument_metadata_state.required_revision`
+    row value, returned ONLY when that table is present in `schema_present`
+    (mirrors the real reader's own guard). Pass `revision=None` to simulate
+    the table existing but its one singleton row being absent (an
+    interrupted bootstrap -- tech-lead review 4992495660, finding 5)."""
     prereq_rows = [
         {"exchange": ex, "instrument_present": True, "instrument_is_stale": False,
          "liquidation_capability_present": True, "liquidation_live_supported": True,
          "liquidation_enabled": True, "liquidation_coverage_type": "full"}
         for ex in exchanges
     ]
+    revision_row = (
+        {"required_revision": revision}
+        if ("stage2_instrument_metadata_state" in schema_present and revision is not None)
+        else None)
     conn = FakeConn(
         fetchrow_map={
             SHADOW_SCHEMA_STATE_SQL: lambda a: _schema_row(schema_present),
             LATEST_SHADOW_PREDICTION_SQL: lambda a: pred,
+            REQUIRED_METADATA_REVISION_STATUS_SQL: lambda a: revision_row,
         },
         fetch_map={
             SHADOW_PREREQUISITES_SQL: lambda a: prereq_rows,
@@ -324,6 +335,7 @@ def test_status_empty_all_tables_no_prediction():
     assert snap["state"] == "EMPTY"
     assert snap["latest_prediction"] is None and snap["outcomes"] == ()
     assert len(snap["prerequisites"]) == 3                      # prereqs read
+    assert snap["instrument_metadata_revision"] == 1
     # schema + prediction fetchrow; prereq fetch; no outcome fetch
     prediction_calls = [c for c in conn.fetchrow_calls if c[0] == LATEST_SHADOW_PREDICTION_SQL]
     assert len(prediction_calls) == 1
@@ -331,9 +343,47 @@ def test_status_empty_all_tables_no_prediction():
     assert outcome_calls == []
 
 
+# ============================================================================
+# Tech-lead review 4992495660, findings 4/5: stage2_instrument_metadata_state
+# is a MANDATORY Stage-2 prerequisite -- its ABSENCE (a legacy pre-H2c DB) and
+# its table-present-but-empty-singleton-row state (an interrupted bootstrap)
+# must BOTH report PARTIAL_SCHEMA, never EMPTY/READY.
+# ============================================================================
+def test_legacy_db_missing_revision_table_reports_partial_schema():
+    """A legacy pre-H2c DB: every OTHER Stage 2 table exists, but
+    stage2_instrument_metadata_state does not."""
+    legacy_tables = tuple(t for t in SHADOW_STATUS_TABLES
+                          if t != "stage2_instrument_metadata_state")
+    conn, snap = _status(legacy_tables, pred=None)
+    assert snap["state"] == "PARTIAL_SCHEMA"
+    assert snap["schema_present"]["stage2_instrument_metadata_state"] is False
+    assert snap["instrument_metadata_revision"] is None
+    assert snap["prerequisites"] == () and snap["latest_prediction"] is None
+    # never proceeds to read prerequisites/prediction once schema is partial
+    assert conn.fetch_calls == []
+
+
+def test_revision_table_present_but_row_missing_reports_partial_schema():
+    """An interrupted bootstrap: the table exists (init_stage2_schema ran)
+    but bootstrap_instrument_metadata_revision never did -- table existence
+    alone must NOT be mistaken for a ready prerequisite."""
+    conn, snap = _status(SHADOW_STATUS_TABLES, pred=None, revision=None)
+    assert snap["state"] == "PARTIAL_SCHEMA"
+    assert snap["schema_present"]["stage2_instrument_metadata_state"] is True
+    assert snap["instrument_metadata_revision"] is None
+    assert snap["prerequisites"] == () and snap["latest_prediction"] is None
+    # the row read was attempted (table present), but nothing further --
+    # never proceeds to prerequisites/prediction/outcomes.
+    revision_calls = [c for c in conn.fetchrow_calls
+                      if c[0] == REQUIRED_METADATA_REVISION_STATUS_SQL]
+    assert len(revision_calls) == 1
+    assert conn.fetch_calls == []
+
+
 def test_status_ready_no_outcomes():
     conn, snap = _status(SHADOW_STATUS_TABLES, pred=_pred_row(), outcomes=())
     assert snap["state"] == "READY"
+    assert snap["instrument_metadata_revision"] == 1
     assert snap["latest_prediction"] is not None
     assert snap["latest_prediction"]["horizon_set"] == ("15m", "1h", "4h")   # JSON parsed
     assert snap["outcomes"] == ()
@@ -488,6 +538,7 @@ def test_status_uses_validated_snapshot_across_acquire():
         fetchrow_map={
             SHADOW_SCHEMA_STATE_SQL: lambda a: _schema_row(SHADOW_STATUS_TABLES),
             LATEST_SHADOW_PREDICTION_SQL: lambda a: None,      # EMPTY -> prereqs queried
+            REQUIRED_METADATA_REVISION_STATUS_SQL: lambda a: {"required_revision": 1},
         },
         fetch_map={
             SHADOW_PREREQUISITES_SQL: lambda a: [],

@@ -46,8 +46,11 @@ cheaper "not a formation boundary" case to special-case here.
      check needs.
   6. `reader.fetch_v2_consensus_feature_window(...)` -- exactly the
      current `B5` 5m consensus trigger row (`bucket_start=bucket_end=B5`).
-  7. `reader.fetch_v2_instrument(...)` -- the single canonical-exchange
-     `exchange_instruments` row for `protection_buffer()`'s `tick_size`.
+  7. `reader.fetch_v2_instrument(..., as_of=context.T)` -- the single
+     canonical-exchange historical metadata version actually in effect at
+     `context.T` (V2-H2c), for `protection_buffer()`'s `tick_size`. Never
+     the current `exchange_instruments` LKG row -- see `ports.py`'s
+     `V2SetupHistoryReader.fetch_v2_instrument` docstring.
 
 No 5m/15m percentile beyond item 2, no 1h/4h historical window, no OI/
 funding/liquidation/health/orderbook/spot/CoinGlass/marketcap read of any
@@ -168,7 +171,8 @@ async def load_compression_breakout_inputs(
         calculation_version=context.calculation_version)
 
     instrument = await reader.fetch_v2_instrument(
-        exchange=V2_REFERENCE_EXCHANGE, symbol=context.symbol, market_type=context.market_type)
+        exchange=V2_REFERENCE_EXCHANGE, symbol=context.symbol, market_type=context.market_type,
+        as_of=context.T)
 
     return V2CompressionBreakoutInputs(
         context=context,

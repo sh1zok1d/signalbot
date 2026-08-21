@@ -102,13 +102,16 @@ def _prereq(ex, *, instrument=True, stale=False, capability=True):
         "liquidation_enabled": True, "liquidation_coverage_type": COV[ex]})
 
 
-def _status_snapshot(state, *, exchanges=EXS, prereq_overrides=None, latest=None, outcomes=()):
+def _status_snapshot(state, *, exchanges=EXS, prereq_overrides=None, latest=None, outcomes=(),
+                     instrument_metadata_revision=1):
     overrides = prereq_overrides or {}
     prereqs = tuple(overrides.get(ex, _prereq(ex)) for ex in exchanges)
     if state in (STATUS_NOT_INITIALIZED, STATUS_PARTIAL_SCHEMA):
         prereqs = ()
+        instrument_metadata_revision = None
     return MappingProxyType({
         "state": state, "prerequisites": prereqs,
+        "instrument_metadata_revision": instrument_metadata_revision,
         "latest_prediction": latest, "outcomes": tuple(outcomes)})
 
 
@@ -136,6 +139,10 @@ class FakeDB:
 
     async def init_stage2_schema(self):
         self.calls.append("init_stage2_schema")
+
+    async def bootstrap_instrument_metadata_revision(self, *, initial_revision):
+        self.calls.append(("bootstrap_revision", initial_revision))
+        return "SEEDED"
 
     async def seed_symbols(self, rows):
         self.calls.append("seed_symbols")
@@ -422,9 +429,21 @@ def test_once_execution_order_and_due_jobs_empty(monkeypatch):
         explicit_bucket_ts="2026-03-01T00:00:00Z", reference_exchange="binance",
         explicit_code_version="cli", metadata_fetch_json=_fetch_json_factory()))
     order = [c if isinstance(c, str) else c[0] for c in db.calls]
-    assert order[:6] == ["init_stage2_schema", "seed_symbols", "seed_caps",
+    assert order[:7] == ["init_stage2_schema", "bootstrap_revision", "seed_symbols", "seed_caps",
                          "get_instr", "get_instr", "get_instr"]
     assert "avail" in order and order.index("avail") > order.index("seed_caps")
+    # (Tech-lead review 4992495660, finding 10) the revision bootstrap must
+    # complete strictly BEFORE any instrument upsert or raw-bundle read.
+    assert order.index("bootstrap_revision") < order.index("get_instr")
+    upsert_indices = [i for i, c in enumerate(order) if c == "upsert_instr"]
+    raw_indices = [i for i, c in enumerate(order) if c == "raw"]
+    bootstrap_idx = order.index("bootstrap_revision")
+    assert all(bootstrap_idx < i for i in upsert_indices)
+    assert all(bootstrap_idx < i for i in raw_indices)
+    # (CodeRabbit finding 5C) assert the ACTUAL forwarded value, not merely
+    # that SOME call named "bootstrap_revision" happened.
+    bootstrap_calls = [c for c in db.calls if isinstance(c, tuple) and c[0] == "bootstrap_revision"]
+    assert bootstrap_calls == [("bootstrap_revision", c2.instrument_metadata_revision)]
     assert sum(calls) == 1
     assert captured["kwargs"]["due_outcome_jobs"] == ()
     assert isinstance(rep, ShadowExecutionReport)
@@ -571,8 +590,9 @@ def test_dry_run_zero_writes_and_labels_would_insert():
     # real reads happened; no init/seed/metadata/analytic writes on the DB
     order = [c if isinstance(c, str) else c[0] for c in db.calls]
     assert "raw" in order
-    for forbidden in ("init_stage2_schema", "init_schema", "seed_symbols", "seed_caps",
-                      "get_instr", "upsert_instr", "efv", "consensus", "insert_pred", "outcome"):
+    for forbidden in ("init_stage2_schema", "bootstrap_revision", "init_schema",
+                      "seed_symbols", "seed_caps", "get_instr", "upsert_instr", "efv",
+                      "consensus", "insert_pred", "outcome"):
         assert forbidden not in order
     human = sc.render_shadow_execution_report(rep)
     # the persistence EFFECT (right of the arrow) must be WOULD_INSERT, never a
@@ -596,6 +616,33 @@ def test_dry_run_missing_prerequisite_errors_before_cycle():
         _dry_run(db)
     order = [c if isinstance(c, str) else c[0] for c in db.calls]
     assert "raw" not in order
+
+
+def test_dry_run_missing_instrument_metadata_revision_errors_before_cycle():
+    """(Tech-lead review 4992495660, finding 6) The row exists nowhere yet
+    (state would already be PARTIAL_SCHEMA per storage/shadow_cli_readers.py's
+    own fold) -- covered by test_dry_run_missing_schema_errors_before_cycle
+    already since PARTIAL_SCHEMA/NOT_INITIALIZED share the same early check.
+    This test instead proves the explicit revision-MISMATCH path: tables +
+    row present, but the durable value differs from configured."""
+    status = _status_snapshot(STATUS_EMPTY, instrument_metadata_revision=2)   # configured=1
+    db = FakeDB(status=status)
+    with pytest.raises(ShadowCliError, match="instrument_metadata_revision"):
+        _dry_run(db)
+    order = [c if isinstance(c, str) else c[0] for c in db.calls]
+    assert "raw" not in order and "avail" not in order        # stopped before the cycle
+    # dry-run must NEVER write anything, including on this failure path.
+    assert "bootstrap_revision" not in order
+    for forbidden in ("init_stage2_schema", "seed_symbols", "seed_caps",
+                      "upsert_instr", "efv", "consensus", "insert_pred", "outcome"):
+        assert forbidden not in order
+
+
+def test_dry_run_matching_instrument_metadata_revision_proceeds():
+    status = _status_snapshot(STATUS_EMPTY, instrument_metadata_revision=1)   # matches config
+    db = FakeDB(status=status)
+    rep = _dry_run(db)
+    assert rep.command == SHADOW_DRY_RUN
 
 
 def test_dry_run_global_disabled_does_not_block():
@@ -633,6 +680,32 @@ def test_status_states_without_prediction(state):
     assert rep.latest_prediction is None and rep.outcomes == ()
     # status touches only fetch_shadow_status: no init/seed/writer/network/clock
     assert db.calls == ["status"]
+
+
+def test_status_surfaces_configured_and_durable_instrument_metadata_revision():
+    """(Tech-lead review 4992495660, finding 7) --shadow-status must remain
+    read-only but still surface enough to diagnose a revision mismatch."""
+    db = FakeDB(status=_status_snapshot(STATUS_EMPTY, instrument_metadata_revision=2))
+    c1, c2 = _configs()
+    rep = _run(execute_shadow_status(db, c1, c2))
+    assert rep.configured_instrument_metadata_revision == 1   # config/stage2.yaml's own default
+    assert rep.durable_instrument_metadata_revision == 2      # differs -> visible mismatch
+    assert db.calls == ["status"]                              # still read-only, no bootstrap
+    human = sc.render_shadow_status_report(rep)
+    assert "MISMATCH" in human
+    js = sc.status_report_to_jsonable(rep)
+    assert js["configured_instrument_metadata_revision"] == 1
+    assert js["durable_instrument_metadata_revision"] == 2
+
+
+def test_status_missing_durable_revision_reported_as_none():
+    db = FakeDB(status=_status_snapshot(STATUS_PARTIAL_SCHEMA))
+    c1, c2 = _configs()
+    rep = _run(execute_shadow_status(db, c1, c2))
+    assert rep.durable_instrument_metadata_revision is None
+    human = sc.render_shadow_status_report(rep)
+    assert "durable=n/a" in human
+    assert "MISMATCH" not in human   # unknown, not a proven mismatch
 
 
 def test_status_ready_with_prediction_and_outcomes():

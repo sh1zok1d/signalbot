@@ -17,6 +17,24 @@ stage2:
 active_exchanges: [binance, bybit, okx]
 
 defaults:
+  # (Tech-lead review 4991738511) The single Stage-2-wide, GLOBAL required
+  # instrument-metadata revision identity. Part of the resolved per-symbol
+  # config -> part of config_hash -> part of calculation_version -- bumping
+  # this value is the ONLY way a deliberately-accepted CRITICAL instrument-
+  # metadata change (exchange_instrument_id/quantity_unit/
+  # contract_multiplier/tick_size) forks calculation_version for real. Must
+  # be bumped to match storage.stage2_instrument_metadata_state's own
+  # required_revision (set atomically by
+  # Database.upsert_exchange_instrument's accept_mismatch=True path) before
+  # analytics/feature_engine/input_adapter.py::assemble_exchange_feature_request
+  # will construct another ExchangeFeatureRequest -- until then it fails
+  # closed. A plain, operator-controlled monotonic integer -- NEVER a
+  # timestamp. Applies identically to every exchange/symbol (never
+  # overridden per asset_tier/symbol -- Stage2Config._validate refuses it):
+  # calculation_version is a SHARED Stage-2 computation namespace, so one
+  # accepted critical change on any single venue forks it for all venues
+  # together.
+  instrument_metadata_revision: 1
   percentile_windows: [7d, 30d]
   timeframes: [1m, 5m, 15m, 1h, 4h]
   # Percentile confidence tier (Percentile Contract Revision 0.2.4, frozen; see
