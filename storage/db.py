@@ -654,23 +654,41 @@ class Database:
         return "SEEDED"
 
     async def bootstrap_instrument_metadata_revision(self, *, initial_revision: int) -> str:
-        """(Tech-lead review 4991738511, finding 11) Explicit, conservative,
-        idempotent bootstrap of the ONE global
-        `stage2_instrument_metadata_state` row -- the durable current
-        required instrument-metadata revision every Stage 2 feature
-        computation (any exchange, any symbol) must agree with. Mirrors
-        `seed_current_instrument_history`'s own explicit/conservative/
-        idempotent shape exactly.
+        """(Tech-lead review 4991738511, finding 11; tightened by tech-lead
+        review 4992495660, finding 3) Explicit, conservative bootstrap AND
+        verification of the ONE global `stage2_instrument_metadata_state`
+        row -- the durable current required instrument-metadata revision
+        every Stage 2 feature computation (any exchange, any symbol) must
+        agree with. Mirrors `seed_current_instrument_history`'s own
+        explicit/conservative shape.
 
         `initial_revision` MUST be established explicitly from the caller's
-        own resolved Stage 2 configuration (e.g.
-        `stage2_config.instrument_metadata_revision`) -- never invented,
-        never a timestamp, never hardcoded silently in this method or in
-        schema DDL. Returns `"SEEDED"` when it actually inserted the row
-        (fresh deployment); returns `"ALREADY_INITIALIZED"` without writing
-        anything if a row already exists -- this method NEVER overwrites an
-        already-live required revision, however different `initial_revision`
-        is on a repeated call; safe to call repeatedly."""
+        own resolved Stage 2 configuration (`stage2_config.
+        instrument_metadata_revision`) -- never invented, never a
+        timestamp, never hardcoded silently in this method or in schema
+        DDL. This is a RUNTIME BOOTSTRAP BOUNDARY, not a passive read, so
+        it verifies as well as seeds:
+
+          - no row exists yet -> inserts `initial_revision` -> `"SEEDED"`.
+          - a row exists and its `required_revision` EQUALS
+            `initial_revision` -> `"ALREADY_INITIALIZED"`, no write
+            (idempotent restart/re-run).
+          - a row exists and its `required_revision` DIFFERS from
+            `initial_revision` -> raises `ValueError`, NO overwrite. This
+            is deliberately NOT silently tolerated: the durable value may
+            have been bumped by a deliberately-accepted critical metadata
+            change (`Database.upsert_exchange_instrument`'s
+            `accept_mismatch=True` path) that this deployment's
+            `config/stage2.yaml` has not yet been updated to adopt --
+            continuing under a stale `initial_revision` would let this
+            runtime silently compute under the WRONG resolved
+            `instrument_metadata_revision` (and therefore the wrong
+            `calculation_version`) instead of failing closed, exactly the
+            gap `analytics/feature_engine/input_adapter.py::
+            assemble_exchange_feature_request`'s own fail-closed gate
+            exists to prevent. The operator must reconcile
+            `config/stage2.yaml` (or investigate why the durable value
+            changed) before retrying."""
         if not isinstance(initial_revision, int) or isinstance(initial_revision, bool):
             raise ValueError(
                 f"initial_revision must be an int, got {type(initial_revision).__name__}")
@@ -683,13 +701,24 @@ class Database:
                     "SELECT pg_advisory_xact_lock(hashtext('stage2_instrument_metadata_state'))")
                 existing = await conn.fetchrow(
                     "SELECT required_revision FROM stage2_instrument_metadata_state")
-                if existing is not None:
-                    return "ALREADY_INITIALIZED"
-                await conn.execute(
-                    "INSERT INTO stage2_instrument_metadata_state "
-                    "(singleton, required_revision, updated_at) VALUES (TRUE, $1, now())",
-                    initial_revision)
-        return "SEEDED"
+                if existing is None:
+                    await conn.execute(
+                        "INSERT INTO stage2_instrument_metadata_state "
+                        "(singleton, required_revision, updated_at) VALUES (TRUE, $1, now())",
+                        initial_revision)
+                    return "SEEDED"
+                persisted = existing["required_revision"]
+                if persisted != initial_revision:
+                    raise ValueError(
+                        f"stage2_instrument_metadata_state.required_revision is "
+                        f"{persisted!r}, but this deployment's resolved "
+                        f"instrument_metadata_revision is {initial_revision!r} -- "
+                        "refusing to silently overwrite the durable value (it may "
+                        "have been legitimately bumped by an accepted critical "
+                        "metadata change this config has not yet adopted); update "
+                        "config/stage2.yaml's defaults.instrument_metadata_revision "
+                        "to match, or investigate why it differs, before retrying")
+        return "ALREADY_INITIALIZED"
 
     # ---------------------------------------------------------------
     # Writers

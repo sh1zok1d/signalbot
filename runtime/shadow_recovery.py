@@ -54,7 +54,8 @@ from analytics.forecasting.shadow_cycle import (
 
 from runtime.shadow_cli import (
     BUCKET_EXPLICIT, SHADOW_ONCE, ShadowExecutionReport, _BUCKET_MINUTES,
-    _MARKET_TYPE, _TIMEFRAME, _bootstrap_instrument_metadata, _iso_utc,
+    _MARKET_TYPE, _TIMEFRAME, _bootstrap_instrument_metadata,
+    _bootstrap_stage2_schema_and_revision, _iso_utc,
     _resolve_shadow_scope, execute_shadow_once, execution_report_to_jsonable,
     parse_shadow_bucket_ts, render_shadow_execution_report,
     select_latest_closed_5m_bucket,
@@ -451,8 +452,9 @@ async def execute_shadow_recovery(
             # Another runner holds the lock: exit cleanly, zero writes.
             return _lock_held_report(latest_closed, reference_exchange, code_version, stage2_config)
 
-        # --- bootstrap once ---
-        await db.init_stage2_schema()
+        # --- bootstrap once (tech-lead review 4992495660: the SAME shared
+        # helper execute_shadow_once uses -- never duplicated separately) ---
+        await _bootstrap_stage2_schema_and_revision(db, stage2_config)
         await db.seed_symbols(symbol_seed_rows())
         await db.seed_symbol_exchange_capabilities(symbol_exchange_capability_seed_rows())
         await _bootstrap_instrument_metadata(

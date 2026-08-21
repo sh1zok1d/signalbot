@@ -1062,9 +1062,9 @@ def test_bootstrap_instrument_metadata_revision_seeds_once_idempotent():
                 "SELECT required_revision FROM stage2_instrument_metadata_state")
         assert row["required_revision"] == 1
 
-        # A second bootstrap call, even with a DIFFERENT initial_revision,
-        # must NEVER overwrite an already-live required revision.
-        result2 = await db.bootstrap_instrument_metadata_revision(initial_revision=5)
+        # A second bootstrap call with the SAME initial_revision (a restart
+        # with a matching, up-to-date config) is a true idempotent no-op.
+        result2 = await db.bootstrap_instrument_metadata_revision(initial_revision=1)
         assert result2 == "ALREADY_INITIALIZED"
         async with db.pool.acquire() as conn:
             row_after = await conn.fetchrow(
@@ -1072,6 +1072,41 @@ def test_bootstrap_instrument_metadata_revision_seeds_once_idempotent():
         assert row_after["required_revision"] == 1   # unchanged
 
     _run(body, bootstrap_revision=None)   # start unseeded -- this IS the test
+
+
+# ============================================================================
+# Tech-lead review 4992495660, finding 3: bootstrap_instrument_metadata_revision
+# must FAIL CLOSED (never silently continue) when the persisted durable
+# revision differs from this deployment's resolved config -- the durable
+# value may have been legitimately bumped by an accepted critical metadata
+# change this config hasn't adopted yet.
+# ============================================================================
+def test_bootstrap_instrument_metadata_revision_mismatch_fails_closed():
+    async def body(db, _dsn):
+        await db.bootstrap_instrument_metadata_revision(initial_revision=2)
+        # persisted=2, config/initial=1 -> fail closed, no overwrite.
+        with pytest.raises(ValueError, match="required_revision"):
+            await db.bootstrap_instrument_metadata_revision(initial_revision=1)
+        async with db.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT required_revision FROM stage2_instrument_metadata_state")
+        assert row["required_revision"] == 2   # unchanged by the refused call
+
+    _run(body, bootstrap_revision=None)
+
+
+def test_bootstrap_instrument_metadata_revision_match_is_idempotent_success():
+    async def body(db, _dsn):
+        await db.bootstrap_instrument_metadata_revision(initial_revision=2)
+        # persisted=2, config/initial=2 -> idempotent success.
+        result = await db.bootstrap_instrument_metadata_revision(initial_revision=2)
+        assert result == "ALREADY_INITIALIZED"
+        async with db.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT required_revision FROM stage2_instrument_metadata_state")
+        assert row["required_revision"] == 2
+
+    _run(body, bootstrap_revision=None)
 
 
 def test_upsert_before_bootstrap_fails_closed():
@@ -1227,3 +1262,127 @@ def test_noncritical_field_only_change_does_not_bump_required_revision():
                 for r in rows] == [(0.10, 1, 1), (0.50, 1, 2), (0.50, 9, 2)]
 
     _run(body)
+
+
+# ============================================================================
+# Tech-lead review 4992495660, finding 9: the ACTUAL legacy pre-H2c ->
+# write-capable H2c bootstrap migration vector.
+#
+# Before: only exchange_instruments exists (an already-accepted LKG row is
+# present); NO exchange_instrument_history, NO stage2_instrument_metadata_state.
+# After the write-capable bootstrap runs: both new tables exist, the revision
+# singleton is initialized from the resolved Stage2Config's own value, the
+# existing LKG row is completely untouched, NO speculative historical
+# backfill occurs (exchange_instrument_history stays empty until an operator
+# explicitly calls seed_current_instrument_history), and the feature path no
+# longer fails merely because the singleton was never initialized.
+# ============================================================================
+def test_legacy_pre_h2c_database_migration_vector():
+    async def body():
+        schema = _unique_schema_name()
+        admin = await _connect_admin()
+        try:
+            await admin.execute(f'CREATE SCHEMA "{schema}"')
+        finally:
+            await admin.close()
+        scoped_dsn = _scoped_dsn(BASE_DSN, schema)
+        db = Database(scoped_dsn)
+        await db.connect()
+        try:
+            # --- BEFORE: legacy pre-H2c world -----------------------------
+            async with db.pool.acquire() as conn:
+                await conn.execute(_EXCHANGE_INSTRUMENTS_DDL)
+                # An already-accepted LKG row, exactly as a pre-H2c
+                # deployment would have -- no history, no revision state.
+                await conn.execute(
+                    """
+                    INSERT INTO exchange_instruments
+                        (exchange, symbol, market_type, exchange_instrument_id,
+                         quantity_unit, contract_multiplier, tick_size,
+                         price_precision, quantity_precision, metadata_source,
+                         fetched_at, is_stale, note)
+                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+                    """,
+                    EXCHANGE, SYMBOL, MARKET_TYPE, SYMBOL, "base", None, 0.42,
+                    2, 3, "exchange_api", _t(0), False, None)
+                tables = await conn.fetch(
+                    "SELECT tablename FROM pg_tables WHERE schemaname = current_schema()")
+            table_names = {r["tablename"] for r in tables}
+            assert table_names == {"exchange_instruments"}   # confirms the "before" state
+
+            # A raw-bundle-style read attempted at this point would fail
+            # (no stage2_instrument_metadata_state at all yet) -- this is
+            # the exact production failure finding 1 named. We don't invoke
+            # the real storage.stage2_readers reader here (it needs the
+            # full Stage 1 table set too); the failure mode is proven
+            # directly by storage/stage2_readers.py's own
+            # test_missing_singleton_row_fails_closed.
+
+            # --- write-capable H2c bootstrap runs (init_stage2_schema's
+            # ADDITIVE effect for just these two new tables, mirrored here
+            # for the same hand-copied-DDL reason as the rest of this file;
+            # then the explicit revision bootstrap) ---
+            async with db.pool.acquire() as conn:
+                await conn.execute(_EXCHANGE_INSTRUMENT_HISTORY_DDL)
+                await conn.execute(_STAGE2_INSTRUMENT_METADATA_STATE_DDL)
+            result = await db.bootstrap_instrument_metadata_revision(initial_revision=1)
+            assert result == "SEEDED"
+
+            # --- AFTER: existing LKG intact, no speculative backfill ------
+            async with db.pool.acquire() as conn:
+                lkg = await conn.fetchrow(
+                    "SELECT tick_size, fetched_at FROM exchange_instruments "
+                    "WHERE exchange=$1 AND symbol=$2 AND market_type=$3",
+                    EXCHANGE, SYMBOL, MARKET_TYPE)
+                history_count = await conn.fetchval(
+                    "SELECT count(*) FROM exchange_instrument_history "
+                    "WHERE exchange=$1 AND symbol=$2 AND market_type=$3",
+                    EXCHANGE, SYMBOL, MARKET_TYPE)
+                revision_row = await conn.fetchrow(
+                    "SELECT required_revision FROM stage2_instrument_metadata_state")
+            assert lkg["tick_size"] == 0.42 and lkg["fetched_at"] == _t(0)   # untouched
+            assert history_count == 0   # NO automatic backward history seeding
+            assert revision_row["required_revision"] == 1
+
+            # As-of reads still correctly return None (no history exists
+            # yet) -- never fabricated, never falls back to the LKG.
+            still_none = await db.fetch_v2_instrument(
+                exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(5))
+            assert still_none is None
+
+            # The normal, UNCHANGED, conservative H2c history-seeding rule
+            # still applies going forward -- an operator can now explicitly
+            # opt this identity into as-of reads from a real boundary.
+            seed_result = await db.seed_current_instrument_history(
+                exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE,
+                effective_from=_t(10))
+            assert seed_result == "SEEDED"
+            after_seed = await db.fetch_v2_instrument(
+                exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(20))
+            assert after_seed["tick_size"] == 0.42
+            before_seed_boundary = await db.fetch_v2_instrument(
+                exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(5))
+            assert before_seed_boundary is None   # never extrapolated backward past _t(10)
+
+            # A subsequent critical acceptance now works normally too (the
+            # feature path is no longer blocked merely by a missing
+            # singleton -- only a genuine revision MISMATCH would block it).
+            await db.upsert_exchange_instrument(
+                exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE,
+                exchange_instrument_id=SYMBOL, quantity_unit="base",
+                contract_multiplier=None, tick_size=0.90, price_precision=2,
+                quantity_precision=3, metadata_source="exchange_api",
+                fetched_at=_t(30), is_stale=False, accept_mismatch=True,
+                effective_from=_t(30), target_metadata_revision=2)
+            final = await db.fetch_v2_instrument(
+                exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(40))
+            assert final["tick_size"] == 0.90
+        finally:
+            await db.close()
+            cleanup = await _connect_admin()
+            try:
+                await cleanup.execute(f'DROP SCHEMA "{schema}" CASCADE')
+            finally:
+                await cleanup.close()
+
+    asyncio.run(body())

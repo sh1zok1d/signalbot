@@ -328,6 +328,7 @@ def test_shadow_json_full_cli_path_status_smoke(monkeypatch, capsys):
 
         async def fetch_shadow_status(self, *, exchanges, symbol, market_type, timeframe):
             return MappingProxyType({"state": "NOT_INITIALIZED", "prerequisites": (),
+                                     "instrument_metadata_revision": None,
                                      "latest_prediction": None, "outcomes": ()})
 
     import runtime.shadow_cli as sc
