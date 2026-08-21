@@ -71,7 +71,7 @@ Severity:
 
 | ID | Severity | Status | Risk / debt | Required closure evidence | Gate |
 |---|---|---|---|---|---|
-| C-001 | HIGH | PLANNED | Version switch can mix old/new model semantics mid-episode | H2b durable DRAIN-BEFORE-ACTIVATE state machine tests | G0 |
+| C-001 | HIGH | IN_PROGRESS | Version switch can mix old/new model semantics mid-episode | H2b durable DRAIN-BEFORE-ACTIVATE state machine implemented (`analytics/forecasting_v2/version_switch.py` + `version_switch_orchestrator.py`, `storage/v2_version_switch_readers.py`, `v2_version_switch_state` table) with pure-transition, orchestration-boundary, schema, and real-PostgreSQL row-locking/atomicity/restart tests — hardening/v2-h2b-drain-before-activate, draft, not yet merged. Closure per §I requires MERGED implementation + tests, not draft. | G0 |
 | C-002 | HIGH | PLANNED | Event persistence/idempotency may duplicate or partially persist same-T decisions | H3 deterministic IDs, uniqueness, atomic batch tests, restart identity | G0 |
 | C-003 | HIGH | PLANNED | Full episode transition semantics not implemented | Stage 6 completion and contract-vector tests | G3 |
 | C-004 | HIGH | PLANNED | Entry feasibility not implemented | Stage 7 completion | G3 |

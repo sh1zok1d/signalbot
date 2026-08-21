@@ -981,3 +981,144 @@ CREATE INDEX IF NOT EXISTS ix_v2ee_episode_history
 -- Recent V2 event inspection across episodes, for one symbol.
 CREATE INDEX IF NOT EXISTS ix_v2ee_symbol_recent
     ON v2_episode_events (symbol, decision_boundary DESC);
+
+-- ============================================================
+-- V2-H2b: DRAIN-BEFORE-ACTIVATE version-switch durable state
+-- (docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §3.1). Column-for-column
+-- mirror of analytics/forecasting_v2/version_switch.py's
+-- V2VersionSwitchState -- every CHECK constraint below re-states, at the
+-- DB layer, an invariant that dataclass's own __post_init__ already
+-- enforces in Python (belt-and-suspenders: never relying on Python
+-- validation alone for an invariant the DB can cheaply own).
+--
+-- Scope is exactly ONE execution_stream = (run_kind, run_id) -- §12.10,
+-- NOT symbol/market_type (see version_switch.py's module docstring for
+-- why). PRIMARY KEY (run_kind, run_id) means there is at most one row per
+-- scope -- "at most one active identity and at most one pending target
+-- per scope" (§9) is enforced BY CONSTRUCTION, not by a second uniqueness
+-- constraint across multiple rows.
+--
+-- active_*/pending_* are grouped triples (rules_version,
+-- calculation_version, decision_code_version) -- one V2SemanticTuple
+-- each. active_* is NULL only before this execution_stream's first-ever
+-- activation (a fresh LIVE/REPLAY stream); pending_* is NULL unless a
+-- switch is currently in progress.
+--
+-- No FK to v2_episode_events -- this table's non_terminal_episode_count/
+-- active_cooldown_count "drain fact" is NOT derived by a query against
+-- that table here (Stage 6, which would own that real query, does not
+-- exist yet -- see ports.py's V2VersionDrainStatusReader docstring); this
+-- table only durably persists the SWITCH's own state, resolved by
+-- analytics/forecasting_v2/version_switch.py's pure transition function
+-- from facts supplied by whatever future Stage-6-backed reader satisfies
+-- that Protocol.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS v2_version_switch_state (
+    run_kind                       TEXT NOT NULL,
+    run_id                         TEXT NOT NULL,
+
+    active_rules_version           TEXT,
+    active_calculation_version     TEXT,
+    active_decision_code_version   TEXT,
+
+    pending_rules_version          TEXT,
+    pending_calculation_version    TEXT,
+    pending_decision_code_version  TEXT,
+
+    phase                          TEXT NOT NULL,
+    drain_complete_at              TIMESTAMPTZ,
+    requested_at                   TIMESTAMPTZ,
+
+    updated_at                     TIMESTAMPTZ NOT NULL DEFAULT now(),  -- metadata only
+
+    PRIMARY KEY (run_kind, run_id),
+
+    CONSTRAINT ck_v2vss_run_kind CHECK (run_kind IN ('LIVE','REPLAY')),
+    CONSTRAINT ck_v2vss_run_id   CHECK (length(btrim(run_id)) > 0),
+
+    CONSTRAINT ck_v2vss_phase
+        CHECK (phase IN ('NO_PENDING_SWITCH','DRAINING','AWAITING_ACTIVATION_READINESS')),
+
+    -- active_* triple: all NULL (never-activated bootstrap) or all NOT NULL.
+    CONSTRAINT ck_v2vss_active_all_or_none CHECK (
+        (active_rules_version IS NULL AND active_calculation_version IS NULL
+             AND active_decision_code_version IS NULL)
+        OR
+        (active_rules_version IS NOT NULL AND active_calculation_version IS NOT NULL
+             AND active_decision_code_version IS NOT NULL)
+    ),
+    -- pending_* triple: all NULL (no switch in progress) or all NOT NULL.
+    CONSTRAINT ck_v2vss_pending_all_or_none CHECK (
+        (pending_rules_version IS NULL AND pending_calculation_version IS NULL
+             AND pending_decision_code_version IS NULL)
+        OR
+        (pending_rules_version IS NOT NULL AND pending_calculation_version IS NOT NULL
+             AND pending_decision_code_version IS NOT NULL)
+    ),
+
+    -- rules_version format mirrors v2_episode_events.ck_v2ee_rules_version
+    -- exactly -- the same common/v2_config.py RULES_VERSION_RE pattern.
+    CONSTRAINT ck_v2vss_active_rules_version_format CHECK (
+        active_rules_version IS NULL OR
+        active_rules_version ~ '^v2-rules-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'),
+    CONSTRAINT ck_v2vss_pending_rules_version_format CHECK (
+        pending_rules_version IS NULL OR
+        pending_rules_version ~ '^v2-rules-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'),
+
+    -- calculation_version format mirrors v2_episode_events.ck_v2ee_calculation_version.
+    CONSTRAINT ck_v2vss_active_calc_version_format
+        CHECK (active_calculation_version IS NULL OR active_calculation_version ~ '^[0-9a-f]{16}$'),
+    CONSTRAINT ck_v2vss_pending_calc_version_format
+        CHECK (pending_calculation_version IS NULL OR pending_calculation_version ~ '^[0-9a-f]{16}$'),
+
+    CONSTRAINT ck_v2vss_active_decision_code_version_nonblank CHECK (
+        active_decision_code_version IS NULL OR length(btrim(active_decision_code_version)) > 0),
+    CONSTRAINT ck_v2vss_pending_decision_code_version_nonblank CHECK (
+        pending_decision_code_version IS NULL OR length(btrim(pending_decision_code_version)) > 0),
+
+    -- Phase <-> pending/drain_complete_at/requested_at shape -- mirrors
+    -- V2VersionSwitchState.__post_init__ exactly.
+    CONSTRAINT ck_v2vss_no_pending_switch_shape CHECK (
+        phase <> 'NO_PENDING_SWITCH' OR
+        (pending_rules_version IS NULL AND drain_complete_at IS NULL AND requested_at IS NULL)
+    ),
+    CONSTRAINT ck_v2vss_pending_requires_requested_at CHECK (
+        phase = 'NO_PENDING_SWITCH' OR
+        (pending_rules_version IS NOT NULL AND requested_at IS NOT NULL)
+    ),
+    CONSTRAINT ck_v2vss_draining_no_drain_complete_at
+        CHECK (phase <> 'DRAINING' OR drain_complete_at IS NULL),
+    CONSTRAINT ck_v2vss_awaiting_requires_drain_complete_at
+        CHECK (phase <> 'AWAITING_ACTIVATION_READINESS' OR drain_complete_at IS NOT NULL),
+    CONSTRAINT ck_v2vss_drain_complete_at_not_before_requested_at
+        CHECK (drain_complete_at IS NULL OR requested_at IS NULL OR drain_complete_at >= requested_at),
+
+    -- pending must never equal active -- that would not be a switch at all.
+    CONSTRAINT ck_v2vss_pending_distinct_from_active CHECK (
+        pending_rules_version IS NULL OR active_rules_version IS NULL OR
+        (pending_rules_version, pending_calculation_version, pending_decision_code_version)
+            IS DISTINCT FROM
+        (active_rules_version, active_calculation_version, active_decision_code_version)
+    ),
+
+    -- Amendment round 2, finding 1a: REPLAY may never be mid-switch --
+    -- mirrors version_switch.py's _SWITCH_ELIGIBLE_RUN_KINDS = (LIVE,) check
+    -- in V2VersionSwitchState.__post_init__. A steady REPLAY row (its one
+    -- pinned active tuple, or none yet before initial provisioning) is
+    -- still fully permitted -- this does NOT make the whole table LIVE-only.
+    CONSTRAINT ck_v2vss_replay_no_pending_switch CHECK (
+        run_kind = 'LIVE' OR phase = 'NO_PENDING_SWITCH'
+    ),
+
+    -- Amendment round 2, finding 1b: any pending-switch phase requires an
+    -- OLD active tuple -- mirrors V2VersionSwitchState.__post_init__'s
+    -- `phase != PHASE_NO_PENDING_SWITCH => active is not None` check. A
+    -- pending switch always means OLD exists (active_*) and NEW is
+    -- pending_*; initial provisioning (active_* all NULL) can never itself
+    -- be mid-switch. Reuses ck_v2vss_active_all_or_none's own triple
+    -- structurally (checking one column of the all-or-none triple is
+    -- sufficient -- no duplicated format/shape logic).
+    CONSTRAINT ck_v2vss_pending_switch_requires_active CHECK (
+        phase = 'NO_PENDING_SWITCH' OR active_rules_version IS NOT NULL
+    )
+);

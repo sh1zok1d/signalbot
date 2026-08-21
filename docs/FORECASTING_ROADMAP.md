@@ -1383,6 +1383,23 @@ correctness contract — subject to change if audit findings evolve):**
   touch V1/V2 rule code, or perform any production deployment itself —
   deployment/configuration on the actual VPS is a separate explicit
   operator action after review/merge.
+- **`V2-H2` naming note (added when the actual PR split diverged from this
+  paragraph's original monolithic framing — see `docs/
+  PROJECT_EXECUTION_PLAN.md` §A0 for the current authoritative sub-PR
+  list).** The single `V2-H2` bullet below was written before `V2-H2` was
+  actually split into separately-reviewable sub-PRs. As implemented:
+  `V2-H2a` (`§3.2` decision-provenance-tuple, `§3.3` feature-code/
+  calculation-version identity isolation + activation readiness, `§3.4`'s
+  identity/coherent-view half) is **MERGED**. `V2-H2d` (`§2.1b` raw-kline-
+  backfill no-downgrade, `§2.1c` aligned-input defensive hardening) is
+  **MERGED**. `V2-H2b` (`§3.1`'s finite `DRAIN-BEFORE-ACTIVATE` version-
+  switch state machine) is the PR that added this note — see its own PR
+  body for the exact durable state/transition-table/atomicity details; not
+  yet merged as of this note. `V2-H2c` (as-of/historical `exchange_
+  instruments`/`tick_size` reproducibility, `§12.5a`) and `V2-H2e` (`§3.4`'s
+  Stage-2-correction-publication-completeness half + replay-determinism
+  harness) remain **NOT STARTED**. The bullet below is left otherwise
+  unedited as a historical record of the original combined scope.
 - **`V2-H2` — Replay/provenance/data-coherence hardening.** Implements
   `§3.4`'s one-coherent-data-view-per-decision invariant (Stage 3+5 input
   assembly; Stage 2 correction-publication completeness); `§3.2`'s
@@ -1451,10 +1468,12 @@ require it. It is not a claim that the exact PR count, numbering, or
 boundaries are immutable.
 
 **Next planned work (after `#43` and `#44` merged):** `INFRA-D1` (actual
-GitHub PR `#45`) — off-site data durability, currently in review — and
-`V2-H2` — replay/provenance/data-coherence hardening (not yet started,
-real PR number not yet assigned). INFRA-D1 does not block `V2-H2` and may
-land before, after, or interleaved with it.
+GitHub PR `#45`) — off-site data durability. `V2-H2` has since split into
+sub-PRs as it landed (see the naming note above): `V2-H2a`/`V2-H2d`
+**MERGED**; `V2-H2b` (`DRAIN-BEFORE-ACTIVATE` version-switch state
+machine) is the PR that introduced this update, not yet merged as of this
+note; `V2-H2c`/`V2-H2e` remain not started. INFRA-D1 does not block any
+`V2-H2*` sub-PR and may land before, after, or interleaved with them.
 
 Conceptual planning order going forward (logical labels, not a claim about
 future GitHub PR numbers — those are assigned only when each PR is
