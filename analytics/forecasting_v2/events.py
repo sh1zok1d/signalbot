@@ -200,6 +200,18 @@ class V2EpisodeEvent:
       - shared Stage 2 provenance (§3): `feature_schema_version`,
         `calculation_version`, `config_hash`, `config_version`,
         `code_version` — recorded as supplied, never recomputed here.
+      - decision-code provenance (§3.2, V2-H3): `decision_code_version` —
+        the Stage 4/5/6 DECISION-code identity §3.2 requires captured BY
+        VALUE on every persisted V2 decision/event, kept deliberately
+        distinct from `code_version` above (Stage 2's FEATURE-computation-
+        code identity). Deliberately EXCLUDED from `episode_identity.py`'s
+        `episode_id`/`event_id` derivation (docs/V2_CORRECTNESS_
+        ACCEPTANCE_CONTRACT.md §2.1a's frozen field list omits it) — a
+        Stage 6 code fix changing this value alone must not fork an
+        episode's semantic identity; it is recorded here purely so
+        historical truth can later prove which decision-code identity
+        produced this event, never derived from current Git state at
+        read time.
       - by-value historical truth (§2.1): `decision_snapshot` (what was
         decided FROM) and `event_payload` (what was decided/emitted) — both
         deeply frozen `Mapping`s. Neither is defined with a normative
@@ -229,6 +241,7 @@ class V2EpisodeEvent:
     config_hash: str
     config_version: str
     code_version: str
+    decision_code_version: str
 
     decision_snapshot: Mapping
     event_payload: Mapping
@@ -264,6 +277,7 @@ class V2EpisodeEvent:
         validate_config_hash(self.config_hash, V2EventInputError)
         nonblank(self.config_version, "config_version", V2EventInputError)
         nonblank(self.code_version, "code_version", V2EventInputError)
+        nonblank(self.decision_code_version, "decision_code_version", V2EventInputError)
 
         object.__setattr__(
             self, "decision_snapshot",

@@ -33,11 +33,12 @@ via `V2EpisodeEvent`'s own `V2EventInputError`.
 
 Provenance fields (`run_kind`, `run_id`, `model_family`, `rules_version`,
 `symbol`, `market_type`, `feature_schema_version`, `calculation_version`,
-`config_hash`, `config_version`, `code_version`) are NOT parameters of this
-function — they come exclusively from the `provenance` argument. A caller
-therefore has no way to pass a competing value for any of them; Python
-itself rejects an attempt to do so (`TypeError: unexpected keyword
-argument`), the same way `V2EpisodeEvent`'s own dataclass fields would.
+`config_hash`, `config_version`, `code_version`, `decision_code_version`)
+are NOT parameters of this function — they come exclusively from the
+`provenance` argument. A caller therefore has no way to pass a competing
+value for any of them; Python itself rejects an attempt to do so
+(`TypeError: unexpected keyword argument`), the same way `V2EpisodeEvent`'s
+own dataclass fields would.
 
 Pure only: no DB, network, filesystem, clock, `uuid`, or `random` access.
 """
@@ -96,6 +97,7 @@ def build_v2_episode_event(
         config_hash=provenance.config_hash,
         config_version=provenance.config_version,
         code_version=provenance.code_version,
+        decision_code_version=provenance.decision_code_version,
         decision_snapshot=decision_snapshot,
         event_payload=event_payload,
     )

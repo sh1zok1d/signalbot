@@ -359,10 +359,20 @@ def test_reuses_shared_validators_directly():
 # ---- §3.2: superset relationship with V2EventProvenance ---------------------
 def test_field_superset_of_event_provenance():
     """V2DecisionProvenance carries every V2EventProvenance field PLUS
-    exactly decision_boundary and decision_code_version -- never a
-    silently-diverged parallel field set."""
+    exactly decision_boundary -- never a silently-diverged parallel field
+    set. `decision_code_version` itself is now shared by BOTH (V2-H3
+    closed the prior gap where V2EventProvenance lacked it, per §3.2's own
+    "the tuple... follows the computation through every stage... to the
+    persisted V2EpisodeEvent" requirement) -- decision_boundary remains
+    the ONE field V2DecisionProvenance alone carries (it is resolved
+    BEFORE Stage 3/4/5/6 computation begins, per decision_provenance.py's
+    own module docstring; V2EventProvenance's caller supplies it
+    separately, to event_factory.build_v2_episode_event(), not via
+    provenance)."""
     from analytics.forecasting_v2.provenance import V2EventProvenance
     event_fields = {f.name for f in dataclasses.fields(V2EventProvenance)}
     decision_fields = {f.name for f in dataclasses.fields(V2DecisionProvenance)}
     assert event_fields <= decision_fields
-    assert decision_fields - event_fields == {"decision_boundary", "decision_code_version"}
+    assert decision_fields - event_fields == {"decision_boundary"}
+    assert "decision_code_version" in event_fields
+    assert "decision_code_version" in decision_fields

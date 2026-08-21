@@ -6,9 +6,12 @@ docs/FORECASTING_ROADMAP.md §I stage 2).
 fields shared by ONE event-construction operation: run provenance
 (`run_kind`/`run_id`, §2.1), model/version identity (`model_family`/
 `rules_version`, §3), the episode's fixed scope (`symbol`/`market_type`),
-and the shared Stage 2 feature-computation provenance
+the shared Stage 2 feature-computation provenance
 (`feature_schema_version`/`calculation_version`/`config_hash`/
-`config_version`/`code_version`).
+`config_version`/`code_version`), and the Stage 4/5/6 DECISION-code
+identity (`decision_code_version`, §3.2 -- V2-H3, added alongside
+`events.py`'s matching field; see that module's own docstring for the full
+"why a fifth provenance dimension" rationale, restated once, not twice).
 
 It is NOT:
   - a detector result — it carries no direction/setup_family/structural
@@ -41,6 +44,25 @@ Enforcing that requires comparing a new event's provenance against the
 episode's prior events' history, which requires state the future Episode
 State Machine owns — not something a stateless per-call provenance
 snapshot can see or enforce.
+
+**`decision_code_version` (V2-H3, closes a confirmed gap).** §3.2 requires
+the FULL decision-provenance tuple — explicitly including
+`decision_code_version`, the Stage 4/5/6 decision-code identity, kept
+deliberately separate from Stage 2's own `code_version` — to "follow the
+computation through every stage... to the persisted `V2EpisodeEvent`."
+Before this field existed here, a persisted event carried no by-value
+record of which decision-code identity produced it at all, even though
+`decision_provenance.py`'s `V2DecisionProvenance` (the pre-computation
+tuple §3.2 requires be resolved BEFORE Stage 3/4/5/6 runs) already had
+this exact field. This module now closes that handoff gap: a caller
+resolving a `V2DecisionProvenance` for one decision boundary can carry its
+`decision_code_version` value unchanged into the `V2EventProvenance` it
+later constructs for persistence, rather than losing it. `decision_code_
+version` deliberately does NOT participate in `episode_identity.py`'s
+`episode_id`/`event_id` derivation (docs/V2_CORRECTNESS_ACCEPTANCE_
+CONTRACT.md §2.1a's own frozen field list excludes it) — it is captured
+here purely so historical truth can later prove which decision-code
+identity computed it, never to distinguish one episode from another.
 """
 from __future__ import annotations
 
@@ -84,6 +106,13 @@ class V2EventProvenance:
         `calculation_version`, `config_hash`, `config_version`,
         `code_version` — recorded as supplied, never recomputed or loaded
         from `config/stage2.yaml`/`config/v2.yaml` here.
+      - decision-code provenance (§3.2, V2-H3): `decision_code_version` —
+        the Stage 4/5/6 DECISION-code identity, distinct from
+        `code_version` above (Stage 2's FEATURE-computation-code identity)
+        — recorded as supplied, never recomputed here, and never derived
+        from current Git state at read time (§3.2 requires it captured BY
+        VALUE at the moment provenance is resolved, not reconstructed
+        later from whatever code happens to be checked out).
     """
     run_kind: str
     run_id: str
@@ -99,6 +128,8 @@ class V2EventProvenance:
     config_hash: str
     config_version: str
     code_version: str
+
+    decision_code_version: str
 
     def __post_init__(self) -> None:
         one_of(self.run_kind, "run_kind", RUN_KINDS, V2ProvenanceError)
@@ -120,3 +151,4 @@ class V2EventProvenance:
         validate_config_hash(self.config_hash, V2ProvenanceError)
         nonblank(self.config_version, "config_version", V2ProvenanceError)
         nonblank(self.code_version, "code_version", V2ProvenanceError)
+        nonblank(self.decision_code_version, "decision_code_version", V2ProvenanceError)

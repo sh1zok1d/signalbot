@@ -35,6 +35,7 @@ def make_provenance(**over) -> V2EventProvenance:
         symbol="BTCUSDT", market_type="perp",
         feature_schema_version=1, calculation_version=H16, config_hash=H64,
         config_version="2.1.0", code_version="deadbeef",
+        decision_code_version="decision-deadbeef",
     )
     base.update(over)
     return V2EventProvenance(**base)
@@ -75,7 +76,8 @@ def test_returned_model_is_deeply_immutable():
 def test_all_provenance_fields_equal_the_snapshot_exactly():
     p = make_provenance(run_kind=REPLAY, run_id="replay-007",
                         rules_version="v2-rules-v2.3.4", calculation_version="c" * 16,
-                        config_hash="d" * 64, config_version="9.9.9", code_version="cafebabe")
+                        config_hash="d" * 64, config_version="9.9.9", code_version="cafebabe",
+                        decision_code_version="decision-cafebabe")
     ev = build(provenance=p)
     assert ev.run_kind == p.run_kind
     assert ev.run_id == p.run_id
@@ -88,6 +90,14 @@ def test_all_provenance_fields_equal_the_snapshot_exactly():
     assert ev.config_hash == p.config_hash
     assert ev.config_version == p.config_version
     assert ev.code_version == p.code_version
+    assert ev.decision_code_version == p.decision_code_version
+
+
+def test_decision_code_version_distinct_from_code_version_through_factory():
+    p = make_provenance(code_version="feature-code-v1", decision_code_version="decision-code-v9")
+    ev = build(provenance=p)
+    assert ev.code_version == "feature-code-v1"
+    assert ev.decision_code_version == "decision-code-v9"
 
 
 # ---- event-specific fields copied exactly --------------------------------------
@@ -176,6 +186,7 @@ def test_rules_version_is_copied_never_inferred_from_calculation_version():
     ("config_hash", "9" * 64),
     ("config_version", "9.9.9"),
     ("code_version", "override"),
+    ("decision_code_version", "override"),
     ("run_kind", REPLAY),
     ("run_id", "other-run"),
     ("symbol", "ETHUSDT"),
@@ -192,7 +203,7 @@ def test_factory_signature_has_no_provenance_owned_parameters():
     provenance_owned = {
         "run_kind", "run_id", "model_family", "rules_version", "symbol",
         "market_type", "feature_schema_version", "calculation_version",
-        "config_hash", "config_version", "code_version",
+        "config_hash", "config_version", "code_version", "decision_code_version",
     }
     assert provenance_owned.isdisjoint(sig.parameters.keys())
 

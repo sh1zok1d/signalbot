@@ -34,6 +34,7 @@ def _kwargs(**overrides):
         config_hash="b" * 64,
         config_version="2.1.0",
         code_version="test-code-v0",
+        decision_code_version="test-decision-code-v0",
         decision_snapshot={"price_evi": 0.5},
         event_payload={"entry_zone": {"lower": 64000.0, "upper": 64100.0}},
     )
@@ -256,10 +257,21 @@ def test_config_hash_must_be_64_lowercase_hex():
         _event(config_hash="b" * 63)
 
 
-@pytest.mark.parametrize("field", ["config_version", "code_version"])
+@pytest.mark.parametrize("field", ["config_version", "code_version", "decision_code_version"])
 def test_blank_provenance_strings_rejected(field):
     with pytest.raises(V2EventInputError, match=field):
         _event(**{field: ""})
+
+
+# ---- decision_code_version (V2-H3, §3.2) --------------------------------------------
+def test_decision_code_version_preserved_exactly():
+    assert _event(decision_code_version="abc123").decision_code_version == "abc123"
+
+
+def test_decision_code_version_distinct_field_from_code_version():
+    ev = _event(code_version="feature-code-v1", decision_code_version="decision-code-v9")
+    assert ev.code_version == "feature-code-v1"
+    assert ev.decision_code_version == "decision-code-v9"
 
 
 # ---- structural_anchor / decision_snapshot / event_payload shape --------------------
