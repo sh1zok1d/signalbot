@@ -35,7 +35,8 @@ _SECTION_CODE = _strip_sql_comments(_SECTION)
 
 def _columns(body: str) -> list[str]:
     cols = []
-    col_re = re.compile(r"^\s*([a-z_][a-z0-9_]*)\s+(TEXT|TIMESTAMPTZ|DOUBLE PRECISION|INTEGER)\b")
+    col_re = re.compile(
+        r"^\s*([a-z_][a-z0-9_]*)\s+(TEXT|TIMESTAMPTZ|DOUBLE PRECISION|INTEGER|BOOLEAN)\b")
     for line in body.splitlines():
         m = col_re.match(line)
         if m:
@@ -212,7 +213,10 @@ def test_exactly_one_stage2_instrument_metadata_state_table():
 
 
 def test_revision_table_columns_and_pk():
-    assert _columns(_REVISION_BODY) == ["required_revision", "updated_at"]
+    """`_columns()` now recognizes BOOLEAN too (CodeRabbit finding), so the
+    `singleton` column itself is correctly included -- it was previously
+    silently dropped by the parser, not by any table-definition gap."""
+    assert _columns(_REVISION_BODY) == ["singleton", "required_revision", "updated_at"]
     assert _pk(_REVISION_BODY) == ["singleton"]
 
 
@@ -294,3 +298,36 @@ def test_hand_copied_test_ddl_matches_production_for_stage2_instrument_metadata_
     assert _columns(test_body) == _columns(_REVISION_BODY)
     assert _pk(test_body) == _pk(_REVISION_BODY)
     assert _constraints(test_body) == _constraints(_REVISION_BODY)
+
+
+def _partial_unique_index(text: str, index_name: str) -> "tuple[bool, str, list[str], str]":
+    """Narrow parser for exactly ONE named `CREATE [UNIQUE] INDEX [IF NOT
+    EXISTS] <name> ON <table> (<cols>) WHERE <predicate>;` statement --
+    deliberately NOT a generic SQL parser, scoped only to the H2c
+    `ux_eih_one_open_interval_per_identity` index (CodeRabbit finding).
+    Returns (unique, table, columns, whitespace-normalized predicate)."""
+    pattern = (r"CREATE\s+(UNIQUE\s+)?INDEX\s+(?:IF NOT EXISTS\s+)?" + re.escape(index_name) +
+               r"\s*\n?\s*ON\s+(\w+)\s*\(([^)]*)\)\s*\n?\s*WHERE\s+(.*?);")
+    m = re.search(pattern, text, re.S)
+    assert m, f"{index_name} index definition not found"
+    unique = m.group(1) is not None
+    table = m.group(2)
+    columns = [c.strip() for c in m.group(3).split(",")]
+    predicate = " ".join(m.group(4).split())
+    return (unique, table, columns, predicate)
+
+
+def test_hand_copied_test_ddl_matches_production_for_one_open_interval_index():
+    """(CodeRabbit finding) The drift guard above compares columns/PK/CHECK
+    constraints for exchange_instrument_history but not this partial unique
+    index -- the real-Postgres test suite's hand-copied DDL could silently
+    omit or alter it (name, UNIQUE-ness, table, indexed columns, or the
+    partial predicate) while the rest of the guard kept passing."""
+    from tests.storage.test_v2_instrument_history_readers import _EXCHANGE_INSTRUMENT_HISTORY_DDL
+    index_name = "ux_eih_one_open_interval_per_identity"
+    prod = _partial_unique_index(SQL, index_name)
+    test = _partial_unique_index(_EXCHANGE_INSTRUMENT_HISTORY_DDL, index_name)
+    assert test == prod
+    assert prod == (
+        True, "exchange_instrument_history",
+        ["exchange", "symbol", "market_type"], "effective_until IS NULL")
