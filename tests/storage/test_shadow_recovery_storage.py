@@ -47,8 +47,13 @@ def test_watermark_table_is_additive_and_idempotent():
 
 
 def test_watermark_ddl_touches_no_stage1_table():
-    # additive only: never ALTER/DROP a Stage 1 raw table
-    section = SCHEMA[SCHEMA.index("shadow_recovery_watermarks"):]
+    # additive only: never ALTER/DROP a Stage 1 raw table. Section is bounded
+    # to the NEXT table's own banner (Telegram forecast notifier), never
+    # "to EOF" -- V2-H3 legitimately adds an unrelated, additive
+    # `ALTER TABLE v2_episode_events` far later in the file, which must not
+    # be mistaken for this section's own DDL.
+    section = SCHEMA[
+        SCHEMA.index("shadow_recovery_watermarks"):SCHEMA.index("Telegram forecast notifier")]
     for t in ("klines_1m", "open_interest", "funding_rate", "liquidations",
               "exchange_capabilities"):
         assert not re.search(r"(ALTER|DROP)\s+TABLE[^\n]*" + t, SCHEMA)

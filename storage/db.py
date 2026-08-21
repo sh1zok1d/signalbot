@@ -1666,34 +1666,82 @@ class Database:
     # ---------------------------------------------------------------
     async def insert_v2_episode_events(
         self, rows: "Sequence[V2EpisodeEvent]") -> int:
-        """Batch insert-once write for immutable V2 episode events. The whole
-        batch is validated and serialized BEFORE any connection is acquired
-        (same discipline as `_upsert_stage2`/`insert_forecast_prediction`), so
-        a malformed container or a wrong-typed row can never partially write.
-        An empty (but valid) list/tuple returns 0 without acquiring a
-        connection.
+        """Atomic batch insert-once write for immutable V2 episode events
+        (V2-H3, docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §2.1a). The
+        whole batch is validated, serialized, and scope-checked BEFORE any
+        connection is acquired (same discipline as
+        `_upsert_stage2`/`insert_forecast_prediction`), so a malformed
+        container, a wrong-typed row, or a batch spanning more than one
+        logical decision boundary (`assert_homogeneous_batch_scope()`) can
+        never partially write. An empty (but valid) list/tuple returns 0
+        without acquiring a connection.
 
-        Each row is inserted with its own
-        `ON CONFLICT (run_kind, run_id, event_id) DO NOTHING RETURNING TRUE`
-        — the returned count is an HONEST count of rows actually inserted; a
-        duplicate `(run_kind, run_id, event_id)` is silently skipped, never
-        overwritten, and not counted. Rows are inserted one at a time (not
-        `executemany`) specifically so each row's own TRUE/NULL RETURNING
-        result is observable — `executemany` would only tell us the batch
-        ran, not which rows were duplicates. There is no `DO UPDATE` path for
-        this table anywhere in this codebase; historical event truth is
-        immutable. DB exceptions propagate unchanged."""
-        from storage.v2_serialization import V2_EPISODE_EVENT_SPEC, serialize_batch
+        **Atomicity (§2.1a "Frozen correctness requirement"):** every row
+        in the batch is inserted inside ONE explicit transaction
+        (`conn.transaction()`) on ONE acquired connection — never a new
+        connection/transaction per row. If any row's insert or conflict
+        resolution raises, the WHOLE transaction rolls back and this call
+        raises; NONE of the batch's rows become durably visible. There is
+        no state in which some, but not all, of one call's rows are
+        persisted.
+
+        **Idempotent retry vs. conflicting reuse (§2.1a "Retry model" /
+        this PR's own identity-conflict handling):** each row is inserted
+        with its own
+        `ON CONFLICT (run_kind, run_id, event_id) DO NOTHING RETURNING TRUE`.
+        A `TRUE` result is a genuine new insert (counted). A `NULL`/no-row
+        result means this exact `(run_kind, run_id, event_id)` already
+        exists — deterministic IDs (`analytics/forecasting_v2/
+        episode_identity.py`) make this ambiguous on its own: it could be
+        an identical retry (safe no-op) or a genuine conflicting identity
+        reuse (never safe). This method resolves the ambiguity by reading
+        the existing row back (same transaction, so no torn/stale read)
+        and comparing it against the new attempt via
+        `storage.v2_serialization.rows_semantically_equal()`: identical ->
+        silently skipped, exactly as before (not counted as a new insert,
+        never raises); different -> `V2EventIdentityConflictError`, which
+        propagates out of the `async with conn.transaction()` block and
+        rolls the ENTIRE batch back — the pre-existing row is never
+        touched (there is still no `DO UPDATE` path for this table
+        anywhere in this codebase; historical event truth remains
+        immutable), and this call's batch persists nothing.
+
+        Rows are inserted one at a time (not `executemany`) specifically
+        so each row's own TRUE/NULL `RETURNING` result is observable —
+        `executemany` would only tell us the batch ran, not which rows
+        were duplicates. Other DB exceptions propagate unchanged."""
+        from storage.v2_serialization import (
+            V2_EPISODE_EVENT_SPEC, V2EventIdentityConflictError, assert_homogeneous_batch_scope,
+            rows_semantically_equal, select_existing_v2_episode_event_sql, serialize_batch,
+        )
         params = serialize_batch(V2_EPISODE_EVENT_SPEC, rows)  # validation before any DB call
         if not params:
             return 0
+        assert_homogeneous_batch_scope(rows)  # still before acquiring a connection
         assert self.pool is not None
+        run_kind_i = V2_EPISODE_EVENT_SPEC.columns.index("run_kind")
+        run_id_i = V2_EPISODE_EVENT_SPEC.columns.index("run_id")
+        event_id_i = V2_EPISODE_EVENT_SPEC.columns.index("event_id")
+        select_sql = select_existing_v2_episode_event_sql()
         inserted = 0
         async with self.pool.acquire() as conn:
-            for row_params in params:
-                result = await conn.fetchval(V2_EPISODE_EVENT_SPEC.insert_sql, *row_params)
-                if result is True:
-                    inserted += 1
+            async with conn.transaction():
+                for row_params in params:
+                    result = await conn.fetchval(V2_EPISODE_EVENT_SPEC.insert_sql, *row_params)
+                    if result is True:
+                        inserted += 1
+                        continue
+                    run_kind, run_id, event_id = (
+                        row_params[run_kind_i], row_params[run_id_i], row_params[event_id_i])
+                    existing = await conn.fetchrow(select_sql, run_kind, run_id, event_id)
+                    if existing is None or not rows_semantically_equal(row_params, existing):
+                        raise V2EventIdentityConflictError(
+                            f"v2_episode_events conflict for (run_kind={run_kind!r}, "
+                            f"run_id={run_id!r}, event_id={event_id!r}): an existing row "
+                            "with this exact deterministic identity does not match the "
+                            "newly attempted row's semantic content -- refusing to silently "
+                            "accept a conflicting identity reuse; rolling back this entire "
+                            "batch")
         return inserted
 
     # ---------------------------------------------------------------

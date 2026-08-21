@@ -18,7 +18,7 @@ import inspect
 import json
 import re
 import textwrap
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -29,7 +29,8 @@ from analytics.forecasting_v2.events import (
 from storage.db import Database
 from storage.stage2_serialization import Stage2SerializationError as _CoreSerializationError
 from storage.v2_serialization import (
-    V2_EPISODE_EVENT_SPEC, Stage2SerializationError, serialize_batch,
+    V2_EPISODE_EVENT_SPEC, Stage2SerializationError, V2EventBatchScopeError,
+    V2EventIdentityConflictError, serialize_batch,
 )
 
 UTC = timezone.utc
@@ -38,16 +39,43 @@ H64 = "a" * 64
 H16 = "b" * 16
 
 
+class _NoOpTransaction:
+    # Mirrors tests/storage/test_stage2_db.py's identical fake -- a plain
+    # no-op async context manager. __aexit__ returns False (never
+    # suppresses an exception), exactly like real asyncpg's own
+    # Transaction, so a raised V2EventIdentityConflictError still
+    # propagates normally through `async with conn.transaction():` in
+    # these mocked-pool tests. Real transactional atomicity/rollback is
+    # proven for real in tests/storage/test_v2_episode_event_transactions.py.
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+
 # ---- fake asyncpg pool (per-row fetchval, like insert_forecast_prediction) --
 class FakeConn:
     def __init__(self):
         self.executemany_calls: list[tuple] = []
         self.execute_calls: list[tuple] = []
         self.fetchval_calls: list[tuple] = []
+        self.fetchrow_calls: list[tuple] = []
         # queue of results consumed in call order; falls back to `default`
         # once exhausted so single-row tests don't need to prime a queue.
         self.fetchval_results: list = []
         self.fetchval_default = True
+        # Default fetchrow() behavior: ECHO back a Mapping built from
+        # whichever row's own params were just attempted via fetchval() --
+        # simulating "the existing row is byte-identical to this retry",
+        # i.e. a genuine idempotent retry. This is exactly what every
+        # EXISTING test in this file expects when fetchval_default=None
+        # simulates "already stored". Set to an explicit Mapping (to
+        # simulate a genuinely DIFFERENT existing row -> conflict) or to
+        # None (to simulate "the just-conflicted row vanished before the
+        # SELECT could read it back") to exercise those paths instead.
+        self.fetchrow_override = "ECHO"
+        self._last_fetchval_params: tuple = ()
 
     async def executemany(self, sql, rows):
         self.executemany_calls.append((sql, list(rows)))
@@ -58,9 +86,19 @@ class FakeConn:
 
     async def fetchval(self, sql, *args):
         self.fetchval_calls.append((sql, args))
+        self._last_fetchval_params = args
         if self.fetchval_results:
             return self.fetchval_results.pop(0)
         return self.fetchval_default
+
+    async def fetchrow(self, sql, *args):
+        self.fetchrow_calls.append((sql, args))
+        if self.fetchrow_override != "ECHO":
+            return self.fetchrow_override
+        return dict(zip(V2_EPISODE_EVENT_SPEC.columns, self._last_fetchval_params))
+
+    def transaction(self):
+        return _NoOpTransaction()
 
 
 class _Acquire:
@@ -104,6 +142,7 @@ def make_event(**over) -> V2EpisodeEvent:
         episode_state=EARLY_SIGNAL, decision_boundary=B,
         feature_schema_version=1, calculation_version=H16, config_hash=H64,
         config_version="2.1.0", code_version="deadbeef",
+        decision_code_version="decision-deadbeef",
         decision_snapshot={"consensus_confidence": 87.5, "components": {"a": 1}},
         event_payload={"entry_zone": {"low": 64500.0, "high": 65000.0}, "reasons": ["x", "y"]},
     )
@@ -390,13 +429,33 @@ def test_two_replay_runs_remain_distinguishable_by_run_id():
     assert pk1 != pk2
 
 
-def test_live_and_replay_batch_write_both_insert_independently():
+def test_live_and_replay_in_one_call_rejected_as_mixed_scope():
+    # V2-H3 (§2.1a): a single insert_v2_episode_events() call must persist
+    # AT MOST one logical decision boundary's batch. LIVE and REPLAY are
+    # different execution_streams -- mixing them in ONE call is a caller
+    # bug, rejected before any connection is acquired, never silently
+    # accepted as "two independent inserts that happened to share a call".
     db = _db()
     db.pool.conn.fetchval_default = True
     live = make_event(run_kind=LIVE, run_id="live-shadow", event_id="abc")
     replay = make_event(run_kind=REPLAY, run_id="replay-001", event_id="abc")
-    result = _run(db.insert_v2_episode_events([live, replay]))
-    assert result == 2
+    with pytest.raises(V2EventBatchScopeError):
+        _run(db.insert_v2_episode_events([live, replay]))
+    assert db.pool.acquire_count == 0
+    assert db.pool.conn.fetchval_calls == []
+
+
+def test_live_and_replay_insert_independently_via_separate_calls():
+    # The correct way to persist both: two SEPARATE calls, one per
+    # execution_stream -- each its own atomic batch.
+    db = _db()
+    db.pool.conn.fetchval_default = True
+    live = make_event(run_kind=LIVE, run_id="live-shadow", event_id="abc")
+    replay = make_event(run_kind=REPLAY, run_id="replay-001", event_id="abc")
+    result_live = _run(db.insert_v2_episode_events([live]))
+    result_replay = _run(db.insert_v2_episode_events([replay]))
+    assert result_live == 1
+    assert result_replay == 1
     assert len(db.pool.conn.fetchval_calls) == 2
 
 
@@ -449,6 +508,98 @@ def test_writer_not_called_from_connect_or_init_schema():
     call_sites = [
         m.start() for m in re.finditer(r"\bself\.insert_v2_episode_events\(", src)]
     assert call_sites == []
+
+
+# ============================================================================
+# 14. V2-H3: atomicity + conflict-identity handling (fake-pool level)
+# ============================================================================
+def test_writer_uses_one_transaction_for_the_whole_batch():
+    tree = ast.parse(textwrap.dedent(inspect.getsource(Database.insert_v2_episode_events)))
+    src = ast.unparse(tree)
+    assert "conn.transaction()" in src
+
+
+def test_identical_retry_after_conflict_is_idempotent_success():
+    # fetchval_default=None simulates "this exact (run_kind, run_id,
+    # event_id) already exists"; fetchrow's default ECHO behavior
+    # simulates that the existing row is byte-identical to this retry --
+    # the genuine idempotent-retry case. No exception; not counted.
+    db = _db()
+    db.pool.conn.fetchval_default = None
+    result = _run(db.insert_v2_episode_events([make_event()]))
+    assert result == 0
+    assert len(db.pool.conn.fetchrow_calls) == 1
+
+
+def test_conflicting_retry_raises_dedicated_identity_conflict_error():
+    db = _db()
+    db.pool.conn.fetchval_default = None  # conflict on ON CONFLICT DO NOTHING
+    # Existing row differs from the new attempt (a different direction) --
+    # a genuine conflicting identity reuse, never silently accepted.
+    ev = make_event()
+    conflicting_row = dict(zip(
+        V2_EPISODE_EVENT_SPEC.columns, serialize_batch(V2_EPISODE_EVENT_SPEC, (ev,))[0]))
+    conflicting_row["direction"] = SHORT
+    db.pool.conn.fetchrow_override = conflicting_row
+    with pytest.raises(V2EventIdentityConflictError, match="event_id"):
+        _run(db.insert_v2_episode_events([ev]))
+
+
+def test_conflicting_retry_error_message_names_the_identity():
+    db = _db()
+    db.pool.conn.fetchval_default = None
+    ev = make_event(run_kind=LIVE, run_id="live-shadow", event_id="evt-conflict")
+    conflicting_row = dict(zip(
+        V2_EPISODE_EVENT_SPEC.columns, serialize_batch(V2_EPISODE_EVENT_SPEC, (ev,))[0]))
+    conflicting_row["episode_state"] = "CONFIRMED"  # differs from EARLY_SIGNAL
+    db.pool.conn.fetchrow_override = conflicting_row
+    with pytest.raises(V2EventIdentityConflictError) as excinfo:
+        _run(db.insert_v2_episode_events([ev]))
+    assert "live-shadow" in str(excinfo.value)
+    assert "evt-conflict" in str(excinfo.value)
+
+
+def test_conflict_row_vanished_before_reread_fails_closed():
+    # An extreme, defensive edge case: ON CONFLICT DO NOTHING fired (a row
+    # exists) but the follow-up SELECT inside the SAME transaction finds
+    # nothing. This should never happen in a real, correctly-isolated
+    # transaction, but the writer must fail closed rather than silently
+    # treat a vanished row as "no conflict".
+    db = _db()
+    db.pool.conn.fetchval_default = None
+    db.pool.conn.fetchrow_override = None
+    with pytest.raises(V2EventIdentityConflictError):
+        _run(db.insert_v2_episode_events([make_event()]))
+
+
+def test_batch_with_multiple_episodes_same_scope_is_allowed():
+    # §13.4 step 8: one decision boundary MAY touch multiple episodes at
+    # once (e.g. a lifecycle transition plus a REVERSAL_CANDIDATE
+    # cross-reference on a different episode) -- homogeneity is required
+    # only on (run_kind, run_id, decision_boundary), never on episode_id.
+    db = _db()
+    db.pool.conn.fetchval_default = True
+    ev1 = make_event(event_id="evt-1", episode_id="ep-1")
+    ev2 = make_event(event_id="evt-2", episode_id="ep-2")
+    result = _run(db.insert_v2_episode_events([ev1, ev2]))
+    assert result == 2
+
+
+def test_batch_scope_error_raised_before_any_connection_acquired():
+    db = _db()
+    ev1 = make_event(decision_boundary=B)
+    ev2 = make_event(decision_boundary=B + timedelta(minutes=5))
+    with pytest.raises(V2EventBatchScopeError):
+        _run(db.insert_v2_episode_events([ev1, ev2]))
+    assert db.pool.acquire_count == 0
+
+
+def test_different_run_id_same_run_kind_rejected_as_mixed_scope():
+    db = _db()
+    ev1 = make_event(run_kind=LIVE, run_id="live-shadow-a")
+    ev2 = make_event(run_kind=LIVE, run_id="live-shadow-b")
+    with pytest.raises(V2EventBatchScopeError):
+        _run(db.insert_v2_episode_events([ev1, ev2]))
 
 
 # ============================================================================

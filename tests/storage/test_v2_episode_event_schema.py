@@ -67,7 +67,17 @@ def test_v2_section_does_not_touch_other_tables():
     for t in ("klines_1m", "open_interest", "funding_rate", "mark_price",
               "liquidations", "exchange_capabilities"):
         assert not re.search(r"(CREATE|ALTER)\s+TABLE[^\n]*\b" + t + r"\b", code), t
-    assert "ALTER TABLE" not in code   # this table is CREATE-only, no upgrade path needed
+
+
+def test_v2ee_alter_table_statements_target_only_this_table():
+    # V2-H3 adds an additive, idempotent upgrade-path ALTER TABLE
+    # (decision_code_version) -- this table is no longer CREATE-only, but
+    # every ALTER TABLE in this section must still target v2_episode_events
+    # itself, never a different table.
+    code = _V2EE_SECTION_CODE
+    targets = re.findall(r"ALTER\s+TABLE\s+(\w+)", code)
+    assert targets, "expected at least one ALTER TABLE statement (V2-H3 upgrade path)"
+    assert set(targets) == {"v2_episode_events"}
 
 
 def test_v1_tables_still_pinned_model_family_v1_unchanged():
@@ -102,7 +112,7 @@ def test_required_columns_present_in_order():
         "symbol", "market_type", "direction", "setup_family", "structural_anchor",
         "episode_state", "decision_boundary",
         "feature_schema_version", "calculation_version", "config_hash",
-        "config_version", "code_version",
+        "config_version", "code_version", "decision_code_version",
         "decision_snapshot", "event_payload",
         "created_at",
     ]
@@ -257,6 +267,28 @@ def test_config_version_and_code_version_nonblank_checks():
     assert re.search(r"length\(btrim\(code_version\)\)\s*>\s*0", _V2EE_BODY)
 
 
+# ---- CHECK constraints: V2-H3 decision-code provenance + deterministic-ID shape --
+def test_decision_code_version_column_and_check():
+    assert re.search(r"decision_code_version\s+TEXT\s+NOT\s+NULL", _V2EE_BODY)
+    assert re.search(r"length\(btrim\(decision_code_version\)\)\s*>\s*0", _V2EE_BODY)
+
+
+def test_event_id_and_episode_id_hash_format_checks_present():
+    # V2-H3: ADDITIONAL to (never a replacement for) the plain nonblank
+    # checks tested by test_run_id_event_id_episode_id_nonblank_checks.
+    assert re.search(r"event_id\s*~\s*'\^\[0-9a-f\]\{64\}\$'", _V2EE_BODY)
+    assert re.search(r"episode_id\s*~\s*'\^\[0-9a-f\]\{64\}\$'", _V2EE_BODY)
+
+
+def test_original_nonblank_checks_not_removed_by_hash_format_addition():
+    # The V2-H3 hash-format CHECKs above must never have REPLACED the
+    # original ck_v2ee_event_id/ck_v2ee_episode_id nonblank constraints.
+    assert "ck_v2ee_event_id" in _V2EE_BODY
+    assert "ck_v2ee_episode_id" in _V2EE_BODY
+    assert re.search(r"CONSTRAINT ck_v2ee_event_id\s+CHECK", _V2EE_BODY)
+    assert re.search(r"CONSTRAINT ck_v2ee_episode_id\s+CHECK", _V2EE_BODY)
+
+
 # ---- CHECK constraints: by-value historical truth ------------------------------
 def test_decision_snapshot_and_event_payload_jsonb_object_checks():
     assert re.search(r"decision_snapshot\s+JSONB\s+NOT\s+NULL", _V2EE_BODY)
@@ -271,10 +303,27 @@ def test_not_a_hypertable():
     assert "v2_episode_events" not in re.findall(r"create_hypertable\(\s*'(\w+)'", SQL)
 
 
-# ---- indexes: only the two useful ones, nothing speculative ----------------------
-def test_only_two_indexes_present():
-    indexes = re.findall(r"CREATE INDEX IF NOT EXISTS (\w+)\s*\n\s*ON v2_episode_events", _V2EE_SECTION)
-    assert set(indexes) == {"ix_v2ee_episode_history", "ix_v2ee_symbol_recent"}
+# ---- indexes: only the three useful ones, nothing speculative --------------------
+def test_only_three_indexes_present():
+    # V2-H3 adds ux_v2ee_episode_decision_boundary (a UNIQUE index enforcing
+    # the frozen §2.1a physical-uniqueness invariant) alongside the two
+    # original plain indexes -- matches BOTH `CREATE INDEX` and
+    # `CREATE UNIQUE INDEX` so an unreviewed fourth index cannot slip in
+    # unnoticed either.
+    indexes = re.findall(
+        r"CREATE (?:UNIQUE )?INDEX IF NOT EXISTS (\w+)\s*\n\s*ON v2_episode_events",
+        _V2EE_SECTION)
+    assert set(indexes) == {
+        "ix_v2ee_episode_history", "ix_v2ee_symbol_recent",
+        "ux_v2ee_episode_decision_boundary",
+    }
+
+
+def test_episode_decision_boundary_unique_index_shape():
+    assert re.search(
+        r"CREATE UNIQUE INDEX IF NOT EXISTS ux_v2ee_episode_decision_boundary\s*\n"
+        r"\s*ON v2_episode_events \(run_kind, run_id, episode_id, decision_boundary\)",
+        _V2EE_SECTION)
 
 
 def test_episode_history_index_shape():

@@ -69,16 +69,28 @@ def test_create_table_statements_match_expected_tables():
 
 
 # -- forbidden operations ----------------------------------------------------
-# The only two ALTER TABLE statements permitted anywhere in this schema
-# (Multi-model Framework foundation PR): an additive, idempotent
-# `ADD COLUMN IF NOT EXISTS model_family ... DEFAULT 'v1'` on each of
-# forecast_predictions / forecast_outcomes, defaulting existing and future V1
-# rows to model_family='v1' without any INSERT-statement change (see
-# tests/storage/test_forecast_prediction_schema.py /
-# test_forecast_outcome_schema.py for the detailed per-table assertions).
+# The only THREE ALTER TABLE statements permitted anywhere in this schema:
+#   - two from the Multi-model Framework foundation PR: an additive,
+#     idempotent `ADD COLUMN IF NOT EXISTS model_family ... DEFAULT 'v1'`
+#     on each of forecast_predictions / forecast_outcomes, defaulting
+#     existing and future V1 rows to model_family='v1' without any
+#     INSERT-statement change (see
+#     tests/storage/test_forecast_prediction_schema.py /
+#     test_forecast_outcome_schema.py for the detailed per-table
+#     assertions);
+#   - one from V2-H3: an additive, idempotent
+#     `ADD COLUMN IF NOT EXISTS decision_code_version TEXT NOT NULL
+#     CONSTRAINT ... CHECK (...)` on v2_episode_events, the same
+#     bundled-CHECK upgrade-path pattern (see
+#     tests/storage/test_v2_episode_event_schema.py for the detailed
+#     assertions; storage/stage2_schema.sql's own V2-H3 comment there
+#     explains why a separate `ADD CONSTRAINT`/`DO $$` form was
+#     deliberately NOT used — `storage/db.py::_split_sql_statements`
+#     splits this file on a plain `;` with no dollar-quoted/PL-pgSQL
+#     awareness).
 # Never DROP/RENAME/TRUNCATE/DELETE, never any other ALTER form.
-_ALLOWED_MODEL_FAMILY_ALTERS = {
-    "forecast_predictions", "forecast_outcomes",
+_ALLOWED_ADDITIVE_ALTERS = {
+    "forecast_predictions", "forecast_outcomes", "v2_episode_events",
 }
 
 
@@ -90,21 +102,30 @@ def test_no_alter_drop_truncate_delete():
     # ALTER TABLE CHECK are identical, not merely that both add the column.
     alters = re.findall(r"ALTER\s+TABLE\s+(\w+)\s*\n\s*(ADD COLUMN IF NOT EXISTS[^;]*)",
                         code, re.IGNORECASE)
-    assert {t for t, _ in alters} == _ALLOWED_MODEL_FAMILY_ALTERS
-    assert len(alters) == len(_ALLOWED_MODEL_FAMILY_ALTERS)  # exactly one per table, no more
-    expected_constraint_name = {
+    assert {t for t, _ in alters} == _ALLOWED_ADDITIVE_ALTERS
+    assert len(alters) == len(_ALLOWED_ADDITIVE_ALTERS)  # exactly one per table, no more
+    expected_model_family_constraint_name = {
         "forecast_predictions": "ck_fp_model_family",
         "forecast_outcomes": "ck_fo_model_family",
     }
     for table, clause in alters:
+        if table == "v2_episode_events":
+            assert re.match(
+                r"ADD COLUMN IF NOT EXISTS decision_code_version TEXT NOT NULL",
+                clause, re.IGNORECASE)
+            assert re.search(
+                r"CHECK\s*\(\s*length\(btrim\(decision_code_version\)\)\s*>\s*0\s*\)",
+                clause, re.IGNORECASE)
+            assert "ck_v2ee_decision_code_version" in clause
+            continue
         assert re.match(r"ADD COLUMN IF NOT EXISTS model_family TEXT NOT NULL DEFAULT 'v1'",
                         clause, re.IGNORECASE)
         # V1-only pin, matching the CREATE TABLE definition's CHECK exactly
         # (never the weaker "just non-blank" shape), under the same
         # constraint name the CREATE TABLE definition uses.
         assert re.search(r"CHECK\s*\(\s*model_family\s*=\s*'v1'\s*\)", clause, re.IGNORECASE)
-        assert expected_constraint_name[table] in clause
-    assert code.count("ALTER TABLE") == len(_ALLOWED_MODEL_FAMILY_ALTERS)
+        assert expected_model_family_constraint_name[table] in clause
+    assert code.count("ALTER TABLE") == len(_ALLOWED_ADDITIVE_ALTERS)
     assert not re.search(r"\bDROP\s+TABLE\b", SQL, re.IGNORECASE)
     assert not re.search(r"\bDROP\s+COLUMN\b", SQL, re.IGNORECASE)
     assert not re.search(r"\bRENAME\b", SQL, re.IGNORECASE)
@@ -119,24 +140,30 @@ def test_no_foreign_keys_or_references():
 
 def test_only_additive_objects():
     # Only CREATE EXTENSION / TABLE / INDEX, create_hypertable SELECTs, and
-    # the two narrowly-allowed ADD COLUMN IF NOT EXISTS model_family ALTERs.
+    # the three narrowly-allowed ADD COLUMN IF NOT EXISTS ALTERs.
     statements = [s.strip() for s in re.sub(r"--[^\n]*", "", SQL).split(";") if s.strip()]
     alter_count = 0
     for st in statements:
         head = st.split(None, 1)[0].upper()
         if head == "ALTER":
             table = st.split(None, 3)[2]
-            assert table in _ALLOWED_MODEL_FAMILY_ALTERS, f"unexpected ALTER target: {table!r}"
-            assert re.search(r"ADD COLUMN IF NOT EXISTS model_family TEXT NOT NULL DEFAULT 'v1'",
-                             st, re.IGNORECASE), f"unexpected ALTER body: {st[:80]!r}"
-            assert re.search(r"CHECK\s*\(\s*model_family\s*=\s*'v1'\s*\)", st, re.IGNORECASE), \
-                f"ALTER on {table!r} missing the V1-only CHECK: {st[:120]!r}"
+            assert table in _ALLOWED_ADDITIVE_ALTERS, f"unexpected ALTER target: {table!r}"
+            if table == "v2_episode_events":
+                assert re.search(
+                    r"ADD COLUMN IF NOT EXISTS decision_code_version TEXT NOT NULL",
+                    st, re.IGNORECASE), f"unexpected ALTER body: {st[:80]!r}"
+            else:
+                assert re.search(
+                    r"ADD COLUMN IF NOT EXISTS model_family TEXT NOT NULL DEFAULT 'v1'",
+                    st, re.IGNORECASE), f"unexpected ALTER body: {st[:80]!r}"
+                assert re.search(r"CHECK\s*\(\s*model_family\s*=\s*'v1'\s*\)", st, re.IGNORECASE), \
+                    f"ALTER on {table!r} missing the V1-only CHECK: {st[:120]!r}"
             alter_count += 1
             continue
         assert head in {"CREATE", "SELECT"}, f"unexpected statement head: {st[:40]!r}"
         if head == "SELECT":
             assert "create_hypertable" in st
-    assert alter_count == len(_ALLOWED_MODEL_FAMILY_ALTERS)
+    assert alter_count == len(_ALLOWED_ADDITIVE_ALTERS)
 
 
 # -- hypertables -------------------------------------------------------------
