@@ -30,14 +30,32 @@ SUPPORTED_MARKET_TYPES = ("perp",)
 # Critical fields whose change between a stored LKG and a refetch raises the
 # mismatch alarm (must be deliberately accepted -- storage.db.Database.
 # upsert_exchange_instrument's accept_mismatch=True). V2-H2c (tech-lead
-# review 4990482334, findings 7/8) audited the prior claim here that this
-# "forks calculation_version": no such mechanism existed anywhere in this
-# repository -- that was aspirational only. Real enforcement now lives at
-# the ONE place a critical change is ever deliberately accepted:
-# Database.upsert_exchange_instrument requires an explicit
-# accepted_code_version, distinct from this identity's own previous
-# accepted critical change, or the acceptance itself is refused
-# (fail-closed) -- see that method's own docstring.
+# review 4990482334, findings 7/8) first audited the prior claim here that
+# this "forks calculation_version": no such mechanism existed anywhere in
+# this repository -- that was aspirational only. A first attempt (an
+# `accepted_code_version` label recorded alongside the acceptance) was
+# then found by tech-lead review 4991738511 to prove only that two STORED
+# LABELS differed, never that the live Stage-2 feature-assembly path was
+# mechanically prevented from consuming NEW critical metadata under an OLD
+# `calculation_version` -- i.e. still not a real fork. The REAL, end-to-end
+# mechanism now lives at THREE connected points: (1)
+# Database.upsert_exchange_instrument's accept_mismatch=True path requires
+# an explicit `target_metadata_revision` strictly greater than the current
+# value of the ONE global `stage2_instrument_metadata_state.
+# required_revision` row, and atomically bumps it; (2) every live feature
+# computation's raw-bundle read
+# (storage/stage2_readers.py::read_exchange_feature_raw_bundle) reads that
+# SAME global row; (3) analytics/feature_engine/input_adapter.py::
+# assemble_exchange_feature_request FAILS CLOSED the instant the resolved
+# Stage2Config's OWN `defaults.instrument_metadata_revision` (part of
+# config_hash, hence of calculation_version) stops matching it -- so a
+# critical acceptance on ANY venue immediately blocks feature persistence
+# on EVERY venue/symbol until an operator explicitly updates
+# config/stage2.yaml to adopt the new revision, which is what actually
+# forks calculation_version. See storage/stage2_schema.sql's
+# stage2_instrument_metadata_state table comment for the full mechanism
+# and tests/analytics/test_stage2_metadata_revision_fork.py for the
+# executable end-to-end proof.
 CRITICAL_FIELDS = ("exchange_instrument_id", "quantity_unit",
                    "contract_multiplier", "tick_size")
 

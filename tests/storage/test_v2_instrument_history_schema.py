@@ -86,17 +86,17 @@ _EXPECTED_COLUMNS = [
     "exchange", "symbol", "market_type", "exchange_instrument_id", "quantity_unit",
     "contract_multiplier", "tick_size", "price_precision", "quantity_precision",
     "metadata_source", "observed_at", "effective_from", "effective_until", "note",
-    "accepted_code_version", "recorded_at",
+    "accepted_metadata_revision", "recorded_at",
 ]
 
 
 def test_columns_match_expected_shape():
     """Column set mirrors `exchange_instruments`' own data-field shape
     exactly, plus the identity/temporal/provenance fields H2c adds
-    (`observed_at`/`effective_from`/`effective_until`/`accepted_code_version`/
-    `recorded_at`) — deliberately NO `is_stale` (a current/LKG-only
-    concept; a historical interval is either the version in effect or it
-    is not)."""
+    (`observed_at`/`effective_from`/`effective_until`/
+    `accepted_metadata_revision`/`recorded_at`) — deliberately NO
+    `is_stale` (a current/LKG-only concept; a historical interval is
+    either the version in effect or it is not)."""
     assert _columns(_BODY) == _EXPECTED_COLUMNS
     assert "is_stale" not in _BODY
 
@@ -119,9 +119,9 @@ def test_observed_at_not_after_effective_from_check_present():
         r"observed_at IS NULL OR observed_at <= effective_from", _BODY)
 
 
-def test_accepted_code_version_nonblank_check_present():
+def test_accepted_metadata_revision_positive_check_present():
     assert re.search(
-        r"accepted_code_version IS NULL OR length\(btrim\(accepted_code_version\)\) > 0",
+        r"accepted_metadata_revision IS NULL OR accepted_metadata_revision > 0",
         _BODY)
 
 
@@ -184,3 +184,48 @@ def test_observed_at_and_effective_from_are_not_db_defaulted():
     silently derived from each other."""
     assert not re.search(r"observed_at\s+TIMESTAMPTZ.*DEFAULT", _BODY)
     assert not re.search(r"effective_from\s+TIMESTAMPTZ.*DEFAULT", _BODY)
+
+
+# ============================================================================
+# Tech-lead review 4991738511: stage2_instrument_metadata_state -- the ONE
+# GLOBAL, Stage-2-wide row every feature computation must agree with before
+# constructing a feature vector (analytics/feature_engine/input_adapter.py::
+# assemble_exchange_feature_request). Structural DDL assertions only; the
+# real end-to-end fork/fail-closed proof lives in
+# tests/analytics/test_stage2_metadata_revision_fork.py and the real-Postgres
+# atomic-bump/lock proof lives in tests/storage/test_v2_instrument_history_readers.py.
+# ============================================================================
+_REVISION_TABLE = "stage2_instrument_metadata_state"
+_REVISION_BODY = _table_body(_REVISION_TABLE)
+
+
+def test_exactly_one_stage2_instrument_metadata_state_table():
+    assert len(re.findall(
+        r"CREATE TABLE IF NOT EXISTS stage2_instrument_metadata_state\b", SQL)) == 1
+
+
+def test_revision_table_columns_and_pk():
+    assert _columns(_REVISION_BODY) == ["required_revision", "updated_at"]
+    assert _pk(_REVISION_BODY) == ["singleton"]
+
+
+def test_revision_table_singleton_and_positivity_checks_present():
+    assert re.search(r"CONSTRAINT ck_s2ims_singleton_true CHECK \(\s*singleton\s*\)",
+                      _REVISION_BODY)
+    assert re.search(r"CONSTRAINT ck_s2ims_revision_positive CHECK \(\s*required_revision > 0\s*\)",
+                      _REVISION_BODY)
+
+
+def test_revision_table_no_default_seed_row_in_ddl():
+    """(Finding 11) The initial value is established EXPLICITLY from the
+    caller's own resolved Stage 2 configuration via
+    `Database.bootstrap_instrument_metadata_revision` -- never a hardcoded
+    DDL literal that could silently drift from config."""
+    section = SQL[SQL.index("stage2_instrument_metadata_state ("):]
+    section = section[:section.index(");") + 2]
+    assert "INSERT INTO stage2_instrument_metadata_state" not in section
+
+
+def test_revision_table_no_foreign_keys():
+    assert "REFERENCES" not in _REVISION_BODY
+    assert "FOREIGN KEY" not in _REVISION_BODY

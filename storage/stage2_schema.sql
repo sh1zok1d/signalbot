@@ -1217,16 +1217,23 @@ CREATE TABLE IF NOT EXISTS exchange_instrument_history (
     effective_from        TIMESTAMPTZ NOT NULL,   -- the EXPLICIT V2 decision-time activation boundary -- when this version actually became eligible for decisions to use; caller-supplied, never auto-derived from observed_at for a genuine value change
     effective_until       TIMESTAMPTZ,            -- NULL = still the currently-open version
     note                  TEXT,
-    -- (findings 7/8) Set ONLY when this row resulted from a deliberately-
-    -- accepted CRITICAL-field change (Database.upsert_exchange_instrument's
-    -- accept_mismatch=True path on exchange_instrument_id/quantity_unit/
-    -- contract_multiplier/tick_size) -- the NEW code_version that
-    -- acceptance declared. NULL for a first-ever/non-critical/seeded row.
-    -- A subsequent critical acceptance for the SAME identity must supply a
-    -- DIFFERENT value here than this column's own most recent non-NULL
-    -- entry -- enforced in Python (Database.upsert_exchange_instrument),
-    -- never silently reused.
-    accepted_code_version TEXT,
+    -- (tech-lead review 4991738511) PROVENANCE ONLY: the shared, GLOBAL
+    -- `stage2_instrument_metadata_state.required_revision` that was
+    -- current at the moment this row was written -- inherited unchanged
+    -- for a non-critical value change (e.g. price_precision-only), and
+    -- set to the NEW, just-bumped revision for a deliberately-accepted
+    -- CRITICAL-field change. This column NEVER itself enforces anything
+    -- (a decorative label was exactly what tech-lead review 4990482334's
+    -- `accepted_code_version` predecessor turned out to be, per review
+    -- 4991738511's finding 2 -- see that review for the full audit); the
+    -- REAL, executable enforcement is `stage2_instrument_metadata_state`
+    -- (below) compared against the resolved Stage2Config's OWN
+    -- `defaults.instrument_metadata_revision` in
+    -- `analytics/feature_engine/input_adapter.py::
+    -- assemble_exchange_feature_request` -- see that function and table
+    -- for the mechanism. Never reset to NULL merely because a given row
+    -- was not itself a critical acceptance (finding 10).
+    accepted_metadata_revision INTEGER,
     recorded_at           TIMESTAMPTZ NOT NULL DEFAULT now(),  -- DB-owned insert bookkeeping only
     PRIMARY KEY (exchange, symbol, market_type, effective_from),
     CONSTRAINT ck_eih_quantity_unit CHECK (
@@ -1247,8 +1254,8 @@ CREATE TABLE IF NOT EXISTS exchange_instrument_history (
     -- Database.upsert_exchange_instrument/seed_current_instrument_history.
     CONSTRAINT ck_eih_observed_at_not_after_effective_from CHECK (
         observed_at IS NULL OR observed_at <= effective_from),
-    CONSTRAINT ck_eih_accepted_code_version_nonblank CHECK (
-        accepted_code_version IS NULL OR length(btrim(accepted_code_version)) > 0)
+    CONSTRAINT ck_eih_accepted_metadata_revision_positive CHECK (
+        accepted_metadata_revision IS NULL OR accepted_metadata_revision > 0)
 );
 
 -- At most one currently-open (still-valid) history row per identity --
@@ -1257,3 +1264,77 @@ CREATE TABLE IF NOT EXISTS exchange_instrument_history (
 CREATE UNIQUE INDEX IF NOT EXISTS ux_eih_one_open_interval_per_identity
     ON exchange_instrument_history (exchange, symbol, market_type)
     WHERE effective_until IS NULL;
+
+-- ============================================================
+-- Tech-lead review 4991738511: calculation_version fork enforcement,
+-- connected end-to-end to the REAL Stage-2 feature-computation path.
+--
+-- The previous round's `accepted_code_version` column (removed above,
+-- replaced by `accepted_metadata_revision`) was correctly rejected: it
+-- proved only that two stored LABELS differed, never that the live
+-- Stage-2 assembly path (`analytics/feature_engine/input_adapter.py::
+-- build_assembly_context`/`assemble_exchange_feature_request`) was
+-- mechanically prevented from consuming NEW critical metadata under an
+-- OLD `calculation_version`. `calculation_version` is computed BEFORE
+-- any instrument metadata is even read (see `build_assembly_context`),
+-- from `compute_calculation_version(feature_schema_version, config_hash,
+-- code_version)` -- a formula/format this PR still does NOT change.
+--
+-- This table is the SINGLE GLOBAL source of truth for "what instrument-
+-- metadata revision does Stage 2 feature computation currently require,
+-- across ALL exchanges and symbols" -- deliberately ONE shared row, not
+-- one per (exchange, symbol, market_type): `calculation_version` is a
+-- SHARED Stage-2 computation namespace (`common/stage2_config.py`'s
+-- `defaults.instrument_metadata_revision` applies identically to every
+-- resolved per-symbol config, and `Stage2Config._validate()` refuses any
+-- asset_tier/symbol override of that key) -- a critical metadata change
+-- accepted for even ONE venue must fork the coherent namespace for ALL
+-- venues together, never fragment it into per-venue sub-namespaces the
+-- existing consensus contract does not support.
+--
+-- Mechanism, closing the loop all the way to feature persistence:
+--   1. `defaults.instrument_metadata_revision` (config/stage2.yaml) is
+--      part of the RESOLVED per-symbol config, hence part of
+--      `config_hash`, hence part of `calculation_version` -- changing it
+--      genuinely forks `calculation_version`, with ZERO changes to
+--      `compute_calculation_version`'s formula/format.
+--   2. `Database.upsert_exchange_instrument`'s `accept_mismatch=True`
+--      path, on a genuine CRITICAL-field diff, REQUIRES an explicit
+--      `target_metadata_revision` strictly greater than this table's
+--      current `required_revision` -- and atomically bumps it, in the
+--      SAME transaction as the LKG upsert and the history interval
+--      close/open (serialized additionally by `SELECT ... FOR UPDATE`
+--      on this table's one row, so two concurrent critical acceptances
+--      for DIFFERENT identities cannot race past each other).
+--   3. `storage/stage2_readers.py::read_exchange_feature_raw_bundle`
+--      reads this table's CURRENT `required_revision` as part of the
+--      SAME fixed raw-bundle read every live feature computation already
+--      performs (`ExchangeFeatureRawBundle.required_metadata_revision`).
+--   4. `analytics/feature_engine/input_adapter.py::
+--      assemble_exchange_feature_request` compares the resolved config's
+--      OWN `instrument_metadata_revision` (already baked into this
+--      request's `calculation_version`) against that live value and
+--      FAILS CLOSED (`FeatureInputError`, before any `ExchangeFeatureRequest`
+--      is constructed) on a mismatch.
+-- Until an operator explicitly updates `config/stage2.yaml` to adopt the
+-- new revision (which forks `calculation_version` per step 1), ANY
+-- Stage 2 computation for ANY venue/symbol refuses to persist a feature
+-- vector at all -- it can never silently continue computing under the
+-- OLD `calculation_version` against the NEW metadata. A non-critical
+-- value change (e.g. price_precision-only) never bumps this table --
+-- only a deliberately-accepted CRITICAL change does (finding 10).
+--
+-- Bootstrapped explicitly (never a hardcoded DDL literal) via
+-- `Database.bootstrap_instrument_metadata_revision`, established from
+-- the resolved Stage 2 configuration's OWN initial
+-- `instrument_metadata_revision` -- idempotent, never overwrites an
+-- already-initialized row.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS stage2_instrument_metadata_state (
+    singleton         BOOLEAN NOT NULL DEFAULT TRUE,
+    required_revision INTEGER NOT NULL,
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (singleton),
+    CONSTRAINT ck_s2ims_singleton_true CHECK (singleton),
+    CONSTRAINT ck_s2ims_revision_positive CHECK (required_revision > 0)
+);

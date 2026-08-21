@@ -15,31 +15,54 @@ per tech-lead review 4990482334's four correctness findings:
   4. The delayed-mismatch-acceptance replay vector is a first-class real
      regression here, proving the exact backdating bug this review found.
 
-Also covers findings 7/8 (calculation_version fork enforcement at
-`Database.upsert_exchange_instrument`'s critical-mismatch-acceptance
-boundary) and finding 9 (the OKX vector actually uses `exchange="okx"`).
+And per tech-lead review 4991738511's single remaining blocker: the FIRST
+attempt at calculation_version fork enforcement (`accepted_code_version`,
+a stored label recorded alongside the acceptance) proved only that two
+LABELS differed, never that the live Stage-2 feature-assembly path was
+mechanically prevented from consuming NEW critical metadata under an OLD
+`calculation_version`. That column/parameter is REMOVED here (not kept
+alongside the fix). The REAL, end-to-end mechanism this file now proves at
+the storage layer: `Database.upsert_exchange_instrument`'s
+`accept_mismatch=True` critical-diff path requires an explicit
+`target_metadata_revision`, strictly greater than the ONE global
+`stage2_instrument_metadata_state.required_revision` row's current value,
+and atomically bumps it (under `SELECT ... FOR UPDATE`, serializing against
+ANY other identity's concurrent critical acceptance too -- this row is
+shared across every exchange/symbol, never per-identity, because
+`calculation_version` is itself a shared Stage-2 computation namespace).
+The full connection all the way to feature persistence (a resolved
+Stage2Config's `instrument_metadata_revision` vs this same global row,
+enforced in `analytics/feature_engine/input_adapter.py::
+assemble_exchange_feature_request`) is proven separately in
+`tests/analytics/test_stage2_metadata_revision_fork.py`, using the REAL
+Stage2Config + assembly path + raw-bundle dataclass -- this file proves
+the storage-layer half: the atomic revision bump/lock/rollback/restart
+behavior against a REAL PostgreSQL instance.
+
+Also covers finding 9 (the OKX vector actually uses `exchange="okx"`).
 
 Deliberately NOT a FakeConn/SQL-string-inspection test — the whole point of
 this suite is real PostgreSQL interval resolution, the real transactional
 close-then-open history append (`Database.upsert_exchange_instrument`), the
-real `ux_eih_one_open_interval_per_identity` partial unique index, and real
-transaction rollback behavior, none of which a mocked connection can
-exercise. Mirrors `tests/storage/test_v2_version_switch_readers.py`'s
-established pattern exactly: per-test uniquely-named schema (never the
-connection's shared default), one `asyncio.run()` per test (asyncpg pools
-are bound to the loop that created them), and a
-`V2_INSTRUMENT_HISTORY_TEST_DSN` env var with the identical fail-vs-skip
-contract (unset -> best-effort SKIP on connection failure; explicitly set,
-as CI does -- a connection/setup failure is a genuine FAILURE, never a
-silent skip).
+real `ux_eih_one_open_interval_per_identity` partial unique index, the real
+`stage2_instrument_metadata_state` singleton lock, and real transaction
+rollback behavior, none of which a mocked connection can exercise. Mirrors
+`tests/storage/test_v2_version_switch_readers.py`'s established pattern
+exactly: per-test uniquely-named schema (never the connection's shared
+default), one `asyncio.run()` per test (asyncpg pools are bound to the loop
+that created them), and a `V2_INSTRUMENT_HISTORY_TEST_DSN` env var with the
+identical fail-vs-skip contract (unset -> best-effort SKIP on connection
+failure; explicitly set, as CI does -- a connection/setup failure is a
+genuine FAILURE, never a silent skip).
 
 The table DDL below is a hand-copied, column-for-column mirror of
 `storage/stage2_schema.sql`'s real `exchange_instruments`/
-`exchange_instrument_history` definitions -- deliberately NOT the real
-`Database.init_stage2_schema()` (which would also attempt `CREATE EXTENSION
-IF NOT EXISTS timescaledb` and several `create_hypertable()` calls for
-unrelated Stage 2 tables neither this test nor a vanilla `postgres:16` CI
-image can satisfy), matching exactly why `test_klines_no_downgrade.py` and
+`exchange_instrument_history`/`stage2_instrument_metadata_state`
+definitions -- deliberately NOT the real `Database.init_stage2_schema()`
+(which would also attempt `CREATE EXTENSION IF NOT EXISTS timescaledb` and
+several `create_hypertable()` calls for unrelated Stage 2 tables neither
+this test nor a vanilla `postgres:16` CI image can satisfy), matching
+exactly why `test_klines_no_downgrade.py` and
 `test_v2_version_switch_readers.py` do the same."""
 from __future__ import annotations
 
@@ -101,7 +124,7 @@ CREATE TABLE exchange_instrument_history (
     effective_from        TIMESTAMPTZ NOT NULL,
     effective_until       TIMESTAMPTZ,
     note                  TEXT,
-    accepted_code_version TEXT,
+    accepted_metadata_revision INTEGER,
     recorded_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (exchange, symbol, market_type, effective_from),
     CONSTRAINT ck_eih_quantity_unit CHECK (
@@ -119,12 +142,27 @@ CREATE TABLE exchange_instrument_history (
         effective_until IS NULL OR effective_until > effective_from),
     CONSTRAINT ck_eih_observed_at_not_after_effective_from CHECK (
         observed_at IS NULL OR observed_at <= effective_from),
-    CONSTRAINT ck_eih_accepted_code_version_nonblank CHECK (
-        accepted_code_version IS NULL OR length(btrim(accepted_code_version)) > 0)
+    CONSTRAINT ck_eih_accepted_metadata_revision_positive CHECK (
+        accepted_metadata_revision IS NULL OR accepted_metadata_revision > 0)
 );
 CREATE UNIQUE INDEX ux_eih_one_open_interval_per_identity
     ON exchange_instrument_history (exchange, symbol, market_type)
     WHERE effective_until IS NULL;
+"""
+
+# (Tech-lead review 4991738511) Column-for-column mirror of
+# storage/stage2_schema.sql's real stage2_instrument_metadata_state
+# definition -- the ONE global row every feature computation (any
+# exchange, any symbol) must agree with.
+_STAGE2_INSTRUMENT_METADATA_STATE_DDL = """
+CREATE TABLE stage2_instrument_metadata_state (
+    singleton         BOOLEAN NOT NULL DEFAULT TRUE,
+    required_revision INTEGER NOT NULL,
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (singleton),
+    CONSTRAINT ck_s2ims_singleton_true CHECK (singleton),
+    CONSTRAINT ck_s2ims_revision_positive CHECK (required_revision > 0)
+);
 """
 
 UTC = timezone.utc
@@ -161,12 +199,22 @@ def _unique_schema_name() -> str:
     return "v2ih_test_" + uuid.uuid4().hex[:16]
 
 
-async def _with_isolated_instrument_tables(body):
+async def _with_isolated_instrument_tables(body, *, bootstrap_revision=1):
     """Create a fresh, uniquely-named schema, connect `Database` to it,
-    create BOTH `exchange_instruments` and `exchange_instrument_history`
-    inside that schema (`upsert_exchange_instrument` touches both), run
-    `body(db, scoped_dsn)`, then unconditionally drop that exact schema --
-    all inside the SAME event loop."""
+    create `exchange_instruments`/`exchange_instrument_history`/
+    `stage2_instrument_metadata_state` inside that schema
+    (`upsert_exchange_instrument` touches all three), run `body(db,
+    scoped_dsn)`, then unconditionally drop that exact schema -- all inside
+    the SAME event loop.
+
+    `bootstrap_revision`: if not None, `Database.
+    bootstrap_instrument_metadata_revision` is called with this value
+    BEFORE `body` runs, matching `config/stage2.yaml`'s own initial
+    `defaults.instrument_metadata_revision: 1` default -- most tests don't
+    care about this mechanism directly and just need the singleton row to
+    already exist. Pass `bootstrap_revision=None` to leave the table
+    freshly created but unseeded, for tests that exercise the bootstrap
+    method's own raw SEEDED/ALREADY_INITIALIZED behavior."""
     schema = _unique_schema_name()
     admin = await _connect_admin()
     try:
@@ -181,6 +229,11 @@ async def _with_isolated_instrument_tables(body):
         async with db.pool.acquire() as conn:
             await conn.execute(_EXCHANGE_INSTRUMENTS_DDL)
             await conn.execute(_EXCHANGE_INSTRUMENT_HISTORY_DDL)
+            await conn.execute(_STAGE2_INSTRUMENT_METADATA_STATE_DDL)
+        if bootstrap_revision is not None:
+            result = await db.bootstrap_instrument_metadata_revision(
+                initial_revision=bootstrap_revision)
+            assert result == "SEEDED"
         await body(db, scoped_dsn)
     finally:
         await db.close()
@@ -191,15 +244,15 @@ async def _with_isolated_instrument_tables(body):
             await cleanup.close()
 
 
-def _run(body):
-    asyncio.run(_with_isolated_instrument_tables(body))
+def _run(body, **kw):
+    asyncio.run(_with_isolated_instrument_tables(body, **kw))
 
 
 async def _accept(db, *, tick_size, fetched_at, contract_multiplier=None,
                    exchange_instrument_id=SYMBOL, quantity_unit="base",
                    price_precision=1, quantity_precision=3,
                    metadata_source="exchange_api", accept_mismatch=False,
-                   effective_from=None, accepted_code_version=None) -> None:
+                   effective_from=None, target_metadata_revision=None) -> None:
     await db.upsert_exchange_instrument(
         exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE,
         exchange_instrument_id=exchange_instrument_id, quantity_unit=quantity_unit,
@@ -207,7 +260,7 @@ async def _accept(db, *, tick_size, fetched_at, contract_multiplier=None,
         price_precision=price_precision, quantity_precision=quantity_precision,
         metadata_source=metadata_source, fetched_at=fetched_at, is_stale=False,
         accept_mismatch=accept_mismatch, effective_from=effective_from,
-        accepted_code_version=accepted_code_version)
+        target_metadata_revision=target_metadata_revision)
 
 
 async def _raw_insert(conn, **over) -> None:
@@ -216,7 +269,7 @@ async def _raw_insert(conn, **over) -> None:
         exchange_instrument_id=SYMBOL, quantity_unit="base", contract_multiplier=None,
         tick_size=0.1, price_precision=1, quantity_precision=3,
         metadata_source="exchange_api", observed_at=T0, effective_from=T0,
-        effective_until=None, note=None, accepted_code_version=None,
+        effective_until=None, note=None, accepted_metadata_revision=None,
     )
     row.update(over)
     await conn.execute(
@@ -225,14 +278,14 @@ async def _raw_insert(conn, **over) -> None:
             (exchange, symbol, market_type, exchange_instrument_id, quantity_unit,
              contract_multiplier, tick_size, price_precision, quantity_precision,
              metadata_source, observed_at, effective_from, effective_until, note,
-             accepted_code_version)
+             accepted_metadata_revision)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
         """,
         row["exchange"], row["symbol"], row["market_type"], row["exchange_instrument_id"],
         row["quantity_unit"], row["contract_multiplier"], row["tick_size"],
         row["price_precision"], row["quantity_precision"], row["metadata_source"],
         row["observed_at"], row["effective_from"], row["effective_until"], row["note"],
-        row["accepted_code_version"])
+        row["accepted_metadata_revision"])
 
 
 # ============================================================================
@@ -279,7 +332,7 @@ def test_version_a_then_b_boundary_semantics_frozen_half_open_interval():
         await _accept(db, tick_size=0.10, fetched_at=_t(0))              # version A
         await _accept(db, tick_size=0.50, fetched_at=_t(12),             # version B
                       accept_mismatch=True, effective_from=_t(12),
-                      accepted_code_version="fork-b")
+                      target_metadata_revision=2)
 
         before = await db.fetch_v2_instrument(
             exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(11))
@@ -309,7 +362,7 @@ def test_adding_later_version_does_not_retroactively_change_earlier_as_of_result
 
         # Now accept a NEW version much later.
         await _accept(db, tick_size=0.50, fetched_at=_t(12), accept_mismatch=True,
-                      effective_from=_t(12), accepted_code_version="fork-b")
+                      effective_from=_t(12), target_metadata_revision=2)
 
         # Re-querying the SAME historical as_of=_t(6) must resolve to the
         # exact same DECISION-RELEVANT values -- protection_buffer() would
@@ -509,6 +562,32 @@ def test_transaction_failure_leaves_old_interval_untouched():
     _run(body)
 
 
+def test_transaction_failure_leaves_required_revision_untouched():
+    """The SAME atomicity guarantee, for the NEW global revision row: a
+    failure after a critical acceptance's UPDATE but before commit must
+    leave `stage2_instrument_metadata_state.required_revision` completely
+    unaffected -- never a half-applied bump."""
+    async def body(db, _dsn):
+        await _accept(db, tick_size=0.10, fetched_at=_t(0))
+
+        class _Boom(RuntimeError):
+            pass
+
+        with pytest.raises(_Boom):
+            async with db.pool.acquire() as conn:
+                async with conn.transaction():
+                    await conn.execute(
+                        "UPDATE stage2_instrument_metadata_state SET required_revision = 99")
+                    raise _Boom("simulated failure before commit")
+
+        async with db.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT required_revision FROM stage2_instrument_metadata_state")
+        assert row["required_revision"] == 1   # untouched -- the bump never committed
+
+    _run(body)
+
+
 # ============================================================================
 # concurrency: two racing IDENTICAL accepted upserts for the SAME identity
 # serialize via the transaction-scoped advisory lock -- never two open
@@ -523,7 +602,7 @@ def test_concurrent_identical_accepted_upserts_serialize_never_two_open_interval
 
         async def _attempt():
             await _accept(db, tick_size=0.20, fetched_at=_t(12), accept_mismatch=True,
-                          effective_from=_t(12), accepted_code_version="fork-b")
+                          effective_from=_t(12), target_metadata_revision=2)
 
         await asyncio.gather(_attempt(), _attempt())
 
@@ -537,6 +616,8 @@ def test_concurrent_identical_accepted_upserts_serialize_never_two_open_interval
                 "SELECT tick_size FROM exchange_instrument_history "
                 "WHERE exchange=$1 AND symbol=$2 AND market_type=$3",
                 EXCHANGE, SYMBOL, MARKET_TYPE)
+            revision_row = await conn.fetchrow(
+                "SELECT required_revision FROM stage2_instrument_metadata_state")
         assert len(open_rows) == 1   # never two -- the partial unique index
                                      # plus the advisory lock make this so
         assert open_rows[0]["tick_size"] == 0.20
@@ -544,6 +625,64 @@ def test_concurrent_identical_accepted_upserts_serialize_never_two_open_interval
         # identical concurrent acceptance attempt was a true no-op, not a
         # duplicate interval.
         assert len(all_rows) == 2
+        # The global revision was bumped exactly once too -- not twice, and
+        # the second (no-op) attempt's own target_metadata_revision=2 must
+        # not have been rejected as "not strictly greater" against itself
+        # (it is IDENTICAL to the first attempt's already-committed value,
+        # so the second attempt's critical_diff is empty by the time it
+        # runs -- a true no-op, never reaching the revision-bump gate).
+        assert revision_row["required_revision"] == 2
+
+    _run(body)
+
+
+# ============================================================================
+# Tech-lead review 4991738511: the GLOBAL revision row is shared across
+# DIFFERENT identities, never a per-identity counter -- a critical
+# acceptance on ANY venue/symbol must fork the SAME namespace for all.
+# ============================================================================
+def test_global_required_revision_is_shared_across_different_identities():
+    async def body(db, _dsn):
+        # Identity 1: binance/BTCUSDT (the module's default EXCHANGE/SYMBOL).
+        await _accept(db, tick_size=0.10, fetched_at=_t(0))
+        await _accept(db, tick_size=0.20, fetched_at=_t(12), accept_mismatch=True,
+                      effective_from=_t(12), target_metadata_revision=2)
+
+        # Identity 2: an ENTIRELY DIFFERENT exchange/symbol -- its own
+        # first-ever value (no critical_diff possible; existing is None).
+        await db.upsert_exchange_instrument(
+            exchange="okx", symbol="ETHUSDT", market_type=MARKET_TYPE,
+            exchange_instrument_id="ETH-USDT-SWAP", quantity_unit="contracts",
+            contract_multiplier=1.0, tick_size=0.05, price_precision=1,
+            quantity_precision=3, metadata_source="exchange_api", fetched_at=_t(1),
+            is_stale=False)
+        # Its own SECOND, deliberately-accepted critical change must respect
+        # the SAME global counter identity 1 already advanced to 2 -- reusing
+        # revision 2 (as if it were its own private counter starting at 1)
+        # must be rejected exactly like identity 1's own reuse would be.
+        with pytest.raises(ValueError, match="not strictly greater"):
+            await db.upsert_exchange_instrument(
+                exchange="okx", symbol="ETHUSDT", market_type=MARKET_TYPE,
+                exchange_instrument_id="ETH-USDT-SWAP", quantity_unit="contracts",
+                contract_multiplier=1.0, tick_size=0.09, price_precision=1,
+                quantity_precision=3, metadata_source="exchange_api", fetched_at=_t(2),
+                is_stale=False, accept_mismatch=True, effective_from=_t(2),
+                target_metadata_revision=2)   # reuses identity 1's own revision
+
+        # A genuinely higher revision (3) succeeds, and the SAME global row
+        # both identities observe now reads 3 -- proving one shared namespace.
+        await db.upsert_exchange_instrument(
+            exchange="okx", symbol="ETHUSDT", market_type=MARKET_TYPE,
+            exchange_instrument_id="ETH-USDT-SWAP", quantity_unit="contracts",
+            contract_multiplier=1.0, tick_size=0.09, price_precision=1,
+            quantity_precision=3, metadata_source="exchange_api", fetched_at=_t(2),
+            is_stale=False, accept_mismatch=True, effective_from=_t(2),
+            target_metadata_revision=3)
+
+        async with db.pool.acquire() as conn:
+            revision_row = await conn.fetchrow(
+                "SELECT required_revision FROM stage2_instrument_metadata_state")
+        assert revision_row["required_revision"] == 3
 
     _run(body)
 
@@ -555,7 +694,7 @@ def test_restart_gives_identical_as_of_answer():
     async def body(db, scoped_dsn):
         await _accept(db, tick_size=0.10, fetched_at=_t(0))
         await _accept(db, tick_size=0.50, fetched_at=_t(12), accept_mismatch=True,
-                      effective_from=_t(12), accepted_code_version="fork-b")
+                      effective_from=_t(12), target_metadata_revision=2)
 
         restarted = Database(scoped_dsn)
         await restarted.connect()
@@ -614,7 +753,7 @@ def test_accepting_a_value_change_without_explicit_effective_from_raises():
         await _accept(db, tick_size=0.10, fetched_at=_t(0))
         with pytest.raises(ValueError, match="effective_from"):
             await _accept(db, tick_size=0.50, fetched_at=_t(12), accept_mismatch=True,
-                          accepted_code_version="fork-b")   # effective_from NOT supplied
+                          target_metadata_revision=2)   # effective_from NOT supplied
 
         # The refused call must not have mutated anything.
         current = await db.fetch_v2_instrument(
@@ -671,6 +810,34 @@ def test_manual_metadata_with_no_fetched_at_but_explicit_effective_from_is_legal
 
 
 # ============================================================================
+# Tech-lead review 4990482334, finding 1 (BLOCKER, continued): raw-INSERT
+# real-Postgres regressions for invalid temporal shapes -- proving the DB's
+# own CHECK constraint independently catches what the Python guard also
+# catches, never relying on the Python layer alone.
+# ============================================================================
+def test_raw_insert_observed_at_after_effective_from_rejected_by_db_check():
+    async def body(db, _dsn):
+        async with db.pool.acquire() as conn:
+            with pytest.raises(asyncpg.exceptions.CheckViolationError):
+                await _raw_insert(conn, observed_at=_t(5), effective_from=_t(0))
+
+    _run(body)
+
+
+def test_raw_insert_non_strictly_increasing_effective_from_against_open_interval_raises():
+    """The Python-level guard (not a DB CHECK -- ordering across ROWS isn't
+    expressible as a single-row CHECK) still fails closed for real against
+    PostgreSQL when a caller tries to reorder history."""
+    async def body(db, _dsn):
+        await _accept(db, tick_size=0.10, fetched_at=_t(12))
+        with pytest.raises(ValueError, match="strictly after"):
+            await _accept(db, tick_size=0.50, fetched_at=_t(6), accept_mismatch=True,
+                          effective_from=_t(6), target_metadata_revision=2)   # EARLIER, not later
+
+    _run(body)
+
+
+# ============================================================================
 # Tech-lead review 4990482334, finding 4 (BLOCKER): delayed mismatch
 # acceptance replay vector -- the exact scenario the review froze.
 #
@@ -707,9 +874,12 @@ def test_delayed_mismatch_acceptance_replay_vector():
                 "WHERE exchange=$1 AND symbol=$2 AND market_type=$3 "
                 "AND effective_until IS NULL",
                 EXCHANGE, SYMBOL, MARKET_TYPE)
+            revision_row = await conn.fetchrow(
+                "SELECT required_revision FROM stage2_instrument_metadata_state")
         assert lkg["tick_size"] == 0.10          # LKG untouched
         assert open_interval["tick_size"] == 0.10   # history untouched
         assert open_interval["effective_until"] is None
+        assert revision_row["required_revision"] == 1   # global revision untouched too
 
         # LIVE decisions from 12:00 through 12:55 still correctly see OLD.
         live_1230 = await db.fetch_v2_instrument(
@@ -719,7 +889,7 @@ def test_delayed_mismatch_acceptance_replay_vector():
         # 13:00 -- an operator DELIBERATELY accepts NEW, declaring 13:00 as
         # the real V2 decision-time activation boundary (NOT 12:00).
         await _accept(db, tick_size=0.50, fetched_at=_t(12), accept_mismatch=True,
-                      effective_from=_t(13), accepted_code_version="fork-delayed")
+                      effective_from=_t(13), target_metadata_revision=2)
 
         as_of_1230 = await db.fetch_v2_instrument(
             exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE,
@@ -846,74 +1016,214 @@ def test_seed_current_instrument_history_never_overwrites_real_history():
     _run(body)
 
 
-# ============================================================================
-# Tech-lead review 4990482334, findings 7/8 (BLOCKER): calculation_version
-# fork enforcement at the critical-mismatch-acceptance boundary.
-# ============================================================================
-def test_critical_mismatch_acceptance_without_code_version_fails_closed():
+def test_seed_current_instrument_history_stamps_current_global_revision():
+    """(Finding 10, applied to bootstrapping too) The seeded row's own
+    `accepted_metadata_revision` records whatever the global revision
+    already IS at seed time -- never NULL, never invented."""
     async def body(db, _dsn):
-        await _accept(db, tick_size=0.10, fetched_at=_t(0))
-        with pytest.raises(ValueError, match="accepted_code_version"):
-            await _accept(db, tick_size=0.50, fetched_at=_t(12), accept_mismatch=True,
-                          effective_from=_t(12))   # no accepted_code_version
-        unaffected = await db.fetch_v2_instrument(
-            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(20))
-        assert unaffected["tick_size"] == 0.10
+        async with db.pool.acquire() as conn:
+            await conn.execute(
+                """
+                INSERT INTO exchange_instruments
+                    (exchange, symbol, market_type, exchange_instrument_id,
+                     quantity_unit, contract_multiplier, tick_size,
+                     price_precision, quantity_precision, metadata_source,
+                     fetched_at, is_stale, note)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+                """,
+                EXCHANGE, SYMBOL, MARKET_TYPE, SYMBOL, "base", None, 0.25,
+                1, 3, "exchange_api", _t(0), False, None)
+            # Bump the global revision to 2 BEFORE seeding, to prove the
+            # seed stamps the CURRENT value, not a hardcoded 1.
+            await conn.execute(
+                "UPDATE stage2_instrument_metadata_state SET required_revision = 2")
+        await db.seed_current_instrument_history(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, effective_from=_t(20))
+        async with db.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT accepted_metadata_revision FROM exchange_instrument_history "
+                "WHERE exchange=$1 AND symbol=$2 AND market_type=$3",
+                EXCHANGE, SYMBOL, MARKET_TYPE)
+        assert row["accepted_metadata_revision"] == 2
 
     _run(body)
 
 
-def test_critical_mismatch_acceptance_cannot_reuse_previous_code_version():
-    """The core executable proof for finding 7: accepted critical metadata
-    cannot be consumed under the OLD calculation_version -- a second
-    critical acceptance MUST supply a code_version different from the one
-    the FIRST critical acceptance recorded, or it is refused outright."""
+# ============================================================================
+# Tech-lead review 4991738511, finding 11: explicit, conservative, idempotent
+# bootstrap of the GLOBAL stage2_instrument_metadata_state singleton itself.
+# ============================================================================
+def test_bootstrap_instrument_metadata_revision_seeds_once_idempotent():
+    async def body(db, _dsn):
+        result1 = await db.bootstrap_instrument_metadata_revision(initial_revision=1)
+        assert result1 == "SEEDED"
+        async with db.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT required_revision FROM stage2_instrument_metadata_state")
+        assert row["required_revision"] == 1
+
+        # A second bootstrap call, even with a DIFFERENT initial_revision,
+        # must NEVER overwrite an already-live required revision.
+        result2 = await db.bootstrap_instrument_metadata_revision(initial_revision=5)
+        assert result2 == "ALREADY_INITIALIZED"
+        async with db.pool.acquire() as conn:
+            row_after = await conn.fetchrow(
+                "SELECT required_revision FROM stage2_instrument_metadata_state")
+        assert row_after["required_revision"] == 1   # unchanged
+
+    _run(body, bootstrap_revision=None)   # start unseeded -- this IS the test
+
+
+def test_upsert_before_bootstrap_fails_closed():
+    """ANY history-touching upsert (even a first-ever, non-critical value)
+    attempted before the global singleton has ever been bootstrapped must
+    fail closed -- every history row's `accepted_metadata_revision`
+    provenance stamp depends on that row existing, so there is no safe
+    partial mode where only critical acceptances need it."""
+    async def body(db, _dsn):
+        with pytest.raises(ValueError, match="not bootstrapped"):
+            await _accept(db, tick_size=0.10, fetched_at=_t(0))
+        # Nothing was committed by the refused attempt.
+        result = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(5))
+        assert result is None
+
+    _run(body, bootstrap_revision=None)
+
+
+# ============================================================================
+# Tech-lead review 4991738511, finding 9 (blocker): the storage-layer half
+# of calculation_version fork enforcement -- REMOVED accepted_code_version,
+# REPLACED by an explicit target_metadata_revision that must be strictly
+# greater than the current GLOBAL stage2_instrument_metadata_state row, and
+# is bumped ATOMICALLY with the LKG/history writes. The full connection to
+# the live Stage-2 feature-assembly path (the part that actually makes this
+# a REAL fork, not just a storage-layer label) is proven separately in
+# tests/analytics/test_stage2_metadata_revision_fork.py.
+# ============================================================================
+def test_critical_mismatch_acceptance_without_target_revision_fails_closed():
+    async def body(db, _dsn):
+        await _accept(db, tick_size=0.10, fetched_at=_t(0))
+        with pytest.raises(ValueError, match="target_metadata_revision"):
+            await _accept(db, tick_size=0.50, fetched_at=_t(12), accept_mismatch=True,
+                          effective_from=_t(12))   # no target_metadata_revision
+        unaffected = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(20))
+        assert unaffected["tick_size"] == 0.10
+        async with db.pool.acquire() as conn:
+            revision_row = await conn.fetchrow(
+                "SELECT required_revision FROM stage2_instrument_metadata_state")
+        assert revision_row["required_revision"] == 1   # untouched
+
+    _run(body)
+
+
+def test_critical_mismatch_acceptance_same_or_lower_revision_fails_closed():
+    """The core executable proof: accepted critical metadata cannot be
+    consumed under the OLD calculation_version -- a critical acceptance
+    MUST supply a target_metadata_revision strictly greater than the
+    GLOBAL row's current value, or it is refused outright."""
     async def body(db, _dsn):
         await _accept(db, tick_size=0.10, fetched_at=_t(0))
         await _accept(db, tick_size=0.50, fetched_at=_t(12), accept_mismatch=True,
-                      effective_from=_t(12), accepted_code_version="fork-b")
+                      effective_from=_t(12), target_metadata_revision=2)
 
-        # A SECOND critical change reusing "fork-b" must be refused.
-        with pytest.raises(ValueError, match="IDENTICAL|identical"):
+        # Reusing 2 (the SAME value the first acceptance just set) is refused.
+        with pytest.raises(ValueError, match="not strictly greater"):
             await _accept(db, tick_size=0.90, fetched_at=_t(24), accept_mismatch=True,
-                          effective_from=_t(24), accepted_code_version="fork-b")
+                          effective_from=_t(24), target_metadata_revision=2)
+        # A LOWER value is refused too.
+        with pytest.raises(ValueError, match="not strictly greater"):
+            await _accept(db, tick_size=0.90, fetched_at=_t(24), accept_mismatch=True,
+                          effective_from=_t(24), target_metadata_revision=1)
 
-        # The refused acceptance must not have mutated anything further.
+        # Neither refused acceptance mutated anything further.
         unaffected = await db.fetch_v2_instrument(
             exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(30))
         assert unaffected["tick_size"] == 0.50
 
-        # A genuinely NEW code_version succeeds.
+        # A genuinely HIGHER revision succeeds.
         await _accept(db, tick_size=0.90, fetched_at=_t(24), accept_mismatch=True,
-                      effective_from=_t(24), accepted_code_version="fork-c")
+                      effective_from=_t(24), target_metadata_revision=3)
         now_current = await db.fetch_v2_instrument(
             exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(30))
         assert now_current["tick_size"] == 0.90
 
+        # The GLOBAL row itself now reads 3 -- the real, atomically-bumped
+        # fork identity, not merely a per-row label.
+        async with db.pool.acquire() as conn:
+            revision_row = await conn.fetchrow(
+                "SELECT required_revision FROM stage2_instrument_metadata_state")
+        assert revision_row["required_revision"] == 3
+
         # The recorded history proves each accepted critical fork by value.
         async with db.pool.acquire() as conn:
             forks = await conn.fetch(
-                "SELECT tick_size, accepted_code_version FROM exchange_instrument_history "
+                "SELECT tick_size, accepted_metadata_revision FROM exchange_instrument_history "
                 "WHERE exchange=$1 AND symbol=$2 AND market_type=$3 "
-                "AND accepted_code_version IS NOT NULL ORDER BY effective_from ASC",
+                "ORDER BY effective_from ASC",
                 EXCHANGE, SYMBOL, MARKET_TYPE)
-        assert [(r["tick_size"], r["accepted_code_version"]) for r in forks] == [
-            (0.50, "fork-b"), (0.90, "fork-c")]
+        assert [(r["tick_size"], r["accepted_metadata_revision"]) for r in forks] == [
+            (0.10, 1), (0.50, 2), (0.90, 3)]
 
     _run(body)
 
 
-def test_first_ever_critical_history_row_has_no_accepted_code_version():
+def test_first_ever_history_row_inherits_current_global_revision_not_null():
     """A first-ever accepted value (no prior LKG/history at all) is not a
-    "critical mismatch acceptance" -- its history row's
-    accepted_code_version stays NULL; no fork declaration is required."""
+    "critical mismatch acceptance" -- but its history row's
+    accepted_metadata_revision is still stamped with the CURRENT global
+    revision (1, from bootstrap), never NULL/None (finding 10: never
+    silently reset provenance just because this particular row wasn't
+    itself a critical acceptance)."""
     async def body(db, _dsn):
         await _accept(db, tick_size=0.10, fetched_at=_t(0))
         async with db.pool.acquire() as conn:
             row = await conn.fetchrow(
-                "SELECT accepted_code_version FROM exchange_instrument_history "
+                "SELECT accepted_metadata_revision FROM exchange_instrument_history "
                 "WHERE exchange=$1 AND symbol=$2 AND market_type=$3",
                 EXCHANGE, SYMBOL, MARKET_TYPE)
-        assert row["accepted_code_version"] is None
+        assert row["accepted_metadata_revision"] == 1
+
+    _run(body)
+
+
+# ============================================================================
+# Tech-lead review 4991738511, finding 10: a NON-critical value change
+# (price_precision-only) must NEVER require or bump the global revision --
+# it simply inherits whatever the CURRENT global revision already is.
+# ============================================================================
+def test_noncritical_field_only_change_does_not_bump_required_revision():
+    async def body(db, _dsn):
+        await _accept(db, tick_size=0.10, fetched_at=_t(0))
+        # Critical change -> bumps the global revision to 2.
+        await _accept(db, tick_size=0.50, fetched_at=_t(12), accept_mismatch=True,
+                      effective_from=_t(12), target_metadata_revision=2)
+
+        # Now a NON-critical-only change: same tick_size/quantity_unit/
+        # contract_multiplier/exchange_instrument_id, only price_precision
+        # differs. No accept_mismatch, no target_metadata_revision needed
+        # at all -- critical_diff is empty, so the mismatch-refusal gate
+        # doesn't even apply. effective_from is still required (a genuine
+        # value change against an already-open interval), just not a
+        # revision bump.
+        await _accept(db, tick_size=0.50, fetched_at=_t(24), price_precision=9,
+                      effective_from=_t(24))
+
+        async with db.pool.acquire() as conn:
+            revision_row = await conn.fetchrow(
+                "SELECT required_revision FROM stage2_instrument_metadata_state")
+            rows = await conn.fetch(
+                "SELECT tick_size, price_precision, accepted_metadata_revision "
+                "FROM exchange_instrument_history "
+                "WHERE exchange=$1 AND symbol=$2 AND market_type=$3 "
+                "ORDER BY effective_from ASC",
+                EXCHANGE, SYMBOL, MARKET_TYPE)
+        assert revision_row["required_revision"] == 2   # unchanged by the non-critical write
+        # Three intervals now: original (rev 1), critical accept (rev 2),
+        # non-critical precision-only change -- which INHERITS rev 2, never
+        # resets to NULL/1.
+        assert [(r["tick_size"], r["price_precision"], r["accepted_metadata_revision"])
+                for r in rows] == [(0.10, 1, 1), (0.50, 1, 2), (0.50, 9, 2)]
 
     _run(body)

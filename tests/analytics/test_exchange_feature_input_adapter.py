@@ -160,6 +160,40 @@ def test_code_version_change_forks_calc_version():
     assert _ctx(code_version="a").calculation_version != _ctx(code_version="b").calculation_version
 
 
+# ------------------ B2. instrument_metadata_revision (review 4991738511) ----
+def test_context_exposes_instrument_metadata_revision():
+    ctx = _ctx()
+    assert ctx.instrument_metadata_revision == CFG.resolve(SYM)["instrument_metadata_revision"]
+    assert ctx.instrument_metadata_revision == 1   # config/stage2.yaml's own current default
+
+
+def test_instrument_metadata_revision_change_forks_calc_version():
+    raw = copy.deepcopy(CFG._raw)
+    raw["defaults"]["instrument_metadata_revision"] = 2
+    cfg2 = Stage2Config(raw)
+    cfg2._validate()
+    other = build_assembly_context(cfg2, exchange=EX, symbol=SYM, market_type=MT,
+                                   timeframe="5m", bucket_ts=B, code_version="code-v1",
+                                   liquidation_feed_available=True)
+    assert other.instrument_metadata_revision == 2
+    assert other.calculation_version != _ctx().calculation_version
+
+
+def test_assemble_fails_closed_on_required_metadata_revision_mismatch():
+    """(Tech-lead review 4991738511) The FIRST check assemble_exchange_
+    feature_request performs: the resolved config's own
+    instrument_metadata_revision must equal the raw bundle's LIVE
+    required_metadata_revision, or this fails closed before constructing
+    any ExchangeFeatureRequest."""
+    bundle = _bundle(inst=_inst(tick_size=0.5))
+    stale_bundle = dataclasses.replace(bundle, required_metadata_revision=2)
+    with pytest.raises(FeatureInputError, match="instrument_metadata_revision"):
+        assemble_exchange_feature_request(_ctx(), stale_bundle)
+    # The matching (default) revision succeeds.
+    req = assemble_exchange_feature_request(_ctx(), bundle)
+    assert req.instrument_metadata.tick_size == 0.5
+
+
 def test_config_change_forks_calc_version():
     raw = copy.deepcopy(CFG._raw)
     raw["defaults"]["outliers"]["robust_z_threshold"] = 9.9   # any config change

@@ -275,7 +275,7 @@ class Database:
         fetched_at, is_stale: bool = False, note: str = "",
         accept_mismatch: bool = False,
         effective_from=None,
-        accepted_code_version: "Optional[str]" = None,
+        target_metadata_revision: "Optional[int]" = None,
     ) -> str:
         """Upsert an instrument row. The canonical `symbol` and the venue-native
         `exchange_instrument_id` are stored in SEPARATE columns. Stale flag and
@@ -286,35 +286,60 @@ class Database:
         overwritten: unless `accept_mismatch=True`, this raises so the change is
         a deliberate decision.
 
-        **`calculation_version` fork enforcement (tech-lead review
-        4990482334, findings 7/8).** Accepting (`accept_mismatch=True`) a
-        genuine change on any `_INSTRUMENT_CRITICAL_FIELDS` field
-        additionally REQUIRES `accepted_code_version` (a non-blank
-        string): the NEW `code_version` this deliberate acceptance is
-        declaring going forward. It MUST differ from whichever
-        `accepted_code_version` this identity's own MOST RECENT prior
-        critical-field acceptance recorded (if any) -- reusing the same
-        `code_version` for a second, DIFFERENT critical value raises,
-        refusing the acceptance outright (fail-closed, per the review's
-        own permitted resolution: "fail closed and remain unusable until
-        the version fork is explicitly supplied/established"). This does
-        NOT itself change `compute_calculation_version`'s formula/format
-        (still exactly `sha256(...)[:16]`, `code_version` was already one
-        of its three existing inputs) and does NOT touch the live Stage 2
-        assembly pipeline (`analytics/feature_engine/input_adapter.py`
-        `build_assembly_context`/`assemble_exchange_feature_request`,
-        which resolve `code_version` from `resolve_feature_code_version`/
-        an explicit operator-supplied value exactly as before, completely
-        unmodified by this PR) -- it makes the ACCEPTANCE ITSELF
-        mechanically incapable of silently continuing under the old
-        `code_version`, which is the one formula input this repository
-        already lets an operator/deployment declare explicitly. See the
-        PR body's calculation-version section for the full audit
-        (no real fork mechanism existed before this PR; the frozen
-        `common/instrument_metadata.py::CRITICAL_FIELDS` comment claiming
-        one was aspirational only) and
-        `tests/storage/test_v2_instrument_history_readers.py`'s
-        calculation-version-fork vectors for the executable proof.
+        **`calculation_version` fork enforcement, connected end-to-end
+        (tech-lead review 4991738511; supersedes review 4990482334's
+        `accepted_code_version`, which proved only that two STORED LABELS
+        differed, never that the live Stage-2 feature-assembly path was
+        mechanically prevented from consuming NEW critical metadata under
+        an OLD `calculation_version` -- that column/parameter is REMOVED,
+        not kept alongside this one).** Accepting (`accept_mismatch=True`)
+        a genuine change on any `_INSTRUMENT_CRITICAL_FIELDS` field
+        additionally REQUIRES `target_metadata_revision` (a plain int,
+        never a timestamp): the new value for the ONE global,
+        Stage-2-wide `stage2_instrument_metadata_state.required_revision`
+        row this deliberate acceptance is declaring. It MUST be strictly
+        GREATER than that row's own CURRENT value (read here under
+        `SELECT ... FOR UPDATE`, serializing against any OTHER identity's
+        concurrent critical acceptance too, not just this one) -- the
+        same or a lower value raises, refusing the acceptance outright.
+        On success this method atomically UPDATEs that row to the new
+        value, in the SAME transaction as the LKG upsert and the history
+        interval close/open below, so no external observer can ever see
+        NEW metadata paired with the OLD required revision or vice versa.
+
+        This is what actually closes the loop to feature computation:
+        `defaults.instrument_metadata_revision` (`config/stage2.yaml`) is
+        part of the RESOLVED per-symbol config, hence part of
+        `config_hash`, hence part of `calculation_version` -- with ZERO
+        change to `compute_calculation_version`'s formula/format. Every
+        live feature computation's raw-bundle read
+        (`storage/stage2_readers.py::read_exchange_feature_raw_bundle`)
+        reads this SAME `stage2_instrument_metadata_state` row, and
+        `analytics/feature_engine/input_adapter.py::
+        assemble_exchange_feature_request` FAILS CLOSED
+        (`FeatureInputError`, before constructing any
+        `ExchangeFeatureRequest`) the instant the resolved config's own
+        `instrument_metadata_revision` no longer matches it -- i.e. the
+        moment this method bumps this row, EVERY exchange/symbol's Stage 2
+        computation (not just this identity's) refuses to persist a
+        feature vector until an operator explicitly updates
+        `config/stage2.yaml` to adopt the new revision (which is exactly
+        what forks `calculation_version` for real). Deliberately ONE
+        GLOBAL row, not one per identity: `calculation_version` is a
+        SHARED Stage-2 computation namespace, so an accepted critical
+        change on any single venue must fork it for ALL venues together.
+        See `storage/stage2_schema.sql::stage2_instrument_metadata_state`'s
+        own comment for the full mechanism and
+        `tests/analytics/test_stage2_metadata_revision_fork.py`'s executable
+        end-to-end proof (old config+new metadata fails closed; updated
+        config+new metadata succeeds with a genuinely different
+        `calculation_version`).
+
+        A non-critical value change (e.g. price_precision-only) never
+        requires or bumps `target_metadata_revision` -- it inherits
+        whatever the CURRENT global `required_revision` already is,
+        stamped onto its own history row's `accepted_metadata_revision`
+        purely for provenance (never reset to NULL/None -- finding 10).
 
         Runs inside ONE transaction, serialized by a transaction-scoped
         Postgres advisory lock keyed to `(exchange, symbol, market_type)`
@@ -399,34 +424,61 @@ class Database:
                             f"instrument metadata mismatch on {critical_diff} for "
                             f"{exchange}/{symbol}/{market_type}; refusing silent overwrite "
                             f"(pass accept_mismatch=True to accept deliberately)")
+                revision_for_history_row = None
                 if critical_diff:
-                    # (findings 7/8) A genuine deliberately-accepted CRITICAL
-                    # metadata change must declare a fresh code_version --
-                    # never silently continue under the code_version already
-                    # in use for this identity's previous critical acceptance.
-                    if not accepted_code_version or not accepted_code_version.strip():
+                    # (tech-lead review 4991738511) A genuine deliberately-
+                    # accepted CRITICAL metadata change must declare a NEW,
+                    # strictly-greater required instrument-metadata revision
+                    # -- never silently continue under the OLD one. This is
+                    # the REAL, end-to-end fork mechanism: bumping this ONE
+                    # global row is what the live Stage 2 feature-assembly
+                    # path (analytics/feature_engine/input_adapter.py::
+                    # assemble_exchange_feature_request) checks against and
+                    # fails closed on for EVERY exchange/symbol, until an
+                    # operator explicitly updates config/stage2.yaml's
+                    # defaults.instrument_metadata_revision to match (which
+                    # forks calculation_version for real, since that config
+                    # value is part of config_hash).
+                    if target_metadata_revision is None:
                         raise ValueError(
                             f"instrument metadata critical-field change on {critical_diff} for "
                             f"{exchange}/{symbol}/{market_type} is being accepted, but no "
-                            "accepted_code_version was supplied -- a genuine critical metadata "
-                            "acceptance must declare the NEW code_version this repository will "
-                            "resolve going forward, so calculation_version can fork; refusing to "
-                            "silently continue under the old code_version")
-                    last = await conn.fetchrow(
-                        "SELECT accepted_code_version FROM exchange_instrument_history "
-                        "WHERE exchange=$1 AND symbol=$2 AND market_type=$3 "
-                        "AND accepted_code_version IS NOT NULL "
-                        "ORDER BY effective_from DESC LIMIT 1",
-                        exchange, symbol, market_type)
-                    if last is not None and last["accepted_code_version"] == accepted_code_version:
+                            "target_metadata_revision was supplied -- a genuine critical "
+                            "metadata acceptance must declare the NEW required instrument-"
+                            "metadata revision, so calculation_version can fork end-to-end; "
+                            "refusing to silently continue under the old revision")
+                    if not isinstance(target_metadata_revision, int) or isinstance(
+                            target_metadata_revision, bool):
+                        raise ValueError(
+                            f"target_metadata_revision must be an int, got "
+                            f"{type(target_metadata_revision).__name__}")
+                    if target_metadata_revision <= 0:
+                        raise ValueError(
+                            f"target_metadata_revision must be > 0, got {target_metadata_revision!r}")
+                    current_revision_row = await conn.fetchrow(
+                        "SELECT required_revision FROM stage2_instrument_metadata_state "
+                        "FOR UPDATE")
+                    if current_revision_row is None:
+                        raise ValueError(
+                            "stage2_instrument_metadata_state has no row -- schema not "
+                            "bootstrapped (call Database.bootstrap_instrument_metadata_revision "
+                            "first)")
+                    current_revision = current_revision_row["required_revision"]
+                    if target_metadata_revision <= current_revision:
                         raise ValueError(
                             f"instrument metadata critical-field change on {critical_diff} for "
-                            f"{exchange}/{symbol}/{market_type}: accepted_code_version "
-                            f"{accepted_code_version!r} is IDENTICAL to the code_version already "
-                            "recorded for this identity's PREVIOUS accepted critical change -- a "
-                            "genuine critical metadata change must fork to a NEW code_version, "
-                            "never reuse the old one, or subsequent Stage 2/V2 computations could "
-                            "silently continue claiming the old calculation_version")
+                            f"{exchange}/{symbol}/{market_type}: target_metadata_revision "
+                            f"{target_metadata_revision!r} is not strictly greater than the "
+                            f"currently required instrument-metadata revision "
+                            f"{current_revision!r} -- a genuine critical metadata change must "
+                            "fork to a NEW, higher revision, never reuse or lower the current "
+                            "one, or subsequent Stage 2 computations could silently continue "
+                            "under the OLD calculation_version")
+                    await conn.execute(
+                        "UPDATE stage2_instrument_metadata_state "
+                        "SET required_revision = $1, updated_at = now()",
+                        target_metadata_revision)
+                    revision_for_history_row = target_metadata_revision
                 await conn.execute(
                     """
                     INSERT INTO exchange_instruments
@@ -490,6 +542,19 @@ class Database:
                                 "AND effective_from=$5",
                                 resolved_effective_from, exchange, symbol, market_type,
                                 current["effective_from"])
+                        if revision_for_history_row is None:
+                            # Non-critical value change (e.g. price_precision-
+                            # only): inherit whatever the CURRENT global
+                            # required revision already is, for provenance
+                            # only -- never reset to NULL/None (finding 10).
+                            rev_row = await conn.fetchrow(
+                                "SELECT required_revision FROM stage2_instrument_metadata_state")
+                            if rev_row is None:
+                                raise ValueError(
+                                    "stage2_instrument_metadata_state has no row -- schema not "
+                                    "bootstrapped (call "
+                                    "Database.bootstrap_instrument_metadata_revision first)")
+                            revision_for_history_row = rev_row["required_revision"]
                         await conn.execute(
                             """
                             INSERT INTO exchange_instrument_history
@@ -497,14 +562,14 @@ class Database:
                                  quantity_unit, contract_multiplier, tick_size,
                                  price_precision, quantity_precision, metadata_source,
                                  observed_at, effective_from, effective_until, note,
-                                 accepted_code_version)
+                                 accepted_metadata_revision)
                             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NULL,$13,$14)
                             """,
                             exchange, symbol, market_type, exchange_instrument_id,
                             quantity_unit, contract_multiplier, tick_size,
                             price_precision, quantity_precision, metadata_source,
                             fetched_at, resolved_effective_from, note,
-                            accepted_code_version if critical_diff else None,
+                            revision_for_history_row,
                         )
         return "OK"
 
@@ -557,14 +622,26 @@ class Database:
                     exchange, symbol, market_type)
                 if any_history is not None:
                     return "ALREADY_HAS_HISTORY"
+                # (Tech-lead review 4991738511) Stamp the CURRENT global
+                # required revision onto this seeded row for provenance
+                # ONLY -- bootstrapping never forks anything itself, so it
+                # simply records whatever revision is already live.
+                rev_row = await conn.fetchrow(
+                    "SELECT required_revision FROM stage2_instrument_metadata_state")
+                if rev_row is None:
+                    raise ValueError(
+                        "stage2_instrument_metadata_state has no row -- schema not "
+                        "bootstrapped (call Database.bootstrap_instrument_metadata_revision "
+                        "before seeding instrument history)")
                 await conn.execute(
                     """
                     INSERT INTO exchange_instrument_history
                         (exchange, symbol, market_type, exchange_instrument_id,
                          quantity_unit, contract_multiplier, tick_size,
                          price_precision, quantity_precision, metadata_source,
-                         observed_at, effective_from, effective_until, note)
-                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NULL,$13)
+                         observed_at, effective_from, effective_until, note,
+                         accepted_metadata_revision)
+                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NULL,$13,$14)
                     """,
                     exchange, symbol, market_type, lkg["exchange_instrument_id"],
                     lkg["quantity_unit"], lkg["contract_multiplier"], lkg["tick_size"],
@@ -572,7 +649,46 @@ class Database:
                     lkg["fetched_at"], effective_from,
                     f"seeded from pre-existing exchange_instruments LKG row "
                     f"(its own fetched_at={lkg['fetched_at']!r})",
+                    rev_row["required_revision"],
                 )
+        return "SEEDED"
+
+    async def bootstrap_instrument_metadata_revision(self, *, initial_revision: int) -> str:
+        """(Tech-lead review 4991738511, finding 11) Explicit, conservative,
+        idempotent bootstrap of the ONE global
+        `stage2_instrument_metadata_state` row -- the durable current
+        required instrument-metadata revision every Stage 2 feature
+        computation (any exchange, any symbol) must agree with. Mirrors
+        `seed_current_instrument_history`'s own explicit/conservative/
+        idempotent shape exactly.
+
+        `initial_revision` MUST be established explicitly from the caller's
+        own resolved Stage 2 configuration (e.g.
+        `stage2_config.instrument_metadata_revision`) -- never invented,
+        never a timestamp, never hardcoded silently in this method or in
+        schema DDL. Returns `"SEEDED"` when it actually inserted the row
+        (fresh deployment); returns `"ALREADY_INITIALIZED"` without writing
+        anything if a row already exists -- this method NEVER overwrites an
+        already-live required revision, however different `initial_revision`
+        is on a repeated call; safe to call repeatedly."""
+        if not isinstance(initial_revision, int) or isinstance(initial_revision, bool):
+            raise ValueError(
+                f"initial_revision must be an int, got {type(initial_revision).__name__}")
+        if initial_revision <= 0:
+            raise ValueError(f"initial_revision must be > 0, got {initial_revision!r}")
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute(
+                    "SELECT pg_advisory_xact_lock(hashtext('stage2_instrument_metadata_state'))")
+                existing = await conn.fetchrow(
+                    "SELECT required_revision FROM stage2_instrument_metadata_state")
+                if existing is not None:
+                    return "ALREADY_INITIALIZED"
+                await conn.execute(
+                    "INSERT INTO stage2_instrument_metadata_state "
+                    "(singleton, required_revision, updated_at) VALUES (TRUE, $1, now())",
+                    initial_revision)
         return "SEEDED"
 
     # ---------------------------------------------------------------

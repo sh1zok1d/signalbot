@@ -35,6 +35,10 @@ EXPECTED_TABLES = [
     # additive V2-H2c as-of/historical instrument metadata (details in
     # tests/storage/test_v2_instrument_history_schema.py)
     "exchange_instrument_history",
+    # additive tech-lead review 4991738511 calculation_version fork
+    # enforcement -- the ONE global required instrument-metadata revision
+    # row (details in tests/storage/test_v2_instrument_history_schema.py)
+    "stage2_instrument_metadata_state",
 ]
 
 

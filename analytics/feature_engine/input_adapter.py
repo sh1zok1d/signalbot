@@ -70,6 +70,7 @@ class AssemblyContext:
     code_version: str
     allowed_missing_bars: int
     liquidation_feed_available: bool
+    instrument_metadata_revision: int
 
 
 # ---- small validators -------------------------------------------------------
@@ -175,6 +176,16 @@ def build_assembly_context(
     allowed_missing_bars = _allowed_missing_bars(
         timeframe, resolved["data_confidence"]["minimum_metric_coverage"])
     bucket_end = bucket_ts + timedelta(minutes=TIMEFRAME_MINUTES[timeframe])
+    # (Tech-lead review 4991738511) Already validated at Stage2Config load
+    # time (int, > 0, uniform across every tier/symbol) -- re-checked here
+    # defensively, matching this module's existing paranoid-validation style
+    # for every other resolved-config value it reads.
+    instrument_metadata_revision = resolved["instrument_metadata_revision"]
+    if not isinstance(instrument_metadata_revision, int) or isinstance(
+            instrument_metadata_revision, bool) or instrument_metadata_revision <= 0:
+        raise FeatureInputError(
+            f"resolved config instrument_metadata_revision must be an int > 0, "
+            f"got {instrument_metadata_revision!r}")
 
     return AssemblyContext(
         exchange=exchange, symbol=symbol, market_type=market_type, timeframe=timeframe,
@@ -183,7 +194,8 @@ def build_assembly_context(
         calculation_version=calculation_version, config_hash=config_hash,
         config_version=config_version, code_version=code_version,
         allowed_missing_bars=allowed_missing_bars,
-        liquidation_feed_available=liquidation_feed_available)
+        liquidation_feed_available=liquidation_feed_available,
+        instrument_metadata_revision=instrument_metadata_revision)
 
 
 # ---- row field helpers ------------------------------------------------------
@@ -434,7 +446,33 @@ def _instrument_metadata(ctx: AssemblyContext, inst: Optional[Mapping]) -> Optio
 def assemble_exchange_feature_request(
     context: AssemblyContext, raw_bundle,
 ) -> ExchangeFeatureRequest:
-    """PURE: convert the raw bundle into one ExchangeFeatureRequest. No I/O."""
+    """PURE: convert the raw bundle into one ExchangeFeatureRequest. No I/O.
+
+    (Tech-lead review 4991738511) The FIRST thing checked, before any other
+    field is even touched: the resolved config's OWN
+    `instrument_metadata_revision` (already baked into `context.
+    calculation_version` via `config_hash`) must equal the raw bundle's
+    LIVE `required_metadata_revision` -- the one global, Stage-2-wide fact
+    `Database.upsert_exchange_instrument` atomically bumps the moment a
+    CRITICAL instrument-metadata change is deliberately accepted (see
+    `storage/stage2_schema.sql::stage2_instrument_metadata_state`). A
+    mismatch means this configuration has not yet adopted a metadata change
+    that has already been accepted -- continuing would silently compute a
+    feature vector under a STALE `calculation_version` against NEW critical
+    metadata, exactly the coherence gap tech-lead review 4990482334 first
+    flagged and review 4991738511 found still unconnected to this real
+    path. FAILS CLOSED (`FeatureInputError`) before any
+    `ExchangeFeatureRequest` is constructed -- there is no partial/degraded
+    construction path here."""
+    if context.instrument_metadata_revision != raw_bundle.required_metadata_revision:
+        raise FeatureInputError(
+            f"resolved config instrument_metadata_revision="
+            f"{context.instrument_metadata_revision!r} does not match the currently "
+            f"required instrument-metadata revision {raw_bundle.required_metadata_revision!r} "
+            f"for {context.exchange}/{context.symbol}/{context.market_type} -- a critical "
+            "instrument-metadata change has been deliberately accepted that this "
+            "configuration has not yet adopted; refusing to construct a feature vector "
+            "under a stale computation identity (tech-lead review 4991738511)")
     bars = _bars(context, raw_bundle.klines)
     open_interest = _open_interest(context, raw_bundle.open_interest)
     funding = _funding(context, raw_bundle.latest_funding)

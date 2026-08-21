@@ -20,10 +20,18 @@ class _NoOpTransaction:
 
 
 class FakeConn:
-    def __init__(self, fetchrow_result=None):
+    def __init__(self, fetchrow_result=None, revision_row=None):
         self.executed: list[tuple] = []
         self.executemany_calls: list[tuple] = []
         self.fetchrow_result = fetchrow_result
+        # (Tech-lead review 4991738511) `stage2_instrument_metadata_state`
+        # is a SEPARATE table from `exchange_instruments`/
+        # `exchange_instrument_history` -- routed to its own canned value
+        # (defaulting to a live singleton at revision 1) rather than reusing
+        # `fetchrow_result`, since several tests deliberately need the
+        # LATTER to be None (no existing LKG/history row) while still
+        # needing a REAL singleton row for the former.
+        self.revision_row = revision_row if revision_row is not None else {"required_revision": 1}
 
     async def execute(self, sql, *args):
         self.executed.append((sql, args))
@@ -33,6 +41,8 @@ class FakeConn:
         self.executemany_calls.append((sql, list(rows)))
 
     async def fetchrow(self, sql, *args):
+        if "stage2_instrument_metadata_state" in sql:
+            return self.revision_row
         return self.fetchrow_result
 
     def transaction(self):
@@ -206,11 +216,8 @@ def test_instrument_upsert_accepted_change_closes_old_and_opens_new_interval():
         "contract_multiplier": 0.01, "tick_size": 0.1,
         "price_precision": None, "quantity_precision": None,
         "effective_from": datetime(2026, 8, 1, tzinfo=UTC),
-        "accepted_code_version": None,   # FakeConn returns this same dict for
-                                          # BOTH the existing-row and the
-                                          # last-accepted-code-version lookups
     }
-    conn = FakeConn(fetchrow_result=old_row)
+    conn = FakeConn(fetchrow_result=old_row)   # default revision_row: required_revision=1
     db = _db(conn)
     new_fetched_at = datetime(2026, 8, 15, tzinfo=UTC)
     _run(db.upsert_exchange_instrument(
@@ -220,12 +227,15 @@ def test_instrument_upsert_accepted_change_closes_old_and_opens_new_interval():
         price_precision=None, quantity_precision=None,
         metadata_source="exchange_api", fetched_at=new_fetched_at, is_stale=False,
         accept_mismatch=True, effective_from=new_fetched_at,
-        accepted_code_version="stage2-code-v2"))
+        target_metadata_revision=2))
     closes = [(sql, args) for sql, args in conn.executed
               if "UPDATE exchange_instrument_history" in sql]
     opens = _inserts(conn, "exchange_instrument_history")
+    bumps = [(sql, args) for sql, args in conn.executed
+             if "UPDATE stage2_instrument_metadata_state" in sql]
     assert len(closes) == 1 and new_fetched_at in closes[0][1]
     assert len(opens) == 1 and new_fetched_at in opens[0][1]
+    assert len(bumps) == 1 and bumps[0][1] == (2,)
 
 
 def test_instrument_upsert_fetched_at_none_never_touches_history():
@@ -243,7 +253,6 @@ def test_instrument_mismatch_does_not_silently_overwrite():
     existing = {
         "exchange_instrument_id": "BTC-USDT-SWAP", "quantity_unit": "contracts",
         "contract_multiplier": 0.01, "tick_size": 0.1,
-        "accepted_code_version": None,
     }
     conn = FakeConn(fetchrow_result=existing)
     db = _db(conn)
@@ -263,24 +272,43 @@ def test_instrument_mismatch_does_not_silently_overwrite():
         contract_multiplier=0.01, tick_size=0.2, price_precision=None,
         quantity_precision=None, metadata_source="exchange_api",
         fetched_at=None, is_stale=False, accept_mismatch=True,
-        accepted_code_version="stage2-code-v2"))
+        target_metadata_revision=2))
     assert len(_inserts(conn, "exchange_instruments")) == 1
 
 
-def test_instrument_critical_accept_without_code_version_raises():
+def test_instrument_critical_accept_without_target_revision_raises():
     existing = {
         "exchange_instrument_id": "BTC-USDT-SWAP", "quantity_unit": "contracts",
         "contract_multiplier": 0.01, "tick_size": 0.1,
     }
     conn = FakeConn(fetchrow_result=existing)
     db = _db(conn)
-    with pytest.raises(ValueError, match="accepted_code_version"):
+    with pytest.raises(ValueError, match="target_metadata_revision"):
         _run(db.upsert_exchange_instrument(
             exchange="okx", symbol="BTCUSDT", market_type="perp",
             exchange_instrument_id="BTC-USDT-SWAP", quantity_unit="contracts",
             contract_multiplier=0.01, tick_size=0.2, price_precision=None,
             quantity_precision=None, metadata_source="exchange_api",
             fetched_at=None, is_stale=False, accept_mismatch=True))
+    assert _inserts(conn, "exchange_instruments") == []
+
+
+def test_instrument_critical_accept_reusing_current_revision_raises():
+    existing = {
+        "exchange_instrument_id": "BTC-USDT-SWAP", "quantity_unit": "contracts",
+        "contract_multiplier": 0.01, "tick_size": 0.1,
+    }
+    conn = FakeConn(fetchrow_result=existing, revision_row={"required_revision": 3})
+    db = _db(conn)
+    with pytest.raises(ValueError, match="not strictly greater"):
+        _run(db.upsert_exchange_instrument(
+            exchange="okx", symbol="BTCUSDT", market_type="perp",
+            exchange_instrument_id="BTC-USDT-SWAP", quantity_unit="contracts",
+            contract_multiplier=0.01, tick_size=0.2, price_precision=None,
+            quantity_precision=None, metadata_source="exchange_api",
+            fetched_at=None, is_stale=False, accept_mismatch=True,
+            effective_from=datetime(2026, 8, 15, tzinfo=UTC),
+            target_metadata_revision=3))   # reuses the current value -- rejected
     assert _inserts(conn, "exchange_instruments") == []
 
 
