@@ -39,6 +39,11 @@ EXPECTED_TABLES = [
     # enforcement -- the ONE global required instrument-metadata revision
     # row (details in tests/storage/test_v2_instrument_history_schema.py)
     "stage2_instrument_metadata_state",
+    # additive V2-H2e correction-publication coherence barrier: monotonic
+    # raw-revision counter + calculation_version-scoped publication record
+    # (details in tests/storage/test_stage2_publication_state_schema.py)
+    "stage2_raw_revision",
+    "stage2_publication_state",
 ]
 
 

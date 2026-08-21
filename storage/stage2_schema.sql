@@ -1352,3 +1352,113 @@ CREATE TABLE IF NOT EXISTS stage2_instrument_metadata_state (
     CONSTRAINT ck_s2ims_singleton_true CHECK (singleton),
     CONSTRAINT ck_s2ims_revision_positive CHECK (required_revision > 0)
 );
+
+-- ============================================================
+-- V2-H2e: Stage-2 correction-publication coherence barrier
+-- (docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §3.4, §2.1).
+-- Amended per tech-lead review (round 2, finding 3 / finding 1): replaces
+-- a single (symbol, market_type)-only CLEAN/DIRTY status with a
+-- revision-comparison model across TWO tables -- see
+-- `storage/stage2_publication_state.py`'s module docstring for the full
+-- rationale (the single-status design silently authorized a SUPERSEDED
+-- calculation_version as CLEAN merely because the ACTIVE version was
+-- repaired; it also had no compare-and-swap, so an overlapping later
+-- correction could be silently clobbered by a stale in-flight publisher).
+--
+-- Clean-room audit finding these tables close: a raw-data correction
+-- (`Database.insert_klines`/`insert_open_interest`/`insert_funding`
+-- upserting an ALREADY-EXISTING row, or a first-ever insert landing inside
+-- an already-published derived bucket) and the Stage 2 derived recompute
+-- it implies (`STAGE2_SPEC.md` §8.3) are NOT atomic with each other today
+-- -- there is no code anywhere in this repository that enqueues, drains,
+-- or otherwise executes `stage2_recompute_queue`/`stage2_watermarks`
+-- (schema-only scaffolding; confirmed by exhaustive grep across
+-- runtime/analytics/storage). A REPEATABLE READ V2 read transaction
+-- starting in the window between the raw correction's commit and the
+-- (currently nonexistent) derived republish would silently combine
+-- POST-correction raw facts with PRE-correction derived facts under the
+-- same `calculation_version` -- exactly the semantic hole §3.4 freezes as
+-- a correctness requirement, which H2c's own per-request raw-bundle
+-- REPEATABLE READ transaction (`fetch_exchange_feature_raw_bundle`) does
+-- NOT close (it only protects ONE Stage 2 feature request's OWN seven
+-- reads, never the broader Stage 3+5 V2 decision view).
+--
+-- `stage2_raw_revision`, scope (symbol, market_type) -- NOT
+-- `calculation_version`: ONE monotonic BIGINT counter, bumped by EVERY
+-- raw write a raw writer determines can invalidate already-published
+-- derived history (a genuine correction to an existing row, OR a
+-- first-ever insert landing inside an already-published bucket -- see
+-- `storage/db.py`). Raw market data has no `calculation_version` of its
+-- own (confirmed: neither `data_ingestion/manager.py` nor
+-- `backfill/backfill.py` mentions it), so this counter deliberately
+-- cannot be, and is not, scoped by it.
+--
+-- `stage2_publication_state`, scope (symbol, market_type,
+-- calculation_version): `published_raw_revision` records the
+-- `stage2_raw_revision` value THIS calculation_version's derived output
+-- was last completely, atomically published against. A scope+version is
+-- CLEAN iff `published_raw_revision` equals the CURRENT
+-- `stage2_raw_revision.raw_revision` for that `(symbol, market_type)` --
+-- computed by comparison at read time
+-- (`storage/stage2_publication_state.py::read_publication_state`), never
+-- stored as a separate boolean that could drift from the two facts it
+-- summarizes. A superseded calculation_version's `published_raw_revision`
+-- simply stays behind forever (nobody republishes it), so it correctly,
+-- structurally reads STALE regardless of what happens to the active
+-- version -- this is what fixes finding 3, not a documentation caveat.
+--
+-- Row lifecycle:
+--   - `stage2_raw_revision` is bumped via `bump_raw_revision`, ALWAYS
+--     inside the SAME transaction/COMMIT as the raw write that triggered
+--     it.
+--   - `stage2_publication_state` is written ONLY by
+--     `mark_publication_clean_cas` (via `Database.publish_stage2_correction`'s
+--     single atomic transaction, which writes every derived publication-
+--     member family AND this CAS'd row in the SAME COMMIT). The CAS locks
+--     `stage2_raw_revision`'s row (`SELECT ... FOR UPDATE`) and compares
+--     the caller-supplied `expected_raw_revision` against the
+--     authoritative current value; a mismatch (a LATER correction
+--     committed while this publisher was computing) raises and rolls back
+--     the WHOLE transaction -- no family write from a stale publish
+--     attempt ever survives. `publication_generation` is bumped (never
+--     reset) on every successful CAS'd publish -- a DB-owned, monotonic,
+--     non-wall-clock, non-UUID counter distinct from
+--     `stage2_instrument_metadata_state.required_revision` (that table
+--     tracks instrument-METADATA generation; this tracks CORRECTION-
+--     PUBLICATION generation -- different facts, deliberately not
+--     conflated).
+--   - `stage2_raw_revision` is bootstrapped (never a hardcoded DDL
+--     literal) via `Database.bootstrap_stage2_raw_revision`, idempotent,
+--     seeding revision 0 -- mirroring `bootstrap_instrument_metadata_revision`'s
+--     SEEDED/ALREADY_INITIALIZED shape. `stage2_publication_state` is
+--     NEVER auto-bootstrapped for any scope+version -- absence of a row is
+--     ALWAYS treated identically to STALE by `open_v2_coherent_read_session`,
+--     for a brand-new namespace exactly as much as for a legacy pre-H2e
+--     database with pre-existing raw+derived history nobody has ever
+--     explicitly published/reconciled through this barrier. This is a
+--     deliberate simplification over "detect fresh vs. legacy and
+--     auto-CLEAN only the genuinely fresh case": there is no classification
+--     to get wrong, because there is no automatic CLEAN path at all.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS stage2_raw_revision (
+    symbol            TEXT NOT NULL,
+    market_type       TEXT NOT NULL,
+    raw_revision      BIGINT NOT NULL DEFAULT 0,
+    last_bump_reason  TEXT,
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (symbol, market_type),
+    CONSTRAINT ck_srr_revision_nonneg CHECK (raw_revision >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS stage2_publication_state (
+    symbol                  TEXT NOT NULL,
+    market_type             TEXT NOT NULL,
+    calculation_version     TEXT NOT NULL,
+    published_raw_revision  BIGINT NOT NULL,
+    publication_generation  BIGINT NOT NULL DEFAULT 1,
+    published_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (symbol, market_type, calculation_version),
+    CONSTRAINT ck_sps_revision_nonneg CHECK (published_raw_revision >= 0),
+    CONSTRAINT ck_sps_generation_positive CHECK (publication_generation > 0)
+);

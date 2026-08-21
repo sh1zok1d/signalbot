@@ -20,10 +20,17 @@ class _NoOpTransaction:
 
 
 class FakeConn:
-    def __init__(self, fetchrow_result=None, revision_row=None):
+    def __init__(self, fetchrow_result=None, revision_row=None, fetch_result=None):
         self.executed: list[tuple] = []
         self.executemany_calls: list[tuple] = []
+        self.fetch_calls: list[tuple] = []
         self.fetchrow_result = fetchrow_result
+        # (V2-H2e) raw writers now issue one `conn.fetch(...)` (an
+        # unnest-based multi-row INSERT ... RETURNING) instead of
+        # `executemany` -- defaults to "nothing was a correction" so
+        # existing tests that don't care about DIRTY-marking need no
+        # changes beyond this default.
+        self.fetch_result = fetch_result if fetch_result is not None else []
         # (Tech-lead review 4991738511) `stage2_instrument_metadata_state`
         # is a SEPARATE table from `exchange_instruments`/
         # `exchange_instrument_history` -- routed to its own canned value
@@ -44,6 +51,12 @@ class FakeConn:
         if "stage2_instrument_metadata_state" in sql:
             return self.revision_row
         return self.fetchrow_result
+
+    async def fetch(self, sql, *args):
+        self.fetch_calls.append((sql, args))
+        if "market_type" in sql and "exchange_instruments" in sql:
+            return []
+        return self.fetch_result
 
     def transaction(self):
         # (V2-H2c) upsert_exchange_instrument() now runs inside
@@ -351,8 +364,8 @@ def test_insert_klines_conflict_clause_coalesces_optional_fields_not_ohlcv():
     row = ("binance", "BTCUSDT", "2026-08-19T12:00:00Z", 1.0, 2.0, 0.5, 1.5, 100.0,
            None, None, None)
     _run(db.insert_klines([row], source="backfill"))
-    assert len(conn.executemany_calls) == 1
-    sql, _rows = conn.executemany_calls[0]
+    assert len(conn.fetch_calls) == 1
+    sql, _args = conn.fetch_calls[0]
     normalized_sql = " ".join(sql.split())  # collapse whitespace/newlines for substring checks
     # OHLCV: unconditional EXCLUDED.* overwrite (no downgrade risk -- these
     # columns are NOT NULL from every source).

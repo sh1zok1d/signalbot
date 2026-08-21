@@ -246,7 +246,9 @@ async def _bootstrap_instrument_metadata(db, exchanges, symbol, *, metadata_fetc
             await _bootstrap_one_instrument(db, exchange, symbol, fetch_json)
 
 
-async def _bootstrap_stage2_schema_and_revision(db, stage2_config: Stage2Config) -> None:
+async def _bootstrap_stage2_schema_and_revision(
+    db, stage2_config: Stage2Config, symbol: str,
+) -> None:
     """(Tech-lead review 4992495660, findings 1/2) The ONE shared bootstrap
     order both write-capable Stage 2 entry points (`execute_shadow_once` and
     `runtime/shadow_recovery.py::execute_shadow_recovery`) must follow --
@@ -270,10 +272,24 @@ async def _bootstrap_stage2_schema_and_revision(db, stage2_config: Stage2Config)
     (raises) if a persisted `required_revision` already exists and differs
     from `stage2_config.instrument_metadata_revision` -- this helper does
     not swallow or soften that; a stale deployed config must be fixed by
-    the operator, never silently overwritten."""
+    the operator, never silently overwritten.
+
+    (V2-H2e) Also idempotently bootstraps `stage2_raw_revision` for
+    `(symbol, _MARKET_TYPE)` at revision 0 if it has never been seeded --
+    ONLY that counter, never `stage2_publication_state`. This does NOT
+    make the correction-publication coherence barrier
+    (`Database.open_v2_coherent_read_session`, §3.4) report CLEAN: a scope
+    with no `stage2_publication_state` row for a given
+    `calculation_version` reads `NEVER_PUBLISHED` (fail-closed,
+    structurally identical to STALE) regardless of what `stage2_raw_revision`
+    says. Only a real, CAS-verified `Database.publish_stage2_correction`
+    call ever creates/updates a `stage2_publication_state` row -- there is
+    no automatic CLEAN bootstrap for any scope, fresh or legacy (see
+    `storage/stage2_publication_state.py`'s module docstring)."""
     await db.init_stage2_schema()
     await db.bootstrap_instrument_metadata_revision(
         initial_revision=stage2_config.instrument_metadata_revision)
+    await db.bootstrap_stage2_raw_revision(symbol=symbol, market_type=_MARKET_TYPE)
 
 
 # ============================================================================
@@ -427,7 +443,7 @@ async def execute_shadow_once(
     bucket_selection, bucket_ts = _resolve_bucket(now, explicit_bucket_ts, resolved)
     code_version = resolve_feature_code_version(explicit=explicit_code_version)
 
-    await _bootstrap_stage2_schema_and_revision(db, stage2_config)
+    await _bootstrap_stage2_schema_and_revision(db, stage2_config, symbol)
     await db.seed_symbols(symbol_seed_rows())
     await db.seed_symbol_exchange_capabilities(symbol_exchange_capability_seed_rows())
     await _bootstrap_instrument_metadata(

@@ -127,20 +127,49 @@ def _bundle(ex, bucket_ts):
                                   expected_freshness_s=None, enabled=True))
 
 
-def _inst_row(ex):
+def _inst_row(ex, *, is_stale=False):
     return _m(exchange=ex, symbol=SYM, market_type=MT, exchange_instrument_id="BTCUSDT",
               quantity_unit="base", contract_multiplier=None, tick_size=0.1, price_precision=None,
-              quantity_precision=None, metadata_source="exchange_api", fetched_at=B, is_stale=False, note=None)
+              quantity_precision=None, metadata_source="exchange_api", fetched_at=B, is_stale=is_stale, note=None)
 
 
 async def _fetch_json(url, params):   # fresh instruments -> never called
     raise AssertionError("no metadata network expected")
 
 
+# Real per-exchange payloads, parsed by the REAL common/instrument_metadata.py
+# parsers when a stale row forces a refresh. Each one parses to exactly the
+# CRITICAL_FIELDS of _inst_row (exchange_instrument_id "BTCUSDT", quantity_unit
+# "base", contract_multiplier None, tick_size 0.1), so the refresh is a clean
+# revalidation and never raises MetadataMismatchError.
+_REFRESH_PAYLOADS = {
+    "fapi.binance.com": {"symbols": [{
+        "symbol": "BTCUSDT", "pricePrecision": 2, "quantityPrecision": 3,
+        "filters": [{"filterType": "PRICE_FILTER", "tickSize": "0.10"},
+                    {"filterType": "LOT_SIZE", "stepSize": "0.001"}]}]},
+    "api.bybit.com": {"result": {"list": [{
+        "symbol": "BTCUSDT", "priceFilter": {"tickSize": "0.10"},
+        "lotSizeFilter": {"qtyStep": "0.001"}}]}},
+    "www.okx.com": {"data": [{
+        "instId": "BTC-USDT-SWAP", "ctVal": "0.01", "ctValCcy": "BTC",
+        "tickSz": "0.1", "lotSz": "1"}]},
+}
+
+
+async def _fetch_json_refresh(url, params):
+    """Serve the correct payload for whichever exchange endpoint is hit. Only a
+    stale/missing instrument reaches here -- a fresh row is retained without any
+    fetch (`runtime/shadow_cli.py::_bootstrap_one_instrument`)."""
+    for host, payload in _REFRESH_PAYLOADS.items():
+        if host in url:
+            return payload
+    raise AssertionError(f"unexpected metadata endpoint {url!r}")
+
+
 # ---- fake Database ----------------------------------------------------------
 class RecoveryDB:
     def __init__(self, *, lock_free=True, watermark=None, newest_pred=None,
-                 candidates=(), missing=(), outcome_klines=None):
+                 candidates=(), missing=(), outcome_klines=None, stale_exchanges=()):
         self.lock_free = lock_free
         self.watermark = watermark
         self.newest_pred = newest_pred
@@ -149,7 +178,7 @@ class RecoveryDB:
         self.outcome_klines = tuple(outcome_klines) if outcome_klines is not None else ()
         self.calls: list = []
         self.advanced: list = []
-        self.instruments = {ex: _inst_row(ex) for ex in EXS}
+        self.instruments = {ex: _inst_row(ex, is_stale=ex in stale_exchanges) for ex in EXS}
         self.outcome_upserts: list = []
         self.predictions: list = []
 
@@ -166,6 +195,10 @@ class RecoveryDB:
 
     async def bootstrap_instrument_metadata_revision(self, *, initial_revision):
         self.calls.append(("bootstrap_revision", initial_revision))
+        return "SEEDED"
+
+    async def bootstrap_stage2_raw_revision(self, *, symbol, market_type):
+        self.calls.append(("bootstrap_raw_revision", symbol, market_type))
         return "SEEDED"
 
     async def seed_symbols(self, rows):
@@ -217,11 +250,11 @@ class RecoveryDB:
         return self.outcome_klines
 
 
-def _recover(db, *, now, max_catchup=12, max_outcomes=100):
+def _recover(db, *, now, max_catchup=12, max_outcomes=100, metadata_fetch_json=_fetch_json):
     c1, c2 = _cfgs()
     return _run(execute_shadow_recovery(
         db, c1, c2, now=now, reference_exchange="binance", explicit_code_version="cli",
-        metadata_fetch_json=_fetch_json, max_catchup_buckets=max_catchup,
+        metadata_fetch_json=metadata_fetch_json, max_catchup_buckets=max_catchup,
         max_outcome_jobs=max_outcomes))
 
 
@@ -437,8 +470,17 @@ def test_due_horizons_mixed_and_ordered():
 # ============================================================================
 def test_automatic_single_bucket_real_cycle():
     now = datetime(2026, 3, 1, 0, 10, tzinfo=UTC)      # latest closed 00:00 (grace 5)
-    db = RecoveryDB(watermark=None, newest_pred=None)
-    rep = _recover(db, now=now)
+    # (CodeRabbit review, round 6) exactly ONE exchange starts with STALE
+    # instrument metadata, so the REAL recovery path
+    # (`_bootstrap_instrument_metadata` -> `_bootstrap_one_instrument` ->
+    # `fetch_instrument_metadata` -> `upsert_exchange_instrument`) genuinely
+    # performs an instrument upsert. Without this the fixture had zero
+    # upsert_exchange_instrument calls, which made every
+    # `all(... < i for i in upsert_indices)` ordering assertion below
+    # vacuously true. The other two exchanges stay fresh and are correctly
+    # retained with no fetch and no rewrite.
+    db = RecoveryDB(watermark=None, newest_pred=None, stale_exchanges=("bybit",))
+    rep = _recover(db, now=now, metadata_fetch_json=_fetch_json_refresh)
     assert rep.lock_status == LOCK_ACQUIRED
     assert rep.prediction_buckets_attempted == 1
     assert rep._count(PREDICTION_INSERTED) == 1
@@ -459,8 +501,38 @@ def test_automatic_single_bucket_real_cycle():
     assert bootstrap_calls == [("bootstrap_revision", expected_cfg.instrument_metadata_revision)]
     upsert_indices = [i for i, v in enumerate(verbs) if v == "upsert_instr"]
     raw_indices = [i for i, v in enumerate(verbs) if v == "raw"]
+    # (CodeRabbit review, round 6) the ordering assertions over these groups are
+    # only meaningful if the groups are actually populated -- assert that
+    # directly rather than relying on `all(...)` over a possibly-empty list.
+    # Exactly the one stale exchange is refreshed; the two fresh ones are not.
+    assert [c for c in db.calls if isinstance(c, tuple) and c[0] == "upsert_instr"] == [
+        ("upsert_instr", "bybit")]
+    assert len(upsert_indices) == 1
+    assert raw_indices
     assert all(bootstrap_idx < i for i in upsert_indices)
     assert all(bootstrap_idx < i for i in raw_indices)
+    # (CodeRabbit review, tech-lead review round 3, finding 3) assert the
+    # ACTUAL (symbol, market_type) scope forwarded to
+    # bootstrap_stage2_raw_revision -- the V2-H2e raw-revision COUNTER seed
+    # only, never a stage2_publication_state CLEAN bootstrap (that no
+    # longer exists for the automatic recovery path either).
+    raw_revision_calls = [c for c in db.calls if isinstance(c, tuple) and c[0] == "bootstrap_raw_revision"]
+    assert raw_revision_calls == [("bootstrap_raw_revision", SYM, MT)]
+    # (CodeRabbit review, rounds 5-6) the scope assertion above proves WHAT was
+    # forwarded but not WHEN. The V2-H2e raw-revision counter must be seeded
+    # inside the same bootstrap-once block, strictly AFTER the schema/metadata
+    # revision bootstrap and strictly BEFORE any symbol/capability seeding,
+    # instrument upsert, or raw-bundle read -- otherwise a raw write could
+    # land against a scope with no counter row yet, and an ordering
+    # regression specific to the AUTOMATIC recovery path would still pass.
+    # Every group compared against below is asserted non-empty, so none of
+    # these comparisons can pass vacuously.
+    raw_bootstrap_idx = verbs.index("bootstrap_raw_revision")
+    assert raw_bootstrap_idx > bootstrap_idx
+    seed_indices = [i for i, v in enumerate(verbs) if v in ("seed_symbols", "seed_caps")]
+    assert all(raw_bootstrap_idx < i for i in seed_indices)
+    assert all(raw_bootstrap_idx < i for i in upsert_indices)
+    assert all(raw_bootstrap_idx < i for i in raw_indices)
 
 
 def test_several_missed_buckets_recovered_oldest_first():
