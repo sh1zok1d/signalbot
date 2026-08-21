@@ -159,9 +159,19 @@ async def read_exchange_feature_raw_bundle(
     conn, *, exchange: str, symbol: str, market_type: str,
     bucket_start: datetime, bucket_end: datetime,
 ) -> ExchangeFeatureRawBundle:
-    """Run the six fixed reads on ONE already-acquired connection and return an
-    immutable bundle. Arguments must already be validated. No writes, no clock.
-    """
+    """Run the seven fixed reads (klines, open_interest, funding, liquidations,
+    instrument, liquidation capability, required_metadata_revision) on ONE
+    already-acquired connection and return an immutable bundle. Arguments must
+    already be validated. No writes, no clock.
+
+    This function itself does not open a transaction -- the caller
+    (`storage/db.py::Database.fetch_exchange_feature_raw_bundle`) MUST run it
+    inside a single `REPEATABLE READ` read-only transaction so all seven
+    SELECTs observe the SAME PostgreSQL snapshot; otherwise a concurrent
+    critical-metadata acceptance could commit between two of these reads and
+    produce an internally-incoherent bundle (e.g. OLD instrument metadata
+    paired with a NEW `required_metadata_revision`), silently violating the
+    coherence the H2c calculation_version fork gate depends on."""
     klines = await conn.fetch(KLINES_SQL, exchange, symbol, bucket_start, bucket_end)
     open_interest = await conn.fetch(OPEN_INTEREST_SQL, exchange, symbol,
                                      bucket_start, bucket_end)

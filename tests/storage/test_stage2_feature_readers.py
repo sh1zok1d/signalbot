@@ -31,10 +31,24 @@ def _run(coro):
     return asyncio.run(coro)
 
 
+class _NoOpTransaction:
+    """(CodeRabbit snapshot-coherence fix) fetch_exchange_feature_raw_bundle
+    now wraps its seven reads in `conn.transaction(isolation="repeatable_read",
+    readonly=True)` -- a plain no-op async context manager is sufficient for
+    these mocked-pool tests; the real PostgreSQL snapshot-coherence guarantee
+    is proven for real in tests/storage/test_v2_instrument_history_readers.py."""
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+
 class FakeConn:
     def __init__(self, fetch_results, fetchrow_results):
         self.fetch_calls = []
         self.fetchrow_calls = []
+        self.transaction_calls = []
         self._fetch = list(fetch_results)
         self._fetchrow = list(fetchrow_results)
 
@@ -51,6 +65,10 @@ class FakeConn:
 
     async def executemany(self, *a, **k):      # pragma: no cover
         raise AssertionError("executemany() must not be called")
+
+    def transaction(self, **kw):
+        self.transaction_calls.append(kw)
+        return _NoOpTransaction()
 
 
 class FakePool:
@@ -132,6 +150,16 @@ def test_execution_one_acquire_seven_reads_exact_sql_and_args():
     assert c_sql == LIQUIDATION_CAPABILITY_SQL
     assert c_args == ("binance", "BTCUSDT", "perp", "liquidations")
     assert r_sql == REQUIRED_METADATA_REVISION_SQL and r_args == ()
+
+
+def test_all_seven_reads_run_inside_one_repeatable_read_readonly_transaction():
+    """(CodeRabbit finding, tech-lead-classified BLOCKER) All seven reads must
+    share ONE PostgreSQL snapshot -- exactly one transaction() call, with
+    isolation="repeatable_read" and readonly=True, wrapping the whole read."""
+    conn = _default_conn()
+    db = _db(conn)
+    _call(db)
+    assert conn.transaction_calls == [{"isolation": "repeatable_read", "readonly": True}]
 
 
 def test_static_sql_shape():

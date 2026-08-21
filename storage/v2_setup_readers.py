@@ -636,10 +636,14 @@ def _require_finite_positive_or_none(value: Any, field: str) -> None:
     """(V2-H2c) `None` is legitimate absence (an unknown/never-set field) --
     but a PRESENT value that is not a finite, strictly-positive number is
     corruption, never silently accepted as-is and never silently coerced.
-    Catches `0`/negative/`NaN`/`inf` explicitly -- Postgres's own float8
-    ordering treats `NaN` as larger than any value for `CHECK (... > 0)`
-    purposes, so the schema-level CHECK alone cannot be trusted to reject
-    it; this Python-level check is the actual authority."""
+    Catches `0`/negative/`NaN`/`inf` explicitly. `exchange_instrument_
+    history`'s own DB CHECK constraints (`storage/stage2_schema.sql`) were
+    tightened to `v > 0 AND v < 'Infinity'::float8` specifically to also
+    reject `NaN`/`+Infinity` at the schema level (a naive `CHECK (... > 0)`
+    alone cannot: PostgreSQL's float8 ordering treats both as "greater than
+    any value"). This Python-level check remains a SEPARATE, independent
+    authority regardless -- defense-in-depth, never removed just because the
+    schema now also catches the same cases."""
     if value is None:
         return
     if isinstance(value, bool) or not isinstance(value, (int, float)):

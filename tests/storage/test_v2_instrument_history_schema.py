@@ -137,8 +137,15 @@ def test_quantity_unit_and_metadata_source_checks_mirror_exchange_instruments():
 
 
 def test_tick_size_and_contract_multiplier_positivity_checks_present():
-    assert re.search(r"tick_size IS NULL OR tick_size > 0", _BODY)
-    assert re.search(r"contract_multiplier IS NULL OR contract_multiplier > 0", _BODY)
+    """(CodeRabbit finding 3) A naive `CHECK (... > 0)` on a float8 column
+    does NOT reject NaN/+Infinity (Postgres's float8 ordering treats both
+    as "greater than any value"); the schema's own CHECK is tightened to
+    also require `< 'Infinity'::float8`, which NaN/+Infinity both fail."""
+    assert re.search(
+        r"tick_size IS NULL OR \(tick_size > 0 AND tick_size < 'Infinity'::float8\)", _BODY)
+    assert re.search(
+        r"contract_multiplier IS NULL OR\s*\n\s*\(contract_multiplier > 0 AND "
+        r"contract_multiplier < 'Infinity'::float8\)", _BODY)
 
 
 def test_precision_fields_nonnegative_checks_present():
@@ -229,3 +236,61 @@ def test_revision_table_no_default_seed_row_in_ddl():
 def test_revision_table_no_foreign_keys():
     assert "REFERENCES" not in _REVISION_BODY
     assert "FOREIGN KEY" not in _REVISION_BODY
+
+
+# ============================================================================
+# CodeRabbit finding 6: `tests/storage/test_v2_instrument_history_readers.py`
+# (and `tests/storage/test_stage2_raw_bundle_snapshot.py`, which reuses that
+# module's own copies) hand-copies exchange_instruments/
+# exchange_instrument_history/stage2_instrument_metadata_state DDL for real-
+# Postgres tests, deliberately avoiding `Database.init_stage2_schema()`'s
+# TimescaleDB dependency (see that module's own docstring). The smallest
+# robust drift guard: parse BOTH the production definitions and the test's
+# own hand-copied text the SAME way and assert they describe the identical
+# column set, PRIMARY KEY, and CHECK constraints (name + predicate) -- so a
+# future production schema change can never silently diverge from what the
+# real-Postgres test suite actually exercises.
+# ============================================================================
+def _generic_table_body(ddl_text: str, table: str) -> str:
+    m = re.search(r"CREATE TABLE (?:IF NOT EXISTS )?" + table + r"\s*\((.*?)\n\);",
+                  ddl_text, re.S)
+    assert m, f"{table} not found in given DDL text"
+    return m.group(1)
+
+
+def _constraints(body: str) -> "list[tuple[str, str]]":
+    """Ordered (name, whitespace-normalized predicate) pairs for every
+    `CONSTRAINT <name> CHECK (...)` clause. Handles at most one level of
+    parenthesis nesting inside the CHECK's own outer parens -- sufficient
+    for every constraint this table actually declares."""
+    pattern = re.compile(r"CONSTRAINT\s+(\w+)\s+CHECK\s*\(((?:[^()]|\([^()]*\))*)\)", re.S)
+    return [(name, " ".join(pred.split())) for name, pred in pattern.findall(body)]
+
+
+def test_hand_copied_test_ddl_matches_production_for_exchange_instruments():
+    from tests.storage.test_v2_instrument_history_readers import _EXCHANGE_INSTRUMENTS_DDL
+    prod_body = _table_body("exchange_instruments")
+    test_body = _generic_table_body(_EXCHANGE_INSTRUMENTS_DDL, "exchange_instruments")
+    assert _columns(test_body) == _columns(prod_body)
+    assert _pk(test_body) == _pk(prod_body)
+    assert _constraints(test_body) == _constraints(prod_body)
+
+
+def test_hand_copied_test_ddl_matches_production_for_exchange_instrument_history():
+    from tests.storage.test_v2_instrument_history_readers import _EXCHANGE_INSTRUMENT_HISTORY_DDL
+    test_body = _generic_table_body(
+        _EXCHANGE_INSTRUMENT_HISTORY_DDL, "exchange_instrument_history")
+    assert _columns(test_body) == _columns(_BODY)
+    assert _pk(test_body) == _pk(_BODY)
+    assert _constraints(test_body) == _constraints(_BODY)
+
+
+def test_hand_copied_test_ddl_matches_production_for_stage2_instrument_metadata_state():
+    from tests.storage.test_v2_instrument_history_readers import (
+        _STAGE2_INSTRUMENT_METADATA_STATE_DDL,
+    )
+    test_body = _generic_table_body(
+        _STAGE2_INSTRUMENT_METADATA_STATE_DDL, "stage2_instrument_metadata_state")
+    assert _columns(test_body) == _columns(_REVISION_BODY)
+    assert _pk(test_body) == _pk(_REVISION_BODY)
+    assert _constraints(test_body) == _constraints(_REVISION_BODY)

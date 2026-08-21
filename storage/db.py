@@ -188,9 +188,38 @@ class Database:
         """Read-only: fetch the fixed raw inputs for ONE ExchangeFeatureRequest
         (one exchange/symbol/market_type/bucket) and return an immutable,
         connection-independent bundle. Arguments are validated BEFORE a
-        connection is acquired; all six reads run on a single acquired
-        connection. No analytics, no writes, no wall clock. SQL lives in
-        storage/stage2_readers.py (static/trusted)."""
+        connection is acquired; all SEVEN reads (klines, open_interest,
+        funding, liquidations, instrument, liquidation capability,
+        required_metadata_revision) run inside ONE `REPEATABLE READ`
+        read-only transaction on a single acquired connection -- never as
+        separate autocommit statements.
+
+        (CodeRabbit finding, tech-lead-classified BLOCKER) Under plain
+        `READ COMMITTED` autocommit, each of the seven SELECTs could observe
+        a DIFFERENT PostgreSQL snapshot: e.g. `INSTRUMENT_SQL` reads OLD
+        instrument metadata, then a concurrent transaction deliberately
+        accepts a critical metadata change and commits (NEW
+        `exchange_instruments` + NEW history interval + NEW
+        `stage2_instrument_metadata_state.required_revision`) before
+        `REQUIRED_METADATA_REVISION_SQL` runs -- the returned bundle would
+        then mix OLD instrument metadata with the NEW required revision,
+        exactly the incoherence the H2c calculation_version fork gate
+        (`analytics/feature_engine/input_adapter.py::
+        assemble_exchange_feature_request`) depends on never happening. A
+        `REPEATABLE READ` transaction takes ONE consistent snapshot at its
+        first statement and every subsequent statement in it sees that SAME
+        snapshot, so all seven reads are guaranteed internally coherent
+        (either all-OLD or all-NEW, never mixed) regardless of what any
+        concurrent transaction commits in between. `readonly=True` is a
+        genuine safety property here (this method issues seven SELECTs and
+        nothing else) and lets PostgreSQL avoid serialization-failure
+        bookkeeping it would otherwise do for a read/write REPEATABLE READ
+        transaction. This does NOT change `compute_calculation_version`'s
+        formula or `stage2_instrument_metadata_state`'s revision semantics
+        -- it only guarantees the bundle the analytics layer receives is a
+        single, self-consistent point-in-time view. No analytics, no
+        writes, no wall clock. SQL lives in storage/stage2_readers.py
+        (static/trusted)."""
         from storage.stage2_readers import (  # local import: no analytics coupling
             read_exchange_feature_raw_bundle, validate_raw_bundle_args)
         validate_raw_bundle_args(exchange=exchange, symbol=symbol,
@@ -198,9 +227,10 @@ class Database:
                                  bucket_end=bucket_end)
         assert self.pool is not None
         async with self.pool.acquire() as conn:
-            return await read_exchange_feature_raw_bundle(
-                conn, exchange=exchange, symbol=symbol, market_type=market_type,
-                bucket_start=bucket_start, bucket_end=bucket_end)
+            async with conn.transaction(isolation="repeatable_read", readonly=True):
+                return await read_exchange_feature_raw_bundle(
+                    conn, exchange=exchange, symbol=symbol, market_type=market_type,
+                    bucket_start=bucket_start, bucket_end=bucket_end)
 
     async def seed_symbols(self, rows: Sequence[tuple]) -> int:
         """Upsert the symbol registry. rows: (symbol, base_asset, quote_asset,
@@ -536,10 +566,20 @@ class Database:
                                     f"after the currently-open interval's own effective_from "
                                     f"{current['effective_from']!r} -- history must be appended "
                                     "in non-decreasing effective_from order, never reordered")
+                            # (CodeRabbit finding, harmless semantic hardening --
+                            # NOT a fix for duplicate-effective_from corruption:
+                            # the table's own PRIMARY KEY (exchange, symbol,
+                            # market_type, effective_from) already makes that
+                            # impossible.) `AND effective_until IS NULL` makes
+                            # this UPDATE's intent explicit: it only ever closes
+                            # the ONE currently-open interval this same
+                            # transaction just read as `current`, never an
+                            # already-closed row that happens to share this
+                            # identity's `effective_from`.
                             await conn.execute(
                                 "UPDATE exchange_instrument_history SET effective_until = $1 "
                                 "WHERE exchange=$2 AND symbol=$3 AND market_type=$4 "
-                                "AND effective_from=$5",
+                                "AND effective_from=$5 AND effective_until IS NULL",
                                 resolved_effective_from, exchange, symbol, market_type,
                                 current["effective_from"])
                         if revision_for_history_row is None:

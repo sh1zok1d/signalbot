@@ -1240,9 +1240,23 @@ CREATE TABLE IF NOT EXISTS exchange_instrument_history (
         quantity_unit IS NULL OR quantity_unit IN ('base','contracts')),
     CONSTRAINT ck_eih_metadata_source CHECK (
         metadata_source IN ('exchange_api','declared_fallback','manual')),
-    CONSTRAINT ck_eih_tick_size_positive CHECK (tick_size IS NULL OR tick_size > 0),
+    -- (CodeRabbit finding, defense-in-depth) A plain `> 0` CHECK on a
+    -- float8 column does NOT reject NaN/+Infinity: PostgreSQL's float8
+    -- ordering treats both as "greater than any value", so `'NaN'::float8
+    -- > 0` and `'Infinity'::float8 > 0` both evaluate true. `v = v` does
+    -- NOT reject NaN either (PostgreSQL defines NaN equal to itself for
+    -- ordering consistency, unlike IEEE754). The correct, PostgreSQL-
+    -- specific finiteness test is `v > 0 AND v < 'Infinity'::float8`:
+    -- NaN and +Infinity both fail `< 'Infinity'::float8` (neither is
+    -- strictly less than it), while -Infinity/0/negative already fail
+    -- `> 0`. This is still defense-in-depth only -- the Python reader
+    -- (`storage/v2_setup_readers.py::read_v2_instrument`) keeps its own
+    -- `math.isfinite()` check as the primary authority and is NOT removed.
+    CONSTRAINT ck_eih_tick_size_positive CHECK (
+        tick_size IS NULL OR (tick_size > 0 AND tick_size < 'Infinity'::float8)),
     CONSTRAINT ck_eih_contract_multiplier_positive CHECK (
-        contract_multiplier IS NULL OR contract_multiplier > 0),
+        contract_multiplier IS NULL OR
+        (contract_multiplier > 0 AND contract_multiplier < 'Infinity'::float8)),
     CONSTRAINT ck_eih_price_precision_nonneg CHECK (
         price_precision IS NULL OR price_precision >= 0),
     CONSTRAINT ck_eih_quantity_precision_nonneg CHECK (

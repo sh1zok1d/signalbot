@@ -440,6 +440,10 @@ def test_once_execution_order_and_due_jobs_empty(monkeypatch):
     bootstrap_idx = order.index("bootstrap_revision")
     assert all(bootstrap_idx < i for i in upsert_indices)
     assert all(bootstrap_idx < i for i in raw_indices)
+    # (CodeRabbit finding 5C) assert the ACTUAL forwarded value, not merely
+    # that SOME call named "bootstrap_revision" happened.
+    bootstrap_calls = [c for c in db.calls if isinstance(c, tuple) and c[0] == "bootstrap_revision"]
+    assert bootstrap_calls == [("bootstrap_revision", c2.instrument_metadata_revision)]
     assert sum(calls) == 1
     assert captured["kwargs"]["due_outcome_jobs"] == ()
     assert isinstance(rep, ShadowExecutionReport)

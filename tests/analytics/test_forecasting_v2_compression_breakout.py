@@ -34,7 +34,9 @@ from analytics.forecasting_v2.events import LONG, SHORT
 from analytics.forecasting_v2.regime_4h import (
     BEARISH_TRENDING, BULLISH_TRENDING, INSUFFICIENT_DATA, NON_DIRECTIONAL, V2RegimeResult,
 )
-from analytics.forecasting_v2.setup_common import SETUP_MIN_CONFIDENCE, SETUP_MIN_COVERAGE
+from analytics.forecasting_v2.setup_common import (
+    MIN_TICK_BUFFER_TICKS, SETUP_MIN_CONFIDENCE, SETUP_MIN_COVERAGE,
+)
 from analytics.forecasting_v2.compression_breakout import (
     BREAKOUT_MIN_AGREEMENT,
     COMPRESSION_CONFIRMATION_MAX_AGE_5M_BUCKETS,
@@ -1126,7 +1128,7 @@ def test_instrument_tick_size_negative_raises():
             instrument=make_instrument(tick_size=-0.1)))
 
 
-@pytest.mark.parametrize("tick_a,tick_b", [(0.10, 0.50), (1.0, 2.5)])
+@pytest.mark.parametrize(("tick_a", "tick_b"), [(0.10, 0.50), (1.0, 2.5)])
 def test_decision_tick_size_matches_instrument_row_exactly_for_two_versions(tick_a, tick_b):
     """V2-H2c, tech-lead review 4990482334, findings 5/6: instrument tick
     A -> candidate.decision_tick_size == A, instrument tick B ->
@@ -1137,8 +1139,8 @@ def test_decision_tick_size_matches_instrument_row_exactly_for_two_versions(tick
         build_valid_short_inputs(instrument=make_instrument(tick_size=tick_b)))
     assert candidate_a.decision_tick_size == tick_a
     assert candidate_b.decision_tick_size == tick_b
-    assert candidate_a.protection_buffer >= 3 * tick_a
-    assert candidate_b.protection_buffer >= 3 * tick_b
+    assert candidate_a.protection_buffer >= MIN_TICK_BUFFER_TICKS * tick_a
+    assert candidate_b.protection_buffer >= MIN_TICK_BUFFER_TICKS * tick_b
 
 
 # ============================================================================
@@ -1285,7 +1287,7 @@ def test_candidate_rejects_malformed_decision_tick_size(bad_tick):
 
 
 def test_candidate_rejects_protection_buffer_inconsistent_with_decision_tick_size():
-    with pytest.raises(V2CompressionBreakoutError):
+    with pytest.raises(V2CompressionBreakoutError, match="inconsistent with decision_tick_size"):
         V2CompressionBreakoutCandidate(**_valid_candidate_kwargs(decision_tick_size=1000.0))
 
 

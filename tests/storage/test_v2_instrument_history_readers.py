@@ -131,9 +131,11 @@ CREATE TABLE exchange_instrument_history (
         quantity_unit IS NULL OR quantity_unit IN ('base','contracts')),
     CONSTRAINT ck_eih_metadata_source CHECK (
         metadata_source IN ('exchange_api','declared_fallback','manual')),
-    CONSTRAINT ck_eih_tick_size_positive CHECK (tick_size IS NULL OR tick_size > 0),
+    CONSTRAINT ck_eih_tick_size_positive CHECK (
+        tick_size IS NULL OR (tick_size > 0 AND tick_size < 'Infinity'::float8)),
     CONSTRAINT ck_eih_contract_multiplier_positive CHECK (
-        contract_multiplier IS NULL OR contract_multiplier > 0),
+        contract_multiplier IS NULL OR
+        (contract_multiplier > 0 AND contract_multiplier < 'Infinity'::float8)),
     CONSTRAINT ck_eih_price_precision_nonneg CHECK (
         price_precision IS NULL OR price_precision >= 0),
     CONSTRAINT ck_eih_quantity_precision_nonneg CHECK (
@@ -448,43 +450,30 @@ def test_wrong_identity_never_falls_back():
 
 
 # ============================================================================
-# 10/11. malformed tick_size (NaN/inf) -- PASSES the DB's own CHECK (Postgres
-# float8 ordering treats NaN/Infinity as > 0) but the READER must still fail
-# closed -- proving the Python-level check is the true authority, for real.
+# 10/11. malformed tick_size (0/negative/-inf/NaN/+inf) -- ALL now REJECTED
+# by the schema's own tightened CHECK at INSERT time (CodeRabbit finding 3,
+# tech-lead-classified valid defense-in-depth hardening).
+#
+# A naive `CHECK (tick_size > 0)` does NOT reject NaN/+Infinity: Postgres's
+# float8 ordering treats both as "greater than any value" for `> 0`
+# purposes. The schema's CHECK is now `tick_size > 0 AND tick_size <
+# 'Infinity'::float8` -- NaN and +Infinity both fail the `< 'Infinity'`
+# half (neither is strictly less than it), so ALL five malformed values are
+# now caught at the DB layer, never reaching the reader at all.
+#
+# The reader's OWN Python-level `math.isfinite()` check
+# (`storage/v2_setup_readers.py::_require_finite_positive_or_none`) remains
+# in place as independent defense-in-depth (never removed) -- it is proven
+# directly, with a fake connection (no real DB needed), in
+# `tests/storage/test_v2_setup_readers.py::
+# test_instrument_rejects_malformed_tick_size_as_corruption`.
 # ============================================================================
-@pytest.mark.parametrize("bad_tick", [float("nan"), float("inf")])
-def test_nan_and_infinite_tick_size_pass_db_check_but_reader_fails_closed(bad_tick):
-    # NOTE: -inf is deliberately NOT included here -- Postgres's float8
-    # ordering correctly treats -Infinity as less than 0, so `-inf` IS
-    # caught by the schema's own `CHECK (tick_size > 0)` at INSERT time
-    # (see test_zero_and_negative_tick_size_rejected_by_db_check_itself
-    # below, which covers it alongside plain 0/negative). Only NaN and
-    # +Infinity slip past that CHECK (Postgres treats both as "greater
-    # than any value" for ordering purposes) and therefore need the
-    # reader's own Python-level check to catch them.
-    async def body(db, _dsn):
-        async with db.pool.acquire() as conn:
-            await _raw_insert(conn, tick_size=bad_tick, effective_from=_t(0),
-                               effective_until=None)
-        with pytest.raises(V2SetupReaderError, match="tick_size"):
-            await db.fetch_v2_instrument(
-                exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(5))
-
-    _run(body)
-
-
-def test_zero_and_negative_tick_size_rejected_by_db_check_itself():
-    """Defense in depth: unlike NaN/Infinity, a plain 0/negative value IS
-    caught by the schema's own `CHECK (tick_size > 0)` at INSERT time --
-    never even reaches the reader."""
+@pytest.mark.parametrize("bad_tick", [0.0, -0.1, float("-inf"), float("nan"), float("inf")])
+def test_malformed_tick_size_rejected_by_db_check_itself(bad_tick):
     async def body(db, _dsn):
         async with db.pool.acquire() as conn:
             with pytest.raises(asyncpg.exceptions.CheckViolationError):
-                await _raw_insert(conn, tick_size=0.0, effective_from=_t(0))
-            with pytest.raises(asyncpg.exceptions.CheckViolationError):
-                await _raw_insert(conn, tick_size=-0.1, effective_from=_t(1))
-            with pytest.raises(asyncpg.exceptions.CheckViolationError):
-                await _raw_insert(conn, tick_size=float("-inf"), effective_from=_t(2))
+                await _raw_insert(conn, tick_size=bad_tick, effective_from=_t(0))
 
     _run(body)
 
@@ -514,16 +503,18 @@ def test_okx_missing_contract_multiplier_is_legitimate_absence():
     _run(body)
 
 
-def test_okx_present_invalid_contract_multiplier_fails_closed():
+def test_okx_present_invalid_contract_multiplier_rejected_by_db_check_itself():
+    """(CodeRabbit finding 3) The schema's tightened `contract_multiplier`
+    CHECK now catches NaN at INSERT time too, defense-in-depth alongside
+    the reader's own `math.isfinite()` check (proven with a fake connection,
+    no real DB, in `tests/storage/test_v2_setup_readers.py::
+    test_instrument_rejects_malformed_contract_multiplier_as_corruption`)."""
     async def body(db, _dsn):
         async with db.pool.acquire() as conn:
-            await _raw_insert(conn, exchange="okx", exchange_instrument_id="BTC-USDT-SWAP",
-                               contract_multiplier=float("nan"),
-                               quantity_unit="contracts", effective_from=_t(0),
-                               effective_until=None)
-        with pytest.raises(V2SetupReaderError, match="contract_multiplier"):
-            await db.fetch_v2_instrument(
-                exchange="okx", symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(5))
+            with pytest.raises(asyncpg.exceptions.CheckViolationError):
+                await _raw_insert(conn, exchange="okx", exchange_instrument_id="BTC-USDT-SWAP",
+                                   contract_multiplier=float("nan"),
+                                   quantity_unit="contracts", effective_from=_t(0))
 
     _run(body)
 

@@ -452,6 +452,11 @@ def test_automatic_single_bucket_real_cycle():
     # the AUTOMATIC recovery path too (not just the explicit one-bucket path).
     bootstrap_idx = verbs.index("bootstrap_revision")
     assert bootstrap_idx > verbs.index("init_stage2_schema")
+    # (CodeRabbit finding 5C) assert the ACTUAL forwarded value, not merely
+    # that SOME call named "bootstrap_revision" happened.
+    _, expected_cfg = _cfgs()
+    bootstrap_calls = [c for c in db.calls if isinstance(c, tuple) and c[0] == "bootstrap_revision"]
+    assert bootstrap_calls == [("bootstrap_revision", expected_cfg.instrument_metadata_revision)]
     upsert_indices = [i for i, v in enumerate(verbs) if v == "upsert_instr"]
     raw_indices = [i for i, v in enumerate(verbs) if v == "raw"]
     assert all(bootstrap_idx < i for i in upsert_indices)
