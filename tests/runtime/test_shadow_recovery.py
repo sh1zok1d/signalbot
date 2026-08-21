@@ -168,7 +168,7 @@ class RecoveryDB:
         self.calls.append(("bootstrap_revision", initial_revision))
         return "SEEDED"
 
-    async def bootstrap_stage2_publication_state(self, *, symbol, market_type):
+    async def bootstrap_stage2_raw_revision(self, *, symbol, market_type):
         self.calls.append(("bootstrap_publication_state", symbol, market_type))
         return "SEEDED"
 

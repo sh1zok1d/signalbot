@@ -284,7 +284,7 @@ async def _bootstrap_stage2_schema_and_revision(
     await db.init_stage2_schema()
     await db.bootstrap_instrument_metadata_revision(
         initial_revision=stage2_config.instrument_metadata_revision)
-    await db.bootstrap_stage2_publication_state(symbol=symbol, market_type=_MARKET_TYPE)
+    await db.bootstrap_stage2_raw_revision(symbol=symbol, market_type=_MARKET_TYPE)
 
 
 # ============================================================================
