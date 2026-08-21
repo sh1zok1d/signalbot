@@ -548,7 +548,7 @@ def test_first_insert_into_published_5m_bucket_bumps_revision():
 
 # -- CodeRabbit review (tech-lead review round 3): exact per-timeframe
 # containment boundaries, and the fail-closed unknown-timeframe fix --------
-@pytest.mark.parametrize("timeframe,minutes", [
+@pytest.mark.parametrize(("timeframe", "minutes"), [
     ("1m", 1), ("5m", 5), ("15m", 15), ("1h", 60), ("4h", 240),
 ])
 def test_every_known_timeframe_maps_to_its_correct_containing_interval(timeframe, minutes):
@@ -570,8 +570,11 @@ def test_every_known_timeframe_maps_to_its_correct_containing_interval(timeframe
         await _seed_kline(db, ts=_t(100), close=1.0, source="backfill")
         assert await db.fetch_stage2_raw_revision(symbol=SYMBOL, market_type=MARKET_TYPE) == 1
 
-        # The last minute still inside the window -- must bump (new pair,
-        # fresh scope, so re-use a NEW symbol to isolate from the bump above).
+        # A SECOND published bucket for the SAME scope (same SYMBOL, same
+        # market_type) -- the raw-revision counter is cumulative per scope,
+        # so the next two assertions expect 2, not a fresh 1. Do NOT "isolate"
+        # this by switching to a new symbol: that would reset the counter and
+        # break both of them.
         async with db.pool.acquire() as conn:
             await _seed_published_efv_bucket(conn, timeframe=timeframe, bucket_ts=_t(300))
         last_minute_inside = _t(300 + minutes - 1)

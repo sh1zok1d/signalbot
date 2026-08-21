@@ -472,6 +472,19 @@ def test_automatic_single_bucket_real_cycle():
     # longer exists for the automatic recovery path either).
     raw_revision_calls = [c for c in db.calls if isinstance(c, tuple) and c[0] == "bootstrap_raw_revision"]
     assert raw_revision_calls == [("bootstrap_raw_revision", SYM, MT)]
+    # (CodeRabbit review, round 5) the scope assertion above proves WHAT was
+    # forwarded but not WHEN. The V2-H2e raw-revision counter must be seeded
+    # inside the same bootstrap-once block, strictly AFTER the schema/metadata
+    # revision bootstrap and strictly BEFORE any symbol/capability seeding,
+    # instrument upsert, or raw-bundle read -- otherwise a raw write could
+    # land against a scope with no counter row yet, and an ordering
+    # regression specific to the AUTOMATIC recovery path would still pass.
+    raw_bootstrap_idx = verbs.index("bootstrap_raw_revision")
+    assert raw_bootstrap_idx > bootstrap_idx
+    seed_indices = [i for i, v in enumerate(verbs) if v in ("seed_symbols", "seed_caps")]
+    assert all(raw_bootstrap_idx < i for i in seed_indices)
+    assert all(raw_bootstrap_idx < i for i in upsert_indices)
+    assert all(raw_bootstrap_idx < i for i in raw_indices)
 
 
 def test_several_missed_buckets_recovered_oldest_first():
