@@ -30,7 +30,7 @@ from storage.db import Database
 from storage.stage2_serialization import Stage2SerializationError as _CoreSerializationError
 from storage.v2_serialization import (
     V2_EPISODE_EVENT_SPEC, Stage2SerializationError, V2EventBatchScopeError,
-    V2EventIdentityConflictError, serialize_batch,
+    V2EventIdentityConflictError, rows_semantically_equal, serialize_batch,
 )
 
 UTC = timezone.utc
@@ -76,6 +76,7 @@ class FakeConn:
         # SELECT could read it back") to exercise those paths instead.
         self.fetchrow_override = "ECHO"
         self._last_fetchval_params: tuple = ()
+        self.transaction_calls: int = 0
 
     async def executemany(self, sql, rows):
         self.executemany_calls.append((sql, list(rows)))
@@ -98,6 +99,7 @@ class FakeConn:
         return dict(zip(V2_EPISODE_EVENT_SPEC.columns, self._last_fetchval_params))
 
     def transaction(self):
+        self.transaction_calls += 1
         return _NoOpTransaction()
 
 
@@ -513,10 +515,21 @@ def test_writer_not_called_from_connect_or_init_schema():
 # ============================================================================
 # 14. V2-H3: atomicity + conflict-identity handling (fake-pool level)
 # ============================================================================
-def test_writer_uses_one_transaction_for_the_whole_batch():
-    tree = ast.parse(textwrap.dedent(inspect.getsource(Database.insert_v2_episode_events)))
-    src = ast.unparse(tree)
-    assert "conn.transaction()" in src
+def test_writer_uses_exactly_one_acquire_and_one_transaction_for_multi_row_batch():
+    # Behavioral proof (CodeRabbit finding: a source-text `"conn.transaction()"
+    # in src` assertion cannot distinguish "one transaction wrapping the
+    # whole batch" from "one transaction call per row" -- both would
+    # contain that literal substring exactly once in the source). A
+    # 5-row batch must still acquire exactly ONE connection and open
+    # exactly ONE transaction -- never one pair per row.
+    db = _db()
+    db.pool.conn.fetchval_default = True
+    rows = [make_event(event_id=f"evt-{i}") for i in range(5)]
+    result = _run(db.insert_v2_episode_events(rows))
+    assert result == 5
+    assert db.pool.acquire_count == 1
+    assert db.pool.conn.transaction_calls == 1
+    assert len(db.pool.conn.fetchval_calls) == 5
 
 
 def test_identical_retry_after_conflict_is_idempotent_success():
@@ -570,6 +583,71 @@ def test_conflict_row_vanished_before_reread_fails_closed():
     db.pool.conn.fetchrow_override = None
     with pytest.raises(V2EventIdentityConflictError):
         _run(db.insert_v2_episode_events([make_event()]))
+
+
+# ============================================================================
+# 15. rows_semantically_equal(): tolerates JSONB values that are either raw
+# JSON text (asyncpg's default) OR already decoded by a registered type
+# codec (dict/list/etc.) -- on EITHER side, independently.
+# ============================================================================
+def _new_params_for(ev) -> tuple:
+    return serialize_batch(V2_EPISODE_EVENT_SPEC, (ev,))[0]
+
+
+def _existing_row_from(ev, *, decode_jsonb: bool) -> dict:
+    """An `existing_row`-shaped Mapping for `rows_semantically_equal()`'s
+    second argument. `decode_jsonb=False` mirrors asyncpg's own default
+    (JSONB columns arrive as raw `str`); `decode_jsonb=True` simulates a
+    caller-registered type codec that already decoded them into plain
+    Python structures before this function ever sees them."""
+    row = dict(zip(V2_EPISODE_EVENT_SPEC.columns, _new_params_for(ev)))
+    if decode_jsonb:
+        for col in V2_EPISODE_EVENT_SPEC.jsonb_columns:
+            row[col] = json.loads(row[col])
+    return row
+
+
+@pytest.mark.parametrize("decode_jsonb", [False, True])
+def test_rows_semantically_equal_true_for_identical_content(decode_jsonb):
+    ev = make_event()
+    existing = _existing_row_from(ev, decode_jsonb=decode_jsonb)
+    assert rows_semantically_equal(_new_params_for(ev), existing) is True
+
+
+@pytest.mark.parametrize("decode_jsonb", [False, True])
+def test_rows_semantically_equal_false_for_different_jsonb_content(decode_jsonb):
+    ev = make_event(event_payload={"entry_zone": {"low": 1.0}})
+    existing = _existing_row_from(
+        make_event(event_payload={"entry_zone": {"low": 2.0}}), decode_jsonb=decode_jsonb)
+    assert rows_semantically_equal(_new_params_for(ev), existing) is False
+
+
+def test_rows_semantically_equal_true_when_only_existing_side_is_predecoded():
+    # The new-attempt side is ALWAYS str (serialize_batch's own
+    # dumps_canonical_jsonb output) -- this proves the EXISTING side alone
+    # being pre-decoded (e.g. a registered asyncpg codec) does not, by
+    # itself, produce a false conflict.
+    ev = make_event()
+    existing = _existing_row_from(ev, decode_jsonb=True)
+    assert isinstance(existing["event_payload"], dict)   # genuinely pre-decoded
+    assert rows_semantically_equal(_new_params_for(ev), existing) is True
+
+
+def test_rows_semantically_equal_jsonb_key_order_never_causes_false_conflict():
+    # Simulates PostgreSQL's own internal jsonb key-reordering: the
+    # existing row's raw text differs byte-for-byte from this writer's
+    # canonical output, but is semantically identical once parsed.
+    ev = make_event(event_payload={"a": 1, "b": 2})
+    reordered_text = json.dumps({"b": 2, "a": 1})
+    existing = _existing_row_from(ev, decode_jsonb=False)
+    existing["event_payload"] = reordered_text
+    assert rows_semantically_equal(_new_params_for(ev), existing) is True
+
+
+def test_rows_semantically_equal_non_jsonb_columns_compared_directly():
+    ev = make_event(direction=SHORT)
+    existing = _existing_row_from(make_event(direction=LONG), decode_jsonb=False)
+    assert rows_semantically_equal(_new_params_for(ev), existing) is False
 
 
 def test_batch_with_multiple_episodes_same_scope_is_allowed():

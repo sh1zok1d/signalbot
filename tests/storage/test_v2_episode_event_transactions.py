@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import urllib.parse
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -42,6 +43,12 @@ from analytics.forecasting_v2.events import (
 from common.v2_config import MODEL_FAMILY
 from storage.db import Database
 from storage.v2_serialization import V2EventBatchScopeError, V2EventIdentityConflictError
+from tests.storage.test_v2_episode_event_schema import (
+    _V2EE_BODY as _REAL_V2EE_BODY,
+    _V2EE_SECTION as _REAL_V2EE_SECTION,
+    _columns as _real_schema_columns,
+    _pk as _real_schema_pk,
+)
 
 _EXPLICIT_DSN = os.environ.get("V2_EPISODE_EVENT_TEST_DSN")
 BASE_DSN = _EXPLICIT_DSN or "postgresql://postgres:postgres@127.0.0.1:5432/signalbot_test"
@@ -734,3 +741,60 @@ def test_deterministic_ids_survive_a_no_op_reconnect_with_no_python_state():
         assert row is not None
 
     _run(body)
+
+
+# ============================================================================
+# 14. DDL drift guard (CodeRabbit finding): the hand-copied
+# _V2_EPISODE_EVENTS_DDL above (used because a vanilla postgres:16 test
+# server cannot run the real init_stage2_schema(), which also touches
+# unrelated TimescaleDB-only tables) must never silently diverge from
+# storage/stage2_schema.sql's real production definition. Deliberately a
+# NARROW, table-scoped parser reusing tests/storage/test_v2_episode_event_
+# schema.py's own already-tested column/PK extraction helpers -- never a
+# general SQL-schema-comparison framework.
+# ============================================================================
+def _hand_copied_table_body() -> str:
+    m = re.search(r"CREATE TABLE v2_episode_events \((.*?)\n\);", _V2_EPISODE_EVENTS_DDL, re.S)
+    assert m, "v2_episode_events not found in this file's own hand-copied DDL"
+    return m.group(1)
+
+
+def _named_check_constraints(body: str) -> "set[str]":
+    """Every constraint in v2_episode_events takes the exact shape
+    `CONSTRAINT <name> CHECK (...)` -- the only other constraint on this
+    table is the PRIMARY KEY, compared separately via `_real_schema_pk()`.
+    Scoped to this ONE table's own already-extracted body only -- not a
+    general SQL parser."""
+    return set(re.findall(r"CONSTRAINT\s+(\w+)\s+CHECK", body))
+
+
+def _unique_index_columns(text: str, index_name: str) -> "tuple[str, ...]":
+    m = re.search(
+        r"CREATE UNIQUE INDEX(?: IF NOT EXISTS)? " + re.escape(index_name) + r"\s*\n"
+        r"\s*ON v2_episode_events \(([^)]*)\)", text)
+    assert m, f"{index_name} not found"
+    return tuple(c.strip() for c in m.group(1).split(","))
+
+
+def test_hand_copied_ddl_columns_match_production_schema_exactly_in_order():
+    assert (_real_schema_columns(_hand_copied_table_body())
+            == _real_schema_columns(_REAL_V2EE_BODY))
+
+
+def test_hand_copied_ddl_primary_key_matches_production_schema():
+    assert _real_schema_pk(_hand_copied_table_body()) == _real_schema_pk(_REAL_V2EE_BODY)
+
+
+def test_hand_copied_ddl_named_check_constraints_match_production_schema():
+    hand_copied = _named_check_constraints(_hand_copied_table_body())
+    production = _named_check_constraints(_REAL_V2EE_BODY)
+    assert hand_copied == production
+    # Sanity: prove this drift guard is not vacuously trivial (e.g. both
+    # sides accidentally empty from a regex typo).
+    assert len(hand_copied) >= 20
+
+
+def test_hand_copied_ddl_unique_index_matches_production_schema():
+    assert (
+        _unique_index_columns(_V2_EPISODE_EVENTS_DDL, "ux_v2ee_episode_decision_boundary")
+        == _unique_index_columns(_REAL_V2EE_SECTION, "ux_v2ee_episode_decision_boundary"))

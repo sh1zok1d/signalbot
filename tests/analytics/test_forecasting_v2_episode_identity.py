@@ -20,7 +20,7 @@ from analytics.forecasting_v2.episode_identity import (
     V2EpisodeIdentityError, compute_episode_id, compute_event_id,
 )
 from analytics.forecasting_v2.events import (
-    COMPRESSION_BREAKOUT, CONFIRMED_BREAKOUT, LONG, SHORT, TREND_PULLBACK,
+    COMPRESSION_BREAKOUT, CONFIRMED_BREAKOUT, LIVE, LONG, SHORT, TREND_PULLBACK,
 )
 from common.v2_config import MODEL_FAMILY
 
@@ -110,24 +110,27 @@ _BASELINE_EID = _episode_id()
 @pytest.mark.parametrize("override", [
     {"rules_version": "v2-rules-v0.2.0"},
     {"calculation_version": "c" * 16},
-    {"symbol": "BTCUSDT"},  # placeholder overwritten below; kept for shape
     {"direction": SHORT},
     {"setup_family": COMPRESSION_BREAKOUT},
     {"structural_anchor": {"bucket_ts": "2026-07-22T12:15:00+00:00"}},
     {"t_create": T_CREATE + timedelta(minutes=5)},
 ])
 def test_single_field_change_forks_episode_id(override):
-    if override == {"symbol": "BTCUSDT"}:
-        pytest.skip("BTCUSDT is the only supported symbol; no fork vector available")
+    # `symbol`/`market_type` are deliberately absent from this parametrize
+    # list: V2-v0's initial scope pins each to exactly one legal value
+    # ("BTCUSDT"/"perp"), so there is no OTHER legal value that could
+    # exercise a genuine fork vector for either field today (an
+    # unsupported value is a validation error, not a fork -- see
+    # test_unsupported_symbol_rejected/test_unsupported_market_type_rejected
+    # below).
     forked = _episode_id(**override)
     assert forked != _BASELINE_EID
 
 
-def test_market_type_is_pinned_no_fork_vector_available():
-    # 'perp' is the only supported market_type today -- included here to
-    # document that this field participates in the identity even though
-    # V2-v0's single-value scope means there is currently no OTHER legal
-    # value to fork against.
+def test_unsupported_market_type_rejected():
+    # 'perp' is the only supported market_type today -- an unsupported
+    # value is a validation error (this test's actual subject), not a
+    # fork vector.
     with pytest.raises(V2EpisodeIdentityError, match="market_type"):
         _episode_id(market_type="spot")
 
@@ -181,21 +184,36 @@ def test_event_id_has_no_event_kind_or_ordinal_parameter():
 
 
 # ============================================================================
-# 5. LIVE/REPLAY and run-identity independence (proven via signature, then
-#    semantically: identical episode-fact inputs -> identical episode_id,
-#    regardless of which execution_stream a FUTURE caller will eventually
-#    namespace the resulting event under)
+# 5. LIVE/REPLAY and run-identity independence. `test_episode_id_has_no_
+#    run_kind_run_id_parameters`/`test_event_id_has_no_run_kind_run_id_
+#    decision_code_version_parameters` above already prove NEITHER function
+#    accepts these fields at all -- the tests below go one step further and
+#    prove Python itself REJECTS an attempt to pass them, a genuinely
+#    falsifying vector a caller could hit directly (unlike two calls with
+#    IDENTICAL explicit arguments, which only re-proves determinism and
+#    would pass even if run_kind/run_id secretly existed and defaulted to
+#    the same value both times). The real-PostgreSQL suite
+#    (tests/storage/test_v2_episode_event_transactions.py::
+#    test_live_and_replay_rows_coexist_without_collision /
+#    test_two_replay_runs_coexist_without_collision) proves the actual
+#    downstream consequence -- LIVE/REPLAY rows coexisting under an
+#    identical semantic identity -- end to end.
 # ============================================================================
-def test_identical_episode_facts_yield_identical_id_regardless_of_intended_run():
-    # episode_identity.py has no run_kind/run_id concept at all (proven by
-    # signature above) -- this test demonstrates the INTENDED consequence:
-    # a LIVE run and a REPLAY run computing the identical episode facts
-    # must derive the identical episode_id, so the physical
-    # (run_kind, run_id, episode_id, decision_boundary) namespace is the
-    # ONLY thing that keeps their storage rows apart.
-    live_style = _episode_id()
-    replay_style = _episode_id()  # no run_kind/run_id input possible at all
-    assert live_style == replay_style
+def test_compute_episode_id_rejects_run_kind_keyword():
+    with pytest.raises(TypeError, match="unexpected keyword argument"):
+        compute_episode_id(
+            model_family=MODEL_FAMILY, rules_version="v2-rules-v0.1.0",
+            calculation_version=H16, symbol="BTCUSDT", market_type="perp",
+            direction=LONG, setup_family=TREND_PULLBACK,
+            structural_anchor={"bucket_ts": "2026-07-22T12:00:00+00:00"},
+            t_create=T_CREATE, run_kind=LIVE)  # type: ignore[call-arg]
+
+
+def test_compute_event_id_rejects_run_id_keyword():
+    eid = _episode_id()
+    with pytest.raises(TypeError, match="unexpected keyword argument"):
+        compute_event_id(
+            episode_id=eid, decision_boundary=T_CREATE, run_id="live-shadow")  # type: ignore[call-arg]
 
 
 # ============================================================================
@@ -394,18 +412,29 @@ def test_tuple_and_list_structural_anchor_values_hash_identically():
 
 
 # ============================================================================
-# 9. decision_boundary vs t_create -- episode identity is fixed at creation
+# 9. decision_boundary vs t_create -- episode identity is fixed at creation.
+#    `test_single_field_change_forks_episode_id`'s own `t_create` case
+#    already proves changing t_create forks episode_id -- the vector below
+#    goes further and proves the FAILURE MODE this section actually guards
+#    against: two DIFFERENT episodes (distinguishable only by their own
+#    creation facts) re-observed at the SAME later boundary must never
+#    collide, which would be reachable if episode_id were accidentally
+#    driven by a shared "current observation time" instead of each
+#    episode's own t_create/structural facts.
 # ============================================================================
-def test_episode_id_uses_t_create_not_a_later_decision_boundary():
-    # An episode's identity must NOT shift as later decision boundaries
-    # observe/update it -- t_create is the ONLY boundary episode_id ever
-    # sees; a later re-evaluation at a DIFFERENT T must not change it.
-    eid_at_creation = _episode_id(t_create=T_CREATE)
-    # Simulate "the same episode, observed again 15 minutes later" -- the
-    # caller passes the SAME t_create (creation is immutable per §12.2),
-    # never the later boundary, so this reproduces the identical id.
-    eid_observed_later = _episode_id(t_create=T_CREATE)
-    assert eid_at_creation == eid_observed_later
+def test_two_different_episodes_reobserved_at_same_later_boundary_do_not_collide():
+    reobservation_time = T_CREATE + timedelta(minutes=30)
+    episode_a = _episode_id(
+        t_create=T_CREATE, structural_anchor={"bucket_ts": "2026-07-22T12:00:00+00:00"})
+    episode_b = _episode_id(
+        t_create=T_CREATE + timedelta(minutes=15),
+        structural_anchor={"bucket_ts": "2026-07-22T12:15:00+00:00"})
+    assert episode_a != episode_b
+    # Both are "observed again" at the identical later boundary via their
+    # own event_id -- they must remain distinguishable there too.
+    event_a = compute_event_id(episode_id=episode_a, decision_boundary=reobservation_time)
+    event_b = compute_event_id(episode_id=episode_b, decision_boundary=reobservation_time)
+    assert event_a != event_b
 
 
 def test_event_id_at_different_boundaries_for_same_episode_are_distinct():

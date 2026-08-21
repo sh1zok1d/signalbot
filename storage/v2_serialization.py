@@ -205,6 +205,23 @@ def select_existing_v2_episode_event_sql() -> str:
     )
 
 
+def _decode_jsonb_value(value: object) -> object:
+    """A JSONB column's Python-side value may arrive as raw JSON text (the
+    default: `asyncpg` returns `jsonb` as `str` unless a caller registers
+    a type codec, and `dumps_canonical_jsonb()`'s own output — this
+    writer's `new_params` side — is always a `str`) OR already decoded
+    into a plain `dict`/`list`/etc. by a registered `asyncpg` type codec
+    (e.g. `conn.set_type_codec('jsonb', decoder=json.loads, ...)`, not
+    used anywhere in this codebase today, but not this function's
+    business to assume against). Only `str`/`bytes`/`bytearray` are parsed
+    via `json.loads()`; anything else is assumed already-decoded and
+    returned unchanged so it can be compared directly — never
+    `json.loads()`ed a second time, which would raise on a real `dict`."""
+    if isinstance(value, (str, bytes, bytearray)):
+        return json.loads(value)
+    return value
+
+
 def rows_semantically_equal(new_params: "tuple", existing_row: Mapping) -> bool:
     """Compare a new attempt's serialized INSERT parameters (already
     produced by `serialize_batch()`, in `V2_EPISODE_EVENT_SPEC.columns`
@@ -213,13 +230,17 @@ def rows_semantically_equal(new_params: "tuple", existing_row: Mapping) -> bool:
     `select_existing_v2_episode_event_sql()`) for exact semantic equality
     on every column in `_IDENTITY_CONFLICT_COMPARISON_COLUMNS`.
 
-    JSONB columns are compared as PARSED JSON, never as raw text:
+    JSONB columns are compared as PARSED structures, never as raw text:
     PostgreSQL's own internal `jsonb` storage/output can legitimately
     reorder keys differently from the exact byte sequence this writer sent
     (`dumps_canonical_jsonb()`'s sorted-key output is canonical on the
     PYTHON side; it is not a guarantee about Postgres's own `jsonb::text`
     formatting) — a raw string comparison could therefore report a FALSE
-    conflict for two semantically-identical payloads. `decision_boundary`
+    conflict for two semantically-identical payloads. `_decode_jsonb_value()`
+    additionally tolerates a JSONB value that is ALREADY a decoded
+    `dict`/`list` (e.g. from a caller-registered `asyncpg` type codec) on
+    either side, independently — this function never assumes both sides
+    share the same raw-text-vs.-decoded representation. `decision_boundary`
     (`TIMESTAMPTZ`) compares as Python `datetime` objects directly — aware-
     datetime equality in Python already compares by absolute instant, not
     by naive field values, so this is correct regardless of which specific
@@ -229,7 +250,7 @@ def rows_semantically_equal(new_params: "tuple", existing_row: Mapping) -> bool:
         new_value = new_by_col[col]
         existing_value = existing_row[col]
         if col in V2_EPISODE_EVENT_SPEC.jsonb_columns:
-            if json.loads(new_value) != json.loads(existing_value):
+            if _decode_jsonb_value(new_value) != _decode_jsonb_value(existing_value):
                 return False
         elif new_value != existing_value:
             return False
