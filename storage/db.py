@@ -1568,10 +1568,11 @@ class Database:
     @contextlib.asynccontextmanager
     async def open_v2_coherent_read_session(
         self, *, symbol: str, market_type: str, calculation_version: str,
+        decision_boundary: datetime,
     ):
         """The canonical ONE-coherent-V2-read-session context manager (§3.4).
 
-        `async with db.open_v2_coherent_read_session(symbol=..., market_type=..., calculation_version=...) as session:`
+        `async with db.open_v2_coherent_read_session(symbol=..., market_type=..., calculation_version=..., decision_boundary=T) as session:`
         acquires ONE connection, opens ONE `REPEATABLE READ, readonly`
         transaction on it, and — as the FIRST read inside that transaction,
         before anything else — reads the combined `PublicationState` for
@@ -1583,22 +1584,36 @@ class Database:
 
         Otherwise it yields a `V2CoherentReadSession` BOUND to this exact
         `(symbol, market_type, calculation_version)` identity (tech-lead
-        review round 2, finding 4 -- "session identity binding"): every
-        read method checks its OWN `symbol`/`market_type`/
-        `calculation_version` arguments against the session's bound
-        identity BEFORE issuing any SQL, and raises if they differ. This
-        closes the gap where a session proven CLEAN for calculation_version
-        A could otherwise be used, unchecked, to read calculation_version B
-        (which might be STALE) through the very same object. Every read
-        issued through the session (structurally satisfying both
-        `V2AlignedInputReader` and `V2SetupHistoryReader`,
+        review round 2, finding 4 -- "session identity binding") AND to
+        `decision_boundary` (tech-lead review round 4 -- "no-lookahead
+        session boundary"): §3.4 freezes ONE coherent data view for ONE
+        logical decision boundary T, not merely for a scope/version, and
+        the storage readers this session delegates to intentionally know
+        nothing about the outer decision T (they accept caller-supplied
+        bucket/window boundaries directly) -- so without binding T here, a
+        CLEAN, correctly-scoped session could still be misused to issue a
+        read whose requested time range reaches past T (one Postgres
+        snapshot and one calculation_version, but historically illegal
+        lookahead for the decision at T). Every read method on the
+        returned session therefore checks its own `symbol`/`market_type`/
+        `calculation_version` AND its own upper-bound time argument against
+        the session's bound identity/boundary BEFORE issuing any SQL, and
+        raises (`V2SessionIdentityError`/`V2SessionBoundaryError`) if
+        either differs/reaches past T. This session does NOT reimplement
+        `selected_bucket()`/timeframe-alignment/lookback-sizing -- it owns
+        only the outer "never past T" bound; the analytics layer remains
+        responsible for choosing the exact legal bucket/window inside it.
+        Every read issued through the session (structurally satisfying
+        both `V2AlignedInputReader` and `V2SetupHistoryReader`,
         `analytics/forecasting_v2/ports.py`) observes the exact snapshot
         pinned when the state check ran, so a correction committed after
         this session opened is invisible to it, and there is no code path
         that re-acquires a second connection mid-session."""
         from storage.stage2_publication_state import (
             V2PublicationDirtyError, read_publication_state)
-        from storage.v2_coherent_read_session import V2CoherentReadSession
+        from storage.v2_coherent_read_session import V2CoherentReadSession, validate_decision_boundary
+
+        validate_decision_boundary(decision_boundary)   # fail fast, before any connection
 
         assert self.pool is not None
         async with self.pool.acquire() as conn:
@@ -1613,7 +1628,8 @@ class Database:
                         status=(state.status if state is not None else "UNINITIALIZED"))
                 yield V2CoherentReadSession(
                     conn, symbol=symbol, market_type=market_type,
-                    calculation_version=calculation_version)
+                    calculation_version=calculation_version,
+                    decision_boundary=decision_boundary)
 
     async def insert_forecast_prediction(self, row: "ForecastPrediction") -> bool:
         """Insert ONE immutable forecast prediction as an event. Validates +

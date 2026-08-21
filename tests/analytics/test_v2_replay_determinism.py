@@ -59,9 +59,13 @@ def _run(body):
 async def _replay_once(db, *, calculation_version=CALC_VERSION):
     """ONE independent replay run's Stage 3 + 4 + 5 read path, entirely
     inside ONE coherent read session (its own connection/snapshot) -- exactly
-    what a real REPLAY process would do for this `T`."""
+    what a real REPLAY process would do for this `T`. The session is opened
+    at the EXACT SAME `T` `V2AlignedInputRequest` below uses (tech-lead
+    review round 4) -- there is no hidden/default decision boundary; a real
+    replay caller must always supply its own logical decision instant."""
     async with db.open_v2_coherent_read_session(
         symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=calculation_version,
+        decision_boundary=T,
     ) as session:
         request = V2AlignedInputRequest(
             T=T, symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=calculation_version,
@@ -183,6 +187,7 @@ async def _replay_stage3_once(db, *, calculation_version=CALC_VERSION):
     3->4->5 pipeline a second time)."""
     async with db.open_v2_coherent_read_session(
         symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=calculation_version,
+        decision_boundary=T,
     ) as session:
         request = V2AlignedInputRequest(
             T=T, symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=calculation_version,
@@ -234,6 +239,7 @@ def test_nontrivial_replay_with_present_data_then_correction_and_republish():
         with pytest.raises(V2PublicationDirtyError):
             async with db.open_v2_coherent_read_session(
                 symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+                decision_boundary=T,
             ):
                 raise AssertionError("must be stale after the correction")
 

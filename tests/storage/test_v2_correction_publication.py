@@ -54,7 +54,9 @@ import pytest
 from analytics.forecasting_v2.ports import V2AlignedInputReader, V2SetupHistoryReader
 from storage.db import Database
 from storage.stage2_publication_state import V2PublicationDirtyError, V2StalePublicationError
-from storage.v2_coherent_read_session import V2CoherentReadSession, V2SessionIdentityError
+from storage.v2_coherent_read_session import (
+    V2CoherentReadSession, V2SessionBoundaryError, V2SessionIdentityError,
+)
 from tests.storage.test_stage2_writers import B as _WRITERS_B
 from tests.storage.test_stage2_writers import make_consensus, make_efv, make_health, make_percentile
 from tests.storage.test_v2_instrument_history_readers import (
@@ -74,6 +76,14 @@ T0 = datetime(2026, 8, 15, 0, 0, tzinfo=UTC)
 def _t(minutes: int) -> datetime:
     return T0 + timedelta(minutes=minutes)
 
+
+# A decision_boundary safely AFTER every ts this file seeds (max observed:
+# _t(99_999)) -- used by every test that exercises `open_v2_coherent_read_session`
+# for a reason OTHER than the no-lookahead boundary itself, so those tests are
+# unaffected by the boundary check. Tests that specifically exercise
+# `V2SessionBoundaryError` (tech-lead review round 4) pick their own precise
+# `decision_boundary` instead of this constant.
+SESSION_T = _t(1_000_000)
 
 _EXPLICIT_DSN = os.environ.get("V2_INSTRUMENT_HISTORY_TEST_DSN")
 BASE_DSN = _EXPLICIT_DSN or "postgresql://postgres:postgres@127.0.0.1:5432/signalbot_test"
@@ -299,6 +309,17 @@ async def _seed_kline(db, *, ts, close=100.0, source="live"):
     await db.insert_klines(
         [(EXCHANGE, SYMBOL, ts, close, close, close, close, 1.0, None, None, None)],
         source=source)
+
+
+class _PoisonConn:
+    """A connection stub that raises if ANY attribute is ever accessed --
+    used to structurally (not merely behaviorally) prove a
+    `V2CoherentReadSession` method rejects a call BEFORE touching the
+    connection at all (session identity mismatches, tech-lead review round
+    2; no-lookahead boundary violations, round 4)."""
+
+    def __getattr__(self, name):
+        raise AssertionError(f"session must not touch the connection ({name!r} accessed)")
 
 
 async def _seed_published_efv_bucket(conn, *, timeframe="1m", bucket_ts):
@@ -894,6 +915,7 @@ def test_coherent_session_fails_closed_on_never_published_scope():
         with pytest.raises(V2PublicationDirtyError) as excinfo:
             async with db.open_v2_coherent_read_session(
                 symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+                decision_boundary=SESSION_T,
             ):
                 raise AssertionError("must never yield a session for a NEVER_PUBLISHED scope")
         assert excinfo.value.status == "NEVER_PUBLISHED"
@@ -906,6 +928,7 @@ def test_coherent_session_fails_closed_on_unbootstrapped_scope():
         with pytest.raises(V2PublicationDirtyError) as excinfo:
             async with db.open_v2_coherent_read_session(
                 symbol="ETHUSDT", market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+                decision_boundary=SESSION_T,
             ):
                 raise AssertionError("must never yield a session for an unbootstrapped scope")
         assert excinfo.value.status == "UNINITIALIZED"
@@ -938,6 +961,7 @@ def test_coherent_session_fails_closed_on_stale_scope():
         with pytest.raises(V2PublicationDirtyError) as excinfo:
             async with db.open_v2_coherent_read_session(
                 symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+                decision_boundary=SESSION_T,
             ):
                 raise AssertionError("must never yield a session for a STALE scope")
         assert excinfo.value.status == "STALE"
@@ -950,6 +974,7 @@ def test_coherent_session_structurally_satisfies_both_ports():
         await _publish_clean(db)
         async with db.open_v2_coherent_read_session(
             symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+            decision_boundary=SESSION_T,
         ) as session:
             assert isinstance(session, V2AlignedInputReader)
             assert isinstance(session, V2SetupHistoryReader)
@@ -963,6 +988,7 @@ def test_coherent_session_reads_real_data_on_pinned_connection():
         await _publish_clean(db)
         async with db.open_v2_coherent_read_session(
             symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+            decision_boundary=SESSION_T,
         ) as session:
             rows = await session.fetch_v2_reference_klines(
                 exchange=EXCHANGE, symbol=SYMBOL, bucket_start=_t(0), bucket_end=_t(2))
@@ -978,6 +1004,7 @@ def test_session_identity_binding_rejects_wrong_calculation_version_before_sql()
         await _publish_clean(db)
         async with db.open_v2_coherent_read_session(
             symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+            decision_boundary=SESSION_T,
         ) as session:
             with pytest.raises(V2SessionIdentityError):
                 await session.fetch_v2_consensus_feature(
@@ -992,6 +1019,7 @@ def test_session_identity_binding_rejects_wrong_symbol_before_sql():
         await _publish_clean(db)
         async with db.open_v2_coherent_read_session(
             symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+            decision_boundary=SESSION_T,
         ) as session:
             with pytest.raises(V2SessionIdentityError):
                 await session.fetch_v2_reference_klines(
@@ -1005,6 +1033,7 @@ def test_session_identity_binding_rejects_wrong_market_type_before_sql():
         await _publish_clean(db)
         async with db.open_v2_coherent_read_session(
             symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+            decision_boundary=SESSION_T,
         ) as session:
             with pytest.raises(V2SessionIdentityError):
                 await session.fetch_v2_instrument(
@@ -1018,6 +1047,7 @@ def test_session_after_calc_a_read_rejects_calc_b_read_on_same_session():
         await _publish_clean(db)
         async with db.open_v2_coherent_read_session(
             symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+            decision_boundary=SESSION_T,
         ) as session:
             ok = await session.fetch_v2_consensus_feature(
                 symbol=SYMBOL, market_type=MARKET_TYPE, timeframe="5m",
@@ -1037,12 +1067,9 @@ def test_session_identity_mismatch_never_touches_the_connection():
     ever accessed -- a structural (not merely behavioral) proof that the
     identity check runs, and raises, entirely in Python before any
     delegation to `self._conn`. No real Postgres needed for this proof."""
-    class _PoisonConn:
-        def __getattr__(self, name):
-            raise AssertionError(f"session must not touch the connection ({name!r} accessed)")
-
     session = V2CoherentReadSession(
-        _PoisonConn(), symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION)
+        _PoisonConn(), symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+        decision_boundary=SESSION_T)
 
     async def call_mismatched():
         await session.fetch_v2_consensus_feature(
@@ -1051,6 +1078,191 @@ def test_session_identity_mismatch_never_touches_the_connection():
 
     with pytest.raises(V2SessionIdentityError):
         asyncio.run(call_mismatched())
+
+
+# ============================================================================
+# No-lookahead session boundary (tech-lead review round 4): a session is
+# bound to ONE decision_boundary (T), not merely a (symbol, market_type,
+# calculation_version) identity -- no read through it may reach past T, even
+# though the storage readers it delegates to know nothing about T themselves
+# and would otherwise happily accept a later bucket/window/as_of.
+# ============================================================================
+_BOUNDARY_T = _t(1000)
+_AFTER_BOUNDARY = _t(1001)   # one minute past _BOUNDARY_T -- illegal lookahead
+
+
+def _poison_session(*, decision_boundary=_BOUNDARY_T, calculation_version=CALC_VERSION):
+    """A `V2CoherentReadSession` over `_PoisonConn` bound to `_BOUNDARY_T` by
+    default -- for the fail-BEFORE-SQL boundary-violation proofs below (no
+    real Postgres needed; a touched connection would raise `AssertionError`
+    instead of the expected `V2SessionBoundaryError`)."""
+    return V2CoherentReadSession(
+        _PoisonConn(), symbol=SYMBOL, market_type=MARKET_TYPE,
+        calculation_version=calculation_version, decision_boundary=decision_boundary)
+
+
+def test_boundary_violation_exact_consensus_feature_bucket_ts_after_t():
+    session = _poison_session()
+
+    async def call():
+        await session.fetch_v2_consensus_feature(
+            symbol=SYMBOL, market_type=MARKET_TYPE, timeframe="5m",
+            bucket_ts=_AFTER_BOUNDARY, calculation_version=CALC_VERSION)
+
+    with pytest.raises(V2SessionBoundaryError):
+        asyncio.run(call())
+
+
+def test_boundary_violation_consensus_percentiles_bucket_ts_after_t():
+    session = _poison_session()
+
+    async def call():
+        await session.fetch_v2_consensus_percentiles(
+            symbol=SYMBOL, market_type=MARKET_TYPE, timeframe="5m",
+            bucket_ts=_AFTER_BOUNDARY, calculation_version=CALC_VERSION)
+
+    with pytest.raises(V2SessionBoundaryError):
+        asyncio.run(call())
+
+
+def test_boundary_violation_data_health_cutoff_after_t():
+    session = _poison_session()
+
+    async def call():
+        await session.fetch_v2_data_health_at_cutoff(
+            symbol=SYMBOL, market_type=MARKET_TYPE, exchanges=(EXCHANGE,),
+            metrics=("ohlcv",), cutoff_ts=_AFTER_BOUNDARY, calculation_version=CALC_VERSION)
+
+    with pytest.raises(V2SessionBoundaryError):
+        asyncio.run(call())
+
+
+def test_boundary_violation_reference_feature_bucket_ts_after_t():
+    session = _poison_session()
+
+    async def call():
+        await session.fetch_v2_reference_feature(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, timeframe="5m",
+            bucket_ts=_AFTER_BOUNDARY, calculation_version=CALC_VERSION)
+
+    with pytest.raises(V2SessionBoundaryError):
+        asyncio.run(call())
+
+
+def test_boundary_violation_raw_kline_bucket_end_after_t():
+    session = _poison_session()
+
+    async def call():
+        await session.fetch_v2_reference_klines(
+            exchange=EXCHANGE, symbol=SYMBOL,
+            bucket_start=_t(990), bucket_end=_AFTER_BOUNDARY)
+
+    with pytest.raises(V2SessionBoundaryError):
+        asyncio.run(call())
+
+
+def test_boundary_violation_consensus_feature_window_bucket_end_after_t():
+    session = _poison_session()
+
+    async def call():
+        await session.fetch_v2_consensus_feature_window(
+            symbol=SYMBOL, market_type=MARKET_TYPE, timeframe="15m",
+            bucket_start=_t(990), bucket_end=_AFTER_BOUNDARY, calculation_version=CALC_VERSION)
+
+    with pytest.raises(V2SessionBoundaryError):
+        asyncio.run(call())
+
+
+def test_boundary_violation_consensus_percentile_window_bucket_end_after_t():
+    session = _poison_session()
+
+    async def call():
+        await session.fetch_v2_consensus_percentile_window(
+            symbol=SYMBOL, market_type=MARKET_TYPE, metric="range_width_pct_median",
+            timeframe="15m", percentile_window="30d",
+            bucket_start=_t(990), bucket_end=_AFTER_BOUNDARY, calculation_version=CALC_VERSION)
+
+    with pytest.raises(V2SessionBoundaryError):
+        asyncio.run(call())
+
+
+def test_boundary_violation_reference_feature_window_bucket_end_after_t():
+    session = _poison_session()
+
+    async def call():
+        await session.fetch_v2_reference_feature_window(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, timeframe="15m",
+            bucket_start=_t(990), bucket_end=_AFTER_BOUNDARY, calculation_version=CALC_VERSION)
+
+    with pytest.raises(V2SessionBoundaryError):
+        asyncio.run(call())
+
+
+def test_boundary_violation_instrument_as_of_after_t():
+    session = _poison_session()
+
+    async def call():
+        await session.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_AFTER_BOUNDARY)
+
+    with pytest.raises(V2SessionBoundaryError):
+        asyncio.run(call())
+
+
+# -- positive boundary tests: legal reads at/before T are never rejected ----
+def test_boundary_exact_t_accepted_for_exact_bucket_read():
+    """A read requesting EXACTLY `decision_boundary` (never strictly past
+    it) must be accepted -- the guard is an upper BOUND, not an
+    equality-only rule."""
+    async def body(db, _dsn):
+        await _publish_clean(db)
+        async with db.open_v2_coherent_read_session(
+            symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+            decision_boundary=_BOUNDARY_T,
+        ) as session:
+            result = await session.fetch_v2_consensus_feature(
+                symbol=SYMBOL, market_type=MARKET_TYPE, timeframe="5m",
+                bucket_ts=_BOUNDARY_T, calculation_version=CALC_VERSION)
+        assert result is None   # legitimately absent -- the point is no BoundaryError raised
+
+    _run(body)
+
+
+def test_boundary_raw_kline_half_open_bucket_end_equal_t_accepted():
+    """The raw-kline read's half-open `[bucket_start, bucket_end)` means
+    `bucket_end == decision_boundary` is legal -- the read itself strictly
+    EXCLUDES `decision_boundary`, so it can never see data at or after T."""
+    async def body(db, _dsn):
+        await _seed_kline(db, ts=_BOUNDARY_T - timedelta(minutes=1), close=42.0)
+        await _publish_clean(db)
+        async with db.open_v2_coherent_read_session(
+            symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+            decision_boundary=_BOUNDARY_T,
+        ) as session:
+            rows = await session.fetch_v2_reference_klines(
+                exchange=EXCHANGE, symbol=SYMBOL,
+                bucket_start=_BOUNDARY_T - timedelta(minutes=5), bucket_end=_BOUNDARY_T)
+        assert len(rows) == 1
+        assert rows[0]["close"] == 42.0
+
+    _run(body)
+
+
+def test_boundary_historical_earlier_window_accepted():
+    """A window entirely BEFORE `decision_boundary` (ordinary historical
+    Stage 5 lookback, nowhere near T) is never rejected."""
+    async def body(db, _dsn):
+        await _publish_clean(db)
+        async with db.open_v2_coherent_read_session(
+            symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+            decision_boundary=_BOUNDARY_T,
+        ) as session:
+            rows = await session.fetch_v2_consensus_feature_window(
+                symbol=SYMBOL, market_type=MARKET_TYPE, timeframe="15m",
+                bucket_start=_t(0), bucket_end=_t(500), calculation_version=CALC_VERSION)
+        assert rows == ()   # legitimately empty -- the point is no BoundaryError raised
+
+    _run(body)
 
 
 # -- the six original mandatory real-Postgres concurrency vectors -----------
@@ -1066,6 +1278,7 @@ def test_vector_1_old_snapshot_survives_later_correction():
 
         async with db.open_v2_coherent_read_session(
             symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+            decision_boundary=SESSION_T,
         ) as session:
             before = await session.fetch_v2_reference_klines(
                 exchange=EXCHANGE, symbol=SYMBOL, bucket_start=_t(0), bucket_end=_t(2))
@@ -1098,6 +1311,7 @@ def test_vector_2_raw_new_derived_old_gap_fails_closed():
         with pytest.raises(V2PublicationDirtyError):
             async with db.open_v2_coherent_read_session(
                 symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+                decision_boundary=SESSION_T,
             ):
                 raise AssertionError("must never reach a Stage 3/5 read")
 
@@ -1138,6 +1352,7 @@ def test_vector_4_successful_final_publication_becomes_visible():
         with pytest.raises(V2PublicationDirtyError):
             async with db.open_v2_coherent_read_session(
                 symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+                decision_boundary=SESSION_T,
             ):
                 raise AssertionError("still never-published")
 
@@ -1146,6 +1361,7 @@ def test_vector_4_successful_final_publication_becomes_visible():
 
         async with db.open_v2_coherent_read_session(
             symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+            decision_boundary=SESSION_T,
         ) as session:
             rows = await session.fetch_v2_reference_klines(
                 exchange=EXCHANGE, symbol=SYMBOL, bucket_start=_t(0), bucket_end=_t(2))
@@ -1195,6 +1411,7 @@ def test_vector_6_same_snapshot_no_reconnect_toctou():
 
         async with db.open_v2_coherent_read_session(
             symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+            decision_boundary=SESSION_T,
         ) as session:
             conn_identity = session._conn   # noqa: SLF001 -- structural proof, this test's whole point
             r1 = await session.fetch_v2_reference_klines(
@@ -1384,6 +1601,7 @@ def test_vector_8_late_first_insert_invalidates_published_history():
         with pytest.raises(V2PublicationDirtyError):
             async with db.open_v2_coherent_read_session(
                 symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+                decision_boundary=SESSION_T,
             ):
                 raise AssertionError("must fail closed after the late first-insert")
 
@@ -1437,12 +1655,14 @@ def test_vector_9_active_calc_repaired_while_superseded_calc_remains_stale():
         with pytest.raises(V2PublicationDirtyError):
             async with db.open_v2_coherent_read_session(
                 symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION_OLD,
+                decision_boundary=SESSION_T,
             ):
                 raise AssertionError("a superseded calculation_version must remain fail-closed")
 
         # And the active version's session still works fine.
         async with db.open_v2_coherent_read_session(
             symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+            decision_boundary=SESSION_T,
         ):
             pass
 
@@ -1476,6 +1696,7 @@ def test_vector_11_legacy_pre_h2e_database_bootstrap_remains_fail_closed():
         with pytest.raises(V2PublicationDirtyError) as excinfo:
             async with db.open_v2_coherent_read_session(
                 symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+                decision_boundary=SESSION_T,
             ):
                 raise AssertionError("legacy history must never silently read as CLEAN")
         assert excinfo.value.status == "NEVER_PUBLISHED"
@@ -1492,6 +1713,7 @@ def test_vector_11_legacy_pre_h2e_database_bootstrap_remains_fail_closed():
         )
         async with db.open_v2_coherent_read_session(
             symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+            decision_boundary=SESSION_T,
         ):
             pass   # now succeeds
 
@@ -1540,6 +1762,7 @@ def test_vector_12_correction_before_schema_init_remains_fail_closed():
         with pytest.raises(V2PublicationDirtyError) as excinfo:
             async with db.open_v2_coherent_read_session(
                 symbol=SYMBOL, market_type=MARKET_TYPE, calculation_version=CALC_VERSION,
+                decision_boundary=SESSION_T,
             ):
                 raise AssertionError("must remain fail-closed after a deploy-order race")
         assert excinfo.value.status == "NEVER_PUBLISHED"
