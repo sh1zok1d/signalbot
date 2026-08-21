@@ -1099,5 +1099,26 @@ CREATE TABLE IF NOT EXISTS v2_version_switch_state (
         (pending_rules_version, pending_calculation_version, pending_decision_code_version)
             IS DISTINCT FROM
         (active_rules_version, active_calculation_version, active_decision_code_version)
+    ),
+
+    -- Amendment round 2, finding 1a: REPLAY may never be mid-switch --
+    -- mirrors version_switch.py's _SWITCH_ELIGIBLE_RUN_KINDS = (LIVE,) check
+    -- in V2VersionSwitchState.__post_init__. A steady REPLAY row (its one
+    -- pinned active tuple, or none yet before initial provisioning) is
+    -- still fully permitted -- this does NOT make the whole table LIVE-only.
+    CONSTRAINT ck_v2vss_replay_no_pending_switch CHECK (
+        run_kind = 'LIVE' OR phase = 'NO_PENDING_SWITCH'
+    ),
+
+    -- Amendment round 2, finding 1b: any pending-switch phase requires an
+    -- OLD active tuple -- mirrors V2VersionSwitchState.__post_init__'s
+    -- `phase != PHASE_NO_PENDING_SWITCH => active is not None` check. A
+    -- pending switch always means OLD exists (active_*) and NEW is
+    -- pending_*; initial provisioning (active_* all NULL) can never itself
+    -- be mid-switch. Reuses ck_v2vss_active_all_or_none's own triple
+    -- structurally (checking one column of the all-or-none triple is
+    -- sufficient -- no duplicated format/shape logic).
+    CONSTRAINT ck_v2vss_pending_switch_requires_active CHECK (
+        phase = 'NO_PENDING_SWITCH' OR active_rules_version IS NOT NULL
     )
 );

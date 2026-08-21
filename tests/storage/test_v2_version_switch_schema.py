@@ -144,5 +144,40 @@ def test_pending_distinct_from_active_check_present():
     assert "ck_v2vss_pending_distinct_from_active" in _BODY
 
 
+# ---- amendment round 2: REPLAY-never-mid-switch + pending-requires-active ----
+def test_replay_no_pending_switch_check_present_and_shaped_correctly():
+    """Mirrors V2VersionSwitchState.__post_init__'s `run_kind not in
+    _SWITCH_ELIGIBLE_RUN_KINDS and phase != PHASE_NO_PENDING_SWITCH` check --
+    a steady REPLAY row (any active tuple, or none yet) must remain legal;
+    only a REPLAY row claiming a pending-switch phase is rejected."""
+    assert "ck_v2vss_replay_no_pending_switch" in _BODY
+    m = re.search(
+        r"CONSTRAINT ck_v2vss_replay_no_pending_switch CHECK \(([^)]*)\)", _BODY)
+    assert m
+    assert "run_kind = 'LIVE'" in m.group(1)
+    assert "phase = 'NO_PENDING_SWITCH'" in m.group(1)
+
+
+def test_pending_switch_requires_active_check_present_and_shaped_correctly():
+    """Mirrors V2VersionSwitchState.__post_init__'s `phase !=
+    PHASE_NO_PENDING_SWITCH => active is not None` check -- a pending switch
+    always means an OLD active tuple exists; this does not duplicate the
+    all-or-none triple check, it only requires one column of that
+    already-enforced triple to be present."""
+    assert "ck_v2vss_pending_switch_requires_active" in _BODY
+    m = re.search(
+        r"CONSTRAINT ck_v2vss_pending_switch_requires_active CHECK \(([^)]*)\)", _BODY)
+    assert m
+    assert "phase = 'NO_PENDING_SWITCH'" in m.group(1)
+    assert "active_rules_version IS NOT NULL" in m.group(1)
+
+
+def test_replay_table_is_not_made_live_only_by_new_checks():
+    """The new REPLAY constraint must NOT forbid REPLAY rows outright --
+    only mid-switch REPLAY rows. REPLAY must remain a legal run_kind value
+    everywhere else in this table's CHECK constraints."""
+    assert re.search(r"run_kind IN \('LIVE','REPLAY'\)", _BODY)
+
+
 def test_updated_at_is_db_owned_metadata_only():
     assert re.search(r"updated_at\s+TIMESTAMPTZ NOT NULL DEFAULT now\(\)", _BODY)

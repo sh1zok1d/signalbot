@@ -132,6 +132,22 @@ than `state.requested_at` -- evaluating a boundary that predates the switch
 request itself would be a caller ordering bug (decision boundaries must be
 processed in non-decreasing order), never silently accepted.
 
+**A pending switch always has an OLD active tuple (tech-lead amendment
+round 2, finding 1).** Since initial provisioning is now a wholly SEPARATE
+operation from OLD->NEW switching (finding 2 above), the states `active=
+None, pending=NEW, phase=DRAINING` and `active=None, pending=NEW, phase=
+AWAITING_ACTIVATION_READINESS` are impossible by construction: a pending
+H2b switch always means OLD exists (`state.active`) and NEW is `state.
+pending`. `V2VersionSwitchState.__post_init__` enforces `phase !=
+PHASE_NO_PENDING_SWITCH => active is not None` unconditionally -- this is
+NOT merely a refusal by `evaluate_version_switch_transition()` to START
+such a state; a persisted/reloaded row claiming to be mid-switch with no
+OLD active tuple can never even be CONSTRUCTED as a `V2VersionSwitchState`,
+regardless of caller. `storage/stage2_schema.sql`'s `v2_version_switch_
+state` table mirrors this exact invariant with a `CHECK` constraint (see
+that file's own comments) so a corrupted/hand-crafted row can never be
+persisted in Postgres either.
+
 **Stage-6 non-scope.** This module answers only "which semantic tuple is
 active for new-episode creation, and what should the persisted switch state
 become, given these facts" -- it does NOT implement candidate arbitration,
@@ -331,7 +347,14 @@ class V2VersionSwitchState:
     A `run_kind == "REPLAY"` instance can NEVER legally hold `phase !=
     PHASE_NO_PENDING_SWITCH` (finding 1) -- `__post_init__` enforces this
     unconditionally, so no `REPLAY` state mid-switch can ever be
-    constructed, by any caller, through any path."""
+    constructed, by any caller, through any path.
+
+    Likewise, `phase != PHASE_NO_PENDING_SWITCH` REQUIRES `active is not
+    None` (amendment round 2, finding 1) -- a pending switch always means
+    an OLD tuple exists (`state.active`) and NEW is `state.pending`;
+    `active=None, pending=NEW, phase=DRAINING` (or `AWAITING_ACTIVATION_
+    READINESS`) can never be constructed, by any caller, through any
+    path -- including a reload of a persisted/malformed row."""
     run_kind: str
     run_id: str
     active: Optional[V2SemanticTuple]
@@ -359,6 +382,14 @@ class V2VersionSwitchState:
                 "DRAIN-BEFORE-ACTIVATE switch machine is LIVE-only; one REPLAY "
                 "execution_stream pins exactly one semantic tuple for its entire run "
                 "and never enters DRAINING/AWAITING_ACTIVATION_READINESS")
+
+        if self.phase != PHASE_NO_PENDING_SWITCH and self.active is None:
+            raise V2VersionSwitchError(
+                f"phase {self.phase!r} requires a non-None active tuple -- a pending H2b "
+                "switch always means OLD exists (state.active) and NEW is state.pending; "
+                "initial provisioning (active=None) is a SEPARATE operation "
+                "(provision_initial_tuple()) and can never itself hold a pending-switch "
+                "phase (tech-lead amendment round 2, finding 1)")
 
         if self.phase == PHASE_NO_PENDING_SWITCH:
             if self.pending is not None:

@@ -16,6 +16,12 @@ task, PLUS tech-lead amendment round 1's five findings:
   5. decision_boundary < requested_at is rejected while ANY switch phase
      is pending (not just AWAITING_ACTIVATION_READINESS).
 
+PLUS tech-lead amendment round 2's single remaining finding: a pending
+switch (`DRAINING`/`AWAITING_ACTIVATION_READINESS`) always has an OLD
+active tuple -- `active=None, pending=NEW, phase=DRAINING` (or
+`AWAITING_ACTIVATION_READINESS`) is unconstructable, not merely refused by
+`evaluate_version_switch_transition()`.
+
 (Some vectors that require real storage/concurrency are instead covered by
 `tests/storage/test_v2_version_switch_readers.py`, and vector 10 [reader/
 readiness corruption fails closed] plus the readiness-gating half of
@@ -244,6 +250,27 @@ def test_state_rejects_bad_run_kind():
         V2VersionSwitchState(
             run_kind="BOGUS", run_id="x", active=None, pending=None,
             phase=PHASE_NO_PENDING_SWITCH, drain_complete_at=None, requested_at=None)
+
+
+# ---- amendment round 2, finding 1: a pending switch always has an OLD -------
+# active tuple -- active=None, pending=NEW, phase=DRAINING/AWAITING is
+# impossible BY CONSTRUCTION, not merely refused by
+# evaluate_version_switch_transition(); a reload of a persisted/malformed row
+# claiming this shape must also be unconstructable.
+
+def test_state_rejects_draining_with_active_none():
+    with pytest.raises(V2VersionSwitchError, match="active"):
+        V2VersionSwitchState(
+            run_kind="LIVE", run_id="x", active=None, pending=NEW,
+            phase=PHASE_DRAINING, drain_complete_at=None, requested_at=_t(0))
+
+
+def test_state_rejects_awaiting_readiness_with_active_none():
+    with pytest.raises(V2VersionSwitchError, match="active"):
+        V2VersionSwitchState(
+            run_kind="LIVE", run_id="x", active=None, pending=NEW,
+            phase=PHASE_AWAITING_ACTIVATION_READINESS, drain_complete_at=_t(0),
+            requested_at=_t(0))
 
 
 # ---- finding 1: REPLAY is switch-ineligible by construction ------------------

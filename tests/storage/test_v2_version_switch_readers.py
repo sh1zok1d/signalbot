@@ -13,6 +13,11 @@ identical fail-vs-skip contract (unset -> best-effort SKIP on connection
 failure; explicitly set, as CI does -- a connection/setup failure is a
 genuine FAILURE, never a silent skip).
 
+Also proves (amendment round 2) that PostgreSQL's own `CHECK` constraints
+reject exactly the states `V2VersionSwitchState.__post_init__` now forbids
+-- REPLAY mid-switch, and any pending-switch phase with no OLD active
+tuple -- via raw INSERTs that bypass the Python layer entirely.
+
 The table DDL below is a hand-copied, column-for-column mirror of
 `storage/stage2_schema.sql`'s real `v2_version_switch_state` definition --
 deliberately NOT the real `Database.init_stage2_schema()` (which would also
@@ -124,6 +129,13 @@ CREATE TABLE v2_version_switch_state (
         (pending_rules_version, pending_calculation_version, pending_decision_code_version)
             IS DISTINCT FROM
         (active_rules_version, active_calculation_version, active_decision_code_version)
+    ),
+
+    CONSTRAINT ck_v2vss_replay_no_pending_switch CHECK (
+        run_kind = 'LIVE' OR phase = 'NO_PENDING_SWITCH'
+    ),
+    CONSTRAINT ck_v2vss_pending_switch_requires_active CHECK (
+        phase = 'NO_PENDING_SWITCH' OR active_rules_version IS NOT NULL
     )
 );
 """
@@ -399,5 +411,97 @@ def test_transaction_failure_leaves_no_partial_activation_state():
         assert reread.phase == PHASE_AWAITING_ACTIVATION_READINESS
         assert reread.active == OLD
         assert reread.pending == NEW
+
+    _run(body)
+
+
+async def _insert_raw_switch_row(
+    db, *, run_kind, run_id, active, pending, phase,
+    drain_complete_at=None, requested_at=None,
+) -> None:
+    """Bypasses `version_switch.py`/`v2_version_switch_readers.py` entirely
+    -- a raw INSERT straight against the table, so a rejection here proves
+    PostgreSQL's OWN `CHECK` constraints reject the row, not merely that the
+    Python layer refuses to construct/persist it."""
+    async with db.pool.acquire() as conn:
+        await conn.execute(
+            """
+            INSERT INTO v2_version_switch_state (
+                run_kind, run_id,
+                active_rules_version, active_calculation_version,
+                active_decision_code_version,
+                pending_rules_version, pending_calculation_version,
+                pending_decision_code_version,
+                phase, drain_complete_at, requested_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            """,
+            run_kind, run_id,
+            active.rules_version if active is not None else None,
+            active.calculation_version if active is not None else None,
+            active.decision_code_version if active is not None else None,
+            pending.rules_version if pending is not None else None,
+            pending.calculation_version if pending is not None else None,
+            pending.decision_code_version if pending is not None else None,
+            phase, drain_complete_at, requested_at)
+
+
+# ============================================================================
+# 5. amendment round 2: PostgreSQL CHECK constraints reject exactly the
+#    states V2VersionSwitchState.__post_init__ now forbids -- REPLAY mid-
+#    switch, and any pending-switch phase with no OLD active tuple.
+# ============================================================================
+def test_db_rejects_replay_mid_switch_and_pending_switch_without_active():
+    async def body(db, _dsn):
+        # 1. REPLAY + DRAINING -> rejected.
+        with pytest.raises(asyncpg.exceptions.CheckViolationError):
+            await _insert_raw_switch_row(
+                db, run_kind="REPLAY", run_id="replay-reject-1",
+                active=OLD, pending=NEW, phase=PHASE_DRAINING, requested_at=_t(0))
+
+        # 2. REPLAY + AWAITING_ACTIVATION_READINESS -> rejected.
+        with pytest.raises(asyncpg.exceptions.CheckViolationError):
+            await _insert_raw_switch_row(
+                db, run_kind="REPLAY", run_id="replay-reject-2",
+                active=OLD, pending=NEW, phase=PHASE_AWAITING_ACTIVATION_READINESS,
+                drain_complete_at=_t(0), requested_at=_t(0))
+
+        # 3. LIVE + DRAINING + active tuple NULL -> rejected.
+        with pytest.raises(asyncpg.exceptions.CheckViolationError):
+            await _insert_raw_switch_row(
+                db, run_kind="LIVE", run_id="live-reject-3",
+                active=None, pending=NEW, phase=PHASE_DRAINING, requested_at=_t(0))
+
+        # 4. LIVE + AWAITING_ACTIVATION_READINESS + active tuple NULL -> rejected.
+        with pytest.raises(asyncpg.exceptions.CheckViolationError):
+            await _insert_raw_switch_row(
+                db, run_kind="LIVE", run_id="live-reject-4",
+                active=None, pending=NEW, phase=PHASE_AWAITING_ACTIVATION_READINESS,
+                drain_complete_at=_t(0), requested_at=_t(0))
+
+    _run(body)
+
+
+def test_db_accepts_legal_replay_and_live_switch_state_shapes():
+    async def body(db, _dsn):
+        # 5. fresh REPLAY + NO_PENDING_SWITCH + active NULL -> accepted (a
+        # stream before its first-ever provision_initial_tuple() call).
+        await _insert_raw_switch_row(
+            db, run_kind="REPLAY", run_id="replay-accept-5",
+            active=None, pending=None, phase=PHASE_NO_PENDING_SWITCH)
+
+        # 6. provisioned REPLAY + NO_PENDING_SWITCH + active tuple -> accepted
+        # (REPLAY's one pinned tuple, steady forever -- never mid-switch).
+        await _insert_raw_switch_row(
+            db, run_kind="REPLAY", run_id="replay-accept-6",
+            active=OLD, pending=None, phase=PHASE_NO_PENDING_SWITCH)
+
+        # 7. ordinary LIVE DRAINING with active=OLD, pending=NEW -> accepted.
+        await _insert_raw_switch_row(
+            db, run_kind="LIVE", run_id="live-accept-7",
+            active=OLD, pending=NEW, phase=PHASE_DRAINING, requested_at=_t(0))
+
+        async with db.pool.acquire() as conn:
+            count = await conn.fetchval("SELECT count(*) FROM v2_version_switch_state")
+        assert count == 3
 
     _run(body)
