@@ -1135,41 +1135,72 @@ CREATE TABLE IF NOT EXISTS v2_version_switch_state (
 -- VERSION that was actually in effect at T -- never the current row,
 -- never the newest fetch, never a future version.
 --
--- Append-only, effective-dated history: ONE row per accepted metadata
--- VERSION for one (exchange, symbol, market_type) identity. Interval
--- convention is frozen as HALF-OPEN [effective_from, effective_until):
+-- Effective-dated history of immutable value versions, with interval
+-- closure: ONE row per accepted metadata VERSION for one (exchange,
+-- symbol, market_type) identity. A row's own value columns never change
+-- once written -- only `effective_until` is later updated, exactly once,
+-- to close that version's interval when the NEXT version is accepted (see
+-- `storage/db.py::Database.upsert_exchange_instrument`). This is
+-- deliberately NOT called "append-only": an UPDATE does happen, but it
+-- only ever closes an interval, never rewrites a value.
+--
+-- Interval convention is frozen as HALF-OPEN [effective_from,
+-- effective_until):
 --   effective_from <= T  AND  (effective_until IS NULL OR T < effective_until)
 -- means "this version applies at T". At a boundary exactly equal to the
 -- NEXT version's effective_from, the NEW version applies -- the previous
 -- row no longer does (same convention Python encodes,
--- storage/v2_instrument_history.py, and the same convention every test in
--- tests/storage/test_v2_instrument_history*.py exercises).
+-- storage/db.py/storage/v2_setup_readers.py, and the same convention
+-- every test in tests/storage/test_v2_instrument_history*.py exercises).
 --
--- `effective_from` is deliberately the ACCEPTED value's own `observed_at`
--- (the fetch timestamp that produced it) -- NEVER a fabricated
--- exchange-side change instant. An `observed_at` fetch timestamp proves
--- only "we observed this value as of this time", not "the exchange
--- changed the value at exactly this instant" -- this table never claims
--- more than that. Consequently there is NO migration that assigns
--- `effective_from = -infinity` or any arbitrary project-start date for
--- pre-existing `exchange_instruments` rows; history begins only at each
--- version's own first-known observation. A historical T earlier than the
--- oldest known `effective_from` for an identity has NO row here --
--- legitimately NOT_EVALUABLE, never silently satisfied by extrapolating
--- today's value backward.
+-- TWO DISTINCT TIMESTAMPS, deliberately never conflated (tech-lead review
+-- 4990482334, finding 1) -- `observed_at` is PROVENANCE ONLY: when the
+-- external value was fetched/observed. It NEVER by itself determines
+-- `effective_from`. `effective_from` is the EXPLICIT V2 decision-time
+-- activation boundary the caller supplies -- when this version actually
+-- became eligible for V2 decision boundaries to use. For an ordinary
+-- fetch with no pre-existing conflicting value, the caller MAY choose
+-- `effective_from == observed_at` (there is no earlier LIVE decision to
+-- protect). For a DELIBERATELY-ACCEPTED metadata mismatch (the existing
+-- `common/instrument_metadata.py`/`Database.upsert_exchange_instrument`
+-- `accept_mismatch=True` flow), the two are generally DIFFERENT: the
+-- mismatch may be *observed* well before an operator *accepts* it, and
+-- every LIVE decision in between correctly used the OLD value --
+-- `effective_from` MUST be the later acceptance boundary, never
+-- auto-backdated to `observed_at`. `Database.upsert_exchange_instrument`
+-- enforces this: it refuses (raises) to guess `effective_from` for a
+-- genuine value change against an already-open interval -- the caller
+-- must supply it explicitly. `observed_at` MAY be NULL (a `manual`/
+-- `declared_fallback` value with no honest fetch timestamp) -- but
+-- `effective_from` is still always required before that value can affect
+-- any historical/replay V2 decision. Consequently there is NO migration
+-- that assigns `effective_from = -infinity` or any arbitrary
+-- project-start date for pre-existing `exchange_instruments` rows;
+-- history begins only at each version's own explicit, truthful
+-- `effective_from`. A historical T earlier than the oldest known
+-- `effective_from` for an identity has NO row here -- legitimately
+-- NOT_EVALUABLE, never silently satisfied by extrapolating today's value
+-- backward. `Database.seed_current_instrument_history` provides the
+-- explicit, conservative, idempotent bootstrap path for an
+-- already-accepted pre-H2c `exchange_instruments` row that has no history
+-- yet -- see that method's own docstring; it NEVER extrapolates
+-- backward either, only from its own caller-supplied `effective_from`
+-- forward.
 --
 -- Non-overlap is enforced by TWO cheap mechanisms rather than a
 -- btree_gist exclusion constraint (disproportionate complexity for this
 -- narrow need): (1) `ux_eih_one_open_interval_per_identity` below
 -- guarantees AT MOST ONE currently-open (`effective_until IS NULL`) row
 -- per identity at the DB level; (2) the writer
--- (`storage/v2_instrument_history.py::append_exchange_instrument_history`)
--- always locks that one open row (`SELECT ... FOR UPDATE`) and closes it
--- in the SAME transaction as opening the next one, so no two accepted
--- writes for the same identity can ever race into overlapping closed
--- intervals either. The as-of reader independently re-checks: more than
--- one row matching a requested `as_of` is corruption/overlap and FAILS
--- CLOSED (`V2InstrumentHistoryError`), never silently picks one.
+-- (`storage/db.py::Database.upsert_exchange_instrument`) always locks the
+-- identity (a transaction-scoped Postgres advisory lock) and closes that
+-- one open row in the SAME transaction as opening the next one, so no two
+-- accepted writes for the same identity can ever race into overlapping
+-- closed intervals either. The as-of reader independently re-checks:
+-- more than one row matching a requested `as_of` is corruption/overlap
+-- and FAILS CLOSED (`V2SetupReaderError`,
+-- `storage/v2_setup_readers.py::read_v2_instrument`), never silently
+-- picks one.
 -- ============================================================
 CREATE TABLE IF NOT EXISTS exchange_instrument_history (
     exchange              TEXT NOT NULL,
@@ -1182,10 +1213,20 @@ CREATE TABLE IF NOT EXISTS exchange_instrument_history (
     price_precision       INTEGER,
     quantity_precision    INTEGER,
     metadata_source       TEXT NOT NULL,          -- 'exchange_api' | 'declared_fallback' | 'manual'
-    observed_at           TIMESTAMPTZ NOT NULL,   -- fetch time that produced this version ("we saw this at T")
-    effective_from        TIMESTAMPTZ NOT NULL,   -- validity interval start == observed_at (never fabricated earlier)
+    observed_at           TIMESTAMPTZ,            -- PROVENANCE ONLY: when fetched/observed; NULL for a manual/declared value with no honest fetch timestamp; NEVER itself the activation boundary
+    effective_from        TIMESTAMPTZ NOT NULL,   -- the EXPLICIT V2 decision-time activation boundary -- when this version actually became eligible for decisions to use; caller-supplied, never auto-derived from observed_at for a genuine value change
     effective_until       TIMESTAMPTZ,            -- NULL = still the currently-open version
     note                  TEXT,
+    -- (findings 7/8) Set ONLY when this row resulted from a deliberately-
+    -- accepted CRITICAL-field change (Database.upsert_exchange_instrument's
+    -- accept_mismatch=True path on exchange_instrument_id/quantity_unit/
+    -- contract_multiplier/tick_size) -- the NEW code_version that
+    -- acceptance declared. NULL for a first-ever/non-critical/seeded row.
+    -- A subsequent critical acceptance for the SAME identity must supply a
+    -- DIFFERENT value here than this column's own most recent non-NULL
+    -- entry -- enforced in Python (Database.upsert_exchange_instrument),
+    -- never silently reused.
+    accepted_code_version TEXT,
     recorded_at           TIMESTAMPTZ NOT NULL DEFAULT now(),  -- DB-owned insert bookkeeping only
     PRIMARY KEY (exchange, symbol, market_type, effective_from),
     CONSTRAINT ck_eih_quantity_unit CHECK (
@@ -1200,7 +1241,14 @@ CREATE TABLE IF NOT EXISTS exchange_instrument_history (
     CONSTRAINT ck_eih_quantity_precision_nonneg CHECK (
         quantity_precision IS NULL OR quantity_precision >= 0),
     CONSTRAINT ck_eih_interval_well_formed CHECK (
-        effective_until IS NULL OR effective_until > effective_from)
+        effective_until IS NULL OR effective_until > effective_from),
+    -- (finding 2) A value cannot become accepted/effective before it was
+    -- even observed -- the DB-level mirror of the same Python check in
+    -- Database.upsert_exchange_instrument/seed_current_instrument_history.
+    CONSTRAINT ck_eih_observed_at_not_after_effective_from CHECK (
+        observed_at IS NULL OR observed_at <= effective_from),
+    CONSTRAINT ck_eih_accepted_code_version_nonblank CHECK (
+        accepted_code_version IS NULL OR length(btrim(accepted_code_version)) > 0)
 );
 
 -- At most one currently-open (still-valid) history row per identity --

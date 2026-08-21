@@ -196,8 +196,8 @@ from analytics.forecasting_v2.context_snapshot import V2ContextSnapshot
 from analytics.forecasting_v2.events import DIRECTIONS, LONG, SHORT
 from analytics.forecasting_v2.family_quality import V2FamilyQualityError, family_quality
 from analytics.forecasting_v2.setup_common import (
-    RANGE_PROXY_N, SETUP_MIN_CONFIDENCE, SETUP_MIN_COVERAGE, V2SetupFoundationError,
-    directional_context_gate, protection_buffer, range_proxy_pct,
+    MIN_TICK_BUFFER_TICKS, RANGE_PROXY_N, SETUP_MIN_CONFIDENCE, SETUP_MIN_COVERAGE,
+    V2SetupFoundationError, directional_context_gate, protection_buffer, range_proxy_pct,
 )
 
 __all__ = [
@@ -403,7 +403,16 @@ class V2CompressionBreakoutCandidate:
     family confidence at the SAME fresh 5m trigger bucket, `/100.0` --
     never `consensus_confidence`/`data_confidence_overall`, and never a
     different bucket for either family. Both carried BY VALUE, never
-    recomputed downstream."""
+    recomputed downstream.
+
+    **`decision_tick_size` (V2-H2c, tech-lead review 4990482334, finding
+    5).** `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §12.5a freezes that
+    every Stage 5 candidate depending on `tick_size` MUST carry the
+    actual validated decision-time `tick_size` BY VALUE. Stage 5 owns
+    and exposes it; Stage 6 will later freeze `candidate.
+    decision_tick_size` into the episode's OWN `creation_identity_
+    tick_size` (§12.5a) once an `EARLY_SIGNAL` is actually created --
+    never re-reading instrument metadata for that identity."""
     T: datetime
     direction: str
     bucket_5m: datetime
@@ -417,6 +426,7 @@ class V2CompressionBreakoutCandidate:
     range_low: float
     range_proxy_pct: float
     protection_buffer: float
+    decision_tick_size: float
     entry_zone_lower: float
     entry_zone_upper: float
     invalidation_price: float
@@ -485,6 +495,13 @@ class V2CompressionBreakoutCandidate:
         breakout_close = _validate_positive_finite(self.breakout_close, "breakout_close")
 
         buf = _validate_positive_finite(self.protection_buffer, "protection_buffer")
+        decision_tick = _validate_positive_finite(self.decision_tick_size, "decision_tick_size")
+        if buf < MIN_TICK_BUFFER_TICKS * decision_tick:
+            raise V2CompressionBreakoutError(
+                f"protection_buffer ({buf!r}) is inconsistent with decision_tick_size "
+                f"({decision_tick!r}) -- protection_buffer() can never be smaller than "
+                f"MIN_TICK_BUFFER_TICKS * decision_tick_size "
+                f"({MIN_TICK_BUFFER_TICKS * decision_tick!r})")
         _validate_nonnegative_finite(self.range_proxy_pct, "range_proxy_pct")
 
         agreement = _validate_finite_numeric(
@@ -1282,6 +1299,7 @@ def detect_compression_breakout(
         range_low=range_low,
         range_proxy_pct=proxy,
         protection_buffer=buffer,
+        decision_tick_size=tick_size,
         entry_zone_lower=entry_zone_lower,
         entry_zone_upper=entry_zone_upper,
         invalidation_price=invalidation_price,

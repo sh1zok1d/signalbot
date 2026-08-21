@@ -932,6 +932,68 @@ def test_instrument_no_hard_coded_tick_fallback():
     candidate = detect_trend_pullback(inputs)
     assert candidate is not None
     assert candidate.protection_buffer >= 3 * 1.2345
+    assert candidate.decision_tick_size == 1.2345   # V2-H2c: carried by value
+
+
+@pytest.mark.parametrize("tick_a,tick_b", [(0.10, 0.50), (1.0, 2.5)])
+def test_decision_tick_size_matches_instrument_row_exactly_for_two_versions(tick_a, tick_b):
+    """V2-H2c, tech-lead review 4990482334, findings 5/6: for the exact
+    same otherwise-qualifying fixtures, instrument tick A -> candidate.
+    decision_tick_size == A, instrument tick B -> candidate.
+    decision_tick_size == B -- proves the by-value handoff, not merely
+    that protection_buffer changed."""
+    candidate_a = detect_trend_pullback(
+        make_valid_long_inputs(instrument=make_instrument(tick_size=tick_a)))
+    candidate_b = detect_trend_pullback(
+        make_valid_long_inputs(instrument=make_instrument(tick_size=tick_b)))
+    assert candidate_a.decision_tick_size == tick_a
+    assert candidate_b.decision_tick_size == tick_b
+    # protection_buffer itself may or may not differ (it is a max() against
+    # a volatility term that can dominate) -- decision_tick_size is the
+    # exact by-value fact this vector proves, independent of that.
+    assert candidate_a.protection_buffer >= 3 * tick_a
+    assert candidate_b.protection_buffer >= 3 * tick_b
+
+
+def test_replay_end_to_end_historical_tick_drives_full_geometry_not_only_the_reader():
+    """V2-H2c, tech-lead review 4990482334, finding 6: for the SAME
+    otherwise-qualifying fixture (identical reference/proxy rows, identical
+    context/T), swapping ONLY the as-of-resolved instrument tick_size --
+    exactly what H2c's storage layer now does between two historical
+    decision boundaries T1/T2 -- must change the FULL resulting
+    protection_buffer/entry-zone/invalidation-price geometry, not merely
+    the reader's returned row. Chooses tick values large enough that the
+    tick FLOOR term (MIN_TICK_BUFFER_TICKS * tick) dominates
+    protection_buffer's max(...), so the geometry shift is exact and
+    provable, not merely `>=`."""
+    tick_a, tick_b = 50.0, 100.0   # both >> the fixture's ~128.7 volatility term / 3
+    candidate_a = detect_trend_pullback(
+        make_valid_long_inputs(instrument=make_instrument(tick_size=tick_a)))
+    candidate_b = detect_trend_pullback(
+        make_valid_long_inputs(instrument=make_instrument(tick_size=tick_b)))
+
+    assert candidate_a.decision_tick_size == tick_a
+    assert candidate_b.decision_tick_size == tick_b
+    # The tick floor dominates for both -- protection_buffer is EXACTLY
+    # 3 * tick_size, proving the historical tick drove the real formula
+    # output, not just a passthrough field.
+    assert candidate_a.protection_buffer == 3 * tick_a == 150.0
+    assert candidate_b.protection_buffer == 3 * tick_b == 300.0
+    assert candidate_a.protection_buffer != candidate_b.protection_buffer
+
+    # The full downstream geometry -- invalidation_price -- differs
+    # correspondingly (LONG: pullback_extreme - protection_buffer).
+    assert candidate_a.invalidation_price != candidate_b.invalidation_price
+    assert candidate_a.invalidation_price == candidate_a.pullback_extreme - candidate_a.protection_buffer
+    assert candidate_b.invalidation_price == candidate_b.pullback_extreme - candidate_b.protection_buffer
+
+    # Everything else about the two candidates (identical qualifying
+    # fixture) is unchanged -- proving ONLY the historical tick input
+    # drove the geometry difference, nothing else silently varied.
+    for field in ("T", "direction", "bucket_15m", "bucket_5m_at_T", "current_close",
+                  "retracement_pct", "range_proxy_pct", "pullback_extreme",
+                  "entry_zone_lower", "entry_zone_upper", "setup_strength", "data_confidence"):
+        assert getattr(candidate_a, field) == getattr(candidate_b, field), field
 
 
 def test_instrument_wrong_exchange_raises_no_foreign_influence():
@@ -1013,7 +1075,7 @@ def _valid_candidate_kwargs():
         bucket_5m_at_T=datetime(2026, 8, 15, 12, 10, tzinfo=UTC),
         trend_leg_extreme=V2ExtremeAnchor(bucket_ts=B15 - 5 * FIFTEEN, value=65_000.0),
         current_close=64_350.0, retracement_pct=retracement_pct, range_proxy_pct=range_proxy_pct,
-        pullback_extreme=64_300.0, protection_buffer=128.7,
+        pullback_extreme=64_300.0, protection_buffer=128.7, decision_tick_size=0.1,
         entry_zone_lower=64_300.0, entry_zone_upper=64_350.0,
         invalidation_price=64_171.3,
         # §8.1's real formula, via the module's own helper -- keeps this
@@ -1073,6 +1135,23 @@ def test_candidate_rejects_non_finite_or_nonpositive_prices(bad_price):
         kwargs[field] = bad_price
         with pytest.raises(V2TrendPullbackError):
             V2TrendPullbackCandidate(**kwargs)
+
+
+@pytest.mark.parametrize("bad_tick", [0, 0.0, -0.1, float("nan"), float("inf"), True])
+def test_candidate_rejects_malformed_decision_tick_size(bad_tick):
+    kwargs = _valid_candidate_kwargs()
+    kwargs["decision_tick_size"] = bad_tick
+    with pytest.raises(V2TrendPullbackError):
+        V2TrendPullbackCandidate(**kwargs)
+
+
+def test_candidate_rejects_protection_buffer_inconsistent_with_decision_tick_size():
+    # protection_buffer must never be smaller than
+    # MIN_TICK_BUFFER_TICKS * decision_tick_size.
+    kwargs = _valid_candidate_kwargs()
+    kwargs["decision_tick_size"] = 1000.0   # tick floor >> the fixture's 128.7 buffer
+    with pytest.raises(V2TrendPullbackError):
+        V2TrendPullbackCandidate(**kwargs)
 
 
 def test_candidate_rejects_negative_retracement_pct():

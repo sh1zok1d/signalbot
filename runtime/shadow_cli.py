@@ -216,7 +216,15 @@ async def _bootstrap_one_instrument(db, exchange, symbol, fetch_json) -> None:
         tick_size=fresh.tick_size, price_precision=fresh.price_precision,
         quantity_precision=fresh.quantity_precision, metadata_source=fresh.metadata_source,
         fetched_at=fresh.fetched_at, is_stale=fresh.is_stale, note=fresh.note or "",
-        accept_mismatch=False)
+        accept_mismatch=False,
+        # V2-H2c (tech-lead review 4990482334, finding 1): this bootstrap
+        # path never deliberately accepts a CRITICAL mismatch (accept_
+        # mismatch=False -- fetch_instrument_metadata() itself already
+        # raised MetadataMismatchError upstream before fresh could differ
+        # on any critical field vs the existing LKG), so there is no OLD
+        # value's already-made LIVE decisions to protect against here --
+        # effective_from safely equals this fetch's own observation time.
+        effective_from=fresh.fetched_at)
 
 
 async def _bootstrap_instrument_metadata(db, exchanges, symbol, *, metadata_fetch_json) -> None:

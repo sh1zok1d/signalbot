@@ -28,7 +28,16 @@ SUPPORTED_EXCHANGES = ("binance", "bybit", "okx")
 SUPPORTED_MARKET_TYPES = ("perp",)
 
 # Critical fields whose change between a stored LKG and a refetch raises the
-# mismatch alarm (must be deliberately accepted; forks calculation_version).
+# mismatch alarm (must be deliberately accepted -- storage.db.Database.
+# upsert_exchange_instrument's accept_mismatch=True). V2-H2c (tech-lead
+# review 4990482334, findings 7/8) audited the prior claim here that this
+# "forks calculation_version": no such mechanism existed anywhere in this
+# repository -- that was aspirational only. Real enforcement now lives at
+# the ONE place a critical change is ever deliberately accepted:
+# Database.upsert_exchange_instrument requires an explicit
+# accepted_code_version, distinct from this identity's own previous
+# accepted critical change, or the acceptance itself is refused
+# (fail-closed) -- see that method's own docstring.
 CRITICAL_FIELDS = ("exchange_instrument_id", "quantity_unit",
                    "contract_multiplier", "tick_size")
 

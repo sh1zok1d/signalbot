@@ -1,6 +1,23 @@
 """Real-PostgreSQL proof of V2-H2c: as-of/historical instrument metadata
 (`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §12.5a's clean-room finding
-that "instrument metadata has no as-of/historical model today").
+that "instrument metadata has no as-of/historical model today"), amended
+per tech-lead review 4990482334's four correctness findings:
+
+  1. `observed_at` (provenance: when a value was fetched) is NEVER
+     conflated with `effective_from` (the explicit V2 decision-time
+     activation boundary) -- a deliberately-accepted mismatch must not be
+     auto-backdated to its own observation time.
+  2. The corrected temporal invariants are enforced in BOTH Python and
+     PostgreSQL (nullable `observed_at`, `observed_at <= effective_from`).
+  3. `Database.seed_current_instrument_history` gives an already-accepted
+     pre-H2c `exchange_instruments` LKG row a safe, explicit, idempotent
+     history bootstrap -- never extrapolating backward.
+  4. The delayed-mismatch-acceptance replay vector is a first-class real
+     regression here, proving the exact backdating bug this review found.
+
+Also covers findings 7/8 (calculation_version fork enforcement at
+`Database.upsert_exchange_instrument`'s critical-mismatch-acceptance
+boundary) and finding 9 (the OKX vector actually uses `exchange="okx"`).
 
 Deliberately NOT a FakeConn/SQL-string-inspection test — the whole point of
 this suite is real PostgreSQL interval resolution, the real transactional
@@ -36,6 +53,7 @@ import asyncpg
 import pytest
 
 from storage.db import Database
+from storage.v2_setup_readers import V2SetupReaderError
 
 _EXPLICIT_DSN = os.environ.get("V2_INSTRUMENT_HISTORY_TEST_DSN")
 BASE_DSN = _EXPLICIT_DSN or "postgresql://postgres:postgres@127.0.0.1:5432/signalbot_test"
@@ -79,10 +97,11 @@ CREATE TABLE exchange_instrument_history (
     price_precision       INTEGER,
     quantity_precision    INTEGER,
     metadata_source       TEXT NOT NULL,
-    observed_at           TIMESTAMPTZ NOT NULL,
+    observed_at           TIMESTAMPTZ,
     effective_from        TIMESTAMPTZ NOT NULL,
     effective_until       TIMESTAMPTZ,
     note                  TEXT,
+    accepted_code_version TEXT,
     recorded_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (exchange, symbol, market_type, effective_from),
     CONSTRAINT ck_eih_quantity_unit CHECK (
@@ -97,7 +116,11 @@ CREATE TABLE exchange_instrument_history (
     CONSTRAINT ck_eih_quantity_precision_nonneg CHECK (
         quantity_precision IS NULL OR quantity_precision >= 0),
     CONSTRAINT ck_eih_interval_well_formed CHECK (
-        effective_until IS NULL OR effective_until > effective_from)
+        effective_until IS NULL OR effective_until > effective_from),
+    CONSTRAINT ck_eih_observed_at_not_after_effective_from CHECK (
+        observed_at IS NULL OR observed_at <= effective_from),
+    CONSTRAINT ck_eih_accepted_code_version_nonblank CHECK (
+        accepted_code_version IS NULL OR length(btrim(accepted_code_version)) > 0)
 );
 CREATE UNIQUE INDEX ux_eih_one_open_interval_per_identity
     ON exchange_instrument_history (exchange, symbol, market_type)
@@ -175,14 +198,16 @@ def _run(body):
 async def _accept(db, *, tick_size, fetched_at, contract_multiplier=None,
                    exchange_instrument_id=SYMBOL, quantity_unit="base",
                    price_precision=1, quantity_precision=3,
-                   metadata_source="exchange_api", accept_mismatch=False) -> None:
+                   metadata_source="exchange_api", accept_mismatch=False,
+                   effective_from=None, accepted_code_version=None) -> None:
     await db.upsert_exchange_instrument(
         exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE,
         exchange_instrument_id=exchange_instrument_id, quantity_unit=quantity_unit,
         contract_multiplier=contract_multiplier, tick_size=tick_size,
         price_precision=price_precision, quantity_precision=quantity_precision,
         metadata_source=metadata_source, fetched_at=fetched_at, is_stale=False,
-        accept_mismatch=accept_mismatch)
+        accept_mismatch=accept_mismatch, effective_from=effective_from,
+        accepted_code_version=accepted_code_version)
 
 
 async def _raw_insert(conn, **over) -> None:
@@ -191,7 +216,7 @@ async def _raw_insert(conn, **over) -> None:
         exchange_instrument_id=SYMBOL, quantity_unit="base", contract_multiplier=None,
         tick_size=0.1, price_precision=1, quantity_precision=3,
         metadata_source="exchange_api", observed_at=T0, effective_from=T0,
-        effective_until=None, note=None,
+        effective_until=None, note=None, accepted_code_version=None,
     )
     row.update(over)
     await conn.execute(
@@ -199,13 +224,15 @@ async def _raw_insert(conn, **over) -> None:
         INSERT INTO exchange_instrument_history
             (exchange, symbol, market_type, exchange_instrument_id, quantity_unit,
              contract_multiplier, tick_size, price_precision, quantity_precision,
-             metadata_source, observed_at, effective_from, effective_until, note)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+             metadata_source, observed_at, effective_from, effective_until, note,
+             accepted_code_version)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
         """,
         row["exchange"], row["symbol"], row["market_type"], row["exchange_instrument_id"],
         row["quantity_unit"], row["contract_multiplier"], row["tick_size"],
         row["price_precision"], row["quantity_precision"], row["metadata_source"],
-        row["observed_at"], row["effective_from"], row["effective_until"], row["note"])
+        row["observed_at"], row["effective_from"], row["effective_until"], row["note"],
+        row["accepted_code_version"])
 
 
 # ============================================================================
@@ -251,7 +278,8 @@ def test_version_a_then_b_boundary_semantics_frozen_half_open_interval():
     async def body(db, _dsn):
         await _accept(db, tick_size=0.10, fetched_at=_t(0))              # version A
         await _accept(db, tick_size=0.50, fetched_at=_t(12),             # version B
-                      accept_mismatch=True)
+                      accept_mismatch=True, effective_from=_t(12),
+                      accepted_code_version="fork-b")
 
         before = await db.fetch_v2_instrument(
             exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(11))
@@ -280,7 +308,8 @@ def test_adding_later_version_does_not_retroactively_change_earlier_as_of_result
         assert pre_change_result["tick_size"] == 0.10
 
         # Now accept a NEW version much later.
-        await _accept(db, tick_size=0.50, fetched_at=_t(12), accept_mismatch=True)
+        await _accept(db, tick_size=0.50, fetched_at=_t(12), accept_mismatch=True,
+                      effective_from=_t(12), accepted_code_version="fork-b")
 
         # Re-querying the SAME historical as_of=_t(6) must resolve to the
         # exact same DECISION-RELEVANT values -- protection_buffer() would
@@ -329,7 +358,6 @@ def test_overlapping_closed_history_rows_fail_closed_on_read():
                                effective_from=_t(0), effective_until=_t(12))
             await _raw_insert(conn, tick_size=0.20,
                                effective_from=_t(6), effective_until=_t(18))
-        from storage.v2_setup_readers import V2SetupReaderError
         with pytest.raises(V2SetupReaderError, match="overlapping|ambiguous"):
             await db.fetch_v2_instrument(
                 exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(8))
@@ -385,7 +413,6 @@ def test_nan_and_infinite_tick_size_pass_db_check_but_reader_fails_closed(bad_ti
         async with db.pool.acquire() as conn:
             await _raw_insert(conn, tick_size=bad_tick, effective_from=_t(0),
                                effective_until=None)
-        from storage.v2_setup_readers import V2SetupReaderError
         with pytest.raises(V2SetupReaderError, match="tick_size"):
             await db.fetch_v2_instrument(
                 exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(5))
@@ -412,17 +439,24 @@ def test_zero_and_negative_tick_size_rejected_by_db_check_itself():
 # ============================================================================
 # 12. OKX contracts metadata with missing/invalid multiplier -- preserves
 # existing fail-closed semantics (contract_multiplier absence is legitimate;
-# a PRESENT-but-invalid one is corruption)
+# a PRESENT-but-invalid one is corruption). Tech-lead review 4990482334,
+# finding 9: this vector must actually use exchange="okx", not the module's
+# generic EXCHANGE="binance" constant.
 # ============================================================================
 def test_okx_missing_contract_multiplier_is_legitimate_absence():
     async def body(db, _dsn):
-        await _accept(
-            db, tick_size=0.1, fetched_at=_t(0), contract_multiplier=None,
-            quantity_unit="contracts", exchange_instrument_id="BTC-USDT-SWAP")
+        await db.upsert_exchange_instrument(
+            exchange="okx", symbol=SYMBOL, market_type=MARKET_TYPE,
+            exchange_instrument_id="BTC-USDT-SWAP", quantity_unit="contracts",
+            contract_multiplier=None, tick_size=0.1, price_precision=1,
+            quantity_precision=3, metadata_source="exchange_api", fetched_at=_t(0),
+            is_stale=False)
         result = await db.fetch_v2_instrument(
-            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(5))
+            exchange="okx", symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(5))
         assert result["contract_multiplier"] is None
         assert result["quantity_unit"] == "contracts"
+        # A missing ctVal must never be silently treated as base/1.0.
+        assert result["exchange_instrument_id"] == "BTC-USDT-SWAP"
 
     _run(body)
 
@@ -430,13 +464,13 @@ def test_okx_missing_contract_multiplier_is_legitimate_absence():
 def test_okx_present_invalid_contract_multiplier_fails_closed():
     async def body(db, _dsn):
         async with db.pool.acquire() as conn:
-            await _raw_insert(conn, contract_multiplier=float("nan"),
+            await _raw_insert(conn, exchange="okx", exchange_instrument_id="BTC-USDT-SWAP",
+                               contract_multiplier=float("nan"),
                                quantity_unit="contracts", effective_from=_t(0),
                                effective_until=None)
-        from storage.v2_setup_readers import V2SetupReaderError
         with pytest.raises(V2SetupReaderError, match="contract_multiplier"):
             await db.fetch_v2_instrument(
-                exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(5))
+                exchange="okx", symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(5))
 
     _run(body)
 
@@ -476,17 +510,22 @@ def test_transaction_failure_leaves_old_interval_untouched():
 
 
 # ============================================================================
-# concurrency: two racing accepted upserts for the SAME identity serialize
-# via the transaction-scoped advisory lock -- never two open intervals
+# concurrency: two racing IDENTICAL accepted upserts for the SAME identity
+# serialize via the transaction-scoped advisory lock -- never two open
+# intervals, and the second is a harmless no-op (deterministic regardless of
+# which one wins the lock race -- avoids a flaky test that would depend on
+# asyncio/Postgres scheduling order if the two attempts declared DIFFERENT
+# new values with an explicit effective_from each).
 # ============================================================================
-def test_concurrent_accepted_upserts_serialize_never_two_open_intervals():
+def test_concurrent_identical_accepted_upserts_serialize_never_two_open_intervals():
     async def body(db, _dsn):
         await _accept(db, tick_size=0.10, fetched_at=_t(0))
 
-        async def _attempt(tick, fetched_at):
-            await _accept(db, tick_size=tick, fetched_at=fetched_at, accept_mismatch=True)
+        async def _attempt():
+            await _accept(db, tick_size=0.20, fetched_at=_t(12), accept_mismatch=True,
+                          effective_from=_t(12), accepted_code_version="fork-b")
 
-        await asyncio.gather(_attempt(0.20, _t(12)), _attempt(0.30, _t(13)))
+        await asyncio.gather(_attempt(), _attempt())
 
         async with db.pool.acquire() as conn:
             open_rows = await conn.fetch(
@@ -494,8 +533,17 @@ def test_concurrent_accepted_upserts_serialize_never_two_open_intervals():
                 "WHERE exchange=$1 AND symbol=$2 AND market_type=$3 "
                 "AND effective_until IS NULL",
                 EXCHANGE, SYMBOL, MARKET_TYPE)
+            all_rows = await conn.fetch(
+                "SELECT tick_size FROM exchange_instrument_history "
+                "WHERE exchange=$1 AND symbol=$2 AND market_type=$3",
+                EXCHANGE, SYMBOL, MARKET_TYPE)
         assert len(open_rows) == 1   # never two -- the partial unique index
                                      # plus the advisory lock make this so
+        assert open_rows[0]["tick_size"] == 0.20
+        # Exactly 2 rows total (original A closed + one B) -- the second,
+        # identical concurrent acceptance attempt was a true no-op, not a
+        # duplicate interval.
+        assert len(all_rows) == 2
 
     _run(body)
 
@@ -506,7 +554,8 @@ def test_concurrent_accepted_upserts_serialize_never_two_open_intervals():
 def test_restart_gives_identical_as_of_answer():
     async def body(db, scoped_dsn):
         await _accept(db, tick_size=0.10, fetched_at=_t(0))
-        await _accept(db, tick_size=0.50, fetched_at=_t(12), accept_mismatch=True)
+        await _accept(db, tick_size=0.50, fetched_at=_t(12), accept_mismatch=True,
+                      effective_from=_t(12), accepted_code_version="fork-b")
 
         restarted = Database(scoped_dsn)
         await restarted.connect()
@@ -548,5 +597,323 @@ def test_current_lkg_row_never_leaks_into_as_of_read():
         result = await db.fetch_v2_instrument(
             exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(5))
         assert result is None   # NOT 0.99 -- the LKG row must never leak in
+
+    _run(body)
+
+
+# ============================================================================
+# Tech-lead review 4990482334, finding 1 (BLOCKER): observed_at is NOT
+# effective_from -- a deliberately-accepted mismatch must not be
+# auto-backdated to its own (possibly much earlier) fetch timestamp.
+# ============================================================================
+def test_accepting_a_value_change_without_explicit_effective_from_raises():
+    """The exact backdating bug this review found: accepting a genuine
+    value change (an interval is already open) with NO explicit
+    effective_from must raise, not silently default to fetched_at."""
+    async def body(db, _dsn):
+        await _accept(db, tick_size=0.10, fetched_at=_t(0))
+        with pytest.raises(ValueError, match="effective_from"):
+            await _accept(db, tick_size=0.50, fetched_at=_t(12), accept_mismatch=True,
+                          accepted_code_version="fork-b")   # effective_from NOT supplied
+
+        # The refused call must not have mutated anything.
+        current = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(20))
+        assert current["tick_size"] == 0.10
+
+    _run(body)
+
+
+def test_first_ever_value_safely_defaults_effective_from_to_fetched_at():
+    """No OLD value's already-made LIVE decisions exist to protect
+    against for a stream's first-ever accepted value -- effective_from
+    may safely default to fetched_at here (the ONLY case where that
+    default is safe)."""
+    async def body(db, _dsn):
+        await _accept(db, tick_size=0.10, fetched_at=_t(5))   # no effective_from given
+        exactly_at = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(5))
+        before = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(4))
+        assert exactly_at["tick_size"] == 0.10
+        assert before is None
+
+    _run(body)
+
+
+def test_observed_at_after_effective_from_raises():
+    async def body(db, _dsn):
+        with pytest.raises(ValueError, match="observed"):
+            await _accept(db, tick_size=0.10, fetched_at=_t(5), effective_from=_t(0))
+
+    _run(body)
+
+
+def test_manual_metadata_with_no_fetched_at_but_explicit_effective_from_is_legal():
+    """observed_at (fetched_at) MAY be NULL for a manual/declared value --
+    but effective_from is still required and honored exactly."""
+    async def body(db, _dsn):
+        await db.upsert_exchange_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE,
+            exchange_instrument_id=SYMBOL, quantity_unit="base",
+            contract_multiplier=None, tick_size=0.1, price_precision=None,
+            quantity_precision=None, metadata_source="manual", fetched_at=None,
+            is_stale=False, effective_from=_t(5))
+        after = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(5))
+        before = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(4))
+        assert after["tick_size"] == 0.1
+        assert after["observed_at"] is None
+        assert before is None
+
+    _run(body)
+
+
+# ============================================================================
+# Tech-lead review 4990482334, finding 4 (BLOCKER): delayed mismatch
+# acceptance replay vector -- the exact scenario the review froze.
+#
+#   OLD: effective before 12:00, tick_size = 0.10
+#   NEW: observed_at = 12:00, tick_size = 0.50, NOT yet accepted
+#   acceptance/effective boundary: 13:00
+#
+#   as_of 12:30 -> OLD 0.10
+#   as_of 12:59 -> OLD 0.10
+#   as_of 13:00 -> NEW 0.50
+#   as_of 13:05 -> NEW 0.50
+#
+# Also proves merely OBSERVING the mismatch (the refused, not-yet-accepted
+# call) mutates NEITHER the exchange_instruments LKG NOR the historical
+# decision-effective intervals.
+# ============================================================================
+def test_delayed_mismatch_acceptance_replay_vector():
+    async def body(db, _dsn):
+        await _accept(db, tick_size=0.10, fetched_at=_t(0))   # OLD, effective before 12:00
+
+        # 12:00 -- the exchange fetch OBSERVES a NEW tick_size, but it is
+        # NOT deliberately accepted yet (no accept_mismatch=True).
+        with pytest.raises(ValueError, match="mismatch"):
+            await _accept(db, tick_size=0.50, fetched_at=_t(12))
+
+        # Merely observing the mismatch must mutate NOTHING.
+        async with db.pool.acquire() as conn:
+            lkg = await conn.fetchrow(
+                "SELECT tick_size FROM exchange_instruments "
+                "WHERE exchange=$1 AND symbol=$2 AND market_type=$3",
+                EXCHANGE, SYMBOL, MARKET_TYPE)
+            open_interval = await conn.fetchrow(
+                "SELECT tick_size, effective_until FROM exchange_instrument_history "
+                "WHERE exchange=$1 AND symbol=$2 AND market_type=$3 "
+                "AND effective_until IS NULL",
+                EXCHANGE, SYMBOL, MARKET_TYPE)
+        assert lkg["tick_size"] == 0.10          # LKG untouched
+        assert open_interval["tick_size"] == 0.10   # history untouched
+        assert open_interval["effective_until"] is None
+
+        # LIVE decisions from 12:00 through 12:55 still correctly see OLD.
+        live_1230 = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(12) + timedelta(minutes=30))
+        assert live_1230["tick_size"] == 0.10
+
+        # 13:00 -- an operator DELIBERATELY accepts NEW, declaring 13:00 as
+        # the real V2 decision-time activation boundary (NOT 12:00).
+        await _accept(db, tick_size=0.50, fetched_at=_t(12), accept_mismatch=True,
+                      effective_from=_t(13), accepted_code_version="fork-delayed")
+
+        as_of_1230 = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE,
+            as_of=_t(12) + timedelta(minutes=30))
+        as_of_1259 = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE,
+            as_of=_t(12) + timedelta(minutes=59))
+        as_of_1300 = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(13))
+        as_of_1305 = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE,
+            as_of=_t(13) + timedelta(minutes=5))
+
+        assert as_of_1230["tick_size"] == 0.10   # still OLD -- the actual LIVE decision
+        assert as_of_1259["tick_size"] == 0.10   # still OLD
+        assert as_of_1300["tick_size"] == 0.50   # NEW takes effect exactly at acceptance
+        assert as_of_1305["tick_size"] == 0.50   # still NEW
+
+    _run(body)
+
+
+# ============================================================================
+# Tech-lead review 4990482334, finding 3 (BLOCKER): explicit, conservative,
+# idempotent bootstrap of an already-accepted pre-H2c LKG row that has no
+# history yet -- Database.seed_current_instrument_history.
+# ============================================================================
+def test_seed_current_instrument_history_full_vector():
+    async def body(db, scoped_dsn):
+        # 1. pre-H2c LKG exists, history empty.
+        async with db.pool.acquire() as conn:
+            await conn.execute(
+                """
+                INSERT INTO exchange_instruments
+                    (exchange, symbol, market_type, exchange_instrument_id,
+                     quantity_unit, contract_multiplier, tick_size,
+                     price_precision, quantity_precision, metadata_source,
+                     fetched_at, is_stale, note)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+                """,
+                EXCHANGE, SYMBOL, MARKET_TYPE, SYMBOL, "base", None, 0.25,
+                1, 3, "exchange_api", _t(0), False, None)
+
+        # 2. as-of read initially returns None (no history at all).
+        pre_seed = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(50))
+        assert pre_seed is None
+
+        # 3. explicit seed at T_seed.
+        t_seed = _t(20)
+        result = await db.seed_current_instrument_history(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, effective_from=t_seed)
+        assert result == "SEEDED"
+
+        # 4. T < T_seed still returns None -- never extrapolated backward.
+        before_seed = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(19))
+        assert before_seed is None
+
+        # 5. T == T_seed resolves the accepted current row.
+        at_seed = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=t_seed)
+        assert at_seed["tick_size"] == 0.25
+
+        # 6. T > T_seed resolves it.
+        after_seed = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(50))
+        assert after_seed["tick_size"] == 0.25
+
+        # The LKG row itself must be preserved exactly, untouched.
+        async with db.pool.acquire() as conn:
+            lkg = await conn.fetchrow(
+                "SELECT tick_size, fetched_at FROM exchange_instruments "
+                "WHERE exchange=$1 AND symbol=$2 AND market_type=$3",
+                EXCHANGE, SYMBOL, MARKET_TYPE)
+        assert lkg["tick_size"] == 0.25
+        assert lkg["fetched_at"] == _t(0)
+
+        # 7. repeated seed is idempotent -- never overwrites/duplicates.
+        result2 = await db.seed_current_instrument_history(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE,
+            effective_from=_t(999))   # even with a DIFFERENT effective_from
+        assert result2 == "ALREADY_HAS_HISTORY"
+        still_before = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(19))
+        assert still_before is None   # unchanged -- the re-seed attempt was a no-op
+
+        # 8. restart preserves the same result.
+        restarted = Database(scoped_dsn)
+        await restarted.connect()
+        try:
+            restarted_result = await restarted.fetch_v2_instrument(
+                exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(50))
+            assert restarted_result["tick_size"] == 0.25
+        finally:
+            await restarted.close()
+
+    _run(body)
+
+
+def test_seed_current_instrument_history_no_lkg_is_noop():
+    async def body(db, _dsn):
+        result = await db.seed_current_instrument_history(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, effective_from=_t(0))
+        assert result == "NO_LKG"
+        still_none = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(0))
+        assert still_none is None
+
+    _run(body)
+
+
+def test_seed_current_instrument_history_never_overwrites_real_history():
+    """If real (non-seeded) history already exists, seeding must be a
+    pure no-op -- never colliding with or masking real history."""
+    async def body(db, _dsn):
+        await _accept(db, tick_size=0.77, fetched_at=_t(0))
+        result = await db.seed_current_instrument_history(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, effective_from=_t(999))
+        assert result == "ALREADY_HAS_HISTORY"
+        unaffected = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(5))
+        assert unaffected["tick_size"] == 0.77
+
+    _run(body)
+
+
+# ============================================================================
+# Tech-lead review 4990482334, findings 7/8 (BLOCKER): calculation_version
+# fork enforcement at the critical-mismatch-acceptance boundary.
+# ============================================================================
+def test_critical_mismatch_acceptance_without_code_version_fails_closed():
+    async def body(db, _dsn):
+        await _accept(db, tick_size=0.10, fetched_at=_t(0))
+        with pytest.raises(ValueError, match="accepted_code_version"):
+            await _accept(db, tick_size=0.50, fetched_at=_t(12), accept_mismatch=True,
+                          effective_from=_t(12))   # no accepted_code_version
+        unaffected = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(20))
+        assert unaffected["tick_size"] == 0.10
+
+    _run(body)
+
+
+def test_critical_mismatch_acceptance_cannot_reuse_previous_code_version():
+    """The core executable proof for finding 7: accepted critical metadata
+    cannot be consumed under the OLD calculation_version -- a second
+    critical acceptance MUST supply a code_version different from the one
+    the FIRST critical acceptance recorded, or it is refused outright."""
+    async def body(db, _dsn):
+        await _accept(db, tick_size=0.10, fetched_at=_t(0))
+        await _accept(db, tick_size=0.50, fetched_at=_t(12), accept_mismatch=True,
+                      effective_from=_t(12), accepted_code_version="fork-b")
+
+        # A SECOND critical change reusing "fork-b" must be refused.
+        with pytest.raises(ValueError, match="IDENTICAL|identical"):
+            await _accept(db, tick_size=0.90, fetched_at=_t(24), accept_mismatch=True,
+                          effective_from=_t(24), accepted_code_version="fork-b")
+
+        # The refused acceptance must not have mutated anything further.
+        unaffected = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(30))
+        assert unaffected["tick_size"] == 0.50
+
+        # A genuinely NEW code_version succeeds.
+        await _accept(db, tick_size=0.90, fetched_at=_t(24), accept_mismatch=True,
+                      effective_from=_t(24), accepted_code_version="fork-c")
+        now_current = await db.fetch_v2_instrument(
+            exchange=EXCHANGE, symbol=SYMBOL, market_type=MARKET_TYPE, as_of=_t(30))
+        assert now_current["tick_size"] == 0.90
+
+        # The recorded history proves each accepted critical fork by value.
+        async with db.pool.acquire() as conn:
+            forks = await conn.fetch(
+                "SELECT tick_size, accepted_code_version FROM exchange_instrument_history "
+                "WHERE exchange=$1 AND symbol=$2 AND market_type=$3 "
+                "AND accepted_code_version IS NOT NULL ORDER BY effective_from ASC",
+                EXCHANGE, SYMBOL, MARKET_TYPE)
+        assert [(r["tick_size"], r["accepted_code_version"]) for r in forks] == [
+            (0.50, "fork-b"), (0.90, "fork-c")]
+
+    _run(body)
+
+
+def test_first_ever_critical_history_row_has_no_accepted_code_version():
+    """A first-ever accepted value (no prior LKG/history at all) is not a
+    "critical mismatch acceptance" -- its history row's
+    accepted_code_version stays NULL; no fork declaration is required."""
+    async def body(db, _dsn):
+        await _accept(db, tick_size=0.10, fetched_at=_t(0))
+        async with db.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT accepted_code_version FROM exchange_instrument_history "
+                "WHERE exchange=$1 AND symbol=$2 AND market_type=$3",
+                EXCHANGE, SYMBOL, MARKET_TYPE)
+        assert row["accepted_code_version"] is None
 
     _run(body)

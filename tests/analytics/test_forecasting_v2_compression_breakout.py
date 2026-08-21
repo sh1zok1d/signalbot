@@ -1126,6 +1126,21 @@ def test_instrument_tick_size_negative_raises():
             instrument=make_instrument(tick_size=-0.1)))
 
 
+@pytest.mark.parametrize("tick_a,tick_b", [(0.10, 0.50), (1.0, 2.5)])
+def test_decision_tick_size_matches_instrument_row_exactly_for_two_versions(tick_a, tick_b):
+    """V2-H2c, tech-lead review 4990482334, findings 5/6: instrument tick
+    A -> candidate.decision_tick_size == A, instrument tick B ->
+    candidate.decision_tick_size == B."""
+    candidate_a = detect_compression_breakout(
+        build_valid_short_inputs(instrument=make_instrument(tick_size=tick_a)))
+    candidate_b = detect_compression_breakout(
+        build_valid_short_inputs(instrument=make_instrument(tick_size=tick_b)))
+    assert candidate_a.decision_tick_size == tick_a
+    assert candidate_b.decision_tick_size == tick_b
+    assert candidate_a.protection_buffer >= 3 * tick_a
+    assert candidate_b.protection_buffer >= 3 * tick_b
+
+
 # ============================================================================
 # 10. worked vectors
 # ============================================================================
@@ -1187,7 +1202,7 @@ def _valid_candidate_kwargs(**over):
         previous_5m_close=63_820.0, breakout_close=63_740.0,
         compression_start_bucket=RUN_START, compression_end_bucket=RUN_END,
         compression_length=7, range_high=RANGE_HIGH, range_low=RANGE_LOW,
-        range_proxy_pct=0.3, protection_buffer=96.0,
+        range_proxy_pct=0.3, protection_buffer=96.0, decision_tick_size=0.1,
         entry_zone_lower=RANGE_LOW - 96.0, entry_zone_upper=RANGE_LOW,
         invalidation_price=RANGE_HIGH + 96.0,
         price_direction_agreement=0.8, taker_delta_notional_usd_sum=-1000.0,
@@ -1261,6 +1276,17 @@ def test_candidate_rejects_nan_prices():
 def test_candidate_rejects_nonpositive_buffer():
     with pytest.raises(V2CompressionBreakoutError):
         V2CompressionBreakoutCandidate(**_valid_candidate_kwargs(protection_buffer=0.0))
+
+
+@pytest.mark.parametrize("bad_tick", [0, 0.0, -0.1, float("nan"), float("inf"), True])
+def test_candidate_rejects_malformed_decision_tick_size(bad_tick):
+    with pytest.raises(V2CompressionBreakoutError):
+        V2CompressionBreakoutCandidate(**_valid_candidate_kwargs(decision_tick_size=bad_tick))
+
+
+def test_candidate_rejects_protection_buffer_inconsistent_with_decision_tick_size():
+    with pytest.raises(V2CompressionBreakoutError):
+        V2CompressionBreakoutCandidate(**_valid_candidate_kwargs(decision_tick_size=1000.0))
 
 
 def test_candidate_rejects_agreement_below_threshold():

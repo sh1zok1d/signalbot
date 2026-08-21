@@ -186,8 +186,8 @@ from analytics.forecasting_v2.events import DIRECTIONS, LONG, SHORT
 from analytics.forecasting_v2.family_quality import V2FamilyQualityError, family_quality
 from analytics.forecasting_v2.regime_4h import BEARISH_TRENDING, BULLISH_TRENDING
 from analytics.forecasting_v2.setup_common import (
-    SETUP_MIN_CONFIDENCE, SETUP_MIN_COVERAGE, V2ExtremeAnchor, V2SetupFoundationError,
-    protection_buffer, range_proxy_pct, select_extreme_anchor,
+    MIN_TICK_BUFFER_TICKS, SETUP_MIN_CONFIDENCE, SETUP_MIN_COVERAGE, V2ExtremeAnchor,
+    V2SetupFoundationError, protection_buffer, range_proxy_pct, select_extreme_anchor,
 )
 
 __all__ = [
@@ -387,6 +387,22 @@ class V2TrendPullbackCandidate:
     derived from `trend_leg_extreme.bucket_ts` -- never a second,
     independently-settable field that could silently disagree with it.
 
+    **`decision_tick_size` (V2-H2c, tech-lead review 4990482334, finding
+    5).** `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §12.5a freezes that
+    every Stage 5 candidate depending on `tick_size` MUST carry the actual
+    validated decision-time `tick_size` BY VALUE in its own output, so a
+    future Stage 6 never re-reads today's instrument metadata for episode
+    creation identity. `decision_tick_size` is EXACTLY the as-of instrument
+    metadata value (`inputs.instrument["tick_size"]`, resolved as-of
+    `context.T` by the caller) this candidate's own `protection_buffer`
+    was computed from -- Stage 5 owns and exposes it; Stage 6 will later
+    freeze `candidate.decision_tick_size` into the episode's OWN
+    `creation_identity_tick_size` (§12.5a) once an `EARLY_SIGNAL` is
+    actually created -- `decision_tick_size` itself is NOT
+    `creation_identity_tick_size` (that is specifically the Stage-6
+    episode-creation supporting fact; this is the Stage-5 candidate's own
+    decision-time input fact, upstream of any episode existing yet).
+
     `setup_strength`/`data_confidence` (§8/§9) are canonical creation-time
     scoring/quality facts, carried BY VALUE from this candidate's own
     already-computed `retracement_pct`/`range_proxy_pct` and the
@@ -416,6 +432,7 @@ class V2TrendPullbackCandidate:
     range_proxy_pct: float
     pullback_extreme: float
     protection_buffer: float
+    decision_tick_size: float
     entry_zone_lower: float
     entry_zone_upper: float
     invalidation_price: float
@@ -456,6 +473,19 @@ class V2TrendPullbackCandidate:
         current_close = _validate_positive_finite(self.current_close, "current_close")
         pullback_extreme = _validate_positive_finite(self.pullback_extreme, "pullback_extreme")
         buf = _validate_positive_finite(self.protection_buffer, "protection_buffer")
+        decision_tick = _validate_positive_finite(self.decision_tick_size, "decision_tick_size")
+        # (V2-H2c, finding 5) Cheap, exact, deterministic cross-check --
+        # protection_buffer() is max(MIN_TICK_BUFFER_TICKS * tick_size, ...),
+        # so it can NEVER be smaller than the tick floor computed from THIS
+        # candidate's own decision_tick_size. Never duplicates the detector's
+        # own volatility-term arithmetic (which would require range_proxy_pct
+        # domain knowledge this __post_init__ has no business re-deriving).
+        if buf < MIN_TICK_BUFFER_TICKS * decision_tick:
+            raise V2TrendPullbackError(
+                f"protection_buffer ({buf!r}) is inconsistent with decision_tick_size "
+                f"({decision_tick!r}) -- protection_buffer() can never be smaller than "
+                f"MIN_TICK_BUFFER_TICKS * decision_tick_size "
+                f"({MIN_TICK_BUFFER_TICKS * decision_tick!r})")
         entry_lower = _validate_positive_finite(self.entry_zone_lower, "entry_zone_lower")
         entry_upper = _validate_positive_finite(self.entry_zone_upper, "entry_zone_upper")
         invalidation_price = _validate_positive_finite(
@@ -907,6 +937,7 @@ def detect_trend_pullback(inputs: V2TrendPullbackInputs) -> Optional[V2TrendPull
         range_proxy_pct=proxy,
         pullback_extreme=pullback_extreme,
         protection_buffer=buffer,
+        decision_tick_size=tick_size,
         entry_zone_lower=entry_zone_lower,
         entry_zone_upper=entry_zone_upper,
         setup_strength=setup_strength,

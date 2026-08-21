@@ -86,18 +86,43 @@ _EXPECTED_COLUMNS = [
     "exchange", "symbol", "market_type", "exchange_instrument_id", "quantity_unit",
     "contract_multiplier", "tick_size", "price_precision", "quantity_precision",
     "metadata_source", "observed_at", "effective_from", "effective_until", "note",
-    "recorded_at",
+    "accepted_code_version", "recorded_at",
 ]
 
 
 def test_columns_match_expected_shape():
     """Column set mirrors `exchange_instruments`' own data-field shape
     exactly, plus the identity/temporal/provenance fields H2c adds
-    (`observed_at`/`effective_from`/`effective_until`/`recorded_at`) —
-    deliberately NO `is_stale` (a current/LKG-only concept; a historical
-    interval is either the version in effect or it is not)."""
+    (`observed_at`/`effective_from`/`effective_until`/`accepted_code_version`/
+    `recorded_at`) — deliberately NO `is_stale` (a current/LKG-only
+    concept; a historical interval is either the version in effect or it
+    is not)."""
     assert _columns(_BODY) == _EXPECTED_COLUMNS
     assert "is_stale" not in _BODY
+
+
+def test_observed_at_is_nullable_not_not_null():
+    """(Tech-lead review 4990482334, finding 1/2) `observed_at` is
+    PROVENANCE ONLY and must be nullable -- a manual/declared-fallback
+    value with no honest fetch timestamp is legal, provided
+    `effective_from` is still supplied explicitly."""
+    assert re.search(r"observed_at\s+TIMESTAMPTZ,", _BODY)
+    assert not re.search(r"observed_at\s+TIMESTAMPTZ NOT NULL", _BODY)
+
+
+def test_effective_from_is_not_null():
+    assert re.search(r"effective_from\s+TIMESTAMPTZ NOT NULL,", _BODY)
+
+
+def test_observed_at_not_after_effective_from_check_present():
+    assert re.search(
+        r"observed_at IS NULL OR observed_at <= effective_from", _BODY)
+
+
+def test_accepted_code_version_nonblank_check_present():
+    assert re.search(
+        r"accepted_code_version IS NULL OR length\(btrim\(accepted_code_version\)\) > 0",
+        _BODY)
 
 
 def test_primary_key_is_identity_plus_effective_from():
@@ -151,10 +176,11 @@ def test_recorded_at_is_db_owned_metadata_only():
 
 
 def test_observed_at_and_effective_from_are_not_db_defaulted():
-    """Both are always caller-supplied (the accepted fetch's own
-    `fetched_at`) -- never `DEFAULT now()`, which would silently fabricate
-    a wall-clock observation time instead of the real one."""
-    assert re.search(r"observed_at\s+TIMESTAMPTZ NOT NULL,", _BODY)
-    assert re.search(r"effective_from\s+TIMESTAMPTZ NOT NULL,", _BODY)
-    assert not re.search(r"observed_at\s+TIMESTAMPTZ NOT NULL DEFAULT", _BODY)
-    assert not re.search(r"effective_from\s+TIMESTAMPTZ NOT NULL DEFAULT", _BODY)
+    """Both are always caller-supplied -- `observed_at` from a real fetch's
+    own timestamp (or explicitly NULL for a manual/declared value),
+    `effective_from` from the caller's own explicit V2 decision-time
+    acceptance boundary -- never `DEFAULT now()`, which would silently
+    fabricate a wall-clock timestamp instead of the real one, and never
+    silently derived from each other."""
+    assert not re.search(r"observed_at\s+TIMESTAMPTZ.*DEFAULT", _BODY)
+    assert not re.search(r"effective_from\s+TIMESTAMPTZ.*DEFAULT", _BODY)

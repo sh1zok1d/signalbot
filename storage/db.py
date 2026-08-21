@@ -274,6 +274,8 @@ class Database:
         tick_size, price_precision, quantity_precision, metadata_source: str,
         fetched_at, is_stale: bool = False, note: str = "",
         accept_mismatch: bool = False,
+        effective_from=None,
+        accepted_code_version: "Optional[str]" = None,
     ) -> str:
         """Upsert an instrument row. The canonical `symbol` and the venue-native
         `exchange_instrument_id` are stored in SEPARATE columns. Stale flag and
@@ -282,39 +284,88 @@ class Database:
         A change on a critical field (exchange_instrument_id, quantity_unit,
         contract_multiplier, tick_size) versus the existing row is NOT silently
         overwritten: unless `accept_mismatch=True`, this raises so the change is
-        a deliberate decision (and forks calculation_version upstream).
+        a deliberate decision.
 
-        (V2-H2c) Runs inside ONE transaction, serialized by a
-        transaction-scoped Postgres advisory lock keyed to `(exchange,
-        symbol, market_type)` -- this closes a pre-existing TOCTOU (the
-        mismatch check previously read the current LKG row via a
-        SEPARATE, unlocked `pool.acquire()`/`get_exchange_instrument()`
-        call before writing) and gives the `exchange_instrument_history`
-        append below the same serialization guarantee, without requiring
-        a placeholder row to lock before this call's final accepted
-        values are known (an advisory lock works even when no
-        `exchange_instruments` row exists yet, e.g. this identity's very
-        first bootstrap).
+        **`calculation_version` fork enforcement (tech-lead review
+        4990482334, findings 7/8).** Accepting (`accept_mismatch=True`) a
+        genuine change on any `_INSTRUMENT_CRITICAL_FIELDS` field
+        additionally REQUIRES `accepted_code_version` (a non-blank
+        string): the NEW `code_version` this deliberate acceptance is
+        declaring going forward. It MUST differ from whichever
+        `accepted_code_version` this identity's own MOST RECENT prior
+        critical-field acceptance recorded (if any) -- reusing the same
+        `code_version` for a second, DIFFERENT critical value raises,
+        refusing the acceptance outright (fail-closed, per the review's
+        own permitted resolution: "fail closed and remain unusable until
+        the version fork is explicitly supplied/established"). This does
+        NOT itself change `compute_calculation_version`'s formula/format
+        (still exactly `sha256(...)[:16]`, `code_version` was already one
+        of its three existing inputs) and does NOT touch the live Stage 2
+        assembly pipeline (`analytics/feature_engine/input_adapter.py`
+        `build_assembly_context`/`assemble_exchange_feature_request`,
+        which resolve `code_version` from `resolve_feature_code_version`/
+        an explicit operator-supplied value exactly as before, completely
+        unmodified by this PR) -- it makes the ACCEPTANCE ITSELF
+        mechanically incapable of silently continuing under the old
+        `code_version`, which is the one formula input this repository
+        already lets an operator/deployment declare explicitly. See the
+        PR body's calculation-version section for the full audit
+        (no real fork mechanism existed before this PR; the frozen
+        `common/instrument_metadata.py::CRITICAL_FIELDS` comment claiming
+        one was aspirational only) and
+        `tests/storage/test_v2_instrument_history_readers.py`'s
+        calculation-version-fork vectors for the executable proof.
 
-        Whenever `fetched_at` is not `None` AND this call's own value
-        fields (`exchange_instrument_id`/`quantity_unit`/
-        `contract_multiplier`/`tick_size`/`price_precision`/
-        `quantity_precision`) differ from the currently-open
-        `exchange_instrument_history` interval (or none is open yet),
-        exactly ONE new interval is opened -- closing the previously-open
-        one first, in the SAME transaction -- using THIS call's own
-        `fetched_at` as the new interval's `effective_from`/`observed_at`
-        (never a fabricated earlier instant; see
-        `storage/stage2_schema.sql`'s `exchange_instrument_history` table
-        comment). An idempotent refresh whose value fields are unchanged
-        never opens a spurious extra interval. `fetched_at=None` (a
-        caller with no honest observation timestamp -- e.g. a bare
-        `manual`/`declared_fallback` value with no real fetch) never
-        opens or closes any interval either: this table only ever
-        records what a real observation actually implies, never a
-        fabricated timestamp -- a historical `as_of` read for such an
-        identity legitimately returns `None` (NOT_EVALUABLE) until a real
-        observed fetch establishes an interval."""
+        Runs inside ONE transaction, serialized by a transaction-scoped
+        Postgres advisory lock keyed to `(exchange, symbol, market_type)`
+        -- this closes a pre-existing TOCTOU (the mismatch check
+        previously read the current LKG row via a SEPARATE, unlocked
+        `pool.acquire()`/`get_exchange_instrument()` call before writing)
+        and gives the `exchange_instrument_history` append below the same
+        serialization guarantee, without requiring a placeholder row to
+        lock before this call's final accepted values are known (an
+        advisory lock works even when no `exchange_instruments` row
+        exists yet, e.g. this identity's very first bootstrap).
+
+        **`fetched_at` vs `effective_from` (tech-lead review 4990482334,
+        finding 1) -- two DISTINCT timestamps, never conflated.**
+        `fetched_at` is `observed_at`: PROVENANCE ONLY, when this value
+        was actually fetched/observed -- it does NOT by itself determine
+        when the value becomes eligible for V2 decision boundaries to
+        use. `effective_from` is the EXPLICIT V2 decision-time activation
+        boundary. Whenever this call's own value fields
+        (`exchange_instrument_id`/`quantity_unit`/`contract_multiplier`/
+        `tick_size`/`price_precision`/`quantity_precision`) genuinely
+        differ from the currently-open `exchange_instrument_history`
+        interval:
+
+          - if an interval is ALREADY open (a real value CHANGE, not a
+            first-ever value) and `effective_from` was not explicitly
+            supplied, this RAISES rather than silently defaulting to
+            `fetched_at` -- auto-backdating a deliberately-accepted
+            mismatch to its (possibly much earlier) observation time
+            would let a REPLAY see the new value at decision boundaries
+            where the actual LIVE run still correctly used the OLD one.
+            The caller MUST supply the real acceptance boundary
+            explicitly.
+          - if NO interval is open yet (this identity's first-ever
+            accepted value) and `effective_from` is not supplied, it
+            safely defaults to `fetched_at` -- there is no OLD value's
+            already-made LIVE decisions to protect against.
+          - `fetched_at` (`observed_at`) MUST be `<= effective_from` when
+            both are given (a value cannot become effective before it
+            was even observed) -- raises otherwise.
+          - `fetched_at=None` (no honest observation timestamp -- e.g. a
+            bare `manual`/`declared_fallback` value) is legal PROVIDED
+            `effective_from` is supplied explicitly; with neither given,
+            no interval is opened or closed at all.
+
+        The previously-open interval (if any) is closed at the NEW
+        interval's own `effective_from` (never at `fetched_at`), in the
+        SAME transaction as opening the next one. An idempotent refresh
+        whose value fields are unchanged never opens a spurious extra
+        interval, regardless of what `fetched_at`/`effective_from` were
+        passed."""
         assert self.pool is not None
         new_vals = {
             "exchange_instrument_id": exchange_instrument_id,
@@ -325,6 +376,11 @@ class Database:
             "quantity_precision": quantity_precision,
         }
         history_vals = tuple(new_vals[f] for f in _INSTRUMENT_HISTORY_VALUE_FIELDS)
+        if fetched_at is not None and effective_from is not None and fetched_at > effective_from:
+            raise ValueError(
+                f"instrument history for {exchange}/{symbol}/{market_type}: fetched_at "
+                f"(observed_at) {fetched_at!r} is AFTER effective_from {effective_from!r} -- "
+                "a value cannot become effective before it was even observed")
         async with self.pool.acquire() as conn:
             async with conn.transaction():
                 await conn.execute(
@@ -334,13 +390,43 @@ class Database:
                     "SELECT * FROM exchange_instruments "
                     "WHERE exchange=$1 AND symbol=$2 AND market_type=$3",
                     exchange, symbol, market_type)
+                critical_diff = (
+                    [f for f in _INSTRUMENT_CRITICAL_FIELDS if existing[f] != new_vals[f]]
+                    if existing is not None else [])
                 if existing is not None and not accept_mismatch:
-                    diff = [f for f in _INSTRUMENT_CRITICAL_FIELDS if existing[f] != new_vals[f]]
-                    if diff:
+                    if critical_diff:
                         raise ValueError(
-                            f"instrument metadata mismatch on {diff} for "
+                            f"instrument metadata mismatch on {critical_diff} for "
                             f"{exchange}/{symbol}/{market_type}; refusing silent overwrite "
                             f"(pass accept_mismatch=True to accept deliberately)")
+                if critical_diff:
+                    # (findings 7/8) A genuine deliberately-accepted CRITICAL
+                    # metadata change must declare a fresh code_version --
+                    # never silently continue under the code_version already
+                    # in use for this identity's previous critical acceptance.
+                    if not accepted_code_version or not accepted_code_version.strip():
+                        raise ValueError(
+                            f"instrument metadata critical-field change on {critical_diff} for "
+                            f"{exchange}/{symbol}/{market_type} is being accepted, but no "
+                            "accepted_code_version was supplied -- a genuine critical metadata "
+                            "acceptance must declare the NEW code_version this repository will "
+                            "resolve going forward, so calculation_version can fork; refusing to "
+                            "silently continue under the old code_version")
+                    last = await conn.fetchrow(
+                        "SELECT accepted_code_version FROM exchange_instrument_history "
+                        "WHERE exchange=$1 AND symbol=$2 AND market_type=$3 "
+                        "AND accepted_code_version IS NOT NULL "
+                        "ORDER BY effective_from DESC LIMIT 1",
+                        exchange, symbol, market_type)
+                    if last is not None and last["accepted_code_version"] == accepted_code_version:
+                        raise ValueError(
+                            f"instrument metadata critical-field change on {critical_diff} for "
+                            f"{exchange}/{symbol}/{market_type}: accepted_code_version "
+                            f"{accepted_code_version!r} is IDENTICAL to the code_version already "
+                            "recorded for this identity's PREVIOUS accepted critical change -- a "
+                            "genuine critical metadata change must fork to a NEW code_version, "
+                            "never reuse the old one, or subsequent Stage 2/V2 computations could "
+                            "silently continue claiming the old calculation_version")
                 await conn.execute(
                     """
                     INSERT INTO exchange_instruments
@@ -368,7 +454,7 @@ class Database:
                     fetched_at, is_stale, note,
                 )
 
-                if fetched_at is not None:
+                if fetched_at is not None or effective_from is not None:
                     current = await conn.fetchrow(
                         "SELECT effective_from, exchange_instrument_id, quantity_unit, "
                         "contract_multiplier, tick_size, price_precision, quantity_precision "
@@ -380,20 +466,29 @@ class Database:
                     if current is not None:
                         current_vals = tuple(current[f] for f in _INSTRUMENT_HISTORY_VALUE_FIELDS)
                     if current_vals != history_vals:
-                        if current is not None:
-                            if fetched_at <= current["effective_from"]:
+                        resolved_effective_from = effective_from
+                        if resolved_effective_from is None:
+                            if current is not None:
                                 raise ValueError(
                                     f"instrument history for {exchange}/{symbol}/{market_type}: "
-                                    f"fetched_at {fetched_at!r} is not strictly after the "
-                                    f"currently-open interval's own effective_from "
-                                    f"{current['effective_from']!r} -- history must be "
-                                    "appended in non-decreasing observed_at order, never "
-                                    "reordered")
+                                    "this is a genuine value CHANGE against an already-open "
+                                    "interval -- effective_from must be supplied explicitly "
+                                    "(the real V2 decision-time acceptance boundary); refusing "
+                                    "to silently backdate to fetched_at (observed_at)")
+                            resolved_effective_from = fetched_at   # first-ever value: safe default
+                        if current is not None:
+                            if resolved_effective_from <= current["effective_from"]:
+                                raise ValueError(
+                                    f"instrument history for {exchange}/{symbol}/{market_type}: "
+                                    f"effective_from {resolved_effective_from!r} is not strictly "
+                                    f"after the currently-open interval's own effective_from "
+                                    f"{current['effective_from']!r} -- history must be appended "
+                                    "in non-decreasing effective_from order, never reordered")
                             await conn.execute(
                                 "UPDATE exchange_instrument_history SET effective_until = $1 "
                                 "WHERE exchange=$2 AND symbol=$3 AND market_type=$4 "
                                 "AND effective_from=$5",
-                                fetched_at, exchange, symbol, market_type,
+                                resolved_effective_from, exchange, symbol, market_type,
                                 current["effective_from"])
                         await conn.execute(
                             """
@@ -401,15 +496,84 @@ class Database:
                                 (exchange, symbol, market_type, exchange_instrument_id,
                                  quantity_unit, contract_multiplier, tick_size,
                                  price_precision, quantity_precision, metadata_source,
-                                 observed_at, effective_from, effective_until, note)
-                            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$11,NULL,$12)
+                                 observed_at, effective_from, effective_until, note,
+                                 accepted_code_version)
+                            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NULL,$13,$14)
                             """,
                             exchange, symbol, market_type, exchange_instrument_id,
                             quantity_unit, contract_multiplier, tick_size,
                             price_precision, quantity_precision, metadata_source,
-                            fetched_at, note,
+                            fetched_at, resolved_effective_from, note,
+                            accepted_code_version if critical_diff else None,
                         )
         return "OK"
+
+    async def seed_current_instrument_history(
+        self, *, exchange: str, symbol: str, market_type: str, effective_from,
+    ) -> str:
+        """(Tech-lead review 4990482334, finding 3) Explicit, conservative,
+        idempotent bootstrap: seeds `exchange_instrument_history` from an
+        ALREADY-ACCEPTED, pre-existing `exchange_instruments` LKG row that
+        has no history yet -- without this, a production identity that was
+        accepted before H2c landed would have a real current LKG row but
+        `fetch_v2_instrument(..., as_of=T)` would return `None` forever
+        (never falling back to the LKG row -- that remains correct; this
+        method is the honest way to give it real history instead).
+
+        `effective_from` is the caller's own EXPLICIT, truthful V2
+        decision-time boundary from which the LKG's current value is
+        actually known/willing to be treated as historically valid --
+        this method NEVER extrapolates backward past it (no `-infinity`,
+        no project-start date, no hidden `now()`); a historical `as_of`
+        earlier than `effective_from` still correctly resolves to `None`.
+
+        Returns `"NO_LKG"` if no `exchange_instruments` row exists for
+        this identity (nothing to seed). Returns `"ALREADY_HAS_HISTORY"`
+        without writing anything if this identity already has ANY
+        `exchange_instrument_history` row (open or closed) -- this method
+        NEVER overwrites/duplicates real history; safe to call repeatedly
+        (idempotent), including after a prior successful seed. Returns
+        `"SEEDED"` when it actually inserted the one new open interval.
+
+        Runs inside ONE transaction, serialized by the SAME
+        transaction-scoped advisory lock `upsert_exchange_instrument` uses
+        for this identity. Never modifies `exchange_instruments` itself --
+        the existing LKG row is preserved exactly as-is."""
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute(
+                    "SELECT pg_advisory_xact_lock(hashtext($1))",
+                    f"{exchange}:{symbol}:{market_type}")
+                lkg = await conn.fetchrow(
+                    "SELECT * FROM exchange_instruments "
+                    "WHERE exchange=$1 AND symbol=$2 AND market_type=$3",
+                    exchange, symbol, market_type)
+                if lkg is None:
+                    return "NO_LKG"
+                any_history = await conn.fetchrow(
+                    "SELECT 1 FROM exchange_instrument_history "
+                    "WHERE exchange=$1 AND symbol=$2 AND market_type=$3 LIMIT 1",
+                    exchange, symbol, market_type)
+                if any_history is not None:
+                    return "ALREADY_HAS_HISTORY"
+                await conn.execute(
+                    """
+                    INSERT INTO exchange_instrument_history
+                        (exchange, symbol, market_type, exchange_instrument_id,
+                         quantity_unit, contract_multiplier, tick_size,
+                         price_precision, quantity_precision, metadata_source,
+                         observed_at, effective_from, effective_until, note)
+                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NULL,$13)
+                    """,
+                    exchange, symbol, market_type, lkg["exchange_instrument_id"],
+                    lkg["quantity_unit"], lkg["contract_multiplier"], lkg["tick_size"],
+                    lkg["price_precision"], lkg["quantity_precision"], lkg["metadata_source"],
+                    lkg["fetched_at"], effective_from,
+                    f"seeded from pre-existing exchange_instruments LKG row "
+                    f"(its own fetched_at={lkg['fetched_at']!r})",
+                )
+        return "SEEDED"
 
     # ---------------------------------------------------------------
     # Writers

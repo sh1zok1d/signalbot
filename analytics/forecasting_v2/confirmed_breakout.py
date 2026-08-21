@@ -149,9 +149,9 @@ from analytics.forecasting_v2.context_snapshot import V2ContextSnapshot
 from analytics.forecasting_v2.events import DIRECTIONS, LONG, SHORT
 from analytics.forecasting_v2.family_quality import V2FamilyQualityError, family_quality
 from analytics.forecasting_v2.setup_common import (
-    RANGE_PROXY_N, SETUP_MIN_CONFIDENCE, SETUP_MIN_COVERAGE, V2ExtremeAnchor,
-    V2SetupFoundationError, directional_context_gate, protection_buffer, range_proxy_pct,
-    select_extreme_anchor,
+    MIN_TICK_BUFFER_TICKS, RANGE_PROXY_N, SETUP_MIN_CONFIDENCE, SETUP_MIN_COVERAGE,
+    V2ExtremeAnchor, V2SetupFoundationError, directional_context_gate, protection_buffer,
+    range_proxy_pct, select_extreme_anchor,
 )
 
 __all__ = [
@@ -359,7 +359,19 @@ class V2ConfirmedBreakoutCandidate:
     `price_direction_agreement`/`taker_delta_notional_usd_sum` fields
     exist on this candidate at all -- §7.3 freezes no such EARLY_SIGNAL
     gate for this family (load-bearing difference from
-    `V2CompressionBreakoutCandidate`, see module docstring)."""
+    `V2CompressionBreakoutCandidate`, see module docstring).
+
+    **`decision_tick_size` (V2-H2c, tech-lead review 4990482334, finding
+    5).** `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §12.5a freezes that
+    every Stage 5 candidate depending on `tick_size` MUST carry the
+    actual validated decision-time `tick_size` BY VALUE. Stage 5 owns
+    and exposes it; Stage 6 will later freeze `candidate.
+    decision_tick_size` into the episode's OWN `creation_identity_
+    tick_size` (§12.5a) once an `EARLY_SIGNAL` is actually created --
+    never re-reading instrument metadata for that identity. NOT to be
+    confused with `creation_identity_tick_size` itself, which is
+    specifically the Stage-6 episode-creation supporting fact, frozen
+    only once an episode actually exists."""
     T: datetime
     direction: str
     bucket_5m: datetime
@@ -370,6 +382,7 @@ class V2ConfirmedBreakoutCandidate:
     level_price: float
     range_proxy_pct: float
     protection_buffer: float
+    decision_tick_size: float
     entry_zone_lower: float
     entry_zone_upper: float
     invalidation_price: float
@@ -409,6 +422,13 @@ class V2ConfirmedBreakoutCandidate:
         breakout_close = _validate_positive_finite(self.breakout_close, "breakout_close")
 
         buf = _validate_positive_finite(self.protection_buffer, "protection_buffer")
+        decision_tick = _validate_positive_finite(self.decision_tick_size, "decision_tick_size")
+        if buf < MIN_TICK_BUFFER_TICKS * decision_tick:
+            raise V2ConfirmedBreakoutError(
+                f"protection_buffer ({buf!r}) is inconsistent with decision_tick_size "
+                f"({decision_tick!r}) -- protection_buffer() can never be smaller than "
+                f"MIN_TICK_BUFFER_TICKS * decision_tick_size "
+                f"({MIN_TICK_BUFFER_TICKS * decision_tick!r})")
         _validate_nonnegative_finite(self.range_proxy_pct, "range_proxy_pct")
 
         entry_lower = _validate_positive_finite(self.entry_zone_lower, "entry_zone_lower")
@@ -995,6 +1015,7 @@ def detect_confirmed_breakout(
         level_price=level_price,
         range_proxy_pct=proxy,
         protection_buffer=buffer,
+        decision_tick_size=tick_size,
         entry_zone_lower=entry_zone_lower,
         entry_zone_upper=entry_zone_upper,
         invalidation_price=invalidation_price,

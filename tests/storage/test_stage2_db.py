@@ -206,6 +206,9 @@ def test_instrument_upsert_accepted_change_closes_old_and_opens_new_interval():
         "contract_multiplier": 0.01, "tick_size": 0.1,
         "price_precision": None, "quantity_precision": None,
         "effective_from": datetime(2026, 8, 1, tzinfo=UTC),
+        "accepted_code_version": None,   # FakeConn returns this same dict for
+                                          # BOTH the existing-row and the
+                                          # last-accepted-code-version lookups
     }
     conn = FakeConn(fetchrow_result=old_row)
     db = _db(conn)
@@ -216,7 +219,8 @@ def test_instrument_upsert_accepted_change_closes_old_and_opens_new_interval():
         contract_multiplier=0.01, tick_size=0.2,          # changed
         price_precision=None, quantity_precision=None,
         metadata_source="exchange_api", fetched_at=new_fetched_at, is_stale=False,
-        accept_mismatch=True))
+        accept_mismatch=True, effective_from=new_fetched_at,
+        accepted_code_version="stage2-code-v2"))
     closes = [(sql, args) for sql, args in conn.executed
               if "UPDATE exchange_instrument_history" in sql]
     opens = _inserts(conn, "exchange_instrument_history")
@@ -239,6 +243,7 @@ def test_instrument_mismatch_does_not_silently_overwrite():
     existing = {
         "exchange_instrument_id": "BTC-USDT-SWAP", "quantity_unit": "contracts",
         "contract_multiplier": 0.01, "tick_size": 0.1,
+        "accepted_code_version": None,
     }
     conn = FakeConn(fetchrow_result=existing)
     db = _db(conn)
@@ -257,8 +262,26 @@ def test_instrument_mismatch_does_not_silently_overwrite():
         exchange_instrument_id="BTC-USDT-SWAP", quantity_unit="contracts",
         contract_multiplier=0.01, tick_size=0.2, price_precision=None,
         quantity_precision=None, metadata_source="exchange_api",
-        fetched_at=None, is_stale=False, accept_mismatch=True))
+        fetched_at=None, is_stale=False, accept_mismatch=True,
+        accepted_code_version="stage2-code-v2"))
     assert len(_inserts(conn, "exchange_instruments")) == 1
+
+
+def test_instrument_critical_accept_without_code_version_raises():
+    existing = {
+        "exchange_instrument_id": "BTC-USDT-SWAP", "quantity_unit": "contracts",
+        "contract_multiplier": 0.01, "tick_size": 0.1,
+    }
+    conn = FakeConn(fetchrow_result=existing)
+    db = _db(conn)
+    with pytest.raises(ValueError, match="accepted_code_version"):
+        _run(db.upsert_exchange_instrument(
+            exchange="okx", symbol="BTCUSDT", market_type="perp",
+            exchange_instrument_id="BTC-USDT-SWAP", quantity_unit="contracts",
+            contract_multiplier=0.01, tick_size=0.2, price_precision=None,
+            quantity_precision=None, metadata_source="exchange_api",
+            fetched_at=None, is_stale=False, accept_mismatch=True))
+    assert _inserts(conn, "exchange_instruments") == []
 
 
 def test_instrument_contract_multiplier_mismatch_blocked():
