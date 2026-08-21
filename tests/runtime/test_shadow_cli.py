@@ -144,6 +144,10 @@ class FakeDB:
         self.calls.append(("bootstrap_revision", initial_revision))
         return "SEEDED"
 
+    async def bootstrap_stage2_publication_state(self, *, symbol, market_type):
+        self.calls.append(("bootstrap_publication_state", symbol, market_type))
+        return "SEEDED"
+
     async def seed_symbols(self, rows):
         self.calls.append("seed_symbols")
         self.seeded_symbols = tuple(rows)
@@ -429,8 +433,8 @@ def test_once_execution_order_and_due_jobs_empty(monkeypatch):
         explicit_bucket_ts="2026-03-01T00:00:00Z", reference_exchange="binance",
         explicit_code_version="cli", metadata_fetch_json=_fetch_json_factory()))
     order = [c if isinstance(c, str) else c[0] for c in db.calls]
-    assert order[:7] == ["init_stage2_schema", "bootstrap_revision", "seed_symbols", "seed_caps",
-                         "get_instr", "get_instr", "get_instr"]
+    assert order[:8] == ["init_stage2_schema", "bootstrap_revision", "bootstrap_publication_state",
+                         "seed_symbols", "seed_caps", "get_instr", "get_instr", "get_instr"]
     assert "avail" in order and order.index("avail") > order.index("seed_caps")
     # (Tech-lead review 4992495660, finding 10) the revision bootstrap must
     # complete strictly BEFORE any instrument upsert or raw-bundle read.

@@ -1352,3 +1352,87 @@ CREATE TABLE IF NOT EXISTS stage2_instrument_metadata_state (
     CONSTRAINT ck_s2ims_singleton_true CHECK (singleton),
     CONSTRAINT ck_s2ims_revision_positive CHECK (required_revision > 0)
 );
+
+-- ============================================================
+-- V2-H2e: Stage-2 correction-publication coherence barrier
+-- (docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §3.4, §2.1).
+--
+-- Clean-room audit finding this table closes: a raw-data correction
+-- (`Database.insert_klines`/`insert_open_interest`/`insert_funding`
+-- upserting an ALREADY-EXISTING row) and the Stage 2 derived recompute it
+-- implies (`STAGE2_SPEC.md` §8.3) are NOT atomic with each other today --
+-- there is no code anywhere in this repository that enqueues, drains, or
+-- otherwise executes `stage2_recompute_queue`/`stage2_watermarks` (they
+-- are schema-only scaffolding; confirmed by exhaustive grep across
+-- runtime/analytics/storage). A REPEATABLE READ V2 read transaction
+-- starting in the window between the raw correction's commit and the
+-- (currently nonexistent) derived republish would silently combine
+-- POST-correction raw facts with PRE-correction derived facts under the
+-- same `calculation_version` -- exactly the semantic hole §3.4 freezes as
+-- a correctness requirement, which H2c's own per-request raw-bundle
+-- REPEATABLE READ transaction (`fetch_exchange_feature_raw_bundle`) does
+-- NOT close (it only protects ONE Stage 2 feature request's OWN seven
+-- reads, never the broader Stage 3+5 V2 decision view).
+--
+-- Scope is deliberately (symbol, market_type) -- NOT `calculation_version`.
+-- A raw correction is detected at the (exchange, symbol, ts) grain, well
+-- below Stage 2's `calculation_version` identity, and V2-v0 only ever
+-- decides against the single currently-ACTIVE `calculation_version`
+-- (`STAGE2_SPEC.md` §8.3a already restricts automatic live-correction
+-- repair to the active version only). Folding `calculation_version` into
+-- this table's key would require resolving it from inside the raw
+-- ingestion/backfill layer, which has no such notion today (confirmed:
+-- neither `data_ingestion/manager.py` nor `backfill/backfill.py`
+-- mentions `calculation_version`) -- a real new coupling this PR does
+-- not introduce. The (symbol, market_type) scope is a conservative,
+-- provably-safe OVER-approximation: it correctly fails EVERY
+-- `calculation_version` closed for that instrument while DIRTY (including
+-- superseded ones, which is stricter than strictly necessary but never
+-- unsafe), and is cheap at V2-v0's BTC-only scale. A future PR narrowing
+-- this to also key on `calculation_version` remains possible without a
+-- destructive migration.
+--
+-- Status lifecycle (`ck_sps_status`): CLEAN <-> DIRTY only.
+--   - A row transitions (or is created) DIRTY the moment a raw-data
+--     writer detects it just overwrote an ALREADY-EXISTING raw row for an
+--     instrument mapped to this (symbol, market_type) -- see
+--     `storage/stage2_publication_state.py::mark_publication_dirty`,
+--     always called from inside the SAME transaction as the raw UPSERT
+--     that triggered it (one COMMIT covers both).
+--   - A row transitions CLEAN only via
+--     `Database.publish_stage2_correction`'s single atomic transaction,
+--     which writes every derived publication-member family AND flips
+--     this row CLEAN in the same COMMIT -- never a bare `UPDATE ...
+--     SET status='CLEAN'` from anywhere else. `publication_generation`
+--     is bumped (never reset) on every CLEAN transition -- a DB-owned,
+--     monotonic, non-wall-clock, non-UUID counter distinct from
+--     `stage2_instrument_metadata_state.required_revision` (that table
+--     tracks instrument-METADATA generation; this tracks CORRECTION-
+--     PUBLICATION generation -- different facts, deliberately not
+--     conflated, per explicit task instruction).
+--   - A crash between the DIRTY-marking commit and a later, still-
+--     incomplete CLEAN-publication transaction leaves this row DIRTY --
+--     there is no third state and no code path that can leave it CLEAN
+--     without every publication member having actually committed.
+--
+-- Bootstrapped explicitly (never a hardcoded DDL literal) via
+-- `Database.bootstrap_stage2_publication_state`, idempotent, seeding a
+-- fresh (symbol, market_type) CLEAN at generation 0 -- mirroring
+-- `bootstrap_instrument_metadata_revision`'s SEEDED/ALREADY_INITIALIZED
+-- shape. Absence of a row (never bootstrapped) is treated identically to
+-- DIRTY by `open_v2_coherent_read_session` -- fail closed, never silently
+-- assumed CLEAN.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS stage2_publication_state (
+    symbol                 TEXT NOT NULL,
+    market_type            TEXT NOT NULL,
+    status                 TEXT NOT NULL DEFAULT 'CLEAN',
+    publication_generation BIGINT NOT NULL DEFAULT 0,
+    dirty_reason           TEXT,
+    dirty_since            TIMESTAMPTZ,
+    clean_since            TIMESTAMPTZ,
+    updated_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (symbol, market_type),
+    CONSTRAINT ck_sps_status CHECK (status IN ('CLEAN', 'DIRTY')),
+    CONSTRAINT ck_sps_generation_nonneg CHECK (publication_generation >= 0)
+);

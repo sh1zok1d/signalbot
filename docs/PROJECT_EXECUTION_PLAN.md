@@ -36,10 +36,10 @@ A green Track A does not imply a green Track B.
 
 Complete and merge the remaining V2-H2/H3 work before Stage 6 begins:
 
-- **H2b — DRAIN-BEFORE-ACTIVATE** version-switch state machine.
-- **H2c — historical/as-of instrument metadata** including tick-size replay semantics.
-- **H2e — Stage-2 correction publication completeness + deterministic replay/coherent historical view.**
-- **H3 — persistence/idempotency hardening**: deterministic semantic IDs, same-T singular event semantics, atomic event batches, stable LIVE run identity.
+- **H2b — DRAIN-BEFORE-ACTIVATE** version-switch state machine. MERGED (PR #58, merge commit `19f3b1d5075df642a3f1e8decb0f53ea0b3d8b48`; see C-001 / `PROJECT_RISK_AND_DEBT_REGISTER.md`).
+- **H2c — historical/as-of instrument metadata** including tick-size replay semantics. MERGED (PR #59, merge commit `1eef3dc7d19ccb7dd9c9410f8c3b7da2b84f3572`; see D-007, CLOSED).
+- **H2e — Stage-2 correction publication completeness + deterministic replay/coherent historical view.** Implemented on `hardening/v2-h2e-correction-publication-coherent-replay`, PR open, NOT YET MERGED (see D-008, IN_PROGRESS).
+- **H3 — persistence/idempotency hardening**: deterministic semantic IDs, same-T singular event semantics, atomic event batches, stable LIVE run identity. Not started.
 
 Then perform the existing **H2 + H3 convergence gate**.
 

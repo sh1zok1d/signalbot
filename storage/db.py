@@ -22,6 +22,7 @@ if TYPE_CHECKING:  # annotation-only; keeps Stage 2 analytics out of Stage 1 sta
     from analytics.forecasting.persistence import ForecastPrediction
     from analytics.forecasting_v2.events import V2EpisodeEvent
     from analytics.percentile_engine.models import PercentileSnapshot
+    from storage.stage2_publication_state import Stage2PublicationResult
     from storage.stage2_readers import ExchangeFeatureRawBundle
     from storage.stage2_serialization import Stage2WriterSpec
 
@@ -761,6 +762,65 @@ class Database:
         return "ALREADY_INITIALIZED"
 
     # ---------------------------------------------------------------
+    # V2-H2e: correction-publication DIRTY marking for raw writers.
+    # ---------------------------------------------------------------
+    async def _mark_publication_dirty_for_correction(
+        self, conn, exchange_symbol_pairs: "set", *, reason: str,
+    ) -> None:
+        """For every `(exchange, symbol)` pair a raw writer just detected as
+        an actual correction (an `ON CONFLICT DO UPDATE` hit against an
+        ALREADY-EXISTING row -- see each writer's own docstring), resolve
+        every `market_type` `exchange_instruments` maps that pair to and
+        mark `(symbol, market_type)` DIRTY -- all on `conn`, i.e. inside the
+        SAME transaction as the raw write that triggered it (one COMMIT
+        covers both, per §3.4's atomicity requirement).
+
+        An `(exchange, symbol)` pair with NO `exchange_instruments` row is
+        logged and otherwise skipped, never raised -- raw ingestion must
+        stay available even for an instrument whose metadata has not been
+        seeded yet; that instrument cannot be a V2 input until it is seeded
+        (H2c), so there is no coherence fact to protect for it yet.
+
+        A Stage-1-only deployment (`exchange_instruments`/
+        `stage2_publication_state` not created at all -- Stage 2 schema
+        never initialized) is handled the same way: each pair's lookup runs
+        inside its OWN nested transaction (`conn.transaction()` called
+        while already inside the caller's transaction opens a SAVEPOINT,
+        per asyncpg's documented nesting behavior) so an
+        `UndefinedTableError` here rolls back only that savepoint, never
+        the outer transaction -- the raw write this method is called from
+        MUST still commit even when Stage 2 schema does not exist yet."""
+        if not exchange_symbol_pairs:
+            return
+        from storage.stage2_publication_state import mark_publication_dirty
+        for exchange, symbol in sorted(exchange_symbol_pairs):
+            try:
+                async with conn.transaction():
+                    market_type_rows = await conn.fetch(
+                        "SELECT DISTINCT market_type FROM exchange_instruments "
+                        "WHERE exchange=$1 AND symbol=$2",
+                        exchange, symbol,
+                    )
+                    if not market_type_rows:
+                        logger.warning(
+                            "stage2_publication_state: raw correction for exchange=%s symbol=%s "
+                            "could not be mapped to a market_type (no exchange_instruments row) "
+                            "-- publication-state DIRTY marking skipped for this correction",
+                            exchange, symbol,
+                        )
+                        continue
+                    for mt_row in market_type_rows:
+                        await mark_publication_dirty(
+                            conn, symbol=symbol, market_type=mt_row["market_type"], reason=reason)
+            except asyncpg.exceptions.UndefinedTableError:
+                logger.warning(
+                    "stage2_publication_state: Stage 2 schema not initialized yet "
+                    "(exchange_instruments/stage2_publication_state absent) -- publication-state "
+                    "DIRTY marking skipped for exchange=%s symbol=%s (Stage-1-only deployment)",
+                    exchange, symbol,
+                )
+
+    # ---------------------------------------------------------------
     # Writers
     # ---------------------------------------------------------------
     async def insert_klines(self, rows: Sequence[tuple], source: str) -> int:
@@ -801,38 +861,67 @@ class Database:
           (a genuine upgrade or correction) -- or the stored row was never
           'live' to begin with -- the incoming write's own source label is
           trusted, since it is now genuinely contributing to (or fully
-          re-asserting) the row's content."""
+          re-asserting) the row's content.
+
+        V2-H2e: this write and its correction detection are ONE
+        transaction. `RETURNING ... (xmax <> 0) AS was_correction` reports,
+        per row, whether the row already existed (a genuine correction —
+        `_on_bar_closed` only ever calls this on a bar's own close, so a
+        live re-hit of an existing key is never a still-forming-bar
+        rewrite). Deliberately conservative: this does NOT compare old vs.
+        new values (an identical-value re-write still counts as a
+        correction) — see `storage/stage2_publication_state.py` module
+        docstring discipline: over-marking DIRTY is always safe, silently
+        under-marking never is. Every corrected `(exchange, symbol)` marks
+        its mapped `(symbol, market_type)` scope(s) DIRTY in the SAME
+        transaction/COMMIT as this write (§3.4)."""
         if not rows:
             return 0
         assert self.pool is not None
+        cols = list(zip(*rows))
+        (exchanges, symbols, tss, opens, highs, lows, closes, volumes,
+         taker_buys, taker_sells, trades_counts) = cols
+        sources = [source] * len(rows)
         async with self.pool.acquire() as conn:
-            await conn.executemany(
-                """
-                INSERT INTO klines_1m
-                    (exchange, symbol, ts, open, high, low, close, volume,
-                     taker_buy_volume, taker_sell_volume, trades_count, source)
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-                ON CONFLICT (exchange, symbol, ts) DO UPDATE SET
-                    open = EXCLUDED.open, high = EXCLUDED.high,
-                    low = EXCLUDED.low, close = EXCLUDED.close,
-                    volume = EXCLUDED.volume,
-                    taker_buy_volume = COALESCE(EXCLUDED.taker_buy_volume,
-                                                 klines_1m.taker_buy_volume),
-                    taker_sell_volume = COALESCE(EXCLUDED.taker_sell_volume,
-                                                  klines_1m.taker_sell_volume),
-                    trades_count = COALESCE(EXCLUDED.trades_count,
-                                             klines_1m.trades_count),
-                    source = CASE
-                        WHEN klines_1m.source = 'live'
-                             AND EXCLUDED.taker_buy_volume IS NULL
-                             AND EXCLUDED.taker_sell_volume IS NULL
-                             AND EXCLUDED.trades_count IS NULL
-                        THEN klines_1m.source
-                        ELSE EXCLUDED.source
-                    END
-                """,
-                [r + (source,) for r in rows],
-            )
+            async with conn.transaction():
+                returned = await conn.fetch(
+                    """
+                    INSERT INTO klines_1m
+                        (exchange, symbol, ts, open, high, low, close, volume,
+                         taker_buy_volume, taker_sell_volume, trades_count, source)
+                    SELECT * FROM unnest(
+                        $1::text[], $2::text[], $3::timestamptz[], $4::float8[],
+                        $5::float8[], $6::float8[], $7::float8[], $8::float8[],
+                        $9::float8[], $10::float8[], $11::int[], $12::text[])
+                    ON CONFLICT (exchange, symbol, ts) DO UPDATE SET
+                        open = EXCLUDED.open, high = EXCLUDED.high,
+                        low = EXCLUDED.low, close = EXCLUDED.close,
+                        volume = EXCLUDED.volume,
+                        taker_buy_volume = COALESCE(EXCLUDED.taker_buy_volume,
+                                                     klines_1m.taker_buy_volume),
+                        taker_sell_volume = COALESCE(EXCLUDED.taker_sell_volume,
+                                                      klines_1m.taker_sell_volume),
+                        trades_count = COALESCE(EXCLUDED.trades_count,
+                                                 klines_1m.trades_count),
+                        source = CASE
+                            WHEN klines_1m.source = 'live'
+                                 AND EXCLUDED.taker_buy_volume IS NULL
+                                 AND EXCLUDED.taker_sell_volume IS NULL
+                                 AND EXCLUDED.trades_count IS NULL
+                            THEN klines_1m.source
+                            ELSE EXCLUDED.source
+                        END
+                    RETURNING exchange, symbol, (xmax <> 0) AS was_correction
+                    """,
+                    list(exchanges), list(symbols), list(tss), list(opens),
+                    list(highs), list(lows), list(closes), list(volumes),
+                    list(taker_buys), list(taker_sells), list(trades_counts), sources,
+                )
+                corrected_pairs = {
+                    (r["exchange"], r["symbol"]) for r in returned if r["was_correction"]
+                }
+                await self._mark_publication_dirty_for_correction(
+                    conn, corrected_pairs, reason="RAW_KLINE_CORRECTION")
         return len(rows)
 
     async def insert_open_interest(self, rows: Sequence[tuple], source: str) -> int:
@@ -840,48 +929,91 @@ class Database:
         oi_base_asset, oi_notional_usd). Legacy oi_contracts/oi_notional are
         kept populated (oi_contracts=oi_raw, oi_notional=oi_notional_usd) for
         continuity, but the oi_unit-tagged columns are the authoritative ones —
-        never sum oi_raw across exchanges (units differ)."""
+        never sum oi_raw across exchanges (units differ).
+
+        V2-H2e: same one-transaction write + `xmax <> 0` correction
+        detection + same-COMMIT DIRTY marking discipline as `insert_klines`
+        (see its docstring) — deliberately conservative, no old-vs-new value
+        comparison."""
         if not rows:
             return 0
         assert self.pool is not None
+        cols = list(zip(*rows))
+        (exchanges, symbols, tss, oi_raws, oi_units, contract_values,
+         oi_base_assets, oi_notional_usds) = cols
+        sources = [source] * len(rows)
         async with self.pool.acquire() as conn:
-            await conn.executemany(
-                """
-                INSERT INTO open_interest
-                    (exchange, symbol, ts, oi_raw, oi_unit, contract_value,
-                     oi_base_asset, oi_notional_usd, oi_contracts, oi_notional, source)
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$4,$8,$9)
-                ON CONFLICT (exchange, symbol, ts) DO UPDATE SET
-                    oi_raw = EXCLUDED.oi_raw,
-                    oi_unit = EXCLUDED.oi_unit,
-                    contract_value = EXCLUDED.contract_value,
-                    oi_base_asset = EXCLUDED.oi_base_asset,
-                    oi_notional_usd = EXCLUDED.oi_notional_usd,
-                    oi_contracts = EXCLUDED.oi_contracts,
-                    oi_notional = EXCLUDED.oi_notional,
-                    source = EXCLUDED.source
-                """,
-                [r + (source,) for r in rows],
-            )
+            async with conn.transaction():
+                returned = await conn.fetch(
+                    """
+                    INSERT INTO open_interest
+                        (exchange, symbol, ts, oi_raw, oi_unit, contract_value,
+                         oi_base_asset, oi_notional_usd, oi_contracts, oi_notional, source)
+                    SELECT exchange, symbol, ts, oi_raw, oi_unit, contract_value,
+                           oi_base_asset, oi_notional_usd, oi_raw, oi_notional_usd, source
+                    FROM unnest(
+                        $1::text[], $2::text[], $3::timestamptz[], $4::float8[],
+                        $5::text[], $6::float8[], $7::text[], $8::float8[], $9::text[])
+                        AS t(exchange, symbol, ts, oi_raw, oi_unit, contract_value,
+                             oi_base_asset, oi_notional_usd, source)
+                    ON CONFLICT (exchange, symbol, ts) DO UPDATE SET
+                        oi_raw = EXCLUDED.oi_raw,
+                        oi_unit = EXCLUDED.oi_unit,
+                        contract_value = EXCLUDED.contract_value,
+                        oi_base_asset = EXCLUDED.oi_base_asset,
+                        oi_notional_usd = EXCLUDED.oi_notional_usd,
+                        oi_contracts = EXCLUDED.oi_contracts,
+                        oi_notional = EXCLUDED.oi_notional,
+                        source = EXCLUDED.source
+                    RETURNING exchange, symbol, (xmax <> 0) AS was_correction
+                    """,
+                    list(exchanges), list(symbols), list(tss), list(oi_raws),
+                    list(oi_units), list(contract_values), list(oi_base_assets),
+                    list(oi_notional_usds), sources,
+                )
+                corrected_pairs = {
+                    (r["exchange"], r["symbol"]) for r in returned if r["was_correction"]
+                }
+                await self._mark_publication_dirty_for_correction(
+                    conn, corrected_pairs, reason="RAW_OPEN_INTEREST_CORRECTION")
         return len(rows)
 
     async def insert_funding(self, rows: Sequence[tuple], source: str) -> int:
-        """rows: (exchange, symbol, ts, funding_rate, next_funding_time)"""
+        """rows: (exchange, symbol, ts, funding_rate, next_funding_time)
+
+        V2-H2e: same one-transaction write + `xmax <> 0` correction
+        detection + same-COMMIT DIRTY marking discipline as `insert_klines`
+        (see its docstring) — deliberately conservative, no old-vs-new value
+        comparison."""
         if not rows:
             return 0
         assert self.pool is not None
+        cols = list(zip(*rows))
+        exchanges, symbols, tss, funding_rates, next_funding_times = cols
+        sources = [source] * len(rows)
         async with self.pool.acquire() as conn:
-            await conn.executemany(
-                """
-                INSERT INTO funding_rate (exchange, symbol, ts, funding_rate, next_funding_time, source)
-                VALUES ($1,$2,$3,$4,$5,$6)
-                ON CONFLICT (exchange, symbol, ts) DO UPDATE SET
-                    funding_rate = EXCLUDED.funding_rate,
-                    next_funding_time = EXCLUDED.next_funding_time,
-                    source = EXCLUDED.source
-                """,
-                [r + (source,) for r in rows],
-            )
+            async with conn.transaction():
+                returned = await conn.fetch(
+                    """
+                    INSERT INTO funding_rate
+                        (exchange, symbol, ts, funding_rate, next_funding_time, source)
+                    SELECT * FROM unnest(
+                        $1::text[], $2::text[], $3::timestamptz[], $4::float8[],
+                        $5::timestamptz[], $6::text[])
+                    ON CONFLICT (exchange, symbol, ts) DO UPDATE SET
+                        funding_rate = EXCLUDED.funding_rate,
+                        next_funding_time = EXCLUDED.next_funding_time,
+                        source = EXCLUDED.source
+                    RETURNING exchange, symbol, (xmax <> 0) AS was_correction
+                    """,
+                    list(exchanges), list(symbols), list(tss), list(funding_rates),
+                    list(next_funding_times), sources,
+                )
+                corrected_pairs = {
+                    (r["exchange"], r["symbol"]) for r in returned if r["was_correction"]
+                }
+                await self._mark_publication_dirty_for_correction(
+                    conn, corrected_pairs, reason="RAW_FUNDING_CORRECTION")
         return len(rows)
 
     async def insert_mark_price(self, rows: Sequence[tuple], source: str) -> int:
@@ -1034,6 +1166,156 @@ class Database:
         self, rows: "Sequence[DataHealthSnapshot]") -> int:
         from storage.stage2_serialization import DATA_HEALTH_SNAPSHOT_SPEC
         return await self._upsert_stage2(DATA_HEALTH_SNAPSHOT_SPEC, rows)
+
+    # ---------------------------------------------------------------
+    # V2-H2e: correction-publication coherence barrier
+    # (docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §3.4). See
+    # storage/stage2_publication_state.py and storage/v2_coherent_read_session.py
+    # module docstrings for the full design rationale.
+    # ---------------------------------------------------------------
+    async def bootstrap_stage2_publication_state(self, *, symbol: str, market_type: str) -> str:
+        """Idempotently seed `(symbol, market_type)` CLEAN at generation 0 if
+        it has never been bootstrapped. Returns `"SEEDED"` or
+        `"ALREADY_INITIALIZED"`. Safe to call on every startup, mirroring
+        `bootstrap_instrument_metadata_revision`."""
+        from storage.stage2_publication_state import bootstrap_publication_state
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await bootstrap_publication_state(conn, symbol=symbol, market_type=market_type)
+
+    async def fetch_stage2_publication_state(self, *, symbol: str, market_type: str):
+        """Read-only: the current `PublicationState` for `(symbol,
+        market_type)`, or `None` if never bootstrapped. For status/CLI
+        reporting only — NOT the fail-closed gate a V2 read session uses
+        (that check happens inside `open_v2_coherent_read_session`'s own
+        transaction, not via this method)."""
+        from storage.stage2_publication_state import read_publication_state
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_publication_state(conn, symbol=symbol, market_type=market_type)
+
+    async def publish_stage2_correction(
+        self, *, symbol: str, market_type: str,
+        exchange_feature_vectors: "Sequence[ExchangeFeatureVector]" = (),
+        consensus_feature_vectors: "Sequence[ConsensusFeatureVector]" = (),
+        percentile_snapshots: "Sequence[PercentileSnapshot]" = (),
+        data_health_snapshots: "Sequence[DataHealthSnapshot]" = (),
+        percentile_snapshots_absent_reason: "Optional[str]" = None,
+        data_health_snapshots_absent_reason: "Optional[str]" = None,
+    ) -> "Stage2PublicationResult":
+        """Atomically publish ONE complete Stage 2 correction generation for
+        `(symbol, market_type)` and flip it CLEAN, in ONE transaction — the
+        narrowest new write primitive §3.4 requires ("V2 MAY only consume a
+        Stage 2 correction generation/publication that is complete as a
+        coherent published unit"). Reuses the existing
+        `Stage2WriterSpec`/`serialize_batch` validation contracts unchanged
+        — this method adds no new row-shape validation of its own.
+
+        Every batch is validated + serialized BEFORE any connection is
+        acquired (so a malformed batch can never partially write), then all
+        four families are written and the CLEAN transition
+        (`mark_publication_clean`) is issued LAST, all inside ONE
+        `conn.transaction()`. If ANY statement in this transaction fails —
+        including a constraint violation on the very last family written —
+        the WHOLE transaction rolls back and `stage2_publication_state`
+        never reaches CLEAN; there is no code path that can leave some
+        families published and the state CLEAN while others silently did
+        not persist.
+
+        Truthful-absence discipline (§13/§14): `percentile_snapshots` and
+        `data_health_snapshots` are the two families that MAY legitimately
+        have nothing new to publish for a given correction (e.g. no
+        percentile-recompute orchestrator exists yet — see D-008). An empty
+        sequence for either MUST be accompanied by its own explicit
+        `..._absent_reason` string — omitting both raises `ValueError`
+        before any connection is acquired, so a caller can never silently
+        mark CLEAN while quietly omitting a family it forgot to compute.
+        `exchange_feature_vectors`/`consensus_feature_vectors` have no such
+        parameter: a correction with nothing new for either of those two
+        families is not modeled by this method (call it only once real
+        recomputed rows for at least the derived feature layer exist)."""
+        from storage.stage2_publication_state import Stage2PublicationResult, mark_publication_clean
+        from storage.stage2_serialization import (
+            CONSENSUS_FEATURE_SPEC, DATA_HEALTH_SNAPSHOT_SPEC, EXCHANGE_FEATURE_SPEC,
+            PERCENTILE_SNAPSHOT_SPEC, serialize_batch)
+
+        efv_params = serialize_batch(EXCHANGE_FEATURE_SPEC, exchange_feature_vectors)
+        cfv_params = serialize_batch(CONSENSUS_FEATURE_SPEC, consensus_feature_vectors)
+        ps_params = serialize_batch(PERCENTILE_SNAPSHOT_SPEC, percentile_snapshots)
+        dhs_params = serialize_batch(DATA_HEALTH_SNAPSHOT_SPEC, data_health_snapshots)
+
+        if not ps_params and not (
+            isinstance(percentile_snapshots_absent_reason, str)
+            and percentile_snapshots_absent_reason.strip()
+        ):
+            raise ValueError(
+                "publish_stage2_correction: percentile_snapshots is empty and no "
+                "percentile_snapshots_absent_reason was given -- publication must not "
+                "silently omit the percentile family (§13)")
+        if not dhs_params and not (
+            isinstance(data_health_snapshots_absent_reason, str)
+            and data_health_snapshots_absent_reason.strip()
+        ):
+            raise ValueError(
+                "publish_stage2_correction: data_health_snapshots is empty and no "
+                "data_health_snapshots_absent_reason was given -- publication must not "
+                "silently omit the health-snapshot family (§14)")
+
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                if efv_params:
+                    await conn.executemany(EXCHANGE_FEATURE_SPEC.insert_sql, efv_params)
+                if cfv_params:
+                    await conn.executemany(CONSENSUS_FEATURE_SPEC.insert_sql, cfv_params)
+                if ps_params:
+                    await conn.executemany(PERCENTILE_SNAPSHOT_SPEC.insert_sql, ps_params)
+                if dhs_params:
+                    await conn.executemany(DATA_HEALTH_SNAPSHOT_SPEC.insert_sql, dhs_params)
+                generation = await mark_publication_clean(
+                    conn, symbol=symbol, market_type=market_type)
+        return Stage2PublicationResult(
+            symbol=symbol, market_type=market_type, publication_generation=generation,
+            exchange_feature_vectors_written=len(efv_params),
+            consensus_feature_vectors_written=len(cfv_params),
+            percentile_snapshots_written=len(ps_params),
+            data_health_snapshots_written=len(dhs_params),
+            percentile_snapshots_absent_reason=(None if ps_params else percentile_snapshots_absent_reason),
+            data_health_snapshots_absent_reason=(None if dhs_params else data_health_snapshots_absent_reason),
+        )
+
+    @contextlib.asynccontextmanager
+    async def open_v2_coherent_read_session(self, *, symbol: str, market_type: str):
+        """The canonical ONE-coherent-V2-read-session context manager (§3.4).
+
+        `async with db.open_v2_coherent_read_session(symbol=..., market_type=...) as session:`
+        acquires ONE connection, opens ONE `REPEATABLE READ, readonly`
+        transaction on it, and — as the FIRST read inside that transaction,
+        before anything else — reads `stage2_publication_state` for
+        `(symbol, market_type)`. If it is missing or DIRTY, this raises
+        `V2PublicationDirtyError` immediately (fail closed) and the
+        transaction is rolled back without ever yielding a session — no
+        Stage 3/5 read is ever attempted for a DIRTY scope. Otherwise it
+        yields a `V2CoherentReadSession` bound to that SAME connection —
+        every read issued through it (structurally satisfying both
+        `V2AlignedInputReader` and `V2SetupHistoryReader`,
+        `analytics/forecasting_v2/ports.py`) observes the exact snapshot
+        pinned when the state check ran, so a correction committed after
+        this session opened is invisible to it, and there is no code path
+        that re-acquires a second connection mid-session."""
+        from storage.stage2_publication_state import (
+            V2PublicationDirtyError, read_publication_state)
+        from storage.v2_coherent_read_session import V2CoherentReadSession
+
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            async with conn.transaction(isolation="repeatable_read", readonly=True):
+                state = await read_publication_state(conn, symbol=symbol, market_type=market_type)
+                if state is None or not state.is_clean:
+                    raise V2PublicationDirtyError(
+                        symbol=symbol, market_type=market_type,
+                        status=(state.status if state is not None else "UNINITIALIZED"))
+                yield V2CoherentReadSession(conn)
 
     async def insert_forecast_prediction(self, row: "ForecastPrediction") -> bool:
         """Insert ONE immutable forecast prediction as an event. Validates +

@@ -454,7 +454,7 @@ async def execute_shadow_recovery(
 
         # --- bootstrap once (tech-lead review 4992495660: the SAME shared
         # helper execute_shadow_once uses -- never duplicated separately) ---
-        await _bootstrap_stage2_schema_and_revision(db, stage2_config)
+        await _bootstrap_stage2_schema_and_revision(db, stage2_config, symbol)
         await db.seed_symbols(symbol_seed_rows())
         await db.seed_symbol_exchange_capabilities(symbol_exchange_capability_seed_rows())
         await _bootstrap_instrument_metadata(
