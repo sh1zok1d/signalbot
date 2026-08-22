@@ -234,6 +234,91 @@ class Database:
             for stmt in statements:
                 await conn.execute(stmt)
         logger.info("Stage 2 schema initialized / verified (%d statements)", len(statements))
+        # V2-H3 amendment (docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §2.1a):
+        # the plain-SQL statements above alone leave an ALREADY-EXISTING
+        # (pre-H3) v2_episode_events table without the two hash-format
+        # CHECK constraints -- see this method's own docstring below for why
+        # that cannot be expressed as plain SQL inside stage2_schema.sql
+        # itself. Always called, on every init (fresh DB or upgrade) --
+        # itself idempotent and a no-op on a fresh DB, whose CREATE TABLE
+        # above already created both constraints inline.
+        await self._harden_v2_episode_events_id_constraints()
+
+    # ---------------------------------------------------------------
+    # V2-H3 amendment (docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §2.1a):
+    # Python-level, idempotent, atomic upgrade path making an ALREADY-
+    # EXISTING (pre-H3) v2_episode_events table converge onto the EXACT
+    # SAME ck_v2ee_event_id_hash_format/ck_v2ee_episode_id_hash_format
+    # invariant storage/stage2_schema.sql's CREATE TABLE bakes in for a
+    # fresh database. Required because storage/db.py::_split_sql_statements
+    # splits stage2_schema.sql on a plain ';' with no dollar-quoted/
+    # PL-pgSQL awareness ("this schema is plain DDL... switch to a real
+    # parser" if that ever changes) -- a guarded `DO $$ ... $$` block
+    # checking pg_constraint before a separate idempotent `ADD CONSTRAINT`
+    # would be silently mis-split into invalid fragments by that splitter,
+    # which is exactly why decision_code_version's own upgrade path
+    # (storage/stage2_schema.sql) instead bundles its CHECK directly into
+    # one `ADD COLUMN IF NOT EXISTS ... CONSTRAINT ... CHECK (...)`
+    # statement -- a trick NOT available here, since event_id/episode_id
+    # are NOT new columns (there is no idempotent `ADD COLUMN IF NOT
+    # EXISTS`-shaped escape hatch for adding a CHECK to an
+    # ALREADY-EXISTING column). This Python helper is the narrowest
+    # remaining idempotent mechanism: check pg_constraint by name, add the
+    # constraint only if genuinely absent.
+    # ---------------------------------------------------------------
+    _V2EE_ID_HASH_FORMAT_CONSTRAINTS: "tuple[tuple[str, str], ...]" = (
+        ("ck_v2ee_event_id_hash_format", "event_id"),
+        ("ck_v2ee_episode_id_hash_format", "episode_id"),
+    )
+
+    async def _harden_v2_episode_events_id_constraints(self) -> None:
+        """Idempotent, ATOMIC upgrade: for each of
+        `ck_v2ee_event_id_hash_format`/`ck_v2ee_episode_id_hash_format`,
+        add it to `v2_episode_events` (`CHECK (<column> ~
+        '^[0-9a-f]{64}$')` — the exact production semantics
+        `stage2_schema.sql`'s own fresh-DB `CREATE TABLE` already uses) iff
+        `pg_constraint` does not already show it present on this exact
+        table. Both checks/adds run inside ONE transaction on ONE
+        connection: PostgreSQL validates every EXISTING row against a new
+        `CHECK` constraint by default (this method never uses `NOT
+        VALID`), so a legacy row that already violates the invariant makes
+        the whole `ALTER TABLE` raise `asyncpg.exceptions.
+        CheckViolationError` — propagated UNCHANGED, never caught or
+        translated, which rolls the ENTIRE transaction back. This is
+        deliberate: if constraint 1 would have succeeded (its own column's
+        existing values are all already conforming) but constraint 2 fails
+        (a legacy row violates the SECOND column's invariant), the FIRST
+        constraint must not be left behind as a half-converged, orphaned
+        state — the table must end up either fully hardened or entirely
+        unchanged, never one-of-two. No row is ever rewritten, and no
+        historical identity is ever fabricated to satisfy either
+        constraint — a genuinely non-conforming legacy row is a data
+        problem an operator must resolve explicitly; this method's job is
+        only to detect and fail closed on it, per §2.1a's own frozen
+        "no fabricated historical IDs" posture.
+
+        Column/constraint names come only from
+        `_V2EE_ID_HASH_FORMAT_CONSTRAINTS` above (a fixed, trusted module
+        constant, never caller-supplied data) — safe to interpolate
+        directly into the `ALTER TABLE`/`CHECK` SQL text, exactly like
+        `storage/v2_serialization.py::_build_v2_insert_once_sql`'s
+        identical trusted-constants-only posture."""
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                for constraint_name, column in self._V2EE_ID_HASH_FORMAT_CONSTRAINTS:
+                    already_present = await conn.fetchval(
+                        "SELECT 1 FROM pg_constraint "
+                        "WHERE conname = $1 AND conrelid = 'v2_episode_events'::regclass",
+                        constraint_name,
+                    )
+                    if already_present:
+                        continue
+                    await conn.execute(
+                        f"ALTER TABLE v2_episode_events "
+                        f"ADD CONSTRAINT {constraint_name} "
+                        f"CHECK ({column} ~ '^[0-9a-f]{{64}}$')"
+                    )
 
     async def fetch_exchange_feature_raw_bundle(
         self, *, exchange: str, symbol: str, market_type: str,

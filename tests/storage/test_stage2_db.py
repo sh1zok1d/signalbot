@@ -52,6 +52,18 @@ class FakeConn:
             return self.revision_row
         return self.fetchrow_result
 
+    async def fetchval(self, sql, *args):
+        # (V2-H3 Blocker 2) _harden_v2_episode_events_id_constraints()
+        # probes pg_constraint before ever issuing an ALTER TABLE --
+        # default to "already present" so these mocked-pool tests exercise
+        # the idempotent, already-hardened no-op path (matching a fresh
+        # database, whose CREATE TABLE already added both constraints
+        # inline); the real ALTER-TABLE-issuing branch is proven for real
+        # in tests/storage/test_v2_episode_event_id_constraint_upgrade.py.
+        if "pg_constraint" in sql:
+            return 1
+        return None
+
     async def fetch(self, sql, *args):
         self.fetch_calls.append((sql, args))
         if "market_type" in sql and "exchange_instruments" in sql:

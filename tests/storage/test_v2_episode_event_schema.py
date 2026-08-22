@@ -289,6 +289,59 @@ def test_original_nonblank_checks_not_removed_by_hash_format_addition():
     assert re.search(r"CONSTRAINT ck_v2ee_episode_id\s+CHECK", _V2EE_BODY)
 
 
+# ---- pre-H3 upgrade path: fresh == upgraded (Blocker 2) ------------------------
+# storage/db.py::Database._harden_v2_episode_events_id_constraints is the
+# Python-level, idempotent upgrade path making an ALREADY-EXISTING
+# (pre-H3) v2_episode_events table converge onto the EXACT SAME two
+# hash-format CHECK constraints this file's own inline CREATE TABLE gives
+# a fresh database for free. Runtime proof (real PostgreSQL, both a
+# genuinely pre-H3 table and a fully-upgraded-except-hash-format legacy-
+# row fail-closed vector) lives in
+# tests/storage/test_v2_episode_event_id_constraint_upgrade.py; these are
+# the structural/source-level counterparts: no Docker/PostgreSQL needed.
+from storage.db import Database  # noqa: E402
+
+
+def test_harden_helper_exists_and_targets_exactly_the_two_hash_format_constraints():
+    names = {name for name, _column in Database._V2EE_ID_HASH_FORMAT_CONSTRAINTS}
+    assert names == {"ck_v2ee_event_id_hash_format", "ck_v2ee_episode_id_hash_format"}
+
+
+def test_canonical_init_stage2_schema_calls_the_upgrade_helper():
+    # "used by the canonical Stage2/V2 schema initialization path" --
+    # init_stage2_schema() is that path (storage/db.py's own docstring: the
+    # entry point normal runtime/deployment calls, not a private helper
+    # called directly by callers).
+    import inspect
+    init_src = inspect.getsource(Database.init_stage2_schema)
+    assert "_harden_v2_episode_events_id_constraints" in init_src
+
+
+def test_upgrade_helper_uses_the_exact_same_hash_format_pattern_as_fresh_ddl():
+    # fresh == upgraded: the Python helper's CHECK expression must encode
+    # the IDENTICAL regex this file's own inline CREATE TABLE uses for a
+    # fresh database -- never a near-miss/independently-drifted pattern.
+    import inspect
+    harden_src = inspect.getsource(Database._harden_v2_episode_events_id_constraints)
+    assert "^[0-9a-f]{{64}}$" in harden_src
+    fresh_pattern = re.search(r"event_id\s*~\s*'(\^\[0-9a-f\]\{64\}\$)'", _V2EE_BODY).group(1)
+    # The f-string in harden_src uses doubled braces ({{64}}) that render
+    # to the SAME literal ^[0-9a-f]{64}$ this file's fresh DDL uses.
+    assert fresh_pattern == "^[0-9a-f]{64}$"
+
+
+def test_upgrade_helper_checks_pg_constraint_before_altering_never_uses_do_block():
+    # Idempotency mechanism must be the narrow pg_constraint-inspection
+    # helper, never a DO $$ block (which _split_sql_statements' plain
+    # semicolon-splitting cannot parse safely -- see storage/db.py's own
+    # _split_sql_statements docstring).
+    import inspect
+    harden_src = inspect.getsource(Database._harden_v2_episode_events_id_constraints)
+    assert "pg_constraint" in harden_src
+    assert "DO $$" not in harden_src
+    assert "ADD CONSTRAINT" in harden_src
+
+
 # ---- CHECK constraints: by-value historical truth ------------------------------
 def test_decision_snapshot_and_event_payload_jsonb_object_checks():
     assert re.search(r"decision_snapshot\s+JSONB\s+NOT\s+NULL", _V2EE_BODY)
