@@ -174,9 +174,31 @@ def test_script_never_deletes_local_dump():
 # ============================================================================
 # B. selection (spec §14 items 1-2)
 # ============================================================================
+def _set_mtime(path: Path, epoch_seconds: float) -> None:
+    """Force an exact filesystem mtime (atime = mtime) for selection tests."""
+    os.utime(path, (epoch_seconds, epoch_seconds))
+
+
 def test_selects_newest_valid_completed_dump(fake_rclone, backup_dir):
-    _make_dump(backup_dir / "btcbot_20260801T030000Z.sql.gz")
-    _make_dump(backup_dir / "btcbot_20260810T030000Z.sql.gz")
+    """Primary key is mtime: later mtime wins even when filename order differs."""
+    older = _make_dump(backup_dir / "btcbot_20260810T030000Z.sql.gz")
+    newer = _make_dump(backup_dir / "btcbot_20260801T030000Z.sql.gz")
+    _set_mtime(older, 1_700_000_000.0)
+    _set_mtime(newer, 1_700_000_100.0)
+    result = _run(fake_rclone, backup_dir)
+    assert result.returncode == 0, result.stderr
+    assert _remote_files(fake_rclone, "daily") == ["btcbot_20260801T030000Z.sql.gz"]
+
+
+def test_mtime_tie_breaks_by_filename_descending(fake_rclone, backup_dir):
+    """Exact equal mtime must pick the lexicographically newer filename,
+    not filesystem/`ls` creation order (the historical nondeterminism)."""
+    first = _make_dump(backup_dir / "btcbot_20260801T030000Z.sql.gz")
+    second = _make_dump(backup_dir / "btcbot_20260810T030000Z.sql.gz")
+    tie = 1_700_000_000.0
+    _set_mtime(first, tie)
+    _set_mtime(second, tie)
+    assert first.stat().st_mtime == second.stat().st_mtime
     result = _run(fake_rclone, backup_dir)
     assert result.returncode == 0, result.stderr
     assert _remote_files(fake_rclone, "daily") == ["btcbot_20260810T030000Z.sql.gz"]
