@@ -118,9 +118,21 @@ for retention_var_name in DAILY_RETENTION WEEKLY_RETENTION MONTHLY_RETENTION; do
 done
 
 # ---- 2. select + validate the local dump (never a .partial, never empty/corrupt) ----
+# Newest completed dump = highest filesystem mtime among
+# BACKUP_DIR/btcbot_*.sql.gz (primary; same criterion `ls -1t` used). On an
+# exact mtime tie, break deterministically by filename descending: the
+# fixed-width btcbot_YYYYMMDDTHHMMSSZ.sql.gz form is lexicographically
+# chronological (same rule remote retention uses below). Never rely on
+# `ls -1t` filesystem-dependent tie order among equal mtimes.
 dump="${1:-}"
 if [ -z "$dump" ]; then
-  dump="$(ls -1t "${BACKUP_DIR}"/btcbot_*.sql.gz 2>/dev/null | head -1 || true)"
+  dump="$(
+    find "${BACKUP_DIR}" -maxdepth 1 -type f -name 'btcbot_*.sql.gz' \
+      -printf '%T@\t%f\t%p\n' 2>/dev/null \
+      | LC_ALL=C sort -t $'\t' -k1,1nr -k2,2r \
+      | head -n 1 \
+      | cut -f3-
+  )"
 fi
 [ -n "$dump" ] || { echo "[offsite] ERROR: no completed local backup found in ${BACKUP_DIR}" >&2; exit 1; }
 [ -f "$dump" ] || { echo "[offsite] ERROR: dump not found: ${dump}" >&2; exit 1; }

@@ -1053,21 +1053,16 @@ ALTER TABLE v2_episode_events
         CONSTRAINT ck_v2ee_decision_code_version
             CHECK (length(btrim(decision_code_version)) > 0);
 
--- KNOWN, ACCEPTED, NARROW LIMITATION (documented rather than silently
--- gapped): unlike decision_code_version above, event_id/episode_id are
--- NOT new columns -- there is no idempotent `ADD COLUMN IF NOT EXISTS`
--- trick available to retrofit ck_v2ee_event_id_hash_format/
--- ck_v2ee_episode_id_hash_format (declared inline in the CREATE TABLE
--- above) onto an ALREADY-existing v2_episode_events table from a
--- database that ran schema init before this PR, and PostgreSQL has no
--- `ADD CONSTRAINT IF NOT EXISTS` form for that case (the same
--- dollar-quoted-body limitation noted above rules out a guarded `DO $$`
--- workaround). This is safe in practice today: v2.enabled has always been
--- false and this table has zero rows in every real deployment, so no
--- write today can actually violate the missing constraint on an
--- unupgraded table. A future PR that needs this retrofitted for real
--- (e.g. once `_split_sql_statements` gains PL/pgSQL-aware parsing, or a
--- proper migration-numbering mechanism is adopted) can add it then.
+-- Fresh CREATE TABLE above already embeds ck_v2ee_event_id_hash_format /
+-- ck_v2ee_episode_id_hash_format inline. Pre-H3 databases (table already
+-- exists without those CHECKs) are retrofitted by
+-- Database._harden_v2_episode_events_id_constraints(), invoked from
+-- init_stage2_schema(): a plain-SQL guarded ADD CONSTRAINT path is not
+-- expressible here because _split_sql_statements has no dollar-quoted /
+-- PL-pgSQL awareness (same splitter limitation noted above for
+-- decision_code_version). That Python helper is idempotent,
+-- advisory-lock serialized, and validates existing rows via PostgreSQL
+-- (fail-closed; no fabricated historical IDs). See storage/db.py.
 
 -- ============================================================
 -- V2-H2b: DRAIN-BEFORE-ACTIVATE version-switch durable state
