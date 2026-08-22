@@ -98,7 +98,7 @@ from analytics.forecasting_v2.version_switch import V2DrainFact
 
 __all__ = [
     "V2EpisodeEventWriter", "V2AlignedInputReader", "V2SetupHistoryReader",
-    "V2VersionDrainStatusReader",
+    "V2VersionDrainStatusReader", "V2EpisodeHistoryReader",
 ]
 
 
@@ -239,10 +239,81 @@ class V2VersionDrainStatusReader(Protocol):
     orchestration boundary and its tests can be written and proven correct
     against the exact fact shape the pure state machine
     (`version_switch.py`'s `V2DrainFact`) needs, without inventing a real
-    query against a table this repository does not yet populate."""
+    query against a table this repository does not yet populate.
+
+    **Stage 6 Unit 1 analysis (deliberately still NOT implemented here).**
+    Unit 1 added the persisted-history read foundation
+    (`episode_history.py`/`storage/v2_episode_history_readers.py`) this
+    Protocol would be built on, and re-examined whether a concrete
+    implementation could land with it. It cannot, without inventing
+    contract that is not frozen anywhere:
+
+      - **Episode-to-tuple attribution is undefined when
+        `decision_code_version` varies within one episode.** This Protocol
+        is scoped by the full OLD semantic tuple *including*
+        `decision_code_version` (§3.1), but `episode_id` deliberately
+        EXCLUDES it (§2.1a) precisely so a Stage 6 bug-fix release does not
+        fork an episode's identity — so one episode's events may legally
+        carry different `decision_code_version` values. Whether such an
+        episode counts toward OLD's population by its creation event, its
+        latest event, or not at all is not frozen.
+      - **`active_cooldown_count` requires per-slot aggregation this unit
+        does not build.** The granularity itself is NOT undefined — §12.8 is
+        explicit that "cooldown scope remains the `slot` — `(symbol,
+        market_type, direction, setup_family)`", so the count is DISTINCT
+        SLOTS still inside a cooldown window, never one per terminal
+        episode. What is missing is the machinery: computing it means
+        grouping every terminal episode in the stream by slot, taking each
+        slot's MOST RECENT terminal episode and its `T_terminal` (§13.4 step
+        3b), and comparing against `as_of`. That is exactly the per-slot
+        terminal/cooldown aggregation Stage 6 Unit 2 builds for creation
+        eligibility, and Unit 1 is a single-episode read foundation with no
+        cross-episode aggregation surface at all.
+
+    The first is a genuine contract gap; the second is a genuine missing
+    dependency. Both change the DRAIN decision rather than merely its
+    reported numbers.
+    A deliberately WRONG placeholder (notably `non_terminal = count(latest
+    state non-terminal)` with `active_cooldowns = 0`, which would let a
+    switch ACTIVATE while a real same-slot cooldown is still running) is
+    worse than no implementation: a version switch must fail closed, never
+    optimistically. The per-slot terminal/cooldown aggregation this needs is
+    also exactly the machinery Stage 6 **Unit 2** builds for creation
+    eligibility (§12.6/§12.8/§13.4 step 3b), so Unit 2 is the earliest
+    correct owner of this implementation."""
 
     async def fetch_v2_version_drain_status(
         self, *, run_kind: str, run_id: str, rules_version: str,
         calculation_version: str, decision_code_version: str, as_of: datetime,
     ) -> "V2DrainFact":
+        ...
+
+
+@runtime_checkable
+class V2EpisodeHistoryReader(Protocol):
+    """Structural port for Stage 6 Unit 1's persisted-history read
+    foundation (`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §12.10/§13.4):
+    one existing episode's already-persisted `v2_episode_events` rows,
+    physically scoped to exactly one `execution_stream` and bounded by
+    exactly one logical decision boundary.
+
+    Satisfied structurally by `storage.db.Database`
+    (`fetch_v2_episode_history`) exactly as the three Protocols above are —
+    this Protocol does not import or reference that class, so a
+    deterministic analytics test fake satisfies it without any storage
+    import.
+
+    `run_kind`/`run_id` are BOTH required and are never optional: §12.10
+    forbids mixing `LIVE` with `REPLAY` history, or one `REPLAY` `run_id`'s
+    history with another's, and semantic `episode_id`s are deliberately
+    designed to coincide across streams. `boundary_mode` selects between
+    §13.4's two frozen same-`T` windows (`HISTORY_BEFORE_T` /
+    `HISTORY_THROUGH_T`, `analytics/forecasting_v2/episode_history.py`) and
+    has no default. Rows come back oldest-first; interpreting them is
+    `reconstruct_episode_history()`'s job, never this port's."""
+
+    async def fetch_v2_episode_history(
+        self, *, run_kind: str, run_id: str, episode_id: str,
+        as_of: datetime, boundary_mode: str,
+    ) -> "Sequence[Mapping]":
         ...
