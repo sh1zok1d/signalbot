@@ -146,8 +146,9 @@ from analytics.forecasting_v2._validation import (
 from analytics.forecasting_v2.alignment import V2AlignmentError, selected_bucket
 from analytics.forecasting_v2.episode_identity import compute_episode_id, compute_event_id
 from analytics.forecasting_v2.events import (
-    COMPLETED, CONFIRMED_BREAKOUT, DIRECTIONS, EARLY_SIGNAL, EPISODE_STATES,
-    EXPIRED, INVALIDATED, RUN_KINDS, SETUP_FAMILIES,
+    COMPLETED, COMPRESSION_BREAKOUT, CONFIRMED_BREAKOUT, DIRECTIONS,
+    EARLY_SIGNAL, EPISODE_STATES, EXPIRED, INVALIDATED, RUN_KINDS,
+    SETUP_FAMILIES, TREND_PULLBACK,
 )
 from common.v2_config import MODEL_FAMILY, validate_rules_version
 
@@ -344,6 +345,17 @@ _TIMEFRAME_DELTAS = MappingProxyType({
     "1h": timedelta(hours=1),
 })
 
+# §12.1's per-family anchor grid, in ONE place: the canonical builders below
+# and the persisted-history validator both resolve the timeframe from here,
+# so construction and reconstruction can never disagree about which grid a
+# family's `structural_anchor.bucket_ts` lives on.
+_FAMILY_ANCHOR_TIMEFRAME = MappingProxyType({
+    TREND_PULLBACK: "15m",          # the 15m bucket establishing trend_leg_extreme
+    COMPRESSION_BREAKOUT: "15m",    # the first 15m bucket of the compression window
+    CONFIRMED_BREAKOUT: "1h",       # the 1h extreme defining the broken level
+})
+assert set(_FAMILY_ANCHOR_TIMEFRAME) == set(SETUP_FAMILIES)
+
 
 def _validate_bucket_start(value: Any, name: str, *, timeframe: str) -> datetime:
     """A legal EXACT bucket START on the canonical V2 `timeframe` grid.
@@ -413,7 +425,8 @@ def build_trend_pullback_anchor(*, bucket_ts: datetime) -> Mapping:
     wrapping of one into the other -- defined once, here, so no Stage 6
     unit invents a second spelling of the same anchor."""
     return MappingProxyType({ANCHOR_BUCKET_TS: _validate_bucket_start(
-        bucket_ts, "bucket_ts", timeframe="15m").isoformat()})
+        bucket_ts, "bucket_ts",
+        timeframe=_FAMILY_ANCHOR_TIMEFRAME[TREND_PULLBACK]).isoformat()})
 
 
 def build_compression_breakout_anchor(*, bucket_ts: datetime) -> Mapping:
@@ -425,7 +438,8 @@ def build_compression_breakout_anchor(*, bucket_ts: datetime) -> Mapping:
     per-family divergence changes one family's builder without silently
     changing the other's."""
     return MappingProxyType({ANCHOR_BUCKET_TS: _validate_bucket_start(
-        bucket_ts, "bucket_ts", timeframe="15m").isoformat()})
+        bucket_ts, "bucket_ts",
+        timeframe=_FAMILY_ANCHOR_TIMEFRAME[COMPRESSION_BREAKOUT]).isoformat()})
 
 
 def build_confirmed_breakout_anchor(
@@ -458,7 +472,9 @@ def build_confirmed_breakout_anchor(
     `normalize_price_to_tick()` can therefore reproduce the identical
     `Decimal` grid from the persisted row alone, with no precision loss and
     no access to current instrument metadata."""
-    bucket = _validate_bucket_start(level_anchor_bucket, "level_anchor_bucket", timeframe="1h")
+    bucket = _validate_bucket_start(
+        level_anchor_bucket, "level_anchor_bucket",
+        timeframe=_FAMILY_ANCHOR_TIMEFRAME[CONFIRMED_BREAKOUT])
     tick_decimal = _to_decimal(creation_identity_tick_size, "creation_identity_tick_size")
     tick_index, normalized = normalize_price_to_tick(raw_level_price, tick_decimal)
     return MappingProxyType({
@@ -939,6 +955,32 @@ def _assert_valid_persisted_anchor(
         raise V2EpisodeHistoryCorruptionError(
             f"episode {episode_id!r}'s persisted structural_anchor.{ANCHOR_BUCKET_TS} must be an "
             f"ISO-8601 string, got {type(bucket_ts).__name__}: {bucket_ts!r}")
+
+    # RT-63-R1: being a STRING is not proof of being a legal anchor. The
+    # persisted timestamp is parsed and held to the SAME family grid the
+    # canonical builders enforce (§12.1), resolved from the one shared
+    # _FAMILY_ANCHOR_TIMEFRAME map. Identity revalidation cannot substitute
+    # for this: a corrupt row whose episode_id was hashed FROM the malformed
+    # anchor is perfectly self-consistent, so only an independent grid check
+    # can catch it. "The builder would never write this" is exactly the
+    # assumption this module exists to stop relying on after restart/replay.
+    timeframe = _FAMILY_ANCHOR_TIMEFRAME[setup_family]
+    try:
+        parsed_bucket = datetime.fromisoformat(bucket_ts)
+    except (TypeError, ValueError) as exc:
+        raise V2EpisodeHistoryCorruptionError(
+            f"episode {episode_id!r}'s persisted structural_anchor.{ANCHOR_BUCKET_TS}="
+            f"{bucket_ts!r} is not a parseable ISO-8601 datetime: {exc}") from exc
+    try:
+        _validate_bucket_start(
+            parsed_bucket, f"structural_anchor.{ANCHOR_BUCKET_TS}", timeframe=timeframe)
+    except V2EpisodeHistoryError as exc:
+        # Re-raised as CORRUPTION, not caller-input error: this value came
+        # out of storage, not out of a caller's arguments.
+        raise V2EpisodeHistoryCorruptionError(
+            f"episode {episode_id!r} is {setup_family!r}, whose §12.1 identity anchor is a "
+            f"{timeframe} bucket start, but its persisted "
+            f"structural_anchor.{ANCHOR_BUCKET_TS}={bucket_ts!r} is not one: {exc}") from exc
 
     tick_fields = (ANCHOR_LEVEL_TICK_INDEX, ANCHOR_LEVEL_NORMALIZED_PRICE,
                    CREATION_IDENTITY_TICK_SIZE)

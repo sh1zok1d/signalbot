@@ -29,6 +29,7 @@ from analytics.forecasting_v2.episode_history import (
     build_trend_pullback_anchor, canonical_decimal_text, normalize_price_to_tick,
     reconstruct_episode_history,
 )
+from analytics.forecasting_v2.episode_identity import compute_episode_id
 from analytics.forecasting_v2.event_factory import build_v2_episode_event
 from analytics.forecasting_v2.events import (
     COMPLETED, COMPRESSION_BREAKOUT, CONFIRMED, CONFIRMED_BREAKOUT, EARLY_SIGNAL,
@@ -815,7 +816,8 @@ def test_persisted_tick_index_rejects_bool_and_non_int(bad):
 
 @pytest.mark.parametrize("bad", ["not-a-decimal", "", "NaN", "Infinity", "-0.1", "0"])
 def test_malformed_persisted_decimal_strings_are_corruption(bad):
-    with pytest.raises(V2EpisodeHistoryCorruptionError):
+    with pytest.raises(V2EpisodeHistoryCorruptionError,
+                       match=CREATION_IDENTITY_TICK_SIZE):
         _reconstruct(_cb_rows(**{CREATION_IDENTITY_TICK_SIZE: bad}))
 
 
@@ -839,7 +841,8 @@ def test_non_confirmed_breakout_family_carrying_tick_fields_is_corruption():
     belong in decision_snapshot/event_payload)."""
     rows = [make_row()]
     rows[0]["structural_anchor"] = dict(CB_ANCHOR)
-    with pytest.raises(V2EpisodeHistoryCorruptionError):
+    with pytest.raises(V2EpisodeHistoryCorruptionError,
+                       match="carries CONFIRMED_BREAKOUT tick-grid field"):
         _reconstruct(rows, episode_id=rows[0]["episode_id"])
 
 
@@ -929,3 +932,92 @@ def test_history_rejects_a_non_event_sequence():
             run_kind=LIVE, run_id=RUN_ID, episode_id="a" * 64, as_of=T0,
             boundary_mode=HISTORY_THROUGH_T, events=("not-an-event",),
             creation_identity=_reconstruct([make_row()]).creation_identity)
+
+
+# ============================================================================
+# 23. RT-63-R1 -- persisted structural_anchor.bucket_ts family-grid integrity
+# ============================================================================
+def _self_consistent_row(*, bucket_ts, setup_family, with_tick_grid=None):
+    """A persisted row whose `episode_id`/`event_id` are recomputed FROM the
+    given (possibly malformed) anchor, so identity revalidation passes and
+    only an independent grid check can catch the corruption.
+
+    The canonical builders reject off-grid buckets outright, so the anchor
+    is assembled directly here -- which is exactly the corrupt-storage shape
+    this module must survive after restart/replay."""
+    anchor = {ANCHOR_BUCKET_TS: bucket_ts}
+    if with_tick_grid is not None:
+        anchor.update({k: v for k, v in with_tick_grid.items() if k != ANCHOR_BUCKET_TS})
+    return make_row(setup_family=setup_family, structural_anchor=anchor)
+
+
+_CB_GRID = dict(build_confirmed_breakout_anchor(
+    level_anchor_bucket=T0, raw_level_price="100.0", creation_identity_tick_size="0.1"))
+
+
+@pytest.mark.parametrize("family", [TREND_PULLBACK, COMPRESSION_BREAKOUT])
+@pytest.mark.parametrize("minutes", [10, 7, 1, 5])
+def test_persisted_15m_family_anchor_off_grid_is_corruption(family, minutes):
+    """RT-63-R1: a self-consistently-hashed row whose persisted anchor is
+    not a 15m bucket start must fail closed -- identity revalidation alone
+    cannot catch it."""
+    row = _self_consistent_row(
+        bucket_ts=(T0 + timedelta(minutes=minutes)).isoformat(), setup_family=family)
+    with pytest.raises(V2EpisodeHistoryCorruptionError, match="15m bucket start"):
+        _reconstruct([row], episode_id=row["episode_id"])
+
+
+@pytest.mark.parametrize("family", [TREND_PULLBACK, COMPRESSION_BREAKOUT])
+@pytest.mark.parametrize("minutes", [0, 15, 30, 45])
+def test_persisted_15m_family_anchor_on_grid_reconstructs(family, minutes):
+    ts = T0 + timedelta(minutes=minutes)
+    row = _self_consistent_row(bucket_ts=ts.isoformat(), setup_family=family)
+    history = _reconstruct([row], episode_id=row["episode_id"])
+    assert history.creation_identity.structural_anchor[ANCHOR_BUCKET_TS] == ts.isoformat()
+
+
+@pytest.mark.parametrize("minutes", [15, 30, 45, 7])
+def test_persisted_confirmed_breakout_anchor_off_1h_grid_is_corruption(minutes):
+    row = _self_consistent_row(
+        bucket_ts=(T0 + timedelta(minutes=minutes)).isoformat(),
+        setup_family=CONFIRMED_BREAKOUT, with_tick_grid=_CB_GRID)
+    with pytest.raises(V2EpisodeHistoryCorruptionError, match="1h bucket start"):
+        _reconstruct([row], episode_id=row["episode_id"])
+
+
+@pytest.mark.parametrize("hours", [0, 1, 2])
+def test_persisted_confirmed_breakout_anchor_on_1h_grid_reconstructs(hours):
+    ts = T0 + timedelta(hours=hours)
+    row = _self_consistent_row(
+        bucket_ts=ts.isoformat(), setup_family=CONFIRMED_BREAKOUT, with_tick_grid=_CB_GRID)
+    history = _reconstruct([row], episode_id=row["episode_id"])
+    assert history.creation_identity.structural_anchor[ANCHOR_BUCKET_TS] == ts.isoformat()
+
+
+@pytest.mark.parametrize("bad", [
+    "not-an-iso-date",
+    "",
+    "2026-08-20T12:00:00",          # naive
+    "2026-08-20T12:00:00+02:00",    # non-UTC offset
+])
+def test_malformed_persisted_bucket_ts_is_corruption(bad):
+    row = _self_consistent_row(bucket_ts=bad, setup_family=TREND_PULLBACK)
+    with pytest.raises(V2EpisodeHistoryCorruptionError):
+        _reconstruct([row], episode_id=row["episode_id"])
+
+
+def test_persisted_anchor_grid_is_checked_even_when_ids_are_self_consistent():
+    """Pins the exact reason this check must exist: the corrupt row's own
+    episode_id genuinely recomputes from its own contents, so the identity
+    revalidation step passes and cannot be what rejects it."""
+    row = _self_consistent_row(
+        bucket_ts=(T0 + timedelta(minutes=10)).isoformat(), setup_family=TREND_PULLBACK)
+    recomputed = compute_episode_id(
+        model_family=MODEL_FAMILY, rules_version="v2-rules-v0.1.0",
+        calculation_version=H16, symbol="BTCUSDT", market_type="perp",
+        direction=LONG, setup_family=TREND_PULLBACK,
+        structural_anchor=row["structural_anchor"], t_create=T0)
+    assert recomputed == row["episode_id"], "fixture must be self-consistent to be meaningful"
+
+    with pytest.raises(V2EpisodeHistoryCorruptionError, match="15m bucket start"):
+        _reconstruct([row], episode_id=row["episode_id"])
