@@ -22,10 +22,14 @@ jobs:
         # Database.init_stage2_schema() cannot complete --
         # storage/stage2_schema.sql's first statement is
         # `CREATE EXTENSION IF NOT EXISTS timescaledb;`. Pin the exact
-        # compose tag (never a floating latest) so CI and deployment share
-        # one PostgreSQL 16 + TimescaleDB 2.17.2 pair. Credentials, port,
-        # database name, and health-check are unchanged.
-        image: timescale/timescaledb:2.17.2-pg16
+        # compose tag PLUS its immutable registry index digest (verified
+        # against registry-1.docker.io Docker-Content-Digest for
+        # manifests/2.17.2-pg16 -- never a floating latest, never a
+        # third-party-quoted digest) so CI and deployment share one
+        # PostgreSQL 16 + TimescaleDB 2.17.2 pair. Credentials, port,
+        # database name, and health-check are unchanged. Production
+        # docker-compose.yml is not modified by this CI-only pin.
+        image: timescale/timescaledb:2.17.2-pg16@sha256:4e459e217f00cbb09920c34d245501e63427e6767a495de57ce76823ff280f12
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -75,12 +79,11 @@ jobs:
         run: |
           python - <<'PY'
           import asyncio
+          import os
           import asyncpg
 
           async def main():
-              conn = await asyncpg.connect(
-                  "postgresql://postgres:postgres@localhost:5432/signalbot_test"
-              )
+              conn = await asyncpg.connect(os.environ["V2_EPISODE_EVENT_TEST_DSN"])
               await conn.execute("CREATE EXTENSION IF NOT EXISTS timescaledb")
               row = await conn.fetchrow(
                   "SELECT extname, extversion FROM pg_extension"

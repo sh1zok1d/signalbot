@@ -271,6 +271,16 @@ class Database:
         ("ck_v2ee_episode_id_hash_format", "episode_id"),
     )
 
+    # Transaction-scoped advisory-lock key for the H3 hash-format
+    # constraint hardening path. Narrow: this key serializes ONLY this
+    # helper's probe+ALTER, never instrument upserts / shadow recovery /
+    # telegram. Stable: a fixed trusted literal (same hashtext input
+    # across processes), matching upsert_exchange_instrument's
+    # `pg_advisory_xact_lock(hashtext($1))` pattern.
+    _V2EE_ID_HASH_FORMAT_HARDEN_LOCK_KEY = (
+        "v2_episode_events:h3_identity_hash_format_constraints"
+    )
+
     async def _harden_v2_episode_events_id_constraints(self) -> None:
         """Idempotent, ATOMIC upgrade: for each of
         `ck_v2ee_event_id_hash_format`/`ck_v2ee_episode_id_hash_format`,
@@ -297,6 +307,17 @@ class Database:
         only to detect and fail closed on it, per §2.1a's own frozen
         "no fabricated historical IDs" posture.
 
+        Concurrent `init_stage2_schema()` callers (two startup processes
+        against the same pre-H3 database) are serialized by a
+        transaction-scoped `pg_advisory_xact_lock(hashtext($1))` taken
+        INSIDE this same transaction and BEFORE the first `pg_constraint`
+        probe -- the existing `upsert_exchange_instrument` pattern.
+        `ADD CONSTRAINT` has no `IF NOT EXISTS`; without the lock both
+        callers can observe the constraint as absent and the second then
+        raises `DuplicateObjectError` after the first commits. The lock
+        is the structural prevention; this method never catches
+        `DuplicateObjectError` as a substitute for serialization.
+
         Column/constraint names come only from
         `_V2EE_ID_HASH_FORMAT_CONSTRAINTS` above (a fixed, trusted module
         constant, never caller-supplied data) — safe to interpolate
@@ -306,6 +327,10 @@ class Database:
         assert self.pool is not None
         async with self.pool.acquire() as conn:
             async with conn.transaction():
+                await conn.execute(
+                    "SELECT pg_advisory_xact_lock(hashtext($1))",
+                    self._V2EE_ID_HASH_FORMAT_HARDEN_LOCK_KEY,
+                )
                 for constraint_name, column in self._V2EE_ID_HASH_FORMAT_CONSTRAINTS:
                     already_present = await conn.fetchval(
                         "SELECT 1 FROM pg_constraint "

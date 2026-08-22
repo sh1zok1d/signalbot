@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import urllib.parse
 import uuid
 from datetime import datetime, timezone
@@ -49,7 +50,7 @@ from datetime import datetime, timezone
 import asyncpg
 import pytest
 
-from storage.db import Database
+from storage.db import STAGE2_SCHEMA_PATH, Database, _split_sql_statements
 
 _EXPLICIT_DSN = os.environ.get("V2_EPISODE_EVENT_TEST_DSN")
 BASE_DSN = _EXPLICIT_DSN or "postgresql://postgres:postgres@127.0.0.1:5432/signalbot_test"
@@ -246,10 +247,20 @@ def _scoped_dsn(base_dsn: str, schema: str) -> str:
     # before H3 hardening ever runs. Production connections also have
     # public on search_path; this does not replace init_stage2_schema()
     # with a private helper.
+    #
+    # If the base DSN already carries one or more `options` values
+    # (e.g. `-cstatement_timeout=5s`), preserve them and combine
+    # everything into ONE `options` query parameter -- a second
+    # `options=` would drop or race the existing startup GUC rather
+    # than compose with it.
     parts = urllib.parse.urlsplit(base_dsn)
     query = urllib.parse.parse_qsl(parts.query, keep_blank_values=True)
-    query.append(("options", f"-csearch_path={schema},public"))
-    new_query = urllib.parse.urlencode(query)
+    existing_options = [value for key, value in query if key == "options"]
+    other = [(key, value) for key, value in query if key != "options"]
+    search_path_opt = f"-csearch_path={schema},public"
+    combined_options = " ".join([*existing_options, search_path_opt]).strip()
+    other.append(("options", combined_options))
+    new_query = urllib.parse.urlencode(other)
     return urllib.parse.urlunsplit(
         (parts.scheme, parts.netloc, parts.path, new_query, parts.fragment))
 
@@ -532,3 +543,98 @@ def test_harden_method_never_uses_not_valid_or_update_or_delete():
     assert "NOT VALID" not in src.upper()
     assert " UPDATE " not in f" {src.upper()} "
     assert "DELETE" not in src.upper()
+    assert not re.search(r"except\s+[^\n]*DuplicateObjectError", src)
+    assert "pg_advisory_xact_lock" in src
+
+
+def test_scoped_dsn_preserves_existing_options_together_with_search_path():
+    # A base DSN that already sets statement_timeout must keep that GUC
+    # AND receive search_path, as ONE options value -- never a second
+    # options= query parameter that would drop the original startup GUC.
+    base = (
+        "postgresql://postgres:postgres@127.0.0.1:5432/signalbot_test"
+        "?options=-cstatement_timeout%3D5s"
+    )
+    result = _scoped_dsn(base, "v2ee_upgrade_test_abc")
+    parts = urllib.parse.urlsplit(result)
+    pairs = urllib.parse.parse_qsl(parts.query, keep_blank_values=True)
+    option_values = [value for key, value in pairs if key == "options"]
+    assert len(option_values) == 1
+    combined = option_values[0]
+    assert "statement_timeout" in combined
+    assert "search_path=v2ee_upgrade_test_abc,public" in combined
+
+
+def test_scoped_dsn_combines_multiple_existing_options_into_one():
+    base = (
+        "postgresql://postgres:postgres@127.0.0.1:5432/signalbot_test"
+        "?options=-cstatement_timeout%3D5s"
+        "&options=-capplication_name%3Dupgrade-test"
+    )
+    result = _scoped_dsn(base, "v2ee_upgrade_test_abc")
+    pairs = urllib.parse.parse_qsl(urllib.parse.urlsplit(result).query, keep_blank_values=True)
+    option_values = [value for key, value in pairs if key == "options"]
+    assert len(option_values) == 1
+    combined = option_values[0]
+    assert "statement_timeout" in combined
+    assert "application_name" in combined
+    assert "search_path=v2ee_upgrade_test_abc,public" in combined
+
+
+# ============================================================================
+# Concurrent canonical init_stage2_schema() against the same pre-H3 table
+# ============================================================================
+def test_two_concurrent_init_stage2_schema_calls_do_not_duplicate_constraints():
+    # Two independent Database instances (separate pools / connections)
+    # call the canonical init_stage2_schema() concurrently against the
+    # SAME pre-H3 table. Without the transaction-scoped advisory lock
+    # both would observe the hash-format constraints as absent and the
+    # loser would raise DuplicateObjectError. Both must succeed; the
+    # table must expose exactly one copy of each constraint; malformed
+    # ids must still be rejected afterward.
+    async def body(db, scoped_dsn):
+        # A real pre-H3 deployment already has the other Stage 2 objects.
+        # Apply the rest of stage2_schema.sql once first so concurrent
+        # CREATE TABLE IF NOT EXISTS is a no-op (PostgreSQL still races
+        # two first-time CREATE TABLE IF NOT EXISTS on pg_type). The
+        # pre-H3 v2_episode_events table already exists, so its CREATE
+        # TABLE is skipped and the inline hash-format CHECKs are NOT
+        # added -- harden has not run yet. The two inits below then race
+        # the actual ADD CONSTRAINT path.
+        sql = STAGE2_SCHEMA_PATH.read_text(encoding="utf-8")
+        async with db.pool.acquire() as conn:
+            for stmt in _split_sql_statements(sql):
+                await conn.execute(stmt)
+            names_before = await _hash_format_constraint_names(conn)
+        assert names_before == set()
+
+        other = Database(scoped_dsn)
+        await other.connect()
+        try:
+            results = await asyncio.gather(
+                db.init_stage2_schema(),
+                other.init_stage2_schema(),
+                return_exceptions=True,
+            )
+        finally:
+            await other.close()
+
+        for result in results:
+            assert not isinstance(result, BaseException), result
+            assert not isinstance(result, asyncpg.exceptions.DuplicateObjectError)
+
+        async with db.pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT conname, count(*) AS n FROM pg_constraint "
+                "WHERE conrelid = 'v2_episode_events'::regclass AND conname = ANY($1) "
+                "GROUP BY conname",
+                list(_HASH_FORMAT_CONSTRAINT_NAMES),
+            )
+            counts = {r["conname"]: r["n"] for r in rows}
+            with pytest.raises(asyncpg.exceptions.CheckViolationError):
+                await _raw_insert(conn, event_id="not-a-hash", episode_id=H64, run_id="race-bad-event")
+            with pytest.raises(asyncpg.exceptions.CheckViolationError):
+                await _raw_insert(conn, event_id=H64, episode_id="not-a-hash", run_id="race-bad-episode")
+        assert counts == {name: 1 for name in _HASH_FORMAT_CONSTRAINT_NAMES}
+
+    _run_pre_h3(body)

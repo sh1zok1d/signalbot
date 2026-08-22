@@ -318,16 +318,28 @@ def test_canonical_init_stage2_schema_calls_the_upgrade_helper():
 
 
 def test_upgrade_helper_uses_the_exact_same_hash_format_pattern_as_fresh_ddl():
-    # fresh == upgraded: the Python helper's CHECK expression must encode
-    # the IDENTICAL regex this file's own inline CREATE TABLE uses for a
-    # fresh database -- never a near-miss/independently-drifted pattern.
+    # fresh == upgraded: extract the ACTUAL quoted regex from the fresh
+    # CREATE TABLE (event_id AND episode_id) and the ACTUAL quoted regex
+    # literal from the Python helper, unescape the helper's doubled
+    # f-string braces, and compare the extracted strings directly. A
+    # hardcoded expected pattern would let both sides drift together
+    # without the test noticing. Not a generic SQL/Python parser -- two
+    # narrow `~ '...'` extractions against already-scoped source text.
     import inspect
     harden_src = inspect.getsource(Database._harden_v2_episode_events_id_constraints)
-    assert "^[0-9a-f]{{64}}$" in harden_src
-    fresh_pattern = re.search(r"event_id\s*~\s*'(\^\[0-9a-f\]\{64\}\$)'", _V2EE_BODY).group(1)
-    # The f-string in harden_src uses doubled braces ({{64}}) that render
-    # to the SAME literal ^[0-9a-f]{64}$ this file's fresh DDL uses.
-    assert fresh_pattern == "^[0-9a-f]{64}$"
+    # Strip the method docstring so a rendered example in comments cannot
+    # satisfy the extraction in place of the actual f-string CHECK.
+    harden_body = re.sub(r'""".*?"""', "", harden_src, count=1, flags=re.S)
+    fresh_event = re.search(r"event_id\s*~\s*'([^']+)'", _V2EE_BODY)
+    fresh_episode = re.search(r"episode_id\s*~\s*'([^']+)'", _V2EE_BODY)
+    harden_literal = re.search(r"~\s*'([^']+)'", harden_body)
+    assert fresh_event is not None, "fresh DDL event_id regex not found"
+    assert fresh_episode is not None, "fresh DDL episode_id regex not found"
+    assert harden_literal is not None, "harden-helper regex literal not found"
+    helper_pattern = harden_literal.group(1).replace("{{", "{").replace("}}", "}")
+    assert fresh_event.group(1) == helper_pattern
+    assert fresh_episode.group(1) == helper_pattern
+    assert fresh_event.group(1) == fresh_episode.group(1)
 
 
 def test_upgrade_helper_checks_pg_constraint_before_altering_never_uses_do_block():
@@ -337,9 +349,13 @@ def test_upgrade_helper_checks_pg_constraint_before_altering_never_uses_do_block
     # _split_sql_statements docstring).
     import inspect
     harden_src = inspect.getsource(Database._harden_v2_episode_events_id_constraints)
-    assert "pg_constraint" in harden_src
+    harden_body = re.sub(r'""".*?"""', "", harden_src, count=1, flags=re.S)
+    assert "pg_constraint" in harden_body
     assert "DO $$" not in harden_src
-    assert "ADD CONSTRAINT" in harden_src
+    assert "ADD CONSTRAINT" in harden_body
+    assert "pg_advisory_xact_lock" in harden_body
+    assert harden_body.index("pg_advisory_xact_lock") < harden_body.index("pg_constraint")
+    assert not re.search(r"except\s+[^\n]*DuplicateObjectError", harden_src)
 
 
 # ---- CHECK constraints: by-value historical truth ------------------------------
