@@ -383,6 +383,10 @@ from .context_snapshot import (
 )
 from .decision_provenance import V2DecisionProvenance, V2DecisionProvenanceError
 from .decision_view import V2DecisionView, V2DecisionViewError, resolve_decision_view
+from .episode_identity import (
+    EPISODE_ID_HASH_ALGORITHM, EVENT_ID_HASH_ALGORITHM, ID_HEX_LENGTH,
+    V2EpisodeIdentityError, compute_episode_id, compute_event_id,
+)
 from .event_factory import build_v2_episode_event
 from .family_quality import (
     FAMILIES, FAMILY_MIN_CONFIDENCE, FAMILY_MIN_COVERAGE, V2FamilyQuality,
@@ -496,6 +500,8 @@ __all__ = [
     "build_rules_manifest", "compute_rules_fingerprint",
     "assert_rules_manifest_matches_version",
     "V2DecisionProvenanceError", "V2DecisionProvenance",
+    "V2EpisodeIdentityError", "EPISODE_ID_HASH_ALGORITHM", "EVENT_ID_HASH_ALGORITHM",
+    "ID_HEX_LENGTH", "compute_episode_id", "compute_event_id",
     "V2ActivationReadinessError", "V2RequiredPercentileCoverage",
     "MANDATORY_PERCENTILE_COVERAGE", "V2CoverageStatus",
     "V2ActivationReadinessResult", "check_activation_readiness",

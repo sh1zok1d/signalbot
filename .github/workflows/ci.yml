@@ -15,7 +15,21 @@ jobs:
     # regressions actually execute here instead of silently skipping.
     services:
       postgres:
-        image: postgres:16
+        # CI database-parity with the repository-frozen production/dev
+        # image (docker-compose.yml, docs/STAGE2_SPEC.md §ux_rq_pending_job,
+        # docs/STAGE2_DATA_AUDIT.md): timescale/timescaledb:2.17.2-pg16.
+        # Vanilla postgres:16 does not ship the timescaledb extension, so
+        # Database.init_stage2_schema() cannot complete --
+        # storage/stage2_schema.sql's first statement is
+        # `CREATE EXTENSION IF NOT EXISTS timescaledb;`. Pin the exact
+        # compose tag PLUS its immutable registry index digest (verified
+        # against registry-1.docker.io Docker-Content-Digest for
+        # manifests/2.17.2-pg16 -- never a floating latest, never a
+        # third-party-quoted digest) so CI and deployment share one
+        # PostgreSQL 16 + TimescaleDB 2.17.2 pair. Credentials, port,
+        # database name, and health-check are unchanged. Production
+        # docker-compose.yml is not modified by this CI-only pin.
+        image: timescale/timescaledb:2.17.2-pg16@sha256:4e459e217f00cbb09920c34d245501e63427e6767a495de57ce76823ff280f12
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -41,6 +55,12 @@ jobs:
       # real as-of/historical-interval/overlap/restart suite --
       # tests/storage/test_v2_instrument_history_readers.py.
       V2_INSTRUMENT_HISTORY_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_test
+      # Same contract, same already-running postgres service, for V2-H3's
+      # real atomicity/idempotency/concurrency/restart suite
+      # (tests/storage/test_v2_episode_event_transactions.py) and its
+      # pre-H3-database-upgrade suite
+      # (tests/storage/test_v2_episode_event_id_constraint_upgrade.py).
+      V2_EPISODE_EVENT_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_test
     steps:
       - uses: actions/checkout@v4
 
@@ -55,6 +75,31 @@ jobs:
       - name: Compile check (syntax)
         run: python -m compileall -q .
 
+      - name: Prove TimescaleDB extension is available on the CI service
+        run: |
+          python - <<'PY'
+          import asyncio
+          import os
+          import asyncpg
+
+          async def main():
+              conn = await asyncpg.connect(os.environ["V2_EPISODE_EVENT_TEST_DSN"])
+              await conn.execute("CREATE EXTENSION IF NOT EXISTS timescaledb")
+              row = await conn.fetchrow(
+                  "SELECT extname, extversion FROM pg_extension"
+                  " WHERE extname = 'timescaledb'"
+              )
+              assert row is not None, "timescaledb extension missing after CREATE EXTENSION"
+              pg_version = await conn.fetchval("SHOW server_version")
+              print(
+                  f"TimescaleDB {row['extversion']} available "
+                  f"(PostgreSQL {pg_version})"
+              )
+              await conn.close()
+
+          asyncio.run(main())
+          PY
+
       - name: Full test suite
         run: python -m pytest -q
 
@@ -66,6 +111,12 @@ jobs:
 
       - name: V2-H2c as-of instrument metadata (real PostgreSQL, explicit)
         run: python -m pytest -q tests/storage/test_v2_instrument_history_readers.py -v
+
+      - name: V2-H3 atomic/idempotent episode-event persistence (real PostgreSQL, explicit)
+        run: python -m pytest -q tests/storage/test_v2_episode_event_transactions.py -v
+
+      - name: V2-H3 pre-H3 database upgrade to hash-format ID constraints (real PostgreSQL, explicit)
+        run: python -m pytest -q tests/storage/test_v2_episode_event_id_constraint_upgrade.py -v
 
       - name: V2 rules/manifest integrity (focused)
         run: python -m pytest -q tests/analytics/test_forecasting_v2_rules_manifest.py tests/analytics/test_forecasting_v2_family_quality.py

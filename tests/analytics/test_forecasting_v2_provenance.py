@@ -34,6 +34,7 @@ def make_provenance(**over) -> V2EventProvenance:
         symbol="BTCUSDT", market_type="perp",
         feature_schema_version=1, calculation_version=H16, config_hash=H64,
         config_version="2.1.0", code_version="deadbeef",
+        decision_code_version="decision-deadbeef",
     )
     base.update(over)
     return V2EventProvenance(**base)
@@ -52,6 +53,7 @@ def test_valid_construction():
     assert p.config_hash == H64
     assert p.config_version == "2.1.0"
     assert p.code_version == "deadbeef"
+    assert p.decision_code_version == "decision-deadbeef"
 
 
 def test_is_frozen_dataclass():
@@ -205,11 +207,27 @@ def test_config_hash_malformed_rejected(bad):
         make_provenance(config_hash=bad)
 
 
-@pytest.mark.parametrize("field", ["config_version", "code_version"])
+@pytest.mark.parametrize("field", ["config_version", "code_version", "decision_code_version"])
 @pytest.mark.parametrize("bad", ["", "   ", None])
 def test_config_and_code_version_nonblank(field, bad):
     with pytest.raises(V2ProvenanceError, match=field):
         make_provenance(**{field: bad})
+
+
+# ---- decision_code_version (V2-H3, §3.2) ------------------------------------
+def test_decision_code_version_preserved_exactly():
+    assert make_provenance(decision_code_version="abc123").decision_code_version == "abc123"
+
+
+def test_decision_code_version_distinct_from_code_version():
+    # code_version (Stage 2 FEATURE-computation identity) and
+    # decision_code_version (Stage 4/5/6 DECISION-code identity, §3.2) are
+    # deliberately two separate fields that may legitimately hold different
+    # values at once — never conflated into one.
+    p = make_provenance(code_version="feature-code-v1", decision_code_version="decision-code-v9")
+    assert p.code_version == "feature-code-v1"
+    assert p.decision_code_version == "decision-code-v9"
+    assert p.code_version != p.decision_code_version
 
 
 # ---- purity: no clock / uuid / random / config / file / env / db access ----

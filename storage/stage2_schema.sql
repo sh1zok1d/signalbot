@@ -900,6 +900,17 @@ CREATE INDEX IF NOT EXISTS ix_tnd_pending_next_attempt
 -- here without producing a material Telegram notification (notification
 -- materiality is Stage 9 / state-machine semantics, out of scope here).
 -- ============================================================
+-- V2-H3 (docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §2.1a): event_id/
+-- episode_id are now ALWAYS the deterministic 64-char lowercase hex
+-- SHA-256 digest analytics/forecasting_v2/episode_identity.py's
+-- compute_episode_id()/compute_event_id() produce for every real write
+-- path -- ck_v2ee_event_id_hash_format/ck_v2ee_episode_id_hash_format
+-- below enforce that SHAPE at the DB layer too (defense-in-depth; this
+-- cannot itself prove an ID was computed correctly from the right inputs,
+-- only that its shape is not a random UUID/caller-invented opaque string/
+-- truncated hash). The original ck_v2ee_event_id/ck_v2ee_episode_id
+-- nonblank checks (below) are kept UNCHANGED, never removed -- this is a
+-- strictly ADDITIONAL, stricter constraint, not a replacement.
 CREATE TABLE IF NOT EXISTS v2_episode_events (
     run_kind               TEXT NOT NULL,
     run_id                 TEXT NOT NULL,
@@ -923,6 +934,11 @@ CREATE TABLE IF NOT EXISTS v2_episode_events (
     config_hash            TEXT NOT NULL,
     config_version         TEXT NOT NULL,
     code_version           TEXT NOT NULL,
+    -- V2-H3 (docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §3.2): the Stage
+    -- 4/5/6 DECISION-code identity, captured BY VALUE alongside code_version
+    -- (Stage 2's FEATURE-computation-code identity) -- the two are
+    -- deliberately separate columns, never conflated.
+    decision_code_version  TEXT NOT NULL,
 
     decision_snapshot      JSONB NOT NULL,
     event_payload          JSONB NOT NULL,
@@ -936,6 +952,12 @@ CREATE TABLE IF NOT EXISTS v2_episode_events (
     CONSTRAINT ck_v2ee_run_id       CHECK (length(btrim(run_id)) > 0),
     CONSTRAINT ck_v2ee_event_id     CHECK (length(btrim(event_id)) > 0),
     CONSTRAINT ck_v2ee_episode_id   CHECK (length(btrim(episode_id)) > 0),
+    -- V2-H3: deterministic-identity shape, additional to the plain
+    -- nonblank checks immediately above (never a replacement for them).
+    CONSTRAINT ck_v2ee_event_id_hash_format
+        CHECK (event_id ~ '^[0-9a-f]{64}$'),
+    CONSTRAINT ck_v2ee_episode_id_hash_format
+        CHECK (episode_id ~ '^[0-9a-f]{64}$'),
 
     CONSTRAINT ck_v2ee_model_family
         CHECK (model_family = 'v2'),
@@ -967,6 +989,8 @@ CREATE TABLE IF NOT EXISTS v2_episode_events (
         CHECK (config_hash ~ '^[0-9a-f]{64}$'),
     CONSTRAINT ck_v2ee_config_version   CHECK (length(btrim(config_version)) > 0),
     CONSTRAINT ck_v2ee_code_version     CHECK (length(btrim(code_version)) > 0),
+    CONSTRAINT ck_v2ee_decision_code_version
+        CHECK (length(btrim(decision_code_version)) > 0),
 
     CONSTRAINT ck_v2ee_decision_snapshot_json
         CHECK (jsonb_typeof(decision_snapshot) = 'object'),
@@ -981,6 +1005,69 @@ CREATE INDEX IF NOT EXISTS ix_v2ee_episode_history
 -- Recent V2 event inspection across episodes, for one symbol.
 CREATE INDEX IF NOT EXISTS ix_v2ee_symbol_recent
     ON v2_episode_events (symbol, decision_boundary DESC);
+
+-- V2-H3 (docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §2.1a): the frozen
+-- physical uniqueness invariant for one logical decision boundary's event
+-- publication -- "at most one persisted V2EpisodeEvent per (execution_
+-- stream, episode_id, decision_boundary)". ADDITIONAL to (and, once every
+-- caller constructs event_id via analytics/forecasting_v2/
+-- episode_identity.py::compute_event_id() -- itself a deterministic
+-- function of exactly (episode_id, decision_boundary) -- implied by) the
+-- existing PRIMARY KEY (run_kind, run_id, event_id) above: kept as its own
+-- explicit unique index rather than replacing the PK, since event_id
+-- remains this table's own physical row-lookup identity and dropping it
+-- would be an unrelated, unnecessary destructive change. A UNIQUE INDEX
+-- (rather than a table-level UNIQUE constraint) is used specifically so
+-- this same statement is idempotent (`IF NOT EXISTS`) for BOTH a fresh
+-- database and an upgrade of an already-deployed one -- PostgreSQL has no
+-- `ADD CONSTRAINT IF NOT EXISTS` form for a table-level UNIQUE constraint.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_v2ee_episode_decision_boundary
+    ON v2_episode_events (run_kind, run_id, episode_id, decision_boundary);
+
+-- Idempotent upgrade path for a database created before decision_code_version
+-- existed: a no-op on a fresh DB (the CREATE TABLE above already includes
+-- the column/constraint), additive-only on an existing installation. The
+-- CHECK is bundled into the SAME `ADD COLUMN IF NOT EXISTS` statement (the
+-- `model_family` upgrade path elsewhere in this file uses the identical
+-- pattern) rather than a separate `ADD CONSTRAINT`, specifically because
+-- `storage/db.py::_split_sql_statements` splits this file on a plain `;`
+-- with no dollar-quoted/PL-pgSQL awareness ("this schema is plain DDL...
+-- switch to a real parser" if that ever changes) -- a guarded
+-- `DO $$ ... $$` block guarding a separate idempotent `ADD CONSTRAINT`
+-- would be silently mis-split into multiple invalid fragments by that
+-- splitter, which is exactly why one is deliberately NOT used here (or for
+-- the two new event_id/episode_id hash-format CHECKs below). No DEFAULT is
+-- supplied -- this table has never had a real writer wired into any
+-- runtime path (v2.enabled has always been false;
+-- Database.insert_v2_episode_events is not called from connect()/
+-- init_schema()/init_stage2_schema() and is exercised only by this
+-- repository's own tests), so it has zero rows in every real deployment
+-- today; fabricating a placeholder historical value for a column that in
+-- practice has no existing rows to backfill would be worse than the
+-- straightforward, honest failure mode below. If this assumption is ever
+-- wrong for some deployment, PostgreSQL itself will refuse the ALTER
+-- (`column "decision_code_version" contains null values`) rather than
+-- silently inventing history -- exactly the fail-closed behavior wanted.
+ALTER TABLE v2_episode_events
+    ADD COLUMN IF NOT EXISTS decision_code_version TEXT NOT NULL
+        CONSTRAINT ck_v2ee_decision_code_version
+            CHECK (length(btrim(decision_code_version)) > 0);
+
+-- KNOWN, ACCEPTED, NARROW LIMITATION (documented rather than silently
+-- gapped): unlike decision_code_version above, event_id/episode_id are
+-- NOT new columns -- there is no idempotent `ADD COLUMN IF NOT EXISTS`
+-- trick available to retrofit ck_v2ee_event_id_hash_format/
+-- ck_v2ee_episode_id_hash_format (declared inline in the CREATE TABLE
+-- above) onto an ALREADY-existing v2_episode_events table from a
+-- database that ran schema init before this PR, and PostgreSQL has no
+-- `ADD CONSTRAINT IF NOT EXISTS` form for that case (the same
+-- dollar-quoted-body limitation noted above rules out a guarded `DO $$`
+-- workaround). This is safe in practice today: v2.enabled has always been
+-- false and this table has zero rows in every real deployment, so no
+-- write today can actually violate the missing constraint on an
+-- unupgraded table. A future PR that needs this retrofitted for real
+-- (e.g. once `_split_sql_statements` gains PL/pgSQL-aware parsing, or a
+-- proper migration-numbering mechanism is adopted) can add it then.
 
 -- ============================================================
 -- V2-H2b: DRAIN-BEFORE-ACTIVATE version-switch durable state

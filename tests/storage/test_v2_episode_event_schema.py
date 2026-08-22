@@ -67,7 +67,17 @@ def test_v2_section_does_not_touch_other_tables():
     for t in ("klines_1m", "open_interest", "funding_rate", "mark_price",
               "liquidations", "exchange_capabilities"):
         assert not re.search(r"(CREATE|ALTER)\s+TABLE[^\n]*\b" + t + r"\b", code), t
-    assert "ALTER TABLE" not in code   # this table is CREATE-only, no upgrade path needed
+
+
+def test_v2ee_alter_table_statements_target_only_this_table():
+    # V2-H3 adds an additive, idempotent upgrade-path ALTER TABLE
+    # (decision_code_version) -- this table is no longer CREATE-only, but
+    # every ALTER TABLE in this section must still target v2_episode_events
+    # itself, never a different table.
+    code = _V2EE_SECTION_CODE
+    targets = re.findall(r"ALTER\s+TABLE\s+(\w+)", code)
+    assert targets, "expected at least one ALTER TABLE statement (V2-H3 upgrade path)"
+    assert set(targets) == {"v2_episode_events"}
 
 
 def test_v1_tables_still_pinned_model_family_v1_unchanged():
@@ -102,7 +112,7 @@ def test_required_columns_present_in_order():
         "symbol", "market_type", "direction", "setup_family", "structural_anchor",
         "episode_state", "decision_boundary",
         "feature_schema_version", "calculation_version", "config_hash",
-        "config_version", "code_version",
+        "config_version", "code_version", "decision_code_version",
         "decision_snapshot", "event_payload",
         "created_at",
     ]
@@ -257,6 +267,97 @@ def test_config_version_and_code_version_nonblank_checks():
     assert re.search(r"length\(btrim\(code_version\)\)\s*>\s*0", _V2EE_BODY)
 
 
+# ---- CHECK constraints: V2-H3 decision-code provenance + deterministic-ID shape --
+def test_decision_code_version_column_and_check():
+    assert re.search(r"decision_code_version\s+TEXT\s+NOT\s+NULL", _V2EE_BODY)
+    assert re.search(r"length\(btrim\(decision_code_version\)\)\s*>\s*0", _V2EE_BODY)
+
+
+def test_event_id_and_episode_id_hash_format_checks_present():
+    # V2-H3: ADDITIONAL to (never a replacement for) the plain nonblank
+    # checks tested by test_run_id_event_id_episode_id_nonblank_checks.
+    assert re.search(r"event_id\s*~\s*'\^\[0-9a-f\]\{64\}\$'", _V2EE_BODY)
+    assert re.search(r"episode_id\s*~\s*'\^\[0-9a-f\]\{64\}\$'", _V2EE_BODY)
+
+
+def test_original_nonblank_checks_not_removed_by_hash_format_addition():
+    # The V2-H3 hash-format CHECKs above must never have REPLACED the
+    # original ck_v2ee_event_id/ck_v2ee_episode_id nonblank constraints.
+    assert "ck_v2ee_event_id" in _V2EE_BODY
+    assert "ck_v2ee_episode_id" in _V2EE_BODY
+    assert re.search(r"CONSTRAINT ck_v2ee_event_id\s+CHECK", _V2EE_BODY)
+    assert re.search(r"CONSTRAINT ck_v2ee_episode_id\s+CHECK", _V2EE_BODY)
+
+
+# ---- pre-H3 upgrade path: fresh == upgraded (Blocker 2) ------------------------
+# storage/db.py::Database._harden_v2_episode_events_id_constraints is the
+# Python-level, idempotent upgrade path making an ALREADY-EXISTING
+# (pre-H3) v2_episode_events table converge onto the EXACT SAME two
+# hash-format CHECK constraints this file's own inline CREATE TABLE gives
+# a fresh database for free. Runtime proof (real PostgreSQL, both a
+# genuinely pre-H3 table and a fully-upgraded-except-hash-format legacy-
+# row fail-closed vector) lives in
+# tests/storage/test_v2_episode_event_id_constraint_upgrade.py; these are
+# the structural/source-level counterparts: no Docker/PostgreSQL needed.
+from storage.db import Database  # noqa: E402
+
+
+def test_harden_helper_exists_and_targets_exactly_the_two_hash_format_constraints():
+    names = {name for name, _column in Database._V2EE_ID_HASH_FORMAT_CONSTRAINTS}
+    assert names == {"ck_v2ee_event_id_hash_format", "ck_v2ee_episode_id_hash_format"}
+
+
+def test_canonical_init_stage2_schema_calls_the_upgrade_helper():
+    # "used by the canonical Stage2/V2 schema initialization path" --
+    # init_stage2_schema() is that path (storage/db.py's own docstring: the
+    # entry point normal runtime/deployment calls, not a private helper
+    # called directly by callers).
+    import inspect
+    init_src = inspect.getsource(Database.init_stage2_schema)
+    assert "_harden_v2_episode_events_id_constraints" in init_src
+
+
+def test_upgrade_helper_uses_the_exact_same_hash_format_pattern_as_fresh_ddl():
+    # fresh == upgraded: extract the ACTUAL quoted regex from the fresh
+    # CREATE TABLE (event_id AND episode_id) and the ACTUAL quoted regex
+    # literal from the Python helper, unescape the helper's doubled
+    # f-string braces, and compare the extracted strings directly. A
+    # hardcoded expected pattern would let both sides drift together
+    # without the test noticing. Not a generic SQL/Python parser -- two
+    # narrow `~ '...'` extractions against already-scoped source text.
+    import inspect
+    harden_src = inspect.getsource(Database._harden_v2_episode_events_id_constraints)
+    # Strip the method docstring so a rendered example in comments cannot
+    # satisfy the extraction in place of the actual f-string CHECK.
+    harden_body = re.sub(r'""".*?"""', "", harden_src, count=1, flags=re.S)
+    fresh_event = re.search(r"event_id\s*~\s*'([^']+)'", _V2EE_BODY)
+    fresh_episode = re.search(r"episode_id\s*~\s*'([^']+)'", _V2EE_BODY)
+    harden_literal = re.search(r"~\s*'([^']+)'", harden_body)
+    assert fresh_event is not None, "fresh DDL event_id regex not found"
+    assert fresh_episode is not None, "fresh DDL episode_id regex not found"
+    assert harden_literal is not None, "harden-helper regex literal not found"
+    helper_pattern = harden_literal.group(1).replace("{{", "{").replace("}}", "}")
+    assert fresh_event.group(1) == helper_pattern
+    assert fresh_episode.group(1) == helper_pattern
+    assert fresh_event.group(1) == fresh_episode.group(1)
+
+
+def test_upgrade_helper_checks_pg_constraint_before_altering_never_uses_do_block():
+    # Idempotency mechanism must be the narrow pg_constraint-inspection
+    # helper, never a DO $$ block (which _split_sql_statements' plain
+    # semicolon-splitting cannot parse safely -- see storage/db.py's own
+    # _split_sql_statements docstring).
+    import inspect
+    harden_src = inspect.getsource(Database._harden_v2_episode_events_id_constraints)
+    harden_body = re.sub(r'""".*?"""', "", harden_src, count=1, flags=re.S)
+    assert "pg_constraint" in harden_body
+    assert "DO $$" not in harden_src
+    assert "ADD CONSTRAINT" in harden_body
+    assert "pg_advisory_xact_lock" in harden_body
+    assert harden_body.index("pg_advisory_xact_lock") < harden_body.index("pg_constraint")
+    assert not re.search(r"except\s+[^\n]*DuplicateObjectError", harden_src)
+
+
 # ---- CHECK constraints: by-value historical truth ------------------------------
 def test_decision_snapshot_and_event_payload_jsonb_object_checks():
     assert re.search(r"decision_snapshot\s+JSONB\s+NOT\s+NULL", _V2EE_BODY)
@@ -271,10 +372,27 @@ def test_not_a_hypertable():
     assert "v2_episode_events" not in re.findall(r"create_hypertable\(\s*'(\w+)'", SQL)
 
 
-# ---- indexes: only the two useful ones, nothing speculative ----------------------
-def test_only_two_indexes_present():
-    indexes = re.findall(r"CREATE INDEX IF NOT EXISTS (\w+)\s*\n\s*ON v2_episode_events", _V2EE_SECTION)
-    assert set(indexes) == {"ix_v2ee_episode_history", "ix_v2ee_symbol_recent"}
+# ---- indexes: only the three useful ones, nothing speculative --------------------
+def test_only_three_indexes_present():
+    # V2-H3 adds ux_v2ee_episode_decision_boundary (a UNIQUE index enforcing
+    # the frozen §2.1a physical-uniqueness invariant) alongside the two
+    # original plain indexes -- matches BOTH `CREATE INDEX` and
+    # `CREATE UNIQUE INDEX` so an unreviewed fourth index cannot slip in
+    # unnoticed either.
+    indexes = re.findall(
+        r"CREATE (?:UNIQUE )?INDEX IF NOT EXISTS (\w+)\s*\n\s*ON v2_episode_events",
+        _V2EE_SECTION)
+    assert set(indexes) == {
+        "ix_v2ee_episode_history", "ix_v2ee_symbol_recent",
+        "ux_v2ee_episode_decision_boundary",
+    }
+
+
+def test_episode_decision_boundary_unique_index_shape():
+    assert re.search(
+        r"CREATE UNIQUE INDEX IF NOT EXISTS ux_v2ee_episode_decision_boundary\s*\n"
+        r"\s*ON v2_episode_events \(run_kind, run_id, episode_id, decision_boundary\)",
+        _V2EE_SECTION)
 
 
 def test_episode_history_index_shape():

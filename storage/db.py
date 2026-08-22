@@ -234,6 +234,116 @@ class Database:
             for stmt in statements:
                 await conn.execute(stmt)
         logger.info("Stage 2 schema initialized / verified (%d statements)", len(statements))
+        # V2-H3 amendment (docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §2.1a):
+        # the plain-SQL statements above alone leave an ALREADY-EXISTING
+        # (pre-H3) v2_episode_events table without the two hash-format
+        # CHECK constraints -- see this method's own docstring below for why
+        # that cannot be expressed as plain SQL inside stage2_schema.sql
+        # itself. Always called, on every init (fresh DB or upgrade) --
+        # itself idempotent and a no-op on a fresh DB, whose CREATE TABLE
+        # above already created both constraints inline.
+        await self._harden_v2_episode_events_id_constraints()
+
+    # ---------------------------------------------------------------
+    # V2-H3 amendment (docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §2.1a):
+    # Python-level, idempotent, atomic upgrade path making an ALREADY-
+    # EXISTING (pre-H3) v2_episode_events table converge onto the EXACT
+    # SAME ck_v2ee_event_id_hash_format/ck_v2ee_episode_id_hash_format
+    # invariant storage/stage2_schema.sql's CREATE TABLE bakes in for a
+    # fresh database. Required because storage/db.py::_split_sql_statements
+    # splits stage2_schema.sql on a plain ';' with no dollar-quoted/
+    # PL-pgSQL awareness ("this schema is plain DDL... switch to a real
+    # parser" if that ever changes) -- a guarded `DO $$ ... $$` block
+    # checking pg_constraint before a separate idempotent `ADD CONSTRAINT`
+    # would be silently mis-split into invalid fragments by that splitter,
+    # which is exactly why decision_code_version's own upgrade path
+    # (storage/stage2_schema.sql) instead bundles its CHECK directly into
+    # one `ADD COLUMN IF NOT EXISTS ... CONSTRAINT ... CHECK (...)`
+    # statement -- a trick NOT available here, since event_id/episode_id
+    # are NOT new columns (there is no idempotent `ADD COLUMN IF NOT
+    # EXISTS`-shaped escape hatch for adding a CHECK to an
+    # ALREADY-EXISTING column). This Python helper is the narrowest
+    # remaining idempotent mechanism: check pg_constraint by name, add the
+    # constraint only if genuinely absent.
+    # ---------------------------------------------------------------
+    _V2EE_ID_HASH_FORMAT_CONSTRAINTS: "tuple[tuple[str, str], ...]" = (
+        ("ck_v2ee_event_id_hash_format", "event_id"),
+        ("ck_v2ee_episode_id_hash_format", "episode_id"),
+    )
+
+    # Transaction-scoped advisory-lock key for the H3 hash-format
+    # constraint hardening path. Narrow: this key serializes ONLY this
+    # helper's probe+ALTER, never instrument upserts / shadow recovery /
+    # telegram. Stable: a fixed trusted literal (same hashtext input
+    # across processes), matching upsert_exchange_instrument's
+    # `pg_advisory_xact_lock(hashtext($1))` pattern.
+    _V2EE_ID_HASH_FORMAT_HARDEN_LOCK_KEY = (
+        "v2_episode_events:h3_identity_hash_format_constraints"
+    )
+
+    async def _harden_v2_episode_events_id_constraints(self) -> None:
+        """Idempotent, ATOMIC upgrade: for each of
+        `ck_v2ee_event_id_hash_format`/`ck_v2ee_episode_id_hash_format`,
+        add it to `v2_episode_events` (`CHECK (<column> ~
+        '^[0-9a-f]{64}$')` — the exact production semantics
+        `stage2_schema.sql`'s own fresh-DB `CREATE TABLE` already uses) iff
+        `pg_constraint` does not already show it present on this exact
+        table. Both checks/adds run inside ONE transaction on ONE
+        connection: PostgreSQL validates every EXISTING row against a new
+        `CHECK` constraint by default (this method never uses `NOT
+        VALID`), so a legacy row that already violates the invariant makes
+        the whole `ALTER TABLE` raise `asyncpg.exceptions.
+        CheckViolationError` — propagated UNCHANGED, never caught or
+        translated, which rolls the ENTIRE transaction back. This is
+        deliberate: if constraint 1 would have succeeded (its own column's
+        existing values are all already conforming) but constraint 2 fails
+        (a legacy row violates the SECOND column's invariant), the FIRST
+        constraint must not be left behind as a half-converged, orphaned
+        state — the table must end up either fully hardened or entirely
+        unchanged, never one-of-two. No row is ever rewritten, and no
+        historical identity is ever fabricated to satisfy either
+        constraint — a genuinely non-conforming legacy row is a data
+        problem an operator must resolve explicitly; this method's job is
+        only to detect and fail closed on it, per §2.1a's own frozen
+        "no fabricated historical IDs" posture.
+
+        Concurrent `init_stage2_schema()` callers (two startup processes
+        against the same pre-H3 database) are serialized by a
+        transaction-scoped `pg_advisory_xact_lock(hashtext($1))` taken
+        INSIDE this same transaction and BEFORE the first `pg_constraint`
+        probe -- the existing `upsert_exchange_instrument` pattern.
+        `ADD CONSTRAINT` has no `IF NOT EXISTS`; without the lock both
+        callers can observe the constraint as absent and the second then
+        raises `DuplicateObjectError` after the first commits. The lock
+        is the structural prevention; this method never catches
+        `DuplicateObjectError` as a substitute for serialization.
+
+        Column/constraint names come only from
+        `_V2EE_ID_HASH_FORMAT_CONSTRAINTS` above (a fixed, trusted module
+        constant, never caller-supplied data) — safe to interpolate
+        directly into the `ALTER TABLE`/`CHECK` SQL text, exactly like
+        `storage/v2_serialization.py::_build_v2_insert_once_sql`'s
+        identical trusted-constants-only posture."""
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute(
+                    "SELECT pg_advisory_xact_lock(hashtext($1))",
+                    self._V2EE_ID_HASH_FORMAT_HARDEN_LOCK_KEY,
+                )
+                for constraint_name, column in self._V2EE_ID_HASH_FORMAT_CONSTRAINTS:
+                    already_present = await conn.fetchval(
+                        "SELECT 1 FROM pg_constraint "
+                        "WHERE conname = $1 AND conrelid = 'v2_episode_events'::regclass",
+                        constraint_name,
+                    )
+                    if already_present:
+                        continue
+                    await conn.execute(
+                        f"ALTER TABLE v2_episode_events "
+                        f"ADD CONSTRAINT {constraint_name} "
+                        f"CHECK ({column} ~ '^[0-9a-f]{{64}}$')"
+                    )
 
     async def fetch_exchange_feature_raw_bundle(
         self, *, exchange: str, symbol: str, market_type: str,
@@ -1666,34 +1776,82 @@ class Database:
     # ---------------------------------------------------------------
     async def insert_v2_episode_events(
         self, rows: "Sequence[V2EpisodeEvent]") -> int:
-        """Batch insert-once write for immutable V2 episode events. The whole
-        batch is validated and serialized BEFORE any connection is acquired
-        (same discipline as `_upsert_stage2`/`insert_forecast_prediction`), so
-        a malformed container or a wrong-typed row can never partially write.
-        An empty (but valid) list/tuple returns 0 without acquiring a
-        connection.
+        """Atomic batch insert-once write for immutable V2 episode events
+        (V2-H3, docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §2.1a). The
+        whole batch is validated, serialized, and scope-checked BEFORE any
+        connection is acquired (same discipline as
+        `_upsert_stage2`/`insert_forecast_prediction`), so a malformed
+        container, a wrong-typed row, or a batch spanning more than one
+        logical decision boundary (`assert_homogeneous_batch_scope()`) can
+        never partially write. An empty (but valid) list/tuple returns 0
+        without acquiring a connection.
 
-        Each row is inserted with its own
-        `ON CONFLICT (run_kind, run_id, event_id) DO NOTHING RETURNING TRUE`
-        — the returned count is an HONEST count of rows actually inserted; a
-        duplicate `(run_kind, run_id, event_id)` is silently skipped, never
-        overwritten, and not counted. Rows are inserted one at a time (not
-        `executemany`) specifically so each row's own TRUE/NULL RETURNING
-        result is observable — `executemany` would only tell us the batch
-        ran, not which rows were duplicates. There is no `DO UPDATE` path for
-        this table anywhere in this codebase; historical event truth is
-        immutable. DB exceptions propagate unchanged."""
-        from storage.v2_serialization import V2_EPISODE_EVENT_SPEC, serialize_batch
+        **Atomicity (§2.1a "Frozen correctness requirement"):** every row
+        in the batch is inserted inside ONE explicit transaction
+        (`conn.transaction()`) on ONE acquired connection — never a new
+        connection/transaction per row. If any row's insert or conflict
+        resolution raises, the WHOLE transaction rolls back and this call
+        raises; NONE of the batch's rows become durably visible. There is
+        no state in which some, but not all, of one call's rows are
+        persisted.
+
+        **Idempotent retry vs. conflicting reuse (§2.1a "Retry model" /
+        this PR's own identity-conflict handling):** each row is inserted
+        with its own
+        `ON CONFLICT (run_kind, run_id, event_id) DO NOTHING RETURNING TRUE`.
+        A `TRUE` result is a genuine new insert (counted). A `NULL`/no-row
+        result means this exact `(run_kind, run_id, event_id)` already
+        exists — deterministic IDs (`analytics/forecasting_v2/
+        episode_identity.py`) make this ambiguous on its own: it could be
+        an identical retry (safe no-op) or a genuine conflicting identity
+        reuse (never safe). This method resolves the ambiguity by reading
+        the existing row back (same transaction, so no torn/stale read)
+        and comparing it against the new attempt via
+        `storage.v2_serialization.rows_semantically_equal()`: identical ->
+        silently skipped, exactly as before (not counted as a new insert,
+        never raises); different -> `V2EventIdentityConflictError`, which
+        propagates out of the `async with conn.transaction()` block and
+        rolls the ENTIRE batch back — the pre-existing row is never
+        touched (there is still no `DO UPDATE` path for this table
+        anywhere in this codebase; historical event truth remains
+        immutable), and this call's batch persists nothing.
+
+        Rows are inserted one at a time (not `executemany`) specifically
+        so each row's own TRUE/NULL `RETURNING` result is observable —
+        `executemany` would only tell us the batch ran, not which rows
+        were duplicates. Other DB exceptions propagate unchanged."""
+        from storage.v2_serialization import (
+            V2_EPISODE_EVENT_SPEC, V2EventIdentityConflictError, assert_homogeneous_batch_scope,
+            rows_semantically_equal, select_existing_v2_episode_event_sql, serialize_batch,
+        )
         params = serialize_batch(V2_EPISODE_EVENT_SPEC, rows)  # validation before any DB call
         if not params:
             return 0
+        assert_homogeneous_batch_scope(rows)  # still before acquiring a connection
         assert self.pool is not None
+        run_kind_i = V2_EPISODE_EVENT_SPEC.columns.index("run_kind")
+        run_id_i = V2_EPISODE_EVENT_SPEC.columns.index("run_id")
+        event_id_i = V2_EPISODE_EVENT_SPEC.columns.index("event_id")
+        select_sql = select_existing_v2_episode_event_sql()
         inserted = 0
         async with self.pool.acquire() as conn:
-            for row_params in params:
-                result = await conn.fetchval(V2_EPISODE_EVENT_SPEC.insert_sql, *row_params)
-                if result is True:
-                    inserted += 1
+            async with conn.transaction():
+                for row_params in params:
+                    result = await conn.fetchval(V2_EPISODE_EVENT_SPEC.insert_sql, *row_params)
+                    if result is True:
+                        inserted += 1
+                        continue
+                    run_kind, run_id, event_id = (
+                        row_params[run_kind_i], row_params[run_id_i], row_params[event_id_i])
+                    existing = await conn.fetchrow(select_sql, run_kind, run_id, event_id)
+                    if existing is None or not rows_semantically_equal(row_params, existing):
+                        raise V2EventIdentityConflictError(
+                            f"v2_episode_events conflict for (run_kind={run_kind!r}, "
+                            f"run_id={run_id!r}, event_id={event_id!r}): an existing row "
+                            "with this exact deterministic identity does not match the "
+                            "newly attempted row's semantic content -- refusing to silently "
+                            "accept a conflicting identity reuse; rolling back this entire "
+                            "batch")
         return inserted
 
     # ---------------------------------------------------------------

@@ -26,8 +26,13 @@ def _strip_sql_comments(text: str) -> str:
 
 
 _FO_BODY = _table_body("forecast_outcomes")
-# outcome section = from its banner comment to EOF (predictions table is above it)
-_FO_SECTION = SQL[SQL.index("Shadow forecast OUTCOMES"):]
+# outcome section = from its banner comment to the NEXT section's banner
+# (predictions table is above it; shadow_recovery_watermarks and everything
+# after -- including V2-H3's unrelated ALTER TABLE v2_episode_events, far
+# later in the file -- is deliberately excluded, never "to EOF", so this
+# section's own assertions cannot be confused by a later, unrelated table's
+# legitimate DDL).
+_FO_SECTION = SQL[SQL.index("Shadow forecast OUTCOMES"):SQL.index("Shadow recovery watermark")]
 _FO_SECTION_CODE = _strip_sql_comments(_FO_SECTION)
 
 
