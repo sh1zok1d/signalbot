@@ -15,10 +15,14 @@ transactions.py`'s established pattern exactly (per-test isolated schema,
 one `asyncio.run()` per test, `V2_EPISODE_EVENT_TEST_DSN` env var with the
 identical fail-vs-skip contract).
 
-Two hand-copied DDL variants, both deliberately NOT the real
-`storage/stage2_schema.sql` (which a vanilla `postgres:16` test server
-cannot fully apply for unrelated TimescaleDB reasons -- see
-`test_v2_episode_event_transactions.py`'s own module docstring):
+Two hand-copied DDL variants for the STARTING table state only. The
+upgrade itself always goes through the real
+`Database.init_stage2_schema()` (never a private harden-helper call).
+That path requires TimescaleDB (`CREATE EXTENSION` + `create_hypertable`
+in `storage/stage2_schema.sql`); CI therefore uses the repository-frozen
+`timescale/timescaledb:2.17.2-pg16` image. Isolated connections keep
+`public` on `search_path` so those TimescaleDB functions stay visible
+while unqualified DDL still lands in the per-test schema:
 
   - `_PRE_H3_DDL`: the table exactly as it existed on `main` before ANY
     V2-H3 change -- no `decision_code_version` column, no hash-format
@@ -232,9 +236,19 @@ def _unique_schema_name() -> str:
 
 
 def _scoped_dsn(base_dsn: str, schema: str) -> str:
+    # Isolated schema FIRST so unqualified CREATE TABLE / ALTER TABLE
+    # from Database.init_stage2_schema() land here, never in public.
+    # `public` stays on the path so TimescaleDB functions already
+    # installed in the default database (the official
+    # timescale/timescaledb image creates the extension in POSTGRES_DB
+    # / template1) remain visible -- a search_path of ONLY the isolated
+    # schema hides create_hypertable and makes the canonical init fail
+    # before H3 hardening ever runs. Production connections also have
+    # public on search_path; this does not replace init_stage2_schema()
+    # with a private helper.
     parts = urllib.parse.urlsplit(base_dsn)
     query = urllib.parse.parse_qsl(parts.query, keep_blank_values=True)
-    query.append(("options", f"-csearch_path={schema}"))
+    query.append(("options", f"-csearch_path={schema},public"))
     new_query = urllib.parse.urlencode(query)
     return urllib.parse.urlunsplit(
         (parts.scheme, parts.netloc, parts.path, new_query, parts.fragment))
