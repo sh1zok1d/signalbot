@@ -1123,26 +1123,35 @@ already assume is durable.
 Stage 5 qualification implementation. This does NOT mean the V2 trading
 product is complete — Stage 6 (Episode State Machine), which owns episode
 identity/dedup, family precedence (§7.4), confirmation, false-break
-transitions, expiry, weakening, and persistence orchestration, has NOT
-started.
+transitions, expiry, weakening, and persistence orchestration, has only
+begun (unit 1 of 5, PR #63 open — see the status block immediately below).
 
-**Executable Stage 6 has NOT started.** `#43` — including its two
-post-open amendment rounds and this clean-room pre-Stage-6 contract
+**Executable Stage 6 has STARTED (Unit 1 of 5 only).** `#43` — including
+its two post-open amendment rounds and this clean-room pre-Stage-6 contract
 consolidation and cross-stage audit — is documentation-only contract work
-that precedes Stage 6, never Stage 6 implementation itself. The correct
-status, corrected here after this audit found the prior "Stage 6: IN
-PROGRESS" framing to be inaccurate:
+that precedes Stage 6, never Stage 6 implementation itself. The prose below
+this status block describes the state as of `#43` and is retained as
+historical record; the current status is:
 
-- **Stage 6 — Episode State Machine: NOT STARTED.**
-- **PRE-STAGE-6 HARDENING: IN PROGRESS.** `#43` (contract consolidation)
-  and `#44` (Quality/scoring boundary hardening, including its round-2
-  amendment closing the `V2BiasResult` `NEUTRAL_NOT_ESTABLISHED`/
-  `BIAS_UNAVAILABLE` handoff gap) are both **MERGED**, ships under
-  `v2-rules-v0.2.0`. `V2-H2`/`V2-H3` are **NOT STARTED**. The audit below
-  identified additional cross-stage correctness gaps between the
-  currently-merged Stage 2–5 implementation and the frozen contracts that
-  must be closed — in code, not just docs — before executable Stage 6 can
-  safely consume Stage 2–5's boundaries.
+- **Stage 6 — Episode State Machine: UNIT 1 OF 5 IN PROGRESS (PR #63,
+  open, NOT merged).** `#63` (`feat(v2): add Stage 6 episode history
+  foundation`) implements unit (1) only — episode identity + the
+  persisted-history read foundation: stream-scoped/`as_of`-bounded
+  `v2_episode_events` reads, immutable creation-identity reconstruction
+  from the persisted `EARLY_SIGNAL` event, `episode_id`/`event_id`
+  revalidation through `V2-H3`'s existing primitives, and §12.5/§12.5a's
+  exact tick-normalized creation grid recorded by value. It takes NO
+  lifecycle decision and adds no schema. **Units (2)–(5) are NOT
+  IMPLEMENTED.**
+- **PRE-STAGE-6 HARDENING: COMPLETE (all MERGED).** `#43` (contract
+  consolidation) and `#44` (Quality/scoring boundary hardening, including
+  its round-2 amendment closing the `V2BiasResult`
+  `NEUTRAL_NOT_ESTABLISHED`/`BIAS_UNAVAILABLE` handoff gap) ship under
+  `v2-rules-v0.2.0`. `V2-H2` landed as sub-PRs `V2-H2a`/`V2-H2d` (`#49`,
+  `#50`), `V2-H2b` (`#58`), `V2-H2c` (`#59`) and `V2-H2e` (`#60`);
+  `V2-H3` merged as `#61`; the final G0 cleanup merged as `#62`. The
+  cross-stage correctness gaps the audit below identified are therefore
+  closed in code, and the convergence gate before Stage 6 is satisfied.
 - **INFRA-D1 — Data Durability & Off-site Backup: IN PROGRESS (parallel
   infrastructure track, not a V2 forecasting stage — see the dedicated
   subsection below).** Runs alongside the pre-Stage-6 hardening sequence;
@@ -1456,7 +1465,8 @@ correctness contract — subject to change if audit findings evolve):**
   the prior plan, renumbered to follow the pre-Stage-6 hardening above):
   (1) episode identity + persisted-history read foundation (consumes
   `#44`, `V2-H2`, and `V2-H3`'s hardened boundaries, including `§3.2`'s provenance tuple
-  and `§2.1a`'s deterministic IDs/one-event-per-T model); (2) candidate
+  and `§2.1a`'s deterministic IDs/one-event-per-T model) — **IN PROGRESS,
+  PR #63 open, not merged**; (2) candidate
   classification/arbitration/`EARLY_SIGNAL` creation/same-slot/cooldown
   eligibility; (3) family confirmation/false-break/candidate-expiry
   transitions; (4) `CONFIRMED`/`WEAKENING`/structural invalidation/horizon
@@ -1472,13 +1482,16 @@ split may be adjusted if reviewability, risk, or further audit findings
 require it. It is not a claim that the exact PR count, numbering, or
 boundaries are immutable.
 
-**Next planned work (after `#43` and `#44` merged):** `INFRA-D1` (actual
-GitHub PR `#45`) — off-site data durability. `V2-H2` has since split into
-sub-PRs as it landed (see the naming note above): `V2-H2a`/`V2-H2d`/`V2-H2b`
-**MERGED** (`V2-H2b` via PR #58); `V2-H2c` (as-of instrument metadata) is
-the PR that introduced this update, not yet merged as of this note;
-`V2-H2e` remains not started. INFRA-D1 does not block any `V2-H2*` sub-PR
-and may land before, after, or interleaved with them.
+**Historical note (written while `V2-H2c` was still open):** `INFRA-D1`
+(actual GitHub PR `#45`) — off-site data durability. `V2-H2` split into
+sub-PRs as it landed (see the naming note above): `V2-H2a`/`V2-H2d`/
+`V2-H2b` **MERGED** (`V2-H2b` via PR #58); `V2-H2c` was the PR that
+introduced that update. INFRA-D1 did not block any `V2-H2*` sub-PR.
+
+**Current position:** the pre-Stage-6 sequence below is fully merged
+(`V2-H2c` #59, `V2-H2e` #60, `V2-H3` #61, G0 final cleanup #62), and
+**Stage 6 unit (1) of (5) is in progress as PR #63** (episode history
+foundation, open, not merged). Units (2)–(5) are not started.
 
 Conceptual planning order going forward (logical labels, not a claim about
 future GitHub PR numbers — those are assigned only when each PR is
