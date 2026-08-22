@@ -257,13 +257,22 @@ class V2VersionDrainStatusReader(Protocol):
         carry different `decision_code_version` values. Whether such an
         episode counts toward OLD's population by its creation event, its
         latest event, or not at all is not frozen.
-      - **`active_cooldown_count`'s granularity is undefined.** §12.8 scopes
-        cooldown to the `slot`, not the episode, so N terminal episodes in
-        one slot are ONE active cooldown, not N. Counting per-episode would
-        overstate OLD's population; nothing freezes which the count means.
+      - **`active_cooldown_count` requires per-slot aggregation this unit
+        does not build.** The granularity itself is NOT undefined — §12.8 is
+        explicit that "cooldown scope remains the `slot` — `(symbol,
+        market_type, direction, setup_family)`", so the count is DISTINCT
+        SLOTS still inside a cooldown window, never one per terminal
+        episode. What is missing is the machinery: computing it means
+        grouping every terminal episode in the stream by slot, taking each
+        slot's MOST RECENT terminal episode and its `T_terminal` (§13.4 step
+        3b), and comparing against `as_of`. That is exactly the per-slot
+        terminal/cooldown aggregation Stage 6 Unit 2 builds for creation
+        eligibility, and Unit 1 is a single-episode read foundation with no
+        cross-episode aggregation surface at all.
 
-    Both are genuine contract gaps, not implementation convenience, and
-    both change the DRAIN decision rather than merely its reported numbers.
+    The first is a genuine contract gap; the second is a genuine missing
+    dependency. Both change the DRAIN decision rather than merely its
+    reported numbers.
     A deliberately WRONG placeholder (notably `non_terminal = count(latest
     state non-terminal)` with `active_cooldowns = 0`, which would let a
     switch ACTIVATE while a real same-slot cooldown is still running) is

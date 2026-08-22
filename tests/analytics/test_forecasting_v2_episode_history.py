@@ -24,8 +24,9 @@ from analytics.forecasting_v2.episode_history import (
     CREATION_IDENTITY_TICK_SIZE, HISTORY_BEFORE_T, HISTORY_THROUGH_T,
     NON_TERMINAL_EPISODE_STATES, TERMINAL_EPISODE_STATES,
     V2EpisodeHistoryCorruptionError, V2EpisodeHistoryError,
+    V2EpisodeCreationIdentity, V2EpisodeHistory, V2PersistedEpisodeEvent,
     build_compression_breakout_anchor, build_confirmed_breakout_anchor,
-    build_trend_pullback_anchor, normalize_price_to_tick,
+    build_trend_pullback_anchor, canonical_decimal_text, normalize_price_to_tick,
     reconstruct_episode_history,
 )
 from analytics.forecasting_v2.event_factory import build_v2_episode_event
@@ -45,6 +46,11 @@ RUN_ID = "v2-shadow-live"
 
 def _t(n: int) -> datetime:
     return T0 + timedelta(minutes=5 * n)
+
+
+def _q(n: int) -> datetime:
+    """A legal 15m bucket START (family anchors live on the 15m grid)."""
+    return T0 + timedelta(minutes=15 * n)
 
 
 def _provenance(*, run_kind=LIVE, run_id=RUN_ID, **over) -> V2EventProvenance:
@@ -250,18 +256,31 @@ def test_event_id_must_reproduce_from_episode_id_and_boundary():
         _reconstruct(rows)
 
 
-def test_missing_creation_event_is_corruption_not_absence():
-    """A history that exists but has no EARLY_SIGNAL cannot yield
-    `t_create`, so it must fail loudly rather than return None."""
+def test_oldest_event_must_be_early_signal():
+    """RT-63-01: creation is identified by POSITION (the oldest event),
+    which must be EARLY_SIGNAL -- an episode cannot have persisted history
+    before its own creation, so t_create would be unrecoverable."""
     rows = [make_row(decision_boundary=_t(1), episode_state=CONFIRMED)]
-    with pytest.raises(V2EpisodeHistoryCorruptionError, match="no EARLY_SIGNAL"):
+    with pytest.raises(V2EpisodeHistoryCorruptionError, match="oldest persisted event"):
         _reconstruct(rows)
 
 
-def test_two_creation_events_is_corruption():
-    rows = [make_row(), make_row(decision_boundary=_t(1), episode_state=EARLY_SIGNAL)]
-    with pytest.raises(V2EpisodeHistoryCorruptionError, match="EARLY_SIGNAL events"):
-        _reconstruct(rows)
+def test_multiple_early_signal_events_are_legal_history():
+    """RT-63-01: §12.2a explicitly allows a TREND_PULLBACK episode, WHILE
+    STILL EARLY_SIGNAL, to record further material pre-confirmation updates
+    as "a **new**, immutable history event". Such an episode legally has
+    SEVERAL EARLY_SIGNAL events; it is still created exactly once."""
+    rows = [
+        make_row(decision_boundary=T0, episode_state=EARLY_SIGNAL),
+        make_row(decision_boundary=_t(1), episode_state=EARLY_SIGNAL),
+        make_row(decision_boundary=_t(2), episode_state=EARLY_SIGNAL),
+        make_row(decision_boundary=_t(3), episode_state=CONFIRMED),
+    ]
+    history = _reconstruct(rows)
+    assert len(history.events) == 4
+    assert history.creation_identity.t_create == T0
+    assert history.creation_event.decision_boundary == T0
+    assert history.current_state == CONFIRMED
 
 
 # ============================================================================
@@ -286,7 +305,7 @@ def test_structural_anchor_drift_mid_history_is_corruption():
     """§12.2: a later observed candidate anchor never rewrites creation
     identity -- it belongs in decision_snapshot/event_payload."""
     rows = [make_row(), make_row(decision_boundary=_t(1), episode_state=CONFIRMED)]
-    rows[1]["structural_anchor"] = dict(build_trend_pullback_anchor(bucket_ts=_t(9)))
+    rows[1]["structural_anchor"] = dict(build_trend_pullback_anchor(bucket_ts=_q(9)))
     with pytest.raises(V2EpisodeHistoryCorruptionError, match="structural_anchor"):
         _reconstruct(rows)
 
@@ -319,7 +338,7 @@ def test_foreign_execution_stream_row_is_corruption():
 
 def test_foreign_episode_row_is_corruption():
     rows = [make_row(), make_row(decision_boundary=_t(1), episode_state=CONFIRMED,
-                                 structural_anchor=build_trend_pullback_anchor(bucket_ts=_t(7)),
+                                 structural_anchor=build_trend_pullback_anchor(bucket_ts=_q(7)),
                                  t_create=T0)]
     with pytest.raises(V2EpisodeHistoryCorruptionError, match="episode leak"):
         _reconstruct(rows, episode_id=rows[0]["episode_id"])
@@ -369,7 +388,11 @@ def test_descending_rows_are_corruption():
 # ============================================================================
 @pytest.mark.parametrize("terminal", TERMINAL_EPISODE_STATES)
 def test_terminal_boundary_is_the_terminal_events_own_boundary(terminal):
-    rows = [make_row(), make_row(decision_boundary=_t(4), episode_state=terminal)]
+    # COMPLETED is only reachable from CONFIRMED/WEAKENING (§13.2), so the
+    # vector walks a legal path rather than an impossible direct edge.
+    rows = [make_row(),
+            make_row(decision_boundary=_t(1), episode_state=CONFIRMED),
+            make_row(decision_boundary=_t(4), episode_state=terminal)]
     history = _reconstruct(rows)
     assert history.is_terminal is True
     assert history.terminal_boundary == _t(4)      # §12.8's T_terminal, raw fact only
@@ -377,8 +400,14 @@ def test_terminal_boundary_is_the_terminal_events_own_boundary(terminal):
 
 @pytest.mark.parametrize("state", NON_TERMINAL_EPISODE_STATES)
 def test_non_terminal_states_report_no_terminal_boundary(state):
-    rows = [make_row()] if state == EARLY_SIGNAL else [
-        make_row(), make_row(decision_boundary=_t(1), episode_state=state)]
+    if state == EARLY_SIGNAL:
+        rows = [make_row()]
+    elif state == CONFIRMED:
+        rows = [make_row(), make_row(decision_boundary=_t(1), episode_state=CONFIRMED)]
+    else:   # WEAKENING is reachable only from CONFIRMED (§13.2)
+        rows = [make_row(),
+                make_row(decision_boundary=_t(1), episode_state=CONFIRMED),
+                make_row(decision_boundary=_t(2), episode_state=state)]
     history = _reconstruct(rows)
     assert history.is_terminal is False
     assert history.terminal_boundary is None
@@ -568,12 +597,335 @@ def test_only_the_canonical_factory_constructs_v2_episode_event():
                 continue
             tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
             for node in ast.walk(tree):
-                if (isinstance(node, ast.Call)
-                        and isinstance(node.func, ast.Name)
-                        and node.func.id == "V2EpisodeEvent"):
+                if not isinstance(node, ast.Call):
+                    continue
+                func = node.func
+                # BOTH spellings: the bare imported name `V2EpisodeEvent(...)`
+                # AND the attribute form `events.V2EpisodeEvent(...)` / any
+                # `<module>.V2EpisodeEvent(...)`, which a name-only scan would
+                # silently miss (CodeRabbit finding).
+                called = (
+                    func.id if isinstance(func, ast.Name)
+                    else func.attr if isinstance(func, ast.Attribute)
+                    else None)
+                if called == "V2EpisodeEvent":
                     offenders.append(f"{path.relative_to(repo_root)}:{node.lineno}")
 
     assert offenders == [], (
         "V2EpisodeEvent must only ever be constructed by "
         "analytics/forecasting_v2/event_factory.py::build_v2_episode_event(); "
         f"direct construction found at: {offenders}")
+
+
+# ============================================================================
+# 15. RT-63-02 -- §13.2 persisted state SEQUENCE integrity
+# ============================================================================
+def _seq(*states):
+    """A history walking the given states at consecutive 5m boundaries."""
+    return [make_row(decision_boundary=_t(i), episode_state=s) for i, s in enumerate(states)]
+
+
+def test_terminal_resurrection_is_rejected():
+    """§13.2 gives terminal states no outgoing edges, so an episode's
+    history ends there."""
+    with pytest.raises(V2EpisodeHistoryCorruptionError, match="terminal"):
+        _reconstruct(_seq(EARLY_SIGNAL, CONFIRMED, INVALIDATED, CONFIRMED))
+
+
+def test_any_event_after_a_terminal_event_is_rejected():
+    with pytest.raises(V2EpisodeHistoryCorruptionError, match="AFTER it reached the terminal"):
+        _reconstruct(_seq(EARLY_SIGNAL, CONFIRMED, COMPLETED, WEAKENING))
+
+
+def test_same_state_event_after_terminal_is_also_rejected():
+    """Fail-closed: nothing in the frozen contract permits a post-terminal
+    observation, not even a same-state one."""
+    with pytest.raises(V2EpisodeHistoryCorruptionError, match="AFTER it reached the terminal"):
+        _reconstruct(_seq(EARLY_SIGNAL, CONFIRMED, EXPIRED, EXPIRED))
+
+
+@pytest.mark.parametrize(("previous", "illegal"), [
+    (EARLY_SIGNAL, WEAKENING),    # §13.2: EARLY_SIGNAL never goes straight to WEAKENING
+    (EARLY_SIGNAL, COMPLETED),    # ... nor straight to COMPLETED
+])
+def test_illegal_state_changing_edge_is_rejected(previous, illegal):
+    with pytest.raises(V2EpisodeHistoryCorruptionError, match="does not allow"):
+        _reconstruct(_seq(previous, illegal))
+
+
+@pytest.mark.parametrize("states", [
+    (EARLY_SIGNAL, CONFIRMED),
+    (EARLY_SIGNAL, INVALIDATED),
+    (EARLY_SIGNAL, EXPIRED),
+    (EARLY_SIGNAL, CONFIRMED, WEAKENING, CONFIRMED),        # §13.2 recovery
+    (EARLY_SIGNAL, CONFIRMED, WEAKENING, COMPLETED),
+    (EARLY_SIGNAL, EARLY_SIGNAL, CONFIRMED, INVALIDATED),   # §12.2a same-state update
+])
+def test_legal_state_sequences_are_accepted(states):
+    history = _reconstruct(_seq(*states))
+    assert history.current_state == states[-1]
+    assert history.creation_identity.t_create == T0
+
+
+def test_same_state_confirmed_event_is_not_a_transition():
+    """A same-state event is a NEW event that leaves the episode where it
+    was -- never a self-edge the §13.2 graph must draw."""
+    history = _reconstruct(_seq(EARLY_SIGNAL, CONFIRMED, CONFIRMED))
+    assert history.current_state == CONFIRMED
+    assert len(history.events) == 3
+
+
+# ============================================================================
+# 16. RT-63-03/off-grid boundaries
+# ============================================================================
+@pytest.mark.parametrize("bad_as_of", [
+    datetime(2026, 8, 20, 12, 3, tzinfo=UTC),                  # not on the 5m grid
+    datetime(2026, 8, 20, 12, 10, 1, tzinfo=UTC),               # stray second
+    datetime(2026, 8, 20, 12, 10, 0, 500000, tzinfo=UTC),       # stray microsecond
+])
+@pytest.mark.parametrize("mode", [HISTORY_BEFORE_T, HISTORY_THROUGH_T])
+def test_off_grid_as_of_is_rejected_in_both_modes(bad_as_of, mode):
+    with pytest.raises(V2EpisodeHistoryError, match="5m decision boundary"):
+        reconstruct_episode_history(
+            (), run_kind=LIVE, run_id=RUN_ID, episode_id="c" * 64,
+            as_of=bad_as_of, boundary_mode=mode)
+
+
+@pytest.mark.parametrize("mode", [HISTORY_BEFORE_T, HISTORY_THROUGH_T])
+def test_legal_as_of_is_accepted_in_both_modes(mode):
+    assert reconstruct_episode_history(
+        (), run_kind=LIVE, run_id=RUN_ID, episode_id="c" * 64,
+        as_of=datetime(2026, 8, 20, 12, 10, tzinfo=UTC), boundary_mode=mode) is None
+
+
+def test_off_grid_later_persisted_event_is_corruption_not_an_identity_error():
+    """A corrupt persisted boundary must surface inside THIS module's error
+    hierarchy, never as a foreign V2EpisodeIdentityError escaping from
+    compute_event_id()."""
+    rows = [make_row(), make_row(decision_boundary=_t(1), episode_state=CONFIRMED)]
+    rows[1]["decision_boundary"] = T0 + timedelta(minutes=7)
+    with pytest.raises(V2EpisodeHistoryCorruptionError, match="5m decision boundary"):
+        _reconstruct(rows)
+
+
+def test_off_grid_creation_boundary_is_exactly_the_corruption_subclass():
+    rows = [make_row()]
+    rows[0]["decision_boundary"] = T0 + timedelta(minutes=2)
+    with pytest.raises(V2EpisodeHistoryCorruptionError):
+        _reconstruct(rows, episode_id=rows[0]["episode_id"])
+
+
+# ============================================================================
+# 17. RT-63-04 -- family anchor grids
+# ============================================================================
+@pytest.mark.parametrize("builder", [
+    build_trend_pullback_anchor, build_compression_breakout_anchor])
+@pytest.mark.parametrize("minutes", [7, 10, 5, 1])
+def test_15m_family_anchors_reject_off_grid_buckets(builder, minutes):
+    with pytest.raises(V2EpisodeHistoryError, match="15m bucket"):
+        builder(bucket_ts=T0 + timedelta(minutes=minutes))
+
+
+@pytest.mark.parametrize("minutes", [0, 15, 30, 45])
+def test_15m_family_anchors_accept_real_grid_starts(minutes):
+    ts = T0 + timedelta(minutes=minutes)
+    for builder in (build_trend_pullback_anchor, build_compression_breakout_anchor):
+        assert builder(bucket_ts=ts)[ANCHOR_BUCKET_TS] == ts.isoformat()
+
+
+@pytest.mark.parametrize("minutes", [15, 30, 7, 45])
+def test_confirmed_breakout_anchor_rejects_non_1h_buckets(minutes):
+    with pytest.raises(V2EpisodeHistoryError, match="1h bucket"):
+        build_confirmed_breakout_anchor(
+            level_anchor_bucket=T0 + timedelta(minutes=minutes),
+            raw_level_price=100.0, creation_identity_tick_size=0.1)
+
+
+@pytest.mark.parametrize("hours", [0, 1, 5])
+def test_confirmed_breakout_anchor_accepts_real_1h_starts(hours):
+    ts = T0 + timedelta(hours=hours)
+    anchor = build_confirmed_breakout_anchor(
+        level_anchor_bucket=ts, raw_level_price=100.0, creation_identity_tick_size=0.1)
+    assert anchor[ANCHOR_BUCKET_TS] == ts.isoformat()
+
+
+# ============================================================================
+# 18. RT-63-05 -- canonical Decimal textual identity
+# ============================================================================
+@pytest.mark.parametrize("equivalents", [
+    ["0.1", "0.10", "1E-1", "0.100"],
+    ["100", "100.0", "1E2", "100.00"],
+    ["0.01", "1E-2", "0.010"],
+])
+def test_equivalent_decimals_share_one_canonical_text(equivalents):
+    texts = {canonical_decimal_text(Decimal(v)) for v in equivalents}
+    assert len(texts) == 1, f"{equivalents} -> {texts}"
+
+
+def test_canonical_text_is_plain_notation_never_scientific():
+    for value in ("1E2", "1E+10", "1E-3"):
+        assert "E" not in canonical_decimal_text(Decimal(value)).upper()
+
+
+def test_equivalent_tick_representations_produce_identical_anchor_and_episode_id():
+    """The load-bearing consequence: `structural_anchor` feeds
+    `compute_episode_id()`, so formatting alone must never fork identity."""
+    anchors = [
+        build_confirmed_breakout_anchor(
+            level_anchor_bucket=T0, raw_level_price="66200.04",
+            creation_identity_tick_size=Decimal(tick))
+        for tick in ("0.1", "0.10", "1E-1")
+    ]
+    assert all(dict(a) == dict(anchors[0]) for a in anchors)
+
+    episode_ids = {
+        make_row(setup_family=CONFIRMED_BREAKOUT, structural_anchor=a)["episode_id"]
+        for a in anchors
+    }
+    assert len(episode_ids) == 1
+
+
+# ============================================================================
+# 19. persisted CONFIRMED_BREAKOUT anchor type/coherence integrity
+# ============================================================================
+CB_ANCHOR = build_confirmed_breakout_anchor(
+    level_anchor_bucket=T0, raw_level_price="66200.04", creation_identity_tick_size="0.1")
+
+
+def _cb_rows(**anchor_over):
+    anchor = dict(CB_ANCHOR)
+    anchor.update(anchor_over)
+    rows = [make_row(setup_family=CONFIRMED_BREAKOUT, structural_anchor=CB_ANCHOR)]
+    rows[0]["structural_anchor"] = anchor
+    return rows
+
+
+@pytest.mark.parametrize("key", [CREATION_IDENTITY_TICK_SIZE, ANCHOR_LEVEL_NORMALIZED_PRICE])
+@pytest.mark.parametrize("bad", [0.1, 1, True, None, ["0.1"]])
+def test_persisted_decimal_anchor_fields_reject_non_string(key, bad):
+    with pytest.raises(V2EpisodeHistoryCorruptionError, match="exact decimal string"):
+        _reconstruct(_cb_rows(**{key: bad}))
+
+
+@pytest.mark.parametrize("bad", [True, False, "662000", 662000.0, None])
+def test_persisted_tick_index_rejects_bool_and_non_int(bad):
+    with pytest.raises(V2EpisodeHistoryCorruptionError, match="exact JSON integer"):
+        _reconstruct(_cb_rows(**{ANCHOR_LEVEL_TICK_INDEX: bad}))
+
+
+@pytest.mark.parametrize("bad", ["not-a-decimal", "", "NaN", "Infinity", "-0.1", "0"])
+def test_malformed_persisted_decimal_strings_are_corruption(bad):
+    with pytest.raises(V2EpisodeHistoryCorruptionError):
+        _reconstruct(_cb_rows(**{CREATION_IDENTITY_TICK_SIZE: bad}))
+
+
+def test_incoherent_persisted_tick_grid_is_corruption():
+    """normalized must equal tick_index * tick (§12.5)."""
+    with pytest.raises(V2EpisodeHistoryCorruptionError, match="incoherent"):
+        _reconstruct(_cb_rows(**{ANCHOR_LEVEL_NORMALIZED_PRICE: "99999.9"}))
+
+
+def test_confirmed_breakout_missing_creation_tick_grid_is_corruption():
+    anchor = {ANCHOR_BUCKET_TS: T0.isoformat()}
+    rows = [make_row(setup_family=CONFIRMED_BREAKOUT, structural_anchor=CB_ANCHOR)]
+    rows[0]["structural_anchor"] = anchor
+    with pytest.raises(V2EpisodeHistoryCorruptionError, match="missing required creation"):
+        _reconstruct(rows)
+
+
+def test_non_confirmed_breakout_family_carrying_tick_fields_is_corruption():
+    """`structural_anchor` IS the semantic identity -- a bucket-only family
+    must not smuggle extra identity fields into it (later observations
+    belong in decision_snapshot/event_payload)."""
+    rows = [make_row()]
+    rows[0]["structural_anchor"] = dict(CB_ANCHOR)
+    with pytest.raises(V2EpisodeHistoryCorruptionError):
+        _reconstruct(rows, episode_id=rows[0]["episode_id"])
+
+
+# ============================================================================
+# 20. decimal-precision failures stay inside the domain error hierarchy
+# ============================================================================
+@pytest.mark.parametrize(("price", "tick"), [
+    ("1E+1000000", "1E-1000000"),   # overflow
+    ("1E-1000000", "1E+1000000"),   # underflow -> would round to the zero tick
+])
+def test_extreme_precision_normalization_stays_in_the_domain_error_hierarchy(price, tick):
+    """An extreme but syntactically valid ratio can exceed the decimal
+    context's precision/exponent range; it must never leak a raw
+    decimal.DecimalException, and must never silently produce a degenerate
+    zero-priced identity."""
+    with pytest.raises(V2EpisodeHistoryError):
+        normalize_price_to_tick(Decimal(price), Decimal(tick))
+
+
+def test_price_rounding_down_to_the_zero_tick_is_rejected():
+    """A positive structural level can never normalize to a zero price."""
+    with pytest.raises(V2EpisodeHistoryError, match="normalized price of zero"):
+        normalize_price_to_tick(0.04, 0.1)
+
+
+# ============================================================================
+# 21. RT-63-06 -- non-finite floats rejected on the READ path
+# ============================================================================
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])
+@pytest.mark.parametrize("column", ["decision_snapshot", "event_payload"])
+def test_non_finite_floats_in_persisted_json_are_rejected(bad, column):
+    rows = [make_row()]
+    rows[0][column] = {"nested": {"v": bad}}
+    with pytest.raises(V2EpisodeHistoryError, match="non-finite"):
+        _reconstruct(rows, episode_id=rows[0]["episode_id"])
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])
+def test_non_finite_floats_in_structural_anchor_are_rejected(bad):
+    rows = [make_row()]
+    rows[0]["structural_anchor"] = {ANCHOR_BUCKET_TS: T0.isoformat(), "junk": bad}
+    with pytest.raises(V2EpisodeHistoryError, match="non-finite"):
+        _reconstruct(rows, episode_id=rows[0]["episode_id"])
+
+
+# ============================================================================
+# 22. RT-63-07 -- public value objects uphold deep immutability themselves
+# ============================================================================
+def test_directly_constructed_creation_identity_is_deeply_immutable():
+    source = {"nested": {"a": [1, 2]}}
+    identity = V2EpisodeCreationIdentity(
+        episode_id="a" * 64, t_create=T0, model_family=MODEL_FAMILY,
+        rules_version="v2-rules-v0.1.0", calculation_version=H16,
+        symbol="BTCUSDT", market_type="perp", direction=LONG,
+        setup_family=TREND_PULLBACK, structural_anchor=source)
+    source["nested"]["a"].append(3)
+    source["nested"]["b"] = "added"
+
+    assert identity.structural_anchor["nested"]["a"] == (1, 2)
+    assert "b" not in identity.structural_anchor["nested"]
+    with pytest.raises(TypeError):
+        identity.structural_anchor["nested"]["a"] = "tampered"
+
+
+def test_directly_constructed_persisted_event_is_deeply_immutable():
+    source = {"nested": {"a": 1}}
+    row = make_row()
+    event = V2PersistedEpisodeEvent(
+        run_kind=LIVE, run_id=RUN_ID, event_id=row["event_id"],
+        episode_id=row["episode_id"], model_family=MODEL_FAMILY,
+        rules_version="v2-rules-v0.1.0", symbol="BTCUSDT", market_type="perp",
+        direction=LONG, setup_family=TREND_PULLBACK,
+        structural_anchor=dict(TP_ANCHOR), episode_state=EARLY_SIGNAL,
+        decision_boundary=T0, feature_schema_version=1, calculation_version=H16,
+        config_hash=H64, config_version="2.1.0", code_version="c",
+        decision_code_version="d", decision_snapshot=source, event_payload={})
+    source["nested"]["a"] = 999
+
+    assert event.decision_snapshot["nested"]["a"] == 1
+    with pytest.raises(TypeError):
+        event.decision_snapshot["nested"]["a"] = 7
+
+
+def test_history_rejects_a_non_event_sequence():
+    with pytest.raises(V2EpisodeHistoryError):
+        V2EpisodeHistory(
+            run_kind=LIVE, run_id=RUN_ID, episode_id="a" * 64, as_of=T0,
+            boundary_mode=HISTORY_THROUGH_T, events=("not-an-event",),
+            creation_identity=_reconstruct([make_row()]).creation_identity)

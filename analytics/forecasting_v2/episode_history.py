@@ -50,11 +50,30 @@ based identity path.
 `t_create` column — deliberately, since `event_factory.py` requires
 `t_create` as an INPUT and folds it into `episode_id`. It is recovered from
 history exactly as the contract defines it: `t_create` IS the
-`decision_boundary` of the episode's own `EARLY_SIGNAL` creation event
+`decision_boundary` of the episode's own creation event
 (`event_factory.py`: "For the episode's own creation event, `t_create ==
-decision_boundary`"). That is why a creation event must be present and
-unambiguous for a history to be reconstructable at all, and why its absence
-is an explicit, named failure rather than a silent `None`.
+decision_boundary`").
+
+**The creation event is identified by POSITION, never by counting states**
+(red-team finding RT-63-01). It is the OLDEST persisted event of the
+episode, and it must be `EARLY_SIGNAL` — an episode cannot have history
+before its own creation, so an older non-`EARLY_SIGNAL` event means
+`t_create` is unrecoverable and the history is corrupt. It is emphatically
+NOT "the unique event whose state is `EARLY_SIGNAL`": §12.2a explicitly
+allows a `TREND_PULLBACK` episode, WHILE STILL `EARLY_SIGNAL`, to record
+each further material pre-confirmation update as "a **new**, immutable
+history event", so a perfectly legal history can contain SEVERAL
+`EARLY_SIGNAL` events. The episode is still created exactly once; "created
+once" is a statement about position, not about how many events share a
+state.
+
+**Persisted state SEQUENCES are validated against §13.2** (RT-63-02).
+Unit 1 takes no transition decision — it never asks whether the market
+evidence justified a transition (Stage 6 units 3-5) — but it does reject a
+recorded sequence that could not have happened: nothing may be persisted
+after a terminal event (§13.2 gives `INVALIDATED`/`EXPIRED`/`COMPLETED` no
+outgoing edges), and every state CHANGE must be one of §13.2's allowed
+edges. A same-state event is not a change and is always allowed.
 
 **Integrity revalidation, and why it lives HERE (not in the SQL reader).**
 A persisted row existing is not proof it is coherent. Because every event of
@@ -112,6 +131,7 @@ Pure only: no DB, network, filesystem, clock, `uuid`, or `random` access.
 """
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping as _AbcMapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -126,8 +146,8 @@ from analytics.forecasting_v2._validation import (
 from analytics.forecasting_v2.alignment import V2AlignmentError, selected_bucket
 from analytics.forecasting_v2.episode_identity import compute_episode_id, compute_event_id
 from analytics.forecasting_v2.events import (
-    COMPLETED, DIRECTIONS, EARLY_SIGNAL, EPISODE_STATES, EXPIRED, INVALIDATED,
-    RUN_KINDS, SETUP_FAMILIES,
+    COMPLETED, CONFIRMED_BREAKOUT, DIRECTIONS, EARLY_SIGNAL, EPISODE_STATES,
+    EXPIRED, INVALIDATED, RUN_KINDS, SETUP_FAMILIES,
 )
 from common.v2_config import MODEL_FAMILY, validate_rules_version
 
@@ -137,7 +157,7 @@ __all__ = [
     "TERMINAL_EPISODE_STATES", "NON_TERMINAL_EPISODE_STATES",
     "ANCHOR_BUCKET_TS", "ANCHOR_LEVEL_TICK_INDEX", "ANCHOR_LEVEL_NORMALIZED_PRICE",
     "CREATION_IDENTITY_TICK_SIZE",
-    "normalize_price_to_tick",
+    "normalize_price_to_tick", "canonical_decimal_text",
     "build_trend_pullback_anchor", "build_compression_breakout_anchor",
     "build_confirmed_breakout_anchor",
     "V2PersistedEpisodeEvent", "V2EpisodeCreationIdentity", "V2EpisodeHistory",
@@ -241,15 +261,42 @@ def normalize_price_to_tick(raw_price: Any, tick_size: Any) -> "tuple[int, Decim
     Both inputs are always positive (§12.5) and are validated as such."""
     price_decimal = _to_decimal(raw_price, "raw_price")
     tick_decimal = _to_decimal(tick_size, "tick_size")
-    tick_index = int(
-        (price_decimal / tick_decimal).quantize(Decimal(1), rounding=ROUND_HALF_UP))
-    return tick_index, tick_index * tick_decimal
+    try:
+        tick_index = int(
+            (price_decimal / tick_decimal).quantize(Decimal(1), rounding=ROUND_HALF_UP))
+        normalized = tick_index * tick_decimal
+    except (ArithmeticError, ValueError) as exc:
+        # An extreme but syntactically valid ratio can exceed the active
+        # decimal context's precision/exponent range. `ArithmeticError` is
+        # the common base of BOTH `decimal.DecimalException` (InvalidOperation,
+        # Overflow, Underflow, ...) and the builtin `OverflowError`, so this
+        # catches the whole family rather than an enumerated subset that a
+        # different extreme input could slip past. That is an
+        # out-of-supported-domain input, not a contract change: surface it
+        # inside this module's own error hierarchy (chained), never as a raw
+        # decimal exception.
+        raise V2EpisodeHistoryError(
+            f"tick normalization of raw_price={raw_price!r} against tick_size={tick_size!r} "
+            f"exceeds exact decimal evaluation: {type(exc).__name__}: {exc}") from exc
+    if tick_index < 1:
+        # §12.5's inputs "are always positive", so the normalized result is a
+        # positive PRICE too. A ratio small enough to round down to the zero
+        # tick (raw_price < tick_size/2, or an extreme underflowing pair)
+        # would mint a degenerate zero-priced identity; reject it at the
+        # source rather than let it reach structural_anchor/episode_id.
+        raise V2EpisodeHistoryError(
+            f"tick normalization of raw_price={raw_price!r} against tick_size={tick_size!r} "
+            f"yields tick_index={tick_index}, i.e. a normalized price of zero -- a structural "
+            "level price is always strictly positive (§12.5)")
+    return tick_index, normalized
 
 
 # ============================================================================
 # canonical per-family `structural_anchor` construction (§12.1)
 # ============================================================================
-def _validate_anchor_bucket(value: Any, name: str) -> datetime:
+def _validate_utc(value: Any, name: str) -> datetime:
+    """UTC-awareness only. Never sufficient on its own for a decision
+    boundary or a family anchor — see the two grid validators below."""
     if not isinstance(value, datetime):
         raise V2EpisodeHistoryError(f"{name} must be a datetime, got {type(value).__name__}")
     if value.tzinfo is None or value.utcoffset() is None:
@@ -260,6 +307,103 @@ def _validate_anchor_bucket(value: Any, name: str) -> datetime:
     return value
 
 
+def _validate_decision_boundary_T(
+    value: Any, name: str, *, error_cls: type = V2EpisodeHistoryError,
+) -> datetime:
+    """A legal V2 5m DECISION BOUNDARY `T`, not merely a UTC instant.
+
+    `as_of` and every persisted event's `decision_boundary` are logical
+    Stage 6 decision boundaries, so an arbitrary wall-clock UTC value
+    (`12:03:00`, `12:10:01`, `12:10:00.5`) is malformed input, never a
+    usable window edge. Delegated to `alignment.selected_bucket("5m", ...)`
+    — the same canonical source of truth `episode_identity.py`/
+    `decision_provenance.py`/`version_switch.py` already use — never a
+    locally-duplicated minute arithmetic reimplementation.
+
+    `error_cls` lets one call site raise the corruption subclass instead:
+    an off-grid boundary supplied BY A CALLER is malformed input, while an
+    off-grid boundary read back OUT OF STORAGE is impossible history."""
+    v = _validate_utc(value, name) if error_cls is V2EpisodeHistoryError else value
+    if error_cls is not V2EpisodeHistoryError:
+        if not isinstance(v, datetime):
+            raise error_cls(f"{name} must be a datetime, got {type(v).__name__}")
+        if v.tzinfo is None or v.utcoffset() is None or v.utcoffset() != timedelta(0):
+            raise error_cls(f"{name} must be a UTC-aware datetime, got {v!r}")
+    try:
+        selected_bucket("5m", v)
+    except V2AlignmentError as exc:
+        raise error_cls(f"{name} is not a legal V2 5m decision boundary: {exc}") from exc
+    except Exception as exc:  # noqa: BLE001 - malformed/adversarial tzinfo, never leaked raw
+        raise error_cls(
+            f"{name} failed decision-boundary validation: {type(exc).__name__}: {exc}") from exc
+    return v
+
+
+_TIMEFRAME_DELTAS = MappingProxyType({
+    "15m": timedelta(minutes=15),
+    "1h": timedelta(hours=1),
+})
+
+
+def _validate_bucket_start(value: Any, name: str, *, timeframe: str) -> datetime:
+    """A legal EXACT bucket START on the canonical V2 `timeframe` grid.
+
+    Reuses `alignment.selected_bucket()`'s own round-trip technique
+    verbatim — `value` is a legal `<tf>` bucket start iff selecting the
+    `<tf>` bucket for `T = value + <tf>` round-trips back to `value` —
+    exactly as `compression_breakout.py::_validate_15m_bucket_start` and
+    `confirmed_breakout.py::_validate_1h_bucket_start` already do for the
+    identical question. No second grid convention, no local minute
+    arithmetic."""
+    v = _validate_utc(value, name)
+    if v.second or v.microsecond:
+        raise V2EpisodeHistoryError(
+            f"{name} must be a whole minute, got {v!r}")
+    try:
+        canonical = selected_bucket(timeframe, v + _TIMEFRAME_DELTAS[timeframe])
+    except V2AlignmentError as exc:
+        raise V2EpisodeHistoryError(
+            f"{name} is not a legal {timeframe} bucket start: {exc}") from exc
+    if canonical != v:
+        raise V2EpisodeHistoryError(
+            f"{name}={v.isoformat()!r} is not aligned to the canonical {timeframe} bucket grid "
+            f"(the containing {timeframe} bucket starts at {canonical.isoformat()!r})")
+    return v
+
+
+def canonical_decimal_text(value: Decimal, name: str = "value") -> str:
+    """The ONE canonical plain-decimal textual form of an exact `Decimal`.
+
+    `structural_anchor` participates directly in `compute_episode_id()`, so
+    two economically IDENTICAL creation facts must produce byte-identical
+    text or they would fork the episode's permanent semantic identity for
+    no reason but formatting. `str(Decimal(...))` does not satisfy that:
+    `Decimal("0.1")`, `Decimal("0.10")` and `Decimal("1E-1")` are all
+    numerically equal yet stringify as `'0.1'`, `'0.10'` and `'0.1'`, and
+    `Decimal("1E+2")` stringifies in scientific notation as `'1E+2'`.
+
+    Canonical form: `normalize()` collapses equal values to one exponent,
+    then trailing-zero/scientific artifacts are removed — plain decimal
+    notation, no exponent, no insignificant trailing fractional zeros,
+    deterministic and lossless (no float ever involved). `Decimal("0.1")`,
+    `Decimal("0.10")`, `Decimal("1E-1")` -> `'0.1'`; `Decimal("100")`,
+    `Decimal("100.0")`, `Decimal("1E2")` -> `'100'`."""
+    if not isinstance(value, Decimal):
+        raise V2EpisodeHistoryError(
+            f"{name} must be a Decimal, got {type(value).__name__}")
+    if not value.is_finite():
+        raise V2EpisodeHistoryError(f"{name} must be finite, got {value!r}")
+    normalized = value.normalize()
+    sign, digits, exponent = normalized.as_tuple()
+    if exponent > 0:
+        # normalize() pushes trailing integer zeros into a positive
+        # exponent (Decimal("100") -> 1E+2); re-expand so the canonical
+        # text is always plain notation.
+        normalized = normalized.quantize(Decimal(1))
+    text = format(normalized, "f")
+    return "-0" if text == "-0" and not any(digits) else text
+
+
 def build_trend_pullback_anchor(*, bucket_ts: datetime) -> Mapping:
     """§12.1's `TREND_PULLBACK` anchor: "the `bucket_ts` of the 15m bucket
     establishing `trend_leg_extreme`". The Stage 5 detector exposes that
@@ -268,8 +412,8 @@ def build_trend_pullback_anchor(*, bucket_ts: datetime) -> Mapping:
     `compute_episode_id()` requires a JSON object. This is the canonical
     wrapping of one into the other -- defined once, here, so no Stage 6
     unit invents a second spelling of the same anchor."""
-    return MappingProxyType(
-        {ANCHOR_BUCKET_TS: _validate_anchor_bucket(bucket_ts, "bucket_ts").isoformat()})
+    return MappingProxyType({ANCHOR_BUCKET_TS: _validate_bucket_start(
+        bucket_ts, "bucket_ts", timeframe="15m").isoformat()})
 
 
 def build_compression_breakout_anchor(*, bucket_ts: datetime) -> Mapping:
@@ -280,8 +424,8 @@ def build_compression_breakout_anchor(*, bucket_ts: datetime) -> Mapping:
     function rather than one shared "bucket anchor" helper, so a future
     per-family divergence changes one family's builder without silently
     changing the other's."""
-    return MappingProxyType(
-        {ANCHOR_BUCKET_TS: _validate_anchor_bucket(bucket_ts, "bucket_ts").isoformat()})
+    return MappingProxyType({ANCHOR_BUCKET_TS: _validate_bucket_start(
+        bucket_ts, "bucket_ts", timeframe="15m").isoformat()})
 
 
 def build_confirmed_breakout_anchor(
@@ -314,14 +458,16 @@ def build_confirmed_breakout_anchor(
     `normalize_price_to_tick()` can therefore reproduce the identical
     `Decimal` grid from the persisted row alone, with no precision loss and
     no access to current instrument metadata."""
-    bucket = _validate_anchor_bucket(level_anchor_bucket, "level_anchor_bucket")
+    bucket = _validate_bucket_start(level_anchor_bucket, "level_anchor_bucket", timeframe="1h")
     tick_decimal = _to_decimal(creation_identity_tick_size, "creation_identity_tick_size")
     tick_index, normalized = normalize_price_to_tick(raw_level_price, tick_decimal)
     return MappingProxyType({
         ANCHOR_BUCKET_TS: bucket.isoformat(),
         ANCHOR_LEVEL_TICK_INDEX: tick_index,
-        ANCHOR_LEVEL_NORMALIZED_PRICE: str(normalized),
-        CREATION_IDENTITY_TICK_SIZE: str(tick_decimal),
+        ANCHOR_LEVEL_NORMALIZED_PRICE: canonical_decimal_text(
+            normalized, ANCHOR_LEVEL_NORMALIZED_PRICE),
+        CREATION_IDENTITY_TICK_SIZE: canonical_decimal_text(
+            tick_decimal, CREATION_IDENTITY_TICK_SIZE),
     })
 
 
@@ -350,10 +496,20 @@ def _deep_freeze_json(value: Any, name: str) -> Any:
         return MappingProxyType(out)
     if isinstance(value, (list, tuple)):
         return tuple(_deep_freeze_json(v, f"{name}[]") for v in value)
-    if value is None or isinstance(value, (bool, str, int, float)):
+    if value is None or isinstance(value, (bool, str, int)):
+        return value
+    if isinstance(value, float):
+        # Mirrors events.py::_deep_freeze's identical write-side rule: a
+        # non-finite float is not a legal JSON leaf and canonical persistence
+        # can never have written one, so encountering one on the read path is
+        # corrupt storage, never a value to pass through.
+        if not math.isfinite(value):
+            raise V2EpisodeHistoryError(
+                f"{name}: non-finite float is not allowed in persisted JSON "
+                f"(NaN/+Inf/-Inf), got {value!r}")
         return value
     if isinstance(value, datetime):
-        return _validate_anchor_bucket(value, name)
+        return _validate_utc(value, name)
     raise V2EpisodeHistoryError(
         f"{name}: unsupported persisted JSON value of type {type(value).__name__}")
 
@@ -398,6 +554,18 @@ class V2PersistedEpisodeEvent:
     decision_snapshot: Mapping
     event_payload: Mapping
 
+    def __post_init__(self) -> None:
+        # RT-63-07: the deep-immutability guarantee belongs to the TYPE, not
+        # to one particular construction path. `frozen=True` only stops
+        # rebinding the fields themselves; without this, a caller
+        # constructing the dataclass directly could retain a live reference
+        # to the nested dicts it passed in and mutate recorded history
+        # afterwards. Freezing here means EVERY valid instance upholds the
+        # contract its docstring states, however it was built.
+        for field in ("structural_anchor", "decision_snapshot", "event_payload"):
+            object.__setattr__(
+                self, field, _deep_freeze_json(getattr(self, field), field))
+
     @property
     def is_terminal(self) -> bool:
         """Whether the state this event RECORDED is one of §12.8's three
@@ -429,6 +597,11 @@ class V2EpisodeCreationIdentity:
     direction: str
     setup_family: str
     structural_anchor: Mapping
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self, "structural_anchor",
+            _deep_freeze_json(self.structural_anchor, "structural_anchor"))
 
     @property
     def slot(self) -> "tuple[str, str, str, str]":
@@ -482,6 +655,23 @@ class V2EpisodeHistory:
     events: "tuple[V2PersistedEpisodeEvent, ...]"
     creation_identity: V2EpisodeCreationIdentity
 
+    def __post_init__(self) -> None:
+        if isinstance(self.events, (str, bytes, bytearray)) or not isinstance(
+                self.events, Sequence):
+            raise V2EpisodeHistoryError(
+                f"events must be a Sequence of V2PersistedEpisodeEvent, got "
+                f"{type(self.events).__name__}")
+        if not self.events:
+            raise V2EpisodeHistoryError(
+                "a V2EpisodeHistory always has at least its own creation event; an episode "
+                "with no visible history is represented by None, never by an empty history")
+        for index, event in enumerate(self.events):
+            if not isinstance(event, V2PersistedEpisodeEvent):
+                raise V2EpisodeHistoryError(
+                    f"events[{index}] must be a V2PersistedEpisodeEvent, got "
+                    f"{type(event).__name__}")
+        object.__setattr__(self, "events", tuple(self.events))
+
     @property
     def creation_event(self) -> V2PersistedEpisodeEvent:
         """The episode's own `EARLY_SIGNAL` creation event. Always present
@@ -525,10 +715,6 @@ def _validate_boundary_mode(value: Any) -> str:
     return one_of(value, "boundary_mode", HISTORY_BOUNDARY_MODES, V2EpisodeHistoryError)
 
 
-def _validate_utc(value: Any, name: str) -> datetime:
-    return _validate_anchor_bucket(value, name)
-
-
 def _validate_episode_id(value: Any) -> str:
     nonblank(value, "episode_id", V2EpisodeHistoryError)
     if not HEX64.fullmatch(value):
@@ -549,7 +735,7 @@ def validate_episode_history_scope(
     one_of(run_kind, "run_kind", RUN_KINDS, V2EpisodeHistoryError)
     nonblank(run_id, "run_id", V2EpisodeHistoryError)
     _validate_episode_id(episode_id)
-    _validate_utc(as_of, "as_of")
+    _validate_decision_boundary_T(as_of, "as_of")
     _validate_boundary_mode(boundary_mode)
 
 
@@ -633,7 +819,8 @@ def _to_persisted_event(row: Any, *, index: int) -> V2PersistedEpisodeEvent:
         structural_anchor=_require_json_object(
             _row_value(row, "structural_anchor"), "structural_anchor"),
         episode_state=episode_state,
-        decision_boundary=_validate_utc(_row_value(row, "decision_boundary"), "decision_boundary"),
+        decision_boundary=_validate_utc(
+            _row_value(row, "decision_boundary"), "decision_boundary"),
         feature_schema_version=feature_schema_version,
         calculation_version=validate_calculation_version(
             _row_value(row, "calculation_version"), V2EpisodeHistoryError),
@@ -659,19 +846,137 @@ def _require_json_object(value: Any, name: str) -> Mapping:
     return _deep_freeze_json(value, name)
 
 
-def _assert_legal_creation_boundary(t_create: datetime) -> None:
-    """`t_create` must be a legal V2 5m decision boundary, delegated to
-    `alignment.selected_bucket("5m", ...)` — the same canonical check
-    `episode_identity.py` itself performs. A persisted creation event whose
-    boundary is off-grid could never have been produced by
-    `build_v2_episode_event()`, so it is corruption, not merely malformed
-    caller input."""
-    try:
-        selected_bucket("5m", t_create)
-    except V2AlignmentError as exc:
+# §13.2's frozen transition graph, verbatim ("No other edges are allowed").
+# Keys/values are STATE-CHANGING edges only: a same-state event (A -> A) is
+# NOT a lifecycle transition at all, it is a new event that leaves the
+# episode in the state it was already in (§12.2a's pre-confirmation
+# TREND_PULLBACK updates are exactly that), so it is never looked up here.
+# The three terminal states are deliberately ABSENT as keys: §13.2 gives
+# them no outgoing edges, so nothing may be persisted for the episode after
+# one -- the fail-closed reading, since no frozen text permits it.
+_LEGAL_STATE_EDGES = MappingProxyType({
+    EARLY_SIGNAL: frozenset({"CONFIRMED", INVALIDATED, EXPIRED}),
+    "CONFIRMED": frozenset({"WEAKENING", INVALIDATED, COMPLETED, EXPIRED}),
+    "WEAKENING": frozenset({"CONFIRMED", INVALIDATED, COMPLETED, EXPIRED}),
+})
+assert set(_LEGAL_STATE_EDGES) | set(TERMINAL_EPISODE_STATES) == set(EPISODE_STATES)
+
+
+def _assert_legal_state_sequence(
+    events: "tuple[V2PersistedEpisodeEvent, ...]", *, episode_id: str,
+) -> None:
+    """Validate the recorded state SEQUENCE against §13.2's frozen graph.
+
+    This is integrity validation of already-persisted history, NOT a
+    lifecycle decision: it never asks whether the market evidence justified
+    a transition (that is Stage 6 units 3-5), only whether the sequence of
+    states that was actually written down could possibly have happened.
+
+    Two rules:
+      - nothing may be persisted after a TERMINAL event (§13.2 gives
+        `INVALIDATED`/`EXPIRED`/`COMPLETED` no outgoing edges);
+      - every state CHANGE must be one of §13.2's allowed edges. A
+        same-state event is not a change and is always allowed."""
+    for previous, current in zip(events, events[1:]):
+        if previous.is_terminal:
+            raise V2EpisodeHistoryCorruptionError(
+                f"episode {episode_id!r} has an event at "
+                f"{current.decision_boundary.isoformat()!r} persisted AFTER it reached the "
+                f"terminal state {previous.episode_state!r} at "
+                f"{previous.decision_boundary.isoformat()!r} -- §13.2 gives terminal states no "
+                "outgoing transitions, so an episode's history ends there")
+        if current.episode_state == previous.episode_state:
+            continue        # a same-state event is not a transition (§12.2a)
+        allowed = _LEGAL_STATE_EDGES[previous.episode_state]
+        if current.episode_state not in allowed:
+            raise V2EpisodeHistoryCorruptionError(
+                f"episode {episode_id!r} records the transition "
+                f"{previous.episode_state!r} -> {current.episode_state!r} at "
+                f"{current.decision_boundary.isoformat()!r}, which §13.2 does not allow "
+                f"(legal from {previous.episode_state!r}: {sorted(allowed)!r})")
+
+
+def _require_decimal_text(value: Any, *, key: str, episode_id: str) -> Decimal:
+    """One persisted decimal identity field: it MUST be the exact canonical
+    STRING this module's own builders write, never a JSON float (which
+    would be precisely the binary-float artifact §12.5 forbids) and never
+    a bool/int/other type. Parsed back to an exact `Decimal`."""
+    if not isinstance(value, str):
         raise V2EpisodeHistoryCorruptionError(
-            f"persisted creation event's decision_boundary {t_create.isoformat()!r} is not a "
-            f"legal V2 5m decision boundary, so it cannot be a real t_create: {exc}") from exc
+            f"episode {episode_id!r}'s persisted structural_anchor.{key} must be an exact "
+            f"decimal string, got {type(value).__name__}: {value!r} -- a JSON float would be "
+            "the binary-float artifact §12.5 forbids")
+    try:
+        dec = Decimal(value)
+    except (InvalidOperation, ValueError) as exc:
+        raise V2EpisodeHistoryCorruptionError(
+            f"episode {episode_id!r}'s persisted structural_anchor.{key}={value!r} is not a "
+            f"valid decimal: {exc}") from exc
+    if not dec.is_finite() or dec <= 0:
+        raise V2EpisodeHistoryCorruptionError(
+            f"episode {episode_id!r}'s persisted structural_anchor.{key}={value!r} must be a "
+            "finite, strictly positive decimal")
+    return dec
+
+
+def _assert_valid_persisted_anchor(
+    anchor: Mapping, *, setup_family: str, episode_id: str,
+) -> None:
+    """Validate the persisted creation `structural_anchor` against the
+    canonical per-family shape THIS module defines (§12.5a leaves the
+    physical JSON schema to implementation, so Unit 1 owns and therefore
+    must enforce it).
+
+    Validated at RECONSTRUCTION, not lazily on property access, so a
+    malformed persisted grid can never escape as a raw `ValueError` from a
+    property or, worse, be silently coerced into a plausible-looking
+    identity. Every family requires its own `bucket_ts`;
+    `CONFIRMED_BREAKOUT` additionally requires the exact
+    §12.5/§12.5a creation tick grid, and its recorded values must be
+    mutually coherent (`normalized == tick_index * tick`)."""
+    bucket_ts = anchor.get(ANCHOR_BUCKET_TS)
+    if not isinstance(bucket_ts, str):
+        raise V2EpisodeHistoryCorruptionError(
+            f"episode {episode_id!r}'s persisted structural_anchor.{ANCHOR_BUCKET_TS} must be an "
+            f"ISO-8601 string, got {type(bucket_ts).__name__}: {bucket_ts!r}")
+
+    tick_fields = (ANCHOR_LEVEL_TICK_INDEX, ANCHOR_LEVEL_NORMALIZED_PRICE,
+                   CREATION_IDENTITY_TICK_SIZE)
+    if setup_family != CONFIRMED_BREAKOUT:
+        present = [k for k in tick_fields if k in anchor]
+        if present:
+            raise V2EpisodeHistoryCorruptionError(
+                f"episode {episode_id!r} is {setup_family!r} but its persisted "
+                f"structural_anchor carries CONFIRMED_BREAKOUT tick-grid field(s) {present!r} -- "
+                "§12.1 gives this family a bucket-only identity anchor")
+        return
+
+    missing = [k for k in tick_fields if k not in anchor]
+    if missing:
+        raise V2EpisodeHistoryCorruptionError(
+            f"episode {episode_id!r} is CONFIRMED_BREAKOUT but its persisted structural_anchor "
+            f"is missing required creation tick-grid field(s) {missing!r} -- §12.5a requires them "
+            "recorded BY VALUE so restart never re-reads today's instrument metadata")
+
+    tick_index = anchor[ANCHOR_LEVEL_TICK_INDEX]
+    if type(tick_index) is not int:      # bool is an int subclass: reject it
+        raise V2EpisodeHistoryCorruptionError(
+            f"episode {episode_id!r}'s persisted structural_anchor."
+            f"{ANCHOR_LEVEL_TICK_INDEX} must be an exact JSON integer, got "
+            f"{type(tick_index).__name__}: {tick_index!r}")
+
+    tick = _require_decimal_text(
+        anchor[CREATION_IDENTITY_TICK_SIZE], key=CREATION_IDENTITY_TICK_SIZE,
+        episode_id=episode_id)
+    normalized = _require_decimal_text(
+        anchor[ANCHOR_LEVEL_NORMALIZED_PRICE], key=ANCHOR_LEVEL_NORMALIZED_PRICE,
+        episode_id=episode_id)
+    if normalized != tick_index * tick:
+        raise V2EpisodeHistoryCorruptionError(
+            f"episode {episode_id!r}'s persisted creation tick grid is incoherent: "
+            f"{ANCHOR_LEVEL_NORMALIZED_PRICE}={normalized} but "
+            f"{ANCHOR_LEVEL_TICK_INDEX}({tick_index}) * "
+            f"{CREATION_IDENTITY_TICK_SIZE}({tick}) = {tick_index * tick} (§12.5)")
 
 
 def reconstruct_episode_history(
@@ -706,8 +1011,12 @@ def reconstruct_episode_history(
       - any §12.2 creation-identity/semantic field differing between two
         events of the same episode (`decision_code_version` excepted by
         contract — see module docstring);
-      - no `EARLY_SIGNAL` creation event, or more than one;
-      - a creation event that is not the oldest event;
+      - an oldest event whose `episode_state` is not `EARLY_SIGNAL` (an
+        episode cannot have persisted history before its own creation);
+      - a state SEQUENCE contradicting §13.2's frozen transition graph,
+        including any event persisted after a terminal one;
+      - any event whose `decision_boundary` is not a legal V2 5m boundary;
+      - a malformed persisted `CONFIRMED_BREAKOUT` creation tick grid;
       - an `episode_id` that does not reproduce from its own creation facts
         via `compute_episode_id()`;
       - any `event_id` that does not reproduce from `(episode_id,
@@ -775,28 +1084,39 @@ def reconstruct_episode_history(
                 "§12.2 freezes the episode_logical_key anchor at creation; a later observed "
                 "candidate anchor belongs in decision_snapshot/event_payload (§12.3), never here")
 
-    # ---- exactly one unambiguous EARLY_SIGNAL creation event -------------
-    creation_events = [e for e in events if e.episode_state == EARLY_SIGNAL]
-    if not creation_events:
+    # ---- the creation event is the OLDEST event, and it is EARLY_SIGNAL --
+    # Deliberately NOT "the unique event whose state == EARLY_SIGNAL": §12.2a
+    # explicitly allows a TREND_PULLBACK episode, WHILE STILL EARLY_SIGNAL,
+    # to record further material pre-confirmation updates as "a **new**,
+    # immutable history event". Such an episode legally has SEVERAL
+    # EARLY_SIGNAL events. It is created exactly once all the same -- and
+    # creation is identified by POSITION (oldest), not by counting states.
+    if first.episode_state != EARLY_SIGNAL:
         raise V2EpisodeHistoryCorruptionError(
-            f"episode {episode_id!r} has {len(events)} persisted event(s) but no EARLY_SIGNAL "
-            "creation event -- t_create is unrecoverable, so no creation identity can be "
-            "reconstructed (this is corrupt history, NOT an absent episode)")
-    if len(creation_events) > 1:
-        raise V2EpisodeHistoryCorruptionError(
-            f"episode {episode_id!r} has {len(creation_events)} EARLY_SIGNAL events at "
-            f"{[e.decision_boundary.isoformat() for e in creation_events]!r} -- an episode is "
-            "created exactly once (§12.2)")
-    if creation_events[0] is not first:
-        raise V2EpisodeHistoryCorruptionError(
-            f"episode {episode_id!r}'s EARLY_SIGNAL creation event is at "
-            f"{creation_events[0].decision_boundary.isoformat()!r}, after an earlier event at "
-            f"{first.decision_boundary.isoformat()!r} -- creation cannot follow its own history")
+            f"episode {episode_id!r}'s oldest persisted event at "
+            f"{first.decision_boundary.isoformat()!r} is {first.episode_state!r}, not "
+            f"{EARLY_SIGNAL!r} -- an episode cannot have persisted history before its own "
+            "creation, so t_create is unrecoverable (corrupt history, NOT an absent episode)")
+
+    # ---- §13.2 persisted state SEQUENCE integrity ------------------------
+    _assert_legal_state_sequence(events, episode_id=episode_id)
 
     # t_create IS the creation event's own decision boundary (event_factory.py:
     # "For the episode's own creation event, t_create == decision_boundary").
     t_create = first.decision_boundary
-    _assert_legal_creation_boundary(t_create)
+
+    # ---- every persisted boundary must be a legal V2 5m T -----------------
+    # Checked for ALL events, not just creation: an off-grid later boundary
+    # would otherwise reach compute_event_id() and surface as a foreign
+    # V2EpisodeIdentityError, outside this module's documented hierarchy.
+    for event in events:
+        _validate_decision_boundary_T(
+            event.decision_boundary, "persisted decision_boundary",
+            error_cls=V2EpisodeHistoryCorruptionError)
+
+    # ---- §12.5/§12.5a persisted creation tick grid ------------------------
+    _assert_valid_persisted_anchor(
+        first.structural_anchor, setup_family=first.setup_family, episode_id=episode_id)
 
     # ---- deterministic-identity revalidation (REUSES H3, never re-hashes) -
     recomputed_episode_id = compute_episode_id(

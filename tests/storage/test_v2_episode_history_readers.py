@@ -60,6 +60,11 @@ def _t(n: int) -> datetime:
     return T0 + timedelta(minutes=5 * n)
 
 
+def _q(n: int) -> datetime:
+    """A legal 15m bucket START (family anchors live on the 15m grid)."""
+    return T0 + timedelta(minutes=15 * n)
+
+
 def _run(body):
     """One isolated schema containing exactly one `v2_episode_events`
     table, reusing the transaction suite's fixture verbatim."""
@@ -322,7 +327,7 @@ def test_other_episodes_in_the_same_stream_do_not_leak_in():
         first = _lifecycle()
         second = [make_event(
             t_create=_t(4), decision_boundary=_t(4),
-            structural_anchor=build_trend_pullback_anchor(bucket_ts=_t(4)))]
+            structural_anchor=build_trend_pullback_anchor(bucket_ts=_q(4)))]
         await _seed(db, first)
         await _seed(db, second)
         assert first[0].episode_id != second[0].episode_id
@@ -445,7 +450,7 @@ def test_confirmed_breakout_creation_tick_grid_round_trips_through_postgres():
         # persisted losslessly as exact strings/ints, never JSON floats
         raw_anchor = rows[0]["structural_anchor"]
         assert raw_anchor["creation_identity_tick_size"] == "0.1"
-        assert raw_anchor["level_normalized_price"] == "66200.0"
+        assert raw_anchor["level_normalized_price"] == "66200"   # canonical plain decimal
         assert raw_anchor["level_tick_index"] == 662000
 
     _run(body)
@@ -493,7 +498,7 @@ def test_history_without_a_creation_event_is_rejected_on_read():
         rows = await db.fetch_v2_episode_history(
             run_kind=LIVE, run_id=LIVE_RUN, episode_id=episode_id,
             as_of=_t(9), boundary_mode=HISTORY_THROUGH_T)
-        with pytest.raises(V2EpisodeHistoryCorruptionError, match="no EARLY_SIGNAL"):
+        with pytest.raises(V2EpisodeHistoryCorruptionError, match="oldest persisted event"):
             reconstruct_episode_history(
                 rows, run_kind=LIVE, run_id=LIVE_RUN, episode_id=episode_id,
                 as_of=_t(9), boundary_mode=HISTORY_THROUGH_T)
