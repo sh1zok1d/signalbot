@@ -2129,6 +2129,34 @@ class Database:
             return await read_v2_instrument(
                 conn, exchange=exchange, symbol=symbol, market_type=market_type, as_of=as_of)
 
+    async def fetch_v2_episode_history(
+        self, *, run_kind: str, run_id: str, episode_id: str,
+        as_of: datetime, boundary_mode: str,
+    ) -> "tuple[Mapping, ...]":
+        """Read-only (Stage 6 Unit 1): every persisted `v2_episode_events`
+        row for EXACTLY one `(run_kind, run_id, episode_id)` whose
+        `decision_boundary` falls inside the `as_of` window selected by
+        `boundary_mode`, oldest first.
+
+        `run_kind`/`run_id` are mandatory — §12.10 forbids mixing LIVE and
+        REPLAY history, or two REPLAY `run_id`s, and semantic `episode_id`s
+        are deliberately designed to coincide across streams.
+        `boundary_mode` must be one of §13.4's two frozen windows
+        (`HISTORY_BEFORE_T`/`HISTORY_THROUGH_T`) and has no default. An
+        empty tuple means this stream has no history for this episode in
+        this window — never an error. See
+        `storage/v2_episode_history_readers.py::read_v2_episode_history`
+        for the full contract, and
+        `analytics/forecasting_v2/episode_history.py::reconstruct_episode_history`
+        for the semantic integrity checks that must be applied to the
+        result."""
+        from storage.v2_episode_history_readers import read_v2_episode_history
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_v2_episode_history(
+                conn, run_kind=run_kind, run_id=run_id, episode_id=episode_id,
+                as_of=as_of, boundary_mode=boundary_mode)
+
     async def fetch_shadow_liquidation_availability(
         self,
         *,
