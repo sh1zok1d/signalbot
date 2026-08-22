@@ -22,10 +22,12 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
+from analytics.forecasting_v2.episode_identity import compute_episode_id, compute_event_id
 from analytics.forecasting_v2.events import (
     COMPRESSION_BREAKOUT, CONFIRMED, EARLY_SIGNAL, LIVE, LONG, REPLAY, SHORT,
     TREND_PULLBACK, V2EpisodeEvent, V2EventInputError,
 )
+from common.v2_config import MODEL_FAMILY
 from storage.db import Database
 from storage.stage2_serialization import Stage2SerializationError as _CoreSerializationError
 from storage.v2_serialization import (
@@ -134,14 +136,50 @@ def _run(coro):
     return asyncio.run(coro)
 
 
+def _hex_id(n: int) -> str:
+    """A deterministic, guaranteed-valid 64-lowercase-hex-char placeholder,
+    parametrized by a plain int -- used ONLY where a test needs an
+    arbitrary-but-distinct identity string and does not care whether it
+    is the semantically-correct compute_episode_id()/compute_event_id()
+    output for the event's OTHER fields (episode_identity.py's own
+    determinism/correctness is exercised exhaustively in
+    tests/analytics/test_forecasting_v2_episode_identity.py, never here --
+    this file exercises the WRITER's SQL/transaction/conflict behavior)."""
+    return f"{n:064x}"
+
+
 # ---- model factory ----------------------------------------------------------
-def make_event(**over) -> V2EpisodeEvent:
+def make_event(*, event_id=None, episode_id=None, **over) -> V2EpisodeEvent:
+    """V2-H3 amendment (§2.1a): event_id/episode_id are no longer arbitrary
+    opaque defaults -- by default this factory derives BOTH deterministically
+    from whichever direction/setup_family/structural_anchor/decision_boundary
+    end up in the constructed event (threading any caller override into the
+    derivation too, so the default case is always internally consistent),
+    exactly mirroring how a real caller is expected to use
+    `episode_identity.py`. Pass `event_id=`/`episode_id=` explicitly (e.g.
+    via `_hex_id()`) when a test needs an arbitrary-but-distinct identity
+    without caring whether it is the "correct" hash for the event's other
+    fields -- V2EpisodeEvent itself only enforces the 64-hex-char SHAPE,
+    never full re-derivation (see events.py's own module docstring for why)."""
+    direction = over.get("direction", LONG)
+    setup_family = over.get("setup_family", TREND_PULLBACK)
+    structural_anchor = over.get("structural_anchor", {"bucket_ts": "2026-07-22T12:10:00+00:00"})
+    decision_boundary = over.get("decision_boundary", B)
+    if episode_id is None:
+        episode_id = compute_episode_id(
+            model_family=MODEL_FAMILY, rules_version=over.get("rules_version", "v2-rules-v0.1.0"),
+            calculation_version=over.get("calculation_version", H16),
+            symbol=over.get("symbol", "BTCUSDT"), market_type=over.get("market_type", "perp"),
+            direction=direction, setup_family=setup_family,
+            structural_anchor=structural_anchor, t_create=decision_boundary)
+    if event_id is None:
+        event_id = compute_event_id(episode_id=episode_id, decision_boundary=decision_boundary)
     base = dict(
-        run_kind=LIVE, run_id="live-shadow", event_id="evt-1", episode_id="ep-1",
+        run_kind=LIVE, run_id="live-shadow", event_id=event_id, episode_id=episode_id,
         model_family="v2", rules_version="v2-rules-v0.1.0",
-        symbol="BTCUSDT", market_type="perp", direction=LONG,
-        setup_family=TREND_PULLBACK, structural_anchor={"bucket_ts": "2026-07-22T12:10:00+00:00"},
-        episode_state=EARLY_SIGNAL, decision_boundary=B,
+        symbol="BTCUSDT", market_type="perp", direction=direction,
+        setup_family=setup_family, structural_anchor=structural_anchor,
+        episode_state=EARLY_SIGNAL, decision_boundary=decision_boundary,
         feature_schema_version=1, calculation_version=H16, config_hash=H64,
         config_version="2.1.0", code_version="deadbeef",
         decision_code_version="decision-deadbeef",
@@ -260,8 +298,8 @@ def test_batch_honest_count_mixed_insert_and_duplicate():
     db = _db()
     # row 0 -> inserted, row 1 -> duplicate, row 2 -> inserted
     db.pool.conn.fetchval_results = [True, None, True]
-    rows = [make_event(event_id="evt-1"), make_event(event_id="evt-2"),
-            make_event(event_id="evt-3")]
+    rows = [make_event(event_id=_hex_id(1)), make_event(event_id=_hex_id(2)),
+            make_event(event_id=_hex_id(3))]
     result = _run(db.insert_v2_episode_events(rows))
     assert result == 2
     assert db.pool.acquire_count == 1                     # one connection acquired for the batch
@@ -272,7 +310,7 @@ def test_batch_honest_count_mixed_insert_and_duplicate():
 def test_all_duplicates_returns_zero():
     db = _db()
     db.pool.conn.fetchval_results = [None, None]
-    rows = [make_event(event_id="evt-1"), make_event(event_id="evt-2")]
+    rows = [make_event(event_id=_hex_id(1)), make_event(event_id=_hex_id(2))]
     assert _run(db.insert_v2_episode_events(rows)) == 0
 
 
@@ -405,15 +443,16 @@ def test_mutating_caller_source_dict_after_construction_does_not_leak_into_write
 # 11. LIVE vs REPLAY provenance — writer-level coexistence
 # ============================================================================
 def test_live_and_replay_same_event_id_are_distinct_params_not_merged():
-    live = make_event(run_kind=LIVE, run_id="live-shadow", event_id="abc")
-    replay = make_event(run_kind=REPLAY, run_id="replay-001", event_id="abc")
+    shared_event_id = _hex_id(1)
+    live = make_event(run_kind=LIVE, run_id="live-shadow", event_id=shared_event_id)
+    replay = make_event(run_kind=REPLAY, run_id="replay-001", event_id=shared_event_id)
     params = serialize_batch(V2_EPISODE_EVENT_SPEC, (live, replay))
     assert len(params) == 2
     live_row = dict(zip(V2_EPISODE_EVENT_SPEC.columns, params[0]))
     replay_row = dict(zip(V2_EPISODE_EVENT_SPEC.columns, params[1]))
     assert live_row["run_kind"] == "LIVE" and live_row["run_id"] == "live-shadow"
     assert replay_row["run_kind"] == "REPLAY" and replay_row["run_id"] == "replay-001"
-    assert live_row["event_id"] == replay_row["event_id"] == "abc"
+    assert live_row["event_id"] == replay_row["event_id"] == shared_event_id
     # the storage PK tuple differs even though event_id collides
     live_pk = tuple(live_row[c] for c in V2_EPISODE_EVENT_SPEC.pk)
     replay_pk = tuple(replay_row[c] for c in V2_EPISODE_EVENT_SPEC.pk)
@@ -421,8 +460,9 @@ def test_live_and_replay_same_event_id_are_distinct_params_not_merged():
 
 
 def test_two_replay_runs_remain_distinguishable_by_run_id():
-    r1 = make_event(run_kind=REPLAY, run_id="replay-001", event_id="abc")
-    r2 = make_event(run_kind=REPLAY, run_id="replay-002", event_id="abc")
+    shared_event_id = _hex_id(1)
+    r1 = make_event(run_kind=REPLAY, run_id="replay-001", event_id=shared_event_id)
+    r2 = make_event(run_kind=REPLAY, run_id="replay-002", event_id=shared_event_id)
     params = serialize_batch(V2_EPISODE_EVENT_SPEC, (r1, r2))
     row1 = dict(zip(V2_EPISODE_EVENT_SPEC.columns, params[0]))
     row2 = dict(zip(V2_EPISODE_EVENT_SPEC.columns, params[1]))
@@ -439,8 +479,9 @@ def test_live_and_replay_in_one_call_rejected_as_mixed_scope():
     # accepted as "two independent inserts that happened to share a call".
     db = _db()
     db.pool.conn.fetchval_default = True
-    live = make_event(run_kind=LIVE, run_id="live-shadow", event_id="abc")
-    replay = make_event(run_kind=REPLAY, run_id="replay-001", event_id="abc")
+    shared_event_id = _hex_id(1)
+    live = make_event(run_kind=LIVE, run_id="live-shadow", event_id=shared_event_id)
+    replay = make_event(run_kind=REPLAY, run_id="replay-001", event_id=shared_event_id)
     with pytest.raises(V2EventBatchScopeError):
         _run(db.insert_v2_episode_events([live, replay]))
     assert db.pool.acquire_count == 0
@@ -452,8 +493,9 @@ def test_live_and_replay_insert_independently_via_separate_calls():
     # execution_stream -- each its own atomic batch.
     db = _db()
     db.pool.conn.fetchval_default = True
-    live = make_event(run_kind=LIVE, run_id="live-shadow", event_id="abc")
-    replay = make_event(run_kind=REPLAY, run_id="replay-001", event_id="abc")
+    shared_event_id = _hex_id(1)
+    live = make_event(run_kind=LIVE, run_id="live-shadow", event_id=shared_event_id)
+    replay = make_event(run_kind=REPLAY, run_id="replay-001", event_id=shared_event_id)
     result_live = _run(db.insert_v2_episode_events([live]))
     result_replay = _run(db.insert_v2_episode_events([replay]))
     assert result_live == 1
@@ -524,7 +566,7 @@ def test_writer_uses_exactly_one_acquire_and_one_transaction_for_multi_row_batch
     # exactly ONE transaction -- never one pair per row.
     db = _db()
     db.pool.conn.fetchval_default = True
-    rows = [make_event(event_id=f"evt-{i}") for i in range(5)]
+    rows = [make_event(event_id=_hex_id(i)) for i in range(5)]
     result = _run(db.insert_v2_episode_events(rows))
     assert result == 5
     assert db.pool.acquire_count == 1
@@ -561,7 +603,8 @@ def test_conflicting_retry_raises_dedicated_identity_conflict_error():
 def test_conflicting_retry_error_message_names_the_identity():
     db = _db()
     db.pool.conn.fetchval_default = None
-    ev = make_event(run_kind=LIVE, run_id="live-shadow", event_id="evt-conflict")
+    conflict_event_id = _hex_id(0xC0FFEE)
+    ev = make_event(run_kind=LIVE, run_id="live-shadow", event_id=conflict_event_id)
     conflicting_row = dict(zip(
         V2_EPISODE_EVENT_SPEC.columns, serialize_batch(V2_EPISODE_EVENT_SPEC, (ev,))[0]))
     conflicting_row["episode_state"] = "CONFIRMED"  # differs from EARLY_SIGNAL
@@ -569,7 +612,7 @@ def test_conflicting_retry_error_message_names_the_identity():
     with pytest.raises(V2EventIdentityConflictError) as excinfo:
         _run(db.insert_v2_episode_events([ev]))
     assert "live-shadow" in str(excinfo.value)
-    assert "evt-conflict" in str(excinfo.value)
+    assert conflict_event_id in str(excinfo.value)
 
 
 def test_conflict_row_vanished_before_reread_fails_closed():
@@ -657,8 +700,8 @@ def test_batch_with_multiple_episodes_same_scope_is_allowed():
     # only on (run_kind, run_id, decision_boundary), never on episode_id.
     db = _db()
     db.pool.conn.fetchval_default = True
-    ev1 = make_event(event_id="evt-1", episode_id="ep-1")
-    ev2 = make_event(event_id="evt-2", episode_id="ep-2")
+    ev1 = make_event(event_id=_hex_id(1), episode_id=_hex_id(101))
+    ev2 = make_event(event_id=_hex_id(2), episode_id=_hex_id(102))
     result = _run(db.insert_v2_episode_events([ev1, ev2]))
     assert result == 2
 
@@ -689,8 +732,13 @@ def test_reversal_candidate_not_constructible_as_episode_state():
 
 
 def test_neutral_direction_not_constructible():
-    with pytest.raises(V2EventInputError):
-        make_event(direction="NEUTRAL")
+    # An explicit episode_id override bypasses make_event()'s auto
+    # episode_id derivation (which would itself reject "NEUTRAL" earlier,
+    # via compute_episode_id()'s own V2EpisodeIdentityError) -- this test's
+    # subject is specifically V2EpisodeEvent's OWN direction validation, so
+    # it must actually reach that code path.
+    with pytest.raises(V2EventInputError, match="direction"):
+        make_event(direction="NEUTRAL", episode_id=_hex_id(1))
 
 
 def test_confirmed_state_and_compression_breakout_family_round_trip():

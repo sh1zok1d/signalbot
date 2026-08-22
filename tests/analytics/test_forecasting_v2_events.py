@@ -19,10 +19,23 @@ from analytics.forecasting_v2.events import (
 )
 from common.v2_config import MODEL_FAMILY
 
+# V2-H3 amendment (§2.1a): event_id/episode_id must now be exactly 64
+# lowercase hex chars (the episode_identity.py::compute_episode_id()/
+# compute_event_id() output shape) -- these fixtures are deliberately NOT
+# real compute_*_id() outputs (this file tests V2EpisodeEvent's own
+# construction/validation boundary in isolation, never episode_identity.py
+# itself -- see tests/analytics/test_forecasting_v2_episode_identity.py for
+# that), just fixed, distinct, valid-SHAPED placeholders, matching this
+# file's own pre-existing H64/H16-style convention.
+EVENT_ID = "a" * 64
+EVENT_ID_2 = "b" * 64
+EPISODE_ID = "c" * 64
+EPISODE_ID_2 = "d" * 64
+
 
 def _kwargs(**overrides):
     base = dict(
-        run_kind="LIVE", run_id="live-shadow", event_id="evt-1", episode_id="ep-1",
+        run_kind="LIVE", run_id="live-shadow", event_id=EVENT_ID, episode_id=EPISODE_ID,
         model_family="v2", rules_version="v2-rules-v0.1.0",
         symbol="BTCUSDT", market_type="perp", direction="LONG",
         setup_family="TREND_PULLBACK",
@@ -207,6 +220,28 @@ def test_blank_or_non_string_identifiers_rejected(field, bad_value):
         _event(**{field: bad_value})
 
 
+# ---- event_id / episode_id hash-shape (V2-H3 amendment, §2.1a) ----------------------
+@pytest.mark.parametrize("field", ["event_id", "episode_id"])
+@pytest.mark.parametrize("bad_value", [
+    "evt-1", "episode-abc-123", "a" * 63, "a" * 65, "A" * 64, "g" * 64, "not-a-real-hash",
+])
+def test_non_hex64_shaped_identifiers_rejected(field, bad_value):
+    # ADDITIONAL to (never a replacement for) the plain nonblank check
+    # above -- a nonblank but non-hex64-shaped opaque string (exactly what
+    # this model accepted before the V2-H3 amendment) must now be rejected
+    # too, closing the gap where a caller bypassing episode_identity.py's
+    # compute_episode_id()/compute_event_id() could construct a
+    # persistence-ready event with an arbitrary identity string.
+    with pytest.raises(V2EventInputError, match=field):
+        _event(**{field: bad_value})
+
+
+@pytest.mark.parametrize("field", ["event_id", "episode_id"])
+def test_hex64_shaped_identifier_accepted(field):
+    ev = _event(**{field: "9" * 64})
+    assert getattr(ev, field) == "9" * 64
+
+
 # ---- datetime validation ------------------------------------------------------------
 def test_decision_boundary_must_be_datetime():
     with pytest.raises(V2EventInputError, match="decision_boundary"):
@@ -377,24 +412,27 @@ def test_caller_list_mutation_after_construction_does_not_leak():
 
 # ---- run/event identity (LIVE vs. REPLAY coexistence at the model level) -----------
 def test_live_and_replay_may_carry_the_same_event_id():
-    live = _event(run_kind="LIVE", run_id="live-shadow", event_id="evt-shared")
-    replay = _event(run_kind="REPLAY", run_id="replay-001", event_id="evt-shared")
-    assert live.event_id == replay.event_id == "evt-shared"
+    live = _event(run_kind="LIVE", run_id="live-shadow", event_id=EVENT_ID)
+    replay = _event(run_kind="REPLAY", run_id="replay-001", event_id=EVENT_ID)
+    assert live.event_id == replay.event_id == EVENT_ID
     assert live.run_kind != replay.run_kind
     assert (live.run_kind, live.run_id, live.event_id) != (replay.run_kind, replay.run_id, replay.event_id)
 
 
 def test_separate_replay_runs_do_not_collide():
-    replay_a = _event(run_kind="REPLAY", run_id="replay-001", event_id="evt-1")
-    replay_b = _event(run_kind="REPLAY", run_id="replay-002", event_id="evt-1")
+    replay_a = _event(run_kind="REPLAY", run_id="replay-001", event_id=EVENT_ID)
+    replay_b = _event(run_kind="REPLAY", run_id="replay-002", event_id=EVENT_ID)
     assert replay_a.run_id != replay_b.run_id
     assert (replay_a.run_kind, replay_a.run_id, replay_a.event_id) != \
            (replay_b.run_kind, replay_b.run_id, replay_b.event_id)
 
 
 def test_episode_id_preserved_exactly_as_supplied():
-    ev = _event(episode_id="episode-abc-123")
-    assert ev.episode_id == "episode-abc-123"
+    # V2-H3 amendment: episode_id must be hex64-shaped, but this model still
+    # does not RECOMPUTE or otherwise reinterpret it -- it stores exactly
+    # the value it was given (shape-validated, never mutated/normalized).
+    ev = _event(episode_id=EPISODE_ID_2)
+    assert ev.episode_id == EPISODE_ID_2
 
 
 # ---- no clock / random / uuid -------------------------------------------------------

@@ -20,10 +20,27 @@ constructed event, and a later upstream feature-layer correction can never
 reach back and rewrite an already-persisted event's own recorded values.
 
 Pure only: no DB, network, filesystem access — and, deliberately, **no
-clock, no `uuid`, no `random`**. `run_id`, `event_id`, `episode_id`, and
-`decision_boundary` are all caller-supplied; the future Episode State
-Machine owns their deterministic generation. This module only validates and
-freezes what it is given.
+clock, no `uuid`, no `random`**. `run_id` and `decision_boundary` are
+caller-supplied. `event_id`/`episode_id` are ALSO caller-supplied at this
+narrow construction boundary (this module still does not compute them
+itself — that would require importing `episode_identity.py`'s hashing
+logic here, coupling a pure freeze-and-validate model to a specific ID
+algorithm), but MUST already be the deterministic output of
+`episode_identity.py`'s `compute_episode_id()`/`compute_event_id()` — this
+module now enforces that SHAPE directly (V2-H3 amendment,
+docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §2.1a): both must be exactly 64
+lowercase hex characters, or construction fails closed via
+`V2EventInputError`. This closes the gap where a caller constructing
+`V2EpisodeEvent` directly (bypassing `event_factory.py`'s
+`build_v2_episode_event()`, which now computes both internally and never
+accepts either as a parameter at all) could otherwise supply an arbitrary
+opaque string. A hex64-shaped string is still not proof the ID was
+computed from the CORRECT inputs — only `episode_identity.py`'s own
+functions, or `build_v2_episode_event()`, can guarantee that; this module's
+own check is deliberately a cheap, always-available SHAPE guard, not a
+full re-derivation (which this module cannot perform: `episode_id`
+requires `t_create`, a fact this model does not carry as its own field —
+see `event_factory.py`'s module docstring for why).
 """
 from __future__ import annotations
 
@@ -35,7 +52,7 @@ from types import MappingProxyType
 from typing import Any, Mapping
 
 from analytics.forecasting_v2._validation import (
-    SUPPORTED_MARKET_TYPE, SUPPORTED_SYMBOL, nonblank, one_of,
+    HEX64, SUPPORTED_MARKET_TYPE, SUPPORTED_SYMBOL, nonblank, one_of,
     validate_calculation_version, validate_config_hash,
     validate_feature_schema_version, validate_market_type, validate_symbol,
 )
@@ -180,7 +197,12 @@ class V2EpisodeEvent:
         `(run_kind, run_id, event_id)` is the storage identity
         (`storage/v2_serialization.py`); LIVE and REPLAY runs, or two
         distinct REPLAY runs, can carry the same `event_id` without
-        colliding, because `run_id` namespaces them apart.
+        colliding, because `run_id` namespaces them apart. `event_id`/
+        `episode_id` MUST be exactly 64 lowercase hex characters — the
+        `episode_identity.py`::`compute_episode_id()`/`compute_event_id()`
+        output shape (V2-H3 amendment, §2.1a) — enforced here so this
+        model cannot be constructed, even by a caller bypassing
+        `event_factory.py`, with an arbitrary opaque identity string.
       - model/version identity (§3): `model_family` (always exactly `"v2"`),
         `rules_version` (validated against the frozen
         `v2-rules-v<major>.<minor>.<patch>` namespace via
@@ -251,6 +273,21 @@ class V2EpisodeEvent:
         nonblank(self.run_id, "run_id", V2EventInputError)
         nonblank(self.event_id, "event_id", V2EventInputError)
         nonblank(self.episode_id, "episode_id", V2EventInputError)
+        # V2-H3 amendment (§2.1a): ADDITIONAL to (never a replacement for)
+        # the plain nonblank checks above -- event_id/episode_id must be
+        # exactly the 64-lowercase-hex-char shape episode_identity.py's
+        # compute_episode_id()/compute_event_id() always produce. Mirrors
+        # storage/stage2_schema.sql's own ck_v2ee_event_id_hash_format/
+        # ck_v2ee_episode_id_hash_format DB constraints so the Python model
+        # and the database can never silently diverge on this invariant.
+        if not HEX64.fullmatch(self.event_id):
+            raise V2EventInputError(
+                "event_id must be exactly 64 lowercase hex chars (the deterministic "
+                f"output of episode_identity.py's compute_event_id()), got {self.event_id!r}")
+        if not HEX64.fullmatch(self.episode_id):
+            raise V2EventInputError(
+                "episode_id must be exactly 64 lowercase hex chars (the deterministic "
+                f"output of episode_identity.py's compute_episode_id()), got {self.episode_id!r}")
 
         if self.model_family != MODEL_FAMILY:
             raise V2EventInputError(
