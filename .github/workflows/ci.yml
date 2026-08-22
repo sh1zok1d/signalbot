@@ -15,7 +15,17 @@ jobs:
     # regressions actually execute here instead of silently skipping.
     services:
       postgres:
-        image: postgres:16
+        # CI database-parity with the repository-frozen production/dev
+        # image (docker-compose.yml, docs/STAGE2_SPEC.md §ux_rq_pending_job,
+        # docs/STAGE2_DATA_AUDIT.md): timescale/timescaledb:2.17.2-pg16.
+        # Vanilla postgres:16 does not ship the timescaledb extension, so
+        # Database.init_stage2_schema() cannot complete --
+        # storage/stage2_schema.sql's first statement is
+        # `CREATE EXTENSION IF NOT EXISTS timescaledb;`. Pin the exact
+        # compose tag (never a floating latest) so CI and deployment share
+        # one PostgreSQL 16 + TimescaleDB 2.17.2 pair. Credentials, port,
+        # database name, and health-check are unchanged.
+        image: timescale/timescaledb:2.17.2-pg16
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -60,6 +70,32 @@ jobs:
 
       - name: Compile check (syntax)
         run: python -m compileall -q .
+
+      - name: Prove TimescaleDB extension is available on the CI service
+        run: |
+          python - <<'PY'
+          import asyncio
+          import asyncpg
+
+          async def main():
+              conn = await asyncpg.connect(
+                  "postgresql://postgres:postgres@localhost:5432/signalbot_test"
+              )
+              await conn.execute("CREATE EXTENSION IF NOT EXISTS timescaledb")
+              row = await conn.fetchrow(
+                  "SELECT extname, extversion FROM pg_extension"
+                  " WHERE extname = 'timescaledb'"
+              )
+              assert row is not None, "timescaledb extension missing after CREATE EXTENSION"
+              pg_version = await conn.fetchval("SHOW server_version")
+              print(
+                  f"TimescaleDB {row['extversion']} available "
+                  f"(PostgreSQL {pg_version})"
+              )
+              await conn.close()
+
+          asyncio.run(main())
+          PY
 
       - name: Full test suite
         run: python -m pytest -q
