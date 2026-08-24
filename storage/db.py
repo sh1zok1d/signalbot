@@ -2185,7 +2185,9 @@ class Database:
     ) -> "Optional[Mapping]":
         """Read-only (Stage 6 Unit 2): §13.4 step 3b's single answer for one
         slot — the MOST RECENT terminal episode and its `T_terminal`, by
-        logical `decision_boundary` (§12.8), or `None`. See
+        logical `decision_boundary` (§12.8), or `None`. Two episodes
+        terminal at the same newest boundary FAIL CLOSED rather than being
+        tie-broken. See
         `storage/v2_episode_slot_readers.py::read_v2_slot_latest_terminal`
         for the full contract."""
         from storage.v2_episode_slot_readers import read_v2_slot_latest_terminal

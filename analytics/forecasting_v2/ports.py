@@ -359,7 +359,16 @@ class V2EpisodeSlotReader(Protocol):
     another's). `boundary_mode` selects between §13.4's two frozen same-`T`
     windows and has no default: step 1's "ACTIVE immediately before `T`"
     and step 3b's cooldown lookup (which includes an episode that became
-    terminal at this very `T`) are genuinely different windows."""
+    terminal at this very `T`) are genuinely different windows.
+
+    **This port DISCOVERS episodes; it does not certify them.** What it
+    returns is a projection of persisted rows, not proof that the episodes
+    behind them have valid histories. A trusted §12.8 cooldown fact is
+    built in the analytics layer from a history reconstructed through
+    `V2EpisodeHistoryReader` + `reconstruct_episode_history()`
+    (`episode_creation.V2SlotTerminalFact` accepts nothing else), so an
+    impossible persisted lifecycle cannot suppress creation merely because
+    its newest row happens to read as terminal."""
 
     async def fetch_v2_slot_episode_states(
         self, *, run_kind: str, run_id: str, symbol: str, market_type: str,

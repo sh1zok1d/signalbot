@@ -15,7 +15,16 @@ different, slot-shaped questions of the same immutable event log:
     (§12.8).
   - `read_v2_slot_latest_terminal` — the same question narrowed to §13.4
     step 3b's single answer: the slot's MOST RECENT terminal episode and
-    its `T_terminal`, or `None`.
+    its `T_terminal`, or `None`. An ambiguous answer (two episodes terminal
+    at the same newest boundary) is REPORTED, never tie-broken.
+
+**These reads DISCOVER episodes; they do not certify them.** A returned row
+is a projection of persisted state, not proof that the episode behind it has
+a valid history — that proof is Unit 1's `reconstruct_episode_history()`, and
+the analytics layer requires it before a terminal row may act as a §12.8
+cooldown fact (`episode_creation.V2SlotTerminalFact` accepts only a
+reconstructed `V2EpisodeHistory`). Storage deliberately stays a low-level
+discovery/projection layer and holds no lifecycle semantics.
 
 Same posture as every other V2 reader: static/trusted SQL, explicit column
 list, deterministic ordering, no analytics decision logic, no clock, no
@@ -188,7 +197,19 @@ async def read_v2_slot_latest_terminal(
     any history that claims otherwise), so this is computed from each
     episode's LATEST state rather than from any terminal row ever written:
     a row that is terminal but superseded is impossible history, not a
-    candidate for "most recent terminal"."""
+    candidate for "most recent terminal".
+
+    **Ambiguity FAILS CLOSED.** If two or more episodes in this slot share
+    the newest terminal boundary, this raises rather than picking one.
+    There is no frozen tie-break to apply, and the choice is not cosmetic:
+    §12.8 gives `INVALIDATED` a 3-bucket cooldown and `EXPIRED`/`COMPLETED`
+    a 1-bucket one, so an `INVALIDATED @ T` / `COMPLETED @ T` pair yields
+    two different creation-eligibility answers depending on which row wins.
+    Ordering by lexical `episode_id` would silently decide that on the
+    basis of a hash — the definition of fail-open. §12.6 makes the state
+    impossible in the first place (at most one active episode per slot, so
+    at most one can become terminal at any one boundary), which is exactly
+    why reaching it means the data is corrupt and must be surfaced."""
     states = await read_v2_slot_episode_states(
         conn, run_kind=run_kind, run_id=run_id, symbol=symbol, market_type=market_type,
         direction=direction, setup_family=setup_family, as_of=as_of,
@@ -196,8 +217,16 @@ async def read_v2_slot_latest_terminal(
     terminal = [r for r in states if r["episode_state"] in TERMINAL_EPISODE_STATES]
     if not terminal:
         return None
-    # Deterministic: newest T_terminal wins; episode_id breaks an exact tie
-    # so a slot with two same-boundary terminals reads reproducibly (the
-    # analytics layer decides whether that state is legal at all).
-    terminal.sort(key=lambda r: (r["decision_boundary"], r["episode_id"]), reverse=True)
-    return terminal[0]
+    newest = max(r["decision_boundary"] for r in terminal)
+    latest = [r for r in terminal if r["decision_boundary"] == newest]
+    if len(latest) > 1:
+        detail = ", ".join(
+            f"{r['episode_id']}={r['episode_state']}"
+            for r in sorted(latest, key=lambda r: r["episode_id"]))
+        raise V2EpisodeSlotReaderError(
+            f"slot {(symbol, market_type, direction, setup_family)!r} in stream "
+            f"{(run_kind, run_id)!r} has {len(latest)} episodes terminal at the same newest "
+            f"boundary {newest.isoformat()} ({detail}) -- §12.8 cooldown length depends on WHICH "
+            "terminal state applies, so this is reported rather than resolved by an arbitrary "
+            "tie-break")
+    return latest[0]

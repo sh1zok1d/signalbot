@@ -22,23 +22,27 @@ from analytics.forecasting_v2.activation_readiness import (
 from analytics.forecasting_v2.decision_provenance import V2DecisionProvenance
 from analytics.forecasting_v2.decision_view import V2DecisionView
 from analytics.forecasting_v2.episode_creation import (
-    ANCHOR_DRIFT_BUCKETS, CREATE_EARLY_SIGNAL, CREATION_FACTS_KEY, FAMILY_PRECEDENCE,
+    ANCHOR_DRIFT_BUCKETS, CREATE_EARLY_SIGNAL, CREATION_FACTS_KEY,
+    ELIGIBLE_FOR_CREATION, FAMILY_PRECEDENCE,
     MATCH_EXACT, MATCH_MATERIAL, MATCH_NON_MATERIAL, PRECEDENCE_CROSSREF_KEY,
     ROUTE_EXISTING_EXACT, ROUTE_EXISTING_NON_MATERIAL, SUPPRESSED_ACTIVE_SLOT,
     SUPPRESSED_COOLDOWN, SUPPRESSED_FAMILY_PRECEDENCE, TERMINAL_COOLDOWN_BUCKETS,
-    V2CandidateFacts, V2CreationAuthorization, V2EpisodeCreationError,
+    V2BoundaryRoutingResult, V2CandidateFacts, V2CandidateOutcome,
+    V2CreationAuthorization, V2EpisodeCreationError,
     V2SlotCooldownView, V2SlotOccupancyView, V2SlotTerminalFact,
     arbitrate_new_candidates, build_early_signal_creation,
     classify_candidate_against_active_episode, evaluate_terminal_cooldown,
     read_creation_protection_buffer, route_candidates_at_boundary,
 )
 from analytics.forecasting_v2.episode_history import (
-    HISTORY_THROUGH_T, reconstruct_episode_history,
+    HISTORY_THROUGH_T, V2EpisodeHistoryCorruptionError, reconstruct_episode_history,
 )
+from analytics.forecasting_v2.event_factory import build_v2_episode_event
 from analytics.forecasting_v2.events import (
-    COMPLETED, COMPRESSION_BREAKOUT, CONFIRMED_BREAKOUT, EARLY_SIGNAL, EXPIRED,
-    INVALIDATED, LIVE, LONG, SHORT, TREND_PULLBACK,
+    COMPLETED, COMPRESSION_BREAKOUT, CONFIRMED, CONFIRMED_BREAKOUT, EARLY_SIGNAL,
+    EXPIRED, INVALIDATED, LIVE, LONG, SHORT, TREND_PULLBACK,
 )
+from analytics.forecasting_v2.provenance import V2EventProvenance
 from analytics.forecasting_v2.version_switch import (
     V2SemanticTuple, initial_switch_state, provision_initial_tuple,
 )
@@ -173,6 +177,60 @@ def existing_episode(candidate, *, T=T0, as_of=None, run_kind=LIVE, run_id=RUN_I
         as_of=as_of if as_of is not None else _t(100), boundary_mode=HISTORY_THROUGH_T)
 
 
+def _event_provenance(*, T=T0, run_kind=LIVE, run_id=RUN_ID) -> V2EventProvenance:
+    p = _provenance(T=T, run_kind=run_kind, run_id=run_id)
+    return V2EventProvenance(
+        run_kind=p.run_kind, run_id=p.run_id, model_family=p.model_family,
+        rules_version=p.rules_version, symbol=p.symbol, market_type=p.market_type,
+        feature_schema_version=p.feature_schema_version,
+        calculation_version=p.calculation_version, config_hash=p.config_hash,
+        config_version=p.config_version, code_version=p.code_version,
+        decision_code_version=p.decision_code_version)
+
+
+def _follow_up(creation, *, episode_state, decision_boundary, t_create,
+               run_kind=LIVE, run_id=RUN_ID):
+    """A later lifecycle event of the SAME episode: identical frozen creation
+    identity (§12.2), a new decision boundary."""
+    return build_v2_episode_event(
+        _event_provenance(T=decision_boundary, run_kind=run_kind, run_id=run_id),
+        t_create=t_create, direction=creation.direction,
+        setup_family=creation.setup_family,
+        structural_anchor=dict(creation.structural_anchor),
+        episode_state=episode_state, decision_boundary=decision_boundary,
+        decision_snapshot={}, event_payload={})
+
+
+def terminal_history(make=tp_candidate, *, terminal_state=INVALIDATED, t_terminal=T0,
+                     run_kind=LIVE, run_id=RUN_ID, as_of=None, **candidate_kw):
+    """A REAL terminal episode: creation event, the §13.2-legal transitions
+    that reach `terminal_state`, then read back through Unit 1 — never a
+    hand-made terminal summary."""
+    lead = 2 if terminal_state == COMPLETED else 1
+    t_create = t_terminal - lead * timedelta(minutes=5)
+    candidate = make(T=t_create, **candidate_kw)
+    creation = build_early_signal_creation(
+        candidate, authorization=_authorization(T=t_create, run_kind=run_kind, run_id=run_id),
+        T=t_create)
+    events = [creation]
+    if terminal_state == COMPLETED:
+        events.append(_follow_up(
+            creation, episode_state=CONFIRMED,
+            decision_boundary=t_terminal - timedelta(minutes=5), t_create=t_create,
+            run_kind=run_kind, run_id=run_id))
+    events.append(_follow_up(
+        creation, episode_state=terminal_state, decision_boundary=t_terminal,
+        t_create=t_create, run_kind=run_kind, run_id=run_id))
+    return reconstruct_episode_history(
+        [_row(e) for e in events], run_kind=run_kind, run_id=run_id,
+        episode_id=creation.episode_id,
+        as_of=as_of if as_of is not None else _t(100), boundary_mode=HISTORY_THROUGH_T)
+
+
+def terminal_fact(**kw) -> V2SlotTerminalFact:
+    return V2SlotTerminalFact(history=terminal_history(**kw))
+
+
 def _occupancy(*histories, T=T0):
     by_slot = {}
     for h in histories:
@@ -217,10 +275,10 @@ def test_anchor_drift_bucket_constant_is_four():
 
 
 def test_off_grid_candidate_anchor_is_rejected_not_coerced():
-    active = existing_episode(tp_candidate(anchor=_q(0)))
-    candidate = tp_candidate(T=_t(1), anchor=T0 + timedelta(minutes=7))
-    with pytest.raises(V2EpisodeCreationError, match="whole number of 15m buckets"):
-        classify_candidate_against_active_episode(candidate, active)
+    """An off-grid anchor never reaches classification at all: it is refused
+    when the candidate is built (§12.1's family grid)."""
+    with pytest.raises(V2EpisodeCreationError, match="structural anchor"):
+        tp_candidate(T=_t(1), anchor=T0 + timedelta(minutes=7))
 
 
 # ============================================================================
@@ -372,8 +430,9 @@ def _terminal_event_id(episode_id, boundary):
     (INVALIDATED, 3), (EXPIRED, 1), (COMPLETED, 1)])
 def test_cooldown_table_matches_the_frozen_contract(terminal_state, buckets):
     assert TERMINAL_COOLDOWN_BUCKETS[terminal_state] == buckets
-    fact = V2SlotTerminalFact(
-        episode_id="e", terminal_state=terminal_state, t_terminal=T0)
+    fact = terminal_fact(terminal_state=terminal_state, t_terminal=T0)
+    assert fact.terminal_state == terminal_state
+    assert fact.t_terminal == T0
     assert fact.earliest_eligible_boundary == T0 + timedelta(minutes=5 * buckets)
 
 
@@ -383,7 +442,7 @@ def test_cooldown_table_matches_the_frozen_contract(terminal_state, buckets):
     (COMPLETED, (0,), 1),
 ])
 def test_cooldown_boundaries(terminal_state, blocked, eligible):
-    fact = V2SlotTerminalFact(episode_id="e", terminal_state=terminal_state, t_terminal=T0)
+    fact = terminal_fact(terminal_state=terminal_state, t_terminal=T0)
     for n in blocked:
         assert evaluate_terminal_cooldown(fact, T=_t(n)) is False, f"T+{5*n}m must be blocked"
     assert evaluate_terminal_cooldown(fact, T=_t(eligible)) is True
@@ -393,7 +452,7 @@ def test_cooldown_boundaries(terminal_state, blocked, eligible):
 def test_t_terminal_itself_is_never_eligible():
     """§12.8's cooldown is >= 1 bucket in every case."""
     for state in TERMINAL_COOLDOWN_BUCKETS:
-        fact = V2SlotTerminalFact(episode_id="e", terminal_state=state, t_terminal=T0)
+        fact = terminal_fact(terminal_state=state, t_terminal=T0)
         assert evaluate_terminal_cooldown(fact, T=T0) is False
 
 
@@ -410,8 +469,8 @@ def test_same_T_terminal_blocks_by_cooldown_even_though_slot_is_empty():
     result = route_candidates_at_boundary(
         [candidate], T=T0,
         occupancy=V2SlotOccupancyView(as_of=T0, active_by_slot={}),        # 3a: empty
-        cooldown=_cooldown((slot, V2SlotTerminalFact(
-            episode_id="old", terminal_state=INVALIDATED, t_terminal=T0)), T=T0),
+        cooldown=_cooldown((slot, terminal_fact(
+            terminal_state=INVALIDATED, t_terminal=T0)), T=T0),
         authorization=_authorization(T=T0))
     assert result.outcomes[0].outcome == SUPPRESSED_COOLDOWN
     assert result.outcomes[0].cooldown_until == _t(3)
@@ -422,15 +481,15 @@ def test_cooldown_view_rejects_a_future_terminal_fact():
     with pytest.raises(V2EpisodeCreationError, match="after as_of"):
         V2SlotCooldownView(
             as_of=T0,
-            terminal_by_slot={tp_candidate().slot: V2SlotTerminalFact(
-                episode_id="e", terminal_state=EXPIRED, t_terminal=_t(3))})
+            terminal_by_slot={tp_candidate().slot: terminal_fact(
+                terminal_state=EXPIRED, t_terminal=_t(3))})
 
 
 def test_off_grid_terminal_boundary_fails_closed():
+    """An off-grid `T_terminal` cannot even be persisted into a history, so
+    no terminal fact can be built from one."""
     with pytest.raises(V2EpisodeCreationError, match="5m decision boundary"):
-        V2SlotTerminalFact(
-            episode_id="e", terminal_state=EXPIRED,
-            t_terminal=T0 + timedelta(minutes=2))
+        terminal_fact(terminal_state=EXPIRED, t_terminal=T0 + timedelta(minutes=2))
 
 
 # ============================================================================
@@ -441,8 +500,8 @@ def test_suppressed_candidate_is_not_resurrected_when_the_blocker_clears():
     blocked = route_candidates_at_boundary(
         [tp_candidate(T=T0, anchor=_q(0))], T=T0,
         occupancy=V2SlotOccupancyView(as_of=T0, active_by_slot={}),
-        cooldown=_cooldown((slot, V2SlotTerminalFact(
-            episode_id="old", terminal_state=INVALIDATED, t_terminal=T0)), T=T0),
+        cooldown=_cooldown((slot, terminal_fact(
+            terminal_state=INVALIDATED, t_terminal=T0)), T=T0),
         authorization=_authorization(T=T0))
     assert blocked.outcomes[0].outcome == SUPPRESSED_COOLDOWN
 
@@ -450,8 +509,8 @@ def test_suppressed_candidate_is_not_resurrected_when_the_blocker_clears():
     cleared = route_candidates_at_boundary(
         [], T=_t(3),
         occupancy=V2SlotOccupancyView(as_of=_t(3), active_by_slot={}),
-        cooldown=_cooldown((slot, V2SlotTerminalFact(
-            episode_id="old", terminal_state=INVALIDATED, t_terminal=T0)), T=_t(3)),
+        cooldown=_cooldown((slot, terminal_fact(
+            terminal_state=INVALIDATED, t_terminal=T0)), T=_t(3)),
         authorization=_authorization(T=_t(3)))
     assert cleared.outcomes == ()
     assert cleared.creation_events == ()
@@ -460,8 +519,8 @@ def test_suppressed_candidate_is_not_resurrected_when_the_blocker_clears():
     fresh = route_candidates_at_boundary(
         [tp_candidate(T=_t(6), anchor=_q(0))], T=_t(6),
         occupancy=V2SlotOccupancyView(as_of=_t(6), active_by_slot={}),
-        cooldown=_cooldown((slot, V2SlotTerminalFact(
-            episode_id="old", terminal_state=INVALIDATED, t_terminal=T0)), T=_t(6)),
+        cooldown=_cooldown((slot, terminal_fact(
+            terminal_state=INVALIDATED, t_terminal=T0)), T=_t(6)),
         authorization=_authorization(T=_t(6)))
     assert fresh.outcomes[0].outcome == CREATE_EARLY_SIGNAL
     assert len(fresh.creation_events) == 1
@@ -545,7 +604,7 @@ def test_arbitration_is_input_order_independent():
         signature = (
             tuple(sorted((c.setup_family, c.direction) for c in accepted)),
             tuple(sorted(
-                (slot, tuple(sorted(l.setup_family for l in losers)))
+                (slot, tuple(sorted(loser.setup_family for loser in losers)))
                 for slot, losers in suppressed.items())),
         )
         if baseline is None:
@@ -687,12 +746,15 @@ def test_draining_tuple_cannot_create():
             switch_state=draining, publication_clean=True)
 
 
-def test_routing_without_authorization_creates_no_event():
+def test_routing_without_authorization_reports_eligible_not_created():
+    """RT-64-09: "survived Unit 2 eligibility" and "an authorized episode was
+    created" are different facts and get different outcomes."""
     result = route_candidates_at_boundary(
         [tp_candidate(T=T0, anchor=_q(0))], T=T0,
         occupancy=V2SlotOccupancyView(as_of=T0, active_by_slot={}),
         cooldown=_cooldown(T=T0), authorization=None)
-    assert result.outcomes[0].outcome == CREATE_EARLY_SIGNAL
+    assert result.outcomes[0].outcome == ELIGIBLE_FOR_CREATION
+    assert result.outcomes[0].creation_event is None
     assert result.creation_events == ()
 
 
@@ -887,8 +949,13 @@ def test_unit2_never_constructs_v2_episode_event_directly():
     import ast
     import pathlib
 
-    source = pathlib.Path(
-        "analytics/forecasting_v2/episode_creation.py").resolve()
+    # Located relative to THIS file, never the process working directory:
+    # a cwd-relative path silently resolves to a non-existent file (or, worse,
+    # a different repo's copy) depending on where pytest was invoked from.
+    source = (
+        pathlib.Path(__file__).resolve().parents[2]
+        / "analytics" / "forecasting_v2" / "episode_creation.py")
+    assert source.is_file(), f"architecture guard could not locate {source}"
     tree = ast.parse(source.read_text(encoding="utf-8"), filename=str(source))
     offenders = []
     for node in ast.walk(tree):
@@ -901,3 +968,444 @@ def test_unit2_never_constructs_v2_episode_event_directly():
         if called == "V2EpisodeEvent":
             offenders.append(node.lineno)
     assert offenders == []
+
+
+# ============================================================================
+# 16. amendment regressions — integrity hardening (RT-64-01..12, CR64-1..5)
+# ============================================================================
+# ---- §12.1 candidate structural-anchor family grid (RT-64-01/02/03, CR64-1)
+@pytest.mark.parametrize("offset", [
+    timedelta(minutes=15),                  # legal 15m start, illegal 1h start
+    timedelta(minutes=30),
+    timedelta(minutes=45),
+    timedelta(seconds=1),
+    timedelta(microseconds=1),
+])
+def test_confirmed_breakout_anchor_must_be_an_exact_1h_bucket_start(offset):
+    """§12.1 gives CONFIRMED_BREAKOUT a 1h `level_anchor_bucket`. A 15m/30m/
+    45m/sub-second value is malformed input, never something that falls
+    through into §12.4's price-drift branch."""
+    with pytest.raises(V2EpisodeCreationError, match="structural anchor"):
+        cb_candidate(anchor=T0 + offset)
+
+
+def test_confirmed_breakout_legal_hour_anchors_are_accepted():
+    for n in (0, 1, 5):
+        assert cb_candidate(anchor=_h(n)).anchor_bucket == _h(n)
+
+
+def test_confirmed_breakout_naive_anchor_is_rejected():
+    with pytest.raises(V2EpisodeCreationError, match="structural anchor"):
+        cb_candidate(anchor=T0.replace(tzinfo=None))
+
+
+@pytest.mark.parametrize("make", [tp_candidate, comp_candidate])
+@pytest.mark.parametrize("offset", [
+    timedelta(minutes=7),
+    timedelta(minutes=1),
+    timedelta(seconds=1),
+    timedelta(microseconds=1),
+])
+def test_bucket_anchored_families_require_an_exact_15m_bucket_start(make, offset):
+    with pytest.raises(V2EpisodeCreationError, match="structural anchor"):
+        make(anchor=T0 + offset)
+
+
+@pytest.mark.parametrize("make", [tp_candidate, comp_candidate])
+def test_bucket_anchored_families_accept_legal_15m_starts(make):
+    for n in (0, 1, 7):
+        assert make(anchor=_q(n)).anchor_bucket == _q(n)
+
+
+@pytest.mark.parametrize("make", [tp_candidate, comp_candidate, cb_candidate])
+def test_naive_anchor_never_leaks_a_raw_type_error(make):
+    """RT-64-02: a naive anchor used to reach `abs(C - A)` and escape as a
+    bare `TypeError` from aware/naive subtraction."""
+    with pytest.raises(V2EpisodeCreationError) as excinfo:
+        make(anchor=T0.replace(tzinfo=None))
+    assert not isinstance(excinfo.value, TypeError)
+
+
+@pytest.mark.parametrize("make", [tp_candidate, comp_candidate, cb_candidate])
+def test_non_utc_anchor_is_rejected(make):
+    with pytest.raises(V2EpisodeCreationError, match="structural anchor"):
+        make(anchor=T0.astimezone(timezone(timedelta(hours=2))))
+
+
+def test_off_grid_confirmed_breakout_anchor_never_reaches_price_drift():
+    """RT-64-01's exact attack: an off-grid CB anchor used to be classified
+    NON_MATERIAL on price alone. It must now be impossible to even build."""
+    active = existing_episode(cb_candidate(anchor=_h(0), raw_level=66200.04, tick=0.1))
+    with pytest.raises(V2EpisodeCreationError, match="structural anchor"):
+        classify_candidate_against_active_episode(
+            cb_candidate(T=_t(1), anchor=_h(0) + timedelta(minutes=15), raw_level=66200.04),
+            active)
+
+
+# ---- RT-64-04 / CR64-2: persisted anchor parse stays in this hierarchy -----
+def _identity_with_anchor(base, **anchor_over):
+    from analytics.forecasting_v2.episode_history import V2EpisodeCreationIdentity
+    identity = base.creation_identity
+    anchor = dict(identity.structural_anchor)
+    anchor.update(anchor_over)
+    return V2EpisodeCreationIdentity(
+        episode_id=identity.episode_id, t_create=identity.t_create,
+        model_family=identity.model_family, rules_version=identity.rules_version,
+        calculation_version=identity.calculation_version, symbol=identity.symbol,
+        market_type=identity.market_type, direction=identity.direction,
+        setup_family=identity.setup_family, structural_anchor=anchor)
+
+
+@pytest.mark.parametrize("raw", ["not-a-timestamp", "", "2026-13-99T00:00:00+00:00"])
+def test_malformed_persisted_anchor_parse_stays_in_the_domain_error(raw):
+    from analytics.forecasting_v2.episode_creation import _creation_anchor_bucket
+    identity = _identity_with_anchor(existing_episode(tp_candidate(anchor=_q(0))), bucket_ts=raw)
+    with pytest.raises(V2EpisodeCreationError) as excinfo:
+        _creation_anchor_bucket(identity)
+    assert not isinstance(excinfo.value, (TypeError,))
+    assert excinfo.value.__cause__ is not None
+
+
+def test_off_grid_persisted_anchor_stays_in_the_domain_error():
+    from analytics.forecasting_v2.episode_creation import _creation_anchor_bucket
+    identity = _identity_with_anchor(
+        existing_episode(tp_candidate(anchor=_q(0))),
+        bucket_ts=(T0 + timedelta(minutes=7)).isoformat())
+    with pytest.raises(V2EpisodeCreationError, match="structural anchor"):
+        _creation_anchor_bucket(identity)
+
+
+def test_naive_persisted_anchor_cannot_leak_a_type_error():
+    from analytics.forecasting_v2.episode_creation import _creation_anchor_bucket
+    identity = _identity_with_anchor(
+        existing_episode(tp_candidate(anchor=_q(0))), bucket_ts="2026-08-20T12:00:00")
+    with pytest.raises(V2EpisodeCreationError):
+        _creation_anchor_bucket(identity)
+
+
+# ---- RT-64-06: occupancy key must be the episode's own slot ---------------
+def test_occupancy_history_keyed_under_a_foreign_slot_is_rejected():
+    active = existing_episode(tp_candidate(anchor=_q(0), direction=LONG))
+    with pytest.raises(V2EpisodeCreationError, match="filed under a foreign slot"):
+        V2SlotOccupancyView(
+            as_of=T0,
+            active_by_slot={("BTCUSDT", "perp", SHORT, TREND_PULLBACK): [active]})
+
+
+def test_mis_keyed_occupancy_cannot_make_the_real_slot_appear_empty():
+    """RT-64-06's exact attack: a LONG TP episode filed under the SHORT TP
+    key would let a second LONG TP episode be created."""
+    active = existing_episode(tp_candidate(anchor=_q(0), direction=LONG))
+    with pytest.raises(V2EpisodeCreationError, match="filed under a foreign slot"):
+        route_candidates_at_boundary(
+            [tp_candidate(T=_t(1), anchor=_q(0), direction=LONG)], T=_t(1),
+            occupancy=V2SlotOccupancyView(
+                as_of=_t(1),
+                active_by_slot={("BTCUSDT", "perp", SHORT, TREND_PULLBACK): [active]}),
+            cooldown=_cooldown(T=_t(1)), authorization=_authorization(T=_t(1)))
+
+
+def test_occupancy_from_histories_keys_by_the_episodes_own_slot():
+    long_tp = existing_episode(tp_candidate(anchor=_q(0), direction=LONG))
+    short_tp = existing_episode(tp_candidate(anchor=_q(0), direction=SHORT))
+    view = V2SlotOccupancyView.from_histories(as_of=T0, histories=[long_tp, short_tp])
+    assert view.active_episode(("BTCUSDT", "perp", LONG, TREND_PULLBACK)) is long_tp
+    assert view.active_episode(("BTCUSDT", "perp", SHORT, TREND_PULLBACK)) is short_tp
+
+
+# ---- RT-64-07 / RT-64-11: cooldown facts are proven, and slot-bound -------
+def test_terminal_fact_requires_a_reconstructed_history():
+    with pytest.raises(V2EpisodeCreationError, match="reconstructed through Unit 1"):
+        V2SlotTerminalFact(history={"episode_state": INVALIDATED})
+
+
+def test_terminal_fact_refuses_a_non_terminal_history():
+    with pytest.raises(V2EpisodeCreationError, match="not a terminal state"):
+        V2SlotTerminalFact(history=existing_episode(tp_candidate(anchor=_q(0))))
+
+
+def test_malformed_full_history_cannot_become_a_trusted_cooldown_fact():
+    """RT-64-11: a latest-row summary of an IMPOSSIBLE history used to look
+    like a valid terminal fact. Unit 1 rejects the history outright, so
+    there is nothing to wrap."""
+    candidate = tp_candidate(T=T0, anchor=_q(0))
+    creation = build_early_signal_creation(
+        candidate, authorization=_authorization(T=T0), T=T0)
+    # §13.2 gives terminal states no outgoing edges: INVALIDATED -> CONFIRMED
+    # is impossible history, yet its LATEST row alone reads as CONFIRMED and
+    # its earlier row alone reads as a clean terminal fact.
+    rows = [
+        _row(creation),
+        _row(_follow_up(creation, episode_state=INVALIDATED,
+                        decision_boundary=_t(1), t_create=T0)),
+        _row(_follow_up(creation, episode_state=CONFIRMED,
+                        decision_boundary=_t(2), t_create=T0)),
+    ]
+    with pytest.raises(V2EpisodeHistoryCorruptionError):
+        reconstruct_episode_history(
+            rows, run_kind=LIVE, run_id=RUN_ID, episode_id=creation.episode_id,
+            as_of=_t(50), boundary_mode=HISTORY_THROUGH_T)
+
+
+def test_terminal_fact_filed_under_a_foreign_slot_is_rejected():
+    fact = terminal_fact(terminal_state=INVALIDATED, t_terminal=T0, direction=LONG)
+    assert fact.slot == ("BTCUSDT", "perp", LONG, TREND_PULLBACK)
+    with pytest.raises(V2EpisodeCreationError, match="may only serve the slot"):
+        V2SlotCooldownView(
+            as_of=T0,
+            terminal_by_slot={("BTCUSDT", "perp", SHORT, TREND_PULLBACK): fact})
+
+
+def test_wrong_slot_terminal_fact_cannot_suppress_a_foreign_candidate():
+    fact = terminal_fact(terminal_state=INVALIDATED, t_terminal=T0, direction=LONG)
+    with pytest.raises(V2EpisodeCreationError, match="may only serve the slot"):
+        route_candidates_at_boundary(
+            [tp_candidate(T=T0, anchor=_q(0), direction=SHORT)], T=T0,
+            occupancy=V2SlotOccupancyView(as_of=T0, active_by_slot={}),
+            cooldown=V2SlotCooldownView(
+                as_of=T0,
+                terminal_by_slot={("BTCUSDT", "perp", SHORT, TREND_PULLBACK): fact}),
+            authorization=_authorization(T=T0))
+
+
+def test_cooldown_view_from_histories_keys_by_the_episodes_own_slot():
+    long_terminal = terminal_history(terminal_state=INVALIDATED, t_terminal=T0, direction=LONG)
+    short_terminal = terminal_history(terminal_state=EXPIRED, t_terminal=T0, direction=SHORT)
+    view = V2SlotCooldownView.from_terminal_histories(
+        as_of=T0, histories=[long_terminal, short_terminal])
+    assert view.most_recent_terminal(
+        ("BTCUSDT", "perp", LONG, TREND_PULLBACK)).terminal_state == INVALIDATED
+    assert view.most_recent_terminal(
+        ("BTCUSDT", "perp", SHORT, TREND_PULLBACK)).terminal_state == EXPIRED
+
+
+def test_two_terminal_histories_in_one_slot_fail_closed():
+    """The domain twin of the reader's RT-64-10 guard: no invented tie-break
+    when one slot is handed two terminal episodes."""
+    a = terminal_history(terminal_state=INVALIDATED, t_terminal=T0, anchor=_q(0))
+    b = terminal_history(terminal_state=COMPLETED, t_terminal=T0, anchor=_q(1))
+    assert a.episode_id != b.episode_id
+    with pytest.raises(V2EpisodeCreationError, match="two terminal episodes"):
+        V2SlotCooldownView.from_terminal_histories(as_of=T0, histories=[a, b])
+
+
+# ---- RT-64-09 / §6: ELIGIBLE is not CREATED -------------------------------
+def test_every_create_outcome_carries_a_canonical_creation_event():
+    result = route_candidates_at_boundary(
+        [comp_candidate(T=T0, anchor=_q(0), lower=100.0, upper=110.0),
+         tp_candidate(T=T0, anchor=_q(0), lower=105.0, upper=115.0),
+         cb_candidate(T=T0, anchor=_h(0), lower=200.0, upper=210.0)],
+        T=T0, occupancy=V2SlotOccupancyView(as_of=T0, active_by_slot={}),
+        cooldown=_cooldown(T=T0), authorization=_authorization(T=T0))
+    created = [o for o in result.outcomes if o.outcome == CREATE_EARLY_SIGNAL]
+    assert created, "fixture must produce at least one winner"
+    for outcome in created:
+        assert outcome.creation_event is not None
+        assert outcome.creation_event.episode_state == EARLY_SIGNAL
+    assert len(result.creation_events) == len(created)
+    assert all(event is not None for event in result.creation_events)
+
+
+def test_create_early_signal_outcome_without_an_event_is_impossible():
+    with pytest.raises(V2EpisodeCreationError, match="requires 'creation_event'"):
+        V2CandidateOutcome(candidate=tp_candidate(), outcome=CREATE_EARLY_SIGNAL)
+
+
+def test_eligible_outcome_must_not_carry_an_event():
+    event = build_early_signal_creation(
+        tp_candidate(T=T0, anchor=_q(0)), authorization=_authorization(T=T0), T=T0)
+    with pytest.raises(V2EpisodeCreationError, match="must not carry 'creation_event'"):
+        V2CandidateOutcome(
+            candidate=tp_candidate(), outcome=ELIGIBLE_FOR_CREATION, creation_event=event)
+
+
+# ---- §6: outcome field invariants ----------------------------------------
+@pytest.mark.parametrize(("outcome", "field"), [
+    (ROUTE_EXISTING_EXACT, "routed_episode_id"),
+    (ROUTE_EXISTING_NON_MATERIAL, "routed_episode_id"),
+    (SUPPRESSED_ACTIVE_SLOT, "blocking_episode_id"),
+    (SUPPRESSED_COOLDOWN, "blocking_episode_id"),
+    (SUPPRESSED_COOLDOWN, "cooldown_until"),
+    (SUPPRESSED_FAMILY_PRECEDENCE, "suppressed_by_slot"),
+    (CREATE_EARLY_SIGNAL, "creation_event"),
+])
+def test_outcome_requires_its_own_field(outcome, field):
+    kwargs = {
+        "routed_episode_id": "e" * 64, "blocking_episode_id": "f" * 64,
+        "cooldown_until": _t(3), "suppressed_by_slot": comp_candidate().slot,
+        "creation_event": build_early_signal_creation(
+            tp_candidate(T=T0, anchor=_q(0)), authorization=_authorization(T=T0), T=T0),
+        "match_class": {
+            ROUTE_EXISTING_EXACT: MATCH_EXACT,
+            ROUTE_EXISTING_NON_MATERIAL: MATCH_NON_MATERIAL,
+            SUPPRESSED_ACTIVE_SLOT: MATCH_MATERIAL,
+        }.get(outcome),
+    }
+    required = {
+        ROUTE_EXISTING_EXACT: ("routed_episode_id",),
+        ROUTE_EXISTING_NON_MATERIAL: ("routed_episode_id",),
+        SUPPRESSED_ACTIVE_SLOT: ("blocking_episode_id",),
+        SUPPRESSED_COOLDOWN: ("blocking_episode_id", "cooldown_until"),
+        SUPPRESSED_FAMILY_PRECEDENCE: ("suppressed_by_slot",),
+        CREATE_EARLY_SIGNAL: ("creation_event",),
+    }[outcome]
+    complete = {k: v for k, v in kwargs.items() if k in required or k == "match_class"}
+    # Complete is fine ...
+    V2CandidateOutcome(candidate=tp_candidate(), outcome=outcome, **complete)
+    # ... and dropping the field under test is not.
+    del complete[field]
+    with pytest.raises(V2EpisodeCreationError, match=f"requires {field!r}"):
+        V2CandidateOutcome(candidate=tp_candidate(), outcome=outcome, **complete)
+
+
+def test_outcome_rejects_a_field_belonging_to_another_outcome():
+    with pytest.raises(V2EpisodeCreationError, match="must not carry 'cooldown_until'"):
+        V2CandidateOutcome(
+            candidate=tp_candidate(), outcome=ROUTE_EXISTING_EXACT,
+            match_class=MATCH_EXACT, routed_episode_id="e" * 64, cooldown_until=_t(3))
+
+
+def test_outcome_rejects_material_classification_on_a_route():
+    """MATCH_MATERIAL is §12.3 case C: the case that EXCLUDES routing."""
+    with pytest.raises(V2EpisodeCreationError, match="reachable only from §12.3 class"):
+        V2CandidateOutcome(
+            candidate=tp_candidate(), outcome=ROUTE_EXISTING_EXACT,
+            match_class=MATCH_MATERIAL, routed_episode_id="e" * 64)
+
+
+def test_outcome_rejects_a_match_class_on_a_non_classified_outcome():
+    with pytest.raises(V2EpisodeCreationError, match="not reached through §12.3"):
+        V2CandidateOutcome(
+            candidate=tp_candidate(), outcome=SUPPRESSED_FAMILY_PRECEDENCE,
+            match_class=MATCH_EXACT, suppressed_by_slot=comp_candidate().slot)
+
+
+def test_outcome_rejects_a_non_candidate():
+    with pytest.raises(V2EpisodeCreationError, match="must be a V2CandidateFacts"):
+        V2CandidateOutcome(candidate="not a candidate", outcome=ELIGIBLE_FOR_CREATION)
+
+
+def test_outcome_rejects_an_off_grid_cooldown_until():
+    with pytest.raises(V2EpisodeCreationError, match="5m decision boundary"):
+        V2CandidateOutcome(
+            candidate=tp_candidate(), outcome=SUPPRESSED_COOLDOWN,
+            blocking_episode_id="e" * 64, cooldown_until=T0 + timedelta(minutes=2))
+
+
+# ---- §7: boundary routing result integrity --------------------------------
+def test_routing_result_rejects_an_illegal_boundary():
+    with pytest.raises(V2EpisodeCreationError, match="5m decision boundary"):
+        V2BoundaryRoutingResult(T=T0 + timedelta(minutes=2), outcomes=())
+
+
+def test_routing_result_rejects_an_outcome_from_another_boundary():
+    outcome = V2CandidateOutcome(
+        candidate=tp_candidate(T=_t(3), anchor=_q(0)), outcome=ELIGIBLE_FOR_CREATION)
+    with pytest.raises(V2EpisodeCreationError, match="does not belong to boundary"):
+        V2BoundaryRoutingResult(T=T0, outcomes=(outcome,))
+
+
+def test_routing_result_rejects_two_outcomes_for_one_slot():
+    outcome = V2CandidateOutcome(
+        candidate=tp_candidate(T=T0, anchor=_q(0)), outcome=ELIGIBLE_FOR_CREATION)
+    with pytest.raises(V2EpisodeCreationError, match="more than one outcome"):
+        V2BoundaryRoutingResult(T=T0, outcomes=(outcome, outcome))
+
+
+def test_routing_result_rejects_non_outcomes():
+    with pytest.raises(V2EpisodeCreationError, match="must contain V2CandidateOutcome"):
+        V2BoundaryRoutingResult(T=T0, outcomes=("junk",))
+
+
+def test_routing_result_freezes_its_outcomes():
+    result = V2BoundaryRoutingResult(T=T0, outcomes=[])
+    assert isinstance(result.outcomes, tuple)
+
+
+# ---- RT-64-05 / CR64-3: duplicate same-slot candidate input ---------------
+def test_duplicate_same_slot_candidates_fail_closed_before_any_routing():
+    with pytest.raises(V2EpisodeCreationError, match="two candidates share slot"):
+        route_candidates_at_boundary(
+            [tp_candidate(T=T0, anchor=_q(0)), tp_candidate(T=T0, anchor=_q(1))],
+            T=T0, occupancy=V2SlotOccupancyView(as_of=T0, active_by_slot={}),
+            cooldown=_cooldown(T=T0), authorization=_authorization(T=T0))
+
+
+def test_duplicate_same_slot_candidates_fail_closed_on_the_route_path():
+    """Previously produced TWO ROUTE outcomes for one slot at one `T`."""
+    active = existing_episode(tp_candidate(anchor=_q(0)))
+    with pytest.raises(V2EpisodeCreationError, match="two candidates share slot"):
+        route_candidates_at_boundary(
+            [tp_candidate(T=_t(1), anchor=_q(0)), tp_candidate(T=_t(1), anchor=_q(1))],
+            T=_t(1), occupancy=_occupancy(active, T=_t(1)),
+            cooldown=_cooldown(T=_t(1)), authorization=_authorization(T=_t(1)))
+
+
+def test_duplicate_same_slot_candidates_fail_closed_on_the_cooldown_path():
+    """Previously produced TWO SUPPRESSED_COOLDOWN outcomes for one slot."""
+    slot = tp_candidate().slot
+    with pytest.raises(V2EpisodeCreationError, match="two candidates share slot"):
+        route_candidates_at_boundary(
+            [tp_candidate(T=T0, anchor=_q(0)), tp_candidate(T=T0, anchor=_q(1))],
+            T=T0, occupancy=V2SlotOccupancyView(as_of=T0, active_by_slot={}),
+            cooldown=_cooldown(
+                (slot, terminal_fact(terminal_state=INVALIDATED, t_terminal=T0)), T=T0),
+            authorization=_authorization(T=T0))
+
+
+def test_distinct_slots_are_still_routed_together():
+    """The duplicate guard must not affect legitimate multi-slot batches."""
+    result = route_candidates_at_boundary(
+        [tp_candidate(T=T0, anchor=_q(0), direction=LONG, lower=100.0, upper=110.0),
+         tp_candidate(T=T0, anchor=_q(0), direction=SHORT, lower=100.0, upper=110.0)],
+        T=T0, occupancy=V2SlotOccupancyView(as_of=T0, active_by_slot={}),
+        cooldown=_cooldown(T=T0), authorization=_authorization(T=T0))
+    assert [o.outcome for o in result.outcomes] == [CREATE_EARLY_SIGNAL] * 2
+    assert len(result.creation_events) == 2
+
+
+# ---- RT-64-12: nested immutability ---------------------------------------
+def test_nested_family_facts_cannot_be_mutated_after_construction():
+    nested = {"levels": [1.0, 2.0], "meta": {"kind": "RESISTANCE"}}
+    candidate = V2CandidateFacts(
+        symbol="BTCUSDT", market_type="perp", direction=LONG,
+        setup_family=TREND_PULLBACK, T=T0, anchor_bucket=_q(0), raw_level_price=None,
+        entry_zone_lower=100.0, entry_zone_upper=110.0, invalidation_price=95.0,
+        protection_buffer=50.0, decision_tick_size=0.1, setup_strength=0.7,
+        data_confidence=0.9, family_facts=nested)
+
+    assert candidate.family_facts["levels"] == (1.0, 2.0)
+    with pytest.raises((AttributeError, TypeError)):
+        candidate.family_facts["levels"].append(99.0)
+    with pytest.raises(TypeError):
+        candidate.family_facts["meta"]["kind"] = "MUTATED"
+
+    # Mutating the ORIGINAL dict must not reach the candidate either.
+    nested["levels"].append(99.0)
+    nested["meta"]["kind"] = "MUTATED"
+    assert candidate.family_facts["levels"] == (1.0, 2.0)
+    assert candidate.family_facts["meta"]["kind"] == "RESISTANCE"
+
+
+def test_non_json_family_facts_are_rejected():
+    with pytest.raises(V2EpisodeCreationError, match="not JSON-shaped"):
+        tp_candidate_with_facts = V2CandidateFacts(
+            symbol="BTCUSDT", market_type="perp", direction=LONG,
+            setup_family=TREND_PULLBACK, T=T0, anchor_bucket=_q(0), raw_level_price=None,
+            entry_zone_lower=100.0, entry_zone_upper=110.0, invalidation_price=95.0,
+            protection_buffer=50.0, decision_tick_size=0.1, setup_strength=0.7,
+            data_confidence=0.9, family_facts={"bad": {1, 2}})
+        assert tp_candidate_with_facts is None
+
+
+def test_deeply_frozen_family_facts_still_reach_the_creation_event():
+    candidate = V2CandidateFacts(
+        symbol="BTCUSDT", market_type="perp", direction=LONG,
+        setup_family=TREND_PULLBACK, T=T0, anchor_bucket=_q(0), raw_level_price=None,
+        entry_zone_lower=100.0, entry_zone_upper=110.0, invalidation_price=95.0,
+        protection_buffer=50.0, decision_tick_size=0.1, setup_strength=0.7,
+        data_confidence=0.9, family_facts={"levels": [1.0, 2.0]})
+    event = build_early_signal_creation(
+        candidate, authorization=_authorization(T=T0), T=T0)
+    facts = event.decision_snapshot[CREATION_FACTS_KEY]["family_facts"]
+    assert facts["levels"] == (1.0, 2.0)

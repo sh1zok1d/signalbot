@@ -21,7 +21,7 @@ import pytest
 
 from analytics.forecasting_v2.episode_history import (
     HISTORY_BEFORE_T, HISTORY_THROUGH_T, V2EpisodeHistoryError,
-    build_trend_pullback_anchor,
+    build_trend_pullback_anchor, reconstruct_episode_history,
 )
 from analytics.forecasting_v2.episode_identity import compute_event_id
 from analytics.forecasting_v2.event_factory import build_v2_episode_event
@@ -370,7 +370,12 @@ def test_reader_rejects_a_row_missing_a_selected_column():
 # 7. the substrate Unit 2's cooldown rule consumes, end to end
 # ============================================================================
 def test_slot_facts_drive_the_frozen_cooldown_clock():
-    """Read the real persisted terminal fact and feed it to §12.8's rule."""
+    """Discover the slot's terminal episode in SQL, RECONSTRUCT its full
+    history through Unit 1, and only then feed §12.8's rule.
+
+    This is the canonical composition RT-64-11 requires: the reader finds
+    WHICH episode is terminal; the trusted terminal fact is derived from the
+    integrity-checked history, never from the raw latest-row summary."""
     from analytics.forecasting_v2.episode_creation import (
         V2SlotTerminalFact, evaluate_terminal_cooldown,
     )
@@ -379,11 +384,85 @@ def test_slot_facts_drive_the_frozen_cooldown_clock():
         await _seed(db, _lifecycle(
             t_create=T0, anchor_n=0, states=((0, EARLY_SIGNAL), (1, INVALIDATED))))
         row = await _latest_terminal(db, as_of=_t(50))
-        fact = V2SlotTerminalFact(
-            episode_id=row["episode_id"], terminal_state=row["episode_state"],
-            t_terminal=row["decision_boundary"])
+        scope = dict(
+            run_kind=LIVE, run_id=LIVE_RUN, episode_id=row["episode_id"],
+            as_of=_t(50), boundary_mode=HISTORY_THROUGH_T)
+        rows = await db.fetch_v2_episode_history(**scope)
+        fact = V2SlotTerminalFact(history=reconstruct_episode_history(rows, **scope))
+        assert fact.episode_id == row["episode_id"]
+        assert fact.terminal_state == row["episode_state"] == INVALIDATED
+        assert fact.t_terminal == row["decision_boundary"] == _t(1)
+        assert fact.slot == (SYMBOL, MARKET, LONG, TREND_PULLBACK)
         assert fact.earliest_eligible_boundary == _t(4)     # T_terminal(+5m) + 15m
         assert evaluate_terminal_cooldown(fact, T=_t(3)) is False
         assert evaluate_terminal_cooldown(fact, T=_t(4)) is True
+
+    _run(body)
+
+
+def test_two_terminal_episodes_at_the_same_boundary_fail_closed():
+    """RT-64-10: two same-slot episodes terminal at the SAME newest boundary
+    have no frozen tie-break, and the two terminal states carry different
+    §12.8 cooldown lengths — so the reader reports the ambiguity instead of
+    letting a lexical `episode_id` comparison silently decide eligibility."""
+    async def body(db, _dsn):
+        # Two genuinely different episodes in ONE slot (different creation
+        # anchors => different episode_ids), both terminal at T+5m with
+        # DIFFERENT terminal states.
+        await _seed(db, _lifecycle(
+            t_create=T0, anchor_n=0, states=((0, EARLY_SIGNAL), (1, INVALIDATED))))
+        await _seed(db, _lifecycle(
+            t_create=T0, anchor_n=1, states=((0, EARLY_SIGNAL), (1, EXPIRED))))
+
+        states = await _states(db, as_of=_t(50))
+        assert len(states) == 2, "fixture must persist two distinct episodes in one slot"
+        assert {r["episode_state"] for r in states} == {INVALIDATED, EXPIRED}
+        assert {r["decision_boundary"] for r in states} == {_t(1)}
+
+        with pytest.raises(V2EpisodeSlotReaderError, match="terminal at the same newest boundary"):
+            await _latest_terminal(db, as_of=_t(50))
+
+    _run(body)
+
+
+def test_same_boundary_ambiguity_is_not_broken_by_lexical_episode_id():
+    """The failure must be independent of which `episode_id` sorts higher:
+    the same ambiguity is refused whichever state belongs to the lexically
+    larger id, so no information is discarded by an ordering accident."""
+    async def body(db, _dsn):
+        await _seed(db, _lifecycle(
+            t_create=T0, anchor_n=0, states=((0, EARLY_SIGNAL), (1, INVALIDATED))))
+        await _seed(db, _lifecycle(
+            t_create=T0, anchor_n=1, states=((0, EARLY_SIGNAL), (1, EXPIRED))))
+
+        states = await _states(db, as_of=_t(50))
+        by_id = {r["episode_id"]: r["episode_state"] for r in states}
+        larger = max(by_id)
+        # Whichever state the lexically larger id happens to carry, a
+        # tie-breaking reader would have returned exactly that one.
+        assert by_id[larger] in (INVALIDATED, EXPIRED)
+        with pytest.raises(V2EpisodeSlotReaderError, match="terminal at the same newest boundary"):
+            await _latest_terminal(db, as_of=_t(50))
+
+        # An earlier `as_of` that sees only ONE of them is unambiguous and
+        # still answers -- the guard is about the tie, not about terminals.
+        one = await _latest_terminal(db, as_of=_t(1), boundary_mode=HISTORY_BEFORE_T)
+        assert one is None
+
+    _run(body)
+
+
+def test_unambiguous_newest_terminal_wins_over_an_older_one():
+    """Two terminal episodes at DIFFERENT boundaries are not ambiguous: the
+    newest logical `T_terminal` answers, and the older one is ignored."""
+    async def body(db, _dsn):
+        await _seed(db, _lifecycle(
+            t_create=T0, anchor_n=0, states=((0, EARLY_SIGNAL), (1, INVALIDATED))))
+        await _seed(db, _lifecycle(
+            t_create=_t(2), anchor_n=1, states=((2, EARLY_SIGNAL), (4, EXPIRED))))
+
+        row = await _latest_terminal(db, as_of=_t(50))
+        assert row["episode_state"] == EXPIRED
+        assert row["decision_boundary"] == _t(4)
 
     _run(body)

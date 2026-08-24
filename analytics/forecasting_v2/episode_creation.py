@@ -11,9 +11,12 @@ into exactly one deterministic outcome per candidate:
 
     route to the existing active episode   (§12.3 case A / case B)
     suppressed                             (§12.6 / §12.8 / §7.4)
-    accepted for new EARLY_SIGNAL creation (§7.4.2 winner)
+    eligible for new EARLY_SIGNAL creation (§7.4.2 winner)
 
-and then builds the canonical creation event for each winner.
+and then, when — and only when — the §3.1/§3.3/§3.4 creation gates are
+satisfied, builds the canonical creation event for each winner. Surviving
+Unit 2's eligibility rules and having an authorized episode created are
+reported as two DIFFERENT outcomes, because they are two different facts.
 
 **What this module is NOT.** It never re-runs a Stage 5 detector, never
 synthesizes a candidate a detector did not actually produce at `T`
@@ -72,9 +75,11 @@ from analytics.forecasting_v2.decision_provenance import V2DecisionProvenance
 from analytics.forecasting_v2.decision_view import V2DecisionView
 from analytics.forecasting_v2.episode_history import (
     ANCHOR_BUCKET_TS, TERMINAL_EPISODE_STATES,
-    V2EpisodeCreationIdentity, V2EpisodeHistory, build_compression_breakout_anchor,
+    V2EpisodeCreationIdentity, V2EpisodeHistory, V2EpisodeHistoryError,
+    build_compression_breakout_anchor,
     build_confirmed_breakout_anchor, build_trend_pullback_anchor,
-    canonical_decimal_text, normalize_price_to_tick,
+    canonical_decimal_text, deep_freeze_json, family_anchor_timeframe,
+    normalize_price_to_tick, validate_family_anchor_bucket,
 )
 from analytics.forecasting_v2.event_factory import build_v2_episode_event
 from analytics.forecasting_v2.events import (
@@ -93,7 +98,7 @@ __all__ = [
     "DECISION_BUCKET",
     "ROUTE_EXISTING_EXACT", "ROUTE_EXISTING_NON_MATERIAL",
     "SUPPRESSED_ACTIVE_SLOT", "SUPPRESSED_COOLDOWN", "SUPPRESSED_FAMILY_PRECEDENCE",
-    "CREATE_EARLY_SIGNAL", "CANDIDATE_OUTCOMES",
+    "ELIGIBLE_FOR_CREATION", "CREATE_EARLY_SIGNAL", "CANDIDATE_OUTCOMES",
     "MATCH_EXACT", "MATCH_NON_MATERIAL", "MATCH_MATERIAL", "MATCH_CLASSES",
     "CREATION_FACTS_KEY", "PRECEDENCE_CROSSREF_KEY",
     "V2CandidateFacts", "V2CandidateOutcome",
@@ -148,11 +153,17 @@ ROUTE_EXISTING_NON_MATERIAL = "ROUTE_EXISTING_NON_MATERIAL"      # §12.3 case B
 SUPPRESSED_ACTIVE_SLOT = "SUPPRESSED_ACTIVE_SLOT"                # §12.3 case C / §12.6
 SUPPRESSED_COOLDOWN = "SUPPRESSED_COOLDOWN"                      # §12.8
 SUPPRESSED_FAMILY_PRECEDENCE = "SUPPRESSED_FAMILY_PRECEDENCE"    # §7.4.2
-CREATE_EARLY_SIGNAL = "CREATE_EARLY_SIGNAL"                      # §7.4.2 winner
+# §7.4.2 winner, evaluated WITHOUT the §3.1/§3.3/§3.4 creation gates: this
+# candidate survived every Unit 2 eligibility rule, and nothing more. It is
+# deliberately a DIFFERENT outcome from CREATE_EARLY_SIGNAL, because
+# "eligible" and "an authorized canonical episode was created" are different
+# facts and only the second one may ever carry a persisted event.
+ELIGIBLE_FOR_CREATION = "ELIGIBLE_FOR_CREATION"
+CREATE_EARLY_SIGNAL = "CREATE_EARLY_SIGNAL"                      # §7.4.2 winner, authorized
 CANDIDATE_OUTCOMES = (
     ROUTE_EXISTING_EXACT, ROUTE_EXISTING_NON_MATERIAL,
     SUPPRESSED_ACTIVE_SLOT, SUPPRESSED_COOLDOWN, SUPPRESSED_FAMILY_PRECEDENCE,
-    CREATE_EARLY_SIGNAL,
+    ELIGIBLE_FOR_CREATION, CREATE_EARLY_SIGNAL,
 )
 
 # ---- §12.3 classification classes ------------------------------------------
@@ -195,6 +206,53 @@ def _validate_decision_boundary_T(value: Any, name: str) -> datetime:
     return value
 
 
+def _validate_family_anchor(value: Any, name: str, *, setup_family: str) -> datetime:
+    """A candidate's §12.1 structural-anchor bucket, held to the SAME
+    canonical family grid the creation-side builders enforce.
+
+    Being a `datetime` is not being an anchor. `TREND_PULLBACK` and
+    `COMPRESSION_BREAKOUT` anchors are exact 15m bucket starts;
+    `CONFIRMED_BREAKOUT`'s is an exact 1h bucket start (§12.1). A `12:15`
+    "1h anchor", a `12:00:00.000001`, or a naive timestamp is malformed
+    input — never something to carry into §12.3's A/B/C classification,
+    where an off-grid `CONFIRMED_BREAKOUT` anchor would silently reach the
+    price-drift branch and a naive `TREND_PULLBACK` anchor would leak a raw
+    `TypeError` out of aware/naive subtraction.
+
+    Delegated to Unit 1's `validate_family_anchor_bucket()` so construction
+    (this unit's own creation builders) and comparison (§12.4's bucket
+    distance) can never disagree about which grid a family lives on. Every
+    failure — including an adversarial `tzinfo` — is translated into this
+    module's own `V2EpisodeCreationError`, with chaining."""
+    try:
+        return validate_family_anchor_bucket(value, name, setup_family=setup_family)
+    except V2EpisodeHistoryError as exc:
+        raise V2EpisodeCreationError(
+            f"{name} is not a legal {setup_family} structural anchor "
+            f"({family_anchor_timeframe(setup_family)} bucket start, §12.1): {exc}") from exc
+    except V2AlignmentError as exc:
+        raise V2EpisodeCreationError(
+            f"{name} is not a legal {setup_family} structural anchor: {exc}") from exc
+    except Exception as exc:  # noqa: BLE001 - adversarial tzinfo etc., never leaked raw
+        raise V2EpisodeCreationError(
+            f"{name} failed {setup_family} structural-anchor validation: "
+            f"{type(exc).__name__}: {exc}") from exc
+
+
+def _freeze_json(value: Any, name: str) -> Any:
+    """Deep-freeze one JSON-shaped payload under Unit 1's single freeze
+    semantics, re-raising in this module's error hierarchy.
+
+    A shallow `MappingProxyType(dict(...))` would leave nested lists/dicts
+    mutable, so a caller could still change a candidate's semantic contents
+    after construction — exactly what a frozen dataclass exists to
+    prevent."""
+    try:
+        return deep_freeze_json(value, name)
+    except V2EpisodeHistoryError as exc:
+        raise V2EpisodeCreationError(f"{name} is not JSON-shaped: {exc}") from exc
+
+
 def _positive_finite(value: Any, name: str) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise V2EpisodeCreationError(f"{name} must be a real number, got {type(value).__name__}")
@@ -235,7 +293,10 @@ class V2CandidateFacts:
 
     `anchor_bucket` is the family's §12.1 structural anchor bucket: the 15m
     `trend_leg_extreme`/`compression_start_bucket` for the two 15m-anchored
-    families, the 1h `level_anchor_bucket` for `CONFIRMED_BREAKOUT`.
+    families, the 1h `level_anchor_bucket` for `CONFIRMED_BREAKOUT`. It is
+    validated against that family's canonical grid AT CONSTRUCTION (see
+    `_validate_family_anchor`), so no downstream rule ever has to ask
+    whether the anchor it was handed is a real bucket start.
     `raw_level_price` is populated for `CONFIRMED_BREAKOUT` only, at Stage
     5's full stored precision — §12.5's ordering constraint forbids
     normalizing before Stage 5's own extreme selection, so normalization
@@ -267,9 +328,8 @@ class V2CandidateFacts:
         one_of(self.setup_family, "setup_family", SETUP_FAMILIES, V2EpisodeCreationError)
         _validate_decision_boundary_T(self.T, "T")
 
-        if not isinstance(self.anchor_bucket, datetime):
-            raise V2EpisodeCreationError(
-                f"anchor_bucket must be a datetime, got {type(self.anchor_bucket).__name__}")
+        object.__setattr__(self, "anchor_bucket", _validate_family_anchor(
+            self.anchor_bucket, "anchor_bucket", setup_family=self.setup_family))
         if self.setup_family == CONFIRMED_BREAKOUT:
             if self.raw_level_price is None:
                 raise V2EpisodeCreationError(
@@ -296,7 +356,8 @@ class V2CandidateFacts:
         if not isinstance(self.family_facts, Mapping):
             raise V2EpisodeCreationError(
                 f"family_facts must be a Mapping, got {type(self.family_facts).__name__}")
-        object.__setattr__(self, "family_facts", MappingProxyType(dict(self.family_facts)))
+        object.__setattr__(
+            self, "family_facts", _freeze_json(self.family_facts, "family_facts"))
 
     @property
     def slot(self) -> "tuple[str, str, str, str]":
@@ -447,8 +508,39 @@ class V2SlotOccupancyView:
                         f"active_by_slot[{slot!r}] contains episode {entry.episode_id!r} whose "
                         f"persisted state is {entry.current_state!r} -- surviving_active_set(T) "
                         "holds only NON-terminal episodes (§13.4 step 3a)")
+                # An episode filed under a slot that is not its own would
+                # make its TRUE slot look empty: the §12.6 occupancy lookup
+                # is by slot key, so a mis-keyed active episode is never
+                # consulted and a second episode could be created in a slot
+                # that is genuinely occupied. Classification cannot catch
+                # that, because the mis-keyed history is never looked up.
+                # Rejected here, eagerly, never lazily on access.
+                if entry.creation_identity.slot != slot:
+                    raise V2EpisodeCreationError(
+                        f"active_by_slot[{slot!r}] contains episode {entry.episode_id!r} whose own "
+                        f"creation slot is {entry.creation_identity.slot!r} -- an episode filed "
+                        "under a foreign slot would make its real slot appear empty (§12.6)")
             frozen[slot] = entries
         object.__setattr__(self, "active_by_slot", MappingProxyType(frozen))
+
+    @classmethod
+    def from_histories(
+        cls, *, as_of: datetime, histories: Sequence[V2EpisodeHistory],
+    ) -> "V2SlotOccupancyView":
+        """Build the view by keying each history under ITS OWN creation slot.
+
+        The misbinding-proof constructor: the caller cannot supply a key at
+        all, so `RT-64-06`'s failure mode is unreachable rather than merely
+        detected. The explicit `active_by_slot` constructor stays available
+        (a caller reconstructing a persisted map still needs it) and
+        validates the same invariant."""
+        by_slot: dict = {}
+        for entry in histories:
+            if not isinstance(entry, V2EpisodeHistory):
+                raise V2EpisodeCreationError(
+                    f"histories must contain V2EpisodeHistory, got {type(entry).__name__}")
+            by_slot.setdefault(entry.creation_identity.slot, []).append(entry)
+        return cls(as_of=as_of, active_by_slot=by_slot)
 
     def active_episode(self, slot) -> Optional[V2EpisodeHistory]:
         """The single active episode occupying `slot`, or `None`.
@@ -471,16 +563,64 @@ class V2SlotOccupancyView:
 class V2SlotTerminalFact:
     """One slot's MOST RECENT terminal episode as of `T` (§13.4 step 3b):
     the terminal state and its `T_terminal` (§12.8: "the decision boundary
-    of the terminal event")."""
-    episode_id: str
-    terminal_state: str
-    t_terminal: datetime
+    of the terminal event").
+
+    **Carries the whole reconstructed history, not a latest-row summary.**
+    A raw `(episode_id, episode_state, decision_boundary)` projection of the
+    newest row in a slot can LOOK like a valid terminal episode while the
+    full persisted history it summarizes is impossible — an illegal §13.2
+    transition, a creation identity that drifts mid-episode, two events at
+    one boundary. Unit 1's `reconstruct_episode_history()` rejects all of
+    those; a naked summary does not. Since a terminal fact suppresses
+    creation for up to three boundaries (§12.8), accepting an unvalidated
+    one would let corrupt storage silently block real signals, so the only
+    way to obtain this type is to hand it a history that already passed
+    Unit 1's integrity checks.
+
+    Storage stays a low-level discovery/projection layer:
+    `storage/v2_episode_slot_readers.py` finds WHICH episodes a slot holds;
+    the analytics layer reconstructs each one through Unit 1 and only then
+    wraps it here. `episode_id`, `terminal_state`, `t_terminal` and `slot`
+    are derived properties of that validated history — none of them can be
+    set independently of it, so a fact can never describe a different
+    episode than the one it proves."""
+    history: V2EpisodeHistory
 
     def __post_init__(self) -> None:
-        nonblank(self.episode_id, "episode_id", V2EpisodeCreationError)
-        one_of(self.terminal_state, "terminal_state", TERMINAL_EPISODE_STATES,
+        if not isinstance(self.history, V2EpisodeHistory):
+            raise V2EpisodeCreationError(
+                "history must be a V2EpisodeHistory reconstructed through Unit 1 -- a terminal "
+                "fact is only trustworthy if the whole persisted episode it summarizes was "
+                f"proven valid; got {type(self.history).__name__}")
+        if not self.history.is_terminal:
+            raise V2EpisodeCreationError(
+                f"episode {self.history.episode_id!r} is {self.history.current_state!r}, which is "
+                "not a terminal state -- §13.4 step 3b's cooldown view holds only terminal "
+                "episodes")
+        one_of(self.history.current_state, "terminal_state", TERMINAL_EPISODE_STATES,
                V2EpisodeCreationError)
-        _validate_decision_boundary_T(self.t_terminal, "t_terminal")
+        _validate_decision_boundary_T(self.history.terminal_boundary, "t_terminal")
+
+    @property
+    def episode_id(self) -> str:
+        return self.history.episode_id
+
+    @property
+    def terminal_state(self) -> str:
+        return self.history.current_state
+
+    @property
+    def t_terminal(self) -> datetime:
+        """§12.8's `T_terminal`: the decision boundary of the terminal
+        event, read off the validated history rather than accepted from a
+        caller."""
+        return self.history.terminal_boundary
+
+    @property
+    def slot(self) -> "tuple[str, str, str, str]":
+        """The frozen §12.3 slot this terminal episode was CREATED in — its
+        immutable creation identity, not a caller-supplied label."""
+        return self.history.creation_identity.slot
 
     @property
     def earliest_eligible_boundary(self) -> datetime:
@@ -519,6 +659,16 @@ class V2SlotCooldownView:
                 raise V2EpisodeCreationError(
                     f"terminal_by_slot[{slot!r}] must be a V2SlotTerminalFact, got "
                     f"{type(fact).__name__}")
+            # A terminal episode from slot B filed under key A would make A's
+            # candidates serve B's cooldown -- and the two slots can carry
+            # different terminal states, hence different §12.8 durations.
+            # The fact's slot comes from its own validated creation identity,
+            # so this is a real cross-check, not caller discipline.
+            if fact.slot != slot:
+                raise V2EpisodeCreationError(
+                    f"terminal_by_slot[{slot!r}] holds episode {fact.episode_id!r} whose own "
+                    f"creation slot is {fact.slot!r} -- a terminal fact may only serve the slot "
+                    "its episode actually belongs to (§12.8/§13.4 step 3b)")
             if fact.t_terminal > self.as_of:
                 raise V2EpisodeCreationError(
                     f"terminal_by_slot[{slot!r}] has t_terminal "
@@ -526,6 +676,34 @@ class V2SlotCooldownView:
                     "a future terminal event cannot be part of this boundary's cooldown view")
             frozen[slot] = fact
         object.__setattr__(self, "terminal_by_slot", MappingProxyType(frozen))
+
+    @classmethod
+    def from_terminal_histories(
+        cls, *, as_of: datetime, histories: Sequence[V2EpisodeHistory],
+    ) -> "V2SlotCooldownView":
+        """Build the view by keying each terminal episode under ITS OWN
+        creation slot.
+
+        The misbinding-proof constructor (the cooldown twin of
+        `V2SlotOccupancyView.from_histories`). Two terminal histories in one
+        slot FAIL CLOSED rather than one silently winning: §13.4 step 3b
+        asks for a slot's single most-recent terminal episode, and the
+        analytics layer must not invent a tie-break when its input already
+        contains an ambiguity (the durations differ per terminal state, so
+        the arbitrary winner changes creation eligibility)."""
+        by_slot: dict = {}
+        for entry in histories:
+            fact = V2SlotTerminalFact(history=entry)
+            existing = by_slot.get(fact.slot)
+            if existing is not None:
+                raise V2EpisodeCreationError(
+                    f"slot {fact.slot!r} was given two terminal episodes "
+                    f"({existing.episode_id!r} @ {existing.t_terminal.isoformat()} and "
+                    f"{fact.episode_id!r} @ {fact.t_terminal.isoformat()}) -- §13.4 step 3b wants "
+                    "ONE most-recent terminal episode per slot; resolving this by picking one "
+                    "would change §12.8 eligibility on an arbitrary basis")
+            by_slot[fact.slot] = fact
+        return cls(as_of=as_of, terminal_by_slot=by_slot)
 
     def most_recent_terminal(self, slot) -> Optional[V2SlotTerminalFact]:
         return self.terminal_by_slot.get(slot)
@@ -542,7 +720,14 @@ def _anchor_bucket_distance(creation_anchor: datetime, candidate_anchor: datetim
     `abs(C - A).total_seconds() / 900` comparison, which is equivalent here
     but is not the frozen form." A pair of anchors whose separation is not
     a whole number of 15m buckets is malformed and is rejected, never
-    coerced."""
+    coerced.
+
+    Both inputs are now grid-validated before reaching here (the candidate
+    at construction, the creation anchor in `_creation_anchor_bucket`), so
+    the remainder branch is unreachable by construction. It is kept as a
+    structural assertion rather than deleted: it states the invariant the
+    integer arithmetic below depends on, at the exact place that depends on
+    it."""
     delta = abs(candidate_anchor - creation_anchor)
     buckets, remainder = divmod(delta, _ANCHOR_BUCKET_WIDTH)
     if remainder:
@@ -554,12 +739,32 @@ def _anchor_bucket_distance(creation_anchor: datetime, candidate_anchor: datetim
 
 
 def _creation_anchor_bucket(creation: V2EpisodeCreationIdentity) -> datetime:
+    """The active episode's persisted creation anchor bucket, as a datetime.
+
+    Unit 1's `reconstruct_episode_history()` already parses and family-grid
+    validates this field, so on every production path the value is known
+    good by the time it reaches here. This function nevertheless refuses to
+    let a raw `ValueError`/`TypeError` escape from its own parse: it is
+    public-module code, a `V2EpisodeCreationIdentity` is constructible
+    directly, and this module's callers are entitled to one error
+    hierarchy. It re-validates the family grid for the same reason — cheap,
+    and it guarantees `_anchor_bucket_distance()` can never be handed a
+    naive datetime to subtract from an aware one. It does NOT re-run Unit
+    1's semantic reconstruction; that stays where it belongs."""
     raw = creation.structural_anchor.get(ANCHOR_BUCKET_TS)
     if not isinstance(raw, str):
         raise V2EpisodeCreationError(
             f"episode {creation.episode_id!r} has no usable persisted "
             f"structural_anchor.{ANCHOR_BUCKET_TS}")
-    return datetime.fromisoformat(raw)
+    try:
+        parsed = datetime.fromisoformat(raw)
+    except (TypeError, ValueError) as exc:
+        raise V2EpisodeCreationError(
+            f"episode {creation.episode_id!r}'s persisted structural_anchor."
+            f"{ANCHOR_BUCKET_TS}={raw!r} is not a parseable ISO-8601 datetime: {exc}") from exc
+    return _validate_family_anchor(
+        parsed, f"episode {creation.episode_id!r}'s persisted structural_anchor."
+        f"{ANCHOR_BUCKET_TS}", setup_family=creation.setup_family)
 
 
 def classify_candidate_against_active_episode(
@@ -695,8 +900,10 @@ def arbitrate_new_candidates(
     Because the walk is precedence-ordered and each step compares only
     against already-accepted candidates, the result is independent of any
     incidental input ordering. Ties within one family+direction cannot
-    occur here: a slot holds at most one creation-eligible candidate by
-    construction (§12.6), and that is asserted rather than assumed.
+    occur here: two candidates in one slot would be an ambiguous input with
+    no frozen tie-break, so that is asserted rather than assumed. (Input
+    integrity, not a frozen cardinality rule — §12.6 freezes at most one
+    ACTIVE EPISODE per slot and is silent on candidates.)
 
     Returns `(accepted, suppressed_by_winner)` where `suppressed_by_winner`
     maps each winner's slot to the tuple of candidates suppressed against
@@ -710,8 +917,8 @@ def arbitrate_new_candidates(
         if candidate.slot in seen_slots:
             raise V2EpisodeCreationError(
                 f"two creation-eligible candidates share slot {candidate.slot!r} at one decision "
-                "boundary -- §12.6 allows at most one episode per slot, so this input is "
-                "impossible, never arbitrated by an invented tie-break")
+                "boundary -- §7.4 freezes no tie-break within one family+direction, so this "
+                "input is refused rather than arbitrated by an invented rule")
         seen_slots.add(candidate.slot)
         ordered.append(candidate)
 
@@ -836,12 +1043,23 @@ class V2CreationAuthorization:
          which is the ONLY thing that authorizes creation; during a drain
          `active_for_new_creation(state)` is `None`, so neither OLD nor NEW
          may create.
-      3. **Stage 2 publication CLEAN** (§3.4) — proven by the caller
-         having successfully opened an H2e coherent read session for this
-         exact scope/version/boundary (which raises
-         `V2PublicationDirtyError` rather than yielding when the scope is
-         STALE). It is passed here as an explicit acknowledgement so the
-         guard cannot be silently skipped.
+      3. **Stage 2 publication CLEAN** (§3.4) — a caller ACKNOWLEDGEMENT,
+         not a proof. What this unit guarantees is exactly one thing: it
+         refuses to build anything unless `publication_clean is True`, so
+         the guard cannot be silently skipped or defaulted away. It does
+         NOT and cannot verify that an H2e coherent read session was really
+         opened for this scope/version/boundary — the frozen contract
+         defines no capability token for that, and inventing one here would
+         couple pure Unit 2 to the database.
+
+         **Unit 5 composition obligation (recorded, not implemented):** the
+         production coordinator must produce this acknowledgement ONLY from
+         inside a successfully-opened H2e coherent read session for the
+         exact same `(symbol, market_type, calculation_version,
+         decision_boundary)` scope — the session that raises
+         `V2PublicationDirtyError` instead of yielding when the scope is
+         STALE. No runtime composition exists yet (Unit 2 is not wired), so
+         no caller can currently get this wrong in production.
 
     Constructing this object is the only way to reach
     `build_early_signal_creation()`, so a caller cannot accidentally create
@@ -862,8 +1080,10 @@ class V2CreationAuthorization:
         if self.publication_clean is not True:
             raise V2EpisodeCreationError(
                 "publication_clean must be True -- §3.4 requires the Stage 2 publication state "
-                "for this scope/version to be CLEAN before a new episode may be created; a "
-                "caller proves this by having opened an H2e coherent read session")
+                "for this scope/version to be CLEAN before a new episode may be created. This "
+                "check enforces the acknowledgement; establishing that it is only produced "
+                "inside a successful H2e coherent CLEAN session for this exact scope/T is the "
+                "composing caller's (Unit 5's) obligation")
         if not self.decision_view.ready:
             not_ready = tuple(
                 status.requirement for status in self.decision_view.readiness.statuses
@@ -1010,6 +1230,42 @@ def build_early_signal_creation(
 # ============================================================================
 # the one small compositional service
 # ============================================================================
+# For each outcome: the fields it REQUIRES, and the §12.3 match class it
+# must carry (None = must carry none). Every optional field not named as
+# required for an outcome must be absent on that outcome -- the table is
+# read both ways, so a contradictory combination has no unchecked corner.
+_OUTCOME_REQUIRED_FIELDS = MappingProxyType({
+    ROUTE_EXISTING_EXACT: ("routed_episode_id",),
+    ROUTE_EXISTING_NON_MATERIAL: ("routed_episode_id",),
+    SUPPRESSED_ACTIVE_SLOT: ("blocking_episode_id",),
+    SUPPRESSED_COOLDOWN: ("blocking_episode_id", "cooldown_until"),
+    SUPPRESSED_FAMILY_PRECEDENCE: ("suppressed_by_slot",),
+    ELIGIBLE_FOR_CREATION: (),
+    CREATE_EARLY_SIGNAL: ("creation_event",),
+})
+assert set(_OUTCOME_REQUIRED_FIELDS) == set(CANDIDATE_OUTCOMES)
+
+# §12.3's classification is meaningful for exactly the three outcomes that
+# were REACHED through it; anything else carrying a match class is claiming
+# a classification that never happened (e.g. MATCH_MATERIAL + ROUTE, which
+# would assert "case C, and also routed to the episode case C excludes").
+_OUTCOME_MATCH_CLASS = MappingProxyType({
+    ROUTE_EXISTING_EXACT: MATCH_EXACT,
+    ROUTE_EXISTING_NON_MATERIAL: MATCH_NON_MATERIAL,
+    SUPPRESSED_ACTIVE_SLOT: MATCH_MATERIAL,
+    SUPPRESSED_COOLDOWN: None,
+    SUPPRESSED_FAMILY_PRECEDENCE: None,
+    ELIGIBLE_FOR_CREATION: None,
+    CREATE_EARLY_SIGNAL: None,
+})
+assert set(_OUTCOME_MATCH_CLASS) == set(CANDIDATE_OUTCOMES)
+
+_OUTCOME_OPTIONAL_FIELDS = (
+    "routed_episode_id", "blocking_episode_id", "cooldown_until",
+    "suppressed_by_slot", "creation_event",
+)
+
+
 @dataclass(frozen=True)
 class V2CandidateOutcome:
     """One candidate's deterministic Unit 2 outcome at `T`.
@@ -1019,7 +1275,14 @@ class V2CandidateOutcome:
     `CREATE_EARLY_SIGNAL`; `blocking_episode_id`/`cooldown_until` only for
     the corresponding suppression. Nothing here is persisted state — a
     suppression outcome is an ephemeral decision, never a queue entry
-    (§12.7)."""
+    (§12.7).
+
+    The combination is validated, not merely documented: this type is
+    public and directly constructible, and a result that reads
+    `CREATE_EARLY_SIGNAL` with no event, or `ROUTE_EXISTING_EXACT` with no
+    episode to route to, or `MATCH_MATERIAL` alongside a ROUTE outcome, is
+    self-contradictory. Each outcome names exactly the fields it requires,
+    and every other field must be absent."""
     candidate: V2CandidateFacts
     outcome: str
     match_class: Optional[str] = None
@@ -1030,23 +1293,103 @@ class V2CandidateOutcome:
     creation_event: Optional[V2EpisodeEvent] = None
 
     def __post_init__(self) -> None:
+        if not isinstance(self.candidate, V2CandidateFacts):
+            raise V2EpisodeCreationError(
+                f"candidate must be a V2CandidateFacts, got {type(self.candidate).__name__}")
         one_of(self.outcome, "outcome", CANDIDATE_OUTCOMES, V2EpisodeCreationError)
-        if self.match_class is not None:
+
+        expected_class = _OUTCOME_MATCH_CLASS[self.outcome]
+        if expected_class is None:
+            if self.match_class is not None:
+                raise V2EpisodeCreationError(
+                    f"outcome {self.outcome!r} was not reached through §12.3 classification, so "
+                    f"it must carry no match_class; got {self.match_class!r}")
+        else:
             one_of(self.match_class, "match_class", MATCH_CLASSES, V2EpisodeCreationError)
+            if self.match_class != expected_class:
+                raise V2EpisodeCreationError(
+                    f"outcome {self.outcome!r} is reachable only from §12.3 class "
+                    f"{expected_class!r}, got {self.match_class!r}")
+
+        required = _OUTCOME_REQUIRED_FIELDS[self.outcome]
+        for field in _OUTCOME_OPTIONAL_FIELDS:
+            value = getattr(self, field)
+            if field in required:
+                if value is None:
+                    raise V2EpisodeCreationError(
+                        f"outcome {self.outcome!r} requires {field!r}, got None")
+            elif value is not None:
+                raise V2EpisodeCreationError(
+                    f"outcome {self.outcome!r} must not carry {field!r} "
+                    f"({value!r}) -- that field belongs to a different outcome")
+
+        if self.creation_event is not None and not isinstance(
+                self.creation_event, V2EpisodeEvent):
+            raise V2EpisodeCreationError(
+                f"creation_event must be a V2EpisodeEvent, got "
+                f"{type(self.creation_event).__name__}")
+        if self.cooldown_until is not None:
+            _validate_decision_boundary_T(self.cooldown_until, "cooldown_until")
+        for field in ("routed_episode_id", "blocking_episode_id"):
+            value = getattr(self, field)
+            if value is not None:
+                nonblank(value, field, V2EpisodeCreationError)
+        if self.suppressed_by_slot is not None and not (
+                isinstance(self.suppressed_by_slot, tuple)
+                and len(self.suppressed_by_slot) == 4):
+            raise V2EpisodeCreationError(
+                f"suppressed_by_slot must be a 4-tuple slot, got {self.suppressed_by_slot!r}")
 
 
 @dataclass(frozen=True)
 class V2BoundaryRoutingResult:
     """Every candidate's outcome at one decision boundary, plus the
-    creation events to persist (winners only)."""
+    creation events to persist (winners only).
+
+    Public and directly constructible, so its own coherence is checked
+    rather than assumed: `T` is a legal 5m boundary, every outcome belongs
+    to a candidate at THAT boundary, and no slot appears twice (routing
+    rejects duplicate same-slot input, and a §7.4.2 loser is by definition
+    in a different family — hence a different slot — from its winner).
+
+    Public tuple ORDER is deliberately not constrained. §7.4/§7.4.2 freeze
+    which candidates win, not the order a Python tuple reports them in;
+    inventing a sort here would add a rule the contract does not have."""
     T: datetime
     outcomes: "tuple[V2CandidateOutcome, ...]"
 
+    def __post_init__(self) -> None:
+        _validate_decision_boundary_T(self.T, "T")
+        if isinstance(self.outcomes, (str, bytes)) or not isinstance(self.outcomes, Sequence):
+            raise V2EpisodeCreationError(
+                f"outcomes must be a sequence of V2CandidateOutcome, got "
+                f"{type(self.outcomes).__name__}")
+        seen_slots = set()
+        for outcome in self.outcomes:
+            if not isinstance(outcome, V2CandidateOutcome):
+                raise V2EpisodeCreationError(
+                    f"outcomes must contain V2CandidateOutcome, got {type(outcome).__name__}")
+            if outcome.candidate.T != self.T:
+                raise V2EpisodeCreationError(
+                    f"outcome for candidate at {outcome.candidate.T.isoformat()!r} does not belong "
+                    f"to boundary {self.T.isoformat()!r} -- one result describes exactly one "
+                    "logical decision boundary")
+            slot = outcome.candidate.slot
+            if slot in seen_slots:
+                raise V2EpisodeCreationError(
+                    f"slot {slot!r} appears in more than one outcome at "
+                    f"{self.T.isoformat()!r} -- one slot yields at most one Unit 2 outcome per "
+                    "boundary")
+            seen_slots.add(slot)
+        object.__setattr__(self, "outcomes", tuple(self.outcomes))
+
     @property
     def creation_events(self) -> "tuple[V2EpisodeEvent, ...]":
+        """The canonical creation events to persist. `CREATE_EARLY_SIGNAL`
+        always carries one (`V2CandidateOutcome` refuses the combination
+        otherwise), so this never silently drops a winner."""
         return tuple(
-            o.creation_event for o in self.outcomes
-            if o.outcome == CREATE_EARLY_SIGNAL and o.creation_event is not None)
+            o.creation_event for o in self.outcomes if o.outcome == CREATE_EARLY_SIGNAL)
 
 
 def route_candidates_at_boundary(
@@ -1068,9 +1411,22 @@ def route_candidates_at_boundary(
       4. Build ONE canonical creation event per winner.
 
     `authorization` may be omitted to evaluate routing without creating
-    anything (the eligibility answer is still exact); winners then carry no
-    `creation_event`, and no event is ever fabricated without the §3.1/
-    §3.3/§3.4 guards.
+    anything. Winners are then reported as `ELIGIBLE_FOR_CREATION`, NOT as
+    `CREATE_EARLY_SIGNAL`: "this candidate survived every Unit 2
+    eligibility rule" and "an authorized canonical episode was created" are
+    different facts, and only the second one is ever accompanied by an
+    event. No event is fabricated without the §3.1/§3.3/§3.4 guards, and no
+    result claims a creation that did not happen.
+
+    Duplicate same-slot candidates are rejected up front, before any
+    occupancy or cooldown work. This is API input-integrity hardening, not
+    a frozen product rule: §12.6 freezes at most one ACTIVE EPISODE per
+    slot and says nothing about candidate cardinality. The justification is
+    that every canonical Stage 5 detector yields at most one candidate per
+    family evaluation, so a repeated slot is a caller defect — and left
+    unchecked it would produce two ROUTE (or two SUPPRESSED_COOLDOWN)
+    outcomes for one slot at one boundary, which no downstream consumer can
+    interpret. Failing closed beats silently deduplicating.
 
     This is NOT §13.4's full eight-step coordinator: it does not resolve
     lifecycle transitions, does not derive `surviving_active_set(T)` (it
@@ -1089,8 +1445,10 @@ def route_candidates_at_boundary(
                 f"{name} view was resolved for {view.as_of.isoformat()!r}, not "
                 f"{T.isoformat()!r} -- §13.4's views are fixed at THIS boundary")
 
-    outcomes: list = []
-    creation_eligible: list = []
+    # Input integrity FIRST: validate the whole batch before any candidate
+    # is routed, so a malformed batch can never be half-processed.
+    checked: list = []
+    seen_slots: dict = {}
     for candidate in candidates:
         if not isinstance(candidate, V2CandidateFacts):
             raise V2EpisodeCreationError(
@@ -1099,7 +1457,19 @@ def route_candidates_at_boundary(
             raise V2EpisodeCreationError(
                 f"candidate.T {candidate.T.isoformat()!r} does not equal the decision boundary "
                 f"{T.isoformat()!r}")
+        if candidate.slot in seen_slots:
+            raise V2EpisodeCreationError(
+                f"two candidates share slot {candidate.slot!r} at decision boundary "
+                f"{T.isoformat()!r} -- one slot yields at most one Unit 2 outcome per boundary, "
+                "and every canonical Stage 5 detector produces at most one candidate per family "
+                "evaluation, so this input is a caller defect; it is refused rather than "
+                "silently deduplicated (API input integrity, not a §12.6 cardinality claim)")
+        seen_slots[candidate.slot] = candidate
+        checked.append(candidate)
 
+    outcomes: list = []
+    creation_eligible: list = []
+    for candidate in checked:
         active = occupancy.active_episode(candidate.slot)
         if active is not None:
             match = classify_candidate_against_active_episode(candidate, active)
@@ -1135,12 +1505,14 @@ def route_candidates_at_boundary(
     for candidate in creation_eligible:
         if candidate.slot not in accepted_slots:
             continue
-        event = None
-        if authorization is not None:
-            event = build_early_signal_creation(
-                candidate, authorization=authorization, T=T,
-                suppressed_by_precedence=suppressed_by_winner.get(candidate.slot, ()))
+        if authorization is None:
+            outcomes.append(V2CandidateOutcome(
+                candidate=candidate, outcome=ELIGIBLE_FOR_CREATION))
+            continue
         outcomes.append(V2CandidateOutcome(
-            candidate=candidate, outcome=CREATE_EARLY_SIGNAL, creation_event=event))
+            candidate=candidate, outcome=CREATE_EARLY_SIGNAL,
+            creation_event=build_early_signal_creation(
+                candidate, authorization=authorization, T=T,
+                suppressed_by_precedence=suppressed_by_winner.get(candidate.slot, ()))))
 
     return V2BoundaryRoutingResult(T=T, outcomes=tuple(outcomes))
