@@ -2157,6 +2157,47 @@ class Database:
                 conn, run_kind=run_kind, run_id=run_id, episode_id=episode_id,
                 as_of=as_of, boundary_mode=boundary_mode)
 
+    async def fetch_v2_slot_episode_states(
+        self, *, run_kind: str, run_id: str, symbol: str, market_type: str,
+        direction: str, setup_family: str, as_of: datetime, boundary_mode: str,
+    ) -> "tuple[Mapping, ...]":
+        """Read-only (Stage 6 Unit 2): every episode in one
+        `(execution_stream, slot)` with its LATEST persisted
+        `episode_state` and that state's own `decision_boundary`, as of
+        `as_of` under `boundary_mode`.
+
+        `slot` is §12.3's `(symbol, market_type, direction, setup_family)`.
+        `run_kind`/`run_id` are mandatory (§12.10) and `boundary_mode` has
+        no default (§13.4's two windows). See
+        `storage/v2_episode_slot_readers.py::read_v2_slot_episode_states`
+        for the full contract."""
+        from storage.v2_episode_slot_readers import read_v2_slot_episode_states
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_v2_slot_episode_states(
+                conn, run_kind=run_kind, run_id=run_id, symbol=symbol,
+                market_type=market_type, direction=direction,
+                setup_family=setup_family, as_of=as_of, boundary_mode=boundary_mode)
+
+    async def fetch_v2_slot_latest_terminal(
+        self, *, run_kind: str, run_id: str, symbol: str, market_type: str,
+        direction: str, setup_family: str, as_of: datetime, boundary_mode: str,
+    ) -> "Optional[Mapping]":
+        """Read-only (Stage 6 Unit 2): §13.4 step 3b's single answer for one
+        slot — the MOST RECENT terminal episode and its `T_terminal`, by
+        logical `decision_boundary` (§12.8), or `None`. Two episodes
+        terminal at the same newest boundary FAIL CLOSED rather than being
+        tie-broken. See
+        `storage/v2_episode_slot_readers.py::read_v2_slot_latest_terminal`
+        for the full contract."""
+        from storage.v2_episode_slot_readers import read_v2_slot_latest_terminal
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            return await read_v2_slot_latest_terminal(
+                conn, run_kind=run_kind, run_id=run_id, symbol=symbol,
+                market_type=market_type, direction=direction,
+                setup_family=setup_family, as_of=as_of, boundary_mode=boundary_mode)
+
     async def fetch_shadow_liquidation_availability(
         self,
         *,

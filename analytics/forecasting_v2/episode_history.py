@@ -159,6 +159,7 @@ __all__ = [
     "ANCHOR_BUCKET_TS", "ANCHOR_LEVEL_TICK_INDEX", "ANCHOR_LEVEL_NORMALIZED_PRICE",
     "CREATION_IDENTITY_TICK_SIZE",
     "normalize_price_to_tick", "canonical_decimal_text",
+    "family_anchor_timeframe", "validate_family_anchor_bucket", "deep_freeze_json",
     "build_trend_pullback_anchor", "build_compression_breakout_anchor",
     "build_confirmed_breakout_anchor",
     "V2PersistedEpisodeEvent", "V2EpisodeCreationIdentity", "V2EpisodeHistory",
@@ -381,6 +382,53 @@ def _validate_bucket_start(value: Any, name: str, *, timeframe: str) -> datetime
             f"{name}={v.isoformat()!r} is not aligned to the canonical {timeframe} bucket grid "
             f"(the containing {timeframe} bucket starts at {canonical.isoformat()!r})")
     return v
+
+
+def family_anchor_timeframe(setup_family: str) -> str:
+    """The canonical §12.1 timeframe of `setup_family`'s structural-anchor
+    bucket (`"15m"` or `"1h"`).
+
+    The PUBLIC read of the one `_FAMILY_ANCHOR_TIMEFRAME` map above, so that
+    later Stage 6 units answer "which grid does this family's anchor live
+    on" from the same single source the canonical builders and the
+    persisted-history validator already use — never from a second table and
+    never from local minute arithmetic."""
+    try:
+        return _FAMILY_ANCHOR_TIMEFRAME[setup_family]
+    except (KeyError, TypeError) as exc:
+        raise V2EpisodeHistoryError(
+            f"setup_family must be one of {tuple(SETUP_FAMILIES)!r}, got "
+            f"{setup_family!r}") from exc
+
+
+def validate_family_anchor_bucket(
+    value: Any, name: str, *, setup_family: str,
+) -> datetime:
+    """A legal structural-anchor bucket start for `setup_family` (§12.1).
+
+    The public composition of `family_anchor_timeframe()` with this module's
+    canonical `_validate_bucket_start()` round-trip. Callers that hold a
+    family and a candidate anchor — Stage 6 unit 2's `V2CandidateFacts`, for
+    one — validate through this rather than re-deriving the grid, so a
+    candidate anchor and the creation anchor it will later be compared
+    against can never be held to two different definitions of "aligned".
+
+    Raises `V2EpisodeHistoryError` (this module's own hierarchy); a caller
+    wanting its own error type wraps the call."""
+    return _validate_bucket_start(
+        value, name, timeframe=family_anchor_timeframe(setup_family))
+
+
+def deep_freeze_json(value: Any, name: str = "value") -> Any:
+    """Public entry point to this module's idempotent JSON deep-freeze.
+
+    Same narrow leaf rules `events.py::_deep_freeze` uses on the write side
+    (see `_deep_freeze_json`'s own docstring): nested mappings become
+    `MappingProxyType`, nested sequences become tuples, non-finite floats
+    are rejected. Exposed so other V2 domain types can hold nested
+    JSON-shaped payloads under exactly ONE freeze semantics rather than
+    growing a shallow `MappingProxyType(dict(...))` of their own."""
+    return _deep_freeze_json(value, name)
 
 
 def canonical_decimal_text(value: Decimal, name: str = "value") -> str:

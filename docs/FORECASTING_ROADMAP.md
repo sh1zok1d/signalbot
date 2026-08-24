@@ -1133,16 +1133,24 @@ that precedes Stage 6, never Stage 6 implementation itself. The prose below
 this status block describes the state as of `#43` and is retained as
 historical record; the current status is:
 
-- **Stage 6 — Episode State Machine: UNIT 1 OF 5 IN PROGRESS (PR #63,
-  open, NOT merged).** `#63` (`feat(v2): add Stage 6 episode history
-  foundation`) implements unit (1) only — episode identity + the
-  persisted-history read foundation: stream-scoped/`as_of`-bounded
-  `v2_episode_events` reads, immutable creation-identity reconstruction
-  from the persisted `EARLY_SIGNAL` event, `episode_id`/`event_id`
-  revalidation through `V2-H3`'s existing primitives, and §12.5/§12.5a's
-  exact tick-normalized creation grid recorded by value. It takes NO
-  lifecycle decision and adds no schema. **Units (2)–(5) are NOT
-  IMPLEMENTED.**
+- **Stage 6 — Episode State Machine: UNIT 1 MERGED, UNIT 2 OF 5 IN
+  PROGRESS.**
+  - Unit (1) — episode identity + the persisted-history read foundation —
+    **MERGED** as PR #63: stream-scoped/`as_of`-bounded
+    `v2_episode_events` reads, immutable creation-identity reconstruction
+    from the persisted creation event, `episode_id`/`event_id`
+    revalidation through `V2-H3`'s existing primitives, and §12.5/§12.5a's
+    exact tick-normalized creation grid recorded by value. Takes no
+    lifecycle decision; adds no schema.
+  - Unit (2) — candidate routing/creation arbitration — **IN PROGRESS, PR
+    OPEN, NOT merged**: §12.3/§12.4 same-slot A/B/C classification against
+    the active episode's creation identity, §12.6 one-active-per-slot and
+    §12.8 terminal-cooldown eligibility, §7.4/§7.4.1/§7.4.2 per-direction
+    family-precedence arbitration, and canonical `EARLY_SIGNAL` creation
+    with §22 by-value creation facts. Takes no lifecycle transition
+    decision, consumes §13.4's two views as inputs rather than computing
+    them, and adds no schema.
+  - **Units (3)–(5) are NOT IMPLEMENTED.**
 - **PRE-STAGE-6 HARDENING: COMPLETE (all MERGED).** `#43` (contract
   consolidation) and `#44` (Quality/scoring boundary hardening, including
   its round-2 amendment closing the `V2BiasResult`
@@ -1465,10 +1473,10 @@ correctness contract — subject to change if audit findings evolve):**
   the prior plan, renumbered to follow the pre-Stage-6 hardening above):
   (1) episode identity + persisted-history read foundation (consumes
   `#44`, `V2-H2`, and `V2-H3`'s hardened boundaries, including `§3.2`'s provenance tuple
-  and `§2.1a`'s deterministic IDs/one-event-per-T model) — **IN PROGRESS,
-  PR #63 open, not merged**; (2) candidate
+  and `§2.1a`'s deterministic IDs/one-event-per-T model) — **MERGED (PR
+  #63)**; (2) candidate
   classification/arbitration/`EARLY_SIGNAL` creation/same-slot/cooldown
-  eligibility; (3) family confirmation/false-break/candidate-expiry
+  eligibility — **IN PROGRESS, PR open, not merged**; (3) family confirmation/false-break/candidate-expiry
   transitions; (4) `CONFIRMED`/`WEAKENING`/structural invalidation/horizon
   terminal resolution (requires `§18.2a`'s now-fully-frozen analytical-
   excursion primitive — shared with, not duplicated against, the later
@@ -1490,8 +1498,9 @@ introduced that update. INFRA-D1 did not block any `V2-H2*` sub-PR.
 
 **Current position:** the pre-Stage-6 sequence below is fully merged
 (`V2-H2c` #59, `V2-H2e` #60, `V2-H3` #61, G0 final cleanup #62), and
-**Stage 6 unit (1) of (5) is in progress as PR #63** (episode history
-foundation, open, not merged). Units (2)–(5) are not started.
+**Stage 6 unit (1) is MERGED as PR #63** (episode history foundation) and
+**unit (2) of (5) is in progress** (candidate routing/creation
+arbitration, PR open, not merged). Units (3)–(5) are not started.
 
 Conceptual planning order going forward (logical labels, not a claim about
 future GitHub PR numbers — those are assigned only when each PR is
