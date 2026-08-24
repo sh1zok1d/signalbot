@@ -171,16 +171,17 @@ def test_ports_module_does_not_import_storage_db():
 
 def test_ports_module_does_not_wire_anything_into_runtime():
     import analytics.forecasting_v2.ports as ports_mod
-    # the module namespace should expose only the five Protocols and
+    # the module namespace should expose only the six Protocols and
     # their error-free supporting typing imports — no stray callable side
-    # effect object. (Stage 6 Unit 1 added the fifth,
-    # `V2EpisodeHistoryReader`; this list is pinned deliberately so any
+    # effect object. (Stage 6 Unit 1 added `V2EpisodeHistoryReader`; Unit 2
+    # added `V2EpisodeSlotReader`. This list is pinned deliberately so any
     # further addition is a conscious change, never an accident.)
     public = [n for n in dir(ports_mod) if not n.startswith("_")]
     assert set(ports_mod.__all__) <= set(public)
     assert ports_mod.__all__ == [
         "V2EpisodeEventWriter", "V2AlignedInputReader", "V2SetupHistoryReader",
         "V2VersionDrainStatusReader", "V2EpisodeHistoryReader",
+        "V2EpisodeSlotReader",
     ]
 
 

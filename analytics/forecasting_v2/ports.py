@@ -99,6 +99,7 @@ from analytics.forecasting_v2.version_switch import V2DrainFact
 __all__ = [
     "V2EpisodeEventWriter", "V2AlignedInputReader", "V2SetupHistoryReader",
     "V2VersionDrainStatusReader", "V2EpisodeHistoryReader",
+    "V2EpisodeSlotReader",
 ]
 
 
@@ -270,17 +271,33 @@ class V2VersionDrainStatusReader(Protocol):
         eligibility, and Unit 1 is a single-episode read foundation with no
         cross-episode aggregation surface at all.
 
-    The first is a genuine contract gap; the second is a genuine missing
-    dependency. Both change the DRAIN decision rather than merely its
-    reported numbers.
-    A deliberately WRONG placeholder (notably `non_terminal = count(latest
-    state non-terminal)` with `active_cooldowns = 0`, which would let a
-    switch ACTIVATE while a real same-slot cooldown is still running) is
-    worse than no implementation: a version switch must fail closed, never
-    optimistically. The per-slot terminal/cooldown aggregation this needs is
-    also exactly the machinery Stage 6 **Unit 2** builds for creation
-    eligibility (§12.6/§12.8/§13.4 step 3b), so Unit 2 is the earliest
-    correct owner of this implementation."""
+    **Stage 6 Unit 2 re-examination — gap 2 CLOSED, gap 1 still blocks.**
+    Unit 2 built the missing per-slot substrate: `V2EpisodeSlotReader`
+    below now answers, per `execution_stream` and slot, every episode's
+    latest persisted state and the slot's most recent terminal
+    fact/`T_terminal` as of `T`, and `episode_creation.py` owns §12.8's
+    exact cooldown clock. Counting OLD's non-terminal episodes and its
+    DISTINCT active-cooldown slots is therefore now mechanically possible,
+    so gap 2 is no longer a blocker.
+
+    Gap 1 remains, and it alone still prevents a correct implementation.
+    §3.1 says "Old-version episodes continue under their ORIGINAL, frozen
+    semantic tuple", which reads as "attribute an episode by its creation
+    event" — but §2.1a deliberately excludes `decision_code_version` from
+    `episode_id` precisely so a Stage 6 bug-fix release changing it alone
+    does not fork an episode's identity, which permits one episode's events
+    to legally carry different `decision_code_version` values. Nothing
+    frozen resolves which of those two governs when counting an episode
+    against a tuple that INCLUDES `decision_code_version`. Picking one
+    reading would be inventing contract, so this stays deferred until the
+    attribution rule is frozen explicitly.
+
+    A wrong answer changes the DRAIN decision itself, not merely its
+    reported numbers. A deliberately WRONG placeholder (notably
+    `non_terminal = count(latest state non-terminal)` with
+    `active_cooldowns = 0`, which would let a switch ACTIVATE while a real
+    same-slot cooldown is still running) is worse than no implementation: a
+    version switch must fail closed, never optimistically."""
 
     async def fetch_v2_version_drain_status(
         self, *, run_kind: str, run_id: str, rules_version: str,
@@ -316,4 +333,42 @@ class V2EpisodeHistoryReader(Protocol):
         self, *, run_kind: str, run_id: str, episode_id: str,
         as_of: datetime, boundary_mode: str,
     ) -> "Sequence[Mapping]":
+        ...
+
+
+@runtime_checkable
+class V2EpisodeSlotReader(Protocol):
+    """Structural port for Stage 6 Unit 2's per-slot episode facts
+    (`docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` §12.6/§12.8/§12.10/§13.4).
+
+    Unit 1's `V2EpisodeHistoryReader` answers "one episode's history by
+    `episode_id`". Unit 2's eligibility rules ask a slot-shaped question of
+    the same immutable event log: which episodes exist in one `slot`
+    (`(symbol, market_type, direction, setup_family)`), what state is each
+    one in as of `T`, and which terminal one is the most recent.
+
+    Satisfied structurally by `storage.db.Database`
+    (`fetch_v2_slot_episode_states` / `fetch_v2_slot_latest_terminal`), the
+    same way the four Protocols above are — this Protocol imports nothing
+    from storage, so a deterministic analytics test fake satisfies it with
+    no storage import at all.
+
+    `run_kind`/`run_id` are BOTH required (§12.10: semantic `episode_id`s
+    are designed to coincide across streams, so a slot read MUST be
+    physically namespaced or one stream's active episode would suppress
+    another's). `boundary_mode` selects between §13.4's two frozen same-`T`
+    windows and has no default: step 1's "ACTIVE immediately before `T`"
+    and step 3b's cooldown lookup (which includes an episode that became
+    terminal at this very `T`) are genuinely different windows."""
+
+    async def fetch_v2_slot_episode_states(
+        self, *, run_kind: str, run_id: str, symbol: str, market_type: str,
+        direction: str, setup_family: str, as_of: datetime, boundary_mode: str,
+    ) -> "Sequence[Mapping]":
+        ...
+
+    async def fetch_v2_slot_latest_terminal(
+        self, *, run_kind: str, run_id: str, symbol: str, market_type: str,
+        direction: str, setup_family: str, as_of: datetime, boundary_mode: str,
+    ) -> "Optional[Mapping]":
         ...
