@@ -1467,3 +1467,44 @@ def test_a_confirming_trigger_without_a_close_still_closes_the_deadline():
     decision = _decide(hist, T=deadline, boundary=boundary)
     assert decision.outcome == LIFECYCLE_EXPIRED_CANDIDATE_AGE
     assert "CONFIRMATION_CLOSE_UNAVAILABLE" in decision.reason
+
+
+# ============================================================================
+# 16. the H2 aligned-input projection Unit 5 will compose through
+# ============================================================================
+def test_boundary_facts_project_from_a_real_aligned_input_snapshot():
+    """`V2BoundaryFacts.from_aligned_inputs()` is a pure projection off the
+    canonical H2 coherent read path — nothing is re-read, and the 5m rows
+    arrive exactly as that snapshot resolved them for `T`."""
+    from types import MappingProxyType
+
+    from analytics.forecasting_v2.aligned_inputs import (
+        ALIGNED_TIMEFRAMES, V2_REFERENCE_EXCHANGE, V2AlignedInputs, V2TimeframeInputs,
+    )
+    from analytics.forecasting_v2.alignment import selected_bucket
+
+    T = _t(1)
+    by_timeframe = {}
+    for timeframe in ALIGNED_TIMEFRAMES:
+        bucket_ts = selected_bucket(timeframe, T)
+        by_timeframe[timeframe] = V2TimeframeInputs(
+            timeframe=timeframe, bucket_ts=bucket_ts,
+            bucket_end=bucket_ts + (T - selected_bucket(timeframe, T)),
+            consensus=(_consensus(T=T, median=1.0, agreement=1.0)
+                       if timeframe == "5m" else None),
+            percentiles=(), health={},
+            reference_feature=(_reference(T=T, close=101.0) if timeframe == "5m" else None),
+            reference_klines=None, reference_extrema=None)
+    aligned = V2AlignedInputs(
+        T=T, symbol=SYMBOL, market_type=MARKET, calculation_version=H16,
+        feature_schema_version=1, reference_exchange=V2_REFERENCE_EXCHANGE,
+        by_timeframe=MappingProxyType(by_timeframe))
+
+    boundary = V2BoundaryFacts.from_aligned_inputs(aligned)
+    assert boundary.T == T
+    assert boundary.decision_bucket == selected_bucket("5m", T)
+    assert boundary.reference_close == 101.0
+    assert boundary.required_family_quality_ok(TREND_PULLBACK) is True
+
+    hist = episode(cb_candidate(T=T0, level=100.0))
+    assert _decide(hist, T=T, boundary=boundary).outcome == LIFECYCLE_CONFIRMED
