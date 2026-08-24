@@ -444,10 +444,11 @@ def test_same_boundary_ambiguity_is_not_broken_by_lexical_episode_id():
         with pytest.raises(V2EpisodeSlotReaderError, match="terminal at the same newest boundary"):
             await _latest_terminal(db, as_of=_t(50))
 
-        # An earlier `as_of` that sees only ONE of them is unambiguous and
-        # still answers -- the guard is about the tie, not about terminals.
-        one = await _latest_terminal(db, as_of=_t(1), boundary_mode=HISTORY_BEFORE_T)
-        assert one is None
+        # The guard is about the TIE, not about terminals existing: a window
+        # that excludes both terminal rows (both are AT _t(1), which
+        # HISTORY_BEFORE_T's strict `<` excludes) answers None, not an error.
+        assert await _latest_terminal(
+            db, as_of=_t(1), boundary_mode=HISTORY_BEFORE_T) is None
 
     _run(body)
 
