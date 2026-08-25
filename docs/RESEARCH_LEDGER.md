@@ -198,12 +198,43 @@ Candidate-only inventory completed before outcome inspection:
 - candidate artifact reported `outcomes_included=false`;
 - replay mode: one `REPEATABLE READ` snapshot via the research-only legacy-VPS adapter.
 
-Development window: **`[2026-08-02T00:00:00Z, 2026-08-21T00:00:00Z)`**.  
-Untouched chronological holdout: **`[2026-08-21T00:00:00Z, 2026-08-25T17:20:00Z)`**.  
-Split basis: calendar position + candidate counts only; `202/290` (`69.7%`) development vs `88/290` (`30.3%`) holdout.  
+Initial count-only split (historical, superseded before outcomes):
+
+- development `[2026-08-02T00:00:00Z, 2026-08-21T00:00:00Z)`;
+- holdout `[2026-08-21T00:00:00Z, 2026-08-25T17:20:00Z)`;
+- `202/290` development vs `88/290` holdout;
+- candidate-only population audit showed this holdout had `COMPRESSION_BREAKOUT=0/47` and `CONFIRMED_BREAKOUT=6/45`;
+- no outcome had been opened, so the split was superseded rather than accepted as an unusable family-level OOS design.
+
+Final count-only split rule was frozen before scanning candidate split counts:
+
+> choose the latest UTC-midnight boundary whose holdout contains at least `25%` of all qualifications and at least `20%` of each family.
+
+Final frozen split selected mechanically by that rule:
+
+- **Development candidate window:** `[2026-08-02T00:00:00Z, 2026-08-16T00:00:00Z)`;
+- **Untouched chronological holdout:** `[2026-08-16T00:00:00Z, 2026-08-25T17:20:00Z)`;
+- development `149/290`: `TP=93`, `CB=30`, `FB=26`;
+- holdout `141/290` (`48.6%`): `TP=105`, `CB=17`, `FB=19`;
+- holdout family shares: TP `53.0%`, CB `36.2%`, FB `42.2%`.
+
+Maximum forward horizon is `+4h`, therefore development outcomes use a purged/embargoed edge:
+
+- full-horizon outcome-eligible development candidates require `T <= 2026-08-15T20:00:00Z`;
+- candidate boundaries after `20:00` and before the split remain in candidate counts but are excluded from full-horizon development outcome metrics;
+- development outcome SQL must never read a market bar at or after `2026-08-16T00:00:00Z`.
+
 Has holdout/OOS outcome already been viewed for this run? **NO**.  
-Has any future-return/MFE/MAE outcome been viewed before recording this split? **NO**.  
-Holdout status: **SEALED**.
+Has any future-return/MFE/MAE outcome been viewed before recording the final split? **NO**.  
+Holdout status: **SEALED at `2026-08-16T00:00:00Z`**.
+
+Candidate-only dependence audit before outcomes:
+
+- exact same-`T` multi-family overlap: `0`;
+- development raw qualifications under the historical 21-Aug split were `202`, corresponding to `123/109/96` time-gap clusters at `15/30/60m` sensitivity;
+- the clustering result is a dependence diagnostic only, not Stage-6 episode reconstruction;
+- TP showed the strongest repeat qualification dependence;
+- day concentration was moderate rather than dominated by one UTC day.
 
 Parameter/config/code change proposed: none to frozen production detector semantics.  
 Data/source change proposed: no production source change; research-only historical Stage-2 materialization was performed in isolated calculation namespace `9bed1b4cf99f1644` from persisted raw data.
@@ -213,10 +244,10 @@ Decision rule:
 - `SURVIVES`, `SIMPLIFY`, `DEMOTE_TO_BASELINE`, `KILL`, or `INCONCLUSIVE_SAMPLE` per family;
 - global Level-0 fail if all three frozen families fail simple/matched controls and full variants do not beat simpler ablations.
 
-Result summary: candidate population established; predictive result still pending.  
-Uncertainty / sample notes: `290` are raw qualification points, **not independent episodes**; overlap/clustering/concentration must be reported before interpreting outcome statistics.  
+Result summary: candidate population and final sealed split established; predictive result still pending.  
+Uncertainty / sample notes: `290` are raw qualification points, **not independent episodes**; clustering/concentration must remain visible in outcome interpretation.  
 Consumed evidence windows: none yet.  
-Next step: candidate-only overlap/clustering diagnostics, then development-only outcome analysis. Holdout remains unopened until development analysis code/baselines/ablations/reporting are frozen.
+Next step: development-only outcome analysis with the `+4h` purge enforced. Holdout remains unopened until development outcome, baseline, ablation, negative-control and reporting code are frozen.
 
 ---
 
