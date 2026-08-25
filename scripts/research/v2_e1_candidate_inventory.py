@@ -5,6 +5,13 @@ This script deliberately stops at frozen Stage 5. It does NOT import or call
 Stage-6 episode/lifecycle code and it never reads future outcome paths. Its
 purpose is to learn the usable historical window and Stage-5 qualification
 counts before the chronological development/holdout split is frozen.
+
+Legacy VPS note: the current server predates publication-state, historical
+health, and exchange_instrument_history materialization.  The research-only
+E1ResearchReadSession adapts those NON-predictive runtime facilities while all
+actual Stage-3/4/5 feature/percentile/window reads still use the frozen storage
+readers.  The entire replay runs inside ONE READ ONLY / REPEATABLE READ
+transaction so every decision boundary sees one fixed PostgreSQL snapshot.
 """
 from __future__ import annotations
 
@@ -33,6 +40,7 @@ from analytics.forecasting_v2.confirmed_breakout_inputs import load_confirmed_br
 from analytics.forecasting_v2.context_snapshot import build_v2_context_snapshot
 from analytics.forecasting_v2.trend_pullback import detect_trend_pullback
 from analytics.forecasting_v2.trend_pullback_inputs import load_trend_pullback_inputs
+from scripts.research.v2_e1_research_session import E1ResearchReadSession
 from storage.db import Database
 
 UTC = timezone.utc
@@ -129,48 +137,49 @@ def _candidate_row(*, family: str, candidate: Any, context: Any) -> dict[str, An
     }
 
 
-async def _evaluate_boundary(db: Database, args: argparse.Namespace, T: datetime):
+async def _evaluate_boundary(conn, args: argparse.Namespace, T: datetime):
     """One coherent Stage3 -> Stage4 -> Stage5 evaluation at one T."""
-    async with db.open_v2_coherent_read_session(
+    session = E1ResearchReadSession(
+        conn,
         symbol=args.symbol,
         market_type=args.market_type,
         calculation_version=args.calculation_version,
         decision_boundary=T,
-    ) as session:
-        request = V2AlignedInputRequest(
-            T=T,
-            symbol=args.symbol,
-            market_type=args.market_type,
-            calculation_version=args.calculation_version,
-            feature_schema_version=args.feature_schema_version,
-            health_exchanges=tuple(args.health_exchanges),
-            health_metrics=tuple(args.health_metrics),
-        )
-        aligned = await load_v2_aligned_inputs(session, request)
-        context = build_v2_context_snapshot(aligned)
+    )
+    request = V2AlignedInputRequest(
+        T=T,
+        symbol=args.symbol,
+        market_type=args.market_type,
+        calculation_version=args.calculation_version,
+        feature_schema_version=args.feature_schema_version,
+        health_exchanges=tuple(args.health_exchanges),
+        health_metrics=tuple(args.health_metrics),
+    )
+    aligned = await load_v2_aligned_inputs(session, request)
+    context = build_v2_context_snapshot(aligned)
 
-        found: list[dict[str, Any]] = []
+    found: list[dict[str, Any]] = []
 
-        tp_inputs = await load_trend_pullback_inputs(session, context=context)
-        if tp_inputs is not None:
-            tp = detect_trend_pullback(tp_inputs)
-            if tp is not None:
-                found.append(_candidate_row(
-                    family=FAMILY_TREND_PULLBACK, candidate=tp, context=context))
-
-        cb_inputs = await load_compression_breakout_inputs(session, context=context)
-        cb = detect_compression_breakout(cb_inputs)
-        if cb is not None:
+    tp_inputs = await load_trend_pullback_inputs(session, context=context)
+    if tp_inputs is not None:
+        tp = detect_trend_pullback(tp_inputs)
+        if tp is not None:
             found.append(_candidate_row(
-                family=FAMILY_COMPRESSION_BREAKOUT, candidate=cb, context=context))
+                family=FAMILY_TREND_PULLBACK, candidate=tp, context=context))
 
-        fb_inputs = await load_confirmed_breakout_inputs(session, context=context)
-        fb = detect_confirmed_breakout(fb_inputs)
-        if fb is not None:
-            found.append(_candidate_row(
-                family=FAMILY_CONFIRMED_BREAKOUT, candidate=fb, context=context))
+    cb_inputs = await load_compression_breakout_inputs(session, context=context)
+    cb = detect_compression_breakout(cb_inputs)
+    if cb is not None:
+        found.append(_candidate_row(
+            family=FAMILY_COMPRESSION_BREAKOUT, candidate=cb, context=context))
 
-        return found
+    fb_inputs = await load_confirmed_breakout_inputs(session, context=context)
+    fb = detect_confirmed_breakout(fb_inputs)
+    if fb is not None:
+        found.append(_candidate_row(
+            family=FAMILY_CONFIRMED_BREAKOUT, candidate=fb, context=context))
+
+    return found
 
 
 async def _run(args: argparse.Namespace) -> dict[str, Any]:
@@ -180,17 +189,24 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
     db = Database(args.dsn)
     await db.connect()
     try:
+        assert db.pool is not None
         candidates: list[dict[str, Any]] = []
-        for index, T in enumerate(boundaries, start=1):
-            rows = await _evaluate_boundary(db, args, T)
-            candidates.extend(rows)
-            if args.progress_every and index % args.progress_every == 0:
-                print(
-                    f"inventory progress: {index}/{len(boundaries)} boundaries; "
-                    f"{len(candidates)} qualifications",
-                    file=sys.stderr,
-                    flush=True,
-                )
+        # One fixed DB snapshot for the ENTIRE candidate inventory.  This is
+        # intentionally longer-lived than production's per-decision session:
+        # E1 needs a deterministic historical census while live raw ingestion
+        # continues in parallel.
+        async with db.pool.acquire() as conn:
+            async with conn.transaction(isolation="repeatable_read", readonly=True):
+                for index, T in enumerate(boundaries, start=1):
+                    rows = await _evaluate_boundary(conn, args, T)
+                    candidates.extend(rows)
+                    if args.progress_every and index % args.progress_every == 0:
+                        print(
+                            f"inventory progress: {index}/{len(boundaries)} boundaries; "
+                            f"{len(candidates)} qualifications",
+                            file=sys.stderr,
+                            flush=True,
+                        )
     finally:
         await db.close()
 
@@ -207,6 +223,9 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
         "market_type": args.market_type,
         "calculation_version": args.calculation_version,
         "feature_schema_version": args.feature_schema_version,
+        "read_mode": "ONE_REPEATABLE_READ_SNAPSHOT_LEGACY_VPS_ADAPTER",
+        "historical_health_semantics": "EXPLICIT_UNAVAILABLE_NONE_NOT_CONSUMED_BY_FROZEN_STAGE4_5",
+        "instrument_semantics": "CURRENT_LKG_ONLY_IF_FETCHED_AT_LE_DECISION_T",
         "health_exchanges": list(args.health_exchanges),
         "health_metrics": list(args.health_metrics),
         "window": {
