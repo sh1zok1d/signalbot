@@ -891,7 +891,9 @@ def test_deeper_pullback_at_a_later_15m_boundary_updates_the_same_episode():
     assert decision.operational_facts.entry_zone_upper == 103.0
     assert decision.operational_facts.invalidation_price == 95.0
 
-    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=T))
+    event = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=T),
+        boundary_facts=tp_facts(T=T, median=-1.0), reevaluation_window=window)
     assert event.episode_id == creation.episode_id          # same episode
     assert event.episode_state == EARLY_SIGNAL              # same state
     assert dict(event.structural_anchor) == dict(creation.structural_anchor)
@@ -903,11 +905,11 @@ def test_update_event_never_rewrites_the_creation_event():
     creation = early_signal(tp_candidate(T=T0, pullback_extreme=100.0, current_close=105.0))
     hist = _history([creation])
     T = _t(3)
-    decision = _decide(
-        hist, T=T, boundary=tp_facts(T=T, median=-1.0),
-        reevaluation=_window(T=T, closes=[97.0, 103.0],
-                             anchor=_TP_ANCHOR, filler=_LONG_FILLER))
-    update = build_episode_transition_event(decision, hist, authorization=_authorization(T=T))
+    window = _window(T=T, closes=[97.0, 103.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER)
+    decision = _decide(hist, T=T, boundary=tp_facts(T=T, median=-1.0), reevaluation=window)
+    update = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=T),
+        boundary_facts=tp_facts(T=T, median=-1.0), reevaluation_window=window)
     after = _history([creation, update])
     assert len(after.events) == 2
     original = after.events[0].decision_snapshot["creation_facts"]
@@ -1183,12 +1185,14 @@ def test_confirmation_freezes_the_latest_reevaluated_pullback_extreme():
     creation = early_signal(tp_candidate(T=T0, pullback_extreme=100.0, current_close=105.0))
     hist = _history([creation])
     T_update = _t(3)
+    update_boundary = tp_facts(T=T_update, median=-1.0)
+    update_window = _window(T=T_update, closes=[97.0, 103.0], anchor=_TP_ANCHOR,
+                            filler=_LONG_FILLER)
     update_decision = _decide(
-        hist, T=T_update, boundary=tp_facts(T=T_update, median=-1.0),
-        reevaluation=_window(T=T_update, closes=[97.0, 103.0],
-                             anchor=_TP_ANCHOR, filler=_LONG_FILLER))
+        hist, T=T_update, boundary=update_boundary, reevaluation=update_window)
     update = build_episode_transition_event(
-        update_decision, hist, authorization=_authorization(T=T_update))
+        update_decision, hist, authorization=_authorization(T=T_update),
+        boundary_facts=update_boundary, reevaluation_window=update_window)
     after = _history([creation, update])
 
     confirm = _decide(after, T=_t(4), boundary=tp_facts(T=_t(4), close=106.0))
@@ -1206,15 +1210,16 @@ def test_a_same_boundary_update_and_confirmation_produce_exactly_one_event():
     creation = early_signal(tp_candidate(T=T0, pullback_extreme=100.0, current_close=105.0))
     hist = _history([creation])
     T = _t(3)                            # 12:15 — both a 15m and a 5m boundary
-    decision = _decide(
-        hist, T=T, boundary=tp_facts(T=T, close=104.0),
-        reevaluation=_window(T=T, closes=[96.0, 103.0],
-                             anchor=_TP_ANCHOR, filler=_LONG_FILLER))
+    boundary = tp_facts(T=T, close=104.0)
+    window = _window(T=T, closes=[96.0, 103.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER)
+    decision = _decide(hist, T=T, boundary=boundary, reevaluation=window)
     assert decision.outcome == LIFECYCLE_CONFIRMED
     # the SAME-T re-evaluation was aggregated, not emitted separately
     assert decision.operational_facts.pullback_extreme == 96.0
     assert decision.operational_facts.dynamic_bound == 104.0      # the confirming 5m close
-    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=T))
+    event = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=T),
+        boundary_facts=boundary, reevaluation_window=window)
     after = _history([creation, event])
     assert len(after.events) == 2
     assert after.current_state == CONFIRMED
@@ -1224,13 +1229,13 @@ def test_a_same_boundary_update_and_expiry_produce_exactly_one_event():
     creation = early_signal(tp_candidate(T=T0, pullback_extreme=100.0, current_close=105.0))
     hist = _history([creation])
     deadline = read_candidate_deadline(hist)
-    decision = _decide(
-        hist, T=deadline, boundary=tp_facts(T=deadline, median=-1.0),
-        reevaluation=_window(
-            T=deadline, closes=[96.0, 103.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER))
+    boundary = tp_facts(T=deadline, median=-1.0)
+    window = _window(T=deadline, closes=[96.0, 103.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER)
+    decision = _decide(hist, T=deadline, boundary=boundary, reevaluation=window)
     assert decision.outcome == LIFECYCLE_EXPIRED_CANDIDATE_AGE
     event = build_episode_transition_event(
-        decision, hist, authorization=_authorization(T=deadline))
+        decision, hist, authorization=_authorization(T=deadline),
+        boundary_facts=boundary, reevaluation_window=window)
     after = _history([creation, event])
     assert len(after.events) == 2
     assert after.current_state == EXPIRED
@@ -1256,9 +1261,10 @@ def test_unit3_never_evaluates_a_confirmed_episode():
     CONFIRMED is Unit 4's."""
     creation = early_signal(tp_candidate(T=T0))
     hist = _history([creation])
-    decision = _decide(hist, T=_t(1), boundary=tp_facts(T=_t(1)))
+    boundary = tp_facts(T=_t(1))
+    decision = _decide(hist, T=_t(1), boundary=boundary)
     confirmed = build_episode_transition_event(
-        decision, hist, authorization=_authorization(T=_t(1)))
+        decision, hist, authorization=_authorization(T=_t(1)), boundary_facts=boundary)
     after = _history([creation, confirmed])
     with pytest.raises(V2EpisodeLifecycleError, match="post-confirmation lifecycle is Unit 4"):
         _decide(after, T=_t(2), boundary=tp_facts(T=_t(2)))
@@ -1270,8 +1276,10 @@ def test_unit3_never_evaluates_a_confirmed_episode():
 def test_transition_event_reuses_the_frozen_creation_identity():
     creation = early_signal(cb_candidate(T=T0, level=100.0))
     hist = _history([creation])
-    decision = _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=101.0))
-    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=_t(1)))
+    boundary = facts(T=_t(1), close=101.0)
+    decision = _decide(hist, T=_t(1), boundary=boundary)
+    event = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=_t(1)), boundary_facts=boundary)
     assert event.episode_id == creation.episode_id
     assert event.direction == creation.direction
     assert event.setup_family == creation.setup_family
@@ -1284,8 +1292,10 @@ def test_transition_event_id_is_the_canonical_episode_boundary_pair():
     from analytics.forecasting_v2.episode_identity import compute_event_id
     creation = early_signal(cb_candidate(T=T0, level=100.0))
     hist = _history([creation])
-    decision = _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=101.0))
-    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=_t(1)))
+    boundary = facts(T=_t(1), close=101.0)
+    decision = _decide(hist, T=_t(1), boundary=boundary)
+    event = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=_t(1)), boundary_facts=boundary)
     assert event.event_id == compute_event_id(
         episode_id=creation.episode_id, decision_boundary=_t(1))
 
@@ -1293,8 +1303,10 @@ def test_transition_event_id_is_the_canonical_episode_boundary_pair():
 def test_transition_event_records_auditable_by_value_evidence():
     creation = early_signal(comp_candidate(T=T0, range_high=100.0))
     hist = _history([creation])
-    decision = _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=99.0))
-    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=_t(1)))
+    boundary = facts(T=_t(1), close=99.0)
+    decision = _decide(hist, T=_t(1), boundary=boundary)
+    event = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=_t(1)), boundary_facts=boundary)
     evidence = event.decision_snapshot[LIFECYCLE_EVIDENCE_KEY]
     assert evidence["setup_family"] == COMPRESSION_BREAKOUT
     assert evidence["t_detect"] == T0.isoformat()
@@ -1314,17 +1326,21 @@ def test_breakout_transition_events_do_not_duplicate_creation_facts():
     them would create a second, competing representation."""
     creation = early_signal(comp_candidate(T=T0, range_high=100.0))
     hist = _history([creation])
-    decision = _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=101.0))
-    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=_t(1)))
+    boundary = facts(T=_t(1), close=101.0)
+    decision = _decide(hist, T=_t(1), boundary=boundary)
+    event = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=_t(1)), boundary_facts=boundary)
     assert OPERATIONAL_FACTS_KEY not in event.event_payload
 
 
 def test_no_change_never_produces_an_event():
     hist = episode(comp_candidate(T=T0, range_high=100.0))
-    decision = _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=100.0))
+    boundary = facts(T=_t(1), close=100.0)
+    decision = _decide(hist, T=_t(1), boundary=boundary)
     assert decision.requires_event is False
     with pytest.raises(V2EpisodeLifecycleError, match="requires no persisted history event"):
-        build_episode_transition_event(decision, hist, authorization=_authorization(T=_t(1)))
+        build_episode_transition_event(
+            decision, hist, authorization=_authorization(T=_t(1)), boundary_facts=boundary)
 
 
 def test_publication_not_clean_is_refused():
@@ -1334,9 +1350,11 @@ def test_publication_not_clean_is_refused():
 
 def test_provenance_boundary_must_equal_the_decision_boundary():
     hist = episode(comp_candidate(T=T0, range_high=100.0))
-    decision = _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=101.0))
+    boundary = facts(T=_t(1), close=101.0)
+    decision = _decide(hist, T=_t(1), boundary=boundary)
     with pytest.raises(V2EpisodeLifecycleError, match="does not equal this decision's T"):
-        build_episode_transition_event(decision, hist, authorization=_authorization(T=_t(2)))
+        build_episode_transition_event(
+            decision, hist, authorization=_authorization(T=_t(2)), boundary_facts=boundary)
 
 
 # ============================================================================
@@ -1371,9 +1389,11 @@ def test_old_episode_still_confirms_while_its_tuple_is_draining():
 
     # ... yet the pre-existing OLD episode still transitions, under OLD's
     # own frozen tuple.
-    decision = _decide(hist, T=_t(2), boundary=tp_facts(T=_t(2)))
+    boundary = tp_facts(T=_t(2))
+    decision = _decide(hist, T=_t(2), boundary=boundary)
     assert decision.outcome == LIFECYCLE_CONFIRMED
-    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=_t(2)))
+    event = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=_t(2)), boundary_facts=boundary)
     assert event.rules_version == old.rules_version
     assert event.calculation_version == old.calculation_version
     assert _history([creation, event]).current_state == CONFIRMED
@@ -1384,10 +1404,12 @@ def test_new_tuple_can_never_mutate_an_old_episode():
     A NEW-tuple provenance recomputes a DIFFERENT episode_id and is refused."""
     creation = early_signal(tp_candidate(T=T0))
     hist = _history([creation])
-    decision = _decide(hist, T=_t(2), boundary=tp_facts(T=_t(2)))
+    boundary = tp_facts(T=_t(2))
+    decision = _decide(hist, T=_t(2), boundary=boundary)
     new_tuple_auth = _authorization(T=_t(2), calculation_version="c" * 16)
     with pytest.raises(V2EpisodeLifecycleError, match="ORIGINAL frozen semantic tuple"):
-        build_episode_transition_event(decision, hist, authorization=new_tuple_auth)
+        build_episode_transition_event(
+            decision, hist, authorization=new_tuple_auth, boundary_facts=boundary)
 
 
 def test_a_later_decision_code_version_may_not_mutate_an_existing_episode():
@@ -1399,19 +1421,22 @@ def test_a_later_decision_code_version_may_not_mutate_an_existing_episode():
     creation = early_signal(tp_candidate(T=T0))
     assert creation.decision_code_version == DCV
     hist = _history([creation])
-    decision = _decide(hist, T=_t(2), boundary=tp_facts(T=_t(2)))
+    boundary = tp_facts(T=_t(2))
+    decision = _decide(hist, T=_t(2), boundary=boundary)
     with pytest.raises(V2EpisodeLifecycleError, match="CREATION semantic tuple"):
         build_episode_transition_event(
-            decision, hist,
+            decision, hist, boundary_facts=boundary,
             authorization=_authorization(T=_t(2), decision_code_version="dcv-2"))
 
 
 def test_the_creation_decision_code_version_is_the_one_that_continues():
     creation = early_signal(tp_candidate(T=T0))
     hist = _history([creation])
-    decision = _decide(hist, T=_t(2), boundary=tp_facts(T=_t(2)))
+    boundary = tp_facts(T=_t(2))
+    decision = _decide(hist, T=_t(2), boundary=boundary)
     event = build_episode_transition_event(
-        decision, hist, authorization=_authorization(T=_t(2), decision_code_version=DCV))
+        decision, hist, authorization=_authorization(T=_t(2), decision_code_version=DCV),
+        boundary_facts=boundary)
     assert event.episode_id == creation.episode_id
     assert event.decision_code_version == DCV == creation.decision_code_version
 
@@ -1452,19 +1477,22 @@ def test_equivalent_episodes_in_two_streams_transition_identically():
 
 def test_one_stream_can_never_write_another_streams_transition():
     live = episode(cb_candidate(T=T0, level=100.0), run_kind=LIVE, run_id=RUN_ID)
-    decision = _decide(live, T=_t(1), boundary=facts(T=_t(1), close=101.0))
+    boundary = facts(T=_t(1), close=101.0)
+    decision = _decide(live, T=_t(1), boundary=boundary)
     foreign = V2LifecycleAuthorization(
         provenance=_provenance(T=_t(1), run_kind=REPLAY, run_id="replay-1"),
         publication_clean=True)
     with pytest.raises(V2EpisodeLifecycleError, match="physically isolated"):
-        build_episode_transition_event(decision, live, authorization=foreign)
+        build_episode_transition_event(
+            decision, live, authorization=foreign, boundary_facts=boundary)
 
 
 def test_replay_run_id_isolation_is_preserved_in_the_event():
     replay = episode(cb_candidate(T=T0, level=100.0), run_kind=REPLAY, run_id="replay-1")
-    decision = _decide(replay, T=_t(1), boundary=facts(T=_t(1), close=101.0))
+    boundary = facts(T=_t(1), close=101.0)
+    decision = _decide(replay, T=_t(1), boundary=boundary)
     event = build_episode_transition_event(
-        decision, replay,
+        decision, replay, boundary_facts=boundary,
         authorization=V2LifecycleAuthorization(
             provenance=_provenance(T=_t(1), run_kind=REPLAY, run_id="replay-1"),
             publication_clean=True))
@@ -1501,10 +1529,12 @@ def test_restart_between_two_reevaluations_reproduces_the_next_result():
     creation = early_signal(tp_candidate(T=T0, pullback_extreme=100.0, current_close=105.0))
     hist = _history([creation])
     T1 = _t(3)
-    d1 = _decide(hist, T=T1, boundary=tp_facts(T=T1, median=-1.0),
-                 reevaluation=_window(T=T1, closes=[97.0, 103.0],
-                             anchor=_TP_ANCHOR, filler=_LONG_FILLER))
-    update = build_episode_transition_event(d1, hist, authorization=_authorization(T=T1))
+    boundary1 = tp_facts(T=T1, median=-1.0)
+    window1 = _window(T=T1, closes=[97.0, 103.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER)
+    d1 = _decide(hist, T=T1, boundary=boundary1, reevaluation=window1)
+    update = build_episode_transition_event(
+        d1, hist, authorization=_authorization(T=T1),
+        boundary_facts=boundary1, reevaluation_window=window1)
 
     restarted = reconstruct_episode_history(
         [_row(creation), _row(update)], run_kind=LIVE, run_id=RUN_ID,
@@ -1535,9 +1565,10 @@ def test_restart_preserves_the_frozen_breakout_boundary():
 def test_terminal_episode_is_refused():
     creation = early_signal(comp_candidate(T=T0, range_high=100.0))
     hist = _history([creation])
-    decision = _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=50.0))
+    boundary = facts(T=_t(1), close=50.0)
+    decision = _decide(hist, T=_t(1), boundary=boundary)
     invalidated = build_episode_transition_event(
-        decision, hist, authorization=_authorization(T=_t(1)))
+        decision, hist, authorization=_authorization(T=_t(1)), boundary_facts=boundary)
     after = _history([creation, invalidated])
     assert after.current_state == INVALIDATED
     with pytest.raises(V2EpisodeLifecycleError, match="terminal episodes never transition"):
@@ -1669,9 +1700,11 @@ def test_preconfirmation_update_outcome_is_refused_for_breakout_families():
 def test_a_decision_for_another_episode_is_refused():
     a = episode(comp_candidate(T=T0, range_high=100.0))
     b = episode(cb_candidate(T=T0, level=100.0))
-    decision = _decide(a, T=_t(1), boundary=facts(T=_t(1), close=101.0))
+    boundary = facts(T=_t(1), close=101.0)
+    decision = _decide(a, T=_t(1), boundary=boundary)
     with pytest.raises(V2EpisodeLifecycleError, match="does not describe episode"):
-        build_episode_transition_event(decision, b, authorization=_authorization(T=_t(1)))
+        build_episode_transition_event(
+            decision, b, authorization=_authorization(T=_t(1)), boundary_facts=boundary)
 
 
 # ============================================================================
@@ -1682,9 +1715,11 @@ def test_unit3_queues_nothing_after_a_terminal_outcome():
     retry, no queue, and no resurrection path."""
     creation = early_signal(comp_candidate(T=T0, range_high=100.0))
     hist = _history([creation])
-    decision = _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=99.0))
+    boundary = facts(T=_t(1), close=99.0)
+    decision = _decide(hist, T=_t(1), boundary=boundary)
     assert decision.is_terminal is True
-    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=_t(1)))
+    event = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=_t(1)), boundary_facts=boundary)
     after = _history([creation, event])
     # Even a later, perfectly confirming close cannot revive it.
     with pytest.raises(V2EpisodeLifecycleError, match="terminal episodes never transition"):
@@ -1879,9 +1914,11 @@ def test_a_reference_row_from_a_foreign_exchange_is_refused():
 
 def test_matching_scope_transitions_normally():
     hist = episode(cb_candidate(T=T0, level=100.0))
-    decision = _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=101.0))
+    boundary = facts(T=_t(1), close=101.0)
+    decision = _decide(hist, T=_t(1), boundary=boundary)
     assert decision.outcome == LIFECYCLE_CONFIRMED
-    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=_t(1)))
+    event = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=_t(1)), boundary_facts=boundary)
     assert event.calculation_version == hist.creation_identity.calculation_version
 
 
@@ -1982,10 +2019,10 @@ def test_the_persisted_event_records_the_resolution_category():
     truth was a disqualified input."""
     hist = episode(comp_candidate(T=T0, range_high=100.0))
     deadline = read_candidate_deadline(hist)
-    decision = _decide(
-        hist, T=deadline, boundary=facts(T=deadline, close=101.0, price_structure_ok=False))
+    boundary = facts(T=deadline, close=101.0, price_structure_ok=False)
+    decision = _decide(hist, T=deadline, boundary=boundary)
     event = build_episode_transition_event(
-        decision, hist, authorization=_authorization(T=deadline))
+        decision, hist, authorization=_authorization(T=deadline), boundary_facts=boundary)
     evidence = event.decision_snapshot[LIFECYCLE_EVIDENCE_KEY]
     assert evidence["resolution_category"] == SIGNAL_REJECTED
     assert evidence["at_candidate_deadline"] is True
@@ -2062,7 +2099,8 @@ def test_a_decision_contradicting_its_history_cannot_be_persisted(field):
     decision -- so a hand-built decision must not be able to make the two
     tell different stories."""
     hist = episode(comp_candidate(T=T0, range_high=100.0))
-    good = _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=101.0))
+    boundary = facts(T=_t(1), close=101.0)
+    good = _decide(hist, T=_t(1), boundary=boundary)
     over = {
         "setup_family": CONFIRMED_BREAKOUT, "direction": SHORT,
         "t_detect": _t(-1), "candidate_deadline": _t(2), "episode_id": "f" * 64,
@@ -2078,7 +2116,8 @@ def test_a_decision_contradicting_its_history_cannot_be_persisted(field):
         kwargs["candidate_deadline"] = over + timedelta(minutes=15)
     forged = V2LifecycleDecision(**kwargs)
     with pytest.raises(V2EpisodeLifecycleError, match="does not describe episode"):
-        build_episode_transition_event(forged, hist, authorization=_authorization(T=_t(1)))
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=_t(1)), boundary_facts=boundary)
 
 
 def test_a_trend_pullback_confirmation_without_final_geometry_is_impossible():
@@ -2112,12 +2151,12 @@ def test_a_confirmed_tp_must_freeze_against_the_confirming_close():
 def _tp_update_event(*, extreme=97.0, T=_t(3)):
     creation = early_signal(tp_candidate(T=T0, pullback_extreme=100.0, current_close=105.0))
     hist = _history([creation])
-    decision = _decide(
-        hist, T=T, boundary=tp_facts(T=T, median=-1.0),
-        reevaluation=_window(T=T, closes=[extreme, 103.0], anchor=_TP_ANCHOR,
-                             filler=_LONG_FILLER))
+    boundary = tp_facts(T=T, median=-1.0)
+    window = _window(T=T, closes=[extreme, 103.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER)
+    decision = _decide(hist, T=T, boundary=boundary, reevaluation=window)
     return creation, build_episode_transition_event(
-        decision, hist, authorization=_authorization(T=T))
+        decision, hist, authorization=_authorization(T=T),
+        boundary_facts=boundary, reevaluation_window=window)
 
 
 def _history_with_mutated_operational_block(mutate):
@@ -2401,14 +2440,13 @@ def test_below_threshold_at_deadline_expires_as_rejected(family):
     with the exact planned-risk reason and evidence persisted."""
     hist = episode(_AT_RISK[family](risk="0.1"))
     deadline = read_candidate_deadline(hist)
-    decision = _decide(
-        hist, T=deadline,
-        boundary=_confirm_facts(deadline, close=_close_for("0.1"), family=family))
+    boundary = _confirm_facts(deadline, close=_close_for("0.1"), family=family)
+    decision = _decide(hist, T=deadline, boundary=boundary)
     assert decision.outcome == LIFECYCLE_EXPIRED_CANDIDATE_AGE
     assert decision.resolution_category == SIGNAL_REJECTED
     assert "PLANNED_RISK_BELOW_MIN" in decision.reason
     event = build_episode_transition_event(
-        decision, hist, authorization=_authorization(T=deadline))
+        decision, hist, authorization=_authorization(T=deadline), boundary_facts=boundary)
     evidence = event.decision_snapshot[LIFECYCLE_EVIDENCE_KEY]
     assert evidence["resolution_category"] == SIGNAL_REJECTED
     assert evidence["evidence"]["planned_risk_distance"] == "0.1"
@@ -2652,8 +2690,10 @@ def test_a_confirmed_event_persists_the_planned_risk_facts_by_value(family):
     reference price, the frozen invalidation and the planned risk from
     persisted history ALONE -- no current-market re-derivation."""
     hist = episode(_AT_RISK[family](risk="1.0"))
-    decision = _decide(hist, T=_t(1), boundary=_confirm_facts(_t(1), family=family))
-    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=_t(1)))
+    boundary = _confirm_facts(_t(1), family=family)
+    decision = _decide(hist, T=_t(1), boundary=boundary)
+    event = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=_t(1)), boundary_facts=boundary)
     block = event.event_payload[CONFIRMATION_FACTS_KEY]
     assert block["confirmation_reference_price"] == _CLOSE
     assert block["invalidation_price"] == 99.0
@@ -2668,8 +2708,10 @@ def test_the_tp_confirmation_block_agrees_with_its_operational_block():
     """For TP the two blocks record the same invalidation deliberately -- a
     cross-check, not a competing representation."""
     hist = episode(_tp_at_risk(risk="1.0"))
-    decision = _decide(hist, T=_t(1), boundary=tp_facts(T=_t(1), close=_CLOSE))
-    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=_t(1)))
+    boundary = tp_facts(T=_t(1), close=_CLOSE)
+    decision = _decide(hist, T=_t(1), boundary=boundary)
+    event = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=_t(1)), boundary_facts=boundary)
     assert (event.event_payload[CONFIRMATION_FACTS_KEY]["invalidation_price"]
             == event.event_payload[OPERATIONAL_FACTS_KEY]["invalidation_price"])
 
@@ -2679,9 +2721,10 @@ def test_a_non_confirming_event_carries_no_confirmation_facts():
     deadline = read_candidate_deadline(hist)
     # Exactly ON the frozen breakout side: §7.2's neutral HOLD, so the
     # deadline closes the budget without ever reaching §18.1.
-    decision = _decide(hist, T=deadline, boundary=facts(T=deadline, close=_RANGE_HIGH))
+    boundary = facts(T=deadline, close=_RANGE_HIGH)
+    decision = _decide(hist, T=deadline, boundary=boundary)
     event = build_episode_transition_event(
-        decision, hist, authorization=_authorization(T=deadline))
+        decision, hist, authorization=_authorization(T=deadline), boundary_facts=boundary)
     assert CONFIRMATION_FACTS_KEY not in event.event_payload
 
 
@@ -2726,21 +2769,25 @@ def _forge_confirmed(hist, good, planned_risk, *, operational_facts=_UNSET, sign
 
 def test_a_confirmed_decision_whose_tick_is_not_the_episodes_own_is_refused():
     hist = episode(_comp_at_risk(risk="1.0"))
-    good = _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=_CLOSE))
+    boundary = facts(T=_t(1), close=_CLOSE)
+    good = _decide(hist, T=_t(1), boundary=boundary)
     # Internally self-consistent under a 1.0 tick (5.0 >= 3 * 1.0), so only
     # the episode's OWN persisted tick can catch it.
     forged = _forge_confirmed(
         hist, good, _risk(reference=_CLOSE, invalidation=95.0, tick="1.0"))
     with pytest.raises(V2EpisodeLifecycleError, match="persisted creation value"):
-        build_episode_transition_event(forged, hist, authorization=_authorization(T=_t(1)))
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=_t(1)), boundary_facts=boundary)
 
 
 def test_a_confirmed_decision_whose_invalidation_is_not_the_episodes_own_is_refused():
     hist = episode(_comp_at_risk(risk="1.0"))
-    good = _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=_CLOSE))
+    boundary = facts(T=_t(1), close=_CLOSE)
+    good = _decide(hist, T=_t(1), boundary=boundary)
     forged = _forge_confirmed(hist, good, _risk(reference=_CLOSE, invalidation=50.0))
     with pytest.raises(V2EpisodeLifecycleError, match="not the level episode"):
-        build_episode_transition_event(forged, hist, authorization=_authorization(T=_t(1)))
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=_t(1)), boundary_facts=boundary)
 
 
 def test_a_tp_confirmed_using_stale_invalidation_is_refused_at_the_build_boundary():
@@ -2750,14 +2797,15 @@ def test_a_tp_confirmed_using_stale_invalidation_is_refused_at_the_build_boundar
         T=T0, pullback_extreme=100.0, current_close=105.0, buffer=2.0))
     hist = _history([creation])
     T = _t(3)
-    good = _decide(
-        hist, T=T, boundary=tp_facts(T=T, close=104.0),
-        reevaluation=_window(T=T, closes=[96.0, 103.0], anchor=_TP_ANCHOR,
-                             filler=_LONG_FILLER))
+    boundary = tp_facts(T=T, close=104.0)
+    window = _window(T=T, closes=[96.0, 103.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER)
+    good = _decide(hist, T=T, boundary=boundary, reevaluation=window)
     assert good.planned_risk.invalidation_price == 94.0
     forged = _forge_confirmed(hist, good, _risk(reference=104.0, invalidation=98.0))
     with pytest.raises(V2EpisodeLifecycleError, match="not the level episode"):
-        build_episode_transition_event(forged, hist, authorization=_authorization(T=T))
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=T),
+            boundary_facts=boundary, reevaluation_window=window)
 
 
 # ---- red-team round 2: untrusted TP geometry never proves itself -----------
@@ -2774,18 +2822,20 @@ def test_a_tp_confirmed_reverting_to_an_already_persisted_deeper_extreme_is_refu
         T=T0, pullback_extreme=100.0, current_close=105.0, buffer=2.0))
     hist0 = _history([creation])
     T_update = _t(3)
-    update = _decide(
-        hist0, T=T_update, boundary=tp_facts(T=T_update, median=-1.0),
-        reevaluation=_window(T=T_update, closes=[97.0, 103.0], anchor=_TP_ANCHOR,
-                             filler=_LONG_FILLER))
+    update_boundary = tp_facts(T=T_update, median=-1.0)
+    update_window = _window(T=T_update, closes=[97.0, 103.0], anchor=_TP_ANCHOR,
+                            filler=_LONG_FILLER)
+    update = _decide(hist0, T=T_update, boundary=update_boundary, reevaluation=update_window)
     assert update.outcome == LIFECYCLE_PRECONFIRMATION_UPDATE
     update_event = build_episode_transition_event(
-        update, hist0, authorization=_authorization(T=T_update))
+        update, hist0, authorization=_authorization(T=T_update),
+        boundary_facts=update_boundary, reevaluation_window=update_window)
     hist = _history([creation, update_event])
     assert read_operational_facts(hist).pullback_extreme == 97.0     # genuinely persisted
 
     T = _t(6)
-    good = _decide(hist, T=T, boundary=tp_facts(T=T, close=104.0))
+    boundary = tp_facts(T=T, close=104.0)
+    good = _decide(hist, T=T, boundary=boundary)
     assert good.operational_facts.pullback_extreme == 97.0
     # Revert to the STALE, pre-update extreme (100.0) -- self-consistently:
     # its own invalidation (98.0) and the forged planned risk both agree
@@ -2798,8 +2848,35 @@ def test_a_tp_confirmed_reverting_to_an_already_persisted_deeper_extreme_is_refu
         source_bucket=good.operational_facts.source_bucket)
     forged = _forge_confirmed(
         hist, good, _risk(reference=104.0, invalidation=98.0), operational_facts=stale_facts)
-    with pytest.raises(V2EpisodeLifecycleError, match="SHALLOWER"):
-        build_episode_transition_event(forged, hist, authorization=_authorization(T=T))
+    with pytest.raises(V2EpisodeLifecycleError, match="does not equal episode"):
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
+
+
+def test_a_tp_confirmed_claiming_an_unproven_deeper_extreme_with_no_window_is_refused():
+    """§7.1: an unproven "it deepened" assertion is refused even when it IS
+    directionally deeper (not merely when it is shallower) -- monotonicity
+    alone was never meant to be sufficient proof that a deeper retracement
+    was actually observed."""
+    hist = episode(_tp_at_risk(risk="1.0"))
+    T = _t(1)
+    boundary = tp_facts(T=T, close=_CLOSE)
+    good = _decide(hist, T=T, boundary=boundary)
+    deeper = good.operational_facts.pullback_extreme - 1.0     # deeper for LONG, unproven
+    unproven_facts = V2OperationalFacts(
+        direction=LONG, pullback_extreme=deeper,
+        dynamic_bound=good.operational_facts.dynamic_bound,
+        entry_zone_lower=deeper, entry_zone_upper=good.operational_facts.dynamic_bound,
+        invalidation_price=good.operational_facts.invalidation_price - 1.0,
+        protection_buffer=good.operational_facts.protection_buffer,
+        source=OPERATIONAL_SOURCE_CONFIRMATION, source_bucket=good.operational_facts.source_bucket)
+    forged = _forge_confirmed(
+        hist, good,
+        _risk(reference=_CLOSE, invalidation=good.operational_facts.invalidation_price - 1.0),
+        operational_facts=unproven_facts)
+    with pytest.raises(V2EpisodeLifecycleError, match="no re-evaluation window was supplied"):
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
 
 
 def test_a_tp_confirmed_with_invalidation_disconnected_from_its_own_geometry_is_refused():
@@ -2811,7 +2888,8 @@ def test_a_tp_confirmed_with_invalidation_disconnected_from_its_own_geometry_is_
     dynamic_bound look entirely legitimate."""
     hist = episode(_tp_at_risk(risk="1.0"))
     T = _t(1)
-    good = _decide(hist, T=T, boundary=tp_facts(T=T, close=_CLOSE))
+    boundary = tp_facts(T=T, close=_CLOSE)
+    good = _decide(hist, T=T, boundary=boundary)
     fabricated_facts = V2OperationalFacts(
         direction=LONG, pullback_extreme=good.operational_facts.pullback_extreme,
         dynamic_bound=good.operational_facts.dynamic_bound,
@@ -2825,7 +2903,35 @@ def test_a_tp_confirmed_with_invalidation_disconnected_from_its_own_geometry_is_
         hist, good, _risk(reference=_CLOSE, invalidation=50.0),
         operational_facts=fabricated_facts)
     with pytest.raises(V2EpisodeLifecycleError, match="canonical geometry"):
-        build_episode_transition_event(forged, hist, authorization=_authorization(T=T))
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
+
+
+def test_a_tp_confirmed_with_a_fabricated_dynamic_bound_is_refused():
+    """§18.1: `dynamic_bound` must equal the INDEPENDENT canonical
+    confirmation reference close, never a value merely asserted by the
+    decision -- even when the rest of the geometry (and the matching
+    planned risk) is mathematically self-consistent with that fabricated
+    bound."""
+    hist = episode(_tp_at_risk(risk="1.0"))
+    T = _t(1)
+    boundary = tp_facts(T=T, close=_CLOSE)      # the REAL independent close
+    good = _decide(hist, T=T, boundary=boundary)
+    fake_close = _CLOSE + 10.0
+    extreme = good.operational_facts.pullback_extreme
+    buffer = Decimal(good.operational_facts.protection_buffer)
+    fake_facts = V2OperationalFacts(
+        direction=LONG, pullback_extreme=extreme, dynamic_bound=fake_close,
+        entry_zone_lower=extreme, entry_zone_upper=fake_close,
+        invalidation_price=float(Decimal(str(extreme)) - buffer),
+        protection_buffer=good.operational_facts.protection_buffer,
+        source=OPERATIONAL_SOURCE_CONFIRMATION, source_bucket=good.operational_facts.source_bucket)
+    forged = _forge_confirmed(
+        hist, good, _risk(reference=fake_close, invalidation=fake_facts.invalidation_price),
+        operational_facts=fake_facts)
+    with pytest.raises(V2EpisodeLifecycleError, match="canonical geometry"):
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
 
 
 def test_a_tp_confirmed_with_a_foreign_protection_buffer_is_refused():
@@ -2834,7 +2940,8 @@ def test_a_tp_confirmed_with_a_foreign_protection_buffer_is_refused():
     would-be-computed geometry looks internally tidy."""
     hist = episode(_tp_at_risk(risk="1.0"))
     T = _t(1)
-    good = _decide(hist, T=T, boundary=tp_facts(T=T, close=_CLOSE))
+    boundary = tp_facts(T=T, close=_CLOSE)
+    good = _decide(hist, T=T, boundary=boundary)
     foreign_buffer_facts = V2OperationalFacts(
         direction=LONG, pullback_extreme=good.operational_facts.pullback_extreme,
         dynamic_bound=good.operational_facts.dynamic_bound,
@@ -2849,7 +2956,8 @@ def test_a_tp_confirmed_with_a_foreign_protection_buffer_is_refused():
             reference=_CLOSE, invalidation=good.operational_facts.invalidation_price),
         operational_facts=foreign_buffer_facts)
     with pytest.raises(V2EpisodeLifecycleError, match="not episode .* own persisted creation"):
-        build_episode_transition_event(forged, hist, authorization=_authorization(T=T))
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
 
 
 @pytest.mark.parametrize("family", [COMPRESSION_BREAKOUT, CONFIRMED_BREAKOUT, TREND_PULLBACK])
@@ -2861,28 +2969,170 @@ def test_a_confirmed_decision_with_a_fabricated_reference_price_is_refused(famil
     forged `V2PlannedRisk` is otherwise perfectly self-consistent."""
     hist = episode(_AT_RISK[family](risk="1.0"))
     T = _t(1)
-    good = _decide(hist, T=T, boundary=_confirm_facts(T, family=family))
+    boundary = _confirm_facts(T, family=family)
+    good = _decide(hist, T=T, boundary=boundary)
     wrong_reference = _CLOSE + 5.0
     forged = _forge_confirmed(
         hist, good,
         _risk(reference=wrong_reference, invalidation=good.planned_risk.invalidation_price))
     with pytest.raises(V2EpisodeLifecycleError, match="two spellings of the confirmation price"):
-        build_episode_transition_event(forged, hist, authorization=_authorization(T=T))
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
 
 
-def test_a_confirmed_decision_whose_signal_carries_no_reference_close_is_refused():
-    """A breakout family signal missing its own 'reference_close' evidence
-    (an internally-forged `V2FamilySignal`) cannot silently authorize an
-    unbound §18.1 reference price -- fails closed rather than skipping the
-    check for lack of a comparison value."""
+@pytest.mark.parametrize("family", [COMPRESSION_BREAKOUT, CONFIRMED_BREAKOUT])
+def test_the_core_blocker_joint_forgery_of_both_reference_price_fields_is_refused(family):
+    """THE merge-blocking gap this round closes. A hand-built decision could
+    previously forge BOTH `signal.evidence['reference_close']` AND
+    `planned_risk.confirmation_reference_price` to the SAME fabricated
+    price, keeping the real tick/invalidation and a mathematically
+    self-consistent `planned_risk_distance` -- so the old cross-check
+    compared two equally caller-controlled fields and always passed
+    (reproduced against the pre-fix code: this exact construction persisted
+    cleanly). `evaluate_family_signal()` is now re-run against
+    INDEPENDENTLY-supplied `boundary_facts`, so the fabricated evidence
+    inside the caller-controlled `decision.signal` is never even
+    consulted -- only the fresh, independent re-derivation is."""
+    hist = episode(_AT_RISK[family](risk="1.0"))
+    T = _t(1)
+    boundary = _confirm_facts(T, family=family)     # the REAL independent boundary
+    good = _decide(hist, T=T, boundary=boundary)
+    real_invalidation = good.planned_risk.invalidation_price
+    fake_price = _CLOSE + 999.0
+    forged_signal = V2FamilySignal(
+        signal=SIGNAL_CONFIRM, reason=good.signal.reason,
+        evidence=dict(good.signal.evidence, reference_close=fake_price))
+    forged_risk = _risk(reference=fake_price, invalidation=real_invalidation)
+    forged = _forge_confirmed(hist, good, forged_risk, signal=forged_signal)
+    with pytest.raises(V2EpisodeLifecycleError, match="two spellings of the confirmation price"):
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
+
+
+def test_a_hand_built_confirm_where_independent_facts_actually_hold_is_refused():
+    """M2: a hand-built SIGNAL_CONFIRM persisted at a boundary whose
+    independently-supplied facts actually yield HOLD must be rejected --
+    the decision's own (equally caller-controlled) `signal` is never the
+    authority."""
     hist = episode(_comp_at_risk(risk="1.0"))
     T = _t(1)
     good = _decide(hist, T=T, boundary=facts(T=T, close=_CLOSE))
+    real_hold_boundary = facts(T=T, close=_RANGE_HIGH)     # boundary-equality HOLD
+    forged = _forge_confirmed(hist, good, _risk(reference=_CLOSE, invalidation=99.0))
+    with pytest.raises(V2EpisodeLifecycleError, match="does not independently confirm"):
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=T), boundary_facts=real_hold_boundary)
+
+
+def test_a_hand_built_confirm_where_independent_facts_actually_false_break_is_refused():
+    """M3: false-break semantics remain authoritative -- a hand-built
+    SIGNAL_CONFIRM cannot persist against a boundary whose independent
+    facts actually false-break."""
+    hist = episode(_comp_at_risk(risk="1.0"))
+    T = _t(1)
+    good = _decide(hist, T=T, boundary=facts(T=T, close=_CLOSE))
+    real_false_break_boundary = facts(T=T, close=50.0)
+    forged = _forge_confirmed(hist, good, _risk(reference=_CLOSE, invalidation=99.0))
+    with pytest.raises(V2EpisodeLifecycleError, match="does not independently confirm"):
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=T),
+            boundary_facts=real_false_break_boundary)
+
+
+def test_a_confirmed_decision_whose_reproven_signal_carries_no_reference_close_is_refused(
+        monkeypatch):
+    """Defense in depth. The real family predicates always set
+    'reference_close' in their own evidence before ever returning CONFIRM
+    (verified elsewhere), so this branch is not reachable through normal
+    construction -- proven here by monkeypatching the re-run predicate
+    itself, never by forging the decision's own (no-longer-authoritative)
+    `signal`."""
+    import analytics.forecasting_v2.episode_lifecycle as lifecycle_module
+    hist = episode(_comp_at_risk(risk="1.0"))
+    T = _t(1)
+    boundary = facts(T=T, close=_CLOSE)
+    good = _decide(hist, T=T, boundary=boundary)
+    forged = _forge_confirmed(hist, good, _risk(reference=_CLOSE, invalidation=99.0))
     bare_signal = V2FamilySignal(signal=SIGNAL_CONFIRM, reason="x", evidence={})
-    forged = _forge_confirmed(hist, good, _risk(reference=_CLOSE, invalidation=99.0),
-                              signal=bare_signal)
-    with pytest.raises(V2EpisodeLifecycleError, match="carries no recorded 'reference_close'"):
-        build_episode_transition_event(forged, hist, authorization=_authorization(T=T))
+    monkeypatch.setattr(lifecycle_module, "evaluate_family_signal", lambda *a, **k: bare_signal)
+    with pytest.raises(V2EpisodeLifecycleError, match="recorded no 'reference_close' evidence"):
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
+
+
+def test_a_tp_confirmed_whose_claimed_extreme_disagrees_with_the_supplied_window_is_refused():
+    """M6: the supplied reevaluation_window independently derives ONE legal
+    extreme; a hand-built decision claiming a DIFFERENT one -- even a
+    mathematically self-consistent, plausible-looking one -- is refused."""
+    creation = early_signal(tp_candidate(
+        T=T0, pullback_extreme=100.0, current_close=105.0, buffer=2.0))
+    hist = _history([creation])
+    T = _t(3)
+    boundary = tp_facts(T=T, close=104.0)
+    window = _window(T=T, closes=[96.0, 103.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER)
+    good = _decide(hist, T=T, boundary=boundary, reevaluation=window)
+    assert good.operational_facts.pullback_extreme == 96.0    # what the window ACTUALLY derives
+    wrong_extreme = 95.0                                        # plausible, but NOT what it derives
+    wrong_facts = V2OperationalFacts(
+        direction=LONG, pullback_extreme=wrong_extreme, dynamic_bound=104.0,
+        entry_zone_lower=wrong_extreme, entry_zone_upper=104.0,
+        invalidation_price=wrong_extreme - 2.0,
+        protection_buffer=good.operational_facts.protection_buffer,
+        source=OPERATIONAL_SOURCE_CONFIRMATION, source_bucket=good.operational_facts.source_bucket)
+    forged = _forge_confirmed(
+        hist, good, _risk(reference=104.0, invalidation=wrong_extreme - 2.0),
+        operational_facts=wrong_facts)
+    with pytest.raises(V2EpisodeLifecycleError, match="does not equal the value independently"):
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=T),
+            boundary_facts=boundary, reevaluation_window=window)
+
+
+def test_a_tp_confirmed_whose_claimed_extreme_matches_the_supplied_window_persists():
+    """M7: the positive complement of the above -- when the claimed extreme
+    IS exactly what the supplied window independently derives, the decision
+    persists as exactly one CONFIRMED event."""
+    creation = early_signal(tp_candidate(
+        T=T0, pullback_extreme=100.0, current_close=105.0, buffer=2.0))
+    hist = _history([creation])
+    T = _t(3)
+    boundary = tp_facts(T=T, close=104.0)
+    window = _window(T=T, closes=[96.0, 103.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER)
+    decision = _decide(hist, T=T, boundary=boundary, reevaluation=window)
+    assert decision.operational_facts.pullback_extreme == 96.0
+    event = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=T),
+        boundary_facts=boundary, reevaluation_window=window)
+    after = _history([creation, event])
+    assert len(after.events) == 2
+    assert after.current_state == CONFIRMED
+
+
+def test_boundary_facts_for_a_different_boundary_than_the_decision_is_refused():
+    """M8: independently-supplied boundary facts must describe THIS exact
+    decision boundary."""
+    hist = episode(_comp_at_risk(risk="1.0"))
+    T = _t(1)
+    boundary = facts(T=T, close=_CLOSE)
+    decision = _decide(hist, T=T, boundary=boundary)
+    wrong_boundary = facts(T=_t(2), close=_CLOSE)
+    with pytest.raises(V2EpisodeLifecycleError, match="ONE coherent data view per"):
+        build_episode_transition_event(
+            decision, hist, authorization=_authorization(T=T), boundary_facts=wrong_boundary)
+
+
+def test_boundary_facts_from_a_foreign_calculation_version_is_refused():
+    """M8: independently-supplied boundary facts must belong to this
+    episode's own semantic scope -- reusing §3.2's existing scope-binding
+    check, never a parallel scope system."""
+    hist = episode(_comp_at_risk(risk="1.0"))
+    T = _t(1)
+    boundary = facts(T=T, close=_CLOSE)
+    decision = _decide(hist, T=T, boundary=boundary)
+    foreign_boundary = facts(T=T, close=_CLOSE, calculation_version="c" * 16)
+    with pytest.raises(V2EpisodeLifecycleError, match="different semantic scope"):
+        build_episode_transition_event(
+            decision, hist, authorization=_authorization(T=T), boundary_facts=foreign_boundary)
 
 
 def test_a_malformed_persisted_tick_at_the_build_boundary_raises_the_lifecycle_error():
@@ -2900,7 +3150,9 @@ def test_a_malformed_persisted_tick_at_the_build_boundary_raises_the_lifecycle_e
         t_detect=read_detection_boundary(hist), candidate_deadline=read_candidate_deadline(hist),
         planned_risk=_risk())
     with pytest.raises(V2EpisodeLifecycleError, match="tick size is"):
-        build_episode_transition_event(forged, hist, authorization=_authorization(T=_t(1)))
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=_t(1)),
+            boundary_facts=facts(T=_t(1), close=_CLOSE))
 
 
 # ---- red-team round 2: planned_risk/confirmation_facts legal only for
@@ -2941,9 +3193,11 @@ def test_a_valid_confirmed_still_persists_exactly_one_confirmation_facts_block(f
     exists exactly once, only on the CONFIRMED event."""
     hist = episode(_AT_RISK[family](risk="1.0"))
     T = _t(1)
-    decision = _decide(hist, T=T, boundary=_confirm_facts(T, family=family))
+    boundary = _confirm_facts(T, family=family)
+    decision = _decide(hist, T=T, boundary=boundary)
     assert decision.outcome == LIFECYCLE_CONFIRMED
-    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=T))
+    event = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=T), boundary_facts=boundary)
     assert CONFIRMATION_FACTS_KEY in event.event_payload
     assert event.episode_state == CONFIRMED
 
@@ -2954,11 +3208,12 @@ def test_tp_same_T_reevaluation_plus_risk_valid_confirmation_is_one_event():
         T=T0, pullback_extreme=100.0, current_close=105.0, buffer=2.0))
     hist = _history([creation])
     T = _t(3)
-    decision = _decide(
-        hist, T=T, boundary=tp_facts(T=T, close=104.0),
-        reevaluation=_window(T=T, closes=[96.0, 103.0], anchor=_TP_ANCHOR,
-                             filler=_LONG_FILLER))
-    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=T))
+    boundary = tp_facts(T=T, close=104.0)
+    window = _window(T=T, closes=[96.0, 103.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER)
+    decision = _decide(hist, T=T, boundary=boundary, reevaluation=window)
+    event = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=T),
+        boundary_facts=boundary, reevaluation_window=window)
     after = _history([creation, event])
     assert len(after.events) == 2
     assert after.current_state == CONFIRMED
@@ -2973,15 +3228,16 @@ def test_tp_same_T_reevaluation_plus_risk_rejection_before_deadline_is_one_updat
     T = _t(3)
     # Deepens 100.0 -> 99.95, so the final invalidation is 99.94 and the
     # planned risk |100.1 - 99.94| = 0.16 is still under the 0.3 floor.
-    decision = _decide(
-        hist, T=T, boundary=tp_facts(T=T, close=100.1),
-        reevaluation=_window(T=T, closes=[99.95, 100.0], anchor=_TP_ANCHOR,
-                             filler=_LONG_FILLER))
+    boundary = tp_facts(T=T, close=100.1)
+    window = _window(T=T, closes=[99.95, 100.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER)
+    decision = _decide(hist, T=T, boundary=boundary, reevaluation=window)
     assert decision.operational_facts.invalidation_price == 99.94
     assert decision.signal.signal == SIGNAL_REJECTED
     assert decision.signal.evidence["planned_risk_distance"] == "0.16"
     assert decision.outcome == LIFECYCLE_PRECONFIRMATION_UPDATE
-    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=T))
+    event = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=T),
+        boundary_facts=boundary, reevaluation_window=window)
     after = _history([creation, event])
     assert len(after.events) == 2                       # ONE new event, not two
     assert after.current_state == EARLY_SIGNAL
@@ -2993,14 +3249,14 @@ def test_tp_same_T_reevaluation_plus_risk_rejection_at_deadline_is_one_expired()
         T=T0, pullback_extreme=100.0, current_close=105.0, buffer=0.01))
     hist = _history([creation])
     deadline = read_candidate_deadline(hist)
-    decision = _decide(
-        hist, T=deadline, boundary=tp_facts(T=deadline, close=100.1),
-        reevaluation=_window(T=deadline, closes=[99.95, 100.0], anchor=_TP_ANCHOR,
-                             filler=_LONG_FILLER))
+    boundary = tp_facts(T=deadline, close=100.1)
+    window = _window(T=deadline, closes=[99.95, 100.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER)
+    decision = _decide(hist, T=deadline, boundary=boundary, reevaluation=window)
     assert decision.outcome == LIFECYCLE_EXPIRED_CANDIDATE_AGE
     assert decision.resolution_category == SIGNAL_REJECTED
     event = build_episode_transition_event(
-        decision, hist, authorization=_authorization(T=deadline))
+        decision, hist, authorization=_authorization(T=deadline),
+        boundary_facts=boundary, reevaluation_window=window)
     after = _history([creation, event])
     assert len(after.events) == 2
     assert after.current_state == EXPIRED
@@ -3047,7 +3303,7 @@ def test_live_and_replay_agree_on_planned_risk_while_staying_isolated():
         provenance=_provenance(T=_t(1), run_kind=REPLAY, run_id="replay-1"),
         publication_clean=True)
     with pytest.raises(V2EpisodeLifecycleError, match="physically isolated"):
-        build_episode_transition_event(a, live, authorization=foreign)
+        build_episode_transition_event(a, live, authorization=foreign, boundary_facts=boundary)
 
 
 # ---- §19 draining ------------------------------------------------------------
@@ -3058,9 +3314,11 @@ def test_an_old_draining_episode_still_confirms_through_the_risk_gate():
     assert active_for_new_creation(state) is None
     with pytest.raises(V2VersionSwitchError):
         assert_provenance_authorized_for_new_creation(_provenance(T=_t(2)), state)
-    decision = _decide(hist, T=_t(2), boundary=facts(T=_t(2), close=_CLOSE))
+    boundary = facts(T=_t(2), close=_CLOSE)
+    decision = _decide(hist, T=_t(2), boundary=boundary)
     assert decision.outcome == LIFECYCLE_CONFIRMED
-    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=_t(2)))
+    event = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=_t(2)), boundary_facts=boundary)
     assert event.rules_version == old.rules_version
     assert event.calculation_version == old.calculation_version
     assert event.decision_code_version == creation.decision_code_version
