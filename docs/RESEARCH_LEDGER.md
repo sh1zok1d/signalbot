@@ -186,21 +186,37 @@ Primary evidence:
 
 Controls/ablations are frozen in `docs/E1_DETECTOR_SEPARATION_PREREG.md`; deterministic random seed is `20260825`.
 
-Development window: **TBD after coverage + detector-count inventory only**.  
-Untouched chronological holdout: **TBD after coverage + detector-count inventory only**.  
+Candidate-only inventory completed before outcome inspection:
+
+- calculation namespace: `9bed1b4cf99f1644`;
+- candidate window: `[2026-08-02T00:00:00Z, 2026-08-25T17:20:00Z)`;
+- legal 5m boundaries: `6,832`;
+- raw qualifications: `290`;
+- `TREND_PULLBACK=198` (`LONG=126`, `SHORT=72`);
+- `COMPRESSION_BREAKOUT=47` (`LONG=27`, `SHORT=20`);
+- `CONFIRMED_BREAKOUT=45` (`LONG=36`, `SHORT=9`);
+- candidate artifact reported `outcomes_included=false`;
+- replay mode: one `REPEATABLE READ` snapshot via the research-only legacy-VPS adapter.
+
+Development window: **`[2026-08-02T00:00:00Z, 2026-08-21T00:00:00Z)`**.  
+Untouched chronological holdout: **`[2026-08-21T00:00:00Z, 2026-08-25T17:20:00Z)`**.  
+Split basis: calendar position + candidate counts only; `202/290` (`69.7%`) development vs `88/290` (`30.3%`) holdout.  
 Has holdout/OOS outcome already been viewed for this run? **NO**.  
-Outcome inspection before the split is recorded: **FORBIDDEN**.
+Has any future-return/MFE/MAE outcome been viewed before recording this split? **NO**.  
+Holdout status: **SEALED**.
 
 Parameter/config/code change proposed: none to frozen production detector semantics.  
-Data/source change proposed: none; research harness reads existing persisted data only.
+Data/source change proposed: no production source change; research-only historical Stage-2 materialization was performed in isolated calculation namespace `9bed1b4cf99f1644` from persisted raw data.
 
 Decision rule:
 
 - `SURVIVES`, `SIMPLIFY`, `DEMOTE_TO_BASELINE`, `KILL`, or `INCONCLUSIVE_SAMPLE` per family;
 - global Level-0 fail if all three frozen families fail simple/matched controls and full variants do not beat simpler ablations.
 
-Result summary: pending.  
-Consumed evidence windows: none yet.
+Result summary: candidate population established; predictive result still pending.  
+Uncertainty / sample notes: `290` are raw qualification points, **not independent episodes**; overlap/clustering/concentration must be reported before interpreting outcome statistics.  
+Consumed evidence windows: none yet.  
+Next step: candidate-only overlap/clustering diagnostics, then development-only outcome analysis. Holdout remains unopened until development analysis code/baselines/ablations/reporting are frozen.
 
 ---
 
