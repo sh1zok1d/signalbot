@@ -1,19 +1,9 @@
 # V2 E1 Detector Separation — Pre-registration
 
-Status: **PRE-REGISTERED BEFORE VPS OUTCOME INSPECTION; DEVELOPMENT NOW CONSUMED, HOLDOUT STILL SEALED**  
+Status: **PRE-REGISTERED BEFORE VPS OUTCOME INSPECTION**  
 Date: 2026-08-25  
 Frozen implementation base: `main@8081eb31657f127141efb3a455f86690258164bc`  
 Evidence level: `E1_DETECTOR_SEPARATION` only.
-
-The original preregistration remains authoritative. Development evidence has now been consumed without opening the chronological holdout. The prospective final holdout/reporting/delay/friction amendment is frozen in:
-
-- `docs/e1/E1_RUN_001_PRE_HOLDOUT_FREEZE.md`
-
-Development ablation evidence is recorded in:
-
-- `docs/e1/E1_RUN_001_DEVELOPMENT_ABLATIONS.md`
-
-No detector threshold, family definition, direction, horizon, baseline, delay grid, cost grid, or holdout decision rule may now be changed inside E1-RUN-001.
 
 ## 1. Question
 
@@ -44,130 +34,263 @@ Explicitly excluded:
 
 PR #67 is intentionally not a dependency of this E1 study.
 
-## 3. Temporal/no-lookahead contract
+## 3. Data audit comes before outcomes
 
-- Candidate qualification at T may use only information selected by frozen production Stage-3/4/5 semantics at T.
-- Future outcome paths are read only after candidate artifacts are frozen.
-- Binance raw 1m bars are the outcome source.
-- Historical sub-minute delay results are forbidden.
-- Missing required paths are incomplete, never interpolated or silently dropped.
+Before opening any detector outcome result, record for the VPS database:
 
-## 4. Candidate population / dependence
+- exact row coverage by source/table/exchange/timeframe;
+- exact `calculation_version` and `feature_schema_version` populations;
+- Binance reference 1m OHLCV coverage and gap characteristics;
+- Stage-2 exchange/consensus/percentile coverage;
+- OI source cadence and source labels;
+- funding coverage;
+- liquidation live-only coverage;
+- historical taker-flow availability;
+- detector qualification counts by family/direction **without future outcomes**.
 
-The raw E1 population is every frozen Stage-5 qualification point. Raw qualifications are not independent episodes.
+Each study row must later receive one evidence tier:
 
-Required dependence reporting:
+- `LIVE_EQUIVALENT`;
+- `PARTIAL_HISTORICAL`;
+- `NON_COMPARABLE_FEED_SEMANTICS`;
+- `NOT_EVALUABLE`.
 
-- raw N;
-- family/direction/day counts;
-- family overlap;
-- time-gap clustering;
-- UTC-day concentration/block uncertainty.
+Headline results may not silently mix tiers.
 
-No Stage-6 episode reconstruction is used for E1 deduplication.
+## 4. Temporal rules / no-lookahead
 
-## 5. Reference price / outcomes
+For detector qualification at logical decision boundary `T`:
 
-Reference price at T is the canonical usable Binance reference 5m close for the closed bucket ending at T.
+- all Stage-3/4/5 inputs must be selected exactly as production code selects them at `T`;
+- no feature, baseline, ablation, or control may read a row whose availability belongs after `T`;
+- future path data may be read only by the separate outcome evaluator after the candidate row is frozen;
+- raw outcome path uses Binance `klines_1m` only;
+- no interpolation of missing sub-minute data;
+- historical delay tests below one minute are forbidden unless genuine sub-minute historical data exist.
 
-Frozen horizons:
+## 5. Candidate population
 
-- +15m
-- +30m
-- +1h
-- +2h
-- +4h
+The raw E1 population is **every Stage-5 qualification point** produced by the frozen detectors on eligible decision boundaries.
 
-Directional return:
+Do not pretend raw qualification points are independent. Report:
 
-- LONG: `(P_future / P_T) - 1`
-- SHORT: `(P_T - P_future) / P_T`
+- raw qualification count;
+- count by family/direction/calendar block;
+- overlap among families;
+- UTC-day clustered/bootstrap uncertainty;
+- concentration of results in the top few UTC days / market blocks.
 
-Report terminal directional return, MFE, MAE, time-to-MFE and path completeness. Pre-T reactivity is measured at -15m/-30m/-1h.
+No Stage-6 episode reconstruction is used to deduplicate E1.
 
-## 6. Frozen variants
+## 6. Reference price and outcomes
 
-TREND_PULLBACK:
+Reference price at `T`:
 
-- `TP_FULL`
-- `TP_NO_4H`
-- `TP_NO_1H`
-- `TP_NO_CONTEXT`
-- matched random
+- canonical Binance reference 5m close for the closed bucket ending at `T`, subject to the existing reference usability gate.
 
-COMPRESSION_BREAKOUT:
+Primary forward horizons:
 
-- `CB_FULL`
-- `CB_NO_TAKER`
-- `CB_SIMPLE_COMPRESSION_BREAKOUT`
-- `CB_ORDINARY_RANGE_BREAKOUT`
-- matched random
+- `+15m`;
+- `+30m`;
+- `+1h`;
+- `+2h`;
+- `+4h`.
 
-CONFIRMED_BREAKOUT:
+Directional return convention:
 
-- `FB_FULL`
-- `FB_NO_CONTEXT`
-- `FB_DUMB_48H_LEVEL_BREAKOUT`
-- matched random
+- LONG: `(P_future / P_T) - 1`;
+- SHORT: `(P_T - P_future) / P_T`.
 
-`FB_NO_CONTEXT` and `FB_DUMB_48H_LEVEL_BREAKOUT` are structurally the same Stage-5 population and are not double-counted as independent evidence.
+For each horizon, compute from future Binance 1m bars:
 
-Negative controls include direction inversion, deterministic matched random (`seed=20260825`), same-day time shift, and only semantics-safe permutations if used.
+- terminal directional return;
+- MFE;
+- MAE;
+- time-to-MFE;
+- path completeness.
 
-## 7. Historical delay stress
+LONG:
 
-Allowed historical delays:
+- `MFE = max(high / P_T - 1)`;
+- `MAE = min(low / P_T - 1)`.
 
-- 0s
-- +60s
-- +120s
+SHORT:
 
-No +15s/+30s synthetic history.
+- `MFE = max((P_T - low) / P_T)`;
+- `MAE = min((P_T - high) / P_T)`.
 
-Final exact delay semantics and generic friction stress are frozen prospectively in `docs/e1/E1_RUN_001_PRE_HOLDOUT_FREEZE.md`.
+A missing required 1m path is reported as incomplete; it is never silently dropped and the denominator tree must show it.
 
-## 8. Final chronological split
+## 7. Reactivity diagnostic
+
+To test the V1 failure mode directly, record directional movement before `T` over:
+
+- `-15m`;
+- `-30m`;
+- `-1h`.
+
+Compare pre-`T` movement with post-`T` distributions.
+
+Red flag: detector strength/qualification strongly explains movement already completed before `T` while future distributions remain near controls.
+
+## 8. Pre-registered family comparisons
+
+### TREND_PULLBACK
+
+Primary variants:
+
+1. `TP_FULL` — frozen detector;
+2. `TP_NO_4H` — research-only 4h conditioning ablation;
+3. `TP_NO_1H` — research-only 1h bias ablation;
+4. `TP_NO_CONTEXT` — both context layers neutralized while preserving the same price-structure definition;
+5. matched random control.
+
+Interpretation: if `TP_FULL` is not materially better than its simpler variants/controls, MTF context has not earned its complexity.
+
+### COMPRESSION_BREAKOUT
+
+Primary variants:
+
+1. `CB_FULL` — frozen detector;
+2. `CB_NO_TAKER` — remove taker-flow gate only;
+3. `CB_SIMPLE_COMPRESSION_BREAKOUT` — price compression + breakout only;
+4. `CB_ORDINARY_RANGE_BREAKOUT` — no compression requirement;
+5. matched random control.
+
+### CONFIRMED_BREAKOUT
+
+Primary variants:
+
+1. `FB_FULL` — frozen detector;
+2. `FB_DUMB_48H_LEVEL_BREAKOUT` — simple 48h high/low breakout;
+3. `FB_NO_CONTEXT` — same breakout without 4h/1h compatibility gate;
+4. matched random control.
+
+`CONFIRMED_BREAKOUT` is treated as a baseline-like family until it demonstrates incremental separation.
+
+## 9. Negative controls
+
+Pre-registered controls:
+
+- direction inversion (`LONG <-> SHORT`);
+- deterministic time-matched random control with fixed seed `20260825`;
+- time-shift control within the same UTC day/eligible decision grid;
+- feature-family permutation only where semantics and no-lookahead can be preserved.
+
+A negative control performing similarly to the real detector is evidence against incremental information.
+
+## 10. Historical delay stress
+
+Allowed from current historical resolution:
+
+- `0s` contract-point result;
+- `+60s`;
+- `+120s`.
+
+Do not fabricate `+15s`/`+30s` historical prices from 1m bars.
+
+## 11. Development / holdout discipline
+
+The first VPS pass may inspect **coverage and detector counts only**, not future outcomes.
+
+Only after coverage/counts are known will a chronological development/holdout boundary be recorded. The final chronological holdout must remain unopened during development analysis.
+
+If any detector/rule is changed after viewing an outcome window, that window is consumed and the modified candidate becomes a new research version.
+
+### 11.1 Initial split amendment — historical record, later superseded before outcomes
+
+Recorded on `2026-08-25` after the candidate-only inventory completed and while `outcomes_included=false`.
 
 Candidate inventory window:
 
-- `[2026-08-02T00:00:00Z, 2026-08-25T17:20:00Z)`
-- `6,832` legal 5m decision boundaries
-- `290` raw FULL qualifications
-- TP=198, CB=47, FB=45
+- `[2026-08-02T00:00:00Z, 2026-08-25T17:20:00Z)`;
+- `6,832` legal 5m decision boundaries;
+- `290` raw Stage-5 qualifications;
+- `TREND_PULLBACK=198`;
+- `COMPRESSION_BREAKOUT=47`;
+- `CONFIRMED_BREAKOUT=45`.
 
-The first 21-Aug split was superseded before outcomes because it contained no CB holdout candidates.
+Initial chronological split:
 
-The final split was selected before outcomes by the frozen family-balance rule: choose the latest UTC-midnight boundary whose holdout contains >=25% of all qualifications and >=20% of each family.
+- development: `[2026-08-02T00:00:00Z, 2026-08-21T00:00:00Z)`;
+- holdout: `[2026-08-21T00:00:00Z, 2026-08-25T17:20:00Z)`.
 
-Final split:
+The boundary was selected from calendar position + qualification counts only. It contained `202/290` development qualifications and `88/290` holdout qualifications. No future return, MFE, MAE, hit-rate, baseline outcome, or control outcome had been inspected.
 
-- development `[2026-08-02T00:00:00Z, 2026-08-16T00:00:00Z)` — `149` FULL candidates (`TP=93`, `CB=30`, `FB=26`)
-- holdout `[2026-08-16T00:00:00Z, 2026-08-25T17:20:00Z)` — `141` FULL candidates (`TP=105`, `CB=17`, `FB=19`)
+Candidate-only family-balance audit then showed the initial holdout contained `COMPRESSION_BREAKOUT=0/47` and only `CONFIRMED_BREAKOUT=6/45`. Because this made family-level OOS evaluation impossible/weak, the initial split was superseded **before any outcome inspection** by the mechanical rule in §11.2. The initial split is retained here as research history and is no longer operative.
 
-The +4h development purge requires outcome-eligible T <= `2026-08-15T20:00:00Z`, so development SQL never reads a bar in the sealed holdout.
+### 11.2 Final split freeze — family-balanced count-only rule, before outcomes
 
-## 9. Development evidence state
+Before scanning candidate split counts, the following rule was frozen:
 
-Development outcomes, direction inversion, matched-random controls, and preregistered ablation/simple-baseline outcomes have now been consumed. Holdout outcomes and holdout market rows remain unopened.
+> Among UTC-midnight boundaries in the audited range, choose the **latest** boundary whose holdout contains at least `25%` of all raw qualifications and at least `20%` of each Stage-5 family. Use candidate metadata/counts only; do not read future prices or outcomes.
 
-The consumed evidence window may not be reused to justify detector changes within E1-RUN-001. Any behavior-affecting modification creates a new research version.
+The count-only audit selected:
 
-## 10. Decision rule
+- **final development candidate window:** `[2026-08-02T00:00:00Z, 2026-08-16T00:00:00Z)`;
+- **final untouched holdout candidate window:** `[2026-08-16T00:00:00Z, 2026-08-25T17:20:00Z)`.
 
-Allowed family verdicts:
+Counts at the frozen boundary:
 
-- `SURVIVES`
-- `SIMPLIFY`
-- `DEMOTE_TO_BASELINE`
-- `KILL`
-- `INCONCLUSIVE_SAMPLE`
+- development: `149/290` raw qualifications;
+  - `TREND_PULLBACK=93`;
+  - `COMPRESSION_BREAKOUT=30`;
+  - `CONFIRMED_BREAKOUT=26`;
+- holdout: `141/290` raw qualifications (`48.6%` of all qualifications);
+  - `TREND_PULLBACK=105` (`53.0%` of TP);
+  - `COMPRESSION_BREAKOUT=17` (`36.2%` of CB);
+  - `CONFIRMED_BREAKOUT=19` (`42.2%` of FB).
 
-Global Level-0 fail condition remains:
+At final split freeze:
+
+- source candidate artifact still had `outcomes_included=false`;
+- the split-balance audit was `COUNT_ONLY_SPLIT_BALANCE_AUDIT_NO_OUTCOMES`;
+- no future return/MFE/MAE, baseline outcome, control outcome, or holdout outcome had been viewed.
+
+The `2026-08-16T00:00:00Z` holdout is now **SEALED** and this split supersedes §11.1.
+
+### 11.3 Development outcome purge / embargo
+
+The maximum primary forward horizon is `+4h`. To prevent a development candidate's future path from reading any raw market bar inside the sealed holdout, the development outcome evaluator must enforce:
+
+- outcome-eligible development candidates: `T <= 2026-08-15T20:00:00Z`;
+- purge/embargo candidate region: `(2026-08-15T20:00:00Z, 2026-08-16T00:00:00Z)`;
+- all future-path SQL for development must have an exclusive end `<= 2026-08-16T00:00:00Z`.
+
+Purged candidates remain part of the frozen candidate population/count audit but are not used for development outcome metrics requiring the full `+4h` path. The denominator tree must report them explicitly. Holdout candidates `T >= 2026-08-16T00:00:00Z` must not receive outcome reads until the holdout gate is intentionally opened later.
+
+## 12. Primary decision rule
+
+E1 is not judged by one accuracy number.
+
+A family `SURVIVES` only if its post-`T` return/MFE/MAE distribution shows meaningful, reasonably stable separation from the relevant simple and matched controls, with uncertainty/concentration reported and without depending on one narrow block.
+
+Possible family verdicts:
+
+- `SURVIVES`;
+- `SIMPLIFY`;
+- `DEMOTE_TO_BASELINE`;
+- `KILL`;
+- `INCONCLUSIVE_SAMPLE`.
+
+Global V2 Level-0 fail condition:
 
 > If all three frozen Stage-5 families fail to separate from simple/matched controls and the full variants do not beat simpler price-only/ablated versions, stop downstream V2 lifecycle/product expansion and conduct a hypothesis review rather than adding features or tuning thresholds.
 
-The detailed prospective holdout application of these verdicts is frozen in `docs/e1/E1_RUN_001_PRE_HOLDOUT_FREEZE.md`.
+## 13. Output artifacts
 
-## 11. Output provenance
+The E1 harness must write immutable run artifacts containing at least:
 
-Research artifacts must preserve git/rules/calculation/feature-schema identities, candidate/control/ablation rows, outcome rows, denominator trees, concentration/cluster diagnostics and machine-readable outputs. Primary E1 candidate generation must fail closed if Stage-6 episode/lifecycle machinery is imported or invoked.
+- git SHA;
+- rules/calculation/feature-schema identities;
+- CLI arguments and UTC run timestamp;
+- data coverage/equivalence summary;
+- raw candidate rows;
+- control/ablation rows;
+- outcome rows;
+- denominator tree;
+- family summary tables;
+- concentration/cluster diagnostics;
+- machine-readable JSON/CSV plus a human-readable report.
+
+Research code must fail closed if it accidentally imports or invokes Stage-6 episode/lifecycle modules for primary E1 candidate generation.
