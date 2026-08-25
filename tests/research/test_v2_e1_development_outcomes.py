@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -30,10 +31,15 @@ def test_no_stage6_imports():
 
 def test_directional_return_matches_preregistered_formula():
     m = _load_module()
-    assert m._directional_return("LONG", 100.0, 110.0) == 0.1
-    assert m._directional_return("SHORT", 100.0, 90.0) == 0.1
+    assert math.isclose(m._directional_return("LONG", 100.0, 110.0), 0.1)
+    assert math.isclose(m._directional_return("SHORT", 100.0, 90.0), 0.1)
     # Explicitly guards against the reciprocal alternative 100/90-1.
-    assert m._directional_return("SHORT", 100.0, 90.0) != (100.0 / 90.0 - 1.0)
+    assert not math.isclose(
+        m._directional_return("SHORT", 100.0, 90.0),
+        100.0 / 90.0 - 1.0,
+        rel_tol=1e-12,
+        abs_tol=1e-12,
+    )
 
 
 def test_final_split_partition_and_four_hour_purge():
