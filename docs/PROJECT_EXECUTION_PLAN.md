@@ -9,10 +9,12 @@ Use this hierarchy when documents overlap:
 1. `docs/V2_PRODUCT_CONTRACT.md` — what V2 product behavior means.
 2. `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` — exact deterministic correctness, acceptance populations, and promotion semantics.
 3. `docs/FORECASTING_ROADMAP.md` — canonical high-level product direction and stage sequence.
-4. `docs/PROJECT_EXECUTION_PLAN.md` — current tactical ordering, parallel tracks, and gates.
-5. `docs/V2_EMPIRICAL_RED_TEAM_PLAN.md` — empirical falsification/evidence methodology.
-6. `docs/PROJECT_RISK_AND_DEBT_REGISTER.md` — exhaustive known risk/debt inventory and closure requirements.
-7. historical Stage 1/2 specs, clarifications, audits, and acceptance records — historical records unless explicitly carried forward by a higher-authority document.
+4. `docs/PROJECT_PRINCIPLES.md` — project-level intellectual-honesty, architecture-boundary, extensibility, and competitive-posture guardrails; it does not override V2-specific semantics above.
+5. `docs/PROJECT_EXECUTION_PLAN.md` — current tactical ordering, parallel tracks, and gates.
+6. `docs/V2_EMPIRICAL_RED_TEAM_PLAN.md` — empirical falsification/evidence methodology.
+7. `docs/PRODUCT_HYPOTHESES.md` — explicitly unvalidated product parking lot; not implementation requirements.
+8. `docs/PROJECT_RISK_AND_DEBT_REGISTER.md` — exhaustive known risk/debt inventory and closure requirements.
+9. historical Stage 1/2 specs, clarifications, audits, and acceptance records — historical records unless explicitly carried forward by a higher-authority document.
 
 A future documentation-hygiene PR must link this hierarchy from README/roadmap so a new reader is not forced to infer it.
 
@@ -27,6 +29,8 @@ The project now has three different kinds of progress. They must be tracked sepa
 - **Track C — Engineering/product debt:** documentation, config hygiene, CI/supply-chain, reproducibility, maintainability, and public-repo presentation.
 
 A green Track A does not imply a green Track B.
+
+Forecasting V2 is the current primary analytical implementation, not the permanent identity boundary of the entire Signalbot project. This distinction does not weaken the current roadmap: V2 must still be completed and judged on its own frozen semantics rather than rescued through unrelated product expansion.
 
 ---
 
@@ -260,6 +264,24 @@ The size of contracts and detector modules is now itself a risk. Plan periodic a
 
 Do not refactor merely for aesthetics during correctness-critical work; refactor when behavior is protected by tests/contracts and the change reduces real maintenance risk.
 
+### C6. Engine-boundary / extensibility guardrail
+
+The current roadmap should leave the project capable of adding a second analytical engine without turning Forecasting V2 into a hidden platform dependency.
+
+During implementation and PR review:
+
+- keep genuinely V2-specific rules, thresholds, lifecycle semantics, and confidence semantics inside V2;
+- when a capability is naturally reusable **and current work already needs the boundary**, prefer a shared owner that does not import V2 internals;
+- prefer structured/versioned results and provenance over prose as the source of truth when the current task already introduces a result boundary;
+- do not create generic factories, plugin systems, new engines, or abstractions solely for hypothetical future products.
+
+Use the two review heuristics from `docs/PROJECT_PRINCIPLES.md`:
+
+1. would a second engine need V2 internals for basic shared capability?
+2. would removing V2 unnecessarily remove generic platform capability?
+
+A "yes" triggers boundary review, not automatic refactoring.
+
 ---
 
 ## 5. Gate matrix
@@ -286,7 +308,7 @@ Until G4 has meaningful evidence, no new signal intelligence is the default:
 - no arbitrary new indicators/scoring dimensions;
 - no multi-symbol expansion used as a way to manufacture sample size for the same unvalidated hypothesis.
 
-New research ideas may be recorded in the ledger/backlog, but they do not enter V2-v0 silently.
+New forecasting/research ideas may be recorded in the research ledger. Broader product ideas belong in `docs/PRODUCT_HYPOTHESES.md`. Neither enters V2-v0 or an unrelated implementation PR silently.
 
 ---
 
@@ -302,3 +324,26 @@ Optional third dimension:
 - **engineering/product maturity/debt**.
 
 Do not summarize all three into one percentage that can make thousands of new tests look like evidence of market predictability.
+
+---
+
+## 8. Post-Roadmap Strategy & Product Review
+
+Broad business/product expansion is deliberately deferred while the primary V2 roadmap is still generating the evidence needed to reason about the project honestly.
+
+The formal strategy review becomes active when the current V2 path reaches a legitimate stopping point:
+
+- `KILL/RETHINK` at G4: stop treating Forecasting V2 as the active product direction, preserve the falsification result and surviving platform capabilities, then perform the strategy review before authorizing a replacement product roadmap;
+- `GO`/`SIMPLIFY`: continue the agreed V2 validation/promotion path and avoid broad feature expansion; perform the strategy review after that path reaches its agreed completion/validation point unless materially new evidence justifies an earlier review.
+
+The review must start from **observed capabilities and evidence**, not from brainstorming. Minimum agenda:
+
+1. capability audit — what the system demonstrably does well, poorly, or not at all;
+2. V2 empirical outcome and reusable assets that survive that outcome;
+3. realistic benchmark against existing user workflows/tools;
+4. identification of one narrow, high-value underserved problem/wedge;
+5. explicit validation criteria for the leading product hypothesis;
+6. business-model/pricing/customer research only after the problem and incremental value are concrete enough to test;
+7. authorization of a new product roadmap, if justified.
+
+Until this milestone activates, `docs/PRODUCT_HYPOTHESES.md` is a parking lot, not a backlog.
