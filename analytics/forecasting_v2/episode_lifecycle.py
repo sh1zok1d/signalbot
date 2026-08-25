@@ -86,13 +86,11 @@ SAME `episode_id`, which (per §2.1a's identity inputs) forces
 `market_type`/`direction`/`setup_family`/`structural_anchor`/`t_create`
 to be the episode's own frozen creation values. A `NEW`-tuple provenance
 therefore cannot mutate an `OLD` episode: it would produce a different
-`episode_id` and is refused. `decision_code_version` is deliberately NOT
-required to match, because §2.1a deliberately EXCLUDES it from
-`episode_id` precisely so a decision-code-only release does not fork
-identity — this module records the acting value and invents no
-attribution rule beyond what is frozen (see `ports.py`'s
-`V2VersionDrainStatusReader` note for the still-open drain-counting gap,
-which this unit does not need and does not solve).
+`episode_id` and is refused. `decision_code_version` is also required to
+equal the creation event's value (§3.1): exclusion from `episode_id`
+prevents identity forking, it does not authorize reinterpretation. The
+concrete drain-status query remains deferred (`ports.py`); this unit does
+not consume drain status.
 
 **Unit 1's persisted history is the only state (§12.10/§32).** There is no
 in-memory lifecycle cache, no "last seen" object, no notification state.
@@ -581,6 +579,11 @@ class V2BoundaryFacts:
             row = _mapping(row, name)
             self._assert_row_identity(row, name=name, expected_bucket=expected_bucket)
             object.__setattr__(self, name, _freeze(dict(row), name))
+        # A PRESENT reference row is inspected now, not lazily inside a
+        # later predicate. Missing/malformed §11 gate fields are corruption
+        # and must not be skippable by a quality-gate short-circuit.
+        if self.reference_feature_5m is not None:
+            _ = self.reference_close
 
     def _assert_row_identity(
         self, row: Mapping, *, name: str, expected_bucket: datetime,
@@ -1370,8 +1373,8 @@ def derive_trend_pullback_reevaluation(
       - the episode must be `TREND_PULLBACK` (no other family has a
         pre-confirmation mutability mechanism);
       - the window's semantic scope must equal the episode's own frozen
-        `symbol`/`market_type`/`calculation_version` (§3.2 -- a foreign
-        snapshot may not re-measure this leg);
+        `symbol`/`market_type`/`calculation_version`/`feature_schema_version`
+        (§3.2 -- a foreign snapshot may not re-measure this leg);
       - the span's FIRST bucket must be the episode's frozen creation
         `structural_anchor.bucket_ts`, i.e. `trend_leg_extreme`'s own
         anchor. §7.1 derives `pullback_extreme` "ONLY from the CONTIGUOUS
@@ -1402,6 +1405,8 @@ def derive_trend_pullback_reevaluation(
     _assert_scope_binding(
         history, symbol=window.symbol, market_type=window.market_type,
         calculation_version=window.calculation_version, what="re-evaluation window")
+    _assert_feature_schema_binding(
+        history, window.feature_schema_version, what="re-evaluation window")
 
     creation_anchor = _creation_anchor_bucket(history)
     if window.anchor_bucket != creation_anchor:
@@ -1496,6 +1501,25 @@ def _assert_scope_binding(
             f"this {what} belongs to a different semantic scope than episode "
             f"{history.episode_id!r}: {detail}. §3.2 forbids computing a decision from one "
             "scope's data and persisting it under another's")
+
+
+def _assert_feature_schema_binding(
+    history: V2EpisodeHistory, feature_schema_version: int, *, what: str,
+) -> None:
+    """§3.2 feature-schema half of input-side scope binding.
+
+    `feature_schema_version` lives on the creation EVENT, not on
+    `creation_identity` (it is not an `episode_id` input), so it cannot
+    ride inside `_assert_scope_binding`. Both current-boundary DATA
+    surfaces -- `V2BoundaryFacts` and the TP re-evaluation window -- must
+    still match it before any predicate runs."""
+    expected = history.creation_event.feature_schema_version
+    if feature_schema_version != expected:
+        raise V2EpisodeLifecycleError(
+            f"{what} feature_schema_version={feature_schema_version!r} does not "
+            f"equal episode {history.episode_id!r}'s own {expected!r} -- §3.2 forbids "
+            "computing a decision from one feature-schema scope and persisting it under "
+            "another")
 
 
 # ============================================================================
@@ -1914,13 +1938,8 @@ def evaluate_early_signal_transition(
     _assert_scope_binding(
         history, symbol=facts.symbol, market_type=facts.market_type,
         calculation_version=facts.calculation_version, what="boundary snapshot")
-    creation_event = history.creation_event
-    if facts.feature_schema_version != creation_event.feature_schema_version:
-        raise V2EpisodeLifecycleError(
-            f"boundary snapshot feature_schema_version={facts.feature_schema_version!r} does not "
-            f"equal episode {history.episode_id!r}'s own {creation_event.feature_schema_version!r}"
-            " -- §3.2 forbids computing a decision from one feature-schema scope and persisting "
-            "it under another")
+    _assert_feature_schema_binding(
+        history, facts.feature_schema_version, what="boundary snapshot")
 
     identity = history.creation_identity
     family, direction = identity.setup_family, identity.direction
@@ -1941,19 +1960,11 @@ def evaluate_early_signal_transition(
             "boundary always resolves the episode, so this state means the deadline boundary was "
             "never evaluated -- refused rather than resolved by an invented late-expiry rule")
 
-    signal = evaluate_family_signal(history, facts)
-
-    def decide(outcome: str, reason: str,
-               operational: Optional[V2OperationalFacts] = None) -> V2LifecycleDecision:
-        return V2LifecycleDecision(
-            episode_id=history.episode_id, T=T, setup_family=family, direction=direction,
-            previous_state=EARLY_SIGNAL, new_state=OUTCOME_NEW_STATE[outcome], outcome=outcome,
-            reason=reason, signal=signal, t_detect=t_detect, candidate_deadline=deadline,
-            operational_facts=operational)
-
-    # §12.2a mechanism (1): resolve the currently-valid TP operational facts
-    # BEFORE branching, because a confirming boundary must freeze the facts
-    # valid AT that exact decision -- including this boundary's own update.
+    # §12.2a mechanism (1): bind and derive the currently-valid TP operational
+    # facts BEFORE the family predicate, so a foreign-scope window cannot
+    # produce a decision that is later refused. A confirming boundary still
+    # freezes the facts valid AT that exact decision -- including this
+    # boundary's own update.
     current_facts = read_operational_facts(history)
     updated_facts: Optional[V2OperationalFacts] = None
     if reevaluation_window is not None:
@@ -1971,6 +1982,16 @@ def evaluate_early_signal_transition(
                 f"decision is at {T.isoformat()!r}")
         derived = derive_trend_pullback_reevaluation(history, reevaluation_window)
         updated_facts = _apply_monotonic_extreme(history, current_facts, derived)
+
+    signal = evaluate_family_signal(history, facts)
+
+    def decide(outcome: str, reason: str,
+               operational: Optional[V2OperationalFacts] = None) -> V2LifecycleDecision:
+        return V2LifecycleDecision(
+            episode_id=history.episode_id, T=T, setup_family=family, direction=direction,
+            previous_state=EARLY_SIGNAL, new_state=OUTCOME_NEW_STATE[outcome], outcome=outcome,
+            reason=reason, signal=signal, t_detect=t_detect, candidate_deadline=deadline,
+            operational_facts=operational)
 
     # 2. §13.1 level 1 -- the breakout families' own pre-confirmation
     #    invalidation. A broken structural premise cannot be confirmed.

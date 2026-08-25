@@ -1035,6 +1035,20 @@ def test_a_window_from_a_foreign_calculation_version_is_refused():
         derive_trend_pullback_reevaluation(hist, window)
 
 
+def test_a_window_from_a_foreign_feature_schema_version_is_refused():
+    """§3.2: mechanism-(1) current-boundary DATA includes feature_schema_version.
+    Binding only calculation_version left a schema-B span able to rewrite a
+    schema-A episode's published zone."""
+    hist = episode(tp_candidate(T=T0, pullback_extreme=100.0, current_close=105.0))
+    T = _t(3)
+    window = _window(T=T, closes=[90.0, 103.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER,
+                     feature_schema_version=7, scope={"feature_schema_version": 7})
+    with pytest.raises(V2EpisodeLifecycleError, match="feature_schema_version"):
+        derive_trend_pullback_reevaluation(hist, window)
+    with pytest.raises(V2EpisodeLifecycleError, match="feature_schema_version"):
+        _decide(hist, T=T, boundary=tp_facts(T=T, median=-1.0), reevaluation=window)
+
+
 def test_a_window_row_from_a_foreign_exchange_is_refused():
     T = _t(3)
     with pytest.raises(V2EpisodeLifecycleError, match="may not re-measure"):
@@ -1875,12 +1889,23 @@ def test_matching_scope_transitions_normally():
 @pytest.mark.parametrize("field", ["bars_expected", "bars_present", "is_usable",
                                    "has_gap", "close_price"])
 def test_a_present_reference_row_missing_a_gate_field_is_corruption(field):
-    hist = episode(comp_candidate(T=T0, range_high=100.0))
-    boundary = _boundary(
-        T=_t(1), consensus_5m=_consensus(T=_t(1)),
-        reference_feature_5m=_reference(T=_t(1), close=101.0, drop=(field,)))
+    """A PRESENT reference row missing a §11 gate field is corruption at
+    construction -- not a later predicate category, and not skippable by
+    a required-family quality short-circuit."""
     with pytest.raises(V2EpisodeLifecycleError, match="corruption, not absence"):
-        _decide(hist, T=_t(1), boundary=boundary)
+        _boundary(
+            T=_t(1), consensus_5m=_consensus(T=_t(1)),
+            reference_feature_5m=_reference(T=_t(1), close=101.0, drop=(field,)))
+
+
+def test_a_quality_failure_does_not_hide_present_row_corruption():
+    """Coverage-below-floor would be §21 Rejected; a malformed present
+    reference row is still corruption and must win."""
+    with pytest.raises(V2EpisodeLifecycleError, match="corruption, not absence"):
+        _boundary(
+            T=_t(1),
+            consensus_5m=_consensus(T=_t(1), price_structure_ok=False),
+            reference_feature_5m=_reference(T=_t(1), close=101.0, drop=("bars_expected",)))
 
 
 def test_a_wholly_absent_reference_row_stays_ordinary_unavailability():
