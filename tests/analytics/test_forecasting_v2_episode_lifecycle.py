@@ -10,6 +10,7 @@ never a hand-assembled in-memory stand-in.
 """
 from __future__ import annotations
 
+import pathlib
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -19,9 +20,10 @@ from analytics.forecasting_v2.activation_readiness import (
 )
 from analytics.forecasting_v2.decision_provenance import V2DecisionProvenance
 from analytics.forecasting_v2.decision_view import V2DecisionView
+from analytics.forecasting_v2.aligned_inputs import V2_REFERENCE_EXCHANGE
+from analytics.forecasting_v2.alignment import TIMEFRAME_MINUTES, selected_bucket
 from analytics.forecasting_v2.episode_creation import (
-    MATCH_EXACT, MATCH_NON_MATERIAL, V2CandidateFacts, V2CreationAuthorization,
-    build_early_signal_creation,
+    V2CandidateFacts, V2CreationAuthorization, build_early_signal_creation,
 )
 from analytics.forecasting_v2.episode_history import (
     HISTORY_THROUGH_T, reconstruct_episode_history,
@@ -30,13 +32,14 @@ from analytics.forecasting_v2.episode_lifecycle import (
     CANDIDATE_MAX_AGE, LIFECYCLE_CONFIRMED, LIFECYCLE_EXPIRED_CANDIDATE_AGE,
     LIFECYCLE_INVALIDATED_FALSE_BREAK, LIFECYCLE_NO_CHANGE,
     LIFECYCLE_PRECONFIRMATION_UPDATE, LIFECYCLE_EVIDENCE_KEY, LIFECYCLE_TRANSITION_KEY,
-    OPERATIONAL_FACTS_KEY, REQUIRED_METRIC_FAMILY, RESUMPTION_MIN_AGREEMENT,
-    SIGNAL_CONFIRM, SIGNAL_FALSE_BREAK, SIGNAL_HOLD, SIGNAL_UNAVAILABLE,
+    OPERATIONAL_FACTS_KEY, OPERATIONAL_SOURCE_CONFIRMATION, OPERATIONAL_SOURCE_CREATION,
+    OPERATIONAL_SOURCE_REEVALUATION, REQUIRED_METRIC_FAMILY, RESUMPTION_MIN_AGREEMENT,
+    SIGNAL_CONFIRM, SIGNAL_FALSE_BREAK, SIGNAL_HOLD, SIGNAL_REJECTED, SIGNAL_UNAVAILABLE,
     V2BoundaryFacts, V2EpisodeLifecycleError, V2LifecycleAuthorization,
-    V2LifecycleDecision, V2TrendPullbackReevaluation,
-    build_episode_transition_event, evaluate_early_signal_transition,
-    evaluate_family_signal, read_candidate_deadline, read_detection_boundary,
-    read_operational_facts, trend_pullback_reevaluation_from_candidate,
+    V2LifecycleDecision, V2TrendPullbackReevaluationWindow,
+    build_episode_transition_event, derive_trend_pullback_reevaluation,
+    evaluate_early_signal_transition, evaluate_family_signal, read_candidate_deadline,
+    read_detection_boundary, read_operational_facts,
 )
 from analytics.forecasting_v2.events import (
     COMPRESSION_BREAKOUT, CONFIRMED, CONFIRMED_BREAKOUT, EARLY_SIGNAL, EXPIRED,
@@ -58,6 +61,13 @@ RULES = "v2-rules-v0.1.0"
 DCV = "decision-code-1"
 RUN_ID = "live-stream-1"
 SYMBOL, MARKET = "BTCUSDT", "perp"
+# Every TREND_PULLBACK fixture's frozen creation structural anchor
+# (`trend_leg_extreme.bucket_ts`) -- the one bucket §7.1's retracement span
+# must start from.
+_TP_ANCHOR = T0 - timedelta(minutes=60)
+# Span fillers that can never themselves be the retracement extreme: a LONG
+# extreme is the span MINIMUM, a SHORT extreme is its MAXIMUM.
+_LONG_FILLER, _SHORT_FILLER = 500.0, 1.0
 
 
 def _t(n: int) -> datetime:
@@ -137,7 +147,7 @@ def tp_candidate(*, T=T0, anchor=None, direction=LONG, pullback_extreme=None,
     return V2CandidateFacts(
         symbol=SYMBOL, market_type=MARKET, direction=direction,
         setup_family=TREND_PULLBACK, T=T,
-        anchor_bucket=anchor if anchor is not None else _q(-4), raw_level_price=None,
+        anchor_bucket=anchor if anchor is not None else _TP_ANCHOR, raw_level_price=None,
         entry_zone_lower=lower, entry_zone_upper=upper, invalidation_price=invalidation,
         protection_buffer=buffer, decision_tick_size=tick,
         setup_strength=0.7, data_confidence=0.9,
@@ -235,44 +245,81 @@ def episode(candidate, *, run_kind=LIVE, run_id=RUN_ID, as_of=None):
 
 
 # ---- boundary facts ---------------------------------------------------------
-def _consensus(*, T, median=None, agreement=None, price_structure_ok=True,
-               degraded_families=(), **extra):
-    """A 5m consensus row carrying §6.3a's per-family maps."""
+def _quality_maps(*, price_structure_ok=True, degraded_families=(), null_families=()):
+    """§6.3a's per-family coverage/confidence maps.
+
+    `degraded_families` are PRESENT but below their floor (§21 Rejected);
+    `null_families` are present-but-NULL (§21 Unavailable)."""
     coverage, confidence = {}, {}
     for family in ("price_structure", "volume", "taker_flow", "oi", "funding", "liquidations"):
+        if family in null_families:
+            coverage[family] = {"ratio": None}
+            confidence[family] = None
+            continue
         ok = family not in degraded_families and (
             price_structure_ok or family != "price_structure")
-        coverage[family] = {"ratio": 1.0 if ok else 0.1}
-        confidence[family] = 90.0 if ok else 5.0
+        coverage[family] = {"ratio": 1.0 if ok else 0.5}
+        confidence[family] = 90.0 if ok else 20.0
+    return coverage, confidence
+
+
+def _consensus(*, T, median=None, agreement=None, price_structure_ok=True,
+               degraded_families=(), null_families=(), scope=None, **extra):
+    """A 5m consensus row carrying §6.3a's per-family maps and its own
+    semantic identity."""
+    coverage, confidence = _quality_maps(
+        price_structure_ok=price_structure_ok, degraded_families=degraded_families,
+        null_families=null_families)
+    identity = dict(symbol=SYMBOL, market_type=MARKET, calculation_version=H16,
+                    feature_schema_version=1)
+    identity.update(scope or {})
     row = {
         "timeframe": "5m", "bucket_ts": T - timedelta(minutes=5),
         "price_move_pct_median": median, "price_direction_agreement": agreement,
         "coverage_by_metric": coverage, "data_confidence_by_metric": confidence,
+        **identity,
     }
     row.update(extra)
     return row
 
 
-def _reference(*, T, close, usable=True, has_gap=False, bars_present=5, bars_expected=5):
-    return {
+def _reference(*, T, close, usable=True, has_gap=False, bars_present=5, bars_expected=5,
+               scope=None, drop=()):
+    identity = dict(exchange=V2_REFERENCE_EXCHANGE, symbol=SYMBOL, market_type=MARKET,
+                    calculation_version=H16, feature_schema_version=1)
+    identity.update(scope or {})
+    row = {
         "timeframe": "5m", "bucket_ts": T - timedelta(minutes=5),
         "is_usable": usable, "has_gap": has_gap,
         "bars_present": bars_present, "bars_expected": bars_expected,
-        "close_price": close,
+        "close_price": close, **identity,
     }
+    for field in drop:
+        row.pop(field, None)
+    return row
 
 
 def facts(*, T, close=None, median=None, agreement=None, price_structure_ok=True,
-          degraded_families=(), consensus=True, reference=True, **ref_over) -> V2BoundaryFacts:
+          degraded_families=(), null_families=(), consensus=True, reference=True,
+          symbol=SYMBOL, market_type=MARKET, calculation_version=H16,
+          feature_schema_version=1, reference_exchange=V2_REFERENCE_EXCHANGE,
+          row_scope=None, **ref_over) -> V2BoundaryFacts:
+    scope = dict(symbol=symbol, market_type=market_type,
+                 calculation_version=calculation_version,
+                 feature_schema_version=feature_schema_version)
+    row_identity = dict(scope)
+    row_identity.update(row_scope or {})
+    ref_identity = dict(row_identity, exchange=reference_exchange)
     return V2BoundaryFacts(
-        T=T,
+        T=T, reference_exchange=reference_exchange, **scope,
         consensus_5m=(_consensus(
             T=T, median=median, agreement=agreement,
-            price_structure_ok=price_structure_ok, degraded_families=degraded_families)
+            price_structure_ok=price_structure_ok, degraded_families=degraded_families,
+            null_families=null_families, scope=row_identity)
             if consensus else None),
         reference_feature_5m=(
-            _reference(T=T, close=close, **ref_over) if reference and close is not None
-            else (_reference(T=T, close=None, **ref_over) if reference else None)),
+            _reference(T=T, close=close, scope=ref_identity, **ref_over)
+            if reference else None),
     )
 
 
@@ -281,9 +328,64 @@ def tp_facts(*, T, median=1.0, agreement=1.0, close=105.0, **kw) -> V2BoundaryFa
     return facts(T=T, median=median, agreement=agreement, close=close, **kw)
 
 
+def _boundary(*, T, **kw) -> V2BoundaryFacts:
+    """Raw `V2BoundaryFacts` with this suite's default scope -- for attacks
+    that hand-build one of the two rows."""
+    return V2BoundaryFacts(
+        T=T, symbol=SYMBOL, market_type=MARKET, calculation_version=H16,
+        feature_schema_version=1, reference_exchange=V2_REFERENCE_EXCHANGE, **kw)
+
+
 def _decide(history, *, T, boundary, reevaluation=None) -> V2LifecycleDecision:
     return evaluate_early_signal_transition(
-        history, T=T, facts=boundary, reevaluation=reevaluation)
+        history, T=T, facts=boundary, reevaluation_window=reevaluation)
+
+
+# ---- §12.2a mechanism (1): canonical reference-history source windows -------
+def _ref_15m_row(*, bucket_ts, close, usable=True, has_gap=False, bars_present=15,
+                 bars_expected=15, scope=None, drop=()):
+    identity = dict(exchange=V2_REFERENCE_EXCHANGE, symbol=SYMBOL, market_type=MARKET,
+                    calculation_version=H16, feature_schema_version=1)
+    identity.update(scope or {})
+    row = {
+        "timeframe": "15m", "bucket_ts": bucket_ts, "is_usable": usable,
+        "has_gap": has_gap, "bars_present": bars_present, "bars_expected": bars_expected,
+        "close_price": close, **identity,
+    }
+    for field in drop:
+        row.pop(field, None)
+    return row
+
+
+def _window(*, T, closes, anchor=None, filler=None, scope=None, row_over=None, rows=None,
+            symbol=SYMBOL, market_type=MARKET, calculation_version=H16,
+            feature_schema_version=1) -> V2TrendPullbackReevaluationWindow:
+    """A §7.1 re-evaluation span: contiguous 15m reference closes from the
+    episode's frozen anchor bucket through `B15' = selected_bucket(15m, T)`.
+
+    `closes` is oldest-first and its LAST element is `B15'`'s own close, so
+    the span's END is pinned and its start is derived rather than guessed.
+    When `anchor` is given with a `filler`, the span is left-padded with
+    `filler` closes back to that anchor — pick a `filler` that can never be
+    the extreme for the direction under test (high for `LONG`, low for
+    `SHORT`), so each vector states only the closes it actually cares
+    about."""
+    if rows is None:
+        b15 = selected_bucket("15m", T)
+        if anchor is not None and filler is not None:
+            span = int((b15 - anchor) / timedelta(minutes=15)) + 1
+            closes = [filler] * (span - len(closes)) + list(closes)
+        start = anchor if anchor is not None else b15 - timedelta(
+            minutes=15 * (len(closes) - 1))
+        rows = [
+            _ref_15m_row(bucket_ts=start + timedelta(minutes=15 * i), close=close,
+                         scope=scope, **(row_over or {}))
+            for i, close in enumerate(closes)]
+    return V2TrendPullbackReevaluationWindow(
+        T=T, symbol=symbol, market_type=market_type,
+        calculation_version=calculation_version,
+        feature_schema_version=feature_schema_version,
+        reference_15m_rows=tuple(rows))
 
 
 # ============================================================================
@@ -531,13 +633,9 @@ def test_compression_confirmation_ignores_taker_flow_state():
     """§7.2's taker-flow gate is a FORMATION requirement on the EARLY_SIGNAL
     bucket; §6.3a scopes confirmation to `price_structure` alone."""
     hist = episode(comp_candidate(T=T0, range_high=100.0))
-    boundary = V2BoundaryFacts(
-        T=_t(1),
-        consensus_5m=_consensus(
-            T=_t(1), degraded_families=("taker_flow", "volume", "oi", "funding",
-                                        "liquidations"),
-            taker_delta_notional_usd_sum=-999999.0),
-        reference_feature_5m=_reference(T=_t(1), close=101.0))
+    boundary = facts(
+        T=_t(1), close=101.0,
+        degraded_families=("taker_flow", "volume", "oi", "funding", "liquidations"))
     assert _decide(hist, T=_t(1), boundary=boundary).outcome == LIFECYCLE_CONFIRMED
 
 
@@ -593,12 +691,9 @@ def test_confirmed_breakout_confirmation_requires_no_taker_flow():
     """§7.3 carries NO taker-flow requirement at all — neither at formation
     nor at confirmation — and no current flow state may block it."""
     hist = episode(cb_candidate(T=T0, level=100.0))
-    boundary = V2BoundaryFacts(
-        T=_t(1),
-        consensus_5m=_consensus(
-            T=_t(1), degraded_families=("taker_flow", "oi", "funding", "liquidations", "volume"),
-            taker_delta_notional_usd_sum=-42.0),
-        reference_feature_5m=_reference(T=_t(1), close=101.0))
+    boundary = facts(
+        T=_t(1), close=101.0,
+        degraded_families=("taker_flow", "oi", "funding", "liquidations", "volume"))
     assert _decide(hist, T=_t(1), boundary=boundary).outcome == LIFECYCLE_CONFIRMED
     assert REQUIRED_METRIC_FAMILY[CONFIRMED_BREAKOUT] == ("price_structure",)
 
@@ -683,12 +778,14 @@ def test_unrelated_degraded_metric_family_never_suppresses_a_transition(make):
 
 
 @pytest.mark.parametrize("make", [tp_candidate, comp_candidate, cb_candidate])
-def test_degraded_price_structure_is_reported_as_unavailable_not_confirmed(make):
+def test_degraded_price_structure_is_rejected_not_confirmed(make):
+    """§21: a PRESENT required family below its frozen floor is REJECTED --
+    a real measurement a hard gate disqualified, never an absence."""
     hist = episode(make(T=T0))
     boundary = (tp_facts(T=_t(1), price_structure_ok=False) if make is tp_candidate
                 else facts(T=_t(1), close=101.0, price_structure_ok=False))
     decision = _decide(hist, T=_t(1), boundary=boundary)
-    assert decision.signal.signal == SIGNAL_UNAVAILABLE
+    assert decision.signal.signal == SIGNAL_REJECTED
     assert decision.outcome == LIFECYCLE_NO_CHANGE
 
 
@@ -699,8 +796,10 @@ def test_every_family_requires_only_price_structure():
 
 def test_absent_consensus_row_is_unavailable_not_an_error():
     hist = episode(tp_candidate(T=T0))
-    decision = _decide(hist, T=_t(1), boundary=V2BoundaryFacts(T=_t(1)))
+    decision = _decide(
+        hist, T=_t(1), boundary=facts(T=_t(1), consensus=False, reference=False))
     assert decision.signal.signal == SIGNAL_UNAVAILABLE
+    assert decision.signal.reason == "CONSENSUS_ROW_ABSENT"
     assert decision.outcome == LIFECYCLE_NO_CHANGE
 
 
@@ -715,27 +814,43 @@ def test_reference_close_failing_the_11_gate_is_unavailable_never_a_failover():
         assert decision.outcome == LIFECYCLE_NO_CHANGE
 
 
-def test_unavailable_at_the_deadline_expires_with_a_distinguishing_reason():
-    """§21 requires Unavailable to be DISTINGUISHED, not collapsed. The
-    deadline still closes (§14: EXPIRED iff the deadline bucket did not
-    confirm), but the recorded reason says the check was unevaluable rather
-    than evaluated-and-false."""
+def test_rejected_at_the_deadline_expires_with_the_category_preserved():
+    """§14's amended rule: the hard age budget still ends, but the persisted
+    resolution category says REJECTED -- never a fabricated neutral HOLD."""
     hist = episode(comp_candidate(T=T0, range_high=100.0))
     deadline = read_candidate_deadline(hist)
     decision = _decide(
         hist, T=deadline, boundary=facts(T=deadline, close=101.0, price_structure_ok=False))
     assert decision.outcome == LIFECYCLE_EXPIRED_CANDIDATE_AGE
+    assert decision.signal.signal == SIGNAL_REJECTED
+    assert decision.resolution_category == SIGNAL_REJECTED
+    assert "REJECTED" in decision.reason
+
+
+def test_unavailable_at_the_deadline_expires_with_the_category_preserved():
+    hist = episode(comp_candidate(T=T0, range_high=100.0))
+    deadline = read_candidate_deadline(hist)
+    decision = _decide(
+        hist, T=deadline, boundary=facts(T=deadline, consensus=False, reference=False))
+    assert decision.outcome == LIFECYCLE_EXPIRED_CANDIDATE_AGE
     assert decision.signal.signal == SIGNAL_UNAVAILABLE
-    assert "REQUIRED_METRIC_FAMILY_UNAVAILABLE" in decision.reason
+    assert decision.resolution_category == SIGNAL_UNAVAILABLE
+    assert "UNAVAILABLE" in decision.reason
+
+
+def test_hold_at_the_deadline_expires_with_the_neutral_category():
+    hist = episode(comp_candidate(T=T0, range_high=100.0))
+    deadline = read_candidate_deadline(hist)
+    decision = _decide(hist, T=deadline, boundary=facts(T=deadline, close=100.0))
+    assert decision.outcome == LIFECYCLE_EXPIRED_CANDIDATE_AGE
+    assert decision.resolution_category == SIGNAL_HOLD
 
 
 # ============================================================================
 # 7. §7.1/§9/§12.2a — TREND_PULLBACK pre-confirmation operational updates
 # ============================================================================
-def _reevaluation(*, T, pullback_extreme, current_close) -> V2TrendPullbackReevaluation:
-    return V2TrendPullbackReevaluation(
-        T=T, bucket_15m=T - timedelta(minutes=15),
-        pullback_extreme=pullback_extreme, current_close=current_close)
+def _reevaluation(*, T, closes, anchor=None, **kw):
+    return _window(T=T, closes=closes, anchor=anchor, **kw)
 
 
 def test_creation_facts_are_the_initial_operational_facts():
@@ -746,6 +861,7 @@ def test_creation_facts_are_the_initial_operational_facts():
     assert facts_now.entry_zone_lower == 100.0
     assert facts_now.entry_zone_upper == 105.0
     assert facts_now.invalidation_price == 98.0
+    assert facts_now.source == OPERATIONAL_SOURCE_CREATION
 
 
 def test_breakout_families_have_no_operational_facts_shape():
@@ -759,13 +875,16 @@ def test_deeper_pullback_at_a_later_15m_boundary_updates_the_same_episode():
     creation = early_signal(tp_candidate(T=T0, pullback_extreme=100.0, current_close=105.0))
     hist = _history([creation])
     T = _t(3)                            # 12:15 — a legal 15m boundary
-    decision = _decide(
-        hist, T=T, boundary=tp_facts(T=T, median=-1.0),
-        reevaluation=_reevaluation(T=T, pullback_extreme=97.0, current_close=103.0))
+    # The span runs from the frozen creation anchor through B15'; 97.0 is the
+    # deepest close in it, and 103.0 is B15' itself.
+    window = _window(T=T, closes=[97.0, 103.0],
+                             anchor=_TP_ANCHOR, filler=_LONG_FILLER)
+    decision = _decide(hist, T=T, boundary=tp_facts(T=T, median=-1.0), reevaluation=window)
     assert decision.outcome == LIFECYCLE_PRECONFIRMATION_UPDATE
     assert decision.new_state == EARLY_SIGNAL
     assert decision.requires_event is True
-    assert decision.operational_facts.pullback_extreme == 97.0
+    assert decision.operational_facts.pullback_extreme == 97.0    # DERIVED, not asserted
+    assert decision.operational_facts.dynamic_bound == 103.0
     assert decision.operational_facts.entry_zone_lower == 97.0
     assert decision.operational_facts.entry_zone_upper == 103.0
     assert decision.operational_facts.invalidation_price == 95.0
@@ -784,7 +903,8 @@ def test_update_event_never_rewrites_the_creation_event():
     T = _t(3)
     decision = _decide(
         hist, T=T, boundary=tp_facts(T=T, median=-1.0),
-        reevaluation=_reevaluation(T=T, pullback_extreme=97.0, current_close=103.0))
+        reevaluation=_window(T=T, closes=[97.0, 103.0],
+                             anchor=_TP_ANCHOR, filler=_LONG_FILLER))
     update = build_episode_transition_event(decision, hist, authorization=_authorization(T=T))
     after = _history([creation, update])
     assert len(after.events) == 2
@@ -802,33 +922,33 @@ def test_a_5m_only_boundary_cannot_carry_a_structural_reevaluation(n):
     the error §14's amended vector calls out."""
     assert (_t(n) - T0).total_seconds() % 900 != 0
     with pytest.raises(V2EpisodeLifecycleError, match="reevaluation T"):
-        _reevaluation(T=_t(n), pullback_extreme=97.0, current_close=103.0)
+        _window(T=_t(n), closes=[100.0])
 
 
 @pytest.mark.parametrize("n", [3, 6, 9])
 def test_a_15m_boundary_may_carry_a_structural_reevaluation(n):
-    reev = V2TrendPullbackReevaluation(
-        T=_t(n), bucket_15m=_t(n) - timedelta(minutes=15),
-        pullback_extreme=97.0, current_close=103.0)
-    assert reev.bucket_15m == _t(n) - timedelta(minutes=15)
+    window = _window(T=_t(n), closes=[100.0, 99.0])
+    assert window.b15 == _t(n) - timedelta(minutes=15)
 
 
-def test_a_reevaluation_against_a_foreign_15m_bucket_is_refused():
-    """§7.1 re-evaluates against `B15' = selected_bucket(15m, T')`, never
-    another bucket."""
-    with pytest.raises(V2EpisodeLifecycleError, match="never another bucket"):
-        V2TrendPullbackReevaluation(
-            T=_t(3), bucket_15m=_q(-2), pullback_extreme=97.0, current_close=103.0)
+def test_a_window_that_does_not_end_at_b15_is_refused():
+    """§7.1 re-evaluates against `B15' = selected_bucket(15m, T')`."""
+    T = _t(6)
+    rows = [_ref_15m_row(bucket_ts=_q(-2) + timedelta(minutes=15 * i), close=100.0)
+            for i in range(2)]
+    with pytest.raises(V2EpisodeLifecycleError, match="must run THROUGH that bucket"):
+        _window(T=T, closes=[], rows=rows)
 
 
-def test_shallower_pullback_extreme_is_refused_not_walked_back():
+def test_shallower_derived_extreme_is_refused_not_walked_back():
     """§7.1: the extreme updates only if the retracement DEEPENS further."""
     creation = early_signal(tp_candidate(T=T0, pullback_extreme=100.0, current_close=105.0))
     hist = _history([creation])
     T = _t(3)
     with pytest.raises(V2EpisodeLifecycleError, match="SHALLOWER"):
         _decide(hist, T=T, boundary=tp_facts(T=T, median=-1.0),
-                reevaluation=_reevaluation(T=T, pullback_extreme=101.0, current_close=103.0))
+                reevaluation=_window(T=T, closes=[101.0, 103.0],
+                             anchor=_TP_ANCHOR, filler=_LONG_FILLER))
 
 
 def test_reevaluation_that_reproduces_the_same_geometry_writes_no_event():
@@ -838,50 +958,170 @@ def test_reevaluation_that_reproduces_the_same_geometry_writes_no_event():
     T = _t(3)
     decision = _decide(
         hist, T=T, boundary=tp_facts(T=T, median=-1.0),
-        reevaluation=_reevaluation(T=T, pullback_extreme=100.0, current_close=105.0))
+        reevaluation=_window(T=T, closes=[100.0, 105.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER))
     assert decision.outcome == LIFECYCLE_NO_CHANGE
     assert decision.requires_event is False
 
 
-def test_a_case_b_candidate_can_never_become_a_reevaluation():
-    """§12.2a's core prohibition, enforced structurally: a
-    non-materially-drifted (case B) candidate's own freshly-detected leg is
-    a legitimate dedup observation but must NEVER be substituted into the
-    episode's operational facts."""
-    hist = episode(tp_candidate(T=T0, anchor=_q(-4)))
-    drifted = tp_candidate(T=_t(3), anchor=_q(-3), pullback_extreme=90.0)
-    with pytest.raises(V2EpisodeLifecycleError, match="case-A"):
-        trend_pullback_reevaluation_from_candidate(
-            drifted, hist, match_class=MATCH_NON_MATERIAL)
+def test_an_unchanged_extreme_with_a_moved_bound_still_requires_history():
+    """§9: the published zone changed, so the change is recorded -- even
+    though the running extreme did not move."""
+    hist = episode(tp_candidate(T=T0, pullback_extreme=100.0, current_close=105.0))
+    T = _t(3)
+    decision = _decide(
+        hist, T=T, boundary=tp_facts(T=T, median=-1.0),
+        reevaluation=_window(T=T, closes=[100.0, 108.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER))
+    assert decision.outcome == LIFECYCLE_PRECONFIRMATION_UPDATE
+    assert decision.operational_facts.pullback_extreme == 100.0
+    assert decision.operational_facts.entry_zone_upper == 108.0
 
 
-def test_a_case_a_candidate_is_a_legitimate_mechanism_one_reevaluation():
-    hist = episode(tp_candidate(T=T0, anchor=_q(-4), pullback_extreme=100.0,
-                                current_close=105.0))
-    observed = tp_candidate(T=_t(3), anchor=_q(-4), pullback_extreme=97.0, current_close=103.0)
-    reev = trend_pullback_reevaluation_from_candidate(observed, hist, match_class=MATCH_EXACT)
-    assert reev.pullback_extreme == 97.0
-    assert reev.current_close == 103.0
-    assert reev.bucket_15m == _t(3) - timedelta(minutes=15)
+# ---- RT-65-02/03: no Stage 5 candidate substitution ------------------------
+def test_the_candidate_substitution_path_no_longer_exists():
+    """§12.2a's two mechanisms must never be conflated. A fresh Stage 5
+    detector candidate is mechanism (2) BY DEFINITION -- even when its
+    creation anchor matches exactly -- and Unit 2's A/B/C classification is
+    dedup/routing evidence, never the source of an active episode's own
+    operational facts. The old
+    `trend_pullback_reevaluation_from_candidate(...)` entry point is gone,
+    not merely discouraged."""
+    import analytics.forecasting_v2.episode_lifecycle as unit3
+    assert not hasattr(unit3, "trend_pullback_reevaluation_from_candidate")
+    assert not hasattr(unit3, "V2TrendPullbackReevaluation")
+    assert "trend_pullback_reevaluation_from_candidate" not in unit3.__all__
+    # No MATCH_* vocabulary is even imported: a routing class cannot be
+    # accepted as proof of a re-measurement it never performed.
+    source = (
+        pathlib.Path(__file__).resolve().parents[2]
+        / "analytics" / "forecasting_v2" / "episode_lifecycle.py").read_text(encoding="utf-8")
+    import ast
+    tree = ast.parse(source)
+    imported = {
+        alias.asname or alias.name
+        for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)
+        for alias in node.names}
+    assert not {n for n in imported if n.startswith("MATCH_")}
+    assert "V2CandidateFacts" not in imported
 
 
-def test_reevaluation_from_a_foreign_slot_is_refused():
-    hist = episode(tp_candidate(T=T0, direction=LONG))
-    foreign = tp_candidate(T=_t(3), direction=SHORT)
-    with pytest.raises(V2EpisodeLifecycleError, match="does not belong to episode"):
-        trend_pullback_reevaluation_from_candidate(foreign, hist, match_class=MATCH_EXACT)
+def test_an_invented_extreme_with_no_source_rows_cannot_be_supplied():
+    """The public path takes ROWS, not numbers: there is no field on which a
+    caller can assert `pullback_extreme = 12.34`."""
+    fields = set(V2TrendPullbackReevaluationWindow.__dataclass_fields__)
+    assert "pullback_extreme" not in fields
+    assert "current_close" not in fields
+    assert "reference_15m_rows" in fields
 
 
-def test_reevaluation_uses_the_frozen_creation_buffer_not_the_candidate_buffer():
+def test_a_span_starting_at_a_foreign_anchor_is_refused():
+    """§7.1 measures the retracement ONLY from the episode's OWN frozen
+    `trend_leg_extreme` anchor. A span starting elsewhere is a DIFFERENT
+    structural leg -- exactly the mechanism-(2) substitution §12.2a bans."""
+    hist = episode(tp_candidate(T=T0, pullback_extreme=100.0, current_close=105.0))
+    T = _t(3)
+    foreign = _window(T=T, closes=[97.0, 103.0])      # starts one bucket late
+    assert foreign.anchor_bucket != _TP_ANCHOR
+    with pytest.raises(V2EpisodeLifecycleError, match="frozen creation anchor"):
+        derive_trend_pullback_reevaluation(hist, foreign)
+
+
+def test_a_window_from_a_foreign_calculation_version_is_refused():
+    hist = episode(tp_candidate(T=T0))
+    T = _t(3)
+    window = _window(T=T, closes=[97.0, 103.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER,
+                     calculation_version="c" * 16,
+                     scope={"calculation_version": "c" * 16})
+    with pytest.raises(V2EpisodeLifecycleError, match="different semantic scope"):
+        derive_trend_pullback_reevaluation(hist, window)
+
+
+def test_a_window_row_from_a_foreign_exchange_is_refused():
+    T = _t(3)
+    with pytest.raises(V2EpisodeLifecycleError, match="may not re-measure"):
+        _window(T=T, closes=[97.0, 103.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER,
+                scope={"exchange": "bybit"})
+
+
+def test_a_window_row_from_a_foreign_symbol_is_refused():
+    T = _t(3)
+    with pytest.raises(V2EpisodeLifecycleError, match="may not re-measure"):
+        _window(T=T, closes=[97.0, 103.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER,
+                scope={"symbol": "ETHUSDT"})
+
+
+def test_a_window_row_missing_its_identity_is_refused():
+    T = _t(3)
+    with pytest.raises(V2EpisodeLifecycleError, match="missing identity field"):
+        _window(T=T, closes=[97.0, 103.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER,
+                row_over={"drop": ("calculation_version",)})
+
+
+def test_a_gap_in_the_span_is_refused():
+    """§7.1's retracement span is CONTIGUOUS; a hole would silently change
+    which close is deepest so far, and §22 forbids filling it."""
+    T = _t(6)
+    b15 = selected_bucket("15m", T)
+    rows = [
+        _ref_15m_row(bucket_ts=b15 - timedelta(minutes=45), close=104.0),
+        # the -30m bucket is MISSING
+        _ref_15m_row(bucket_ts=b15 - timedelta(minutes=15), close=97.0),
+        _ref_15m_row(bucket_ts=b15, close=103.0),
+    ]
+    with pytest.raises(V2EpisodeLifecycleError, match="CONTIGUOUS"):
+        _window(T=T, closes=[], rows=rows)
+
+
+def test_a_duplicate_or_out_of_order_bucket_is_refused():
+    T = _t(6)
+    b15 = selected_bucket("15m", T)
+    rows = [
+        _ref_15m_row(bucket_ts=b15 - timedelta(minutes=15), close=104.0),
+        _ref_15m_row(bucket_ts=b15 - timedelta(minutes=15), close=97.0),
+        _ref_15m_row(bucket_ts=b15, close=103.0),
+    ]
+    with pytest.raises(V2EpisodeLifecycleError, match="CONTIGUOUS"):
+        _window(T=T, closes=[], rows=rows)
+
+
+def test_a_future_bucket_in_the_span_is_refused():
+    """No-lookahead (§1/§2): a re-evaluation at T may never read a bucket
+    later than the one §1.3 selects for it."""
+    T = _t(3)
+    b15 = selected_bucket("15m", T)
+    rows = [
+        _ref_15m_row(bucket_ts=b15, close=103.0),
+        _ref_15m_row(bucket_ts=b15 + timedelta(minutes=15), close=99.0),
+    ]
+    with pytest.raises(V2EpisodeLifecycleError, match="no-lookahead"):
+        _window(T=T, closes=[], rows=rows)
+
+
+@pytest.mark.parametrize("over", [
+    {"usable": False}, {"has_gap": True}, {"bars_present": 14},
+])
+def test_an_unusable_span_bucket_makes_the_whole_window_unusable(over):
+    """§11's gate fails closed, and §7.1's span is complete by construction
+    -- an unusable bucket is never silently skipped (§22)."""
+    T = _t(6)
+    b15 = selected_bucket("15m", T)
+    rows = [
+        _ref_15m_row(bucket_ts=b15 - timedelta(minutes=15), close=104.0, **over),
+        _ref_15m_row(bucket_ts=b15, close=103.0),
+    ]
+    with pytest.raises(V2EpisodeLifecycleError):
+        _window(T=T, closes=[], rows=rows)
+
+
+def test_reevaluation_uses_the_frozen_creation_buffer_not_a_later_one():
     """§12.2a/§12.4: an existing episode's geometry is always derived from
-    its OWN creation `protection_buffer`, never a later decision-time one."""
+    its OWN creation `protection_buffer`."""
     hist = episode(tp_candidate(T=T0, pullback_extreme=100.0, current_close=105.0, buffer=2.0))
     T = _t(3)
     decision = _decide(
         hist, T=T, boundary=tp_facts(T=T, median=-1.0),
-        reevaluation=_reevaluation(T=T, pullback_extreme=97.0, current_close=103.0))
-    # 97.0 - 2.0 (creation buffer), never 97.0 - 200.0 (a drifted one).
-    assert decision.operational_facts.invalidation_price == 95.0
+        reevaluation=_window(T=T, closes=[97.0, 103.0],
+                             anchor=_TP_ANCHOR, filler=_LONG_FILLER))
+    assert decision.operational_facts.invalidation_price == 95.0     # 97.0 - 2.0
     assert decision.operational_facts.protection_buffer == "2"
 
 
@@ -890,7 +1130,20 @@ def test_a_reevaluation_supplied_for_a_breakout_family_is_refused():
     T = _t(3)
     with pytest.raises(V2EpisodeLifecycleError, match="only TREND_PULLBACK"):
         _decide(hist, T=T, boundary=facts(T=T, close=100.0),
-                reevaluation=_reevaluation(T=T, pullback_extreme=97.0, current_close=103.0))
+                reevaluation=_window(T=T, closes=[97.0, 103.0]))
+
+
+def test_short_pullback_extreme_is_the_span_maximum():
+    """§7.1 mirrors: a SHORT retracement deepens UPWARD."""
+    hist = episode(tp_candidate(T=T0, direction=SHORT, pullback_extreme=110.0,
+                                current_close=105.0))
+    T = _t(3)
+    derived = derive_trend_pullback_reevaluation(
+        hist, _window(T=T, closes=[113.0, 107.0], anchor=_TP_ANCHOR, filler=_SHORT_FILLER))
+    assert derived.pullback_extreme == 113.0
+    assert derived.entry_zone_lower == 107.0
+    assert derived.entry_zone_upper == 113.0
+    assert derived.invalidation_price == 115.0       # extreme + buffer
 
 
 # ============================================================================
@@ -916,7 +1169,8 @@ def test_confirmation_freezes_the_latest_reevaluated_pullback_extreme():
     T_update = _t(3)
     update_decision = _decide(
         hist, T=T_update, boundary=tp_facts(T=T_update, median=-1.0),
-        reevaluation=_reevaluation(T=T_update, pullback_extreme=97.0, current_close=103.0))
+        reevaluation=_window(T=T_update, closes=[97.0, 103.0],
+                             anchor=_TP_ANCHOR, filler=_LONG_FILLER))
     update = build_episode_transition_event(
         update_decision, hist, authorization=_authorization(T=T_update))
     after = _history([creation, update])
@@ -938,7 +1192,8 @@ def test_a_same_boundary_update_and_confirmation_produce_exactly_one_event():
     T = _t(3)                            # 12:15 — both a 15m and a 5m boundary
     decision = _decide(
         hist, T=T, boundary=tp_facts(T=T, close=104.0),
-        reevaluation=_reevaluation(T=T, pullback_extreme=96.0, current_close=103.0))
+        reevaluation=_window(T=T, closes=[96.0, 103.0],
+                             anchor=_TP_ANCHOR, filler=_LONG_FILLER))
     assert decision.outcome == LIFECYCLE_CONFIRMED
     # the SAME-T re-evaluation was aggregated, not emitted separately
     assert decision.operational_facts.pullback_extreme == 96.0
@@ -955,7 +1210,8 @@ def test_a_same_boundary_update_and_expiry_produce_exactly_one_event():
     deadline = read_candidate_deadline(hist)
     decision = _decide(
         hist, T=deadline, boundary=tp_facts(T=deadline, median=-1.0),
-        reevaluation=_reevaluation(T=deadline, pullback_extreme=96.0, current_close=103.0))
+        reevaluation=_window(
+            T=deadline, closes=[96.0, 103.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER))
     assert decision.outcome == LIFECYCLE_EXPIRED_CANDIDATE_AGE
     event = build_episode_transition_event(
         decision, hist, authorization=_authorization(T=deadline))
@@ -965,16 +1221,18 @@ def test_a_same_boundary_update_and_expiry_produce_exactly_one_event():
 
 
 def test_confirmation_without_a_reference_close_does_not_freeze_a_zone():
-    """§7.1's CONFIRMED zone needs `confirmation_close_price`; §22 forbids
-    substituting anything for it."""
+    """§14 (amended): TREND_PULLBACK confirms only when the trigger holds AND
+    §11's reference close needed to freeze the final zone is usable. The
+    trigger DID hold, so the record must not call it a failed trigger -- the
+    category is UNAVAILABLE with `resumption_trigger_held` preserved."""
     hist = episode(tp_candidate(T=T0))
-    boundary = V2BoundaryFacts(
-        T=_t(1), consensus_5m=_consensus(T=_t(1), median=1.0, agreement=1.0),
-        reference_feature_5m=None)
+    boundary = facts(T=_t(1), median=1.0, agreement=1.0, reference=False)
     decision = _decide(hist, T=_t(1), boundary=boundary)
-    assert decision.signal.signal == SIGNAL_CONFIRM
     assert decision.outcome == LIFECYCLE_NO_CHANGE
+    assert decision.resolution_category == SIGNAL_UNAVAILABLE
     assert decision.reason == "CONFIRMATION_CLOSE_UNAVAILABLE"
+    assert decision.signal.evidence["resumption_trigger_held"] is True
+    assert decision.signal.evidence["confirmation_close_available"] is False
 
 
 def test_unit3_never_evaluates_a_confirmed_episode():
@@ -1116,18 +1374,51 @@ def test_new_tuple_can_never_mutate_an_old_episode():
         build_episode_transition_event(decision, hist, authorization=new_tuple_auth)
 
 
-def test_decision_code_version_may_differ_within_one_episode():
-    """§2.1a deliberately EXCLUDES `decision_code_version` from `episode_id`
-    so a decision-code-only release does not fork identity. This unit
-    records the acting value and invents no attribution rule beyond that."""
+def test_a_later_decision_code_version_may_not_mutate_an_existing_episode():
+    """§3.1 (amended): an episode is attributed to the semantic tuple its own
+    CREATION event records, and EVERY later lifecycle transition continues
+    under that tuple -- `decision_code_version` included. A
+    decision-code-only release does not fork `episode_id` (§2.1a) and
+    equally may not reinterpret an episode that already exists."""
+    creation = early_signal(tp_candidate(T=T0))
+    assert creation.decision_code_version == DCV
+    hist = _history([creation])
+    decision = _decide(hist, T=_t(2), boundary=tp_facts(T=_t(2)))
+    with pytest.raises(V2EpisodeLifecycleError, match="CREATION semantic tuple"):
+        build_episode_transition_event(
+            decision, hist,
+            authorization=_authorization(T=_t(2), decision_code_version="dcv-2"))
+
+
+def test_the_creation_decision_code_version_is_the_one_that_continues():
     creation = early_signal(tp_candidate(T=T0))
     hist = _history([creation])
     decision = _decide(hist, T=_t(2), boundary=tp_facts(T=_t(2)))
     event = build_episode_transition_event(
-        decision, hist, authorization=_authorization(T=_t(2), decision_code_version="dcv-2"))
+        decision, hist, authorization=_authorization(T=_t(2), decision_code_version=DCV))
     assert event.episode_id == creation.episode_id
-    assert event.decision_code_version == "dcv-2"
-    assert creation.decision_code_version == DCV
+    assert event.decision_code_version == DCV == creation.decision_code_version
+
+
+def test_decision_code_version_is_still_excluded_from_episode_identity():
+    """The two facts are complementary: identity does not fork, and behavior
+    does not drift. Two episodes differing ONLY in decision_code_version have
+    the SAME episode_id -- which is exactly why §3.1's continuity rule has to
+    be enforced separately."""
+    a = early_signal(tp_candidate(T=T0))
+    other_tuple = V2SemanticTuple(
+        rules_version=RULES, calculation_version=H16, decision_code_version="dcv-2")
+    b = build_early_signal_creation(
+        tp_candidate(T=T0),
+        authorization=V2CreationAuthorization(
+            decision_view=V2DecisionView(
+                provenance=_provenance(T=T0, decision_code_version="dcv-2"),
+                readiness=_readiness(T=T0)),
+            switch_state=_switch_state(T=T0, tuple_=other_tuple),
+            publication_clean=True),
+        T=T0)
+    assert a.decision_code_version != b.decision_code_version
+    assert a.episode_id == b.episode_id
 
 
 # ============================================================================
@@ -1195,7 +1486,8 @@ def test_restart_between_two_reevaluations_reproduces_the_next_result():
     hist = _history([creation])
     T1 = _t(3)
     d1 = _decide(hist, T=T1, boundary=tp_facts(T=T1, median=-1.0),
-                 reevaluation=_reevaluation(T=T1, pullback_extreme=97.0, current_close=103.0))
+                 reevaluation=_window(T=T1, closes=[97.0, 103.0],
+                             anchor=_TP_ANCHOR, filler=_LONG_FILLER))
     update = build_episode_transition_event(d1, hist, authorization=_authorization(T=T1))
 
     restarted = reconstruct_episode_history(
@@ -1204,7 +1496,8 @@ def test_restart_between_two_reevaluations_reproduces_the_next_result():
     assert read_operational_facts(restarted).pullback_extreme == 97.0
     T2 = _t(6)
     d2 = _decide(restarted, T=T2, boundary=tp_facts(T=T2, median=-1.0),
-                 reevaluation=_reevaluation(T=T2, pullback_extreme=95.0, current_close=101.0))
+                 reevaluation=_window(
+                     T=T2, closes=[97.0, 95.0, 101.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER))
     assert d2.outcome == LIFECYCLE_PRECONFIRMATION_UPDATE
     assert d2.operational_facts.pullback_extreme == 95.0
     assert d2.operational_facts.invalidation_price == 93.0
@@ -1260,7 +1553,7 @@ def test_t_before_t_create_is_refused():
 ])
 def test_illegal_decision_boundaries_are_refused(bad):
     with pytest.raises(V2EpisodeLifecycleError):
-        V2BoundaryFacts(T=bad)
+        facts(T=bad, consensus=False, reference=False)
 
 
 def test_facts_resolved_for_another_boundary_are_refused():
@@ -1276,14 +1569,14 @@ def test_facts_from_another_bucket_are_refused():
     row = _reference(T=_t(1), close=101.0)
     row["bucket_ts"] = _t(1)                      # bucket END, not the selected START
     with pytest.raises(V2EpisodeLifecycleError, match="no-lookahead"):
-        V2BoundaryFacts(T=_t(1), reference_feature_5m=row)
+        _boundary(T=_t(1), reference_feature_5m=row)
 
 
 def test_facts_from_another_timeframe_are_refused():
     row = _reference(T=_t(1), close=101.0)
     row["timeframe"] = "15m"
     with pytest.raises(V2EpisodeLifecycleError, match="closed 5m bucket"):
-        V2BoundaryFacts(T=_t(1), reference_feature_5m=row)
+        _boundary(T=_t(1), reference_feature_5m=row)
 
 
 def test_missing_family_boundary_fact_fails_closed():
@@ -1308,19 +1601,18 @@ def test_non_finite_confirmation_input_fails_closed():
     """A NaN/Inf is not a legal JSON leaf: it is refused at the boundary-facts
     construction boundary, never carried into a lifecycle comparison."""
     with pytest.raises(V2EpisodeLifecycleError, match="non-finite float"):
-        V2BoundaryFacts(
+        _boundary(
             T=_t(1), consensus_5m=_consensus(T=_t(1), median=float("nan"), agreement=1.0))
 
 
 def test_non_finite_reference_close_fails_closed():
     with pytest.raises(V2EpisodeLifecycleError, match="non-finite float"):
-        V2BoundaryFacts(T=_t(1), reference_feature_5m=_reference(T=_t(1), close=float("inf")))
+        _boundary(T=_t(1), reference_feature_5m=_reference(T=_t(1), close=float("inf")))
 
 
 def test_out_of_domain_agreement_fails_closed():
     hist = episode(tp_candidate(T=T0))
-    boundary = V2BoundaryFacts(
-        T=_t(1), consensus_5m=_consensus(T=_t(1), median=1.0, agreement=1.5))
+    boundary = facts(T=_t(1), median=1.0, agreement=1.5)
     with pytest.raises(V2EpisodeLifecycleError, match=r"within \[0.0, 1.0\]"):
         _decide(hist, T=_t(1), boundary=boundary)
 
@@ -1362,7 +1654,7 @@ def test_a_decision_for_another_episode_is_refused():
     a = episode(comp_candidate(T=T0, range_high=100.0))
     b = episode(cb_candidate(T=T0, level=100.0))
     decision = _decide(a, T=_t(1), boundary=facts(T=_t(1), close=101.0))
-    with pytest.raises(V2EpisodeLifecycleError, match="but history is"):
+    with pytest.raises(V2EpisodeLifecycleError, match="does not describe episode"):
         build_episode_transition_event(decision, b, authorization=_authorization(T=_t(1)))
 
 
@@ -1445,13 +1737,13 @@ def test_a_confirming_trigger_without_a_close_still_records_a_same_T_zone_change
     creation = early_signal(tp_candidate(T=T0, pullback_extreme=100.0, current_close=105.0))
     hist = _history([creation])
     T = _t(3)
-    boundary = V2BoundaryFacts(
-        T=T, consensus_5m=_consensus(T=T, median=1.0, agreement=1.0),
-        reference_feature_5m=None)
+    boundary = facts(T=T, median=1.0, agreement=1.0, reference=False)
     decision = _decide(
         hist, T=T, boundary=boundary,
-        reevaluation=_reevaluation(T=T, pullback_extreme=96.0, current_close=103.0))
-    assert decision.signal.signal == SIGNAL_CONFIRM
+        reevaluation=_window(T=T, closes=[96.0, 103.0],
+                             anchor=_TP_ANCHOR, filler=_LONG_FILLER))
+    assert decision.resolution_category == SIGNAL_UNAVAILABLE
+    assert decision.signal.evidence["resumption_trigger_held"] is True
     assert decision.outcome == LIFECYCLE_PRECONFIRMATION_UPDATE
     assert decision.operational_facts.pullback_extreme == 96.0
 
@@ -1461,11 +1753,10 @@ def test_a_confirming_trigger_without_a_close_still_closes_the_deadline():
     final eligible bucket expires, with the blocking reason recorded."""
     hist = episode(tp_candidate(T=T0))
     deadline = read_candidate_deadline(hist)
-    boundary = V2BoundaryFacts(
-        T=deadline, consensus_5m=_consensus(T=deadline, median=1.0, agreement=1.0),
-        reference_feature_5m=None)
+    boundary = facts(T=deadline, median=1.0, agreement=1.0, reference=False)
     decision = _decide(hist, T=deadline, boundary=boundary)
     assert decision.outcome == LIFECYCLE_EXPIRED_CANDIDATE_AGE
+    assert decision.resolution_category == SIGNAL_UNAVAILABLE
     assert "CONFIRMATION_CLOSE_UNAVAILABLE" in decision.reason
 
 
@@ -1489,12 +1780,15 @@ def test_boundary_facts_project_from_a_real_aligned_input_snapshot():
         bucket_ts = selected_bucket(timeframe, T)
         by_timeframe[timeframe] = V2TimeframeInputs(
             timeframe=timeframe, bucket_ts=bucket_ts,
-            bucket_end=bucket_ts + (T - selected_bucket(timeframe, T)),
+            # each timeframe's OWN bucket end, never `T` -- a 4h bucket does
+            # not end at a 5m decision boundary.
+            bucket_end=bucket_ts + timedelta(minutes=TIMEFRAME_MINUTES[timeframe]),
             consensus=(_consensus(T=T, median=1.0, agreement=1.0)
                        if timeframe == "5m" else None),
             percentiles=(), health={},
             reference_feature=(_reference(T=T, close=101.0) if timeframe == "5m" else None),
             reference_klines=None, reference_extrema=None)
+        assert by_timeframe[timeframe].bucket_end > bucket_ts
     aligned = V2AlignedInputs(
         T=T, symbol=SYMBOL, market_type=MARKET, calculation_version=H16,
         feature_schema_version=1, reference_exchange=V2_REFERENCE_EXCHANGE,
@@ -1504,7 +1798,394 @@ def test_boundary_facts_project_from_a_real_aligned_input_snapshot():
     assert boundary.T == T
     assert boundary.decision_bucket == selected_bucket("5m", T)
     assert boundary.reference_close == 101.0
-    assert boundary.required_family_quality_ok(TREND_PULLBACK) is True
+    assert boundary.required_family_quality(TREND_PULLBACK) is None
+    # RT-65-01: the snapshot's SEMANTIC SCOPE travels with the rows, so the
+    # episode binding below has something real to check against.
+    assert boundary.symbol == aligned.symbol == SYMBOL
+    assert boundary.market_type == aligned.market_type == MARKET
+    assert boundary.calculation_version == aligned.calculation_version == H16
+    assert boundary.feature_schema_version == aligned.feature_schema_version == 1
+    assert boundary.reference_exchange == aligned.reference_exchange == V2_REFERENCE_EXCHANGE
 
     hist = episode(cb_candidate(T=T0, level=100.0))
     assert _decide(hist, T=T, boundary=boundary).outcome == LIFECYCLE_CONFIRMED
+
+
+# ============================================================================
+# 17. RT-65-01 — boundary facts must retain, and be bound to, semantic scope
+# ============================================================================
+def test_foreign_calculation_version_facts_cannot_decide_an_episode():
+    """§3.2: a decision computed from scope B may not be persisted under
+    episode scope A. Checked on the INPUT side -- no downstream event
+    authorization can repair an already-wrong decision."""
+    hist = episode(cb_candidate(T=T0, level=100.0))
+    foreign = facts(T=_t(1), close=101.0, calculation_version="c" * 16)
+    with pytest.raises(V2EpisodeLifecycleError, match="different semantic scope"):
+        _decide(hist, T=_t(1), boundary=foreign)
+
+
+def test_foreign_feature_schema_version_facts_cannot_decide_an_episode():
+    hist = episode(cb_candidate(T=T0, level=100.0))
+    foreign = facts(T=_t(1), close=101.0, feature_schema_version=7)
+    with pytest.raises(V2EpisodeLifecycleError, match="feature_schema_version"):
+        _decide(hist, T=_t(1), boundary=foreign)
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("symbol", "ETHUSDT"), ("market_type", "spot"),
+])
+def test_a_foreign_symbol_or_market_snapshot_is_refused(field, value):
+    """V2's frozen initial scope is one instrument; a snapshot for another
+    can never be constructed, let alone decide a transition."""
+    with pytest.raises(V2EpisodeLifecycleError, match="unsupported"):
+        facts(T=_t(1), close=101.0, **{field: value})
+
+
+def test_a_foreign_reference_exchange_snapshot_is_refused():
+    """§11 freezes ONE canonical V2 reference exchange and forbids silent
+    switching for an exact price level."""
+    with pytest.raises(V2EpisodeLifecycleError, match="canonical V2 reference exchange"):
+        facts(T=_t(1), close=101.0, reference_exchange="bybit")
+
+
+def test_a_row_whose_own_identity_contradicts_the_envelope_is_refused():
+    """No scope laundering: a row that PHYSICALLY carries an identity field
+    is checked against the envelope that claims to contain it."""
+    with pytest.raises(V2EpisodeLifecycleError, match="different semantic scope"):
+        facts(T=_t(1), close=101.0, row_scope={"calculation_version": "c" * 16})
+
+
+def test_a_reference_row_from_a_foreign_exchange_is_refused():
+    row = _reference(T=_t(1), close=101.0, scope={"exchange": "okx"})
+    with pytest.raises(V2EpisodeLifecycleError, match="different semantic scope"):
+        _boundary(T=_t(1), reference_feature_5m=row)
+
+
+def test_matching_scope_transitions_normally():
+    hist = episode(cb_candidate(T=T0, level=100.0))
+    decision = _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=101.0))
+    assert decision.outcome == LIFECYCLE_CONFIRMED
+    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=_t(1)))
+    assert event.calculation_version == hist.creation_identity.calculation_version
+
+
+# ============================================================================
+# 18. CR65-3 — a PRESENT §11 row missing a gate field is corruption
+# ============================================================================
+@pytest.mark.parametrize("field", ["bars_expected", "bars_present", "is_usable",
+                                   "has_gap", "close_price"])
+def test_a_present_reference_row_missing_a_gate_field_is_corruption(field):
+    hist = episode(comp_candidate(T=T0, range_high=100.0))
+    boundary = _boundary(
+        T=_t(1), consensus_5m=_consensus(T=_t(1)),
+        reference_feature_5m=_reference(T=_t(1), close=101.0, drop=(field,)))
+    with pytest.raises(V2EpisodeLifecycleError, match="corruption, not absence"):
+        _decide(hist, T=_t(1), boundary=boundary)
+
+
+def test_a_wholly_absent_reference_row_stays_ordinary_unavailability():
+    """The two categories must not be conflated: an ABSENT row is §21
+    Unavailable, a PRESENT malformed one is corruption."""
+    hist = episode(comp_candidate(T=T0, range_high=100.0))
+    decision = _decide(hist, T=_t(1), boundary=facts(T=_t(1), reference=False))
+    assert decision.signal.signal == SIGNAL_UNAVAILABLE
+    assert decision.outcome == LIFECYCLE_NO_CHANGE
+
+
+# ============================================================================
+# 19. RT-65-05 — §21's categories stay distinct
+# ============================================================================
+def test_present_but_null_family_quality_is_unavailable():
+    hist = episode(comp_candidate(T=T0, range_high=100.0))
+    decision = _decide(
+        hist, T=_t(1),
+        boundary=facts(T=_t(1), close=101.0, null_families=("price_structure",)))
+    assert decision.signal.signal == SIGNAL_UNAVAILABLE
+    assert decision.signal.reason == "REQUIRED_FAMILY_QUALITY_UNAVAILABLE"
+
+
+def test_coverage_below_the_floor_is_rejected_not_unavailable():
+    hist = episode(comp_candidate(T=T0, range_high=100.0))
+    boundary = _boundary(
+        T=_t(1),
+        consensus_5m=_consensus(T=_t(1), degraded_families=("price_structure",)),
+        reference_feature_5m=_reference(T=_t(1), close=101.0))
+    decision = _decide(hist, T=_t(1), boundary=boundary)
+    assert decision.signal.signal == SIGNAL_REJECTED
+    assert decision.signal.evidence["coverage_ratio"] == 0.5
+    assert decision.signal.evidence["min_coverage"] == pytest.approx(2 / 3)
+
+
+def test_confidence_below_the_floor_is_rejected():
+    hist = episode(comp_candidate(T=T0, range_high=100.0))
+    row = _consensus(T=_t(1))
+    row["data_confidence_by_metric"] = dict(row["data_confidence_by_metric"])
+    row["data_confidence_by_metric"]["price_structure"] = 20.0
+    boundary = _boundary(
+        T=_t(1), consensus_5m=row,
+        reference_feature_5m=_reference(T=_t(1), close=101.0))
+    decision = _decide(hist, T=_t(1), boundary=boundary)
+    assert decision.signal.signal == SIGNAL_REJECTED
+    assert decision.signal.reason == "REQUIRED_FAMILY_CONFIDENCE_BELOW_FLOOR"
+
+
+def test_a_usable_reference_close_does_not_rescue_a_failed_family_gate():
+    """§6.3a's frozen consequence: a failed REQUIRED-family gate makes the
+    whole predicate unevaluable. Another present input does not
+    independently rescue it."""
+    hist = episode(comp_candidate(T=T0, range_high=100.0))
+    boundary = facts(T=_t(1), close=101.0, price_structure_ok=False)
+    assert boundary.reference_close == 101.0          # present and usable
+    decision = _decide(hist, T=_t(1), boundary=boundary)
+    assert decision.signal.signal == SIGNAL_REJECTED
+    assert decision.outcome == LIFECYCLE_NO_CHANGE    # NOT confirmed
+
+
+def test_intermediate_unevaluable_boundary_produces_no_transition():
+    hist = episode(cb_candidate(T=T0, level=100.0))
+    for boundary in (facts(T=_t(1), close=101.0, price_structure_ok=False),
+                     facts(T=_t(1), consensus=False, reference=False)):
+        decision = _decide(hist, T=_t(1), boundary=boundary)
+        assert decision.outcome == LIFECYCLE_NO_CHANGE
+        assert decision.requires_event is False
+
+
+def test_the_persisted_event_records_the_resolution_category():
+    """§14/§21: an EXPIRED event must not read as a neutral HOLD when the
+    truth was a disqualified input."""
+    hist = episode(comp_candidate(T=T0, range_high=100.0))
+    deadline = read_candidate_deadline(hist)
+    decision = _decide(
+        hist, T=deadline, boundary=facts(T=deadline, close=101.0, price_structure_ok=False))
+    event = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=deadline))
+    evidence = event.decision_snapshot[LIFECYCLE_EVIDENCE_KEY]
+    assert evidence["resolution_category"] == SIGNAL_REJECTED
+    assert evidence["at_candidate_deadline"] is True
+    assert event.episode_state == EXPIRED
+
+
+# ============================================================================
+# 20. RT-65-07 — a public path may never persist contradictory history
+# ============================================================================
+def _signal(kind, reason="fixture"):
+    return type(_decide(
+        episode(comp_candidate(T=T0, range_high=100.0)), T=_t(1),
+        boundary=facts(T=_t(1), close=100.0)).signal)(
+            signal=kind, reason=reason, evidence={})
+
+
+def _decision(**over):
+    base = dict(
+        episode_id="e" * 64, T=_t(1), setup_family=COMPRESSION_BREAKOUT, direction=LONG,
+        previous_state=EARLY_SIGNAL, new_state=CONFIRMED, outcome=LIFECYCLE_CONFIRMED,
+        reason="x", signal=_signal(SIGNAL_CONFIRM), t_detect=T0, candidate_deadline=_t(3))
+    base.update(over)
+    return V2LifecycleDecision(**base)
+
+
+@pytest.mark.parametrize(("outcome", "new_state", "bad_signal"), [
+    (LIFECYCLE_CONFIRMED, CONFIRMED, SIGNAL_HOLD),
+    (LIFECYCLE_CONFIRMED, CONFIRMED, SIGNAL_UNAVAILABLE),
+    (LIFECYCLE_CONFIRMED, CONFIRMED, SIGNAL_REJECTED),
+    (LIFECYCLE_INVALIDATED_FALSE_BREAK, INVALIDATED, SIGNAL_CONFIRM),
+    (LIFECYCLE_INVALIDATED_FALSE_BREAK, INVALIDATED, SIGNAL_HOLD),
+    (LIFECYCLE_EXPIRED_CANDIDATE_AGE, EXPIRED, SIGNAL_CONFIRM),
+    (LIFECYCLE_EXPIRED_CANDIDATE_AGE, EXPIRED, SIGNAL_FALSE_BREAK),
+])
+def test_a_transition_may_never_contradict_its_own_signal(outcome, new_state, bad_signal):
+    with pytest.raises(V2EpisodeLifecycleError, match="not reachable from family signal"):
+        _decision(outcome=outcome, new_state=new_state, signal=_signal(bad_signal),
+                  T=_t(3) if outcome == LIFECYCLE_EXPIRED_CANDIDATE_AGE else _t(1))
+
+
+def test_expiry_before_the_deadline_is_refused():
+    with pytest.raises(V2EpisodeLifecycleError, match="deadline boundary itself closes"):
+        _decision(outcome=LIFECYCLE_EXPIRED_CANDIDATE_AGE, new_state=EXPIRED,
+                  signal=_signal(SIGNAL_HOLD), T=_t(1), candidate_deadline=_t(3))
+
+
+def test_a_decision_beyond_the_deadline_is_refused():
+    with pytest.raises(V2EpisodeLifecycleError, match="beyond the §14 candidate deadline"):
+        _decision(T=_t(4), candidate_deadline=_t(3))
+
+
+def test_a_decision_at_or_before_t_detect_is_refused():
+    with pytest.raises(V2EpisodeLifecycleError, match="strictly after t_detect"):
+        _decision(T=T0, t_detect=T0)
+
+
+@pytest.mark.parametrize("field", ["setup_family", "direction", "t_detect",
+                                   "candidate_deadline", "episode_id"])
+def test_a_decision_contradicting_its_history_cannot_be_persisted(field):
+    """The event's COLUMNS come from history while its EVIDENCE comes from the
+    decision -- so a hand-built decision must not be able to make the two
+    tell different stories."""
+    hist = episode(comp_candidate(T=T0, range_high=100.0))
+    good = _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=101.0))
+    over = {
+        "setup_family": CONFIRMED_BREAKOUT, "direction": SHORT,
+        "t_detect": _t(-1), "candidate_deadline": _t(2), "episode_id": "f" * 64,
+    }[field]
+    kwargs = dict(
+        episode_id=good.episode_id, T=good.T, setup_family=good.setup_family,
+        direction=good.direction, previous_state=EARLY_SIGNAL, new_state=CONFIRMED,
+        outcome=LIFECYCLE_CONFIRMED, reason="x", signal=good.signal,
+        t_detect=good.t_detect, candidate_deadline=good.candidate_deadline)
+    kwargs[field] = over
+    if field == "t_detect":
+        kwargs["candidate_deadline"] = over + timedelta(minutes=15)
+    forged = V2LifecycleDecision(**kwargs)
+    with pytest.raises(V2EpisodeLifecycleError, match="does not describe episode"):
+        build_episode_transition_event(forged, hist, authorization=_authorization(T=_t(1)))
+
+
+def test_a_trend_pullback_confirmation_without_final_geometry_is_impossible():
+    """§7.1/§9: the frozen final entry zone is part of the record."""
+    with pytest.raises(V2EpisodeLifecycleError, match="carries no operational facts"):
+        _decision(setup_family=TREND_PULLBACK, candidate_deadline=_t(24),
+                  operational_facts=None)
+
+
+def test_a_breakout_decision_may_not_carry_operational_facts():
+    hist = episode(tp_candidate(T=T0))
+    tp = _decide(hist, T=_t(1), boundary=tp_facts(T=_t(1)))
+    with pytest.raises(V2EpisodeLifecycleError, match="no §12.2a pre-confirmation"):
+        _decision(operational_facts=tp.operational_facts)
+
+
+def test_a_confirmed_tp_must_freeze_against_the_confirming_close():
+    hist = episode(tp_candidate(T=T0))
+    reeval_sourced = derive_trend_pullback_reevaluation(
+        hist, _window(T=_t(3), closes=[97.0, 103.0], anchor=_TP_ANCHOR,
+                      filler=_LONG_FILLER))
+    assert reeval_sourced.source == OPERATIONAL_SOURCE_REEVALUATION
+    with pytest.raises(V2EpisodeLifecycleError, match="CONFIRMING 5m"):
+        _decision(setup_family=TREND_PULLBACK, candidate_deadline=_t(24),
+                  operational_facts=reeval_sourced)
+
+
+# ============================================================================
+# 21. RT-65-08 — persisted operational facts fail closed on contradiction
+# ============================================================================
+def _tp_update_event(*, extreme=97.0, T=_t(3)):
+    creation = early_signal(tp_candidate(T=T0, pullback_extreme=100.0, current_close=105.0))
+    hist = _history([creation])
+    decision = _decide(
+        hist, T=T, boundary=tp_facts(T=T, median=-1.0),
+        reevaluation=_window(T=T, closes=[extreme, 103.0], anchor=_TP_ANCHOR,
+                             filler=_LONG_FILLER))
+    return creation, build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=T))
+
+
+def _history_with_mutated_operational_block(mutate):
+    creation, update = _tp_update_event()
+    row = _row(update)
+    payload = dict(row["event_payload"])
+    block = dict(payload[OPERATIONAL_FACTS_KEY])
+    mutate(block)
+    payload[OPERATIONAL_FACTS_KEY] = block
+    row["event_payload"] = payload
+    return reconstruct_episode_history(
+        [_row(creation), row], run_kind=LIVE, run_id=RUN_ID,
+        episode_id=creation.episode_id, as_of=_t(500), boundary_mode=HISTORY_THROUGH_T)
+
+
+def test_a_healthy_persisted_operational_block_reads_back_exactly():
+    creation, update = _tp_update_event()
+    after = _history([creation, update])
+    now = read_operational_facts(after)
+    assert now.pullback_extreme == 97.0
+    assert now.invalidation_price == 95.0
+    assert now.source == OPERATIONAL_SOURCE_REEVALUATION
+
+
+@pytest.mark.parametrize(("field", "value", "match"), [
+    ("invalidation_price", 1.0, "never silently normalized"),
+    ("entry_zone_lower", 42.0, "never silently normalized"),
+    ("entry_zone_upper", 999.0, "never silently normalized"),
+    ("protection_buffer", "17", "frozen creation protection_buffer"),
+])
+def test_contradictory_persisted_geometry_fails_closed(field, value, match):
+    hist = _history_with_mutated_operational_block(lambda b: b.__setitem__(field, value))
+    with pytest.raises(V2EpisodeLifecycleError, match=match):
+        read_operational_facts(hist)
+
+
+@pytest.mark.parametrize("field", ["invalidation_price", "entry_zone_lower",
+                                   "entry_zone_upper", "protection_buffer"])
+def test_a_missing_persisted_geometry_field_fails_closed(field):
+    hist = _history_with_mutated_operational_block(lambda b: b.pop(field))
+    with pytest.raises(V2EpisodeLifecycleError, match="carry no"):
+        read_operational_facts(hist)
+
+
+def test_an_unknown_operational_source_fails_closed():
+    hist = _history_with_mutated_operational_block(
+        lambda b: b.__setitem__("source", "SOMETHING_ELSE"))
+    with pytest.raises(V2EpisodeLifecycleError, match="not one of"):
+        read_operational_facts(hist)
+
+
+@pytest.mark.parametrize(("value", "match"), [
+    ("2026-08-20T12:00:00", "is naive"),
+    ("2026-08-20T14:00:00+02:00", "is not UTC"),
+    ("not-a-timestamp", "not a parseable"),
+    ("2026-08-20T12:07:00+00:00", "not a legal 15m bucket start"),
+    ("2026-08-20T12:05:00+00:00", "15m bucket grid"),
+])
+def test_a_malformed_persisted_source_bucket_fails_closed(value, match):
+    hist = _history_with_mutated_operational_block(
+        lambda b: b.__setitem__("source_bucket", value))
+    with pytest.raises(V2EpisodeLifecycleError, match=match):
+        read_operational_facts(hist)
+
+
+def test_a_future_persisted_source_bucket_fails_closed():
+    """No-lookahead (§1/§2): a fact recorded at `T` cannot have been measured
+    from a bucket that had not closed by `T`."""
+    hist = _history_with_mutated_operational_block(
+        lambda b: b.__setitem__("source_bucket", _q(4).isoformat()))
+    with pytest.raises(V2EpisodeLifecycleError, match="had not closed by then"):
+        read_operational_facts(hist)
+
+
+def test_a_source_bucket_on_the_wrong_grid_for_its_source_fails_closed():
+    """A CONFIRMATION records the confirming 5m bucket; a REEVALUATION
+    records §7.1's 15m `B15'`. Mixing them is impossible history."""
+    hist = _history_with_mutated_operational_block(
+        lambda b: b.update(source=OPERATIONAL_SOURCE_CONFIRMATION))
+    with pytest.raises(V2EpisodeLifecycleError, match="selected 5m bucket"):
+        read_operational_facts(hist)
+
+
+def test_a_source_bucket_from_another_boundary_fails_closed():
+    hist = _history_with_mutated_operational_block(
+        lambda b: b.__setitem__("source_bucket", _q(-4).isoformat()))
+    with pytest.raises(V2EpisodeLifecycleError, match="selects exactly one bucket"):
+        read_operational_facts(hist)
+
+
+def test_a_missing_persisted_source_bucket_fails_closed():
+    hist = _history_with_mutated_operational_block(lambda b: b.pop("source_bucket"))
+    with pytest.raises(V2EpisodeLifecycleError, match="what makes it"):
+        read_operational_facts(hist)
+
+
+def test_contradictory_creation_geometry_fails_closed():
+    """Unit 2's own persisted creation geometry is held to §7.1's formula
+    too -- a creation event whose zone contradicts its own extreme/buffer is
+    corrupt, not something to normalize away."""
+    event = early_signal(tp_candidate(T=T0, pullback_extreme=100.0, current_close=105.0))
+    row = _row(event)
+    snapshot = dict(row["decision_snapshot"])
+    creation_facts = dict(snapshot["creation_facts"])
+    creation_facts["invalidation_price"] = 1.0
+    snapshot["creation_facts"] = creation_facts
+    row["decision_snapshot"] = snapshot
+    hist = reconstruct_episode_history(
+        [row], run_kind=LIVE, run_id=RUN_ID, episode_id=event.episode_id,
+        as_of=_t(500), boundary_mode=HISTORY_THROUGH_T)
+    with pytest.raises(V2EpisodeLifecycleError, match="never silently normalized"):
+        read_operational_facts(hist)

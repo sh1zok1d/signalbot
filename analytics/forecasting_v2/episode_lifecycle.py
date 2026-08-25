@@ -106,14 +106,19 @@ boundary's facts are the already-merged H2 aligned-input snapshot
 """
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping as _AbcMapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from types import MappingProxyType
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Sequence
 
-from analytics.forecasting_v2._validation import nonblank, one_of
+from analytics.forecasting_v2._validation import (
+    nonblank, one_of, validate_calculation_version, validate_feature_schema_version,
+    validate_market_type, validate_symbol,
+)
+from analytics.forecasting_v2.aligned_inputs import V2_REFERENCE_EXCHANGE
 from analytics.forecasting_v2.alignment import (
     V2AlignmentError, TIMEFRAME_MINUTES, selected_bucket,
 )
@@ -125,18 +130,20 @@ from analytics.forecasting_v2.confirmed_breakout import (
 )
 from analytics.forecasting_v2.decision_provenance import V2DecisionProvenance
 from analytics.forecasting_v2.episode_creation import (
-    CREATION_FACTS_KEY, MATCH_EXACT, V2CandidateFacts, read_creation_facts,
+    CREATION_FACTS_KEY, read_creation_facts,
 )
 from analytics.forecasting_v2.episode_history import (
-    NON_TERMINAL_EPISODE_STATES, V2EpisodeHistory, V2EpisodeHistoryError,
-    canonical_decimal_text, deep_freeze_json,
+    ANCHOR_BUCKET_TS, NON_TERMINAL_EPISODE_STATES, V2EpisodeHistory,
+    V2EpisodeHistoryError, canonical_decimal_text, deep_freeze_json,
 )
 from analytics.forecasting_v2.event_factory import build_v2_episode_event
 from analytics.forecasting_v2.events import (
     COMPRESSION_BREAKOUT, CONFIRMED, CONFIRMED_BREAKOUT, EARLY_SIGNAL, EXPIRED,
-    INVALIDATED, LONG, TREND_PULLBACK, V2EpisodeEvent,
+    INVALIDATED, LONG, SHORT, TREND_PULLBACK, V2EpisodeEvent,
 )
-from analytics.forecasting_v2.family_quality import family_quality_ok
+from analytics.forecasting_v2.family_quality import (
+    FAMILY_MIN_CONFIDENCE, FAMILY_MIN_COVERAGE, family_quality,
+)
 from analytics.forecasting_v2.provenance import V2EventProvenance
 from analytics.forecasting_v2.trend_pullback import PULLBACK_MAX_AGE_15M_BUCKETS
 
@@ -147,7 +154,7 @@ __all__ = [
     "REEVALUATION_TIMEFRAME", "DECISION_TIMEFRAME", "DECISION_BUCKET",
     # family signal vocabulary
     "SIGNAL_CONFIRM", "SIGNAL_FALSE_BREAK", "SIGNAL_HOLD", "SIGNAL_UNAVAILABLE",
-    "FAMILY_SIGNALS",
+    "SIGNAL_REJECTED", "FAMILY_SIGNALS",
     # outcome vocabulary
     "LIFECYCLE_NO_CHANGE", "LIFECYCLE_PRECONFIRMATION_UPDATE", "LIFECYCLE_CONFIRMED",
     "LIFECYCLE_INVALIDATED_FALSE_BREAK", "LIFECYCLE_EXPIRED_CANDIDATE_AGE",
@@ -155,7 +162,7 @@ __all__ = [
     # persisted keys
     "LIFECYCLE_EVIDENCE_KEY", "LIFECYCLE_TRANSITION_KEY", "OPERATIONAL_FACTS_KEY",
     # value objects
-    "V2BoundaryFacts", "V2FamilySignal", "V2TrendPullbackReevaluation",
+    "V2BoundaryFacts", "V2FamilySignal", "V2TrendPullbackReevaluationWindow",
     "V2OperationalFacts", "V2LifecycleDecision", "V2LifecycleAuthorization",
     # readers over persisted history
     "read_candidate_deadline", "read_detection_boundary", "read_operational_facts",
@@ -165,7 +172,7 @@ __all__ = [
     "evaluate_confirmed_breakout_confirmation",
     "evaluate_family_signal",
     # composition
-    "trend_pullback_reevaluation_from_candidate",
+    "derive_trend_pullback_reevaluation",
     "evaluate_early_signal_transition",
     "build_episode_transition_event",
 ]
@@ -246,11 +253,26 @@ _FALSE_BREAK_FAMILIES = (COMPRESSION_BREAKOUT, CONFIRMED_BREAKOUT)
 # ---- family signal vocabulary (§21's four-category discipline) --------------
 SIGNAL_CONFIRM = "CONFIRM"
 SIGNAL_FALSE_BREAK = "FALSE_BREAK"
+# §21's NEUTRAL category: a real measured value that indicates no qualifying
+# condition (a §7.2/§7.3 boundary-equality close, a §7.1 trigger that did not
+# hold). The market DID produce this observation.
 SIGNAL_HOLD = "HOLD"
-# §21 requires UNAVAILABLE to be DISTINGUISHED, never collapsed into
-# "evaluated and false": the required input does not exist at this boundary.
+# §21's UNAVAILABLE category: the required input does not exist / cannot be
+# computed at this boundary (an absent consensus row, a NULL family quality
+# value, a §11 reference close that fails its fail-closed gate).
 SIGNAL_UNAVAILABLE = "UNAVAILABLE"
-FAMILY_SIGNALS = (SIGNAL_CONFIRM, SIGNAL_FALSE_BREAK, SIGNAL_HOLD, SIGNAL_UNAVAILABLE)
+# §21's REJECTED category: the required input EXISTS but a hard gate
+# disqualifies it (§6.3a coverage/confidence below its frozen floor).
+# Deliberately NOT a spelling of UNAVAILABLE -- coverage 0.50 against a 2/3
+# floor is a real, present measurement, and a reader of the persisted event
+# must be able to tell the two apart.
+SIGNAL_REJECTED = "REJECTED"
+FAMILY_SIGNALS = (
+    SIGNAL_CONFIRM, SIGNAL_FALSE_BREAK, SIGNAL_HOLD, SIGNAL_UNAVAILABLE, SIGNAL_REJECTED)
+# The two categories that mean "this boundary's family predicate was not
+# successfully evaluated at all" (§21, §6.3a). Distinct from HOLD, which IS a
+# successful evaluation that happened to be neutral.
+_UNEVALUABLE_SIGNALS = frozenset({SIGNAL_UNAVAILABLE, SIGNAL_REJECTED})
 
 
 # ---- outcome vocabulary ----------------------------------------------------
@@ -284,6 +306,35 @@ _EVENT_REQUIRED = frozenset({
     LIFECYCLE_PRECONFIRMATION_UPDATE, LIFECYCLE_CONFIRMED,
     LIFECYCLE_INVALIDATED_FALSE_BREAK, LIFECYCLE_EXPIRED_CANDIDATE_AGE,
 })
+
+# Which family signals each outcome is REACHABLE FROM. A persisted history
+# event states both what was observed and what followed; the two must agree,
+# or the record is self-contradictory (a "CONFIRMED" whose own evidence block
+# says the trigger never held is worse than no record at all).
+#
+# EXPIRED is the one outcome reachable from several: §14's amended deadline
+# rule closes the hard age budget on a real neutral HOLD, on an UNAVAILABLE
+# input, AND on a REJECTED one -- while requiring the persisted evidence to
+# say WHICH. It is deliberately NOT reachable from CONFIRM or FALSE_BREAK:
+# those resolve the deadline boundary themselves.
+_OUTCOME_ALLOWED_SIGNALS = MappingProxyType({
+    LIFECYCLE_CONFIRMED: frozenset({SIGNAL_CONFIRM}),
+    LIFECYCLE_INVALIDATED_FALSE_BREAK: frozenset({SIGNAL_FALSE_BREAK}),
+    LIFECYCLE_EXPIRED_CANDIDATE_AGE: frozenset(
+        {SIGNAL_HOLD, SIGNAL_UNAVAILABLE, SIGNAL_REJECTED}),
+    # A §12.2a operational update and a no-op are both reached only when the
+    # boundary did NOT resolve the episode -- so neither is reachable from a
+    # CONFIRM signal either. (§14's "the trigger held but §11's confirmation
+    # close is unavailable" case does not reach here carrying CONFIRM: it is
+    # re-categorised as UNAVAILABLE, with `resumption_trigger_held: True`
+    # preserved in its evidence, because the transition was not materialized
+    # and the record must say so without calling it a failed trigger.)
+    LIFECYCLE_PRECONFIRMATION_UPDATE: frozenset(
+        {SIGNAL_HOLD, SIGNAL_UNAVAILABLE, SIGNAL_REJECTED}),
+    LIFECYCLE_NO_CHANGE: frozenset(
+        {SIGNAL_HOLD, SIGNAL_UNAVAILABLE, SIGNAL_REJECTED}),
+})
+assert set(_OUTCOME_ALLOWED_SIGNALS) == set(LIFECYCLE_OUTCOMES)
 
 
 # ---- persisted payload keys ------------------------------------------------
@@ -331,10 +382,6 @@ _FF_RAW_LEVEL_PRICE = "raw_level_price"
 # ============================================================================
 # small local validation helpers
 # ============================================================================
-def _is_finite(value: float) -> bool:
-    return value == value and value not in (float("inf"), float("-inf"))  # NaN != NaN
-
-
 def _validate_decision_boundary(value: Any, name: str) -> datetime:
     """A legal V2 5m decision boundary `T` (§1.3), delegated to
     `alignment.selected_bucket` -- the same canonical source of truth every
@@ -389,7 +436,7 @@ def _finite_price(value: Any, name: str) -> float:
         raise V2EpisodeLifecycleError(
             f"{name} must be a real number, got {type(value).__name__}: {value!r}")
     v = float(value)
-    if not _is_finite(v):
+    if not math.isfinite(v):
         raise V2EpisodeLifecycleError(f"{name} must be finite, got {value!r}")
     if v <= 0:
         raise V2EpisodeLifecycleError(f"{name} must be strictly positive, got {value!r}")
@@ -460,7 +507,8 @@ _REFERENCE_GATE_FIELDS = ("is_usable", "has_gap", "bars_present", "bars_expected
 @dataclass(frozen=True)
 class V2BoundaryFacts:
     """ONE logical decision boundary's already-resolved current facts, by
-    value (§3.4's "one coherent data view per logical decision").
+    value (§3.4's "one coherent data view per logical decision") -- WITH the
+    semantic scope that produced them.
 
     This module reads nothing itself. The caller resolves exactly one
     coherent view for `T` -- in production, inside an H2e coherent read
@@ -476,19 +524,55 @@ class V2BoundaryFacts:
         reference exchange, never a consensus aggregate).
 
     Either may be `None` -- legitimately UNAVAILABLE, never an error (§21's
-    Unavailable category). A row that IS present is held to its own
-    identity: its `timeframe`/`bucket_ts` must be exactly `"5m"` and
-    `selected_bucket("5m", T)`. That is the no-lookahead/coherence guard
-    (§1/§2) -- a caller cannot hand this unit a newer bucket, an older
-    bucket, or another timeframe's row and have it silently decide a
-    lifecycle transition from it."""
+    Unavailable category).
+
+    **The scope fields are not decoration; they are what makes §3.2
+    enforceable.** §3.2 forbids a result computed under provenance tuple A
+    from being persisted as tuple B, and an earlier draft of this type
+    discarded the aligned snapshot's identity entirely -- which let a
+    decision be computed from `calculation_version` B's data and then
+    stamped onto an episode whose own frozen identity is A. That is the
+    same violation arriving from the INPUT side, and no amount of
+    event-construction authorization downstream can repair a decision that
+    was already computed from foreign data. So this type carries the exact
+    snapshot identity by value (`symbol`, `market_type`,
+    `calculation_version`, `feature_schema_version`, `reference_exchange`),
+    `from_aligned_inputs()` preserves it, and
+    `evaluate_early_signal_transition()` binds it to the episode BEFORE any
+    predicate runs.
+
+    A row that IS present is held to its own identity twice over: its
+    `timeframe`/`bucket_ts` must be exactly `"5m"` and
+    `selected_bucket("5m", T)` (the no-lookahead/coherence guard, §1/§2 --
+    a caller cannot hand this unit a newer or older bucket), and any
+    identity field the row itself physically carries (`symbol`,
+    `market_type`, `calculation_version`, `feature_schema_version`, and the
+    reference row's own `exchange`) must equal this object's declared
+    scope. A row cannot be laundered through a mismatched envelope."""
     T: datetime
+    symbol: str
+    market_type: str
+    calculation_version: str
+    feature_schema_version: int
+    reference_exchange: str = V2_REFERENCE_EXCHANGE
     consensus_5m: Optional[Mapping] = None
     reference_feature_5m: Optional[Mapping] = None
 
     def __post_init__(self) -> None:
         T = _validate_decision_boundary(self.T, "T")
         object.__setattr__(self, "T", T)
+        validate_symbol(self.symbol, V2EpisodeLifecycleError)
+        validate_market_type(self.market_type, V2EpisodeLifecycleError)
+        validate_calculation_version(self.calculation_version, V2EpisodeLifecycleError)
+        validate_feature_schema_version(self.feature_schema_version, V2EpisodeLifecycleError)
+        # §11 freezes ONE canonical V2 reference exchange, and forbids
+        # silent switching. A snapshot resolved against any other exchange
+        # cannot supply this unit's exact price levels.
+        if self.reference_exchange != V2_REFERENCE_EXCHANGE:
+            raise V2EpisodeLifecycleError(
+                f"reference_exchange must be the canonical V2 reference exchange "
+                f"{V2_REFERENCE_EXCHANGE!r}, got {self.reference_exchange!r} -- §11 forbids "
+                "silently sourcing an exact price level from another exchange")
         expected_bucket = selected_bucket(DECISION_TIMEFRAME, T)
         for name in ("consensus_5m", "reference_feature_5m"):
             row = getattr(self, name)
@@ -498,8 +582,9 @@ class V2BoundaryFacts:
             self._assert_row_identity(row, name=name, expected_bucket=expected_bucket)
             object.__setattr__(self, name, _freeze(dict(row), name))
 
-    @staticmethod
-    def _assert_row_identity(row: Mapping, *, name: str, expected_bucket: datetime) -> None:
+    def _assert_row_identity(
+        self, row: Mapping, *, name: str, expected_bucket: datetime,
+    ) -> None:
         timeframe = row.get("timeframe")
         if timeframe != DECISION_TIMEFRAME:
             raise V2EpisodeLifecycleError(
@@ -513,6 +598,23 @@ class V2BoundaryFacts:
                 f"selected 5m bucket is {expected_bucket.isoformat()!r} -- a lifecycle "
                 "transition is never decided from a bucket other than the one §1.3 selects "
                 "for T (no-lookahead, §1/§2)")
+        # Identity fields the row PHYSICALLY carries are validated against
+        # this envelope's declared scope -- never ignored. A row absent a
+        # field is not evidence of agreement, but a row that carries a
+        # DIFFERENT value is proof of a mismatched snapshot.
+        declared = {
+            "symbol": self.symbol, "market_type": self.market_type,
+            "calculation_version": self.calculation_version,
+            "feature_schema_version": self.feature_schema_version,
+        }
+        if name == "reference_feature_5m":
+            declared["exchange"] = self.reference_exchange
+        for field, expected in declared.items():
+            if field in row and row[field] != expected:
+                raise V2EpisodeLifecycleError(
+                    f"{name} carries {field}={row[field]!r} but this boundary snapshot declares "
+                    f"{expected!r} -- a decision may not be computed from a row belonging to a "
+                    "different semantic scope (§3.2)")
 
     @property
     def decision_bucket(self) -> datetime:
@@ -527,7 +629,9 @@ class V2BoundaryFacts:
 
         `None` is UNAVAILABLE, never a fallback: §11 forbids silently
         switching to another exchange for an exact price level, and §22
-        forbids substituting a consensus aggregate for it."""
+        forbids substituting a consensus aggregate for it. A row that is
+        PRESENT but missing a gate field is corruption, not absence, and
+        raises."""
         row = self.reference_feature_5m
         if row is None:
             return None
@@ -554,39 +658,83 @@ class V2BoundaryFacts:
             and bars_present == bars_expected and close_price is not None)
         return close_price if gate_passes else None
 
-    def required_family_quality_ok(self, setup_family: str) -> bool:
-        """§6.3a: does every metric family THIS decision consumes satisfy
-        its own family-scoped coverage/confidence floor?
+    def required_family_quality(self, setup_family: str) -> "Optional[V2FamilySignal]":
+        """§6.3a's per-family gate, resolved into §21's DISTINCT categories
+        -- or `None` when every required family passes.
+
+        Deliberately NOT a boolean. `family_quality_ok()` collapses "the
+        consensus row is absent", "this family's own value is NULL",
+        "coverage is below the floor" and "confidence is below the floor"
+        into one `False`, which destroys exactly the distinction §21 exists
+        to preserve: an ABSENT input (Unavailable) and a PRESENT input a
+        hard gate disqualified (Rejected) are different facts, and a reader
+        of the persisted event cannot recover which one occurred. This
+        reads the richer `family_quality()` primitive and reports the real
+        category.
 
         Scoped strictly to `REQUIRED_METRIC_FAMILY[setup_family]` -- an
         unrelated degraded family can never suppress a Unit 3 transition,
         and the global `min_coverage_ratio`/`consensus_confidence` rollup is
         never read."""
         one_of(setup_family, "setup_family", _SETUP_FAMILIES, V2EpisodeLifecycleError)
-        try:
-            return all(
-                family_quality_ok(self.consensus_5m, family=family)
-                for family in REQUIRED_METRIC_FAMILY[setup_family])
-        except ValueError as exc:      # V2FamilyQualityError: malformed PRESENT data
-            raise V2EpisodeLifecycleError(
-                f"consensus_5m carries malformed per-family quality data: {exc}") from exc
+        base = {"decision_bucket": self.decision_bucket.isoformat(),
+                "required_families": list(REQUIRED_METRIC_FAMILY[setup_family])}
+        if self.consensus_5m is None:
+            return V2FamilySignal(
+                signal=SIGNAL_UNAVAILABLE, reason="CONSENSUS_ROW_ABSENT", evidence=base)
+        for family in REQUIRED_METRIC_FAMILY[setup_family]:
+            try:
+                quality = family_quality(self.consensus_5m, family=family)
+            except ValueError as exc:      # V2FamilyQualityError: malformed PRESENT data
+                raise V2EpisodeLifecycleError(
+                    f"consensus_5m carries malformed per-family quality data for {family!r}: "
+                    f"{exc}") from exc
+            evidence = dict(base, family=family, coverage_ratio=quality.coverage_ratio,
+                            confidence=quality.confidence,
+                            min_coverage=FAMILY_MIN_COVERAGE,
+                            min_confidence=FAMILY_MIN_CONFIDENCE)
+            # PRESENT-but-NULL is genuine unavailability for that fact;
+            # PRESENT-and-below-floor is a hard gate rejecting real data.
+            if quality.coverage_ratio is None or quality.confidence is None:
+                return V2FamilySignal(
+                    signal=SIGNAL_UNAVAILABLE, reason="REQUIRED_FAMILY_QUALITY_UNAVAILABLE",
+                    evidence=evidence)
+            if quality.coverage_ratio < FAMILY_MIN_COVERAGE:
+                return V2FamilySignal(
+                    signal=SIGNAL_REJECTED, reason="REQUIRED_FAMILY_COVERAGE_BELOW_FLOOR",
+                    evidence=evidence)
+            if quality.confidence < FAMILY_MIN_CONFIDENCE:
+                return V2FamilySignal(
+                    signal=SIGNAL_REJECTED, reason="REQUIRED_FAMILY_CONFIDENCE_BELOW_FLOOR",
+                    evidence=evidence)
+        return None
 
     @classmethod
     def from_aligned_inputs(cls, aligned) -> "V2BoundaryFacts":
         """Project an already-loaded `aligned_inputs.V2AlignedInputs`
         snapshot -- the canonical H2 coherent read path -- into this unit's
-        narrow by-value input. A pure projection: nothing is re-read, and
-        the 5m rows arrive exactly as that snapshot resolved them for `T`."""
+        narrow by-value input.
+
+        A pure projection that preserves the snapshot's full semantic scope:
+        nothing is re-read, the 5m rows arrive exactly as that snapshot
+        resolved them for `T`, and `symbol`/`market_type`/
+        `calculation_version`/`feature_schema_version`/`reference_exchange`
+        travel with them so the episode binding below has something real to
+        check against."""
         tf = aligned.by_timeframe[DECISION_TIMEFRAME]
         return cls(
-            T=aligned.T, consensus_5m=tf.consensus,
-            reference_feature_5m=tf.reference_feature)
+            T=aligned.T, symbol=aligned.symbol, market_type=aligned.market_type,
+            calculation_version=aligned.calculation_version,
+            feature_schema_version=aligned.feature_schema_version,
+            reference_exchange=aligned.reference_exchange,
+            consensus_5m=tf.consensus, reference_feature_5m=tf.reference_feature)
 
 
 @dataclass(frozen=True)
 class V2FamilySignal:
     """One family's own verdict for this boundary, BEFORE deadline/expiry
-    composition: `CONFIRM`, `FALSE_BREAK`, `HOLD`, or `UNAVAILABLE`.
+    composition: `CONFIRM`, `FALSE_BREAK`, `HOLD`, `UNAVAILABLE`, or
+    `REJECTED` -- §21's categories, kept distinct rather than collapsed.
 
     `evidence` is the by-value input this verdict was computed from --
     persisted verbatim into the transition event's `decision_snapshot` so
@@ -834,7 +982,21 @@ def read_operational_facts(history: V2EpisodeHistory) -> Optional[V2OperationalF
     Reading them from history rather than from a cache is what makes
     restart equivalence provable: §9 requires every pre-`CONFIRMED` zone
     change to be recorded as a new immutable event, so the newest recorded
-    shape IS the current one, and a fresh process reconstructs it exactly."""
+    shape IS the current one, and a fresh process reconstructs it exactly.
+
+    **Corruption stays corruption -- nothing is silently repaired.** An
+    earlier draft rebuilt the geometry from the persisted
+    `pullback_extreme`/`dynamic_bound` and simply IGNORED the persisted
+    `entry_zone_*`/`invalidation_price`/`protection_buffer`, so a stored
+    block claiming `invalidation_price = 1` where §7.1's formula gives `95`
+    was quietly "corrected" on read and the contradiction never surfaced.
+    That is exactly the silent normalization §22 forbids. Every persisted
+    field is now validated against what the canonical formula produces, and
+    every disagreement raises. The block's own provenance
+    (`source`/`source_bucket`) is validated too: an unknown source, a naive/
+    non-UTC/off-grid bucket, a bucket on the wrong grid for its source type,
+    or a bucket LATER than the event that recorded it are all impossible
+    history."""
     _require_history(history)
     identity = history.creation_identity
     if identity.setup_family != TREND_PULLBACK:
@@ -844,28 +1006,9 @@ def read_operational_facts(history: V2EpisodeHistory) -> Optional[V2OperationalF
         payload = event.event_payload.get(OPERATIONAL_FACTS_KEY)
         if payload is None:
             continue
-        payload = _mapping(payload, OPERATIONAL_FACTS_KEY)
-        raw_bucket = payload.get(_OF_SOURCE_BUCKET)
-        source_bucket = None
-        if raw_bucket is not None:
-            if not isinstance(raw_bucket, str):
-                raise V2EpisodeLifecycleError(
-                    f"episode {history.episode_id!r}'s persisted {_OF_SOURCE_BUCKET}="
-                    f"{raw_bucket!r} must be an ISO-8601 string")
-            try:
-                source_bucket = datetime.fromisoformat(raw_bucket)
-            except (TypeError, ValueError) as exc:
-                raise V2EpisodeLifecycleError(
-                    f"episode {history.episode_id!r}'s persisted {_OF_SOURCE_BUCKET}="
-                    f"{raw_bucket!r} is not a parseable ISO-8601 datetime: {exc}") from exc
-        return _build_trend_pullback_operational_facts(
-            direction=identity.direction,
-            pullback_extreme=_finite_price(
-                payload.get(_OF_PULLBACK_EXTREME), _OF_PULLBACK_EXTREME),
-            dynamic_bound=_finite_price(payload.get(_OF_DYNAMIC_BOUND), _OF_DYNAMIC_BOUND),
-            protection_buffer=buffer,
-            source=str(payload.get(_OF_SOURCE, OPERATIONAL_SOURCE_REEVALUATION)),
-            source_bucket=source_bucket)
+        return _validated_persisted_operational_facts(
+            history, event=event, payload=_mapping(payload, OPERATIONAL_FACTS_KEY),
+            buffer=buffer)
 
     # No recorded update yet: the creation event's own facts are current.
     creation = _creation_facts(history)
@@ -876,160 +1019,483 @@ def read_operational_facts(history: V2EpisodeHistory) -> Optional[V2OperationalF
     raw_bucket = family_facts.get(_FF_BUCKET_15M)
     source_bucket = None
     if isinstance(raw_bucket, str):
-        try:
-            source_bucket = datetime.fromisoformat(raw_bucket)
-        except (TypeError, ValueError) as exc:
-            raise V2EpisodeLifecycleError(
-                f"episode {history.episode_id!r}'s creation {_FF_BUCKET_15M}={raw_bucket!r} is "
-                f"not a parseable ISO-8601 datetime: {exc}") from exc
-    return _build_trend_pullback_operational_facts(
+        source_bucket = _parse_persisted_bucket(
+            history, raw_bucket, name=f"creation {_FF_BUCKET_15M}")
+    derived = _build_trend_pullback_operational_facts(
         direction=identity.direction,
         pullback_extreme=_finite_price(
             family_facts.get(_FF_PULLBACK_EXTREME), f"creation {_FF_PULLBACK_EXTREME}"),
         dynamic_bound=_finite_price(dynamic_bound, "creation dynamic entry-zone bound"),
         protection_buffer=buffer, source=OPERATIONAL_SOURCE_CREATION,
         source_bucket=source_bucket)
+    # Unit 2's own persisted creation geometry must agree with §7.1's formula
+    # too -- a creation event whose recorded zone/invalidation contradicts its
+    # own extreme/buffer is corrupt, not something to normalize away.
+    _assert_persisted_geometry_agrees(
+        history, derived=derived, persisted={
+            _OF_ENTRY_ZONE_LOWER: creation.get(_CF_ENTRY_ZONE_LOWER),
+            _OF_ENTRY_ZONE_UPPER: creation.get(_CF_ENTRY_ZONE_UPPER),
+            _OF_INVALIDATION_PRICE: creation.get(_CF_INVALIDATION_PRICE),
+        }, where="creation facts")
+    return derived
+
+
+def _parse_persisted_bucket(
+    history: V2EpisodeHistory, raw: Any, *, name: str,
+) -> datetime:
+    if not isinstance(raw, str):
+        raise V2EpisodeLifecycleError(
+            f"episode {history.episode_id!r}'s persisted {name}={raw!r} must be an ISO-8601 "
+            f"string, got {type(raw).__name__}")
+    try:
+        parsed = datetime.fromisoformat(raw)
+    except (TypeError, ValueError) as exc:
+        raise V2EpisodeLifecycleError(
+            f"episode {history.episode_id!r}'s persisted {name}={raw!r} is not a parseable "
+            f"ISO-8601 datetime: {exc}") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise V2EpisodeLifecycleError(
+            f"episode {history.episode_id!r}'s persisted {name}={raw!r} is naive -- every "
+            "persisted V2 timestamp is timezone-aware UTC")
+    if parsed.utcoffset() != timedelta(0):
+        raise V2EpisodeLifecycleError(
+            f"episode {history.episode_id!r}'s persisted {name}={raw!r} is not UTC "
+            f"(offset {parsed.utcoffset()})")
+    return parsed
+
+
+# Which grid each operational-fact source's own bucket must sit on. A
+# REEVALUATION records §7.1's 15m `B15'`; a CONFIRMATION records the
+# confirming 5m `B5_confirm`; CREATION records the creation 15m bucket.
+_SOURCE_BUCKET_TIMEFRAME = MappingProxyType({
+    OPERATIONAL_SOURCE_CREATION: REEVALUATION_TIMEFRAME,
+    OPERATIONAL_SOURCE_REEVALUATION: REEVALUATION_TIMEFRAME,
+    OPERATIONAL_SOURCE_CONFIRMATION: DECISION_TIMEFRAME,
+})
+
+
+def _validated_persisted_operational_facts(
+    history: V2EpisodeHistory, *, event, payload: Mapping, buffer: Decimal,
+) -> V2OperationalFacts:
+    """Validate one persisted operational block against its own event and
+    against §7.1's canonical geometry. Every failure is corruption."""
+    episode_id = history.episode_id
+    source = payload.get(_OF_SOURCE)
+    if source not in _SOURCE_BUCKET_TIMEFRAME:
+        raise V2EpisodeLifecycleError(
+            f"episode {episode_id!r}'s persisted operational facts carry "
+            f"{_OF_SOURCE}={source!r}, which is not one of "
+            f"{sorted(_SOURCE_BUCKET_TIMEFRAME)!r} -- an unrecognized provenance cannot be "
+            "validated and is never assumed benign")
+    raw_bucket = payload.get(_OF_SOURCE_BUCKET)
+    if raw_bucket is None:
+        raise V2EpisodeLifecycleError(
+            f"episode {episode_id!r}'s persisted operational facts carry no "
+            f"{_OF_SOURCE_BUCKET!r} -- the bucket a {source} was measured from is what makes it "
+            "auditable after restart")
+    source_bucket = _parse_persisted_bucket(
+        history, raw_bucket, name=f"operational {_OF_SOURCE_BUCKET}")
+    timeframe = _SOURCE_BUCKET_TIMEFRAME[source]
+    _validate_bucket_start(
+        source_bucket, f"episode {episode_id!r} operational {_OF_SOURCE_BUCKET}",
+        timeframe=timeframe)
+    # No-lookahead (§1/§2): a fact recorded at decision boundary `T` can only
+    # have been measured from a bucket that had already closed by `T`.
+    if source_bucket >= event.decision_boundary:
+        raise V2EpisodeLifecycleError(
+            f"episode {episode_id!r} records a {source} operational block at decision boundary "
+            f"{event.decision_boundary.isoformat()!r} measured from {timeframe} bucket "
+            f"{source_bucket.isoformat()!r}, which had not closed by then -- a decision may "
+            "never read a future bucket (§1/§2)")
+    expected_bucket = selected_bucket(timeframe, event.decision_boundary)
+    if source in (OPERATIONAL_SOURCE_REEVALUATION, OPERATIONAL_SOURCE_CONFIRMATION) and (
+            source_bucket != expected_bucket):
+        raise V2EpisodeLifecycleError(
+            f"episode {episode_id!r}'s {source} operational block was recorded at "
+            f"{event.decision_boundary.isoformat()!r}, whose selected {timeframe} bucket is "
+            f"{expected_bucket.isoformat()!r}, but it names {source_bucket.isoformat()!r} -- "
+            "§1.3 selects exactly one bucket per boundary")
+
+    derived = _build_trend_pullback_operational_facts(
+        direction=history.creation_identity.direction,
+        pullback_extreme=_finite_price(
+            payload.get(_OF_PULLBACK_EXTREME), f"persisted {_OF_PULLBACK_EXTREME}"),
+        dynamic_bound=_finite_price(
+            payload.get(_OF_DYNAMIC_BOUND), f"persisted {_OF_DYNAMIC_BOUND}"),
+        protection_buffer=buffer, source=source, source_bucket=source_bucket)
+    _assert_persisted_geometry_agrees(
+        history, derived=derived, persisted={
+            _OF_ENTRY_ZONE_LOWER: payload.get(_OF_ENTRY_ZONE_LOWER),
+            _OF_ENTRY_ZONE_UPPER: payload.get(_OF_ENTRY_ZONE_UPPER),
+            _OF_INVALIDATION_PRICE: payload.get(_OF_INVALIDATION_PRICE),
+            _OF_PROTECTION_BUFFER: payload.get(_OF_PROTECTION_BUFFER),
+        }, where="operational facts")
+    return derived
+
+
+def _assert_persisted_geometry_agrees(
+    history: V2EpisodeHistory, *, derived: V2OperationalFacts, persisted: Mapping, where: str,
+) -> None:
+    """Compare every persisted geometry field against what §7.1's canonical
+    formula produces from the same extreme/bound/buffer.
+
+    A missing field is not silently accepted either: what §7.1 publishes is
+    what the record must contain. A DISAGREEING field raises rather than
+    being recomputed away -- silent normalization would hide the exact
+    corruption this validation exists to surface (§22)."""
+    expected = {
+        _OF_ENTRY_ZONE_LOWER: derived.entry_zone_lower,
+        _OF_ENTRY_ZONE_UPPER: derived.entry_zone_upper,
+        _OF_INVALIDATION_PRICE: derived.invalidation_price,
+        _OF_PROTECTION_BUFFER: derived.protection_buffer,
+    }
+    for field, stored in persisted.items():
+        want = expected[field]
+        if stored is None:
+            raise V2EpisodeLifecycleError(
+                f"episode {history.episode_id!r}'s persisted {where} carry no {field!r} -- §7.1's "
+                "published geometry is part of the immutable record, not something a reader "
+                "reconstructs")
+        if field == _OF_PROTECTION_BUFFER:
+            if stored != want:
+                raise V2EpisodeLifecycleError(
+                    f"episode {history.episode_id!r}'s persisted {where} record {field}="
+                    f"{stored!r} but this episode's frozen creation protection_buffer is "
+                    f"{want!r} -- §12.2a/§12.4 freeze the creation value for the episode's whole "
+                    "life")
+            continue
+        stored_value = _finite_price(stored, f"persisted {field}")
+        if _exact(stored_value, field) != _exact(want, field):
+            raise V2EpisodeLifecycleError(
+                f"episode {history.episode_id!r}'s persisted {where} record {field}="
+                f"{stored_value!r}, but §7.1's geometry for pullback_extreme="
+                f"{derived.pullback_extreme!r} / dynamic_bound={derived.dynamic_bound!r} / "
+                f"protection_buffer={derived.protection_buffer} gives {want!r}. Corruption is "
+                "reported, never silently normalized (§22)")
+
+
+# ---- §12.2a mechanism (1): the episode's OWN reference-history re-measurement
+_REFERENCE_ROW_IDENTITY = (
+    "exchange", "symbol", "market_type", "timeframe", "calculation_version",
+    "feature_schema_version",
+)
 
 
 @dataclass(frozen=True)
-class V2TrendPullbackReevaluation:
-    """§12.2a mechanism (1): the SAME `TREND_PULLBACK` episode's own
-    structural leg, re-measured at a later legal 15m boundary.
+class V2TrendPullbackReevaluationWindow:
+    """§12.2a mechanism (1): the canonical source data for re-measuring THIS
+    episode's own structural leg at a later legal 15m boundary.
 
-    This is emphatically NOT mechanism (2). §12.2a forbids substituting a
-    later, independently-detected candidate's own freshly-computed
-    `trend_leg_extreme`/geometry into the episode's operational logic. The
-    two mechanisms are told apart by exactly one fact: whether the
-    observation re-measures THIS episode's frozen creation leg (§12.3 case
-    A, an exact anchor match) or reports a DIFFERENT leg (case B/C). Only
-    the former is a legitimate mechanism-(1) re-measurement, which is why
-    `trend_pullback_reevaluation_from_candidate()` refuses anything but
-    `MATCH_EXACT`.
+    **This type exists because mechanism (1) and mechanism (2) must never be
+    conflated, and an earlier draft of this unit conflated them.** §12.2a
+    distinguishes (1) an active episode's own continuous re-evaluation of
+    its own leg from (2) a freshly, independently-run Stage 5 detector
+    invocation producing a brand-new candidate that §12.3 classifies A/B/C.
+    The earlier draft accepted a Stage 5 candidate plus a caller-supplied
+    `MATCH_EXACT` as proof of mechanism (1). That was wrong on two counts: a
+    fresh detector candidate is mechanism (2) *by definition*, even when its
+    creation anchor happens to match exactly; and Unit 2's A/B/C
+    classification is dedup/ROUTING evidence, never the source of an active
+    episode's operational facts. A `MATCH_EXACT` label also proved nothing
+    about the candidate's own numbers -- a caller could hand over any
+    `pullback_extreme` at all.
 
-    `pullback_extreme` is §7.1's "deepest close so far" over the contiguous
-    span from the frozen anchor bucket through `B15'`; `current_close` is
-    `close_price(B15', reference_exchange)`, §7.1's dynamic zone bound. The
-    derived zone/invalidation geometry is NOT taken from the caller -- this
-    unit re-derives it from §7.1's exact formula and the episode's own
-    frozen creation `protection_buffer`."""
+    Mechanism (1) is therefore sourced from what §7.1 actually names: the
+    REFERENCE EXCHANGE's own closed 15m `close_price` series, over the
+    CONTIGUOUS span from the episode's frozen creation anchor bucket
+    (`trend_leg_extreme.bucket_ts`) THROUGH `B15' = selected_bucket("15m",
+    T)` inclusive. Nothing is taken on trust: the caller supplies the
+    ROWS, and this type proves they are the right rows before any value is
+    derived from them. `pullback_extreme` and the dynamic zone bound are
+    then DERIVED here -- a caller cannot assert either.
+
+    `reference_15m_rows` are `exchange_feature_vectors`-shaped mappings
+    (whatever reader produced them; this module imports no storage). Every
+    row must:
+
+      - carry this window's exact identity (`exchange` == the canonical §11
+        reference exchange, `symbol`, `market_type`, `timeframe == "15m"`,
+        `calculation_version`, `feature_schema_version`);
+      - sit on the exact 15m grid, strictly ascending, CONTIGUOUS with no
+        gap and no duplicate -- §7.1's span is a complete one, and a hole in
+        it would silently change which close is "deepest so far";
+      - end exactly at `B15'`, and contain no bucket after it (no-lookahead,
+        §1/§2);
+      - pass §11's own fail-closed reference gate. A single unusable bucket
+        makes the whole span unusable -- §22 forbids filling the hole.
+
+    Episode binding (frozen leg, direction, slot) is checked separately by
+    `derive_trend_pullback_reevaluation()`, which is the only way to turn
+    this window into operational facts."""
     T: datetime
-    bucket_15m: datetime
-    pullback_extreme: float
-    current_close: float
+    symbol: str
+    market_type: str
+    calculation_version: str
+    feature_schema_version: int
+    reference_15m_rows: "tuple[Mapping, ...]"
+    reference_exchange: str = V2_REFERENCE_EXCHANGE
 
     def __post_init__(self) -> None:
         T = _validate_decision_boundary(self.T, "reevaluation T")
         object.__setattr__(self, "T", T)
-        # §7.1's re-evaluation happens at LATER 15m decision boundaries. A
-        # 5m-only boundary is not one, and must not run structural
-        # re-evaluation -- 15m is the FORMATION/re-measurement cadence, 5m
-        # is the confirmation cadence, and §14 is explicit that conflating
-        # them is wrong. Checked FIRST so a 5m-only boundary is reported as
-        # what it is, rather than as a derived-bucket complaint.
-        _validate_bucket_start(
-            T - _REEVALUATION_BUCKET, "reevaluation T", timeframe=REEVALUATION_TIMEFRAME)
-        if self.bucket_15m != T - _REEVALUATION_BUCKET:
+        validate_symbol(self.symbol, V2EpisodeLifecycleError)
+        validate_market_type(self.market_type, V2EpisodeLifecycleError)
+        validate_calculation_version(self.calculation_version, V2EpisodeLifecycleError)
+        validate_feature_schema_version(self.feature_schema_version, V2EpisodeLifecycleError)
+        if self.reference_exchange != V2_REFERENCE_EXCHANGE:
             raise V2EpisodeLifecycleError(
-                f"reevaluation bucket_15m={self.bucket_15m!r} is not "
-                f"selected_bucket('15m', {T.isoformat()}) = "
-                f"{(T - _REEVALUATION_BUCKET).isoformat()!r} -- §7.1 re-evaluates against "
-                "B15' = selected_bucket(15m, T'), never another bucket")
-        object.__setattr__(self, "pullback_extreme", _finite_price(
-            self.pullback_extreme, "reevaluation pullback_extreme"))
-        object.__setattr__(self, "current_close", _finite_price(
-            self.current_close, "reevaluation current_close"))
+                f"reference_exchange must be {V2_REFERENCE_EXCHANGE!r}, got "
+                f"{self.reference_exchange!r} -- §7.1 measures the retracement on the canonical "
+                "reference exchange's own closes, and §11 forbids substituting another")
+        # §7.1 re-evaluates at LATER 15m decision boundaries. A 5m-only
+        # boundary is not one: 15m is the re-measurement cadence, 5m is the
+        # confirmation cadence, and §14 is explicit that conflating them is
+        # wrong.
+        b15 = _validate_bucket_start(
+            T - _REEVALUATION_BUCKET, "reevaluation T", timeframe=REEVALUATION_TIMEFRAME)
+
+        rows = self.reference_15m_rows
+        if isinstance(rows, (str, bytes)) or not isinstance(rows, Sequence):
+            raise V2EpisodeLifecycleError(
+                f"reference_15m_rows must be a sequence of row mappings, got "
+                f"{type(rows).__name__}")
+        if not rows:
+            raise V2EpisodeLifecycleError(
+                "reference_15m_rows is empty -- §7.1's retracement span always contains at "
+                "least the episode's own anchor bucket; an empty span proves nothing")
+
+        frozen_rows, previous = [], None
+        for index, raw in enumerate(rows):
+            row = _mapping(raw, f"reference_15m_rows[{index}]")
+            self._assert_reference_row_identity(row, index=index)
+            bucket_ts = _validate_bucket_start(
+                row.get("bucket_ts"), f"reference_15m_rows[{index}].bucket_ts",
+                timeframe=REEVALUATION_TIMEFRAME)
+            if previous is not None and bucket_ts != previous + _REEVALUATION_BUCKET:
+                raise V2EpisodeLifecycleError(
+                    f"reference_15m_rows[{index}].bucket_ts={bucket_ts.isoformat()!r} does not "
+                    f"immediately follow {previous.isoformat()!r} -- §7.1's retracement span is "
+                    "CONTIGUOUS and complete; a gap, a duplicate or an out-of-order bucket would "
+                    "silently change which close is deepest so far (§22 forbids filling it)")
+            if bucket_ts > b15:
+                raise V2EpisodeLifecycleError(
+                    f"reference_15m_rows[{index}].bucket_ts={bucket_ts.isoformat()!r} is after "
+                    f"B15' = {b15.isoformat()!r} -- a re-evaluation at T may never read a bucket "
+                    "later than the one §1.3 selects for it (no-lookahead, §1/§2)")
+            close = self._gated_close(row, index=index)
+            frozen_rows.append(MappingProxyType(
+                {"bucket_ts": bucket_ts, "close_price": close}))
+            previous = bucket_ts
+
+        if previous != b15:
+            raise V2EpisodeLifecycleError(
+                f"reference_15m_rows ends at {previous.isoformat()!r} but §7.1 re-evaluates "
+                f"against B15' = selected_bucket('15m', {T.isoformat()}) = {b15.isoformat()!r} "
+                "-- the span must run THROUGH that bucket inclusive")
+        object.__setattr__(self, "reference_15m_rows", tuple(frozen_rows))
+
+    def _assert_reference_row_identity(self, row: Mapping, *, index: int) -> None:
+        expected = {
+            "exchange": self.reference_exchange, "symbol": self.symbol,
+            "market_type": self.market_type, "timeframe": REEVALUATION_TIMEFRAME,
+            "calculation_version": self.calculation_version,
+            "feature_schema_version": self.feature_schema_version,
+        }
+        for field in _REFERENCE_ROW_IDENTITY:
+            if field not in row:
+                raise V2EpisodeLifecycleError(
+                    f"reference_15m_rows[{index}] is missing identity field {field!r} -- an "
+                    "unidentified row can never be proven to belong to this episode's own "
+                    "structural leg")
+            if row[field] != expected[field]:
+                raise V2EpisodeLifecycleError(
+                    f"reference_15m_rows[{index}] carries {field}={row[field]!r} but this "
+                    f"re-evaluation window declares {expected[field]!r} -- a foreign row may not "
+                    "re-measure this episode's leg (§3.2/§11)")
+
+    @staticmethod
+    def _gated_close(row: Mapping, *, index: int) -> float:
+        """§11's fail-closed reference gate, applied to one span bucket.
+
+        Unlike the 5m boundary close (where a failed gate is ordinary
+        UNAVAILABLE), a failed gate HERE is fatal to the whole window: §7.1's
+        span is complete by construction, so a hole cannot be tolerated and
+        must not be silently skipped (§22)."""
+        missing = [f for f in _REFERENCE_GATE_FIELDS if f not in row]
+        if missing:
+            raise V2EpisodeLifecycleError(
+                f"reference_15m_rows[{index}] is missing §11 gate field(s) {missing!r}")
+        if row["is_usable"] is not True or row["has_gap"] is not False:
+            raise V2EpisodeLifecycleError(
+                f"reference_15m_rows[{index}] fails §11's reference gate "
+                f"(is_usable={row['is_usable']!r}, has_gap={row['has_gap']!r}) -- §7.1's "
+                "retracement span must be complete; an unusable bucket makes the whole "
+                "re-evaluation unavailable rather than silently shortened")
+        bars_present, bars_expected = row["bars_present"], row["bars_expected"]
+        for field, value in (("bars_present", bars_present), ("bars_expected", bars_expected)):
+            if isinstance(value, bool) or not isinstance(value, int):
+                raise V2EpisodeLifecycleError(
+                    f"reference_15m_rows[{index}] {field} must be an int, got "
+                    f"{type(value).__name__}")
+        if bars_present != bars_expected:
+            raise V2EpisodeLifecycleError(
+                f"reference_15m_rows[{index}] is incomplete (bars_present={bars_present!r}, "
+                f"bars_expected={bars_expected!r}) -- §11's gate fails closed")
+        return _finite_price(
+            row["close_price"], f"reference_15m_rows[{index}].close_price")
+
+    @property
+    def anchor_bucket(self) -> datetime:
+        """The span's FIRST bucket -- which must be the episode's own frozen
+        creation anchor (checked in `derive_trend_pullback_reevaluation`)."""
+        return self.reference_15m_rows[0]["bucket_ts"]
+
+    @property
+    def b15(self) -> datetime:
+        """`selected_bucket("15m", T)` -- the span's last bucket."""
+        return self.reference_15m_rows[-1]["bucket_ts"]
+
+    @property
+    def closes(self) -> "tuple[float, ...]":
+        return tuple(row["close_price"] for row in self.reference_15m_rows)
 
 
-def trend_pullback_reevaluation_from_candidate(
-    candidate: V2CandidateFacts, history: V2EpisodeHistory, *, match_class: str,
-) -> V2TrendPullbackReevaluation:
-    """Build a mechanism-(1) re-evaluation from a Stage 5 `TREND_PULLBACK`
-    observation that Unit 2 classified as §12.3 case A against THIS episode.
+def derive_trend_pullback_reevaluation(
+    history: V2EpisodeHistory, window: V2TrendPullbackReevaluationWindow,
+) -> V2OperationalFacts:
+    """§12.2a mechanism (1), derived -- never asserted.
 
-    `match_class` MUST be `MATCH_EXACT`. §12.2a forbids feeding a case-(B)
-    candidate's own independently-detected leg into the episode's
-    operational facts, and this refusal is structural rather than
-    documentary: a non-exact match cannot be turned into a re-evaluation at
-    all. An exact match, by definition, re-measures the episode's OWN frozen
-    creation anchor -- which is precisely §7.1's mechanism-(1) process
-    observed through the detector, not a substitution of a different leg.
+    Binds `window` to THIS episode before reading a single close:
 
-    Only `pullback_extreme` and the 15m close are taken from the candidate.
-    Its own zone/invalidation values are deliberately ignored: this unit
-    re-derives them from §7.1's formula and the episode's frozen creation
-    `protection_buffer`, so a drifted decision-time buffer can never rewrite
-    an existing episode's geometry (§12.2a/§12.4's "always the creation
-    value")."""
+      - the episode must be `TREND_PULLBACK` (no other family has a
+        pre-confirmation mutability mechanism);
+      - the window's semantic scope must equal the episode's own frozen
+        `symbol`/`market_type`/`calculation_version` (§3.2 -- a foreign
+        snapshot may not re-measure this leg);
+      - the span's FIRST bucket must be the episode's frozen creation
+        `structural_anchor.bucket_ts`, i.e. `trend_leg_extreme`'s own
+        anchor. §7.1 derives `pullback_extreme` "ONLY from the CONTIGUOUS
+        span from `trend_leg_extreme`'s own anchor bucket THROUGH `B15`
+        inclusive" -- buckets strictly older than the anchor helped select
+        the anchor but are not part of the subsequent retracement.
+
+    Then derives, per §7.1:
+
+        pullback_extreme = min(close) over the span   (LONG)
+                         = max(close) over the span   (SHORT)
+        dynamic_bound    = close_price(B15')
+
+    and re-derives the entry zone / planned `invalidation_price` from
+    §7.1's exact geometry and the episode's OWN frozen creation
+    `protection_buffer` -- so a later drifted decision-time buffer can never
+    rewrite an existing episode's published geometry (§12.2a/§12.4)."""
     _require_history(history)
-    if not isinstance(candidate, V2CandidateFacts):
+    if not isinstance(window, V2TrendPullbackReevaluationWindow):
         raise V2EpisodeLifecycleError(
-            f"candidate must be a V2CandidateFacts, got {type(candidate).__name__}")
+            "window must be a V2TrendPullbackReevaluationWindow, got "
+            f"{type(window).__name__}")
     identity = history.creation_identity
     if identity.setup_family != TREND_PULLBACK:
         raise V2EpisodeLifecycleError(
-            f"episode {history.episode_id!r} is {identity.setup_family!r}; only TREND_PULLBACK "
-            "has a §12.2a pre-confirmation operational-update mechanism")
-    if candidate.setup_family != TREND_PULLBACK:
+            f"episode {history.episode_id!r} is {identity.setup_family!r}; §12.2a gives only "
+            "TREND_PULLBACK a pre-confirmation operational-update mechanism")
+    _assert_scope_binding(
+        history, symbol=window.symbol, market_type=window.market_type,
+        calculation_version=window.calculation_version, what="re-evaluation window")
+
+    creation_anchor = _creation_anchor_bucket(history)
+    if window.anchor_bucket != creation_anchor:
         raise V2EpisodeLifecycleError(
-            f"candidate is {candidate.setup_family!r}, not TREND_PULLBACK")
-    if candidate.slot != identity.slot:
-        raise V2EpisodeLifecycleError(
-            f"candidate slot {candidate.slot!r} does not belong to episode "
-            f"{history.episode_id!r} (slot {identity.slot!r})")
-    if match_class != MATCH_EXACT:
-        raise V2EpisodeLifecycleError(
-            f"match_class={match_class!r} -- only a §12.3 case-A (exact structural-anchor match) "
-            "observation is a mechanism-(1) re-measurement of THIS episode's own leg. §12.2a "
-            "forbids substituting a differently-anchored candidate's freshly-detected "
-            "trend_leg_extreme into the episode's operational facts; it may be RECORDED as an "
-            "observation, never operationally substituted")
-    family_facts = _mapping(candidate.family_facts, "candidate.family_facts")
-    if _FF_PULLBACK_EXTREME not in family_facts:
-        raise V2EpisodeLifecycleError(
-            f"candidate carries no {_FF_PULLBACK_EXTREME!r} fact -- §7.1's re-evaluation needs "
-            "the re-measured deepest close, and this unit never recovers it elsewhere")
-    return V2TrendPullbackReevaluation(
-        T=candidate.T, bucket_15m=candidate.T - _REEVALUATION_BUCKET,
-        pullback_extreme=_finite_price(
-            family_facts[_FF_PULLBACK_EXTREME], f"candidate {_FF_PULLBACK_EXTREME}"),
-        current_close=_finite_price(
-            candidate.entry_zone_upper if candidate.direction == LONG
-            else candidate.entry_zone_lower,
-            "candidate dynamic entry-zone bound"))
+            f"the re-evaluation span starts at {window.anchor_bucket.isoformat()!r} but episode "
+            f"{history.episode_id!r}'s frozen creation anchor (trend_leg_extreme.bucket_ts) is "
+            f"{creation_anchor.isoformat()!r} -- §7.1 measures the retracement ONLY from the "
+            "episode's OWN anchor through B15'. A span starting anywhere else is a different "
+            "structural leg, which §12.2a forbids substituting for this episode's")
+
+    closes = window.closes
+    direction = identity.direction
+    return _build_trend_pullback_operational_facts(
+        direction=direction,
+        pullback_extreme=(min(closes) if direction == LONG else max(closes)),
+        dynamic_bound=closes[-1],
+        protection_buffer=_creation_protection_buffer(history),
+        source=OPERATIONAL_SOURCE_REEVALUATION, source_bucket=window.b15)
 
 
-def _apply_reevaluation(
-    history: V2EpisodeHistory, current: V2OperationalFacts,
-    reevaluation: V2TrendPullbackReevaluation,
+def _apply_monotonic_extreme(
+    history: V2EpisodeHistory, current: V2OperationalFacts, derived: V2OperationalFacts,
 ) -> V2OperationalFacts:
-    """§7.1's monotonic "deepest close so far" rule, applied to the
-    episode's own currently-valid facts.
+    """§7.1's monotonic "deepest close so far" rule, enforced against the
+    episode's own currently-valid persisted facts.
 
-    `pullback_extreme` MAY only deepen (lower for `LONG`, higher for
-    `SHORT`). A re-measurement that reports a SHALLOWER extreme is refused
-    rather than accepted: §7.1 says the extreme "update[s] only if the
-    retracement deepens further", so a shallower value is either a
-    mechanism-(2) leak or corrupt input, and silently walking the level back
-    would rewrite an already-published structural fact."""
+    `derived` is already computed from proven reference rows, so this is not
+    a trust check on a caller's number -- it is the §7.1 invariant that the
+    retracement extreme "update[s] only if the retracement deepens further".
+    A DERIVED value that is shallower than the persisted one means the two
+    disagree about the same span, which is corrupt history or a truncated
+    window, never a reason to walk an already-published structural level
+    back.
+
+    The dynamic 15m bound may move freely in either direction: it is
+    `close_price(B15')`, a fresh observation, not a running extreme. A
+    changed bound with an UNCHANGED extreme still changes the published
+    zone, and therefore still requires a §9 history event."""
     direction = history.creation_identity.direction
     deepens = (
-        reevaluation.pullback_extreme < current.pullback_extreme if direction == LONG
-        else reevaluation.pullback_extreme > current.pullback_extreme)
-    same = reevaluation.pullback_extreme == current.pullback_extreme
+        derived.pullback_extreme < current.pullback_extreme if direction == LONG
+        else derived.pullback_extreme > current.pullback_extreme)
+    same = derived.pullback_extreme == current.pullback_extreme
     if not (deepens or same):
         raise V2EpisodeLifecycleError(
             f"episode {history.episode_id!r} ({direction}) currently records "
-            f"pullback_extreme={current.pullback_extreme!r}; the re-evaluation reports "
-            f"{reevaluation.pullback_extreme!r}, which is SHALLOWER. §7.1 lets this fact update "
-            "only if the retracement deepens further -- a shallower value is refused, never "
-            "silently walked back")
-    return _build_trend_pullback_operational_facts(
-        direction=direction,
-        pullback_extreme=(
-            reevaluation.pullback_extreme if deepens else current.pullback_extreme),
-        dynamic_bound=reevaluation.current_close,
-        protection_buffer=_creation_protection_buffer(history),
-        source=OPERATIONAL_SOURCE_REEVALUATION, source_bucket=reevaluation.bucket_15m)
+            f"pullback_extreme={current.pullback_extreme!r}; the re-evaluation window derives "
+            f"{derived.pullback_extreme!r}, which is SHALLOWER. §7.1 lets this fact update only "
+            "if the retracement deepens further, so the two disagree about the same span -- "
+            "refused, never silently walked back")
+    return derived
+
+
+def _creation_anchor_bucket(history: V2EpisodeHistory) -> datetime:
+    """The episode's frozen `trend_leg_extreme` anchor bucket, parsed from
+    its immutable creation `structural_anchor` (§12.1/§12.2)."""
+    raw = history.creation_identity.structural_anchor.get(ANCHOR_BUCKET_TS)
+    if not isinstance(raw, str):
+        raise V2EpisodeLifecycleError(
+            f"episode {history.episode_id!r} has no usable persisted "
+            f"structural_anchor.{ANCHOR_BUCKET_TS}")
+    try:
+        parsed = datetime.fromisoformat(raw)
+    except (TypeError, ValueError) as exc:
+        raise V2EpisodeLifecycleError(
+            f"episode {history.episode_id!r}'s persisted structural_anchor.{ANCHOR_BUCKET_TS}="
+            f"{raw!r} is not a parseable ISO-8601 datetime: {exc}") from exc
+    return _validate_bucket_start(
+        parsed, f"episode {history.episode_id!r} creation anchor",
+        timeframe=REEVALUATION_TIMEFRAME)
+
+
+def _assert_scope_binding(
+    history: V2EpisodeHistory, *, symbol: str, market_type: str,
+    calculation_version: str, what: str,
+) -> None:
+    """§3.2: a decision may not be COMPUTED from one semantic scope and
+    PERSISTED under another. Checked on the INPUT side, before any predicate
+    runs -- no downstream event authorization can repair a decision already
+    computed from foreign data."""
+    identity = history.creation_identity
+    mismatches = [
+        (field, actual, expected)
+        for field, actual, expected in (
+            ("symbol", symbol, identity.symbol),
+            ("market_type", market_type, identity.market_type),
+            ("calculation_version", calculation_version, identity.calculation_version))
+        if actual != expected]
+    if mismatches:
+        detail = ", ".join(f"{f}={a!r} (episode: {e!r})" for f, a, e in mismatches)
+        raise V2EpisodeLifecycleError(
+            f"this {what} belongs to a different semantic scope than episode "
+            f"{history.episode_id!r}: {detail}. §3.2 forbids computing a decision from one "
+            "scope's data and persisting it under another's")
 
 
 # ============================================================================
@@ -1061,11 +1527,12 @@ def evaluate_trend_pullback_confirmation(
     _require_history(history)
     _require_boundary_facts(facts)
     direction = history.creation_identity.direction
-    if not facts.required_family_quality_ok(TREND_PULLBACK):
-        return V2FamilySignal(
-            signal=SIGNAL_UNAVAILABLE, reason="REQUIRED_METRIC_FAMILY_UNAVAILABLE",
-            evidence={"required_families": list(REQUIRED_METRIC_FAMILY[TREND_PULLBACK]),
-                      "decision_bucket": facts.decision_bucket.isoformat()})
+    # §6.3a/§21: a required family that is UNAVAILABLE or REJECTED makes the
+    # predicate unevaluable at this boundary, and WHICH of the two it was is
+    # carried through rather than flattened.
+    gate = facts.required_family_quality(TREND_PULLBACK)
+    if gate is not None:
+        return gate
     consensus = facts.consensus_5m
     median = consensus.get("price_move_pct_median")
     agreement = consensus.get("price_direction_agreement")
@@ -1135,11 +1602,12 @@ def _breakout_signal(
     _require_history(history)
     _require_boundary_facts(facts)
     direction = history.creation_identity.direction
-    if not facts.required_family_quality_ok(family):
-        return V2FamilySignal(
-            signal=SIGNAL_UNAVAILABLE, reason="REQUIRED_METRIC_FAMILY_UNAVAILABLE",
-            evidence={"required_families": list(REQUIRED_METRIC_FAMILY[family]),
-                      "decision_bucket": facts.decision_bucket.isoformat()})
+    # §6.3a/§21, frozen consequence: a failed REQUIRED-family gate makes the
+    # whole predicate unevaluable. A usable §11 reference close does NOT
+    # independently rescue it merely by being present.
+    gate = facts.required_family_quality(family)
+    if gate is not None:
+        return gate
     boundary_key = boundary_key_long if direction == LONG else boundary_key_short
     boundary = _frozen_family_price(history, boundary_key)
     close = facts.reference_close
@@ -1239,7 +1707,7 @@ def _finite_numeric(value: Any, name: str) -> float:
         raise V2EpisodeLifecycleError(
             f"{name} must be a real number, got {type(value).__name__}: {value!r}")
     v = float(value)
-    if not _is_finite(v):
+    if not math.isfinite(v):
         raise V2EpisodeLifecycleError(f"{name} must be finite, got {value!r}")
     return v
 
@@ -1309,6 +1777,80 @@ class V2LifecycleDecision:
                 "operational_facts must be a V2OperationalFacts, got "
                 f"{type(self.operational_facts).__name__}")
 
+        # ---- signal/outcome coherence -----------------------------------
+        # A decision is a claim about WHAT WAS OBSERVED and WHAT FOLLOWED.
+        # A directly-constructed object must not be able to state a
+        # transition its own recorded signal contradicts -- otherwise a
+        # public persist path could write "CONFIRMED" onto history whose
+        # evidence block says the trigger never held.
+        allowed = _OUTCOME_ALLOWED_SIGNALS[self.outcome]
+        if self.signal.signal not in allowed:
+            raise V2EpisodeLifecycleError(
+                f"outcome {self.outcome!r} is not reachable from family signal "
+                f"{self.signal.signal!r} (reachable from {sorted(allowed)!r}) -- a transition may "
+                "never contradict the observation it records")
+        # §14: EXPIRED means the DEADLINE boundary closed. Never earlier.
+        if self.outcome == LIFECYCLE_EXPIRED_CANDIDATE_AGE and self.T != self.candidate_deadline:
+            raise V2EpisodeLifecycleError(
+                f"{LIFECYCLE_EXPIRED_CANDIDATE_AGE} at T={self.T.isoformat()!r} but this "
+                f"episode's §14 candidate deadline is {self.candidate_deadline.isoformat()!r} -- "
+                "candidate-age expiry fires only when the deadline boundary itself closes")
+        if self.T <= self.t_detect:
+            raise V2EpisodeLifecycleError(
+                f"T={self.T.isoformat()!r} is not strictly after t_detect="
+                f"{self.t_detect.isoformat()!r}")
+        if self.T > self.candidate_deadline:
+            raise V2EpisodeLifecycleError(
+                f"T={self.T.isoformat()!r} is beyond the §14 candidate deadline "
+                f"{self.candidate_deadline.isoformat()!r}")
+        _validate_decision_boundary(self.T, "T")
+        _validate_decision_boundary(self.t_detect, "t_detect")
+        _validate_decision_boundary(self.candidate_deadline, "candidate_deadline")
+        one_of(self.setup_family, "setup_family", _SETUP_FAMILIES, V2EpisodeLifecycleError)
+        one_of(self.direction, "direction", (LONG, SHORT), V2EpisodeLifecycleError)
+        nonblank(self.episode_id, "episode_id", V2EpisodeLifecycleError)
+        nonblank(self.reason, "reason", V2EpisodeLifecycleError)
+
+        # §7.1/§9: a TREND_PULLBACK event that publishes or freezes geometry
+        # must actually carry it. A CONFIRMED TP episode with no final zone
+        # is exactly the record §9's freeze rule exists to guarantee.
+        if (self.setup_family == TREND_PULLBACK
+                and self.outcome in (LIFECYCLE_CONFIRMED, LIFECYCLE_PRECONFIRMATION_UPDATE)
+                and self.operational_facts is None):
+            raise V2EpisodeLifecycleError(
+                f"a TREND_PULLBACK {self.outcome} carries no operational facts -- §7.1/§9 "
+                "require the entry zone this boundary publishes (or freezes) to be recorded")
+        if self.operational_facts is not None:
+            if self.setup_family != TREND_PULLBACK:
+                raise V2EpisodeLifecycleError(
+                    f"{self.setup_family!r} has no §12.2a pre-confirmation operational shape, so "
+                    "a decision for it must not carry operational_facts")
+            if self.operational_facts.direction != self.direction:
+                raise V2EpisodeLifecycleError(
+                    f"operational_facts direction {self.operational_facts.direction!r} does not "
+                    f"match this decision's {self.direction!r}")
+            if (self.outcome == LIFECYCLE_CONFIRMED
+                    and self.operational_facts.source != OPERATIONAL_SOURCE_CONFIRMATION):
+                raise V2EpisodeLifecycleError(
+                    "a TREND_PULLBACK CONFIRMED must freeze its zone against the CONFIRMING 5m "
+                    f"close (§7.1), so its operational facts' source must be "
+                    f"{OPERATIONAL_SOURCE_CONFIRMATION!r}, got "
+                    f"{self.operational_facts.source!r}")
+            if (self.outcome == LIFECYCLE_PRECONFIRMATION_UPDATE
+                    and self.operational_facts.source != OPERATIONAL_SOURCE_REEVALUATION):
+                raise V2EpisodeLifecycleError(
+                    f"a {LIFECYCLE_PRECONFIRMATION_UPDATE} records a §12.2a mechanism-(1) "
+                    f"re-measurement, so its operational facts' source must be "
+                    f"{OPERATIONAL_SOURCE_REEVALUATION!r}, got "
+                    f"{self.operational_facts.source!r}")
+
+    @property
+    def resolution_category(self) -> str:
+        """§21's category this boundary actually resolved under -- carried
+        into the persisted event so a later reader can tell a real neutral
+        observation from an absent or disqualified input (§14/§21)."""
+        return self.signal.signal
+
     @property
     def requires_event(self) -> bool:
         return self.outcome in _EVENT_REQUIRED
@@ -1321,7 +1863,7 @@ class V2LifecycleDecision:
 
 def evaluate_early_signal_transition(
     history: V2EpisodeHistory, *, T: datetime, facts: V2BoundaryFacts,
-    reevaluation: Optional[V2TrendPullbackReevaluation] = None,
+    reevaluation_window: Optional[V2TrendPullbackReevaluationWindow] = None,
 ) -> V2LifecycleDecision:
     """Resolve ONE `EARLY_SIGNAL` episode at ONE legal 5m decision boundary.
 
@@ -1365,6 +1907,20 @@ def evaluate_early_signal_transition(
         raise V2EpisodeLifecycleError(
             f"boundary facts were resolved for {facts.T.isoformat()!r} but this decision is at "
             f"{T.isoformat()!r} -- §3.4 requires ONE coherent data view per logical decision")
+    # §3.2, checked on the INPUT side: the current-boundary data must belong
+    # to the same semantic scope the resulting event will be stamped with.
+    # Nothing downstream can repair a decision already computed from a
+    # foreign snapshot, so this runs BEFORE any predicate.
+    _assert_scope_binding(
+        history, symbol=facts.symbol, market_type=facts.market_type,
+        calculation_version=facts.calculation_version, what="boundary snapshot")
+    creation_event = history.creation_event
+    if facts.feature_schema_version != creation_event.feature_schema_version:
+        raise V2EpisodeLifecycleError(
+            f"boundary snapshot feature_schema_version={facts.feature_schema_version!r} does not "
+            f"equal episode {history.episode_id!r}'s own {creation_event.feature_schema_version!r}"
+            " -- §3.2 forbids computing a decision from one feature-schema scope and persisting "
+            "it under another")
 
     identity = history.creation_identity
     family, direction = identity.setup_family, identity.direction
@@ -1400,20 +1956,21 @@ def evaluate_early_signal_transition(
     # valid AT that exact decision -- including this boundary's own update.
     current_facts = read_operational_facts(history)
     updated_facts: Optional[V2OperationalFacts] = None
-    if reevaluation is not None:
+    if reevaluation_window is not None:
+        if not isinstance(reevaluation_window, V2TrendPullbackReevaluationWindow):
+            raise V2EpisodeLifecycleError(
+                "reevaluation_window must be a V2TrendPullbackReevaluationWindow, got "
+                f"{type(reevaluation_window).__name__}")
         if family != TREND_PULLBACK:
             raise V2EpisodeLifecycleError(
                 f"a pre-confirmation re-evaluation was supplied for a {family!r} episode -- "
                 "§12.2a gives only TREND_PULLBACK a pre-confirmation mutability mechanism")
-        if not isinstance(reevaluation, V2TrendPullbackReevaluation):
+        if reevaluation_window.T != T:
             raise V2EpisodeLifecycleError(
-                "reevaluation must be a V2TrendPullbackReevaluation, got "
-                f"{type(reevaluation).__name__}")
-        if reevaluation.T != T:
-            raise V2EpisodeLifecycleError(
-                f"reevaluation is for {reevaluation.T.isoformat()!r} but this decision is at "
-                f"{T.isoformat()!r}")
-        updated_facts = _apply_reevaluation(history, current_facts, reevaluation)
+                f"reevaluation_window is for {reevaluation_window.T.isoformat()!r} but this "
+                f"decision is at {T.isoformat()!r}")
+        derived = derive_trend_pullback_reevaluation(history, reevaluation_window)
+        updated_facts = _apply_monotonic_extreme(history, current_facts, derived)
 
     # 2. §13.1 level 1 -- the breakout families' own pre-confirmation
     #    invalidation. A broken structural premise cannot be confirmed.
@@ -1423,22 +1980,26 @@ def evaluate_early_signal_transition(
 
     # 3. §13.1 level 3 -- confirmation. §9/§12.2a: the zone updates ONE final
     #    time here, now that confirmation_close_price exists, then freezes.
-    blocked_reason: Optional[str] = None
     if signal.signal == SIGNAL_CONFIRM:
         frozen = updated_facts or current_facts
-        confirmable = True
         if family == TREND_PULLBACK:
             confirmation_close = facts.reference_close
             if confirmation_close is None:
-                # §7.1's CONFIRMED zone is [pullback_extreme,
-                # confirmation_close_price]; without §11's canonical
-                # reference close there is no confirmation_close_price to
-                # freeze, and §22 forbids substituting anything for it. The
-                # boundary falls through to the deadline/update ladder below
-                # rather than returning early, so a same-`T` §9 zone change
-                # is still recorded and the deadline still closes.
-                confirmable = False
-                blocked_reason = "CONFIRMATION_CLOSE_UNAVAILABLE"
+                # §14 (amended): TREND_PULLBACK reaches CONFIRMED only when
+                # BOTH the resumption trigger holds AND §11's canonical
+                # reference close needed to freeze the final zone is usable.
+                # The trigger DID hold -- recording this as a failed trigger
+                # would be a false record of what the market did -- but the
+                # transition could not be MATERIALIZED, so the boundary's
+                # resolution category is UNAVAILABLE, with the trigger's own
+                # evidence preserved verbatim. Falling through (rather than
+                # returning) keeps a same-`T` §9 zone change recordable and
+                # still closes the deadline.
+                signal = V2FamilySignal(
+                    signal=SIGNAL_UNAVAILABLE, reason="CONFIRMATION_CLOSE_UNAVAILABLE",
+                    evidence=dict(
+                        signal.evidence, resumption_trigger_held=True,
+                        confirmation_close_available=False))
             else:
                 frozen = _build_trend_pullback_operational_facts(
                     direction=direction, pullback_extreme=frozen.pullback_extreme,
@@ -1446,19 +2007,24 @@ def evaluate_early_signal_transition(
                     protection_buffer=_creation_protection_buffer(history),
                     source=OPERATIONAL_SOURCE_CONFIRMATION,
                     source_bucket=facts.decision_bucket)
-        if confirmable:
-            # §36/H3: one event per (stream, episode, boundary). A same-`T`
-            # operational update is AGGREGATED into this single CONFIRMED
-            # event, never emitted as a second EARLY_SIGNAL event at the
-            # same boundary.
+                # §36/H3: one event per (stream, episode, boundary). A
+                # same-`T` operational update is AGGREGATED into this single
+                # CONFIRMED event, never emitted as a second EARLY_SIGNAL
+                # event at the same boundary.
+                return decide(LIFECYCLE_CONFIRMED, signal.reason, frozen)
+        else:
             return decide(LIFECYCLE_CONFIRMED, signal.reason, frozen)
 
     # 4. §13.1 level 2 / §14 -- the deadline boundary closed without this
-    #    boundary's own confirmation check holding.
+    #    boundary's own confirmation check holding. §14's amended rule: the
+    #    age window is a HARD budget that ends here whether or not the
+    #    predicate was evaluable, and the persisted evidence MUST retain
+    #    WHICH resolution category applied (HOLD vs UNAVAILABLE vs REJECTED)
+    #    rather than laundering an unknown into a measured neutral (§21).
     if T == deadline:
         return decide(
             LIFECYCLE_EXPIRED_CANDIDATE_AGE,
-            f"CANDIDATE_AGE_DEADLINE_{blocked_reason or signal.reason}",
+            f"CANDIDATE_AGE_DEADLINE_{signal.signal}_{signal.reason}",
             updated_facts or current_facts)
 
     # 5. §9 -- a genuinely CHANGED pre-`CONFIRMED` operational fact is
@@ -1468,7 +2034,7 @@ def evaluate_early_signal_transition(
             LIFECYCLE_PRECONFIRMATION_UPDATE, "OPERATIONAL_FACTS_UPDATED", updated_facts)
 
     # 6. §12.11 -- nothing episode-visible changed; no event, no heartbeat.
-    return decide(LIFECYCLE_NO_CHANGE, blocked_reason or signal.reason, current_facts)
+    return decide(LIFECYCLE_NO_CHANGE, signal.reason, current_facts)
 
 
 # ============================================================================
@@ -1540,6 +2106,42 @@ class V2LifecycleAuthorization:
         )
 
 
+def _assert_decision_matches_history(
+    decision: V2LifecycleDecision, history: V2EpisodeHistory,
+) -> None:
+    """Re-derive every fact the decision asserts about the episode, straight
+    from the episode's own persisted history, and refuse any disagreement.
+
+    `V2LifecycleDecision` is public and directly constructible, and the event
+    columns come from the HISTORY while the evidence block comes from the
+    DECISION -- so without this check a hand-built decision could persist an
+    event whose columns say `COMPRESSION_BREAKOUT`/`LONG` while its own
+    snapshot says `TREND_PULLBACK`/`SHORT`. Nothing downstream would notice:
+    both halves are internally well-formed. The canonical evaluator remains
+    the normal path; this makes the abnormal one impossible rather than
+    merely discouraged."""
+    identity = history.creation_identity
+    expected = (
+        ("episode_id", decision.episode_id, history.episode_id),
+        ("setup_family", decision.setup_family, identity.setup_family),
+        ("direction", decision.direction, identity.direction),
+        ("t_detect", decision.t_detect, read_detection_boundary(history)),
+        ("candidate_deadline", decision.candidate_deadline, read_candidate_deadline(history)),
+    )
+    mismatches = [
+        (field, actual, want) for field, actual, want in expected if actual != want]
+    if mismatches:
+        detail = ", ".join(f"{f}={a!r} (history: {w!r})" for f, a, w in mismatches)
+        raise V2EpisodeLifecycleError(
+            f"this decision does not describe episode {history.episode_id!r}'s own persisted "
+            f"facts: {detail} -- refusing to persist an event whose columns and whose evidence "
+            "would tell different stories")
+    if history.current_state != EARLY_SIGNAL:
+        raise V2EpisodeLifecycleError(
+            f"episode {history.episode_id!r} is {history.current_state!r}; Stage 6 unit 3 "
+            f"persists only transitions out of {EARLY_SIGNAL!r}")
+
+
 def build_episode_transition_event(
     decision: V2LifecycleDecision, history: V2EpisodeHistory, *,
     authorization: V2LifecycleAuthorization,
@@ -1583,10 +2185,7 @@ def build_episode_transition_event(
             f"outcome {decision.outcome!r} requires no persisted history event (§12.11) -- "
             "refusing to mint one; an every-boundary heartbeat event is exactly what §12.11 "
             "forbids")
-    if decision.episode_id != history.episode_id:
-        raise V2EpisodeLifecycleError(
-            f"decision describes episode {decision.episode_id!r} but history is "
-            f"{history.episode_id!r}")
+    _assert_decision_matches_history(decision, history)
 
     provenance = authorization.provenance
     if provenance.run_kind != history.run_kind or provenance.run_id != history.run_id:
@@ -1599,6 +2198,22 @@ def build_episode_transition_event(
         raise V2EpisodeLifecycleError(
             f"provenance decision_boundary {provenance.decision_boundary.isoformat()!r} does not "
             f"equal this decision's T {decision.T.isoformat()!r}")
+    # §3.1 (amended): an episode is attributed to the semantic tuple its own
+    # CREATION event records, and EVERY later lifecycle transition continues
+    # under that tuple -- decision_code_version included. rules_version and
+    # calculation_version are forced by the episode_id recomputation below;
+    # decision_code_version is NOT (§2.1a excludes it from the identity hash
+    # precisely so a decision-code-only release does not fork an episode), so
+    # it is the one member of the tuple that must be checked explicitly here.
+    creation_event = history.creation_event
+    if provenance.decision_code_version != creation_event.decision_code_version:
+        raise V2EpisodeLifecycleError(
+            f"provenance decision_code_version {provenance.decision_code_version!r} does not "
+            f"equal episode {history.episode_id!r}'s own creation value "
+            f"{creation_event.decision_code_version!r}. §3.1 requires an existing episode to "
+            "continue through its terminal state under its CREATION semantic tuple: a "
+            "decision-code-only release does not fork episode_id (§2.1a) and equally may not "
+            "reinterpret an episode that already exists")
 
     identity = history.creation_identity
     event = build_v2_episode_event(
@@ -1635,6 +2250,13 @@ def _transition_decision_snapshot(decision: V2LifecycleDecision) -> Mapping:
             "at_candidate_deadline": decision.T == decision.candidate_deadline,
             "signal": decision.signal.signal,
             "signal_reason": decision.signal.reason,
+            # §14/§21: the resolution CATEGORY this boundary closed under, in
+            # its own named field. An EXPIRED event must not read as "the
+            # market produced a neutral HOLD" when the truth was that a
+            # required input was absent (UNAVAILABLE) or disqualified
+            # (REJECTED) -- the three are different facts and a later reader
+            # must be able to tell them apart without parsing prose.
+            "resolution_category": decision.resolution_category,
             "evidence": dict(decision.signal.evidence),
         },
     }

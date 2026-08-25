@@ -1126,12 +1126,12 @@ identity/dedup, family precedence (§7.4), confirmation, false-break
 transitions, expiry, weakening, and persistence orchestration, has begun
 (units 1 and 2 of 5 merged — see the status block immediately below).
 
-**Executable Stage 6 has STARTED (units 1 and 2 of 5 merged).** `#43` — including
-its two post-open amendment rounds and this clean-room pre-Stage-6 contract
-consolidation and cross-stage audit — is documentation-only contract work
-that precedes Stage 6, never Stage 6 implementation itself. The prose below
-this status block describes the state as of `#43` and is retained as
-historical record; the current status is:
+**Executable Stage 6 has STARTED (units 1 and 2 of 5 merged).** `#43` —
+including its two post-open amendment rounds and this clean-room pre-Stage-6
+contract consolidation and cross-stage audit — is documentation-only
+contract work that precedes Stage 6, never Stage 6 implementation itself.
+The prose below this status block describes the state as of `#43` and is
+retained as historical record; the current status is:
 
 - **Stage 6 — Episode State Machine: UNITS 1 AND 2 MERGED, UNIT 3 OF 5 IN
   PROGRESS.**
@@ -1488,8 +1488,9 @@ correctness contract — subject to change if audit findings evolve):**
   and `§2.1a`'s deterministic IDs/one-event-per-T model) — **MERGED (PR
   #63)**; (2) candidate
   classification/arbitration/`EARLY_SIGNAL` creation/same-slot/cooldown
-  eligibility — **MERGED (PR #64)**; (3) family confirmation/false-break/candidate-expiry
-  transitions — **IN PROGRESS, PR open, not merged**; (4) `CONFIRMED`/`WEAKENING`/structural invalidation/horizon
+  eligibility — **MERGED (PR #64)**; (3) family confirmation/false-break/
+  candidate-expiry transitions — **IN PROGRESS, PR open, not merged**;
+  (4) `CONFIRMED`/`WEAKENING`/structural invalidation/horizon
   terminal resolution (requires `§18.2a`'s now-fully-frozen analytical-
   excursion primitive — shared with, not duplicated against, the later
   Stage 8 V2 Outcome Evaluator); (5) same-boundary orchestration order
