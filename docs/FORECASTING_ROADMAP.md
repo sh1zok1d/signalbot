@@ -1124,17 +1124,17 @@ Stage 5 qualification implementation. This does NOT mean the V2 trading
 product is complete — Stage 6 (Episode State Machine), which owns episode
 identity/dedup, family precedence (§7.4), confirmation, false-break
 transitions, expiry, weakening, and persistence orchestration, has begun
-(units 1 and 2 of 5 merged — see the status block immediately below).
+(units 1, 2 and 3 of 5 merged — see the status block immediately below).
 
-**Executable Stage 6 has STARTED (units 1 and 2 of 5 merged).** `#43` —
+**Executable Stage 6 has STARTED (units 1, 2 and 3 of 5 merged).** `#43` —
 including its two post-open amendment rounds and this clean-room pre-Stage-6
 contract consolidation and cross-stage audit — is documentation-only
 contract work that precedes Stage 6, never Stage 6 implementation itself.
 The prose below this status block describes the state as of `#43` and is
 retained as historical record; the current status is:
 
-- **Stage 6 — Episode State Machine: UNITS 1 AND 2 MERGED, UNIT 3 OF 5 IN
-  PROGRESS.**
+- **Stage 6 — Episode State Machine: UNITS 1, 2 AND 3 MERGED; UNITS 4–5 NOT
+  STARTED.**
   - Unit (1) — episode identity + the persisted-history read foundation —
     **MERGED** as PR #63: stream-scoped/`as_of`-bounded
     `v2_episode_events` reads, immutable creation-identity reconstruction
@@ -1151,7 +1151,7 @@ retained as historical record; the current status is:
     decision, consumes §13.4's two views as inputs rather than computing
     them, and adds no schema.
   - Unit (3) — family confirmation / false-break / candidate-expiry
-    transitions — **IN PROGRESS, PR OPEN, NOT merged**: the three §7.1/
+    transitions — **MERGED** as PR #65: the three §7.1/
     §7.2/§7.3 family confirmation predicates evaluated at every later legal
     5m boundary, both breakout families' own direction-aware one-sided
     pre-confirmation false-break rules, §14's per-family candidate-age
@@ -1162,7 +1162,18 @@ retained as historical record; the current status is:
     implements no §10 generic post-confirmation invalidation engine, no
     `WEAKENING`/recovery, no horizon resolution, no §13.4 coordinator, and
     adds no schema.
-  - **Units (4)–(5) are NOT IMPLEMENTED.**
+    - **Post-merge correctness repair — PR OPEN, NOT merged:** §18.1's
+      `planned_risk_distance` hard gate. Unit (3) as merged could take
+      `EARLY_SIGNAL -> CONFIRMED` without ever computing planned risk, so
+      an episode whose confirmation reference price sat closer than
+      `3 * tick_size` to its own frozen invalidation could confirm — the
+      one §18 quantity that needs no future information and therefore
+      genuinely CAN gate confirmation. The repair computes it in exact
+      `Decimal` from the episode's own persisted creation tick, rejects
+      below the floor as §21 REJECTED, and persists the confirmation facts
+      by value. Still Unit (3) scope: no new state, no schema, no
+      rules-version change.
+  - **Units (4)–(5) are NOT STARTED.**
 - **PRE-STAGE-6 HARDENING: COMPLETE (all MERGED).** `#43` (contract
   consolidation) and `#44` (Quality/scoring boundary hardening, including
   its round-2 amendment closing the `V2BiasResult`
@@ -1489,7 +1500,8 @@ correctness contract — subject to change if audit findings evolve):**
   #63)**; (2) candidate
   classification/arbitration/`EARLY_SIGNAL` creation/same-slot/cooldown
   eligibility — **MERGED (PR #64)**; (3) family confirmation/false-break/
-  candidate-expiry transitions — **IN PROGRESS, PR open, not merged**;
+  candidate-expiry transitions — **MERGED (PR #65)**, with a post-merge
+  §18.1 planned-risk-gate correctness repair PR open, not merged;
   (4) `CONFIRMED`/`WEAKENING`/structural invalidation/horizon
   terminal resolution (requires `§18.2a`'s now-fully-frozen analytical-
   excursion primitive — shared with, not duplicated against, the later
@@ -1511,10 +1523,11 @@ introduced that update. INFRA-D1 did not block any `V2-H2*` sub-PR.
 
 **Current position:** the pre-Stage-6 sequence below is fully merged
 (`V2-H2c` #59, `V2-H2e` #60, `V2-H3` #61, G0 final cleanup #62), and
-**Stage 6 units (1) and (2) are MERGED** (episode history foundation as PR
-#63; candidate routing/creation arbitration as PR #64). **Unit (3) of (5)
-is in progress** (family confirmation/false-break/candidate-expiry
-transitions, PR open, not merged). Units (4)–(5) are not started.
+**Stage 6 units (1), (2) and (3) are MERGED** (episode history foundation
+as PR #63; candidate routing/creation arbitration as PR #64; family
+confirmation/false-break/candidate-expiry transitions as PR #65). A
+post-merge Unit (3) correctness repair enforcing §18.1's planned-risk gate
+at confirmation is **PR open, not merged**. Units (4)–(5) are not started.
 
 Conceptual planning order going forward (logical labels, not a claim about
 future GitHub PR numbers — those are assigned only when each PR is

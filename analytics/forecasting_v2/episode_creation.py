@@ -109,7 +109,8 @@ __all__ = [
     "classify_candidate_against_active_episode",
     "evaluate_terminal_cooldown", "arbitrate_new_candidates",
     "build_early_signal_creation", "route_candidates_at_boundary",
-    "read_creation_protection_buffer", "read_creation_facts",
+    "read_creation_protection_buffer", "read_creation_decision_tick_size",
+    "read_creation_facts",
 ]
 
 
@@ -1022,6 +1023,43 @@ def read_creation_protection_buffer(active: V2EpisodeHistory) -> Decimal:
             f"episode {active.episode_id!r}'s persisted {_CF_PROTECTION_BUFFER}={raw!r} must be a "
             "finite, strictly positive decimal")
     return buffer
+
+
+def read_creation_decision_tick_size(active: V2EpisodeHistory) -> Decimal:
+    """The DECISION-TIME `tick_size` this episode was created under, read
+    back from its own creation event.
+
+    §12.5a's rationale generalized beyond `CONFIRMED_BREAKOUT`: every
+    tick-derived quantity an existing episode needs later MUST come from the
+    value recorded at creation, never from TODAY's instrument metadata --
+    otherwise a listing-wide tick change would silently move a live
+    episode's own thresholds, and LIVE/REPLAY would stop agreeing. §18.1's
+    `MIN_VALID_PLANNED_RISK = 3 * tick_size` confirmation gate is exactly
+    such a quantity, which is why it reads this rather than re-querying
+    instrument metadata.
+
+    Deliberately the same shape as `read_creation_protection_buffer()`
+    above -- one exact canonical decimal STRING in, one exact `Decimal` out,
+    never a float round-trip -- so the two creation-fact readers cannot
+    drift in how they treat malformed persisted values."""
+    raw = read_creation_facts(active).get(_CF_DECISION_TICK_SIZE)
+    if not isinstance(raw, str):
+        raise V2EpisodeCreationError(
+            f"episode {active.episode_id!r}'s persisted creation facts carry no exact "
+            f"{_CF_DECISION_TICK_SIZE!r} decimal string -- every tick-derived threshold this "
+            "episode needs later is unrecoverable without it, so callers fail closed rather "
+            "than falling back to current instrument metadata (§12.5a/§22)")
+    try:
+        tick = Decimal(raw)
+    except Exception as exc:  # noqa: BLE001 - malformed persisted value, never leaked raw
+        raise V2EpisodeCreationError(
+            f"episode {active.episode_id!r}'s persisted {_CF_DECISION_TICK_SIZE}={raw!r} is not "
+            f"a valid decimal: {exc}") from exc
+    if not tick.is_finite() or tick <= 0:
+        raise V2EpisodeCreationError(
+            f"episode {active.episode_id!r}'s persisted {_CF_DECISION_TICK_SIZE}={raw!r} must be "
+            "a finite, strictly positive decimal")
+    return tick
 
 
 # ============================================================================

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import pathlib
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
 import pytest
 
@@ -24,12 +25,13 @@ from analytics.forecasting_v2.aligned_inputs import V2_REFERENCE_EXCHANGE
 from analytics.forecasting_v2.alignment import TIMEFRAME_MINUTES, selected_bucket
 from analytics.forecasting_v2.episode_creation import (
     V2CandidateFacts, V2CreationAuthorization, build_early_signal_creation,
+    read_creation_facts,
 )
 from analytics.forecasting_v2.episode_history import (
-    HISTORY_THROUGH_T, reconstruct_episode_history,
+    HISTORY_THROUGH_T, V2EpisodeHistoryError, reconstruct_episode_history,
 )
 from analytics.forecasting_v2.episode_lifecycle import (
-    CANDIDATE_MAX_AGE, LIFECYCLE_CONFIRMED, LIFECYCLE_EXPIRED_CANDIDATE_AGE,
+    CANDIDATE_MAX_AGE, CONFIRMATION_FACTS_KEY, V2PlannedRisk, evaluate_planned_risk, LIFECYCLE_CONFIRMED, LIFECYCLE_EXPIRED_CANDIDATE_AGE,
     LIFECYCLE_INVALIDATED_FALSE_BREAK, LIFECYCLE_NO_CHANGE,
     LIFECYCLE_PRECONFIRMATION_UPDATE, LIFECYCLE_EVIDENCE_KEY, LIFECYCLE_TRANSITION_KEY,
     OPERATIONAL_FACTS_KEY, OPERATIONAL_SOURCE_CONFIRMATION, OPERATIONAL_SOURCE_CREATION,
@@ -1245,7 +1247,7 @@ def test_confirmation_without_a_reference_close_does_not_freeze_a_zone():
     assert decision.outcome == LIFECYCLE_NO_CHANGE
     assert decision.resolution_category == SIGNAL_UNAVAILABLE
     assert decision.reason == "CONFIRMATION_CLOSE_UNAVAILABLE"
-    assert decision.signal.evidence["resumption_trigger_held"] is True
+    assert decision.signal.evidence["family_trigger_held"] is True
     assert decision.signal.evidence["confirmation_close_available"] is False
 
 
@@ -1757,7 +1759,7 @@ def test_a_confirming_trigger_without_a_close_still_records_a_same_T_zone_change
         reevaluation=_window(T=T, closes=[96.0, 103.0],
                              anchor=_TP_ANCHOR, filler=_LONG_FILLER))
     assert decision.resolution_category == SIGNAL_UNAVAILABLE
-    assert decision.signal.evidence["resumption_trigger_held"] is True
+    assert decision.signal.evidence["family_trigger_held"] is True
     assert decision.outcome == LIFECYCLE_PRECONFIRMATION_UPDATE
     assert decision.operational_facts.pullback_extreme == 96.0
 
@@ -2000,12 +2002,25 @@ def _signal(kind, reason="fixture"):
             signal=kind, reason=reason, evidence={})
 
 
+def _risk(*, reference=101.0, invalidation=98.0, tick="0.1") -> V2PlannedRisk:
+    """A §18.1 planned-risk block that passes the gate by default."""
+    tick_d = Decimal(tick)
+    return V2PlannedRisk(
+        confirmation_reference_price=reference, invalidation_price=invalidation,
+        decision_tick_size=tick_d,
+        planned_risk_distance=abs(Decimal(str(reference)) - Decimal(str(invalidation))),
+        min_valid_planned_risk=Decimal(3) * tick_d)
+
+
 def _decision(**over):
     base = dict(
         episode_id="e" * 64, T=_t(1), setup_family=COMPRESSION_BREAKOUT, direction=LONG,
         previous_state=EARLY_SIGNAL, new_state=CONFIRMED, outcome=LIFECYCLE_CONFIRMED,
-        reason="x", signal=_signal(SIGNAL_CONFIRM), t_detect=T0, candidate_deadline=_t(3))
+        reason="x", signal=_signal(SIGNAL_CONFIRM), t_detect=T0, candidate_deadline=_t(3),
+        planned_risk=_risk())
     base.update(over)
+    if base["outcome"] != LIFECYCLE_CONFIRMED and "planned_risk" not in over:
+        base["planned_risk"] = None
     return V2LifecycleDecision(**base)
 
 
@@ -2056,7 +2071,8 @@ def test_a_decision_contradicting_its_history_cannot_be_persisted(field):
         episode_id=good.episode_id, T=good.T, setup_family=good.setup_family,
         direction=good.direction, previous_state=EARLY_SIGNAL, new_state=CONFIRMED,
         outcome=LIFECYCLE_CONFIRMED, reason="x", signal=good.signal,
-        t_detect=good.t_detect, candidate_deadline=good.candidate_deadline)
+        t_detect=good.t_detect, candidate_deadline=good.candidate_deadline,
+        planned_risk=good.planned_risk)
     kwargs[field] = over
     if field == "t_detect":
         kwargs["candidate_deadline"] = over + timedelta(minutes=15)
@@ -2214,3 +2230,608 @@ def test_contradictory_creation_geometry_fails_closed():
         as_of=_t(500), boundary_mode=HISTORY_THROUGH_T)
     with pytest.raises(V2EpisodeLifecycleError, match="never silently normalized"):
         read_operational_facts(hist)
+
+
+# ============================================================================
+# 22. §18.1 — the planned-risk hard gate on EARLY_SIGNAL -> CONFIRMED
+# ============================================================================
+# Every fixture below pins ONE frozen invalidation price and dials the target
+# `planned_risk_distance` with the confirming close, so a vector reads as the
+# distance it is named for. With the default tick_size = 0.1 the frozen floor
+# is MIN_VALID_PLANNED_RISK = 3 * 0.1 = 0.3.
+#
+# The geometry is chosen so that BOTH float steps are exact and round-trip
+# through `Decimal(str(...))` unchanged: each family derives its invalidation
+# as `level -/+ protection_buffer`, and `99.01 - 0.01` is exactly the double
+# `99.0`, while every `99.0 + R` close below is its own literal. A fixture
+# whose arithmetic drifted by one ulp would silently test `0.30000000000001`
+# against the `0.3` floor and prove nothing about §18.1's equality case, so
+# `test_the_fixtures_geometry_is_exact` asserts the premise directly.
+_MIN_RISK = Decimal("0.3")
+_INVALIDATION = 99.0     # every fixture's frozen invalidation price
+_BUFFER = 0.01           # protection buffer; strictly smaller than any risk
+_LEVEL = 99.01           # the frozen structural level: _INVALIDATION + _BUFFER
+_RANGE_HIGH = 99.05      # compression's breakout side: _LEVEL < it < any close
+
+
+def _close_for(risk):
+    """The confirming 5m reference close that yields exactly `risk`."""
+    return float(Decimal(str(_INVALIDATION)) + Decimal(str(risk)))
+
+
+def _comp_at_risk(*, risk, tick=0.1):
+    """§7.2 freezes `invalidation_price = range_low - protection_buffer`.
+
+    The breakout families take `risk` only to keep one dispatch shape: their
+    geometry is entirely frozen at creation, and the distance is dialed by
+    the confirming close (`_close_for(risk)`)."""
+    return comp_candidate(
+        T=T0, range_low=_LEVEL, range_high=_RANGE_HIGH, buffer=_BUFFER, tick=tick)
+
+
+def _cb_at_risk(*, risk, tick=0.1):
+    """§7.3 freezes `invalidation_price = level - protection_buffer`."""
+    return cb_candidate(T=T0, level=_LEVEL, buffer=_BUFFER, tick=tick)
+
+
+def _tp_at_risk(*, risk, tick=0.1):
+    """§7.1 freezes `invalidation_price = pullback_extreme - protection_buffer`."""
+    return tp_candidate(
+        T=T0, pullback_extreme=_LEVEL, current_close=_close_for(risk),
+        buffer=_BUFFER, tick=tick)
+
+
+_AT_RISK = {
+    COMPRESSION_BREAKOUT: _comp_at_risk,
+    CONFIRMED_BREAKOUT: _cb_at_risk,
+    TREND_PULLBACK: _tp_at_risk,
+}
+_CLOSE = _close_for("1.0")           # 100.0 — the default healthy vector
+
+
+def _confirm_facts(T, close=_CLOSE, family=None):
+    """Boundary facts whose family predicate confirms at `close`."""
+    return (tp_facts(T=T, close=close) if family == TREND_PULLBACK
+            else facts(T=T, close=close))
+
+
+def _decide_at_risk(family, *, risk, T=None, tick=0.1, close=None):
+    hist = episode(_AT_RISK[family](risk=risk, tick=tick))
+    T = T if T is not None else _t(1)
+    close = _close_for(risk) if close is None else close
+    return hist, _decide(hist, T=T, boundary=_confirm_facts(T, close, family))
+
+
+@pytest.mark.parametrize("family", [COMPRESSION_BREAKOUT, CONFIRMED_BREAKOUT, TREND_PULLBACK])
+@pytest.mark.parametrize("risk", ["5.0", "1.0", "0.5", "0.3", "0.29", "0.1"])
+def test_the_fixtures_geometry_is_exact(family, risk):
+    """The vectors below only mean what they claim if the persisted geometry
+    is bit-exact; a one-ulp fixture artifact would quietly test a different
+    number than the one in the test name."""
+    hist = episode(_AT_RISK[family](risk=risk))
+    assert read_creation_facts(hist)["invalidation_price"] == _INVALIDATION
+    assert (Decimal(str(_close_for(risk))) - Decimal(str(_INVALIDATION))
+            == Decimal(risk))
+
+
+def test_the_frozen_threshold_is_three_ticks():
+    hist = episode(_comp_at_risk(risk="1.0"))
+    risk = evaluate_planned_risk(
+        hist, confirmation_reference_price=_CLOSE, invalidation_price=_INVALIDATION)
+    assert risk.decision_tick_size == Decimal("0.1")
+    assert risk.min_valid_planned_risk == Decimal("0.3") == Decimal(3) * Decimal("0.1")
+    assert risk.planned_risk_distance == Decimal("1.0")
+    assert risk.valid is True
+
+
+def test_a_zero_planned_risk_is_its_own_rejection_reason():
+    """§18.1 names three failure modes and a degenerate ZERO distance is not
+    merely 'below the floor' -- the confirmation reference price and the
+    invalidation price are the SAME level, which is a different defect and
+    is recorded as one. (No family predicate can produce this from healthy
+    frozen geometry: a breakout confirms strictly beyond a level its
+    invalidation sits behind, and a resumption confirms at or beyond the
+    pullback extreme. It is reachable only through corrupted persisted
+    geometry, so it is proven here on the gate's own public entry point.)"""
+    hist = episode(_comp_at_risk(risk="1.0"))
+    risk = evaluate_planned_risk(
+        hist, confirmation_reference_price=_INVALIDATION,
+        invalidation_price=_INVALIDATION)
+    assert risk.planned_risk_distance == Decimal("0")
+    assert risk.valid is False
+    assert risk.rejection_reason == "PLANNED_RISK_ZERO"
+
+
+def test_a_non_finite_distance_can_never_read_as_valid():
+    """Defence in depth. `__post_init__` already refuses to BUILD a
+    non-finite distance, so this reaches past it to prove the gate itself
+    fails closed rather than relying on a single upstream guard -- §18.1
+    lists non-finite as its own fail-closed condition."""
+    risk = _risk(reference=101.0, invalidation=98.0)
+    object.__setattr__(risk, "planned_risk_distance", Decimal("NaN"))
+    assert risk.valid is False
+    assert risk.rejection_reason == "PLANNED_RISK_NON_FINITE"
+
+
+@pytest.mark.parametrize("family", [COMPRESSION_BREAKOUT, CONFIRMED_BREAKOUT, TREND_PULLBACK])
+def test_a_healthy_planned_risk_confirms(family):
+    _hist, decision = _decide_at_risk(family, risk="1.0")
+    assert decision.outcome == LIFECYCLE_CONFIRMED
+    assert decision.planned_risk.planned_risk_distance == Decimal("1.0")
+    assert decision.planned_risk.confirmation_reference_price == _CLOSE
+
+
+@pytest.mark.parametrize("family", [COMPRESSION_BREAKOUT, CONFIRMED_BREAKOUT, TREND_PULLBACK])
+def test_exact_threshold_equality_confirms(family):
+    """§18.1's gate fires on `< MIN_VALID_PLANNED_RISK`, STRICTLY -- equality
+    passes, and no binary-float artifact may flip that classification."""
+    _hist, decision = _decide_at_risk(family, risk="0.3")
+    assert decision.planned_risk.planned_risk_distance == _MIN_RISK
+    assert decision.planned_risk.min_valid_planned_risk == _MIN_RISK
+    assert decision.outcome == LIFECYCLE_CONFIRMED
+
+
+@pytest.mark.parametrize("family", [COMPRESSION_BREAKOUT, CONFIRMED_BREAKOUT, TREND_PULLBACK])
+def test_one_representable_step_below_the_threshold_is_rejected(family):
+    _hist, decision = _decide_at_risk(family, risk="0.29")
+    assert decision.outcome != LIFECYCLE_CONFIRMED
+    assert decision.planned_risk is None                  # never authorized
+    assert decision.signal.signal == SIGNAL_REJECTED
+    assert decision.signal.reason == "PLANNED_RISK_BELOW_MIN"
+    assert decision.signal.evidence["planned_risk_distance"] == "0.29"
+    assert decision.signal.evidence["min_valid_planned_risk"] == "0.3"
+
+
+@pytest.mark.parametrize("family", [COMPRESSION_BREAKOUT, CONFIRMED_BREAKOUT, TREND_PULLBACK])
+def test_below_threshold_before_deadline_writes_no_event(family):
+    """§8: no CONFIRMED transition, and no heartbeat event merely because the
+    hard gate rejected."""
+    _hist, decision = _decide_at_risk(family, risk="0.1")
+    assert decision.outcome == LIFECYCLE_NO_CHANGE
+    assert decision.requires_event is False
+    assert decision.signal.signal == SIGNAL_REJECTED
+    # The family trigger genuinely held -- the record must not read as a
+    # failed trigger.
+    assert decision.signal.evidence["family_trigger_held"] is True
+
+
+@pytest.mark.parametrize("family", [COMPRESSION_BREAKOUT, CONFIRMED_BREAKOUT, TREND_PULLBACK])
+def test_below_threshold_at_deadline_expires_as_rejected(family):
+    """§14's hard candidate-age budget still ends; §21's category is REJECTED,
+    with the exact planned-risk reason and evidence persisted."""
+    hist = episode(_AT_RISK[family](risk="0.1"))
+    deadline = read_candidate_deadline(hist)
+    decision = _decide(
+        hist, T=deadline,
+        boundary=_confirm_facts(deadline, close=_close_for("0.1"), family=family))
+    assert decision.outcome == LIFECYCLE_EXPIRED_CANDIDATE_AGE
+    assert decision.resolution_category == SIGNAL_REJECTED
+    assert "PLANNED_RISK_BELOW_MIN" in decision.reason
+    event = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=deadline))
+    evidence = event.decision_snapshot[LIFECYCLE_EVIDENCE_KEY]
+    assert evidence["resolution_category"] == SIGNAL_REJECTED
+    assert evidence["evidence"]["planned_risk_distance"] == "0.1"
+    assert event.episode_state == EXPIRED
+
+
+def test_a_rejected_gate_is_never_labelled_hold_or_unavailable_or_false_break():
+    """§8: a valid, finite, present measurement disqualified by a hard gate is
+    §21's REJECTED -- and nothing else."""
+    for family in (COMPRESSION_BREAKOUT, CONFIRMED_BREAKOUT, TREND_PULLBACK):
+        _hist, decision = _decide_at_risk(family, risk="0.1")
+        assert decision.signal.signal == SIGNAL_REJECTED
+        assert decision.signal.signal not in (SIGNAL_HOLD, SIGNAL_UNAVAILABLE,
+                                              SIGNAL_FALSE_BREAK, SIGNAL_CONFIRM)
+
+
+# ---- §5 one spelling of the confirmation price ------------------------------
+def test_trend_pullback_risk_and_final_zone_share_one_confirmation_price():
+    """§5: one decision must not contain two spellings of the confirmation
+    price. TP's final zone bound and §18.1's reference price are the same
+    canonical §11 close."""
+    hist = episode(_tp_at_risk(risk="5.0"))
+    decision = _decide(hist, T=_t(1), boundary=tp_facts(T=_t(1), close=107.0))
+    assert decision.outcome == LIFECYCLE_CONFIRMED
+    assert decision.operational_facts.dynamic_bound == 107.0
+    assert decision.planned_risk.confirmation_reference_price == 107.0
+
+
+def test_breakout_risk_uses_the_close_that_satisfied_the_predicate():
+    hist = episode(_comp_at_risk(risk="1.0"))
+    decision = _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=101.0))
+    assert decision.planned_risk.confirmation_reference_price == 101.0
+    assert decision.signal.evidence["reference_close"] == 101.0
+
+
+# ---- §6 TP invalidation source: the FINAL same-T geometry -------------------
+def test_trend_pullback_risk_uses_the_same_T_reevaluated_invalidation():
+    """§6: if a same-`T` mechanism-(1) re-evaluation moved the invalidation,
+    planned risk uses THAT final level, never stale creation geometry."""
+    creation = early_signal(tp_candidate(
+        T=T0, pullback_extreme=100.0, current_close=105.0, buffer=2.0))
+    hist = _history([creation])
+    assert read_operational_facts(hist).invalidation_price == 98.0
+    T = _t(3)
+    decision = _decide(
+        hist, T=T, boundary=tp_facts(T=T, close=104.0),
+        reevaluation=_window(T=T, closes=[96.0, 103.0], anchor=_TP_ANCHOR,
+                             filler=_LONG_FILLER))
+    assert decision.outcome == LIFECYCLE_CONFIRMED
+    assert decision.operational_facts.invalidation_price == 94.0      # 96.0 - 2.0
+    assert decision.planned_risk.invalidation_price == 94.0
+    assert decision.planned_risk.planned_risk_distance == Decimal("10.0")
+
+
+def test_stale_creation_invalidation_would_reject_but_the_final_one_governs():
+    """The load-bearing proof that stale geometry is not used, taken in the
+    only direction §7.1 permits.
+
+    §7.1 lets `pullback_extreme` move only DEEPER, which always pushes the
+    invalidation FURTHER from a confirming close -- so a same-`T`
+    re-evaluation can only ever WIDEN planned risk, never narrow it (the
+    mirror holds for `SHORT`: the extreme rises, the invalidation rises with
+    it, and the confirming close is below). The reachable divergence is
+    therefore this one: measured against the stale CREATION level the risk
+    is under the floor and the episode would be wrongly held back, while the
+    level it will actually be confirmed with clears it."""
+    creation = early_signal(tp_candidate(
+        T=T0, pullback_extreme=100.0, current_close=105.0, buffer=0.01))
+    hist = _history([creation])
+    stale_invalidation = read_operational_facts(hist).invalidation_price
+    assert stale_invalidation == 99.99
+    T, close = _t(3), 100.1
+    # Stale risk would be |100.1 - 99.99| = 0.11 -> BELOW the 0.3 floor.
+    assert abs(Decimal("100.1") - Decimal("99.99")) < _MIN_RISK
+    # The re-evaluation deepens the extreme to 99.5, so the FINAL
+    # invalidation is 99.49 and the real risk is |100.1 - 99.49| = 0.61.
+    decision = _decide(
+        hist, T=T, boundary=tp_facts(T=T, close=close),
+        reevaluation=_window(T=T, closes=[99.5, 100.0], anchor=_TP_ANCHOR,
+                             filler=_LONG_FILLER))
+    assert decision.operational_facts.invalidation_price == 99.49
+    assert decision.planned_risk.invalidation_price == 99.49
+    assert decision.planned_risk.planned_risk_distance == Decimal("0.61")
+    assert decision.outcome == LIFECYCLE_CONFIRMED
+
+
+def test_breakout_risk_uses_the_frozen_creation_invalidation():
+    """§6/§12.2a: never recomputed from a current candidate."""
+    hist = episode(_comp_at_risk(risk="1.0"))
+    creation_invalidation = read_creation_facts(hist)["invalidation_price"]
+    decision = _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=_CLOSE))
+    assert decision.planned_risk.invalidation_price == creation_invalidation
+
+
+# ---- §16 tick-size attacks ---------------------------------------------------
+def test_the_threshold_uses_the_episodes_own_persisted_creation_tick():
+    """§12.5a: today's instrument metadata is never consulted. The SAME risk
+    passes under a 0.1 tick (floor 0.3) and is rejected under a 1.0 tick
+    (floor 3.0)."""
+    _hist, fine = _decide_at_risk(COMPRESSION_BREAKOUT, risk="0.5", tick=0.1)
+    assert fine.planned_risk.decision_tick_size == Decimal("0.1")
+    assert fine.planned_risk.min_valid_planned_risk == Decimal("0.3")
+    assert fine.outcome == LIFECYCLE_CONFIRMED
+
+    _coarse_hist, coarse = _decide_at_risk(COMPRESSION_BREAKOUT, risk="0.5", tick=1.0)
+    assert coarse.signal.signal == SIGNAL_REJECTED
+    assert coarse.signal.evidence["min_valid_planned_risk"] == "3"
+
+
+def test_this_layer_reads_no_instrument_metadata():
+    """Purity: the gate resolves its tick from persisted creation facts, so
+    there is no metadata/DB access to get wrong."""
+    import ast
+    source = (
+        pathlib.Path(__file__).resolve().parents[2]
+        / "analytics" / "forecasting_v2" / "episode_lifecycle.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    banned = {"instrument", "tick_size_for", "fetch_instrument", "Database", "asyncpg"}
+    names = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)}
+    names |= {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+    assert not (names & banned)
+
+
+def _episode_with_creation_fact(field, value, *, drop=False):
+    event = early_signal(_comp_at_risk(risk="1.0"))
+    row = _row(event)
+    snapshot = dict(row["decision_snapshot"])
+    creation_facts = dict(snapshot["creation_facts"])
+    if drop:
+        creation_facts.pop(field)
+    else:
+        creation_facts[field] = value
+    snapshot["creation_facts"] = creation_facts
+    row["decision_snapshot"] = snapshot
+    return reconstruct_episode_history(
+        [row], run_kind=LIVE, run_id=RUN_ID, episode_id=event.episode_id,
+        as_of=_t(500), boundary_mode=HISTORY_THROUGH_T)
+
+
+@pytest.mark.parametrize(("value", "drop"), [
+    (None, True), ("", False), ("0", False), ("-0.1", False),
+    ("NaN", False), ("Infinity", False), ("not-a-number", False), (0.1, False),
+])
+def test_a_malformed_persisted_tick_size_is_corruption_not_rejection(value, drop):
+    """§9: corrupted history and an ordinary market rejection are DIFFERENT
+    categories. A malformed tick fails closed through the owning domain
+    error and is never laundered into SIGNAL_REJECTED."""
+    hist = _episode_with_creation_fact("decision_tick_size", value, drop=drop)
+    with pytest.raises(V2EpisodeLifecycleError, match="tick size is"):
+        _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=_CLOSE))
+
+
+@pytest.mark.parametrize("value", ["not-a-price", None, 0.0, -5.0])
+def test_a_malformed_persisted_invalidation_is_corruption_not_rejection(value):
+    hist = _episode_with_creation_fact("invalidation_price", value)
+    with pytest.raises(V2EpisodeLifecycleError):
+        _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=_CLOSE))
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+def test_a_non_finite_persisted_invalidation_never_reaches_the_gate(value):
+    """A non-finite price cannot even be reconstructed: Unit 1 fails closed
+    first, so §18.1 is never handed one. The category is still corruption,
+    only owned one layer earlier."""
+    with pytest.raises(V2EpisodeHistoryError, match="non-finite float"):
+        _episode_with_creation_fact("invalidation_price", value)
+
+
+# ---- §17 confirmation-price scope attacks (RT-65-01 guarantees preserved) ----
+@pytest.mark.parametrize(("kw", "match"), [
+    ({"calculation_version": "c" * 16}, "different semantic scope"),
+    ({"feature_schema_version": 7}, "feature_schema_version"),
+    ({"symbol": "ETHUSDT"}, "unsupported"),
+    ({"market_type": "spot"}, "unsupported"),
+    ({"reference_exchange": "bybit"}, "canonical V2 reference exchange"),
+    ({"row_scope": {"calculation_version": "c" * 16}}, "different semantic scope"),
+])
+def test_a_risk_computed_from_foreign_data_can_never_be_persisted(kw, match):
+    hist = episode(_comp_at_risk(risk="1.0"))
+    with pytest.raises(V2EpisodeLifecycleError, match=match):
+        _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=_CLOSE, **kw))
+
+
+def test_a_risk_from_the_wrong_bucket_can_never_be_persisted():
+    row = _reference(T=_t(1), close=_CLOSE)
+    row["bucket_ts"] = _t(1)                       # bucket END, not the selected START
+    with pytest.raises(V2EpisodeLifecycleError, match="no-lookahead"):
+        _boundary(T=_t(1), reference_feature_5m=row)
+
+
+def test_a_missing_confirmation_close_is_unavailable_not_a_risk_rejection():
+    """§18.1 needs the reference close to compute risk at all; its absence is
+    §21 Unavailable, never a planned-risk rejection."""
+    hist = episode(_tp_at_risk(risk="1.0"))
+    decision = _decide(
+        hist, T=_t(1), boundary=facts(T=_t(1), median=1.0, agreement=1.0, reference=False))
+    assert decision.resolution_category == SIGNAL_UNAVAILABLE
+    assert decision.reason == "CONFIRMATION_CLOSE_UNAVAILABLE"
+    assert decision.signal.evidence["family_trigger_held"] is True
+
+
+# ---- §11/§12 persisted confirmation facts + public integrity ----------------
+@pytest.mark.parametrize("family", [COMPRESSION_BREAKOUT, CONFIRMED_BREAKOUT, TREND_PULLBACK])
+def test_a_confirmed_event_persists_the_planned_risk_facts_by_value(family):
+    """Unit 4 and Stage 8 must reconstruct T_confirm, the confirmation
+    reference price, the frozen invalidation and the planned risk from
+    persisted history ALONE -- no current-market re-derivation."""
+    hist = episode(_AT_RISK[family](risk="1.0"))
+    decision = _decide(hist, T=_t(1), boundary=_confirm_facts(_t(1), family=family))
+    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=_t(1)))
+    block = event.event_payload[CONFIRMATION_FACTS_KEY]
+    assert block["confirmation_reference_price"] == _CLOSE
+    assert block["invalidation_price"] == 99.0
+    assert block["decision_tick_size"] == "0.1"
+    assert block["planned_risk_distance"] == "1"
+    assert block["min_valid_planned_risk"] == "0.3"
+    assert event.decision_boundary == _t(1)              # T_confirm
+    assert event.episode_state == CONFIRMED
+
+
+def test_the_tp_confirmation_block_agrees_with_its_operational_block():
+    """For TP the two blocks record the same invalidation deliberately -- a
+    cross-check, not a competing representation."""
+    hist = episode(_tp_at_risk(risk="1.0"))
+    decision = _decide(hist, T=_t(1), boundary=tp_facts(T=_t(1), close=_CLOSE))
+    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=_t(1)))
+    assert (event.event_payload[CONFIRMATION_FACTS_KEY]["invalidation_price"]
+            == event.event_payload[OPERATIONAL_FACTS_KEY]["invalidation_price"])
+
+
+def test_a_non_confirming_event_carries_no_confirmation_facts():
+    hist = episode(_comp_at_risk(risk="1.0"))
+    deadline = read_candidate_deadline(hist)
+    # Exactly ON the frozen breakout side: §7.2's neutral HOLD, so the
+    # deadline closes the budget without ever reaching §18.1.
+    decision = _decide(hist, T=deadline, boundary=facts(T=deadline, close=_RANGE_HIGH))
+    event = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=deadline))
+    assert CONFIRMATION_FACTS_KEY not in event.event_payload
+
+
+def test_a_hand_built_confirmed_without_planned_risk_is_refused():
+    with pytest.raises(V2EpisodeLifecycleError, match="no §18.1 planned-risk facts"):
+        _decision(planned_risk=None)
+
+
+def test_a_hand_built_confirmed_below_the_threshold_is_refused():
+    with pytest.raises(V2EpisodeLifecycleError, match="MUST NOT reach"):
+        _decision(planned_risk=_risk(reference=100.0, invalidation=99.9))
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("planned_risk_distance", Decimal("99")),
+    ("min_valid_planned_risk", Decimal("99")),
+])
+def test_a_self_inconsistent_planned_risk_block_is_refused(field, value):
+    kwargs = dict(
+        confirmation_reference_price=101.0, invalidation_price=98.0,
+        decision_tick_size=Decimal("0.1"),
+        planned_risk_distance=Decimal("3"), min_valid_planned_risk=Decimal("0.3"))
+    kwargs[field] = value
+    with pytest.raises(V2EpisodeLifecycleError, match="does not equal §18.1"):
+        V2PlannedRisk(**kwargs)
+
+
+def _forge_confirmed(hist, good, planned_risk):
+    return V2LifecycleDecision(
+        episode_id=good.episode_id, T=good.T, setup_family=good.setup_family,
+        direction=good.direction, previous_state=EARLY_SIGNAL, new_state=CONFIRMED,
+        outcome=LIFECYCLE_CONFIRMED, reason="x", signal=good.signal,
+        t_detect=good.t_detect, candidate_deadline=good.candidate_deadline,
+        operational_facts=good.operational_facts, planned_risk=planned_risk)
+
+
+def test_a_confirmed_decision_whose_tick_is_not_the_episodes_own_is_refused():
+    hist = episode(_comp_at_risk(risk="1.0"))
+    good = _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=_CLOSE))
+    # Internally self-consistent under a 1.0 tick (5.0 >= 3 * 1.0), so only
+    # the episode's OWN persisted tick can catch it.
+    forged = _forge_confirmed(
+        hist, good, _risk(reference=_CLOSE, invalidation=95.0, tick="1.0"))
+    with pytest.raises(V2EpisodeLifecycleError, match="persisted creation value"):
+        build_episode_transition_event(forged, hist, authorization=_authorization(T=_t(1)))
+
+
+def test_a_confirmed_decision_whose_invalidation_is_not_the_episodes_own_is_refused():
+    hist = episode(_comp_at_risk(risk="1.0"))
+    good = _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=_CLOSE))
+    forged = _forge_confirmed(hist, good, _risk(reference=_CLOSE, invalidation=50.0))
+    with pytest.raises(V2EpisodeLifecycleError, match="not the level episode"):
+        build_episode_transition_event(forged, hist, authorization=_authorization(T=_t(1)))
+
+
+def test_a_tp_confirmed_using_stale_invalidation_is_refused_at_the_build_boundary():
+    """Even if the evaluator were bypassed, a decision measuring risk against
+    the STALE creation level after a same-`T` re-evaluation cannot persist."""
+    creation = early_signal(tp_candidate(
+        T=T0, pullback_extreme=100.0, current_close=105.0, buffer=2.0))
+    hist = _history([creation])
+    T = _t(3)
+    good = _decide(
+        hist, T=T, boundary=tp_facts(T=T, close=104.0),
+        reevaluation=_window(T=T, closes=[96.0, 103.0], anchor=_TP_ANCHOR,
+                             filler=_LONG_FILLER))
+    assert good.planned_risk.invalidation_price == 94.0
+    forged = _forge_confirmed(hist, good, _risk(reference=104.0, invalidation=98.0))
+    with pytest.raises(V2EpisodeLifecycleError, match="not the level episode"):
+        build_episode_transition_event(forged, hist, authorization=_authorization(T=T))
+
+
+# ---- §13 one event per T ----------------------------------------------------
+def test_tp_same_T_reevaluation_plus_risk_valid_confirmation_is_one_event():
+    creation = early_signal(tp_candidate(
+        T=T0, pullback_extreme=100.0, current_close=105.0, buffer=2.0))
+    hist = _history([creation])
+    T = _t(3)
+    decision = _decide(
+        hist, T=T, boundary=tp_facts(T=T, close=104.0),
+        reevaluation=_window(T=T, closes=[96.0, 103.0], anchor=_TP_ANCHOR,
+                             filler=_LONG_FILLER))
+    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=T))
+    after = _history([creation, event])
+    assert len(after.events) == 2
+    assert after.current_state == CONFIRMED
+    assert OPERATIONAL_FACTS_KEY in event.event_payload
+    assert CONFIRMATION_FACTS_KEY in event.event_payload
+
+
+def test_tp_same_T_reevaluation_plus_risk_rejection_before_deadline_is_one_update():
+    creation = early_signal(tp_candidate(
+        T=T0, pullback_extreme=100.0, current_close=105.0, buffer=0.01))
+    hist = _history([creation])
+    T = _t(3)
+    # Deepens 100.0 -> 99.95, so the final invalidation is 99.94 and the
+    # planned risk |100.1 - 99.94| = 0.16 is still under the 0.3 floor.
+    decision = _decide(
+        hist, T=T, boundary=tp_facts(T=T, close=100.1),
+        reevaluation=_window(T=T, closes=[99.95, 100.0], anchor=_TP_ANCHOR,
+                             filler=_LONG_FILLER))
+    assert decision.operational_facts.invalidation_price == 99.94
+    assert decision.signal.signal == SIGNAL_REJECTED
+    assert decision.signal.evidence["planned_risk_distance"] == "0.16"
+    assert decision.outcome == LIFECYCLE_PRECONFIRMATION_UPDATE
+    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=T))
+    after = _history([creation, event])
+    assert len(after.events) == 2                       # ONE new event, not two
+    assert after.current_state == EARLY_SIGNAL
+    assert CONFIRMATION_FACTS_KEY not in event.event_payload
+
+
+def test_tp_same_T_reevaluation_plus_risk_rejection_at_deadline_is_one_expired():
+    creation = early_signal(tp_candidate(
+        T=T0, pullback_extreme=100.0, current_close=105.0, buffer=0.01))
+    hist = _history([creation])
+    deadline = read_candidate_deadline(hist)
+    decision = _decide(
+        hist, T=deadline, boundary=tp_facts(T=deadline, close=100.1),
+        reevaluation=_window(T=deadline, closes=[99.95, 100.0], anchor=_TP_ANCHOR,
+                             filler=_LONG_FILLER))
+    assert decision.outcome == LIFECYCLE_EXPIRED_CANDIDATE_AGE
+    assert decision.resolution_category == SIGNAL_REJECTED
+    event = build_episode_transition_event(
+        decision, hist, authorization=_authorization(T=deadline))
+    after = _history([creation, event])
+    assert len(after.events) == 2
+    assert after.current_state == EXPIRED
+    assert OPERATIONAL_FACTS_KEY in event.event_payload      # final geometry
+
+
+# ---- §14 false-break precedence is unchanged --------------------------------
+def test_false_break_still_wins_and_never_runs_the_risk_gate():
+    hist = episode(_comp_at_risk(risk="0.1"))
+    decision = _decide(hist, T=_t(1), boundary=facts(T=_t(1), close=50.0))
+    assert decision.outcome == LIFECYCLE_INVALIDATED_FALSE_BREAK
+    assert decision.planned_risk is None
+    assert decision.signal.signal == SIGNAL_FALSE_BREAK
+
+
+# ---- §18 restart / replay ---------------------------------------------------
+def test_restart_reproduces_the_identical_planned_risk():
+    creation = early_signal(_comp_at_risk(risk="1.0"))
+    uninterrupted = _decide(
+        _history([creation]), T=_t(1), boundary=facts(T=_t(1), close=_CLOSE))
+    restarted_history = reconstruct_episode_history(
+        [_row(creation)], run_kind=LIVE, run_id=RUN_ID, episode_id=creation.episode_id,
+        as_of=_t(500), boundary_mode=HISTORY_THROUGH_T)
+    restarted = _decide(restarted_history, T=_t(1), boundary=facts(T=_t(1), close=_CLOSE))
+    assert restarted.outcome == uninterrupted.outcome == LIFECYCLE_CONFIRMED
+    assert (restarted.planned_risk.planned_risk_distance
+            == uninterrupted.planned_risk.planned_risk_distance)
+    assert (restarted.planned_risk.min_valid_planned_risk
+            == uninterrupted.planned_risk.min_valid_planned_risk)
+    assert (restarted.planned_risk.invalidation_price
+            == uninterrupted.planned_risk.invalidation_price)
+
+
+def test_live_and_replay_agree_on_planned_risk_while_staying_isolated():
+    live = episode(_comp_at_risk(risk="1.0"), run_kind=LIVE, run_id=RUN_ID)
+    replay = episode(_comp_at_risk(risk="1.0"), run_kind=REPLAY, run_id="replay-1")
+    assert live.episode_id == replay.episode_id
+    boundary = facts(T=_t(1), close=_CLOSE)
+    a = _decide(live, T=_t(1), boundary=boundary)
+    b = _decide(replay, T=_t(1), boundary=boundary)
+    assert a.outcome == b.outcome == LIFECYCLE_CONFIRMED
+    assert a.planned_risk.planned_risk_distance == b.planned_risk.planned_risk_distance
+    foreign = V2LifecycleAuthorization(
+        provenance=_provenance(T=_t(1), run_kind=REPLAY, run_id="replay-1"),
+        publication_clean=True)
+    with pytest.raises(V2EpisodeLifecycleError, match="physically isolated"):
+        build_episode_transition_event(a, live, authorization=foreign)
+
+
+# ---- §19 draining ------------------------------------------------------------
+def test_an_old_draining_episode_still_confirms_through_the_risk_gate():
+    creation = early_signal(_comp_at_risk(risk="1.0"))
+    hist = _history([creation])
+    state, old, _new = _draining_state(T_request=_t(1))
+    assert active_for_new_creation(state) is None
+    with pytest.raises(V2VersionSwitchError):
+        assert_provenance_authorized_for_new_creation(_provenance(T=_t(2)), state)
+    decision = _decide(hist, T=_t(2), boundary=facts(T=_t(2), close=_CLOSE))
+    assert decision.outcome == LIFECYCLE_CONFIRMED
+    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=_t(2)))
+    assert event.rules_version == old.rules_version
+    assert event.calculation_version == old.calculation_version
+    assert event.decision_code_version == creation.decision_code_version

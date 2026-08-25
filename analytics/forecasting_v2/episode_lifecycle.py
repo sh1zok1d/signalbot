@@ -128,7 +128,7 @@ from analytics.forecasting_v2.confirmed_breakout import (
 )
 from analytics.forecasting_v2.decision_provenance import V2DecisionProvenance
 from analytics.forecasting_v2.episode_creation import (
-    CREATION_FACTS_KEY, read_creation_facts,
+    CREATION_FACTS_KEY, read_creation_decision_tick_size, read_creation_facts,
 )
 from analytics.forecasting_v2.episode_history import (
     ANCHOR_BUCKET_TS, NON_TERMINAL_EPISODE_STATES, V2EpisodeHistory,
@@ -159,11 +159,15 @@ __all__ = [
     "LIFECYCLE_OUTCOMES", "OUTCOME_NEW_STATE",
     # persisted keys
     "LIFECYCLE_EVIDENCE_KEY", "LIFECYCLE_TRANSITION_KEY", "OPERATIONAL_FACTS_KEY",
+    "CONFIRMATION_FACTS_KEY",
     # value objects
     "V2BoundaryFacts", "V2FamilySignal", "V2TrendPullbackReevaluationWindow",
-    "V2OperationalFacts", "V2LifecycleDecision", "V2LifecycleAuthorization",
+    "V2OperationalFacts", "V2PlannedRisk", "V2LifecycleDecision",
+    "V2LifecycleAuthorization",
     # readers over persisted history
     "read_candidate_deadline", "read_detection_boundary", "read_operational_facts",
+    # §18.1 planned-risk gate
+    "evaluate_planned_risk",
     # family evaluators
     "evaluate_trend_pullback_confirmation",
     "evaluate_compression_breakout_confirmation",
@@ -220,6 +224,12 @@ CANDIDATE_MAX_AGE = MappingProxyType({
 assert CANDIDATE_MAX_AGE[TREND_PULLBACK] == timedelta(hours=2)
 assert CANDIDATE_MAX_AGE[COMPRESSION_BREAKOUT] == timedelta(minutes=15)
 assert CANDIDATE_MAX_AGE[CONFIRMED_BREAKOUT] == timedelta(minutes=40)
+
+# §18.1's frozen V2-v0 planned-risk floor: MIN_VALID_PLANNED_RISK = 3 *
+# tick_size, "reused from the same tick-buffer reasoning as
+# protection_buffer (§7)". A versioned parameter (§23) whose V2-v0 value is
+# frozen by the contract -- not a tunable, and not changed here.
+_MIN_PLANNED_RISK_TICKS = Decimal(3)
 
 # §7.1's frozen TREND_PULLBACK resumption trigger threshold. INCLUSIVE
 # (">= 2/3"), and deliberately unrelated to §13.2a's separate STRICT "> 0.5"
@@ -342,6 +352,14 @@ assert set(_OUTCOME_ALLOWED_SIGNALS) == set(LIFECYCLE_OUTCOMES)
 LIFECYCLE_EVIDENCE_KEY = "lifecycle_evidence"
 LIFECYCLE_TRANSITION_KEY = "lifecycle_transition"
 OPERATIONAL_FACTS_KEY = "operational_facts"
+# §18.1's by-value confirmation facts, in ONE canonical payload location on
+# the CONFIRMED event, identical for all three families. Unit 4 and Stage 8
+# must be able to reconstruct T_confirm, the confirmation reference price,
+# the frozen invalidation price and planned_risk_distance from persisted
+# history ALONE -- never by re-reading historical market state -- and a
+# family-shaped location would force every later consumer to know which
+# family it is looking at before it can find them.
+CONFIRMATION_FACTS_KEY = "confirmation_facts"
 
 # Persisted operational-fact field names (TREND_PULLBACK's §12.2a mutable
 # shape). Named constants so the writer and the reader below can never drift.
@@ -353,6 +371,13 @@ _OF_INVALIDATION_PRICE = "invalidation_price"
 _OF_PROTECTION_BUFFER = "protection_buffer"
 _OF_SOURCE_BUCKET = "source_bucket"
 _OF_SOURCE = "source"
+
+# §18.1 confirmation-fact field names.
+_CFN_REFERENCE_PRICE = "confirmation_reference_price"
+_CFN_INVALIDATION_PRICE = "invalidation_price"
+_CFN_DECISION_TICK_SIZE = "decision_tick_size"
+_CFN_PLANNED_RISK = "planned_risk_distance"
+_CFN_MIN_PLANNED_RISK = "min_valid_planned_risk"
 
 OPERATIONAL_SOURCE_CREATION = "CREATION"
 OPERATIONAL_SOURCE_REEVALUATION = "REEVALUATION"
@@ -1523,6 +1548,181 @@ def _assert_feature_schema_binding(
 
 
 # ============================================================================
+# §18.1 — the planned-risk hard gate on EARLY_SIGNAL -> CONFIRMED
+# ============================================================================
+def _applicable_invalidation_price(
+    history: V2EpisodeHistory, frozen: Optional[V2OperationalFacts],
+) -> float:
+    """The structural `invalidation_price` that becomes ACTIVE for this
+    episode the moment it confirms -- per family, by value.
+
+    `TREND_PULLBACK` (§7.1/§12.2a): the planned level valid AT THIS
+    confirmation decision, i.e. the operational facts this boundary froze,
+    INCLUDING any same-`T` mechanism-(1) re-evaluation. Never the stale
+    creation-time geometry: if the retracement deepened at this very
+    boundary, §18.1's risk is measured against the level the episode is
+    actually going to carry, not the one it happened to be created with.
+
+    `COMPRESSION_BREAKOUT`/`CONFIRMED_BREAKOUT` (§7.2/§7.3/§12.2a): the
+    planned `invalidation_price` frozen at creation, which is exactly what
+    "becomes the active, frozen, post-confirmation structural invalidation
+    trigger" at `CONFIRMED`. These families have no pre-confirmation
+    mutability mechanism at all, so there is nothing later to prefer -- and
+    it is never re-derived from a current candidate or a case-A/B
+    observation."""
+    family = history.creation_identity.setup_family
+    if family == TREND_PULLBACK:
+        if frozen is None:
+            raise V2EpisodeLifecycleError(
+                f"episode {history.episode_id!r} is TREND_PULLBACK but carries no operational "
+                "facts at this confirmation boundary -- §18.1's planned risk has no "
+                "invalidation_price to measure against")
+        return frozen.invalidation_price
+    raw = _creation_facts(history).get(_CF_INVALIDATION_PRICE)
+    if raw is None:
+        raise V2EpisodeLifecycleError(
+            f"episode {history.episode_id!r} ({family}) has no persisted creation "
+            f"{_CF_INVALIDATION_PRICE!r} -- §7.2/§7.3 freeze it at creation and §22 forbids "
+            "re-deriving it from current market data")
+    return _finite_price(raw, f"creation {_CF_INVALIDATION_PRICE}")
+
+
+@dataclass(frozen=True)
+class V2PlannedRisk:
+    """§18.1's `planned_risk_distance` and the hard gate it feeds.
+
+    ```text
+    planned_risk_distance = |confirmation_reference_price - invalidation_price|
+    MIN_VALID_PLANNED_RISK = 3 * tick_size
+
+    if planned_risk_distance is zero, non-finite, or < MIN_VALID_PLANNED_RISK:
+        FAIL CLOSED: the episode cannot reach CONFIRMED
+    ```
+
+    Both inputs are already fixed no later than the `CONFIRMED` boundary, so
+    this needs **no future information** -- which is precisely why §18.1 says
+    it "genuinely CAN gate confirmation", unlike the metrics that need a
+    completed path.
+
+    **All arithmetic is exact `Decimal`.** The threshold comparison decides
+    a lifecycle transition, and `3 * 0.1 == 0.30000000000000004` in binary
+    float would make the frozen equality case flip on representation
+    accident. `Decimal(str(x))` is the same lossless float->exact conversion
+    §12.5 already mandates: it reproduces exactly the value that was
+    persisted, so the classification is deterministic across processes and
+    identical in LIVE and REPLAY. **Equality PASSES** -- §18.1's gate fires
+    on `< MIN_VALID_PLANNED_RISK`, strictly.
+
+    `decision_tick_size` is the episode's OWN persisted decision-time tick
+    (§12.5a), never today's instrument metadata: a listing-wide tick change
+    must not silently move a live episode's own threshold."""
+    confirmation_reference_price: float
+    invalidation_price: float
+    decision_tick_size: Decimal
+    planned_risk_distance: Decimal
+    min_valid_planned_risk: Decimal
+
+    def __post_init__(self) -> None:
+        reference = _finite_price(
+            self.confirmation_reference_price, "confirmation_reference_price")
+        invalidation = _finite_price(self.invalidation_price, "invalidation_price")
+        for name in ("decision_tick_size", "planned_risk_distance", "min_valid_planned_risk"):
+            value = getattr(self, name)
+            if not isinstance(value, Decimal):
+                raise V2EpisodeLifecycleError(
+                    f"{name} must be a Decimal, got {type(value).__name__}")
+            if not value.is_finite():
+                raise V2EpisodeLifecycleError(f"{name} must be finite, got {value!r}")
+        if self.decision_tick_size <= 0:
+            raise V2EpisodeLifecycleError(
+                f"decision_tick_size must be strictly positive, got {self.decision_tick_size!r}")
+        # Re-derive both frozen quantities: a directly-constructed object may
+        # not assert a risk or a threshold its own inputs do not produce.
+        expected_distance = abs(_exact(reference, "confirmation_reference_price")
+                                - _exact(invalidation, "invalidation_price"))
+        if self.planned_risk_distance != expected_distance:
+            raise V2EpisodeLifecycleError(
+                f"planned_risk_distance={self.planned_risk_distance} does not equal §18.1's "
+                f"|{reference!r} - {invalidation!r}| = {expected_distance}")
+        expected_min = _MIN_PLANNED_RISK_TICKS * self.decision_tick_size
+        if self.min_valid_planned_risk != expected_min:
+            raise V2EpisodeLifecycleError(
+                f"min_valid_planned_risk={self.min_valid_planned_risk} does not equal §18.1's "
+                f"{_MIN_PLANNED_RISK_TICKS} * tick_size({self.decision_tick_size}) = "
+                f"{expected_min}")
+
+    @property
+    def valid(self) -> bool:
+        """§18.1's gate. Zero and non-finite are excluded by the threshold
+        itself (`min_valid_planned_risk` is strictly positive), and are
+        checked explicitly so the intent survives a future tick-size change."""
+        if not self.planned_risk_distance.is_finite() or self.planned_risk_distance <= 0:
+            return False
+        return self.planned_risk_distance >= self.min_valid_planned_risk
+
+    @property
+    def rejection_reason(self) -> str:
+        if not self.planned_risk_distance.is_finite():
+            return "PLANNED_RISK_NON_FINITE"
+        if self.planned_risk_distance <= 0:
+            return "PLANNED_RISK_ZERO"
+        return "PLANNED_RISK_BELOW_MIN"
+
+    def as_payload(self) -> Mapping:
+        """The by-value confirmation facts §18.1/§18.2 consumers need.
+
+        Prices stay floats (the same representation every other persisted V2
+        price uses); the two exact quantities the gate compared, plus the
+        tick they derive from, are canonical decimal STRINGS so a later
+        reader reproduces the identical comparison without a float
+        round-trip."""
+        return MappingProxyType({
+            _CFN_REFERENCE_PRICE: self.confirmation_reference_price,
+            _CFN_INVALIDATION_PRICE: self.invalidation_price,
+            _CFN_DECISION_TICK_SIZE: canonical_decimal_text(
+                self.decision_tick_size, _CFN_DECISION_TICK_SIZE),
+            _CFN_PLANNED_RISK: canonical_decimal_text(
+                self.planned_risk_distance, _CFN_PLANNED_RISK),
+            _CFN_MIN_PLANNED_RISK: canonical_decimal_text(
+                self.min_valid_planned_risk, _CFN_MIN_PLANNED_RISK),
+        })
+
+
+def evaluate_planned_risk(
+    history: V2EpisodeHistory, *, confirmation_reference_price: float,
+    invalidation_price: float,
+) -> V2PlannedRisk:
+    """Compute §18.1's planned risk for one confirmation boundary.
+
+    Raises `V2EpisodeLifecycleError` for CORRUPTION -- a missing, malformed,
+    non-finite or non-positive persisted `decision_tick_size`, a malformed
+    invalidation price, a malformed reference close. A degenerate but
+    perfectly well-formed risk distance is NOT corruption: it comes back as
+    a valid object whose `.valid` is `False`, so §21's Rejected and this
+    module's own domain error stay different categories (§9 of this unit's
+    own hardening: corrupted history must never be laundered into an
+    ordinary market rejection)."""
+    _require_history(history)
+    try:
+        tick = read_creation_decision_tick_size(history)
+    except ValueError as exc:      # V2EpisodeCreationError
+        raise V2EpisodeLifecycleError(
+            f"episode {history.episode_id!r}'s persisted decision-time tick size is "
+            f"unrecoverable, so §18.1's threshold cannot be computed: {exc}") from exc
+    reference = _finite_price(confirmation_reference_price, "confirmation_reference_price")
+    invalidation = _finite_price(invalidation_price, "invalidation_price")
+    return V2PlannedRisk(
+        confirmation_reference_price=reference,
+        invalidation_price=invalidation,
+        decision_tick_size=tick,
+        planned_risk_distance=abs(
+            _exact(reference, "confirmation_reference_price")
+            - _exact(invalidation, "invalidation_price")),
+        min_valid_planned_risk=_MIN_PLANNED_RISK_TICKS * tick,
+    )
+
+
+# ============================================================================
 # §7.1/§7.2/§7.3 — the three family confirmation predicates
 # ============================================================================
 def evaluate_trend_pullback_confirmation(
@@ -1771,6 +1971,7 @@ class V2LifecycleDecision:
     t_detect: datetime
     candidate_deadline: datetime
     operational_facts: Optional[V2OperationalFacts] = None
+    planned_risk: Optional[V2PlannedRisk] = None
 
     def __post_init__(self) -> None:
         one_of(self.outcome, "outcome", LIFECYCLE_OUTCOMES, V2EpisodeLifecycleError)
@@ -1834,6 +2035,32 @@ class V2LifecycleDecision:
         one_of(self.direction, "direction", (LONG, SHORT), V2EpisodeLifecycleError)
         nonblank(self.episode_id, "episode_id", V2EpisodeLifecycleError)
         nonblank(self.reason, "reason", V2EpisodeLifecycleError)
+
+        # §18.1: a CONFIRMED event must carry the planned-risk facts that
+        # authorized it, and they must PASS the gate. §18.1's own words:
+        # "every CONFIRMED episode has a valid planned_risk_distance by
+        # construction". A hand-built CONFIRMED with no risk facts -- or with
+        # facts that fail the gate -- would break exactly that guarantee for
+        # Unit 4 and Stage 8, which are entitled to assume it.
+        if self.outcome == LIFECYCLE_CONFIRMED:
+            if self.planned_risk is None:
+                raise V2EpisodeLifecycleError(
+                    "a CONFIRMED decision carries no §18.1 planned-risk facts -- every CONFIRMED "
+                    "episode has a valid planned_risk_distance by construction, and Unit 4/Stage "
+                    "8 reconstruct it from persisted history alone")
+            if not isinstance(self.planned_risk, V2PlannedRisk):
+                raise V2EpisodeLifecycleError(
+                    "planned_risk must be a V2PlannedRisk, got "
+                    f"{type(self.planned_risk).__name__}")
+            if not self.planned_risk.valid:
+                raise V2EpisodeLifecycleError(
+                    f"planned_risk_distance={self.planned_risk.planned_risk_distance} does not "
+                    f"satisfy §18.1's MIN_VALID_PLANNED_RISK="
+                    f"{self.planned_risk.min_valid_planned_risk}, so this episode MUST NOT reach "
+                    f"{LIFECYCLE_CONFIRMED}")
+        elif self.planned_risk is not None and not isinstance(self.planned_risk, V2PlannedRisk):
+            raise V2EpisodeLifecycleError(
+                f"planned_risk must be a V2PlannedRisk, got {type(self.planned_risk).__name__}")
 
         # §7.1/§9: a TREND_PULLBACK event that publishes or freezes geometry
         # must actually carry it. A CONFIRMED TP episode with no final zone
@@ -1986,12 +2213,13 @@ def evaluate_early_signal_transition(
     signal = evaluate_family_signal(history, facts)
 
     def decide(outcome: str, reason: str,
-               operational: Optional[V2OperationalFacts] = None) -> V2LifecycleDecision:
+               operational: Optional[V2OperationalFacts] = None, *,
+               planned_risk: Optional[V2PlannedRisk] = None) -> V2LifecycleDecision:
         return V2LifecycleDecision(
             episode_id=history.episode_id, T=T, setup_family=family, direction=direction,
             previous_state=EARLY_SIGNAL, new_state=OUTCOME_NEW_STATE[outcome], outcome=outcome,
             reason=reason, signal=signal, t_detect=t_detect, candidate_deadline=deadline,
-            operational_facts=operational)
+            operational_facts=operational, planned_risk=planned_risk)
 
     # 2. §13.1 level 1 -- the breakout families' own pre-confirmation
     #    invalidation. A broken structural premise cannot be confirmed.
@@ -2001,40 +2229,65 @@ def evaluate_early_signal_transition(
 
     # 3. §13.1 level 3 -- confirmation. §9/§12.2a: the zone updates ONE final
     #    time here, now that confirmation_close_price exists, then freezes.
+    #    §18.1's planned-risk hard gate is then the LAST thing standing
+    #    between a held family trigger and CONFIRMED.
     if signal.signal == SIGNAL_CONFIRM:
         frozen = updated_facts or current_facts
-        if family == TREND_PULLBACK:
-            confirmation_close = facts.reference_close
-            if confirmation_close is None:
-                # §14 (amended): TREND_PULLBACK reaches CONFIRMED only when
-                # BOTH the resumption trigger holds AND §11's canonical
-                # reference close needed to freeze the final zone is usable.
-                # The trigger DID hold -- recording this as a failed trigger
-                # would be a false record of what the market did -- but the
-                # transition could not be MATERIALIZED, so the boundary's
-                # resolution category is UNAVAILABLE, with the trigger's own
-                # evidence preserved verbatim. Falling through (rather than
-                # returning) keeps a same-`T` §9 zone change recordable and
-                # still closes the deadline.
-                signal = V2FamilySignal(
-                    signal=SIGNAL_UNAVAILABLE, reason="CONFIRMATION_CLOSE_UNAVAILABLE",
-                    evidence=dict(
-                        signal.evidence, resumption_trigger_held=True,
-                        confirmation_close_available=False))
-            else:
+        confirmation_close = facts.reference_close
+        if confirmation_close is None:
+            # §14 (amended) for TREND_PULLBACK, and §18.1 for every family:
+            # confirmation needs §11's canonical reference close -- to freeze
+            # TP's final zone, and to compute planned risk at all. The
+            # trigger DID hold; recording this as a failed trigger would be a
+            # false record of what the market did. The transition simply
+            # could not be MATERIALIZED, so the boundary's resolution
+            # category is UNAVAILABLE with the trigger's own evidence
+            # preserved verbatim. Falling through (rather than returning)
+            # keeps a same-`T` §9 zone change recordable and still closes the
+            # deadline.
+            #
+            # For the two breakout families this branch is unreachable in
+            # practice -- their own predicate already returned UNAVAILABLE
+            # without a usable close -- but it is written for all three so no
+            # family can ever reach the risk gate without a price.
+            signal = V2FamilySignal(
+                signal=SIGNAL_UNAVAILABLE, reason="CONFIRMATION_CLOSE_UNAVAILABLE",
+                evidence=dict(
+                    signal.evidence, family_trigger_held=True,
+                    confirmation_close_available=False))
+        else:
+            if family == TREND_PULLBACK:
                 frozen = _build_trend_pullback_operational_facts(
                     direction=direction, pullback_extreme=frozen.pullback_extreme,
                     dynamic_bound=confirmation_close,
                     protection_buffer=_creation_protection_buffer(history),
                     source=OPERATIONAL_SOURCE_CONFIRMATION,
                     source_bucket=facts.decision_bucket)
+            planned_risk = evaluate_planned_risk(
+                history,
+                confirmation_reference_price=confirmation_close,
+                invalidation_price=_applicable_invalidation_price(history, frozen))
+            if planned_risk.valid:
                 # §36/H3: one event per (stream, episode, boundary). A
                 # same-`T` operational update is AGGREGATED into this single
                 # CONFIRMED event, never emitted as a second EARLY_SIGNAL
                 # event at the same boundary.
-                return decide(LIFECYCLE_CONFIRMED, signal.reason, frozen)
-        else:
-            return decide(LIFECYCLE_CONFIRMED, signal.reason, frozen)
+                return decide(
+                    LIFECYCLE_CONFIRMED, signal.reason, frozen, planned_risk=planned_risk)
+            # §18.1/§21: a degenerate structural risk distance means the
+            # structural premise itself is not well-formed, so the episode
+            # MUST NOT reach CONFIRMED. This is §21's REJECTED -- a real,
+            # finite, present measurement that a HARD GATE disqualified --
+            # never HOLD (the market did not produce a neutral observation),
+            # never UNAVAILABLE (nothing was missing), and never FALSE_BREAK
+            # (no structural level was crossed). The family trigger genuinely
+            # held, and `family_trigger_held` records that so the persisted
+            # evidence cannot be misread as a failed trigger.
+            signal = V2FamilySignal(
+                signal=SIGNAL_REJECTED, reason=planned_risk.rejection_reason,
+                evidence=dict(
+                    signal.evidence, family_trigger_held=True,
+                    **planned_risk.as_payload()))
 
     # 4. §13.1 level 2 / §14 -- the deadline boundary closed without this
     #    boundary's own confirmation check holding. §14's amended rule: the
@@ -2161,6 +2414,40 @@ def _assert_decision_matches_history(
         raise V2EpisodeLifecycleError(
             f"episode {history.episode_id!r} is {history.current_state!r}; Stage 6 unit 3 "
             f"persists only transitions out of {EARLY_SIGNAL!r}")
+    _assert_planned_risk_matches_history(decision, history)
+
+
+def _assert_planned_risk_matches_history(
+    decision: V2LifecycleDecision, history: V2EpisodeHistory,
+) -> None:
+    """Re-derive §18.1's two by-value inputs from the episode's own persisted
+    facts and refuse a decision that disagrees.
+
+    `V2PlannedRisk` already proves it is INTERNALLY consistent (the distance
+    really is `|reference - invalidation|`, the threshold really is
+    `3 * tick`). What it cannot know on its own is whether those inputs are
+    THIS episode's: a hand-built decision could carry a perfectly
+    self-consistent risk computed from another episode's tick size, or from
+    a stale creation invalidation after a same-`T` re-evaluation moved it.
+    Both are checked here, at the one boundary that turns a decision into
+    immutable history."""
+    risk = decision.planned_risk
+    if risk is None:
+        return
+    tick = read_creation_decision_tick_size(history)
+    if risk.decision_tick_size != tick:
+        raise V2EpisodeLifecycleError(
+            f"this decision's §18.1 decision_tick_size={risk.decision_tick_size} is not episode "
+            f"{history.episode_id!r}'s own persisted creation value {tick} -- §12.5a freezes the "
+            "creation-time tick grid for the episode's whole life, and today's instrument "
+            "metadata is never consulted")
+    expected = _applicable_invalidation_price(history, decision.operational_facts)
+    if _exact(risk.invalidation_price, "invalidation_price") != _exact(expected, "expected"):
+        raise V2EpisodeLifecycleError(
+            f"this decision's §18.1 invalidation_price={risk.invalidation_price!r} is not the "
+            f"level episode {history.episode_id!r} actually carries at this boundary "
+            f"({expected!r}) -- planned risk must be measured against the frozen geometry the "
+            "episode will really be confirmed with, never a stale or foreign one")
 
 
 def build_episode_transition_event(
@@ -2301,4 +2588,11 @@ def _transition_event_payload(decision: V2LifecycleDecision) -> Mapping:
     }
     if decision.operational_facts is not None and decision.setup_family == TREND_PULLBACK:
         payload[OPERATIONAL_FACTS_KEY] = dict(decision.operational_facts.as_payload())
+    if decision.planned_risk is not None:
+        # §18.1's by-value confirmation facts, in ONE canonical location for
+        # every family. For TREND_PULLBACK the `invalidation_price` here is
+        # deliberately the SAME value the operational block records: not a
+        # competing representation, but a cross-check the event builder
+        # verifies, so the two can never silently diverge.
+        payload[CONFIRMATION_FACTS_KEY] = dict(decision.planned_risk.as_payload())
     return payload
