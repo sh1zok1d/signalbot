@@ -106,7 +106,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping as _AbcMapping
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from types import MappingProxyType
@@ -2411,6 +2411,30 @@ _DECISION_COMPARED_FIELDS = (
     "outcome", "reason", "t_detect", "candidate_deadline", "signal", "operational_facts",
     "planned_risk",
 )
+
+
+def _require_compared_fields_exhaustive() -> None:
+    """Fail closed if `_DECISION_COMPARED_FIELDS` is not exactly
+    `V2LifecycleDecision`'s dataclass field set.
+
+    The persist guard's whole posture is exhaustive comparison. A later
+    field added to the decision type and serialized by
+    `_transition_decision_snapshot` / `_transition_event_payload` but
+    omitted here would be persistable while unverified. This is a real
+    `V2EpisodeLifecycleError`, never a debug `assert` that `-O` could
+    strip."""
+    expected = {f.name for f in fields(V2LifecycleDecision)}
+    actual = set(_DECISION_COMPARED_FIELDS)
+    if actual != expected or len(_DECISION_COMPARED_FIELDS) != len(actual):
+        raise V2EpisodeLifecycleError(
+            "_DECISION_COMPARED_FIELDS must be exactly the unique "
+            f"V2LifecycleDecision field set so a newly added persisted field cannot "
+            f"escape canonical comparison; missing={sorted(expected - actual)!r} "
+            f"extra={sorted(actual - expected)!r} "
+            f"duplicates={len(_DECISION_COMPARED_FIELDS) - len(actual)}")
+
+
+_require_compared_fields_exhaustive()
 
 
 def _assert_decision_matches_canonical(
