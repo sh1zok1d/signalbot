@@ -2773,7 +2773,7 @@ def _forge_from(good, *, outcome=_UNSET, new_state=_UNSET, reason=_UNSET, signal
     the ones explicitly overridden. Unlike `_forge_confirmed()`, the
     outcome/new_state need not be CONFIRMED -- used for the
     PRECONFIRMATION_UPDATE/INVALIDATED/EXPIRED forgery vectors."""
-    def pick(over, field):
+    def pick(over, field) -> object:
         return getattr(good, field) if over is _UNSET else over
 
     return V2LifecycleDecision(
