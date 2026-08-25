@@ -6,8 +6,10 @@ A canonical, deterministic manifest of every behavior-affecting frozen
 V2-v0 constant across the currently-implemented Stage 3/4/5 surface
 (`aligned_inputs.py`, `context_evidence.py`, `family_quality.py`,
 `regime_4h.py`, `bias_1h.py`, `setup_common.py`, `trend_pullback.py`,
-`compression_breakout.py`, `confirmed_breakout.py`), plus a deterministic
-fingerprint of that manifest keyed by `rules_version` (`config/v2.yaml`).
+`compression_breakout.py`, `confirmed_breakout.py`), PLUS Stage 6 Unit 3's
+own frozen §18.1 planned-risk floor (`episode_lifecycle.py`), plus a
+deterministic fingerprint of that manifest keyed by `rules_version`
+(`config/v2.yaml`).
 A version-participating constant changing WITHOUT a corresponding
 `rules_version` bump is exactly the silent-behavior-change class of bug
 this module exists to catch -- `assert_rules_manifest_matches_version()`
@@ -61,6 +63,7 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import timedelta
+from decimal import Decimal
 from typing import Any, Mapping
 
 from importlib import import_module
@@ -78,6 +81,7 @@ _bias_1h = import_module("analytics.forecasting_v2.bias_1h")
 _compression_breakout = import_module("analytics.forecasting_v2.compression_breakout")
 _confirmed_breakout = import_module("analytics.forecasting_v2.confirmed_breakout")
 _context_evidence = import_module("analytics.forecasting_v2.context_evidence")
+_episode_lifecycle = import_module("analytics.forecasting_v2.episode_lifecycle")
 _family_quality = import_module("analytics.forecasting_v2.family_quality")
 _regime_4h = import_module("analytics.forecasting_v2.regime_4h")
 _setup_common = import_module("analytics.forecasting_v2.setup_common")
@@ -125,6 +129,20 @@ def _string_tuple(value: Any, name: str) -> "list[str]":
     return list(value)
 
 
+def _decimal_text(value: Any, name: str) -> str:
+    """Deterministically serialize a frozen `Decimal` rule constant to its
+    plain-text form -- `Decimal` is not itself JSON-serializable. The
+    constant this backs is a fixed source-code literal, never reconstructed
+    from external input here, so plain `str()` is already deterministic run
+    to run without needing `canonical_decimal_text()`'s
+    normalize-then-de-scientific-notation handling (which exists for
+    values that arrive as persisted/parsed decimal strings, not literals)."""
+    if not isinstance(value, Decimal):
+        raise V2RulesManifestError(
+            f"{name} must be a Decimal, got {type(value).__name__}: {value!r}")
+    return str(value)
+
+
 def build_rules_manifest() -> "dict[str, Any]":
     """The canonical, deterministic manifest of every behavior-affecting
     frozen V2-v0 constant across the currently-implemented Stage 3/4/5
@@ -142,6 +160,15 @@ def build_rules_manifest() -> "dict[str, Any]":
             "MIN_PCTL_TIER": _context_evidence.MIN_PCTL_TIER,
             "_COMPRESSION_METRIC": _context_evidence._COMPRESSION_METRIC,
             "_OI_METRIC": _context_evidence._OI_METRIC,
+        },
+        "episode_lifecycle": {
+            # §18.1's frozen V2-v0 planned-risk floor, MIN_VALID_PLANNED_RISK
+            # = 3 * tick_size -- changing the multiplier while holding every
+            # other input fixed moves the confirmation hard gate, exactly
+            # this module's inclusion test.
+            "_MIN_PLANNED_RISK_TICKS": _decimal_text(
+                _episode_lifecycle._MIN_PLANNED_RISK_TICKS,
+                "episode_lifecycle._MIN_PLANNED_RISK_TICKS"),
         },
         "family_quality": {
             "FAMILY_MIN_COVERAGE": _family_quality.FAMILY_MIN_COVERAGE,
@@ -242,7 +269,15 @@ EXPECTED_FINGERPRINTS_BY_RULES_VERSION: "dict[str, str]" = {
     #      other input fixed can move a decision across those inclusive
     #      boundaries -- but was missing from the manifest. Now included;
     #      the constant's own value (4) is unchanged.
-    "v2-rules-v0.2.0": "46a1952b84edcce01ce0e8edbce1a17b34c1751351d913e4752e093ca7e8558a",
+    #   3. Post-merge Stage 6 Unit 3 planned-risk-gate repair red-team
+    #      finding: episode_lifecycle._MIN_PLANNED_RISK_TICKS (§18.1's
+    #      MIN_VALID_PLANNED_RISK = 3 * tick_size multiplier) is exactly
+    #      this module's inclusion test -- changing it while holding every
+    #      other input fixed moves the confirmation hard gate -- but this
+    #      manifest's scope had never been extended past Stage 3/4/5 to
+    #      cover it. Now included; the constant's own value (3) is
+    #      unchanged.
+    "v2-rules-v0.2.0": "d8c23644ef2535dd49723d3dc4c4e9abcce449e95c70e7fd67cf87af596dcf17",
 }
 
 

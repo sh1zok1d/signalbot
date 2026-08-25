@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from decimal import Decimal
 
 import pytest
 
@@ -49,8 +50,8 @@ def test_manifest_covers_the_full_expected_surface():
     # (the shared evidence-computation selectors) own such constants too.
     manifest = build_rules_manifest()
     assert set(manifest.keys()) == {
-        "aligned_inputs", "context_evidence", "family_quality", "regime_4h", "bias_1h",
-        "setup_common", "trend_pullback", "compression_breakout", "confirmed_breakout",
+        "aligned_inputs", "context_evidence", "episode_lifecycle", "family_quality", "regime_4h",
+        "bias_1h", "setup_common", "trend_pullback", "compression_breakout", "confirmed_breakout",
     }
 
 
@@ -239,6 +240,19 @@ def test_mutating_setup_range_timeframes_changes_the_fingerprint(monkeypatch):
     baseline = compute_rules_fingerprint(build_rules_manifest())
     import analytics.forecasting_v2.setup_common as setup_module
     monkeypatch.setattr(setup_module, "SETUP_RANGE_TIMEFRAMES", ("15m", "1h", "4h"))
+    mutated = compute_rules_fingerprint(build_rules_manifest())
+    assert mutated != baseline
+
+
+def test_mutating_min_planned_risk_ticks_changes_the_fingerprint(monkeypatch):
+    """Post-merge Stage 6 Unit 3 red-team finding: §18.1's
+    MIN_VALID_PLANNED_RISK = 3 * tick_size multiplier is a version-
+    participating frozen rule (changing it while holding every other input
+    fixed moves the confirmation hard gate), so it must participate in the
+    fingerprint like any other manifest-covered constant."""
+    baseline = compute_rules_fingerprint(build_rules_manifest())
+    import analytics.forecasting_v2.episode_lifecycle as lifecycle_module
+    monkeypatch.setattr(lifecycle_module, "_MIN_PLANNED_RISK_TICKS", Decimal("5"))
     mutated = compute_rules_fingerprint(build_rules_manifest())
     assert mutated != baseline
 

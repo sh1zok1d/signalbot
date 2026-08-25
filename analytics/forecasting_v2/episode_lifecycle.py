@@ -1587,6 +1587,98 @@ def _applicable_invalidation_price(
     return _finite_price(raw, f"creation {_CF_INVALIDATION_PRICE}")
 
 
+def _prove_trend_pullback_operational_facts(
+    history: V2EpisodeHistory, claimed: Optional[V2OperationalFacts],
+) -> V2OperationalFacts:
+    """Independently prove a CONFIRMED `TREND_PULLBACK` decision's claimed
+    operational facts are a legal §7.1/§12.2a derivation from the episode's
+    own PERSISTED history -- never trusting `claimed.invalidation_price` (or
+    its entry zone) as its own proof, and never accepting it merely because
+    a separately-constructed `V2PlannedRisk` happens to agree with it. A
+    directly-constructed `V2LifecycleDecision` could otherwise supply a
+    stale/foreign/fabricated `V2OperationalFacts` together with a matching
+    `V2PlannedRisk`, letting the two untrusted objects validate each other.
+
+    Proves, against PERSISTED facts only:
+      - `protection_buffer` is the episode's own frozen CREATION value
+        (§12.2a) -- a caller may not supply a foreign one, even one that
+        would otherwise reproduce self-consistent geometry.
+      - `pullback_extreme` obeys §7.1's monotonic "deepens, or stays the
+        same" rule against the episode's own currently-PERSISTED extreme
+        (`read_operational_facts()`) -- it may never walk an
+        already-published structural level back.
+      - The claimed entry zone and `invalidation_price` are EXACTLY what
+        §7.1's canonical geometry builder produces from that
+        (buffer, extreme, dynamic_bound) triple.
+
+    Returns the freshly RE-DERIVED `V2OperationalFacts` -- what §18.1's
+    invalidation input and confirmation reference price must be measured
+    against, never the claimed object itself.
+
+    **Known, accepted limit.** A same-`T` mechanism-(1) re-evaluation that
+    is aggregated into this very `CONFIRMED` event (§36/H3's
+    one-event-per-`T` rule) is never itself separately persisted, so its
+    legality cannot be re-checked here against the raw reference window
+    that justified it -- that window is not part of persisted history at
+    all. Its correctness is instead enforced ONCE, at evaluation time, by
+    `derive_trend_pullback_reevaluation()`/`_apply_monotonic_extreme()`,
+    the sole trusted path that ever produces one, which already binds the
+    window to this episode's exact scope/anchor before reading a single
+    close. What THIS function closes is the different, always-checkable
+    gap: a directly-constructed decision whose claimed geometry disagrees
+    with the episode's own ALREADY-PERSISTED history, validated only
+    against an equally untrusted `V2PlannedRisk` rather than against that
+    history."""
+    if not isinstance(claimed, V2OperationalFacts):
+        raise V2EpisodeLifecycleError(
+            f"episode {history.episode_id!r} is TREND_PULLBACK but this CONFIRMED decision "
+            f"carries no operational facts to prove §18.1's planned risk against (got "
+            f"{type(claimed).__name__})")
+    prior = read_operational_facts(history)
+    if prior is None:
+        raise V2EpisodeLifecycleError(
+            f"episode {history.episode_id!r} is TREND_PULLBACK but carries no PERSISTED "
+            "operational facts to independently prove this CONFIRMED decision's geometry "
+            "against")
+    direction = history.creation_identity.direction
+    buffer = _creation_protection_buffer(history)
+    expected_buffer_text = canonical_decimal_text(buffer, _OF_PROTECTION_BUFFER)
+    if claimed.protection_buffer != expected_buffer_text:
+        raise V2EpisodeLifecycleError(
+            f"this decision's TREND_PULLBACK protection_buffer={claimed.protection_buffer!r} is "
+            f"not episode {history.episode_id!r}'s own persisted creation value "
+            f"{expected_buffer_text!r} -- §12.2a freezes it at creation for the episode's whole "
+            "life")
+    deepens = (
+        claimed.pullback_extreme < prior.pullback_extreme if direction == LONG
+        else claimed.pullback_extreme > prior.pullback_extreme)
+    same = claimed.pullback_extreme == prior.pullback_extreme
+    if not (deepens or same):
+        raise V2EpisodeLifecycleError(
+            f"this decision's TREND_PULLBACK pullback_extreme={claimed.pullback_extreme!r} is "
+            f"SHALLOWER than episode {history.episode_id!r}'s own already-persisted "
+            f"{prior.pullback_extreme!r} -- §7.1 lets this fact update only if the retracement "
+            "deepens further, and a decision may never walk an already-published structural "
+            "level back")
+    canonical = _build_trend_pullback_operational_facts(
+        direction=direction, pullback_extreme=claimed.pullback_extreme,
+        dynamic_bound=claimed.dynamic_bound, protection_buffer=buffer,
+        source=claimed.source, source_bucket=claimed.source_bucket)
+    mismatches = [
+        (field, getattr(claimed, field), getattr(canonical, field))
+        for field in ("entry_zone_lower", "entry_zone_upper", "invalidation_price")
+        if getattr(claimed, field) != getattr(canonical, field)]
+    if mismatches:
+        detail = ", ".join(f"{f}={a!r} (canonical: {w!r})" for f, a, w in mismatches)
+        raise V2EpisodeLifecycleError(
+            f"this decision's TREND_PULLBACK operational facts do not match §7.1's canonical "
+            f"geometry for episode {history.episode_id!r}: {detail} -- entry zone/"
+            "invalidation_price must be exactly what the frozen formula produces from "
+            "pullback_extreme/dynamic_bound/protection_buffer, never a value merely "
+            "self-consistent with a separately-supplied V2PlannedRisk")
+    return canonical
+
+
 @dataclass(frozen=True)
 class V2PlannedRisk:
     """§18.1's `planned_risk_distance` and the hard gate it feeds.
@@ -2058,9 +2150,19 @@ class V2LifecycleDecision:
                     f"satisfy §18.1's MIN_VALID_PLANNED_RISK="
                     f"{self.planned_risk.min_valid_planned_risk}, so this episode MUST NOT reach "
                     f"{LIFECYCLE_CONFIRMED}")
-        elif self.planned_risk is not None and not isinstance(self.planned_risk, V2PlannedRisk):
+        elif self.planned_risk is not None:
+            # §18.1's confirmation facts exist IF AND ONLY IF the episode
+            # reached CONFIRMED -- never for EXPIRED/INVALIDATED/an
+            # operational update/a no-op, even with an otherwise perfectly
+            # self-consistent V2PlannedRisk. Weakening this would let a
+            # non-CONFIRMED event still carry (and, via the payload builder,
+            # persist) a `confirmation_facts` block that implies the episode
+            # confirmed when it did not.
             raise V2EpisodeLifecycleError(
-                f"planned_risk must be a V2PlannedRisk, got {type(self.planned_risk).__name__}")
+                f"outcome {self.outcome!r} is not {LIFECYCLE_CONFIRMED!r}, so this decision must "
+                "carry no §18.1 planned-risk facts at all -- confirmation_facts exists if and "
+                f"only if the episode reached {LIFECYCLE_CONFIRMED!r}, got planned_risk of type "
+                f"{type(self.planned_risk).__name__}")
 
         # §7.1/§9: a TREND_PULLBACK event that publishes or freezes geometry
         # must actually carry it. A CONFIRMED TP episode with no final zone
@@ -2420,34 +2522,72 @@ def _assert_decision_matches_history(
 def _assert_planned_risk_matches_history(
     decision: V2LifecycleDecision, history: V2EpisodeHistory,
 ) -> None:
-    """Re-derive §18.1's two by-value inputs from the episode's own persisted
-    facts and refuse a decision that disagrees.
+    """Re-derive §18.1's by-value inputs from the episode's own persisted
+    facts (or, for the confirmation reference price, from the family
+    predicate's OWN recorded evidence) and refuse a decision that disagrees.
 
     `V2PlannedRisk` already proves it is INTERNALLY consistent (the distance
     really is `|reference - invalidation|`, the threshold really is
     `3 * tick`). What it cannot know on its own is whether those inputs are
-    THIS episode's: a hand-built decision could carry a perfectly
-    self-consistent risk computed from another episode's tick size, or from
-    a stale creation invalidation after a same-`T` re-evaluation moved it.
-    Both are checked here, at the one boundary that turns a decision into
-    immutable history."""
+    THIS episode's real confirmation: a hand-built decision could carry a
+    perfectly self-consistent risk computed from another episode's tick
+    size, from a stale/foreign/fabricated operational geometry, or from a
+    fabricated reference price -- with the two untrusted objects (`decision.
+    operational_facts`/`decision.signal.evidence` and `decision.
+    planned_risk`) validating only each other. Every comparison below is
+    against a value independently derived from `history`, never against
+    another field of the same untrusted `decision`."""
     risk = decision.planned_risk
     if risk is None:
         return
-    tick = read_creation_decision_tick_size(history)
+    try:
+        tick = read_creation_decision_tick_size(history)
+    except ValueError as exc:      # V2EpisodeCreationError -- never leaked
+        raise V2EpisodeLifecycleError(
+            f"episode {history.episode_id!r}'s persisted decision-time tick size is "
+            "unrecoverable, so this decision's §18.1 planned risk cannot be verified at "
+            f"persistence time: {exc}") from exc
     if risk.decision_tick_size != tick:
         raise V2EpisodeLifecycleError(
             f"this decision's §18.1 decision_tick_size={risk.decision_tick_size} is not episode "
             f"{history.episode_id!r}'s own persisted creation value {tick} -- §12.5a freezes the "
             "creation-time tick grid for the episode's whole life, and today's instrument "
             "metadata is never consulted")
-    expected = _applicable_invalidation_price(history, decision.operational_facts)
-    if _exact(risk.invalidation_price, "invalidation_price") != _exact(expected, "expected"):
+
+    family = history.creation_identity.setup_family
+    if family == TREND_PULLBACK:
+        proven = _prove_trend_pullback_operational_facts(history, decision.operational_facts)
+        expected_invalidation = proven.invalidation_price
+        expected_reference = proven.dynamic_bound
+        reference_source = (
+            "the same close that froze this episode's TREND_PULLBACK zone (dynamic_bound)")
+    else:
+        expected_invalidation = _applicable_invalidation_price(history, decision.operational_facts)
+        recorded_close = decision.signal.evidence.get("reference_close")
+        if recorded_close is None:
+            raise V2EpisodeLifecycleError(
+                f"this decision's family signal for episode {history.episode_id!r} ({family}) "
+                "carries no recorded 'reference_close' evidence -- §18.1's "
+                "confirmation_reference_price must be bound to the exact close the family "
+                "predicate itself confirmed against, never merely asserted")
+        expected_reference = _finite_price(recorded_close, "reference_close")
+        reference_source = "the close the family predicate itself confirmed against"
+
+    if _exact(risk.confirmation_reference_price, "confirmation_reference_price") != _exact(
+            expected_reference, "expected confirmation_reference_price"):
+        raise V2EpisodeLifecycleError(
+            "this decision's §18.1 confirmation_reference_price="
+            f"{risk.confirmation_reference_price!r} is not {reference_source} "
+            f"({expected_reference!r}) for episode {history.episode_id!r} -- §5 forbids two "
+            "spellings of the confirmation price in one decision")
+
+    if _exact(risk.invalidation_price, "invalidation_price") != _exact(
+            expected_invalidation, "expected invalidation_price"):
         raise V2EpisodeLifecycleError(
             f"this decision's §18.1 invalidation_price={risk.invalidation_price!r} is not the "
             f"level episode {history.episode_id!r} actually carries at this boundary "
-            f"({expected!r}) -- planned risk must be measured against the frozen geometry the "
-            "episode will really be confirmed with, never a stale or foreign one")
+            f"({expected_invalidation!r}) -- planned risk must be measured against the frozen "
+            "geometry the episode will really be confirmed with, never a stale or foreign one")
 
 
 def build_episode_transition_event(
@@ -2588,11 +2728,16 @@ def _transition_event_payload(decision: V2LifecycleDecision) -> Mapping:
     }
     if decision.operational_facts is not None and decision.setup_family == TREND_PULLBACK:
         payload[OPERATIONAL_FACTS_KEY] = dict(decision.operational_facts.as_payload())
-    if decision.planned_risk is not None:
-        # §18.1's by-value confirmation facts, in ONE canonical location for
-        # every family. For TREND_PULLBACK the `invalidation_price` here is
-        # deliberately the SAME value the operational block records: not a
-        # competing representation, but a cross-check the event builder
-        # verifies, so the two can never silently diverge.
+    # §18.1's by-value confirmation facts, in ONE canonical location for
+    # every family -- serialized IF AND ONLY IF the episode reached
+    # CONFIRMED (never merely "if planned_risk happens to be set"; `
+    # V2LifecycleDecision.__post_init__` already enforces that the two can
+    # never disagree, and gating explicitly here keeps that invariant
+    # visible at the one place that actually writes the persisted payload).
+    # For TREND_PULLBACK the `invalidation_price` here is deliberately the
+    # SAME value the operational block records: not a competing
+    # representation, but a cross-check the event builder verifies, so the
+    # two can never silently diverge.
+    if decision.outcome == LIFECYCLE_CONFIRMED:
         payload[CONFIRMATION_FACTS_KEY] = dict(decision.planned_risk.as_payload())
     return payload

@@ -37,8 +37,8 @@ from analytics.forecasting_v2.episode_lifecycle import (
     OPERATIONAL_FACTS_KEY, OPERATIONAL_SOURCE_CONFIRMATION, OPERATIONAL_SOURCE_CREATION,
     OPERATIONAL_SOURCE_REEVALUATION, REQUIRED_METRIC_FAMILY, RESUMPTION_MIN_AGREEMENT,
     SIGNAL_CONFIRM, SIGNAL_FALSE_BREAK, SIGNAL_HOLD, SIGNAL_REJECTED, SIGNAL_UNAVAILABLE,
-    V2BoundaryFacts, V2EpisodeLifecycleError, V2LifecycleAuthorization,
-    V2LifecycleDecision, V2TrendPullbackReevaluationWindow,
+    V2BoundaryFacts, V2EpisodeLifecycleError, V2FamilySignal, V2LifecycleAuthorization,
+    V2LifecycleDecision, V2OperationalFacts, V2TrendPullbackReevaluationWindow,
     build_episode_transition_event, derive_trend_pullback_reevaluation,
     evaluate_early_signal_transition, evaluate_family_signal, read_candidate_deadline,
     read_detection_boundary, read_operational_facts,
@@ -2518,18 +2518,53 @@ def test_the_threshold_uses_the_episodes_own_persisted_creation_tick():
     assert coarse.signal.evidence["min_valid_planned_risk"] == "3"
 
 
+_PURITY_BANNED_NAMES = {"instrument", "tick_size_for", "fetch_instrument", "Database", "asyncpg"}
+
+
+def _purity_scan_names(source: str) -> set:
+    """Every bare/attribute name a module's source text refers to, PLUS
+    every module/symbol name an `import`/`from ... import` statement binds
+    -- import/asname included. Name/Attribute-only scanning is bypassable
+    by aliasing (`import asyncpg as pg`, `from asyncpg import connect`):
+    neither the real module name nor an un-aliased imported symbol need
+    ever appear as its own `ast.Name`/`ast.Attribute` again once bound
+    under a different local name."""
+    import ast
+    tree = ast.parse(source)
+    names = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)}
+    names |= {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                names.add(alias.name.split(".")[0])
+                if alias.asname:
+                    names.add(alias.asname)
+        elif isinstance(node, ast.ImportFrom):
+            if node.module:
+                names.add(node.module.split(".")[0])
+            for alias in node.names:
+                names.add(alias.name)
+                if alias.asname:
+                    names.add(alias.asname)
+    return names
+
+
 def test_this_layer_reads_no_instrument_metadata():
     """Purity: the gate resolves its tick from persisted creation facts, so
     there is no metadata/DB access to get wrong."""
-    import ast
     source = (
         pathlib.Path(__file__).resolve().parents[2]
         / "analytics" / "forecasting_v2" / "episode_lifecycle.py").read_text(encoding="utf-8")
-    tree = ast.parse(source)
-    banned = {"instrument", "tick_size_for", "fetch_instrument", "Database", "asyncpg"}
-    names = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)}
-    names |= {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
-    assert not (names & banned)
+    assert not (_purity_scan_names(source) & _PURITY_BANNED_NAMES)
+
+
+def test_the_purity_scan_itself_catches_an_aliased_banned_import():
+    """Guards the guard: an aliased `import asyncpg as pg` or `from asyncpg
+    import connect` must not slip past the scan just because neither the
+    real module name nor the un-aliased symbol appears as a bare
+    `ast.Name`/`ast.Attribute` again."""
+    aliased = "import asyncpg as pg\nfrom asyncpg import connect as _connect\n"
+    assert _purity_scan_names(aliased) & _PURITY_BANNED_NAMES
 
 
 def _episode_with_creation_fact(field, value, *, drop=False):
@@ -2674,13 +2709,19 @@ def test_a_self_inconsistent_planned_risk_block_is_refused(field, value):
         V2PlannedRisk(**kwargs)
 
 
-def _forge_confirmed(hist, good, planned_risk):
+_UNSET = object()   # distinguishes "not overridden" from an explicit None override
+
+
+def _forge_confirmed(hist, good, planned_risk, *, operational_facts=_UNSET, signal=_UNSET):
     return V2LifecycleDecision(
         episode_id=good.episode_id, T=good.T, setup_family=good.setup_family,
         direction=good.direction, previous_state=EARLY_SIGNAL, new_state=CONFIRMED,
-        outcome=LIFECYCLE_CONFIRMED, reason="x", signal=good.signal,
+        outcome=LIFECYCLE_CONFIRMED, reason="x",
+        signal=good.signal if signal is _UNSET else signal,
         t_detect=good.t_detect, candidate_deadline=good.candidate_deadline,
-        operational_facts=good.operational_facts, planned_risk=planned_risk)
+        operational_facts=(
+            good.operational_facts if operational_facts is _UNSET else operational_facts),
+        planned_risk=planned_risk)
 
 
 def test_a_confirmed_decision_whose_tick_is_not_the_episodes_own_is_refused():
@@ -2717,6 +2758,194 @@ def test_a_tp_confirmed_using_stale_invalidation_is_refused_at_the_build_boundar
     forged = _forge_confirmed(hist, good, _risk(reference=104.0, invalidation=98.0))
     with pytest.raises(V2EpisodeLifecycleError, match="not the level episode"):
         build_episode_transition_event(forged, hist, authorization=_authorization(T=T))
+
+
+# ---- red-team round 2: untrusted TP geometry never proves itself -----------
+def test_a_tp_confirmed_reverting_to_an_already_persisted_deeper_extreme_is_refused():
+    """§7.1/§12.2a: once a deeper retracement is ALREADY PERSISTED (a
+    genuine, separately-recorded PRECONFIRMATION_UPDATE), a later hand-built
+    CONFIRMED decision may not silently revert to the shallower pre-update
+    geometry -- even when its own operational_facts and planned risk are
+    perfectly self-consistent with EACH OTHER. Only independent proof
+    against the episode's own persisted history catches this; the previous
+    check (planned_risk vs. the SAME decision's operational_facts) could
+    not, because both were forged together."""
+    creation = early_signal(tp_candidate(
+        T=T0, pullback_extreme=100.0, current_close=105.0, buffer=2.0))
+    hist0 = _history([creation])
+    T_update = _t(3)
+    update = _decide(
+        hist0, T=T_update, boundary=tp_facts(T=T_update, median=-1.0),
+        reevaluation=_window(T=T_update, closes=[97.0, 103.0], anchor=_TP_ANCHOR,
+                             filler=_LONG_FILLER))
+    assert update.outcome == LIFECYCLE_PRECONFIRMATION_UPDATE
+    update_event = build_episode_transition_event(
+        update, hist0, authorization=_authorization(T=T_update))
+    hist = _history([creation, update_event])
+    assert read_operational_facts(hist).pullback_extreme == 97.0     # genuinely persisted
+
+    T = _t(6)
+    good = _decide(hist, T=T, boundary=tp_facts(T=T, close=104.0))
+    assert good.operational_facts.pullback_extreme == 97.0
+    # Revert to the STALE, pre-update extreme (100.0) -- self-consistently:
+    # its own invalidation (98.0) and the forged planned risk both agree
+    # with THAT stale extreme, and with each other.
+    stale_facts = V2OperationalFacts(
+        direction=LONG, pullback_extreme=100.0, dynamic_bound=104.0,
+        entry_zone_lower=100.0, entry_zone_upper=104.0, invalidation_price=98.0,
+        protection_buffer=good.operational_facts.protection_buffer,
+        source=OPERATIONAL_SOURCE_CONFIRMATION,
+        source_bucket=good.operational_facts.source_bucket)
+    forged = _forge_confirmed(
+        hist, good, _risk(reference=104.0, invalidation=98.0), operational_facts=stale_facts)
+    with pytest.raises(V2EpisodeLifecycleError, match="SHALLOWER"):
+        build_episode_transition_event(forged, hist, authorization=_authorization(T=T))
+
+
+def test_a_tp_confirmed_with_invalidation_disconnected_from_its_own_geometry_is_refused():
+    """A `V2OperationalFacts.invalidation_price` that does not match what
+    §7.1's own geometry formula produces from ITS OWN pullback_extreme/
+    dynamic_bound/protection_buffer is refused -- even when a
+    separately-supplied `V2PlannedRisk` is perfectly self-consistent with
+    that same fabricated number, and even when pullback_extreme/
+    dynamic_bound look entirely legitimate."""
+    hist = episode(_tp_at_risk(risk="1.0"))
+    T = _t(1)
+    good = _decide(hist, T=T, boundary=tp_facts(T=T, close=_CLOSE))
+    fabricated_facts = V2OperationalFacts(
+        direction=LONG, pullback_extreme=good.operational_facts.pullback_extreme,
+        dynamic_bound=good.operational_facts.dynamic_bound,
+        entry_zone_lower=good.operational_facts.entry_zone_lower,
+        entry_zone_upper=good.operational_facts.entry_zone_upper,
+        invalidation_price=50.0,     # disconnected from the real §7.1 geometry
+        protection_buffer=good.operational_facts.protection_buffer,
+        source=OPERATIONAL_SOURCE_CONFIRMATION,
+        source_bucket=good.operational_facts.source_bucket)
+    forged = _forge_confirmed(
+        hist, good, _risk(reference=_CLOSE, invalidation=50.0),
+        operational_facts=fabricated_facts)
+    with pytest.raises(V2EpisodeLifecycleError, match="canonical geometry"):
+        build_episode_transition_event(forged, hist, authorization=_authorization(T=T))
+
+
+def test_a_tp_confirmed_with_a_foreign_protection_buffer_is_refused():
+    """A `protection_buffer` that is not the episode's own persisted
+    creation value is refused, even when the entry zone/invalidation it
+    would-be-computed geometry looks internally tidy."""
+    hist = episode(_tp_at_risk(risk="1.0"))
+    T = _t(1)
+    good = _decide(hist, T=T, boundary=tp_facts(T=T, close=_CLOSE))
+    foreign_buffer_facts = V2OperationalFacts(
+        direction=LONG, pullback_extreme=good.operational_facts.pullback_extreme,
+        dynamic_bound=good.operational_facts.dynamic_bound,
+        entry_zone_lower=good.operational_facts.entry_zone_lower,
+        entry_zone_upper=good.operational_facts.entry_zone_upper,
+        invalidation_price=good.operational_facts.invalidation_price,
+        protection_buffer="9.99",       # not this episode's own persisted buffer
+        source=OPERATIONAL_SOURCE_CONFIRMATION,
+        source_bucket=good.operational_facts.source_bucket)
+    forged = _forge_confirmed(
+        hist, good, _risk(
+            reference=_CLOSE, invalidation=good.operational_facts.invalidation_price),
+        operational_facts=foreign_buffer_facts)
+    with pytest.raises(V2EpisodeLifecycleError, match="not episode .* own persisted creation"):
+        build_episode_transition_event(forged, hist, authorization=_authorization(T=T))
+
+
+@pytest.mark.parametrize("family", [COMPRESSION_BREAKOUT, CONFIRMED_BREAKOUT, TREND_PULLBACK])
+def test_a_confirmed_decision_with_a_fabricated_reference_price_is_refused(family):
+    """§18.1's `confirmation_reference_price` must be bound to the actual
+    confirmation observation -- the family predicate's own recorded
+    `reference_close` evidence (breakouts) or the frozen zone's own
+    `dynamic_bound` (TREND_PULLBACK) -- never merely asserted, even when the
+    forged `V2PlannedRisk` is otherwise perfectly self-consistent."""
+    hist = episode(_AT_RISK[family](risk="1.0"))
+    T = _t(1)
+    good = _decide(hist, T=T, boundary=_confirm_facts(T, family=family))
+    wrong_reference = _CLOSE + 5.0
+    forged = _forge_confirmed(
+        hist, good,
+        _risk(reference=wrong_reference, invalidation=good.planned_risk.invalidation_price))
+    with pytest.raises(V2EpisodeLifecycleError, match="two spellings of the confirmation price"):
+        build_episode_transition_event(forged, hist, authorization=_authorization(T=T))
+
+
+def test_a_confirmed_decision_whose_signal_carries_no_reference_close_is_refused():
+    """A breakout family signal missing its own 'reference_close' evidence
+    (an internally-forged `V2FamilySignal`) cannot silently authorize an
+    unbound §18.1 reference price -- fails closed rather than skipping the
+    check for lack of a comparison value."""
+    hist = episode(_comp_at_risk(risk="1.0"))
+    T = _t(1)
+    good = _decide(hist, T=T, boundary=facts(T=T, close=_CLOSE))
+    bare_signal = V2FamilySignal(signal=SIGNAL_CONFIRM, reason="x", evidence={})
+    forged = _forge_confirmed(hist, good, _risk(reference=_CLOSE, invalidation=99.0),
+                              signal=bare_signal)
+    with pytest.raises(V2EpisodeLifecycleError, match="carries no recorded 'reference_close'"):
+        build_episode_transition_event(forged, hist, authorization=_authorization(T=T))
+
+
+def test_a_malformed_persisted_tick_at_the_build_boundary_raises_the_lifecycle_error():
+    """The public builder reads Unit 2's own tick reader directly
+    (`_assert_planned_risk_matches_history()`); its domain error must be
+    translated to `episode_lifecycle`'s OWN public error type, never
+    leaked, exactly like `evaluate_planned_risk()` already does on the
+    evaluate path."""
+    hist = _episode_with_creation_fact("decision_tick_size", "not-a-number")
+    identity = hist.creation_identity
+    forged = V2LifecycleDecision(
+        episode_id=hist.episode_id, T=_t(1), setup_family=identity.setup_family,
+        direction=identity.direction, previous_state=EARLY_SIGNAL, new_state=CONFIRMED,
+        outcome=LIFECYCLE_CONFIRMED, reason="x", signal=_signal(SIGNAL_CONFIRM),
+        t_detect=read_detection_boundary(hist), candidate_deadline=read_candidate_deadline(hist),
+        planned_risk=_risk())
+    with pytest.raises(V2EpisodeLifecycleError, match="tick size is"):
+        build_episode_transition_event(forged, hist, authorization=_authorization(T=_t(1)))
+
+
+# ---- red-team round 2: planned_risk/confirmation_facts legal only for
+# CONFIRMED -------------------------------------------------------------------
+def test_a_hand_built_expired_with_planned_risk_is_refused():
+    with pytest.raises(V2EpisodeLifecycleError, match="must carry no §18.1"):
+        _decision(outcome=LIFECYCLE_EXPIRED_CANDIDATE_AGE, new_state=EXPIRED,
+                  signal=_signal(SIGNAL_HOLD), T=_t(3), candidate_deadline=_t(3),
+                  planned_risk=_risk())
+
+
+def test_a_hand_built_false_break_with_planned_risk_is_refused():
+    with pytest.raises(V2EpisodeLifecycleError, match="must carry no §18.1"):
+        _decision(outcome=LIFECYCLE_INVALIDATED_FALSE_BREAK, new_state=INVALIDATED,
+                  signal=_signal(SIGNAL_FALSE_BREAK), planned_risk=_risk())
+
+
+def test_a_hand_built_preconfirmation_update_with_planned_risk_is_refused():
+    tp_ops = V2OperationalFacts(
+        direction=LONG, pullback_extreme=100.0, dynamic_bound=105.0,
+        entry_zone_lower=100.0, entry_zone_upper=105.0, invalidation_price=98.0,
+        protection_buffer="2", source=OPERATIONAL_SOURCE_REEVALUATION, source_bucket=T0)
+    with pytest.raises(V2EpisodeLifecycleError, match="must carry no §18.1"):
+        _decision(outcome=LIFECYCLE_PRECONFIRMATION_UPDATE, new_state=EARLY_SIGNAL,
+                  setup_family=TREND_PULLBACK, signal=_signal(SIGNAL_HOLD),
+                  operational_facts=tp_ops, planned_risk=_risk())
+
+
+def test_a_hand_built_no_change_with_planned_risk_is_refused():
+    with pytest.raises(V2EpisodeLifecycleError, match="must carry no §18.1"):
+        _decision(outcome=LIFECYCLE_NO_CHANGE, new_state=EARLY_SIGNAL,
+                  signal=_signal(SIGNAL_HOLD), planned_risk=_risk())
+
+
+@pytest.mark.parametrize("family", [COMPRESSION_BREAKOUT, CONFIRMED_BREAKOUT, TREND_PULLBACK])
+def test_a_valid_confirmed_still_persists_exactly_one_confirmation_facts_block(family):
+    """The positive canonical path, for all three families: confirmation_facts
+    exists exactly once, only on the CONFIRMED event."""
+    hist = episode(_AT_RISK[family](risk="1.0"))
+    T = _t(1)
+    decision = _decide(hist, T=T, boundary=_confirm_facts(T, family=family))
+    assert decision.outcome == LIFECYCLE_CONFIRMED
+    event = build_episode_transition_event(decision, hist, authorization=_authorization(T=T))
+    assert CONFIRMATION_FACTS_KEY in event.event_payload
+    assert event.episode_state == CONFIRMED
 
 
 # ---- §13 one event per T ----------------------------------------------------
