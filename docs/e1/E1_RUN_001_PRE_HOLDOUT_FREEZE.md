@@ -4,7 +4,7 @@ Status: **FROZEN BEFORE ANY HOLDOUT OUTCOME READ**
 Date: 2026-08-25  
 Holdout: `[2026-08-16T00:00:00Z, 2026-08-25T17:20:00Z)`
 
-This is an append-only prospective amendment recorded after development candidate/control/ablation outcomes were consumed and while the chronological holdout remains unopened. The original `docs/E1_DETECTOR_SEPARATION_PREREG.md` remains unchanged as the historical preregistration artifact. This file freezes the final holdout reporting, delay and economic-friction stress rules. No detector threshold or production Stage-3/4/5 rule may change for E1-RUN-001.
+This amendment is recorded after development candidate/control/ablation outcomes were consumed and while the chronological holdout remains unopened. It freezes the final holdout reporting, delay and economic-friction stress rules. No detector threshold or production Stage-3/4/5 rule may change for E1-RUN-001.
 
 ## 1. Holdout is opened once
 
@@ -14,9 +14,12 @@ Before the first holdout future-price query:
 2. record outcome-free counts/directions/overlap;
 3. fail closed if frozen FULL holdout counts do not reproduce the previously recorded candidate census (`TP=105`, `CB=17`, `FB=19`);
 4. freeze the candidate artifact;
-5. only then run one holdout outcome evaluation.
+5. verify timestamp-only raw 1m coverage through the longest required `+4h` path without reading OHLC values;
+6. only then run one holdout outcome evaluation.
 
 After holdout outcomes are opened, no parameter, family definition, baseline definition, horizon, delay, cost grid, matching rule, or verdict criterion may be changed inside E1-RUN-001.
+
+The outcome-free holdout ablation census has now reproduced the FULL populations exactly (`TP=105`, `CB=17`, `FB=19`) with `outcomes_included=false`, `holdout_outcomes_opened=false`, and `holdout_market_rows_read=false`. This satisfies steps 1–4. Step 5 is now the only authorized pre-outcome action.
 
 ## 2. Variants to report on holdout
 
