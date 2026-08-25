@@ -42,6 +42,16 @@ def test_directional_return_matches_preregistered_formula():
     )
 
 
+def test_bool_is_not_accepted_as_numeric_price():
+    m = _load_module()
+    try:
+        m._finite_float(True, "price")
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("bool must not be accepted as a numeric price")
+
+
 def test_final_split_partition_and_four_hour_purge():
     m = _load_module()
     utc = timezone.utc
