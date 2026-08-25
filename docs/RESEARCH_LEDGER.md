@@ -162,6 +162,48 @@ These are **current project hypotheses to test**, not claims already supported b
 
 ---
 
+## Concrete pre-registered runs
+
+### E1-RUN-001 — Frozen V2 Stage-5 detector separation
+
+- Date: `2026-08-25`
+- Status: `PRE_REGISTERED`
+- Hypothesis IDs: `H-002`, `H-003`, `H-004`, `H-006`, `H-010`, `H-013`, `H-014`, `H-015`, `H-016`
+- Frozen implementation base: `main@8081eb31657f127141efb3a455f86690258164bc`
+- Stage-6 lifecycle dependency: **FORBIDDEN for primary E1 candidate generation**
+- Full pre-registration: `docs/E1_DETECTOR_SEPARATION_PREREG.md`
+
+Hypothesis:
+
+> Frozen Stage-5 qualifications should alter the post-`T` directional return/MFE/MAE distribution relative to simple and time-matched controls. If they do not, later lifecycle machinery is not allowed to be treated as a source of predictive information.
+
+Primary evidence:
+
+- post-`T` directional return at `15m/30m/1h/2h/4h`;
+- MFE/MAE and time-to-MFE from Binance raw 1m bars;
+- family-vs-simple-baseline separation;
+- UTC-day clustered/concentration diagnostics.
+
+Controls/ablations are frozen in `docs/E1_DETECTOR_SEPARATION_PREREG.md`; deterministic random seed is `20260825`.
+
+Development window: **TBD after coverage + detector-count inventory only**.  
+Untouched chronological holdout: **TBD after coverage + detector-count inventory only**.  
+Has holdout/OOS outcome already been viewed for this run? **NO**.  
+Outcome inspection before the split is recorded: **FORBIDDEN**.
+
+Parameter/config/code change proposed: none to frozen production detector semantics.  
+Data/source change proposed: none; research harness reads existing persisted data only.
+
+Decision rule:
+
+- `SURVIVES`, `SIMPLIFY`, `DEMOTE_TO_BASELINE`, `KILL`, or `INCONCLUSIVE_SAMPLE` per family;
+- global Level-0 fail if all three frozen families fail simple/matched controls and full variants do not beat simpler ablations.
+
+Result summary: pending.  
+Consumed evidence windows: none yet.
+
+---
+
 ## Future-hypothesis quarantine
 
 Ideas may be recorded here without entering V2-v0.
