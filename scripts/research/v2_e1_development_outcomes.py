@@ -75,7 +75,9 @@ def _parse_utc(text: str) -> datetime:
 
 
 def _finite_float(value: Any, label: str) -> float:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
+    if isinstance(value, bool):
+        raise RuntimeError(f"{label} must be numeric and not bool, got {value!r}")
+    if not isinstance(value, (int, float)):
         # asyncpg frequently returns Decimal for NUMERIC columns.
         try:
             value = float(value)
