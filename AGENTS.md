@@ -8,15 +8,20 @@ Signalbot is a BTC perpetual decision-support / forecasting research project, no
 
 V1 is a frozen research baseline. V2-v0 is research-frozen while it is implemented and empirically falsified.
 
+Forecasting V2 is the current primary analytical engine and implementation program, but **Signalbot is not defined by the success of one forecasting hypothesis**. Project-wide future-extensibility, evidence/auditability, competitive posture, and post-roadmap strategy-review guardrails live in `docs/PROJECT_STRATEGY_AND_ARCHITECTURE_PRINCIPLES.md`. Future product ideas live in `docs/PRODUCT_HYPOTHESES.md` and are not implementation authorization.
+
 ## Read the right source of truth first
 
 Before changing code, read the documents relevant to the task:
 
+- Project-wide strategy / architecture posture: `docs/PROJECT_STRATEGY_AND_ARCHITECTURE_PRINCIPLES.md`
 - Product direction / stage order: `docs/FORECASTING_ROADMAP.md`
 - Frozen V2 product semantics: `docs/V2_PRODUCT_CONTRACT.md`
 - Deterministic V2 formulas, thresholds, correctness and promotion rules: `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md`
+- Tactical execution order / gates: `docs/PROJECT_EXECUTION_PLAN.md`
 - Empirical falsification protocol: `docs/V2_EMPIRICAL_RED_TEAM_PLAN.md`
 - Mathematical hypotheses and freeze/test status: `docs/V2_MATHEMATICAL_HYPOTHESIS_REGISTER.md`
+- Future product hypothesis parking lot: `docs/PRODUCT_HYPOTHESES.md`
 - Open risks and technical debt: `docs/PROJECT_RISK_AND_DEBT_REGISTER.md`
 - Stage 2 feature / percentile contracts: `docs/STAGE2_SPEC.md` and `docs/STAGE2_CLARIFICATIONS.md`
 - Runtime config: `config/v2.yaml` and `config/stage2.yaml`
@@ -32,6 +37,20 @@ The root `README.md` contains useful Stage-1 history but is not canonical for cu
 - Never merge, deploy, or touch production/VPS state unless explicitly authorized.
 - Never expose or commit `.env`, tokens, credentials, chat IDs, private keys, or other secrets.
 - If the correct owner/layer is genuinely unclear, investigate and report the ambiguity instead of inventing architecture or broadening scope.
+- Product hypotheses recorded in `docs/PRODUCT_HYPOTHESES.md` are a parking lot, not roadmap scope. Do not implement them without an explicit later product-direction decision.
+
+## Future-extensibility guardrail
+
+Preserve natural boundaries between reusable platform capabilities and V2-specific logic **when the current task actually exposes such a boundary**. Do not build speculative universal abstractions.
+
+When ownership is ambiguous, use the two project-level design checks from `docs/PROJECT_STRATEGY_AND_ARCHITECTURE_PRINCIPLES.md`:
+
+1. **Second-engine test:** would a future independent analytical engine need private V2 internals to reuse the capability?
+2. **Removal test:** would removing V2 unnecessarily delete a capability that is conceptually useful outside forecasting?
+
+A positive answer is a reason to inspect the boundary, not automatic authorization to refactor. Current scope and frozen contracts still win.
+
+Prefer structured, traceable analytical results over presentation-layer narrative as the source of truth. UI/Telegram/LLM wording must not silently become the mathematical contract.
 
 ## V2 research freeze — load-bearing rule
 
@@ -69,6 +88,7 @@ For audit / empirical-validation tasks:
 - `HYPOTHESIS` findings are normally `FREEZE_AND_TEST`, not immediate formula edits.
 - Do not use future returns to choose a measurement/correctness invariant.
 - Prefer characterization/adversarial tests before behavioral changes when the contract is intentionally frozen.
+- `UNKNOWN`, `NO EDGE`, and `INSUFFICIENT DATA` are valid outcomes; do not manufacture certainty or rescue a failed hypothesis with post-hoc tuning.
 
 ## Qodo / PR review workflow
 
