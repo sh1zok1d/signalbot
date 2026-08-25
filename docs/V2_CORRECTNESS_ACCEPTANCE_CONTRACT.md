@@ -685,6 +685,52 @@ active same-slot cooldowns (§12.8)
 decision-code tuple. **Do NOT** silently mix old-tuple active state with
 new-tuple new creation within the same logical `LIVE` stream.
 
+**Which tuple an episode belongs to, frozen exactly (Stage 6 unit 3
+red-team amendment — closes a previously implicit ambiguity).** "Their
+ORIGINAL, frozen semantic tuple" above was never given a mechanical
+definition, and one was genuinely needed: `§2.1a` deliberately EXCLUDES
+`decision_code_version` from `episode_id` (so that a decision-code-only
+release does not fork an episode's identity), which left it arguable that
+one episode's later events could legally carry a different
+`decision_code_version` from its creation event. That reading is now
+rejected. Frozen:
+
+```text
+An episode is attributed to the semantic tuple recorded by its CREATION
+event -- the EARLY_SIGNAL event that brought it into existence:
+
+    creation_semantic_tuple := (rules_version,
+                                calculation_version,
+                                decision_code_version)
+
+For an already-existing episode, EVERY lifecycle transition through its
+terminal state continues under that CREATION semantic tuple. Therefore
+every later lifecycle event's decision_code_version MUST EQUAL the
+episode's own creation event's decision_code_version, exactly as its
+rules_version and calculation_version must.
+```
+
+The two facts about `decision_code_version` are complementary, not
+contradictory:
+
+```text
+a decision-code-only release does NOT fork episode_id
+    -- §2.1a: decision_code_version is excluded from the identity hash, so
+       the SAME episode is still the same episode across such a release.
+
+a decision-code-only release MUST NOT reinterpret or mutate an
+already-existing episode
+    -- this section: the new decision code applies only to work belonging
+       to the NEW semantic tuple, and that tuple may only begin creating
+       episodes once the DRAIN-BEFORE-ACTIVATE rules above permit it.
+```
+
+Together these give a deterministic meaning to "old episodes continue
+under their ORIGINAL frozen semantic tuple": identity does not fork, and
+behavior does not drift. This also makes a drain population countable
+without guessing — an episode counts against the tuple its own creation
+event records, and against no other.
+
 **Finite, exact V2-v0 switch state machine (re-amended — tech-lead/
 red-team finding: the prior wording did not clearly forbid the OLD tuple
 from continuing to create new episodes once a switch request started,
@@ -944,6 +990,31 @@ resolved **before** Stage 3/4/5/6's math ran for that decision — never a
 provenance value independently supplied at the end of the pipeline that
 could, even in principle, differ from what was actually used to compute
 the candidate.
+
+**For an ALREADY-EXISTING episode, tuple B is not merely "some other
+tuple" — it is anything other than that episode's own creation tuple
+(Stage 6 unit 3 red-team amendment).** The rule immediately above is
+written for one decision's forward path (resolve provenance → compute →
+persist). A lifecycle transition on an existing episode has a second,
+equally binding constraint, frozen in
+[§3.1](#31-livereplay-version-switch-policy-drain-before-activate): the
+transition MUST be computed from, and persisted under, that episode's
+**creation** semantic tuple `(rules_version, calculation_version,
+decision_code_version)`. Two concrete consequences an implementation MUST
+enforce rather than assume:
+
+```text
+1. The current-boundary DATA a lifecycle decision reads must belong to
+   the same semantic scope the resulting event will be stamped with --
+   the same symbol, market_type, calculation_version and
+   feature_schema_version. Reading an aligned snapshot resolved for scope
+   B and persisting the resulting transition under the episode's scope A
+   is exactly the "computed under A, persisted as B" violation above,
+   arriving from the input side instead of the output side.
+2. The transition event's own decision_code_version must equal the
+   episode's creation-event value (§3.1), even though §2.1a excludes that
+   field from episode_id.
+```
 
 This section does **not** require every small pure intermediate result
 object (a `V2RegimeResult`, a `V2BiasResult`, a Stage 5 candidate) to
@@ -4484,6 +4555,94 @@ CONFIRMED_BREAKOUT (CONFIRMATION_MAX_AGE = 8 x 5m buckets): identical
   opportunity; EXPIRED fires only if that same bucket does not confirm.
 ```
 
+**Deadline resolution when a REQUIRED decision input is `UNAVAILABLE` or
+`REJECTED` (Stage 6 unit 3 red-team amendment — closes a previously
+unfrozen edge case).** The vectors above all assume the deadline bucket's
+own family predicate could actually be *evaluated*. An independent
+red-team of the first executable Stage 6 unit 3 implementation showed that
+this document never froze what happens when it cannot be — when the
+family's own `§6.3a` required metric family is `UNAVAILABLE`/`REJECTED`,
+or when `§11`'s canonical reference close needed by the predicate fails
+its fail-closed gate. Two wrong readings were both available: treat the
+unevaluable boundary as a neutral `HOLD` (which silently collapses
+[§21](#21-failure--fail-closed-rules)'s `Unavailable`/`Rejected` categories
+into a real measured observation), or leave the episode `EARLY_SIGNAL`
+past its deadline (which extends a frozen time budget). Both are now
+forbidden. The frozen V2-v0 rule:
+
+```text
+Candidate max age (§14, above) is a HARD LIFECYCLE TIME BUDGET. It is
+never extended, retried, or paused by a data problem.
+
+At T == candidate_deadline:
+
+1. If the family predicate is validly evaluable at that boundary:
+     confirming condition        -> CONFIRMED
+     breakout false-break        -> INVALIDATED
+     neutral/HOLD/non-confirming
+       VALID observation         -> EXPIRED
+
+2. If a REQUIRED decision input is UNAVAILABLE or REJECTED at that
+   boundary (§6.3a required metric family, or §11's canonical reference
+   close the predicate needs):
+     - the boundary MUST NOT be reported as a neutral HOLD -- the market
+       did not produce one, and §21 forbids collapsing Unavailable or
+       Rejected into a real measured value;
+     - CONFIRMED and INVALIDATED MUST NOT be invented -- §22 forbids
+       fabricating the missing observation;
+     - the age window still ENDS;
+     - the episode transitions to EXPIRED;
+     - the persisted transition evidence MUST retain the actual
+       resolution category (UNAVAILABLE or REJECTED, distinct from HOLD)
+       and its exact reason.
+```
+
+The semantic meaning of `EXPIRED` is therefore stated precisely, once:
+
+```text
+EXPIRED (from EARLY_SIGNAL) = the candidate is no longer eligible after
+its maximum age. It does NOT imply that every market predicate was
+successfully observed on every eligible bucket -- only that the budget
+ended without a CONFIRMED or INVALIDATED resolution.
+```
+
+This preserves [§21](#21-failure--fail-closed-rules) (the four outcome
+categories stay distinct in the persisted record) rather than laundering
+an unknown into a measured neutral, and preserves this section's own hard
+budget (no window extension, no late retry, and no `EARLY_SIGNAL`
+surviving past its deadline). A boundary strictly *before* the deadline
+whose required input is `UNAVAILABLE`/`REJECTED` produces **no** lifecycle
+transition at all — the episode simply keeps waiting, exactly as it does
+for a genuine `HOLD`, and the distinction is again preserved in whatever
+record that boundary does produce.
+
+**`TREND_PULLBACK` confirmation additionally requires the reference close
+that freezes its final zone (same amendment).** `TREND_PULLBACK` is the
+one family whose `CONFIRMED` transition needs a *second* input beyond its
+own trigger: [§7.1](#71-trend_pullback)'s final entry zone is
+`[pullback_extreme, confirmation_close_price]`, and
+`confirmation_close_price` is `close_price(B5_confirm, reference_exchange)`
+under [§11](#11-reference-price-semantics)'s fail-closed gate. Frozen:
+
+```text
+TREND_PULLBACK transitions EARLY_SIGNAL -> CONFIRMED only when BOTH:
+    (a) §7.1's resumption trigger holds on B5_confirm, AND
+    (b) the canonical §11 reference 5m close required to freeze the final
+        entry zone is available and usable.
+
+If (a) holds but (b) does not:
+    before the deadline: NO CONFIRMED transition. The recorded category is
+        UNAVAILABLE -- NOT "the trigger failed". The trigger held; the
+        transition could not be MATERIALIZED. A legitimate same-T §12.2a
+        operational update MAY still be recorded at that boundary.
+    at the deadline: EXPIRED, with UNAVAILABLE deadline-resolution
+        evidence, per the rule above.
+```
+
+Recording this as a failed trigger would be a false record of what the
+market did; §22's no-silent-fallback rule and §21's category discipline
+both require the distinction to survive into the persisted event.
+
 **Worked vector — invalidation and confirmation both apparent on the final
 eligible bucket.** Same `COMPRESSION_BREAKOUT` setup as above
 (`EARLY_SIGNAL` `SHORT` at `T1=12:00`, broken below `range_low`). Suppose
@@ -5616,6 +5775,42 @@ than collapsing them into one:
 | **Neutral** | The input exists and is valid, but genuinely indicates "no lean" — a real measured value, not an absence. | `NEUTRAL_NOT_ESTABLISHED` 1h bias; `bias_strength = 0.0` in confidence scoring. |
 | **Rejected** | The input exists, but a hard gate explicitly disqualifies it. | Insufficient cross-exchange coverage (`< 2/3`); malformed/non-finite numeric values; `calculation_version`/`rules_version` mismatch across inputs that must agree; contradictory context violating a setup's hard gate (e.g. `TREND_PULLBACK` attempted against a `NON_DIRECTIONAL` regime); `planned_risk_distance < MIN_VALID_PLANNED_RISK` ([§18.1](#181-planned-risk-structural-available-at-confirmed)); an already-breached invalidation level discovered before confirmation. |
 | **Late / non-actionable** | The input and gates are all otherwise satisfied, but real-world entry feasibility fails. | [§15](#15-entry-feasibility-evaluation)'s infeasible/late verdict — analytically valid, still stored for research, never published as actionable. |
+
+**These four categories MUST stay distinct in the persisted record, not
+only at the moment of refusal (Stage 6 unit 3 red-team amendment).** A
+decision layer that reduces them to one boolean ("the gate passed / did
+not pass") destroys exactly the distinction this section exists to
+preserve, and a later reader cannot recover it. Concretely, for any V2
+decision gated on [§6.3a](#63a-per-family-metric-scoped-quality-gates)'s
+required metric families:
+
+```text
+the whole consensus row is absent, or the required family's own
+coverage/confidence value is NULL          -> Unavailable
+the required family is PRESENT but below
+its frozen coverage/confidence floor       -> Rejected
+a real measured value that indicates no
+lean / no qualifying condition             -> Neutral (e.g. a §7.2/§7.3
+                                              boundary-equality HOLD)
+```
+
+`Rejected` is **not** a spelling of `Unavailable`: coverage `0.50` against
+a `2/3` floor is a real, present measurement that a hard gate disqualified,
+while a missing row is an absence. Both refuse the decision; only one of
+them is a statement about observed data quality. Where a lifecycle
+transition depends on such a gate, the resolution category MUST be carried
+into the event that records it — see
+[§14](#14-candidate-expiry-and-expected-horizons)'s frozen deadline rule
+for the exact `EARLY_SIGNAL` case.
+
+**A required-family gate failure makes the whole predicate unevaluable.**
+Also frozen, as the direct consequence of §6.3a: if a decision's required
+metric family is `Unavailable` or `Rejected` at a boundary, that
+decision's predicate is **not** considered successfully evaluated there —
+another input that happens to be present (for example a usable §11
+reference close) does **not** independently rescue it. This is a
+data-quality gate on the decision, not a structural
+([§10](#10-structural-invalidation)) rule.
 
 Every failure additionally requires: no future/leaking data (enforced
 structurally by [§1](#1-the-v2-decision-clock)/[§2](#2-no-lookahead-semantics-per-input-family));

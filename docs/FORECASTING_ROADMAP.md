@@ -1123,17 +1123,17 @@ already assume is durable.
 Stage 5 qualification implementation. This does NOT mean the V2 trading
 product is complete — Stage 6 (Episode State Machine), which owns episode
 identity/dedup, family precedence (§7.4), confirmation, false-break
-transitions, expiry, weakening, and persistence orchestration, has only
-begun (unit 1 of 5, PR #63 open — see the status block immediately below).
+transitions, expiry, weakening, and persistence orchestration, has begun
+(units 1 and 2 of 5 merged — see the status block immediately below).
 
-**Executable Stage 6 has STARTED (Unit 1 of 5 only).** `#43` — including
-its two post-open amendment rounds and this clean-room pre-Stage-6 contract
-consolidation and cross-stage audit — is documentation-only contract work
-that precedes Stage 6, never Stage 6 implementation itself. The prose below
-this status block describes the state as of `#43` and is retained as
-historical record; the current status is:
+**Executable Stage 6 has STARTED (units 1 and 2 of 5 merged).** `#43` —
+including its two post-open amendment rounds and this clean-room pre-Stage-6
+contract consolidation and cross-stage audit — is documentation-only
+contract work that precedes Stage 6, never Stage 6 implementation itself.
+The prose below this status block describes the state as of `#43` and is
+retained as historical record; the current status is:
 
-- **Stage 6 — Episode State Machine: UNIT 1 MERGED, UNIT 2 OF 5 IN
+- **Stage 6 — Episode State Machine: UNITS 1 AND 2 MERGED, UNIT 3 OF 5 IN
   PROGRESS.**
   - Unit (1) — episode identity + the persisted-history read foundation —
     **MERGED** as PR #63: stream-scoped/`as_of`-bounded
@@ -1142,15 +1142,27 @@ historical record; the current status is:
     revalidation through `V2-H3`'s existing primitives, and §12.5/§12.5a's
     exact tick-normalized creation grid recorded by value. Takes no
     lifecycle decision; adds no schema.
-  - Unit (2) — candidate routing/creation arbitration — **IN PROGRESS, PR
-    OPEN, NOT merged**: §12.3/§12.4 same-slot A/B/C classification against
+  - Unit (2) — candidate routing/creation arbitration — **MERGED** as PR
+    #64: §12.3/§12.4 same-slot A/B/C classification against
     the active episode's creation identity, §12.6 one-active-per-slot and
     §12.8 terminal-cooldown eligibility, §7.4/§7.4.1/§7.4.2 per-direction
     family-precedence arbitration, and canonical `EARLY_SIGNAL` creation
     with §22 by-value creation facts. Takes no lifecycle transition
     decision, consumes §13.4's two views as inputs rather than computing
     them, and adds no schema.
-  - **Units (3)–(5) are NOT IMPLEMENTED.**
+  - Unit (3) — family confirmation / false-break / candidate-expiry
+    transitions — **IN PROGRESS, PR OPEN, NOT merged**: the three §7.1/
+    §7.2/§7.3 family confirmation predicates evaluated at every later legal
+    5m boundary, both breakout families' own direction-aware one-sided
+    pre-confirmation false-break rules, §14's per-family candidate-age
+    deadlines (with §13.1's frozen "the deadline bucket is still a valid
+    confirmation opportunity" precedence), and `TREND_PULLBACK`'s §12.2a
+    mechanism-(1) pre-confirmation operational updates plus its §9
+    confirmation-time freeze. Owns transitions out of `EARLY_SIGNAL` only;
+    implements no §10 generic post-confirmation invalidation engine, no
+    `WEAKENING`/recovery, no horizon resolution, no §13.4 coordinator, and
+    adds no schema.
+  - **Units (4)–(5) are NOT IMPLEMENTED.**
 - **PRE-STAGE-6 HARDENING: COMPLETE (all MERGED).** `#43` (contract
   consolidation) and `#44` (Quality/scoring boundary hardening, including
   its round-2 amendment closing the `V2BiasResult`
@@ -1476,8 +1488,9 @@ correctness contract — subject to change if audit findings evolve):**
   and `§2.1a`'s deterministic IDs/one-event-per-T model) — **MERGED (PR
   #63)**; (2) candidate
   classification/arbitration/`EARLY_SIGNAL` creation/same-slot/cooldown
-  eligibility — **IN PROGRESS, PR open, not merged**; (3) family confirmation/false-break/candidate-expiry
-  transitions; (4) `CONFIRMED`/`WEAKENING`/structural invalidation/horizon
+  eligibility — **MERGED (PR #64)**; (3) family confirmation/false-break/
+  candidate-expiry transitions — **IN PROGRESS, PR open, not merged**;
+  (4) `CONFIRMED`/`WEAKENING`/structural invalidation/horizon
   terminal resolution (requires `§18.2a`'s now-fully-frozen analytical-
   excursion primitive — shared with, not duplicated against, the later
   Stage 8 V2 Outcome Evaluator); (5) same-boundary orchestration order
@@ -1498,9 +1511,10 @@ introduced that update. INFRA-D1 did not block any `V2-H2*` sub-PR.
 
 **Current position:** the pre-Stage-6 sequence below is fully merged
 (`V2-H2c` #59, `V2-H2e` #60, `V2-H3` #61, G0 final cleanup #62), and
-**Stage 6 unit (1) is MERGED as PR #63** (episode history foundation) and
-**unit (2) of (5) is in progress** (candidate routing/creation
-arbitration, PR open, not merged). Units (3)–(5) are not started.
+**Stage 6 units (1) and (2) are MERGED** (episode history foundation as PR
+#63; candidate routing/creation arbitration as PR #64). **Unit (3) of (5)
+is in progress** (family confirmation/false-break/candidate-expiry
+transitions, PR open, not merged). Units (4)–(5) are not started.
 
 Conceptual planning order going forward (logical labels, not a claim about
 future GitHub PR numbers — those are assigned only when each PR is

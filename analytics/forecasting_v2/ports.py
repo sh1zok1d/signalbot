@@ -280,17 +280,44 @@ class V2VersionDrainStatusReader(Protocol):
     DISTINCT active-cooldown slots is therefore now mechanically possible,
     so gap 2 is no longer a blocker.
 
-    Gap 1 remains, and it alone still prevents a correct implementation.
-    §3.1 says "Old-version episodes continue under their ORIGINAL, frozen
-    semantic tuple", which reads as "attribute an episode by its creation
-    event" — but §2.1a deliberately excludes `decision_code_version` from
-    `episode_id` precisely so a Stage 6 bug-fix release changing it alone
-    does not fork an episode's identity, which permits one episode's events
-    to legally carry different `decision_code_version` values. Nothing
-    frozen resolves which of those two governs when counting an episode
-    against a tuple that INCLUDES `decision_code_version`. Picking one
-    reading would be inventing contract, so this stays deferred until the
-    attribution rule is frozen explicitly.
+    Gap 1 was, until Stage 6 Unit 3, the remaining blocker: §3.1 said "Old-
+    version episodes continue under their ORIGINAL, frozen semantic tuple"
+    without a mechanical definition of which event fixes that tuple, while
+    §2.1a deliberately excludes `decision_code_version` from `episode_id`
+    so a Stage 6 bug-fix release does not fork an episode's identity — which
+    left it arguable that one episode's events could legally carry
+    different `decision_code_version` values. Nothing frozen resolved which
+    reading governed when counting an episode against a tuple that
+    INCLUDES `decision_code_version`.
+
+    **Stage 6 Unit 3 — gap 1 SEMANTICALLY CLOSED; the concrete
+    implementation is still deliberately deferred.** An independent
+    red-team of Unit 3 forced that ambiguity to be resolved rather than
+    worked around, and §3.1 now freezes the attribution rule explicitly:
+
+        An episode is attributed to the semantic tuple recorded by its
+        CREATION event, and EVERY later lifecycle transition through its
+        terminal state continues under that same creation tuple —
+        `decision_code_version` included. A decision-code-only release
+        therefore does not fork `episode_id` (§2.1a, unchanged) AND may not
+        reinterpret an already-existing episode (§3.1).
+
+    So the counting rule this Protocol needed is no longer undefined: an
+    episode counts against the tuple its own creation event records, and
+    against no other; `episode_lifecycle.py` enforces the same rule on the
+    write side, refusing a lifecycle event whose `decision_code_version`
+    differs from the creation event's. Both remaining pieces — the per-slot
+    cooldown substrate (gap 2, Unit 2) and the attribution rule (gap 1,
+    Unit 3) — now exist.
+
+    What is still absent is only the concrete
+    `storage.db.Database`-backed query and its real-PostgreSQL proof. That
+    is deliberately NOT written here: Unit 3 owns lifecycle transitions and
+    does not consume drain status at all (§3.1 requires an existing episode
+    to keep transitioning THROUGHOUT a drain, so no Unit 3 decision is
+    drain-gated), and implementing an unused reader would ship an
+    unexercised production query on a table this repository does not yet
+    populate. It belongs with the unit that actually consumes it.
 
     A wrong answer changes the DRAIN decision itself, not merely its
     reported numbers. A deliberately WRONG placeholder (notably
