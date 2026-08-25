@@ -549,6 +549,22 @@ class V2BoundaryFacts:
     Either may be `None` -- legitimately UNAVAILABLE, never an error (§21's
     Unavailable category).
 
+    **Residual trust limit, stated plainly (not solved here).** Like
+    `V2LifecycleAuthorization.publication_clean` below, this type is public
+    and directly constructible, so nothing in this module cryptographically
+    or provenance-proves that a given instance actually came from a real
+    H2e coherent read session rather than being hand-built by a caller who
+    also hand-builds a matching `V2LifecycleDecision`. This PR's persistence
+    -boundary fix closes the DIFFERENT, now-provable half of that problem --
+    a decision and boundary facts that DISAGREE with each other or with
+    persisted history are refused -- but a caller able to forge BOTH
+    consistently is a real, known limit of this layer, not a new one this
+    fix introduces. Composing that guarantee (never letting anything but a
+    genuine H2e session construct one) is Unit 5's runtime-composition
+    obligation, exactly as `V2LifecycleAuthorization.publication_clean`
+    already states for the parallel case -- no DB/H2 capability token is
+    invented here to paper over it.
+
     **The scope fields are not decoration; they are what makes §3.2
     enforceable.** §3.2 forbids a result computed under provenance tuple A
     from being persisted as tuple B, and an earlier draft of this type
@@ -1587,135 +1603,6 @@ def _applicable_invalidation_price(
     return _finite_price(raw, f"creation {_CF_INVALIDATION_PRICE}")
 
 
-def _prove_trend_pullback_operational_facts(
-    history: V2EpisodeHistory, claimed: Optional[V2OperationalFacts], *,
-    boundary_facts: V2BoundaryFacts,
-    reevaluation_window: Optional[V2TrendPullbackReevaluationWindow],
-) -> V2OperationalFacts:
-    """Independently prove a CONFIRMED `TREND_PULLBACK` decision's claimed
-    operational facts are a legal §7.1/§12.2a derivation from the episode's
-    own PERSISTED history PLUS the independently-supplied CURRENT-boundary
-    facts (and, if one is claimed, the re-evaluation window that justifies
-    it) -- never trusting `claimed.dynamic_bound`/`pullback_extreme`/
-    `invalidation_price` as their own proof, and never accepting them
-    merely because a separately-constructed `V2PlannedRisk` happens to
-    agree. A directly-constructed `V2LifecycleDecision` could otherwise
-    supply a stale/foreign/fabricated `V2OperationalFacts` together with a
-    matching `V2PlannedRisk`, letting the two untrusted objects validate
-    each other.
-
-    Proves, against PERSISTED facts and the independently-supplied
-    boundary/window ONLY:
-      - `protection_buffer` is the episode's own frozen CREATION value
-        (§12.2a) -- a caller may not supply a foreign one, even one that
-        would otherwise reproduce self-consistent geometry.
-      - `pullback_extreme` is EXACTLY the episode's own currently-PERSISTED
-        extreme (`read_operational_facts()`) when no re-evaluation window
-        is supplied -- an unproven "it deepened" assertion is refused, not
-        merely required to be directionally plausible. When a window IS
-        supplied, the SAME canonical, already-frozen derivation this
-        module's own trusted evaluator uses
-        (`derive_trend_pullback_reevaluation()` +
-        `_apply_monotonic_extreme()` -- reused verbatim, never
-        re-implemented) must independently produce EXACTLY the claimed
-        extreme.
-      - `dynamic_bound` is EXACTLY `boundary_facts.reference_close` -- the
-        independently-supplied current confirming close, never a value the
-        decision merely asserts.
-      - The claimed entry zone and `invalidation_price` are EXACTLY what
-        §7.1's canonical geometry builder produces from that
-        (buffer, extreme, dynamic_bound) triple.
-
-    Returns the freshly RE-DERIVED `V2OperationalFacts` -- what §18.1's
-    invalidation input and confirmation reference price must be measured
-    against, never the claimed object itself."""
-    if not isinstance(claimed, V2OperationalFacts):
-        raise V2EpisodeLifecycleError(
-            f"episode {history.episode_id!r} is TREND_PULLBACK but this CONFIRMED decision "
-            f"carries no operational facts to prove §18.1's planned risk against (got "
-            f"{type(claimed).__name__})")
-    prior = read_operational_facts(history)
-    if prior is None:
-        raise V2EpisodeLifecycleError(
-            f"episode {history.episode_id!r} is TREND_PULLBACK but carries no PERSISTED "
-            "operational facts to independently prove this CONFIRMED decision's geometry "
-            "against")
-    direction = history.creation_identity.direction
-    buffer = _creation_protection_buffer(history)
-    expected_buffer_text = canonical_decimal_text(buffer, _OF_PROTECTION_BUFFER)
-    if claimed.protection_buffer != expected_buffer_text:
-        raise V2EpisodeLifecycleError(
-            f"this decision's TREND_PULLBACK protection_buffer={claimed.protection_buffer!r} is "
-            f"not episode {history.episode_id!r}'s own persisted creation value "
-            f"{expected_buffer_text!r} -- §12.2a freezes it at creation for the episode's whole "
-            "life")
-
-    if reevaluation_window is None:
-        # No same-T mechanism-(1) re-evaluation was independently supplied
-        # to prove one happened -- the claimed extreme must be EXACTLY the
-        # episode's own already-persisted value. §7.1 lets the extreme move
-        # only when a legal re-evaluation proves it moved; an unproven
-        # "trust me, it deepened" is exactly the gap this closes.
-        effective_extreme = prior.pullback_extreme
-        if claimed.pullback_extreme != effective_extreme:
-            raise V2EpisodeLifecycleError(
-                f"this decision's TREND_PULLBACK pullback_extreme={claimed.pullback_extreme!r} "
-                f"does not equal episode {history.episode_id!r}'s own already-persisted "
-                f"{effective_extreme!r}, and no re-evaluation window was supplied to independently "
-                "prove a deeper retracement -- an unproven extreme can never be persisted, even "
-                "one that happens to be directionally deeper")
-    else:
-        if not isinstance(reevaluation_window, V2TrendPullbackReevaluationWindow):
-            raise V2EpisodeLifecycleError(
-                "reevaluation_window must be a V2TrendPullbackReevaluationWindow, got "
-                f"{type(reevaluation_window).__name__}")
-        if reevaluation_window.T != boundary_facts.T:
-            raise V2EpisodeLifecycleError(
-                f"reevaluation_window is for {reevaluation_window.T.isoformat()!r} but the "
-                f"supplied boundary_facts are for {boundary_facts.T.isoformat()!r} -- §3.4 "
-                "requires ONE coherent data view per logical decision")
-        # The SAME canonical derivation the trusted evaluator uses --
-        # reused verbatim (never re-implemented here), including its own
-        # scope/anchor/no-lookahead binding.
-        derived = derive_trend_pullback_reevaluation(history, reevaluation_window)
-        updated = _apply_monotonic_extreme(history, prior, derived)
-        effective_extreme = updated.pullback_extreme
-        if claimed.pullback_extreme != effective_extreme:
-            raise V2EpisodeLifecycleError(
-                f"this decision's TREND_PULLBACK pullback_extreme={claimed.pullback_extreme!r} "
-                "does not equal the value independently re-derived from the supplied "
-                f"reevaluation_window ({effective_extreme!r}) for episode "
-                f"{history.episode_id!r} -- planned risk must be measured against the extreme "
-                "that was actually, provably observed")
-
-    dynamic_bound = boundary_facts.reference_close
-    if dynamic_bound is None:
-        raise V2EpisodeLifecycleError(
-            f"episode {history.episode_id!r}'s supplied boundary_facts carry no usable reference "
-            "close -- §18.1/§7.1 need §11's canonical close to independently prove the confirming "
-            "TREND_PULLBACK zone/invalidation, never a value the decision merely asserts")
-
-    canonical = _build_trend_pullback_operational_facts(
-        direction=direction, pullback_extreme=effective_extreme, dynamic_bound=dynamic_bound,
-        protection_buffer=buffer, source=OPERATIONAL_SOURCE_CONFIRMATION,
-        source_bucket=boundary_facts.decision_bucket)
-    mismatches = [
-        (field, getattr(claimed, field), getattr(canonical, field))
-        for field in ("dynamic_bound", "entry_zone_lower", "entry_zone_upper",
-                      "invalidation_price", "source_bucket")
-        if getattr(claimed, field) != getattr(canonical, field)]
-    if mismatches:
-        detail = ", ".join(f"{f}={a!r} (canonical: {w!r})" for f, a, w in mismatches)
-        raise V2EpisodeLifecycleError(
-            f"this decision's TREND_PULLBACK operational facts do not match §7.1's canonical "
-            f"geometry independently derived for episode {history.episode_id!r}: {detail} -- "
-            "dynamic_bound/entry zone/invalidation_price must be exactly what the frozen formula "
-            "produces from the independently-proven pullback_extreme/dynamic_bound/"
-            "protection_buffer, never a value merely self-consistent with a "
-            "separately-supplied V2PlannedRisk")
-    return canonical
-
-
 @dataclass(frozen=True)
 class V2PlannedRisk:
     """§18.1's `planned_risk_distance` and the hard gate it feeds.
@@ -2519,170 +2406,59 @@ class V2LifecycleAuthorization:
         )
 
 
-def _assert_decision_matches_history(
-    decision: V2LifecycleDecision, history: V2EpisodeHistory,
-) -> None:
-    """Re-derive every fact the decision asserts about the episode, straight
-    from the episode's own persisted history, and refuse any disagreement.
+_DECISION_COMPARED_FIELDS = (
+    "episode_id", "T", "setup_family", "direction", "previous_state", "new_state",
+    "outcome", "reason", "t_detect", "candidate_deadline", "signal", "operational_facts",
+    "planned_risk",
+)
 
-    `V2LifecycleDecision` is public and directly constructible, and the event
-    columns come from the HISTORY while the evidence block comes from the
-    DECISION -- so without this check a hand-built decision could persist an
-    event whose columns say `COMPRESSION_BREAKOUT`/`LONG` while its own
-    snapshot says `TREND_PULLBACK`/`SHORT`. Nothing downstream would notice:
-    both halves are internally well-formed. The canonical evaluator remains
-    the normal path; this makes the abnormal one impossible rather than
-    merely discouraged."""
-    identity = history.creation_identity
-    expected = (
-        ("episode_id", decision.episode_id, history.episode_id),
-        ("setup_family", decision.setup_family, identity.setup_family),
-        ("direction", decision.direction, identity.direction),
-        ("t_detect", decision.t_detect, read_detection_boundary(history)),
-        ("candidate_deadline", decision.candidate_deadline, read_candidate_deadline(history)),
-    )
+
+def _assert_decision_matches_canonical(
+    claimed: V2LifecycleDecision, canonical: V2LifecycleDecision,
+) -> None:
+    """Refuse to persist any decision that is not semantically IDENTICAL to
+    the canonical decision this module's own evaluator independently
+    re-derives for the same `(history, T, boundary_facts,
+    reevaluation_window)`.
+
+    `V2LifecycleDecision` is public and directly constructible. Any
+    per-field or CONFIRMED-only cross-check built out of the individual
+    frozen rules (§13.1's precedence, §14's deadline, §18.1's planned-risk
+    gate, §7.1's TP same-T re-evaluation) is a second, independently
+    -maintained implementation of those rules -- exactly the "two
+    implementations that can drift" this function exists to avoid. There is
+    ONE authority for what a boundary's outcome, signal, operational facts
+    and planned risk actually are: `evaluate_early_signal_transition()`.
+    This function's only job is comparison, never re-derivation.
+
+    Every field that ends up in persisted history is compared -- identity,
+    the clock facts, the outcome/state transition itself, the full family
+    signal by value (so a lying `signal.reason`/`signal.evidence` is
+    refused exactly like a lying `outcome`), and, where present, the whole
+    operational-facts/planned-risk blocks.
+
+    `V2FamilySignal`/`V2OperationalFacts`/`V2PlannedRisk` are frozen
+    dataclasses; their default `__eq__` is exact structural equality over
+    every field, verified (not merely assumed) to behave correctly for
+    `MappingProxyType`-wrapped evidence (nested-dict content equality),
+    `Decimal` fields (exact numeric equality regardless of scale, e.g.
+    `Decimal("0.1") == Decimal("0.10")`), and `None`-vs-object presence --
+    so whole-object `==` is both correct and exhaustive here; no per-field
+    manual comparison is needed for them."""
     mismatches = [
-        (field, actual, want) for field, actual, want in expected if actual != want]
+        (field, getattr(claimed, field), getattr(canonical, field))
+        for field in _DECISION_COMPARED_FIELDS
+        if getattr(claimed, field) != getattr(canonical, field)]
     if mismatches:
-        detail = ", ".join(f"{f}={a!r} (history: {w!r})" for f, a, w in mismatches)
+        detail = "; ".join(f"{f}: claimed={a!r} canonical={b!r}" for f, a, b in mismatches)
         raise V2EpisodeLifecycleError(
-            f"this decision does not describe episode {history.episode_id!r}'s own persisted "
-            f"facts: {detail} -- refusing to persist an event whose columns and whose evidence "
-            "would tell different stories")
-    if history.current_state != EARLY_SIGNAL:
-        raise V2EpisodeLifecycleError(
-            f"episode {history.episode_id!r} is {history.current_state!r}; Stage 6 unit 3 "
-            f"persists only transitions out of {EARLY_SIGNAL!r}")
-    _assert_planned_risk_matches_history(decision, history)
-
-
-def _assert_planned_risk_matches_history(
-    decision: V2LifecycleDecision, history: V2EpisodeHistory,
-) -> None:
-    """Re-derive §18.1's decision_tick_size from the episode's own persisted
-    creation facts and refuse a decision that disagrees.
-
-    This is the ONE piece of §18.1 provable from persisted HISTORY alone.
-    Everything else -- the confirmation reference price and the
-    invalidation it is measured against -- additionally requires
-    independently-supplied CURRENT-boundary facts, and is proven by
-    `_assert_confirmation_is_independently_authorized()` instead: history
-    alone cannot prove those, because persisted history never contains the
-    current confirming 5m observation, only what an already-authorized
-    event previously wrote to it."""
-    risk = decision.planned_risk
-    if risk is None:
-        return
-    try:
-        tick = read_creation_decision_tick_size(history)
-    except ValueError as exc:      # V2EpisodeCreationError -- never leaked
-        raise V2EpisodeLifecycleError(
-            f"episode {history.episode_id!r}'s persisted decision-time tick size is "
-            "unrecoverable, so this decision's §18.1 planned risk cannot be verified at "
-            f"persistence time: {exc}") from exc
-    if risk.decision_tick_size != tick:
-        raise V2EpisodeLifecycleError(
-            f"this decision's §18.1 decision_tick_size={risk.decision_tick_size} is not episode "
-            f"{history.episode_id!r}'s own persisted creation value {tick} -- §12.5a freezes the "
-            "creation-time tick grid for the episode's whole life, and today's instrument "
-            "metadata is never consulted")
-
-
-def _assert_boundary_facts_scope(
-    decision: V2LifecycleDecision, history: V2EpisodeHistory, boundary_facts: V2BoundaryFacts,
-) -> None:
-    """The independently-supplied current-boundary facts must describe THIS
-    exact decision -- reuses §3.2/§3.4's existing scope/schema binding
-    (never a parallel scope system): same `T`, same
-    symbol/market_type/calculation_version/feature_schema_version as the
-    episode's own persisted history."""
-    _require_boundary_facts(boundary_facts)
-    if boundary_facts.T != decision.T:
-        raise V2EpisodeLifecycleError(
-            f"boundary_facts were resolved for {boundary_facts.T.isoformat()!r} but this decision "
-            f"is at {decision.T.isoformat()!r} -- §3.4 requires ONE coherent data view per "
-            "logical decision")
-    _assert_scope_binding(
-        history, symbol=boundary_facts.symbol, market_type=boundary_facts.market_type,
-        calculation_version=boundary_facts.calculation_version, what="persistence boundary facts")
-    _assert_feature_schema_binding(
-        history, boundary_facts.feature_schema_version, what="persistence boundary facts")
-
-
-def _assert_confirmation_is_independently_authorized(
-    decision: V2LifecycleDecision, history: V2EpisodeHistory,
-    boundary_facts: V2BoundaryFacts,
-    reevaluation_window: Optional[V2TrendPullbackReevaluationWindow],
-) -> None:
-    """§18.1/§13.1's confirmation is provable ONLY from independently
-    -supplied current-boundary facts, never merely asserted by a
-    directly-constructed decision.
-
-    Closes the joint-forgery class of attack: a hand-built decision could
-    previously set `signal.evidence['reference_close']` and
-    `planned_risk.confirmation_reference_price` to the SAME fabricated
-    value, so the earlier cross-check compared two equally
-    caller-controlled fields against each other and always passed. Every
-    comparison here is instead against a value re-derived from
-    `boundary_facts` -- supplied independently of the decision under test,
-    the same `V2BoundaryFacts` the episode's own canonical evaluator
-    (`evaluate_early_signal_transition`) was actually run against to
-    produce a real decision in the first place.
-
-    Re-runs the SAME frozen family predicate this episode's own canonical
-    evaluator uses (`evaluate_family_signal()`) -- one frozen rule,
-    exercised twice against independent inputs, never a second competing
-    implementation. A hand-built `SIGNAL_CONFIRM` at a boundary whose
-    independently-supplied facts actually yield `HOLD`/`FALSE_BREAK`/
-    `UNAVAILABLE` is refused here, regardless of what the decision's own
-    (equally caller-controlled) `signal` claims."""
-    reproven = evaluate_family_signal(history, boundary_facts)
-    if reproven.signal != SIGNAL_CONFIRM:
-        raise V2EpisodeLifecycleError(
-            f"episode {history.episode_id!r} ({decision.setup_family}) does not independently "
-            f"confirm against the supplied current-boundary facts (the family predicate "
-            f"re-evaluated there says {reproven.signal!r}: {reproven.reason!r}) -- a CONFIRMED "
-            "decision must be provable from independently-supplied boundary facts, never merely "
-            "asserted by the decision itself")
-
-    risk = decision.planned_risk        # already proven not None by __post_init__
-    if decision.setup_family == TREND_PULLBACK:
-        proven_facts = _prove_trend_pullback_operational_facts(
-            history, decision.operational_facts,
-            boundary_facts=boundary_facts, reevaluation_window=reevaluation_window)
-        expected_reference = proven_facts.dynamic_bound
-        expected_invalidation = proven_facts.invalidation_price
-        reference_source = (
-            "the independently-derived confirmation close that froze this episode's "
-            "TREND_PULLBACK zone (dynamic_bound)")
-    else:
-        recorded_close = reproven.evidence.get("reference_close")
-        if recorded_close is None:
-            raise V2EpisodeLifecycleError(
-                f"episode {history.episode_id!r} ({decision.setup_family}) independently confirms "
-                "against the supplied boundary facts, but the re-run family predicate recorded no "
-                "'reference_close' evidence -- §18.1's confirmation_reference_price cannot be "
-                "independently proven")
-        expected_reference = _finite_price(recorded_close, "reference_close")
-        expected_invalidation = _applicable_invalidation_price(history, decision.operational_facts)
-        reference_source = "the independently re-run family predicate's own reference_close"
-
-    if _exact(risk.confirmation_reference_price, "confirmation_reference_price") != _exact(
-            expected_reference, "expected confirmation_reference_price"):
-        raise V2EpisodeLifecycleError(
-            "this decision's §18.1 confirmation_reference_price="
-            f"{risk.confirmation_reference_price!r} is not {reference_source} "
-            f"({expected_reference!r}) for episode {history.episode_id!r} -- §5 forbids two "
-            "spellings of the confirmation price in one decision, and neither spelling may be "
-            "proven only against the decision's own other, equally caller-controlled fields")
-
-    if _exact(risk.invalidation_price, "invalidation_price") != _exact(
-            expected_invalidation, "expected invalidation_price"):
-        raise V2EpisodeLifecycleError(
-            f"this decision's §18.1 invalidation_price={risk.invalidation_price!r} is not the "
-            f"level episode {history.episode_id!r} actually carries at this boundary "
-            f"({expected_invalidation!r}) -- planned risk must be measured against the frozen "
-            "geometry the episode will really be confirmed with, never a stale or foreign one")
+            f"this decision does not match the canonical decision independently re-derived by "
+            f"evaluate_early_signal_transition() for episode {canonical.episode_id!r} at "
+            f"T={canonical.T.isoformat()!r} from its own persisted history and the supplied "
+            f"boundary facts: {detail} -- persistence refuses any decision that is not the exact "
+            "output of that one canonical evaluator over the same inputs; §13.1/§14/§18.1/§7.1 "
+            "are each implemented exactly once, never re-derived or re-approximated at the "
+            "persistence boundary")
 
 
 def build_episode_transition_event(
@@ -2731,18 +2507,18 @@ def build_episode_transition_event(
             "refusing to mint one; an every-boundary heartbeat event is exactly what §12.11 "
             "forbids")
     # `boundary_facts` is MANDATORY (no default) for every call, precisely so
-    # there is no `boundary_facts=None` escape hatch a CONFIRMED call could
+    # there is no `boundary_facts=None` escape hatch ANY outcome could
     # silently take -- it is the same `V2BoundaryFacts` object the caller
     # already has in hand, since producing `decision` in the first place
     # required calling `evaluate_early_signal_transition(..., facts=...)`
-    # with it. Its T/scope are always checked; the deeper re-proof below
-    # runs only for CONFIRMED, where an unauthorized transition is an actual
-    # capital-allocation risk.
-    _assert_boundary_facts_scope(decision, history, boundary_facts)
-    _assert_decision_matches_history(decision, history)
-    if decision.outcome == LIFECYCLE_CONFIRMED:
-        _assert_confirmation_is_independently_authorized(
-            decision, history, boundary_facts, reevaluation_window)
+    # with it. This re-runs that exact call against the episode's own
+    # persisted history and refuses to persist anything the claimed
+    # `decision` does not exactly match -- one canonical implementation of
+    # every Unit 3 rule, used both to decide and to authorize persistence,
+    # never a second one reconstructed field-by-field at this boundary.
+    canonical = evaluate_early_signal_transition(
+        history, T=decision.T, facts=boundary_facts, reevaluation_window=reevaluation_window)
+    _assert_decision_matches_canonical(decision, canonical)
 
     provenance = authorization.provenance
     if provenance.run_kind != history.run_kind or provenance.run_id != history.run_id:

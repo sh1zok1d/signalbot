@@ -1702,7 +1702,7 @@ def test_a_decision_for_another_episode_is_refused():
     b = episode(cb_candidate(T=T0, level=100.0))
     boundary = facts(T=_t(1), close=101.0)
     decision = _decide(a, T=_t(1), boundary=boundary)
-    with pytest.raises(V2EpisodeLifecycleError, match="does not describe episode"):
+    with pytest.raises(V2EpisodeLifecycleError, match="does not match the canonical decision"):
         build_episode_transition_event(
             decision, b, authorization=_authorization(T=_t(1)), boundary_facts=boundary)
 
@@ -2115,7 +2115,7 @@ def test_a_decision_contradicting_its_history_cannot_be_persisted(field):
     if field == "t_detect":
         kwargs["candidate_deadline"] = over + timedelta(minutes=15)
     forged = V2LifecycleDecision(**kwargs)
-    with pytest.raises(V2EpisodeLifecycleError, match="does not describe episode"):
+    with pytest.raises(V2EpisodeLifecycleError, match="does not match the canonical decision"):
         build_episode_transition_event(
             forged, hist, authorization=_authorization(T=_t(1)), boundary_facts=boundary)
 
@@ -2767,6 +2767,238 @@ def _forge_confirmed(hist, good, planned_risk, *, operational_facts=_UNSET, sign
         planned_risk=planned_risk)
 
 
+def _forge_from(good, *, outcome=_UNSET, new_state=_UNSET, reason=_UNSET, signal=_UNSET,
+               operational_facts=_UNSET, planned_risk=_UNSET):
+    """General-purpose forge: clone every field of a REAL decision except
+    the ones explicitly overridden. Unlike `_forge_confirmed()`, the
+    outcome/new_state need not be CONFIRMED -- used for the
+    PRECONFIRMATION_UPDATE/INVALIDATED/EXPIRED forgery vectors."""
+    pick = lambda over, field: getattr(good, field) if over is _UNSET else over
+    return V2LifecycleDecision(
+        episode_id=good.episode_id, T=good.T, setup_family=good.setup_family,
+        direction=good.direction, previous_state=EARLY_SIGNAL,
+        new_state=pick(new_state, "new_state"), outcome=pick(outcome, "outcome"),
+        reason=pick(reason, "reason"), signal=pick(signal, "signal"),
+        t_detect=good.t_detect, candidate_deadline=good.candidate_deadline,
+        operational_facts=pick(operational_facts, "operational_facts"),
+        planned_risk=pick(planned_risk, "planned_risk"))
+
+
+# ============================================================================
+# red-team round 4: full canonical persistence re-proof (RT-67-01/02/03)
+# ============================================================================
+def test_p1_forged_tp_update_with_no_window_against_real_no_change_facts_is_refused():
+    """RT-67-01 primary repro. A real boundary whose canonical evaluator
+    does NOT produce an operational update (no reevaluation_window
+    supplied at all -- canonical outcome is NO_CHANGE) cannot be persisted
+    as a hand-built PRECONFIRMATION_UPDATE claiming a deeper extreme."""
+    creation = early_signal(tp_candidate(
+        T=T0, pullback_extreme=100.0, current_close=105.0, buffer=2.0))
+    hist = _history([creation])
+    T = _t(3)
+    boundary = tp_facts(T=T, median=-1.0)
+    good = _decide(hist, T=T, boundary=boundary)
+    assert good.outcome == LIFECYCLE_NO_CHANGE
+    b15 = T - timedelta(minutes=15)
+    forged_facts = V2OperationalFacts(
+        direction=LONG, pullback_extreme=90.0, dynamic_bound=105.0,
+        entry_zone_lower=90.0, entry_zone_upper=105.0, invalidation_price=88.0,
+        protection_buffer="2", source=OPERATIONAL_SOURCE_REEVALUATION, source_bucket=b15)
+    forged = _forge_from(
+        good, outcome=LIFECYCLE_PRECONFIRMATION_UPDATE, new_state=EARLY_SIGNAL,
+        reason="OPERATIONAL_FACTS_UPDATED", operational_facts=forged_facts)
+    with pytest.raises(V2EpisodeLifecycleError, match="does not match the canonical decision"):
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
+
+
+def test_p2_forged_tp_update_claims_90_but_supplied_window_derives_97_is_refused():
+    """RT-67-01/M6: a real reevaluation_window that independently derives
+    ONE legal extreme (97) does not authorize a hand-built claim of a
+    DIFFERENT one (90), even though canonical itself would be a
+    PRECONFIRMATION_UPDATE here (not merely a no-op) -- so this is a
+    materially different vector from P1: it proves an update whose OWN
+    canonical counterpart is real still can't be swapped for a fabricated
+    one."""
+    creation = early_signal(tp_candidate(
+        T=T0, pullback_extreme=100.0, current_close=105.0, buffer=2.0))
+    hist = _history([creation])
+    T = _t(3)
+    boundary = tp_facts(T=T, median=-1.0)
+    window = _window(T=T, closes=[97.0, 103.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER)
+    good = _decide(hist, T=T, boundary=boundary, reevaluation=window)
+    assert good.outcome == LIFECYCLE_PRECONFIRMATION_UPDATE
+    assert good.operational_facts.pullback_extreme == 97.0
+    forged_facts = V2OperationalFacts(
+        direction=LONG, pullback_extreme=90.0, dynamic_bound=103.0,
+        entry_zone_lower=90.0, entry_zone_upper=103.0, invalidation_price=88.0,
+        protection_buffer=good.operational_facts.protection_buffer,
+        source=OPERATIONAL_SOURCE_REEVALUATION, source_bucket=good.operational_facts.source_bucket)
+    forged = _forge_from(good, operational_facts=forged_facts)
+    with pytest.raises(V2EpisodeLifecycleError, match="does not match the canonical decision"):
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=T),
+            boundary_facts=boundary, reevaluation_window=window)
+
+
+def test_p4_a_rejected_false_update_can_never_poison_later_history():
+    """RT-67-01: the load-bearing proof that the poisoned-history chain is
+    now impossible. A forged update is rejected BEFORE any event is built,
+    so there is no persisted row for a later confirmation to inherit --
+    contrast with the pre-fix reproduction, where the same construction
+    persisted, `read_operational_facts()` picked up pullback_extreme=90,
+    and a later confirmation silently used it."""
+    creation = early_signal(tp_candidate(
+        T=T0, pullback_extreme=100.0, current_close=105.0, buffer=2.0))
+    hist = _history([creation])
+    T = _t(3)
+    boundary = tp_facts(T=T, median=-1.0)
+    good = _decide(hist, T=T, boundary=boundary)
+    b15 = T - timedelta(minutes=15)
+    forged_facts = V2OperationalFacts(
+        direction=LONG, pullback_extreme=90.0, dynamic_bound=105.0,
+        entry_zone_lower=90.0, entry_zone_upper=105.0, invalidation_price=88.0,
+        protection_buffer="2", source=OPERATIONAL_SOURCE_REEVALUATION, source_bucket=b15)
+    forged = _forge_from(
+        good, outcome=LIFECYCLE_PRECONFIRMATION_UPDATE, new_state=EARLY_SIGNAL,
+        reason="OPERATIONAL_FACTS_UPDATED", operational_facts=forged_facts)
+    with pytest.raises(V2EpisodeLifecycleError, match="does not match the canonical decision"):
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
+    # No event was ever built, so history has only the creation event, and
+    # the episode's operational facts are still exactly what creation froze.
+    assert len(hist.events) == 1
+    assert read_operational_facts(hist).pullback_extreme == 100.0
+
+
+def test_p5_a_forged_invalidated_over_a_real_confirm_is_refused():
+    """RT-67-02: a legitimately-CONFIRMing boundary cannot be persisted as
+    INVALIDATED (a TERMINAL state) via a hand-built decision."""
+    hist = episode(_comp_at_risk(risk="1.0"))
+    T = _t(1)
+    boundary = facts(T=T, close=_CLOSE)
+    good = _decide(hist, T=T, boundary=boundary)
+    assert good.outcome == LIFECYCLE_CONFIRMED
+    forged_signal = V2FamilySignal(signal=SIGNAL_FALSE_BREAK, reason="fake", evidence={})
+    forged = _forge_from(
+        good, outcome=LIFECYCLE_INVALIDATED_FALSE_BREAK, new_state=INVALIDATED,
+        reason="fake", signal=forged_signal, operational_facts=None, planned_risk=None)
+    with pytest.raises(V2EpisodeLifecycleError, match="does not match the canonical decision"):
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
+
+
+def test_p7_a_forged_expired_over_a_real_deadline_confirm_is_refused():
+    """RT-67-02: a boundary that independently CONFIRMS at the deadline
+    cannot instead be persisted as EXPIRED."""
+    hist = episode(_comp_at_risk(risk="1.0"))
+    deadline = read_candidate_deadline(hist)
+    boundary = facts(T=deadline, close=_CLOSE)
+    good = _decide(hist, T=deadline, boundary=boundary)
+    assert good.outcome == LIFECYCLE_CONFIRMED
+    forged_signal = V2FamilySignal(signal=SIGNAL_HOLD, reason="fake-hold", evidence={})
+    forged = _forge_from(
+        good, outcome=LIFECYCLE_EXPIRED_CANDIDATE_AGE, new_state=EXPIRED,
+        reason="x", signal=forged_signal, operational_facts=None, planned_risk=None)
+    with pytest.raises(V2EpisodeLifecycleError, match="does not match the canonical decision"):
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=deadline), boundary_facts=boundary)
+
+
+def test_p8_a_confirmed_with_a_lying_signal_reason_is_refused():
+    """RT-67-02 audit-snapshot integrity: `signal.reason` is persisted
+    verbatim into `decision_snapshot`; a claimed reason that disagrees with
+    the canonical predicate's own real reason must be refused even though
+    outcome/signal/operational_facts/planned_risk are all otherwise
+    correct."""
+    hist = episode(_comp_at_risk(risk="1.0"))
+    T = _t(1)
+    boundary = facts(T=T, close=_CLOSE)
+    good = _decide(hist, T=T, boundary=boundary)
+    lying_signal = V2FamilySignal(
+        signal=good.signal.signal, reason="I_AM_A_LIE", evidence=good.signal.evidence)
+    forged = _forge_from(good, signal=lying_signal)
+    with pytest.raises(V2EpisodeLifecycleError, match="signal: claimed="):
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
+
+
+def test_p9_a_confirmed_with_arbitrary_fabricated_evidence_is_refused():
+    """RT-67-02: not merely `reference_close` -- ANY fabricated evidence key
+    added to an otherwise-real signal is refused. The comparison is whole
+    -evidence equality, never a hand-picked subset of fields."""
+    hist = episode(_comp_at_risk(risk="1.0"))
+    T = _t(1)
+    boundary = facts(T=T, close=_CLOSE)
+    good = _decide(hist, T=T, boundary=boundary)
+    lying_signal = V2FamilySignal(
+        signal=good.signal.signal, reason=good.signal.reason,
+        evidence=dict(good.signal.evidence, an_unrelated_fabricated_key="haha"))
+    forged = _forge_from(good, signal=lying_signal)
+    with pytest.raises(V2EpisodeLifecycleError, match="signal: claimed="):
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
+
+
+def test_p11_a_forged_expired_evidence_over_a_real_expired_is_refused():
+    """RT-67-02: even when the OUTCOME itself is honest (a real deadline
+    HOLD genuinely expires), the persisted resolution category/evidence
+    must be the real one, not a fabricated substitute."""
+    hist = episode(_comp_at_risk(risk="1.0"))
+    deadline = read_candidate_deadline(hist)
+    boundary = facts(T=deadline, close=_RANGE_HIGH)      # boundary-equality HOLD
+    good = _decide(hist, T=deadline, boundary=boundary)
+    assert good.outcome == LIFECYCLE_EXPIRED_CANDIDATE_AGE
+    assert good.signal.signal == SIGNAL_HOLD
+    lying_signal = V2FamilySignal(
+        signal=SIGNAL_REJECTED, reason="PLANNED_RISK_BELOW_MIN", evidence={"fabricated": True})
+    forged = _forge_from(good, signal=lying_signal)
+    with pytest.raises(V2EpisodeLifecycleError, match="signal: claimed="):
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=deadline), boundary_facts=boundary)
+
+
+def test_m6_forged_update_whose_geometry_is_a_genuine_no_op_is_refused_on_outcome_alone():
+    """M6: a boundary whose supplied window reproduces IDENTICAL geometry to
+    what is already persisted is a genuine §12.11 no-op -- canonical
+    outcome is NO_CHANGE. A forged PRECONFIRMATION_UPDATE claim that copies
+    canonical's own `reason`/`signal`/`operational_facts` verbatim (which,
+    critically, is legal to construct here because the prior real update
+    already persisted `source=REEVALUATION`, satisfying
+    `V2LifecycleDecision.__post_init__`'s own source check) differs from
+    canonical ONLY in `outcome`/`new_state` -- proving `outcome` itself
+    must be part of the compared-field set, not merely implied by the
+    other fields."""
+    creation = early_signal(tp_candidate(T=T0, pullback_extreme=100.0, current_close=105.0))
+    hist0 = _history([creation])
+    T1 = _t(3)
+    boundary1 = tp_facts(T=T1, median=-1.0)
+    window1 = _window(T=T1, closes=[97.0, 103.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER)
+    update = _decide(hist0, T=T1, boundary=boundary1, reevaluation=window1)
+    assert update.outcome == LIFECYCLE_PRECONFIRMATION_UPDATE
+    update_event = build_episode_transition_event(
+        update, hist0, authorization=_authorization(T=T1),
+        boundary_facts=boundary1, reevaluation_window=window1)
+    hist = _history([creation, update_event])
+    assert read_operational_facts(hist).source == OPERATIONAL_SOURCE_REEVALUATION
+
+    T2 = _t(6)
+    boundary2 = tp_facts(T=T2, median=-1.0)
+    # Reproduces the SAME already-persisted extreme/bound -- a genuine no-op.
+    window2 = _window(T=T2, closes=[97.0, 103.0], anchor=_TP_ANCHOR, filler=_LONG_FILLER)
+    good = _decide(hist, T=T2, boundary=boundary2, reevaluation=window2)
+    assert good.outcome == LIFECYCLE_NO_CHANGE
+    assert good.operational_facts.source == OPERATIONAL_SOURCE_REEVALUATION
+
+    forged = _forge_from(
+        good, outcome=LIFECYCLE_PRECONFIRMATION_UPDATE, new_state=EARLY_SIGNAL)
+    assert forged.requires_event is True     # the early §12.11 gate would let this through
+    with pytest.raises(V2EpisodeLifecycleError, match="does not match the canonical decision"):
+        build_episode_transition_event(
+            forged, hist, authorization=_authorization(T=T2),
+            boundary_facts=boundary2, reevaluation_window=window2)
+
+
 def test_a_confirmed_decision_whose_tick_is_not_the_episodes_own_is_refused():
     hist = episode(_comp_at_risk(risk="1.0"))
     boundary = facts(T=_t(1), close=_CLOSE)
@@ -2775,7 +3007,7 @@ def test_a_confirmed_decision_whose_tick_is_not_the_episodes_own_is_refused():
     # the episode's OWN persisted tick can catch it.
     forged = _forge_confirmed(
         hist, good, _risk(reference=_CLOSE, invalidation=95.0, tick="1.0"))
-    with pytest.raises(V2EpisodeLifecycleError, match="persisted creation value"):
+    with pytest.raises(V2EpisodeLifecycleError, match="planned_risk: claimed="):
         build_episode_transition_event(
             forged, hist, authorization=_authorization(T=_t(1)), boundary_facts=boundary)
 
@@ -2785,7 +3017,7 @@ def test_a_confirmed_decision_whose_invalidation_is_not_the_episodes_own_is_refu
     boundary = facts(T=_t(1), close=_CLOSE)
     good = _decide(hist, T=_t(1), boundary=boundary)
     forged = _forge_confirmed(hist, good, _risk(reference=_CLOSE, invalidation=50.0))
-    with pytest.raises(V2EpisodeLifecycleError, match="not the level episode"):
+    with pytest.raises(V2EpisodeLifecycleError, match="planned_risk: claimed="):
         build_episode_transition_event(
             forged, hist, authorization=_authorization(T=_t(1)), boundary_facts=boundary)
 
@@ -2802,7 +3034,7 @@ def test_a_tp_confirmed_using_stale_invalidation_is_refused_at_the_build_boundar
     good = _decide(hist, T=T, boundary=boundary, reevaluation=window)
     assert good.planned_risk.invalidation_price == 94.0
     forged = _forge_confirmed(hist, good, _risk(reference=104.0, invalidation=98.0))
-    with pytest.raises(V2EpisodeLifecycleError, match="not the level episode"):
+    with pytest.raises(V2EpisodeLifecycleError, match="planned_risk: claimed="):
         build_episode_transition_event(
             forged, hist, authorization=_authorization(T=T),
             boundary_facts=boundary, reevaluation_window=window)
@@ -2848,7 +3080,7 @@ def test_a_tp_confirmed_reverting_to_an_already_persisted_deeper_extreme_is_refu
         source_bucket=good.operational_facts.source_bucket)
     forged = _forge_confirmed(
         hist, good, _risk(reference=104.0, invalidation=98.0), operational_facts=stale_facts)
-    with pytest.raises(V2EpisodeLifecycleError, match="does not equal episode"):
+    with pytest.raises(V2EpisodeLifecycleError, match="operational_facts: claimed="):
         build_episode_transition_event(
             forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
 
@@ -2874,7 +3106,7 @@ def test_a_tp_confirmed_claiming_an_unproven_deeper_extreme_with_no_window_is_re
         hist, good,
         _risk(reference=_CLOSE, invalidation=good.operational_facts.invalidation_price - 1.0),
         operational_facts=unproven_facts)
-    with pytest.raises(V2EpisodeLifecycleError, match="no re-evaluation window was supplied"):
+    with pytest.raises(V2EpisodeLifecycleError, match="operational_facts: claimed="):
         build_episode_transition_event(
             forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
 
@@ -2902,7 +3134,7 @@ def test_a_tp_confirmed_with_invalidation_disconnected_from_its_own_geometry_is_
     forged = _forge_confirmed(
         hist, good, _risk(reference=_CLOSE, invalidation=50.0),
         operational_facts=fabricated_facts)
-    with pytest.raises(V2EpisodeLifecycleError, match="canonical geometry"):
+    with pytest.raises(V2EpisodeLifecycleError, match="operational_facts: claimed="):
         build_episode_transition_event(
             forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
 
@@ -2929,7 +3161,7 @@ def test_a_tp_confirmed_with_a_fabricated_dynamic_bound_is_refused():
     forged = _forge_confirmed(
         hist, good, _risk(reference=fake_close, invalidation=fake_facts.invalidation_price),
         operational_facts=fake_facts)
-    with pytest.raises(V2EpisodeLifecycleError, match="canonical geometry"):
+    with pytest.raises(V2EpisodeLifecycleError, match="operational_facts: claimed="):
         build_episode_transition_event(
             forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
 
@@ -2955,7 +3187,7 @@ def test_a_tp_confirmed_with_a_foreign_protection_buffer_is_refused():
         hist, good, _risk(
             reference=_CLOSE, invalidation=good.operational_facts.invalidation_price),
         operational_facts=foreign_buffer_facts)
-    with pytest.raises(V2EpisodeLifecycleError, match="not episode .* own persisted creation"):
+    with pytest.raises(V2EpisodeLifecycleError, match="operational_facts: claimed="):
         build_episode_transition_event(
             forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
 
@@ -2975,7 +3207,7 @@ def test_a_confirmed_decision_with_a_fabricated_reference_price_is_refused(famil
     forged = _forge_confirmed(
         hist, good,
         _risk(reference=wrong_reference, invalidation=good.planned_risk.invalidation_price))
-    with pytest.raises(V2EpisodeLifecycleError, match="two spellings of the confirmation price"):
+    with pytest.raises(V2EpisodeLifecycleError, match="planned_risk: claimed="):
         build_episode_transition_event(
             forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
 
@@ -2989,10 +3221,11 @@ def test_the_core_blocker_joint_forgery_of_both_reference_price_fields_is_refuse
     self-consistent `planned_risk_distance` -- so the old cross-check
     compared two equally caller-controlled fields and always passed
     (reproduced against the pre-fix code: this exact construction persisted
-    cleanly). `evaluate_family_signal()` is now re-run against
-    INDEPENDENTLY-supplied `boundary_facts`, so the fabricated evidence
-    inside the caller-controlled `decision.signal` is never even
-    consulted -- only the fresh, independent re-derivation is."""
+    cleanly). The persistence boundary now independently re-derives the
+    WHOLE canonical decision via `evaluate_early_signal_transition()` and
+    refuses any disagreement, so the forged `signal.evidence` is compared
+    against the freshly re-run predicate's own real evidence -- never
+    consulted as its own proof."""
     hist = episode(_AT_RISK[family](risk="1.0"))
     T = _t(1)
     boundary = _confirm_facts(T, family=family)     # the REAL independent boundary
@@ -3004,49 +3237,55 @@ def test_the_core_blocker_joint_forgery_of_both_reference_price_fields_is_refuse
         evidence=dict(good.signal.evidence, reference_close=fake_price))
     forged_risk = _risk(reference=fake_price, invalidation=real_invalidation)
     forged = _forge_confirmed(hist, good, forged_risk, signal=forged_signal)
-    with pytest.raises(V2EpisodeLifecycleError, match="two spellings of the confirmation price"):
+    with pytest.raises(V2EpisodeLifecycleError, match="signal: claimed="):
         build_episode_transition_event(
             forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
 
 
 def test_a_hand_built_confirm_where_independent_facts_actually_hold_is_refused():
-    """M2: a hand-built SIGNAL_CONFIRM persisted at a boundary whose
-    independently-supplied facts actually yield HOLD must be rejected --
-    the decision's own (equally caller-controlled) `signal` is never the
+    """M2/RT-67-03-D: a hand-built SIGNAL_CONFIRM persisted at a boundary
+    whose independently-supplied facts actually yield HOLD must be
+    rejected -- `evaluate_early_signal_transition()` re-run over the SAME
+    `boundary_facts` produces a whole different canonical decision
+    (outcome NO_CHANGE, signal HOLD), and the claimed decision's own
+    (equally caller-controlled) `signal`/`outcome` are never the
     authority."""
     hist = episode(_comp_at_risk(risk="1.0"))
     T = _t(1)
     good = _decide(hist, T=T, boundary=facts(T=T, close=_CLOSE))
     real_hold_boundary = facts(T=T, close=_RANGE_HIGH)     # boundary-equality HOLD
     forged = _forge_confirmed(hist, good, _risk(reference=_CLOSE, invalidation=99.0))
-    with pytest.raises(V2EpisodeLifecycleError, match="does not independently confirm"):
+    with pytest.raises(V2EpisodeLifecycleError, match="does not match the canonical decision"):
         build_episode_transition_event(
             forged, hist, authorization=_authorization(T=T), boundary_facts=real_hold_boundary)
 
 
 def test_a_hand_built_confirm_where_independent_facts_actually_false_break_is_refused():
-    """M3: false-break semantics remain authoritative -- a hand-built
-    SIGNAL_CONFIRM cannot persist against a boundary whose independent
-    facts actually false-break."""
+    """M3/RT-67-03-A: §13.1's false-break precedence remains authoritative
+    -- a hand-built SIGNAL_CONFIRM cannot persist against a boundary whose
+    independently-re-derived canonical decision is
+    LIFECYCLE_INVALIDATED_FALSE_BREAK."""
     hist = episode(_comp_at_risk(risk="1.0"))
     T = _t(1)
     good = _decide(hist, T=T, boundary=facts(T=T, close=_CLOSE))
     real_false_break_boundary = facts(T=T, close=50.0)
     forged = _forge_confirmed(hist, good, _risk(reference=_CLOSE, invalidation=99.0))
-    with pytest.raises(V2EpisodeLifecycleError, match="does not independently confirm"):
+    with pytest.raises(V2EpisodeLifecycleError, match="does not match the canonical decision"):
         build_episode_transition_event(
             forged, hist, authorization=_authorization(T=T),
             boundary_facts=real_false_break_boundary)
 
 
-def test_a_confirmed_decision_whose_reproven_signal_carries_no_reference_close_is_refused(
+def test_a_decision_whose_signal_disagrees_with_a_monkeypatched_reproven_predicate_is_refused(
         monkeypatch):
-    """Defense in depth. The real family predicates always set
-    'reference_close' in their own evidence before ever returning CONFIRM
-    (verified elsewhere), so this branch is not reachable through normal
-    construction -- proven here by monkeypatching the re-run predicate
-    itself, never by forging the decision's own (no-longer-authoritative)
-    `signal`."""
+    """Even the SIGNAL itself is never trusted from the claimed decision:
+    monkeypatching the module's own `evaluate_family_signal()` to return a
+    bare re-derived signal (proving the comparison is against whatever the
+    canonical evaluator ACTUALLY produces, not a fixed expectation) still
+    gets a `signal`-mismatching claimed decision rejected -- because
+    `evaluate_early_signal_transition()` (which this monkeypatch reaches
+    through the SAME module-level name) is the one place `signal` is ever
+    computed for real, and the claimed decision's own is never it."""
     import analytics.forecasting_v2.episode_lifecycle as lifecycle_module
     hist = episode(_comp_at_risk(risk="1.0"))
     T = _t(1)
@@ -3055,7 +3294,7 @@ def test_a_confirmed_decision_whose_reproven_signal_carries_no_reference_close_i
     forged = _forge_confirmed(hist, good, _risk(reference=_CLOSE, invalidation=99.0))
     bare_signal = V2FamilySignal(signal=SIGNAL_CONFIRM, reason="x", evidence={})
     monkeypatch.setattr(lifecycle_module, "evaluate_family_signal", lambda *a, **k: bare_signal)
-    with pytest.raises(V2EpisodeLifecycleError, match="recorded no 'reference_close' evidence"):
+    with pytest.raises(V2EpisodeLifecycleError, match="signal: claimed="):
         build_episode_transition_event(
             forged, hist, authorization=_authorization(T=T), boundary_facts=boundary)
 
@@ -3082,7 +3321,7 @@ def test_a_tp_confirmed_whose_claimed_extreme_disagrees_with_the_supplied_window
     forged = _forge_confirmed(
         hist, good, _risk(reference=104.0, invalidation=wrong_extreme - 2.0),
         operational_facts=wrong_facts)
-    with pytest.raises(V2EpisodeLifecycleError, match="does not equal the value independently"):
+    with pytest.raises(V2EpisodeLifecycleError, match="operational_facts: claimed="):
         build_episode_transition_event(
             forged, hist, authorization=_authorization(T=T),
             boundary_facts=boundary, reevaluation_window=window)
@@ -3136,11 +3375,12 @@ def test_boundary_facts_from_a_foreign_calculation_version_is_refused():
 
 
 def test_a_malformed_persisted_tick_at_the_build_boundary_raises_the_lifecycle_error():
-    """The public builder reads Unit 2's own tick reader directly
-    (`_assert_planned_risk_matches_history()`); its domain error must be
-    translated to `episode_lifecycle`'s OWN public error type, never
-    leaked, exactly like `evaluate_planned_risk()` already does on the
-    evaluate path."""
+    """The public builder re-derives the canonical decision by calling
+    `evaluate_early_signal_transition()` -- the same evaluate-path call a
+    caller already made -- so a corrupted persisted tick surfaces through
+    `evaluate_planned_risk()`'s own existing translation (never leaked as
+    the creation module's own `ValueError` subtype) at persistence time
+    too, with no separate builder-side tick check needed."""
     hist = _episode_with_creation_fact("decision_tick_size", "not-a-number")
     identity = hist.creation_identity
     forged = V2LifecycleDecision(

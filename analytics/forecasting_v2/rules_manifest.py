@@ -169,6 +169,43 @@ def build_rules_manifest() -> "dict[str, Any]":
             "_MIN_PLANNED_RISK_TICKS": _decimal_text(
                 _episode_lifecycle._MIN_PLANNED_RISK_TICKS,
                 "episode_lifecycle._MIN_PLANNED_RISK_TICKS"),
+            # §7.1's frozen TREND_PULLBACK resumption-trigger threshold
+            # (">= 2/3") -- a primary literal defined in THIS module (never
+            # sourced from another already-covered constant), so nothing
+            # else protects it. Lowering it would silently confirm episodes
+            # §7.1 says must stay HOLD.
+            "RESUMPTION_MIN_AGREEMENT": _episode_lifecycle.RESUMPTION_MIN_AGREEMENT,
+            # §14's fixed decision/re-evaluation cadence selectors -- the
+            # same class of fixed-timeframe selector already covered for
+            # regime_4h/bias_1h (_REGIME_TIMEFRAME/_BIAS_TIMEFRAME). Changing
+            # either would silently misalign confirmation or the TP
+            # mechanism-(1) re-measurement cadence against a different grid.
+            "DECISION_TIMEFRAME": _episode_lifecycle.DECISION_TIMEFRAME,
+            "REEVALUATION_TIMEFRAME": _episode_lifecycle.REEVALUATION_TIMEFRAME,
+            # §6.3a's per-family required-metric selector -- the same class
+            # of per-family selector map already covered for
+            # family_quality.FAMILY_MIN_COVERAGE/CONFIDENCE. Adding a metric
+            # to (or removing one from) a family's required set would
+            # silently change which quality gate that family's confirmation
+            # is scoped to. Flattened to one leaf per family (never a nested
+            # dict) so every manifest leaf stays a plain scalar/string-list,
+            # matching every other module's own shape.
+            **{
+                f"REQUIRED_METRIC_FAMILY__{family}": _string_tuple(
+                    metrics, f"episode_lifecycle.REQUIRED_METRIC_FAMILY[{family!r}]")
+                for family, metrics in sorted(_episode_lifecycle.REQUIRED_METRIC_FAMILY.items())
+            },
+            # NOT included, by design: CANDIDATE_MAX_AGE is not a primary
+            # literal -- it is computed entirely from already-manifest
+            # -covered source constants (trend_pullback.
+            # PULLBACK_MAX_AGE_15M_BUCKETS, compression_breakout.
+            # COMPRESSION_CONFIRMATION_MAX_AGE_5M_BUCKETS, confirmed_breakout.
+            # CONFIRMED_BREAKOUT_CONFIRMATION_MAX_AGE_5M_BUCKETS) multiplied
+            # by DECISION_TIMEFRAME/REEVALUATION_TIMEFRAME, both covered
+            # directly above. A change to any ingredient already moves the
+            # fingerprint; manifesting the derived dict too would be exactly
+            # the indiscriminate double-coverage this module's docstring
+            # warns against.
         },
         "family_quality": {
             "FAMILY_MIN_COVERAGE": _family_quality.FAMILY_MIN_COVERAGE,
@@ -277,7 +314,30 @@ EXPECTED_FINGERPRINTS_BY_RULES_VERSION: "dict[str, str]" = {
     #      manifest's scope had never been extended past Stage 3/4/5 to
     #      cover it. Now included; the constant's own value (3) is
     #      unchanged.
-    "v2-rules-v0.2.0": "d8c23644ef2535dd49723d3dc4c4e9abcce449e95c70e7fd67cf87af596dcf17",
+    #   4. Independent red-team finding on the same PR:
+    #      episode_lifecycle.RESUMPTION_MIN_AGREEMENT (§7.1's ">= 2/3"
+    #      confirmation threshold) is a primary literal defined in that
+    #      module and was not covered by anything. Auditing the rest of
+    #      episode_lifecycle.py's frozen constants against the same
+    #      inclusion test surfaced two more primary, uncovered selectors of
+    #      an already-established class -- DECISION_TIMEFRAME/
+    #      REEVALUATION_TIMEFRAME (fixed timeframe selectors, the same class
+    #      as regime_4h._REGIME_TIMEFRAME/bias_1h._BIAS_TIMEFRAME) and
+    #      REQUIRED_METRIC_FAMILY (a per-family required-metric selector
+    #      map, the same class as family_quality.FAMILY_MIN_COVERAGE/
+    #      CONFIDENCE) -- now all included. CANDIDATE_MAX_AGE was reviewed
+    #      and deliberately EXCLUDED: it is computed entirely from
+    #      already-covered source constants (trend_pullback.
+    #      PULLBACK_MAX_AGE_15M_BUCKETS, compression_breakout.
+    #      COMPRESSION_CONFIRMATION_MAX_AGE_5M_BUCKETS, confirmed_breakout.
+    #      CONFIRMED_BREAKOUT_CONFIRMATION_MAX_AGE_5M_BUCKETS) and the two
+    #      timeframe selectors above, so manifesting it too would be
+    #      double coverage of the same drift. None of these four
+    #      constants' own values changed. REQUIRED_METRIC_FAMILY is
+    #      flattened to one leaf per family (`REQUIRED_METRIC_FAMILY__
+    #      <family>`) rather than a nested dict, so every manifest leaf
+    #      stays a plain scalar/string-list like every other module's own.
+    "v2-rules-v0.2.0": "2da3d34adc3e217bbffe9aa22aa8de59664ecfa2457e7b29acda911a9653fb31",
 }
 
 

@@ -83,8 +83,18 @@ def test_manifest_covers_the_expected_selector_constants_per_module():
         "COMPRESSION_CONFIRMATION_MAX_AGE_5M_BUCKETS", "EXPECTED_HORIZON_SECONDS",
         "_COMPRESSION_METRIC",
     }
-    assert set(manifest["episode_lifecycle"].keys()) == {"_MIN_PLANNED_RISK_TICKS"}
+    assert set(manifest["episode_lifecycle"].keys()) == {
+        "_MIN_PLANNED_RISK_TICKS", "RESUMPTION_MIN_AGREEMENT", "DECISION_TIMEFRAME",
+        "REEVALUATION_TIMEFRAME", "REQUIRED_METRIC_FAMILY__TREND_PULLBACK",
+        "REQUIRED_METRIC_FAMILY__COMPRESSION_BREAKOUT",
+        "REQUIRED_METRIC_FAMILY__CONFIRMED_BREAKOUT",
+    }
     assert manifest["episode_lifecycle"]["_MIN_PLANNED_RISK_TICKS"] == "3"
+    assert manifest["episode_lifecycle"]["RESUMPTION_MIN_AGREEMENT"] == 2.0 / 3.0
+    assert manifest["episode_lifecycle"]["DECISION_TIMEFRAME"] == "5m"
+    assert manifest["episode_lifecycle"]["REEVALUATION_TIMEFRAME"] == "15m"
+    assert manifest["episode_lifecycle"]["REQUIRED_METRIC_FAMILY__TREND_PULLBACK"] == [
+        "price_structure"]
     assert manifest["setup_common"]["SETUP_RANGE_TIMEFRAMES"] == ["15m", "1h"]
 
 
@@ -255,6 +265,47 @@ def test_mutating_min_planned_risk_ticks_changes_the_fingerprint(monkeypatch):
     baseline = compute_rules_fingerprint(build_rules_manifest())
     import analytics.forecasting_v2.episode_lifecycle as lifecycle_module
     monkeypatch.setattr(lifecycle_module, "_MIN_PLANNED_RISK_TICKS", Decimal("5"))
+    mutated = compute_rules_fingerprint(build_rules_manifest())
+    assert mutated != baseline
+
+
+def test_mutating_resumption_min_agreement_changes_the_fingerprint(monkeypatch):
+    """Cursor red-team finding on PR #67: §7.1's RESUMPTION_MIN_AGREEMENT
+    (">= 2/3") is a primary literal defined in episode_lifecycle.py and was
+    not covered by any manifest entry -- mutating it under an unchanged
+    rules_version previously left the fingerprint unchanged. M7."""
+    baseline = compute_rules_fingerprint(build_rules_manifest())
+    import analytics.forecasting_v2.episode_lifecycle as lifecycle_module
+    monkeypatch.setattr(lifecycle_module, "RESUMPTION_MIN_AGREEMENT", 0.5)
+    mutated = compute_rules_fingerprint(build_rules_manifest())
+    assert mutated != baseline
+
+
+def test_mutating_decision_timeframe_changes_the_fingerprint(monkeypatch):
+    baseline = compute_rules_fingerprint(build_rules_manifest())
+    import analytics.forecasting_v2.episode_lifecycle as lifecycle_module
+    monkeypatch.setattr(lifecycle_module, "DECISION_TIMEFRAME", "15m")
+    mutated = compute_rules_fingerprint(build_rules_manifest())
+    assert mutated != baseline
+
+
+def test_mutating_reevaluation_timeframe_changes_the_fingerprint(monkeypatch):
+    baseline = compute_rules_fingerprint(build_rules_manifest())
+    import analytics.forecasting_v2.episode_lifecycle as lifecycle_module
+    monkeypatch.setattr(lifecycle_module, "REEVALUATION_TIMEFRAME", "1h")
+    mutated = compute_rules_fingerprint(build_rules_manifest())
+    assert mutated != baseline
+
+
+def test_mutating_required_metric_family_changes_the_fingerprint(monkeypatch):
+    baseline = compute_rules_fingerprint(build_rules_manifest())
+    import analytics.forecasting_v2.episode_lifecycle as lifecycle_module
+    from types import MappingProxyType
+    mutated_map = MappingProxyType({
+        **dict(lifecycle_module.REQUIRED_METRIC_FAMILY),
+        lifecycle_module.TREND_PULLBACK: ("price_structure", "volume"),
+    })
+    monkeypatch.setattr(lifecycle_module, "REQUIRED_METRIC_FAMILY", mutated_map)
     mutated = compute_rules_fingerprint(build_rules_manifest())
     assert mutated != baseline
 
