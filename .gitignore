@@ -31,10 +31,11 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 
-# Runtime data
+# Runtime / local research data
 logs/
 data/
 backups/
+artifacts/
 *.log
 
 # OS / IDE
