@@ -2768,12 +2768,14 @@ def _forge_confirmed(hist, good, planned_risk, *, operational_facts=_UNSET, sign
 
 
 def _forge_from(good, *, outcome=_UNSET, new_state=_UNSET, reason=_UNSET, signal=_UNSET,
-               operational_facts=_UNSET, planned_risk=_UNSET):
+                operational_facts=_UNSET, planned_risk=_UNSET) -> V2LifecycleDecision:
     """General-purpose forge: clone every field of a REAL decision except
     the ones explicitly overridden. Unlike `_forge_confirmed()`, the
     outcome/new_state need not be CONFIRMED -- used for the
     PRECONFIRMATION_UPDATE/INVALIDATED/EXPIRED forgery vectors."""
-    pick = lambda over, field: getattr(good, field) if over is _UNSET else over
+    def pick(over, field):
+        return getattr(good, field) if over is _UNSET else over
+
     return V2LifecycleDecision(
         episode_id=good.episode_id, T=good.T, setup_family=good.setup_family,
         direction=good.direction, previous_state=EARLY_SIGNAL,
@@ -2782,6 +2784,31 @@ def _forge_from(good, *, outcome=_UNSET, new_state=_UNSET, reason=_UNSET, signal
         t_detect=good.t_detect, candidate_deadline=good.candidate_deadline,
         operational_facts=pick(operational_facts, "operational_facts"),
         planned_risk=pick(planned_risk, "planned_risk"))
+
+
+def test_canonical_persist_comparison_covers_every_decision_field():
+    """CodeRabbit/Ihor: `_DECISION_COMPARED_FIELDS` is the persist guard's
+    entire exhaustiveness claim. Import already ran the fail-closed check;
+    this test pins the same invariant so a truncated hand-list cannot
+    silently land."""
+    import analytics.forecasting_v2.episode_lifecycle as lifecycle_module
+    from dataclasses import fields as dc_fields
+    assert set(lifecycle_module._DECISION_COMPARED_FIELDS) == {
+        f.name for f in dc_fields(V2LifecycleDecision)}
+    lifecycle_module._require_compared_fields_exhaustive()  # must not raise
+
+
+def test_canonical_persist_comparison_fails_closed_if_a_field_is_dropped(monkeypatch):
+    """The load-bearing half: dropping `planned_risk` from the compared
+    set -- the exact omission this PR's own field addition would have
+    produced -- must fail closed, not pass as an incomplete allow-list."""
+    import analytics.forecasting_v2.episode_lifecycle as lifecycle_module
+    truncated = tuple(
+        name for name in lifecycle_module._DECISION_COMPARED_FIELDS
+        if name != "planned_risk")
+    monkeypatch.setattr(lifecycle_module, "_DECISION_COMPARED_FIELDS", truncated)
+    with pytest.raises(V2EpisodeLifecycleError, match="cannot escape canonical comparison"):
+        lifecycle_module._require_compared_fields_exhaustive()
 
 
 # ============================================================================
