@@ -101,7 +101,7 @@ def _directional_return(direction: str, p0: float, p1: float) -> float:
     if direction == "LONG":
         return p1 / p0 - 1.0
     if direction == "SHORT":
-        return p0 / p1 - 1.0
+        return (p0 - p1) / p0
     raise ValueError(f"unknown direction {direction!r}")
 
 
