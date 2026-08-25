@@ -197,7 +197,7 @@ Only after coverage/counts are known will a chronological development/holdout bo
 
 If any detector/rule is changed after viewing an outcome window, that window is consumed and the modified candidate becomes a new research version.
 
-### 11.1 Split amendment — frozen after candidate counts, before outcomes
+### 11.1 Initial split amendment — historical record, later superseded before outcomes
 
 Recorded on `2026-08-25` after the candidate-only inventory completed and while `outcomes_included=false`.
 
@@ -210,18 +210,54 @@ Candidate inventory window:
 - `COMPRESSION_BREAKOUT=47`;
 - `CONFIRMED_BREAKOUT=45`.
 
-Frozen chronological split:
+Initial chronological split:
 
-- **development:** `[2026-08-02T00:00:00Z, 2026-08-21T00:00:00Z)`;
-- **untouched holdout:** `[2026-08-21T00:00:00Z, 2026-08-25T17:20:00Z)`.
+- development: `[2026-08-02T00:00:00Z, 2026-08-21T00:00:00Z)`;
+- holdout: `[2026-08-21T00:00:00Z, 2026-08-25T17:20:00Z)`.
 
-The boundary was selected from calendar position + qualification counts only. At the time of selection:
+The boundary was selected from calendar position + qualification counts only. It contained `202/290` development qualifications and `88/290` holdout qualifications. No future return, MFE, MAE, hit-rate, baseline outcome, or control outcome had been inspected.
 
-- development contained `202/290` raw qualifications (`69.7%`);
-- holdout contained `88/290` raw qualifications (`30.3%`);
-- no future return, MFE, MAE, hit-rate, baseline outcome, or control outcome had been inspected.
+Candidate-only family-balance audit then showed the initial holdout contained `COMPRESSION_BREAKOUT=0/47` and only `CONFIRMED_BREAKOUT=6/45`. Because this made family-level OOS evaluation impossible/weak, the initial split was superseded **before any outcome inspection** by the mechanical rule in §11.2. The initial split is retained here as research history and is no longer operative.
 
-The holdout is now considered sealed. Development outcomes may be opened after candidate-only overlap/clustering diagnostics are recorded. Holdout outcomes must remain unopened until the development analysis, baselines, ablations, denominator rules, and reporting code are frozen.
+### 11.2 Final split freeze — family-balanced count-only rule, before outcomes
+
+Before scanning candidate split counts, the following rule was frozen:
+
+> Among UTC-midnight boundaries in the audited range, choose the **latest** boundary whose holdout contains at least `25%` of all raw qualifications and at least `20%` of each Stage-5 family. Use candidate metadata/counts only; do not read future prices or outcomes.
+
+The count-only audit selected:
+
+- **final development candidate window:** `[2026-08-02T00:00:00Z, 2026-08-16T00:00:00Z)`;
+- **final untouched holdout candidate window:** `[2026-08-16T00:00:00Z, 2026-08-25T17:20:00Z)`.
+
+Counts at the frozen boundary:
+
+- development: `149/290` raw qualifications;
+  - `TREND_PULLBACK=93`;
+  - `COMPRESSION_BREAKOUT=30`;
+  - `CONFIRMED_BREAKOUT=26`;
+- holdout: `141/290` raw qualifications (`48.6%` of all qualifications);
+  - `TREND_PULLBACK=105` (`53.0%` of TP);
+  - `COMPRESSION_BREAKOUT=17` (`36.2%` of CB);
+  - `CONFIRMED_BREAKOUT=19` (`42.2%` of FB).
+
+At final split freeze:
+
+- source candidate artifact still had `outcomes_included=false`;
+- the split-balance audit was `COUNT_ONLY_SPLIT_BALANCE_AUDIT_NO_OUTCOMES`;
+- no future return/MFE/MAE, baseline outcome, control outcome, or holdout outcome had been viewed.
+
+The `2026-08-16T00:00:00Z` holdout is now **SEALED** and this split supersedes §11.1.
+
+### 11.3 Development outcome purge / embargo
+
+The maximum primary forward horizon is `+4h`. To prevent a development candidate's future path from reading any raw market bar inside the sealed holdout, the development outcome evaluator must enforce:
+
+- outcome-eligible development candidates: `T <= 2026-08-15T20:00:00Z`;
+- purge/embargo candidate region: `(2026-08-15T20:00:00Z, 2026-08-16T00:00:00Z)`;
+- all future-path SQL for development must have an exclusive end `<= 2026-08-16T00:00:00Z`.
+
+Purged candidates remain part of the frozen candidate population/count audit but are not used for development outcome metrics requiring the full `+4h` path. The denominator tree must report them explicitly. Holdout candidates `T >= 2026-08-16T00:00:00Z` must not receive outcome reads until the holdout gate is intentionally opened later.
 
 ## 12. Primary decision rule
 
