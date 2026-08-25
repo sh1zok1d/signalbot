@@ -2,8 +2,16 @@
 """Outcome-free raw-timestamp coverage preflight before opening E1 holdout prices.
 
 Reads ONLY Binance 1m timestamps (no OHLC values) and the frozen holdout inventory
-artifact. It verifies that every minute required for the longest registered +4h
-path exists before the single holdout outcome evaluation is allowed to run.
+artifact. It verifies that the required +4h observation horizon has actually
+arrived before the single holdout outcome evaluation is allowed to run.
+
+Important: the original E1 preregistration explicitly allows genuine historical
+1m gaps to remain as incomplete outcome paths with visible denominators.  Such a
+gap must therefore NOT permanently block the whole holdout.  This preflight
+separates already-observed historical gaps from an unobserved/future tail.  The
+holdout may open only after the final required bar timestamp has been observed;
+any earlier missing timestamps remain evidence-quality/path-completeness facts
+for the frozen evaluator to report rather than being silently repaired.
 """
 from __future__ import annotations
 
@@ -65,6 +73,7 @@ async def _run(args: argparse.Namespace) -> dict:
     max_t = max(times)
     required_start = min_t - PRE_LOOKBACK
     required_end_exclusive = max_t + MAX_HORIZON
+    required_last_bar_start = required_end_exclusive - timedelta(minutes=1)
     expected_minutes = int((required_end_exclusive - required_start).total_seconds() // 60)
 
     conn = await asyncpg.connect(args.dsn)
@@ -85,12 +94,27 @@ async def _run(args: argparse.Namespace) -> dict:
         await conn.close()
 
     observed = {rec["ts"] for rec in records}
-    missing: list[str] = []
+    latest_observed = max(observed) if observed else None
+
+    missing_all: list[datetime] = []
     cursor = required_start
     while cursor < required_end_exclusive:
         if cursor not in observed:
-            missing.append(cursor.isoformat())
+            missing_all.append(cursor)
         cursor += timedelta(minutes=1)
+
+    if latest_observed is None:
+        historical_gaps: list[datetime] = []
+        unobserved_tail = list(missing_all)
+    else:
+        # Missing timestamps at/before the latest observed bar are genuine
+        # historical gaps. Missing timestamps after it are an unavailable tail.
+        historical_gaps = [ts for ts in missing_all if ts <= latest_observed]
+        unobserved_tail = [ts for ts in missing_all if ts > latest_observed]
+
+    horizon_observed = (
+        latest_observed is not None and latest_observed >= required_last_bar_start
+    )
 
     payload = {
         "study": STUDY,
@@ -104,13 +128,25 @@ async def _run(args: argparse.Namespace) -> dict:
         "required_raw_window": {
             "start_inclusive": required_start.isoformat(),
             "end_exclusive": required_end_exclusive.isoformat(),
-            "required_last_bar_start": (required_end_exclusive - timedelta(minutes=1)).isoformat(),
+            "required_last_bar_start": required_last_bar_start.isoformat(),
         },
         "expected_minutes": expected_minutes,
         "observed_minutes": len(observed),
-        "missing_minutes": len(missing),
-        "missing_sample": missing[:20],
-        "ready_for_single_holdout_outcome_open": len(missing) == 0,
+        "latest_observed_bar_start": (
+            latest_observed.isoformat() if latest_observed is not None else None
+        ),
+        "missing_minutes": len(missing_all),
+        "historical_gap_minutes": len(historical_gaps),
+        "historical_gap_sample": [ts.isoformat() for ts in historical_gaps[:20]],
+        "unobserved_tail_minutes": len(unobserved_tail),
+        "unobserved_tail_sample": [ts.isoformat() for ts in unobserved_tail[:20]],
+        "horizon_observed_through_required_last_bar": horizon_observed,
+        "readiness_rule": (
+            "READY iff the final required 1m bar timestamp has been observed. "
+            "Earlier historical gaps remain incomplete-path evidence and do not "
+            "block the whole holdout."
+        ),
+        "ready_for_single_holdout_outcome_open": horizon_observed,
     }
     return payload
 
