@@ -4,7 +4,7 @@ Status: **FROZEN BEFORE ANY HOLDOUT OUTCOME READ**
 Date: 2026-08-25  
 Holdout: `[2026-08-16T00:00:00Z, 2026-08-25T17:20:00Z)`
 
-This amendment is recorded after development candidate/control/ablation outcomes were consumed and while the chronological holdout remains unopened. It freezes the final holdout reporting, delay and economic-friction stress rules. No detector threshold or production Stage-3/4/5 rule may change for E1-RUN-001.
+This is an append-only prospective amendment recorded after development candidate/control/ablation outcomes were consumed and while the chronological holdout remains unopened. The original `docs/E1_DETECTOR_SEPARATION_PREREG.md` remains unchanged as the historical preregistration artifact. This file freezes the final holdout reporting, delay and economic-friction stress rules. No detector threshold or production Stage-3/4/5 rule may change for E1-RUN-001.
 
 ## 1. Holdout is opened once
 
