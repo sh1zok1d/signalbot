@@ -83,6 +83,8 @@ def test_manifest_covers_the_expected_selector_constants_per_module():
         "COMPRESSION_CONFIRMATION_MAX_AGE_5M_BUCKETS", "EXPECTED_HORIZON_SECONDS",
         "_COMPRESSION_METRIC",
     }
+    assert set(manifest["episode_lifecycle"].keys()) == {"_MIN_PLANNED_RISK_TICKS"}
+    assert manifest["episode_lifecycle"]["_MIN_PLANNED_RISK_TICKS"] == "3"
     assert manifest["setup_common"]["SETUP_RANGE_TIMEFRAMES"] == ["15m", "1h"]
 
 
