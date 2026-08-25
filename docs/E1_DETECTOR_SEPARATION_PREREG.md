@@ -197,6 +197,32 @@ Only after coverage/counts are known will a chronological development/holdout bo
 
 If any detector/rule is changed after viewing an outcome window, that window is consumed and the modified candidate becomes a new research version.
 
+### 11.1 Split amendment — frozen after candidate counts, before outcomes
+
+Recorded on `2026-08-25` after the candidate-only inventory completed and while `outcomes_included=false`.
+
+Candidate inventory window:
+
+- `[2026-08-02T00:00:00Z, 2026-08-25T17:20:00Z)`;
+- `6,832` legal 5m decision boundaries;
+- `290` raw Stage-5 qualifications;
+- `TREND_PULLBACK=198`;
+- `COMPRESSION_BREAKOUT=47`;
+- `CONFIRMED_BREAKOUT=45`.
+
+Frozen chronological split:
+
+- **development:** `[2026-08-02T00:00:00Z, 2026-08-21T00:00:00Z)`;
+- **untouched holdout:** `[2026-08-21T00:00:00Z, 2026-08-25T17:20:00Z)`.
+
+The boundary was selected from calendar position + qualification counts only. At the time of selection:
+
+- development contained `202/290` raw qualifications (`69.7%`);
+- holdout contained `88/290` raw qualifications (`30.3%`);
+- no future return, MFE, MAE, hit-rate, baseline outcome, or control outcome had been inspected.
+
+The holdout is now considered sealed. Development outcomes may be opened after candidate-only overlap/clustering diagnostics are recorded. Holdout outcomes must remain unopened until the development analysis, baselines, ablations, denominator rules, and reporting code are frozen.
+
 ## 12. Primary decision rule
 
 E1 is not judged by one accuracy number.
