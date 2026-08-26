@@ -35,42 +35,40 @@ total:   104 ZIP + 104 CHECKSUM sidecars
 
 Do not move the cutoff. Extending it is a new dataset revision.
 
-## Pipeline stages
+## Pipeline stages and preconditions
 
-| Stage | Network | Effect |
+| Stage | Network | Success requires |
 |---|---|---|
-| `plan` | no | Enumerate the 104 source objects, URLs, expected ZIP/CSV names |
-| `inventory` | HEAD only | Content-Length / conservative size estimate + disk-budget report |
-| `acquire` | GET ZIP+CHECKSUM | Resume-safe download with PR #71 checksum filename identity, atomic adopt, fail-closed revision conflict |
-| `audit-raw` | no | Re-verify every retained object (checksum, member name, schema, invariants) |
-| `materialize-1m` | no | Canonical 1m parquet partitions parsed **from ZIP** (no permanent CSV) |
-| `aggregate` | no | UTC-epoch 5m/15m/1h/4h with `is_complete` fail-closed incompleteness |
-| `finalize` | no | Quality report, snapshot id, **candidate** manifest artifact |
+| `plan` | no | Enumerate the 104 source objects |
+| `inventory` | HEAD only | Size estimate; `Content-Length` missing/0/invalid is UNKNOWN (conservative default, never 0 bytes) |
+| `acquire` | GET ZIP+CHECKSUM | All 104 objects `VERIFIED` on disk (new or `REUSED_IDENTICAL`). Non-zero exit otherwise |
+| `audit-raw` | no | All 104 currently `VERIFIED` + parser OK |
+| `materialize-1m` | no | Re-hash ZIP+sidecar immediately before parse; all partitions written with provenance |
+| `aggregate` | no | Current canonical provenance matches current verified raw; streaming HTF |
+| `finalize` | no | Raw complete, partitions not stale, HTF hashes match aggregate report |
 
-`--stage all` runs them in order and requires `--allow-acquire` (bulk-history safety latch).
+`--stage all` runs them in order, requires `--allow-acquire`, and **stops on the first failed stage**. Stage completion is not success by itself.
 
 ## Commands (later bulk execution)
 
 From the repository root, with `PYTHONPATH` set as for other research scripts:
 
 ```bash
-# 1. enumerate (no network)
+pip install -r requirements-research.txt   # pyarrow==17.0.0; not production
+
 python -m scripts.research.core_btc_binance_v0_materializer \
   --stage plan \
   --dataset-root artifacts/research_data/CORE_BTC_BINANCE_V0
 
-# 2. HEAD inventory + disk budget (no archive bodies)
 python -m scripts.research.core_btc_binance_v0_materializer \
   --stage inventory \
   --dataset-root artifacts/research_data/CORE_BTC_BINANCE_V0
 
-# 3. acquire (explicit latch; one writer per dataset root)
 python -m scripts.research.core_btc_binance_v0_materializer \
   --stage acquire --allow-acquire \
   --dataset-root artifacts/research_data/CORE_BTC_BINANCE_V0 \
   --disk-reserve-bytes 5368709120
 
-# 4-7
 python -m scripts.research.core_btc_binance_v0_materializer --stage audit-raw \
   --dataset-root artifacts/research_data/CORE_BTC_BINANCE_V0
 python -m scripts.research.core_btc_binance_v0_materializer --stage materialize-1m \
@@ -82,7 +80,10 @@ python -m scripts.research.core_btc_binance_v0_materializer --stage finalize \
 ```
 
 Do not run `--stage acquire` / `--stage all` until a red-team review of this
-implementation has passed.
+implementation has passed. **Do not bulk-download 2020–2026 from this runbook
+alone.**
+
+`--disk-reserve-bytes 0` is refused unless `--unsafe-no-disk-reserve` is also set.
 
 ## Output layout
 
@@ -91,7 +92,9 @@ artifacts/research_data/CORE_BTC_BINANCE_V0/
   raw/monthly/YYYY-MM/BTCUSDT-1m-YYYY-MM.zip[.CHECKSUM]
   raw/daily/YYYY-MM-DD/BTCUSDT-1m-YYYY-MM-DD.zip[.CHECKSUM]
   canonical/1m/monthly/YYYY-MM.parquet
+  canonical/1m/monthly/YYYY-MM.provenance.json
   canonical/1m/daily/YYYY-MM-DD.parquet
+  canonical/1m/daily/YYYY-MM-DD.provenance.json
   canonical/5m/bars.parquet
   canonical/15m/bars.parquet
   canonical/1h/bars.parquet
@@ -103,43 +106,106 @@ artifacts/research_data/CORE_BTC_BINANCE_V0/
 `artifacts/` is gitignored. Dataset identity is snapshot hashes, not local
 paths.
 
+## Streaming / chunk architecture
+
+Canonical 1m is written **one source object at a time** (one month ≈ 40k
+rows is the peak Python-object window for materialize).
+
+`aggregate` and `finalize` **must not** load all 3.5 million 1m rows as
+`CanonicalBar` / `Decimal` lists.
+
+- Continuity/gaps: stream `open_time_ms` batches; keep `expected_next_ms`;
+  emit compressed gap ranges. No `list(range(start, end, 60_000))`.
+- HTF: one chronological scan of 1m partitions; four aggregators each hold
+  only the active bucket (≤ 240 constituent minutes) and write parquet in
+  batches. State is carried across month, monthly→daily, day, and year
+  partitions.
+- Finalize hashes files and streams timestamps; it does not rebuild a
+  global bar list.
+
+Expected peak RAM envelope for the full 2020–2026 build: **low hundreds of
+MB**, not multi-GB. One in-flight Arrow batch (~16k rows) plus one HTF
+bucket of Decimals plus gap metadata.
+
+## Partition provenance (RT-M02)
+
+Each canonical 1m parquet has a sibling `.provenance.json` binding:
+
+- source URL / period / expected ZIP name
+- current source local SHA-256 and checksum digest
+- materializer / canonical schema versions
+- admitted row count, first/last `open_time_ms`
+- SHA-256 of the parquet bytes
+
+`aggregate` and `finalize` refuse `STALE_CANONICAL_PARTITION` when current
+raw identity differs from that provenance. They will not emit a snapshot
+that claims revision B while partitions still hold revision A.
+
+Research rows do **not** repeat `source_sha256` 3.5 million times; identity
+lives in the partition provenance file.
+
+## Lock behavior
+
+Mutating stages (`acquire`, `audit-raw`, `materialize-1m`, `aggregate`,
+`finalize`, `all`) take an exclusive `fcntl` lock at
+`<dataset-root>/.core_btc_binance_v0.lock`. A second writer fails closed.
+The lock is released on process exit. This is not distributed locking.
+
 ## Resume / revision / disk
 
-- One writer per dataset root. No distributed lock.
+- One writer per dataset root (lock above).
 - `.part` / leftover `.tmp` files are discarded and are never evidence.
 - Verified ZIP bytes that still match the source checksum are reused
   (`REUSED_IDENTICAL`).
 - A disagreeing checksum is `REVISION_CONFLICT`: ZIP **and** existing
-  sidecar are left untouched (PR #71 RT-05).
-- Canonical 1m partitions whose parquet bytes are unchanged are reused.
+  sidecar are left untouched.
+- ZIP is never adopted unless the ZIP+CHECKSUM **pair currently on disk**
+  verifies. `VERIFIED` is never reported from a fetched checksum while the
+  on-disk sidecar disagrees. Missing ZIP + existing sidecar + changed
+  remote checksum is `REVISION_CONFLICT` (no new ZIP written).
+- Unverified HTML/error bodies are not written as ZIP files.
+- Canonical 1m partitions whose parquet bytes are unchanged are reused
+  only after the current ZIP still matches provenance.
 - Disk-safety gate: refuse acquire when
-  `free < remaining_download + temp_bound + --disk-reserve-bytes`.
-- Keep raw ZIPs (provenance). Do not extract CSVs permanently. Parse members
-  from the ZIP in memory.
+  `free < remaining_download + .part/.tmp + canonical_estimate + HTF_estimate
+  + temp_bound + --disk-reserve-bytes`.
+  Default reserve is 5 GiB. HEAD `Content-Length` 0/missing/invalid uses a
+  conservative per-class default, never zero.
+- Keep raw ZIPs (provenance). Do not extract CSVs permanently.
 
 ## Materialization / aggregation semantics
 
 - 1m `available_at = open_time + 60s`. Never Binance `close_time`.
+- Canonical 1m stores `close_time_ms` (int64) for source fidelity. It does
+  **not** change availability.
 - Missing minutes are omitted, never filled.
 - Identical duplicate rows: keep first (file order), record the duplicate.
 - Conflicting duplicates (same `open_time`, different payload): drop the
-  minute, record the conflict. Cross-object overlap is treated the same.
+  minute, record the conflict.
 - Numeric validation uses `Decimal`. Canonical parquet stores OHLC/volume as
-  **exact decimal strings** plus int64 timestamps/`trade_count` (zstd).
-  Round-trip is deterministic. `taker_sell_*` is `DERIVED_FROM_KLINE`.
+  **canonical decimal strings** (`format(Decimal(value), "f")`) plus int64
+  timestamps/`trade_count`/`close_time_ms` (zstd).
+- **Decimal-string rule:** these columns are numeric values stored as text.
+  Research code MUST parse/cast before comparison, sorting, arithmetic, or
+  aggregation. Never compare them lexicographically. `Decimal("1.0")` and
+  `Decimal("1.00")` are distinct canonical text.
 - HTF buckets are UTC epoch-aligned. A bucket is `is_complete=true` only
   with the exact constituent count (5/15/60/240). Incomplete buckets are
-  **emitted** with null aggregates so research code can fail closed. They
-  are never silently dropped and never presented as complete OHLC.
+  **emitted** with null aggregates so research code can fail closed.
 - HTF `available_at = bucket end`.
 
 ## Snapshot identity
 
 `snapshot_id` is SHA-256 of a canonical JSON payload containing: dataset id,
 contract file hash, frozen start/end, sorted per-object checksums, parser /
-materializer / canonicalization / aggregation versions, quality-report hash,
-and materialized output checksums. Timestamps and directory paths are not
-the identity key.
+materializer / canonicalization / aggregation versions, **SHA-256 of the
+exact persisted `quality_report.json` bytes**, and materialized output
+checksums (parquet + provenance files + HTF).
+
+`quality_report.json` does **not** contain `snapshot_id` or
+`quality_report_sha256` (acyclic: file bytes → snapshot manifest).
+
+Timestamps and directory paths are not the identity key.
 
 ## Quality report + gap diagnostic
 
@@ -149,26 +215,39 @@ rejects, HTF incompleteness, sizes, and limitations.
 Gap / extreme-market diagnostic (predeclared, not an edge rule): an adjacent
 1m bar is flagged when `|close/open-1|` or `base_volume` is at or above the
 **99th percentile** of the observed canonical 1m population. Gaps are never
-repaired or excluded because of this flag.
+repaired or excluded because of this flag. The streamed diagnostic may use
+float64 only for that percentile; it never changes admission.
 
 A non-zero gap count does **not** automatically kill the eventual dataset
 (contract §12). It must remain visible; incomplete HTF windows fail closed.
 
-## Promotion vocabulary (this tool does not promote)
+## Finalize ≠ acceptance
 
-| State | Meaning |
-|---|---|
-| `PLANNED_NOT_MATERIALIZED` | Repository planning manifest today. `research_authorized: false`. |
-| `MATERIALIZED_UNVERIFIED` | Candidate artifact after `finalize`. Bytes exist; not accepted. |
-| `QUALITY_AUDITED` | Human reviewed the quality report. Still not discovery authorization. |
-| `ACCEPTED_FOR_DISCOVERY` | Separate later gate. This CLI never writes that into `docs/manifests/CORE_BTC_BINANCE_V0.yaml`. |
+A successful finalize emits `SNAPSHOT_CANDIDATE_READY`. It does **not**
+mean `ACCEPTED_FOR_DISCOVERY`.
 
-`finalize` writes `manifests/CORE_BTC_BINANCE_V0.candidate.json` under the
-dataset root only.
+The generated candidate remains:
 
-## Dependencies
+```text
+status: MATERIALIZED_UNVERIFIED
+research_authorized: false
+```
 
-Research/dev extra: `pyarrow` (see `requirements-dev.txt`) for parquet I/O.
-Production `requirements.txt` is unchanged. pandas is already a project
-dependency; pyarrow is the parquet engine and is **not** added to the
-production image.
+Incomplete, mixed-revision, or missing-provenance inputs make finalize
+**fail** (non-zero exit). They do not produce a candidate snapshot.
+
+This CLI never writes `ACCEPTED_FOR_DISCOVERY` into
+`docs/manifests/CORE_BTC_BINANCE_V0.yaml`.
+
+## Research dependency
+
+Parquet I/O needs `pyarrow==17.0.0`.
+
+```bash
+pip install -r requirements-research.txt
+```
+
+CI/dev can use `requirements-dev.txt`, which layers the same pin. Production
+`requirements.txt` stays unchanged. If pyarrow is missing, materialize /
+aggregate / finalize fail at startup with an explicit message naming
+`requirements-research.txt`.

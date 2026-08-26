@@ -46,6 +46,9 @@ is the staged acquisition/materialization pipeline for the same dataset.
 It reuses the hardened probe checksum/ZIP/CSV/invariant logic. It does
 **not** run bulk 2020–2026 acquisition unless an operator explicitly passes
 `--allow-acquire`. See `docs/CORE_BTC_BINANCE_V0_MATERIALIZATION_RUNBOOK.md`.
+Parquet I/O requires `pyarrow==17.0.0` from `requirements-research.txt`
+(or `requirements-dev.txt` in CI). Do not add pyarrow to production
+`requirements.txt`.
 
 ## Earlier mathematical/audit tools
 

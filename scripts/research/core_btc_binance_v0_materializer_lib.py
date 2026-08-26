@@ -3,24 +3,27 @@
 Network-free except where the caller injects a fetch function. Reuses the
 hardened PR #71 checksum / ZIP-member / CSV / invariant machinery in
 `core_btc_binance_v0_probe_lib`. Does not promote
-`docs/manifests/CORE_BTC_BINANCE_V0.yaml` and does not invent dataset
-semantics beyond that contract.
+`docs/manifests/CORE_BTC_BINANCE_V0.yaml`.
 
-This module is the implementation of the eventual 2020-01-01T00:00:00Z ..
-2026-08-26T00:00:00Z pipeline. It does not itself download bulk history.
+Remediation (RT-M01..M11): re-hash at canonical admission, partition
+provenance, streaming continuity/HTF (no full-range Python bar lists),
+fail-closed stage graph, disk-safety, quality-report file hashing, sidecar
+pair adoption, exclusive dataset lock.
 """
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
 import os
 import shutil
 import tempfile
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, Iterable, Iterator, Optional
 
 from scripts.research.core_btc_binance_v0_probe_lib import (
     ARCHIVE_ROOT_DAILY,
@@ -56,11 +59,15 @@ UTC = timezone.utc
 DATASET_ID = "CORE_BTC_BINANCE_V0"
 CONTRACT_PATH = "docs/CORE_BTC_BINANCE_V0_CONTRACT.md"
 REPO_MANIFEST_PATH = "docs/manifests/CORE_BTC_BINANCE_V0.yaml"
-MATERIALIZER_VERSION = 1
-CANONICALIZATION_VERSION = 1
-AGGREGATION_VERSION = 1
-REPORT_SCHEMA_VERSION = 1
+MATERIALIZER_VERSION = 2
+CANONICALIZATION_VERSION = 2
+AGGREGATION_VERSION = 2
+REPORT_SCHEMA_VERSION = 2
+PARTITION_PROVENANCE_VERSION = 1
+CANONICAL_SCHEMA_VERSION = 2
 TOOL_KIND = "CORE_BTC_BINANCE_V0_MATERIALIZER"
+LOCK_FILENAME = ".core_btc_binance_v0.lock"
+RESEARCH_REQUIREMENTS_FILE = "requirements-research.txt"
 
 FROZEN_START_INCLUSIVE = datetime(2020, 1, 1, tzinfo=UTC)
 FROZEN_END_EXCLUSIVE = datetime(2026, 8, 26, tzinfo=UTC)
@@ -70,16 +77,31 @@ DAILY_START = "2026-08-01"
 DAILY_END = "2026-08-25"
 
 DEFAULT_DISK_RESERVE_BYTES = 5 * 1024 * 1024 * 1024
-# Conservative per-object body estimates used only when HEAD has no length.
 CONSERVATIVE_MONTHLY_ZIP_BYTES = 8 * 1024 * 1024
 CONSERVATIVE_DAILY_ZIP_BYTES = 256 * 1024
 CHECKSUM_BYTES_ESTIMATE = 128
+CONSERVATIVE_CANONICAL_1M_TOTAL_BYTES = 512 * 1024 * 1024
+CONSERVATIVE_HTF_TOTAL_BYTES = 256 * 1024 * 1024
+CONSERVATIVE_PARTITION_PARQUET_BYTES = 16 * 1024 * 1024
+ARROW_BATCH_ROWS = 8192
+HTF_WRITE_BATCH_ROWS = 4096
+STREAM_BATCH_ROWS = 16384
+PARQUET_WRITE_KWARGS = {
+    "compression": "zstd",
+    "use_dictionary": False,
+    "write_statistics": False,
+    "store_schema": False,
+}
 
-# Predeclared gap-quality diagnostic (NOT an edge rule, NOT tuned on
-# observed gaps). Adjacent 1m bars are "extreme" when |close/open - 1| or
-# base_volume is at or above the 99th percentile of the observed canonical
-# 1m population. Documented in the materialization runbook.
 GAP_EXTREME_PERCENTILE = 99
+
+DECIMAL_STRING_POLICY = (
+    "Price/volume columns are NUMERIC DECIMAL VALUES STORED AS CANONICAL "
+    "DECIMAL STRINGS. Research code MUST parse/cast them numerically before "
+    "comparison, sorting, arithmetic, or aggregation. Never compare them "
+    "lexicographically. Normalization is format(Decimal(value), 'f'). "
+    "Decimal('1.0') and Decimal('1.00') are distinct canonical text."
+)
 
 HTF_SPEC = (
     ("5m", 5),
@@ -95,9 +117,48 @@ DECIMAL_FIELDS = (
     "taker_sell_base_volume", "taker_sell_quote_volume",
 )
 
+CANONICAL_1M_COLUMNS = (
+    "open_time_ms", "bar_end_exclusive_ms", "available_at_ms", "close_time_ms",
+    "trade_count", "source_period", "archive_class",
+) + DECIMAL_FIELDS
+
+PYARROW_REQUIRED_MESSAGE = (
+    "pyarrow is required for CORE_BTC_BINANCE_V0 parquet I/O. "
+    "Install the research extra with: pip install -r "
+    f"{RESEARCH_REQUIREMENTS_FILE}  (pins pyarrow==17.0.0). "
+    "CI/dev may instead use requirements-dev.txt, which layers the same pin. "
+    "Do not add pyarrow to production requirements.txt."
+)
+
 
 class CoreBtcBinanceV0MaterializerError(ValueError):
     """Malformed materializer inputs or fail-closed disk/revision errors."""
+
+
+class StaleCanonicalPartition(CoreBtcBinanceV0MaterializerError):
+    """Canonical parquet was produced from a different raw revision."""
+
+
+class StagePreconditionError(CoreBtcBinanceV0MaterializerError):
+    """A pipeline stage was invoked without required prior evidence."""
+
+
+# ---------------------------------------------------------------------------
+# pyarrow
+# ---------------------------------------------------------------------------
+def require_pyarrow():
+    """Fail clearly when the research parquet dependency is missing."""
+    try:
+        import pyarrow  # noqa: F401
+        import pyarrow.parquet  # noqa: F401
+    except ImportError as exc:
+        raise CoreBtcBinanceV0MaterializerError(PYARROW_REQUIRED_MESSAGE) from exc
+    return True
+
+
+def _dec_str(value: Decimal) -> str:
+    """Frozen textual normalization: format(Decimal, 'f')."""
+    return format(value, "f")
 
 
 # ---------------------------------------------------------------------------
@@ -105,8 +166,8 @@ class CoreBtcBinanceV0MaterializerError(ValueError):
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class SourceObject:
-    archive_class: str  # monthly | daily
-    source_period: str  # YYYY-MM or YYYY-MM-DD
+    archive_class: str
+    source_period: str
     source_url: str
     checksum_url: str
     expected_zip_filename: str
@@ -155,13 +216,13 @@ def _iter_days(start: str, end: str) -> list[str]:
 
 
 def build_frozen_source_plan() -> list[SourceObject]:
-    """Exact contract source layout: monthly 2020-01..2026-07 then daily
-    2026-08-01..2026-08-25, deterministic order."""
     objects: list[SourceObject] = []
     for ym in _iter_year_months(MONTHLY_START, MONTHLY_END):
-        zip_url, checksum_url = (
-            f"{ARCHIVE_ROOT_MONTHLY}/{SYMBOL}/{INTERVAL}/{local_zip_filename(ym)}",
-            f"{ARCHIVE_ROOT_MONTHLY}/{SYMBOL}/{INTERVAL}/{local_checksum_filename(ym)}",
+        zip_url = (
+            f"{ARCHIVE_ROOT_MONTHLY}/{SYMBOL}/{INTERVAL}/{local_zip_filename(ym)}"
+        )
+        checksum_url = (
+            f"{ARCHIVE_ROOT_MONTHLY}/{SYMBOL}/{INTERVAL}/{local_checksum_filename(ym)}"
         )
         start_ms, end_ms = month_bounds_ms(ym)
         objects.append(SourceObject(
@@ -201,8 +262,12 @@ def expected_global_minute_count() -> int:
     return (end - start) // BAR_MS
 
 
+def planned_source_object_count() -> int:
+    return len(build_frozen_source_plan())
+
+
 # ---------------------------------------------------------------------------
-# dataset layout
+# dataset layout / io
 # ---------------------------------------------------------------------------
 def dataset_layout(root: Path) -> dict[str, Path]:
     root = Path(root)
@@ -241,13 +306,15 @@ def canonical_1m_path(root: Path, obj: SourceObject) -> Path:
     return layout["canonical_1m_daily"] / f"{obj.source_period}.parquet"
 
 
+def canonical_1m_provenance_path(root: Path, obj: SourceObject) -> Path:
+    return canonical_1m_path(root, obj).with_suffix(".provenance.json")
+
+
 def htf_path(root: Path, interval: str) -> Path:
     return dataset_layout(root)["canonical_htf"] / interval / "bars.parquet"
 
 
 def atomic_write_bytes(path: Path, data: bytes) -> None:
-    """Temp file in the destination directory + os.replace. Partial `.tmp`
-    / leftover files are never dataset evidence."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp")
@@ -276,7 +343,6 @@ def write_json(path: Path, payload: dict) -> None:
 
 
 def discard_partial_files(directory: Path) -> list[str]:
-    """`.part` / leftover `.tmp` files are never admitted as evidence."""
     removed = []
     if not directory.exists():
         return removed
@@ -288,6 +354,33 @@ def discard_partial_files(directory: Path) -> list[str]:
             path.unlink()
             removed.append(path.name)
     return removed
+
+
+@contextmanager
+def dataset_lock(root: Path):
+    """Exclusive flock for mutation stages. Released on process death."""
+    root = Path(root)
+    root.mkdir(parents=True, exist_ok=True)
+    lock_path = root / LOCK_FILENAME
+    fh = open(lock_path, "a+")
+    try:
+        try:
+            fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            raise CoreBtcBinanceV0MaterializerError(
+                f"dataset root is locked by another writer: {lock_path}"
+            ) from exc
+        fh.seek(0)
+        fh.truncate()
+        fh.write(str(os.getpid()))
+        fh.flush()
+        yield lock_path
+    finally:
+        try:
+            fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+        except OSError:
+            pass
+        fh.close()
 
 
 # ---------------------------------------------------------------------------
@@ -304,6 +397,8 @@ def plan_report(objects: list[SourceObject], git_commit_sha: str = "UNKNOWN") ->
         "contract_path": CONTRACT_PATH,
         "manifest_path": REPO_MANIFEST_PATH,
         "materializer_version": MATERIALIZER_VERSION,
+        "canonicalization_version": CANONICALIZATION_VERSION,
+        "aggregation_version": AGGREGATION_VERSION,
         "provenance_git_commit_sha": git_commit_sha,
         "provider": PROVIDER,
         "market_type": MARKET_TYPE,
@@ -317,6 +412,7 @@ def plan_report(objects: list[SourceObject], git_commit_sha: str = "UNKNOWN") ->
         "monthly_range": {"start": MONTHLY_START, "end": MONTHLY_END, "count": len(monthly)},
         "daily_range": {"start": DAILY_START, "end": DAILY_END, "count": len(daily)},
         "source_object_count": len(objects),
+        "decimal_string_policy": DECIMAL_STRING_POLICY,
         "objects": [o.as_plan_dict() for o in objects],
         "acceptance_note": (
             "This plan is not acquisition and not dataset acceptance. "
@@ -327,11 +423,12 @@ def plan_report(objects: list[SourceObject], git_commit_sha: str = "UNKNOWN") ->
 
 
 def estimate_object_bytes(archive_class: str, content_length: Optional[int]) -> tuple[int, str]:
-    if content_length is not None and content_length >= 0:
-        return content_length, "HEAD_CONTENT_LENGTH"
-    if archive_class == "monthly":
-        return CONSERVATIVE_MONTHLY_ZIP_BYTES, "CONSERVATIVE_DEFAULT_MONTHLY"
-    return CONSERVATIVE_DAILY_ZIP_BYTES, "CONSERVATIVE_DEFAULT_DAILY"
+    """HEAD Content-Length missing/0/invalid is UNKNOWN, never zero bytes."""
+    if content_length is None or content_length <= 0:
+        if archive_class == "monthly":
+            return CONSERVATIVE_MONTHLY_ZIP_BYTES, "CONSERVATIVE_DEFAULT_MONTHLY"
+        return CONSERVATIVE_DAILY_ZIP_BYTES, "CONSERVATIVE_DEFAULT_DAILY"
+    return content_length, "HEAD_CONTENT_LENGTH"
 
 
 def disk_usage_for(path: Path) -> dict:
@@ -345,28 +442,33 @@ def disk_usage_for(path: Path) -> dict:
     }
 
 
-def retained_raw_size(root: Path) -> int:
-    raw = dataset_layout(root)["raw"]
-    if not raw.exists():
+def _walk_size(path: Path, predicate) -> int:
+    if not path.exists():
         return 0
     total = 0
-    for dirpath, _dirnames, filenames in os.walk(raw):
+    for dirpath, _dn, filenames in os.walk(path):
         for name in filenames:
-            if name.endswith(".part") or name.endswith(".tmp"):
-                continue
-            total += (Path(dirpath) / name).stat().st_size
+            if predicate(name):
+                total += (Path(dirpath) / name).stat().st_size
     return total
+
+
+def retained_raw_size(root: Path) -> int:
+    return _walk_size(
+        dataset_layout(root)["raw"],
+        lambda name: not (name.endswith(".part") or name.endswith(".tmp")),
+    )
+
+
+def part_files_size(root: Path) -> int:
+    return _walk_size(
+        Path(root),
+        lambda name: name.endswith(".part") or name.endswith(".tmp") or ".part." in name,
+    )
 
 
 def materialized_size(root: Path) -> int:
-    canonical = dataset_layout(root)["canonical"]
-    if not canonical.exists():
-        return 0
-    total = 0
-    for dirpath, _dirnames, filenames in os.walk(canonical):
-        for name in filenames:
-            total += (Path(dirpath) / name).stat().st_size
-    return total
+    return _walk_size(dataset_layout(root)["canonical"], lambda _name: True)
 
 
 def assert_disk_budget(
@@ -374,20 +476,32 @@ def assert_disk_budget(
     estimated_download_bytes: int,
     disk_reserve_bytes: int = DEFAULT_DISK_RESERVE_BYTES,
     extra_temp_bytes: Optional[int] = None,
+    allow_zero_reserve: bool = False,
 ) -> dict:
-    """Fail closed if free space minus reserve cannot hold the remaining
-    download plus a conservative temp bound (one in-flight ZIP)."""
+    if disk_reserve_bytes <= 0 and not allow_zero_reserve:
+        raise CoreBtcBinanceV0MaterializerError(
+            "disk reserve must be positive unless --unsafe-no-disk-reserve is set"
+        )
     usage = disk_usage_for(root)
     already = retained_raw_size(root)
+    parts = part_files_size(root)
     remaining = max(0, estimated_download_bytes - already)
-    temp_bound = extra_temp_bytes if extra_temp_bytes is not None else CONSERVATIVE_MONTHLY_ZIP_BYTES
-    need = remaining + temp_bound + disk_reserve_bytes
+    already_canonical = materialized_size(root)
+    canonical_need = max(0, CONSERVATIVE_CANONICAL_1M_TOTAL_BYTES - already_canonical)
+    htf_need = CONSERVATIVE_HTF_TOTAL_BYTES
+    temp_bound = extra_temp_bytes if extra_temp_bytes is not None else (
+        CONSERVATIVE_MONTHLY_ZIP_BYTES + CONSERVATIVE_PARTITION_PARQUET_BYTES
+    )
+    need = remaining + parts + canonical_need + htf_need + temp_bound + disk_reserve_bytes
     ok = usage["free_bytes"] >= need
     report = {
         **usage,
         "estimated_raw_download_bytes": estimated_download_bytes,
         "retained_raw_bytes": already,
+        "part_and_tmp_bytes": parts,
         "remaining_download_bytes": remaining,
+        "canonical_output_estimate_bytes": canonical_need,
+        "htf_output_estimate_bytes": htf_need,
         "temp_bound_bytes": temp_bound,
         "disk_reserve_bytes": disk_reserve_bytes,
         "bytes_required_including_reserve": need,
@@ -397,16 +511,65 @@ def assert_disk_budget(
         raise CoreBtcBinanceV0MaterializerError(
             "disk-safety gate failed: "
             f"free={usage['free_bytes']} required={need} "
-            f"(remaining_download={remaining} + temp={temp_bound} + reserve={disk_reserve_bytes})"
+            f"(remaining_download={remaining} + parts={parts} + "
+            f"canonical={canonical_need} + htf={htf_need} + "
+            f"temp={temp_bound} + reserve={disk_reserve_bytes})"
         )
     return report
 
 
 # ---------------------------------------------------------------------------
-# acquire
+# acquire (atomic ZIP+CHECKSUM pair)
 # ---------------------------------------------------------------------------
 FetchFn = Callable[[str], tuple[Optional[bytes], str, Optional[int]]]
-# returns (body_or_none, status_str like HTTP_200 / HTTP_403 / NETWORK_ERROR:..., content_length)
+
+
+def _on_disk_checksum_verification(root: Path, obj: SourceObject) -> dict:
+    zip_path = raw_zip_path(root, obj)
+    checksum_path = raw_checksum_path(root, obj)
+    out = {
+        "local_sha256": None,
+        "expected_sha256": None,
+        "checksum_observed_filename": None,
+        "checksum_verification": "NOT_ATTEMPTED",
+        "byte_size": None,
+    }
+    if not zip_path.exists() or not checksum_path.exists():
+        out["checksum_verification"] = "NOT_VERIFIABLE_MISSING_CHECKSUM"
+        if zip_path.exists():
+            out["local_sha256"] = sha256_of_file(zip_path)
+            out["byte_size"] = zip_path.stat().st_size
+        return out
+    out["local_sha256"] = sha256_of_file(zip_path)
+    out["byte_size"] = zip_path.stat().st_size
+    try:
+        parsed = parse_checksum_text(checksum_path.read_text(encoding="utf-8"))
+    except CoreBtcBinanceV0ProbeError:
+        out["checksum_verification"] = "NOT_VERIFIABLE_MISSING_CHECKSUM"
+        return out
+    out["expected_sha256"] = parsed["sha256"]
+    out["checksum_observed_filename"] = parsed["filename"]
+    out["checksum_verification"] = evaluate_checksum_verification(
+        out["local_sha256"], parsed, obj.expected_zip_filename)
+    return out
+
+
+def _adopt_zip_and_checksum(zip_path: Path, checksum_path: Path, zip_bytes: bytes, checksum_bytes: bytes) -> None:
+    zip_path.parent.mkdir(parents=True, exist_ok=True)
+    part_zip = zip_path.with_suffix(zip_path.suffix + ".part")
+    part_sum = checksum_path.with_suffix(checksum_path.suffix + ".part")
+    try:
+        atomic_write_bytes(part_zip, zip_bytes)
+        atomic_write_bytes(part_sum, checksum_bytes)
+        os.replace(part_zip, zip_path)
+        os.replace(part_sum, checksum_path)
+    finally:
+        for p in (part_zip, part_sum):
+            if p.exists():
+                try:
+                    p.unlink()
+                except OSError:
+                    pass
 
 
 def acquire_one_object(
@@ -448,26 +611,69 @@ def acquire_one_object(
         record["expected_sha256_status"] = f"MISSING: {checksum_status}"
 
     existing_sha = sha256_of_file(zip_path) if zip_path.exists() else None
-    disposition = decide_existing_zip_disposition(existing_sha, record.get("expected_sha256"))
+    remote_sha = parsed["sha256"] if parsed is not None else None
+    disposition = decide_existing_zip_disposition(existing_sha, remote_sha)
     record["disposition"] = disposition
 
     if disposition == "REVISION_CONFLICT":
         record["source_status"] = "REVISION_CONFLICT"
+        disk = _on_disk_checksum_verification(root, obj)
+        record.update({k: disk[k] for k in (
+            "local_sha256", "byte_size", "checksum_verification",
+            "checksum_observed_filename") if disk.get(k) is not None or k == "checksum_verification"})
         record["local_sha256"] = existing_sha
         record["byte_size"] = zip_path.stat().st_size
-        record["checksum_verification"] = evaluate_checksum_verification(
-            existing_sha, parsed, obj.expected_zip_filename)
-        # RT-05: do not overwrite the existing sidecar.
+        record["checksum_verification"] = disk["checksum_verification"]
         return record
 
-    if disposition in ("REUSED_IDENTICAL", "REUSED_UNVERIFIED_NO_REFERENCE"):
+    if disposition == "REUSED_UNVERIFIED_NO_REFERENCE":
         record["source_status"] = disposition
+        disk = _on_disk_checksum_verification(root, obj)
         record["local_sha256"] = existing_sha
         record["byte_size"] = zip_path.stat().st_size
-        if checksum_bytes is not None and parsed is not None and not checksum_path.exists():
-            atomic_write_bytes(checksum_path, checksum_bytes)
-        record["checksum_verification"] = evaluate_checksum_verification(
-            existing_sha, parsed, obj.expected_zip_filename)
+        record["checksum_verification"] = disk["checksum_verification"]
+        return record
+
+    if disposition == "REUSED_IDENTICAL":
+        # ZIP matches remote digest. Adopt sidecar only when missing or already
+        # identical; never report VERIFIED unless on-disk pair matches.
+        if checksum_bytes is not None and parsed is not None:
+            if not checksum_path.exists():
+                atomic_write_bytes(checksum_path, checksum_bytes)
+            else:
+                try:
+                    on_disk = parse_checksum_text(checksum_path.read_text(encoding="utf-8"))
+                except CoreBtcBinanceV0ProbeError:
+                    on_disk = None
+                if on_disk is None or on_disk["sha256"] != existing_sha:
+                    record["source_status"] = "SIDECAR_ZIP_INCONSISTENT"
+                    record["local_sha256"] = existing_sha
+                    record["byte_size"] = zip_path.stat().st_size
+                    record["checksum_verification"] = "MISMATCH"
+                    return record
+        disk = _on_disk_checksum_verification(root, obj)
+        record["source_status"] = "REUSED_IDENTICAL"
+        record["local_sha256"] = disk["local_sha256"]
+        record["byte_size"] = disk["byte_size"]
+        record["checksum_verification"] = disk["checksum_verification"]
+        record["checksum_observed_filename"] = disk["checksum_observed_filename"]
+        return record
+
+    # NEW: no ZIP on disk.
+    if checksum_path.exists():
+        try:
+            old_side = parse_checksum_text(checksum_path.read_text(encoding="utf-8"))
+        except CoreBtcBinanceV0ProbeError:
+            old_side = None
+        if parsed is None or old_side is None or old_side["sha256"] != parsed["sha256"]:
+            record["source_status"] = "REVISION_CONFLICT"
+            record["disposition"] = "REVISION_CONFLICT"
+            record["checksum_verification"] = "NOT_VERIFIABLE_MISSING_CHECKSUM"
+            return record
+
+    if parsed is None or checksum_bytes is None:
+        record["source_status"] = checksum_status
+        record["checksum_verification"] = "NOT_VERIFIABLE_MISSING_CHECKSUM"
         return record
 
     zip_bytes, zip_status, _cl = fetch(obj.source_url)
@@ -475,26 +681,31 @@ def acquire_one_object(
         record["source_status"] = zip_status
         return record
 
-    part_path = zip_path.with_suffix(zip_path.suffix + ".part")
-    try:
-        atomic_write_bytes(part_path, zip_bytes)
-        os.replace(part_path, zip_path)
-    finally:
-        if part_path.exists():
-            try:
-                part_path.unlink()
-            except OSError:
-                pass
+    local = sha256_of_bytes(zip_bytes)
+    pair_status = evaluate_checksum_verification(local, parsed, obj.expected_zip_filename)
+    if pair_status != "VERIFIED":
+        record["source_status"] = zip_status
+        record["local_sha256"] = local
+        record["byte_size"] = len(zip_bytes)
+        record["checksum_verification"] = pair_status
+        return record
 
-    if checksum_bytes is not None and parsed is not None and not checksum_path.exists():
-        atomic_write_bytes(checksum_path, checksum_bytes)
-
+    _adopt_zip_and_checksum(zip_path, checksum_path, zip_bytes, checksum_bytes)
+    disk = _on_disk_checksum_verification(root, obj)
     record["source_status"] = "HTTP_200"
-    record["byte_size"] = len(zip_bytes)
-    record["local_sha256"] = sha256_of_bytes(zip_bytes)
-    record["checksum_verification"] = evaluate_checksum_verification(
-        record["local_sha256"], parsed, obj.expected_zip_filename)
+    record["disposition"] = "NEW"
+    record["local_sha256"] = disk["local_sha256"]
+    record["byte_size"] = disk["byte_size"]
+    record["checksum_verification"] = disk["checksum_verification"]
+    record["checksum_observed_filename"] = disk["checksum_observed_filename"]
+    record["expected_sha256"] = disk["expected_sha256"]
     return record
+
+
+def acquire_all_verified(records: list[dict], planned: int) -> bool:
+    if len(records) != planned:
+        return False
+    return all(r.get("checksum_verification") == "VERIFIED" for r in records)
 
 
 # ---------------------------------------------------------------------------
@@ -505,6 +716,7 @@ class CanonicalBar:
     open_time_ms: int
     bar_end_exclusive_ms: int
     available_at_ms: int
+    close_time_ms: int
     open: Decimal
     high: Decimal
     low: Decimal
@@ -518,22 +730,25 @@ class CanonicalBar:
     taker_sell_quote_volume: Decimal
     source_period: str
     archive_class: str
-    source_sha256: str
 
     def semantic_tuple(self) -> tuple:
         return (
-            self.open_time_ms, self.open, self.high, self.low, self.close,
+            self.open_time_ms, self.close_time_ms,
+            self.open, self.high, self.low, self.close,
             self.base_volume, self.quote_volume, self.trade_count,
             self.taker_buy_base_volume, self.taker_buy_quote_volume,
         )
 
 
-def kline_to_canonical(row, obj: SourceObject, source_sha256: str) -> CanonicalBar:
+def kline_to_canonical(row, obj: SourceObject, source_sha256: str | None = None) -> CanonicalBar:
+    """`source_sha256` is ignored (partition provenance holds source identity)."""
+    del source_sha256
     bar_end = bar_end_exclusive_ms(row.open_time_ms)
     return CanonicalBar(
         open_time_ms=row.open_time_ms,
         bar_end_exclusive_ms=bar_end,
         available_at_ms=bar_end,
+        close_time_ms=row.close_time_ms,
         open=row.open,
         high=row.high,
         low=row.low,
@@ -547,13 +762,11 @@ def kline_to_canonical(row, obj: SourceObject, source_sha256: str) -> CanonicalB
         taker_sell_quote_volume=row.quote_volume - row.taker_buy_quote_volume,
         source_period=obj.source_period,
         archive_class=obj.archive_class,
-        source_sha256=source_sha256,
     )
 
 
 def audit_raw_object(root: Path, obj: SourceObject) -> dict:
     zip_path = raw_zip_path(root, obj)
-    checksum_path = raw_checksum_path(root, obj)
     record = {
         **obj.as_plan_dict(),
         "attempted": True,
@@ -569,25 +782,13 @@ def audit_raw_object(root: Path, obj: SourceObject) -> dict:
     if zip_path.exists() and zip_path.suffix == ".part":
         record["parser_status"] = "PARTIAL_FILE_NOT_EVIDENCE"
         return record
+    disk = _on_disk_checksum_verification(root, obj)
+    record.update(disk)
     if not zip_path.exists():
         record["parser_status"] = "NO_SUCH_FILE"
-        record["checksum_verification"] = "NOT_VERIFIABLE_MISSING_CHECKSUM"
         return record
-
-    record["byte_size"] = zip_path.stat().st_size
-    record["local_sha256"] = sha256_of_file(zip_path)
-    parsed = None
-    if checksum_path.exists():
-        try:
-            parsed = parse_checksum_text(checksum_path.read_text(encoding="utf-8"))
-            record["expected_sha256"] = parsed["sha256"]
-            record["checksum_observed_filename"] = parsed["filename"]
-        except CoreBtcBinanceV0ProbeError as exc:
-            record["checksum_verification"] = "NOT_VERIFIABLE_MISSING_CHECKSUM"
-            record["expected_sha256_status"] = f"MALFORMED: {exc}"
-            return record
-    record["checksum_verification"] = evaluate_checksum_verification(
-        record["local_sha256"], parsed, obj.expected_zip_filename)
+    if record["checksum_verification"] != "VERIFIED":
+        return record
 
     csv_text, names, parser_status = read_kline_csv_member_named(
         zip_path, obj.expected_csv_member_name)
@@ -602,15 +803,21 @@ def audit_raw_object(root: Path, obj: SourceObject) -> dict:
         parse_meta["malformed_row_count"])
     record["header_present"] = parse_meta["header_present"]
     record.update(audit)
-    record["admitted_to_canonical"] = record["checksum_verification"] == "VERIFIED"
+    record["admitted_to_canonical"] = True
     return record
 
 
-def _dec_str(value: Decimal) -> str:
-    return format(value, "f")
+def audit_all_verified(records: list[dict], planned: int) -> bool:
+    if len(records) != planned:
+        return False
+    return all(
+        r.get("checksum_verification") == "VERIFIED" and r.get("parser_status") == "OK"
+        for r in records
+    )
 
 
 def canonical_rows_to_parquet_bytes(rows: list[CanonicalBar]) -> bytes:
+    require_pyarrow()
     import pyarrow as pa
     import pyarrow.parquet as pq
 
@@ -619,20 +826,21 @@ def canonical_rows_to_parquet_bytes(rows: list[CanonicalBar]) -> bytes:
         "open_time_ms": pa.array([r.open_time_ms for r in rows_sorted], type=pa.int64()),
         "bar_end_exclusive_ms": pa.array([r.bar_end_exclusive_ms for r in rows_sorted], type=pa.int64()),
         "available_at_ms": pa.array([r.available_at_ms for r in rows_sorted], type=pa.int64()),
+        "close_time_ms": pa.array([r.close_time_ms for r in rows_sorted], type=pa.int64()),
         "trade_count": pa.array([r.trade_count for r in rows_sorted], type=pa.int64()),
         "source_period": pa.array([r.source_period for r in rows_sorted], type=pa.string()),
         "archive_class": pa.array([r.archive_class for r in rows_sorted], type=pa.string()),
-        "source_sha256": pa.array([r.source_sha256 for r in rows_sorted], type=pa.string()),
     }
     for name in DECIMAL_FIELDS:
         arrays[name] = pa.array([_dec_str(getattr(r, name)) for r in rows_sorted], type=pa.string())
-    table = pa.table(arrays)
     buf = pa.BufferOutputStream()
-    pq.write_table(table, buf, compression="zstd")
+    pq.write_table(pa.table(arrays), buf, **PARQUET_WRITE_KWARGS)
     return buf.getvalue().to_pybytes()
 
 
 def canonical_rows_from_parquet(path: Path) -> list[CanonicalBar]:
+    """Test/helper reader for one partition. Production scans use iter_batches."""
+    require_pyarrow()
     import pyarrow.parquet as pq
 
     table = pq.read_table(path)
@@ -640,10 +848,13 @@ def canonical_rows_from_parquet(path: Path) -> list[CanonicalBar]:
     n = table.num_rows
     out = []
     for i in range(n):
+        close_time = cols["close_time_ms"][i] if "close_time_ms" in cols else (
+            int(cols["open_time_ms"][i]) + BAR_MS - 1)
         out.append(CanonicalBar(
             open_time_ms=int(cols["open_time_ms"][i]),
             bar_end_exclusive_ms=int(cols["bar_end_exclusive_ms"][i]),
             available_at_ms=int(cols["available_at_ms"][i]),
+            close_time_ms=int(close_time),
             open=Decimal(cols["open"][i]),
             high=Decimal(cols["high"][i]),
             low=Decimal(cols["low"][i]),
@@ -657,23 +868,48 @@ def canonical_rows_from_parquet(path: Path) -> list[CanonicalBar]:
             taker_sell_quote_volume=Decimal(cols["taker_sell_quote_volume"][i]),
             source_period=cols["source_period"][i],
             archive_class=cols["archive_class"][i],
-            source_sha256=cols["source_sha256"][i],
         ))
     return out
 
 
-def materialize_object_1m(root: Path, obj: SourceObject, audit_record: dict) -> dict:
-    """Parse a VERIFIED zip into a canonical 1m parquet partition.
+def _partition_provenance_payload(
+    obj: SourceObject, raw: dict, admitted: list[CanonicalBar], parquet_sha: str, extra: dict,
+) -> dict:
+    return {
+        "schema_version": PARTITION_PROVENANCE_VERSION,
+        "dataset_id": DATASET_ID,
+        "source_period": obj.source_period,
+        "archive_class": obj.archive_class,
+        "source_url": obj.source_url,
+        "expected_zip_filename": obj.expected_zip_filename,
+        "expected_csv_member_name": obj.expected_csv_member_name,
+        "source_local_sha256": raw["local_sha256"],
+        "source_expected_sha256": raw["expected_sha256"],
+        "checksum_verification": raw["checksum_verification"],
+        "materializer_version": MATERIALIZER_VERSION,
+        "canonicalization_version": CANONICALIZATION_VERSION,
+        "canonical_schema_version": CANONICAL_SCHEMA_VERSION,
+        "decimal_string_policy": "format(Decimal(value), 'f')",
+        "admitted_rows": len(admitted),
+        "first_open_time_ms": admitted[0].open_time_ms if admitted else None,
+        "last_open_time_ms": admitted[-1].open_time_ms if admitted else None,
+        "canonical_parquet_sha256": parquet_sha,
+        **extra,
+    }
 
-    Identical duplicate rows: keep the first in file order and record.
-    Conflicting duplicates: drop the minute from this partition and record.
-    Rows failing invariants / outside the object period / outside the frozen
-    global range are rejected, never repaired.
+
+def materialize_object_1m(root: Path, obj: SourceObject, audit_record: dict) -> dict:
+    """Parse CURRENT verified ZIP bytes into a canonical 1m parquet partition.
+
+    RT-M01: re-hash ZIP + sidecar immediately before admission. A stale audit
+    record cannot admit changed bytes.
     """
+    require_pyarrow()
     result = {
         "source_period": obj.source_period,
         "archive_class": obj.archive_class,
         "canonical_path": None,
+        "provenance_path": None,
         "admitted_rows": 0,
         "identical_duplicate_count": 0,
         "conflicting_duplicate_open_times": [],
@@ -681,15 +917,29 @@ def materialize_object_1m(root: Path, obj: SourceObject, audit_record: dict) -> 
         "rejected_invariant": 0,
         "rejected_identity": 0,
         "rejected_end_exclusive": 0,
+        "status": "NOT_ATTEMPTED",
     }
-    if audit_record.get("checksum_verification") != "VERIFIED":
+    zip_path = raw_zip_path(root, obj)
+    disk = _on_disk_checksum_verification(root, obj)
+    if disk["checksum_verification"] != "VERIFIED":
         result["status"] = "SKIPPED_NOT_VERIFIED"
+        result["current_checksum_verification"] = disk["checksum_verification"]
+        return result
+    if audit_record.get("checksum_verification") != "VERIFIED":
+        result["status"] = "STALE_AUDIT"
+        return result
+    if audit_record.get("local_sha256") != disk["local_sha256"]:
+        result["status"] = "STALE_AUDIT"
+        result["audit_sha256"] = audit_record.get("local_sha256")
+        result["current_sha256"] = disk["local_sha256"]
+        return result
+    if audit_record.get("expected_sha256") not in (None, disk["expected_sha256"]):
+        result["status"] = "STALE_AUDIT"
         return result
     if audit_record.get("parser_status") != "OK":
         result["status"] = "SKIPPED_PARSER"
         return result
 
-    zip_path = raw_zip_path(root, obj)
     csv_text, _names, status = read_kline_csv_member_named(zip_path, obj.expected_csv_member_name)
     if status != "OK" or csv_text is None:
         result["status"] = "SKIPPED_PARSER"
@@ -702,7 +952,6 @@ def materialize_object_1m(root: Path, obj: SourceObject, audit_record: dict) -> 
     rejected_invariant = 0
     rejected_identity = 0
     rejected_end = 0
-    sha = audit_record["local_sha256"]
 
     for row in rows:
         if row_invariant_violations(row):
@@ -714,7 +963,7 @@ def materialize_object_1m(root: Path, obj: SourceObject, audit_record: dict) -> 
         if row.open_time_ms < global_start or row.open_time_ms >= global_end:
             rejected_end += 1
             continue
-        bar = kline_to_canonical(row, obj, sha)
+        bar = kline_to_canonical(row, obj)
         existing = by_time.get(bar.open_time_ms)
         if existing is None:
             by_time[bar.open_time_ms] = bar
@@ -731,22 +980,95 @@ def materialize_object_1m(root: Path, obj: SourceObject, audit_record: dict) -> 
     accepted = [by_time[t] for t in sorted(by_time)]
     out_path = canonical_1m_path(root, obj)
     payload = canonical_rows_to_parquet_bytes(accepted)
+    parquet_sha = sha256_of_bytes(payload)
+    extra = {
+        "identical_duplicate_count": identical,
+        "conflicting_duplicate_open_times": sorted(conflicts),
+        "rejected_invariant": rejected_invariant,
+        "rejected_identity": rejected_identity,
+        "rejected_end_exclusive": rejected_end,
+        "rejected_schema": result["rejected_schema"],
+    }
+    provenance = _partition_provenance_payload(obj, disk, accepted, parquet_sha, extra)
     result["canonical_path"] = str(out_path.relative_to(root)).replace("\\", "/")
+    result["provenance_path"] = str(
+        canonical_1m_provenance_path(root, obj).relative_to(root)).replace("\\", "/")
     result["admitted_rows"] = len(accepted)
     result["identical_duplicate_count"] = identical
     result["conflicting_duplicate_open_times"] = sorted(conflicts)
     result["rejected_invariant"] = rejected_invariant
     result["rejected_identity"] = rejected_identity
     result["rejected_end_exclusive"] = rejected_end
-    if out_path.exists() and sha256_of_file(out_path) == sha256_of_bytes(payload):
+    result["source_local_sha256"] = disk["local_sha256"]
+    result["canonical_parquet_sha256"] = parquet_sha
+
+    if out_path.exists() and sha256_of_file(out_path) == parquet_sha:
+        write_json(canonical_1m_provenance_path(root, obj), provenance)
         result["status"] = "REUSED_IDENTICAL_PARTITION"
         return result
     atomic_write_bytes(out_path, payload)
+    write_json(canonical_1m_provenance_path(root, obj), provenance)
     result["status"] = "WROTE"
     return result
 
 
+def verify_canonical_partitions(root: Path, objects: list[SourceObject]) -> list[dict]:
+    """RT-M02: every canonical partition must match CURRENT verified raw."""
+    problems = []
+    provenances = []
+    for obj in objects:
+        raw = _on_disk_checksum_verification(root, obj)
+        parq = canonical_1m_path(root, obj)
+        prov_path = canonical_1m_provenance_path(root, obj)
+        if raw["checksum_verification"] != "VERIFIED":
+            problems.append({
+                "source_period": obj.source_period,
+                "status": "RAW_NOT_VERIFIED",
+                "checksum_verification": raw["checksum_verification"],
+            })
+            continue
+        if not parq.exists() or not prov_path.exists():
+            problems.append({"source_period": obj.source_period, "status": "MISSING_CANONICAL"})
+            continue
+        prov = json.loads(prov_path.read_text(encoding="utf-8"))
+        actual = sha256_of_file(parq)
+        if prov.get("canonical_parquet_sha256") != actual:
+            problems.append({
+                "source_period": obj.source_period,
+                "status": "PROVENANCE_PARQUET_MISMATCH",
+            })
+            continue
+        if prov.get("source_local_sha256") != raw["local_sha256"]:
+            problems.append({
+                "source_period": obj.source_period,
+                "status": "STALE_CANONICAL_PARTITION",
+                "partition_source_sha256": prov.get("source_local_sha256"),
+                "current_raw_sha256": raw["local_sha256"],
+            })
+            continue
+        if prov.get("source_expected_sha256") != raw["expected_sha256"]:
+            problems.append({
+                "source_period": obj.source_period,
+                "status": "STALE_CANONICAL_PARTITION",
+            })
+            continue
+        provenances.append(prov)
+    if problems:
+        stale = any(p.get("status") == "STALE_CANONICAL_PARTITION" for p in problems)
+        exc_cls = StaleCanonicalPartition if stale else StagePreconditionError
+        raise exc_cls(
+            dumps_deterministic({
+                "error": "CANONICAL_PROVENANCE_FAILED",
+                "problems": problems,
+            })
+        )
+    if len(provenances) != len(objects):
+        raise StagePreconditionError("canonical provenance count != planned objects")
+    return provenances
+
+
 def load_all_canonical_1m(root: Path, objects: list[SourceObject]) -> list[CanonicalBar]:
+    """Small-fixture helper only. Production aggregate/finalize must not use this."""
     bars: list[CanonicalBar] = []
     for obj in objects:
         path = canonical_1m_path(root, obj)
@@ -756,11 +1078,7 @@ def load_all_canonical_1m(root: Path, objects: list[SourceObject]) -> list[Canon
     return bars
 
 
-def merge_cross_object(
-    bars: list[CanonicalBar],
-) -> tuple[list[CanonicalBar], dict]:
-    """Detect cross-object overlap. Identical: keep the earlier source_period
-    (plan order is chronological). Conflicting: drop both and record."""
+def merge_cross_object(bars: list[CanonicalBar]) -> tuple[list[CanonicalBar], dict]:
     by_time: dict[int, CanonicalBar] = {}
     identical = 0
     conflicts: list[int] = []
@@ -788,77 +1106,152 @@ def merge_cross_object(
 
 
 # ---------------------------------------------------------------------------
-# continuity / gap diagnostic / HTF / snapshot
+# streaming readers (no full-dataset to_pylist)
 # ---------------------------------------------------------------------------
-def continuity_audit(
-    bars: list[CanonicalBar],
-    start_ms: Optional[int] = None,
-    end_ms: Optional[int] = None,
-) -> dict:
-    if start_ms is None or end_ms is None:
-        start_ms, end_ms = frozen_range_ms()
-    expected = list(range(start_ms, end_ms, BAR_MS))
-    expected_set = set(expected)
-    times = [b.open_time_ms for b in bars]
-    counts: dict[int, int] = {}
-    for t in times:
-        counts[t] = counts.get(t, 0) + 1
-    unique = set(times)
-    missing = sorted(expected_set - unique)
-    extra = sorted(t for t in unique if t not in expected_set)
-    duplicate_times = sorted(t for t, c in counts.items() if c > 1)
-    ranges_incl = _compress(missing, BAR_MS)
-    gaps = []
-    longest = 0
-    for a, b in ranges_incl:
-        missing_minutes = ((b - a) // BAR_MS) + 1
-        longest = max(longest, missing_minutes)
-        gaps.append({
-            "start_ms": a,
-            "end_exclusive_ms": b + BAR_MS,
-            "missing_minutes": missing_minutes,
-        })
-    by_year: dict[str, int] = {}
-    by_month: dict[str, int] = {}
-    for t in missing:
+def iter_canonical_batches(
+    root: Path, objects: list[SourceObject], columns: Optional[list[str]] = None,
+    batch_size: int = STREAM_BATCH_ROWS,
+) -> Iterator:
+    """Yield pyarrow RecordBatches in plan order. Never concatenates all partitions."""
+    require_pyarrow()
+    import pyarrow.parquet as pq
+
+    for obj in objects:
+        path = canonical_1m_path(root, obj)
+        if not path.exists():
+            continue
+        pf = pq.ParquetFile(path)
+        for batch in pf.iter_batches(columns=columns, batch_size=batch_size):
+            yield batch
+
+
+def iter_canonical_open_times(root: Path, objects: list[SourceObject]) -> Iterator[int]:
+    for batch in iter_canonical_batches(root, objects, columns=["open_time_ms"]):
+        for t in batch.column("open_time_ms").to_pylist():
+            yield int(t)
+
+
+# ---------------------------------------------------------------------------
+# streaming continuity
+# ---------------------------------------------------------------------------
+def _add_missingness(start_ms: int, end_exclusive_ms: int, by_year: dict, by_month: dict) -> None:
+    t = start_ms
+    while t < end_exclusive_ms:
         dt = datetime.fromtimestamp(t / 1000, tz=UTC)
         year = f"{dt.year:04d}"
         month = f"{dt.year:04d}-{dt.month:02d}"
-        by_year[year] = by_year.get(year, 0) + 1
-        by_month[month] = by_month.get(month, 0) + 1
+        month_end = month_bounds_ms(month)[1]
+        chunk_end = min(month_end, end_exclusive_ms)
+        minutes = (chunk_end - t) // BAR_MS
+        by_year[year] = by_year.get(year, 0) + minutes
+        by_month[month] = by_month.get(month, 0) + minutes
+        t = chunk_end
+
+
+def continuity_audit_from_times(
+    times: Iterable[int],
+    start_ms: Optional[int] = None,
+    end_ms: Optional[int] = None,
+) -> dict:
+    """O(observed) continuity. No list(range(start, end, 60_000))."""
+    if start_ms is None or end_ms is None:
+        start_ms, end_ms = frozen_range_ms()
+    expected_count = (end_ms - start_ms) // BAR_MS
+    expected_next = start_ms
+    observed = 0
+    unique = 0
+    duplicate_count = 0
+    duplicate_times: list[int] = []
+    extra: list[int] = []
+    gaps: list[dict] = []
+    longest = 0
+    last_t: Optional[int] = None
+    strictly = True
+    by_year: dict[str, int] = {}
+    by_month: dict[str, int] = {}
+    first = None
+    last_obs = None
+
+    def emit_gap(gstart: int, gend: int) -> None:
+        nonlocal longest
+        if gend <= gstart:
+            return
+        minutes = (gend - gstart) // BAR_MS
+        longest = max(longest, minutes)
+        gaps.append({
+            "start_ms": gstart,
+            "end_exclusive_ms": gend,
+            "missing_minutes": minutes,
+        })
+        _add_missingness(gstart, gend, by_year, by_month)
+
+    for t in times:
+        observed += 1
+        t = int(t)
+        if first is None:
+            first = t
+        if last_t is not None and t < last_t:
+            strictly = False
+        if t < start_ms or t >= end_ms:
+            extra.append(t)
+            last_t = t
+            continue
+        if last_t == t:
+            duplicate_count += 1
+            if not duplicate_times or duplicate_times[-1] != t:
+                duplicate_times.append(t)
+            last_t = t
+            continue
+        unique += 1
+        if t < expected_next:
+            strictly = False
+            duplicate_count += 1
+            duplicate_times.append(t)
+            last_t = t
+            continue
+        if t > expected_next:
+            emit_gap(expected_next, t)
+        expected_next = t + BAR_MS
+        last_t = t
+        last_obs = t
+    if expected_next < end_ms:
+        emit_gap(expected_next, end_ms)
+
+    missing = sum(g["missing_minutes"] for g in gaps)
     return {
         "start_inclusive_ms": start_ms,
         "end_exclusive_ms": end_ms,
-        "expected_minute_count": len(expected),
-        "observed_rows": len(bars),
-        "observed_unique_timestamps": len(unique),
-        "missing_minute_count": len(missing),
-        "duplicate_minute_count": sum(c - 1 for c in counts.values() if c > 1),
+        "expected_minute_count": expected_count,
+        "observed_rows": observed,
+        "observed_unique_timestamps": unique,
+        "missing_minute_count": missing,
+        "duplicate_minute_count": duplicate_count,
         "duplicate_open_times": duplicate_times,
         "rows_outside_frozen_range": extra,
         "longest_contiguous_gap_minutes": longest,
         "gaps": gaps,
         "missingness_by_year": {k: by_year[k] for k in sorted(by_year)},
         "missingness_by_month": {k: by_month[k] for k in sorted(by_month)},
-        "first_observed_open_time_ms": times[0] if times else None,
-        "last_observed_open_time_ms": times[-1] if times else None,
-        "is_strictly_ordered": all(times[i] < times[i + 1] for i in range(len(times) - 1)),
+        "first_observed_open_time_ms": first,
+        "last_observed_open_time_ms": last_obs,
+        "is_strictly_ordered": strictly,
     }
 
 
-def _compress(sorted_values: list[int], step: int) -> list[list[int]]:
-    if not sorted_values:
-        return []
-    ranges: list[list[int]] = []
-    start = prev = sorted_values[0]
-    for value in sorted_values[1:]:
-        if value == prev + step:
-            prev = value
-            continue
-        ranges.append([start, prev])
-        start = prev = value
-    ranges.append([start, prev])
-    return ranges
+def continuity_audit(
+    bars: Iterable,
+    start_ms: Optional[int] = None,
+    end_ms: Optional[int] = None,
+) -> dict:
+    def times():
+        for b in bars:
+            yield b.open_time_ms if hasattr(b, "open_time_ms") else int(b)
+    return continuity_audit_from_times(times(), start_ms, end_ms)
+
+
+def continuity_audit_from_root(root: Path, objects: list[SourceObject]) -> dict:
+    start_ms, end_ms = frozen_range_ms()
+    return continuity_audit_from_times(iter_canonical_open_times(root, objects), start_ms, end_ms)
 
 
 def _percentile(sorted_values: list[Decimal], percentile: int) -> Optional[Decimal]:
@@ -874,7 +1267,7 @@ def _percentile(sorted_values: list[Decimal], percentile: int) -> Optional[Decim
 
 
 def gap_extreme_diagnostic(bars: list[CanonicalBar], gaps: list[dict]) -> dict:
-    """Predeclared quality diagnostic. Does not repair or exclude gaps."""
+    """In-memory diagnostic for small fixtures. Does not repair gaps."""
     abs_returns: list[Decimal] = []
     volumes: list[Decimal] = []
     by_time = {b.open_time_ms: b for b in bars}
@@ -923,6 +1316,77 @@ def gap_extreme_diagnostic(bars: list[CanonicalBar], gaps: list[dict]) -> dict:
     }
 
 
+def gap_extreme_diagnostic_streaming(root: Path, objects: list[SourceObject], gaps: list[dict]) -> dict:
+    """p99 via float64 sample of the population (diagnostic only; not admission)."""
+    want = set()
+    for gap in gaps:
+        want.add(gap["start_ms"] - BAR_MS)
+        want.add(gap["end_exclusive_ms"])
+    abs_returns: list[float] = []
+    volumes: list[float] = []
+    adjacent: dict[int, tuple[float, float, float]] = {}
+    cols = ["open_time_ms", "open", "close", "base_volume"]
+    for batch in iter_canonical_batches(root, objects, columns=cols):
+        times = batch.column("open_time_ms").to_pylist()
+        opens = batch.column("open").to_pylist()
+        closes = batch.column("close").to_pylist()
+        vols = batch.column("base_volume").to_pylist()
+        for t, o, c, v in zip(times, opens, closes, vols):
+            t = int(t)
+            of = float(o)
+            cf = float(c)
+            vf = float(v)
+            if of > 0:
+                abs_returns.append(abs(cf / of - 1.0))
+            volumes.append(vf)
+            if t in want:
+                adjacent[t] = (of, cf, vf)
+    abs_returns.sort()
+    volumes.sort()
+    p_ret = abs_returns[(GAP_EXTREME_PERCENTILE * len(abs_returns) + 99) // 100 - 1] if abs_returns else None
+    p_vol = volumes[(GAP_EXTREME_PERCENTILE * len(volumes) + 99) // 100 - 1] if volumes else None
+    if abs_returns:
+        p_ret = abs_returns[min(max((GAP_EXTREME_PERCENTILE * len(abs_returns) + 99) // 100 - 1, 0), len(abs_returns) - 1)]
+    if volumes:
+        p_vol = volumes[min(max((GAP_EXTREME_PERCENTILE * len(volumes) + 99) // 100 - 1, 0), len(volumes) - 1)]
+    flagged = []
+    for gap in gaps:
+        adj_times = [t for t in (gap["start_ms"] - BAR_MS, gap["end_exclusive_ms"]) if t in adjacent]
+        extreme = False
+        reasons = []
+        for t in adj_times:
+            of, cf, vf = adjacent[t]
+            if of > 0 and p_ret is not None and abs(cf / of - 1.0) >= p_ret:
+                extreme = True
+                reasons.append("adjacent_abs_return_ge_p99")
+            if p_vol is not None and vf >= p_vol:
+                extreme = True
+                reasons.append("adjacent_volume_ge_p99")
+        flagged.append({
+            **gap,
+            "adjacent_open_time_ms": adj_times,
+            "extreme_adjacent": extreme,
+            "reasons": sorted(set(reasons)),
+        })
+    return {
+        "rule": (
+            f"An adjacent 1m bar is extreme when |close/open-1| or base_volume "
+            f"is at or above the {GAP_EXTREME_PERCENTILE}th percentile of the "
+            "observed canonical 1m population. Predeclared; not an edge rule; "
+            "does not repair or drop gaps. Percentile uses float64 of the "
+            "streamed population and never changes admission."
+        ),
+        "percentile": GAP_EXTREME_PERCENTILE,
+        "p99_abs_return": None if p_ret is None else repr(p_ret),
+        "p99_base_volume": None if p_vol is None else repr(p_vol),
+        "gaps": flagged,
+        "extreme_gap_count": sum(1 for g in flagged if g["extreme_adjacent"]),
+    }
+
+
+# ---------------------------------------------------------------------------
+# HTF: in-memory (small tests) + streaming (production)
+# ---------------------------------------------------------------------------
 @dataclass
 class HtfBar:
     open_time_ms: int
@@ -944,12 +1408,50 @@ class HtfBar:
     taker_sell_quote_volume: Optional[Decimal]
 
 
+def _htf_complete(members: list[CanonicalBar], bucket: int, minutes: int, bar_end: int) -> HtfBar:
+    return HtfBar(
+        open_time_ms=bucket,
+        bar_end_exclusive_ms=bar_end,
+        available_at_ms=bar_end,
+        is_complete=True,
+        expected_constituents=minutes,
+        observed_constituents=minutes,
+        open=members[0].open,
+        high=max(m.high for m in members),
+        low=min(m.low for m in members),
+        close=members[-1].close,
+        base_volume=sum((m.base_volume for m in members), Decimal(0)),
+        quote_volume=sum((m.quote_volume for m in members), Decimal(0)),
+        trade_count=sum(m.trade_count for m in members),
+        taker_buy_base_volume=sum((m.taker_buy_base_volume for m in members), Decimal(0)),
+        taker_buy_quote_volume=sum((m.taker_buy_quote_volume for m in members), Decimal(0)),
+        taker_sell_base_volume=sum((m.taker_sell_base_volume for m in members), Decimal(0)),
+        taker_sell_quote_volume=sum((m.taker_sell_quote_volume for m in members), Decimal(0)),
+    )
+
+
+def _htf_incomplete(bucket: int, minutes: int, bar_end: int, observed: int) -> HtfBar:
+    return HtfBar(
+        open_time_ms=bucket,
+        bar_end_exclusive_ms=bar_end,
+        available_at_ms=bar_end,
+        is_complete=False,
+        expected_constituents=minutes,
+        observed_constituents=observed,
+        open=None, high=None, low=None, close=None,
+        base_volume=None, quote_volume=None, trade_count=None,
+        taker_buy_base_volume=None, taker_buy_quote_volume=None,
+        taker_sell_base_volume=None, taker_sell_quote_volume=None,
+    )
+
+
 def aggregate_htf(
     bars: list[CanonicalBar],
     minutes: int,
     start_ms: Optional[int] = None,
     end_ms: Optional[int] = None,
 ) -> list[HtfBar]:
+    """Small-fixture aggregator. Production uses aggregate_htf_streaming."""
     if start_ms is None or end_ms is None:
         start_ms, end_ms = frozen_range_ms()
     step = minutes * BAR_MS
@@ -962,46 +1464,33 @@ def aggregate_htf(
     while bucket < end_ms:
         members = [by_time.get(bucket + i * BAR_MS) for i in range(minutes)]
         present = [m for m in members if m is not None]
-        complete = len(present) == minutes
         bar_end = bucket + step
-        if complete:
-            out.append(HtfBar(
-                open_time_ms=bucket,
-                bar_end_exclusive_ms=bar_end,
-                available_at_ms=bar_end,
-                is_complete=True,
-                expected_constituents=minutes,
-                observed_constituents=minutes,
-                open=present[0].open,
-                high=max(m.high for m in present),
-                low=min(m.low for m in present),
-                close=present[-1].close,
-                base_volume=sum((m.base_volume for m in present), Decimal(0)),
-                quote_volume=sum((m.quote_volume for m in present), Decimal(0)),
-                trade_count=sum(m.trade_count for m in present),
-                taker_buy_base_volume=sum((m.taker_buy_base_volume for m in present), Decimal(0)),
-                taker_buy_quote_volume=sum((m.taker_buy_quote_volume for m in present), Decimal(0)),
-                taker_sell_base_volume=sum((m.taker_sell_base_volume for m in present), Decimal(0)),
-                taker_sell_quote_volume=sum((m.taker_sell_quote_volume for m in present), Decimal(0)),
-            ))
+        if len(present) == minutes:
+            out.append(_htf_complete(present, bucket, minutes, bar_end))
         else:
-            out.append(HtfBar(
-                open_time_ms=bucket,
-                bar_end_exclusive_ms=bar_end,
-                available_at_ms=bar_end,
-                is_complete=False,
-                expected_constituents=minutes,
-                observed_constituents=len(present),
-                open=None, high=None, low=None, close=None,
-                base_volume=None, quote_volume=None, trade_count=None,
-                taker_buy_base_volume=None, taker_buy_quote_volume=None,
-                taker_sell_base_volume=None, taker_sell_quote_volume=None,
-            ))
+            out.append(_htf_incomplete(bucket, minutes, bar_end, len(present)))
         bucket += step
     return out
 
 
+def _htf_arrow_schema():
+    import pyarrow as pa
+    fields = [
+        pa.field("open_time_ms", pa.int64()),
+        pa.field("bar_end_exclusive_ms", pa.int64()),
+        pa.field("available_at_ms", pa.int64()),
+        pa.field("is_complete", pa.bool_()),
+        pa.field("expected_constituents", pa.int32()),
+        pa.field("observed_constituents", pa.int32()),
+        pa.field("trade_count", pa.int64()),
+    ]
+    for name in DECIMAL_FIELDS:
+        fields.append(pa.field(name, pa.string()))
+    return pa.schema(fields)
+
+
 def htf_to_parquet_bytes(rows: list[HtfBar]) -> bytes:
+    require_pyarrow()
     import pyarrow as pa
     import pyarrow.parquet as pq
 
@@ -1020,11 +1509,12 @@ def htf_to_parquet_bytes(rows: list[HtfBar]) -> bytes:
     for name in DECIMAL_FIELDS:
         arrays[name] = pa.array(opt_str([getattr(r, name) for r in rows]), type=pa.string())
     buf = pa.BufferOutputStream()
-    pq.write_table(pa.table(arrays), buf, compression="zstd")
+    pq.write_table(pa.table(arrays), buf, **PARQUET_WRITE_KWARGS)
     return buf.getvalue().to_pybytes()
 
 
 def htf_from_parquet(path: Path) -> list[HtfBar]:
+    require_pyarrow()
     import pyarrow.parquet as pq
 
     table = pq.read_table(path)
@@ -1057,9 +1547,173 @@ def htf_from_parquet(path: Path) -> list[HtfBar]:
     return out
 
 
+class _HtfStream:
+    """Carry only the active bucket across partitions."""
+
+    def __init__(self, minutes: int, start_ms: int, end_ms: int, path: Path):
+        require_pyarrow()
+        import pyarrow.parquet as pq
+
+        self.minutes = minutes
+        self.step = minutes * BAR_MS
+        self.start_ms = start_ms
+        self.end_ms = end_ms
+        self.next_emit = start_ms
+        self.cur: Optional[int] = None
+        self.members: dict[int, tuple] = {}
+        self.conflicts: set[int] = set()
+        self.complete = 0
+        self.incomplete = 0
+        self._rows: dict[str, list] = {n: [] for n in (
+            "open_time_ms", "bar_end_exclusive_ms", "available_at_ms",
+            "is_complete", "expected_constituents", "observed_constituents",
+            "trade_count", *DECIMAL_FIELDS,
+        )}
+        self._n = 0
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self._schema = _htf_arrow_schema()
+        self._writer = pq.ParquetWriter(str(path), self._schema, **PARQUET_WRITE_KWARGS)
+
+    def consume(self, open_time: int, payload: tuple) -> None:
+        if open_time < self.start_ms or open_time >= self.end_ms:
+            return
+        bucket = (open_time // self.step) * self.step
+        if self.cur is None or bucket != self.cur:
+            self._flush_until(bucket)
+            self.cur = bucket
+            self.members = {}
+            self.conflicts = set()
+        off = (open_time - bucket) // BAR_MS
+        if off < 0 or off >= self.minutes:
+            return
+        if off in self.conflicts:
+            return
+        prev = self.members.get(off)
+        if prev is not None:
+            if prev == payload:
+                return
+            del self.members[off]
+            self.conflicts.add(off)
+            return
+        self.members[off] = payload
+
+    def finish(self) -> None:
+        self._flush_until(self.end_ms)
+        self._flush_batch()
+        self._writer.close()
+
+    def _flush_until(self, upto: int) -> None:
+        if self.cur is not None:
+            self._emit(self.cur, self.members)
+            self.next_emit = self.cur + self.step
+            self.cur = None
+            self.members = {}
+            self.conflicts = set()
+        while self.next_emit < upto and self.next_emit < self.end_ms:
+            self._emit(self.next_emit, {})
+            self.next_emit += self.step
+
+    def _emit(self, bucket: int, members: dict[int, tuple]) -> None:
+        bar_end = bucket + self.step
+        complete = (
+            len(members) == self.minutes
+            and all(i in members for i in range(self.minutes))
+        )
+        r = self._rows
+        r["open_time_ms"].append(bucket)
+        r["bar_end_exclusive_ms"].append(bar_end)
+        r["available_at_ms"].append(bar_end)
+        r["expected_constituents"].append(self.minutes)
+        if complete:
+            ordered = [members[i] for i in range(self.minutes)]
+            r["is_complete"].append(True)
+            r["observed_constituents"].append(self.minutes)
+            r["open"].append(_dec_str(ordered[0][0]))
+            r["high"].append(_dec_str(max(m[1] for m in ordered)))
+            r["low"].append(_dec_str(min(m[2] for m in ordered)))
+            r["close"].append(_dec_str(ordered[-1][3]))
+            r["base_volume"].append(_dec_str(sum((m[4] for m in ordered), Decimal(0))))
+            r["quote_volume"].append(_dec_str(sum((m[5] for m in ordered), Decimal(0))))
+            r["trade_count"].append(sum(m[6] for m in ordered))
+            r["taker_buy_base_volume"].append(_dec_str(sum((m[7] for m in ordered), Decimal(0))))
+            r["taker_buy_quote_volume"].append(_dec_str(sum((m[8] for m in ordered), Decimal(0))))
+            r["taker_sell_base_volume"].append(_dec_str(sum((m[9] for m in ordered), Decimal(0))))
+            r["taker_sell_quote_volume"].append(_dec_str(sum((m[10] for m in ordered), Decimal(0))))
+            self.complete += 1
+        else:
+            r["is_complete"].append(False)
+            r["observed_constituents"].append(len(members))
+            r["trade_count"].append(None)
+            for name in DECIMAL_FIELDS:
+                r[name].append(None)
+            self.incomplete += 1
+        self._n += 1
+        if self._n >= HTF_WRITE_BATCH_ROWS:
+            self._flush_batch()
+
+    def _flush_batch(self) -> None:
+        if self._n == 0:
+            return
+        import pyarrow as pa
+        table = pa.table(self._rows, schema=self._schema)
+        self._writer.write_table(table)
+        for k in self._rows:
+            self._rows[k] = []
+        self._n = 0
+
+
+def aggregate_htf_streaming(root: Path, objects: list[SourceObject]) -> dict:
+    """One chronological 1m scan, four HTF writers, O(bucket) carry state."""
+    require_pyarrow()
+    start_ms, end_ms = frozen_range_ms()
+    streams = {
+        name: _HtfStream(minutes, start_ms, end_ms, htf_path(root, name))
+        for name, minutes in HTF_SPEC
+    }
+    cols = [
+        "open_time_ms", "open", "high", "low", "close",
+        "base_volume", "quote_volume", "trade_count",
+        "taker_buy_base_volume", "taker_buy_quote_volume",
+        "taker_sell_base_volume", "taker_sell_quote_volume",
+    ]
+    for batch in iter_canonical_batches(root, objects, columns=cols):
+        n = batch.num_rows
+        times = batch.column("open_time_ms").to_pylist()
+        opens = batch.column("open").to_pylist()
+        highs = batch.column("high").to_pylist()
+        lows = batch.column("low").to_pylist()
+        closes = batch.column("close").to_pylist()
+        bvs = batch.column("base_volume").to_pylist()
+        qvs = batch.column("quote_volume").to_pylist()
+        tcs = batch.column("trade_count").to_pylist()
+        tbs = batch.column("taker_buy_base_volume").to_pylist()
+        tqs = batch.column("taker_buy_quote_volume").to_pylist()
+        tsbs = batch.column("taker_sell_base_volume").to_pylist()
+        tsqs = batch.column("taker_sell_quote_volume").to_pylist()
+        for i in range(n):
+            payload = (
+                Decimal(opens[i]), Decimal(highs[i]), Decimal(lows[i]), Decimal(closes[i]),
+                Decimal(bvs[i]), Decimal(qvs[i]), int(tcs[i]),
+                Decimal(tbs[i]), Decimal(tqs[i]), Decimal(tsbs[i]), Decimal(tsqs[i]),
+            )
+            t = int(times[i])
+            for stream in streams.values():
+                stream.consume(t, payload)
+    summary = {}
+    for name, stream in streams.items():
+        stream.finish()
+        path = htf_path(root, name)
+        summary[name] = {
+            "expected_buckets": stream.complete + stream.incomplete,
+            "complete_buckets": stream.complete,
+            "incomplete_buckets": stream.incomplete,
+            "path": str(path.relative_to(root)).replace("\\", "/"),
+            "sha256": sha256_of_file(path),
+        }
+    return summary
+
+
 def bars_available_at_1m(bars: list[CanonicalBar], decision_time_ms: int) -> list[CanonicalBar]:
-    """No-lookahead: a 1m bar is eligible only when available_at <= T.
-    available_at is bar_end_exclusive = open_time + 60s, never close_time."""
     return [b for b in bars if b.available_at_ms <= decision_time_ms]
 
 
@@ -1102,7 +1756,7 @@ def build_snapshot_identity(
             "checksum_verification": rec.get("checksum_verification"),
             "byte_size": rec.get("byte_size"),
         })
-    source_identities.sort(key=lambda r: (r["archive_class"], r["source_period"] or ""))
+    source_identities.sort(key=lambda r: (r["archive_class"] or "", r["source_period"] or ""))
     payload = {
         "dataset_id": DATASET_ID,
         "contract_path": CONTRACT_PATH,
@@ -1159,16 +1813,17 @@ def candidate_manifest(
             "discovery_gate_passed": False,
             "confirmatory_gate_passed": False,
             "note": (
-                "Candidate artifact only. Do not copy these values into "
+                "Candidate artifact only. SNAPSHOT_CANDIDATE_READY is not "
+                "ACCEPTED_FOR_DISCOVERY. Do not copy these values into "
                 f"{REPO_MANIFEST_PATH} until a later human acceptance step."
             ),
         },
     }
 
 
-def quality_report_markdown(quality: dict) -> str:
+def quality_report_markdown(quality: dict, snapshot_id: str | None = None) -> str:
     c = quality.get("continuity", {})
-    snap = quality.get("snapshot_id")
+    snap = snapshot_id or quality.get("snapshot_id")
     gaps = c.get("missing_minute_count")
     return "\n".join([
         "# CORE_BTC_BINANCE_V0 quality report (generated)",
@@ -1191,7 +1846,9 @@ def quality_report_markdown(quality: dict) -> str:
         f"canonical bytes: {quality.get('materialized_bytes')}",
         f"extracted CSV leftovers: {quality.get('extracted_csv_leftovers')}",
         "",
-        "Discovery acceptance gates are NOT automatically satisfied by this report.",
+        DECIMAL_STRING_POLICY,
+        "",
+        "SNAPSHOT_CANDIDATE_READY is not ACCEPTED_FOR_DISCOVERY.",
         "The repository planning manifest remains unpromoted.",
         "",
     ]) + "\n"
