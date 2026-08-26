@@ -50,6 +50,16 @@ V2 Stage-5 contains three frozen detector families:
 
 Do not infer a final E1 verdict until that evaluator is actually run.
 
+## Why the project changed direction
+
+Signalbot did not begin as a “research-only” repository. It progressed through a data-platform phase, V1 shadow forecasting, a much more formal V2 multi-timeframe architecture, and then an empirical red-team phase.
+
+The direction changed because engineering correctness and architectural sophistication were advancing faster than evidence of persistent predictive edge. E1 development results also weakened several V2 assumptions, while the richest historical overlap proved too short to support durable claims across market regimes.
+
+The old work is **not erased**. Failed hypotheses, superseded plans and frozen contracts are preserved because they explain what the project learned.
+
+Read [`docs/PROJECT_HISTORY.md`](docs/PROJECT_HISTORY.md) for the full evolution: original idea → Stage 1 → V1 → V2 → E1 → research-first pivot.
+
 ## Active work
 
 Allowed work during research-first mode:
@@ -92,16 +102,21 @@ Threshold optimization is allowed during development research. Repeatedly viewin
 
 A one-month rich-data overlap can falsify obvious hypotheses but cannot establish durability across regimes. The new data strategy therefore separates multi-year **CORE** mechanism evidence from shorter **RICH** incremental-feature evidence.
 
-## Canonical documentation
+## Documentation map
 
-Start here:
+### What is true now
 
 1. [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) — current status and development freeze;
 2. [`docs/RESEARCH_ROADMAP.md`](docs/RESEARCH_ROADMAP.md) — active execution order;
 3. [`docs/EDGE_RESEARCH_PROTOCOL.md`](docs/EDGE_RESEARCH_PROTOCOL.md) — discovery/validation rules;
 4. [`docs/HISTORICAL_DATA_STRATEGY.md`](docs/HISTORICAL_DATA_STRATEGY.md) — multi-year evidence strategy;
-5. [`docs/RESEARCH_LEDGER.md`](docs/RESEARCH_LEDGER.md) — experiment history/consumed windows;
-6. [`docs/DOCUMENTATION_INDEX.md`](docs/DOCUMENTATION_INDEX.md) — current vs historical documents.
+5. [`docs/ACTIVE_RESEARCH_RISKS.md`](docs/ACTIVE_RESEARCH_RISKS.md) — risks that can invalidate current research;
+6. [`docs/RESEARCH_LEDGER.md`](docs/RESEARCH_LEDGER.md) — experiments, hypotheses and consumed windows.
+
+### How the project got here
+
+- [`docs/PROJECT_HISTORY.md`](docs/PROJECT_HISTORY.md) — narrative evolution of ideas/philosophy;
+- [`docs/DOCUMENTATION_INDEX.md`](docs/DOCUMENTATION_INDEX.md) — classification of active, frozen, historical and superseded documents.
 
 Historical Stage1/Stage2/V2 contracts remain useful for code archaeology and frozen experiment provenance, but they are **not the active project roadmap**.
 
