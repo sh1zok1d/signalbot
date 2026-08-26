@@ -50,6 +50,13 @@ Parquet I/O requires `pyarrow==17.0.0` from `requirements-research.txt`
 (or `requirements-dev.txt` in CI). Do not add pyarrow to production
 `requirements.txt`.
 
+## H01 compression → expansion
+
+`h01_compression_expansion.py` (+ `h01_compression_expansion_lib.py`) is an
+`AUDIT_TOOL` / experiment runner for `H01_COMPRESSION_EXPANSION`.
+Preregistration: `docs/research/H01_COMPRESSION_EXPANSION_PREREG.md`.
+Development-only: it must not read 2025 validation or 2026 OOS outcomes.
+
 ## Earlier mathematical/audit tools
 
 `math002b_*` belongs to earlier consensus-robustness research/audit work. Treat it as `AUDIT_TOOL` unless a current research run explicitly reuses it.

@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "hypothesis_id": "H01_COMPRESSION_EXPANSION",
+  "title": "Compression to realized-volatility expansion",
+  "status": "PREREGISTERED_EXPLORATORY",
+  "outcome_status": "EXPLORATORY",
+  "directional": false,
+  "dataset": {
+    "dataset_id": "CORE_BTC_BINANCE_V0",
+    "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+    "research_authorized_required": true,
+    "confirmatory_authorized_required": false
+  },
+  "windows": {
+    "timezone": "UTC",
+    "warmup_start_inclusive": "2020-01-01T00:00:00Z",
+    "development_start_inclusive": "2020-02-01T00:00:00Z",
+    "development_end_exclusive": "2025-01-01T00:00:00Z",
+    "reserved_validation_start_inclusive": "2025-01-01T00:00:00Z",
+    "reserved_validation_end_exclusive": "2026-01-01T00:00:00Z",
+    "untouched_oos_start_inclusive": "2026-01-01T00:00:00Z",
+    "untouched_oos_end_exclusive": "2026-08-26T00:00:00Z",
+    "max_forward_minutes": 240,
+    "development_outcome_rule": "T + 240m < 2025-01-01T00:00:00Z"
+  },
+  "decision_grid": {
+    "interval_minutes": 15,
+    "alignment": "UTC_EPOCH"
+  },
+  "lookbacks_minutes": [30, 60, 120],
+  "compression_thresholds_q": [0.10, 0.20, 0.30],
+  "compression_score_unit": "percentile_0_to_100",
+  "candidate_rule": "C_L(T) <= 100 * q",
+  "reference": {
+    "trailing_calendar_days": 30,
+    "exclude_current_observation": true,
+    "same_lookback": true,
+    "same_decision_grid": true,
+    "percentile_method": "midrank_percent_0_to_100",
+    "percentile_formula": "100 * (#{ref < x} + 0.5 * #{ref == x}) / N_ref"
+  },
+  "horizons_minutes": [15, 30, 60, 120, 240],
+  "returns": {
+    "definition": "r_t = ln(close_t / close_{t-1})",
+    "price_parse": "float(Decimal(canonical_decimal_string))",
+    "known_when": "available_at of bar t <= T"
+  },
+  "rv": {
+    "recent": "RV_L(T) = sqrt(sum of L squared 1m log returns completely known by T)",
+    "future": "FUTURE_RV_H(T) = sqrt(sum of squared 1m log returns over (T, T+H])",
+    "future_bars": "1m bars with available_at in (T, T+H]",
+    "scale_at_T": "PAST_MEDIAN_RV_H(T) = median of FUTURE_RV_H on the same 15m grid in the preceding 30 days with outcome known by T (t + H <= T)",
+    "primary_outcome": "NORMALIZED_FUTURE_RV_H = FUTURE_RV_H(T) / PAST_MEDIAN_RV_H(T)",
+    "forbidden_primary": "FUTURE_RV_H / current_compressed_RV_L"
+  },
+  "expansion": {
+    "past_quantile": 0.75,
+    "definition": "EXPANSION_H = 1 if FUTURE_RV_H(T) >= PAST_Q75_RV_H(T) else 0",
+    "past_q75_window": "same known-by-T 30-day 15m FUTURE_RV_H history as the median scale"
+  },
+  "range_secondary": {
+    "definition": "FUTURE_RANGE_H = ln(max(high over future H bars) / min(low over future H bars))",
+    "normalized": "FUTURE_RANGE_H / PAST_MEDIAN_RANGE_H(T)",
+    "cannot_promote_alone": true
+  },
+  "baselines": {
+    "A": "unconditional eligible development 15m boundaries with complete L/H/scale",
+    "B_matched_random": {
+      "preserve": "calendar month candidate counts",
+      "seed": 20260826,
+      "replicates": 100
+    }
+  },
+  "negative_control": {
+    "type": "within_calendar_month_permutation_of_compression_scores",
+    "seed": 20260827,
+    "not_used": "direction_inversion"
+  },
+  "uncertainty": {
+    "primary_block": "UTC_WEEK",
+    "method": "block_bootstrap",
+    "seed": 20260828,
+    "replicates": 2000,
+    "interval": "95_percent",
+    "targets": [
+      "mean(NORMALIZED_FUTURE_RV | candidate) - mean(NORMALIZED_FUTURE_RV | baseline A)",
+      "P(EXPANSION | candidate) - P(EXPANSION | baseline A)"
+    ]
+  },
+  "year_blocks": [2020, 2021, 2022, 2023, 2024],
+  "decile_bins": [
+    [0, 10], [10, 20], [20, 30], [30, 40], [40, 50],
+    [50, 60], [60, 70], [70, 80], [80, 90], [90, 100]
+  ],
+  "decile_last_bin_inclusive_right": true,
+  "deciles_are_not_selectable_strategies": true,
+  "search_surface": {
+    "lookbacks": 3,
+    "thresholds": 3,
+    "horizons": 5,
+    "primary_threshold_cells": 45,
+    "secondary_families": ["expansion_probability", "normalized_range"]
+  },
+  "forbidden_reads": ["2025_validation_forward_outcomes", "2026_oos_forward_outcomes"],
+  "verdict_labels": ["H01_KILL", "H01_INCONCLUSIVE", "H01_CANDIDATE_FOR_R3"],
+  "not_claims": [
+    "directional_edge",
+    "trading_pnl",
+    "sharpe",
+    "leverage",
+    "ACCEPTED_FOR_CONFIRMATORY",
+    "VALIDATED_CANDIDATE"
+  ]
+}
