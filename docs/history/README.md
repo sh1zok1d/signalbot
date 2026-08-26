@@ -42,6 +42,44 @@ It contains the complete V2-era documentation exactly as it existed before the p
 
 ---
 
+## Retired branch / PR records
+
+Historical preservation does not require every obsolete branch ref to remain active forever. Before a branch is deleted, its role must remain recoverable through a closed PR, an immutable commit reference, or an archived document in this directory.
+
+### PR #66 — intermediate future-proofing philosophy
+
+- PR: [#66 — CLOSED / HISTORICAL / SUPERSEDED — future-proof Signalbot beyond a single forecasting hypothesis](https://github.com/sh1zok1d/signalbot/pull/66)
+- branch: `docs/future-proof-project-foundation`
+- retained head: `59b4963668c2232d824dd8e0ea40d56f89e4732d`
+- final disposition: closed without merge; branch may be deleted after repository housekeeping.
+
+Why it matters historically: this PR captured the intermediate step where Signalbot was already being separated conceptually from Forecasting V2, but the project still expected to continue the V2 implementation roadmap while future-proofing the foundation. The 2026-08-26 research-first pivot superseded that execution assumption while retaining several of its evidence-first and engine-independence ideas.
+
+### PR #67 — abandoned Stage-6 lifecycle implementation
+
+- PR: [#67 — CLOSED / HISTORICAL / SUPERSEDED — Stage 6 planned-risk confirmation gate](https://github.com/sh1zok1d/signalbot/pull/67)
+- branch: `stage6-unit3-planned-risk-gate`
+- retained head: `5f1486761370ff67dcf661a7170d901d7b9bedd0`
+- final disposition: closed without merge; branch may be deleted after repository housekeeping.
+
+Why it matters historically: the branch records real Stage-6 lifecycle/planned-risk implementation work plus two later correctness blockers — temporal-history/lookahead geometry and same-boundary event identity/cardinality. It was not abandoned because the work had no value; it stopped being an active merge path because forecasting architecture itself was frozen pending validated edge evidence.
+
+### `research/v2-mathematical-hypothesis-register`
+
+This branch carried one unique historical governance document. Its contents are now preserved directly in the current history layer as:
+
+- [`V2_MATHEMATICAL_HYPOTHESIS_REGISTER.md`](V2_MATHEMATICAL_HYPOTHESIS_REGISTER.md)
+
+Original branch document blob: `4b5401a8d0fcd1dcb9d6b0254a140d19914546c8`.
+
+The branch can therefore be removed after housekeeping without losing the hypothesis/risk register from normal repository history.
+
+### `docs/v2-empirical-red-team-gate`
+
+This branch has no commits ahead of current `main`; its contents are already contained by repository history/mainline. It has no independent preservation requirement and may be deleted.
+
+---
+
 ## Phase 1 — Data-platform origin
 
 Signalbot first focused on trustworthy acquisition/storage before forecasting.
@@ -105,6 +143,7 @@ Historical reading:
 - [V2 empirical red-team plan](https://github.com/sh1zok1d/signalbot/blob/a9c383355690c5ab9bcc577454da3ebec75d8d89/docs/V2_EMPIRICAL_RED_TEAM_PLAN.md)
 - [Consensus robustness historical audit](https://github.com/sh1zok1d/signalbot/blob/a9c383355690c5ab9bcc577454da3ebec75d8d89/docs/V2_CONSENSUS_ROBUSTNESS_HISTORICAL_AUDIT.md)
 - [Percentile maturity audit](https://github.com/sh1zok1d/signalbot/blob/a9c383355690c5ab9bcc577454da3ebec75d8d89/docs/V2_PERCENTILE_MATURITY_AUDIT.md)
+- [`V2_MATHEMATICAL_HYPOTHESIS_REGISTER.md`](V2_MATHEMATICAL_HYPOTHESIS_REGISTER.md) — archived from the standalone research branch before branch cleanup.
 
 This phase introduced the durable idea that **correctness is necessary but cannot be promoted into evidence of alpha**.
 
