@@ -13,6 +13,8 @@ Current sources of truth:
 - `EDGE_RESEARCH_PROTOCOL.md`
 - `HISTORICAL_DATA_STRATEGY.md`
 
+For **why this roadmap existed, what changed, and why it was superseded**, read `PROJECT_HISTORY.md`.
+
 The complete previous roadmap remains available in git history at repository commit `a9c383355690c5ab9bcc577454da3ebec75d8d89` for code archaeology and reproduction of decisions made under it.
 
 Do not use the historical roadmap as implementation authorization.
