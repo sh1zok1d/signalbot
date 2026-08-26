@@ -1,6 +1,6 @@
 # Signalbot — Repository Instructions
 
-This file tells coding/review agents what is authoritative **now**. Keep it concise and defer large research contracts to `docs/`.
+This file tells coding/review agents what is authoritative **now**. Keep it concise and defer large research contracts/history to `docs/`.
 
 ## Project posture
 
@@ -10,6 +10,8 @@ The active objective is to discover and independently validate one or two robust
 
 V1 is frozen. V2 code is retained as research material, but V2 is **not** the active product-development roadmap.
 
+The repository intentionally preserves old plans, failed hypotheses and frozen contracts as project history. Historical presence is not current authorization.
+
 ## Read these sources first
 
 For any new task, use this authority order:
@@ -18,13 +20,14 @@ For any new task, use this authority order:
 2. `docs/RESEARCH_ROADMAP.md` — active execution order;
 3. `docs/EDGE_RESEARCH_PROTOCOL.md` — research/validation rules;
 4. `docs/HISTORICAL_DATA_STRATEGY.md` — data evidence strategy;
-5. `docs/RESEARCH_LEDGER.md` — consumed windows/hypothesis history;
-6. `docs/PROJECT_RISK_AND_DEBT_REGISTER.md` — current open risks;
-7. `docs/DOCUMENTATION_INDEX.md` — current vs historical docs.
+5. `docs/ACTIVE_RESEARCH_RISKS.md` — current inference risks;
+6. `docs/RESEARCH_LEDGER.md` — consumed windows/hypothesis history;
+7. `docs/DOCUMENTATION_INDEX.md` — current vs frozen/historical docs;
+8. `docs/PROJECT_HISTORY.md` — why the project evolved into the current posture.
 
-For `E1-RUN-001`, also read its frozen preregistration and `docs/e1/` artifacts. Those historical research records remain authoritative for reproducing that experiment even when current project direction has changed.
+For `E1-RUN-001`, also read its frozen preregistration and `docs/e1/` artifacts. Those research records remain authoritative for reproducing that experiment even when current project direction has changed.
 
-Old `FORECASTING_ROADMAP`, Stage1/Stage2/V2 product/correctness documents are not current roadmap authority. See `docs/DOCUMENTATION_INDEX.md`.
+Old `FORECASTING_ROADMAP`, Stage1/Stage2/V2 product/correctness documents are historical/frozen references, not current roadmap authority. See `docs/DOCUMENTATION_INDEX.md`.
 
 ## Hard development freeze
 
@@ -90,13 +93,29 @@ Do not change its:
 
 The final holdout may be opened only by its frozen one-shot evaluator after the timestamp-only coverage gate passes. Correctness fixes require explicit documentation and may not be motivated by observed holdout metrics.
 
+## History-preservation rule
+
+Do not “clean” the repository by erasing meaningful failed/superseded work.
+
+Preserve historically meaningful material when it documents:
+
+- an earlier project thesis;
+- a frozen model/contract;
+- an experiment/preregistration/result;
+- a failed/null hypothesis;
+- a reason for a strategic pivot.
+
+Cleanup should remove **ambiguity and duplication**, not evidence of how the project learned.
+
+When an old active document is shortened into a superseded pointer, ensure its role is covered by `docs/PROJECT_HISTORY.md` and/or an immutable git reference.
+
 ## Scope discipline
 
 - Make the smallest change that satisfies the active research task.
 - Do not opportunistically resume product development.
 - Do not merge/deploy unless explicitly authorized.
 - Never commit `.env`, tokens, credentials, chat IDs, private keys or other secrets.
-- Preserve failed/null research artifacts; remove stale planning text instead of rewriting historical evidence.
+- Preserve failed/null research artifacts; remove stale planning authority instead of rewriting historical evidence.
 - When current and historical docs disagree about present execution, current status/roadmap wins. When reproducing a historical experiment, its frozen contract wins.
 
 ## Core correctness invariants
@@ -132,4 +151,5 @@ For docs-only changes, inspect references and `git diff --check`; do not fabrica
 - confirm frozen experiments were not semantically changed;
 - report what validation actually ran;
 - update `docs/DOCUMENTATION_INDEX.md` when documentation authority changes;
-- update `docs/RESEARCH_LEDGER.md` when a research window/result/hypothesis is consumed.
+- update `docs/RESEARCH_LEDGER.md` when a research window/result/hypothesis is consumed;
+- update `docs/PROJECT_HISTORY.md` when a major project-level philosophy/direction change occurs.
