@@ -65,6 +65,8 @@ V1 is not an active product-development target.
 
 Accepted for discovery on 2026-08-26. Snapshot `717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`. Frozen interval `[2020-01-01T00:00:00Z, 2026-08-26T00:00:00Z)`. `3,497,760` complete 1m rows; 0 gaps; 0 duplicates; 104/104 checksums. Manifest: `docs/manifests/CORE_BTC_BINANCE_V0.yaml`. Evidence: `docs/research_data/CORE_BTC_BINANCE_V0/`. This is not confirmatory authorization and not an edge claim.
 
+First mechanism experiment `H01_COMPRESSION_EXPANSION` finished development-only on this snapshot. Verdict: **`H01_KILL`**. Unusually low recent realized vol predicted **lower**, not higher, subsequent vol. 2025 validation and 2026 OOS were not opened. See `docs/research/H01_DEV_SUMMARY.md`.
+
 ### V2 / E1-RUN-001
 
 The frozen Stage-5 detector families are:

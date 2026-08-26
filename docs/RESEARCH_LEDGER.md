@@ -227,15 +227,43 @@ If E1 suggests a new threshold/regime/strategy, record it as a new exploratory h
 
 ---
 
+## 2026-08-26 — H01_COMPRESSION_EXPANSION development
+
+**Hypothesis:** `H01_COMPRESSION_EXPANSION`
+
+Non-directional mechanism test: does unusually low recent BTC realized volatility relative to its own recent history predict a subsequent increase in realized volatility?
+
+- dataset snapshot: `717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`
+- prereg commit: `52d8731fbb2a8b0eea42d66a3772ba876f319331`
+- research code SHA at outcome run: `d90a9e126a27af28bb652e0645fa2a5c403ca26d`
+- development window: `2020-02-01T00:00:00Z` → `2025-01-01T00:00:00Z` with `T + 240m < 2025-01-01T00:00:00Z`
+- validation: **UNTOUCHED** (2025 not inspected)
+- OOS: **UNTOUCHED** (2026 not inspected)
+- search surface: 3 L × 3 q × 5 H = 45 primary cells
+- outcome status: `EXPLORATORY`
+- development verdict: **`H01_KILL`**
+
+Eligible development 15m boundaries: 172400.
+
+Primary result: all 45 cells show lower—not higher—normalized future RV after compression (means ~0.61–0.80 vs baseline ~1.18–1.25). Expansion probability ~0.023–0.072 vs baseline ~0.255. Matched-random and month-permutation controls restore values near the unconditional baseline. Week-block bootstrap 95% intervals for candidate-minus-baseline are entirely negative. All five development years are negative. Stronger compression is more negative. Secondary range agrees.
+
+This is consistent with volatility persistence, which is the opposite of the preregistered expansion mechanism. The reverse relationship is **not** promoted to a new candidate in this entry.
+
+Preregistration: `docs/research/H01_COMPRESSION_EXPANSION_PREREG.md`
+Development evidence: `docs/research/H01_DEV_SUMMARY.md`, `docs/research/H01_DEV_RESULTS.json`
+
+Do not open 2025 or 2026 for H01. Do not start R3 for H01.
+
+---
+
 ## Next research program — hypothesis discovery after E1
 
 Status: `AUTHORIZED_FOR_DISCOVERY / NOT YET CONFIRMATORY`.
 
-`CORE_BTC_BINANCE_V0` is `ACCEPTED_FOR_DISCOVERY` (snapshot `717d37a4`). No discovery hypotheses have been run against it yet.
+`CORE_BTC_BINANCE_V0` is `ACCEPTED_FOR_DISCOVERY` (snapshot `717d37a4`).
 
-Initial mechanism classes worth exploring after historical expansion include:
+`H01_COMPRESSION_EXPANSION` has been run on development only and recorded as `H01_KILL`. Remaining mechanism classes are still untested:
 
-- compression -> volatility expansion;
 - failed breakout/liquidity sweep -> mean reversion;
 - trend pullback -> continuation;
 - extreme impulse -> continuation vs exhaustion;

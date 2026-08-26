@@ -89,6 +89,10 @@ over forcing every detector to output a continuous LONG/SHORT opinion.
 - define outcome before searching thresholds;
 - log every tested configuration family in `RESEARCH_LEDGER.md` or a machine-readable successor.
 
+### H01 status (2026-08-26)
+
+`H01_COMPRESSION_EXPANSION` completed a development-only run on `CORE_BTC_BINANCE_V0` snapshot `717d37a4`. Verdict: **`H01_KILL`**. 2025 validation and 2026 OOS remain untouched. Do not start R3 for H01. See `docs/research/H01_DEV_SUMMARY.md` and `docs/RESEARCH_LEDGER.md`.
+
 ### Exit
 A small set of candidate mechanisms shows enough development evidence to justify formal validation. It is acceptable for none to qualify.
 
