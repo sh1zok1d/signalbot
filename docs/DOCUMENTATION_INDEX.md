@@ -23,12 +23,14 @@ Read these first:
 | `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order |
 | `EDGE_RESEARCH_PROTOCOL.md` | **ACTIVE / CANONICAL** | Discovery/validation rules and anti-overfit discipline |
 | `HISTORICAL_DATA_STRATEGY.md` | **ACTIVE / CANONICAL** | Multi-year CORE vs shorter RICH evidence strategy |
+| `PROJECT_STRATEGY_AND_ARCHITECTURE_PRINCIPLES.md` | **ACTIVE / CANONICAL** | Evidence-first architecture philosophy and current non-goals |
 | `ACTIVE_RESEARCH_RISKS.md` | **ACTIVE RECORD** | Risks that can invalidate the current research-first program |
 | `RESEARCH_LEDGER.md` | **ACTIVE RECORD** | Experiment/hypothesis history and consumed windows |
+| `CODEBASE_STATUS.md` | **ACTIVE / CANONICAL MAP** | Which code surfaces are active, frozen, deferred or operational |
 | `PROJECT_HISTORY.md` | **ACTIVE HISTORY** | Narrative evolution of Signalbot's ideas, architecture and philosophy |
 | `DATA_DURABILITY_RUNBOOK.md` | **OPERATIONS** | Data durability/recovery reference |
 
-If a historical document conflicts with the first four about **what the project should do next**, the current documents win.
+If a historical document conflicts with the active canonical set about **what the project should do next**, the current documents win.
 
 ---
 
@@ -128,13 +130,29 @@ Before using an operational runbook, compare it with current code/config and run
 
 ---
 
-## 8. Repository instruction file
+## 8. Code status
+
+Use `CODEBASE_STATUS.md` before assuming that an implemented module is active roadmap scope.
+
+Key examples:
+
+- `analytics/forecasting/` — `FROZEN_BASELINE` (V1);
+- `analytics/forecasting_v2/` — `FROZEN_RESEARCH_ENGINE` (V2-v0);
+- E1-specific holdout scripts — `FROZEN_EXPERIMENT_TOOLING` once frozen;
+- `storage/`, `data_ingestion/`, `backfill/` — active research infrastructure where justified by evidence/data needs;
+- notification/product surfaces — retained but deferred.
+
+Code may remain because it is useful history or a frozen comparator. Presence does not imply active development.
+
+---
+
+## 9. Repository instruction file
 
 `../AGENTS.md` points coding/review agents to current sources of truth plus frozen research artifacts relevant to the task. It must not restore old V2 roadmap authority.
 
 ---
 
-## 9. Status vocabulary for future docs
+## 10. Status vocabulary for future docs
 
 Every new planning/research document should declare one status near the top:
 
@@ -152,7 +170,7 @@ Do not create an unlabelled roadmap/contract that can later be mistaken for curr
 
 ---
 
-## 10. Cleanup policy
+## 11. Cleanup policy
 
 The target is **one current truth + a readable historical trail**.
 
