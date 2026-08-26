@@ -248,11 +248,11 @@ def midrank_percentile_against_prior(series: np.ndarray, window: int) -> np.ndar
 
 
 def trailing_median_q75(known_values: np.ndarray, window: int, known_lag_steps: int) -> tuple[np.ndarray, np.ndarray]:
-    """Median and q75 of values known by index i: values[i-window:i-known_lag_steps+1]? 
+    """Median and q75 of FUTURE_RV values known by decision index i.
 
     values[j] is FUTURE_RV at decision j, known at j + known_lag_steps.
-    At index i, use j in [i-window, i-known_lag_steps] inclusive? j < i and
-    j <= i - known_lag_steps → j in [i-window, i-known_lag_steps].
+    At index i, use j in [i-window, i-known_lag_steps] inclusive: j < i and
+    j <= i - known_lag_steps.
     """
     n = len(known_values)
     med = np.full(n, np.nan, dtype=np.float64)
