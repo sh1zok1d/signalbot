@@ -58,6 +58,13 @@ Preregistration: `docs/research/H01_COMPRESSION_EXPANSION_PREREG.md`.
 Development results: `docs/research/H01_DEV_SUMMARY.md` (verdict `H01_KILL`).
 Development-only: it must not read 2025 validation or 2026 OOS outcomes.
 
+## H02 failed breakout → mean reversion
+
+`h02_failed_breakout_mean_reversion.py` (+ `h02_failed_breakout_mean_reversion_lib.py`)
+is an `AUDIT_TOOL` / experiment runner for `H02_FAILED_BREAKOUT_MEAN_REVERSION`.
+Preregistration: `docs/research/H02_FAILED_BREAKOUT_MEAN_REVERSION_PREREG.md`.
+Development-only: it must not read 2025 validation or 2026 OOS outcomes.
+
 ## Earlier mathematical/audit tools
 
 `math002b_*` belongs to earlier consensus-robustness research/audit work. Treat it as `AUDIT_TOOL` unless a current research run explicitly reuses it.
