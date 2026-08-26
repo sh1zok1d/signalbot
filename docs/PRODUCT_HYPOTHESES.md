@@ -1,125 +1,82 @@
-# Signalbot Product Hypotheses — Parking Lot
+# Signalbot Product Hypotheses — DEFERRED PARKING LOT
 
-> A deliberately non-executable list of future product hypotheses. Recording an idea here prevents it from being lost; it does **not** authorize implementation, scope expansion, or changes to frozen V2-v0 behavior.
+**Status:** `DEFERRED / NON-EXECUTABLE`.
 
-## Status vocabulary
+Product/business exploration is intentionally frozen while Signalbot is in research-first mode. Nothing in this file authorizes implementation.
 
-- `UNVALIDATED` — plausible idea with no sufficient user/product evidence.
-- `PRELIMINARY` — some evidence exists, but not enough for roadmap commitment.
-- `VALIDATED_FOR_EXPERIMENT` — enough evidence to justify a bounded product experiment.
-- `REJECTED` — evidence does not support pursuing the hypothesis in its current form.
-
-Unless a later strategy review explicitly changes status, every hypothesis below is `UNVALIDATED`.
-
----
+The next product decision should happen only after at least one analytical mechanism earns independent validation under `EDGE_RESEARCH_PROTOCOL.md`, or after the research program produces a clear reason to pivot away from predictive trading use cases.
 
 ## H1 — Information compression
 
 **Status:** `UNVALIDATED`
 
-**Hypothesis:** Users may value a system that reduces a large stream of market information to a small amount of decision-relevant context without materially omitting important information.
+Hypothesis: users may value reducing many market-data streams to a small amount of traceable decision-relevant context.
 
-Potential value:
-
-- less time spent checking multiple tools;
-- lower cognitive load;
-- better prioritization of what actually changed.
-
-Open question:
-
-> Can Signalbot do this materially better than an existing workflow built from general-purpose LLMs plus market-data/charting tools?
-
-**Implementation authorization:** none.
-
----
+Open question: can Signalbot do this materially better than workflows built from charting/data tools plus general-purpose AI?
 
 ## H2 — Evidence / auditability
 
 **Status:** `UNVALIDATED`
 
-**Hypothesis:** Some users may value analytical conclusions whose evidence, counter-evidence, historical population, methodology, limitations, and provenance can be inspected instead of accepting an opaque AI score.
+Hypothesis: some users may value inspectable evidence, counter-evidence, methodology, limitations and provenance rather than opaque AI scores.
 
-Open question:
-
-> Is this a real buying criterion for a sufficiently valuable user segment, or primarily an engineering/research virtue?
-
-**Implementation authorization:** none beyond architectural traceability already required for correctness/research.
-
----
+Open question: is this a real repeated buying/use criterion or mainly a research virtue?
 
 ## H3 — Historical contextualization / analogue analysis
 
 **Status:** `UNVALIDATED`
 
-**Hypothesis:** Users may value seeing what happened after genuinely comparable historical market states rather than receiving only indicator interpretation or a directional prediction.
+Hypothesis: distributions from genuinely comparable historical states may be more useful than indicator interpretation alone.
 
-Potential outputs could eventually include distributions of future return, MFE/MAE, path behavior, sample size, and comparability limitations.
-
-Open question:
-
-> Can similarity/population definitions be made statistically defensible and useful enough to improve decisions rather than create false pattern confidence?
-
-**Implementation authorization:** none.
-
----
+Open question: can similarity/population definitions be made statistically defensible rather than pattern storytelling?
 
 ## H4 — Material market-change detection
 
 **Status:** `UNVALIDATED`
 
-**Hypothesis:** Users may value being notified when the **overall decision-relevant market state materially changes**, instead of receiving one alert per metric/indicator event.
-
-Open question:
-
-> Can material change be defined in a stable, testable way that suppresses noise without hiding important events?
-
-**Implementation authorization:** none.
-
----
+Hypothesis: users may value alerts when the overall decision-relevant market state materially changes rather than one alert per metric.
 
 ## H5 — Trade-thesis red team
 
 **Status:** `UNVALIDATED`
 
-**Hypothesis:** Users may value a system that challenges a proposed trade thesis, verifies claimed evidence, identifies missing/counter evidence, and distinguishes quantified observations from vague reasoning.
+Hypothesis: a structured system that challenges a trade thesis and distinguishes quantified evidence from narrative may improve decisions.
 
-Open question:
+## H6 — Conditional forecasting / NO-TRADE
 
-> Does this improve real decision quality enough to create repeated usage and willingness to pay?
+**Status:** `ACTIVE_RESEARCH_THESIS`, not a validated product hypothesis.
 
-**Implementation authorization:** none.
+Forecasting may be useful only in a minority of prospectively identifiable states. A correct system may output `NO EDGE / NO TRADE` most of the time.
 
----
+Current research asks whether any such conditional edge exists and survives independent evidence.
 
-## H6 — Conditional forecasting
+## H7 — Regime-routed multiple edges
 
-**Status:** `UNVALIDATED`
+**Status:** `EXPLORATORY`
 
-**Hypothesis:** Forecasting may be valuable only in a minority of sufficiently specific market states rather than as a continuously available directional opinion.
+A future forecasting module may be better expressed as several simple mechanisms selected by a prospectively measurable regime rather than one universal directional strategy.
 
-A useful system may legitimately return `NO EDGE` or equivalent most of the time and expose a forecast only when empirical evidence supports one.
+Example research shape only:
 
-Open question:
+- trend/high-vol -> continuation candidate;
+- range/failed move -> mean-reversion candidate;
+- compression -> expansion candidate;
+- unsupported regime -> no trade.
 
-> Does V2 or later research demonstrate stable, economically meaningful conditional edge after proper controls, costs, delays, OOS testing, and uncertainty treatment?
-
-**Implementation authorization:** current V2 research only; this hypothesis does not authorize tuning or expanding frozen V2-v0.
-
----
+This is not authorization to build a regime router before the underlying mechanisms are validated.
 
 ## Deferred product/business questions
 
-The following are intentionally deferred to the Post-Roadmap Strategy & Product Review rather than answered by brainstorming alone:
+Do not answer these through brainstorming while edge research is unresolved:
 
-- Which user segment has the strongest unmet problem?
-- Which single workflow should become the initial product wedge?
-- What does Signalbot do materially better than ChatGPT + TradingView + CoinGlass + exchange-native AI tools?
-- Which capabilities are complementary to large platforms rather than directly competitive?
-- What should be free, paid, API/B2B, or not built at all?
-- What evidence would demonstrate willingness to pay?
+- initial user segment;
+- product wedge;
+- moat versus TradingView/CoinGlass/exchange AI/general LLM workflows;
+- free/paid/API/B2B model;
+- monetization/pricing;
+- UI/Telegram feature scope;
+- broad asset coverage.
 
-## Default execution rule
+## Re-entry trigger
 
-Until the Post-Roadmap Strategy & Product Review:
-
-> **Record promising product ideas here; do not silently convert them into active roadmap scope.**
+Product hypotheses may be promoted into experiments only after a deliberate strategy review triggered by real research evidence, not by implementation momentum.
