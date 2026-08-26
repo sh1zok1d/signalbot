@@ -29,6 +29,16 @@ Their exact semantics are governed by `docs/E1_DETECTOR_SEPARATION_PREREG.md` an
 
 After E1 is permanently closed, these scripts may be moved to a run-specific archive or replaced by reusable primitives **only if the immutable run remains reproducible from a commit/tag**.
 
+## CORE_BTC_BINANCE_V0 source probe
+
+`core_btc_binance_v0_probe.py` (+ `core_btc_binance_v0_probe_lib.py`) is an
+`AUDIT_TOOL`: a small, deterministic source-capability probe for
+`CORE_BTC_BINANCE_V0` (`docs/CORE_BTC_BINANCE_V0_CONTRACT.md`,
+`docs/manifests/CORE_BTC_BINANCE_V0.yaml`). It downloads/checksum-verifies
+only a fixed four-month sample and structurally audits the parsed 1m
+klines; it is not the multi-year materializer. See
+`docs/CORE_BTC_BINANCE_V0_PROBE_RUNBOOK.md`.
+
 ## Earlier mathematical/audit tools
 
 `math002b_*` belongs to earlier consensus-robustness research/audit work. Treat it as `AUDIT_TOOL` unless a current research run explicitly reuses it.
