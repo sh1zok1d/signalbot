@@ -2,7 +2,7 @@
 
 **Status:** PREREGISTERED / EXPLORATORY
 **Hypothesis ID:** `H01_COMPRESSION_EXPANSION`
-**Machine-readable freeze:** `docs/research/H01_COMPRESSION_EXPANSION_PREREG.json` 
+**Machine-readable freeze:** `docs/research/H01_COMPRESSION_EXPANSION_PREREG.json`
 **Dataset:** `CORE_BTC_BINANCE_V0` snapshot `717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`
 
 This document is frozen **before** any H01 development forward outcomes are computed. A clean null is a successful research result. This is not a directional edge, trading, or confirmatory claim.
