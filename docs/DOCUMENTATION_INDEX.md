@@ -49,7 +49,7 @@ If a historical document conflicts with the active canonical set about **what th
 - discovery that one month of rich overlap is inadequate for durable-edge claims;
 - 2026-08-26 research-first pivot.
 
-`history/README.md` complements that narrative with direct links to the full immutable source documents exactly as they existed before the pivot.
+`history/README.md` complements that narrative with direct links to the full immutable source documents exactly as they existed before the pivot and records retired branch/PR history needed for safe branch cleanup.
 
 The point of retaining history is not nostalgia. It prevents the project from repeatedly rediscovering rejected ideas and makes the reasoning behind architectural changes auditable.
 
@@ -90,6 +90,7 @@ The following describe earlier Stage1/Stage2/V2 implementation states or audits.
 - `STAGE2_IMPLEMENTATION_PLAN.md`
 - `V2_CONSENSUS_ROBUSTNESS_HISTORICAL_AUDIT.md`
 - `V2_PERCENTILE_MATURITY_AUDIT.md`
+- `history/V2_MATHEMATICAL_HYPOTHESIS_REGISTER.md` — exact historical governance content archived from the standalone `research/v2-mathematical-hypothesis-register` branch before branch cleanup.
 
 The old `PROJECT_RISK_AND_DEBT_REGISTER.md` is also retained as a **historical V2-era debt register**. Its Stage-6/7/8 implementation items are not automatically current work. Use `ACTIVE_RESEARCH_RISKS.md` for the current program.
 
