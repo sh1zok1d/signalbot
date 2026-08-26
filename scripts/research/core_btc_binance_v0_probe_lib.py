@@ -14,6 +14,13 @@ those documents already state (official archive shape, checksum discipline,
 
 Nothing in this module marks a dataset as accepted. See
 `docs/CORE_BTC_BINANCE_V0_PROBE_RUNBOOK.md`.
+
+Red-team remediation round (RT-01..RT-09) on top of the initial version:
+strict calendar-complete `month_passed`/`local_audit_passed` (RT-01),
+checksum filename identity (RT-02), exact zip-member identity (RT-03),
+non-finite numerics never crash the audit (RT-04), and a corrected
+malformed-header/BOM classifier (RT-07). RT-05/RT-06/RT-08/RT-10 live in the
+CLI module.
 """
 from __future__ import annotations
 
@@ -46,31 +53,52 @@ ARCHIVE_ROOT = "https://data.binance.vision/data/futures/um/monthly/klines"
 # frozen) so a systemic archive-shape change would be visible.
 DEFAULT_PROBE_MONTHS = ("2020-01", "2021-05", "2024-03", "2026-07")
 
-# docs/CORE_BTC_BINANCE_V0_CONTRACT.md section 1: the raw archive carries 12
-# columns; the research table retains the first 11 semantic fields.
+# docs/CORE_BTC_BINANCE_V0_CONTRACT.md section 1: the raw archive carries
+# exactly 12 columns; the research table retains the first 11 semantic
+# fields. RT-09: 13+ columns must never be silently truncated/accepted.
 EXPECTED_KLINE_COLUMNS = 12
 BAR_SECONDS = 60
 BAR_MS = BAR_SECONDS * 1000
 NUMERIC_TOLERANCE = Decimal("0.00000001")
 
-REPORT_SCHEMA_VERSION = 1
+REPORT_SCHEMA_VERSION = 2
 REPORT_KIND = "CORE_BTC_BINANCE_V0_SOURCE_PROBE"
+# Bumped alongside the RT-01..RT-10 red-team remediation: report shape and
+# status vocabulary changed materially (new fields, new checksum/local-audit
+# statuses, a stricter month_passed predicate).
+PROBE_TOOL_VERSION = 2
+MONTH_PASS_PREDICATE_VERSION = "v2-calendar-complete-required"
 
 SOURCE_PROBE_PASSED = "SOURCE_PROBE_PASSED"
 SOURCE_PROBE_FAILED = "SOURCE_PROBE_FAILED"
 SOURCE_PROBE_INCOMPLETE = "SOURCE_PROBE_INCOMPLETE"
+LOCAL_AUDIT_PASSED = "LOCAL_AUDIT_PASSED"
+LOCAL_AUDIT_FAILED = "LOCAL_AUDIT_FAILED"
+LOCAL_AUDIT_INCOMPLETE = "LOCAL_AUDIT_INCOMPLETE"
 
 DATASET_ACCEPTANCE_NOTE = (
-    "SOURCE_PROBE_PASSED is source-capability evidence only. It is NOT "
-    "equivalent to DATASET_ACCEPTED, MATERIALIZED_UNVERIFIED, QUALITY_AUDITED "
-    "or ACCEPTED_FOR_DISCOVERY/ACCEPTED_FOR_CONFIRMATORY under "
+    "SOURCE_PROBE_PASSED and LOCAL_AUDIT_PASSED are source-capability/local-"
+    "evidence signals only. NOT one of them is equivalent to DATASET_ACCEPTED, "
+    "MATERIALIZED_UNVERIFIED, QUALITY_AUDITED or "
+    "ACCEPTED_FOR_DISCOVERY/ACCEPTED_FOR_CONFIRMATORY under "
     "docs/CORE_BTC_BINANCE_V0_CONTRACT.md section 11. The full historical "
     "dataset still requires complete acquisition, continuity audit, revision "
     "identity, deterministic materialization and the acceptance gates in "
-    "that contract before any research claim may rely on it."
+    "that contract before any research claim may rely on it. Note also that "
+    "this four-month probe's month_passed/local_audit_passed require an "
+    "exactly calendar-complete month (see docs/CORE_BTC_BINANCE_V0_CONTRACT.md "
+    "section 12: a non-zero gap count does not automatically kill the "
+    "eventual full multi-year dataset -- that is a separate, later question "
+    "this small probe does not answer)."
 )
 
 _YEAR_MONTH_RE = re.compile(r"^(\d{4})-(\d{2})$")
+
+# RT-07: header detection must require known Binance-style header semantics,
+# never "first cell fails int() => header" (that silently misclassified a
+# genuinely malformed data row as a header and dropped it uncounted).
+_KNOWN_HEADER_FIRST_TOKENS = {"open_time", "opentime", "open time"}
+_UTF8_BOM = "﻿"
 
 
 class CoreBtcBinanceV0ProbeError(ValueError):
@@ -92,6 +120,13 @@ def validate_year_month(year_month: str) -> None:
 def archive_object_name(year_month: str) -> str:
     validate_year_month(year_month)
     return f"{SYMBOL}-{INTERVAL}-{year_month}.zip"
+
+
+def expected_csv_member_name(year_month: str) -> str:
+    """RT-03: the exact required in-archive member name. No sole-CSV
+    fallback is ever accepted -- see `read_kline_csv_member`."""
+    validate_year_month(year_month)
+    return f"{SYMBOL}-{INTERVAL}-{year_month}.csv"
 
 
 def archive_urls(year_month: str) -> tuple[str, str]:
@@ -118,7 +153,11 @@ def parse_checksum_text(text: str) -> dict:
     """Parse a Binance `.CHECKSUM` object (`sha256sum`-style: hex digest,
     whitespace, filename). Raises `CoreBtcBinanceV0ProbeError` for empty or
     malformed content -- a malformed checksum must never be treated as
-    'no checksum available', it's a distinct capability downgrade."""
+    'no checksum available', it's a distinct capability downgrade.
+
+    Normalizes only the GNU `sha256sum --binary` `*filename` marker; the
+    filename identity itself is NOT validated here (that needs the caller's
+    expected object name -- see `evaluate_checksum_verification`)."""
     stripped = text.strip()
     if not stripped:
         raise CoreBtcBinanceV0ProbeError("empty checksum file")
@@ -128,7 +167,26 @@ def parse_checksum_text(text: str) -> dict:
         raise CoreBtcBinanceV0ProbeError(
             f"checksum file's first token is not a 64-hex-char sha256 digest: {candidate!r}")
     filename = parts[1].strip() if len(parts) > 1 else ""
+    if filename.startswith("*"):
+        filename = filename[1:]
     return {"sha256": candidate.lower(), "filename": filename}
+
+
+def evaluate_checksum_verification(
+    local_sha256: Optional[str], parsed_checksum: Optional[dict], expected_zip_filename: str,
+) -> str:
+    """RT-02: a checksum is only `VERIFIED` when BOTH the sha256 digest
+    matches AND the checksum text's own filename identifies exactly the
+    expected object (`BTCUSDT-1m-YYYY-MM.zip`) -- not another symbol,
+    interval, month, or a daily-archive filename, and not a hash with no
+    filename at all ("hash only" must never become `VERIFIED`)."""
+    if parsed_checksum is None:
+        return "NOT_VERIFIABLE_MISSING_CHECKSUM"
+    if local_sha256 != parsed_checksum["sha256"]:
+        return "MISMATCH"
+    if parsed_checksum["filename"] != expected_zip_filename:
+        return "FILENAME_IDENTITY_MISMATCH"
+    return "VERIFIED"
 
 
 def sha256_of_bytes(data: bytes) -> str:
@@ -162,9 +220,10 @@ def decide_existing_zip_disposition(
       matches it -> `REUSED_IDENTICAL` (safe to reuse, verified).
     - existing file, and the source's own published checksum is known but
       does NOT match it -> `REVISION_CONFLICT`. Fail closed: the caller must
-      not overwrite this file automatically; the old revision is preserved
-      and a distinct revision identity/output directory is required to
-      adopt the new bytes.
+      not overwrite this file (or its checksum sidecar -- see RT-05 in the
+      CLI module) automatically; the old revision is preserved and a
+      distinct revision identity/output directory is required to adopt the
+      new bytes.
     - existing file, but no authoritative published checksum is available
       to compare against (missing/malformed `.CHECKSUM`) -> we have no
       reference to decide "identical vs different" from, so the safest
@@ -211,12 +270,18 @@ def bar_end_exclusive_ms(open_time_ms: int) -> int:
     return open_time_ms + BAR_MS
 
 
+def _strip_bom(text: str) -> str:
+    return text[1:] if text.startswith(_UTF8_BOM) else text
+
+
 def _looks_like_header_token(token: str) -> bool:
-    try:
-        int(token)
-    except ValueError:
-        return True
-    return False
+    """RT-07: only a KNOWN Binance-style header token is treated as a
+    header. A data-shaped row with an invalid/garbage first cell (e.g. a
+    float timestamp, or corrupt text) is NOT a header -- it must fall
+    through to row parsing and be counted malformed there, never silently
+    dropped as if it were a header line."""
+    normalized = token.strip().strip('"').lower()
+    return normalized in _KNOWN_HEADER_FIRST_TOKENS
 
 
 def parse_kline_csv(text: str) -> tuple[list[KlineRow], dict]:
@@ -224,9 +289,13 @@ def parse_kline_csv(text: str) -> tuple[list[KlineRow], dict]:
 
     Handles an optional header row (some archive eras include one, some do
     not) but never silently reinterprets a genuinely different schema: any
-    row with fewer than the expected 12 columns, or a column that fails to
-    parse as the expected numeric type, is counted as malformed and
-    excluded from the parsed rows rather than guessed at."""
+    row without EXACTLY the expected 12 columns (RT-09 -- neither fewer nor
+    13+ silently truncated), or a column that fails to parse as the expected
+    numeric type, or any numeric market field that parses but is non-finite
+    (NaN/Infinity/-Infinity -- RT-04), is counted as malformed and excluded
+    from the parsed rows rather than guessed at or allowed to crash a later
+    comparison."""
+    text = _strip_bom(text)
     rows_raw = list(csv.reader(io.StringIO(text)))
     header_present = False
     if rows_raw and rows_raw[0] and _looks_like_header_token(rows_raw[0][0]):
@@ -236,22 +305,34 @@ def parse_kline_csv(text: str) -> tuple[list[KlineRow], dict]:
     parsed: list[KlineRow] = []
     malformed_row_indices: list[int] = []
     for idx, raw in enumerate(rows_raw):
-        if not raw or len(raw) < EXPECTED_KLINE_COLUMNS:
+        if not raw or len(raw) != EXPECTED_KLINE_COLUMNS:
             malformed_row_indices.append(idx)
             continue
         try:
+            open_ = Decimal(raw[1])
+            high = Decimal(raw[2])
+            low = Decimal(raw[3])
+            close = Decimal(raw[4])
+            base_volume = Decimal(raw[5])
+            quote_volume = Decimal(raw[7])
+            taker_buy_base_volume = Decimal(raw[9])
+            taker_buy_quote_volume = Decimal(raw[10])
+            for value in (open_, high, low, close, base_volume, quote_volume,
+                          taker_buy_base_volume, taker_buy_quote_volume):
+                if not value.is_finite():
+                    raise InvalidOperation("non-finite numeric field")
             row = KlineRow(
                 open_time_ms=int(raw[0]),
-                open=Decimal(raw[1]),
-                high=Decimal(raw[2]),
-                low=Decimal(raw[3]),
-                close=Decimal(raw[4]),
-                base_volume=Decimal(raw[5]),
+                open=open_,
+                high=high,
+                low=low,
+                close=close,
+                base_volume=base_volume,
                 close_time_ms=int(raw[6]),
-                quote_volume=Decimal(raw[7]),
+                quote_volume=quote_volume,
                 trade_count=int(raw[8]),
-                taker_buy_base_volume=Decimal(raw[9]),
-                taker_buy_quote_volume=Decimal(raw[10]),
+                taker_buy_base_volume=taker_buy_base_volume,
+                taker_buy_quote_volume=taker_buy_quote_volume,
             )
         except (InvalidOperation, ValueError):
             malformed_row_indices.append(idx)
@@ -268,27 +349,30 @@ def parse_kline_csv(text: str) -> tuple[list[KlineRow], dict]:
 
 
 def read_kline_csv_member(zip_path: Path, year_month: str) -> tuple[Optional[str], list[str], str]:
-    """Read the single kline CSV member out of a monthly archive zip.
+    """Read the kline CSV member out of a monthly archive zip.
+
+    RT-03: the archive must contain the EXACT member
+    `BTCUSDT-1m-YYYY-MM.csv`. There is no "sole CSV fallback" -- a
+    differently-named CSV (wrong symbol/interval/daily-shaped filename, a
+    path-prefixed or path-traversal name, etc) is never accepted as this
+    month's evidence, even if it is the only CSV in the archive. No
+    filesystem extraction happens; the member is read directly from the
+    open `ZipFile` in memory.
 
     Returns `(csv_text_or_None, member_names, parser_status)`. Never raises
     for an unexpected archive shape -- that is a `parser_status` value the
     caller records, not a crash."""
     if not zip_path.exists():
         return None, [], "NO_SUCH_FILE"
+    expected_member = expected_csv_member_name(year_month)
     try:
         with zipfile.ZipFile(zip_path) as zf:
             names = zf.namelist()
             if not names:
                 return None, names, "EMPTY_ARCHIVE"
-            expected_member = f"{SYMBOL}-{INTERVAL}-{year_month}.csv"
-            if expected_member in names:
-                member = expected_member
-            else:
-                csv_members = [n for n in names if n.lower().endswith(".csv")]
-                if len(csv_members) != 1:
-                    return None, names, "UNEXPECTED_ZIP_MEMBERS"
-                member = csv_members[0]
-            with zf.open(member) as fh:
+            if expected_member not in names:
+                return None, names, "MISSING_EXPECTED_CSV_MEMBER"
+            with zf.open(expected_member) as fh:
                 text = fh.read().decode("utf-8")
             return text, names, "OK"
     except zipfile.BadZipFile:
@@ -312,10 +396,38 @@ def expected_bucket_starts(year_month: str) -> list[int]:
 
 
 def row_invariant_violations(row: KlineRow) -> list[str]:
-    violations = []
+    """RT-04/RT-09: integer-only checks (minute alignment, close_time bound)
+    are always safe and run first. Every numeric market field is then
+    checked for finiteness BEFORE any ordered Decimal comparison -- a
+    NaN/Infinity/-Infinity field makes every subsequent `<`/`>` comparison
+    both meaningless and, for `decimal.Decimal`, liable to raise
+    `InvalidOperation` -- so this function returns immediately after
+    reporting which fields are non-finite rather than risk that crash."""
+    violations: list[str] = []
+
+    if row.open_time_ms % BAR_MS != 0:
+        violations.append("open_time_not_minute_aligned")
+    if row.close_time_ms < row.open_time_ms:
+        violations.append("close_time_before_open_time")
+    if row.close_time_ms >= row.open_time_ms + BAR_MS:
+        violations.append("close_time_not_compatible_with_one_minute_bar")
+    if row.trade_count < 0:
+        violations.append("trade_count_negative")
+
+    decimal_fields = (
+        ("open", row.open), ("high", row.high), ("low", row.low), ("close", row.close),
+        ("base_volume", row.base_volume), ("quote_volume", row.quote_volume),
+        ("taker_buy_base_volume", row.taker_buy_base_volume),
+        ("taker_buy_quote_volume", row.taker_buy_quote_volume),
+    )
+    non_finite_fields = [name for name, value in decimal_fields if not value.is_finite()]
+    if non_finite_fields:
+        violations.extend(f"{name}_not_finite" for name in non_finite_fields)
+        return violations
+
     for name, value in (("open", row.open), ("high", row.high), ("low", row.low), ("close", row.close)):
-        if not value.is_finite() or value <= 0:
-            violations.append(f"{name}_not_finite_positive")
+        if value <= 0:
+            violations.append(f"{name}_not_positive")
     if row.high < max(row.open, row.close):
         violations.append("high_lt_max_open_close")
     if row.low > min(row.open, row.close):
@@ -326,8 +438,6 @@ def row_invariant_violations(row: KlineRow) -> list[str]:
         violations.append("base_volume_negative")
     if row.quote_volume < 0:
         violations.append("quote_volume_negative")
-    if row.trade_count < 0:
-        violations.append("trade_count_negative")
     if row.taker_buy_base_volume < 0:
         violations.append("taker_buy_base_volume_negative")
     if row.taker_buy_quote_volume < 0:
@@ -336,10 +446,6 @@ def row_invariant_violations(row: KlineRow) -> list[str]:
         violations.append("taker_buy_base_volume_exceeds_total")
     if row.taker_buy_quote_volume > row.quote_volume + NUMERIC_TOLERANCE:
         violations.append("taker_buy_quote_volume_exceeds_total")
-    if row.close_time_ms < row.open_time_ms:
-        violations.append("close_time_before_open_time")
-    if row.close_time_ms >= row.open_time_ms + BAR_MS:
-        violations.append("close_time_not_compatible_with_one_minute_bar")
     return violations
 
 
@@ -405,30 +511,83 @@ def audit_klines(rows: list[KlineRow], year_month: str, malformed_row_count: int
     }
 
 
-def evaluate_month_pass(record: dict) -> bool:
-    """Whether one month's probe evidence supports the basic source-capability
-    assumption -- NOT dataset acceptance. Requires the source object to exist
-    and be checksum-verified, the archive to parse deterministically with
-    zero malformed/duplicate rows and zero row-level invariant violations,
-    and rows to be strictly ordered by `open_time`.
+def _passes_checksum_and_structural_completeness_gate(record: dict) -> bool:
+    """Shared RT-01 completeness gate used by BOTH `evaluate_month_pass`
+    (network-confirmed evidence) and `evaluate_local_audit_pass` (local-only
+    evidence). For THIS four-month source-capability probe, a month may pass
+    only when the canonical monthly grid is exactly complete: zero
+    malformed/duplicate rows, zero invariant violations, strictly ordered,
+    no rows outside the month's own bounds, and the observed unique
+    open_times exactly equal the expected calendar-month row count with the
+    first/last minute landing exactly on the month's own UTC boundaries.
 
-    A non-zero `missing_bucket_count` does NOT fail this check on its own:
-    `docs/CORE_BTC_BINANCE_V0_CONTRACT.md` section 12 states a non-zero gap
-    count does not automatically kill the dataset. Continuity is still
-    recorded and must be inspected -- it is a different question from
-    whether the source/schema/checksum assumptions hold at all."""
+    This is intentionally stricter than `docs/CORE_BTC_BINANCE_V0_CONTRACT.md`
+    section 12's later full-dataset policy ("a non-zero gap count does not
+    automatically kill the dataset") -- that later policy is about whether
+    the EVENTUAL multi-year dataset may contain genuine historical gaps and
+    still be usable. This probe asks a narrower, prior question: did the
+    expected official monthly archive object -- for these four
+    hand-picked, error-free months -- contain a canonical, complete monthly
+    1m grid? An empty/partial CSV must never pass that question."""
+    if (record.get("checksum_verification") != "VERIFIED"
+            or record.get("parser_status") != "OK"
+            or record.get("malformed_row_count") != 0
+            or record.get("duplicate_count") != 0
+            or record.get("invariant_violation_count") != 0
+            or record.get("is_strictly_ordered_by_open_time") is not True
+            or record.get("rows_outside_month_bounds") != []
+            or record.get("missing_bucket_count") != 0):
+        return False
+    expected_rows = record.get("expected_rows")
+    if not expected_rows or record.get("observed_unique_open_times") != expected_rows:
+        return False
+    year_month = record.get("year_month")
+    if not year_month:
+        return False
+    start_ms, _ = month_bounds_ms(year_month)
+    expected_last_open_ms = start_ms + (expected_rows - 1) * BAR_MS
     return (
-        record.get("source_status") in ("HTTP_200", "REUSED_IDENTICAL")
-        and record.get("checksum_verification") == "VERIFIED"
-        and record.get("parser_status") == "OK"
-        and record.get("malformed_row_count") == 0
-        and record.get("duplicate_count") == 0
-        and record.get("invariant_violation_count") == 0
-        and record.get("is_strictly_ordered_by_open_time") is True
-    )
+        record.get("first_open_time_ms") == start_ms
+        and record.get("last_open_time_ms") == expected_last_open_ms)
 
 
-def overall_probe_status(month_records: list[dict]) -> str:
+def evaluate_month_pass(record: dict) -> bool:
+    """Whether one month's probe evidence supports the basic source-
+    capability assumption AND was actually confirmed reachable over the
+    network this run (`source_status` is `HTTP_200` or `REUSED_IDENTICAL`,
+    i.e. checksum-verified against an object this run itself fetched or
+    re-verified). This is the predicate that feeds `SOURCE_PROBE_PASSED` --
+    see `evaluate_local_audit_pass` for the network-free counterpart."""
+    if record.get("source_status") not in ("HTTP_200", "REUSED_IDENTICAL"):
+        return False
+    return _passes_checksum_and_structural_completeness_gate(record)
+
+
+def evaluate_local_audit_pass(record: dict) -> bool:
+    """RT-06: whether a LOCAL file -- never confirmed reachable from
+    Binance in THIS run -- nonetheless passes the same checksum +
+    structural-completeness bar as `evaluate_month_pass`, using only local
+    evidence. This is a distinct, weaker claim than `SOURCE_PROBE_PASSED`:
+    it proves the retained bytes are checksum-verified (against whatever
+    `.CHECKSUM` sidecar is present on disk) and structurally complete -- not
+    that Binance currently serves this object at the documented path.
+    `audit-local` mode must never relabel this as network acquisition."""
+    if record.get("source_status") != "LOCAL_FILE_PRESENT":
+        return False
+    return _passes_checksum_and_structural_completeness_gate(record)
+
+
+def overall_probe_status(month_records: list[dict], mode: str) -> str:
+    """RT-06: `audit-local` gets its own status vocabulary
+    (`LOCAL_AUDIT_*`), kept conceptually separate from the network
+    `SOURCE_PROBE_*` vocabulary used by `probe`/`inventory`."""
+    if mode == "audit-local":
+        if not month_records or any(rec.get("attempted") is not True for rec in month_records):
+            return LOCAL_AUDIT_INCOMPLETE
+        if all(rec.get("local_audit_passed") is True for rec in month_records):
+            return LOCAL_AUDIT_PASSED
+        return LOCAL_AUDIT_FAILED
+
     if not month_records:
         return SOURCE_PROBE_INCOMPLETE
     if any(rec.get("attempted") is not True for rec in month_records):
