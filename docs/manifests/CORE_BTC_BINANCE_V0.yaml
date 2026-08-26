@@ -1,0 +1,200 @@
+dataset_id: CORE_BTC_BINANCE_V0
+manifest_version: 0
+status: PLANNED_NOT_MATERIALIZED
+research_authorized: false
+created_at_utc: '2026-08-26T00:00:00Z'
+contract_path: docs/CORE_BTC_BINANCE_V0_CONTRACT.md
+
+purpose:
+  class: CORE_LONG_HISTORY
+  description: >-
+    First long-history BTC research dataset for mechanism discovery and
+    falsification using official Binance USD-M BTCUSDT 1m kline history.
+  not_an_edge_claim: true
+
+source:
+  provider: Binance
+  evidence_tier: OFFICIAL_ARCHIVE
+  archive_root: https://data.binance.vision/data/futures/um
+  market_type: USD_M_FUTURES
+  instrument: BTCUSDT
+  data_type: klines
+  native_interval: 1m
+  documented_api_origin: /fapi/v1/klines
+  documentation:
+    - https://github.com/binance/binance-public-data/blob/master/README.md
+    - https://github.com/binance/binance-public-data/blob/master/python/README.md
+
+frozen_target_range:
+  start_inclusive: '2020-01-01T00:00:00Z'
+  end_exclusive: '2026-08-26T00:00:00Z'
+  timezone: UTC
+  observed_start_confirmed: false
+  observed_end_confirmed: false
+
+acquisition_policy:
+  completed_months_prefer_monthly_archive: true
+  incomplete_month_use_daily_archive: true
+  intended_initial_monthly_range:
+    start_month: '2020-01'
+    end_month: '2026-07'
+  intended_initial_daily_range:
+    start_date: '2026-08-01'
+    end_date: '2026-08-25'
+  require_source_checksum: true
+  compute_local_sha256: true
+  overwrite_frozen_raw_files: false
+  upstream_revision_requires_new_manifest_revision: true
+
+raw_schema:
+  - name: open_time_ms
+    position: 1
+    semantic: bar_start_utc
+  - name: open
+    position: 2
+  - name: high
+    position: 3
+  - name: low
+    position: 4
+  - name: close
+    position: 5
+  - name: base_volume
+    position: 6
+  - name: close_time_ms
+    position: 7
+    semantic: last_millisecond_inside_source_bar
+  - name: quote_volume
+    position: 8
+  - name: trade_count
+    position: 9
+  - name: taker_buy_base_volume
+    position: 10
+  - name: taker_buy_quote_volume
+    position: 11
+  - name: ignore
+    position: 12
+    research_feature: false
+
+availability_semantics:
+  source_bar_duration_seconds: 60
+  canonical_available_at: bar_end_exclusive
+  eligibility_rule: bar_end_exclusive <= decision_time
+  archive_is_live_equivalent: false
+  evidence_semantics: HISTORICAL_COMPARABLE
+
+allowed_arithmetic_derivations:
+  taker_sell_base_volume: base_volume - taker_buy_base_volume
+  taker_sell_quote_volume: quote_volume - taker_buy_quote_volume
+
+excluded_sources_and_features:
+  - open_interest
+  - funding
+  - liquidations
+  - force_orders
+  - order_book
+  - mark_price
+  - index_price
+  - premium_index
+  - spot_market
+  - bybit
+  - okx
+  - vendor_normalized_history
+  - signalbot_live_tables
+
+derived_intervals:
+  - interval: 5m
+    expected_1m_constituents: 5
+  - interval: 15m
+    expected_1m_constituents: 15
+  - interval: 1h
+    expected_1m_constituents: 60
+  - interval: 4h
+    expected_1m_constituents: 240
+
+aggregation:
+  alignment: UTC_EPOCH
+  partial_bucket_allowed_for_confirmatory: false
+  missing_constituent_policy: MARK_INCOMPLETE
+  forward_fill_price: false
+  forward_fill_volume: false
+  rules:
+    open: first
+    high: max
+    low: min
+    close: last
+    base_volume: sum
+    quote_volume: sum
+    trade_count: sum
+    taker_buy_base_volume: sum
+    taker_buy_quote_volume: sum
+
+quality_gates:
+  source_checksums_verified: false
+  parsed_target_range_confirmed: false
+  deterministic_schema_parse: false
+  duplicate_report_complete: false
+  unresolved_conflicting_duplicates: null
+  gap_report_complete: false
+  invariant_audit_complete: false
+  incomplete_periods_explicit: false
+  timestamp_no_lookahead_tests_passed: false
+  aggregation_tests_passed: false
+  source_inventory_frozen: false
+  output_snapshot_checksum_frozen: false
+  human_quality_report_complete: false
+
+quality_statistics:
+  expected_1m_rows: null
+  observed_rows_total: null
+  observed_unique_open_times: null
+  missing_minutes: null
+  duplicate_rows_total: null
+  conflicting_duplicate_minutes: null
+  longest_gap_minutes: null
+  invariant_violations: null
+  rejected_rows: null
+
+source_objects: []
+
+materialization_identity:
+  downloader_commit: null
+  parser_commit: null
+  canonicalization_commit: null
+  aggregation_commit: null
+  quality_report_path: null
+  quality_report_sha256: null
+  canonical_1m_output_sha256: null
+  derived_5m_output_sha256: null
+  derived_15m_output_sha256: null
+  derived_1h_output_sha256: null
+  derived_4h_output_sha256: null
+  snapshot_id: null
+  materialized_at_utc: null
+
+promotion:
+  allowed_states:
+    - PLANNED_NOT_MATERIALIZED
+    - MATERIALIZED_UNVERIFIED
+    - QUALITY_AUDITED
+    - ACCEPTED_FOR_DISCOVERY
+    - ACCEPTED_FOR_CONFIRMATORY
+  current_state: PLANNED_NOT_MATERIALIZED
+  discovery_gate_passed: false
+  confirmatory_gate_passed: false
+
+research_boundary:
+  may_start_broad_hypothesis_discovery_now: false
+  may_use_for_confirmatory_oos_now: false
+  may_authorize_forecasting_product_development: false
+  may_authorize_paid_rich_data_purchase: false
+
+notes:
+  - >-
+    Source URL/path is not sufficient identity because Binance documents that
+    archived files can be revised. Freeze source checksum and local SHA-256.
+  - >-
+    Non-zero gaps do not automatically invalidate the whole dataset, but they
+    must be explicit and affected higher-timeframe buckets must fail closed.
+  - >-
+    This planning manifest must be populated from observed materialization
+    results; placeholders must never be interpreted as passed checks.
