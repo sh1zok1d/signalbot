@@ -30,7 +30,7 @@ import io
 import re
 import zipfile
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Optional
@@ -46,6 +46,8 @@ SYMBOL = "BTCUSDT"
 INTERVAL = "1m"
 ARCHIVE_CLASS = "monthly"
 ARCHIVE_ROOT = "https://data.binance.vision/data/futures/um/monthly/klines"
+ARCHIVE_ROOT_MONTHLY = ARCHIVE_ROOT
+ARCHIVE_ROOT_DAILY = "https://data.binance.vision/data/futures/um/daily/klines"
 
 # Source-capability probe months only -- NOT development/OOS research
 # windows. Spans four different eras deliberately (pre-2021 bull run,
@@ -93,6 +95,7 @@ DATASET_ACCEPTANCE_NOTE = (
 )
 
 _YEAR_MONTH_RE = re.compile(r"^(\d{4})-(\d{2})$")
+_YEAR_MONTH_DAY_RE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
 
 # RT-07: header detection must require known Binance-style header semantics,
 # never "first cell fails int() => header" (that silently misclassified a
@@ -144,6 +147,43 @@ def local_zip_filename(year_month: str) -> str:
 
 def local_checksum_filename(year_month: str) -> str:
     return f"{archive_object_name(year_month)}.CHECKSUM"
+
+
+def validate_year_month_day(year_month_day: str) -> None:
+    m = _YEAR_MONTH_DAY_RE.match(year_month_day)
+    if not m:
+        raise CoreBtcBinanceV0ProbeError(
+            f"daily period must be 'YYYY-MM-DD', got {year_month_day!r}")
+    year, month, day = int(m.group(1)), int(m.group(2)), int(m.group(3))
+    try:
+        datetime(year, month, day, tzinfo=UTC)
+    except ValueError as exc:
+        raise CoreBtcBinanceV0ProbeError(
+            f"daily period is not a valid UTC calendar date: {year_month_day!r}") from exc
+
+
+def daily_archive_object_name(year_month_day: str) -> str:
+    validate_year_month_day(year_month_day)
+    return f"{SYMBOL}-{INTERVAL}-{year_month_day}.zip"
+
+
+def daily_expected_csv_member_name(year_month_day: str) -> str:
+    validate_year_month_day(year_month_day)
+    return f"{SYMBOL}-{INTERVAL}-{year_month_day}.csv"
+
+
+def daily_archive_urls(year_month_day: str) -> tuple[str, str]:
+    zip_name = daily_archive_object_name(year_month_day)
+    base = f"{ARCHIVE_ROOT_DAILY}/{SYMBOL}/{INTERVAL}"
+    return f"{base}/{zip_name}", f"{base}/{zip_name}.CHECKSUM"
+
+
+def day_bounds_ms(year_month_day: str) -> tuple[int, int]:
+    validate_year_month_day(year_month_day)
+    year, month, day = (int(part) for part in year_month_day.split("-"))
+    start = datetime(year, month, day, tzinfo=UTC)
+    end = start + timedelta(days=1)
+    return int(start.timestamp() * 1000), int(end.timestamp() * 1000)
 
 
 # ---------------------------------------------------------------------------
@@ -348,6 +388,31 @@ def parse_kline_csv(text: str) -> tuple[list[KlineRow], dict]:
     return parsed, meta
 
 
+def read_kline_csv_member_named(
+    zip_path: Path, expected_member: str,
+) -> tuple[Optional[str], list[str], str]:
+    """Read one exact ZIP member as UTF-8 text. No filesystem extraction.
+
+    `expected_member` must match a namelist entry exactly -- there is no
+    sole-CSV fallback (RT-03)."""
+    if not zip_path.exists():
+        return None, [], "NO_SUCH_FILE"
+    try:
+        with zipfile.ZipFile(zip_path) as zf:
+            names = zf.namelist()
+            if not names:
+                return None, names, "EMPTY_ARCHIVE"
+            if expected_member not in names:
+                return None, names, "MISSING_EXPECTED_CSV_MEMBER"
+            with zf.open(expected_member) as fh:
+                text = fh.read().decode("utf-8")
+            return text, names, "OK"
+    except zipfile.BadZipFile:
+        return None, [], "BAD_ZIP_FILE"
+    except UnicodeDecodeError:
+        return None, [], "NON_UTF8_MEMBER"
+
+
 def read_kline_csv_member(zip_path: Path, year_month: str) -> tuple[Optional[str], list[str], str]:
     """Read the kline CSV member out of a monthly archive zip.
 
@@ -362,21 +427,7 @@ def read_kline_csv_member(zip_path: Path, year_month: str) -> tuple[Optional[str
     Returns `(csv_text_or_None, member_names, parser_status)`. Never raises
     for an unexpected archive shape -- that is a `parser_status` value the
     caller records, not a crash."""
-    if not zip_path.exists():
-        return None, [], "NO_SUCH_FILE"
-    expected_member = expected_csv_member_name(year_month)
-    try:
-        with zipfile.ZipFile(zip_path) as zf:
-            names = zf.namelist()
-            if not names:
-                return None, names, "EMPTY_ARCHIVE"
-            if expected_member not in names:
-                return None, names, "MISSING_EXPECTED_CSV_MEMBER"
-            with zf.open(expected_member) as fh:
-                text = fh.read().decode("utf-8")
-            return text, names, "OK"
-    except zipfile.BadZipFile:
-        return None, [], "BAD_ZIP_FILE"
+    return read_kline_csv_member_named(zip_path, expected_csv_member_name(year_month))
 
 
 # ---------------------------------------------------------------------------
@@ -467,10 +518,13 @@ def compress_to_ranges(sorted_values: list[int], step: int) -> list[list[int]]:
     return ranges
 
 
-def audit_klines(rows: list[KlineRow], year_month: str, malformed_row_count: int) -> dict:
-    """The 1m structural audit. Never fills missing bars, never synthesizes
-    zero-volume bars, never repairs duplicates -- it only reports."""
-    expected_starts = expected_bucket_starts(year_month)
+def audit_klines_window(
+    rows: list[KlineRow], start_ms: int, end_ms: int, malformed_row_count: int,
+) -> dict:
+    """The 1m structural audit over `[start_ms, end_ms)`. Never fills missing
+    bars, never synthesizes zero-volume bars, never repairs duplicates -- it
+    only reports."""
+    expected_starts = list(range(start_ms, end_ms, BAR_MS))
     expected_set = set(expected_starts)
     observed_times = [row.open_time_ms for row in rows]
 
@@ -509,6 +563,14 @@ def audit_klines(rows: list[KlineRow], year_month: str, malformed_row_count: int
         "first_open_time_ms": observed_times[0] if observed_times else None,
         "last_open_time_ms": observed_times[-1] if observed_times else None,
     }
+
+
+def audit_klines(rows: list[KlineRow], year_month: str, malformed_row_count: int) -> dict:
+    """The 1m structural audit for a UTC calendar month. Never fills missing
+    bars, never synthesizes zero-volume bars, never repairs duplicates -- it
+    only reports."""
+    start_ms, end_ms = month_bounds_ms(year_month)
+    return audit_klines_window(rows, start_ms, end_ms, malformed_row_count)
 
 
 def _passes_checksum_and_structural_completeness_gate(record: dict) -> bool:

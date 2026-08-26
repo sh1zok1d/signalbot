@@ -39,6 +39,14 @@ only a fixed four-month sample and structurally audits the parsed 1m
 klines; it is not the multi-year materializer. See
 `docs/CORE_BTC_BINANCE_V0_PROBE_RUNBOOK.md`.
 
+## CORE_BTC_BINANCE_V0 materializer
+
+`core_btc_binance_v0_materializer.py` (+ `core_btc_binance_v0_materializer_lib.py`)
+is the staged acquisition/materialization pipeline for the same dataset.
+It reuses the hardened probe checksum/ZIP/CSV/invariant logic. It does
+**not** run bulk 2020–2026 acquisition unless an operator explicitly passes
+`--allow-acquire`. See `docs/CORE_BTC_BINANCE_V0_MATERIALIZATION_RUNBOOK.md`.
+
 ## Earlier mathematical/audit tools
 
 `math002b_*` belongs to earlier consensus-robustness research/audit work. Treat it as `AUDIT_TOOL` unless a current research run explicitly reuses it.
