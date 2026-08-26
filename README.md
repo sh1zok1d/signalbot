@@ -58,7 +58,9 @@ The direction changed because engineering correctness and architectural sophisti
 
 The old work is **not erased**. Failed hypotheses, superseded plans and frozen contracts are preserved because they explain what the project learned.
 
-Read [`docs/PROJECT_HISTORY.md`](docs/PROJECT_HISTORY.md) for the full evolution: original idea → Stage 1 → V1 → V2 → E1 → research-first pivot.
+Read [`docs/PROJECT_HISTORY.md`](docs/PROJECT_HISTORY.md) for the narrative evolution: original idea → Stage 1 → V1 → V2 → E1 → research-first pivot.
+
+For the full historical source material, use [`docs/history/README.md`](docs/history/README.md), which links directly to immutable versions of the original roadmaps/contracts/specifications.
 
 ## Active work
 
@@ -111,11 +113,14 @@ A one-month rich-data overlap can falsify obvious hypotheses but cannot establis
 3. [`docs/EDGE_RESEARCH_PROTOCOL.md`](docs/EDGE_RESEARCH_PROTOCOL.md) — discovery/validation rules;
 4. [`docs/HISTORICAL_DATA_STRATEGY.md`](docs/HISTORICAL_DATA_STRATEGY.md) — multi-year evidence strategy;
 5. [`docs/ACTIVE_RESEARCH_RISKS.md`](docs/ACTIVE_RESEARCH_RISKS.md) — risks that can invalidate current research;
-6. [`docs/RESEARCH_LEDGER.md`](docs/RESEARCH_LEDGER.md) — experiments, hypotheses and consumed windows.
+6. [`docs/PROJECT_STRATEGY_AND_ARCHITECTURE_PRINCIPLES.md`](docs/PROJECT_STRATEGY_AND_ARCHITECTURE_PRINCIPLES.md) — evidence-first design philosophy;
+7. [`docs/CODEBASE_STATUS.md`](docs/CODEBASE_STATUS.md) — active/frozen/deferred code surfaces;
+8. [`docs/RESEARCH_LEDGER.md`](docs/RESEARCH_LEDGER.md) — experiments, hypotheses and consumed windows.
 
 ### How the project got here
 
 - [`docs/PROJECT_HISTORY.md`](docs/PROJECT_HISTORY.md) — narrative evolution of ideas/philosophy;
+- [`docs/history/README.md`](docs/history/README.md) — browsable immutable archive of original historical documents;
 - [`docs/DOCUMENTATION_INDEX.md`](docs/DOCUMENTATION_INDEX.md) — classification of active, frozen, historical and superseded documents.
 
 Historical Stage1/Stage2/V2 contracts remain useful for code archaeology and frozen experiment provenance, but they are **not the active project roadmap**.
