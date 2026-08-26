@@ -241,7 +241,7 @@ Non-directional mechanism test: does unusually low recent BTC realized volatilit
 - OOS: **UNTOUCHED** (2026 not inspected)
 - search surface: 3 L × 3 q × 5 H = 45 primary cells
 - outcome status: `EXPLORATORY`
-- development verdict: **`H01_KILL`**
+- development verdict: **`H01_KILL`** / **`REJECTED`**
 
 Eligible development 15m boundaries: 172400.
 
@@ -254,6 +254,35 @@ Development evidence: `docs/research/H01_DEV_SUMMARY.md`, `docs/research/H01_DEV
 
 Do not open 2025 or 2026 for H01. Do not start R3 for H01.
 
+The reverse volatility-persistence pattern is **not** validated evidence and is not a new authorized hypothesis.
+
+---
+
+## 2026-08-26 — H02_FAILED_BREAKOUT_MEAN_REVERSION development
+
+**Hypothesis:** `H02_FAILED_BREAKOUT_MEAN_REVERSION`
+
+Directional mean-reversion test: when BTC briefly breaches a local 5m range but closes back inside, does subsequent price tend to continue toward the range versus an ordinary/random boundary event?
+
+- dataset snapshot: `717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`
+- prereg commit: `92d130f0e26aa993e8e0a231eceb95db20ff47f0`
+- research code SHA at outcome run: `92d130f0e26aa993e8e0a231eceb95db20ff47f0`
+- development window: `2020-02-01T00:00:00Z` → `2025-01-01T00:00:00Z` with `T + 240m < 2025-01-01T00:00:00Z`
+- validation: **UNTOUCHED**
+- OOS: **UNTOUCHED**
+- search surface: 3 lookbacks × 3 overshoot thresholds × 5 horizons = 45 primary cells
+- outcome status: `EXPLORATORY`
+- development verdict: **`H02_KILL`**
+
+H01 remains `H01_COMPRESSION_EXPANSION = REJECTED / H01_KILL`. Do not reinterpret H01 reverse-volatility as validated evidence.
+
+Primary result: a small short-horizon (15–30m) s=0.00 bump versus matched-random (~0.03–0.06 normalized, ~1 bp, P(REV>0)~0.54) that weakens under +6h shift, but successful-breakout control is *stronger* on the same reversion sign. Stronger overshoot is worse. Effect fades by 120–240m. UPPER is weaker than LOWER. Closing back inside did not earn a failed-breakout-specific mechanism.
+
+Preregistration: `docs/research/H02_FAILED_BREAKOUT_MEAN_REVERSION_PREREG.md`
+Development evidence: `docs/research/H02_DEV_SUMMARY.md`, `docs/research/H02_DEV_RESULTS.json`
+
+Do not open 2025 or 2026 for H02. Do not start R3. Do not add volume/taker/trend gates.
+
 ---
 
 ## Next research program — hypothesis discovery after E1
@@ -262,9 +291,13 @@ Status: `AUTHORIZED_FOR_DISCOVERY / NOT YET CONFIRMATORY`.
 
 `CORE_BTC_BINANCE_V0` is `ACCEPTED_FOR_DISCOVERY` (snapshot `717d37a4`).
 
-`H01_COMPRESSION_EXPANSION` has been run on development only and recorded as `H01_KILL`. Remaining mechanism classes are still untested:
+Recorded discovery runs:
 
-- failed breakout/liquidity sweep -> mean reversion;
+- `H01_COMPRESSION_EXPANSION` = `REJECTED / H01_KILL`
+- `H02_FAILED_BREAKOUT_MEAN_REVERSION` = `H02_KILL`
+
+Remaining mechanism classes still untested:
+
 - trend pullback -> continuation;
 - extreme impulse -> continuation vs exhaustion;
 - price/OI divergence;

@@ -93,6 +93,8 @@ over forcing every detector to output a continuous LONG/SHORT opinion.
 
 `H01_COMPRESSION_EXPANSION` completed a development-only run on `CORE_BTC_BINANCE_V0` snapshot `717d37a4`. Verdict: **`H01_KILL`**. 2025 validation and 2026 OOS remain untouched. Do not start R3 for H01. See `docs/research/H01_DEV_SUMMARY.md` and `docs/RESEARCH_LEDGER.md`.
 
+`H02_FAILED_BREAKOUT_MEAN_REVERSION` completed a development-only run on the same snapshot. Verdict: **`H02_KILL`**. 2025/2026 remain untouched. Do not start R3 for H02. See `docs/research/H02_DEV_SUMMARY.md`.
+
 ### Exit
 A small set of candidate mechanisms shows enough development evidence to justify formal validation. It is acceptable for none to qualify.
 

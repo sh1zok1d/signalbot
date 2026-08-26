@@ -63,6 +63,7 @@ Development-only: it must not read 2025 validation or 2026 OOS outcomes.
 `h02_failed_breakout_mean_reversion.py` (+ `h02_failed_breakout_mean_reversion_lib.py`)
 is an `AUDIT_TOOL` / experiment runner for `H02_FAILED_BREAKOUT_MEAN_REVERSION`.
 Preregistration: `docs/research/H02_FAILED_BREAKOUT_MEAN_REVERSION_PREREG.md`.
+Development results: `docs/research/H02_DEV_SUMMARY.md` (verdict `H02_KILL`).
 Development-only: it must not read 2025 validation or 2026 OOS outcomes.
 
 ## Earlier mathematical/audit tools
