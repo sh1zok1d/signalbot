@@ -145,13 +145,19 @@ def list_development_parquet_paths(dataset_root: Path) -> list[Path]:
     if not monthly.is_dir():
         raise H01Error(f"missing canonical 1m monthly dir: {monthly}")
     paths = []
+    skipped = []
     for p in sorted(monthly.glob("*.parquet")):
-        _forbid_partition_name(p.name)
+        year_prefix = p.name[:5]
+        if year_prefix in ("2025-", "2026-"):
+            skipped.append(p.name)
+            continue
         year = int(p.name.split("-", 1)[0])
         if 2020 <= year <= 2024:
             paths.append(p)
     if not paths:
         raise H01Error("no 2020-2024 canonical monthly parquet found")
+    # Presence of later partitions is expected on the full dataset disk;
+    # they must not be opened.
     return paths
 
 

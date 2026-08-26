@@ -93,13 +93,22 @@ def test_development_cannot_read_2025_outcome():
         assert_development_outcome_window(t_bad, 240)
 
 
-def test_forbid_2025_partition_name(tmp_path: Path):
+def test_forbid_2025_partition_is_skipped_not_opened(tmp_path: Path):
     monthly = tmp_path / "canonical" / "1m" / "monthly"
     monthly.mkdir(parents=True)
     (monthly / "2024-12.parquet").write_bytes(b"x")
     (monthly / "2025-01.parquet").write_bytes(b"x")
+    (monthly / "2026-01.parquet").write_bytes(b"x")
+    paths = lib.list_development_parquet_paths(tmp_path)
+    names = [p.name for p in paths]
+    assert names == ["2024-12.parquet"]
+    assert "2025-01.parquet" not in names
+    assert "2026-01.parquet" not in names
+
+
+def test_forbid_partition_name_helper():
     with pytest.raises(ValidationWindowForbidden, match="2025"):
-        lib.list_development_parquet_paths(tmp_path)
+        lib._forbid_partition_name("2025-01.parquet")
 
 
 def test_utc_grid_stable_under_non_utc_tz(monkeypatch):
