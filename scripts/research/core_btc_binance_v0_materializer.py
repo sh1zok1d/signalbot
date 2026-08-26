@@ -222,16 +222,21 @@ def stage_acquire(
         "disk_safety": disk,
         "objects": records,
         "verified_count": sum(1 for r in records if r.get("checksum_verification") == "VERIFIED"),
-        "conflict_count": sum(1 for r in records if r.get("source_status") == "REVISION_CONFLICT"),
+        "conflict_count": sum(
+            1 for r in records
+            if r.get("source_status") == "REVISION_CONFLICT"
+            or r.get("disposition") == "REVISION_CONFLICT"
+        ),
         "planned_count": planned,
         "acquire_success": verified,
     }
     write_json(dataset_layout(root)["reports"] / "acquire_report.json", report)
-    if not verified:
+    if not verified or report["conflict_count"] != 0:
         raise StagePreconditionError(
-            "acquire failed: every planned object must be VERIFIED "
-            f"(verified={report['verified_count']}/{planned}, "
-            f"conflicts={report['conflict_count']})"
+            "acquire failed: every planned object must be NEW or "
+            "REUSED_IDENTICAL with checksum_verification=VERIFIED; "
+            f"verified={report['verified_count']}/{planned}, "
+            f"conflicts={report['conflict_count']}"
         )
     return report
 

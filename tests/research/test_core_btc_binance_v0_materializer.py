@@ -21,11 +21,14 @@ import pytest
 import scripts.research.core_btc_binance_v0_materializer as mat_cli
 from scripts.research.core_btc_binance_v0_materializer_lib import (
     BAR_MS,
+    CANONICALIZATION_VERSION,
+    CANONICAL_SCHEMA_VERSION,
     DECIMAL_STRING_POLICY,
     MATERIALIZER_VERSION,
     PYARROW_REQUIRED_MESSAGE,
     REPO_MANIFEST_PATH,
     SourceObject,
+    acquire_all_verified,
     acquire_one_object,
     aggregate_htf,
     aggregate_htf_streaming,
@@ -38,6 +41,8 @@ from scripts.research.core_btc_binance_v0_materializer_lib import (
     build_snapshot_identity,
     canonical_1m_path,
     canonical_1m_provenance_path,
+    canonical_content_sha256_from_bars,
+    canonical_content_sha256_from_parquet,
     canonical_rows_from_parquet,
     continuity_audit,
     continuity_audit_from_times,
@@ -52,6 +57,7 @@ from scripts.research.core_btc_binance_v0_materializer_lib import (
     materialize_object_1m,
     merge_cross_object,
     part_files_size,
+    parse_admit_current_raw,
     plan_report,
     remaining_extracted_csvs,
     require_pyarrow,
@@ -921,3 +927,237 @@ raise SystemExit(0 if peak_mb < 1000 else 3)
     peak = float(proc.stdout.strip().split("PEAK_RSS_MIB=")[-1].split()[0])
     print(f"isolated_peak_rss_mib={peak:.1f}")
     assert peak < 1000, f"peak RSS {peak:.1f} MiB exceeds 1 GiB"
+
+
+def test_rt_m12_revision_conflict_with_verified_local_pair_fails_acquire(tmp_path: Path, monkeypatch):
+    objects = _place_all_one_row(tmp_path)
+    obj0 = objects[0]
+    old_zip = raw_zip_path(tmp_path, obj0).read_bytes()
+    old_side = raw_checksum_path(tmp_path, obj0).read_bytes()
+
+    def fetch(url: str):
+        name = url.rsplit("/", 1)[-1]
+        if url.endswith(".CHECKSUM"):
+            zip_name = name[:-len(".CHECKSUM")] if name.endswith(".CHECKSUM") else name
+            return f"{'cd' * 32}  {zip_name}\n".encode(), "HTTP_200", 80
+        raise AssertionError("must not GET zip on revision conflict")
+
+    monkeypatch.setattr(mat_cli, "_sync_get_fetch", lambda _t: fetch)
+    code = mat_cli.main([
+        "--stage", "acquire", "--allow-acquire", "--dataset-root", str(tmp_path),
+        "--provenance-git-commit-sha", "T",
+    ])
+    assert code != 0
+    assert raw_zip_path(tmp_path, obj0).read_bytes() == old_zip
+    assert raw_checksum_path(tmp_path, obj0).read_bytes() == old_side
+    fake = [{"checksum_verification": "VERIFIED", "disposition": "REVISION_CONFLICT",
+             "source_status": "REVISION_CONFLICT"}] * 104
+    assert acquire_all_verified(fake, 104) is False
+
+
+def test_rt_m12_stage_all_conflict_stops_without_snapshot(tmp_path: Path, monkeypatch):
+    _place_all_one_row(tmp_path)
+
+    def head(_url: str):
+        return b"", "HTTP_200", 1024
+
+    def get(url: str):
+        name = url.rsplit("/", 1)[-1]
+        if url.endswith(".CHECKSUM"):
+            zip_name = name[:-len(".CHECKSUM")] if name.endswith(".CHECKSUM") else name
+            return f"{'cd' * 32}  {zip_name}\n".encode(), "HTTP_200", 80
+        raise AssertionError("must not GET zip on revision conflict")
+
+    monkeypatch.setattr(mat_cli, "_sync_head_fetch", lambda _t: head)
+    monkeypatch.setattr(mat_cli, "_sync_get_fetch", lambda _t: get)
+    code = mat_cli.main([
+        "--stage", "all", "--allow-acquire", "--dataset-root", str(tmp_path),
+        "--provenance-git-commit-sha", "T",
+    ])
+    assert code != 0
+    assert not (tmp_path / "reports" / "snapshot_manifest.json").exists()
+    assert not (tmp_path / "manifests" / "CORE_BTC_BINANCE_V0.candidate.json").exists()
+
+
+def test_canonical_content_digest_deterministic_and_sensitive(tmp_path: Path):
+    obj = _daily_obj("2026-08-01")
+    start, _ = day_bounds_ms("2026-08-01")
+    a = [kline_to_canonical(_kline(start + i * BAR_MS), obj) for i in range(8)]
+    b = [kline_to_canonical(_kline(start + i * BAR_MS), obj) for i in range(8)]
+    da = canonical_content_sha256_from_bars(a)
+    db = canonical_content_sha256_from_bars(b)
+    assert da["canonical_content_sha256"] == db["canonical_content_sha256"]
+    a_price = list(a)
+    a_price[0] = kline_to_canonical(
+        KlineRow(start, Decimal("101"), Decimal("110"), Decimal("90"), Decimal("105"),
+                 Decimal("1"), start + BAR_MS - 1, Decimal("10"), 4, Decimal("0.4"), Decimal("4")),
+        obj)
+    assert canonical_content_sha256_from_bars(a_price)["canonical_content_sha256"] != da["canonical_content_sha256"]
+    a_vol = list(a)
+    a_vol[0] = kline_to_canonical(
+        KlineRow(start, Decimal("100"), Decimal("110"), Decimal("90"), Decimal("105"),
+                 Decimal("2"), start + BAR_MS - 1, Decimal("10"), 4, Decimal("0.4"), Decimal("4")),
+        obj)
+    assert canonical_content_sha256_from_bars(a_vol)["canonical_content_sha256"] != da["canonical_content_sha256"]
+    a_ts = [kline_to_canonical(_kline(start + BAR_MS + i * BAR_MS), obj) for i in range(8)]
+    assert canonical_content_sha256_from_bars(a_ts)["canonical_content_sha256"] != da["canonical_content_sha256"]
+    from scripts.research.core_btc_binance_v0_materializer_lib import _dec_str, CanonicalContentHasher
+    h = CanonicalContentHasher()
+    h.add_text(_dec_str(Decimal("1.0")))
+    h2 = CanonicalContentHasher()
+    h2.add_text(_dec_str(Decimal("1.00")))
+    assert h.hexdigest() != h2.hexdigest()
+    _place_verified(tmp_path, obj, "\n".join(_row_line(start + i * BAR_MS) for i in range(8)) + "\n")
+    materialize_object_1m(tmp_path, obj, audit_raw_object(tmp_path, obj))
+    p = canonical_1m_path(tmp_path, obj)
+    d1 = canonical_content_sha256_from_parquet(p, batch_size=2)
+    d2 = canonical_content_sha256_from_parquet(p, batch_size=7)
+    d3 = canonical_content_sha256_from_parquet(tmp_path / "moved.parquet" if False else p, batch_size=3)
+    assert d1["canonical_content_sha256"] == d2["canonical_content_sha256"] == d3["canonical_content_sha256"]
+    other = tmp_path / "other_dir"
+    other.mkdir()
+    dest = other / "copy.parquet"
+    dest.write_bytes(p.read_bytes())
+    assert canonical_content_sha256_from_parquet(dest)["canonical_content_sha256"] == d1["canonical_content_sha256"]
+    bars = canonical_rows_from_parquet(p)
+    assert canonical_content_sha256_from_bars(bars)["canonical_content_sha256"] == d1["canonical_content_sha256"]
+
+
+def test_rt_m13_edited_provenance_cannot_bind_parquet_a_to_raw_b(tmp_path: Path):
+    objects = _place_all_one_row(tmp_path)
+    _materialize_all(tmp_path, objects)
+    obj = _daily_obj("2026-08-01")
+    parq_sha_a = sha256_of_file(canonical_1m_path(tmp_path, obj))
+    from_raw_a = json.loads(canonical_1m_provenance_path(tmp_path, obj).read_text())["canonical_content_sha256"]
+    parquet_digest_a = canonical_content_sha256_from_parquet(canonical_1m_path(tmp_path, obj))["canonical_content_sha256"]
+    assert from_raw_a == parquet_digest_a
+    _place_verified(tmp_path, obj, _row_line(obj.period_start_ms, close="50022") + "\n")
+    rec_b = audit_raw_object(tmp_path, obj)
+    admitted_b, _ = parse_admit_current_raw(tmp_path, obj)
+    digest_b = canonical_content_sha256_from_bars(admitted_b)["canonical_content_sha256"]
+    assert digest_b != parquet_digest_a
+    prov_path = canonical_1m_provenance_path(tmp_path, obj)
+    prov = json.loads(prov_path.read_text())
+    prov["source_local_sha256"] = rec_b["local_sha256"]
+    prov["source_expected_sha256"] = rec_b["expected_sha256"]
+    prov_path.write_text(json.dumps(prov, indent=2, sort_keys=True) + "\n")
+    with pytest.raises((StaleCanonicalPartition, StagePreconditionError)):
+        verify_canonical_partitions(tmp_path, objects)
+    code = mat_cli.main(["--stage", "aggregate", "--dataset-root", str(tmp_path),
+                         "--provenance-git-commit-sha", "T"])
+    assert code != 0
+    code = mat_cli.main(["--stage", "finalize", "--dataset-root", str(tmp_path),
+                         "--provenance-git-commit-sha", "T"])
+    assert code != 0
+    assert not (tmp_path / "reports" / "snapshot_manifest.json").exists()
+    assert sha256_of_file(canonical_1m_path(tmp_path, obj)) == parq_sha_a
+
+
+def _rewrite_prov(tmp_path, obj, **fields):
+    path = canonical_1m_provenance_path(tmp_path, obj)
+    prov = json.loads(path.read_text())
+    prov.update(fields)
+    path.write_text(json.dumps(prov, indent=2, sort_keys=True) + "\n")
+
+
+def test_rt_m13_provenance_field_and_copy_attacks(tmp_path: Path):
+    objects = _place_all_one_row(tmp_path)
+    _materialize_all(tmp_path, objects)
+    jan = _monthly_obj("2020-01")
+    feb = _monthly_obj("2020-02")
+    daily = _daily_obj("2026-08-01")
+
+    _rewrite_prov(tmp_path, jan, admitted_rows=999999, row_count=999999)
+    with pytest.raises((StaleCanonicalPartition, StagePreconditionError)):
+        verify_canonical_partitions(tmp_path, objects)
+    _materialize_all(tmp_path, objects)
+
+    _rewrite_prov(tmp_path, jan, first_open_time_ms=0, last_open_time_ms=1)
+    with pytest.raises((StaleCanonicalPartition, StagePreconditionError)):
+        verify_canonical_partitions(tmp_path, objects)
+    _materialize_all(tmp_path, objects)
+
+    _rewrite_prov(tmp_path, jan, source_period="2020-02")
+    with pytest.raises((StaleCanonicalPartition, StagePreconditionError)):
+        verify_canonical_partitions(tmp_path, objects)
+    _materialize_all(tmp_path, objects)
+
+    _rewrite_prov(tmp_path, jan, archive_class="daily")
+    with pytest.raises((StaleCanonicalPartition, StagePreconditionError)):
+        verify_canonical_partitions(tmp_path, objects)
+    _materialize_all(tmp_path, objects)
+
+    _rewrite_prov(tmp_path, jan, materializer_version=MATERIALIZER_VERSION + 1)
+    with pytest.raises((StaleCanonicalPartition, StagePreconditionError)):
+        verify_canonical_partitions(tmp_path, objects)
+    _materialize_all(tmp_path, objects)
+
+    _rewrite_prov(tmp_path, jan, canonical_schema_version=CANONICAL_SCHEMA_VERSION + 1)
+    with pytest.raises((StaleCanonicalPartition, StagePreconditionError)):
+        verify_canonical_partitions(tmp_path, objects)
+    _materialize_all(tmp_path, objects)
+
+    _rewrite_prov(tmp_path, jan, parser_version=CANONICALIZATION_VERSION + 1,
+                  canonicalization_version=CANONICALIZATION_VERSION + 1)
+    with pytest.raises((StaleCanonicalPartition, StagePreconditionError)):
+        verify_canonical_partitions(tmp_path, objects)
+    _materialize_all(tmp_path, objects)
+
+    pa, pb = canonical_1m_provenance_path(tmp_path, jan), canonical_1m_provenance_path(tmp_path, feb)
+    ta, tb = pa.read_text(), pb.read_text()
+    pa.write_text(tb)
+    pb.write_text(ta)
+    with pytest.raises((StaleCanonicalPartition, StagePreconditionError)):
+        verify_canonical_partitions(tmp_path, objects)
+    _materialize_all(tmp_path, objects)
+
+    canonical_1m_path(tmp_path, feb).write_bytes(canonical_1m_path(tmp_path, jan).read_bytes())
+    with pytest.raises((StaleCanonicalPartition, StagePreconditionError)):
+        verify_canonical_partitions(tmp_path, objects)
+    _materialize_all(tmp_path, objects)
+
+    canonical_1m_path(tmp_path, jan).write_bytes(canonical_1m_path(tmp_path, daily).read_bytes())
+    with pytest.raises((StaleCanonicalPartition, StagePreconditionError)):
+        verify_canonical_partitions(tmp_path, objects)
+    _materialize_all(tmp_path, objects)
+
+    import pyarrow.parquet as pq
+    import pyarrow as pa
+    path = canonical_1m_path(tmp_path, daily)
+    table = pq.read_table(path)
+    close = table.column("close").to_pylist()
+    close[0] = "50099"
+    arrays = {name: table.column(name) for name in table.column_names}
+    arrays["close"] = pa.array(close, type=pa.string())
+    pq.write_table(pa.table(arrays), path, compression="zstd")
+    with pytest.raises((StaleCanonicalPartition, StagePreconditionError)):
+        verify_canonical_partitions(tmp_path, objects)
+    _materialize_all(tmp_path, objects)
+
+    path = canonical_1m_path(tmp_path, daily)
+    table = pq.read_table(path)
+    buf = pa.BufferOutputStream()
+    pq.write_table(table, buf, compression="zstd", use_dictionary=True, write_statistics=True)
+    path.write_bytes(buf.getvalue().to_pybytes())
+    with pytest.raises((StaleCanonicalPartition, StagePreconditionError)):
+        verify_canonical_partitions(tmp_path, objects)
+
+
+def test_rt_m13_positive_raw_parquet_digest_and_happy_path(tmp_path: Path):
+    objects = _place_all_one_row(tmp_path)
+    _materialize_all(tmp_path, objects)
+    for obj in objects[:3]:
+        admitted, _ = parse_admit_current_raw(tmp_path, obj)
+        raw_d = canonical_content_sha256_from_bars(admitted)["canonical_content_sha256"]
+        pq_d = canonical_content_sha256_from_parquet(canonical_1m_path(tmp_path, obj))["canonical_content_sha256"]
+        assert raw_d == pq_d
+    verify_canonical_partitions(tmp_path, objects)
+    assert mat_cli.main(["--stage", "aggregate", "--dataset-root", str(tmp_path),
+                         "--provenance-git-commit-sha", "T"]) == 0
+    assert mat_cli.main(["--stage", "finalize", "--dataset-root", str(tmp_path),
+                         "--provenance-git-commit-sha", "T"]) == 0
+    cand = json.loads((tmp_path / "manifests" / "CORE_BTC_BINANCE_V0.candidate.json").read_text())
+    snap = json.loads((tmp_path / "reports" / "snapshot_manifest.json").read_text())
+    assert snap["snapshot_id"]
+    assert cand["status"] == "MATERIALIZED_UNVERIFIED"
+    assert cand["research_authorized"] is False

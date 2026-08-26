@@ -59,11 +59,11 @@ UTC = timezone.utc
 DATASET_ID = "CORE_BTC_BINANCE_V0"
 CONTRACT_PATH = "docs/CORE_BTC_BINANCE_V0_CONTRACT.md"
 REPO_MANIFEST_PATH = "docs/manifests/CORE_BTC_BINANCE_V0.yaml"
-MATERIALIZER_VERSION = 2
+MATERIALIZER_VERSION = 3
 CANONICALIZATION_VERSION = 2
 AGGREGATION_VERSION = 2
 REPORT_SCHEMA_VERSION = 2
-PARTITION_PROVENANCE_VERSION = 1
+PARTITION_PROVENANCE_VERSION = 2
 CANONICAL_SCHEMA_VERSION = 2
 TOOL_KIND = "CORE_BTC_BINANCE_V0_MATERIALIZER"
 LOCK_FILENAME = ".core_btc_binance_v0.lock"
@@ -122,6 +122,24 @@ CANONICAL_1M_COLUMNS = (
     "trade_count", "source_period", "archive_class",
 ) + DECIMAL_FIELDS
 
+# Semantic content digest: length-prefixed UTF-8 fields, uint32be length,
+# rows in ascending open_time_ms. Integers as ASCII decimal; prices/volumes
+# as format(Decimal, "f"). Path/parquet-metadata/provenance are excluded.
+CANONICAL_CONTENT_FIELDS = (
+    "open_time_ms", "bar_end_exclusive_ms", "available_at_ms", "close_time_ms",
+    "open", "high", "low", "close",
+    "base_volume", "quote_volume", "trade_count",
+    "taker_buy_base_volume", "taker_buy_quote_volume",
+    "taker_sell_base_volume", "taker_sell_quote_volume",
+)
+CANONICAL_CONTENT_DIGEST_VERSION = 1
+ACQUIRE_SUCCESS_DISPOSITIONS = frozenset({"NEW", "REUSED_IDENTICAL"})
+CONTENT_DIGEST_ENCODING = (
+    "length-prefixed-utf8-uint32be; fields="
+    + ",".join(CANONICAL_CONTENT_FIELDS)
+    + "; decimals=format(Decimal,'f'); ints=ascii; row-order=ascending-open_time_ms"
+)
+
 PYARROW_REQUIRED_MESSAGE = (
     "pyarrow is required for CORE_BTC_BINANCE_V0 parquet I/O. "
     "Install the research extra with: pip install -r "
@@ -159,6 +177,116 @@ def require_pyarrow():
 def _dec_str(value: Decimal) -> str:
     """Frozen textual normalization: format(Decimal, 'f')."""
     return format(value, "f")
+
+
+class CanonicalContentHasher:
+    """Incremental SHA-256 of canonical 1m row content. One row/batch at a time."""
+
+    def __init__(self):
+        self._h = hashlib.sha256()
+        self.rows = 0
+        self.first_open_time_ms: Optional[int] = None
+        self.last_open_time_ms: Optional[int] = None
+
+    def add_text(self, text: str) -> None:
+        payload = text.encode("utf-8")
+        self._h.update(len(payload).to_bytes(4, "big"))
+        self._h.update(payload)
+
+    def add_bar(self, bar: "CanonicalBar") -> None:
+        self.add_text(str(int(bar.open_time_ms)))
+        self.add_text(str(int(bar.bar_end_exclusive_ms)))
+        self.add_text(str(int(bar.available_at_ms)))
+        self.add_text(str(int(bar.close_time_ms)))
+        self.add_text(_dec_str(bar.open))
+        self.add_text(_dec_str(bar.high))
+        self.add_text(_dec_str(bar.low))
+        self.add_text(_dec_str(bar.close))
+        self.add_text(_dec_str(bar.base_volume))
+        self.add_text(_dec_str(bar.quote_volume))
+        self.add_text(str(int(bar.trade_count)))
+        self.add_text(_dec_str(bar.taker_buy_base_volume))
+        self.add_text(_dec_str(bar.taker_buy_quote_volume))
+        self.add_text(_dec_str(bar.taker_sell_base_volume))
+        self.add_text(_dec_str(bar.taker_sell_quote_volume))
+        t = int(bar.open_time_ms)
+        if self.first_open_time_ms is None:
+            self.first_open_time_ms = t
+        self.last_open_time_ms = t
+        self.rows += 1
+
+    def add_parquet_cells(self, cells: dict) -> None:
+        self.add_text(str(int(cells["open_time_ms"])))
+        self.add_text(str(int(cells["bar_end_exclusive_ms"])))
+        self.add_text(str(int(cells["available_at_ms"])))
+        self.add_text(str(int(cells["close_time_ms"])))
+        for name in (
+            "open", "high", "low", "close", "base_volume", "quote_volume",
+        ):
+            self.add_text(str(cells[name]))
+        self.add_text(str(int(cells["trade_count"])))
+        for name in (
+            "taker_buy_base_volume", "taker_buy_quote_volume",
+            "taker_sell_base_volume", "taker_sell_quote_volume",
+        ):
+            self.add_text(str(cells[name]))
+        t = int(cells["open_time_ms"])
+        if self.first_open_time_ms is None:
+            self.first_open_time_ms = t
+        self.last_open_time_ms = t
+        self.rows += 1
+
+    def hexdigest(self) -> str:
+        return self._h.hexdigest()
+
+
+def canonical_content_sha256_from_bars(bars: Iterable["CanonicalBar"]) -> dict:
+    hasher = CanonicalContentHasher()
+    prev: Optional[int] = None
+    for bar in bars:
+        t = int(bar.open_time_ms)
+        if prev is not None and t <= prev:
+            raise CoreBtcBinanceV0MaterializerError(
+                f"canonical content digest requires strictly increasing open_time_ms; saw {t} after {prev}"
+            )
+        hasher.add_bar(bar)
+        prev = t
+    return {
+        "canonical_content_sha256": hasher.hexdigest(),
+        "row_count": hasher.rows,
+        "first_open_time_ms": hasher.first_open_time_ms,
+        "last_open_time_ms": hasher.last_open_time_ms,
+    }
+
+
+def canonical_content_sha256_from_parquet(
+    path: Path, batch_size: int = STREAM_BATCH_ROWS,
+) -> dict:
+    """Stream parquet row content. Does not load the partition as CanonicalBar."""
+    require_pyarrow()
+    import pyarrow.parquet as pq
+
+    hasher = CanonicalContentHasher()
+    prev: Optional[int] = None
+    pf = pq.ParquetFile(path)
+    cols = list(CANONICAL_CONTENT_FIELDS)
+    for batch in pf.iter_batches(columns=cols, batch_size=batch_size):
+        n = batch.num_rows
+        arrays = {name: batch.column(name).to_pylist() for name in cols}
+        for i in range(n):
+            t = int(arrays["open_time_ms"][i])
+            if prev is not None and t <= prev:
+                raise CoreBtcBinanceV0MaterializerError(
+                    f"canonical parquet is not strictly ordered at {path}: {t} after {prev}"
+                )
+            hasher.add_parquet_cells({name: arrays[name][i] for name in cols})
+            prev = t
+    return {
+        "canonical_content_sha256": hasher.hexdigest(),
+        "row_count": hasher.rows,
+        "first_open_time_ms": hasher.first_open_time_ms,
+        "last_open_time_ms": hasher.last_open_time_ms,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -647,6 +775,7 @@ def acquire_one_object(
                     on_disk = None
                 if on_disk is None or on_disk["sha256"] != existing_sha:
                     record["source_status"] = "SIDECAR_ZIP_INCONSISTENT"
+                    record["disposition"] = "SIDECAR_ZIP_INCONSISTENT"
                     record["local_sha256"] = existing_sha
                     record["byte_size"] = zip_path.stat().st_size
                     record["checksum_verification"] = "MISMATCH"
@@ -702,10 +831,29 @@ def acquire_one_object(
     return record
 
 
+def acquire_record_is_success(record: dict) -> bool:
+    """RT-M12: success is only NEW/REUSED_IDENTICAL + currently VERIFIED."""
+    if record.get("disposition") not in ACQUIRE_SUCCESS_DISPOSITIONS:
+        return False
+    if record.get("checksum_verification") != "VERIFIED":
+        return False
+    if record.get("source_status") in {
+        "REVISION_CONFLICT", "SIDECAR_ZIP_INCONSISTENT",
+    }:
+        return False
+    return True
+
+
 def acquire_all_verified(records: list[dict], planned: int) -> bool:
     if len(records) != planned:
         return False
-    return all(r.get("checksum_verification") == "VERIFIED" for r in records)
+    if any(
+        r.get("disposition") == "REVISION_CONFLICT"
+        or r.get("source_status") == "REVISION_CONFLICT"
+        for r in records
+    ):
+        return False
+    return all(acquire_record_is_success(r) for r in records)
 
 
 # ---------------------------------------------------------------------------
@@ -763,6 +911,58 @@ def kline_to_canonical(row, obj: SourceObject, source_sha256: str | None = None)
         source_period=obj.source_period,
         archive_class=obj.archive_class,
     )
+
+
+def admit_kline_rows(rows, obj: SourceObject) -> tuple[list[CanonicalBar], dict]:
+    """Admit klines for one source object. Holds at most this partition in memory."""
+    global_start, global_end = frozen_range_ms()
+    by_time: dict[int, CanonicalBar] = {}
+    identical = 0
+    conflicts: set[int] = set()
+    rejected_invariant = 0
+    rejected_identity = 0
+    rejected_end = 0
+    for row in rows:
+        if row_invariant_violations(row):
+            rejected_invariant += 1
+            continue
+        if not (obj.period_start_ms <= row.open_time_ms < obj.period_end_exclusive_ms):
+            rejected_identity += 1
+            continue
+        if row.open_time_ms < global_start or row.open_time_ms >= global_end:
+            rejected_end += 1
+            continue
+        bar = kline_to_canonical(row, obj)
+        existing = by_time.get(bar.open_time_ms)
+        if existing is None:
+            by_time[bar.open_time_ms] = bar
+            continue
+        if existing.semantic_tuple() == bar.semantic_tuple():
+            identical += 1
+            continue
+        conflicts.add(bar.open_time_ms)
+        by_time.pop(bar.open_time_ms, None)
+    for t in conflicts:
+        by_time.pop(t, None)
+    accepted = [by_time[t] for t in sorted(by_time)]
+    return accepted, {
+        "identical_duplicate_count": identical,
+        "conflicting_duplicate_open_times": sorted(conflicts),
+        "rejected_invariant": rejected_invariant,
+        "rejected_identity": rejected_identity,
+        "rejected_end_exclusive": rejected_end,
+    }
+
+
+def parse_admit_current_raw(root: Path, obj: SourceObject) -> tuple[list[CanonicalBar], dict]:
+    zip_path = raw_zip_path(root, obj)
+    csv_text, _names, status = read_kline_csv_member_named(zip_path, obj.expected_csv_member_name)
+    if status != "OK" or csv_text is None:
+        raise StagePreconditionError(
+            f"cannot parse current raw ZIP for {obj.source_period}: {status}"
+        )
+    rows, _meta = parse_kline_csv(csv_text)
+    return admit_kline_rows(rows, obj)
 
 
 def audit_raw_object(root: Path, obj: SourceObject) -> dict:
@@ -873,7 +1073,7 @@ def canonical_rows_from_parquet(path: Path) -> list[CanonicalBar]:
 
 
 def _partition_provenance_payload(
-    obj: SourceObject, raw: dict, admitted: list[CanonicalBar], parquet_sha: str, extra: dict,
+    obj: SourceObject, raw: dict, parquet_sha: str, content: dict, extra: dict,
 ) -> dict:
     return {
         "schema_version": PARTITION_PROVENANCE_VERSION,
@@ -888,12 +1088,18 @@ def _partition_provenance_payload(
         "checksum_verification": raw["checksum_verification"],
         "materializer_version": MATERIALIZER_VERSION,
         "canonicalization_version": CANONICALIZATION_VERSION,
+        "parser_version": CANONICALIZATION_VERSION,
         "canonical_schema_version": CANONICAL_SCHEMA_VERSION,
+        "canonical_content_digest_version": CANONICAL_CONTENT_DIGEST_VERSION,
+        "canonical_content_encoding": CONTENT_DIGEST_ENCODING,
         "decimal_string_policy": "format(Decimal(value), 'f')",
-        "admitted_rows": len(admitted),
-        "first_open_time_ms": admitted[0].open_time_ms if admitted else None,
-        "last_open_time_ms": admitted[-1].open_time_ms if admitted else None,
+        "admitted_rows": content["row_count"],
+        "row_count": content["row_count"],
+        "first_open_time_ms": content["first_open_time_ms"],
+        "last_open_time_ms": content["last_open_time_ms"],
+        "canonical_content_sha256": content["canonical_content_sha256"],
         "canonical_parquet_sha256": parquet_sha,
+        "parquet_sha256": parquet_sha,
         **extra,
     }
 
@@ -945,75 +1151,62 @@ def materialize_object_1m(root: Path, obj: SourceObject, audit_record: dict) -> 
         result["status"] = "SKIPPED_PARSER"
         return result
     rows, _meta = parse_kline_csv(csv_text)
-    global_start, global_end = frozen_range_ms()
-    by_time: dict[int, CanonicalBar] = {}
-    identical = 0
-    conflicts: set[int] = set()
-    rejected_invariant = 0
-    rejected_identity = 0
-    rejected_end = 0
+    accepted, stats = admit_kline_rows(rows, obj)
+    identical = stats["identical_duplicate_count"]
+    conflicts = stats["conflicting_duplicate_open_times"]
+    rejected_invariant = stats["rejected_invariant"]
+    rejected_identity = stats["rejected_identity"]
+    rejected_end = stats["rejected_end_exclusive"]
 
-    for row in rows:
-        if row_invariant_violations(row):
-            rejected_invariant += 1
-            continue
-        if not (obj.period_start_ms <= row.open_time_ms < obj.period_end_exclusive_ms):
-            rejected_identity += 1
-            continue
-        if row.open_time_ms < global_start or row.open_time_ms >= global_end:
-            rejected_end += 1
-            continue
-        bar = kline_to_canonical(row, obj)
-        existing = by_time.get(bar.open_time_ms)
-        if existing is None:
-            by_time[bar.open_time_ms] = bar
-            continue
-        if existing.semantic_tuple() == bar.semantic_tuple():
-            identical += 1
-            continue
-        conflicts.add(bar.open_time_ms)
-        by_time.pop(bar.open_time_ms, None)
-
-    for t in conflicts:
-        by_time.pop(t, None)
-
-    accepted = [by_time[t] for t in sorted(by_time)]
     out_path = canonical_1m_path(root, obj)
+    raw_content = canonical_content_sha256_from_bars(accepted)
     payload = canonical_rows_to_parquet_bytes(accepted)
     parquet_sha = sha256_of_bytes(payload)
     extra = {
         "identical_duplicate_count": identical,
-        "conflicting_duplicate_open_times": sorted(conflicts),
+        "conflicting_duplicate_open_times": list(conflicts),
         "rejected_invariant": rejected_invariant,
         "rejected_identity": rejected_identity,
         "rejected_end_exclusive": rejected_end,
         "rejected_schema": result["rejected_schema"],
     }
-    provenance = _partition_provenance_payload(obj, disk, accepted, parquet_sha, extra)
     result["canonical_path"] = str(out_path.relative_to(root)).replace("\\", "/")
     result["provenance_path"] = str(
         canonical_1m_provenance_path(root, obj).relative_to(root)).replace("\\", "/")
     result["admitted_rows"] = len(accepted)
     result["identical_duplicate_count"] = identical
-    result["conflicting_duplicate_open_times"] = sorted(conflicts)
+    result["conflicting_duplicate_open_times"] = list(conflicts)
     result["rejected_invariant"] = rejected_invariant
     result["rejected_identity"] = rejected_identity
     result["rejected_end_exclusive"] = rejected_end
     result["source_local_sha256"] = disk["local_sha256"]
     result["canonical_parquet_sha256"] = parquet_sha
+    result["canonical_content_sha256"] = raw_content["canonical_content_sha256"]
 
-    if out_path.exists() and sha256_of_file(out_path) == parquet_sha:
-        write_json(canonical_1m_provenance_path(root, obj), provenance)
-        result["status"] = "REUSED_IDENTICAL_PARTITION"
+    existed_identical = out_path.exists() and sha256_of_file(out_path) == parquet_sha
+    if not existed_identical:
+        atomic_write_bytes(out_path, payload)
+    parquet_content = canonical_content_sha256_from_parquet(out_path)
+    if parquet_content["canonical_content_sha256"] != raw_content["canonical_content_sha256"]:
+        result["status"] = "CONTENT_DIGEST_MISMATCH"
+        result["raw_derived_canonical_content_sha256"] = raw_content["canonical_content_sha256"]
+        result["parquet_canonical_content_sha256"] = parquet_content["canonical_content_sha256"]
         return result
-    atomic_write_bytes(out_path, payload)
+    if sha256_of_file(out_path) != parquet_sha:
+        result["status"] = "PARQUET_SHA_MISMATCH"
+        return result
+    provenance = _partition_provenance_payload(obj, disk, parquet_sha, raw_content, extra)
     write_json(canonical_1m_provenance_path(root, obj), provenance)
-    result["status"] = "WROTE"
+    result["status"] = "REUSED_IDENTICAL_PARTITION" if existed_identical else "WROTE"
     return result
 
 
 def verify_canonical_partitions(root: Path, objects: list[SourceObject]) -> list[dict]:
-    """RT-M02: every canonical partition must match CURRENT verified raw."""
+    """RT-M02/M13: bind CURRENT raw ZIP semantics to CURRENT parquet content.
+
+    Provenance JSON is metadata. The authority is:
+    digest(admitted rows from current ZIP) == digest(parquet row content).
+    """
     problems = []
     provenances = []
     for obj in objects:
@@ -1030,26 +1223,63 @@ def verify_canonical_partitions(root: Path, objects: list[SourceObject]) -> list
         if not parq.exists() or not prov_path.exists():
             problems.append({"source_period": obj.source_period, "status": "MISSING_CANONICAL"})
             continue
-        prov = json.loads(prov_path.read_text(encoding="utf-8"))
-        actual = sha256_of_file(parq)
-        if prov.get("canonical_parquet_sha256") != actual:
+        try:
+            prov = json.loads(prov_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            problems.append({"source_period": obj.source_period, "status": "PROVENANCE_UNREADABLE"})
+            continue
+        actual_parquet_sha = sha256_of_file(parq)
+        try:
+            admitted, _stats = parse_admit_current_raw(root, obj)
+            expected_content = canonical_content_sha256_from_bars(admitted)
+            del admitted
+            actual_content = canonical_content_sha256_from_parquet(parq)
+        except (CoreBtcBinanceV0MaterializerError, StagePreconditionError) as exc:
             problems.append({
                 "source_period": obj.source_period,
-                "status": "PROVENANCE_PARQUET_MISMATCH",
+                "status": "CONTENT_DIGEST_ERROR",
+                "error": str(exc)[:500],
             })
             continue
-        if prov.get("source_local_sha256") != raw["local_sha256"]:
+        if expected_content["canonical_content_sha256"] != actual_content["canonical_content_sha256"]:
             problems.append({
                 "source_period": obj.source_period,
                 "status": "STALE_CANONICAL_PARTITION",
-                "partition_source_sha256": prov.get("source_local_sha256"),
-                "current_raw_sha256": raw["local_sha256"],
+                "reason": "RAW_PARQUET_CONTENT_DIGEST_MISMATCH",
+                "raw_derived_canonical_content_sha256": expected_content["canonical_content_sha256"],
+                "parquet_canonical_content_sha256": actual_content["canonical_content_sha256"],
             })
             continue
-        if prov.get("source_expected_sha256") != raw["expected_sha256"]:
+        checks = [
+            (prov.get("parquet_sha256") or prov.get("canonical_parquet_sha256")) == actual_parquet_sha,
+            prov.get("source_period") == obj.source_period,
+            prov.get("archive_class") == obj.archive_class,
+            prov.get("source_local_sha256") == raw["local_sha256"],
+            prov.get("source_expected_sha256") == raw["expected_sha256"],
+            (prov.get("row_count") if prov.get("row_count") is not None else prov.get("admitted_rows"))
+            == actual_content["row_count"],
+            prov.get("first_open_time_ms") == actual_content["first_open_time_ms"],
+            prov.get("last_open_time_ms") == actual_content["last_open_time_ms"],
+            prov.get("materializer_version") == MATERIALIZER_VERSION,
+            prov.get("canonical_schema_version") == CANONICAL_SCHEMA_VERSION,
+            (prov.get("parser_version") or prov.get("canonicalization_version")) == CANONICALIZATION_VERSION,
+        ]
+        if not all(checks):
             problems.append({
                 "source_period": obj.source_period,
                 "status": "STALE_CANONICAL_PARTITION",
+                "reason": "PROVENANCE_METADATA_MISMATCH",
+                "parquet_sha256_ok": checks[0],
+                "source_period_ok": checks[1],
+                "archive_class_ok": checks[2],
+                "source_local_ok": checks[3],
+                "source_expected_ok": checks[4],
+                "row_count_ok": checks[5],
+                "first_ok": checks[6],
+                "last_ok": checks[7],
+                "materializer_version_ok": checks[8],
+                "schema_version_ok": checks[9],
+                "parser_version_ok": checks[10],
             })
             continue
         provenances.append(prov)

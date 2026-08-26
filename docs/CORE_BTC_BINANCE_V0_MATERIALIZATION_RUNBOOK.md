@@ -41,7 +41,7 @@ Do not move the cutoff. Extending it is a new dataset revision.
 |---|---|---|
 | `plan` | no | Enumerate the 104 source objects |
 | `inventory` | HEAD only | Size estimate; `Content-Length` missing/0/invalid is UNKNOWN (conservative default, never 0 bytes) |
-| `acquire` | GET ZIP+CHECKSUM | All 104 objects `VERIFIED` on disk (new or `REUSED_IDENTICAL`). Non-zero exit otherwise |
+| `acquire` | GET ZIP+CHECKSUM | All 104 objects `NEW`+`VERIFIED` or `REUSED_IDENTICAL`+`VERIFIED`. `REVISION_CONFLICT` is a failed stage even if the retained local pair still verifies. Non-zero exit otherwise |
 | `audit-raw` | no | All 104 currently `VERIFIED` + parser OK |
 | `materialize-1m` | no | Re-hash ZIP+sidecar immediately before parse; all partitions written with provenance |
 | `aggregate` | no | Current canonical provenance matches current verified raw; streaming HTF |
@@ -127,22 +127,33 @@ Expected peak RAM envelope for the full 2020–2026 build: **low hundreds of
 MB**, not multi-GB. One in-flight Arrow batch (~16k rows) plus one HTF
 bucket of Decimals plus gap metadata.
 
-## Partition provenance (RT-M02)
+## Partition provenance (RT-M02 / RT-M13)
 
-Each canonical 1m parquet has a sibling `.provenance.json` binding:
+Each canonical 1m parquet has a sibling `.provenance.json` **metadata**
+record. It is not the authority that binds raw to parquet.
 
-- source URL / period / expected ZIP name
-- current source local SHA-256 and checksum digest
-- materializer / canonical schema versions
-- admitted row count, first/last `open_time_ms`
-- SHA-256 of the parquet bytes
+Binding is a streaming **canonical content digest**:
 
-`aggregate` and `finalize` refuse `STALE_CANONICAL_PARTITION` when current
-raw identity differs from that provenance. They will not emit a snapshot
-that claims revision B while partitions still hold revision A.
+- length-prefixed UTF-8 fields (uint32 big-endian length);
+- field order: `open_time_ms`, `bar_end_exclusive_ms`, `available_at_ms`,
+  `close_time_ms`, `open`, `high`, `low`, `close`, `base_volume`,
+  `quote_volume`, `trade_count`, `taker_buy_base_volume`,
+  `taker_buy_quote_volume`, `taker_sell_base_volume`,
+  `taker_sell_quote_volume`;
+- decimals `format(Decimal, "f")`; integers ASCII;
+- rows in ascending `open_time_ms`.
 
-Research rows do **not** repeat `source_sha256` 3.5 million times; identity
-lives in the partition provenance file.
+At materialize time: digest admitted rows from the current ZIP, write
+parquet, independently digest parquet row content, require equality, then
+write provenance.
+
+At aggregate/finalize: re-parse the **current** ZIP and digest it; stream
+the **current** parquet and digest it; require equality. Then also check
+parquet byte SHA and structural provenance fields (period, class, SHAs,
+row count, first/last, versions). Editing provenance JSON source SHA
+fields cannot bind parquet A to raw B.
+
+Research rows do **not** repeat `source_sha256` 3.5 million times.
 
 ## Lock behavior
 
@@ -158,7 +169,9 @@ The lock is released on process exit. This is not distributed locking.
 - Verified ZIP bytes that still match the source checksum are reused
   (`REUSED_IDENTICAL`).
 - A disagreeing checksum is `REVISION_CONFLICT`: ZIP **and** existing
-  sidecar are left untouched.
+  sidecar are left untouched. The acquire **stage fails** (non-zero) even
+  when the retained pair A is internally `VERIFIED`. Frozen acquisition
+  accepts only `NEW`+`VERIFIED` or `REUSED_IDENTICAL`+`VERIFIED`.
 - ZIP is never adopted unless the ZIP+CHECKSUM **pair currently on disk**
   verifies. `VERIFIED` is never reported from a fetched checksum while the
   on-disk sidecar disagrees. Missing ZIP + existing sidecar + changed
