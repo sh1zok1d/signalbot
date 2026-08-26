@@ -187,10 +187,9 @@ def test_cli_acquire_refuses_without_allow_flag(tmp_path: Path):
     assert mat_cli.main(["--stage", "acquire", "--dataset-root", str(tmp_path)]) == 2
 
 
-def test_portable_repo_path_constant_unpromoted():
+def test_portable_repo_path_constant_points_at_dataset_manifest():
     text = (REPO_ROOT / REPO_MANIFEST_PATH).read_text()
-    assert "status: PLANNED_NOT_MATERIALIZED" in text
-    assert "research_authorized: false" in text
+    assert "dataset_id: CORE_BTC_BINANCE_V0" in text
     assert (REPO_ROOT / "docs").is_dir()
 
 
@@ -760,6 +759,7 @@ def test_rt_m02_stale_partition_finalize_fails(tmp_path: Path):
 
 
 def test_quality_report_sha256_equals_file_bytes(tmp_path: Path):
+    repo_manifest_before = (REPO_ROOT / REPO_MANIFEST_PATH).read_bytes()
     objects = _place_all_one_row(tmp_path)
     _materialize_all(tmp_path, objects)
     assert mat_cli.main(["--stage", "aggregate", "--dataset-root", str(tmp_path),
@@ -775,7 +775,7 @@ def test_quality_report_sha256_equals_file_bytes(tmp_path: Path):
     cand = json.loads((tmp_path / "manifests" / "CORE_BTC_BINANCE_V0.candidate.json").read_text())
     assert cand["status"] == "MATERIALIZED_UNVERIFIED"
     assert cand["research_authorized"] is False
-    assert "status: PLANNED_NOT_MATERIALIZED" in (REPO_ROOT / REPO_MANIFEST_PATH).read_text()
+    assert (REPO_ROOT / REPO_MANIFEST_PATH).read_bytes() == repo_manifest_before
 
 
 def test_snapshot_identical_in_two_clean_directories(tmp_path: Path):

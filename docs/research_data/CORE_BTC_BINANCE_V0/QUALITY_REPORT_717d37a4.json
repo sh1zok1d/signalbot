@@ -1,0 +1,55 @@
+{
+  "canonical_partitions": 104,
+  "checksum_failures": 0,
+  "conflicting_duplicate_count": 0,
+  "continuity": {
+    "duplicate_minute_count": 0,
+    "duplicate_open_times": [],
+    "end_exclusive_ms": 1787702400000,
+    "expected_minute_count": 3497760,
+    "first_observed_open_time_ms": 1577836800000,
+    "gaps": [],
+    "is_strictly_ordered": true,
+    "last_observed_open_time_ms": 1787702340000,
+    "longest_contiguous_gap_minutes": 0,
+    "missing_minute_count": 0,
+    "missingness_by_month": {},
+    "missingness_by_year": {},
+    "observed_rows": 3497760,
+    "observed_unique_timestamps": 3497760,
+    "rows_outside_frozen_range": [],
+    "start_inclusive_ms": 1577836800000
+  },
+  "dataset_id": "CORE_BTC_BINANCE_V0",
+  "decimal_string_policy": "Price/volume columns are NUMERIC DECIMAL VALUES STORED AS CANONICAL DECIMAL STRINGS. Research code MUST parse/cast them numerically before comparison, sorting, arithmetic, or aggregation. Never compare them lexicographically. Normalization is format(Decimal(value), 'f'). Decimal('1.0') and Decimal('1.00') are distinct canonical text.",
+  "discovery_acceptance_gates_satisfied": false,
+  "extracted_csv_leftovers": [],
+  "gap_extreme_diagnostic": {
+    "extreme_gap_count": 0,
+    "gaps": [],
+    "p99_abs_return": "0.003210327943576674",
+    "p99_base_volume": "1849.877",
+    "percentile": 99,
+    "rule": "An adjacent 1m bar is extreme when |close/open-1| or base_volume is at or above the 99th percentile of the observed canonical 1m population. Predeclared; not an edge rule; does not repair or drop gaps. Percentile uses float64 of the streamed population and never changes admission."
+  },
+  "htf_incomplete": {
+    "15m": 0,
+    "1h": 0,
+    "4h": 0,
+    "5m": 0
+  },
+  "known_limitations": [
+    "SNAPSHOT_CANDIDATE_READY is not ACCEPTED_FOR_DISCOVERY. The repository planning manifest is not modified.",
+    "A non-zero gap count does not automatically invalidate CORE_BTC_BINANCE_V0; affected HTF buckets are is_complete=false."
+  ],
+  "materialized_bytes": 275417429,
+  "materializer_version": 3,
+  "provenance_git_commit_sha": "71d13afdae4456163316b850f340436af1eeed65",
+  "rejected_invariant": 0,
+  "rejected_schema": 0,
+  "report_kind": "CORE_BTC_BINANCE_V0_QUALITY_REPORT",
+  "retained_raw_bytes": 149695931,
+  "schema_version": 2,
+  "source_objects_planned": 104,
+  "source_objects_verified": 104
+}

@@ -38,6 +38,36 @@ This decision does **not** reinterpret old E1 results and does not authorize mod
 
 ---
 
+## 2026-08-26 — CORE_BTC_BINANCE_V0 accepted for discovery
+
+**Decision:** `CORE_BTC_BINANCE_V0` → `ACCEPTED_FOR_DISCOVERY`
+
+This is dataset authorization only. It is not an edge claim, not a hypothesis result, and not `ACCEPTED_FOR_CONFIRMATORY`.
+
+- snapshot_id: `717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`
+- date: `2026-08-26`
+- frozen interval: `[2020-01-01T00:00:00Z, 2026-08-26T00:00:00Z)`
+- accepted 1m rows: `3,497,760` complete
+- missing minutes: `0`
+- duplicates: `0`
+- conflicting duplicates: `0`
+- checksums: `104 / 104` VERIFIED
+- materializer SHA: `71d13afdae4456163316b850f340436af1eeed65`
+- quality_report_sha256: `c59034e41be571142232d9c283ba898c786b69d6db485dfd2f4641bc84601242`
+- source_inventory_sha256: `a4bb39245365b1cc49b626a3dfc2cdcdb00c5be8c622ecd1e123a18d85186ea6`
+- contract_sha256: `1c49c8205a92eb9491a065fa1e93bb1fa5592964babdf96fe30b09212e962d3e`
+- manifest: `docs/manifests/CORE_BTC_BINANCE_V0.yaml`
+- frozen evidence: `docs/research_data/CORE_BTC_BINANCE_V0/`
+
+`research_authorized: true`
+`confirmatory_authorized: false`
+
+**NEXT AUTHORIZED PHASE:** mechanism-first discovery research.
+
+Operational start of that phase also requires the materializer implementation commit above to be remotely preserved. This ledger entry does not record any hypothesis test.
+
+---
+
 ## Initial hypothesis inventory
 
 These IDs preserve the earlier research history; statuses below do not imply validation.
@@ -199,7 +229,9 @@ If E1 suggests a new threshold/regime/strategy, record it as a new exploratory h
 
 ## Next research program — hypothesis discovery after E1
 
-Status: `PLANNED / NOT YET CONFIRMATORY`.
+Status: `AUTHORIZED_FOR_DISCOVERY / NOT YET CONFIRMATORY`.
+
+`CORE_BTC_BINANCE_V0` is `ACCEPTED_FOR_DISCOVERY` (snapshot `717d37a4`). No discovery hypotheses have been run against it yet.
 
 Initial mechanism classes worth exploring after historical expansion include:
 

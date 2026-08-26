@@ -3,7 +3,8 @@
 **Status:** ACTIVE / RESEARCH INFRASTRUCTURE
 **Tool:** `scripts/research/core_btc_binance_v0_materializer.py`
 **Contract:** `docs/CORE_BTC_BINANCE_V0_CONTRACT.md`
-**Planning manifest:** `docs/manifests/CORE_BTC_BINANCE_V0.yaml` (unpromoted)
+**Planning/accepted manifest:** `docs/manifests/CORE_BTC_BINANCE_V0.yaml`
+**Accepted snapshot evidence:** `docs/research_data/CORE_BTC_BINANCE_V0/` (snapshot `717d37a4`)
 **Depends on:** the PR #71 source probe (`docs/CORE_BTC_BINANCE_V0_PROBE_RUNBOOK.md`)
 
 ## Purpose
