@@ -9,7 +9,7 @@ The repository intentionally has two visible layers:
 1. **current truth** — what the project is doing now;
 2. **historical trail** — what it previously believed/built, what evidence changed that belief, and why the direction changed.
 
-For the narrative evolution, read `PROJECT_HISTORY.md`.
+For the narrative evolution, read `PROJECT_HISTORY.md`. For complete original documents from earlier phases, use `history/README.md`.
 
 ---
 
@@ -28,6 +28,7 @@ Read these first:
 | `RESEARCH_LEDGER.md` | **ACTIVE RECORD** | Experiment/hypothesis history and consumed windows |
 | `CODEBASE_STATUS.md` | **ACTIVE / CANONICAL MAP** | Which code surfaces are active, frozen, deferred or operational |
 | `PROJECT_HISTORY.md` | **ACTIVE HISTORY** | Narrative evolution of Signalbot's ideas, architecture and philosophy |
+| `history/README.md` | **ACTIVE HISTORY INDEX** | Direct links to immutable full historical roadmaps/contracts/specifications |
 | `DATA_DURABILITY_RUNBOOK.md` | **OPERATIONS** | Data durability/recovery reference |
 
 If a historical document conflicts with the active canonical set about **what the project should do next**, the current documents win.
@@ -47,6 +48,8 @@ If a historical document conflicts with the active canonical set about **what th
 - E1 detector-separation experiment;
 - discovery that one month of rich overlap is inadequate for durable-edge claims;
 - 2026-08-26 research-first pivot.
+
+`history/README.md` complements that narrative with direct links to the full immutable source documents exactly as they existed before the pivot.
 
 The point of retaining history is not nostalgia. It prevents the project from repeatedly rediscovering rejected ideas and makes the reasoning behind architectural changes auditable.
 
@@ -103,7 +106,7 @@ These paths are intentionally retained as compatibility/history pointers so old 
 - `V2_EMPIRICAL_RED_TEAM_PLAN.md`
 - `PRODUCT_SPEC_V0.md`
 
-Their former full contents are preserved in git history at the pre-pivot repository state, and their role in project evolution is summarized in `PROJECT_HISTORY.md`.
+Their former full contents are preserved in git history at the pre-pivot repository state, indexed for normal browsing in `history/README.md`, and their role in project evolution is summarized in `PROJECT_HISTORY.md`.
 
 They must not contain a second active roadmap.
 
@@ -201,5 +204,5 @@ When adding documentation:
 3. do not duplicate large formulas/contracts across current files;
 4. preserve failed experiments/preregistrations exactly;
 5. remove contradictory instructions from current docs;
-6. keep historical links discoverable from `PROJECT_HISTORY.md` / this index;
+6. keep historical links discoverable from `PROJECT_HISTORY.md` / `history/README.md` / this index;
 7. update this index whenever authority changes.
