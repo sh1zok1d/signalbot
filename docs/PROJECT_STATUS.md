@@ -129,8 +129,9 @@ Read in this order:
 2. `docs/RESEARCH_ROADMAP.md` — active execution order;
 3. `docs/EDGE_RESEARCH_PROTOCOL.md` — rules for discovery/validation;
 4. `docs/HISTORICAL_DATA_STRATEGY.md` — data expansion strategy;
-5. `docs/RESEARCH_LEDGER.md` — consumed hypotheses/windows and experiment history;
-6. `docs/PROJECT_RISK_AND_DEBT_REGISTER.md` — current risks/debt;
-7. `docs/DOCUMENTATION_INDEX.md` — current vs historical documents.
+5. `docs/ACTIVE_RESEARCH_RISKS.md` — current inference risks;
+6. `docs/RESEARCH_LEDGER.md` — consumed hypotheses/windows and experiment history;
+7. `docs/PROJECT_HISTORY.md` — why the project evolved into the current posture;
+8. `docs/DOCUMENTATION_INDEX.md` — current vs historical documents.
 
 When a legacy V2/Stage document conflicts with this file about **current project direction**, this file wins. Historical contracts still govern interpretation/reproduction of experiments that were frozen under them.
