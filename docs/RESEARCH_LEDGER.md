@@ -703,6 +703,38 @@ Unchanged by this correction: mechanism, both signs, `W`/`q`/`H` surface
 `CONTROL_DELTA_MIN`, all seeds, `+6h` negative control, BUY/SELL symmetry,
 4/5-year rule. 2025/2026 remain untouched throughout.
 
+**PRE-OUTCOME SYMMETRIC-GATE FORMALIZATION (same round, no real H05
+outcomes inspected):** a third independent pre-outcome review found the
+candidate-for-freeze checklist expressed `MPIE`, structural, and matched
+gates as bare positive inequalities, which silently assumed CONTINUATION
+and made REVERSAL semantics ambiguous/impossible, and that `MPIE` had
+drifted from its established Batch01 meaning (practical separation from
+the matched-random baseline) toward an undefined "standardized effect
+size"; the `+6h` gate was also only qualitatively described. Closed via
+one frozen orientation variable:
+
+```
+S = +1 (CONTINUATION) / -1 (REVERSAL)
+ORIENTED_PRIMARY          = S * candidate_mean
+ORIENTED_MATCHED_DELTA    = S * (candidate_mean - matched_mean)
+ORIENTED_STRUCTURAL_DELTA = S * (candidate_mean - structural_mean)
+ORIENTED_SHIFT_DELTA      = S * (candidate_mean - shifted_mean)
+```
+
+with every gate now `ORIENTED_* >= threshold`, applying identically to
+both signs. The **stored** primary metric `X = NORM_TAKER_RET_H` is
+unchanged and never re-signed; `S` is applied only at the gate-evaluation
+layer. Restored: `MPIE=0.10` gates `ORIENTED_MATCHED_DELTA` specifically;
+`CONTROL_DELTA_MIN=0.05` gates both `ORIENTED_STRUCTURAL_DELTA` and
+`ORIENTED_SHIFT_DELTA`; `ORIENTED_PRIMARY > 0` is now an explicit,
+separate requirement (control separation alone cannot promote a cell
+whose own raw effect points the wrong way). The `q`/`H`/`W` neighborhood
+rules, BUY/SELL symmetry, and year-stability rule are restated using the
+same `S` so "supports the declared sign" has one unambiguous meaning for
+both claim orientations. No numeric threshold, seed, mechanism, or
+`W`/`q`/`H` surface value changed — only the sign-orientation and
+precision of the existing gates.
+
 Do not start H05 implementation until this design review is separately
 authorized to proceed. Do not open 2025 or 2026 for H05. After H05
 closes, the next mandatory step is Batch01 synthesis, not H06.

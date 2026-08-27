@@ -15,15 +15,28 @@ restatement of the task's starting proposal).
 **Batch position:** H05 is the fifth and **final** primary mechanism
 family of R2 Batch 01. No H06 is authorized to open automatically once H05
 closes. The next mandatory step after H05 closes is **Batch01 synthesis**.
-**Amendment history:** this design underwent one PRE-OUTCOME DESIGN
-CORRECTION (this revision) that closes two material control gaps (price
-sign/alignment, §9–§10; mandatory activity control, §9/§11) and two
-formalization gaps (dependence-diagnostic naming, §21; the 1w/2w/4w
-"survives" criterion, §22 item 12), and re-evaluates `W` robustness
-(§18). **No real H05 outcomes were inspected to make this correction.**
+**Amendment history:** this design has undergone two PRE-OUTCOME DESIGN
+CORRECTIONS, neither made by inspecting any real H05 outcome:
+
+1. Closed two material control gaps (price sign/alignment, §9–§10;
+   mandatory activity control, §9/§11) and two formalization gaps
+   (dependence-diagnostic naming, §21; the 1w/2w/4w "survives" criterion,
+   §22 item 12), and re-evaluated `W` robustness (§18).
+2. **(This revision.)** Formalized exact sign symmetry for the two
+   preregistered claim orientations via a frozen `S` variable (§2), so
+   that every gate (`MPIE`, structural, matched, `+6h`, bootstrap,
+   `q`/`H`/`W` neighborhoods, year stability, BUY/SELL symmetry) is
+   expressed as an explicit oriented inequality rather than a positive-
+   only inequality that silently assumed continuation. Restored `MPIE`'s
+   intended Batch01 semantics as a floor on the matched-random separation
+   (`ORIENTED_MATCHED_DELTA`, §17), not an undefined "standardized effect
+   size." Made the `+6h` negative-control gate an exact frozen contrast
+   (`ORIENTED_SHIFT_DELTA >= CONTROL_DELTA_MIN`, §14/§17) instead of a
+   qualitative "does not reproduce" description.
+
 The overall mechanism, `W`/`q`/`H` surface, sign alternatives, primary
-feature, refractory rule, `MPIE`, `CONTROL_DELTA_MIN`, seeds, and Batch01
-cell accounting are unchanged.
+feature, refractory rule, `MPIE`/`CONTROL_DELTA_MIN` numeric values,
+seeds, and Batch01 cell accounting are unchanged by either correction.
 
 This document freezes the H05 design *before* any real market outcome is
 computed. Nothing in this document may be amended after real H05 outcomes
@@ -119,6 +132,51 @@ same frozen cells and controls. Both results are recorded in the ledger
 verdict even if only one sign reaches `CANDIDATE_FOR_FREEZE`. If neither
 sign passes, the verdict record still shows both checklists' failure
 points.
+
+**Claim-orientation formalism — `S` (frozen this revision, formalization
+correction, no real outcome inspected):** the stored primary metric is
+unchanged — `X(T,H) = NORM_TAKER_RET_H(T)` (§15) is always computed and
+persisted in its own natural sign, never multiplied by anything and never
+re-signed in storage. A separate, purely presentational orientation
+variable is frozen for evaluating each claim:
+
+```
+S = +1   for FLOW CONTINUATION   (A)
+S = -1   for FLOW EXHAUSTION / REVERSAL   (B)
+```
+
+For a given cell (fixed `W, q, H`) and a given claim sign, define, from
+the cell's own already-frozen quantities:
+
+```
+candidate_mean   = mean(X) over the candidate population                (§8, §15)
+matched_mean     = mean of the matched-random reference statistic       (§13)
+structural_mean  = candidate-weighted standardized ordinary-flow control mean (§9)
+shifted_mean     = the +6h negative-control mean                        (§14)
+```
+
+and the four oriented promotion quantities used by every gate below:
+
+```
+ORIENTED_PRIMARY           = S * candidate_mean
+ORIENTED_MATCHED_DELTA     = S * (candidate_mean - matched_mean)
+ORIENTED_STRUCTURAL_DELTA  = S * (candidate_mean - structural_mean)
+ORIENTED_SHIFT_DELTA       = S * (candidate_mean - shifted_mean)
+```
+
+This is a **presentational re-orientation only**, applied at the
+gate-evaluation layer — it never alters `X`, `candidate_mean`,
+`matched_mean`, `structural_mean`, or `shifted_mean` themselves, all of
+which remain stored in their own natural sign for both claim orientations
+to read from. Under this formalism, `CONTINUATION` passes on sufficiently
+**positive** oriented quantities and `REVERSAL` passes on sufficiently
+**positive** oriented quantities too (because `S = -1` flips the sign of
+what would otherwise be a negative raw delta) — i.e. every gate is written
+once, as `ORIENTED_* >= threshold`, and applies identically to both signs
+without a second, mirrored copy of each rule. See §17 (MPIE/control
+gates), §14 (`+6h` gate), §18 (`q`/`H`/`W` neighborhoods), §19 (BUY/SELL
+symmetry), §20 (year stability), and §22 item 12 (bootstrap) for where
+`S` and the oriented quantities are used.
 
 ---
 
@@ -503,9 +561,15 @@ direction-agnostic rule is chosen pre-outcome and is not selectable.
   lesson from the H03 post-freeze audit bug.
 - Seed: `20260904` (frozen, deterministic, master seed for the
   matched-random draw).
-- Reported per cell: mean, median, `p025`, `p50`, `p975` of the matched
-  outcome distribution, and `candidate_minus_matched` (candidate summary
-  statistic minus the matched-random mean).
+- Reported per cell: mean (`matched_mean`, §2), median, `p025`, `p50`,
+  `p975` of the matched outcome distribution, and `candidate_minus_matched`
+  (`candidate_mean - matched_mean`; the claim-oriented gate,
+  `ORIENTED_MATCHED_DELTA = S * candidate_minus_matched`, is defined in
+  §2 and gated against `MPIE` in §17). This matched-random distribution's
+  own `p025/p50/p975` describes the spread of `matched_mean` under
+  resampling — a distinct estimand from the candidate primary mean's own
+  bootstrap interval (§22 item 12); the two are never substituted for one
+  another.
 
 ---
 
@@ -514,8 +578,25 @@ direction-agnostic rule is chosen pre-outcome and is not selectable.
 `+6h` circular time shift of the outcome window, **preserving each
 candidate's own `D`** (the shift moves which return window is attached to
 a given candidate's flow-direction label, without altering direction
-itself). Collision fraction (shifted timestamps that land on another
-already-used candidate timestamp) is computed and reported per cell.
+itself). The resulting mean of the shifted-outcome statistic is
+`shifted_mean` (§2). Collision fraction (shifted timestamps that land on
+another already-used candidate timestamp) is computed and reported per
+cell.
+
+**PRE-OUTCOME FORMALIZATION CORRECTION (this revision):** the gate is now
+an exact frozen contrast rather than the qualitative "does not reproduce
+the candidate effect" description used previously:
+
+```
+ORIENTED_SHIFT_DELTA = S * (candidate_mean - shifted_mean) >= CONTROL_DELTA_MIN (0.05)
+```
+
+equivalently: `candidate_mean - shifted_mean >= +0.05` for `CONTINUATION`
+(`S=+1`), and `candidate_mean - shifted_mean <= -0.05` for `REVERSAL`
+(`S=-1`) — i.e. the `+6h`-shifted timing must **not** reproduce the
+candidate's own oriented effect to at least the same `CONTROL_DELTA_MIN`
+margin used for the structural control (§9/§17). Collision-fraction
+reporting is unchanged by this correction.
 
 Every control formulation actually attempted (matched-random
 stratification choices, negative-control shift amount) is logged in the
@@ -572,31 +653,73 @@ numbers are recorded, but only the former is added to the running
 
 ## 17. MPIE and control materiality
 
-- `MPIE = 0.10` (Minimum Practically Important Effect, outcome-independent
-  floor), reused unchanged from H01–H04.
-- `CONTROL_DELTA_MIN = 0.05` ("materially" above the standardized
-  structural control and the matched-random baseline), reused unchanged.
+**PRE-OUTCOME FORMALIZATION CORRECTION (this revision):** the prior
+revision's checklist expressed these gates as bare positive inequalities
+("standardized effect size `>= 0.10`"), which (a) left `REVERSAL`
+semantics ambiguous/impossible under a purely positive-only reading, and
+(b) drifted from the established Batch01 convention that `MPIE` measures
+practical separation from the **matched-random** baseline specifically,
+not an undefined generic "standardized effect size." Both are restored/
+clarified below using the `S`/oriented-quantity formalism from §2. This
+is a clarification of already-intended semantics, not a new parameter and
+not a numeric change.
 
-**Justification for reuse (not re-derivation):** both thresholds are
-protocol-level floors fixed in `docs/R2_SCREENING_PROTOCOL_V1.md` /
+- **`MPIE = 0.10`** — frozen as the practical minimum for
+  `ORIENTED_MATCHED_DELTA` (§2):
+
+  ```
+  ORIENTED_MATCHED_DELTA = S * (candidate_mean - matched_mean) >= 0.10
+  ```
+
+  i.e. `candidate_mean - matched_mean >= +0.10` for `CONTINUATION`, and
+  `candidate_mean - matched_mean <= -0.10` for `REVERSAL`. `MPIE` is
+  **not** redefined as the candidate mean alone, as the structural
+  standardized delta, or as a statistical-significance criterion — it is
+  specifically the matched-random separation, matching H01–H04's own
+  established use of `MPIE`.
+- **`CONTROL_DELTA_MIN = 0.05`** — frozen as the practical minimum for
+  **both** `ORIENTED_STRUCTURAL_DELTA` (§9) and `ORIENTED_SHIFT_DELTA`
+  (§14):
+
+  ```
+  ORIENTED_STRUCTURAL_DELTA = S * (candidate_mean - structural_mean) >= 0.05
+  ORIENTED_SHIFT_DELTA      = S * (candidate_mean - shifted_mean)    >= 0.05
+  ```
+
+  i.e. for `CONTINUATION`: `candidate_mean - structural_mean >= +0.05`
+  and `candidate_mean - shifted_mean >= +0.05`; for `REVERSAL`, both
+  differences `<= -0.05`.
+- **Primary sign requirement (restored, not previously stated as an
+  explicit gate):** `ORIENTED_PRIMARY = S * candidate_mean > 0` is
+  required independently — `MPIE`/`CONTROL_DELTA_MIN` separation from a
+  reference cannot promote a cell whose own raw primary effect points the
+  wrong way (see §22 item 1, added this revision).
+
+**Justification for reuse (not re-derivation):** both numeric thresholds
+are protocol-level floors fixed in `docs/R2_SCREENING_PROTOCOL_V1.md` /
 `docs/EDGE_RESEARCH_PROTOCOL.md` before H01 began; they are not
-re-optimized per hypothesis. Reusing them here, unchanged, is the
-adaptivity-safe choice — inventing a new MPIE or `CONTROL_DELTA_MIN`
-specifically for H05 without a documented protocol-level reason would
-itself be an undisclosed adaptive choice.
+re-optimized per hypothesis, and their numeric values (`0.10`, `0.05`)
+are unchanged by this correction — only the estimand each applies to, and
+the sign-orientation of the inequality, are clarified/restored.
 
 ---
 
 ## 18. Parameter robustness (frozen, pre-outcome)
 
+**PRE-OUTCOME FORMALIZATION CORRECTION (this revision):** all neighborhood
+rules below are now stated explicitly in terms of the `S`/oriented-quantity
+formalism (§2) so that "supports the declared sign" has one unambiguous
+meaning for both `CONTINUATION` and `REVERSAL`, rather than an implicit
+positive-only reading.
+
 - **`q` robustness (hard, part of the candidate-for-freeze gate):** at
-  least **2 of the 3** `q` cells adjacent in severity must show a
-  consistent-sign, gate-passing reading for a given `H` before that `H`
-  can be promoted (mirrors H04's relaxed "2 of 3 adjacent" rule, applied
-  to `q` here since `q` is H05's severity dial, analogous to H04's depth
-  bands).
+  least **2 of the 3** `q` cells adjacent in severity must be
+  gate-passing (all of §17's oriented gates satisfied) for a given `H`
+  before that `H` can be promoted (mirrors H04's relaxed "2 of 3 adjacent"
+  rule, applied to `q` here since `q` is H05's severity dial, analogous to
+  H04's depth bands).
 - **`H` robustness (hard):** at least **2 adjacent** horizons must
-  jointly pass for the same `q`.
+  jointly be gate-passing for the same `q`.
 - **`W` robustness (revised — directional-consistency requirement, still
   short of a hard 2-of-3 gate):** `W` remains a searched dimension
   (`{15, 30, 60}`, 3 values feeding the 45-cell surface), so a promoted
@@ -611,15 +734,18 @@ itself be an undisclosed adaptive choice.
   requirement, since `W` is a scale, not severity, dimension — H05's
   mechanism is not assumed to hold identically at every lookback length).
   It **does** now require that **at least one adjacent `W`** (for the
-  same `q, H`, same claim sign) show all three of:
-  1. the same declared primary sign (§2) for the candidate population;
-  2. `candidate_minus_matched` (§13) in the same direction (sign);
-  3. the standardized structural-control delta (§9) in the same
-     direction (sign);
+  same `q, H`, same claim sign, using the same fixed `S`) show all three
+  of:
+  1. `ORIENTED_PRIMARY > 0` (§2);
+  2. `ORIENTED_MATCHED_DELTA > 0` (§2, §13) — direction only, not the full
+     `MPIE` magnitude;
+  3. `ORIENTED_STRUCTURAL_DELTA > 0` (§2, §9) — direction only, not the
+     full `CONTROL_DELTA_MIN` magnitude;
 
-  even if that adjacent `W` does not itself clear `MPIE` or
-  `CONTROL_DELTA_MIN`. A cell with **no** adjacent `W` satisfying all
-  three directional-consistency conditions is not eligible for
+  even if that adjacent `W` does not itself clear the numeric `MPIE` or
+  `CONTROL_DELTA_MIN` thresholds. A cell with **no** adjacent `W`
+  satisfying all three directional-consistency conditions is not eligible
+  for
   `CANDIDATE_FOR_FREEZE` (§22 item 8, revised) — it may still be reported,
   but only as `INCONCLUSIVE` or `REJECTED_SPECIFIC_CLAIM`, never promoted
   on the strength of one isolated `W` alone. This is a real hard
@@ -633,22 +759,34 @@ itself be an undisclosed adaptive choice.
 
 ## 19. Direction symmetry
 
-Both `D = +1` (buy imbalance) and `D = -1` (sell imbalance) must support
-the **same** preregistered sign (continuation or reversal) for a cell to
-be eligible for `CANDIDATE_FOR_FREEZE` under that sign. A one-sided result
-(only buy-side or only sell-side passing) is recorded as
-`POSTHOC_UNTESTED` for symmetry purposes and cannot be promoted on its
-own.
+**PRE-OUTCOME FORMALIZATION CORRECTION (this revision):** stated
+explicitly in terms of `S` (§2): for each `D` side computed separately
+(`D=+1` buy imbalance, `D=-1` sell imbalance), `ORIENTED_PRIMARY = S *
+candidate_mean > 0` must hold, using the **same fixed `S`** for both
+sides. Concretely: `CONTINUATION` (`S=+1`) requires both the buy-side and
+the sell-side candidate populations to support a positive `D`-normalized
+future return (`D(T) * raw_outcome > 0` on average for each side);
+`REVERSAL` (`S=-1`) requires both sides to support a negative
+`D`-normalized future return. Both `D = +1` and `D = -1` must support the
+**same** declared sign for a cell to be eligible for
+`CANDIDATE_FOR_FREEZE` under that sign. A one-sided result (only one side
+satisfying `ORIENTED_PRIMARY > 0`) is recorded as `POSTHOC_UNTESTED` for
+symmetry purposes and cannot be promoted on its own.
 
 ---
 
 ## 20. Year stability and concentration
 
 - Per-year breakdown across `2020–2024` (discovery/development pool
-  years only). At least **4 of 5** years must show the same qualifying
-  sign for a passing cell. No shock-year or single-regime rescue is
-  permitted (e.g., a cell that only passes because of concentrated
-  2020-03 or 2021 volatility is not promoted on year-count alone).
+  years only). **PRE-OUTCOME FORMALIZATION CORRECTION (this revision):**
+  stated explicitly using `S` (§2) — for each year `y`,
+  `S * yearly_candidate_primary_mean(y) > 0` must hold in at least **4 of
+  5** years for a cell to pass this item. Years and the 4/5 threshold are
+  unchanged; only the sign-orientation of "qualifying" is now explicit.
+  No shock-year or single-regime rescue is permitted (e.g., a cell that
+  only passes because of concentrated 2020-03 or 2021 volatility is not
+  promoted on year-count alone), and no yearly significance test is
+  introduced.
 - Concentration reporting: the share of a cell's total signed-outcome
   contribution attributable to its single most extreme candidate (and top
   decile of candidates) is reported per cell, to surface tail-driven
@@ -659,7 +797,13 @@ own.
 ## 21. Dependence and long-dependence diagnostic
 
 - **Primary uncertainty:** UTC-week block bootstrap, master seed
-  `20260905`, **2000 replicates**.
+  `20260905`, **2000 replicates**, applied to the candidate population's
+  own primary mean (`candidate_mean`, §2) — unchanged by the §2/§17
+  formalization correction; the `p025 > 0` (continuation) /
+  `p975 < 0` (reversal) rule (§22 item 12) is equivalent to requiring the
+  claim-oriented candidate-primary confidence interval to exclude zero,
+  and is not itself re-expressed via `S` (it is already sign-specific by
+  construction).
 - **1w/2w/4w block-size sensitivity wired in from the first
   implementation commit** (not added later as a completion patch, per the
   H04 lesson): block construction is the same deterministic,
@@ -696,14 +840,28 @@ own.
 
 ## 22. 14-item candidate-for-freeze checklist
 
+**PRE-OUTCOME FORMALIZATION CORRECTION (this revision):** items 1–3 and
+11 are rewritten below using the `S`/oriented-quantity formalism (§2) so
+that no gate is expressed as a bare positive inequality that silently
+assumes `CONTINUATION` — every gate below applies identically, by
+construction, to whichever sign (`S=+1`/`S=-1`) is being evaluated. No
+item is added beyond the existing 14; item 1 below makes explicit (not
+new) the requirement that the raw primary effect itself must point the
+declared way, which `MPIE`/control separation alone cannot substitute
+for.
+
 A cell (for a given sign, `q`, `H`) may only be marked
 `CANDIDATE_FOR_FREEZE` if **all** of the following hold:
 
-1. `MPIE` gate: standardized effect size `>= 0.10`.
-2. `CONTROL_DELTA_MIN` gate: candidate-vs-standardized-structural-control
-   delta `>= 0.05`.
-3. Candidate-vs-matched-random delta also `>= CONTROL_DELTA_MIN`, and
-   consistent in sign with item 2.
+1. **Primary sign gate:** `ORIENTED_PRIMARY = S * candidate_mean > 0`
+   (§2, §17). A cell whose own raw primary effect points the wrong way
+   cannot be promoted by `MPIE`/control separation alone.
+2. `MPIE` gate: `ORIENTED_MATCHED_DELTA = S * (candidate_mean -
+   matched_mean) >= 0.10` (§2, §17; restores the established Batch01
+   semantics — `MPIE` is a floor on practical separation from the
+   matched-random baseline, not an undefined "standardized effect size").
+3. `CONTROL_DELTA_MIN` gate: `ORIENTED_STRUCTURAL_DELTA = S *
+   (candidate_mean - structural_mean) >= 0.05` (§2, §9, §17).
 4. Structural-control standardization used candidate-weighted strata
    over the full five-dimensional stratification `(calendar_month, D,
    price_alignment, price_strength_bin, activity_bin)` (§9, revised this
@@ -715,15 +873,18 @@ A cell (for a given sign, `q`, `H`) may only be marked
 6. `q` robustness: 2 of 3 adjacent `q` cells pass (§18).
 7. `H` robustness: 2 adjacent `H` cells pass (§18).
 8. `W` directional-consistency requirement (revised, §18): at least one
-   adjacent `W` (same `q, H`, same sign) agrees in the direction of
-   declared primary sign, `candidate_minus_matched`, and structural delta
-   — a fully isolated `W` with no adjacent directional agreement cannot
-   pass this item.
+   adjacent `W` (same `q, H`, same `S`) has `ORIENTED_PRIMARY > 0`,
+   `ORIENTED_MATCHED_DELTA > 0`, and `ORIENTED_STRUCTURAL_DELTA > 0`
+   (direction only, not the full numeric gates) — a fully isolated `W`
+   with no adjacent directional agreement cannot pass this item.
 9. Direction symmetry: both `D=+1` and `D=-1` support the same sign
    (§19).
 10. Year stability: `>= 4/5` years 2020–2024 support the same sign, no
     shock-year rescue (§20).
-11. Negative control (`+6h`) does not reproduce the candidate effect.
+11. Negative control gate (exact, §14, §17): `ORIENTED_SHIFT_DELTA = S *
+    (candidate_mean - shifted_mean) >= 0.05` (`CONTROL_DELTA_MIN`) — the
+    `+6h`-shifted timing does not reproduce the candidate's own oriented
+    effect to at least this margin.
 12. Dependence-adjusted significance survives at 1w, 2w, and 4w block
     sizes, under the precise frozen criterion (§21 bootstrap procedure;
     revised definition below): for the candidate population's primary
@@ -742,10 +903,10 @@ A cell (for a given sign, `q`, `H`) may only be marked
 13. Price-return-confound control is applied as **two parts**: sign
     (`price_alignment`, §9) and magnitude (`price_strength_bin`, §10),
     both mandatory structural-match dimensions, tied explicitly to item
-    4 — the standardized delta in item 2 already includes both, so a
-    cell cannot pass item 2 while failing to show incremental separation
+    4 — the standardized delta in item 3 already includes both, so a
+    cell cannot pass item 3 while failing to show incremental separation
     over contemporaneous price direction and magnitude; there is no
-    separate, weaker path to satisfy item 2 without also satisfying this
+    separate, weaker path to satisfy item 3 without also satisfying this
     requirement. Activity control (`activity_bin`, §11) is likewise
     mandatory and tied to item 4 on the same basis, supporting the "beyond
     ordinary market activity" clause of the research question (§1).
@@ -808,6 +969,11 @@ kill:
 10. Treating a support-starved (`INCONCLUSIVE`, §9) cell as a passing
     `CANDIDATE_FOR_FREEZE` by narrowing the five-dimensional
     stratification specifically for that cell after outcomes are seen.
+11. Redefining `S`'s mapping to `CONTINUATION`/`REVERSAL` (§2), swapping
+    which of `MPIE`/`CONTROL_DELTA_MIN` applies to which oriented delta
+    (§17), or reinterpreting any `ORIENTED_*` gate's inequality direction,
+    after seeing which sign or cells pass or fail under the frozen
+    formalism.
 
 ---
 
