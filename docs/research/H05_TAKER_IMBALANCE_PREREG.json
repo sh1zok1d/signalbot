@@ -1,0 +1,392 @@
+{
+  "schema_version": 1,
+  "hypothesis_id": "H05_TAKER_IMBALANCE_SUBSEQUENT_RETURN",
+  "title": "Taker imbalance -> subsequent return distribution",
+  "status": "PREREGISTERED_EXPLORATORY",
+  "outcome_status": "EXPLORATORY",
+  "directional": true,
+  "direction_meaning": "flow_continuation_or_flow_reversal_not_trade_execution",
+  "not_a_claim": ["pnl", "entry_exit_system", "order_flow_product", "forecasting_product", "r3_candidate", "validation_result"],
+  "design_authority": {
+    "design_doc": "docs/research/H05_TAKER_IMBALANCE_DESIGN.md",
+    "design_branch": "research/h05-design-redteam",
+    "design_head_sha": "deaf6503896920685f25a03230174d360a07ab9a",
+    "design_pr": 82,
+    "redteam_doc": "docs/reviews/H05_DESIGN_REDTEAM.md"
+  },
+  "batch_position": {
+    "family_index": 5,
+    "family_count_so_far": 5,
+    "is_final_family": true,
+    "prior_families": [
+      "H01_COMPRESSION_EXPANSION", "H02_FAILED_BREAKOUT_MEAN_REVERSION",
+      "H03_EXTREME_IMPULSE_CONTINUATION_EXHAUSTION", "H04_TREND_PULLBACK_CONTINUATION"
+    ],
+    "prior_primary_cells": {"H01": 45, "H02": 45, "H03": 45, "H04": 45},
+    "prior_verdicts": {
+      "H01": "REJECTED_SPECIFIC_CLAIM", "H02": "REJECTED_SPECIFIC_CLAIM",
+      "H03": "H03_REJECTED_SPECIFIC_CLAIM", "H04": "H04_REJECTED_SPECIFIC_CLAIM"
+    },
+    "not_independent_confirmation": true,
+    "next_step_after_h05_closes": "BATCH01_SYNTHESIS",
+    "h06_authorized": false
+  },
+  "global_adaptivity_disclosure": {
+    "mechanism_class_predates_h01_h04": true,
+    "mechanism_class_source": "docs/R2_SCREENING_PROTOCOL_V1.md R2 Batch 01 list",
+    "inherited_conventions": {
+      "15m_decision_grid_and_30d_local_reference": "inherited_from_H01_H03_H04",
+      "outcome_ladder_15_30_60_120_240m": "shared_project_convention",
+      "matched_random_100_replicates": "prior_research_convention",
+      "utc_week_block_uncertainty_2000_replicates": "prior_research_convention",
+      "plus_6h_timing_control": "prior_research_convention",
+      "mpie_0_10_and_control_delta_min_0_05": "frozen_before_h05_outcomes_reused_unchanged",
+      "membership_safe_pool_exclusion": "H03_postfreeze_audit_lesson",
+      "real_timestamp_calendar_keys": "H03_postfreeze_audit_lesson",
+      "candidate_weighted_structural_standardization": "H04_preoutcome_correction_lesson",
+      "1w_2w_4w_dependence_sensitivity_wired_from_start": "H04_implementation_completion_lesson"
+    },
+    "not_copied_from_h01_h04_outcomes": true,
+    "partial_adaptivity": {
+      "q_0_80_loosest_threshold": "numerically_matches_h03_moderate_band_and_h04_q_0_80_looseness_threshold_disclosed_not_hidden"
+    }
+  },
+  "dataset": {
+    "dataset_id": "CORE_BTC_BINANCE_V0",
+    "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+    "research_authorized_required": true,
+    "confirmatory_authorized_required": false
+  },
+  "windows": {
+    "timezone": "UTC",
+    "warmup_start_inclusive": "2020-01-01T00:00:00Z",
+    "development_start_inclusive": "2020-02-01T00:00:00Z",
+    "development_end_exclusive": "2025-01-01T00:00:00Z",
+    "reserved_validation_start_inclusive": "2025-01-01T00:00:00Z",
+    "reserved_validation_end_exclusive": "2026-01-01T00:00:00Z",
+    "untouched_oos_start_inclusive": "2026-01-01T00:00:00Z",
+    "untouched_oos_end_exclusive": "2026-08-26T00:00:00Z",
+    "max_forward_minutes": 240,
+    "development_outcome_rule": "T + H_minutes < 2025-01-01T00:00:00Z for every horizon used",
+    "boundary_rule": "exclude_do_not_truncate",
+    "no_horizon_truncation": true
+  },
+  "decision_grid": {
+    "interval_minutes": 15,
+    "alignment": "UTC_EPOCH",
+    "t_definition": "bar_end_exclusive of the 15m bar ending at T",
+    "known_when": "available_at <= T"
+  },
+  "primary_flow_feature": {
+    "buy_w": "sum(taker_buy_base_volume) over [T-W, T)",
+    "sell_w": "sum(base_volume - taker_buy_base_volume) over [T-W, T)",
+    "total_w": "buy_w + sell_w == sum(base_volume) over [T-W, T)",
+    "taker_imbalance_w": "(buy_w - sell_w) / total_w == 2*buy_w/total_w - 1",
+    "range": [-1, 1],
+    "base_volume_is_primary": true,
+    "quote_volume_is_diagnostic_only": true,
+    "quote_volume_cannot_rescue_failed_primary": true,
+    "total_w_zero_or_nonfinite": "explicit_ineligibility_never_coerced_to_zero_never_silently_dropped",
+    "ineligible_count_reported_per_cell": true
+  },
+  "windows_minutes": [15, 30, 60],
+  "direction": {
+    "definition": "D(T) = sign(TAKER_IMBALANCE_W(T))",
+    "buy": 1, "sell": -1,
+    "zero_excluded": true,
+    "zero_meaning": "exact_tie_not_assigned_to_either_direction"
+  },
+  "flow_extremeness": {
+    "abs_imbalance_w": "abs(TAKER_IMBALANCE_W(T))",
+    "reference_window_days": 30,
+    "reference_grid_matches_w": true,
+    "current_t_excluded": true,
+    "percentile_convention": "midrank_h01_h03_h04_compatible",
+    "percentile_formula": "(count(ref < x) + 0.5*count(ref == x)) / N_ref",
+    "q_thresholds": [0.80, 0.90, 0.95],
+    "construction": "nested_not_exclusive",
+    "candidate_rule": "ABS_IMBALANCE_PCTL_W(T) >= q AND D != 0",
+    "nested_justification": "both_preregistered_signs_predict_a_monotonic_dose_response_in_severity_no_h04_style_could_mean_either_regime_ambiguity",
+    "q_0_80_partial_adaptivity_disclosed": true,
+    "no_extra_thresholds_after_outcomes": true
+  },
+  "claim_orientation": {
+    "s_continuation": 1,
+    "s_reversal": -1,
+    "stored_primary_metric_never_resigned": true,
+    "s_applied_only_at_gate_evaluation_layer": true,
+    "candidate_mean_definition": "mean(X) over the full candidate population, used identically in every oriented delta",
+    "matched_mean_definition": "frozen matched-random reference mean (month x D only)",
+    "structural_mean_definition": "candidate-weighted standardized ordinary-flow control mean (five-dimensional strata)",
+    "shifted_mean_definition": "+6h negative-control mean",
+    "oriented_primary_formula": "S * candidate_mean",
+    "oriented_matched_delta_formula": "S * (candidate_mean - matched_mean)",
+    "oriented_structural_delta_formula": "S * (candidate_mean - structural_mean)",
+    "oriented_shift_delta_formula": "S * (candidate_mean - shifted_mean)",
+    "both_naturally_signed_and_oriented_quantities_persisted": true,
+    "raw_statistics_never_overwritten_with_oriented_values": true
+  },
+  "mpie": {
+    "value": 0.10,
+    "applies_to": "ORIENTED_MATCHED_DELTA",
+    "rule": "ORIENTED_MATCHED_DELTA >= 0.10",
+    "not_redefined_as_candidate_mean_alone": true,
+    "not_redefined_as_structural_delta": true,
+    "not_redefined_as_statistical_significance": true,
+    "reused_unchanged_from_batch01_protocol": true
+  },
+  "control_materiality": {
+    "CONTROL_DELTA_MIN": 0.05,
+    "structural_rule": "ORIENTED_STRUCTURAL_DELTA >= 0.05",
+    "shift_rule": "ORIENTED_SHIFT_DELTA >= 0.05",
+    "frozen_before_outcomes": true,
+    "reinterpretation_after_outcomes_allowed": false
+  },
+  "primary_sign_gate": {
+    "rule": "ORIENTED_PRIMARY > 0",
+    "explicit_separate_requirement": true,
+    "control_separation_cannot_substitute": true
+  },
+  "structural_control": {
+    "ordinary_band": [0.60, 0.80],
+    "band_fixed_independent_of_q_under_test": true,
+    "reused_from_h03_moderate_band_verbatim": true,
+    "price_ret_w": "ln(close(T) / close(T-W))",
+    "signed_price_ret_w": "D * PRICE_RET_W",
+    "price_alignment": {
+      "aligned_if": "SIGNED_PRICE_RET_W > 0",
+      "opposed_if": "SIGNED_PRICE_RET_W <= 0",
+      "exact_zero_treatment": "OPPOSED",
+      "frozen_deterministic_pre_outcome": true,
+      "kept_binary_not_a_third_flat_category": true
+    },
+    "price_strength_bin": {
+      "levels": ["LOWER", "UPPER"],
+      "split_on": "trailing_30d_midrank_percentile(abs(PRICE_RET_W))",
+      "threshold": 0.50
+    },
+    "activity_measure": "TOTAL_W",
+    "activity_bin": {
+      "levels": ["LOWER", "UPPER"],
+      "split_on": "trailing_30d_midrank_percentile(TOTAL_W)",
+      "threshold": 0.50,
+      "mandatory_not_descriptive_only": true
+    },
+    "strata": ["calendar_month", "D", "price_alignment", "price_strength_bin", "activity_bin"],
+    "standardization": {
+      "candidate_weight_formula": "w_s = candidate_N_s / sum(candidate_N over overlap strata)",
+      "structural_mean_formula": "sum_s w_s * control_mean_s",
+      "gate_uses_full_candidate_mean_not_restandardized": true,
+      "control_only_strata_receive_zero_candidate_weight": true,
+      "unmatched_candidates_never_silently_dropped": true,
+      "no_new_arbitrary_overlap_threshold": true,
+      "insufficient_support_routes_to": "INCONCLUSIVE"
+    },
+    "report_fields": [
+      "candidate_standardized_mean", "structural_mean", "structural_delta",
+      "candidate_overlap_N", "candidate_total_N", "matched_candidate_N",
+      "unmatched_candidate_N", "unmatched_candidate_share", "control_total_N",
+      "number_of_candidate_strata", "number_of_matched_strata", "number_of_unmatched_candidate_strata"
+    ],
+    "optional_descriptive_fields": ["full_control_unstandardized_mean"],
+    "descriptive_fields_must_not_feed_gate": true
+  },
+  "refractory": {
+    "minutes": 60,
+    "rule": "either_direction_suppression_keep_earliest",
+    "no_direction_aware_exception": true,
+    "frozen_not_retuned": true
+  },
+  "horizons_minutes": [15, 30, 60, 120, 240],
+  "returns": {
+    "definition": "RAW_FUTURE_RETURN(T,H) = ln(close(T+H) / close(T))",
+    "price_parse": "float(Decimal(canonical_decimal_string))",
+    "known_when": "available_at <= T",
+    "signed_ret": "D * RAW_FUTURE_RETURN",
+    "sign_never_flipped_after_outcomes": true
+  },
+  "normalization": {
+    "past_median_abs_ret_h": "median |RAW_FUTURE_RETURN_H| on UTC 15m grid in preceding 30 calendar days with outcome fully resolved before T",
+    "exclude_current_and_future": true,
+    "primary_outcome": "X = NORM_TAKER_RET_H = signed_ret / past_median_abs_ret_h(T)",
+    "denominator_must_be_finite_and_positive": true,
+    "ineligible_if_zero_nonfinite_or_missing": true,
+    "full_development_floor_used": false,
+    "post_outcome_floor_or_winsorization_allowed": false
+  },
+  "matched_random": {
+    "preserve": ["calendar_month_event_counts", "direction_composition"],
+    "not_matched_on": ["price_return_strength", "activity"],
+    "not_matched_reason": "structural_control_already_answers_that_question_would_be_redundant",
+    "sampling": "without_replacement_within_replicate",
+    "pool_exclusion_method": "membership_np_isin_equivalent_not_positional_fancy_indexing",
+    "pool_exclusion_bug_precedent": "H03_post_freeze_audit_found_positional_fancy_indexing_bug_must_not_recur",
+    "assign_paired_real_candidate_direction": true,
+    "seed": 20260904,
+    "seed_used_exactly_once": true,
+    "replicates": 100,
+    "report": ["candidate_mean", "matched_mean", "candidate_minus_matched"],
+    "distribution_summaries": ["p025", "p50", "p975"],
+    "distribution_summaries_apply_to": ["matched_mean_distribution"],
+    "distribution_summaries_are_descriptive_control_uncertainty_not_market_samples": true
+  },
+  "negative_control": {
+    "type": "plus_6h_same_utc_day_circular_time_shift",
+    "preserve": ["W", "q", "D"],
+    "do_not_redetect_candidate_at_shifted_t": true,
+    "require_valid_past_future_coverage": true,
+    "report_collision_fraction_with_raw_true_h05_candidate_same_w_q": true,
+    "remove_collisions_post_hoc": false,
+    "gate": "ORIENTED_SHIFT_DELTA >= CONTROL_DELTA_MIN",
+    "gate_is_exact_not_qualitative": true,
+    "alternative_time_shift_after_outcomes": false
+  },
+  "search_surface": {
+    "W_count": 3, "q_count": 3, "H_count": 5,
+    "primary_threshold_cells": 45,
+    "batch01_cumulative_cells": 225,
+    "batch01_cell_breakdown": {"H01": 45, "H02": 45, "H03": 45, "H04": 45, "H05": 45},
+    "sign_multiplicity": {
+      "orientations": ["continuation", "reversal"],
+      "same_45_cells_both_orientations": true,
+      "not_double_counted_in_225_total": true,
+      "disclosed_separately": true
+    },
+    "family_position_in_batch": 5,
+    "is_final_family": true
+  },
+  "primary_metrics": ["N", "candidate_mean", "candidate_median", "raw_mean_bps", "raw_median_bps", "P_X_pos", "p05", "p25", "p75", "p95"],
+  "no_pnl_no_sharpe_no_leverage": true,
+  "dependence_concentration": {
+    "report": [
+      "raw_n", "post_refractory_n", "unique_utc_days", "unique_utc_weeks", "unique_utc_months",
+      "events_by_year", "events_by_month", "largest_month_share", "top5_month_share",
+      "buy_share", "sell_share", "median_spacing_minutes",
+      "largest_candidate_contribution_share", "top_decile_contribution_share",
+      "structural_unmatched_candidate_n", "structural_unmatched_candidate_share"
+    ]
+  },
+  "uncertainty": {
+    "primary_block": "UTC_WEEK",
+    "method": "block_bootstrap",
+    "seed": 20260905,
+    "replicates": 2000,
+    "applies_to": "candidate_primary_mean_X_only",
+    "applies_to_metrics": ["norm_mean"],
+    "does_not_apply_to": ["matched_delta", "structural_delta", "shift_delta"],
+    "three_estimands_never_substituted": true,
+    "candidate_for_freeze_sensitivity_blocks_weeks": [1, 2, 4],
+    "sensitivity_selectable": false,
+    "must_be_wired_into_per_cell_output_from_first_commit": true,
+    "continuation_gate": "p025 > 0 at 1w AND 2w AND 4w",
+    "reversal_gate": "p975 < 0 at 1w AND 2w AND 4w",
+    "block_construction": "chronologically_ordered_utc_weeks_consecutive_nonoverlapping_groups_terminal_partial_block_retained",
+    "seed_mapping": {
+      "1w": "np.random.default_rng(20260905)",
+      "2w": "np.random.default_rng(np.random.SeedSequence([20260905, 2]))",
+      "4w": "np.random.default_rng(np.random.SeedSequence([20260905, 4]))"
+    }
+  },
+  "candidate_clustering_diagnostic": {
+    "name": "outcome_independent_cell_specific_candidate_clustering_diagnostic",
+    "not_named_candidate_independent": true,
+    "naming_reason": "computed_from_each_cells_own_candidate_indicator_which_varies_with_w_and_q_so_cannot_be_candidate_independent_but_never_touches_outcome_return_values",
+    "input": "post_refractory_candidate_indicator_series_per_cell",
+    "not_outcome_returns": true,
+    "fixed_lags_days": [1, 2, 4, 8, 16, 32, 64],
+    "acf_threshold": 0.20,
+    "definition": "L_dep = max{L in fixed_lags_days : abs(ACF(L)) >= acf_threshold}",
+    "uses_largest_qualifying_lag_not_first_crossing": true,
+    "descriptive_only": true,
+    "does_not_gate_promotion": true
+  },
+  "year_blocks": [2020, 2021, 2022, 2023, 2024],
+  "chronological_stability": {
+    "rule": "S * yearly_candidate_primary_mean(y) > 0 in at least 4 of 5 years",
+    "min_years_supporting_sign": 4,
+    "of_years": 5,
+    "no_shock_year_exclusion": true,
+    "no_named_year_deletion": true,
+    "no_regime_rescue": true,
+    "no_yearly_significance_test_required": true
+  },
+  "direction_symmetry": {
+    "rule": "ORIENTED_PRIMARY > 0 independently for D=+1 and D=-1 under the same S",
+    "buy_and_sell_must_both_support_same_orientation": true,
+    "one_side_only_result": "POSTHOC_UNTESTED",
+    "one_side_only_can_promote": false
+  },
+  "parameter_robustness": {
+    "q_robustness": {"rule": "at_least_2_of_3_adjacent_q_gate_passing", "adjacency": [[0.80, 0.90], [0.90, 0.95]], "isolated_q_cannot_promote": true},
+    "h_robustness": {"rule": "at_least_2_adjacent_h_gate_passing", "adjacency": [[15, 30], [30, 60], [60, 120], [120, 240]], "isolated_h_cannot_promote": true},
+    "w_robustness": {
+      "rule": "at_least_1_adjacent_w_with_directional_support_not_full_numeric_gates",
+      "directional_support_definition": "ORIENTED_PRIMARY>0 AND ORIENTED_MATCHED_DELTA>0 AND ORIENTED_STRUCTURAL_DELTA>0",
+      "adjacency": [[15, 30], [30, 60]],
+      "does_not_require_full_mpie_control_delta_min": true,
+      "isolated_w_cannot_promote": true
+    }
+  },
+  "candidate_for_freeze_requirements": [
+    "ORIENTED_PRIMARY_gt_0",
+    "ORIENTED_MATCHED_DELTA_gte_MPIE",
+    "ORIENTED_STRUCTURAL_DELTA_gte_CONTROL_DELTA_MIN",
+    "structural_standardization_uses_candidate_weighted_five_dimensional_strata",
+    "unmatched_candidate_share_reported_inconclusive_if_inadequate",
+    "q_robustness_2_of_3_adjacent",
+    "h_robustness_2_adjacent",
+    "w_directional_consistency_at_least_1_adjacent",
+    "direction_symmetry_buy_and_sell_both_support",
+    "year_stability_4_of_5",
+    "ORIENTED_SHIFT_DELTA_gte_CONTROL_DELTA_MIN",
+    "bootstrap_p025_or_p975_excludes_zero_at_1w_2w_4w",
+    "price_return_confound_controlled_via_price_alignment_and_price_strength_bin",
+    "complete_horizon_embargo_and_refractory_applied_identically"
+  ],
+  "forbidden_reads": ["2025_validation_forward_outcomes", "2026_oos_forward_outcomes"],
+  "verdict_labels": [
+    "H05_FLOW_CONTINUATION_CANDIDATE_FOR_FREEZE",
+    "H05_FLOW_REVERSAL_CANDIDATE_FOR_FREEZE",
+    "H05_INCONCLUSIVE",
+    "H05_REJECTED_SPECIFIC_CLAIM"
+  ],
+  "both_signs_cannot_pass_simultaneously": {
+    "if_conflicting_promotion_conditions_appear": "AUDIT_FAILURE_STOP",
+    "do_not_silently_choose_one": true
+  },
+  "posthoc_quarantine": [
+    "single_q_result",
+    "single_h_result",
+    "fully_isolated_w_result",
+    "buy_only_result",
+    "sell_only_result",
+    "quote_volume_only_result",
+    "price_imbalance_divergence_discovered_after_outcomes",
+    "alternative_activity_threshold_after_outcomes",
+    "alternative_price_bins_after_outcomes",
+    "alternative_ordinary_flow_band_after_outcomes",
+    "different_refractory_after_outcomes",
+    "new_w_h_q_after_outcomes",
+    "different_plus_6h_shift_after_outcomes",
+    "regime_rescue",
+    "year_exclusion",
+    "sign_reinterpretation_after_outcomes"
+  ],
+  "posthoc_label": "POSTHOC_UNTESTED",
+  "posthoc_cannot_rescue_kill": true,
+  "no_validation_opened_at_this_point": true,
+  "no_r3_optimization_inside_development_run": true,
+  "no_h06_or_batch01_synthesis_in_this_task": true,
+  "implementation_carry_forwards": [
+    "membership_based_not_positional_pool_exclusion",
+    "real_timestamp_never_panel_id_calendar_keys",
+    "candidate_weighted_deterministic_structural_standardization",
+    "1w_2w_4w_dependence_sensitivity_wired_in_from_first_commit",
+    "complete_horizon_embargo_enforced_at_eligibility_time"
+  ],
+  "not_claims": [
+    "trading_strategy", "entry_exit_system", "order_flow_product", "forecasting_product",
+    "r3_candidate", "validation_result", "sharpe", "pnl",
+    "ACCEPTED_FOR_CONFIRMATORY", "VALIDATED_CANDIDATE"
+  ]
+}

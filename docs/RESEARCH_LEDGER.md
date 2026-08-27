@@ -741,6 +741,81 @@ closes, the next mandatory step is Batch01 synthesis, not H06.
 
 ---
 
+### H05 — Taker Imbalance -> Subsequent Return Distribution (prereg + implementation freeze)
+
+Branch: `research/h05-taker-imbalance-discovery`, created from the
+authoritative design HEAD `deaf6503896920685f25a03230174d360a07ab9a`
+(branch `research/h05-design-redteam`, PR #82, OPEN/DRAFT/UNMERGED). This
+freeze round base branch is `research/h05-design-redteam` (PR isolates
+prereg/implementation diff from the completed design).
+
+**H05 status: PRE_REGISTERED / IMPLEMENTATION_FROZEN /
+DEVELOPMENT_NOT_OPENED.**
+
+Dataset snapshot: `717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`
+(`CORE_BTC_BINANCE_V0`, `ACCEPTED_FOR_DISCOVERY`).
+
+`H05_PREREG_SHA` and `H05_RESEARCH_CODE_FREEZE_SHA` (initially the same
+commit): see the commit that adds this entry (suggested message
+`research(h05): freeze taker imbalance prereg and implementation`).
+
+Artifacts: `docs/research/H05_TAKER_IMBALANCE_PREREG.md` (prose
+preregistration), `docs/research/H05_TAKER_IMBALANCE_PREREG.json`
+(machine-readable frozen spec — every frozen rule that appears in the MD
+also appears in the JSON), `scripts/research/h05_taker_imbalance_lib.py` /
+`scripts/research/h05_taker_imbalance.py` (frozen implementation, CLI
+supports `--stage identity` and `--stage dev-run`),
+`tests/research/test_h05_taker_imbalance.py` (65 synthetic-fixture-only
+tests, all passing), `docs/reviews/H05_PREREG_IMPLEMENTATION_AUDIT.md`
+(independent pre-outcome implementation audit; no objective blockers
+found).
+
+This preregistration encodes, without redesigning, the authoritative
+design: `TAKER_IMBALANCE_W` (base-volume primary, quote-volume never even
+referenced in the implementation); both continuation (`S=+1`) and
+reversal (`S=-1`) preregistered on the same 45 cells with the anti-cherry
+-pick rule; nested `q ∈ {0.80,0.90,0.95}`; `W ∈ {15,30,60}` /
+`H ∈ {15,30,60,120,240}`; fixed ordinary-flow band `[0.60,0.80)`; five
+-dimensional candidate-weighted structural strata (`calendar_month × D ×
+price_alignment × price_strength_bin × activity_bin`); matched-random
+(month+D, seed `20260904`, 100 replicates, membership-safe exclusion);
+`+6h` negative control with the exact `ORIENTED_SHIFT_DELTA >=
+CONTROL_DELTA_MIN` gate; the full `S`-oriented gate formalism
+(`ORIENTED_PRIMARY>0`, `ORIENTED_MATCHED_DELTA>=MPIE`,
+`ORIENTED_STRUCTURAL_DELTA>=CONTROL_DELTA_MIN`,
+`ORIENTED_SHIFT_DELTA>=CONTROL_DELTA_MIN`); UTC-week block bootstrap (seed
+`20260905`, 2000 replicates) with 1w/2w/4w sensitivity wired in from this
+first commit; the outcome-independent, cell-specific candidate-clustering
+diagnostic; `q`/`H`/`W` robustness rules (2-of-3 adjacent `q`, 2-adjacent
+`H`, ≥1-adjacent-directional-support `W`); 4/5-year stability; BUY/SELL
+symmetry; the 4-label verdict vocabulary; and the full post-hoc
+quarantine list.
+
+Search accounting: 45 primary cells (`W=3 × q=3 × H=5`). Batch01
+cumulative: **225** cells (H01-H04 = 180 + H05's 45). Sign multiplicity
+(continuation + reversal on the same 45 cells) disclosed separately, not
+added to the 225 total.
+
+**Real H05 outcomes computed: NO. Development: NOT OPENED** (`--stage
+dev-run` was not invoked against real accepted parquet in this task —
+only `--stage identity` and the synthetic test suite were exercised).
+**2025: UNTOUCHED. 2026: UNTOUCHED.**
+
+No H01-H04 files were modified. No H01-H04 outcome-derived market
+conclusion was imported; only implementation lessons (membership-safe
+pool exclusion, real-timestamp calendar keys, candidate-weighted
+structural standardization, 1w/2w/4w wiring from the first commit) were
+reused, matching this module's own independent implementation (no shared
+import from any H01-H04 script).
+
+Do not run `--stage dev-run` against real data yet. Do not open 2025 or
+2026 for H05. Do not start Batch01 synthesis yet. Do not start H06 (H05
+is the fifth and final primary mechanism family of R2 Batch 01 — Batch01
+synthesis is the next mandatory step once H05 actually closes with a
+real-outcome verdict).
+
+---
+
 ## Next research program — hypothesis discovery after E1
 
 Status: `AUTHORIZED_FOR_DISCOVERY / NOT YET CONFIRMATORY`.
