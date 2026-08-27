@@ -310,7 +310,7 @@ forward + 2 new) as the corrected design in
 preregistration.
 
 - fix branch: `research/h03-design-redteam`
-- fix SHA: *(see PR #76 — pushed after this report; base commit `6c729b1b605ed3f8d078ce64d40154b9083076a2`)*
+- fix SHA: `1bd4c1a97b245cc8f1538ba304243f5e7e283d66` (round 2, on top of round-1 base `6c729b1b605ed3f8d078ce64d40154b9083076a2`)
 - fix PR: #76, draft, against `research/r2-screening-protocol-v1`, not merged
 
 ## Validation contamination
