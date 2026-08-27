@@ -116,7 +116,7 @@ This is the strongest part of the document. `POSTHOC_UNTESTED` correctly separat
 Applied (13 total: 1 BLOCKER, 7 MAJOR, 5 MINOR) as narrow textual amendments to `docs/R2_SCREENING_PROTOCOL_V1.md` only — no research outcomes added, no hypothesis started, no code touched.
 
 - fix branch: `research/r2-screening-protocol-v1-redteam`
-- fix SHA: *(see PR — pushed after this report; base commit `fd0b8355bc402e099c0a4a1fdbed1267a1d21239`)*
+- fix SHA: `835b297d5e2bb974a6318f99240a1e6be154ab8f` (created from exact base `fd0b8355bc402e099c0a4a1fdbed1267a1d21239`)
 - fix PR: opened as **draft** against `research/r2-screening-protocol-v1`, not merged
 
 ## Validation contamination
