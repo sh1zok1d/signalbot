@@ -57,6 +57,8 @@ from scripts.research.h03_extreme_impulse_lib import (
     total_variation_distance,
     trailing_median_known,
     utc_day_key,
+    utc_dom_key,
+    utc_dow_key,
 )
 
 UTC = timezone.utc
@@ -390,6 +392,44 @@ def test_16_matched_random_pool_excludes_raw_extremes():
     assert pool_panel.size == 3
 
 
+def test_16c_original_fancy_index_crash_and_membership_semantics():
+    """Synthetic reproduction of the e2c370d IndexError class.
+
+    evaluate_cell passes eligible *panel ids* (not 0..n-1 positions) into
+    build_matched_random_pool. The pre-fix body fancy-indexed those ids into
+    len(elig) and crashed on real development (elig length 172400, panel id
+    172517). The frozen intended semantics are membership exclusion of the
+    exact raw extreme ids, with no surrounding-regime deletion.
+
+    Does not open parquet. Does not change production research parameters.
+    """
+    def _pre_fix_fancy_index(all_grid_idx, raw_extreme_idx):
+        excluded = np.zeros(len(all_grid_idx), dtype=bool)
+        excluded[raw_extreme_idx] = True
+        return all_grid_idx[~excluded]
+
+    elig = np.array([2976, 2977, 10000, 172400, 172517], dtype=np.int64)
+    raw = np.array([172517, 2976], dtype=np.int64)
+
+    with pytest.raises(IndexError):
+        _pre_fix_fancy_index(elig, raw)
+
+    pool = build_matched_random_pool(elig, raw)
+    assert 172517 not in pool.tolist() and 2976 not in pool.tolist()
+    assert 2977 in pool.tolist() and 10000 in pool.tolist() and 172400 in pool.tolist()
+    assert pool.size == 3
+    assert sorted(pool.tolist()) == [2977, 10000, 172400]
+
+    # On a 0..n-1 grid the two implementations agree (semantics-preserving
+    # for the original synthetic fixtures).
+    grid = np.arange(20, dtype=np.int64)
+    raw_small = np.array([3, 7, 12], dtype=np.int64)
+    np.testing.assert_array_equal(
+        _pre_fix_fancy_index(grid, raw_small),
+        build_matched_random_pool(grid, raw_small),
+    )
+
+
 # ---------------------------------------------------------------------------
 # 17. matched-random sampling is without replacement within replicate
 # ---------------------------------------------------------------------------
@@ -438,6 +478,62 @@ def test_20_total_variation_distance_exact():
     a = {"0": 3, "1": 1}
     b = {"0": 2, "1": 2}
     assert total_variation_distance(a, b) == pytest.approx(0.25)
+
+
+def test_20b_tvd_identical_distributions_zero():
+    a = {"0": 10, "1": 20, "2": 30}
+    b = {"0": 10, "1": 20, "2": 30}
+    assert total_variation_distance(a, b) == pytest.approx(0.0)
+
+
+def test_20c_tvd_disjoint_distributions_one():
+    a = {"Mon": 5, "Tue": 5}
+    b = {"Wed": 3, "Thu": 7}
+    assert total_variation_distance(a, b) == pytest.approx(1.0)
+
+
+def test_20d_tvd_small_perturbation_between_zero_and_one():
+    a = {"0": 50, "1": 50}
+    b = {"0": 55, "1": 45}
+    tvd = total_variation_distance(a, b)
+    assert 0.0 < tvd < 1.0
+    assert tvd == pytest.approx(0.05)
+
+
+def test_20e_tvd_same_proportions_different_n_zero():
+    a = {"0": 1, "1": 2, "2": 3}
+    b = {"0": 10, "1": 20, "2": 30}
+    assert total_variation_distance(a, b) == pytest.approx(0.0)
+
+
+def test_20f_tvd_missing_category_union_handling():
+    # b lacks key "2"; explicit zero on a is equivalent to a missing key on b.
+    a = {"0": 50, "1": 50, "2": 0}
+    b = {"0": 50, "1": 50}
+    assert total_variation_distance(a, b) == pytest.approx(0.0)
+    a2 = {"0": 100}
+    b2 = {"0": 50, "1": 50}
+    assert total_variation_distance(a2, b2) == pytest.approx(0.5)
+
+
+def test_20g_panel_index_as_ms_explains_reported_huge_tvd():
+    """Forensic (synthetic): utc_dow_key/utc_dom_key of typical panel ids
+    all collapse to 1970-01-01 (Thursday='3', DOM='01'). A near-uniform
+    candidate DOW vs a point mass on '3' has TVD = 6/7 ≈ 0.857; a 30-day
+    uniform DOM vs point mass on '01' has TVD = 29/30 ≈ 0.967. These match
+    the reported residual TVD magnitudes. The TVD *formula* is correct; the
+    matched-side *keys* in matched_random_bundle were panel ids, not
+    timestamps. Descriptive only — this test does not invoke real parquet.
+    """
+    for idx in (100, 172400, 172517, 200000):
+        assert utc_dow_key(int(idx)) == "3"
+        assert utc_dom_key(int(idx)) == "01"
+    real_dow = {str(i): 1000 for i in range(7)}
+    buggy_dow = {"3": 7000}
+    assert total_variation_distance(real_dow, buggy_dow) == pytest.approx(6.0 / 7.0)
+    real_dom = {f"{d:02d}": 100 for d in range(1, 31)}
+    buggy_dom = {"01": 3000}
+    assert total_variation_distance(real_dom, buggy_dom) == pytest.approx(29.0 / 30.0)
 
 
 # ---------------------------------------------------------------------------
