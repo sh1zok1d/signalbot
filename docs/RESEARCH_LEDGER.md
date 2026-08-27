@@ -983,6 +983,102 @@ Do not open 2025 or 2026 for H05. Do not retune q/W/H. Do not start Batch01 synt
 
 ---
 
+## 2026-08-27 — H05 post-run review and closure
+
+**Status:** `H05_POSTRUN_REVIEW_STATUS = CLOSED_DEVELOPMENT_REJECTED`
+
+This entry is a chronological review/closure of the H05 development-run
+entry immediately above; it does not overwrite, edit, or reinterpret that
+entry. It independently re-verified the recorded evidence from commit
+`fcec589fc1631dfaf7220d7fad53625eba7ecdaf` (parent
+`faac097c7a3aab0e82c35f4fdc7b0b006ac9e4a1`, the frozen H05 analytical
+identity) without recomputing any market outcome:
+
+- `docs/research/H05_DEV_RESULTS.json` SHA256:
+  `37794ba525212681d0687cf4d35f9c5bf775ff63171c9efdb1b25a3acd947011`
+  (recomputed locally from the recorded file, matches).
+- 45 unique `(W, q, H)` cells present, matching the frozen 45-cell search
+  surface exactly.
+- `results["promotion"]`: `continuation.promoted = false`,
+  `reversal.promoted = false`, both `promoted_cells` empty, `verdict =
+  "H05_REJECTED_SPECIFIC_CLAIM"` — independently recomputed from the
+  per-cell `claim_evaluation` gates (fail-closed conjunction over
+  primary/MPIE/structural/shift/bootstrap-1w-2w-4w/year-stability/
+  direction-symmetry) and matches the recorded verdict exactly.
+- MPIE pass count: continuation `0/45`, reversal `0/45`.
+- Structural pass count: continuation `0/45`, reversal `0/45`.
+- Full per-cell gate conjunction: continuation `0/45`, reversal `0/45`.
+- Primary-gate-only count (diagnostic, not a promotion criterion on its
+  own): continuation `9/45`, reversal `36/45`.
+- `forbidden_windows_inspected`: `{"2025": false, "2026": false}`;
+  `windows.validation_untouched`/`windows.oos_untouched`: both `true`.
+
+**Canonical post-run status:**
+
+```
+H05_POSTRUN_REVIEW_STATUS = CLOSED_DEVELOPMENT_REJECTED
+H05_MACHINE_VERDICT = H05_REJECTED_SPECIFIC_CLAIM
+H05_DEVELOPMENT_ACCESS = CONSUMED
+H05_2025_VALIDATION = UNTOUCHED
+H05_2026_OOS = UNTOUCHED
+H05_ANALYTICAL_CODE_POST_OUTCOME_CHANGE = NO
+```
+
+**Decisive evidence (restated from the run entry, not altered):** MPIE
+`0/45` continuation and `0/45` reversal; structural `0/45` continuation
+and `0/45` reversal; full per-cell conjunction `0/45` on both
+orientations; neither orientation promoted. This is not an inconclusive
+result — the preregistered H05 claim, under both preregistered
+orientations, did not promote.
+
+**Explicit closure rules (frozen, no exceptions):**
+
+- H05 must **not** be retuned (no new `q`/`W`/`H`, no alternate seeds, no
+  alternate controls).
+- H05 must **not** be rerun with alternate settings.
+- H05 must **not** select reversal post hoc because continuation failed
+  first, or vice versa — both orientations were evaluated together and
+  both failed to promote.
+- 2025 must **not** be opened to "rescue" this rejected development
+  result.
+- `H05b` (a child hypothesis built from H05's post-hoc observations) is
+  **not authorized**.
+
+**Post-hoc observations remain `POSTHOC_UNTESTED` only** — restated from
+the run entry, not upgraded to a finding: BUY/SELL directional asymmetry
+(SELL-side means negative in all 45 cells; BUY-side positive in 37/45);
+reversal-leaning short/medium-`H` raw primary behavior (reversal primary
+`36/45` vs. continuation `9/45`); continuation-leaning `H=240` pattern.
+None of these are proven edge, an accepted hypothesis, or grounds to
+rescue H05.
+
+**Roadmap status after this closure:**
+
+```
+H01 = REJECTED / KILLED
+H02 = REJECTED / KILLED
+H03 = REJECTED_SPECIFIC_CLAIM
+H04 = REJECTED_SPECIFIC_CLAIM
+H05 = REJECTED_SPECIFIC_CLAIM / CLOSED_DEVELOPMENT_REJECTED
+BATCH01_SYNTHESIS = NEXT_AUTHORIZED_RESEARCH_STAGE
+BATCH01_SYNTHESIS_STARTED = NO
+H06 = NOT_AUTHORIZED
+```
+
+H05 is confirmed as the fifth and final primary mechanism family of the
+currently defined Batch01. No H06 is authorized as an automatic
+continuation of this sequence. Batch01 synthesis is now the next
+authorized research stage; it is **not** performed in this entry or by
+this commit.
+
+Post-run evidence and this closure are preserved on a separate reference
+branch, `research/h05-postrun-record`, based on
+`faac097 -> fcec589 -> <this closure commit>`. `research/h05-taker
+-imbalance-discovery` (PR #83, the pre-outcome implementation freeze)
+remains at `faac097c7a3aab0e82c35f4fdc7b0b006ac9e4a1`, unmoved.
+
+---
+
 ## Next research program — hypothesis discovery after E1
 
 Status: `AUTHORIZED_FOR_DISCOVERY / NOT YET CONFIRMATORY`.
@@ -1005,9 +1101,12 @@ Remaining mechanism classes still untested:
 H05 (`Taker Imbalance -> Subsequent Return Distribution`) is the fifth
 and final primary mechanism family of R2 Batch 01. Its one authorized
 development run is recorded above (`C. H05_DEVELOPMENT_NOT_PROMOTED` /
-`H05_REJECTED_SPECIFIC_CLAIM`). No H06 is authorized after H05 closes.
-Batch01 synthesis is **NOT STARTED** in this task; the next research
-action is deferred until this frozen first-run result is reviewed.
+`H05_REJECTED_SPECIFIC_CLAIM`), and has been reviewed and formally
+**CLOSED** (`H05_POSTRUN_REVIEW_STATUS = CLOSED_DEVELOPMENT_REJECTED`,
+see the post-run review entry above). No H06 is authorized after H05
+closes. Batch01 synthesis is now the **next authorized research stage**
+(`BATCH01_SYNTHESIS = NEXT_AUTHORIZED_RESEARCH_STAGE`); it has **NOT**
+been started (`BATCH01_SYNTHESIS_STARTED = NO`).
 
 These are not edge claims and not implementation authorization.
 
