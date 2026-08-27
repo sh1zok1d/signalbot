@@ -285,6 +285,75 @@ Do not open 2025 or 2026 for H02. Do not start R3. Do not add volume/taker/trend
 
 ---
 
+## 2026-08-27 — H03_EXTREME_IMPULSE_CONTINUATION_EXHAUSTION preregistration
+
+**Hypothesis:** `H03_EXTREME_IMPULSE_CONTINUATION_EXHAUSTION`
+
+Directional, symmetric mechanism test: after an unusually extreme short-horizon
+BTC impulse (top-decile-and-beyond percentile of its own recent absolute
+return distribution, W ∈ {15, 30, 60}m), does subsequent price tend toward
+continuation in the impulse direction, or toward exhaustion/reversal, versus
+matched-random, moderate-momentum-structural and +6h-shift negative controls?
+
+This is preregistration + implementation freeze only. **No development
+outcomes have been computed.** No real accepted parquet was read.
+
+- dataset snapshot: `717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`
+- prereg commit: this commit (preregistration MD/JSON, implementation,
+  tests, and this ledger entry are frozen together in a single commit; see
+  `docs/research/H03_EXTREME_IMPULSE_PREREG.md` / `.json`)
+- development window: `2020-02-01T00:00:00Z` → `2025-01-01T00:00:00Z` with
+  `T + H_minutes < 2025-01-01T00:00:00Z` for every horizon (no truncation)
+- development: **NOT YET RUN** (state: `NOT_OPENED`)
+- validation: **UNTOUCHED** (2025 not inspected)
+- OOS: **UNTOUCHED** (2026 not inspected)
+- outcome status: `PRE_REGISTERED / EXPLORATORY`
+- primary search surface: 3 impulse windows × 3 tail thresholds × 5 horizons
+  = **45 primary cells** (this batch: H01 = 45, H02 = 45, H03 = 45)
+- global adaptivity: H03's mechanism class predates H01/H02 (original R2
+  roadmap); it inherits the 15m decision grid/30-day local reference from
+  H01 and the 15/30/60/120/240m outcome ladder, 100-replicate matched-random
+  convention, UTC-week-block bootstrap and +6h timing control from prior
+  H01/H02 project convention; it does **not** inherit H02's refractory
+  (H02 = 30m, H03 = 60m, not copied), the q90/95/98 tail-threshold grid, or
+  the W ∈ {15,30,60}m impulse windows (none copied from H01's 30/60/120m
+  lookbacks or H02's 60/120/240m lookbacks) — these are new, pre-outcome
+  H03-specific choices. Prior H01/H02 clustering/dependence experience
+  influenced the decision to make H03's refractory and dependence reporting
+  explicit (disclosed, not hidden). H01/H02 post-hoc observations
+  (`POSTHOC_UNTESTED`) did not define H03's mechanism, signs, or thresholds.
+  H03 is not claimed to be fully independent of, nor derived from, H01/H02.
+- control formulations: moderate-momentum structural control
+  (`0.60 <= P_W(T) < 0.80`, matched month+direction where possible);
+  matched-random baseline (100 replicates, seed `20260831` consumed
+  exactly once, without-replacement sampling, month/direction composition
+  preserved, TVD residual diagnostic); +6h same-UTC-day circular-shift
+  negative control (collision-fraction against raw true extremes always
+  reported, never removed; diurnal-confound limitation disclosed)
+- alternative controls attempted: **NONE**
+- MPIE (mechanism-relevance floor): `0.10` normalized units, independent of
+  candidate outcome; `CONTROL_DELTA_MIN = 0.05` for both structural and
+  negative-control gates, frozen, never reinterpreted after outcomes
+- long-dependence diagnostic: fixed lags {1,2,4,8,16,32,64} days,
+  `|ACF| >= 0.20`, uses the **largest** qualifying lag (not first crossing)
+- verdict vocabulary (exactly 4 labels): `H03_CONTINUATION_CANDIDATE_FOR_FREEZE`,
+  `H03_EXHAUSTION_CANDIDATE_FOR_FREEZE`, `H03_INCONCLUSIVE`,
+  `H03_REJECTED_SPECIFIC_CLAIM`
+- real H03 outcomes inspected: **NO**
+- no R3 opened; no validation opened; no product/forecasting code touched
+
+Preregistration: `docs/research/H03_EXTREME_IMPULSE_PREREG.md`,
+`docs/research/H03_EXTREME_IMPULSE_PREREG.json`
+Implementation (frozen, unexercised against real data in this task):
+`scripts/research/h03_extreme_impulse.py`,
+`scripts/research/h03_extreme_impulse_lib.py`
+Tests (synthetic fixtures only): `tests/research/test_h03_extreme_impulse.py`
+
+Do not run real H03 market outcomes under this entry. Do not open 2025 or
+2026 for H03. Do not start R3 for H03.
+
+---
+
 ## Next research program — hypothesis discovery after E1
 
 Status: `AUTHORIZED_FOR_DISCOVERY / NOT YET CONFIRMATORY`.

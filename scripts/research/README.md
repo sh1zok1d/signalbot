@@ -66,6 +66,18 @@ Preregistration: `docs/research/H02_FAILED_BREAKOUT_MEAN_REVERSION_PREREG.md`.
 Development results: `docs/research/H02_DEV_SUMMARY.md` (verdict `H02_KILL`).
 Development-only: it must not read 2025 validation or 2026 OOS outcomes.
 
+## H03 extreme impulse → continuation vs exhaustion
+
+`h03_extreme_impulse.py` (+ `h03_extreme_impulse_lib.py`) is an
+`AUDIT_TOOL` / experiment runner for
+`H03_EXTREME_IMPULSE_CONTINUATION_EXHAUSTION`.
+Preregistration: `docs/research/H03_EXTREME_IMPULSE_PREREG.md` /
+`.json`. This is currently a **preregistration + implementation freeze
+only** — `--stage dev-run` is wired but has not been exercised against
+real accepted parquet; every function is exercised only against local
+synthetic fixtures in `tests/research/test_h03_extreme_impulse.py`.
+Development-only: it must not read 2025 validation or 2026 OOS outcomes.
+
 ## Earlier mathematical/audit tools
 
 `math002b_*` belongs to earlier consensus-robustness research/audit work. Treat it as `AUDIT_TOOL` unless a current research run explicitly reuses it.
