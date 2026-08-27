@@ -1,5 +1,15 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
+  "version_history": [
+    {
+      "sha": "314292ed9824e824522274d1b64874bf91d71b23",
+      "label": "H04_PREREG_SHA_V1",
+      "status": "SUPERSEDED_PRE_OUTCOME",
+      "reason": "structural_control_bundle computed the primary structural-control mean from the entire eligible near-neutral control population despite the frozen month/direction/trend-strength-bin matching language; a generic composition difference between the candidate and control populations could be mistaken for a pullback-specific effect",
+      "real_h04_outcomes_seen_before_supersession": false,
+      "audit_doc": "docs/reviews/H04_PREREG_PREOUTCOME_CORRECTION.md"
+    }
+  ],
   "hypothesis_id": "H04_TREND_PULLBACK_CONTINUATION",
   "title": "Trend pullback to continuation",
   "status": "PREREGISTERED_EXPLORATORY",
@@ -182,11 +192,37 @@
     "same_future_outcome_semantics": true,
     "match_on": ["calendar_month", "trend_direction", "trend_strength_bin"],
     "trend_strength_bins": ["[0.80,0.90)", "[0.90,1.00]"],
+    "standardization": {
+      "pre_outcome_correction": true,
+      "supersedes_prereg_sha": "314292ed9824e824522274d1b64874bf91d71b23",
+      "correction_doc": "docs/reviews/H04_PREREG_PREOUTCOME_CORRECTION.md",
+      "strata": "calendar_month_x_trend_direction_x_trend_strength_bin",
+      "no_new_bins": true,
+      "no_random_matching_seed": true,
+      "overlap_stratum_requirement": "candidate_N_s > 0 AND control_N_s > 0",
+      "candidate_weight_formula": "w_s = candidate_N_s / sum(candidate_N over overlap strata)",
+      "struct_candidate_mean_formula": "sum_s w_s * candidate_mean_s",
+      "struct_control_mean_formula": "sum_s w_s * control_mean_s",
+      "structural_delta_formula": "STRUCT_CANDIDATE_MEAN - STRUCT_CONTROL_MEAN",
+      "gate_must_not_use_unstandardized_full_population_means": true,
+      "control_only_strata_receive_zero_candidate_weight": true,
+      "unmatched_candidates_never_silently_dropped": true,
+      "no_post_outcome_fallback_matching_hierarchy": true,
+      "no_new_arbitrary_unmatched_share_threshold": true
+    },
+    "report_fields": [
+      "candidate_standardized_mean", "control_standardized_mean", "standardized_delta", "structural_gate",
+      "candidate_total_N", "matched_candidate_N", "unmatched_candidate_N", "unmatched_candidate_share",
+      "structural_control_total_N", "number_of_candidate_strata", "number_of_matched_strata",
+      "number_of_unmatched_candidate_strata"
+    ],
+    "optional_descriptive_fields": ["full_control_unstandardized_mean"],
+    "descriptive_fields_must_not_feed_gate": true,
     "report_matched_n": true,
     "report_unmatched_n": true,
     "report_unmatched_share": true,
     "silently_drop_unmatched": false,
-    "primary_structural_delta": "mean_pullback - mean_neutral_recent_trend",
+    "primary_structural_delta": "STRUCTURAL_DELTA (standardized candidate minus standardized control, both restricted to overlap strata)",
     "alternative_controls_after_outcomes": false
   },
   "refractory": {
@@ -251,7 +287,10 @@
     "seed": 20260902,
     "seed_used_exactly_once": true,
     "replicates": 100,
-    "report": ["candidate_mean", "matched_mean", "candidate_minus_matched_mean_norm_trend_cont_ret", "candidate_positive_share", "matched_positive_share", "positive_share_difference"]
+    "report": ["candidate_mean", "matched_mean", "candidate_minus_matched_mean_norm_trend_cont_ret", "candidate_positive_share", "matched_positive_share", "positive_share_difference"],
+    "distribution_summaries": ["p025", "p50", "p975"],
+    "distribution_summaries_apply_to": ["matched_mean_distribution", "matched_positive_share_distribution"],
+    "distribution_summaries_are_descriptive_control_uncertainty_not_market_samples": true
   },
   "calendar_residual_diagnostic": {
     "must_use_real_event_timestamps": true,
@@ -301,6 +340,11 @@
     "method": "block_bootstrap",
     "seed": 20260903,
     "replicates": 2000,
+    "applies_to": "candidate_primary_outcome_only",
+    "applies_to_metrics": ["norm_trend_cont_ret_h_mean", "continuation_positive_share"],
+    "is_mpie_confidence_interval": false,
+    "scope_clarification": "describes temporal dependence/concentration within the candidate mechanism outcome itself; does not replace or supplement matched-random uncertainty, which remains represented solely by the frozen 100-replicate matched-random distribution (see matched_random.distribution_summaries); introduces no new inference gate; does not change MPIE or any candidate requirement",
+    "scope_clarification_is_pre_outcome_correction": true,
     "candidate_for_freeze_sensitivity_blocks_weeks": [1, 2, 4],
     "sensitivity_selectable": false,
     "must_be_wired_into_per_cell_output": true,

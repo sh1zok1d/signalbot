@@ -403,6 +403,12 @@ Do not open 2025 or 2026 for H03. Do not start R3. Do not start H04.
 
 ## 2026-08-27 — H04_TREND_PULLBACK_CONTINUATION preregistration
 
+**Status of this entry: `SUPERSEDED_PRE_OUTCOME`.** See the entry directly
+below ("H04_TREND_PULLBACK_CONTINUATION preregistration correction") for
+`H04_PREREG_SHA_V1`'s supersession and the new authoritative prereg SHA.
+No real H04 market outcomes were computed under this prereg before
+supersession.
+
 **Hypothesis:** `H04_TREND_PULLBACK_CONTINUATION`
 
 Directional, symmetric, continuation-only mechanism test: after BTC
@@ -471,6 +477,60 @@ Tests (synthetic fixtures only): `tests/research/test_h04_trend_pullback_continu
 
 Do not run real H04 market outcomes under this entry. Do not open 2025 or
 2026 for H04. Do not start R3 or H05 for H04.
+
+---
+
+## 2026-08-27 — H04_TREND_PULLBACK_CONTINUATION preregistration correction
+
+**Hypothesis:** `H04_TREND_PULLBACK_CONTINUATION`
+
+Narrow pre-outcome correction discovered during independent implementation
+review — not a research-parameter change, not a market-result-motivated
+change. **Real H04 market outcomes inspected before this correction: NO.**
+
+- original prereg (`H04_PREREG_SHA_V1`): `314292ed9824e824522274d1b64874bf91d71b23`
+  — status **`SUPERSEDED_PRE_OUTCOME`**, preserved unamended
+- new prereg (`H04_PREREG_SHA`): this commit (the correction, the updated
+  MD/JSON, the implementation fix, the new synthetic regression tests, and
+  this ledger entry are frozen together in a single normal descendant
+  commit; `H04_PREREG_SHA_V1` was not amended)
+- reason for supersession: `structural_control_bundle` computed the primary
+  structural-control comparison from the entire eligible near-neutral
+  control population, while the frozen design's calendar-month ×
+  trend-direction × trend-strength-bin matching was implemented only as a
+  coverage diagnostic rather than the actual comparison. A generic
+  composition difference between the candidate and near-neutral control
+  populations (e.g. concentration in different trend-strength bins) could
+  therefore be mistaken for a pullback-specific effect, in either direction
+  (false positive or false negative)
+- correction: `structural_control_bundle` now computes a frozen
+  deterministic stratified standardization — the structural comparison is
+  restricted to the exact overlap strata (candidate and control both
+  present), weighted by the candidate's own stratum frequency;
+  control-only strata receive zero candidate weight; unmatched candidates
+  are reported explicitly, never silently dropped, and do not enter the
+  standardized comparison. No new bins, no random matching seed, no new
+  numeric parameter
+- bootstrap-scope clarification (not a redesign): the prereg MD/JSON now
+  explicitly state that the UTC-week block bootstrap applies only to the
+  candidate population's own primary outcome mean/positive-share, is not a
+  confidence interval for the MPIE candidate-minus-matched contrast, and
+  that matched-random uncertainty remains the frozen 100-replicate
+  distribution, now additionally summarized by persisted `p025`/`p50`/`p975`
+- unchanged by this correction: `P=60m`; `L={240,480,960}`; `q=0.80`;
+  exclusive depth bands; `H={15,30,60,120,240}`; 60m refractory;
+  `MPIE=0.10`; `CONTROL_DELTA_MIN=0.05`; `+6h` negative control;
+  two-adjacent-depth-band rule; two-adjacent-horizon rule; 4/5-year rule;
+  UPTREND/DOWNTREND symmetry; matched-random seed `20260902`; bootstrap
+  seed `20260903`; 45-cell primary search surface
+- validation: **UNTOUCHED**; OOS: **UNTOUCHED**
+- outcome status: `PRE_REGISTERED / EXPLORATORY`
+- real H04 market outcomes inspected before or during this correction:
+  **NO**
+
+Design audit: `docs/reviews/H04_PREREG_PREOUTCOME_CORRECTION.md`
+
+Do not open 2025 or 2026 for H04. Do not start R3 or H05 for H04.
 
 ---
 

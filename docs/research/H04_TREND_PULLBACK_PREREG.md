@@ -5,6 +5,25 @@
 **Machine-readable freeze:** `docs/research/H04_TREND_PULLBACK_PREREG.json`
 **Dataset:** `CORE_BTC_BINANCE_V0` snapshot `717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`
 
+## Version history
+
+- `H04_PREREG_SHA_V1` = `314292ed9824e824522274d1b64874bf91d71b23` — status
+  `SUPERSEDED_PRE_OUTCOME`. Independent implementation review found that
+  `structural_control_bundle` computed the primary structural-control mean
+  from the entire eligible near-neutral control population, while the
+  frozen design's calendar-month × trend-direction × trend-strength-bin
+  matching was implemented only as a coverage diagnostic, not as the actual
+  comparison. This is a real false-positive/false-negative pathway (a
+  generic difference in trend-strength/month/direction *composition*
+  between the candidate and control populations could be mistaken for a
+  pullback-specific effect) rather than a research-parameter change. **No
+  real H04 outcome was ever computed under V1.** Full audit:
+  `docs/reviews/H04_PREREG_PREOUTCOME_CORRECTION.md`. `H04_PREREG_SHA_V1`
+  is preserved unamended as an immutable historical commit.
+- This document (at the commit that introduces this version-history
+  section) is the corrected, authoritative `H04_PREREG_SHA` for the future
+  real development run.
+
 This document is frozen **before** any H04 development forward outcomes are
 computed. A clean null is a successful research result. This is not a
 trading strategy, entry/exit system, trend-following product, forecasting
@@ -274,11 +293,56 @@ Interpretation: the same established-trend state, but the recent
 60-minute window is small relative to the antecedent trend leg — neither a
 primary H04 pullback (`PULLBACK_DEPTH >= 0.10`) nor a material
 same-direction extension on the same ratio scale. Same `L`, UTC grid,
-independent 60-minute refractory, future-outcome semantics. Matched where
-possible on calendar month, trend direction, and trend-strength bin
-(`[0.80,0.90)`, `[0.90,1.00]`); unmatched cases counted and reported
-(matched `N`, unmatched `N`, unmatched share), never silently dropped. No
-alternative structural control may be added after outcomes.
+independent 60-minute refractory, future-outcome semantics.
+
+**Frozen deterministic stratified standardization (pre-outcome correction;
+supersedes `H04_PREREG_SHA_V1`, which computed the primary structural mean
+from the entire eligible control population despite this matching
+language — see `docs/reviews/H04_PREREG_PREOUTCOME_CORRECTION.md`).**
+Structural strata are exactly calendar month × trend direction ×
+trend-strength bin (`[0.80,0.90)`, `[0.90,1.00]`); no other bins, no random
+matching seed. For every structural comparison cell:
+
+1. build the post-refractory eligible pullback-candidate population and
+   the post-refractory eligible near-neutral structural-control
+   population;
+2. assign both populations to their exact frozen strata;
+3. for every stratum `s` with `candidate_N_s > 0 AND control_N_s > 0`
+   (the "overlap" strata), compute `candidate_mean_s` and `control_mean_s`;
+4. candidate stratum weight `w_s = candidate_N_s / sum(candidate_N over
+   overlap strata)`;
+5. frozen standardized means: `STRUCT_CANDIDATE_MEAN = sum_s w_s *
+   candidate_mean_s`, `STRUCT_CONTROL_MEAN = sum_s w_s * control_mean_s`;
+6. frozen structural delta: `STRUCTURAL_DELTA = STRUCT_CANDIDATE_MEAN -
+   STRUCT_CONTROL_MEAN`;
+7. structural gate: `STRUCTURAL_DELTA >= CONTROL_DELTA_MIN (0.05)`.
+
+The structural gate **must not** use the overall unstandardized candidate
+mean minus the overall full-control mean — a generic difference in
+trend-strength/month/direction *composition* between the two populations
+can otherwise masquerade as a pullback-specific effect (in either
+direction: false positive or false negative).
+
+Structural-control strata with `control_N_s > 0` but `candidate_N_s == 0`
+receive zero candidate weight and do not influence
+`STRUCT_CONTROL_MEAN` — H04 asks what the candidate population looks like
+relative to the near-neutral control state, not the unconditional
+composition of all near-neutral trend moments; such strata may still be
+counted descriptively.
+
+A candidate observation is unmatched when its exact stratum contains no
+eligible structural-control observation. Report: `candidate_total_N`,
+`matched_candidate_N`, `unmatched_candidate_N`, `unmatched_candidate_share`,
+`structural_control_total_N`, `number_of_candidate_strata`,
+`number_of_matched_strata`, `number_of_unmatched_candidate_strata`.
+Unmatched candidates are never silently dropped from reporting; they are
+necessarily outside the identified overlap population for the standardized
+delta. High unmatched share is a fixed interpretability/concentration
+warning, not a new arbitrary threshold — no post-outcome fallback matching
+hierarchy is introduced by this correction. An optional
+`full_control_unstandardized_mean` descriptive field may also be reported,
+but it **must not** feed the structural gate. No alternative structural
+control may be added after outcomes.
 
 ## 12. Fixed depth-band diagnostic (descriptive only)
 
@@ -359,7 +423,12 @@ surrounding periods/regimes. Assign each matched observation the paired
 real candidate's trend direction. Seed `20260902`, used exactly once, never
 re-rolled. 100 replicates. Report candidate mean, matched mean, candidate-
 minus-matched, candidate positive share, matched positive share,
-difference.
+difference. Also persist replicate-distribution summaries (`p025`, `p50`,
+`p975`) for the matched mean normalized outcome and the matched positive
+share — descriptive control uncertainty (the spread of the 100 matched-
+random replicate statistics), not 100 independent market samples and not a
+confidence interval for the MPIE candidate-minus-matched contrast (§17
+clarifies this scope explicitly).
 
 **Calendar residual diagnostic:** candidate and matched calendar keys must
 use actual event/matched timestamps (`t_ms`), never panel indices — direct
@@ -391,11 +460,24 @@ share; UPTREND share; DOWNTREND share; median event spacing.
 
 ## 17. Uncertainty and long-dependence diagnostic
 
-Primary: UTC-week block bootstrap, seed `20260903`, 2000 replicates. If a
-candidate-for-freeze reading is plausible: fixed 1w/2w/4w block
-sensitivity, not selectable. **The week-block bootstrap must be wired
-into per-cell output** — H03's implementation left this unwired despite
-library support; that gap must not recur.
+Primary: UTC-week block bootstrap, seed `20260903`, 2000 replicates,
+applied to the **candidate** population's primary
+`NORM_TREND_CONT_RET_H` mean and continuation-positive share. **The
+week-block bootstrap must be wired into per-cell output** — H03's
+implementation left this unwired despite library support; that gap must
+not recur.
+
+**Scope clarification (pre-outcome correction; no new inference gate):**
+this bootstrap describes temporal dependence/concentration *within the
+candidate mechanism outcome itself*. It is **not** a confidence interval
+for the MPIE candidate-minus-matched contrast, and it does not replace or
+supplement the matched-random uncertainty, which remains represented
+solely by the frozen 100-replicate matched-random distribution (§14,
+summarized by its own `p025`/`p50`/`p975`). If a candidate-for-freeze
+reading is plausible: fixed 1w/2w/4w block sensitivity on the candidate
+bootstrap, not selectable. This clarification does not change MPIE, does
+not change any candidate requirement, and does not change the bootstrap
+seed or replicate count.
 
 Long-dependence diagnostic (fixed, descriptive only): daily total absolute
 15-minute log-returns, ACF at fixed lags `{1,2,4,8,16,32,64}` days:

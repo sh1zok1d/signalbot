@@ -957,11 +957,31 @@ def outcome_bundle(panel: dict, idx: np.ndarray, l_minutes: int, h_minutes: int)
 
 def structural_control_bundle(panel: dict, cand: dict, l_minutes: int, h_minutes: int, elig_set: np.ndarray) -> dict:
     """Established trend + near-neutral recent move (abs(RECENT_RATIO)<0.10).
-    Independent 60m refractory. Matched where possible on calendar month,
-    trend direction, and trend-strength bin against the candidate
-    population; unmatched cases counted and reported, never dropped. The
-    primary structural delta uses the FULL eligible control population
-    (matching is a coverage diagnostic, not a filter)."""
+    Independent 60m refractory.
+
+    Frozen deterministic stratified standardization (pre-outcome
+    correction -- see docs/reviews/H04_PREREG_PREOUTCOME_CORRECTION.md):
+    the primary structural comparison is standardized to the exact
+    calendar-month x trend-direction x trend-strength-bin strata shared by
+    both the candidate and the near-neutral control population (the
+    "overlap" strata), weighted by the candidate's own stratum frequency.
+    This isolates the incremental value of the pullback shape from generic
+    trend-strength/month/direction composition differences between the two
+    populations -- comparing the unstandardized full control population
+    (as an earlier version of this function did) can reflect population
+    MIX rather than the pullback ingredient itself, in either direction
+    (false positive or false negative).
+
+    Strata where the control has observations but the candidate has none
+    receive zero candidate weight and do not influence the standardized
+    means (H04 asks what the candidate population looks like relative to
+    the near-neutral control state, not the unconditional composition of
+    all near-neutral trend moments). Candidate observations whose exact
+    stratum has no eligible control observation are outside the identified
+    overlap population; they are excluded from the standardized comparison
+    and reported explicitly (matched/unmatched candidate N and share,
+    strata counts) -- never silently dropped from reporting, and no
+    post-outcome fallback matching hierarchy is used."""
     t_arr = panel["t_ms"]
     ctrl_mask = structural_control_mask(
         panel["trend_pctl"][l_minutes], panel["trend_ret"][l_minutes], panel["recent_ratio"][l_minutes],
@@ -970,22 +990,67 @@ def structural_control_bundle(panel: dict, cand: dict, l_minutes: int, h_minutes
     ctrl_idx = np.flatnonzero(ctrl_kept & elig_set)
     ctrl = outcome_bundle(panel, ctrl_idx, l_minutes, h_minutes)
 
-    cand_keys = set(zip(cand["month"].tolist(), cand["direction"].tolist(), cand["strength_bin"].tolist()))
+    cand_keys = list(zip(cand["month"].tolist(), cand["direction"].tolist(), cand["strength_bin"].tolist()))
     ctrl_keys = list(zip(ctrl["month"].tolist(), ctrl["direction"].tolist(), ctrl["strength_bin"].tolist()))
-    matched_mask = np.array([k in cand_keys for k in ctrl_keys], dtype=bool)
-    matched_n = int(np.sum(matched_mask))
-    total_n = int(ctrl["idx"].size)
-    unmatched_n = total_n - matched_n
-    unmatched_share = float(unmatched_n / total_n) if total_n else None
 
-    metrics = metric_block(ctrl["cont_ret"], ctrl["norm"])
-    metrics.update({
-        "structural_eligible_N": total_n,
-        "matched_N": matched_n,
-        "unmatched_N": unmatched_n,
-        "unmatched_share": unmatched_share,
-    })
-    return metrics
+    cand_by_stratum: dict = {}
+    for k, v in zip(cand_keys, cand["norm"]):
+        cand_by_stratum.setdefault(k, []).append(v)
+    ctrl_by_stratum: dict = {}
+    for k, v in zip(ctrl_keys, ctrl["norm"]):
+        ctrl_by_stratum.setdefault(k, []).append(v)
+
+    cand_strata = set(cand_by_stratum)
+    ctrl_strata = set(ctrl_by_stratum)
+    overlap_strata = cand_strata & ctrl_strata
+
+    candidate_total_n = len(cand_keys)
+    matched_candidate_mask = np.array([k in ctrl_strata for k in cand_keys], dtype=bool)
+    matched_candidate_n = int(np.sum(matched_candidate_mask))
+    unmatched_candidate_n = candidate_total_n - matched_candidate_n
+    unmatched_candidate_share = float(unmatched_candidate_n / candidate_total_n) if candidate_total_n else None
+
+    cand_stratum_mean: dict = {}
+    ctrl_stratum_mean: dict = {}
+    cand_stratum_n: dict = {}
+    for k in overlap_strata:
+        cv = np.asarray(cand_by_stratum[k], dtype=np.float64)
+        cv = cv[np.isfinite(cv)]
+        kv = np.asarray(ctrl_by_stratum[k], dtype=np.float64)
+        kv = kv[np.isfinite(kv)]
+        if cv.size == 0 or kv.size == 0:
+            continue
+        cand_stratum_mean[k] = float(np.mean(cv))
+        ctrl_stratum_mean[k] = float(np.mean(kv))
+        cand_stratum_n[k] = cv.size
+
+    total_overlap_cand_n = sum(cand_stratum_n.values())
+    if total_overlap_cand_n > 0:
+        weight = {k: n / total_overlap_cand_n for k, n in cand_stratum_n.items()}
+        candidate_standardized_mean = sum(weight[k] * cand_stratum_mean[k] for k in weight)
+        control_standardized_mean = sum(weight[k] * ctrl_stratum_mean[k] for k in weight)
+        standardized_delta = candidate_standardized_mean - control_standardized_mean
+    else:
+        candidate_standardized_mean = None
+        control_standardized_mean = None
+        standardized_delta = None
+
+    return {
+        "candidate_standardized_mean": candidate_standardized_mean,
+        "control_standardized_mean": control_standardized_mean,
+        "standardized_delta": standardized_delta,
+        "structural_gate": control_gate(candidate_standardized_mean, control_standardized_mean, DIR_UP),
+        "candidate_total_N": candidate_total_n,
+        "matched_candidate_N": matched_candidate_n,
+        "unmatched_candidate_N": unmatched_candidate_n,
+        "unmatched_candidate_share": unmatched_candidate_share,
+        "control_total_N": int(len(ctrl_keys)),
+        "number_of_candidate_strata": len(cand_strata),
+        "number_of_matched_strata": len(overlap_strata),
+        "number_of_unmatched_candidate_strata": len(cand_strata - ctrl_strata),
+        # Descriptive only -- MUST NOT feed the structural gate.
+        "full_control_unstandardized_mean": _mean(ctrl["norm"]),
+    }
 
 
 def matched_random_bundle(
@@ -1000,6 +1065,8 @@ def matched_random_bundle(
         "N_replicates": replicates, "seed": seed,
         "candidate_mean": None, "matched_mean": None, "candidate_minus_matched": None,
         "candidate_positive_share": None, "matched_positive_share": None, "positive_share_difference": None,
+        "matched_mean_distribution": {"p025": None, "p50": None, "p975": None},
+        "matched_positive_share_distribution": {"p025": None, "p50": None, "p975": None},
         "residual_diagnostic": None,
     }
     cand_mean = _mean(cand["norm"])
@@ -1057,6 +1124,17 @@ def matched_random_bundle(
     real_dom = categorical_counts(list(cand["dom"]))
     matched_mean = float(np.nanmean(arr)) if np.any(np.isfinite(arr)) else None
     matched_pos = float(np.nanmean(parr)) if np.any(np.isfinite(parr)) else None
+
+    def _distribution(values: np.ndarray) -> dict:
+        v = values[np.isfinite(values)]
+        if v.size == 0:
+            return {"p025": None, "p50": None, "p975": None}
+        return {
+            "p025": float(np.percentile(v, 2.5)),
+            "p50": float(np.percentile(v, 50)),
+            "p975": float(np.percentile(v, 97.5)),
+        }
+
     return {
         "N_replicates": replicates,
         "seed": seed,
@@ -1066,6 +1144,14 @@ def matched_random_bundle(
         "candidate_positive_share": cand_pos,
         "matched_positive_share": matched_pos,
         "positive_share_difference": None if (cand_pos is None or matched_pos is None) else cand_pos - matched_pos,
+        # Descriptive control uncertainty -- the spread of the 100
+        # matched-random replicate means/positive-shares, NOT 100
+        # independent market samples and NOT a confidence interval for the
+        # MPIE candidate-minus-matched contrast (see
+        # docs/reviews/H04_PREREG_PREOUTCOME_CORRECTION.md, bootstrap-scope
+        # clarification).
+        "matched_mean_distribution": _distribution(arr),
+        "matched_positive_share_distribution": _distribution(parr),
         "residual_diagnostic": {
             "dow_tvd": total_variation_distance(real_dow, last_dow_dist),
             "dom_tvd": total_variation_distance(real_dom, last_dom_dist),
@@ -1240,7 +1326,6 @@ def evaluate_cell(panel: dict, l_minutes: int, band: int, h_minutes: int) -> dic
 
     mean_cand = metrics["mean_norm_trend_cont_ret"]
     mean_matched = matched["matched_mean"]
-    mean_structural = structural["mean_norm_trend_cont_ret"]
     mean_shifted = shift["mean_norm_trend_cont_ret"]
 
     return {
@@ -1255,7 +1340,10 @@ def evaluate_cell(panel: dict, l_minutes: int, band: int, h_minutes: int) -> dic
         "structural_control": structural,
         "negative_control": shift,
         "mpie_gate": mpie_gate(mean_cand, mean_matched, DIR_UP),
-        "structural_gate": control_gate(mean_cand, mean_structural, DIR_UP),
+        # Uses the structural bundle's own standardized gate -- NOT a
+        # recomputation from unstandardized full-population means. See
+        # docs/reviews/H04_PREREG_PREOUTCOME_CORRECTION.md.
+        "structural_gate": structural["structural_gate"],
         "negative_control_gate": control_gate(mean_cand, mean_shifted, DIR_UP),
         "year_breakdown": year_breakdown(cand),
         "direction_breakdown": direction_breakdown(cand),

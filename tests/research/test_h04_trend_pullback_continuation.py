@@ -490,10 +490,12 @@ def test_27_28_29_structural_control_mask_exact():
 
 
 # ---------------------------------------------------------------------------
-# 30/31. structural matching month/direction/trend-bin exact; unmatched counted
+# 30/31. structural matching month/direction/trend-bin exact; unmatched
+# candidates counted (frozen deterministic stratified standardization --
+# see docs/reviews/H04_PREREG_PREOUTCOME_CORRECTION.md)
 # ---------------------------------------------------------------------------
-def test_30_31_structural_matching_and_unmatched_counted():
-    n = 20
+def test_30_31_structural_matching_and_unmatched_candidates_counted():
+    n = 60
     start = int(datetime(2020, 1, 1, tzinfo=UTC).timestamp() * 1000)
     t = start + np.arange(n, dtype=np.int64) * HTF_MS
     close = np.full(n, 100.0)
@@ -504,36 +506,341 @@ def test_30_31_structural_matching_and_unmatched_counted():
     signed_pb_ret = np.full(n, np.nan)
     ret60 = np.full(n, 0.01)
     scale = np.full(n, 1.0)
-    # two candidates (pullback) in month/direction/bin (2020-01, UP, [0.80,0.90))
-    for i in (2, 4):
-        trend_pctl[i] = 0.85
-        trend_ret[i] = 0.10
-        signed_pb_ret[i] = -0.02  # depth = 0.2 (shallow)
+    # candidate A: month 2020-01, UP, bin [0.80,0.90) -- a control exists in
+    # this exact stratum -> matched.
+    trend_pctl[2] = 0.85
+    trend_ret[2] = 0.10
+    signed_pb_ret[2] = -0.02  # depth=0.2 (shallow)
+    # candidate B: same month/direction but bin [0.90,1.00] -- no control in
+    # this stratum -> unmatched.
+    trend_pctl[20] = 0.95
+    trend_ret[20] = 0.10
+    signed_pb_ret[20] = -0.02
     depth = compute_pullback_depth(signed_pb_ret, trend_ret)
     recent_ratio = compute_recent_ratio(signed_pb_ret, trend_ret)
-    # structural (near-neutral) observations: one matches candidate key,
-    # one has a different trend-strength bin (unmatched)
-    for i in (6, 8):
-        trend_pctl[i] = 0.85  # same bin as candidates -> matched
-        trend_ret[i] = 0.10
-        signed_pb_ret[i] = 0.0  # placeholder; ratio computed directly below
-    trend_pctl[10] = 0.95  # different trend-strength bin -> unmatched
-    trend_ret[10] = 0.10
-    recent_ratio[6] = 0.02
-    recent_ratio[8] = -0.02
-    recent_ratio[10] = 0.02
+    # near-neutral control: only in bin [0.80,0.90) -- matches candidate A's
+    # stratum only.
+    trend_pctl[40] = 0.85
+    trend_ret[40] = 0.10
+    recent_ratio[40] = 0.02
     panel = _manual_panel(t, close, high, low, 240, trend_pctl, trend_ret, signed_pb_ret, depth, recent_ratio,
                            60, ret60, scale)
     elig_set = np.ones(n, dtype=bool)
-    cand_idx = np.flatnonzero(pullback_candidate_mask(trend_pctl, trend_ret, signed_pb_ret, depth_band_index(depth), 0))
+    band_idx = depth_band_index(depth)
+    cand_idx = np.flatnonzero(pullback_candidate_mask(trend_pctl, trend_ret, signed_pb_ret, band_idx, 0))
+    assert list(cand_idx) == [2, 20]
     cand = outcome_bundle(panel, cand_idx, 240, 60)
     out = structural_control_bundle(panel, cand, 240, 60, elig_set)
-    # index 8 is suppressed by the control's OWN independent 60m refractory
-    # (it is within 60m of kept index 6); post-refractory eligible = {6, 10}.
-    assert out["structural_eligible_N"] == 2
-    assert out["matched_N"] == 1  # index 6 shares (month, direction, bin) with candidates
-    assert out["unmatched_N"] == 1  # index 10 (different trend-strength bin)
-    assert out["unmatched_share"] == pytest.approx(0.5)
+
+    assert out["candidate_total_N"] == 2
+    assert out["matched_candidate_N"] == 1  # candidate A (index 2)
+    assert out["unmatched_candidate_N"] == 1  # candidate B (index 20)
+    assert out["unmatched_candidate_share"] == pytest.approx(0.5)
+    assert out["control_total_N"] == 1
+    assert out["number_of_candidate_strata"] == 2
+    assert out["number_of_matched_strata"] == 1
+    assert out["number_of_unmatched_candidate_strata"] == 1
+    # standardized comparison uses ONLY the overlap stratum (candidate A vs
+    # the control), weight 1.0 -- candidate B is outside the identified
+    # overlap population and does not enter the standardized means.
+    assert out["candidate_standardized_mean"] == pytest.approx(0.01)
+    assert out["standardized_delta"] == pytest.approx(0.0, abs=1e-9)
+    assert out["structural_gate"] is False
+
+
+# ---------------------------------------------------------------------------
+# structural composition-confound regression (pre-outcome correction):
+# generic trend-strength/month/direction MIX must not be able to fake the
+# pullback-specific structural gate. See
+# docs/reviews/H04_PREREG_PREOUTCOME_CORRECTION.md.
+# ---------------------------------------------------------------------------
+def test_structural_composition_confound_regression():
+    n = 80
+    start = int(datetime(2020, 1, 1, tzinfo=UTC).timestamp() * 1000)
+    t = start + np.arange(n, dtype=np.int64) * HTF_MS
+    close = np.full(n, 100.0)
+    high = close + 1
+    low = close - 1
+    trend_pctl = np.full(n, np.nan)
+    trend_ret = np.full(n, np.nan)
+    signed_pb_ret = np.full(n, np.nan)
+    ret60 = np.full(n, np.nan)
+    scale = np.full(n, 1.0)
+
+    # Two strata, both month 2020-01, direction UP:
+    #   A = trend-strength bin [0.80,0.90) -- WITHIN-stratum mean = -0.05
+    #   B = trend-strength bin [0.90,1.00]  -- WITHIN-stratum mean = +0.05
+    # Candidates are concentrated in B (8) with only 2 in A; controls are
+    # concentrated in A (8) with only 2 in B -- opposite composition, same
+    # per-stratum means. A naive full-population comparison confuses this
+    # composition difference for a pullback-specific effect.
+    cand_a_idx = [0, 1]
+    cand_b_idx = [2, 3, 4, 5, 6, 7, 8, 9]
+    for i in cand_a_idx:
+        trend_pctl[i] = 0.85
+        trend_ret[i] = 0.10
+        signed_pb_ret[i] = -0.02  # depth=0.2 (shallow); RET_H chosen so norm=-0.05
+        ret60[i] = -0.05
+    for i in cand_b_idx:
+        trend_pctl[i] = 0.95
+        trend_ret[i] = 0.10
+        signed_pb_ret[i] = -0.02
+        ret60[i] = 0.05
+
+    ctrl_a_idx = [20, 24, 28, 32, 36, 40, 44, 48]  # 8, spaced exactly 60m apart
+    ctrl_b_idx = [52, 56]  # 2, spaced exactly 60m apart
+    for i in ctrl_a_idx:
+        trend_pctl[i] = 0.85
+        trend_ret[i] = 0.10
+        ret60[i] = -0.05
+    for i in ctrl_b_idx:
+        trend_pctl[i] = 0.95
+        trend_ret[i] = 0.10
+        ret60[i] = 0.05
+
+    depth = compute_pullback_depth(signed_pb_ret, trend_ret)
+    recent_ratio = compute_recent_ratio(signed_pb_ret, trend_ret)
+    # near-neutral recent move for the control indices (not counter-trend)
+    for i in ctrl_a_idx + ctrl_b_idx:
+        recent_ratio[i] = 0.02
+
+    panel = _manual_panel(t, close, high, low, 240, trend_pctl, trend_ret, signed_pb_ret, depth, recent_ratio,
+                           60, ret60, scale)
+    elig_set = np.isfinite(ret60)
+    band_idx = depth_band_index(depth)
+    cand_idx = np.flatnonzero(pullback_candidate_mask(trend_pctl, trend_ret, signed_pb_ret, band_idx, 0) & elig_set)
+    assert cand_idx.size == 10
+    cand = outcome_bundle(panel, cand_idx, 240, 60)
+
+    out = structural_control_bundle(panel, cand, 240, 60, elig_set)
+
+    # Reconstruct the OLD (rejected) unstandardized full-population
+    # comparison directly from the diagnostic-only field to show it would
+    # have been positive/misleading.
+    old_style_full_pop_delta = float(np.mean(cand["norm"])) - out["full_control_unstandardized_mean"]
+    assert old_style_full_pop_delta > lib.CONTROL_DELTA_MIN  # misleadingly "passes" the old rule
+
+    # The frozen standardized comparison must show no incremental effect.
+    assert out["standardized_delta"] == pytest.approx(0.0, abs=1e-9)
+    assert out["structural_gate"] is False
+
+
+def test_structural_control_only_stratum_receives_zero_candidate_weight():
+    n = 30
+    start = int(datetime(2020, 1, 1, tzinfo=UTC).timestamp() * 1000)
+    t = start + np.arange(n, dtype=np.int64) * HTF_MS
+    close = np.full(n, 100.0)
+    high = close + 1
+    low = close - 1
+    trend_pctl = np.full(n, np.nan)
+    trend_ret = np.full(n, np.nan)
+    signed_pb_ret = np.full(n, np.nan)
+    ret60 = np.full(n, np.nan)
+    scale = np.full(n, 1.0)
+    # candidate only in stratum A
+    trend_pctl[0] = 0.85
+    trend_ret[0] = 0.10
+    signed_pb_ret[0] = -0.02
+    ret60[0] = 0.03
+    # control in stratum A (matched) and stratum B (control-only, no candidate there)
+    trend_pctl[10] = 0.85
+    trend_ret[10] = 0.10
+    ret60[10] = 0.03
+    trend_pctl[20] = 0.95  # different bin -> control-only stratum
+    trend_ret[20] = 0.10
+    ret60[20] = 999.0  # deliberately extreme; must NOT influence the standardized means
+    depth = compute_pullback_depth(signed_pb_ret, trend_ret)
+    recent_ratio = compute_recent_ratio(signed_pb_ret, trend_ret)
+    recent_ratio[10] = 0.02
+    recent_ratio[20] = 0.02
+    panel = _manual_panel(t, close, high, low, 240, trend_pctl, trend_ret, signed_pb_ret, depth, recent_ratio,
+                           60, ret60, scale)
+    elig_set = np.isfinite(ret60)
+    band_idx = depth_band_index(depth)
+    cand_idx = np.flatnonzero(pullback_candidate_mask(trend_pctl, trend_ret, signed_pb_ret, band_idx, 0) & elig_set)
+    cand = outcome_bundle(panel, cand_idx, 240, 60)
+    out = structural_control_bundle(panel, cand, 240, 60, elig_set)
+    assert out["number_of_matched_strata"] == 1  # only stratum A
+    assert out["control_total_N"] == 2  # both control observations counted descriptively
+    # the extreme control-only stratum (index 20, ret=999) must not leak
+    # into the standardized control mean.
+    assert out["control_standardized_mean"] == pytest.approx(0.03)
+
+
+def test_structural_standardized_weights_sum_to_one():
+    n = 20
+    month_bases = [
+        int(datetime(2020, 1, 1, tzinfo=UTC).timestamp() * 1000),
+        int(datetime(2020, 2, 1, tzinfo=UTC).timestamp() * 1000),
+        int(datetime(2020, 3, 1, tzinfo=UTC).timestamp() * 1000),
+    ]
+    # three overlap strata (three distinct months, same direction/bin) with
+    # unequal candidate counts (1, 3, 6) but an IDENTICAL candidate value
+    # (0.07) in every stratum -- if the standardized weights did not sum to
+    # 1, the weighted average of a constant would not equal that constant.
+    counts = [1, 3, 6]
+    t = np.zeros(n, dtype=np.int64)
+    trend_pctl = np.full(n, np.nan)
+    trend_ret = np.full(n, np.nan)
+    signed_pb_ret = np.full(n, np.nan)
+    ret60 = np.full(n, np.nan)
+    close = np.full(n, 100.0)
+    high = close + 1
+    low = close - 1
+    scale = np.full(n, 1.0)
+    i = 0
+    for base, count in zip(month_bases, counts):
+        for k in range(count):
+            t[i] = base + k * HTF_MS
+            trend_pctl[i] = 0.85
+            trend_ret[i] = 0.10
+            signed_pb_ret[i] = -0.02
+            ret60[i] = 0.07
+            i += 1
+        t[i] = base + (count + 2) * HTF_MS  # control, same month/direction/bin
+        trend_pctl[i] = 0.85
+        trend_ret[i] = 0.10
+        ret60[i] = 0.03  # control mean differs from candidate; irrelevant to this check
+        i += 1
+    depth = compute_pullback_depth(signed_pb_ret, trend_ret)
+    recent_ratio = compute_recent_ratio(signed_pb_ret, trend_ret)
+    recent_ratio[np.isfinite(trend_pctl) & ~np.isfinite(signed_pb_ret)] = 0.02  # control rows
+    panel = _manual_panel(t, close, high, low, 240, trend_pctl, trend_ret, signed_pb_ret, depth, recent_ratio,
+                           60, ret60, scale)
+    elig_set = np.isfinite(ret60)
+    band_idx = depth_band_index(depth)
+    cand_idx = np.flatnonzero(pullback_candidate_mask(trend_pctl, trend_ret, signed_pb_ret, band_idx, 0) & elig_set)
+    assert cand_idx.size == 10
+    cand = outcome_bundle(panel, cand_idx, 240, 60)
+    out = structural_control_bundle(panel, cand, 240, 60, elig_set)
+    assert out["number_of_matched_strata"] == 3
+    assert out["candidate_standardized_mean"] == pytest.approx(0.07)
+
+
+def test_structural_direction_and_bin_strata_cannot_cross_match():
+    n = 20
+    start = int(datetime(2020, 1, 1, tzinfo=UTC).timestamp() * 1000)
+    t = start + np.arange(n, dtype=np.int64) * HTF_MS
+    close = np.full(n, 100.0)
+    high = close + 1
+    low = close - 1
+    trend_pctl = np.full(n, np.nan)
+    trend_ret = np.full(n, np.nan)
+    signed_pb_ret = np.full(n, np.nan)
+    ret60 = np.full(n, np.nan)
+    scale = np.full(n, 1.0)
+    # candidate: UP trend, bin [0.80,0.90)
+    trend_pctl[0] = 0.85
+    trend_ret[0] = 0.10
+    signed_pb_ret[0] = -0.02
+    ret60[0] = 0.04
+    # control A: same bin but DOWNTREND -> must not match (direction differs)
+    trend_pctl[10] = 0.85
+    trend_ret[10] = -0.10
+    ret60[10] = -0.04
+    # control B: same UP direction but different bin -> must not match
+    trend_pctl[15] = 0.95
+    trend_ret[15] = 0.10
+    ret60[15] = -0.04
+    depth = compute_pullback_depth(signed_pb_ret, trend_ret)
+    recent_ratio = compute_recent_ratio(signed_pb_ret, trend_ret)
+    recent_ratio[10] = 0.02
+    recent_ratio[15] = 0.02
+    panel = _manual_panel(t, close, high, low, 240, trend_pctl, trend_ret, signed_pb_ret, depth, recent_ratio,
+                           60, ret60, scale)
+    elig_set = np.isfinite(ret60)
+    band_idx = depth_band_index(depth)
+    cand_idx = np.flatnonzero(pullback_candidate_mask(trend_pctl, trend_ret, signed_pb_ret, band_idx, 0) & elig_set)
+    cand = outcome_bundle(panel, cand_idx, 240, 60)
+    out = structural_control_bundle(panel, cand, 240, 60, elig_set)
+    assert out["number_of_matched_strata"] == 0
+    assert out["matched_candidate_N"] == 0
+    assert out["unmatched_candidate_N"] == cand_idx.size
+    assert out["standardized_delta"] is None  # no overlap strata at all
+
+
+def test_structural_month_strata_cannot_cross_match():
+    n = 20
+    start = int(datetime(2020, 1, 1, tzinfo=UTC).timestamp() * 1000)
+    t = start + np.arange(n, dtype=np.int64) * HTF_MS
+    close = np.full(n, 100.0)
+    high = close + 1
+    low = close - 1
+    trend_pctl = np.full(n, np.nan)
+    trend_ret = np.full(n, np.nan)
+    signed_pb_ret = np.full(n, np.nan)
+    ret60 = np.full(n, np.nan)
+    scale = np.full(n, 1.0)
+    # candidate in January (index 0)
+    trend_pctl[0] = 0.85
+    trend_ret[0] = 0.10
+    signed_pb_ret[0] = -0.02
+    ret60[0] = 0.04
+    # control with the identical direction/bin but in a DIFFERENT month
+    # (index 15, ~15 days later -> still January in this small fixture, so
+    # push it far enough to land in February)
+    feb_start = int(datetime(2020, 2, 1, tzinfo=UTC).timestamp() * 1000)
+    t[15] = feb_start
+    trend_pctl[15] = 0.85
+    trend_ret[15] = 0.10
+    ret60[15] = -0.04
+    depth = compute_pullback_depth(signed_pb_ret, trend_ret)
+    recent_ratio = compute_recent_ratio(signed_pb_ret, trend_ret)
+    recent_ratio[15] = 0.02
+    panel = _manual_panel(t, close, high, low, 240, trend_pctl, trend_ret, signed_pb_ret, depth, recent_ratio,
+                           60, ret60, scale)
+    elig_set = np.isfinite(ret60)
+    band_idx = depth_band_index(depth)
+    cand_idx = np.flatnonzero(pullback_candidate_mask(trend_pctl, trend_ret, signed_pb_ret, band_idx, 0) & elig_set)
+    cand = outcome_bundle(panel, cand_idx, 240, 60)
+    out = structural_control_bundle(panel, cand, 240, 60, elig_set)
+    assert out["number_of_matched_strata"] == 0  # January candidate vs February control -> no match
+    assert out["unmatched_candidate_N"] == cand_idx.size
+
+
+# ---------------------------------------------------------------------------
+# matched-random replicate distribution summaries persisted (bootstrap-
+# scope clarification); descriptive control uncertainty only.
+# ---------------------------------------------------------------------------
+def test_matched_random_distribution_summaries_persisted():
+    n = 40
+    start = int(datetime(2020, 1, 1, tzinfo=UTC).timestamp() * 1000)
+    t = start + np.arange(n, dtype=np.int64) * HTF_MS
+    close = np.full(n, 100.0)
+    high = close + 1
+    low = close - 1
+    trend_pctl = np.full(n, np.nan)
+    trend_ret = np.full(n, np.nan)
+    signed_pb_ret = np.full(n, np.nan)
+    for i in (5, 15, 25):
+        trend_pctl[i] = 0.90
+        trend_ret[i] = 0.10
+        signed_pb_ret[i] = -0.02
+    depth = compute_pullback_depth(signed_pb_ret, trend_ret)
+    recent_ratio = compute_recent_ratio(signed_pb_ret, trend_ret)
+    ret60 = np.full(n, 0.01)
+    scale = np.full(n, 1.0)
+    panel = _manual_panel(t, close, high, low, 240, trend_pctl, trend_ret, signed_pb_ret, depth, recent_ratio,
+                           60, ret60, scale)
+    cand_idx = np.array([5, 15, 25])
+    cand = outcome_bundle(panel, cand_idx, 240, 60)
+    pool = np.setdiff1d(np.arange(n), cand_idx)
+    out = matched_random_bundle(panel, cand, pool, 60, seed=7, replicates=20)
+    for key in ("matched_mean_distribution", "matched_positive_share_distribution"):
+        assert key in out
+        dist = out[key]
+        assert dist["p025"] is not None and dist["p50"] is not None and dist["p975"] is not None
+        assert dist["p025"] <= dist["p50"] <= dist["p975"]
+
+
+def test_prereg_documents_bootstrap_scope_clarification():
+    p = load_prereg()
+    unc = p["uncertainty"]
+    assert unc.get("applies_to") == "candidate_primary_outcome_only"
+    assert unc.get("is_mpie_confidence_interval") is False
+    mr = p["matched_random"]
+    assert "distribution_summaries" in mr
+    assert set(mr["distribution_summaries"]) >= {"p025", "p50", "p975"}
 
 
 # ---------------------------------------------------------------------------
@@ -774,10 +1081,9 @@ def test_53_generic_trend_without_pullback_specific_value_fails_structural_gate(
     cand_idx = np.flatnonzero(pullback_candidate_mask(trend_pctl, trend_ret, signed_pb_ret, depth_band_index(depth), 0) & elig_set)
     cand = outcome_bundle(panel, cand_idx, 240, 60)
     ctrl = structural_control_bundle(panel, cand, 240, 60, elig_set)
-    mean_cand = cand_mean = float(np.mean(cand["norm"]))
-    mean_ctrl = ctrl["mean_norm_trend_cont_ret"]
-    assert mean_cand == pytest.approx(mean_ctrl)
-    assert control_gate(mean_cand, mean_ctrl, DIR_UP) is False
+    assert ctrl["candidate_standardized_mean"] == pytest.approx(ctrl["control_standardized_mean"])
+    assert ctrl["standardized_delta"] == pytest.approx(0.0, abs=1e-9)
+    assert ctrl["structural_gate"] is False
 
 
 def test_54_synthetic_null_mechanism_no_fabricated_candidate(monkeypatch):
