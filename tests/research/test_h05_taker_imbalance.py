@@ -55,6 +55,9 @@ from scripts.research.h05_taker_imbalance_lib import (
     oriented_primary,
     outcome_bundle,
     price_alignment_index,
+    eligible_index,
+    evaluate_promotion,
+    load_development_1m,
     require_snapshot,
     rolling_midrank_percentile,
     sample_matched_random_once,
@@ -92,7 +95,10 @@ def test_prereg_frozen_numbers():
         "H05_INCONCLUSIVE", "H05_REJECTED_SPECIFIC_CLAIM",
     }
     assert p["design_authority"]["design_head_sha"] == "deaf6503896920685f25a03230174d360a07ab9a"
-    assert p["schema_version"] == 2
+    assert p["schema_version"] == 3
+    assert p["identity_status"] == "REPAIR_CANDIDATE_NOT_YET_INDEPENDENTLY_AUDITED"
+    assert p["version_history"][1]["sha"] == "70797aaeed70fa3d4c584d96ca929f5a8e7e92d1"
+    assert p["version_history"][1]["status"] == "SUPERSEDED_PRE_OUTCOME"
     assert p["version_history"][0]["sha"] == "9502006eb4797a9947c61d8d04acd1345ed41e5e"
     assert p["version_history"][0]["status"] == "SUPERSEDED_PRE_OUTCOME"
     assert p["version_history"][0]["real_h05_outcomes_seen_before_supersession"] is False
@@ -553,7 +559,7 @@ def test_34_continuation_gates_exact():
     # structural_control_standardized_mean), NOT a mean to be subtracted
     # from candidate_mean here.
     ev = claim_evaluation(candidate_mean=0.20, matched_mean=0.05, structural_delta=0.10,
-                           shifted_mean=0.10, sign=S_CONTINUATION)
+                           shift_delta=0.10, sign=S_CONTINUATION)
     assert ev["ORIENTED_PRIMARY"] == pytest.approx(0.20)
     assert ev["ORIENTED_MATCHED_DELTA"] == pytest.approx(0.15)
     assert ev["ORIENTED_STRUCTURAL_DELTA"] == pytest.approx(0.10)
@@ -569,7 +575,7 @@ def test_35_reversal_mirrored_gates_exact():
     # the same absolute amounts, structural_delta negated -> reversal gates
     # should pass identically to the continuation case above by symmetry.
     ev = claim_evaluation(candidate_mean=-0.20, matched_mean=-0.05, structural_delta=-0.10,
-                           shifted_mean=-0.10, sign=S_REVERSAL)
+                           shift_delta=-0.10, sign=S_REVERSAL)
     assert ev["ORIENTED_PRIMARY"] == pytest.approx(0.20)
     assert ev["ORIENTED_MATCHED_DELTA"] == pytest.approx(0.15)
     assert ev["ORIENTED_STRUCTURAL_DELTA"] == pytest.approx(0.10)
@@ -587,7 +593,7 @@ def test_reversal_impossible_under_positive_only_reading_regression():
     continuation-only bare inequality that made REVERSAL mathematically
     unsatisfiable."""
     ev = claim_evaluation(candidate_mean=-0.5, matched_mean=0.1, structural_delta=-0.6,
-                           shifted_mean=0.1, sign=S_REVERSAL)
+                           shift_delta=-0.6, sign=S_REVERSAL)
     assert ev["mpie_gate"] is True
     assert ev["structural_gate"] is True
     assert ev["shift_gate"] is True
@@ -822,7 +828,7 @@ def test_58_insufficient_structural_support_yields_none_not_fabricated():
     # fabricated numeric effect.
     from scripts.research.h05_taker_imbalance_lib import claim_evaluation as _claim_eval
     ev = _claim_eval(cand_mean, matched_mean=0.0, structural_delta=out["structural_delta"],
-                      shifted_mean=0.0, sign=S_CONTINUATION)
+                      shift_delta=0.0, sign=S_CONTINUATION)
     assert ev["ORIENTED_STRUCTURAL_DELTA"] is None
     assert ev["structural_gate"] is None
 
@@ -1027,14 +1033,14 @@ def test_regression_02_unmatched_candidate_outcomes_cannot_change_structural_del
 
     for sign in (S_CONTINUATION, S_REVERSAL):
         ev = claim_evaluation(extreme_mean, matched_mean=0.0, structural_delta=out_extreme["structural_delta"],
-                               shifted_mean=0.0, sign=sign)
+                               shift_delta=0.0, sign=sign)
         assert ev["structural_gate"] is False
 
 
 def test_regression_03_continuation_orientation_exact_s_plus_1():
     assert S_CONTINUATION == 1
     ev = claim_evaluation(candidate_mean=0.3, matched_mean=0.1, structural_delta=0.08,
-                           shifted_mean=0.05, sign=S_CONTINUATION)
+                           shift_delta=0.05, sign=S_CONTINUATION)
     assert ev["S"] == 1
     assert ev["ORIENTED_STRUCTURAL_DELTA"] == pytest.approx(0.08)
     assert ev["structural_gate"] is True  # 0.08 >= 0.05
@@ -1043,7 +1049,7 @@ def test_regression_03_continuation_orientation_exact_s_plus_1():
 def test_regression_04_reversal_orientation_exact_s_minus_1():
     assert S_REVERSAL == -1
     ev = claim_evaluation(candidate_mean=-0.3, matched_mean=-0.1, structural_delta=-0.08,
-                           shifted_mean=-0.05, sign=S_REVERSAL)
+                           shift_delta=-0.05, sign=S_REVERSAL)
     assert ev["S"] == -1
     assert ev["ORIENTED_STRUCTURAL_DELTA"] == pytest.approx(0.08)
     assert ev["structural_gate"] is True  # S*(-0.08) = 0.08 >= 0.05
@@ -1128,3 +1134,391 @@ def test_regression_08_five_dimensional_strata_remain_exact():
         "calendar_month", "D", "price_alignment", "price_strength_bin", "activity_bin",
     ]
     assert out["ordinary_band"] == [0.60, 0.80]
+
+
+# ---------------------------------------------------------------------------
+# PRE-OUTCOME AUDIT REPAIR regression tests (B-01 verification, M-01, M-02,
+# M-03, M-04, M-05). No real data. Synthetic/unit fixtures only.
+# ---------------------------------------------------------------------------
+
+# --- B-01 independent re-verification (adversarial case from the audit) ---
+def test_b01_structural_gate_unaffected_by_unmatched_extreme_independent_check():
+    """Independent re-verification of B-01 using the audit's own exact
+    adversarial construction: overlap stratum candidate mean = 0, overlap
+    structural control mean = 0, unmatched candidate stratum has very
+    large positive X. The structural gate must NOT become positive."""
+    n = 12
+    t = np.arange(n, dtype=np.int64) * HTF_MS
+    close = np.full(n, 100.0)
+    d = np.ones(n, dtype=np.int8)
+    pctl = np.array([0.85] * 8 + [0.65] * 4)
+    total_w = np.full(n, 100.0)
+    price_ret = np.zeros(n)
+    ret = np.zeros(n)
+    scale = np.full(n, 1.0)
+    panel = _manual_panel(t, close, 15, d, pctl, total_w, price_ret, 15, ret, scale)
+    panel["price_alignment"] = {15: np.array([1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0], dtype=np.int8)}
+    panel["price_strength_bin"] = {15: np.array([0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0], dtype=np.int8)}
+    panel["activity_bin"] = {15: np.array([0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0], dtype=np.int8)}
+    elig_set = np.ones(n, dtype=bool)
+    cand_idx = np.flatnonzero(pctl >= 0.80)
+    cand = outcome_bundle(panel, cand_idx, 15, 15)
+    norm = cand["norm"].copy()
+    norm[np.isin(cand["idx"], [0, 1, 2, 3])] = 0.0
+    norm[np.isin(cand["idx"], [4, 5, 6, 7])] = 1e6
+    cand = {**cand, "norm": norm}
+    full_mean = float(np.mean(norm))
+    out = structural_control_bundle(panel, cand, full_mean, 15, 15, elig_set)
+    assert out["candidate_overlap_standardized_mean"] == pytest.approx(0.0, abs=1e-9)
+    assert out["structural_control_standardized_mean"] == pytest.approx(0.0, abs=1e-9)
+    assert out["structural_delta"] == pytest.approx(0.0, abs=1e-9)
+    for sign in (S_CONTINUATION, S_REVERSAL):
+        ev = claim_evaluation(full_mean, matched_mean=0.0, structural_delta=out["structural_delta"],
+                               shift_delta=0.0, sign=sign)
+        assert ev["structural_gate"] is False
+        assert ev["ORIENTED_STRUCTURAL_DELTA"] == pytest.approx(0.0, abs=1e-9)
+
+
+# --- M-01: +6h invalid-comparator composition attack ---------------------
+def test_m01_01_shift_delta_uses_same_support_not_full_candidate_mean():
+    """Candidates WITHOUT a valid +6h comparator get extreme X; they must
+    not be able to influence shift_delta/ORIENTED_SHIFT_DELTA.
+
+    +6h = SHIFT_MS = 24 bars on the 15m grid. With a 30-bar array (well
+    inside a single UTC day, no wraparound ambiguity): rows 0,1,2 shift to
+    valid in-range rows 24,25,26; rows 27,28,29 shift to 51,52,53, which
+    fall OUTSIDE this 30-row array -> no valid +6h comparator at all."""
+    n = 30
+    t = np.arange(n, dtype=np.int64) * HTF_MS
+    close = np.full(n, 100.0)
+    d = np.ones(n, dtype=np.int8)
+    pctl = np.array([0.85] * n)
+    total_w = np.full(n, 100.0)
+    price_ret = np.zeros(n)
+    ret = np.full(n, 0.0)
+    scale = np.full(n, 1.0)
+    panel = _manual_panel(t, close, 15, d, pctl, total_w, price_ret, 15, ret, scale)
+    panel["price_alignment"] = {15: np.ones(n, dtype=np.int8)}
+    panel["price_strength_bin"] = {15: np.zeros(n, dtype=np.int8)}
+    panel["activity_bin"] = {15: np.zeros(n, dtype=np.int8)}
+    cand_idx = np.array([0, 1, 2, 27, 28, 29])
+    raw_mask = np.zeros(n, dtype=bool)
+    raw_mask[cand_idx] = True
+    cand = outcome_bundle(panel, cand_idx, 15, 15)
+    # Force: rows 0,1,2 (valid +6h comparator) get norm=0 (baseline); rows
+    # 27,28,29 (NO valid +6h comparator) get an extreme forced norm.
+    norm = cand["norm"].copy()
+    valid_mask = np.isin(cand["idx"], [0, 1, 2])
+    invalid_mask = np.isin(cand["idx"], [27, 28, 29])
+    norm[valid_mask] = 0.0
+    norm[invalid_mask] = 1e6
+    cand_forced = {**cand, "norm": norm}
+    out = negative_control_bundle(panel, cand_forced, raw_mask, 15, 15)
+    # only rows 0,1,2 contribute to shift support; the shifted position
+    # itself also has ret=0 -> shifted_mean=0 too.
+    assert out["shift_support_N"] == 3
+    assert out["candidate_shift_support_mean"] == pytest.approx(0.0, abs=1e-9)
+    assert out["shifted_mean"] == pytest.approx(0.0, abs=1e-9)
+    assert out["shift_delta"] == pytest.approx(0.0, abs=1e-9)
+    # but the FULL candidate mean (reported only for transparency) is
+    # indeed dominated by the extreme rows -- proving they really would
+    # have moved a naive full-mean-based delta.
+    assert out["full_candidate_mean"] > 100.0
+    for sign in (S_CONTINUATION, S_REVERSAL):
+        ev = claim_evaluation(out["full_candidate_mean"], matched_mean=0.0,
+                               structural_delta=0.0, shift_delta=out["shift_delta"], sign=sign)
+        assert ev["shift_gate"] is False
+
+
+def test_m01_02_shift_gate_uses_shift_delta_not_shifted_mean_alone():
+    ev = claim_evaluation(candidate_mean=999.0, matched_mean=0.0, structural_delta=0.0,
+                           shift_delta=0.06, sign=S_CONTINUATION)
+    assert ev["ORIENTED_SHIFT_DELTA"] == pytest.approx(0.06)
+    assert ev["shift_gate"] is True  # 0.06 >= CONTROL_DELTA_MIN, independent of candidate_mean=999
+
+
+# --- M-02: invalid structural-bin inputs fail closed ----------------------
+def test_m02_01_eligible_index_excludes_undeclared_minus1_price_alignment():
+    n = 5
+    t = np.arange(n, dtype=np.int64) * HTF_MS
+    d = np.array([1, 1, 1, 1, 1], dtype=np.int8)
+    abs_pctl = np.array([0.9, 0.9, 0.9, 0.9, 0.9])
+    panel = {
+        "t_ms": t, "in_development": np.ones(n, dtype=bool),
+        "feat": {15: {"D": d, "abs_imbalance_pctl": abs_pctl}},
+        "ret": {15: np.full(n, 0.01)}, "scale": {15: np.full(n, 0.01)},
+        "price_alignment": {15: np.array([1, 1, -1, 1, 1], dtype=np.int8)},   # row 2 undeclared
+        "price_strength_bin": {15: np.array([0, 0, 0, -1, 0], dtype=np.int8)},  # row 3 undeclared
+        "activity_bin": {15: np.array([0, -1, 0, 0, 0], dtype=np.int8)},        # row 1 undeclared
+    }
+    idx = eligible_index(panel, 15, 15)
+    assert set(idx.tolist()) == {0, 4}  # rows 1,2,3 excluded (each has one undeclared -1 dimension)
+
+
+def test_m02_02_valid_rows_unaffected_by_minus1_fix():
+    n = 3
+    t = np.arange(n, dtype=np.int64) * HTF_MS
+    d = np.ones(n, dtype=np.int8)
+    abs_pctl = np.full(n, 0.9)
+    panel = {
+        "t_ms": t, "in_development": np.ones(n, dtype=bool),
+        "feat": {15: {"D": d, "abs_imbalance_pctl": abs_pctl}},
+        "ret": {15: np.full(n, 0.01)}, "scale": {15: np.full(n, 0.01)},
+        "price_alignment": {15: np.zeros(n, dtype=np.int8)},
+        "price_strength_bin": {15: np.zeros(n, dtype=np.int8)},
+        "activity_bin": {15: np.zeros(n, dtype=np.int8)},
+    }
+    idx = eligible_index(panel, 15, 15)
+    assert set(idx.tolist()) == {0, 1, 2}
+
+
+# --- M-03: incomplete trailing-30d history fails closed --------------------
+def test_m03_01_insufficient_history_is_unavailable():
+    values = np.array([1.0, 2.0, 3.0])
+    pctl = rolling_midrank_percentile(values, window=5)
+    assert np.all(np.isnan(pctl))  # never a full 5-bar window elapsed
+
+
+def test_m03_02_exact_required_history_becomes_available():
+    # window=3: index 3 is the first index for which 3 PRIOR bars (0,1,2)
+    # have elapsed -- must be the first non-NaN value, not index 1 or 2.
+    values = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    pctl = rolling_midrank_percentile(values, window=3)
+    assert np.isnan(pctl[0])
+    assert np.isnan(pctl[1])
+    assert np.isnan(pctl[2])
+    assert not np.isnan(pctl[3])
+    assert not np.isnan(pctl[4])
+
+
+def test_m03_03_no_future_leakage_after_fix():
+    # A huge future value must not affect an earlier index's percentile,
+    # even once the window-completeness gate is enforced.
+    values = np.array([1.0, 1.0, 1.0, 1.0, 1000.0])
+    pctl = rolling_midrank_percentile(values, window=3)
+    # index3 uses only indices 0,1,2 (all 1.0) as reference -> its own
+    # value 1.0 is at the middle of a tied reference -> percentile 0.5.
+    assert pctl[3] == pytest.approx(0.5)
+
+
+def test_m03_04_activity_bin_respects_incomplete_history():
+    total_w = np.array([10.0, 20.0, 5.0])  # only 3 bars, far short of REF_STEPS=2880
+    pctl = rolling_midrank_percentile(total_w, window=lib.REF_STEPS)
+    b = bin_index_at_median(pctl)
+    assert np.all(b == -1)  # activity_bin must be entirely unavailable, never fabricated
+
+
+# --- M-04: deterministic fail-closed promotion evaluator -------------------
+def _promo_ev(**kwargs) -> dict:
+    base = {
+        "primary_gate": None, "mpie_gate": None, "structural_gate": None, "shift_gate": None,
+        "bootstrap_gate": {"1w": None, "2w": None, "4w": None},
+        "year_stability_gate": None, "direction_symmetry_gate": None, "directional_support": None,
+    }
+    base.update(kwargs)
+    return base
+
+
+def _all_true_ev() -> dict:
+    return _promo_ev(
+        primary_gate=True, mpie_gate=True, structural_gate=True, shift_gate=True,
+        bootstrap_gate={"1w": True, "2w": True, "4w": True},
+        year_stability_gate=True, direction_symmetry_gate=True, directional_support=True,
+    )
+
+
+def _dummy_cells(cell_ev=None):
+    """Every (W,q,H) cell present (required -- evaluate_promotion looks up
+    every combination), continuation/reversal both default to all-None
+    (fail-closed baseline) unless overridden via `cell_ev[(w,q,h,sign)]`."""
+    cell_ev = cell_ev or {}
+    cells = []
+    for w in lib.W_WINDOWS:
+        for q in lib.Q_THRESHOLDS:
+            for h in lib.HORIZONS:
+                ev_c = cell_ev.get((w, q, h, "continuation"), _promo_ev())
+                ev_r = cell_ev.get((w, q, h, "reversal"), _promo_ev())
+                cells.append({"W": w, "q": q, "H": h, "claim_evaluation": {"continuation": ev_c, "reversal": ev_r}})
+    return cells
+
+
+def test_m04_01_all_none_baseline_never_promotes():
+    cells = _dummy_cells()
+    out = evaluate_promotion(cells)
+    assert out["continuation"]["promoted"] is False
+    assert out["reversal"]["promoted"] is False
+    assert out["verdict"] == "H05_REJECTED_SPECIFIC_CLAIM"
+
+
+def _full_pass_neighborhood(sign_name: str) -> dict:
+    """A genuinely satisfying neighborhood for one sign: q in {0.80,0.90}
+    adjacent, H in {60,120} adjacent, all three W directionally
+    supporting, at a fixed W=30 -- everything else stays the all-None
+    fail-closed default (proving the evaluator is not vacuously True)."""
+    cell_ev = {}
+    for q in (0.80, 0.90):
+        for h in (60, 120):
+            cell_ev[(30, q, h, sign_name)] = _all_true_ev()
+    for w in lib.W_WINDOWS:
+        cell_ev[(w, 0.80, 60, sign_name)] = cell_ev.get((w, 0.80, 60, sign_name), _all_true_ev())
+        cell_ev.setdefault((w, 0.80, 60, sign_name), _all_true_ev())
+        # ensure directional_support is set for the W-adjacency check at
+        # the exact (q=0.80, H=60) cell used as the promotion anchor
+        prev = cell_ev.get((w, 0.80, 60, sign_name), _promo_ev())
+        prev["directional_support"] = True
+        cell_ev[(w, 0.80, 60, sign_name)] = prev
+    return cell_ev
+
+
+def test_m04_02_full_pass_neighborhood_promotes_expected_sign_only():
+    cell_ev = _full_pass_neighborhood("continuation")
+    cells = _dummy_cells(cell_ev)
+    out = evaluate_promotion(cells)
+    assert out["continuation"]["promoted"] is True
+    assert {"W": 30, "q": 0.80, "H": 60} in out["continuation"]["promoted_cells"]
+    assert out["reversal"]["promoted"] is False
+    assert out["verdict"] == "H05_FLOW_CONTINUATION_CANDIDATE_FOR_FREEZE"
+
+
+def test_m04_03_both_signs_promoted_is_audit_failure():
+    cell_ev = {}
+    cell_ev.update(_full_pass_neighborhood("continuation"))
+    cell_ev.update(_full_pass_neighborhood("reversal"))
+    cells = _dummy_cells(cell_ev)
+    out = evaluate_promotion(cells)
+    assert out["verdict"] == "AUDIT_FAILURE_BOTH_SIGNS_PROMOTED"
+
+
+def test_m04_04_missing_gate_none_is_fail_closed_not_pass():
+    """One mandatory gate (shift_gate) is None at the anchor cell; every
+    other input is a perfect pass. Promotion must still fail."""
+    cell_ev = _full_pass_neighborhood("continuation")
+    broken = dict(cell_ev[(30, 0.80, 60, "continuation")])
+    broken["shift_gate"] = None
+    cell_ev[(30, 0.80, 60, "continuation")] = broken
+    cells = _dummy_cells(cell_ev)
+    out = evaluate_promotion(cells)
+    assert out["continuation"]["promoted"] is False
+
+
+def test_m04_05_non_adjacent_q_cannot_promote():
+    """q in {0.80, 0.95} both fully pass but are NOT adjacent (0.90 is
+    missing) -- promotion must fail despite two passing q cells."""
+    cell_ev = {}
+    for q in (0.80, 0.95):
+        cell_ev[(30, q, 60, "continuation")] = _all_true_ev()
+    cells = _dummy_cells(cell_ev)
+    out = evaluate_promotion(cells)
+    assert out["continuation"]["promoted"] is False
+
+
+def test_m04_06_non_adjacent_h_cannot_promote():
+    """H in {15, 60} both fully pass but are NOT adjacent (30 is
+    missing) -- promotion must fail despite two passing H cells."""
+    cell_ev = {}
+    for h in (15, 60):
+        cell_ev[(30, 0.80, h, "continuation")] = _all_true_ev()
+    cells = _dummy_cells(cell_ev)
+    out = evaluate_promotion(cells)
+    assert out["continuation"]["promoted"] is False
+
+
+def test_m04_07_isolated_w_cannot_promote():
+    """Full q/H support at W=30 with directional_support True ONLY at
+    W=30 itself (neighbors W=15/W=60 both None/False) -- an isolated W
+    must not promote."""
+    cell_ev = {}
+    for q in (0.80, 0.90):
+        for h in (60, 120):
+            ev = _all_true_ev()
+            if (q, h) == (0.80, 60):
+                ev["directional_support"] = True
+            cell_ev[(30, q, h, "continuation")] = ev
+    # explicitly force neighbors' directional_support to False (not just
+    # the all-None default) to make the isolation unambiguous
+    cell_ev[(15, 0.80, 60, "continuation")] = _promo_ev(directional_support=False)
+    cell_ev[(60, 0.80, 60, "continuation")] = _promo_ev(directional_support=False)
+    cells = _dummy_cells(cell_ev)
+    out = evaluate_promotion(cells)
+    assert out["continuation"]["promoted"] is False
+
+
+def test_m04_08_missing_year_gate_blocks_promotion():
+    """year_stability_gate=None (e.g. fewer than 5 years of development
+    history available) at an otherwise-perfect neighborhood -- must fail
+    closed, never treated as pass."""
+    cell_ev = _full_pass_neighborhood("continuation")
+    broken = dict(cell_ev[(30, 0.80, 60, "continuation")])
+    broken["year_stability_gate"] = None
+    cell_ev[(30, 0.80, 60, "continuation")] = broken
+    cells = _dummy_cells(cell_ev)
+    out = evaluate_promotion(cells)
+    assert out["continuation"]["promoted"] is False
+
+
+def test_m04_09_empty_buy_or_sell_side_blocks_promotion():
+    """direction_symmetry_gate=None (e.g. one of BUY/SELL has zero
+    candidates, so the symmetry requirement itself is undefined) -- must
+    fail closed."""
+    cell_ev = _full_pass_neighborhood("continuation")
+    broken = dict(cell_ev[(30, 0.80, 60, "continuation")])
+    broken["direction_symmetry_gate"] = None
+    cell_ev[(30, 0.80, 60, "continuation")] = broken
+    cells = _dummy_cells(cell_ev)
+    out = evaluate_promotion(cells)
+    assert out["continuation"]["promoted"] is False
+
+
+# --- M-05: mandatory dataset identity (manifest) fail-closed ---------------
+def test_m05_01_missing_manifest_fails_closed(tmp_path: Path):
+    root = tmp_path / "dataset_no_manifest"
+    (root / "canonical" / "1m" / "monthly").mkdir(parents=True)
+    with pytest.raises(lib.H05Error, match="missing required dataset identity evidence"):
+        load_development_1m(root)
+
+
+def test_m05_02_mismatched_snapshot_id_fails_closed(tmp_path: Path):
+    root = tmp_path / "dataset_wrong_manifest"
+    (root / "canonical" / "1m" / "monthly").mkdir(parents=True)
+    reports = root / "reports"
+    reports.mkdir(parents=True)
+    (reports / "snapshot_manifest.json").write_text('{"snapshot_id": "deadbeef"}', encoding="utf-8")
+    with pytest.raises(lib.H05Error, match="runtime snapshot_id"):
+        load_development_1m(root)
+
+
+def test_m05_03_matching_manifest_no_longer_short_circuits_missing_check(tmp_path: Path):
+    """A dataset root with the CORRECT manifest but no parquet at all must
+    fail at the parquet-directory stage (list_development_parquet_paths),
+    proving the manifest check runs first and, once satisfied, genuinely
+    lets execution proceed to the next real check rather than silently
+    succeeding."""
+    root = tmp_path / "dataset_correct_manifest_no_parquet"
+    reports = root / "reports"
+    reports.mkdir(parents=True)
+    (reports / "snapshot_manifest.json").write_text(
+        f'{{"snapshot_id": "{lib.REQUIRED_SNAPSHOT}"}}', encoding="utf-8",
+    )
+    with pytest.raises(lib.H05Error, match="missing canonical 1m monthly dir"):
+        load_development_1m(root)
+
+
+# --- regression check: existing pre-repair tests already updated above ----
+def test_audit_repair_full_suite_still_internally_consistent():
+    """Sanity check that the repaired evaluate_cell pipeline still
+    produces both claim_evaluation orientations with the new field names
+    wired through end-to-end (not just at the unit level)."""
+    n = 3200
+    rng = np.random.default_rng(3)
+    close = 100 * np.exp(np.cumsum(rng.normal(0, 0.0002, size=n)))
+    base = np.full(n, 100.0)
+    buy = 50.0 + rng.normal(0, 5, size=n)
+    frame15 = _frame15_manual(n, lib.DEV_START_MS, close, base, buy)
+    panel = lib.build_panel(frame15)
+    cell = lib.evaluate_cell(panel, 15, 0.80, 15)
+    assert "shift_delta" in cell["negative_control"]
+    assert "structural_delta" in cell["structural_control"]
+    for sign_name in ("continuation", "reversal"):
+        ev = cell["claim_evaluation"][sign_name]
+        assert "ORIENTED_SHIFT_DELTA" in ev
+        assert "ORIENTED_STRUCTURAL_DELTA" in ev

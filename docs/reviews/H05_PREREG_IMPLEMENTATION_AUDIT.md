@@ -9,10 +9,18 @@ computation. Not a design change. Not R3. Not H06.
 created from that exact design HEAD.
 **Real H05 outcomes computed:** **NONE.**
 **2025 inspected:** **NO.** **2026 inspected:** **NO.**
-**Amendment:** this audit has been updated in place (section 6, 26, 27)
-to record one PRE-OUTCOME STRUCTURAL-SUPPORT CORRECTION, which supersedes
+**Amendment 1:** this audit was updated in place (section 6, 26, 27) to
+record one PRE-OUTCOME STRUCTURAL-SUPPORT CORRECTION, which superseded
 `H05_PREREG_SHA_V1 = 9502006eb4797a9947c61d8d04acd1345ed41e5e` (preserved,
 unamended). No real H05 outcome was inspected to make this correction.
+**Amendment 2 (this revision):** a second, independent pre-outcome audit
+found B-01 (structural support) `CLOSED` on independent re-verification,
+plus five further findings (M-01, M-02, M-03, M-04, M-05) against
+`70797aaeed70fa3d4c584d96ca929f5a8e7e92d1` (also preserved, unamended,
+now superseded), all repaired in a bounded pre-outcome fix — see section
+28. **This HEAD is a REPAIR CANDIDATE only and is not itself
+independently audited or outcome-ready.** No real H05 outcome was
+inspected to make any of these findings or repairs.
 
 This audit checks that the preregistration
 (`docs/research/H05_TAKER_IMBALANCE_PREREG.md` /
@@ -386,7 +394,7 @@ git diff --check                                                  # clean
 dataset was opened. No real H05 event counts, percentiles, or future
 returns were computed.
 
-## 26. Objective blockers remaining
+## 26. Objective blockers remaining (as of this correction round)
 
 **None identified after this correction.** The BLOCKER originally noted
 in section 6 (the structural gate compared the full, unrestricted
@@ -396,7 +404,15 @@ the like-with-like `structural_delta` computation. The
 clustering-diagnostic population choice (section 18) remains a
 documented, non-blocking clarification, unaffected by this correction.
 
-## 27. Freeze identity
+**Superseded by section 28:** a subsequent, independent pre-outcome audit
+found five further findings (M-01 through M-05) against the commit this
+section originally cleared (`70797aaeed70fa3d4c584d96ca929f5a8e7e92d1`).
+This section's "none identified" conclusion is accurate only for the
+narrower B-01 structural-support scope it actually checked — it is
+preserved here unedited, per the "do not erase history" requirement of
+the repair task that added section 28.
+
+## 27. Freeze identity (as of this correction round)
 
 `H05_PREREG_SHA_V1` = `9502006eb4797a9947c61d8d04acd1345ed41e5e`
 (status `SUPERSEDED_PRE_OUTCOME`, preserved unamended — see
@@ -405,8 +421,249 @@ correction is committed as a normal descendant of that commit
 (`research(h05): align structural gate on overlap support`), containing
 the corrected prereg MD/JSON, the corrected implementation, the
 structural-support-correction regression tests, this audit update, and
-the ledger correction entry. That descendant commit becomes the new
-`H05_PREREG_SHA` and, since the implementation is fully frozen in the
-same commit, also the new `H05_RESEARCH_CODE_FREEZE_SHA`. No design
-parameter changed; only the structural estimand's support was corrected,
-pre-outcome, without inspecting any real H05 outcome.
+the ledger correction entry.
+
+**Superseded by section 28:** the sentence below, declaring the resulting
+commit (`70797aaeed70fa3d4c584d96ca929f5a8e7e92d1`) to be both
+`H05_PREREG_SHA` and `H05_RESEARCH_CODE_FREEZE_SHA`, was itself premature
+— a subsequent independent audit found five further findings (M-01
+through M-05) against it, and it is now also `SUPERSEDED_PRE_OUTCOME` per
+`docs/research/H05_TAKER_IMBALANCE_PREREG.json` `version_history`. Both
+identities remain unset pending a further independent re-audit of the
+repair in section 28. The original sentence is preserved unedited below,
+per the "do not erase history" requirement:
+
+> That descendant commit becomes the new `H05_PREREG_SHA` and, since the
+> implementation is fully frozen in the same commit, also the new
+> `H05_RESEARCH_CODE_FREEZE_SHA`. No design parameter changed; only the
+> structural estimand's support was corrected, pre-outcome, without
+> inspecting any real H05 outcome.
+
+---
+
+## 28. Second independent pre-outcome audit round — B-01 re-verification, M-01 through M-05, M-09
+
+**Status:** PRE-OUTCOME AUDIT + BOUNDED REPAIR. Not a market-outcome
+computation. Not a design change. Not R3. Not H06. Not Batch01 synthesis.
+**Audited commit:** `70797aaeed70fa3d4c584d96ca929f5a8e7e92d1` (repair
+candidate, itself now superseded by this repair round's new commit).
+**Repair scope:** strictly bounded to findings that could change H05
+pass/fail, change the preregistered estimand, create an undeclared
+analytical degree of freedom, permit fail-open behavior, or prevent
+reproducibility of the frozen analytical procedure. No new hypothesis, no
+new threshold, no new control, no new search dimension, no `W`/`q`/`H`
+change, no sign-multiplicity change, and no general refactoring were
+introduced.
+
+### B-01 (structural support) — independent re-verification
+
+**Classification: `CLOSED`.**
+
+Re-inspected the exact diff `9502006..70797aa` against all seven required
+criteria:
+
+1. **Identical overlap strata on both sides** — confirmed: `overlap_strata
+   = cand_strata & ctrl_strata`, and both `cand_stratum_mean`/
+   `ctrl_stratum_mean` are populated only `for k in overlap_strata`.
+2. **Identical candidate-derived weights on both sides** — confirmed: one
+   `weight` dict (`{k: n / total_overlap_cand_n ...}`) is applied to both
+   `candidate_overlap_standardized_mean` and
+   `structural_control_standardized_mean`.
+3. **Unmatched candidate strata cannot affect the delta** — confirmed:
+   `cand_by_stratum` includes every candidate, but the summation loop only
+   ever reads `overlap_strata` keys; unmatched-stratum rows never enter
+   `cand_stratum_mean`/`cand_stratum_n`/`weight`.
+4. **The candidate-side standardized mean actually enters the gate** —
+   confirmed: `structural_delta = candidate_overlap_standardized_mean -
+   structural_control_standardized_mean`, and `ORIENTED_STRUCTURAL_DELTA
+   = oriented_from_delta(structural_delta, sign)`.
+5. **`W` directional structural support uses the same repaired estimand**
+   — confirmed: `directional_support` takes `structural_delta` (not a
+   mean) and `evaluate_cell` passes `structural["structural_delta"]` into
+   it.
+6. **No alternative code path still uses the old full-candidate structural
+   delta** — confirmed via `grep -n "structural_mean\b\|candidate_
+   standardized_mean\b"` across both `h05_taker_imbalance_lib.py` and
+   `h05_taker_imbalance.py`: zero matches.
+7. **The raw primary `candidate_mean` is unchanged for gates requiring the
+   full population** — confirmed: `ORIENTED_PRIMARY`, `ORIENTED_MATCHED_
+   DELTA`, and (at the time of this check) `ORIENTED_SHIFT_DELTA` all
+   still read the same `candidate_mean` argument, unmodified.
+
+**Independent adversarial re-verification** (constructed fresh, not
+reusing the existing regression tests): a synthetic 12-row fixture with
+one overlap stratum (candidate mean = control mean = `0.0`) and one
+unmatched candidate stratum forced to `1e6`. Result: `full_candidate_mean
+= 500000.0` (moved materially), but `candidate_overlap_standardized_mean
+= structural_control_standardized_mean = structural_delta = 0.0` and
+`structural_gate` is `False` for both `S=+1` and `S=-1`. Reproduced as
+`test_b01_structural_gate_unaffected_by_unmatched_extreme_independent_check`.
+
+### M-01 — `+6h` population support drift
+
+**Classification: `REPAIRED`.**
+
+Confirmed the same defect class as B-01, transplanted onto the negative
+control: `negative_control_bundle` computed `shifted_mean` only from
+candidates with a valid, finite-after-normalization `+6h` comparator (a
+subset), while `candidate_minus_shifted` differenced it against `_mean
+(cand["norm"])` — the FULL candidate population. Repaired by computing
+`candidate_shift_support_mean` over exactly the positions that
+contributed to `shifted_mean` (tracked via `shift_support_positions`,
+filtered by the same `elig` mask used for `shifted_mean` itself), and
+defining `shift_delta = candidate_shift_support_mean - shifted_mean`.
+`claim_evaluation`'s `shift_delta` parameter (renamed from
+`shifted_mean`) now uses `oriented_from_delta`/`gate_from_delta`, exactly
+mirroring the structural fix. The full candidate mean is retained as
+`full_candidate_mean` for transparency only. Verified by
+`test_m01_01_shift_delta_uses_same_support_not_full_candidate_mean`
+(candidates without a valid `+6h` comparator forced to `1e6`; the full
+mean moves past `100`, but `shift_delta` stays exactly `0.0` and
+`shift_gate` is `False` for both signs) and
+`test_m01_02_shift_gate_uses_shift_delta_not_shifted_mean_alone`.
+
+### M-02 — invalid structural strata encoded as `-1`
+
+**Classification: `REPAIRED`.**
+
+Confirmed: `price_alignment_index`/`bin_index_at_median` both return `-1`
+where their underlying value is unavailable, and neither `eligible_index`
+nor `candidate_mask`/`ordinary_control_mask` previously excluded `-1`
+rows — such a row could enter a structural stratum key as an undeclared
+level. Repaired by adding `(pa != -1) & (psb != -1) & (ab != -1)` to
+`eligible_index` — the single gate both candidate and ordinary-control
+indices are intersected with, so both sides fail closed identically. No
+`UNKNOWN` stratum was invented. Verified by
+`test_m02_01_eligible_index_excludes_undeclared_minus1_price_alignment`
+(three rows, each with exactly one undeclared `-1` dimension, are all
+excluded) and `test_m02_02_valid_rows_unaffected_by_minus1_fix`.
+
+### M-03 — incomplete trailing-30d activity history
+
+**Classification: `REPAIRED`.**
+
+Confirmed: `rolling_midrank_percentile` computed a percentile as soon as
+`n_ref > 0` (at least one finite prior reference value), producing an
+unintended EXPANDING window for the first `window-1` rows of any series —
+not the frozen "trailing 30-day" requirement. This function is shared by
+`ABS_IMBALANCE_PCTL_W`, the price-strength percentile, and the activity
+percentile alike; the root cause was fixed once, in the shared function,
+rather than duplicated per-caller (the narrower, more consistent fix —
+special-casing only `activity_bin` would have left the identical bug live
+in the imbalance-extremeness and price-strength percentiles, an
+inconsistency). Repaired by adding a `pushed_count` clock: a percentile
+is now withheld until `pushed_count >= window` (a full window of PRIOR
+bars has elapsed — a time/grid requirement, not a "N finite observations"
+requirement; some of those prior bars may still be individually
+non-finite, correctly yielding a smaller `N_ref`). No future observation
+was ever used before this fix and none is used after it. Verified by
+`test_m03_01_insufficient_history_is_unavailable`,
+`test_m03_02_exact_required_history_becomes_available` (first non-NaN
+value is exactly at index `window`, not `1`), `test_m03_03_no_future
+_leakage_after_fix`, and `test_m03_04_activity_bin_respects_incomplete
+_history` (3 bars against `REF_STEPS=2880` yields entirely unavailable
+`activity_bin`, never fabricated).
+
+### M-04 — no machine-enforced final promotion decision
+
+**Classification: `REPAIRED`.**
+
+Confirmed: `evaluate_h05`/`evaluate_cell` computed every individual gate
+per cell but never combined them, deliberately leaving cross-cell
+`q`/`H`/`W`-neighborhood aggregation and final promotion to a future
+human-reviewed development-result round (matching H04's own historical
+practice). Per M-04's explicit requirement, implemented
+`evaluate_promotion(cells)` (new function) plus a private
+`_cell_all_gates_pass(ev)` fail-closed conjunction helper. Uses ONLY the
+already-frozen criteria M-04 lists (primary, MPIE, structural, shift,
+1w/2w/4w bootstrap, `q` 2-of-3-adjacent full-gate-passing support, `H`
+2-adjacent full-gate-passing support, `W` ≥1-adjacent directional support
+via the existing `has_adjacent_w_directional_support`, yearly ≥4/5,
+BUY-side/SELL-side primary orientation — implemented via the existing
+`direction_symmetry_gate`, which already implements exactly that pair of
+requirements together, reused rather than duplicated). Every component
+check is `is True`, never a truthy check, so `None` is always fail-closed.
+Both-signs-promoted returns `AUDIT_FAILURE_BOTH_SIGNS_PROMOTED`, matching
+the already-frozen audit-failure rule. Wired into `evaluate_h05`'s output
+as `results["promotion"]`. Deliberately does **not** auto-distinguish
+`H05_REJECTED_SPECIFIC_CLAIM` from `H05_INCONCLUSIVE` — documented as an
+explicit, intentional scope boundary (that distinction is not reducible
+to the listed criteria without inventing a new numeric threshold, which
+M-04 prohibits), not a gap. Verified by nine tests
+(`test_m04_01` through `test_m04_09`): an all-`None` baseline never
+promotes; a genuinely constructed passing neighborhood promotes exactly
+the expected sign and cell; both-signs-promoted triggers the audit
+-failure verdict; a single `None` gate at an otherwise-perfect cell blocks
+promotion; non-adjacent `q`, non-adjacent `H`, and an isolated `W` (real
+neighbors forced to `directional_support=False`) each independently block
+promotion; a missing/`None` `year_stability_gate` and a missing/`None`
+`direction_symmetry_gate` each independently block promotion.
+
+### M-05 — dataset identity / manifest optional
+
+**Classification: `REPAIRED`.**
+
+Confirmed: `load_development_1m` only validated
+`reports/snapshot_manifest.json` `if runtime_snap.exists()` — a
+`dataset_root` with no manifest at all silently skipped identity
+verification entirely and proceeded to read whatever parquet was present.
+Repaired by making the manifest's existence mandatory: `if not
+runtime_snap.exists(): raise H05Error(...)`, before the existing
+`snapshot_id` mismatch check. No real parquet content was opened or
+inspected while making or testing this fix — every test uses a
+`tmp_path`-scoped synthetic directory tree with zero real data. Verified
+by `test_m05_01_missing_manifest_fails_closed`,
+`test_m05_02_mismatched_snapshot_id_fails_closed`, and
+`test_m05_03_matching_manifest_no_longer_short_circuits_missing_check`
+(a correct manifest with no parquet at all fails at the next real check,
+`list_development_parquet_paths`, proving the manifest check runs first
+and, once satisfied, genuinely allows progression rather than silently
+succeeding).
+
+### M-09 — numpy/pandas reproducibility
+
+**Classification: `ALREADY_CLOSED`.**
+
+`requirements.txt` already pins `numpy==2.1.3` and `pandas==2.2.3`
+(unconditionally, not research-specific). The validated H05 test
+environment for this repair round used exactly these versions
+(`numpy 2.1.3`, `pandas 2.2.3`), plus `pyarrow==17.0.0` from
+`requirements-research.txt` (also already pinned). No repository
+dependency file was modified — nothing was unpinned, and no package was
+opportunistically upgraded. Recorded here per M-09's own instruction to
+"record the versions used": **numpy 2.1.3, pandas 2.2.3, pyarrow
+17.0.0, Python 3.11.15.**
+
+### Findings explicitly NOT repaired (out of bounded scope)
+
+None of M-01 through M-05 had a "descriptive-only" component that would
+have justified leaving any part unrepaired under the Phase 3 bounded
+-repair criteria — all five could change `H05` pass/fail or permitted
+fail-open behavior, so all five were repaired in full within their stated
+scope. No repair in this round touched quote-volume diagnostics,
+clustering-diagnostic cosmetics, bootstrap methodology, alternative
+controls, or additional robustness checks — all explicitly out of scope
+per the repair task's Phase 3 exclusions.
+
+### Verification (synthetic/unit only, this round)
+
+```
+python -m pytest -q tests/research/test_h05_taker_imbalance.py   # 95 passed (73 pre-existing + 22 new)
+python -m compileall -q scripts/research tests/research           # clean
+git diff --check                                                  # clean
+python -c "import json; json.load(open('docs/research/H05_TAKER_IMBALANCE_PREREG.json'))"  # valid JSON
+```
+
+`--stage dev-run` was **not** invoked. No `*.parquet` file from the
+accepted dataset was opened. No real H05 event counts, percentiles, or
+future returns were computed. 2025/2026 were not inspected. Batch01
+synthesis was not started.
+
+### Identity after this repair round
+
+This repair is committed as a normal descendant of
+`70797aaeed70fa3d4c584d96ca929f5a8e7e92d1` (that commit is not amended).
+The resulting commit is a **repair candidate only** —
+`H05_PREREG_SHA` and `H05_RESEARCH_CODE_FREEZE_SHA` remain **unset**,
+pending a further independent pre-outcome re-audit, per this repair
+task's own explicit instruction.

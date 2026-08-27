@@ -1,22 +1,46 @@
 # H05 — Taker Imbalance -> Subsequent Return Distribution: Preregistration
 
-**Status:** PREREGISTERED_EXPLORATORY. This document, together with
-`docs/research/H05_TAKER_IMBALANCE_PREREG.json` (the machine-readable
-frozen spec) and `scripts/research/h05_taker_imbalance_lib.py` /
-`scripts/research/h05_taker_imbalance.py` (the frozen implementation),
-constitutes the H05 prereg + code freeze. No real H05 market outcomes
-have been computed. 2025 and 2026 remain untouched.
+**Status:** REPAIR_CANDIDATE, NOT YET INDEPENDENTLY AUDITED. This
+document, together with `docs/research/H05_TAKER_IMBALANCE_PREREG.json`
+(the machine-readable frozen spec) and
+`scripts/research/h05_taker_imbalance_lib.py` /
+`scripts/research/h05_taker_imbalance.py` (the implementation), describes
+a bounded pre-outcome repair. `H05_PREREG_SHA` and
+`H05_RESEARCH_CODE_FREEZE_SHA` are **not** set as of this revision — both
+require a further independent pre-outcome re-audit. No real H05 market
+outcomes have been computed. 2025 and 2026 remain untouched.
 
-**Amendment history:** this preregistration underwent one PRE-OUTCOME
-STRUCTURAL-SUPPORT CORRECTION (this revision), which supersedes
-`H05_PREREG_SHA_V1 = 9502006eb4797a9947c61d8d04acd1345ed41e5e` (preserved,
-unamended, `SUPERSEDED_PRE_OUTCOME`). An independent pre-outcome audit
-found that V1's structural gate compared the FULL (unrestricted)
-candidate-population mean against a control mean standardized only over
-overlap strata — quantities on different support, letting unmatched
--candidate-stratum outcomes move the gate without any corresponding
-control observation. See section 6 for the corrected, like-with-like
-estimand. **No real H05 outcome was inspected to make this correction.**
+**Amendment history:**
+
+1. One PRE-OUTCOME STRUCTURAL-SUPPORT CORRECTION, which superseded
+   `H05_PREREG_SHA_V1 = 9502006eb4797a9947c61d8d04acd1345ed41e5e`
+   (preserved, unamended, `SUPERSEDED_PRE_OUTCOME`). An independent
+   pre-outcome audit found that V1's structural gate compared the FULL
+   (unrestricted) candidate-population mean against a control mean
+   standardized only over overlap strata — quantities on different
+   support, letting unmatched-candidate-stratum outcomes move the gate
+   without any corresponding control observation. See section 6 for the
+   corrected, like-with-like estimand.
+2. **(This revision.)** A second independent pre-outcome audit
+   re-verified the structural-support correction (finding **B-01**,
+   `CLOSED`) and identified five further findings against
+   `70797aaeed70fa3d4c584d96ca929f5a8e7e92d1` (also preserved, unamended,
+   `SUPERSEDED_PRE_OUTCOME`): **M-01** (the `+6h` negative control had the
+   identical support-mismatch defect — `shifted_mean` was computed only
+   over candidates with a valid `+6h` comparator while it was differenced
+   against the FULL candidate mean; fixed like-with-like, section 9);
+   **M-02** (undeclared `-1` `price_alignment`/`price_strength_bin`/
+   `activity_bin` levels could enter structural strata keys; now excluded
+   at the shared eligibility gate, section 6); **M-03** (the shared
+   trailing-percentile helper computed an unintended EXPANDING window for
+   the first `window-1` rows instead of requiring the full trailing
+   30-day history; now fails closed until a full window has elapsed,
+   section 3); **M-04** (no machine-enforced, fail-closed final promotion
+   evaluator existed; one is now implemented, section 13); **M-05** (the
+   development loader only validated dataset identity IF a manifest
+   happened to exist; a manifest is now mandatory, section 1).
+
+**No real H05 outcome was inspected to make any of these corrections.**
 No design parameter (mechanism, signs, `W`/`q`/`H` surface, seeds, `MPIE`,
 `CONTROL_DELTA_MIN`, strata definitions) changed.
 
@@ -58,6 +82,13 @@ path must resolve strictly before `2025-01-01T00:00:00Z`; candidates
 whose horizon would cross the boundary are excluded, never truncated.
 See `windows` in the JSON.
 
+**Dataset identity now mandatory (M-05):** the development loader
+requires `reports/snapshot_manifest.json` to exist under `--dataset-root`
+and match `REQUIRED_SNAPSHOT` — previously the check was skipped entirely
+when no manifest was present, which could let a non-accepted parquet tree
+be read under the same frozen research SHA without any warning. See
+`dataset.identity_evidence_mandatory` in the JSON.
+
 ## 2. Primary flow feature
 
 ```
@@ -86,6 +117,13 @@ candidate membership at `q` is `ABS_IMBALANCE_PCTL_W(T) >= q`. See
 (both preregistered signs predict a monotonic severity dose-response;
 unlike H04's pullback depth, there is no "could mean either regime"
 ambiguity here).
+
+**Trailing-history fail-closed (M-03):** the shared trailing-percentile
+helper used for `ABS_IMBALANCE_PCTL_W`, the price-strength percentile,
+and the activity percentile alike now withholds a percentile until a full
+30-day (`window`) span of PRIOR grid bars has actually elapsed — not as
+soon as a single reference observation exists. See
+`flow_extremeness.trailing_history_fail_closed` in the JSON.
 
 ## 4. Claim orientation (S) — both signs preregistered together
 
@@ -169,14 +207,24 @@ outcomes, they could move the full candidate mean while having no
 corresponding structural-control observation at all, letting the gate
 pass or fail on composition the control never actually saw. The full,
 unrestricted candidate-population mean remains the estimand for every
-OTHER gate (primary, matched, shift, bootstrap, year stability, BUY/SELL
-symmetry) — matched-random and `+6h` have their own candidate/reference
-semantics and are not restricted by structural-control overlap; only the
-structural estimand changes here. Control-only strata get zero weight;
+OTHER gate not itself subject to its own same-support correction (primary,
+matched, bootstrap, year stability, BUY/SELL symmetry) — the `+6h` shift
+gate has its own, separately corrected same-support estimand (`shift_delta`,
+see section 9/M-01), not this structural overlap; only the structural
+estimand changes in this section. Control-only strata get zero weight;
 unmatched candidates are reported, never dropped; insufficient overlap
 support (zero overlap strata) routes to `INCONCLUSIVE`, never a
 post-outcome loosening or a fabricated numeric effect. See
 `structural_control` in the JSON.
+
+**Undeclared-level fail-closed (M-02):** `price_alignment`/
+`price_strength_bin`/`activity_bin` are each internally coded `-1` where
+their own underlying value is not yet available (e.g. before enough
+trailing history has elapsed). Candidate/control eligibility now excludes
+`-1` on all three dimensions — no row can enter a structural stratum key
+carrying an undeclared level instead of one of the five frozen
+categories; no new "UNKNOWN" stratum is invented. See
+`structural_control.undeclared_level_fail_closed` in the JSON.
 
 ## 7. Primary outcome and normalization
 
@@ -206,6 +254,17 @@ for the same `(W, q)`. `+6h` same-UTC-day circular shift, preserving each
 candidate's own `D`; collision fraction reported; gate is the exact
 `ORIENTED_SHIFT_DELTA >= CONTROL_DELTA_MIN` contrast. See
 `matched_random`, `negative_control` in the JSON.
+
+**Same-support correction (M-01):** not every candidate has a valid `+6h`
+comparator (the shifted timestamp can fall outside the grid, outside
+`in_development`, or land on a non-finite return/scale). `shift_delta =
+candidate_shift_support_mean - shifted_mean` is now computed with BOTH
+sides restricted to exactly the same valid-comparator candidate subset —
+previously `shifted_mean` (a subset mean) was differenced against the
+FULL candidate-population mean, the identical support-mismatch defect the
+structural-support correction (section 6) already closed, just for the
+negative control instead of the structural control. See
+`negative_control.same_support_correction` in the JSON.
 
 ## 10. Dependence and candidate-clustering diagnostic
 
@@ -265,6 +324,17 @@ promotion conditions simultaneously (an implementation error or
 impossible result), that is treated as an **audit failure** — the
 implementation does not silently choose one. See `verdict_labels`,
 `both_signs_cannot_pass_simultaneously` in the JSON.
+
+**Machine-enforced promotion evaluator (M-04):** the promotion decision
+(whether the `candidate_for_freeze_requirements` are jointly satisfied,
+including the `q`/`H`/`W` neighborhood-robustness conditions) is now
+computed deterministically by
+`scripts.research.h05_taker_imbalance_lib.evaluate_promotion`, wired into
+`evaluate_h05`'s own output as `results["promotion"]`. It fails closed on
+any missing/`None` mandatory gate and introduces no new criterion. It
+does not auto-distinguish `H05_REJECTED_SPECIFIC_CLAIM` from
+`H05_INCONCLUSIVE` (see `promotion_evaluator.scope_boundary` in the
+JSON). See `promotion_evaluator` in the JSON.
 
 ## 14. Post-hoc quarantine
 

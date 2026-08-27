@@ -876,6 +876,76 @@ Do not run `--stage dev-run` against real data yet. Do not open 2025 or
 
 ---
 
+### H05 — second pre-outcome audit round: B-01 re-verification + M-01..M-05 bounded repair
+
+Branch: `research/h05-taker-imbalance-discovery`, PR #83
+(OPEN/DRAFT/UNMERGED). Normal descendant commit of
+`70797aaeed70fa3d4c584d96ca929f5a8e7e92d1` (not amended). Audited that
+commit's real-data run attempt (blocked earlier by a missing dataset, no
+outcomes computed) and this repair are entirely separate: this round
+performs **no** real-data access whatsoever.
+
+**H05_REPAIR_CANDIDATE_SHA:** the commit that adds this entry.
+**`H05_PREREG_SHA` and `H05_RESEARCH_CODE_FREEZE_SHA` remain UNSET** —
+both require a further independent pre-outcome re-audit before being set,
+per this round's own explicit instruction.
+
+An independent pre-outcome audit re-verified **B-01** (the structural
+-support finding closed in the prior round) as genuinely `CLOSED` (all 7
+required criteria confirmed, plus a fresh independent adversarial
+construction), and found five further findings against
+`70797aaeed70fa3d4c584d96ca929f5a8e7e92d1`, all now `REPAIRED`:
+
+- **M-01** (`+6h` same-support drift): `shifted_mean` was computed only
+  over candidates with a valid `+6h` comparator, but differenced against
+  the FULL candidate mean — the identical support-mismatch defect B-01
+  closed, just for the negative control. Fixed: `shift_delta =
+  candidate_shift_support_mean - shifted_mean`, both sides restricted to
+  the same valid-comparator subset.
+- **M-02** (undeclared `-1` structural strata): `price_alignment`/
+  `price_strength_bin`/`activity_bin` rows with an unavailable underlying
+  value (`-1`) were not excluded from candidate/control eligibility,
+  risking an undeclared analytical stratum level. Fixed: `eligible_index`
+  now excludes `-1` on all three dimensions for both sides.
+- **M-03** (incomplete trailing-30d history): the shared
+  `rolling_midrank_percentile` helper (used by `ABS_IMBALANCE_PCTL_W`,
+  price-strength, and activity alike) returned a percentile from an
+  unintended EXPANDING window for the first `window-1` rows instead of
+  requiring the full trailing 30-day history. Fixed once, at the shared
+  root cause: a percentile is now withheld until a full `window` of PRIOR
+  bars has elapsed.
+- **M-04** (no machine-enforced promotion decision): implemented
+  `evaluate_promotion(cells)`, a deterministic, fail-closed evaluator over
+  exactly the already-frozen candidate-for-freeze criteria (no new
+  criterion), wired into `evaluate_h05`'s output as `results["promotion"]`.
+  Deliberately does not auto-distinguish `REJECTED_SPECIFIC_CLAIM` from
+  `INCONCLUSIVE` (documented scope boundary, not a gap).
+- **M-05** (dataset identity optional): `load_development_1m` only
+  validated the snapshot manifest IF one happened to exist. Fixed: the
+  manifest's existence is now mandatory; its absence raises `H05Error`
+  before any parquet is read.
+- **M-09** (numpy/pandas pinning): `ALREADY_CLOSED` — `requirements.txt`
+  already pins `numpy==2.1.3`/`pandas==2.2.3`, matching the validated H05
+  test environment (`numpy 2.1.3`, `pandas 2.2.3`, `pyarrow 17.0.0`,
+  Python 3.11.15). No dependency file changed.
+
+95 tests total (73 pre-existing + 22 new), all passing on synthetic
+fixtures only. `python -m compileall` and `git diff --check` clean. No
+`W`/`q`/`H` change, no sign-multiplicity change, no new threshold/control/
+search dimension, no general refactoring. Full detail:
+`docs/reviews/H05_PREREG_IMPLEMENTATION_AUDIT.md` section 28.
+
+Real H05 outcomes computed: **NO**. Real accepted parquet opened: **NO**.
+2025: **UNTOUCHED**. 2026: **UNTOUCHED**. Batch01 synthesis: **NOT
+STARTED**.
+
+Do not run `--stage dev-run` against real data yet. Do not open 2025 or
+2026 for H05. Do not start Batch01 synthesis yet. Do not start H06. Do
+not treat this repair candidate as independently audited or
+outcome-ready.
+
+---
+
 ## Next research program — hypothesis discovery after E1
 
 Status: `AUTHORIZED_FOR_DISCOVERY / NOT YET CONFIRMATORY`.

@@ -1,11 +1,21 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
+  "identity_status": "REPAIR_CANDIDATE_NOT_YET_INDEPENDENTLY_AUDITED",
+  "identity_status_note": "H05_PREREG_SHA and H05_RESEARCH_CODE_FREEZE_SHA are NOT set by this document as of schema_version 3 -- an independent pre-outcome audit found B-01 (structural support) plus findings M-01/M-02/M-03/M-04/M-05 against the prior repair candidate 70797aaeed70fa3d4c584d96ca929f5a8e7e92d1, which is itself now superseded by a bounded repair. Both identities require a further independent pre-outcome re-audit before being set.",
   "version_history": [
     {
       "sha": "9502006eb4797a9947c61d8d04acd1345ed41e5e",
       "label": "H05_PREREG_SHA_V1",
       "status": "SUPERSEDED_PRE_OUTCOME",
       "reason": "structural_control_bundle computed the structural gate/delta from the FULL (unrestricted) candidate_mean against a control mean standardized only over candidate/control overlap strata -- comparing quantities on different support; unmatched candidate strata could move the full candidate mean with no corresponding structural-control observation at all",
+      "real_h05_outcomes_seen_before_supersession": false,
+      "audit_doc": "docs/reviews/H05_PREREG_IMPLEMENTATION_AUDIT.md"
+    },
+    {
+      "sha": "70797aaeed70fa3d4c584d96ca929f5a8e7e92d1",
+      "label": "H05_PREREG_SHA_V2_REPAIR_CANDIDATE",
+      "status": "SUPERSEDED_PRE_OUTCOME",
+      "reason": "B-01 (structural support) was independently re-verified as correctly closed in this commit, but a subsequent independent audit found five further pre-outcome blockers/findings: M-01 (+6h shift_delta compared the full candidate mean against a shifted_mean computed only over the valid-comparator subset -- same support mismatch as B-01, just for the negative control instead of the structural control), M-02 (undeclared -1 price_alignment/price_strength_bin/activity_bin levels could enter structural strata keys, since eligible_index did not exclude them), M-03 (rolling_midrank_percentile computed an unintended EXPANDING window for the first `window-1` rows instead of requiring the full trailing 30-day history), M-04 (no machine-enforced, fail-closed final promotion evaluator existed), M-05 (load_development_1m only checked the snapshot manifest IF one happened to exist, silently proceeding when it was absent entirely)",
       "real_h05_outcomes_seen_before_supersession": false,
       "audit_doc": "docs/reviews/H05_PREREG_IMPLEMENTATION_AUDIT.md"
     }
@@ -65,7 +75,14 @@
     "dataset_id": "CORE_BTC_BINANCE_V0",
     "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
     "research_authorized_required": true,
-    "confirmatory_authorized_required": false
+    "confirmatory_authorized_required": false,
+    "identity_evidence_mandatory": {
+      "finding": "M-05",
+      "requirement": "a runtime reports/snapshot_manifest.json under --dataset-root is REQUIRED, not optional",
+      "problem": "the loader previously only validated the manifest IF one happened to exist, silently proceeding to read whatever parquet was present under canonical/1m/monthly when the manifest was absent entirely -- a different, non-accepted parquet tree could be pointed at with the same frozen research SHA and never be flagged",
+      "fix": "load_development_1m now raises H05Error before reading any 1m column if reports/snapshot_manifest.json is missing, in addition to the existing snapshot_id mismatch check",
+      "no_real_parquet_content_inspected_to_make_this_fix": true
+    }
   },
   "windows": {
     "timezone": "UTC",
@@ -118,7 +135,14 @@
     "candidate_rule": "ABS_IMBALANCE_PCTL_W(T) >= q AND D != 0",
     "nested_justification": "both_preregistered_signs_predict_a_monotonic_dose_response_in_severity_no_h04_style_could_mean_either_regime_ambiguity",
     "q_0_80_partial_adaptivity_disclosed": true,
-    "no_extra_thresholds_after_outcomes": true
+    "no_extra_thresholds_after_outcomes": true,
+    "trailing_history_fail_closed": {
+      "finding": "M-03",
+      "requirement": "no percentile (ABS_IMBALANCE_PCTL_W, price-strength, activity) is ever returned until a full trailing reference_window_days-worth of PRIOR grid bars has actually elapsed",
+      "problem": "the shared rolling_midrank_percentile helper previously returned a percentile as soon as at least one finite prior reference observation existed -- an unintended EXPANDING window for the first (window-1) rows of any series, not the frozen trailing-30-day window",
+      "fix": "a percentile is now withheld (NaN) until pushed_count >= window (a full window of PRIOR bars has elapsed, a TIME/grid requirement); some of those prior bars may still be individually non-finite, correctly yielding a smaller N_ref or an undefined percentile -- never a future observation",
+      "affects_all_three_shared_uses": "ABS_IMBALANCE_PCTL_W, price_strength_bin's percentile, and activity_bin's percentile all use this one function and are all fixed by this one change"
+    }
   },
   "claim_orientation": {
     "s_continuation": 1,
@@ -190,6 +214,12 @@
       "mandatory_not_descriptive_only": true
     },
     "strata": ["calendar_month", "D", "price_alignment", "price_strength_bin", "activity_bin"],
+    "undeclared_level_fail_closed": {
+      "finding": "M-02",
+      "problem": "price_alignment/price_strength_bin/activity_bin are each internally coded -1 where their own underlying value is not yet available (e.g. before enough trailing history has elapsed); candidate/control eligibility previously did not exclude -1, so a row could enter a structural stratum key carrying an undeclared -1 level instead of one of the frozen categories",
+      "fix": "eligible_index (the single gate both candidate and ordinary-control indices are intersected with) now also requires price_alignment != -1 AND price_strength_bin != -1 AND activity_bin != -1; no new UNKNOWN stratum is invented -- such rows are simply ineligible",
+      "applies_to_both_candidate_and_control_sides": true
+    },
     "standardization": {
       "candidate_weight_formula": "w_s = candidate_N_s / sum(candidate_N over overlap strata)",
       "candidate_overlap_standardized_mean_formula": "sum_s w_s * candidate_mean_s",
@@ -260,7 +290,14 @@
     "remove_collisions_post_hoc": false,
     "gate": "ORIENTED_SHIFT_DELTA >= CONTROL_DELTA_MIN",
     "gate_is_exact_not_qualitative": true,
-    "alternative_time_shift_after_outcomes": false
+    "alternative_time_shift_after_outcomes": false,
+    "same_support_correction": {
+      "finding": "M-01",
+      "problem": "shift_delta was previously computed as the FULL (unrestricted) candidate_mean minus shifted_mean, where shifted_mean is necessarily computed only over the SUBSET of candidates with a valid, finite-after-normalization +6h comparator -- a support mismatch identical in kind to B-01",
+      "fix": "shift_delta = candidate_shift_support_mean - shifted_mean, where BOTH sides are restricted to exactly the same valid-+6h-comparator candidate subset; the full, unrestricted candidate mean is retained only as full_candidate_mean for transparency and no longer enters this delta",
+      "other_gates_unchanged": "the primary candidate_mean used by the primary/matched/structural-gate/bootstrap/year/BUY-SELL gates is unaffected",
+      "real_h05_outcomes_seen_before_correction": false
+    }
   },
   "search_surface": {
     "W_count": 3, "q_count": 3, "H_count": 5,
@@ -364,6 +401,15 @@
     "price_return_confound_controlled_via_price_alignment_and_price_strength_bin",
     "complete_horizon_embargo_and_refractory_applied_identically"
   ],
+  "promotion_evaluator": {
+    "finding": "M-04",
+    "function": "scripts.research.h05_taker_imbalance_lib.evaluate_promotion",
+    "requirement": "one deterministic, fail-closed function that machine-enforces the candidate_for_freeze_requirements list above from the already-computed per-cell gate outputs -- no human discretion is required to read PASS/FAIL",
+    "introduces_no_new_criteria": true,
+    "fail_closed_on_none": "any missing/None mandatory gate component is never treated as passing (all(x is True ...), not a truthy check)",
+    "both_signs_promoted_is_audit_failure": "AUDIT_FAILURE_BOTH_SIGNS_PROMOTED, never silently resolved to one sign",
+    "scope_boundary": "does not auto-distinguish H05_REJECTED_SPECIFIC_CLAIM from H05_INCONCLUSIVE -- that distinction requires a data-support judgment not reducible to the frozen criteria list without inventing a new numeric threshold, which is explicitly out of scope; a non-promoted claim is reported as H05_REJECTED_SPECIFIC_CLAIM by this function and remains subject to independent audit for an INCONCLUSIVE reclassification"
+  },
   "forbidden_reads": ["2025_validation_forward_outcomes", "2026_oos_forward_outcomes"],
   "verdict_labels": [
     "H05_FLOW_CONTINUATION_CANDIDATE_FOR_FREEZE",

@@ -211,16 +211,28 @@ def load_development_1m(dataset_root: Path) -> dict:
     structurally difficult by construction, not by a later row filter.
 
     Not exercised against real data in the preregistration/implementation
-    -freeze task -- see module docstring."""
+    -freeze task -- see module docstring.
+
+    PRE-OUTCOME AUDIT REPAIR (M-05, dataset identity mandatory): the
+    runtime snapshot manifest check below is REQUIRED, not optional -- a
+    `dataset_root` with no `reports/snapshot_manifest.json` at all no
+    longer silently proceeds to read whatever parquet happens to be under
+    `canonical/1m/monthly`. Without this, a future authorized run could
+    point `--dataset-root` at an arbitrary, non-accepted parquet tree that
+    carries the same frozen research SHA and never be told the dataset
+    identity evidence was missing. This does not open or inspect any real
+    parquet CONTENT -- it only requires the identity manifest to exist and
+    match `REQUIRED_SNAPSHOT` before any 1m column is read."""
     require_pyarrow()
     import pyarrow.parquet as pq
 
     runtime_snap = dataset_root / "reports" / "snapshot_manifest.json"
-    if runtime_snap.exists():
-        snap = json.loads(runtime_snap.read_text(encoding="utf-8"))
-        sid = snap.get("snapshot_id")
-        if sid != REQUIRED_SNAPSHOT:
-            raise H05Error(f"runtime snapshot_id {sid} != {REQUIRED_SNAPSHOT}")
+    if not runtime_snap.exists():
+        raise H05Error(f"missing required dataset identity evidence: {runtime_snap}")
+    snap = json.loads(runtime_snap.read_text(encoding="utf-8"))
+    sid = snap.get("snapshot_id")
+    if sid != REQUIRED_SNAPSHOT:
+        raise H05Error(f"runtime snapshot_id {sid} != {REQUIRED_SNAPSHOT}")
 
     cols = ["open_time_ms", "available_at_ms", "close", "base_volume", "taker_buy_base_volume"]
     buckets = {c: [] for c in cols}
@@ -301,6 +313,25 @@ def rolling_midrank_percentile(values: np.ndarray, window: int) -> np.ndarray:
 
         P(T) = (count(ref < x) + 0.5 * count(ref == x)) / N_ref
 
+    PRE-OUTCOME AUDIT REPAIR (M-03, incomplete trailing-history fail
+    -closed): a percentile is now returned ONLY once a full `window` bars
+    of PRIOR calendar/grid history have actually elapsed (`pushed_count >=
+    window`) -- not as soon as at least one reference observation exists.
+    The prior behavior was an unintended EXPANDING window for the first
+    `window-1` rows (e.g. a "trailing 30-day" percentile computed from a
+    single day of history at the very start of the series), which
+    contradicts the frozen "trailing 30-day" requirement shared, via this
+    one function, by `ABS_IMBALANCE_PCTL_W`, the price-strength percentile,
+    and the activity percentile alike (design doc section 8/`structural
+    _control`/`activity_measure`). `window` bars of history having elapsed
+    is a TIME/GRID requirement, not a "N finite observations" requirement
+    -- some of those `window` prior bars may still be individually
+    non-finite (e.g. missing volume), which legitimately yields a smaller
+    `N_ref`, or `N_ref == 0` (percentile still undefined, NaN) if every
+    prior bar in the window happened to be non-finite. No future
+    observation is ever used, unchanged from before -- only PRIOR values
+    are ever pushed before index i is evaluated.
+
     Correct-but-not-optimized for this preregistration/implementation
     -freeze task's synthetic fixtures; no real-data run is performed here."""
     import bisect
@@ -313,6 +344,7 @@ def rolling_midrank_percentile(values: np.ndarray, window: int) -> np.ndarray:
 
     sorted_ref: list[float] = []
     raw_window: deque = deque()
+    pushed_count = 0  # total prior bars pushed so far -- the TIME/grid clock
 
     def _push(v: float) -> None:
         raw_window.append(v)
@@ -328,13 +360,14 @@ def rolling_midrank_percentile(values: np.ndarray, window: int) -> np.ndarray:
     for i in range(n):
         x = values[i]
         n_ref = len(sorted_ref)
-        if np.isfinite(x) and n_ref > 0:
+        if np.isfinite(x) and n_ref > 0 and pushed_count >= window:
             lo = bisect.bisect_left(sorted_ref, x)
             hi = bisect.bisect_right(sorted_ref, x)
             out[i] = (lo + 0.5 * (hi - lo)) / n_ref
         if len(raw_window) >= window:
             _pop_oldest()
         _push(x)
+        pushed_count += 1
     return out
 
 
@@ -612,34 +645,38 @@ def gate_from_delta(delta: Optional[float], sign: int, threshold: float = CONTRO
 
 
 def claim_evaluation(candidate_mean: Optional[float], matched_mean: Optional[float],
-                      structural_delta: Optional[float], shifted_mean: Optional[float], sign: int) -> dict:
+                      structural_delta: Optional[float], shift_delta: Optional[float], sign: int) -> dict:
     """All four mandatory gates for one claim orientation.
 
     `candidate_mean` is the SAME quantity (the FULL, unrestricted
-    candidate-population mean of X) used for the primary, matched, and
-    shift gates -- it is never restricted/re-standardized for those.
+    candidate-population mean of X) used for the primary and matched
+    gates -- it is never restricted/re-standardized for those.
 
-    `structural_delta`, by contrast, is NOT a mean to be differenced here:
-    it is the already-computed, like-with-like structural comparison
-    (`candidate_overlap_standardized_mean -
-    structural_control_standardized_mean`, both sides restricted to, and
+    `structural_delta` and `shift_delta`, by contrast, are NOT means to be
+    differenced against `candidate_mean` here: each is an already
+    -computed, like-with-like comparison on its own matched support --
+    `structural_delta = candidate_overlap_standardized_mean -
+    structural_control_standardized_mean` (both sides restricted to, and
     weighted over, exactly the same overlap strata -- see
-    `structural_control_bundle`). This is the pre-outcome structural
-    -support correction: comparing the FULL candidate mean against a
-    control mean standardized only over overlap strata would compare
-    quantities on different support, letting unmatched-candidate-stratum
-    outcomes move the gate without any corresponding control observation.
-    See design doc section 9 and section 17."""
+    `structural_control_bundle`); `shift_delta =
+    candidate_shift_support_mean - shifted_mean` (both sides restricted
+    to exactly the same valid-+6h-comparator candidate subset -- see
+    `negative_control_bundle`). This is the pre-outcome structural/shift
+    -support correction (M-01/B-01): comparing the FULL candidate mean
+    against a reference mean computed on a restricted subset would compare
+    quantities on different support, letting candidates outside that
+    subset move the gate without any corresponding reference observation.
+    See design doc section 9/14 and section 17."""
     return {
         "S": sign,
         "ORIENTED_PRIMARY": oriented_primary(candidate_mean, sign),
         "ORIENTED_MATCHED_DELTA": oriented_delta(candidate_mean, matched_mean, sign),
         "ORIENTED_STRUCTURAL_DELTA": oriented_from_delta(structural_delta, sign),
-        "ORIENTED_SHIFT_DELTA": oriented_delta(candidate_mean, shifted_mean, sign),
+        "ORIENTED_SHIFT_DELTA": oriented_from_delta(shift_delta, sign),
         "primary_gate": gate_primary(candidate_mean, sign),
         "mpie_gate": gate_matched_mpie(candidate_mean, matched_mean, sign),
         "structural_gate": gate_from_delta(structural_delta, sign),
-        "shift_gate": gate_control_delta(candidate_mean, shifted_mean, sign),
+        "shift_gate": gate_from_delta(shift_delta, sign),
     }
 
 
@@ -1032,13 +1069,29 @@ def build_panel(frame15: dict) -> dict:
 
 
 def eligible_index(panel: dict, w_minutes: int, h_minutes: int) -> np.ndarray:
+    """PRE-OUTCOME AUDIT REPAIR (M-02, undeclared -1 stratum levels fail
+    closed): `price_alignment`/`price_strength_bin`/`activity_bin` are
+    each `-1` where their own underlying value (SIGNED_PRICE_RET_W,
+    trailing price-strength percentile, trailing activity percentile) is
+    not yet available. Previously this eligibility gate did not exclude
+    such rows, so a row could enter `structural_control_bundle`'s
+    5-dimensional stratum key carrying an undeclared `-1` level -- not a
+    new "UNKNOWN" category, simply a row for which the frozen structural
+    strata are not actually well-defined. Excluding `-1` here (the single
+    gate both candidate and ordinary-control indices are intersected
+    with) fails such rows closed for BOTH sides, without inventing any
+    new stratum or loosening/tightening any frozen threshold."""
     f = panel["feat"][w_minutes]
+    pa = panel["price_alignment"][w_minutes]
+    psb = panel["price_strength_bin"][w_minutes]
+    ab = panel["activity_bin"][w_minutes]
     return np.flatnonzero(
         panel["in_development"]
         & (f["D"] != 0)
         & np.isfinite(f["abs_imbalance_pctl"])
         & np.isfinite(panel["ret"][h_minutes])
         & np.isfinite(panel["scale"][h_minutes])
+        & (pa != -1) & (psb != -1) & (ab != -1)
     )
 
 
@@ -1249,12 +1302,36 @@ def negative_control_bundle(panel: dict, cand: dict, raw_mask: np.ndarray, w_min
     Never redetects the candidate at the shifted timestamp (no filter on
     the shifted position's own candidacy is required or applied -- the
     shifted timestamp's OWN feature state is irrelevant; only its return/
-    scale eligibility matters)."""
+    scale eligibility matters).
+
+    PRE-OUTCOME AUDIT REPAIR (M-01, +6h same-support estimand): not every
+    candidate has a valid +6h comparator (the shifted timestamp can fall
+    outside the grid, outside `in_development`, or land on a non-finite
+    return/scale) or a finite normalized shifted outcome. Previously
+    `shifted_mean` was computed only from the valid-comparator SUBSET while
+    `candidate_minus_shifted` differenced it against the FULL
+    candidate-population mean -- quantities on different support, exactly
+    the same failure mode as the structural-control correction. If
+    candidates WITHOUT a valid +6h comparator have extreme `X`, they could
+    move the full candidate mean with no corresponding shifted observation
+    at all, contaminating `ORIENTED_SHIFT_DELTA` through composition
+    rather than genuine timing evidence. Fixed like-with-like: both
+    `candidate_shift_support_mean` and `shifted_mean` are now computed over
+    exactly the same shift-support subset (candidates with a valid,
+    finite-after-normalization +6h comparator). `shift_delta =
+    candidate_shift_support_mean - shifted_mean` is the single quantity
+    `ORIENTED_SHIFT_DELTA` now uses. The full, unrestricted candidate mean
+    is retained as `full_candidate_mean` for transparency only and no
+    longer enters this delta; it remains unchanged as the estimand for
+    every OTHER gate (primary, matched, structural's own candidate side is
+    itself independently restricted -- see `structural_control_bundle`;
+    bootstrap, year stability, BUY/SELL symmetry)."""
     t_arr = panel["t_ms"]
     t0 = int(t_arr[0])
     shifted_idx = []
     shifted_dir = []
-    for i, d in zip(cand["idx"], cand["direction"]):
+    shift_support_positions = []  # positions into cand's own arrays (0-indexed)
+    for pos, (i, d) in enumerate(zip(cand["idx"], cand["direction"])):
         ts = shift_plus_6h_same_utc_day(int(t_arr[i]))
         j = (ts - t0) // HTF_MS
         if j < 0 or j >= len(t_arr):
@@ -1269,13 +1346,18 @@ def negative_control_bundle(panel: dict, cand: dict, raw_mask: np.ndarray, w_min
             continue
         shifted_idx.append(j)
         shifted_dir.append(int(d))
+        shift_support_positions.append(pos)
 
     raw_extreme_t = t_arr[np.flatnonzero(raw_mask)]
     shifted_t = t_arr[np.asarray(shifted_idx, dtype=np.int64)] if shifted_idx else np.array([], dtype=np.int64)
     coll = collision_fraction(shifted_t, raw_extreme_t)
+    full_candidate_mean = _mean(cand["norm"])
 
     if not shifted_idx:
-        return {"shifted_mean": None, "candidate_minus_shifted": None, "collision_fraction": coll}
+        return {
+            "shifted_mean": None, "candidate_shift_support_mean": None, "shift_support_N": 0,
+            "shift_delta": None, "full_candidate_mean": full_candidate_mean, "collision_fraction": coll,
+        }
 
     idx = np.asarray(shifted_idx, dtype=np.int64)
     direction = np.asarray(shifted_dir, dtype=np.int64)
@@ -1284,10 +1366,23 @@ def negative_control_bundle(panel: dict, cand: dict, raw_mask: np.ndarray, w_min
     raw_ret = direction.astype(np.float64) * ret
     norm, elig = normalize(raw_ret, scale)
     shifted_mean = _mean(norm[elig])
-    cand_mean = _mean(cand["norm"])
+
+    # Same-support candidate-side mean: exactly the rows that actually
+    # contributed to `shifted_mean` above (a valid comparator AND a finite
+    # normalized shifted outcome), read from the candidate's OWN norm --
+    # never the shifted outcome itself.
+    support_positions = np.asarray(shift_support_positions, dtype=np.int64)[elig]
+    candidate_shift_support_mean = _mean(cand["norm"][support_positions]) if support_positions.size else None
+    shift_delta = None
+    if candidate_shift_support_mean is not None and shifted_mean is not None:
+        shift_delta = candidate_shift_support_mean - shifted_mean
+
     return {
         "shifted_mean": shifted_mean,
-        "candidate_minus_shifted": None if (cand_mean is None or shifted_mean is None) else cand_mean - shifted_mean,
+        "candidate_shift_support_mean": candidate_shift_support_mean,
+        "shift_support_N": int(support_positions.size),
+        "shift_delta": shift_delta,
+        "full_candidate_mean": full_candidate_mean,
         "collision_fraction": coll,
     }
 
@@ -1349,12 +1444,13 @@ def evaluate_cell(panel: dict, w_minutes: int, q: float, h_minutes: int) -> dict
 
     claim_eval = {}
     for name, sign in SIGNS.items():
-        # structural["structural_delta"] is the already like-with-like
-        # overlap comparison (pre-outcome structural-support correction) --
-        # NOT structural["full_candidate_mean"] differenced against a
-        # control mean of different support.
+        # structural["structural_delta"] and shift["shift_delta"] are each
+        # already like-with-like, matched-support comparisons
+        # (pre-outcome structural/shift-support correction, B-01/M-01) --
+        # NOT a full unrestricted candidate_mean differenced against a
+        # reference mean of different support.
         ev = claim_evaluation(cand_mean, matched["matched_mean"], structural["structural_delta"],
-                               shift["shifted_mean"], sign)
+                               shift["shift_delta"], sign)
         ev["bootstrap_gate"] = bootstrap_sign_gate(dep_sensitivity, sign)
         ev["year_stability_gate"] = year_stability_gate(yearly_means, sign)
         ev["direction_symmetry_gate"] = direction_symmetry_gate(dirs["BUY"]["mean"], dirs["SELL"]["mean"], sign)
@@ -1380,6 +1476,95 @@ def evaluate_cell(panel: dict, w_minutes: int, q: float, h_minutes: int) -> dict
         "candidate_clustering": clustering,
         "claim_evaluation": claim_eval,
     }
+
+
+def _cell_all_gates_pass(ev: dict) -> bool:
+    """Fail-closed conjunction of every per-cell mandatory gate the frozen
+    candidate-for-freeze checklist requires (primary, MPIE/matched,
+    structural, +6h shift, all three bootstrap block sizes, year
+    stability, BUY/SELL symmetry). A missing (`None`) component is never
+    treated as passing -- `all(x is True ...)` demands an explicit `True`,
+    not merely a truthy value."""
+    boot = ev.get("bootstrap_gate") or {}
+    components = [
+        ev.get("primary_gate"), ev.get("mpie_gate"), ev.get("structural_gate"), ev.get("shift_gate"),
+        boot.get("1w"), boot.get("2w"), boot.get("4w"),
+        ev.get("year_stability_gate"), ev.get("direction_symmetry_gate"),
+    ]
+    return all(x is True for x in components)
+
+
+def evaluate_promotion(cells: list) -> dict:
+    """PRE-OUTCOME AUDIT ADDITION (M-04, deterministic fail-closed
+    promotion evaluator): implements ONLY the already-frozen candidate
+    -for-freeze requirements -- the primary oriented gate, the matched
+    MPIE gate, the structural gate, the +6h shift gate, all three
+    bootstrap block sizes (1w/2w/4w), `q` 2-of-3-adjacent support (using
+    FULL per-cell gate-passing, per M-04's own wording), `H` 2-adjacent
+    support (same), `W` >=1-adjacent DIRECTIONAL support (the frozen
+    weaker `W` rule -- design doc section 18), yearly >=4/5, and BUY-side/
+    SELL-side primary orientation (== `direction_symmetry_gate`, which
+    already implements exactly that pair of requirements together, so it
+    is reused rather than re-implemented). Introduces NO new criterion,
+    threshold, or search dimension. A cell is never promoted on its own
+    gates alone: promotion additionally requires the q/H/W neighborhood
+    -robustness conditions to hold around it, exactly as frozen. Any
+    missing/None mandatory component, at any level, is fail-closed (never
+    treated as passing) -- no human discretion is required to read
+    PASS/FAIL off this function's output.
+
+    Deliberately does NOT auto-distinguish `H05_REJECTED_SPECIFIC_CLAIM`
+    from `H05_INCONCLUSIVE`: that distinction ("data/robustness
+    insufficient to conclude either way") is not reducible to the frozen
+    criteria list without inventing a new numeric threshold, which M-04
+    explicitly prohibits. A non-promoted claim is reported as
+    `H05_REJECTED_SPECIFIC_CLAIM` here and remains subject to independent
+    audit for an `INCONCLUSIVE` reclassification on data-support grounds."""
+    by_key = {(c["W"], c["q"], c["H"]): c for c in cells}
+
+    out: dict = {}
+    for sign_name in SIGNS:
+        promoted_cells = []
+        for w in W_WINDOWS:
+            w_index = W_WINDOWS.index(w)
+            for q in Q_THRESHOLDS:
+                for h in HORIZONS:
+                    own_ev = by_key[(w, q, h)]["claim_evaluation"][sign_name]
+                    own_pass = _cell_all_gates_pass(own_ev)
+
+                    q_support = {
+                        qq: _cell_all_gates_pass(by_key[(w, qq, h)]["claim_evaluation"][sign_name])
+                        for qq in Q_THRESHOLDS
+                    }
+                    q_robust = has_adjacent_pair_support(Q_THRESHOLDS, q_support)
+
+                    h_support = {
+                        hh: _cell_all_gates_pass(by_key[(w, q, hh)]["claim_evaluation"][sign_name])
+                        for hh in HORIZONS
+                    }
+                    h_robust = has_adjacent_pair_support(HORIZONS, h_support)
+
+                    w_directional = {
+                        ww: by_key[(ww, q, h)]["claim_evaluation"][sign_name].get("directional_support")
+                        for ww in W_WINDOWS
+                    }
+                    w_robust = has_adjacent_w_directional_support(W_WINDOWS, w_index, w_directional)
+
+                    if bool(own_pass and q_robust and h_robust and w_robust):
+                        promoted_cells.append({"W": w, "q": q, "H": h})
+        out[sign_name] = {"promoted": len(promoted_cells) > 0, "promoted_cells": promoted_cells}
+
+    both_promoted = out["continuation"]["promoted"] and out["reversal"]["promoted"]
+    if both_promoted:
+        verdict = "AUDIT_FAILURE_BOTH_SIGNS_PROMOTED"
+    elif out["continuation"]["promoted"]:
+        verdict = "H05_FLOW_CONTINUATION_CANDIDATE_FOR_FREEZE"
+    elif out["reversal"]["promoted"]:
+        verdict = "H05_FLOW_REVERSAL_CANDIDATE_FOR_FREEZE"
+    else:
+        verdict = "H05_REJECTED_SPECIFIC_CLAIM"
+    out["verdict"] = verdict
+    return out
 
 
 def evaluate_h05(panel: dict) -> dict:
@@ -1416,4 +1601,5 @@ def evaluate_h05(panel: dict) -> dict:
             "oos_untouched": True,
         },
         "cells": cells,
+        "promotion": evaluate_promotion(cells),
     }
