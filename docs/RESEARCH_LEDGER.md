@@ -642,13 +642,13 @@ on a trailing-30-day midrank percentile of `ABS_IMBALANCE_W`; fixed
 surface, sign multiplicity disclosed separately); structural control with
 a fixed "ordinary" band `[0.60, 0.80)` decoupled from the `q` under test
 (closing a cross-cell-contamination gap present in the raw starting
-proposal), candidate-weighted standardization over month x direction x
-price-return-strength-bin strata; matched-random baseline (month +
-direction, seed `20260904`, 100 replicates); `+6h` negative control;
-`MPIE=0.10` / `CONTROL_DELTA_MIN=0.05` reused unchanged; UTC-week block
-bootstrap (seed `20260905`, 2000 replicates) with 1w/2w/4w sensitivity
-wired in from the start; 14-item candidate-for-freeze checklist; 4-label
-verdict vocabulary.
+proposal), candidate-weighted standardization over five strata (see
+correction below); matched-random baseline (month + direction, seed
+`20260904`, 100 replicates); `+6h` negative control; `MPIE=0.10` /
+`CONTROL_DELTA_MIN=0.05` reused unchanged; UTC-week block bootstrap (seed
+`20260905`, 2000 replicates) with 1w/2w/4w sensitivity wired in from the
+start; 14-item candidate-for-freeze checklist; 4-label verdict
+vocabulary.
 
 Global search-surface ledger: H01-H04 previously accounted for 180 cells;
 H05 adds 45 -> running total **225** cells. Sign multiplicity (2 signs on
@@ -659,6 +659,49 @@ were imported as H05 design inputs; only implementation lessons
 (membership-safe pool exclusion, real-timestamp calendar keys,
 candidate-weighted standardization, 1w/2w/4w wiring, post-hoc quarantine
 discipline) were reused.
+
+**PRE-OUTCOME DESIGN CORRECTION (same round, no real H05 outcomes
+inspected):** independent pre-outcome review found two material control
+gaps and two formalization gaps, all closed without seeing any real H05
+outcome:
+
+1. Matching on `D` (sign of taker imbalance) did not control the sign of
+   contemporaneous price return, leaving price-momentum direction
+   uncontrolled. Fixed by adding `price_alignment = sign(D * PRICE_RET_W)
+   ∈ {ALIGNED, OPPOSED}` (exact zero -> `OPPOSED`, frozen/deterministic)
+   as a mandatory structural-match dimension alongside the existing
+   magnitude-only `price_strength_bin`.
+2. Activity/volume was left descriptive-only, which cannot support the
+   research question's "beyond ordinary market activity" clause. Fixed by
+   promoting `activity_bin` (causal 2-level split of trailing-30d
+   `TOTAL_W` percentile at 0.50) to a mandatory structural-match
+   dimension. The structural control now standardizes over five strata:
+   `calendar_month x D x price_alignment x price_strength_bin x
+   activity_bin`. Insufficient overlap support under this stratification
+   yields `INCONCLUSIVE`, never a post-outcome loosening.
+3. The long-dependence diagnostic was mislabeled "candidate-independent"
+   while being computed from each cell's own candidate indicator (which
+   varies with `W`/`q`). Renamed **outcome-independent, cell-specific
+   candidate-clustering diagnostic**; computation unchanged.
+4. The checklist's "dependence-adjusted significance survives at 1w/2w/4w"
+   wording was underspecified. Frozen precisely: the candidate primary
+   mean's own UTC-week block-bootstrap interval must exclude zero in the
+   declared direction (`p025>0` continuation / `p975<0` reversal) at each
+   of 1w/2w/4w, explicitly distinguished from the matched-random
+   distribution and the structural-control delta (three separate
+   estimands, never substituted for one another).
+
+A fifth, lighter re-evaluation tightened `W` robustness from a pure
+"no severe contradiction" check to a directional-consistency requirement:
+at least one adjacent `W` must agree in the direction of primary sign,
+`candidate_minus_matched`, and structural delta (without needing to clear
+full `MPIE`/`CONTROL_DELTA_MIN`); a fully isolated `W` can no longer reach
+`CANDIDATE_FOR_FREEZE`.
+
+Unchanged by this correction: mechanism, both signs, `W`/`q`/`H` surface
+(still 45 cells), Batch01 225-cell total, refractory rule, `MPIE`,
+`CONTROL_DELTA_MIN`, all seeds, `+6h` negative control, BUY/SELL symmetry,
+4/5-year rule. 2025/2026 remain untouched throughout.
 
 Do not start H05 implementation until this design review is separately
 authorized to proceed. Do not open 2025 or 2026 for H05. After H05

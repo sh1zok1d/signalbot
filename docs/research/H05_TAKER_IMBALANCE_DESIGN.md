@@ -15,6 +15,15 @@ restatement of the task's starting proposal).
 **Batch position:** H05 is the fifth and **final** primary mechanism
 family of R2 Batch 01. No H06 is authorized to open automatically once H05
 closes. The next mandatory step after H05 closes is **Batch01 synthesis**.
+**Amendment history:** this design underwent one PRE-OUTCOME DESIGN
+CORRECTION (this revision) that closes two material control gaps (price
+sign/alignment, §9–§10; mandatory activity control, §9/§11) and two
+formalization gaps (dependence-diagnostic naming, §21; the 1w/2w/4w
+"survives" criterion, §22 item 12), and re-evaluates `W` robustness
+(§18). **No real H05 outcomes were inspected to make this correction.**
+The overall mechanism, `W`/`q`/`H` surface, sign alternatives, primary
+feature, refractory rule, `MPIE`, `CONTROL_DELTA_MIN`, seeds, and Batch01
+cell accounting are unchanged.
 
 This document freezes the H05 design *before* any real market outcome is
 computed. Nothing in this document may be amended after real H05 outcomes
@@ -76,9 +85,14 @@ contemporaneous price movement, ordinary market activity, and matched
 timing?**
 
 "Incremental" is operationalized as: the candidate-vs-structural-control
-delta must survive (a) stratification on contemporaneous price return
-strength (§10) and (b) a matched-random timing baseline (§13), not merely
-a raw candidate-vs-population gap.
+delta must survive (a) stratification on the **sign (alignment) and
+magnitude** of contemporaneous price return relative to `D` (§9–§10), (b)
+stratification on contemporaneous trailing activity level (§9/§11), and
+(c) a matched-random timing baseline (§13) — not merely a raw
+candidate-vs-population gap. All three are now mandatory structural-match
+dimensions (see §9); activity is no longer descriptive-only, which is
+what makes the "beyond ordinary market activity" clause of this question
+actually supportable by the design (see §11).
 
 ---
 
@@ -281,15 +295,59 @@ This band is identical across all three `q` cells; it never overlaps any
 candidate band (`>= 0.80`, `>= 0.90`, or `>= 0.95`), so no candidate row
 can ever also be a control row.
 
+**PRE-OUTCOME DESIGN CORRECTION (this revision):** independent pre-outcome
+review found that matching on `D` (the sign of taker imbalance) does
+**not** control the sign of contemporaneous price return — a BUY-imbalance
+candidate with a positive contemporaneous return and a BUY-imbalance
+control row with a *negative* contemporaneous return of similar magnitude
+could previously land in the same stratum, leaving ordinary price
+momentum/mean-reversion direction as an uncontrolled confound. This is
+closed below by adding an explicit price-alignment dimension, and a
+matching activity-control gap (§11) is closed by adding a mandatory
+activity dimension. Neither correction was made by inspecting any real
+H05 outcome.
+
+**Signed price alignment (new):**
+
+```
+SIGNED_PRICE_RET_W(T) = D(T) * PRICE_RET_W(T)
+
+price_alignment(T) = ALIGNED  if SIGNED_PRICE_RET_W(T) >  0
+                    = OPPOSED  if SIGNED_PRICE_RET_W(T) <= 0
+```
+
+`price_alignment` expresses whether the contemporaneous price move over
+`[T-W, T)` points the **same way** as the taker-imbalance direction
+(`ALIGNED`) or not (`OPPOSED`). **Exact-zero treatment (frozen,
+deterministic, decided pre-outcome):** `SIGNED_PRICE_RET_W(T) == 0` is
+assigned to `OPPOSED`, not to a separate `FLAT` category and not to
+`ALIGNED`. Rationale: (a) keeping `price_alignment` strictly binary avoids
+adding a third stratification level on top of the already-mandatory
+strength and activity splits below, which would fragment strata further
+without a compensating scientific reason; (b) `OPPOSED` is the
+conservative choice — a bar with *no* directionally-confirming price move
+provides no evidence that price momentum is doing the work, so folding it
+into `ALIGNED` would risk inflating the "ordinary flow looks like this
+too" pool with rows that do not actually instantiate the confound this
+control exists to isolate; (c) the rule is applied identically regardless
+of `D`'s sign or which claim sign (§2) is under evaluation, so it does
+not asymmetrically favor continuation over reversal or vice versa. With
+continuous close prices, exact zero is a measure-zero event in practice
+but the rule must still be frozen for determinism.
+
 **Matching/standardization (candidate-weighted, deterministic, reusing
 the H04 post-outcome-correction pattern):**
 
-- Match strata: `(calendar_month, D, price_strength_bin)` where
-  `price_strength_bin` is a 2-level split of `abs(PRICE_RET_W(T))` at its
-  own trailing-30-day midrank percentile `0.50` (§10) — i.e. "weaker
-  contemporaneous move" vs. "stronger contemporaneous move," computed with
-  the same causal, trailing-only percentile machinery as
-  `ABS_IMBALANCE_PCTL_W`.
+- Match strata (five dimensions, all mandatory):
+  `(calendar_month, D, price_alignment, price_strength_bin, activity_bin)`
+  where:
+  - `price_strength_bin` is the same 2-level causal split of
+    `abs(PRICE_RET_W(T))` described in §10 (unchanged by this
+    correction — it still measures magnitude only; §10 explains why sign
+    is handled separately via `price_alignment` rather than folded into
+    this bin);
+  - `activity_bin` is the new mandatory activity-level split defined in
+    §11.
 - For each stratum present in the **candidate** population, control rows
   in the same stratum are weighted by the candidate row count in that
   stratum (candidate-weighted standardization); strata that appear only
@@ -299,16 +357,24 @@ the H04 post-outcome-correction pattern):**
   and reported as **unmatched candidates** (count and share), not
   silently dropped from the candidate population — they simply do not
   contribute to the standardized-delta computation's denominator for that
-  stratum.
+  stratum. If the unmatched share is large enough that the standardized
+  comparison lacks support, the correct downstream verdict is
+  `INCONCLUSIVE` (§23) — **not** a post-outcome loosening of the strata.
+  No overlap-support threshold is invented now or later based on real
+  outcomes; insufficient support is reported and results in
+  `INCONCLUSIVE`, exactly as instructed.
 - The gate compares the candidate population's outcome distribution to
   the **standardized** (candidate-weighted) control distribution — never
   to an unstandardized full-population baseline.
 
-**Why not over-match:** the strata are limited to three dimensions
-(month, direction, one coarse price-strength bin). A fourth stratifying
-dimension (e.g. activity/volume, §11) is deliberately not added, to avoid
-fragmenting the control population into strata too sparse to estimate
-reliably — an explicit, disclosed trade-off, not an oversight.
+**Why not over-match further:** the strata are limited to five dimensions
+(month, direction, price alignment, one coarse price-strength bin, one
+coarse activity bin). No sixth stratifying dimension is added. This is
+already a denser stratification than the prior revision, and is adopted
+only because both corrections (price sign, activity) are scientifically
+required by the claim in §1 — not because finer stratification is free.
+Unmatched-candidate and zero-weighted-stratum shares are reported per
+cell so that any resulting support loss is visible, not hidden.
 
 ---
 
@@ -324,34 +390,83 @@ as the price-strength stratification input for the structural control
 survives. `abs(PRICE_RET_W(T))` is stratified into 2 bins at its own
 trailing-30-day midrank percentile 0.50, computed independently per `W`.
 
-Only magnitude is stratified (not sign): direction `D` already anchors
-sign in the structural-control stratification, so a redundant sign-match
-on `PRICE_RET_W` would double-count direction information already present
-via `D` and needlessly shrink stratum sizes.
+**PRE-OUTCOME DESIGN CORRECTION (this revision):** the previous revision
+argued that stratifying only on magnitude was sufficient because `D`
+already anchors sign. That reasoning was wrong: `D` is the sign of
+*taker imbalance*, not the sign of *contemporaneous price return* — the
+two are correlated but not identical, and a candidate/control pair can
+share the same `D` while having opposite-signed `PRICE_RET_W`. This left
+price-momentum direction as an uncontrolled confound, exactly the
+mechanism H05's central claim must rule out. The fix is `§9`'s new
+`price_alignment` dimension, built from `SIGNED_PRICE_RET_W(T) =
+D(T) * PRICE_RET_W(T)`: this is the correct way to fold sign back in,
+because it expresses sign *relative to* `D` (whether the contemporaneous
+move agrees with the imbalance direction) rather than sign in isolation,
+so it does not collapse into a redundant re-statement of `D` itself.
+`price_strength_bin` (this section) continues to carry **magnitude only**
+— `price_alignment` (§9) carries the relative-sign information. Together
+they fully specify the contemporaneous price-return confound without
+duplicating `D`.
 
-The design gate (§14) requires the candidate-vs-standardized-control delta
-to remain material *after* this stratification — a raw, unstratified
-candidate-vs-population gap that disappears once conditioned on
-contemporaneous price-return strength would indicate H05 is merely
-restating price momentum, not adding incremental information, and must
-not pass.
+The design gate (§14/§22) requires the candidate-vs-standardized-control
+delta to remain material *after* stratifying on both `price_alignment`
+and `price_strength_bin` — a raw, unstratified candidate-vs-population
+gap that disappears once conditioned on the sign and magnitude of
+contemporaneous price return would indicate H05 is merely restating price
+momentum (or momentum-direction-conditional mean-reversion), not adding
+incremental information, and must not pass.
 
 ---
 
-## 11. Activity / volume confound — decision (not mandatory stratum)
+## 11. Activity / volume confound — mandatory stratum (revised)
 
-**Decision (frozen):** trailing activity/volume level (e.g. trailing
-30-day `TOTAL_W` percentile) is **not** added as a mandatory structural
-control stratum. It is computed and reported as a **descriptive-only**
-diagnostic (candidate vs. control trailing-activity-percentile summary
-statistics), but never used to gate, threshold, or select cells.
+**PRE-OUTCOME DESIGN CORRECTION (this revision, supersedes the prior
+descriptive-only decision):** the prior revision left trailing
+activity/volume level as a descriptive-only diagnostic. Independent
+pre-outcome review found this inconsistent with §1's research question,
+which explicitly claims incremental information "beyond ... ordinary
+market activity" — a descriptive diagnostic cannot support that clause of
+the claim, because it never actually removes activity as an explanation
+for any observed effect. This is corrected now, before any real outcome
+is inspected.
 
-**Rejected alternative:** adding activity/volume as a fourth match
-stratum was considered and rejected, because it would further fragment
-already-narrow month×D×price-strength strata, risking too many
-zero-weighted or unmatched strata to produce a stable standardized
-comparison. This is disclosed as an unresolved limitation (see false-
-positive risk #3 in the final response) rather than silently omitted.
+**Causal activity definition (frozen):**
+
+```
+activity_bin(T) = LOWER  if trailing_30d_midrank_percentile(TOTAL_W, T) <  0.50
+                 = UPPER  if trailing_30d_midrank_percentile(TOTAL_W, T) >= 0.50
+```
+
+using `TOTAL_W(T)` (§6) — the same causal, trailing-30-day, same-grid,
+midrank-percentile machinery already used for `ABS_IMBALANCE_PCTL_W` and
+`price_strength_bin`, applied instead to total traded base volume over
+the window. One coarse, predeclared 2-level split only (`LOWER`/`UPPER`
+at percentile 0.50) — no finer activity binning is introduced.
+
+`activity_bin` is now one of the five mandatory structural-match strata
+(§9): `(calendar_month, D, price_alignment, price_strength_bin,
+activity_bin)`, standardized with the same candidate-weighted,
+control-only-zero-weight, unmatched-candidates-reported discipline as
+every other stratum dimension.
+
+**Mechanism/causal-mediation note:** activity may partly *mediate*
+genuinely informed aggressive flow (e.g. a large informed order naturally
+coincides with elevated volume). Controlling for it therefore risks
+removing some of the genuine mechanism along with the confound. This
+trade-off is accepted deliberately: H05's claim in §1 is specifically that
+**imbalance itself** — not merely "unusually high activity" — carries
+incremental information, so the claim as stated requires activity to be
+controlled, not left descriptive. The alternative (narrowing the claim to
+drop the "beyond ordinary market activity" clause) was considered and
+rejected in favor of retaining the broad claim and adding the control, per
+the review's own stated preference; this is recorded as the frozen
+choice, not left open for a later, outcome-informed pick.
+
+**If structural support becomes insufficient** under this five-dimensional
+stratification (too many unmatched candidates / zero-weighted strata),
+the correct verdict is `INCONCLUSIVE` (§23), never a signal to drop the
+`activity_bin` or `price_alignment` dimensions after outcomes are seen —
+see the post-hoc rule (§24, item 9).
 
 ---
 
@@ -482,15 +597,37 @@ itself be an undisclosed adaptive choice.
   bands).
 - **`H` robustness (hard):** at least **2 adjacent** horizons must
   jointly pass for the same `q`.
-- **`W` robustness (soft, NOT a hard gate):** `W` is treated as a *scale*
-  dimension (how much history feeds the imbalance measurement), not a
-  *severity* dimension — analogous to how H04 treated its own `L` window
-  as a soft dimension. The frozen check is only: no severe sign
-  contradiction across adjacent `W` values (a passing cell at one `W`
-  must not be directly contradicted by an opposite-sign, gate-passing
-  reading at an adjacent `W` for the same `q, H`). `W` failing this soft
-  check is reported as a caveat, not an automatic kill, and is not
-  required to jointly pass 2-of-3 the way `q` and `H` are.
+- **`W` robustness (revised — directional-consistency requirement, still
+  short of a hard 2-of-3 gate):** `W` remains a searched dimension
+  (`{15, 30, 60}`, 3 values feeding the 45-cell surface), so a promoted
+  cell that is a **fully isolated** `W` — i.e. no adjacent `W` shows even
+  directional agreement — is a magic-lookback risk under the global
+  225-cell search. The prior revision's purely "no severe contradiction"
+  check was too permissive to rule this out, since a cell with no
+  adjacent-`W` evidence either way (neither confirming nor contradicting)
+  would still have passed. **PRE-OUTCOME DESIGN CORRECTION (this
+  revision):** a promoted `(q, H)` cell does **not** require an adjacent
+  `W` to clear full `MPIE`/`CONTROL_DELTA_MIN` (that remains a soft
+  requirement, since `W` is a scale, not severity, dimension — H05's
+  mechanism is not assumed to hold identically at every lookback length).
+  It **does** now require that **at least one adjacent `W`** (for the
+  same `q, H`, same claim sign) show all three of:
+  1. the same declared primary sign (§2) for the candidate population;
+  2. `candidate_minus_matched` (§13) in the same direction (sign);
+  3. the standardized structural-control delta (§9) in the same
+     direction (sign);
+
+  even if that adjacent `W` does not itself clear `MPIE` or
+  `CONTROL_DELTA_MIN`. A cell with **no** adjacent `W` satisfying all
+  three directional-consistency conditions is not eligible for
+  `CANDIDATE_FOR_FREEZE` (§22 item 8, revised) — it may still be reported,
+  but only as `INCONCLUSIVE` or `REJECTED_SPECIFIC_CLAIM`, never promoted
+  on the strength of one isolated `W` alone. This is a real hard
+  requirement, but a lighter one than requiring an adjacent `W` to fully
+  pass every gate the way `q` and `H` must (§18 above), because `W` is
+  still conceptually a scale dimension rather than a severity dimension —
+  a genuine effect concentrated at one particular lookback length remains
+  representable, but not from directional silence alone.
 
 ---
 
@@ -536,13 +673,24 @@ own.
   — mirroring the H04 implementation-completion documented mapping exactly
   (chosen for the same reason: reproducing a legacy 1-week field exactly
   under the bare-seed convention).
-- **Candidate-independent long-dependence diagnostic:** autocorrelation of
-  the candidate indicator series (not the outcome) at fixed lags
-  `{1, 2, 4, 8, 16, 32, 64}` days; the diagnostic reports the
-  largest lag at which autocorrelation exceeds `0.20`. This diagnostic is
-  computed identically regardless of which cell or sign is being
-  evaluated (candidate-independent), and informs interpretation of
-  effective sample size — it does not itself gate promotion.
+- **Outcome-independent, cell-specific candidate-clustering diagnostic
+  (renamed; PRE-OUTCOME FORMALIZATION CORRECTION, this revision):** the
+  prior revision called this diagnostic "candidate-independent," which
+  was internally inconsistent — it is computed from each cell's own
+  candidate indicator series, which necessarily varies with `W` and `q`
+  (and, through eligibility/refractory interaction, potentially `H`), so
+  it cannot be independent of the candidate definition. What it *is*
+  independent of is the real H05 **outcome** (it never touches
+  `close`/return values — only whether a timestamp qualifies as a
+  candidate) and it is computed identically, with no cell-specific tuning
+  of its own procedure, for whichever cell is being evaluated. It is
+  renamed accordingly: the **outcome-independent, cell-specific
+  candidate-clustering diagnostic**. Definition and numeric parameters
+  are otherwise unchanged from the prior revision: autocorrelation of the
+  candidate indicator series (not the outcome) at fixed lags
+  `{1, 2, 4, 8, 16, 32, 64}` days; the diagnostic reports the largest lag
+  at which `|ACF| >= 0.20`. It informs interpretation of effective sample
+  size and clustering — it does not itself gate promotion.
 
 ---
 
@@ -557,26 +705,50 @@ A cell (for a given sign, `q`, `H`) may only be marked
 3. Candidate-vs-matched-random delta also `>= CONTROL_DELTA_MIN`, and
    consistent in sign with item 2.
 4. Structural-control standardization used candidate-weighted strata
-   (§9), not an unstandardized full-population comparison.
-5. Unmatched-candidate share reported and below a disclosed sanity bound
-   (no numeric threshold newly invented here; reported for interpretive
-   context alongside the gate).
+   over the full five-dimensional stratification `(calendar_month, D,
+   price_alignment, price_strength_bin, activity_bin)` (§9, revised this
+   round), not an unstandardized full-population comparison and not a
+   subset of these dimensions.
+5. Unmatched-candidate share reported; if support is insufficient under
+   the five-dimensional stratification, the cell is `INCONCLUSIVE` (§9,
+   §23) rather than passing on a weakened/subset stratification.
 6. `q` robustness: 2 of 3 adjacent `q` cells pass (§18).
 7. `H` robustness: 2 adjacent `H` cells pass (§18).
-8. `W` soft check: no severe cross-`W` sign contradiction (§18).
+8. `W` directional-consistency requirement (revised, §18): at least one
+   adjacent `W` (same `q, H`, same sign) agrees in the direction of
+   declared primary sign, `candidate_minus_matched`, and structural delta
+   — a fully isolated `W` with no adjacent directional agreement cannot
+   pass this item.
 9. Direction symmetry: both `D=+1` and `D=-1` support the same sign
    (§19).
 10. Year stability: `>= 4/5` years 2020–2024 support the same sign, no
     shock-year rescue (§20).
 11. Negative control (`+6h`) does not reproduce the candidate effect.
 12. Dependence-adjusted significance survives at 1w, 2w, and 4w block
-    sizes (not merely the 1w bootstrap).
-13. Price-return-confound stratification (§10) is applied, and is tied
-    explicitly to item 4: the standardized delta in item 2 already
-    includes the price-strength stratum, so a cell cannot pass item 2
-    while failing to show incremental separation over contemporaneous
-    momentum — there is no separate, weaker path to satisfy item 2
-    without also satisfying the momentum-incrementality requirement.
+    sizes, under the precise frozen criterion (§21 bootstrap procedure;
+    revised definition below): for the candidate population's primary
+    normalized signed-return mean (`NORM_TAKER_RET_H`, §15), computed
+    under the declared claim sign, the UTC-week block-bootstrap interval
+    at each of 1w/2w/4w must exclude zero in the declared direction —
+    `p025 > 0` for continuation, `p975 < 0` for reversal (same D-signed
+    outcome convention in both cases). This bootstrap interval is an
+    estimate of uncertainty in the **candidate primary mean itself**; it
+    is a distinct estimand from (a) the matched-random distribution's
+    `p025/p50/p975` (§13, which characterizes the matched-random
+    baseline's own spread, not the candidate's) and (b) the standardized
+    structural-control delta (§9, a point comparison between two
+    standardized populations). None of these three uncertainty/comparison
+    outputs may be substituted for another when reporting or gating.
+13. Price-return-confound control is applied as **two parts**: sign
+    (`price_alignment`, §9) and magnitude (`price_strength_bin`, §10),
+    both mandatory structural-match dimensions, tied explicitly to item
+    4 — the standardized delta in item 2 already includes both, so a
+    cell cannot pass item 2 while failing to show incremental separation
+    over contemporaneous price direction and magnitude; there is no
+    separate, weaker path to satisfy item 2 without also satisfying this
+    requirement. Activity control (`activity_bin`, §11) is likewise
+    mandatory and tied to item 4 on the same basis, supporting the "beyond
+    ordinary market activity" clause of the research question (§1).
 14. All eligibility, refractory, and boundary/horizon-embargo rules (§3,
     §5, §12) applied identically pre-outcome, with no candidate admitted
     via truncated horizon data.
@@ -610,9 +782,11 @@ kill:
 
 1. Narrowing `q` to a value outside `{0.80, 0.90, 0.95}` because a
    particular value "looked better."
-2. Adding a fourth structural-control stratum (e.g. activity/volume, §11)
-   after seeing that the 3-stratum control produced a null or weak
-   result.
+2. Removing, merging, or weakening any of the five mandatory
+   structural-match dimensions (`calendar_month`, `D`, `price_alignment`,
+   `price_strength_bin`, `activity_bin`, §9/§11) after seeing that the
+   fully-stratified control produced a null, weak, or support-starved
+   (`INCONCLUSIVE`) result.
 3. Switching the primary feature from base-volume to quote-volume
    imbalance after seeing base-volume fail.
 4. Changing the refractory rule (§12) to the rejected direction-aware
@@ -627,6 +801,13 @@ kill:
 8. Adopting a new horizon `H` outside `{15, 30, 60, 120, 240}`, or a new
    window `W` outside `{15, 30, 60}`, because the frozen set did not show
    a passing cell.
+9. Redefining the exact-zero `SIGNED_PRICE_RET_W` treatment (`OPPOSED`,
+   §9) or loosening the `W` directional-consistency requirement (§18,
+   §22 item 8) after seeing which `W`/cells pass or fail under the frozen
+   rules.
+10. Treating a support-starved (`INCONCLUSIVE`, §9) cell as a passing
+    `CANDIDATE_FOR_FREEZE` by narrowing the five-dimensional
+    stratification specifically for that cell after outcomes are seen.
 
 ---
 
