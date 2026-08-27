@@ -31,17 +31,19 @@ authorized.
 **Red-team fix (BLOCKER — boundary/horizon embargo):** any candidate or
 outcome computation whose required resolution horizon would read
 price/volume data at or after a later pool's start boundary is embargoed
-from the earlier pool: it must either be excluded from that pool's
-development/validation population, or have its outcome horizon truncated
-to remain strictly within the earlier pool's own window. No decision
-boundary may consume price data past its own pool's `end_exclusive`
-boundary — this applies at both the DISCOVERY LAB / BATCH VALIDATION
-boundary and the BATCH VALIDATION / FINAL OOS boundary. This mirrors the
-`+4h` purge already applied at the E1-RUN-001 development/holdout boundary
-(`docs/RESEARCH_LEDGER.md`); without an explicit embargo here, a
-discovery-phase outcome computed for a candidate near 2024-12-31 could
-silently read 2025-01-01+ price bars, contradicting Section 1's claim that
-BATCH VALIDATION remains untouched by discovery-phase analysis.
+from the earlier pool and MUST be excluded from that pool's
+development/validation population for that horizon. Per-event horizon
+truncation is not allowed: it would mix different outcome definitions near
+the boundary and silently change the estimand. A decision boundary is
+eligible for horizon H only when the entire frozen outcome path resolves
+strictly before the pool's `end_exclusive` boundary. This applies at both
+the DISCOVERY LAB / BATCH VALIDATION boundary and the BATCH VALIDATION /
+FINAL OOS boundary. This mirrors the `+4h` purge already applied at the
+E1-RUN-001 development/holdout boundary (`docs/RESEARCH_LEDGER.md`);
+without an explicit embargo here, a discovery-phase outcome computed for a
+candidate near 2024-12-31 could silently read 2025-01-01+ price bars,
+contradicting Section 1's claim that BATCH VALIDATION remains untouched by
+discovery-phase analysis.
 
 ## 2. R2 Batch 01 is frozen before H03
 
@@ -200,10 +202,14 @@ Rules:
 
 **Red-team fix (MAJOR — MPIE anchoring):** MPIE must be justified against
 a reference independent of the candidate's own development-sample
-estimated effect -- for example a fraction of realistic round-trip
-execution cost, a fraction of the outcome metric's unconditional
-volatility over the same horizon, or a comparable magnitude drawn from
-prior independently published evidence. An MPIE whose only stated
+estimated effect. For mechanism-discovery experiments, prefer a
+distributional anchor available without candidate outcomes -- for example
+a fixed fraction of the unconditional/local median absolute move or
+volatility scale used by the primary normalized metric, or a comparable
+magnitude drawn from prior independently published evidence. Realistic
+execution cost may be used as an additional anchor only when the claim
+being made is explicitly about tradability; R2 mechanism discovery must
+not be converted into a hidden PnL gate. An MPIE whose only stated
 justification is "this is what the candidate happens to show in
 development" is not acceptable, and any resulting promotion must be
 treated as `INCONCLUSIVE` regardless of the observed effect. Without this,
@@ -247,19 +253,21 @@ For a proposed candidate neighborhood:
 
 This is a robustness gate, not five independent significance tests.
 
-**Red-team fix (MAJOR — prespecified shock-year exclusion):** a flat 4-of-5
-default risks unnecessary false negatives for a real, regime-scoped
-mechanism in a 5-year BTC sample that already contains two widely
--recognized shock years (2020 COVID crash/recovery, 2022 rate-hike/FTX
-collapse). To reduce that risk without reopening the door to post-hoc
-regime rescue: a hypothesis MAY, in its preregistration and before any
-per-year outcome is inspected, declare a fixed list of known macro/market
--shock exclusion periods to be reported separately from the primary 4-of-5
-check. Such an exclusion must be declared before per-year signs are
-computed, must not be selected or adjusted after seeing per-year results,
-and does not relax the requirement that the remaining (non-excluded) years
-show a stable, coherent sign. A regime explanation invented after seeing
-which years disagree remains exploratory and may not use this path.
+**Maintainer correction (MAJOR — regime-scoped claims without calendar
+rescue):** the 4-of-5 rule applies to an unconditional mechanism claim.
+Named calendar-year or event exclusions (for example "ignore 2020" or
+"ignore 2022") are not an authorized escape hatch, even when declared
+before computing the experiment's per-year outcome table, because the
+historical path and those event labels are already known during discovery
+and can themselves become a source of adaptive selection. If a mechanism
+is genuinely intended to be regime-scoped, that scope must be part of the
+hypothesis preregistration before real outcomes are opened and must be
+implemented as a deterministic state rule using only information available
+at decision time T (for example a trailing-volatility or trend state), not
+as retrospective calendar/event deletion. The complete gated rule,
+coverage and yearly distribution must then be evaluated as the claim.
+A regime explanation invented after seeing which years disagree remains
+`POSTHOC_UNTESTED` and cannot rescue the parent claim.
 
 ## 11. Claim scope controls side requirements
 
