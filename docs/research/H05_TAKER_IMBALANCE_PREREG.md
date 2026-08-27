@@ -7,6 +7,19 @@ frozen spec) and `scripts/research/h05_taker_imbalance_lib.py` /
 constitutes the H05 prereg + code freeze. No real H05 market outcomes
 have been computed. 2025 and 2026 remain untouched.
 
+**Amendment history:** this preregistration underwent one PRE-OUTCOME
+STRUCTURAL-SUPPORT CORRECTION (this revision), which supersedes
+`H05_PREREG_SHA_V1 = 9502006eb4797a9947c61d8d04acd1345ed41e5e` (preserved,
+unamended, `SUPERSEDED_PRE_OUTCOME`). An independent pre-outcome audit
+found that V1's structural gate compared the FULL (unrestricted)
+candidate-population mean against a control mean standardized only over
+overlap strata — quantities on different support, letting unmatched
+-candidate-stratum outcomes move the gate without any corresponding
+control observation. See section 6 for the corrected, like-with-like
+estimand. **No real H05 outcome was inspected to make this correction.**
+No design parameter (mechanism, signs, `W`/`q`/`H` surface, seeds, `MPIE`,
+`CONTROL_DELTA_MIN`, strata definitions) changed.
+
 **Design authority:** `docs/research/H05_TAKER_IMBALANCE_DESIGN.md` @
 `deaf6503896920685f25a03230174d360a07ab9a` (branch
 `research/h05-design-redteam`, PR #82, OPEN/DRAFT/UNMERGED). This
@@ -84,15 +97,22 @@ S = -1  FLOW EXHAUSTION / REVERSAL   (sign(outcome) == -D)
 The stored primary metric `X = NORM_TAKER_RET_H` (section 7) is **never**
 multiplied by `S` or re-signed; `S` and the four oriented gate quantities
 below are computed only at the gate-evaluation layer, from the same
-naturally-signed `candidate_mean`/`matched_mean`/`structural_mean`/
+naturally-signed `candidate_mean`/`matched_mean`/`structural_delta`/
 `shifted_mean` for both orientations:
 
 ```
 ORIENTED_PRIMARY           = S * candidate_mean
 ORIENTED_MATCHED_DELTA     = S * (candidate_mean - matched_mean)
-ORIENTED_STRUCTURAL_DELTA  = S * (candidate_mean - structural_mean)
+ORIENTED_STRUCTURAL_DELTA  = S * structural_delta
 ORIENTED_SHIFT_DELTA       = S * (candidate_mean - shifted_mean)
 ```
+
+`candidate_mean` is the FULL (unrestricted) candidate-population mean of
+`X`, used for the primary/matched/shift deltas. `structural_delta` is
+**not** a mean differenced against `candidate_mean` here — per the
+structural-support correction (section 6), it is the already-computed,
+like-with-like overlap comparison
+(`candidate_overlap_standardized_mean - structural_control_standardized_mean`).
 
 **Anti-cherry-pick rule (frozen):** a sign may not be selected or
 promoted because the other sign failed first. Both checklists are
@@ -128,13 +148,35 @@ trailing-30d midrank percentile `0.50`. **Five mandatory match strata:**
 `calendar_month × D × price_alignment × price_strength_bin ×
 activity_bin`. Candidate-weighted standardization: control means are
 weighted per overlap stratum by candidate frequency
-(`w_s = candidate_N_s / sum(candidate_N over overlap strata)`);
-`structural_mean = sum_s w_s * control_mean_s`; the gate compares this
-against the full (unrestricted) `candidate_mean` — not a re-standardized
-candidate side. Control-only strata get zero weight; unmatched candidates
-are reported, never dropped; insufficient overlap support routes to
-`INCONCLUSIVE`, never a post-outcome loosening. See `structural_control`
-in the JSON.
+(`w_s = candidate_N_s / sum(candidate_N over overlap strata)`).
+
+**PRE-OUTCOME STRUCTURAL-SUPPORT CORRECTION (this revision, supersedes
+`H05_PREREG_SHA_V1`):** the structural comparison is **like-with-like** —
+both sides of the comparison are restricted to, and weighted over,
+exactly the same overlap strata:
+
+```
+candidate_overlap_standardized_mean    = sum_s w_s * candidate_mean_s
+structural_control_standardized_mean   = sum_s w_s * control_mean_s
+structural_delta = candidate_overlap_standardized_mean
+                  - structural_control_standardized_mean
+```
+
+V1 instead compared the FULL (unrestricted) `candidate_mean` against
+`structural_control_standardized_mean` alone — quantities on different
+support. If unmatched candidate strata had systematically different
+outcomes, they could move the full candidate mean while having no
+corresponding structural-control observation at all, letting the gate
+pass or fail on composition the control never actually saw. The full,
+unrestricted candidate-population mean remains the estimand for every
+OTHER gate (primary, matched, shift, bootstrap, year stability, BUY/SELL
+symmetry) — matched-random and `+6h` have their own candidate/reference
+semantics and are not restricted by structural-control overlap; only the
+structural estimand changes here. Control-only strata get zero weight;
+unmatched candidates are reported, never dropped; insufficient overlap
+support (zero overlap strata) routes to `INCONCLUSIVE`, never a
+post-outcome loosening or a fabricated numeric effect. See
+`structural_control` in the JSON.
 
 ## 7. Primary outcome and normalization
 

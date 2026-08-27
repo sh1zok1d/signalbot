@@ -816,6 +816,66 @@ real-outcome verdict).
 
 ---
 
+### H05 — pre-outcome structural-support correction
+
+`H05_PREREG_SHA_V1` = `9502006eb4797a9947c61d8d04acd1345ed41e5e` is
+preserved, unamended, status **SUPERSEDED_PRE_OUTCOME**.
+
+**Reason:** an independent pre-outcome audit found that V1's structural
+gate/delta compared the FULL (unrestricted) candidate-population mean
+against a control mean standardized only over candidate/control overlap
+strata — quantities on different support. If unmatched candidate strata
+had systematically different outcomes, they could move the full candidate
+mean while having no corresponding structural-control observation at all,
+letting the gate pass or fail on composition the control never actually
+saw. **No real H05 outcome was inspected to find or fix this.**
+
+**Fix (this round, normal descendant commit, suggested message
+`research(h05): align structural gate on overlap support`):** the
+structural comparison is now like-with-like — both
+`candidate_overlap_standardized_mean` and
+`structural_control_standardized_mean` are computed over exactly the same
+overlap strata with exactly the same candidate-frequency weights `w_s`;
+`structural_delta` is their difference, and every `ORIENTED_STRUCTURAL_
+DELTA` gate consumes this delta directly. The full, unrestricted
+candidate mean (`full_candidate_mean`) is retained for transparency only
+and no longer enters the structural delta; it remains unchanged as the
+estimand for every other gate (primary, matched, shift, bootstrap, year
+stability, BUY/SELL symmetry) — matched-random and `+6h` are not
+restricted by structural-control overlap. Zero overlap strata still
+routes to `INCONCLUSIVE` (`structural_delta = None`), never a fabricated
+numeric effect.
+
+**New `H05_PREREG_SHA`** and, since the implementation is fully frozen in
+the same commit, **new `H05_RESEARCH_CODE_FREEZE_SHA`**: the commit that
+adds this entry. Updated files:
+`docs/research/H05_TAKER_IMBALANCE_PREREG.md` / `.json` (version_history
+entry added, `structural_control`/`claim_orientation` sections
+corrected), `scripts/research/h05_taker_imbalance_lib.py`
+(`structural_control_bundle`, `claim_evaluation`, `directional_support`
+corrected; new `oriented_from_delta`/`gate_from_delta` helpers),
+`tests/research/test_h05_taker_imbalance.py` (8 new
+structural-support-correction regression tests, all existing tests
+updated for the corrected field names — 73 tests total, all passing),
+`docs/reviews/H05_PREREG_IMPLEMENTATION_AUDIT.md` (section 6/26/27
+updated in place), and this ledger entry.
+
+No design parameter changed: mechanism, both signs, `W`/`q`/`H` surface
+(45 cells), Batch01 225-cell total, five structural dimensions,
+price-alignment/activity semantics, refractory, seeds, `MPIE=0.10`,
+`CONTROL_DELTA_MIN=0.05`, `+6h`, `q`/`H`/`W` robustness rules, 4/5-year
+rule, BUY/SELL symmetry, candidate-clustering diagnostic, and 2025/2026
+protection are all unchanged.
+
+Real H05 outcomes computed: **NO**. Development: **NOT OPENED**. 2025:
+**UNTOUCHED**. 2026: **UNTOUCHED**. `--stage dev-run` was not invoked;
+only `--stage identity` and the synthetic test suite were exercised.
+
+Do not run `--stage dev-run` against real data yet. Do not open 2025 or
+2026 for H05. Do not start Batch01 synthesis yet. Do not start H06.
+
+---
+
 ## Next research program — hypothesis discovery after E1
 
 Status: `AUTHORIZED_FOR_DISCOVERY / NOT YET CONFIRMATORY`.

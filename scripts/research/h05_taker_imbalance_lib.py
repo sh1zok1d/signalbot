@@ -597,23 +597,48 @@ def gate_control_delta(candidate_mean: Optional[float], reference_mean: Optional
     return None if v is None else v >= delta_min
 
 
+def oriented_from_delta(delta: Optional[float], sign: int) -> Optional[float]:
+    """S * delta, for a delta that is already computed on matched support
+    (e.g. the structural comparison's own like-with-like
+    `candidate_overlap_standardized_mean - structural_control_standardized
+    _mean`) -- distinct from `oriented_delta`, which computes `candidate -
+    reference` from two independent means that may not share support."""
+    return None if delta is None else sign * delta
+
+
+def gate_from_delta(delta: Optional[float], sign: int, threshold: float = CONTROL_DELTA_MIN) -> Optional[bool]:
+    v = oriented_from_delta(delta, sign)
+    return None if v is None else v >= threshold
+
+
 def claim_evaluation(candidate_mean: Optional[float], matched_mean: Optional[float],
-                      structural_mean: Optional[float], shifted_mean: Optional[float], sign: int) -> dict:
-    """All four mandatory gates for one claim orientation. `candidate_mean`
-    is the SAME quantity (overall candidate-population mean of X) used in
-    every delta -- it is never restricted/re-standardized per gate; only
-    `structural_mean` (the candidate-weighted standardized ORDINARY-flow
-    control mean) is itself a standardized quantity. See design doc
-    section 9 and section 17."""
+                      structural_delta: Optional[float], shifted_mean: Optional[float], sign: int) -> dict:
+    """All four mandatory gates for one claim orientation.
+
+    `candidate_mean` is the SAME quantity (the FULL, unrestricted
+    candidate-population mean of X) used for the primary, matched, and
+    shift gates -- it is never restricted/re-standardized for those.
+
+    `structural_delta`, by contrast, is NOT a mean to be differenced here:
+    it is the already-computed, like-with-like structural comparison
+    (`candidate_overlap_standardized_mean -
+    structural_control_standardized_mean`, both sides restricted to, and
+    weighted over, exactly the same overlap strata -- see
+    `structural_control_bundle`). This is the pre-outcome structural
+    -support correction: comparing the FULL candidate mean against a
+    control mean standardized only over overlap strata would compare
+    quantities on different support, letting unmatched-candidate-stratum
+    outcomes move the gate without any corresponding control observation.
+    See design doc section 9 and section 17."""
     return {
         "S": sign,
         "ORIENTED_PRIMARY": oriented_primary(candidate_mean, sign),
         "ORIENTED_MATCHED_DELTA": oriented_delta(candidate_mean, matched_mean, sign),
-        "ORIENTED_STRUCTURAL_DELTA": oriented_delta(candidate_mean, structural_mean, sign),
+        "ORIENTED_STRUCTURAL_DELTA": oriented_from_delta(structural_delta, sign),
         "ORIENTED_SHIFT_DELTA": oriented_delta(candidate_mean, shifted_mean, sign),
         "primary_gate": gate_primary(candidate_mean, sign),
         "mpie_gate": gate_matched_mpie(candidate_mean, matched_mean, sign),
-        "structural_gate": gate_control_delta(candidate_mean, structural_mean, sign),
+        "structural_gate": gate_from_delta(structural_delta, sign),
         "shift_gate": gate_control_delta(candidate_mean, shifted_mean, sign),
     }
 
@@ -818,12 +843,17 @@ def has_adjacent_w_directional_support(ordered_w: tuple, w_index: int, direction
 
 
 def directional_support(candidate_mean: Optional[float], matched_mean: Optional[float],
-                         structural_mean: Optional[float], sign: int) -> Optional[bool]:
+                         structural_delta: Optional[float], sign: int) -> Optional[bool]:
     """ORIENTED_PRIMARY>0 AND ORIENTED_MATCHED_DELTA>0 AND
-    ORIENTED_STRUCTURAL_DELTA>0 (direction only, not full gate magnitude)."""
+    ORIENTED_STRUCTURAL_DELTA>0 (direction only, not full gate magnitude).
+    `structural_delta` is the already like-with-like overlap comparison
+    (`candidate_overlap_standardized_mean -
+    structural_control_standardized_mean`), consistent with the
+    pre-outcome structural-support correction -- not `candidate_mean`
+    differenced against a control mean of different support."""
     p = oriented_primary(candidate_mean, sign)
     m = oriented_delta(candidate_mean, matched_mean, sign)
-    s = oriented_delta(candidate_mean, structural_mean, sign)
+    s = oriented_from_delta(structural_delta, sign)
     if p is None or m is None or s is None:
         return None
     return (p > 0) and (m > 0) and (s > 0)
@@ -1040,14 +1070,31 @@ def structural_control_bundle(panel: dict, cand: dict, cand_mean: Optional[float
     five-dimensional stratification (calendar_month, D, price_alignment,
     price_strength_bin, activity_bin) -- design doc section 9.
 
-    `structural_mean` (the value used in every ORIENTED_STRUCTURAL_DELTA
-    gate) is the candidate-weighted STANDARDIZED CONTROL mean only; the
-    candidate side of the gate remains `cand_mean`, the same overall
-    (unrestricted) candidate-population mean used for every other gate --
-    the design's own gate formula is `S * (candidate_mean -
-    structural_mean)`, not a restandardization of both sides to the
-    overlap strata. `candidate_standardized_mean` is reported alongside as
-    a diagnostic only; it never itself enters a gate."""
+    PRE-OUTCOME STRUCTURAL-SUPPORT CORRECTION (this revision, supersedes
+    `H05_PREREG_SHA_V1` = `9502006eb4797a9947c61d8d04acd1345ed41e5e`): an
+    independent pre-outcome audit found that comparing the FULL candidate
+    -population mean (`cand_mean`, unrestricted) against a control mean
+    standardized only over overlap strata compares quantities on
+    different support -- if unmatched candidate strata have
+    systematically different outcomes, they could move the full candidate
+    mean while having no corresponding structural-control observation at
+    all, letting a structural gate pass or fail on composition the
+    control never actually saw. The structural comparison must be
+    LIKE-WITH-LIKE: both `candidate_overlap_standardized_mean` and
+    `structural_control_standardized_mean` are now computed over exactly
+    the same overlap strata, with exactly the same candidate-frequency
+    weights `w_s`. `structural_delta =
+    candidate_overlap_standardized_mean - structural_control_standardized
+    _mean` is the quantity every `ORIENTED_STRUCTURAL_DELTA` gate now
+    uses -- **not** the full unrestricted candidate mean. The full
+    candidate-population mean (`cand_mean`, passed in) is reported here
+    only as `full_candidate_mean`, for transparency/contrast; it is not
+    used in this bundle's own delta. It continues to be used, unchanged,
+    for every OTHER oriented quantity (primary, matched, shift, bootstrap,
+    year stability, BUY/SELL symmetry) -- only the structural-control
+    estimand is restricted to overlap support, because matched-random and
+    +6h have their own candidate/reference semantics and are not
+    restricted by structural-control overlap."""
     t_arr = panel["t_ms"]
     f = panel["feat"][w_minutes]
     ctrl_mask = ordinary_control_mask(f["D"], f["abs_imbalance_pctl"], panel["in_development"])
@@ -1098,18 +1145,28 @@ def structural_control_bundle(panel: dict, cand: dict, cand_mean: Optional[float
     total_overlap_cand_n = sum(cand_stratum_n.values())
     if total_overlap_cand_n > 0:
         weight = {k: n / total_overlap_cand_n for k, n in cand_stratum_n.items()}
-        candidate_standardized_mean = sum(weight[k] * cand_stratum_mean[k] for k in weight)
-        structural_mean = sum(weight[k] * ctrl_stratum_mean[k] for k in weight)
+        candidate_overlap_standardized_mean = sum(weight[k] * cand_stratum_mean[k] for k in weight)
+        structural_control_standardized_mean = sum(weight[k] * ctrl_stratum_mean[k] for k in weight)
+        structural_delta = candidate_overlap_standardized_mean - structural_control_standardized_mean
     else:
-        candidate_standardized_mean = None
-        structural_mean = None
+        candidate_overlap_standardized_mean = None
+        structural_control_standardized_mean = None
+        structural_delta = None
 
     return {
         "ordinary_band": list(ORDINARY_BAND),
         "strata_definition": ["calendar_month", "D", "price_alignment", "price_strength_bin", "activity_bin"],
-        "candidate_standardized_mean": candidate_standardized_mean,
-        "structural_mean": structural_mean,
-        "structural_delta": None if (cand_mean is None or structural_mean is None) else cand_mean - structural_mean,
+        # LIKE-WITH-LIKE structural comparison (both sides restricted to,
+        # and weighted over, exactly the same overlap strata):
+        "candidate_overlap_standardized_mean": candidate_overlap_standardized_mean,
+        "structural_control_standardized_mean": structural_control_standardized_mean,
+        "structural_delta": structural_delta,
+        # Reported for transparency/contrast ONLY -- the full, unrestricted
+        # candidate-population mean is never itself part of the structural
+        # delta above; it remains the estimand for every OTHER gate
+        # (primary/matched/shift/bootstrap/year/symmetry), computed
+        # upstream in metric_block and passed in here only for reporting.
+        "full_candidate_mean": cand_mean,
         "candidate_overlap_N": total_overlap_cand_n,
         "candidate_total_N": candidate_total_n,
         "matched_candidate_N": matched_candidate_n,
@@ -1292,13 +1349,17 @@ def evaluate_cell(panel: dict, w_minutes: int, q: float, h_minutes: int) -> dict
 
     claim_eval = {}
     for name, sign in SIGNS.items():
-        ev = claim_evaluation(cand_mean, matched["matched_mean"], structural["structural_mean"],
+        # structural["structural_delta"] is the already like-with-like
+        # overlap comparison (pre-outcome structural-support correction) --
+        # NOT structural["full_candidate_mean"] differenced against a
+        # control mean of different support.
+        ev = claim_evaluation(cand_mean, matched["matched_mean"], structural["structural_delta"],
                                shift["shifted_mean"], sign)
         ev["bootstrap_gate"] = bootstrap_sign_gate(dep_sensitivity, sign)
         ev["year_stability_gate"] = year_stability_gate(yearly_means, sign)
         ev["direction_symmetry_gate"] = direction_symmetry_gate(dirs["BUY"]["mean"], dirs["SELL"]["mean"], sign)
         ev["directional_support"] = directional_support(
-            cand_mean, matched["matched_mean"], structural["structural_mean"], sign
+            cand_mean, matched["matched_mean"], structural["structural_delta"], sign
         )
         claim_eval[name] = ev
 

@@ -1,5 +1,15 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
+  "version_history": [
+    {
+      "sha": "9502006eb4797a9947c61d8d04acd1345ed41e5e",
+      "label": "H05_PREREG_SHA_V1",
+      "status": "SUPERSEDED_PRE_OUTCOME",
+      "reason": "structural_control_bundle computed the structural gate/delta from the FULL (unrestricted) candidate_mean against a control mean standardized only over candidate/control overlap strata -- comparing quantities on different support; unmatched candidate strata could move the full candidate mean with no corresponding structural-control observation at all",
+      "real_h05_outcomes_seen_before_supersession": false,
+      "audit_doc": "docs/reviews/H05_PREREG_IMPLEMENTATION_AUDIT.md"
+    }
+  ],
   "hypothesis_id": "H05_TAKER_IMBALANCE_SUBSEQUENT_RETURN",
   "title": "Taker imbalance -> subsequent return distribution",
   "status": "PREREGISTERED_EXPLORATORY",
@@ -115,16 +125,23 @@
     "s_reversal": -1,
     "stored_primary_metric_never_resigned": true,
     "s_applied_only_at_gate_evaluation_layer": true,
-    "candidate_mean_definition": "mean(X) over the full candidate population, used identically in every oriented delta",
+    "candidate_mean_definition": "mean(X) over the FULL candidate population, used for the primary/matched/shift oriented deltas (NOT for the structural delta -- see structural_delta_definition and the pre-outcome structural-support correction below)",
     "matched_mean_definition": "frozen matched-random reference mean (month x D only)",
-    "structural_mean_definition": "candidate-weighted standardized ordinary-flow control mean (five-dimensional strata)",
+    "structural_delta_definition": "candidate_overlap_standardized_mean - structural_control_standardized_mean, BOTH restricted to and weighted over exactly the same candidate/control overlap strata (five-dimensional) -- a like-with-like comparison, not the full candidate mean differenced against a control mean of different support",
     "shifted_mean_definition": "+6h negative-control mean",
     "oriented_primary_formula": "S * candidate_mean",
     "oriented_matched_delta_formula": "S * (candidate_mean - matched_mean)",
-    "oriented_structural_delta_formula": "S * (candidate_mean - structural_mean)",
+    "oriented_structural_delta_formula": "S * structural_delta",
     "oriented_shift_delta_formula": "S * (candidate_mean - shifted_mean)",
     "both_naturally_signed_and_oriented_quantities_persisted": true,
-    "raw_statistics_never_overwritten_with_oriented_values": true
+    "raw_statistics_never_overwritten_with_oriented_values": true,
+    "structural_support_correction": {
+      "supersedes_prereg_sha": "9502006eb4797a9947c61d8d04acd1345ed41e5e",
+      "problem": "comparing the full unrestricted candidate_mean against a control mean standardized only over overlap strata compares quantities on different support -- unmatched candidate strata could move the full candidate mean with no corresponding structural-control observation at all",
+      "fix": "the structural delta is now computed like-with-like: both the candidate side and the control side are restricted to, and weighted over, exactly the same overlap strata",
+      "other_estimands_unchanged": "primary/matched/shift/bootstrap/year-stability/BUY-SELL-symmetry continue to use the FULL candidate population mean, since matched-random and +6h have their own candidate/reference semantics and are not restricted by structural-control overlap",
+      "real_h05_outcomes_seen_before_correction": false
+    }
   },
   "mpie": {
     "value": 0.10,
@@ -175,16 +192,20 @@
     "strata": ["calendar_month", "D", "price_alignment", "price_strength_bin", "activity_bin"],
     "standardization": {
       "candidate_weight_formula": "w_s = candidate_N_s / sum(candidate_N over overlap strata)",
-      "structural_mean_formula": "sum_s w_s * control_mean_s",
-      "gate_uses_full_candidate_mean_not_restandardized": true,
+      "candidate_overlap_standardized_mean_formula": "sum_s w_s * candidate_mean_s",
+      "structural_control_standardized_mean_formula": "sum_s w_s * control_mean_s",
+      "structural_delta_formula": "candidate_overlap_standardized_mean - structural_control_standardized_mean",
+      "gate_uses_like_with_like_overlap_comparison_not_full_candidate_mean": true,
+      "gate_uses_full_candidate_mean_not_restandardized": false,
+      "gate_uses_full_candidate_mean_not_restandardized_superseded_reason": "an independent pre-outcome audit found this compared quantities on different support; see claim_orientation.structural_support_correction",
       "control_only_strata_receive_zero_candidate_weight": true,
       "unmatched_candidates_never_silently_dropped": true,
       "no_new_arbitrary_overlap_threshold": true,
       "insufficient_support_routes_to": "INCONCLUSIVE"
     },
     "report_fields": [
-      "candidate_standardized_mean", "structural_mean", "structural_delta",
-      "candidate_overlap_N", "candidate_total_N", "matched_candidate_N",
+      "candidate_overlap_standardized_mean", "structural_control_standardized_mean", "structural_delta",
+      "full_candidate_mean", "candidate_overlap_N", "candidate_total_N", "matched_candidate_N",
       "unmatched_candidate_N", "unmatched_candidate_share", "control_total_N",
       "number_of_candidate_strata", "number_of_matched_strata", "number_of_unmatched_candidate_strata"
     ],

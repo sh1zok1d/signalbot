@@ -9,6 +9,10 @@ computation. Not a design change. Not R3. Not H06.
 created from that exact design HEAD.
 **Real H05 outcomes computed:** **NONE.**
 **2025 inspected:** **NO.** **2026 inspected:** **NO.**
+**Amendment:** this audit has been updated in place (section 6, 26, 27)
+to record one PRE-OUTCOME STRUCTURAL-SUPPORT CORRECTION, which supersedes
+`H05_PREREG_SHA_V1 = 9502006eb4797a9947c61d8d04acd1345ed41e5e` (preserved,
+unamended). No real H05 outcome was inspected to make this correction.
 
 This audit checks that the preregistration
 (`docs/research/H05_TAKER_IMBALANCE_PREREG.md` /
@@ -95,36 +99,73 @@ match strata (`calendar_month, D, price_alignment, price_strength_bin,
 activity_bin`) implemented in `structural_control_bundle` via 5-tuple
 stratum keys (`test_15_16_17_18_structural_strata_and_standardization`).
 
-**Implementation clarification (not a design change, resolved here
-because the design left the exact gate-side computation slightly
-underspecified):** the design's own gate formula is `S * (candidate_mean
-- structural_mean)`, where `candidate_mean` is defined once, globally, as
-"mean(X) over the candidate population" and re-used identically across
-every oriented delta (matched, structural, shift). `structural_mean` is
-separately defined as "the candidate-weighted standardized ordinary-flow
-CONTROL mean." Read literally, only the control side of the structural
-comparison is stratum-standardized; the candidate side is the same
-unrestricted `candidate_mean` used everywhere else — not a second,
-overlap-restricted candidate mean (which is what H04's own structural
-control computed, for comparison). This implementation follows the
-design's literal wording: `structural_control_bundle` returns
-`structural_mean` (the candidate-weighted standardized control mean,
-computed only over overlap strata) and reports
-`candidate_standardized_mean` alongside as a diagnostic only — it is never
-substituted into a gate. The gate itself
-(`gate_control_delta(candidate_mean, structural_mean, sign)`) always uses
-the plain overall `candidate_mean` from `metric_block`. This is flagged
-here explicitly, per the task's own instruction to stop and document
-rather than silently choose, even though it does not block the freeze:
-it is a literal reading of the frozen design text, not an invented
-alternative.
+**PRE-OUTCOME STRUCTURAL-SUPPORT CORRECTION (this revision, BLOCKER
+closed — supersedes `H05_PREREG_SHA_V1` =
+`9502006eb4797a9947c61d8d04acd1345ed41e5e`):** this section originally
+flagged, as a non-blocking implementation clarification, that the gate
+compared the FULL (unrestricted) `candidate_mean` against a control mean
+standardized only over overlap strata — a literal reading of the design
+text, but a comparison of quantities on different support. A second,
+independent pre-outcome audit correctly identified this as a genuine
+methodological problem, not merely a clarification: if unmatched
+candidate strata have systematically different outcomes, they can move
+the full candidate mean while having no corresponding structural-control
+observation at all, letting a structural gate pass or fail on composition
+the control never actually saw. This is closed by making the structural
+comparison **like-with-like**: `structural_control_bundle` now computes
+both `candidate_overlap_standardized_mean` and
+`structural_control_standardized_mean` over exactly the same overlap
+strata, with exactly the same candidate-frequency weights `w_s`, and
+returns `structural_delta = candidate_overlap_standardized_mean -
+structural_control_standardized_mean` as the single quantity every
+`ORIENTED_STRUCTURAL_DELTA` gate now consumes directly (via the new
+`oriented_from_delta`/`gate_from_delta` helpers, distinct from
+`oriented_delta`/`gate_control_delta`, which continue to difference two
+independent means for the matched/shift gates). The full,
+unrestricted candidate-population mean is retained in the bundle's output
+as `full_candidate_mean`, for transparency/contrast only — it is no
+longer used anywhere in the structural delta, and continues, unchanged,
+to be the estimand for every OTHER gate (primary, matched, shift,
+bootstrap, year stability, BUY/SELL symmetry), since matched-random and
+`+6h` have their own candidate/reference semantics and are not restricted
+by structural-control overlap. `directional_support` (the `W`-robustness
+helper) was updated identically, so the `W` neighborhood check's
+structural-direction component also reads the corrected `structural_delta`
+rather than differencing the full candidate mean against a
+partial-support control mean.
+
+Verified by the structural-support-correction regression suite:
+`test_regression_01_structural_gate_uses_overlap_mean_not_full_mean` and
+`test_regression_02_unmatched_candidate_outcomes_cannot_change_structural_delta`
+construct exactly the scenario this correction targets — one overlap
+stratum with zero candidate/control difference, plus an unmatched
+candidate stratum given huge (`50.0`/`999.0`) positive outcomes — and
+confirm the full candidate mean moves materially (`>100` in the second
+test) while `candidate_overlap_standardized_mean`/`structural_delta`
+remain exactly unchanged (`0.0` delta) and the structural gate stays
+`False` for **both** signs.
+`test_regression_03_continuation_orientation_exact_s_plus_1` and
+`test_regression_04_reversal_orientation_exact_s_minus_1` pin the mirror
+-exact `S=+1`/`S=-1` behavior of the corrected `oriented_from_delta`.
+`test_regression_05_control_only_strata_receive_zero_weight` and
+`test_regression_06_candidate_and_control_use_identical_overlap_weights`
+confirm the single shared weight dict (`w_s`) is applied identically to
+both sides and that a control-only stratum never enters it.
+`test_regression_07_zero_overlap_yields_no_fabricated_structural_effect`
+and `test_58_insufficient_structural_support_yields_none_not_fabricated`
+confirm zero overlap strata routes to `None`/`INCONCLUSIVE`, never a
+fabricated `0.0` or any other numeric effect.
+`test_regression_08_five_dimensional_strata_remain_exact` confirms the
+five-dimensional strata definition itself is unchanged by this
+correction.
 
 Control-only strata receive zero candidate weight by construction (they
 never enter `cand_stratum_n`/`weight`); unmatched candidates are counted
 and reported, never dropped
 (`test_control_only_stratum_receives_zero_weight`). No numeric overlap
 threshold is invented: when `total_overlap_cand_n == 0`,
-`structural_mean` is `None`, which the design maps to `INCONCLUSIVE`
+`structural_delta` (and both standardized means) is `None`, which the
+design maps to `INCONCLUSIVE`
 (`test_58_insufficient_structural_support_yields_none_not_fabricated`).
 
 ## 7. Price alignment
@@ -347,22 +388,25 @@ returns were computed.
 
 ## 26. Objective blockers remaining
 
-**None identified.** The one implementation clarification noted in
-section 6 (candidate-side of the structural gate uses the full,
-unrestricted `candidate_mean` rather than an overlap-restricted
-standardized candidate mean) is a literal reading of the frozen design
-text, not a gap — it is flagged for transparency, not because it blocks
-the freeze. The clustering-diagnostic population choice (section 18) is
-likewise a documented, non-blocking clarification.
+**None identified after this correction.** The BLOCKER originally noted
+in section 6 (the structural gate compared the full, unrestricted
+`candidate_mean` against a control mean standardized only over overlap
+strata — quantities on different support) is closed in this revision by
+the like-with-like `structural_delta` computation. The
+clustering-diagnostic population choice (section 18) remains a
+documented, non-blocking clarification, unaffected by this correction.
 
 ## 27. Freeze identity
 
-This audit is committed in the same commit as the prereg MD/JSON,
-implementation, tests, and ledger entry
-(`research(h05): freeze taker imbalance prereg and implementation`).
-That commit is, at creation, both `H05_PREREG_SHA` and
-`H05_RESEARCH_CODE_FREEZE_SHA`. If a future pure software/completeness
-gap is found pre-outcome, it will be corrected in a normal descendant
-commit (this commit is not amended); if prereg semantics remain
-unchanged, `H05_PREREG_SHA` stays this commit and the descendant becomes
-the new `H05_RESEARCH_CODE_FREEZE_SHA`, exactly as the task specifies.
+`H05_PREREG_SHA_V1` = `9502006eb4797a9947c61d8d04acd1345ed41e5e`
+(status `SUPERSEDED_PRE_OUTCOME`, preserved unamended — see
+`docs/research/H05_TAKER_IMBALANCE_PREREG.json` `version_history`). This
+correction is committed as a normal descendant of that commit
+(`research(h05): align structural gate on overlap support`), containing
+the corrected prereg MD/JSON, the corrected implementation, the
+structural-support-correction regression tests, this audit update, and
+the ledger correction entry. That descendant commit becomes the new
+`H05_PREREG_SHA` and, since the implementation is fully frozen in the
+same commit, also the new `H05_RESEARCH_CODE_FREEZE_SHA`. No design
+parameter changed; only the structural estimand's support was corrected,
+pre-outcome, without inspecting any real H05 outcome.

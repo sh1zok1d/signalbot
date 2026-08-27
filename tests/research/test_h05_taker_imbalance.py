@@ -51,6 +51,7 @@ from scripts.research.h05_taker_imbalance_lib import (
     normalize,
     ordinary_control_mask,
     oriented_delta,
+    oriented_from_delta,
     oriented_primary,
     outcome_bundle,
     price_alignment_index,
@@ -91,6 +92,11 @@ def test_prereg_frozen_numbers():
         "H05_INCONCLUSIVE", "H05_REJECTED_SPECIFIC_CLAIM",
     }
     assert p["design_authority"]["design_head_sha"] == "deaf6503896920685f25a03230174d360a07ab9a"
+    assert p["schema_version"] == 2
+    assert p["version_history"][0]["sha"] == "9502006eb4797a9947c61d8d04acd1345ed41e5e"
+    assert p["version_history"][0]["status"] == "SUPERSEDED_PRE_OUTCOME"
+    assert p["version_history"][0]["real_h05_outcomes_seen_before_supersession"] is False
+    assert p["structural_control"]["standardization"]["gate_uses_full_candidate_mean_not_restandardized"] is False
 
 
 def test_require_snapshot_matches_repo_manifest():
@@ -408,7 +414,10 @@ def test_15_16_17_18_structural_strata_and_standardization():
     assert out["matched_candidate_N"] >= 1
     assert out["unmatched_candidate_N"] >= 0
     assert out["candidate_total_N"] == len(cand_idx)
-    assert out["structural_mean"] is not None
+    assert out["structural_control_standardized_mean"] is not None
+    assert out["candidate_overlap_standardized_mean"] is not None
+    assert out["structural_delta"] is not None
+    assert out["full_candidate_mean"] == pytest.approx(cand_mean)
 
 
 def test_control_only_stratum_receives_zero_weight():
@@ -539,7 +548,11 @@ def test_33_oriented_shift_delta_exact():
 # 34. continuation gates exact / 35. reversal mirrored gates exact
 # ---------------------------------------------------------------------------
 def test_34_continuation_gates_exact():
-    ev = claim_evaluation(candidate_mean=0.20, matched_mean=0.05, structural_mean=0.10,
+    # structural_delta is now the already-computed like-with-like overlap
+    # delta (candidate_overlap_standardized_mean -
+    # structural_control_standardized_mean), NOT a mean to be subtracted
+    # from candidate_mean here.
+    ev = claim_evaluation(candidate_mean=0.20, matched_mean=0.05, structural_delta=0.10,
                            shifted_mean=0.10, sign=S_CONTINUATION)
     assert ev["ORIENTED_PRIMARY"] == pytest.approx(0.20)
     assert ev["ORIENTED_MATCHED_DELTA"] == pytest.approx(0.15)
@@ -552,10 +565,10 @@ def test_34_continuation_gates_exact():
 
 
 def test_35_reversal_mirrored_gates_exact():
-    # mirror image: candidate_mean now negative, matched/structural/shifted
-    # positive by the same absolute amounts -> reversal gates should pass
-    # identically to the continuation case above by symmetry.
-    ev = claim_evaluation(candidate_mean=-0.20, matched_mean=-0.05, structural_mean=-0.10,
+    # mirror image: candidate_mean now negative, matched/shifted positive by
+    # the same absolute amounts, structural_delta negated -> reversal gates
+    # should pass identically to the continuation case above by symmetry.
+    ev = claim_evaluation(candidate_mean=-0.20, matched_mean=-0.05, structural_delta=-0.10,
                            shifted_mean=-0.10, sign=S_REVERSAL)
     assert ev["ORIENTED_PRIMARY"] == pytest.approx(0.20)
     assert ev["ORIENTED_MATCHED_DELTA"] == pytest.approx(0.15)
@@ -573,7 +586,7 @@ def test_reversal_impossible_under_positive_only_reading_regression():
     its own oriented gates -- it must NOT be evaluated with the
     continuation-only bare inequality that made REVERSAL mathematically
     unsatisfiable."""
-    ev = claim_evaluation(candidate_mean=-0.5, matched_mean=0.1, structural_mean=0.1,
+    ev = claim_evaluation(candidate_mean=-0.5, matched_mean=0.1, structural_delta=-0.6,
                            shifted_mean=0.1, sign=S_REVERSAL)
     assert ev["mpie_gate"] is True
     assert ev["structural_gate"] is True
@@ -613,7 +626,7 @@ def test_directional_support_direction_only_not_full_gate():
     # ORIENTED_STRUCTURAL_DELTA = 0.001 (positive, tiny) should count as
     # directional support even though it would fail the full
     # CONTROL_DELTA_MIN=0.05 numeric gate.
-    ok = directional_support(candidate_mean=0.101, matched_mean=0.10, structural_mean=0.10, sign=S_CONTINUATION)
+    ok = directional_support(candidate_mean=0.101, matched_mean=0.10, structural_delta=0.001, sign=S_CONTINUATION)
     assert ok is True
 
 
@@ -778,8 +791,10 @@ def test_57_quote_diagnostic_cannot_alter_verdict():
 # ---------------------------------------------------------------------------
 def test_58_insufficient_structural_support_yields_none_not_fabricated():
     # No overlap strata at all (candidate and control occupy disjoint
-    # strata) -> structural_mean must be None (caller maps None -> the cell
-    # is INCONCLUSIVE for this control, never a fabricated pass).
+    # strata) -> structural_delta must be None (caller maps None -> the
+    # cell is INCONCLUSIVE for this control, never a fabricated pass) --
+    # this is test 7 of the structural-support-correction regression set
+    # (zero-overlap yields no fabricated structural effect).
     n = 8
     t = np.arange(n, dtype=np.int64) * HTF_MS
     close = np.full(n, 100.0)
@@ -799,8 +814,17 @@ def test_58_insufficient_structural_support_yields_none_not_fabricated():
     cand = outcome_bundle(panel, cand_idx, 15, 15)
     cand_mean = float(np.mean(cand["norm"]))
     out = structural_control_bundle(panel, cand, cand_mean, 15, 15, elig_set)
-    assert out["structural_mean"] is None
+    assert out["structural_control_standardized_mean"] is None
+    assert out["candidate_overlap_standardized_mean"] is None
+    assert out["structural_delta"] is None
     assert out["unmatched_candidate_share"] == 1.0
+    # the gate/oriented-delta layer must map this to "unavailable", never a
+    # fabricated numeric effect.
+    from scripts.research.h05_taker_imbalance_lib import claim_evaluation as _claim_eval
+    ev = _claim_eval(cand_mean, matched_mean=0.0, structural_delta=out["structural_delta"],
+                      shifted_mean=0.0, sign=S_CONTINUATION)
+    assert ev["ORIENTED_STRUCTURAL_DELTA"] is None
+    assert ev["structural_gate"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -904,3 +928,203 @@ def test_evaluate_h05_no_forbidden_months(monkeypatch):
         for m in c["concentration"]["by_month"].keys():
             assert not m.startswith("2025")
             assert not m.startswith("2026")
+
+
+# ---------------------------------------------------------------------------
+# PRE-OUTCOME STRUCTURAL-SUPPORT CORRECTION regression tests
+# (supersedes H05_PREREG_SHA_V1 = 9502006eb4797a9947c61d8d04acd1345ed41e5e)
+# ---------------------------------------------------------------------------
+def _fixture_unmatched_extreme_vs_zero_overlap_difference():
+    """One overlap stratum (A) where candidate and control means are
+    IDENTICAL (zero structural difference), plus one candidate-only
+    stratum (B) with huge positive outcomes that have NO corresponding
+    control observation, plus one control-only stratum (C) that must
+    receive zero candidate weight."""
+    n = 12
+    t = np.arange(n, dtype=np.int64) * HTF_MS
+    close = np.full(n, 100.0)
+    d = np.ones(n, dtype=np.int8)  # all BUY, D never distinguishes strata here
+    # candidates: rows 0-3 (stratum A) and 4-7 (stratum B, unmatched)
+    # control:    rows 8-9 (stratum A, matches 0-3) and 10-11 (stratum C, control-only)
+    pctl = np.array([0.85] * 8 + [0.65] * 4)
+    total_w = np.full(n, 100.0)
+    price_ret = np.zeros(n)
+    ret = np.full(n, 0.01)
+    scale = np.full(n, 0.01)
+    panel = _manual_panel(t, close, 15, d, pctl, total_w, price_ret, 15, ret, scale)
+    price_alignment = np.array([1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0], dtype=np.int8)
+    price_strength_bin = np.array([0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0], dtype=np.int8)
+    activity_bin = np.array([0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0], dtype=np.int8)
+    panel["price_alignment"] = {15: price_alignment}
+    panel["price_strength_bin"] = {15: price_strength_bin}
+    panel["activity_bin"] = {15: activity_bin}
+    return panel, pctl
+
+
+def test_regression_01_structural_gate_uses_overlap_mean_not_full_mean():
+    """Regression test 1 (required): the structural gate/delta must be
+    computed from candidate_overlap_standardized_mean, NOT the full
+    (unrestricted) candidate_mean."""
+    panel, pctl = _fixture_unmatched_extreme_vs_zero_overlap_difference()
+    n = len(pctl)
+    elig_set = np.ones(n, dtype=bool)
+    cand_idx = np.flatnonzero(pctl >= 0.80)
+    cand = outcome_bundle(panel, cand_idx, 15, 15)
+    # Overlap stratum A candidates (idx 0-3) and control (idx 8-9) share the
+    # SAME norm value (0.01, from the fixture's flat ret/scale) -> zero
+    # structural difference. Unmatched stratum B candidates (idx 4-7) get a
+    # huge positive norm override to try to move the full candidate mean.
+    norm = cand["norm"].copy()
+    # cand["idx"] corresponds 1:1 with cand_idx (0..7); rows 4-7 are stratum B
+    b_mask = np.isin(cand["idx"], np.array([4, 5, 6, 7]))
+    norm[b_mask] = 50.0
+    cand = {**cand, "norm": norm}
+    full_candidate_mean = float(np.mean(norm))
+    out = structural_control_bundle(panel, cand, full_candidate_mean, 15, 15, elig_set)
+
+    assert out["full_candidate_mean"] == pytest.approx(full_candidate_mean)
+    assert full_candidate_mean > 5.0  # materially moved by the huge unmatched outcomes
+    # candidate_overlap_standardized_mean must be computed ONLY from
+    # stratum A (the sole overlap stratum) -> equals the (unchanged) norm
+    # of rows 0-3, i.e. 0.01 -- completely unaffected by stratum B's 50.0.
+    assert out["candidate_overlap_standardized_mean"] == pytest.approx(1.0, abs=1e-9)
+    assert out["structural_control_standardized_mean"] == pytest.approx(1.0, abs=1e-9)
+    assert out["structural_delta"] == pytest.approx(0.0, abs=1e-9)
+
+
+def test_regression_02_unmatched_candidate_outcomes_cannot_change_structural_delta():
+    """Regression test 2 (required, exact scenario from the task):
+    overlap strata have zero structural difference; unmatched candidates
+    have huge positive outcomes. Expected: full candidate_mean changes
+    materially BUT candidate_overlap_standardized_mean/structural_delta
+    stay unchanged/zero, and the structural gate stays False for BOTH
+    signs (0.0 cannot clear +-CONTROL_DELTA_MIN)."""
+    panel, pctl = _fixture_unmatched_extreme_vs_zero_overlap_difference()
+    n = len(pctl)
+    elig_set = np.ones(n, dtype=bool)
+    cand_idx = np.flatnonzero(pctl >= 0.80)
+
+    # Baseline: no extreme override (all candidate norm == 0.01, matching
+    # the control's stratum-A mean exactly).
+    cand_base = outcome_bundle(panel, cand_idx, 15, 15)
+    base_mean = float(np.mean(cand_base["norm"]))
+    out_base = structural_control_bundle(panel, cand_base, base_mean, 15, 15, elig_set)
+
+    # Extreme: stratum B (unmatched) candidates get huge positive outcomes.
+    norm_extreme = cand_base["norm"].copy()
+    b_mask = np.isin(cand_base["idx"], np.array([4, 5, 6, 7]))
+    norm_extreme[b_mask] = 999.0
+    cand_extreme = {**cand_base, "norm": norm_extreme}
+    extreme_mean = float(np.mean(norm_extreme))
+    out_extreme = structural_control_bundle(panel, cand_extreme, extreme_mean, 15, 15, elig_set)
+
+    assert extreme_mean - base_mean > 100.0  # full mean moved materially
+    assert out_base["structural_delta"] == pytest.approx(out_extreme["structural_delta"], abs=1e-9)
+    assert out_extreme["structural_delta"] == pytest.approx(0.0, abs=1e-9)
+    assert out_extreme["candidate_overlap_standardized_mean"] == pytest.approx(
+        out_base["candidate_overlap_standardized_mean"], abs=1e-9
+    )
+
+    for sign in (S_CONTINUATION, S_REVERSAL):
+        ev = claim_evaluation(extreme_mean, matched_mean=0.0, structural_delta=out_extreme["structural_delta"],
+                               shifted_mean=0.0, sign=sign)
+        assert ev["structural_gate"] is False
+
+
+def test_regression_03_continuation_orientation_exact_s_plus_1():
+    assert S_CONTINUATION == 1
+    ev = claim_evaluation(candidate_mean=0.3, matched_mean=0.1, structural_delta=0.08,
+                           shifted_mean=0.05, sign=S_CONTINUATION)
+    assert ev["S"] == 1
+    assert ev["ORIENTED_STRUCTURAL_DELTA"] == pytest.approx(0.08)
+    assert ev["structural_gate"] is True  # 0.08 >= 0.05
+
+
+def test_regression_04_reversal_orientation_exact_s_minus_1():
+    assert S_REVERSAL == -1
+    ev = claim_evaluation(candidate_mean=-0.3, matched_mean=-0.1, structural_delta=-0.08,
+                           shifted_mean=-0.05, sign=S_REVERSAL)
+    assert ev["S"] == -1
+    assert ev["ORIENTED_STRUCTURAL_DELTA"] == pytest.approx(0.08)
+    assert ev["structural_gate"] is True  # S*(-0.08) = 0.08 >= 0.05
+
+
+def test_regression_05_control_only_strata_receive_zero_weight():
+    """Stratum C (control-only, rows 10-11) must never enter the weighted
+    sums at all -- verified by checking the weighted structural means only
+    reflect stratum A, not stratum C's control values."""
+    panel, pctl = _fixture_unmatched_extreme_vs_zero_overlap_difference()
+    n = len(pctl)
+    elig_set = np.ones(n, dtype=bool)
+    cand_idx = np.flatnonzero(pctl >= 0.80)
+    cand = outcome_bundle(panel, cand_idx, 15, 15)
+    cand_mean = float(np.mean(cand["norm"]))
+    out = structural_control_bundle(panel, cand, cand_mean, 15, 15, elig_set)
+    # If stratum C (control-only) leaked into the weighted control mean,
+    # structural_control_standardized_mean would differ from stratum A's
+    # control mean (0.01) whenever stratum C's control norm differs from
+    # 0.01. Here stratum C's control norm is also 0.01 (flat fixture ret/
+    # scale), so instead we assert directly on the overlap-strata count:
+    # only ONE overlap stratum (A) exists -- C is excluded by construction.
+    assert out["number_of_matched_strata"] == 1
+    assert out["candidate_overlap_N"] == 4  # exactly stratum A's 4 candidates
+
+
+def test_regression_06_candidate_and_control_use_identical_overlap_weights():
+    """The SAME weight dict (keyed by overlap stratum, w_s =
+    candidate_N_s / sum(candidate_N over overlap strata)) is applied to
+    both the candidate-side and control-side weighted sums -- with a
+    single overlap stratum, the weight must be exactly 1.0 for both."""
+    panel, pctl = _fixture_unmatched_extreme_vs_zero_overlap_difference()
+    n = len(pctl)
+    elig_set = np.ones(n, dtype=bool)
+    cand_idx = np.flatnonzero(pctl >= 0.80)
+    cand = outcome_bundle(panel, cand_idx, 15, 15)
+    cand_mean = float(np.mean(cand["norm"]))
+    out = structural_control_bundle(panel, cand, cand_mean, 15, 15, elig_set)
+    # single overlap stratum -> its weight is 1.0 -> both standardized
+    # means equal that one stratum's own (candidate, control) means exactly.
+    assert out["candidate_overlap_standardized_mean"] == pytest.approx(1.0, abs=1e-9)
+    assert out["structural_control_standardized_mean"] == pytest.approx(1.0, abs=1e-9)
+
+
+def test_regression_07_zero_overlap_yields_no_fabricated_structural_effect():
+    """Duplicate-coverage regression (also covered by test_58): with zero
+    overlap strata, structural_delta/both standardized means must be None,
+    and the oriented gate layer must report None (unresolved), never a
+    fabricated 0.0 or any other numeric effect."""
+    n = 8
+    t = np.arange(n, dtype=np.int64) * HTF_MS
+    close = np.full(n, 100.0)
+    d = np.ones(n, dtype=np.int8)
+    pctl = np.array([0.85] * 4 + [0.65] * 4)
+    total_w = np.full(n, 100.0)
+    price_ret = np.zeros(n)
+    ret = np.full(n, 0.01)
+    scale = np.full(n, 0.01)
+    panel = _manual_panel(t, close, 15, d, pctl, total_w, price_ret, 15, ret, scale)
+    panel["price_alignment"] = {15: np.array([1, 1, 1, 1, 0, 0, 0, 0], dtype=np.int8)}
+    panel["price_strength_bin"] = {15: np.zeros(n, dtype=np.int8)}
+    panel["activity_bin"] = {15: np.zeros(n, dtype=np.int8)}
+    elig_set = np.ones(n, dtype=bool)
+    cand_idx = np.flatnonzero(pctl >= 0.80)
+    cand = outcome_bundle(panel, cand_idx, 15, 15)
+    cand_mean = float(np.mean(cand["norm"]))
+    out = structural_control_bundle(panel, cand, cand_mean, 15, 15, elig_set)
+    assert out["structural_delta"] is None
+    assert oriented_from_delta(out["structural_delta"], S_CONTINUATION) is None
+    assert oriented_from_delta(out["structural_delta"], S_REVERSAL) is None
+
+
+def test_regression_08_five_dimensional_strata_remain_exact():
+    panel, pctl = _fixture_unmatched_extreme_vs_zero_overlap_difference()
+    n = len(pctl)
+    elig_set = np.ones(n, dtype=bool)
+    cand_idx = np.flatnonzero(pctl >= 0.80)
+    cand = outcome_bundle(panel, cand_idx, 15, 15)
+    cand_mean = float(np.mean(cand["norm"]))
+    out = structural_control_bundle(panel, cand, cand_mean, 15, 15, elig_set)
+    assert out["strata_definition"] == [
+        "calendar_month", "D", "price_alignment", "price_strength_bin", "activity_bin",
+    ]
+    assert out["ordinary_band"] == [0.60, 0.80]
