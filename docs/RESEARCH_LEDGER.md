@@ -946,6 +946,43 @@ outcome-ready.
 
 ---
 
+## 2026-08-27 — H05_TAKER_IMBALANCE_SUBSEQUENT_RETURN development
+
+**Hypothesis:** `H05_TAKER_IMBALANCE_SUBSEQUENT_RETURN`
+
+- frozen design SHA: `deaf6503896920685f25a03230174d360a07ab9a`
+- `H05_PREREG_SHA`: `faac097c7a3aab0e82c35f4fdc7b0b006ac9e4a1`
+- `H05_RESEARCH_CODE_FREEZE_SHA`: `faac097c7a3aab0e82c35f4fdc7b0b006ac9e4a1`
+- research-code SHA in runner JSON: `faac097c7a3aab0e82c35f4fdc7b0b006ac9e4a1`
+- Git HEAD at outcome run: `faac097c7a3aab0e82c35f4fdc7b0b006ac9e4a1`
+- dataset snapshot: `717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`
+- development outcome access: **CONSUMED** (one `--stage dev-run`, 2020-02-01 → 2025-01-01)
+- 2025 validation: **UNTOUCHED**
+- 2026 final OOS: **UNTOUCHED**
+- search surface: **45 primary cells** (3 W × 3 nested q × 5 H); both signs evaluated; Batch01 cumulative 225
+- outcome status: `EXPLORATORY`
+- machine `results["promotion"]`: continuation `promoted=false`, reversal `promoted=false`, verdict **`H05_REJECTED_SPECIFIC_CLAIM`**
+- formal first-run status: **`C. H05_DEVELOPMENT_NOT_PROMOTED`**
+
+H01/H02/H03/H04 remain rejected/killed. Do not reinterpret them. Their post-hoc observations were not used as H05 gates. No preferred sign was selected.
+
+Universal blockers: MPIE 0/45 and overlap-structural 0/45 on both signs; full per-cell conjunction 0/45; therefore q-adjacent and H-adjacent full-gate support 0/45. Continuation primary 9/45, SELL oriented-primary 0/45, bootstrap 0/45. Reversal primary 36/45 but MPIE/structural never clear 0.10/0.05. No 2025/2026 month keys in results. No H05 source change after outcomes.
+
+Post-hoc observations (all `POSTHOC_UNTESTED`, none may rescue H05):
+
+- largest |candidate_mean| cells are negative (short-H / high-q)
+- continuation-leaning cells concentrate at H=240 and fail BUY/SELL symmetry
+- SELL-side means negative in all 45 cells; BUY-side means positive in 37/45
+- structural unmatched share ≤ 0.00082 (not an overlap artifact)
+
+Preregistration: `docs/research/H05_TAKER_IMBALANCE_PREREG.md`
+Development evidence: `docs/research/H05_DEV_SUMMARY.md`, `docs/research/H05_DEV_RESULTS.json`, `docs/research/H05_RUN_PROVENANCE.json`, `docs/research/H05_DEV_SUMMARY.runner.md`
+Record: `docs/reviews/H05_DEVELOPMENT_RESULT_RECORD.md`
+
+Do not open 2025 or 2026 for H05. Do not retune q/W/H. Do not start Batch01 synthesis. Do not start H06.
+
+---
+
 ## Next research program — hypothesis discovery after E1
 
 Status: `AUTHORIZED_FOR_DISCOVERY / NOT YET CONFIRMATORY`.
@@ -958,19 +995,19 @@ Recorded discovery runs:
 - `H02_FAILED_BREAKOUT_MEAN_REVERSION` = `H02_KILL`
 - `H03_EXTREME_IMPULSE_CONTINUATION_EXHAUSTION` = `H03_REJECTED_SPECIFIC_CLAIM`
 - `H04_TREND_PULLBACK_CONTINUATION` = `H04_REJECTED_SPECIFIC_CLAIM`
+- `H05_TAKER_IMBALANCE_SUBSEQUENT_RETURN` = `H05_REJECTED_SPECIFIC_CLAIM`
 
 Remaining mechanism classes still untested:
 
 - price/OI divergence;
 - crowded positioning -> reversal risk.
 
-H05 (`Taker Imbalance -> Subsequent Return Distribution`) is named in
-`docs/R2_SCREENING_PROTOCOL_V1.md`'s R2 Batch 01 list. A pre-outcome
-design/red-team round has been completed (see the H05 design entry
-above); implementation has not been authorized and H05 development has
-not been opened. H05 is the fifth and final primary mechanism family of
-R2 Batch 01 — no H06 is authorized after H05 closes; Batch01 synthesis is
-next.
+H05 (`Taker Imbalance -> Subsequent Return Distribution`) is the fifth
+and final primary mechanism family of R2 Batch 01. Its one authorized
+development run is recorded above (`C. H05_DEVELOPMENT_NOT_PROMOTED` /
+`H05_REJECTED_SPECIFIC_CLAIM`). No H06 is authorized after H05 closes.
+Batch01 synthesis is **NOT STARTED** in this task; the next research
+action is deferred until this frozen first-run result is reviewed.
 
 These are not edge claims and not implementation authorization.
 
