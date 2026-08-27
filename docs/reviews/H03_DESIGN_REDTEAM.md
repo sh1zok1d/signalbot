@@ -108,7 +108,7 @@ Also concentrated in M2 — an unusually volatile trailing 30-day reference wind
 Applied (3 MAJOR, 5 MINOR) as the corrected design in `docs/research/H03_DESIGN_FROZEN_DRAFT.md` — still a design draft, not a preregistration (H01/H02 remote durability is a separate operational precondition not addressed by this review).
 
 - fix branch: `research/h03-design-redteam`
-- fix SHA: *(see PR — pushed after this report; base commit `6c729b1b605ed3f8d078ce64d40154b9083076a2`)*
+- fix SHA: `483b0c71e9450b4101a450a09ed144f874e8d5d6` (created from exact base `6c729b1b605ed3f8d078ce64d40154b9083076a2`)
 - fix PR: opened as **draft** against `research/r2-screening-protocol-v1`, not merged
 
 ## Validation contamination
