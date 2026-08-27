@@ -44,22 +44,31 @@ GitHub, exact SHAs preserved, both open/unmerged.
   already named as one of the original R2 mechanism candidates in
   `docs/RESEARCH_ROADMAP.md` §R2, listed alongside H01 and H02 before either
   was executed.
-- **Numeric-choice independence — honest, incomplete disclosure:** this
-  design review cannot itself verify whether specific numeric choices below
-  (60-minute refractory, the 15/30/60/120/240-minute horizon ladder, the
-  q90/95/98 percentile ladder) were newly derived for H03 or carried over as
-  house convention from H01/H02's actual implementation. H01/H02's history
-  is now remotely durable (PRs #77/#78 above), so this question is
-  concretely answerable by inspecting those artifacts — but doing so is
-  outside this design-review's own scope (which does not open, run, or
-  materially inspect prior discovery implementations beyond what is already
-  stated in `docs/RESEARCH_LEDGER.md`/the task context). **This must be
-  stated affirmatively, not left silent, before development opens.**
-  Whoever writes the actual H03 preregistration must add a concrete
-  statement here (e.g., "the 60-minute refractory matches H02's own
-  refractory, chosen for cross-family convention consistency, not because
-  of any H02 outcome" or the honest alternative if that is not the case),
-  using PRs #77/#78 as the source of truth.
+- **Numeric-choice / design-influence disclosure — completed against the
+  remotely durable H01/H02 artifacts before H03 outcomes:** H03's mechanism
+  class predates both H01 and H02 and is explicitly listed in the original
+  R2 roadmap. Several numerical conventions are intentionally inherited as
+  project-wide research conventions rather than selected from H01/H02
+  outcomes: the 15-minute decision grid and 30-day local-reference concept
+  match H01; the 15/30/60/120/240-minute outcome ladder is shared by H01 and
+  H02; the use of 100 matched-random replicates, UTC-week block uncertainty,
+  and a +6h same-day timing control follows prior research convention
+  (H01/H02/E1 as applicable). The **60-minute refractory is not inherited
+  from H02** — H02 used 30 minutes. H03's 60-minute refractory is a new
+  pre-outcome choice intended to reduce clustering of extreme-impulse
+  triggers, not a value selected because of any favorable H02 outcome. The
+  `q90/q95/q98` tail ladder is also new to H03; neither H01 nor H02 used
+  that threshold family, and it is frozen as a coarse three-level tail
+  severity grid before H03 outcomes. The impulse windows
+  `W={15,30,60}m` overlap in scale with prior lookbacks but are not copied
+  from either prior family (H01 used 30/60/120m compression lookbacks; H02
+  used 60/120/240m range lookbacks). Knowledge that H01/H02 had clustering
+  and dependence concerns influenced the decision to make H03's refractory
+  and dependence reporting explicit; their post-hoc directional findings
+  (low-vol persistence and generic boundary-breach bounce) did **not**
+  determine H03's mechanism, sign alternatives, threshold ladder, or
+  controls. This influence is disclosed as batch-internal design
+  adaptation, not presented as independence.
 - **Control formulations considered:** exactly one structural control
   (moderate-momentum band) and one negative control (`+6h` circular shift)
   were considered for this design. No alternative formulation was tried and
@@ -144,27 +153,36 @@ Reference distribution: same `W`, same UTC 15-minute grid, preceding 30
 calendar days, strictly before `T` (current `T` excluded; no future
 observations; no full-dataset or year-wide percentile).
 
-`P_W(T)` = empirical percentile rank of `ABS_IMPULSE_W(T)` within the
-trailing 30-day reference distribution.
+`P_W(T)` uses the same midrank convention already frozen in H01:
+
+`P_W(T) = (#{ref < x} + 0.5 * #{ref == x}) / N_ref`
+
+for `x = ABS_IMPULSE_W(T)`. This removes a hidden percentile/tie-handling
+degree of freedom.
 
 Candidate thresholds: `q ∈ {0.90, 0.95, 0.98}`. Extreme-impulse condition:
 `P_W(T) >= q`. No thresholds are added after real outcomes are opened.
 
-**Effective-sample-size disclosure (fix, required, not a new gate):**
-for every `(W, q)` cell, report both:
+**Reference-window overlap disclosure (required, descriptive only):**
 
-- nominal reference-window observation count (~2,880 for a 30-day,
-  15-minute grid), and
-- **effective (non-overlapping) count**, computed as
-  `floor(30 * 24 * 60 / W_minutes)` — 2,880 for `W=15m`, 1,440 for `W=30m`,
-  720 for `W=60m`.
+For the impulse-percentile reference report:
 
-Any `(W, q)` cell whose effective count times `(1 − q)` (the expected
-number of non-overlapping observations exceeding the threshold) falls below
-**200** must be flagged for interpretive caution in the writeup. This is a
-fixed, predeclared disclosure rule — it does not change which cells are
-tested or add a new selectable threshold, and it applies identically to the
-decile-diagnostic bins in §19.
+- nominal reference count `N_ref` (~2,880 on a complete 30-day 15m grid);
+- conservative non-overlap proxy
+  `N_eff_W = floor(30 * 24 * 60 / W_minutes)`;
+- expected non-overlap tail count proxy
+  `N_eff_W * (1-q)` for each q;
+- expected moderate-control-band count proxy `0.20 * N_eff_W`;
+- expected per-decile count proxy `0.10 * N_eff_W`.
+
+For the H-horizon normalization reference in §8 report separately:
+
+`N_eff_H = floor(30 * 24 * 60 / H_minutes)`.
+
+These are conservative transparency diagnostics, not estimated iid sample
+sizes and not promotion gates. No arbitrary adequacy cutoff (such as 200)
+is used. The purpose is to expose how much overlap exists, especially for
+`W=60m/q98` and `H=240m`, without creating another pass/fail parameter.
 
 ## 5. Refractory
 
@@ -215,23 +233,27 @@ PAST_MEDIAN_ABS_RET_H(T) = median of H-horizon absolute returns on the
     candidate/future outcome excluded.
 ```
 
-**Floor (fix, required, fixed and outcome-independent):**
-`PAST_MEDIAN_ABS_RET_H(T)` is floored at the corresponding statistic's own
-5th percentile computed over the full development window using only data
-available strictly before `T`. This prevents a division blow-up during
-unusually quiet historical stretches from producing degenerate,
-artificially enormous normalized outcomes — a fixed rule declared here,
-before outcomes, not a parameter chosen after seeing results.
+No full-development statistical floor is allowed. A floor estimated from
+the complete 2020–2024 scale series would let an early decision time depend
+on scale states that occur later in development and would violate the
+as-of semantics this experiment is meant to preserve.
 
 ```
-NORM_CONT_RET_H(T) = CONT_RET_H(T) / PAST_MEDIAN_ABS_RET_H(T)   [floored]
+NORM_CONT_RET_H(T) = CONT_RET_H(T) / PAST_MEDIAN_ABS_RET_H(T)
 ```
 
-If the trailing scale is unavailable even after flooring, the outcome is
-ineligible. No future normalization; `PAST_MEDIAN_ABS_RET_H(T)` uses only
-pre-T data, so it is independent of the candidate's own current or future
-outcome — satisfying the canonical protocol's MPIE-anchoring requirement
-(§8 of the canonical protocol).
+The denominator must be finite and strictly positive using only the
+trailing, fully-resolved pre-T history. If it is zero, non-finite, or
+unavailable, that outcome is ineligible and counted explicitly.
+
+To expose (rather than silently suppress) denominator pathology, every
+`H` report must include the distribution of
+`PAST_MEDIAN_ABS_RET_H(T)` (minimum, 1st, 5th, 25th, 50th percentiles) and
+the share of total absolute normalized-outcome magnitude contributed by the
+largest 1% of `|NORM_CONT_RET_H|` observations. These are fixed
+diagnostics only; no post-outcome denominator floor or winsorization may be
+introduced inside H03. Raw bps and the median normalized outcome remain
+visible alongside the mean.
 
 ## 9. MPIE (minimum practically interesting effect)
 
@@ -252,13 +274,27 @@ not replace the normalized MPIE and is not a profitability requirement.
 Execution cost is explicitly **not** the primary MPIE anchor for this
 mechanism-discovery experiment.
 
-*Design-red-team assessment: 0.10 is a defensible, pre-anchored order of
-magnitude — neither trivially small (which would make promotion easy to
-game) nor implausibly large (which would kill real effects for no
-principled reason). The anchor is genuinely independent of candidate
-outcomes (§8's floor makes this robust even in quiet markets). No better
-outcome-independent anchor without a new tunable parameter was identified.
-No change proposed to the magnitude or construction.*
+*Maintainer assessment: 0.10 remains the frozen primary MPIE. It is an
+outcome-independent mechanism-relevance floor expressed in units of the
+local pre-T absolute-move scale, not a trading-profitability threshold.
+Section §8 intentionally uses no full-development statistical floor; instead
+denominator/influence diagnostics expose any normalization pathology.*
+
+For the otherwise ambiguous word **materially** in control comparisons,
+freeze a single control-separation floor equal to half the primary MPIE:
+
+`CONTROL_DELTA_MIN = 0.05` normalized units.
+
+For the ultimately selected preregistered sign `S` (`+1` continuation,
+`-1` exhaustion):
+
+- structural-control requirement:
+  `S * (mean_extreme - mean_moderate) >= 0.05`;
+- timing-negative-control requirement:
+  `S * (mean_true - mean_shifted) >= 0.05`.
+
+This threshold is fixed before outcomes and cannot be relaxed after
+inspection. It is a mechanism-separation rule, not PnL.
 
 ## 10. Structural control
 
@@ -282,14 +318,15 @@ in §0)*.
 
 For each `(W, q)` configuration: sample the same number of eligible UTC
 15-minute boundaries, preserving calendar-month candidate counts and
-UP/DOWN candidate-direction composition. Assign each matched observation
-the corresponding real candidate's direction label (this is the correct,
-standard construction for a "matched random timing" negative/baseline
-control on a *signed* claim per `docs/EDGE_RESEARCH_PROTOCOL.md` §7 — it is
-not a flaw that the matched draw's own organic direction is discarded in
-favor of the paired real event's label; that substitution is precisely what
-makes the matched control's `CONT_RET_H` comparable in the same units as
-the real candidate's).
+UP/DOWN candidate-direction composition. Sampling is **without replacement
+inside each replicate**. The matched-random pool excludes every raw
+qualifying extreme-impulse timestamp for that same `(W,q)` configuration
+before refractory deduplication, so the control cannot accidentally contain
+the treated trigger itself. It does **not** exclude surrounding hours or
+whole volatile regimes; doing that would create an artificially quiet,
+over-favorable baseline. Assign each matched observation the corresponding
+real candidate's direction label (the standard signed matched-timing
+construction).
 
 Deterministic seed: `20260831`. **This seed is used exactly once and is
 never re-rolled after any early inspection of results** *(fix)*. 100
@@ -297,19 +334,21 @@ replicates. Report candidate-minus-matched for mean `NORM_CONT_RET_H` and
 continuation positive-share. Replicates estimate the control distribution
 only; they are not independent market evidence.
 
-**Residual-imbalance diagnostic (fix, required, descriptive only):**
-report a fixed day-of-month and day-of-week distribution comparison between
-real candidate events and the matched-random draws for each `(W, q)`
-configuration, so a reviewer can visually confirm no gross residual
-clustering imbalance remains beyond month/direction matching. This is
-purely descriptive — it does not create an additional matched baseline to
-choose between, and month-level matching itself is not changed.
+**Residual-imbalance diagnostic (required, descriptive only):** report the
+day-of-month and day-of-week distributions for real candidates and matched
+draws, plus total-variation distance for each categorical distribution:
+`TVD = 0.5 * sum_i |p_i - q_i|`. This yields a deterministic disclosure
+instead of an undefined "visual" judgment. It does not change the matched
+baseline or create an alternative one.
 
 ## 12. Negative control
 
 `+6` hour circular shift within the same UTC day, preserving the original
 impulse direction. Do not redetect an impulse at the shifted `T`. Require
-valid past/future coverage at the shifted `T`.
+valid past/future coverage at the shifted `T`. Report the fraction of
+shifted timestamps that coincide with a raw true extreme-impulse timestamp
+for the same `(W,q)`; do not delete such collisions after seeing them,
+because that would condition the negative control on the event definition.
 
 *Design-red-team disclosure (fix):* a quarter-day shift moves most control
 observations into a different part of the UTC day, which may introduce
@@ -401,24 +440,21 @@ block length that gives the narrowest favorable interval.
 (design-red-team deliverable, refined in round 2 to explicitly reach into
 multi-month territory):**
 
-> **ACF-crossing dependence-half-life proxy.** On the full development
+> **Longest flagged dependence-lag diagnostic.** On the full development
 > window (embargo-respecting), compute the **daily** series of total
 > absolute 15-minute log-returns (a realized-volatility-activity proxy,
-> computed independently of any candidate event or outcome). Compute its
-> autocorrelation function at the fixed, predeclared lag set
-> `{1, 2, 4, 8, 16, 32, 64}` calendar days. Report the diagnostic as **the
-> smallest lag in that set at which the ACF first falls below 0.2** (a
-> fixed, non-tuned threshold). If the ACF has not fallen below 0.2 by lag
-> 64, report the diagnostic as `>64 days`.
+> independent of candidate events/outcomes). Compute the ACF at the fixed
+> lag set `{1, 2, 4, 8, 16, 32, 64}` calendar days. Report
+> `L_dep = max{L : |ACF(L)| >= 0.20}`. If no lag meets the threshold,
+> report `<1 day`; if lag 64 meets it, report `>=64 days`.
 
-This is not a new selectable block length — it is a single reported
-number. A value at or beyond 16–32 days is a direct signal that 1w/2w/4w
-block sensitivity may understate true persistence; a value reaching 64
-days explicitly demonstrates dependence extending into multi-month
-territory. Either must be disclosed and flagged for qualitative caution in
-any freeze writeup — it does not by itself gate promotion. Fully
-reproducible and interpretable from the frozen dataset and this fixed
-formula alone; no "inspect ACF and decide" judgment call.
+Using the **largest** flagged lag rather than the first threshold crossing
+prevents a non-monotone ACF from falsely reporting "short dependence" just
+because it dips below 0.20 at an early lag and rises again later. This is a
+single descriptive diagnostic, not a selectable block length. A value at
+16/32/64 days must be disclosed as evidence that 1w/2w/4w bootstrap
+sensitivity may still understate longer regime dependence; it does not by
+itself decide promotion.
 
 ## 19. Chronological stability
 
@@ -479,9 +515,10 @@ must satisfy all of:
 1. primary close-return effect has that sign;
 2. candidate-minus-matched normalized mean magnitude meets or materially
    exceeds the frozen MPIE;
-3. extreme impulse materially separates from moderate momentum (§10);
-4. the fixed negative control (§12) materially weakens/destroys the
-   effect;
+3. extreme impulse separates from moderate momentum by the frozen
+   `CONTROL_DELTA_MIN=0.05` in the selected sign (§9–§10);
+4. the fixed +6h negative control is weakened by at least the frozen
+   `CONTROL_DELTA_MIN=0.05` in the selected sign (§9, §12);
 5. `q90`/`q95`/`q98` form a coherent same-sign neighborhood/sensible
    strength response (§21; subject to the §4 effective-N caveat);
 6. **at least two adjacent horizons `H` support the same sign, evaluated on
@@ -515,9 +552,9 @@ inside the development run.
 ---
 
 **Reminder: this is still a design draft, not a preregistration.**
-Preregistration additionally requires this draft to be committed as the
-actual frozen preregistration text at the moment development opens, with
-§0's remaining honest-disclosure gap (whether specific numeric conventions
-were carried over from H01/H02) filled in with concrete specifics by
-whoever opens development, using PRs #77/#78 as the source of truth for
-H01/H02's real implementation.
+Preregistration additionally requires this corrected draft to be converted
+into the actual machine-readable + human-readable freeze before any real
+H03 outcome is computed. Section §0's design-influence disclosure is now
+completed against the remotely durable H01/H02 artifacts; it must be copied
+verbatim (or equivalently) into the preregistration and may not be weakened
+after outcomes.
