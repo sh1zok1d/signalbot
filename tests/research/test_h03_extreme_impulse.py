@@ -379,6 +379,16 @@ def test_16_matched_random_pool_excludes_raw_extremes():
     assert 3 not in pool and 7 not in pool and 12 not in pool
     assert pool.size == 17
 
+    # evaluate_cell passes eligible *panel* indices, not 0..n-1 positions.
+    # Fancy-indexing those ids into len(elig) IndexErrors on real data
+    # (eligible development length 172400; panel ids such as 172517).
+    panel_idx = np.array([100, 250, 172400, 172517, 200000], dtype=np.int64)
+    raw_panel = np.array([172517, 100], dtype=np.int64)
+    pool_panel = build_matched_random_pool(panel_idx, raw_panel)
+    assert 172517 not in pool_panel and 100 not in pool_panel
+    assert 250 in pool_panel and 172400 in pool_panel and 200000 in pool_panel
+    assert pool_panel.size == 3
+
 
 # ---------------------------------------------------------------------------
 # 17. matched-random sampling is without replacement within replicate

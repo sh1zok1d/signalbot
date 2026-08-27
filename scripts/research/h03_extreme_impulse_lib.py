@@ -511,9 +511,15 @@ def path_mfe_mae(high: np.ndarray, low: np.ndarray, close: np.ndarray, i: int,
 def build_matched_random_pool(all_grid_idx: np.ndarray, raw_extreme_idx: np.ndarray) -> np.ndarray:
     """The random pool excludes every RAW qualifying extreme timestamp for
     this (W,q) (before refractory dedup) but does NOT exclude surrounding
-    hours/whole volatile regimes -- only the exact treated indices."""
-    excluded = np.zeros(len(all_grid_idx), dtype=bool)
-    excluded[raw_extreme_idx] = True
+    hours/whole volatile regimes -- only the exact treated indices.
+
+    `all_grid_idx` and `raw_extreme_idx` are values in the same index space
+    (panel positions). Membership exclusion is required: fancy-indexing
+    `raw_extreme_idx` into `len(all_grid_idx)` is only valid when the grid
+    happens to be `0..n-1`, which the real eligible-development subset is
+    not.
+    """
+    excluded = np.isin(all_grid_idx, raw_extreme_idx)
     return all_grid_idx[~excluded]
 
 
