@@ -78,6 +78,19 @@ real accepted parquet; every function is exercised only against local
 synthetic fixtures in `tests/research/test_h03_extreme_impulse.py`.
 Development-only: it must not read 2025 validation or 2026 OOS outcomes.
 
+## H04 trend pullback → continuation
+
+`h04_trend_pullback_continuation.py` (+ `h04_trend_pullback_continuation_lib.py`)
+is an `AUDIT_TOOL` / experiment runner for
+`H04_TREND_PULLBACK_CONTINUATION`.
+Preregistration: `docs/research/H04_TREND_PULLBACK_PREREG.md` /
+`.json`. This is currently a **preregistration + implementation freeze
+only** — `--stage dev-run` is wired but has not been exercised against
+real accepted parquet; every function is exercised only against local
+synthetic fixtures in
+`tests/research/test_h04_trend_pullback_continuation.py`.
+Development-only: it must not read 2025 validation or 2026 OOS outcomes.
+
 ## Earlier mathematical/audit tools
 
 `math002b_*` belongs to earlier consensus-robustness research/audit work. Treat it as `AUDIT_TOOL` unless a current research run explicitly reuses it.

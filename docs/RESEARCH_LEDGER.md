@@ -401,6 +401,79 @@ Do not open 2025 or 2026 for H03. Do not start R3. Do not start H04.
 
 ---
 
+## 2026-08-27 — H04_TREND_PULLBACK_CONTINUATION preregistration
+
+**Hypothesis:** `H04_TREND_PULLBACK_CONTINUATION`
+
+Directional, symmetric, continuation-only mechanism test: after BTC
+establishes a strong directional move over a longer backward window
+(`L ∈ {240, 480, 960}` minutes) and then undergoes a partial counter-trend
+pullback that does not erase that move, does subsequent price tend to
+continue in the original trend direction? The specific claimed incremental
+ingredient is pullback after established trend, not generic trend
+persistence — the structural control exists specifically to test this.
+
+This is preregistration + implementation freeze only. **No development
+outcomes have been computed.** No real accepted parquet was read.
+
+- dataset snapshot: `717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`
+- prereg commit: this commit (preregistration MD/JSON, implementation,
+  tests, and this ledger entry are frozen together in a single commit; see
+  `docs/research/H04_TREND_PULLBACK_PREREG.md` / `.json`)
+- design provenance: `docs/reviews/H04_DESIGN_REDTEAM.md` (Claude red-team,
+  branch `research/h04-design-redteam`) and
+  `docs/reviews/H04_DESIGN_MAINTAINER_ADDENDUM.md` (maintainer correction of
+  the structural control and the depth-band robustness rule); PR #80
+- development window: `2020-02-01T00:00:00Z` → `2025-01-01T00:00:00Z` with
+  `T + H_minutes < 2025-01-01T00:00:00Z` for every horizon (no truncation)
+- development: **NOT YET RUN** (state: `NOT_OPENED`)
+- validation: **UNTOUCHED** (2025 not inspected)
+- OOS: **UNTOUCHED** (2026 not inspected)
+- outcome status: `PRE_REGISTERED / EXPLORATORY`
+- primary search surface: 3 trend lookbacks × 3 exclusive depth bands ×
+  5 horizons = **45 primary cells** (this batch: H01 = 45, H02 = 45,
+  H03 = 45, H04 = 45)
+- global adaptivity: H04's mechanism class predates H01/H02/H03 (named in
+  the original R2 roadmap before "extreme impulse", verified against
+  `docs/RESEARCH_ROADMAP.md`). `L={240,480,960}`, `P=60m`, `q=0.80`, and the
+  depth-band construction are new to H04. `q=0.80`'s looseness is disclosed
+  as **PARTIALLY** batch-adaptive (plausibly shaped by H03's fragile
+  tight-tail `q=0.98` cells); the mechanism class itself is not adaptive.
+  H01/H02/H03 post-hoc observations are not imported as H04 gates/features.
+- control formulations considered (all pre-outcome, at the design-review
+  stage): mirror extension (rejected — same-direction extension is itself
+  plausibly mean-reversion-prone), "all established-trend moments
+  irrespective of the P-window" (rejected — contaminated by containing
+  other pullbacks/extensions), final adopted: established trend + near-
+  neutral recent move (`abs(RECENT_RATIO)<0.10`, reusing the existing
+  shallow-depth edge, no new numeric parameter); negative control: `+6h`
+  circular shift
+- alternative controls attempted: the two rejected structural-control
+  formulations above (mirror extension; all-trend-moments) — recorded here
+  per the ledger's control-formulations-attempted requirement, not silently
+  omitted
+- MPIE = `0.10` (reused unchanged from H03, before H03's own outcomes);
+  `CONTROL_DELTA_MIN = 0.05`
+- implementation carries forward three H03 post-freeze-audit lessons:
+  membership-based (not positional) matched-random pool exclusion;
+  real-timestamp (never panel-index) calendar keys; the week-block
+  bootstrap wired into per-cell output from the start (H03 left this
+  library-only and unwired)
+- real H04 outcomes inspected: **NO**
+- no R3 opened; no H05 opened; no product/forecasting code touched
+
+Preregistration: `docs/research/H04_TREND_PULLBACK_PREREG.md`,
+`docs/research/H04_TREND_PULLBACK_PREREG.json`
+Implementation (frozen, unexercised against real data in this task):
+`scripts/research/h04_trend_pullback_continuation.py`,
+`scripts/research/h04_trend_pullback_continuation_lib.py`
+Tests (synthetic fixtures only): `tests/research/test_h04_trend_pullback_continuation.py`
+
+Do not run real H04 market outcomes under this entry. Do not open 2025 or
+2026 for H04. Do not start R3 or H05 for H04.
+
+---
+
 ## Next research program — hypothesis discovery after E1
 
 Status: `AUTHORIZED_FOR_DISCOVERY / NOT YET CONFIRMATORY`.
@@ -412,12 +485,15 @@ Recorded discovery runs:
 - `H01_COMPRESSION_EXPANSION` = `REJECTED / H01_KILL`
 - `H02_FAILED_BREAKOUT_MEAN_REVERSION` = `H02_KILL`
 - `H03_EXTREME_IMPULSE_CONTINUATION_EXHAUSTION` = `H03_REJECTED_SPECIFIC_CLAIM`
+- `H04_TREND_PULLBACK_CONTINUATION` = `PRE_REGISTERED / EXPLORATORY` (not yet run)
 
 Remaining mechanism classes still untested:
 
-- trend pullback -> continuation;
 - price/OI divergence;
 - crowded positioning -> reversal risk.
+
+H05 (`Taker Imbalance -> Subsequent Return Distribution`) is named in
+`docs/R2_SCREENING_PROTOCOL_V1.md`'s R2 Batch 01 list but not yet started.
 
 These are not edge claims and not implementation authorization.
 
