@@ -64,13 +64,13 @@ confirmation of anything.
   freshly derived; see §13–§14 for the corrected (exclusive-band) primary
   construction and the reasoning for why the originally proposed nested
   construction was rejected.
-- **The structural control is a corrected trend-only baseline, not the
-  originally proposed "mirror extension."** Mirror extension (same
-  established trend, same-direction `P`-window "extension") was rejected
-  because same-direction extension is itself plausibly prone to
-  short-horizon mean reversion, which would make pullback look artificially
-  good for a reason unrelated to pullback specifically. See §20 and
-  `docs/reviews/H04_DESIGN_REDTEAM.md` §7.
+- **The structural control is the final maintainer-corrected established-
+  trend + near-neutral recent-move baseline.** Mirror extension was rejected
+  because extension can itself mean-revert; the red-team's intermediate
+  "all trend moments" control was then rejected because it still contains
+  other pullbacks/extensions and can contaminate the structural contrast.
+  The final control freezes `abs(RECENT_RATIO)<0.10`, reusing the existing
+  shallow-depth boundary rather than adding a new tuned number (§20).
 - Prior H01/H02/H03 experience with clustering/dependence, matched-random
   implementation correctness, and calendar-key correctness influenced the
   decision to make H04's refractory-independence caveat explicit (§16), to
@@ -385,36 +385,59 @@ review). Raw mean `TREND_CONT_RET_H` in bps must also be reported
 (descriptive; not PnL). `CONTROL_DELTA_MIN` may not be reinterpreted after
 outcomes.
 
-## 20. Structural control (corrected — trend-only baseline)
+## 20. Structural control (maintainer-corrected — established trend + near-neutral recent move)
 
-**This section corrects the originally proposed "mirror extension"
-control.** Mirror extension (established trend + `P`-window continuing in
-the *same* direction as the trend) was rejected because same-direction
-extension is itself plausibly prone to short-horizon mean reversion; if
-so, the mirror-extension population would be systematically depressed on
-the future-continuation metric for a reason unrelated to pullback,
-letting `mean_pullback - mean_mirror_extension >= 0.05` pass for the wrong
-reason. See `docs/reviews/H04_DESIGN_REDTEAM.md` §7 for the full reasoning.
-No `EXTENSION_RATIO` construct is used.
+**The original mirror-extension proposal remains rejected.** A same-
+direction extension can itself be an overextension / short-horizon mean-
+reversion state and could make pullbacks look artificially good.
 
-**Frozen structural control — trend-only baseline.** Use all
-`TREND_PCTL_L(T) >= 0.80` qualifying moments **irrespective of what the
-`P` window did** (any `SIGNED_PB_RET` value — negative, positive, or
-near-zero), same `L`, same UTC grid, same 60-minute refractory (applied
-independently to this population), same future-outcome semantics.
-Explicitly **exclude the exact raw pullback-candidate timestamps** for the
-matching `L × depth-band` from this control pool (membership exclusion —
-drop exact treated timestamps, keep surrounding regime timestamps — the
-same principle already used for the matched-random pool, §21). Match
-where possible on calendar month, trend direction, and trend-strength bin
-(`[0.80,0.90)`, `[0.90,1.00]`); unmatched cases must be explicitly counted
-and reported (matched `N`, unmatched `N`, unmatched share), never silently
-dropped. No alternative structural control may be added after outcomes.
+**The red-team's intermediate "all established-trend moments irrespective
+of the P-window" control is also rejected before preregistration.** That
+population can contain other H04 pullbacks (including candidate timestamps
+from the other exclusive depth bands) and large same-direction extensions.
+It therefore does not provide a clean "trend without the pullback
+ingredient" comparison and can dilute the structural contrast.
 
-This directly isolates the incremental value of the specific pullback
-shape beyond simply being in an established trend, without introducing a
-second directionally-conditioned population (extension) that carries its
-own independent mean-reversion confound.
+Freeze one simpler structural control using the same already-defined ratio
+scale and the already-frozen 0.10 shallow-pullback edge, introducing no new
+numerical tuning parameter:
+
+```
+RECENT_RATIO(T) = SIGNED_PB_RET(T) / abs(TREND_RET_L(T))
+
+structural control:
+TREND_PCTL_L(T) >= 0.80
+AND
+abs(RECENT_RATIO(T)) < 0.10
+```
+
+Interpretation: the same established-trend state, but the recent 60-minute
+window is small relative to the antecedent trend leg and therefore contains
+neither a primary H04 pullback (`PULLBACK_DEPTH >= 0.10`) nor a material
+same-direction extension on that same ratio scale.
+
+Use the same `L`, UTC grid, independent 60-minute refractory, and future-
+outcome semantics. Match where possible on calendar month, trend direction,
+and trend-strength bin (`[0.80,0.90)`, `[0.90,1.00]`). Report structural
+eligible `N`, matched `N`, unmatched `N`, and unmatched share; never
+silently drop unmatched cases.
+
+Primary structural delta:
+
+```
+mean_pullback - mean_neutral_recent_trend
+```
+
+A continuation candidate requires this delta to meet
+`CONTROL_DELTA_MIN = 0.05` in the promoted preregistered neighborhood.
+
+This control is intentionally simple. It does not claim that a near-neutral
+recent window is economically identical to a pullback; it asks the narrower
+incremental question H04 needs: does a material counter-trend pullback add
+continuation information beyond an established trend whose immediately
+recent move is not itself material on the frozen depth scale?
+
+No alternative structural control may be added after outcomes.
 
 ## 21. Matched-random baseline
 
@@ -518,16 +541,21 @@ overall. If only one side survives, the symmetric claim is
 it cannot enter Batch 01 validation.
 
 No best-cell promotion. Report `L={240,480,960}` and the three depth bands
-separately; require a coherent same-sign neighborhood across depth bands
-(now meaningful under the corrected exclusive construction, §14), not one
-isolated optimum. At least two adjacent horizons must support the primary
+separately. Because the primary depth bands are now mutually exclusive,
+promotion does **not** require all three bands to work. A promoted
+neighborhood must contain at least **two adjacent depth bands** within a
+predeclared `L` family with the same positive primary sign and compatible
+control evidence; the third band may be weaker/null. One isolated depth
+band cannot promote H04. This gives a genuine depth-local mechanism a fair
+path to survive without recreating the pseudo-robustness of the rejected
+nested thresholds.
+
+At least two adjacent horizons must support the primary
 `TREND_CONT_RET_H`/`NORM_TREND_CONT_RET_H` sign. Do not require all three
 `L` to agree if that would unfairly reject a genuinely scale-specific but
 still preregistered family — recall (§13) that the fixed `P=60m` window is
-a different fraction of trend duration at each `L`, so an `L`-specific
-result is an expected, acceptable possible outcome, not by itself evidence
-of a fragile/spurious effect. At the same time, one isolated
-`L`/depth-band/`H` cell cannot promote H04.
+a different fraction of trend duration at each `L`. At the same time, one
+isolated `L`/depth-band/`H` cell cannot promote H04.
 
 ## 29. Candidate-for-freeze requirements (either promotion, continuation only)
 
@@ -538,9 +566,10 @@ of a fragile/spurious effect. At the same time, one isolated
    `CONTROL_DELTA_MIN=0.05`;
 4. the `+6h` negative control weakens the true effect by at least
    `CONTROL_DELTA_MIN=0.05`;
-5. the three depth bands (§14) form a coherent same-sign neighborhood
-   rather than one threshold accident — meaningful under the corrected
-   exclusive-band construction;
+5. at least two adjacent exclusive depth bands (§14) within the promoted
+   `L` family support the same positive primary sign with compatible
+   control evidence; one isolated band cannot promote, while the third band
+   may be weaker/null;
 6. at least two adjacent horizons support the same sign on the primary
    metric (not MFE/MAE);
 7. the sign appears in at least 4/5 development years;
