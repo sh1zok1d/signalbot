@@ -615,6 +615,57 @@ Do not open 2025 or 2026 for H04. Do not start R3. Do not start H05.
 
 ---
 
+### H05 — Taker Imbalance -> Subsequent Return Distribution (design, pre-outcome)
+
+Branch: `research/h05-design-redteam`, created from H04 result commit
+`0c89fc01ac464028440039aff34f92204b2588b9`. PR: draft, base
+`research/h04-trend-pullback-discovery`.
+
+**H05 development: NOT OPENED. 2025: UNTOUCHED. 2026: UNTOUCHED. Real H05
+outcomes: NO.**
+
+This round is design/red-team only: `docs/research/H05_TAKER_IMBALANCE_DESIGN.md`
+(the frozen-candidate design) and `docs/reviews/H05_DESIGN_REDTEAM.md`
+(the adversarial review that produced it). No prereg SHA has been cut. No
+implementation code exists. No synthetic-fixture tests exist yet. No real
+`CORE_BTC_BINANCE_V0` parquet rows were read; only the manifest schema
+(field names / allowed arithmetic derivations) and repository governance
+documents were consulted.
+
+Frozen in this design (subject to the same pre-outcome-only correction
+discipline used for H03/H04): primary feature `TAKER_IMBALANCE_W`
+(base-volume primary, quote-volume diagnostic-only); both **continuation**
+and **reversal** signs preregistered together with an explicit
+anti-cherry-pick rule; nested `q ∈ {0.80, 0.90, 0.95}` extremeness family
+on a trailing-30-day midrank percentile of `ABS_IMBALANCE_W`; fixed
+`W ∈ {15, 30, 60}` / `H ∈ {15, 30, 60, 120, 240}` (45-cell primary search
+surface, sign multiplicity disclosed separately); structural control with
+a fixed "ordinary" band `[0.60, 0.80)` decoupled from the `q` under test
+(closing a cross-cell-contamination gap present in the raw starting
+proposal), candidate-weighted standardization over month x direction x
+price-return-strength-bin strata; matched-random baseline (month +
+direction, seed `20260904`, 100 replicates); `+6h` negative control;
+`MPIE=0.10` / `CONTROL_DELTA_MIN=0.05` reused unchanged; UTC-week block
+bootstrap (seed `20260905`, 2000 replicates) with 1w/2w/4w sensitivity
+wired in from the start; 14-item candidate-for-freeze checklist; 4-label
+verdict vocabulary.
+
+Global search-surface ledger: H01-H04 previously accounted for 180 cells;
+H05 adds 45 -> running total **225** cells. Sign multiplicity (2 signs on
+the same 45 cells) recorded separately, not added to the 225 total.
+
+No H01/H02/H03/H04 files were modified. No H03/H04 mechanism conclusions
+were imported as H05 design inputs; only implementation lessons
+(membership-safe pool exclusion, real-timestamp calendar keys,
+candidate-weighted standardization, 1w/2w/4w wiring, post-hoc quarantine
+discipline) were reused.
+
+Do not start H05 implementation until this design review is separately
+authorized to proceed. Do not open 2025 or 2026 for H05. After H05
+closes, the next mandatory step is Batch01 synthesis, not H06.
+
+---
+
 ## Next research program — hypothesis discovery after E1
 
 Status: `AUTHORIZED_FOR_DISCOVERY / NOT YET CONFIRMATORY`.
@@ -634,7 +685,12 @@ Remaining mechanism classes still untested:
 - crowded positioning -> reversal risk.
 
 H05 (`Taker Imbalance -> Subsequent Return Distribution`) is named in
-`docs/R2_SCREENING_PROTOCOL_V1.md`'s R2 Batch 01 list but not yet started.
+`docs/R2_SCREENING_PROTOCOL_V1.md`'s R2 Batch 01 list. A pre-outcome
+design/red-team round has been completed (see the H05 design entry
+above); implementation has not been authorized and H05 development has
+not been opened. H05 is the fifth and final primary mechanism family of
+R2 Batch 01 — no H06 is authorized after H05 closes; Batch01 synthesis is
+next.
 
 These are not edge claims and not implementation authorization.
 
