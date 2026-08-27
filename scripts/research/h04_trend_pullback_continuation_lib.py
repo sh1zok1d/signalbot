@@ -1247,6 +1247,119 @@ def week_block_bootstrap(week_keys: np.ndarray, norm: np.ndarray, cont_ret: np.n
     }
 
 
+DEPENDENCE_SENSITIVITY_BLOCK_SIZES_WEEKS = (1, 2, 4)
+
+
+def _block_groups_for_size(sorted_unique_weeks: list, block_size_weeks: int) -> list:
+    """Deterministically partition chronologically ordered UTC-week keys
+    into consecutive, non-overlapping groups of `block_size_weeks` weeks
+    each, starting from the earliest week present (never chosen from
+    outcomes). A final incomplete group is retained as one shorter
+    terminal block rather than discarded -- the frozen treatment for this
+    preregistration's dependence-sensitivity construction."""
+    return [
+        sorted_unique_weeks[i:i + block_size_weeks]
+        for i in range(0, len(sorted_unique_weeks), block_size_weeks)
+    ]
+
+
+def block_bootstrap_sensitivity(week_keys: np.ndarray, norm: np.ndarray, cont_ret: np.ndarray,
+                                 block_size_weeks: int, seed: int = SEED_BOOT,
+                                 replicates: int = N_BOOT) -> dict:
+    """Deterministic fixed block-size bootstrap on the candidate primary
+    outcome (NORM_TREND_CONT_RET_H mean and continuation-positive share) --
+    never a different metric, never MPIE/control values.
+
+    Blocks are consecutive, non-overlapping groups of `block_size_weeks`
+    chronologically ordered UTC weeks (see _block_groups_for_size). Each
+    replicate resamples exactly `observed_blocks_N` blocks WITH
+    replacement, `replicates` times.
+
+    Seed derivation (deterministic, never outcome-dependent, never
+    re-rolled): `block_size_weeks == 1` uses the frozen master seed
+    directly (`np.random.default_rng(seed)`) -- this is required so the
+    1-week sensitivity numerically agrees, row for row and replicate for
+    replicate, with the legacy `week_block_bootstrap` (which always used
+    single-week blocks under the same seed via an equivalent
+    integers(0,n,size=n) draw). `block_size_weeks in {2, 4}` derives an
+    independent, deterministic child stream from the same frozen master
+    seed via `np.random.SeedSequence([seed, block_size_weeks])` -- distinct
+    per block size, but never a new free-standing seed."""
+    empty = {
+        "block_size_weeks": block_size_weeks, "observed_blocks_N": 0,
+        "replicates": replicates,
+        "seed": seed if block_size_weeks == 1 else f"SeedSequence([{seed}, {block_size_weeks}])",
+        "norm_mean": None, "norm_p025": None, "norm_p50": None, "norm_p975": None,
+        "positive_share_mean": None, "positive_share_p025": None, "positive_share_p50": None,
+        "positive_share_p975": None,
+    }
+    if week_keys.size == 0:
+        return empty
+    unique_weeks = sorted(np.unique(week_keys).tolist())
+    idx_by_week = {w: np.flatnonzero(week_keys == w) for w in unique_weeks}
+    groups = _block_groups_for_size(unique_weeks, block_size_weeks)
+    n_blocks = len(groups)
+    if n_blocks == 0:
+        return empty
+    group_indices = [np.concatenate([idx_by_week[w] for w in g]) for g in groups]
+
+    if block_size_weeks == 1:
+        rng = np.random.default_rng(seed)
+    else:
+        rng = np.random.default_rng(np.random.SeedSequence([seed, block_size_weeks]))
+
+    rep_norm = np.full(replicates, np.nan, dtype=np.float64)
+    rep_pos = np.full(replicates, np.nan, dtype=np.float64)
+    for r in range(replicates):
+        chosen = rng.integers(0, n_blocks, size=n_blocks)
+        rows = np.concatenate([group_indices[c] for c in chosen])
+        nv = norm[rows]
+        nv = nv[np.isfinite(nv)]
+        if nv.size:
+            rep_norm[r] = float(np.mean(nv))
+        cv = cont_ret[rows]
+        cv = cv[np.isfinite(cv)]
+        if cv.size:
+            rep_pos[r] = float(np.mean(cv > 0))
+
+    vn = rep_norm[np.isfinite(rep_norm)]
+    vp = rep_pos[np.isfinite(rep_pos)]
+
+    def _summary(v: np.ndarray) -> tuple:
+        if v.size == 0:
+            return None, None, None, None
+        return (
+            float(np.mean(v)), float(np.percentile(v, 2.5)),
+            float(np.percentile(v, 50)), float(np.percentile(v, 97.5)),
+        )
+
+    norm_mean, norm_p025, norm_p50, norm_p975 = _summary(vn)
+    pos_mean, pos_p025, pos_p50, pos_p975 = _summary(vp)
+    return {
+        "block_size_weeks": block_size_weeks,
+        "observed_blocks_N": n_blocks,
+        "replicates": replicates,
+        "seed": seed if block_size_weeks == 1 else f"SeedSequence([{seed}, {block_size_weeks}])",
+        "norm_mean": norm_mean, "norm_p025": norm_p025, "norm_p50": norm_p50, "norm_p975": norm_p975,
+        "positive_share_mean": pos_mean, "positive_share_p025": pos_p025,
+        "positive_share_p50": pos_p50, "positive_share_p975": pos_p975,
+    }
+
+
+def dependence_sensitivity_bundle(week_keys: np.ndarray, norm: np.ndarray, cont_ret: np.ndarray,
+                                   seed: int = SEED_BOOT, replicates: int = N_BOOT) -> dict:
+    """Fixed, predeclared, non-selectable 1w/2w/4w block-sensitivity
+    diagnostics on the candidate primary outcome. Computed unconditionally
+    for every cell (not only when a candidate-for-freeze reading looks
+    plausible) so no post-outcome code path exists; these remain
+    diagnostics/uncertainty sensitivity, never new primary cells, never a
+    change to the 45-cell search surface."""
+    return {
+        f"{size}w": block_bootstrap_sensitivity(week_keys, norm, cont_ret, size, seed=seed, replicates=replicates)
+        for size in DEPENDENCE_SENSITIVITY_BLOCK_SIZES_WEEKS
+    }
+
+
 def year_breakdown(cand: dict) -> dict:
     out = {}
     for y in YEAR_BLOCKS:
@@ -1349,6 +1462,11 @@ def evaluate_cell(panel: dict, l_minutes: int, band: int, h_minutes: int) -> dic
         "direction_breakdown": direction_breakdown(cand),
         "concentration": concentration_from_times(cand["t_ms"], cand["direction"]),
         "week_block_bootstrap": week_block_bootstrap(cand["week"], cand["norm"], cand["cont_ret"]),
+        # Fixed 1w/2w/4w sensitivity, computed unconditionally for every
+        # cell (no post-outcome decision path). "1w" numerically agrees
+        # with the legacy week_block_bootstrap field above -- same seed,
+        # same single-week block construction.
+        "dependence_sensitivity": dependence_sensitivity_bundle(cand["week"], cand["norm"], cand["cont_ret"]),
     }
 
 

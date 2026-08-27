@@ -534,6 +534,51 @@ Do not open 2025 or 2026 for H04. Do not start R3 or H05 for H04.
 
 ---
 
+## 2026-08-27 — H04_TREND_PULLBACK_CONTINUATION implementation completion
+
+**Hypothesis:** `H04_TREND_PULLBACK_CONTINUATION`
+
+Implementation-completeness gap closed pre-outcome — **not** a prereg
+change. The preregistration already froze fixed 1w/2w/4w UTC-week
+block-sensitivity reporting (§17); only `week_block_bootstrap` (single-week
+blocks) had been implemented. **Real H04 market outcomes inspected before
+this completion: NO.**
+
+- `H04_PREREG_SHA` (unchanged, not superseded, not amended):
+  `c629cac4c6ed1a0d129b812ef022d98a0dba4c1b`
+- `H04_RESEARCH_CODE_FREEZE_SHA`: this commit (the completed
+  `dependence_sensitivity_bundle` implementation, the new synthetic
+  regression tests, and this ledger entry are frozen together in a single
+  normal descendant commit)
+- gap: no 2-week/4-week block-sensitivity implementation existed; fixed by
+  `block_bootstrap_sensitivity` / `dependence_sensitivity_bundle`
+  (`scripts/research/h04_trend_pullback_continuation_lib.py`), computed
+  unconditionally for every cell (no post-outcome code path)
+- block construction: consecutive, non-overlapping groups of the frozen
+  block size over chronologically sorted UTC weeks present in the
+  candidate sample; a final incomplete group is retained as one shorter
+  terminal block (never discarded)
+- seed derivation: `1w` uses the frozen master seed `20260903` directly
+  (numerically identical to the legacy `week_block_bootstrap`); `2w`/`4w`
+  derive independent deterministic child streams via
+  `np.random.SeedSequence([20260903, block_size_weeks])` — never
+  outcome-dependent, never re-rolled
+- primary search surface, all frozen parameters, and all gates: unchanged
+  (`45` primary cells; `P=60m`; `L={240,480,960}`; `q=0.80`; exclusive
+  depth bands; `H={15,30,60,120,240}`; 60m refractory; `MPIE=0.10`;
+  `CONTROL_DELTA_MIN=0.05`; matched-random seed `20260902`; structural
+  standardization; `+6h` control; two-adjacent-band/H rules; 4/5-year rule;
+  UP/DOWN symmetry)
+- these remain diagnostics/uncertainty sensitivity — no new primary cells,
+  no additional hypotheses
+- real H04 outcomes before or during this completion: **NO**
+
+Implementation audit: `docs/reviews/H04_PREOUTCOME_IMPLEMENTATION_COMPLETION.md`
+
+Do not open 2025 or 2026 for H04. Do not start R3 or H05 for H04.
+
+---
+
 ## Next research program — hypothesis discovery after E1
 
 Status: `AUTHORIZED_FOR_DISCOVERY / NOT YET CONFIRMATORY`.

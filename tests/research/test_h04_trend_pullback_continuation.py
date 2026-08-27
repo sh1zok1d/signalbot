@@ -18,6 +18,7 @@ import yaml
 from scripts.research import h04_trend_pullback_continuation_lib as lib
 from scripts.research.h04_trend_pullback_continuation_lib import (
     BAR_MS,
+    DEPENDENCE_SENSITIVITY_BLOCK_SIZES_WEEKS,
     DEPTH_BAND_ORDER,
     DIR_DOWN,
     DIR_UP,
@@ -30,6 +31,7 @@ from scripts.research.h04_trend_pullback_continuation_lib import (
     aggregate_1m_to_15m,
     apply_refractory,
     assert_development_outcome_window,
+    block_bootstrap_sensitivity,
     build_matched_random_pool,
     build_panel,
     collision_fraction,
@@ -40,6 +42,7 @@ from scripts.research.h04_trend_pullback_continuation_lib import (
     compute_trend_returns,
     control_gate,
     depth_band_index,
+    dependence_sensitivity_bundle,
     development_t_max_ms,
     direction_of,
     established_trend_mask,
@@ -1185,6 +1188,181 @@ def test_56_57_week_block_bootstrap_wired_and_deterministic():
     assert "week_block_bootstrap" in cell
     assert cell["week_block_bootstrap"]["seed"] == lib.SEED_BOOT
     assert cell["week_block_bootstrap"]["replicates"] == lib.N_BOOT
+    assert "dependence_sensitivity" in cell
+    assert set(cell["dependence_sensitivity"]) == {"1w", "2w", "4w"}
+
+
+# ---------------------------------------------------------------------------
+# fixed 1w/2w/4w dependence-sensitivity implementation completion (pre-
+# outcome, no market result seen). See
+# docs/reviews/H04_PREOUTCOME_IMPLEMENTATION_COMPLETION.md.
+# ---------------------------------------------------------------------------
+def _multi_week_fixture(n_weeks: int, rows_per_week: int = 3, start_week0=None):
+    """Deterministic, chronologically ordered week keys spanning
+    `n_weeks` distinct UTC weeks with `rows_per_week` candidate rows each
+    (all within the same week -- no row's week membership is ambiguous)."""
+    if start_week0 is None:
+        start_week0 = int(datetime(2020, 1, 6, tzinfo=UTC).timestamp() * 1000)  # a Monday
+    week_ms = 7 * 24 * 60 * 60 * 1000
+    week_keys = []
+    norm = []
+    cont_ret = []
+    val = 0
+    for w in range(n_weeks):
+        week_start = start_week0 + w * week_ms
+        wk = lib.utc_week_key(week_start)
+        for _ in range(rows_per_week):
+            week_keys.append(wk)
+            norm.append(0.10 + 0.001 * val)  # solidly positive, mildly varying, avoids ties
+            cont_ret.append(0.01 + 0.0001 * val)
+            val += 1
+    return np.array(week_keys), np.array(norm, dtype=np.float64), np.array(cont_ret, dtype=np.float64)
+
+
+def test_dep_sens_01_1w_block_grouping_exact():
+    weeks, norm, cont_ret = _multi_week_fixture(5)
+    unique_weeks = sorted(np.unique(weeks).tolist())
+    groups = lib._block_groups_for_size(unique_weeks, 1)
+    assert groups == [[w] for w in unique_weeks]
+
+
+def test_dep_sens_02_2w_block_grouping_exact():
+    unique_weeks = [f"2020-W{k:02d}" for k in range(1, 8)]  # 7 weeks
+    groups = lib._block_groups_for_size(unique_weeks, 2)
+    assert groups == [
+        ["2020-W01", "2020-W02"], ["2020-W03", "2020-W04"],
+        ["2020-W05", "2020-W06"], ["2020-W07"],
+    ]
+
+
+def test_dep_sens_03_4w_block_grouping_exact():
+    unique_weeks = [f"2020-W{k:02d}" for k in range(1, 10)]  # 9 weeks
+    groups = lib._block_groups_for_size(unique_weeks, 4)
+    assert groups == [
+        ["2020-W01", "2020-W02", "2020-W03", "2020-W04"],
+        ["2020-W05", "2020-W06", "2020-W07", "2020-W08"],
+        ["2020-W09"],
+    ]
+
+
+def test_dep_sens_04_terminal_partial_block_retained_not_discarded():
+    unique_weeks = [f"2020-W{k:02d}" for k in range(1, 6)]  # 5 weeks
+    groups4 = lib._block_groups_for_size(unique_weeks, 4)
+    assert len(groups4) == 2
+    assert groups4[-1] == ["2020-W05"]  # terminal 1-week block retained, not dropped
+    total_weeks_covered = sum(len(g) for g in groups4)
+    assert total_weeks_covered == 5  # nothing discarded
+
+
+def test_dep_sens_05_no_row_split_across_a_block():
+    weeks, norm, cont_ret = _multi_week_fixture(6, rows_per_week=4)
+    out = block_bootstrap_sensitivity(weeks, norm, cont_ret, block_size_weeks=2, seed=1, replicates=10)
+    # every week's rows_per_week=4 rows are contiguous under one block;
+    # observed_blocks_N * (rows per block, which is a multiple of 4 given
+    # 2-week blocks) must account for all weeks without splitting.
+    assert out["observed_blocks_N"] == 3  # 6 weeks / 2 per block
+
+
+def test_dep_sens_06_deterministic_from_frozen_seed():
+    weeks, norm, cont_ret = _multi_week_fixture(8)
+    out1 = block_bootstrap_sensitivity(weeks, norm, cont_ret, block_size_weeks=2, seed=lib.SEED_BOOT, replicates=25)
+    out2 = block_bootstrap_sensitivity(weeks, norm, cont_ret, block_size_weeks=2, seed=lib.SEED_BOOT, replicates=25)
+    assert out1 == out2
+
+
+def test_dep_sens_07_1w_agrees_with_legacy_week_block_bootstrap():
+    weeks, norm, cont_ret = _multi_week_fixture(10)
+    legacy = week_block_bootstrap(weeks, norm, cont_ret, seed=lib.SEED_BOOT, replicates=200)
+    new_1w = block_bootstrap_sensitivity(weeks, norm, cont_ret, block_size_weeks=1, seed=lib.SEED_BOOT, replicates=200)
+    assert new_1w["norm_mean"] == pytest.approx(legacy["norm_mean"])
+    assert new_1w["norm_p025"] == pytest.approx(legacy["norm_p025"])
+    assert new_1w["norm_p975"] == pytest.approx(legacy["norm_p975"])
+    assert new_1w["positive_share_mean"] == pytest.approx(legacy["pos_share_mean"])
+
+
+def test_dep_sens_08_larger_block_size_changes_resampling_unit():
+    weeks, norm, cont_ret = _multi_week_fixture(12)
+    out1 = block_bootstrap_sensitivity(weeks, norm, cont_ret, block_size_weeks=1, seed=lib.SEED_BOOT, replicates=50)
+    out4 = block_bootstrap_sensitivity(weeks, norm, cont_ret, block_size_weeks=4, seed=lib.SEED_BOOT, replicates=50)
+    assert out1["observed_blocks_N"] == 12
+    assert out4["observed_blocks_N"] == 3
+    assert out1["seed"] == lib.SEED_BOOT
+    assert out4["seed"] != lib.SEED_BOOT  # distinct derived child stream, not the bare master seed
+
+
+def test_dep_sens_09_non_contiguous_weeks_handled_chronologically():
+    # skip a week deliberately (no candidate observations that week) --
+    # grouping must still proceed in chronological order over the weeks
+    # actually present, deterministically.
+    week_start = int(datetime(2020, 1, 6, tzinfo=UTC).timestamp() * 1000)
+    week_ms = 7 * 24 * 60 * 60 * 1000
+    present_week_offsets = [0, 1, 3, 4, 6]  # week index 2 and 5 missing
+    weeks = []
+    norm = []
+    cont_ret = []
+    for k, off in enumerate(present_week_offsets):
+        wk = lib.utc_week_key(week_start + off * week_ms)
+        for _ in range(2):
+            weeks.append(wk)
+            norm.append(0.1 + 0.01 * k)
+            cont_ret.append(0.01)
+    weeks = np.array(weeks)
+    norm = np.array(norm, dtype=np.float64)
+    cont_ret = np.array(cont_ret, dtype=np.float64)
+    unique_weeks = sorted(np.unique(weeks).tolist())
+    assert unique_weeks == sorted(unique_weeks)  # chronological (string-sortable ISO week keys)
+    groups = lib._block_groups_for_size(unique_weeks, 2)
+    assert groups == [[unique_weeks[0], unique_weeks[1]], [unique_weeks[2], unique_weeks[3]], [unique_weeks[4]]]
+    out = block_bootstrap_sensitivity(weeks, norm, cont_ret, block_size_weeks=2, seed=lib.SEED_BOOT, replicates=20)
+    assert out["observed_blocks_N"] == 3
+
+
+def test_dep_sens_10_output_contains_all_1w_2w_4w_summaries():
+    weeks, norm, cont_ret = _multi_week_fixture(9)
+    out = dependence_sensitivity_bundle(weeks, norm, cont_ret, seed=lib.SEED_BOOT, replicates=30)
+    assert set(out.keys()) == {"1w", "2w", "4w"}
+    for size in DEPENDENCE_SENSITIVITY_BLOCK_SIZES_WEEKS:
+        key = f"{size}w"
+        assert out[key]["block_size_weeks"] == size
+        assert out[key]["norm_mean"] is not None
+
+
+def test_dep_sens_11_percentiles_ordered_where_finite():
+    weeks, norm, cont_ret = _multi_week_fixture(10)
+    out = dependence_sensitivity_bundle(weeks, norm, cont_ret, seed=lib.SEED_BOOT, replicates=100)
+    for size in DEPENDENCE_SENSITIVITY_BLOCK_SIZES_WEEKS:
+        s = out[f"{size}w"]
+        if s["norm_p025"] is not None:
+            assert s["norm_p025"] <= s["norm_p50"] <= s["norm_p975"]
+        if s["positive_share_p025"] is not None:
+            assert s["positive_share_p025"] <= s["positive_share_p50"] <= s["positive_share_p975"]
+
+
+def test_dep_sens_12_no_candidate_gate_decision_changes_from_sensitivity_existing():
+    n = 40
+    start = int(datetime(2020, 1, 1, tzinfo=UTC).timestamp() * 1000)
+    close = np.full(n, 100.0)
+    high = close + 1
+    low = close - 1
+    trend_pctl = np.full(n, np.nan)
+    trend_ret = np.full(n, np.nan)
+    signed_pb_ret = np.full(n, np.nan)
+    for i in (5, 15, 25, 35):
+        trend_pctl[i] = 0.90
+        trend_ret[i] = 0.10
+        signed_pb_ret[i] = -0.02
+    depth = compute_pullback_depth(signed_pb_ret, trend_ret)
+    recent_ratio = compute_recent_ratio(signed_pb_ret, trend_ret)
+    ret60 = np.full(n, 0.01)
+    scale = np.full(n, 1.0)
+    t = start + np.arange(n, dtype=np.int64) * HTF_MS
+    panel = _manual_panel(t, close, high, low, 240, trend_pctl, trend_ret, signed_pb_ret, depth, recent_ratio,
+                           60, ret60, scale)
+    cell = lib.evaluate_cell(panel, 240, 0, 60)
+    # gate keys are unaffected by the mere presence of dependence_sensitivity
+    assert cell["mpie_gate"] == mpie_gate(cell["mean_norm_trend_cont_ret"],
+                                          cell["matched_random"]["matched_mean"], DIR_UP)
+    assert cell["structural_gate"] == cell["structural_control"]["structural_gate"]
 
 
 # ---------------------------------------------------------------------------
