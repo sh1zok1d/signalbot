@@ -354,6 +354,53 @@ Do not run real H03 market outcomes under this entry. Do not open 2025 or
 
 ---
 
+## 2026-08-27 — H03_EXTREME_IMPULSE_CONTINUATION_EXHAUSTION development
+
+**Hypothesis:** `H03_EXTREME_IMPULSE_CONTINUATION_EXHAUSTION`
+
+- `H03_PREREG_SHA`: `e2c370d70ca3dc5952ad9c82808e6b877805f998`
+- research-code SHA used for the outcome run: `4e995440e649b37bdc0a9f0100a3e0b369573f6c`
+  (software-blocker fix after prereg: matched-random pool excludes by panel-index
+  membership; no research-parameter change; prereg SHA not amended)
+- dataset snapshot: `717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`
+- development: `2020-02-01` → `2025-01-01` (with `T+H` strictly before 2025-01-01)
+- validation: **UNTOUCHED**
+- OOS: **UNTOUCHED**
+- search surface: **45 primary cells**
+- global prior: H01 45, H02 45
+- outcome status: `EXPLORATORY`
+- development verdict: **`H03_REJECTED_SPECIFIC_CLAIM`**
+
+H01 remains `H01_COMPRESSION_EXPANSION = REJECTED / H01_KILL`.
+H02 remains `H02_FAILED_BREAKOUT_MEAN_REVERSION = H02_KILL`.
+Do not reinterpret either.
+
+Primary result: mixed-null surface. All 45 medians negative; all 45
+`P(CONT_RET_H>0)<0.5`; means 14 positive / 31 negative. MPIE 0.10 vs
+matched-random holds in only 3 continuation cells and 11 exhaustion cells,
+not a q/W/H neighborhood. q95 vs q98 sign-flips at W=60 H=15. Horizon
+sign-flips (short-H continuation-looking means vs longer-H exhaustion-looking
+means). UP/DOWN mixed in 34/45 cells. Years are not 4/5 stable. Largest-month
+share 2.7–3.4%. `L_dep=32 days`. Week-block bootstrap intervals were not
+emitted by the frozen runner; not required because there is no candidate.
+Secondary MFE/MAE were not persisted at cell level and cannot rescue primary.
+
+Post-hoc observations (all `POSTHOC_UNTESTED`, none may rescue H03):
+
+- isolated W=15 q=0.98 H=15/30 continuation MPIE (and W=60 q=0.95 H=15)
+- longer-H more often negative vs matched-random
+- DOWN more negative than UP in 39/45 cells
+- 2023 often the most negative year
+- median/count exhaustion vs tail-pulled positive means
+
+Preregistration: `docs/research/H03_EXTREME_IMPULSE_PREREG.md`
+Development evidence: `docs/research/H03_DEV_SUMMARY.md`,
+`docs/research/H03_DEV_RESULTS.json`
+
+Do not open 2025 or 2026 for H03. Do not start R3. Do not start H04.
+
+---
+
 ## Next research program — hypothesis discovery after E1
 
 Status: `AUTHORIZED_FOR_DISCOVERY / NOT YET CONFIRMATORY`.
@@ -364,11 +411,11 @@ Recorded discovery runs:
 
 - `H01_COMPRESSION_EXPANSION` = `REJECTED / H01_KILL`
 - `H02_FAILED_BREAKOUT_MEAN_REVERSION` = `H02_KILL`
+- `H03_EXTREME_IMPULSE_CONTINUATION_EXHAUSTION` = `H03_REJECTED_SPECIFIC_CLAIM`
 
 Remaining mechanism classes still untested:
 
 - trend pullback -> continuation;
-- extreme impulse -> continuation vs exhaustion;
 - price/OI divergence;
 - crowded positioning -> reversal risk.
 
