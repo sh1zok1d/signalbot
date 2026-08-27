@@ -579,6 +579,42 @@ Do not open 2025 or 2026 for H04. Do not start R3 or H05 for H04.
 
 ---
 
+## 2026-08-27 — H04_TREND_PULLBACK_CONTINUATION development
+
+**Hypothesis:** `H04_TREND_PULLBACK_CONTINUATION`
+
+- `H04_PREREG_SHA`: `c629cac4c6ed1a0d129b812ef022d98a0dba4c1b`
+- `H04_RESEARCH_CODE_FREEZE_SHA`: `7bfdc44a305035a641c25f9d3ee75c6ef652ece0`
+- research-code SHA in runner JSON: `7bfdc44a305035a641c25f9d3ee75c6ef652ece0`
+- dataset snapshot: `717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`
+- development outcome access: **CONSUMED** (one `--stage dev-run`, 2020-02-01 → 2025-01-01)
+- 2025 validation: **UNTOUCHED**
+- 2026 final OOS: **UNTOUCHED**
+- search surface: **45 primary cells** (3 L × 3 exclusive depth bands × 5 H)
+- global prior: H01 45, H02 45, H03 45
+- outcome status: `EXPLORATORY`
+- development verdict: **`H04_REJECTED_SPECIFIC_CLAIM`**
+
+H01/H02/H03 remain rejected/killed. Do not reinterpret them. Their post-hoc observations were not used as H04 gates.
+
+Primary result: mixed 45-cell surface. MPIE 0.10 holds in 16/45 cells, concentrated in the exclusive **moderate** band at L=480 and L=960. Adjacent shallow misses MPIE at short H. Adjacent deep is often negative vs matched-random at H=15. Frozen rule: one isolated depth band cannot promote H04. Standardized structural delta and +6h are incomplete even inside the best slices. Largest-month share 2.9–5.4%. `L_dep=32 days`. No H04 source change after outcomes.
+
+Post-hoc observations (all `POSTHOC_UNTESTED`, none may rescue H04):
+
+- L=480/960 moderate-only continuation
+- L=960 shallow H=120/240 MPIE
+- deep short-H reversal at L=480/960
+- 2022 often the most negative year on shorter L
+- UPTREND stronger than DOWNTREND in many shallow cells
+
+Preregistration: `docs/research/H04_TREND_PULLBACK_PREREG.md`
+Development evidence: `docs/research/H04_DEV_SUMMARY.md`, `docs/research/H04_DEV_RESULTS.json`
+Audit: `docs/reviews/H04_DEVELOPMENT_RESULT_AUDIT.md`
+
+Do not open 2025 or 2026 for H04. Do not start R3. Do not start H05.
+
+---
+
 ## Next research program — hypothesis discovery after E1
 
 Status: `AUTHORIZED_FOR_DISCOVERY / NOT YET CONFIRMATORY`.
@@ -590,7 +626,7 @@ Recorded discovery runs:
 - `H01_COMPRESSION_EXPANSION` = `REJECTED / H01_KILL`
 - `H02_FAILED_BREAKOUT_MEAN_REVERSION` = `H02_KILL`
 - `H03_EXTREME_IMPULSE_CONTINUATION_EXHAUSTION` = `H03_REJECTED_SPECIFIC_CLAIM`
-- `H04_TREND_PULLBACK_CONTINUATION` = `PRE_REGISTERED / EXPLORATORY` (not yet run)
+- `H04_TREND_PULLBACK_CONTINUATION` = `H04_REJECTED_SPECIFIC_CLAIM`
 
 Remaining mechanism classes still untested:
 
