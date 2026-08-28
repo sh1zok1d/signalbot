@@ -12,6 +12,7 @@ from scripts.research.lib.research_harness import (
     ArtifactExistsError,
     AuthorizedDataset,
     CodeIdentityError,
+    DISCOVERY_END_EXCLUSIVE_MS,
     DatasetIdentityContract,
     DatasetIdentityError,
     LookaheadError,
@@ -83,6 +84,45 @@ def _authorized(tmp_path: Path):
     )
 
 
+def test_dataset_contract_cannot_relax_discovery_authorization():
+    with pytest.raises(ValueError, match="ACCEPTED_FOR_DISCOVERY"):
+        DatasetIdentityContract(
+            dataset_id="CORE_BTC_BINANCE_V0",
+            snapshot_id="snapshot-abc",
+            required_status="MATERIALIZED_UNVERIFIED",
+        )
+    with pytest.raises(ValueError, match="research_authorized"):
+        DatasetIdentityContract(
+            dataset_id="CORE_BTC_BINANCE_V0",
+            snapshot_id="snapshot-abc",
+            research_authorized=False,
+        )
+    with pytest.raises(ValueError, match="confirmatory_authorized"):
+        DatasetIdentityContract(
+            dataset_id="CORE_BTC_BINANCE_V0",
+            snapshot_id="snapshot-abc",
+            confirmatory_authorized=True,
+        )
+
+
+def test_policy_is_development_only_and_cannot_reach_2025():
+    with pytest.raises(ValueError, match="only 'development'"):
+        OutcomeAccessPolicy(
+            stage="validation",
+            start_inclusive_ms=START_2020_MS,
+            end_exclusive_ms=END_2022_MS,
+            allowed_years=(2020, 2021),
+        )
+
+    with pytest.raises(ValueError, match="2025 validation pool"):
+        OutcomeAccessPolicy(
+            stage="development",
+            start_inclusive_ms=START_2020_MS,
+            end_exclusive_ms=DISCOVERY_END_EXCLUSIVE_MS + 1,
+            allowed_years=(2020, 2021),
+        )
+
+
 def test_policy_rejects_allowed_year_outside_frozen_window():
     with pytest.raises(ValueError, match="outside frozen time window"):
         OutcomeAccessPolicy(
@@ -113,6 +153,53 @@ def test_authorized_dataset_cannot_be_forged_directly(tmp_path: Path):
             policy=POLICY,
             repo_manifest_path=tmp_path / "repo.yaml",
             runtime_snapshot_path=tmp_path / "snapshot.json",
+        )
+
+
+def test_runtime_dataset_id_is_required_from_realistic_identity_payload(tmp_path: Path):
+    repo_manifest = tmp_path / "repo.yaml"
+    repo_manifest.write_text(
+        yaml.safe_dump(
+            {
+                "dataset_id": IDENTITY.dataset_id,
+                "snapshot_id": IDENTITY.snapshot_id,
+                "status": "ACCEPTED_FOR_DISCOVERY",
+                "research_authorized": True,
+                "confirmatory_authorized": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+    dataset_root = tmp_path / "dataset"
+    (dataset_root / "reports").mkdir(parents=True)
+
+    snapshot_path = dataset_root / "reports" / "snapshot_manifest.json"
+    snapshot_path.write_text(
+        json.dumps(
+            {
+                "snapshot_id": IDENTITY.snapshot_id,
+                "identity_payload": {"dataset_id": IDENTITY.dataset_id},
+            }
+        ),
+        encoding="utf-8",
+    )
+    authorize_dataset_access(
+        repo_manifest_path=repo_manifest,
+        dataset_root=dataset_root,
+        identity=IDENTITY,
+        policy=POLICY,
+    )
+
+    snapshot_path.write_text(
+        json.dumps({"snapshot_id": IDENTITY.snapshot_id}),
+        encoding="utf-8",
+    )
+    with pytest.raises(DatasetIdentityError, match="runtime dataset_id"):
+        authorize_dataset_access(
+            repo_manifest_path=repo_manifest,
+            dataset_root=dataset_root,
+            identity=IDENTITY,
+            policy=POLICY,
         )
 
 
@@ -300,3 +387,10 @@ def test_provenance_and_result_artifact_are_immutable(tmp_path: Path):
 
     with pytest.raises(ArtifactExistsError, match="refusing to overwrite"):
         write_json_new(path, {"identity": identity, "promotion": True})
+
+
+def test_canonical_json_rejects_nonfinite_numbers_before_file_creation(tmp_path: Path):
+    path = tmp_path / "bad.json"
+    with pytest.raises(ValueError):
+        write_json_new(path, {"value": float("nan")})
+    assert not path.exists()
