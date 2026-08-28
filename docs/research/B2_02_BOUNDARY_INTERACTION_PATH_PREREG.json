@@ -170,12 +170,12 @@
       240
     ],
     "continuation_return": "d*ln(close(T+H)/close(T))",
-    "scale": "median absolute H-horizon close return on UTC 5m boundaries in preceding 30 calendar days with t+H<=T",
+    "scale": "median(abs(ln(close(t+H)/close(t)))) over all UTC-epoch-aligned 15-minute boundaries t in [T-30 calendar days,T) with t+H<=T",
     "target": "CONT_RET_H/PAST_MEDIAN_ABS_RET_H",
     "require_scale": "finite_and_gt_0",
     "reference_contract": {
-      "observation_population": "all eligible UTC-epoch-aligned 15-minute decision boundaries, not candidate/trigger records",
-      "reference_interval": "historical boundaries t in [T-30 calendar days,T) with t+H<=T",
+      "observation_population": "all UTC-epoch-aligned 15-minute boundaries, not B2-02 event records and not the derived 5m event grid",
+      "reference_interval": "t in [T-30 calendar days,T) with t+H<=T",
       "statistic": "median(abs(ln(close(t+H)/close(t))))",
       "current_boundary_excluded": true,
       "future_or_unmatured_excluded": true,
@@ -193,7 +193,8 @@
     "event_id_fields": [
       "dataset_id",
       "snapshot_id",
-      "source_timeframe_5m",
+      "source_timeframe_1m",
+      "derived_timeframe_5m",
       "L",
       "side",
       "prior_range_start",
@@ -223,13 +224,25 @@
     "seed": 20260901,
     "replicates": 100,
     "training_only": true,
-    "strata": "calendar_month(T_e) x side x EVENT_CLOSE_BEYOND",
+    "strata": "calendar_month_utc(T_e) x side x EVENT_CLOSE_BEYOND",
     "pre_rng_order": "canonical_EVENT_ID",
-    "seed_derivation": "20260901|replicate|L|H|week_start_S|stratum_id",
+    "seed_derivation": "raw UTF-8: 20260901|replicate_index|L|H|week_start_ms|stratum_id; replicate_index=0..99; week_start_ms=UTC epoch ms for Monday 00:00:00Z",
     "current_event_path_state_unchanged": true,
     "pass_quantile": 0.95,
     "rng": "numpy Generator/default_rng seeded deterministically from the full seed-derivation tuple after canonical stratum ordering",
-    "failure_behavior": "missing/unavailable/nonfinite placebo-required input or lost real-candidate training/scoring support => placebo gate false / non-promotion; no fallback"
+    "failure_behavior": "missing/unavailable/nonfinite placebo-required input or lost real-candidate training/scoring support => placebo gate false / non-promotion; no fallback",
+    "seed_encoding": {
+      "replicate_index": "zero-based integer 0..99",
+      "week_start_S": "week_start_ms = integer UTC epoch milliseconds for Monday 00:00:00Z",
+      "calendar_month": "UTC YYYY-MM",
+      "stratum_id": "YYYY-MM|SIDE=<UPPER|LOWER>|EVENT_CLOSE_BEYOND=<0|1>",
+      "raw_utf8": "20260901|replicate_index|L|H|week_start_ms|stratum_id",
+      "digest": "sha256(raw_utf8).digest()",
+      "seed_int": "int.from_bytes(digest[:8], 'big', signed=False)",
+      "rng": "numpy.random.default_rng(seed_int)",
+      "forbidden": "Python hash(), alternative formatting, 1-based replicate index, or alternate SeedSequence layout"
+    },
+    "quantile_method": "numpy.quantile(..., 0.95, method='linear')"
   },
   "bootstrap": {
     "block": "UTC_ISO_week",
@@ -242,7 +255,8 @@
       0.975
     ],
     "resample_unit": "UTC ISO week; resample whole observed week blocks with replacement",
-    "failure_behavior": "missing/unavailable/nonfinite bootstrap evidence => bootstrap_positive false"
+    "failure_behavior": "missing/unavailable/nonfinite bootstrap evidence => bootstrap_positive false",
+    "quantile_method": "numpy.quantile(..., method='linear') for 0.025 and 0.975"
   },
   "stability": {
     "years": [
