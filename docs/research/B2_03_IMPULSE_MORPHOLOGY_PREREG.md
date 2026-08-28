@@ -284,6 +284,46 @@ effect size or significance.
 
 Missing/nonfinite/errored mandatory evidence is non-pass.
 
+### Executable gate predicates
+
+For every W,H cell, evaluate the following on the exact paired
+candidate/comparator current support:
+
+- `primary_positive`: `mean(AE_IMPROVEMENT) > 0`.
+- `material_relative_mae`:
+  `1 - mean(CAND_AE)/mean(BASE_AE) >= 0.02`, with finite
+  `mean(BASE_AE)>0`; otherwise fail closed.
+- `bootstrap_positive`: the 2.5th percentile of the frozen 2000-replicate
+  UTC-week block-bootstrap distribution of `mean(AE_IMPROVEMENT)` is
+  strictly `>0`.
+- `placebo_separation`: real `mean(AE_IMPROVEMENT)` is strictly greater
+  than the 95th percentile of the 100 frozen causal-placebo replicate means.
+- `morphology_ordering`: LOW, MID, and HIGH each have non-empty finite scored
+  `BASE_RESIDUAL` support and
+  `median_LOW < median_MID < median_HIGH`.
+- `side_stability`: for **each** required frozen side/direction independently,
+  support is non-empty and
+  `mean(AE_IMPROVEMENT)>0` and
+  `median(BASE_RESIDUAL|HIGH)-median(BASE_RESIDUAL|LOW)>0`.
+
+Neighborhoods are enumerated as one frozen adjacent-H pair crossed with exactly
+two distinct W values, producing four cells. For a neighborhood, each
+of the first six named gates is true only when **all four** cells pass its
+corresponding per-cell predicate. `horizon_robustness` requires both horizons
+to pass all six per-cell predicates for each selected W;
+`parameter_robustness` requires this for two distinct W values.
+`year_stability` requires every one of the four cells to have strictly positive
+mean AE improvement in at least 4/5 fixed years 2020-2024.
+
+A neighborhood qualifies only when all nine named gate predicates are literal
+`True`. Enumerate H pairs in frozen order 30/60, 60/120, 120/240, then
+lexicographic ascending W-pairs; select the first qualifying
+neighborhood. Effect size, p-value, support size, or other outcome ranking may
+not choose among neighborhoods.
+
+Missing, unavailable, malformed, non-finite, errored, empty-required-support,
+or non-literal-True mandatory evidence makes the corresponding gate false.
+
 ## 15. Verdict and close condition
 
 Allowed market verdicts:
