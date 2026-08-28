@@ -178,6 +178,25 @@ class AuthorizedPartition:
     sha256: str
 
 
+def _partition_proof_sha256(
+    partitions: Sequence[AuthorizedPartition],
+) -> str:
+    payload = [
+        {
+            "relative_path": partition.relative_path,
+            "sha256": partition.sha256,
+        }
+        for partition in partitions
+    ]
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
 @dataclass(frozen=True)
 class AuthorizedDataset:
     """Proof carrying only authorized, frozen development partitions."""
@@ -189,20 +208,43 @@ class AuthorizedDataset:
     frozen_snapshot_git_path: str
     runtime_snapshot_path: Path
     partitions: tuple[AuthorizedPartition, ...]
+    _partition_proof: str = field(default="", repr=False, compare=False)
     _authorization_token: object = field(default=None, repr=False, compare=False)
 
     def __post_init__(self) -> None:
-        if self._authorization_token is not _AUTHORIZATION_TOKEN:
+        self.assert_minted()
+        if not self.partitions:
+            raise DatasetIdentityError("authorized partition set must be non-empty")
+        if self._partition_proof != _partition_proof_sha256(self.partitions):
+            raise DatasetIdentityError("authorized partition proof mismatch")
+
+    def assert_minted(self) -> None:
+        """Reject hollow/forged instances even when __post_init__ was bypassed."""
+        if getattr(self, "_authorization_token", None) is not _AUTHORIZATION_TOKEN:
             raise DatasetIdentityError(
                 "AuthorizedDataset must be created by authorize_dataset_access"
             )
-        if not self.partitions:
-            raise DatasetIdentityError("authorized partition set must be non-empty")
+        partitions = getattr(self, "partitions", None)
+        proof = getattr(self, "_partition_proof", None)
+        if not isinstance(partitions, tuple) or not partitions:
+            raise DatasetIdentityError("authorized partition proof is incomplete")
+        if not isinstance(proof, str) or proof != _partition_proof_sha256(partitions):
+            raise DatasetIdentityError("authorized partition proof mismatch")
 
     def list_monthly_partitions(self) -> list[Path]:
         """Re-verify and return only the already-authorized partition paths."""
+        self.assert_minted()
+        root = self.runtime_snapshot_path.parent.parent.resolve()
+        monthly = (root / "canonical" / "1m" / "monthly").resolve()
+        if monthly.is_symlink() or not monthly.is_dir():
+            raise DatasetIdentityError(
+                "authorized canonical monthly directory is missing or became a symlink"
+            )
+
         out: list[Path] = []
         for partition in self.partitions:
+            if not isinstance(partition, AuthorizedPartition):
+                raise DatasetIdentityError("authorized partition entry has invalid type")
             path = partition.path
             if path.is_symlink():
                 raise DatasetIdentityError(
@@ -212,16 +254,34 @@ class AuthorizedDataset:
                 raise DatasetIdentityError(
                     f"authorized partition is missing: {partition.relative_path}"
                 )
-            actual = sha256_file(path)
+            resolved = path.resolve()
+            if resolved.parent != monthly:
+                raise DatasetIdentityError(
+                    f"authorized partition escaped canonical monthly directory: "
+                    f"{partition.relative_path}"
+                )
+            try:
+                actual_relative = resolved.relative_to(root).as_posix()
+            except ValueError as exc:
+                raise DatasetIdentityError(
+                    f"authorized partition escaped dataset root: {partition.relative_path}"
+                ) from exc
+            if actual_relative != partition.relative_path:
+                raise DatasetIdentityError(
+                    f"authorized partition path identity drift: {actual_relative} != "
+                    f"{partition.relative_path}"
+                )
+            actual = sha256_file(resolved)
             if actual != partition.sha256:
                 raise DatasetIdentityError(
                     f"authorized partition checksum drift: {partition.relative_path} "
                     f"{actual} != {partition.sha256}"
                 )
-            out.append(path)
+            out.append(resolved)
         return out
 
     def partition_evidence(self) -> list[dict[str, str]]:
+        self.assert_minted()
         return [
             {
                 "relative_path": partition.relative_path,
@@ -231,6 +291,7 @@ class AuthorizedDataset:
         ]
 
     def assert_outcome_window(self, decision_t_ms: int, horizon_ms: int) -> None:
+        self.assert_minted()
         decision = _coerce_timestamp_ms(decision_t_ms, "decision_t_ms")
         if isinstance(horizon_ms, bool) or not isinstance(horizon_ms, Integral):
             raise OutcomeBoundaryError("horizon_ms must be an integer")
@@ -634,6 +695,7 @@ def authorize_dataset_access(
         frozen_snapshot_git_path=frozen_snapshot_git_path,
         runtime_snapshot_path=runtime_snapshot_path,
         partitions=tuple(selected),
+        _partition_proof=_partition_proof_sha256(tuple(selected)),
         _authorization_token=_AUTHORIZATION_TOKEN,
     )
 
