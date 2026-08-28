@@ -475,20 +475,23 @@ This charter authorizes **Batch02 design**, not any specific Batch02 hypothesis.
 
 Before first real Batch02 outcome access:
 
-1. enumerate and freeze the finite `V2_FORMULATION_INVENTORY` under Section 3;
-2. independently adjudicate every inventory entry as admitted/rejected before freeze;
-3. choose the first admitted formulation and its F1-F6 family;
-4. write the mechanism claim and novelty case;
-5. define its simpler comparator;
-6. define support, exact input identity, and no-lookahead/as-of-T semantics;
-7. define the promotion gate contract;
-8. implement through V2 Research Harness v1;
-9. pass CI on exact SHA;
-10. pass CodeRabbit review on exact SHA;
-11. pass independent adversarial LLM review on exact SHA;
-12. adjudicate findings;
-13. freeze/merge;
-14. only then run the authorized development outcomes.
+1. enumerate all candidate proposals for the finite V2 program;
+2. independently adjudicate every proposal as `ADMIT_TO_V2_INVENTORY` or
+   `REJECT_REFORMULATION_OR_OUT_OF_SCOPE`;
+3. freeze `V2_FORMULATION_INVENTORY` using only entries marked
+   `ADMIT_TO_V2_INVENTORY`;
+4. choose the first admitted formulation and its F1-F6 family;
+5. write the mechanism claim and novelty case;
+6. define its simpler comparator;
+7. define support, exact input identity, and no-lookahead/as-of-T semantics;
+8. define the promotion gate contract;
+9. implement through V2 Research Harness v1;
+10. pass CI on exact SHA;
+11. pass CodeRabbit review on exact SHA;
+12. pass independent adversarial LLM review on exact SHA;
+13. adjudicate findings;
+14. freeze/merge;
+15. only then run the authorized development outcomes.
 
 The first real Batch02 outcome read permanently freezes the current V2 formulation
 inventory.
