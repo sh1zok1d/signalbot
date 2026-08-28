@@ -781,3 +781,28 @@ def main():
 
     with pytest.raises(Batch02SourcePolicyError, match="setattr"):
         validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "extra_import,extra",
+    [
+        (
+            "import pandas as pd",
+            'reader = pd.read_parquet\nreader("/evil/data.parquet")',
+        ),
+        (
+            "from pathlib import Path",
+            'reader = Path("/evil/data").read_text\nreader()',
+        ),
+    ],
+)
+def test_source_policy_rejects_extracted_forbidden_io_attribute(
+    tmp_path: Path,
+    extra_import: str,
+    extra: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=extra)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+
+    with pytest.raises(Batch02SourcePolicyError, match="forbidden direct I/O"):
+        validate_batch02_source_tree(research, repo_root=repo)
