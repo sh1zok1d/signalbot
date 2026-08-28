@@ -93,16 +93,21 @@
     "target": "log(FUTURE_RV_H / PAST_MEDIAN_FUTURE_RV_H)",
     "loss": "absolute_error",
     "primary_incremental_metric": "BASE_AE - CAND_AE",
-    "expected_transition_ordering": "UP residual > DOWN residual"
+    "expected_transition_ordering": "UP residual > DOWN residual",
+    "eligibility_rule": "eligible iff baseline_count >= 80 AND candidate_joint_count >= 40; otherwise UNAVAILABLE_FOR_DECISION for both candidate and baseline; exact same canonical event IDs on final scored support; no fallback"
   },
   "controls": {
     "permutation_seed": 20260830,
     "permutation_replicates": 100,
-    "permutation_scope": "calendar_month_x_current_level_quintile",
+    "permutation_scope": "per_scored_event causal 30d historical training set; within historical calendar_month(t)_x_current_level_quintile strata",
     "bootstrap_seed": 20260831,
     "bootstrap_replicates": 2000,
     "bootstrap_block": "UTC_week",
-    "bootstrap_ci": 0.95
+    "bootstrap_ci": 0.95,
+    "permutation_label_pool_rule": "for forecast event T, permute only transition labels from historical training records satisfying t + H <= T; no future label source",
+    "permutation_ordering": "sort each stratum by canonical B2-01 event ID before RNG",
+    "permutation_seed_derivation": "20260830 | replicate_index | W | D | H | decision_time_T | stratum_id",
+    "permutation_evaluation_event_label": "leave evaluation event decision-time transition state unchanged; permute historical training labels only"
   },
   "search_surface_primary_cells": 16,
   "per_cell_thresholds": {
