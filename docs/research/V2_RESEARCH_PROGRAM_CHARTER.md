@@ -53,13 +53,29 @@ Such work remains inside the same family and does not reset exhaustion.
 A family can contain more than one preregistered formulation, but reformulations do
 not give the program an unlimited life.
 
-## 3. Novelty gate for any new proposal
+## 3. Finite formulation inventory and novelty gate
 
 Every Batch02+ proposal inside this V2 program must map to exactly one primary family
 `F1...F6` from Section 4.
 
-A proposal is admissible only if, before outcome inspection, it satisfies at least one
-of the following:
+Before the **first real Batch02 outcome is read**, the program must freeze a finite
+`V2_FORMULATION_INVENTORY`. The inventory must enumerate every formulation that is
+eligible to be tested inside the current V2 program and record, for each entry:
+
+- formulation ID;
+- primary F1-F6 family;
+- novelty justification;
+- simpler causal comparator;
+- same-support rule;
+- required observable/data contract;
+- deterministic close condition.
+
+The inventory may contain any finite number of entries; this charter does not invent an
+arbitrary numeric cap. Finiteness comes from freezing the actual named inventory before
+outcomes.
+
+Before that inventory freeze, a proposed entry is admissible only if it satisfies at
+least one of the following:
 
 1. **Materially new mechanism formulation inside a mapped family:** it claims a
    genuinely different market process from the already tested/retired formulations
@@ -79,8 +95,20 @@ The proposal must also state:
 - the same-support comparison it will use;
 - what result would close the formulation/family path.
 
-If the novelty case cannot be written clearly before outcomes, the proposal is not
-admissible.
+Every admission/rejection decision before inventory freeze must receive independent
+novelty adjudication in reviewed, frozen documentation and end in exactly one state:
+
+- `ADMIT_TO_V2_INVENTORY`; or
+- `REJECT_REFORMULATION_OR_OUT_OF_SCOPE`.
+
+Deferral is not an admissible adjudication state.
+
+Once the first real Batch02 outcome is read, the V2 formulation inventory is immutable.
+No new H-number, threshold family, regime, state, filter, cluster, observable-driven
+formulation, or post-hoc child may be added to the current V2 program. A newly conceived
+idea after that point remains `POSTHOC_UNTESTED` and can enter research only through a
+future explicit program charter/version with its own clean evaluation path. It cannot
+extend the life of the current V2 program.
 
 The F1-F6 map is fixed for this V2 program. A genuinely new mechanism that cannot be
 mapped honestly to F1-F6 is **outside the current program**. It requires a new explicit
@@ -167,45 +195,79 @@ The router must satisfy all of the following:
 If the preregistered state-routing program fails its incremental-value gates, F6 is
 closed. Adding another state, threshold, or cluster after the fact does not create F7.
 
-## 5. Family accounting and exhaustion
+## 5. Family and formulation accounting
 
-Every admissible Batch02+ hypothesis must point to exactly one primary family
-`F1...F6`.
+Every inventory formulation must point to exactly one primary family `F1...F6`.
 
-The program ledger for each family must use one of:
+The ledger has two separate scopes.
+
+### Family status
+
+Each F1-F6 family has exactly one `family_status`:
 
 - `UNTESTED`
 - `ACTIVE`
+- `BLOCKED_MISSING_OBSERVABLE`
 - `CLOSED_NO_PROMOTION`
 - `PROMOTED_CANDIDATE`
+- `RETIRED`
+
+### Formulation status
+
+Each named formulation has exactly one `formulation_status`:
+
+- `PLANNED`
+- `ACTIVE`
 - `BLOCKED_MISSING_OBSERVABLE`
+- `CLOSED_NO_PROMOTION`
+- `PROMOTED_CANDIDATE`
 - `RETIRED_CURRENT_FORMULATION`
+- `POSTHOC_UNTESTED`
 
-A new formulation inside a family updates that family's evidence record; it does not
-create a new family merely by receiving a new H-number.
+`RETIRED_CURRENT_FORMULATION` and `POSTHOC_UNTESTED` are formulation-level states.
+They never close a family by themselves.
 
-Post-hoc observations may generate a future preregistered child, but they remain
-`POSTHOC_UNTESTED` until a clean evaluation path exists. Post-hoc children do not
-retroactively change a failed result.
+Family transitions are deterministic:
 
-`BLOCKED_MISSING_OBSERVABLE` is **not** an exhausted state. It represents an unresolved
-research dependency. Before the program can be declared exhausted, that dependency
-must either be resolved through an authorized data-expansion unit and tested, or be
-explicitly retired as infeasible/out-of-scope.
+- `UNTESTED` while the frozen inventory contains eligible formulations but none has
+  started;
+- `ACTIVE` while any frozen-inventory formulation is `PLANNED` or `ACTIVE`;
+- `BLOCKED_MISSING_OBSERVABLE` only when no runnable frozen-inventory formulation
+  remains and at least one unresolved formulation is blocked on a missing observable;
+- `PROMOTED_CANDIDATE` when any formulation has legitimately promoted;
+- `CLOSED_NO_PROMOTION` only when every frozen-inventory formulation in that family is
+  terminal as `CLOSED_NO_PROMOTION` or `RETIRED_CURRENT_FORMULATION`, with no
+  promoted, planned, active, or blocked formulation remaining;
+- `RETIRED` only through an explicit pre-outcome or outcome-blind program decision
+  that no frozen-inventory formulation remains eligible and no unresolved observable
+  dependency remains.
+
+Post-hoc observations may be recorded as `POSTHOC_UNTESTED`, but after inventory
+freeze they are not eligible members of the current V2 inventory and do not change the
+family status. They may only seed a future program version.
+
+`BLOCKED_MISSING_OBSERVABLE` is **not** an exhausted state. Before the program can be
+declared exhausted, that dependency must either be resolved through an authorized
+data-expansion unit and the frozen formulation tested, or be explicitly retired as
+infeasible/out-of-scope.
 
 ## 6. Stop rules for the current BTC research program
 
 The current BTC edge-search program stops when all four conditions are true:
 
-### S1 — Mechanism map exhausted
+### S1 — Frozen formulation inventory exhausted
 
-Every relevant family in F1-F6 has been either:
+Every F1-F6 family is deterministically terminal under Section 5:
 
-- tested and closed; or
-- retired with no remaining novelty-qualified formulation.
+- `CLOSED_NO_PROMOTION`; or
+- `RETIRED`.
 
 A family that is still `ACTIVE`, `UNTESTED`, `PROMOTED_CANDIDATE`, or
 `BLOCKED_MISSING_OBSERVABLE` prevents an exhaustion declaration.
+
+If any family contains a `PROMOTED_CANDIDATE`, the project exits pure discovery for
+that candidate and proceeds to the authorized validation path; it does not keep tuning
+that candidate to improve the development result.
 
 ### S2 — State-conditional path exhausted
 
@@ -214,18 +276,16 @@ state-mechanism claim remains.
 
 A failed family cannot be kept alive indefinitely by adding narrower regimes.
 
-### S3 — New proposals fail the novelty gate
+### S3 — No admissible current-program formulation remains
 
-The remaining proposals are predominantly:
+Every formulation in the frozen `V2_FORMULATION_INVENTORY` is terminal, promoted, or
+explicitly blocked/retired under Section 5.
 
-- threshold changes;
-- window changes;
-- indicator substitutions;
-- filters on failed setups;
-- re-labeling of old mechanisms;
-- outcome-motivated subsets.
+After the first real Batch02 outcome, newly proposed thresholds, windows, indicators,
+filters, regimes, clusters, or post-hoc children cannot enter the current V2 inventory
+at all. They remain future-program material only.
 
-At this point more H-numbers are not more research space.
+Therefore more H-numbers cannot defer S3 inside the current program.
 
 ### S4 — No unresolved missing-observable case remains
 
@@ -287,6 +347,28 @@ authorized merely because it exists.
 
 "More data might find something" is not sufficient justification.
 
+### Data-contract semantics for any authorized new observable
+
+Missing/immature data and malformed/corrupted data are different states:
+
+- genuinely missing or not-yet-mature data may produce a declared
+  `UNAVAILABLE_FOR_DECISION` / blocked research state;
+- malformed, internally inconsistent, checksum-invalid, or corrupted data must fail
+  closed with the owning data/integrity error and may not be reclassified as merely
+  unavailable.
+
+Every research input must preserve exact dataset/input identity. Silent fallback is
+forbidden across different symbols, market types, exchanges, calculation versions,
+normalization/percentile windows, timeframes, or timeframe-aligned buckets.
+
+If a preregistered contract requires a higher-fidelity/raw field that is present in the
+authorized dataset, an adapter may not silently downgrade to a lower-fidelity derived
+substitute.
+
+For multi-timeframe research, each input's semantic role must be frozen before
+outcomes (for example, decision timeframe versus contextual timeframe). The timeframe
+and its aligned bucket timestamp remain part of input identity.
+
 ## 9. Research-to-live parity principle
 
 Research and live execution must not evolve into two independent implementations of
@@ -311,12 +393,19 @@ under the same data-availability contract.
 The same definitions must govern, where applicable:
 
 - timestamp semantics;
-- availability;
+- **as-of-T availability:** every historical input used at decision boundary `T`
+  must have been available by `T`; later backfills/revisions may not be substituted
+  into the historical decision;
+- exact timeframe and timeframe-aligned bucket timestamp identity;
 - features;
 - market-state classification;
 - strategy/router logic;
 - no-trade decisions;
 - promotion/evaluation identity.
+
+A live adapter may not relabel a source bucket with a generic decision timestamp or
+collapse distinct timeframe identities merely because the numeric feature value is the
+same.
 
 This principle is architectural now; full live implementation is not required for
 Batch02 discovery.
@@ -324,6 +413,12 @@ Batch02 discovery.
 ## 10. Product transition gate
 
 Product work is separated from evidence maturity.
+
+All promotion/transition gates are deterministic and fail closed. Missing,
+unavailable, malformed, non-finite, or errored mandatory gate inputs produce
+**non-promotion**, never an implicit pass. Every gate value, failure reason, and final
+decision must be recorded in provenance. This applies to discovery promotion and every
+later validation/OOS transition.
 
 ### G0 — Research only
 
@@ -336,7 +431,9 @@ validated edge.
 
 ### G2 — Independent validation
 
-The candidate survives the authorized independent validation stage.
+The candidate survives the authorized independent validation stage under a frozen,
+fail-closed validation contract. Missing or errored mandatory validation evidence is a
+non-pass, not grounds to reinterpret or rerun the candidate.
 
 Only here may serious shadow-live engineering begin.
 
@@ -378,18 +475,23 @@ This charter authorizes **Batch02 design**, not any specific Batch02 hypothesis.
 
 Before first real Batch02 outcome access:
 
-1. choose the first mechanism family from F1-F6;
-2. write the mechanism claim and novelty case;
-3. define its simpler comparator;
-4. define support and no-lookahead semantics;
-5. define the promotion gate contract;
-6. implement through V2 Research Harness v1;
-7. pass CI on exact SHA;
-8. pass CodeRabbit review on exact SHA;
-9. pass independent adversarial LLM review on exact SHA;
-10. adjudicate findings;
-11. freeze/merge;
-12. only then run the authorized development outcomes.
+1. enumerate and freeze the finite `V2_FORMULATION_INVENTORY` under Section 3;
+2. independently adjudicate every inventory entry as admitted/rejected before freeze;
+3. choose the first admitted formulation and its F1-F6 family;
+4. write the mechanism claim and novelty case;
+5. define its simpler comparator;
+6. define support, exact input identity, and no-lookahead/as-of-T semantics;
+7. define the promotion gate contract;
+8. implement through V2 Research Harness v1;
+9. pass CI on exact SHA;
+10. pass CodeRabbit review on exact SHA;
+11. pass independent adversarial LLM review on exact SHA;
+12. adjudicate findings;
+13. freeze/merge;
+14. only then run the authorized development outcomes.
+
+The first real Batch02 outcome read permanently freezes the current V2 formulation
+inventory.
 
 No 2025 validation or 2026 OOS is opened merely by entering Batch02.
 
