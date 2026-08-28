@@ -49,6 +49,8 @@ _FORBIDDEN_DIRECT_MODULE_PREFIXES = (
     "sqlite3",
     "sqlalchemy",
     "mmap",
+    "unittest.mock",
+    "mock",
 )
 _FORBIDDEN_BARE_CALLS = {
     "open",
@@ -56,6 +58,11 @@ _FORBIDDEN_BARE_CALLS = {
     "exec",
     "__import__",
     "getattr",
+    "setattr",
+    "delattr",
+    "vars",
+    "globals",
+    "locals",
 }
 _FORBIDDEN_IO_ATTRIBUTES = {
     # pathlib / os / shutil style mutation or direct filesystem access.
@@ -90,10 +97,20 @@ _FORBIDDEN_IO_ATTRIBUTES = {
     "memmap",
     "memory_map",
     "read_sql",
+    "read_sql_query",
+    "read_sql_table",
     "read_hdf",
+    "HDFStore",
+    "open_file",
+    "open_input_file",
+    "open_input_stream",
+    "input_stream",
     "glob",
     "rglob",
     "iterdir",
+    "listdir",
+    "scandir",
+    "walk",
     "connect",
     "list_monthly_partitions",
 }
@@ -121,7 +138,11 @@ _FORBIDDEN_IMPORTED_SYMBOLS = {
     "memmap",
     "memory_map",
     "read_sql",
+    "read_sql_query",
+    "read_sql_table",
     "read_hdf",
+    "HDFStore",
+    "open_file",
     "connect",
 }
 _RANK_NAME = re.compile(r"(?:^|_)(?:rank|percentile|pctl)(?:_|$)", re.IGNORECASE)
@@ -245,7 +266,13 @@ def _contains_prepare_reference(
     least one of the references below in the importing module.
     """
     for node in ast.walk(tree):
-        if isinstance(node, ast.ImportFrom):
+        if isinstance(node, ast.Import):
+            if any(
+                alias.name == _CANONICAL_CONTRACTS_MODULE
+                for alias in node.names
+            ):
+                return True
+        elif isinstance(node, ast.ImportFrom):
             base = _resolve_import_from(
                 repo_root=repo_root,
                 current_path=path,
@@ -254,6 +281,11 @@ def _contains_prepare_reference(
             if base == _CANONICAL_CONTRACTS_MODULE and any(
                 alias.name in {"prepare_batch02_run", "*"}
                 for alias in node.names
+            ):
+                return True
+            if (
+                base == "scripts.research.lib"
+                and any(alias.name == "batch02_contracts" for alias in node.names)
             ):
                 return True
         elif isinstance(node, ast.Name) and node.id == "prepare_batch02_run":
@@ -269,6 +301,14 @@ def _contains_prepare_reference(
             and len(node.args) >= 2
             and isinstance(node.args[1], ast.Constant)
             and node.args[1].value == "prepare_batch02_run"
+        ):
+            return True
+        elif (
+            isinstance(node, ast.Call)
+            and _call_name(node) in {"__import__", "import_module"}
+            and node.args
+            and isinstance(node.args[0], ast.Constant)
+            and node.args[0].value == _CANONICAL_CONTRACTS_MODULE
         ):
             return True
     return False
@@ -510,6 +550,14 @@ def _lint_module(
             )
 
         if isinstance(node, ast.Attribute):
+            if node.attr == "__dict__":
+                violations.append(
+                    SourceViolation(
+                        path,
+                        "dynamic module/object __dict__ access is forbidden",
+                        getattr(node, "lineno", None),
+                    )
+                )
             if (
                 isinstance(node.ctx, (ast.Store, ast.Del))
                 and node.attr in _PROTECTED_BINDINGS
