@@ -1,0 +1,206 @@
+{
+  "status": "PREREG_CANDIDATE / OUTCOME_BLIND",
+  "formulation_id": "B2-03_IMPULSE_MORPHOLOGY",
+  "primary_family": "F1",
+  "inventory_entry_preexisting": true,
+  "inventory_mutable": false,
+  "dataset": {
+    "dataset_id": "CORE_BTC_BINANCE_V0",
+    "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+    "source_timeframe": "1m",
+    "derived_timeframe": "5m",
+    "decision_grid": "UTC_epoch_aligned_15m",
+    "availability": "bar_end_exclusive"
+  },
+  "chronology": {
+    "warmup_start_inclusive": "2020-01-01T00:00:00Z",
+    "development_start_inclusive": "2020-02-01T00:00:00Z",
+    "development_end_exclusive": "2025-01-01T00:00:00Z",
+    "require": "T+240m < development_end_exclusive"
+  },
+  "morphology": {
+    "windows_minutes": [
+      30,
+      60,
+      120
+    ],
+    "interval": "[T-W,T)",
+    "net_ret": "ln(close(T)/close(T-W))",
+    "direction": "sign(NET_RET); exact zero unavailable",
+    "rv": "sqrt(sum accepted 1m r^2 inside [T-W,T))",
+    "descriptor_name": "DISTRIBUTED_PROGRESS",
+    "directional_progress": "p_i=max(d*r_5m_i,0)",
+    "descriptor": "1-sum(p_i^2)/(sum(p_i)^2)",
+    "require": "sum(p_i)>0",
+    "threshold_search": false,
+    "alternate_descriptor": false
+  },
+  "state": {
+    "reference_days": 180,
+    "scope": "same W and side",
+    "historical_rule": "T_e<T",
+    "minimum_reference_n": 120,
+    "percentile": "deterministic_midrank",
+    "states": [
+      "LOW",
+      "MID",
+      "HIGH"
+    ],
+    "boundaries": [
+      "0",
+      "1/3",
+      "2/3",
+      "1"
+    ],
+    "expected_ordering": "HIGH > MID > LOW",
+    "historical_state_freeze": "compute once as-of own T_e and store"
+  },
+  "model": {
+    "refit": "UTC_ISO_week_start",
+    "lookback_days_max": 365,
+    "maturity": "T_e+H<=S",
+    "baseline_features": [
+      "intercept",
+      "ABS_DISP",
+      "RV_W",
+      "ABS_DISP/RV_W",
+      "SIDE_UP"
+    ],
+    "candidate_additions": [
+      "MORPH_LOW",
+      "MORPH_HIGH"
+    ],
+    "minimum_baseline_n": 500,
+    "minimum_candidate_n": 500,
+    "minimum_candidate_per_state": 100,
+    "baseline_may_use_more_training_rows": true,
+    "row_order": "canonical RECORD_ID",
+    "fit": "numpy.linalg.lstsq(rcond=None)",
+    "fallback": "FORBIDDEN"
+  },
+  "target": {
+    "horizons_minutes": [
+      30,
+      60,
+      120,
+      240
+    ],
+    "continuation": "d*ln(close(T+H)/close(T))",
+    "scale": "causal trailing-30d median abs H-return with t+H<=T",
+    "normalized": "CONT_RET_H/PAST_MEDIAN_ABS_RET_H"
+  },
+  "support": {
+    "current_scored_support": "exact same RECORD_ID candidate/comparator",
+    "baseline_extra_current_events": false
+  },
+  "identity": {
+    "event_fields": [
+      "dataset_id",
+      "snapshot_id",
+      "source_timeframe",
+      "derived_timeframe",
+      "W",
+      "interval_start",
+      "interval_end",
+      "side",
+      "T"
+    ],
+    "record_id": "EVENT_ID|H"
+  },
+  "metrics": {
+    "loss": "absolute_error",
+    "ae_improvement": "BASE_AE-CAND_AE",
+    "relative_mae_min": 0.02
+  },
+  "placebo": {
+    "seed": 20260903,
+    "replicates": 100,
+    "strata": "calendar_month x side x causal displacement quintile x causal RV quintile",
+    "historical_labels_only": true,
+    "pre_rng_order": "EVENT_ID",
+    "seed_derivation": "20260903|replicate|W|H|week_start_S|stratum_id",
+    "current_state_unchanged": true,
+    "pass_quantile": 0.95
+  },
+  "bootstrap": {
+    "seed": 20260904,
+    "replicates": 2000,
+    "block": "UTC_ISO_week",
+    "ci": 0.95
+  },
+  "stability": {
+    "years": [
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "required_positive_years": 4,
+    "sides": [
+      "UP",
+      "DOWN"
+    ]
+  },
+  "search_surface": {
+    "W": [
+      30,
+      60,
+      120
+    ],
+    "H": [
+      30,
+      60,
+      120,
+      240
+    ],
+    "primary_cells": 12
+  },
+  "promotion_gate_contract": {
+    "required_gate_names": [
+      "primary_positive",
+      "material_relative_mae",
+      "bootstrap_positive",
+      "placebo_separation",
+      "morphology_ordering",
+      "side_stability",
+      "horizon_robustness",
+      "parameter_robustness",
+      "year_stability"
+    ],
+    "per_cell_gate_names": [
+      "primary_positive",
+      "material_relative_mae",
+      "bootstrap_positive",
+      "placebo_separation",
+      "morphology_ordering",
+      "side_stability"
+    ],
+    "adjacent_horizon_pairs": [
+      [
+        30,
+        60
+      ],
+      [
+        60,
+        120
+      ],
+      [
+        120,
+        240
+      ]
+    ],
+    "parameter_rule": "same adjacent H pair passes on >=2 distinct W",
+    "year_rule": "every selected neighborhood cell positive in >=4/5 years",
+    "selection": "lexicographically first by frozen H-pair order then ascending W",
+    "fail_closed": true
+  },
+  "verdicts": [
+    "B2_03_PROMOTED_CANDIDATE",
+    "B2_03_CLOSED_NO_PROMOTION"
+  ],
+  "outcome_access_authorized": false,
+  "validation_2025_authorized": false,
+  "oos_2026_authorized": false,
+  "rerun_or_reformulation_after_failure_authorized": false
+}
