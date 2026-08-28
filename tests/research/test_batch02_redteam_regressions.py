@@ -703,3 +703,80 @@ for i in range(width, len(values)):
 
     visited = validate_batch02_source_tree(research, repo_root=repo)
     assert any(path.name == "b2_02_attack.py" for path in visited)
+
+
+def test_source_policy_discovers_generic_module_qualified_prepare_indirection(
+    tmp_path: Path,
+):
+    repo = tmp_path / "repo"
+    research = repo / "scripts" / "research"
+    experiments = research / "experiments"
+    experiments.mkdir(parents=True)
+    (repo / "scripts" / "__init__.py").write_text("", encoding="utf-8")
+    (research / "__init__.py").write_text("", encoding="utf-8")
+    (experiments / "__init__.py").write_text("", encoding="utf-8")
+
+    (experiments / "generic_runner.py").write_text(
+        """
+import scripts.research.lib.batch02_contracts as bc
+import pandas as pd
+
+start = bc.prepare_batch02_run
+
+def main():
+    start(
+        code_freeze=FREEZE,
+        outcome_access_acknowledged=True,
+        dataset_root=ROOT,
+        identity=IDENTITY,
+        policy=POLICY,
+        gate_contract=GATES,
+        hypothesis_id="B2-02",
+        stage="development",
+        command=("python", "-m", "generic"),
+        seeds={},
+    )
+    pd.read_parquet("/evil/data.parquet")
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_source_policy_rejects_setattr_monkeypatch_of_canonical_contract(
+    tmp_path: Path,
+):
+    source = """
+import scripts.research.lib.batch02_contracts as bc
+from scripts.research.lib.batch02_contracts import (
+    verify_batch02_code,
+    prepare_batch02_run,
+    persist_batch02_result,
+)
+
+def fake_strength(values, width):
+    return values
+
+def main():
+    verify_batch02_code(repo_root=ROOT, expected_code_sha=SHA)
+    ctx = prepare_batch02_run(
+        code_freeze=FREEZE,
+        outcome_access_acknowledged=True,
+        dataset_root=ROOT,
+        identity=IDENTITY,
+        policy=POLICY,
+        gate_contract=GATES,
+        hypothesis_id="B2-02",
+        stage="development",
+        command=("python", "-m", "b2_02"),
+        seeds={},
+    )
+    setattr(bc, "rolling_midrank_percentile", fake_strength)
+    persist_batch02_result(OUT, {"status": "closed"}, run_context=ctx)
+"""
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+
+    with pytest.raises(Batch02SourcePolicyError, match="setattr"):
+        validate_batch02_source_tree(research, repo_root=repo)
