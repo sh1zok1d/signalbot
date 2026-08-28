@@ -801,7 +801,8 @@ def test_source_policy_rejects_extracted_forbidden_io_attribute(
     extra_import: str,
     extra: str,
 ):
-    source = extra_import + "\n" + _canonical_runner(extra=extra)
+    indented_extra = extra.replace("\n", "\n    ")
+    source = extra_import + "\n" + _canonical_runner(extra=indented_extra)
     repo, research = _synthetic_tree(tmp_path, runner=source)
 
     with pytest.raises(Batch02SourcePolicyError, match="forbidden direct I/O"):
