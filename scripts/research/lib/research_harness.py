@@ -99,10 +99,11 @@ class OutcomeAccessPolicy:
             )
         if not self.allowed_years:
             raise ValueError("allowed_years must be non-empty")
+        if any(type(year) is not int for year in self.allowed_years):
+            raise ValueError("allowed_years must contain integers")
+        object.__setattr__(self, "allowed_years", tuple(self.allowed_years))
         if len(set(self.allowed_years)) != len(self.allowed_years):
             raise ValueError("allowed_years must be unique")
-        if any(not isinstance(year, int) for year in self.allowed_years):
-            raise ValueError("allowed_years must contain integers")
 
         start_year = datetime.fromtimestamp(
             self.start_inclusive_ms / 1000, tz=timezone.utc
@@ -264,6 +265,10 @@ def authorize_dataset_access(
     except FileNotFoundError as exc:
         raise DatasetIdentityError(
             f"missing repository dataset manifest: {repo_manifest_path}"
+        ) from exc
+    except yaml.YAMLError as exc:
+        raise DatasetIdentityError(
+            f"invalid repository dataset manifest YAML: {repo_manifest_path}"
         ) from exc
 
     if not isinstance(repo_manifest, Mapping):
@@ -517,6 +522,12 @@ def build_run_identity(
     """Build deterministic provenance fields that must accompany a result."""
     if not hypothesis_id or not stage:
         raise ValueError("hypothesis_id and stage are required")
+    if not isinstance(code_freeze, VerifiedCodeFreeze):
+        raise CodeIdentityError("code_freeze must be a verify_git_freeze proof")
+    if not isinstance(authorized_dataset, AuthorizedDataset):
+        raise DatasetIdentityError(
+            "authorized_dataset must be an authorize_dataset_access proof"
+        )
     if stage != authorized_dataset.policy.stage:
         raise ValueError(
             f"stage mismatch: {stage!r} != {authorized_dataset.policy.stage!r}"
