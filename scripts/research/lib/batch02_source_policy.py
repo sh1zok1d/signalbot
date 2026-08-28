@@ -76,6 +76,12 @@ _FORBIDDEN_IO_ATTRIBUTES = {
     "genfromtxt",
     "fromfile",
 }
+_FORBIDDEN_RANK_CALLS = {
+    "rank",
+    "rankdata",
+    "percentileofscore",
+    "searchsorted",
+}
 _FORBIDDEN_IMPORTED_SYMBOLS = {
     "read_table",
     "read_parquet",
@@ -254,6 +260,14 @@ def _lint_module(
                             getattr(node, "lineno", None),
                         )
                     )
+                if origin.split(".")[-1] in _FORBIDDEN_RANK_CALLS:
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            f"alternate rank/percentile primitive import is forbidden: {origin}",
+                            getattr(node, "lineno", None),
+                        )
+                    )
                 if origin.split(".")[-1] in _FORBIDDEN_IMPORTED_SYMBOLS:
                     violations.append(
                         SourceViolation(
@@ -293,6 +307,14 @@ def _lint_module(
 
         if isinstance(node, ast.Call):
             name = _call_name(node)
+            if name in _FORBIDDEN_RANK_CALLS:
+                violations.append(
+                    SourceViolation(
+                        path,
+                        f"alternate rank/percentile primitive call is forbidden: {name}",
+                        getattr(node, "lineno", None),
+                    )
+                )
             if name in _FORBIDDEN_BARE_CALLS:
                 violations.append(
                     SourceViolation(
