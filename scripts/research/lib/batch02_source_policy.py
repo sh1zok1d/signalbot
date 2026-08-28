@@ -476,6 +476,30 @@ def _lint_module(
     return violations
 
 
+def _contains_prepare_call(path: Path) -> bool:
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    except (OSError, UnicodeDecodeError, SyntaxError) as exc:
+        raise Batch02SourcePolicyError(
+            f"unable to inspect potential Batch02 source {path}: {exc}"
+        ) from exc
+    return any(
+        isinstance(node, ast.Call)
+        and _call_name(node) == "prepare_batch02_run"
+        for node in ast.walk(tree)
+    )
+
+
+def _discover_future_b2_entrypoints(research: Path) -> list[Path]:
+    out: list[Path] = []
+    for path in research.rglob("*.py"):
+        if _FUTURE_B2_FILE.match(path.name) or _contains_prepare_call(path):
+            # Trusted contract implementation contains no prepare call; source
+            # policy itself is likewise not an experiment entrypoint.
+            out.append(path.resolve())
+    return sorted(set(out))
+
+
 def validate_batch02_source_tree(
     research_dir: Path,
     *,
@@ -490,11 +514,7 @@ def validate_batch02_source_tree(
     """
     research = research_dir.resolve()
     root = (repo_root or research.parents[1]).resolve()
-    entrypoints = sorted(
-        path.resolve()
-        for path in research.rglob("*.py")
-        if _FUTURE_B2_FILE.match(path.name)
-    )
+    entrypoints = _discover_future_b2_entrypoints(research)
     if not entrypoints:
         return ()
 
@@ -521,8 +541,15 @@ def validate_batch02_source_tree(
             ) from exc
 
         is_runner = bool(
-            _FUTURE_B2_FILE.match(path.name)
-            and not path.name.endswith("_lib.py")
+            not path.name.endswith("_lib.py")
+            and (
+                _FUTURE_B2_FILE.match(path.name)
+                or any(
+                    isinstance(node, ast.Call)
+                    and _call_name(node) == "prepare_batch02_run"
+                    for node in ast.walk(tree)
+                )
+            )
         )
         violations.extend(
             _lint_module(
