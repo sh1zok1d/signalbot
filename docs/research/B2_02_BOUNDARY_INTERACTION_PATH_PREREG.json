@@ -85,7 +85,8 @@
       "HIGH"
     ],
     "expected_ordering": "HIGH > MID > LOW",
-    "full_sample_quantiles_forbidden": true
+    "full_sample_quantiles_forbidden": true,
+    "historical_state_freeze": "compute PATH_PCTL/PATH_STATE exactly once as-of each event's own T_e using only earlier records; store and never recompute using later week starts, later events, full-sample quantiles, or backfills"
   },
   "pre_breach_controls": {
     "pre_state_end": "u0=t0-5m",
@@ -99,7 +100,6 @@
     "refit_frequency": "UTC_ISO_week_start_Monday_00:00",
     "training_lookback_days_max": 365,
     "training_outcome_maturity": "T_e + H <= week_start_S",
-    "minimum_shared_training_n": 500,
     "minimum_training_n_per_path_state": 100,
     "baseline_features": [
       "intercept",
@@ -120,7 +120,18 @@
     "binary_standardization": false,
     "fit": "numpy.linalg.lstsq(rcond=None)",
     "require_full_rank": true,
-    "fallback_model": "FORBIDDEN"
+    "fallback_model": "FORBIDDEN",
+    "baseline_training_rule": "T_e<S; T_e>=S-365d; T_e+H<=S; valid target and baseline features",
+    "candidate_training_rule": "subset of baseline-eligible rows with valid stored causal PATH_STATE as-of own T_e",
+    "minimum_baseline_training_n": 500,
+    "minimum_candidate_training_n": 500,
+    "baseline_may_use_more_training_rows_than_candidate": true,
+    "baseline_not_weakened_for_path_state_immaturity": true,
+    "current_scoring_requires_both_weekly_fits": true,
+    "baseline_standardization": "baseline causal training set only",
+    "candidate_standardization": "candidate causal training subset only",
+    "training_row_order": "sort by canonical EVENT_ID|H before matrices, fit, and audit hashes",
+    "iteration_order_cannot_affect_fit": true
   },
   "target": {
     "horizons_minutes": [
@@ -254,7 +265,9 @@
     "horizon_robustness": "same L has one adjacent H pair passing all six per-cell gates",
     "parameter_robustness": "same adjacent H pair passes all six per-cell gates for at least two distinct L values",
     "year_stability": "every cell in selected robust neighborhood has mean AE improvement >0 in at least 4 of 5 fixed years",
-    "fail_closed": true
+    "fail_closed": true,
+    "full_neighborhood_requirement": "same adjacent H pair passes all six per-cell gates for at least two distinct L values AND all four selected cells satisfy year stability",
+    "neighborhood_selection": "if multiple full neighborhoods qualify, choose lexicographically first by frozen H-pair order [30,60],[60,120],[120,240], then ascending L; never rank by effect, p-value, support, or any outcome metric"
   },
   "verdicts": [
     "B2_02_PROMOTED_CANDIDATE",
