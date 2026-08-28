@@ -5,20 +5,25 @@
 
 The project does not resume product architecture work merely because an implementation stage is technically available. Research evidence is now the gating dependency.
 
-## R0 — Freeze and finish the already-frozen experiment
+## R0 — E1 frozen experiment closeout
+
+**Status:** `CLOSED_AT_DEVELOPMENT / HOLDOUT_UNOPENED`
 
 ### Goal
-Preserve the current state without contaminating `E1-RUN-001`.
+Preserve the E1 evidence without spending clean holdout on formulations that
+did not earn promotion.
 
-### Work
+### Decision
 - keep V1 frozen;
-- keep V2 production disabled;
-- do not change frozen TP/CB/FB rules inside `E1-RUN-001`;
-- finish the one-shot final holdout evaluation when runtime/data access is available;
-- record the final E1 family verdicts and global Level-0 decision in the research ledger.
+- retain all E1 preregistration/evaluator artifacts as historical evidence;
+- `TREND_PULLBACK`, `COMPRESSION_BREAKOUT`, and `CONFIRMED_BREAKOUT`
+  are `RETIRED_CURRENT_FORMULATION`;
+- do not run the frozen E1 holdout evaluator to rescue those formulations;
+- keep the chronological holdout unopened.
 
 ### Exit
-`E1-RUN-001` has a final immutable result, or is explicitly closed as technically incomplete with the reason recorded.
+Satisfied on 2026-08-28 by explicit project closeout after E1 development and
+R2 Batch01 synthesis.
 
 ---
 
@@ -94,6 +99,23 @@ over forcing every detector to output a continuous LONG/SHORT opinion.
 `H01_COMPRESSION_EXPANSION` completed a development-only run on `CORE_BTC_BINANCE_V0` snapshot `717d37a4`. Verdict: **`H01_KILL`**. 2025 validation and 2026 OOS remain untouched. Do not start R3 for H01. See `docs/research/H01_DEV_SUMMARY.md` and `docs/RESEARCH_LEDGER.md`.
 
 `H02_FAILED_BREAKOUT_MEAN_REVERSION` completed a development-only run on the same snapshot. Verdict: **`H02_KILL`**. 2025/2026 remain untouched. Do not start R3 for H02. See `docs/research/H02_DEV_SUMMARY.md`.
+
+### Batch01 closeout (2026-08-28)
+
+R2 Batch01 is **CLOSED: 0/5 primary families promoted**.
+
+- H01 `REJECTED / H01_KILL`
+- H02 `REJECTED / H02_KILL`
+- H03 `H03_REJECTED_SPECIFIC_CLAIM`
+- H04 `H04_REJECTED_SPECIFIC_CLAIM`
+- H05 `H05_REJECTED_SPECIFIC_CLAIM`
+
+2025 validation and 2026 OOS remain untouched. Do not continue mechanically
+to H06 and do not reopen a rejected family through parameter rescue.
+
+**Next execution step:** extract the common research-integrity mechanics into
+`V2_RESEARCH_HARNESS_V1`; after independent audit, perform
+`BATCH02_DESIGN`. See `docs/research/BATCH01_SYNTHESIS.md`.
 
 ### Exit
 A small set of candidate mechanisms shows enough development evidence to justify formal validation. It is acceptable for none to qualify.

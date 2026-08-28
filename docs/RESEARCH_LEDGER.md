@@ -1079,6 +1079,62 @@ remains at `faac097c7a3aab0e82c35f4fdc7b0b006ac9e4a1`, unmoved.
 
 ---
 
+## 2026-08-28 — R2 Batch01 synthesis and E1/VPS closeout
+
+**Decision:** `BATCH01_CLOSED / 0_OF_5_PROMOTED`
+
+The five Batch01 primary mechanism families are now closed on development:
+
+- H01 = `REJECTED / H01_KILL`
+- H02 = `REJECTED / H02_KILL`
+- H03 = `H03_REJECTED_SPECIFIC_CLAIM`
+- H04 = `H04_REJECTED_SPECIFIC_CLAIM`
+- H05 = `H05_REJECTED_SPECIFIC_CLAIM / CLOSED_DEVELOPMENT_REJECTED`
+
+No family promoted. H01-H05 2025 validation remains **UNTOUCHED** and 2026 OOS
+remains **UNTOUCHED**. These windows are not to be opened to rescue a rejected
+Batch01 claim.
+
+Cross-hypothesis conclusion: several families contained raw conditional
+structure, but none earned promotion under the required robustness and
+incremental-information controls. Raw predictiveness is therefore not treated
+as sufficient evidence of unique edge.
+
+The prior VPS/E1 Stage-5 detector formulations are also closed for current
+execution:
+
+```
+E1_TREND_PULLBACK = RETIRED_CURRENT_FORMULATION
+E1_COMPRESSION_BREAKOUT = RETIRED_CURRENT_FORMULATION
+E1_CONFIRMED_BREAKOUT = RETIRED_CURRENT_FORMULATION
+E1_HOLDOUT = UNOPENED_AND_NOT_SPENT
+```
+
+This is **not** a claim that Batch01 reran the exact E1 detector code. The
+retirement decision combines the already-consumed E1 development evidence with
+the multi-year Batch01 mechanism results and concludes that there is no
+research justification to spend the frozen E1 holdout on rescue. A future
+materially different trend/compression/breakout hypothesis would require a new
+identity and clean protocol.
+
+Post-hoc patterns from H01/H04/H05 and any E1 simplification remain
+`POSTHOC_UNTESTED` only.
+
+Canonical next state:
+
+```
+BATCH01 = CLOSED
+BATCH01_PROMOTED = 0/5
+BATCH02 = NOT_STARTED
+H06 = NOT_AUTHORIZED
+NEXT_ENGINEERING_STAGE = V2_RESEARCH_HARNESS_V1
+NEXT_RESEARCH_DESIGN_STAGE = BATCH02_DESIGN
+```
+
+Synthesis record: `docs/research/BATCH01_SYNTHESIS.md`.
+
+---
+
 ## Next research program — hypothesis discovery after E1
 
 Status: `AUTHORIZED_FOR_DISCOVERY / NOT YET CONFIRMATORY`.
@@ -1104,9 +1160,9 @@ development run is recorded above (`C. H05_DEVELOPMENT_NOT_PROMOTED` /
 `H05_REJECTED_SPECIFIC_CLAIM`), and has been reviewed and formally
 **CLOSED** (`H05_POSTRUN_REVIEW_STATUS = CLOSED_DEVELOPMENT_REJECTED`,
 see the post-run review entry above). No H06 is authorized after H05
-closes. Batch01 synthesis is now the **next authorized research stage**
-(`BATCH01_SYNTHESIS = NEXT_AUTHORIZED_RESEARCH_STAGE`); it has **NOT**
-been started (`BATCH01_SYNTHESIS_STARTED = NO`).
+closes. Batch01 synthesis is now **complete** (`BATCH01 = CLOSED`, `0/5` primary
+families promoted). The next engineering stage is `V2_RESEARCH_HARNESS_V1`,
+followed by `BATCH02_DESIGN`. `H06 = NOT_AUTHORIZED`.
 
 These are not edge claims and not implementation authorization.
 

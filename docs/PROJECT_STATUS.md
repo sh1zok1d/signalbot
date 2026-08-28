@@ -1,6 +1,6 @@
 # Signalbot — Current Project Status
 
-**Status date:** 2026-08-26  
+**Status date:** 2026-08-28  
 **Operating mode:** `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN`
 
 This file is the canonical answer to: **what is Signalbot doing now?**
@@ -43,7 +43,7 @@ Existing V1/V2 code is retained as research material and infrastructure. Freeze 
 
 Active work is limited to work that increases the quality of empirical inference:
 
-- complete already-frozen `E1-RUN-001` without changing its rules;
+- preserve the frozen `E1-RUN-001` record and its unopened holdout; the current TP/CB/FB formulations are retired at development and the holdout is not to be spent on rescue;
 - expand historical data coverage;
 - build reproducible research datasets/manifests;
 - formulate and test market hypotheses;
@@ -69,23 +69,41 @@ First mechanism experiment `H01_COMPRESSION_EXPANSION` finished development-only
 
 Second mechanism experiment `H02_FAILED_BREAKOUT_MEAN_REVERSION` finished development-only. Verdict: **`H02_KILL`**. Closing back inside a local range did not beat successful-breakout or show a strength-monotonic reversion surface. 2025 validation and 2026 OOS were not opened. See `docs/research/H02_DEV_SUMMARY.md`.
 
+### R2 Batch01
+
+Batch01 is closed: **0 of 5 primary mechanism families promoted**.
+
+- H01: `REJECTED / H01_KILL`
+- H02: `REJECTED / H02_KILL`
+- H03: `H03_REJECTED_SPECIFIC_CLAIM`
+- H04: `H04_REJECTED_SPECIFIC_CLAIM`
+- H05: `H05_REJECTED_SPECIFIC_CLAIM / CLOSED_DEVELOPMENT_REJECTED`
+
+2025 validation and 2026 OOS remain untouched for H01-H05. Several families
+showed raw conditional structure, but none earned promotion under the required
+robustness/incremental-information controls. See
+`docs/research/BATCH01_SYNTHESIS.md`.
+
 ### V2 / E1-RUN-001
 
-The frozen Stage-5 detector families are:
+The frozen Stage-5 detector families were:
 
 - `TREND_PULLBACK` (TP)
 - `COMPRESSION_BREAKOUT` (CB)
 - `CONFIRMED_BREAKOUT` (FB)
 
-Development evidence has been consumed. Provisional development interpretation:
+Their development evidence was consumed and did not justify promotion. The
+chronological E1 holdout remains **unopened**.
 
-- TP: current 4h/1h context stack has not earned its complexity; simpler populations were generally less adverse at longer horizons, but no simplified positive-edge claim exists yet;
-- CB: compression showed some structural selection relative to a dumb ordinary-range breakout, while taker/context did not demonstrate incremental value; directional edge remains unproven;
-- FB: strong kill candidate on development; removing context did not rescue the directional hypothesis.
+Following Batch01 synthesis, the three E1 detector formulations are now
+`RETIRED_CURRENT_FORMULATION`. This does not claim that Batch01 reran the
+exact E1 code or disproved every future trend/compression/breakout mechanism.
+It records a project decision that the existing formulations have not earned
+the right to consume their frozen holdout.
 
-The chronological holdout remains **unopened** as of the last verified repository state. Candidate populations reproduced exactly (`TP=105`, `CB=17`, `FB=19`). A one-shot final evaluator and timestamp-only coverage preflight are frozen. The last observed preflight showed primary +4h outcome coverage complete but the preregistered +6h same-day time-shift control still required additional future timestamps. Do not infer a final E1 verdict until the frozen evaluator is actually run.
-
-Authoritative E1 records live in `docs/E1_DETECTOR_SEPARATION_PREREG.md`, `docs/e1/`, and `docs/RESEARCH_LEDGER.md`.
+The frozen evaluator, preregistration and holdout artifacts remain historical
+evidence and must not be rewritten. Any materially new child formulation must
+receive a new hypothesis identity and clean evaluation path.
 
 ## 6. Evidence posture
 
@@ -108,9 +126,11 @@ See `docs/HISTORICAL_DATA_STRATEGY.md`.
 
 ## 7. Active objective
 
-The active objective is:
+The immediate objective is to standardize the research-integrity machinery that proved useful in H05 into `V2_RESEARCH_HARNESS_V1`, then design Batch02 around distinct information families rather than more transforms of the same price state.
 
-> Discover and independently validate one or two market mechanisms with stable conditional expectation — or falsify the investigated mechanisms without rescuing them through post-hoc complexity.
+The research objective remains:
+
+> Discover and independently validate one or two market mechanisms with stable incremental information — or falsify the investigated mechanisms without rescuing them through post-hoc complexity.
 
 A valid edge must survive more than a favorable backtest window. Exact requirements are defined in `docs/EDGE_RESEARCH_PROTOCOL.md`.
 
