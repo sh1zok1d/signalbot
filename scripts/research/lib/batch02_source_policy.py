@@ -42,8 +42,22 @@ _TRUSTED_MODULES = {
 }
 _FORBIDDEN_DIRECT_MODULE_PREFIXES = (
     "scripts.research.lib.research_harness",
+    # Dynamic/reflection/native escape hatches are outside the future-B2
+    # closure. The runner may transform already-loaded data, not acquire bytes
+    # through alternate filesystem/network/process machinery.
     "subprocess",
     "importlib",
+    "operator",
+    "io",
+    "os",
+    "urllib",
+    "socket",
+    "ftplib",
+    "ctypes",
+    "cffi",
+    "requests",
+    "httpx",
+    "aiohttp",
     "duckdb",
     "fsspec",
     "sqlite3",
@@ -67,10 +81,25 @@ _FORBIDDEN_BARE_CALLS = {
 _FORBIDDEN_IO_ATTRIBUTES = {
     # pathlib / os / shutil style mutation or direct filesystem access.
     "open",
+    "fdopen",
+    "popen",
+    "FileIO",
+    "urlopen",
+    "read",
     "read_text",
     "read_bytes",
     "write_text",
     "write_bytes",
+    "to_csv",
+    "to_parquet",
+    "to_json",
+    "to_pickle",
+    "to_feather",
+    "to_excel",
+    "to_sql",
+    "to_hdf",
+    "save",
+    "savetxt",
     "unlink",
     "remove",
     "rename",
@@ -114,6 +143,14 @@ _FORBIDDEN_IO_ATTRIBUTES = {
     "connect",
     "list_monthly_partitions",
 }
+_FORBIDDEN_REFLECTION_ATTRIBUTES = {
+    "__getattribute__",
+    "attrgetter",
+    "methodcaller",
+    "getattr_static",
+}
+_FORBIDDEN_IO_NAME_PREFIXES = ("read_", "scan_", "open_")
+
 _FORBIDDEN_RANK_CALLS = {
     "rank",
     "rankdata",
@@ -144,6 +181,9 @@ _FORBIDDEN_IMPORTED_SYMBOLS = {
     "HDFStore",
     "open_file",
     "connect",
+    "FileIO",
+    "popen",
+    "urlopen",
 }
 _RANK_NAME = re.compile(r"(?:^|_)(?:rank|percentile|pctl)(?:_|$)", re.IGNORECASE)
 _CANONICAL_CONTRACTS_MODULE = "scripts.research.lib.batch02_contracts"
@@ -252,6 +292,68 @@ def _call_name(node: ast.Call) -> str | None:
     return None
 
 
+def _dotted_name(node: ast.AST) -> str | None:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        prefix = _dotted_name(node.value)
+        if prefix:
+            return f"{prefix}.{node.attr}"
+    return None
+
+
+def _import_bindings(
+    *,
+    repo_root: Path,
+    path: Path,
+    tree: ast.AST,
+) -> dict[str, str]:
+    bindings: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                local = alias.asname or alias.name.split(".")[0]
+                # Without an alias Python only binds the top-level package.
+                bindings[local] = alias.name if alias.asname else local
+        elif isinstance(node, ast.ImportFrom):
+            base = _resolve_import_from(
+                repo_root=repo_root,
+                current_path=path,
+                node=node,
+            )
+            for alias in node.names:
+                if alias.name == "*":
+                    continue
+                local = alias.asname or alias.name
+                bindings[local] = f"{base}.{alias.name}".strip(".")
+    return bindings
+
+
+def _resolved_dotted_name(
+    node: ast.AST,
+    *,
+    bindings: dict[str, str],
+) -> str | None:
+    dotted = _dotted_name(node)
+    if not dotted:
+        return None
+    head, *tail = dotted.split(".")
+    origin = bindings.get(head)
+    if origin is None:
+        return dotted
+    return ".".join([origin, *tail])
+
+
+def _is_forbidden_io_name(name: str | None) -> bool:
+    if not name:
+        return False
+    return (
+        name in _FORBIDDEN_IMPORTED_SYMBOLS
+        or name in _FORBIDDEN_IO_ATTRIBUTES
+        or any(name.startswith(prefix) for prefix in _FORBIDDEN_IO_NAME_PREFIXES)
+    )
+
+
 def _contains_prepare_reference(
     *,
     repo_root: Path,
@@ -265,6 +367,8 @@ def _contains_prepare_reference(
     qualified calls, and getattr(..., "prepare_batch02_run") all leave at
     least one of the references below in the importing module.
     """
+    bindings = _import_bindings(repo_root=repo_root, path=path, tree=tree)
+
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             if any(
@@ -290,27 +394,44 @@ def _contains_prepare_reference(
                 return True
         elif isinstance(node, ast.Name) and node.id == "prepare_batch02_run":
             return True
-        elif (
-            isinstance(node, ast.Attribute)
-            and node.attr == "prepare_batch02_run"
-        ):
-            return True
-        elif (
-            isinstance(node, ast.Call)
-            and _call_name(node) == "getattr"
-            and len(node.args) >= 2
-            and isinstance(node.args[1], ast.Constant)
-            and node.args[1].value == "prepare_batch02_run"
-        ):
-            return True
-        elif (
-            isinstance(node, ast.Call)
-            and _call_name(node) in {"__import__", "import_module"}
-            and node.args
-            and isinstance(node.args[0], ast.Constant)
-            and node.args[0].value == _CANONICAL_CONTRACTS_MODULE
-        ):
-            return True
+        elif isinstance(node, ast.Attribute):
+            resolved = _resolved_dotted_name(node, bindings=bindings)
+            if (
+                node.attr in {"prepare_batch02_run", "batch02_contracts"}
+                or resolved == _CANONICAL_CONTRACTS_MODULE
+                or resolved
+                == f"{_CANONICAL_CONTRACTS_MODULE}.prepare_batch02_run"
+            ):
+                return True
+        elif isinstance(node, ast.Call):
+            name = _call_name(node)
+            if (
+                name in {
+                    "getattr",
+                    "__getattribute__",
+                    "attrgetter",
+                    "methodcaller",
+                    "getattr_static",
+                }
+                and any(
+                    isinstance(arg, ast.Constant)
+                    and arg.value == "prepare_batch02_run"
+                    for arg in node.args
+                )
+            ):
+                return True
+            if name in {"__import__", "import_module"}:
+                string_literals = {
+                    value.value
+                    for value in ast.walk(node)
+                    if isinstance(value, ast.Constant)
+                    and isinstance(value.value, str)
+                }
+                if (
+                    _CANONICAL_CONTRACTS_MODULE in string_literals
+                    or "batch02_contracts" in string_literals
+                ):
+                    return True
     return False
 
 
@@ -449,13 +570,12 @@ def _lint_module(
 
             if (
                 isinstance(node, ast.ImportFrom)
-                and base == _CANONICAL_CONTRACTS_MODULE
                 and any(alias.name == "*" for alias in node.names)
             ):
                 violations.append(
                     SourceViolation(
                         path,
-                        "star import from canonical Batch02 contracts is forbidden",
+                        "star imports are forbidden in the future Batch02 closure",
                         getattr(node, "lineno", None),
                     )
                 )
@@ -478,11 +598,19 @@ def _lint_module(
                         getattr(node, "lineno", None),
                     )
                 )
-            if isinstance(node.func, ast.Attribute) and node.func.attr in _FORBIDDEN_IO_ATTRIBUTES:
+            if _is_forbidden_io_name(name):
                 violations.append(
                     SourceViolation(
                         path,
-                        f"forbidden direct I/O or mutation call .{node.func.attr}",
+                        f"forbidden direct I/O or mutation call {name}",
+                        getattr(node, "lineno", None),
+                    )
+                )
+            if name in _FORBIDDEN_REFLECTION_ATTRIBUTES:
+                violations.append(
+                    SourceViolation(
+                        path,
+                        f"forbidden reflection call {name}",
                         getattr(node, "lineno", None),
                     )
                 )
@@ -550,11 +678,19 @@ def _lint_module(
             )
 
         if isinstance(node, ast.Attribute):
-            if node.attr in _FORBIDDEN_IO_ATTRIBUTES:
+            if _is_forbidden_io_name(node.attr):
                 violations.append(
                     SourceViolation(
                         path,
                         f"forbidden direct I/O or mutation attribute .{node.attr}",
+                        getattr(node, "lineno", None),
+                    )
+                )
+            if node.attr in _FORBIDDEN_REFLECTION_ATTRIBUTES:
+                violations.append(
+                    SourceViolation(
+                        path,
+                        f"forbidden reflection attribute .{node.attr}",
                         getattr(node, "lineno", None),
                     )
                 )
@@ -580,6 +716,14 @@ def _lint_module(
                 )
 
         if isinstance(node, ast.Name):
+            if node.id == "__builtins__":
+                violations.append(
+                    SourceViolation(
+                        path,
+                        "direct __builtins__ access is forbidden",
+                        getattr(node, "lineno", None),
+                    )
+                )
             if isinstance(node.ctx, ast.Store) and node.id in _PROTECTED_BINDINGS:
                 violations.append(
                     SourceViolation(
@@ -625,12 +769,12 @@ def _lint_module(
 
 
 def _discover_future_b2_entrypoints(
-    research: Path,
+    scan_root: Path,
     *,
     repo_root: Path,
 ) -> list[Path]:
     out: list[Path] = []
-    for path in research.rglob("*.py"):
+    for path in scan_root.rglob("*.py"):
         try:
             tree = ast.parse(
                 path.read_text(encoding="utf-8"),
@@ -663,8 +807,10 @@ def validate_batch02_source_tree(
     """
     research = research_dir.resolve()
     root = (repo_root or research.parents[1]).resolve()
+    scripts_root = root / "scripts"
+    scan_root = scripts_root if scripts_root.is_dir() else research
     entrypoints = _discover_future_b2_entrypoints(
-        research,
+        scan_root,
         repo_root=root,
     )
     if not entrypoints:
