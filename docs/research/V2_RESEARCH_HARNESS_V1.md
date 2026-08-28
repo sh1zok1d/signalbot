@@ -31,6 +31,11 @@ The mechanical check requires:
 - no tracked file uses `skip-worktree` or `assume-unchanged`;
 - every tracked worktree blob hashes to the exact blob stored in `HEAD`.
 
+Any `git` execution failure or filesystem read failure encountered while
+performing these checks (including reading a tracked symlink target or a
+tracked file's bytes) is raised as `CodeIdentityError`, never leaked as a
+raw `OSError`.
+
 The proof stores both the commit SHA and tree object ID.
 
 The freeze is rechecked before dataset authorization and again when run
@@ -66,6 +71,13 @@ The following must agree:
 Runtime `output_checksums` must exactly equal the checksum map frozen in Git.
 A runtime JSON + parquet co-update therefore cannot redefine the accepted
 snapshot.
+
+Runtime evidence for `output_checksums` may be present at the top level of
+`reports/snapshot_manifest.json`, at `identity_payload.output_checksums`, or
+at both. EVERY representation that is present is checked independently
+against the Git-frozen checksum map; none may be present without matching,
+and one present location can never shadow or override another. At least one
+representation must be present.
 
 ### 3. Only authorized partitions are carried forward
 
@@ -115,6 +127,8 @@ It rejects:
 - floats rather than truncating them;
 - bools;
 - strings/bytes;
+- mappings/dicts (never reinterpreted as a timestamp sequence via generic
+  iteration, which would otherwise silently yield mapping keys);
 - implausible epoch-millisecond magnitudes such as second timestamps;
 - empty sequences;
 - mismatched decision/availability lengths;

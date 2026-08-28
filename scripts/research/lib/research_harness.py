@@ -261,7 +261,13 @@ def _run_git(
             check=True,
             capture_output=True,
         ).stdout
-    except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+    # CR-03: catch OSError broadly (not just FileNotFoundError) so every
+    # subprocess-spawn/execution failure -- e.g. PermissionError on a
+    # non-executable git binary, or any other OS-level spawn failure --
+    # is owned by the harness's CodeIdentityError boundary, not leaked as
+    # a raw OSError. subprocess.CalledProcessError (a non-zero exit from
+    # `check=True`) is preserved unchanged.
+    except (OSError, subprocess.CalledProcessError) as exc:
         raise CodeIdentityError(
             f"git command failed at {repo_root}: {' '.join(args)}"
         ) from exc
@@ -287,13 +293,29 @@ def _worktree_blob_oid(repo_root: Path, path: Path, mode: str) -> str:
     if mode == "120000":
         if not path.is_symlink():
             raise CodeIdentityError(f"tracked symlink type changed: {path}")
-        data = os.fsencode(os.readlink(path))
+        # CR-03: os.readlink can raise OSError (e.g. a TOCTOU race where the
+        # symlink is removed/replaced between is_symlink() and readlink(),
+        # or a permission failure) -- must not leak as a raw OSError.
+        try:
+            data = os.fsencode(os.readlink(path))
+        except OSError as exc:
+            raise CodeIdentityError(
+                f"unable to read tracked symlink target: {path}"
+            ) from exc
     else:
         if path.is_symlink():
             raise CodeIdentityError(f"tracked regular file became symlink: {path}")
         if not path.is_file():
             raise CodeIdentityError(f"tracked file missing from worktree: {path}")
-        data = path.read_bytes()
+        # CR-03: Path.read_bytes can raise OSError (permission denied, race
+        # where the file disappears/changes type after is_file(), I/O
+        # error, etc.) -- must not leak as a raw OSError.
+        try:
+            data = path.read_bytes()
+        except OSError as exc:
+            raise CodeIdentityError(
+                f"unable to read tracked worktree file: {path}"
+            ) from exc
     return _run_git(repo_root, "hash-object", "--stdin", input_bytes=data).decode().strip()
 
 
@@ -525,17 +547,41 @@ def authorize_dataset_access(
             "runtime identity_payload snapshot_id",
         )
 
-    runtime_checksums = runtime.get("output_checksums")
-    if runtime_checksums is None:
-        runtime_checksums = runtime_payload.get("output_checksums")
-    runtime_checksums = _normalize_checksum_mapping(
-        runtime_checksums,
-        "runtime output_checksums",
-    )
-    if runtime_checksums != frozen_checksums:
+    # CR-01: runtime checksum evidence can be present at the top level, at
+    # `identity_payload.output_checksums`, both, or neither. Every
+    # representation that is PRESENT must independently equal the
+    # Git-frozen checksum map -- one present location must never silently
+    # shadow another, whether that other location agrees or disagrees.
+    runtime_checksums_top = runtime.get("output_checksums")
+    runtime_checksums_nested = runtime_payload.get("output_checksums")
+
+    if runtime_checksums_top is None and runtime_checksums_nested is None:
         raise DatasetIdentityError(
-            "runtime output_checksums differ from Git-frozen snapshot evidence"
+            "no runtime output_checksums evidence present "
+            "(neither top-level nor identity_payload)"
         )
+
+    if runtime_checksums_top is not None:
+        normalized_top = _normalize_checksum_mapping(
+            runtime_checksums_top,
+            "runtime output_checksums (top-level)",
+        )
+        if normalized_top != frozen_checksums:
+            raise DatasetIdentityError(
+                "runtime output_checksums (top-level) differ from "
+                "Git-frozen snapshot evidence"
+            )
+
+    if runtime_checksums_nested is not None:
+        normalized_nested = _normalize_checksum_mapping(
+            runtime_checksums_nested,
+            "runtime output_checksums (identity_payload)",
+        )
+        if normalized_nested != frozen_checksums:
+            raise DatasetIdentityError(
+                "runtime output_checksums (identity_payload) differ from "
+                "Git-frozen snapshot evidence"
+            )
 
     monthly = root / "canonical" / "1m" / "monthly"
     if not monthly.is_dir():
@@ -608,6 +654,12 @@ def _normalize_timestamp_input(value: object, label: str) -> tuple[int, ...]:
         return (_coerce_timestamp_ms(value, label),)
     if isinstance(value, (str, bytes, bytearray)):
         raise LookaheadError(f"{label} must not be text/bytes")
+    # CR-02: `tuple(mapping)` silently yields mapping KEYS, not values -- a
+    # dict/Mapping passed here (accidentally or otherwise) must never be
+    # reinterpreted as a timestamp sequence via generic iterable
+    # conversion. Reject explicitly, before falling through to `tuple(...)`.
+    if isinstance(value, Mapping):
+        raise LookaheadError(f"{label} must not be a mapping")
     try:
         raw = tuple(value)  # type: ignore[arg-type]
     except TypeError as exc:

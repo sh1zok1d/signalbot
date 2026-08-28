@@ -631,3 +631,198 @@ def test_canonical_json_rejects_nonfinite_numbers_before_file_creation(tmp_path:
     with pytest.raises(ValueError):
         write_json_new(path, {"value": float("nan")})
     assert not path.exists()
+
+
+# ---------------------------------------------------------------------------
+# CR-01: every PRESENT runtime output_checksums representation (top-level,
+# identity_payload, or both) must independently equal the Git-frozen
+# checksum map -- one present location must never silently shadow another.
+# ---------------------------------------------------------------------------
+def test_cr01_a_both_runtime_locations_present_and_correct_passes(tmp_path: Path):
+    ctx = _authorized(tmp_path)
+    runtime = json.loads(ctx["runtime_snapshot"].read_text(encoding="utf-8"))
+    runtime["output_checksums"] = dict(runtime["identity_payload"]["output_checksums"])
+    ctx["runtime_snapshot"].write_text(
+        json.dumps(runtime, sort_keys=True), encoding="utf-8"
+    )
+
+    # Must not raise: both present locations agree with the frozen map.
+    authorize_dataset_access(
+        code_freeze=ctx["code_freeze"],
+        dataset_root=ctx["dataset_root"],
+        identity=IDENTITY,
+        policy=POLICY,
+    )
+
+
+def test_cr01_b_top_level_correct_nested_incorrect_fails_closed(tmp_path: Path):
+    ctx = _authorized(tmp_path)
+    runtime = json.loads(ctx["runtime_snapshot"].read_text(encoding="utf-8"))
+    # top-level copy taken BEFORE the nested corruption below -- stays correct.
+    runtime["output_checksums"] = dict(runtime["identity_payload"]["output_checksums"])
+    rel = next(iter(runtime["identity_payload"]["output_checksums"]))
+    runtime["identity_payload"]["output_checksums"][rel] = "0" * 64
+    ctx["runtime_snapshot"].write_text(
+        json.dumps(runtime, sort_keys=True), encoding="utf-8"
+    )
+
+    with pytest.raises(DatasetIdentityError, match="identity_payload"):
+        authorize_dataset_access(
+            code_freeze=ctx["code_freeze"],
+            dataset_root=ctx["dataset_root"],
+            identity=IDENTITY,
+            policy=POLICY,
+        )
+
+
+def test_cr01_c_nested_correct_top_level_incorrect_fails_closed(tmp_path: Path):
+    ctx = _authorized(tmp_path)
+    runtime = json.loads(ctx["runtime_snapshot"].read_text(encoding="utf-8"))
+    correct = dict(runtime["identity_payload"]["output_checksums"])
+    corrupted = dict(correct)
+    rel = next(iter(corrupted))
+    corrupted[rel] = "1" * 64
+    runtime["output_checksums"] = corrupted
+    # nested (identity_payload) is left untouched -- still correct.
+    ctx["runtime_snapshot"].write_text(
+        json.dumps(runtime, sort_keys=True), encoding="utf-8"
+    )
+
+    with pytest.raises(DatasetIdentityError, match="top-level"):
+        authorize_dataset_access(
+            code_freeze=ctx["code_freeze"],
+            dataset_root=ctx["dataset_root"],
+            identity=IDENTITY,
+            policy=POLICY,
+        )
+
+
+def test_cr01_d_both_runtime_locations_missing_fails_closed(tmp_path: Path):
+    ctx = _authorized(tmp_path)
+    runtime = json.loads(ctx["runtime_snapshot"].read_text(encoding="utf-8"))
+    del runtime["identity_payload"]["output_checksums"]
+    assert "output_checksums" not in runtime
+    ctx["runtime_snapshot"].write_text(
+        json.dumps(runtime, sort_keys=True), encoding="utf-8"
+    )
+
+    with pytest.raises(DatasetIdentityError, match="no runtime output_checksums evidence"):
+        authorize_dataset_access(
+            code_freeze=ctx["code_freeze"],
+            dataset_root=ctx["dataset_root"],
+            identity=IDENTITY,
+            policy=POLICY,
+        )
+
+
+# ---------------------------------------------------------------------------
+# CR-02: `tuple(mapping)` yields mapping KEYS, not values -- a dict/Mapping
+# passed to decision_t_ms/available_at_ms must be rejected explicitly, never
+# silently reinterpreted as a timestamp sequence via generic iteration.
+# ---------------------------------------------------------------------------
+def test_cr02_rejects_mapping_for_decision_t_ms():
+    t0 = 1_600_000_000_000
+    # If the Mapping guard were missing, tuple({t0: "ignored"}) == (t0,) --
+    # a "valid" single-timestamp tuple -- so this dict is deliberately
+    # constructed to look like it WOULD silently succeed without the fix.
+    with pytest.raises(LookaheadError, match="mapping"):
+        assert_no_lookahead({t0: "ignored-value"}, [t0])
+
+
+def test_cr02_rejects_mapping_for_available_at_ms():
+    t0 = 1_600_000_000_000
+    with pytest.raises(LookaheadError, match="mapping"):
+        assert_no_lookahead([t0], {t0: "ignored-value"})
+
+
+def test_cr02_ordinary_list_or_tuple_of_valid_ms_still_passes():
+    t0 = 1_600_000_000_000
+    assert_no_lookahead((t0, t0 + 500), (t0, t0 + 400))
+    assert_no_lookahead([t0, t0 + 500], [t0, t0 + 400])
+    assert_no_lookahead(np.int64(t0), np.int64(t0))
+
+
+# ---------------------------------------------------------------------------
+# CR-03: OS/subprocess I/O failures inside `_run_git`/`_worktree_blob_oid`
+# must be owned by CodeIdentityError, never leaked as a raw OSError.
+# Deterministic monkeypatching only -- no chmod/permission-bit reliance.
+# ---------------------------------------------------------------------------
+def test_cr03_run_git_wraps_os_error_as_code_identity_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from scripts.research.lib import research_harness
+
+    code_repo = tmp_path / "code"
+    sha, _ = _init_frozen_repo(code_repo, {})
+
+    def _raise_oserror(*args, **kwargs):
+        raise OSError(12, "Cannot allocate memory")
+
+    monkeypatch.setattr(research_harness.subprocess, "run", _raise_oserror)
+
+    with pytest.raises(CodeIdentityError, match="git command failed") as excinfo:
+        verify_git_freeze(code_repo, sha)
+    assert isinstance(excinfo.value.__cause__, OSError)
+
+
+def test_cr03_worktree_blob_oid_wraps_symlink_read_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    from scripts.research.lib import research_harness
+
+    code_repo = tmp_path / "code"
+    code_repo.mkdir()
+    _git(code_repo, "init")
+    (code_repo / "target.txt").write_text("t\n", encoding="utf-8")
+    os.symlink("target.txt", code_repo / "linked")
+    _git(code_repo, "add", ".")
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Harness Test",
+            "-c",
+            "user.email=harness@example.invalid",
+            "commit",
+            "-m",
+            "freeze",
+        ],
+        cwd=code_repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    sha = _git(code_repo, "rev-parse", "HEAD")
+
+    def _raise_oserror(path):
+        raise OSError(13, "Permission denied")
+
+    monkeypatch.setattr(research_harness.os, "readlink", _raise_oserror)
+
+    with pytest.raises(
+        CodeIdentityError, match="unable to read tracked symlink target"
+    ) as excinfo:
+        verify_git_freeze(code_repo, sha)
+    assert isinstance(excinfo.value.__cause__, OSError)
+
+
+def test_cr03_worktree_blob_oid_wraps_regular_file_read_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    code_repo = tmp_path / "code"
+    sha, _ = _init_frozen_repo(code_repo, {})
+
+    original_read_bytes = Path.read_bytes
+
+    def _raise_for_tracked_txt(self, *args, **kwargs):
+        if self.name == "tracked.txt":
+            raise OSError(5, "Input/output error")
+        return original_read_bytes(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_bytes", _raise_for_tracked_txt)
+
+    with pytest.raises(
+        CodeIdentityError, match="unable to read tracked worktree file"
+    ) as excinfo:
+        verify_git_freeze(code_repo, sha)
+    assert isinstance(excinfo.value.__cause__, OSError)
