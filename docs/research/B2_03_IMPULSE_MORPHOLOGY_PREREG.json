@@ -76,7 +76,9 @@
     "baseline_may_use_more_training_rows": true,
     "row_order": "canonical RECORD_ID",
     "fit": "numpy.linalg.lstsq(rcond=None)",
-    "fallback": "FORBIDDEN"
+    "fallback": "FORBIDDEN",
+    "candidate_training_requires_nuisance_bins": true,
+    "candidate_training_rule": "baseline-eligible row plus valid stored morphology state and both valid stored placebo nuisance quintiles; T_e+H<=S"
   },
   "target": {
     "horizons_minutes": [
@@ -120,7 +122,14 @@
     "pre_rng_order": "EVENT_ID",
     "seed_derivation": "20260903|replicate|W|H|week_start_S|stratum_id",
     "current_state_unchanged": true,
-    "pass_quantile": 0.95
+    "pass_quantile": 0.95,
+    "nuisance_reference_days": 180,
+    "nuisance_reference_scope": "same W and side",
+    "nuisance_minimum_reference_n_each": 120,
+    "nuisance_percentile": "deterministic midrank; current record excluded",
+    "nuisance_bin_freeze": "each displacement/RV quintile computed once as-of own T_e and stored; no later recomputation",
+    "nuisance_missing_rule": "row ineligible for candidate training, but may remain baseline-training eligible",
+    "training_support": "exactly the real candidate training rows; no placebo-only row dropping"
   },
   "bootstrap": {
     "seed": 20260904,
