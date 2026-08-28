@@ -43,6 +43,7 @@ _FORBIDDEN_BARE_CALLS = {
     "eval",
     "exec",
     "__import__",
+    "getattr",
 }
 _FORBIDDEN_IO_ATTRIBUTES = {
     # pathlib / os / shutil style mutation or direct filesystem access.
