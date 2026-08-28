@@ -262,7 +262,14 @@ def load_authorized_1m(authorized: AuthorizedDataset) -> dict[str, np.ndarray]:
 
 
 def _grid_ms() -> np.ndarray:
-    return np.arange(WARMUP_START_MS, T_MAX_MS + GRID_MS, GRID_MS, dtype=np.int64)
+    # The dataset begins at 00:00; the first causal 15m decision boundary is
+    # 00:15, after the first complete 15m source bucket exists.
+    return np.arange(
+        WARMUP_START_MS + GRID_MS,
+        T_MAX_MS + GRID_MS,
+        GRID_MS,
+        dtype=np.int64,
+    )
 
 
 def _log_return_squares(close: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -543,22 +550,29 @@ def _walk_forward_forecasts(
     eligible = np.zeros(len(y), dtype=bool)
 
     def add_record(j: int) -> None:
-        if (
+        if not (
             0 <= j < len(y)
             and math.isfinite(float(y[j]))
             and int(level[j]) >= 0
-            and int(transition[j]) >= 0
         ):
-            l = int(level[j])
+            return
+        l = int(level[j])
+        base_windows[l].add(j, float(y[j]))
+        if int(transition[j]) >= 0:
             s = int(transition[j])
-            base_windows[l].add(j, float(y[j]))
             cand_windows[(l, s)].add(j, float(y[j]))
 
     def remove_record(j: int) -> None:
-        if 0 <= j < len(y) and int(level[j]) >= 0 and int(transition[j]) >= 0:
-            l = int(level[j])
+        if not (
+            0 <= j < len(y)
+            and math.isfinite(float(y[j]))
+            and int(level[j]) >= 0
+        ):
+            return
+        l = int(level[j])
+        base_windows[l].remove(j)
+        if int(transition[j]) >= 0:
             s = int(transition[j])
-            base_windows[l].remove(j)
             cand_windows[(l, s)].remove(j)
 
     for i in range(len(y)):
