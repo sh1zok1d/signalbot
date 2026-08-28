@@ -130,6 +130,7 @@ class AuthorizedDataset:
     policy: OutcomeAccessPolicy
     repo_manifest_path: Path
     runtime_snapshot_path: Path
+    output_checksums: tuple[tuple[str, str], ...]
     _authorization_token: object = field(default=None, repr=False, compare=False)
 
     def __post_init__(self) -> None:
@@ -163,6 +164,21 @@ class AuthorizedDataset:
             raise DatasetIdentityError(
                 f"no monthly partitions found for allowed years {self.policy.allowed_years}"
             )
+
+        expected_by_path = dict(self.output_checksums)
+        for path in out:
+            relative = path.relative_to(self.dataset_root).as_posix()
+            expected = expected_by_path.get(relative)
+            if expected is None:
+                raise DatasetIdentityError(
+                    f"selected partition missing frozen checksum: {relative}"
+                )
+            actual = sha256_file(path)
+            if actual != expected:
+                raise DatasetIdentityError(
+                    f"selected partition checksum mismatch: {relative} "
+                    f"{actual} != {expected}"
+                )
         return out
 
     def assert_outcome_window(self, decision_t_ms: int, horizon_ms: int) -> None:
@@ -282,13 +298,35 @@ def authorize_dataset_access(
     if not isinstance(runtime, Mapping):
         raise DatasetIdentityError("runtime snapshot manifest must be a mapping")
 
-    runtime_dataset_id = runtime.get("dataset_id")
-    if runtime_dataset_id is None:
-        identity_payload = runtime.get("identity_payload")
-        if isinstance(identity_payload, Mapping):
-            runtime_dataset_id = identity_payload.get("dataset_id")
-    _require_equal(runtime_dataset_id, identity.dataset_id, "runtime dataset_id")
     _require_equal(runtime.get("snapshot_id"), identity.snapshot_id, "runtime snapshot_id")
+
+    identity_payload = runtime.get("identity_payload")
+    runtime_dataset_id = runtime.get("dataset_id")
+    output_checksums = runtime.get("output_checksums")
+    if isinstance(identity_payload, Mapping):
+        if runtime_dataset_id is None:
+            runtime_dataset_id = identity_payload.get("dataset_id")
+        if output_checksums is None:
+            output_checksums = identity_payload.get("output_checksums")
+
+    _require_equal(runtime_dataset_id, identity.dataset_id, "runtime dataset_id")
+    if not isinstance(output_checksums, Mapping):
+        raise DatasetIdentityError("runtime output_checksums must be a mapping")
+
+    frozen_checksums: list[tuple[str, str]] = []
+    for rel, digest in output_checksums.items():
+        if not isinstance(rel, str) or not rel:
+            raise DatasetIdentityError("runtime output checksum path must be non-empty string")
+        if (
+            not isinstance(digest, str)
+            or len(digest) != 64
+            or any(ch not in "0123456789abcdef" for ch in digest.lower())
+        ):
+            raise DatasetIdentityError(
+                f"runtime output checksum is not sha256 for {rel!r}: {digest!r}"
+            )
+        frozen_checksums.append((rel, digest.lower()))
+    frozen_checksums.sort()
 
     return AuthorizedDataset(
         dataset_root=dataset_root,
@@ -296,6 +334,7 @@ def authorize_dataset_access(
         policy=policy,
         repo_manifest_path=repo_manifest_path,
         runtime_snapshot_path=runtime_snapshot,
+        output_checksums=tuple(frozen_checksums),
         _authorization_token=_AUTHORIZATION_TOKEN,
     )
 
