@@ -111,6 +111,10 @@ class Batch02RunContext:
 
 
 def _reverify_run_code(run_context: Batch02RunContext) -> None:
+    if not isinstance(run_context, Batch02RunContext):
+        raise Batch02ContractError(
+            "run_context must be a Batch02RunContext from prepare_batch02_run"
+        )
     run_context.assert_minted()
     current = verify_git_freeze(
         run_context.code_freeze.repo_root,
