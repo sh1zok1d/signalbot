@@ -133,7 +133,7 @@ These are implementation repairs, not evidence about market behavior.
 
 ## Adversarial synthetic tests
 
-The v1 test suite currently contains 18 synthetic test cases and must cover at least:
+The v1 test suite currently contains 21 synthetic test cases and must cover at least:
 
 - attempts to weaken accepted/research-authorized dataset status;
 - non-development stage or policy reaching the 2025 validation pool;
