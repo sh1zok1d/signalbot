@@ -9,10 +9,15 @@ New B2 hypotheses must use:
 - verify_batch02_code() for identity-stage exact Git proof without dataset access;
 - prepare_batch02_run() only after the explicit development outcome-access gate;
 - persist_batch02_result() for immutable JSON evidence;
-- rolling_midrank_percentile() for the canonical strict prior-window midrank.
+- rolling_midrank_percentile() as the canonical strict prior-window midrank
+  primitive whenever a frozen hypothesis requires percentile/relative-standing
+  semantics.
 
-Repository regression tests enforce that B2-02+ does not reintroduce the
-fail-open Batch01 patterns.
+Repository regression tests enforce mechanically auditable B2-02+ integrity
+boundaries and reject known alternate rank APIs/bindings. They do not claim
+that AST linting can prove arbitrary numerical Python is semantically
+equivalent to this primitive; that wiring remains part of each hypothesis
+freeze/code review.
 """
 from __future__ import annotations
 
@@ -344,8 +349,11 @@ def rolling_midrank_percentile(
     - a non-finite current value makes the score unavailable;
     - ties use midrank: (count(<x) + 0.5*count(==x)) / window.
 
-    This is the canonical Batch02+ percentile primitive. Hypothesis-specific
-    copies are forbidden for B2-02+.
+    This is the canonical Batch02+ percentile primitive. A frozen hypothesis
+    that requires percentile/relative-standing semantics is expected to wire
+    those semantics to this function. Source-policy checks reject alternate
+    named/library APIs, but arbitrary neutral-name numerical code is not
+    claimed to be semantically proven by AST linting.
     """
     if isinstance(window, bool) or not isinstance(window, Integral) or int(window) <= 0:
         raise Batch02ContractError("window must be a positive integer")
