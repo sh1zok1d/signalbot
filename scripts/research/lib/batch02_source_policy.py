@@ -105,6 +105,11 @@ _REQUIRED_RUNNER_CALLS = {
     "prepare_batch02_run",
     "persist_batch02_result",
 }
+_PROTECTED_BINDINGS = {
+    *_REQUIRED_RUNNER_CALLS,
+    _CANONICAL_RANK_NAME,
+    "load_authorized_parquet_table",
+}
 
 
 @dataclass(frozen=True)
@@ -224,6 +229,24 @@ def _lint_module(
     violations: list[SourceViolation] = []
     canonical_imports: set[str] = set()
     canonical_calls: set[str] = set()
+    context_names: set[str] = set()
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            if (
+                isinstance(node.value, ast.Call)
+                and _call_name(node.value) == "prepare_batch02_run"
+            ):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        context_names.add(target.id)
+        elif isinstance(node, ast.AnnAssign):
+            if (
+                isinstance(node.target, ast.Name)
+                and isinstance(node.value, ast.Call)
+                and _call_name(node.value) == "prepare_batch02_run"
+            ):
+                context_names.add(node.target.id)
 
     for node in ast.walk(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
@@ -337,7 +360,41 @@ def _lint_module(
             }:
                 canonical_calls.add(name)
 
+            if name in {"persist_batch02_result", "load_authorized_parquet_table"}:
+                context_kw = next(
+                    (kw.value for kw in node.keywords if kw.arg == "run_context"),
+                    None,
+                )
+                if (
+                    not isinstance(context_kw, ast.Name)
+                    or context_kw.id not in context_names
+                ):
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            f"{name} must receive run_context assigned from "
+                            "prepare_batch02_run",
+                            getattr(node, "lineno", None),
+                        )
+                    )
+
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if node.name in _PROTECTED_BINDINGS:
+                violations.append(
+                    SourceViolation(
+                        path,
+                        f"canonical Batch02 binding may not be shadowed: {node.name}",
+                        node.lineno,
+                    )
+                )
+            if node.name == "_git_sha":
+                violations.append(
+                    SourceViolation(
+                        path,
+                        "fallback _git_sha helper is forbidden",
+                        node.lineno,
+                    )
+                )
             if (
                 _RANK_NAME.search(node.name)
                 and node.name != _CANONICAL_RANK_NAME
@@ -351,6 +408,14 @@ def _lint_module(
                 )
 
         if isinstance(node, ast.Name):
+            if isinstance(node.ctx, ast.Store) and node.id in _PROTECTED_BINDINGS:
+                violations.append(
+                    SourceViolation(
+                        path,
+                        f"canonical Batch02 binding may not be reassigned: {node.id}",
+                        getattr(node, "lineno", None),
+                    )
+                )
             if (
                 _RANK_NAME.search(node.id)
                 and node.id != _CANONICAL_RANK_NAME
