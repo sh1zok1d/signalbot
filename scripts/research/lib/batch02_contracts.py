@@ -21,6 +21,7 @@ import math
 from bisect import bisect_left, bisect_right, insort_right
 from collections import deque
 from dataclasses import dataclass
+from numbers import Integral
 from pathlib import Path
 from typing import Mapping, Sequence
 
@@ -219,10 +220,16 @@ def rolling_midrank_percentile(
     This is the canonical Batch02+ percentile primitive. Hypothesis-specific
     copies are forbidden for B2-02+.
     """
-    if isinstance(window, bool) or not isinstance(window, int) or window <= 0:
+    if isinstance(window, bool) or not isinstance(window, Integral) or int(window) <= 0:
         raise Batch02ContractError("window must be a positive integer")
+    window = int(window)
 
-    values = np.asarray(series, dtype=np.float64)
+    try:
+        values = np.asarray(series, dtype=np.float64)
+    except (TypeError, ValueError) as exc:
+        raise Batch02ContractError(
+            "series must be coercible to a one-dimensional float array"
+        ) from exc
     if values.ndim != 1:
         raise Batch02ContractError("series must be one-dimensional")
 
