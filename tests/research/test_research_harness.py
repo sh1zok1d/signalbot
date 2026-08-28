@@ -743,6 +743,39 @@ def test_cr02_ordinary_list_or_tuple_of_valid_ms_still_passes():
 
 
 # ---------------------------------------------------------------------------
+# CR-04: `set`/`frozenset` are unordered -- iterating one yields items in an
+# implementation-defined order, which would silently break the positional
+# decision/availability pairing `assert_no_lookahead` relies on for
+# deterministic replay. Must be rejected before generic tuple(value)
+# conversion, without affecting ordered list/tuple sequences.
+# ---------------------------------------------------------------------------
+def test_cr04_rejects_set_for_decision_t_ms():
+    t0 = 1_600_000_000_000
+    with pytest.raises(LookaheadError, match="unordered set"):
+        assert_no_lookahead({t0, t0 + 500}, [t0, t0 + 400])
+
+
+def test_cr04_rejects_set_for_available_at_ms():
+    t0 = 1_600_000_000_000
+    with pytest.raises(LookaheadError, match="unordered set"):
+        assert_no_lookahead([t0, t0 + 500], {t0, t0 + 400})
+
+
+def test_cr04_rejects_frozenset():
+    t0 = 1_600_000_000_000
+    with pytest.raises(LookaheadError, match="unordered set"):
+        assert_no_lookahead(frozenset({t0, t0 + 500}), [t0, t0 + 400])
+    with pytest.raises(LookaheadError, match="unordered set"):
+        assert_no_lookahead([t0, t0 + 500], frozenset({t0, t0 + 400}))
+
+
+def test_cr04_ordinary_list_or_tuple_still_passes():
+    t0 = 1_600_000_000_000
+    assert_no_lookahead((t0, t0 + 500), (t0, t0 + 400))
+    assert_no_lookahead([t0, t0 + 500], [t0, t0 + 400])
+
+
+# ---------------------------------------------------------------------------
 # CR-03: OS/subprocess I/O failures inside `_run_git`/`_worktree_blob_oid`
 # must be owned by CodeIdentityError, never leaked as a raw OSError.
 # Deterministic monkeypatching only -- no chmod/permission-bit reliance.

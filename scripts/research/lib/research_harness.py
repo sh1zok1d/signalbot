@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from numbers import Integral
 from pathlib import Path
-from typing import Hashable, Mapping, Sequence
+from typing import AbstractSet, Hashable, Mapping, Sequence
 
 import yaml
 
@@ -660,6 +660,14 @@ def _normalize_timestamp_input(value: object, label: str) -> tuple[int, ...]:
     # conversion. Reject explicitly, before falling through to `tuple(...)`.
     if isinstance(value, Mapping):
         raise LookaheadError(f"{label} must not be a mapping")
+    # CR-04: `set`/`frozenset` are unordered -- iterating one yields items in
+    # an implementation-defined order, which would silently break the
+    # positional decision/availability pairing that `assert_no_lookahead`
+    # relies on for deterministic replay. Reject explicitly, before falling
+    # through to the generic `tuple(...)` conversion. Ordered sequences
+    # (list, tuple) are unaffected.
+    if isinstance(value, AbstractSet):
+        raise LookaheadError(f"{label} must not be an unordered set")
     try:
         raw = tuple(value)  # type: ignore[arg-type]
     except TypeError as exc:

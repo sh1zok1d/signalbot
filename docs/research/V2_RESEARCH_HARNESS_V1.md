@@ -129,6 +129,9 @@ It rejects:
 - strings/bytes;
 - mappings/dicts (never reinterpreted as a timestamp sequence via generic
   iteration, which would otherwise silently yield mapping keys);
+- unordered sets (`set`/`frozenset`), since iteration order is not
+  guaranteed to match the positional decision/availability pairing that
+  no-lookahead replay relies on;
 - implausible epoch-millisecond magnitudes such as second timestamps;
 - empty sequences;
 - mismatched decision/availability lengths;
