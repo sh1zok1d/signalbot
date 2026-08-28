@@ -807,3 +807,166 @@ def test_source_policy_rejects_extracted_forbidden_io_attribute(
 
     with pytest.raises(Batch02SourcePolicyError, match="forbidden direct I/O"):
         validate_batch02_source_tree(research, repo_root=repo)
+
+
+
+def test_source_policy_discovers_parent_package_attrgetter_prepare_bypass(
+    tmp_path: Path,
+):
+    repo = tmp_path / "repo"
+    research = repo / "scripts" / "research"
+    experiments = research / "experiments"
+    experiments.mkdir(parents=True)
+    (repo / "scripts" / "__init__.py").write_text("", encoding="utf-8")
+    (research / "__init__.py").write_text("", encoding="utf-8")
+    (experiments / "__init__.py").write_text("", encoding="utf-8")
+
+    (experiments / "generic_runner.py").write_text(
+        """
+import operator
+import scripts.research.lib as lib
+import pandas as pd
+
+start = operator.attrgetter("prepare_batch02_run")(lib.batch02_contracts)
+
+def main():
+    start()
+    pd.read_parquet("/evil/data.parquet")
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_source_policy_discovers_top_package_qualified_prepare_bypass(
+    tmp_path: Path,
+):
+    repo = tmp_path / "repo"
+    research = repo / "scripts" / "research"
+    experiments = research / "experiments"
+    experiments.mkdir(parents=True)
+    (repo / "scripts" / "__init__.py").write_text("", encoding="utf-8")
+    (research / "__init__.py").write_text("", encoding="utf-8")
+    (experiments / "__init__.py").write_text("", encoding="utf-8")
+
+    (experiments / "generic_runner.py").write_text(
+        """
+import scripts
+import pandas as pd
+
+start = scripts.research.lib.batch02_contracts.prepare_batch02_run
+
+def main():
+    start()
+    pd.read_parquet("/evil/data.parquet")
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_source_policy_discovers_computed_dynamic_prepare_bypass(
+    tmp_path: Path,
+):
+    repo = tmp_path / "repo"
+    research = repo / "scripts" / "research"
+    experiments = research / "experiments"
+    experiments.mkdir(parents=True)
+    (repo / "scripts" / "__init__.py").write_text("", encoding="utf-8")
+    (research / "__init__.py").write_text("", encoding="utf-8")
+    (experiments / "__init__.py").write_text("", encoding="utf-8")
+
+    (experiments / "generic_runner.py").write_text(
+        """
+import pandas as pd
+
+mod = __import__(".".join(["scripts", "research", "lib", "batch02_contracts"]))
+start = object.__getattribute__(mod, "prepare_batch02_run")
+
+def main():
+    start()
+    pd.read_parquet("/evil/data.parquet")
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_source_policy_rejects_star_import_bare_reader(tmp_path: Path):
+    source = "from pandas import *\n" + _canonical_runner(
+        extra='read_parquet("/evil/data.parquet")'
+    )
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "extra_import,extra_call",
+    [
+        ("", '__builtins__["open"]("/evil/data.parquet", "rb").read()'),
+        ("import io", 'io.FileIO("/evil/data.parquet").read()'),
+        ("import os", 'os.popen("cat /evil/data.parquet").read()'),
+        (
+            "import urllib.request",
+            'urllib.request.urlopen("file:///evil/data.parquet").read()',
+        ),
+        (
+            "import operator\nimport pandas as pd",
+            'operator.attrgetter("read_parquet")(pd)("/evil/data.parquet")',
+        ),
+        (
+            "import operator\nimport pandas as pd",
+            'operator.methodcaller("read_parquet", "/evil/data.parquet")(pd)',
+        ),
+        (
+            "import pandas as pd",
+            'object.__getattribute__(pd, "read_parquet")("/evil/data.parquet")',
+        ),
+    ],
+)
+def test_source_policy_rejects_reflection_and_low_level_io_escape_hatches(
+    tmp_path: Path,
+    extra_import: str,
+    extra_call: str,
+):
+    source = (extra_import + "\n" if extra_import else "") + _canonical_runner(
+        extra=extra_call
+    )
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_source_policy_discovers_future_b2_runner_outside_research_tree(
+    tmp_path: Path,
+):
+    repo = tmp_path / "repo"
+    scripts = repo / "scripts"
+    research = scripts / "research"
+    experiments = scripts / "experiments"
+    research.mkdir(parents=True)
+    experiments.mkdir(parents=True)
+    (scripts / "__init__.py").write_text("", encoding="utf-8")
+    (research / "__init__.py").write_text("", encoding="utf-8")
+    (experiments / "__init__.py").write_text("", encoding="utf-8")
+    (experiments / "b2_02_outside.py").write_text(
+        """
+import pandas as pd
+
+def main():
+    return pd.read_parquet("/evil/data.parquet")
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
