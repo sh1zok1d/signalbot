@@ -63,6 +63,7 @@ def verify_batch02_code(
 def prepare_batch02_run(
     *,
     code_freeze: VerifiedCodeFreeze,
+    outcome_access_acknowledged: bool,
     dataset_root: Path,
     identity: DatasetIdentityContract,
     policy: OutcomeAccessPolicy,
@@ -82,6 +83,10 @@ def prepare_batch02_run(
     No fallback SHA, optional manifest path, or caller-supplied provenance label
     is accepted here.
     """
+    if outcome_access_acknowledged is not True:
+        raise Batch02ContractError(
+            "development outcome access requires explicit acknowledgement"
+        )
     if not isinstance(code_freeze, VerifiedCodeFreeze):
         raise Batch02ContractError(
             "code_freeze must be a VerifiedCodeFreeze from verify_batch02_code"
