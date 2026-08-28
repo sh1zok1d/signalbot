@@ -33,7 +33,18 @@
     "trend_direction": "sign(TREND_RET_L)",
     "pullback_depth": "-SIGNED_PB_RET/abs(TREND_RET_L)",
     "moderate_domain": "0.25<=PULLBACK_DEPTH<0.40",
-    "other_depths_authorized": false
+    "other_depths_authorized": false,
+    "trend_percentile_reference": {
+      "grid": "UTC-epoch-aligned 15-minute boundaries",
+      "scope": "same L",
+      "interval": "t_ref in [t0-30 calendar days,t0)",
+      "current_excluded": true,
+      "x": "abs(TREND_RET_L(t0))",
+      "formula": "(count(ref < x) + 0.5*count(ref == x))/N_ref",
+      "threshold": ">=0.80",
+      "full_history_forbidden": true,
+      "future_or_current_reference_forbidden": true
+    }
   },
   "refractory": {
     "minutes": 60,
@@ -172,7 +183,7 @@
   "placebo": {
     "seed": 20260905,
     "replicates": 100,
-    "strata": "calendar_month x trend_direction x trend_strength_bin",
+    "strata": "calendar_month_utc(T_e) x trend_direction x trend_strength_bin",
     "trend_strength_bins": [
       "[0.80,0.90)",
       "[0.90,1.00]"
@@ -181,9 +192,28 @@
     "historical_labels_only": true,
     "current_state_unchanged": true,
     "pass_quantile": 0.95,
-    "seed_derivation": "20260905|replicate|L|H|week_start_S|stratum_id",
+    "seed_derivation": "raw UTF-8: 20260905|replicate_index|L|H|week_start_ms|stratum_id",
     "rng": "numpy Generator/default_rng seeded deterministically from the full seed-derivation tuple after canonical stratum ordering",
-    "failure_behavior": "missing/unavailable/nonfinite placebo-required input or lost real-candidate training/scoring support => placebo gate false / non-promotion; no fallback"
+    "failure_behavior": "missing/unavailable/nonfinite placebo-required input or lost real-candidate training/scoring support => placebo gate false / non-promotion; no fallback",
+    "seed_encoding": {
+      "replicate_index": "zero-based integer 0..99",
+      "week_start_S": "week_start_ms = integer UTC epoch milliseconds for Monday 00:00:00Z",
+      "calendar_month": "UTC YYYY-MM",
+      "direction_labels": [
+        "UPTREND",
+        "DOWNTREND"
+      ],
+      "trend_strength_labels": {
+        "P80_90": "[0.80,0.90)",
+        "P90_100": "[0.90,1.00]"
+      },
+      "stratum_id": "YYYY-MM|DIR=<UPTREND|DOWNTREND>|TREND_BIN=<P80_90|P90_100>",
+      "raw_utf8": "20260905|replicate_index|L|H|week_start_ms|stratum_id",
+      "digest": "sha256(raw_utf8).digest()",
+      "seed_int": "int.from_bytes(digest[:8], 'big', signed=False)",
+      "rng": "numpy.random.default_rng(seed_int)"
+    },
+    "quantile_method": "numpy.quantile(...,0.95,method='linear')"
   },
   "bootstrap": {
     "seed": 20260906,
@@ -196,7 +226,8 @@
       0.975
     ],
     "resample_unit": "UTC ISO week; resample whole observed week blocks with replacement",
-    "failure_behavior": "missing/unavailable/nonfinite bootstrap evidence => bootstrap_positive false"
+    "failure_behavior": "missing/unavailable/nonfinite bootstrap evidence => bootstrap_positive false",
+    "quantile_method": "numpy.quantile(...,method='linear') for 0.025 and 0.975"
   },
   "stability": {
     "years": [
