@@ -54,6 +54,10 @@ The partition selector enumerates explicit allowed years such as
 `2020-*.parquet`; it does not broadly load all years and filter rows later.
 Every `allowed_year` must also fall inside the frozen policy time-window.
 
+Before any selected parquet path is returned to a runner, its bytes are hashed
+and must match the frozen SHA256 recorded in the runtime snapshot's
+`output_checksums`. Missing checksum registration or byte drift fails closed.
+
 ### 3. Outcome-window boundary
 
 Harness v1 authorizes only the `development` stage. The project-wide discovery
@@ -129,7 +133,7 @@ These are implementation repairs, not evidence about market behavior.
 
 ## Adversarial synthetic tests
 
-The v1 test suite currently contains 17 synthetic test cases and must cover at least:
+The v1 test suite currently contains 18 synthetic test cases and must cover at least:
 
 - attempts to weaken accepted/research-authorized dataset status;
 - non-development stage or policy reaching the 2025 validation pool;
@@ -137,6 +141,7 @@ The v1 test suite currently contains 17 synthetic test cases and must cover at l
 - missing repository manifest;
 - attempted direct construction of an authorized dataset proof;
 - missing/mismatched runtime dataset identity and runtime snapshot mismatch;
+- selected parquet missing from frozen output checksums or changed bytes;
 - a 2025 partition physically present but invisible to a 2020-2021 policy;
 - wrong/abbreviated Git SHA and dirty-tree freeze attempts;
 - outcome-window boundary reach;
