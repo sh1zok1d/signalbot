@@ -235,11 +235,12 @@ class AuthorizedDataset:
         """Re-verify and return only the already-authorized partition paths."""
         self.assert_minted()
         root = self.runtime_snapshot_path.parent.parent.resolve()
-        monthly = (root / "canonical" / "1m" / "monthly").resolve()
-        if monthly.is_symlink() or not monthly.is_dir():
+        monthly_path = root / "canonical" / "1m" / "monthly"
+        if monthly_path.is_symlink() or not monthly_path.is_dir():
             raise DatasetIdentityError(
                 "authorized canonical monthly directory is missing or became a symlink"
             )
+        monthly = monthly_path.resolve()
 
         out: list[Path] = []
         for partition in self.partitions:
