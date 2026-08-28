@@ -1,7 +1,8 @@
 # V2 Research Harness v1
 
 **Status:** `IMPLEMENTATION_CANDIDATE / SYNTHETIC_TESTS_ONLY`  
-**Base:** `main @ d983597898babf732e39dd5847ecb5d0b9e576c4`  
+**Initial branch point:** `main @ d983597898babf732e39dd5847ecb5d0b9e576c4`  
+**Current PR base:** `main` (CI evaluated through GitHub's current synthetic merge)  
 **Outcome access in this unit:** `NONE`
 
 ## Purpose
@@ -110,9 +111,25 @@ identity, authorized window, command, and stochastic seeds.
 refuses overwrite, rejects non-finite JSON numbers such as NaN/Infinity, and
 returns the artifact SHA256.
 
+## Self-red-team hardening already applied
+
+Before independent review, this implementation candidate was repaired against
+the following bypass classes without opening real outcomes:
+
+- allowed years inconsistent with the frozen time window;
+- caller-supplied/unverified code SHA or dirty working tree;
+- direct construction of an authorized dataset proof;
+- NumPy integer-scalar availability timestamps;
+- caller-selected validation/confirmatory stage or an outcome policy reaching 2025;
+- caller weakening of accepted/research-authorized dataset status;
+- missing runtime dataset identity despite a matching snapshot ID;
+- non-finite NaN/Infinity values in supposedly canonical result JSON.
+
+These are implementation repairs, not evidence about market behavior.
+
 ## Adversarial synthetic tests
 
-The v1 test suite must cover at least:
+The v1 test suite currently contains 17 synthetic test cases and must cover at least:
 
 - attempts to weaken accepted/research-authorized dataset status;
 - non-development stage or policy reaching the 2025 validation pool;
