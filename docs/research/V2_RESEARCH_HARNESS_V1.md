@@ -170,6 +170,53 @@ Every new Batch02 experiment must:
 8. add hypothesis-specific adversarial tests before the first real outcome
    run.
 
+## Mandatory independent review gate
+
+For Research Harness changes and every new Batch02+ hypothesis implementation,
+independent review is a required pre-outcome gate, not an optional courtesy.
+
+The canonical review sequence is:
+
+1. implementation/self-red-team;
+2. CI green on the exact candidate SHA;
+3. CodeRabbit independent code review;
+4. independent adversarial LLM review (Claude Code or Cursor) focused on
+   research-integrity bypasses;
+5. final adjudication of all findings;
+6. freeze the exact reviewed SHA;
+7. merge only after the gate is closed.
+
+Reviewer responsibilities are intentionally different:
+
+- **CodeRabbit:** implementation defects, API misuse, Python edge cases,
+  maintainability hazards, and suspicious diff-level behavior;
+- **Claude Code / Cursor adversarial review:** embargo/outcome-access bypasses,
+  Git/dataset provenance forgery, no-lookahead failures, same-support failures,
+  promotion forgery, and evidence mutability;
+- **final adjudication:** classify every finding as blocker, material,
+  non-blocking, irrelevant, or false positive and decide whether repair is
+  required.
+
+All independent reviewers must review the **same exact commit SHA**.
+
+No reviewer may silently repair the candidate during review. If any repair
+commit is created:
+
+- the previously reviewed SHA is no longer the acceptance candidate;
+- CI must run again;
+- CodeRabbit must review the new SHA again;
+- adversarial LLM review must review the new SHA again;
+- final adjudication must be repeated;
+- only the final fully reviewed SHA may be frozen.
+
+A review of an ancestor SHA does not count for a repaired descendant.
+
+For pre-outcome research code, the minimum acceptance condition is therefore:
+
+`CI_GREEN && CODERABBIT_REVIEWED && ADVERSARIAL_LLM_REVIEWED && FINDINGS_ADJUDICATED`
+
+before freeze/merge or first outcome access.
+
 ## Non-goals
 
 This unit does **not**:
@@ -187,10 +234,13 @@ This unit does **not**:
 Before this harness becomes the canonical Batch02 base:
 
 - implementation tests must pass;
-- an independent pre-outcome red-team must attempt Git-identity,
-  no-lookahead, support, dataset-identity, and promotion-forgery attacks;
-- any repair must remain outcome-blind;
-- the audited SHA must be frozen before Batch02 outcome access.
+- CodeRabbit must independently review the exact candidate SHA;
+- an independent pre-outcome adversarial LLM red-team must attack Git identity,
+  no-lookahead, support, dataset identity, promotion forgery, and evidence
+  mutability on that same exact SHA;
+- all findings must be adjudicated;
+- any repair must remain outcome-blind and resets the independent-review gate;
+- the final reviewed SHA must be frozen before Batch02 outcome access.
 
 Until then:
 
