@@ -202,7 +202,7 @@ def test_prepare_batch02_run_orders_authorization_before_identity_build(
 
     assert calls == ["authorize", "identity"]
     assert ctx.code_freeze is freeze
-    assert ctx.authorized_dataset is authorized
+    assert ctx._authorized_dataset is authorized
     assert ctx.run_identity is identity_payload
 
 
