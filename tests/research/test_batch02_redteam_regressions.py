@@ -452,3 +452,34 @@ def test_source_policy_discovers_generic_named_runner_by_prepare_call(tmp_path: 
 
     with pytest.raises(Batch02SourcePolicyError):
         validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_source_policy_treats_lib_suffix_with_prepare_as_runner(tmp_path: Path):
+    repo = tmp_path / "repo"
+    research = repo / "scripts" / "research"
+    research.mkdir(parents=True)
+    (repo / "scripts" / "__init__.py").write_text("", encoding="utf-8")
+    (research / "__init__.py").write_text("", encoding="utf-8")
+    (research / "b2_02_fake_lib.py").write_text(
+        """
+from scripts.research.lib.batch02_contracts import prepare_batch02_run
+
+def helper():
+    return prepare_batch02_run(
+        code_freeze=FREEZE,
+        outcome_access_acknowledged=True,
+        dataset_root=ROOT,
+        identity=IDENTITY,
+        policy=POLICY,
+        gate_contract=GATES,
+        hypothesis_id="B2-02",
+        stage="development",
+        command=("python", "-m", "b2_02"),
+        seeds={},
+    )
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(Batch02SourcePolicyError, match="missing canonical"):
+        validate_batch02_source_tree(research, repo_root=repo)
