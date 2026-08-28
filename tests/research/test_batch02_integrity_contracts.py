@@ -250,7 +250,11 @@ def test_persist_batch02_result_reserves_then_writes_provenance_bound(
         target,
         {
             "status": "closed",
-            "provenance": {"proof": "canonical"},
+            "provenance": {
+                "hypothesis_id": "B2-02",
+                "stage": "development",
+                "proof": "canonical",
+            },
         },
     )
 
