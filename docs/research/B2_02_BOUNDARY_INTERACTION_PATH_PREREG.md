@@ -543,7 +543,7 @@ For each weekly model refit S, L, H, and replicate:
 
 1. use exactly the candidate's causal historical training records;
 2. stratify training records by:
-   `calendar_month(T_e) × side × EVENT_CLOSE_BEYOND`;
+   `calendar_month_utc(T_e) × side × EVENT_CLOSE_BEYOND`;
 3. sort each stratum by canonical EVENT_ID before RNG;
 4. permute only historical PATH_STATE labels inside that stratum;
 5. preserve all baseline features, targets, timestamps, and stratum
