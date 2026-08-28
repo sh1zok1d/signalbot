@@ -51,7 +51,7 @@ def _imported_from(tree: ast.AST, module: str) -> set[str]:
 
 
 def _batch02_runtime_files() -> list[Path]:
-    return sorted(RESEARCH_DIR.glob("b2_[0-9][0-9]_*.py"))
+    return sorted(RESEARCH_DIR.rglob("b2_[0-9][0-9]_*.py"))
 
 
 def test_canonical_midrank_requires_full_finite_prior_window():
@@ -222,7 +222,7 @@ def test_prepare_batch02_run_orders_authorization_before_identity_build(
     assert ctx.run_identity is identity_payload
 
 
-def test_persist_batch02_result_delegates_only_to_immutable_writer(
+def test_persist_batch02_result_reserves_then_writes_immutably(
     monkeypatch, tmp_path: Path
 ):
     calls: list[tuple[Path, dict[str, object]]] = []
@@ -236,7 +236,12 @@ def test_persist_batch02_result_delegates_only_to_immutable_writer(
     digest = persist_batch02_result(target, {"status": "closed"})
 
     assert digest == "d" * 64
-    assert calls == [(target, {"status": "closed"})]
+    assert len(calls) == 2
+    lock_path, lock_payload = calls[0]
+    assert lock_path.parent == tmp_path / ".batch02_evidence_locks"
+    assert lock_payload["artifact_kind"] == "batch02_logical_result_reservation"
+    assert lock_payload["logical_result_path"] == str(target.resolve(strict=False))
+    assert calls[1] == (target, {"status": "closed"})
 
 
 def test_frozen_b201_runner_already_uses_fail_closed_harness_path():
