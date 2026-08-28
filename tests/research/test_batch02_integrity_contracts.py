@@ -126,6 +126,33 @@ def test_identity_verification_does_not_authorize_dataset(monkeypatch, tmp_path:
     assert calls == ["verify"]
 
 
+def test_prepare_batch02_run_rejects_identity_stage_before_authorization(
+    monkeypatch, tmp_path: Path
+):
+    freeze = object.__new__(VerifiedCodeFreeze)
+
+    def forbidden_authorize(**kwargs):
+        raise AssertionError("identity stage must never authorize dataset")
+
+    monkeypatch.setattr(
+        batch02_contracts, "authorize_dataset_access", forbidden_authorize
+    )
+
+    with pytest.raises(Batch02ContractError, match="restricted to development"):
+        prepare_batch02_run(
+            code_freeze=freeze,
+            outcome_access_acknowledged=True,
+            dataset_root=tmp_path,
+            identity=object(),
+            policy=object(),
+            gate_contract=object(),
+            hypothesis_id="B2-XX",
+            stage="identity",
+            command=("python", "-m", "x"),
+            seeds={},
+        )
+
+
 def test_prepare_batch02_run_requires_explicit_outcome_ack_before_authorization(
     monkeypatch, tmp_path: Path
 ):
