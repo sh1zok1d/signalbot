@@ -265,6 +265,13 @@ If fewer than 120 historical path records are available, the current event is
 `PATH_PCTL(T)` is the deterministic midrank percentile of current PATH_AREA
 against that historical reference set.
 
+Each historical event's PATH_PCTL/PATH_STATE is computed exactly once as-of its
+own decision time `T_e` using only records earlier than `T_e`. That stored
+as-of-T_e state is the only path label allowed in later model training or
+placebo permutations. Historical PATH_STATE may never be recomputed using a
+later week-start S, later events, full-development quantiles, or backfilled
+future information.
+
 Frozen states:
 
 - `LOW`: `[0, 1/3)`;
@@ -315,30 +322,39 @@ For each L and outcome horizon H, models are refit at each UTC ISO-week start
 `S` (Monday 00:00 UTC) and then held fixed for every B2-02 decision event in
 that week.
 
-Training records must satisfy:
+Baseline training records must satisfy:
 
 - historical B2-02 event decision time `T_e < S`;
 - `T_e >= S - 365 calendar days`;
 - `T_e + H <= S`;
 - valid target;
-- valid baseline features;
-- valid causal PATH_STATE.
+- valid baseline features.
+
+Candidate training records are the subset of those baseline-eligible records
+that also possess a valid stored causal PATH_STATE computed as-of their own
+`T_e`.
+
+The comparator therefore may use strictly more historical training records than
+the candidate when path-state history is immature. The baseline must never be
+artificially weakened merely to match candidate training availability. Current
+evaluation support remains exact same-support.
 
 The 365 days are a maximum trailing lookback, not a requirement to possess a
 full 365 days before any model can become available.
 
-Minimum shared training N:
+Minimum baseline training N:
 
 `500`.
 
-Additionally, candidate training requires at least:
+Minimum candidate training N:
 
-`100`
+`500`.
 
-historical records in each of LOW, MID, and HIGH.
+Additionally, candidate training requires at least `100` historical records in
+each of LOW, MID, and HIGH.
 
-If these conditions are not met, that weekly model is unavailable for both
-candidate and comparator scoring.
+If either weekly fit is unavailable, current-week scoring is unavailable for
+both candidate and comparator.
 
 ### Shared baseline feature vector
 
@@ -376,8 +392,15 @@ deviations computed only from the shared historical training set at S.
 
 Binary columns and path-state dummy columns are not standardized.
 
-The same standardized baseline controls and the same shared training row IDs
-must be used for both models.
+Baseline continuous-column standardization is computed from the baseline's own
+causal training set. Candidate continuous-column standardization is computed
+from the candidate's own causal training subset. These choices are frozen and
+may not be switched after outcomes.
+
+Before constructing either design matrix, sort its training rows by canonical
+`EVENT_ID|H`. The resulting order is deterministic and is also the order used
+for any audit hashes. Floating-point fit order may not depend on filesystem,
+DataFrame, dictionary, or parquet iteration order.
 
 Fit by deterministic ordinary least squares using
 `numpy.linalg.lstsq(..., rcond=None)`.
@@ -663,8 +686,15 @@ Thus one magic L,H cell cannot promote.
 
 ### Year stability
 
-For every cell in the selected robust neighborhood, mean AE improvement must be
-strictly positive in at least 4 of the 5 fixed years 2020-2024.
+A promotion neighborhood exists only if one frozen adjacent-H pair passes all
+six per-cell gates for at least two distinct L values **and** every one of those
+four cells has mean AE improvement strictly positive in at least 4 of the 5
+fixed years 2020-2024.
+
+If multiple neighborhoods satisfy the full contract, record the
+lexicographically first neighborhood using the frozen adjacent-H order
+`30/60`, `60/120`, `120/240`, then ascending L. Selection may not use effect
+magnitude, p-value, support size, or any other outcome ranking.
 
 No failed year may be removed.
 
