@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 from scripts.research.b2_01_volatility_transition_lib import (
+    BAR_MS,
     DATASET_ID,
     DEV_END_MS,
     DEV_START_MS,
@@ -24,6 +25,7 @@ from scripts.research.b2_01_volatility_transition_lib import (
     SEED_BOOT,
     SEED_PLACEBO,
     T_MAX_MS,
+    YEAR_BLOCKS,
     build_panel,
     evaluate_b2_01,
     load_authorized_1m,
@@ -102,7 +104,7 @@ def main(argv=None) -> int:
         stage="development",
         start_inclusive_ms=DEV_START_MS,
         end_exclusive_ms=DEV_END_MS,
-        allowed_years=(2020, 2021, 2022, 2023, 2024),
+        allowed_years=YEAR_BLOCKS,
     )
     authorized = authorize_dataset_access(
         code_freeze=code_freeze,
@@ -113,7 +115,7 @@ def main(argv=None) -> int:
     # Harness boundary proof for the earliest legal decision and the maximum
     # preregistered horizon at the latest legal decision.
     authorized.assert_outcome_window(DEV_START_MS, 0)
-    authorized.assert_outcome_window(T_MAX_MS, MAX_H_MIN * 60_000)
+    authorized.assert_outcome_window(T_MAX_MS, MAX_H_MIN * BAR_MS)
 
     gate_contract = promotion_gate_contract()
     run_identity = build_run_identity(
@@ -130,6 +132,10 @@ def main(argv=None) -> int:
             "dev-run",
             "--expected-code-sha",
             code_freeze.code_sha,
+            "--dataset-root",
+            str(args.dataset_root.resolve()),
+            "--out-dir",
+            str(args.out_dir.resolve()),
             "--acknowledge-development-outcome-access",
         ],
         seeds={
@@ -146,9 +152,18 @@ def main(argv=None) -> int:
         "path": str(PREREG_JSON.relative_to(REPO_ROOT)),
         "sha256": sha256_file(PREREG_JSON),
     }
+    validation_2025_accessed = 2025 in policy.allowed_years
+    oos_2026_accessed = any(year >= 2026 for year in policy.allowed_years)
+    reserved_boundary_breached = policy.end_exclusive_ms > DEV_END_MS
+    if validation_2025_accessed or oos_2026_accessed or reserved_boundary_breached:
+        raise RuntimeError(
+            "development authorization reaches a reserved validation/OOS boundary"
+        )
     result["forbidden_windows_inspected"] = {
-        "2025_validation": False,
-        "2026_oos": False,
+        "2025_validation": validation_2025_accessed,
+        "2026_oos": oos_2026_accessed,
+        "allowed_years": list(policy.allowed_years),
+        "development_end_exclusive_ms": policy.end_exclusive_ms,
     }
 
     out_path = args.out_dir / "B2_01_DEV_RESULTS.json"
@@ -160,8 +175,8 @@ def main(argv=None) -> int:
                 "result_path": str(out_path),
                 "result_sha256": digest,
                 "code_sha": code_freeze.code_sha,
-                "validation_2025_accessed": False,
-                "oos_2026_accessed": False,
+                "validation_2025_accessed": validation_2025_accessed,
+                "oos_2026_accessed": oos_2026_accessed,
             },
             sort_keys=True,
         )
