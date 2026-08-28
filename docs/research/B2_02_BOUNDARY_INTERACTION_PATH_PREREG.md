@@ -387,8 +387,8 @@ search, tree models, or feature selection are permitted.
 
 ### Fit semantics
 
-Continuous baseline columns are standardized using means and standard
-deviations computed only from the shared historical training set at S.
+Continuous baseline columns are standardized separately for each model using
+that model's own causal historical training statistics frozen at S.
 
 Binary columns and path-state dummy columns are not standardized.
 
@@ -427,10 +427,14 @@ Define a causal volatility-free scale:
 
 `PAST_MEDIAN_ABS_RET_H(T)`
 
-as the median absolute H-horizon close return on UTC-aligned 5m boundaries in
-the preceding 30 calendar days whose H outcome is fully known by T:
+as the median absolute H-horizon close return over **all UTC-epoch-aligned
+15-minute boundaries** `t` in `[T-30 calendar days,T)` whose H outcome is
+fully known by T:
 
 `t + H <= T`.
+
+This reference population is the common aligned 15m scale grid, not B2-02 event
+records and not the derived 5m event grid. The current boundary is excluded.
 
 Require a finite positive scale.
 
@@ -464,7 +468,8 @@ Canonical event identity must deterministically include at least:
 
 - dataset ID;
 - snapshot ID;
-- source timeframe `5m`;
+- canonical source timeframe `1m`;
+- derived event timeframe `5m`;
 - L;
 - side;
 - prior-range start;
@@ -543,8 +548,7 @@ For each weekly model refit S, L, H, and replicate:
 4. permute only historical PATH_STATE labels inside that stratum;
 5. preserve all baseline features, targets, timestamps, and stratum
    composition;
-6. derive RNG seed deterministically from:
-   `20260901 | replicate | L | H | week_start_S | stratum_id`;
+6. derive the RNG seed using the exact deterministic encoding below;
 7. fit the placebo candidate with the permuted historical path labels;
 8. evaluate on the exact same current-week scored events while leaving each
    current event's true decision-time PATH_STATE unchanged.
@@ -552,11 +556,31 @@ For each weekly model refit S, L, H, and replicate:
 No label from a record outside the causal training set may enter the
 permutation pool.
 
+Exact placebo RNG encoding:
+
+- replicate index is zero-based: `replicate_index ∈ {0,...,99}`;
+- `week_start_ms` is the integer UTC epoch-millisecond timestamp of Monday
+  00:00:00Z for S;
+- `calendar_month_utc(T_e)` is UTC `YYYY-MM`;
+- `stratum_id` is exactly
+  `YYYY-MM|SIDE=<UPPER|LOWER>|EVENT_CLOSE_BEYOND=<0|1>`;
+- raw seed text is the UTF-8 string
+  `20260901|replicate_index|L|H|week_start_ms|stratum_id`;
+- compute `digest = sha256(raw_utf8).digest()`;
+- compute
+  `seed_int = int.from_bytes(digest[:8], "big", signed=False)`;
+- instantiate exactly `numpy.random.default_rng(seed_int)`.
+
+This matches the existing B2-01 SHA256-to-uint64 seed convention. No Python
+hash(), alternative string formatting, SeedSequence layout, or 1-based
+replicate numbering is permitted.
+
 For each replicate, aggregate mean AE improvement over the exact real-candidate
 cell support.
 
 The real candidate must exceed the 95th percentile of the 100 placebo mean
-improvements.
+improvements, computed with NumPy linear quantile semantics
+(`numpy.quantile(..., 0.95, method="linear")`).
 
 Permutation is a negative control, not another candidate.
 
@@ -575,6 +599,9 @@ Replicates:
 CI:
 
 95%.
+
+The 2.5th and 97.5th percentiles use NumPy linear quantile semantics
+(`numpy.quantile(..., method="linear")`).
 
 Blocks preserve all events belonging to the same UTC ISO week.
 
