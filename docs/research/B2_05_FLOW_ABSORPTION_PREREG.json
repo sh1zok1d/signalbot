@@ -166,7 +166,7 @@
     "seed": 20260907,
     "replicates": 100,
     "nuisance_bins": "causal trailing-180d same-W/side quintiles of ABS_IMB and FLOW_RET",
-    "strata": "calendar_month x side x imbalance_quintile x flow_return_quintile",
+    "strata": "calendar_month_utc(T_e) x side x imbalance_quintile x flow_return_quintile",
     "historical_labels_only": true,
     "pre_rng_order": "EVENT_ID",
     "current_state_unchanged": true,
@@ -178,11 +178,67 @@
     "nuisance_bin_freeze": "each ABS_IMB/FLOW_RET quintile computed once as-of own T_e and stored; no later recomputation",
     "nuisance_missing_rule": "row ineligible for candidate training; baseline-training eligible iff baseline fields and mature target are valid",
     "training_support": "exactly the real candidate training rows; no placebo-only row dropping",
-    "seed_derivation": "20260907|replicate|W|H|week_start_S|stratum_id",
+    "seed_derivation": "raw UTF-8: 20260907|replicate_index|W|H|week_start_ms|stratum_id",
     "rng": "numpy Generator/default_rng seeded deterministically from the full seed-derivation tuple after canonical stratum ordering",
     "failure_behavior": "missing/unavailable/nonfinite placebo-required input or lost real-candidate training/scoring support => placebo gate false / non-promotion; no fallback",
     "nuisance_reference_interval": "[T_e-180 calendar days, T_e)",
-    "nuisance_reference_causality": "include only T_ref with T_ref < T_e; reject T_ref >= T_e"
+    "nuisance_reference_causality": "include only T_ref with T_ref < T_e; reject T_ref >= T_e",
+    "nuisance_quintile_bins": [
+      {
+        "label": "Q1",
+        "lo": 0,
+        "hi": 0.2,
+        "hi_inclusive": false
+      },
+      {
+        "label": "Q2",
+        "lo": 0.2,
+        "hi": 0.4,
+        "hi_inclusive": false
+      },
+      {
+        "label": "Q3",
+        "lo": 0.4,
+        "hi": 0.6,
+        "hi_inclusive": false
+      },
+      {
+        "label": "Q4",
+        "lo": 0.6,
+        "hi": 0.8,
+        "hi_inclusive": false
+      },
+      {
+        "label": "Q5",
+        "lo": 0.8,
+        "hi": 1,
+        "hi_inclusive": true
+      }
+    ],
+    "boundary_assignment": "exact boundary p belongs to bin whose lower bound it equals; p=1.0 belongs to Q5",
+    "seed_encoding": {
+      "replicate_index": "zero-based integer 0..99",
+      "week_start_S": "week_start_ms = integer UTC epoch milliseconds for Monday 00:00:00Z",
+      "calendar_month": "UTC YYYY-MM",
+      "side_labels": [
+        "BUY",
+        "SELL"
+      ],
+      "nuisance_labels": [
+        "Q1",
+        "Q2",
+        "Q3",
+        "Q4",
+        "Q5"
+      ],
+      "stratum_id": "YYYY-MM|SIDE=<BUY|SELL>|IMB_Q=<Q1..Q5>|FLOW_Q=<Q1..Q5>",
+      "raw_utf8": "20260907|replicate_index|W|H|week_start_ms|stratum_id",
+      "digest": "sha256(raw_utf8).digest()",
+      "seed_int": "int.from_bytes(digest[:8], 'big', signed=False)",
+      "rng": "numpy.random.default_rng(seed_int)",
+      "forbidden": "Python hash(), alternate formatting, alternate SeedSequence layout, or 1-based replicate numbering"
+    },
+    "quantile_method": "numpy.quantile(...,0.95,method='linear')"
   },
   "bootstrap": {
     "seed": 20260908,
@@ -195,7 +251,8 @@
       0.975
     ],
     "resample_unit": "UTC ISO week; resample whole observed week blocks with replacement",
-    "failure_behavior": "missing/unavailable/nonfinite bootstrap evidence => bootstrap_positive false"
+    "failure_behavior": "missing/unavailable/nonfinite bootstrap evidence => bootstrap_positive false",
+    "quantile_method": "numpy.quantile(...,method='linear') for 0.025 and 0.975"
   },
   "stability": {
     "years": [
