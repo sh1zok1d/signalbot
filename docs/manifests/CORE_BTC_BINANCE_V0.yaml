@@ -1,0 +1,300 @@
+dataset_id: CORE_BTC_BINANCE_V0
+manifest_version: 0
+status: ACCEPTED_FOR_DISCOVERY
+current_state: ACCEPTED_FOR_DISCOVERY
+research_authorized: true
+confirmatory_authorized: false
+created_at_utc: '2026-08-26T00:00:00Z'
+accepted_on_utc: '2026-08-26'
+contract_path: docs/CORE_BTC_BINANCE_V0_CONTRACT.md
+snapshot_id: 717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415
+materializer_commit_sha: 71d13afdae4456163316b850f340436af1eeed65
+contract_sha256: 1c49c8205a92eb9491a065fa1e93bb1fa5592964babdf96fe30b09212e962d3e
+source_inventory_sha256: a4bb39245365b1cc49b626a3dfc2cdcdb00c5be8c622ecd1e123a18d85186ea6
+quality_report_sha256: c59034e41be571142232d9c283ba898c786b69d6db485dfd2f4641bc84601242
+source_object_count: 104
+source_checksum_verified_count: 104
+expected_1m_rows: 3497760
+accepted_1m_rows: 3497760
+missing_1m_rows: 0
+duplicate_1m_rows: 0
+conflicting_duplicate_rows: 0
+malformed_rows: 0
+invariant_violation_rows: 0
+start_inclusive: '2020-01-01T00:00:00Z'
+end_exclusive: '2026-08-26T00:00:00Z'
+
+purpose:
+  class: CORE_LONG_HISTORY
+  description: >-
+    First long-history BTC research dataset for mechanism discovery and
+    falsification using official Binance USD-M BTCUSDT 1m kline history.
+  not_an_edge_claim: true
+
+acceptance_meaning:
+  ACCEPTED_FOR_DISCOVERY: >-
+    The snapshot is authorized for exploratory/development research under
+    docs/EDGE_RESEARCH_PROTOCOL.md. It does not mean any edge exists, any
+    hypothesis has been validated, any parameter is frozen, any result is
+    OOS, the dataset is accepted for confirmatory research, or that
+    forecasting/product development resumes.
+  ACCEPTED_FOR_CONFIRMATORY: >-
+    A future separate gate. Not granted by this promotion.
+
+source:
+  provider: Binance
+  evidence_tier: OFFICIAL_ARCHIVE
+  archive_root: https://data.binance.vision/data/futures/um
+  market_type: USD_M_FUTURES
+  instrument: BTCUSDT
+  data_type: klines
+  native_interval: 1m
+  documented_api_origin: /fapi/v1/klines
+  documentation:
+    - https://github.com/binance/binance-public-data/blob/master/README.md
+    - https://github.com/binance/binance-public-data/blob/master/python/README.md
+
+frozen_target_range:
+  start_inclusive: '2020-01-01T00:00:00Z'
+  end_exclusive: '2026-08-26T00:00:00Z'
+  timezone: UTC
+  observed_start_confirmed: true
+  observed_end_confirmed: true
+  observed_first_open_time: '2020-01-01T00:00:00Z'
+  observed_last_open_time: '2026-08-25T23:59:00Z'
+
+acquisition_policy:
+  completed_months_prefer_monthly_archive: true
+  incomplete_month_use_daily_archive: true
+  intended_initial_monthly_range:
+    start_month: '2020-01'
+    end_month: '2026-07'
+  intended_initial_daily_range:
+    start_date: '2026-08-01'
+    end_date: '2026-08-25'
+  require_source_checksum: true
+  compute_local_sha256: true
+  overwrite_frozen_raw_files: false
+  upstream_revision_requires_new_manifest_revision: true
+
+raw_schema:
+  - name: open_time_ms
+    position: 1
+    semantic: bar_start_utc
+  - name: open
+    position: 2
+  - name: high
+    position: 3
+  - name: low
+    position: 4
+  - name: close
+    position: 5
+  - name: base_volume
+    position: 6
+  - name: close_time_ms
+    position: 7
+    semantic: last_millisecond_inside_source_bar
+  - name: quote_volume
+    position: 8
+  - name: trade_count
+    position: 9
+  - name: taker_buy_base_volume
+    position: 10
+  - name: taker_buy_quote_volume
+    position: 11
+  - name: ignore
+    position: 12
+    research_feature: false
+
+availability_semantics:
+  source_bar_duration_seconds: 60
+  canonical_available_at: bar_end_exclusive
+  eligibility_rule: bar_end_exclusive <= decision_time
+  archive_is_live_equivalent: false
+  evidence_semantics: HISTORICAL_COMPARABLE
+
+allowed_arithmetic_derivations:
+  taker_sell_base_volume: base_volume - taker_buy_base_volume
+  taker_sell_quote_volume: quote_volume - taker_buy_quote_volume
+
+excluded_sources_and_features:
+  - open_interest
+  - funding
+  - liquidations
+  - force_orders
+  - order_book
+  - mark_price
+  - index_price
+  - premium_index
+  - spot_market
+  - bybit
+  - okx
+  - vendor_normalized_history
+  - signalbot_live_tables
+
+derived_intervals:
+  - interval: 5m
+    expected_1m_constituents: 5
+  - interval: 15m
+    expected_1m_constituents: 15
+  - interval: 1h
+    expected_1m_constituents: 60
+  - interval: 4h
+    expected_1m_constituents: 240
+
+aggregation:
+  alignment: UTC_EPOCH
+  partial_bucket_allowed_for_confirmatory: false
+  missing_constituent_policy: MARK_INCOMPLETE
+  forward_fill_price: false
+  forward_fill_volume: false
+  rules:
+    open: first
+    high: max
+    low: min
+    close: last
+    base_volume: sum
+    quote_volume: sum
+    trade_count: sum
+    taker_buy_base_volume: sum
+    taker_buy_quote_volume: sum
+
+quality_gates:
+  source_checksums_verified: true
+  parsed_target_range_confirmed: true
+  deterministic_schema_parse: true
+  duplicate_report_complete: true
+  unresolved_conflicting_duplicates: 0
+  gap_report_complete: true
+  invariant_audit_complete: true
+  incomplete_periods_explicit: true
+  timestamp_no_lookahead_tests_passed: true
+  aggregation_tests_passed: true
+  source_inventory_frozen: true
+  output_snapshot_checksum_frozen: true
+  human_quality_report_complete: true
+
+quality_statistics:
+  expected_1m_rows: 3497760
+  accepted_1m_rows: 3497760
+  observed_rows_total: 3497760
+  observed_unique_open_times: 3497760
+  missing_1m_rows: 0
+  missing_minutes: 0
+  duplicate_1m_rows: 0
+  duplicate_rows_total: 0
+  conflicting_duplicate_rows: 0
+  conflicting_duplicate_minutes: 0
+  malformed_rows: 0
+  invariant_violation_rows: 0
+  longest_gap_minutes: 0
+  invariant_violations: 0
+  rejected_rows: 0
+  rows_outside_frozen_bounds: 0
+
+htf_completeness:
+  5m:
+    expected_buckets: 699552
+    complete_buckets: 699552
+    incomplete_buckets: 0
+    parquet_sha256: 673d076f33a933efbed7209c9fa47de11df5966346816cb777b8876a1a10e551
+  15m:
+    expected_buckets: 233184
+    complete_buckets: 233184
+    incomplete_buckets: 0
+    parquet_sha256: 6a038d5ae3a0b0c81bb6acaa2bcc4f0ef26ef5ec3df9ea48cc8fc2314bcb8df8
+  1h:
+    expected_buckets: 58296
+    complete_buckets: 58296
+    incomplete_buckets: 0
+    parquet_sha256: fa089f95545e90ed7954f4668030c290d622f4d608f4e8592b9799134bd6688c
+  4h:
+    expected_buckets: 14574
+    complete_buckets: 14574
+    incomplete_buckets: 0
+    parquet_sha256: 651570a37a89e455c8e0f0a86ee40ae788054ac6becbbf7904556651f3fc7e5e
+
+source_objects:
+  count: 104
+  monthly_count: 79
+  monthly_range:
+    start_month: '2020-01'
+    end_month: '2026-07'
+  daily_count: 25
+  daily_range:
+    start_date: '2026-08-01'
+    end_date: '2026-08-25'
+  source_checksum_verified_count: 104
+  revision_conflicts: 0
+  checksum_failures: 0
+  http_failures: 0
+  identities_frozen_in: docs/research_data/CORE_BTC_BINANCE_V0/SOURCE_INVENTORY_717d37a4.json
+
+materialization_identity:
+  snapshot_id: 717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415
+  materializer_commit_sha: 71d13afdae4456163316b850f340436af1eeed65
+  downloader_commit: 71d13afdae4456163316b850f340436af1eeed65
+  parser_commit: 71d13afdae4456163316b850f340436af1eeed65
+  canonicalization_commit: 71d13afdae4456163316b850f340436af1eeed65
+  aggregation_commit: 71d13afdae4456163316b850f340436af1eeed65
+  materializer_version: 3
+  canonicalization_version: 2
+  aggregation_version: 2
+  contract_sha256: 1c49c8205a92eb9491a065fa1e93bb1fa5592964babdf96fe30b09212e962d3e
+  source_inventory_sha256: a4bb39245365b1cc49b626a3dfc2cdcdb00c5be8c622ecd1e123a18d85186ea6
+  quality_report_sha256: c59034e41be571142232d9c283ba898c786b69d6db485dfd2f4641bc84601242
+  quality_report_path: docs/research_data/CORE_BTC_BINANCE_V0/QUALITY_REPORT_717d37a4.json
+  snapshot_manifest_path: docs/research_data/CORE_BTC_BINANCE_V0/SNAPSHOT_717d37a4.json
+  source_inventory_path: docs/research_data/CORE_BTC_BINANCE_V0/SOURCE_INVENTORY_717d37a4.json
+  human_quality_report_path: docs/research_data/CORE_BTC_BINANCE_V0/QUALITY_REPORT_717d37a4.md
+  canonical_1m_partition_count: 104
+  canonical_1m_checksums_path: docs/research_data/CORE_BTC_BINANCE_V0/SNAPSHOT_717d37a4.json
+  derived_5m_output_sha256: 673d076f33a933efbed7209c9fa47de11df5966346816cb777b8876a1a10e551
+  derived_15m_output_sha256: 6a038d5ae3a0b0c81bb6acaa2bcc4f0ef26ef5ec3df9ea48cc8fc2314bcb8df8
+  derived_1h_output_sha256: fa089f95545e90ed7954f4668030c290d622f4d608f4e8592b9799134bd6688c
+  derived_4h_output_sha256: 651570a37a89e455c8e0f0a86ee40ae788054ac6becbbf7904556651f3fc7e5e
+
+promotion:
+  allowed_states:
+    - PLANNED_NOT_MATERIALIZED
+    - MATERIALIZED_UNVERIFIED
+    - QUALITY_AUDITED
+    - ACCEPTED_FOR_DISCOVERY
+    - ACCEPTED_FOR_CONFIRMATORY
+  current_state: ACCEPTED_FOR_DISCOVERY
+  discovery_gate_passed: true
+  confirmatory_gate_passed: false
+
+research_boundary:
+  may_start_broad_hypothesis_discovery_now: true
+  may_use_for_confirmatory_oos_now: false
+  may_authorize_forecasting_product_development: false
+  may_authorize_paid_rich_data_purchase: false
+
+known_limitations:
+  - Binance USD-M BTCUSDT only.
+  - 1m official kline archive only.
+  - Archive evidence is HISTORICAL_COMPARABLE / OFFICIAL_ARCHIVE, not LIVE_EQUIVALENT.
+  - No open interest.
+  - No funding.
+  - No liquidations.
+  - No order book.
+  - No Bybit / OKX.
+  - Price/volume analytical columns are canonical decimal strings and must be parsed numerically before comparison, sorting, arithmetic, or aggregation.
+  - Snapshot cutoff is fixed at 2026-08-26T00:00:00Z; extending history creates another snapshot/revision.
+  - Discovery authorization is not confirmatory authorization.
+  - 24 monthly ZIP CSV members have no header; parser status was OK for all 104 objects.
+
+notes:
+  - >-
+    Source URL/path is not sufficient identity because Binance documents that
+    archived files can be revised. Freeze source checksum and local SHA-256.
+  - >-
+    Non-zero gaps do not automatically invalidate the whole dataset, but they
+    must be explicit and affected higher-timeframe buckets must fail closed.
+    This accepted snapshot observed 0 missing minutes and 0 incomplete HTF buckets.
+  - >-
+    ACCEPTED_FOR_DISCOVERY is not an edge claim and is not ACCEPTED_FOR_CONFIRMATORY.
+  - >-
+    Operational discovery research also requires the materializer implementation
+    commit 71d13afdae4456163316b850f340436af1eeed65 to be remotely preserved.

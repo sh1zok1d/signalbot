@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "hypothesis_id": "H02_FAILED_BREAKOUT_MEAN_REVERSION",
+  "title": "Failed breakout to mean reversion",
+  "status": "PREREGISTERED_EXPLORATORY",
+  "outcome_status": "EXPLORATORY",
+  "directional": true,
+  "direction_meaning": "reversion_toward_prior_range_not_trade_execution",
+  "neutral_term": "failed_breakout",
+  "not_a_liquidity_sweep_claim": true,
+  "dataset": {
+    "dataset_id": "CORE_BTC_BINANCE_V0",
+    "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+    "research_authorized_required": true,
+    "confirmatory_authorized_required": false
+  },
+  "windows": {
+    "timezone": "UTC",
+    "warmup_start_inclusive": "2020-01-01T00:00:00Z",
+    "development_start_inclusive": "2020-02-01T00:00:00Z",
+    "development_end_exclusive": "2025-01-01T00:00:00Z",
+    "reserved_validation_start_inclusive": "2025-01-01T00:00:00Z",
+    "reserved_validation_end_exclusive": "2026-01-01T00:00:00Z",
+    "untouched_oos_start_inclusive": "2026-01-01T00:00:00Z",
+    "untouched_oos_end_exclusive": "2026-08-26T00:00:00Z",
+    "max_forward_minutes": 240,
+    "development_outcome_rule": "T + 240m < 2025-01-01T00:00:00Z",
+    "t_max_inclusive": "2024-12-31T19:55:00Z"
+  },
+  "decision_grid": {
+    "interval_minutes": 5,
+    "alignment": "UTC_EPOCH",
+    "event_bar": "[T-5m, T)",
+    "known_when": "available_at of event bar == T"
+  },
+  "lookbacks_minutes": [60, 120, 240],
+  "overshoot_thresholds_s": [0.0, 0.05, 0.1],
+  "candidate_rule": "overshoot >= s",
+  "prior_range": {
+    "interval": "[T-5m-L, T-5m)",
+    "excludes_event_bar": true,
+    "R_high": "max(high)",
+    "R_low": "min(low)",
+    "prior_log_range": "ln(R_high / R_low)",
+    "require_prior_log_range_positive": true
+  },
+  "event": {
+    "open_inside": true,
+    "close_inside": true,
+    "upper": "high_B > R_high and low_B >= R_low",
+    "lower": "low_B < R_low and high_B <= R_high",
+    "ambiguous_double_break": "exclude",
+    "open_outside": "exclude"
+  },
+  "reversion_direction": {
+    "upper": -1,
+    "lower": 1,
+    "sign_convention_only": true
+  },
+  "overshoot": {
+    "upper": "ln(high_B / R_high) / prior_log_range",
+    "lower": "ln(R_low / low_B) / prior_log_range"
+  },
+  "refractory": {
+    "minutes": 30,
+    "rule": "after accept at T ignore either-side qualifiers in (T, T+30m)",
+    "keep": "earliest",
+    "report_raw_pre_dedup": true
+  },
+  "forbidden_gates": [
+    "volume", "taker_volume", "trend_filter", "RSI", "MACD", "ATR",
+    "funding", "OI", "liquidations", "htf_trend", "session", "range_age"
+  ],
+  "horizons_minutes": [15, 30, 60, 120, 240],
+  "returns": {
+    "definition": "RET_H = ln(close(T+H) / close(T))",
+    "close_T": "last fully known 5m close at T",
+    "price_parse": "float(Decimal(canonical_decimal_string))",
+    "known_when": "available_at <= T",
+    "REV_RET_H": "reversion_direction * RET_H"
+  },
+  "normalization": {
+    "PAST_MEDIAN_ABS_RET_H": "median |RET_H| on UTC 5m grid in preceding 30 calendar days with t+H <= T",
+    "exclude_current_and_future": true,
+    "primary_outcome": "NORM_REV_RET_H = REV_RET_H / PAST_MEDIAN_ABS_RET_H(T)",
+    "ineligible_if_scale_zero_or_missing": true
+  },
+  "secondary_path": {
+    "future_bars": "5m bars with available_at in (T, T+H]",
+    "mfe_mae_normalized_by_past_median_abs_ret": true,
+    "p_mfe_gt_mae": true,
+    "cannot_promote_alone": true
+  },
+  "baselines": {
+    "A_matched_random": {
+      "preserve": "calendar month candidate counts and UPPER/LOWER direction counts",
+      "pool": "eligible UTC 5m boundaries",
+      "seed": 20260829,
+      "replicates": 100
+    },
+    "B_successful_breakout": {
+      "open_inside": true,
+      "upper": "high > R_high and close > R_high and low >= R_low",
+      "lower": "low < R_low and close < R_low and high <= R_high",
+      "same_reversion_sign": true,
+      "same_L_range_s": true,
+      "independent_30m_refractory": true,
+      "do_not_force_equal_N": true
+    }
+  },
+  "negative_control": {
+    "type": "plus_6h_same_utc_day_circular_time_shift",
+    "do_not_redetect": true,
+    "preserve": ["configuration", "side", "reversion_direction"]
+  },
+  "uncertainty": {
+    "primary_block": "UTC_WEEK",
+    "method": "block_bootstrap",
+    "seed": 20260830,
+    "replicates": 2000,
+    "interval": "95_percent",
+    "targets": [
+      "mean(NORM_REV_RET | candidate) - matched_random_mean",
+      "P(REV_RET > 0 | candidate) - matched_random_positive_share"
+    ]
+  },
+  "year_blocks": [2020, 2021, 2022, 2023, 2024],
+  "side_stability": ["UPPER", "LOWER"],
+  "search_surface": {
+    "lookbacks": 3,
+    "overshoot_thresholds": 3,
+    "horizons": 5,
+    "primary_threshold_cells": 45,
+    "secondary_families": ["mfe_mae", "matched_random", "successful_breakout", "time_shift", "side", "year"]
+  },
+  "forbidden_reads": ["2025_validation_forward_outcomes", "2026_oos_forward_outcomes"],
+  "verdict_labels": ["H02_KILL", "H02_INCONCLUSIVE", "H02_CANDIDATE_FOR_R3"],
+  "not_claims": [
+    "trading_strategy",
+    "entry_exit_system",
+    "liquidity_sweep",
+    "stop_hunting",
+    "market_maker_intent",
+    "product_detector",
+    "sharpe",
+    "pnl",
+    "ACCEPTED_FOR_CONFIRMATORY",
+    "VALIDATED_CANDIDATE"
+  ]
+}

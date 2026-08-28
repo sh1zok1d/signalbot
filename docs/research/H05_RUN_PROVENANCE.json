@@ -1,0 +1,30 @@
+{
+  "PYTHONPATH": "/tmp/signalbot",
+  "cli_arguments": {
+    "dataset-root": "/tmp/signalbot/artifacts/research_data/CORE_BTC_BINANCE_V0",
+    "out-dir": "/tmp/signalbot/artifacts/h05",
+    "prereg-commit-sha": "faac097c7a3aab0e82c35f4fdc7b0b006ac9e4a1",
+    "stage": "dev-run"
+  },
+  "cwd": "/tmp/signalbot",
+  "dataset_id": "CORE_BTC_BINANCE_V0",
+  "dataset_root": "/tmp/signalbot/artifacts/research_data/CORE_BTC_BINANCE_V0",
+  "design_SHA": "deaf6503896920685f25a03230174d360a07ab9a",
+  "earliest_selected_partition": "2020-01.parquet",
+  "exact_command": "PYTHONPATH=/tmp/signalbot python3 scripts/research/h05_taker_imbalance.py --stage dev-run --dataset-root /tmp/signalbot/artifacts/research_data/CORE_BTC_BINANCE_V0 --out-dir /tmp/signalbot/artifacts/h05 --prereg-commit-sha faac097c7a3aab0e82c35f4fdc7b0b006ac9e4a1",
+  "git_HEAD": "faac097c7a3aab0e82c35f4fdc7b0b006ac9e4a1",
+  "latest_selected_partition": "2024-12.parquet",
+  "local_timestamp": "2026-08-27T21:22:22",
+  "machine": "x86_64",
+  "numpy": "2.1.3",
+  "pandas": "2.2.3",
+  "platform": "Linux-6.12.94+-x86_64-with-glibc2.39",
+  "prereg_SHA": "faac097c7a3aab0e82c35f4fdc7b0b006ac9e4a1",
+  "pyarrow": "17.0.0",
+  "python": "3.12.3",
+  "research_code_freeze_SHA": "faac097c7a3aab0e82c35f4fdc7b0b006ac9e4a1",
+  "selected_partitions_n": 60,
+  "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+  "snapshot_manifest_path": "/tmp/signalbot/artifacts/research_data/CORE_BTC_BINANCE_V0/reports/snapshot_manifest.json",
+  "utc_timestamp": "2026-08-27T21:22:22Z"
+}

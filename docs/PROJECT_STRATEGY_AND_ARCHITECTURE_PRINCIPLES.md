@@ -1,194 +1,159 @@
-# Signalbot Project Strategy and Architecture Principles
+# Signalbot Strategy and Architecture Principles
 
-> Project-wide strategic and architectural guardrails for building the current roadmap without coupling Signalbot's long-term viability to one forecasting hypothesis.
+**Status:** ACTIVE  
+**Current posture:** `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN`
 
-## 0. Authority and scope
+## 1. Core thesis
 
-This document is **not** a replacement for the forecasting roadmap or frozen V2 contracts.
+Signalbot should not build a sophisticated forecasting product first and ask whether the market edge exists later.
 
-For V2 semantics and deterministic behavior, the existing authorities continue to govern:
+Current strategy:
 
-1. `docs/V2_PRODUCT_CONTRACT.md` — what V2 product behavior means.
-2. `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` — deterministic formulas, thresholds, correctness and promotion semantics.
-3. `docs/FORECASTING_ROADMAP.md` — forecasting product direction and stage sequence.
-4. `docs/PROJECT_EXECUTION_PLAN.md` — tactical execution ordering and gates.
+> **Evidence first. Architecture second. Product third.**
 
-This document instead freezes **project-level strategy and architecture posture** that should guide implementation where the V2 contracts do not dictate a narrower choice.
+The project temporarily acts as a research platform whose job is to discover, falsify and independently validate market mechanisms.
 
-It does **not** authorize scope expansion, new signal families, new data sources, new engines, or changes to frozen V2-v0 hypotheses.
+## 2. Edge is a dependency, not a promised deliverable
 
----
+The project is allowed to conclude:
 
-## 1. Working project thesis
+- a tested hypothesis has no edge;
+- a setup works only under a specific prospectively detectable regime;
+- a simpler rule is better than a richer model;
+- current data are insufficient;
+- no investigated mechanism justifies product development yet.
 
-Signalbot is not defined by the success of one forecasting model.
+Do not turn “find one or two edges” into a requirement to manufacture them through repeated search.
 
-The current working thesis is:
+## 3. Complexity must earn its place
 
-> **Signalbot explores how to transform large volumes of market information into a small amount of traceable, contextual, decision-relevant information. Forecasting is one possible analytical capability, not a condition for the project's existence.**
+Every added layer should answer an incremental-value question.
 
-This is a **working thesis**, not validated product-market fit and not a claim of competitive advantage.
+Examples:
 
-The current product/research domain remains crypto market decision support, with V2 as the active primary implementation program.
+- does 4h context improve a simpler pullback rule?
+- does OI improve a price-only candidate?
+- does taker flow improve compression selection?
+- do multiple venues improve a robust single/median venue baseline?
 
----
+If the answer is not supported, remove/demote the complexity rather than defending sunk cost.
 
-## 2. V2 is an engine, not the identity of Signalbot
+## 4. Research before architecture
 
-Forecasting V2 is the first major analytical engine being implemented and empirically tested. It must remain possible, in principle, for Signalbot to survive one of the following outcomes:
+Do not implement generic lifecycle/risk/orchestration layers for hypothetical future edges.
 
-- V2 demonstrates a strong edge;
-- V2 demonstrates only conditional/regime-specific edge;
-- V2 is descriptively useful but lacks predictive edge;
-- V2-v0 fails its empirical hypothesis and is killed/rethought.
+Once a candidate edge is independently validated, inspect its actual behavior:
 
-A `KILL/RETHINK` decision for V2-v0 is therefore a valid research outcome, not automatically a project-termination event.
+- setup formation;
+- trigger timing;
+- invalidation;
+- decay;
+- regime dependence;
+- conflict with other edges;
+- delay/execution sensitivity.
 
-This does **not** weaken the current V2 roadmap. V2 should still be implemented and falsified rigorously enough that the result is informative.
+Then design only the architecture required by those observed properties.
 
----
+## 5. Preserve the reusable foundation
 
-## 3. Intellectual honesty is a product and engineering invariant
+The freeze does not mean discarding good infrastructure.
 
-Signalbot must prefer an honest absence of a conclusion over a cosmetically strong conclusion.
+Reusable assets include where correctly implemented:
+
+- raw market-data ingestion/storage;
+- historical materialization;
+- no-lookahead alignment;
+- data-quality/missingness handling;
+- version/provenance identity;
+- replay/outcome primitives;
+- research tooling.
+
+V1/V2-specific hypotheses and product semantics remain isolated research artifacts rather than definitions of the whole project.
+
+## 6. No speculative generalization
+
+Even in research-first mode, do not build a universal research framework merely because many experiments are imaginable.
+
+Create reusable abstractions only when at least two real current workflows expose the same stable boundary.
+
+Prefer simple scripts/manifests first; promote them into shared infrastructure after repetition proves the need.
+
+## 7. Intellectual honesty is load-bearing
 
 Project defaults:
 
-- `UNKNOWN` is preferable to invented certainty.
-- `NO EDGE` is preferable to a weak signal presented as meaningful.
-- `INSUFFICIENT DATA` is preferable to silent extrapolation.
-- A failed hypothesis is preferable to post-hoc rule changes designed to rescue attractive metrics.
-- Passing engineering tests is not evidence of predictive validity.
-- A new market hypothesis is a new experiment, not retroactive justification for the previous one.
+- `UNKNOWN` > invented certainty;
+- `NO EDGE` > cosmetic confidence;
+- `INCONCLUSIVE_SAMPLE` > overclaiming a small N;
+- a failed hypothesis > post-hoc rescue on the same holdout;
+- a simple baseline > unsupported complexity;
+- explicit missingness > fabricated zero;
+- historical source limitations > pretend live-equivalence.
 
-The project should be optimized for discovering what is true about its hypotheses, not for preserving a preferred narrative.
+## 8. Regime dependence
 
----
+A market mechanism may legitimately be regime-specific.
 
-## 4. Evidence over narrative
+But “the market regime was bad” is only an exploratory explanation until:
 
-Serious analytical conclusions should be traceable to their basis.
+1. the regime is defined using information available at `T`;
+2. the gating rule is frozen;
+3. the conditional effect reproduces on independent data.
 
-Future-facing result contracts should, where naturally appropriate, preserve enough structure to distinguish concepts such as:
+A no-trade state is a valid product outcome if the evidence supports conditional rather than continuous forecasting.
 
-- claim / conclusion;
-- supporting evidence;
-- counter-evidence;
-- uncertainty;
-- statistical support;
-- data quality / availability;
-- market context or regime;
-- limitations;
-- provenance / version identity.
+## 9. Product positioning remains deferred
 
-This section does **not** mandate a universal `EvidenceEngine` class or a specific schema today. It freezes the direction: presentation text should not become the source of truth for analytical reasoning.
+Signalbot does not aim to out-feature TradingView, CoinGlass, exchanges or general-purpose AI systems.
 
-A future UI, Telegram message, API, or LLM explanation should consume structured analytical results rather than force core mathematics to conform to presentation needs.
+The eventual product should target a narrow decision-support problem that is justified by real evidence and user workflow value.
 
----
+Do not decide the product wedge, moat or monetization model while the core analytical value remains unvalidated.
 
-## 5. Shared foundation versus engine-specific logic
+`docs/PRODUCT_HYPOTHESES.md` is a parking lot only.
 
-The repository should preserve natural architectural boundaries between reusable foundations and model/engine-specific logic.
+## 10. Architecture restart test
 
-A component belongs inside `analytics/forecasting_v2` when it is genuinely specific to V2. Components that are naturally reusable across analytical engines should not become coupled to V2 merely because V2 is their first consumer.
+Before restarting product development, at least one candidate edge must satisfy the validation standard in `docs/EDGE_RESEARCH_PROTOCOL.md`.
 
-Potentially reusable categories include, where supported by actual current requirements:
+Then ask:
 
-- canonical market-data contracts;
-- temporal alignment and no-lookahead primitives;
-- data-quality validation;
-- reusable feature/statistical primitives;
-- historical populations and outcome primitives;
-- provenance/version identity;
-- structured analytical result contracts.
+- what capabilities are genuinely needed by the validated mechanism?
+- which existing V1/V2 components remain useful?
+- which old components are unnecessary baggage?
+- does a regime router actually improve generalization?
+- what structured evidence must reach the user?
 
-V2-specific categories include:
+Do **not** resume the old Stage 6–10 roadmap automatically.
 
-- V2-v0 hypotheses and setup-family semantics;
-- V2-specific thresholds and formulas;
-- V2 confidence semantics;
-- V2 episode lifecycle and arbitration rules;
-- V2 promotion/evaluation contracts.
+## 11. Second-engine / removal tests
 
-These examples are architectural guidance, not authorization for broad refactoring.
+These remain useful design checks after research earns architecture work:
 
----
+**Second-engine test:** would another validated analytical engine need private V2 internals to reuse a capability?
 
-## 6. The second-engine and removal tests
+**Removal test:** would removing V2 also delete a capability that is conceptually useful for research/other engines?
 
-When an ownership boundary is ambiguous, use two design questions:
+A positive answer means inspect ownership; it does not authorize speculative refactoring.
 
-1. **Second-engine test:** if a second analytical engine were added tomorrow, would it need to import private/internal V2 implementation details to reuse this capability?
-2. **Removal test:** if Forecasting V2 were removed tomorrow, would this capability disappear even though it is conceptually useful outside V2?
+## 12. Current non-goals
 
-A "yes" is a signal to review the boundary, not an automatic instruction to refactor.
+Until the restart gate:
 
-The current task must still justify the abstraction. Future-proofing must not become speculative architecture work.
+- autonomous trading;
+- new production model families;
+- ML/adaptive thresholds;
+- speculative multi-engine platform work;
+- UI/Telegram feature expansion;
+- production V2 enablement;
+- business-model expansion;
+- expensive rich-data acquisition without a specific validated-core incremental hypothesis.
 
----
+## 13. Canonical companions
 
-## 7. Future flexibility without speculative overengineering
-
-Signalbot should be easy to deepen or extend later, but it must not build imaginary future products today.
-
-Default rule:
-
-> **Architecture should help today's code today and avoid blocking tomorrow's code; it should not implement tomorrow's unknown product in advance.**
-
-Therefore:
-
-- do not create universal plugin/factory abstractions without a real current boundary;
-- do not add new engines merely to prove modularity;
-- do not move stable V2-specific logic into generic packages solely because it might be reused someday;
-- do prefer narrow typed/versioned contracts where multiple current layers already interact;
-- do preserve deterministic replay, provenance and fail-closed behavior at shared boundaries.
-
----
-
-## 8. Competitive posture
-
-Signalbot does **not** aim to replace or directly out-feature major charting, exchange, market-data, derivatives-data, or general-purpose AI platforms.
-
-Examples of explicit non-goals include building a broader TradingView, a larger CoinGlass, or an exchange-scale AI assistant by feature count.
-
-The long-term product strategy is instead to identify a **narrow, high-value decision-support problem that existing platforms leave underserved**, and to become complementary to the existing tool ecosystem where that is advantageous.
-
-The project's specific moat is currently **unknown and unvalidated**.
-
-Competitive advantage must be demonstrated rather than declared.
-
----
-
-## 9. Product hypotheses are not roadmap commitments
-
-Ideas such as information compression, historical contextualization, anomaly detection, market-state interpretation, trade-thesis red-teaming, or conditional forecasting may be recorded for later evaluation.
-
-They do not enter V2-v0 or the active development roadmap merely because they sound promising.
-
-See `docs/PRODUCT_HYPOTHESES.md` for the current parking lot.
-
----
-
-## 10. Post-roadmap strategy review trigger
-
-Deep product/business-model work is intentionally deferred while the primary implementation/evidence roadmap is unfinished.
-
-The project should hold a dedicated **Post-Roadmap Strategy & Product Review** when all of the following are materially true:
-
-- the primary V2 implementation path has reached an end-to-end evaluable state;
-- the project has honest empirical evidence about V2 rather than only implementation completeness;
-- the reusable capabilities that actually exist can be audited from the repository and runtime;
-- the team can compare real Signalbot outputs against relevant existing tools rather than hypothetical competitors.
-
-That review should examine:
-
-- V2 evidence and the GO / SIMPLIFY / KILL outcome;
-- reusable capability inventory;
-- competitor benchmark and underserved workflow analysis;
-- candidate product wedge(s);
-- user-value validation;
-- monetization/business-model hypotheses;
-- the next product roadmap.
-
-Until that trigger, new product ideas should normally be recorded rather than implemented.
+- `PROJECT_STATUS.md`
+- `RESEARCH_ROADMAP.md`
+- `EDGE_RESEARCH_PROTOCOL.md`
+- `HISTORICAL_DATA_STRATEGY.md`
+- `RESEARCH_LEDGER.md`
+- `DOCUMENTATION_INDEX.md`

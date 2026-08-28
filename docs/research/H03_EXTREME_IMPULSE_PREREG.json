@@ -1,0 +1,313 @@
+{
+  "schema_version": 1,
+  "hypothesis_id": "H03_EXTREME_IMPULSE_CONTINUATION_EXHAUSTION",
+  "title": "Extreme impulse to continuation vs exhaustion",
+  "status": "PREREGISTERED_EXPLORATORY",
+  "outcome_status": "EXPLORATORY",
+  "directional": true,
+  "direction_meaning": "impulse_continuation_or_exhaustion_not_trade_execution",
+  "not_a_liquidity_sweep_claim": true,
+  "batch_position": {
+    "family_index": 3,
+    "family_count_so_far": 3,
+    "prior_families": ["H01_COMPRESSION_EXPANSION", "H02_FAILED_BREAKOUT_MEAN_REVERSION"],
+    "prior_primary_cells": {"H01": 45, "H02": 45},
+    "not_independent_confirmation": true
+  },
+  "global_adaptivity_disclosure": {
+    "mechanism_class_predates_h01_h02": true,
+    "mechanism_class_source": "docs/RESEARCH_ROADMAP.md section R2 original hypothesis list",
+    "inherited_conventions": {
+      "15m_decision_grid_and_30d_local_reference": "inherited_from_H01",
+      "outcome_ladder_15_30_60_120_240m": "shared_project_convention_H01_H02",
+      "matched_random_100_replicates": "prior_research_convention",
+      "utc_week_block_uncertainty": "prior_research_convention",
+      "plus_6h_timing_control": "prior_research_convention_E1_H01_H02"
+    },
+    "new_to_h03_not_inherited": {
+      "refractory_minutes": {"value": 60, "h02_value": 30, "copied_from_h02": false,
+        "reason": "new pre-outcome clustering-control choice for H03, not selected from H02 outcome"},
+      "tail_thresholds_q": {"value": [0.90, 0.95, 0.98], "used_by_h01_or_h02": false,
+        "reason": "new coarse three-level tail-severity grid frozen before H03 outcomes"},
+      "impulse_windows_w_minutes": {"value": [15, 30, 60],
+        "h01_lookbacks_minutes": [30, 60, 120], "h02_lookbacks_minutes": [60, 120, 240],
+        "copied_from_prior_family": false}
+    },
+    "batch_internal_influence": "prior H01/H02 clustering/dependence experience influenced the decision to make H03's refractory and dependence reporting explicit; this influence is disclosed, not hidden",
+    "post_hoc_observations_did_not_define_h03": {
+      "h01_low_vol_persistence": "POSTHOC_UNTESTED, did not define H03 mechanism/sign/thresholds",
+      "h02_boundary_breach_bounce": "POSTHOC_UNTESTED, did not define H03 mechanism/sign/thresholds",
+      "h02_failed_did_not_outperform_success_control": "POSTHOC_UNTESTED, did not define H03 mechanism/sign/thresholds"
+    },
+    "control_formulations_considered": {
+      "structural": "moderate_momentum_band", "negative": "plus_6h_circular_shift",
+      "alternatives_tried_and_discarded": "none"
+    },
+    "complete": true
+  },
+  "dataset": {
+    "dataset_id": "CORE_BTC_BINANCE_V0",
+    "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+    "research_authorized_required": true,
+    "confirmatory_authorized_required": false
+  },
+  "windows": {
+    "timezone": "UTC",
+    "warmup_start_inclusive": "2020-01-01T00:00:00Z",
+    "development_start_inclusive": "2020-02-01T00:00:00Z",
+    "development_end_exclusive": "2025-01-01T00:00:00Z",
+    "reserved_validation_start_inclusive": "2025-01-01T00:00:00Z",
+    "reserved_validation_end_exclusive": "2026-01-01T00:00:00Z",
+    "untouched_oos_start_inclusive": "2026-01-01T00:00:00Z",
+    "untouched_oos_end_exclusive": "2026-08-26T00:00:00Z",
+    "max_forward_minutes": 240,
+    "development_outcome_rule": "T + H_minutes < 2025-01-01T00:00:00Z for every horizon used",
+    "boundary_rule": "exclude_do_not_truncate",
+    "no_horizon_truncation": true
+  },
+  "decision_grid": {
+    "interval_minutes": 15,
+    "alignment": "UTC_EPOCH",
+    "t_definition": "bar_end_exclusive of the 15m bar ending at T",
+    "close_T": "close of canonical 15m interval [T-15m, T)",
+    "known_when": "available_at <= T"
+  },
+  "impulse_windows_minutes": [15, 30, 60],
+  "impulse_return": {
+    "definition": "IMPULSE_RET_W(T) = ln(close(T) / close(T-W))",
+    "direction_positive": 1,
+    "direction_negative": -1,
+    "zero_excluded": true
+  },
+  "extremeness": {
+    "abs_impulse": "ABS_IMPULSE_W(T) = abs(IMPULSE_RET_W(T))",
+    "reference_window_days": 30,
+    "reference_grid_matches_w": true,
+    "current_t_excluded": true,
+    "percentile_convention": "midrank_h01_compatible",
+    "percentile_formula": "(count(ref < x) + 0.5*count(ref == x)) / N_ref",
+    "thresholds_q": [0.90, 0.95, 0.98],
+    "candidate_rule": "P_W(T) >= q",
+    "no_extra_thresholds_after_outcomes": true
+  },
+  "reference_overlap_disclosure": {
+    "nominal_n_ref_formula": "30 * 24 * 60 / W_minutes",
+    "n_eff_w_formula": "floor(30 * 24 * 60 / W_minutes)",
+    "n_eff_w_values": {"15": 2880, "30": 1440, "60": 720},
+    "tail_proxy_formula": "N_eff_W * (1 - q)",
+    "moderate_band_proxy_formula": "0.20 * N_eff_W",
+    "decile_proxy_formula": "0.10 * N_eff_W",
+    "n_eff_h_formula": "floor(30 * 24 * 60 / H_minutes)",
+    "arbitrary_pass_fail_threshold": null,
+    "descriptive_only": true
+  },
+  "refractory": {
+    "minutes": 60,
+    "rule": "after accept at T ignore either-direction qualifiers in (T, T+60m)",
+    "keep": "earliest",
+    "report_raw_pre_refractory": true,
+    "report_post_refractory": true,
+    "frozen_not_retuned": true
+  },
+  "horizons_minutes": [15, 30, 60, 120, 240],
+  "returns": {
+    "definition": "RET_H(T) = ln(close(T+H) / close(T))",
+    "price_parse": "float(Decimal(canonical_decimal_string))",
+    "known_when": "available_at <= T",
+    "CONT_RET_H": "impulse_direction * RET_H",
+    "continuation_positive": true,
+    "sign_never_flipped_after_outcomes": true
+  },
+  "normalization": {
+    "PAST_MEDIAN_ABS_RET_H": "median |RET_H| on UTC 15m grid in preceding 30 calendar days with outcome fully resolved before T",
+    "exclude_current_and_future": true,
+    "primary_outcome": "NORM_CONT_RET_H = CONT_RET_H / PAST_MEDIAN_ABS_RET_H(T)",
+    "denominator_must_be_finite_and_positive": true,
+    "ineligible_if_zero_nonfinite_or_missing": true,
+    "full_development_floor_used": false,
+    "full_development_floor_rejected_reason": "would violate as-of semantics for earlier T by depending on later development-window scale states",
+    "post_outcome_floor_or_winsorization_allowed": false,
+    "denominator_diagnostics": ["min", "p01", "p05", "p25", "p50"],
+    "top1pct_normalized_influence_share_reported": true
+  },
+  "mpie": {
+    "primary_normalized_threshold": 0.10,
+    "rule": "S * (mean_extreme - mean_matched) >= 0.10",
+    "s_meaning": {"continuation": 1, "exhaustion": -1},
+    "anchor_independent_of_candidate_outcome": true,
+    "raw_bps_also_reported": true,
+    "not_pnl": true,
+    "not_required_at_h03": "net_profitability"
+  },
+  "control_materiality": {
+    "CONTROL_DELTA_MIN": 0.05,
+    "equals_half_of_mpie": true,
+    "structural_rule": "S * (mean_extreme - mean_moderate) >= 0.05",
+    "timing_rule": "S * (mean_true - mean_shifted) >= 0.05",
+    "frozen_before_outcomes": true,
+    "reinterpretation_after_outcomes_allowed": false
+  },
+  "structural_control": {
+    "moderate_band": [0.60, 0.80],
+    "same_w": true,
+    "same_direction_rule": true,
+    "same_utc_grid": true,
+    "same_refractory": true,
+    "same_future_outcome_semantics": true,
+    "match_on": ["calendar_month", "direction"],
+    "report_matched_n": true,
+    "report_unmatched_n": true,
+    "report_unmatched_share": true,
+    "silently_drop_unmatched": false,
+    "alternative_controls_after_outcomes": false
+  },
+  "matched_random": {
+    "preserve": ["calendar_month_event_counts", "up_down_direction_composition"],
+    "sampling": "without_replacement_within_replicate",
+    "pool_excludes_raw_qualifying_extreme_timestamps_same_w_q": true,
+    "pool_excludes_surrounding_regime_or_hours": false,
+    "assign_paired_real_event_direction_label": true,
+    "seed": 20260831,
+    "seed_used_exactly_once": true,
+    "replicates": 100,
+    "report": ["candidate_minus_matched_mean_norm_cont_ret", "candidate_minus_matched_positive_share"],
+    "residual_diagnostic": {
+      "day_of_week_distribution": true,
+      "day_of_month_distribution": true,
+      "tvd_formula": "0.5 * sum_i |p_i - q_i|",
+      "descriptive_only": true,
+      "creates_alternative_baseline": false
+    }
+  },
+  "negative_control": {
+    "type": "plus_6h_same_utc_day_circular_time_shift",
+    "preserve": ["W", "q", "direction"],
+    "do_not_redetect_impulse_at_shifted_t": true,
+    "require_valid_past_future_coverage": true,
+    "report_collision_fraction_with_raw_true_extreme_same_w_q": true,
+    "remove_collisions_post_hoc": false,
+    "known_limitation": "diurnal_session_timing_confound",
+    "limitation_disclosed": true,
+    "alternative_time_shift_after_outcomes": false
+  },
+  "search_surface": {
+    "impulse_windows": 3,
+    "thresholds": 3,
+    "horizons": 5,
+    "primary_threshold_cells": 45,
+    "family_position_in_batch": 3,
+    "both_signs_preregistered_competing": true
+  },
+  "primary_metrics": [
+    "N", "mean_norm_cont_ret", "median_norm_cont_ret", "mean_cont_ret_bps",
+    "p_cont_ret_pos", "p_cont_ret_neg", "p05_norm_cont_ret", "p25_norm_cont_ret",
+    "p75_norm_cont_ret", "p95_norm_cont_ret"
+  ],
+  "no_pnl_no_sharpe_no_leverage": true,
+  "decile_diagnostic": {
+    "bins": ["[0,10)", "[10,20)", "[20,30)", "[30,40)", "[40,50)", "[50,60)",
+             "[60,70)", "[70,80)", "[80,90)", "[90,100]"],
+    "percentile_convention": "same_midrank_as_extremeness",
+    "report_per_bin": ["N", "mean_norm_cont_ret", "p_cont_ret_pos"],
+    "diagnostic_only": true,
+    "no_new_selectable_thresholds": true,
+    "effective_n_disclosure_applies": true
+  },
+  "secondary_path": {
+    "window": "[T, T+H]",
+    "mfe_direction": "impulse_direction",
+    "mae_direction": "opposite_impulse_direction",
+    "normalized_by": "PAST_MEDIAN_ABS_RET_H(T)",
+    "p_mfe_gt_mae": true,
+    "cannot_promote_alone": true,
+    "cannot_satisfy_adjacent_horizon_gate": true,
+    "adjacent_horizon_gate_applies_to": "CONT_RET_H_or_NORM_CONT_RET_H_only"
+  },
+  "dependence_concentration": {
+    "report": [
+      "raw_n", "post_refractory_n", "unique_utc_days", "unique_utc_weeks", "unique_utc_months",
+      "events_by_year", "events_by_month", "largest_month_share", "top5_month_share",
+      "up_share", "down_share", "median_spacing_minutes"
+    ]
+  },
+  "uncertainty": {
+    "primary_block": "UTC_WEEK",
+    "method": "block_bootstrap",
+    "seed": 20260901,
+    "replicates": 2000,
+    "candidate_for_freeze_sensitivity_blocks_weeks": [1, 2, 4],
+    "sensitivity_selectable": false
+  },
+  "long_dependence_diagnostic": {
+    "series": "daily total absolute 15m log returns",
+    "independent_of_candidate_events_and_outcomes": true,
+    "fixed_lags_days": [1, 2, 4, 8, 16, 32, 64],
+    "acf_threshold": 0.20,
+    "definition": "L_dep = max{L in fixed_lags_days : abs(ACF(L)) >= acf_threshold}",
+    "uses_largest_qualifying_lag_not_first_crossing": true,
+    "report_if_none": "<1 day",
+    "report_if_lag_64_qualifies": ">=64 days",
+    "descriptive_only": true,
+    "not_a_selectable_block_length": true
+  },
+  "year_blocks": [2020, 2021, 2022, 2023, 2024],
+  "chronological_stability": {
+    "min_years_supporting_sign": 4,
+    "of_years": 5,
+    "no_shock_year_exclusion": true,
+    "no_deletion_of_2020_or_2022": true,
+    "no_regime_rescue": true
+  },
+  "direction_symmetry": {
+    "h03_is_symmetric": true,
+    "continuation_requires": "UP and DOWN both continuation overall",
+    "exhaustion_requires": "UP and DOWN both exhaustion overall",
+    "one_side_only_result": "REJECTED_SPECIFIC_CLAIM_for_symmetric_claim",
+    "one_side_only_label": "POSTHOC_UNTESTED",
+    "one_side_only_enters_batch01_validation": false
+  },
+  "parameter_robustness": {
+    "no_best_cell_promotion": true,
+    "report_q_neighborhoods": [0.90, 0.95, 0.98],
+    "report_w_separately": [15, 30, 60],
+    "require_coherent_same_sign_neighborhood": true,
+    "min_adjacent_horizons_supporting_sign": 2,
+    "adjacent_horizon_metric": "CONT_RET_H_or_NORM_CONT_RET_H",
+    "mfe_mae_can_satisfy_adjacent_horizon_gate": false
+  },
+  "candidate_for_freeze_requirements": [
+    "primary_effect_has_preregistered_sign",
+    "mpie_met_or_exceeded",
+    "structural_control_delta_min_met",
+    "negative_control_delta_min_met",
+    "q_neighborhood_coherent",
+    "two_adjacent_horizons_support_sign_on_primary_metric",
+    "sign_in_at_least_4_of_5_years",
+    "up_and_down_both_support_symmetric_claim",
+    "no_single_month_regime_dominates",
+    "dependence_aware_uncertainty_compatible_with_real_effect",
+    "dependence_diagnostic_caution_disclosed_if_misleading",
+    "primary_outcome_not_only_mfe_mae_supports_mechanism"
+  ],
+  "forbidden_reads": ["2025_validation_forward_outcomes", "2026_oos_forward_outcomes"],
+  "verdict_labels": [
+    "H03_CONTINUATION_CANDIDATE_FOR_FREEZE",
+    "H03_EXHAUSTION_CANDIDATE_FOR_FREEZE",
+    "H03_INCONCLUSIVE",
+    "H03_REJECTED_SPECIFIC_CLAIM"
+  ],
+  "no_validation_opened_at_this_point": true,
+  "no_r3_optimization_inside_development_run": true,
+  "not_claims": [
+    "trading_strategy",
+    "entry_exit_system",
+    "liquidity_sweep",
+    "news_classifier",
+    "market_maker_intent",
+    "product_detector",
+    "sharpe",
+    "pnl",
+    "ACCEPTED_FOR_CONFIRMATORY",
+    "VALIDATED_CANDIDATE"
+  ]
+}

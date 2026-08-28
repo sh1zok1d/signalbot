@@ -1,111 +1,138 @@
-# Signalbot — Codex repository instructions
+# Signalbot — Repository Instructions
 
-This is the root instruction map for Codex. Keep it concise; linked repository documents are the source of truth. Do not duplicate large contracts here.
+This file tells coding/review agents what is authoritative **now**. Keep it concise and defer large research contracts/history to `docs/`.
 
 ## Project posture
 
-Signalbot is a BTC perpetual decision-support / forecasting research project, not an autonomous trading bot. Engineering correctness and market edge are separate questions; passing tests is not evidence of predictive validity.
+Signalbot is currently in `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN` mode.
 
-V1 is a frozen research baseline. V2-v0 is research-frozen while it is implemented and empirically falsified.
+The active objective is to discover and independently validate one or two robust conditional market mechanisms — or reject the investigated hypotheses without post-hoc rescue. There is no current claim of durable trading edge.
 
-Forecasting V2 is the current primary analytical engine and implementation program, but **Signalbot is not defined by the success of one forecasting hypothesis**. Project-wide future-extensibility, evidence/auditability, competitive posture, and post-roadmap strategy-review guardrails live in `docs/PROJECT_STRATEGY_AND_ARCHITECTURE_PRINCIPLES.md`. Future product ideas live in `docs/PRODUCT_HYPOTHESES.md` and are not implementation authorization.
+V1 is frozen. V2 code is retained as research material, but V2 is **not** the active product-development roadmap.
 
-## Read the right source of truth first
+The repository intentionally preserves old plans, failed hypotheses and frozen contracts as project history. Historical presence is not current authorization.
 
-Before changing code, read the documents relevant to the task:
+## Read these sources first
 
-- Project-wide strategy / architecture posture: `docs/PROJECT_STRATEGY_AND_ARCHITECTURE_PRINCIPLES.md`
-- Product direction / stage order: `docs/FORECASTING_ROADMAP.md`
-- Frozen V2 product semantics: `docs/V2_PRODUCT_CONTRACT.md`
-- Deterministic V2 formulas, thresholds, correctness and promotion rules: `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md`
-- Tactical execution order / gates: `docs/PROJECT_EXECUTION_PLAN.md`
-- Empirical falsification protocol: `docs/V2_EMPIRICAL_RED_TEAM_PLAN.md`
-- Mathematical hypotheses and freeze/test status: `docs/V2_MATHEMATICAL_HYPOTHESIS_REGISTER.md`
-- Future product hypothesis parking lot: `docs/PRODUCT_HYPOTHESES.md`
-- Open risks and technical debt: `docs/PROJECT_RISK_AND_DEBT_REGISTER.md`
-- Stage 2 feature / percentile contracts: `docs/STAGE2_SPEC.md` and `docs/STAGE2_CLARIFICATIONS.md`
-- Runtime config: `config/v2.yaml` and `config/stage2.yaml`
+For any new task, use this authority order:
 
-The root `README.md` contains useful Stage-1 history but is not canonical for current V2 semantics. When README and V2 documents differ, follow the V2 contracts/roadmap.
+1. `docs/PROJECT_STATUS.md` — current posture and freeze;
+2. `docs/RESEARCH_ROADMAP.md` — active execution order;
+3. `docs/EDGE_RESEARCH_PROTOCOL.md` — research/validation rules;
+4. `docs/HISTORICAL_DATA_STRATEGY.md` — data evidence strategy;
+5. `docs/ACTIVE_RESEARCH_RISKS.md` — current inference risks;
+6. `docs/RESEARCH_LEDGER.md` — consumed windows/hypothesis history;
+7. `docs/DOCUMENTATION_INDEX.md` — current vs frozen/historical docs;
+8. `docs/PROJECT_HISTORY.md` — why the project evolved into the current posture.
+
+For `E1-RUN-001`, also read its frozen preregistration and `docs/e1/` artifacts. Those research records remain authoritative for reproducing that experiment even when current project direction has changed.
+
+Old `FORECASTING_ROADMAP`, Stage1/Stage2/V2 product/correctness documents are historical/frozen references, not current roadmap authority. See `docs/DOCUMENTATION_INDEX.md`.
+
+## Hard development freeze
+
+Unless a task explicitly changes the project posture, do not build:
+
+- Stage 6+ lifecycle/product work;
+- new production setup families;
+- new production thresholds/scoring/confidence systems;
+- ML/adaptive tuning;
+- product Telegram/UI features unrelated to research;
+- V2 production enable/deploy;
+- speculative generic frameworks;
+- new data/features merely to rescue weak results.
+
+Allowed work is research-supporting work: historical expansion, reproducible datasets, hypothesis tooling, baselines/controls, empirical evaluation, correctness fixes that protect evidence, and completion of already-frozen experiments.
+
+## Research governance
+
+Research must try to falsify hypotheses rather than protect the existing implementation.
+
+Rules:
+
+- engineering correctness != predictive validity;
+- threshold/parameter search is allowed on development data;
+- validation/OOS that influences a rule change becomes consumed;
+- do not tune against the same OOS and still call it untouched;
+- prefer stable parameter plateaus/monotonic score-outcome relationships over isolated optima;
+- track material search surface / repeated variants;
+- simple baselines and negative controls are mandatory for edge claims;
+- report clustering/effective N, regime concentration and missingness;
+- `NO EDGE`, `REJECTED`, `INCONCLUSIVE_SAMPLE` are valid outcomes;
+- a failed hypothesis may be replaced by a new version/hypothesis, but never retroactively rescued inside the old confirmatory run.
+
+## Historical data rules
+
+Do not let the youngest/richest source constrain every research question.
+
+Use long-history CORE datasets to test mechanisms and shorter RICH overlap datasets to test incremental feature value.
+
+Preserve:
+
+- no lookahead/as-of semantics;
+- source/provider granularity;
+- explicit evidence tiers;
+- gap/missingness denominators;
+- deterministic dataset/version provenance.
+
+Never turn 5m source observations into genuine 1m information by forward-fill/resampling.
+
+## E1-RUN-001 load-bearing rule
+
+`E1-RUN-001` remains frozen until completed or explicitly closed as technically incomplete.
+
+Do not change its:
+
+- TP/CB/FB definitions;
+- thresholds/directions;
+- horizons;
+- ablation/control definitions;
+- delay/cost grid;
+- holdout split;
+- verdict criteria.
+
+The final holdout may be opened only by its frozen one-shot evaluator after the timestamp-only coverage gate passes. Correctness fixes require explicit documentation and may not be motivated by observed holdout metrics.
+
+## History-preservation rule
+
+Do not “clean” the repository by erasing meaningful failed/superseded work.
+
+Preserve historically meaningful material when it documents:
+
+- an earlier project thesis;
+- a frozen model/contract;
+- an experiment/preregistration/result;
+- a failed/null hypothesis;
+- a reason for a strategic pivot.
+
+Cleanup should remove **ambiguity and duplication**, not evidence of how the project learned.
+
+When an old active document is shortened into a superseded pointer, ensure its role is covered by `docs/PROJECT_HISTORY.md` and/or an immutable git reference.
 
 ## Scope discipline
 
-- Make the smallest change that satisfies the explicit task and acceptance criteria.
-- Do not opportunistically refactor adjacent systems.
-- If working on an existing PR, stay on that PR/branch unless explicitly told otherwise.
-- Do not create, rename, merge, or retarget branches/PRs unless the task asks for it.
-- Never merge, deploy, or touch production/VPS state unless explicitly authorized.
-- Never expose or commit `.env`, tokens, credentials, chat IDs, private keys, or other secrets.
-- If the correct owner/layer is genuinely unclear, investigate and report the ambiguity instead of inventing architecture or broadening scope.
-- Product hypotheses recorded in `docs/PRODUCT_HYPOTHESES.md` are a parking lot, not roadmap scope. Do not implement them without an explicit later product-direction decision.
-
-## Future-extensibility guardrail
-
-Preserve natural boundaries between reusable platform capabilities and V2-specific logic **when the current task actually exposes such a boundary**. Do not build speculative universal abstractions.
-
-When ownership is ambiguous, use the two project-level design checks from `docs/PROJECT_STRATEGY_AND_ARCHITECTURE_PRINCIPLES.md`:
-
-1. **Second-engine test:** would a future independent analytical engine need private V2 internals to reuse the capability?
-2. **Removal test:** would removing V2 unnecessarily delete a capability that is conceptually useful outside forecasting?
-
-A positive answer is a reason to inspect the boundary, not automatic authorization to refactor. Current scope and frozen contracts still win.
-
-Prefer structured, traceable analytical results over presentation-layer narrative as the source of truth. UI/Telegram/LLM wording must not silently become the mathematical contract.
-
-## V2 research freeze — load-bearing rule
-
-An unresolved market or mathematical hypothesis is NOT authorization to modify V2-v0.
-
-Unless the task explicitly authorizes a versioned model change, do not change:
-
-- `rules_version` or `config/v2.yaml` `enabled`
-- regime/bias/compression thresholds
-- percentile windows or evidence transforms
-- setup lookbacks, pullback multipliers, confirmation ages, horizons
-- protection-buffer or setup-strength formulas
-- OI semantics, agreement thresholds, or setup-family definitions
-
-Correctness/statistical-validity defects that would invalidate the experiment may be fixed, but distinguish them explicitly from uncertain market hypotheses. Do not invent a numeric threshold merely because it looks more reasonable.
+- Make the smallest change that satisfies the active research task.
+- Do not opportunistically resume product development.
+- Do not merge/deploy unless explicitly authorized.
+- Never commit `.env`, tokens, credentials, chat IDs, private keys or other secrets.
+- Preserve failed/null research artifacts; remove stale planning authority instead of rewriting historical evidence.
+- When current and historical docs disagree about present execution, current status/roadmap wins. When reproducing a historical experiment, its frozen contract wins.
 
 ## Core correctness invariants
 
-Preserve these unless a reviewed contract explicitly changes them:
+- decision boundary `T` may only use information available as-of `T`;
+- exact timeframe-aligned bucket identity matters;
+- missing/immature data differs from malformed/corrupt data;
+- do not silently fall back across windows/versions/symbols/market types;
+- preserve deterministic replay/provenance;
+- preserve raw-data no-downgrade behavior;
+- presentation/LLM/Telegram wording is downstream of structured analytical truth.
 
-- No lookahead: historical inputs for decision boundary `T` must be available as-of `T` under the relevant contract.
-- Exact bucket identity matters; do not replace timeframe-aligned bucket timestamps with a generic decision timestamp.
-- Missing/immature data is different from malformed/corrupted data. Missingness may become unavailable/not-ready; corruption remains fail-closed with the owning domain error.
-- Do not silently fall back across percentile windows, calculation versions, symbols, market types, or buckets.
-- Preserve deterministic replay/provenance identity.
-- Preserve raw-data no-downgrade behavior for optional fidelity fields.
-- Multi-timeframe inputs are semantic roles, not independent statistical votes; do not invent double-counting/voting logic.
+## Tests and validation
 
-## Research-governance behavior
+CI uses Python 3.11 with `requirements-dev.txt`.
 
-For audit / empirical-validation tasks:
-
-- Try to falsify the current hypothesis; do not optimize toward a preferred result.
-- Separate `BUG/CORRECTNESS`, `STATISTICAL_VALIDITY_GAP`, `HYPOTHESIS`, `REDUNDANCY_RISK`, and `OVERFITTING_RISK`.
-- `HYPOTHESIS` findings are normally `FREEZE_AND_TEST`, not immediate formula edits.
-- Do not use future returns to choose a measurement/correctness invariant.
-- Prefer characterization/adversarial tests before behavioral changes when the contract is intentionally frozen.
-- `UNKNOWN`, `NO EDGE`, and `INSUFFICIENT DATA` are valid outcomes; do not manufacture certainty or rescue a failed hypothesis with post-hoc tuning.
-
-## Qodo / PR review workflow
-
-If the task references Qodo or an existing PR review:
-
-1. Read the latest PR HEAD and the full current review context.
-2. Adjudicate every finding as `VALID`, `FALSE_POSITIVE`, or `OUT_OF_SCOPE`.
-3. Fix valid findings in the same PR when possible; do not blindly implement every suggestion.
-4. Explain rejected findings with code/contract evidence.
-5. Re-run focused tests and required full validation after amendments.
-6. Re-check the new HEAD; a clean review of an older commit does not cover later commits.
-
-## Development environment and tests
-
-CI uses Python 3.11 and installs `requirements-dev.txt`. Run focused tests for the touched module first, then the required wider suite. Mirror focused CI commands from `.github/workflows/ci.yml` when relevant.
-
-Default validation after code changes:
+Default code validation when feasible:
 
 ```bash
 python -m compileall -q .
@@ -113,23 +140,16 @@ python -m pytest -q
 git diff --check
 ```
 
-If touching storage/PostgreSQL behavior, run real PostgreSQL regressions when the environment supports them. CI uses PostgreSQL 16 and explicitly runs:
+Use focused tests first. If a real PostgreSQL behavior is relevant, a skipped integration test is not proof of correctness.
 
-```bash
-python -m pytest -q tests/storage/test_klines_no_downgrade.py -v
-```
-
-A skipped integration test is not proof of database correctness. Do not claim real-DB validation when the service was unavailable.
-
-For docs-only changes, still run checks required by the task/contract when feasible; at minimum run `git diff --check` and any focused tests whose behavior the documentation describes.
+For docs-only changes, inspect references and `git diff --check`; do not fabricate test/CI results that were not run.
 
 ## Before finishing
 
-- Inspect the final diff for unintended files or semantic drift.
-- Confirm V2 remains disabled unless the task explicitly says otherwise.
-- Confirm frozen V2-v0 parameters/formulas are unchanged when the task is not a model-version change.
-- Report focused tests, full-suite result, compile check and `git diff --check` accurately; never fabricate a result.
-- Report skipped/unavailable validation explicitly, plus changed files and important non-changes.
-- Do not merge or deploy unless explicitly authorized.
-
-Prefer precise, narrow patches that are easy for a human reviewer and Qodo to verify over broad cleanup changes.
+- inspect final diff for accidental product-scope expansion;
+- confirm V2 remains disabled unless explicitly authorized;
+- confirm frozen experiments were not semantically changed;
+- report what validation actually ran;
+- update `docs/DOCUMENTATION_INDEX.md` when documentation authority changes;
+- update `docs/RESEARCH_LEDGER.md` when a research window/result/hypothesis is consumed;
+- update `docs/PROJECT_HISTORY.md` when a major project-level philosophy/direction change occurs.

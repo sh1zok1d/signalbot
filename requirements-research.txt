@@ -1,0 +1,9 @@
+# Research-only extras for CORE_BTC_BINANCE_V0 parquet I/O.
+# Do NOT merge into production requirements.txt.
+#
+# Install (from the repository root, after requirements.txt):
+#   pip install -r requirements-research.txt
+#
+# CI already installs requirements-dev.txt, which layers the same
+# pyarrow==17.0.0 pin on top of production requirements.
+pyarrow==17.0.0

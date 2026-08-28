@@ -4,6 +4,10 @@
 #
 #   pip install -r requirements-dev.txt
 #
+# The CORE_BTC_BINANCE_V0 materializer needs pyarrow. A research VPS that
+# is not running full CI/dev extras should install requirements-research.txt
+# instead (same pyarrow pin; not a production dependency).
+#
 -r requirements.txt
 
-pytest==9.1.1
+pyarrow==17.0.0
