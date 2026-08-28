@@ -63,8 +63,15 @@ Require `SIGNED_PB_RET<0`.
 
 Require `0.25<=PULLBACK_DEPTH<0.40`.
 
-`TREND_PCTL_L(t0)` is H04's causal trailing-30d deterministic midrank
-percentile of `abs(TREND_RET_L)`, current record excluded. Require >=0.80.
+`TREND_PCTL_L(t0)` is H04's causal deterministic midrank percentile of
+`abs(TREND_RET_L)` against the **same L**, UTC-epoch-aligned 15m reference
+population with reference times `t_ref ∈ [t0-30 calendar days,t0)`.
+The current t0 is excluded and no later/full-history observation is allowed:
+
+`TREND_PCTL_L(t0) = (count(ref < x) + 0.5*count(ref == x))/N_ref`,
+where `x=abs(TREND_RET_L(t0))`.
+
+Require `TREND_PCTL_L(t0)>=0.80`.
 
 ## 5. Refractory rule
 
@@ -204,7 +211,9 @@ Seed `20260905`, 100 replicates.
 
 At each weekly fit, permute only historical recovery-state labels within:
 
-`calendar_month(T_e) × trend_direction × trend_strength_bin`
+`calendar_month_utc(T_e) × trend_direction × trend_strength_bin`
+
+where `calendar_month_utc(T_e)` is exactly UTC `YYYY-MM`
 
 where trend-strength bins are exactly H04's existing frozen bins:
 
@@ -214,13 +223,29 @@ where trend-strength bins are exactly H04's existing frozen bins:
 Sort by canonical EVENT_ID before RNG. Seed:
 `20260905|replicate|L|H|week_start_S|stratum_id`.
 
+Exact RNG encoding:
+
+- `replicate_index ∈ {0,...,99}` (zero-based);
+- `week_start_ms` = integer UTC epoch milliseconds for Monday 00:00:00Z;
+- trend direction labels are exactly `UPTREND` or `DOWNTREND`;
+- trend-strength labels are exactly `P80_90` for `[0.80,0.90)` and
+  `P90_100` for `[0.90,1.00]`;
+- `stratum_id` is exactly
+  `YYYY-MM|DIR=<UPTREND|DOWNTREND>|TREND_BIN=<P80_90|P90_100>`;
+- raw UTF-8 text is
+  `20260905|replicate_index|L|H|week_start_ms|stratum_id`;
+- `seed_int=int.from_bytes(sha256(raw_utf8).digest()[:8],"big",signed=False)`;
+- RNG is exactly `numpy.random.default_rng(seed_int)`.
+
 Use only real candidate-training rows, keep all baseline features/targets fixed,
 and leave current-week true recovery states unchanged. Evaluate on exact
-real-candidate support. Real mean AE improvement must exceed placebo p95.
+real-candidate support. Real mean AE improvement must exceed placebo p95,
+computed with `numpy.quantile(...,0.95,method="linear")`.
 
 ## 13. Bootstrap, stability, search surface
 
-UTC-week bootstrap: seed `20260906`, 2000 replicates, 95% CI.
+UTC-week bootstrap: seed `20260906`, 2000 replicates, 95% CI. The 2.5th and
+97.5th percentiles use `numpy.quantile(...,method="linear")`.
 
 Years fixed 2020–2024. Both uptrend and downtrend sides are mandatory.
 
