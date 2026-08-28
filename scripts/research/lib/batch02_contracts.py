@@ -16,6 +16,7 @@ fail-open Batch01 patterns.
 """
 from __future__ import annotations
 
+import hashlib
 import math
 from bisect import bisect_left, bisect_right, insort_right
 from collections import deque
@@ -26,6 +27,7 @@ from typing import Mapping, Sequence
 import numpy as np
 
 from scripts.research.lib.research_harness import (
+    ArtifactExistsError,
     AuthorizedDataset,
     DatasetIdentityContract,
     OutcomeAccessPolicy,
@@ -118,9 +120,84 @@ def prepare_batch02_run(
     )
 
 
+def _evidence_lock_path(path: Path) -> Path:
+    resolved = path.resolve(strict=False)
+    key = hashlib.sha256(str(resolved).encode("utf-8")).hexdigest()
+    return path.parent / ".batch02_evidence_locks" / f"{key}.json"
+
+
 def persist_batch02_result(path: Path, payload: Mapping[str, object]) -> str:
-    """Persist Batch02 evidence once; existing artifacts are never overwritten."""
+    """Persist one logical Batch02 artifact with a durable fail-closed lock.
+
+    The sibling lock survives deletion of the result file. Therefore a later
+    retry cannot silently recreate the same logical artifact path merely by
+    unlinking/renaming the JSON first. Manual deletion of both result and lock
+    remains an operator-level filesystem action and is outside process-level
+    immutability; future B2 source policy forbids such mutation calls.
+    """
+    if path.name == "" or path.parent.name == ".batch02_evidence_locks":
+        raise Batch02ContractError("invalid Batch02 result path")
+
+    lock_path = _evidence_lock_path(path)
+    lock_payload = {
+        "artifact_kind": "batch02_logical_result_reservation",
+        "logical_result_path": str(path.resolve(strict=False)),
+    }
+    try:
+        write_json_new(lock_path, lock_payload)
+    except ArtifactExistsError as exc:
+        raise ArtifactExistsError(
+            f"refusing to recreate previously reserved Batch02 artifact: {path}"
+        ) from exc
+
+    # Deliberately leave the reservation in place on every failure. A partial
+    # or failed evidence attempt must require forensic/operator intervention,
+    # never an automatic retry that could replace experimental evidence.
     return write_json_new(path, dict(payload))
+
+
+def load_authorized_parquet_table(
+    authorized_dataset: AuthorizedDataset,
+    *,
+    columns: Sequence[str],
+):
+    """Read checksum-bound parquet only from a Harness-minted dataset proof.
+
+    Future Batch02 hypothesis code must consume the returned in-memory table;
+    it must not receive dataset_root paths or call filesystem/parquet readers
+    directly.
+    """
+    if not isinstance(authorized_dataset, AuthorizedDataset):
+        raise Batch02ContractError(
+            "authorized_dataset must be an AuthorizedDataset proof"
+        )
+    authorized_dataset.assert_minted()
+
+    names = tuple(columns)
+    if (
+        not names
+        or any(type(name) is not str or not name for name in names)
+        or len(set(names)) != len(names)
+    ):
+        raise Batch02ContractError("columns must be unique non-empty strings")
+
+    try:
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+    except ImportError as exc:
+        raise Batch02ContractError(
+            "pyarrow is required for authorized Batch02 parquet loading"
+        ) from exc
+
+    tables = [
+        pq.read_table(path, columns=list(names))
+        for path in authorized_dataset.list_monthly_partitions()
+    ]
+    if not tables:
+        raise Batch02ContractError("authorized dataset returned no partitions")
+    if len(tables) == 1:
+        return tables[0]
+    return pa.concat_tables(tables)
 
 
 def rolling_midrank_percentile(
