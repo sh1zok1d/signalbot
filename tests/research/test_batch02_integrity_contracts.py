@@ -11,6 +11,7 @@ from scripts.research.b2_01_volatility_transition_lib import (
 from scripts.research.lib import batch02_contracts
 from scripts.research.lib.batch02_contracts import (
     Batch02ContractError,
+    Batch02RunContext,
     persist_batch02_result,
     prepare_batch02_run,
     rolling_midrank_percentile,
@@ -162,6 +163,11 @@ def test_prepare_batch02_run_orders_authorization_before_identity_build(
     tmp_path: Path,
 ):
     freeze = object.__new__(VerifiedCodeFreeze)
+    monkeypatch.setattr(
+        batch02_contracts.Batch02RunContext,
+        "assert_minted",
+        lambda self: None,
+    )
     authorized = object()
     identity_payload = {"proof": "ok"}
     calls: list[str] = []
@@ -200,7 +206,7 @@ def test_prepare_batch02_run_orders_authorization_before_identity_build(
     assert ctx.run_identity is identity_payload
 
 
-def test_persist_batch02_result_reserves_then_writes_immutably(
+def test_persist_batch02_result_reserves_then_writes_provenance_bound(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ):
@@ -210,9 +216,19 @@ def test_persist_batch02_result_reserves_then_writes_immutably(
         calls.append((path, payload))
         return "d" * 64
 
+    ctx = object.__new__(Batch02RunContext)
+    object.__setattr__(ctx, "run_identity", {"proof": "canonical"})
+    object.__setattr__(ctx, "_run_identity_sha256", "e" * 64)
+
+    monkeypatch.setattr(batch02_contracts, "_reverify_run_code", lambda value: None)
     monkeypatch.setattr(batch02_contracts, "write_json_new", fake_write)
+
     target = tmp_path / "result.json"
-    digest = persist_batch02_result(target, {"status": "closed"})
+    digest = persist_batch02_result(
+        target,
+        {"status": "closed"},
+        run_context=ctx,
+    )
 
     assert digest == "d" * 64
     assert len(calls) == 2
@@ -220,4 +236,28 @@ def test_persist_batch02_result_reserves_then_writes_immutably(
     assert lock_path.parent == tmp_path / ".batch02_evidence_locks"
     assert lock_payload["artifact_kind"] == "batch02_logical_result_reservation"
     assert lock_payload["logical_result_path"] == str(target.resolve(strict=False))
-    assert calls[1] == (target, {"status": "closed"})
+    assert lock_payload["run_identity_sha256"] == "e" * 64
+    assert calls[1] == (
+        target,
+        {
+            "status": "closed",
+            "provenance": {"proof": "canonical"},
+        },
+    )
+
+
+def test_persist_rejects_caller_supplied_provenance(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    ctx = object.__new__(Batch02RunContext)
+    object.__setattr__(ctx, "run_identity", {"proof": "canonical"})
+    object.__setattr__(ctx, "_run_identity_sha256", "e" * 64)
+    monkeypatch.setattr(batch02_contracts, "_reverify_run_code", lambda value: None)
+
+    with pytest.raises(Batch02ContractError, match="must not supply provenance"):
+        persist_batch02_result(
+            tmp_path / "result.json",
+            {"provenance": {"proof": "forged"}},
+            run_context=ctx,
+        )
