@@ -221,7 +221,8 @@ def test_placebo_prediction_does_not_read_unmatured_or_future_label_source():
     p1 = _placebo_candidate_prediction(**kwargs)
 
     changed = transition.copy()
-    changed[5:] = np.asarray([2, 2, 2, 2], dtype=np.int16)
+    changed[5] = 2  # Unmatured source at T.
+    changed[7:] = 2  # Strictly future records; keep evaluation state i=6 fixed.
     p2 = _placebo_candidate_prediction(
         **{**kwargs, "transition_state": changed}
     )
