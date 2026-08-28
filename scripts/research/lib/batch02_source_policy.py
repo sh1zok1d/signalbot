@@ -1,10 +1,19 @@
 """Static fail-closed policy for future Signalbot Batch02 runtime modules.
 
 This is defense in depth around the runtime contracts in batch02_contracts.
-It is intentionally strict: future B2-02+ code may transform already-loaded
-in-memory data, but filesystem/parquet access, evidence mutation, frozen
-Batch01 runtime reuse, dynamic imports, and alternate rolling-rank helpers are
-not allowed in the future-B2 import closure.
+It is intentionally strict about mechanically auditable integrity boundaries:
+future B2-02+ code may transform already-loaded in-memory data, but direct
+filesystem/parquet access, evidence mutation, frozen Batch01 runtime reuse,
+dynamic imports, and alternate named/library rank APIs are not allowed in the
+future-B2 import closure.
+
+This module deliberately does NOT claim that AST linting can prove arbitrary
+numerical Python is semantically equivalent to rolling_midrank_percentile().
+The canonical primitive is behaviorally tested; whether a preregistered
+hypothesis requires a percentile feature and wires that feature to the
+canonical primitive is a hypothesis-freeze/code-review invariant, not a claim
+made by this source linter. Keeping that boundary explicit avoids a false
+"one semantics" guarantee that neutral-name arithmetic can trivially evade.
 """
 from __future__ import annotations
 
@@ -37,6 +46,9 @@ _FORBIDDEN_DIRECT_MODULE_PREFIXES = (
     "importlib",
     "duckdb",
     "fsspec",
+    "sqlite3",
+    "sqlalchemy",
+    "mmap",
 )
 _FORBIDDEN_BARE_CALLS = {
     "open",
@@ -75,6 +87,14 @@ _FORBIDDEN_IO_ATTRIBUTES = {
     "loadtxt",
     "genfromtxt",
     "fromfile",
+    "memmap",
+    "memory_map",
+    "read_sql",
+    "read_hdf",
+    "glob",
+    "rglob",
+    "iterdir",
+    "connect",
     "list_monthly_partitions",
 }
 _FORBIDDEN_RANK_CALLS = {
@@ -98,8 +118,14 @@ _FORBIDDEN_IMPORTED_SYMBOLS = {
     "loadtxt",
     "genfromtxt",
     "fromfile",
+    "memmap",
+    "memory_map",
+    "read_sql",
+    "read_hdf",
+    "connect",
 }
 _RANK_NAME = re.compile(r"(?:^|_)(?:rank|percentile|pctl)(?:_|$)", re.IGNORECASE)
+_CANONICAL_CONTRACTS_MODULE = "scripts.research.lib.batch02_contracts"
 _CANONICAL_RANK_NAME = "rolling_midrank_percentile"
 _REQUIRED_RUNNER_CALLS = {
     "verify_batch02_code",
@@ -205,6 +231,46 @@ def _call_name(node: ast.Call) -> str | None:
     return None
 
 
+def _contains_prepare_reference(
+    *,
+    repo_root: Path,
+    path: Path,
+    tree: ast.AST,
+) -> bool:
+    """Detect direct/aliased/indirected reachability to the canonical preparer.
+
+    Discovery must not depend on the eventual Call identifier.  In particular,
+    ImportFrom aliases, assigned references, functools.partial(), module-
+    qualified calls, and getattr(..., "prepare_batch02_run") all leave at
+    least one of the references below in the importing module.
+    """
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            base = _resolve_import_from(
+                repo_root=repo_root,
+                current_path=path,
+                node=node,
+            )
+            if base == _CANONICAL_CONTRACTS_MODULE and any(
+                alias.name in {"prepare_batch02_run", "*"}
+                for alias in node.names
+            ):
+                return True
+        elif isinstance(node, ast.Name) and node.id == "prepare_batch02_run":
+            return True
+        elif (
+            isinstance(node, ast.Attribute)
+            and node.attr == "prepare_batch02_run"
+        ):
+            return True
+        elif (
+            isinstance(node, ast.Constant)
+            and node.value == "prepare_batch02_run"
+        ):
+            return True
+    return False
+
+
 def _import_origin(
     node: ast.Import | ast.ImportFrom,
     *,
@@ -262,17 +328,29 @@ def _lint_module(
 
             for local_name, origin in _import_origin(node, resolved_base=base):
                 origin_module = origin.rsplit(".", 1)[0] if "." in origin else origin
+                origin_symbol = origin.rsplit(".", 1)[-1]
                 if local_name in _PROTECTED_BINDINGS:
-                    expected = (
-                        "scripts.research.lib.batch02_contracts."
-                        + local_name
-                    )
+                    expected = _CANONICAL_CONTRACTS_MODULE + "." + local_name
                     if origin != expected:
                         violations.append(
                             SourceViolation(
                                 path,
                                 f"canonical Batch02 binding shadowed by import: "
                                 f"{local_name} <- {origin}",
+                                getattr(node, "lineno", None),
+                            )
+                        )
+                if (
+                    isinstance(node, ast.ImportFrom)
+                    and base == _CANONICAL_CONTRACTS_MODULE
+                    and origin_symbol in _PROTECTED_BINDINGS
+                ):
+                    if local_name != origin_symbol:
+                        violations.append(
+                            SourceViolation(
+                                path,
+                                "canonical Batch02 entry point may not be aliased: "
+                                f"{origin_symbol} as {local_name}",
                                 getattr(node, "lineno", None),
                             )
                         )
@@ -316,32 +394,28 @@ def _lint_module(
                     )
                 if (
                     isinstance(node, ast.ImportFrom)
-                    and base == "scripts.research.lib.batch02_contracts"
-                    and local_name in {
+                    and base == _CANONICAL_CONTRACTS_MODULE
+                    and origin_symbol in {
                         *_REQUIRED_RUNNER_CALLS,
                         _CANONICAL_RANK_NAME,
                         "load_authorized_parquet_table",
                     }
+                    and local_name == origin_symbol
                 ):
-                    # Aliasing canonical security-sensitive entry points is
-                    # intentionally rejected so call-site policy is auditable.
-                    original = next(
-                        (
-                            alias.name
-                            for alias in node.names
-                            if (alias.asname or alias.name) == local_name
-                        ),
-                        local_name,
+                    canonical_imports.add(origin_symbol)
+
+            if (
+                isinstance(node, ast.ImportFrom)
+                and base == _CANONICAL_CONTRACTS_MODULE
+                and any(alias.name == "*" for alias in node.names)
+            ):
+                violations.append(
+                    SourceViolation(
+                        path,
+                        "star import from canonical Batch02 contracts is forbidden",
+                        getattr(node, "lineno", None),
                     )
-                    if original != local_name:
-                        violations.append(
-                            SourceViolation(
-                                path,
-                                f"canonical Batch02 entry point may not be aliased: {origin}",
-                                getattr(node, "lineno", None),
-                            )
-                        )
-                    canonical_imports.add(local_name)
+                )
 
         if isinstance(node, ast.Call):
             name = _call_name(node)
@@ -432,6 +506,20 @@ def _lint_module(
                 )
             )
 
+        if isinstance(node, ast.Attribute):
+            if (
+                isinstance(node.ctx, (ast.Store, ast.Del))
+                and node.attr in _PROTECTED_BINDINGS
+            ):
+                violations.append(
+                    SourceViolation(
+                        path,
+                        "canonical Batch02 module attribute may not be reassigned: "
+                        f".{node.attr}",
+                        getattr(node, "lineno", None),
+                    )
+                )
+
         if isinstance(node, ast.Name):
             if isinstance(node.ctx, ast.Store) and node.id in _PROTECTED_BINDINGS:
                 violations.append(
@@ -477,26 +565,27 @@ def _lint_module(
     return violations
 
 
-def _contains_prepare_call(path: Path) -> bool:
-    try:
-        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    except (OSError, UnicodeDecodeError, SyntaxError) as exc:
-        raise Batch02SourcePolicyError(
-            f"unable to inspect potential Batch02 source {path}: {exc}"
-        ) from exc
-    return any(
-        isinstance(node, ast.Call)
-        and _call_name(node) == "prepare_batch02_run"
-        for node in ast.walk(tree)
-    )
-
-
-def _discover_future_b2_entrypoints(research: Path) -> list[Path]:
+def _discover_future_b2_entrypoints(
+    research: Path,
+    *,
+    repo_root: Path,
+) -> list[Path]:
     out: list[Path] = []
     for path in research.rglob("*.py"):
-        if _FUTURE_B2_FILE.match(path.name) or _contains_prepare_call(path):
-            # Trusted contract implementation contains no prepare call; source
-            # policy itself is likewise not an experiment entrypoint.
+        try:
+            tree = ast.parse(
+                path.read_text(encoding="utf-8"),
+                filename=str(path),
+            )
+        except (OSError, UnicodeDecodeError, SyntaxError) as exc:
+            raise Batch02SourcePolicyError(
+                f"unable to inspect potential Batch02 source {path}: {exc}"
+            ) from exc
+        if _FUTURE_B2_FILE.match(path.name) or _contains_prepare_reference(
+            repo_root=repo_root,
+            path=path,
+            tree=tree,
+        ):
             out.append(path.resolve())
     return sorted(set(out))
 
@@ -515,7 +604,10 @@ def validate_batch02_source_tree(
     """
     research = research_dir.resolve()
     root = (repo_root or research.parents[1]).resolve()
-    entrypoints = _discover_future_b2_entrypoints(research)
+    entrypoints = _discover_future_b2_entrypoints(
+        research,
+        repo_root=root,
+    )
     if not entrypoints:
         return ()
 
@@ -541,13 +633,13 @@ def validate_batch02_source_tree(
                 f"unable to inspect future Batch02 source {path}: {exc}"
             ) from exc
 
-        has_prepare_call = any(
-            isinstance(node, ast.Call)
-            and _call_name(node) == "prepare_batch02_run"
-            for node in ast.walk(tree)
+        has_prepare_reference = _contains_prepare_reference(
+            repo_root=root,
+            path=path,
+            tree=tree,
         )
         is_runner = bool(
-            has_prepare_call
+            has_prepare_reference
             or (
                 _FUTURE_B2_FILE.match(path.name)
                 and not path.name.endswith("_lib.py")
