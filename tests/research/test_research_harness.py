@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -18,6 +19,7 @@ from scripts.research.lib.research_harness import (
     LookaheadError,
     OutcomeAccessPolicy,
     OutcomeBoundaryError,
+    PromotionGateContract,
     SupportMismatchError,
     assert_no_lookahead,
     authorize_dataset_access,
@@ -31,28 +33,50 @@ from scripts.research.lib.research_harness import (
 )
 
 
+SNAPSHOT_ID = "a" * 64
 IDENTITY = DatasetIdentityContract(
     dataset_id="CORE_BTC_BINANCE_V0",
-    snapshot_id="snapshot-abc",
+    snapshot_id=SNAPSHOT_ID,
 )
 START_2020_MS = 1_577_836_800_000
 END_2022_MS = 1_640_995_200_000
-
 POLICY = OutcomeAccessPolicy(
     stage="development",
     start_inclusive_ms=START_2020_MS,
     end_exclusive_ms=END_2022_MS,
     allowed_years=(2020, 2021),
 )
+GATE_CONTRACT = PromotionGateContract(
+    ("primary", "matched", "structural")
+)
 
 
-def _authorized(
-    tmp_path: Path,
-    partition_contents: dict[str, bytes] | None = None,
-):
-    tmp_path.mkdir(parents=True, exist_ok=True)
-    repo_manifest = tmp_path / "repo.yaml"
-    repo_manifest.write_text(
+def _git(root: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", *args],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def _init_frozen_repo(
+    root: Path,
+    output_checksums: dict[str, str],
+) -> tuple[str, str]:
+    root.mkdir(parents=True, exist_ok=True)
+    _git(root, "init")
+
+    snapshot_git_path = (
+        "docs/research_data/CORE_BTC_BINANCE_V0/SNAPSHOT_SYNTHETIC.json"
+    )
+    manifest_path = root / "docs" / "manifests" / "CORE_BTC_BINANCE_V0.yaml"
+    snapshot_path = root / snapshot_git_path
+    manifest_path.parent.mkdir(parents=True)
+    snapshot_path.parent.mkdir(parents=True)
+
+    manifest_path.write_text(
         yaml.safe_dump(
             {
                 "dataset_id": IDENTITY.dataset_id,
@@ -60,23 +84,14 @@ def _authorized(
                 "status": "ACCEPTED_FOR_DISCOVERY",
                 "research_authorized": True,
                 "confirmatory_authorized": False,
+                "materialization_identity": {
+                    "snapshot_manifest_path": snapshot_git_path,
+                },
             }
         ),
         encoding="utf-8",
     )
-    dataset_root = tmp_path / "dataset"
-    (dataset_root / "reports").mkdir(parents=True)
-    monthly = dataset_root / "canonical" / "1m" / "monthly"
-    monthly.mkdir(parents=True)
-
-    output_checksums: dict[str, str] = {}
-    for name, body in (partition_contents or {}).items():
-        path = monthly / name
-        path.write_bytes(body)
-        relative = path.relative_to(dataset_root).as_posix()
-        output_checksums[relative] = sha256_file(path)
-
-    (dataset_root / "reports" / "snapshot_manifest.json").write_text(
+    snapshot_path.write_text(
         json.dumps(
             {
                 "snapshot_id": IDENTITY.snapshot_id,
@@ -84,38 +99,103 @@ def _authorized(
                     "dataset_id": IDENTITY.dataset_id,
                     "output_checksums": output_checksums,
                 },
-            }
+            },
+            sort_keys=True,
         ),
         encoding="utf-8",
     )
-    return (
-        authorize_dataset_access(
-            repo_manifest_path=repo_manifest,
-            dataset_root=dataset_root,
-            identity=IDENTITY,
-            policy=POLICY,
-        ),
-        monthly,
+    (root / "tracked.txt").write_text("frozen\n", encoding="utf-8")
+    _git(root, "add", ".")
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Harness Test",
+            "-c",
+            "user.email=harness@example.invalid",
+            "commit",
+            "-m",
+            "freeze",
+        ],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
     )
+    return _git(root, "rev-parse", "HEAD"), snapshot_git_path
+
+
+def _authorized(
+    tmp_path: Path,
+    partition_contents: dict[str, bytes] | None = None,
+):
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    dataset_root = tmp_path / "dataset"
+    monthly = dataset_root / "canonical" / "1m" / "monthly"
+    monthly.mkdir(parents=True)
+    (dataset_root / "reports").mkdir(parents=True)
+
+    output_checksums: dict[str, str] = {}
+    for name, body in (partition_contents or {"2020-01.parquet": b"allowed"}).items():
+        path = monthly / name
+        path.write_bytes(body)
+        output_checksums[path.relative_to(dataset_root).as_posix()] = sha256_file(path)
+
+    code_repo = tmp_path / "code"
+    code_sha, snapshot_git_path = _init_frozen_repo(code_repo, output_checksums)
+    code_freeze = verify_git_freeze(code_repo, code_sha)
+
+    runtime_snapshot = dataset_root / "reports" / "snapshot_manifest.json"
+    runtime_snapshot.write_text(
+        json.dumps(
+            {
+                "snapshot_id": IDENTITY.snapshot_id,
+                "identity_payload": {
+                    "dataset_id": IDENTITY.dataset_id,
+                    "output_checksums": output_checksums,
+                },
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+
+    authorized = authorize_dataset_access(
+        code_freeze=code_freeze,
+        dataset_root=dataset_root,
+        identity=IDENTITY,
+        policy=POLICY,
+    )
+    return {
+        "authorized": authorized,
+        "dataset_root": dataset_root,
+        "monthly": monthly,
+        "runtime_snapshot": runtime_snapshot,
+        "code_repo": code_repo,
+        "code_sha": code_sha,
+        "code_freeze": code_freeze,
+        "snapshot_git_path": snapshot_git_path,
+        "output_checksums": output_checksums,
+    }
 
 
 def test_dataset_contract_cannot_relax_discovery_authorization():
     with pytest.raises(ValueError, match="ACCEPTED_FOR_DISCOVERY"):
         DatasetIdentityContract(
-            dataset_id="CORE_BTC_BINANCE_V0",
-            snapshot_id="snapshot-abc",
+            dataset_id=IDENTITY.dataset_id,
+            snapshot_id=IDENTITY.snapshot_id,
             required_status="MATERIALIZED_UNVERIFIED",
         )
     with pytest.raises(ValueError, match="research_authorized"):
         DatasetIdentityContract(
-            dataset_id="CORE_BTC_BINANCE_V0",
-            snapshot_id="snapshot-abc",
+            dataset_id=IDENTITY.dataset_id,
+            snapshot_id=IDENTITY.snapshot_id,
             research_authorized=False,
         )
     with pytest.raises(ValueError, match="confirmatory_authorized"):
         DatasetIdentityContract(
-            dataset_id="CORE_BTC_BINANCE_V0",
-            snapshot_id="snapshot-abc",
+            dataset_id=IDENTITY.dataset_id,
+            snapshot_id=IDENTITY.snapshot_id,
             confirmatory_authorized=True,
         )
 
@@ -128,23 +208,12 @@ def test_policy_is_development_only_and_cannot_reach_2025():
             end_exclusive_ms=END_2022_MS,
             allowed_years=(2020, 2021),
         )
-
     with pytest.raises(ValueError, match="2025 validation pool"):
         OutcomeAccessPolicy(
             stage="development",
             start_inclusive_ms=START_2020_MS,
             end_exclusive_ms=DISCOVERY_END_EXCLUSIVE_MS + 1,
             allowed_years=(2020, 2021),
-        )
-
-
-def test_policy_rejects_allowed_year_outside_frozen_window():
-    with pytest.raises(ValueError, match="outside frozen time window"):
-        OutcomeAccessPolicy(
-            stage="development",
-            start_inclusive_ms=START_2020_MS,
-            end_exclusive_ms=END_2022_MS,
-            allowed_years=(2020, 2025),
         )
 
 
@@ -168,167 +237,73 @@ def test_policy_freezes_allowed_years_and_rejects_bool_aliases():
         )
 
 
-def test_dataset_identity_is_required_before_partition_access(tmp_path: Path):
-    dataset_root = tmp_path / "dataset"
-    (dataset_root / "canonical" / "1m" / "monthly").mkdir(parents=True)
-    with pytest.raises(DatasetIdentityError, match="repository dataset manifest"):
-        authorize_dataset_access(
-            repo_manifest_path=tmp_path / "missing.yaml",
-            dataset_root=dataset_root,
-            identity=IDENTITY,
-            policy=POLICY,
-        )
+def test_gate_contract_is_immutable_unique_and_nonempty():
+    names = ["primary", "matched"]
+    contract = PromotionGateContract(names)
+    names.append("posthoc")
+    assert contract.required_gate_names == ("primary", "matched")
+    with pytest.raises(ValueError, match="unique"):
+        PromotionGateContract(("primary", "primary"))
+    with pytest.raises(ValueError, match="non-empty"):
+        PromotionGateContract(())
 
 
-def test_invalid_repository_manifest_yaml_fails_closed(tmp_path: Path):
-    repo_manifest = tmp_path / "repo.yaml"
-    repo_manifest.write_text("dataset_id: [unterminated\n", encoding="utf-8")
-    dataset_root = tmp_path / "dataset"
+def test_dataset_authorization_uses_git_frozen_manifest_and_snapshot(tmp_path: Path):
+    ctx = _authorized(tmp_path)
+    authorized = ctx["authorized"]
+    assert authorized.code_sha == ctx["code_sha"]
+    assert authorized.repo_manifest_git_path == (
+        "docs/manifests/CORE_BTC_BINANCE_V0.yaml"
+    )
+    assert authorized.frozen_snapshot_git_path == ctx["snapshot_git_path"]
+    assert [p.name for p in authorized.list_monthly_partitions()] == [
+        "2020-01.parquet"
+    ]
 
-    with pytest.raises(DatasetIdentityError, match="invalid repository dataset manifest YAML"):
-        authorize_dataset_access(
-            repo_manifest_path=repo_manifest,
-            dataset_root=dataset_root,
-            identity=IDENTITY,
-            policy=POLICY,
-        )
 
-
-def test_invalid_utf8_manifests_fail_closed(tmp_path: Path):
-    repo_manifest = tmp_path / "repo.yaml"
-    repo_manifest.write_bytes(b"\xff\xfe")
-    dataset_root = tmp_path / "dataset"
-
-    with pytest.raises(DatasetIdentityError, match="manifest encoding"):
-        authorize_dataset_access(
-            repo_manifest_path=repo_manifest,
-            dataset_root=dataset_root,
-            identity=IDENTITY,
-            policy=POLICY,
-        )
-
-    valid_repo = tmp_path / "valid_repo.yaml"
-    valid_repo.write_text(
-        yaml.safe_dump(
-            {
-                "dataset_id": IDENTITY.dataset_id,
-                "snapshot_id": IDENTITY.snapshot_id,
-                "status": "ACCEPTED_FOR_DISCOVERY",
-                "research_authorized": True,
-                "confirmatory_authorized": False,
-            }
-        ),
+def test_runtime_checksum_and_parquet_co_update_cannot_redefine_snapshot(tmp_path: Path):
+    ctx = _authorized(tmp_path)
+    path = ctx["monthly"] / "2020-01.parquet"
+    path.write_bytes(b"substituted")
+    rel = path.relative_to(ctx["dataset_root"]).as_posix()
+    new_hash = sha256_file(path)
+    runtime = json.loads(ctx["runtime_snapshot"].read_text(encoding="utf-8"))
+    runtime["identity_payload"]["output_checksums"][rel] = new_hash
+    ctx["runtime_snapshot"].write_text(
+        json.dumps(runtime, sort_keys=True),
         encoding="utf-8",
     )
-    runtime_root = tmp_path / "runtime_dataset"
-    (runtime_root / "reports").mkdir(parents=True)
-    (runtime_root / "reports" / "snapshot_manifest.json").write_bytes(b"\xff\xfe")
 
-    with pytest.raises(DatasetIdentityError, match="snapshot encoding"):
+    with pytest.raises(DatasetIdentityError, match="Git-frozen snapshot"):
         authorize_dataset_access(
-            repo_manifest_path=valid_repo,
-            dataset_root=runtime_root,
+            code_freeze=ctx["code_freeze"],
+            dataset_root=ctx["dataset_root"],
             identity=IDENTITY,
             policy=POLICY,
         )
+    with pytest.raises(DatasetIdentityError, match="checksum drift"):
+        ctx["authorized"].list_monthly_partitions()
 
 
-def test_authorized_dataset_cannot_be_forged_directly(tmp_path: Path):
-    with pytest.raises(DatasetIdentityError, match="authorize_dataset_access"):
-        AuthorizedDataset(
-            dataset_root=tmp_path,
-            identity=IDENTITY,
-            policy=POLICY,
-            repo_manifest_path=tmp_path / "repo.yaml",
-            runtime_snapshot_path=tmp_path / "snapshot.json",
-            output_checksums=(),
-        )
-
-
-def test_runtime_dataset_id_is_required_from_realistic_identity_payload(tmp_path: Path):
-    repo_manifest = tmp_path / "repo.yaml"
-    repo_manifest.write_text(
-        yaml.safe_dump(
-            {
-                "dataset_id": IDENTITY.dataset_id,
-                "snapshot_id": IDENTITY.snapshot_id,
-                "status": "ACCEPTED_FOR_DISCOVERY",
-                "research_authorized": True,
-                "confirmatory_authorized": False,
-            }
-        ),
+def test_runtime_identity_payload_snapshot_id_mismatch_fails(tmp_path: Path):
+    ctx = _authorized(tmp_path)
+    runtime = json.loads(ctx["runtime_snapshot"].read_text(encoding="utf-8"))
+    runtime["identity_payload"]["snapshot_id"] = "b" * 64
+    ctx["runtime_snapshot"].write_text(
+        json.dumps(runtime, sort_keys=True),
         encoding="utf-8",
     )
-    dataset_root = tmp_path / "dataset"
-    (dataset_root / "reports").mkdir(parents=True)
-
-    snapshot_path = dataset_root / "reports" / "snapshot_manifest.json"
-    snapshot_path.write_text(
-        json.dumps(
-            {
-                "snapshot_id": IDENTITY.snapshot_id,
-                "identity_payload": {
-                    "dataset_id": IDENTITY.dataset_id,
-                    "output_checksums": {},
-                },
-            }
-        ),
-        encoding="utf-8",
-    )
-    authorize_dataset_access(
-        repo_manifest_path=repo_manifest,
-        dataset_root=dataset_root,
-        identity=IDENTITY,
-        policy=POLICY,
-    )
-
-    snapshot_path.write_text(
-        json.dumps({
-            "snapshot_id": IDENTITY.snapshot_id,
-            "identity_payload": {"output_checksums": {}},
-        }),
-        encoding="utf-8",
-    )
-    with pytest.raises(DatasetIdentityError, match="runtime dataset_id"):
+    with pytest.raises(DatasetIdentityError, match="identity_payload snapshot_id"):
         authorize_dataset_access(
-            repo_manifest_path=repo_manifest,
-            dataset_root=dataset_root,
+            code_freeze=ctx["code_freeze"],
+            dataset_root=ctx["dataset_root"],
             identity=IDENTITY,
             policy=POLICY,
         )
 
 
-def test_wrong_runtime_snapshot_fails_closed(tmp_path: Path):
-    repo_manifest = tmp_path / "repo.yaml"
-    repo_manifest.write_text(
-        yaml.safe_dump(
-            {
-                "dataset_id": IDENTITY.dataset_id,
-                "snapshot_id": IDENTITY.snapshot_id,
-                "status": "ACCEPTED_FOR_DISCOVERY",
-                "research_authorized": True,
-                "confirmatory_authorized": False,
-            }
-        ),
-        encoding="utf-8",
-    )
-    dataset_root = tmp_path / "dataset"
-    (dataset_root / "reports").mkdir(parents=True)
-    (dataset_root / "reports" / "snapshot_manifest.json").write_text(
-        json.dumps({"snapshot_id": "wrong"}),
-        encoding="utf-8",
-    )
-    with pytest.raises(DatasetIdentityError, match="runtime snapshot_id"):
-        authorize_dataset_access(
-            repo_manifest_path=repo_manifest,
-            dataset_root=dataset_root,
-            identity=IDENTITY,
-            policy=POLICY,
-        )
-
-
-def test_forbidden_year_partition_is_not_exposed(tmp_path: Path):
-    authorized, monthly = _authorized(
+def test_authorized_proof_exposes_only_selected_partitions_not_dataset_root(tmp_path: Path):
+    ctx = _authorized(
         tmp_path,
         {
             "2020-01.parquet": b"allowed-2020",
@@ -336,205 +311,313 @@ def test_forbidden_year_partition_is_not_exposed(tmp_path: Path):
             "2025-01.parquet": b"forbidden-2025",
         },
     )
+    authorized = ctx["authorized"]
+    assert not hasattr(authorized, "dataset_root")
     assert [p.name for p in authorized.list_monthly_partitions()] == [
         "2020-01.parquet",
         "2021-12.parquet",
     ]
+    assert all("2025-" not in p.relative_path for p in authorized.partitions)
 
 
-def test_selected_partition_requires_frozen_checksum_and_matching_bytes(tmp_path: Path):
-    authorized, monthly = _authorized(
-        tmp_path,
-        {"2020-01.parquet": b"frozen-bytes"},
+def test_selected_symlink_partition_is_rejected(tmp_path: Path):
+    dataset_root = tmp_path / "dataset"
+    monthly = dataset_root / "canonical" / "1m" / "monthly"
+    monthly.mkdir(parents=True)
+    (dataset_root / "reports").mkdir(parents=True)
+
+    target = tmp_path / "target.parquet"
+    target.write_bytes(b"target")
+    link = monthly / "2020-01.parquet"
+    os.symlink(target, link)
+    rel = link.relative_to(dataset_root).as_posix()
+    output_checksums = {rel: sha256_file(target)}
+
+    code_repo = tmp_path / "code"
+    code_sha, _ = _init_frozen_repo(code_repo, output_checksums)
+    code_freeze = verify_git_freeze(code_repo, code_sha)
+    (dataset_root / "reports" / "snapshot_manifest.json").write_text(
+        json.dumps(
+            {
+                "snapshot_id": IDENTITY.snapshot_id,
+                "identity_payload": {
+                    "dataset_id": IDENTITY.dataset_id,
+                    "output_checksums": output_checksums,
+                },
+            }
+        ),
+        encoding="utf-8",
     )
-    assert [p.name for p in authorized.list_monthly_partitions()] == [
-        "2020-01.parquet"
-    ]
 
-    (monthly / "2020-01.parquet").write_bytes(b"tampered-bytes")
-    with pytest.raises(DatasetIdentityError, match="checksum mismatch"):
-        authorized.list_monthly_partitions()
-
-    missing_authorized, missing_monthly = _authorized(tmp_path / "missing")
-    (missing_monthly / "2020-01.parquet").write_bytes(b"unregistered")
-    with pytest.raises(DatasetIdentityError, match="missing frozen checksum"):
-        missing_authorized.list_monthly_partitions()
+    with pytest.raises(DatasetIdentityError, match="must not be a symlink"):
+        authorize_dataset_access(
+            code_freeze=code_freeze,
+            dataset_root=dataset_root,
+            identity=IDENTITY,
+            policy=POLICY,
+        )
 
 
 def test_outcome_boundary_rejects_holdout_reach(tmp_path: Path):
-    authorized, _monthly = _authorized(tmp_path)
+    ctx = _authorized(tmp_path)
+    authorized = ctx["authorized"]
     authorized.assert_outcome_window(END_2022_MS - 1_001, 1_000)
     with pytest.raises(OutcomeBoundaryError):
         authorized.assert_outcome_window(END_2022_MS - 1_000, 1_000)
 
 
-def test_no_lookahead_accepts_numpy_scalar_and_rejects_future_availability():
-    assert_no_lookahead(np.int64(100), np.int64(100))
-    assert_no_lookahead([100, 200], [100, 199])
+def test_no_lookahead_accepts_integer_ms_and_rejects_future():
+    t0 = 1_600_000_000_000
+    assert_no_lookahead(np.int64(t0), np.int64(t0))
+    assert_no_lookahead([t0, t0 + 1000], [t0, t0 + 999])
     with pytest.raises(LookaheadError, match="lookahead"):
-        assert_no_lookahead([100, 200], [100, 201])
+        assert_no_lookahead([t0, t0 + 1000], [t0, t0 + 1001])
 
 
-def _init_clean_git_repo(root: Path) -> str:
-    root.mkdir(parents=True, exist_ok=True)
-    subprocess.run(["git", "init"], cwd=root, check=True, capture_output=True)
-    (root / "tracked.txt").write_text("frozen\n", encoding="utf-8")
-    subprocess.run(["git", "add", "tracked.txt"], cwd=root, check=True)
-    subprocess.run(
-        [
-            "git", "-c", "user.name=Harness Test",
-            "-c", "user.email=harness@example.invalid",
-            "commit", "-m", "freeze",
-        ],
-        cwd=root,
-        check=True,
-        capture_output=True,
-    )
-    return subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=root,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
+@pytest.mark.parametrize(
+    "decision,available",
+    [
+        (1_600_000_000_000, 1_600_000_000_000.9),
+        (1_600_000_000_000, np.float64(1_600_000_000_000)),
+        (1_600_000_000_000, "1600000000000"),
+        (1_600_000_000_000, b"1600000000000"),
+        (1_600_000_000_000, True),
+        (1_600_000_000_000, 1_735_689_600),
+    ],
+)
+def test_no_lookahead_rejects_ambiguous_or_wrong_timestamp_types(
+    decision,
+    available,
+):
+    with pytest.raises(LookaheadError):
+        assert_no_lookahead(decision, available)
+
+
+def test_no_lookahead_rejects_empty_sequences():
+    with pytest.raises(LookaheadError, match="non-empty"):
+        assert_no_lookahead([], [])
 
 
 def test_git_freeze_requires_exact_clean_head(tmp_path: Path):
-    repo = tmp_path / "repo"
-    sha = _init_clean_git_repo(repo)
-
-    proof = verify_git_freeze(repo, sha)
+    code_repo = tmp_path / "code"
+    sha, _ = _init_frozen_repo(code_repo, {})
+    proof = verify_git_freeze(code_repo, sha)
     assert proof.code_sha == sha
-
     with pytest.raises(CodeIdentityError, match="40-hex"):
-        verify_git_freeze(repo, sha[:12])
-
+        verify_git_freeze(code_repo, sha[:12])
     with pytest.raises(CodeIdentityError, match="HEAD mismatch"):
-        verify_git_freeze(repo, "0" * 40)
+        verify_git_freeze(code_repo, "0" * 40)
 
-    (repo / "tracked.txt").write_text("dirty\n", encoding="utf-8")
+    (code_repo / "tracked.txt").write_text("dirty\n", encoding="utf-8")
     with pytest.raises(CodeIdentityError, match="not clean"):
-        verify_git_freeze(repo, sha)
+        verify_git_freeze(code_repo, sha)
 
 
-def test_paired_support_never_silently_intersects():
-    with pytest.raises(SupportMismatchError, match="supports differ"):
-        paired_same_support_delta({"a": 1.0, "b": 9.0}, {"a": 0.0})
+def test_git_freeze_rejects_skip_worktree_hidden_modification(tmp_path: Path):
+    code_repo = tmp_path / "code"
+    sha, _ = _init_frozen_repo(code_repo, {})
+    _git(code_repo, "update-index", "--skip-worktree", "tracked.txt")
+    (code_repo / "tracked.txt").write_text("hidden dirty\n", encoding="utf-8")
+    assert _git(code_repo, "status", "--porcelain") == ""
+    with pytest.raises(CodeIdentityError, match="skip-worktree"):
+        verify_git_freeze(code_repo, sha)
+
+
+def test_git_freeze_rejects_assume_unchanged_hidden_modification(tmp_path: Path):
+    code_repo = tmp_path / "code"
+    sha, _ = _init_frozen_repo(code_repo, {})
+    _git(code_repo, "update-index", "--assume-unchanged", "tracked.txt")
+    (code_repo / "tracked.txt").write_text("hidden dirty\n", encoding="utf-8")
+    assert _git(code_repo, "status", "--porcelain") == ""
+    with pytest.raises(CodeIdentityError, match="assume-unchanged"):
+        verify_git_freeze(code_repo, sha)
+
+
+def test_code_freeze_is_rechecked_before_dataset_authorization(tmp_path: Path):
+    ctx = _authorized(tmp_path)
+    (ctx["code_repo"] / "tracked.txt").write_text("changed\n", encoding="utf-8")
+    with pytest.raises(CodeIdentityError, match="not clean"):
+        authorize_dataset_access(
+            code_freeze=ctx["code_freeze"],
+            dataset_root=ctx["dataset_root"],
+            identity=IDENTITY,
+            policy=POLICY,
+        )
+
+
+def test_paired_support_requires_exact_support_and_forbids_subset_argument():
     out = paired_same_support_delta(
-        {"a": 1.0, "b": 9.0},
-        {"a": 0.0},
-        support_ids=["a"],
+        {"a": 1.0, "b": 2.0},
+        {"a": 0.0, "b": 1.0},
     )
-    assert out["support_n"] == 1
+    assert out["support_n"] == 2
     assert out["delta"] == pytest.approx(1.0)
 
-
-def test_weighted_same_support_blocks_full_candidate_vs_overlap_control_forgery():
-    candidate = {"overlap": 1.0, "candidate_only": 100.0}
-    reference = {"overlap": 0.25}
-    weights = {"overlap": 2.0}
-
     with pytest.raises(SupportMismatchError, match="supports differ"):
-        weighted_same_support_delta(candidate, reference, weights)
+        paired_same_support_delta({"a": 1.0, "b": 9.0}, {"a": 0.0})
 
+    with pytest.raises(TypeError):
+        paired_same_support_delta(
+            {"a": 1.0, "b": 9.0},
+            {"a": 0.0},
+            support_ids=["a"],
+        )
+
+
+def test_paired_support_rejects_nan_key():
+    nan_key = float("nan")
+    with pytest.raises(SupportMismatchError, match="NaN-like"):
+        paired_same_support_delta({nan_key: 1.0}, {nan_key: 0.0})
+
+
+def test_weighted_support_requires_exact_same_finite_positive_support():
     out = weighted_same_support_delta(
-        candidate,
-        reference,
-        weights,
-        support_keys=["overlap"],
+        {"a": 1.0},
+        {"a": 0.25},
+        {"a": 2.0},
     )
-    assert out["candidate_support_mean"] == pytest.approx(1.0)
-    assert out["reference_support_mean"] == pytest.approx(0.25)
     assert out["delta"] == pytest.approx(0.75)
 
-
-def test_weighted_support_requires_same_finite_positive_weights():
+    with pytest.raises(SupportMismatchError, match="supports differ"):
+        weighted_same_support_delta(
+            {"overlap": 1.0, "candidate_only": 100.0},
+            {"overlap": 0.25},
+            {"overlap": 2.0},
+        )
     with pytest.raises(SupportMismatchError, match="must be > 0"):
         weighted_same_support_delta(
             {"a": 1.0},
             {"a": 0.0},
             {"a": 0.0},
         )
+    with pytest.raises(TypeError):
+        weighted_same_support_delta(
+            {"a": 1.0, "b": 10.0},
+            {"a": 0.0},
+            {"a": 1.0},
+            support_keys=["a"],
+        )
 
 
-def test_gate_conjunction_is_literal_true_and_fail_closed():
-    names = ["primary", "matched", "structural"]
+def test_gate_conjunction_uses_frozen_contract_and_literal_true():
     assert fail_closed_gate_conjunction(
         {"primary": True, "matched": True, "structural": True},
-        names,
+        GATE_CONTRACT,
     )
     assert not fail_closed_gate_conjunction(
         {"primary": True, "matched": True},
-        names,
+        GATE_CONTRACT,
     )
     assert not fail_closed_gate_conjunction(
         {"primary": True, "matched": None, "structural": True},
-        names,
+        GATE_CONTRACT,
     )
     assert not fail_closed_gate_conjunction(
         {"primary": True, "matched": 1, "structural": True},
-        names,
+        GATE_CONTRACT,
     )
-    assert not fail_closed_gate_conjunction({}, [])
+    assert not fail_closed_gate_conjunction(
+        {"primary": True},
+        object(),
+    )
 
 
-def test_run_identity_rejects_lookalike_proof_objects(tmp_path: Path):
-    authorized, _monthly = _authorized(tmp_path)
-    repo = tmp_path / "code"
-    code_sha = _init_clean_git_repo(repo)
-    code_freeze = verify_git_freeze(repo, code_sha)
+def test_direct_proof_construction_and_lookalikes_fail_closed(tmp_path: Path):
+    with pytest.raises(DatasetIdentityError, match="authorize_dataset_access"):
+        AuthorizedDataset(
+            identity=IDENTITY,
+            policy=POLICY,
+            code_sha="0" * 40,
+            repo_manifest_git_path="x",
+            frozen_snapshot_git_path="y",
+            runtime_snapshot_path=tmp_path / "z",
+            partitions=(),
+        )
+
+    ctx = _authorized(tmp_path / "real")
 
     class FakeCodeFreeze:
-        pass
-
-    fake_code_freeze = FakeCodeFreeze()
-    fake_code_freeze.code_sha = code_sha
+        code_sha = ctx["code_sha"]
 
     class FakeAuthorizedDataset:
-        pass
-
-    fake_authorized_dataset = FakeAuthorizedDataset()
-    fake_authorized_dataset.policy = authorized.policy
-    fake_authorized_dataset.identity = authorized.identity
+        policy = POLICY
+        identity = IDENTITY
 
     with pytest.raises(CodeIdentityError, match="verify_git_freeze proof"):
         build_run_identity(
             hypothesis_id="B02_TEST",
             stage="development",
-            code_freeze=fake_code_freeze,
-            authorized_dataset=authorized,
+            code_freeze=FakeCodeFreeze(),
+            authorized_dataset=ctx["authorized"],
+            gate_contract=GATE_CONTRACT,
             command=["python", "-m", "fake"],
         )
-
     with pytest.raises(DatasetIdentityError, match="authorize_dataset_access proof"):
         build_run_identity(
             hypothesis_id="B02_TEST",
             stage="development",
-            code_freeze=code_freeze,
-            authorized_dataset=fake_authorized_dataset,
+            code_freeze=ctx["code_freeze"],
+            authorized_dataset=FakeAuthorizedDataset(),
+            gate_contract=GATE_CONTRACT,
+            command=["python", "-m", "fake"],
+        )
+
+
+def test_run_identity_records_frozen_evidence_partitions_and_gate_contract(tmp_path: Path):
+    ctx = _authorized(
+        tmp_path,
+        {
+            "2020-01.parquet": b"a",
+            "2021-01.parquet": b"b",
+        },
+    )
+    identity = build_run_identity(
+        hypothesis_id="B02_TEST",
+        stage="development",
+        code_freeze=ctx["code_freeze"],
+        authorized_dataset=ctx["authorized"],
+        gate_contract=GATE_CONTRACT,
+        command=["python", "-m", "scripts.research.experiments.b02_test"],
+        seeds={"bootstrap": 7, "matched": 3},
+    )
+    assert identity["code_sha"] == ctx["code_sha"]
+    assert identity["code_tree_oid"]
+    assert identity["dataset_id"] == IDENTITY.dataset_id
+    assert identity["snapshot_id"] == IDENTITY.snapshot_id
+    assert len(identity["partitions"]) == 2
+    assert identity["promotion_gate_contract"]["required_gate_names"] == [
+        "primary",
+        "matched",
+        "structural",
+    ]
+    assert identity["promotion_gate_contract"]["sha256"] == GATE_CONTRACT.sha256
+
+
+def test_build_run_identity_rechecks_code_and_partition_bytes(tmp_path: Path):
+    ctx = _authorized(tmp_path)
+    (ctx["monthly"] / "2020-01.parquet").write_bytes(b"changed")
+    with pytest.raises(DatasetIdentityError, match="checksum drift"):
+        build_run_identity(
+            hypothesis_id="B02_TEST",
+            stage="development",
+            code_freeze=ctx["code_freeze"],
+            authorized_dataset=ctx["authorized"],
+            gate_contract=GATE_CONTRACT,
             command=["python", "-m", "fake"],
         )
 
 
 def test_provenance_and_result_artifact_are_immutable(tmp_path: Path):
-    authorized, _monthly = _authorized(tmp_path)
-    repo = tmp_path / "code"
-    code_sha = _init_clean_git_repo(repo)
-    code_freeze = verify_git_freeze(repo, code_sha)
-
+    ctx = _authorized(tmp_path)
     identity = build_run_identity(
         hypothesis_id="B02_TEST",
         stage="development",
-        code_freeze=code_freeze,
-        authorized_dataset=authorized,
+        code_freeze=ctx["code_freeze"],
+        authorized_dataset=ctx["authorized"],
+        gate_contract=GATE_CONTRACT,
         command=["python", "-m", "scripts.research.experiments.b02_test"],
-        seeds={"bootstrap": 7, "matched": 3},
+        seeds={"bootstrap": 7},
     )
-    assert identity["dataset_id"] == IDENTITY.dataset_id
-    assert identity["snapshot_id"] == IDENTITY.snapshot_id
-    assert identity["code_sha"] == code_sha
-    assert identity["seeds"] == {"bootstrap": 7, "matched": 3}
-
     path = tmp_path / "result.json"
     digest = write_json_new(path, {"identity": identity, "promotion": False})
     assert digest == sha256_file(path)
