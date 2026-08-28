@@ -237,6 +237,25 @@ Exact RNG encoding:
 - `seed_int=int.from_bytes(sha256(raw_utf8).digest()[:8],"big",signed=False)`;
 - RNG is exactly `numpy.random.default_rng(seed_int)`.
 
+
+Exact label-permutation operation inside each non-empty stratum:
+
+- take exactly the real candidate's historical training rows assigned to that
+  stratum and sort them ascending by canonical `EVENT_ID`;
+- encode the stored state labels as a NumPy `int64` vector using
+  `LOW=0`, `MID=1`, `HIGH=2` in that sorted-row order;
+- instantiate the already-frozen `numpy.random.default_rng(seed_int)` for that
+  stratum/replicate;
+- compute exactly
+  `permuted_labels = rng.permutation(input_label_vector)`;
+- assign `permuted_labels` positionally back to the same EVENT_ID-sorted rows;
+- do not permute features, targets, timestamps, nuisance bins, or row identities.
+
+A zero-record stratum is not instantiated and performs no assignment. A
+one-record stratum still instantiates its frozen RNG and calls
+`rng.permutation` on the one-element vector, which leaves the label unchanged.
+Vector length and per-stratum LOW/MID/HIGH counts are preserved exactly.
+
 Use only real candidate-training rows, keep all baseline features/targets fixed,
 and leave current-week true recovery states unchanged. Evaluate on exact
 real-candidate support. Real mean AE improvement must exceed placebo p95,
@@ -246,6 +265,32 @@ computed with `numpy.quantile(...,0.95,method="linear")`.
 
 UTC-week bootstrap: seed `20260906`, 2000 replicates, 95% CI. The 2.5th and
 97.5th percentiles use `numpy.quantile(...,method="linear")`.
+
+Exact bootstrap resampling is frozen per primary `L,H` cell:
+
+- derive each scored record's `week_id` from decision time T in UTC as
+  ISO `ISOYEAR-Www`, with the week number zero-padded to two digits;
+- collect unique week IDs and sort them ascending lexicographically;
+- within every week block, sort records ascending by canonical `EVENT_ID|H`;
+- let `n_week_blocks` be the number of observed blocks;
+- raw UTF-8 cell seed text is `20260906|L|H`;
+- compute `seed_int = int.from_bytes(sha256(raw_utf8).digest()[:8],
+  "big", signed=False)`;
+- instantiate exactly one `numpy.random.default_rng(seed_int)` for that cell;
+- process `replicate_index=0,...,1999` in ascending order using this single
+  per-cell generator stream;
+- for each replicate call exactly
+  `rng.integers(0, n_week_blocks, size=n_week_blocks, dtype=np.int64)`;
+- concatenate the selected whole week blocks in draw order, preserving the
+  canonical within-week `EVENT_ID|H` order and preserving duplicate-block
+  multiplicity;
+- the replicate statistic is `mean(AE_IMPROVEMENT)` over all pooled
+  observations.
+
+If `n_week_blocks=0`, bootstrap evidence is unavailable and
+`bootstrap_positive=false`. If `n_week_blocks=1`, every draw selects index 0
+once and the sole whole block is used once in each replicate. The frozen 2.5th
+and 97.5th percentiles use `numpy.quantile(..., method="linear")`.
 
 Years fixed 2020–2024. Both uptrend and downtrend sides are mandatory.
 
