@@ -137,8 +137,12 @@ Thus B2-03 must beat displacement magnitude + volatility on the same current
 records. It cannot win from H03-style magnitude/extremeness alone.
 
 Baseline training uses all mature baseline-valid rows in `[S-365d,S)`.
-Candidate training is the subset with valid stored morphology state. Both
-require `T_e+H<=S`.
+Candidate training is the subset with valid stored morphology state **and**
+valid stored placebo nuisance bins defined in §11. Both require `T_e+H<=S`.
+The nuisance bins are not candidate predictors; they are an outcome-blind
+eligibility requirement so the causal placebo never operates on a hidden
+subset of the real candidate training set. Baseline training does not require
+them and may therefore contain more historical rows.
 
 Minimum baseline training N=500. Minimum candidate training N=500 and at least
 100 candidate-training records in each LOW/MID/HIGH state. If either fit is
@@ -206,6 +210,19 @@ causal nuisance bins stored as-of each record's own T_e:
 
 - displacement-magnitude quintile from trailing 180d same W/side history;
 - RV quintile from trailing 180d same W/side history.
+
+For each nuisance percentile separately, the current historical record is
+excluded and at least **120** earlier same-W/side records inside the trailing
+180-calendar-day window are required. Use deterministic midrank percentiles.
+Each nuisance quintile is computed exactly once as-of that record's own `T_e`
+and stored; later records, later week starts, full-development quantiles, and
+backfills may not change it. If either nuisance bin is unavailable, the record
+is ineligible for candidate training (while remaining eligible for baseline
+training if its baseline fields and mature target are valid).
+
+This makes the placebo training set exactly the real candidate training set;
+placebo may not silently discard rows merely because a nuisance stratum is
+unavailable.
 
 Strata:
 
