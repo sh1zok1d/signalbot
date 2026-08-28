@@ -166,10 +166,12 @@
     "nuisance_minimum_reference_n_each": 120,
     "nuisance_percentile": "deterministic midrank; current record excluded",
     "nuisance_bin_freeze": "each displacement/RV quintile computed once as-of own T_e and stored; no later recomputation",
-    "nuisance_missing_rule": "row ineligible for candidate training, but may remain baseline-training eligible",
+    "nuisance_missing_rule": "row ineligible for candidate training; baseline-training eligible iff baseline fields and mature target are valid",
     "training_support": "exactly the real candidate training rows; no placebo-only row dropping",
     "rng": "numpy Generator/default_rng seeded deterministically from the full seed-derivation tuple after canonical stratum ordering",
-    "failure_behavior": "missing/unavailable/nonfinite placebo-required input or lost real-candidate training/scoring support => placebo gate false / non-promotion; no fallback"
+    "failure_behavior": "missing/unavailable/nonfinite placebo-required input or lost real-candidate training/scoring support => placebo gate false / non-promotion; no fallback",
+    "nuisance_reference_interval": "[T_e-180 calendar days, T_e)",
+    "nuisance_reference_causality": "include only T_ref with T_ref < T_e; reject T_ref >= T_e"
   },
   "bootstrap": {
     "seed": 20260904,
