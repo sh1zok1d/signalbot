@@ -241,7 +241,15 @@ def main():
 
 def _hollow_test_context() -> Batch02RunContext:
     ctx = object.__new__(Batch02RunContext)
-    object.__setattr__(ctx, "run_identity", {"proof": "canonical"})
+    object.__setattr__(
+        ctx,
+        "run_identity",
+        {
+            "hypothesis_id": "B2-02",
+            "stage": "development",
+            "proof": "canonical",
+        },
+    )
     object.__setattr__(ctx, "_run_identity_sha256", "e" * 64)
     return ctx
 
@@ -495,3 +503,196 @@ def test_source_policy_rejects_direct_partition_path_extraction(tmp_path: Path):
     )
     with pytest.raises(Batch02SourcePolicyError, match="list_monthly_partitions"):
         validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "prepare_import,prepare_setup,prepare_call",
+    [
+        (
+            "from scripts.research.lib.batch02_contracts import "
+            "prepare_batch02_run as start",
+            "",
+            "start",
+        ),
+        (
+            "from scripts.research.lib.batch02_contracts import "
+            "prepare_batch02_run",
+            "start = prepare_batch02_run",
+            "start",
+        ),
+        (
+            "from functools import partial\n"
+            "from scripts.research.lib.batch02_contracts import "
+            "prepare_batch02_run",
+            "start = partial(prepare_batch02_run)",
+            "start",
+        ),
+    ],
+)
+def test_source_policy_discovers_generic_prepare_indirection(
+    tmp_path: Path,
+    prepare_import: str,
+    prepare_setup: str,
+    prepare_call: str,
+):
+    repo = tmp_path / "repo"
+    research = repo / "scripts" / "research"
+    experiments = research / "experiments"
+    experiments.mkdir(parents=True)
+    (repo / "scripts" / "__init__.py").write_text("", encoding="utf-8")
+    (research / "__init__.py").write_text("", encoding="utf-8")
+    (experiments / "__init__.py").write_text("", encoding="utf-8")
+
+    source = f"""
+{prepare_import}
+import pandas as pd
+
+{prepare_setup}
+
+def main():
+    {prepare_call}(
+        code_freeze=FREEZE,
+        outcome_access_acknowledged=True,
+        dataset_root=ROOT,
+        identity=IDENTITY,
+        policy=POLICY,
+        gate_contract=GATES,
+        hypothesis_id="B2-02",
+        stage="development",
+        command=("python", "-m", "generic"),
+        seeds={{}},
+    )
+    pd.read_parquet("/evil/data.parquet")
+"""
+    (experiments / "generic_runner.py").write_text(source, encoding="utf-8")
+
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_source_policy_discovers_helper_with_aliased_prepare_even_if_importer_is_generic(
+    tmp_path: Path,
+):
+    repo = tmp_path / "repo"
+    research = repo / "scripts" / "research"
+    experiments = research / "experiments"
+    lib = research / "lib"
+    experiments.mkdir(parents=True)
+    lib.mkdir(parents=True)
+    (repo / "scripts" / "__init__.py").write_text("", encoding="utf-8")
+    (research / "__init__.py").write_text("", encoding="utf-8")
+    (experiments / "__init__.py").write_text("", encoding="utf-8")
+    (lib / "__init__.py").write_text("", encoding="utf-8")
+
+    (lib / "prepare_wrapper.py").write_text(
+        """
+from scripts.research.lib.batch02_contracts import prepare_batch02_run as _prepare
+
+def start(**kwargs):
+    return _prepare(**kwargs)
+""",
+        encoding="utf-8",
+    )
+    (experiments / "generic_runner.py").write_text(
+        """
+from scripts.research.lib.prepare_wrapper import start
+import pandas as pd
+
+def main():
+    start()
+    pd.read_parquet("/evil/data.parquet")
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "extra_import,extra_call",
+    [
+        ("import numpy as np", 'np.memmap("/evil/raw", mode="r")'),
+        ("import pyarrow as pa", 'pa.memory_map("/evil/raw").read()'),
+        ("import pandas as pd", 'pd.read_sql("select * from bars", CONN)'),
+        ("import pandas as pd", 'pd.read_hdf("/evil/bars.h5")'),
+        ("from pathlib import Path", 'Path("/evil").glob("*.parquet")'),
+        ("from pathlib import Path", 'Path("/evil").iterdir()'),
+        ("import sqlite3", 'sqlite3.connect("/evil/bars.db")'),
+    ],
+)
+def test_source_policy_rejects_additional_filesystem_and_db_entrypoints(
+    tmp_path: Path,
+    extra_import: str,
+    extra_call: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=extra_call)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_source_policy_rejects_canonical_module_attribute_replacement(tmp_path: Path):
+    source = """
+import scripts.research.lib.batch02_contracts as bc
+from scripts.research.lib.batch02_contracts import (
+    verify_batch02_code,
+    prepare_batch02_run,
+    persist_batch02_result,
+)
+
+def fake_strength(values, width):
+    return values
+
+def main():
+    verify_batch02_code(repo_root=ROOT, expected_code_sha=SHA)
+    ctx = prepare_batch02_run(
+        code_freeze=FREEZE,
+        outcome_access_acknowledged=True,
+        dataset_root=ROOT,
+        identity=IDENTITY,
+        policy=POLICY,
+        gate_contract=GATES,
+        hypothesis_id="B2-02",
+        stage="development",
+        command=("python", "-m", "b2_02"),
+        seeds={},
+    )
+    bc.rolling_midrank_percentile = fake_strength
+    bc.rolling_midrank_percentile(X, window=10)
+    persist_batch02_result(OUT, {"status": "closed"}, run_context=ctx)
+"""
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+
+    with pytest.raises(
+        Batch02SourcePolicyError,
+        match="module attribute may not be reassigned",
+    ):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_source_policy_explicitly_does_not_claim_arbitrary_math_semantic_proof(
+    tmp_path: Path,
+):
+    # Static AST policy cannot prove that arbitrary numerical Python is or is
+    # not a percentile implementation.  This neutral-name arithmetic remains
+    # outside the linter's guarantee by design; hypothesis freeze/review must
+    # own the semantic wiring to rolling_midrank_percentile when required.
+    source = _canonical_runner(
+        extra="""
+values = np.asarray([1.0, 2.0, 3.0])
+width = 2
+out = np.full(len(values), np.nan)
+for i in range(width, len(values)):
+    ref = values[:i]
+    x = values[i]
+    count_less = float(np.sum(ref < x))
+    out[i] = count_less / float(len(ref))
+"""
+    )
+    source = "import numpy as np\n" + source
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+
+    visited = validate_batch02_source_tree(research, repo_root=repo)
+    assert any(path.name == "b2_02_attack.py" for path in visited)
