@@ -13,7 +13,10 @@ import hashlib
 import json
 import math
 import os
-from dataclasses import dataclass
+import subprocess
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from numbers import Integral
 from pathlib import Path
 from typing import Hashable, Iterable, Mapping, Sequence
 
@@ -25,6 +28,10 @@ class ResearchHarnessError(RuntimeError):
 
 
 class DatasetIdentityError(ResearchHarnessError):
+    pass
+
+
+class CodeIdentityError(ResearchHarnessError):
     pass
 
 
@@ -42,6 +49,10 @@ class SupportMismatchError(ResearchHarnessError):
 
 class ArtifactExistsError(ResearchHarnessError):
     pass
+
+
+_AUTHORIZATION_TOKEN = object()
+_CODE_FREEZE_TOKEN = object()
 
 
 @dataclass(frozen=True)
@@ -69,6 +80,24 @@ class OutcomeAccessPolicy:
             raise ValueError("allowed_years must be non-empty")
         if len(set(self.allowed_years)) != len(self.allowed_years):
             raise ValueError("allowed_years must be unique")
+        if any(not isinstance(year, int) for year in self.allowed_years):
+            raise ValueError("allowed_years must contain integers")
+
+        start_year = datetime.fromtimestamp(
+            self.start_inclusive_ms / 1000, tz=timezone.utc
+        ).year
+        last_year = datetime.fromtimestamp(
+            (self.end_exclusive_ms - 1) / 1000, tz=timezone.utc
+        ).year
+        outside = [
+            year for year in self.allowed_years
+            if year < start_year or year > last_year
+        ]
+        if outside:
+            raise ValueError(
+                f"allowed_years {outside!r} fall outside frozen time window "
+                f"[{start_year}, {last_year}]"
+            )
 
 
 @dataclass(frozen=True)
@@ -80,6 +109,13 @@ class AuthorizedDataset:
     policy: OutcomeAccessPolicy
     repo_manifest_path: Path
     runtime_snapshot_path: Path
+    _authorization_token: object = field(default=None, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        if self._authorization_token is not _AUTHORIZATION_TOKEN:
+            raise DatasetIdentityError(
+                "AuthorizedDataset must be created by authorize_dataset_access"
+            )
 
     def list_monthly_partitions(self) -> list[Path]:
         """Return only explicitly allowed year partitions.
@@ -121,6 +157,56 @@ class AuthorizedDataset:
                 f"outcome window end {end_ms} reaches/exceeds "
                 f"{self.policy.end_exclusive_ms}"
             )
+
+
+@dataclass(frozen=True)
+class VerifiedCodeFreeze:
+    """Proof that an exact clean Git HEAD was checked before outcome access."""
+
+    repo_root: Path
+    code_sha: str
+    _verification_token: object = field(default=None, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        if self._verification_token is not _CODE_FREEZE_TOKEN:
+            raise CodeIdentityError(
+                "VerifiedCodeFreeze must be created by verify_git_freeze"
+            )
+
+
+def verify_git_freeze(repo_root: Path, expected_sha: str) -> VerifiedCodeFreeze:
+    """Require exact 40-hex HEAD identity and a clean working tree."""
+    expected = expected_sha.strip().lower()
+    if len(expected) != 40 or any(ch not in "0123456789abcdef" for ch in expected):
+        raise CodeIdentityError("expected_sha must be an exact 40-hex commit SHA")
+
+    root = repo_root.resolve()
+    try:
+        head = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip().lower()
+        status = subprocess.run(
+            ["git", "-C", str(root), "status", "--porcelain", "--untracked-files=normal"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+    except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+        raise CodeIdentityError(f"unable to verify git freeze at {root}") from exc
+
+    if head != expected:
+        raise CodeIdentityError(f"git HEAD mismatch: {head} != {expected}")
+    if status.strip():
+        raise CodeIdentityError("working tree is not clean at frozen code SHA")
+
+    return VerifiedCodeFreeze(
+        repo_root=root,
+        code_sha=head,
+        _verification_token=_CODE_FREEZE_TOKEN,
+    )
 
 
 def _require_equal(actual, expected, label: str) -> None:
@@ -185,6 +271,7 @@ def authorize_dataset_access(
         policy=policy,
         repo_manifest_path=repo_manifest_path,
         runtime_snapshot_path=runtime_snapshot,
+        _authorization_token=_AUTHORIZATION_TOKEN,
     )
 
 
@@ -195,12 +282,12 @@ def assert_no_lookahead(
     """Require every input to be available no later than its decision time."""
     decisions = (
         (decision_t_ms,)
-        if isinstance(decision_t_ms, int)
+        if isinstance(decision_t_ms, Integral)
         else tuple(int(x) for x in decision_t_ms)
     )
     available = (
         (available_at_ms,)
-        if isinstance(available_at_ms, int)
+        if isinstance(available_at_ms, Integral)
         else tuple(int(x) for x in available_at_ms)
     )
     if len(decisions) != len(available):
@@ -358,20 +445,24 @@ def build_run_identity(
     *,
     hypothesis_id: str,
     stage: str,
-    code_sha: str,
+    code_freeze: VerifiedCodeFreeze,
     authorized_dataset: AuthorizedDataset,
     command: Sequence[str],
     seeds: Mapping[str, int] | None = None,
 ) -> dict:
     """Build deterministic provenance fields that must accompany a result."""
-    if not hypothesis_id or not stage or not code_sha:
-        raise ValueError("hypothesis_id, stage and code_sha are required")
+    if not hypothesis_id or not stage:
+        raise ValueError("hypothesis_id and stage are required")
+    if stage != authorized_dataset.policy.stage:
+        raise ValueError(
+            f"stage mismatch: {stage!r} != {authorized_dataset.policy.stage!r}"
+        )
     if not command:
         raise ValueError("command must be non-empty")
     return {
         "hypothesis_id": hypothesis_id,
         "stage": stage,
-        "code_sha": code_sha,
+        "code_sha": code_freeze.code_sha,
         "dataset_id": authorized_dataset.identity.dataset_id,
         "snapshot_id": authorized_dataset.identity.snapshot_id,
         "window": {
