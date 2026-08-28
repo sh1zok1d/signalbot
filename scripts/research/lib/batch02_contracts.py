@@ -17,6 +17,7 @@ fail-open Batch01 patterns.
 from __future__ import annotations
 
 import hashlib
+import json
 import math
 from bisect import bisect_left, bisect_right, insort_right
 from collections import deque
@@ -45,13 +46,78 @@ class Batch02ContractError(RuntimeError):
     """Malformed input to a canonical Batch02 integrity primitive."""
 
 
+_RUN_CONTEXT_TOKEN = object()
+
+
+def _canonical_payload_sha256(payload: Mapping[str, object]) -> str:
+    try:
+        encoded = json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        ).encode("utf-8")
+    except (TypeError, ValueError) as exc:
+        raise Batch02ContractError("run identity must be canonical JSON") from exc
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _copy_canonical_mapping(payload: Mapping[str, object]) -> dict[str, object]:
+    try:
+        encoded = json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+        value = json.loads(encoded)
+    except (TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise Batch02ContractError("mapping must be canonical JSON") from exc
+    if not isinstance(value, dict):
+        raise Batch02ContractError("mapping must canonicalize to a JSON object")
+    return value
+
+
 @dataclass(frozen=True)
 class Batch02RunContext:
-    """Verified code/dataset provenance required before outcome access."""
+    """Minted verified provenance required for all outcome I/O and persistence."""
 
     code_freeze: VerifiedCodeFreeze
     authorized_dataset: AuthorizedDataset
     run_identity: Mapping[str, object]
+    _run_identity_sha256: str = ""
+    _run_context_token: object = None
+
+    def __post_init__(self) -> None:
+        self.assert_minted()
+
+    def assert_minted(self) -> None:
+        if getattr(self, "_run_context_token", None) is not _RUN_CONTEXT_TOKEN:
+            raise Batch02ContractError(
+                "Batch02RunContext must be created by prepare_batch02_run"
+            )
+        if not isinstance(self.code_freeze, VerifiedCodeFreeze):
+            raise Batch02ContractError("run context has invalid code freeze proof")
+        if not isinstance(self.authorized_dataset, AuthorizedDataset):
+            raise Batch02ContractError("run context has invalid dataset proof")
+        self.authorized_dataset.assert_minted()
+        if (
+            not isinstance(self._run_identity_sha256, str)
+            or self._run_identity_sha256 != _canonical_payload_sha256(self.run_identity)
+        ):
+            raise Batch02ContractError("run context provenance was mutated")
+
+
+def _reverify_run_code(run_context: Batch02RunContext) -> None:
+    run_context.assert_minted()
+    current = verify_git_freeze(
+        run_context.code_freeze.repo_root,
+        run_context.code_freeze.code_sha,
+    )
+    if current.tree_oid != run_context.code_freeze.tree_oid:
+        raise Batch02ContractError("run context Git tree changed after authorization")
 
 
 def verify_batch02_code(
@@ -114,10 +180,13 @@ def prepare_batch02_run(
         command=list(command),
         seeds=dict(seeds),
     )
+    frozen_identity = _copy_canonical_mapping(run_identity)
     return Batch02RunContext(
         code_freeze=code_freeze,
         authorized_dataset=authorized,
-        run_identity=run_identity,
+        run_identity=frozen_identity,
+        _run_identity_sha256=_canonical_payload_sha256(frozen_identity),
+        _run_context_token=_RUN_CONTEXT_TOKEN,
     )
 
 
@@ -127,22 +196,34 @@ def _evidence_lock_path(path: Path) -> Path:
     return path.parent / ".batch02_evidence_locks" / f"{key}.json"
 
 
-def persist_batch02_result(path: Path, payload: Mapping[str, object]) -> str:
-    """Persist one logical Batch02 artifact with a durable fail-closed lock.
+def persist_batch02_result(
+    path: Path,
+    payload: Mapping[str, object],
+    *,
+    run_context: Batch02RunContext,
+) -> str:
+    """Persist one provenance-bound Batch02 artifact with a durable lock.
 
-    The sibling lock survives deletion of the result file. Therefore a later
-    retry cannot silently recreate the same logical artifact path merely by
-    unlinking/renaming the JSON first. Manual deletion of both result and lock
-    remains an operator-level filesystem action and is outside process-level
-    immutability; future B2 source policy forbids such mutation calls.
+    Provenance is injected from the minted run context; callers cannot provide
+    or replace it. The Git freeze is reverified immediately before the logical
+    artifact is reserved/written.
     """
+    _reverify_run_code(run_context)
+    if "provenance" in payload:
+        raise Batch02ContractError(
+            "payload must not supply provenance; it is bound by run_context"
+        )
     if path.name == "" or path.parent.name == ".batch02_evidence_locks":
         raise Batch02ContractError("invalid Batch02 result path")
+
+    bound_payload = dict(payload)
+    bound_payload["provenance"] = _copy_canonical_mapping(run_context.run_identity)
 
     lock_path = _evidence_lock_path(path)
     lock_payload = {
         "artifact_kind": "batch02_logical_result_reservation",
         "logical_result_path": str(path.resolve(strict=False)),
+        "run_identity_sha256": run_context._run_identity_sha256,
     }
     try:
         write_json_new(lock_path, lock_payload)
@@ -152,27 +233,18 @@ def persist_batch02_result(path: Path, payload: Mapping[str, object]) -> str:
         ) from exc
 
     # Deliberately leave the reservation in place on every failure. A partial
-    # or failed evidence attempt must require forensic/operator intervention,
-    # never an automatic retry that could replace experimental evidence.
-    return write_json_new(path, dict(payload))
+    # or failed evidence attempt must require forensic/operator intervention.
+    return write_json_new(path, bound_payload)
 
 
 def load_authorized_parquet_table(
-    authorized_dataset: AuthorizedDataset,
     *,
+    run_context: Batch02RunContext,
     columns: Sequence[str],
 ):
-    """Read checksum-bound parquet only from a Harness-minted dataset proof.
-
-    Future Batch02 hypothesis code must consume the returned in-memory table;
-    it must not receive dataset_root paths or call filesystem/parquet readers
-    directly.
-    """
-    if not isinstance(authorized_dataset, AuthorizedDataset):
-        raise Batch02ContractError(
-            "authorized_dataset must be an AuthorizedDataset proof"
-        )
-    authorized_dataset.assert_minted()
+    """Read parquet only from the minted dataset bound to this exact run."""
+    _reverify_run_code(run_context)
+    authorized_dataset = run_context.authorized_dataset
 
     names = tuple(columns)
     if (
