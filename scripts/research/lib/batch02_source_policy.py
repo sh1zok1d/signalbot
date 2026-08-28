@@ -540,15 +540,16 @@ def validate_batch02_source_tree(
                 f"unable to inspect future Batch02 source {path}: {exc}"
             ) from exc
 
+        has_prepare_call = any(
+            isinstance(node, ast.Call)
+            and _call_name(node) == "prepare_batch02_run"
+            for node in ast.walk(tree)
+        )
         is_runner = bool(
-            not path.name.endswith("_lib.py")
-            and (
+            has_prepare_call
+            or (
                 _FUTURE_B2_FILE.match(path.name)
-                or any(
-                    isinstance(node, ast.Call)
-                    and _call_name(node) == "prepare_batch02_run"
-                    for node in ast.walk(tree)
-                )
+                and not path.name.endswith("_lib.py")
             )
         )
         violations.extend(
