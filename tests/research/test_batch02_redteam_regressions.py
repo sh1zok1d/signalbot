@@ -316,6 +316,7 @@ def test_canonical_loader_rejects_hollow_run_context_before_pyarrow_io():
 
 def test_canonical_loader_rejects_bad_column_contract_before_io(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ):
     ctx = _hollow_test_context(tmp_path)
     object.__setattr__(ctx, "_authorized_dataset", object())
