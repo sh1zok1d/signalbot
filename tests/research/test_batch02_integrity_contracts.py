@@ -225,6 +225,29 @@ def test_frozen_b201_runner_already_uses_fail_closed_harness_path():
     assert "write_bytes" not in calls
 
 
+
+def test_b202_plus_files_cannot_reintroduce_batch01_identity_or_persistence():
+    for path in _batch02_runtime_files():
+        if path.name in {FROZEN_B201_RUNNER, FROZEN_B201_LIB}:
+            continue
+
+        tree = _parse(path)
+        calls = _call_names(tree)
+        function_defs = {
+            node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
+        }
+
+        assert "_git_sha" not in function_defs, (
+            f"{path.name} may not reintroduce fallback Git identity"
+        )
+        assert "write_text" not in calls and "write_bytes" not in calls, (
+            f"{path.name} may not overwrite evidence with Path.write_*"
+        )
+        assert "open" not in calls, (
+            f"{path.name} may not perform ad-hoc runtime file I/O"
+        )
+
+
 def test_b202_plus_runners_must_use_canonical_contract_layer():
     for path in _batch02_runtime_files():
         if path.name == FROZEN_B201_RUNNER or path.name.endswith("_lib.py"):
@@ -304,9 +327,6 @@ def test_batch02_parquet_reads_are_restricted_to_authorized_partition_proof():
     # may instead delegate loading to a shared authorized loader and then has
     # no direct parquet call to inspect here.
     for path in _batch02_runtime_files():
-        if not path.name.endswith("_lib.py"):
-            continue
-
         tree = _parse(path)
         for node in ast.walk(tree):
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
