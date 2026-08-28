@@ -556,11 +556,11 @@ def _walk_forward_forecasts(
             and int(level[j]) >= 0
         ):
             return
-        l = int(level[j])
-        base_windows[l].add(j, float(y[j]))
+        lvl = int(level[j])
+        base_windows[lvl].add(j, float(y[j]))
         if int(transition[j]) >= 0:
-            s = int(transition[j])
-            cand_windows[(l, s)].add(j, float(y[j]))
+            state = int(transition[j])
+            cand_windows[(lvl, state)].add(j, float(y[j]))
 
     def remove_record(j: int) -> None:
         if not (
@@ -569,22 +569,22 @@ def _walk_forward_forecasts(
             and int(level[j]) >= 0
         ):
             return
-        l = int(level[j])
-        base_windows[l].remove(j)
+        lvl = int(level[j])
+        base_windows[lvl].remove(j)
         if int(transition[j]) >= 0:
-            s = int(transition[j])
-            cand_windows[(l, s)].remove(j)
+            state = int(transition[j])
+            cand_windows[(lvl, state)].remove(j)
 
     for i in range(len(y)):
         add_record(i - h_steps)
         remove_record(i - ref_steps - 1)
 
-        l = int(level[i])
-        s = int(transition[i])
-        if l < 0 or s < 0:
+        lvl = int(level[i])
+        state = int(transition[i])
+        if lvl < 0 or state < 0:
             continue
-        b = base_windows[l]
-        c = cand_windows[(l, s)]
+        b = base_windows[lvl]
+        c = cand_windows[(lvl, state)]
         if len(b) < baseline_min_count or len(c) < candidate_min_count:
             continue
         base_pred[i] = b.median()
@@ -721,7 +721,7 @@ def _placebo_candidate_prediction(
         rng = np.random.default_rng(seed)
         shuffled = labels.copy()
         rng.shuffle(shuffled)
-        for j, assigned in zip(ordered, shuffled):
+        for j, assigned in zip(ordered, shuffled, strict=True):
             if int(assigned) == current_transition:
                 selected_values.append(float(target[j]))
 
@@ -745,38 +745,92 @@ def causal_placebo_mean_improvements(
     ref_steps: int = REF_STEPS,
     candidate_min_count: int = CANDIDATE_MIN_COUNT,
 ) -> np.ndarray:
-    """Exact causal placebo from the prereg; correctness-first implementation."""
+    """Exact causal placebo, with historical strata prepared once per event.
+
+    This preserves the preregistered seed derivation and label-shuffle behavior
+    exactly while avoiding the previous 100x repetition of the same 30-day
+    historical scan and canonical ordering for every replicate.
+    """
     indices = np.asarray(scored_indices, dtype=np.int64)
     if len(indices) == 0:
         raise B201InputError("placebo requires non-empty scored support")
-    out = np.empty(n_replicates, dtype=np.float64)
-    for replicate in range(n_replicates):
-        improvements: list[float] = []
-        for i_raw in indices:
-            i = int(i_raw)
-            pred = _placebo_candidate_prediction(
-                i=i,
-                replicate=replicate,
-                t_ms=t_ms,
-                target=target,
-                level_state=level_state,
-                transition_state=transition_state,
-                w_min=w_min,
-                d_min=d_min,
-                h_min=h_min,
-                ref_steps=ref_steps,
-                candidate_min_count=candidate_min_count,
+
+    improvement_sums = np.zeros(n_replicates, dtype=np.float64)
+    h_steps = h_min // GRID_MIN
+
+    for i_raw in indices:
+        i = int(i_raw)
+        right = i - h_steps
+        left = max(0, i - ref_steps)
+        if right < left:
+            raise B201InputError("placebo scored event has no mature causal history")
+
+        current_level = int(level_state[i])
+        current_transition = int(transition_state[i])
+        if current_level < 0 or current_transition < 0:
+            raise B201InputError("placebo scored event has unavailable decision state")
+
+        strata: dict[str, list[int]] = defaultdict(list)
+        for j in range(left, right + 1):
+            if (
+                math.isfinite(float(target[j]))
+                and int(level_state[j]) == current_level
+                and int(transition_state[j]) >= 0
+            ):
+                strata[_utc_month_key(int(t_ms[j]))].append(j)
+
+        prepared: list[tuple[str, np.ndarray, np.ndarray]] = []
+        selected_count = 0
+        for month in sorted(strata):
+            ordered = sorted(
+                strata[month],
+                key=lambda j: canonical_event_id(
+                    int(t_ms[j]), w_min, d_min, h_min
+                ),
             )
-            if not math.isfinite(pred):
+            labels = np.asarray(
+                [int(transition_state[j]) for j in ordered],
+                dtype=np.int8,
+            )
+            values = np.asarray([float(target[j]) for j in ordered], dtype=np.float64)
+            selected_count += int(np.count_nonzero(labels == current_transition))
+            prepared.append((f"{month}|L={current_level}", labels, values))
+
+        if selected_count < candidate_min_count:
+            raise B201InputError(
+                "placebo lost scored support despite count-preserving stratum permutation"
+            )
+
+        event_target = float(target[i])
+        base_ae = abs(event_target - float(baseline_pred[i]))
+
+        for replicate in range(n_replicates):
+            selected_parts: list[np.ndarray] = []
+            for stratum_id, labels, values in prepared:
+                seed = _seed_from_parts(
+                    SEED_PLACEBO,
+                    replicate,
+                    w_min,
+                    d_min,
+                    h_min,
+                    int(t_ms[i]),
+                    stratum_id,
+                )
+                rng = np.random.default_rng(seed)
+                shuffled = labels.copy()
+                rng.shuffle(shuffled)
+                selected_parts.append(values[shuffled == current_transition])
+
+            selected_values = np.concatenate(selected_parts)
+            if selected_values.size < candidate_min_count:
                 raise B201InputError(
                     "placebo lost scored support despite count-preserving stratum permutation"
                 )
-            base_ae = abs(float(target[i]) - float(baseline_pred[i]))
-            placebo_ae = abs(float(target[i]) - pred)
-            improvements.append(base_ae - placebo_ae)
-        out[replicate] = float(np.mean(np.asarray(improvements, dtype=np.float64)))
-    return out
+            pred = float(np.median(selected_values))
+            placebo_ae = abs(event_target - pred)
+            improvement_sums[replicate] += base_ae - placebo_ae
 
+    return improvement_sums / len(indices)
 
 def _optional_float(value: float) -> float | None:
     return float(value) if math.isfinite(float(value)) else None
@@ -815,7 +869,7 @@ def evaluate_cell(
             "D": d_min,
             "H": h_min,
             "support_n": 0,
-            "metrics": {},
+            "metrics": {"placebo_evaluation": "SKIPPED_NO_SCORED_SUPPORT"},
             "year_mean_ae_improvement": {str(y): None for y in YEAR_BLOCKS},
             "per_cell_gates": {name: False for name in PER_CELL_GATE_NAMES},
             "year_stability_pass": False,
@@ -844,21 +898,6 @@ def evaluate_cell(
     else:
         separation = float("nan")
 
-    placebo_q95 = float("nan")
-    if run_placebo:
-        placebo = causal_placebo_mean_improvements(
-            scored_indices=idx,
-            t_ms=t_ms,
-            target=target,
-            level_state=level,
-            transition_state=transition,
-            baseline_pred=base_pred,
-            w_min=w_min,
-            d_min=d_min,
-            h_min=h_min,
-        )
-        placebo_q95 = float(np.quantile(placebo, PLACEBO_Q))
-
     year_means: dict[str, float | None] = {}
     positive_years = 0
     years = np.asarray(panel["year"], dtype=np.int16)
@@ -871,14 +910,46 @@ def evaluate_cell(
 
     mean_improvement = float(loss["mean_ae_improvement"])
     relative = float(loss["relative_mae_improvement"])
-    per_cell_gates = {
+    year_stability_pass = positive_years >= 4
+    cheap_gates = {
         "primary_positive": mean_improvement > 0.0,
         "material_relative_mae": relative >= RELATIVE_MAE_MIN,
         "bootstrap_positive": boot_lo > 0.0,
-        "placebo_separation": (
-            math.isfinite(placebo_q95) and mean_improvement > placebo_q95
-        ) if run_placebo else False,
         "transition_ordering": math.isfinite(separation) and separation > 0.0,
+    }
+
+    placebo_q95 = float("nan")
+    placebo_status = "DISABLED"
+    placebo_gate = False
+    if run_placebo:
+        if all(cheap_gates.values()) and year_stability_pass:
+            placebo = causal_placebo_mean_improvements(
+                scored_indices=idx,
+                t_ms=t_ms,
+                target=target,
+                level_state=level,
+                transition_state=transition,
+                baseline_pred=base_pred,
+                w_min=w_min,
+                d_min=d_min,
+                h_min=h_min,
+            )
+            placebo_q95 = float(np.quantile(placebo, PLACEBO_Q))
+            placebo_gate = (
+                math.isfinite(placebo_q95) and mean_improvement > placebo_q95
+            )
+            placebo_status = "EVALUATED"
+        else:
+            # Exact promotion semantics are preserved: once another mandatory
+            # cell prerequisite is false, placebo cannot rescue the cell.
+            placebo_status = "SKIPPED_FAIL_CLOSED_PRECONDITION"
+
+    per_cell_gates = {
+        "primary_positive": cheap_gates["primary_positive"],
+        "material_relative_mae": cheap_gates["material_relative_mae"],
+        "bootstrap_positive": cheap_gates["bootstrap_positive"],
+        "placebo_separation": placebo_gate,
+        "transition_ordering": cheap_gates["transition_ordering"],
     }
     return {
         "W": w_min,
@@ -891,25 +962,25 @@ def evaluate_cell(
             "bootstrap_95": [boot_lo, boot_hi],
             "transition_separation": _optional_float(separation),
             "placebo_q95_mean_ae_improvement": _optional_float(placebo_q95),
+            "placebo_evaluation": placebo_status,
             "largest_month_support_share": _largest_month_share(t_ms[idx]),
             "top5_month_support_share": _top_month_share(t_ms[idx], 5),
             "unique_days": len({_utc_day_key(int(t)) for t in t_ms[idx]}),
             "unique_weeks": len({_utc_week_key(int(t)) for t in t_ms[idx]}),
             "unique_months": len({_utc_month_key(int(t)) for t in t_ms[idx]}),
             "transition_state_counts": {
-                TRANSITION_NAMES[s]: int(np.sum(transition[idx] == s))
-                for s in range(3)
+                TRANSITION_NAMES[state]: int(np.sum(transition[idx] == state))
+                for state in range(3)
             },
             "level_state_counts": {
-                LEVEL_NAMES[s]: int(np.sum(level[idx] == s))
-                for s in range(5)
+                LEVEL_NAMES[lvl]: int(np.sum(level[idx] == lvl))
+                for lvl in range(5)
             },
         },
         "year_mean_ae_improvement": year_means,
         "per_cell_gates": per_cell_gates,
-        "year_stability_pass": positive_years >= 4,
+        "year_stability_pass": year_stability_pass,
     }
-
 
 def _utc_day_key(t_ms: int) -> str:
     return datetime.fromtimestamp(t_ms / 1000, tz=UTC).strftime("%Y-%m-%d")
@@ -941,54 +1012,77 @@ def _cell_five_pass(cell: Mapping[str, object]) -> bool:
 
 
 def determine_promotion_gates(cells: Sequence[Mapping[str, object]]) -> tuple[dict, list[dict]]:
-    """Deterministic existence test for the frozen robust neighborhood.
-
-    If multiple neighborhoods qualify, provenance records the lexicographically
-    first one. The choice never uses effect magnitude.
-    """
+    """Compute frozen promotion gates with separate evidence per condition."""
     by_key = {
-        (int(c["W"]), int(c["D"]), int(c["H"])): c
-        for c in cells
-        if all(k in c for k in ("W", "D", "H"))
+        (int(cell["W"]), int(cell["D"]), int(cell["H"])): cell
+        for cell in cells
+        if all(key in cell for key in ("W", "D", "H"))
     }
+
+    per_gate_parameter_evidence = {name: False for name in PER_CELL_GATE_NAMES}
+    horizon_robustness = False
+    parameter_robustness = False
+    year_stability = False
     selected: list[dict] = []
+
     for h1, h2 in ADJACENT_H_PAIRS:
-        passing_wd: list[tuple[int, int]] = []
+        per_gate_wd: dict[str, list[tuple[int, int]]] = {
+            name: [] for name in PER_CELL_GATE_NAMES
+        }
+        core_passing_wd: list[tuple[int, int]] = []
+        stable_passing_wd: list[tuple[int, int]] = []
+
         for w in W_WINDOWS:
             for d in D_LAGS:
                 c1 = by_key.get((w, d, h1))
                 c2 = by_key.get((w, d, h2))
-                if (
-                    c1 is not None
-                    and c2 is not None
-                    and _cell_five_pass(c1)
-                    and _cell_five_pass(c2)
-                    and c1.get("year_stability_pass") is True
-                    and c2.get("year_stability_pass") is True
-                ):
-                    passing_wd.append((w, d))
-        if len(passing_wd) >= 2:
-            chosen = sorted(passing_wd)[:2]
-            selected = [
-                {"W": w, "D": d, "H": h}
-                for w, d in chosen
-                for h in (h1, h2)
-            ]
-            break
+                if c1 is None or c2 is None:
+                    continue
 
-    qualified = bool(selected)
+                for gate_name in PER_CELL_GATE_NAMES:
+                    g1 = c1.get("per_cell_gates")
+                    g2 = c2.get("per_cell_gates")
+                    if (
+                        isinstance(g1, Mapping)
+                        and isinstance(g2, Mapping)
+                        and g1.get(gate_name) is True
+                        and g2.get(gate_name) is True
+                    ):
+                        per_gate_wd[gate_name].append((w, d))
+
+                if _cell_five_pass(c1) and _cell_five_pass(c2):
+                    horizon_robustness = True
+                    core_passing_wd.append((w, d))
+                    if (
+                        c1.get("year_stability_pass") is True
+                        and c2.get("year_stability_pass") is True
+                    ):
+                        stable_passing_wd.append((w, d))
+
+        for gate_name, passing_wd in per_gate_wd.items():
+            if len(passing_wd) >= 2:
+                per_gate_parameter_evidence[gate_name] = True
+
+        if len(core_passing_wd) >= 2:
+            parameter_robustness = True
+
+        if len(stable_passing_wd) >= 2:
+            year_stability = True
+            if not selected:
+                chosen = sorted(stable_passing_wd)[:2]
+                selected = [
+                    {"W": w, "D": d, "H": h}
+                    for w, d in chosen
+                    for h in (h1, h2)
+                ]
+
     gates = {
-        "primary_positive": qualified,
-        "material_relative_mae": qualified,
-        "bootstrap_positive": qualified,
-        "placebo_separation": qualified,
-        "transition_ordering": qualified,
-        "horizon_robustness": qualified,
-        "parameter_robustness": qualified,
-        "year_stability": qualified,
+        **per_gate_parameter_evidence,
+        "horizon_robustness": horizon_robustness,
+        "parameter_robustness": parameter_robustness,
+        "year_stability": year_stability,
     }
     return gates, selected
-
 
 def evaluate_b2_01(panel: Mapping[str, np.ndarray]) -> dict:
     cells = [
