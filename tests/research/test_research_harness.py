@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
+import numpy as np
 import pytest
 import yaml
 
 from scripts.research.lib.research_harness import (
     ArtifactExistsError,
+    AuthorizedDataset,
+    CodeIdentityError,
     DatasetIdentityContract,
     DatasetIdentityError,
     LookaheadError,
@@ -20,6 +24,7 @@ from scripts.research.lib.research_harness import (
     fail_closed_gate_conjunction,
     paired_same_support_delta,
     sha256_file,
+    verify_git_freeze,
     weighted_same_support_delta,
     write_json_new,
 )
@@ -29,10 +34,13 @@ IDENTITY = DatasetIdentityContract(
     dataset_id="CORE_BTC_BINANCE_V0",
     snapshot_id="snapshot-abc",
 )
+START_2020_MS = 1_577_836_800_000
+END_2022_MS = 1_640_995_200_000
+
 POLICY = OutcomeAccessPolicy(
     stage="development",
-    start_inclusive_ms=1_000,
-    end_exclusive_ms=10_000,
+    start_inclusive_ms=START_2020_MS,
+    end_exclusive_ms=END_2022_MS,
     allowed_years=(2020, 2021),
 )
 
@@ -75,6 +83,16 @@ def _authorized(tmp_path: Path):
     )
 
 
+def test_policy_rejects_allowed_year_outside_frozen_window():
+    with pytest.raises(ValueError, match="outside frozen time window"):
+        OutcomeAccessPolicy(
+            stage="development",
+            start_inclusive_ms=START_2020_MS,
+            end_exclusive_ms=END_2022_MS,
+            allowed_years=(2020, 2025),
+        )
+
+
 def test_dataset_identity_is_required_before_partition_access(tmp_path: Path):
     dataset_root = tmp_path / "dataset"
     (dataset_root / "canonical" / "1m" / "monthly").mkdir(parents=True)
@@ -84,6 +102,17 @@ def test_dataset_identity_is_required_before_partition_access(tmp_path: Path):
             dataset_root=dataset_root,
             identity=IDENTITY,
             policy=POLICY,
+        )
+
+
+def test_authorized_dataset_cannot_be_forged_directly(tmp_path: Path):
+    with pytest.raises(DatasetIdentityError, match="authorize_dataset_access"):
+        AuthorizedDataset(
+            dataset_root=tmp_path,
+            identity=IDENTITY,
+            policy=POLICY,
+            repo_manifest_path=tmp_path / "repo.yaml",
+            runtime_snapshot_path=tmp_path / "snapshot.json",
         )
 
 
@@ -130,15 +159,58 @@ def test_forbidden_year_partition_is_not_exposed(tmp_path: Path):
 def test_outcome_boundary_rejects_holdout_reach(tmp_path: Path):
     authorized, monthly = _authorized(tmp_path)
     (monthly / "2020-01.parquet").touch()
-    authorized.assert_outcome_window(8_999, 1_000)
+    authorized.assert_outcome_window(END_2022_MS - 1_001, 1_000)
     with pytest.raises(OutcomeBoundaryError):
-        authorized.assert_outcome_window(9_000, 1_000)
+        authorized.assert_outcome_window(END_2022_MS - 1_000, 1_000)
 
 
-def test_no_lookahead_accepts_equality_and_rejects_future_availability():
+def test_no_lookahead_accepts_numpy_scalar_and_rejects_future_availability():
+    assert_no_lookahead(np.int64(100), np.int64(100))
     assert_no_lookahead([100, 200], [100, 199])
     with pytest.raises(LookaheadError, match="lookahead"):
         assert_no_lookahead([100, 200], [100, 201])
+
+
+def _init_clean_git_repo(root: Path) -> str:
+    root.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["git", "init"], cwd=root, check=True, capture_output=True)
+    (root / "tracked.txt").write_text("frozen\n", encoding="utf-8")
+    subprocess.run(["git", "add", "tracked.txt"], cwd=root, check=True)
+    subprocess.run(
+        [
+            "git", "-c", "user.name=Harness Test",
+            "-c", "user.email=harness@example.invalid",
+            "commit", "-m", "freeze",
+        ],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    )
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def test_git_freeze_requires_exact_clean_head(tmp_path: Path):
+    repo = tmp_path / "repo"
+    sha = _init_clean_git_repo(repo)
+
+    proof = verify_git_freeze(repo, sha)
+    assert proof.code_sha == sha
+
+    with pytest.raises(CodeIdentityError, match="40-hex"):
+        verify_git_freeze(repo, sha[:12])
+
+    with pytest.raises(CodeIdentityError, match="HEAD mismatch"):
+        verify_git_freeze(repo, "0" * 40)
+
+    (repo / "tracked.txt").write_text("dirty\n", encoding="utf-8")
+    with pytest.raises(CodeIdentityError, match="not clean"):
+        verify_git_freeze(repo, sha)
 
 
 def test_paired_support_never_silently_intersects():
@@ -205,16 +277,21 @@ def test_gate_conjunction_is_literal_true_and_fail_closed():
 def test_provenance_and_result_artifact_are_immutable(tmp_path: Path):
     authorized, monthly = _authorized(tmp_path)
     (monthly / "2020-01.parquet").touch()
+    repo = tmp_path / "code"
+    code_sha = _init_clean_git_repo(repo)
+    code_freeze = verify_git_freeze(repo, code_sha)
+
     identity = build_run_identity(
         hypothesis_id="B02_TEST",
         stage="development",
-        code_sha="abc123",
+        code_freeze=code_freeze,
         authorized_dataset=authorized,
         command=["python", "-m", "scripts.research.experiments.b02_test"],
         seeds={"bootstrap": 7, "matched": 3},
     )
     assert identity["dataset_id"] == IDENTITY.dataset_id
     assert identity["snapshot_id"] == IDENTITY.snapshot_id
+    assert identity["code_sha"] == code_sha
     assert identity["seeds"] == {"bootstrap": 7, "matched": 3}
 
     path = tmp_path / "result.json"
