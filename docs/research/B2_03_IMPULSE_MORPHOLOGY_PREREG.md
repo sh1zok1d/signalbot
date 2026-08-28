@@ -220,26 +220,57 @@ backfills may not change it. If either nuisance bin is unavailable, the record
 is ineligible for candidate training (while remaining eligible for baseline
 training if its baseline fields and mature target are valid).
 
+Frozen nuisance quintile bins for any deterministic midrank percentile `p` are:
+
+- Q1: `[0.0,0.2)`
+- Q2: `[0.2,0.4)`
+- Q3: `[0.4,0.6)`
+- Q4: `[0.6,0.8)`
+- Q5: `[0.8,1.0]`
+
+Exact boundary values enter the bin whose lower bound they equal; `p=1.0`
+belongs to Q5.
+
 This makes the placebo training set exactly the real candidate training set;
 placebo may not silently discard rows merely because a nuisance stratum is
 unavailable.
 
 Strata:
 
-`calendar_month(T_e) × side × displacement_quintile × rv_quintile`.
+`calendar_month_utc(T_e) × side × displacement_quintile × rv_quintile`.
+
+`calendar_month_utc(T_e)` is exactly UTC `YYYY-MM`.
 
 Sort each stratum by canonical EVENT_ID, then permute only historical morphology
 state labels. Seed:
 
 `20260903 | replicate | W | H | week_start_S | stratum_id`.
 
+Exact RNG encoding is:
+
+- `replicate_index ∈ {0,...,99}` (zero-based);
+- `week_start_ms` = integer UTC epoch milliseconds for Monday 00:00:00Z;
+- side labels are exactly `UP` or `DOWN`;
+- nuisance labels are exactly `Q1`...`Q5`;
+- `stratum_id` is exactly
+  `YYYY-MM|SIDE=<UP|DOWN>|DISP_Q=<Q1..Q5>|RV_Q=<Q1..Q5>`;
+- raw UTF-8 seed text is
+  `20260903|replicate_index|W|H|week_start_ms|stratum_id`;
+- `seed_int=int.from_bytes(sha256(raw_utf8).digest()[:8],"big",signed=False)`;
+- RNG is exactly `numpy.random.default_rng(seed_int)`.
+
+No alternative encoding or replicate numbering is permitted.
+
 Leave current-week true morphology states unchanged. Evaluate placebo models on
 the exact real-candidate support. Real candidate must exceed placebo p95 mean
-AE improvement.
+AE improvement, where p95 uses
+`numpy.quantile(...,0.95,method="linear")`.
 
 ## 12. Bootstrap and stability
 
-UTC-week block bootstrap: seed `20260904`, 2000 replicates, 95% CI.
+UTC-week block bootstrap: seed `20260904`, 2000 replicates, 95% CI. Bootstrap
+2.5th/97.5th percentiles use
+`numpy.quantile(...,method="linear")`.
 
 Fixed years: 2020–2024. Every selected promotion-neighborhood cell must have
 positive mean AE improvement in at least 4/5 years.
