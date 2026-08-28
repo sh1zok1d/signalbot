@@ -1,0 +1,215 @@
+{
+  "status": "PREREG_CANDIDATE / OUTCOME_BLIND",
+  "formulation_id": "B2-05_FLOW_ABSORPTION",
+  "primary_family": "F4",
+  "inventory_entry_preexisting": true,
+  "inventory_mutable": false,
+  "dataset": {
+    "dataset_id": "CORE_BTC_BINANCE_V0",
+    "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+    "source_timeframe": "1m",
+    "decision_grid": "UTC_epoch_aligned_15m",
+    "availability": "bar_end_exclusive"
+  },
+  "chronology": {
+    "warmup_start": "2020-01-01T00:00:00Z",
+    "development_start": "2020-02-01T00:00:00Z",
+    "development_end_exclusive": "2025-01-01T00:00:00Z",
+    "require": "T+240m < development_end_exclusive"
+  },
+  "flow": {
+    "W": [
+      15,
+      30,
+      60
+    ],
+    "total": "sum(base_volume)",
+    "taker_buy": "sum(taker_buy_base_volume)",
+    "integrity": "0<=taker_buy_base_volume<=base_volume and TOTAL_W>0",
+    "imbalance": "(2*TAKER_BUY_W-TOTAL_W)/TOTAL_W",
+    "direction": "sign(IMB); exact zero unavailable",
+    "abs_imbalance": "abs(IMB)",
+    "threshold_search": false
+  },
+  "baseline_controls": {
+    "flow_ret": "d*ln(close(T)/close(T-W))",
+    "rv": "sqrt(sum 1m r^2 in [T-W,T))",
+    "log_activity": "ln(TOTAL_W)"
+  },
+  "interaction": {
+    "descriptor_name": "IMPACT_INTERACTION",
+    "descriptor": "ABS_IMB*FLOW_RET",
+    "alternate_descriptor": false,
+    "ratio_variant": false,
+    "epsilon_floor": false
+  },
+  "state": {
+    "reference_days": 180,
+    "scope": "same W and side",
+    "minimum_reference_n": 120,
+    "percentile": "deterministic_midrank",
+    "states": [
+      "LOW",
+      "MID",
+      "HIGH"
+    ],
+    "boundaries": [
+      "0",
+      "1/3",
+      "2/3",
+      "1"
+    ],
+    "expected_ordering": "HIGH > MID > LOW",
+    "historical_state_freeze": "as-of own T_e only"
+  },
+  "model": {
+    "refit": "UTC_ISO_week_start",
+    "lookback_days_max": 365,
+    "maturity": "T_e+H<=S",
+    "baseline_features": [
+      "intercept",
+      "ABS_IMB",
+      "FLOW_RET",
+      "RV_W",
+      "LOG_ACTIVITY",
+      "SIDE_BUY"
+    ],
+    "candidate_additions": [
+      "IMPACT_LOW",
+      "IMPACT_HIGH"
+    ],
+    "minimum_baseline_n": 500,
+    "minimum_candidate_n": 500,
+    "minimum_candidate_per_state": 100,
+    "baseline_may_use_more_training_rows": true,
+    "row_order": "canonical RECORD_ID",
+    "fit": "numpy.linalg.lstsq(rcond=None)",
+    "fallback": "FORBIDDEN"
+  },
+  "target": {
+    "H": [
+      30,
+      60,
+      120,
+      240
+    ],
+    "flow_direction_return": "d*ln(close(T+H)/close(T))",
+    "scale": "causal trailing-30d median abs H-return with t+H<=T"
+  },
+  "support": {
+    "current": "exact same candidate/comparator RECORD_ID",
+    "baseline_extra_current_events": false,
+    "one_side_rescue": false
+  },
+  "identity": {
+    "fields": [
+      "dataset_id",
+      "snapshot_id",
+      "source_timeframe",
+      "W",
+      "interval_start",
+      "interval_end",
+      "side",
+      "T"
+    ],
+    "record_id": "EVENT_ID|H"
+  },
+  "metrics": {
+    "loss": "absolute_error",
+    "ae_improvement": "BASE_AE-CAND_AE",
+    "relative_mae_min": 0.02
+  },
+  "placebo": {
+    "seed": 20260907,
+    "replicates": 100,
+    "nuisance_bins": "causal trailing-180d same-W/side quintiles of ABS_IMB and FLOW_RET",
+    "strata": "calendar_month x side x imbalance_quintile x flow_return_quintile",
+    "historical_labels_only": true,
+    "pre_rng_order": "EVENT_ID",
+    "current_state_unchanged": true,
+    "pass_quantile": 0.95
+  },
+  "bootstrap": {
+    "seed": 20260908,
+    "replicates": 2000,
+    "block": "UTC_ISO_week",
+    "ci": 0.95
+  },
+  "stability": {
+    "years": [
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "required_positive_years": 4,
+    "sides": [
+      "BUY",
+      "SELL"
+    ]
+  },
+  "search_surface": {
+    "W": [
+      15,
+      30,
+      60
+    ],
+    "H": [
+      30,
+      60,
+      120,
+      240
+    ],
+    "primary_cells": 12,
+    "imbalance_thresholds": 0,
+    "impact_descriptors": 1
+  },
+  "promotion_gate_contract": {
+    "required_gate_names": [
+      "primary_positive",
+      "material_relative_mae",
+      "bootstrap_positive",
+      "placebo_separation",
+      "impact_ordering",
+      "side_stability",
+      "horizon_robustness",
+      "parameter_robustness",
+      "year_stability"
+    ],
+    "per_cell_gate_names": [
+      "primary_positive",
+      "material_relative_mae",
+      "bootstrap_positive",
+      "placebo_separation",
+      "impact_ordering",
+      "side_stability"
+    ],
+    "adjacent_horizon_pairs": [
+      [
+        30,
+        60
+      ],
+      [
+        60,
+        120
+      ],
+      [
+        120,
+        240
+      ]
+    ],
+    "parameter_rule": "same adjacent H pair on >=2 distinct W",
+    "year_rule": "all selected cells positive >=4/5 years",
+    "selection": "lexicographically first by frozen H-pair order then ascending W",
+    "fail_closed": true
+  },
+  "verdicts": [
+    "B2_05_PROMOTED_CANDIDATE",
+    "B2_05_CLOSED_NO_PROMOTION"
+  ],
+  "outcome_access_authorized": false,
+  "validation_2025_authorized": false,
+  "oos_2026_authorized": false,
+  "rerun_or_reformulation_after_failure_authorized": false
+}
