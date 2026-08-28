@@ -446,17 +446,23 @@ def test_run_identity_rejects_lookalike_proof_objects(tmp_path: Path):
     code_freeze = verify_git_freeze(repo, code_sha)
 
     class FakeCodeFreeze:
-        code_sha = code_sha
+        pass
+
+    fake_code_freeze = FakeCodeFreeze()
+    fake_code_freeze.code_sha = code_sha
 
     class FakeAuthorizedDataset:
-        policy = authorized.policy
-        identity = authorized.identity
+        pass
+
+    fake_authorized_dataset = FakeAuthorizedDataset()
+    fake_authorized_dataset.policy = authorized.policy
+    fake_authorized_dataset.identity = authorized.identity
 
     with pytest.raises(CodeIdentityError, match="verify_git_freeze proof"):
         build_run_identity(
             hypothesis_id="B02_TEST",
             stage="development",
-            code_freeze=FakeCodeFreeze(),
+            code_freeze=fake_code_freeze,
             authorized_dataset=authorized,
             command=["python", "-m", "fake"],
         )
@@ -466,7 +472,7 @@ def test_run_identity_rejects_lookalike_proof_objects(tmp_path: Path):
             hypothesis_id="B02_TEST",
             stage="development",
             code_freeze=code_freeze,
-            authorized_dataset=FakeAuthorizedDataset(),
+            authorized_dataset=fake_authorized_dataset,
             command=["python", "-m", "fake"],
         )
 
