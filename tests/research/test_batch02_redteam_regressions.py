@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -239,7 +240,7 @@ def main():
         validate_batch02_source_tree(research, repo_root=repo)
 
 
-def _hollow_test_context() -> Batch02RunContext:
+def _hollow_test_context(repo_root: Path) -> Batch02RunContext:
     ctx = object.__new__(Batch02RunContext)
     object.__setattr__(
         ctx,
@@ -251,6 +252,7 @@ def _hollow_test_context() -> Batch02RunContext:
         },
     )
     object.__setattr__(ctx, "_run_identity_sha256", "e" * 64)
+    object.__setattr__(ctx, "code_freeze", SimpleNamespace(repo_root=repo_root))
     return ctx
 
 
@@ -258,10 +260,12 @@ def test_durable_result_reservation_blocks_unlink_then_repersist(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    ctx = _hollow_test_context()
+    ctx = _hollow_test_context(tmp_path)
     monkeypatch.setattr(batch02_contracts, "_reverify_run_code", lambda value: None)
 
-    path = tmp_path / "B2_02_DEV_RESULTS.json"
+    path = (
+        tmp_path / "artifacts" / "b2_02" / "B2_02_DEV_RESULTS.json"
+    )
     first = persist_batch02_result(path, {"version": 1}, run_context=ctx)
     assert len(first) == 64
     assert path.exists()
@@ -279,10 +283,12 @@ def test_durable_result_reservation_blocks_existing_logical_path(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    ctx = _hollow_test_context()
+    ctx = _hollow_test_context(tmp_path)
     monkeypatch.setattr(batch02_contracts, "_reverify_run_code", lambda value: None)
 
-    path = tmp_path / "B2_02_DEV_RESULTS.json"
+    path = (
+        tmp_path / "artifacts" / "b2_02" / "B2_02_DEV_RESULTS.json"
+    )
     path.write_text('{"legacy": true}\n', encoding="utf-8")
 
     with pytest.raises(ArtifactExistsError):
@@ -310,7 +316,7 @@ def test_canonical_loader_rejects_hollow_run_context_before_pyarrow_io():
 def test_canonical_loader_rejects_bad_column_contract_before_io(
     monkeypatch: pytest.MonkeyPatch,
 ):
-    ctx = _hollow_test_context()
+    ctx = _hollow_test_context(tmp_path)
     object.__setattr__(ctx, "_authorized_dataset", object())
     monkeypatch.setattr(batch02_contracts, "_reverify_run_code", lambda value: None)
 
