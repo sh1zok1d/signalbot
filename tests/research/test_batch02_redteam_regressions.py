@@ -289,6 +289,7 @@ def test_durable_result_reservation_blocks_existing_logical_path(
     path = (
         tmp_path / "artifacts" / "b2_02" / "B2_02_DEV_RESULTS.json"
     )
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text('{"legacy": true}\n', encoding="utf-8")
 
     with pytest.raises(ArtifactExistsError):
