@@ -233,16 +233,31 @@
     "failure_behavior": "missing/unavailable/nonfinite placebo-required input or lost real-candidate training/scoring support => placebo gate false / non-promotion; no fallback",
     "seed_encoding": {
       "replicate_index": "zero-based integer 0..99",
-      "week_start_S": "week_start_ms = integer UTC epoch milliseconds for Monday 00:00:00Z",
       "calendar_month": "UTC YYYY-MM",
       "stratum_id": "YYYY-MM|SIDE=<UPPER|LOWER>|EVENT_CLOSE_BEYOND=<0|1>",
       "raw_utf8": "20260901|replicate_index|L|H|week_start_ms|stratum_id",
       "digest": "sha256(raw_utf8).digest()",
       "seed_int": "int.from_bytes(digest[:8], 'big', signed=False)",
       "rng": "numpy.random.default_rng(seed_int)",
-      "forbidden": "Python hash(), alternative formatting, 1-based replicate index, or alternate SeedSequence layout"
+      "forbidden": "Python hash(), alternative formatting, 1-based replicate index, or alternate SeedSequence layout",
+      "week_start_ms": "integer UTC epoch milliseconds for Monday 00:00:00Z"
     },
-    "quantile_method": "numpy.quantile(..., 0.95, method='linear')"
+    "quantile_method": "numpy.quantile(..., 0.95, method='linear')",
+    "label_code_map": {
+      "LOW": 0,
+      "MID": 1,
+      "HIGH": 2
+    },
+    "permutation_operation": {
+      "input_rows": "exact real-candidate historical training rows in this stratum, sorted ascending by canonical EVENT_ID",
+      "input_label_vector": "NumPy int64 vector of stored state codes in sorted-row order using LOW=0, MID=1, HIGH=2",
+      "rng": "instantiate numpy.random.default_rng(seed_int) from the already-frozen per-stratum seed_encoding",
+      "operation": "permuted_labels = rng.permutation(input_label_vector)",
+      "reassignment": "assign permuted_labels positionally back to the same EVENT_ID-sorted rows; do not permute features, targets, timestamps, nuisance bins, or row identities",
+      "zero_record_behavior": "no stratum object is instantiated and no label assignment occurs",
+      "one_record_behavior": "instantiate the frozen stratum RNG and call rng.permutation on the one-element vector; the label remains unchanged",
+      "support_preservation": "vector length and per-stratum LOW/MID/HIGH label counts are exactly preserved"
+    }
   },
   "bootstrap": {
     "block": "UTC_ISO_week",
@@ -256,7 +271,24 @@
     ],
     "resample_unit": "UTC ISO week; resample whole observed week blocks with replacement",
     "failure_behavior": "missing/unavailable/nonfinite bootstrap evidence => bootstrap_positive false",
-    "quantile_method": "numpy.quantile(..., method='linear') for 0.025 and 0.975"
+    "quantile_method": "numpy.quantile(..., method='linear') for 0.025 and 0.975",
+    "seed_derivation": "raw UTF-8: 20260902|L|H",
+    "rng_contract": {
+      "cell_key": "L|H",
+      "week_id": "ISOYEAR-Www computed from each scored record decision time T in UTC",
+      "canonical_week_order": "sort unique week_id values ascending lexicographically; ISOYEAR-Www zero-pads week to two digits",
+      "within_week_order": "sort scored records ascending by canonical EVENT_ID|H",
+      "raw_utf8": "20260902|L|H",
+      "digest": "sha256(raw_utf8).digest()",
+      "seed_int": "int.from_bytes(digest[:8], 'big', signed=False)",
+      "rng": "one numpy.random.default_rng(seed_int) per primary cell",
+      "replicate_order": "replicate_index 0..1999 in ascending order using the single per-cell generator stream",
+      "draw_operation": "for each replicate call rng.integers(0, n_week_blocks, size=n_week_blocks, dtype=np.int64)",
+      "pooling": "concatenate the selected whole week blocks in draw order, preserving canonical within-week EVENT_ID|H order and block multiplicity; statistic is mean(AE_IMPROVEMENT) over the pooled observations",
+      "zero_block_behavior": "fail closed: bootstrap_positive=false",
+      "one_block_behavior": "n_week_blocks=1; every draw is index 0 and the sole whole block is used once per replicate",
+      "quantiles": "numpy.quantile(..., method='linear') for 0.025 and 0.975"
+    }
   },
   "stability": {
     "years": [
