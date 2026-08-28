@@ -195,12 +195,20 @@ Minimum historical state count:
 - baseline cell: 80
 - candidate joint cell: 40
 
-If the candidate joint cell is immature, the B2-01 record is
-`UNAVAILABLE_FOR_DECISION` for that W,D,H. The baseline is then evaluated on
-the same final candidate-eligible support; it may not retain extra events.
+A W,D,H decision record is eligible only if **both** frozen history minima are
+met at T:
 
-No neighboring-bin fallback, smoothing fallback, another W/D, or full-sample
-fallback is permitted.
+- baseline current-level cell count >= 80; and
+- candidate current-level × transition-state cell count >= 40.
+
+If either minimum is not met, the record is
+`UNAVAILABLE_FOR_DECISION` for that W,D,H and neither candidate nor baseline
+may score it. The final scored support is therefore the intersection defined by
+this joint eligibility predicate, and candidate/comparator retain identical
+canonical event IDs on that support.
+
+No candidate-only support shrinkage, extra baseline events, neighboring-bin
+fallback, smoothing fallback, another W/D, or full-sample fallback is permitted.
 
 ## 9. Primary incremental metric
 
@@ -242,20 +250,39 @@ the current-level baseline rather than merely reducing error accidentally.
 
 ## 11. Negative control
 
-Within each calendar month × current-level quintile, deterministically permute
-transition-state labels across eligible decision records.
+Use a **causal training-label permutation**. The placebo must never assign an
+earlier forecast information that became available only later.
 
 Seed: `20260830`.
 
 Use 100 replicates.
 
-For each W,D,H, recompute the transition-aware historical forecast using the
-permuted transition labels while preserving:
+For each scored event T and each W,D,H:
 
-- decision records;
+1. construct exactly the same causal 30-day historical training set used by the
+   real forecast, requiring `t + H <= T`;
+2. within that historical set, stratify records by
+   `calendar_month(t) × current-level quintile`;
+3. within each stratum, sort records by canonical B2-01 event ID before any RNG
+   operation;
+4. deterministically permute only the **historical training records'
+   transition-state labels** within that stratum; every source label in the pool
+   is therefore from a record whose feature was available by T;
+5. derive the RNG seed deterministically from
+   `20260830 | replicate_index | W | D | H | decision_time_T | stratum_id`;
+6. leave the evaluation event's own decision-time transition state unchanged and
+   recompute `CAND_PRED(T)` from the placebo-labeled historical training set.
+
+The procedure preserves, within each causal training set:
+
+- historical training decision records;
 - current-level state;
-- outcomes;
-- calendar-month composition.
+- historical outcomes;
+- per-stratum transition-label counts;
+- canonical event ordering before randomization.
+
+It never uses labels from future records merely to preserve a full calendar
+month's eventual composition.
 
 The true candidate must exceed the 95th percentile of placebo mean
 `AE_IMPROVEMENT`.
