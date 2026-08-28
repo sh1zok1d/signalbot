@@ -859,3 +859,18 @@ def test_cr03_worktree_blob_oid_wraps_regular_file_read_error(
     ) as excinfo:
         verify_git_freeze(code_repo, sha)
     assert isinstance(excinfo.value.__cause__, OSError)
+
+
+# ---------------------------------------------------------------------------
+# CR-05: a hollow AuthorizedDataset created by bypassing __post_init__ must
+# fail at every use-site, not merely during normal dataclass construction.
+# ---------------------------------------------------------------------------
+def test_cr05_hollow_authorized_dataset_fails_at_use_time():
+    forged = object.__new__(AuthorizedDataset)
+
+    with pytest.raises(DatasetIdentityError, match="created by authorize_dataset_access"):
+        forged.list_monthly_partitions()
+    with pytest.raises(DatasetIdentityError, match="created by authorize_dataset_access"):
+        forged.partition_evidence()
+    with pytest.raises(DatasetIdentityError, match="created by authorize_dataset_access"):
+        forged.assert_outcome_window(START_2020_MS, 0)
