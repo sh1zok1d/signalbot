@@ -1,8 +1,8 @@
 # V2 Research Harness v1
 
-**Status:** `IMPLEMENTATION_CANDIDATE / SYNTHETIC_TESTS_ONLY`  
+**Status:** `ACCEPTED / MERGED`  
 **Outcome access in this unit:** `NONE`  
-**Batch02:** `NOT_STARTED`
+**Batch02:** `DESIGN MAY PROCEED; REAL OUTCOME ACCESS STILL REQUIRES HYPOTHESIS-SPECIFIC GATE`
 
 ## Purpose
 
@@ -15,6 +15,28 @@ defaults for Batch02+.
 
 It does not define a market hypothesis, promotion threshold, estimand, or
 trading rule. Frozen H01-H05 code remains untouched historical evidence.
+
+## Acceptance record
+
+Harness v1 passed the complete pre-outcome acceptance gate on exact candidate SHA:
+
+`fe11dbe1b853d7720eb0b48c789d92d245379c47`
+
+Recorded acceptance evidence:
+
+- GitHub CI #165: GREEN on the exact candidate SHA;
+- CodeRabbit: reviewed the exact candidate SHA with no integrity-blocking finding;
+- independent adversarial LLM red-team:
+  `A. HARNESS_V1_PASSES_PRE_OUTCOME_REDTEAM`;
+- original B-01 and M-01 through M-05 replayed CLOSED;
+- CR-01 through CR-04 replayed CLOSED;
+- PR #85 merged without changing the reviewed candidate;
+- merge commit:
+  `8c916af1bc5e1f21a262cf789397cc315d0a5c8d`;
+- no real 2025 validation or 2026 OOS outcomes were opened by the harness unit.
+
+The historical candidate/repair discussion below is retained as an audit trail; it no
+longer represents the current acceptance state.
 
 ## Mandatory primitives
 
@@ -342,10 +364,15 @@ This unit does not:
 
 ## Acceptance boundary
 
-Until the repaired exact SHA passes the complete independent-review gate:
+The complete independent-review gate has passed and PR #85 has been merged.
 
 ```text
-V2_RESEARCH_HARNESS_V1 = IMPLEMENTATION_CANDIDATE
-BATCH02 = NOT_STARTED
+V2_RESEARCH_HARNESS_V1 = ACCEPTED
+HARNESS_REVIEWED_SHA = fe11dbe1b853d7720eb0b48c789d92d245379c47
+HARNESS_MERGE_COMMIT = 8c916af1bc5e1f21a262cf789397cc315d0a5c8d
+BATCH02 = DESIGN_AUTHORIZED_ONLY
+REAL_BATCH02_OUTCOME_ACCESS = NOT_YET_AUTHORIZED
 REAL_OUTCOMES_OPENED_BY_HARNESS_UNIT = NO
+2025_VALIDATION = UNTOUCHED
+2026_OOS = UNTOUCHED
 ```
