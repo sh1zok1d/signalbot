@@ -34,7 +34,9 @@
   "baseline_controls": {
     "flow_ret": "d*ln(close(T)/close(T-W))",
     "rv": "sqrt(sum 1m r^2 in [T-W,T))",
-    "log_activity": "ln(TOTAL_W)"
+    "log_activity": "ln(TOTAL_W)",
+    "rv_validity": "RV_W finite and strictly >0",
+    "log_activity_validity": "LOG_ACTIVITY finite"
   },
   "interaction": {
     "descriptor_name": "IMPACT_INTERACTION",
@@ -86,7 +88,33 @@
     "fit": "numpy.linalg.lstsq(rcond=None)",
     "fallback": "FORBIDDEN",
     "candidate_training_requires_nuisance_bins": true,
-    "candidate_training_rule": "baseline-eligible row plus valid stored impact state and both valid stored placebo nuisance quintiles; T_e+H<=S"
+    "candidate_training_rule": "baseline-eligible row plus valid stored impact state and both valid stored placebo nuisance quintiles; T_e+H<=S",
+    "preprocessing": {
+      "continuous_columns": [
+        "ABS_IMB",
+        "FLOW_RET",
+        "RV_W",
+        "LOG_ACTIVITY"
+      ],
+      "baseline_training_statistics_source": "baseline model's own causal historical training rows frozen at UTC ISO-week start S",
+      "candidate_training_statistics_source": "candidate model's own causal historical training rows frozen at UTC ISO-week start S",
+      "transform": "for each continuous column, z=(x-training_mean)/training_std using that model's frozen training statistics; apply identical frozen transformation to that model's current-week scoring rows",
+      "unstandardized_columns": [
+        "intercept",
+        "SIDE_BUY",
+        "IMPACT_LOW",
+        "IMPACT_HIGH"
+      ],
+      "dummy_and_binary_standardization": false,
+      "fit_row_order": "ascending canonical RECORD_ID before statistics, matrices, fit, and audit hashes",
+      "validity": [
+        "all required raw and transformed model inputs finite",
+        "every standardized continuous training column has finite strictly-positive training standard deviation",
+        "design matrix has full required column rank",
+        "numpy.linalg.lstsq returns finite coefficients and no fit error"
+      ],
+      "failure_behavior": "weekly model UNAVAILABLE; no fallback; current-week scoring unavailable for both candidate and comparator if either frozen weekly fit is unavailable"
+    }
   },
   "target": {
     "H": [
@@ -96,7 +124,17 @@
       240
     ],
     "flow_direction_return": "d*ln(close(T+H)/close(T))",
-    "scale": "causal trailing-30d median abs H-return with t+H<=T"
+    "scale": "causal trailing-30d median abs H-return with t+H<=T",
+    "reference_contract": {
+      "observation_population": "all eligible UTC-epoch-aligned 15-minute decision boundaries, not candidate/trigger records",
+      "reference_interval": "historical boundaries t in [T-30 calendar days,T) with t+H<=T",
+      "statistic": "median(abs(ln(close(t+H)/close(t))))",
+      "current_boundary_excluded": true,
+      "future_or_unmatured_excluded": true,
+      "require_scale": "finite and strictly >0",
+      "failure_behavior": "current record UNAVAILABLE_FOR_DECISION for horizon H"
+    },
+    "normalized": "Y_H=FLOW_CONT_RET_H/PAST_MEDIAN_ABS_RET_H"
   },
   "support": {
     "current": "exact same candidate/comparator RECORD_ID",
@@ -119,7 +157,10 @@
   "metrics": {
     "loss": "absolute_error",
     "ae_improvement": "BASE_AE-CAND_AE",
-    "relative_mae_min": 0.02
+    "relative_mae_min": 0.02,
+    "relative_mae_improvement": "1-mean(CAND_AE)/mean(BASE_AE) on exact paired cell support; mean(BASE_AE) must be finite and >0",
+    "bootstrap_statistic": "UTC-week block bootstrap distribution of mean(AE_IMPROVEMENT) on exact cell support",
+    "bootstrap_positive_rule": "2.5th percentile of 2000-replicate bootstrap distribution > 0"
   },
   "placebo": {
     "seed": 20260907,
@@ -136,13 +177,23 @@
     "nuisance_percentile": "deterministic midrank; current record excluded",
     "nuisance_bin_freeze": "each ABS_IMB/FLOW_RET quintile computed once as-of own T_e and stored; no later recomputation",
     "nuisance_missing_rule": "row ineligible for candidate training, but may remain baseline-training eligible",
-    "training_support": "exactly the real candidate training rows; no placebo-only row dropping"
+    "training_support": "exactly the real candidate training rows; no placebo-only row dropping",
+    "seed_derivation": "20260907|replicate|W|H|week_start_S|stratum_id",
+    "rng": "numpy Generator/default_rng seeded deterministically from the full seed-derivation tuple after canonical stratum ordering",
+    "failure_behavior": "missing/unavailable/nonfinite placebo-required input or lost real-candidate training/scoring support => placebo gate false / non-promotion; no fallback"
   },
   "bootstrap": {
     "seed": 20260908,
     "replicates": 2000,
     "block": "UTC_ISO_week",
-    "ci": 0.95
+    "ci": 0.95,
+    "statistic": "mean(AE_IMPROVEMENT)",
+    "quantiles": [
+      0.025,
+      0.975
+    ],
+    "resample_unit": "UTC ISO week; resample whole observed week blocks with replacement",
+    "failure_behavior": "missing/unavailable/nonfinite bootstrap evidence => bootstrap_positive false"
   },
   "stability": {
     "years": [
@@ -211,7 +262,89 @@
     "parameter_rule": "same adjacent H pair on >=2 distinct W",
     "year_rule": "all selected cells positive >=4/5 years",
     "selection": "lexicographically first by frozen H-pair order then ascending W",
-    "fail_closed": true
+    "fail_closed": true,
+    "per_cell_predicates": {
+      "primary_positive": {
+        "support": "exact paired current cell RECORD_ID support",
+        "statistic": "mean(AE_IMPROVEMENT)",
+        "operator": ">",
+        "threshold": 0
+      },
+      "material_relative_mae": {
+        "support": "exact paired current cell RECORD_ID support",
+        "statistic": "1-mean(CAND_AE)/mean(BASE_AE)",
+        "precondition": "mean(BASE_AE) finite and >0",
+        "operator": ">=",
+        "threshold": 0.02
+      },
+      "bootstrap_positive": {
+        "support": "exact paired current cell RECORD_ID support grouped by UTC ISO week",
+        "statistic": "2.5th percentile of 2000-replicate UTC-week bootstrap of mean(AE_IMPROVEMENT)",
+        "operator": ">",
+        "threshold": 0
+      },
+      "placebo_separation": {
+        "support": "exact real-candidate cell scoring support and exact real-candidate historical training support per frozen weekly fit",
+        "statistic": "real mean(AE_IMPROVEMENT) minus 95th percentile of 100 causal-placebo replicate mean(AE_IMPROVEMENT) values",
+        "operator": ">",
+        "threshold": 0
+      },
+      "impact_ordering": {
+        "support": "scored current cell; LOW, MID, HIGH each require non-empty finite BASE_RESIDUAL support",
+        "statistic": "median(BASE_RESIDUAL|LOW) < median(BASE_RESIDUAL|MID) < median(BASE_RESIDUAL|HIGH)",
+        "operator": "strict_chain_true"
+      },
+      "side_stability": {
+        "support": "both frozen direction/side subsets inside the same scored cell; each side requires non-empty finite support plus LOW/HIGH residual support",
+        "statistic": "for each required side independently: mean(AE_IMPROVEMENT)>0 AND median(BASE_RESIDUAL|HIGH)-median(BASE_RESIDUAL|LOW)>0",
+        "operator": "all_required_sides_true"
+      }
+    },
+    "neighborhood_enumeration": {
+      "parameter_name": "W",
+      "parameter_values": [
+        15,
+        30,
+        60
+      ],
+      "adjacent_horizon_pairs": [
+        [
+          30,
+          60
+        ],
+        [
+          60,
+          120
+        ],
+        [
+          120,
+          240
+        ]
+      ],
+      "candidate_neighborhood": "one adjacent-H pair crossed with exactly two distinct frozen parameter values, producing four cells",
+      "enumeration_order": "frozen H-pair order [30,60],[60,120],[120,240], then lexicographic ascending W-pair",
+      "outcome_ranking_forbidden": true
+    },
+    "neighborhood_gate_predicates": {
+      "primary_positive": "all four neighborhood cells have per-cell primary_positive=true",
+      "material_relative_mae": "all four neighborhood cells have per-cell material_relative_mae=true",
+      "bootstrap_positive": "all four neighborhood cells have per-cell bootstrap_positive=true",
+      "placebo_separation": "all four neighborhood cells have per-cell placebo_separation=true",
+      "impact_ordering": "all four neighborhood cells have per-cell impact_ordering=true",
+      "side_stability": "all four neighborhood cells have per-cell side_stability=true",
+      "horizon_robustness": "for each selected parameter value, both members of the same adjacent-H pair pass all six per-cell predicates",
+      "parameter_robustness": "the same adjacent-H pair satisfies horizon_robustness for two distinct frozen parameter values",
+      "year_stability": "each of the four neighborhood cells has mean(AE_IMPROVEMENT)>0 in at least 4 of fixed years 2020,2021,2022,2023,2024"
+    },
+    "promotion_algorithm": [
+      "compute all per-cell predicates fail-closed",
+      "enumerate all frozen four-cell neighborhoods in neighborhood_enumeration order",
+      "compute the nine named neighborhood gate predicates independently for each neighborhood",
+      "a full neighborhood qualifies iff all nine named predicates are literal true",
+      "select the first qualifying neighborhood in frozen enumeration order",
+      "promotion iff a selected qualifying neighborhood exists AND fail_closed_gate_conjunction over its nine literal gate values returns true"
+    ],
+    "fail_closed_inputs": "missing, unavailable, malformed, nonfinite, errored, empty-required-support, or non-literal-true mandatory evidence => corresponding predicate false and cannot promote"
   },
   "verdicts": [
     "B2_05_PROMOTED_CANDIDATE",
