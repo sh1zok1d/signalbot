@@ -75,6 +75,7 @@ _FORBIDDEN_IO_ATTRIBUTES = {
     "loadtxt",
     "genfromtxt",
     "fromfile",
+    "list_monthly_partitions",
 }
 _FORBIDDEN_RANK_CALLS = {
     "rank",
