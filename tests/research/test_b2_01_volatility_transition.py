@@ -7,15 +7,21 @@ import numpy as np
 import pytest
 
 from scripts.research.b2_01_volatility_transition_lib import (
+    BAR_MS,
+    B201InputError,
     D_LAGS,
     GATE_NAMES,
+    GRID_MS,
     HORIZONS,
     MISSING_STATE,
     REQUIRED_SNAPSHOT,
     WARMUP_START_MS,
     W_WINDOWS,
+    _log_return_squares,
     _placebo_candidate_prediction,
     _walk_forward_forecasts,
+    _window_rv,
+    causal_placebo_mean_improvements,
     canonical_event_id,
     determine_promotion_gates,
     load_prereg,
@@ -29,10 +35,6 @@ from scripts.research.lib.research_harness import (
     SupportMismatchError,
     fail_closed_gate_conjunction,
 )
-
-BAR_MS = 60_000
-GRID_MS = 15 * BAR_MS
-
 
 def _synthetic_1m(n: int = 120) -> dict[str, np.ndarray]:
     open_ms = WARMUP_START_MS + np.arange(n, dtype=np.int64) * BAR_MS
@@ -77,7 +79,7 @@ def test_validate_1m_frame_accepts_only_canonical_bar_end_availability():
 
     forged = {k: v.copy() for k, v in frame.items()}
     forged["available_at_ms"][10] += 1
-    with pytest.raises(Exception, match="bar_end_exclusive"):
+    with pytest.raises(B201InputError, match="bar_end_exclusive"):
         validate_1m_frame(forged)
 
 
@@ -85,8 +87,47 @@ def test_validate_1m_frame_rejects_noncontiguous_source_bucket_identity():
     frame = _synthetic_1m()
     frame["open_time_ms"][50] += BAR_MS
     frame["available_at_ms"][50] += BAR_MS
-    with pytest.raises(Exception, match="contiguous 1m grid"):
+    with pytest.raises(B201InputError, match="contiguous 1m grid"):
         validate_1m_frame(frame)
+
+
+def test_rv_boundary_uses_only_information_available_at_decision_time():
+    close = np.asarray([100.0, 101.0, 103.0, 107.0, 109.0, 113.0], dtype=np.float64)
+    sums1, invalid1 = _log_return_squares(close)
+
+    # Decision-time offset=3 means the bar opening at index 3 is not yet
+    # available. Feature [1, 3) must ignore it, while target [3, 5) must use it.
+    feature1 = _window_rv(
+        sums1,
+        invalid1,
+        np.asarray([1], dtype=np.int64),
+        np.asarray([3], dtype=np.int64),
+    )[0]
+    target1 = _window_rv(
+        sums1,
+        invalid1,
+        np.asarray([3], dtype=np.int64),
+        np.asarray([5], dtype=np.int64),
+    )[0]
+
+    changed = close.copy()
+    changed[3] = 1_000.0
+    sums2, invalid2 = _log_return_squares(changed)
+    feature2 = _window_rv(
+        sums2,
+        invalid2,
+        np.asarray([1], dtype=np.int64),
+        np.asarray([3], dtype=np.int64),
+    )[0]
+    target2 = _window_rv(
+        sums2,
+        invalid2,
+        np.asarray([3], dtype=np.int64),
+        np.asarray([5], dtype=np.int64),
+    )[0]
+
+    assert feature2 == pytest.approx(feature1)
+    assert target2 != pytest.approx(target1)
 
 
 def test_midrank_excludes_current_and_future_records():
@@ -227,6 +268,63 @@ def test_placebo_prediction_does_not_read_unmatured_or_future_label_source():
         **{**kwargs, "transition_state": changed}
     )
     assert p2 == pytest.approx(p1)
+
+    in_window = transition.copy()
+    in_window[:5] = 0
+    p3 = _placebo_candidate_prediction(
+        **{**kwargs, "transition_state": in_window}
+    )
+    assert p3 == pytest.approx(2.0)
+    assert p3 != pytest.approx(p1)
+
+
+def test_optimized_placebo_matches_reference_predictions():
+    n = 12
+    t_ms = WARMUP_START_MS + GRID_MS + np.arange(n, dtype=np.int64) * GRID_MS
+    target = np.arange(n, dtype=np.float64)
+    level = np.zeros(n, dtype=np.int16)
+    transition = np.asarray([0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1], dtype=np.int16)
+    baseline = np.zeros(n, dtype=np.float64)
+    scored = np.asarray([6, 7, 8], dtype=np.int64)
+
+    expected = []
+    for replicate in range(3):
+        improvements = []
+        for i_raw in scored:
+            i = int(i_raw)
+            pred = _placebo_candidate_prediction(
+                i=i,
+                replicate=replicate,
+                t_ms=t_ms,
+                target=target,
+                level_state=level,
+                transition_state=transition,
+                w_min=60,
+                d_min=60,
+                h_min=30,
+                ref_steps=6,
+                candidate_min_count=1,
+            )
+            base_ae = abs(float(target[i]) - float(baseline[i]))
+            placebo_ae = abs(float(target[i]) - pred)
+            improvements.append(base_ae - placebo_ae)
+        expected.append(float(np.mean(improvements)))
+
+    actual = causal_placebo_mean_improvements(
+        scored_indices=scored,
+        t_ms=t_ms,
+        target=target,
+        level_state=level,
+        transition_state=transition,
+        baseline_pred=baseline,
+        w_min=60,
+        d_min=60,
+        h_min=30,
+        n_replicates=3,
+        ref_steps=6,
+        candidate_min_count=1,
+    )
+    np.testing.assert_allclose(actual, np.asarray(expected, dtype=np.float64))
 
 
 def test_single_magic_cell_or_single_wd_pair_cannot_promote():
