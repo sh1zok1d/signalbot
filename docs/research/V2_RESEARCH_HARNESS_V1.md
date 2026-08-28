@@ -34,12 +34,18 @@ proof, not an arbitrary caller-supplied SHA string.
 
 ### 2. Dataset identity before outcome paths
 
+Harness v1 is discovery-only. Its dataset authorization contract is fixed to
+`ACCEPTED_FOR_DISCOVERY`, `research_authorized=true`, and
+`confirmatory_authorized=false`; a caller cannot weaken those requirements.
+
 A new experiment must obtain an `AuthorizedDataset` by verifying both:
 
 - the repository dataset manifest; and
 - the runtime `reports/snapshot_manifest.json`.
 
 Only after both identities match may the runner request monthly parquet paths.
+The runtime dataset ID is mandatory and is read from either a top-level field
+or the materializer's canonical `identity_payload.dataset_id`.
 Direct construction of `AuthorizedDataset` fails closed; the authorization
 factory is the intended path.
 
@@ -48,6 +54,10 @@ The partition selector enumerates explicit allowed years such as
 Every `allowed_year` must also fall inside the frozen policy time-window.
 
 ### 3. Outcome-window boundary
+
+Harness v1 authorizes only the `development` stage. The project-wide discovery
+embargo is hard-coded at `2025-01-01T00:00:00Z`; a policy ending later is
+rejected before any outcome path is authorized.
 
 Every candidate outcome window must satisfy the experiment's frozen
 `OutcomeAccessPolicy`.
@@ -96,17 +106,20 @@ universal promotion rule.
 `build_run_identity(...)` records the hypothesis/stage/code SHA, dataset
 identity, authorized window, command, and stochastic seeds.
 
-`write_json_new(...)` creates a canonical JSON artifact exactly once and
-refuses overwrite. It returns the artifact SHA256.
+`write_json_new(...)` creates a canonical JSON artifact exactly once,
+refuses overwrite, rejects non-finite JSON numbers such as NaN/Infinity, and
+returns the artifact SHA256.
 
 ## Adversarial synthetic tests
 
 The v1 test suite must cover at least:
 
+- attempts to weaken accepted/research-authorized dataset status;
+- non-development stage or policy reaching the 2025 validation pool;
 - allowed year outside the frozen time-window;
 - missing repository manifest;
 - attempted direct construction of an authorized dataset proof;
-- runtime snapshot mismatch;
+- missing/mismatched runtime dataset identity and runtime snapshot mismatch;
 - a 2025 partition physically present but invisible to a 2020-2021 policy;
 - wrong/abbreviated Git SHA and dirty-tree freeze attempts;
 - outcome-window boundary reach;
@@ -115,7 +128,8 @@ The v1 test suite must cover at least:
 - full-candidate vs overlap-only structural comparison;
 - non-positive structural weights;
 - missing/`None`/integer promotion gates;
-- attempted result overwrite.
+- attempted result overwrite;
+- non-finite NaN/Infinity result serialization.
 
 No test in this unit may require or inspect real market outcomes.
 
