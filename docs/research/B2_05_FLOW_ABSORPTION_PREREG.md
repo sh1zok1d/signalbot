@@ -145,7 +145,11 @@ Thus the candidate must add information beyond both components from which the
 interaction is formed.
 
 Baseline training uses mature baseline-valid rows in `[S-365d,S)` with
-`T_e+H<=S`. Candidate training is the subset with valid stored impact state.
+`T_e+H<=S`. Candidate training is the subset with valid stored impact state
+**and** both valid stored placebo nuisance bins defined in §12. The nuisance
+bins are not candidate predictors; requiring them here ensures the causal
+placebo never creates a hidden training subset. Baseline training does not
+require the nuisance bins and may therefore contain more historical rows.
 
 Minimum baseline N=500. Minimum candidate N=500 and >=100 records in each
 LOW/MID/HIGH state. The comparator may use more historical training rows.
@@ -208,13 +212,22 @@ trailing-180d same-W/side midrank quintiles for:
 - ABS_IMB;
 - FLOW_RET.
 
+For each nuisance percentile separately, exclude the current historical record
+and require at least **120** earlier same-W/side records in the trailing
+180-calendar-day window. Use deterministic midrank percentiles. Each nuisance
+quintile is computed exactly once as-of its record's own `T_e` and stored; later
+records, later week starts, full-development quantiles, and backfills may not
+change it. If either bin is unavailable, that row is ineligible for candidate
+training but may remain baseline-training eligible.
+
 These nuisance bins never enter the candidate feature vector or promotion as
-independent predictors.
+independent predictors. Their eligibility role exists only to make placebo and
+real-candidate training support identical.
 
 Placebo seed `20260907`, 100 replicates.
 
 At each weekly fit, use exactly the real candidate's causal training records.
-Strata:
+No placebo-only row dropping is allowed. Strata:
 
 `calendar_month(T_e) × side × imbalance_quintile × flow_return_quintile`.
 
