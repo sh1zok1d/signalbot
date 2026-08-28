@@ -483,3 +483,14 @@ def helper():
 
     with pytest.raises(Batch02SourcePolicyError, match="missing canonical"):
         validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_source_policy_rejects_direct_partition_path_extraction(tmp_path: Path):
+    repo, research = _synthetic_tree(
+        tmp_path,
+        runner=_canonical_runner(
+            extra="ctx._authorized_dataset.list_monthly_partitions()"
+        ),
+    )
+    with pytest.raises(Batch02SourcePolicyError, match="list_monthly_partitions"):
+        validate_batch02_source_tree(research, repo_root=repo)
