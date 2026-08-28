@@ -402,3 +402,33 @@ def main():
     repo, research = _synthetic_tree(tmp_path, runner=source)
     with pytest.raises(Batch02SourcePolicyError, match="assigned from prepare"):
         validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_source_policy_rejects_canonical_name_shadowed_by_import(tmp_path: Path):
+    source = """
+from scripts.research.lib.batch02_contracts import (
+    verify_batch02_code,
+    prepare_batch02_run,
+    persist_batch02_result,
+)
+from other.module import persist as persist_batch02_result
+
+def main():
+    verify_batch02_code(repo_root=ROOT, expected_code_sha=SHA)
+    ctx = prepare_batch02_run(
+        code_freeze=FREEZE,
+        outcome_access_acknowledged=True,
+        dataset_root=ROOT,
+        identity=IDENTITY,
+        policy=POLICY,
+        gate_contract=GATES,
+        hypothesis_id="B2-02",
+        stage="development",
+        command=("python", "-m", "b2_02"),
+        seeds={},
+    )
+    persist_batch02_result(OUT, {"status": "fake"}, run_context=ctx)
+"""
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="shadowed by import"):
+        validate_batch02_source_tree(research, repo_root=repo)
