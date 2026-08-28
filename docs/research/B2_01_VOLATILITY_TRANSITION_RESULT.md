@@ -47,8 +47,10 @@ or child formulation is authorized after this verdict inside current V2.
 
 The canonical accepted dataset root used by the run was
 `/tmp/signalbot/artifacts/research_data/CORE_BTC_BINANCE_V0`. Harness bound it
-to the frozen snapshot before scoring. Sixty monthly partitions from 2020-2024
-were authorized; 2025/2026 files present on disk were not selected.
+to the frozen snapshot before scoring. The run report recorded 60 monthly files
+spanning calendar years 2020-2024 in the Harness-bound view. January 2020 was
+warmup/reference only; scored development began at 2020-02-01T00:00:00Z.
+Files dated 2025/2026 present on disk were not selected.
 
 ## 3. Overall verdict
 
