@@ -1,0 +1,273 @@
+{
+  "status": "PREREG_CANDIDATE / OUTCOME_BLIND",
+  "formulation_id": "B2-02_BOUNDARY_INTERACTION_PATH",
+  "primary_family": "F1",
+  "inventory_entry_preexisting": true,
+  "inventory_mutable": false,
+  "dataset": {
+    "dataset_id": "CORE_BTC_BINANCE_V0",
+    "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+    "source_timeframe": "1m",
+    "derived_timeframe": "5m",
+    "derived_grid": "UTC_epoch_aligned_5m",
+    "availability": "bar_end_exclusive"
+  },
+  "chronology": {
+    "warmup_start_inclusive": "2020-01-01T00:00:00Z",
+    "development_start_inclusive": "2020-02-01T00:00:00Z",
+    "development_end_exclusive": "2025-01-01T00:00:00Z",
+    "validation_2025_authorized": false,
+    "oos_2026_authorized": false,
+    "max_horizon_minutes": 240,
+    "event_boundary_rule": "decision_T=t0+30m; require T+240m < development_end_exclusive"
+  },
+  "initial_event": {
+    "range_lookbacks_minutes": [
+      60,
+      120,
+      240
+    ],
+    "event_bar_minutes": 5,
+    "event_bar": "[t0-5m,t0)",
+    "prior_range": "[t0-5m-L,t0-5m)",
+    "event_open_must_be_inside_prior_range": true,
+    "upper": "high_B > R_high AND low_B >= R_low",
+    "lower": "low_B < R_low AND high_B <= R_high",
+    "upper_continuation_direction": 1,
+    "lower_continuation_direction": -1,
+    "ambiguous_double_break": "EXCLUDE",
+    "close_requirement": "NONE",
+    "overshoot_threshold_search": false,
+    "breach_strength": {
+      "upper": "ln(high_B/R_high)/prior_log_range",
+      "lower": "ln(R_low/low_B)/prior_log_range",
+      "require": "finite_and_gt_0"
+    }
+  },
+  "h02_nuisance_controls": {
+    "event_close_dist": "d*ln(close_B/boundary)/prior_log_range",
+    "event_close_beyond": "1 iff d*ln(close_B/boundary)>0 else 0",
+    "purpose": "prevent B2-02 from rediscovering H02 failed/successful event-bar close classification"
+  },
+  "refractory": {
+    "scope": "separate_per_L",
+    "both_sides": true,
+    "keep": "earliest",
+    "suppress_event_end_interval": "(t0,t0+30m]",
+    "minutes": 30
+  },
+  "path": {
+    "observation_minutes": 30,
+    "decision_time": "T=t0+30m",
+    "initial_breach_bar_included": false,
+    "complete_5m_bars": 6,
+    "boundary_recomputed": false,
+    "dist": "d*ln(C_j/boundary)/prior_log_range",
+    "descriptor_name": "PATH_AREA",
+    "descriptor": "mean(DIST_j over six post-breach 5m bars)",
+    "alternate_descriptors_authorized": false
+  },
+  "path_state": {
+    "reference_days": 180,
+    "reference_scope": "same_L_and_side",
+    "historical_decision_rule": "T_e < T",
+    "minimum_reference_count": 120,
+    "percentile": "deterministic_midrank",
+    "boundaries": [
+      "0",
+      "1/3",
+      "2/3",
+      "1"
+    ],
+    "states": [
+      "LOW",
+      "MID",
+      "HIGH"
+    ],
+    "expected_ordering": "HIGH > MID > LOW",
+    "full_sample_quantiles_forbidden": true
+  },
+  "pre_breach_controls": {
+    "pre_state_end": "u0=t0-5m",
+    "pre_drift_norm": "d*ln(close(u0)/close(u0-60m))/prior_log_range",
+    "pre_rv_minutes": 60,
+    "pre_rv_source": "1m returns available in (u0-60m,u0]",
+    "pre_rv_norm": "PRE_RV60/prior_log_range",
+    "breach_bar_excluded": true
+  },
+  "model": {
+    "refit_frequency": "UTC_ISO_week_start_Monday_00:00",
+    "training_lookback_days_max": 365,
+    "training_outcome_maturity": "T_e + H <= week_start_S",
+    "minimum_shared_training_n": 500,
+    "minimum_training_n_per_path_state": 100,
+    "baseline_features": [
+      "intercept",
+      "BREACH_STRENGTH",
+      "prior_log_range",
+      "PRE_DRIFT_NORM",
+      "PRE_RV_NORM",
+      "EVENT_CLOSE_DIST",
+      "EVENT_CLOSE_BEYOND",
+      "SIDE_UPPER"
+    ],
+    "candidate_additions": [
+      "PATH_LOW",
+      "PATH_HIGH"
+    ],
+    "path_reference_state": "MID",
+    "continuous_standardization": "training_set_mean_std_only",
+    "binary_standardization": false,
+    "fit": "numpy.linalg.lstsq(rcond=None)",
+    "require_full_rank": true,
+    "fallback_model": "FORBIDDEN"
+  },
+  "target": {
+    "horizons_minutes": [
+      30,
+      60,
+      120,
+      240
+    ],
+    "continuation_return": "d*ln(close(T+H)/close(T))",
+    "scale": "median absolute H-horizon close return on UTC 5m boundaries in preceding 30 calendar days with t+H<=T",
+    "target": "CONT_RET_H/PAST_MEDIAN_ABS_RET_H",
+    "require_scale": "finite_and_gt_0"
+  },
+  "support": {
+    "candidate_and_baseline_scored_support": "exact_same_canonical_record_ids",
+    "baseline_extra_scored_events": false,
+    "outcome_based_support_selection": false
+  },
+  "identity": {
+    "event_id_fields": [
+      "dataset_id",
+      "snapshot_id",
+      "source_timeframe_5m",
+      "L",
+      "side",
+      "prior_range_start",
+      "prior_range_end",
+      "breach_bar_start",
+      "t0",
+      "decision_T"
+    ],
+    "scored_record_id": "EVENT_ID|H",
+    "retain_underlying_1m_and_derived_5m_bucket_provenance": true
+  },
+  "metrics": {
+    "primary_loss": "absolute_error",
+    "ae_improvement": "BASE_AE-CAND_AE",
+    "relative_mae_improvement": "1-candidate_MAE/baseline_MAE",
+    "material_relative_mae_min": 0.02,
+    "squared_error_can_rescue": false
+  },
+  "structural_diagnostic": {
+    "baseline_residual": "Y_H-BASE_PRED",
+    "ordering": "median_LOW < median_MID < median_HIGH",
+    "side_high_minus_low_required_positive": true
+  },
+  "placebo": {
+    "seed": 20260901,
+    "replicates": 100,
+    "training_only": true,
+    "strata": "calendar_month(T_e) x side x EVENT_CLOSE_BEYOND",
+    "pre_rng_order": "canonical_EVENT_ID",
+    "seed_derivation": "20260901|replicate|L|H|week_start_S|stratum_id",
+    "current_event_path_state_unchanged": true,
+    "pass_quantile": 0.95
+  },
+  "bootstrap": {
+    "block": "UTC_ISO_week",
+    "seed": 20260902,
+    "replicates": 2000,
+    "ci": 0.95
+  },
+  "stability": {
+    "years": [
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "required_positive_years": 4,
+    "report_sides": [
+      "UPPER",
+      "LOWER"
+    ]
+  },
+  "search_surface": {
+    "range_lookbacks_minutes": [
+      60,
+      120,
+      240
+    ],
+    "path_observation_minutes": [
+      30
+    ],
+    "horizons_minutes": [
+      30,
+      60,
+      120,
+      240
+    ],
+    "primary_cells": 12,
+    "overshoot_thresholds": 0,
+    "path_descriptors": 1,
+    "model_families": 1
+  },
+  "promotion_gate_contract": {
+    "required_gate_names": [
+      "primary_positive",
+      "material_relative_mae",
+      "bootstrap_positive",
+      "placebo_separation",
+      "path_ordering",
+      "side_stability",
+      "horizon_robustness",
+      "parameter_robustness",
+      "year_stability"
+    ],
+    "per_cell_gate_names": [
+      "primary_positive",
+      "material_relative_mae",
+      "bootstrap_positive",
+      "placebo_separation",
+      "path_ordering",
+      "side_stability"
+    ],
+    "adjacent_horizon_pairs": [
+      [
+        30,
+        60
+      ],
+      [
+        60,
+        120
+      ],
+      [
+        120,
+        240
+      ]
+    ],
+    "horizon_robustness": "same L has one adjacent H pair passing all six per-cell gates",
+    "parameter_robustness": "same adjacent H pair passes all six per-cell gates for at least two distinct L values",
+    "year_stability": "every cell in selected robust neighborhood has mean AE improvement >0 in at least 4 of 5 fixed years",
+    "fail_closed": true
+  },
+  "verdicts": [
+    "B2_02_PROMOTED_CANDIDATE",
+    "B2_02_CLOSED_NO_PROMOTION"
+  ],
+  "integrity_failure_market_verdict": false,
+  "implementation_paths": {
+    "runner": "scripts/research/b2_02_boundary_interaction.py",
+    "library": "scripts/research/b2_02_boundary_interaction_lib.py",
+    "tests": "tests/research/test_b2_02_boundary_interaction.py"
+  },
+  "outcome_access_authorized": false,
+  "validation_2025_authorized": false,
+  "oos_2026_authorized": false,
+  "rerun_or_reformulation_after_failure_authorized": false
+}
