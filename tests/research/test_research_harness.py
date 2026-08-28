@@ -46,7 +46,10 @@ POLICY = OutcomeAccessPolicy(
 )
 
 
-def _authorized(tmp_path: Path):
+def _authorized(
+    tmp_path: Path,
+    partition_contents: dict[str, bytes] | None = None,
+):
     repo_manifest = tmp_path / "repo.yaml"
     repo_manifest.write_text(
         yaml.safe_dump(
@@ -62,17 +65,28 @@ def _authorized(tmp_path: Path):
     )
     dataset_root = tmp_path / "dataset"
     (dataset_root / "reports").mkdir(parents=True)
+    monthly = dataset_root / "canonical" / "1m" / "monthly"
+    monthly.mkdir(parents=True)
+
+    output_checksums: dict[str, str] = {}
+    for name, body in (partition_contents or {}).items():
+        path = monthly / name
+        path.write_bytes(body)
+        relative = path.relative_to(dataset_root).as_posix()
+        output_checksums[relative] = sha256_file(path)
+
     (dataset_root / "reports" / "snapshot_manifest.json").write_text(
         json.dumps(
             {
-                "dataset_id": IDENTITY.dataset_id,
                 "snapshot_id": IDENTITY.snapshot_id,
+                "identity_payload": {
+                    "dataset_id": IDENTITY.dataset_id,
+                    "output_checksums": output_checksums,
+                },
             }
         ),
         encoding="utf-8",
     )
-    monthly = dataset_root / "canonical" / "1m" / "monthly"
-    monthly.mkdir(parents=True)
     return (
         authorize_dataset_access(
             repo_manifest_path=repo_manifest,
@@ -153,6 +167,7 @@ def test_authorized_dataset_cannot_be_forged_directly(tmp_path: Path):
             policy=POLICY,
             repo_manifest_path=tmp_path / "repo.yaml",
             runtime_snapshot_path=tmp_path / "snapshot.json",
+            output_checksums=(),
         )
 
 
@@ -178,7 +193,10 @@ def test_runtime_dataset_id_is_required_from_realistic_identity_payload(tmp_path
         json.dumps(
             {
                 "snapshot_id": IDENTITY.snapshot_id,
-                "identity_payload": {"dataset_id": IDENTITY.dataset_id},
+                "identity_payload": {
+                    "dataset_id": IDENTITY.dataset_id,
+                    "output_checksums": {},
+                },
             }
         ),
         encoding="utf-8",
@@ -191,7 +209,10 @@ def test_runtime_dataset_id_is_required_from_realistic_identity_payload(tmp_path
     )
 
     snapshot_path.write_text(
-        json.dumps({"snapshot_id": IDENTITY.snapshot_id}),
+        json.dumps({
+            "snapshot_id": IDENTITY.snapshot_id,
+            "identity_payload": {"output_checksums": {}},
+        }),
         encoding="utf-8",
     )
     with pytest.raises(DatasetIdentityError, match="runtime dataset_id"):
@@ -233,19 +254,41 @@ def test_wrong_runtime_snapshot_fails_closed(tmp_path: Path):
 
 
 def test_forbidden_year_partition_is_not_exposed(tmp_path: Path):
-    authorized, monthly = _authorized(tmp_path)
-    (monthly / "2020-01.parquet").touch()
-    (monthly / "2021-12.parquet").touch()
-    (monthly / "2025-01.parquet").touch()
+    authorized, monthly = _authorized(
+        tmp_path,
+        {
+            "2020-01.parquet": b"allowed-2020",
+            "2021-12.parquet": b"allowed-2021",
+            "2025-01.parquet": b"forbidden-2025",
+        },
+    )
     assert [p.name for p in authorized.list_monthly_partitions()] == [
         "2020-01.parquet",
         "2021-12.parquet",
     ]
 
 
+def test_selected_partition_requires_frozen_checksum_and_matching_bytes(tmp_path: Path):
+    authorized, monthly = _authorized(
+        tmp_path,
+        {"2020-01.parquet": b"frozen-bytes"},
+    )
+    assert [p.name for p in authorized.list_monthly_partitions()] == [
+        "2020-01.parquet"
+    ]
+
+    (monthly / "2020-01.parquet").write_bytes(b"tampered-bytes")
+    with pytest.raises(DatasetIdentityError, match="checksum mismatch"):
+        authorized.list_monthly_partitions()
+
+    missing_authorized, missing_monthly = _authorized(tmp_path / "missing")
+    (missing_monthly / "2020-01.parquet").write_bytes(b"unregistered")
+    with pytest.raises(DatasetIdentityError, match="missing frozen checksum"):
+        missing_authorized.list_monthly_partitions()
+
+
 def test_outcome_boundary_rejects_holdout_reach(tmp_path: Path):
-    authorized, monthly = _authorized(tmp_path)
-    (monthly / "2020-01.parquet").touch()
+    authorized, _monthly = _authorized(tmp_path)
     authorized.assert_outcome_window(END_2022_MS - 1_001, 1_000)
     with pytest.raises(OutcomeBoundaryError):
         authorized.assert_outcome_window(END_2022_MS - 1_000, 1_000)
@@ -362,8 +405,7 @@ def test_gate_conjunction_is_literal_true_and_fail_closed():
 
 
 def test_provenance_and_result_artifact_are_immutable(tmp_path: Path):
-    authorized, monthly = _authorized(tmp_path)
-    (monthly / "2020-01.parquet").touch()
+    authorized, _monthly = _authorized(tmp_path)
     repo = tmp_path / "code"
     code_sha = _init_clean_git_repo(repo)
     code_freeze = verify_git_freeze(repo, code_sha)
