@@ -53,29 +53,39 @@ Such work remains inside the same family and does not reset exhaustion.
 A family can contain more than one preregistered formulation, but reformulations do
 not give the program an unlimited life.
 
-## 3. Novelty gate for any new family
+## 3. Novelty gate for any new proposal
 
-A proposed new family is admissible only if, before outcome inspection, it satisfies
-at least one of the following:
+Every Batch02+ proposal inside this V2 program must map to exactly one primary family
+`F1...F6` from Section 4.
 
-1. **New mechanism:** it claims a materially different market process from already
-   tested/retired families.
-2. **New observable information:** it requires a data observable not present in the
-   current information set and gives a causal reason why that observable is needed.
+A proposal is admissible only if, before outcome inspection, it satisfies at least one
+of the following:
+
+1. **Materially new mechanism formulation inside a mapped family:** it claims a
+   genuinely different market process from the already tested/retired formulations
+   occupying that family.
+2. **New observable information for a mapped family:** it requires a data observable
+   not present in the current information set and gives a causal reason why that
+   observable is needed to test the mapped mechanism.
 3. **New state-mechanism interaction:** it claims that a known mechanism changes
    behavior across a predeclared market state in a way that is itself the object of
    the test.
 
 The proposal must also state:
 
-- which existing family it is closest to;
-- why it is not merely a transformation of that family;
+- which existing family/formulation it is closest to;
+- why it is not merely a transformation of that formulation;
 - the simpler causal baseline it must beat;
 - the same-support comparison it will use;
-- what result would close the family.
+- what result would close the formulation/family path.
 
-If the novelty case cannot be written clearly before outcomes, the proposal is not a
-new family.
+If the novelty case cannot be written clearly before outcomes, the proposal is not
+admissible.
+
+The F1-F6 map is fixed for this V2 program. A genuinely new mechanism that cannot be
+mapped honestly to F1-F6 is **outside the current program**. It requires a new explicit
+research-program charter/version before outcome access. It may not be appended
+mid-stream as F7 merely to keep the search alive.
 
 ## 4. Finite V2 mechanism map
 
@@ -178,6 +188,11 @@ Post-hoc observations may generate a future preregistered child, but they remain
 `POSTHOC_UNTESTED` until a clean evaluation path exists. Post-hoc children do not
 retroactively change a failed result.
 
+`BLOCKED_MISSING_OBSERVABLE` is **not** an exhausted state. It represents an unresolved
+research dependency. Before the program can be declared exhausted, that dependency
+must either be resolved through an authorized data-expansion unit and tested, or be
+explicitly retired as infeasible/out-of-scope.
+
 ## 6. Stop rules for the current BTC research program
 
 The current BTC edge-search program stops when all four conditions are true:
@@ -186,11 +201,13 @@ The current BTC edge-search program stops when all four conditions are true:
 
 Every relevant family in F1-F6 has been either:
 
-- tested and closed;
-- retired with no remaining novelty-qualified formulation; or
-- shown to require an unavailable observable.
+- tested and closed; or
+- retired with no remaining novelty-qualified formulation.
 
-### S2 — State-conditional rescue path exhausted
+A family that is still `ACTIVE`, `UNTESTED`, `PROMOTED_CANDIDATE`, or
+`BLOCKED_MISSING_OBSERVABLE` prevents an exhaustion declaration.
+
+### S2 — State-conditional path exhausted
 
 F5/F6 have been honestly tested where justified, or no novelty-qualified
 state-mechanism claim remains.
@@ -210,12 +227,17 @@ The remaining proposals are predominantly:
 
 At this point more H-numbers are not more research space.
 
-### S4 — No concrete missing-observable case remains
+### S4 — No unresolved missing-observable case remains
 
-There is no specific mechanism for which the project can state:
+There is no unresolved mechanism for which the project can still state:
 
 > We cannot test this claim with the current information set because observable X is
 > missing, and X is causally required for this mechanism.
+
+Any prior `BLOCKED_MISSING_OBSERVABLE` case has therefore been either:
+
+- resolved by a separately authorized data-expansion unit and then tested; or
+- explicitly retired as infeasible/out-of-scope.
 
 If S1-S4 hold, the canonical conclusion is:
 
@@ -248,12 +270,16 @@ Instrument expansion and information expansion are different decisions.
 New BTC data types may be added only when a pre-outcome proposal contains a
 **missing-observable justification**:
 
-1. name the mechanism;
+1. name the mapped F1-F6 mechanism;
 2. name the missing observable;
 3. explain why current CORE data cannot test the mechanism;
 4. explain why the new observable is causally related rather than merely promising;
 5. freeze the new dataset identity/provenance before outcome access;
-6. evaluate the new family through the V2 harness.
+6. evaluate the resulting formulation through the V2 harness.
+
+If the proposed new observable is needed for a mechanism that cannot be mapped to
+F1-F6, it is outside this V2 program and requires a new explicit program
+charter/version first.
 
 Examples of possible observable classes are not authorization to add them. No OI,
 funding, liquidation, order-book, cross-exchange, macro, or alternative dataset is
