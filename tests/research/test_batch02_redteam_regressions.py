@@ -7,6 +7,7 @@ import pytest
 
 from scripts.research.lib.batch02_contracts import (
     Batch02ContractError,
+    Batch02RunContext,
     load_authorized_parquet_table,
     persist_batch02_result,
 )
@@ -61,7 +62,7 @@ from scripts.research.lib.batch02_contracts import (
 
 def main():
     verify_batch02_code(repo_root=ROOT, expected_code_sha=SHA)
-    prepare_batch02_run(
+    ctx = prepare_batch02_run(
         code_freeze=FREEZE,
         outcome_access_acknowledged=True,
         dataset_root=ROOT,
@@ -74,7 +75,11 @@ def main():
         seeds={{}},
     )
     {extra}
-    persist_batch02_result(OUT, {{"status": "closed"}})
+    persist_batch02_result(
+        OUT,
+        {{"status": "closed"}},
+        run_context=ctx,
+    )
 """
 
 
@@ -209,7 +214,7 @@ from scripts.research.h03_extreme_impulse_lib import (
 
 def main():
     verify_batch02_code(repo_root=ROOT, expected_code_sha=SHA)
-    prepare_batch02_run(
+    ctx = prepare_batch02_run(
         code_freeze=FREEZE,
         outcome_access_acknowledged=True,
         dataset_root=ROOT,
@@ -222,16 +227,33 @@ def main():
         seeds={},
     )
     pctl(X, window=10)
-    persist_batch02_result(OUT, {"status": "closed"})
+    persist_batch02_result(
+        OUT,
+        {"status": "closed"},
+        run_context=ctx,
+    )
 """
     repo, research = _synthetic_tree(tmp_path, runner=source)
     with pytest.raises(Batch02SourcePolicyError):
         validate_batch02_source_tree(research, repo_root=repo)
 
 
-def test_durable_result_reservation_blocks_unlink_then_repersist(tmp_path: Path):
+def _hollow_test_context() -> Batch02RunContext:
+    ctx = object.__new__(Batch02RunContext)
+    object.__setattr__(ctx, "run_identity", {"proof": "canonical"})
+    object.__setattr__(ctx, "_run_identity_sha256", "e" * 64)
+    return ctx
+
+
+def test_durable_result_reservation_blocks_unlink_then_repersist(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    ctx = _hollow_test_context()
+    monkeypatch.setattr(batch02_contracts, "_reverify_run_code", lambda value: None)
+
     path = tmp_path / "B2_02_DEV_RESULTS.json"
-    first = persist_batch02_result(path, {"version": 1})
+    first = persist_batch02_result(path, {"version": 1}, run_context=ctx)
     assert len(first) == 64
     assert path.exists()
 
@@ -240,46 +262,61 @@ def test_durable_result_reservation_blocks_unlink_then_repersist(tmp_path: Path)
     assert not path.exists()
 
     with pytest.raises(ArtifactExistsError, match="previously reserved"):
-        persist_batch02_result(path, {"version": 2})
+        persist_batch02_result(path, {"version": 2}, run_context=ctx)
     assert not path.exists()
 
 
-def test_durable_result_reservation_blocks_existing_logical_path(tmp_path: Path):
+def test_durable_result_reservation_blocks_existing_logical_path(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    ctx = _hollow_test_context()
+    monkeypatch.setattr(batch02_contracts, "_reverify_run_code", lambda value: None)
+
     path = tmp_path / "B2_02_DEV_RESULTS.json"
     path.write_text('{"legacy": true}\n', encoding="utf-8")
 
     with pytest.raises(ArtifactExistsError):
-        persist_batch02_result(path, {"version": 2})
+        persist_batch02_result(path, {"version": 2}, run_context=ctx)
 
     # Fail closed: the reservation remains even after the failed attempt.
     path.unlink()
     with pytest.raises(ArtifactExistsError, match="previously reserved"):
-        persist_batch02_result(path, {"version": 3})
+        persist_batch02_result(path, {"version": 3}, run_context=ctx)
 
 
-def test_canonical_loader_rejects_hollow_authorized_dataset_before_pyarrow_io():
-    forged = object.__new__(AuthorizedDataset)
+def test_canonical_loader_rejects_hollow_run_context_before_pyarrow_io():
+    forged = object.__new__(Batch02RunContext)
 
-    with pytest.raises(DatasetIdentityError, match="created by authorize_dataset_access"):
+    with pytest.raises(
+        Batch02ContractError,
+        match="created by prepare_batch02_run",
+    ):
         load_authorized_parquet_table(
-            forged,
+            run_context=forged,
             columns=("open_time_ms", "close"),
         )
 
 
-def test_canonical_loader_rejects_bad_column_contract_before_io():
-    forged = object.__new__(AuthorizedDataset)
-    # Mint validation occurs before columns by design; a non-proof can never
-    # reach the parquet layer regardless of caller-controlled columns.
-    with pytest.raises(DatasetIdentityError):
-        load_authorized_parquet_table(forged, columns=())
+def test_canonical_loader_rejects_bad_column_contract_before_io(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    ctx = _hollow_test_context()
+    object.__setattr__(ctx, "authorized_dataset", object())
+    monkeypatch.setattr(batch02_contracts, "_reverify_run_code", lambda value: None)
+
+    with pytest.raises(Batch02ContractError, match="columns"):
+        load_authorized_parquet_table(
+            run_context=ctx,
+            columns=(),
+        )
 
 
 def test_contract_loader_does_not_accept_plain_paths_or_fake_objects(tmp_path: Path):
     for value in (tmp_path, object()):
-        with pytest.raises(Batch02ContractError, match="AuthorizedDataset"):
+        with pytest.raises(Batch02ContractError, match="Batch02RunContext"):
             load_authorized_parquet_table(
-                value,  # type: ignore[arg-type]
+                run_context=value,  # type: ignore[arg-type]
                 columns=("close",),
             )
 
@@ -303,4 +340,65 @@ def test_source_policy_rejects_common_alternate_rank_primitives(
     source = extra_import + "\n" + _canonical_runner(extra=extra_call)
     repo, research = _synthetic_tree(tmp_path, runner=source)
     with pytest.raises(Batch02SourcePolicyError, match="rank/percentile"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_source_policy_rejects_shadowed_canonical_persist(tmp_path: Path):
+    source = """
+from scripts.research.lib.batch02_contracts import (
+    verify_batch02_code,
+    prepare_batch02_run,
+    persist_batch02_result,
+)
+
+def persist_batch02_result(*args, **kwargs):
+    return "forged"
+
+def main():
+    verify_batch02_code(repo_root=ROOT, expected_code_sha=SHA)
+    ctx = prepare_batch02_run(
+        code_freeze=FREEZE,
+        outcome_access_acknowledged=True,
+        dataset_root=ROOT,
+        identity=IDENTITY,
+        policy=POLICY,
+        gate_contract=GATES,
+        hypothesis_id="B2-02",
+        stage="development",
+        command=("python", "-m", "b2_02"),
+        seeds={},
+    )
+    persist_batch02_result(OUT, {"status": "fake"}, run_context=ctx)
+"""
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="shadowed"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_source_policy_requires_persist_context_from_prepare(tmp_path: Path):
+    source = """
+from scripts.research.lib.batch02_contracts import (
+    verify_batch02_code,
+    prepare_batch02_run,
+    persist_batch02_result,
+)
+
+def main():
+    verify_batch02_code(repo_root=ROOT, expected_code_sha=SHA)
+    prepare_batch02_run(
+        code_freeze=FREEZE,
+        outcome_access_acknowledged=True,
+        dataset_root=ROOT,
+        identity=IDENTITY,
+        policy=POLICY,
+        gate_contract=GATES,
+        hypothesis_id="B2-02",
+        stage="development",
+        command=("python", "-m", "b2_02"),
+        seeds={},
+    )
+    persist_batch02_result(OUT, {"status": "fake"}, run_context=OTHER)
+"""
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="assigned from prepare"):
         validate_batch02_source_tree(research, repo_root=repo)
