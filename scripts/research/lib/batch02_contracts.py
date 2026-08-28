@@ -200,6 +200,32 @@ def _evidence_lock_path(path: Path) -> Path:
     return path.parent / ".batch02_evidence_locks" / f"{key}.json"
 
 
+def _normalized_artifact_token(value: object, *, label: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise Batch02ContractError(
+            f"run context provenance is missing a non-empty {label}"
+        )
+    raw = value.strip().upper()
+    token = "".join(ch if ch.isalnum() else "_" for ch in raw)
+    token = "_".join(part for part in token.split("_") if part)
+    if not token:
+        raise Batch02ContractError(
+            f"run context provenance has invalid {label}"
+        )
+    return token
+
+
+def _expected_result_filename(run_context: Batch02RunContext) -> str:
+    hypothesis = _normalized_artifact_token(
+        run_context.run_identity.get("hypothesis_id"),
+        label="hypothesis_id",
+    )
+    stage_raw = run_context.run_identity.get("stage")
+    stage = _normalized_artifact_token(stage_raw, label="stage")
+    stage_token = "DEV" if stage == "DEVELOPMENT" else stage
+    return f"{hypothesis}_{stage_token}_RESULTS.json"
+
+
 def persist_batch02_result(
     path: Path,
     payload: Mapping[str, object],
@@ -209,8 +235,11 @@ def persist_batch02_result(
     """Persist one provenance-bound Batch02 artifact with a durable lock.
 
     Provenance is injected from the minted run context; callers cannot provide
-    or replace it. The Git freeze is reverified immediately before the logical
-    artifact is reserved/written.
+    or replace it. The destination filename is deterministically bound to the
+    minted hypothesis_id + stage, so one context cannot mint another
+    hypothesis's filename or a second logical result under a different name.
+    The Git freeze is reverified immediately before the logical artifact is
+    reserved/written.
     """
     _reverify_run_code(run_context)
     if "provenance" in payload:
@@ -219,6 +248,13 @@ def persist_batch02_result(
         )
     if path.name == "" or path.parent.name == ".batch02_evidence_locks":
         raise Batch02ContractError("invalid Batch02 result path")
+
+    expected_name = _expected_result_filename(run_context)
+    if path.name != expected_name:
+        raise Batch02ContractError(
+            "Batch02 result path is not bound to run identity: "
+            f"{path.name!r} != {expected_name!r}"
+        )
 
     bound_payload = dict(payload)
     bound_payload["provenance"] = _copy_canonical_mapping(run_context.run_identity)
