@@ -218,13 +218,21 @@ def test_persist_batch02_result_reserves_then_writes_provenance_bound(
         return "d" * 64
 
     ctx = object.__new__(Batch02RunContext)
-    object.__setattr__(ctx, "run_identity", {"proof": "canonical"})
+    object.__setattr__(
+        ctx,
+        "run_identity",
+        {
+            "hypothesis_id": "B2-02",
+            "stage": "development",
+            "proof": "canonical",
+        },
+    )
     object.__setattr__(ctx, "_run_identity_sha256", "e" * 64)
 
     monkeypatch.setattr(batch02_contracts, "_reverify_run_code", lambda value: None)
     monkeypatch.setattr(batch02_contracts, "write_json_new", fake_write)
 
-    target = tmp_path / "result.json"
+    target = tmp_path / "B2_02_DEV_RESULTS.json"
     digest = persist_batch02_result(
         target,
         {"status": "closed"},
@@ -252,13 +260,50 @@ def test_persist_rejects_caller_supplied_provenance(
     tmp_path: Path,
 ):
     ctx = object.__new__(Batch02RunContext)
-    object.__setattr__(ctx, "run_identity", {"proof": "canonical"})
+    object.__setattr__(
+        ctx,
+        "run_identity",
+        {
+            "hypothesis_id": "B2-02",
+            "stage": "development",
+            "proof": "canonical",
+        },
+    )
     object.__setattr__(ctx, "_run_identity_sha256", "e" * 64)
     monkeypatch.setattr(batch02_contracts, "_reverify_run_code", lambda value: None)
 
     with pytest.raises(Batch02ContractError, match="must not supply provenance"):
         persist_batch02_result(
-            tmp_path / "result.json",
+            tmp_path / "B2_02_DEV_RESULTS.json",
             {"provenance": {"proof": "forged"}},
             run_context=ctx,
         )
+
+
+def test_persist_rejects_cross_hypothesis_result_filename(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    ctx = object.__new__(Batch02RunContext)
+    object.__setattr__(
+        ctx,
+        "run_identity",
+        {
+            "hypothesis_id": "B2-02",
+            "stage": "development",
+            "proof": "canonical",
+        },
+    )
+    object.__setattr__(ctx, "_run_identity_sha256", "e" * 64)
+    monkeypatch.setattr(batch02_contracts, "_reverify_run_code", lambda value: None)
+
+    wrong = tmp_path / "B2_03_DEV_RESULTS.json"
+    with pytest.raises(Batch02ContractError, match="not bound to run identity"):
+        persist_batch02_result(
+            wrong,
+            {"status": "closed"},
+            run_context=ctx,
+        )
+
+    assert not wrong.exists()
+    assert not (tmp_path / ".batch02_evidence_locks").exists()
