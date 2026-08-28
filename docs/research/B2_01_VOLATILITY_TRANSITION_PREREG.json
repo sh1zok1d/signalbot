@@ -1,0 +1,141 @@
+{
+  "schema_version": "1.0",
+  "status": "PREREG_CANDIDATE_OUTCOME_BLIND",
+  "formulation_id": "B2-01_VOLATILITY_TRANSITION",
+  "primary_family": "F3",
+  "dataset": {
+    "dataset_id": "CORE_BTC_BINANCE_V0",
+    "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+    "timeframe": "1m",
+    "decision_grid_minutes": 15
+  },
+  "chronology": {
+    "warmup_start_inclusive": "2020-01-01T00:00:00Z",
+    "development_start_inclusive": "2020-02-01T00:00:00Z",
+    "development_end_exclusive": "2025-01-01T00:00:00Z",
+    "reserved_validation_start_inclusive": "2025-01-01T00:00:00Z",
+    "reserved_validation_end_exclusive": "2026-01-01T00:00:00Z",
+    "oos_start_inclusive": "2026-01-01T00:00:00Z",
+    "max_horizon_minutes": 240
+  },
+  "feature_windows_minutes": [
+    60,
+    120
+  ],
+  "transition_lags_minutes": [
+    60,
+    120
+  ],
+  "horizons_minutes": [
+    30,
+    60,
+    120,
+    240
+  ],
+  "reference_days": 30,
+  "level_bins": [
+    {
+      "name": "L1",
+      "lo": 0,
+      "hi": 0.2,
+      "hi_inclusive": false
+    },
+    {
+      "name": "L2",
+      "lo": 0.2,
+      "hi": 0.4,
+      "hi_inclusive": false
+    },
+    {
+      "name": "L3",
+      "lo": 0.4,
+      "hi": 0.6,
+      "hi_inclusive": false
+    },
+    {
+      "name": "L4",
+      "lo": 0.6,
+      "hi": 0.8,
+      "hi_inclusive": false
+    },
+    {
+      "name": "L5",
+      "lo": 0.8,
+      "hi": 1,
+      "hi_inclusive": true
+    }
+  ],
+  "transition_bins": [
+    {
+      "name": "DOWN",
+      "lo": 0,
+      "hi": 0.3333333333333333,
+      "hi_inclusive": false
+    },
+    {
+      "name": "FLAT",
+      "lo": 0.3333333333333333,
+      "hi": 0.6666666666666666,
+      "hi_inclusive": false
+    },
+    {
+      "name": "UP",
+      "lo": 0.6666666666666666,
+      "hi": 1,
+      "hi_inclusive": true
+    }
+  ],
+  "forecast": {
+    "training_lookback_days": 30,
+    "baseline_min_count": 80,
+    "candidate_min_count": 40,
+    "estimator": "median",
+    "target": "log(FUTURE_RV_H / PAST_MEDIAN_FUTURE_RV_H)",
+    "loss": "absolute_error",
+    "primary_incremental_metric": "BASE_AE - CAND_AE",
+    "expected_transition_ordering": "UP residual > DOWN residual"
+  },
+  "controls": {
+    "permutation_seed": 20260830,
+    "permutation_replicates": 100,
+    "permutation_scope": "calendar_month_x_current_level_quintile",
+    "bootstrap_seed": 20260831,
+    "bootstrap_replicates": 2000,
+    "bootstrap_block": "UTC_week",
+    "bootstrap_ci": 0.95
+  },
+  "search_surface_primary_cells": 16,
+  "per_cell_thresholds": {
+    "relative_mae_improvement_min": 0.02,
+    "bootstrap_lower_bound_strictly_positive": true,
+    "placebo_percentile": 0.95,
+    "transition_separation_strictly_positive": true
+  },
+  "promotion_gate_contract": {
+    "required_gate_names": [
+      "primary_positive",
+      "material_relative_mae",
+      "bootstrap_positive",
+      "placebo_separation",
+      "transition_ordering",
+      "horizon_robustness",
+      "parameter_robustness",
+      "year_stability"
+    ],
+    "horizon_robustness": "same W,D has >=2 adjacent passing H",
+    "parameter_robustness": "same adjacent-H pair passes for >=2 distinct W,D pairs",
+    "year_stability": "every promotion-neighborhood cell has positive mean AE improvement in >=4/5 years"
+  },
+  "verdicts": [
+    "B2_01_PROMOTED_CANDIDATE",
+    "B2_01_CLOSED_NO_PROMOTION"
+  ],
+  "implementation_paths": {
+    "runner": "scripts/research/b2_01_volatility_transition.py",
+    "library": "scripts/research/b2_01_volatility_transition_lib.py",
+    "tests": "tests/research/test_b2_01_volatility_transition.py"
+  },
+  "outcome_access_authorized": false,
+  "validation_2025_authorized": false,
+  "oos_2026_authorized": false
+}
