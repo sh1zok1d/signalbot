@@ -152,7 +152,7 @@
         "PATH_HIGH"
       ],
       "dummy_and_binary_standardization": false,
-      "fit_row_order": "ascending canonical RECORD_ID before statistics, matrices, fit, and audit hashes",
+      "fit_row_order": "ascending canonical EVENT_ID|H before statistics, matrices, fit, and audit hashes",
       "validity": [
         "all required raw and transformed model inputs finite",
         "every standardized continuous training column has finite strictly-positive training standard deviation",
