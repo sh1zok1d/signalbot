@@ -550,6 +550,14 @@ def _lint_module(
             )
 
         if isinstance(node, ast.Attribute):
+            if node.attr in _FORBIDDEN_IO_ATTRIBUTES:
+                violations.append(
+                    SourceViolation(
+                        path,
+                        f"forbidden direct I/O or mutation attribute .{node.attr}",
+                        getattr(node, "lineno", None),
+                    )
+                )
             if node.attr == "__dict__":
                 violations.append(
                     SourceViolation(
