@@ -432,3 +432,23 @@ def main():
     repo, research = _synthetic_tree(tmp_path, runner=source)
     with pytest.raises(Batch02SourcePolicyError, match="shadowed by import"):
         validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_source_policy_discovers_generic_named_runner_by_prepare_call(tmp_path: Path):
+    repo = tmp_path / "repo"
+    research = repo / "scripts" / "research"
+    experiments = research / "experiments"
+    experiments.mkdir(parents=True)
+    (repo / "scripts" / "__init__.py").write_text("", encoding="utf-8")
+    (research / "__init__.py").write_text("", encoding="utf-8")
+    (experiments / "__init__.py").write_text("", encoding="utf-8")
+
+    source = (
+        "from scripts.research.h04_trend_pullback_continuation_lib "
+        "import load_development_1m\n"
+        + _canonical_runner(extra='load_development_1m("/evil")')
+    )
+    (experiments / "generic_experiment.py").write_text(source, encoding="utf-8")
+
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
