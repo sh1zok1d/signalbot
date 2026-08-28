@@ -12,6 +12,7 @@ import yaml
 from scripts.research.lib.research_harness import (
     ArtifactExistsError,
     AuthorizedDataset,
+    AuthorizedPartition,
     CodeIdentityError,
     DISCOVERY_END_EXCLUSIVE_MS,
     DatasetIdentityContract,
@@ -874,3 +875,31 @@ def test_cr05_hollow_authorized_dataset_fails_at_use_time():
         forged.partition_evidence()
     with pytest.raises(DatasetIdentityError, match="created by authorize_dataset_access"):
         forged.assert_outcome_window(START_2020_MS, 0)
+
+
+def test_cr05_mutated_partition_tuple_fails_proof_recheck(tmp_path: Path):
+    ctx = _authorized(tmp_path)
+    authorized = ctx["authorized"]
+    evil = tmp_path / "evil.parquet"
+    evil.write_bytes(b"evil")
+    forged_partition = AuthorizedPartition(
+        path=evil,
+        relative_path="canonical/1m/monthly/2020-01.parquet",
+        sha256=sha256_file(evil),
+    )
+    object.__setattr__(authorized, "partitions", (forged_partition,))
+
+    with pytest.raises(DatasetIdentityError, match="partition proof mismatch"):
+        authorized.list_monthly_partitions()
+
+
+def test_cr05_monthly_directory_symlink_swap_fails_at_use_time(tmp_path: Path):
+    ctx = _authorized(tmp_path)
+    authorized = ctx["authorized"]
+    monthly = ctx["monthly"]
+    moved = tmp_path / "monthly-real"
+    monthly.rename(moved)
+    os.symlink(moved, monthly)
+
+    with pytest.raises(DatasetIdentityError, match="became a symlink"):
+        authorized.list_monthly_partitions()
