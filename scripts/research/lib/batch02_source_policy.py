@@ -193,13 +193,17 @@ def _call_name(node: ast.Call) -> str | None:
     return None
 
 
-def _import_origin(node: ast.Import | ast.ImportFrom) -> Iterable[tuple[str, str]]:
+def _import_origin(
+    node: ast.Import | ast.ImportFrom,
+    *,
+    resolved_base: str = "",
+) -> Iterable[tuple[str, str]]:
     if isinstance(node, ast.Import):
         for alias in node.names:
             yield alias.asname or alias.name.split(".")[0], alias.name
         return
 
-    module = node.module or ""
+    module = resolved_base or node.module or ""
     for alias in node.names:
         yield alias.asname or alias.name, f"{module}.{alias.name}".strip(".")
 
@@ -226,7 +230,7 @@ def _lint_module(
             else:
                 base = ""
 
-            for local_name, origin in _import_origin(node):
+            for local_name, origin in _import_origin(node, resolved_base=base):
                 origin_module = origin.rsplit(".", 1)[0] if "." in origin else origin
                 if any(
                     origin.startswith(prefix)
