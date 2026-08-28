@@ -1,0 +1,231 @@
+{
+  "status": "PREREG_CANDIDATE / OUTCOME_BLIND",
+  "formulation_id": "B2-04_MODERATE_PULLBACK_STRUCTURE",
+  "primary_family": "F1",
+  "posthoc_provenance": "explicit H04-derived POSTHOC_UNTESTED child",
+  "inventory_entry_preexisting": true,
+  "inventory_mutable": false,
+  "dataset": {
+    "dataset_id": "CORE_BTC_BINANCE_V0",
+    "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+    "source_timeframe": "1m",
+    "derived_timeframe": "5m",
+    "trigger_grid": "UTC_aligned_15m",
+    "availability": "bar_end_exclusive"
+  },
+  "chronology": {
+    "warmup_start": "2020-01-01T00:00:00Z",
+    "development_start": "2020-02-01T00:00:00Z",
+    "development_end_exclusive": "2025-01-01T00:00:00Z",
+    "recovery_minutes": 30,
+    "decision": "T=t0+30m",
+    "require": "T+240m < development_end_exclusive"
+  },
+  "h04_trigger": {
+    "L": [
+      240,
+      480,
+      960
+    ],
+    "trend_interval": "[t0-60m-L,t0-60m)",
+    "pullback_interval": "[t0-60m,t0)",
+    "trend_threshold": "TREND_PCTL>=0.80",
+    "trend_direction": "sign(TREND_RET_L)",
+    "pullback_depth": "-SIGNED_PB_RET/abs(TREND_RET_L)",
+    "moderate_domain": "0.25<=PULLBACK_DEPTH<0.40",
+    "other_depths_authorized": false
+  },
+  "refractory": {
+    "minutes": 60,
+    "scope": "separate per L",
+    "both_directions": true,
+    "suppress": "(t0,t0+60m]",
+    "keep": "earliest"
+  },
+  "structure": {
+    "recovery_interval": "[t0,T)",
+    "bars_5m": 6,
+    "recovery_net": "d*ln(close(T)/close(t0))",
+    "recovery_net_norm": "RECOVERY_NET/abs(TREND_RET_L)",
+    "recovery_tv": "sum(abs(r_5m))",
+    "descriptor_name": "RECOVERY_EFFICIENCY",
+    "descriptor": "RECOVERY_NET/RECOVERY_TV",
+    "require": "RECOVERY_TV finite >0",
+    "alternate_descriptor": false
+  },
+  "state": {
+    "reference_days": 180,
+    "scope": "same L and trend direction",
+    "minimum_reference_n": 120,
+    "percentile": "deterministic_midrank",
+    "states": [
+      "LOW",
+      "MID",
+      "HIGH"
+    ],
+    "boundaries": [
+      "0",
+      "1/3",
+      "2/3",
+      "1"
+    ],
+    "expected_ordering": "HIGH > MID > LOW",
+    "historical_state_freeze": "as-of own T_e only"
+  },
+  "model": {
+    "refit": "UTC_ISO_week_start",
+    "lookback_days_max": 365,
+    "maturity": "T_e+H<=S",
+    "baseline_features": [
+      "intercept",
+      "TREND_PCTL_L",
+      "abs(TREND_RET_L)",
+      "PULLBACK_DEPTH",
+      "RECOVERY_NET_NORM",
+      "SIDE_UP"
+    ],
+    "candidate_additions": [
+      "RECOVERY_LOW",
+      "RECOVERY_HIGH"
+    ],
+    "minimum_baseline_n": 500,
+    "minimum_candidate_n": 500,
+    "minimum_candidate_per_state": 100,
+    "baseline_may_use_more_training_rows": true,
+    "row_order": "canonical RECORD_ID",
+    "fit": "numpy.linalg.lstsq(rcond=None)",
+    "fallback": "FORBIDDEN"
+  },
+  "target": {
+    "H": [
+      30,
+      60,
+      120,
+      240
+    ],
+    "continuation": "d*ln(close(T+H)/close(T))",
+    "scale": "causal trailing-30d median abs H-return with t+H<=T"
+  },
+  "support": {
+    "current": "exact same candidate/comparator RECORD_ID",
+    "baseline_extra_current_events": false
+  },
+  "identity": {
+    "fields": [
+      "dataset_id",
+      "snapshot_id",
+      "L",
+      "trend_interval",
+      "pullback_interval",
+      "t0",
+      "trend_direction",
+      "recovery_interval",
+      "T"
+    ],
+    "record_id": "EVENT_ID|H"
+  },
+  "metrics": {
+    "loss": "absolute_error",
+    "ae_improvement": "BASE_AE-CAND_AE",
+    "relative_mae_min": 0.02
+  },
+  "placebo": {
+    "seed": 20260905,
+    "replicates": 100,
+    "strata": "calendar_month x trend_direction x trend_strength_bin",
+    "trend_strength_bins": [
+      "[0.80,0.90)",
+      "[0.90,1.00]"
+    ],
+    "pre_rng_order": "EVENT_ID",
+    "historical_labels_only": true,
+    "current_state_unchanged": true,
+    "pass_quantile": 0.95
+  },
+  "bootstrap": {
+    "seed": 20260906,
+    "replicates": 2000,
+    "block": "UTC_ISO_week",
+    "ci": 0.95
+  },
+  "stability": {
+    "years": [
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "required_positive_years": 4,
+    "directions": [
+      "UPTREND",
+      "DOWNTREND"
+    ]
+  },
+  "search_surface": {
+    "L": [
+      240,
+      480,
+      960
+    ],
+    "recovery_minutes": [
+      30
+    ],
+    "H": [
+      30,
+      60,
+      120,
+      240
+    ],
+    "primary_cells": 12,
+    "depth_domain": "[0.25,0.40)",
+    "structural_descriptors": 1
+  },
+  "promotion_gate_contract": {
+    "required_gate_names": [
+      "primary_positive",
+      "material_relative_mae",
+      "bootstrap_positive",
+      "placebo_separation",
+      "recovery_ordering",
+      "direction_stability",
+      "horizon_robustness",
+      "parameter_robustness",
+      "year_stability"
+    ],
+    "per_cell_gate_names": [
+      "primary_positive",
+      "material_relative_mae",
+      "bootstrap_positive",
+      "placebo_separation",
+      "recovery_ordering",
+      "direction_stability"
+    ],
+    "adjacent_horizon_pairs": [
+      [
+        30,
+        60
+      ],
+      [
+        60,
+        120
+      ],
+      [
+        120,
+        240
+      ]
+    ],
+    "parameter_rule": "same adjacent H pair on >=2 distinct L",
+    "year_rule": "all selected cells positive >=4/5 years",
+    "selection": "lexicographically first by frozen H-pair order then ascending L",
+    "fail_closed": true
+  },
+  "verdicts": [
+    "B2_04_PROMOTED_CANDIDATE",
+    "B2_04_CLOSED_NO_PROMOTION"
+  ],
+  "outcome_access_authorized": false,
+  "validation_2025_authorized": false,
+  "oos_2026_authorized": false,
+  "rerun_or_reformulation_after_failure_authorized": false
+}
