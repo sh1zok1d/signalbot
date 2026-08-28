@@ -6,7 +6,8 @@ rewritten: changing those implementations after outcome access would mutate
 historical experimental machinery.
 
 New B2 hypotheses must use:
-- prepare_batch02_run() for exact Git freeze + checksum-bound dataset access;
+- verify_batch02_code() for identity-stage exact Git proof without dataset access;
+- prepare_batch02_run() only after the explicit development outcome-access gate;
 - persist_batch02_result() for immutable JSON evidence;
 - rolling_midrank_percentile() for the canonical strict prior-window midrank.
 
@@ -50,10 +51,18 @@ class Batch02RunContext:
     run_identity: Mapping[str, object]
 
 
-def prepare_batch02_run(
+def verify_batch02_code(
     *,
     repo_root: Path,
     expected_code_sha: str,
+) -> VerifiedCodeFreeze:
+    """Verify exact clean tracked Git bytes without touching dataset outcomes."""
+    return verify_git_freeze(repo_root, expected_code_sha)
+
+
+def prepare_batch02_run(
+    *,
+    code_freeze: VerifiedCodeFreeze,
     dataset_root: Path,
     identity: DatasetIdentityContract,
     policy: OutcomeAccessPolicy,
@@ -63,17 +72,21 @@ def prepare_batch02_run(
     command: Sequence[str],
     seeds: Mapping[str, int],
 ) -> Batch02RunContext:
-    """Create the only supported provenance context for new Batch02 runs.
+    """Authorize dataset bytes and build provenance for an outcome-bearing run.
 
-    The order is intentional and fail-closed:
-      exact clean Git bytes
-      -> checksum-bound authorized dataset
-      -> immutable run identity payload
+    This function must be called only after the runner's explicit development
+    outcome-access acknowledgement. The supplied code_freeze must already have
+    been produced by verify_batch02_code(); authorize_dataset_access() rechecks
+    that proof before opening the checksum-bound dataset.
 
     No fallback SHA, optional manifest path, or caller-supplied provenance label
-    is accepted here; the underlying Harness proofs must succeed.
+    is accepted here.
     """
-    code_freeze = verify_git_freeze(repo_root, expected_code_sha)
+    if not isinstance(code_freeze, VerifiedCodeFreeze):
+        raise Batch02ContractError(
+            "code_freeze must be a VerifiedCodeFreeze from verify_batch02_code"
+        )
+
     authorized = authorize_dataset_access(
         code_freeze=code_freeze,
         dataset_root=dataset_root,
