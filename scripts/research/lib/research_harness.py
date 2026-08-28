@@ -372,6 +372,15 @@ def _require_equal(actual, expected, label: str) -> None:
         raise DatasetIdentityError(f"{label} mismatch: {actual!r} != {expected!r}")
 
 
+def _reverify_code_freeze(code_freeze: VerifiedCodeFreeze) -> None:
+    current = verify_git_freeze(code_freeze.repo_root, code_freeze.code_sha)
+    if current.tree_oid != code_freeze.tree_oid:
+        raise CodeIdentityError(
+            f"git tree mismatch during freeze recheck: "
+            f"{current.tree_oid} != {code_freeze.tree_oid}"
+        )
+
+
 def _normalize_checksum_mapping(value: object, label: str) -> dict[str, str]:
     if not isinstance(value, Mapping):
         raise DatasetIdentityError(f"{label} must be a mapping")
@@ -401,6 +410,7 @@ def authorize_dataset_access(
     """Bind local dataset bytes to evidence frozen in the verified Git commit."""
     if not isinstance(code_freeze, VerifiedCodeFreeze):
         raise CodeIdentityError("code_freeze must be a verify_git_freeze proof")
+    _reverify_code_freeze(code_freeze)
 
     repo_manifest_git_path = f"docs/manifests/{identity.dataset_id}.yaml"
     try:
@@ -777,6 +787,8 @@ def build_run_identity(
         )
     if not isinstance(gate_contract, PromotionGateContract):
         raise ValueError("gate_contract must be a PromotionGateContract")
+    _reverify_code_freeze(code_freeze)
+    authorized_dataset.list_monthly_partitions()
     if authorized_dataset.code_sha != code_freeze.code_sha:
         raise CodeIdentityError(
             "dataset authorization and run provenance use different code SHAs"
