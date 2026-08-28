@@ -261,6 +261,20 @@ def _lint_module(
 
             for local_name, origin in _import_origin(node, resolved_base=base):
                 origin_module = origin.rsplit(".", 1)[0] if "." in origin else origin
+                if local_name in _PROTECTED_BINDINGS:
+                    expected = (
+                        "scripts.research.lib.batch02_contracts."
+                        + local_name
+                    )
+                    if origin != expected:
+                        violations.append(
+                            SourceViolation(
+                                path,
+                                f"canonical Batch02 binding shadowed by import: "
+                                f"{local_name} <- {origin}",
+                                getattr(node, "lineno", None),
+                            )
+                        )
                 if any(
                     origin.startswith(prefix)
                     for prefix in _FROZEN_RUNTIME_PREFIXES
@@ -378,7 +392,7 @@ def _lint_module(
                         )
                     )
 
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             if node.name in _PROTECTED_BINDINGS:
                 violations.append(
                     SourceViolation(
@@ -406,6 +420,16 @@ def _lint_module(
                         node.lineno,
                     )
                 )
+
+        if isinstance(node, ast.arg) and node.arg in _PROTECTED_BINDINGS:
+            violations.append(
+                SourceViolation(
+                    path,
+                    f"canonical Batch02 binding may not be shadowed by argument: "
+                    f"{node.arg}",
+                    getattr(node, "lineno", None),
+                )
+            )
 
         if isinstance(node, ast.Name):
             if isinstance(node.ctx, ast.Store) and node.id in _PROTECTED_BINDINGS:
