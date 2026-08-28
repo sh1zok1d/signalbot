@@ -215,7 +215,7 @@ def _normalized_artifact_token(value: object, *, label: str) -> str:
     return token
 
 
-def _expected_result_filename(run_context: Batch02RunContext) -> str:
+def _expected_result_path(run_context: Batch02RunContext) -> Path:
     hypothesis = _normalized_artifact_token(
         run_context.run_identity.get("hypothesis_id"),
         label="hypothesis_id",
@@ -223,7 +223,21 @@ def _expected_result_filename(run_context: Batch02RunContext) -> str:
     stage_raw = run_context.run_identity.get("stage")
     stage = _normalized_artifact_token(stage_raw, label="stage")
     stage_token = "DEV" if stage == "DEVELOPMENT" else stage
-    return f"{hypothesis}_{stage_token}_RESULTS.json"
+
+    code_freeze = getattr(run_context, "code_freeze", None)
+    repo_root = getattr(code_freeze, "repo_root", None)
+    if not isinstance(repo_root, Path):
+        raise Batch02ContractError(
+            "run context provenance is missing a canonical repository root"
+        )
+
+    filename = f"{hypothesis}_{stage_token}_RESULTS.json"
+    return (
+        repo_root.resolve()
+        / "artifacts"
+        / hypothesis.lower()
+        / filename
+    ).resolve(strict=False)
 
 
 def persist_batch02_result(
@@ -235,11 +249,11 @@ def persist_batch02_result(
     """Persist one provenance-bound Batch02 artifact with a durable lock.
 
     Provenance is injected from the minted run context; callers cannot provide
-    or replace it. The destination filename is deterministically bound to the
-    minted hypothesis_id + stage, so one context cannot mint another
-    hypothesis's filename or a second logical result under a different name.
-    The Git freeze is reverified immediately before the logical artifact is
-    reserved/written.
+    or replace it. The complete destination is deterministically bound to the
+    verified repository root plus artifacts/<hypothesis>/<hypothesis+stage>
+    so one context cannot mint another hypothesis's artifact or a second
+    logical result in a different directory. The Git freeze is reverified
+    immediately before the logical artifact is reserved/written.
     """
     _reverify_run_code(run_context)
     if "provenance" in payload:
@@ -249,11 +263,12 @@ def persist_batch02_result(
     if path.name == "" or path.parent.name == ".batch02_evidence_locks":
         raise Batch02ContractError("invalid Batch02 result path")
 
-    expected_name = _expected_result_filename(run_context)
-    if path.name != expected_name:
+    expected_path = _expected_result_path(run_context)
+    actual_path = path.resolve(strict=False)
+    if actual_path != expected_path:
         raise Batch02ContractError(
             "Batch02 result path is not bound to run identity: "
-            f"{path.name!r} != {expected_name!r}"
+            f"{actual_path} != {expected_path}"
         )
 
     bound_payload = dict(payload)
