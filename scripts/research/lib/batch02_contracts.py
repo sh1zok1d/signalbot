@@ -85,7 +85,7 @@ class Batch02RunContext:
     """Minted verified provenance required for all outcome I/O and persistence."""
 
     code_freeze: VerifiedCodeFreeze
-    authorized_dataset: AuthorizedDataset
+    _authorized_dataset: AuthorizedDataset
     run_identity: Mapping[str, object]
     _run_identity_sha256: str = ""
     _run_context_token: object = None
@@ -100,9 +100,9 @@ class Batch02RunContext:
             )
         if not isinstance(self.code_freeze, VerifiedCodeFreeze):
             raise Batch02ContractError("run context has invalid code freeze proof")
-        if not isinstance(self.authorized_dataset, AuthorizedDataset):
+        if not isinstance(self._authorized_dataset, AuthorizedDataset):
             raise Batch02ContractError("run context has invalid dataset proof")
-        self.authorized_dataset.assert_minted()
+        self._authorized_dataset.assert_minted()
         if (
             not isinstance(self._run_identity_sha256, str)
             or self._run_identity_sha256 != _canonical_payload_sha256(self.run_identity)
@@ -187,7 +187,7 @@ def prepare_batch02_run(
     frozen_identity = _copy_canonical_mapping(run_identity)
     return Batch02RunContext(
         code_freeze=code_freeze,
-        authorized_dataset=authorized,
+        _authorized_dataset=authorized,
         run_identity=frozen_identity,
         _run_identity_sha256=_canonical_payload_sha256(frozen_identity),
         _run_context_token=_RUN_CONTEXT_TOKEN,
@@ -248,7 +248,7 @@ def load_authorized_parquet_table(
 ):
     """Read parquet only from the minted dataset bound to this exact run."""
     _reverify_run_code(run_context)
-    authorized_dataset = run_context.authorized_dataset
+    authorized_dataset = run_context._authorized_dataset
 
     names = tuple(columns)
     if (
