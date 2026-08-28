@@ -54,6 +54,9 @@ class ArtifactExistsError(ResearchHarnessError):
 _AUTHORIZATION_TOKEN = object()
 _CODE_FREEZE_TOKEN = object()
 
+DISCOVERY_STAGE = "development"
+DISCOVERY_END_EXCLUSIVE_MS = 1_735_689_600_000  # 2025-01-01T00:00:00Z
+
 
 @dataclass(frozen=True)
 class DatasetIdentityContract:
@@ -62,6 +65,18 @@ class DatasetIdentityContract:
     required_status: str = "ACCEPTED_FOR_DISCOVERY"
     research_authorized: bool = True
     confirmatory_authorized: bool = False
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.dataset_id, str) or not self.dataset_id.strip():
+            raise ValueError("dataset_id must be a non-empty string")
+        if not isinstance(self.snapshot_id, str) or not self.snapshot_id.strip():
+            raise ValueError("snapshot_id must be a non-empty string")
+        if self.required_status != "ACCEPTED_FOR_DISCOVERY":
+            raise ValueError("required_status is fixed to ACCEPTED_FOR_DISCOVERY in v1")
+        if self.research_authorized is not True:
+            raise ValueError("research_authorized must be literal True in v1")
+        if self.confirmatory_authorized is not False:
+            raise ValueError("confirmatory_authorized must be literal False in v1")
 
 
 @dataclass(frozen=True)
@@ -72,10 +87,16 @@ class OutcomeAccessPolicy:
     allowed_years: tuple[int, ...]
 
     def __post_init__(self) -> None:
-        if not self.stage:
-            raise ValueError("stage must be non-empty")
+        if self.stage != DISCOVERY_STAGE:
+            raise ValueError(
+                f"v1 authorizes only {DISCOVERY_STAGE!r}, got {self.stage!r}"
+            )
         if self.end_exclusive_ms <= self.start_inclusive_ms:
             raise ValueError("end_exclusive_ms must be greater than start_inclusive_ms")
+        if self.end_exclusive_ms > DISCOVERY_END_EXCLUSIVE_MS:
+            raise ValueError(
+                "development policy may not reach the 2025 validation pool"
+            )
         if not self.allowed_years:
             raise ValueError("allowed_years must be non-empty")
         if len(set(self.allowed_years)) != len(self.allowed_years):
@@ -261,8 +282,12 @@ def authorize_dataset_access(
     if not isinstance(runtime, Mapping):
         raise DatasetIdentityError("runtime snapshot manifest must be a mapping")
 
-    if "dataset_id" in runtime:
-        _require_equal(runtime.get("dataset_id"), identity.dataset_id, "runtime dataset_id")
+    runtime_dataset_id = runtime.get("dataset_id")
+    if runtime_dataset_id is None:
+        identity_payload = runtime.get("identity_payload")
+        if isinstance(identity_payload, Mapping):
+            runtime_dataset_id = identity_payload.get("dataset_id")
+    _require_equal(runtime_dataset_id, identity.dataset_id, "runtime dataset_id")
     _require_equal(runtime.get("snapshot_id"), identity.snapshot_id, "runtime snapshot_id")
 
     return AuthorizedDataset(
@@ -479,7 +504,13 @@ def write_json_new(path: Path, payload: object) -> str:
     """Write a canonical JSON artifact exactly once and return its SHA256."""
     path.parent.mkdir(parents=True, exist_ok=True)
     encoded = (
-        json.dumps(payload, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
+        json.dumps(
+            payload,
+            sort_keys=True,
+            indent=2,
+            ensure_ascii=False,
+            allow_nan=False,
+        ) + "\n"
     ).encode("utf-8")
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
     try:
