@@ -34,9 +34,12 @@ adversarial review, merge, and only then development-outcome access.
 
 This PR is itself the pre-outcome admission/adjudication unit.
 
-The six formulations below are proposed as
-`ADMIT_TO_V2_INVENTORY`. They become the frozen current-program inventory only
-when the final exact PR HEAD:
+Each proposal below carries exactly one recorded novelty decision using the
+charter's allowed decision states. The recorded decisions are
+`ADMIT_TO_V2_INVENTORY` for B2-01 through B2-06; they are not independently
+accepted merely because the author recorded them. They become the frozen
+current-program inventory only when the final exact PR HEAD independently
+reviews/adjudicates those decisions and:
 
 1. passes CI;
 2. passes CodeRabbit novelty/governance review;
@@ -89,16 +92,35 @@ material. No post-hoc Batch01 observation is treated as evidence or as a pass.
 
 ## 4. Admission table
 
-| ID | Primary family | Admission | Initial formulation status | Current data |
-|---|---|---|---|---|
-| B2-01 | F3 | `ADMIT_TO_V2_INVENTORY` | `PLANNED` | CORE sufficient |
-| B2-02 | F1 | `ADMIT_TO_V2_INVENTORY` | `PLANNED` | CORE sufficient |
-| B2-03 | F1 | `ADMIT_TO_V2_INVENTORY` | `PLANNED` | CORE sufficient |
-| B2-04 | F1 | `ADMIT_TO_V2_INVENTORY` | `PLANNED` | CORE sufficient |
-| B2-05 | F4 | `ADMIT_TO_V2_INVENTORY` | `PLANNED` | CORE sufficient |
-| B2-06 | F5 | `ADMIT_TO_V2_INVENTORY` | `BLOCKED_MISSING_OBSERVABLE` | OI + funding required |
+| ID | Primary family | Recorded novelty decision | Decision rationale | Initial formulation status | Current data |
+|---|---|---|---|---|---|
+| B2-01 | F3 | `ADMIT_TO_V2_INVENTORY` | transition dynamics conditional on current vol level were not H01's tested object | `PLANNED` | CORE sufficient |
+| B2-02 | F1 | `ADMIT_TO_V2_INVENTORY` | post-breach path structure is distinct from H02's binary failed-close claim | `PLANNED` | CORE sufficient |
+| B2-03 | F1 | `ADMIT_TO_V2_INVENTORY` | same-displacement path morphology is distinct from H03 impulse extremeness | `PLANNED` | CORE sufficient |
+| B2-04 | F1 | `ADMIT_TO_V2_INVENTORY` | exactly one explicitly quarantined H04-derived structural child is allowed | `PLANNED` | CORE sufficient |
+| B2-05 | F4 | `ADMIT_TO_V2_INVENTORY` | flow-to-price-response interaction is distinct from H05 imbalance-alone | `PLANNED` | CORE sufficient |
+| B2-06 | F5 | `ADMIT_TO_V2_INVENTORY` | leverage-positioning interaction requires causally new OI/funding observables | `BLOCKED_MISSING_OBSERVABLE` | OI + funding required |
+
+The final exact-SHA independent review must either affirm each recorded decision or
+require the affected proposal to be changed to
+`REJECT_REFORMULATION_OR_OUT_OF_SCOPE` and excluded before freeze. Deferral is
+not an allowed novelty decision.
 
 No other formulation is admitted to the current V2 program.
+
+### Global same-support and record-identity contract
+
+For every B2-01...B2-06 candidate/comparator pair, equality of decision time is
+necessary but not sufficient. Paired records must preserve the same canonical
+bucket or event identity, including the source dataset/input identity, source
+timeframe, and original timeframe-aligned bucket/event timestamp(s).
+
+A generic decision timestamp may not replace or collapse those source
+identities. If a formulation creates a derived event not already carrying a
+canonical event ID, its preregistration must define a deterministic event
+identity from the frozen source identity and event boundaries before outcomes.
+The candidate and simpler comparator must retain that identity unchanged on the
+common support.
 
 ## 5. B2-01 — Volatility transition
 
@@ -135,9 +157,10 @@ future outcome windows.
 
 ### Same-support rule
 
-Candidate and baseline must be evaluated on exactly the same eligible decision
-times. Any transition feature used at decision time must be available as-of
-that decision boundary.
+Candidate and baseline must use the same eligible decision records under the
+global canonical bucket/event-identity contract in Section 4. The original
+timeframe-aligned timestamps remain part of record identity. Any transition
+feature used at decision time must be available as-of that decision boundary.
 
 ### Future preregistration may define
 
@@ -230,6 +253,14 @@ The testable claim is:
 > horizon, predeclared impulse-path morphology adds stable incremental
 > information about subsequent directional persistence.
 
+For this formulation, the event-end / decision boundary is `T`: the morphology
+path must end no later than `T`. Every source bucket or feature entering the
+morphology descriptor must retain an explicit availability timestamp and satisfy
+`available_at <= T`. The preregistration must freeze the event-end and
+availability semantics, and the V2 harness must reject any record containing a
+morphology input with `available_at > T`, including later backfills or
+revisions.
+
 ### Novelty case
 
 H03 varied impulse windows and tail thresholds around impulse magnitude and
@@ -244,9 +275,10 @@ Signed displacement magnitude + current volatility state over the same support.
 
 ### Same-support rule
 
-Morphology candidate and displacement baseline are paired on the exact same
-impulse events. The morphology descriptor cannot change event eligibility after
-outcomes are inspected.
+Morphology candidate and displacement baseline are paired on the same canonical
+impulse-event identities under the Section 4 record-identity contract, including
+their original source timeframe and aligned timestamps. The morphology
+descriptor cannot change event eligibility after outcomes are inspected.
 
 ### Future preregistration may define
 
@@ -428,9 +460,17 @@ OI/funding.
 
 ### Same-support rule
 
-Once the data contract is authorized, candidate and baseline must use the exact
-same timestamps for which all required as-of-T inputs are valid. Missing or
-corrupted positioning data cannot be filled by another venue or contract.
+Once the data contract is authorized, candidate and baseline must use the same
+canonical event/bucket identities for which all required as-of-T inputs are
+valid, preserving source venue/contract, timeframe, and aligned timestamps.
+
+Genuinely missing or not-yet-mature OI/funding inputs produce an explicit
+unavailable/not-ready state and cannot silently shrink into a different support
+contract. Malformed, internally inconsistent, checksum-invalid, non-finite when
+forbidden by contract, or otherwise corrupted positioning data must fail closed
+with the owning data/integrity error and may not be reclassified as ordinary
+missingness. Neither missing/immature nor corrupted data may be filled from
+another venue, symbol, contract, calculation version, or timeframe.
 
 ### Close condition
 
@@ -450,7 +490,7 @@ The intended family ledger after this inventory is accepted is:
 | Family | Status | Reason |
 |---|---|---|
 | F1 Directional persistence | `UNTESTED` | B2-02, B2-03, B2-04 admitted |
-| F2 Reversion/failure | `RETIRED` | no novelty-qualified reversion formulation admitted after H02/H03 |
+| F2 Reversion/failure | `RETIRED` | H02's failed-breakout reversion claim was closed and no novelty-qualified F2 reversion/failure formulation is admitted in this inventory |
 | F3 Volatility dynamics | `UNTESTED` | B2-01 admitted |
 | F4 Participation/order-flow | `UNTESTED` | B2-05 admitted |
 | F5 State-mechanism interaction | `BLOCKED_MISSING_OBSERVABLE` | B2-06 requires OI/funding |
