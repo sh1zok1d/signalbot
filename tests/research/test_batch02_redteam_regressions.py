@@ -302,7 +302,7 @@ def test_canonical_loader_rejects_bad_column_contract_before_io(
     monkeypatch: pytest.MonkeyPatch,
 ):
     ctx = _hollow_test_context()
-    object.__setattr__(ctx, "authorized_dataset", object())
+    object.__setattr__(ctx, "_authorized_dataset", object())
     monkeypatch.setattr(batch02_contracts, "_reverify_run_code", lambda value: None)
 
     with pytest.raises(Batch02ContractError, match="columns"):
