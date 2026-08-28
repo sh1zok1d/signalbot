@@ -213,12 +213,24 @@ trailing-180d same-W/side midrank quintiles for:
 - FLOW_RET.
 
 For each nuisance percentile separately, exclude the current historical record
-and require at least **120** earlier same-W/side records in the trailing
-180-calendar-day window. Use deterministic midrank percentiles. Each nuisance
-quintile is computed exactly once as-of its record's own `T_e` and stored; later
-records, later week starts, full-development quantiles, and backfills may not
-change it. If either bin is unavailable, that row is ineligible for candidate
-training but may remain baseline-training eligible.
+and require at least **120** earlier same-W/side records in the exact interval
+`[T_e-180 calendar days,T_e)`. Any `T_ref>=T_e` is forbidden. Use deterministic
+midrank percentiles. Each nuisance quintile is computed exactly once as-of its
+record's own `T_e` and stored; later records, later week starts,
+full-development quantiles, and backfills may not change it. If either bin is
+unavailable, that row is ineligible for candidate training; it remains
+baseline-training eligible iff its baseline fields and mature target are valid.
+
+Frozen nuisance quintile bins for percentile `p`:
+
+- Q1: `[0.0,0.2)`
+- Q2: `[0.2,0.4)`
+- Q3: `[0.4,0.6)`
+- Q4: `[0.6,0.8)`
+- Q5: `[0.8,1.0]`
+
+Exact boundary values enter the bin whose lower bound they equal; `p=1.0`
+belongs to Q5.
 
 These nuisance bins never enter the candidate feature vector or promotion as
 independent predictors. Their eligibility role exists only to make placebo and
@@ -229,20 +241,37 @@ Placebo seed `20260907`, 100 replicates.
 At each weekly fit, use exactly the real candidate's causal training records.
 No placebo-only row dropping is allowed. Strata:
 
-`calendar_month(T_e) × side × imbalance_quintile × flow_return_quintile`.
+`calendar_month_utc(T_e) × side × imbalance_quintile × flow_return_quintile`.
+
+`calendar_month_utc(T_e)` is exactly UTC `YYYY-MM`.
 
 Sort by canonical EVENT_ID before RNG and permute only historical impact-state
 labels. Seed:
 
-`20260907|replicate|W|H|week_start_S|stratum_id`.
+The legacy mnemonic tuple is `20260907|replicate|W|H|week_start_S|stratum_id`,
+but the executable encoding is frozen exactly as follows:
+
+- `replicate_index ∈ {0,...,99}` (zero-based);
+- `week_start_ms` = integer UTC epoch milliseconds for Monday 00:00:00Z;
+- side labels are exactly `BUY` or `SELL`;
+- nuisance labels are exactly `Q1`...`Q5`;
+- `stratum_id` is exactly
+  `YYYY-MM|SIDE=<BUY|SELL>|IMB_Q=<Q1..Q5>|FLOW_Q=<Q1..Q5>`;
+- raw UTF-8 text is
+  `20260907|replicate_index|W|H|week_start_ms|stratum_id`;
+- `seed_int=int.from_bytes(sha256(raw_utf8).digest()[:8],"big",signed=False)`;
+- RNG is exactly `numpy.random.default_rng(seed_int)`.
+
+No alternative encoding, Python `hash()`, or 1-based replicate numbering is
+permitted.
 
 Keep baseline features, target, timestamps, and current-week true impact states
 unchanged. Evaluate on exact real-candidate support. Real mean AE improvement
-must exceed placebo p95.
+must exceed placebo p95, computed with `numpy.quantile(...,0.95,method="linear")`.
 
 ## 13. Bootstrap and stability
 
-UTC-week block bootstrap: seed `20260908`, 2000 replicates, 95% CI.
+UTC-week block bootstrap: seed `20260908`, 2000 replicates, 95% CI. The 2.5th and 97.5th percentiles use `numpy.quantile(...,method="linear")`.
 
 Years fixed: 2020–2024.
 
