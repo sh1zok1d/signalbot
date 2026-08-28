@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from scripts.research.lib import batch02_contracts
 from scripts.research.lib.batch02_contracts import (
     Batch02ContractError,
     Batch02RunContext,
