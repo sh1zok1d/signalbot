@@ -282,3 +282,25 @@ def test_contract_loader_does_not_accept_plain_paths_or_fake_objects(tmp_path: P
                 value,  # type: ignore[arg-type]
                 columns=("close",),
             )
+
+
+@pytest.mark.parametrize(
+    "extra_import,extra_call",
+    [
+        ("import pandas as pd", "pd.Series(X).rank()"),
+        (
+            "from scipy.stats import percentileofscore",
+            "percentileofscore(X, 1.0)",
+        ),
+        ("import numpy as np", "np.searchsorted(X, 1.0)"),
+    ],
+)
+def test_source_policy_rejects_common_alternate_rank_primitives(
+    tmp_path: Path,
+    extra_import: str,
+    extra_call: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=extra_call)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="rank/percentile"):
+        validate_batch02_source_tree(research, repo_root=repo)
