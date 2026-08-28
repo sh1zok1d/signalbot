@@ -50,6 +50,7 @@ def _authorized(
     tmp_path: Path,
     partition_contents: dict[str, bytes] | None = None,
 ):
+    tmp_path.mkdir(parents=True, exist_ok=True)
     repo_manifest = tmp_path / "repo.yaml"
     repo_manifest.write_text(
         yaml.safe_dump(
@@ -147,12 +148,46 @@ def test_policy_rejects_allowed_year_outside_frozen_window():
         )
 
 
+def test_policy_freezes_allowed_years_and_rejects_bool_aliases():
+    years = [2020, 2021]
+    policy = OutcomeAccessPolicy(
+        stage="development",
+        start_inclusive_ms=START_2020_MS,
+        end_exclusive_ms=END_2022_MS,
+        allowed_years=years,
+    )
+    years.append(2025)
+    assert policy.allowed_years == (2020, 2021)
+
+    with pytest.raises(ValueError, match="allowed_years must contain integers"):
+        OutcomeAccessPolicy(
+            stage="development",
+            start_inclusive_ms=START_2020_MS,
+            end_exclusive_ms=END_2022_MS,
+            allowed_years=(2020, True),
+        )
+
+
 def test_dataset_identity_is_required_before_partition_access(tmp_path: Path):
     dataset_root = tmp_path / "dataset"
     (dataset_root / "canonical" / "1m" / "monthly").mkdir(parents=True)
     with pytest.raises(DatasetIdentityError, match="repository dataset manifest"):
         authorize_dataset_access(
             repo_manifest_path=tmp_path / "missing.yaml",
+            dataset_root=dataset_root,
+            identity=IDENTITY,
+            policy=POLICY,
+        )
+
+
+def test_invalid_repository_manifest_yaml_fails_closed(tmp_path: Path):
+    repo_manifest = tmp_path / "repo.yaml"
+    repo_manifest.write_text("dataset_id: [unterminated\n", encoding="utf-8")
+    dataset_root = tmp_path / "dataset"
+
+    with pytest.raises(DatasetIdentityError, match="invalid repository dataset manifest YAML"):
+        authorize_dataset_access(
+            repo_manifest_path=repo_manifest,
             dataset_root=dataset_root,
             identity=IDENTITY,
             policy=POLICY,
@@ -402,6 +437,38 @@ def test_gate_conjunction_is_literal_true_and_fail_closed():
         names,
     )
     assert not fail_closed_gate_conjunction({}, [])
+
+
+def test_run_identity_rejects_lookalike_proof_objects(tmp_path: Path):
+    authorized, _monthly = _authorized(tmp_path)
+    repo = tmp_path / "code"
+    code_sha = _init_clean_git_repo(repo)
+    code_freeze = verify_git_freeze(repo, code_sha)
+
+    class FakeCodeFreeze:
+        code_sha = code_sha
+
+    class FakeAuthorizedDataset:
+        policy = authorized.policy
+        identity = authorized.identity
+
+    with pytest.raises(CodeIdentityError, match="verify_git_freeze proof"):
+        build_run_identity(
+            hypothesis_id="B02_TEST",
+            stage="development",
+            code_freeze=FakeCodeFreeze(),
+            authorized_dataset=authorized,
+            command=["python", "-m", "fake"],
+        )
+
+    with pytest.raises(DatasetIdentityError, match="authorize_dataset_access proof"):
+        build_run_identity(
+            hypothesis_id="B02_TEST",
+            stage="development",
+            code_freeze=code_freeze,
+            authorized_dataset=FakeAuthorizedDataset(),
+            command=["python", "-m", "fake"],
+        )
 
 
 def test_provenance_and_result_artifact_are_immutable(tmp_path: Path):
