@@ -264,8 +264,11 @@ def _contains_prepare_reference(
         ):
             return True
         elif (
-            isinstance(node, ast.Constant)
-            and node.value == "prepare_batch02_run"
+            isinstance(node, ast.Call)
+            and _call_name(node) == "getattr"
+            and len(node.args) >= 2
+            and isinstance(node.args[1], ast.Constant)
+            and node.args[1].value == "prepare_batch02_run"
         ):
             return True
     return False
