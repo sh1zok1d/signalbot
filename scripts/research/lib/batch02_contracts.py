@@ -83,6 +83,10 @@ def prepare_batch02_run(
     No fallback SHA, optional manifest path, or caller-supplied provenance label
     is accepted here.
     """
+    if stage != "development":
+        raise Batch02ContractError(
+            "prepare_batch02_run is restricted to development stage"
+        )
     if outcome_access_acknowledged is not True:
         raise Batch02ContractError(
             "development outcome access requires explicit acknowledgement"
