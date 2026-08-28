@@ -266,6 +266,10 @@ def authorize_dataset_access(
         raise DatasetIdentityError(
             f"missing repository dataset manifest: {repo_manifest_path}"
         ) from exc
+    except UnicodeDecodeError as exc:
+        raise DatasetIdentityError(
+            f"invalid repository dataset manifest encoding: {repo_manifest_path}"
+        ) from exc
     except yaml.YAMLError as exc:
         raise DatasetIdentityError(
             f"invalid repository dataset manifest YAML: {repo_manifest_path}"
@@ -294,6 +298,10 @@ def authorize_dataset_access(
     except FileNotFoundError as exc:
         raise DatasetIdentityError(
             f"missing runtime dataset identity evidence: {runtime_snapshot}"
+        ) from exc
+    except UnicodeDecodeError as exc:
+        raise DatasetIdentityError(
+            f"invalid runtime snapshot encoding: {runtime_snapshot}"
         ) from exc
     except json.JSONDecodeError as exc:
         raise DatasetIdentityError(
