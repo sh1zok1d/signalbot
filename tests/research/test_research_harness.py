@@ -194,6 +194,45 @@ def test_invalid_repository_manifest_yaml_fails_closed(tmp_path: Path):
         )
 
 
+def test_invalid_utf8_manifests_fail_closed(tmp_path: Path):
+    repo_manifest = tmp_path / "repo.yaml"
+    repo_manifest.write_bytes(b"\xff\xfe")
+    dataset_root = tmp_path / "dataset"
+
+    with pytest.raises(DatasetIdentityError, match="manifest encoding"):
+        authorize_dataset_access(
+            repo_manifest_path=repo_manifest,
+            dataset_root=dataset_root,
+            identity=IDENTITY,
+            policy=POLICY,
+        )
+
+    valid_repo = tmp_path / "valid_repo.yaml"
+    valid_repo.write_text(
+        yaml.safe_dump(
+            {
+                "dataset_id": IDENTITY.dataset_id,
+                "snapshot_id": IDENTITY.snapshot_id,
+                "status": "ACCEPTED_FOR_DISCOVERY",
+                "research_authorized": True,
+                "confirmatory_authorized": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+    runtime_root = tmp_path / "runtime_dataset"
+    (runtime_root / "reports").mkdir(parents=True)
+    (runtime_root / "reports" / "snapshot_manifest.json").write_bytes(b"\xff\xfe")
+
+    with pytest.raises(DatasetIdentityError, match="snapshot encoding"):
+        authorize_dataset_access(
+            repo_manifest_path=valid_repo,
+            dataset_root=runtime_root,
+            identity=IDENTITY,
+            policy=POLICY,
+        )
+
+
 def test_authorized_dataset_cannot_be_forged_directly(tmp_path: Path):
     with pytest.raises(DatasetIdentityError, match="authorize_dataset_access"):
         AuthorizedDataset(
