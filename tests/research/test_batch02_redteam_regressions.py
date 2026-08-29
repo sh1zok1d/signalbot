@@ -1042,3 +1042,61 @@ def main():
 
     with pytest.raises(Batch02SourcePolicyError, match="forbidden direct I/O"):
         validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_source_policy_rejects_contract_function_globals_access(tmp_path: Path):
+    source = _canonical_runner(
+        extra='marker = persist_batch02_result.__globals__'
+    )
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+
+    with pytest.raises(Batch02SourcePolicyError, match="__globals__"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_source_policy_rejects_fake_attribute_ceremony_even_with_real_imports(
+    tmp_path: Path,
+):
+    source = """
+from types import SimpleNamespace
+from scripts.research.lib.batch02_contracts import (
+    verify_batch02_code,
+    prepare_batch02_run,
+    persist_batch02_result,
+)
+
+h = SimpleNamespace(
+    verify_batch02_code=lambda **kwargs: object(),
+    prepare_batch02_run=lambda **kwargs: object(),
+    persist_batch02_result=lambda *args, **kwargs: "forged",
+)
+
+def main():
+    h.verify_batch02_code(repo_root=ROOT, expected_code_sha=SHA)
+    ctx = h.prepare_batch02_run()
+    h.persist_batch02_result(OUT, {"status": "closed"}, run_context=ctx)
+"""
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+
+    with pytest.raises(Batch02SourcePolicyError, match="direct canonical"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        'ARRAY.tofile("/fixture/output.bin")',
+        'PATH.hardlink_to("/fixture/output.bin")',
+    ],
+)
+def test_source_policy_rejects_unsanctioned_write_link_attributes(
+    tmp_path: Path,
+    extra: str,
+):
+    repo, research = _synthetic_tree(
+        tmp_path,
+        runner=_canonical_runner(extra=extra),
+    )
+
+    with pytest.raises(Batch02SourcePolicyError, match="forbidden direct I/O"):
+        validate_batch02_source_tree(research, repo_root=repo)
