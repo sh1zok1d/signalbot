@@ -63,6 +63,22 @@ _FORBIDDEN_DIRECT_MODULE_PREFIXES = (
     "sqlite3",
     "sqlalchemy",
     "mmap",
+    # Stdlib modules that can independently open/copy/execute arbitrary paths.
+    "fileinput",
+    "runpy",
+    "gzip",
+    "bz2",
+    "lzma",
+    "shutil",
+    "pty",
+    "linecache",
+    "zipimport",
+    "pkgutil",
+    "zipfile",
+    "tarfile",
+    "shelve",
+    "dbm",
+    "posix",
     "unittest.mock",
     "mock",
 )
@@ -77,6 +93,7 @@ _FORBIDDEN_BARE_CALLS = {
     "vars",
     "globals",
     "locals",
+    "compile",
 }
 _FORBIDDEN_IO_ATTRIBUTES = {
     # pathlib / os / shutil style mutation or direct filesystem access.
@@ -107,6 +124,22 @@ _FORBIDDEN_IO_ATTRIBUTES = {
     "rmdir",
     "rmtree",
     "move",
+    "copy",
+    "copyfile",
+    "copy2",
+    "copytree",
+    "GzipFile",
+    "BZ2File",
+    "LZMAFile",
+    "ZipFile",
+    "TarFile",
+    "get_data",
+    "run_path",
+    "updatecache",
+    "getline",
+    "spawn",
+    "tofile",
+    "hardlink_to",
     # parquet / dataframe / array file readers.
     "read_table",
     "read_parquet",
@@ -148,6 +181,13 @@ _FORBIDDEN_REFLECTION_ATTRIBUTES = {
     "attrgetter",
     "methodcaller",
     "getattr_static",
+    "__globals__",
+    "__code__",
+    "__defaults__",
+    "__kwdefaults__",
+    "__closure__",
+    "__setattr__",
+    "__delattr__",
 }
 _FORBIDDEN_IO_NAME_PREFIXES = ("read_", "scan_", "open_")
 
@@ -158,6 +198,19 @@ _FORBIDDEN_RANK_CALLS = {
     "searchsorted",
 }
 _FORBIDDEN_IMPORTED_SYMBOLS = {
+    # Preserve original-symbol identity across "from X import Y as alias".
+    # In particular, aliased builtins must not escape the bare-call checks.
+    "open",
+    "eval",
+    "exec",
+    "__import__",
+    "compile",
+    "getattr",
+    "setattr",
+    "delattr",
+    "vars",
+    "globals",
+    "locals",
     "read_table",
     "read_parquet",
     "ParquetFile",
@@ -354,6 +407,20 @@ def _is_forbidden_io_name(name: str | None) -> bool:
     )
 
 
+def _is_canonical_call(
+    node: ast.Call,
+    *,
+    bindings: dict[str, str],
+    name: str,
+) -> bool:
+    """Return True only for a direct non-aliased canonical contract call."""
+    return (
+        isinstance(node.func, ast.Name)
+        and node.func.id == name
+        and bindings.get(name) == f"{_CANONICAL_CONTRACTS_MODULE}.{name}"
+    )
+
+
 def _contains_prepare_reference(
     *,
     repo_root: Path,
@@ -461,12 +528,17 @@ def _lint_module(
     canonical_imports: set[str] = set()
     canonical_calls: set[str] = set()
     context_names: set[str] = set()
+    bindings = _import_bindings(repo_root=repo_root, path=path, tree=tree)
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign):
             if (
                 isinstance(node.value, ast.Call)
-                and _call_name(node.value) == "prepare_batch02_run"
+                and _is_canonical_call(
+                    node.value,
+                    bindings=bindings,
+                    name="prepare_batch02_run",
+                )
             ):
                 for target in node.targets:
                     if isinstance(target, ast.Name):
@@ -475,7 +547,11 @@ def _lint_module(
             if (
                 isinstance(node.target, ast.Name)
                 and isinstance(node.value, ast.Call)
-                and _call_name(node.value) == "prepare_batch02_run"
+                and _is_canonical_call(
+                    node.value,
+                    bindings=bindings,
+                    name="prepare_batch02_run",
+                )
             ):
                 context_names.add(node.target.id)
 
@@ -614,13 +690,27 @@ def _lint_module(
                         getattr(node, "lineno", None),
                     )
                 )
-            if name in _REQUIRED_RUNNER_CALLS | {
+            canonical_names = _REQUIRED_RUNNER_CALLS | {
                 _CANONICAL_RANK_NAME,
                 "load_authorized_parquet_table",
-            }:
-                canonical_calls.add(name)
+            }
+            if name in canonical_names:
+                if _is_canonical_call(node, bindings=bindings, name=name):
+                    canonical_calls.add(name)
+                else:
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            f"{name} must call the direct canonical "
+                            f"{_CANONICAL_CONTRACTS_MODULE}.{name} binding",
+                            getattr(node, "lineno", None),
+                        )
+                    )
 
-            if name in {"persist_batch02_result", "load_authorized_parquet_table"}:
+            if (
+                name in {"persist_batch02_result", "load_authorized_parquet_table"}
+                and _is_canonical_call(node, bindings=bindings, name=name)
+            ):
                 context_kw = next(
                     (kw.value for kw in node.keywords if kw.arg == "run_context"),
                     None,
@@ -774,7 +864,16 @@ def _discover_future_b2_entrypoints(
     repo_root: Path,
 ) -> list[Path]:
     out: list[Path] = []
-    for path in scan_root.rglob("*.py"):
+    # Inspect the normal runtime tree plus any future-B2-named Python module
+    # anywhere in the repository. This catches a repo-root b2_02_*.py without
+    # treating tests/docs that merely mention the contracts as runtime runners.
+    candidates = set(scan_root.rglob("*.py"))
+    candidates.update(
+        path
+        for path in repo_root.rglob("*.py")
+        if _FUTURE_B2_FILE.match(path.name)
+    )
+    for path in sorted(candidates):
         try:
             tree = ast.parse(
                 path.read_text(encoding="utf-8"),
