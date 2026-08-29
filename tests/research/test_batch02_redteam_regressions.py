@@ -970,3 +970,75 @@ def main():
 
     with pytest.raises(Batch02SourcePolicyError):
         validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "import_line",
+    [
+        "from builtins import open as load_file",
+        "from builtins import exec as run_code",
+        "from builtins import eval as compute",
+        "from builtins import compile as build_code",
+    ],
+)
+def test_source_policy_rejects_aliased_forbidden_builtins_by_origin(
+    tmp_path: Path,
+    import_line: str,
+):
+    source = import_line + "\n" + _canonical_runner()
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+
+    with pytest.raises(
+        Batch02SourcePolicyError,
+        match="forbidden direct I/O symbol import",
+    ):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "module_name",
+    [
+        "fileinput",
+        "runpy",
+        "gzip",
+        "bz2",
+        "lzma",
+        "shutil",
+        "pty",
+        "linecache",
+        "zipimport",
+        "pkgutil",
+    ],
+)
+def test_source_policy_rejects_stdlib_file_process_escape_modules(
+    tmp_path: Path,
+    module_name: str,
+):
+    source = f"import {module_name}\n" + _canonical_runner()
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+
+    with pytest.raises(
+        Batch02SourcePolicyError,
+        match="forbidden direct/dynamic I/O module import",
+    ):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_source_policy_discovers_repo_root_future_b2_runner(tmp_path: Path):
+    repo = tmp_path / "repo"
+    research = repo / "scripts" / "research"
+    research.mkdir(parents=True)
+    (repo / "scripts" / "__init__.py").write_text("", encoding="utf-8")
+    (research / "__init__.py").write_text("", encoding="utf-8")
+    (repo / "b2_02_root.py").write_text(
+        """
+import pandas as pd
+
+def main():
+    return pd.read_parquet("/fixture/outcome.parquet")
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(Batch02SourcePolicyError, match="forbidden direct I/O"):
+        validate_batch02_source_tree(research, repo_root=repo)
