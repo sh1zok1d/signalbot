@@ -278,19 +278,9 @@ _FORBIDDEN_RANK_CALLS = {
     "searchsorted",
 }
 _FORBIDDEN_IMPORTED_SYMBOLS = {
-    # Preserve original-symbol identity across "from X import Y as alias".
-    # In particular, aliased builtins must not escape the bare-call checks.
-    "open",
-    "eval",
-    "exec",
-    "__import__",
-    "compile",
-    "getattr",
-    "setattr",
-    "delattr",
-    "vars",
-    "globals",
-    "locals",
+    # I/O symbols whose capability is dangerous independent of local alias.
+    # Builtins are handled separately by module+origin, so e.g. re.compile
+    # remains a valid in-memory transform.
     "read_table",
     "read_parquet",
     "ParquetFile",
@@ -766,6 +756,18 @@ def _lint_module(
                             getattr(node, "lineno", None),
                         )
                     )
+                if (
+                    isinstance(node, ast.ImportFrom)
+                    and base == "builtins"
+                    and origin_symbol in _FORBIDDEN_BARE_CALLS
+                ):
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            f"forbidden direct I/O symbol import {origin}",
+                            getattr(node, "lineno", None),
+                        )
+                    )
                 if origin.split(".")[-1] in _FORBIDDEN_IMPORTED_SYMBOLS:
                     violations.append(
                         SourceViolation(
@@ -808,7 +810,7 @@ def _lint_module(
                         getattr(node, "lineno", None),
                     )
                 )
-            if name in _FORBIDDEN_BARE_CALLS:
+            if isinstance(node.func, ast.Name) and name in _FORBIDDEN_BARE_CALLS:
                 violations.append(
                     SourceViolation(
                         path,
@@ -936,11 +938,11 @@ def _lint_module(
                         getattr(node, "lineno", None),
                     )
                 )
-            if node.attr == "query":
+            if node.attr in {"query", "eval"}:
                 violations.append(
                     SourceViolation(
                         path,
-                        "dynamic dataframe query/evaluation surface is forbidden",
+                        "dynamic dataframe/query evaluation surface is forbidden",
                         getattr(node, "lineno", None),
                     )
                 )
