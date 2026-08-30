@@ -40,6 +40,54 @@ _FROZEN_RUNTIME_PREFIXES = (
 _TRUSTED_MODULES = {
     "scripts.research.lib.batch02_contracts",
 }
+
+# Non-repository imports are default-deny. Keep this set intentionally narrow:
+# future hypotheses may transform already-authorized in-memory data, not grow
+# new acquisition/execution capabilities by importing another package.
+_ALLOWED_EXTERNAL_MODULES = {
+    "numpy",
+    "pandas",
+    "pyarrow",
+    "pyarrow.compute",
+    "pathlib",
+    "math",
+    "statistics",
+    "decimal",
+    "fractions",
+    "collections",
+    "collections.abc",
+    "itertools",
+    "functools",
+    "dataclasses",
+    "typing",
+    "enum",
+    "copy",
+    "re",
+    "json",
+    "hashlib",
+}
+
+_FORBIDDEN_BUILTIN_NAMES = {
+    "open",
+    "eval",
+    "exec",
+    "compile",
+    "__import__",
+}
+
+_FORBIDDEN_PACKAGE_ATTRIBUTE_PREFIXES = (
+    "pandas.io",
+    "pandas.core.computation",
+    "numpy.lib.npyio",
+    "pyarrow.parquet",
+    "pyarrow.dataset",
+    "pyarrow.fs",
+    "pyarrow.feather",
+    "pyarrow.csv",
+    "pyarrow.json",
+    "pyarrow.ipc",
+)
+
 _FORBIDDEN_DIRECT_MODULE_PREFIXES = (
     "scripts.research.lib.research_harness",
     # Dynamic/reflection/native escape hatches are outside the future-B2
@@ -81,6 +129,17 @@ _FORBIDDEN_DIRECT_MODULE_PREFIXES = (
     "posix",
     "unittest.mock",
     "mock",
+    # I/O/evaluation subpackages inside otherwise transform-allowed packages.
+    "pandas.io",
+    "pandas.core.computation",
+    "numpy.lib.npyio",
+    "pyarrow.parquet",
+    "pyarrow.dataset",
+    "pyarrow.fs",
+    "pyarrow.feather",
+    "pyarrow.csv",
+    "pyarrow.json",
+    "pyarrow.ipc",
 )
 _FORBIDDEN_BARE_CALLS = {
     "open",
@@ -140,6 +199,25 @@ _FORBIDDEN_IO_ATTRIBUTES = {
     "spawn",
     "tofile",
     "hardlink_to",
+    "mkdir",
+    "exists",
+    "stat",
+    "lstat",
+    # file-backed constructors / writers exposed by transform-allowed packages.
+    "FileType",
+    "OSFile",
+    "PythonFile",
+    "LocalFileSystem",
+    "ExcelWriter",
+    "StataReader",
+    "fromregex",
+    "output_stream",
+    "savez",
+    "savez_compressed",
+    "dump",
+    "to_stata",
+    "to_html",
+    "to_markdown",
     # parquet / dataframe / array file readers.
     "read_table",
     "read_parquet",
@@ -188,8 +266,10 @@ _FORBIDDEN_REFLECTION_ATTRIBUTES = {
     "__closure__",
     "__setattr__",
     "__delattr__",
+    "__reduce__",
+    "__reduce_ex__",
 }
-_FORBIDDEN_IO_NAME_PREFIXES = ("read_", "scan_", "open_")
+_FORBIDDEN_IO_NAME_PREFIXES = ("read_", "scan_", "open_", "write_")
 
 _FORBIDDEN_RANK_CALLS = {
     "rank",
@@ -235,6 +315,20 @@ _FORBIDDEN_IMPORTED_SYMBOLS = {
     "open_file",
     "connect",
     "FileIO",
+    "FileType",
+    "OSFile",
+    "PythonFile",
+    "LocalFileSystem",
+    "ExcelWriter",
+    "StataReader",
+    "fromregex",
+    "output_stream",
+    "savez",
+    "savez_compressed",
+    "dump",
+    "to_stata",
+    "to_html",
+    "to_markdown",
     "popen",
     "urlopen",
 }
@@ -250,6 +344,14 @@ _PROTECTED_BINDINGS = {
     *_REQUIRED_RUNNER_CALLS,
     _CANONICAL_RANK_NAME,
     "load_authorized_parquet_table",
+}
+
+_CANONICAL_PUBLIC_API = {
+    *_REQUIRED_RUNNER_CALLS,
+    _CANONICAL_RANK_NAME,
+    "load_authorized_parquet_table",
+    "Batch02ContractError",
+    "Batch02RunContext",
 }
 
 
@@ -594,6 +696,46 @@ def _lint_module(
                                 getattr(node, "lineno", None),
                             )
                         )
+                # Default-deny every non-local import except the explicit
+                # transform-only allowlist and the canonical contract module.
+                import_module = (
+                    base
+                    if isinstance(node, ast.ImportFrom)
+                    else origin
+                )
+                is_local = _resolve_module(repo_root, import_module) is not None
+                is_canonical_contract = (
+                    import_module == _CANONICAL_CONTRACTS_MODULE
+                )
+                if (
+                    import_module
+                    and not is_local
+                    and not is_canonical_contract
+                    and import_module not in _ALLOWED_EXTERNAL_MODULES
+                ):
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            f"non-local import is not on the Batch02 transform "
+                            f"allowlist: {import_module}",
+                            getattr(node, "lineno", None),
+                        )
+                    )
+
+                if (
+                    isinstance(node, ast.ImportFrom)
+                    and base == _CANONICAL_CONTRACTS_MODULE
+                    and origin_symbol not in _CANONICAL_PUBLIC_API
+                ):
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            "batch02_contracts internal/re-exported symbol is "
+                            f"not part of the hypothesis API: {origin_symbol}",
+                            getattr(node, "lineno", None),
+                        )
+                    )
+
                 if any(
                     origin.startswith(prefix)
                     for prefix in _FROZEN_RUNTIME_PREFIXES
@@ -729,6 +871,15 @@ def _lint_module(
                     )
 
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            if node.name in _FORBIDDEN_BUILTIN_NAMES:
+                violations.append(
+                    SourceViolation(
+                        path,
+                        f"forbidden builtin capability name may not be declared: "
+                        f"{node.name}",
+                        node.lineno,
+                    )
+                )
             if node.name in _PROTECTED_BINDINGS:
                 violations.append(
                     SourceViolation(
@@ -768,6 +919,31 @@ def _lint_module(
             )
 
         if isinstance(node, ast.Attribute):
+            resolved_attribute = _resolved_dotted_name(node, bindings=bindings)
+            if (
+                resolved_attribute
+                and any(
+                    resolved_attribute == prefix
+                    or resolved_attribute.startswith(prefix + ".")
+                    for prefix in _FORBIDDEN_PACKAGE_ATTRIBUTE_PREFIXES
+                )
+            ):
+                violations.append(
+                    SourceViolation(
+                        path,
+                        f"forbidden I/O-capable package surface "
+                        f"{resolved_attribute}",
+                        getattr(node, "lineno", None),
+                    )
+                )
+            if node.attr == "query":
+                violations.append(
+                    SourceViolation(
+                        path,
+                        "dynamic dataframe query/evaluation surface is forbidden",
+                        getattr(node, "lineno", None),
+                    )
+                )
             if _is_forbidden_io_name(node.attr):
                 violations.append(
                     SourceViolation(
@@ -806,6 +982,14 @@ def _lint_module(
                 )
 
         if isinstance(node, ast.Name):
+            if node.id in _FORBIDDEN_BUILTIN_NAMES:
+                violations.append(
+                    SourceViolation(
+                        path,
+                        f"forbidden builtin capability reference {node.id}",
+                        getattr(node, "lineno", None),
+                    )
+                )
             if node.id == "__builtins__":
                 violations.append(
                     SourceViolation(
