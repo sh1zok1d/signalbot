@@ -183,7 +183,9 @@ _FORBIDDEN_IO_ATTRIBUTES = {
     "rmdir",
     "rmtree",
     "move",
-    "copy",
+    # plain .copy is an in-memory transform for copy.copy/DataFrame/ndarray;
+    # filesystem copy capability is denied by module origin (shutil) and the
+    # specific copyfile/copy2/copytree names below.
     "copyfile",
     "copy2",
     "copytree",
