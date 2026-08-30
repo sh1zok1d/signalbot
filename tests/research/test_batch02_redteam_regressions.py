@@ -1100,3 +1100,120 @@ def test_source_policy_rejects_unsanctioned_write_link_attributes(
 
     with pytest.raises(Batch02SourcePolicyError, match="forbidden direct I/O"):
         validate_batch02_source_tree(research, repo_root=repo)
+
+# RT-20260830 capability/TCB regression closure
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "captured = open",
+        "captured = exec",
+        "captured = eval",
+        "captured = compile",
+        "(captured := open)",
+    ],
+)
+def test_rt_builtin_capability_name_capture_is_rejected(
+    tmp_path: Path,
+    expression: str,
+):
+    repo, research = _synthetic_tree(
+        tmp_path,
+        runner=_canonical_runner(extra=expression),
+    )
+    with pytest.raises(Batch02SourcePolicyError, match="forbidden builtin capability"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize("module_name", ["argparse", "logging"])
+def test_rt_non_transform_stdlib_is_default_denied(
+    tmp_path: Path,
+    module_name: str,
+):
+    source = f"import {module_name}\n" + _canonical_runner()
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="transform allowlist"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "extra_import,expression",
+    [
+        ("import pyarrow as pa", 'fh = pa.OSFile("/evil/data.parquet", "r")'),
+        ("import pyarrow as pa", 'fh = pa.PythonFile(OBJ)'),
+        ("import pyarrow as pa", 'fh = pa.output_stream("/evil/out.bin")'),
+        ("import numpy as np", 'arr = np.fromregex("/evil/data.txt", ".*", dtype=str)'),
+        ("import pandas as pd", 'writer = pd.ExcelWriter("/evil/out.xlsx")'),
+        ("from pathlib import Path", 'Path("/evil/out").mkdir()'),
+        ("import numpy as np", 'np.savez("/evil/out.npz", x=[1, 2])'),
+        ("import pandas as pd", 'pd.DataFrame({"x": [1]}).to_stata("/evil/out.dta")'),
+        ("import pandas as pd", 'pd.DataFrame({"x": [1]}).to_html("/evil/out.html")'),
+    ],
+)
+def test_rt_allowlisted_packages_cannot_reacquire_file_capabilities(
+    tmp_path: Path,
+    extra_import: str,
+    expression: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "extra_import,expression",
+    [
+        ("import pandas as pd", 'reader = pd.io.stata.StataReader("/evil/data.dta")'),
+        ("import pyarrow as pa", "fs = pa.fs.LocalFileSystem()"),
+    ],
+)
+def test_rt_forbidden_submodule_attribute_hops_are_rejected(
+    tmp_path: Path,
+    extra_import: str,
+    expression: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="package surface"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "symbol",
+    ["write_json_new", "authorize_dataset_access"],
+)
+def test_rt_contract_internal_reexports_are_not_hypothesis_api(
+    tmp_path: Path,
+    symbol: str,
+):
+    source = (
+        f"from scripts.research.lib.batch02_contracts import {symbol}\n"
+        + _canonical_runner()
+    )
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="not part of the hypothesis API"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_rt_safe_in_memory_copy_and_regex_compile_remain_allowed(tmp_path: Path):
+    source = (
+        "import copy\nimport re\n"
+        + _canonical_runner(
+            extra='x = copy.copy([1, 2, 3]); pattern = re.compile("x+")'
+        )
+    )
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    visited = validate_batch02_source_tree(research, repo_root=repo)
+    assert any(path.name == "b2_02_attack.py" for path in visited)
+
+
+def test_rt_reflection_reduce_paths_are_rejected(tmp_path: Path):
+    repo, research = _synthetic_tree(
+        tmp_path,
+        runner=_canonical_runner(
+            extra="state = persist_batch02_result.__reduce_ex__(4)"
+        ),
+    )
+    with pytest.raises(Batch02SourcePolicyError, match="reflection"):
+        validate_batch02_source_tree(research, repo_root=repo)
