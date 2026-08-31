@@ -1217,3 +1217,199 @@ def test_rt_reflection_reduce_paths_are_rejected(tmp_path: Path):
     )
     with pytest.raises(Batch02SourcePolicyError, match="reflection"):
         validate_batch02_source_tree(research, repo_root=repo)
+
+# RT-20260831 successor repair regressions
+
+@pytest.mark.parametrize(
+    "import_line,expression",
+    [
+        ("from numpy import load as npload", 'data = npload("/evil/data.npy")'),
+        ("from pandas import read_fwf as load_bars", 'data = load_bars("/evil/data.txt")'),
+    ],
+)
+def test_rt_import_alias_uses_shared_io_origin_predicate(
+    tmp_path: Path,
+    import_line: str,
+    expression: str,
+):
+    source = import_line + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="forbidden direct I/O symbol import"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "extra_import,expression",
+    [
+        ("import pandas as pd", 'x = pd.ExcelFile("/evil/data.xlsx")'),
+        ("import pyarrow as pa", 'x = pa.NativeFile()'),
+        ("import pyarrow as pa", 'x = pa.MemoryMappedFile()'),
+        ("import pandas as pd", 'pd.DataFrame({"x": [1]}).to_latex("/evil/out.tex")'),
+        ("import pandas as pd", 'pd.DataFrame({"x": [1]}).to_xml("/evil/out.xml")'),
+        ("from pathlib import Path", 'Path("/evil/out").touch()'),
+        ("from pathlib import Path", 'Path("/evil/out").symlink_to("/evil/source")'),
+        ("from pathlib import Path", 'Path("/evil/out").chmod(0o600)'),
+    ],
+)
+def test_rt_additional_allowlisted_file_surfaces_are_rejected(
+    tmp_path: Path,
+    extra_import: str,
+    expression: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize("location", ["generic_runner.py", "docs/experiment.py"])
+def test_rt_prepare_reference_is_discovered_repo_wide(
+    tmp_path: Path,
+    location: str,
+):
+    repo = tmp_path / "repo"
+    research = repo / "scripts" / "research"
+    research.mkdir(parents=True)
+    (repo / "scripts" / "__init__.py").write_text("", encoding="utf-8")
+    (research / "__init__.py").write_text("", encoding="utf-8")
+    target = repo / location
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        "import pandas as pd\n"
+        + _canonical_runner(extra='pd.read_parquet("/evil/data.parquet")'),
+        encoding="utf-8",
+    )
+    with pytest.raises(Batch02SourcePolicyError, match="read_parquet"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "module_import,expression",
+    [
+        (
+            "import scripts.research.lib.batch02_contracts as contracts",
+            "x = contracts.authorize_dataset_access",
+        ),
+        (
+            "from scripts.research.lib import batch02_contracts as contracts",
+            "x = contracts.AuthorizedDataset",
+        ),
+    ],
+)
+def test_rt_contracts_module_object_is_not_hypothesis_capability(
+    tmp_path: Path,
+    module_import: str,
+    expression: str,
+):
+    source = module_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="module object"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "extra_import,expression",
+    [
+        (
+            "from numpy import ctypeslib",
+            'x = ctypeslib.load_library("c", "/lib")',
+        ),
+        (
+            "import numpy as np",
+            'x = np.ctypeslib.load_library("c", "/lib")',
+        ),
+        (
+            "from pyarrow import flight",
+            'x = flight.FlightClient("grpc://localhost:1")',
+        ),
+        (
+            "import pyarrow as pa",
+            "x = pa.flight",
+        ),
+        (
+            "from pyarrow import orc",
+            'x = orc.ORCFile("/evil/data.orc")',
+        ),
+    ],
+)
+def test_rt_capability_subpackages_cannot_hide_under_allowed_parent(
+    tmp_path: Path,
+    extra_import: str,
+    expression: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "probe",
+    [
+        "is_file",
+        "is_dir",
+        "is_symlink",
+        "owner",
+        "group",
+        "samefile",
+    ],
+)
+def test_rt_pathlib_filesystem_probes_are_rejected(
+    tmp_path: Path,
+    probe: str,
+):
+    if probe == "samefile":
+        expression = 'x = Path("/a").samefile("/b")'
+    else:
+        expression = f'x = Path("/evil").{probe}()'
+    source = "from pathlib import Path\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_rt_hashlib_file_digest_surface_is_rejected(tmp_path: Path):
+    source = (
+        "import hashlib\n"
+        + _canonical_runner(extra="digest = hashlib.file_digest(HANDLE, 'sha256')")
+    )
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="file_digest"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_rt_symlink_escape_fails_with_policy_error(tmp_path: Path):
+    repo = tmp_path / "repo"
+    research = repo / "scripts" / "research"
+    research.mkdir(parents=True)
+    (repo / "scripts" / "__init__.py").write_text("", encoding="utf-8")
+    (research / "__init__.py").write_text("", encoding="utf-8")
+
+    outside = tmp_path / "outside.py"
+    outside.write_text(
+        "from scripts.research.lib.batch02_contracts import prepare_batch02_run\n",
+        encoding="utf-8",
+    )
+    link = repo / "linked_runner.py"
+    link.symlink_to(outside)
+
+    with pytest.raises(Batch02SourcePolicyError, match="outside repository"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_rt_safe_import_aliases_and_compute_remain_allowed(tmp_path: Path):
+    source = (
+        "from re import compile as cre\n"
+        "import numpy as np\n"
+        "import pyarrow.compute as pc\n"
+        + _canonical_runner(
+            extra=(
+                'pattern = cre("x+"); '
+                "arr = np.asarray([1, 2, 3]).copy(); "
+                "result = pc.sum(arr)"
+            )
+        )
+    )
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    visited = validate_batch02_source_tree(research, repo_root=repo)
+    assert any(path.name == "b2_02_attack.py" for path in visited)
