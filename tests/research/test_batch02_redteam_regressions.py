@@ -1461,3 +1461,22 @@ def test_rt_protected_canonical_bindings_cannot_hide_in_string_target_nodes(
     )
     with pytest.raises(Batch02SourcePolicyError, match="shadowed"):
         validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        'pd.DataFrame({"x": [1]}).to_string("/evil/out.txt")',
+        'pd.Series([1]).to_string("/evil/out.txt")',
+        'pd.DataFrame({"x": [1]}).to_orc("/evil/out.orc")',
+        'pd.DataFrame({"x": [1]}).to_gbq("project.dataset.table")',
+    ],
+)
+def test_rt_pandas_output_methods_with_external_side_effects_are_rejected(
+    tmp_path: Path,
+    expression: str,
+):
+    source = "import pandas as pd\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="forbidden direct I/O"):
+        validate_batch02_source_tree(research, repo_root=repo)
