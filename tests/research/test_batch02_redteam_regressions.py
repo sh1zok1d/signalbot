@@ -1480,3 +1480,36 @@ def test_rt_pandas_output_methods_with_external_side_effects_are_rejected(
     repo, research = _synthetic_tree(tmp_path, runner=source)
     with pytest.raises(Batch02SourcePolicyError, match="forbidden direct I/O"):
         validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_rt_local_function_builtins_cannot_reacquire_open(tmp_path: Path):
+    source = _canonical_runner(
+        extra=(
+            "def helper():\n"
+            "        return None\n"
+            "    opener = helper.__builtins__[\"open\"]\n"
+            "    data = b\"\".join(opener(\"/evil/data.parquet\", \"rb\"))"
+        )
+    )
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="reflection"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "classes = object.__subclasses__()",
+        "lineage = int.__mro__",
+        "bases = int.__bases__",
+        "base = int.__base__",
+        "lineage = int.mro()",
+    ],
+)
+def test_rt_class_graph_reflection_is_rejected(tmp_path: Path, expression: str):
+    repo, research = _synthetic_tree(
+        tmp_path,
+        runner=_canonical_runner(extra=expression),
+    )
+    with pytest.raises(Batch02SourcePolicyError, match="reflection"):
+        validate_batch02_source_tree(research, repo_root=repo)
