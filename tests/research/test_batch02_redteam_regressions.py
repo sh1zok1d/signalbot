@@ -1454,9 +1454,10 @@ def test_rt_protected_canonical_bindings_cannot_hide_in_string_target_nodes(
     tmp_path: Path,
     extra: str,
 ):
+    indented_extra = extra.strip().replace("\n", "\n    ")
     repo, research = _synthetic_tree(
         tmp_path,
-        runner=_canonical_runner(extra=extra),
+        runner=_canonical_runner(extra=indented_extra),
     )
     with pytest.raises(Batch02SourcePolicyError, match="shadowed"):
         validate_batch02_source_tree(research, repo_root=repo)
