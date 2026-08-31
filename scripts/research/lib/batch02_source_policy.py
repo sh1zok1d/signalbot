@@ -1014,6 +1014,47 @@ def _lint_module(
                 )
             )
 
+        # Some Python binding forms store target names as strings rather than
+        # ast.Name(Store) nodes. They must still be treated as protected-name
+        # rebindings or the direct-call ceremony proof becomes fail-open.
+        if (
+            isinstance(node, ast.ExceptHandler)
+            and node.name in _PROTECTED_BINDINGS
+        ):
+            violations.append(
+                SourceViolation(
+                    path,
+                    "canonical Batch02 binding may not be shadowed by "
+                    f"exception alias: {node.name}",
+                    getattr(node, "lineno", None),
+                )
+            )
+
+        if isinstance(node, (ast.MatchAs, ast.MatchStar)):
+            match_name = node.name
+            if match_name in _PROTECTED_BINDINGS:
+                violations.append(
+                    SourceViolation(
+                        path,
+                        "canonical Batch02 binding may not be shadowed by "
+                        f"pattern capture: {match_name}",
+                        getattr(node, "lineno", None),
+                    )
+                )
+
+        if (
+            isinstance(node, ast.MatchMapping)
+            and node.rest in _PROTECTED_BINDINGS
+        ):
+            violations.append(
+                SourceViolation(
+                    path,
+                    "canonical Batch02 binding may not be shadowed by "
+                    f"mapping-rest capture: {node.rest}",
+                    getattr(node, "lineno", None),
+                )
+            )
+
         if isinstance(node, ast.Attribute):
             resolved_attribute = _resolved_dotted_name(node, bindings=bindings)
             if (
