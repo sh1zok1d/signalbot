@@ -1413,3 +1413,50 @@ def test_rt_safe_import_aliases_and_compute_remain_allowed(tmp_path: Path):
     repo, research = _synthetic_tree(tmp_path, runner=source)
     visited = validate_batch02_source_tree(research, repo_root=repo)
     assert any(path.name == "b2_02_attack.py" for path in visited)
+
+
+# RT-20260831 protected-binding string-target regressions
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        """
+class CallableError(Exception):
+    def __call__(self, **kwargs):
+        return object()
+
+try:
+    raise CallableError()
+except CallableError as verify_batch02_code:
+    verify_batch02_code(repo_root=ROOT, expected_code_sha=SHA)
+""",
+        """
+candidate = (lambda **kwargs: object())
+match candidate:
+    case verify_batch02_code:
+        verify_batch02_code(repo_root=ROOT, expected_code_sha=SHA)
+""",
+        """
+candidate = [lambda **kwargs: object()]
+match candidate:
+    case [*verify_batch02_code]:
+        pass
+""",
+        """
+candidate = {"x": 1}
+match candidate:
+    case {**verify_batch02_code}:
+        pass
+""",
+    ],
+)
+def test_rt_protected_canonical_bindings_cannot_hide_in_string_target_nodes(
+    tmp_path: Path,
+    extra: str,
+):
+    repo, research = _synthetic_tree(
+        tmp_path,
+        runner=_canonical_runner(extra=extra),
+    )
+    with pytest.raises(Batch02SourcePolicyError, match="shadowed"):
+        validate_batch02_source_tree(research, repo_root=repo)
