@@ -1513,3 +1513,45 @@ def test_rt_class_graph_reflection_is_rejected(tmp_path: Path, expression: str):
     )
     with pytest.raises(Batch02SourcePolicyError, match="reflection"):
         validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_rt_traceback_frame_cannot_reacquire_builtins(tmp_path: Path):
+    extra = """
+try:
+    1 / 0
+except Exception as err:
+    opener = err.__traceback__.tb_frame.f_builtins["open"]
+    data = b"".join(opener("/evil/data.parquet", "rb"))
+"""
+    indented_extra = extra.strip().replace("\n", "\n    ")
+    repo, research = _synthetic_tree(
+        tmp_path,
+        runner=_canonical_runner(extra=indented_extra),
+    )
+    with pytest.raises(Batch02SourcePolicyError, match="reflection"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "frame = GEN.gi_frame",
+        "frame = CORO.cr_frame",
+        "frame = ASYNCGEN.ag_frame",
+        "frame = TRACE.tb_frame",
+        "builtins_map = FRAME.f_builtins",
+        "globals_map = FRAME.f_globals",
+        "locals_map = FRAME.f_locals",
+        "parent = FRAME.f_back",
+    ],
+)
+def test_rt_frame_family_reflection_attributes_are_rejected(
+    tmp_path: Path,
+    expression: str,
+):
+    repo, research = _synthetic_tree(
+        tmp_path,
+        runner=_canonical_runner(extra=expression),
+    )
+    with pytest.raises(Batch02SourcePolicyError, match="reflection"):
+        validate_batch02_source_tree(research, repo_root=repo)
