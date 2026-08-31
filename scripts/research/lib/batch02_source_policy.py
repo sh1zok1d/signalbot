@@ -79,6 +79,7 @@ _FORBIDDEN_PACKAGE_ATTRIBUTE_PREFIXES = (
     "pandas.io",
     "pandas.core.computation",
     "numpy.lib.npyio",
+    "numpy.ctypeslib",
     "pyarrow.parquet",
     "pyarrow.dataset",
     "pyarrow.fs",
@@ -86,6 +87,11 @@ _FORBIDDEN_PACKAGE_ATTRIBUTE_PREFIXES = (
     "pyarrow.csv",
     "pyarrow.json",
     "pyarrow.ipc",
+    "pyarrow.flight",
+    "pyarrow.orc",
+    "pyarrow.cuda",
+    "pyarrow.jvm",
+    "pyarrow.plasma",
 )
 
 _FORBIDDEN_DIRECT_MODULE_PREFIXES = (
@@ -133,6 +139,7 @@ _FORBIDDEN_DIRECT_MODULE_PREFIXES = (
     "pandas.io",
     "pandas.core.computation",
     "numpy.lib.npyio",
+    "numpy.ctypeslib",
     "pyarrow.parquet",
     "pyarrow.dataset",
     "pyarrow.fs",
@@ -140,6 +147,11 @@ _FORBIDDEN_DIRECT_MODULE_PREFIXES = (
     "pyarrow.csv",
     "pyarrow.json",
     "pyarrow.ipc",
+    "pyarrow.flight",
+    "pyarrow.orc",
+    "pyarrow.cuda",
+    "pyarrow.jvm",
+    "pyarrow.plasma",
 )
 _FORBIDDEN_BARE_CALLS = {
     "open",
@@ -205,13 +217,33 @@ _FORBIDDEN_IO_ATTRIBUTES = {
     "exists",
     "stat",
     "lstat",
+    "touch",
+    "symlink_to",
+    "chmod",
+    "lchmod",
+    "is_file",
+    "is_dir",
+    "is_symlink",
+    "is_mount",
+    "is_block_device",
+    "is_char_device",
+    "is_fifo",
+    "is_socket",
+    "owner",
+    "group",
+    "samefile",
+    "readlink",
     # file-backed constructors / writers exposed by transform-allowed packages.
     "FileType",
     "OSFile",
     "PythonFile",
     "LocalFileSystem",
     "ExcelWriter",
+    "ExcelFile",
     "StataReader",
+    "NativeFile",
+    "MemoryMappedFile",
+    "ORCFile",
     "fromregex",
     "output_stream",
     "savez",
@@ -220,6 +252,11 @@ _FORBIDDEN_IO_ATTRIBUTES = {
     "to_stata",
     "to_html",
     "to_markdown",
+    "to_latex",
+    "to_xml",
+    "to_clipboard",
+    "file_digest",
+    "load_library",
     # parquet / dataframe / array file readers.
     "read_table",
     "read_parquet",
@@ -312,7 +349,11 @@ _FORBIDDEN_IMPORTED_SYMBOLS = {
     "PythonFile",
     "LocalFileSystem",
     "ExcelWriter",
+    "ExcelFile",
     "StataReader",
+    "NativeFile",
+    "MemoryMappedFile",
+    "ORCFile",
     "fromregex",
     "output_stream",
     "savez",
@@ -321,6 +362,27 @@ _FORBIDDEN_IMPORTED_SYMBOLS = {
     "to_stata",
     "to_html",
     "to_markdown",
+    "to_latex",
+    "to_xml",
+    "to_clipboard",
+    "file_digest",
+    "load_library",
+    "touch",
+    "symlink_to",
+    "chmod",
+    "lchmod",
+    "is_file",
+    "is_dir",
+    "is_symlink",
+    "is_mount",
+    "is_block_device",
+    "is_char_device",
+    "is_fifo",
+    "is_socket",
+    "owner",
+    "group",
+    "samefile",
+    "readlink",
     "popen",
     "urlopen",
 }
@@ -360,8 +422,17 @@ class SourceViolation:
         return f"{where}: {self.message}"
 
 
+def _require_repo_relative(repo_root: Path, path: Path) -> Path:
+    try:
+        return path.relative_to(repo_root)
+    except ValueError as exc:
+        raise Batch02SourcePolicyError(
+            f"Batch02 source resolves outside repository: {path}"
+        ) from exc
+
+
 def _module_name_for_path(repo_root: Path, path: Path) -> str:
-    rel = path.relative_to(repo_root)
+    rel = _require_repo_relative(repo_root, path)
     parts = list(rel.with_suffix("").parts)
     if parts and parts[-1] == "__init__":
         parts.pop()
@@ -696,13 +767,14 @@ def _lint_module(
                     else origin
                 )
                 is_local = _resolve_module(repo_root, import_module) is not None
-                is_canonical_contract = (
-                    import_module == _CANONICAL_CONTRACTS_MODULE
+                is_canonical_contract_import_from = (
+                    isinstance(node, ast.ImportFrom)
+                    and import_module == _CANONICAL_CONTRACTS_MODULE
                 )
                 if (
                     import_module
                     and not is_local
-                    and not is_canonical_contract
+                    and not is_canonical_contract_import_from
                     and import_module not in _ALLOWED_EXTERNAL_MODULES
                 ):
                     violations.append(
@@ -710,6 +782,26 @@ def _lint_module(
                             path,
                             f"non-local import is not on the Batch02 transform "
                             f"allowlist: {import_module}",
+                            getattr(node, "lineno", None),
+                        )
+                    )
+
+                # The trusted contracts module object is itself a capability
+                # boundary. Hypothesis code gets only explicit public symbols
+                # via ImportFrom; importing/re-exporting the module object would
+                # expose internal harness primitives as attributes.
+                if (
+                    origin == _CANONICAL_CONTRACTS_MODULE
+                    and not (
+                        isinstance(node, ast.ImportFrom)
+                        and base == _CANONICAL_CONTRACTS_MODULE
+                    )
+                ):
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            "batch02_contracts module object is forbidden; "
+                            "import explicit public API symbols instead",
                             getattr(node, "lineno", None),
                         )
                     )
@@ -770,7 +862,7 @@ def _lint_module(
                             getattr(node, "lineno", None),
                         )
                     )
-                if origin.split(".")[-1] in _FORBIDDEN_IMPORTED_SYMBOLS:
+                if _is_forbidden_io_name(origin_symbol):
                     violations.append(
                         SourceViolation(
                             path,
@@ -926,6 +1018,23 @@ def _lint_module(
             resolved_attribute = _resolved_dotted_name(node, bindings=bindings)
             if (
                 resolved_attribute
+                and (
+                    resolved_attribute == _CANONICAL_CONTRACTS_MODULE
+                    or resolved_attribute.startswith(
+                        _CANONICAL_CONTRACTS_MODULE + "."
+                    )
+                )
+            ):
+                violations.append(
+                    SourceViolation(
+                        path,
+                        "batch02_contracts module-object attribute access is "
+                        "forbidden; use explicit public API imports",
+                        getattr(node, "lineno", None),
+                    )
+                )
+            if (
+                resolved_attribute
                 and any(
                     resolved_attribute == prefix
                     or resolved_attribute.startswith(prefix + ".")
@@ -1046,21 +1155,47 @@ def _lint_module(
     return violations
 
 
+_SKIP_SCAN_DIR_NAMES = {
+    ".git",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    "tests",
+    "artifacts",
+    "build",
+    "dist",
+    "site-packages",
+    "venv",
+    ".venv",
+    "virtualenv",
+}
+
+
+def _skip_repo_scan_path(repo_root: Path, path: Path) -> bool:
+    rel = _require_repo_relative(repo_root, path)
+    current = repo_root
+    for part in rel.parts[:-1]:
+        current = current / part
+        if part in _SKIP_SCAN_DIR_NAMES:
+            return True
+        if part == "env" and (current / "pyvenv.cfg").is_file():
+            return True
+    return False
+
+
 def _discover_future_b2_entrypoints(
     scan_root: Path,
     *,
     repo_root: Path,
 ) -> list[Path]:
+    del scan_root  # source universe is repository-wide, exclusions are explicit.
     out: list[Path] = []
-    # Inspect the normal runtime tree plus any future-B2-named Python module
-    # anywhere in the repository. This catches a repo-root b2_02_*.py without
-    # treating tests/docs that merely mention the contracts as runtime runners.
-    candidates = set(scan_root.rglob("*.py"))
-    candidates.update(
+    candidates = {
         path
         for path in repo_root.rglob("*.py")
-        if _FUTURE_B2_FILE.match(path.name)
-    )
+        if not _skip_repo_scan_path(repo_root, path)
+    }
     for path in sorted(candidates):
         try:
             tree = ast.parse(
