@@ -406,29 +406,30 @@ def load_authorized_parquet_table(
 def rolling_midrank_percentile(
     series: np.ndarray,
     *,
-    window: int,
+    window: int | None = None,
+    timestamps_ms: np.ndarray | None = None,
+    lookback_ms: int | None = None,
 ) -> np.ndarray:
-    """Strict causal midrank against exactly the preceding window records.
+    """Canonical causal midrank primitive for Batch02+.
 
-    Contract:
-    - output scale is [0, 1];
-    - the current record is excluded from its own reference set;
-    - no future record can affect an earlier output;
-    - no score exists before the full prior window is present;
-    - any non-finite value in the prior window makes the score unavailable;
-    - a non-finite current value makes the score unavailable;
-    - ties use midrank: (count(<x) + 0.5*count(==x)) / window.
+    Two mutually exclusive modes are supported:
 
-    This is the canonical Batch02+ percentile primitive. A frozen hypothesis
-    that requires percentile/relative-standing semantics is expected to wire
-    those semantics to this function. Source-policy checks reject alternate
-    named/library APIs, but arbitrary neutral-name numerical code is not
-    claimed to be semantically proven by AST linting.
+    Fixed-count mode:
+      rolling_midrank_percentile(series, window=N)
+
+    Time-window mode:
+      rolling_midrank_percentile(
+          series,
+          timestamps_ms=times,
+          lookback_ms=duration_ms,
+      )
+
+    Both modes exclude the current record. Ties use
+    (count(<x) + 0.5*count(==x)) / reference_count. Any non-finite value inside
+    the active reference set makes the current score unavailable. Time-window
+    timestamps must be strictly increasing; an empty time reference is
+    unavailable.
     """
-    if isinstance(window, bool) or not isinstance(window, Integral) or int(window) <= 0:
-        raise Batch02ContractError("window must be a positive integer")
-    window = int(window)
-
     try:
         values = np.asarray(series, dtype=np.float64)
     except (TypeError, ValueError) as exc:
@@ -438,38 +439,106 @@ def rolling_midrank_percentile(
     if values.ndim != 1:
         raise Batch02ContractError("series must be one-dimensional")
 
+    fixed_mode = window is not None
+    time_mode = timestamps_ms is not None or lookback_ms is not None
+    if fixed_mode == time_mode:
+        raise Batch02ContractError(
+            "choose exactly one midrank mode: window or timestamps_ms+lookback_ms"
+        )
+
     out = np.full(values.shape[0], np.nan, dtype=np.float64)
     sorted_values: list[float] = []
-    queue: deque[float | None] = deque()
+    queue: deque = deque()
     finite_count = 0
 
-    for i, raw in enumerate(values):
-        x = float(raw)
+    if fixed_mode:
+        if isinstance(window, bool) or not isinstance(window, Integral) or int(window) <= 0:
+            raise Batch02ContractError("window must be a positive integer")
+        fixed_window = int(window)
 
+        for i, raw in enumerate(values):
+            x = float(raw)
+            if (
+                len(queue) == fixed_window
+                and finite_count == fixed_window
+                and math.isfinite(x)
+            ):
+                lo = bisect_left(sorted_values, x)
+                hi = bisect_right(sorted_values, x)
+                out[i] = (lo + 0.5 * (hi - lo)) / fixed_window
+
+            item: float | None = x if math.isfinite(x) else None
+            queue.append(item)
+            if item is not None:
+                insort_right(sorted_values, item)
+                finite_count += 1
+
+            if len(queue) > fixed_window:
+                old_item = queue.popleft()
+                if old_item is not None:
+                    pos = bisect_left(sorted_values, old_item)
+                    if pos >= len(sorted_values) or sorted_values[pos] != old_item:
+                        raise Batch02ContractError(
+                            "rolling midrank window lost deterministic state"
+                        )
+                    sorted_values.pop(pos)
+                    finite_count -= 1
+        return out
+
+    if (
+        isinstance(lookback_ms, bool)
+        or not isinstance(lookback_ms, Integral)
+        or int(lookback_ms) <= 0
+    ):
+        raise Batch02ContractError("lookback_ms must be a positive integer")
+    try:
+        times = np.asarray(timestamps_ms)
+    except (TypeError, ValueError) as exc:
+        raise Batch02ContractError("timestamps_ms must be one-dimensional integers") from exc
+    if times.ndim != 1 or len(times) != len(values) or times.dtype.kind not in "iu":
+        raise Batch02ContractError(
+            "timestamps_ms must be a one-dimensional integer array matching series"
+        )
+    times = times.astype(np.int64)
+    if len(times) > 1 and np.any(times[1:] <= times[:-1]):
+        raise Batch02ContractError("timestamps_ms must be strictly increasing")
+
+    duration = int(lookback_ms)
+    invalid_count = 0
+    for i, raw in enumerate(values):
+        current_time = int(times[i])
+        cutoff = current_time - duration
+        while queue and int(queue[0][0]) < cutoff:
+            _, old_item = queue.popleft()
+            if old_item is None:
+                invalid_count -= 1
+            else:
+                pos = bisect_left(sorted_values, old_item)
+                if pos >= len(sorted_values) or sorted_values[pos] != old_item:
+                    raise Batch02ContractError(
+                        "time-window midrank lost deterministic state"
+                    )
+                sorted_values.pop(pos)
+                finite_count -= 1
+
+        x = float(raw)
+        reference_count = len(queue)
         if (
-            len(queue) == window
-            and finite_count == window
+            reference_count > 0
+            and invalid_count == 0
+            and finite_count == reference_count
             and math.isfinite(x)
         ):
             lo = bisect_left(sorted_values, x)
             hi = bisect_right(sorted_values, x)
-            out[i] = (lo + 0.5 * (hi - lo)) / window
+            out[i] = (lo + 0.5 * (hi - lo)) / reference_count
 
-        item: float | None = x if math.isfinite(x) else None
-        queue.append(item)
-        if item is not None:
+        item = x if math.isfinite(x) else None
+        queue.append((current_time, item))
+        if item is None:
+            invalid_count += 1
+        else:
             insort_right(sorted_values, item)
             finite_count += 1
-
-        if len(queue) > window:
-            old = queue.popleft()
-            if old is not None:
-                pos = bisect_left(sorted_values, old)
-                if pos >= len(sorted_values) or sorted_values[pos] != old:
-                    raise Batch02ContractError(
-                        "rolling midrank window lost deterministic state"
-                    )
-                sorted_values.pop(pos)
-                finite_count -= 1
 
     return out
