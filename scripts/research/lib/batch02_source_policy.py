@@ -7,6 +7,25 @@ filesystem/parquet access, evidence mutation, frozen Batch01 runtime reuse,
 dynamic imports, and alternate named/library rank APIs are not allowed in the
 future-B2 import closure.
 
+Non-repository imports are default-deny except the explicit transform
+allowlist. Allowlisted packages may expose in-memory functions/classes, but
+they may not re-export a foreign module that is outside that allowlist
+(pathlib.posixpath, enum.bltns->builtins, dataclasses.inspect, ...).
+Same-package capability submodules remain prefix-denied. AST inspection is
+not a sandbox.
+
+Imported module objects are themselves a capability-provenance boundary: a
+name bound directly by `import X` (with or without `as`), or a bare copy of
+such a name / of an explicitly allowlisted submodule path, must be used
+through that canonical binding. It may not be reassigned to a second local
+name -- by ordinary assignment, a walrus expression, matching-arity tuple/
+list destructuring, or as a function/lambda default parameter value --
+because the source-policy checks above are AST-provenance-sensitive: they
+recognize a foreign or capability-bearing module by tracing an attribute-
+access chain back to the import statement that bound it, and that trace is
+lost the moment the reference is copied to any other direct local binding.
+See "Static admissibility guarantees" below.
+
 This module deliberately does NOT claim that AST linting can prove arbitrary
 numerical Python is semantically equivalent to rolling_midrank_percentile().
 The canonical primitive is behaviorally tested; whether a preregistered
@@ -14,6 +33,58 @@ hypothesis requires a percentile feature and wires that feature to the
 canonical primitive is a hypothesis-freeze/code-review invariant, not a claim
 made by this source linter. Keeping that boundary explicit avoids a false
 "one semantics" guarantee that neutral-name arithmetic can trivially evade.
+
+## Policy contract
+
+Runtime guarantees (enforced by batch02_contracts, not this module):
+    exact code-freeze identity, authorized-dataset/partition binding,
+    outcome-window and no-lookahead enforcement, promotion-gate conjunction,
+    and immutable result/provenance persistence. This module never executes
+    or imports hypothesis code and proves none of these at runtime.
+
+Static admissibility guarantees (enforced here, mechanically, on the AST):
+    - non-repository imports are default-deny except the explicit transform
+      allowlist (`_ALLOWED_EXTERNAL_MODULES`);
+    - a fixed, version-documented set of known aliased foreign-module
+      re-exports from allowlisted packages is denied by exact
+      (root, attribute) lookup (`_KNOWN_ALIASED_FOREIGN_REEXPORTS`), in
+      addition to escaped-stdlib-module names matched by literal attribute
+      text regardless of base object (`_FORBIDDEN_ESCAPED_STDLIB_MODULES`);
+    - import-system objects (`__loader__`, `__spec__`, `__path__`, loader
+      execution surfaces) and code/frame/closure reflection attributes are
+      denied by literal attribute/call name, independent of resolvability;
+    - unknown `to_*` attributes fail closed; a fixed, explicit allowlist of
+      known in-memory conversions is exempted;
+    - canonical Batch02 bindings may not be shadowed, reassigned, deleted,
+      or rebound via `global`/`nonlocal` across every binding form the AST
+      exposes (assignment, destructuring, parameters, comprehensions,
+      exception aliases, match captures, type parameters);
+    - an imported module reference (a name bound by `import X`, or an exact
+      allowlisted submodule path) may not be copied to a second local name --
+      including a plain/annotated assignment, a walrus expression, matching-
+      arity tuple/list destructuring, or a function/lambda default parameter
+      value; it must be used, or further attribute-accessed, through the
+      binding import created.
+    These checks are a pure, deterministic function of the source AST alone:
+    no package is imported or introspected while linting, so results do not
+    depend on which package versions happen to be installed wherever the
+    checker runs.
+
+Explicit non-guarantees (require arbitrary Python semantic/dataflow
+reasoning and are therefore NOT claimed by this static policy):
+    - reflection/introspection that bypasses the harness via private module
+      globals, `object.__setattr__`, or forged objects;
+    - a module reference smuggled through a container, a function return
+      value, a class attribute, a closure cell, or any other indirection
+      this checker does not walk;
+    - completeness of `_KNOWN_ALIASED_FOREIGN_REEXPORTS` against a future
+      standard-library or package version that introduces a new aliased
+      re-export not yet enumerated here;
+    - semantic equivalence of arbitrary numerical Python to any canonical
+      primitive (see above);
+    - anything requiring the checker to run, or reason about, code that is
+      not literally present as this file's own AST.
+    This module is a static admissibility gate, not a sandbox.
 """
 from __future__ import annotations
 
@@ -105,6 +176,23 @@ _FORBIDDEN_ESCAPED_STDLIB_MODULES = {
     "shelve",
     "dbm",
     "posix",
+    # Path/OS/eval/import modules commonly re-exported by transform-allowed
+    # packages under their original names. Aliased re-exports (enum.bltns,
+    # collections._sys) are matched by exact (root, attribute) lookup in
+    # _KNOWN_ALIASED_FOREIGN_REEXPORTS instead, since their attribute name
+    # does not match the real module name this list is keyed on.
+    "posixpath",
+    "ntpath",
+    "genericpath",
+    "inspect",
+    "tempfile",
+    "builtins",
+    "_thread",
+    "code",
+    "codeop",
+    "types",
+    "keyword",
+    "codecs",
 }
 
 _FORBIDDEN_PACKAGE_ATTRIBUTE_PREFIXES = (
@@ -113,6 +201,7 @@ _FORBIDDEN_PACKAGE_ATTRIBUTE_PREFIXES = (
     "numpy.lib.npyio",
     "numpy.lib._datasource",
     "numpy.ctypeslib",
+    "numpy.testing",
     "pyarrow.parquet",
     "pyarrow.dataset",
     "pyarrow.fs",
@@ -174,6 +263,7 @@ _FORBIDDEN_DIRECT_MODULE_PREFIXES = (
     "numpy.lib.npyio",
     "numpy.lib._datasource",
     "numpy.ctypeslib",
+    "numpy.testing",
     "pyarrow.parquet",
     "pyarrow.dataset",
     "pyarrow.fs",
@@ -303,6 +393,7 @@ _FORBIDDEN_IO_ATTRIBUTES = {
     "to_clipboard",
     "file_digest",
     "load_library",
+    "set_data",
     # parquet / dataframe / array file readers.
     "read_table",
     "read_parquet",
@@ -369,12 +460,45 @@ _FORBIDDEN_REFLECTION_ATTRIBUTES = {
     "gi_code",
     "cr_code",
     "ag_code",
+    "f_code",
+    "cell_contents",
+    "__loader__",
+    "__spec__",
+    "__path__",
+    "exec_module",
+    "load_module",
+    "create_module",
     "__setattr__",
     "__delattr__",
     "__reduce__",
     "__reduce_ex__",
 }
 _FORBIDDEN_IO_NAME_PREFIXES = ("read_", "scan_", "open_", "write_")
+
+# pandas/ndarray-style in-memory conversions. Unknown to_* names fail closed
+# because they are the historical class of external writers (to_csv, to_sql,
+# to_iceberg, ...). Names that can write a file OR return a string (to_json,
+# to_string, to_html, ...) remain denied by _FORBIDDEN_IO_ATTRIBUTES.
+_IN_MEMORY_TO_METHODS = {
+    "to_dict",
+    "to_numpy",
+    "to_list",
+    "to_frame",
+    "to_records",
+    "to_timestamp",
+    "to_period",
+    "to_timedelta",
+    "to_pydatetime",
+    "to_pytimedelta",
+    "to_series",
+    "to_julian_date",
+    "to_flat_index",
+    "to_native_types",
+    "to_xarray",
+    "to_dense",
+    "to_sparse",
+    "to_view",
+}
 
 _FORBIDDEN_RANK_CALLS = {
     "rank",
@@ -435,6 +559,7 @@ _FORBIDDEN_IMPORTED_SYMBOLS = {
     "to_clipboard",
     "file_digest",
     "load_library",
+    "set_data",
     "touch",
     "symlink_to",
     "chmod",
@@ -613,13 +738,37 @@ def _import_bindings(
     path: Path,
     tree: ast.AST,
 ) -> dict[str, str]:
+    bindings, _module_origins = _import_bindings_and_module_origins(
+        repo_root=repo_root, path=path, tree=tree
+    )
+    return bindings
+
+
+def _import_bindings_and_module_origins(
+    *,
+    repo_root: Path,
+    path: Path,
+    tree: ast.AST,
+) -> tuple[dict[str, str], set[str]]:
+    """Import-alias bindings, plus the subset guaranteed to be modules.
+
+    `module_origins` holds the real dotted path bound by every plain
+    `import X` / `import X as Y` statement -- i.e. names Python guarantees
+    are bound to an actual module object, independent of the allowlist.
+    `from X import Y` bindings are never added here: whether Y itself
+    denotes a module cannot be determined without importing/introspecting
+    it, which this static checker deliberately does not do.
+    """
     bindings: dict[str, str] = {}
+    module_origins: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
                 local = alias.asname or alias.name.split(".")[0]
                 # Without an alias Python only binds the top-level package.
-                bindings[local] = alias.name if alias.asname else local
+                origin = alias.name if alias.asname else local
+                bindings[local] = origin
+                module_origins.add(origin)
         elif isinstance(node, ast.ImportFrom):
             base = _resolve_import_from(
                 repo_root=repo_root,
@@ -631,7 +780,7 @@ def _import_bindings(
                     continue
                 local = alias.asname or alias.name
                 bindings[local] = f"{base}.{alias.name}".strip(".")
-    return bindings
+    return bindings, module_origins
 
 
 def _resolved_dotted_name(
@@ -649,6 +798,31 @@ def _resolved_dotted_name(
     return ".".join([origin, *tail])
 
 
+def _flatten_destructure_pairs(
+    target: ast.AST, value: ast.AST
+) -> list[tuple[ast.AST, ast.AST]]:
+    """Recursively pair matching-arity Tuple/List target/value elements.
+
+    Descends only through target/value nodes that are BOTH Tuple or List
+    with equal element count -- exactly the shapes Python itself unpacks
+    positionally -- at any nesting depth. Any other shape (a plain Name, a
+    Starred target, an Attribute/Subscript target, a Call value, mismatched
+    arity, ...) is returned as a single leaf pair without further descent.
+    This mirrors Python's own destructuring semantics; it is not container
+    indexing, a call, or any other dataflow indirection.
+    """
+    if (
+        isinstance(target, (ast.Tuple, ast.List))
+        and isinstance(value, (ast.Tuple, ast.List))
+        and len(target.elts) == len(value.elts)
+    ):
+        pairs: list[tuple[ast.AST, ast.AST]] = []
+        for sub_target, sub_value in zip(target.elts, value.elts):
+            pairs.extend(_flatten_destructure_pairs(sub_target, sub_value))
+        return pairs
+    return [(target, value)]
+
+
 def _is_forbidden_io_name(name: str | None) -> bool:
     if not name:
         return False
@@ -657,6 +831,65 @@ def _is_forbidden_io_name(name: str | None) -> bool:
         or name in _FORBIDDEN_IO_ATTRIBUTES
         or any(name.startswith(prefix) for prefix in _FORBIDDEN_IO_NAME_PREFIXES)
     )
+
+
+def _is_unknown_external_to_method(name: str | None) -> bool:
+    """Fail-closed unknown to_* writers; keep known in-memory conversions."""
+    if not name or not name.startswith("to_"):
+        return False
+    if name in _IN_MEMORY_TO_METHODS:
+        return False
+    return True
+
+
+# Known aliased foreign-module re-exports reachable one attribute-hop off an
+# allowlisted root, where the exposed attribute name does NOT match the real
+# module's __name__ (so _FORBIDDEN_ESCAPED_STDLIB_MODULES's literal-name
+# match cannot catch it). This is a static, explicit, version-documented
+# enumeration -- not derived from importing/introspecting the packages at
+# lint time -- so policy results are a pure function of the source AST and
+# do not vary by which package versions happen to be installed wherever the
+# checker runs. Verified against CPython 3.11 stdlib internals; re-verify
+# against any newly-supported interpreter version before trusting silently.
+# This is deliberately NOT claimed to be exhaustive against every current or
+# future third-party/stdlib aliased re-export -- see the module docstring's
+# "Explicit non-guarantees".
+_KNOWN_ALIASED_FOREIGN_REEXPORTS: dict[str, dict[str, str]] = {
+    "enum": {"bltns": "builtins"},
+    "collections": {"_sys": "sys", "_collections_abc": "collections.abc"},
+}
+
+
+def _foreign_reexport_real_name(root: str, attr: str) -> str | None:
+    """Real module name if (root, attr) is a known aliased foreign re-export."""
+    return _KNOWN_ALIASED_FOREIGN_REEXPORTS.get(root, {}).get(attr)
+
+
+def _transform_allowlist_covers(module_name: str) -> bool:
+    if not module_name:
+        return False
+    if module_name in _ALLOWED_EXTERNAL_MODULES:
+        return True
+    return any(
+        module_name.startswith(allowed + ".")
+        for allowed in _ALLOWED_EXTERNAL_MODULES
+    )
+
+
+def _known_foreign_reexport_for_dotted(dotted: str) -> str | None:
+    """Real module name if `dotted` is exactly `<allowed_root>.<known_attr>`.
+
+    Only a single attribute hop directly off an allowlisted root is
+    recognized, matching _KNOWN_ALIASED_FOREIGN_REEXPORTS. This mirrors the
+    bounded, name-based style already used by the other static denylists in
+    this module rather than resolving arbitrary nested paths.
+    """
+    if "." not in dotted:
+        return None
+    root, attr = dotted.rsplit(".", 1)
+    if not _transform_allowlist_covers(root):
+        return None
+    return _foreign_reexport_real_name(root, attr)
 
 
 def _is_canonical_call(
@@ -780,7 +1013,24 @@ def _lint_module(
     canonical_imports: set[str] = set()
     canonical_calls: set[str] = set()
     context_names: set[str] = set()
-    bindings = _import_bindings(repo_root=repo_root, path=path, tree=tree)
+    bindings, module_origins = _import_bindings_and_module_origins(
+        repo_root=repo_root, path=path, tree=tree
+    )
+    copy_protected_origins = module_origins | _ALLOWED_EXTERNAL_MODULES
+
+    def _flag_module_copy(binding_name: str, value_node: ast.AST, lineno: int | None) -> None:
+        resolved_value = _resolved_dotted_name(value_node, bindings=bindings)
+        if resolved_value and resolved_value in copy_protected_origins:
+            violations.append(
+                SourceViolation(
+                    path,
+                    "imported module reference may not be copied to "
+                    f"a new local binding: {binding_name} = "
+                    f"{resolved_value}; use the import binding/alias "
+                    "directly",
+                    lineno,
+                )
+            )
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign):
@@ -830,6 +1080,24 @@ def _lint_module(
                             path,
                             "transform-allowed package may not re-export "
                             f"capability module {origin_symbol}",
+                            getattr(node, "lineno", None),
+                        )
+                    )
+                known_foreign_real_name = _known_foreign_reexport_for_dotted(origin)
+                if known_foreign_real_name is not None:
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            "transform-allowed package may not re-export "
+                            f"foreign module {known_foreign_real_name}",
+                            getattr(node, "lineno", None),
+                        )
+                    )
+                if _is_unknown_external_to_method(origin_symbol):
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            f"unknown to_* writer is fail-closed: {origin}",
                             getattr(node, "lineno", None),
                         )
                     )
@@ -991,6 +1259,63 @@ def _lint_module(
                         "star imports are forbidden in the future Batch02 closure",
                         getattr(node, "lineno", None),
                     )
+                )
+
+        # Module/capability provenance boundary: a name bound directly by
+        # `import X` (with or without `as`), or an exact allowlisted
+        # submodule path, must be used through that canonical binding. The
+        # foreign-module and escaped-stdlib checks above recognize a
+        # forbidden module by tracing an attribute-access chain back to the
+        # import statement that bound it; copying the reference to a second
+        # ordinary local name severs that trace and would otherwise let
+        # provenance-sensitive checks silently stop firing on the copy. This
+        # targets bare module-reference copies specifically (a Name or
+        # Attribute chain used as the entire right-hand side); it does not
+        # restrict calling through the binding or assigning a computed
+        # result, so `arr = np.asarray(...)` and `total = pc.sum(arr)`
+        # remain unaffected.
+        if isinstance(node, (ast.Assign, ast.AnnAssign, ast.NamedExpr)):
+            if isinstance(node, ast.Assign):
+                targets = node.targets
+                value = node.value
+            elif isinstance(node, ast.AnnAssign):
+                targets = [node.target] if node.value is not None else []
+                value = node.value
+            else:
+                targets = [node.target]
+                value = node.value
+            value_pairs: list[tuple[ast.AST, ast.AST]] = []
+            for target in targets:
+                value_pairs.extend(_flatten_destructure_pairs(target, value))
+            for target_node, value_node in value_pairs:
+                if not isinstance(target_node, ast.Name):
+                    continue
+                _flag_module_copy(
+                    target_node.id, value_node, getattr(node, "lineno", None)
+                )
+
+        # Same provenance-copy boundary, for the one other direct-binding
+        # form the AST exposes: a function/lambda default parameter value.
+        # `def f(mod=collections): ...` binds "mod" to the module reference
+        # exactly as `mod = collections` would, and a later `mod._sys` is
+        # just as provenance-blind as the assignment case above. This pairs
+        # defaults to parameters using Python's own alignment rules (trailing
+        # positional/posonly params for `defaults`, index-matched optional
+        # entries in `kw_defaults`) and does not otherwise look inside the
+        # function body, a call, or any other indirection.
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            fn_args = node.args
+            positional = [*fn_args.posonlyargs, *fn_args.args]
+            defaulted_positional = positional[len(positional) - len(fn_args.defaults):]
+            for param, default_node in zip(defaulted_positional, fn_args.defaults):
+                _flag_module_copy(
+                    param.arg, default_node, getattr(default_node, "lineno", None)
+                )
+            for param, default_node in zip(fn_args.kwonlyargs, fn_args.kw_defaults):
+                if default_node is None:
+                    continue
+                _flag_module_copy(
+                    param.arg, default_node, getattr(default_node, "lineno", None)
                 )
 
         if isinstance(node, ast.Call):
@@ -1168,6 +1493,23 @@ def _lint_module(
                 )
             )
 
+        if isinstance(node, (ast.Global, ast.Nonlocal)):
+            for binding_name in node.names:
+                if binding_name in _PROTECTED_BINDINGS:
+                    kind = (
+                        "global declaration"
+                        if isinstance(node, ast.Global)
+                        else "nonlocal declaration"
+                    )
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            "canonical Batch02 binding may not be shadowed by "
+                            f"{kind}: {binding_name}",
+                            getattr(node, "lineno", None),
+                        )
+                    )
+
         if isinstance(node, ast.Attribute):
             resolved_attribute = _resolved_dotted_name(node, bindings=bindings)
             if node.attr in _FORBIDDEN_ESCAPED_STDLIB_MODULES:
@@ -1176,6 +1518,28 @@ def _lint_module(
                         path,
                         "transform-allowed package may not expose "
                         f"capability module attribute .{node.attr}",
+                        getattr(node, "lineno", None),
+                    )
+                )
+            if resolved_attribute:
+                known_foreign_real_name = _known_foreign_reexport_for_dotted(
+                    resolved_attribute
+                )
+                if known_foreign_real_name is not None:
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            "transform-allowed package may not expose "
+                            "foreign module attribute "
+                            f"{known_foreign_real_name}",
+                            getattr(node, "lineno", None),
+                        )
+                    )
+            if _is_unknown_external_to_method(node.attr):
+                violations.append(
+                    SourceViolation(
+                        path,
+                        f"unknown to_* writer is fail-closed: .{node.attr}",
                         getattr(node, "lineno", None),
                     )
                 )
@@ -1274,11 +1638,19 @@ def _lint_module(
                         getattr(node, "lineno", None),
                     )
                 )
-            if isinstance(node.ctx, ast.Store) and node.id in _PROTECTED_BINDINGS:
+            if (
+                isinstance(node.ctx, (ast.Store, ast.Del))
+                and node.id in _PROTECTED_BINDINGS
+            ):
+                action = (
+                    "reassigned"
+                    if isinstance(node.ctx, ast.Store)
+                    else "unbound"
+                )
                 violations.append(
                     SourceViolation(
                         path,
-                        f"canonical Batch02 binding may not be reassigned: {node.id}",
+                        f"canonical Batch02 binding may not be {action}: {node.id}",
                         getattr(node, "lineno", None),
                     )
                 )
