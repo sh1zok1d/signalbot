@@ -75,10 +75,43 @@ _FORBIDDEN_BUILTIN_NAMES = {
     "__import__",
 }
 
+# Names of capability-bearing modules that must remain unavailable even when
+# an otherwise transform-allowed package re-exports them as attributes.
+_FORBIDDEN_ESCAPED_STDLIB_MODULES = {
+    "os",
+    "sys",
+    "io",
+    "pickle",
+    "subprocess",
+    "socket",
+    "urllib",
+    "ftplib",
+    "ctypes",
+    "importlib",
+    "operator",
+    "mmap",
+    "fileinput",
+    "runpy",
+    "gzip",
+    "bz2",
+    "lzma",
+    "shutil",
+    "pty",
+    "linecache",
+    "zipimport",
+    "pkgutil",
+    "zipfile",
+    "tarfile",
+    "shelve",
+    "dbm",
+    "posix",
+}
+
 _FORBIDDEN_PACKAGE_ATTRIBUTE_PREFIXES = (
     "pandas.io",
     "pandas.core.computation",
     "numpy.lib.npyio",
+    "numpy.lib._datasource",
     "numpy.ctypeslib",
     "pyarrow.parquet",
     "pyarrow.dataset",
@@ -139,6 +172,7 @@ _FORBIDDEN_DIRECT_MODULE_PREFIXES = (
     "pandas.io",
     "pandas.core.computation",
     "numpy.lib.npyio",
+    "numpy.lib._datasource",
     "numpy.ctypeslib",
     "pyarrow.parquet",
     "pyarrow.dataset",
@@ -233,6 +267,13 @@ _FORBIDDEN_IO_ATTRIBUTES = {
     "group",
     "samefile",
     "readlink",
+    "resolve",
+    "cwd",
+    "home",
+    "absolute",
+    "expanduser",
+    "is_junction",
+    "link_to",
     # file-backed constructors / writers exposed by transform-allowed packages.
     "FileType",
     "OSFile",
@@ -244,6 +285,8 @@ _FORBIDDEN_IO_ATTRIBUTES = {
     "NativeFile",
     "MemoryMappedFile",
     "ORCFile",
+    "DataSource",
+    "Repository",
     "fromregex",
     "output_stream",
     "savez",
@@ -377,6 +420,8 @@ _FORBIDDEN_IMPORTED_SYMBOLS = {
     "NativeFile",
     "MemoryMappedFile",
     "ORCFile",
+    "DataSource",
+    "Repository",
     "fromregex",
     "output_stream",
     "savez",
@@ -406,6 +451,13 @@ _FORBIDDEN_IMPORTED_SYMBOLS = {
     "group",
     "samefile",
     "readlink",
+    "resolve",
+    "cwd",
+    "home",
+    "absolute",
+    "expanduser",
+    "is_junction",
+    "link_to",
     "popen",
     "urlopen",
 }
@@ -422,6 +474,18 @@ _PROTECTED_BINDINGS = {
     _CANONICAL_RANK_NAME,
     "load_authorized_parquet_table",
 }
+
+# Python 3.12+ stores PEP 695 type-parameter names on dedicated AST nodes
+# rather than ast.Name(Store). Keep construction compatible with Python 3.11.
+_TYPE_PARAMETER_NODES = tuple(
+    node_type
+    for node_type in (
+        getattr(ast, "TypeVar", None),
+        getattr(ast, "ParamSpec", None),
+        getattr(ast, "TypeVarTuple", None),
+    )
+    if node_type is not None
+)
 
 _CANONICAL_PUBLIC_API = {
     *_REQUIRED_RUNNER_CALLS,
@@ -757,6 +821,18 @@ def _lint_module(
             for local_name, origin in _import_origin(node, resolved_base=base):
                 origin_module = origin.rsplit(".", 1)[0] if "." in origin else origin
                 origin_symbol = origin.rsplit(".", 1)[-1]
+                if (
+                    isinstance(node, ast.ImportFrom)
+                    and origin_symbol in _FORBIDDEN_ESCAPED_STDLIB_MODULES
+                ):
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            "transform-allowed package may not re-export "
+                            f"capability module {origin_symbol}",
+                            getattr(node, "lineno", None),
+                        )
+                    )
                 if local_name in _PROTECTED_BINDINGS:
                     expected = _CANONICAL_CONTRACTS_MODULE + "." + local_name
                     if origin != expected:
@@ -1037,6 +1113,20 @@ def _lint_module(
                 )
             )
 
+        if (
+            _TYPE_PARAMETER_NODES
+            and isinstance(node, _TYPE_PARAMETER_NODES)
+            and getattr(node, "name", None) in _PROTECTED_BINDINGS
+        ):
+            violations.append(
+                SourceViolation(
+                    path,
+                    "canonical Batch02 binding may not be shadowed by "
+                    f"type parameter: {node.name}",
+                    getattr(node, "lineno", None),
+                )
+            )
+
         # Some Python binding forms store target names as strings rather than
         # ast.Name(Store) nodes. They must still be treated as protected-name
         # rebindings or the direct-call ceremony proof becomes fail-open.
@@ -1080,6 +1170,15 @@ def _lint_module(
 
         if isinstance(node, ast.Attribute):
             resolved_attribute = _resolved_dotted_name(node, bindings=bindings)
+            if node.attr in _FORBIDDEN_ESCAPED_STDLIB_MODULES:
+                violations.append(
+                    SourceViolation(
+                        path,
+                        "transform-allowed package may not expose "
+                        f"capability module attribute .{node.attr}",
+                        getattr(node, "lineno", None),
+                    )
+                )
             if (
                 resolved_attribute
                 and (

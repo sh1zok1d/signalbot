@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -1554,4 +1555,90 @@ def test_rt_frame_family_reflection_attributes_are_rejected(
         runner=_canonical_runner(extra=expression),
     )
     with pytest.raises(Batch02SourcePolicyError, match="reflection"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+# RT-20260901 final class-level repair regressions
+
+@pytest.mark.parametrize(
+    "extra_import,expression",
+    [
+        ("import pathlib", "marker = pathlib.os"),
+        ("from pathlib import os", "marker = os"),
+        ("import pathlib", "marker = pathlib.sys.modules"),
+        ("import numpy as np", "marker = np.lib.format.os"),
+    ],
+)
+def test_rt_allowed_packages_cannot_reexport_denied_capability_modules(
+    tmp_path: Path,
+    extra_import: str,
+    expression: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "extra_import,expression",
+    [
+        ("import numpy as np", 'x = np.lib._datasource.DataSource("")'),
+        ("from numpy.lib import _datasource", 'x = _datasource.DataSource("")'),
+    ],
+)
+def test_rt_numpy_datasource_file_constructors_are_rejected(
+    tmp_path: Path,
+    extra_import: str,
+    expression: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        'x = Path.cwd()',
+        'x = Path.home()',
+        'x = Path("/x").resolve()',
+        'x = Path("/x").absolute()',
+        'x = Path("~/x").expanduser()',
+        'x = Path("/x").is_junction()',
+        'x = Path("/x").link_to("/y")',
+    ],
+)
+def test_rt_remaining_pathlib_filesystem_identity_probes_are_rejected(
+    tmp_path: Path,
+    expression: str,
+):
+    source = "from pathlib import Path\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.skipif(
+    not hasattr(ast, "TypeVar"),
+    reason="PEP 695 type-parameter AST nodes require Python 3.12+",
+)
+@pytest.mark.parametrize(
+    "declaration",
+    [
+        "def helper[persist_batch02_result]():\n        return None",
+        "def helper[**prepare_batch02_run]():\n        return None",
+        "def helper[*verify_batch02_code]():\n        return None",
+    ],
+)
+def test_rt_pep695_type_parameters_cannot_shadow_canonical_bindings(
+    tmp_path: Path,
+    declaration: str,
+):
+    repo, research = _synthetic_tree(
+        tmp_path,
+        runner=_canonical_runner(extra=declaration),
+    )
+    with pytest.raises(Batch02SourcePolicyError, match="shadowed"):
         validate_batch02_source_tree(research, repo_root=repo)
