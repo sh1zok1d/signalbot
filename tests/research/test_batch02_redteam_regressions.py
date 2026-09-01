@@ -1642,3 +1642,139 @@ def test_rt_pep695_type_parameters_cannot_shadow_canonical_bindings(
     )
     with pytest.raises(Batch02SourcePolicyError, match="shadowed"):
         validate_batch02_source_tree(research, repo_root=repo)
+
+
+# RT-20260901 follow-up: foreign-module re-exports, import-system objects,
+# remaining object-model surfaces, fail-closed unknown to_* writers, and
+# protected-binding string targets (global/nonlocal/del).
+
+
+@pytest.mark.parametrize(
+    "extra_import,expression",
+    [
+        ("import pathlib", "x = pathlib.posixpath.isfile('/evil')"),
+        ("from pathlib import posixpath", "x = posixpath.isfile('/evil')"),
+        ("from pathlib import ntpath", "x = ntpath.isdir('/evil')"),
+        ("import enum", "opener = enum.bltns.open"),
+        ("import collections", "mods = collections._sys.modules"),
+        ("import dataclasses", "frame = dataclasses.inspect.currentframe()"),
+        ("import typing", "fn = typing.operator.attrgetter('x')"),
+    ],
+)
+def test_rt_allowlisted_packages_cannot_reexport_foreign_modules(
+    tmp_path: Path,
+    extra_import: str,
+    expression: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "loader = json.__loader__",
+        "spec = json.__spec__",
+        "json.__loader__.set_data('/evil/out', b'x')",
+        "json.__spec__.loader.exec_module(json)",
+        "paths = json.__path__",
+    ],
+)
+def test_rt_import_system_objects_are_not_hypothesis_capabilities(
+    tmp_path: Path,
+    expression: str,
+):
+    source = "import json\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="reflection|set_data|__path__"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "code = FRAME.f_code",
+        "value = CELL.cell_contents",
+    ],
+)
+def test_rt_code_object_and_closure_cell_surfaces_are_rejected(
+    tmp_path: Path,
+    expression: str,
+):
+    repo, research = _synthetic_tree(
+        tmp_path,
+        runner=_canonical_runner(extra=expression),
+    )
+    with pytest.raises(Batch02SourcePolicyError, match="reflection"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "extra_import,expression",
+    [
+        ("import pandas as pd", "x = pd.DataFrame({'a': [1]}).to_iceberg('t')"),
+        ("import pandas as pd", "writer = pd.DataFrame.to_iceberg"),
+        (
+            "from numpy import testing",
+            "testing.runstring('print(1)', {})",
+        ),
+        ("import numpy as np", "np.testing.temppath"),
+    ],
+)
+def test_rt_unknown_external_writers_and_testing_subpackage_are_rejected(
+    tmp_path: Path,
+    extra_import: str,
+    expression: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        "global persist_batch02_result",
+        "del persist_batch02_result",
+        "def inner():\n        nonlocal persist_batch02_result\n        return None",
+    ],
+)
+def test_rt_protected_bindings_cannot_use_global_nonlocal_or_del(
+    tmp_path: Path,
+    extra: str,
+):
+    repo, research = _synthetic_tree(
+        tmp_path,
+        runner=_canonical_runner(extra=extra),
+    )
+    with pytest.raises(Batch02SourcePolicyError, match="shadowed|unbound"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_rt_in_memory_scientific_transforms_remain_allowed(tmp_path: Path):
+    source = (
+        "import json\n"
+        "import math\n"
+        "import numpy as np\n"
+        "from pathlib import Path\n"
+        "import pandas as pd\n"
+        + _canonical_runner(
+            extra=(
+                "payload = json.dumps({'a': 1}); "
+                "value = json.loads(payload); "
+                "norm = np.linalg.norm(np.asarray([3.0, 4.0])); "
+                "frame = pd.DataFrame({'a': [1]}).to_dict(); "
+                "arr = pd.Series([1, 2]).to_numpy(); "
+                "items = pd.Series([1]).to_list(); "
+                "joined = Path('a').joinpath('b'); "
+                "pure = Path('a').as_posix(); "
+                "root = math.sqrt(norm)"
+            )
+        )
+    )
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    visited = validate_batch02_source_tree(research, repo_root=repo)
+    assert any(path.name == "b2_02_attack.py" for path in visited)
