@@ -1,0 +1,464 @@
+{
+  "status": "PREREG_CANDIDATE / OUTCOME_BLIND",
+  "formulation_id": "B2-02_BOUNDARY_INTERACTION_PATH",
+  "primary_family": "F1",
+  "inventory_entry_preexisting": true,
+  "inventory_mutable": false,
+  "dataset": {
+    "dataset_id": "CORE_BTC_BINANCE_V0",
+    "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+    "source_timeframe": "1m",
+    "derived_timeframe": "5m",
+    "derived_grid": "UTC_epoch_aligned_5m",
+    "availability": "bar_end_exclusive"
+  },
+  "chronology": {
+    "warmup_start_inclusive": "2020-01-01T00:00:00Z",
+    "development_start_inclusive": "2020-02-01T00:00:00Z",
+    "development_end_exclusive": "2025-01-01T00:00:00Z",
+    "validation_2025_authorized": false,
+    "oos_2026_authorized": false,
+    "max_horizon_minutes": 240,
+    "event_boundary_rule": "decision_T=t0+30m; require T+240m < development_end_exclusive"
+  },
+  "initial_event": {
+    "range_lookbacks_minutes": [
+      60,
+      120,
+      240
+    ],
+    "event_bar_minutes": 5,
+    "event_bar": "[t0-5m,t0)",
+    "prior_range": "[t0-5m-L,t0-5m)",
+    "event_open_must_be_inside_prior_range": true,
+    "upper": "high_B > R_high AND low_B >= R_low",
+    "lower": "low_B < R_low AND high_B <= R_high",
+    "upper_continuation_direction": 1,
+    "lower_continuation_direction": -1,
+    "ambiguous_double_break": "EXCLUDE",
+    "close_requirement": "NONE",
+    "overshoot_threshold_search": false,
+    "breach_strength": {
+      "upper": "ln(high_B/R_high)/prior_log_range",
+      "lower": "ln(R_low/low_B)/prior_log_range",
+      "require": "finite_and_gt_0"
+    }
+  },
+  "h02_nuisance_controls": {
+    "event_close_dist": "d*ln(close_B/boundary)/prior_log_range",
+    "event_close_beyond": "1 iff d*ln(close_B/boundary)>0 else 0",
+    "purpose": "prevent B2-02 from rediscovering H02 failed/successful event-bar close classification"
+  },
+  "refractory": {
+    "scope": "separate_per_L",
+    "both_sides": true,
+    "keep": "earliest",
+    "suppress_event_end_interval": "(t0,t0+30m]",
+    "minutes": 30
+  },
+  "path": {
+    "observation_minutes": 30,
+    "decision_time": "T=t0+30m",
+    "initial_breach_bar_included": false,
+    "complete_5m_bars": 6,
+    "boundary_recomputed": false,
+    "dist": "d*ln(C_j/boundary)/prior_log_range",
+    "descriptor_name": "PATH_AREA",
+    "descriptor": "mean(DIST_j over six post-breach 5m bars)",
+    "alternate_descriptors_authorized": false
+  },
+  "path_state": {
+    "reference_days": 180,
+    "reference_scope": "same_L_and_side",
+    "historical_decision_rule": "T_e < T",
+    "minimum_reference_count": 120,
+    "percentile": "deterministic_midrank",
+    "boundaries": [
+      "0",
+      "1/3",
+      "2/3",
+      "1"
+    ],
+    "states": [
+      "LOW",
+      "MID",
+      "HIGH"
+    ],
+    "expected_ordering": "HIGH > MID > LOW",
+    "full_sample_quantiles_forbidden": true,
+    "historical_state_freeze": "compute PATH_PCTL/PATH_STATE exactly once as-of each event's own T_e using only earlier records; store and never recompute using later week starts, later events, full-sample quantiles, or backfills"
+  },
+  "pre_breach_controls": {
+    "pre_state_end": "u0=t0-5m",
+    "pre_drift_norm": "d*ln(close(u0)/close(u0-60m))/prior_log_range",
+    "pre_rv_minutes": 60,
+    "pre_rv_source": "1m returns available in (u0-60m,u0]",
+    "pre_rv_norm": "PRE_RV60/prior_log_range",
+    "breach_bar_excluded": true,
+    "pre_rv_validity": "finite and strictly >0"
+  },
+  "model": {
+    "refit_frequency": "UTC_ISO_week_start_Monday_00:00",
+    "training_lookback_days_max": 365,
+    "training_outcome_maturity": "T_e + H <= week_start_S",
+    "minimum_training_n_per_path_state": 100,
+    "baseline_features": [
+      "intercept",
+      "BREACH_STRENGTH",
+      "prior_log_range",
+      "PRE_DRIFT_NORM",
+      "PRE_RV_NORM",
+      "EVENT_CLOSE_DIST",
+      "EVENT_CLOSE_BEYOND",
+      "SIDE_UPPER"
+    ],
+    "candidate_additions": [
+      "PATH_LOW",
+      "PATH_HIGH"
+    ],
+    "path_reference_state": "MID",
+    "continuous_standardization": "training_set_mean_std_only",
+    "binary_standardization": false,
+    "fit": "numpy.linalg.lstsq(rcond=None)",
+    "require_full_rank": true,
+    "fallback_model": "FORBIDDEN",
+    "baseline_training_rule": "T_e<S; T_e>=S-365d; T_e+H<=S; valid target and baseline features",
+    "candidate_training_rule": "subset of baseline-eligible rows with valid stored causal PATH_STATE as-of own T_e",
+    "minimum_baseline_training_n": 500,
+    "minimum_candidate_training_n": 500,
+    "baseline_may_use_more_training_rows_than_candidate": true,
+    "baseline_not_weakened_for_path_state_immaturity": true,
+    "current_scoring_requires_both_weekly_fits": true,
+    "baseline_standardization": "baseline causal training set only",
+    "candidate_standardization": "candidate causal training subset only",
+    "training_row_order": "sort by canonical EVENT_ID|H before matrices, fit, and audit hashes",
+    "iteration_order_cannot_affect_fit": true,
+    "preprocessing": {
+      "continuous_columns": [
+        "BREACH_STRENGTH",
+        "prior_log_range",
+        "PRE_DRIFT_NORM",
+        "PRE_RV_NORM",
+        "EVENT_CLOSE_DIST"
+      ],
+      "baseline_training_statistics_source": "baseline model's own causal historical training rows frozen at UTC ISO-week start S",
+      "candidate_training_statistics_source": "candidate model's own causal historical training rows frozen at UTC ISO-week start S",
+      "transform": "for each continuous column, z=(x-training_mean)/training_std using that model's frozen training statistics; apply identical frozen transformation to that model's current-week scoring rows",
+      "unstandardized_columns": [
+        "intercept",
+        "EVENT_CLOSE_BEYOND",
+        "SIDE_UPPER",
+        "PATH_LOW",
+        "PATH_HIGH"
+      ],
+      "dummy_and_binary_standardization": false,
+      "fit_row_order": "ascending canonical EVENT_ID|H before statistics, matrices, fit, and audit hashes",
+      "validity": [
+        "all required raw and transformed model inputs finite",
+        "every standardized continuous training column has finite strictly-positive training standard deviation",
+        "design matrix has full required column rank",
+        "numpy.linalg.lstsq returns finite coefficients and no fit error"
+      ],
+      "failure_behavior": "weekly model UNAVAILABLE; no fallback; current-week scoring unavailable for both candidate and comparator if either frozen weekly fit is unavailable"
+    }
+  },
+  "target": {
+    "horizons_minutes": [
+      30,
+      60,
+      120,
+      240
+    ],
+    "continuation_return": "d*ln(close(T+H)/close(T))",
+    "scale": "median(abs(ln(close(t+H)/close(t)))) over all UTC-epoch-aligned 15-minute boundaries t in [T-30 calendar days,T) with t+H<=T",
+    "target": "CONT_RET_H/PAST_MEDIAN_ABS_RET_H",
+    "require_scale": "finite_and_gt_0",
+    "reference_contract": {
+      "observation_population": "all UTC-epoch-aligned 15-minute boundaries, not B2-02 event records and not the derived 5m event grid",
+      "reference_interval": "t in [T-30 calendar days,T) with t+H<=T",
+      "statistic": "median(abs(ln(close(t+H)/close(t))))",
+      "current_boundary_excluded": true,
+      "future_or_unmatured_excluded": true,
+      "require_scale": "finite and strictly >0",
+      "failure_behavior": "current record UNAVAILABLE_FOR_DECISION for horizon H"
+    },
+    "normalized": "Y_H=CONT_RET_H/PAST_MEDIAN_ABS_RET_H"
+  },
+  "support": {
+    "candidate_and_baseline_scored_support": "exact_same_canonical_record_ids",
+    "baseline_extra_scored_events": false,
+    "outcome_based_support_selection": false
+  },
+  "identity": {
+    "event_id_fields": [
+      "dataset_id",
+      "snapshot_id",
+      "source_timeframe_1m",
+      "derived_timeframe_5m",
+      "L",
+      "side",
+      "prior_range_start",
+      "prior_range_end",
+      "breach_bar_start",
+      "t0",
+      "decision_T"
+    ],
+    "scored_record_id": "EVENT_ID|H",
+    "retain_underlying_1m_and_derived_5m_bucket_provenance": true
+  },
+  "metrics": {
+    "primary_loss": "absolute_error",
+    "ae_improvement": "BASE_AE-CAND_AE",
+    "relative_mae_improvement": "1-mean(CAND_AE)/mean(BASE_AE) on exact paired cell support; mean(BASE_AE) must be finite and >0",
+    "material_relative_mae_min": 0.02,
+    "squared_error_can_rescue": false,
+    "bootstrap_statistic": "UTC-week block bootstrap distribution of mean(AE_IMPROVEMENT) on exact cell support",
+    "bootstrap_positive_rule": "2.5th percentile of 2000-replicate bootstrap distribution > 0"
+  },
+  "structural_diagnostic": {
+    "baseline_residual": "Y_H-BASE_PRED",
+    "ordering": "median_LOW < median_MID < median_HIGH",
+    "side_high_minus_low_required_positive": true
+  },
+  "placebo": {
+    "seed": 20260901,
+    "replicates": 100,
+    "training_only": true,
+    "strata": "calendar_month_utc(T_e) x side x EVENT_CLOSE_BEYOND",
+    "pre_rng_order": "canonical_EVENT_ID",
+    "seed_derivation": "raw UTF-8: 20260901|replicate_index|L|H|week_start_ms|stratum_id; replicate_index=0..99; week_start_ms=UTC epoch ms for Monday 00:00:00Z",
+    "current_event_path_state_unchanged": true,
+    "pass_quantile": 0.95,
+    "rng": "numpy Generator/default_rng seeded deterministically from the full seed-derivation tuple after canonical stratum ordering",
+    "failure_behavior": "missing/unavailable/nonfinite placebo-required input or lost real-candidate training/scoring support => placebo gate false / non-promotion; no fallback",
+    "seed_encoding": {
+      "replicate_index": "zero-based integer 0..99",
+      "calendar_month": "UTC YYYY-MM",
+      "stratum_id": "YYYY-MM|SIDE=<UPPER|LOWER>|EVENT_CLOSE_BEYOND=<0|1>",
+      "raw_utf8": "20260901|replicate_index|L|H|week_start_ms|stratum_id",
+      "digest": "sha256(raw_utf8).digest()",
+      "seed_int": "int.from_bytes(digest[:8], 'big', signed=False)",
+      "rng": "numpy.random.default_rng(seed_int)",
+      "forbidden": "Python hash(), alternative formatting, 1-based replicate index, or alternate SeedSequence layout",
+      "week_start_ms": "integer UTC epoch milliseconds for Monday 00:00:00Z"
+    },
+    "quantile_method": "numpy.quantile(..., 0.95, method='linear')",
+    "label_code_map": {
+      "LOW": 0,
+      "MID": 1,
+      "HIGH": 2
+    },
+    "permutation_operation": {
+      "input_rows": "exact real-candidate historical training rows in this stratum, sorted ascending by canonical EVENT_ID",
+      "input_label_vector": "NumPy int64 vector of stored state codes in sorted-row order using LOW=0, MID=1, HIGH=2",
+      "rng": "instantiate numpy.random.default_rng(seed_int) from the already-frozen per-stratum seed_encoding",
+      "operation": "permuted_labels = rng.permutation(input_label_vector)",
+      "reassignment": "assign permuted_labels positionally back to the same EVENT_ID-sorted rows; do not permute features, targets, timestamps, nuisance bins, or row identities",
+      "zero_record_behavior": "no stratum object is instantiated and no label assignment occurs",
+      "one_record_behavior": "instantiate the frozen stratum RNG and call rng.permutation on the one-element vector; the label remains unchanged",
+      "support_preservation": "vector length and per-stratum LOW/MID/HIGH label counts are exactly preserved"
+    }
+  },
+  "bootstrap": {
+    "block": "UTC_ISO_week",
+    "seed": 20260902,
+    "replicates": 2000,
+    "ci": 0.95,
+    "statistic": "mean(AE_IMPROVEMENT)",
+    "quantiles": [
+      0.025,
+      0.975
+    ],
+    "resample_unit": "UTC ISO week; resample whole observed week blocks with replacement",
+    "failure_behavior": "missing/unavailable/nonfinite bootstrap evidence => bootstrap_positive false",
+    "quantile_method": "numpy.quantile(..., method='linear') for 0.025 and 0.975",
+    "seed_derivation": "raw UTF-8: 20260902|L|H",
+    "rng_contract": {
+      "cell_key": "L|H",
+      "week_id": "ISOYEAR-Www computed from each scored record decision time T in UTC",
+      "canonical_week_order": "sort unique week_id values ascending lexicographically; ISOYEAR-Www zero-pads week to two digits",
+      "within_week_order": "sort scored records ascending by canonical EVENT_ID|H",
+      "raw_utf8": "20260902|L|H",
+      "digest": "sha256(raw_utf8).digest()",
+      "seed_int": "int.from_bytes(digest[:8], 'big', signed=False)",
+      "rng": "one numpy.random.default_rng(seed_int) per primary cell",
+      "replicate_order": "replicate_index 0..1999 in ascending order using the single per-cell generator stream",
+      "draw_operation": "for each replicate call rng.integers(0, n_week_blocks, size=n_week_blocks, dtype=np.int64)",
+      "pooling": "concatenate the selected whole week blocks in draw order, preserving canonical within-week EVENT_ID|H order and block multiplicity; statistic is mean(AE_IMPROVEMENT) over the pooled observations",
+      "zero_block_behavior": "fail closed: bootstrap_positive=false",
+      "one_block_behavior": "n_week_blocks=1; every draw is index 0 and the sole whole block is used once per replicate",
+      "quantiles": "numpy.quantile(..., method='linear') for 0.025 and 0.975"
+    }
+  },
+  "stability": {
+    "years": [
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "required_positive_years": 4,
+    "report_sides": [
+      "UPPER",
+      "LOWER"
+    ]
+  },
+  "search_surface": {
+    "range_lookbacks_minutes": [
+      60,
+      120,
+      240
+    ],
+    "path_observation_minutes": [
+      30
+    ],
+    "horizons_minutes": [
+      30,
+      60,
+      120,
+      240
+    ],
+    "primary_cells": 12,
+    "overshoot_thresholds": 0,
+    "path_descriptors": 1,
+    "model_families": 1
+  },
+  "promotion_gate_contract": {
+    "required_gate_names": [
+      "primary_positive",
+      "material_relative_mae",
+      "bootstrap_positive",
+      "placebo_separation",
+      "path_ordering",
+      "side_stability",
+      "horizon_robustness",
+      "parameter_robustness",
+      "year_stability"
+    ],
+    "per_cell_gate_names": [
+      "primary_positive",
+      "material_relative_mae",
+      "bootstrap_positive",
+      "placebo_separation",
+      "path_ordering",
+      "side_stability"
+    ],
+    "adjacent_horizon_pairs": [
+      [
+        30,
+        60
+      ],
+      [
+        60,
+        120
+      ],
+      [
+        120,
+        240
+      ]
+    ],
+    "horizon_robustness": "same L has one adjacent H pair passing all six per-cell gates",
+    "parameter_robustness": "same adjacent H pair passes all six per-cell gates for at least two distinct L values",
+    "year_stability": "every cell in selected robust neighborhood has mean AE improvement >0 in at least 4 of 5 fixed years",
+    "fail_closed": true,
+    "full_neighborhood_requirement": "same adjacent H pair passes all six per-cell gates for at least two distinct L values AND all four selected cells satisfy year stability",
+    "neighborhood_selection": "if multiple full neighborhoods qualify, choose lexicographically first by frozen H-pair order [30,60],[60,120],[120,240], then ascending L; never rank by effect, p-value, support, or any outcome metric",
+    "per_cell_predicates": {
+      "primary_positive": {
+        "support": "exact paired current cell RECORD_ID support",
+        "statistic": "mean(AE_IMPROVEMENT)",
+        "operator": ">",
+        "threshold": 0
+      },
+      "material_relative_mae": {
+        "support": "exact paired current cell RECORD_ID support",
+        "statistic": "1-mean(CAND_AE)/mean(BASE_AE)",
+        "precondition": "mean(BASE_AE) finite and >0",
+        "operator": ">=",
+        "threshold": 0.02
+      },
+      "bootstrap_positive": {
+        "support": "exact paired current cell RECORD_ID support grouped by UTC ISO week",
+        "statistic": "2.5th percentile of 2000-replicate UTC-week bootstrap of mean(AE_IMPROVEMENT)",
+        "operator": ">",
+        "threshold": 0
+      },
+      "placebo_separation": {
+        "support": "exact real-candidate cell scoring support and exact real-candidate historical training support per frozen weekly fit",
+        "statistic": "real mean(AE_IMPROVEMENT) minus 95th percentile of 100 causal-placebo replicate mean(AE_IMPROVEMENT) values",
+        "operator": ">",
+        "threshold": 0
+      },
+      "path_ordering": {
+        "support": "scored current cell; LOW, MID, HIGH each require non-empty finite BASE_RESIDUAL support",
+        "statistic": "median(BASE_RESIDUAL|LOW) < median(BASE_RESIDUAL|MID) < median(BASE_RESIDUAL|HIGH)",
+        "operator": "strict_chain_true"
+      },
+      "side_stability": {
+        "support": "both frozen direction/side subsets inside the same scored cell; each side requires non-empty finite support plus LOW/HIGH residual support",
+        "statistic": "for each required side independently: mean(AE_IMPROVEMENT)>0 AND median(BASE_RESIDUAL|HIGH)-median(BASE_RESIDUAL|LOW)>0",
+        "operator": "all_required_sides_true"
+      }
+    },
+    "neighborhood_enumeration": {
+      "parameter_name": "L",
+      "parameter_values": [
+        60,
+        120,
+        240
+      ],
+      "adjacent_horizon_pairs": [
+        [
+          30,
+          60
+        ],
+        [
+          60,
+          120
+        ],
+        [
+          120,
+          240
+        ]
+      ],
+      "candidate_neighborhood": "one adjacent-H pair crossed with exactly two distinct frozen parameter values, producing four cells",
+      "enumeration_order": "frozen H-pair order [30,60],[60,120],[120,240], then lexicographic ascending L-pair",
+      "outcome_ranking_forbidden": true
+    },
+    "neighborhood_gate_predicates": {
+      "primary_positive": "all four neighborhood cells have per-cell primary_positive=true",
+      "material_relative_mae": "all four neighborhood cells have per-cell material_relative_mae=true",
+      "bootstrap_positive": "all four neighborhood cells have per-cell bootstrap_positive=true",
+      "placebo_separation": "all four neighborhood cells have per-cell placebo_separation=true",
+      "path_ordering": "all four neighborhood cells have per-cell path_ordering=true",
+      "side_stability": "all four neighborhood cells have per-cell side_stability=true",
+      "horizon_robustness": "for each selected parameter value, both members of the same adjacent-H pair pass all six per-cell predicates",
+      "parameter_robustness": "the same adjacent-H pair satisfies horizon_robustness for two distinct frozen parameter values",
+      "year_stability": "each of the four neighborhood cells has mean(AE_IMPROVEMENT)>0 in at least 4 of fixed years 2020,2021,2022,2023,2024"
+    },
+    "promotion_algorithm": [
+      "compute all per-cell predicates fail-closed",
+      "enumerate all frozen four-cell neighborhoods in neighborhood_enumeration order",
+      "compute the nine named neighborhood gate predicates independently for each neighborhood",
+      "a full neighborhood qualifies iff all nine named predicates are literal true",
+      "select the first qualifying neighborhood in frozen enumeration order",
+      "promotion iff a selected qualifying neighborhood exists AND fail_closed_gate_conjunction over its nine literal gate values returns true"
+    ],
+    "fail_closed_inputs": "missing, unavailable, malformed, nonfinite, errored, empty-required-support, or non-literal-true mandatory evidence => corresponding predicate false and cannot promote"
+  },
+  "verdicts": [
+    "B2_02_PROMOTED_CANDIDATE",
+    "B2_02_CLOSED_NO_PROMOTION"
+  ],
+  "integrity_failure_market_verdict": false,
+  "implementation_paths": {
+    "runner": "scripts/research/b2_02_boundary_interaction.py",
+    "library": "scripts/research/b2_02_boundary_interaction_lib.py",
+    "tests": "tests/research/test_b2_02_boundary_interaction.py"
+  },
+  "outcome_access_authorized": false,
+  "validation_2025_authorized": false,
+  "oos_2026_authorized": false,
+  "rerun_or_reformulation_after_failure_authorized": false
+}
