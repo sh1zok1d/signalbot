@@ -429,6 +429,20 @@ def rolling_midrank_percentile(
     the active reference set makes the current score unavailable. Time-window
     timestamps must be strictly increasing; an empty time reference is
     unavailable.
+
+    Strictly increasing -- not merely non-decreasing -- is a deliberate part of
+    the contract, not an incidental restriction. A caller that can present two
+    references bearing the same timestamp has no causal ordering between them,
+    so "strictly before the current record" would stop being well defined at
+    the boundary. Callers are expected to supply one causally separated clock
+    per reference group; B2-02 does this by grouping events per lookback L,
+    where the frozen 30m refractory guarantees accepted breaches are separated
+    in time. Relaxing this to non-decreasing would silently admit ambiguous
+    reference sets for every caller, so it is not done for convenience.
+
+    The trailing window boundary is inclusive: a reference whose timestamp is
+    exactly `lookback_ms` older than the current record is still an active
+    reference, and only strictly older records are purged.
     """
     try:
         values = np.asarray(series, dtype=np.float64)

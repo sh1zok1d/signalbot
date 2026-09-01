@@ -4,8 +4,13 @@
 The implementation-review stage may call identity() and synthetic helpers only.
 run_development() requires an exact reviewed Git SHA plus explicit outcome-access
 acknowledgement before canonical dataset loading becomes reachable.
+
+This module deliberately does not use `from __future__ import annotations`:
+the merged Batch02 static source policy default-denies every non-repository
+import that is not on its explicit transform allowlist, and B2-02 source is
+adapted to that bounded policy rather than the policy being widened. Python
+3.11 evaluates the annotations used here natively.
 """
-from __future__ import annotations
 
 from pathlib import Path
 
@@ -18,6 +23,7 @@ from scripts.research.b2_02_boundary_interaction_path_lib import (
     REQUIRED_SNAPSHOT,
     SEED_BOOT,
     SEED_PLACEBO,
+    derive_forbidden_window_evidence,
     evaluate_b2_02,
     table_to_1m_frame,
 )
@@ -107,15 +113,21 @@ def run_development(
         ),
     )
     frame = table_to_1m_frame(table)
+    # Derived from the authorized view and the bytes actually loaded -- the
+    # authorized window/years, the authorized partition identities, and the
+    # observed timestamp extremes -- never by touching a 2025/2026 partition.
+    # Fail-closed: this raises rather than recording a forbidden window as
+    # inspected.
+    forbidden_windows = derive_forbidden_window_evidence(
+        run_context.run_identity,
+        frame,
+    )
     result = evaluate_b2_02(frame)
     result["preregistration"] = {
         "merge_sha": PREREG_MERGE_SHA,
         "formulation_id": HYPOTHESIS_ID,
     }
-    result["forbidden_windows_inspected"] = {
-        "2025_validation": False,
-        "2026_oos": False,
-    }
+    result["forbidden_windows_inspected"] = forbidden_windows
     digest = persist_batch02_result(
         RESULT_PATH,
         result,
@@ -126,6 +138,6 @@ def run_development(
         "result_path": str(RESULT_PATH),
         "result_sha256": digest,
         "code_sha": code_freeze.code_sha,
-        "validation_2025_accessed": False,
-        "oos_2026_accessed": False,
+        "validation_2025_accessed": bool(forbidden_windows["2025_validation"]),
+        "oos_2026_accessed": bool(forbidden_windows["2026_oos"]),
     }

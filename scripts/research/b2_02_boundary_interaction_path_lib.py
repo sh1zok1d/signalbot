@@ -3,8 +3,13 @@
 Implements the frozen B2-02 preregistration using only synthetic fixtures during
 the implementation-review stage. Real CORE outcomes are reachable only through
 the canonical Batch02 runner after exact-SHA authorization.
+
+This module deliberately does not use `from __future__ import annotations`:
+the merged Batch02 static source policy default-denies every non-repository
+import that is not on its explicit transform allowlist, and B2-02 source is
+adapted to that bounded policy rather than the policy being widened. Python
+3.11 evaluates the annotations used here natively.
 """
-from __future__ import annotations
 
 import hashlib
 import math
@@ -54,6 +59,14 @@ DEV_END_MS = 1_735_689_600_000
 LAST_T0_MS = 1_735_673_100_000
 LAST_T_MS = LAST_T0_MS + PATH_MS
 
+# Reserved-validation and untouched-OOS boundaries (prereg section 3). These are
+# used only to PROVE, from the authorized view and the already-loaded
+# development bytes, that neither window was reached. Nothing in this module
+# ever enumerates, opens, or reads a partition in those windows.
+VALIDATION_2025_START_MS = DEV_END_MS
+OOS_2026_START_MS = 1_767_225_600_000
+FIRST_FORBIDDEN_YEAR = 2025
+
 DIR_UPPER = 1
 DIR_LOWER = -1
 STATE_LOW = 0
@@ -94,11 +107,26 @@ def table_to_1m_frame(table: object) -> dict[str, np.ndarray]:
     values: dict[str, np.ndarray] = {}
     for name in columns:
         try:
-            raw = table.column(name).to_pylist()
+            column = table.column(name)
         except Exception as exc:
             raise B202Error(f"authorized table missing canonical column {name}") from exc
+        # In-memory Arrow -> NumPy conversion only. `to_numpy` is on the merged
+        # Batch02 source policy's explicit in-memory conversion allowlist; the
+        # previously used `to_pylist` is not, and B2-02 source is adapted to the
+        # bounded policy rather than the policy being widened for B2-02.
+        try:
+            raw = column.to_numpy(zero_copy_only=False)
+        except Exception as exc:
+            raise B202Error(
+                f"authorized column {name} is not convertible in memory"
+            ) from exc
         if name in {"open_time_ms", "available_at_ms"}:
-            values[name] = np.asarray(raw, dtype=np.int64)
+            try:
+                values[name] = np.asarray(raw, dtype=np.int64)
+            except (TypeError, ValueError) as exc:
+                raise B202Error(
+                    f"authorized column {name} is not integer milliseconds"
+                ) from exc
         else:
             values[name] = np.asarray(
                 [_finite_price(v, name) for v in raw],
@@ -106,6 +134,87 @@ def table_to_1m_frame(table: object) -> dict[str, np.ndarray]:
             )
     validate_1m_frame(values)
     return values
+
+
+def _partition_year(relative_path: str) -> int:
+    """Year encoded in an authorized monthly partition's relative path."""
+    leaf = str(relative_path).rsplit("/", 1)[-1]
+    head = leaf.split("-", 1)[0]
+    if len(head) != 4 or not head.isdigit():
+        raise B202Error(
+            f"authorized partition path is not a canonical monthly leaf: {relative_path}"
+        )
+    return int(head)
+
+
+def derive_forbidden_window_evidence(
+    run_identity: Mapping[str, object],
+    frame: Mapping[str, np.ndarray],
+) -> dict[str, object]:
+    """Derive 2025/2026 non-inspection evidence from the authorized view.
+
+    The proof is built from what the authorized run actually carried and
+    actually loaded -- the authorized outcome window, the authorized partition
+    identities, and the observed timestamp extremes of the already-loaded
+    development bytes -- never by enumerating, opening, or reading anything in
+    the reserved-validation or untouched-OOS windows.
+
+    Fail-closed: if the authorized view or the loaded bytes reach 2025 or 2026
+    at all, this raises instead of recording a forbidden window as inspected.
+    """
+    window = run_identity.get("window")
+    if not isinstance(window, Mapping):
+        raise B202Error("run identity is missing its authorized window evidence")
+    try:
+        end_exclusive_ms = int(window["end_exclusive_ms"])
+        start_inclusive_ms = int(window["start_inclusive_ms"])
+        allowed_years = tuple(int(year) for year in window["allowed_years"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise B202Error("authorized window evidence is malformed") from exc
+
+    partitions = run_identity.get("partitions")
+    if not isinstance(partitions, Sequence) or isinstance(partitions, (str, bytes)):
+        raise B202Error("run identity is missing its authorized partition evidence")
+    partition_years: list[int] = []
+    for partition in partitions:
+        if not isinstance(partition, Mapping) or "relative_path" not in partition:
+            raise B202Error("authorized partition evidence is malformed")
+        partition_years.append(_partition_year(str(partition["relative_path"])))
+    if not partition_years:
+        raise B202Error("authorized partition evidence is empty")
+
+    open_ms = np.asarray(frame["open_time_ms"], dtype=np.int64)
+    avail_ms = np.asarray(frame["available_at_ms"], dtype=np.int64)
+    if len(open_ms) == 0:
+        raise B202Error("loaded development frame is empty")
+    observed_min_open_ms = int(np.min(open_ms))
+    observed_max_open_ms = int(np.max(open_ms))
+    observed_max_available_ms = int(np.max(avail_ms))
+
+    if end_exclusive_ms > VALIDATION_2025_START_MS:
+        raise B202Error("authorized window reaches the reserved 2025 validation pool")
+    if max(allowed_years) >= FIRST_FORBIDDEN_YEAR:
+        raise B202Error("authorized years reach a forbidden window")
+    if max(partition_years) >= FIRST_FORBIDDEN_YEAR:
+        raise B202Error("authorized partitions reach a forbidden window")
+    if observed_max_available_ms > VALIDATION_2025_START_MS:
+        raise B202Error("loaded development bytes reach the reserved 2025 pool")
+
+    return {
+        "2025_validation": False,
+        "2026_oos": False,
+        "derivation": "authorized-view-and-loaded-bytes",
+        "authorized_window_start_inclusive_ms": start_inclusive_ms,
+        "authorized_window_end_exclusive_ms": end_exclusive_ms,
+        "authorized_allowed_years": list(allowed_years),
+        "authorized_partition_count": len(partition_years),
+        "authorized_max_partition_year": max(partition_years),
+        "observed_min_open_time_ms": observed_min_open_ms,
+        "observed_max_open_time_ms": observed_max_open_ms,
+        "observed_max_available_at_ms": observed_max_available_ms,
+        "validation_2025_start_ms": VALIDATION_2025_START_MS,
+        "oos_2026_start_ms": OOS_2026_START_MS,
+    }
 
 
 def validate_1m_frame(frame: Mapping[str, np.ndarray]) -> None:
@@ -231,23 +340,30 @@ def _event_raw(
     lower &= ~double
     qualifying = (upper | lower) & np.isfinite(width) & (width > 0.0)
 
-    accepted: list[int] = []
+    # Prereg section 4 defines the qualifying breach population: open inside the
+    # prior range, exactly one boundary breached, a valid positive prior range,
+    # and BREACH_MAG > 0. Section 5 then applies the 30m refractory ONCE to that
+    # qualifying population, before candidate/baseline construction.
+    #
+    # BREACH_MAG is therefore evaluated here, before the refractory decision: a
+    # bar that is not a qualifying breach must never consume a refractory slot
+    # and thereby suppress a later genuinely qualifying breach.
+    #
+    # Everything after this loop (PRE_VOL/PRE_DRIFT availability, path state,
+    # causal reference availability, history minima) is section 6/7 decision
+    # availability, NOT qualification. Those events remain qualifying breaches,
+    # keep their refractory slot, and are simply UNAVAILABLE_FOR_DECISION for
+    # candidate and baseline alike. They must not be hoisted ahead of the
+    # refractory or the frozen event population would silently change.
+    accepted: list[tuple[int, float]] = []
     last_t0 = -10**30
     for idx in np.flatnonzero(qualifying):
         t0 = int(t0_all[idx])
         if t0 < DEV_START_MS or t0 > LAST_T0_MS:
             continue
-        if t0 < last_t0 + PATH_MS:
-            continue
         if int(idx) + PATH_BARS >= len(close):
             continue
-        accepted.append(int(idx))
-        last_t0 = t0
-
-    events: list[dict[str, object]] = []
-    for idx in accepted:
         direction = DIR_UPPER if bool(upper[idx]) else DIR_LOWER
-        side = "UPPER" if direction == DIR_UPPER else "LOWER"
         boundary = float(rh[idx]) if direction == DIR_UPPER else float(rl[idx])
         if direction == DIR_UPPER:
             breach_mag = math.log(float(high[idx]) / boundary) / float(width[idx])
@@ -255,6 +371,16 @@ def _event_raw(
             breach_mag = math.log(boundary / float(low[idx])) / float(width[idx])
         if not math.isfinite(breach_mag) or breach_mag <= 0.0:
             continue
+        if t0 < last_t0 + PATH_MS:
+            continue
+        accepted.append((int(idx), float(breach_mag)))
+        last_t0 = t0
+
+    events: list[dict[str, object]] = []
+    for idx, breach_mag in accepted:
+        direction = DIR_UPPER if bool(upper[idx]) else DIR_LOWER
+        side = "UPPER" if direction == DIR_UPPER else "LOWER"
+        boundary = float(rh[idx]) if direction == DIR_UPPER else float(rl[idx])
         drift_idx = idx - (60 // FIVE_MIN)
         if drift_idx < 0 or not math.isfinite(float(pre_vol[idx])):
             continue
@@ -671,12 +797,28 @@ def evaluate_cell(
         )
         scored.append(record)
 
+        # Internal consistency invariant, not ordinary unavailability.
+        #
+        # Every matured event is appended to baseline_queues[base_key] and to
+        # candidate_queues[base_key + path_state] in the same iteration, and
+        # both queues are purged immediately above with the same monotonically
+        # non-decreasing cutoff. The subset of base_queue carrying this event's
+        # path_state is therefore exactly candidate_queue, so path_count ==
+        # len(candidate_queue) >= CANDIDATE_MIN_COUNT always holds here.
+        #
+        # The check is consequently redundant by construction and must never
+        # fire. If it ever does, the queue bookkeeping -- and therefore the
+        # placebo stratum the negative control draws from -- is inconsistent
+        # with the scored candidate support. That is an integrity failure, not
+        # a per-cell unavailability the frozen contract defines, so it stays
+        # fail-closed: the run aborts rather than emitting a partial or
+        # silently mis-strata'd research result.
         path_count = sum(
             1
             for item in base_queue
             if int(item[2]) == int(event["path_state"])
         )
-        if path_count < CANDIDATE_MIN_COUNT:
+        if path_count != len(candidate_queue) or path_count < CANDIDATE_MIN_COUNT:
             raise B202Error("placebo stratum count diverged from candidate count")
         stratum = "|".join(str(value) for value in base_key)
         for rep in range(N_PLACEBO):
