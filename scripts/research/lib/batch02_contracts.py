@@ -143,23 +143,30 @@ def prepare_batch02_run(
     code_freeze: VerifiedCodeFreeze,
     outcome_access_acknowledged: bool,
     dataset_root: Path,
-    identity: DatasetIdentityContract,
-    policy: OutcomeAccessPolicy,
-    gate_contract: PromotionGateContract,
     hypothesis_id: str,
     stage: str,
     command: Sequence[str],
     seeds: Mapping[str, int],
+    identity: DatasetIdentityContract | None = None,
+    policy: OutcomeAccessPolicy | None = None,
+    gate_contract: PromotionGateContract | None = None,
+    dataset_id: str | None = None,
+    snapshot_id: str | None = None,
+    start_inclusive_ms: int | None = None,
+    end_exclusive_ms: int | None = None,
+    allowed_years: Sequence[int] | None = None,
+    required_gate_names: Sequence[str] | None = None,
 ) -> Batch02RunContext:
     """Authorize dataset bytes and build provenance for an outcome-bearing run.
 
-    This function must be called only after the runner's explicit development
-    outcome-access acknowledgement. The supplied code_freeze must already have
-    been produced by verify_batch02_code(); authorize_dataset_access() rechecks
-    that proof before opening the checksum-bound dataset.
+    New B2 hypothesis code may use the primitive-only public form
+    (dataset_id/snapshot_id/time window/years/gate names). The canonical
+    contracts module constructs the internal Harness v1 dataclasses itself, so
+    hypothesis code does not need access to internal harness types.
 
-    No fallback SHA, optional manifest path, or caller-supplied provenance label
-    is accepted here.
+    The legacy typed-object form remains accepted for existing contract tests
+    and trusted callers. Mixing typed objects with primitive contract fields is
+    rejected to keep the authority boundary unambiguous.
     """
     if stage != "development":
         raise Batch02ContractError(
@@ -173,6 +180,69 @@ def prepare_batch02_run(
         raise Batch02ContractError(
             "code_freeze must be a VerifiedCodeFreeze from verify_batch02_code"
         )
+
+    typed_supplied = any(
+        value is not None for value in (identity, policy, gate_contract)
+    )
+    primitive_supplied = any(
+        value is not None
+        for value in (
+            dataset_id,
+            snapshot_id,
+            start_inclusive_ms,
+            end_exclusive_ms,
+            allowed_years,
+            required_gate_names,
+        )
+    )
+    if typed_supplied and primitive_supplied:
+        raise Batch02ContractError(
+            "prepare_batch02_run may not mix typed and primitive contract forms"
+        )
+
+    if primitive_supplied:
+        if not (
+            isinstance(dataset_id, str)
+            and dataset_id.strip()
+            and isinstance(snapshot_id, str)
+            and snapshot_id.strip()
+            and type(start_inclusive_ms) is int
+            and type(end_exclusive_ms) is int
+            and allowed_years is not None
+            and required_gate_names is not None
+        ):
+            raise Batch02ContractError(
+                "primitive Batch02 run contract is incomplete"
+            )
+        try:
+            identity = DatasetIdentityContract(
+                dataset_id=dataset_id,
+                snapshot_id=snapshot_id,
+            )
+            policy = OutcomeAccessPolicy(
+                stage=stage,
+                start_inclusive_ms=start_inclusive_ms,
+                end_exclusive_ms=end_exclusive_ms,
+                allowed_years=tuple(allowed_years),
+            )
+            gate_contract = PromotionGateContract(
+                required_gate_names=tuple(required_gate_names)
+            )
+        except (TypeError, ValueError) as exc:
+            raise Batch02ContractError(
+                "primitive Batch02 run contract is invalid"
+            ) from exc
+    elif not typed_supplied:
+        raise Batch02ContractError(
+            "prepare_batch02_run requires one complete contract form"
+        )
+
+    if not isinstance(identity, DatasetIdentityContract):
+        raise Batch02ContractError("invalid dataset identity contract")
+    if not isinstance(policy, OutcomeAccessPolicy):
+        raise Batch02ContractError("invalid outcome access policy")
+    if not isinstance(gate_contract, PromotionGateContract):
+        raise Batch02ContractError("invalid promotion gate contract")
 
     authorized = authorize_dataset_access(
         code_freeze=code_freeze,
