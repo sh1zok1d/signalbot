@@ -1,0 +1,106 @@
+{
+  "schema_version": "1.0",
+  "status": "PREREG_CANDIDATE_OUTCOME_BLIND",
+  "formulation_id": "B2-02_BOUNDARY_INTERACTION_PATH",
+  "primary_family": "F1",
+  "dataset": {
+    "dataset_id": "CORE_BTC_BINANCE_V0",
+    "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+    "source_timeframe": "1m",
+    "derived_timeframe": "5m",
+    "initial_breach_grid_minutes": 5
+  },
+  "chronology": {
+    "warmup_start_inclusive": "2020-01-01T00:00:00Z",
+    "development_start_inclusive": "2020-02-01T00:00:00Z",
+    "development_end_exclusive": "2025-01-01T00:00:00Z",
+    "reserved_validation_start_inclusive": "2025-01-01T00:00:00Z",
+    "reserved_validation_end_exclusive": "2026-01-01T00:00:00Z",
+    "oos_start_inclusive": "2026-01-01T00:00:00Z",
+    "path_observation_minutes": 30,
+    "max_horizon_minutes": 240
+  },
+  "prior_range_lookbacks_minutes": [60, 120, 240],
+  "refractory_minutes": 30,
+  "qualifying_breach": {
+    "open_must_be_inside_prior_range": true,
+    "single_edge_only": true,
+    "close_location_filter": "none",
+    "ambiguous_double_break": "exclude",
+    "breach_magnitude_threshold": "none"
+  },
+  "baseline_context": {
+    "reference_days": 30,
+    "states": ["BREACH_MAG_STATE", "PRE_VOL_STATE", "PRE_DRIFT_STATE"],
+    "binning": "causal_midrank_tertiles",
+    "pre_vol_window_minutes": 60,
+    "pre_drift_window_minutes": 60
+  },
+  "path_descriptor": {
+    "observation_minutes": 30,
+    "components": ["RESIDENCE", "TERMINAL_EXTENSION", "MAX_EXTENSION", "PATH_EFFICIENCY"],
+    "component_transform": "causal_midrank_percentile within same L using prior fully-known qualifying breaches",
+    "score": "equal_weight_mean_of_four_component_percentiles",
+    "states": ["LOW", "MID", "HIGH"],
+    "state_cutpoints": [0.3333333333333333, 0.6666666666666666]
+  },
+  "horizons_minutes": [30, 60, 120, 240],
+  "target": {
+    "direction_normalized": true,
+    "definition": "DIR_RET_H / PAST_MEDIAN_ABS_RET_H",
+    "scale_reference_days": 30
+  },
+  "forecast": {
+    "training_lookback_days": 30,
+    "estimator": "median",
+    "baseline_min_count": 80,
+    "candidate_min_count": 40,
+    "baseline_match": ["L", "BREACH_MAG_STATE", "PRE_VOL_STATE", "PRE_DRIFT_STATE"],
+    "candidate_match": ["L", "BREACH_MAG_STATE", "PRE_VOL_STATE", "PRE_DRIFT_STATE", "PATH_STATE"],
+    "loss": "absolute_error",
+    "primary_incremental_metric": "BASE_AE - CAND_AE",
+    "same_support_required": true,
+    "fallback": "none"
+  },
+  "controls": {
+    "permutation_seed": 20260902,
+    "permutation_replicates": 100,
+    "permutation_scope": "per-scored-event causal 30d training set",
+    "permutation_strata": ["L", "BREACH_MAG_STATE", "PRE_VOL_STATE", "PRE_DRIFT_STATE"],
+    "bootstrap_seed": 20260903,
+    "bootstrap_replicates": 2000,
+    "bootstrap_block": "UTC_week",
+    "bootstrap_ci": 0.95
+  },
+  "search_surface_primary_cells": 12,
+  "per_cell_thresholds": {
+    "relative_mae_improvement_min": 0.02,
+    "bootstrap_lower_bound_strictly_positive": true,
+    "placebo_percentile": 0.95,
+    "path_separation_strictly_positive": true
+  },
+  "promotion_gate_contract": {
+    "required_gate_names": [
+      "primary_positive",
+      "material_relative_mae",
+      "bootstrap_positive",
+      "placebo_separation",
+      "path_ordering",
+      "horizon_robustness",
+      "parameter_robustness",
+      "year_stability"
+    ],
+    "horizon_robustness": "same L has >=2 adjacent passing H",
+    "parameter_robustness": "same adjacent-H pair passes for >=2 distinct L values",
+    "year_stability": "every promotion-neighborhood cell has positive mean AE improvement in >=4/5 years"
+  },
+  "verdicts": ["B2_02_PROMOTED_CANDIDATE", "B2_02_CLOSED_NO_PROMOTION"],
+  "implementation_paths": {
+    "runner": "scripts/research/b2_02_boundary_interaction_path.py",
+    "library": "scripts/research/b2_02_boundary_interaction_path_lib.py",
+    "tests": "tests/research/test_b2_02_boundary_interaction_path.py"
+  },
+  "outcome_access_authorized": false,
+  "validation_2025_authorized": false,
+  "oos_2026_authorized": false
+}
