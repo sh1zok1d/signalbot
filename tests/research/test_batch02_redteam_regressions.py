@@ -1778,3 +1778,122 @@ def test_rt_in_memory_scientific_transforms_remain_allowed(tmp_path: Path):
     repo, research = _synthetic_tree(tmp_path, runner=source)
     visited = validate_batch02_source_tree(research, repo_root=repo)
     assert any(path.name == "b2_02_attack.py" for path in visited)
+
+
+# RT-20260901b follow-up: the foreign-module-reexport invariant was
+# provenance-sensitive (it traces an attribute-access chain back to the
+# import statement that bound it) and that trace was lost the moment an
+# imported module reference was copied to an ordinary second local name.
+# These regressions protect the general "module/capability provenance"
+# class, not one particular module's spelling: they cover a root-import
+# copy, a copy of an already-allowlisted submodule, multiple simultaneous
+# aliases of the same module, and tuple-destructuring copies, alongside
+# confirmation that direct (uncopied) use and ordinary scientific value
+# assignment are unaffected.
+
+
+@pytest.mark.parametrize(
+    "extra_import,expression",
+    [
+        # The exact literal pattern from the architecture task.
+        ("import collections", "alias = collections; x = alias._sys.modules"),
+        # Same provenance loss for the other originally-cited example.
+        ("import enum", "alias = enum; x = alias.bltns"),
+        # Copying an aliased root import, not just an unaliased one.
+        ("import numpy as np", "np2 = np; x = np2"),
+        # Copying an *allowed* submodule reached via attribute access still
+        # has to go through its own canonical import, not a second name.
+        ("import pyarrow", "pc2 = pyarrow.compute"),
+        # Annotated assignment is a distinct AST node from plain Assign.
+        ("import collections", "alias: object = collections"),
+        # Walrus is a third distinct binding form.
+        ("import collections", "x = (alias := collections)"),
+    ],
+)
+def test_rt_module_reference_cannot_be_copied_to_new_local_binding(
+    tmp_path: Path,
+    extra_import: str,
+    expression: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="copied"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_rt_multiple_aliases_of_same_module_are_consistently_protected(
+    tmp_path: Path,
+):
+    source = (
+        "import collections as c1\nimport collections as c2\n"
+        + _canonical_runner(extra="x = c1; y = c2")
+    )
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="copied") as excinfo:
+        validate_batch02_source_tree(research, repo_root=repo)
+    # Both aliases are caught, not just whichever happens to be visited first.
+    messages = str(excinfo.value)
+    assert "x = collections" in messages
+    assert "y = collections" in messages
+
+
+def test_rt_tuple_destructuring_copy_of_module_references_is_rejected(
+    tmp_path: Path,
+):
+    source = "import numpy as np\nimport pandas as pd\n" + _canonical_runner(
+        extra="a, b = np, pd"
+    )
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="copied"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_rt_direct_foreign_module_reexport_still_denied_without_any_copy(
+    tmp_path: Path,
+):
+    # Control: the underlying foreign-module-reexport class must still fire
+    # on its own, independent of the new copy-prohibition.
+    source = "import collections\n" + _canonical_runner(
+        extra="mods = collections._sys.modules"
+    )
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="foreign module"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_rt_ordinary_scientific_values_remain_freely_assignable(
+    tmp_path: Path,
+):
+    # Calling through an import binding, and assigning/reusing the computed
+    # result, must remain unaffected by the copy-prohibition -- only a bare
+    # module-reference copy is restricted, not generic assignment.
+    source = (
+        "import numpy as np\n"
+        "import pandas as pd\n"
+        "import pyarrow.compute as pc\n"
+        + _canonical_runner(
+            extra=(
+                "arr = np.asarray([1, 2, 3]); "
+                "frame = pd.DataFrame({'x': arr}); "
+                "total = pc.sum(arr); "
+                "doubled = total.as_py() * 2; "
+                "norm = np.linalg.norm(arr)"
+            )
+        )
+    )
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    visited = validate_batch02_source_tree(research, repo_root=repo)
+    assert any(path.name == "b2_02_attack.py" for path in visited)
+
+
+def test_rt_h01_h05_and_b2_01_frozen_trees_are_unaffected_by_the_repair():
+    # The real repository's frozen historical hypothesis code is not part of
+    # the future-B2 policy closure at all (only b2_(?!01)NN files are). This
+    # asserts that claim continues to hold after the copy-prohibition and
+    # static foreign-module rewrite: running the real linter against the
+    # actual on-disk research tree still returns no violations, exactly as
+    # before this repair, and does not require importing/evaluating any
+    # H01-H05 or B2-01 module to do so.
+    assert validate_batch02_source_tree(
+        RESEARCH_DIR, repo_root=REPO_ROOT
+    ) == ()
