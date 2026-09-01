@@ -42,7 +42,13 @@ Use accepted `CORE_BTC_BINANCE_V0` only. Canonical 5m bars are derived from acce
 
 Initial breach time is `T0`. The path-observation window is frozen at `P = 30m`. The actual prediction decision time is `T = T0 + 30m`.
 
+The path consists of exactly six complete 5m bars:
+`[T0,T0+5m), [T0+5m,T0+10m), ..., [T0+25m,T]`.
+Their availability times are `T0+5m, ..., T`; equivalently, the path observations have `available_at in (T0,T]`. The breach bar itself is `[T0-5m,T0)` and is fully known at `T0`.
+
 Every path input must satisfy `available_at <= T`. Every training outcome used for a forecast at T must already be known by T. Every evaluated event must satisfy `T + 240m < 2025-01-01T00:00:00Z`.
+
+On the 5m grid the last legal initial breach is `T0 = 2024-12-31T19:25:00Z`, giving `T = 2024-12-31T19:55:00Z` and a last 240m target close at 23:55Z. `T0 = 19:30Z` is not legal because it would make `T+240m = 2025-01-01T00:00:00Z`, violating the strict end-exclusive rule.
 
 ## 4. Prior range and qualifying breach
 
@@ -79,9 +85,9 @@ Require `BREACH_MAG > 0`. No post-outcome thresholding of breach magnitude is al
 
 Canonical B2-02 event identity must include at least:
 
-`snapshot_id | L | side | T0 | T`
+`snapshot_id | source_timeframe=1m | derived_timeframe=5m | L | side | T0 | T | H`
 
-Candidate and comparator retain the exact same event ID. The post-breach path descriptor may classify/score an event but may not change event eligibility.
+The horizon `H` is part of the canonical scored-record identity so candidate/comparator pairing cannot silently drift across outcome horizons. Candidate and comparator retain the exact same canonical ID. The post-breach path descriptor may classify/score an event but may not change the qualifying breach population.
 
 The 30m refractory rule is applied once to the qualifying breach population before candidate/baseline construction.
 
@@ -89,13 +95,17 @@ The 30m refractory rule is applied once to the qualifying breach population befo
 
 The simpler baseline uses only information available by `T0` plus breach magnitude.
 
-For every event, construct three causal context states using trailing 30-calendar-day reference distributions that exclude the current event:
+For every event, construct three causal context states using trailing 30-calendar-day qualifying B2-02 breach references with the same `L`, pooling UPPER/LOWER after direction normalization. A reference event must have its breach information fully known strictly before the current `T0`; the current event is excluded.
 
-1. **BREACH_MAG_STATE** — causal tertile of `BREACH_MAG`.
-2. **PRE_VOL_STATE** — causal tertile of 60m realized volatility ending at `T0`.
-3. **PRE_DRIFT_STATE** — causal tertile of direction-normalized 60m log return ending at `T0`.
+Exact raw quantities:
 
-All percentile transforms use canonical midrank semantics and historical observations available by the relevant decision boundary.
+1. **BREACH_MAG_STATE** — causal tertile of the already-defined `BREACH_MAG`.
+2. **PRE_VOL_STATE** — causal tertile of
+   `PRE_VOL = sqrt(sum(r_t^2))`, where `r_t = ln(close_t/close_{t-1})` over complete accepted 1m returns in the 60 minutes ending at `T0`, all with `available_at <= T0`.
+3. **PRE_DRIFT_STATE** — causal tertile of
+   `PRE_DRIFT = d * ln(close(T0) / close(T0-60m))`, using canonical aligned closes known by `T0`.
+
+Each state uses canonical `rolling_midrank_percentile` tie semantics: midrank `(# less + 0.5 * # equal) / N`, mapped to tertiles [0,1/3), [1/3,2/3), [2/3,1]. If the required 30d reference set is empty, malformed, or any raw quantity is unavailable/non-finite, the event is `UNAVAILABLE_FOR_DECISION` for both candidate and baseline. No side-specific, neighboring-L, or full-history fallback is allowed.
 
 No alternative state variables or cut points belong to B2-02.
 
@@ -103,14 +113,23 @@ No alternative state variables or cut points belong to B2-02.
 
 Observe exactly the six complete 5m bars in `(T0, T]`.
 
-Build four direction-normalized components:
+Build four direction-normalized components. Let the breached boundary be `R_high` for UPPER and `R_low` for LOWER.
 
-1. **RESIDENCE** — fraction of those six closes that remain beyond the breached boundary.
-2. **TERMINAL_EXTENSION** — signed distance of `close(T)` from the breached boundary divided by `prior_log_range`, positive beyond the boundary.
-3. **MAX_EXTENSION** — maximum direction-normalized excursion beyond the boundary during the 30m path divided by `prior_log_range`.
-4. **PATH_EFFICIENCY** — direction-normalized net log displacement over the 30m path divided by the sum of absolute 5m log returns over the same path; undefined if denominator is zero.
+1. **RESIDENCE** — among the six path closes, the fraction strictly beyond the boundary:
+   UPPER `close_i > R_high`; LOWER `close_i < R_low`.
+2. **TERMINAL_EXTENSION** —
+   UPPER: `ln(close(T)/R_high) / prior_log_range`;
+   LOWER: `ln(R_low/close(T)) / prior_log_range`.
+   Positive means the terminal close remains beyond the boundary.
+3. **MAX_EXTENSION** — path extrema only:
+   UPPER: `max_i ln(high_i/R_high) / prior_log_range`;
+   LOWER: `max_i ln(R_low/low_i) / prior_log_range`,
+   with `i` restricted to the six 5m path bars.
+4. **PATH_EFFICIENCY** —
+   `d * ln(close(T)/close(T0)) / sum_i abs(ln(close_i/close_{i-1}))`
+   over the six 5m path returns. If the denominator is zero, PATH_EFFICIENCY is undefined and the scored record is unavailable for **both** candidate and baseline.
 
-For each component, compute a causal midrank percentile against prior qualifying B2-02 breaches with the same L whose 30m path was fully known before T.
+For each component, compute a causal midrank percentile against qualifying B2-02 breaches from the trailing 30 calendar days with the same `L`, pooling sides after direction normalization. A reference event is eligible only when its full 30m path was already known strictly before the current `T`; exclude the current event. Use canonical midrank tie semantics. Empty/malformed/non-finite reference sets make the current event jointly `UNAVAILABLE_FOR_DECISION`; no side-specific, neighboring-L, or full-history fallback is permitted.
 
 `PATH_SCORE = mean(PCTL_RESIDENCE, PCTL_TERMINAL_EXTENSION, PCTL_MAX_EXTENSION, PCTL_PATH_EFFICIENCY)`.
 
@@ -143,7 +162,7 @@ The denominator must be finite, positive, and known by T.
 
 ## 9. Causal walk-forward forecasts
 
-Training set for an event at T and horizon H: preceding 30 calendar days only, requiring every training record's `t + H <= T`.
+Training set for an event at T and horizon H: preceding **90 calendar days** only, requiring every training record's `t + H <= T`. The 90d window is frozen before outcomes because the exact-state baseline has 27 tertile combinations and the candidate adds a third PATH_STATE; under the 30m refractory cap a 30d window cannot support the frozen 80/40 minima in a meaningful fraction of cells even in principle. This is a structural capacity choice, not a count tuned on B2-02 data.
 
 Baseline forecast:
 `BASE_PRED(T)` = median historical `Y_H` with the same:
@@ -159,7 +178,9 @@ Minimum history:
 - baseline cell >= 80;
 - candidate joint cell >= 40.
 
-An event is scored only when both minima are met. Candidate and baseline score the identical event IDs. No neighboring-bin, side-only, horizon-only, full-sample, or smoothing fallback is allowed.
+A scored record is admitted only by one **joint eligibility predicate**. The record is `UNAVAILABLE_FOR_DECISION` for both candidate and baseline if any required breach/context/path/target scale value is unavailable or non-finite, if PATH_EFFICIENCY is undefined, if any causal percentile reference is empty/invalid, or if either history minimum fails. Only records satisfying the complete joint predicate are scored, and candidate/baseline then carry identical canonical IDs including `H`.
+
+No candidate-only shrinkage, neighboring-bin, side-only, horizon-only, full-sample, smoothing, or alternate-history fallback is allowed.
 
 UPPER and LOWER events are direction-normalized into the same primary model, but side-specific results must be reported and cannot rescue a failed overall formulation.
 
@@ -195,11 +216,13 @@ Use causal permutation of historical PATH_STATE labels only.
 
 - seed: `20260902`
 - replicates: 100
-- within each forecast event's causal 30d training set;
+- within each forecast event's causal 90d training set, using only records with `t + H <= T`;
 - stratify by `L × BREACH_MAG_STATE × PRE_VOL_STATE × PRE_DRIFT_STATE`;
-- sort by canonical event ID before RNG;
-- permute only historical PATH_STATE labels;
-- leave the evaluation event's own path state unchanged.
+- sort each stratum by canonical event ID before RNG;
+- derive the RNG seed from exactly `20260902 | replicate_index | L | H | decision_time_T | stratum_id`;
+- permute only historical PATH_STATE labels within that stratum;
+- leave the evaluation event's own path state unchanged;
+- never use a future record merely to preserve eventual calendar composition.
 
 The true candidate's mean AE improvement must exceed the 95th percentile of placebo improvements.
 
