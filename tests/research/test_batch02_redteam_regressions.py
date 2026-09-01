@@ -2009,3 +2009,82 @@ def test_rt_computed_parameter_defaults_remain_permitted(
     repo, research = _synthetic_tree(tmp_path, runner=source)
     visited = validate_batch02_source_tree(research, repo_root=repo)
     assert any(path.name == "b2_02_attack.py" for path in visited)
+
+
+# RT-20260901d follow-up: the matching-arity Tuple/List destructuring pairing
+# used by the module-copy check only unpacked one level, so a module
+# reference nested inside an inner Tuple/List target/value pair (rather than
+# at the top level) was never examined. This is the same already-accepted
+# "direct syntactic rebinding into another local binding" invariant, applied
+# recursively through nested Tuple/List structure -- not a new dataflow
+# class, and it must not reject arbitrary unpacking of non-module values.
+
+
+@pytest.mark.parametrize(
+    "extra_import,expression",
+    [
+        # One nested tuple level.
+        ("import collections", "n, (alias,) = 1, (collections,)"),
+        # Multiple nested tuple levels.
+        ("import collections", "((alias,),) = ((collections,),)"),
+        # Mixed tuple/list nesting.
+        ("import collections", "n, [alias] = 1, [collections]"),
+        ("import collections", "[n, (alias,)] = [1, (collections,)]"),
+        # A module reference at only one of several nested positions -- an
+        # aliased import this time, not the same module repeated.
+        ("import numpy as np", "(a, (b, c)) = (1, (np, 2))"),
+        # Nested three levels deep with an allowlisted submodule.
+        ("import pyarrow", "(((alias,),),) = (((pyarrow.compute,),),)"),
+    ],
+)
+def test_rt_nested_destructuring_copy_of_module_reference_is_rejected(
+    tmp_path: Path,
+    extra_import: str,
+    expression: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="copied"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_rt_nested_destructuring_flags_only_the_module_valued_position(
+    tmp_path: Path,
+):
+    # Only "b = np" is a module-copy violation; "a" and "c" are ordinary
+    # values and must not be reported.
+    source = "import numpy as np\n" + _canonical_runner(
+        extra="(a, (b, c)) = (1, (np, 2))"
+    )
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError) as excinfo:
+        validate_batch02_source_tree(research, repo_root=repo)
+    message = str(excinfo.value)
+    assert "b = numpy" in message
+    assert "a = " not in message
+    assert "c = " not in message
+
+
+@pytest.mark.parametrize(
+    "extra_import,expression",
+    [
+        # Nested destructuring of computed/scientific values.
+        ("import numpy as np", "a, (b, c) = 1, (np.asarray([1]), 2)"),
+        (
+            "import numpy as np\nimport pandas as pd",
+            "a, (b, c) = np.asarray([1]), (pd.DataFrame({'x': [1]}), 2)",
+        ),
+        # Nested destructuring of plain literals/non-module values.
+        ("", "a, (b, c) = 1, (2, 3)"),
+        ("", "(a, [b, (c, d)]) = (1, [2, (3, 4)])"),
+    ],
+)
+def test_rt_nested_destructuring_of_non_module_values_remains_permitted(
+    tmp_path: Path,
+    extra_import: str,
+    expression: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    visited = validate_batch02_source_tree(research, repo_root=repo)
+    assert any(path.name == "b2_02_attack.py" for path in visited)

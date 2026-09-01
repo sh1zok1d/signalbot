@@ -798,6 +798,31 @@ def _resolved_dotted_name(
     return ".".join([origin, *tail])
 
 
+def _flatten_destructure_pairs(
+    target: ast.AST, value: ast.AST
+) -> list[tuple[ast.AST, ast.AST]]:
+    """Recursively pair matching-arity Tuple/List target/value elements.
+
+    Descends only through target/value nodes that are BOTH Tuple or List
+    with equal element count -- exactly the shapes Python itself unpacks
+    positionally -- at any nesting depth. Any other shape (a plain Name, a
+    Starred target, an Attribute/Subscript target, a Call value, mismatched
+    arity, ...) is returned as a single leaf pair without further descent.
+    This mirrors Python's own destructuring semantics; it is not container
+    indexing, a call, or any other dataflow indirection.
+    """
+    if (
+        isinstance(target, (ast.Tuple, ast.List))
+        and isinstance(value, (ast.Tuple, ast.List))
+        and len(target.elts) == len(value.elts)
+    ):
+        pairs: list[tuple[ast.AST, ast.AST]] = []
+        for sub_target, sub_value in zip(target.elts, value.elts):
+            pairs.extend(_flatten_destructure_pairs(sub_target, sub_value))
+        return pairs
+    return [(target, value)]
+
+
 def _is_forbidden_io_name(name: str | None) -> bool:
     if not name:
         return False
@@ -1261,14 +1286,7 @@ def _lint_module(
                 value = node.value
             value_pairs: list[tuple[ast.AST, ast.AST]] = []
             for target in targets:
-                if (
-                    isinstance(target, (ast.Tuple, ast.List))
-                    and isinstance(value, (ast.Tuple, ast.List))
-                    and len(target.elts) == len(value.elts)
-                ):
-                    value_pairs.extend(zip(target.elts, value.elts))
-                else:
-                    value_pairs.append((target, value))
+                value_pairs.extend(_flatten_destructure_pairs(target, value))
             for target_node, value_node in value_pairs:
                 if not isinstance(target_node, ast.Name):
                     continue
