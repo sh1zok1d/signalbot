@@ -7,6 +7,13 @@ filesystem/parquet access, evidence mutation, frozen Batch01 runtime reuse,
 dynamic imports, and alternate named/library rank APIs are not allowed in the
 future-B2 import closure.
 
+Non-repository imports are default-deny except the explicit transform
+allowlist. Allowlisted packages may expose in-memory functions/classes, but
+they may not re-export a foreign module that is outside that allowlist
+(pathlib.posixpath, enum.bltns->builtins, dataclasses.inspect, ...).
+Same-package capability submodules remain prefix-denied. AST inspection is
+not a sandbox.
+
 This module deliberately does NOT claim that AST linting can prove arbitrary
 numerical Python is semantically equivalent to rolling_midrank_percentile().
 The canonical primitive is behaviorally tested; whether a preregistered
@@ -18,7 +25,9 @@ made by this source linter. Keeping that boundary explicit avoids a false
 from __future__ import annotations
 
 import ast
+import importlib
 import re
+import types
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -105,6 +114,18 @@ _FORBIDDEN_ESCAPED_STDLIB_MODULES = {
     "shelve",
     "dbm",
     "posix",
+    # Path/OS/eval/import modules commonly re-exported by transform-allowed
+    # packages under their original names. Aliased re-exports (enum.bltns,
+    # collections._sys) are caught by the live foreign-module invariant.
+    "posixpath",
+    "ntpath",
+    "genericpath",
+    "inspect",
+    "tempfile",
+    "builtins",
+    "_thread",
+    "code",
+    "codeop",
 }
 
 _FORBIDDEN_PACKAGE_ATTRIBUTE_PREFIXES = (
@@ -113,6 +134,7 @@ _FORBIDDEN_PACKAGE_ATTRIBUTE_PREFIXES = (
     "numpy.lib.npyio",
     "numpy.lib._datasource",
     "numpy.ctypeslib",
+    "numpy.testing",
     "pyarrow.parquet",
     "pyarrow.dataset",
     "pyarrow.fs",
@@ -174,6 +196,7 @@ _FORBIDDEN_DIRECT_MODULE_PREFIXES = (
     "numpy.lib.npyio",
     "numpy.lib._datasource",
     "numpy.ctypeslib",
+    "numpy.testing",
     "pyarrow.parquet",
     "pyarrow.dataset",
     "pyarrow.fs",
@@ -303,6 +326,7 @@ _FORBIDDEN_IO_ATTRIBUTES = {
     "to_clipboard",
     "file_digest",
     "load_library",
+    "set_data",
     # parquet / dataframe / array file readers.
     "read_table",
     "read_parquet",
@@ -369,12 +393,45 @@ _FORBIDDEN_REFLECTION_ATTRIBUTES = {
     "gi_code",
     "cr_code",
     "ag_code",
+    "f_code",
+    "cell_contents",
+    "__loader__",
+    "__spec__",
+    "__path__",
+    "exec_module",
+    "load_module",
+    "create_module",
     "__setattr__",
     "__delattr__",
     "__reduce__",
     "__reduce_ex__",
 }
 _FORBIDDEN_IO_NAME_PREFIXES = ("read_", "scan_", "open_", "write_")
+
+# pandas/ndarray-style in-memory conversions. Unknown to_* names fail closed
+# because they are the historical class of external writers (to_csv, to_sql,
+# to_iceberg, ...). Names that can write a file OR return a string (to_json,
+# to_string, to_html, ...) remain denied by _FORBIDDEN_IO_ATTRIBUTES.
+_IN_MEMORY_TO_METHODS = {
+    "to_dict",
+    "to_numpy",
+    "to_list",
+    "to_frame",
+    "to_records",
+    "to_timestamp",
+    "to_period",
+    "to_timedelta",
+    "to_pydatetime",
+    "to_pytimedelta",
+    "to_series",
+    "to_julian_date",
+    "to_flat_index",
+    "to_native_types",
+    "to_xarray",
+    "to_dense",
+    "to_sparse",
+    "to_view",
+}
 
 _FORBIDDEN_RANK_CALLS = {
     "rank",
@@ -435,6 +492,7 @@ _FORBIDDEN_IMPORTED_SYMBOLS = {
     "to_clipboard",
     "file_digest",
     "load_library",
+    "set_data",
     "touch",
     "symlink_to",
     "chmod",
@@ -659,6 +717,81 @@ def _is_forbidden_io_name(name: str | None) -> bool:
     )
 
 
+def _is_unknown_external_to_method(name: str | None) -> bool:
+    """Fail-closed unknown to_* writers; keep known in-memory conversions."""
+    if not name or not name.startswith("to_"):
+        return False
+    if name in _IN_MEMORY_TO_METHODS:
+        return False
+    return True
+
+
+_ALLOWED_MODULE_IMPORT_CACHE: dict[str, types.ModuleType | None] = {}
+_MISSING = object()
+
+
+def _import_allowed_module(name: str) -> types.ModuleType | None:
+    if name not in _ALLOWED_MODULE_IMPORT_CACHE:
+        try:
+            _ALLOWED_MODULE_IMPORT_CACHE[name] = importlib.import_module(name)
+        except ImportError:
+            _ALLOWED_MODULE_IMPORT_CACHE[name] = None
+    return _ALLOWED_MODULE_IMPORT_CACHE[name]
+
+
+def _transform_allowlist_covers(module_name: str) -> bool:
+    if not module_name:
+        return False
+    if module_name in _ALLOWED_EXTERNAL_MODULES:
+        return True
+    return any(
+        module_name.startswith(allowed + ".")
+        for allowed in _ALLOWED_EXTERNAL_MODULES
+    )
+
+
+def _live_resolve_allowed_path(dotted: str) -> object | None:
+    """Resolve a dotted path against an already-allowlisted package.
+
+    Only allowlisted roots are imported. Missing optional scientific packages
+    return None so name-based denylists remain the fallback.
+    """
+    parts = dotted.split(".")
+    root = None
+    rest: tuple[str, ...] = ()
+    for i in range(len(parts), 0, -1):
+        candidate = ".".join(parts[:i])
+        if candidate in _ALLOWED_EXTERNAL_MODULES:
+            root = candidate
+            rest = tuple(parts[i:])
+            break
+    if root is None:
+        return None
+    module = _import_allowed_module(root)
+    if module is None:
+        return None
+    obj: object = module
+    for part in rest:
+        obj = getattr(obj, part, _MISSING)
+        if obj is _MISSING:
+            return None
+    return obj
+
+
+def _is_foreign_module_reexport(obj: object) -> bool:
+    """True when an allowlisted package exposes a module outside the allowlist.
+
+    This is the class-level guard for pathlib.posixpath, enum.bltns->builtins,
+    collections._sys->sys, dataclasses.inspect, and similar re-exports.
+    Same-package transform submodules such as numpy.linalg remain permitted;
+    same-package capability submodules are denied by prefix lists.
+    """
+    if not isinstance(obj, types.ModuleType):
+        return False
+    module_name = getattr(obj, "__name__", "") or ""
+    return not _transform_allowlist_covers(module_name)
+
+
 def _is_canonical_call(
     node: ast.Call,
     *,
@@ -830,6 +963,26 @@ def _lint_module(
                             path,
                             "transform-allowed package may not re-export "
                             f"capability module {origin_symbol}",
+                            getattr(node, "lineno", None),
+                        )
+                    )
+                live_origin = _live_resolve_allowed_path(origin)
+                if live_origin is not None and _is_foreign_module_reexport(
+                    live_origin
+                ):
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            "transform-allowed package may not re-export "
+                            f"foreign module {getattr(live_origin, '__name__', origin)}",
+                            getattr(node, "lineno", None),
+                        )
+                    )
+                if _is_unknown_external_to_method(origin_symbol):
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            f"unknown to_* writer is fail-closed: {origin}",
                             getattr(node, "lineno", None),
                         )
                     )
@@ -1168,6 +1321,23 @@ def _lint_module(
                 )
             )
 
+        if isinstance(node, (ast.Global, ast.Nonlocal)):
+            for binding_name in node.names:
+                if binding_name in _PROTECTED_BINDINGS:
+                    kind = (
+                        "global declaration"
+                        if isinstance(node, ast.Global)
+                        else "nonlocal declaration"
+                    )
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            "canonical Batch02 binding may not be shadowed by "
+                            f"{kind}: {binding_name}",
+                            getattr(node, "lineno", None),
+                        )
+                    )
+
         if isinstance(node, ast.Attribute):
             resolved_attribute = _resolved_dotted_name(node, bindings=bindings)
             if node.attr in _FORBIDDEN_ESCAPED_STDLIB_MODULES:
@@ -1176,6 +1346,26 @@ def _lint_module(
                         path,
                         "transform-allowed package may not expose "
                         f"capability module attribute .{node.attr}",
+                        getattr(node, "lineno", None),
+                    )
+                )
+            if resolved_attribute:
+                live_attr = _live_resolve_allowed_path(resolved_attribute)
+                if live_attr is not None and _is_foreign_module_reexport(live_attr):
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            "transform-allowed package may not expose "
+                            "foreign module attribute "
+                            f"{getattr(live_attr, '__name__', node.attr)}",
+                            getattr(node, "lineno", None),
+                        )
+                    )
+            if _is_unknown_external_to_method(node.attr):
+                violations.append(
+                    SourceViolation(
+                        path,
+                        f"unknown to_* writer is fail-closed: .{node.attr}",
                         getattr(node, "lineno", None),
                     )
                 )
@@ -1274,11 +1464,19 @@ def _lint_module(
                         getattr(node, "lineno", None),
                     )
                 )
-            if isinstance(node.ctx, ast.Store) and node.id in _PROTECTED_BINDINGS:
+            if (
+                isinstance(node.ctx, (ast.Store, ast.Del))
+                and node.id in _PROTECTED_BINDINGS
+            ):
+                action = (
+                    "reassigned"
+                    if isinstance(node.ctx, ast.Store)
+                    else "unbound"
+                )
                 violations.append(
                     SourceViolation(
                         path,
-                        f"canonical Batch02 binding may not be reassigned: {node.id}",
+                        f"canonical Batch02 binding may not be {action}: {node.id}",
                         getattr(node, "lineno", None),
                     )
                 )
