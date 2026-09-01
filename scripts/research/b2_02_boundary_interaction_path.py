@@ -39,7 +39,7 @@ DEFAULT_DATASET_ROOT = (
 RESULT_PATH = (
     REPO_ROOT
     / "artifacts"
-    / HYPOTHESIS_ID.lower()
+    / "b2_02_boundary_interaction_path"
     / "B2_02_BOUNDARY_INTERACTION_PATH_DEV_RESULTS.json"
 )
 PREREG_MERGE_SHA = "cbf447276c1dc47c9a755038cfd6013199207eef"
