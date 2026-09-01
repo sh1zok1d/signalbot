@@ -1897,3 +1897,115 @@ def test_rt_h01_h05_and_b2_01_frozen_trees_are_unaffected_by_the_repair():
     assert validate_batch02_source_tree(
         RESEARCH_DIR, repo_root=REPO_ROOT
     ) == ()
+
+
+# RT-20260901c follow-up: a function/lambda default parameter value is
+# another direct AST binding form of the same module/capability-provenance
+# invariant -- `def f(mod=collections): ...` binds "mod" to the module
+# reference exactly as `mod = collections` does, and a later `mod._sys` is
+# just as provenance-blind as the assignment case. These regressions cover
+# every default-parameter binding shape (positional, keyword-only, lambda,
+# an aliased import, and an already-allowlisted submodule), not one
+# module's spelling, plus positive controls proving ordinary computed
+# defaults remain usable.
+
+
+@pytest.mark.parametrize(
+    "extra_import,expression",
+    [
+        # Positional/default parameter -- the exact pattern from the task.
+        (
+            "import collections",
+            "def helper(mod=collections):\n"
+            "        return mod._sys.modules\n"
+            "    helper()",
+        ),
+        # Keyword-only default.
+        (
+            "import collections",
+            "def helper(*, mod=collections):\n"
+            "        return mod\n"
+            "    helper()",
+        ),
+        # Lambda default.
+        (
+            "import enum",
+            "f = lambda mod=enum: mod.bltns\n"
+            "    f()",
+        ),
+        # An aliased import used as a default, not just an unaliased one.
+        (
+            "import numpy as np",
+            "def helper(mod=np):\n"
+            "        return mod\n"
+            "    helper()",
+        ),
+        # An already-allowlisted submodule used as a default.
+        (
+            "import pyarrow",
+            "def helper(mod=pyarrow.compute):\n"
+            "        return mod\n"
+            "    helper()",
+        ),
+        # A default alongside an earlier plain (non-defaulted) parameter,
+        # to prove Python's trailing-defaults alignment is respected.
+        (
+            "import collections",
+            "def helper(x, mod=collections):\n"
+            "        return mod\n"
+            "    helper(1)",
+        ),
+    ],
+)
+def test_rt_default_parameter_cannot_copy_module_reference(
+    tmp_path: Path,
+    extra_import: str,
+    expression: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="copied"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "extra_import,expression",
+    [
+        # Ordinary computed default -- the exact pattern named in the task.
+        (
+            "import numpy as np",
+            "def helper(x=np.asarray([1, 2, 3])):\n"
+            "        return x\n"
+            "    helper()",
+        ),
+        # A plain literal default.
+        (
+            "",
+            "def helper(x=5):\n"
+            "        return x\n"
+            "    helper()",
+        ),
+        # Computed default on a lambda.
+        (
+            "import numpy as np",
+            "f = lambda x=np.asarray([1]): x.sum()\n"
+            "    f()",
+        ),
+        # Computed default that is keyword-only.
+        (
+            "import numpy as np",
+            "def helper(*, x=np.asarray([1])):\n"
+            "        return x\n"
+            "    helper()",
+        ),
+    ],
+)
+def test_rt_computed_parameter_defaults_remain_permitted(
+    tmp_path: Path,
+    extra_import: str,
+    expression: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    visited = validate_batch02_source_tree(research, repo_root=repo)
+    assert any(path.name == "b2_02_attack.py" for path in visited)

@@ -18,10 +18,12 @@ Imported module objects are themselves a capability-provenance boundary: a
 name bound directly by `import X` (with or without `as`), or a bare copy of
 such a name / of an explicitly allowlisted submodule path, must be used
 through that canonical binding. It may not be reassigned to a second local
-name, because the source-policy checks above are AST-provenance-sensitive --
-they recognize a foreign or capability-bearing module by tracing an
-attribute-access chain back to the import statement that bound it, and that
-trace is lost the moment the reference is copied to an arbitrary new name.
+name -- by ordinary assignment, a walrus expression, matching-arity tuple/
+list destructuring, or as a function/lambda default parameter value --
+because the source-policy checks above are AST-provenance-sensitive: they
+recognize a foreign or capability-bearing module by tracing an attribute-
+access chain back to the import statement that bound it, and that trace is
+lost the moment the reference is copied to any other direct local binding.
 See "Static admissibility guarantees" below.
 
 This module deliberately does NOT claim that AST linting can prove arbitrary
@@ -58,9 +60,11 @@ Static admissibility guarantees (enforced here, mechanically, on the AST):
       exposes (assignment, destructuring, parameters, comprehensions,
       exception aliases, match captures, type parameters);
     - an imported module reference (a name bound by `import X`, or an exact
-      allowlisted submodule path) may not be copied to a second local name;
-      it must be used, or further attribute-accessed, through the binding
-      import created.
+      allowlisted submodule path) may not be copied to a second local name --
+      including a plain/annotated assignment, a walrus expression, matching-
+      arity tuple/list destructuring, or a function/lambda default parameter
+      value; it must be used, or further attribute-accessed, through the
+      binding import created.
     These checks are a pure, deterministic function of the source AST alone:
     no package is imported or introspected while linting, so results do not
     depend on which package versions happen to be installed wherever the
@@ -989,6 +993,20 @@ def _lint_module(
     )
     copy_protected_origins = module_origins | _ALLOWED_EXTERNAL_MODULES
 
+    def _flag_module_copy(binding_name: str, value_node: ast.AST, lineno: int | None) -> None:
+        resolved_value = _resolved_dotted_name(value_node, bindings=bindings)
+        if resolved_value and resolved_value in copy_protected_origins:
+            violations.append(
+                SourceViolation(
+                    path,
+                    "imported module reference may not be copied to "
+                    f"a new local binding: {binding_name} = "
+                    f"{resolved_value}; use the import binding/alias "
+                    "directly",
+                    lineno,
+                )
+            )
+
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign):
             if (
@@ -1254,18 +1272,33 @@ def _lint_module(
             for target_node, value_node in value_pairs:
                 if not isinstance(target_node, ast.Name):
                     continue
-                resolved_value = _resolved_dotted_name(value_node, bindings=bindings)
-                if resolved_value and resolved_value in copy_protected_origins:
-                    violations.append(
-                        SourceViolation(
-                            path,
-                            "imported module reference may not be copied to "
-                            f"a new local binding: {target_node.id} = "
-                            f"{resolved_value}; use the import binding/alias "
-                            "directly",
-                            getattr(node, "lineno", None),
-                        )
-                    )
+                _flag_module_copy(
+                    target_node.id, value_node, getattr(node, "lineno", None)
+                )
+
+        # Same provenance-copy boundary, for the one other direct-binding
+        # form the AST exposes: a function/lambda default parameter value.
+        # `def f(mod=collections): ...` binds "mod" to the module reference
+        # exactly as `mod = collections` would, and a later `mod._sys` is
+        # just as provenance-blind as the assignment case above. This pairs
+        # defaults to parameters using Python's own alignment rules (trailing
+        # positional/posonly params for `defaults`, index-matched optional
+        # entries in `kw_defaults`) and does not otherwise look inside the
+        # function body, a call, or any other indirection.
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            fn_args = node.args
+            positional = [*fn_args.posonlyargs, *fn_args.args]
+            defaulted_positional = positional[len(positional) - len(fn_args.defaults):]
+            for param, default_node in zip(defaulted_positional, fn_args.defaults):
+                _flag_module_copy(
+                    param.arg, default_node, getattr(default_node, "lineno", None)
+                )
+            for param, default_node in zip(fn_args.kwonlyargs, fn_args.kw_defaults):
+                if default_node is None:
+                    continue
+                _flag_module_copy(
+                    param.arg, default_node, getattr(default_node, "lineno", None)
+                )
 
         if isinstance(node, ast.Call):
             name = _call_name(node)
