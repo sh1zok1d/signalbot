@@ -1642,3 +1642,449 @@ def test_rt_pep695_type_parameters_cannot_shadow_canonical_bindings(
     )
     with pytest.raises(Batch02SourcePolicyError, match="shadowed"):
         validate_batch02_source_tree(research, repo_root=repo)
+
+
+# RT-20260901 follow-up: foreign-module re-exports, import-system objects,
+# remaining object-model surfaces, fail-closed unknown to_* writers, and
+# protected-binding string targets (global/nonlocal/del).
+
+
+@pytest.mark.parametrize(
+    "extra_import,expression",
+    [
+        ("import pathlib", "x = pathlib.posixpath.isfile('/evil')"),
+        ("from pathlib import posixpath", "x = posixpath.isfile('/evil')"),
+        ("from pathlib import ntpath", "x = ntpath.isdir('/evil')"),
+        ("import enum", "opener = enum.bltns.open"),
+        ("import collections", "mods = collections._sys.modules"),
+        ("import dataclasses", "frame = dataclasses.inspect.currentframe()"),
+        ("import typing", "fn = typing.operator.attrgetter('x')"),
+    ],
+)
+def test_rt_allowlisted_packages_cannot_reexport_foreign_modules(
+    tmp_path: Path,
+    extra_import: str,
+    expression: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "loader = json.__loader__",
+        "spec = json.__spec__",
+        "json.__loader__.set_data('/evil/out', b'x')",
+        "json.__spec__.loader.exec_module(json)",
+        "paths = json.__path__",
+    ],
+)
+def test_rt_import_system_objects_are_not_hypothesis_capabilities(
+    tmp_path: Path,
+    expression: str,
+):
+    source = "import json\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="reflection|set_data|__path__"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "code = FRAME.f_code",
+        "value = CELL.cell_contents",
+    ],
+)
+def test_rt_code_object_and_closure_cell_surfaces_are_rejected(
+    tmp_path: Path,
+    expression: str,
+):
+    repo, research = _synthetic_tree(
+        tmp_path,
+        runner=_canonical_runner(extra=expression),
+    )
+    with pytest.raises(Batch02SourcePolicyError, match="reflection"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "extra_import,expression",
+    [
+        ("import pandas as pd", "x = pd.DataFrame({'a': [1]}).to_iceberg('t')"),
+        ("import pandas as pd", "writer = pd.DataFrame.to_iceberg"),
+        (
+            "from numpy import testing",
+            "testing.runstring('print(1)', {})",
+        ),
+        ("import numpy as np", "np.testing.temppath"),
+    ],
+)
+def test_rt_unknown_external_writers_and_testing_subpackage_are_rejected(
+    tmp_path: Path,
+    extra_import: str,
+    expression: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        "global persist_batch02_result",
+        "del persist_batch02_result",
+        "def inner():\n        nonlocal persist_batch02_result\n        return None",
+    ],
+)
+def test_rt_protected_bindings_cannot_use_global_nonlocal_or_del(
+    tmp_path: Path,
+    extra: str,
+):
+    repo, research = _synthetic_tree(
+        tmp_path,
+        runner=_canonical_runner(extra=extra),
+    )
+    with pytest.raises(Batch02SourcePolicyError, match="shadowed|unbound"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_rt_in_memory_scientific_transforms_remain_allowed(tmp_path: Path):
+    source = (
+        "import json\n"
+        "import math\n"
+        "import numpy as np\n"
+        "from pathlib import Path\n"
+        "import pandas as pd\n"
+        + _canonical_runner(
+            extra=(
+                "payload = json.dumps({'a': 1}); "
+                "value = json.loads(payload); "
+                "norm = np.linalg.norm(np.asarray([3.0, 4.0])); "
+                "frame = pd.DataFrame({'a': [1]}).to_dict(); "
+                "arr = pd.Series([1, 2]).to_numpy(); "
+                "items = pd.Series([1]).to_list(); "
+                "joined = Path('a').joinpath('b'); "
+                "pure = Path('a').as_posix(); "
+                "root = math.sqrt(norm)"
+            )
+        )
+    )
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    visited = validate_batch02_source_tree(research, repo_root=repo)
+    assert any(path.name == "b2_02_attack.py" for path in visited)
+
+
+# RT-20260901b follow-up: the foreign-module-reexport invariant was
+# provenance-sensitive (it traces an attribute-access chain back to the
+# import statement that bound it) and that trace was lost the moment an
+# imported module reference was copied to an ordinary second local name.
+# These regressions protect the general "module/capability provenance"
+# class, not one particular module's spelling: they cover a root-import
+# copy, a copy of an already-allowlisted submodule, multiple simultaneous
+# aliases of the same module, and tuple-destructuring copies, alongside
+# confirmation that direct (uncopied) use and ordinary scientific value
+# assignment are unaffected.
+
+
+@pytest.mark.parametrize(
+    "extra_import,expression",
+    [
+        # The exact literal pattern from the architecture task.
+        ("import collections", "alias = collections; x = alias._sys.modules"),
+        # Same provenance loss for the other originally-cited example.
+        ("import enum", "alias = enum; x = alias.bltns"),
+        # Copying an aliased root import, not just an unaliased one.
+        ("import numpy as np", "np2 = np; x = np2"),
+        # Copying an *allowed* submodule reached via attribute access still
+        # has to go through its own canonical import, not a second name.
+        ("import pyarrow", "pc2 = pyarrow.compute"),
+        # Annotated assignment is a distinct AST node from plain Assign.
+        ("import collections", "alias: object = collections"),
+        # Walrus is a third distinct binding form.
+        ("import collections", "x = (alias := collections)"),
+    ],
+)
+def test_rt_module_reference_cannot_be_copied_to_new_local_binding(
+    tmp_path: Path,
+    extra_import: str,
+    expression: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="copied"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_rt_multiple_aliases_of_same_module_are_consistently_protected(
+    tmp_path: Path,
+):
+    source = (
+        "import collections as c1\nimport collections as c2\n"
+        + _canonical_runner(extra="x = c1; y = c2")
+    )
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="copied") as excinfo:
+        validate_batch02_source_tree(research, repo_root=repo)
+    # Both aliases are caught, not just whichever happens to be visited first.
+    messages = str(excinfo.value)
+    assert "x = collections" in messages
+    assert "y = collections" in messages
+
+
+def test_rt_tuple_destructuring_copy_of_module_references_is_rejected(
+    tmp_path: Path,
+):
+    source = "import numpy as np\nimport pandas as pd\n" + _canonical_runner(
+        extra="a, b = np, pd"
+    )
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="copied"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_rt_direct_foreign_module_reexport_still_denied_without_any_copy(
+    tmp_path: Path,
+):
+    # Control: the underlying foreign-module-reexport class must still fire
+    # on its own, independent of the new copy-prohibition.
+    source = "import collections\n" + _canonical_runner(
+        extra="mods = collections._sys.modules"
+    )
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="foreign module"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_rt_ordinary_scientific_values_remain_freely_assignable(
+    tmp_path: Path,
+):
+    # Calling through an import binding, and assigning/reusing the computed
+    # result, must remain unaffected by the copy-prohibition -- only a bare
+    # module-reference copy is restricted, not generic assignment.
+    source = (
+        "import numpy as np\n"
+        "import pandas as pd\n"
+        "import pyarrow.compute as pc\n"
+        + _canonical_runner(
+            extra=(
+                "arr = np.asarray([1, 2, 3]); "
+                "frame = pd.DataFrame({'x': arr}); "
+                "total = pc.sum(arr); "
+                "doubled = total.as_py() * 2; "
+                "norm = np.linalg.norm(arr)"
+            )
+        )
+    )
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    visited = validate_batch02_source_tree(research, repo_root=repo)
+    assert any(path.name == "b2_02_attack.py" for path in visited)
+
+
+def test_rt_h01_h05_and_b2_01_frozen_trees_are_unaffected_by_the_repair():
+    # The real repository's frozen historical hypothesis code is not part of
+    # the future-B2 policy closure at all (only b2_(?!01)NN files are). This
+    # asserts that claim continues to hold after the copy-prohibition and
+    # static foreign-module rewrite: running the real linter against the
+    # actual on-disk research tree still returns no violations, exactly as
+    # before this repair, and does not require importing/evaluating any
+    # H01-H05 or B2-01 module to do so.
+    assert validate_batch02_source_tree(
+        RESEARCH_DIR, repo_root=REPO_ROOT
+    ) == ()
+
+
+# RT-20260901c follow-up: a function/lambda default parameter value is
+# another direct AST binding form of the same module/capability-provenance
+# invariant -- `def f(mod=collections): ...` binds "mod" to the module
+# reference exactly as `mod = collections` does, and a later `mod._sys` is
+# just as provenance-blind as the assignment case. These regressions cover
+# every default-parameter binding shape (positional, keyword-only, lambda,
+# an aliased import, and an already-allowlisted submodule), not one
+# module's spelling, plus positive controls proving ordinary computed
+# defaults remain usable.
+
+
+@pytest.mark.parametrize(
+    "extra_import,expression",
+    [
+        # Positional/default parameter -- the exact pattern from the task.
+        (
+            "import collections",
+            "def helper(mod=collections):\n"
+            "        return mod._sys.modules\n"
+            "    helper()",
+        ),
+        # Keyword-only default.
+        (
+            "import collections",
+            "def helper(*, mod=collections):\n"
+            "        return mod\n"
+            "    helper()",
+        ),
+        # Lambda default.
+        (
+            "import enum",
+            "f = lambda mod=enum: mod.bltns\n"
+            "    f()",
+        ),
+        # An aliased import used as a default, not just an unaliased one.
+        (
+            "import numpy as np",
+            "def helper(mod=np):\n"
+            "        return mod\n"
+            "    helper()",
+        ),
+        # An already-allowlisted submodule used as a default.
+        (
+            "import pyarrow",
+            "def helper(mod=pyarrow.compute):\n"
+            "        return mod\n"
+            "    helper()",
+        ),
+        # A default alongside an earlier plain (non-defaulted) parameter,
+        # to prove Python's trailing-defaults alignment is respected.
+        (
+            "import collections",
+            "def helper(x, mod=collections):\n"
+            "        return mod\n"
+            "    helper(1)",
+        ),
+    ],
+)
+def test_rt_default_parameter_cannot_copy_module_reference(
+    tmp_path: Path,
+    extra_import: str,
+    expression: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="copied"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+@pytest.mark.parametrize(
+    "extra_import,expression",
+    [
+        # Ordinary computed default -- the exact pattern named in the task.
+        (
+            "import numpy as np",
+            "def helper(x=np.asarray([1, 2, 3])):\n"
+            "        return x\n"
+            "    helper()",
+        ),
+        # A plain literal default.
+        (
+            "",
+            "def helper(x=5):\n"
+            "        return x\n"
+            "    helper()",
+        ),
+        # Computed default on a lambda.
+        (
+            "import numpy as np",
+            "f = lambda x=np.asarray([1]): x.sum()\n"
+            "    f()",
+        ),
+        # Computed default that is keyword-only.
+        (
+            "import numpy as np",
+            "def helper(*, x=np.asarray([1])):\n"
+            "        return x\n"
+            "    helper()",
+        ),
+    ],
+)
+def test_rt_computed_parameter_defaults_remain_permitted(
+    tmp_path: Path,
+    extra_import: str,
+    expression: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    visited = validate_batch02_source_tree(research, repo_root=repo)
+    assert any(path.name == "b2_02_attack.py" for path in visited)
+
+
+# RT-20260901d follow-up: the matching-arity Tuple/List destructuring pairing
+# used by the module-copy check only unpacked one level, so a module
+# reference nested inside an inner Tuple/List target/value pair (rather than
+# at the top level) was never examined. This is the same already-accepted
+# "direct syntactic rebinding into another local binding" invariant, applied
+# recursively through nested Tuple/List structure -- not a new dataflow
+# class, and it must not reject arbitrary unpacking of non-module values.
+
+
+@pytest.mark.parametrize(
+    "extra_import,expression",
+    [
+        # One nested tuple level.
+        ("import collections", "n, (alias,) = 1, (collections,)"),
+        # Multiple nested tuple levels.
+        ("import collections", "((alias,),) = ((collections,),)"),
+        # Mixed tuple/list nesting.
+        ("import collections", "n, [alias] = 1, [collections]"),
+        ("import collections", "[n, (alias,)] = [1, (collections,)]"),
+        # A module reference at only one of several nested positions -- an
+        # aliased import this time, not the same module repeated.
+        ("import numpy as np", "(a, (b, c)) = (1, (np, 2))"),
+        # Nested three levels deep with an allowlisted submodule.
+        ("import pyarrow", "(((alias,),),) = (((pyarrow.compute,),),)"),
+    ],
+)
+def test_rt_nested_destructuring_copy_of_module_reference_is_rejected(
+    tmp_path: Path,
+    extra_import: str,
+    expression: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError, match="copied"):
+        validate_batch02_source_tree(research, repo_root=repo)
+
+
+def test_rt_nested_destructuring_flags_only_the_module_valued_position(
+    tmp_path: Path,
+):
+    # Only "b = np" is a module-copy violation; "a" and "c" are ordinary
+    # values and must not be reported.
+    source = "import numpy as np\n" + _canonical_runner(
+        extra="(a, (b, c)) = (1, (np, 2))"
+    )
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    with pytest.raises(Batch02SourcePolicyError) as excinfo:
+        validate_batch02_source_tree(research, repo_root=repo)
+    message = str(excinfo.value)
+    assert "b = numpy" in message
+    assert "a = " not in message
+    assert "c = " not in message
+
+
+@pytest.mark.parametrize(
+    "extra_import,expression",
+    [
+        # Nested destructuring of computed/scientific values.
+        ("import numpy as np", "a, (b, c) = 1, (np.asarray([1]), 2)"),
+        (
+            "import numpy as np\nimport pandas as pd",
+            "a, (b, c) = np.asarray([1]), (pd.DataFrame({'x': [1]}), 2)",
+        ),
+        # Nested destructuring of plain literals/non-module values.
+        ("", "a, (b, c) = 1, (2, 3)"),
+        ("", "(a, [b, (c, d)]) = (1, [2, (3, 4)])"),
+    ],
+)
+def test_rt_nested_destructuring_of_non_module_values_remains_permitted(
+    tmp_path: Path,
+    extra_import: str,
+    expression: str,
+):
+    source = extra_import + "\n" + _canonical_runner(extra=expression)
+    repo, research = _synthetic_tree(tmp_path, runner=source)
+    visited = validate_batch02_source_tree(research, repo_root=repo)
+    assert any(path.name == "b2_02_attack.py" for path in visited)
