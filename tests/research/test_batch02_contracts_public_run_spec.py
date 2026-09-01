@@ -26,6 +26,8 @@ def test_prepare_public_primitive_form_builds_internal_contracts(monkeypatch, tm
         def assert_minted(self):
             return None
 
+    monkeypatch.setattr(contracts, "AuthorizedDataset", Authorized)
+
     def fake_authorize_dataset_access(*, code_freeze, dataset_root, identity, policy):
         captured["identity"] = identity
         captured["policy"] = policy
