@@ -40,7 +40,7 @@ RESULT_PATH = (
     REPO_ROOT
     / "artifacts"
     / HYPOTHESIS_ID.lower()
-    / f"{HYPOTHESIS_ID.replace('-', '_')}_DEV_RESULTS.json"
+    / "B2_02_BOUNDARY_INTERACTION_PATH_DEV_RESULTS.json"
 )
 PREREG_MERGE_SHA = "cbf447276c1dc47c9a755038cfd6013199207eef"
 
