@@ -603,7 +603,7 @@ _RETENTION_RUNNER_CALLS = {
     "verify_batch02_code",
     "prepare_batch02_evidence_reservation",
     "prepare_batch02_retained_run",
-    "persist_batch02_result",
+    "persist_batch02_retained_result",
     "archive_batch02_result",
 }
 _DATASET_OPENING_NAMES = {
@@ -637,9 +637,12 @@ _CANONICAL_PUBLIC_API = {
     "Batch02ContractError",
     "Batch02RunContext",
     "DurableEvidenceReservation",
+    "DurableOutcomeAccessClaim",
     "DurableArchiveReceipt",
+    "PersistedBatch02ResultProof",
     "PreOutcomeRetentionError",
     "PostOutcomeRetentionFailure",
+    "AmbiguousOutcomeAccessStateError",
 }
 
 
@@ -1054,6 +1057,7 @@ def _lint_module(
     canonical_calls: set[str] = set()
     context_names: set[str] = set()
     reservation_names: set[str] = set()
+    persisted_names: set[str] = set()
     bindings, module_origins = _import_bindings_and_module_origins(
         repo_root=repo_root, path=path, tree=tree
     )
@@ -1091,6 +1095,14 @@ def _lint_module(
                     for target in node.targets:
                         if isinstance(target, ast.Name):
                             reservation_names.add(target.id)
+                if _is_canonical_call(
+                    node.value,
+                    bindings=bindings,
+                    name="persist_batch02_retained_result",
+                ):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name):
+                            persisted_names.add(target.id)
         elif isinstance(node, ast.AnnAssign):
             if (
                 isinstance(node.target, ast.Name)
@@ -1107,6 +1119,12 @@ def _lint_module(
                     name="prepare_batch02_evidence_reservation",
                 ):
                     reservation_names.add(node.target.id)
+                if _is_canonical_call(
+                    node.value,
+                    bindings=bindings,
+                    name="persist_batch02_retained_result",
+                ):
+                    persisted_names.add(node.target.id)
 
     for node in ast.walk(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
@@ -1422,7 +1440,12 @@ def _lint_module(
                     )
 
             if (
-                name in {"persist_batch02_result", "load_authorized_parquet_table"}
+                name
+                in {
+                    "persist_batch02_result",
+                    "persist_batch02_retained_result",
+                    "load_authorized_parquet_table",
+                }
                 and _is_canonical_call(node, bindings=bindings, name=name)
             ):
                 context_kw = next(
@@ -1446,19 +1469,48 @@ def _lint_module(
                 name == "archive_batch02_result"
                 and _is_canonical_call(node, bindings=bindings, name=name)
             ):
-                reservation_kw = next(
-                    (kw.value for kw in node.keywords if kw.arg == "reservation"),
+                persisted_kw = next(
+                    (kw.value for kw in node.keywords if kw.arg == "persisted_result"),
                     None,
                 )
+                context_kw = next(
+                    (kw.value for kw in node.keywords if kw.arg == "run_context"),
+                    None,
+                )
+                digest_kw = next(
+                    (kw for kw in node.keywords if kw.arg == "expected_sha256"),
+                    None,
+                )
+                if digest_kw is not None:
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            "archive_batch02_result must not accept a caller-supplied "
+                            "expected_sha256 digest",
+                            getattr(node, "lineno", None),
+                        )
+                    )
                 if (
-                    not isinstance(reservation_kw, ast.Name)
-                    or reservation_kw.id not in reservation_names
+                    not isinstance(persisted_kw, ast.Name)
+                    or persisted_kw.id not in persisted_names
                 ):
                     violations.append(
                         SourceViolation(
                             path,
-                            "archive_batch02_result must receive reservation "
-                            "assigned from prepare_batch02_evidence_reservation",
+                            "archive_batch02_result must receive persisted_result "
+                            "assigned from persist_batch02_retained_result",
+                            getattr(node, "lineno", None),
+                        )
+                    )
+                if (
+                    not isinstance(context_kw, ast.Name)
+                    or context_kw.id not in context_names
+                ):
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            "archive_batch02_result must receive run_context assigned from "
+                            "prepare_batch02_retained_run",
                             getattr(node, "lineno", None),
                         )
                     )
@@ -1774,6 +1826,21 @@ def _lint_module(
                     path,
                     "B2-03+ runners may not call prepare_batch02_run; "
                     "durable evidence reservation must precede outcome access",
+                )
+            )
+        if (
+            number is not None
+            and number >= 3
+            and (
+                "persist_batch02_result" in canonical_imports
+                or "persist_batch02_result" in canonical_calls
+            )
+        ):
+            violations.append(
+                SourceViolation(
+                    path,
+                    "B2-03+ runners may not call persist_batch02_result; "
+                    "archive must consume persist_batch02_retained_result",
                 )
             )
 

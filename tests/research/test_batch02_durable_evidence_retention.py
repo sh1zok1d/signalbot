@@ -7,6 +7,7 @@ market partitions, 2025 validation, 2026 OOS, or any Batch02 market outcome.
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import stat
 import subprocess
@@ -19,19 +20,24 @@ from scripts.research.lib import batch02_contracts
 from scripts.research.lib.batch02_contracts import (
     Batch02ContractError,
     DurableEvidenceReservation,
+    PersistedBatch02ResultProof,
     PostOutcomeRetentionFailure,
     PreOutcomeRetentionError,
     archive_batch02_result,
     persist_batch02_result,
+    persist_batch02_retained_result,
     prepare_batch02_evidence_reservation,
     prepare_batch02_retained_run,
     prepare_batch02_run,
     verify_batch02_code,
 )
 from scripts.research.lib.batch02_evidence_retention import (
+    AMBIGUOUS_CLAIM_STATE,
     POST_OUTCOME_STATE,
+    AmbiguousOutcomeAccessStateError,
     artifact_relpath,
     evidence_ref_for,
+    prepare_test_evidence_reservation,
     run_git,
     sanitize_remote_identity,
     sha256_bytes,
@@ -129,9 +135,12 @@ def _reservation_kwargs(code_freeze, **overrides):
     return payload
 
 
-def _reserve(repo: Path, sha: str, **overrides):
+def _reserve(repo: Path, sha: str, bare: Path, **overrides):
     freeze = verify_batch02_code(repo_root=repo, expected_code_sha=sha)
-    return prepare_batch02_evidence_reservation(**_reservation_kwargs(freeze, **overrides))
+    return prepare_test_evidence_reservation(
+        **_reservation_kwargs(freeze, **overrides),
+        test_bare_remote=bare,
+    )
 
 
 def _remote_blob(bare: Path, ref: str, relative: str) -> bytes:
@@ -140,6 +149,16 @@ def _remote_blob(bare: Path, ref: str, relative: str) -> bytes:
         check=True,
         capture_output=True,
     ).stdout
+
+
+def _remote_tree(bare: Path, ref: str) -> tuple[str, ...]:
+    raw = subprocess.run(
+        ["git", "--git-dir", str(bare), "ls-tree", "-r", "--name-only", ref],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    return tuple(line for line in raw.splitlines() if line.strip())
 
 
 def _checkout_evidence(bare: Path, work: Path, evidence_ref: str) -> None:
@@ -222,6 +241,19 @@ def _init_dataset_and_code(tmp_path: Path) -> tuple[Path, Path, Path, str]:
     return repo, bare, dataset_root, sha
 
 
+def _result_path(repo: Path) -> Path:
+    return (
+        repo
+        / "artifacts"
+        / "b2_03_retention_fixture"
+        / "B2_03_RETENTION_FIXTURE_DEV_RESULTS.json"
+    )
+
+
+def _HEX40(value: str) -> bool:
+    return len(value) == 40 and all(ch in "0123456789abcdef" for ch in value)
+
+
 @pytest.fixture(autouse=True)
 def _reset_authorize_probe(monkeypatch: pytest.MonkeyPatch):
     AUTHORIZE_CALLS.clear()
@@ -235,19 +267,13 @@ def _reset_authorize_probe(monkeypatch: pytest.MonkeyPatch):
     yield
 
 
-def test_successful_reservation_archive_readback_and_frozen_worktree(tmp_path: Path):
+def test_successful_reservation_claim_archive_and_frozen_worktree(tmp_path: Path):
     repo, bare, dataset_root, sha = _init_dataset_and_code(tmp_path)
     tree_before = _git(repo, "rev-parse", "HEAD^{tree}")
     tracked_before = _git(repo, "ls-tree", "-r", "HEAD")
-    freeze = verify_batch02_code(repo_root=repo, expected_code_sha=sha)
-
-    reservation = prepare_batch02_evidence_reservation(
-        **_reservation_kwargs(
-            freeze,
-            dataset_id="CORE_BTC_BINANCE_V0",
-        )
-    )
+    reservation = _reserve(repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0")
     assert AUTHORIZE_CALLS == []
+    assert _remote_tree(bare, reservation.evidence_ref) == ("reservation.json",)
     remote_reservation = _remote_blob(bare, reservation.evidence_ref, "reservation.json")
     payload = json.loads(remote_reservation)
     assert payload["outcomes"] is None
@@ -261,39 +287,45 @@ def test_successful_reservation_archive_readback_and_frozen_worktree(tmp_path: P
         command=("python", "-m", "b2_03_retention_fixture"),
     )
     assert AUTHORIZE_CALLS == ["authorize_dataset_access"]
-
-    result_path = (
-        repo
-        / "artifacts"
-        / "b2_03_retention_fixture"
-        / "B2_03_RETENTION_FIXTURE_DEV_RESULTS.json"
+    assert ctx._outcome_claim is not None
+    claim_payload = json.loads(
+        _remote_blob(bare, reservation.evidence_ref, "outcome_claim.json")
     )
-    digest = persist_batch02_result(
+    assert claim_payload["kind"] == "batch02_outcome_access_claim"
+    assert claim_payload["outcomes"] is None
+    assert claim_payload["reservation_commit_sha"] == reservation.evidence_head_sha
+    assert set(_remote_tree(bare, reservation.evidence_ref)) == {
+        "reservation.json",
+        "outcome_claim.json",
+    }
+
+    result_path = _result_path(repo)
+    persisted = persist_batch02_retained_result(
         result_path,
         {"status": "synthetic_closed", "note": "outcome-blind fixture"},
         run_context=ctx,
     )
     source = result_path.read_bytes()
-    assert sha256_bytes(source) == digest
+    assert persisted.artifact_sha256 == sha256_bytes(source)
+    assert persisted.artifact_size_bytes == len(source)
 
-    receipt = archive_batch02_result(
-        reservation=reservation,
-        run_context=ctx,
-        result_path=result_path,
-        expected_sha256=digest,
-    )
+    receipt = archive_batch02_result(persisted_result=persisted, run_context=ctx)
     remote_artifact = _remote_blob(bare, reservation.evidence_ref, receipt.evidence_path)
     assert remote_artifact == source
-    assert sha256_bytes(remote_artifact) == digest
+    assert sha256_bytes(remote_artifact) == persisted.artifact_sha256
     assert len(remote_artifact) == len(source)
-    assert receipt.artifact_sha256 == digest
+    assert receipt.artifact_sha256 == persisted.artifact_sha256
     assert receipt.artifact_size_bytes == len(source)
     assert receipt.archive_commit_sha
     assert _HEX40(receipt.archive_commit_sha)
     remote_receipt = json.loads(_remote_blob(bare, reservation.evidence_ref, "receipt.json"))
-    assert remote_receipt["artifact_sha256"] == digest
+    assert remote_receipt["artifact_sha256"] == persisted.artifact_sha256
     assert "token" not in json.dumps(remote_receipt).lower()
-    assert reservation.evidence_head_sha != receipt.archive_commit_sha
+    names = set(_remote_tree(bare, reservation.evidence_ref))
+    assert "reservation.json" in names
+    assert "outcome_claim.json" in names
+    assert "receipt.json" in names
+    assert receipt.evidence_path in names
 
     log = subprocess.run(
         ["git", "--git-dir", str(bare), "log", "--oneline", reservation.evidence_ref],
@@ -301,15 +333,11 @@ def test_successful_reservation_archive_readback_and_frozen_worktree(tmp_path: P
         capture_output=True,
         text=True,
     ).stdout.strip()
-    assert len(log.splitlines()) == 2
+    assert len(log.splitlines()) == 3
     assert _git(repo, "rev-parse", "HEAD^{tree}") == tree_before
     assert _git(repo, "ls-tree", "-r", "HEAD") == tracked_before
     verify_git_freeze(repo, sha)
     assert result_path.read_bytes() == source
-
-
-def _HEX40(value: str) -> bool:
-    return len(value) == 40 and all(ch in "0123456789abcdef" for ch in value)
 
 
 def test_prepare_batch02_run_rejects_b2_03_with_typed_freeze(tmp_path: Path):
@@ -332,6 +360,113 @@ def test_prepare_batch02_run_rejects_b2_03_with_typed_freeze(tmp_path: Path):
             required_gate_names=("primary",),
         )
     assert AUTHORIZE_CALLS == []
+
+
+def test_same_process_second_authorization_fails_before_dataset_access(tmp_path: Path):
+    repo, bare, dataset_root, sha = _init_dataset_and_code(tmp_path)
+    reservation = _reserve(repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0")
+    prepare_batch02_retained_run(
+        reservation=reservation,
+        outcome_access_acknowledged=True,
+        dataset_root=dataset_root,
+        command=("python", "-m", "b2_03_retention_fixture"),
+    )
+    assert AUTHORIZE_CALLS == ["authorize_dataset_access"]
+    with pytest.raises(PreOutcomeRetentionError, match="already claimed"):
+        prepare_batch02_retained_run(
+            reservation=reservation,
+            outcome_access_acknowledged=True,
+            dataset_root=dataset_root,
+            command=("python", "-m", "b2_03_retention_fixture"),
+        )
+    assert AUTHORIZE_CALLS == ["authorize_dataset_access"]
+
+
+def test_fresh_clone_after_claim_cannot_remint_reservation(tmp_path: Path):
+    repo, bare, dataset_root, sha = _init_dataset_and_code(tmp_path)
+    reservation = _reserve(repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0")
+    prepare_batch02_retained_run(
+        reservation=reservation,
+        outcome_access_acknowledged=True,
+        dataset_root=dataset_root,
+        command=("python", "-m", "b2_03_retention_fixture"),
+    )
+    del reservation
+    AUTHORIZE_CALLS.clear()
+    with pytest.raises(PreOutcomeRetentionError, match="not a pristine RESERVED"):
+        _reserve(repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0")
+    assert AUTHORIZE_CALLS == []
+
+
+def test_archived_ref_cannot_become_a_new_reservation(tmp_path: Path):
+    repo, bare, dataset_root, sha = _init_dataset_and_code(tmp_path)
+    reservation = _reserve(repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0")
+    ctx = prepare_batch02_retained_run(
+        reservation=reservation,
+        outcome_access_acknowledged=True,
+        dataset_root=dataset_root,
+        command=("python", "-m", "b2_03_retention_fixture"),
+    )
+    persisted = persist_batch02_retained_result(
+        _result_path(repo),
+        {"status": "synthetic_closed"},
+        run_context=ctx,
+    )
+    archive_batch02_result(persisted_result=persisted, run_context=ctx)
+    AUTHORIZE_CALLS.clear()
+    with pytest.raises(PreOutcomeRetentionError, match="not a pristine RESERVED"):
+        _reserve(repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0")
+    assert AUTHORIZE_CALLS == []
+
+
+def test_post_outcome_archive_failure_then_local_loss_still_blocks_replay(
+    tmp_path: Path,
+):
+    repo, bare, dataset_root, sha = _init_dataset_and_code(tmp_path)
+    reservation = _reserve(repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0")
+    ctx = prepare_batch02_retained_run(
+        reservation=reservation,
+        outcome_access_acknowledged=True,
+        dataset_root=dataset_root,
+        command=("python", "-m", "b2_03_retention_fixture"),
+    )
+    result_path = _result_path(repo)
+    persisted = persist_batch02_retained_result(
+        result_path,
+        {"status": "synthetic_closed"},
+        run_context=ctx,
+    )
+    hook = bare / "hooks" / "pre-receive"
+    hook.write_text("#!/bin/sh\necho archive-denied\nexit 1\n", encoding="utf-8")
+    hook.chmod(hook.stat().st_mode | stat.S_IEXEC)
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE) as exc:
+        archive_batch02_result(persisted_result=persisted, run_context=ctx)
+    assert exc.value.outcome_consumed is True
+    assert exc.value.rerun_authorized is False
+    artifacts = repo / "artifacts"
+    if artifacts.exists():
+        for path in artifacts.rglob("*"):
+            if path.is_file():
+                path.unlink()
+    AUTHORIZE_CALLS.clear()
+    with pytest.raises(PreOutcomeRetentionError, match="not a pristine RESERVED"):
+        _reserve(repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0")
+    assert AUTHORIZE_CALLS == []
+    assert "outcome_claim.json" in set(_remote_tree(bare, reservation.evidence_ref))
+    assert "receipt.json" not in set(_remote_tree(bare, reservation.evidence_ref))
+
+
+def test_production_local_bare_remote_is_rejected_before_outcomes(tmp_path: Path):
+    repo, _bare, sha = _init_execution_repo(tmp_path)
+    freeze = verify_batch02_code(repo_root=repo, expected_code_sha=sha)
+    with pytest.raises(PreOutcomeRetentionError, match="local filesystem Git remote"):
+        prepare_batch02_evidence_reservation(**_reservation_kwargs(freeze))
+    assert AUTHORIZE_CALLS == []
+    assert not hasattr(batch02_contracts, "prepare_test_evidence_reservation")
+    assert not hasattr(batch02_contracts, "prepare_test_evidence_transport")
+    source = Path("scripts/research/lib/batch02_contracts.py").read_text(encoding="utf-8")
+    assert "allow_local_remote" not in source
+    assert "prepare_test_evidence_reservation" not in source
 
 
 def test_missing_origin_is_pre_outcome_and_does_not_authorize(tmp_path: Path):
@@ -372,11 +507,58 @@ def test_credential_bearing_origin_is_rejected_and_redacted(tmp_path: Path):
     assert AUTHORIZE_CALLS == []
 
 
-def test_sanitize_rejects_userinfo_urls():
+def test_sanitize_rejects_userinfo_and_local_urls(tmp_path: Path):
     with pytest.raises(PreOutcomeRetentionError, match="credential-bearing"):
         sanitize_remote_identity("https://user:password@github.com/sh1zok1d/signalbot.git")
     with pytest.raises(PreOutcomeRetentionError, match="credential-bearing"):
         sanitize_remote_identity("https://TOKEN@github.com/attacker/exfil.git")
+    with pytest.raises(PreOutcomeRetentionError, match="local filesystem Git remote"):
+        sanitize_remote_identity(str(tmp_path / "evidence.git"))
+
+
+def test_pushurl_redirect_is_rejected_before_outcomes(tmp_path: Path):
+    repo, bare, sha = _init_execution_repo(tmp_path)
+    _git(repo, "remote", "remove", "origin")
+    _git(repo, "remote", "add", "origin", "https://github.com/sh1zok1d/signalbot.git")
+    _git(repo, "config", "remote.origin.pushurl", str(bare.resolve()))
+    freeze = verify_batch02_code(repo_root=repo, expected_code_sha=sha)
+    with pytest.raises(PreOutcomeRetentionError):
+        prepare_batch02_evidence_reservation(**_reservation_kwargs(freeze))
+    assert AUTHORIZE_CALLS == []
+
+
+def test_multiple_pushurl_is_rejected_before_outcomes(tmp_path: Path):
+    repo, bare, sha = _init_execution_repo(tmp_path)
+    _git(repo, "remote", "remove", "origin")
+    _git(repo, "remote", "add", "origin", "https://github.com/sh1zok1d/signalbot.git")
+    _git(
+        repo,
+        "config",
+        "--add",
+        "remote.origin.pushurl",
+        "https://github.com/sh1zok1d/signalbot.git",
+    )
+    _git(repo, "config", "--add", "remote.origin.pushurl", str(bare.resolve()))
+    freeze = verify_batch02_code(repo_root=repo, expected_code_sha=sha)
+    with pytest.raises(PreOutcomeRetentionError, match="multiple origin push"):
+        prepare_batch02_evidence_reservation(**_reservation_kwargs(freeze))
+    assert AUTHORIZE_CALLS == []
+
+
+def test_url_rewrite_redirect_is_rejected_before_outcomes(tmp_path: Path):
+    repo, bare, sha = _init_execution_repo(tmp_path)
+    _git(repo, "remote", "remove", "origin")
+    _git(repo, "remote", "add", "origin", "https://github.com/sh1zok1d/signalbot.git")
+    _git(
+        repo,
+        "config",
+        f"url.{bare.resolve()}.insteadOf",
+        "https://github.com/sh1zok1d/signalbot.git",
+    )
+    freeze = verify_batch02_code(repo_root=repo, expected_code_sha=sha)
+    with pytest.raises(PreOutcomeRetentionError, match="rewrite"):
+        prepare_batch02_evidence_reservation(**_reservation_kwargs(freeze))
+    assert AUTHORIZE_CALLS == []
 
 
 def test_push_failure_is_pre_outcome(tmp_path: Path):
@@ -386,7 +568,10 @@ def test_push_failure_is_pre_outcome(tmp_path: Path):
     hook.chmod(hook.stat().st_mode | stat.S_IEXEC)
     freeze = verify_batch02_code(repo_root=repo, expected_code_sha=sha)
     with pytest.raises(PreOutcomeRetentionError):
-        prepare_batch02_evidence_reservation(**_reservation_kwargs(freeze))
+        prepare_test_evidence_reservation(
+            **_reservation_kwargs(freeze),
+            test_bare_remote=bare,
+        )
     assert AUTHORIZE_CALLS == []
 
 
@@ -400,30 +585,52 @@ def test_reservation_readback_failure_is_pre_outcome(tmp_path: Path):
     hook.chmod(hook.stat().st_mode | stat.S_IEXEC)
     freeze = verify_batch02_code(repo_root=repo, expected_code_sha=sha)
     with pytest.raises(PreOutcomeRetentionError, match="not independently readable"):
-        prepare_batch02_evidence_reservation(**_reservation_kwargs(freeze))
+        prepare_test_evidence_reservation(
+            **_reservation_kwargs(freeze),
+            test_bare_remote=bare,
+        )
+    assert AUTHORIZE_CALLS == []
+
+
+def test_ambiguous_claim_readback_blocks_authorization(tmp_path: Path):
+    repo, bare, dataset_root, sha = _init_dataset_and_code(tmp_path)
+    reservation = _reserve(repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0")
+    hook = bare / "hooks" / "post-receive"
+    hook.write_text(
+        "#!/bin/sh\nwhile read old new ref; do git update-ref -d \"$ref\"; done\n",
+        encoding="utf-8",
+    )
+    hook.chmod(hook.stat().st_mode | stat.S_IEXEC)
+    with pytest.raises(AmbiguousOutcomeAccessStateError, match=AMBIGUOUS_CLAIM_STATE):
+        prepare_batch02_retained_run(
+            reservation=reservation,
+            outcome_access_acknowledged=True,
+            dataset_root=dataset_root,
+            command=("python", "-m", "b2_03_retention_fixture"),
+        )
     assert AUTHORIZE_CALLS == []
 
 
 def test_incompatible_existing_reservation_fails_closed(tmp_path: Path):
-    repo, _bare, sha = _init_execution_repo(tmp_path)
-    _reserve(repo, sha, dataset_id="FIRST_DATASET")
+    repo, bare, sha = _init_execution_repo(tmp_path)
+    _reserve(repo, sha, bare, dataset_id="FIRST_DATASET")
     with pytest.raises(PreOutcomeRetentionError, match="incompatible"):
-        _reserve(repo, sha, dataset_id="SECOND_DATASET")
+        _reserve(repo, sha, bare, dataset_id="SECOND_DATASET")
     assert AUTHORIZE_CALLS == []
 
 
-def test_identical_existing_reservation_is_reused(tmp_path: Path):
-    repo, _bare, sha = _init_execution_repo(tmp_path)
-    first = _reserve(repo, sha)
-    second = _reserve(repo, sha)
+def test_identical_existing_reservation_is_reused_only_while_reserved(tmp_path: Path):
+    repo, bare, sha = _init_execution_repo(tmp_path)
+    first = _reserve(repo, sha, bare)
+    second = _reserve(repo, sha, bare)
     assert first.reservation_sha256 == second.reservation_sha256
     assert first.evidence_head_sha == second.evidence_head_sha
     assert AUTHORIZE_CALLS == []
 
 
 def test_forged_and_mutated_reservation_tokens_fail(tmp_path: Path):
-    repo, _bare, sha = _init_execution_repo(tmp_path)
-    real = _reserve(repo, sha)
+    repo, bare, sha = _init_execution_repo(tmp_path)
+    real = _reserve(repo, sha, bare)
     hollow = object.__new__(DurableEvidenceReservation)
     with pytest.raises(PreOutcomeRetentionError, match="minted"):
         hollow.assert_minted()
@@ -483,25 +690,30 @@ def test_forged_and_mutated_reservation_tokens_fail(tmp_path: Path):
 
 
 def test_path_traversal_hypothesis_id_is_rejected(tmp_path: Path):
-    repo, _bare, sha = _init_execution_repo(tmp_path)
+    repo, bare, sha = _init_execution_repo(tmp_path)
     freeze = verify_batch02_code(repo_root=repo, expected_code_sha=sha)
     with pytest.raises(PreOutcomeRetentionError):
-        prepare_batch02_evidence_reservation(
-            **_reservation_kwargs(freeze, hypothesis_id="B2-03/../../evil")
+        prepare_test_evidence_reservation(
+            **_reservation_kwargs(freeze, hypothesis_id="B2-03/../../evil"),
+            test_bare_remote=bare,
         )
     with pytest.raises(PreOutcomeRetentionError):
-        prepare_batch02_evidence_reservation(
-            **_reservation_kwargs(freeze, hypothesis_id="B2-03_EVIL/../x")
+        prepare_test_evidence_reservation(
+            **_reservation_kwargs(freeze, hypothesis_id="B2-03_EVIL/../x"),
+            test_bare_remote=bare,
         )
     assert AUTHORIZE_CALLS == []
 
 
 def test_dirty_code_freeze_is_pre_outcome(tmp_path: Path):
-    repo, _bare, sha = _init_execution_repo(tmp_path)
+    repo, bare, sha = _init_execution_repo(tmp_path)
     freeze = verify_batch02_code(repo_root=repo, expected_code_sha=sha)
     (repo / "tracked.txt").write_text("dirty\n", encoding="utf-8")
     with pytest.raises(Exception):
-        prepare_batch02_evidence_reservation(**_reservation_kwargs(freeze))
+        prepare_test_evidence_reservation(
+            **_reservation_kwargs(freeze),
+            test_bare_remote=bare,
+        )
     assert AUTHORIZE_CALLS == []
 
 
@@ -513,27 +725,24 @@ def test_caller_cannot_pass_arbitrary_remote(tmp_path: Path):
             **_reservation_kwargs(freeze),
             evidence_remote="https://example.com/exfil.git",  # type: ignore[call-arg]
         )
+    with pytest.raises(TypeError):
+        prepare_batch02_evidence_reservation(
+            **_reservation_kwargs(freeze),
+            test_bare_remote=tmp_path / "evidence.git",  # type: ignore[call-arg]
+        )
 
 
-def test_exact_byte_failures_after_persist(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    repo, bare, dataset_root, sha = _init_dataset_and_code(tmp_path)
-    freeze = verify_batch02_code(repo_root=repo, expected_code_sha=sha)
-    reservation = prepare_batch02_evidence_reservation(
-        **_reservation_kwargs(freeze, dataset_id="CORE_BTC_BINANCE_V0")
-    )
+def test_exact_byte_and_json_equivalent_mutations_fail_after_persist(tmp_path: Path):
+    repo, _bare, dataset_root, sha = _init_dataset_and_code(tmp_path)
+    reservation = _reserve(repo, sha, _bare, dataset_id="CORE_BTC_BINANCE_V0")
     ctx = prepare_batch02_retained_run(
         reservation=reservation,
         outcome_access_acknowledged=True,
         dataset_root=dataset_root,
         command=("python", "-m", "b2_03_retention_fixture"),
     )
-    result_path = (
-        repo
-        / "artifacts"
-        / "b2_03_retention_fixture"
-        / "B2_03_RETENTION_FIXTURE_DEV_RESULTS.json"
-    )
-    digest = persist_batch02_result(
+    result_path = _result_path(repo)
+    persisted = persist_batch02_retained_result(
         result_path,
         {"status": "synthetic_closed"},
         run_context=ctx,
@@ -541,14 +750,10 @@ def test_exact_byte_failures_after_persist(tmp_path: Path, monkeypatch: pytest.M
     original = result_path.read_bytes()
 
     result_path.write_bytes(original + b"\n")
-    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
-        archive_batch02_result(
-            reservation=reservation,
-            run_context=ctx,
-            result_path=result_path,
-            expected_sha256=digest,
-        )
-    assert result_path.exists()
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE) as exc:
+        archive_batch02_result(persisted_result=persisted, run_context=ctx)
+    assert exc.value.outcome_consumed is True
+    assert exc.value.rerun_authorized is False
     result_path.write_bytes(original)
 
     mutated = original.replace(b"\n", b"\r\n")
@@ -556,12 +761,7 @@ def test_exact_byte_failures_after_persist(tmp_path: Path, monkeypatch: pytest.M
         mutated = original + b"\r\n"
     result_path.write_bytes(mutated)
     with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
-        archive_batch02_result(
-            reservation=reservation,
-            run_context=ctx,
-            result_path=result_path,
-            expected_sha256=digest,
-        )
+        archive_batch02_result(persisted_result=persisted, run_context=ctx)
     result_path.write_bytes(original)
 
     parsed = json.loads(original)
@@ -569,36 +769,138 @@ def test_exact_byte_failures_after_persist(tmp_path: Path, monkeypatch: pytest.M
     assert reserialized != original
     result_path.write_bytes(reserialized)
     with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
-        archive_batch02_result(
-            reservation=reservation,
-            run_context=ctx,
-            result_path=result_path,
-            expected_sha256=digest,
-        )
+        archive_batch02_result(persisted_result=persisted, run_context=ctx)
     result_path.write_bytes(original)
-    assert sha256_file(result_path) == digest
-    del bare
+    assert sha256_file(result_path) == persisted.artifact_sha256
 
 
-def test_readback_sha_and_size_mismatch_fail(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+def test_persist_proof_anti_forgery_and_no_caller_digest(tmp_path: Path):
     repo, _bare, dataset_root, sha = _init_dataset_and_code(tmp_path)
-    freeze = verify_batch02_code(repo_root=repo, expected_code_sha=sha)
-    reservation = prepare_batch02_evidence_reservation(
-        **_reservation_kwargs(freeze, dataset_id="CORE_BTC_BINANCE_V0")
-    )
+    reservation = _reserve(repo, sha, _bare, dataset_id="CORE_BTC_BINANCE_V0")
     ctx = prepare_batch02_retained_run(
         reservation=reservation,
         outcome_access_acknowledged=True,
         dataset_root=dataset_root,
         command=("python", "-m", "b2_03_retention_fixture"),
     )
-    result_path = (
-        repo
-        / "artifacts"
-        / "b2_03_retention_fixture"
-        / "B2_03_RETENTION_FIXTURE_DEV_RESULTS.json"
+    result_path = _result_path(repo)
+    persisted = persist_batch02_retained_result(
+        result_path,
+        {"status": "synthetic_closed"},
+        run_context=ctx,
     )
-    digest = persist_batch02_result(
+    hollow = object.__new__(PersistedBatch02ResultProof)
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
+        hollow.assert_minted()
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE) as exc:
+        archive_batch02_result(persisted_result=hollow, run_context=ctx)
+    assert exc.value.outcome_consumed is True
+
+    stolen_path = PersistedBatch02ResultProof(
+        result_path=result_path.parent / "other.json",
+        artifact_sha256=persisted.artifact_sha256,
+        artifact_size_bytes=persisted.artifact_size_bytes,
+        run_identity_sha256=persisted.run_identity_sha256,
+        hypothesis_id=persisted.hypothesis_id,
+        code_sha=persisted.code_sha,
+        code_tree=persisted.code_tree,
+        claim_sha256=persisted.claim_sha256,
+        claim_head_sha=persisted.claim_head_sha,
+        evidence_ref=persisted.evidence_ref,
+        reservation_sha256=persisted.reservation_sha256,
+        _mint_token=persisted._mint_token,
+    )
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
+        archive_batch02_result(persisted_result=stolen_path, run_context=ctx)
+
+    stolen_digest = PersistedBatch02ResultProof(
+        result_path=persisted.result_path,
+        artifact_sha256="0" * 64,
+        artifact_size_bytes=persisted.artifact_size_bytes,
+        run_identity_sha256=persisted.run_identity_sha256,
+        hypothesis_id=persisted.hypothesis_id,
+        code_sha=persisted.code_sha,
+        code_tree=persisted.code_tree,
+        claim_sha256=persisted.claim_sha256,
+        claim_head_sha=persisted.claim_head_sha,
+        evidence_ref=persisted.evidence_ref,
+        reservation_sha256=persisted.reservation_sha256,
+        _mint_token=persisted._mint_token,
+    )
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
+        archive_batch02_result(persisted_result=stolen_digest, run_context=ctx)
+
+    stolen_identity = PersistedBatch02ResultProof(
+        result_path=persisted.result_path,
+        artifact_sha256=persisted.artifact_sha256,
+        artifact_size_bytes=persisted.artifact_size_bytes,
+        run_identity_sha256="0" * 64,
+        hypothesis_id=persisted.hypothesis_id,
+        code_sha=persisted.code_sha,
+        code_tree=persisted.code_tree,
+        claim_sha256=persisted.claim_sha256,
+        claim_head_sha=persisted.claim_head_sha,
+        evidence_ref=persisted.evidence_ref,
+        reservation_sha256=persisted.reservation_sha256,
+        _mint_token=persisted._mint_token,
+    )
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
+        archive_batch02_result(persisted_result=stolen_identity, run_context=ctx)
+
+    with pytest.raises(TypeError):
+        archive_batch02_result(  # type: ignore[call-arg]
+            persisted_result=persisted,
+            run_context=ctx,
+            expected_sha256=persisted.artifact_sha256,
+        )
+    signature = inspect.signature(archive_batch02_result)
+    assert "expected_sha256" not in signature.parameters
+    assert "persisted_result" in signature.parameters
+
+
+def test_archive_time_freeze_and_token_failures_are_post_outcome(tmp_path: Path):
+    repo, _bare, dataset_root, sha = _init_dataset_and_code(tmp_path)
+    reservation = _reserve(repo, sha, _bare, dataset_id="CORE_BTC_BINANCE_V0")
+    ctx = prepare_batch02_retained_run(
+        reservation=reservation,
+        outcome_access_acknowledged=True,
+        dataset_root=dataset_root,
+        command=("python", "-m", "b2_03_retention_fixture"),
+    )
+    result_path = _result_path(repo)
+    persisted = persist_batch02_retained_result(
+        result_path,
+        {"status": "synthetic_closed"},
+        run_context=ctx,
+    )
+    original = result_path.read_bytes()
+    (repo / "tracked.txt").write_text("dirty-after-persist\n", encoding="utf-8")
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE) as freeze_exc:
+        archive_batch02_result(persisted_result=persisted, run_context=ctx)
+    assert freeze_exc.value.outcome_consumed is True
+    assert freeze_exc.value.rerun_authorized is False
+    assert result_path.read_bytes() == original
+    (repo / "tracked.txt").write_text("frozen\n", encoding="utf-8")
+
+    object.__setattr__(ctx._reservation, "hypothesis_id", "B2-03_MUTATED")
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE) as token_exc:
+        archive_batch02_result(persisted_result=persisted, run_context=ctx)
+    assert token_exc.value.outcome_consumed is True
+    assert token_exc.value.rerun_authorized is False
+    assert result_path.exists()
+
+
+def test_readback_sha_and_size_mismatch_fail(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    repo, _bare, dataset_root, sha = _init_dataset_and_code(tmp_path)
+    reservation = _reserve(repo, sha, _bare, dataset_id="CORE_BTC_BINANCE_V0")
+    ctx = prepare_batch02_retained_run(
+        reservation=reservation,
+        outcome_access_acknowledged=True,
+        dataset_root=dataset_root,
+        command=("python", "-m", "b2_03_retention_fixture"),
+    )
+    result_path = _result_path(repo)
+    persisted = persist_batch02_retained_result(
         result_path,
         {"status": "synthetic_closed"},
         run_context=ctx,
@@ -611,107 +913,61 @@ def test_readback_sha_and_size_mismatch_fail(tmp_path: Path, monkeypatch: pytest
 
     def mutated_readback(**kwargs):
         commit, data = original_readback(**kwargs)
-        if kwargs["relative"].endswith(".json") and kwargs["relative"] != "reservation.json" and kwargs["relative"] != "receipt.json":
+        relative = kwargs["relative"]
+        if relative.startswith("batch02/") and relative.endswith(".json"):
             return commit, data + b" "
         return commit, data
 
     monkeypatch.setattr(retention, "_independent_readback", mutated_readback)
     with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
-        archive_batch02_result(
-            reservation=reservation,
-            run_context=ctx,
-            result_path=result_path,
-            expected_sha256=digest,
-        )
+        archive_batch02_result(persisted_result=persisted, run_context=ctx)
     assert result_path.read_bytes() == source
 
-    def size_lie(**kwargs):
-        commit, data = original_readback(**kwargs)
-        if kwargs["relative"].endswith(".json") and "batch02/" in kwargs["relative"]:
-            lied = data + b"X"
-            monkeypatch.setattr(
-                retention,
-                "sha256_bytes",
-                lambda value, _orig=retention.sha256_bytes, _src=source: (
-                    hashlib.sha256(_src).hexdigest()
-                    if value == lied
-                    else _orig(value)
-                ),
-            )
-            return commit, lied
-        return commit, data
 
-    monkeypatch.setattr(retention, "_independent_readback", size_lie)
-    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
-        archive_batch02_result(
-            reservation=reservation,
-            run_context=ctx,
-            result_path=result_path,
-            expected_sha256=digest,
-        )
-    assert result_path.exists()
-
-
-def test_append_only_rejects_different_digest_and_ref_drift(tmp_path: Path):
+def test_append_only_rejects_claim_head_drift(tmp_path: Path):
     repo, bare, dataset_root, sha = _init_dataset_and_code(tmp_path)
-    freeze = verify_batch02_code(repo_root=repo, expected_code_sha=sha)
-    reservation = prepare_batch02_evidence_reservation(
-        **_reservation_kwargs(freeze, dataset_id="CORE_BTC_BINANCE_V0")
-    )
+    reservation = _reserve(repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0")
     ctx = prepare_batch02_retained_run(
         reservation=reservation,
         outcome_access_acknowledged=True,
         dataset_root=dataset_root,
         command=("python", "-m", "b2_03_retention_fixture"),
     )
-    result_path = (
-        repo
-        / "artifacts"
-        / "b2_03_retention_fixture"
-        / "B2_03_RETENTION_FIXTURE_DEV_RESULTS.json"
-    )
-    digest = persist_batch02_result(
+    result_path = _result_path(repo)
+    persisted = persist_batch02_retained_result(
         result_path,
         {"status": "synthetic_closed"},
         run_context=ctx,
     )
     source = result_path.read_bytes()
-    relative = artifact_relpath(HYPOTHESIS, reservation.code_sha, digest)
 
     work = tmp_path / "drift"
     _checkout_evidence(bare, work, reservation.evidence_ref)
-    dest = work / relative
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_bytes(b'{"tampered":true}\n')
-    _git(work, "add", "--", relative)
-    _commit(work, "tamper")
+    (work / "extra.txt").write_text("unknown intermediate\n", encoding="utf-8")
+    _git(work, "add", "extra.txt")
+    _commit(work, "unknown-intermediate")
     _git(work, "push", "origin", f"HEAD:{reservation.evidence_ref}")
 
-    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
-        archive_batch02_result(
-            reservation=reservation,
-            run_context=ctx,
-            result_path=result_path,
-            expected_sha256=digest,
-        )
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE) as exc:
+        archive_batch02_result(persisted_result=persisted, run_context=ctx)
+    assert exc.value.outcome_consumed is True
     assert result_path.read_bytes() == source
-    assert result_path.exists()
 
 
 def test_ref_drift_before_outcomes_is_pre_outcome(tmp_path: Path):
     repo, bare, sha = _init_execution_repo(tmp_path)
-    reservation = _reserve(repo, sha)
+    reservation = _reserve(repo, sha, bare)
     work = tmp_path / "drift"
     _checkout_evidence(bare, work, reservation.evidence_ref)
     (work / "extra.txt").write_text("drift\n", encoding="utf-8")
     _git(work, "add", "extra.txt")
     _commit(work, "drift")
     _git(work, "push", "origin", f"HEAD:{reservation.evidence_ref}")
-    with pytest.raises(PreOutcomeRetentionError, match="drifted"):
+    with pytest.raises(PreOutcomeRetentionError, match="drifted|RESERVED"):
         prepare_batch02_retained_run(
             reservation=reservation,
             outcome_access_acknowledged=True,
-            dataset_root=dataset_root if False else tmp_path,
+            dataset_root=tmp_path,
             command=("python", "-m", "x"),
         )
     assert AUTHORIZE_CALLS == []
@@ -722,29 +978,26 @@ def test_force_git_args_are_rejected():
         run_git(Path("/tmp"), ["push", "--force", "origin", "HEAD"])
     with pytest.raises(PreOutcomeRetentionError, match="force"):
         run_git(Path("/tmp"), ["push", "origin", "+HEAD:refs/heads/x"])
+    source = Path("scripts/research/lib/batch02_evidence_retention.py").read_text(
+        encoding="utf-8"
+    )
+    assert "force_push" not in source
+    assert "--force-with-lease" in source
 
 
 def test_post_outcome_push_failure_preserves_local_result_and_forbids_rerun(
     tmp_path: Path,
 ):
     repo, bare, dataset_root, sha = _init_dataset_and_code(tmp_path)
-    freeze = verify_batch02_code(repo_root=repo, expected_code_sha=sha)
-    reservation = prepare_batch02_evidence_reservation(
-        **_reservation_kwargs(freeze, dataset_id="CORE_BTC_BINANCE_V0")
-    )
+    reservation = _reserve(repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0")
     ctx = prepare_batch02_retained_run(
         reservation=reservation,
         outcome_access_acknowledged=True,
         dataset_root=dataset_root,
         command=("python", "-m", "b2_03_retention_fixture"),
     )
-    result_path = (
-        repo
-        / "artifacts"
-        / "b2_03_retention_fixture"
-        / "B2_03_RETENTION_FIXTURE_DEV_RESULTS.json"
-    )
-    digest = persist_batch02_result(
+    result_path = _result_path(repo)
+    persisted = persist_batch02_retained_result(
         result_path,
         {"status": "synthetic_closed"},
         run_context=ctx,
@@ -758,19 +1011,14 @@ def test_post_outcome_push_failure_preserves_local_result_and_forbids_rerun(
     hook.chmod(hook.stat().st_mode | stat.S_IEXEC)
 
     with pytest.raises(PostOutcomeRetentionFailure) as exc:
-        archive_batch02_result(
-            reservation=reservation,
-            run_context=ctx,
-            result_path=result_path,
-            expected_sha256=digest,
-        )
+        archive_batch02_result(persisted_result=persisted, run_context=ctx)
     err = exc.value
     assert err.outcome_consumed is True
     assert err.rerun_authorized is False
     assert err.state == POST_OUTCOME_STATE
     assert result_path.exists()
     assert result_path.read_bytes() == original
-    assert sha256_bytes(original) == digest
+    assert sha256_bytes(original) == persisted.artifact_sha256
     assert lock_dir.exists()
     assert list(lock_dir.iterdir())
     sidecar = result_path.with_name(result_path.name + ".POST_OUTCOME_RETENTION_FAILURE.json")
@@ -781,9 +1029,10 @@ def test_post_outcome_push_failure_preserves_local_result_and_forbids_rerun(
     reservation.assert_minted()
     remote_reservation = _remote_blob(bare, reservation.evidence_ref, "reservation.json")
     assert hashlib.sha256(remote_reservation).hexdigest() == reservation.reservation_sha256
+    assert "outcome_claim.json" in set(_remote_tree(bare, reservation.evidence_ref))
 
     with pytest.raises(Exception):
-        persist_batch02_result(
+        persist_batch02_retained_result(
             result_path,
             {"status": "retry"},
             run_context=ctx,
@@ -791,12 +1040,29 @@ def test_post_outcome_push_failure_preserves_local_result_and_forbids_rerun(
     assert result_path.read_bytes() == original
 
 
+def test_historical_persist_rejects_b2_03_and_retained_persist_rejects_b2_02(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    class Ctx:
+        run_identity = {"hypothesis_id": "B2-03_X", "stage": "development"}
+
+        def assert_minted(self):
+            return None
+
+    with pytest.raises(Batch02ContractError, match="persist_batch02_retained_result"):
+        persist_batch02_result(
+            tmp_path / "x.json",
+            {"status": "nope"},
+            run_context=Ctx(),  # type: ignore[arg-type]
+        )
+
+
 def test_run_git_does_not_use_shell():
     source = Path("scripts/research/lib/batch02_evidence_retention.py").read_text(
         encoding="utf-8"
     )
     assert "shell=True" not in source
-    assert "subprocess.run" in source
     assert "subprocess.run" in source
 
 
@@ -844,7 +1110,7 @@ from scripts.research.lib.batch02_contracts import (
     verify_batch02_code,
     prepare_batch02_evidence_reservation,
     prepare_batch02_retained_run,
-    persist_batch02_result,
+    persist_batch02_retained_result,
     archive_batch02_result,
 )
 
@@ -868,17 +1134,55 @@ def main():
         dataset_root=ROOT,
         command=("python", "-m", "b2_03"),
     )
-    persist_batch02_result(PATH, {}, run_context=ctx)
-    archive_batch02_result(
+    persisted = persist_batch02_retained_result(PATH, {}, run_context=ctx)
+    archive_batch02_result(persisted_result=persisted, run_context=ctx)
+""",
+        encoding="utf-8",
+    )
+    validate_batch02_source_tree(research, repo_root=repo)
+
+    (research / "b2_03_digest.py").write_text(
+        """
+from scripts.research.lib.batch02_contracts import (
+    verify_batch02_code,
+    prepare_batch02_evidence_reservation,
+    prepare_batch02_retained_run,
+    persist_batch02_retained_result,
+    archive_batch02_result,
+)
+
+def main():
+    freeze = verify_batch02_code(repo_root=ROOT, expected_code_sha=SHA)
+    reservation = prepare_batch02_evidence_reservation(
+        code_freeze=freeze,
+        hypothesis_id="B2-03_X",
+        stage="development",
+        dataset_id="D",
+        snapshot_id="S",
+        start_inclusive_ms=1,
+        end_exclusive_ms=2,
+        allowed_years=(2020,),
+        required_gate_names=("g",),
+        seeds={"bootstrap": 1},
+    )
+    ctx = prepare_batch02_retained_run(
         reservation=reservation,
+        outcome_access_acknowledged=True,
+        dataset_root=ROOT,
+        command=("python", "-m", "b2_03"),
+    )
+    persist_batch02_retained_result(PATH, {}, run_context=ctx)
+    archive_batch02_result(
+        persisted_result=SHA256,
         run_context=ctx,
-        result_path=PATH,
         expected_sha256=SHA256,
     )
 """,
         encoding="utf-8",
     )
-    validate_batch02_source_tree(research, repo_root=repo)
+    (research / "b2_03_good.py").unlink()
+    with pytest.raises(Batch02SourcePolicyError, match="persisted_result|expected_sha256"):
+        validate_batch02_source_tree(research, repo_root=repo)
 
 
 def test_historical_prepare_still_works_for_b2_02(

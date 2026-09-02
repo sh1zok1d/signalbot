@@ -120,7 +120,9 @@ Prefer transparent scripts + manifests before building a generalized research fr
 `scripts/research/lib/batch02_evidence_retention.py` is `ACTIVE_RESEARCH_INFRA`
 for B2-03+. Hypothesis runners must use the `batch02_contracts` re-exports
 (`prepare_batch02_evidence_reservation`, `prepare_batch02_retained_run`,
-`archive_batch02_result`) rather than importing the retention module directly.
+`persist_batch02_retained_result`, `archive_batch02_result`) rather than
+importing the retention module directly. Local bare remotes exist only through
+the private test seam and are not part of the hypothesis API.
 See `docs/research/BATCH02_DURABLE_EVIDENCE_RETENTION_V1.md`.
 
 ---
