@@ -86,13 +86,18 @@ def main():
 """
 
 
-def test_actual_tree_policy_executes_even_before_b202_exists():
-    # The real repository currently has no B2-02+ runtime. This is allowed,
-    # but the policy itself is exercised below against committed synthetic
-    # attack shapes so the regression suite is not a vacuous for-loop.
-    assert validate_batch02_source_tree(
-        RESEARCH_DIR, repo_root=REPO_ROOT
-    ) == ()
+def test_actual_tree_policy_covers_the_real_future_b2_closure():
+    # This originally asserted an empty visited set because no B2-02+ runtime
+    # existed yet. The real B2-02 runtime now exists, so an empty visited set
+    # would prove the opposite of what this test is for: it would mean the
+    # policy never actually walked the future-B2 files. The invariant is that
+    # the real tree lints clean (no raise) AND that the B2-02 runtime files are
+    # genuinely inside the walked closure.
+    visited = set(validate_batch02_source_tree(RESEARCH_DIR, repo_root=REPO_ROOT))
+    # Exact repository paths, not just basenames: both B2-02 files live
+    # directly under scripts/research/, NOT under a lib/ subdirectory.
+    assert RESEARCH_DIR / "b2_02_boundary_interaction_path.py" in visited
+    assert RESEARCH_DIR / "b2_02_boundary_interaction_path_lib.py" in visited
 
 
 def test_source_policy_accepts_canonical_ceremony_without_hidden_io(tmp_path: Path):
@@ -1891,12 +1896,14 @@ def test_rt_h01_h05_and_b2_01_frozen_trees_are_unaffected_by_the_repair():
     # the future-B2 policy closure at all (only b2_(?!01)NN files are). This
     # asserts that claim continues to hold after the copy-prohibition and
     # static foreign-module rewrite: running the real linter against the
-    # actual on-disk research tree still returns no violations, exactly as
-    # before this repair, and does not require importing/evaluating any
-    # H01-H05 or B2-01 module to do so.
-    assert validate_batch02_source_tree(
-        RESEARCH_DIR, repo_root=REPO_ROOT
-    ) == ()
+    # actual on-disk research tree raises nothing, and does not require
+    # importing/evaluating any H01-H05 or B2-01 module to do so.
+    visited = validate_batch02_source_tree(RESEARCH_DIR, repo_root=REPO_ROOT)
+    names = {path.name for path in visited}
+    assert not any(
+        name.startswith(("h01_", "h02_", "h03_", "h04_", "h05_", "b2_01_"))
+        for name in names
+    )
 
 
 # RT-20260901c follow-up: a function/lambda default parameter value is

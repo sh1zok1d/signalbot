@@ -18,7 +18,12 @@ from scripts.research.lib.batch02_contracts import (
     rolling_midrank_percentile,
     verify_batch02_code,
 )
-from scripts.research.lib.research_harness import VerifiedCodeFreeze
+from scripts.research.lib.research_harness import (
+    DatasetIdentityContract,
+    OutcomeAccessPolicy,
+    PromotionGateContract,
+    VerifiedCodeFreeze,
+)
 
 
 def test_canonical_midrank_requires_full_finite_prior_window():
@@ -188,13 +193,25 @@ def test_prepare_batch02_run_orders_authorization_before_identity_build(
     monkeypatch.setattr(batch02_contracts, "authorize_dataset_access", fake_authorize)
     monkeypatch.setattr(batch02_contracts, "build_run_identity", fake_build)
 
+    # The typed contract form now validates its arguments before authorizing,
+    # so this ordering probe passes real contract objects rather than bare
+    # object() sentinels. The assertion under test -- authorization is invoked
+    # before run-identity construction -- is unchanged.
     ctx = prepare_batch02_run(
         code_freeze=freeze,
         outcome_access_acknowledged=True,
         dataset_root=tmp_path,
-        identity=object(),
-        policy=object(),
-        gate_contract=object(),
+        identity=DatasetIdentityContract(
+            dataset_id="CORE_BTC_BINANCE_V0",
+            snapshot_id="a" * 64,
+        ),
+        policy=OutcomeAccessPolicy(
+            stage="development",
+            start_inclusive_ms=1_577_836_800_000,
+            end_exclusive_ms=1_640_995_200_000,
+            allowed_years=(2020, 2021),
+        ),
+        gate_contract=PromotionGateContract(("primary",)),
         hypothesis_id="B2-XX",
         stage="development",
         command=("python", "-m", "x"),

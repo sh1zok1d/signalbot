@@ -143,23 +143,30 @@ def prepare_batch02_run(
     code_freeze: VerifiedCodeFreeze,
     outcome_access_acknowledged: bool,
     dataset_root: Path,
-    identity: DatasetIdentityContract,
-    policy: OutcomeAccessPolicy,
-    gate_contract: PromotionGateContract,
     hypothesis_id: str,
     stage: str,
     command: Sequence[str],
     seeds: Mapping[str, int],
+    identity: DatasetIdentityContract | None = None,
+    policy: OutcomeAccessPolicy | None = None,
+    gate_contract: PromotionGateContract | None = None,
+    dataset_id: str | None = None,
+    snapshot_id: str | None = None,
+    start_inclusive_ms: int | None = None,
+    end_exclusive_ms: int | None = None,
+    allowed_years: Sequence[int] | None = None,
+    required_gate_names: Sequence[str] | None = None,
 ) -> Batch02RunContext:
     """Authorize dataset bytes and build provenance for an outcome-bearing run.
 
-    This function must be called only after the runner's explicit development
-    outcome-access acknowledgement. The supplied code_freeze must already have
-    been produced by verify_batch02_code(); authorize_dataset_access() rechecks
-    that proof before opening the checksum-bound dataset.
+    New B2 hypothesis code may use the primitive-only public form
+    (dataset_id/snapshot_id/time window/years/gate names). The canonical
+    contracts module constructs the internal Harness v1 dataclasses itself, so
+    hypothesis code does not need access to internal harness types.
 
-    No fallback SHA, optional manifest path, or caller-supplied provenance label
-    is accepted here.
+    The legacy typed-object form remains accepted for existing contract tests
+    and trusted callers. Mixing typed objects with primitive contract fields is
+    rejected to keep the authority boundary unambiguous.
     """
     if stage != "development":
         raise Batch02ContractError(
@@ -173,6 +180,69 @@ def prepare_batch02_run(
         raise Batch02ContractError(
             "code_freeze must be a VerifiedCodeFreeze from verify_batch02_code"
         )
+
+    typed_supplied = any(
+        value is not None for value in (identity, policy, gate_contract)
+    )
+    primitive_supplied = any(
+        value is not None
+        for value in (
+            dataset_id,
+            snapshot_id,
+            start_inclusive_ms,
+            end_exclusive_ms,
+            allowed_years,
+            required_gate_names,
+        )
+    )
+    if typed_supplied and primitive_supplied:
+        raise Batch02ContractError(
+            "prepare_batch02_run may not mix typed and primitive contract forms"
+        )
+
+    if primitive_supplied:
+        if not (
+            isinstance(dataset_id, str)
+            and dataset_id.strip()
+            and isinstance(snapshot_id, str)
+            and snapshot_id.strip()
+            and type(start_inclusive_ms) is int
+            and type(end_exclusive_ms) is int
+            and allowed_years is not None
+            and required_gate_names is not None
+        ):
+            raise Batch02ContractError(
+                "primitive Batch02 run contract is incomplete"
+            )
+        try:
+            identity = DatasetIdentityContract(
+                dataset_id=dataset_id,
+                snapshot_id=snapshot_id,
+            )
+            policy = OutcomeAccessPolicy(
+                stage=stage,
+                start_inclusive_ms=start_inclusive_ms,
+                end_exclusive_ms=end_exclusive_ms,
+                allowed_years=tuple(allowed_years),
+            )
+            gate_contract = PromotionGateContract(
+                required_gate_names=tuple(required_gate_names)
+            )
+        except (TypeError, ValueError) as exc:
+            raise Batch02ContractError(
+                "primitive Batch02 run contract is invalid"
+            ) from exc
+    elif not typed_supplied:
+        raise Batch02ContractError(
+            "prepare_batch02_run requires one complete contract form"
+        )
+
+    if not isinstance(identity, DatasetIdentityContract):
+        raise Batch02ContractError("invalid dataset identity contract")
+    if not isinstance(policy, OutcomeAccessPolicy):
+        raise Batch02ContractError("invalid outcome access policy")
+    if not isinstance(gate_contract, PromotionGateContract):
+        raise Batch02ContractError("invalid promotion gate contract")
 
     authorized = authorize_dataset_access(
         code_freeze=code_freeze,
@@ -336,29 +406,44 @@ def load_authorized_parquet_table(
 def rolling_midrank_percentile(
     series: np.ndarray,
     *,
-    window: int,
+    window: int | None = None,
+    timestamps_ms: np.ndarray | None = None,
+    lookback_ms: int | None = None,
 ) -> np.ndarray:
-    """Strict causal midrank against exactly the preceding window records.
+    """Canonical causal midrank primitive for Batch02+.
 
-    Contract:
-    - output scale is [0, 1];
-    - the current record is excluded from its own reference set;
-    - no future record can affect an earlier output;
-    - no score exists before the full prior window is present;
-    - any non-finite value in the prior window makes the score unavailable;
-    - a non-finite current value makes the score unavailable;
-    - ties use midrank: (count(<x) + 0.5*count(==x)) / window.
+    Two mutually exclusive modes are supported:
 
-    This is the canonical Batch02+ percentile primitive. A frozen hypothesis
-    that requires percentile/relative-standing semantics is expected to wire
-    those semantics to this function. Source-policy checks reject alternate
-    named/library APIs, but arbitrary neutral-name numerical code is not
-    claimed to be semantically proven by AST linting.
+    Fixed-count mode:
+      rolling_midrank_percentile(series, window=N)
+
+    Time-window mode:
+      rolling_midrank_percentile(
+          series,
+          timestamps_ms=times,
+          lookback_ms=duration_ms,
+      )
+
+    Both modes exclude the current record. Ties use
+    (count(<x) + 0.5*count(==x)) / reference_count. Any non-finite value inside
+    the active reference set makes the current score unavailable. Time-window
+    timestamps must be strictly increasing; an empty time reference is
+    unavailable.
+
+    Strictly increasing -- not merely non-decreasing -- is a deliberate part of
+    the contract, not an incidental restriction. A caller that can present two
+    references bearing the same timestamp has no causal ordering between them,
+    so "strictly before the current record" would stop being well defined at
+    the boundary. Callers are expected to supply one causally separated clock
+    per reference group; B2-02 does this by grouping events per lookback L,
+    where the frozen 30m refractory guarantees accepted breaches are separated
+    in time. Relaxing this to non-decreasing would silently admit ambiguous
+    reference sets for every caller, so it is not done for convenience.
+
+    The trailing window boundary is inclusive: a reference whose timestamp is
+    exactly `lookback_ms` older than the current record is still an active
+    reference, and only strictly older records are purged.
     """
-    if isinstance(window, bool) or not isinstance(window, Integral) or int(window) <= 0:
-        raise Batch02ContractError("window must be a positive integer")
-    window = int(window)
-
     try:
         values = np.asarray(series, dtype=np.float64)
     except (TypeError, ValueError) as exc:
@@ -368,38 +453,106 @@ def rolling_midrank_percentile(
     if values.ndim != 1:
         raise Batch02ContractError("series must be one-dimensional")
 
+    fixed_mode = window is not None
+    time_mode = timestamps_ms is not None or lookback_ms is not None
+    if fixed_mode == time_mode:
+        raise Batch02ContractError(
+            "choose exactly one midrank mode: window or timestamps_ms+lookback_ms"
+        )
+
     out = np.full(values.shape[0], np.nan, dtype=np.float64)
     sorted_values: list[float] = []
-    queue: deque[float | None] = deque()
+    queue: deque = deque()
     finite_count = 0
 
-    for i, raw in enumerate(values):
-        x = float(raw)
+    if fixed_mode:
+        if isinstance(window, bool) or not isinstance(window, Integral) or int(window) <= 0:
+            raise Batch02ContractError("window must be a positive integer")
+        fixed_window = int(window)
 
+        for i, raw in enumerate(values):
+            x = float(raw)
+            if (
+                len(queue) == fixed_window
+                and finite_count == fixed_window
+                and math.isfinite(x)
+            ):
+                lo = bisect_left(sorted_values, x)
+                hi = bisect_right(sorted_values, x)
+                out[i] = (lo + 0.5 * (hi - lo)) / fixed_window
+
+            item: float | None = x if math.isfinite(x) else None
+            queue.append(item)
+            if item is not None:
+                insort_right(sorted_values, item)
+                finite_count += 1
+
+            if len(queue) > fixed_window:
+                old_item = queue.popleft()
+                if old_item is not None:
+                    pos = bisect_left(sorted_values, old_item)
+                    if pos >= len(sorted_values) or sorted_values[pos] != old_item:
+                        raise Batch02ContractError(
+                            "rolling midrank window lost deterministic state"
+                        )
+                    sorted_values.pop(pos)
+                    finite_count -= 1
+        return out
+
+    if (
+        isinstance(lookback_ms, bool)
+        or not isinstance(lookback_ms, Integral)
+        or int(lookback_ms) <= 0
+    ):
+        raise Batch02ContractError("lookback_ms must be a positive integer")
+    try:
+        times = np.asarray(timestamps_ms)
+    except (TypeError, ValueError) as exc:
+        raise Batch02ContractError("timestamps_ms must be one-dimensional integers") from exc
+    if times.ndim != 1 or len(times) != len(values) or times.dtype.kind not in "iu":
+        raise Batch02ContractError(
+            "timestamps_ms must be a one-dimensional integer array matching series"
+        )
+    times = times.astype(np.int64)
+    if len(times) > 1 and np.any(times[1:] <= times[:-1]):
+        raise Batch02ContractError("timestamps_ms must be strictly increasing")
+
+    duration = int(lookback_ms)
+    invalid_count = 0
+    for i, raw in enumerate(values):
+        current_time = int(times[i])
+        cutoff = current_time - duration
+        while queue and int(queue[0][0]) < cutoff:
+            _, old_item = queue.popleft()
+            if old_item is None:
+                invalid_count -= 1
+            else:
+                pos = bisect_left(sorted_values, old_item)
+                if pos >= len(sorted_values) or sorted_values[pos] != old_item:
+                    raise Batch02ContractError(
+                        "time-window midrank lost deterministic state"
+                    )
+                sorted_values.pop(pos)
+                finite_count -= 1
+
+        x = float(raw)
+        reference_count = len(queue)
         if (
-            len(queue) == window
-            and finite_count == window
+            reference_count > 0
+            and invalid_count == 0
+            and finite_count == reference_count
             and math.isfinite(x)
         ):
             lo = bisect_left(sorted_values, x)
             hi = bisect_right(sorted_values, x)
-            out[i] = (lo + 0.5 * (hi - lo)) / window
+            out[i] = (lo + 0.5 * (hi - lo)) / reference_count
 
-        item: float | None = x if math.isfinite(x) else None
-        queue.append(item)
-        if item is not None:
+        item = x if math.isfinite(x) else None
+        queue.append((current_time, item))
+        if item is None:
+            invalid_count += 1
+        else:
             insort_right(sorted_values, item)
             finite_count += 1
-
-        if len(queue) > window:
-            old = queue.popleft()
-            if old is not None:
-                pos = bisect_left(sorted_values, old)
-                if pos >= len(sorted_values) or sorted_values[pos] != old:
-                    raise Batch02ContractError(
-                        "rolling midrank window lost deterministic state"
-                    )
-                sorted_values.pop(pos)
-                finite_count -= 1
 
     return out
