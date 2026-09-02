@@ -94,6 +94,8 @@ FORMULATION_STATUS = CLOSED_NO_PROMOTION
 FAMILY = F1
 FAMILY_STATUS = ACTIVE
 RESULT_ARTIFACT_SHA256 = b5bc240bc30cff92e26b1cf5a7fca4e546c70c80b7f60d113f73f580b439e971
+RESULT_ARTIFACT_DURABLE_COPY = UNAVAILABLE
+RESULT_ARTIFACT_RETENTION_STATUS = POST_RUN_EVIDENCE_RETENTION_GAP
 EXECUTION_SHA = a976a3fa3143f7290851ab8b2ddc5a9d811c891a
 REVIEWED_IMPLEMENTATION_SHA = 37051de39f49b5b331a0ddbc3b37f8316811f9ef
 EXECUTION_TREE = f220590be0a6323df29b8e35b47399d42c3ea137
@@ -135,6 +137,11 @@ development outcomes.
 B2-03 must independently complete its own frozen preregistration,
 implementation, exact-SHA CI/review/merge, and only then receive a separate
 development-outcome authorization.
+
+B2-03 development outcome access must not occur until a separate outcome-blind
+evidence-retention hardening unit guarantees durable preservation of future
+one-shot result artifacts. That operational prerequisite does not alter B2-03
+statistical preregistration.
 
 ## 9. Validation boundary
 

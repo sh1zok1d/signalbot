@@ -34,8 +34,11 @@ current V2.
 | Prereg merge SHA | `cbf447276c1dc47c9a755038cfd6013199207eef` |
 | Dataset ID | `CORE_BTC_BINANCE_V0` |
 | Dataset snapshot | `717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415` |
-| Authorized partitions | 60 monthly partitions |
+| Loaded monthly partitions | 60 (2020-01 through 2024-12) |
+| Warmup/reference partition | 2020-01 only |
+| Development-calendar partitions | 59 (2020-02 through 2024-12) |
 | Authorized years | 2020, 2021, 2022, 2023, 2024 |
+| Development scoring start | 2020-02-01T00:00:00Z |
 | Development window | 2020-02-01T00:00:00Z inclusive → 2025-01-01T00:00:00Z exclusive |
 | Result artifact path at execution | `/tmp/signalbot-b2-02-a976a3fa/artifacts/b2_02_boundary_interaction_path/B2_02_BOUNDARY_INTERACTION_PATH_DEV_RESULTS.json` |
 | Result artifact SHA256 | `b5bc240bc30cff92e26b1cf5a7fca4e546c70c80b7f60d113f73f580b439e971` |
@@ -49,8 +52,13 @@ current V2.
 
 The local accepted dataset root used by the run was
 `/tmp/signalbot/artifacts/research_data/CORE_BTC_BINANCE_V0`. Canonical
-Batch02 authorization bound it to the frozen snapshot before scoring and
-authorized only the 2020-2024 development view.
+Batch02 authorization bound it to the frozen snapshot before scoring.
+
+Sixty monthly partitions were loaded: 2020-01 through 2024-12. 2020-01 is the
+warmup/reference partition only. The 59 development-calendar partitions are
+2020-02 through 2024-12. Development scoring starts at 2020-02-01T00:00:00Z.
+The development window remains 2020-02-01T00:00:00Z inclusive through
+2025-01-01T00:00:00Z exclusive.
 
 ## 3. Overall verdict
 
@@ -181,6 +189,64 @@ B2-04 as eligible planned formulations. Under the charter a family closes only
 when all of its frozen formulations are terminal and none remains planned,
 active, blocked, or promoted.
 
-## 9. Final integrity statement
+## 9. Evidence retention status
+
+Classification: `POST_RUN_EVIDENCE_RETENTION_GAP`.
+
+This is not a `RUN_INTEGRITY_FAILURE`. The authorized one-shot run completed
+successfully, persisted a canonical result artifact, and produced the market
+verdict recorded above.
+
+| Retention field | Status |
+|---|---|
+| Research execution validity | preserved |
+| Market verdict | preserved (`B2_02_CLOSED_NO_PROMOTION`) |
+| Exact persisted JSON digest | preserved (`b5bc240bc30cff92e26b1cf5a7fca4e546c70c80b7f60d113f73f580b439e971`) |
+| Exact persisted JSON bytes | unavailable |
+| Durable artifact retention | failed after the run |
+| Rerun authorization | NO |
+
+The canonical result artifact was successfully persisted by the authorized
+one-shot runner during execution at
+
+`/tmp/signalbot-b2-02-a976a3fa/artifacts/b2_02_boundary_interaction_path/B2_02_BOUNDARY_INTERACTION_PATH_DEV_RESULTS.json`
+
+with SHA256 `b5bc240bc30cff92e26b1cf5a7fca4e546c70c80b7f60d113f73f580b439e971`.
+
+The execution environment was ephemeral. The canonical bytes were not copied
+to durable storage before that environment became unavailable. Subsequent
+recovery searched accessible Cursor/local repositories, Git object stores,
+worktrees, `/tmp` storage, and known artifact paths. The exact canonical
+artifact and the unpushed archival commit
+`619d7c74060605faabec7c92a29d6e9d250066a0` were not recoverable.
+
+No substitute artifact is accepted. A later local file with a different digest
+is not the canonical result and is not used here. No rerun is authorized.
+
+Exact byte-level replay of the persisted JSON artifact is therefore
+permanently unavailable. The contemporaneously recorded SHA256, exact
+execution identity, complete gate surface, complete 12-cell result surface,
+fixed-year surface, and terminal verdict remain the retained closeout
+evidence.
+
+Loss of the archived byte copy is an auditability/reproducibility limitation.
+It does not authorize rerunning an already-consumed development experiment.
+
+B2-03 development outcome access must not occur until a separate
+outcome-blind evidence-retention hardening unit guarantees durable
+preservation of future one-shot result artifacts. That operational
+prerequisite does not alter B2-03 statistical preregistration.
+
+## 10. Final integrity statement
 
 `No 2025 validation or 2026 OOS outcome was used in this B2-02 development decision.`
+
+```text
+RESEARCH_EXECUTION_VALIDITY = PRESERVED
+MARKET_VERDICT = B2_02_CLOSED_NO_PROMOTION
+EXACT_PERSISTED_JSON_DIGEST = PRESERVED
+EXACT_PERSISTED_JSON_BYTES = UNAVAILABLE
+DURABLE_ARTIFACT_RETENTION = POST_RUN_FAILURE
+RESULT_ARTIFACT_RETENTION_STATUS = POST_RUN_EVIDENCE_RETENTION_GAP
+RERUN_AUTHORIZED = NO
+```
