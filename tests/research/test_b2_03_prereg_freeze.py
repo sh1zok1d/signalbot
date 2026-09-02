@@ -99,7 +99,7 @@ def test_b2_03_placebo_and_promotion_contract_are_frozen():
     assert controls["permutation_seed"] == 20260904
     assert controls["permutation_replicates"] == 100
     assert controls["permutation_seed_derivation"] == (
-        "20260904 | replicate_index | W | H | current_T | baseline_stratum_id"
+        "20260904 | replicate_index | W_minutes | H_minutes | T_ms | baseline_stratum_id"
     )
     assert controls["bootstrap_seed"] == 20260905
     assert controls["bootstrap_replicates"] == 2000
@@ -136,3 +136,208 @@ def test_b2_03_durable_retention_integration_targets_pr99_ceremony():
     ]
     assert retention["canonical_slot"] == "B2-03"
     assert retention["created_by_this_unit"] is False
+
+
+# --- Repair unit: complete per-cell promotion contract + anti-rescue repair ---
+
+
+def test_b2_03_per_cell_gates_are_structurally_complete_in_json():
+    """All five per-cell gates must carry an actual machine-readable definition,
+    not a bare boolean, and morphology_ordering must not be a lone boolean."""
+    gates = _freeze()["promotion_gate_contract"]["per_cell_gates"]
+    assert set(gates) == {
+        "primary_positive",
+        "material_relative_mae",
+        "bootstrap_positive",
+        "placebo_separation",
+        "morphology_ordering",
+    }
+
+    assert gates["primary_positive"]["scope"] == "pooled_and_side_symmetric"
+    assert "pooled_condition" in gates["primary_positive"]
+    assert "up_condition" in gates["primary_positive"]
+    assert "down_condition" in gates["primary_positive"]
+    assert gates["primary_positive"]["requires_all_finite"] is True
+
+    assert gates["material_relative_mae"]["scope"] == "pooled_only"
+    assert gates["material_relative_mae"]["pooled_condition"] == (
+        "relative MAE improvement >= 0.02"
+    )
+    assert gates["material_relative_mae"]["relative_mae_improvement_definition"] == (
+        "1 - mean(CAND_AE)/mean(BASE_AE)"
+    )
+
+    assert gates["bootstrap_positive"]["scope"] == "pooled_only"
+    assert "95%" in gates["bootstrap_positive"]["pooled_condition"]
+    assert "UTC-week" in gates["bootstrap_positive"]["pooled_condition"]
+
+    assert gates["placebo_separation"]["scope"] == "pooled_only"
+    assert "placebo_q95" in gates["placebo_separation"]["pooled_condition"]
+    assert "95th percentile" in gates["placebo_separation"]["placebo_q95_definition"]
+
+    morph = gates["morphology_ordering"]
+    assert morph["scope"] == "pooled_and_side_symmetric"
+    assert morph["same_scored_support_required"] is True
+    assert morph["requires_all_finite"] is True
+    # The actual formula must be present, not merely a boolean flag.
+    assert "BASE_RESIDUAL = Y_H - BASE_PRED" in morph["definition"]
+    assert "MORPHOLOGY_SEPARATION(subset)" in morph["definition"]
+    assert "up_condition" in morph and "down_condition" in morph
+
+
+def test_b2_03_anti_rescue_side_symmetry_does_not_add_a_ninth_gate():
+    freeze = _freeze()
+    contract = freeze["promotion_gate_contract"]
+    anti_rescue = contract["anti_rescue_side_symmetry"]
+    assert anti_rescue["applies_to_gates"] == ["primary_positive", "morphology_ordering"]
+    assert anti_rescue["adds_new_gate_name"] is False
+    assert anti_rescue["creates_direction_specific_promotion_path"] is False
+    assert anti_rescue["pooled_cell_remains_primary_statistical_unit"] is True
+    # Still exactly the frozen eight gate names -- no ninth gate introduced.
+    assert len(contract["required_gate_names"]) == 8
+    assert "up_only" not in contract["required_gate_names"]
+    assert "down_only" not in contract["required_gate_names"]
+
+
+def test_b2_03_md_no_longer_claims_pooling_alone_blocks_one_sided_rescue():
+    md = MD.read_text(encoding="utf-8")
+    # The repaired document must state the anti-rescue mechanism explicitly
+    # rather than the retired (false) claim that pooling by itself prevents
+    # a one-sided rescue.
+    assert "does not, by itself, block this" in md
+    assert "### 20.1 Anti-rescue side-symmetry subconditions" in md
+    # Self-red-team item 11 must reflect the strengthened gates, not bare pooling.
+    assert (
+        "`primary_positive` requires pooled **and** `UP` **and** `DOWN` mean AE "
+        "improvement each `> 0` and finite" in md
+    )
+
+
+def test_b2_03_reporting_contract_includes_up_down_partitions():
+    reporting = _freeze()["reporting_contract"]
+    assert "up" in reporting["per_cell_side_partition_minimum"]
+    assert "down" in reporting["per_cell_side_partition_minimum"]
+    for side in ("up", "down"):
+        fields = reporting["per_cell_side_partition_minimum"][side]
+        assert "N" in fields
+        assert "mean_ae_improvement" in fields
+        assert f"morphology_separation_{side}" in fields
+
+    md = MD.read_text(encoding="utf-8")
+    assert "`UP N`; `DOWN N`" in md
+    assert "MORPHOLOGY_SEPARATION_UP" in md
+    assert "MORPHOLOGY_SEPARATION_DOWN" in md
+
+
+def test_b2_03_morphology_separation_formula_has_pooled_up_down_variants():
+    md = MD.read_text(encoding="utf-8")
+    assert "MORPHOLOGY_SEPARATION_POOLED" in md
+    assert "MORPHOLOGY_SEPARATION_UP" in md
+    assert "MORPHOLOGY_SEPARATION_DOWN" in md
+    assert "exact same scored support used by the candidate/baseline comparison" in md
+
+
+def test_b2_03_canonical_event_id_serialization_is_frozen():
+    serialization = _freeze()["event_identity"]["canonical_serialization"]
+    assert serialization["format"] == (
+        "snapshot_id|1m|5m|1h|W_minutes|direction|window_start_ms|window_end_ms|T_ms|H_minutes"
+    )
+    assert serialization["delimiter"] == "|"
+    assert serialization["field_order"] == [
+        "snapshot_id",
+        "source_timeframe",
+        "derived_timeframe",
+        "decision_grid",
+        "W_minutes",
+        "direction",
+        "window_start_ms",
+        "window_end_ms",
+        "T_ms",
+        "H_minutes",
+    ]
+    assert serialization["timestamp_representation"] == "integer UTC epoch milliseconds"
+    assert serialization["window_start_ms_definition"] == "T_ms - W_minutes*60000"
+    assert serialization["window_end_ms_definition"] == "T_ms"
+    assert serialization["no_alternate_repr_permitted"] is True
+
+    md = MD.read_text(encoding="utf-8")
+    assert "### 6.1 Frozen canonical event-ID serialization" in md
+    assert (
+        'CANONICAL_EVENT_ID = snapshot_id | "1m" | "5m" | "1h" | W_minutes | direction '
+        "| window_start_ms | window_end_ms | T_ms | H_minutes" in md
+    )
+
+
+def test_b2_03_canonical_event_id_rejects_alternative_serializations():
+    """An alias/alternative serialization (e.g. ISO timestamps, a repr()/tuple
+    form, or a differently-ordered field list) must not silently satisfy the
+    frozen contract -- the frozen format is the only permitted one."""
+    serialization = _freeze()["event_identity"]["canonical_serialization"]
+
+    # ISO-8601 timestamps are explicitly not the frozen representation.
+    assert serialization["timestamp_representation"] != "ISO-8601"
+    assert "ISO" not in serialization["timestamp_representation"]
+
+    # A Python tuple/dict repr is explicitly excluded.
+    assert serialization["no_alternate_repr_permitted"] is True
+
+    # Field order is exact and would not tolerate e.g. H_minutes before T_ms.
+    reordered = list(serialization["field_order"])
+    reordered[-1], reordered[-2] = reordered[-2], reordered[-1]
+    assert reordered != serialization["field_order"]
+
+
+def test_b2_03_baseline_stratum_id_serialization_is_frozen():
+    controls = _freeze()["controls"]
+    stratum = controls["baseline_stratum_id_serialization"]
+    assert stratum["format"] == "W_minutes|direction|DISPLACEMENT_MAG_STATE|VOL_STATE"
+    assert stratum["delimiter"] == "|"
+    assert stratum["field_order"] == [
+        "W_minutes",
+        "direction",
+        "DISPLACEMENT_MAG_STATE",
+        "VOL_STATE",
+    ]
+
+    seed_primitive = controls["seed_derivation_primitive"]
+    assert "SHA-256" in seed_primitive["description"]
+    assert "first 16 hex digits" in seed_primitive["description"]
+    assert seed_primitive["no_alternate_hash_permitted"] is True
+    assert controls["current_T_representation"].startswith(
+        "T_ms: integer UTC epoch milliseconds"
+    )
+
+    md = MD.read_text(encoding="utf-8")
+    assert "### 17.1 Frozen baseline-stratum-ID serialization" in md
+    assert "### 17.2 Frozen per-replicate seed derivation" in md
+    assert "BASELINE_STRATUM_ID = W_minutes | direction | DISPLACEMENT_MAG_STATE | VOL_STATE" in md
+
+
+def test_b2_03_pre_vol_60_boundary_is_pinned_to_exactly_60_returns():
+    vol_boundary = _freeze()["baseline_context"]["vol_boundary"]
+    assert vol_boundary["return_count"] == 60
+    assert vol_boundary["anchor"] == "close(T-60m)"
+    assert vol_boundary["last_return_bar_end_exclusive"] == "T"
+    assert vol_boundary["bar_coverage"] == "[T-60m, T)"
+
+    pre_vol_formula = _freeze()["baseline_context"]["formulas"]["PRE_VOL_60"]
+    assert "sum_{i=1..60}" in pre_vol_formula
+    assert "close_0=close(T-60m)" in pre_vol_formula
+
+    md = MD.read_text(encoding="utf-8")
+    assert "Freeze exactly 60 one-minute returns per decision time" in md
+    assert "no 59-return or 61-return interpretation" in md
+
+
+def test_b2_03_existing_retention_ceremony_and_outcome_flags_unaffected_by_repair():
+    freeze = _freeze()
+    assert freeze["outcome_access_authorized"] is False
+    assert freeze["validation_2025_authorized"] is False
+    assert freeze["oos_2026_authorized"] is False
+    assert freeze["durable_retention_integration"]["canonical_slot"] == "B2-03"
+    # Frozen surface/design constants preserved verbatim by this repair.
+    assert freeze["search_surface_primary_cells"] == 15
+    assert freeze["forecast"]["baseline_min_count"] == 80
+    assert freeze["forecast"]["candidate_min_count"] == 40
+    assert freeze["controls"]["permutation_replicates"] == 100
+    assert freeze["controls"]["bootstrap_replicates"] == 2000

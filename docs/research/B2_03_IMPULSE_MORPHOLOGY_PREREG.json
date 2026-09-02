@@ -74,12 +74,19 @@
     "binning": "causal_midrank_tertiles",
     "displacement_mag_reference_population": "eligible hourly B2-03 decision records same W, preceding 30 calendar days strictly before current T, current event excluded, UP/DOWN pooled (unsigned magnitude)",
     "vol_window_minutes": 60,
+    "vol_boundary": {
+      "return_count": 60,
+      "anchor": "close(T-60m)",
+      "bar_coverage": "[T-60m, T)",
+      "last_return_bar_end_exclusive": "T",
+      "interpretation": "exactly 60 consecutive complete canonical 1m bars; no 59-return or 61-return interpretation; fewer or more than exactly 60 returns fails the record closed"
+    },
     "vol_reference_population": "preceding 30 calendar days, hourly B2-03 decision grid, strictly before T, current event excluded",
     "midrank_ties": "(count_less + 0.5*count_equal)/N",
     "empty_reference": "UNAVAILABLE_FOR_DECISION for both candidate and baseline; no fallback",
     "formulas": {
       "DISPLACEMENT_MAG_STATE_raw": "ABS_DISP_W(T)",
-      "PRE_VOL_60": "sqrt(sum(r_1m^2)) over complete accepted 1m log returns in [T-60m,T], available_at<=T"
+      "PRE_VOL_60": "sqrt(sum_{i=1..60} r_i^2); r_i=ln(close_i/close_{i-1}); close_0=close(T-60m); close_1..close_60 are the 60 consecutive complete 1m bar closes covering [T-60m,T); available_at<=T for close_0 and all 60 bars"
     }
   },
   "morphology_descriptor": {
@@ -154,8 +161,22 @@
       "VOL_STATE"
     ],
     "permutation_target": "historical MORPHOLOGY_STATE labels only; historical Y fixed; evaluation event's own morphology state fixed",
-    "permutation_ordering": "sort each stratum by canonical event ID before RNG, then permute",
-    "permutation_seed_derivation": "20260904 | replicate_index | W | H | current_T | baseline_stratum_id",
+    "permutation_ordering": "sort each stratum by canonical event ID (event_identity.canonical_serialization) before RNG, then permute",
+    "permutation_seed_derivation": "20260904 | replicate_index | W_minutes | H_minutes | T_ms | baseline_stratum_id",
+    "seed_derivation_primitive": {
+      "description": "pipe-join str(part) for each ordered part in the seed_derivation sequence, UTF-8 encode, SHA-256, take the first 16 hex digits as an integer",
+      "reference_implementation_convention": "mirrors _seed_int in scripts/research/b2_02_boundary_interaction_path_lib.py",
+      "no_alternate_hash_permitted": true
+    },
+    "baseline_stratum_id_serialization": {
+      "format": "W_minutes|direction|DISPLACEMENT_MAG_STATE|VOL_STATE",
+      "delimiter": "|",
+      "field_order": ["W_minutes", "direction", "DISPLACEMENT_MAG_STATE", "VOL_STATE"],
+      "w_representation": "plain base-10 integer, no leading zero",
+      "direction_representation": "exactly UP or DOWN, uppercase ASCII",
+      "state_representation": "exactly LOW, MID, or HIGH, uppercase ASCII"
+    },
+    "current_T_representation": "T_ms: integer UTC epoch milliseconds, identical representation to event_identity.canonical_serialization.timestamp_representation",
     "future_calendar_composition": "forbidden",
     "bootstrap_seed": 20260905,
     "bootstrap_replicates": 2000,
@@ -170,7 +191,9 @@
     "relative_mae_improvement_min": 0.02,
     "bootstrap_lower_bound_strictly_positive": true,
     "placebo_percentile": 0.95,
-    "morphology_separation_strictly_positive": true
+    "morphology_separation_strictly_positive": true,
+    "primary_positive_requires_pooled_up_down_all_positive_finite": true,
+    "morphology_ordering_requires_pooled_up_down_all_positive_finite": true
   },
   "promotion_gate_contract": {
     "required_gate_names": [
@@ -183,10 +206,76 @@
       "parameter_robustness",
       "year_stability"
     ],
-    "horizon_robustness": "for one W, at least two adjacent horizons in [15,30,60,120,240] (adjacent pairs 15/30, 30/60, 60/120, 120/240) pass all five per-cell gates",
+    "per_cell_gates": {
+      "primary_positive": {
+        "scope": "pooled_and_side_symmetric",
+        "pooled_condition": "pooled mean AE improvement > 0",
+        "up_condition": "UP mean AE improvement > 0",
+        "down_condition": "DOWN mean AE improvement > 0",
+        "requires_all_finite": true
+      },
+      "material_relative_mae": {
+        "scope": "pooled_only",
+        "pooled_condition": "relative MAE improvement >= 0.02",
+        "relative_mae_improvement_definition": "1 - mean(CAND_AE)/mean(BASE_AE)"
+      },
+      "bootstrap_positive": {
+        "scope": "pooled_only",
+        "pooled_condition": "95% UTC-week block-bootstrap lower bound for mean AE improvement > 0"
+      },
+      "placebo_separation": {
+        "scope": "pooled_only",
+        "pooled_condition": "true mean AE improvement > placebo_q95",
+        "placebo_q95_definition": "95th percentile of the frozen 100 causal permutation replicates (controls.permutation_replicates)"
+      },
+      "morphology_ordering": {
+        "scope": "pooled_and_side_symmetric",
+        "definition": "BASE_RESIDUAL = Y_H - BASE_PRED; MORPHOLOGY_SEPARATION(subset) = median(BASE_RESIDUAL | MORPHOLOGY_STATE=HIGH, subset) - median(BASE_RESIDUAL | MORPHOLOGY_STATE=LOW, subset)",
+        "same_scored_support_required": true,
+        "pooled_condition": "MORPHOLOGY_SEPARATION(pooled) > 0",
+        "up_condition": "MORPHOLOGY_SEPARATION(direction=UP) > 0",
+        "down_condition": "MORPHOLOGY_SEPARATION(direction=DOWN) > 0",
+        "requires_all_finite": true
+      }
+    },
+    "anti_rescue_side_symmetry": {
+      "applies_to_gates": ["primary_positive", "morphology_ordering"],
+      "rationale": "pooling UP+DOWN into one (W,H) cell does not by itself block a one-sided effect from dominating a null/negative effect on the other side while the pooled metric remains positive",
+      "adds_new_gate_name": false,
+      "creates_direction_specific_promotion_path": false,
+      "pooled_cell_remains_primary_statistical_unit": true
+    },
+    "horizon_robustness": "for one W, at least two adjacent horizons in [15,30,60,120,240] (adjacent pairs 15/30, 30/60, 60/120, 120/240) pass all five per-cell gates, including the anti_rescue_side_symmetry subconditions",
     "parameter_robustness": "the exact same adjacent-H pair also passes all five per-cell gates for at least one other W; no single W may promote alone",
-    "year_stability": "every promotion-neighborhood cell has positive mean AE improvement in >=4/5 development years (2020,2021,2022,2023,2024); no year exclusions",
-    "direction_pooling": "gates operate on UP+DOWN pooled records within each (W,H) cell; a single-direction effect cannot rescue a pooled-cell failure"
+    "year_stability": "every promotion-neighborhood cell has positive pooled mean AE improvement in >=4/5 development years (2020,2021,2022,2023,2024); no year exclusions",
+    "direction_pooling": "DIRECTION is a shared baseline+candidate stratum dimension pooled into each (W,H) cell; pooling alone does not block a one-sided rescue of primary_positive/morphology_ordering, so those two gates additionally require finite UP and DOWN subconditions (see anti_rescue_side_symmetry); a formulation whose pooled cell fails cannot be rescued by a single direction either way"
+  },
+  "reporting_contract": {
+    "per_cell_pooled_minimum": [
+      "N",
+      "unique_utc_days",
+      "unique_utc_weeks",
+      "unique_utc_months",
+      "UP_count",
+      "DOWN_count",
+      "yearly_2020_2024_mean_ae_improvement",
+      "baseline_state_counts",
+      "morphology_state_counts",
+      "largest_month_support_share",
+      "top5_month_support_share",
+      "mean_ae_improvement",
+      "median_ae_improvement",
+      "relative_mae_improvement",
+      "bootstrap_lower_95",
+      "bootstrap_upper_95",
+      "morphology_separation_pooled",
+      "placebo_q95"
+    ],
+    "per_cell_side_partition_minimum": {
+      "up": ["N", "mean_ae_improvement", "morphology_separation_up"],
+      "down": ["N", "mean_ae_improvement", "morphology_separation_down"]
+    },
+    "component_distributions": "descriptive only; never a promotion gate beyond the mandatory subconditions in promotion_gate_contract.anti_rescue_side_symmetry"
   },
   "verdicts": [
     "B2_03_PROMOTED_CANDIDATE",
@@ -234,6 +323,34 @@
     "source_timeframe": "1m",
     "derived_timeframe": "5m",
     "decision_grid": "1h",
-    "same_candidate_baseline_id_required": true
+    "same_candidate_baseline_id_required": true,
+    "canonical_serialization": {
+      "format": "snapshot_id|1m|5m|1h|W_minutes|direction|window_start_ms|window_end_ms|T_ms|H_minutes",
+      "delimiter": "|",
+      "field_order": [
+        "snapshot_id",
+        "source_timeframe",
+        "derived_timeframe",
+        "decision_grid",
+        "W_minutes",
+        "direction",
+        "window_start_ms",
+        "window_end_ms",
+        "T_ms",
+        "H_minutes"
+      ],
+      "literal_segments": {
+        "source_timeframe": "1m",
+        "derived_timeframe": "5m",
+        "decision_grid": "1h"
+      },
+      "timestamp_representation": "integer UTC epoch milliseconds",
+      "integer_representation": "plain base-10, no leading zero, no unit suffix",
+      "direction_representation": "exactly UP or DOWN, uppercase ASCII",
+      "window_start_ms_definition": "T_ms - W_minutes*60000",
+      "window_end_ms_definition": "T_ms",
+      "reference_implementation_convention": "mirrors _event_id in scripts/research/b2_02_boundary_interaction_path_lib.py",
+      "no_alternate_repr_permitted": true
+    }
   }
 }

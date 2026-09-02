@@ -99,6 +99,25 @@ snapshot_id | source_timeframe=1m | derived_timeframe=5m | decision_grid=1h | W 
 
 at minimum: `snapshot_id`, `source_timeframe=1m`, `derived_timeframe=5m`, `decision_grid=1h`, `W`, `direction`, `window_start=T-W`, `window_end=T`, `T`, `H`. `H` is part of scored-record identity — a generic decision timestamp alone is not sufficient. Candidate and baseline retain exactly the same canonical ID on the same scored record.
 
+### 6.1 Frozen canonical event-ID serialization
+
+The exact, sole permitted serialization is the pipe-joined string:
+
+```
+CANONICAL_EVENT_ID = snapshot_id | "1m" | "5m" | "1h" | W_minutes | direction | window_start_ms | window_end_ms | T_ms | H_minutes
+```
+
+with these exact per-field rules:
+
+- `snapshot_id`: the exact dataset snapshot identifier string, verbatim;
+- literal segments `"1m"`, `"5m"`, `"1h"`: exactly those three ASCII strings, unconditionally;
+- `W_minutes`, `H_minutes`: plain base-10 integers with no leading zero and no unit suffix (`15`, not `15m` or `015`);
+- `direction`: exactly `UP` or `DOWN` (uppercase ASCII; never `1`/`-1`, lowercase, or a synonym);
+- `window_start_ms`, `window_end_ms`, `T_ms`: integer UTC epoch milliseconds (`window_end_ms == T_ms` always; `window_start_ms == T_ms - W_minutes*60000`);
+- fields are joined, in exactly the order above, with a single literal `|` character between each pair, no surrounding whitespace, no other delimiter.
+
+This mirrors the pipe-joined, epoch-millisecond, `str(int(...))`-normalized canonical ID convention already frozen and implemented for B2-02 (`_event_id` in `scripts/research/b2_02_boundary_interaction_path_lib.py`). No implementation-specific `repr()`, tuple, or dict-key ordering may be substituted for, or silently diverge from, this exact string — any future B2-03 implementation must reproduce it byte-for-byte from the fields above. Every canonical-ID-sort operation referenced elsewhere in this document (§9, §17) sorts, ultimately, on this exact string.
+
 ## 7. Simpler causal baseline
 
 The candidate must beat: **signed displacement magnitude + current volatility state.** Baseline dimensions, frozen:
@@ -115,11 +134,17 @@ Raw quantity: `ABS_DISP_W(T)`. Causal percentile: same `W`, eligible hourly B2-0
 
 ### 7.3 Current volatility state
 
+Freeze exactly 60 one-minute returns per decision time; no 59-return or 61-return interpretation:
+
+- anchor: `close_0 = close(T-60m)`;
+- history: `close_1, ..., close_60`, the closes of the 60 consecutive complete canonical 1-minute bars whose bar-end-exclusive timestamps lie in `(T-60m, T]` — equivalently, the source bars exactly cover `[T-60m, T)`, and the 60th bar's bar-end-exclusive timestamp equals `T` exactly;
+- `r_i = ln(close_i / close_{i-1})`, `i = 1..60`.
+
 ```
-PRE_VOL_60(T) = sqrt(sum(r_1m^2))
+PRE_VOL_60(T) = sqrt(sum_{i=1..60} r_i^2)
 ```
 
-using complete accepted 1m log returns in `[T-60m, T]`, all with `available_at <= T`. Causal percentile: preceding 30 calendar days, hourly B2-03 decision grid, strictly before `T`, current record excluded. Same midrank tertiles as §7.2. No alternate volatility metric, quantile count, threshold, or fallback.
+Every one of the 60 source 1m bars, and the anchor `close_0`, must have `available_at <= T`. Fewer or more than exactly 60 returns is not a valid computation and fails the record closed (`UNAVAILABLE_FOR_DECISION`, jointly for candidate and baseline). Causal percentile: preceding 30 calendar days, hourly B2-03 decision grid, strictly before `T`, current record excluded. Same midrank tertiles as §7.2. No alternate volatility metric, quantile count, threshold, or fallback.
 
 Malformed, empty, or non-finite causal reference for either §7.2 or §7.3 makes the record `UNAVAILABLE_FOR_DECISION` for both candidate and baseline. No side-specific, neighboring-`W`, or full-history fallback.
 
@@ -168,7 +193,7 @@ Require finite `0 <= COUNTERMOVE_RATIO <= 1` (a construction invariant — `peak
 
 No alternate counter-move formula, and no fifth component, after outcomes.
 
-**On magnitude equivalence (self-red-team item 13):** none of the four components is a re-binning of `ABS_DISP_W(T)`. `TV` (total absolute sub-return variation) and `abs(D_W(T))` (net displacement) are different quantities related only by the inequality above; `PATH_EFFICIENCY` is precisely the ratio that separates a "shock" path (`TV` close to `abs(D_W(T))`... actually the reverse: a single-bar shock has `MAX_RETURN_SHARE` near 1 and `TV` close to `abs(D_W(T))`, giving `PATH_EFFICIENCY` near 1 too) from a choppy path of the same net displacement (`TV` much larger than `abs(D_W(T))`, `PATH_EFFICIENCY` near 0). The remaining three components (`DISTRIBUTEDNESS`, `DIRECTIONAL_BAR_SHARE`, `COUNTERMOVE_SHALLOWNESS`) are computed entirely from the internal shape of `r_1..r_N` and, for `DISTRIBUTEDNESS`/`COUNTERMOVE_SHALLOWNESS`, from `TV`-normalized internal structure — none is a monotone transform of `abs(D_W(T))` alone. Conditioning both candidate and baseline on the same `DISPLACEMENT_MAG_STATE` tertile additionally removes any residual scale channel before morphology is even evaluated.
+**On magnitude equivalence (self-red-team item 13):** none of the four components is a re-binning of `ABS_DISP_W(T)`. `TV` (total absolute sub-return variation) and `abs(D_W(T))` (net displacement) are different quantities related only by the inequality above; `PATH_EFFICIENCY` is precisely the ratio that separates a single-bar shock path (`MAX_RETURN_SHARE` near 1, `TV` close to `abs(D_W(T))`, giving `PATH_EFFICIENCY` near 1) from a choppy path producing the same net displacement (`TV` much larger than `abs(D_W(T))`, giving `PATH_EFFICIENCY` near 0). The remaining three components (`DISTRIBUTEDNESS`, `DIRECTIONAL_BAR_SHARE`, `COUNTERMOVE_SHALLOWNESS`) are computed entirely from the internal shape of `r_1..r_N` and, for `DISTRIBUTEDNESS`/`COUNTERMOVE_SHALLOWNESS`, from `TV`-normalized internal structure — none is a monotone transform of `abs(D_W(T))` alone. Conditioning both candidate and baseline on the same `DISPLACEMENT_MAG_STATE` tertile additionally removes any residual scale channel before morphology is even evaluated.
 
 ## 9. Causal morphology normalization
 
@@ -250,16 +275,22 @@ CAND_AE = abs(Y_H - CAND_PRED)
 AE_IMPROVEMENT = BASE_AE - CAND_AE
 ```
 
-Positive favors morphology. Per primary cell: `N`; mean/median AE improvement; relative MAE improvement `1 - mean(CAND_AE)/mean(BASE_AE)`; bootstrap 95% interval; `MORPHOLOGY_SEPARATION`; placebo q95.
+Positive favors morphology. Per primary cell, on the pooled scored support: `N`; mean/median AE improvement; relative MAE improvement `1 - mean(CAND_AE)/mean(BASE_AE)`; bootstrap 95% interval; `MORPHOLOGY_SEPARATION_POOLED` (§16); placebo q95. Additionally, on the `UP`-only and `DOWN`-only partitions of that same scored support: `N`; mean AE improvement; `MORPHOLOGY_SEPARATION_UP` / `MORPHOLOGY_SEPARATION_DOWN` (§16, §20.1, §21).
 
 ## 16. Structural morphology diagnostic
 
 ```
 BASE_RESIDUAL = Y_H - BASE_PRED
-MORPHOLOGY_SEPARATION = median(BASE_RESIDUAL | MORPHOLOGY_STATE=HIGH) - median(BASE_RESIDUAL | MORPHOLOGY_STATE=LOW)
+MORPHOLOGY_SEPARATION(subset) = median(BASE_RESIDUAL | MORPHOLOGY_STATE=HIGH, subset) - median(BASE_RESIDUAL | MORPHOLOGY_STATE=LOW, subset)
 ```
 
-on the exact same scored support. Frozen expected sign: `MORPHOLOGY_SEPARATION > 0`. `MID` is reported but is never used to invent a post-outcome U-shape or threshold.
+computed on the exact same scored support used by the candidate/baseline comparison for that cell (§13), restricted to `subset`. Three variants are computed and reported for every primary cell, all on that identical scored support:
+
+- `MORPHOLOGY_SEPARATION_POOLED` — `subset` = all scored records in the cell (`UP`+`DOWN`);
+- `MORPHOLOGY_SEPARATION_UP` — `subset` = scored records with `DIRECTION=UP`;
+- `MORPHOLOGY_SEPARATION_DOWN` — `subset` = scored records with `DIRECTION=DOWN`.
+
+Frozen expected sign for all three: `MORPHOLOGY_SEPARATION > 0` (§11). `MID` is reported but is never used to invent a post-outcome U-shape or threshold. The `morphology_ordering` gate requires all three to be finite and strictly positive (§20, §20.1).
 
 ## 17. Negative control / placebo
 
@@ -267,13 +298,31 @@ Causal permutation of historical `MORPHOLOGY_STATE` labels only. Seed `20260904`
 
 For each current forecast event, work only inside its eligible causal 90-day training set with `training_T + H <= current_T`. Stratify by the exact baseline stratum `W × DIRECTION × DISPLACEMENT_MAG_STATE × VOL_STATE`. Within each stratum:
 
-- sort by canonical event ID before RNG;
+- sort by canonical event ID (§6.1) before RNG;
 - permute historical morphology-state labels only;
 - leave historical `Y` fixed;
 - leave the current evaluation event's own morphology state fixed;
 - never use a future record to preserve eventual calendar composition.
 
-Deterministic per-replicate seed derives from exactly `20260904 | replicate_index | W | H | current_T | baseline_stratum_id`. Placebo candidate prediction is reconstructed from the permuted historical morphology labels; the historical stratum must be sorted by canonical event ID (not left in chronological order) before permutation, matching the frozen B2-02 mapping repair. Primary true mean AE improvement must exceed placebo 95th percentile.
+### 17.1 Frozen baseline-stratum-ID serialization
+
+```
+BASELINE_STRATUM_ID = W_minutes | direction | DISPLACEMENT_MAG_STATE | VOL_STATE
+```
+
+with the same per-field rules as §6.1 (`W_minutes` a plain base-10 integer with no leading zero; `direction` exactly `UP`/`DOWN`, uppercase ASCII), plus `DISPLACEMENT_MAG_STATE`, `VOL_STATE` each exactly one of `LOW`, `MID`, `HIGH` (uppercase ASCII), joined in exactly that order by a single literal `|` character.
+
+### 17.2 Frozen per-replicate seed derivation
+
+`current_T` is frozen to `T_ms`, the same integer UTC epoch-millisecond representation used in §6.1. The per-replicate seed is the deterministic hash of the ordered part sequence
+
+```
+[20260904, replicate_index, W_minutes, H_minutes, T_ms, BASELINE_STRATUM_ID]
+```
+
+joined and hashed by the same deterministic string→integer seed primitive already frozen and implemented for B2-02 (`_seed_int` in `scripts/research/b2_02_boundary_interaction_path_lib.py`: pipe-join `str(part)` for each ordered part, UTF-8 encode, SHA-256, take the first 16 hex digits as an integer). No alternate hash, truncation, or seed-mixing scheme may be substituted. `BASELINE_STRATUM_ID` already contains internal `|` characters (§17.1); this is not ambiguous because `_seed_int` never reverse-parses the joined string, only reproduces it deterministically from the same ordered parts.
+
+Placebo candidate prediction is reconstructed from the permuted historical morphology labels; the historical stratum must be sorted by canonical event ID (not left in chronological order) before permutation, matching the frozen B2-02 mapping repair. Primary true mean AE improvement must exceed placebo q95, the 95th percentile of the 100 replicate values (§20).
 
 ## 18. Dependence / bootstrap
 
@@ -285,27 +334,47 @@ Exactly `3 W × 5 H = 15` primary cells (`W = 15,30,60m`; `H = 15,30,60,120,240m
 
 ## 20. Mandatory promotion gates
 
-Required gate names: `primary_positive`, `material_relative_mae`, `bootstrap_positive`, `placebo_separation`, `morphology_ordering`, `horizon_robustness`, `parameter_robustness`, `year_stability`.
+Required gate names — exactly eight, unchanged: `primary_positive`, `material_relative_mae`, `bootstrap_positive`, `placebo_separation`, `morphology_ordering`, `horizon_robustness`, `parameter_robustness`, `year_stability`.
 
 Per-cell (all five required):
 
-- mean AE improvement `> 0`;
-- relative MAE improvement `>= 0.02`;
-- bootstrap lower bound `> 0`;
-- true mean AE improvement `> placebo q95`;
-- `MORPHOLOGY_SEPARATION > 0`.
+- `primary_positive`: **pooled** mean AE improvement `> 0` **and** **`UP`** mean AE improvement `> 0` **and** **`DOWN`** mean AE improvement `> 0`; all three finite (§20.1).
+- `material_relative_mae`: pooled relative MAE improvement `>= 0.02`, where relative MAE improvement `= 1 - mean(CAND_AE)/mean(BASE_AE)` on the pooled scored support (§15).
+- `bootstrap_positive`: pooled 95% UTC-week block-bootstrap lower bound for mean AE improvement `> 0` (§18).
+- `placebo_separation`: pooled true mean AE improvement `>` placebo q95, where placebo q95 is the 95th percentile of the frozen 100 causal permutation replicates (§17) on the pooled scored support.
+- `morphology_ordering`: **pooled** `MORPHOLOGY_SEPARATION > 0` **and** **`UP`** `MORPHOLOGY_SEPARATION > 0` **and** **`DOWN`** `MORPHOLOGY_SEPARATION > 0` (§16); all three finite, all three computed on the exact same scored support as the candidate/baseline comparison for that cell (§20.1).
 
-**Horizon robustness:** for one `W`, at least two adjacent horizons in `[15,30,60,120,240]` (adjacent pairs exactly `15/30`, `30/60`, `60/120`, `120/240`) pass all five per-cell gates.
+### 20.1 Anti-rescue side-symmetry subconditions
+
+Pooling `UP`+`DOWN` into one `(W,H)` cell does **not**, by itself, prevent a one-sided effect from promoting: a sufficiently strong positive effect on one direction can dominate a null or negative effect on the other while the pooled metric still reads positive. B2-03 is not preregistered as a direction-specific interaction formulation, so an `UP`-only or `DOWN`-only effect must not promote.
+
+`primary_positive` and `morphology_ordering` are therefore strengthened with mandatory `UP`-only and `DOWN`-only subconditions, computed on the exact `UP`/`DOWN` partition of the same scored cell support used for the pooled statistic. Both subconditions must hold, in addition to the pooled statistic, for either gate to pass. This does **not**:
+
+- add a ninth gate name;
+- create a direction-specific promotion path or a direction-specific child formulation;
+- introduce an `UP`-only candidate or a `DOWN`-only candidate;
+- permit a post-outcome direction switch;
+- drop, add, or resplit `DIRECTION` out of the candidate/baseline strata (§7.1) to manufacture a passing side.
+
+The pooled `(W,H)` cell remains the sole primary statistical unit that is promoted or closed; `UP`/`DOWN` values are mandatory subconditions of two existing gates, not an alternative promotion route.
+
+`material_relative_mae`, `bootstrap_positive`, and `placebo_separation` remain pooled-only. They are magnitude/uncertainty/negative-control gates on the primary statistical unit, not directional-consistency gates: a one-sided effect that already fails a pooled uncertainty or negative-control gate is already blocked by that gate, so the rescue path closed here is specific to a gate that checks only a single pooled point estimate's sign — exactly `primary_positive` and `morphology_ordering`.
+
+**Horizon robustness:** for one `W`, at least two adjacent horizons in `[15,30,60,120,240]` (adjacent pairs exactly `15/30`, `30/60`, `60/120`, `120/240`) pass all five per-cell gates (including the §20.1 subconditions).
 
 **Parameter robustness:** the exact same adjacent-`H` pair also passes all five per-cell gates for at least one **other** `W`. No single `W` may promote alone.
 
-**Year stability:** for every cell in the proposed promotion neighborhood, mean AE improvement `> 0` in at least 4 of 5 development years `2020,2021,2022,2023,2024`. No year exclusions, no shock-year deletion.
+**Year stability:** for every cell in the proposed promotion neighborhood, pooled mean AE improvement `> 0` in at least 4 of 5 development years `2020,2021,2022,2023,2024`. No year exclusions, no shock-year deletion.
 
-Missing/non-finite mandatory values are non-passes. Per-cell gates and the pooled 15-cell surface operate on `UP`+`DOWN` records together within each `(W,H)` cell (§7.1); a single-direction effect cannot rescue a formulation whose pooled cells fail, matching the program's standing prohibition on `UP`-only or `DOWN`-only rescue.
+Missing/non-finite mandatory values — pooled or side-specific — are non-passes. A formulation whose pooled cells fail cannot be rescued by a single direction, and (per §20.1) a pooled cell whose apparent positive effect is concentrated in only one direction cannot promote either.
 
 ## 21. Reporting contract
 
-For every one of the 15 primary cells, report at minimum: support `N`; unique UTC days/weeks/months; `UP` count; `DOWN` count; yearly 2020..2024 mean AE improvement; baseline-state counts; morphology-state counts; largest-month and top-5-month support share; mean/median AE improvement; relative MAE improvement; bootstrap lower/upper 95%; `MORPHOLOGY_SEPARATION`; placebo q95. Also report morphology component distributions descriptively. A descriptive component metric never becomes a rescue gate.
+For every one of the 15 primary cells, report at minimum, on the pooled scored support: support `N`; unique UTC days/weeks/months; `UP` count; `DOWN` count; yearly 2020..2024 mean AE improvement; baseline-state counts; morphology-state counts; largest-month and top-5-month support share; mean/median AE improvement; relative MAE improvement; bootstrap lower/upper 95%; `MORPHOLOGY_SEPARATION_POOLED`; placebo q95.
+
+Additionally, for every one of the 15 primary cells, report on the `UP`-only and `DOWN`-only partitions of that same scored support: `UP N`; `DOWN N`; `UP` mean AE improvement; `DOWN` mean AE improvement; `MORPHOLOGY_SEPARATION_UP`; `MORPHOLOGY_SEPARATION_DOWN` (§16, §20.1).
+
+Also report morphology component distributions descriptively. A descriptive component metric never becomes a rescue gate beyond the mandatory §20.1 subconditions.
 
 ## 22. Verdict
 
@@ -373,7 +442,7 @@ This preregistration does **not** create that reservation. It occurs only in the
 8. **Can morphology weights/components be changed after outcome?** No. §10 freezes exactly four equal-weighted components; no substitution, deletion, or reweighting is defined anywhere in this document.
 9. **Can LOW/HIGH sign be reversed after outcome?** No. §11 freezes the expected ordering `HIGH > LOW`; a negative sign is a failed formulation (`POSTHOC_UNTESTED`), not a preregistered exhaustion alternative.
 10. **Can one W or one H isolated optimum promote?** No. §20's horizon-robustness and parameter-robustness gates require the same adjacent-`H` pair to pass on at least two distinct `W` values; no single `W`/`H` promotes alone.
-11. **Can UP-only or DOWN-only behavior rescue the formulation?** No. Direction is a shared baseline+candidate stratum dimension (§7.1); the 15 primary cells and their gates are computed on `UP`+`DOWN` pooled records, so an asymmetric single-direction effect cannot pass a pooled-cell gate on its own, matching the program's existing rejection of BUY/SELL-only rescue.
+11. **Can UP-only or DOWN-only behavior rescue the formulation?** No — but pooling `UP`+`DOWN` into one `(W,H)` cell does not, by itself, block this: a strong positive effect on one direction can dominate a null or negative effect on the other while the pooled statistic still reads positive. B2-03 closes this by strengthening two gates, not merely by pooling: `primary_positive` requires pooled **and** `UP` **and** `DOWN` mean AE improvement each `> 0` and finite, and `morphology_ordering` requires pooled **and** `UP` **and** `DOWN` `MORPHOLOGY_SEPARATION` each `> 0` and finite, all on the identical scored support (§20, §20.1). No ninth gate, direction-specific promotion child, `UP`-only candidate, `DOWN`-only candidate, or post-outcome direction switch is introduced; the pooled `(W,H)` cell remains the sole primary statistical unit, matching the program's existing rejection of BUY/SELL-only rescue.
 12. **Can a result be persisted without PR #99 durable retention later?** No. §23 requires the merged B2-03+ retained-run ceremony; the merged `batch02_contracts` module already rejects numbered B2-03+ hypothesis IDs from the historical `prepare_batch02_run`/`persist_batch02_result` path at the code level.
 13. **Is any feature mathematically equivalent to re-binning displacement magnitude?** No — addressed explicitly in §8's closing note; `TV` and `abs(D_W(T))` are distinct quantities, and conditioning on `DISPLACEMENT_MAG_STATE` further removes residual scale before morphology percentiles are computed.
 14. **Does the design contain an unbounded feature/search menu?** No. Exactly four frozen components, one score, `3W×5H=15` cells, no `q` grid, no second window.
