@@ -993,12 +993,14 @@ def test_isolated_git_env_strips_tls_and_injected_config(monkeypatch: pytest.Mon
     monkeypatch.setenv("GIT_CONFIG_KEY_0", "http.sslVerify")
     monkeypatch.setenv("GIT_CONFIG_VALUE_0", "false")
     monkeypatch.setenv("GIT_CONFIG_PARAMETERS", "http.sslVerify=false")
+    monkeypatch.setenv("GIT_PROXY_COMMAND", "/tmp/untrusted-proxy")
     env = retention._git_env()
     assert "GIT_SSL_NO_VERIFY" not in env
     assert "GIT_CONFIG_COUNT" not in env
     assert "GIT_CONFIG_KEY_0" not in env
     assert "GIT_CONFIG_VALUE_0" not in env
     assert "GIT_CONFIG_PARAMETERS" not in env
+    assert "GIT_PROXY_COMMAND" not in env
     assert env["GIT_CONFIG_NOSYSTEM"] == "1"
 
 
