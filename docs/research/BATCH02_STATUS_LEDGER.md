@@ -138,10 +138,12 @@ B2-03 must independently complete its own frozen preregistration,
 implementation, exact-SHA CI/review/merge, and only then receive a separate
 development-outcome authorization.
 
-B2-03 development outcome access must not occur until a separate outcome-blind
-evidence-retention hardening unit guarantees durable preservation of future
-one-shot result artifacts. That operational prerequisite does not alter B2-03
-statistical preregistration.
+B2-03 development outcome access must not occur until the outcome-blind
+evidence-retention hardening unit in
+`docs/research/BATCH02_DURABLE_EVIDENCE_RETENTION_V1.md` has independent
+review, green exact-SHA CI, and merge, and the future B2-03 runner is reviewed
+for correct integration with that contract. This ledger does not treat that
+infrastructure unit as B2-03 statistical preregistration or as a B2-02 rerun.
 
 ## 9. Validation boundary
 

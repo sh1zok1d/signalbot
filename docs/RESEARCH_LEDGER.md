@@ -1184,3 +1184,23 @@ The following remain ideas only until justified by a specific mechanism and rese
 - broad multi-symbol expansion used merely to increase row count.
 
 Recording an idea is not permission to implement it.
+
+---
+
+## 2026-09-02 — Batch02 durable evidence retention V1 (outcome-blind)
+
+**Decision:** implement `BATCH02_DURABLE_EVIDENCE_RETENTION_V1` as infrastructure
+only, pending independent review.
+
+This entry consumes **no** market window and opens **no** Batch02 outcomes.
+
+- B2-01 rerun = NO
+- B2-02 rerun = NO
+- B2-03 run = NO
+- real `CORE_BTC_BINANCE_V0` market partitions = not accessed by this unit
+- 2025 validation = UNTOUCHED
+- 2026 OOS = UNTOUCHED
+
+B2-02 remains `POST_RUN_EVIDENCE_RETENTION_GAP`. The new contract is
+forward-only for B2-03+. See
+`docs/research/BATCH02_DURABLE_EVIDENCE_RETENTION_V1.md`.

@@ -100,6 +100,7 @@ class Batch02SourcePolicyError(RuntimeError):
 
 
 _FUTURE_B2_FILE = re.compile(r"^b2_(?!01)\d{2}.*\.py$")
+_B2_FILE_NUMBER = re.compile(r"^b2_(\d{2})")
 _FROZEN_RUNTIME_PREFIXES = (
     "scripts.research.h01_",
     "scripts.research.h02_",
@@ -111,6 +112,10 @@ _FROZEN_RUNTIME_PREFIXES = (
 _TRUSTED_MODULES = {
     "scripts.research.lib.batch02_contracts",
 }
+# batch02_evidence_retention.py is intentionally NOT trusted for hypothesis
+# files. It uses subprocess Git. Hypothesis runners may only reach retention
+# through the contracts re-exports; importing the retention module directly
+# would fail this policy because subprocess is default-denied.
 
 # Non-repository imports are default-deny. Keep this set intentionally narrow:
 # future hypotheses may transform already-authorized in-memory data, not grow
@@ -594,8 +599,20 @@ _REQUIRED_RUNNER_CALLS = {
     "prepare_batch02_run",
     "persist_batch02_result",
 }
+_RETENTION_RUNNER_CALLS = {
+    "verify_batch02_code",
+    "prepare_batch02_evidence_reservation",
+    "prepare_batch02_retained_run",
+    "persist_batch02_retained_result",
+    "archive_batch02_result",
+}
+_DATASET_OPENING_NAMES = {
+    "prepare_batch02_run",
+    "prepare_batch02_retained_run",
+}
 _PROTECTED_BINDINGS = {
     *_REQUIRED_RUNNER_CALLS,
+    *_RETENTION_RUNNER_CALLS,
     _CANONICAL_RANK_NAME,
     "load_authorized_parquet_table",
 }
@@ -614,10 +631,18 @@ _TYPE_PARAMETER_NODES = tuple(
 
 _CANONICAL_PUBLIC_API = {
     *_REQUIRED_RUNNER_CALLS,
+    *_RETENTION_RUNNER_CALLS,
     _CANONICAL_RANK_NAME,
     "load_authorized_parquet_table",
     "Batch02ContractError",
     "Batch02RunContext",
+    "DurableEvidenceReservation",
+    "DurableOutcomeAccessClaim",
+    "DurableArchiveReceipt",
+    "PersistedBatch02ResultProof",
+    "PreOutcomeRetentionError",
+    "PostOutcomeRetentionFailure",
+    "AmbiguousOutcomeAccessStateError",
 }
 
 
@@ -632,6 +657,20 @@ class SourceViolation:
         if self.lineno is not None:
             where += f":{self.lineno}"
         return f"{where}: {self.message}"
+
+
+def _b2_file_number(path: Path) -> int | None:
+    match = _B2_FILE_NUMBER.match(path.name)
+    if match is None:
+        return None
+    return int(match.group(1))
+
+
+def _runner_required_calls(path: Path) -> set[str]:
+    number = _b2_file_number(path)
+    if number is not None and number >= 3:
+        return set(_RETENTION_RUNNER_CALLS)
+    return set(_REQUIRED_RUNNER_CALLS)
 
 
 def _require_repo_relative(repo_root: Path, path: Path) -> Path:
@@ -916,7 +955,8 @@ def _contains_prepare_reference(
 
     Discovery must not depend on the eventual Call identifier.  In particular,
     ImportFrom aliases, assigned references, functools.partial(), module-
-    qualified calls, and getattr(..., "prepare_batch02_run") all leave at
+    qualified calls, and getattr(..., "prepare_batch02_run") or
+    getattr(..., "prepare_batch02_retained_run") all leave at
     least one of the references below in the importing module.
     """
     bindings = _import_bindings(repo_root=repo_root, path=path, tree=tree)
@@ -935,7 +975,7 @@ def _contains_prepare_reference(
                 node=node,
             )
             if base == _CANONICAL_CONTRACTS_MODULE and any(
-                alias.name in {"prepare_batch02_run", "*"}
+                alias.name in {*_DATASET_OPENING_NAMES, "*"}
                 for alias in node.names
             ):
                 return True
@@ -944,15 +984,18 @@ def _contains_prepare_reference(
                 and any(alias.name == "batch02_contracts" for alias in node.names)
             ):
                 return True
-        elif isinstance(node, ast.Name) and node.id == "prepare_batch02_run":
+        elif isinstance(node, ast.Name) and node.id in _DATASET_OPENING_NAMES:
             return True
         elif isinstance(node, ast.Attribute):
             resolved = _resolved_dotted_name(node, bindings=bindings)
             if (
-                node.attr in {"prepare_batch02_run", "batch02_contracts"}
+                node.attr in {*_DATASET_OPENING_NAMES, "batch02_contracts"}
                 or resolved == _CANONICAL_CONTRACTS_MODULE
                 or resolved
-                == f"{_CANONICAL_CONTRACTS_MODULE}.prepare_batch02_run"
+                in {
+                    f"{_CANONICAL_CONTRACTS_MODULE}.{name}"
+                    for name in _DATASET_OPENING_NAMES
+                }
             ):
                 return True
         elif isinstance(node, ast.Call):
@@ -967,7 +1010,7 @@ def _contains_prepare_reference(
                 }
                 and any(
                     isinstance(arg, ast.Constant)
-                    and arg.value == "prepare_batch02_run"
+                    and arg.value in _DATASET_OPENING_NAMES
                     for arg in node.args
                 )
             ):
@@ -1013,6 +1056,8 @@ def _lint_module(
     canonical_imports: set[str] = set()
     canonical_calls: set[str] = set()
     context_names: set[str] = set()
+    reservation_names: set[str] = set()
+    persisted_names: set[str] = set()
     bindings, module_origins = _import_bindings_and_module_origins(
         repo_root=repo_root, path=path, tree=tree
     )
@@ -1034,28 +1079,52 @@ def _lint_module(
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign):
-            if (
-                isinstance(node.value, ast.Call)
-                and _is_canonical_call(
+            if isinstance(node.value, ast.Call):
+                if any(
+                    _is_canonical_call(node.value, bindings=bindings, name=name)
+                    for name in _DATASET_OPENING_NAMES
+                ):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name):
+                            context_names.add(target.id)
+                if _is_canonical_call(
                     node.value,
                     bindings=bindings,
-                    name="prepare_batch02_run",
-                )
-            ):
-                for target in node.targets:
-                    if isinstance(target, ast.Name):
-                        context_names.add(target.id)
+                    name="prepare_batch02_evidence_reservation",
+                ):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name):
+                            reservation_names.add(target.id)
+                if _is_canonical_call(
+                    node.value,
+                    bindings=bindings,
+                    name="persist_batch02_retained_result",
+                ):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name):
+                            persisted_names.add(target.id)
         elif isinstance(node, ast.AnnAssign):
             if (
                 isinstance(node.target, ast.Name)
                 and isinstance(node.value, ast.Call)
-                and _is_canonical_call(
+            ):
+                if any(
+                    _is_canonical_call(node.value, bindings=bindings, name=name)
+                    for name in _DATASET_OPENING_NAMES
+                ):
+                    context_names.add(node.target.id)
+                if _is_canonical_call(
                     node.value,
                     bindings=bindings,
-                    name="prepare_batch02_run",
-                )
-            ):
-                context_names.add(node.target.id)
+                    name="prepare_batch02_evidence_reservation",
+                ):
+                    reservation_names.add(node.target.id)
+                if _is_canonical_call(
+                    node.value,
+                    bindings=bindings,
+                    name="persist_batch02_retained_result",
+                ):
+                    persisted_names.add(node.target.id)
 
     for node in ast.walk(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
@@ -1242,6 +1311,7 @@ def _lint_module(
                     and base == _CANONICAL_CONTRACTS_MODULE
                     and origin_symbol in {
                         *_REQUIRED_RUNNER_CALLS,
+                        *_RETENTION_RUNNER_CALLS,
                         _CANONICAL_RANK_NAME,
                         "load_authorized_parquet_table",
                     }
@@ -1352,7 +1422,7 @@ def _lint_module(
                         getattr(node, "lineno", None),
                     )
                 )
-            canonical_names = _REQUIRED_RUNNER_CALLS | {
+            canonical_names = _REQUIRED_RUNNER_CALLS | _RETENTION_RUNNER_CALLS | {
                 _CANONICAL_RANK_NAME,
                 "load_authorized_parquet_table",
             }
@@ -1370,7 +1440,12 @@ def _lint_module(
                     )
 
             if (
-                name in {"persist_batch02_result", "load_authorized_parquet_table"}
+                name
+                in {
+                    "persist_batch02_result",
+                    "persist_batch02_retained_result",
+                    "load_authorized_parquet_table",
+                }
                 and _is_canonical_call(node, bindings=bindings, name=name)
             ):
                 context_kw = next(
@@ -1385,7 +1460,57 @@ def _lint_module(
                         SourceViolation(
                             path,
                             f"{name} must receive run_context assigned from "
-                            "prepare_batch02_run",
+                            "prepare_batch02_run or prepare_batch02_retained_run",
+                            getattr(node, "lineno", None),
+                        )
+                    )
+
+            if (
+                name == "archive_batch02_result"
+                and _is_canonical_call(node, bindings=bindings, name=name)
+            ):
+                persisted_kw = next(
+                    (kw.value for kw in node.keywords if kw.arg == "persisted_result"),
+                    None,
+                )
+                context_kw = next(
+                    (kw.value for kw in node.keywords if kw.arg == "run_context"),
+                    None,
+                )
+                digest_kw = next(
+                    (kw for kw in node.keywords if kw.arg == "expected_sha256"),
+                    None,
+                )
+                if digest_kw is not None:
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            "archive_batch02_result must not accept a caller-supplied "
+                            "expected_sha256 digest",
+                            getattr(node, "lineno", None),
+                        )
+                    )
+                if (
+                    not isinstance(persisted_kw, ast.Name)
+                    or persisted_kw.id not in persisted_names
+                ):
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            "archive_batch02_result must receive persisted_result "
+                            "assigned from persist_batch02_retained_result",
+                            getattr(node, "lineno", None),
+                        )
+                    )
+                if (
+                    not isinstance(context_kw, ast.Name)
+                    or context_kw.id not in context_names
+                ):
+                    violations.append(
+                        SourceViolation(
+                            path,
+                            "archive_batch02_result must receive run_context assigned from "
+                            "prepare_batch02_retained_run",
                             getattr(node, "lineno", None),
                         )
                     )
@@ -1670,8 +1795,9 @@ def _lint_module(
                 )
 
     if is_runner:
-        missing_imports = _REQUIRED_RUNNER_CALLS - canonical_imports
-        missing_calls = _REQUIRED_RUNNER_CALLS - canonical_calls
+        required_calls = _runner_required_calls(path)
+        missing_imports = required_calls - canonical_imports
+        missing_calls = required_calls - canonical_calls
         if missing_imports:
             violations.append(
                 SourceViolation(
@@ -1684,6 +1810,37 @@ def _lint_module(
                 SourceViolation(
                     path,
                     f"runner missing canonical calls: {sorted(missing_calls)}",
+                )
+            )
+        number = _b2_file_number(path)
+        if (
+            number is not None
+            and number >= 3
+            and (
+                "prepare_batch02_run" in canonical_imports
+                or "prepare_batch02_run" in canonical_calls
+            )
+        ):
+            violations.append(
+                SourceViolation(
+                    path,
+                    "B2-03+ runners may not call prepare_batch02_run; "
+                    "durable evidence reservation must precede outcome access",
+                )
+            )
+        if (
+            number is not None
+            and number >= 3
+            and (
+                "persist_batch02_result" in canonical_imports
+                or "persist_batch02_result" in canonical_calls
+            )
+        ):
+            violations.append(
+                SourceViolation(
+                    path,
+                    "B2-03+ runners may not call persist_batch02_result; "
+                    "archive must consume persist_batch02_retained_result",
                 )
             )
 
