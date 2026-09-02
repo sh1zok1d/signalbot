@@ -1170,6 +1170,90 @@ A new run receives its own ID, dataset split, variant/search accounting and froz
 
 ---
 
+## 2026-09-02 — B2-02_BOUNDARY_INTERACTION_PATH development
+
+**Formulation:** `B2-02_BOUNDARY_INTERACTION_PATH`
+
+This entry records the one authorized B2-02 development outcome. It does not
+rerun B2-02. Prior Batch02 state: `B2-01_VOLATILITY_TRANSITION` remains
+`CLOSED_NO_PROMOTION` as already recorded in
+`docs/research/B2_01_VOLATILITY_TRANSITION_RESULT.md`.
+
+- execution / merge SHA: `a976a3fa3143f7290851ab8b2ddc5a9d811c891a`
+- reviewed implementation SHA: `37051de39f49b5b331a0ddbc3b37f8316811f9ef`
+- git tree: `f220590be0a6323df29b8e35b47399d42c3ea137`
+- prereg merge SHA: `cbf447276c1dc47c9a755038cfd6013199207eef`
+- prereg JSON SHA256: `3dd11009cd738ab02ab3a3a0a552de9a25a6c4db765d6510f63937c922a6d7b1`
+- dataset snapshot: `717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`
+- development outcome access: **CONSUMED** (one
+  `scripts.research.b2_02_boundary_interaction_path.run_development` call with
+  `outcome_access_acknowledged=True`; window 2020-02-01T00:00:00Z inclusive →
+  2025-01-01T00:00:00Z exclusive; years 2020-2024 only)
+- result artifact SHA256:
+  `971b645a0eb8b45293f7c2f589c9666a037fe602a6f228751162b13bf0054646`
+- 2025 validation: **UNTOUCHED**
+- 2026 OOS: **UNTOUCHED**
+- search surface: **12 primary cells** (3 L × 4 H; P=30m frozen)
+- qualifying breaches: 107061
+- outcome status: `EXPLORATORY`
+- development verdict: **`B2_02_CLOSED_NO_PROMOTION`**
+
+All eight frozen promotion gates failed. All 12 cells have negative mean AE
+improvement and negative `PATH_SEPARATION`. No cell passed all five per-cell
+gates. The isolated `L=60 H=30` placebo pass remains a worse-than-baseline
+forecast and cannot rescue the formulation.
+
+B2-01 remains `CLOSED_NO_PROMOTION`. Do not reinterpret either result. Do not
+open 2025 or 2026. Do not rerun B2-02. Do not add a current-V2 B2-02 child.
+
+Preregistration: `docs/research/B2_02_BOUNDARY_INTERACTION_PATH_PREREG.md`
+Development closeout: `docs/research/B2_02_BOUNDARY_INTERACTION_PATH_RESULT.md`
+Status ledger: `docs/research/BATCH02_STATUS_LEDGER.md`
+
+Canonical next frozen unit: `B2-03_IMPULSE_MORPHOLOGY`. This entry does not
+preregister, implement, or authorize B2-03 outcome access.
+
+---
+
+## 2026-09-02 — B2-02 pre-outcome abort comment and dataset restoration verification
+
+PR #95 comment `issuecomment-5506886454` records a **pre-outcome
+infrastructure abort** of the authorized B2-02 execution: identity passed at
+SHA `a976a3fa3143f7290851ab8b2ddc5a9d811c891a`, but the accepted
+`CORE_BTC_BINANCE_V0` parquet/raw materialization was absent, so
+`run_development()` was not called in that environment. That abort is **not**
+a B2-02 market verdict.
+
+Permitted action from that comment: restore and independently verify snapshot
+`717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`.
+
+This entry records that verification in the restored 2020-2024 runtime root.
+It does **not** call `run_development()`, does **not** open 2025/2026, and
+does **not** authorize a B2-02 rerun.
+
+Independent SHA-256 verification against Git-frozen
+`docs/research_data/CORE_BTC_BINANCE_V0/SNAPSHOT_717d37a4.json`:
+
+- frozen snapshot file SHA256 `a104a403…` MATCH
+- source-inventory file SHA256 `a4bb3924…` MATCH
+- runtime `reports/snapshot_manifest.json` byte-identical to frozen snapshot
+- 60/60 canonical 1m monthly parquet 2020-2024 MATCH
+- 60/60 canonical provenance 2020-2024 MATCH
+- 60/60 raw monthly ZIP 2020-2024 MATCH snapshot `expected_sha256` and sidecar CHECKSUM
+- on-disk 2025/2026 paths: none
+
+Status: `VERIFIED_2020_2024_NO_2025_2026`.
+
+This verification does not un-consume the authorized development run already
+recorded above (`B2_02_CLOSED_NO_PROMOTION`, result SHA256 `971b645a…`).
+Comment `5506886454` remains the abort record for environments that never
+opened outcomes. A second `run_development()` after that completed verdict
+remains **NOT AUTHORIZED**.
+
+Record: `docs/research/B2_02_DATASET_RESTORATION_VERIFICATION.md`
+
+---
+
 ## Future-hypothesis quarantine
 
 The following remain ideas only until justified by a specific mechanism and research plan:
