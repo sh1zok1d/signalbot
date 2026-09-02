@@ -38,6 +38,7 @@ from scripts.research.lib.batch02_evidence_retention import (
     AmbiguousOutcomeAccessStateError,
     GitTimeoutError,
     artifact_relpath,
+    durable_evidence_slot_key,
     evidence_ref_for,
     hypothesis_requires_durable_retention,
     prepare_test_evidence_reservation,
@@ -1301,8 +1302,22 @@ def test_historical_prepare_still_works_for_b2_01_and_b2_02(
 def test_evidence_ref_stays_in_namespace():
     ref = evidence_ref_for(HYPOTHESIS, "a" * 40)
     assert ref.startswith("refs/heads/research-evidence/batch02/")
+    assert ref == f"refs/heads/research-evidence/batch02/B2-03/{'a' * 40}"
     with pytest.raises(PreOutcomeRetentionError):
         evidence_ref_for("B2-03/evil", "a" * 40)
+
+
+def test_numbered_b2_aliases_share_one_durable_slot_and_ref():
+    sha = "a" * 40
+    aliases = ("B2-03_X", "b2-03_X", "B2_03_X", "b2_03_X", "B2-003_X")
+    slots = {durable_evidence_slot_key(alias) for alias in aliases}
+    refs = {evidence_ref_for(alias, sha) for alias in aliases}
+    assert slots == {"B2-03"}
+    assert refs == {f"refs/heads/research-evidence/batch02/B2-03/{sha}"}
+    assert durable_evidence_slot_key("B2-03_X") != durable_evidence_slot_key("B2-04_X")
+    assert evidence_ref_for("B2-03_X", sha) != evidence_ref_for("B2-04_X", sha)
+    assert artifact_relpath("b2_03_X", sha, "b" * 64).startswith("batch02/B2-03/")
+    assert artifact_relpath("B2-04_X", sha, "b" * 64).startswith("batch02/B2-04/")
 
 
 def _timeout_on_git_verb(monkeypatch: pytest.MonkeyPatch, verb: str) -> None:
@@ -1454,4 +1469,140 @@ def test_archive_git_timeout_is_post_outcome_and_forbids_rerun(
             dataset_root=dataset_root,
             command=("python", "-m", "b2_03_retention_fixture"),
         )
+    assert AUTHORIZE_CALLS == []
+
+
+def test_alias_after_claim_cannot_authorize_same_b2_slot(tmp_path: Path):
+    repo, bare, dataset_root, sha = _init_dataset_and_code(tmp_path)
+    reservation = _reserve(
+        repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0", hypothesis_id="B2-03_X"
+    )
+    prepare_batch02_retained_run(
+        reservation=reservation,
+        outcome_access_acknowledged=True,
+        dataset_root=dataset_root,
+        command=("python", "-m", "b2_03_retention_fixture"),
+    )
+    claimed_ref = reservation.evidence_ref
+    del reservation
+    AUTHORIZE_CALLS.clear()
+    for alias in ("b2-03_X", "B2_03_X", "b2_03_X"):
+        with pytest.raises(PreOutcomeRetentionError, match="not a pristine RESERVED"):
+            _reserve(
+                repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0", hypothesis_id=alias
+            )
+        assert AUTHORIZE_CALLS == []
+    assert "outcome_claim.json" in set(_remote_tree(bare, claimed_ref))
+    assert evidence_ref_for("b2-03_X", sha) == claimed_ref
+
+
+def test_alias_after_archive_cannot_authorize_same_b2_slot(tmp_path: Path):
+    repo, bare, dataset_root, sha = _init_dataset_and_code(tmp_path)
+    reservation = _reserve(
+        repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0", hypothesis_id="B2-03_X"
+    )
+    ctx = prepare_batch02_retained_run(
+        reservation=reservation,
+        outcome_access_acknowledged=True,
+        dataset_root=dataset_root,
+        command=("python", "-m", "b2_03_retention_fixture"),
+    )
+    persisted = persist_batch02_retained_result(
+        repo / "artifacts" / "b2_03_x" / "B2_03_X_DEV_RESULTS.json",
+        {"status": "synthetic_closed"},
+        run_context=ctx,
+    )
+    archive_batch02_result(persisted_result=persisted, run_context=ctx)
+    archived_ref = reservation.evidence_ref
+    del reservation
+    AUTHORIZE_CALLS.clear()
+    for alias in ("b2-03_X", "B2_03_X", "b2_03_X"):
+        with pytest.raises(PreOutcomeRetentionError, match="not a pristine RESERVED"):
+            _reserve(
+                repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0", hypothesis_id=alias
+            )
+        assert AUTHORIZE_CALLS == []
+    assert "receipt.json" in set(_remote_tree(bare, archived_ref))
+
+
+def test_pristine_alias_does_not_create_a_second_ref(tmp_path: Path):
+    repo, bare, _dataset_root, sha = _init_dataset_and_code(tmp_path)
+    first = _reserve(
+        repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0", hypothesis_id="B2-03_X"
+    )
+    assert first.evidence_ref == evidence_ref_for("B2-03_X", sha)
+    same = _reserve(
+        repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0", hypothesis_id="B2-03_X"
+    )
+    assert same.evidence_ref == first.evidence_ref
+    assert same.reservation_sha256 == first.reservation_sha256
+    AUTHORIZE_CALLS.clear()
+    with pytest.raises(PreOutcomeRetentionError, match="incompatible"):
+        _reserve(
+            repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0", hypothesis_id="b2-03_X"
+        )
+    assert AUTHORIZE_CALLS == []
+    listed = subprocess.run(
+        ["git", "--git-dir", str(bare), "show-ref"],
+        capture_output=True,
+        text=True,
+    ).stdout
+    evidence_refs = [
+        line.split()[1]
+        for line in listed.splitlines()
+        if "research-evidence/batch02/" in line
+    ]
+    assert evidence_refs == [first.evidence_ref]
+    assert _remote_tree(bare, first.evidence_ref) == ("reservation.json",)
+
+
+def test_distinct_numbered_b2_slots_remain_independent(tmp_path: Path):
+    repo, bare, _dataset_root, sha = _init_dataset_and_code(tmp_path)
+    slot_03 = _reserve(
+        repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0", hypothesis_id="B2-03_X"
+    )
+    slot_04 = _reserve(
+        repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0", hypothesis_id="B2-04_X"
+    )
+    assert slot_03.evidence_ref != slot_04.evidence_ref
+    assert "/B2-03/" in slot_03.evidence_ref
+    assert "/B2-04/" in slot_04.evidence_ref
+    assert _remote_tree(bare, slot_03.evidence_ref) == ("reservation.json",)
+    assert _remote_tree(bare, slot_04.evidence_ref) == ("reservation.json",)
+    assert AUTHORIZE_CALLS == []
+
+
+def test_claim_timeout_after_accepted_push_leaves_claim_and_blocks_replay(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    import scripts.research.lib.batch02_evidence_retention as retention
+
+    repo, bare, dataset_root, sha = _init_dataset_and_code(tmp_path)
+    reservation = _reserve(repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0")
+    original = retention.run_git
+    seen_push = {"done": False}
+
+    def wrapped(cwd, args):
+        result = original(cwd, args)
+        if args and args[0] == "push" and not seen_push["done"]:
+            seen_push["done"] = True
+            raise GitTimeoutError(
+                f"git command timed out after {GIT_TIMEOUT_SECONDS}s: git push"
+            )
+        return result
+
+    monkeypatch.setattr(retention, "run_git", wrapped)
+    with pytest.raises(AmbiguousOutcomeAccessStateError, match=AMBIGUOUS_CLAIM_STATE):
+        prepare_batch02_retained_run(
+            reservation=reservation,
+            outcome_access_acknowledged=True,
+            dataset_root=dataset_root,
+            command=("python", "-m", "b2_03_retention_fixture"),
+        )
+    assert AUTHORIZE_CALLS == []
+    assert "outcome_claim.json" in set(_remote_tree(bare, reservation.evidence_ref))
+    AUTHORIZE_CALLS.clear()
+    with pytest.raises(PreOutcomeRetentionError, match="not a pristine RESERVED"):
+        _reserve(repo, sha, bare, dataset_id="CORE_BTC_BINANCE_V0")
     assert AUTHORIZE_CALLS == []

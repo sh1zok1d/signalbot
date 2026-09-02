@@ -47,6 +47,13 @@ Existing consumed B2-01/B2-02 machinery remains historical evidence.
   classified case-insensitively (`b2-03`, `b2_03`, `B2-03`, `B2_04_X`
   all require durable retention). Noncanonical casing must never reach
   historical B2-01/B2-02 machinery.
+- One-shot uniqueness for numbered B2-03+ is bound to a canonical slot
+  key (`B2-03`, `B2-04`, ...), not the raw caller spelling. `B2-03_X`,
+  `b2-03_X`, `B2_03_X`, and equivalent zero-padding share
+  `refs/heads/research-evidence/batch02/B2-03/<code_sha>`. Distinct
+  numbers remain distinct slots. The exact `hypothesis_id` is still
+  recorded in reservation/run provenance; an incompatible exact ID on
+  an existing slot fails closed and is not overwritten.
 - `persist_batch02_result()` semantics are unchanged for already-consumed
   hypotheses.
 - B2-02 remains `POST_RUN_EVIDENCE_RETENTION_GAP`.
@@ -109,6 +116,10 @@ Once the remote ref has advanced beyond a pristine `RESERVED` tree:
 
 - `OUTCOME_ACCESS_CLAIMED` -> no new reservation / no new run
 - `ARCHIVED` -> no new reservation / no new run
+
+Syntactic aliases of the same numbered B2 slot cannot open a second
+ref. Changing `B2` casing, `-` vs `_` after `B2`, or equivalent
+zero-padding is not a new one-shot authorization.
 
 A successful archived run cannot be replayed from a fresh clone. A
 post-outcome archive failure also remains permanently blocked from an
@@ -208,9 +219,9 @@ claim head that authorized outcome access, not merely any descendant of the
 original reservation. Reservation-head drift, claim-head drift, an alternate
 claim, or an unknown intermediate commit fail closed as post-outcome.
 
-Deterministic append-only path:
+Deterministic append-only path, keyed by the canonical B2 slot:
 
-`batch02/<hypothesis_id>/<code_sha>/<artifact_sha256>.json`
+`batch02/<B2-NN>/<code_sha>/<artifact_sha256>.json`
 
 plus `receipt.json` on the same evidence ref. Path traversal, caller-selected
 filesystem destinations, overwrite, and silent replacement are rejected.

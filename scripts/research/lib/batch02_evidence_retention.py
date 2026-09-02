@@ -14,6 +14,11 @@ Remote outcome-access claim durably consumes/claims the one-shot
 authorization before dataset access.
 Remote archive proves preservation of exact result bytes.
 
+Numbered B2-03+ one-shot uniqueness is bound to a canonical slot key
+(B2-03, B2-04, ...) derived case-insensitively from the numbered prefix.
+Exact hypothesis_id spelling remains in reservation/run provenance; it
+must not create a second evidence ref.
+
 Production transport is the canonical GitHub repository only. Local bare Git
 remotes exist solely through prepare_test_evidence_reservation(), which is
 not re-exported from batch02_contracts.
@@ -56,6 +61,7 @@ CLAIM_BLOB_PATH = "outcome_claim.json"
 RECEIPT_BLOB_PATH = "receipt.json"
 
 _HYPOTHESIS_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+_NUMBERED_B2_RE = re.compile(r"^b2[-_](\d+)", re.IGNORECASE)
 _HEX40_RE = re.compile(r"^[a-f0-9]{40}$")
 _HEX64_RE = re.compile(r"^[a-f0-9]{64}$")
 _EVIDENCE_REF_RE = re.compile(
@@ -322,6 +328,16 @@ class DurableArchiveReceipt:
             )
 
 
+def numbered_batch02_index(hypothesis_id: str) -> int | None:
+    """Return the numbered B2 index, or None when the ID is not numbered B2."""
+    if not isinstance(hypothesis_id, str):
+        return None
+    match = _NUMBERED_B2_RE.match(hypothesis_id.strip())
+    if match is None:
+        return None
+    return int(match.group(1))
+
+
 def hypothesis_requires_durable_retention(hypothesis_id: str) -> bool:
     """Return True for numbered Batch02 hypotheses at B2-03 and later.
 
@@ -329,12 +345,24 @@ def hypothesis_requires_durable_retention(hypothesis_id: str) -> bool:
     ``b2-03`` / ``b2_03`` require durable retention and must not enter
     historical B2-01/B2-02 machinery.
     """
-    if not isinstance(hypothesis_id, str):
-        return False
-    match = re.match(r"^b2[-_](\d+)", hypothesis_id.strip(), re.IGNORECASE)
-    if match is None:
-        return False
-    return int(match.group(1)) >= 3
+    index = numbered_batch02_index(hypothesis_id)
+    return index is not None and index >= 3
+
+
+def durable_evidence_slot_key(hypothesis_id: str) -> str:
+    """Canonical one-shot identity for a numbered B2 evidence slot.
+
+    Aliases that differ only by ``B2`` casing, the ``-``/``_`` separator
+    after ``B2``, or equivalent zero-padding of the number map to one
+    slot. ``B2-03_X``, ``b2-03_X``, ``B2_03_X``, and ``B2-003_X`` all
+    become ``B2-03``. Distinct numbers remain distinct: ``B2-03`` is not
+    ``B2-04``. Non-numbered IDs keep their Git-safe exact token.
+    """
+    token = _safe_hypothesis_token(hypothesis_id)
+    index = numbered_batch02_index(token)
+    if index is None:
+        return token
+    return f"B2-{index:02d}"
 
 
 def canonical_json_bytes(payload: Mapping[str, object]) -> bytes:
@@ -509,7 +537,8 @@ def _safe_hypothesis_token(hypothesis_id: str) -> str:
 
 
 def evidence_ref_for(hypothesis_id: str, code_sha: str) -> str:
-    token = _safe_hypothesis_token(hypothesis_id)
+    """Return the durable evidence ref for the canonical B2 slot + code SHA."""
+    token = durable_evidence_slot_key(hypothesis_id)
     if not _HEX40_RE.fullmatch(code_sha):
         raise PreOutcomeRetentionError("code_sha must be an exact 40-hex commit SHA")
     ref = f"{EVIDENCE_REF_PREFIX}{token}/{code_sha}"
@@ -519,7 +548,7 @@ def evidence_ref_for(hypothesis_id: str, code_sha: str) -> str:
 
 
 def artifact_relpath(hypothesis_id: str, code_sha: str, artifact_sha256: str) -> str:
-    token = _safe_hypothesis_token(hypothesis_id)
+    token = durable_evidence_slot_key(hypothesis_id)
     if not _HEX40_RE.fullmatch(code_sha):
         raise PreOutcomeRetentionError("code_sha must be an exact 40-hex commit SHA")
     if not _HEX64_RE.fullmatch(artifact_sha256):
@@ -1024,7 +1053,9 @@ def _create_verified_remote_reservation(
             existing_bytes = _show_blob(isolated, commit, RESERVATION_BLOB_PATH)
             if existing_bytes != payload_bytes:
                 raise PreOutcomeRetentionError(
-                    "incompatible pre-existing evidence reservation"
+                    "incompatible pre-existing evidence reservation on this "
+                    "normalized B2 slot; exact hypothesis_id/payload mismatch "
+                    "is not overwritten"
                 )
             expected_head = existing
 
