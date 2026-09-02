@@ -7,8 +7,13 @@ historical experimental machinery.
 
 New B2 hypotheses must use:
 - verify_batch02_code() for identity-stage exact Git proof without dataset access;
-- prepare_batch02_run() only after the explicit development outcome-access gate;
+- prepare_batch02_run() only after the explicit development outcome-access gate
+  for historical B2-01/B2-02 machinery;
+- prepare_batch02_evidence_reservation() then prepare_batch02_retained_run()
+  for B2-03+ before any real dataset/outcome access;
 - persist_batch02_result() for immutable JSON evidence;
+- archive_batch02_result() for exact-byte durable remote archival of B2-03+
+  persisted results;
 - rolling_midrank_percentile() as the canonical strict prior-window midrank
   primitive whenever a frozen hypothesis requires percentile/relative-standing
   semantics.
@@ -33,6 +38,16 @@ from typing import Mapping, Sequence
 
 import numpy as np
 
+from scripts.research.lib.batch02_evidence_retention import (
+    DurableArchiveReceipt,
+    DurableEvidenceReservation,
+    PostOutcomeRetentionFailure,
+    PreOutcomeRetentionError,
+    archive_persisted_result_bytes,
+    assert_reservation_still_current,
+    create_verified_remote_reservation,
+    hypothesis_requires_durable_retention,
+)
 from scripts.research.lib.research_harness import (
     ArtifactExistsError,
     AuthorizedDataset,
@@ -101,7 +116,8 @@ class Batch02RunContext:
     def assert_minted(self) -> None:
         if getattr(self, "_run_context_token", None) is not _RUN_CONTEXT_TOKEN:
             raise Batch02ContractError(
-                "Batch02RunContext must be created by prepare_batch02_run"
+                "Batch02RunContext must be created by prepare_batch02_run "
+                "or prepare_batch02_retained_run"
             )
         if not isinstance(self.code_freeze, VerifiedCodeFreeze):
             raise Batch02ContractError("run context has invalid code freeze proof")
@@ -118,7 +134,8 @@ class Batch02RunContext:
 def _reverify_run_code(run_context: Batch02RunContext) -> None:
     if not isinstance(run_context, Batch02RunContext):
         raise Batch02ContractError(
-            "run_context must be a Batch02RunContext from prepare_batch02_run"
+            "run_context must be a Batch02RunContext from prepare_batch02_run "
+            "or prepare_batch02_retained_run"
         )
     run_context.assert_minted()
     current = verify_git_freeze(
@@ -159,6 +176,10 @@ def prepare_batch02_run(
 ) -> Batch02RunContext:
     """Authorize dataset bytes and build provenance for an outcome-bearing run.
 
+    Historical B2-01/B2-02 machinery. B2-03+ cannot use this entry point:
+    those hypotheses must first establish a remotely verified evidence
+    reservation and then call prepare_batch02_retained_run().
+
     New B2 hypothesis code may use the primitive-only public form
     (dataset_id/snapshot_id/time window/years/gate names). The canonical
     contracts module constructs the internal Harness v1 dataclasses itself, so
@@ -168,6 +189,178 @@ def prepare_batch02_run(
     and trusted callers. Mixing typed objects with primitive contract fields is
     rejected to keep the authority boundary unambiguous.
     """
+    if hypothesis_requires_durable_retention(hypothesis_id):
+        raise Batch02ContractError(
+            "B2-03+ requires prepare_batch02_evidence_reservation then "
+            "prepare_batch02_retained_run before any dataset authorization"
+        )
+    return _prepare_batch02_run_body(
+        code_freeze=code_freeze,
+        outcome_access_acknowledged=outcome_access_acknowledged,
+        dataset_root=dataset_root,
+        hypothesis_id=hypothesis_id,
+        stage=stage,
+        command=command,
+        seeds=seeds,
+        identity=identity,
+        policy=policy,
+        gate_contract=gate_contract,
+        dataset_id=dataset_id,
+        snapshot_id=snapshot_id,
+        start_inclusive_ms=start_inclusive_ms,
+        end_exclusive_ms=end_exclusive_ms,
+        allowed_years=allowed_years,
+        required_gate_names=required_gate_names,
+    )
+
+
+def prepare_batch02_evidence_reservation(
+    *,
+    code_freeze: VerifiedCodeFreeze,
+    hypothesis_id: str,
+    stage: str,
+    dataset_id: str,
+    snapshot_id: str,
+    start_inclusive_ms: int,
+    end_exclusive_ms: int,
+    allowed_years: Sequence[int],
+    required_gate_names: Sequence[str],
+    seeds: Mapping[str, int],
+) -> DurableEvidenceReservation:
+    """Verify code freeze, then push and read back an outcome-blind reservation.
+
+    This is the B2-03+ pre-outcome gate. It must succeed before
+    prepare_batch02_retained_run() may authorize dataset bytes.
+    """
+    if not hypothesis_requires_durable_retention(hypothesis_id):
+        raise Batch02ContractError(
+            "historical B2-01/B2-02 must not use the V1 retention reservation API"
+        )
+    if not isinstance(code_freeze, VerifiedCodeFreeze):
+        raise Batch02ContractError(
+            "code_freeze must be a VerifiedCodeFreeze from verify_batch02_code"
+        )
+    try:
+        return create_verified_remote_reservation(
+            code_freeze=code_freeze,
+            hypothesis_id=hypothesis_id,
+            stage=stage,
+            dataset_id=dataset_id,
+            snapshot_id=snapshot_id,
+            start_inclusive_ms=start_inclusive_ms,
+            end_exclusive_ms=end_exclusive_ms,
+            allowed_years=allowed_years,
+            required_gate_names=required_gate_names,
+            seeds=seeds,
+        )
+    except PreOutcomeRetentionError:
+        raise
+    except Exception as exc:
+        raise PreOutcomeRetentionError(
+            "durable evidence reservation failed closed before outcome access"
+        ) from exc
+
+
+def prepare_batch02_retained_run(
+    *,
+    reservation: DurableEvidenceReservation,
+    outcome_access_acknowledged: bool,
+    dataset_root: Path,
+    command: Sequence[str],
+) -> Batch02RunContext:
+    """Authorize dataset bytes only after a remotely verified reservation."""
+    if not isinstance(reservation, DurableEvidenceReservation):
+        raise PreOutcomeRetentionError(
+            "prepare_batch02_retained_run requires a minted DurableEvidenceReservation"
+        )
+    reservation.assert_minted()
+    if not hypothesis_requires_durable_retention(reservation.hypothesis_id):
+        raise Batch02ContractError(
+            "historical B2-01/B2-02 must not use the V1 retained-run API"
+        )
+    assert_reservation_still_current(reservation)
+    return _prepare_batch02_run_body(
+        code_freeze=verify_git_freeze(reservation.repo_root, reservation.code_sha),
+        outcome_access_acknowledged=outcome_access_acknowledged,
+        dataset_root=dataset_root,
+        hypothesis_id=reservation.hypothesis_id,
+        stage=reservation.stage,
+        command=command,
+        seeds=reservation.seeds,
+        dataset_id=reservation.dataset_id,
+        snapshot_id=reservation.snapshot_id,
+        start_inclusive_ms=reservation.start_inclusive_ms,
+        end_exclusive_ms=reservation.end_exclusive_ms,
+        allowed_years=reservation.allowed_years,
+        required_gate_names=reservation.required_gate_names,
+    )
+
+
+def archive_batch02_result(
+    *,
+    reservation: DurableEvidenceReservation,
+    run_context: Batch02RunContext,
+    result_path: Path,
+    expected_sha256: str,
+) -> DurableArchiveReceipt:
+    """Archive the exact persisted result bytes to the reserved evidence ref."""
+    if not isinstance(reservation, DurableEvidenceReservation):
+        raise PreOutcomeRetentionError(
+            "archive_batch02_result requires a minted DurableEvidenceReservation"
+        )
+    reservation.assert_minted()
+    _reverify_run_code(run_context)
+    if run_context.run_identity.get("hypothesis_id") != reservation.hypothesis_id:
+        raise PostOutcomeRetentionFailure(
+            "POST_OUTCOME_RETENTION_FAILURE: archive hypothesis does not match reservation. "
+            "OUTCOME CONSUMED = YES; RERUN AUTHORIZED = NO; "
+            "LOCAL CANONICAL ARTIFACT MUST BE PRESERVED; OPERATOR RECOVERY REQUIRED.",
+            local_artifact_path=result_path,
+            local_sha256="",
+            local_size_bytes=0,
+            evidence_ref=reservation.evidence_ref,
+            reservation_sha256=reservation.reservation_sha256,
+        )
+    expected_path = _expected_result_path(run_context)
+    if result_path.resolve(strict=False) != expected_path:
+        raise PostOutcomeRetentionFailure(
+            "POST_OUTCOME_RETENTION_FAILURE: result path is not the canonical persist path. "
+            "OUTCOME CONSUMED = YES; RERUN AUTHORIZED = NO; "
+            "LOCAL CANONICAL ARTIFACT MUST BE PRESERVED; OPERATOR RECOVERY REQUIRED.",
+            local_artifact_path=result_path,
+            local_sha256="",
+            local_size_bytes=0,
+            evidence_ref=reservation.evidence_ref,
+            reservation_sha256=reservation.reservation_sha256,
+        )
+    return archive_persisted_result_bytes(
+        reservation=reservation,
+        result_path=expected_path,
+        expected_sha256=expected_sha256,
+        run_identity_sha256=run_context._run_identity_sha256,
+        code_freeze=run_context.code_freeze,
+    )
+
+
+def _prepare_batch02_run_body(
+    *,
+    code_freeze: VerifiedCodeFreeze,
+    outcome_access_acknowledged: bool,
+    dataset_root: Path,
+    hypothesis_id: str,
+    stage: str,
+    command: Sequence[str],
+    seeds: Mapping[str, int],
+    identity: DatasetIdentityContract | None = None,
+    policy: OutcomeAccessPolicy | None = None,
+    gate_contract: PromotionGateContract | None = None,
+    dataset_id: str | None = None,
+    snapshot_id: str | None = None,
+    start_inclusive_ms: int | None = None,
+    end_exclusive_ms: int | None = None,
+    allowed_years: Sequence[int] | None = None,
+    required_gate_names: Sequence[str] | None = None,
+) -> Batch02RunContext:
     if stage != "development":
         raise Batch02ContractError(
             "prepare_batch02_run is restricted to development stage"

@@ -137,7 +137,7 @@ def test_prepare_public_primitive_form_preserves_a_different_spec(
         end_exclusive_ms=1_640_995_200_000,
         allowed_years=(2021,),
         required_gate_names=("only_gate",),
-        hypothesis_id="B2-99_TEST",
+        hypothesis_id="B2-02_OTHER",
         stage="development",
         command=("python", "-m", "test"),
         seeds={"x": 1},
