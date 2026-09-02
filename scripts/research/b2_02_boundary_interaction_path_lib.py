@@ -355,13 +355,19 @@ def _event_raw(
     # keep their refractory slot, and are simply UNAVAILABLE_FOR_DECISION for
     # candidate and baseline alike. They must not be hoisted ahead of the
     # refractory or the frozen event population would silently change.
+    # Qualification (prereg section 4) is exactly: open inside the prior range,
+    # exactly one boundary breached, a valid positive prior range, and
+    # BREACH_MAG > 0. Path availability, PRE_VOL/PRE_DRIFT availability, and
+    # every other later requirement are section 6/7/8/9 decision availability,
+    # NOT qualification, and must not gate membership in `accepted` -- doing so
+    # would let a downstream data-availability condition silently erase a
+    # frozen qualifying breach and, worse, let it fail to consume (or wrongly
+    # consume) its refractory slot.
     accepted: list[tuple[int, float]] = []
     last_t0 = -10**30
     for idx in np.flatnonzero(qualifying):
         t0 = int(t0_all[idx])
         if t0 < DEV_START_MS or t0 > LAST_T0_MS:
-            continue
-        if int(idx) + PATH_BARS >= len(close):
             continue
         direction = DIR_UPPER if bool(upper[idx]) else DIR_LOWER
         boundary = float(rh[idx]) if direction == DIR_UPPER else float(rl[idx])
@@ -381,40 +387,80 @@ def _event_raw(
         direction = DIR_UPPER if bool(upper[idx]) else DIR_LOWER
         side = "UPPER" if direction == DIR_UPPER else "LOWER"
         boundary = float(rh[idx]) if direction == DIR_UPPER else float(rl[idx])
-        drift_idx = idx - (60 // FIVE_MIN)
-        if drift_idx < 0 or not math.isfinite(float(pre_vol[idx])):
-            continue
-        pre_drift = direction * math.log(float(close[idx]) / float(close[drift_idx]))
+        t0 = int(t0_all[idx])
+        # T = T0 + 30m is a frozen arithmetic definition (prereg section 3): it
+        # does not require the frame to actually contain that bar. Computing it
+        # this way -- rather than reading frame5["available_at_ms"] at a
+        # possibly out-of-range index -- lets a qualifying breach whose path
+        # runs past the end of the supplied frame still carry a well-defined
+        # decision time instead of being dropped.
+        t = t0 + PATH_MS
+        t_index = idx + PATH_BARS
 
+        # PRE_VOL and PRE_DRIFT (prereg section 6) are independent raw
+        # quantities; one being unavailable must not erase the other, and
+        # neither may erase BREACH_MAG (already known finite and positive from
+        # qualification above). Each is recorded as NaN -- not dropped -- when
+        # its own causal precondition fails.
+        pre_vol_value = float(pre_vol[idx])
+        drift_idx = idx - (60 // FIVE_MIN)
+        if drift_idx >= 0:
+            pre_drift = float(
+                direction * math.log(float(close[idx]) / float(close[drift_idx]))
+            )
+        else:
+            pre_drift = float("nan")
+
+        # The post-breach path descriptor (prereg section 7) requires the full
+        # six complete 5m bars in (T0, T] to be physically present in the
+        # supplied frame. "path_observed" distinguishes that case from a
+        # malformed/non-finite *component* of an observed path: a path that
+        # was never observed is not an eligible reference for anyone (prereg:
+        # "reference event eligible only when its full 30m path was already
+        # known"), while an observed-but-malformed component must remain a
+        # (poisoning) reference per the frozen fail-closed midrank contract.
+        # See attach_states() for how that distinction is used.
         path_slice = slice(idx + 1, idx + PATH_BARS + 1)
         path_close = close[path_slice]
         path_high = high[path_slice]
         path_low = low[path_slice]
-        if len(path_close) != PATH_BARS:
-            continue
-        if direction == DIR_UPPER:
-            residence = float(np.mean(path_close > boundary))
-            terminal = math.log(float(path_close[-1]) / boundary) / float(width[idx])
-            maximum = float(np.max(np.log(path_high / boundary))) / float(width[idx])
+        path_observed = len(path_close) == PATH_BARS
+        if path_observed:
+            if direction == DIR_UPPER:
+                residence = float(np.mean(path_close > boundary))
+                terminal = math.log(float(path_close[-1]) / boundary) / float(width[idx])
+                maximum = float(np.max(np.log(path_high / boundary))) / float(width[idx])
+            else:
+                residence = float(np.mean(path_close < boundary))
+                terminal = math.log(boundary / float(path_close[-1])) / float(width[idx])
+                maximum = float(np.max(np.log(boundary / path_low))) / float(width[idx])
+
+            path_chain = np.concatenate(
+                ([float(close[idx])], path_close.astype(np.float64))
+            )
+            path_moves = np.diff(np.log(path_chain))
+            denom = float(np.sum(np.abs(path_moves)))
+            efficiency = (
+                float(
+                    direction
+                    * math.log(float(path_close[-1]) / float(close[idx]))
+                    / denom
+                )
+                if denom > 0.0 and math.isfinite(denom)
+                else float("nan")
+            )
+            # Defensive integrity check, not a qualification/availability
+            # gate: when the bar genuinely exists in the frame, the 5m grid's
+            # own contiguity (already enforced by aggregate_1m_to_5m) must
+            # place it at exactly T0 + PATH_MS.
+            if t_index < len(t0_all) and int(t0_all[t_index]) != t:
+                raise B202Error("path clock is not exactly six complete 5m bars")
         else:
-            residence = float(np.mean(path_close < boundary))
-            terminal = math.log(boundary / float(path_close[-1])) / float(width[idx])
-            maximum = float(np.max(np.log(boundary / path_low))) / float(width[idx])
+            residence = float("nan")
+            terminal = float("nan")
+            maximum = float("nan")
+            efficiency = float("nan")
 
-        path_chain = np.concatenate(([float(close[idx])], path_close.astype(np.float64)))
-        path_moves = np.diff(np.log(path_chain))
-        denom = float(np.sum(np.abs(path_moves)))
-        efficiency = (
-            float(direction * math.log(float(path_close[-1]) / float(close[idx])) / denom)
-            if denom > 0.0 and math.isfinite(denom)
-            else float("nan")
-        )
-
-        t0 = int(t0_all[idx])
-        t_index = idx + PATH_BARS
-        t = int(t0_all[t_index])
-        if t != t0 + PATH_MS:
-            raise B202Error("path clock is not exactly six complete 5m bars")
         events.append(
             {
                 "L": L,
@@ -427,8 +473,9 @@ def _event_raw(
                 "boundary": boundary,
                 "prior_log_range": float(width[idx]),
                 "breach_mag": float(breach_mag),
-                "pre_vol": float(pre_vol[idx]),
-                "pre_drift": float(pre_drift),
+                "pre_vol": pre_vol_value,
+                "pre_drift": pre_drift,
+                "path_observed": path_observed,
                 "residence": residence,
                 "terminal_extension": float(terminal),
                 "max_extension": float(maximum),
@@ -490,19 +537,22 @@ def attach_states(events: Sequence[Mapping[str, object]]) -> list[dict[str, obje
             for pos, state in zip(positions, states):
                 out[pos][target] = int(state)
 
-        valid_positions = [
-            i
-            for i in positions
-            if all(
-                math.isfinite(float(out[i][name]))
-                for name in (
-                    "residence",
-                    "terminal_extension",
-                    "max_extension",
-                    "path_efficiency",
-                )
-            )
-        ]
+        # Prereg section 7: "a reference event is eligible only when its full
+        # 30m path was already known strictly before the current T". That is
+        # path OBSERVATION -- whether the six 5m bars physically exist in the
+        # supplied frame -- not component finiteness. An event whose path was
+        # never observed is not an eligible reference for anyone and is
+        # excluded from this array entirely (scored MISSING below via the
+        # setdefault). An event whose path WAS observed but whose component is
+        # non-finite (e.g. PATH_EFFICIENCY's zero-denominator case) remains in
+        # the array as NaN: rolling_midrank_percentile's own frozen fail-closed
+        # contract already makes that record's own score unavailable and
+        # poisons any later window that includes it as an active reference,
+        # exactly as "malformed/non-finite reference" requires. Pre-filtering
+        # those events out here (as the previous "all four components finite"
+        # check did) would silently delete them from the causal reference
+        # chronology instead of making them a poisoning reference.
+        valid_positions = [i for i in positions if bool(out[i]["path_observed"])]
         if valid_positions:
             path_times = np.asarray(
                 [int(out[i]["T"]) for i in valid_positions],

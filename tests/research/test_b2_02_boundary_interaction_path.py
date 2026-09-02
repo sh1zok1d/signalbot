@@ -101,6 +101,7 @@ def test_context_and_path_states_are_causal_same_L():
                 "breach_mag": value,
                 "pre_vol": value,
                 "pre_drift": value,
+                "path_observed": True,
                 "residence": value / 4.0,
                 "terminal_extension": value,
                 "max_extension": value,
@@ -200,13 +201,16 @@ def test_promotion_requires_same_adjacent_h_pair_on_two_L_values():
 
 
 def test_actual_future_b2_source_tree_passes_canonical_policy():
-    visited = validate_batch02_source_tree(
-        RESEARCH_DIR,
-        repo_root=REPO_ROOT,
+    visited = set(
+        validate_batch02_source_tree(
+            RESEARCH_DIR,
+            repo_root=REPO_ROOT,
+        )
     )
-    names = {path.name for path in visited}
-    assert "b2_02_boundary_interaction_path.py" in names
-    assert "b2_02_boundary_interaction_path_lib.py" in names
+    # Exact repository paths, not just basenames: both B2-02 files live
+    # directly under scripts/research/, NOT under a lib/ subdirectory.
+    assert RESEARCH_DIR / "b2_02_boundary_interaction_path.py" in visited
+    assert RESEARCH_DIR / "b2_02_boundary_interaction_path_lib.py" in visited
 
 
 # ---------------------------------------------------------------------------
@@ -436,6 +440,362 @@ def test_unavailable_for_decision_event_still_consumes_its_refractory_slot():
     assert int(stated[0]["breach_state"]) == lib.STATE_MISSING
     assert int(stated[0]["pre_vol_state"]) == lib.STATE_MISSING
     assert int(stated[0]["pre_drift_state"]) == lib.STATE_MISSING
+
+
+# ---------------------------------------------------------------------------
+# CodeRabbit-follow-up MAJOR: once a breach satisfies the frozen section-4
+# qualifying-breach definition and survives the single 30m refractory, it must
+# remain represented in the canonical event population -- forever, regardless
+# of what section 6/7/8/9 decision-availability information later fails to be
+# present. These fixtures exercise that against the actual _event_raw/
+# attach_states pipeline, not against an implementation-encoded expectation.
+# ---------------------------------------------------------------------------
+
+
+# PRE_VOL/PRE_DRIFT (prereg section 6) both require exactly 60 minutes of
+# trailing history, which for the smallest frozen lookback (L=60, whose own
+# prior-range window is ALSO exactly 60 minutes) becomes available at exactly
+# the same 5m-bar index as geometric qualification itself -- so under the
+# frozen L values there is no naturally reachable bar where a breach qualifies
+# while PRE_VOL/PRE_DRIFT are still unavailable. That coincidence is a
+# property of the current constants, not a claim that qualification and
+# decision-availability are the same thing (prereg sections 4-5 vs 6 are
+# explicit about the distinction). These tests isolate the underlying
+# mechanism directly through _event_raw with a smaller lookback (bars=6,
+# geometry valid from bar 6) purely to create bar positions where geometric
+# qualification is possible before PRE_VOL/PRE_DRIFT's fixed 60-minute/bar-12
+# requirement is met -- not a claim that L=30 is a frozen B2-02 lookback.
+
+
+def _l30_events_from_bar_zero(
+    overrides: dict[int, list[float]],
+    *,
+    monkeypatch: pytest.MonkeyPatch,
+    span: int = 20,
+) -> list[dict[str, object]]:
+    monkeypatch.setattr(lib, "DEV_START_MS", lib.WARMUP_START_MS)
+    bars = _blank_5m_bars(span)
+    for index, bar in overrides.items():
+        bars[index] = bar
+    frame_1m = _frame_from_5m(bars)
+    frame5 = lib.aggregate_1m_to_5m(frame_1m)
+    return lib._event_raw(frame_1m, frame5, 30)
+
+
+def test_qualifying_breach_with_unavailable_pre_vol_and_pre_drift_remains_represented(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Items 1+3: PRE_VOL/PRE_DRIFT unavailable -> event stays, fields are NaN.
+
+    Bar index 7 clears the (bars=6) prior-range geometry but has fewer than 60
+    minutes of trailing 1m history (needs bar index >= 12), so both PRE_VOL
+    and PRE_DRIFT are structurally unavailable. The event must still be
+    constructed with a valid BREACH_MAG, NaN PRE_VOL/PRE_DRIFT, and no dropped
+    population.
+    """
+    index = 7
+    events = _l30_events_from_bar_zero({index: UPPER_BAR}, monkeypatch=monkeypatch)
+    assert len(events) == 1
+    event = events[0]
+    assert float(event["breach_mag"]) > 0.0
+    assert not np.isfinite(float(event["pre_vol"]))
+    assert not np.isfinite(float(event["pre_drift"]))
+    # attach_states() only processes the frozen LOOKBACKS; patch it to include
+    # this test's L=30 so the (otherwise unaffected) state-assignment pipeline
+    # can be exercised end-to-end.
+    monkeypatch.setattr(lib, "LOOKBACKS", (30,))
+    stated = lib.attach_states(events)
+    assert int(stated[0]["pre_vol_state"]) == lib.STATE_MISSING
+    assert int(stated[0]["pre_drift_state"]) == lib.STATE_MISSING
+
+
+def test_pre_vol_and_pre_drift_are_recorded_independently(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Item 8 (context form): one missing raw dimension is not the other.
+
+    _event_raw calls _pre_vol_at_5m once and indexes it per event; PRE_DRIFT is
+    computed independently from `drift_idx >= 0`. Forcing PRE_VOL NaN through
+    the actual _pre_vol_at_5m call site, for an event whose drift_idx is
+    otherwise valid, proves the two fields cannot accidentally erase each
+    other -- unlike the previous behavior, where either one being unavailable
+    dropped the whole event.
+    """
+    index = FIRST_DEV_BAR + 20  # deep enough that drift_idx = index - 12 >= 0.
+    real_pre_vol = lib._pre_vol_at_5m
+
+    def poisoned_pre_vol(frame_1m):
+        out = real_pre_vol(frame_1m)
+        out[index] = float("nan")
+        return out
+
+    monkeypatch.setattr(lib, "_pre_vol_at_5m", poisoned_pre_vol)
+    events = _events_at({index: UPPER_BAR}, span=25)
+    assert len(events) == 1
+    event = events[0]
+    assert not np.isfinite(float(event["pre_vol"]))
+    assert np.isfinite(float(event["pre_drift"]))
+
+
+def test_unavailable_context_breach_still_consumes_its_refractory_slot(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Items 2+4: the refractory slot is consumed regardless of availability.
+
+    An early, context-unavailable breach still suppresses an escalating breach
+    25m later; the same escalating breach 30m later is accepted, isolating the
+    suppression to the refractory rather than to geometry.
+    """
+    index = 7
+    suppressed = _l30_events_from_bar_zero(
+        {index: UPPER_BAR, index + 5: UPPER_BAR_HIGHER},
+        monkeypatch=monkeypatch,
+    )
+    assert len(suppressed) == 1
+    assert not np.isfinite(float(suppressed[0]["pre_vol"]))
+
+    admitted = _l30_events_from_bar_zero(
+        {index: UPPER_BAR, index + 6: UPPER_BAR_HIGHER},
+        monkeypatch=monkeypatch,
+    )
+    assert len(admitted) == 2
+    t0s = [int(event["T0"]) for event in admitted]
+    assert t0s[1] - t0s[0] == lib.PATH_MS
+
+
+def test_short_path_qualifying_breach_is_represented_not_erased():
+    """Item 6: a breach whose 30m path runs past the end of the frame stays.
+
+    The breach is the LAST bar of the tape, so idx + PATH_BARS >= len(close):
+    the six post-breach bars were never observed. The event must still be
+    constructed (L, side, direction, T0, T, breach_mag, refractory membership
+    all known), with path_observed False and every raw path component NaN --
+    not silently dropped from the population.
+    """
+    total_bars = FIRST_DEV_BAR + 10
+    bars = _blank_5m_bars(total_bars)
+    bars[total_bars - 1] = UPPER_BAR
+    frame_1m = _frame_from_5m(bars)
+    _, events = lib.detect_breaches(frame_1m)
+    events = [event for event in events if int(event["L"]) == 60]
+    assert len(events) == 1
+    event = events[0]
+    assert event["path_observed"] is False
+    assert not np.isfinite(float(event["residence"]))
+    assert not np.isfinite(float(event["terminal_extension"]))
+    assert not np.isfinite(float(event["max_extension"]))
+    assert not np.isfinite(float(event["path_efficiency"]))
+    # T is the frozen arithmetic decision time, defined regardless of whether
+    # the frame actually contains that bar.
+    assert int(event["T"]) == int(event["T0"]) + lib.PATH_MS
+    stated = lib.attach_states(events)
+    assert int(stated[0]["path_state"]) == lib.STATE_MISSING
+
+
+def _ctx_event(t0: int, breach_mag: float, pre_vol: float, pre_drift: float = 1.0) -> dict:
+    return {
+        "L": 60,
+        "side": "UPPER",
+        "direction": 1,
+        "T0": t0,
+        "T": t0 + lib.PATH_MS,
+        "breach_mag": breach_mag,
+        "pre_vol": pre_vol,
+        "pre_drift": pre_drift,
+        "path_observed": True,
+        "residence": 1.0,
+        "terminal_extension": 1.0,
+        "max_extension": 1.0,
+        "path_efficiency": 1.0,
+    }
+
+
+def test_missing_pre_vol_does_not_erase_breach_mag_from_its_chronology():
+    """Item 8: a raw dimension's own chronology is independent of the others.
+
+    Removing an event with a malformed PRE_VOL from the population changes a
+    later event's BREACH_MAG_STATE tertile, proving the event's (valid)
+    BREACH_MAG observation genuinely participates in that history -- it is not
+    silently skipped merely because its own PRE_VOL happens to be NaN.
+    """
+    day = lib.DAY_MS
+    base = lib.DEV_START_MS
+    a = _ctx_event(base, breach_mag=1.0, pre_vol=10.0)
+    b_malformed_pre_vol = _ctx_event(base + day, breach_mag=2.0, pre_vol=float("nan"))
+    c = _ctx_event(base + 2 * day, breach_mag=5.0, pre_vol=30.0)
+    d = _ctx_event(base + 3 * day, breach_mag=3.0, pre_vol=40.0)
+
+    with_b = lib.attach_states([a, b_malformed_pre_vol, c, d])
+    without_b = lib.attach_states([a, c, d])
+
+    assert int(with_b[3]["breach_state"]) != int(without_b[2]["breach_state"])
+    # B's own breach_mag=2.0 is finite and must not itself become unavailable.
+    assert int(with_b[1]["breach_state"]) != lib.STATE_MISSING
+
+
+def test_active_non_finite_context_reference_poisons_later_availability():
+    """Item 9: an active malformed reference makes the later score unavailable,
+    it is not silently filtered out of the reference chronology.
+
+    The same event set as above: B's PRE_VOL is NaN and B is inside D's active
+    30-day window, so D's PRE_VOL_STATE must be MISSING. A control where B's
+    PRE_VOL is finite instead shows D's PRE_VOL_STATE becomes available again,
+    isolating the cause to the non-finite value rather than B's mere presence.
+    """
+    day = lib.DAY_MS
+    base = lib.DEV_START_MS
+    a = _ctx_event(base, breach_mag=1.0, pre_vol=10.0)
+    b_malformed = _ctx_event(base + day, breach_mag=2.0, pre_vol=float("nan"))
+    b_finite = _ctx_event(base + day, breach_mag=2.0, pre_vol=20.0)
+    c = _ctx_event(base + 2 * day, breach_mag=5.0, pre_vol=30.0)
+    d = _ctx_event(base + 3 * day, breach_mag=3.0, pre_vol=40.0)
+
+    poisoned = lib.attach_states([a, b_malformed, c, d])
+    assert int(poisoned[3]["pre_vol_state"]) == lib.STATE_MISSING
+
+    control = lib.attach_states([a, b_finite, c, d])
+    assert int(control[3]["pre_vol_state"]) != lib.STATE_MISSING
+
+
+def _path_event(
+    t0: int,
+    path_observed: bool,
+    *,
+    residence: float = 0.5,
+    terminal: float = 0.5,
+    maximum: float = 0.5,
+    efficiency: float = 0.5,
+) -> dict:
+    return {
+        "L": 60,
+        "side": "UPPER",
+        "direction": 1,
+        "T0": t0,
+        "T": t0 + lib.PATH_MS,
+        "breach_mag": 1.0,
+        "pre_vol": 1.0,
+        "pre_drift": 1.0,
+        "path_observed": path_observed,
+        "residence": residence,
+        "terminal_extension": terminal,
+        "max_extension": maximum,
+        "path_efficiency": efficiency,
+    }
+
+
+def test_malformed_observed_path_component_poisons_a_later_reference():
+    """Item 10: an observed-but-non-finite path component is a malformed
+    reference, so it poisons a later event's path-reference window -- it is
+    not silently omitted from the reference chronology.
+    """
+    day = lib.DAY_MS
+    base = lib.DEV_START_MS
+    a = _path_event(base, True)
+    b_malformed = _path_event(base + day, True, efficiency=float("nan"))
+    d = _path_event(base + 2 * day, True)
+
+    stated = lib.attach_states([a, b_malformed, d])
+    assert int(stated[2]["path_state"]) == lib.STATE_MISSING
+
+
+def test_never_observed_path_is_distinct_from_a_malformed_observed_component():
+    """Item 11: "path not yet/never observed" (case 1) is NOT an eligible
+    reference at all, unlike an observed-but-malformed component (case 2,
+    item 10 above). A never-observed event must be excluded from the
+    reference array entirely, so it must NOT poison a later event's window --
+    the later event's availability must match a baseline with that event
+    dropped altogether, not a poisoned baseline.
+    """
+    day = lib.DAY_MS
+    base = lib.DEV_START_MS
+    a = _path_event(base, True)
+    c_never_observed = _path_event(
+        base + day,
+        False,
+        residence=float("nan"),
+        terminal=float("nan"),
+        maximum=float("nan"),
+        efficiency=float("nan"),
+    )
+    d = _path_event(base + 2 * day, True)
+
+    with_c = lib.attach_states([a, c_never_observed, d])
+    baseline_without_c = lib.attach_states([a, d])
+
+    assert int(with_c[2]["path_state"]) != lib.STATE_MISSING
+    assert int(with_c[2]["path_state"]) == int(baseline_without_c[1]["path_state"])
+    # The never-observed event's own path is unavailable to itself too.
+    assert int(with_c[1]["path_state"]) == lib.STATE_MISSING
+
+
+def test_candidate_and_baseline_share_exact_scored_support(monkeypatch):
+    """Item 12: same-support holds after the population repair.
+
+    Mixing fully-available events with events missing exactly one state
+    dimension, every scored record must carry both base_pred and
+    candidate_pred (they are built from the same record, never independently),
+    and no event with any missing state may appear in the scored population.
+    """
+    monkeypatch.setattr(
+        lib,
+        "_target_scale",
+        lambda close, H: np.ones(len(close), dtype=np.float64),
+    )
+    monkeypatch.setattr(lib, "N_PLACEBO", 3)
+    monkeypatch.setattr(lib, "N_BOOT", 5)
+
+    frame5 = {"close": 100.0 + np.arange(2000, dtype=np.float64) * 0.01}
+    events: list[dict[str, object]] = []
+    for i in range(300):
+        t = lib.DEV_START_MS + i * lib.PATH_MS
+        missing_path = i % 5 == 0  # one in five events is UNAVAILABLE_FOR_DECISION
+        events.append(
+            {
+                "L": 60,
+                "side": "UPPER",
+                "direction": 1,
+                "T0": t - lib.PATH_MS,
+                "T": t,
+                "T_index": i * lib.PATH_BARS,
+                "breach_state": 1,
+                "pre_vol_state": 1,
+                "pre_drift_state": 1,
+                "path_state": lib.STATE_MISSING if missing_path else 1,
+            }
+        )
+
+    cell = lib.evaluate_cell(frame5, events, 60, 30)
+    scored_count = int(cell["N"])
+    assert 0 < scored_count < 300
+    # Every record that made it into "scored" has both predictions jointly.
+    assert scored_count == len(cell["event_ids"])
+    expected_available = sum(1 for i in range(300) if i % 5 != 0)
+    # No dropped-state event can be present: scored count is bounded by the
+    # count of fully-available events (further reduced by maturity/history).
+    assert scored_count <= expected_available
+
+
+def test_qualifying_population_can_exceed_scored_row_count():
+    """Item 7: qualifying-breach count reflects qualification, not scoring.
+
+    A short-path breach at the very end of the tape is a qualifying breach
+    (counted by detect_breaches) but can never be scored by evaluate_cell (no
+    H-horizon target is reachable past the end of the frame). The raw
+    population must be strictly larger than the scored population.
+    """
+    span = FIRST_DEV_BAR + 10
+    bars = _blank_5m_bars(span)
+    bars[span - 1] = UPPER_BAR
+    frame_1m = _frame_from_5m(bars)
+    frame5, raw_events = lib.detect_breaches(frame_1m)
+    l60_events = [event for event in raw_events if int(event["L"]) == 60]
+    assert len(l60_events) == 1
+    assert l60_events[0]["path_observed"] is False
+
+    stated = lib.attach_states(raw_events)
+    cell = lib.evaluate_cell(frame5, stated, 60, 30)
+    assert int(cell["N"]) == 0
+    assert len(l60_events) > int(cell["N"])
 
 
 def _mixed_path_state_events(count: int) -> list[dict[str, object]]:

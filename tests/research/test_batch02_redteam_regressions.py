@@ -93,10 +93,11 @@ def test_actual_tree_policy_covers_the_real_future_b2_closure():
     # policy never actually walked the future-B2 files. The invariant is that
     # the real tree lints clean (no raise) AND that the B2-02 runtime files are
     # genuinely inside the walked closure.
-    visited = validate_batch02_source_tree(RESEARCH_DIR, repo_root=REPO_ROOT)
-    names = {path.name for path in visited}
-    assert "b2_02_boundary_interaction_path.py" in names
-    assert "b2_02_boundary_interaction_path_lib.py" in names
+    visited = set(validate_batch02_source_tree(RESEARCH_DIR, repo_root=REPO_ROOT))
+    # Exact repository paths, not just basenames: both B2-02 files live
+    # directly under scripts/research/, NOT under a lib/ subdirectory.
+    assert RESEARCH_DIR / "b2_02_boundary_interaction_path.py" in visited
+    assert RESEARCH_DIR / "b2_02_boundary_interaction_path_lib.py" in visited
 
 
 def test_source_policy_accepts_canonical_ceremony_without_hidden_io(tmp_path: Path):
