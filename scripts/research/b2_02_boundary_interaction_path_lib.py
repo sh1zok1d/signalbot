@@ -790,10 +790,20 @@ def evaluate_cell(
                 int(previous["pre_drift_state"]),
             )
             candidate_key = (*base_key, int(previous["path_state"]))
+            # Positions 0-2 (T, Y, path_state) are load-bearing for _purge()
+            # and the existing baseline/candidate median computation -- kept
+            # unchanged. Positions 3-4 (side, T0) carry exactly the additional
+            # identity _event_id() needs (L and H are already fixed by this
+            # evaluate_cell() call), so the frozen canonical-event-ID sort
+            # used by the placebo negative control (prereg section 12) can be
+            # built from the queue item itself rather than reconstructed from
+            # incomplete fields.
             item = (
                 int(previous["T"]),
                 float(previous["Y"]),
                 int(previous["path_state"]),
+                str(previous["side"]),
+                int(previous["T0"]),
             )
             baseline_queues[base_key].append(item)
             candidate_queues[candidate_key].append(item)
@@ -870,17 +880,43 @@ def evaluate_cell(
         )
         if path_count != len(candidate_queue) or path_count < CANDIDATE_MIN_COUNT:
             raise B202Error("placebo stratum count diverged from candidate count")
+
+        # Frozen placebo negative control (prereg section 12): the historical
+        # stratum is sorted by canonical event ID -- NOT left in chronological
+        # T order -- before the per-replicate RNG permutes only the historical
+        # PATH_STATE labels. Because the canonical ID orders by `side` before
+        # `T0`/`T` (see _event_id()), a mixed UPPER/LOWER stratum's canonical
+        # order can differ from its chronological order, so this sort is not
+        # cosmetic: it changes which historical Y value each permuted label
+        # lands on for the same frozen seed. This is a fixed re-ordering of
+        # the already-causal base_queue for the placebo view only -- it does
+        # not touch the queue's own storage/purge order (_purge() remains
+        # chronological), the candidate/baseline forecasts, or membership.
+        sorted_base_items = sorted(
+            base_queue,
+            key=lambda item: _event_id(
+                {"L": L, "side": item[3], "T0": item[4], "T": item[0]}, H
+            ),
+        )
+        sorted_base_y = np.asarray(
+            [float(item[1]) for item in sorted_base_items], dtype=np.float64
+        )
+        sorted_base_labels = np.asarray(
+            [int(item[2]) for item in sorted_base_items], dtype=np.int64
+        )
+        evaluation_path_state = int(event["path_state"])
         stratum = "|".join(str(value) for value in base_key)
         for rep in range(N_PLACEBO):
             rng = np.random.default_rng(
                 _seed_int((SEED_PLACEBO, rep, L, H, current_t, stratum))
             )
-            chosen = rng.choice(
-                len(base_y),
-                size=path_count,
-                replace=False,
-            )
-            placebo_pred = float(np.median(base_y[chosen]))
+            # Only the historical labels move; sorted_base_y stays in its
+            # canonical-ID-sorted position, and the evaluation event's own
+            # path_state (evaluation_path_state, captured above) is never
+            # permuted -- only the historical label vector is.
+            permuted_labels = rng.permutation(sorted_base_labels)
+            chosen_y = sorted_base_y[permuted_labels == evaluation_path_state]
+            placebo_pred = float(np.median(chosen_y))
             placebo_sums[rep] += base_ae - abs(y - placebo_pred)
 
     improvements = np.asarray(

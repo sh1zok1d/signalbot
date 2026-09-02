@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 import numpy as np
@@ -1056,3 +1057,307 @@ def test_time_window_midrank_inputs_are_strictly_increasing_per_lookback():
     ts = [int(event["T"]) for event in events]
     assert all(b - a >= lib.PATH_MS for a, b in zip(t0s, t0s[1:]))
     assert all(b > a for a, b in zip(ts, ts[1:]))
+
+
+# ---------------------------------------------------------------------------
+# CodeRabbit-follow-up MAJOR (targeted independent review): the frozen placebo
+# negative control (prereg section 12) requires the historical baseline
+# stratum to be sorted by canonical event ID before the per-replicate RNG
+# permutes the historical PATH_STATE labels -- not left in chronological T
+# order and drawn via rng.choice(). Because canonical event ID orders by
+# `side` before `T0`/`T`, a mixed UPPER/LOWER stratum's canonical order
+# provably differs from its chronological order, and the frozen seed then
+# lands on a genuinely different historical-outcome-to-label mapping.
+#
+# The fixture below forces EXACTLY ONE scored event by using precisely
+# BASELINE_MIN_COUNT (80) history records sharing one stratum, with the
+# evaluation event as the 81st: every prior history record has fewer than 80
+# same-stratum predecessors at its own scoring attempt (so none of them score
+# on their own account), and the 81st is the first to have exactly 80. With
+# N_PLACEBO patched to 1, `placebo_q95` (the 95th percentile of a length-1
+# array) becomes exactly that one replicate's raw improvement value -- letting
+# a fully independent, from-scratch reference computation be compared to
+# production's actual output bit-for-bit, not merely by calling evaluate_cell
+# a second time.
+# ---------------------------------------------------------------------------
+
+_PLACEBO_BASELINE_COUNT = lib.BASELINE_MIN_COUNT  # 80
+_PLACEBO_MATCHING_COUNT = 45  # >= CANDIDATE_MIN_COUNT (40), a strict minority
+
+
+def _placebo_reference_fixture(
+    *, matching_count: int = _PLACEBO_MATCHING_COUNT
+) -> tuple[list[dict[str, object]], dict[str, np.ndarray], int]:
+    """One causal stratum of exactly BASELINE_MIN_COUNT history records, plus
+    one evaluation event as the (BASELINE_MIN_COUNT+1)th. Side alternates by a
+    non-monotonic pattern (period-3, not period-2) so it does not trivially
+    correlate with T0 -- required for the canonical-vs-chronological order
+    distinction to be genuine rather than a fixture artifact.
+    """
+    L, H = 60, 30
+    events: list[dict[str, object]] = []
+    for i in range(_PLACEBO_BASELINE_COUNT):
+        t = lib.DEV_START_MS + i * lib.PATH_MS
+        side = "UPPER" if (i * 7) % 3 == 0 else "LOWER"
+        direction = lib.DIR_UPPER if side == "UPPER" else lib.DIR_LOWER
+        path_state = 1 if i < matching_count else 0
+        events.append(
+            {
+                "L": L,
+                "side": side,
+                "direction": direction,
+                "T0": t - lib.PATH_MS,
+                "T": t,
+                "T_index": i * lib.PATH_BARS,
+                "breach_state": 1,
+                "pre_vol_state": 1,
+                "pre_drift_state": 1,
+                "path_state": path_state,
+            }
+        )
+    current_index = _PLACEBO_BASELINE_COUNT
+    current_t = lib.DEV_START_MS + current_index * lib.PATH_MS
+    events.append(
+        {
+            "L": L,
+            "side": "UPPER",
+            "direction": lib.DIR_UPPER,
+            "T0": current_t - lib.PATH_MS,
+            "T": current_t,
+            "T_index": current_index * lib.PATH_BARS,
+            "breach_state": 1,
+            "pre_vol_state": 1,
+            "pre_drift_state": 1,
+            "path_state": 1,
+        }
+    )
+    n_close5 = (_PLACEBO_BASELINE_COUNT + 5) * lib.PATH_BARS
+    close5 = 100.0 + np.arange(n_close5, dtype=np.float64) * 0.01
+    frame5 = {"close": close5}
+    return events, frame5, H
+
+
+def _placebo_y(event: dict[str, object], close5: np.ndarray, H: int) -> float:
+    """Independently reproduce evaluate_cell's Y formula (denom=1 here, since
+    _target_scale is monkeypatched to ones by every test using this fixture).
+    """
+    t_index = int(event["T_index"])
+    h_bars = H // lib.FIVE_MIN
+    future_index = t_index + h_bars
+    direction = int(event["direction"])
+    return float(direction * math.log(float(close5[future_index]) / float(close5[t_index])))
+
+
+def _placebo_independent_reference(
+    events: list[dict[str, object]],
+    close5: np.ndarray,
+    H: int,
+    *,
+    rep: int = 0,
+) -> tuple[float, np.ndarray, np.ndarray]:
+    """A from-scratch reproduction of the frozen section-12 mapping.
+
+    Uses ONLY the frozen documented primitives (_event_id, _seed_int) plus
+    independently-authored sort/permute/select/median/improvement code -- it
+    does not call evaluate_cell or reuse any of its internal sort/permute
+    logic.
+
+    Returns (improvement, sorted_labels_before_permutation, chosen_y).
+    """
+    L = 60
+    history = events[:-1]
+    current = events[-1]
+
+    canonical_order = sorted(history, key=lambda e: lib._event_id(e, H))
+    sorted_y = np.asarray(
+        [_placebo_y(e, close5, H) for e in canonical_order], dtype=np.float64
+    )
+    sorted_labels = np.asarray(
+        [int(e["path_state"]) for e in canonical_order], dtype=np.int64
+    )
+
+    base_key = (
+        int(current["breach_state"]),
+        int(current["pre_vol_state"]),
+        int(current["pre_drift_state"]),
+    )
+    stratum = "|".join(str(v) for v in base_key)
+    current_t = int(current["T"])
+    seed = lib._seed_int((lib.SEED_PLACEBO, rep, L, H, current_t, stratum))
+    rng = np.random.default_rng(seed)
+    permuted_labels = rng.permutation(sorted_labels)
+    evaluation_path_state = int(current["path_state"])
+    chosen_y = sorted_y[permuted_labels == evaluation_path_state]
+    placebo_pred = float(np.median(chosen_y))
+
+    base_pred = float(np.median([_placebo_y(e, close5, H) for e in history]))
+    y_current = _placebo_y(current, close5, H)
+    base_ae = abs(y_current - base_pred)
+    improvement = base_ae - abs(y_current - placebo_pred)
+    return improvement, sorted_labels, chosen_y
+
+
+def test_mixed_side_canonical_order_differs_from_chronology():
+    """Regression #1: prove the distinguishing condition is genuine.
+
+    Canonical event ID orders by `side` before `T0`/`T` (see _event_id()), so
+    a stratum mixing UPPER and LOWER records sorts differently from the
+    chronological T order the queue itself is stored/purged in.
+    """
+    events, _, H = _placebo_reference_fixture()
+    history = events[:-1]
+    chronological = list(history)
+    canonical = sorted(history, key=lambda e: lib._event_id(e, H))
+    assert {e["side"] for e in history} == {"UPPER", "LOWER"}
+    assert [e["T0"] for e in canonical] != [e["T0"] for e in chronological]
+
+
+def test_frozen_placebo_mapping_matches_independent_canonical_sort_reference(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Regressions #1+#2: production's placebo output exactly matches a
+    from-scratch reference built from the frozen canonical-sort-then-permute
+    mapping -- not an approximate/equivalent-distribution check.
+    """
+    monkeypatch.setattr(
+        lib, "_target_scale", lambda close, H: np.ones(len(close), dtype=np.float64)
+    )
+    monkeypatch.setattr(lib, "N_PLACEBO", 1)
+    events, frame5, H = _placebo_reference_fixture()
+
+    expected_improvement, _, _ = _placebo_independent_reference(
+        events, frame5["close"], H, rep=0
+    )
+
+    cell = lib.evaluate_cell(frame5, events, 60, H)
+    assert int(cell["N"]) == 1  # exactly one scored event, by fixture design
+    # With N_PLACEBO=1, placebo_q95 IS that one replicate's raw improvement.
+    assert cell["placebo_q95"] == expected_improvement
+
+
+def test_old_choice_based_selection_would_have_produced_a_different_result(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Regression #6: the frozen canonical-sort-then-permute mapping is not
+    merely "an equivalent-distribution random subset" -- for the identical
+    frozen seed, the retired rng.choice()-over-chronological-order approach
+    provably yields a different deterministic value on this fixture.
+    """
+    monkeypatch.setattr(
+        lib, "_target_scale", lambda close, H: np.ones(len(close), dtype=np.float64)
+    )
+    events, frame5, H = _placebo_reference_fixture()
+    close5 = frame5["close"]
+    history = events[:-1]
+    current = events[-1]
+
+    frozen_improvement, _, _ = _placebo_independent_reference(events, close5, H, rep=0)
+
+    base_key = (
+        int(current["breach_state"]),
+        int(current["pre_vol_state"]),
+        int(current["pre_drift_state"]),
+    )
+    stratum = "|".join(str(v) for v in base_key)
+    seed = lib._seed_int((lib.SEED_PLACEBO, 0, 60, H, int(current["T"]), stratum))
+    chronological_y = np.asarray(
+        [_placebo_y(e, close5, H) for e in history], dtype=np.float64
+    )
+    rng_old = np.random.default_rng(seed)
+    chosen_idx = rng_old.choice(
+        len(chronological_y), size=_PLACEBO_MATCHING_COUNT, replace=False
+    )
+    old_pred = float(np.median(chronological_y[chosen_idx]))
+    base_pred = float(np.median([_placebo_y(e, close5, H) for e in history]))
+    y_current = _placebo_y(current, close5, H)
+    old_improvement = abs(y_current - base_pred) - abs(y_current - old_pred)
+
+    assert old_improvement != frozen_improvement
+
+
+def test_placebo_permutation_preserves_historical_label_counts(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Regression #3: permuting (not resampling) the label vector preserves
+    every label's count automatically, and the selected placebo count for the
+    evaluation event's own PATH_STATE equals the existing candidate-count
+    invariant.
+    """
+    monkeypatch.setattr(
+        lib, "_target_scale", lambda close, H: np.ones(len(close), dtype=np.float64)
+    )
+    events, frame5, H = _placebo_reference_fixture()
+    _, sorted_labels, chosen_y = _placebo_independent_reference(
+        events, frame5["close"], H, rep=0
+    )
+    # Permutation preserves counts by construction: assert it explicitly.
+    assert int(np.sum(sorted_labels == 0)) == _PLACEBO_BASELINE_COUNT - _PLACEBO_MATCHING_COUNT
+    assert int(np.sum(sorted_labels == 1)) == _PLACEBO_MATCHING_COUNT
+    assert len(chosen_y) == _PLACEBO_MATCHING_COUNT
+
+    # The selected placebo count for the evaluation event's own PATH_STATE
+    # equals the existing candidate-count invariant (path_count ==
+    # len(candidate_queue), already fail-closed-checked in evaluate_cell).
+    cell = lib.evaluate_cell(frame5, events, 60, H)
+    assert int(cell["N"]) == 1
+    assert len(chosen_y) == _PLACEBO_MATCHING_COUNT
+
+
+def test_placebo_permutation_leaves_the_evaluation_events_own_path_state_unchanged(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Regression #4: only historical labels move. The evaluation event's own
+    PATH_STATE field must be byte-for-byte unchanged by evaluate_cell.
+    """
+    monkeypatch.setattr(
+        lib, "_target_scale", lambda close, H: np.ones(len(close), dtype=np.float64)
+    )
+    events, frame5, H = _placebo_reference_fixture()
+    evaluation_event = events[-1]
+    original_path_state = evaluation_event["path_state"]
+
+    lib.evaluate_cell(frame5, events, 60, H)
+
+    assert evaluation_event["path_state"] == original_path_state == 1
+
+
+def test_placebo_stratum_excludes_a_not_yet_matured_historical_record(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Regression #5: causality is unchanged by the canonical-sort repair.
+
+    A same-stratum record only 5 minutes (one 5m bar) before the evaluation
+    event -- short of the required H=30m maturity gap, so
+    `record_T + H*BAR_MS > evaluation_T` -- must not enter the placebo
+    stratum. The evaluation event's own base_queue, and therefore its
+    canonical-sorted label vector and placebo result, must be byte-for-byte
+    unaffected by that record's presence (it is also, independently, too
+    recent to reach its own BASELINE_MIN_COUNT, so it is not itself scored).
+    """
+    monkeypatch.setattr(
+        lib, "_target_scale", lambda close, H: np.ones(len(close), dtype=np.float64)
+    )
+    monkeypatch.setattr(lib, "N_PLACEBO", 1)
+    events, frame5, H = _placebo_reference_fixture()
+    baseline_reference, _, _ = _placebo_independent_reference(
+        events, frame5["close"], H, rep=0
+    )
+
+    evaluation_event = events[-1]
+    premature = dict(evaluation_event)
+    premature_t = int(evaluation_event["T"]) - lib.FIVE_MS
+    premature["T0"] = premature_t - lib.PATH_MS
+    premature["T"] = premature_t
+    premature["T_index"] = int(evaluation_event["T_index"]) - 1
+    premature["side"] = "LOWER"
+    premature["direction"] = lib.DIR_LOWER
+    premature["path_state"] = 1
+
+    events_with_premature = events[:-1] + [premature, evaluation_event]
+
+    cell = lib.evaluate_cell(frame5, events_with_premature, 60, H)
+    # The premature record itself also fails BASELINE_MIN_COUNT (only 79 of
+    # the 80 original history records mature in time for it), so it is not
+    # scored either -- only the original evaluation event is.
+    assert int(cell["N"]) == 1
+    assert cell["placebo_q95"] == baseline_reference
