@@ -464,7 +464,7 @@ def test_production_local_bare_remote_is_rejected_before_outcomes(tmp_path: Path
     assert AUTHORIZE_CALLS == []
     assert not hasattr(batch02_contracts, "prepare_test_evidence_reservation")
     assert not hasattr(batch02_contracts, "prepare_test_evidence_transport")
-    source = Path("scripts/research/lib/batch02_contracts.py").read_text(encoding="utf-8")
+    source = Path(batch02_contracts.__file__).read_text(encoding="utf-8")
     assert "allow_local_remote" not in source
     assert "prepare_test_evidence_reservation" not in source
 
@@ -1042,10 +1042,15 @@ def test_post_outcome_push_failure_preserves_local_result_and_forbids_rerun(
 
 def test_historical_persist_rejects_b2_03_and_retained_persist_rejects_b2_02(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ):
-    class Ctx:
+    class Ctx03:
         run_identity = {"hypothesis_id": "B2-03_X", "stage": "development"}
+
+        def assert_minted(self):
+            return None
+
+    class Ctx02:
+        run_identity = {"hypothesis_id": "B2-02", "stage": "development"}
 
         def assert_minted(self):
             return None
@@ -1054,14 +1059,20 @@ def test_historical_persist_rejects_b2_03_and_retained_persist_rejects_b2_02(
         persist_batch02_result(
             tmp_path / "x.json",
             {"status": "nope"},
-            run_context=Ctx(),  # type: ignore[arg-type]
+            run_context=Ctx03(),  # type: ignore[arg-type]
+        )
+    with pytest.raises(Batch02ContractError, match="persist_batch02_result"):
+        persist_batch02_retained_result(
+            tmp_path / "y.json",
+            {"status": "nope"},
+            run_context=Ctx02(),  # type: ignore[arg-type]
         )
 
 
 def test_run_git_does_not_use_shell():
-    source = Path("scripts/research/lib/batch02_evidence_retention.py").read_text(
-        encoding="utf-8"
-    )
+    import scripts.research.lib.batch02_evidence_retention as retention
+
+    source = Path(retention.__file__).read_text(encoding="utf-8")
     assert "shell=True" not in source
     assert "subprocess.run" in source
 

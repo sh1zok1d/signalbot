@@ -337,7 +337,7 @@ def archive_batch02_result(
             local_artifact_path=result_path if isinstance(result_path, Path) else Path("."),
             local_sha256=local_sha,
             local_size_bytes=local_size,
-            evidence_ref=str(getattr(run_context, "run_identity", {}).get("hypothesis_id", "")),
+            evidence_ref="",
             reservation_sha256="",
         )
 

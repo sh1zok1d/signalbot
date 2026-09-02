@@ -408,20 +408,13 @@ def _assert_safe_git_args(args: Sequence[str]) -> None:
             raise PreOutcomeRetentionError("force Git refspec is forbidden")
 
 
-def _empty_gitconfig_path() -> str:
-    path = Path(tempfile.gettempdir()) / "signalbot-empty.gitconfig"
-    if not path.exists():
-        path.write_text("", encoding="utf-8")
-    return str(path)
-
-
 def _git_env() -> dict[str, str]:
     env = os.environ.copy()
     env["GIT_TERMINAL_PROMPT"] = "0"
     env["GC_AUTO"] = "0"
     env["GIT_CONFIG_NOSYSTEM"] = "1"
-    env["GIT_CONFIG_GLOBAL"] = _empty_gitconfig_path()
-    env["GIT_CONFIG_SYSTEM"] = _empty_gitconfig_path()
+    env["GIT_CONFIG_GLOBAL"] = os.devnull
+    env["GIT_CONFIG_SYSTEM"] = os.devnull
     env["GIT_AUTHOR_NAME"] = "signalbot-batch02"
     env["GIT_AUTHOR_EMAIL"] = "batch02@signalbot.invalid"
     env["GIT_COMMITTER_NAME"] = "signalbot-batch02"
@@ -1572,7 +1565,16 @@ def archive_persisted_result_proof(
             reservation=reservation,
             reason="archive commit SHA readback mismatch",
         )
-    still_local = result_path.read_bytes()
+    try:
+        still_local = result_path.read_bytes()
+    except OSError as exc:
+        _raise_post_outcome(
+            result_path=result_path,
+            local_sha256=source_sha,
+            local_size_bytes=source_size,
+            reservation=reservation,
+            reason=_redact(f"canonical local result could not be re-read: {exc}"),
+        )
     if still_local != source:
         _raise_post_outcome(
             result_path=result_path,
