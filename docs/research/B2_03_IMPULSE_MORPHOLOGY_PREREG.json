@@ -1,0 +1,239 @@
+{
+  "schema_version": "1.0",
+  "status": "PREREG_CANDIDATE_OUTCOME_BLIND",
+  "formulation_id": "B2-03_IMPULSE_MORPHOLOGY",
+  "primary_family": "F1",
+  "dataset": {
+    "dataset_id": "CORE_BTC_BINANCE_V0",
+    "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+    "source_timeframe": "1m",
+    "derived_timeframe": "5m",
+    "decision_grid": "1h"
+  },
+  "chronology": {
+    "warmup_start_inclusive": "2020-01-01T00:00:00Z",
+    "development_start_inclusive": "2020-02-01T00:00:00Z",
+    "development_end_exclusive": "2025-01-01T00:00:00Z",
+    "reserved_validation_start_inclusive": "2025-01-01T00:00:00Z",
+    "reserved_validation_end_exclusive": "2026-01-01T00:00:00Z",
+    "oos_start_inclusive": "2026-01-01T00:00:00Z",
+    "decision_times": "UTC hourly boundaries only, 00:00..23:00",
+    "no_magnitude_trigger": true,
+    "no_refractory_rule": "not needed; hourly grid gives deterministic non-overlapping spacing",
+    "last_legal_T_by_horizon_minutes": {
+      "15": "2024-12-31T23:00:00Z",
+      "30": "2024-12-31T23:00:00Z",
+      "60": "2024-12-31T22:00:00Z",
+      "120": "2024-12-31T21:00:00Z",
+      "240": "2024-12-31T19:00:00Z"
+    }
+  },
+  "novelty_boundary": {
+    "h03_verdict": "H03_REJECTED_SPECIFIC_CLAIM",
+    "h03_tested_object": "impulse extremeness (tail-percentile trigger, continuation vs exhaustion)",
+    "h03_q_values_not_reused": [0.90, 0.95, 0.98],
+    "b2_03_tested_object": "path morphology conditional on displacement, not displacement magnitude itself",
+    "magnitude_admission_threshold": "none",
+    "w_inherited_as_fixed_path_scale_family": true,
+    "w_not_chosen_from_h03_cell": true
+  },
+  "impulse_windows_minutes": [15, 30, 60],
+  "displacement": {
+    "definition": "D_W(T) = ln(close(T)/close(T-W))",
+    "require_nonzero": true,
+    "direction": "d = sign(D_W(T)); UP if d=+1, DOWN if d=-1",
+    "magnitude": "ABS_DISP_W(T) = abs(D_W(T))",
+    "path_bar_minutes": 5,
+    "path_bar_count_by_W": {
+      "15": 3,
+      "30": 6,
+      "60": 12
+    },
+    "path_return_definition": "r_i = ln(close_i/close_{i-1}), i=1..N; sum_i r_i == D_W(T) by telescoping",
+    "availability_rule": "every 5m bucket entering r_1..r_N and the anchor close_0 must have available_at<=T; no still-forming bar"
+  },
+  "event_construction": {
+    "eligibility": [
+      "T is an hourly UTC boundary, T>=warmup_start, T strictly before development_end_exclusive",
+      "D_W(T) != 0",
+      "every source bar/bucket the record needs (W-window 5m returns, 60m PRE_VOL window) is fully available with available_at<=T"
+    ],
+    "not_gated_by_morphology_availability": true,
+    "unavailable_morphology_policy": "record remains a constructed event; scoring-only field becomes UNAVAILABLE_FOR_DECISION for both candidate and baseline; never deleted from population; never changes another event's causal reference/training population",
+    "warmup_records": "constructible as causal reference/training material only; never scored",
+    "per_horizon_scoring_eligibility": "independent of event construction; see chronology.last_legal_T_by_horizon_minutes"
+  },
+  "baseline_context": {
+    "reference_days": 30,
+    "states": [
+      "DIRECTION",
+      "DISPLACEMENT_MAG_STATE",
+      "VOL_STATE"
+    ],
+    "direction_pooled_in_baseline_dimension": false,
+    "binning": "causal_midrank_tertiles",
+    "displacement_mag_reference_population": "eligible hourly B2-03 decision records same W, preceding 30 calendar days strictly before current T, current event excluded, UP/DOWN pooled (unsigned magnitude)",
+    "vol_window_minutes": 60,
+    "vol_reference_population": "preceding 30 calendar days, hourly B2-03 decision grid, strictly before T, current event excluded",
+    "midrank_ties": "(count_less + 0.5*count_equal)/N",
+    "empty_reference": "UNAVAILABLE_FOR_DECISION for both candidate and baseline; no fallback",
+    "formulas": {
+      "DISPLACEMENT_MAG_STATE_raw": "ABS_DISP_W(T)",
+      "PRE_VOL_60": "sqrt(sum(r_1m^2)) over complete accepted 1m log returns in [T-60m,T], available_at<=T"
+    }
+  },
+  "morphology_descriptor": {
+    "window_minutes": "same as impulse window W",
+    "components": [
+      "DISTRIBUTEDNESS",
+      "PATH_EFFICIENCY",
+      "DIRECTIONAL_BAR_SHARE",
+      "COUNTERMOVE_SHALLOWNESS"
+    ],
+    "component_transform": "causal_midrank_percentile within same W using prior eligible B2-03 records, UP/DOWN pooled since components are direction-normalized",
+    "score": "equal_weight_mean_of_four_component_percentiles",
+    "states": ["LOW", "MID", "HIGH"],
+    "state_cutpoints": [0.3333333333333333, 0.6666666666666666],
+    "reference_days": 30,
+    "reference_population": "prior eligible B2-03 records, same W, reference_T strictly before current T, current event excluded, feature fully available by its own event T",
+    "midrank_ties": "(count_less + 0.5*count_equal)/N",
+    "empty_reference": "UNAVAILABLE_FOR_DECISION for both candidate and baseline; no fallback",
+    "undefined_policy": "TV<=0 or any undefined/non-finite component makes both candidate and baseline UNAVAILABLE_FOR_DECISION",
+    "formulas": {
+      "TV": "sum_i abs(r_i); require TV>0",
+      "DISTRIBUTEDNESS": "1 - max_i(abs(r_i))/TV",
+      "PATH_EFFICIENCY": "abs(D_W(T))/TV; bounded [0,1] by triangle inequality abs(sum r_i)<=sum abs(r_i)",
+      "DIRECTIONAL_BAR_SHARE": "count_i(d*r_i>0)/N; zero return does not count",
+      "COUNTERMOVE_SHALLOWNESS": "1 - MAX_COUNTERMOVE/TV; z_0=0, z_j=d*sum_{i=1..j}r_i, peak_j=max(z_0..z_j), MAX_COUNTERMOVE=max_j(peak_j-z_j); require 0<=MAX_COUNTERMOVE/TV<=1 as an enforced construction invariant"
+    },
+    "not_a_rebinning_of_magnitude": "TV and abs(D_W(T)) are distinct quantities related only by the triangle inequality; conditioning both models on DISPLACEMENT_MAG_STATE additionally removes residual scale before morphology percentiles are computed",
+    "expected_ordering": "HIGH morphology > LOW morphology on the direction-normalized continuation residual",
+    "exhaustion_alternative_preregistered": false
+  },
+  "horizons_minutes": [15, 30, 60, 120, 240],
+  "target": {
+    "direction_normalized": true,
+    "definition": "DIR_RET_H(T) = d*ln(close(T+H)/close(T)); Y_H(T) = DIR_RET_H(T)/PAST_MEDIAN_ABS_RET_H(T)",
+    "scale_reference": "median absolute H-horizon close return at prior canonical UTC 15-minute grid decision points over the preceding 30 calendar days, using only reference points whose own H-horizon outcome is fully known by current T (ref_t+H<=T)",
+    "scale_reference_days": 30,
+    "scale_denominator_requirements": "finite, positive, known by T; no winsorization, no future-informed floor, no sign flip"
+  },
+  "forecast": {
+    "training_lookback_days": 90,
+    "training_outcome_rule": "training_T + H <= current_T",
+    "estimator": "median",
+    "baseline_min_count": 80,
+    "candidate_min_count": 40,
+    "baseline_match": [
+      "W",
+      "DIRECTION",
+      "DISPLACEMENT_MAG_STATE",
+      "VOL_STATE"
+    ],
+    "candidate_match": [
+      "W",
+      "DIRECTION",
+      "DISPLACEMENT_MAG_STATE",
+      "VOL_STATE",
+      "MORPHOLOGY_STATE"
+    ],
+    "loss": "absolute_error",
+    "primary_incremental_metric": "BASE_AE - CAND_AE",
+    "same_support_required": true,
+    "fallback": "none",
+    "joint_unavailability": "if either candidate or baseline cannot produce a valid prediction, the scored record is unavailable for both"
+  },
+  "controls": {
+    "permutation_seed": 20260904,
+    "permutation_replicates": 100,
+    "permutation_scope": "per-scored-event causal 90d training set with training_T+H<=current_T",
+    "permutation_strata": [
+      "W",
+      "DIRECTION",
+      "DISPLACEMENT_MAG_STATE",
+      "VOL_STATE"
+    ],
+    "permutation_target": "historical MORPHOLOGY_STATE labels only; historical Y fixed; evaluation event's own morphology state fixed",
+    "permutation_ordering": "sort each stratum by canonical event ID before RNG, then permute",
+    "permutation_seed_derivation": "20260904 | replicate_index | W | H | current_T | baseline_stratum_id",
+    "future_calendar_composition": "forbidden",
+    "bootstrap_seed": 20260905,
+    "bootstrap_replicates": 2000,
+    "bootstrap_block": "UTC_week",
+    "bootstrap_ci": 0.95,
+    "bootstrap_reroll_seed": false,
+    "bootstrap_block_selection_after_outcomes": false
+  },
+  "search_surface_primary_cells": 15,
+  "search_surface_shape": "3 W x 5 H",
+  "per_cell_thresholds": {
+    "relative_mae_improvement_min": 0.02,
+    "bootstrap_lower_bound_strictly_positive": true,
+    "placebo_percentile": 0.95,
+    "morphology_separation_strictly_positive": true
+  },
+  "promotion_gate_contract": {
+    "required_gate_names": [
+      "primary_positive",
+      "material_relative_mae",
+      "bootstrap_positive",
+      "placebo_separation",
+      "morphology_ordering",
+      "horizon_robustness",
+      "parameter_robustness",
+      "year_stability"
+    ],
+    "horizon_robustness": "for one W, at least two adjacent horizons in [15,30,60,120,240] (adjacent pairs 15/30, 30/60, 60/120, 120/240) pass all five per-cell gates",
+    "parameter_robustness": "the exact same adjacent-H pair also passes all five per-cell gates for at least one other W; no single W may promote alone",
+    "year_stability": "every promotion-neighborhood cell has positive mean AE improvement in >=4/5 development years (2020,2021,2022,2023,2024); no year exclusions",
+    "direction_pooling": "gates operate on UP+DOWN pooled records within each (W,H) cell; a single-direction effect cannot rescue a pooled-cell failure"
+  },
+  "verdicts": [
+    "B2_03_PROMOTED_CANDIDATE",
+    "B2_03_CLOSED_NO_PROMOTION"
+  ],
+  "implementation_paths": {
+    "runner": "scripts/research/b2_03_impulse_morphology.py",
+    "library": "scripts/research/b2_03_impulse_morphology_lib.py",
+    "tests": "tests/research/test_b2_03_impulse_morphology.py"
+  },
+  "durable_retention_integration": {
+    "required_contract": "docs/research/BATCH02_DURABLE_EVIDENCE_RETENTION_V1.md",
+    "ceremony": [
+      "verify_batch02_code",
+      "prepare_batch02_evidence_reservation",
+      "prepare_batch02_retained_run",
+      "load_authorized_parquet_table",
+      "persist_batch02_retained_result",
+      "archive_batch02_result"
+    ],
+    "historical_path_forbidden": [
+      "prepare_batch02_run",
+      "persist_batch02_result"
+    ],
+    "canonical_slot": "B2-03",
+    "evidence_ref": "refs/heads/research-evidence/batch02/B2-03/<execution_code_sha>",
+    "created_by_this_unit": false
+  },
+  "outcome_access_authorized": false,
+  "validation_2025_authorized": false,
+  "oos_2026_authorized": false,
+  "event_identity": {
+    "fields": [
+      "snapshot_id",
+      "source_timeframe",
+      "derived_timeframe",
+      "decision_grid",
+      "W",
+      "direction",
+      "window_start",
+      "window_end",
+      "T",
+      "H"
+    ],
+    "source_timeframe": "1m",
+    "derived_timeframe": "5m",
+    "decision_grid": "1h",
+    "same_candidate_baseline_id_required": true
+  }
+}
