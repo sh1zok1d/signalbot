@@ -410,6 +410,20 @@ def _assert_safe_git_args(args: Sequence[str]) -> None:
 
 def _git_env() -> dict[str, str]:
     env = os.environ.copy()
+    for key in list(env):
+        if (
+            key == "GIT_CONFIG_COUNT"
+            or key.startswith("GIT_CONFIG_KEY_")
+            or key.startswith("GIT_CONFIG_VALUE_")
+            or key
+            in {
+                "GIT_SSL_NO_VERIFY",
+                "GIT_CONFIG_PARAMETERS",
+                "GIT_ALLOW_PROTOCOL",
+                "GIT_PROXY_COMMAND",
+            }
+        ):
+            env.pop(key, None)
     env["GIT_TERMINAL_PROMPT"] = "0"
     env["GC_AUTO"] = "0"
     env["GIT_CONFIG_NOSYSTEM"] = "1"

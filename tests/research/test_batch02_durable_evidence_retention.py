@@ -978,11 +978,28 @@ def test_force_git_args_are_rejected():
         run_git(Path("/tmp"), ["push", "--force", "origin", "HEAD"])
     with pytest.raises(PreOutcomeRetentionError, match="force"):
         run_git(Path("/tmp"), ["push", "origin", "+HEAD:refs/heads/x"])
-    source = Path("scripts/research/lib/batch02_evidence_retention.py").read_text(
-        encoding="utf-8"
-    )
+    import scripts.research.lib.batch02_evidence_retention as retention
+
+    source = Path(retention.__file__).read_text(encoding="utf-8")
     assert "force_push" not in source
     assert "--force-with-lease" in source
+
+
+def test_isolated_git_env_strips_tls_and_injected_config(monkeypatch: pytest.MonkeyPatch):
+    import scripts.research.lib.batch02_evidence_retention as retention
+
+    monkeypatch.setenv("GIT_SSL_NO_VERIFY", "1")
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
+    monkeypatch.setenv("GIT_CONFIG_KEY_0", "http.sslVerify")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_0", "false")
+    monkeypatch.setenv("GIT_CONFIG_PARAMETERS", "http.sslVerify=false")
+    env = retention._git_env()
+    assert "GIT_SSL_NO_VERIFY" not in env
+    assert "GIT_CONFIG_COUNT" not in env
+    assert "GIT_CONFIG_KEY_0" not in env
+    assert "GIT_CONFIG_VALUE_0" not in env
+    assert "GIT_CONFIG_PARAMETERS" not in env
+    assert env["GIT_CONFIG_NOSYSTEM"] == "1"
 
 
 def test_post_outcome_push_failure_preserves_local_result_and_forbids_rerun(
