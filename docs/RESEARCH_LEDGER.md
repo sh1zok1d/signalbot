@@ -1215,6 +1215,45 @@ preregister, implement, or authorize B2-03 outcome access.
 
 ---
 
+## 2026-09-02 — B2-02 pre-outcome abort comment and dataset restoration verification
+
+PR #95 comment `issuecomment-5506886454` records a **pre-outcome
+infrastructure abort** of the authorized B2-02 execution: identity passed at
+SHA `a976a3fa3143f7290851ab8b2ddc5a9d811c891a`, but the accepted
+`CORE_BTC_BINANCE_V0` parquet/raw materialization was absent, so
+`run_development()` was not called in that environment. That abort is **not**
+a B2-02 market verdict.
+
+Permitted action from that comment: restore and independently verify snapshot
+`717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`.
+
+This entry records that verification in the restored 2020-2024 runtime root.
+It does **not** call `run_development()`, does **not** open 2025/2026, and
+does **not** authorize a B2-02 rerun.
+
+Independent SHA-256 verification against Git-frozen
+`docs/research_data/CORE_BTC_BINANCE_V0/SNAPSHOT_717d37a4.json`:
+
+- frozen snapshot file SHA256 `a104a403…` MATCH
+- source-inventory file SHA256 `a4bb3924…` MATCH
+- runtime `reports/snapshot_manifest.json` byte-identical to frozen snapshot
+- 60/60 canonical 1m monthly parquet 2020-2024 MATCH
+- 60/60 canonical provenance 2020-2024 MATCH
+- 60/60 raw monthly ZIP 2020-2024 MATCH snapshot `expected_sha256` and sidecar CHECKSUM
+- on-disk 2025/2026 paths: none
+
+Status: `VERIFIED_2020_2024_NO_2025_2026`.
+
+This verification does not un-consume the authorized development run already
+recorded above (`B2_02_CLOSED_NO_PROMOTION`, result SHA256 `971b645a…`).
+Comment `5506886454` remains the abort record for environments that never
+opened outcomes. A second `run_development()` after that completed verdict
+remains **NOT AUTHORIZED**.
+
+Record: `docs/research/B2_02_DATASET_RESTORATION_VERIFICATION.md`
+
+---
+
 ## Future-hypothesis quarantine
 
 The following remain ideas only until justified by a specific mechanism and research plan:

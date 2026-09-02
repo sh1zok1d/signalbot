@@ -153,3 +153,10 @@ No 2025 validation or 2026 OOS outcome has been opened by Batch02 so far.
 
 B2-01 and B2-02 are both closed at development and have no promoted candidate,
 therefore there is no B2-01 or B2-02 validation path to open.
+
+PR #95 comment `issuecomment-5506886454` is a pre-outcome infrastructure abort
+in an environment that lacked accepted parquet/raw bytes. It is not a B2-02
+market verdict and does not return B2-02 to `PLANNED`. Independent restoration
+verification of the 2020-2024 snapshot bytes is recorded in
+`B2_02_DATASET_RESTORATION_VERIFICATION.md`. That verification does not
+authorize a B2-02 rerun.
