@@ -37,6 +37,7 @@ from scripts.research.lib.research_harness import (
 )
 
 SCHEMA_VERSION = "batch02_durable_evidence_retention_v1"
+GIT_TIMEOUT_SECONDS = 60
 RESERVATION_KIND = "batch02_pre_outcome_evidence_reservation"
 CLAIM_KIND = "batch02_outcome_access_claim"
 RECEIPT_KIND = "batch02_durable_archive_receipt"
@@ -94,6 +95,10 @@ class PreOutcomeRetentionError(RuntimeError):
 
     outcome_consumed = False
     rerun_authorized = False
+
+
+class GitTimeoutError(PreOutcomeRetentionError):
+    """A Git subprocess exceeded GIT_TIMEOUT_SECONDS."""
 
 
 class AmbiguousOutcomeAccessStateError(PreOutcomeRetentionError):
@@ -318,10 +323,15 @@ class DurableArchiveReceipt:
 
 
 def hypothesis_requires_durable_retention(hypothesis_id: str) -> bool:
-    """Return True for numbered Batch02 hypotheses at B2-03 and later."""
+    """Return True for numbered Batch02 hypotheses at B2-03 and later.
+
+    Numbered B2 IDs are classified case-insensitively. Values such as
+    ``b2-03`` / ``b2_03`` require durable retention and must not enter
+    historical B2-01/B2-02 machinery.
+    """
     if not isinstance(hypothesis_id, str):
         return False
-    match = re.match(r"^B2[-_](\d+)", hypothesis_id)
+    match = re.match(r"^b2[-_](\d+)", hypothesis_id.strip(), re.IGNORECASE)
     if match is None:
         return False
     return int(match.group(1)) >= 3
@@ -409,6 +419,13 @@ def _assert_safe_git_args(args: Sequence[str]) -> None:
 
 
 def _git_env() -> dict[str, str]:
+    """Isolated Git environment for evidence transport.
+
+    Inherited TLS/config injection and SSH-transport overrides
+    (GIT_SSH, GIT_SSH_COMMAND, GIT_SSH_VARIANT) are removed so the
+    caller cannot replace the SSH executable. SSH agent sockets and
+    credential helpers remain usable.
+    """
     env = os.environ.copy()
     for key in list(env):
         if (
@@ -421,6 +438,9 @@ def _git_env() -> dict[str, str]:
                 "GIT_CONFIG_PARAMETERS",
                 "GIT_ALLOW_PROTOCOL",
                 "GIT_PROXY_COMMAND",
+                "GIT_SSH",
+                "GIT_SSH_COMMAND",
+                "GIT_SSH_VARIANT",
             }
         ):
             env.pop(key, None)
@@ -446,7 +466,11 @@ def _git_env() -> dict[str, str]:
 
 
 def run_git(cwd: Path, args: Sequence[str]) -> bytes:
-    """Run git with an argument array in an isolated working directory."""
+    """Run git with an argument array in an isolated working directory.
+
+    Every invocation is bounded by GIT_TIMEOUT_SECONDS. Callers classify a
+    GitTimeoutError according to lifecycle stage.
+    """
     _assert_safe_git_args(args)
     if cwd.is_symlink():
         raise PreOutcomeRetentionError("git cwd may not be a symlink")
@@ -457,7 +481,13 @@ def run_git(cwd: Path, args: Sequence[str]) -> bytes:
             check=True,
             capture_output=True,
             env=_git_env(),
+            timeout=GIT_TIMEOUT_SECONDS,
         )
+    except subprocess.TimeoutExpired as exc:
+        raise GitTimeoutError(
+            f"git command timed out after {GIT_TIMEOUT_SECONDS}s: "
+            f"{[_redact(part) for part in cmd][0:8]}"
+        ) from None
     except subprocess.CalledProcessError as exc:
         stdout = _redact((exc.stdout or b"").decode("utf-8", errors="replace"))
         stderr = _redact((exc.stderr or b"").decode("utf-8", errors="replace"))
@@ -1122,6 +1152,7 @@ def claim_remote_outcome_access(
     claim_bytes = canonical_json_bytes(claim_payload)
     claim_sha = sha256_bytes(claim_bytes)
     pushed_sha: str | None = None
+    remote_mutation_attempted = False
     try:
         with _isolated_workspace(freeze.repo_root) as raw_dir:
             isolated = Path(raw_dir)
@@ -1159,15 +1190,23 @@ def claim_remote_outcome_access(
                     "outcome-access claim parent is not the verified reservation head"
                 )
             pushed_sha = run_git(isolated, ["rev-parse", "HEAD"]).decode("utf-8").strip().lower()
+            remote_mutation_attempted = True
             run_git(
                 isolated,
                 ["push", transport.endpoint, f"{pushed_sha}:{reservation.evidence_ref}"],
             )
     except AmbiguousOutcomeAccessStateError:
         raise
-    except PreOutcomeRetentionError:
-        raise
-    except Exception as exc:
+    except (GitTimeoutError, PreOutcomeRetentionError, Exception) as exc:
+        if remote_mutation_attempted:
+            raise AmbiguousOutcomeAccessStateError(
+                f"{AMBIGUOUS_CLAIM_STATE}: claim push timed out or failed after the "
+                "remote mutation was attempted; the remote claim may already exist. "
+                "Dataset authorization is blocked. Do not reset or delete the remote "
+                "claim. Operator adjudication required."
+            ) from None
+        if isinstance(exc, (GitTimeoutError, PreOutcomeRetentionError)):
+            raise
         raise PreOutcomeRetentionError(
             _redact(f"outcome-access claim failed: {exc}")
         ) from exc
@@ -1187,6 +1226,39 @@ def claim_remote_outcome_access(
             relative=RESERVATION_BLOB_PATH,
             expected_commit=pushed_sha,
         )
+        if remote_claim != claim_bytes or sha256_bytes(remote_claim) != claim_sha:
+            raise AmbiguousOutcomeAccessStateError(
+                f"{AMBIGUOUS_CLAIM_STATE}: claim readback digest mismatch. "
+                "Dataset authorization is blocked. Operator adjudication required."
+            )
+        if remote_reservation != backend.reservation_bytes:
+            raise AmbiguousOutcomeAccessStateError(
+                f"{AMBIGUOUS_CLAIM_STATE}: reservation bytes changed across the claim. "
+                "Dataset authorization is blocked. Operator adjudication required."
+            )
+        with _isolated_workspace(freeze.repo_root) as raw_dir:
+            isolated = Path(raw_dir)
+            _init_isolated_repo(isolated)
+            run_git(
+                isolated,
+                ["fetch", "--no-tags", transport.endpoint, reservation.evidence_ref],
+            )
+            parent = run_git(
+                isolated, ["rev-parse", f"{read_commit}^"]
+            ).decode("utf-8").strip().lower()
+            if parent != reservation.evidence_head_sha:
+                raise AmbiguousOutcomeAccessStateError(
+                    f"{AMBIGUOUS_CLAIM_STATE}: claim parent is not the reservation head. "
+                    "Dataset authorization is blocked. Operator adjudication required."
+                )
+            state = classify_evidence_tree(_tree_names(isolated, read_commit))
+            if state != STATE_CLAIMED:
+                raise AmbiguousOutcomeAccessStateError(
+                    f"{AMBIGUOUS_CLAIM_STATE}: claimed tree is not OUTCOME_ACCESS_CLAIMED "
+                    f"({state}). Dataset authorization is blocked."
+                )
+    except AmbiguousOutcomeAccessStateError:
+        raise
     except Exception as exc:
         raise AmbiguousOutcomeAccessStateError(
             f"{AMBIGUOUS_CLAIM_STATE}: claim push may have succeeded but independent "
@@ -1194,33 +1266,6 @@ def claim_remote_outcome_access(
             "Do not reset or delete the remote claim. Operator adjudication required. "
             f"detail={_redact(str(exc))}"
         ) from None
-
-    if remote_claim != claim_bytes or sha256_bytes(remote_claim) != claim_sha:
-        raise AmbiguousOutcomeAccessStateError(
-            f"{AMBIGUOUS_CLAIM_STATE}: claim readback digest mismatch. "
-            "Dataset authorization is blocked. Operator adjudication required."
-        )
-    if remote_reservation != backend.reservation_bytes:
-        raise AmbiguousOutcomeAccessStateError(
-            f"{AMBIGUOUS_CLAIM_STATE}: reservation bytes changed across the claim. "
-            "Dataset authorization is blocked. Operator adjudication required."
-        )
-    with _isolated_workspace(freeze.repo_root) as raw_dir:
-        isolated = Path(raw_dir)
-        _init_isolated_repo(isolated)
-        run_git(isolated, ["fetch", "--no-tags", transport.endpoint, reservation.evidence_ref])
-        parent = run_git(isolated, ["rev-parse", f"{read_commit}^"]).decode("utf-8").strip().lower()
-        if parent != reservation.evidence_head_sha:
-            raise AmbiguousOutcomeAccessStateError(
-                f"{AMBIGUOUS_CLAIM_STATE}: claim parent is not the reservation head. "
-                "Dataset authorization is blocked. Operator adjudication required."
-            )
-        state = classify_evidence_tree(_tree_names(isolated, read_commit))
-        if state != STATE_CLAIMED:
-            raise AmbiguousOutcomeAccessStateError(
-                f"{AMBIGUOUS_CLAIM_STATE}: claimed tree is not OUTCOME_ACCESS_CLAIMED "
-                f"({state}). Dataset authorization is blocked."
-            )
 
     claim = DurableOutcomeAccessClaim(
         hypothesis_id=reservation.hypothesis_id,
@@ -1406,24 +1451,50 @@ def archive_persisted_result_proof(
             reason=_redact(str(exc)),
         )
 
+    # Local fail-closed guard against a mismatched concurrent archive of the
+    # same canonical result. This is not a durability substitute; remote
+    # claim/archive remain authoritative. Unreadable, mismatched, or
+    # unwritable lock bytes fail as POST_OUTCOME_RETENTION_FAILURE.
     lock_path = result_path.with_name(result_path.name + ".durable_retention.lock.json")
-    if not lock_path.exists():
+    lock_bytes = canonical_json_bytes(
+        {
+            "kind": "batch02_durable_retention_lock",
+            "reservation_sha256": reservation.reservation_sha256,
+            "claim_sha256": claim.claim_sha256,
+            "evidence_ref": reservation.evidence_ref,
+            "artifact_sha256": source_sha,
+        }
+    ) + b"\n"
+    if lock_path.exists():
         try:
-            _write_bytes_new(
-                lock_path,
-                canonical_json_bytes(
-                    {
-                        "kind": "batch02_durable_retention_lock",
-                        "reservation_sha256": reservation.reservation_sha256,
-                        "claim_sha256": claim.claim_sha256,
-                        "evidence_ref": reservation.evidence_ref,
-                        "artifact_sha256": source_sha,
-                    }
-                )
-                + b"\n",
+            existing_lock = lock_path.read_bytes()
+        except OSError as exc:
+            _raise_post_outcome(
+                result_path=result_path,
+                local_sha256=source_sha,
+                local_size_bytes=source_size,
+                reservation=reservation,
+                reason=_redact(f"retention lock is unreadable: {exc}"),
             )
-        except Exception:
-            pass
+        if existing_lock != lock_bytes:
+            _raise_post_outcome(
+                result_path=result_path,
+                local_sha256=source_sha,
+                local_size_bytes=source_size,
+                reservation=reservation,
+                reason="retention lock does not match this persisted result",
+            )
+    else:
+        try:
+            _write_bytes_new(lock_path, lock_bytes)
+        except Exception as exc:
+            _raise_post_outcome(
+                result_path=result_path,
+                local_sha256=source_sha,
+                local_size_bytes=source_size,
+                reservation=reservation,
+                reason=_redact(f"retention lock write failed: {exc}"),
+            )
 
     relative = artifact_relpath(
         reservation.hypothesis_id,

@@ -43,7 +43,10 @@ re-exported from `batch02_contracts`.
 Existing consumed B2-01/B2-02 machinery remains historical evidence.
 
 - `prepare_batch02_run()` remains the historical B2-01/B2-02 outcome gate and
-  is rejected for numbered B2-03+ hypothesis IDs.
+  is rejected for numbered B2-03+ hypothesis IDs. Numbered B2 IDs are
+  classified case-insensitively (`b2-03`, `b2_03`, `B2-03`, `B2_04_X`
+  all require durable retention). Noncanonical casing must never reach
+  historical B2-01/B2-02 machinery.
 - `persist_batch02_result()` semantics are unchanged for already-consumed
   hypotheses.
 - B2-02 remains `POST_RUN_EVIDENCE_RETENTION_GAP`.
@@ -134,11 +137,12 @@ The claim binds `schema_version`, `kind = batch02_outcome_access_claim`,
 `seeds`, `remote_repository_identity`, and `reservation_commit_sha`. It
 contains no market values.
 
-If the claim push may have succeeded but independent readback cannot be
-proven, dataset authorization is blocked. The claim is not reset or deleted.
-The explicit fail-closed state is `AMBIGUOUS_OUTCOME_ACCESS_CLAIM`. Operator
-adjudication is required. Scientific safety is more important than preserving
-an unused run slot.
+If the claim push times out, errors after the remote mutation was
+attempted, or independent readback cannot be proven, dataset
+authorization is blocked. The claim is not reset or deleted. The
+explicit fail-closed state is `AMBIGUOUS_OUTCOME_ACCESS_CLAIM`.
+Operator adjudication is required. Scientific safety is more important
+than preserving an unused run slot.
 
 ## 5. Production transport
 
@@ -166,6 +170,17 @@ normal caller argument on the production API.
 Isolated evidence Git commands ignore system/global Git config so those
 rewrites cannot affect the commands used. Local rewrite configuration in the
 execution repository is still inspected and rejected.
+
+The isolated Git environment also removes inherited SSH-transport
+overrides (`GIT_SSH`, `GIT_SSH_COMMAND`, `GIT_SSH_VARIANT`). There is no
+public escape hatch that restores them. Credential helpers and an SSH
+agent socket may remain usable; the caller cannot replace the SSH
+executable or command.
+
+Every evidence Git subprocess is bounded by `GIT_TIMEOUT_SECONDS` (60).
+No `ls-remote`, fetch, push, remote inspection, or readback may hang
+indefinitely. `subprocess.TimeoutExpired` becomes `GitTimeoutError` and
+is classified by lifecycle stage.
 
 ## 6. Exact-byte archival
 
@@ -228,7 +243,8 @@ Examples: missing/invalid remote, credentials/push failure, reservation
 readback failure, incompatible or already-claimed existing reservation,
 dirty/invalid code freeze, forged or mutated reservation token,
 credential-bearing URL, path traversal in hypothesis ID, local production
-remote, pushurl/rewrite redirect, ambiguous claim readback.
+remote, pushurl/rewrite redirect, Git timeout before any remote claim
+mutation, ambiguous claim readback.
 
 Required behavior:
 
@@ -242,8 +258,10 @@ Required behavior:
 
 Once the canonical local result has been persisted, every later failure is
 `POST_OUTCOME_RETENTION_FAILURE`, including archive-time freeze drift,
-reservation/claim authority failure, remote drift, push/readback failure,
-and digest mismatch.
+reservation/claim authority failure, remote drift, Git timeout during
+archival, push/readback failure, and digest mismatch. The extra local
+durable-retention lock is a fail-closed concurrent-archive guard, not a
+durability substitute.
 
 ```text
 OUTCOME CONSUMED = YES
