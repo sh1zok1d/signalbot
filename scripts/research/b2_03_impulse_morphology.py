@@ -79,7 +79,24 @@ def run_development(
     dataset_root: Path = DEFAULT_DATASET_ROOT,
     outcome_access_acknowledged: bool = False,
 ) -> dict[str, object]:
-    """Production B2-03 ceremony. Do not invoke against real CORE in this unit."""
+    """Production B2-03 ceremony. Do not invoke against real CORE in this unit.
+
+    `prepare_batch02_retained_run()` durably claims the one-shot remote
+    outcome-access slot (RESERVED -> OUTCOME_ACCESS_CLAIMED, with independent
+    remote readback) before its own `outcome_access_acknowledged` check runs
+    -- so a call reaching that far with the safe default `False` would still
+    durably burn the B2-03 one-shot slot on the remote evidence ref before
+    raising. This guard rejects an unacknowledged call before it can reach
+    `prepare_batch02_evidence_reservation` or `prepare_batch02_retained_run`
+    at all, so the safe default can never consume the one-shot by accident.
+    """
+    if outcome_access_acknowledged is not True:
+        raise ValueError(
+            "run_development requires outcome_access_acknowledged=True; "
+            "refusing before any reservation/claim call, because "
+            "prepare_batch02_retained_run durably claims the one-shot remote "
+            "outcome-access slot before it checks this flag"
+        )
     code_freeze = verify_batch02_code(
         repo_root=REPO_ROOT,
         expected_code_sha=expected_code_sha,

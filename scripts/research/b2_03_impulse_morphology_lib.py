@@ -549,9 +549,19 @@ def _purge(queue: deque, cutoff: int) -> None:
         queue.popleft()
 
 
-def construct_events(frame: Mapping[str, np.ndarray]) -> list[dict[str, object]]:
-    """Hourly (T,W) events. Morphology state is not an admission gate."""
-    validate_1m_frame(frame)
+def _iter_hourly_grid(
+    frame: Mapping[str, np.ndarray],
+) -> list[tuple[int, float | None]]:
+    """Every hourly decision-grid T within bounds, with its own PRE_VOL_60(T).
+
+    This is the single source of truth for the hourly grid iteration bounds,
+    shared by `construct_events` (which additionally requires a qualifying
+    D_W(T)!=0 per W to admit a (T,W) event) and `construct_hourly_vol_grid`
+    (which requires only grid membership, matching the frozen §7.3 VOL_STATE
+    reference population). Neither caller may derive the grid from the other's
+    output: event admission and the hourly volatility reference population are
+    two different frozen populations that must not be conflated.
+    """
     open_ms = np.asarray(frame["open_time_ms"], dtype=np.int64)
     avail = np.asarray(frame["available_at_ms"], dtype=np.int64)
     close = np.asarray(frame["close"], dtype=np.float64)
@@ -560,12 +570,52 @@ def construct_events(frame: Mapping[str, np.ndarray]) -> list[dict[str, object]]
     t = ((first_avail + HOUR_MS - 1) // HOUR_MS) * HOUR_MS
     if t < first_avail:
         t += HOUR_MS
-    events: list[dict[str, object]] = []
+    grid: list[tuple[int, float | None]] = []
     while t <= last_avail and t < DEV_END_MS:
         if t < WARMUP_START_MS:
             t += HOUR_MS
             continue
         vol = pre_vol_60(open_ms, avail, close, t)
+        grid.append((int(t), vol))
+        t += HOUR_MS
+    return grid
+
+
+def construct_hourly_vol_grid(
+    frame: Mapping[str, np.ndarray],
+) -> tuple[np.ndarray, np.ndarray]:
+    """The frozen §7.3 VOL_STATE reference population: every hourly grid T
+    whose own PRE_VOL_60(T) is available, independent of whether any (T,W)
+    event exists at that T. A T with no qualifying (T,W) event still occupies
+    a reference slot here as long as its PRE_VOL_60 is itself computable --
+    that is the population/decision-reference separation this function
+    exists to fix.
+
+    A T whose PRE_VOL_60 is itself unavailable (e.g. inside the first 60
+    minutes of the frame, where no bar's `available_at` equals T-60m) is
+    excluded outright rather than included as a NaN-poisoning slot: PRE_VOL
+    availability is a mechanical function of frame coverage, not a qualifying
+    event whose later unavailability must poison every subsequent 30-day
+    lookback window. Poisoning every reference for 30 days after one
+    structurally-unavailable leading grid point would be a materially larger
+    and unintended behavior change, not a minimal fix of the population
+    mismatch this function targets.
+    """
+    validate_1m_frame(frame)
+    grid = [(t, vol) for t, vol in _iter_hourly_grid(frame) if vol is not None]
+    times = np.asarray([t for t, _ in grid], dtype=np.int64)
+    values = np.asarray([vol for _, vol in grid], dtype=np.float64)
+    return times, values
+
+
+def construct_events(frame: Mapping[str, np.ndarray]) -> list[dict[str, object]]:
+    """Hourly (T,W) events. Morphology state is not an admission gate."""
+    validate_1m_frame(frame)
+    open_ms = np.asarray(frame["open_time_ms"], dtype=np.int64)
+    avail = np.asarray(frame["available_at_ms"], dtype=np.int64)
+    close = np.asarray(frame["close"], dtype=np.float64)
+    events: list[dict[str, object]] = []
+    for t, vol in _iter_hourly_grid(frame):
         for W in W_VALUES:
             path = path_log_returns(open_ms, avail, close, t, W)
             if path is None or vol is None:
@@ -587,7 +637,6 @@ def construct_events(frame: Mapping[str, np.ndarray]) -> list[dict[str, object]]
                     "warmup_only": bool(t < DEV_START_MS),
                 }
             )
-        t += HOUR_MS
     return events
 
 
@@ -606,29 +655,38 @@ def _causal_tertile_states(
     return out, scores
 
 
-def attach_states(events: Sequence[Mapping[str, object]]) -> list[dict[str, object]]:
+def attach_states(
+    events: Sequence[Mapping[str, object]],
+    frame: Mapping[str, np.ndarray],
+) -> list[dict[str, object]]:
+    """Attach causal MAG/VOL/morphology states.
+
+    `frame` is required so the VOL_STATE causal reference population can be
+    built from the full hourly decision grid (frozen §7.3), independent of
+    which hourly points happened to produce a (T,W) event. Deriving the VOL
+    reference from `events` alone would silently drop any hourly T whose
+    PRE_VOL_60 is valid but every W's D_W(T) is exactly zero -- conflating
+    event-admission population with decision-reference population.
+    """
     out = [dict(event) for event in events]
     if not out:
         return out
 
-    unique_t = sorted({int(event["T"]) for event in out})
-    vol_by_t: dict[int, float] = {}
-    for event in out:
-        t = int(event["T"])
-        if t not in vol_by_t:
-            vol_by_t[t] = float(event["pre_vol"])
-    vol_times = np.asarray(unique_t, dtype=np.int64)
-    vol_values = np.asarray([vol_by_t[t] for t in unique_t], dtype=np.float64)
+    vol_times, vol_values = construct_hourly_vol_grid(frame)
     vol_states, vol_scores = _causal_tertile_states(vol_values, vol_times)
     vol_state_by_t = {
-        int(t): int(state) for t, state in zip(unique_t, vol_states)
+        int(t): int(state) for t, state in zip(vol_times, vol_states)
     }
     vol_score_by_t = {
-        int(t): float(score) for t, score in zip(unique_t, vol_scores)
+        int(t): float(score) for t, score in zip(vol_times, vol_scores)
     }
 
     for event in out:
         t = int(event["T"])
+        if t not in vol_state_by_t:
+            raise B203Error(
+                "constructed event T is not a member of the hourly VOL grid"
+            )
         event["vol_state"] = vol_state_by_t[t]
         event["vol_score"] = vol_score_by_t[t]
 
@@ -1208,6 +1266,8 @@ def evaluate_cell(
         "morphology_separation_up": sep_up if math.isfinite(sep_up) else None,
         "morphology_separation_down": sep_down if math.isfinite(sep_down) else None,
         "placebo_q95": placebo_q95 if math.isfinite(placebo_q95) else None,
+        "placebo_replicate_count_nominal": int(N_PLACEBO),
+        "placebo_replicate_count_finite": int(len(placebo_finite)),
         "up": {
             "N": up_n,
             "mean_ae_improvement": up_mean if math.isfinite(up_mean) else None,
@@ -1316,7 +1376,7 @@ def determine_promotion_gates(
 def evaluate_b2_03(frame_1m: Mapping[str, np.ndarray]) -> dict[str, object]:
     validate_1m_frame(frame_1m)
     raw_events = construct_events(frame_1m)
-    events = attach_states(raw_events)
+    events = attach_states(raw_events, frame_1m)
     scale_cache: dict[tuple[int, int], float | None] = {}
     cells = [
         evaluate_cell(events, frame_1m, W, H, scale_cache=scale_cache)

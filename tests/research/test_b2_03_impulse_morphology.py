@@ -174,7 +174,7 @@ def test_event_population_is_hourly_and_not_gated_by_morphology_state():
     assert events
     assert all(int(event["T"]) % lib.HOUR_MS == 0 for event in events)
     assert all(float(event["D_W"]) != 0.0 for event in events)
-    attached = lib.attach_states(events)
+    attached = lib.attach_states(events, frame)
     missing = [event for event in attached if int(event["morphology_state"]) < 0]
     assert missing
     missing_ids = {(int(event["T"]), int(event["W"])) for event in missing}
@@ -780,7 +780,7 @@ def test_runner_call_order_uses_retained_ceremony(monkeypatch):
         "derive_forbidden_window_evidence",
         lambda *a, **k: {"2025_validation": False, "2026_oos": False},
     )
-    out = runner.run_development("a" * 40, outcome_access_acknowledged=False)
+    out = runner.run_development("a" * 40, outcome_access_acknowledged=True)
     assert calls == ["verify", "reserve", "retained", "load", "persist", "archive"]
     assert out["validation_2025_accessed"] is False
     assert "prepare_batch02_run" not in Path(runner.__file__).read_text(encoding="utf-8")
@@ -1175,3 +1175,320 @@ def test_forbidden_window_evidence_fails_closed_on_2025_identity():
             _authorized_identity(),
             _loaded_frame(lib.DEV_END_MS),
         )
+
+
+# --- Adversarial red-team repair unit (PR #101 independent review) ---
+
+
+def test_vol_state_reference_is_the_hourly_grid_not_the_event_population():
+    """Attack 1: an hourly T with a valid PRE_VOL_60 but D_W(T)==0 for every W
+    must still occupy a slot in the causal VOL_STATE reference population,
+    even though it produces zero (T,W) events of its own."""
+    n_hours = 8
+    n_bars = n_hours * 60 + 1
+    open_ms = lib.WARMUP_START_MS + np.arange(n_bars, dtype=np.int64) * lib.BAR_MS
+    avail = open_ms + lib.BAR_MS
+    close = np.full(n_bars, 100.0, dtype=np.float64)
+
+    t0 = lib.WARMUP_START_MS + 2 * lib.HOUR_MS
+
+    def idx_at(t_end):
+        return int((t_end - lib.WARMUP_START_MS) // lib.BAR_MS) - 1
+
+    rng = np.random.default_rng(42)
+    # Oscillate strictly inside each 15m sub-segment of PRE_VOL_60(t0)'s 60m
+    # window, but leave every 15m anchor (t0-60m, -45m, -30m, -15m, t0) at the
+    # same price, so D_15(t0)=D_30(t0)=D_60(t0)=0 exactly while PRE_VOL_60(t0)
+    # is nonzero.
+    for anchor_offset in range(0, 60, 15):
+        seg_start_t = t0 - 60 * lib.BAR_MS + anchor_offset * lib.BAR_MS
+        start_i = idx_at(seg_start_t)
+        end_i = idx_at(seg_start_t + 15 * lib.BAR_MS)
+        for k in range(start_i + 1, end_i):
+            close[k] = 100.0 * (1.0 + 0.01 * rng.standard_normal())
+
+    # A later hourly point t1 with a genuine nonzero displacement, so it
+    # becomes a real (T,W) event that needs a VOL_STATE percentile.
+    t1 = lib.WARMUP_START_MS + 5 * lib.HOUR_MS
+    close[idx_at(t1)] = 105.0
+
+    frame = {"open_time_ms": open_ms, "available_at_ms": avail, "close": close}
+
+    vol_times, vol_values = lib.construct_hourly_vol_grid(frame)
+    assert int(t0) in {int(t) for t in vol_times}
+    t0_value = float(vol_values[list(vol_times).index(t0)])
+    assert math.isfinite(t0_value) and t0_value > 0.0
+
+    events = lib.construct_events(frame)
+    assert (int(t0), 15) not in {(int(e["T"]), int(e["W"])) for e in events}
+    assert (int(t0), 30) not in {(int(e["T"]), int(e["W"])) for e in events}
+    assert (int(t0), 60) not in {(int(e["T"]), int(e["W"])) for e in events}
+
+    out = lib.attach_states(events, frame)
+    t1_rows = [e for e in out if int(e["T"]) == t1]
+    assert t1_rows
+    for row in t1_rows:
+        # With t0 correctly contributing a prior reference point, t1's
+        # VOL_STATE must be decision-available, not spuriously MISSING.
+        assert int(row["vol_state"]) >= 0
+        assert math.isfinite(float(row["vol_score"]))
+
+
+def test_construct_events_output_is_unchanged_by_the_vol_grid_refactor():
+    """The event-construction refactor that introduced `_iter_hourly_grid`
+    must not change `construct_events`' own output at all."""
+    frame = _frame(8 * 60)
+    events = lib.construct_events(frame)
+    assert events
+    assert all(int(event["T"]) % lib.HOUR_MS == 0 for event in events)
+    assert all(float(event["D_W"]) != 0.0 for event in events)
+    assert all(event["W"] in lib.W_VALUES for event in events)
+    # Every event must be reachable from the (unfiltered) hourly grid times.
+    grid_times = {int(t) for t in lib.construct_hourly_vol_grid(frame)[0]}
+    assert {int(event["T"]) for event in events}.issubset(grid_times)
+
+
+def test_run_development_rejects_unacknowledged_before_any_ceremony_call(monkeypatch):
+    """Attack 16: prepare_batch02_retained_run durably claims the one-shot
+    remote outcome-access slot before it checks outcome_access_acknowledged.
+    run_development() must reject an unacknowledged call before reaching
+    verify_batch02_code/prepare_batch02_evidence_reservation/
+    prepare_batch02_retained_run at all, so the safe default can never
+    accidentally consume the one-shot claim."""
+
+    def _boom(*a, **k):
+        raise AssertionError(
+            "must not be called before outcome_access_acknowledged is checked"
+        )
+
+    monkeypatch.setattr(runner, "verify_batch02_code", _boom)
+    monkeypatch.setattr(runner, "prepare_batch02_evidence_reservation", _boom)
+    monkeypatch.setattr(runner, "prepare_batch02_retained_run", _boom)
+    monkeypatch.setattr(runner, "load_authorized_parquet_table", _boom)
+    monkeypatch.setattr(runner, "persist_batch02_retained_result", _boom)
+    monkeypatch.setattr(runner, "archive_batch02_result", _boom)
+
+    with pytest.raises(ValueError, match="outcome_access_acknowledged"):
+        runner.run_development("a" * 40, outcome_access_acknowledged=False)
+    # The safe default (omitted) must behave identically.
+    with pytest.raises(ValueError, match="outcome_access_acknowledged"):
+        runner.run_development("a" * 40)
+
+
+def test_placebo_replicate_count_is_reported(monkeypatch):
+    monkeypatch.setattr(lib, "_attach_targets", _stamp_targets)
+    monkeypatch.setattr(lib, "N_PLACEBO", 5)
+    monkeypatch.setattr(lib, "N_BOOT", 8)
+    monkeypatch.setattr(lib, "BASELINE_MIN_COUNT", 4)
+    monkeypatch.setattr(lib, "CANDIDATE_MIN_COUNT", 2)
+    t0 = lib.DEV_START_MS + 60 * lib.HOUR_MS
+    events = [
+        _ready_event(t0 + i * lib.HOUR_MS, morph=lib.STATE_HIGH if i % 2 else lib.STATE_LOW)
+        for i in range(8)
+    ]
+    cell = lib.evaluate_cell(events, {"unused": True}, 15, 60)
+    assert cell["placebo_replicate_count_nominal"] == 5
+    assert 0 <= cell["placebo_replicate_count_finite"] <= 5
+
+
+def test_placebo_replicate_can_never_go_nan_given_the_candidate_min_count_gate(monkeypatch):
+    """Attack 10, resolved: a permutation preserves label COUNTS exactly, and
+    every candidate-queue member is also a baseline-queue member (inserted at
+    the same maturation step), so len(candidate_queue) >= CANDIDATE_MIN_COUNT
+    structurally guarantees the evaluation event's own morphology-state label
+    appears at least CANDIDATE_MIN_COUNT times in the baseline pool. This
+    pins that invariant: with the smallest legal CANDIDATE_MIN_COUNT (1),
+    every placebo replicate must be finite -- 0 -> 100 degradation is not
+    reachable through this gate."""
+    monkeypatch.setattr(lib, "N_PLACEBO", 50)
+    monkeypatch.setattr(lib, "N_BOOT", 8)
+    monkeypatch.setattr(lib, "BASELINE_MIN_COUNT", 5)
+    monkeypatch.setattr(lib, "CANDIDATE_MIN_COUNT", 1)
+    monkeypatch.setattr(lib, "_attach_targets", _stamp_targets)
+    t0 = lib.DEV_START_MS + 100 * lib.HOUR_MS
+    events = [_ready_event(t0 + i * lib.HOUR_MS, morph=lib.STATE_LOW) for i in range(4)]
+    events.append(_ready_event(t0 + 4 * lib.HOUR_MS, morph=lib.STATE_HIGH))
+    events.append(_ready_event(t0 + 5 * lib.HOUR_MS, morph=lib.STATE_HIGH))
+    cell = lib.evaluate_cell(events, {"unused": True}, 15, 60)
+    assert cell["N"] == 1
+    assert cell["placebo_replicate_count_nominal"] == 50
+    assert cell["placebo_replicate_count_finite"] == 50
+    assert cell["placebo_q95"] is not None
+
+
+def test_mosaic_per_gate_evidence_cannot_promote_without_a_qualifying_neighborhood():
+    """Attack 13: a disjoint mosaic of individual-gate passes spread across
+    different W's, with no single W holding all five per-cell gates
+    together, must not promote -- even though it can make every one of the
+    five aggregated per-gate booleans read True."""
+
+    def cell(W, H, gate_names, year=True):
+        return {
+            "W": W,
+            "H": H,
+            "year_stability_pass": year,
+            "per_cell_gates": {
+                name: (name in gate_names) for name in lib.PER_CELL_GATE_NAMES
+            },
+        }
+
+    cells = [
+        cell(W, H, set())
+        for W in lib.W_VALUES
+        for H in lib.H_VALUES
+    ]
+    by = {(c["W"], c["H"]): i for i, c in enumerate(cells)}
+    w15 = {"primary_positive", "material_relative_mae", "morphology_ordering"}
+    w30 = {
+        "primary_positive",
+        "material_relative_mae",
+        "bootstrap_positive",
+        "placebo_separation",
+    }
+    w60 = {"bootstrap_positive", "placebo_separation", "morphology_ordering"}
+    for H in (15, 30):
+        cells[by[(15, H)]] = cell(15, H, w15)
+        cells[by[(30, H)]] = cell(30, H, w30)
+        cells[by[(60, H)]] = cell(60, H, w60)
+
+    gates, neighborhoods = lib.determine_promotion_gates(cells)
+    assert all(gates[name] is True for name in lib.PER_CELL_GATE_NAMES)
+    assert gates["horizon_robustness"] is False
+    assert gates["parameter_robustness"] is False
+    assert gates["year_stability"] is False
+    assert neighborhoods == []
+    passed = bool(neighborhoods) and all(
+        gates.get(name) is True for name in lib.GATE_NAMES
+    )
+    assert passed is False
+
+
+def _oracle_week_bootstrap(improvements, times, W, H):
+    groups: dict[int, list[float]] = {}
+    for value, t in zip(improvements, times):
+        day = int(t) // lib.DAY_MS
+        week = (day + 3) // 7
+        groups.setdefault(week, []).append(float(value))
+    keys = sorted(groups)
+    sums = np.asarray([sum(groups[k]) for k in keys])
+    counts = np.asarray([len(groups[k]) for k in keys])
+    rng = np.random.default_rng(lib.seed_int((lib.SEED_BOOT, int(W), int(H))))
+    draws = np.empty(lib.N_BOOT)
+    for rep in range(lib.N_BOOT):
+        sampled = rng.integers(0, len(keys), size=len(keys))
+        denom = int(np.sum(counts[sampled]))
+        draws[rep] = float(np.sum(sums[sampled]) / denom) if denom > 0 else float("nan")
+    finite = draws[np.isfinite(draws)]
+    return float(np.quantile(finite, 0.025)), float(np.quantile(finite, 0.975))
+
+
+def test_independent_oracle_matches_week_bootstrap_pooled_weighting():
+    """Attack 11: independently reproduce the resampling using only
+    the seed/week-key primitives (not by calling `_week_bootstrap_interval`
+    internals), for weeks with unequal event counts."""
+    improvements = np.asarray([1.0, 1.0, 1.0, 1.0, 1.0, -10.0], dtype=np.float64)
+    t0 = lib.DEV_START_MS
+    times = np.asarray(
+        [t0 + i * lib.DAY_MS for i in range(5)] + [t0 + 30 * lib.DAY_MS],
+        dtype=np.int64,
+    )
+    lo, hi = lib._week_bootstrap_interval(improvements, times, 15, 60)
+    oracle_lo, oracle_hi = _oracle_week_bootstrap(improvements, times, 15, 60)
+    assert lo == oracle_lo
+    assert hi == oracle_hi
+
+
+def test_independent_oracle_matches_baseline_candidate_ae_improvement_and_placebo(
+    monkeypatch,
+):
+    """Attack 18: a from-scratch oracle for the core evaluate_cell arithmetic
+    (baseline/candidate median, AE improvement, and the single-replicate
+    placebo mapping), computed without calling evaluate_cell's own helpers
+    for the compared quantities."""
+    monkeypatch.setattr(lib, "N_PLACEBO", 1)
+    monkeypatch.setattr(lib, "N_BOOT", 8)
+    monkeypatch.setattr(lib, "BASELINE_MIN_COUNT", 80)
+    monkeypatch.setattr(lib, "CANDIDATE_MIN_COUNT", 5)
+    monkeypatch.setattr(lib, "_attach_targets", _stamp_targets_with_values)
+
+    t0 = lib.DEV_START_MS + 200 * lib.HOUR_MS
+    low_ys = [float(i) for i in range(30)]
+    mid_ys = [float(100 + i) for i in range(25)]
+    high_ys = [float(200 + i) for i in range(25)]
+    events = []
+    i = 0
+    for y in low_ys:
+        events.append(_ready_event_with_y(t0 + i * lib.HOUR_MS, lib.STATE_LOW, y))
+        i += 1
+    for y in mid_ys:
+        events.append(_ready_event_with_y(t0 + i * lib.HOUR_MS, lib.STATE_MID, y))
+        i += 1
+    for y in high_ys:
+        events.append(_ready_event_with_y(t0 + i * lib.HOUR_MS, lib.STATE_HIGH, y))
+        i += 1
+    eval_t = t0 + i * lib.HOUR_MS
+    eval_y = 999.0
+    events.append(_ready_event_with_y(eval_t, lib.STATE_HIGH, eval_y))
+
+    cell = lib.evaluate_cell(events, {"unused": True}, 15, 60)
+    assert cell["N"] == 1
+    record = cell["scored"][0]
+
+    all_ys = sorted(low_ys + mid_ys + high_ys)
+    oracle_base_pred = float(np.median(np.asarray(all_ys)))
+    oracle_cand_pred = float(np.median(np.asarray(sorted(high_ys))))
+    oracle_base_ae = abs(eval_y - oracle_base_pred)
+    oracle_cand_ae = abs(eval_y - oracle_cand_pred)
+    oracle_improvement = oracle_base_ae - oracle_cand_ae
+
+    assert record["base_pred"] == oracle_base_pred
+    assert record["candidate_pred"] == oracle_cand_pred
+    assert record["base_ae"] == pytest.approx(oracle_base_ae)
+    assert record["candidate_ae"] == pytest.approx(oracle_cand_ae)
+    assert record["ae_improvement"] == pytest.approx(oracle_improvement)
+
+    sorted_items = sorted(
+        [
+            (
+                int(e["T"]),
+                float(e["Y"]),
+                lib.state_label(int(e["morphology_state"])),
+                lib.canonical_event_id(W=15, direction="UP", T_ms=int(e["T"]), H=60),
+            )
+            for e in events[:-1]
+        ],
+        key=lambda item: item[3],
+    )
+    sorted_y = np.asarray([item[1] for item in sorted_items])
+    sorted_labels = np.asarray([item[2] for item in sorted_items])
+    stratum = lib.baseline_stratum_id(
+        W=15, direction="UP", displacement_mag_state="MID", vol_state="MID"
+    )
+    rng = np.random.default_rng(
+        lib.seed_int((lib.SEED_PLACEBO, 0, 15, 60, eval_t, stratum))
+    )
+    permuted = rng.permutation(sorted_labels)
+    chosen = sorted_y[permuted == "HIGH"]
+    oracle_placebo_pred = float(np.median(chosen))
+    oracle_placebo_improvement = oracle_base_ae - abs(eval_y - oracle_placebo_pred)
+    assert cell["placebo_q95"] == pytest.approx(oracle_placebo_improvement)
+
+
+def _ready_event_with_y(t, morph, y, *, W=15, direction="UP", mag=lib.STATE_MID, vol=lib.STATE_MID):
+    d = 1 if direction == "UP" else -1
+    return {
+        "T": int(t), "W": int(W), "d": int(d), "direction": direction,
+        "D_W": 0.01 * d, "abs_disp": 0.01, "pre_vol": 0.1,
+        "mag_state": int(mag), "vol_state": int(vol), "morphology_state": int(morph),
+        "warmup_only": False, "Y": float(y), "target_available": True,
+    }
+
+
+def _stamp_targets_with_values(events, frame, H, scale_cache=None):
+    del frame, scale_cache
+    out = []
+    for event in events:
+        record = dict(event)
+        record["H"] = int(H)
+        out.append(record)
+    return out
