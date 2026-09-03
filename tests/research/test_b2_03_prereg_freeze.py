@@ -142,8 +142,12 @@ def test_b2_03_durable_retention_integration_targets_pr99_ceremony():
 
 
 def test_b2_03_per_cell_gates_are_structurally_complete_in_json():
-    """All five per-cell gates must carry an actual machine-readable definition,
-    not a bare boolean, and morphology_ordering must not be a lone boolean."""
+    """All five per-cell gates must carry an actual, exact machine-readable
+    definition, not a bare boolean and not a loose substring match. Every
+    condition string is pinned by exact equality so that a future change to
+    an operator (e.g. `> 0` -> `>= 0`) or to the underlying statistic (e.g.
+    the bootstrap lower bound swapped for a different 95% statistic) breaks
+    this test."""
     gates = _freeze()["promotion_gate_contract"]["per_cell_gates"]
     assert set(gates) == {
         "primary_positive",
@@ -153,36 +157,85 @@ def test_b2_03_per_cell_gates_are_structurally_complete_in_json():
         "morphology_ordering",
     }
 
-    assert gates["primary_positive"]["scope"] == "pooled_and_side_symmetric"
-    assert "pooled_condition" in gates["primary_positive"]
-    assert "up_condition" in gates["primary_positive"]
-    assert "down_condition" in gates["primary_positive"]
-    assert gates["primary_positive"]["requires_all_finite"] is True
+    assert gates["primary_positive"] == {
+        "scope": "pooled_and_side_symmetric",
+        "pooled_condition": "pooled mean AE improvement > 0",
+        "up_condition": "UP mean AE improvement > 0",
+        "down_condition": "DOWN mean AE improvement > 0",
+        "requires_all_finite": True,
+    }
 
-    assert gates["material_relative_mae"]["scope"] == "pooled_only"
-    assert gates["material_relative_mae"]["pooled_condition"] == (
-        "relative MAE improvement >= 0.02"
+    assert gates["material_relative_mae"] == {
+        "scope": "pooled_only",
+        "pooled_condition": "relative MAE improvement >= 0.02",
+        "relative_mae_improvement_definition": "1 - mean(CAND_AE)/mean(BASE_AE)",
+    }
+
+    assert gates["bootstrap_positive"] == {
+        "scope": "pooled_only",
+        "pooled_condition": (
+            "95% UTC-week block-bootstrap lower bound for mean AE improvement > 0"
+        ),
+    }
+
+    assert gates["placebo_separation"] == {
+        "scope": "pooled_only",
+        "pooled_condition": "true mean AE improvement > placebo_q95",
+        "placebo_q95_definition": (
+            "95th percentile of the frozen 100 causal permutation replicates "
+            "(controls.permutation_replicates)"
+        ),
+    }
+
+    assert gates["morphology_ordering"] == {
+        "scope": "pooled_and_side_symmetric",
+        "definition": (
+            "BASE_RESIDUAL = Y_H - BASE_PRED; "
+            "MORPHOLOGY_SEPARATION(subset) = median(BASE_RESIDUAL | "
+            "MORPHOLOGY_STATE=HIGH, subset) - median(BASE_RESIDUAL | "
+            "MORPHOLOGY_STATE=LOW, subset)"
+        ),
+        "same_scored_support_required": True,
+        "pooled_condition": "MORPHOLOGY_SEPARATION(pooled) > 0",
+        "up_condition": "MORPHOLOGY_SEPARATION(direction=UP) > 0",
+        "down_condition": "MORPHOLOGY_SEPARATION(direction=DOWN) > 0",
+        "requires_all_finite": True,
+    }
+
+
+def test_b2_03_md_pins_exact_per_cell_gate_clauses():
+    """The Markdown must carry the same operative semantics as the JSON gate
+    contract, pinned exactly enough that a changed operator or a changed
+    statistic (e.g. bootstrap lower bound -> another 95% statistic) breaks
+    this test, not merely a missing keyword."""
+    md = MD.read_text(encoding="utf-8")
+
+    assert (
+        "- `primary_positive`: **pooled** mean AE improvement `> 0` **and** "
+        "**`UP`** mean AE improvement `> 0` **and** **`DOWN`** mean AE improvement "
+        "`> 0`; all three finite (§20.1)." in md
     )
-    assert gates["material_relative_mae"]["relative_mae_improvement_definition"] == (
-        "1 - mean(CAND_AE)/mean(BASE_AE)"
+    assert (
+        "- `material_relative_mae`: pooled relative MAE improvement `>= 0.02`, "
+        "where relative MAE improvement `= 1 - mean(CAND_AE)/mean(BASE_AE)` on "
+        "the pooled scored support (§15)." in md
     )
-
-    assert gates["bootstrap_positive"]["scope"] == "pooled_only"
-    assert "95%" in gates["bootstrap_positive"]["pooled_condition"]
-    assert "UTC-week" in gates["bootstrap_positive"]["pooled_condition"]
-
-    assert gates["placebo_separation"]["scope"] == "pooled_only"
-    assert "placebo_q95" in gates["placebo_separation"]["pooled_condition"]
-    assert "95th percentile" in gates["placebo_separation"]["placebo_q95_definition"]
-
-    morph = gates["morphology_ordering"]
-    assert morph["scope"] == "pooled_and_side_symmetric"
-    assert morph["same_scored_support_required"] is True
-    assert morph["requires_all_finite"] is True
-    # The actual formula must be present, not merely a boolean flag.
-    assert "BASE_RESIDUAL = Y_H - BASE_PRED" in morph["definition"]
-    assert "MORPHOLOGY_SEPARATION(subset)" in morph["definition"]
-    assert "up_condition" in morph and "down_condition" in morph
+    assert (
+        "- `bootstrap_positive`: pooled 95% UTC-week block-bootstrap lower "
+        "bound for mean AE improvement `> 0` (§18)." in md
+    )
+    assert (
+        "- `placebo_separation`: pooled true mean AE improvement `>` placebo "
+        "q95, where placebo q95 is the 95th percentile of the frozen 100 "
+        "causal permutation replicates (§17) on the pooled scored support." in md
+    )
+    assert (
+        "- `morphology_ordering`: **pooled** `MORPHOLOGY_SEPARATION > 0` "
+        "**and** **`UP`** `MORPHOLOGY_SEPARATION > 0` **and** **`DOWN`** "
+        "`MORPHOLOGY_SEPARATION > 0` (§16); all three finite, all three "
+        "computed on the exact same scored support as the candidate/baseline "
+        "comparison for that cell (§20.1)." in md
+    )
 
 
 def test_b2_03_anti_rescue_side_symmetry_does_not_add_a_ninth_gate():
@@ -262,10 +315,16 @@ def test_b2_03_canonical_event_id_serialization_is_frozen():
 
     md = MD.read_text(encoding="utf-8")
     assert "### 6.1 Frozen canonical event-ID serialization" in md
+    # The Markdown literal must be byte-for-byte identical to
+    # event_identity.canonical_serialization.format above: no spaces around
+    # "|", no quote characters around the fixed timeframe/grid segments.
     assert (
-        'CANONICAL_EVENT_ID = snapshot_id | "1m" | "5m" | "1h" | W_minutes | direction '
-        "| window_start_ms | window_end_ms | T_ms | H_minutes" in md
+        "CANONICAL_EVENT_ID = "
+        "snapshot_id|1m|5m|1h|W_minutes|direction|window_start_ms|window_end_ms|T_ms|H_minutes"
+        in md
     )
+    assert 'CANONICAL_EVENT_ID = snapshot_id | "1m"' not in md
+    assert '"1m" | "5m"' not in md
 
 
 def test_b2_03_canonical_event_id_rejects_alternative_serializations():
@@ -310,7 +369,12 @@ def test_b2_03_baseline_stratum_id_serialization_is_frozen():
     md = MD.read_text(encoding="utf-8")
     assert "### 17.1 Frozen baseline-stratum-ID serialization" in md
     assert "### 17.2 Frozen per-replicate seed derivation" in md
-    assert "BASELINE_STRATUM_ID = W_minutes | direction | DISPLACEMENT_MAG_STATE | VOL_STATE" in md
+    # Byte-for-byte identical to controls.baseline_stratum_id_serialization.format:
+    # no spaces around "|".
+    assert (
+        "BASELINE_STRATUM_ID = W_minutes|direction|DISPLACEMENT_MAG_STATE|VOL_STATE" in md
+    )
+    assert "BASELINE_STRATUM_ID = W_minutes | direction" not in md
 
 
 def test_b2_03_pre_vol_60_boundary_is_pinned_to_exactly_60_returns():

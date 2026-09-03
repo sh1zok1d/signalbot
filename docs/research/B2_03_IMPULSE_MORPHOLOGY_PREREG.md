@@ -101,22 +101,22 @@ at minimum: `snapshot_id`, `source_timeframe=1m`, `derived_timeframe=5m`, `decis
 
 ### 6.1 Frozen canonical event-ID serialization
 
-The exact, sole permitted serialization is the pipe-joined string:
+The exact, sole permitted serialization — no spaces around `|`, no quote characters anywhere in the string — is byte-for-byte:
 
 ```
-CANONICAL_EVENT_ID = snapshot_id | "1m" | "5m" | "1h" | W_minutes | direction | window_start_ms | window_end_ms | T_ms | H_minutes
+CANONICAL_EVENT_ID = snapshot_id|1m|5m|1h|W_minutes|direction|window_start_ms|window_end_ms|T_ms|H_minutes
 ```
 
 with these exact per-field rules:
 
 - `snapshot_id`: the exact dataset snapshot identifier string, verbatim;
-- literal segments `"1m"`, `"5m"`, `"1h"`: exactly those three ASCII strings, unconditionally;
+- the segments written above as `1m`, `5m`, `1h`: fixed ASCII literal segments, emitted unconditionally as exactly those three bare character sequences — not JSON-quoted, not wrapped in any quote mark, not otherwise decorated;
 - `W_minutes`, `H_minutes`: plain base-10 integers with no leading zero and no unit suffix (`15`, not `15m` or `015`);
 - `direction`: exactly `UP` or `DOWN` (uppercase ASCII; never `1`/`-1`, lowercase, or a synonym);
 - `window_start_ms`, `window_end_ms`, `T_ms`: integer UTC epoch milliseconds (`window_end_ms == T_ms` always; `window_start_ms == T_ms - W_minutes*60000`);
-- fields are joined, in exactly the order above, with a single literal `|` character between each pair, no surrounding whitespace, no other delimiter.
+- fields are joined, in exactly the order above, with a single literal `|` character between each pair, no surrounding whitespace on either side of any `|`, no other delimiter.
 
-This mirrors the pipe-joined, epoch-millisecond, `str(int(...))`-normalized canonical ID convention already frozen and implemented for B2-02 (`_event_id` in `scripts/research/b2_02_boundary_interaction_path_lib.py`). No implementation-specific `repr()`, tuple, or dict-key ordering may be substituted for, or silently diverge from, this exact string — any future B2-03 implementation must reproduce it byte-for-byte from the fields above. Every canonical-ID-sort operation referenced elsewhere in this document (§9, §17) sorts, ultimately, on this exact string.
+This mirrors the pipe-joined, epoch-millisecond, `str(int(...))`-normalized canonical ID convention already frozen and implemented for B2-02 (`_event_id` in `scripts/research/b2_02_boundary_interaction_path_lib.py`). No implementation-specific `repr()`, tuple, or dict-key ordering may be substituted for, or silently diverge from, this exact string — any future B2-03 implementation must reproduce it byte-for-byte from the fields above. Every canonical-ID-sort operation referenced elsewhere in this document (§9, §17) sorts, ultimately, on this exact string. This byte-level format is identical to `event_identity.canonical_serialization.format` in `docs/research/B2_03_IMPULSE_MORPHOLOGY_PREREG.json`.
 
 ## 7. Simpler causal baseline
 
@@ -306,11 +306,13 @@ For each current forecast event, work only inside its eligible causal 90-day tra
 
 ### 17.1 Frozen baseline-stratum-ID serialization
 
+No spaces around `|`, no quote characters — byte-for-byte:
+
 ```
-BASELINE_STRATUM_ID = W_minutes | direction | DISPLACEMENT_MAG_STATE | VOL_STATE
+BASELINE_STRATUM_ID = W_minutes|direction|DISPLACEMENT_MAG_STATE|VOL_STATE
 ```
 
-with the same per-field rules as §6.1 (`W_minutes` a plain base-10 integer with no leading zero; `direction` exactly `UP`/`DOWN`, uppercase ASCII), plus `DISPLACEMENT_MAG_STATE`, `VOL_STATE` each exactly one of `LOW`, `MID`, `HIGH` (uppercase ASCII), joined in exactly that order by a single literal `|` character.
+with the same per-field rules as §6.1 (`W_minutes` a plain base-10 integer with no leading zero; `direction` exactly `UP`/`DOWN`, uppercase ASCII), plus `DISPLACEMENT_MAG_STATE`, `VOL_STATE` each exactly one of `LOW`, `MID`, `HIGH` (uppercase ASCII), joined in exactly that order by a single literal `|` character with no surrounding whitespace. This byte-level format is identical to `controls.baseline_stratum_id_serialization.format` in `docs/research/B2_03_IMPULSE_MORPHOLOGY_PREREG.json`.
 
 ### 17.2 Frozen per-replicate seed derivation
 
