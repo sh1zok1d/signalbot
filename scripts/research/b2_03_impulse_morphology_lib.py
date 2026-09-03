@@ -523,6 +523,88 @@ def seed_int(parts: Sequence[object]) -> int:
     return int(hashlib.sha256(raw).hexdigest()[:16], 16)
 
 
+def _placebo_seed(
+    replicate_index: int,
+    W: int,
+    H: int,
+    T_ms: int,
+    stratum: str,
+) -> int:
+    """Frozen §17.2 seed: 20260904|rep|W|H|T_ms|BASELINE_STRATUM_ID."""
+    return seed_int(
+        (SEED_PLACEBO, int(replicate_index), int(W), int(H), int(T_ms), stratum)
+    )
+
+
+def _placebo_permuted_labels_reference(
+    sorted_base_labels: np.ndarray,
+    seed: int,
+) -> np.ndarray:
+    """Frozen label permutation. Tests only; not used by evaluate_cell."""
+    return np.random.default_rng(int(seed)).permutation(np.asarray(sorted_base_labels))
+
+
+def _placebo_prediction_reference(
+    sorted_base_y: np.ndarray,
+    sorted_base_labels: np.ndarray,
+    evaluation_state: str,
+    seed: int,
+) -> float:
+    """Exact current placebo mapping, isolated from the production hot path.
+
+    sorted_base_items are assumed already ordered by canonical event ID.
+    This function must not be edited to match an optimization.
+    """
+    rng = np.random.default_rng(int(seed))
+    permuted_labels = rng.permutation(np.asarray(sorted_base_labels))
+    chosen_y = np.asarray(sorted_base_y, dtype=np.float64)[
+        permuted_labels == evaluation_state
+    ]
+    if chosen_y.size == 0:
+        return float("nan")
+    return float(np.median(chosen_y))
+
+
+def _exact_finite_median_inplace(values: np.ndarray) -> float:
+    """float(np.median(values)) for a non-empty 1-d finite array.
+
+    Sorts `values` in place. Tests prove bit-equality with np.median on odd
+    and even lengths, duplicates, signed values, and extreme finite floats.
+    """
+    values.sort()
+    n = int(values.size)
+    mid = n // 2
+    if n % 2:
+        return float(values[mid])
+    return float(0.5 * (values[mid - 1] + values[mid]))
+
+
+def _placebo_permutation_indices(n: int, seed: int) -> np.ndarray:
+    """Position mapping proven equivalent to permuting the frozen label array."""
+    return np.random.default_rng(int(seed)).permutation(int(n))
+
+
+def _placebo_prediction(
+    sorted_base_y: np.ndarray,
+    sorted_base_states: np.ndarray,
+    evaluation_state: int,
+    seed: int,
+) -> float:
+    """Hot-path placebo prediction, exactly equivalent to the reference.
+
+    Uses `default_rng(seed).permutation(n)` only because tests prove that
+    `labels[permutation(n)]` reconstructs `permutation(labels)` on NumPy
+    2.1.3. Historical Y stays in canonical-ID order; only morphology labels
+    are permuted, matching frozen §17.
+    """
+    n = int(sorted_base_y.size)
+    idx = np.random.default_rng(int(seed)).permutation(n)
+    chosen_y = sorted_base_y[sorted_base_states[idx] == int(evaluation_state)]
+    if chosen_y.size == 0:
+        return float("nan")
+    return _exact_finite_median_inplace(chosen_y)
+
+
 def _year_from_ms(value: int) -> int:
     return int(
         np.datetime64(int(value), "ms")
@@ -1099,7 +1181,7 @@ def evaluate_cell(
             item = (
                 int(previous["T"]),
                 float(previous["Y"]),
-                state_label(int(previous["morphology_state"])),
+                int(previous["morphology_state"]),
                 str(previous["direction"]),
                 int(previous["W"]),
                 canonical_event_id(
@@ -1174,24 +1256,30 @@ def evaluate_cell(
             [float(item[1]) for item in sorted_base_items],
             dtype=np.float64,
         )
-        sorted_base_labels = np.asarray([str(item[2]) for item in sorted_base_items])
-        evaluation_state = state_label(int(event["morphology_state"]))
+        sorted_base_states = np.asarray(
+            [int(item[2]) for item in sorted_base_items],
+            dtype=np.int8,
+        )
+        evaluation_state = int(event["morphology_state"])
         stratum = baseline_stratum_id(
             W=int(W),
             direction=str(event["direction"]),
             displacement_mag_state=state_label(int(event["mag_state"])),
             vol_state=state_label(int(event["vol_state"])),
         )
+        w_i = int(W)
+        h_i = int(H)
         for rep in range(N_PLACEBO):
-            rng = np.random.default_rng(
-                seed_int((SEED_PLACEBO, rep, int(W), int(H), current_t, stratum))
+            seed = _placebo_seed(rep, w_i, h_i, current_t, stratum)
+            placebo_pred = _placebo_prediction(
+                sorted_base_y,
+                sorted_base_states,
+                evaluation_state,
+                seed,
             )
-            permuted_labels = rng.permutation(sorted_base_labels)
-            chosen_y = sorted_base_y[permuted_labels == evaluation_state]
-            if len(chosen_y) == 0:
+            if not math.isfinite(placebo_pred):
                 placebo_sums[rep] = float("nan")
                 continue
-            placebo_pred = float(np.median(chosen_y))
             placebo_sums[rep] += base_ae - abs(y - placebo_pred)
 
     improvements = np.asarray(
