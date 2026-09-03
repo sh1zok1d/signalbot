@@ -701,30 +701,75 @@ def _past_median_abs_ret(
     close: np.ndarray,
     T_ms: int,
     H: int,
+    cache: dict[tuple[int, int], float | None] | None = None,
 ) -> float | None:
-    t = int(T_ms)
-    h_ms = int(H) * BAR_MS
-    start = t - REF_MS
+    """Median abs H-return on the UTC 15m grid over the prior 30d, known by T.
+
+    Scale depends only on `(T, H)`, not on W. Callers may pass a shared cache
+    so the 15 cells reuse the same `(T, H)` denominator. The reference set and
+    `_close_ending_at` index semantics are unchanged.
+    """
+    key = (int(T_ms), int(H))
+    if cache is not None and key in cache:
+        return cache[key]
+    t = key[0]
+    h_ms = key[1] * BAR_MS
+    window_start = t - REF_MS
     last_ref = t - h_ms
-    if last_ref < start:
+    if last_ref < window_start:
+        if cache is not None:
+            cache[key] = None
         return None
-    first_grid = ((start + SCALE_GRID_MS - 1) // SCALE_GRID_MS) * SCALE_GRID_MS
-    values: list[float] = []
-    ref = first_grid
-    while ref <= last_ref:
-        left = _close_ending_at(open_ms, avail, close, ref)
-        right = _close_ending_at(open_ms, avail, close, ref + h_ms)
-        if left is not None and right is not None and left > 0.0 and right > 0.0:
-            ret = abs(math.log(right / left))
-            if math.isfinite(ret):
-                values.append(ret)
-        ref += SCALE_GRID_MS
-    if not values:
+    first_grid = ((window_start + SCALE_GRID_MS - 1) // SCALE_GRID_MS) * SCALE_GRID_MS
+    if first_grid > last_ref:
+        if cache is not None:
+            cache[key] = None
         return None
-    median = float(np.median(np.asarray(values, dtype=np.float64)))
-    if not math.isfinite(median) or median <= 0.0:
+    n_refs = ((last_ref - first_grid) // SCALE_GRID_MS) + 1
+    refs = first_grid + np.arange(n_refs, dtype=np.int64) * SCALE_GRID_MS
+    frame_start = int(open_ms[0])
+    n_bars = int(len(close))
+    left_idx = (refs - BAR_MS - frame_start) // BAR_MS
+    right_idx = (refs + h_ms - BAR_MS - frame_start) // BAR_MS
+    valid = (
+        (left_idx >= 0)
+        & (left_idx < n_bars)
+        & (right_idx >= 0)
+        & (right_idx < n_bars)
+    )
+    if not np.any(valid):
+        if cache is not None:
+            cache[key] = None
         return None
-    return median
+    chosen_refs = refs[valid]
+    chosen_left = left_idx[valid]
+    chosen_right = right_idx[valid]
+    if np.any(open_ms[chosen_left] != chosen_refs - BAR_MS) or np.any(
+        avail[chosen_left] != chosen_refs
+    ):
+        raise B203Error("1m chronology mismatch at requested bar-end")
+    if np.any(open_ms[chosen_right] != chosen_refs + h_ms - BAR_MS) or np.any(
+        avail[chosen_right] != chosen_refs + h_ms
+    ):
+        raise B203Error("1m chronology mismatch at requested bar-end")
+    left = close[chosen_left]
+    right = close[chosen_right]
+    usable = (left > 0.0) & (right > 0.0)
+    if not np.any(usable):
+        if cache is not None:
+            cache[key] = None
+        return None
+    values = np.abs(np.log(right[usable] / left[usable]))
+    values = values[np.isfinite(values)]
+    if len(values) == 0:
+        if cache is not None:
+            cache[key] = None
+        return None
+    median = float(np.median(values))
+    out = median if math.isfinite(median) and median > 0.0 else None
+    if cache is not None:
+        cache[key] = out
+    return out
 
 
 def _dir_ret_h(
@@ -751,17 +796,19 @@ def _attach_targets(
     events: Sequence[Mapping[str, object]],
     frame: Mapping[str, np.ndarray],
     H: int,
+    scale_cache: dict[tuple[int, int], float | None] | None = None,
 ) -> list[dict[str, object]]:
     open_ms = np.asarray(frame["open_time_ms"], dtype=np.int64)
     avail = np.asarray(frame["available_at_ms"], dtype=np.int64)
     close = np.asarray(frame["close"], dtype=np.float64)
+    cache = scale_cache if scale_cache is not None else {}
     out: list[dict[str, object]] = []
     for event in events:
         record = dict(event)
         t = int(record["T"])
         d = int(record["d"])
         dir_ret = _dir_ret_h(open_ms, avail, close, t, H, d)
-        scale = _past_median_abs_ret(open_ms, avail, close, t, H)
+        scale = _past_median_abs_ret(open_ms, avail, close, t, H, cache=cache)
         if (
             dir_ret is None
             or scale is None
@@ -937,11 +984,13 @@ def evaluate_cell(
     frame: Mapping[str, np.ndarray],
     W: int,
     H: int,
+    scale_cache: dict[tuple[int, int], float | None] | None = None,
 ) -> dict[str, object]:
     targeted = _attach_targets(
         [event for event in events if int(event["W"]) == int(W)],
         frame,
         int(H),
+        scale_cache=scale_cache,
     )
     constructed = len(targeted)
     ready = [
@@ -1262,8 +1311,9 @@ def evaluate_b2_03(frame_1m: Mapping[str, np.ndarray]) -> dict[str, object]:
     validate_1m_frame(frame_1m)
     raw_events = construct_events(frame_1m)
     events = attach_states(raw_events)
+    scale_cache: dict[tuple[int, int], float | None] = {}
     cells = [
-        evaluate_cell(events, frame_1m, W, H)
+        evaluate_cell(events, frame_1m, W, H, scale_cache=scale_cache)
         for W in W_VALUES
         for H in H_VALUES
     ]

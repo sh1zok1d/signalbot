@@ -304,6 +304,82 @@ def test_target_scale_ignores_unresolved_and_future_references():
     assert scale_spiked == pytest.approx(scale)
 
 
+def _oracle_past_median_abs_ret(frame: dict[str, np.ndarray], T_ms: int, H: int) -> float | None:
+    t = int(T_ms)
+    h_ms = int(H) * lib.BAR_MS
+    window_start = t - lib.REF_MS
+    last_ref = t - h_ms
+    if last_ref < window_start:
+        return None
+    first_grid = ((window_start + lib.SCALE_GRID_MS - 1) // lib.SCALE_GRID_MS) * lib.SCALE_GRID_MS
+    values: list[float] = []
+    ref = first_grid
+    while ref <= last_ref:
+        left = lib._close_ending_at(
+            frame["open_time_ms"], frame["available_at_ms"], frame["close"], ref
+        )
+        right = lib._close_ending_at(
+            frame["open_time_ms"],
+            frame["available_at_ms"],
+            frame["close"],
+            ref + h_ms,
+        )
+        if left is not None and right is not None and left > 0.0 and right > 0.0:
+            ret = abs(math.log(right / left))
+            if math.isfinite(ret):
+                values.append(ret)
+        ref += lib.SCALE_GRID_MS
+    if not values:
+        return None
+    median = float(np.median(np.asarray(values, dtype=np.float64)))
+    if not math.isfinite(median) or median <= 0.0:
+        return None
+    return median
+
+
+def test_target_scale_vectorized_matches_close_ending_loop_and_is_cached():
+    frame = _frame(12 * 60)
+    t = lib.WARMUP_START_MS + 8 * lib.HOUR_MS
+    cache: dict[tuple[int, int], float | None] = {}
+    for H in lib.H_VALUES:
+        vectorized = lib._past_median_abs_ret(
+            frame["open_time_ms"],
+            frame["available_at_ms"],
+            frame["close"],
+            t,
+            H,
+            cache=cache,
+        )
+        oracle = _oracle_past_median_abs_ret(frame, t, H)
+        if oracle is None:
+            assert vectorized is None
+        else:
+            assert vectorized == pytest.approx(oracle)
+        assert (t, H) in cache
+        again = lib._past_median_abs_ret(
+            frame["open_time_ms"],
+            frame["available_at_ms"],
+            frame["close"],
+            t,
+            H,
+            cache=cache,
+        )
+        assert again is vectorized or again == pytest.approx(vectorized)
+    early = lib.WARMUP_START_MS + lib.HOUR_MS
+    got = lib._past_median_abs_ret(
+        frame["open_time_ms"],
+        frame["available_at_ms"],
+        frame["close"],
+        early,
+        240,
+    )
+    want = _oracle_past_median_abs_ret(frame, early, 240)
+    if want is None:
+        assert got is None
+    else:
+        assert got == pytest.approx(want)
+
+
 def test_2025_boundary_last_legal_t_and_one_step_beyond():
     assert lib.last_legal_t_ms(15) == 1_735_686_000_000
     assert lib.last_legal_t_ms(30) == 1_735_686_000_000
@@ -318,7 +394,7 @@ def test_2025_boundary_last_legal_t_and_one_step_beyond():
     assert lib.last_legal_t_ms(60) + lib.HOUR_MS + 60 * lib.BAR_MS == lib.DEV_END_MS
 
 
-def test_walk_forward_allows_equality_and_rejects_unresolved_training():
+def test_walk_forward_horizon_equality_is_the_frozen_training_rule():
     current_t = lib.DEV_START_MS + 10 * lib.HOUR_MS
     h_ms = 60 * lib.BAR_MS
     assert current_t - h_ms + h_ms == current_t
@@ -393,15 +469,20 @@ def test_gate_zero_is_not_positive():
                     },
                 }
             )
-    zero_cell = dict(cells[0])
-    zero_cell["per_cell_gates"] = {
-        name: False for name in lib.PER_CELL_GATE_NAMES
-    }
-    # Exact zero mean improvement is not > 0.
-    assert not (0.0 > 0.0)
     gates, neighborhoods = lib.determine_promotion_gates(cells)
     assert gates["horizon_robustness"] is False
     assert neighborhoods == []
+    assert lib.per_cell_gates(
+        mean_improvement=0.0,
+        up_mean=0.0,
+        down_mean=0.0,
+        relative=0.05,
+        bootstrap_lower=0.1,
+        placebo_q95=-1.0,
+        sep_pooled=0.1,
+        sep_up=0.1,
+        sep_down=0.1,
+    )["primary_positive"] is False
 
 
 def _pass_cell(W: int, H: int, year: bool = True) -> dict[str, object]:
@@ -456,11 +537,6 @@ def test_two_w_same_adjacent_h_can_satisfy_parameter_robustness():
 
 
 def test_year_stability_requires_four_of_five():
-    assert 3 < 4
-    passing = {"positive_years": 4, "year_stability_pass": True}
-    failing = {"positive_years": 3, "year_stability_pass": False}
-    assert passing["year_stability_pass"] is True
-    assert failing["year_stability_pass"] is False
     cells = [_fail_cell(W, H) for W in lib.W_VALUES for H in lib.H_VALUES]
     by = {(c["W"], c["H"]): i for i, c in enumerate(cells)}
     for W in (15, 30):
@@ -473,20 +549,55 @@ def test_year_stability_requires_four_of_five():
 
 
 def test_one_sided_metrics_cannot_pass_anti_rescue_gates():
-    up_only = {
-        "primary_positive": bool(1.0 > 0.0 and 2.0 > 0.0 and math.isfinite(float("nan")) and float("nan") > 0.0),
-        "morphology_ordering": bool(1.0 > 0.0 and 2.0 > 0.0 and math.isfinite(float("nan"))),
-    }
+    up_only = lib.per_cell_gates(
+        mean_improvement=1.0,
+        up_mean=2.0,
+        down_mean=float("nan"),
+        relative=0.05,
+        bootstrap_lower=0.1,
+        placebo_q95=0.0,
+        sep_pooled=1.0,
+        sep_up=2.0,
+        sep_down=float("nan"),
+    )
     assert up_only["primary_positive"] is False
     assert up_only["morphology_ordering"] is False
-    down_only = {
-        "primary_positive": bool(1.0 > 0.0 and float("nan") > 0.0 and 2.0 > 0.0),
-    }
+    down_only = lib.per_cell_gates(
+        mean_improvement=1.0,
+        up_mean=float("nan"),
+        down_mean=2.0,
+        relative=0.05,
+        bootstrap_lower=0.1,
+        placebo_q95=0.0,
+        sep_pooled=1.0,
+        sep_up=float("nan"),
+        sep_down=2.0,
+    )
     assert down_only["primary_positive"] is False
-    pooled_pos_down_neg = bool(0.5 > 0.0 and 1.2 > 0.0 and (-0.2) > 0.0)
-    assert pooled_pos_down_neg is False
-    pooled_pos_up_neg = bool(0.5 > 0.0 and (-0.2) > 0.0 and 1.2 > 0.0)
-    assert pooled_pos_up_neg is False
+    pooled_pos_down_neg = lib.per_cell_gates(
+        mean_improvement=0.5,
+        up_mean=1.2,
+        down_mean=-0.2,
+        relative=0.05,
+        bootstrap_lower=0.1,
+        placebo_q95=0.0,
+        sep_pooled=0.4,
+        sep_up=0.8,
+        sep_down=-0.1,
+    )
+    assert pooled_pos_down_neg["primary_positive"] is False
+    pooled_pos_up_neg = lib.per_cell_gates(
+        mean_improvement=0.5,
+        up_mean=-0.2,
+        down_mean=1.2,
+        relative=0.05,
+        bootstrap_lower=0.1,
+        placebo_q95=0.0,
+        sep_pooled=0.4,
+        sep_up=-0.1,
+        sep_down=0.8,
+    )
+    assert pooled_pos_up_neg["primary_positive"] is False
     missing_high_low = lib._morphology_separation(
         [{"direction": "UP", "morphology_state": lib.STATE_MID, "base_residual": 1.0}]
     )
@@ -494,10 +605,20 @@ def test_one_sided_metrics_cannot_pass_anti_rescue_gates():
 
 
 def test_negative_morphology_sign_is_not_exhaustion_promotion():
-    sep = -0.4
-    assert not (sep > 0.0)
+    gates = lib.per_cell_gates(
+        mean_improvement=0.5,
+        up_mean=0.2,
+        down_mean=0.2,
+        relative=0.05,
+        bootstrap_lower=0.1,
+        placebo_q95=0.0,
+        sep_pooled=-0.4,
+        sep_up=-0.4,
+        sep_down=-0.4,
+    )
+    assert gates["morphology_ordering"] is False
     cell = _pass_cell(15, 15)
-    cell["per_cell_gates"]["morphology_ordering"] = sep > 0.0
+    cell["per_cell_gates"]["morphology_ordering"] = gates["morphology_ordering"]
     assert cell["per_cell_gates"]["morphology_ordering"] is False
 
 
@@ -719,8 +840,8 @@ def _ready_event(
     }
 
 
-def _stamp_targets(events, frame, H):
-    del frame
+def _stamp_targets(events, frame, H, scale_cache=None):
+    del frame, scale_cache
     out = []
     for event in events:
         record = dict(event)
@@ -848,7 +969,7 @@ def test_one_sided_rescue_fails_primary_and_ordering_operators():
     assert missing_side != 0.0
 
 
-def test_walk_forward_allows_equality_and_rejects_unresolved_training(monkeypatch):
+def test_walk_forward_maturation_admits_exact_horizon_boundary(monkeypatch):
     monkeypatch.setattr(lib, "N_PLACEBO", 3)
     monkeypatch.setattr(lib, "N_BOOT", 8)
     monkeypatch.setattr(lib, "BASELINE_MIN_COUNT", 2)
