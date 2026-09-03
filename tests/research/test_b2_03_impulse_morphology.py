@@ -6,6 +6,7 @@ reservation, or invoke run_development against real market data.
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import math
 from pathlib import Path
@@ -101,6 +102,38 @@ def test_1m_chronology_rejects_malformed_frames():
     future["available_at_ms"] = future["open_time_ms"] + lib.BAR_MS
     with pytest.raises(lib.B203Error, match="2025"):
         lib.validate_1m_frame(future)
+
+
+def test_public_helpers_always_validate_from_frame():
+    """Public construct/attach helpers must re-validate `frame` themselves.
+
+    Injected `already_validated`/`grid`/`vol_times`/`vol_values` kwargs would
+    let a caller skip the 2025/chronology gate. evaluate_b2_03 may reuse a
+    private hourly grid after one validate_1m_frame call; public helpers may
+    not expose that reuse.
+    """
+    future = _frame(10)
+    future["open_time_ms"] = future["open_time_ms"].copy() + (
+        lib.DEV_END_MS - lib.WARMUP_START_MS
+    )
+    future["available_at_ms"] = future["open_time_ms"] + lib.BAR_MS
+    with pytest.raises(lib.B203Error, match="2025"):
+        lib.construct_hourly_vol_grid(future)
+    with pytest.raises(lib.B203Error, match="2025"):
+        lib.construct_events(future)
+    with pytest.raises(lib.B203Error, match="2025"):
+        lib.attach_states([], future)
+
+    vol_sig = inspect.signature(lib.construct_hourly_vol_grid)
+    event_sig = inspect.signature(lib.construct_events)
+    attach_sig = inspect.signature(lib.attach_states)
+    assert list(vol_sig.parameters) == ["frame"]
+    assert list(event_sig.parameters) == ["frame"]
+    assert list(attach_sig.parameters) == ["events", "frame"]
+    for name in ("already_validated", "grid", "vol_times", "vol_values"):
+        assert name not in vol_sig.parameters
+        assert name not in event_sig.parameters
+        assert name not in attach_sig.parameters
 
 
 def test_pre_vol_is_exactly_sixty_returns():

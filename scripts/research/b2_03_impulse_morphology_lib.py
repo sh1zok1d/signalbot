@@ -581,11 +581,17 @@ def _iter_hourly_grid(
     return grid
 
 
+def _vol_arrays_from_hourly_grid(
+    grid: Sequence[tuple[int, float | None]],
+) -> tuple[np.ndarray, np.ndarray]:
+    filtered = [(t, vol) for t, vol in grid if vol is not None]
+    times = np.asarray([t for t, _ in filtered], dtype=np.int64)
+    values = np.asarray([vol for _, vol in filtered], dtype=np.float64)
+    return times, values
+
+
 def construct_hourly_vol_grid(
     frame: Mapping[str, np.ndarray],
-    *,
-    grid: Sequence[tuple[int, float | None]] | None = None,
-    already_validated: bool = False,
 ) -> tuple[np.ndarray, np.ndarray]:
     """The frozen §7.3 VOL_STATE reference population: every hourly grid T
     whose own PRE_VOL_60(T) is available, independent of whether any (T,W)
@@ -604,30 +610,17 @@ def construct_hourly_vol_grid(
     and unintended behavior change, not a minimal fix of the population
     mismatch this function targets.
     """
-    if not already_validated:
-        validate_1m_frame(frame)
-    if grid is None:
-        grid = _iter_hourly_grid(frame)
-    filtered = [(t, vol) for t, vol in grid if vol is not None]
-    times = np.asarray([t for t, _ in filtered], dtype=np.int64)
-    values = np.asarray([vol for _, vol in filtered], dtype=np.float64)
-    return times, values
+    validate_1m_frame(frame)
+    return _vol_arrays_from_hourly_grid(_iter_hourly_grid(frame))
 
 
-def construct_events(
+def _construct_events_from_hourly_grid(
     frame: Mapping[str, np.ndarray],
-    *,
-    grid: Sequence[tuple[int, float | None]] | None = None,
-    already_validated: bool = False,
+    grid: Sequence[tuple[int, float | None]],
 ) -> list[dict[str, object]]:
-    """Hourly (T,W) events. Morphology state is not an admission gate."""
-    if not already_validated:
-        validate_1m_frame(frame)
     open_ms = np.asarray(frame["open_time_ms"], dtype=np.int64)
     avail = np.asarray(frame["available_at_ms"], dtype=np.int64)
     close = np.asarray(frame["close"], dtype=np.float64)
-    if grid is None:
-        grid = _iter_hourly_grid(frame)
     events: list[dict[str, object]] = []
     for t, vol in grid:
         for W in W_VALUES:
@@ -654,6 +647,12 @@ def construct_events(
     return events
 
 
+def construct_events(frame: Mapping[str, np.ndarray]) -> list[dict[str, object]]:
+    """Hourly (T,W) events. Morphology state is not an admission gate."""
+    validate_1m_frame(frame)
+    return _construct_events_from_hourly_grid(frame, _iter_hourly_grid(frame))
+
+
 def _causal_tertile_states(
     values: np.ndarray,
     times: np.ndarray,
@@ -672,9 +671,6 @@ def _causal_tertile_states(
 def attach_states(
     events: Sequence[Mapping[str, object]],
     frame: Mapping[str, np.ndarray],
-    *,
-    vol_times: np.ndarray | None = None,
-    vol_values: np.ndarray | None = None,
 ) -> list[dict[str, object]]:
     """Attach causal MAG/VOL/morphology states.
 
@@ -685,12 +681,18 @@ def attach_states(
     PRE_VOL_60 is valid but every W's D_W(T) is exactly zero -- conflating
     event-admission population with decision-reference population.
     """
+    vol_times, vol_values = construct_hourly_vol_grid(frame)
+    return _attach_states_with_vol(events, vol_times, vol_values)
+
+
+def _attach_states_with_vol(
+    events: Sequence[Mapping[str, object]],
+    vol_times: np.ndarray,
+    vol_values: np.ndarray,
+) -> list[dict[str, object]]:
     out = [dict(event) for event in events]
     if not out:
         return out
-
-    if vol_times is None or vol_values is None:
-        vol_times, vol_values = construct_hourly_vol_grid(frame)
     vol_states, vol_scores = _causal_tertile_states(vol_values, vol_times)
     vol_state_by_t = {
         int(t): int(state)
@@ -1396,22 +1398,9 @@ def determine_promotion_gates(
 def evaluate_b2_03(frame_1m: Mapping[str, np.ndarray]) -> dict[str, object]:
     validate_1m_frame(frame_1m)
     hourly_grid = _iter_hourly_grid(frame_1m)
-    vol_times, vol_values = construct_hourly_vol_grid(
-        frame_1m,
-        grid=hourly_grid,
-        already_validated=True,
-    )
-    raw_events = construct_events(
-        frame_1m,
-        grid=hourly_grid,
-        already_validated=True,
-    )
-    events = attach_states(
-        raw_events,
-        frame_1m,
-        vol_times=vol_times,
-        vol_values=vol_values,
-    )
+    vol_times, vol_values = _vol_arrays_from_hourly_grid(hourly_grid)
+    raw_events = _construct_events_from_hourly_grid(frame_1m, hourly_grid)
+    events = _attach_states_with_vol(raw_events, vol_times, vol_values)
     scale_cache: dict[tuple[int, int], float | None] = {}
     cells = [
         evaluate_cell(events, frame_1m, W, H, scale_cache=scale_cache)
