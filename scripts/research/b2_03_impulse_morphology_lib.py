@@ -583,6 +583,9 @@ def _iter_hourly_grid(
 
 def construct_hourly_vol_grid(
     frame: Mapping[str, np.ndarray],
+    *,
+    grid: Sequence[tuple[int, float | None]] | None = None,
+    already_validated: bool = False,
 ) -> tuple[np.ndarray, np.ndarray]:
     """The frozen §7.3 VOL_STATE reference population: every hourly grid T
     whose own PRE_VOL_60(T) is available, independent of whether any (T,W)
@@ -601,21 +604,32 @@ def construct_hourly_vol_grid(
     and unintended behavior change, not a minimal fix of the population
     mismatch this function targets.
     """
-    validate_1m_frame(frame)
-    grid = [(t, vol) for t, vol in _iter_hourly_grid(frame) if vol is not None]
-    times = np.asarray([t for t, _ in grid], dtype=np.int64)
-    values = np.asarray([vol for _, vol in grid], dtype=np.float64)
+    if not already_validated:
+        validate_1m_frame(frame)
+    if grid is None:
+        grid = _iter_hourly_grid(frame)
+    filtered = [(t, vol) for t, vol in grid if vol is not None]
+    times = np.asarray([t for t, _ in filtered], dtype=np.int64)
+    values = np.asarray([vol for _, vol in filtered], dtype=np.float64)
     return times, values
 
 
-def construct_events(frame: Mapping[str, np.ndarray]) -> list[dict[str, object]]:
+def construct_events(
+    frame: Mapping[str, np.ndarray],
+    *,
+    grid: Sequence[tuple[int, float | None]] | None = None,
+    already_validated: bool = False,
+) -> list[dict[str, object]]:
     """Hourly (T,W) events. Morphology state is not an admission gate."""
-    validate_1m_frame(frame)
+    if not already_validated:
+        validate_1m_frame(frame)
     open_ms = np.asarray(frame["open_time_ms"], dtype=np.int64)
     avail = np.asarray(frame["available_at_ms"], dtype=np.int64)
     close = np.asarray(frame["close"], dtype=np.float64)
+    if grid is None:
+        grid = _iter_hourly_grid(frame)
     events: list[dict[str, object]] = []
-    for t, vol in _iter_hourly_grid(frame):
+    for t, vol in grid:
         for W in W_VALUES:
             path = path_log_returns(open_ms, avail, close, t, W)
             if path is None or vol is None:
@@ -658,6 +672,9 @@ def _causal_tertile_states(
 def attach_states(
     events: Sequence[Mapping[str, object]],
     frame: Mapping[str, np.ndarray],
+    *,
+    vol_times: np.ndarray | None = None,
+    vol_values: np.ndarray | None = None,
 ) -> list[dict[str, object]]:
     """Attach causal MAG/VOL/morphology states.
 
@@ -672,13 +689,16 @@ def attach_states(
     if not out:
         return out
 
-    vol_times, vol_values = construct_hourly_vol_grid(frame)
+    if vol_times is None or vol_values is None:
+        vol_times, vol_values = construct_hourly_vol_grid(frame)
     vol_states, vol_scores = _causal_tertile_states(vol_values, vol_times)
     vol_state_by_t = {
-        int(t): int(state) for t, state in zip(vol_times, vol_states)
+        int(t): int(state)
+        for t, state in zip(vol_times, vol_states, strict=True)
     }
     vol_score_by_t = {
-        int(t): float(score) for t, score in zip(vol_times, vol_scores)
+        int(t): float(score)
+        for t, score in zip(vol_times, vol_scores, strict=True)
     }
 
     for event in out:
@@ -1375,8 +1395,23 @@ def determine_promotion_gates(
 
 def evaluate_b2_03(frame_1m: Mapping[str, np.ndarray]) -> dict[str, object]:
     validate_1m_frame(frame_1m)
-    raw_events = construct_events(frame_1m)
-    events = attach_states(raw_events, frame_1m)
+    hourly_grid = _iter_hourly_grid(frame_1m)
+    vol_times, vol_values = construct_hourly_vol_grid(
+        frame_1m,
+        grid=hourly_grid,
+        already_validated=True,
+    )
+    raw_events = construct_events(
+        frame_1m,
+        grid=hourly_grid,
+        already_validated=True,
+    )
+    events = attach_states(
+        raw_events,
+        frame_1m,
+        vol_times=vol_times,
+        vol_values=vol_values,
+    )
     scale_cache: dict[tuple[int, int], float | None] = {}
     cells = [
         evaluate_cell(events, frame_1m, W, H, scale_cache=scale_cache)

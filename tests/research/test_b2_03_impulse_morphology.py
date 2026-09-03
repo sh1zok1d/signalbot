@@ -1227,11 +1227,32 @@ def test_vol_state_reference_is_the_hourly_grid_not_the_event_population():
     out = lib.attach_states(events, frame)
     t1_rows = [e for e in out if int(e["T"]) == t1]
     assert t1_rows
+    t1_vol = float(vol_values[list(vol_times).index(t1)])
+    prior_with_t0 = [
+        float(value)
+        for time, value in zip(vol_times, vol_values, strict=True)
+        if int(time) < int(t1)
+    ]
+    prior_without_t0 = [
+        float(value)
+        for time, value in zip(vol_times, vol_values, strict=True)
+        if int(time) < int(t1) and int(time) != int(t0)
+    ]
+    assert t0_value in prior_with_t0
+    assert t0_value not in prior_without_t0 or prior_without_t0.count(t0_value) < prior_with_t0.count(t0_value)
+
+    def _midrank(x: float, prior: list[float]) -> float:
+        n = len(prior)
+        less = sum(1 for value in prior if value < x)
+        equal = sum(1 for value in prior if value == x)
+        return (less + 0.5 * equal) / n
+
+    expected = _midrank(t1_vol, prior_with_t0)
+    dropped = _midrank(t1_vol, prior_without_t0)
+    assert expected != pytest.approx(dropped)
     for row in t1_rows:
-        # With t0 correctly contributing a prior reference point, t1's
-        # VOL_STATE must be decision-available, not spuriously MISSING.
         assert int(row["vol_state"]) >= 0
-        assert math.isfinite(float(row["vol_score"]))
+        assert float(row["vol_score"]) == pytest.approx(expected)
 
 
 def test_construct_events_output_is_unchanged_by_the_vol_grid_refactor():
