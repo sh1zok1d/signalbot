@@ -380,6 +380,36 @@ def test_target_scale_vectorized_matches_close_ending_loop_and_is_cached():
         assert got == pytest.approx(want)
 
 
+def test_target_scale_fails_closed_on_invalid_present_close():
+    n = 12 * 60
+    close = 100.0 + 0.01 * np.arange(n, dtype=np.float64)
+    t = lib.WARMUP_START_MS + 8 * lib.HOUR_MS
+    ref = t - 60 * lib.BAR_MS
+    idx = (ref - lib.BAR_MS - lib.WARMUP_START_MS) // lib.BAR_MS
+    poisoned = close.copy()
+    poisoned[idx] = 0.0
+    frame = _frame(n, poisoned)
+    with pytest.raises(lib.B203Error, match="valid price"):
+        lib._past_median_abs_ret(
+            frame["open_time_ms"],
+            frame["available_at_ms"],
+            frame["close"],
+            t,
+            60,
+        )
+    poisoned_nan = close.copy()
+    poisoned_nan[idx] = np.nan
+    frame_nan = _frame(n, poisoned_nan)
+    with pytest.raises(lib.B203Error, match="valid price"):
+        lib._past_median_abs_ret(
+            frame_nan["open_time_ms"],
+            frame_nan["available_at_ms"],
+            frame_nan["close"],
+            t,
+            60,
+        )
+
+
 def test_2025_boundary_last_legal_t_and_one_step_beyond():
     assert lib.last_legal_t_ms(15) == 1_735_686_000_000
     assert lib.last_legal_t_ms(30) == 1_735_686_000_000

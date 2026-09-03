@@ -706,8 +706,9 @@ def _past_median_abs_ret(
     """Median abs H-return on the UTC 15m grid over the prior 30d, known by T.
 
     Scale depends only on `(T, H)`, not on W. Callers may pass a shared cache
-    so the 15 cells reuse the same `(T, H)` denominator. The reference set and
-    `_close_ending_at` index semantics are unchanged.
+    so the 15 cells reuse the same `(T, H)` denominator on one frame. The cache
+    is not a frame fingerprint and must not be reused across different frames.
+    Missing bars stay unavailable; a present but invalid close fails closed.
     """
     key = (int(T_ms), int(H))
     if cache is not None and key in cache:
@@ -754,17 +755,16 @@ def _past_median_abs_ret(
         raise B203Error("1m chronology mismatch at requested bar-end")
     left = close[chosen_left]
     right = close[chosen_right]
-    usable = (left > 0.0) & (right > 0.0)
-    if not np.any(usable):
-        if cache is not None:
-            cache[key] = None
-        return None
-    values = np.abs(np.log(right[usable] / left[usable]))
-    values = values[np.isfinite(values)]
-    if len(values) == 0:
-        if cache is not None:
-            cache[key] = None
-        return None
+    if not (
+        np.all(np.isfinite(left))
+        and np.all(np.isfinite(right))
+        and np.all(left > 0.0)
+        and np.all(right > 0.0)
+    ):
+        raise B203Error("close at requested bar-end is not a valid price")
+    values = np.abs(np.log(right / left))
+    if len(values) == 0 or not np.all(np.isfinite(values)):
+        raise B203Error("close at requested bar-end is not a valid price")
     median = float(np.median(values))
     out = median if math.isfinite(median) and median > 0.0 else None
     if cache is not None:
@@ -986,6 +986,12 @@ def evaluate_cell(
     H: int,
     scale_cache: dict[tuple[int, int], float | None] | None = None,
 ) -> dict[str, object]:
+    """Score one frozen (W, H) cell.
+
+    `scale_cache` is keyed only by `(T, H)` and is valid for one in-memory
+    frame. `evaluate_b2_03` creates a fresh cache per authorized frame.
+    Do not reuse a cache across different frames.
+    """
     targeted = _attach_targets(
         [event for event in events if int(event["W"]) == int(W)],
         frame,
