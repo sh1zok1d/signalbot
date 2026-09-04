@@ -1,0 +1,408 @@
+{
+  "schema_version": "1.0",
+  "status": "PREREG_CANDIDATE_OUTCOME_BLIND",
+  "formulation_id": "B2-04_MODERATE_PULLBACK_STRUCTURE",
+  "primary_family": "F1",
+  "primary_family_name": "directional persistence / continuation",
+  "inventory": "docs/research/V2_FORMULATION_INVENTORY.md",
+  "inventory_admission": "ADMIT_TO_V2_INVENTORY",
+  "inventory_immutable": true,
+  "posthoc_provenance": {
+    "kind": "explicit_POSTHOC_UNTESTED_child",
+    "batch01_source": "H04 isolated moderate-depth/local residual",
+    "h04_verdict": "H04_REJECTED_SPECIFIC_CLAIM",
+    "h04_broad_continuation_claim": "failed",
+    "moderate_band_residual_status": "POSTHOC_UNTESTED",
+    "moderate_band_residual_is_positive_evidence_for_b2_04": false,
+    "h04_attractive_L_not_selected": true,
+    "retained_L_surface_reason": "frozen H04 lookback family; not because L=480/960 moderate cells looked attractive"
+  },
+  "dataset": {
+    "dataset_id": "CORE_BTC_BINANCE_V0",
+    "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+    "source_timeframe": "1m",
+    "derived_timeframe": "15m",
+    "decision_grid": "15m"
+  },
+  "chronology": {
+    "warmup_start_inclusive": "2020-01-01T00:00:00Z",
+    "development_start_inclusive": "2020-02-01T00:00:00Z",
+    "development_end_exclusive": "2025-01-01T00:00:00Z",
+    "reserved_validation_start_inclusive": "2025-01-01T00:00:00Z",
+    "reserved_validation_end_exclusive": "2026-01-01T00:00:00Z",
+    "oos_start_inclusive": "2026-01-01T00:00:00Z",
+    "decision_times": "UTC 15-minute boundaries, inherited from H04, not retuned",
+    "last_legal_T_by_horizon_minutes": {
+      "15": "2024-12-31T23:45:00Z",
+      "30": "2024-12-31T23:30:00Z",
+      "60": "2024-12-31T23:00:00Z",
+      "120": "2024-12-31T22:00:00Z",
+      "240": "2024-12-31T20:00:00Z"
+    },
+    "last_legal_T_rule": "T + H < 2025-01-01T00:00:00Z on the 15m grid; no truncation"
+  },
+  "novelty_boundary": {
+    "h04_verdict": "H04_REJECTED_SPECIFIC_CLAIM",
+    "h04_tested_object": "established-trend plus material counter-trend pullback continuation across a three-band depth neighborhood",
+    "b2_04_tested_object": "intra-pullback recovery from the deepest adverse excursion inside already-qualified moderate-depth H04 events",
+    "not_another_depth_threshold": true,
+    "not_a_better_L": true,
+    "not_another_trend_indicator": true,
+    "not_another_volatility_filter": true,
+    "not_h04_best_cell": true,
+    "not_generic_momentum": true,
+    "b2_03_is_closed_anti_rescue_boundary_only": true,
+    "b2_03_tested_object": "shape of an impulse generating a displacement",
+    "b2_03_features_forbidden": [
+      "DISTRIBUTEDNESS",
+      "PATH_EFFICIENCY",
+      "DIRECTIONAL_BAR_SHARE",
+      "COUNTERMOVE_SHALLOWNESS"
+    ],
+    "b2_03_outcome_surface_not_used_to_tune_b2_04": true
+  },
+  "structural_property": {
+    "family": "INTRA_PULLBACK_RECOVERY",
+    "count": 1,
+    "name": "RECOVERY_FRACTION",
+    "path_bar_minutes": 15,
+    "path_step_count": 4,
+    "path_times_relative_to_T_minutes": [-45, -30, -15, 0],
+    "anchor_close": "close(T-P) = close(T-60m)",
+    "uses_high_low": false,
+    "price_field": "close",
+    "d_and_trend_ret_frozen_at_T": true,
+    "formulas": {
+      "P_minutes": 60,
+      "TREND_RET_L": "ln(close(T-P) / close(T-P-L))",
+      "DIRECTION": "d = +1 if TREND_RET_L>0 else -1 if TREND_RET_L<0; exact zero excluded",
+      "SIGNED_PB_RET": "d * ln(close(T) / close(T-P))",
+      "PULLBACK_DEPTH": "-SIGNED_PB_RET / abs(TREND_RET_L)",
+      "ADVERSE_j": "-d * ln(close(t_j) / close(T-P)) / abs(TREND_RET_L(T))",
+      "FINAL_DEPTH": "ADVERSE_{t=T} which equals H04 PULLBACK_DEPTH(T) exactly",
+      "MAX_ADVERSE": "max(ADVERSE_j for t_j in {T-45m, T-30m, T-15m, T})",
+      "RECOVERY_FRACTION": "(MAX_ADVERSE - FINAL_DEPTH) / MAX_ADVERSE"
+    },
+    "invariants": {
+      "FINAL_DEPTH_equals_h04_pullback_depth": true,
+      "MAX_ADVERSE_ge_FINAL_DEPTH": true,
+      "MAX_ADVERSE_gt_0_on_qualifying_events": true,
+      "RECOVERY_FRACTION_bounds": [0.0, 1.0],
+      "no_future_bar": true
+    },
+    "undefined_policy": "nonfinite ADVERSE path, MAX_ADVERSE<=0, FINAL_DEPTH>MAX_ADVERSE, or nonfinite RECOVERY_FRACTION makes both candidate and baseline UNAVAILABLE_FOR_DECISION; the event remains in the constructed population"
+  },
+  "event_construction": {
+    "reuse_h04_semantics": true,
+    "grid": "UTC 15-minute",
+    "P_minutes": 60,
+    "L_minutes": [240, 480, 960],
+    "established_trend": "TREND_PCTL_L(T) >= 0.80 using H04 midrank of ABS_TREND_L on the same 15m grid, preceding 30 calendar days, current T excluded",
+    "trend_q": 0.80,
+    "counter_trend_required": "SIGNED_PB_RET(T) < 0",
+    "moderate_domain": [0.25, 0.40],
+    "moderate_domain_lo_inclusive": 0.25,
+    "moderate_domain_hi_exclusive": 0.40,
+    "moderate_domain_interval": "[0.25,0.40)",
+    "shallow_primary_cells": false,
+    "deep_primary_cells": false,
+    "refractory_minutes": 60,
+    "refractory_scope": "within each L on the moderate-only stream; keep earliest; identical to H04 L x moderate-band refractory",
+    "recovery_does_not_decide_existence": true,
+    "not_gated_by_recovery_availability": true,
+    "unavailable_recovery_policy": "record remains a constructed event; scoring-only field becomes UNAVAILABLE_FOR_DECISION for both candidate and baseline; never deleted from population; never changes another event's causal reference/training population",
+    "warmup_records": "constructible as causal reference/training material only; never scored"
+  },
+  "event_identity": {
+    "fields": [
+      "snapshot_id",
+      "source_timeframe",
+      "derived_timeframe",
+      "decision_grid",
+      "L",
+      "direction",
+      "pullback_start_ms",
+      "T",
+      "H"
+    ],
+    "canonical_serialization": {
+      "format": "snapshot_id|1m|15m|15m|L_minutes|direction|pullback_start_ms|T_ms|H_minutes",
+      "delimiter": "|",
+      "field_order": [
+        "snapshot_id",
+        "source_timeframe",
+        "derived_timeframe",
+        "decision_grid",
+        "L_minutes",
+        "direction",
+        "pullback_start_ms",
+        "T_ms",
+        "H_minutes"
+      ],
+      "source_timeframe": "1m",
+      "derived_timeframe": "15m",
+      "decision_grid": "15m",
+      "L_representation": "plain base-10 integer minutes, no leading zero",
+      "direction_representation": "exactly UP or DOWN, uppercase ASCII",
+      "timestamp_representation": "integer UTC epoch milliseconds, no scientific notation",
+      "pullback_start_ms_definition": "T_ms - 60*60000",
+      "T_ms_definition": "decision time T as integer UTC epoch milliseconds",
+      "H_representation": "plain base-10 integer minutes, no leading zero",
+      "no_alternate_repr_permitted": true
+    },
+    "deduplication_on_T_only_forbidden": true,
+    "baseline_and_candidate_share_identity": true
+  },
+  "horizons_minutes": [15, 30, 60, 120, 240],
+  "search_surface_primary_cells": 15,
+  "search_surface_shape": "3 L x 5 H",
+  "no_depth_search_dimension": true,
+  "target": {
+    "direction_normalized": true,
+    "raw_future_return": "RET_H(T) = ln(close(T+H) / close(T))",
+    "trend_direction_sign": "TREND_CONT_RET_H(T) = d * RET_H(T)",
+    "normalization_denominator": "PAST_MEDIAN_ABS_RET_H(T)",
+    "Y": "Y_H(T) = TREND_CONT_RET_H(T) / PAST_MEDIAN_ABS_RET_H(T)",
+    "scale_reference": "median absolute H-horizon close return at prior canonical UTC 15-minute grid points over the preceding 30 calendar days, using only reference points whose own H-horizon outcome is fully known by current T (ref_t+H<=T)",
+    "scale_reference_days": 30,
+    "scale_denominator_requirements": "finite, positive, known by T; no winsorization, no future-informed floor, no sign flip, no whole-sample statistic",
+    "horizon_alignment": "close(T+H) is the close of the complete 15m bar ending at T+H; still-forming bar never used"
+  },
+  "directional_prior": {
+    "statement": "higher RECOVERY_FRACTION corresponds to stronger subsequent trend-direction continuation",
+    "expected_structure_ordering": "HIGH recovery residual > LOW recovery residual",
+    "exhaustion_sign_flip_rescue_forbidden": true
+  },
+  "recovery_representation": {
+    "primary_representation": "RECOVERY_STATE",
+    "states": ["LOW", "HIGH"],
+    "cutpoint": 0.5,
+    "method": "causal_midrank_percentile",
+    "midrank_ties": "(count_less + 0.5*count_equal)/N_ref",
+    "LOW": "midrank < 0.5",
+    "HIGH": "midrank >= 0.5",
+    "reference_days": 365,
+    "reference_population": "prior constructed B2-04 moderate events, same L, finite RECOVERY_FRACTION, reference_T < current T, current event excluded, UP/DOWN pooled because RECOVERY_FRACTION is already trend-normalized",
+    "no_full_sample_quantiles": true,
+    "no_current_or_future_in_reference": true,
+    "alternate_transforms_forbidden": true,
+    "continuous_primary_forbidden": true
+  },
+  "baseline_context": {
+    "states": [
+      "DIRECTION",
+      "DEPTH_HALF"
+    ],
+    "DEPTH_HALF_states": ["LOWER", "UPPER"],
+    "DEPTH_HALF_method": "causal_midrank_percentile of FINAL_DEPTH among prior constructed B2-04 moderate events, same L, finite FINAL_DEPTH, reference_T < current T, current event excluded, UP/DOWN pooled because FINAL_DEPTH is unsigned",
+    "DEPTH_HALF_cutpoint": 0.5,
+    "DEPTH_HALF_LOWER": "midrank < 0.5",
+    "DEPTH_HALF_UPPER": "midrank >= 0.5",
+    "DEPTH_HALF_reference_days": 365,
+    "controls_within_band_depth": true,
+    "moderate_boolean_only_forbidden": true,
+    "trend_strength_not_a_candidate_feature": true,
+    "empty_reference": "UNAVAILABLE_FOR_DECISION for both candidate and baseline; no fallback"
+  },
+  "forecast": {
+    "family": "same_support_stratum_median",
+    "training_lookback_days": 365,
+    "training_outcome_rule": "training_T + H <= current_T",
+    "estimator": "median",
+    "baseline_min_count": 20,
+    "candidate_min_count": 10,
+    "baseline_match": [
+      "L",
+      "DIRECTION",
+      "DEPTH_HALF"
+    ],
+    "candidate_match": [
+      "L",
+      "DIRECTION",
+      "DEPTH_HALF",
+      "RECOVERY_STATE"
+    ],
+    "loss": "absolute_error",
+    "primary_incremental_metric": "BASE_AE - CAND_AE",
+    "same_support_required": true,
+    "fallback": "none",
+    "joint_unavailability": "if either candidate or baseline cannot produce a valid prediction, the scored record is unavailable for both",
+    "support_feasibility": {
+      "source": "docs/research/H04_DEV_SUMMARY.md public post-refractory moderate counts only; no market parquet",
+      "h04_post_refractory_moderate_N": {
+        "240": 2511,
+        "480": 1691,
+        "960": 892
+      },
+      "approx_events_per_day": {
+        "240": 1.4,
+        "480": 0.94,
+        "960": 0.5
+      },
+      "approx_365d_events": {
+        "240": 510,
+        "480": 344,
+        "960": 181
+      },
+      "baseline_strata_per_L": 4,
+      "candidate_strata_per_L": 8,
+      "why_not_b2_03_90d_80_40": "H04 moderate N is far smaller than B2-03 constructed events; 90d times 18-plus categorical strata cannot meet those minima on public H04 counts, especially L=960",
+      "why_365d_and_halves": "sample-size feasibility, causal availability, and a within-band depth control without a 3x3x2 cross-product; not chosen from return performance"
+    }
+  },
+  "controls": {
+    "permutation_seed": 20260906,
+    "permutation_replicates": 100,
+    "permutation_scope": "per-scored-event causal 365d training set with training_T+H<=current_T",
+    "permutation_strata": [
+      "L",
+      "DIRECTION",
+      "DEPTH_HALF"
+    ],
+    "permutation_target": "historical RECOVERY_STATE labels only; historical Y fixed; evaluation event's own recovery state fixed; baseline context fixed",
+    "permutation_ordering": "sort each stratum by canonical event ID (event_identity.canonical_serialization) before RNG, then permute",
+    "permutation_seed_derivation": "20260906 | replicate_index | L_minutes | H_minutes | T_ms | baseline_stratum_id",
+    "seed_derivation_primitive": {
+      "description": "pipe-join str(part) for each ordered part in the seed_derivation sequence, UTF-8 encode, SHA-256, take the first 16 hex digits as an integer",
+      "reference_implementation_convention": "mirrors _seed_int in scripts/research/b2_02_boundary_interaction_path_lib.py",
+      "no_alternate_hash_permitted": true
+    },
+    "baseline_stratum_id_serialization": {
+      "format": "L_minutes|direction|DEPTH_HALF",
+      "delimiter": "|",
+      "field_order": ["L_minutes", "direction", "DEPTH_HALF"],
+      "L_representation": "plain base-10 integer, no leading zero",
+      "direction_representation": "exactly UP or DOWN, uppercase ASCII",
+      "depth_half_representation": "exactly LOWER or UPPER, uppercase ASCII"
+    },
+    "current_T_representation": "T_ms: integer UTC epoch milliseconds, identical representation to event_identity.canonical_serialization.timestamp_representation",
+    "bootstrap_seed": 20260907,
+    "bootstrap_replicates": 2000,
+    "bootstrap_block": "UTC_week",
+    "bootstrap_ci": 0.95,
+    "bootstrap_seed_derivation": "20260907 | replicate_index | L_minutes | H_minutes",
+    "bootstrap_week_id": "UTC year * 100 + UTC ISO week of event T",
+    "bootstrap_resample": "resample whole UTC weeks with replacement; concatenate events in canonical-id order within each drawn week; empty resample is nonfinite and cannot produce a passing lower bound",
+    "bootstrap_interval": "percentiles 2.5 and 97.5 of pooled mean AE_IMPROVEMENT",
+    "bootstrap_reroll_seed": false,
+    "bootstrap_block_selection_after_outcomes": false
+  },
+  "per_cell_thresholds": {
+    "relative_mae_improvement_min": 0.02,
+    "bootstrap_lower_bound_strictly_positive": true,
+    "placebo_percentile": 0.95,
+    "structure_ordering_strictly_positive": true,
+    "primary_positive_requires_pooled_up_down_all_positive_finite": true,
+    "structure_ordering_requires_pooled_up_down_all_positive_finite": true
+  },
+  "promotion_gate_contract": {
+    "required_gate_names": [
+      "primary_positive",
+      "material_relative_mae",
+      "bootstrap_positive",
+      "placebo_separation",
+      "structure_ordering",
+      "horizon_robustness",
+      "parameter_robustness",
+      "year_stability"
+    ],
+    "gate_count": 8,
+    "hidden_ninth_gate_forbidden": true,
+    "per_cell_gates": {
+      "primary_positive": {
+        "scope": "pooled_and_side_symmetric",
+        "pooled_condition": "pooled mean AE improvement > 0",
+        "up_condition": "UP mean AE improvement > 0",
+        "down_condition": "DOWN mean AE improvement > 0",
+        "requires_all_finite": true
+      },
+      "material_relative_mae": {
+        "scope": "pooled_only",
+        "pooled_condition": "relative MAE improvement >= 0.02",
+        "relative_mae_improvement_definition": "1 - mean(CAND_AE)/mean(BASE_AE)"
+      },
+      "bootstrap_positive": {
+        "scope": "pooled_only",
+        "pooled_condition": "95% UTC-week block-bootstrap lower bound for mean AE improvement > 0"
+      },
+      "placebo_separation": {
+        "scope": "pooled_only",
+        "pooled_condition": "true mean AE improvement > placebo_q95",
+        "placebo_q95_definition": "95th percentile of the frozen 100 causal permutation replicates (controls.permutation_replicates)"
+      },
+      "structure_ordering": {
+        "scope": "pooled_and_side_symmetric",
+        "definition": "BASE_RESIDUAL = Y_H - BASE_PRED; STRUCTURE_SEPARATION(subset) = median(BASE_RESIDUAL | RECOVERY_STATE=HIGH, subset) - median(BASE_RESIDUAL | RECOVERY_STATE=LOW, subset)",
+        "same_scored_support_required": true,
+        "pooled_condition": "STRUCTURE_SEPARATION(pooled) > 0",
+        "up_condition": "STRUCTURE_SEPARATION(direction=UP) > 0",
+        "down_condition": "STRUCTURE_SEPARATION(direction=DOWN) > 0",
+        "requires_all_finite": true
+      }
+    },
+    "anti_rescue_side_symmetry": {
+      "applies_to_gates": ["primary_positive", "structure_ordering"],
+      "adds_new_gate_name": false,
+      "creates_direction_specific_promotion_path": false,
+      "pooled_cell_remains_primary_statistical_unit": true
+    },
+    "horizon_robustness": "for one L, at least two adjacent horizons in [15,30,60,120,240] (adjacent pairs 15/30, 30/60, 60/120, 120/240) pass all five per-cell gates, including the anti_rescue_side_symmetry subconditions",
+    "parameter_robustness": "the exact same adjacent-H pair also passes all five per-cell gates for at least one other L; no single L may promote alone; historically attractive H04 L values may not promote alone",
+    "year_stability": "every promotion-neighborhood cell has positive pooled mean AE improvement in >=4/5 development years (2020,2021,2022,2023,2024); no year exclusions"
+  },
+  "verdicts": [
+    "B2_04_PROMOTED_CANDIDATE",
+    "B2_04_CLOSED_NO_PROMOTION"
+  ],
+  "no_promotion_does_not_mean": ["bearish", "bullish", "no-trade"],
+  "anti_rescue": {
+    "failure_closes_h04_child_path_in_current_v2": true,
+    "forbidden_after_failure": [
+      "another moderate threshold",
+      "narrow depth around an attractive result",
+      "shallow or deep rescue",
+      "another recovery formula",
+      "another L subset",
+      "another horizon subset",
+      "sign reversal",
+      "exhaustion reinterpretation",
+      "another structural property",
+      "new trend indicator",
+      "B2-04 child-of-child"
+    ],
+    "attempts_in_current_v2": 1
+  },
+  "durable_retention_integration": {
+    "required_contract": "docs/research/BATCH02_DURABLE_EVIDENCE_RETENTION_V1.md",
+    "ceremony": [
+      "verify_batch02_code",
+      "prepare_batch02_evidence_reservation",
+      "prepare_batch02_retained_run",
+      "load_authorized_parquet_table",
+      "evaluate",
+      "persist_batch02_retained_result",
+      "archive_batch02_result"
+    ],
+    "historical_path_forbidden": [
+      "prepare_batch02_run",
+      "persist_batch02_result"
+    ],
+    "canonical_slot": "B2-04",
+    "evidence_ref": "refs/heads/research-evidence/batch02/B2-04/<execution_code_sha>",
+    "created_by_this_unit": false,
+    "direct_parquet_in_production_runner_forbidden": true,
+    "result_before_archive_readback_forbidden": true,
+    "execution_host_preflight": "verify authenticated isolated evidence transport (GIT_ASKPASS / no global insteadOf inside evidence git) BEFORE one-shot authorization; B2-03 PRE_CLAIM_OPERATIONAL_ABORT is operational precedent only and does not change B2-04 statistics"
+  },
+  "implementation_exists": false,
+  "implementation_paths_forbidden_in_this_unit": [
+    "scripts/research/b2_04_*.py"
+  ],
+  "outcome_access_authorized": false,
+  "validation_2025_authorized": false,
+  "oos_2026_authorized": false,
+  "b2_01_rerun_authorized": false,
+  "b2_02_rerun_authorized": false,
+  "b2_03_rerun_authorized": false,
+  "real_core_data_accessed_by_this_unit": false
+}

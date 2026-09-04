@@ -130,10 +130,11 @@ frozen/immutable. Real development outcomes opened so far:
 B2-03. Do not rescue any closed formulation inside current V2.
 
 Family F1 remains `ACTIVE`. **Next frozen unit:**
-`B2-04_MODERATE_PULLBACK_STRUCTURE`. It still requires its own
-preregistration, implementation, exact-SHA CI, reviews, merge, and a separate
-development-outcome authorization. This roadmap note does not authorize B2-04
-outcomes. See `docs/research/BATCH02_STATUS_LEDGER.md`.
+`B2-04_MODERATE_PULLBACK_STRUCTURE`. Its outcome-blind preregistration is
+frozen in `docs/research/B2_04_MODERATE_PULLBACK_STRUCTURE_PREREG.md`. It still
+requires implementation, exact-SHA CI, reviews, merge, and a separate
+development-outcome authorization. This roadmap note does not implement B2-04
+or authorize B2-04 outcomes. See `docs/research/BATCH02_STATUS_LEDGER.md`.
 
 ### Exit
 A small set of candidate mechanisms shows enough development evidence to justify formal validation. It is acceptable for none to qualify.

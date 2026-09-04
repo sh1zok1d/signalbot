@@ -24,7 +24,7 @@ The authoritative formulation set remains the already-frozen six-entry inventory
 | `B2-01_VOLATILITY_TRANSITION` | F3 | `CLOSED_NO_PROMOTION` | completed development verdict; see `B2_01_VOLATILITY_TRANSITION_RESULT.md` |
 | `B2-02_BOUNDARY_INTERACTION_PATH` | F1 | `CLOSED_NO_PROMOTION` | completed one-shot development verdict; see `B2_02_BOUNDARY_INTERACTION_PATH_RESULT.md` |
 | `B2-03_IMPULSE_MORPHOLOGY` | F1 | `CLOSED_NO_PROMOTION` | completed one-shot development verdict; see `B2_03_IMPULSE_MORPHOLOGY_RESULT.md` |
-| `B2-04_MODERATE_PULLBACK_STRUCTURE` | F1 | `PLANNED` | no real outcomes opened; explicit H04 post-hoc child |
+| `B2-04_MODERATE_PULLBACK_STRUCTURE` | F1 | `PLANNED` | preregistration frozen; no real outcomes opened; explicit H04 post-hoc child |
 | `B2-05_FLOW_ABSORPTION` | F4 | `PLANNED` | no real outcomes opened |
 | `B2-06_LEVERAGE_CROWDING` | F5 | `BLOCKED_MISSING_OBSERVABLE` | OI + funding data expansion still required |
 
@@ -165,12 +165,13 @@ The next frozen formulation is:
 
 `B2-04_MODERATE_PULLBACK_STRUCTURE`
 
-This ledger does not preregister B2-04, implement B2-04, or authorize B2-04
+B2-04 outcome-blind preregistration now exists in
+`docs/research/B2_04_MODERATE_PULLBACK_STRUCTURE_PREREG.md` /
+`.json`. This ledger still does not implement B2-04 or authorize B2-04
 development outcomes.
 
-B2-04 must independently complete its own frozen preregistration,
-implementation, exact-SHA CI/review/merge, and only then receive a separate
-development-outcome authorization.
+B2-04 must independently complete implementation, exact-SHA CI/review/merge,
+and only then receive a separate development-outcome authorization.
 
 B2-03 rerun after this completed market verdict is **NOT AUTHORIZED**.
 
