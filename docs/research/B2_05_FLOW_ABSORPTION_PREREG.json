@@ -1,0 +1,494 @@
+{
+  "schema_version": "1.0",
+  "status": "PREREG_CANDIDATE_OUTCOME_BLIND",
+  "formulation_id": "B2-05_FLOW_ABSORPTION",
+  "primary_family": "F4",
+  "primary_family_name": "participation / order-flow information",
+  "inventory": "docs/research/V2_FORMULATION_INVENTORY.md",
+  "inventory_admission": "ADMIT_TO_V2_INVENTORY",
+  "inventory_immutable": true,
+  "provenance": {
+    "batch01_source": "H05 failure of imbalance-alone incremental value",
+    "h05_verdict": "no MPIE/structural promotion in 45/45 cells for either orientation",
+    "h05_tested_object": "extreme taker imbalance -> subsequent return",
+    "b2_05_cannot_promote_imbalance_alone": true,
+    "novel_object": "interaction between aggressive flow and contemporaneous price response",
+    "simpler_causal_baseline": "taker imbalance + current price/volatility state on the exact same events",
+    "old_outcome_blind_design_source": {
+      "repository": "sh1zok1d/signalbot",
+      "historical_pr": 92,
+      "historical_design_head_sha": "5fe2c7de1358d0e5e68d85c460367d53d999f9a3",
+      "files_used_as_scientific_provenance": [
+        "docs/research/B2_05_FLOW_ABSORPTION_PREREG.md",
+        "docs/research/B2_05_FLOW_ABSORPTION_PREREG.json"
+      ],
+      "used_only_as": "outcome-blind scientific design provenance predating B2-02/B2-03/B2-04 outcomes",
+      "not_merged": true
+    },
+    "b2_01_02_03_04_outcomes_used_for": [
+      "status",
+      "governance",
+      "anti_rescue_state",
+      "execution_sequencing"
+    ],
+    "b2_01_02_03_04_outcomes_not_used_for": [
+      "W", "H", "descriptor", "sign", "target", "baseline_features",
+      "candidate_features", "thresholds", "state_bins", "training_N",
+      "placebo", "bootstrap", "promotion_gates", "side_rules"
+    ]
+  },
+  "batch02_status_read_only": {
+    "B2-01": "CLOSED_NO_PROMOTION",
+    "B2-02": "CLOSED_NO_PROMOTION",
+    "B2-03": "CLOSED_NO_PROMOTION",
+    "B2-04": "CLOSED_NO_PROMOTION"
+  },
+  "dataset": {
+    "dataset_id": "CORE_BTC_BINANCE_V0",
+    "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+    "source_timeframe": "1m",
+    "decision_grid": "15m",
+    "decision_grid_alignment": "UTC_epoch_aligned"
+  },
+  "required_source_columns": {
+    "columns": [
+      "open_time_ms",
+      "available_at_ms",
+      "close",
+      "base_volume",
+      "taker_buy_base_volume"
+    ],
+    "verified_against": "docs/manifests/CORE_BTC_BINANCE_V0.yaml raw_schema and availability_semantics, cross-checked against the exact accepted-parquet column names already read by scripts/research/h05_taker_imbalance_lib.py",
+    "canonical_available_at": "bar_end_exclusive (available_at_ms = open_time_ms + 60000)",
+    "no_alternate_source": "no quote_volume, trade_count, order-book proxy, another venue, another contract, or inferred CVD"
+  },
+  "chronology": {
+    "warmup_start_inclusive": "2020-01-01T00:00:00Z",
+    "development_start_inclusive": "2020-02-01T00:00:00Z",
+    "development_end_exclusive": "2025-01-01T00:00:00Z",
+    "reserved_validation_start_inclusive": "2025-01-01T00:00:00Z",
+    "reserved_validation_end_exclusive": "2026-01-01T00:00:00Z",
+    "oos_start_inclusive": "2026-01-01T00:00:00Z",
+    "last_legal_T_rule": "T + H < 2025-01-01T00:00:00Z on the 15m grid; equality illegal; no truncation"
+  },
+  "flow": {
+    "W_minutes": [15, 30, 60],
+    "total": "TOTAL_W = sum(base_volume) over accepted 1m rows wholly inside [T-W,T)",
+    "taker_buy": "TAKER_BUY_W = sum(taker_buy_base_volume) over the same rows",
+    "row_integrity": [
+      "finite base_volume",
+      "finite taker_buy_base_volume",
+      "base_volume >= 0",
+      "0 <= taker_buy_base_volume <= base_volume"
+    ],
+    "require_total_positive": "TOTAL_W > 0",
+    "malformed_row_policy": "integrity/data failure for the affected record; fails closed",
+    "imbalance": "IMB = (2*TAKER_BUY_W - TOTAL_W) / TOTAL_W",
+    "imbalance_zero_unavailable": true,
+    "abs_imbalance": "ABS_IMB = abs(IMB)",
+    "direction": "d = sign(IMB); UP-equivalent side is BUY if IMB>0, SELL if IMB<0",
+    "side_labels": ["BUY", "SELL"],
+    "threshold_search": false,
+    "no_h05_style_tail_event_selection": true
+  },
+  "baseline_controls": {
+    "flow_ret": "FLOW_RET = d * ln(close(T) / close(T-W))",
+    "rv": "RV_W = sqrt(sum(r_1m^2)) over accepted 1m returns inside [T-W,T)",
+    "rv_validity": "RV_W finite and strictly > 0",
+    "log_activity": "LOG_ACTIVITY = ln(TOTAL_W)",
+    "log_activity_validity": "LOG_ACTIVITY finite",
+    "role": "baseline controls only, not candidate novelty"
+  },
+  "structural_property": {
+    "family": "PRICE_IMPACT_ABSORPTION",
+    "count": 1,
+    "name": "IMPACT_INTERACTION",
+    "formula": "IMPACT_INTERACTION = ABS_IMB * FLOW_RET",
+    "interpretation": {
+      "large_positive": "strong aggressive-flow imbalance accompanied by aligned price response",
+      "near_zero": "meaningful flow with weak aligned price response / absorption-like state",
+      "negative": "price moves opposite the aggressive-flow direction"
+    },
+    "not_a_trading_interpretation_authorization": true,
+    "forbidden_alternatives": [
+      "IMB / price_move",
+      "price_move / IMB",
+      "epsilon denominators",
+      "order-book proxy",
+      "CVD substitute",
+      "volume delta substitute",
+      "different impact formula",
+      "thresholded absorption",
+      "BUY-only descriptor",
+      "SELL-only descriptor",
+      "second interaction descriptor"
+    ]
+  },
+  "impact_state": {
+    "reference_days": 180,
+    "scope": "same W, same BUY/SELL side",
+    "reference_rule": "T_ref < T and T_ref >= T - 180 calendar days; finite IMPACT_INTERACTION known at T_ref; current record excluded",
+    "minimum_reference_n": 120,
+    "percentile": "deterministic_midrank",
+    "midrank_formula": "p = (count(ref < x) + 0.5*count(ref == x)) / N_ref",
+    "states": ["LOW", "MID", "HIGH"],
+    "state_cutpoints": [0.3333333333333333, 0.6666666666666666],
+    "LOW": "[0, 1/3)",
+    "MID": "[1/3, 2/3)",
+    "HIGH": "[2/3, 1]",
+    "historical_state_freeze": "each historical state computed exactly once as-of its own T_e; never recomputed using later records",
+    "expected_ordering": "HIGH > MID > LOW for subsequent flow-direction-normalized outcome after baseline control",
+    "ordering_reversal_forbidden_post_outcome": true
+  },
+  "target": {
+    "H_minutes": [30, 60, 120, 240],
+    "raw_future_flow_direction_continuation": "FLOW_CONT_RET_H = d * ln(close(T+H) / close(T))",
+    "normalized": "Y_H = FLOW_CONT_RET_H / PAST_MEDIAN_ABS_RET_H",
+    "scale_reference": {
+      "definition": "PAST_MEDIAN_ABS_RET_H(T) = median(abs(ln(close(t+H)/close(t)))) over all canonical UTC 15m reference boundaries t in [T-30 calendar days, T) with t+H <= T",
+      "observation_population": "the canonical aligned 15m grid, not B2-05 candidate/trigger records",
+      "current_boundary_excluded": true,
+      "future_or_unmatured_excluded": true,
+      "require_scale": "finite and strictly > 0",
+      "no_future_informed_floor": true,
+      "no_full_sample_normalization": true,
+      "scale_reference_days": 30
+    }
+  },
+  "forecast": {
+    "family": "causal_weekly_walk_forward_ols",
+    "refit_cadence": "UTC ISO week start (Monday 00:00:00Z), held fixed through the week",
+    "week_start_symbol": "S",
+    "training_window": {
+      "lookback_days": 365,
+      "rule": "T_e < S and T_e >= S - 365 calendar days and T_e + H <= S"
+    },
+    "baseline_features": [
+      "intercept",
+      "ABS_IMB",
+      "FLOW_RET",
+      "RV_W",
+      "LOG_ACTIVITY",
+      "SIDE_BUY"
+    ],
+    "side_buy_encoding": "SIDE_BUY = 1 for BUY, 0 for SELL",
+    "candidate_additions": ["IMPACT_LOW", "IMPACT_HIGH"],
+    "candidate_reference_state": "MID",
+    "candidate_match": [
+      "intercept", "ABS_IMB", "FLOW_RET", "RV_W", "LOG_ACTIVITY", "SIDE_BUY",
+      "IMPACT_LOW", "IMPACT_HIGH"
+    ],
+    "baseline_match": [
+      "intercept", "ABS_IMB", "FLOW_RET", "RV_W", "LOG_ACTIVITY", "SIDE_BUY"
+    ],
+    "information_difference": "candidate adds IMPACT_LOW and IMPACT_HIGH only",
+    "no_interaction_term_beyond_frozen_state": true,
+    "no_polynomials": true,
+    "no_feature_search": true,
+    "no_alternate_model": true,
+    "candidate_historical_eligibility": "baseline-eligible row AND valid causal IMPACT_STATE AND both valid causal placebo nuisance bins (controls.nuisance_bins)",
+    "baseline_may_have_more_historical_training_rows": true,
+    "minimum_baseline_n": 500,
+    "minimum_candidate_n": 500,
+    "minimum_candidate_n_per_state": 100,
+    "joint_unavailability": "if either the baseline or candidate weekly model is unavailable, current scoring is unavailable for BOTH",
+    "estimator": "ordinary_least_squares",
+    "weights": "none",
+    "regularization": "none",
+    "loss": "absolute_error",
+    "primary_incremental_metric": "BASE_AE - CAND_AE"
+  },
+  "preprocessing": {
+    "continuous_columns": ["ABS_IMB", "FLOW_RET", "RV_W", "LOG_ACTIVITY"],
+    "unstandardized_columns": ["intercept", "SIDE_BUY", "IMPACT_LOW", "IMPACT_HIGH"],
+    "transform": "z = (x - training_mean) / training_std, using that model's own frozen causal training rows at S; identical frozen transform applied to that model's current-week scoring rows",
+    "column_standardization_source": "each model's own training rows (baseline and candidate use their own, potentially different, training pools)",
+    "require_training_std": "finite and strictly > 0 for every standardized continuous column",
+    "row_order": "ascending CANONICAL_SCORE_RECORD_ID, applied before training statistics, matrix construction, fit, and audit hashes",
+    "design_matrix_baseline": ["intercept", "ABS_IMB_z", "FLOW_RET_z", "RV_W_z", "LOG_ACTIVITY_z", "SIDE_BUY"],
+    "design_matrix_candidate": [
+      "intercept", "ABS_IMB_z", "FLOW_RET_z", "RV_W_z", "LOG_ACTIVITY_z", "SIDE_BUY",
+      "IMPACT_LOW", "IMPACT_HIGH"
+    ]
+  },
+  "ols_solver_contract": {
+    "requirement": "unweighted OLS, intercept included, no regularization, no column standardization escape, full column rank required, deterministic solve, no pseudoinverse, no fallback",
+    "resolution_class": "MECHANICAL, not scientifically material",
+    "resolution": "Gram-matrix Cholesky decomposition of X'X as the full-rank test, followed by np.linalg.solve(X'X, X'y) for the deterministic solve",
+    "why_mechanical_not_material": "on any well-posed (full column rank) design this produces the identical fitted coefficients, to numerical precision, as the old design's numpy.linalg.lstsq(rcond=None) with an explicit post-hoc rank check -- both accept exactly the same well-posed matrices and reject exactly the same rank-deficient ones; only the numerical PATH to that identical output differs, not the science. This equivalence (max |Cholesky-solve - lstsq| ~5.6e-13 across 120 random well-posed designs) was independently proven during the already-merged B2-04 implementation, which established this exact solver as current Batch02 canonical practice for a materially identical full-rank-only requirement (see scripts/research/b2_04_moderate_pullback_structure_lib.py::ols_fit).",
+    "forbidden": ["numpy.linalg.pinv", "numpy.linalg.lstsq", "silent minimum-norm fit", "column dropping", "ridge/lasso regularization", "any solver fallback"],
+    "rank_deficient_or_nonfinite_behavior": "fit unavailable; weekly model UNAVAILABLE_FOR_DECISION; no fallback"
+  },
+  "same_support": {
+    "scoring_requirements": [
+      "valid current B2-05 features",
+      "valid IMPACT_STATE",
+      "both frozen weekly models (baseline and candidate) available",
+      "valid mature Y_H",
+      "legal development boundary"
+    ],
+    "candidate_and_comparator_share_exact_score_record_id_set": true,
+    "baseline_may_have_more_historical_training_rows": true,
+    "baseline_may_not_have_more_current_evaluation_rows": true,
+    "forbidden_support_selection": [
+      "BUY-only rescue",
+      "SELL-only rescue",
+      "year-only support",
+      "horizon-only support",
+      "post-outcome support filter"
+    ]
+  },
+  "event_identity": {
+    "base_event_fields": [
+      "snapshot_id",
+      "source_timeframe",
+      "decision_grid",
+      "W_minutes",
+      "side",
+      "interval_start_ms",
+      "interval_end_ms",
+      "T_ms"
+    ],
+    "score_record_fields": [
+      "snapshot_id",
+      "source_timeframe",
+      "decision_grid",
+      "W_minutes",
+      "side",
+      "interval_start_ms",
+      "interval_end_ms",
+      "T_ms",
+      "H_minutes"
+    ],
+    "canonical_base_serialization": {
+      "format": "snapshot_id|1m|15m|W_minutes|side|interval_start_ms|interval_end_ms|T_ms",
+      "delimiter": "|",
+      "field_order": [
+        "snapshot_id", "source_timeframe", "decision_grid", "W_minutes",
+        "side", "interval_start_ms", "interval_end_ms", "T_ms"
+      ],
+      "used_for": "construction, canonical row ordering, refractory-free identity, placebo pre-RNG sort"
+    },
+    "canonical_score_serialization": {
+      "format": "snapshot_id|1m|15m|W_minutes|side|interval_start_ms|interval_end_ms|T_ms|H_minutes",
+      "delimiter": "|",
+      "field_order": [
+        "snapshot_id", "source_timeframe", "decision_grid", "W_minutes",
+        "side", "interval_start_ms", "interval_end_ms", "T_ms", "H_minutes"
+      ],
+      "definition": "CANONICAL_SCORE_RECORD_ID = CANONICAL_BASE_EVENT_ID|H_minutes",
+      "used_for": "horizon evaluation; baseline and candidate share this identity"
+    },
+    "interval_start_ms_definition": "T_ms - W_minutes*60000",
+    "interval_end_ms_definition": "T_ms",
+    "source_timeframe": "1m",
+    "decision_grid": "15m",
+    "integer_representation": "plain base-10, no leading zero, no unit suffix",
+    "timestamp_representation": "integer UTC epoch milliseconds",
+    "side_representation": "exactly BUY or SELL, uppercase ASCII",
+    "no_alternate_repr_permitted": true,
+    "deduplication_on_T_only_forbidden": true,
+    "baseline_and_candidate_share_identity": true
+  },
+  "controls": {
+    "nuisance_bins": {
+      "variables": ["ABS_IMB", "FLOW_RET"],
+      "reference_days": 180,
+      "scope": "same W, same side",
+      "reference_rule": "T_ref < T_e and T_ref >= T_e - 180 calendar days; current historical row excluded",
+      "minimum_reference_n_each": 120,
+      "percentile": "deterministic_midrank",
+      "bins": [
+        {"label": "Q1", "lo": 0.0, "hi": 0.2, "hi_inclusive": false},
+        {"label": "Q2", "lo": 0.2, "hi": 0.4, "hi_inclusive": false},
+        {"label": "Q3", "lo": 0.4, "hi": 0.6, "hi_inclusive": false},
+        {"label": "Q4", "lo": 0.6, "hi": 0.8, "hi_inclusive": false},
+        {"label": "Q5", "lo": 0.8, "hi": 1.0, "hi_inclusive": true}
+      ],
+      "boundary_assignment": "exact boundary value belongs to the bin whose lower bound it equals; p=1.0 belongs to Q5",
+      "freeze": "each nuisance quintile computed exactly once as-of its own T_e and stored; never recomputed",
+      "missing_bin_policy": "candidate historical row ineligible; baseline historical eligibility unaffected if baseline fields and mature target are valid",
+      "purpose": "make real-candidate and placebo-candidate training support identical; nuisance bins never enter the candidate design matrix"
+    },
+    "permutation_seed": 20260907,
+    "permutation_replicates": 100,
+    "permutation_scope": "per causal weekly candidate fit, using exactly the real candidate's causal training rows",
+    "permutation_strata": ["calendar_month_utc(T_e)", "side", "ABS_IMB quintile", "FLOW_RET quintile"],
+    "permutation_stratum_id_format": "YYYY-MM|SIDE=<BUY|SELL>|IMB_Q=<Q1..Q5>|FLOW_Q=<Q1..Q5>",
+    "permutation_target": "historical stored IMPACT_STATE labels only; historical Y, baseline features, timestamps, row IDs, and nuisance bins fixed; evaluation event's own IMPACT_STATE fixed",
+    "permutation_ordering": "sort each stratum's real-candidate training rows ascending by canonical base event ID before RNG, then permute",
+    "permutation_label_encoding": {"LOW": 0, "MID": 1, "HIGH": 2, "dtype": "int64"},
+    "permutation_operation": "permuted_labels = rng.permutation(input_label_vector); assign positionally back to the same sorted rows",
+    "zero_record_stratum": "not instantiated; no assignment performed",
+    "one_record_stratum": "RNG instantiated, rng.permutation called on the one-element vector; label unchanged",
+    "permutation_seed_derivation": "20260907|replicate_index|W_minutes|H_minutes|week_start_ms|stratum_id",
+    "seed_derivation_primitive": {
+      "description": "pipe-join str(part) for each ordered part, UTF-8 encode, SHA-256, take the first 8 raw digest bytes as a big-endian unsigned 64-bit integer",
+      "exact_code": "seed_int = int.from_bytes(hashlib.sha256(raw_utf8).digest()[:8], 'big', signed=False); rng = numpy.random.default_rng(seed_int)",
+      "no_alternate_hash_permitted": true,
+      "forbidden": ["Python hash()", "alternate byte order", "alternate digest slice", "1-based replicate numbering"]
+    },
+    "current_T_representation": "T_ms: integer UTC epoch milliseconds, identical representation to event_identity.canonical_base_serialization.interval fields",
+    "week_start_ms_representation": "integer UTC epoch milliseconds for Monday 00:00:00Z",
+    "placebo_pass_quantile": 0.95,
+    "placebo_quantile_method": "linear",
+    "placebo_failure_semantics": {
+      "nominal_replicates": 100,
+      "rule": "a cell has a valid placebo_q95 only if all 100 nominal replicate cell statistics are finite",
+      "partial_subset_forbidden": true,
+      "resampling_forbidden": true,
+      "replacement_replicate_forbidden": true,
+      "single_event_failure_invalidates_whole_replicate": "if a replicate fails to produce a finite statistic for even one scored evaluation event in the cell, the whole cell-level replicate for that index is invalid, not partially computed",
+      "below_threshold_behavior": "placebo_q95 = unavailable (None/NaN); placebo_separation = False"
+    },
+    "bootstrap_seed": 20260908,
+    "bootstrap_replicates": 2000,
+    "bootstrap_block": "UTC_ISO_week",
+    "bootstrap_week_id": "ISO week-numbering year and week (datetime.isocalendar(), UTC, decision time T); NOT the Gregorian calendar year",
+    "bootstrap_week_sort": "unique week IDs sorted ascending lexicographically (zero-padded ISO week number)",
+    "bootstrap_within_week_sort": "ascending canonical CANONICAL_SCORE_RECORD_ID",
+    "bootstrap_seed_derivation": "20260908|W_minutes|H_minutes",
+    "bootstrap_rng": "one numpy.random.default_rng(seed_int) per (W,H) cell; single generator stream for all 2000 replicates in ascending replicate order",
+    "bootstrap_draw": "rng.integers(0, n_week_blocks, size=n_week_blocks, dtype=np.int64) per replicate; concatenate selected whole week blocks in draw order, preserving within-week canonical order and block multiplicity",
+    "bootstrap_statistic": "mean(AE_IMPROVEMENT) over the pooled resampled observations",
+    "bootstrap_interval": "percentiles 2.5 and 97.5 (method='linear')",
+    "bootstrap_zero_block_behavior": "bootstrap unavailable; bootstrap_positive = false",
+    "bootstrap_one_block_behavior": "n_week_blocks=1; every draw is index 0; the sole whole block is used once per replicate",
+    "bootstrap_reroll_seed": false,
+    "bootstrap_block_selection_after_outcomes": false
+  },
+  "per_cell_thresholds": {
+    "relative_mae_improvement_min": 0.02,
+    "bootstrap_lower_bound_strictly_positive": true,
+    "placebo_percentile": 0.95,
+    "impact_ordering_strict_chain_required": true,
+    "side_stability_requires_both_sides": true
+  },
+  "search_surface_primary_cells": 12,
+  "search_surface_shape": "3 W x 4 H",
+  "no_depth_or_threshold_search_dimension": true,
+  "one_impact_descriptor": true,
+  "promotion_gate_contract": {
+    "required_gate_names": [
+      "primary_positive",
+      "material_relative_mae",
+      "bootstrap_positive",
+      "placebo_separation",
+      "impact_ordering",
+      "side_stability",
+      "horizon_robustness",
+      "parameter_robustness",
+      "year_stability"
+    ],
+    "gate_count": 9,
+    "hidden_tenth_gate_forbidden": true,
+    "per_cell_gate_names": [
+      "primary_positive",
+      "material_relative_mae",
+      "bootstrap_positive",
+      "placebo_separation",
+      "impact_ordering",
+      "side_stability"
+    ],
+    "per_cell_gates": {
+      "primary_positive": {
+        "scope": "pooled_only",
+        "pooled_condition": "pooled mean AE improvement > 0",
+        "note": "the old outcome-blind design's primary_positive predicate is pooled-only; side symmetry is enforced separately by the side_stability gate, not duplicated here"
+      },
+      "material_relative_mae": {
+        "scope": "pooled_only",
+        "pooled_condition": "relative MAE improvement >= 0.02",
+        "relative_mae_improvement_definition": "1 - mean(CAND_AE)/mean(BASE_AE)",
+        "precondition": "mean(BASE_AE) finite and > 0"
+      },
+      "bootstrap_positive": {
+        "scope": "pooled_only",
+        "pooled_condition": "2.5th percentile of the 2000-replicate UTC-week bootstrap of mean(AE_IMPROVEMENT) > 0"
+      },
+      "placebo_separation": {
+        "scope": "pooled_only",
+        "pooled_condition": "real pooled mean(AE_IMPROVEMENT) > placebo_q95",
+        "placebo_q95_definition": "95th percentile of the frozen 100 causal permutation replicates, valid only when all 100 are finite"
+      },
+      "impact_ordering": {
+        "scope": "pooled_only",
+        "definition": "BASE_RESIDUAL = Y_H - BASE_PRED",
+        "pooled_condition": "median(BASE_RESIDUAL|LOW) < median(BASE_RESIDUAL|MID) < median(BASE_RESIDUAL|HIGH), all three states non-empty and finite",
+        "strict_chain": true
+      },
+      "side_stability": {
+        "scope": "side_symmetric_required",
+        "definition": "for EACH of BUY and SELL independently: mean(AE_IMPROVEMENT) > 0 AND median(BASE_RESIDUAL|HIGH) - median(BASE_RESIDUAL|LOW) > 0",
+        "both_sides_required": true
+      }
+    },
+    "horizon_robustness": "for one W, the adjacent H pair (from [30,60],[60,120],[120,240]) has BOTH cells passing all six per-cell gates",
+    "parameter_robustness": "the same adjacent H pair also passes all six per-cell gates for at least one other W; no single W may promote alone",
+    "year_stability": "every cell in the qualifying neighborhood (the adjacent-H pair at both promoting W values, four cells total) has pooled mean AE improvement > 0 in at least 4 of 5 development years (2020,2021,2022,2023,2024); no year exclusions",
+    "adjacent_h_pairs": [[30, 60], [60, 120], [120, 240]],
+    "neighborhood_definition": "one adjacent-H pair crossed with exactly two distinct W values, producing four cells",
+    "neighborhood_enumeration_order": "frozen H-pair order [30,60],[60,120],[120,240], then lexicographic ascending W-pair; select the first qualifying neighborhood",
+    "no_mosaic_promotion": true,
+    "no_ranking_by_effect_size": true,
+    "fail_closed_inputs": "missing, unavailable, malformed, nonfinite, errored, empty-required-support, or non-literal-true mandatory evidence makes the corresponding gate false"
+  },
+  "verdicts": [
+    "B2_05_PROMOTED_CANDIDATE",
+    "B2_05_CLOSED_NO_PROMOTION"
+  ],
+  "integrity_failures_are_not_a_verdict": true,
+  "anti_rescue": {
+    "failure_closes_b2_05": true,
+    "forbidden_after_failure": [
+      "second impact descriptor",
+      "imbalance threshold rescue",
+      "ratio rescue",
+      "BUY rescue",
+      "SELL rescue",
+      "sign reversal",
+      "new H",
+      "new W",
+      "no further taker-imbalance threshold child in current V2"
+    ],
+    "attempts_in_current_v2": 1
+  },
+  "implementation_paths": {
+    "runner": "scripts/research/b2_05_flow_absorption.py",
+    "library": "scripts/research/b2_05_flow_absorption_lib.py",
+    "tests": "tests/research/test_b2_05_flow_absorption.py"
+  },
+  "implementation_exists": false,
+  "implementation_paths_forbidden_in_this_unit": [
+    "scripts/research/b2_05_*.py"
+  ],
+  "durable_retention_integration": {
+    "required_contract": "docs/research/BATCH02_DURABLE_EVIDENCE_RETENTION_V1.md",
+    "ceremony": [
+      "verify_batch02_code",
+      "prepare_batch02_evidence_reservation",
+      "prepare_batch02_retained_run",
+      "load_authorized_parquet_table",
+      "evaluate",
+      "persist_batch02_retained_result",
+      "archive_batch02_result"
+    ],
+    "historical_path_forbidden": ["prepare_batch02_run", "persist_batch02_result"],
+    "canonical_slot": "B2-05",
+    "production_endpoint": "https://github.com/sh1zok1d/signalbot.git",
+    "evidence_ref": "refs/heads/research-evidence/batch02/B2-05/<execution_code_sha>",
+    "created_by_this_unit": false,
+    "direct_parquet_in_production_runner_forbidden": true,
+    "result_before_archive_readback_forbidden": true,
+    "future_local_result_path": "artifacts/b2_05_flow_absorption/B2_05_FLOW_ABSORPTION_DEV_RESULTS.json",
+    "default_runner_acknowledgement_gate": "outcome_access_acknowledged must be the literal boolean True, checked before any reservation/claim/loader call"
+  },
+  "outcome_access_authorized": false,
+  "validation_2025_authorized": false,
+  "oos_2026_authorized": false,
+  "b2_01_rerun_authorized": false,
+  "b2_02_rerun_authorized": false,
+  "b2_03_rerun_authorized": false,
+  "b2_04_rerun_authorized": false,
+  "real_core_data_accessed_by_this_unit": false
+}
