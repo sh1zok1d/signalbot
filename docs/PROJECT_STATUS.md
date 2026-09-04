@@ -1,6 +1,6 @@
 # Signalbot — Current Project Status
 
-**Status date:** 2026-08-28  
+**Status date:** 2026-09-04
 **Operating mode:** `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN`
 
 This file is the canonical answer to: **what is Signalbot doing now?**
@@ -84,6 +84,23 @@ showed raw conditional structure, but none earned promotion under the required
 robustness/incremental-information controls. See
 `docs/research/BATCH01_SYNTHESIS.md`.
 
+### R2 Batch02
+
+Batch02 is in progress on the already-frozen six-entry inventory. The inventory
+itself is immutable. Post-outcome status lives in
+`docs/research/BATCH02_STATUS_LEDGER.md`.
+
+- B2-01 `VOLATILITY_TRANSITION`: `CLOSED_NO_PROMOTION`
+- B2-02 `BOUNDARY_INTERACTION_PATH`: `CLOSED_NO_PROMOTION`
+- B2-03 `IMPULSE_MORPHOLOGY`: `CLOSED_NO_PROMOTION`
+- next frozen unit: `B2-04_MODERATE_PULLBACK_STRUCTURE` (not preregistered,
+  implemented, or outcome-authorized by this status update)
+
+Family F1 remains `ACTIVE` because B2-04 is still untested. 2025 validation and
+2026 OOS remain untouched. No Batch02 formulation has a promoted candidate, so
+there is no Batch02 validation path to open. See
+`docs/research/B2_03_IMPULSE_MORPHOLOGY_RESULT.md`.
+
 ### V2 / E1-RUN-001
 
 The frozen Stage-5 detector families were:
@@ -126,7 +143,11 @@ See `docs/HISTORICAL_DATA_STRATEGY.md`.
 
 ## 7. Active objective
 
-The immediate objective is to standardize the research-integrity machinery that proved useful in H05 into `V2_RESEARCH_HARNESS_V1`, then design Batch02 around distinct information families rather than more transforms of the same price state.
+The immediate objective is to execute the remaining frozen Batch02 formulations
+in inventory order, starting with independently preregistered B2-04, without
+rescuing closed B2-01, B2-02, or B2-03 results. `V2_RESEARCH_HARNESS_V1` is
+already accepted; Batch02 design is already frozen. This status update does
+not preregister or implement B2-04.
 
 The research objective remains:
 
