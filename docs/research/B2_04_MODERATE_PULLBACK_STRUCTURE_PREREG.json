@@ -33,13 +33,13 @@
     "oos_start_inclusive": "2026-01-01T00:00:00Z",
     "decision_times": "UTC 15-minute boundaries, inherited from H04, not retuned",
     "last_legal_T_by_horizon_minutes": {
-      "15": "2024-12-31T23:45:00Z",
-      "30": "2024-12-31T23:30:00Z",
-      "60": "2024-12-31T23:00:00Z",
-      "120": "2024-12-31T22:00:00Z",
-      "240": "2024-12-31T20:00:00Z"
+      "15": "2024-12-31T23:30:00Z",
+      "30": "2024-12-31T23:15:00Z",
+      "60": "2024-12-31T22:45:00Z",
+      "120": "2024-12-31T21:45:00Z",
+      "240": "2024-12-31T19:45:00Z"
     },
-    "last_legal_T_rule": "T + H < 2025-01-01T00:00:00Z on the 15m grid; no truncation"
+    "last_legal_T_rule": "T + H < 2025-01-01T00:00:00Z on the 15m grid; close(T+H) at exactly 2025-01-01T00:00:00Z is illegal; no truncation"
   },
   "novelty_boundary": {
     "h04_verdict": "H04_REJECTED_SPECIFIC_CLAIM",
@@ -281,7 +281,7 @@
     "bootstrap_block": "UTC_week",
     "bootstrap_ci": 0.95,
     "bootstrap_seed_derivation": "20260907 | replicate_index | L_minutes | H_minutes",
-    "bootstrap_week_id": "UTC year * 100 + UTC ISO week of event T",
+    "bootstrap_week_id": "ISO week-numbering year * 100 + ISO week of event T (datetime.isocalendar() year and week in UTC; not the Gregorian calendar year)",
     "bootstrap_resample": "resample whole UTC weeks with replacement; concatenate events in canonical-id order within each drawn week; empty resample is nonfinite and cannot produce a passing lower bound",
     "bootstrap_interval": "percentiles 2.5 and 97.5 of pooled mean AE_IMPROVEMENT",
     "bootstrap_reroll_seed": false,
@@ -348,7 +348,7 @@
     },
     "horizon_robustness": "for one L, at least two adjacent horizons in [15,30,60,120,240] (adjacent pairs 15/30, 30/60, 60/120, 120/240) pass all five per-cell gates, including the anti_rescue_side_symmetry subconditions",
     "parameter_robustness": "the exact same adjacent-H pair also passes all five per-cell gates for at least one other L; no single L may promote alone; historically attractive H04 L values may not promote alone",
-    "year_stability": "every promotion-neighborhood cell has positive pooled mean AE improvement in >=4/5 development years (2020,2021,2022,2023,2024); no year exclusions"
+    "year_stability": "every promotion-neighborhood cell (the adjacent-H pair at both promoting L values) has positive pooled mean AE improvement in >=4/5 development years (2020,2021,2022,2023,2024); no year exclusions"
   },
   "verdicts": [
     "B2_04_PROMOTED_CANDIDATE",

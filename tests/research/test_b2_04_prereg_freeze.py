@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -174,6 +175,53 @@ def test_b2_04_eight_gates_seeds_and_anti_rescue_are_frozen():
     assert freeze["anti_rescue"]["attempts_in_current_v2"] == 1
     assert "B2-04 child-of-child" in freeze["anti_rescue"]["forbidden_after_failure"]
     assert freeze["anti_rescue"]["failure_closes_h04_child_path_in_current_v2"] is True
+    assert contract["year_stability"] == (
+        "every promotion-neighborhood cell (the adjacent-H pair at both "
+        "promoting L values) has positive pooled mean AE improvement in "
+        ">=4/5 development years (2020,2021,2022,2023,2024); no year exclusions"
+    )
+    md = MD.read_text(encoding="utf-8")
+    assert "every cell in the promotion neighborhood" in md
+    assert "ISO_week_year * 100 + ISO_week" in md
+
+
+def test_b2_04_last_legal_T_is_strictly_before_2025_and_max_on_15m_grid():
+    freeze = _freeze()
+    chronology = freeze["chronology"]
+    expected = {
+        "15": "2024-12-31T23:30:00Z",
+        "30": "2024-12-31T23:15:00Z",
+        "60": "2024-12-31T22:45:00Z",
+        "120": "2024-12-31T21:45:00Z",
+        "240": "2024-12-31T19:45:00Z",
+    }
+    assert chronology["last_legal_T_by_horizon_minutes"] == expected
+    assert chronology["last_legal_T_rule"].startswith(
+        "T + H < 2025-01-01T00:00:00Z"
+    )
+    end = datetime(2025, 1, 1, tzinfo=timezone.utc)
+    grid = timedelta(minutes=15)
+    for h_text, stamp in expected.items():
+        h = timedelta(minutes=int(h_text))
+        t = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+        assert t + h < end
+        assert t + h + grid >= end
+    md = MD.read_text(encoding="utf-8")
+    for stamp in expected.values():
+        assert f"`{stamp}`" in md
+    assert "`close(T+H)` at exactly `2025-01-01T00:00:00Z` is illegal" in md
+
+
+def test_b2_04_bootstrap_week_id_uses_iso_week_year():
+    week_id = _freeze()["controls"]["bootstrap_week_id"]
+    assert "ISO week-numbering year" in week_id
+    assert "not the Gregorian calendar year" in week_id
+    # Boundary example: 2024-12-30 is ISO week 1 of ISO year 2025.
+    boundary = datetime(2024, 12, 30, tzinfo=timezone.utc)
+    iso = boundary.isocalendar()
+    assert iso.year == 2025
+    assert iso.week == 1
+    assert iso.year * 100 + iso.week != boundary.year * 100 + iso.week
 
 
 def test_b2_04_per_cell_gates_are_structurally_complete():

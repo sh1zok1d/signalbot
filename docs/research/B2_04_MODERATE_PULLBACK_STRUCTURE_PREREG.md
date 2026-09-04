@@ -226,7 +226,15 @@ Y_H(T) = d * RAW_FUTURE_RET_H(T) / PAST_MEDIAN_ABS_RET_H(T)
 
 - `d` is the H04 event trend direction at `T`.
 - `PAST_MEDIAN_ABS_RET_H` is the median of `|ln(close(t+H)/close(t))|` on the 15m grid over the prior 30 calendar days with `ref_t + H ≤ T` (current excluded). Exact 1m closes. If the reference set is empty or the median is non-positive/nonfinite, the event is jointly unavailable.
-- Horizon alignment: `T` and `T+H` on the 15m grid; last legal scored `T` satisfies `T+H < 2025-01-01T00:00:00Z`.
+- Horizon alignment: `T` and `T+H` on the 15m grid. Last legal scored `T` is the latest 15m grid time satisfying `T+H < 2025-01-01T00:00:00Z` (`close(T+H)` at exactly `2025-01-01T00:00:00Z` is illegal):
+
+| H (minutes) | last legal T |
+|---|---|
+| 15 | `2024-12-31T23:30:00Z` |
+| 30 | `2024-12-31T23:15:00Z` |
+| 60 | `2024-12-31T22:45:00Z` |
+| 120 | `2024-12-31T21:45:00Z` |
+| 240 | `2024-12-31T19:45:00Z` |
 - No future outcomes and no whole-sample statistics enter the scale.
 
 Positive `Y_H` is continuation in the established trend direction.
@@ -349,7 +357,7 @@ Question: could an apparent improvement from recovery structure arise merely fro
 
 ## 15. Bootstrap
 
-UTC-week block bootstrap (`week_id = UTC year * 100 + UTC ISO week`).
+UTC-week block bootstrap (`week_id = ISO_week_year * 100 + ISO_week`, UTC `datetime.isocalendar()`, not the Gregorian calendar year).
 
 - `N_BOOT = 2000`;
 - `BOOTSTRAP_BASE_SEED = 20260907`;
@@ -364,7 +372,7 @@ H04 moderate event frequency does **not** require a different block. Default UTC
 
 ## 16. Promotion contract (exactly eight gates)
 
-No hidden ninth gate. A cell is `CELL_PROMOTED` iff all eight are true. Family promotion requires **at least one** `CELL_PROMOTED`.
+No hidden ninth gate. The five per-cell gates are evaluated on each `L×H` cell. `horizon_robustness`, `parameter_robustness`, and `year_stability` are neighborhood gates. Family promotion requires all eight named gates true.
 
 | Gate | Rule |
 |---|---|
@@ -375,7 +383,7 @@ No hidden ninth gate. A cell is `CELL_PROMOTED` iff all eight are true. Family p
 | `structure_ordering` | median `BASE_RESIDUAL = Y − BASE_PRED` for `HIGH` minus `LOW` is `> 0` pooled, UP, and DOWN (causal HIGH/LOW from §9) |
 | `horizon_robustness` | at least one adjacent-H pair among `{15,30}`, `{30,60}`, `{60,120}`, `{120,240}` within the same `L` has `primary_positive ∧ material_relative_mae ∧ bootstrap_positive ∧ placebo_separation ∧ structure_ordering` on **both** members |
 | `parameter_robustness` | the **same** adjacent-H pair also satisfies that five-gate bundle at **another** `L` (cannot promote on historically attractive H04 L alone) |
-| `year_stability` | among calendar years `{2020,2021,2022,2023,2024}` of the event’s `T`, at least **4 of 5** have pooled mean AE improvement `> 0`; no year exclusions after inspection |
+| `year_stability` | **every cell in the promotion neighborhood** (the adjacent-H pair at both promoting `L` values) has pooled mean AE improvement `> 0` in at least **4 of 5** calendar years `{2020,2021,2022,2023,2024}` of that cell’s event `T`; no year exclusions after inspection |
 
 `NO_PROMOTION` → scientific verdict `B2_04_CLOSED_NO_PROMOTION`. That closes the H04 child path inside current V2. It does **not** mean bearish, bullish, or no-trade.
 
@@ -410,7 +418,7 @@ There is exactly **one** B2-04 attempt. Failure closes this H04 child path insid
 - `DATASET_ID = CORE_BTC_BINANCE_V0`
 - `SNAPSHOT_ID = 717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`
 - scored development: `2020-02-01T00:00:00Z ≤ T < 2025-01-01T00:00:00Z`
-- last legal `T` also requires `T+H < 2025-01-01T00:00:00Z`
+- last legal `T` also requires `T+H < 2025-01-01T00:00:00Z` on the 15m grid (table in §8); `close(T+H)` at exactly `2025-01-01T00:00:00Z` is illegal
 - warmup/reference may use authorized January 2020 CORE history only as already permitted by CORE/H04 semantics
 - **2025 validation = UNTOUCHED**
 - **2026 OOS = UNTOUCHED**
