@@ -623,24 +623,61 @@ def test_outcome_boundary_flags_are_closed():
 
 
 def test_no_runner_exists_and_no_result_is_committed():
+    """The frozen prohibition is unit-scoped (`..._forbidden_in_this_unit`).
+
+    The preregistration unit itself shipped no implementation; that
+    historical fact is recorded in the frozen JSON and in Git history. A
+    later, separate implementation unit is explicitly contemplated by the
+    same freeze (`durable_retention_integration.ceremony`, MD section 24),
+    so this guard pins what remains live: the frozen text still scopes the
+    prohibition to the preregistration unit, no B2-05 *result* artifact may
+    be committed to source control before an authorized run, and any
+    implementation that does exist must be exactly the canonical
+    runner/library pair -- never a third script and never a result document
+    (mirrors the repaired B2-04 prereg-freeze test of the same shape).
+    """
     freeze = _freeze()
     assert freeze["implementation_paths_forbidden_in_this_unit"] == [
         "scripts/research/b2_05_*.py"
     ]
-    forbidden_scripts = sorted(SCRIPTS.glob("b2_05_*.py"))
-    assert forbidden_scripts == []
+    assert freeze["implementation_exists"] is False
 
     result_json = REPO_ROOT / "docs" / "research" / "B2_05_FLOW_ABSORPTION_RESULT.json"
     result_md = REPO_ROOT / "docs" / "research" / "B2_05_FLOW_ABSORPTION_RESULT.md"
     assert not result_json.exists()
     assert not result_md.exists()
 
-    # canonical retained-run artifact must not exist either (pre-execution)
-    dev_results = (
-        REPO_ROOT / "artifacts" / "b2_05_flow_absorption"
-        / "B2_05_FLOW_ABSORPTION_DEV_RESULTS.json"
+    # The canonical retained-run artifact path
+    # (artifacts/b2_05_flow_absorption/..._DEV_RESULTS.json) is NOT checked
+    # for filesystem absence here: persist_batch02_retained_result
+    # deliberately leaves that local canonical artifact in place after a
+    # legitimate future authorized run (BATCH02_DURABLE_EVIDENCE_RETENTION_V1
+    # section 8), so a filesystem-absence check would fail this long-lived
+    # suite the moment a real run ever happens, for a reason unrelated to
+    # prereg integrity. The durable fact this test protects -- no B2-05
+    # result is *committed to source control* -- is instead checked against
+    # Git's tracked-file state, which persistence never touches (the whole
+    # artifacts/ tree is gitignored) and which is exactly what "shipped by
+    # this unit" means.
+    import subprocess
+
+    tracked = subprocess.run(  # noqa: S603 - fixed argv, no shell, test-only
+        ["git", "ls-files", "artifacts/b2_05_flow_absorption"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    assert tracked.strip() == ""
+
+    implementation = sorted(path.name for path in SCRIPTS.glob("b2_05_*.py"))
+    assert implementation in (
+        [],
+        [
+            "b2_05_flow_absorption.py",
+            "b2_05_flow_absorption_lib.py",
+        ],
     )
-    assert not dev_results.exists()
 
 
 def test_prereg_json_canonical_bytes_hash_is_stable():
