@@ -345,20 +345,48 @@ def test_b2_04_outcome_boundary_and_durable_slot_are_unopened():
     assert "Protected production slot: **`B2-04`**" in md
 
 
-def test_b2_04_this_pr_has_no_runner_or_result_artifact():
-    forbidden_scripts = sorted(SCRIPTS.glob("b2_04_*.py"))
-    assert forbidden_scripts == []
+def test_b2_04_prereg_unit_shipped_no_runner_and_no_result_artifact():
+    """The frozen prohibition is unit-scoped (`..._forbidden_in_this_unit`).
+
+    The preregistration unit shipped no implementation; that historical fact
+    is recorded in the frozen JSON and in Git history. A later, separate
+    implementation unit is explicitly contemplated by the same freeze
+    (`durable_retention_integration.ceremony`, MD section 19), so this guard
+    pins what remains live: the frozen text still scopes the prohibition to
+    the preregistration unit, no B2-04 *result* artifact may exist before an
+    authorized run, and any implementation that does exist must be exactly
+    the canonical runner/library pair -- never a third script and never a
+    result document.
+    """
+    assert _freeze()["implementation_paths_forbidden_in_this_unit"] == [
+        "scripts/research/b2_04_*.py"
+    ]
+    assert _freeze()["implementation_exists"] is False
+
     result_json = (
         REPO_ROOT / "docs" / "research" / "B2_04_MODERATE_PULLBACK_STRUCTURE_RESULT.json"
     )
     result_md = (
         REPO_ROOT / "docs" / "research" / "B2_04_MODERATE_PULLBACK_STRUCTURE_RESULT.md"
     )
+    dev_results = (
+        REPO_ROOT
+        / "artifacts"
+        / "b2_04_moderate_pullback_structure"
+        / "B2_04_MODERATE_PULLBACK_STRUCTURE_DEV_RESULTS.json"
+    )
     assert not result_json.exists()
     assert not result_md.exists()
-    assert _freeze()["implementation_paths_forbidden_in_this_unit"] == [
-        "scripts/research/b2_04_*.py"
-    ]
+    assert not dev_results.exists()
+
+    implementation = sorted(path.name for path in SCRIPTS.glob("b2_04_*.py"))
+    assert implementation in (
+        [],
+        [
+            "b2_04_moderate_pullback_structure.py",
+            "b2_04_moderate_pullback_structure_lib.py",
+        ],
+    )
 
 
 def test_b2_04_inventory_file_is_not_modified_by_this_unit():
