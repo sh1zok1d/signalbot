@@ -1279,3 +1279,9 @@ Machine-readable twin: `docs/research/B2_04_MODERATE_PULLBACK_STRUCTURE_PREREG.j
 Status ledger: `docs/research/BATCH02_STATUS_LEDGER.md`
 
 This entry does not implement B2-04 or authorize B2-04 development outcomes.
+
+Independent review of the first freeze SHA required a same-PR repair:
+strict last-legal `T` chronology, continuous `FINAL_DEPTH` OLS depth
+isolation replacing `DEPTH_HALF`, construction/scoring lifecycle
+separation, and a corrected mixed H04 provenance statement. Still no
+CORE access, reservation, claim, or runner.

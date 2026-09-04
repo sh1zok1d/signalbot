@@ -38,12 +38,17 @@ This unit does **not**:
 
 `H04_VERDICT = H04_REJECTED_SPECIFIC_CLAIM`.
 
-H04 tested the **broad** claim that a material counter-trend pullback, after established trend, is a continuation setup. That specific claim failed on development. Public summary:
+H04's broad preregistered pullback-continuation mechanism did not satisfy
+its full promotion contract. Local effects, including a moderate-depth
+residual, existed but did not form the required robust depth neighborhood
+and remain `POSTHOC_UNTESTED`.
 
-- primary continuation MAE vs same-sign no-pullback control was **not** directionally correct at any of the 45 L×band×H cells;
-- the moderate band `[0.25,0.40)` showed a **local residual** that was **not** the confirmatory claim.
+Canonical public evidence is mixed: some local cells satisfied effect or
+control thresholds. That is **not** a claim that the primary effect was
+directionally wrong in all 45 L×band×H cells, and it is **not** a
+promoted moderate-depth mechanism.
 
-That residual is **hypothesis-generation material only**. It is **not** positive evidence for B2-04. B2-04 is an explicit `POSTHOC_UNTESTED` child: a new confirmatory formulation, not a rescue of H04.
+The moderate residual is **hypothesis-generation material only**. It is **not** positive evidence for B2-04. B2-04 is an explicit `POSTHOC_UNTESTED` child: a new confirmatory formulation, not a rescue of H04.
 
 Public H04 event counts used below are taken from `docs/research/H04_DEV_SUMMARY.md` / `H04_DEV_RESULTS.json`. This unit does **not** open underlying market parquet.
 
@@ -160,36 +165,73 @@ Interpretation:
 
 **No `B2_04_PREREG_DESCRIPTOR_CONTRACT_REPAIR_REQUIRED`.** The only mechanical clarification is event-level (not step-level) `d` and `TREND_RET_L`.
 
-Malformed / nonfinite descriptors (`MAX_ADVERSE ≤ 0`, nonfinite path, missing closes) fail closed: the event is jointly `UNAVAILABLE_FOR_DECISION` for baseline and candidate. Recovery may **not** drop events because the recovery state later proves inconvenient.
+Malformed / nonfinite descriptors (`MAX_ADVERSE ≤ 0`, nonfinite path, missing closes) do **not** delete the constructed event and do **not** change the refractory winner. The H-specific score record is jointly `UNAVAILABLE_FOR_DECISION` for baseline and candidate.
 
 ---
 
-## 5. Event support (H04 semantics, moderate domain only)
+## 5. Event lifecycle (construction ≠ scoring)
 
 Reuse H04 event semantics. Do not invent a new detector.
 
-A B2-04 qualifying event requires **all** of:
+The pipeline is frozen in order. Later stages may mark a score record
+unavailable. They may **not** rewrite earlier stages.
+
+### STAGE A — CONSTRUCT EVENT
+
+H04-compatible construction only:
 
 1. 15-minute decision grid (`T` aligned to `tf_ms=900000`);
-2. exact 1m close at `T` and at every required lookback/horizon close;
+2. exact 1m closes required for `TREND_RET_L` and `PULLBACK_DEPTH`;
 3. `TREND_RET_L ≠ 0` and `d = sign(TREND_RET_L)`;
-4. `TREND_PCTL_L(T) ≥ 0.80` (H04 30-calendar-day midrank of `ABS_TREND_L`, current excluded, `ref_t + 0 ≤ T`);
+4. `TREND_PCTL_L(T) ≥ 0.80` (H04 30-calendar-day midrank of `ABS_TREND_L`, current excluded);
 5. `SIGNED_PB_RET(T) < 0`;
-6. `FINAL_DEPTH = PULLBACK_DEPTH(T) ∈ [0.25, 0.40)` — **moderate domain only**;
-7. `MAX_ADVERSE > 0` and finite `RECOVERY_FRACTION ∈ [0, 1]`;
-8. causal target `Y_H` available (exact 1m close at `T+H`; scale estimator defined below).
+6. `FINAL_DEPTH = PULLBACK_DEPTH(T) ∈ [0.25, 0.40)`.
+
+Forbidden at construction: `RECOVERY_FRACTION`, `RECOVERY_STATE`, `Y_H`, `H`, candidate prediction availability.
 
 **No shallow `[0.10,0.25)` or deep `[0.40,1.00)` primary cells.** Those belong to the rejected H04 broad-depth hypothesis.
 
-**Refractory:** 60 minutes within each `L`, applied on the **moderate-only** qualifying stream (same rule H04 used inside each L×band). First-in-time wins. No cross-L suppression. No T-only global dedup.
+### STAGE B — REFRACTORY
 
-Candidate and baseline use **exactly the same** qualifying events. `RECOVERY_FRACTION` classifies/scores; it does **not** decide whether the event exists.
+60 minutes within each `L` on the **constructed moderate stream**. First-in-time wins. No cross-L suppression. No T-only global dedup.
+
+Recovery availability, target availability, and `H` **must not** affect the refractory winner.
+
+### STAGE C — IMMUTABLE EVENT POPULATION
+
+Canonical base identity is fixed. Features and targets derived later cannot add, drop, or re-rank constructed events.
+
+### STAGE D — DERIVE CAUSAL FEATURES AT T
+
+Compute `RECOVERY_FRACTION`, the continuous `FINAL_DEPTH` control, and other model inputs from information available at `T`. A malformed recovery does not evict the event from Stage C.
+
+### STAGE E — CREATE H-SPECIFIC SCORE RECORD
+
+Attach `H`. Require `T+H < 2025-01-01T00:00:00Z`, causal scale, and finite `Y_H`. Failure here makes the score record unavailable. It does not change Stage C.
+
+### STAGE F — SAME-SUPPORT FORECAST COMPARISON
+
+Baseline and candidate use the exact same score records. No candidate fallback. No candidate-only depth transform.
+
+Candidate and baseline therefore share constructed support. `RECOVERY_FRACTION` may score an event. It may **not** decide whether the event exists.
 
 ---
 
-## 6. Canonical event identity
+## 6. Canonical identities
 
-One exact serialization (no generic T-only identity):
+Construction and refractory use a pre-H base identity:
+
+```
+CANONICAL_BASE_EVENT_ID = snapshot_id|1m|15m|15m|L_minutes|direction|pullback_start_ms|T_ms
+```
+
+Horizon evaluation uses:
+
+```
+CANONICAL_SCORE_RECORD_ID = CANONICAL_BASE_EVENT_ID|H_minutes
+```
+
+which expands to:
 
 ```
 CANONICAL_EVENT_ID = snapshot_id|1m|15m|15m|L_minutes|direction|pullback_start_ms|T_ms|H_minutes
@@ -197,7 +239,7 @@ CANONICAL_EVENT_ID = snapshot_id|1m|15m|15m|L_minutes|direction|pullback_start_m
 
 where `pullback_start_ms = T_ms - 60*60000`, `T_ms` is decision time `T` as integer UTC epoch milliseconds, and `direction` is exactly `UP` or `DOWN`.
 
-Baseline and candidate carry **identical** event IDs on the same support. Deduplication is by this identity, never by `T` alone.
+Baseline and candidate carry **identical** score-record IDs on the same support. Refractory selection uses the base identity, never `H` and never `T` alone.
 
 ---
 
@@ -241,41 +283,65 @@ Positive `Y_H` is continuation in the established trend direction.
 
 ---
 
-## 9. Recovery representation (exactly one)
+## 9. Recovery representation (exactly one candidate feature)
 
-Primary candidate uses **one** representation:
+Primary candidate uses **one** representation: untransformed continuous
+`RECOVERY_FRACTION ∈ [0, 1]`.
 
-`RECOVERY_STATE ∈ {LOW, HIGH}` = causal midrank percentile of `RECOVERY_FRACTION` versus prior same-`L` moderate events, **directions pooled**, current excluded.
+No percentile, no LOW/MID/HIGH state, no other transform enters the
+candidate. Algebra:
 
-- reference window: 365 calendar days;
-- inclusion: `ref_T < current_T` and `ref_T` in the same `L` moderate qualifying stream;
-- threshold: midrank percentile `>= 0.5` → `HIGH`, else `LOW`;
-- if the reference set is empty: fail closed (`UNAVAILABLE_FOR_DECISION`) jointly.
+```
+RECOVERY_FRACTION = 1 - FINAL_DEPTH / MAX_ADVERSE
+```
 
-No full-sample quantiles. No tertiles (sparsity). No alternative transforms in the primary candidate.
+Given `FINAL_DEPTH`, remaining recovery variation is variation in
+`MAX_ADVERSE`. That is the structural increment the candidate is allowed
+to use.
+
+`RECOVERY_STATE ∈ {LOW, HIGH}` exists **only** for the `structure_ordering`
+gate (causal 365-day same-`L` midrank of `RECOVERY_FRACTION`, directions
+pooled, current excluded, `>= 0.5` → `HIGH`). It is not a candidate
+feature and is not used to construct or suppress events.
 
 ---
 
-## 10. Baseline: trend state + within-band depth
+## 10. Baseline: trend state + actual pullback depth
 
-The baseline must represent **established trend state + pullback depth**, not merely `MODERATE = TRUE`. A boolean moderate flag would let `RECOVERY_FRACTION` proxy for meaningful within-band depth differences.
+`RECOVERY_FRACTION` is algebraically dependent on `FINAL_DEPTH`. A two-bin
+`DEPTH_HALF` control is **forbidden**: recovery could proxy leftover
+within-half depth and still look like structure.
 
-`DEPTH_HALF ∈ {LOWER, UPPER}` = causal midrank percentile of `FINAL_DEPTH` versus the same 365-day same-`L` moderate prior stream, directions pooled, current excluded, cut at 0.5.
+The frozen actual-depth control is **untransformed continuous
+`FINAL_DEPTH`** inside one OLS family.
 
-Baseline features: `{L, DIRECTION, DEPTH_HALF}` (4 strata per L).  
-Candidate features: `{L, DIRECTION, DEPTH_HALF, RECOVERY_STATE}` (8 strata per L).
+```
+BASELINE:   Y_H = a + b * FINAL_DEPTH
+CANDIDATE:  Y_H = a + b * FINAL_DEPTH + c * RECOVERY_FRACTION
+```
 
-Only information difference: candidate adds `RECOVERY_STATE`.
+Fit separately within each `(L, DIRECTION)` causal training pool. Same
+events, same `Y_H`, same estimator. The only information difference is
+`RECOVERY_FRACTION`.
+
+Boolean `MODERATE = TRUE` is also forbidden as the depth control.
 
 ---
 
 ## 11. Prediction family
 
-One fixed family for baseline and candidate: **stratum-conditional training median** of `Y_H`.
+One fixed family: **ordinary least squares** within `(L, DIRECTION)`.
 
-- same events, same `Y_H`, same MAE loss, same horizons, same fit schedule;
-- prediction = median `Y_H` of causal training records in the matching stratum;
-- empty/insufficient stratum → `UNAVAILABLE_FOR_DECISION` (no candidate→baseline fallback that would change same-support comparison).
+- unweighted;
+- no regularization;
+- no column standardization;
+- no pseudoinverse;
+- prediction = `xβ` at the evaluation event;
+- evaluation loss remains MAE;
+- if `N < 30`, or `X'X` is singular, or any coefficient is nonfinite:
+  both sides `UNAVAILABLE_FOR_DECISION`;
+- no candidate→baseline fallback;
+- no intercept-only fallback that drops `FINAL_DEPTH`.
 
 No hyperparameter search. No unrelated model-class comparison.
 
@@ -289,18 +355,13 @@ For every evaluation event at `T`:
 training_T + H ≤ current_T
 ```
 
-Training history: **365 calendar days** (not B2-03’s 90d).
+Training history: **365 calendar days**. Shared minimum: **30** observations
+in the `(L, DIRECTION)` pool (3 OLS parameters; no pseudoinverse).
 
-Minimum training support (frozen from public H04 counts, **not** from returns):
+If the candidate cannot fit, the baseline is also `UNAVAILABLE_FOR_DECISION`
+for that score record (joint fail-closed).
 
-| Role | Minimum |
-|---|---|
-| Baseline stratum | 20 |
-| Candidate stratum | 10 |
-
-If either side is insufficient, **both** sides are `UNAVAILABLE_FOR_DECISION` for that event (joint fail-closed).
-
-### Why not copy B2-03’s 90d / 80 / 40 / large cross-product
+### Why not copy B2-03’s 90d / 80 / 40 / DEPTH_HALF strata
 
 Public H04 **post-refractory moderate** development counts (`H04_DEV_SUMMARY.md`):
 
@@ -312,15 +373,17 @@ Public H04 **post-refractory moderate** development counts (`H04_DEV_SUMMARY.md`
 
 Expected 365-day training occupancy (outcome-blind arithmetic):
 
-| L | ~events / 365d | ~per baseline stratum (÷4) | ~per candidate stratum (÷8) |
+| L | ~events / 365d | ~per direction (×0.5) | OLS params baseline/candidate |
 |---|---|---|---|
-| 240 | 510 | 128 | 64 |
-| 480 | 344 | 86 | 43 |
-| 960 | 181 | 45 | 23 |
+| 240 | 510 | 255 | 2 / 3 |
+| 480 | 344 | 172 | 2 / 3 |
+| 960 | 181 | 90 | 2 / 3 |
 
-90-day occupancy would be ~3× smaller. A baseline-min-80 / candidate-min-40 rule, especially with more than two recovery states or direction-split recovery ranks, is **not viable** at `L=960`.
-
-Binary depth half × binary recovery, 365d history, mins 20/10, keep all three L values. This is a **sample-size / simplicity / numerical-stability** choice. It is **not** a return-based choice. `L=960` remains the tightest cell; insufficient-stratum events fail closed rather than being patched.
+90-day occupancy at `L=960` is about 45 events before the direction split.
+That is too tight for a 3-parameter OLS plus MAE evaluation. 365d keeps
+all three `L` values and supplies an actual-depth regressor without a
+sparse categorical cross-product. This is a **sample-size / simplicity /
+numerical-stability** choice. It is **not** a return-based choice.
 
 ---
 
@@ -343,14 +406,14 @@ when `MAE_BASE > 0` and finite. Nonfinite / non-positive baseline MAE → cell f
 
 Question: could an apparent improvement from recovery structure arise merely from assigning recovery information within comparable baseline context?
 
-- permute **historical training** `RECOVERY_STATE` only, **inside the evaluation event’s baseline stratum**;
+- permute **historical training** `RECOVERY_FRACTION` only, inside the evaluation event’s `(L, DIRECTION)` training pool;
 - evaluation-event recovery stays fixed;
 - `Y` stays fixed;
-- baseline context stays fixed;
-- canonical event-id sort before RNG;
+- `FINAL_DEPTH` stays fixed;
+- sort by `CANONICAL_SCORE_RECORD_ID` before RNG;
 - `N_PLACEBO = 100`;
 - `PLACEBO_BASE_SEED = 20260906`;
-- seed derivation: `20260906|{replicate}|{L}|{H}|{T_ms}|{baseline_stratum_id}` → SHA-256 hex, first 16 hex digits as integer (same `_seed_int` convention as B2-02/B2-03);
+- seed derivation: `20260906|{replicate}|{L}|{H}|{T_ms}|{baseline_stratum_id}` with `baseline_stratum_id = L_minutes|direction` → SHA-256 hex, first 16 hex digits as integer (same `_seed_int` convention as B2-02/B2-03);
 - same model and evaluation procedure as primary.
 
 ---
@@ -380,7 +443,7 @@ No hidden ninth gate. The five per-cell gates are evaluated on each `L×H` cell.
 | `material_relative_mae` | pooled relative MAE improvement `≥ 0.02` (Batch02 standard; not optimized) |
 | `bootstrap_positive` | pooled UTC-week bootstrap 95% lower bound `> 0` |
 | `placebo_separation` | observed pooled mean AE improvement `>` frozen placebo q95 |
-| `structure_ordering` | median `BASE_RESIDUAL = Y − BASE_PRED` for `HIGH` minus `LOW` is `> 0` pooled, UP, and DOWN (causal HIGH/LOW from §9) |
+| `structure_ordering` | median `BASE_RESIDUAL = Y − BASE_PRED` for `HIGH` minus `LOW` is `> 0` pooled, UP, and DOWN (causal HIGH/LOW is gate-only; §9) |
 | `horizon_robustness` | at least one adjacent-H pair among `{15,30}`, `{30,60}`, `{60,120}`, `{120,240}` within the same `L` has `primary_positive ∧ material_relative_mae ∧ bootstrap_positive ∧ placebo_separation ∧ structure_ordering` on **both** members |
 | `parameter_robustness` | the **same** adjacent-H pair also satisfies that five-gate bundle at **another** `L` (cannot promote on historically attractive H04 L alone) |
 | `year_stability` | **every cell in the promotion neighborhood** (the adjacent-H pair at both promoting `L` values) has pooled mean AE improvement `> 0` in at least **4 of 5** calendar years `{2020,2021,2022,2023,2024}` of that cell’s event `T`; no year exclusions after inspection |

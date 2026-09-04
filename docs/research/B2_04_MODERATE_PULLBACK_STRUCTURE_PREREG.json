@@ -11,7 +11,9 @@
     "kind": "explicit_POSTHOC_UNTESTED_child",
     "batch01_source": "H04 isolated moderate-depth/local residual",
     "h04_verdict": "H04_REJECTED_SPECIFIC_CLAIM",
-    "h04_broad_continuation_claim": "failed",
+    "h04_characterization": "H04's broad preregistered pullback-continuation mechanism did not satisfy its full promotion contract. Local effects, including a moderate-depth residual, existed but did not form the required robust depth neighborhood and remain POSTHOC_UNTESTED.",
+    "h04_all_45_cells_directionally_wrong": false,
+    "h04_primary_surface": "mixed; some local cells satisfied effect/control thresholds; no required broad robust depth neighborhood",
     "moderate_band_residual_status": "POSTHOC_UNTESTED",
     "moderate_band_residual_is_positive_evidence_for_b2_04": false,
     "h04_attractive_L_not_selected": true,
@@ -81,16 +83,77 @@
       "ADVERSE_j": "-d * ln(close(t_j) / close(T-P)) / abs(TREND_RET_L(T))",
       "FINAL_DEPTH": "ADVERSE_{t=T} which equals H04 PULLBACK_DEPTH(T) exactly",
       "MAX_ADVERSE": "max(ADVERSE_j for t_j in {T-45m, T-30m, T-15m, T})",
-      "RECOVERY_FRACTION": "(MAX_ADVERSE - FINAL_DEPTH) / MAX_ADVERSE"
+      "RECOVERY_FRACTION": "(MAX_ADVERSE - FINAL_DEPTH) / MAX_ADVERSE",
+      "RECOVERY_FRACTION_identity": "1 - FINAL_DEPTH / MAX_ADVERSE"
     },
     "invariants": {
       "FINAL_DEPTH_equals_h04_pullback_depth": true,
       "MAX_ADVERSE_ge_FINAL_DEPTH": true,
       "MAX_ADVERSE_gt_0_on_qualifying_events": true,
       "RECOVERY_FRACTION_bounds": [0.0, 1.0],
-      "no_future_bar": true
+      "no_future_bar": true,
+      "recovery_not_function_of_final_depth_alone": true
     },
-    "undefined_policy": "nonfinite ADVERSE path, MAX_ADVERSE<=0, FINAL_DEPTH>MAX_ADVERSE, or nonfinite RECOVERY_FRACTION makes both candidate and baseline UNAVAILABLE_FOR_DECISION; the event remains in the constructed population"
+    "undefined_policy": "nonfinite ADVERSE path, MAX_ADVERSE<=0, FINAL_DEPTH>MAX_ADVERSE, or nonfinite RECOVERY_FRACTION does not delete the constructed event and does not change the refractory winner; the H-specific score record is UNAVAILABLE_FOR_DECISION for both candidate and baseline"
+  },
+  "event_lifecycle": {
+    "stages": [
+      "CONSTRUCT_EVENT",
+      "REFRACTORY",
+      "IMMUTABLE_EVENT_POPULATION",
+      "DERIVE_CAUSAL_FEATURES_AT_T",
+      "CREATE_H_SPECIFIC_SCORE_RECORD",
+      "SAME_SUPPORT_FORECAST_COMPARISON"
+    ],
+    "CONSTRUCT_EVENT": {
+      "inputs": [
+        "15m grid T",
+        "exact 1m closes required for TREND_RET_L and PULLBACK_DEPTH",
+        "TREND_PCTL_L >= 0.80",
+        "SIGNED_PB_RET < 0",
+        "FINAL_DEPTH in [0.25,0.40)"
+      ],
+      "forbidden_inputs": [
+        "RECOVERY_FRACTION",
+        "RECOVERY_STATE",
+        "Y_H",
+        "H",
+        "candidate prediction availability"
+      ]
+    },
+    "REFRACTORY": {
+      "minutes": 60,
+      "scope": "within each L on the constructed moderate stream; earliest T wins",
+      "uses_recovery": false,
+      "uses_target": false,
+      "uses_H": false
+    },
+    "IMMUTABLE_EVENT_POPULATION": {
+      "identity": "CANONICAL_BASE_EVENT_ID",
+      "frozen_before_features_and_targets": true
+    },
+    "DERIVE_CAUSAL_FEATURES_AT_T": {
+      "features": ["RECOVERY_FRACTION", "FINAL_DEPTH", "DIRECTION"],
+      "may_not_add_or_drop_constructed_events": true
+    },
+    "CREATE_H_SPECIFIC_SCORE_RECORD": {
+      "identity": "CANONICAL_SCORE_RECORD_ID",
+      "requires": [
+        "T+H < 2025-01-01T00:00:00Z",
+        "causal PAST_MEDIAN_ABS_RET_H",
+        "finite Y_H"
+      ]
+    },
+    "SAME_SUPPORT_FORECAST_COMPARISON": {
+      "baseline_and_candidate_same_score_records": true,
+      "fallback": "none"
+    },
+    "refractory_before_recovery_scoring": true,
+    "refractory_before_target_attachment": true,
+    "refractory_horizon_independent": true,
+    "candidate_feature_cannot_change_refractory_winner": true,
+    "recovery_availability_cannot_change_refractory_winner": true,
+    "target_availability_cannot_change_refractory_winner": true
   },
   "event_construction": {
     "reuse_h04_semantics": true,
@@ -107,14 +170,26 @@
     "shallow_primary_cells": false,
     "deep_primary_cells": false,
     "refractory_minutes": 60,
-    "refractory_scope": "within each L on the moderate-only stream; keep earliest; identical to H04 L x moderate-band refractory",
+    "refractory_scope": "within each L on the constructed moderate stream; keep earliest; identical to H04 L x moderate-band refractory; recovery, target, and H are not used",
     "recovery_does_not_decide_existence": true,
     "not_gated_by_recovery_availability": true,
-    "unavailable_recovery_policy": "record remains a constructed event; scoring-only field becomes UNAVAILABLE_FOR_DECISION for both candidate and baseline; never deleted from population; never changes another event's causal reference/training population",
+    "not_gated_by_target_availability": true,
+    "not_gated_by_horizon": true,
+    "unavailable_recovery_policy": "constructed event remains; refractory winner unchanged; H-specific score record becomes UNAVAILABLE_FOR_DECISION for both candidate and baseline",
     "warmup_records": "constructible as causal reference/training material only; never scored"
   },
   "event_identity": {
-    "fields": [
+    "base_event_fields": [
+      "snapshot_id",
+      "source_timeframe",
+      "derived_timeframe",
+      "decision_grid",
+      "L",
+      "direction",
+      "pullback_start_ms",
+      "T"
+    ],
+    "score_record_fields": [
       "snapshot_id",
       "source_timeframe",
       "derived_timeframe",
@@ -125,6 +200,38 @@
       "T",
       "H"
     ],
+    "canonical_base_serialization": {
+      "format": "snapshot_id|1m|15m|15m|L_minutes|direction|pullback_start_ms|T_ms",
+      "delimiter": "|",
+      "field_order": [
+        "snapshot_id",
+        "source_timeframe",
+        "derived_timeframe",
+        "decision_grid",
+        "L_minutes",
+        "direction",
+        "pullback_start_ms",
+        "T_ms"
+      ],
+      "used_for": "construction, refractory, immutable population"
+    },
+    "canonical_score_serialization": {
+      "format": "snapshot_id|1m|15m|15m|L_minutes|direction|pullback_start_ms|T_ms|H_minutes",
+      "delimiter": "|",
+      "field_order": [
+        "snapshot_id",
+        "source_timeframe",
+        "derived_timeframe",
+        "decision_grid",
+        "L_minutes",
+        "direction",
+        "pullback_start_ms",
+        "T_ms",
+        "H_minutes"
+      ],
+      "definition": "CANONICAL_SCORE_RECORD_ID = CANONICAL_BASE_EVENT_ID|H_minutes",
+      "used_for": "horizon evaluation; baseline and candidate share this identity"
+    },
     "canonical_serialization": {
       "format": "snapshot_id|1m|15m|15m|L_minutes|direction|pullback_start_ms|T_ms|H_minutes",
       "delimiter": "|",
@@ -148,9 +255,11 @@
       "pullback_start_ms_definition": "T_ms - 60*60000",
       "T_ms_definition": "decision time T as integer UTC epoch milliseconds",
       "H_representation": "plain base-10 integer minutes, no leading zero",
-      "no_alternate_repr_permitted": true
+      "no_alternate_repr_permitted": true,
+      "alias_of": "canonical_score_serialization"
     },
     "deduplication_on_T_only_forbidden": true,
+    "refractory_identity": "CANONICAL_BASE_EVENT_ID",
     "baseline_and_candidate_share_identity": true
   },
   "horizons_minutes": [15, 30, 60, 120, 240],
@@ -174,54 +283,52 @@
     "exhaustion_sign_flip_rescue_forbidden": true
   },
   "recovery_representation": {
-    "primary_representation": "RECOVERY_STATE",
-    "states": ["LOW", "HIGH"],
-    "cutpoint": 0.5,
-    "method": "causal_midrank_percentile",
-    "midrank_ties": "(count_less + 0.5*count_equal)/N_ref",
-    "LOW": "midrank < 0.5",
-    "HIGH": "midrank >= 0.5",
-    "reference_days": 365,
-    "reference_population": "prior constructed B2-04 moderate events, same L, finite RECOVERY_FRACTION, reference_T < current T, current event excluded, UP/DOWN pooled because RECOVERY_FRACTION is already trend-normalized",
-    "no_full_sample_quantiles": true,
-    "no_current_or_future_in_reference": true,
+    "primary_representation": "RECOVERY_FRACTION",
+    "primary_type": "continuous_unit_interval",
+    "transform": "identity",
     "alternate_transforms_forbidden": true,
-    "continuous_primary_forbidden": true
+    "states_not_used_in_primary_candidate": true,
+    "structure_ordering_only": {
+      "states": ["LOW", "HIGH"],
+      "cutpoint": 0.5,
+      "method": "causal_midrank_percentile",
+      "midrank_ties": "(count_less + 0.5*count_equal)/N_ref",
+      "LOW": "midrank < 0.5",
+      "HIGH": "midrank >= 0.5",
+      "reference_days": 365,
+      "reference_population": "prior constructed B2-04 moderate events, same L, finite RECOVERY_FRACTION, reference_T < current T, current event excluded, UP/DOWN pooled because RECOVERY_FRACTION is already trend-normalized",
+      "not_a_candidate_feature": true
+    },
+    "no_full_sample_quantiles": true,
+    "no_current_or_future_in_reference": true
   },
   "baseline_context": {
-    "states": [
-      "DIRECTION",
-      "DEPTH_HALF"
-    ],
-    "DEPTH_HALF_states": ["LOWER", "UPPER"],
-    "DEPTH_HALF_method": "causal_midrank_percentile of FINAL_DEPTH among prior constructed B2-04 moderate events, same L, finite FINAL_DEPTH, reference_T < current T, current event excluded, UP/DOWN pooled because FINAL_DEPTH is unsigned",
-    "DEPTH_HALF_cutpoint": 0.5,
-    "DEPTH_HALF_LOWER": "midrank < 0.5",
-    "DEPTH_HALF_UPPER": "midrank >= 0.5",
-    "DEPTH_HALF_reference_days": 365,
-    "controls_within_band_depth": true,
+    "method": "continuous_causal_FINAL_DEPTH",
+    "DEPTH_HALF_forbidden": true,
     "moderate_boolean_only_forbidden": true,
     "trend_strength_not_a_candidate_feature": true,
-    "empty_reference": "UNAVAILABLE_FOR_DECISION for both candidate and baseline; no fallback"
+    "actual_depth_control": "untransformed FINAL_DEPTH entered as a numeric regressor in the same OLS family as the candidate",
+    "why_not_depth_half": "RECOVERY_FRACTION = 1 - FINAL_DEPTH/MAX_ADVERSE, so a two-bin depth control would leave residual within-bin depth that recovery could proxy; continuous FINAL_DEPTH is the actual-depth control"
   },
   "forecast": {
-    "family": "same_support_stratum_median",
+    "family": "same_support_ols_within_L_DIRECTION",
     "training_lookback_days": 365,
     "training_outcome_rule": "training_T + H <= current_T",
-    "estimator": "median",
-    "baseline_min_count": 20,
-    "candidate_min_count": 10,
-    "baseline_match": [
-      "L",
-      "DIRECTION",
-      "DEPTH_HALF"
-    ],
-    "candidate_match": [
-      "L",
-      "DIRECTION",
-      "DEPTH_HALF",
-      "RECOVERY_STATE"
-    ],
+    "estimator": "ordinary_least_squares",
+    "fit_equation_baseline": "Y_H = a + b * FINAL_DEPTH",
+    "fit_equation_candidate": "Y_H = a + b * FINAL_DEPTH + c * RECOVERY_FRACTION",
+    "design_matrix_baseline": ["intercept", "FINAL_DEPTH"],
+    "design_matrix_candidate": ["intercept", "FINAL_DEPTH", "RECOVERY_FRACTION"],
+    "weights": "none",
+    "regularization": "none",
+    "column_standardization": "none",
+    "pseudoinverse_forbidden": true,
+    "singular_or_nonfinite_coefficients": "UNAVAILABLE_FOR_DECISION for both",
+    "training_min_count": 30,
+    "training_pool": ["L", "DIRECTION"],
+    "baseline_match": ["L", "DIRECTION", "FINAL_DEPTH"],
+    "candidate_match": ["L", "DIRECTION", "FINAL_DEPTH", "RECOVERY_FRACTION"],
+    "information_difference": "candidate adds RECOVERY_FRACTION only",
     "loss": "absolute_error",
     "primary_incremental_metric": "BASE_AE - CAND_AE",
     "same_support_required": true,
@@ -244,10 +351,16 @@
         "480": 344,
         "960": 181
       },
-      "baseline_strata_per_L": 4,
-      "candidate_strata_per_L": 8,
-      "why_not_b2_03_90d_80_40": "H04 moderate N is far smaller than B2-03 constructed events; 90d times 18-plus categorical strata cannot meet those minima on public H04 counts, especially L=960",
-      "why_365d_and_halves": "sample-size feasibility, causal availability, and a within-band depth control without a 3x3x2 cross-product; not chosen from return performance"
+      "approx_365d_events_per_direction": {
+        "240": 255,
+        "480": 172,
+        "960": 90
+      },
+      "baseline_parameters": 2,
+      "candidate_parameters": 3,
+      "why_not_b2_03_90d_80_40": "H04 moderate N is far smaller than B2-03 constructed events; 90d occupancy at L=960 is about 45 events before the direction split, too tight for a 3-parameter OLS plus MAE evaluation",
+      "why_365d_ols_continuous_depth": "sample-size feasibility and an actual-depth control that is not a within-band half; not chosen from return performance",
+      "why_min_30": "shared (L, DIRECTION) training set must support 3 OLS parameters without a pseudoinverse; L=960 365d per-direction occupancy is about 90"
     }
   },
   "controls": {
@@ -256,11 +369,10 @@
     "permutation_scope": "per-scored-event causal 365d training set with training_T+H<=current_T",
     "permutation_strata": [
       "L",
-      "DIRECTION",
-      "DEPTH_HALF"
+      "DIRECTION"
     ],
-    "permutation_target": "historical RECOVERY_STATE labels only; historical Y fixed; evaluation event's own recovery state fixed; baseline context fixed",
-    "permutation_ordering": "sort each stratum by canonical event ID (event_identity.canonical_serialization) before RNG, then permute",
+    "permutation_target": "historical training RECOVERY_FRACTION values only; historical Y fixed; historical FINAL_DEPTH fixed; evaluation event's own RECOVERY_FRACTION fixed",
+    "permutation_ordering": "sort each (L, DIRECTION) training pool by CANONICAL_SCORE_RECORD_ID before RNG, then permute",
     "permutation_seed_derivation": "20260906 | replicate_index | L_minutes | H_minutes | T_ms | baseline_stratum_id",
     "seed_derivation_primitive": {
       "description": "pipe-join str(part) for each ordered part in the seed_derivation sequence, UTF-8 encode, SHA-256, take the first 16 hex digits as an integer",
@@ -268,12 +380,11 @@
       "no_alternate_hash_permitted": true
     },
     "baseline_stratum_id_serialization": {
-      "format": "L_minutes|direction|DEPTH_HALF",
+      "format": "L_minutes|direction",
       "delimiter": "|",
-      "field_order": ["L_minutes", "direction", "DEPTH_HALF"],
+      "field_order": ["L_minutes", "direction"],
       "L_representation": "plain base-10 integer, no leading zero",
-      "direction_representation": "exactly UP or DOWN, uppercase ASCII",
-      "depth_half_representation": "exactly LOWER or UPPER, uppercase ASCII"
+      "direction_representation": "exactly UP or DOWN, uppercase ASCII"
     },
     "current_T_representation": "T_ms: integer UTC epoch milliseconds, identical representation to event_identity.canonical_serialization.timestamp_representation",
     "bootstrap_seed": 20260907,

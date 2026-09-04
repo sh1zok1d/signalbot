@@ -33,6 +33,16 @@ def test_b2_04_hypothesis_id_and_h04_posthoc_untested_provenance():
     assert "POSTHOC_UNTESTED" in md
     assert "H04_REJECTED_SPECIFIC_CLAIM" in md
     assert "It is **not** positive evidence for B2-04." in md
+    assert provenance["h04_all_45_cells_directionally_wrong"] is False
+    assert provenance["h04_characterization"] == (
+        "H04's broad preregistered pullback-continuation mechanism did not "
+        "satisfy its full promotion contract. Local effects, including a "
+        "moderate-depth residual, existed but did not form the required "
+        "robust depth neighborhood and remain POSTHOC_UNTESTED."
+    )
+    assert "did not satisfy" in md
+    assert "directionally correct at any of the 45" not in md
+    assert "not** directionally correct at any of the 45" not in md
 
 
 def test_b2_04_moderate_domain_and_surfaces_are_exactly_h04_inherited():
@@ -92,27 +102,27 @@ def test_b2_04_has_exactly_one_structural_property_and_forbids_b2_03_features():
 
 def test_b2_04_canonical_event_id_is_not_t_only():
     identity = _freeze()["event_identity"]
-    serialization = identity["canonical_serialization"]
-    assert serialization["format"] == (
+    base = identity["canonical_base_serialization"]
+    score = identity["canonical_score_serialization"]
+    assert base["format"] == (
+        "snapshot_id|1m|15m|15m|L_minutes|direction|pullback_start_ms|T_ms"
+    )
+    assert score["format"] == (
         "snapshot_id|1m|15m|15m|L_minutes|direction|pullback_start_ms|T_ms|H_minutes"
     )
-    assert serialization["field_order"] == [
-        "snapshot_id",
-        "source_timeframe",
-        "derived_timeframe",
-        "decision_grid",
-        "L_minutes",
-        "direction",
-        "pullback_start_ms",
-        "T_ms",
-        "H_minutes",
-    ]
-    assert serialization["pullback_start_ms_definition"] == "T_ms - 60*60000"
-    assert serialization["no_alternate_repr_permitted"] is True
+    assert score["definition"] == (
+        "CANONICAL_SCORE_RECORD_ID = CANONICAL_BASE_EVENT_ID|H_minutes"
+    )
+    assert identity["refractory_identity"] == "CANONICAL_BASE_EVENT_ID"
     assert identity["deduplication_on_T_only_forbidden"] is True
     assert identity["baseline_and_candidate_share_identity"] is True
 
     md = MD.read_text(encoding="utf-8")
+    assert (
+        "CANONICAL_BASE_EVENT_ID = "
+        "snapshot_id|1m|15m|15m|L_minutes|direction|pullback_start_ms|T_ms"
+        in md
+    )
     assert (
         "CANONICAL_EVENT_ID = "
         "snapshot_id|1m|15m|15m|L_minutes|direction|pullback_start_ms|T_ms|H_minutes"
@@ -120,30 +130,81 @@ def test_b2_04_canonical_event_id_is_not_t_only():
     )
 
 
-def test_b2_04_baseline_candidate_and_support_are_same_support_stratum_median():
-    forecast = _freeze()["forecast"]
-    assert forecast["family"] == "same_support_stratum_median"
-    assert forecast["training_lookback_days"] == 365
-    assert forecast["training_outcome_rule"] == "training_T + H <= current_T"
-    assert forecast["baseline_min_count"] == 20
-    assert forecast["candidate_min_count"] == 10
-    assert forecast["baseline_match"] == ["L", "DIRECTION", "DEPTH_HALF"]
+def test_b2_04_event_lifecycle_separates_construction_from_scoring():
+    life = _freeze()["event_lifecycle"]
+    assert life["stages"] == [
+        "CONSTRUCT_EVENT",
+        "REFRACTORY",
+        "IMMUTABLE_EVENT_POPULATION",
+        "DERIVE_CAUSAL_FEATURES_AT_T",
+        "CREATE_H_SPECIFIC_SCORE_RECORD",
+        "SAME_SUPPORT_FORECAST_COMPARISON",
+    ]
+    assert life["refractory_before_recovery_scoring"] is True
+    assert life["refractory_before_target_attachment"] is True
+    assert life["refractory_horizon_independent"] is True
+    assert life["candidate_feature_cannot_change_refractory_winner"] is True
+    assert life["recovery_availability_cannot_change_refractory_winner"] is True
+    assert life["target_availability_cannot_change_refractory_winner"] is True
+    assert life["REFRACTORY"]["uses_recovery"] is False
+    assert life["REFRACTORY"]["uses_target"] is False
+    assert life["REFRACTORY"]["uses_H"] is False
+    forbidden = life["CONSTRUCT_EVENT"]["forbidden_inputs"]
+    assert "RECOVERY_FRACTION" in forbidden
+    assert "Y_H" in forbidden
+    assert "H" in forbidden
+    construction = _freeze()["event_construction"]
+    assert construction["not_gated_by_recovery_availability"] is True
+    assert construction["not_gated_by_target_availability"] is True
+    assert construction["not_gated_by_horizon"] is True
+
+
+def test_b2_04_baseline_contains_continuous_final_depth_not_depth_half():
+    freeze = _freeze()
+    forecast = freeze["forecast"]
+    baseline = freeze["baseline_context"]
+    recovery = freeze["recovery_representation"]
+    assert forecast["family"] == "same_support_ols_within_L_DIRECTION"
+    assert forecast["estimator"] == "ordinary_least_squares"
+    assert forecast["fit_equation_baseline"] == "Y_H = a + b * FINAL_DEPTH"
+    assert forecast["fit_equation_candidate"] == (
+        "Y_H = a + b * FINAL_DEPTH + c * RECOVERY_FRACTION"
+    )
+    assert forecast["design_matrix_baseline"] == ["intercept", "FINAL_DEPTH"]
+    assert forecast["design_matrix_candidate"] == [
+        "intercept",
+        "FINAL_DEPTH",
+        "RECOVERY_FRACTION",
+    ]
+    assert forecast["baseline_match"] == ["L", "DIRECTION", "FINAL_DEPTH"]
     assert forecast["candidate_match"] == [
         "L",
         "DIRECTION",
-        "DEPTH_HALF",
-        "RECOVERY_STATE",
+        "FINAL_DEPTH",
+        "RECOVERY_FRACTION",
     ]
-    assert forecast["same_support_required"] is True
+    assert forecast["information_difference"] == (
+        "candidate adds RECOVERY_FRACTION only"
+    )
+    assert forecast["training_lookback_days"] == 365
+    assert forecast["training_min_count"] == 30
+    assert forecast["pseudoinverse_forbidden"] is True
     assert forecast["fallback"] == "none"
-    assert forecast["support_feasibility"]["h04_post_refractory_moderate_N"] == {
-        "240": 2511,
-        "480": 1691,
-        "960": 892,
-    }
-    assert _freeze()["baseline_context"]["moderate_boolean_only_forbidden"] is True
-    assert _freeze()["recovery_representation"]["states"] == ["LOW", "HIGH"]
-    assert _freeze()["recovery_representation"]["no_full_sample_quantiles"] is True
+    assert baseline["DEPTH_HALF_forbidden"] is True
+    assert baseline["method"] == "continuous_causal_FINAL_DEPTH"
+    assert recovery["primary_representation"] == "RECOVERY_FRACTION"
+    assert recovery["transform"] == "identity"
+    assert recovery["states_not_used_in_primary_candidate"] is True
+    assert "DEPTH_HALF" not in forecast["baseline_match"]
+    assert "DEPTH_HALF" not in forecast["candidate_match"]
+    assert "RECOVERY_STATE" not in forecast["candidate_match"]
+    assert freeze["forecast"]["support_feasibility"][
+        "h04_post_refractory_moderate_N"
+    ] == {"240": 2511, "480": 1691, "960": 892}
+
+    md = MD.read_text(encoding="utf-8")
+    assert "DEPTH_HALF` control is **forbidden**" in md
+    assert "Y_H = a + b * FINAL_DEPTH + c * RECOVERY_FRACTION" in md
 
 
 def test_b2_04_eight_gates_seeds_and_anti_rescue_are_frozen():
@@ -165,6 +226,11 @@ def test_b2_04_eight_gates_seeds_and_anti_rescue_are_frozen():
     controls = freeze["controls"]
     assert controls["permutation_seed"] == 20260906
     assert controls["permutation_replicates"] == 100
+    assert controls["permutation_strata"] == ["L", "DIRECTION"]
+    assert "DEPTH_HALF" not in controls["permutation_strata"]
+    assert controls["baseline_stratum_id_serialization"]["format"] == (
+        "L_minutes|direction"
+    )
     assert controls["bootstrap_seed"] == 20260907
     assert controls["bootstrap_replicates"] == 2000
     assert controls["bootstrap_block"] == "UTC_week"
@@ -203,9 +269,11 @@ def test_b2_04_last_legal_T_is_strictly_before_2025_and_max_on_15m_grid():
     grid = timedelta(minutes=15)
     for h_text, stamp in expected.items():
         h = timedelta(minutes=int(h_text))
-        t = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
-        assert t + h < end
-        assert t + h + grid >= end
+        last_t = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+        next_t = last_t + grid
+        assert last_t + h < end
+        assert next_t + h >= end
+        assert (last_t + h).isoformat() != end.isoformat()
     md = MD.read_text(encoding="utf-8")
     for stamp in expected.values():
         assert f"`{stamp}`" in md
@@ -334,3 +402,15 @@ def test_b2_04_recovery_fraction_equals_h04_pullback_depth_at_final_step():
     assert math.isclose(final_nr, h04_nr, rel_tol=0.0, abs_tol=1e-15)
     assert math.isclose(max_nr, final_nr, rel_tol=0.0, abs_tol=1e-15)
     assert math.isclose(rec_nr, 0.0, rel_tol=0.0, abs_tol=1e-15)
+    assert math.isclose(rec_up, 1.0 - final_up / max_up, rel_tol=0.0, abs_tol=1e-15)
+
+    # Same FINAL_DEPTH, different MAX_ADVERSE => different recovery.
+    # Recovery is therefore not a function of FINAL_DEPTH alone.
+    same_final = 0.30
+    rec_a = 1.0 - same_final / 0.32
+    rec_b = 1.0 - same_final / 0.39
+    assert rec_a != rec_b
+    assert 0.0 <= rec_a < rec_b <= 1.0
+    assert _freeze()["structural_property"]["invariants"][
+        "recovery_not_function_of_final_depth_alone"
+    ] is True
