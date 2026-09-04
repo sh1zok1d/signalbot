@@ -93,8 +93,9 @@ itself is immutable. Post-outcome status lives in
 - B2-01 `VOLATILITY_TRANSITION`: `CLOSED_NO_PROMOTION`
 - B2-02 `BOUNDARY_INTERACTION_PATH`: `CLOSED_NO_PROMOTION`
 - B2-03 `IMPULSE_MORPHOLOGY`: `CLOSED_NO_PROMOTION`
-- next frozen unit: `B2-04_MODERATE_PULLBACK_STRUCTURE` (not preregistered,
-  implemented, or outcome-authorized by this status update)
+- next frozen unit: `B2-04_MODERATE_PULLBACK_STRUCTURE` (preregistration
+  frozen in `docs/research/B2_04_MODERATE_PULLBACK_STRUCTURE_PREREG.md`; not
+  implemented and not outcome-authorized)
 
 Family F1 remains `ACTIVE` because B2-04 is still untested. 2025 validation and
 2026 OOS remain untouched. No Batch02 formulation has a promoted candidate, so
@@ -144,10 +145,11 @@ See `docs/HISTORICAL_DATA_STRATEGY.md`.
 ## 7. Active objective
 
 The immediate objective is to execute the remaining frozen Batch02 formulations
-in inventory order, starting with independently preregistered B2-04, without
-rescuing closed B2-01, B2-02, or B2-03 results. `V2_RESEARCH_HARNESS_V1` is
-already accepted; Batch02 design is already frozen. This status update does
-not preregister or implement B2-04.
+in inventory order. B2-04 preregistration is now frozen; the next unit is
+B2-04 implementation, then a separate development-outcome authorization,
+without rescuing closed B2-01, B2-02, or B2-03 results. `V2_RESEARCH_HARNESS_V1`
+is already accepted; Batch02 design is already frozen. This status update does
+not implement B2-04 or authorize B2-04 outcomes.
 
 The research objective remains:
 

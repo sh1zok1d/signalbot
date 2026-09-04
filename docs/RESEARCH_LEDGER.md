@@ -1247,5 +1247,41 @@ Preregistration: `docs/research/B2_03_IMPULSE_MORPHOLOGY_PREREG.md`
 Development closeout: `docs/research/B2_03_IMPULSE_MORPHOLOGY_RESULT.md`
 Status ledger: `docs/research/BATCH02_STATUS_LEDGER.md`
 
-Next planned formulation: B2-04. This entry does not preregister, implement,
-or authorize B2-04 outcome access.
+Next planned formulation: B2-04. This B2-03 closeout entry does not
+preregister, implement, or authorize B2-04 outcome access.
+
+---
+
+## 2026-09-04 — B2-04_MODERATE_PULLBACK_STRUCTURE preregistration freeze
+
+**Decision:** freeze the outcome-blind B2-04 preregistration design unit.
+
+This entry consumes **no** market window and opens **no** Batch02 outcomes.
+
+- hypothesis: `B2-04_MODERATE_PULLBACK_STRUCTURE`
+- primary family: F1
+- provenance: explicit `POSTHOC_UNTESTED` child of `H04_REJECTED_SPECIFIC_CLAIM`
+- moderate residual is **not** positive evidence
+- structural property: exactly one, `INTRA_PULLBACK_RECOVERY` /
+  `RECOVERY_FRACTION`
+- implementation: **NO** (`scripts/research/b2_04_*.py` forbidden in this unit)
+- durable reservation: **NO**
+- outcome access claimed: **NO**
+- B2-04 run: **NO**
+- real `CORE_BTC_BINANCE_V0` market partitions: not accessed by this unit
+- 2025 validation: **UNTOUCHED**
+- 2026 OOS: **UNTOUCHED**
+- inventory file: **UNCHANGED**
+- formulation status remains `PLANNED`
+
+Preregistration: `docs/research/B2_04_MODERATE_PULLBACK_STRUCTURE_PREREG.md`
+Machine-readable twin: `docs/research/B2_04_MODERATE_PULLBACK_STRUCTURE_PREREG.json`
+Status ledger: `docs/research/BATCH02_STATUS_LEDGER.md`
+
+This entry does not implement B2-04 or authorize B2-04 development outcomes.
+
+Independent review of the first freeze SHA required a same-PR repair:
+strict last-legal `T` chronology, continuous `FINAL_DEPTH` OLS depth
+isolation replacing `DEPTH_HALF`, construction/scoring lifecycle
+separation, and a corrected mixed H04 provenance statement. Still no
+CORE access, reservation, claim, or runner.
