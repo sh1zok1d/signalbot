@@ -51,20 +51,34 @@ def test_inventory_entry_is_unmodified_and_matches_the_frozen_claim():
         "impact/absorption adds stable\n> information about subsequent "
         "directional behavior."
     ) in text
-    # this unit must not touch the immutable inventory file at all
+    # This unit must not touch the immutable inventory file at all. Pin the
+    # exact accepted-base Git blob SHA of the file's bytes rather than
+    # diffing against origin/main -- a shallow/merge-ref CI checkout does
+    # not guarantee an origin/main ref exists, but `git hash-object` works
+    # offline against whatever bytes are on disk in this checkout.
     import subprocess
 
-    diff = subprocess.run(
-        ["git", "diff", "origin/main", "--", "docs/research/V2_FORMULATION_INVENTORY.md"],
+    hashed = subprocess.run(
+        ["git", "hash-object", "docs/research/V2_FORMULATION_INVENTORY.md"],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
+        check=True,
     )
-    assert diff.returncode == 0
-    assert diff.stdout.strip() == ""
+    assert hashed.stdout.strip() == "d20a3ad4f6d3fb417ee9875933f097c174da3a30"
 
 
-def test_old_pr92_provenance_is_recorded_and_not_merged():
+def test_old_pr92_outcome_blind_provenance_is_frozen_exactly():
+    # NOTE: this is a hermetic source-tree contract test. It pins the
+    # *declared* provenance fields (which historical commit was used, that
+    # it is recorded as not-merged, and which two files were read from it)
+    # -- it does not and cannot dynamically prove actual Git ancestry from
+    # inside a shallow/merge-ref CI checkout, where the historical commit
+    # object may simply be absent (a non-zero `git merge-base
+    # --is-ancestor` return code is ambiguous between "not an ancestor" and
+    # "object unavailable" and would be a false-green proof either way).
+    # Actual non-merger of PR #92 is a repository-review fact, verified
+    # independently of this test suite.
     freeze = _freeze()
     provenance = freeze["provenance"]
     old = provenance["old_outcome_blind_design_source"]
@@ -95,21 +109,6 @@ def test_old_pr92_provenance_is_recorded_and_not_merged():
         "B2-03": "CLOSED_NO_PROMOTION",
         "B2-04": "CLOSED_NO_PROMOTION",
     }
-
-    # historical PR #92 must not be merged onto this branch's ancestry line
-    import subprocess
-
-    merged = subprocess.run(
-        [
-            "git", "merge-base", "--is-ancestor",
-            "5fe2c7de1358d0e5e68d85c460367d53d999f9a3", "HEAD",
-        ],
-        cwd=REPO_ROOT,
-    )
-    assert merged.returncode != 0, (
-        "the historical PR #92 design head must not be an ancestor of this "
-        "branch (it must not have been merged)"
-    )
 
 
 def test_required_source_columns_match_the_repository_schema():
