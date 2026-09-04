@@ -52,20 +52,16 @@ def test_inventory_entry_is_unmodified_and_matches_the_frozen_claim():
         "directional behavior."
     ) in text
     # This unit must not touch the immutable inventory file at all. Pin the
-    # exact accepted-base Git blob SHA of the file's bytes rather than
-    # diffing against origin/main -- a shallow/merge-ref CI checkout does
-    # not guarantee an origin/main ref exists, but `git hash-object` works
-    # offline against whatever bytes are on disk in this checkout.
-    import subprocess
-
-    hashed = subprocess.run(
-        ["git", "hash-object", "docs/research/V2_FORMULATION_INVENTORY.md"],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    assert hashed.stdout.strip() == "d20a3ad4f6d3fb417ee9875933f097c174da3a30"
+    # exact accepted-base Git blob SHA of the file's bytes -- computed
+    # in-process from the canonical Git blob object representation
+    # (b"blob " + length + NUL + content), never by shelling out to `git`.
+    # This stays hermetic, offline, and independent of both `origin/main`
+    # (a shallow/merge-ref CI checkout does not guarantee that ref exists)
+    # and the `git` executable being present at all.
+    data = INVENTORY.read_bytes()
+    blob = b"blob " + str(len(data)).encode("ascii") + b"\0" + data
+    digest = hashlib.sha1(blob).hexdigest()  # noqa: S324 -- Git blob SHA-1, not a security hash
+    assert digest == "d20a3ad4f6d3fb417ee9875933f097c174da3a30"
 
 
 def test_old_pr92_outcome_blind_provenance_is_frozen_exactly():
@@ -549,20 +545,68 @@ def test_durable_retention_integration_targets_current_ceremony():
     )
 
 
-def test_durable_retention_evaluate_step_is_identical_in_json_and_markdown():
-    # Guards against the JSON/Markdown "evaluate" vs "evaluate_b2_05" drift
-    # found in prior review: both representations must name the same exact
-    # evaluation-step identifier in the future ceremony.
-    ceremony = _freeze()["durable_retention_integration"]["ceremony"]
-    assert "evaluate_b2_05" in ceremony
-    assert "evaluate" not in ceremony  # bare, unsuffixed identifier forbidden
+def _md_ceremony_steps() -> list[str]:
+    """Structurally extract the ordered ceremony step identifiers from the
+    "## 24. Future durable-evidence ceremony" section's fenced code block --
+    never by searching the whole document for operation-name substrings,
+    which could false-green against unrelated prose. Raises if the expected
+    section heading or its first fenced block is missing, so a heading
+    rename or fence removal fails loudly instead of silently matching
+    nothing."""
     md = _md()
-    assert "evaluate_b2_05" in md
-    for line in md.splitlines():
-        stripped = line.strip()
-        assert stripped != "evaluate", (
-            "markdown ceremony must not contain a bare 'evaluate' step"
-        )
+    heading = "## 24. Future durable-evidence ceremony"
+    heading_pos = md.index(heading)
+    section = md[heading_pos:]
+    fence_start = section.index("```") + 3
+    fence_end = section.index("```", fence_start)
+    block = section[fence_start:fence_end]
+    return [line.strip() for line in block.splitlines() if line.strip()]
+
+
+def test_durable_retention_ceremony_is_structurally_identical_in_md_and_json():
+    # Extracts the ceremony from its own fenced code block under S24 (exact
+    # section boundaries, not a whole-document substring search) and
+    # requires exact ordered-list equality against the JSON ceremony: same
+    # step count, same identifiers, same order. This must fail for a
+    # renamed step (e.g. evaluate_b2_05 -> evaluate), a deleted/inserted
+    # step, a reordering, or a duplicated step -- not merely pass because
+    # "evaluate_b2_05" happens to appear somewhere in explanatory prose.
+    md_ceremony = _md_ceremony_steps()
+    json_ceremony = _freeze()["durable_retention_integration"]["ceremony"]
+    expected = [
+        "verify_batch02_code",
+        "prepare_batch02_evidence_reservation",
+        "prepare_batch02_retained_run",
+        "load_authorized_parquet_table",
+        "evaluate_b2_05",
+        "persist_batch02_retained_result",
+        "archive_batch02_result",
+    ]
+    assert md_ceremony == expected
+    assert json_ceremony == expected
+    assert md_ceremony == json_ceremony
+    assert len(md_ceremony) == len(set(md_ceremony)) == 7  # no duplicate step
+
+
+def test_durable_retention_ceremony_equality_check_catches_mutations():
+    # Proves the exact-equality check above is not vacuous: a renamed step
+    # or a reordering of the real, extracted ceremony must fail the same
+    # comparison this suite relies on. This does not mutate any committed
+    # file -- it only exercises the comparison logic against deliberately
+    # corrupted in-memory copies of the real extracted ceremony.
+    md_ceremony = _md_ceremony_steps()
+    json_ceremony = _freeze()["durable_retention_integration"]["ceremony"]
+    assert md_ceremony == json_ceremony  # sanity: the real documents agree
+
+    renamed = list(md_ceremony)
+    renamed[renamed.index("evaluate_b2_05")] = "evaluate"
+    assert renamed != json_ceremony
+
+    reordered = list(md_ceremony)
+    i = reordered.index("prepare_batch02_retained_run")
+    j = reordered.index("load_authorized_parquet_table")
+    reordered[i], reordered[j] = reordered[j], reordered[i]
+    assert reordered != json_ceremony
 
 
 def test_outcome_boundary_flags_are_closed():
