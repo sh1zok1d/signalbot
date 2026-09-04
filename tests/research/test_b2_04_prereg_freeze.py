@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import subprocess
@@ -460,51 +461,88 @@ def test_b2_04_recovery_fraction_equals_h04_pullback_depth_at_final_step():
     ] is True
 
 
-def test_b2_04_post_run_artifact_presence_does_not_break_this_suite():
-    """Repair regression test: a legitimate future retained run leaves the
-    canonical local DEV_RESULTS.json artifact on disk on purpose
-    (BATCH02_DURABLE_EVIDENCE_RETENTION_V1 section 8 -- the local canonical
-    artifact must be preserved, never deleted). This suite must keep passing
-    when that artifact exists locally; it must only ever fail if a B2-04
-    result were committed to Git.
+_CANONICAL_DEV_RESULTS_RELATIVE = (
+    "artifacts/b2_04_moderate_pullback_structure/"
+    "B2_04_MODERATE_PULLBACK_STRUCTURE_DEV_RESULTS.json"
+)
+_CANONICAL_DEV_RESULTS_PATH = REPO_ROOT / _CANONICAL_DEV_RESULTS_RELATIVE
+_RETAINED_RESULT_SENTINEL = b"REAL_RETAINED_RESULT_SENTINEL\n"
 
-    This test creates a synthetic placeholder file at the real canonical
-    path -- never touching real CORE data, never claiming outcome access,
-    and cleaned up in a `finally` block -- to prove the invariant mechanism
-    (a Git-tracked-file check, not a filesystem-existence check) actually
-    tolerates local post-run artifacts.
-    """
-    canonical_path = (
-        REPO_ROOT
-        / "artifacts"
-        / "b2_04_moderate_pullback_structure"
-        / "B2_04_MODERATE_PULLBACK_STRUCTURE_DEV_RESULTS.json"
+
+def _sha256_bytes(payload: bytes) -> bytes:
+    return hashlib.sha256(payload).digest()
+
+
+def _assert_b2_04_canonical_result_not_git_tracked() -> None:
+    tracked = subprocess.run(  # noqa: S603 - fixed argv, no shell, test-only
+        ["git", "ls-files", "artifacts/b2_04_moderate_pullback_structure"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    assert tracked.strip() == ""
+    exact = subprocess.run(  # noqa: S603 - fixed argv, no shell, test-only
+        ["git", "ls-files", "--error-unmatch", _CANONICAL_DEV_RESULTS_RELATIVE],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
     )
-    assert not canonical_path.exists(), (
-        "test seam precondition: no real result artifact must already exist"
-    )
-    canonical_path.parent.mkdir(parents=True, exist_ok=True)
-    canonical_path.write_text(
-        json.dumps({"synthetic_test_seam_placeholder": True}),
-        encoding="utf-8",
-    )
+    assert exact.returncode != 0
+
+
+def _exercise_post_run_artifact_seam(canonical_path: Path) -> None:
+    existed_before = canonical_path.exists()
+    if existed_before:
+        before_bytes = canonical_path.read_bytes()
+        before_sha256 = _sha256_bytes(before_bytes)
+    else:
+        canonical_path.parent.mkdir(parents=True, exist_ok=True)
+        canonical_path.write_text(
+            json.dumps({"synthetic_test_seam_placeholder": True}),
+            encoding="utf-8",
+        )
     try:
-        # Untracked/gitignored: this placeholder must be invisible to Git.
-        tracked = subprocess.run(
-            ["git", "ls-files", "artifacts/b2_04_moderate_pullback_structure"],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout
-        assert tracked.strip() == ""
-        # The long-lived suite's post-run guard must still pass with the
-        # placeholder present.
+        _assert_b2_04_canonical_result_not_git_tracked()
         test_b2_04_prereg_unit_shipped_no_runner_and_no_result_artifact()
     finally:
-        canonical_path.unlink(missing_ok=True)
-        try:
-            canonical_path.parent.rmdir()
-        except OSError:
-            pass
-    assert not canonical_path.exists()
+        if existed_before:
+            assert canonical_path.exists()
+            after_bytes = canonical_path.read_bytes()
+            assert after_bytes == before_bytes
+            assert _sha256_bytes(after_bytes) == before_sha256
+        else:
+            canonical_path.unlink(missing_ok=True)
+            if canonical_path.parent == _CANONICAL_DEV_RESULTS_PATH.parent:
+                try:
+                    canonical_path.parent.rmdir()
+                except OSError:
+                    pass
+            assert not canonical_path.exists()
+
+
+def test_b2_04_post_run_artifact_presence_does_not_break_this_suite():
+    _exercise_post_run_artifact_seam(_CANONICAL_DEV_RESULTS_PATH)
+
+
+def test_b2_04_preexisting_retained_artifact_bytes_are_preserved(tmp_path: Path):
+    retained = tmp_path / "B2_04_MODERATE_PULLBACK_STRUCTURE_DEV_RESULTS.json"
+    retained.write_bytes(_RETAINED_RESULT_SENTINEL)
+    before_bytes = retained.read_bytes()
+    before_sha256 = _sha256_bytes(before_bytes)
+    assert before_bytes == _RETAINED_RESULT_SENTINEL
+    _exercise_post_run_artifact_seam(retained)
+    assert retained.exists()
+    after_bytes = retained.read_bytes()
+    assert after_bytes == before_bytes
+    assert after_bytes == _RETAINED_RESULT_SENTINEL
+    assert _sha256_bytes(after_bytes) == before_sha256
+    _assert_b2_04_canonical_result_not_git_tracked()
+
+
+def test_b2_04_absent_artifact_placeholder_is_removed(tmp_path: Path):
+    absent = tmp_path / "B2_04_MODERATE_PULLBACK_STRUCTURE_DEV_RESULTS.json"
+    assert not absent.exists()
+    _exercise_post_run_artifact_seam(absent)
+    assert not absent.exists()
+    _assert_b2_04_canonical_result_not_git_tracked()
