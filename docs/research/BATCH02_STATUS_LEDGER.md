@@ -3,7 +3,7 @@
 **Ledger type:** post-outcome status record  
 **Frozen inventory source:** `docs/research/V2_FORMULATION_INVENTORY.md`  
 **Inventory mutability:** IMMUTABLE after first real Batch02 outcome  
-**Current Batch02 outcome count:** 3 completed formulations
+**Current Batch02 outcome count:** 4 completed formulations  
 **2025 validation:** UNTOUCHED  
 **2026 OOS:** UNTOUCHED
 
@@ -24,7 +24,7 @@ The authoritative formulation set remains the already-frozen six-entry inventory
 | `B2-01_VOLATILITY_TRANSITION` | F3 | `CLOSED_NO_PROMOTION` | completed development verdict; see `B2_01_VOLATILITY_TRANSITION_RESULT.md` |
 | `B2-02_BOUNDARY_INTERACTION_PATH` | F1 | `CLOSED_NO_PROMOTION` | completed one-shot development verdict; see `B2_02_BOUNDARY_INTERACTION_PATH_RESULT.md` |
 | `B2-03_IMPULSE_MORPHOLOGY` | F1 | `CLOSED_NO_PROMOTION` | completed one-shot development verdict; see `B2_03_IMPULSE_MORPHOLOGY_RESULT.md` |
-| `B2-04_MODERATE_PULLBACK_STRUCTURE` | F1 | `PLANNED` | preregistration frozen; no real outcomes opened; explicit H04 post-hoc child |
+| `B2-04_MODERATE_PULLBACK_STRUCTURE` | F1 | `CLOSED_NO_PROMOTION` | completed one-shot development verdict; explicit H04 post-hoc child; see `B2_04_MODERATE_PULLBACK_STRUCTURE_RESULT.md` |
 | `B2-05_FLOW_ABSORPTION` | F4 | `PLANNED` | no real outcomes opened |
 | `B2-06_LEVERAGE_CROWDING` | F5 | `BLOCKED_MISSING_OBSERVABLE` | OI + funding data expansion still required |
 
@@ -32,14 +32,14 @@ The authoritative formulation set remains the already-frozen six-entry inventory
 
 | Family | Status | Reason |
 |---|---|---|
-| F1 Directional persistence | `ACTIVE` | B2-02 and B2-03 closed without promotion; B2-04 remains frozen and planned |
+| F1 Directional persistence | `CLOSED_NO_PROMOTION` | B2-02, B2-03, and the sole B2-04 H04-derived child all closed without promotion |
 | F2 Reversion/failure | `RETIRED` | no novelty-qualified F2 formulation exists in frozen inventory |
 | F3 Volatility dynamics | `CLOSED_NO_PROMOTION` | sole frozen F3 formulation B2-01 closed without promotion |
 | F4 Participation/order-flow | `UNTESTED` | B2-05 remains frozen and unopened |
 | F5 State-mechanism interaction | `BLOCKED_MISSING_OBSERVABLE` | B2-06 requires separately authorized OI/funding observables |
 | F6 State routing | `RETIRED` | no current-V2 routing formulation admitted |
 
-## 4. Canonical state after B2-03
+## 4. Canonical state after B2-04
 
 ```text
 BATCH01 = CLOSED
@@ -47,24 +47,25 @@ V2_RESEARCH_HARNESS_V1 = ACCEPTED
 V2_RESEARCH_PROGRAM = CHARTER_ACCEPTED
 V2_FORMULATION_INVENTORY = FROZEN_6_IMMUTABLE
 
-REAL_BATCH02_OUTCOMES = OPENED_B2_01_AND_B2_02_AND_B2_03
+REAL_BATCH02_OUTCOMES = OPENED_B2_01_AND_B2_02_AND_B2_03_AND_B2_04
 
 B2_01 = CLOSED_NO_PROMOTION
 B2_02 = CLOSED_NO_PROMOTION
 B2_03 = CLOSED_NO_PROMOTION
-B2_04 = PLANNED
+B2_04 = CLOSED_NO_PROMOTION
 B2_04_POSTHOC_PROVENANCE = H04_EXPLICIT_CHILD
+B2_04_H04_CHILD_PATH = CLOSED
 B2_05 = PLANNED
 B2_06 = BLOCKED_MISSING_OBSERVABLE
 
-F1 = ACTIVE
+F1 = CLOSED_NO_PROMOTION
 F2 = RETIRED
 F3 = CLOSED_NO_PROMOTION
 F4 = UNTESTED
 F5 = BLOCKED_MISSING_OBSERVABLE
 F6 = RETIRED
 
-NEXT_FROZEN_FORMULATION = B2_04_MODERATE_PULLBACK_STRUCTURE
+NEXT_FROZEN_FORMULATION = B2_05_FLOW_ABSORPTION
 
 2025_VALIDATION = UNTOUCHED
 2026_OOS = UNTOUCHED
@@ -92,7 +93,7 @@ FORMULATION = B2-02_BOUNDARY_INTERACTION_PATH
 VERDICT = B2_02_CLOSED_NO_PROMOTION
 FORMULATION_STATUS = CLOSED_NO_PROMOTION
 FAMILY = F1
-FAMILY_STATUS = ACTIVE
+FAMILY_STATUS_AT_CLOSEOUT = ACTIVE
 RESULT_ARTIFACT_SHA256 = b5bc240bc30cff92e26b1cf5a7fca4e546c70c80b7f60d113f73f580b439e971
 RESULT_ARTIFACT_DURABLE_COPY = UNAVAILABLE
 RESULT_ARTIFACT_RETENTION_STATUS = POST_RUN_EVIDENCE_RETENTION_GAP
@@ -105,14 +106,9 @@ RERUN_AUTHORIZED = NO
 REFORMULATION_CURRENT_V2 = NO
 ```
 
-At B2-02 closeout, F1 remained `ACTIVE` because B2-03 and B2-04 were still
-eligible frozen-inventory formulations. B2-02's terminal result closed only
-this formulation. B2-03 has since closed without promotion; F1 remains
-`ACTIVE` solely because B2-04 is still unopened.
-
 ## 7. Anti-rescue rule
 
-Completed B2-01, B2-02, and B2-03 outcomes do not authorize post-outcome rescue
+Completed B2-01 through B2-04 outcomes do not authorize post-outcome rescue
 inside current V2.
 
 For B2-01 this includes another transition threshold, W/D/H grid, sign,
@@ -129,6 +125,10 @@ sign reversal of `MORPHOLOGY_SEPARATION`, exhaustion reinterpretation,
 one-sided UP/DOWN rescue, or child based on an isolated `morphology_ordering`
 pass.
 
+For B2-04 this includes another moderate-depth threshold, trend indicator,
+recovery descriptor, recovery-state transform, horizon/L grid, reverse-sign
+interpretation, one-sided direction rescue, or any second H04-derived child.
+
 Any such idea conceived after these outcomes remains future-program material
 only and cannot enter current V2.
 
@@ -139,7 +139,7 @@ FORMULATION = B2-03_IMPULSE_MORPHOLOGY
 VERDICT = B2_03_CLOSED_NO_PROMOTION
 FORMULATION_STATUS = CLOSED_NO_PROMOTION
 FAMILY = F1
-FAMILY_STATUS = ACTIVE
+FAMILY_STATUS_AT_CLOSEOUT = ACTIVE
 RESULT_ARTIFACT_SHA256 = a3586344ac9c094eb38670a16b7566b8c1628300b6a1f6605fd69c369894b0c0
 ARTIFACT_SIZE_BYTES = 68487026
 EVIDENCE_REF = refs/heads/research-evidence/batch02/B2-03/8a7490167e086a201ec7b3780878d2cf3252ecfd
@@ -156,28 +156,54 @@ RERUN_AUTHORIZED = NO
 REFORMULATION_CURRENT_V2 = NO
 ```
 
-F1 remains `ACTIVE` because B2-04 is still an eligible frozen-inventory
-formulation. B2-03's terminal result closes only this formulation.
+## 9. B2-04 terminal record
 
-## 9. Next allowed research unit
+```text
+FORMULATION = B2-04_MODERATE_PULLBACK_STRUCTURE
+VERDICT = B2_04_CLOSED_NO_PROMOTION
+FORMULATION_STATUS = CLOSED_NO_PROMOTION
+FAMILY = F1
+FAMILY_STATUS = CLOSED_NO_PROMOTION
+H04_DERIVED_CHILD_PATH = CLOSED
+RESULT_ARTIFACT_SHA256 = 2e7c84cda547e8de25c7ab7f2f95beac26655b632d2ba202e4490e51c54fd4e3
+ARTIFACT_SIZE_BYTES = 3152434
+EVIDENCE_REF = refs/heads/research-evidence/batch02/B2-04/9c2ed3ca7fab24dca832065cf4bed9a5c860a362
+RESERVED_SHA = f5a63e0b6c169bf2868e5d40357906b85e9ddbcd
+CLAIMED_SHA = 557f0df8be0ccfed712d30343b2e83be9cece4bd
+ARCHIVED_SHA = a75838482a8472148d6686c4864189c99ca2f19e
+EXECUTION_SHA = 9c2ed3ca7fab24dca832065cf4bed9a5c860a362
+EXECUTION_TREE = cc4c3691e522b4f83681ce069d4dc40a7b15d0a6
+PREREG_MERGE_SHA = bcc00d4a6180105991fd4828b7cfc7983c9c9ccf
+DATASET_SNAPSHOT = 717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415
+POST_REFRACTORY_EVENTS = 5100
+SCIENTIFIC_DEVELOPMENT_EXECUTIONS = 1
+RERUN_AUTHORIZED = NO
+REFORMULATION_CURRENT_V2 = NO
+```
 
-The next frozen formulation is:
+B2-04 was the final current-V2 F1 formulation. With B2-02, B2-03, and B2-04
+all closed without promotion, F1 directional persistence closes for current V2.
 
-`B2-04_MODERATE_PULLBACK_STRUCTURE`
+## 10. Next allowed research unit
 
-B2-04 outcome-blind preregistration now exists in
-`docs/research/B2_04_MODERATE_PULLBACK_STRUCTURE_PREREG.md` /
-`.json`. This ledger still does not implement B2-04 or authorize B2-04
-development outcomes.
+The next eligible frozen formulation on the current accepted CORE is:
 
-B2-04 must independently complete implementation, exact-SHA CI/review/merge,
-and only then receive a separate development-outcome authorization.
+`B2-05_FLOW_ABSORPTION`
 
-B2-03 rerun after this completed market verdict is **NOT AUTHORIZED**.
+Its inventory mechanism is the interaction between aggressive taker flow and
+contemporaneous price response, conditional on imbalance and price/volatility
+state. It is not an H05 imbalance-alone rescue.
 
-## 10. Validation boundary
+B2-05 still requires its own final preregistration/implementation/review/merge
+ceremony before any real development outcome access. This ledger does not
+authorize B2-05 outcomes.
+
+B2-06 remains `BLOCKED_MISSING_OBSERVABLE` until a separate OI/funding data
+expansion is authorized and frozen.
+
+## 11. Validation boundary
 
 No 2025 validation or 2026 OOS outcome has been opened by Batch02 so far.
 
-B2-01, B2-02, and B2-03 are closed at development and have no promoted
+B2-01, B2-02, B2-03, and B2-04 are closed at development and have no promoted
 candidate, therefore none has a validation path to open.
