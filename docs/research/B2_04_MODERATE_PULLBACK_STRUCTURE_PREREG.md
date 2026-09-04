@@ -221,19 +221,19 @@ Candidate and baseline therefore share constructed support. `RECOVERY_FRACTION` 
 
 Construction and refractory use a pre-H base identity:
 
-```
+```text
 CANONICAL_BASE_EVENT_ID = snapshot_id|1m|15m|15m|L_minutes|direction|pullback_start_ms|T_ms
 ```
 
 Horizon evaluation uses:
 
-```
+```text
 CANONICAL_SCORE_RECORD_ID = CANONICAL_BASE_EVENT_ID|H_minutes
 ```
 
 which expands to:
 
-```
+```text
 CANONICAL_EVENT_ID = snapshot_id|1m|15m|15m|L_minutes|direction|pullback_start_ms|T_ms|H_minutes
 ```
 
@@ -291,7 +291,7 @@ Primary candidate uses **one** representation: untransformed continuous
 No percentile, no LOW/MID/HIGH state, no other transform enters the
 candidate. Algebra:
 
-```
+```text
 RECOVERY_FRACTION = 1 - FINAL_DEPTH / MAX_ADVERSE
 ```
 
@@ -315,7 +315,7 @@ within-half depth and still look like structure.
 The frozen actual-depth control is **untransformed continuous
 `FINAL_DEPTH`** inside one OLS family.
 
-```
+```text
 BASELINE:   Y_H = a + b * FINAL_DEPTH
 CANDIDATE:  Y_H = a + b * FINAL_DEPTH + c * RECOVERY_FRACTION
 ```
