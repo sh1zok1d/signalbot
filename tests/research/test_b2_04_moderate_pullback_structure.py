@@ -587,36 +587,79 @@ def test_22_target_scale_is_causal_and_matches_an_independent_median():
 
 
 def test_23_scale_reference_requires_ref_t_plus_h_le_t():
+    """Independent-oracle attack on the frozen `ref_t + H <= T` boundary.
+
+    A strictly monotonic reference series is required: on an all-equal
+    fixture, whether the boundary element is included or excluded cannot be
+    observed in the resulting median at all, so that shape of fixture cannot
+    prove anything about `<=` vs `<`. Here every window element is distinct,
+    so dropping or keeping exactly one boundary element provably changes the
+    median, and the test is written to fail if the implementation's `<=`
+    ever regresses to `<`.
+    """
     n = 200
     H = 60
     h_steps = H // lib.HTF_MIN
     ref_steps = 40
-    abs_ret = np.full(n, 1.0, dtype=np.float64)
-    poisoned = abs_ret.copy()
-    # the first index whose own H outcome is NOT known by T must be ignored
+    span = ref_steps - h_steps + 1
+    assert span >= 2  # otherwise a single-element median can't expose the bug
+
+    values = np.arange(n, dtype=np.float64)  # strictly monotonic
     target = 100
-    poisoned[target - h_steps + 1] = 1000.0
+
     original = lib.REF_STEPS
     try:
         lib.REF_STEPS = ref_steps
-        clean = lib.past_median_abs_return(abs_ret, H)
+        got = lib.past_median_abs_return(values, H)
+    finally:
+        lib.REF_STEPS = original
+
+    # Independent oracle: the frozen reference window is exactly
+    # values[target-REF_STEPS : target-h_steps+1] (Python slice, i.e. the
+    # last legal reference index target-h_steps IS included -- ref_t+H==T).
+    lo = target - ref_steps
+    hi_inclusive = target - h_steps  # last legal reference index
+    oracle_slice = values[lo: hi_inclusive + 1]
+    assert len(oracle_slice) == span
+    correct_oracle = float(np.median(oracle_slice))
+    assert float(got[target]) == pytest.approx(correct_oracle)
+
+    # Intentionally wrong oracle that excludes the equality-boundary element
+    # (as a `<` implementation would): must disagree with both the real
+    # implementation and the correct oracle, proving the boundary element is
+    # load-bearing on this monotonic fixture.
+    wrong_oracle_slice = values[lo:hi_inclusive]  # drops index hi_inclusive
+    assert len(wrong_oracle_slice) == span - 1
+    wrong_oracle = float(np.median(wrong_oracle_slice))
+    assert wrong_oracle != pytest.approx(correct_oracle)
+    assert float(got[target]) != pytest.approx(wrong_oracle)
+
+    # ref_t + H > T (one grid step beyond the boundary) must be excluded:
+    # corrupting only that element must not move the result at all.
+    poisoned = values.copy()
+    poisoned[hi_inclusive + 1] = 10_000.0  # first index NOT known by T
+    original = lib.REF_STEPS
+    try:
+        lib.REF_STEPS = ref_steps
         dirty = lib.past_median_abs_return(poisoned, H)
     finally:
         lib.REF_STEPS = original
-    assert float(clean[target]) == pytest.approx(float(dirty[target]))
-    # the last legal reference (ref_t + H == T) is included
-    boundary = abs_ret.copy()
-    boundary[target - h_steps] = 1000.0
+    assert float(dirty[target]) == pytest.approx(correct_oracle)
+
+    # Corrupting the boundary element itself (ref_t + H == T) MUST move the
+    # result, proving it is genuinely a member of the reference set. The
+    # window is strictly increasing, so the boundary element is the window's
+    # maximum: pushing it further up would not move an odd-length median at
+    # all, so it must be pushed BELOW the median to be observable.
+    poisoned_boundary = values.copy()
+    poisoned_boundary[hi_inclusive] = -10_000.0
     original = lib.REF_STEPS
     try:
         lib.REF_STEPS = ref_steps
-        included = lib.past_median_abs_return(boundary, H)
+        boundary_dirty = lib.past_median_abs_return(poisoned_boundary, H)
     finally:
         lib.REF_STEPS = original
-    assert float(included[target]) != pytest.approx(float(clean[target])) or True
-    # explicit membership check on the frozen index window
-    span = ref_steps - h_steps + 1
-    assert span == ref_steps - h_steps + 1
+    assert float(boundary_dirty[target]) != pytest.approx(correct_oracle)
 
 
 # ---------------------------------------------------------------------------
@@ -1043,6 +1086,189 @@ def test_40b_permuting_recovery_changes_only_the_candidate_side(monkeypatch):
     again, _, _ = _single_event_cell(monkeypatch, H=60, n_placebo=1)
     assert again["scored"][0]["base_ae"] == pytest.approx(record["base_ae"])
     assert again["scored"][0]["base_pred"] == pytest.approx(record["base_pred"])
+
+
+def _counting_ols_wrapper(monkeypatch, *, outer_calls, fail_replicate_indices):
+    """Wrap lib.ols_fit so the first `outer_calls` invocations (the real
+    baseline/candidate outer fits) always succeed, and every subsequent
+    invocation (placebo replicate k, in ascending replicate order) fails
+    (returns None) iff k is in `fail_replicate_indices`.
+
+    This deterministically forces specific placebo replicates to become
+    singular/nonfinite while the true baseline/candidate cell for the same
+    scored event remains fully scoreable -- exactly the frozen-procedure
+    attack required by the BLOCKER repair.
+    """
+    real_fit = lib.ols_fit
+    counter = {"n": 0}
+
+    def wrapper(design, target):
+        idx = counter["n"]
+        counter["n"] += 1
+        if idx < outer_calls:
+            return real_fit(design, target)
+        replicate = idx - outer_calls
+        if replicate in fail_replicate_indices:
+            return None
+        return real_fit(design, target)
+
+    monkeypatch.setattr(lib, "ols_fit", wrapper)
+    return counter
+
+
+@pytest.mark.parametrize(
+    "finite_count",
+    [100, 99, 1, 0],
+)
+def test_blocker_placebo_requires_all_frozen_replicates_finite(monkeypatch, finite_count):
+    """BLOCKER repair: placebo_q95 may be computed ONLY when all N_PLACEBO
+    frozen replicates are finite. A partial-subset quantile (even 99/100)
+    must make the cell's placebo comparison unavailable and
+    placebo_separation False -- never a silent pass on a degraded subset."""
+    n_placebo = 100
+    fail_count = n_placebo - finite_count
+    fail_indices = set(range(fail_count))  # fail the first `fail_count` replicates
+    _counting_ols_wrapper(monkeypatch, outer_calls=2, fail_replicate_indices=fail_indices)
+
+    h_ms = 60 * lib.BAR_MS
+    n_train = 30
+    t0 = lib.DEV_START_MS + 30 * lib.DAY_MS
+    events = [
+        _synthetic_event(
+            t0 + k * h_ms,
+            depth=0.26 + 0.0031 * k,
+            recovery=(0.0417 * k) % 1.0,
+            y=float(((k * 7) % 11) - 5),
+            scoreable=False,
+        )
+        for k in range(n_train)
+    ]
+    evaluation = _synthetic_event(
+        t0 + n_train * h_ms, depth=0.331, recovery=0.734, y=2.25, scoreable=True
+    )
+    events.append(evaluation)
+    monkeypatch.setattr(lib, "build_score_records", _stamp_records)
+    monkeypatch.setattr(lib, "MIN_TRAIN_COUNT", n_train)
+    monkeypatch.setattr(lib, "N_PLACEBO", n_placebo)
+    monkeypatch.setattr(lib, "N_BOOT", 8)
+
+    cell = lib.evaluate_cell(
+        events, {"t_ms": np.zeros(1), "close": np.ones(1)}, 240, 60
+    )
+
+    # The true baseline/candidate cell remains fully scoreable regardless of
+    # how many placebo replicates were made to fail.
+    assert cell["N"] == 1
+    assert cell["scored"][0]["base_ae"] is not None
+    assert math.isfinite(float(cell["scored"][0]["base_ae"]))
+
+    assert cell["placebo_replicate_count_nominal"] == 100
+    assert cell["placebo_replicate_count_finite"] == finite_count
+
+    if finite_count == 100:
+        assert cell["placebo_q95"] is not None
+        assert math.isfinite(float(cell["placebo_q95"]))
+    else:
+        assert cell["placebo_q95"] is None
+        assert cell["per_cell_conditions"]["placebo_separation"] is False
+
+
+def test_blocker_placebo_never_resamples_or_falls_back(monkeypatch):
+    """No replacement replicate, no seed change, no alternate solver: a
+    failed replicate index simply contributes nothing -- the finite count
+    strictly reflects how many of the ORIGINAL 100 seeded replicates
+    succeeded, never a resampled/padded count back up to 100."""
+    _counting_ols_wrapper(monkeypatch, outer_calls=2, fail_replicate_indices={7, 42, 99})
+    h_ms = 60 * lib.BAR_MS
+    n_train = 30
+    t0 = lib.DEV_START_MS + 30 * lib.DAY_MS
+    events = [
+        _synthetic_event(
+            t0 + k * h_ms,
+            depth=0.26 + 0.0031 * k,
+            recovery=(0.0417 * k) % 1.0,
+            y=float(((k * 7) % 11) - 5),
+            scoreable=False,
+        )
+        for k in range(n_train)
+    ]
+    events.append(
+        _synthetic_event(t0 + n_train * h_ms, depth=0.331, recovery=0.734, y=2.25)
+    )
+    monkeypatch.setattr(lib, "build_score_records", _stamp_records)
+    monkeypatch.setattr(lib, "MIN_TRAIN_COUNT", n_train)
+    monkeypatch.setattr(lib, "N_PLACEBO", 100)
+    monkeypatch.setattr(lib, "N_BOOT", 8)
+    cell = lib.evaluate_cell(
+        events, {"t_ms": np.zeros(1), "close": np.ones(1)}, 240, 60
+    )
+    assert cell["placebo_replicate_count_nominal"] == 100
+    assert cell["placebo_replicate_count_finite"] == 97
+    assert cell["placebo_q95"] is None
+    assert cell["per_cell_conditions"]["placebo_separation"] is False
+    # source-level guard: no pseudoinverse / resampling escape hatch exists
+    source = Path(lib.__file__).read_text(encoding="utf-8")
+    assert "pinv" not in source
+    placebo_body = source.split("def evaluate_cell(", 1)[1].split("\ndef ", 1)[0]
+    assert "replace(" not in placebo_body
+
+
+def test_blocker_degraded_placebo_cell_cannot_join_a_promoting_neighborhood():
+    """A cell whose placebo comparison is unavailable fails
+    placebo_separation, which is one of the five per-cell conditions
+    required by both horizon_robustness and parameter_robustness -- so it
+    can never contribute to a qualifying promotion neighborhood."""
+
+    def passing_cell(L, H):
+        return {
+            "L": L,
+            "H": H,
+            "year_stability_pass": True,
+            "per_cell_conditions": {
+                name: True for name in lib.PER_CELL_GATE_NAMES
+            },
+        }
+
+    def degraded_cell(L, H):
+        conditions = {name: True for name in lib.PER_CELL_GATE_NAMES}
+        conditions["placebo_separation"] = False  # placebo_q95 unavailable
+        return {
+            "L": L,
+            "H": H,
+            "year_stability_pass": True,
+            "per_cell_conditions": conditions,
+        }
+
+    cells = []
+    for L in lib.L_VALUES:
+        for H in lib.H_VALUES:
+            cells.append(
+                {
+                    "L": L,
+                    "H": H,
+                    "year_stability_pass": False,
+                    "per_cell_conditions": {
+                        name: False for name in lib.PER_CELL_GATE_NAMES
+                    },
+                }
+            )
+    index = {(c["L"], c["H"]): i for i, c in enumerate(cells)}
+
+    # Two L values each have a "complete" adjacent-H pair, but ONE of the
+    # four cells is the placebo-degraded cell.
+    cells[index[(240, 15)]] = passing_cell(240, 15)
+    cells[index[(240, 30)]] = degraded_cell(240, 30)  # placebo blocked here
+    cells[index[(480, 15)]] = passing_cell(480, 15)
+    cells[index[(480, 30)]] = passing_cell(480, 30)
+
+    gates, neighborhoods = lib.determine_promotion_gates(cells)
+    assert gates["horizon_robustness"] is True  # 480 alone still qualifies
+    assert gates["parameter_robustness"] is False  # only one L has the full pair
+    assert neighborhoods == []
+    passed = bool(neighborhoods) and all(
+        gates.get(name) is True for name in lib.GATE_NAMES
+    )
+    assert passed is False
 
 
 def test_41_placebo_is_deterministic(monkeypatch):
@@ -1699,6 +1925,33 @@ def test_59_60_outcome_boundary_flags_are_closed(monkeypatch):
     assert evidence["2025_validation"] is False
     assert evidence["2026_oos"] is False
     assert evidence["authorized_max_partition_year"] == 2024
+
+
+def test_59b_empty_allowed_years_is_malformed_evidence_not_a_raw_valueerror():
+    """max() over an empty allowed_years must never leak as a bare
+    ValueError; it must fail closed as a deterministic B204Error."""
+    frame = {
+        "open_time_ms": np.asarray([lib.DEV_START_MS], dtype=np.int64),
+        "available_at_ms": np.asarray([lib.DEV_START_MS + lib.BAR_MS], dtype=np.int64),
+        "close": np.asarray([100.0], dtype=np.float64),
+    }
+    identity = {
+        "window": {
+            "start_inclusive_ms": lib.DEV_START_MS,
+            "end_exclusive_ms": lib.DEV_END_MS,
+            "allowed_years": [],
+        },
+        "partitions": [{"relative_path": "canonical/1m/monthly/2020-02.parquet"}],
+    }
+    with pytest.raises(lib.B204Error, match="allowed_years") as excinfo:
+        lib.derive_forbidden_window_evidence(identity, frame)
+    assert "max() arg is an empty sequence" not in str(excinfo.value)
+    # empty partitions is already guarded identically; keep both guards
+    # aligned in behavior (deterministic B204Error, not a raw exception).
+    identity["window"]["allowed_years"] = [2020]
+    identity["partitions"] = []
+    with pytest.raises(lib.B204Error, match="partition"):
+        lib.derive_forbidden_window_evidence(identity, frame)
 
 
 def test_60_forbidden_windows_fail_closed():

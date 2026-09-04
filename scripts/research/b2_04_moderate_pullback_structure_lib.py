@@ -1022,9 +1022,18 @@ def _summarize_cell(*, L, H, constructed, scored, placebo_sums):
         else np.full(N_PLACEBO, np.nan, dtype=np.float64)
     )
     placebo_finite = placebo_means[np.isfinite(placebo_means)]
+    # Frozen procedure: placebo_q95 is the 95th percentile of the exact
+    # frozen N_PLACEBO causal permutation replicates. A replicate that fails
+    # to fit (singular/nonfinite candidate design) is not silently dropped
+    # from the quantile population and not resampled with a replacement
+    # replicate -- that would compute a percentile over a different,
+    # implementation-dependent subset instead of the frozen 100. If fewer
+    # than N_PLACEBO replicates are finite, the whole cell's placebo
+    # comparison is unavailable and `placebo_separation` must fail, not pass
+    # on a partial population.
     placebo_q95 = (
         float(np.quantile(placebo_finite, PLACEBO_Q))
-        if len(placebo_finite)
+        if len(placebo_finite) == N_PLACEBO
         else float("nan")
     )
 
@@ -1214,6 +1223,8 @@ def derive_forbidden_window_evidence(run_identity, frame):
         allowed_years = tuple(int(year) for year in window["allowed_years"])
     except (KeyError, TypeError, ValueError) as exc:
         raise B204Error("authorized window evidence is malformed") from exc
+    if not allowed_years:
+        raise B204Error("authorized window evidence has an empty allowed_years")
 
     partitions = run_identity.get("partitions")
     if not isinstance(partitions, Sequence) or isinstance(partitions, (str, bytes)):

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -369,15 +370,30 @@ def test_b2_04_prereg_unit_shipped_no_runner_and_no_result_artifact():
     result_md = (
         REPO_ROOT / "docs" / "research" / "B2_04_MODERATE_PULLBACK_STRUCTURE_RESULT.md"
     )
-    dev_results = (
-        REPO_ROOT
-        / "artifacts"
-        / "b2_04_moderate_pullback_structure"
-        / "B2_04_MODERATE_PULLBACK_STRUCTURE_DEV_RESULTS.json"
-    )
     assert not result_json.exists()
     assert not result_md.exists()
-    assert not dev_results.exists()
+
+    # The canonical retained-run artifact path
+    # (artifacts/b2_04_moderate_pullback_structure/..._DEV_RESULTS.json) is
+    # NOT checked for filesystem absence here: persist_batch02_retained_result
+    # deliberately leaves that local canonical artifact in place after a
+    # legitimate future authorized run (BATCH02_DURABLE_EVIDENCE_RETENTION_V1
+    # section 8 -- the local artifact must be preserved, never deleted), so a
+    # filesystem-absence check here would fail this long-lived suite the
+    # moment a real run ever happens, for a reason unrelated to prereg
+    # integrity. The durable fact this test protects -- no B2-04 result is
+    # *committed to source control* -- is instead checked against Git's
+    # tracked-file state, which persistence never touches (the whole
+    # `artifacts/` tree is gitignored; see .gitignore) and which is exactly
+    # what "shipped by this unit" means.
+    tracked = subprocess.run(  # noqa: S603 - fixed argv, no shell, test-only
+        ["git", "ls-files", "artifacts/b2_04_moderate_pullback_structure"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    assert tracked.strip() == ""
 
     implementation = sorted(path.name for path in SCRIPTS.glob("b2_04_*.py"))
     assert implementation in (
@@ -442,3 +458,53 @@ def test_b2_04_recovery_fraction_equals_h04_pullback_depth_at_final_step():
     assert _freeze()["structural_property"]["invariants"][
         "recovery_not_function_of_final_depth_alone"
     ] is True
+
+
+def test_b2_04_post_run_artifact_presence_does_not_break_this_suite():
+    """Repair regression test: a legitimate future retained run leaves the
+    canonical local DEV_RESULTS.json artifact on disk on purpose
+    (BATCH02_DURABLE_EVIDENCE_RETENTION_V1 section 8 -- the local canonical
+    artifact must be preserved, never deleted). This suite must keep passing
+    when that artifact exists locally; it must only ever fail if a B2-04
+    result were committed to Git.
+
+    This test creates a synthetic placeholder file at the real canonical
+    path -- never touching real CORE data, never claiming outcome access,
+    and cleaned up in a `finally` block -- to prove the invariant mechanism
+    (a Git-tracked-file check, not a filesystem-existence check) actually
+    tolerates local post-run artifacts.
+    """
+    canonical_path = (
+        REPO_ROOT
+        / "artifacts"
+        / "b2_04_moderate_pullback_structure"
+        / "B2_04_MODERATE_PULLBACK_STRUCTURE_DEV_RESULTS.json"
+    )
+    assert not canonical_path.exists(), (
+        "test seam precondition: no real result artifact must already exist"
+    )
+    canonical_path.parent.mkdir(parents=True, exist_ok=True)
+    canonical_path.write_text(
+        json.dumps({"synthetic_test_seam_placeholder": True}),
+        encoding="utf-8",
+    )
+    try:
+        # Untracked/gitignored: this placeholder must be invisible to Git.
+        tracked = subprocess.run(
+            ["git", "ls-files", "artifacts/b2_04_moderate_pullback_structure"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+        assert tracked.strip() == ""
+        # The long-lived suite's post-run guard must still pass with the
+        # placeholder present.
+        test_b2_04_prereg_unit_shipped_no_runner_and_no_result_artifact()
+    finally:
+        canonical_path.unlink(missing_ok=True)
+        try:
+            canonical_path.parent.rmdir()
+        except OSError:
+            pass
+    assert not canonical_path.exists()
