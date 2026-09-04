@@ -1204,3 +1204,48 @@ This entry consumes **no** market window and opens **no** Batch02 outcomes.
 B2-02 remains `POST_RUN_EVIDENCE_RETENTION_GAP`. The new contract is
 forward-only for B2-03+. See
 `docs/research/BATCH02_DURABLE_EVIDENCE_RETENTION_V1.md`.
+
+---
+
+## 2026-09-03 — B2-03_IMPULSE_MORPHOLOGY development
+
+**Formulation:** `B2-03_IMPULSE_MORPHOLOGY`
+
+This entry records the one authorized B2-03 development outcome. It does not
+rerun B2-03.
+
+- hypothesis: `B2-03_IMPULSE_MORPHOLOGY`
+- development verdict: **`B2_03_CLOSED_NO_PROMOTION`**
+- execution SHA: `8a7490167e086a201ec7b3780878d2cf3252ecfd`
+- execution tree: `b83f4f5dfa82da6d9ab219829bbcccd214d2f11a`
+- prereg merge SHA: `61bc9cfde80c6a142ac147ebee6487a1ae710324`
+- dataset snapshot: `717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`
+- evidence ref: `refs/heads/research-evidence/batch02/B2-03/8a7490167e086a201ec7b3780878d2cf3252ecfd`
+- RESERVED: `5dec8d075e5e35db3946fef4e0b530fd719cc7d3`
+- OUTCOME_ACCESS_CLAIMED: `7a7adf1e4236286d8c69bb67efd51271ffc5473e`
+- ARCHIVED: `16854498afc34c69f62e46a387ef08e7896a5172`
+- result artifact SHA256:
+  `a3586344ac9c094eb38670a16b7566b8c1628300b6a1f6605fd69c369894b0c0`
+- artifact size: 68487026 bytes
+- scientific development executions: **1**
+- first invocation: `PRE_CLAIM_OPERATIONAL_ABORT` (isolated Git HTTPS auth;
+  no reservation, no claim, no CORE access; not `RUN_INTEGRITY_FAILURE`)
+- 2025 validation: **UNTOUCHED**
+- 2026 OOS: **UNTOUCHED**
+- constructed events: 131469
+- search surface: **15 primary cells**
+- qualifying neighborhoods: none
+- all eight frozen promotion gates failed
+- rerun authorized: **NO**
+
+B2-01 and B2-02 remain `CLOSED_NO_PROMOTION`. F1 remains `ACTIVE` because
+B2-04 is still untested. Do not reinterpret the result as market direction.
+Do not open 2025 or 2026. Do not retune current-V2 morphology. Do not add a
+current-V2 B2-03 child.
+
+Preregistration: `docs/research/B2_03_IMPULSE_MORPHOLOGY_PREREG.md`
+Development closeout: `docs/research/B2_03_IMPULSE_MORPHOLOGY_RESULT.md`
+Status ledger: `docs/research/BATCH02_STATUS_LEDGER.md`
+
+Next planned formulation: B2-04. This entry does not preregister, implement,
+or authorize B2-04 outcome access.
