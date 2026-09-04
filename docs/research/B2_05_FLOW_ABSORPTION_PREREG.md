@@ -39,8 +39,9 @@ not made "different" merely because a price-derived F1 formulation failed;
 its mechanism (F4, participation/order-flow) was already frozen distinct in
 the inventory before any Batch02 outcome existed.
 
-**Material scientific ambiguities found: NONE.** One mechanical
-implementation-contract point is resolved explicitly in §11.1.
+**Material scientific ambiguities found: NONE.** The OLS numerical-solver
+choice is resolved explicitly in §11.1 by freezing the historical
+pre-outcome primitive as-is, not by asserting solver interchangeability.
 
 ## 1. Research question
 
@@ -226,29 +227,47 @@ Candidate design: [intercept, ABS_IMB_z, FLOW_RET_z, RV_W_z, LOG_ACTIVITY_z, SID
                     IMPACT_LOW, IMPACT_HIGH]
 ```
 
-### 11.1 OLS solver contract — mechanical, not scientifically material
+### 11.1 OLS solver contract — frozen to the historical pre-outcome primitive
 
-The old outcome-blind design froze `numpy.linalg.lstsq(rcond=None)` with an
-explicit post-hoc rank/finiteness check. The already-merged B2-04
-implementation instead froze a Cholesky-of-Gram-matrix rank test followed
-by `numpy.linalg.solve`, and proved that solver bit-compatible with
-`lstsq` (max absolute coefficient difference ≈5.6e-13 across 120 random
-well-posed designs) — the two solvers accept exactly the same full-rank
-matrices and reject exactly the same rank-deficient ones.
+The old outcome-blind design at PR #92 commit
+`5fe2c7de1358d0e5e68d85c460367d53d999f9a3` froze:
 
-This choice is resolved here as **mechanical**, not scientifically
-material: on any well-posed design both solvers produce the identical
-fitted coefficients to numerical precision, and the frozen scientific
-contract — unweighted OLS, intercept included, no regularization, no
-column standardization beyond §10, full column rank required, no
-pseudoinverse, no fallback, deterministic solve — is unchanged either way.
-B2-05 freezes the same Cholesky-rank-test-plus-`numpy.linalg.solve`
-contract already established as current Batch02 canonical practice by
-`scripts/research/b2_04_moderate_pullback_structure_lib.py::ols_fit`, so
-that B2-05's future implementation does not silently reinvent a third
-numerically-different-but-scientifically-equivalent path. Rank-deficient
-or nonfinite-coefficient fits are `UNAVAILABLE_FOR_DECISION`; no fallback,
-no column drop, no pseudoinverse.
+```
+coef, residuals, rank, singular_values = numpy.linalg.lstsq(X, y, rcond=None)
+```
+
+with an explicit post-hoc full-column-rank check (`rank ==
+number_of_columns`) and an explicit finite-coefficients check. This
+prereg restores and freezes that exact primitive, unchanged, rather than
+the normal-equation (Gram-matrix Cholesky rank test followed by
+`np.linalg.solve(X'X, X'y)`) pattern used by the already-merged B2-04
+implementation.
+
+Normal-equation solving through `X'X` is **not** numerically equivalent
+to `numpy.linalg.lstsq` on all finite full-rank but ill-conditioned
+designs; finite-precision divergence between the two paths can affect
+fit availability, coefficients, predictions, AE improvement, and
+promotion outcomes. The B2-04 Cholesky-vs-`lstsq` equivalence proof
+(max absolute coefficient difference ≈5.6e-13 across 120 random
+well-posed designs) does not license substituting one solver for the
+other inside this prereg's frozen contract, so B2-05 does **not** adopt
+the B2-04 substitution and instead freezes the historical primitive
+as-is.
+
+Required behavior:
+
+- `X` and `y` finite before fit.
+- `rank == number_of_columns` (full column rank required).
+- All returned coefficients finite.
+- No exception raised by the fit call.
+- Fit unavailable ⇒ weekly model `UNAVAILABLE_FOR_DECISION`; no fallback.
+
+Explicitly forbidden: `numpy.linalg.pinv`, a Gram-matrix Cholesky
+decomposition of `X'X`, `np.linalg.solve(X'X, X'y)` or any other
+normal-equation substitution, silent minimum-norm fits, column dropping,
+ridge/lasso regularization, any solver fallback, a new condition-number
+cutoff, and any singular-value threshold beyond the `lstsq`-returned
+rank. Preprocessing (§10) is unchanged by this resolution.
 
 ## 12. Same support
 

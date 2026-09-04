@@ -280,22 +280,50 @@ def test_training_model_baseline_and_candidate_designs_are_exact():
     ]
 
 
-def test_ols_solver_contract_is_resolved_mechanical_not_material():
+def test_ols_solver_contract_restores_the_historical_lstsq_primitive():
     solver = _freeze()["ols_solver_contract"]
-    assert solver["resolution_class"] == "MECHANICAL, not scientifically material"
+    assert solver["resolution_class"] == "FROZEN TO HISTORICAL PRE-OUTCOME PRIMITIVE"
     assert solver["resolution"] == (
-        "Gram-matrix Cholesky decomposition of X'X as the full-rank test, "
-        "followed by np.linalg.solve(X'X, X'y) for the deterministic solve"
+        "numpy.linalg.lstsq(X, y, rcond=None), exactly as frozen by the old "
+        "outcome-blind design at PR #92 commit "
+        "5fe2c7de1358d0e5e68d85c460367d53d999f9a3, with an explicit "
+        "post-hoc full-column-rank check on the returned rank and an "
+        "explicit finite-coefficients check"
     )
+    assert solver["call"] == (
+        "coef, residuals, rank, singular_values = numpy.linalg.lstsq(X, y, rcond=None)"
+    )
+    for check in (
+        "X and y finite before fit",
+        "rank == number_of_columns (full column rank)",
+        "all returned coefficients finite",
+        "fit raised no exception",
+    ):
+        assert check in solver["post_fit_validity_checks"]
     for forbidden in (
-        "numpy.linalg.pinv", "numpy.linalg.lstsq", "silent minimum-norm fit",
-        "column dropping", "ridge/lasso regularization", "any solver fallback",
+        "numpy.linalg.pinv",
+        "Gram-matrix Cholesky decomposition of X'X",
+        "np.linalg.solve(X'X, X'y)",
+        "normal-equation substitution of any kind",
+        "silent minimum-norm fit",
+        "column dropping",
+        "ridge/lasso regularization",
+        "any solver fallback",
+        "a new condition-number cutoff",
+        "a singular-value threshold beyond the lstsq-returned rank",
     ):
         assert forbidden in solver["forbidden"]
+    # The mechanical-equivalence / bit-compatibility claim from the prior
+    # (repaired) revision must not survive: this prereg no longer asserts
+    # Cholesky-solve and lstsq are interchangeable for this contract.
+    assert "numpy.linalg.solve(X'X, X'y)" not in solver["resolution"]
+    assert "Cholesky" not in solver["resolution"]
     md = _md()
-    assert "OLS solver contract" in md
-    assert "5.6e-13" in md
-    assert "b2_04_moderate_pullback_structure_lib.py::ols_fit" in md
+    assert "numpy.linalg.lstsq(X, y, rcond=None)" in md
+    assert "frozen to the historical pre-outcome primitive" in md.lower()
+    assert "not scientifically material" not in md
+    assert "bit-compatible" not in md
+    assert "scientifically/mechanically interchangeable" not in md
 
 
 def test_same_support_rule_forbids_one_sided_and_post_outcome_selection():
@@ -504,7 +532,7 @@ def test_durable_retention_integration_targets_current_ceremony():
         "prepare_batch02_evidence_reservation",
         "prepare_batch02_retained_run",
         "load_authorized_parquet_table",
-        "evaluate",
+        "evaluate_b2_05",
         "persist_batch02_retained_result",
         "archive_batch02_result",
     ]
@@ -520,6 +548,22 @@ def test_durable_retention_integration_targets_current_ceremony():
     assert retention["future_local_result_path"] == (
         "artifacts/b2_05_flow_absorption/B2_05_FLOW_ABSORPTION_DEV_RESULTS.json"
     )
+
+
+def test_durable_retention_evaluate_step_is_identical_in_json_and_markdown():
+    # Guards against the JSON/Markdown "evaluate" vs "evaluate_b2_05" drift
+    # found in prior review: both representations must name the same exact
+    # evaluation-step identifier in the future ceremony.
+    ceremony = _freeze()["durable_retention_integration"]["ceremony"]
+    assert "evaluate_b2_05" in ceremony
+    assert "evaluate" not in ceremony  # bare, unsuffixed identifier forbidden
+    md = _md()
+    assert "evaluate_b2_05" in md
+    for line in md.splitlines():
+        stripped = line.strip()
+        assert stripped != "evaluate", (
+            "markdown ceremony must not contain a bare 'evaluate' step"
+        )
 
 
 def test_outcome_boundary_flags_are_closed():
@@ -569,7 +613,7 @@ def test_prereg_json_canonical_bytes_hash_is_stable():
     # Recorded once at freeze time. If this fails, the frozen B2-05 contract
     # changed -- inspect the diff before touching this constant.
     assert digest == (
-        "b2843e5458ec0cdf32caf5e8a8ba2968f04d5510b1039d3a40616f6fee2ad3f0"
+        "34e8412684ecf14fa802b5a412b4d26bb6894d835ff0b6f8ae99b1d725e759ea"
     )
 
 

@@ -213,10 +213,17 @@
   },
   "ols_solver_contract": {
     "requirement": "unweighted OLS, intercept included, no regularization, no column standardization escape, full column rank required, deterministic solve, no pseudoinverse, no fallback",
-    "resolution_class": "MECHANICAL, not scientifically material",
-    "resolution": "Gram-matrix Cholesky decomposition of X'X as the full-rank test, followed by np.linalg.solve(X'X, X'y) for the deterministic solve",
-    "why_mechanical_not_material": "on any well-posed (full column rank) design this produces the identical fitted coefficients, to numerical precision, as the old design's numpy.linalg.lstsq(rcond=None) with an explicit post-hoc rank check -- both accept exactly the same well-posed matrices and reject exactly the same rank-deficient ones; only the numerical PATH to that identical output differs, not the science. This equivalence (max |Cholesky-solve - lstsq| ~5.6e-13 across 120 random well-posed designs) was independently proven during the already-merged B2-04 implementation, which established this exact solver as current Batch02 canonical practice for a materially identical full-rank-only requirement (see scripts/research/b2_04_moderate_pullback_structure_lib.py::ols_fit).",
-    "forbidden": ["numpy.linalg.pinv", "numpy.linalg.lstsq", "silent minimum-norm fit", "column dropping", "ridge/lasso regularization", "any solver fallback"],
+    "resolution_class": "FROZEN TO HISTORICAL PRE-OUTCOME PRIMITIVE",
+    "resolution": "numpy.linalg.lstsq(X, y, rcond=None), exactly as frozen by the old outcome-blind design at PR #92 commit 5fe2c7de1358d0e5e68d85c460367d53d999f9a3, with an explicit post-hoc full-column-rank check on the returned rank and an explicit finite-coefficients check",
+    "call": "coef, residuals, rank, singular_values = numpy.linalg.lstsq(X, y, rcond=None)",
+    "post_fit_validity_checks": [
+      "X and y finite before fit",
+      "rank == number_of_columns (full column rank)",
+      "all returned coefficients finite",
+      "fit raised no exception"
+    ],
+    "why_restored_not_substituted": "normal-equation solving through the Gram matrix X'X is not numerically equivalent to numpy.linalg.lstsq on all finite full-rank but ill-conditioned designs; finite-precision divergence between the two paths can change fit availability, coefficients, predictions, AE improvement, and promotion outcomes. The B2-04 Cholesky-vs-lstsq equivalence proof does not establish interchangeability for this prereg's frozen contract, so this prereg freezes the historical primitive as-is rather than the B2-04 substitution.",
+    "forbidden": ["numpy.linalg.pinv", "Gram-matrix Cholesky decomposition of X'X", "np.linalg.solve(X'X, X'y)", "normal-equation substitution of any kind", "silent minimum-norm fit", "column dropping", "ridge/lasso regularization", "any solver fallback", "a new condition-number cutoff", "a singular-value threshold beyond the lstsq-returned rank"],
     "rank_deficient_or_nonfinite_behavior": "fit unavailable; weekly model UNAVAILABLE_FOR_DECISION; no fallback"
   },
   "same_support": {
@@ -469,7 +476,7 @@
       "prepare_batch02_evidence_reservation",
       "prepare_batch02_retained_run",
       "load_authorized_parquet_table",
-      "evaluate",
+      "evaluate_b2_05",
       "persist_batch02_retained_result",
       "archive_batch02_result"
     ],
