@@ -226,6 +226,25 @@ Deterministic append-only path, keyed by the canonical B2 slot:
 plus `receipt.json` on the same evidence ref. Path traversal, caller-selected
 filesystem destinations, overwrite, and silent replacement are rejected.
 
+GitHub regular Git storage rejects a single object above 100 MiB. Artifacts
+whose exact byte count is `<= SAFE_SINGLE_BLOB_THRESHOLD_BYTES` (90 MiB)
+keep the V1 single-file path above. Artifacts above that safe threshold are
+archived as raw byte chunks of `RAW_CHUNK_SIZE_BYTES` (64 MiB) with no
+reserialization:
+
+```text
+batch02/<B2-NN>/<code_sha>/<artifact_sha256>/manifest.json
+batch02/<B2-NN>/<code_sha>/<artifact_sha256>/chunks/00000.part
+batch02/<B2-NN>/<code_sha>/<artifact_sha256>/chunks/00001.part
+...
+```
+
+The remote artifact is valid only after independent readback reconstructs
+the original bytes by concatenating chunks in numeric ascending order and
+proving `reconstructed_sha256` and `reconstructed_size` equal the local
+canonical digest and byte count. This is not a second scientific execution
+and does not rewrite reservation or claim bytes.
+
 ## 7. Receipt
 
 The committed receipt contains:
@@ -242,6 +261,13 @@ The committed receipt contains:
 
 The remote archive commit SHA is returned as verified metadata after
 successful push/readback. It is not invented inside the committed receipt.
+
+Chunked archives additionally record, in the same committed receipt:
+
+- `archive_representation = raw_chunks`
+- `manifest_path`, `manifest_sha256`
+- `chunk_count`, `chunk_size_bytes`
+- `recovery_tool`, `recovery_code_sha`
 
 Receipts, logs, and artifacts must not contain secrets, credentials, or
 environment tokens.
