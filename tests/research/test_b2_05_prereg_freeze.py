@@ -10,9 +10,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
+
+from scripts.research import b2_05_flow_absorption as runner
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -659,10 +663,16 @@ def test_no_runner_exists_and_no_result_is_committed():
     # Git's tracked-file state, which persistence never touches (the whole
     # artifacts/ tree is gitignored) and which is exactly what "shipped by
     # this unit" means.
-    import subprocess
-
-    tracked = subprocess.run(  # noqa: S603 - fixed argv, no shell, test-only
-        ["git", "ls-files", "artifacts/b2_05_flow_absorption"],
+    # Bound to the runner's own RESULT_PATH constant (not a duplicated
+    # directory string) so this test cannot silently drift from the actual
+    # canonical local artifact location. The git executable is resolved to
+    # an absolute path (not a bare "git") to avoid a PATH-search-order
+    # partial-executable-path finding on the subprocess invocation.
+    result_dir = runner.RESULT_PATH.parent.relative_to(REPO_ROOT).as_posix()
+    git_executable = shutil.which("git")
+    assert git_executable is not None, "git executable must be resolvable for this check"
+    tracked = subprocess.run(  # noqa: S603 - absolute resolved path, fixed argv, no shell, test-only
+        [git_executable, "ls-files", result_dir],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,

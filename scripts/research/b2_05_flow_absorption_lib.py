@@ -40,6 +40,7 @@ adapted to that bounded policy rather than the policy being widened. Python
 """
 
 import hashlib
+import itertools
 import math
 from collections import defaultdict
 from decimal import Decimal
@@ -402,6 +403,29 @@ def causal_reference_count(times_ms, lookback_ms):
     return counts
 
 
+def training_pool_window(t_ms_sorted, S, H, train_ms):
+    """Stateless (left, right) bounds into an ascending `t_ms_sorted` array
+    satisfying exactly the frozen weekly training-eligibility rule
+    (prereg forecast.training_window.rule):
+
+        T_e < S  and  T_e >= S - train_ms  and  T_e + H <= S
+
+    Since `T_e + H*BAR_MS <= S` is strictly tighter than `T_e < S` whenever
+    H > 0 (always true here), the binding upper condition reduces to
+    `T_e <= S - H*BAR_MS`. This is the exact predicate `evaluate_cell`'s
+    incremental two-pointer walk-forward loop maintains (proven equivalent
+    to it in the test suite); it exists as a standalone, stateless
+    function so the T_e + H <= S boundary can be exercised directly without
+    depending on OLS rank/standardization concerns.
+    """
+    times = np.asarray(t_ms_sorted, dtype=np.int64)
+    upper_bound = int(S) - int(H) * BAR_MS
+    cutoff_low = int(S) - int(train_ms)
+    right = int(np.count_nonzero(times <= upper_bound))
+    left = int(np.count_nonzero(times[:right] < cutoff_low))
+    return left, right
+
+
 # ---------------------------------------------------------------------------
 # STAGE A - per-W flow construction (no refractory, no threshold selection)
 # ---------------------------------------------------------------------------
@@ -467,7 +491,7 @@ def build_flow_frame(frame_1m, W, close15, t_ms15):
         ee_c = i_end[clean_idx]
         total_w[clean_idx] = cumsum_base[ee_c + 1] - cumsum_base[se_c]
         taker_buy_w[clean_idx] = cumsum_taker[ee_c + 1] - cumsum_taker[se_c]
-        rv_sq = cumsum_sqret[ee + 1] - cumsum_sqret[se + 1]
+        rv_sq = cumsum_sqret[ee + 1] - cumsum_sqret[se]
         with np.errstate(invalid="ignore"):
             rv_w[ok_idx] = np.sqrt(rv_sq)
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -739,21 +763,33 @@ def _candidate_design(z_cols, side_buy, impact_low, impact_high):
 # ---------------------------------------------------------------------------
 # STAGE D - weekly walk-forward per-cell evaluation
 # ---------------------------------------------------------------------------
-def _week_bootstrap_interval(improvements, times, W, H):
+def _week_bootstrap_interval(improvements, times, score_ids, W, H):
     """UTC ISO-week block bootstrap of the pooled mean AE improvement.
-    One RNG stream per (W,H) cell for all N_BOOT replicates in order."""
+    One RNG stream per (W,H) cell for all N_BOOT replicates in order.
+
+    Within each ISO-week block, observations are summed in ascending
+    CANONICAL_SCORE_RECORD_ID order (prereg controls.bootstrap_within_week_
+    sort), not insertion/T order -- the two differ whenever a week mixes
+    BUY and SELL rows, since `side` precedes the timestamp fields in the
+    frozen id. Floating-point addition is not strictly associative, so this
+    ordering is honored exactly rather than assumed immaterial.
+    """
     values = np.asarray(improvements, dtype=np.float64)
     stamps = np.asarray(times, dtype=np.int64)
     if len(values) == 0:
         return float("nan"), float("nan")
     groups = defaultdict(list)
-    for value, t in zip(values, stamps):
-        groups[iso_week_id(int(t))].append(float(value))
+    for value, t, score_id in zip(values, stamps, score_ids):
+        groups[iso_week_id(int(t))].append((str(score_id), float(value)))
     keys = sorted(groups)
     if not keys:
         return float("nan"), float("nan")
-    sums = np.asarray([sum(groups[key]) for key in keys], dtype=np.float64)
-    counts = np.asarray([len(groups[key]) for key in keys], dtype=np.int64)
+    ordered_groups = {
+        key: [v for _sid, v in sorted(groups[key], key=lambda pair: pair[0])]
+        for key in keys
+    }
+    sums = np.asarray([sum(ordered_groups[key]) for key in keys], dtype=np.float64)
+    counts = np.asarray([len(ordered_groups[key]) for key in keys], dtype=np.int64)
     rng = np.random.default_rng(seed_int((SEED_BOOT, int(W), int(H))))
     draws = np.empty(N_BOOT, dtype=np.float64)
     n_blocks = len(keys)
@@ -822,6 +858,31 @@ def per_cell_conditions(
     }
 
 
+def _pool_score_ids(pool, *, w_minutes, h_minutes, side_code, t_ms, snapshot_id):
+    """Exact frozen CANONICAL_SCORE_RECORD_ID for every pooled row, using the
+    canonical id helpers -- never an alternate serialization."""
+    ids = []
+    for j in pool:
+        side_label = SIDE_LABELS[int(side_code[j])]
+        base_id = canonical_base_event_id(
+            W=w_minutes, side=side_label, T_ms=int(t_ms[j]), snapshot_id=snapshot_id
+        )
+        ids.append(canonical_score_record_id(base_id, h_minutes))
+    return ids
+
+
+def _sort_pool_by_canonical_score_id(pool, *, w_minutes, h_minutes, side_code, t_ms, snapshot_id):
+    """Ascending CANONICAL_SCORE_RECORD_ID row order (prereg preprocessing.
+    row_order), applied before training statistics, matrix construction,
+    fit, and audit hashes."""
+    ids = _pool_score_ids(
+        pool, w_minutes=w_minutes, h_minutes=h_minutes, side_code=side_code,
+        t_ms=t_ms, snapshot_id=snapshot_id,
+    )
+    order = sorted(range(len(pool)), key=lambda k: ids[k])
+    return np.asarray([int(pool[k]) for k in order], dtype=np.int64)
+
+
 def evaluate_cell(flow, H, snapshot_id=REQUIRED_SNAPSHOT):
     """Score one frozen (W,H) cell under the weekly walk-forward same-support
     contract. `flow` must already carry impact_state / nuisance quintiles
@@ -829,7 +890,6 @@ def evaluate_cell(flow, H, snapshot_id=REQUIRED_SNAPSHOT):
     h_minutes = int(H)
     w_minutes = int(flow["W"])
     t_ms = flow["t_ms"]
-    n = len(t_ms)
 
     raw_ret = horizon_returns(flow["close"], t_ms, h_minutes)
     scale = past_median_abs_return(np.abs(raw_ret), h_minutes)
@@ -891,23 +951,18 @@ def evaluate_cell(flow, H, snapshot_id=REQUIRED_SNAPSHOT):
     scored = []
     placebo_sums = np.zeros(N_PLACEBO, dtype=np.float64)
 
-    b_left = b_right = 0
-    c_left = c_right = 0
+    baseline_t_ms = t_ms[baseline_idx_all] if len(baseline_idx_all) else baseline_idx_all
+    candidate_t_ms = t_ms[candidate_idx_all] if len(candidate_idx_all) else candidate_idx_all
 
     for S in weeks_with_current:
-        upper_bound = S - h_minutes * BAR_MS
-        cutoff_low = S - TRAIN_MS
-
-        while b_right < len(baseline_idx_all) and t_ms[baseline_idx_all[b_right]] <= upper_bound:
-            b_right += 1
-        while b_left < b_right and t_ms[baseline_idx_all[b_left]] < cutoff_low:
-            b_left += 1
+        # Exact frozen training-eligibility rule (T_e < S and T_e >= S -
+        # TRAIN_MS and T_e + H <= S), applied via the standalone, directly
+        # tested training_pool_window predicate -- not a parallel
+        # reimplementation of the same boundary.
+        b_left, b_right = training_pool_window(baseline_t_ms, S, h_minutes, TRAIN_MS)
         baseline_pool = baseline_idx_all[b_left:b_right]
 
-        while c_right < len(candidate_idx_all) and t_ms[candidate_idx_all[c_right]] <= upper_bound:
-            c_right += 1
-        while c_left < c_right and t_ms[candidate_idx_all[c_left]] < cutoff_low:
-            c_left += 1
+        c_left, c_right = training_pool_window(candidate_t_ms, S, h_minutes, TRAIN_MS)
         candidate_pool = candidate_idx_all[c_left:c_right]
 
         if len(baseline_pool) < MIN_BASELINE_N or len(candidate_pool) < MIN_CANDIDATE_N:
@@ -922,13 +977,29 @@ def evaluate_cell(flow, H, snapshot_id=REQUIRED_SNAPSHOT):
         ):
             continue
 
-        # canonical row order: T_ms sort is provably equivalent to sorting
-        # by CANONICAL_SCORE_RECORD_ID within one (W,H) pool -- side is a
-        # deterministic function of T_ms here, so no two pooled rows share a
-        # T_ms, and the id's only varying field is T_ms itself (see the
-        # dedicated equivalence test).
-        baseline_pool = np.sort(baseline_pool)
-        candidate_pool = np.sort(candidate_pool)
+        # Canonical row order: ascending CANONICAL_SCORE_RECORD_ID (prereg
+        # preprocessing.row_order), not a bare T_ms sort. The frozen id
+        # format places `side` BEFORE the timestamp fields
+        # (snapshot_id|1m|15m|W|side|interval_start_ms|interval_end_ms|
+        # T_ms|H), so a mixed BUY/SELL pool sorted by id groups all BUY rows
+        # (lexicographically first) ahead of all SELL rows -- this is NOT
+        # the same order as a plain ascending-T_ms sort across both sides.
+        baseline_pool = _sort_pool_by_canonical_score_id(
+            baseline_pool,
+            w_minutes=w_minutes,
+            h_minutes=h_minutes,
+            side_code=side_code,
+            t_ms=t_ms,
+            snapshot_id=snapshot_id,
+        )
+        candidate_pool = _sort_pool_by_canonical_score_id(
+            candidate_pool,
+            w_minutes=w_minutes,
+            h_minutes=h_minutes,
+            side_code=side_code,
+            t_ms=t_ms,
+            snapshot_id=snapshot_id,
+        )
 
         base_cols = np.column_stack(
             (abs_imb[baseline_pool], flow_ret[baseline_pool], rv_w[baseline_pool], log_activity[baseline_pool])
@@ -959,6 +1030,13 @@ def evaluate_cell(flow, H, snapshot_id=REQUIRED_SNAPSHOT):
 
         current_week_idx = current_by_week[S]
         base_ae_by_i = {}
+        # Placebo must score exactly the real-scored support (Blocker 2):
+        # a current-week candidate index whose real base/candidate
+        # prediction is unavailable or nonfinite is never scored for THIS
+        # cell at all, so it must not silently appear only in the placebo
+        # accumulation either. `real_scored_idx` is the exact subset of
+        # `current_week_idx` that produced a real scored record.
+        real_scored_idx = []
         for i in current_week_idx:
             zi = (np.asarray([abs_imb[i], flow_ret[i], rv_w[i], log_activity[i]]) - base_mean) / base_std
             base_pred = float(base_beta[0] + np.dot(base_beta[1:5], zi) + base_beta[5] * side_buy[i])
@@ -977,6 +1055,7 @@ def evaluate_cell(flow, H, snapshot_id=REQUIRED_SNAPSHOT):
             base_ae = abs(float(y[i]) - base_pred)
             cand_ae = abs(float(y[i]) - cand_pred)
             base_ae_by_i[int(i)] = base_ae
+            real_scored_idx.append(int(i))
             side_label = SIDE_LABELS[int(side_code[i])]
             base_event_id = canonical_base_event_id(
                 W=w_minutes, side=side_label, T_ms=int(t_ms[i]), snapshot_id=snapshot_id
@@ -998,7 +1077,7 @@ def evaluate_cell(flow, H, snapshot_id=REQUIRED_SNAPSHOT):
                 }
             )
 
-        if not current_week_idx:
+        if not real_scored_idx:
             continue
 
         strata = defaultdict(list)
@@ -1027,7 +1106,7 @@ def evaluate_cell(flow, H, snapshot_id=REQUIRED_SNAPSHOT):
         # nonfinite-prediction semantics are unchanged (see the dedicated
         # equivalence test against a from-scratch per-event/per-replicate
         # oracle).
-        cur_idx_arr = np.asarray(current_week_idx, dtype=np.int64)
+        cur_idx_arr = np.asarray(real_scored_idx, dtype=np.int64)
         cur_cols = np.column_stack(
             (
                 abs_imb[cur_idx_arr],
@@ -1086,6 +1165,7 @@ def _summarize_cell(*, W, H, scored, placebo_sums):
     base_ae = np.asarray([r["base_ae"] for r in scored], dtype=np.float64)
     cand_ae = np.asarray([r["candidate_ae"] for r in scored], dtype=np.float64)
     times = np.asarray([r["T"] for r in scored], dtype=np.int64)
+    score_ids = [str(r["score_record_id"]) for r in scored]
 
     mean_improvement = float(np.mean(improvements)) if len(improvements) else float("nan")
     median_improvement = float(np.median(improvements)) if len(improvements) else float("nan")
@@ -1096,7 +1176,7 @@ def _summarize_cell(*, W, H, scored, placebo_sums):
         if math.isfinite(mean_base) and mean_base > 0.0 and math.isfinite(mean_cand)
         else float("nan")
     )
-    ci_low, ci_high = _week_bootstrap_interval(improvements, times, W, H)
+    ci_low, ci_high = _week_bootstrap_interval(improvements, times, score_ids, W, H)
 
     def _residual_median(state):
         values = [r["base_residual"] for r in scored if r["impact_state"] == state]
@@ -1215,19 +1295,32 @@ def _cell_six_pass(cell):
 
 
 def determine_promotion_gates(cells):
-    """Nine frozen gates; a neighborhood is one adjacent-H pair at two W."""
+    """Nine frozen gates. A promotion neighborhood is EXACTLY one adjacent-H
+    pair crossed with exactly two distinct W values (four cells total,
+    never three W's / six cells). Frozen enumeration order: H-pairs in
+    ADJACENT_H_PAIRS order, then ascending lexicographic W-pairs within
+    that H-pair (itertools.combinations over the sorted W's that already
+    six-gate-pass this H-pair, which preserves the same relative order as
+    combinations over the full frozen W_VALUES). The FIRST qualifying
+    neighborhood is selected and neighborhood search stops there
+    (no_ranking_by_effect_size, no_mosaic_promotion); horizon_robustness
+    and parameter_robustness remain per-H-pair diagnostics (evaluated
+    across every W within that one H-pair, never mixed across different
+    H-pairs), but year_stability and the returned neighborhood are tied
+    exactly to the single selected four-cell neighborhood, not to scattered
+    evidence from cells that never co-qualify.
+    """
     by_key = {(int(c["W"]), int(c["H"])): c for c in cells if "W" in c and "H" in c}
     per_gate_evidence = {name: False for name in PER_CELL_GATE_NAMES}
     horizon_robustness = False
     parameter_robustness = False
-    year_stability = False
-    neighborhoods = []
+    selected = None
+    sorted_w_values = sorted(W_VALUES)
 
     for h1, h2 in ADJACENT_H_PAIRS:
         per_gate_w = {name: [] for name in PER_CELL_GATE_NAMES}
-        core_w = []
-        stable_w = []
-        for w in W_VALUES:
+        six_pass_w = []
+        for w in sorted_w_values:
             c1 = by_key.get((w, h1))
             c2 = by_key.get((w, h2))
             if c1 is None or c2 is None:
@@ -1244,25 +1337,32 @@ def determine_promotion_gates(cells):
                     per_gate_w[name].append(int(w))
             if _cell_six_pass(c1) and _cell_six_pass(c2):
                 horizon_robustness = True
-                core_w.append(int(w))
-                if c1.get("year_stability_pass") is True and c2.get("year_stability_pass") is True:
-                    stable_w.append(int(w))
+                six_pass_w.append(int(w))
         for name, passing in per_gate_w.items():
             if len(passing) >= 2:
                 per_gate_evidence[name] = True
-        if len(core_w) >= 2:
+        if len(six_pass_w) >= 2:
             parameter_robustness = True
-        if len(stable_w) >= 2:
-            year_stability = True
-            neighborhoods.append(
-                {
-                    "H_pair": [h1, h2],
-                    "W": list(stable_w),
-                    "cells": [{"W": w, "H": h} for w in stable_w for h in (h1, h2)],
-                }
-            )
 
-    neighborhoods.sort(key=lambda item: (item["H_pair"], item["W"]))
+        if selected is None:
+            for w1, w2 in itertools.combinations(six_pass_w, 2):
+                four_cells = (
+                    by_key[(w1, h1)], by_key[(w1, h2)],
+                    by_key[(w2, h1)], by_key[(w2, h2)],
+                )
+                if all(cell.get("year_stability_pass") is True for cell in four_cells):
+                    selected = {
+                        "H_pair": [h1, h2],
+                        "W": [w1, w2],
+                        "cells": [
+                            {"W": w1, "H": h1}, {"W": w1, "H": h2},
+                            {"W": w2, "H": h1}, {"W": w2, "H": h2},
+                        ],
+                    }
+                    break
+
+    year_stability = selected is not None
+    neighborhoods = [selected] if selected is not None else []
     gates = {
         **per_gate_evidence,
         "horizon_robustness": horizon_robustness,
@@ -1270,6 +1370,15 @@ def determine_promotion_gates(cells):
         "year_stability": year_stability,
     }
     return gates, neighborhoods
+
+
+def promotion_verdict(gates, neighborhoods):
+    """Final promotion boolean and verdict name from the nine frozen gates
+    and the (at most one) selected neighborhood -- a standalone function so
+    tests can drive the real pass/fail predicate directly instead of
+    reimplementing it."""
+    passed = bool(neighborhoods) and all(gates.get(name) is True for name in GATE_NAMES)
+    return passed, (VERDICT_PROMOTED if passed else VERDICT_CLOSED)
 
 
 # ---------------------------------------------------------------------------
@@ -1366,7 +1475,7 @@ def evaluate_b2_05(frame_1m, snapshot_id=REQUIRED_SNAPSHOT):
             cells.append(cell)
 
     gates, neighborhoods = determine_promotion_gates(cells)
-    passed = bool(neighborhoods) and all(gates.get(name) is True for name in GATE_NAMES)
+    passed, verdict = promotion_verdict(gates, neighborhoods)
 
     return {
         "hypothesis_id": HYPOTHESIS_ID,
@@ -1400,6 +1509,6 @@ def evaluate_b2_05(frame_1m, snapshot_id=REQUIRED_SNAPSHOT):
             "required_gate_names": list(GATE_NAMES),
             "qualifying_neighborhoods": neighborhoods,
             "passed": passed,
-            "verdict": VERDICT_PROMOTED if passed else VERDICT_CLOSED,
+            "verdict": verdict,
         },
     }

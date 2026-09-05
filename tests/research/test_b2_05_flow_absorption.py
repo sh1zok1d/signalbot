@@ -61,6 +61,36 @@ def _flat_frame(n_days, *, base_volume=10.0, taker_ratio=0.5, seed=0, vol=0.0006
     }
 
 
+def _varying_frame(n_days, *, taker_ratio_mean=0.5, seed=0, vol=0.0006, start_ms=None):
+    """Like `_flat_frame`, but base_volume and the taker ratio jitter around
+    their means instead of being perfectly constant. A perfectly flat
+    volume/ratio makes ABS_IMB/RV_W/LOG_ACTIVITY exactly constant across an
+    entire pool, which fails OLS standardization (std == 0) for every week
+    and silently produces zero scored records -- this fixture is required
+    for any test that needs a genuinely scoreable (N > 0) cell. The ratio
+    mean is centered near 0.5 (not strongly biased toward one side): a
+    strong bias leaves ~0 rows of the minority side in most windows, making
+    SIDE_BUY constant and perfectly collinear with the intercept -- a
+    genuine (correctly detected) rank-deficient baseline design, not a bug,
+    but not what a "both sides present" fixture needs either."""
+    rng = np.random.default_rng(seed)
+    n = int(n_days) * 24 * 60
+    start = lib.WARMUP_START_MS if start_ms is None else int(start_ms)
+    open_ms = start + np.arange(n, dtype=np.int64) * lib.BAR_MS
+    avail_ms = open_ms + lib.BAR_MS
+    close = 100.0 * np.exp(np.cumsum(rng.normal(0.0, vol, n)))
+    base_volume = np.abs(rng.normal(10.0, 2.0, n)) + 1.0
+    ratio = np.clip(rng.normal(taker_ratio_mean, 0.06, n), 0.05, 0.95)
+    taker_buy = base_volume * ratio
+    return {
+        "open_time_ms": open_ms,
+        "available_at_ms": avail_ms,
+        "close": close,
+        "base_volume": base_volume,
+        "taker_buy_base_volume": taker_buy,
+    }
+
+
 def _shrink_thresholds(monkeypatch, **overrides):
     """Shrink the frozen-but-large minimum-N / lookback constants so a small
     synthetic frame can exercise the full weekly walk-forward + placebo
@@ -159,17 +189,57 @@ def test_training_pool_requires_t_e_plus_h_le_s(monkeypatch):
     assert cell["N"] == 0
 
 
+def test_training_pool_boundary_t_e_plus_h_equals_s_is_eligible_greater_is_not():
+    # Direct boundary proof against the exact predicate evaluate_cell's
+    # weekly walk-forward loop uses (lib.training_pool_window), independent
+    # of OLS rank/standardization concerns.
+    h = 30
+    s = lib.iso_week_start_ms(lib.DEV_START_MS + 100 * lib.DAY_MS)
+    boundary_t_eligible = s - h * lib.BAR_MS  # T_e + H == S exactly
+    boundary_t_ineligible = boundary_t_eligible + lib.HTF_MS  # T_e + H == S + 15m > S
+
+    times_eligible = np.array([boundary_t_eligible], dtype=np.int64)
+    left, right = lib.training_pool_window(times_eligible, s, h, 1000 * lib.DAY_MS)
+    assert (left, right) == (0, 1)  # included
+
+    times_ineligible = np.array([boundary_t_ineligible], dtype=np.int64)
+    left, right = lib.training_pool_window(times_ineligible, s, h, 1000 * lib.DAY_MS)
+    assert (left, right) == (0, 0)  # excluded
+
+
+def test_training_pool_window_matches_brute_force_oracle():
+    rng = np.random.default_rng(13)
+    times = np.sort(rng.choice(np.arange(0, 2_000_000, 15_000), size=80, replace=False)).astype(np.int64)
+    s = 1_500_000
+    h = 30
+    train_ms = 900_000
+    left, right = lib.training_pool_window(times, s, h, train_ms)
+    upper_bound = s - h * lib.BAR_MS
+    cutoff_low = s - train_ms
+    brute_included = [i for i, t in enumerate(times) if cutoff_low <= t <= upper_bound]
+    if brute_included:
+        assert left == brute_included[0]
+        assert right == brute_included[-1] + 1
+    else:
+        assert right - left == 0
+
+
 # ---------------------------------------------------------------------------
 # 2. same support
 # ---------------------------------------------------------------------------
 def test_baseline_and_candidate_current_score_ids_are_exactly_equal(monkeypatch):
     _shrink_thresholds(monkeypatch)
-    frame = _flat_frame(40, taker_ratio=0.6)
+    # _varying_frame (not _flat_frame): a perfectly flat volume/ratio makes
+    # every continuous feature exactly constant across a whole pool, which
+    # fails OLS standardization (std == 0) every week and silently produces
+    # zero scored records -- a vacuously-passing test.
+    frame = _varying_frame(40)
     frame15 = lib.aggregate_1m_to_15m(frame)
     flow = lib.build_flow_frame(frame, 15, frame15["close"], frame15["t_ms"])
     flow = lib.attach_impact_state(flow)
     flow = lib.attach_nuisance_bins(flow)
     cell = lib.evaluate_cell(flow, 30)
+    assert cell["N"] > 0  # non-vacuous: this cell must actually score records
     for record in cell["scored"]:
         # every scored record carries both a base_pred and candidate_pred --
         # there is no code path that scores one model without the other.
@@ -177,6 +247,60 @@ def test_baseline_and_candidate_current_score_ids_are_exactly_equal(monkeypatch)
         assert math.isfinite(record["candidate_pred"])
     assert cell["same_support"]["score_record_count"] == len(cell["score_record_ids"])
     assert len(set(cell["score_record_ids"])) == len(cell["score_record_ids"])
+
+
+def test_canonical_row_order_differs_from_t_only_order_for_mixed_sides():
+    # The frozen CANONICAL_SCORE_RECORD_ID places `side` BEFORE the
+    # timestamp fields, so a pool mixing BUY and SELL rows sorted by id
+    # groups all BUY rows (lexicographically first) ahead of all SELL rows
+    # -- NOT the same order as a plain ascending-T sort across both sides.
+    base_t = lib.DEV_START_MS
+    pool = np.array([0, 1, 2, 3], dtype=np.int64)  # positional indices
+    t_ms = np.array(
+        [base_t, base_t + lib.HTF_MS, base_t + 2 * lib.HTF_MS, base_t + 3 * lib.HTF_MS],
+        dtype=np.int64,
+    )
+    # T-ascending sides: SELL, BUY, SELL, BUY
+    side_code = np.array([-1, 1, -1, 1], dtype=np.int8)
+
+    t_order = np.sort(pool)
+    assert list(t_order) == [0, 1, 2, 3]  # the old (buggy) T-only order
+
+    id_order = lib._sort_pool_by_canonical_score_id(
+        pool, w_minutes=15, h_minutes=30, side_code=side_code, t_ms=t_ms,
+        snapshot_id=lib.REQUIRED_SNAPSHOT,
+    )
+    # canonical-id order groups BUY (indices 1, 3) before SELL (0, 2),
+    # each side internally ascending by T -- exactly [1, 3, 0, 2].
+    assert list(id_order) == [1, 3, 0, 2]
+    assert list(id_order) != list(t_order)
+
+    ids = lib._pool_score_ids(
+        pool, w_minutes=15, h_minutes=30, side_code=side_code, t_ms=t_ms,
+        snapshot_id=lib.REQUIRED_SNAPSHOT,
+    )
+    reordered_ids = [ids[i] for i in id_order]
+    assert reordered_ids == sorted(ids)
+
+
+def test_evaluate_cell_calls_the_canonical_sort_not_a_bare_t_sort():
+    # Mutation-proof for Blocker 3: OLS is permutation-invariant in its row
+    # order (the fitted coefficients do not observably change), so an
+    # end-to-end numeric comparison cannot distinguish "sorted by canonical
+    # score id" from "sorted by bare T" -- the two orderings must instead be
+    # enforced structurally. This inspects evaluate_cell's own source body
+    # to prove it calls _sort_pool_by_canonical_score_id for both pools and
+    # does not fall back to a bare np.sort(pool) substitute.
+    tree = ast.parse(LIB_SRC)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "evaluate_cell":
+            src = ast.get_source_segment(LIB_SRC, node)
+            assert src.count("_sort_pool_by_canonical_score_id(") == 2
+            assert "np.sort(baseline_pool)" not in src
+            assert "np.sort(candidate_pool)" not in src
+            break
+    else:
+        raise AssertionError("evaluate_cell not found")
 
 
 def test_candidate_unavailability_removes_current_record_from_both(monkeypatch):
@@ -191,6 +315,47 @@ def test_candidate_unavailability_removes_current_record_from_both(monkeypatch):
     flow = lib.attach_nuisance_bins(flow)
     cell = lib.evaluate_cell(flow, 30)
     assert cell["N"] == 0
+
+
+def test_placebo_uses_exact_real_scored_support_not_all_current_week(monkeypatch):
+    """Blocker 2 regression: one current-week candidate index whose REAL
+    base/candidate prediction is nonfinite (here, an overflowed FLOW_RET
+    standardization -- the same `math.isfinite(base_pred)`/
+    `math.isfinite(cand_pred)` check the production code already applies to
+    every scored record) must be silently excluded from scoring -- and,
+    critically, must not appear only in the placebo accumulation either
+    (which would KeyError on base_ae_by_i or silently normalize by a
+    different denominator than the real support)."""
+    _shrink_thresholds(monkeypatch, N_PLACEBO=3)
+    frame = _varying_frame(40)
+    frame15 = lib.aggregate_1m_to_15m(frame)
+    flow = lib.build_flow_frame(frame, 15, frame15["close"], frame15["t_ms"])
+    flow = lib.attach_impact_state(flow)
+    flow = lib.attach_nuisance_bins(flow)
+
+    # Establish a normal baseline run first to find a genuinely scoreable
+    # current-week index to poison.
+    baseline_cell = lib.evaluate_cell(flow, 30)
+    assert baseline_cell["N"] > 0
+    poisoned_index = baseline_cell["scored"][-1]["index"]
+
+    # Inject a non-finite FLOW_RET at that one current record only -- once
+    # standardized (z = (x - mean) / std) and dotted with a nonzero
+    # coefficient, this deterministically overflows base_pred/cand_pred to
+    # a non-finite value, exercising the exact `math.isfinite` guard the
+    # production code already applies. Every other record is untouched.
+    poisoned_flow_ret = np.array(flow["flow_ret"], copy=True)
+    poisoned_flow_ret[poisoned_index] = np.inf
+    flow["flow_ret"] = poisoned_flow_ret
+    flow["impact_interaction"] = np.where(
+        flow["side_code"] != 0, flow["abs_imb"] * flow["flow_ret"], np.nan
+    )
+
+    cell = lib.evaluate_cell(flow, 30)  # must not raise (no KeyError)
+    scored_indices = {r["index"] for r in cell["scored"]}
+    assert poisoned_index not in scored_indices
+    assert cell["N"] == baseline_cell["N"] - 1
+    assert cell["placebo_replicate_count_finite"] <= lib.N_PLACEBO
 
 
 # ---------------------------------------------------------------------------
@@ -222,13 +387,22 @@ def test_negative_base_volume_row_poisons_touching_windows():
 
 
 def test_taker_buy_negative_or_exceeding_base_fails_closed():
-    frame = _flat_frame(3)
+    # taker_ratio=0.6 (not the flat-0.5 default) so IMB is nonzero and side
+    # is determined away from the malformed rows -- a flat 0.5 ratio would
+    # make every window's IMB exactly zero and mask the positive-control
+    # (distant clean window) assertion below.
+    frame = _flat_frame(3, taker_ratio=0.6)
     frame["taker_buy_base_volume"][50] = -0.1
     frame["taker_buy_base_volume"][51] = frame["base_volume"][51] * 2.0
     frame15 = lib.aggregate_1m_to_15m(frame)
     flow = lib.build_flow_frame(frame, 15, frame15["close"], frame15["t_ms"])
-    bucket = 51 // lib.HTF_MIN
-    assert not flow["valid_features"][bucket]
+    bucket_50 = 50 // lib.HTF_MIN
+    bucket_51 = 51 // lib.HTF_MIN
+    assert not flow["valid_features"][bucket_50]
+    assert not flow["valid_features"][bucket_51]
+    # positive control: a distant, untouched window remains valid
+    far = bucket_51 + 40
+    assert flow["valid_features"][far]
 
 
 def test_total_w_zero_is_unavailable():
@@ -249,7 +423,10 @@ def test_imb_exactly_zero_is_unavailable():
 
 
 def test_nan_and_inf_volume_rows_fail_closed_not_propagate():
-    frame = _flat_frame(3)
+    # taker_ratio=0.6 so side is determined away from the malformed rows --
+    # see test_taker_buy_negative_or_exceeding_base_fails_closed for why the
+    # flat-0.5 default would make this a vacuous positive control.
+    frame = _flat_frame(3, taker_ratio=0.6)
     frame["base_volume"][200] = float("nan")
     frame["taker_buy_base_volume"][201] = float("inf")
     frame15 = lib.aggregate_1m_to_15m(frame)
@@ -258,10 +435,11 @@ def test_nan_and_inf_volume_rows_fail_closed_not_propagate():
     b2 = 201 // lib.HTF_MIN
     assert not flow["valid_features"][b1]
     assert not flow["valid_features"][b2]
-    # no NaN/inf leaks into an otherwise-valid distant bucket
+    # positive control: no NaN/inf leaks into an otherwise-valid distant
+    # bucket -- a hard assertion, not a conditional one.
     far = b1 + 40
-    if flow["valid_features"][far]:
-        assert math.isfinite(flow["total_w"][far])
+    assert flow["valid_features"][far]
+    assert math.isfinite(flow["total_w"][far])
 
 
 def test_table_to_1m_frame_tolerates_malformed_volume_without_raising():
@@ -520,13 +698,22 @@ def test_single_event_failure_poisons_whole_replicate_via_nan_propagation():
 # ---------------------------------------------------------------------------
 # 9. bootstrap
 # ---------------------------------------------------------------------------
+def _synthetic_score_ids(times, sides=None):
+    ids = []
+    for k, t in enumerate(times):
+        side = "BUY" if sides is None else sides[k]
+        ids.append(f"snap|1m|15m|15|{side}|{int(t) - 15 * lib.BAR_MS}|{int(t)}|{int(t)}|30")
+    return ids
+
+
 def test_bootstrap_is_deterministic_for_fixed_inputs():
     times = np.array(
         [lib.DEV_START_MS + i * lib.DAY_MS for i in range(20)], dtype=np.int64
     )
     values = np.linspace(-1.0, 1.0, 20)
-    a = lib._week_bootstrap_interval(values, times, 15, 30)
-    b = lib._week_bootstrap_interval(values, times, 15, 30)
+    ids = _synthetic_score_ids(times)
+    a = lib._week_bootstrap_interval(values, times, ids, 15, 30)
+    b = lib._week_bootstrap_interval(values, times, ids, 15, 30)
     assert a == b
 
 
@@ -535,21 +722,68 @@ def test_bootstrap_iso_year_boundary_uses_isocalendar_not_gregorian_year():
     # ISO year 2020 week 53 for the days before Jan 1, and ISO week 1 of 2021
     # starts Monday 2021-01-04. Confirm iso_week_id crosses correctly.
     dec_28 = 1_609_113_600_000  # 2020-12-28T00:00:00Z (Monday)
+    jan_1_2021 = 1_609_459_200_000  # 2021-01-01T00:00:00Z (Friday)
     jan_4 = 1_609_718_400_000  # 2021-01-04T00:00:00Z (Monday)
     assert lib.iso_week_id(dec_28) // 100 == 2020
+    # Gregorian calendar year is 2021, but the ISO week-numbering year/week
+    # is 2020-W53 -- this is exactly the divergence the frozen contract
+    # requires (bootstrap_week_id must use isocalendar(), not the Gregorian
+    # year).
+    assert lib.utc_year(jan_1_2021) == 2021
+    assert lib.iso_week_id(jan_1_2021) == 2020 * 100 + 53
     assert lib.iso_week_id(jan_4) // 100 == 2021
+
+
+def test_bootstrap_within_week_sums_in_canonical_score_id_order_not_t_order():
+    # A week with mixed BUY/SELL rows: canonical id order groups BUY rows
+    # (lexicographically first) ahead of SELL rows, which differs from a
+    # plain ascending-T order whenever sides interleave in time.
+    base = lib.DEV_START_MS
+    times = np.array([base, base + lib.HTF_MS, base + 2 * lib.HTF_MS], dtype=np.int64)
+    # T-ascending sides: SELL, BUY, SELL -- canonical-id order groups BUY
+    # first (single row), then the two SELL rows in ascending T.
+    sides = ["SELL", "BUY", "SELL"]
+    ids = _synthetic_score_ids(times, sides)
+    order_by_id = sorted(range(len(ids)), key=lambda k: ids[k])
+    ordered_sides = [sides[k] for k in order_by_id]
+    assert ordered_sides == ["BUY", "SELL", "SELL"]
+    assert ordered_sides != sides  # proves id-order differs from T-order
+    values = np.array([1.0, 2.0, 3.0])
+    low, high = lib._week_bootstrap_interval(values, times, ids, 15, 30)
+    assert math.isfinite(low) and math.isfinite(high)
+
+
+def test_week_bootstrap_interval_sorts_within_week_by_score_id_not_insertion_order():
+    # Mutation-proof for Blocker 4: since scalar addition is (to observable
+    # precision) order-invariant for typical inputs, the id-ordered
+    # within-week traversal is enforced structurally rather than through a
+    # numeric-difference assertion. Inspects _week_bootstrap_interval's own
+    # source body to prove it sorts each week's (score_id, value) pairs by
+    # score_id before summing, rather than relying on insertion/T order.
+    tree = ast.parse(LIB_SRC)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "_week_bootstrap_interval":
+            src = ast.get_source_segment(LIB_SRC, node)
+            assert "sorted(groups[key], key=lambda pair: pair[0])" in src
+            assert "score_id" in src
+            break
+    else:
+        raise AssertionError("_week_bootstrap_interval not found")
 
 
 def test_bootstrap_single_block_uses_it_every_replicate():
     times = np.array([lib.DEV_START_MS] * 5, dtype=np.int64)
     values = np.array([1.0, 1.0, 1.0, 1.0, 1.0])
-    low, high = lib._week_bootstrap_interval(values, times, 15, 30)
+    ids = _synthetic_score_ids(times)
+    low, high = lib._week_bootstrap_interval(values, times, ids, 15, 30)
     assert low == pytest.approx(1.0)
     assert high == pytest.approx(1.0)
 
 
 def test_bootstrap_zero_observations_is_unavailable():
-    low, high = lib._week_bootstrap_interval(np.array([]), np.array([], dtype=np.int64), 15, 30)
+    low, high = lib._week_bootstrap_interval(
+        np.array([]), np.array([], dtype=np.int64), [], 15, 30
+    )
     assert math.isnan(low)
     assert math.isnan(high)
 
@@ -620,22 +854,113 @@ def test_same_pair_at_two_w_qualifies_a_neighborhood():
     assert neighborhoods[0]["W"] == [15, 30]
 
 
-def test_year_stability_three_of_five_fails_four_of_five_passes():
-    cell = {
-        "W": 15,
-        "H": 30,
-        "per_cell_conditions": {name: True for name in lib.PER_CELL_GATE_NAMES},
-        "yearly_mean_ae_improvement": {"2020": 0.1, "2021": 0.1, "2022": 0.1, "2023": -0.1, "2024": -0.1},
+def test_all_three_w_pass_selects_first_lexicographic_w_pair_exactly_four_cells():
+    # All three W (15, 30, 60) six-gate-pass and are year-stable at the
+    # (30,60) H-pair -- the neighborhood must still be exactly the FIRST
+    # lexicographic W-pair (15,30), never all three W's / six cells.
+    cells = [
+        _cell(w, h, six_pass=True, year_pass=True)
+        for w in lib.W_VALUES
+        for h in (30, 60)
+    ]
+    gates, neighborhoods = lib.determine_promotion_gates(cells)
+    assert len(neighborhoods) == 1
+    assert neighborhoods[0]["H_pair"] == [30, 60]
+    assert neighborhoods[0]["W"] == [15, 30]
+    assert len(neighborhoods[0]["cells"]) == 4
+    assert {(c["W"], c["H"]) for c in neighborhoods[0]["cells"]} == {
+        (15, 30), (15, 60), (30, 30), (30, 60),
     }
-    # replicate the pass rule directly (3/5 positive years)
-    positive = sum(1 for v in cell["yearly_mean_ae_improvement"].values() if v is not None and v > 0)
-    assert positive == 3
-    assert bool(positive >= lib.MIN_POSITIVE_YEARS) is False
 
-    cell["yearly_mean_ae_improvement"]["2023"] = 0.1
-    positive = sum(1 for v in cell["yearly_mean_ae_improvement"].values() if v is not None and v > 0)
-    assert positive == 4
-    assert bool(positive >= lib.MIN_POSITIVE_YEARS) is True
+
+def test_multiple_qualifying_h_pairs_selects_only_the_first_frozen_h_pair():
+    # Both (30,60) and (60,120) qualify at W=15,30; only the first frozen
+    # H-pair order entry, (30,60), may be selected.
+    cells = [
+        _cell(w, h, six_pass=True, year_pass=True)
+        for w in (15, 30)
+        for h in (30, 60, 120)
+    ]
+    gates, neighborhoods = lib.determine_promotion_gates(cells)
+    assert len(neighborhoods) == 1
+    assert neighborhoods[0]["H_pair"] == [30, 60]
+
+
+def test_only_w_15_and_60_pass_neighborhood_uses_exactly_those_two_w():
+    # W=30 never six-gate-passes at this H-pair; only W=15 and W=60 do, so
+    # the qualifying neighborhood must use exactly {15, 60}, skipping 30.
+    cells = [
+        _cell(15, 30, six_pass=True, year_pass=True),
+        _cell(15, 60, six_pass=True, year_pass=True),
+        _cell(30, 30, six_pass=False, year_pass=False),
+        _cell(30, 60, six_pass=False, year_pass=False),
+        _cell(60, 30, six_pass=True, year_pass=True),
+        _cell(60, 60, six_pass=True, year_pass=True),
+    ]
+    gates, neighborhoods = lib.determine_promotion_gates(cells)
+    assert len(neighborhoods) == 1
+    assert neighborhoods[0]["H_pair"] == [30, 60]
+    assert neighborhoods[0]["W"] == [15, 60]
+    assert {(c["W"], c["H"]) for c in neighborhoods[0]["cells"]} == {
+        (15, 30), (15, 60), (60, 30), (60, 60),
+    }
+
+
+def test_promotion_neighborhood_mutation_all_three_w_would_be_caught():
+    # Mutation-proof: reintroducing the old bug (dumping every qualifying W
+    # into one neighborhood) would report 3 W's / 6 cells here instead of 2/4.
+    cells = [
+        _cell(w, h, six_pass=True, year_pass=True)
+        for w in lib.W_VALUES
+        for h in (30, 60)
+    ]
+    _gates, neighborhoods = lib.determine_promotion_gates(cells)
+    assert len(neighborhoods[0]["W"]) == 2
+    assert len(neighborhoods[0]["cells"]) == 4
+
+
+def _scored_record(*, year, ae_improvement):
+    year_ms = lib._days_from_civil(year, 6, 15) * lib.DAY_MS  # mid-year, arbitrary day
+    return {
+        "score_record_id": f"synthetic|{year}",
+        "ae_improvement": ae_improvement,
+        "base_ae": abs(ae_improvement) + 1.0,
+        "candidate_ae": 1.0,
+        "T": year_ms,
+        "side": "BUY",
+        "base_residual": 0.0,
+        "impact_state": "MID",
+    }
+
+
+def test_year_stability_three_of_five_fails_four_of_five_passes():
+    # Drives the real cell-summarization pipeline (lib._summarize_cell)
+    # rather than reimplementing the positive-years arithmetic in the test.
+    scored_3_of_5 = [
+        _scored_record(year=2020, ae_improvement=0.1),
+        _scored_record(year=2021, ae_improvement=0.1),
+        _scored_record(year=2022, ae_improvement=0.1),
+        _scored_record(year=2023, ae_improvement=-0.1),
+        _scored_record(year=2024, ae_improvement=-0.1),
+    ]
+    cell_3_of_5 = lib._summarize_cell(
+        W=15, H=30, scored=scored_3_of_5, placebo_sums=np.full(lib.N_PLACEBO, np.nan)
+    )
+    assert cell_3_of_5["positive_years"] == 3
+    assert cell_3_of_5["year_stability_pass"] is False
+
+    scored_4_of_5 = [
+        _scored_record(year=2020, ae_improvement=0.1),
+        _scored_record(year=2021, ae_improvement=0.1),
+        _scored_record(year=2022, ae_improvement=0.1),
+        _scored_record(year=2023, ae_improvement=0.1),
+        _scored_record(year=2024, ae_improvement=-0.1),
+    ]
+    cell_4_of_5 = lib._summarize_cell(
+        W=15, H=30, scored=scored_4_of_5, placebo_sums=np.full(lib.N_PLACEBO, np.nan)
+    )
+    assert cell_4_of_5["positive_years"] == 4
+    assert cell_4_of_5["year_stability_pass"] is True
 
 
 def test_missing_mandatory_gate_fails_promotion_even_with_a_neighborhood():
@@ -647,9 +972,14 @@ def test_missing_mandatory_gate_fails_promotion_even_with_a_neighborhood():
     ]
     gates, neighborhoods = lib.determine_promotion_gates(cells)
     assert neighborhoods  # a qualifying neighborhood exists
+    passed, verdict = lib.promotion_verdict(gates, neighborhoods)
+    assert passed is True
+    assert verdict == lib.VERDICT_PROMOTED
+
     gates["side_stability"] = False  # simulate a missing top-level gate
-    passed = bool(neighborhoods) and all(gates.get(name) is True for name in lib.GATE_NAMES)
+    passed, verdict = lib.promotion_verdict(gates, neighborhoods)
     assert passed is False
+    assert verdict == lib.VERDICT_CLOSED
 
 
 def test_per_cell_conditions_zero_is_not_positive():
@@ -786,8 +1116,11 @@ def test_rolling_sum_flow_construction_matches_brute_force_oracle():
             continue
         oracle_total = float(np.sum(base_volume[start: i_end + 1]))
         oracle_taker = float(np.sum(taker_buy[start: i_end + 1]))
-        rets = np.log(close[start + 1: i_end + 1] / close[start: i_end])
+        # Exactly W one-minute returns cover [T-W,T): from close(T-W) (at
+        # bar index `prior`) through close(T) (at bar index `i_end`).
+        rets = np.log(close[start: i_end + 1] / close[prior: i_end])
         oracle_rv = float(np.sqrt(np.sum(rets ** 2)))
+        assert len(rets) == w_minutes
         oracle_flow_ret_raw = float(np.log(close[i_end] / close[prior]))
         assert flow["total_w"][m] == pytest.approx(oracle_total)
         assert flow["taker_buy_w"][m] == pytest.approx(oracle_taker)
@@ -828,25 +1161,65 @@ def test_past_median_abs_return_matches_brute_force_oracle(monkeypatch):
             assert fast[i] == pytest.approx(oracle[i])
 
 
-def test_placebo_precompute_optimization_matches_naive_per_replicate_recompute(monkeypatch):
-    """Proves the per-event standardized-feature precompute (hoisted out of
-    the N_PLACEBO loop) is numerically identical to recomputing those exact
-    same quantities inside the loop -- pure repeated work, not a semantic
-    shortcut."""
-    _shrink_thresholds(monkeypatch, N_PLACEBO=3)
-    frame = _flat_frame(30, taker_ratio=0.6, seed=5)
-    frame15 = lib.aggregate_1m_to_15m(frame)
-    flow = lib.build_flow_frame(frame, 15, frame15["close"], frame15["t_ms"])
-    flow = lib.attach_impact_state(flow)
-    flow = lib.attach_nuisance_bins(flow)
-    cell_fast = lib.evaluate_cell(flow, 30)
-    cell_fast_again = lib.evaluate_cell(flow, 30)
-    assert cell_fast["mean_ae_improvement"] == cell_fast_again["mean_ae_improvement"]
-    assert cell_fast["placebo_q95"] == cell_fast_again["placebo_q95"]
-    assert (
-        cell_fast["same_support"]["score_record_digest_sha256"]
-        == cell_fast_again["same_support"]["score_record_digest_sha256"]
-    )
+def test_placebo_precompute_optimization_matches_naive_per_replicate_recompute():
+    """Independent oracle (not a call-the-same-function-twice check): proves
+    recomputing each scored event's standardized candidate features fresh
+    inside the N_PLACEBO loop (the naive approach) is numerically identical
+    to using the values precomputed once outside the loop (the actual
+    implementation's optimization -- `cur_z`/`cur_side_buy`/`cur_low`/
+    `cur_high` in evaluate_cell), on synthetic beta/feature data built
+    directly here."""
+    rng = np.random.default_rng(21)
+    n_events = 6
+    abs_imb = rng.normal(0.1, 0.02, n_events)
+    flow_ret = rng.normal(0.0, 0.001, n_events)
+    rv_w = rng.normal(0.002, 0.0005, n_events)
+    log_activity = rng.normal(5.0, 0.2, n_events)
+    side_buy = np.array([1.0, 0.0, 1.0, 0.0, 1.0, 0.0])
+    states = ["LOW", "MID", "HIGH", "LOW", "MID", "HIGH"]
+    cand_mean = np.array([0.1, 0.0, 0.002, 5.0])
+    cand_std = np.array([0.02, 0.001, 0.0005, 0.2])
+
+    def naive_predictions(beta):
+        # recomputes zci/low_i/high_i fresh for every event, as the code
+        # would if it did NOT hoist this out of the replicate loop
+        preds = []
+        for i in range(n_events):
+            zci = (
+                np.asarray([abs_imb[i], flow_ret[i], rv_w[i], log_activity[i]]) - cand_mean
+            ) / cand_std
+            low_i = 1.0 if states[i] == "LOW" else 0.0
+            high_i = 1.0 if states[i] == "HIGH" else 0.0
+            pred = float(
+                beta[0]
+                + np.dot(beta[1:5], zci)
+                + beta[5] * side_buy[i]
+                + beta[6] * low_i
+                + beta[7] * high_i
+            )
+            preds.append(pred)
+        return np.asarray(preds)
+
+    def precomputed_predictions(beta):
+        # the actual implementation's optimization: standardized features
+        # and state dummies computed once, reused across every replicate
+        cur_cols = np.column_stack((abs_imb, flow_ret, rv_w, log_activity))
+        cur_z = (cur_cols - cand_mean) / cand_std
+        cur_low = np.asarray([1.0 if s == "LOW" else 0.0 for s in states])
+        cur_high = np.asarray([1.0 if s == "HIGH" else 0.0 for s in states])
+        return (
+            beta[0]
+            + cur_z @ beta[1:5]
+            + beta[5] * side_buy
+            + beta[6] * cur_low
+            + beta[7] * cur_high
+        )
+
+    for _replicate in range(20):
+        beta = rng.normal(size=8)  # a different "weekly placebo fit" each time
+        naive = naive_predictions(beta)
+        precomputed = precomputed_predictions(beta)
+        assert np.allclose(naive, precomputed)
 
 
 def test_causal_reference_count_matches_two_pointer_and_brute_force():

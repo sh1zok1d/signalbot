@@ -26,6 +26,7 @@ from scripts.research.b2_05_flow_absorption_lib import (
     REQUIRED_SOURCE_COLUMNS,
     SEED_BOOT,
     SEED_PLACEBO,
+    YEAR_BLOCKS,
     derive_forbidden_window_evidence,
     evaluate_b2_05,
     table_to_1m_frame,
@@ -111,7 +112,7 @@ def run_development(
         snapshot_id=REQUIRED_SNAPSHOT,
         start_inclusive_ms=DEV_START_MS,
         end_exclusive_ms=DEV_END_MS,
-        allowed_years=(2020, 2021, 2022, 2023, 2024),
+        allowed_years=YEAR_BLOCKS,
         required_gate_names=GATE_NAMES,
         seeds={
             "bootstrap": SEED_BOOT,
