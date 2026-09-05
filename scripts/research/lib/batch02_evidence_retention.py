@@ -47,6 +47,13 @@ RESERVATION_KIND = "batch02_pre_outcome_evidence_reservation"
 CLAIM_KIND = "batch02_outcome_access_claim"
 RECEIPT_KIND = "batch02_durable_archive_receipt"
 POST_OUTCOME_STATE = "POST_OUTCOME_RETENTION_FAILURE"
+GITHUB_REGULAR_GIT_OBJECT_LIMIT_BYTES = 100 * 1024 * 1024
+SAFE_SINGLE_BLOB_THRESHOLD_BYTES = 90 * 1024 * 1024
+RAW_CHUNK_SIZE_BYTES = 64 * 1024 * 1024
+ARCHIVE_REPRESENTATION_SINGLE_BLOB = "single_blob"
+ARCHIVE_REPRESENTATION_RAW_CHUNKS = "raw_chunks"
+CHUNKED_ENCODING = "raw_chunks"
+RECOVERY_TOOL_ID = "scripts.research.lib.batch02_evidence_retention"
 AMBIGUOUS_CLAIM_STATE = "AMBIGUOUS_OUTCOME_ACCESS_CLAIM"
 STATE_RESERVED = "RESERVED"
 STATE_CLAIMED = "OUTCOME_ACCESS_CLAIMED"
@@ -78,6 +85,12 @@ _TOKEN_ASSIGN_RE = re.compile(
 )
 _ARTIFACT_PATH_RE = re.compile(
     r"^batch02/[A-Za-z0-9][A-Za-z0-9._-]*/[a-f0-9]{40}/[a-f0-9]{64}\.json$"
+)
+_CHUNKED_MANIFEST_RE = re.compile(
+    r"^batch02/[A-Za-z0-9][A-Za-z0-9._-]*/[a-f0-9]{40}/[a-f0-9]{64}/manifest\.json$"
+)
+_CHUNKED_PART_RE = re.compile(
+    r"^batch02/[A-Za-z0-9][A-Za-z0-9._-]*/[a-f0-9]{40}/[a-f0-9]{64}/chunks/[0-9]{5}\.part$"
 )
 _FORBIDDEN_GIT_FLAGS = {
     "--force",
@@ -560,6 +573,201 @@ def artifact_relpath(hypothesis_id: str, code_sha: str, artifact_sha256: str) ->
     return relative
 
 
+def chunked_artifact_prefix(
+    hypothesis_id: str, code_sha: str, artifact_sha256: str
+) -> str:
+    """Directory prefix for a raw-chunked archive of one exact artifact."""
+    token = durable_evidence_slot_key(hypothesis_id)
+    if not _HEX40_RE.fullmatch(code_sha):
+        raise PreOutcomeRetentionError("code_sha must be an exact 40-hex commit SHA")
+    if not _HEX64_RE.fullmatch(artifact_sha256):
+        raise PreOutcomeRetentionError("artifact_sha256 must be a 64-hex digest")
+    relative = f"batch02/{token}/{code_sha}/{artifact_sha256}"
+    parts = Path(relative).parts
+    if any(part in {"", ".", ".."} for part in parts) or Path(relative).is_absolute():
+        raise PreOutcomeRetentionError("evidence path failed traversal validation")
+    return relative
+
+
+def chunked_manifest_relpath(
+    hypothesis_id: str, code_sha: str, artifact_sha256: str
+) -> str:
+    return f"{chunked_artifact_prefix(hypothesis_id, code_sha, artifact_sha256)}/manifest.json"
+
+
+def chunked_part_relpath(
+    hypothesis_id: str, code_sha: str, artifact_sha256: str, index: int
+) -> str:
+    if not isinstance(index, int) or index < 0:
+        raise PreOutcomeRetentionError("chunk index must be a non-negative integer")
+    return (
+        f"{chunked_artifact_prefix(hypothesis_id, code_sha, artifact_sha256)}"
+        f"/chunks/{index:05d}.part"
+    )
+
+
+def uses_raw_chunk_archive(artifact_size_bytes: int) -> bool:
+    """True when V1 single-blob Git storage is above the safe threshold."""
+    if not isinstance(artifact_size_bytes, int) or artifact_size_bytes < 0:
+        raise PreOutcomeRetentionError("artifact size must be a non-negative integer")
+    if SAFE_SINGLE_BLOB_THRESHOLD_BYTES >= GITHUB_REGULAR_GIT_OBJECT_LIMIT_BYTES:
+        raise PreOutcomeRetentionError(
+            "safe single-blob threshold must stay below GitHub's regular Git object limit"
+        )
+    if RAW_CHUNK_SIZE_BYTES >= GITHUB_REGULAR_GIT_OBJECT_LIMIT_BYTES:
+        raise PreOutcomeRetentionError(
+            "raw chunk size must stay below GitHub's regular Git object limit"
+        )
+    return artifact_size_bytes > SAFE_SINGLE_BLOB_THRESHOLD_BYTES
+
+
+def split_raw_bytes(data: bytes, *, chunk_size_bytes: int) -> tuple[bytes, ...]:
+    """Split exact bytes into contiguous raw chunks. No transformation."""
+    if not isinstance(data, (bytes, bytearray)):
+        raise PreOutcomeRetentionError("chunk source must be raw bytes")
+    if not isinstance(chunk_size_bytes, int) or chunk_size_bytes <= 0:
+        raise PreOutcomeRetentionError("chunk size must be a positive integer")
+    if chunk_size_bytes > RAW_CHUNK_SIZE_BYTES:
+        raise PreOutcomeRetentionError("chunk size exceeds the configured maximum")
+    if chunk_size_bytes >= GITHUB_REGULAR_GIT_OBJECT_LIMIT_BYTES:
+        raise PreOutcomeRetentionError(
+            "chunk size must stay below GitHub's regular Git object limit"
+        )
+    if len(data) == 0:
+        raise PreOutcomeRetentionError("refusing to chunk an empty artifact")
+    chunks = tuple(
+        bytes(data[offset:offset + chunk_size_bytes])
+        for offset in range(0, len(data), chunk_size_bytes)
+    )
+    if any(len(chunk) > chunk_size_bytes for chunk in chunks):
+        raise PreOutcomeRetentionError("emitted chunk exceeded the configured maximum")
+    if b"".join(chunks) != bytes(data):
+        raise PreOutcomeRetentionError("raw chunk split is not an exact partition")
+    return chunks
+
+
+def build_raw_chunk_manifest(
+    *,
+    hypothesis_id: str,
+    code_sha: str,
+    artifact_sha256: str,
+    artifact_size_bytes: int,
+    chunk_size_bytes: int,
+    chunks: Sequence[bytes],
+) -> dict[str, object]:
+    if artifact_size_bytes != sum(len(chunk) for chunk in chunks):
+        raise PreOutcomeRetentionError("chunk sizes do not sum to the artifact size")
+    if sha256_bytes(b"".join(bytes(chunk) for chunk in chunks)) != artifact_sha256:
+        raise PreOutcomeRetentionError("chunk concatenation does not match artifact digest")
+    entries = []
+    for index, chunk in enumerate(chunks):
+        path = chunked_part_relpath(hypothesis_id, code_sha, artifact_sha256, index)
+        entries.append(
+            {
+                "index": index,
+                "path": path,
+                "size_bytes": len(chunk),
+                "sha256": sha256_bytes(bytes(chunk)),
+            }
+        )
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "encoding": CHUNKED_ENCODING,
+        "artifact_sha256": artifact_sha256,
+        "artifact_size_bytes": artifact_size_bytes,
+        "chunk_size_bytes": chunk_size_bytes,
+        "chunk_count": len(entries),
+        "chunks": entries,
+    }
+
+
+def reconstruct_raw_chunks(
+    manifest: Mapping[str, object],
+    chunks_by_path: Mapping[str, bytes],
+) -> bytes:
+    """Reconstruct exact artifact bytes from a raw-chunk manifest and blobs."""
+    if not isinstance(manifest, Mapping):
+        raise PreOutcomeRetentionError("chunk manifest is malformed")
+    if manifest.get("encoding") != CHUNKED_ENCODING:
+        raise PreOutcomeRetentionError("chunk manifest encoding is not raw_chunks")
+    try:
+        artifact_sha256 = str(manifest["artifact_sha256"])
+        artifact_size_bytes = int(manifest["artifact_size_bytes"])
+        chunk_size_bytes = int(manifest["chunk_size_bytes"])
+        chunk_count = int(manifest["chunk_count"])
+        entries = list(manifest["chunks"])  # type: ignore[arg-type]
+    except (KeyError, TypeError, ValueError) as exc:
+        raise PreOutcomeRetentionError("chunk manifest fields are malformed") from exc
+    if not _HEX64_RE.fullmatch(artifact_sha256):
+        raise PreOutcomeRetentionError("chunk manifest artifact digest is malformed")
+    if artifact_size_bytes < 0 or chunk_count <= 0 or chunk_size_bytes <= 0:
+        raise PreOutcomeRetentionError("chunk manifest sizes are invalid")
+    if chunk_size_bytes > RAW_CHUNK_SIZE_BYTES:
+        raise PreOutcomeRetentionError("chunk manifest size exceeds the configured maximum")
+    if chunk_count != len(entries):
+        raise PreOutcomeRetentionError("chunk manifest count does not match entries")
+    preview_indexes: list[int] = []
+    preview_paths: list[str] = []
+    for raw_entry in entries:
+        if not isinstance(raw_entry, Mapping):
+            raise PreOutcomeRetentionError("chunk manifest entry is malformed")
+        try:
+            preview_indexes.append(int(raw_entry["index"]))
+            preview_paths.append(str(raw_entry["path"]))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise PreOutcomeRetentionError("chunk manifest entry fields are malformed") from exc
+    if len(preview_indexes) != len(set(preview_indexes)) or len(preview_paths) != len(set(preview_paths)):
+        raise PreOutcomeRetentionError("chunk manifest contains a duplicated chunk")
+    if len(chunks_by_path) != chunk_count:
+        raise PreOutcomeRetentionError("chunk blob count does not match the manifest")
+    seen_indexes: set[int] = set()
+    seen_paths: set[str] = set()
+    ordered: list[bytes] = []
+    for position, raw_entry in enumerate(entries):
+        if not isinstance(raw_entry, Mapping):
+            raise PreOutcomeRetentionError("chunk manifest entry is malformed")
+        try:
+            index = int(raw_entry["index"])
+            path = str(raw_entry["path"])
+            size_bytes = int(raw_entry["size_bytes"])
+            digest = str(raw_entry["sha256"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise PreOutcomeRetentionError("chunk manifest entry fields are malformed") from exc
+        if index != position:
+            raise PreOutcomeRetentionError("chunk manifest is not in numeric ascending order")
+        if index in seen_indexes or path in seen_paths:
+            raise PreOutcomeRetentionError("chunk manifest contains a duplicated chunk")
+        if not _CHUNKED_PART_RE.fullmatch(path):
+            raise PreOutcomeRetentionError("chunk path is not a canonical part path")
+        expected_suffix = f"/chunks/{index:05d}.part"
+        if not path.endswith(expected_suffix):
+            raise PreOutcomeRetentionError("chunk path index does not match the part name")
+        if path not in chunks_by_path:
+            raise PreOutcomeRetentionError("chunk blob is missing")
+        payload = chunks_by_path[path]
+        if not isinstance(payload, (bytes, bytearray)):
+            raise PreOutcomeRetentionError("chunk blob is not raw bytes")
+        payload = bytes(payload)
+        if len(payload) != size_bytes:
+            raise PreOutcomeRetentionError("chunk size does not match the manifest")
+        if len(payload) > chunk_size_bytes:
+            raise PreOutcomeRetentionError("chunk exceeds the configured maximum")
+        if sha256_bytes(payload) != digest:
+            raise PreOutcomeRetentionError("chunk digest does not match the manifest")
+        seen_indexes.add(index)
+        seen_paths.add(path)
+        ordered.append(payload)
+    extra_paths = set(chunks_by_path) - seen_paths
+    if extra_paths:
+        raise PreOutcomeRetentionError("unexpected extra chunk blob")
+    reconstructed = b"".join(ordered)
+    if len(reconstructed) != artifact_size_bytes:
+        raise PreOutcomeRetentionError("reconstructed artifact size does not match")
+    if sha256_bytes(reconstructed) != artifact_sha256:
+        raise PreOutcomeRetentionError("reconstructed artifact digest does not match")
+    return reconstructed
+
+
 def _has_credential_userinfo(url: str) -> bool:
     stripped = url.strip()
     if _HTTPS_USERINFO_RE.match(stripped):
@@ -817,11 +1025,38 @@ def _tree_names(isolated: Path, commit: str) -> tuple[str, ...]:
     return tuple(line for line in raw.splitlines() if line.strip())
 
 
+def _chunked_parts_match_manifest(manifest_path: str, parts: set[str]) -> bool:
+    if not _CHUNKED_MANIFEST_RE.fullmatch(manifest_path) or not parts:
+        return False
+    prefix = manifest_path[: -len("/manifest.json")]
+    indexes: list[int] = []
+    for part in parts:
+        if not part.startswith(f"{prefix}/chunks/") or not _CHUNKED_PART_RE.fullmatch(part):
+            return False
+        stem = part.rsplit("/", 1)[-1]
+        if not stem.endswith(".part"):
+            return False
+        try:
+            indexes.append(int(stem[: -len(".part")]))
+        except ValueError:
+            return False
+    indexes.sort()
+    return indexes == list(range(len(indexes)))
+
+
 def classify_evidence_tree(names: Sequence[str]) -> str:
     files = set(names)
     artifacts = {name for name in files if _ARTIFACT_PATH_RE.fullmatch(name)}
-    extras = files - {RESERVATION_BLOB_PATH, CLAIM_BLOB_PATH, RECEIPT_BLOB_PATH} - artifacts
-    if extras or len(artifacts) > 1:
+    manifests = {name for name in files if _CHUNKED_MANIFEST_RE.fullmatch(name)}
+    parts = {name for name in files if _CHUNKED_PART_RE.fullmatch(name)}
+    extras = (
+        files
+        - {RESERVATION_BLOB_PATH, CLAIM_BLOB_PATH, RECEIPT_BLOB_PATH}
+        - artifacts
+        - manifests
+        - parts
+    )
+    if extras or len(artifacts) > 1 or (artifacts and (manifests or parts)):
         return STATE_UNKNOWN
     if files == {RESERVATION_BLOB_PATH}:
         return STATE_RESERVED
@@ -832,6 +1067,17 @@ def classify_evidence_tree(names: Sequence[str]) -> str:
         and CLAIM_BLOB_PATH in files
         and RECEIPT_BLOB_PATH in files
         and len(artifacts) == 1
+        and not manifests
+        and not parts
+    ):
+        return STATE_ARCHIVED
+    if (
+        RESERVATION_BLOB_PATH in files
+        and CLAIM_BLOB_PATH in files
+        and RECEIPT_BLOB_PATH in files
+        and not artifacts
+        and len(manifests) == 1
+        and _chunked_parts_match_manifest(next(iter(manifests)), parts)
     ):
         return STATE_ARCHIVED
     return STATE_UNKNOWN
@@ -863,6 +1109,56 @@ def _independent_readback(
             )
         payload = _show_blob(isolated, commit, relative)
         return commit, payload
+
+
+def _independent_reconstruct_raw_chunks(
+    *,
+    repo_root: Path,
+    endpoint: str,
+    evidence_ref: str,
+    manifest_path: str,
+    expected_commit: str,
+) -> tuple[str, bytes, bytes]:
+    """Fetch an archived chunked tree and reconstruct the exact artifact."""
+    with _isolated_workspace(repo_root) as raw_dir:
+        isolated = Path(raw_dir)
+        _init_isolated_repo(isolated)
+        try:
+            run_git(isolated, ["fetch", "--no-tags", endpoint, evidence_ref])
+        except PreOutcomeRetentionError as exc:
+            raise PreOutcomeRetentionError(
+                "remote reservation/archive was not independently readable"
+            ) from exc
+        commit = run_git(isolated, ["rev-parse", "FETCH_HEAD"]).decode("utf-8").strip().lower()
+        if not _HEX40_RE.fullmatch(commit):
+            raise PreOutcomeRetentionError("readback commit SHA is malformed")
+        if commit != expected_commit:
+            raise PreOutcomeRetentionError(
+                "independent readback commit does not match the pushed evidence head"
+            )
+        names = _tree_names(isolated, commit)
+        if classify_evidence_tree(names) != STATE_ARCHIVED:
+            raise PreOutcomeRetentionError("chunked archive tree is not ARCHIVED")
+        if manifest_path not in names:
+            raise PreOutcomeRetentionError("chunked archive is missing its manifest")
+        manifest_bytes = _show_blob(isolated, commit, manifest_path)
+        try:
+            manifest = json.loads(manifest_bytes.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise PreOutcomeRetentionError("chunk manifest is not valid JSON") from exc
+        if not isinstance(manifest, Mapping):
+            raise PreOutcomeRetentionError("chunk manifest is malformed")
+        entries = manifest.get("chunks")
+        if not isinstance(entries, Sequence) or isinstance(entries, (str, bytes)):
+            raise PreOutcomeRetentionError("chunk manifest entries are malformed")
+        blobs: dict[str, bytes] = {}
+        for raw_entry in entries:
+            if not isinstance(raw_entry, Mapping) or "path" not in raw_entry:
+                raise PreOutcomeRetentionError("chunk manifest entry is malformed")
+            path = str(raw_entry["path"])
+            blobs[path] = _show_blob(isolated, commit, path)
+        reconstructed = reconstruct_raw_chunks(manifest, blobs)
+        return commit, reconstructed, manifest_bytes
 
 
 def _fetch_evidence_commit(
@@ -1527,11 +1823,44 @@ def archive_persisted_result_proof(
                 reason=_redact(f"retention lock write failed: {exc}"),
             )
 
-    relative = artifact_relpath(
-        reservation.hypothesis_id,
-        reservation.code_sha,
-        source_sha,
-    )
+    try:
+        chunked = uses_raw_chunk_archive(source_size)
+        if chunked:
+            chunks = split_raw_bytes(source, chunk_size_bytes=RAW_CHUNK_SIZE_BYTES)
+            relative = chunked_manifest_relpath(
+                reservation.hypothesis_id,
+                reservation.code_sha,
+                source_sha,
+            )
+            manifest_payload = build_raw_chunk_manifest(
+                hypothesis_id=reservation.hypothesis_id,
+                code_sha=reservation.code_sha,
+                artifact_sha256=source_sha,
+                artifact_size_bytes=source_size,
+                chunk_size_bytes=RAW_CHUNK_SIZE_BYTES,
+                chunks=chunks,
+            )
+            manifest_bytes = canonical_json_bytes(manifest_payload) + b"\n"
+        else:
+            chunks = ()
+            relative = artifact_relpath(
+                reservation.hypothesis_id,
+                reservation.code_sha,
+                source_sha,
+            )
+            manifest_payload = None
+            manifest_bytes = b""
+    except PostOutcomeRetentionFailure:
+        raise
+    except Exception as exc:
+        _raise_post_outcome(
+            result_path=result_path,
+            local_sha256=source_sha,
+            local_size_bytes=source_size,
+            reservation=reservation,
+            reason=_redact(str(exc)),
+        )
+
     receipt_payload = {
         "schema_version": SCHEMA_VERSION,
         "kind": RECEIPT_KIND,
@@ -1550,6 +1879,18 @@ def archive_persisted_result_proof(
         "reservation_sha256": reservation.reservation_sha256,
         "claim_sha256": claim.claim_sha256,
     }
+    if chunked:
+        receipt_payload.update(
+            {
+                "archive_representation": ARCHIVE_REPRESENTATION_RAW_CHUNKS,
+                "manifest_path": relative,
+                "manifest_sha256": sha256_bytes(manifest_bytes),
+                "chunk_count": len(chunks),
+                "chunk_size_bytes": RAW_CHUNK_SIZE_BYTES,
+                "recovery_tool": RECOVERY_TOOL_ID,
+                "recovery_code_sha": freeze.code_sha,
+            }
+        )
     receipt_bytes = canonical_json_bytes(receipt_payload) + b"\n"
     transport = backend.transport
 
@@ -1580,30 +1921,43 @@ def archive_persisted_result_proof(
             if reserved != backend.reservation_bytes or claimed != backend.claim_bytes:
                 raise RuntimeError("reservation/claim bytes changed before archive")
             run_git(isolated, ["checkout", "--detach", commit])
-            dest = isolated / relative
-            if dest.exists() or dest.is_symlink():
-                existing = dest.read_bytes()
-                if existing != source:
-                    raise RuntimeError("existing remote artifact has a different digest")
+            staged = [RECEIPT_BLOB_PATH, CLAIM_BLOB_PATH, RESERVATION_BLOB_PATH, relative]
+            if chunked:
+                dest = isolated / relative
+                if dest.exists() or dest.is_symlink():
+                    if dest.read_bytes() != manifest_bytes:
+                        raise RuntimeError("existing remote manifest has a different digest")
+                else:
+                    _write_bytes_new(dest, manifest_bytes)
+                for index, chunk in enumerate(chunks):
+                    part_path = chunked_part_relpath(
+                        reservation.hypothesis_id,
+                        reservation.code_sha,
+                        source_sha,
+                        index,
+                    )
+                    part_dest = isolated / part_path
+                    if part_dest.exists() or part_dest.is_symlink():
+                        if part_dest.read_bytes() != chunk:
+                            raise RuntimeError("existing remote chunk has a different digest")
+                    else:
+                        _write_bytes_new(part_dest, chunk)
+                    staged.append(part_path)
             else:
-                _write_bytes_new(dest, source)
+                dest = isolated / relative
+                if dest.exists() or dest.is_symlink():
+                    existing = dest.read_bytes()
+                    if existing != source:
+                        raise RuntimeError("existing remote artifact has a different digest")
+                else:
+                    _write_bytes_new(dest, source)
             receipt_path = isolated / RECEIPT_BLOB_PATH
             if receipt_path.exists():
                 if receipt_path.read_bytes() != receipt_bytes:
                     raise RuntimeError("existing receipt does not match this archive")
             else:
                 _write_bytes_new(receipt_path, receipt_bytes)
-            run_git(
-                isolated,
-                [
-                    "add",
-                    "--",
-                    relative,
-                    RECEIPT_BLOB_PATH,
-                    CLAIM_BLOB_PATH,
-                    RESERVATION_BLOB_PATH,
-                ],
-            )
+            run_git(isolated, ["add", "--", *staged])
             status = run_git(isolated, ["status", "--porcelain"]).decode("utf-8")
             if status.strip():
                 run_git(
@@ -1634,13 +1988,26 @@ def archive_persisted_result_proof(
         )
 
     try:
-        remote_commit, remote_artifact = _independent_readback(
-            repo_root=freeze.repo_root,
-            endpoint=transport.endpoint,
-            evidence_ref=reservation.evidence_ref,
-            relative=relative,
-            expected_commit=pushed_sha,
-        )
+        if chunked:
+            remote_commit, remote_artifact, remote_manifest = (
+                _independent_reconstruct_raw_chunks(
+                    repo_root=freeze.repo_root,
+                    endpoint=transport.endpoint,
+                    evidence_ref=reservation.evidence_ref,
+                    manifest_path=relative,
+                    expected_commit=pushed_sha,
+                )
+            )
+            if remote_manifest != manifest_bytes:
+                raise RuntimeError("remote manifest bytes do not match the local manifest")
+        else:
+            remote_commit, remote_artifact = _independent_readback(
+                repo_root=freeze.repo_root,
+                endpoint=transport.endpoint,
+                evidence_ref=reservation.evidence_ref,
+                relative=relative,
+                expected_commit=pushed_sha,
+            )
         _, remote_receipt = _independent_readback(
             repo_root=freeze.repo_root,
             endpoint=transport.endpoint,
