@@ -779,7 +779,7 @@ def _week_bootstrap_interval(improvements, times, score_ids, W, H):
     if len(values) == 0:
         return float("nan"), float("nan")
     groups = defaultdict(list)
-    for value, t, score_id in zip(values, stamps, score_ids):
+    for value, t, score_id in zip(values, stamps, score_ids, strict=True):
         groups[iso_week_id(int(t))].append((str(score_id), float(value)))
     keys = sorted(groups)
     if not keys:

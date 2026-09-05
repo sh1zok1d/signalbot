@@ -208,20 +208,38 @@ def test_training_pool_boundary_t_e_plus_h_equals_s_is_eligible_greater_is_not()
 
 
 def test_training_pool_window_matches_brute_force_oracle():
+    # s/h/train_ms chosen so the window [cutoff_low, upper_bound] is
+    # genuinely non-empty against the sampled `times` domain -- a prior
+    # revision of this fixture (s=1_500_000, h=30, train_ms=900_000) gave
+    # upper_bound = -300_000, which is unreachable by any t >= 0 and made
+    # the oracle vacuously pass on an always-empty interval.
     rng = np.random.default_rng(13)
     times = np.sort(rng.choice(np.arange(0, 2_000_000, 15_000), size=80, replace=False)).astype(np.int64)
-    s = 1_500_000
+    s = 3_000_000
     h = 30
-    train_ms = 900_000
+    train_ms = 2_000_000
     left, right = lib.training_pool_window(times, s, h, train_ms)
     upper_bound = s - h * lib.BAR_MS
     cutoff_low = s - train_ms
     brute_included = [i for i, t in enumerate(times) if cutoff_low <= t <= upper_bound]
-    if brute_included:
-        assert left == brute_included[0]
-        assert right == brute_included[-1] + 1
-    else:
-        assert right - left == 0
+    assert brute_included  # the fixture must exercise a non-empty window
+    assert left == brute_included[0]
+    assert right == brute_included[-1] + 1
+
+
+def test_training_pool_window_boundary_matches_brute_force_at_exact_edges():
+    # Direct exact-boundary proof, independent of the general oracle above:
+    # T_e + H == S must be included; T_e + H == S + one grid step (> S)
+    # must be excluded. Failing either would mean the production helper's
+    # boundary drifted.
+    h = 30
+    s = 3_000_000
+    train_ms = 2_000_000
+    included_t = s - h * lib.BAR_MS
+    excluded_t = included_t + lib.HTF_MS
+    times = np.array([included_t, excluded_t], dtype=np.int64)
+    left, right = lib.training_pool_window(times, s, h, train_ms)
+    assert (left, right) == (0, 1)
 
 
 # ---------------------------------------------------------------------------
@@ -788,6 +806,17 @@ def test_bootstrap_zero_observations_is_unavailable():
     assert math.isnan(high)
 
 
+def test_bootstrap_mismatched_parallel_sequence_lengths_fail_closed():
+    # values/times/score_ids must be the exact same length; a caller bug
+    # producing mismatched arrays must raise, not silently truncate to the
+    # shortest sequence (which would drop real observations unnoticed).
+    times = np.array([lib.DEV_START_MS, lib.DEV_START_MS + lib.HTF_MS], dtype=np.int64)
+    values = np.array([1.0, 2.0, 3.0])  # one extra value, no matching time/id
+    ids = _synthetic_score_ids(times)
+    with pytest.raises(ValueError):
+        lib._week_bootstrap_interval(values, times, ids, 15, 30)
+
+
 def test_bootstrap_block_multiplicity_preserved_in_seed_derivation():
     seed_a = lib.seed_int((lib.SEED_BOOT, 15, 30))
     seed_b = lib.seed_int((lib.SEED_BOOT, 15, 60))
@@ -1307,6 +1336,23 @@ def test_derive_forbidden_window_evidence_accepts_clean_dev_window():
     evidence = lib.derive_forbidden_window_evidence(identity, frame)
     assert evidence["2025_validation"] is False
     assert evidence["2026_oos"] is False
+
+
+def test_runner_repo_root_is_an_absolute_repository_path():
+    # runner.REPO_ROOT is `Path(__file__).parents[2]`, NOT
+    # `Path(__file__).resolve().parents[2]`: `.resolve()` (and `.absolute()`)
+    # are unconditionally forbidden filesystem-touching pathlib attribute
+    # names under this repo's Batch02 source policy for hypothesis
+    # runner/lib code (validate_batch02_source_tree flags any `.resolve(`
+    # attribute access as "forbidden direct I/O or mutation call", verified
+    # directly against this exact file -- adding `.resolve()` here breaks
+    # that validator). `__file__` for a normally-imported module is already
+    # an absolute path without needing resolution, so this proves the
+    # weaker-but-true property the source policy actually allows: REPO_ROOT
+    # is absolute and points at the real repository root.
+    assert runner.REPO_ROOT.is_absolute()
+    assert (runner.REPO_ROOT / "scripts" / "research" / "b2_05_flow_absorption.py").is_file()
+    assert "resolve" not in RUNNER_SRC
 
 
 # ---------------------------------------------------------------------------
