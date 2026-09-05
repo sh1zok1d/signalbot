@@ -376,6 +376,60 @@ def test_placebo_uses_exact_real_scored_support_not_all_current_week(monkeypatch
     assert cell["placebo_replicate_count_finite"] <= lib.N_PLACEBO
 
 
+def test_evaluate_cell_requires_joint_finite_predictions_before_scoring():
+    """Same-support construction must not rescue a failed candidate
+    prediction with a dummy (0.0 / baseline-only) value. The joint
+    `isfinite(base_pred) and isfinite(cand_pred)` gate is the production
+    enforcement; a mutation that keeps the event when only the candidate
+    is nonfinite would otherwise survive the FLOW_RET-poison test above
+    (that poison overflows both models)."""
+    tree = ast.parse(LIB_SRC)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "evaluate_cell":
+            src = ast.get_source_segment(LIB_SRC, node)
+            assert "math.isfinite(base_pred) and math.isfinite(cand_pred)" in src
+            assert "cand_pred = 0.0" not in src
+            break
+    else:
+        raise AssertionError("evaluate_cell not found")
+
+
+def test_nonfinite_candidate_standardization_does_not_retain_baseline_only(
+    monkeypatch,
+):
+    """Candidate-only z-score explosion must drop the current record from
+    both models. A dummy `cand_pred = 0.0` rescue would keep N unchanged."""
+    _shrink_thresholds(monkeypatch)
+    frame = _varying_frame(40)
+    frame15 = lib.aggregate_1m_to_15m(frame)
+    flow = lib.build_flow_frame(frame, 15, frame15["close"], frame15["t_ms"])
+    flow = lib.attach_impact_state(flow)
+    flow = lib.attach_nuisance_bins(flow)
+    baseline_cell = lib.evaluate_cell(flow, 30)
+    assert baseline_cell["N"] > 0
+
+    real_standardize = lib._standardize
+    calls = {"n": 0}
+
+    def explode_candidate_std(pool_matrix):
+        mean, std = real_standardize(pool_matrix)
+        calls["n"] += 1
+        if mean is None or std is None:
+            return mean, std
+        # evaluate_cell standardizes baseline then candidate each week.
+        if calls["n"] % 2 == 0:
+            std = np.asarray(std, dtype=np.float64).copy()
+            std[:] = 1e-320
+        return mean, std
+
+    monkeypatch.setattr(lib, "_standardize", explode_candidate_std)
+    exploded = lib.evaluate_cell(flow, 30)
+    assert exploded["N"] < baseline_cell["N"]
+    for record in exploded["scored"]:
+        assert math.isfinite(record["base_pred"])
+        assert math.isfinite(record["candidate_pred"])
+
+
 # ---------------------------------------------------------------------------
 # 3. malformed flow rows fail closed
 # ---------------------------------------------------------------------------
