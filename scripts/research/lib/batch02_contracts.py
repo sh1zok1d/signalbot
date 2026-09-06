@@ -82,6 +82,8 @@ def recover_claimed_batch02_artifact(
 
     Scientific identity, artifact digest/size, and run identity come only from
     a tracked recovery-authority file in the exact recovery commit/tree.
+    Historical artifact-byte origin is operator-adjudicated unless a
+    pre-existing immutable witness already binds the digest.
     """
     return _recover_claimed_batch02_artifact(
         repo_root=repo_root,

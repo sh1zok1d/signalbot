@@ -26,9 +26,12 @@ from scripts.research.lib.batch02_evidence_retention import (
     ARCHIVE_REPRESENTATION_SINGLE_BLOB,
     CHUNKED_ENCODING,
     GITHUB_REGULAR_GIT_OBJECT_LIMIT_BYTES,
+    HISTORICAL_ARTIFACT_BINDING_OPERATOR_ADJUDICATED,
+    HISTORICAL_ARTIFACT_BINDING_PREEXISTING_IMMUTABLE_WITNESS,
     POST_OUTCOME_STATE,
     RAW_CHUNK_SIZE_BYTES,
     RECEIPT_BLOB_PATH,
+    RECOVERY_PROVES_AUTHORITY_CONSISTENCY,
     SAFE_SINGLE_BLOB_THRESHOLD_BYTES,
     STATE_ARCHIVED,
     STATE_CLAIMED,
@@ -500,6 +503,7 @@ def _process_loss_ready(
         artifact_size_bytes=persisted.artifact_size_bytes,
         run_identity_sha256=persisted.run_identity_sha256,
         canonical_artifact_path=result_path.relative_to(repo).as_posix(),
+        historical_artifact_binding=HISTORICAL_ARTIFACT_BINDING_OPERATOR_ADJUDICATED,
     )
     del reservation
     del ctx
@@ -545,6 +549,16 @@ def test_fresh_process_recovery_archives_after_minted_objects_are_gone(
     assert payload["claim_commit_sha"] == authority["claim_commit_sha"]
     assert payload["artifact_sha256"] == authority["artifact_sha256"]
     assert payload["artifact_size_bytes"] == authority["artifact_size_bytes"]
+    assert (
+        payload["historical_artifact_binding"]
+        == HISTORICAL_ARTIFACT_BINDING_OPERATOR_ADJUDICATED
+    )
+    assert (
+        payload["historical_artifact_byte_authority"]
+        == HISTORICAL_ARTIFACT_BINDING_OPERATOR_ADJUDICATED
+    )
+    assert payload["recovery_proves"] == RECOVERY_PROVES_AUTHORITY_CONSISTENCY
+    assert payload["historical_execution_persistence_proven"] is False
     assert payload["chunk_size_bytes"] == 16
     assert _hex64(payload["manifest_sha256"])
     manifest_path = chunked_manifest_relpath(
@@ -956,6 +970,9 @@ def test_caller_cannot_override_authority_identity_fields(
         {"run_identity_sha256": authority["run_identity_sha256"]},
         {"expected_claim_commit_sha": authority["claim_commit_sha"]},
         {"claim_commit_sha": authority["claim_commit_sha"]},
+        {"historical_artifact_binding": authority["historical_artifact_binding"]},
+        {"artifact_sha256": authority["artifact_sha256"]},
+        {"canonical_artifact_path": authority["canonical_artifact_path"]},
     ):
         with pytest.raises(TypeError):
             recover_claimed_batch02_artifact(**kwargs, **extra)
@@ -972,3 +989,149 @@ def test_recovery_api_is_exported_and_not_a_runner_call():
     assert hasattr(batch02_contracts, "recover_claimed_batch02_artifact")
     assert "recover_claimed_batch02_artifact" in _CANONICAL_PUBLIC_API
     assert "recover_claimed_batch02_artifact" not in _RETENTION_RUNNER_CALLS
+
+
+def _mutate_result_preserving_provenance(source: bytes, result_path: Path) -> bytes:
+    mutated = json.loads(source.decode("utf-8"))
+    frozen_provenance = json.loads(json.dumps(mutated["provenance"]))
+    mutated["status"] = "post_outcome_fabricated_closed"
+    encoded = (
+        json.dumps(mutated, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
+    ).encode("utf-8")
+    result_path.write_bytes(encoded)
+    reread = json.loads(result_path.read_bytes().decode("utf-8"))
+    assert reread["provenance"] == frozen_provenance
+    assert reread["status"] == "post_outcome_fabricated_closed"
+    return encoded
+
+
+def test_modified_artifact_plus_later_matching_authority_is_only_operator_adjudicated(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Recover succeeds after post-outcome fabrication of matching authority.
+
+    That success proves artifact == later recovery authority, not that the
+    mutated bytes were originally persisted by the historical execution.
+    """
+    kwargs, repo, bare, result_path, source, authority, rec_sha, rec_tree = (
+        _process_loss_ready(tmp_path, monkeypatch)
+    )
+    original_digest = str(authority["artifact_sha256"])
+    encoded = _mutate_result_preserving_provenance(source, result_path)
+    new_digest = sha256_bytes(encoded)
+    assert new_digest != original_digest
+    later = dict(authority)
+    later["artifact_sha256"] = new_digest
+    later["artifact_size_bytes"] = len(encoded)
+    later_sha, later_tree = _recommit_authority(
+        repo, kwargs["authority_relpath"], later
+    )
+    assert later_sha != rec_sha
+    assert later_tree != rec_tree
+    kwargs["recovery_code_sha"] = later_sha
+    kwargs["recovery_code_tree"] = later_tree
+    receipt = recover_claimed_batch02_artifact(**kwargs)
+    payload = receipt.receipt_payload
+    assert payload["artifact_sha256"] == new_digest
+    assert payload["artifact_sha256"] != original_digest
+    assert (
+        payload["historical_artifact_binding"]
+        == HISTORICAL_ARTIFACT_BINDING_OPERATOR_ADJUDICATED
+    )
+    assert (
+        payload["historical_artifact_byte_authority"]
+        == HISTORICAL_ARTIFACT_BINDING_OPERATOR_ADJUDICATED
+    )
+    assert payload["recovery_proves"] == RECOVERY_PROVES_AUTHORITY_CONSISTENCY
+    assert payload["historical_execution_persistence_proven"] is False
+    assert (
+        classify_evidence_tree(_remote_tree(bare, str(authority["evidence_ref"])))
+        == STATE_ARCHIVED
+    )
+    assert result_path.read_bytes() == encoded
+
+
+def test_modified_artifact_cannot_claim_preexisting_immutable_witness(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    kwargs, repo, bare, result_path, source, authority, _r, _rt = _process_loss_ready(
+        tmp_path, monkeypatch
+    )
+    encoded = _mutate_result_preserving_provenance(source, result_path)
+    later = dict(authority)
+    later["artifact_sha256"] = sha256_bytes(encoded)
+    later["artifact_size_bytes"] = len(encoded)
+    later["historical_artifact_binding"] = (
+        HISTORICAL_ARTIFACT_BINDING_PREEXISTING_IMMUTABLE_WITNESS
+    )
+    rec_sha, rec_tree = _recommit_authority(repo, kwargs["authority_relpath"], later)
+    kwargs["recovery_code_sha"] = rec_sha
+    kwargs["recovery_code_tree"] = rec_tree
+    with pytest.raises(
+        PostOutcomeRetentionFailure,
+        match="PREEXISTING_IMMUTABLE_WITNESS",
+    ):
+        recover_claimed_batch02_artifact(**kwargs)
+    assert result_path.read_bytes() == encoded
+    assert (
+        classify_evidence_tree(_remote_tree(bare, str(authority["evidence_ref"])))
+        == STATE_CLAIMED
+    )
+    assert "receipt.json" not in set(_remote_tree(bare, str(authority["evidence_ref"])))
+
+
+def test_recovery_fails_when_historical_artifact_binding_is_omitted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    kwargs, repo, _bare, result_path, source, authority, _r, _rt = _process_loss_ready(
+        tmp_path, monkeypatch
+    )
+    omitted = dict(authority)
+    del omitted["historical_artifact_binding"]
+    rec_sha, rec_tree = _recommit_authority(
+        repo, kwargs["authority_relpath"], omitted
+    )
+    kwargs["recovery_code_sha"] = rec_sha
+    kwargs["recovery_code_tree"] = rec_tree
+    with pytest.raises(
+        PostOutcomeRetentionFailure,
+        match="historical_artifact_binding",
+    ):
+        recover_claimed_batch02_artifact(**kwargs)
+    assert result_path.read_bytes() == source
+
+
+def test_recovery_rejects_authority_that_smuggles_historical_proof_claim(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    kwargs, repo, _bare, result_path, source, authority, _r, _rt = _process_loss_ready(
+        tmp_path, monkeypatch
+    )
+    smuggled = dict(authority)
+    smuggled["historical_execution_persistence_proven"] = True
+    rec_sha, rec_tree = _recommit_authority(
+        repo, kwargs["authority_relpath"], smuggled
+    )
+    kwargs["recovery_code_sha"] = rec_sha
+    kwargs["recovery_code_tree"] = rec_tree
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
+        recover_claimed_batch02_artifact(**kwargs)
+    assert result_path.read_bytes() == source
+
+
+def test_recovery_rejects_unknown_historical_artifact_binding(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    kwargs, repo, _bare, result_path, source, authority, _r, _rt = _process_loss_ready(
+        tmp_path, monkeypatch
+    )
+    unknown = dict(authority)
+    unknown["historical_artifact_binding"] = "HISTORICAL_EXECUTION_PERSISTENCE"
+    rec_sha, rec_tree = _recommit_authority(
+        repo, kwargs["authority_relpath"], unknown
+    )
+    kwargs["recovery_code_sha"] = rec_sha
+    kwargs["recovery_code_tree"] = rec_tree
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
+        recover_claimed_batch02_artifact(**kwargs)
+    assert result_path.read_bytes() == source

@@ -316,7 +316,42 @@ artifact_sha256
 artifact_size_bytes
 run_identity_sha256
 canonical_artifact_path
+historical_artifact_binding
 ```
+
+`historical_artifact_binding` is required. Omitting it fails closed. The
+only accepted value in this contract is `OPERATOR_ADJUDICATED`.
+`PREEXISTING_IMMUTABLE_WITNESS` and any stronger historical-origin claim
+fail closed because this mechanism does not verify a pre-existing
+immutable witness of the artifact digest.
+
+These two statements are not equivalent:
+
+```text
+artifact == authority committed during recovery
+authority describes the exact artifact originally persisted by the
+historical scientific execution
+```
+
+Recovery proves only the first. A later clean recovery commit can carry a
+newly computed digest for a provenance-preserving mutation of the surviving
+local payload. That is operator adjudication of current bytes, not
+cryptographic historical persistence. The recovery receipt therefore records:
+
+```text
+historical_artifact_binding = OPERATOR_ADJUDICATED
+historical_artifact_byte_authority = OPERATOR_ADJUDICATED
+recovery_proves = artifact_equals_authority_committed_during_recovery
+historical_execution_persistence_proven = false
+```
+
+Search of committed Git history, committed research/status ledgers, and
+committed durable-failure metadata found no immutable source that binds the
+local B2-05 artifact digest
+`530342759e70a135915ef82382b4b97bd939620ce02925524b745ccf6cc9a57c`.
+Uncommitted local sidecars are not Git-immutable evidence. Any future
+B2-05 recovery authority for those bytes can therefore only be
+`OPERATOR_ADJUDICATED`. This document is not that authority file.
 
 Dual verification:
 

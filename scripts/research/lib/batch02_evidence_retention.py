@@ -68,6 +68,13 @@ CLAIM_BLOB_PATH = "outcome_claim.json"
 RECEIPT_BLOB_PATH = "receipt.json"
 RECOVERY_AUTHORITY_KIND = "batch02_durable_recovery_authority"
 RECOVERY_AUTHORITY_DIR = "docs/research/batch02_recovery_authority"
+HISTORICAL_ARTIFACT_BINDING_OPERATOR_ADJUDICATED = "OPERATOR_ADJUDICATED"
+HISTORICAL_ARTIFACT_BINDING_PREEXISTING_IMMUTABLE_WITNESS = (
+    "PREEXISTING_IMMUTABLE_WITNESS"
+)
+RECOVERY_PROVES_AUTHORITY_CONSISTENCY = (
+    "artifact_equals_authority_committed_during_recovery"
+)
 
 _HYPOTHESIS_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 _NUMBERED_B2_RE = re.compile(r"^b2[-_](\d+)", re.IGNORECASE)
@@ -1244,9 +1251,11 @@ def build_recovery_authority_payload(
     artifact_size_bytes: int,
     run_identity_sha256: str,
     canonical_artifact_path: str,
+    historical_artifact_binding: str,
 ) -> dict[str, object]:
     """Build the durable recovery-authority object. No inferred identity."""
     exec_sha = _require_hex40(execution_code_sha, label="execution_code_sha")
+    binding = _require_historical_artifact_binding(historical_artifact_binding)
     payload = {
         "schema_version": SCHEMA_VERSION,
         "kind": RECOVERY_AUTHORITY_KIND,
@@ -1271,6 +1280,7 @@ def build_recovery_authority_payload(
         "canonical_artifact_path": _require_repo_relative(
             canonical_artifact_path, label="canonical_artifact_path"
         ),
+        "historical_artifact_binding": binding,
     }
     if stage != "development":
         raise PostOutcomeRetentionFailure(
@@ -1359,6 +1369,59 @@ def _require_repo_relative(value: object, *, label: str) -> str:
     return posix
 
 
+def _require_historical_artifact_binding(value: object) -> str:
+    """Accept only an explicit operator-adjudicated historical-byte binding.
+
+    Recovery can prove that the local artifact matches the authority committed
+    in the recovery commit. It cannot invent a cryptographic witness that the
+    same bytes were the ones originally persisted by the historical execution
+    unless a pre-existing immutable witness already binds that digest. No such
+    verifier exists in this contract, so claiming one fails closed.
+    """
+    if not isinstance(value, str) or not value.strip():
+        raise PostOutcomeRetentionFailure(
+            f"{POST_OUTCOME_STATE}: recovery authority historical_artifact_binding "
+            "is required. Omitting it would silently pretend a later recovery "
+            "commit proves historical artifact-byte origin. "
+            "OUTCOME CONSUMED = YES; RERUN AUTHORIZED = NO; "
+            "LOCAL CANONICAL ARTIFACT MUST BE PRESERVED; OPERATOR RECOVERY REQUIRED.",
+            local_artifact_path=Path("."),
+            local_sha256="",
+            local_size_bytes=0,
+            evidence_ref="",
+            reservation_sha256="",
+        )
+    if value == HISTORICAL_ARTIFACT_BINDING_PREEXISTING_IMMUTABLE_WITNESS:
+        raise PostOutcomeRetentionFailure(
+            f"{POST_OUTCOME_STATE}: PREEXISTING_IMMUTABLE_WITNESS is not "
+            "cryptographically recoverable from committed durable evidence. "
+            "No pre-existing immutable witness binds historical artifact bytes. "
+            "Only OPERATOR_ADJUDICATED is accepted. "
+            "OUTCOME CONSUMED = YES; RERUN AUTHORIZED = NO; "
+            "LOCAL CANONICAL ARTIFACT MUST BE PRESERVED; OPERATOR RECOVERY REQUIRED.",
+            local_artifact_path=Path("."),
+            local_sha256="",
+            local_size_bytes=0,
+            evidence_ref="",
+            reservation_sha256="",
+        )
+    if value != HISTORICAL_ARTIFACT_BINDING_OPERATOR_ADJUDICATED:
+        raise PostOutcomeRetentionFailure(
+            f"{POST_OUTCOME_STATE}: recovery authority historical_artifact_binding "
+            f"{value!r} is not an accepted binding. Only OPERATOR_ADJUDICATED is "
+            "accepted because historical artifact-byte origin is not "
+            "cryptographically recoverable from committed evidence. "
+            "OUTCOME CONSUMED = YES; RERUN AUTHORIZED = NO; "
+            "LOCAL CANONICAL ARTIFACT MUST BE PRESERVED; OPERATOR RECOVERY REQUIRED.",
+            local_artifact_path=Path("."),
+            local_sha256="",
+            local_size_bytes=0,
+            evidence_ref="",
+            reservation_sha256="",
+        )
+    return value
+
+
 def _read_tracked_recovery_authority(
     repo_root: Path,
     *,
@@ -1410,6 +1473,14 @@ def recover_claimed_batch02_artifact(
     a tracked recovery-authority file in the exact recovery commit/tree. This
     is operator recovery, not a second scientific execution. It does not remint
     a reservation or claim. It only fast-forwards CLAIMED -> ARCHIVED.
+
+    A later recovery-authority commit can prove only that the local artifact
+    matches that later authority. It does not cryptographically prove that
+    those bytes were the ones originally persisted by the historical
+    execution unless a pre-existing immutable witness already binds the
+    digest. This contract therefore requires an explicit
+    historical_artifact_binding and currently accepts only
+    OPERATOR_ADJUDICATED.
     """
     rec_sha = _require_hex40(recovery_code_sha, label="recovery_code_sha")
     rec_tree = _require_hex40(recovery_code_tree, label="recovery_code_tree")
@@ -1454,7 +1525,15 @@ def recover_claimed_batch02_artifact(
             artifact_size_bytes=raw_authority.get("artifact_size_bytes"),  # type: ignore[arg-type]
             run_identity_sha256=str(raw_authority.get("run_identity_sha256", "")),
             canonical_artifact_path=str(raw_authority.get("canonical_artifact_path", "")),
+            historical_artifact_binding=raw_authority.get(  # type: ignore[arg-type]
+                "historical_artifact_binding"
+            ),
         )
+        if canonical_json_bytes(raw_authority) != canonical_json_bytes(authority):
+            raise RuntimeError(
+                "tracked recovery authority is not exactly the reconstructed "
+                "V1 authority object"
+            )
     except PostOutcomeRetentionFailure:
         raise
     except Exception as exc:
@@ -1834,6 +1913,12 @@ def recover_claimed_batch02_artifact(
         "recovery_code_sha": rec_sha,
         "recovery_code_tree": rec_tree,
         "recovery_tool": RECOVERY_TOOL_ID,
+        "historical_artifact_binding": str(authority["historical_artifact_binding"]),
+        "historical_artifact_byte_authority": str(
+            authority["historical_artifact_binding"]
+        ),
+        "recovery_proves": RECOVERY_PROVES_AUTHORITY_CONSISTENCY,
+        "historical_execution_persistence_proven": False,
     }
     if chunked:
         receipt_payload.update(

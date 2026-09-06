@@ -347,6 +347,12 @@ def test_b2_04_outcome_boundary_and_durable_slot_are_unopened():
     assert "Protected production slot: **`B2-04`**" in md
 
 
+_AUTHORIZED_B2_04_CLOSEOUT_MD_RELATIVE = (
+    "docs/research/B2_04_MODERATE_PULLBACK_STRUCTURE_RESULT.md"
+)
+_AUTHORIZED_B2_04_CLOSEOUT_BLOB = "f15eedb5be9281af6404a2a0dc1057332abba4a2"
+
+
 def test_b2_04_prereg_unit_shipped_no_runner_and_no_result_artifact():
     """The frozen prohibition is unit-scoped (`..._forbidden_in_this_unit`).
 
@@ -355,10 +361,15 @@ def test_b2_04_prereg_unit_shipped_no_runner_and_no_result_artifact():
     implementation unit is explicitly contemplated by the same freeze
     (`durable_retention_integration.ceremony`, MD section 19), so this guard
     pins what remains live: the frozen text still scopes the prohibition to
-    the preregistration unit, no B2-04 *result* artifact may exist before an
-    authorized run, and any implementation that does exist must be exactly
-    the canonical runner/library pair -- never a third script and never a
-    result document.
+    the preregistration unit, `implementation_exists` stays False inside the
+    prereg freeze, no machine RESULT.json may exist in docs/, no evaluation
+    artifact may be git-tracked under artifacts/, and any implementation that
+    does exist must be exactly the canonical runner/library pair -- never a
+    third script.
+
+    A later authorized closeout committed RESULT.md. That document is not a
+    prereg-unit product and must not be deleted to satisfy this suite. The
+    suite pins the exact known closeout blob instead of asserting absence.
     """
     assert _freeze()["implementation_paths_forbidden_in_this_unit"] == [
         "scripts/research/b2_04_*.py"
@@ -368,11 +379,30 @@ def test_b2_04_prereg_unit_shipped_no_runner_and_no_result_artifact():
     result_json = (
         REPO_ROOT / "docs" / "research" / "B2_04_MODERATE_PULLBACK_STRUCTURE_RESULT.json"
     )
-    result_md = (
-        REPO_ROOT / "docs" / "research" / "B2_04_MODERATE_PULLBACK_STRUCTURE_RESULT.md"
-    )
+    result_md = REPO_ROOT / _AUTHORIZED_B2_04_CLOSEOUT_MD_RELATIVE
     assert not result_json.exists()
-    assert not result_md.exists()
+    assert result_md.is_file()
+    assert not result_md.is_symlink()
+    tracked_md = subprocess.run(  # noqa: S603 - fixed argv, no shell, test-only
+        ["git", "ls-files", "--", _AUTHORIZED_B2_04_CLOSEOUT_MD_RELATIVE],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    assert tracked_md == _AUTHORIZED_B2_04_CLOSEOUT_MD_RELATIVE
+    closeout_blob = subprocess.run(  # noqa: S603 - fixed argv, no shell, test-only
+        ["git", "rev-parse", f"HEAD:{_AUTHORIZED_B2_04_CLOSEOUT_MD_RELATIVE}"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    assert closeout_blob == _AUTHORIZED_B2_04_CLOSEOUT_BLOB
+    closeout = result_md.read_text(encoding="utf-8")
+    assert "**Research verdict:** `B2_04_CLOSED_NO_PROMOTION`" in closeout
+    assert "`9c2ed3ca7fab24dca832065cf4bed9a5c860a362`" in closeout
+    assert "**Rerun authorized by this closeout:** NO" in closeout
 
     # The canonical retained-run artifact path
     # (artifacts/b2_04_moderate_pullback_structure/..._DEV_RESULTS.json) is
@@ -382,11 +412,12 @@ def test_b2_04_prereg_unit_shipped_no_runner_and_no_result_artifact():
     # section 8 -- the local artifact must be preserved, never deleted), so a
     # filesystem-absence check here would fail this long-lived suite the
     # moment a real run ever happens, for a reason unrelated to prereg
-    # integrity. The durable fact this test protects -- no B2-04 result is
-    # *committed to source control* -- is instead checked against Git's
-    # tracked-file state, which persistence never touches (the whole
-    # `artifacts/` tree is gitignored; see .gitignore) and which is exactly
-    # what "shipped by this unit" means.
+    # integrity. The durable fact this test protects -- no B2-04 evaluation
+    # artifact is *committed under artifacts/* -- is instead checked against
+    # Git's tracked-file state, which persistence never touches (the whole
+    # `artifacts/` tree is gitignored; see .gitignore). The authorized
+    # closeout RESULT.md is a separate committed document and is pinned
+    # above by exact blob identity.
     tracked = subprocess.run(  # noqa: S603 - fixed argv, no shell, test-only
         ["git", "ls-files", "artifacts/b2_04_moderate_pullback_structure"],
         cwd=REPO_ROOT,
