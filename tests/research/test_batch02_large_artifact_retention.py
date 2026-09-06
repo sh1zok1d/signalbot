@@ -401,19 +401,23 @@ def test_claim_head_drift_fails_chunked_archive(
 
 
 def test_force_push_still_absent():
-    source = Path(
-        "scripts/research/lib/batch02_evidence_retention.py"
-    ).read_text(encoding="utf-8")
-    assert "force_push" not in source
-    assert "--force-with-lease" in source
-    assert "push --force" not in source
+    """Forbidden force flags are rejected by the production Git safety gate."""
+    assert "--force-with-lease" in retention._FORBIDDEN_GIT_FLAGS
+    for flag in retention._FORBIDDEN_GIT_FLAGS:
+        with pytest.raises(
+            retention.PreOutcomeRetentionError,
+            match="force Git semantics are forbidden",
+        ):
+            retention._assert_safe_git_args(["push", "origin", "HEAD", flag])
+    retention._assert_safe_git_args(["push", "origin", "HEAD"])
 
 
 def test_source_tree_still_validates():
-    validate_batch02_source_tree(
-        Path("/workspace/scripts/research"),
-        repo_root=Path("/workspace"),
-    )
+    repo_root = Path(__file__).resolve().parents[2]
+    research_dir = repo_root / "scripts" / "research"
+    assert research_dir.is_dir()
+    visited = validate_batch02_source_tree(research_dir, repo_root=repo_root)
+    assert visited
 
 
 def _patch_large_thresholds(monkeypatch: pytest.MonkeyPatch) -> None:
