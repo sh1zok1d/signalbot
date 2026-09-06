@@ -291,14 +291,32 @@ entry point after process loss.
 It is callable from a completely fresh Python process. It does not require
 the original `DurableEvidenceReservation`, `DurableOutcomeAccessClaim`,
 `PersistedBatch02ResultProof`, or `_EvidenceBackend` objects. It reconstructs
-and verifies authority from durable facts plus explicit immutable identity
-inputs. It does not remint a reservation or push a new claim.
+and verifies authority from durable facts. It does not remint a reservation
+or push a new claim.
 
-Required explicit inputs include scientific identity, historical execution
-SHA/tree, recovery SHA/tree, evidence ref, expected reservation/claim
-commits, expected local artifact digest/size, local path, and
-`run_identity_sha256`. Scientific identity is not inferred from mutable
-local state.
+Caller kwargs may only identify the recovery checkout and the tracked
+authority path. They may not independently supply artifact digest, size,
+run identity, claim SHA, or other scientific identity fields.
+
+Those fields come from a tracked recovery-authority JSON blob that belongs
+to the exact clean `recovery_code_sha` / `recovery_code_tree`. The authority
+is read as the exact Git blob from that commit. It binds at least:
+
+```text
+hypothesis_id
+stage
+dataset_id
+snapshot_id
+execution_code_sha
+execution_code_tree
+evidence_ref
+reservation_commit_sha
+claim_commit_sha
+artifact_sha256
+artifact_size_bytes
+run_identity_sha256
+canonical_artifact_path
+```
 
 Dual verification:
 
@@ -311,14 +329,24 @@ Dual verification:
 Before the local artifact is read, recovery independently fetches the
 evidence ref and requires `OUTCOME_ACCESS_CLAIMED`, exact expected claim
 SHA, claim parent = expected reservation SHA, tree exactly
-`reservation.json` + `outcome_claim.json`, and byte-exact reservation/claim
-payloads rebuilt from the explicit inputs. Any mismatch fails closed with
+`reservation.json` + `outcome_claim.json`, and reservation/claim identity
+fields that match the tracked authority. Any mismatch fails closed with
 no push.
 
-The local artifact must then be a regular non-symlink file whose size and
-SHA256 equal the explicit expected values. Exact raw bytes are chunked;
-JSON is not parsed or rewritten. Artifacts `<= 90 MiB` keep the V1
-single-blob archive. Larger artifacts use `raw_chunks` / 64 MiB.
+The local artifact must then be the authority's canonical path, a regular
+non-symlink file whose size and SHA256 equal the authority values. Those
+exact raw bytes are later chunked. JSON is parsed only to verify
+`artifact["provenance"]` against `build_run_identity` semantics:
+
+```text
+sha256(canonical_json(provenance)) == authority.run_identity_sha256
+```
+
+Provenance scientific identity must agree with the authority and with the
+remote reservation/claim. Reservation/claim payloads are then rebuilt from
+provenance plus authority and compared byte-for-byte to the remote blobs.
+The artifact is not rewritten or reserialized. Artifacts `<= 90 MiB` keep
+the V1 single-blob archive. Larger artifacts use `raw_chunks` / 64 MiB.
 
 The archive commit must be exactly one child of the expected claim SHA.
 Immediately before push, remote HEAD must still equal that claim SHA.

@@ -70,13 +70,26 @@ from scripts.research.lib.research_harness import (
 )
 
 
-def recover_claimed_batch02_artifact(**kwargs):
+def recover_claimed_batch02_artifact(
+    *,
+    repo_root: Path,
+    recovery_code_sha: str,
+    recovery_code_tree: str,
+    authority_relpath: str,
+    test_bare_remote: Path | None = None,
+):
     """Fresh-process operator recovery after post-outcome process loss.
 
-    Reconstructs CLAIMED authority from durable facts. Does not require the
-    original minted reservation, claim, persist proof, or evidence backend.
+    Scientific identity, artifact digest/size, and run identity come only from
+    a tracked recovery-authority file in the exact recovery commit/tree.
     """
-    return _recover_claimed_batch02_artifact(**kwargs)
+    return _recover_claimed_batch02_artifact(
+        repo_root=repo_root,
+        recovery_code_sha=recovery_code_sha,
+        recovery_code_tree=recovery_code_tree,
+        authority_relpath=authority_relpath,
+        test_bare_remote=test_bare_remote,
+    )
 
 
 class Batch02ContractError(RuntimeError):

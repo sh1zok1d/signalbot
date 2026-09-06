@@ -6,6 +6,7 @@ to tiny values so the chunked path can be exercised with small bytes.
 """
 from __future__ import annotations
 
+import inspect
 import json
 import subprocess
 from pathlib import Path
@@ -19,6 +20,7 @@ from scripts.research.lib.batch02_contracts import (
     prepare_batch02_retained_run,
     recover_claimed_batch02_artifact,
 )
+
 from scripts.research.lib.batch02_evidence_retention import (
     ARCHIVE_REPRESENTATION_RAW_CHUNKS,
     ARCHIVE_REPRESENTATION_SINGLE_BLOB,
@@ -33,12 +35,15 @@ from scripts.research.lib.batch02_evidence_retention import (
     STATE_UNKNOWN,
     artifact_relpath,
     build_raw_chunk_manifest,
+    build_recovery_authority_payload,
+    canonical_json_bytes,
     chunked_manifest_relpath,
     chunked_part_relpath,
     classify_evidence_tree,
     clear_batch02_retention_runtime_state,
     PostOutcomeRetentionFailure,
     reconstruct_raw_chunks,
+    recovery_authority_relpath,
     sha256_bytes,
     split_raw_bytes,
     uses_raw_chunk_archive,
@@ -413,10 +418,25 @@ def _patch_large_thresholds(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(retention, "RAW_CHUNK_SIZE_BYTES", 16)
 
 
-def _advance_recovery_checkout(repo: Path) -> tuple[str, str]:
+def _commit_authority(repo: Path, payload: dict) -> tuple[str, str, str]:
+    relpath = recovery_authority_relpath(
+        str(payload["hypothesis_id"]), str(payload["execution_code_sha"])
+    )
+    dest = repo / relpath
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(canonical_json_bytes(payload) + b"\n")
+    _git(repo, "add", relpath)
     (repo / "tracked.txt").write_text("recovery-infrastructure\n", encoding="utf-8")
     _git(repo, "add", "tracked.txt")
     _commit(repo, "recovery-infrastructure")
+    return relpath, _git(repo, "rev-parse", "HEAD"), _git(repo, "rev-parse", "HEAD^{tree}")
+
+
+def _recommit_authority(repo: Path, relpath: str, payload: dict) -> tuple[str, str]:
+    dest = repo / relpath
+    dest.write_bytes(canonical_json_bytes(payload) + b"\n")
+    _git(repo, "add", relpath)
+    _commit(repo, "updated-recovery-authority")
     return _git(repo, "rev-parse", "HEAD"), _git(repo, "rev-parse", "HEAD^{tree}")
 
 
@@ -466,51 +486,49 @@ def _process_loss_ready(
     repo, bare, reservation, ctx = _claimed_run(tmp_path)
     result_path, persisted, source = _persist_payload(repo, ctx, payload)
     claim = ctx._outcome_claim
-    exec_sha = reservation.code_sha
-    exec_tree = reservation.code_tree
-    kwargs = {
-        "repo_root": repo,
-        "hypothesis_id": reservation.hypothesis_id,
-        "stage": reservation.stage,
-        "dataset_id": reservation.dataset_id,
-        "snapshot_id": reservation.snapshot_id,
-        "execution_code_sha": exec_sha,
-        "execution_code_tree": exec_tree,
-        "evidence_ref": reservation.evidence_ref,
-        "expected_reservation_commit_sha": reservation.evidence_head_sha,
-        "expected_claim_commit_sha": claim.claim_head_sha,
-        "expected_artifact_sha256": persisted.artifact_sha256,
-        "expected_artifact_size_bytes": persisted.artifact_size_bytes,
-        "local_artifact_path": result_path,
-        "run_identity_sha256": persisted.run_identity_sha256,
-        "start_inclusive_ms": reservation.start_inclusive_ms,
-        "end_exclusive_ms": reservation.end_exclusive_ms,
-        "allowed_years": reservation.allowed_years,
-        "required_gate_names": reservation.required_gate_names,
-        "seeds": dict(reservation.seeds),
-        "test_bare_remote": bare,
-    }
+    authority = build_recovery_authority_payload(
+        hypothesis_id=reservation.hypothesis_id,
+        stage=reservation.stage,
+        dataset_id=reservation.dataset_id,
+        snapshot_id=reservation.snapshot_id,
+        execution_code_sha=reservation.code_sha,
+        execution_code_tree=reservation.code_tree,
+        evidence_ref=reservation.evidence_ref,
+        reservation_commit_sha=reservation.evidence_head_sha,
+        claim_commit_sha=claim.claim_head_sha,
+        artifact_sha256=persisted.artifact_sha256,
+        artifact_size_bytes=persisted.artifact_size_bytes,
+        run_identity_sha256=persisted.run_identity_sha256,
+        canonical_artifact_path=result_path.relative_to(repo).as_posix(),
+    )
     del reservation
     del ctx
     del persisted
     del claim
-    rec_sha, rec_tree = _advance_recovery_checkout(repo)
-    kwargs["recovery_code_sha"] = rec_sha
-    kwargs["recovery_code_tree"] = rec_tree
+    relpath, rec_sha, rec_tree = _commit_authority(repo, authority)
+    kwargs = {
+        "repo_root": repo,
+        "recovery_code_sha": rec_sha,
+        "recovery_code_tree": rec_tree,
+        "authority_relpath": relpath,
+        "test_bare_remote": bare,
+    }
     clear_batch02_retention_runtime_state()
     assert retention._BOUND_RESERVATIONS == {}
     assert retention._BOUND_CLAIMS == {}
     assert retention._BOUND_PERSISTED == {}
     assert retention._BACKEND_BY_ID == {}
-    return kwargs, repo, bare, result_path, source, exec_sha, exec_tree, rec_sha, rec_tree
+    return kwargs, repo, bare, result_path, source, authority, rec_sha, rec_tree
 
 
 def test_fresh_process_recovery_archives_after_minted_objects_are_gone(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    kwargs, repo, bare, result_path, source, exec_sha, exec_tree, rec_sha, rec_tree = (
+    kwargs, repo, bare, result_path, source, authority, rec_sha, rec_tree = (
         _process_loss_ready(tmp_path, monkeypatch)
     )
+    exec_sha = str(authority["execution_code_sha"])
+    exec_tree = str(authority["execution_code_tree"])
     assert exec_sha != rec_sha
     assert exec_tree != rec_tree
     with pytest.raises(CodeIdentityError):
@@ -523,95 +541,88 @@ def test_fresh_process_recovery_archives_after_minted_objects_are_gone(
     assert payload["recovery_code_tree"] == rec_tree
     assert payload["recovery_code_sha"] != payload["execution_code_sha"]
     assert payload["archive_representation"] == ARCHIVE_REPRESENTATION_RAW_CHUNKS
-    assert payload["reservation_commit_sha"] == kwargs["expected_reservation_commit_sha"]
-    assert payload["claim_commit_sha"] == kwargs["expected_claim_commit_sha"]
-    assert payload["artifact_sha256"] == kwargs["expected_artifact_sha256"]
-    assert payload["artifact_size_bytes"] == kwargs["expected_artifact_size_bytes"]
+    assert payload["reservation_commit_sha"] == authority["reservation_commit_sha"]
+    assert payload["claim_commit_sha"] == authority["claim_commit_sha"]
+    assert payload["artifact_sha256"] == authority["artifact_sha256"]
+    assert payload["artifact_size_bytes"] == authority["artifact_size_bytes"]
     assert payload["chunk_size_bytes"] == 16
     assert _hex64(payload["manifest_sha256"])
     manifest_path = chunked_manifest_relpath(
-        kwargs["hypothesis_id"], exec_sha, kwargs["expected_artifact_sha256"]
+        str(authority["hypothesis_id"]), exec_sha, str(authority["artifact_sha256"])
     )
     assert receipt.evidence_path == manifest_path
     assert receipt.code_sha == exec_sha
     assert receipt.code_tree == exec_tree
-    names = set(_remote_tree(bare, kwargs["evidence_ref"]))
+    names = set(_remote_tree(bare, str(authority["evidence_ref"])))
     assert manifest_path in names
-    manifest = json.loads(_remote_blob(bare, kwargs["evidence_ref"], manifest_path))
+    manifest = json.loads(_remote_blob(bare, str(authority["evidence_ref"]), manifest_path))
     blobs = {
-        entry["path"]: _remote_blob(bare, kwargs["evidence_ref"], entry["path"])
+        entry["path"]: _remote_blob(bare, str(authority["evidence_ref"]), entry["path"])
         for entry in manifest["chunks"]
     }
     reconstructed = reconstruct_raw_chunks(manifest, blobs)
     assert reconstructed == source
-    assert sha256_bytes(reconstructed) == kwargs["expected_artifact_sha256"]
-    assert len(reconstructed) == kwargs["expected_artifact_size_bytes"]
+    assert sha256_bytes(reconstructed) == authority["artifact_sha256"]
+    assert len(reconstructed) == authority["artifact_size_bytes"]
     parent = subprocess.run(
-        ["git", "--git-dir", str(bare), "rev-parse", f"{kwargs['evidence_ref']}^"],
+        ["git", "--git-dir", str(bare), "rev-parse", f"{authority['evidence_ref']}^"],
         check=True,
         capture_output=True,
         text=True,
     ).stdout.strip().lower()
-    assert parent == kwargs["expected_claim_commit_sha"]
-    assert classify_evidence_tree(_remote_tree(bare, kwargs["evidence_ref"])) == STATE_ARCHIVED
+    assert parent == authority["claim_commit_sha"]
+    assert classify_evidence_tree(_remote_tree(bare, str(authority["evidence_ref"]))) == STATE_ARCHIVED
     assert result_path.read_bytes() == source
     assert result_path.read_bytes() == reconstructed
 
 
 def test_fresh_process_recovery_keeps_v1_single_blob(tmp_path: Path):
-    kwargs, _repo, bare, result_path, source, exec_sha, _exec_tree, rec_sha, _rec_tree = (
+    kwargs, _repo, bare, result_path, source, authority, rec_sha, _rec_tree = (
         _process_loss_ready(tmp_path, payload=b"tiny")
     )
+    exec_sha = str(authority["execution_code_sha"])
     assert uses_raw_chunk_archive(len(source)) is False
     receipt = recover_claimed_batch02_artifact(**kwargs)
     expected = artifact_relpath(
-        kwargs["hypothesis_id"], exec_sha, kwargs["expected_artifact_sha256"]
+        str(authority["hypothesis_id"]), exec_sha, str(authority["artifact_sha256"])
     )
     assert receipt.evidence_path == expected
     assert receipt.receipt_payload["archive_representation"] == ARCHIVE_REPRESENTATION_SINGLE_BLOB
     assert receipt.receipt_payload["recovery_code_sha"] == rec_sha
     assert receipt.receipt_payload["execution_code_sha"] == exec_sha
-    assert _remote_blob(bare, kwargs["evidence_ref"], expected) == source
+    assert _remote_blob(bare, str(authority["evidence_ref"]), expected) == source
     assert result_path.read_bytes() == source
 
 
 def test_recovery_fails_when_remote_head_is_not_expected_claim(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    kwargs, _repo, bare, result_path, source, _exec_sha, _exec_tree, _rec_sha, _rec_tree = (
+    kwargs, _repo, bare, result_path, source, authority, _rec_sha, _rec_tree = (
         _process_loss_ready(tmp_path, monkeypatch)
     )
     work = tmp_path / "drift"
-    _checkout_evidence(bare, work, kwargs["evidence_ref"])
+    _checkout_evidence(bare, work, str(authority["evidence_ref"]))
     (work / "extra.txt").write_text("unknown intermediate\n", encoding="utf-8")
     _git(work, "add", "extra.txt")
     _commit(work, "unknown-intermediate")
-    _git(work, "push", "origin", f"HEAD:{kwargs['evidence_ref']}")
+    _git(work, "push", "origin", f"HEAD:{authority['evidence_ref']}")
     with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
         recover_claimed_batch02_artifact(**kwargs)
     assert result_path.read_bytes() == source
-    assert "receipt.json" not in set(_remote_tree(bare, kwargs["evidence_ref"]))
+    assert "receipt.json" not in set(_remote_tree(bare, str(authority["evidence_ref"])))
 
 
 def test_recovery_fails_when_claim_parent_is_wrong(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    kwargs, _repo, _bare, result_path, source, _e, _t, _r, _rt = _process_loss_ready(
+    kwargs, repo, _bare, result_path, source, authority, _r, _rt = _process_loss_ready(
         tmp_path, monkeypatch
     )
-    kwargs["expected_reservation_commit_sha"] = kwargs["expected_claim_commit_sha"]
-    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
-        recover_claimed_batch02_artifact(**kwargs)
-    assert result_path.read_bytes() == source
-
-
-def test_recovery_fails_when_reservation_identity_does_not_match_remote(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-):
-    kwargs, _repo, _bare, result_path, source, _e, _t, _r, _rt = _process_loss_ready(
-        tmp_path, monkeypatch
-    )
-    kwargs["seeds"] = {"bootstrap": 99}
+    wrong = dict(authority)
+    wrong["reservation_commit_sha"] = authority["claim_commit_sha"]
+    rec_sha, rec_tree = _recommit_authority(repo, kwargs["authority_relpath"], wrong)
+    kwargs["recovery_code_sha"] = rec_sha
+    kwargs["recovery_code_tree"] = rec_tree
     with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
         recover_claimed_batch02_artifact(**kwargs)
     assert result_path.read_bytes() == source
@@ -620,11 +631,11 @@ def test_recovery_fails_when_reservation_identity_does_not_match_remote(
 def test_recovery_fails_when_remote_reservation_bytes_are_mutated(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    kwargs, _repo, bare, result_path, source, _e, _t, _r, _rt = _process_loss_ready(
+    kwargs, repo, bare, result_path, source, authority, _r, _rt = _process_loss_ready(
         tmp_path, monkeypatch
     )
     work = tmp_path / "mutated-reservation"
-    _checkout_evidence(bare, work, kwargs["evidence_ref"])
+    _checkout_evidence(bare, work, str(authority["evidence_ref"]))
     reservation_path = work / "reservation.json"
     mutated = json.loads(reservation_path.read_bytes())
     mutated["seeds"] = {"bootstrap": 99}
@@ -632,23 +643,28 @@ def test_recovery_fails_when_remote_reservation_bytes_are_mutated(
         json.dumps(mutated, sort_keys=True, separators=(",", ":")).encode("utf-8")
     )
     _git(work, "add", "reservation.json")
-    kwargs["expected_claim_commit_sha"] = _amend_and_publish_evidence_head(
-        work, bare, kwargs["evidence_ref"]
+    new_claim = _amend_and_publish_evidence_head(
+        work, bare, str(authority["evidence_ref"])
     )
+    updated = dict(authority)
+    updated["claim_commit_sha"] = new_claim
+    rec_sha, rec_tree = _recommit_authority(repo, kwargs["authority_relpath"], updated)
+    kwargs["recovery_code_sha"] = rec_sha
+    kwargs["recovery_code_tree"] = rec_tree
     with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
         recover_claimed_batch02_artifact(**kwargs)
     assert result_path.read_bytes() == source
-    assert "receipt.json" not in set(_remote_tree(bare, kwargs["evidence_ref"]))
+    assert "receipt.json" not in set(_remote_tree(bare, str(authority["evidence_ref"])))
 
 
 def test_recovery_fails_when_claim_identity_does_not_match_remote(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    kwargs, _repo, bare, result_path, source, _e, _t, _r, _rt = _process_loss_ready(
+    kwargs, repo, bare, result_path, source, authority, _r, _rt = _process_loss_ready(
         tmp_path, monkeypatch
     )
     work = tmp_path / "mutated-claim"
-    _checkout_evidence(bare, work, kwargs["evidence_ref"])
+    _checkout_evidence(bare, work, str(authority["evidence_ref"]))
     claim_path = work / "outcome_claim.json"
     mutated = json.loads(claim_path.read_text(encoding="utf-8"))
     mutated["seeds"] = {"bootstrap": 99}
@@ -656,40 +672,45 @@ def test_recovery_fails_when_claim_identity_does_not_match_remote(
         json.dumps(mutated, sort_keys=True, separators=(",", ":")).encode("utf-8")
     )
     _git(work, "add", "outcome_claim.json")
-    kwargs["expected_claim_commit_sha"] = _amend_and_publish_evidence_head(
-        work, bare, kwargs["evidence_ref"]
+    new_claim = _amend_and_publish_evidence_head(
+        work, bare, str(authority["evidence_ref"])
     )
+    updated = dict(authority)
+    updated["claim_commit_sha"] = new_claim
+    rec_sha, rec_tree = _recommit_authority(repo, kwargs["authority_relpath"], updated)
+    kwargs["recovery_code_sha"] = rec_sha
+    kwargs["recovery_code_tree"] = rec_tree
     with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
         recover_claimed_batch02_artifact(**kwargs)
     assert result_path.read_bytes() == source
-    assert "receipt.json" not in set(_remote_tree(bare, kwargs["evidence_ref"]))
+    assert "receipt.json" not in set(_remote_tree(bare, str(authority["evidence_ref"])))
 
 
 def test_recovery_fails_when_local_artifact_digest_or_size_differs(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    kwargs, _repo, bare, result_path, source, _e, _t, _r, _rt = _process_loss_ready(
+    kwargs, _repo, bare, result_path, source, authority, _r, _rt = _process_loss_ready(
         tmp_path, monkeypatch
     )
     result_path.write_bytes(source + b"X")
     with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
         recover_claimed_batch02_artifact(**kwargs)
-    kwargs["local_artifact_path"] = result_path
     result_path.write_bytes(source)
-    kwargs["expected_artifact_size_bytes"] = len(source) + 1
-    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
-        recover_claimed_batch02_artifact(**kwargs)
     assert result_path.read_bytes() == source
-    assert "receipt.json" not in set(_remote_tree(bare, kwargs["evidence_ref"]))
+    assert "receipt.json" not in set(_remote_tree(bare, str(authority["evidence_ref"])))
 
 
 def test_recovery_fails_when_execution_tree_differs(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    kwargs, _repo, _bare, result_path, source, _e, _t, _r, rec_tree = _process_loss_ready(
+    kwargs, repo, _bare, result_path, source, authority, _r, rec_tree = _process_loss_ready(
         tmp_path, monkeypatch
     )
-    kwargs["execution_code_tree"] = rec_tree
+    wrong = dict(authority)
+    wrong["execution_code_tree"] = rec_tree
+    rec_sha, new_tree = _recommit_authority(repo, kwargs["authority_relpath"], wrong)
+    kwargs["recovery_code_sha"] = rec_sha
+    kwargs["recovery_code_tree"] = new_tree
     with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
         recover_claimed_batch02_artifact(**kwargs)
     assert result_path.read_bytes() == source
@@ -698,7 +719,7 @@ def test_recovery_fails_when_execution_tree_differs(
 def test_recovery_fails_when_recovery_checkout_is_dirty(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    kwargs, repo, _bare, result_path, source, _e, _t, _r, _rt = _process_loss_ready(
+    kwargs, repo, _bare, result_path, source, _authority, _r, _rt = _process_loss_ready(
         tmp_path, monkeypatch
     )
     (repo / "tracked.txt").write_text("dirty recovery checkout\n", encoding="utf-8")
@@ -710,7 +731,7 @@ def test_recovery_fails_when_recovery_checkout_is_dirty(
 def test_recovery_fails_when_one_remote_chunk_is_mutated(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    kwargs, _repo, _bare, result_path, source, _e, _t, _r, _rt = _process_loss_ready(
+    kwargs, _repo, _bare, result_path, source, _authority, _r, _rt = _process_loss_ready(
         tmp_path, monkeypatch
     )
     original = retention._show_blob
@@ -730,7 +751,7 @@ def test_recovery_fails_when_one_remote_chunk_is_mutated(
 def test_recovery_fails_when_one_remote_chunk_is_missing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    kwargs, _repo, _bare, result_path, source, _e, _t, _r, _rt = _process_loss_ready(
+    kwargs, _repo, _bare, result_path, source, _authority, _r, _rt = _process_loss_ready(
         tmp_path, monkeypatch
     )
     original = retention._tree_names
@@ -751,7 +772,7 @@ def test_recovery_fails_when_one_remote_chunk_is_missing(
 def test_recovery_fails_when_extra_remote_chunk_exists(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    kwargs, _repo, _bare, result_path, source, _e, _t, _r, _rt = _process_loss_ready(
+    kwargs, _repo, _bare, result_path, source, _authority, _r, _rt = _process_loss_ready(
         tmp_path, monkeypatch
     )
     original = retention._tree_names
@@ -773,7 +794,7 @@ def test_recovery_fails_when_extra_remote_chunk_exists(
 def test_recovery_fails_when_manifest_is_reordered(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    kwargs, _repo, _bare, result_path, source, _e, _t, _r, _rt = _process_loss_ready(
+    kwargs, _repo, _bare, result_path, source, _authority, _r, _rt = _process_loss_ready(
         tmp_path, monkeypatch
     )
     original = retention._show_blob
@@ -797,7 +818,7 @@ def test_recovery_fails_when_manifest_is_reordered(
 def test_recovery_fails_when_push_would_not_be_fast_forward(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    kwargs, _repo, bare, result_path, source, _e, _t, _r, _rt = _process_loss_ready(
+    kwargs, _repo, bare, result_path, source, authority, _r, _rt = _process_loss_ready(
         tmp_path, monkeypatch
     )
     original = retention._ls_remote_sha
@@ -814,8 +835,131 @@ def test_recovery_fails_when_push_would_not_be_fast_forward(
     with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
         recover_claimed_batch02_artifact(**kwargs)
     assert result_path.read_bytes() == source
-    assert classify_evidence_tree(_remote_tree(bare, kwargs["evidence_ref"])) == STATE_CLAIMED
-    assert "receipt.json" not in set(_remote_tree(bare, kwargs["evidence_ref"]))
+    assert classify_evidence_tree(_remote_tree(bare, str(authority["evidence_ref"]))) == STATE_CLAIMED
+    assert "receipt.json" not in set(_remote_tree(bare, str(authority["evidence_ref"])))
+
+
+def test_recovery_rejects_substituted_artifact_even_with_caller_digest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    kwargs, _repo, bare, result_path, source, authority, _r, _rt = _process_loss_ready(
+        tmp_path, monkeypatch
+    )
+    substitute = json.loads(source.decode("utf-8"))
+    substitute["status"] = "substituted_closed"
+    result_path.write_text(
+        json.dumps(substitute, sort_keys=True, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    new_digest = sha256_bytes(result_path.read_bytes())
+    assert new_digest != authority["artifact_sha256"]
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
+        recover_claimed_batch02_artifact(**kwargs)
+    with pytest.raises(TypeError):
+        recover_claimed_batch02_artifact(
+            **kwargs,
+            expected_artifact_sha256=new_digest,
+            expected_artifact_size_bytes=result_path.stat().st_size,
+        )
+    assert "receipt.json" not in set(_remote_tree(bare, str(authority["evidence_ref"])))
+
+
+def test_recovery_fails_when_worktree_authority_digest_is_dirty(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    kwargs, repo, _bare, result_path, source, authority, _r, _rt = _process_loss_ready(
+        tmp_path, monkeypatch
+    )
+    dest = repo / kwargs["authority_relpath"]
+    dirty = dict(authority)
+    dirty["artifact_sha256"] = "b" * 64
+    dest.write_bytes(canonical_json_bytes(dirty) + b"\n")
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
+        recover_claimed_batch02_artifact(**kwargs)
+    assert result_path.read_bytes() == source
+
+
+def test_recovery_fails_when_tracked_authority_digest_is_wrong(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    kwargs, repo, _bare, result_path, source, authority, _r, _rt = _process_loss_ready(
+        tmp_path, monkeypatch
+    )
+    wrong = dict(authority)
+    wrong["artifact_sha256"] = "b" * 64
+    rec_sha, rec_tree = _recommit_authority(repo, kwargs["authority_relpath"], wrong)
+    kwargs["recovery_code_sha"] = rec_sha
+    kwargs["recovery_code_tree"] = rec_tree
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
+        recover_claimed_batch02_artifact(**kwargs)
+    assert result_path.read_bytes() == source
+
+
+def test_recovery_fails_when_authority_run_identity_is_wrong(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    kwargs, repo, _bare, result_path, source, authority, _r, _rt = _process_loss_ready(
+        tmp_path, monkeypatch
+    )
+    wrong = dict(authority)
+    wrong["run_identity_sha256"] = "a" * 64
+    rec_sha, rec_tree = _recommit_authority(repo, kwargs["authority_relpath"], wrong)
+    kwargs["recovery_code_sha"] = rec_sha
+    kwargs["recovery_code_tree"] = rec_tree
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
+        recover_claimed_batch02_artifact(**kwargs)
+    assert result_path.read_bytes() == source
+
+
+def test_recovery_fails_when_artifact_provenance_is_mutated(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    kwargs, repo, _bare, result_path, source, authority, _r, _rt = _process_loss_ready(
+        tmp_path, monkeypatch
+    )
+    mutated = json.loads(source.decode("utf-8"))
+    mutated["provenance"]["seeds"] = {"bootstrap": 99}
+    encoded = (
+        json.dumps(mutated, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
+    ).encode("utf-8")
+    result_path.write_bytes(encoded)
+    updated = dict(authority)
+    updated["artifact_sha256"] = sha256_bytes(encoded)
+    updated["artifact_size_bytes"] = len(encoded)
+    rec_sha, rec_tree = _recommit_authority(repo, kwargs["authority_relpath"], updated)
+    kwargs["recovery_code_sha"] = rec_sha
+    kwargs["recovery_code_tree"] = rec_tree
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
+        recover_claimed_batch02_artifact(**kwargs)
+
+
+def test_caller_cannot_override_authority_identity_fields(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    kwargs, _repo, _bare, result_path, source, authority, _r, _rt = _process_loss_ready(
+        tmp_path, monkeypatch
+    )
+    allowed = {
+        "repo_root",
+        "recovery_code_sha",
+        "recovery_code_tree",
+        "authority_relpath",
+        "test_bare_remote",
+    }
+    assert set(inspect.signature(recover_claimed_batch02_artifact).parameters) == allowed
+    assert set(
+        inspect.signature(retention.recover_claimed_batch02_artifact).parameters
+    ) == allowed
+    for extra in (
+        {"expected_artifact_sha256": authority["artifact_sha256"]},
+        {"expected_artifact_size_bytes": authority["artifact_size_bytes"]},
+        {"run_identity_sha256": authority["run_identity_sha256"]},
+        {"expected_claim_commit_sha": authority["claim_commit_sha"]},
+        {"claim_commit_sha": authority["claim_commit_sha"]},
+    ):
+        with pytest.raises(TypeError):
+            recover_claimed_batch02_artifact(**kwargs, **extra)
+    assert result_path.read_bytes() == source
 
 
 def test_recovery_api_is_exported_and_not_a_runner_call():
