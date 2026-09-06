@@ -226,6 +226,25 @@ Deterministic append-only path, keyed by the canonical B2 slot:
 plus `receipt.json` on the same evidence ref. Path traversal, caller-selected
 filesystem destinations, overwrite, and silent replacement are rejected.
 
+GitHub regular Git storage rejects a single object above 100 MiB. Artifacts
+whose exact byte count is `<= SAFE_SINGLE_BLOB_THRESHOLD_BYTES` (90 MiB)
+keep the V1 single-file path above. Artifacts above that safe threshold are
+archived as raw byte chunks of `RAW_CHUNK_SIZE_BYTES` (64 MiB) with no
+reserialization:
+
+```text
+batch02/<B2-NN>/<code_sha>/<artifact_sha256>/manifest.json
+batch02/<B2-NN>/<code_sha>/<artifact_sha256>/chunks/00000.part
+batch02/<B2-NN>/<code_sha>/<artifact_sha256>/chunks/00001.part
+...
+```
+
+The remote artifact is valid only after independent readback reconstructs
+the original bytes by concatenating chunks in numeric ascending order and
+proving `reconstructed_sha256` and `reconstructed_size` equal the local
+canonical digest and byte count. This is not a second scientific execution
+and does not rewrite reservation or claim bytes.
+
 ## 7. Receipt
 
 The committed receipt contains:
@@ -243,8 +262,137 @@ The committed receipt contains:
 The remote archive commit SHA is returned as verified metadata after
 successful push/readback. It is not invented inside the committed receipt.
 
+Chunked archives additionally record, in the same committed receipt:
+
+- `archive_representation = raw_chunks`
+- `manifest_path`, `manifest_sha256`
+- `chunk_count`, `chunk_size_bytes`
+- `execution_code_sha`, `execution_code_tree`
+- `recovery_code_sha`, `recovery_code_tree`
+- `reservation_commit_sha`, `claim_commit_sha`
+- `recovery_tool`
+
+First-run archival on the execution commit may honestly set
+`recovery_code_sha == execution_code_sha`. Post-outcome crash recovery must
+not relabel a later infrastructure commit as the scientific execution SHA.
+Execution identity remains the historical commit/tree that produced the
+artifact. Recovery identity is the clean checkout that performs retention.
+
 Receipts, logs, and artifacts must not contain secrets, credentials, or
 environment tokens.
+
+## 7.1 Fresh-process post-outcome recovery
+
+`archive_batch02_result()` requires minted in-memory reservation/claim/persist
+objects from the original scientific process. Those objects die with the
+process. `recover_claimed_batch02_artifact()` is the dedicated operator
+entry point after process loss.
+
+It is callable from a completely fresh Python process. It does not require
+the original `DurableEvidenceReservation`, `DurableOutcomeAccessClaim`,
+`PersistedBatch02ResultProof`, or `_EvidenceBackend` objects. It reconstructs
+and verifies authority from durable facts. It does not remint a reservation
+or push a new claim.
+
+Caller kwargs may only identify the recovery checkout and the tracked
+authority path. They may not independently supply artifact digest, size,
+run identity, claim SHA, or other scientific identity fields.
+
+Those fields come from a tracked recovery-authority JSON blob that belongs
+to the exact clean `recovery_code_sha` / `recovery_code_tree`. The authority
+is read as the exact Git blob from that commit. It binds at least:
+
+```text
+hypothesis_id
+stage
+dataset_id
+snapshot_id
+execution_code_sha
+execution_code_tree
+evidence_ref
+reservation_commit_sha
+claim_commit_sha
+artifact_sha256
+artifact_size_bytes
+run_identity_sha256
+canonical_artifact_path
+historical_artifact_binding
+```
+
+`historical_artifact_binding` is required. Omitting it fails closed. The
+only accepted value in this contract is `OPERATOR_ADJUDICATED`.
+`PREEXISTING_IMMUTABLE_WITNESS` and any stronger historical-origin claim
+fail closed because this mechanism does not verify a pre-existing
+immutable witness of the artifact digest.
+
+These two statements are not equivalent:
+
+```text
+artifact == authority committed during recovery
+authority describes the exact artifact originally persisted by the
+historical scientific execution
+```
+
+Recovery proves only the first. A later clean recovery commit can carry a
+newly computed digest for a provenance-preserving mutation of the surviving
+local payload. That is operator adjudication of current bytes, not
+cryptographic historical persistence. The recovery receipt therefore records:
+
+```text
+historical_artifact_binding = OPERATOR_ADJUDICATED
+historical_artifact_byte_authority = OPERATOR_ADJUDICATED
+recovery_proves = artifact_equals_authority_committed_during_recovery
+historical_execution_persistence_proven = false
+```
+
+Search of committed Git history, committed research/status ledgers, and
+committed durable-failure metadata found no immutable source that binds the
+local B2-05 artifact digest
+`530342759e70a135915ef82382b4b97bd939620ce02925524b745ccf6cc9a57c`.
+Uncommitted local sidecars are not Git-immutable evidence. Any future
+B2-05 recovery authority for those bytes can therefore only be
+`OPERATOR_ADJUDICATED`. This document is not that authority file.
+
+Dual verification:
+
+- historical execution identity is proven from Git objects
+  (`commit exists`, SHA match, tree match) without checking out or freezing
+  the current worktree to the execution SHA;
+- the current recovery checkout must be a clean freeze of
+  `recovery_code_sha` / `recovery_code_tree`.
+
+Before the local artifact is read, recovery independently fetches the
+evidence ref and requires `OUTCOME_ACCESS_CLAIMED`, exact expected claim
+SHA, claim parent = expected reservation SHA, tree exactly
+`reservation.json` + `outcome_claim.json`, and reservation/claim identity
+fields that match the tracked authority. Any mismatch fails closed with
+no push.
+
+The local artifact must then be the authority's canonical path, a regular
+non-symlink file whose size and SHA256 equal the authority values. Those
+exact raw bytes are later chunked. JSON is parsed only to verify
+`artifact["provenance"]` against `build_run_identity` semantics:
+
+```text
+sha256(canonical_json(provenance)) == authority.run_identity_sha256
+```
+
+Provenance scientific identity must agree with the authority and with the
+remote reservation/claim. Reservation/claim payloads are then rebuilt from
+provenance plus authority and compared byte-for-byte to the remote blobs.
+The artifact is not rewritten or reserialized. Artifacts `<= 90 MiB` keep
+the V1 single-blob archive. Larger artifacts use `raw_chunks` / 64 MiB.
+
+The archive commit must be exactly one child of the expected claim SHA.
+Immediately before push, remote HEAD must still equal that claim SHA.
+Push is ordinary fast-forward only. Force, force-with-lease, ref reset,
+and delete+recreate are forbidden.
+
+Independent readback after push requires parent = claim SHA, unchanged
+reservation/claim bytes, exact receipt/manifest/chunk paths, exact chunk
+SHA256/size, no missing/extra chunks, numeric order, and
+`sha256(b"".join(chunks_in_numeric_order))` equal to the expected artifact
+digest and size. Only then is the remote state `ARCHIVED`.
 
 ## 8. Failure semantics
 

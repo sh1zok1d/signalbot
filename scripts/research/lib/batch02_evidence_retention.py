@@ -47,6 +47,13 @@ RESERVATION_KIND = "batch02_pre_outcome_evidence_reservation"
 CLAIM_KIND = "batch02_outcome_access_claim"
 RECEIPT_KIND = "batch02_durable_archive_receipt"
 POST_OUTCOME_STATE = "POST_OUTCOME_RETENTION_FAILURE"
+GITHUB_REGULAR_GIT_OBJECT_LIMIT_BYTES = 100 * 1024 * 1024
+SAFE_SINGLE_BLOB_THRESHOLD_BYTES = 90 * 1024 * 1024
+RAW_CHUNK_SIZE_BYTES = 64 * 1024 * 1024
+ARCHIVE_REPRESENTATION_SINGLE_BLOB = "single_blob"
+ARCHIVE_REPRESENTATION_RAW_CHUNKS = "raw_chunks"
+CHUNKED_ENCODING = "raw_chunks"
+RECOVERY_TOOL_ID = "scripts.research.lib.batch02_evidence_retention"
 AMBIGUOUS_CLAIM_STATE = "AMBIGUOUS_OUTCOME_ACCESS_CLAIM"
 STATE_RESERVED = "RESERVED"
 STATE_CLAIMED = "OUTCOME_ACCESS_CLAIMED"
@@ -59,6 +66,15 @@ CANONICAL_REMOTE_IDENTITY = f"{CANONICAL_REMOTE_HOST}/{CANONICAL_REMOTE_PATH}"
 RESERVATION_BLOB_PATH = "reservation.json"
 CLAIM_BLOB_PATH = "outcome_claim.json"
 RECEIPT_BLOB_PATH = "receipt.json"
+RECOVERY_AUTHORITY_KIND = "batch02_durable_recovery_authority"
+RECOVERY_AUTHORITY_DIR = "docs/research/batch02_recovery_authority"
+HISTORICAL_ARTIFACT_BINDING_OPERATOR_ADJUDICATED = "OPERATOR_ADJUDICATED"
+HISTORICAL_ARTIFACT_BINDING_PREEXISTING_IMMUTABLE_WITNESS = (
+    "PREEXISTING_IMMUTABLE_WITNESS"
+)
+RECOVERY_PROVES_AUTHORITY_CONSISTENCY = (
+    "artifact_equals_authority_committed_during_recovery"
+)
 
 _HYPOTHESIS_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 _NUMBERED_B2_RE = re.compile(r"^b2[-_](\d+)", re.IGNORECASE)
@@ -78,6 +94,12 @@ _TOKEN_ASSIGN_RE = re.compile(
 )
 _ARTIFACT_PATH_RE = re.compile(
     r"^batch02/[A-Za-z0-9][A-Za-z0-9._-]*/[a-f0-9]{40}/[a-f0-9]{64}\.json$"
+)
+_CHUNKED_MANIFEST_RE = re.compile(
+    r"^batch02/[A-Za-z0-9][A-Za-z0-9._-]*/[a-f0-9]{40}/[a-f0-9]{64}/manifest\.json$"
+)
+_CHUNKED_PART_RE = re.compile(
+    r"^batch02/[A-Za-z0-9][A-Za-z0-9._-]*/[a-f0-9]{40}/[a-f0-9]{64}/chunks/[0-9]{5}\.part$"
 )
 _FORBIDDEN_GIT_FLAGS = {
     "--force",
@@ -560,6 +582,201 @@ def artifact_relpath(hypothesis_id: str, code_sha: str, artifact_sha256: str) ->
     return relative
 
 
+def chunked_artifact_prefix(
+    hypothesis_id: str, code_sha: str, artifact_sha256: str
+) -> str:
+    """Directory prefix for a raw-chunked archive of one exact artifact."""
+    token = durable_evidence_slot_key(hypothesis_id)
+    if not _HEX40_RE.fullmatch(code_sha):
+        raise PreOutcomeRetentionError("code_sha must be an exact 40-hex commit SHA")
+    if not _HEX64_RE.fullmatch(artifact_sha256):
+        raise PreOutcomeRetentionError("artifact_sha256 must be a 64-hex digest")
+    relative = f"batch02/{token}/{code_sha}/{artifact_sha256}"
+    parts = Path(relative).parts
+    if any(part in {"", ".", ".."} for part in parts) or Path(relative).is_absolute():
+        raise PreOutcomeRetentionError("evidence path failed traversal validation")
+    return relative
+
+
+def chunked_manifest_relpath(
+    hypothesis_id: str, code_sha: str, artifact_sha256: str
+) -> str:
+    return f"{chunked_artifact_prefix(hypothesis_id, code_sha, artifact_sha256)}/manifest.json"
+
+
+def chunked_part_relpath(
+    hypothesis_id: str, code_sha: str, artifact_sha256: str, index: int
+) -> str:
+    if not isinstance(index, int) or index < 0:
+        raise PreOutcomeRetentionError("chunk index must be a non-negative integer")
+    return (
+        f"{chunked_artifact_prefix(hypothesis_id, code_sha, artifact_sha256)}"
+        f"/chunks/{index:05d}.part"
+    )
+
+
+def uses_raw_chunk_archive(artifact_size_bytes: int) -> bool:
+    """True when V1 single-blob Git storage is above the safe threshold."""
+    if not isinstance(artifact_size_bytes, int) or artifact_size_bytes < 0:
+        raise PreOutcomeRetentionError("artifact size must be a non-negative integer")
+    if SAFE_SINGLE_BLOB_THRESHOLD_BYTES >= GITHUB_REGULAR_GIT_OBJECT_LIMIT_BYTES:
+        raise PreOutcomeRetentionError(
+            "safe single-blob threshold must stay below GitHub's regular Git object limit"
+        )
+    if RAW_CHUNK_SIZE_BYTES >= GITHUB_REGULAR_GIT_OBJECT_LIMIT_BYTES:
+        raise PreOutcomeRetentionError(
+            "raw chunk size must stay below GitHub's regular Git object limit"
+        )
+    return artifact_size_bytes > SAFE_SINGLE_BLOB_THRESHOLD_BYTES
+
+
+def split_raw_bytes(data: bytes, *, chunk_size_bytes: int) -> tuple[bytes, ...]:
+    """Split exact bytes into contiguous raw chunks. No transformation."""
+    if not isinstance(data, (bytes, bytearray)):
+        raise PreOutcomeRetentionError("chunk source must be raw bytes")
+    if not isinstance(chunk_size_bytes, int) or chunk_size_bytes <= 0:
+        raise PreOutcomeRetentionError("chunk size must be a positive integer")
+    if chunk_size_bytes > RAW_CHUNK_SIZE_BYTES:
+        raise PreOutcomeRetentionError("chunk size exceeds the configured maximum")
+    if chunk_size_bytes >= GITHUB_REGULAR_GIT_OBJECT_LIMIT_BYTES:
+        raise PreOutcomeRetentionError(
+            "chunk size must stay below GitHub's regular Git object limit"
+        )
+    if len(data) == 0:
+        raise PreOutcomeRetentionError("refusing to chunk an empty artifact")
+    chunks = tuple(
+        bytes(data[offset:offset + chunk_size_bytes])
+        for offset in range(0, len(data), chunk_size_bytes)
+    )
+    if any(len(chunk) > chunk_size_bytes for chunk in chunks):
+        raise PreOutcomeRetentionError("emitted chunk exceeded the configured maximum")
+    if b"".join(chunks) != bytes(data):
+        raise PreOutcomeRetentionError("raw chunk split is not an exact partition")
+    return chunks
+
+
+def build_raw_chunk_manifest(
+    *,
+    hypothesis_id: str,
+    code_sha: str,
+    artifact_sha256: str,
+    artifact_size_bytes: int,
+    chunk_size_bytes: int,
+    chunks: Sequence[bytes],
+) -> dict[str, object]:
+    if artifact_size_bytes != sum(len(chunk) for chunk in chunks):
+        raise PreOutcomeRetentionError("chunk sizes do not sum to the artifact size")
+    if sha256_bytes(b"".join(bytes(chunk) for chunk in chunks)) != artifact_sha256:
+        raise PreOutcomeRetentionError("chunk concatenation does not match artifact digest")
+    entries = []
+    for index, chunk in enumerate(chunks):
+        path = chunked_part_relpath(hypothesis_id, code_sha, artifact_sha256, index)
+        entries.append(
+            {
+                "index": index,
+                "path": path,
+                "size_bytes": len(chunk),
+                "sha256": sha256_bytes(bytes(chunk)),
+            }
+        )
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "encoding": CHUNKED_ENCODING,
+        "artifact_sha256": artifact_sha256,
+        "artifact_size_bytes": artifact_size_bytes,
+        "chunk_size_bytes": chunk_size_bytes,
+        "chunk_count": len(entries),
+        "chunks": entries,
+    }
+
+
+def reconstruct_raw_chunks(
+    manifest: Mapping[str, object],
+    chunks_by_path: Mapping[str, bytes],
+) -> bytes:
+    """Reconstruct exact artifact bytes from a raw-chunk manifest and blobs."""
+    if not isinstance(manifest, Mapping):
+        raise PreOutcomeRetentionError("chunk manifest is malformed")
+    if manifest.get("encoding") != CHUNKED_ENCODING:
+        raise PreOutcomeRetentionError("chunk manifest encoding is not raw_chunks")
+    try:
+        artifact_sha256 = str(manifest["artifact_sha256"])
+        artifact_size_bytes = int(manifest["artifact_size_bytes"])
+        chunk_size_bytes = int(manifest["chunk_size_bytes"])
+        chunk_count = int(manifest["chunk_count"])
+        entries = list(manifest["chunks"])  # type: ignore[arg-type]
+    except (KeyError, TypeError, ValueError) as exc:
+        raise PreOutcomeRetentionError("chunk manifest fields are malformed") from exc
+    if not _HEX64_RE.fullmatch(artifact_sha256):
+        raise PreOutcomeRetentionError("chunk manifest artifact digest is malformed")
+    if artifact_size_bytes < 0 or chunk_count <= 0 or chunk_size_bytes <= 0:
+        raise PreOutcomeRetentionError("chunk manifest sizes are invalid")
+    if chunk_size_bytes > RAW_CHUNK_SIZE_BYTES:
+        raise PreOutcomeRetentionError("chunk manifest size exceeds the configured maximum")
+    if chunk_count != len(entries):
+        raise PreOutcomeRetentionError("chunk manifest count does not match entries")
+    preview_indexes: list[int] = []
+    preview_paths: list[str] = []
+    for raw_entry in entries:
+        if not isinstance(raw_entry, Mapping):
+            raise PreOutcomeRetentionError("chunk manifest entry is malformed")
+        try:
+            preview_indexes.append(int(raw_entry["index"]))
+            preview_paths.append(str(raw_entry["path"]))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise PreOutcomeRetentionError("chunk manifest entry fields are malformed") from exc
+    if len(preview_indexes) != len(set(preview_indexes)) or len(preview_paths) != len(set(preview_paths)):
+        raise PreOutcomeRetentionError("chunk manifest contains a duplicated chunk")
+    if len(chunks_by_path) != chunk_count:
+        raise PreOutcomeRetentionError("chunk blob count does not match the manifest")
+    seen_indexes: set[int] = set()
+    seen_paths: set[str] = set()
+    ordered: list[bytes] = []
+    for position, raw_entry in enumerate(entries):
+        if not isinstance(raw_entry, Mapping):
+            raise PreOutcomeRetentionError("chunk manifest entry is malformed")
+        try:
+            index = int(raw_entry["index"])
+            path = str(raw_entry["path"])
+            size_bytes = int(raw_entry["size_bytes"])
+            digest = str(raw_entry["sha256"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise PreOutcomeRetentionError("chunk manifest entry fields are malformed") from exc
+        if index != position:
+            raise PreOutcomeRetentionError("chunk manifest is not in numeric ascending order")
+        if index in seen_indexes or path in seen_paths:
+            raise PreOutcomeRetentionError("chunk manifest contains a duplicated chunk")
+        if not _CHUNKED_PART_RE.fullmatch(path):
+            raise PreOutcomeRetentionError("chunk path is not a canonical part path")
+        expected_suffix = f"/chunks/{index:05d}.part"
+        if not path.endswith(expected_suffix):
+            raise PreOutcomeRetentionError("chunk path index does not match the part name")
+        if path not in chunks_by_path:
+            raise PreOutcomeRetentionError("chunk blob is missing")
+        payload = chunks_by_path[path]
+        if not isinstance(payload, (bytes, bytearray)):
+            raise PreOutcomeRetentionError("chunk blob is not raw bytes")
+        payload = bytes(payload)
+        if len(payload) != size_bytes:
+            raise PreOutcomeRetentionError("chunk size does not match the manifest")
+        if len(payload) > chunk_size_bytes:
+            raise PreOutcomeRetentionError("chunk exceeds the configured maximum")
+        if sha256_bytes(payload) != digest:
+            raise PreOutcomeRetentionError("chunk digest does not match the manifest")
+        seen_indexes.add(index)
+        seen_paths.add(path)
+        ordered.append(payload)
+    extra_paths = set(chunks_by_path) - seen_paths
+    if extra_paths:
+        raise PreOutcomeRetentionError("unexpected extra chunk blob")
+    reconstructed = b"".join(ordered)
+    if len(reconstructed) != artifact_size_bytes:
+        raise PreOutcomeRetentionError("reconstructed artifact size does not match")
+    if sha256_bytes(reconstructed) != artifact_sha256:
+        raise PreOutcomeRetentionError("reconstructed artifact digest does not match")
+    return reconstructed
+
+
 def _has_credential_userinfo(url: str) -> bool:
     stripped = url.strip()
     if _HTTPS_USERINFO_RE.match(stripped):
@@ -817,11 +1034,38 @@ def _tree_names(isolated: Path, commit: str) -> tuple[str, ...]:
     return tuple(line for line in raw.splitlines() if line.strip())
 
 
+def _chunked_parts_match_manifest(manifest_path: str, parts: set[str]) -> bool:
+    if not _CHUNKED_MANIFEST_RE.fullmatch(manifest_path) or not parts:
+        return False
+    prefix = manifest_path[: -len("/manifest.json")]
+    indexes: list[int] = []
+    for part in parts:
+        if not part.startswith(f"{prefix}/chunks/") or not _CHUNKED_PART_RE.fullmatch(part):
+            return False
+        stem = part.rsplit("/", 1)[-1]
+        if not stem.endswith(".part"):
+            return False
+        try:
+            indexes.append(int(stem[: -len(".part")]))
+        except ValueError:
+            return False
+    indexes.sort()
+    return indexes == list(range(len(indexes)))
+
+
 def classify_evidence_tree(names: Sequence[str]) -> str:
     files = set(names)
     artifacts = {name for name in files if _ARTIFACT_PATH_RE.fullmatch(name)}
-    extras = files - {RESERVATION_BLOB_PATH, CLAIM_BLOB_PATH, RECEIPT_BLOB_PATH} - artifacts
-    if extras or len(artifacts) > 1:
+    manifests = {name for name in files if _CHUNKED_MANIFEST_RE.fullmatch(name)}
+    parts = {name for name in files if _CHUNKED_PART_RE.fullmatch(name)}
+    extras = (
+        files
+        - {RESERVATION_BLOB_PATH, CLAIM_BLOB_PATH, RECEIPT_BLOB_PATH}
+        - artifacts
+        - manifests
+        - parts
+    )
+    if extras or len(artifacts) > 1 or (artifacts and (manifests or parts)):
         return STATE_UNKNOWN
     if files == {RESERVATION_BLOB_PATH}:
         return STATE_RESERVED
@@ -832,6 +1076,17 @@ def classify_evidence_tree(names: Sequence[str]) -> str:
         and CLAIM_BLOB_PATH in files
         and RECEIPT_BLOB_PATH in files
         and len(artifacts) == 1
+        and not manifests
+        and not parts
+    ):
+        return STATE_ARCHIVED
+    if (
+        RESERVATION_BLOB_PATH in files
+        and CLAIM_BLOB_PATH in files
+        and RECEIPT_BLOB_PATH in files
+        and not artifacts
+        and len(manifests) == 1
+        and _chunked_parts_match_manifest(next(iter(manifests)), parts)
     ):
         return STATE_ARCHIVED
     return STATE_UNKNOWN
@@ -863,6 +1118,1086 @@ def _independent_readback(
             )
         payload = _show_blob(isolated, commit, relative)
         return commit, payload
+
+
+def _require_hex40(value: object, *, label: str) -> str:
+    if not isinstance(value, str) or not _HEX40_RE.fullmatch(value.strip().lower()):
+        raise PostOutcomeRetentionFailure(
+            f"{POST_OUTCOME_STATE}: {label} must be an exact 40-hex SHA. "
+            "OUTCOME CONSUMED = YES; RERUN AUTHORIZED = NO; "
+            "LOCAL CANONICAL ARTIFACT MUST BE PRESERVED; OPERATOR RECOVERY REQUIRED.",
+            local_artifact_path=Path("."),
+            local_sha256="",
+            local_size_bytes=0,
+            evidence_ref="",
+            reservation_sha256="",
+        )
+    return value.strip().lower()
+
+
+def _require_hex64(value: object, *, label: str) -> str:
+    if not isinstance(value, str) or not _HEX64_RE.fullmatch(value.strip().lower()):
+        raise PostOutcomeRetentionFailure(
+            f"{POST_OUTCOME_STATE}: {label} must be an exact 64-hex digest. "
+            "OUTCOME CONSUMED = YES; RERUN AUTHORIZED = NO; "
+            "LOCAL CANONICAL ARTIFACT MUST BE PRESERVED; OPERATOR RECOVERY REQUIRED.",
+            local_artifact_path=Path("."),
+            local_sha256="",
+            local_size_bytes=0,
+            evidence_ref="",
+            reservation_sha256="",
+        )
+    return value.strip().lower()
+
+
+def clear_batch02_retention_runtime_state() -> None:
+    """Drop in-process minted-object registries. Used by crash-recovery tests."""
+    _BOUND_RESERVATIONS.clear()
+    _BOUND_CLAIMS.clear()
+    _BOUND_PERSISTED.clear()
+    _BACKEND_BY_ID.clear()
+
+
+def verify_historical_execution_identity(
+    repo_root: Path,
+    *,
+    execution_code_sha: str,
+    execution_code_tree: str,
+) -> None:
+    """Prove the scientific execution commit/tree exist as Git objects.
+
+    This must not require HEAD or the worktree to equal the execution SHA.
+    """
+    sha = _require_hex40(execution_code_sha, label="execution_code_sha")
+    tree = _require_hex40(execution_code_tree, label="execution_code_tree")
+    try:
+        kind = run_git(repo_root, ["cat-file", "-t", sha]).decode("utf-8").strip()
+        resolved = run_git(repo_root, ["rev-parse", "--verify", sha]).decode("utf-8").strip().lower()
+        resolved_tree = run_git(
+            repo_root, ["rev-parse", "--verify", f"{sha}^{{tree}}"]
+        ).decode("utf-8").strip().lower()
+    except PreOutcomeRetentionError as exc:
+        raise PostOutcomeRetentionFailure(
+            f"{POST_OUTCOME_STATE}: historical execution commit is not independently "
+            f"readable: {_redact(str(exc))}. OUTCOME CONSUMED = YES; RERUN AUTHORIZED = NO; "
+            "LOCAL CANONICAL ARTIFACT MUST BE PRESERVED; OPERATOR RECOVERY REQUIRED.",
+            local_artifact_path=Path("."),
+            local_sha256="",
+            local_size_bytes=0,
+            evidence_ref="",
+            reservation_sha256="",
+        ) from exc
+    if kind != "commit" or resolved != sha or resolved_tree != tree:
+        raise PostOutcomeRetentionFailure(
+            f"{POST_OUTCOME_STATE}: historical execution identity mismatch "
+            f"(kind={kind} sha={resolved} tree={resolved_tree}). "
+            "OUTCOME CONSUMED = YES; RERUN AUTHORIZED = NO; "
+            "LOCAL CANONICAL ARTIFACT MUST BE PRESERVED; OPERATOR RECOVERY REQUIRED.",
+            local_artifact_path=Path("."),
+            local_sha256="",
+            local_size_bytes=0,
+            evidence_ref="",
+            reservation_sha256="",
+        )
+
+
+def _raise_recovery_failure(
+    *,
+    result_path: Path,
+    local_sha256: str,
+    local_size_bytes: int,
+    evidence_ref: str,
+    reservation_sha256: str,
+    reason: str,
+) -> None:
+    message = (
+        f"{POST_OUTCOME_STATE}: {reason}. "
+        "OUTCOME CONSUMED = YES; RERUN AUTHORIZED = NO; "
+        "LOCAL CANONICAL ARTIFACT MUST BE PRESERVED; OPERATOR RECOVERY REQUIRED. "
+        f"local_sha256={local_sha256} size={local_size_bytes} ref={evidence_ref} "
+        f"reservation={reservation_sha256}"
+    )
+    raise PostOutcomeRetentionFailure(
+        _redact(message),
+        local_artifact_path=result_path,
+        local_sha256=local_sha256,
+        local_size_bytes=local_size_bytes,
+        evidence_ref=evidence_ref,
+        reservation_sha256=reservation_sha256,
+    )
+
+
+def recovery_authority_relpath(hypothesis_id: str, execution_code_sha: str) -> str:
+    """Canonical tracked path for one slot + execution SHA recovery authority."""
+    token = durable_evidence_slot_key(hypothesis_id)
+    sha = _require_hex40(execution_code_sha, label="execution_code_sha")
+    relative = f"{RECOVERY_AUTHORITY_DIR}/{token}/{sha}.json"
+    _require_repo_relative(relative, label="recovery authority path")
+    return relative
+
+
+def build_recovery_authority_payload(
+    *,
+    hypothesis_id: str,
+    stage: str,
+    dataset_id: str,
+    snapshot_id: str,
+    execution_code_sha: str,
+    execution_code_tree: str,
+    evidence_ref: str,
+    reservation_commit_sha: str,
+    claim_commit_sha: str,
+    artifact_sha256: str,
+    artifact_size_bytes: int,
+    run_identity_sha256: str,
+    canonical_artifact_path: str,
+    historical_artifact_binding: str,
+) -> dict[str, object]:
+    """Build the durable recovery-authority object. No inferred identity."""
+    exec_sha = _require_hex40(execution_code_sha, label="execution_code_sha")
+    binding = _require_historical_artifact_binding(historical_artifact_binding)
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "kind": RECOVERY_AUTHORITY_KIND,
+        "hypothesis_id": _safe_hypothesis_token(hypothesis_id),
+        "stage": stage,
+        "dataset_id": dataset_id,
+        "snapshot_id": snapshot_id,
+        "execution_code_sha": exec_sha,
+        "execution_code_tree": _require_hex40(
+            execution_code_tree, label="execution_code_tree"
+        ),
+        "evidence_ref": evidence_ref,
+        "reservation_commit_sha": _require_hex40(
+            reservation_commit_sha, label="reservation_commit_sha"
+        ),
+        "claim_commit_sha": _require_hex40(claim_commit_sha, label="claim_commit_sha"),
+        "artifact_sha256": _require_hex64(artifact_sha256, label="artifact_sha256"),
+        "artifact_size_bytes": artifact_size_bytes,
+        "run_identity_sha256": _require_hex64(
+            run_identity_sha256, label="run_identity_sha256"
+        ),
+        "canonical_artifact_path": _require_repo_relative(
+            canonical_artifact_path, label="canonical_artifact_path"
+        ),
+        "historical_artifact_binding": binding,
+    }
+    if stage != "development":
+        raise PostOutcomeRetentionFailure(
+            f"{POST_OUTCOME_STATE}: recovery authority stage must be development. "
+            "OUTCOME CONSUMED = YES; RERUN AUTHORIZED = NO; "
+            "LOCAL CANONICAL ARTIFACT MUST BE PRESERVED; OPERATOR RECOVERY REQUIRED.",
+            local_artifact_path=Path("."),
+            local_sha256="",
+            local_size_bytes=0,
+            evidence_ref=str(evidence_ref),
+            reservation_sha256="",
+        )
+    if not isinstance(dataset_id, str) or not dataset_id.strip():
+        raise PostOutcomeRetentionFailure(
+            f"{POST_OUTCOME_STATE}: recovery authority dataset_id is invalid. "
+            "OUTCOME CONSUMED = YES; RERUN AUTHORIZED = NO; "
+            "LOCAL CANONICAL ARTIFACT MUST BE PRESERVED; OPERATOR RECOVERY REQUIRED.",
+            local_artifact_path=Path("."),
+            local_sha256="",
+            local_size_bytes=0,
+            evidence_ref=str(evidence_ref),
+            reservation_sha256="",
+        )
+    if not isinstance(snapshot_id, str) or not snapshot_id.strip():
+        raise PostOutcomeRetentionFailure(
+            f"{POST_OUTCOME_STATE}: recovery authority snapshot_id is invalid. "
+            "OUTCOME CONSUMED = YES; RERUN AUTHORIZED = NO; "
+            "LOCAL CANONICAL ARTIFACT MUST BE PRESERVED; OPERATOR RECOVERY REQUIRED.",
+            local_artifact_path=Path("."),
+            local_sha256="",
+            local_size_bytes=0,
+            evidence_ref=str(evidence_ref),
+            reservation_sha256="",
+        )
+    if not isinstance(artifact_size_bytes, int) or artifact_size_bytes < 0:
+        raise PostOutcomeRetentionFailure(
+            f"{POST_OUTCOME_STATE}: recovery authority artifact size is invalid. "
+            "OUTCOME CONSUMED = YES; RERUN AUTHORIZED = NO; "
+            "LOCAL CANONICAL ARTIFACT MUST BE PRESERVED; OPERATOR RECOVERY REQUIRED.",
+            local_artifact_path=Path("."),
+            local_sha256=str(payload["artifact_sha256"]),
+            local_size_bytes=0,
+            evidence_ref=str(evidence_ref),
+            reservation_sha256="",
+        )
+    if evidence_ref != evidence_ref_for(hypothesis_id, exec_sha):
+        raise PostOutcomeRetentionFailure(
+            f"{POST_OUTCOME_STATE}: recovery authority evidence_ref does not match "
+            "hypothesis_id and execution_code_sha. OUTCOME CONSUMED = YES; "
+            "RERUN AUTHORIZED = NO; LOCAL CANONICAL ARTIFACT MUST BE PRESERVED; "
+            "OPERATOR RECOVERY REQUIRED.",
+            local_artifact_path=Path("."),
+            local_sha256=str(payload["artifact_sha256"]),
+            local_size_bytes=artifact_size_bytes,
+            evidence_ref=str(evidence_ref),
+            reservation_sha256="",
+        )
+    return payload
+
+
+def _require_repo_relative(value: object, *, label: str) -> str:
+    if not isinstance(value, str) or not value or value.startswith("/"):
+        raise PostOutcomeRetentionFailure(
+            f"{POST_OUTCOME_STATE}: {label} must be a relative repository path. "
+            "OUTCOME CONSUMED = YES; RERUN AUTHORIZED = NO; "
+            "LOCAL CANONICAL ARTIFACT MUST BE PRESERVED; OPERATOR RECOVERY REQUIRED.",
+            local_artifact_path=Path("."),
+            local_sha256="",
+            local_size_bytes=0,
+            evidence_ref="",
+            reservation_sha256="",
+        )
+    posix = value.replace("\\", "/")
+    parts = Path(posix).parts
+    if any(part in {"", ".", ".."} for part in parts) or Path(posix).is_absolute():
+        raise PostOutcomeRetentionFailure(
+            f"{POST_OUTCOME_STATE}: {label} failed path-safety validation. "
+            "OUTCOME CONSUMED = YES; RERUN AUTHORIZED = NO; "
+            "LOCAL CANONICAL ARTIFACT MUST BE PRESERVED; OPERATOR RECOVERY REQUIRED.",
+            local_artifact_path=Path("."),
+            local_sha256="",
+            local_size_bytes=0,
+            evidence_ref="",
+            reservation_sha256="",
+        )
+    return posix
+
+
+def _require_historical_artifact_binding(value: object) -> str:
+    """Accept only an explicit operator-adjudicated historical-byte binding.
+
+    Recovery can prove that the local artifact matches the authority committed
+    in the recovery commit. It cannot invent a cryptographic witness that the
+    same bytes were the ones originally persisted by the historical execution
+    unless a pre-existing immutable witness already binds that digest. No such
+    verifier exists in this contract, so claiming one fails closed.
+    """
+    if not isinstance(value, str) or not value.strip():
+        raise PostOutcomeRetentionFailure(
+            f"{POST_OUTCOME_STATE}: recovery authority historical_artifact_binding "
+            "is required. Omitting it would silently pretend a later recovery "
+            "commit proves historical artifact-byte origin. "
+            "OUTCOME CONSUMED = YES; RERUN AUTHORIZED = NO; "
+            "LOCAL CANONICAL ARTIFACT MUST BE PRESERVED; OPERATOR RECOVERY REQUIRED.",
+            local_artifact_path=Path("."),
+            local_sha256="",
+            local_size_bytes=0,
+            evidence_ref="",
+            reservation_sha256="",
+        )
+    if value == HISTORICAL_ARTIFACT_BINDING_PREEXISTING_IMMUTABLE_WITNESS:
+        raise PostOutcomeRetentionFailure(
+            f"{POST_OUTCOME_STATE}: PREEXISTING_IMMUTABLE_WITNESS is not "
+            "cryptographically recoverable from committed durable evidence. "
+            "No pre-existing immutable witness binds historical artifact bytes. "
+            "Only OPERATOR_ADJUDICATED is accepted. "
+            "OUTCOME CONSUMED = YES; RERUN AUTHORIZED = NO; "
+            "LOCAL CANONICAL ARTIFACT MUST BE PRESERVED; OPERATOR RECOVERY REQUIRED.",
+            local_artifact_path=Path("."),
+            local_sha256="",
+            local_size_bytes=0,
+            evidence_ref="",
+            reservation_sha256="",
+        )
+    if value != HISTORICAL_ARTIFACT_BINDING_OPERATOR_ADJUDICATED:
+        raise PostOutcomeRetentionFailure(
+            f"{POST_OUTCOME_STATE}: recovery authority historical_artifact_binding "
+            f"{value!r} is not an accepted binding. Only OPERATOR_ADJUDICATED is "
+            "accepted because historical artifact-byte origin is not "
+            "cryptographically recoverable from committed evidence. "
+            "OUTCOME CONSUMED = YES; RERUN AUTHORIZED = NO; "
+            "LOCAL CANONICAL ARTIFACT MUST BE PRESERVED; OPERATOR RECOVERY REQUIRED.",
+            local_artifact_path=Path("."),
+            local_sha256="",
+            local_size_bytes=0,
+            evidence_ref="",
+            reservation_sha256="",
+        )
+    return value
+
+
+def _read_tracked_recovery_authority(
+    repo_root: Path,
+    *,
+    recovery_code_sha: str,
+    authority_relpath: str,
+) -> tuple[bytes, dict[str, object]]:
+    """Read exact authority bytes from the verified recovery commit/tree."""
+    relative = _require_repo_relative(authority_relpath, label="authority_relpath")
+    listing = run_git(
+        repo_root, ["ls-tree", "-r", "--full-tree", recovery_code_sha, "--", relative]
+    ).decode("utf-8")
+    line = listing.strip()
+    if not line:
+        raise RuntimeError("recovery authority is not tracked in the recovery commit")
+    meta, path = line.split("\t", 1)
+    mode, obj_type, _oid = meta.split()
+    if path != relative or obj_type != "blob" or mode != "100644":
+        raise RuntimeError("recovery authority is not a regular tracked blob")
+    blob = run_git(repo_root, ["show", f"{recovery_code_sha}:{relative}"])
+    worktree = repo_root / relative
+    if worktree.is_symlink() or not worktree.is_file():
+        raise RuntimeError("recovery authority worktree file is missing or is a symlink")
+    if worktree.read_bytes() != blob:
+        raise RuntimeError("recovery authority worktree bytes do not match the tracked blob")
+    try:
+        payload = json.loads(blob.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"recovery authority is not valid JSON: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError("recovery authority must be a JSON object")
+    if payload.get("kind") != RECOVERY_AUTHORITY_KIND:
+        raise RuntimeError("recovery authority kind is not durable recovery authority")
+    if payload.get("schema_version") != SCHEMA_VERSION:
+        raise RuntimeError("recovery authority schema_version is not the V1 contract")
+    return blob, payload
+
+
+def recover_claimed_batch02_artifact(
+    *,
+    repo_root: Path,
+    recovery_code_sha: str,
+    recovery_code_tree: str,
+    authority_relpath: str,
+    test_bare_remote: Path | None = None,
+) -> DurableArchiveReceipt:
+    """Archive a claimed local result from a fresh process. No minted objects.
+
+    Scientific identity, artifact digest/size, and run identity come only from
+    a tracked recovery-authority file in the exact recovery commit/tree. This
+    is operator recovery, not a second scientific execution. It does not remint
+    a reservation or claim. It only fast-forwards CLAIMED -> ARCHIVED.
+
+    A later recovery-authority commit can prove only that the local artifact
+    matches that later authority. It does not cryptographically prove that
+    those bytes were the ones originally persisted by the historical
+    execution unless a pre-existing immutable witness already binds the
+    digest. This contract therefore requires an explicit
+    historical_artifact_binding and currently accepts only
+    OPERATOR_ADJUDICATED.
+    """
+    rec_sha = _require_hex40(recovery_code_sha, label="recovery_code_sha")
+    rec_tree = _require_hex40(recovery_code_tree, label="recovery_code_tree")
+    result_path = Path(repo_root)
+    try:
+        freeze = verify_git_freeze(Path(repo_root), rec_sha)
+    except Exception as exc:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256="",
+            local_size_bytes=0,
+            evidence_ref="",
+            reservation_sha256="",
+            reason=_redact(f"recovery checkout is not a clean freeze of recovery_code_sha: {exc}"),
+        )
+    if freeze.tree_oid != rec_tree:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256="",
+            local_size_bytes=0,
+            evidence_ref="",
+            reservation_sha256="",
+            reason="recovery worktree tree does not match recovery_code_tree",
+        )
+    try:
+        _authority_bytes, raw_authority = _read_tracked_recovery_authority(
+            freeze.repo_root,
+            recovery_code_sha=rec_sha,
+            authority_relpath=authority_relpath,
+        )
+        authority = build_recovery_authority_payload(
+            hypothesis_id=str(raw_authority.get("hypothesis_id", "")),
+            stage=str(raw_authority.get("stage", "")),
+            dataset_id=str(raw_authority.get("dataset_id", "")),
+            snapshot_id=str(raw_authority.get("snapshot_id", "")),
+            execution_code_sha=str(raw_authority.get("execution_code_sha", "")),
+            execution_code_tree=str(raw_authority.get("execution_code_tree", "")),
+            evidence_ref=str(raw_authority.get("evidence_ref", "")),
+            reservation_commit_sha=str(raw_authority.get("reservation_commit_sha", "")),
+            claim_commit_sha=str(raw_authority.get("claim_commit_sha", "")),
+            artifact_sha256=str(raw_authority.get("artifact_sha256", "")),
+            artifact_size_bytes=raw_authority.get("artifact_size_bytes"),  # type: ignore[arg-type]
+            run_identity_sha256=str(raw_authority.get("run_identity_sha256", "")),
+            canonical_artifact_path=str(raw_authority.get("canonical_artifact_path", "")),
+            historical_artifact_binding=raw_authority.get(  # type: ignore[arg-type]
+                "historical_artifact_binding"
+            ),
+        )
+        if canonical_json_bytes(raw_authority) != canonical_json_bytes(authority):
+            raise RuntimeError(
+                "tracked recovery authority is not exactly the reconstructed "
+                "V1 authority object"
+            )
+    except PostOutcomeRetentionFailure:
+        raise
+    except Exception as exc:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256="",
+            local_size_bytes=0,
+            evidence_ref="",
+            reservation_sha256="",
+            reason=_redact(f"tracked recovery authority could not be reconstructed: {exc}"),
+        )
+
+    hypothesis_id = str(authority["hypothesis_id"])
+    stage = str(authority["stage"])
+    dataset_id = str(authority["dataset_id"])
+    snapshot_id = str(authority["snapshot_id"])
+    exec_sha = str(authority["execution_code_sha"])
+    exec_tree = str(authority["execution_code_tree"])
+    evidence_ref = str(authority["evidence_ref"])
+    reservation_commit = str(authority["reservation_commit_sha"])
+    claim_commit = str(authority["claim_commit_sha"])
+    artifact_sha = str(authority["artifact_sha256"])
+    expected_artifact_size_bytes = int(authority["artifact_size_bytes"])
+    run_id = str(authority["run_identity_sha256"])
+    result_path = (freeze.repo_root / str(authority["canonical_artifact_path"])).resolve()
+
+    verify_historical_execution_identity(
+        freeze.repo_root,
+        execution_code_sha=exec_sha,
+        execution_code_tree=exec_tree,
+    )
+    try:
+        if test_bare_remote is None:
+            transport = inspect_production_evidence_transport(freeze.repo_root)
+        else:
+            transport = prepare_test_evidence_transport(Path(test_bare_remote))
+    except Exception as exc:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=artifact_sha,
+            local_size_bytes=expected_artifact_size_bytes,
+            evidence_ref=evidence_ref,
+            reservation_sha256="",
+            reason=_redact(f"recovery transport failed: {exc}"),
+        )
+
+    try:
+        with _isolated_workspace(freeze.repo_root) as raw_dir:
+            isolated = Path(raw_dir)
+            _init_isolated_repo(isolated)
+            remote_head = _ls_remote_sha(isolated, transport.endpoint, evidence_ref)
+            if remote_head != claim_commit:
+                raise RuntimeError(
+                    "remote evidence head is not the expected CLAIMED commit"
+                )
+            commit = _fetch_evidence_commit(isolated, transport.endpoint, evidence_ref)
+            names = _tree_names(isolated, commit)
+            if set(names) != {RESERVATION_BLOB_PATH, CLAIM_BLOB_PATH}:
+                raise RuntimeError("claimed evidence tree is not exactly reservation+claim")
+            if classify_evidence_tree(names) != STATE_CLAIMED:
+                raise RuntimeError(
+                    f"recovery requires OUTCOME_ACCESS_CLAIMED, found {classify_evidence_tree(names)}"
+                )
+            parent = run_git(
+                isolated, ["rev-parse", f"{commit}^"]
+            ).decode("utf-8").strip().lower()
+            if parent != reservation_commit:
+                raise RuntimeError("claim parent is not the expected reservation commit")
+            reserved = _show_blob(isolated, commit, RESERVATION_BLOB_PATH)
+            claimed = _show_blob(isolated, commit, CLAIM_BLOB_PATH)
+    except PostOutcomeRetentionFailure:
+        raise
+    except Exception as exc:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=artifact_sha,
+            local_size_bytes=expected_artifact_size_bytes,
+            evidence_ref=evidence_ref,
+            reservation_sha256="",
+            reason=_redact(f"remote CLAIMED state could not be reconstructed: {exc}"),
+        )
+
+    try:
+        reserved_payload = json.loads(reserved.decode("utf-8"))
+        claim_payload = json.loads(claimed.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=artifact_sha,
+            local_size_bytes=expected_artifact_size_bytes,
+            evidence_ref=evidence_ref,
+            reservation_sha256="",
+            reason=f"remote reservation or claim is not valid JSON: {exc}",
+        )
+    if not isinstance(reserved_payload, Mapping) or not isinstance(claim_payload, Mapping):
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=artifact_sha,
+            local_size_bytes=expected_artifact_size_bytes,
+            evidence_ref=evidence_ref,
+            reservation_sha256="",
+            reason="remote reservation or claim is not a JSON object",
+        )
+    if (
+        reserved_payload.get("hypothesis_id") != hypothesis_id
+        or reserved_payload.get("stage") != stage
+        or reserved_payload.get("code_sha") != exec_sha
+        or reserved_payload.get("code_tree") != exec_tree
+        or reserved_payload.get("dataset_id") != dataset_id
+        or reserved_payload.get("snapshot_id") != snapshot_id
+        or claim_payload.get("hypothesis_id") != hypothesis_id
+        or claim_payload.get("stage") != stage
+        or claim_payload.get("code_sha") != exec_sha
+        or claim_payload.get("code_tree") != exec_tree
+        or claim_payload.get("dataset_id") != dataset_id
+        or claim_payload.get("snapshot_id") != snapshot_id
+        or claim_payload.get("reservation_commit_sha") != reservation_commit
+        or claim_payload.get("outcomes") is not None
+    ):
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=artifact_sha,
+            local_size_bytes=expected_artifact_size_bytes,
+            evidence_ref=evidence_ref,
+            reservation_sha256="",
+            reason="remote CLAIMED identity does not match the tracked recovery authority",
+        )
+
+    if result_path.is_symlink() or not result_path.is_file():
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=artifact_sha,
+            local_size_bytes=expected_artifact_size_bytes,
+            evidence_ref=evidence_ref,
+            reservation_sha256="",
+            reason="canonical local result is missing or is a symlink",
+        )
+    try:
+        source = result_path.read_bytes()
+    except OSError as exc:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=artifact_sha,
+            local_size_bytes=expected_artifact_size_bytes,
+            evidence_ref=evidence_ref,
+            reservation_sha256="",
+            reason=_redact(f"canonical local result could not be read: {exc}"),
+        )
+    source_sha = sha256_bytes(source)
+    source_size = len(source)
+    if source_sha != artifact_sha or source_size != expected_artifact_size_bytes:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=source_sha,
+            local_size_bytes=source_size,
+            evidence_ref=evidence_ref,
+            reservation_sha256="",
+            reason="local artifact digest or size does not match the tracked recovery authority",
+        )
+
+    try:
+        artifact_obj = json.loads(source)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=source_sha,
+            local_size_bytes=source_size,
+            evidence_ref=evidence_ref,
+            reservation_sha256="",
+            reason=f"canonical artifact is not valid JSON for provenance verification: {exc}",
+        )
+    if not isinstance(artifact_obj, Mapping):
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=source_sha,
+            local_size_bytes=source_size,
+            evidence_ref=evidence_ref,
+            reservation_sha256="",
+            reason="canonical artifact is not a JSON object",
+        )
+    provenance = artifact_obj.get("provenance")
+    if not isinstance(provenance, Mapping):
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=source_sha,
+            local_size_bytes=source_size,
+            evidence_ref=evidence_ref,
+            reservation_sha256="",
+            reason="canonical artifact provenance is missing or is not a mapping",
+        )
+    provenance_sha = sha256_bytes(canonical_json_bytes(provenance))
+    if provenance_sha != run_id:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=source_sha,
+            local_size_bytes=source_size,
+            evidence_ref=evidence_ref,
+            reservation_sha256="",
+            reason="artifact provenance digest does not match authority run_identity_sha256",
+        )
+    window = provenance.get("window")
+    gates = provenance.get("promotion_gate_contract")
+    seeds = provenance.get("seeds")
+    if (
+        provenance.get("hypothesis_id") != hypothesis_id
+        or provenance.get("stage") != stage
+        or provenance.get("code_sha") != exec_sha
+        or provenance.get("code_tree_oid") != exec_tree
+        or provenance.get("dataset_id") != dataset_id
+        or provenance.get("snapshot_id") != snapshot_id
+        or not isinstance(window, Mapping)
+        or not isinstance(gates, Mapping)
+        or not isinstance(seeds, Mapping)
+    ):
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=source_sha,
+            local_size_bytes=source_size,
+            evidence_ref=evidence_ref,
+            reservation_sha256="",
+            reason="artifact provenance scientific identity does not match recovery authority",
+        )
+    try:
+        start_inclusive_ms = window["start_inclusive_ms"]
+        end_exclusive_ms = window["end_exclusive_ms"]
+        allowed_years = window["allowed_years"]
+        required_gate_names = gates["required_gate_names"]
+        if not isinstance(required_gate_names, Sequence) or isinstance(
+            required_gate_names, (str, bytes)
+        ):
+            raise RuntimeError("provenance gate names are malformed")
+        if "sha256" in gates and str(gates["sha256"]) != _gate_contract_sha256(
+            required_gate_names
+        ):
+            raise RuntimeError("provenance gate contract digest does not match gate names")
+        expected_reservation = build_reservation_payload(
+            hypothesis_id=hypothesis_id,
+            stage=stage,
+            code_sha=exec_sha,
+            code_tree=exec_tree,
+            dataset_id=dataset_id,
+            snapshot_id=snapshot_id,
+            start_inclusive_ms=int(start_inclusive_ms),  # type: ignore[arg-type]
+            end_exclusive_ms=int(end_exclusive_ms),  # type: ignore[arg-type]
+            allowed_years=tuple(int(year) for year in allowed_years),  # type: ignore[union-attr]
+            required_gate_names=tuple(str(name) for name in required_gate_names),
+            seeds={str(key): int(value) for key, value in seeds.items()},
+            remote_repository_identity=transport.identity,
+        )
+        expected_reservation_bytes = canonical_json_bytes(expected_reservation)
+        reservation_sha = sha256_bytes(expected_reservation_bytes)
+        expected_claim = {
+            "schema_version": SCHEMA_VERSION,
+            "kind": CLAIM_KIND,
+            "reservation_sha256": reservation_sha,
+            "hypothesis_id": _safe_hypothesis_token(hypothesis_id),
+            "stage": stage,
+            "code_sha": exec_sha,
+            "code_tree": exec_tree,
+            "dataset_id": dataset_id,
+            "snapshot_id": snapshot_id,
+            "development_window": {
+                "start_inclusive_ms": int(start_inclusive_ms),  # type: ignore[arg-type]
+                "end_exclusive_ms": int(end_exclusive_ms),  # type: ignore[arg-type]
+                "allowed_years": [int(year) for year in allowed_years],  # type: ignore[union-attr]
+            },
+            "gate_contract_sha256": _gate_contract_sha256(required_gate_names),
+            "seeds": dict(sorted({str(key): int(value) for key, value in seeds.items()}.items())),
+            "remote_repository_identity": transport.identity,
+            "reservation_commit_sha": reservation_commit,
+            "outcomes": None,
+        }
+        expected_claim_bytes = canonical_json_bytes(expected_claim)
+    except PostOutcomeRetentionFailure:
+        raise
+    except Exception as exc:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=source_sha,
+            local_size_bytes=source_size,
+            evidence_ref=evidence_ref,
+            reservation_sha256="",
+            reason=_redact(f"provenance could not rebuild reservation/claim identity: {exc}"),
+        )
+    if reserved != expected_reservation_bytes:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=source_sha,
+            local_size_bytes=source_size,
+            evidence_ref=evidence_ref,
+            reservation_sha256=reservation_sha,
+            reason="remote reservation bytes do not match artifact provenance and authority",
+        )
+    if claimed != expected_claim_bytes:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=source_sha,
+            local_size_bytes=source_size,
+            evidence_ref=evidence_ref,
+            reservation_sha256=reservation_sha,
+            reason="remote claim bytes do not match artifact provenance and authority",
+        )
+    claim_sha = sha256_bytes(claimed)
+    reserved_window = reserved_payload.get("development_window")
+    if isinstance(reserved_window, Mapping):
+        if reserved_window.get("allowed_years") != [int(year) for year in allowed_years]:  # type: ignore[union-attr]
+            _raise_recovery_failure(
+                result_path=result_path,
+                local_sha256=source_sha,
+                local_size_bytes=source_size,
+                evidence_ref=evidence_ref,
+                reservation_sha256=reservation_sha,
+                reason="provenance allowed years do not match the remote reservation",
+            )
+    if reserved_payload.get("seeds") != dict(
+        sorted({str(key): int(value) for key, value in seeds.items()}.items())
+    ):
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=source_sha,
+            local_size_bytes=source_size,
+            evidence_ref=evidence_ref,
+            reservation_sha256=reservation_sha,
+            reason="provenance seeds do not match the remote reservation",
+        )
+
+    try:
+        chunked = uses_raw_chunk_archive(source_size)
+        if chunked:
+            chunks = split_raw_bytes(source, chunk_size_bytes=RAW_CHUNK_SIZE_BYTES)
+            relative = chunked_manifest_relpath(hypothesis_id, exec_sha, source_sha)
+            manifest_payload = build_raw_chunk_manifest(
+                hypothesis_id=hypothesis_id,
+                code_sha=exec_sha,
+                artifact_sha256=source_sha,
+                artifact_size_bytes=source_size,
+                chunk_size_bytes=RAW_CHUNK_SIZE_BYTES,
+                chunks=chunks,
+            )
+            manifest_bytes = canonical_json_bytes(manifest_payload) + b"\n"
+        else:
+            chunks = ()
+            relative = artifact_relpath(hypothesis_id, exec_sha, source_sha)
+            manifest_payload = None
+            manifest_bytes = b""
+    except Exception as exc:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=source_sha,
+            local_size_bytes=source_size,
+            evidence_ref=evidence_ref,
+            reservation_sha256=reservation_sha,
+            reason=_redact(f"recovery archive materialization failed: {exc}"),
+        )
+
+    receipt_payload = {
+        "schema_version": SCHEMA_VERSION,
+        "kind": RECEIPT_KIND,
+        "hypothesis_id": _safe_hypothesis_token(hypothesis_id),
+        "stage": stage,
+        "code_sha": exec_sha,
+        "code_tree": exec_tree,
+        "execution_code_sha": exec_sha,
+        "execution_code_tree": exec_tree,
+        "run_identity_sha256": run_id,
+        "dataset_id": dataset_id,
+        "dataset_snapshot": snapshot_id,
+        "artifact_sha256": source_sha,
+        "artifact_size_bytes": source_size,
+        "remote_repository_identity": transport.identity,
+        "evidence_ref": evidence_ref,
+        "evidence_path": relative,
+        "reservation_sha256": reservation_sha,
+        "claim_sha256": claim_sha,
+        "reservation_commit_sha": reservation_commit,
+        "claim_commit_sha": claim_commit,
+        "recovery_code_sha": rec_sha,
+        "recovery_code_tree": rec_tree,
+        "recovery_tool": RECOVERY_TOOL_ID,
+        "historical_artifact_binding": str(authority["historical_artifact_binding"]),
+        "historical_artifact_byte_authority": str(
+            authority["historical_artifact_binding"]
+        ),
+        "recovery_proves": RECOVERY_PROVES_AUTHORITY_CONSISTENCY,
+        "historical_execution_persistence_proven": False,
+    }
+    if chunked:
+        receipt_payload.update(
+            {
+                "archive_representation": ARCHIVE_REPRESENTATION_RAW_CHUNKS,
+                "manifest_path": relative,
+                "manifest_sha256": sha256_bytes(manifest_bytes),
+                "chunk_count": len(chunks),
+                "chunk_size_bytes": RAW_CHUNK_SIZE_BYTES,
+            }
+        )
+    else:
+        receipt_payload["archive_representation"] = ARCHIVE_REPRESENTATION_SINGLE_BLOB
+    receipt_bytes = canonical_json_bytes(receipt_payload) + b"\n"
+
+    try:
+        with _isolated_workspace(freeze.repo_root) as raw_dir:
+            isolated = Path(raw_dir)
+            _init_isolated_repo(isolated)
+            remote_head = _ls_remote_sha(isolated, transport.endpoint, evidence_ref)
+            if remote_head != claim_commit:
+                raise RuntimeError(
+                    "evidence ref drifted from the expected claim before recovery archive"
+                )
+            commit = _fetch_evidence_commit(isolated, transport.endpoint, evidence_ref)
+            if classify_evidence_tree(_tree_names(isolated, commit)) != STATE_CLAIMED:
+                raise RuntimeError("recovery archive requires OUTCOME_ACCESS_CLAIMED parent")
+            parent = run_git(
+                isolated, ["rev-parse", f"{commit}^"]
+            ).decode("utf-8").strip().lower()
+            if parent != reservation_commit:
+                raise RuntimeError("claim parent is not the expected reservation commit")
+            if (
+                _show_blob(isolated, commit, RESERVATION_BLOB_PATH) != reserved
+                or _show_blob(isolated, commit, CLAIM_BLOB_PATH) != claimed
+            ):
+                raise RuntimeError("reservation/claim bytes changed before recovery archive")
+            run_git(isolated, ["checkout", "--detach", commit])
+            staged = [RECEIPT_BLOB_PATH, CLAIM_BLOB_PATH, RESERVATION_BLOB_PATH, relative]
+            if chunked:
+                _write_bytes_new(isolated / relative, manifest_bytes)
+                for index, chunk in enumerate(chunks):
+                    part_path = chunked_part_relpath(hypothesis_id, exec_sha, source_sha, index)
+                    _write_bytes_new(isolated / part_path, chunk)
+                    staged.append(part_path)
+            else:
+                _write_bytes_new(isolated / relative, source)
+            _write_bytes_new(isolated / RECEIPT_BLOB_PATH, receipt_bytes)
+            run_git(isolated, ["add", "--", *staged])
+            run_git(
+                isolated,
+                ["commit", "-m", f"batch02 evidence archive {source_sha[:16]}"],
+            )
+            archive_parent = run_git(
+                isolated, ["rev-parse", "HEAD^"]
+            ).decode("utf-8").strip().lower()
+            if archive_parent != claim_commit:
+                raise RuntimeError(
+                    "recovery archive commit is not a direct child of the expected claim"
+                )
+            still_remote = _ls_remote_sha(isolated, transport.endpoint, evidence_ref)
+            if still_remote != claim_commit:
+                raise RuntimeError(
+                    "remote head moved before recovery push; fast-forward is no longer possible"
+                )
+            pushed_sha = run_git(isolated, ["rev-parse", "HEAD"]).decode("utf-8").strip().lower()
+            run_git(
+                isolated,
+                ["push", transport.endpoint, f"{pushed_sha}:{evidence_ref}"],
+            )
+    except PostOutcomeRetentionFailure:
+        raise
+    except Exception as exc:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=source_sha,
+            local_size_bytes=source_size,
+            evidence_ref=evidence_ref,
+            reservation_sha256=reservation_sha,
+            reason=_redact(f"recovery archive push failed: {exc}"),
+        )
+
+    try:
+        if chunked:
+            remote_commit, remote_artifact, remote_manifest = (
+                _independent_reconstruct_raw_chunks(
+                    repo_root=freeze.repo_root,
+                    endpoint=transport.endpoint,
+                    evidence_ref=evidence_ref,
+                    manifest_path=relative,
+                    expected_commit=pushed_sha,
+                )
+            )
+            if remote_manifest != manifest_bytes:
+                raise RuntimeError("remote manifest bytes do not match the local manifest")
+        else:
+            remote_commit, remote_artifact = _independent_readback(
+                repo_root=freeze.repo_root,
+                endpoint=transport.endpoint,
+                evidence_ref=evidence_ref,
+                relative=relative,
+                expected_commit=pushed_sha,
+            )
+        _, remote_receipt = _independent_readback(
+            repo_root=freeze.repo_root,
+            endpoint=transport.endpoint,
+            evidence_ref=evidence_ref,
+            relative=RECEIPT_BLOB_PATH,
+            expected_commit=pushed_sha,
+        )
+        _, remote_reserved = _independent_readback(
+            repo_root=freeze.repo_root,
+            endpoint=transport.endpoint,
+            evidence_ref=evidence_ref,
+            relative=RESERVATION_BLOB_PATH,
+            expected_commit=pushed_sha,
+        )
+        _, remote_claimed = _independent_readback(
+            repo_root=freeze.repo_root,
+            endpoint=transport.endpoint,
+            evidence_ref=evidence_ref,
+            relative=CLAIM_BLOB_PATH,
+            expected_commit=pushed_sha,
+        )
+        with _isolated_workspace(freeze.repo_root) as raw_dir:
+            isolated = Path(raw_dir)
+            _init_isolated_repo(isolated)
+            read_commit = _fetch_evidence_commit(isolated, transport.endpoint, evidence_ref)
+            if read_commit != remote_commit:
+                raise RuntimeError("archive readback commit mismatch")
+            read_parent = run_git(
+                isolated, ["rev-parse", f"{read_commit}^"]
+            ).decode("utf-8").strip().lower()
+            if read_parent != claim_commit:
+                raise RuntimeError("archived parent is not the expected claim commit")
+            if classify_evidence_tree(_tree_names(isolated, read_commit)) != STATE_ARCHIVED:
+                raise RuntimeError("readback tree is not ARCHIVED")
+    except Exception as exc:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=source_sha,
+            local_size_bytes=source_size,
+            evidence_ref=evidence_ref,
+            reservation_sha256=reservation_sha,
+            reason=_redact(f"recovery archive readback failed: {exc}"),
+        )
+
+    if remote_reserved != reserved or remote_claimed != claimed:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=source_sha,
+            local_size_bytes=source_size,
+            evidence_ref=evidence_ref,
+            reservation_sha256=reservation_sha,
+            reason="reservation or claim bytes changed across recovery archive",
+        )
+    if sha256_bytes(remote_artifact) != source_sha or len(remote_artifact) != source_size:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=source_sha,
+            local_size_bytes=source_size,
+            evidence_ref=evidence_ref,
+            reservation_sha256=reservation_sha,
+            reason="reconstructed remote artifact does not match the canonical local result",
+        )
+    if remote_receipt != receipt_bytes:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=source_sha,
+            local_size_bytes=source_size,
+            evidence_ref=evidence_ref,
+            reservation_sha256=reservation_sha,
+            reason="remote receipt bytes do not match the local receipt",
+        )
+    if result_path.read_bytes() != source:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=sha256_bytes(result_path.read_bytes()),
+            local_size_bytes=result_path.stat().st_size,
+            evidence_ref=evidence_ref,
+            reservation_sha256=reservation_sha,
+            reason="canonical local result changed during recovery archive",
+        )
+    try:
+        verify_git_freeze(freeze.repo_root, rec_sha)
+    except Exception as exc:
+        _raise_recovery_failure(
+            result_path=result_path,
+            local_sha256=source_sha,
+            local_size_bytes=source_size,
+            evidence_ref=evidence_ref,
+            reservation_sha256=reservation_sha,
+            reason=_redact(f"recovery worktree changed during archive: {exc}"),
+        )
+    return DurableArchiveReceipt(
+        schema_version=SCHEMA_VERSION,
+        hypothesis_id=_safe_hypothesis_token(hypothesis_id),
+        stage=stage,
+        code_sha=exec_sha,
+        code_tree=exec_tree,
+        run_identity_sha256=run_id,
+        dataset_id=dataset_id,
+        dataset_snapshot=snapshot_id,
+        artifact_sha256=source_sha,
+        artifact_size_bytes=source_size,
+        remote_repository_identity=transport.identity,
+        evidence_ref=evidence_ref,
+        evidence_path=relative,
+        reservation_sha256=reservation_sha,
+        claim_sha256=claim_sha,
+        archive_commit_sha=remote_commit,
+        receipt_payload=json.loads(receipt_bytes),
+        _mint_token=_RECEIPT_MINT_TOKEN,
+    )
+
+
+def _independent_reconstruct_raw_chunks(
+    *,
+    repo_root: Path,
+    endpoint: str,
+    evidence_ref: str,
+    manifest_path: str,
+    expected_commit: str,
+) -> tuple[str, bytes, bytes]:
+    """Fetch an archived chunked tree and reconstruct the exact artifact."""
+    with _isolated_workspace(repo_root) as raw_dir:
+        isolated = Path(raw_dir)
+        _init_isolated_repo(isolated)
+        try:
+            run_git(isolated, ["fetch", "--no-tags", endpoint, evidence_ref])
+        except PreOutcomeRetentionError as exc:
+            raise PreOutcomeRetentionError(
+                "remote reservation/archive was not independently readable"
+            ) from exc
+        commit = run_git(isolated, ["rev-parse", "FETCH_HEAD"]).decode("utf-8").strip().lower()
+        if not _HEX40_RE.fullmatch(commit):
+            raise PreOutcomeRetentionError("readback commit SHA is malformed")
+        if commit != expected_commit:
+            raise PreOutcomeRetentionError(
+                "independent readback commit does not match the pushed evidence head"
+            )
+        names = _tree_names(isolated, commit)
+        if classify_evidence_tree(names) != STATE_ARCHIVED:
+            raise PreOutcomeRetentionError("chunked archive tree is not ARCHIVED")
+        if manifest_path not in names:
+            raise PreOutcomeRetentionError("chunked archive is missing its manifest")
+        manifest_bytes = _show_blob(isolated, commit, manifest_path)
+        try:
+            manifest = json.loads(manifest_bytes.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise PreOutcomeRetentionError("chunk manifest is not valid JSON") from exc
+        if not isinstance(manifest, Mapping):
+            raise PreOutcomeRetentionError("chunk manifest is malformed")
+        entries = manifest.get("chunks")
+        if not isinstance(entries, Sequence) or isinstance(entries, (str, bytes)):
+            raise PreOutcomeRetentionError("chunk manifest entries are malformed")
+        tree_parts = {name for name in names if _CHUNKED_PART_RE.fullmatch(name)}
+        manifest_paths: list[str] = []
+        for raw_entry in entries:
+            if not isinstance(raw_entry, Mapping) or "path" not in raw_entry:
+                raise PreOutcomeRetentionError("chunk manifest entry is malformed")
+            manifest_paths.append(str(raw_entry["path"]))
+        if set(manifest_paths) != tree_parts:
+            raise PreOutcomeRetentionError(
+                "chunked archive tree parts do not exactly match the manifest"
+            )
+        blobs: dict[str, bytes] = {}
+        for raw_entry in entries:
+            if not isinstance(raw_entry, Mapping) or "path" not in raw_entry:
+                raise PreOutcomeRetentionError("chunk manifest entry is malformed")
+            path = str(raw_entry["path"])
+            payload = _show_blob(isolated, commit, path)
+            if int(raw_entry.get("size_bytes", -1)) != len(payload):
+                raise PreOutcomeRetentionError("remote chunk size does not match the manifest")
+            if str(raw_entry.get("sha256", "")) != sha256_bytes(payload):
+                raise PreOutcomeRetentionError("remote chunk digest does not match the manifest")
+            blobs[path] = payload
+        reconstructed = reconstruct_raw_chunks(manifest, blobs)
+        return commit, reconstructed, manifest_bytes
 
 
 def _fetch_evidence_commit(
@@ -1527,11 +2862,44 @@ def archive_persisted_result_proof(
                 reason=_redact(f"retention lock write failed: {exc}"),
             )
 
-    relative = artifact_relpath(
-        reservation.hypothesis_id,
-        reservation.code_sha,
-        source_sha,
-    )
+    try:
+        chunked = uses_raw_chunk_archive(source_size)
+        if chunked:
+            chunks = split_raw_bytes(source, chunk_size_bytes=RAW_CHUNK_SIZE_BYTES)
+            relative = chunked_manifest_relpath(
+                reservation.hypothesis_id,
+                reservation.code_sha,
+                source_sha,
+            )
+            manifest_payload = build_raw_chunk_manifest(
+                hypothesis_id=reservation.hypothesis_id,
+                code_sha=reservation.code_sha,
+                artifact_sha256=source_sha,
+                artifact_size_bytes=source_size,
+                chunk_size_bytes=RAW_CHUNK_SIZE_BYTES,
+                chunks=chunks,
+            )
+            manifest_bytes = canonical_json_bytes(manifest_payload) + b"\n"
+        else:
+            chunks = ()
+            relative = artifact_relpath(
+                reservation.hypothesis_id,
+                reservation.code_sha,
+                source_sha,
+            )
+            manifest_payload = None
+            manifest_bytes = b""
+    except PostOutcomeRetentionFailure:
+        raise
+    except Exception as exc:
+        _raise_post_outcome(
+            result_path=result_path,
+            local_sha256=source_sha,
+            local_size_bytes=source_size,
+            reservation=reservation,
+            reason=_redact(str(exc)),
+        )
+
     receipt_payload = {
         "schema_version": SCHEMA_VERSION,
         "kind": RECEIPT_KIND,
@@ -1550,6 +2918,23 @@ def archive_persisted_result_proof(
         "reservation_sha256": reservation.reservation_sha256,
         "claim_sha256": claim.claim_sha256,
     }
+    if chunked:
+        receipt_payload.update(
+            {
+                "archive_representation": ARCHIVE_REPRESENTATION_RAW_CHUNKS,
+                "manifest_path": relative,
+                "manifest_sha256": sha256_bytes(manifest_bytes),
+                "chunk_count": len(chunks),
+                "chunk_size_bytes": RAW_CHUNK_SIZE_BYTES,
+                "recovery_tool": RECOVERY_TOOL_ID,
+                "execution_code_sha": reservation.code_sha,
+                "execution_code_tree": reservation.code_tree,
+                "recovery_code_sha": freeze.code_sha,
+                "recovery_code_tree": freeze.tree_oid,
+                "reservation_commit_sha": reservation.evidence_head_sha,
+                "claim_commit_sha": claim.claim_head_sha,
+            }
+        )
     receipt_bytes = canonical_json_bytes(receipt_payload) + b"\n"
     transport = backend.transport
 
@@ -1580,30 +2965,43 @@ def archive_persisted_result_proof(
             if reserved != backend.reservation_bytes or claimed != backend.claim_bytes:
                 raise RuntimeError("reservation/claim bytes changed before archive")
             run_git(isolated, ["checkout", "--detach", commit])
-            dest = isolated / relative
-            if dest.exists() or dest.is_symlink():
-                existing = dest.read_bytes()
-                if existing != source:
-                    raise RuntimeError("existing remote artifact has a different digest")
+            staged = [RECEIPT_BLOB_PATH, CLAIM_BLOB_PATH, RESERVATION_BLOB_PATH, relative]
+            if chunked:
+                dest = isolated / relative
+                if dest.exists() or dest.is_symlink():
+                    if dest.read_bytes() != manifest_bytes:
+                        raise RuntimeError("existing remote manifest has a different digest")
+                else:
+                    _write_bytes_new(dest, manifest_bytes)
+                for index, chunk in enumerate(chunks):
+                    part_path = chunked_part_relpath(
+                        reservation.hypothesis_id,
+                        reservation.code_sha,
+                        source_sha,
+                        index,
+                    )
+                    part_dest = isolated / part_path
+                    if part_dest.exists() or part_dest.is_symlink():
+                        if part_dest.read_bytes() != chunk:
+                            raise RuntimeError("existing remote chunk has a different digest")
+                    else:
+                        _write_bytes_new(part_dest, chunk)
+                    staged.append(part_path)
             else:
-                _write_bytes_new(dest, source)
+                dest = isolated / relative
+                if dest.exists() or dest.is_symlink():
+                    existing = dest.read_bytes()
+                    if existing != source:
+                        raise RuntimeError("existing remote artifact has a different digest")
+                else:
+                    _write_bytes_new(dest, source)
             receipt_path = isolated / RECEIPT_BLOB_PATH
             if receipt_path.exists():
                 if receipt_path.read_bytes() != receipt_bytes:
                     raise RuntimeError("existing receipt does not match this archive")
             else:
                 _write_bytes_new(receipt_path, receipt_bytes)
-            run_git(
-                isolated,
-                [
-                    "add",
-                    "--",
-                    relative,
-                    RECEIPT_BLOB_PATH,
-                    CLAIM_BLOB_PATH,
-                    RESERVATION_BLOB_PATH,
-                ],
-            )
+            run_git(isolated, ["add", "--", *staged])
             status = run_git(isolated, ["status", "--porcelain"]).decode("utf-8")
             if status.strip():
                 run_git(
@@ -1634,13 +3032,26 @@ def archive_persisted_result_proof(
         )
 
     try:
-        remote_commit, remote_artifact = _independent_readback(
-            repo_root=freeze.repo_root,
-            endpoint=transport.endpoint,
-            evidence_ref=reservation.evidence_ref,
-            relative=relative,
-            expected_commit=pushed_sha,
-        )
+        if chunked:
+            remote_commit, remote_artifact, remote_manifest = (
+                _independent_reconstruct_raw_chunks(
+                    repo_root=freeze.repo_root,
+                    endpoint=transport.endpoint,
+                    evidence_ref=reservation.evidence_ref,
+                    manifest_path=relative,
+                    expected_commit=pushed_sha,
+                )
+            )
+            if remote_manifest != manifest_bytes:
+                raise RuntimeError("remote manifest bytes do not match the local manifest")
+        else:
+            remote_commit, remote_artifact = _independent_readback(
+                repo_root=freeze.repo_root,
+                endpoint=transport.endpoint,
+                evidence_ref=reservation.evidence_ref,
+                relative=relative,
+                expected_commit=pushed_sha,
+            )
         _, remote_receipt = _independent_readback(
             repo_root=freeze.repo_root,
             endpoint=transport.endpoint,
