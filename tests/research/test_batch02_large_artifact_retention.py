@@ -37,11 +37,11 @@ from scripts.research.lib.batch02_evidence_retention import (
     chunked_part_relpath,
     classify_evidence_tree,
     clear_batch02_retention_runtime_state,
+    PostOutcomeRetentionFailure,
     reconstruct_raw_chunks,
     sha256_bytes,
     split_raw_bytes,
     uses_raw_chunk_archive,
-    PostOutcomeRetentionFailure,
 )
 from scripts.research.lib.batch02_source_policy import validate_batch02_source_tree
 from scripts.research.lib.research_harness import CodeIdentityError, verify_git_freeze
@@ -420,6 +420,41 @@ def _advance_recovery_checkout(repo: Path) -> tuple[str, str]:
     return _git(repo, "rev-parse", "HEAD"), _git(repo, "rev-parse", "HEAD^{tree}")
 
 
+def _amend_and_publish_evidence_head(work: Path, bare: Path, evidence_ref: str) -> str:
+    """Test-only fixture surgery. Not used by the recovery API."""
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Retention Test",
+            "-c",
+            "user.email=retention@example.invalid",
+            "commit",
+            "--amend",
+            "--no-edit",
+        ],
+        cwd=work,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    new_sha = _git(work, "rev-parse", "HEAD")
+    subprocess.run(
+        [
+            "git",
+            "--git-dir",
+            str(bare),
+            "fetch",
+            str(work),
+            f"+HEAD:{evidence_ref}",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return new_sha
+
+
 def _process_loss_ready(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch | None = None,
@@ -597,30 +632,9 @@ def test_recovery_fails_when_remote_reservation_bytes_are_mutated(
         json.dumps(mutated, sort_keys=True, separators=(",", ":")).encode("utf-8")
     )
     _git(work, "add", "reservation.json")
-    subprocess.run(
-        [
-            "git",
-            "-c",
-            "user.name=Retention Test",
-            "-c",
-            "user.email=retention@example.invalid",
-            "commit",
-            "--amend",
-            "--no-edit",
-        ],
-        cwd=work,
-        check=True,
-        capture_output=True,
-        text=True,
+    kwargs["expected_claim_commit_sha"] = _amend_and_publish_evidence_head(
+        work, bare, kwargs["evidence_ref"]
     )
-    new_claim = _git(work, "rev-parse", "HEAD")
-    subprocess.run(
-        ["git", "--git-dir", str(bare), "update-ref", kwargs["evidence_ref"], new_claim],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    kwargs["expected_claim_commit_sha"] = new_claim
     with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
         recover_claimed_batch02_artifact(**kwargs)
     assert result_path.read_bytes() == source
@@ -642,32 +656,9 @@ def test_recovery_fails_when_claim_identity_does_not_match_remote(
         json.dumps(mutated, sort_keys=True, separators=(",", ":")).encode("utf-8")
     )
     _git(work, "add", "outcome_claim.json")
-    import subprocess
-
-    subprocess.run(
-        [
-            "git",
-            "-c",
-            "user.name=Retention Test",
-            "-c",
-            "user.email=retention@example.invalid",
-            "commit",
-            "--amend",
-            "--no-edit",
-        ],
-        cwd=work,
-        check=True,
-        capture_output=True,
-        text=True,
+    kwargs["expected_claim_commit_sha"] = _amend_and_publish_evidence_head(
+        work, bare, kwargs["evidence_ref"]
     )
-    new_claim = _git(work, "rev-parse", "HEAD")
-    subprocess.run(
-        ["git", "--git-dir", str(bare), "update-ref", kwargs["evidence_ref"], new_claim],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    kwargs["expected_claim_commit_sha"] = new_claim
     with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
         recover_claimed_batch02_artifact(**kwargs)
     assert result_path.read_bytes() == source
@@ -719,7 +710,7 @@ def test_recovery_fails_when_recovery_checkout_is_dirty(
 def test_recovery_fails_when_one_remote_chunk_is_mutated(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    kwargs, _repo, bare, result_path, source, _e, _t, _r, _rt = _process_loss_ready(
+    kwargs, _repo, _bare, result_path, source, _e, _t, _r, _rt = _process_loss_ready(
         tmp_path, monkeypatch
     )
     original = retention._show_blob

@@ -54,7 +54,7 @@ from scripts.research.lib.batch02_evidence_retention import (
     create_verified_remote_reservation,
     hypothesis_requires_durable_retention,
     mint_persisted_result_proof,
-    recover_claimed_batch02_artifact as recover_claimed_batch02_artifact,
+    recover_claimed_batch02_artifact as _recover_claimed_batch02_artifact,
 )
 from scripts.research.lib.research_harness import (
     ArtifactExistsError,
@@ -68,6 +68,15 @@ from scripts.research.lib.research_harness import (
     verify_git_freeze,
     write_json_new,
 )
+
+
+def recover_claimed_batch02_artifact(**kwargs):
+    """Fresh-process operator recovery after post-outcome process loss.
+
+    Reconstructs CLAIMED authority from durable facts. Does not require the
+    original minted reservation, claim, persist proof, or evidence backend.
+    """
+    return _recover_claimed_batch02_artifact(**kwargs)
 
 
 class Batch02ContractError(RuntimeError):
