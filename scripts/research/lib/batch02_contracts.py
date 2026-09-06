@@ -14,6 +14,8 @@ New B2 hypotheses must use:
 - persist_batch02_result() for historical B2-01/B2-02 immutable JSON evidence;
 - persist_batch02_retained_result() then archive_batch02_result() for B2-03+
   exact-byte durable remote archival of minted persisted-result proofs;
+- recover_claimed_batch02_artifact() for fresh-process operator recovery after
+  process loss, reconstructing CLAIMED authority from durable facts only;
 - rolling_midrank_percentile() as the canonical strict prior-window midrank
   primitive whenever a frozen hypothesis requires percentile/relative-standing
   semantics.
@@ -52,6 +54,7 @@ from scripts.research.lib.batch02_evidence_retention import (
     create_verified_remote_reservation,
     hypothesis_requires_durable_retention,
     mint_persisted_result_proof,
+    recover_claimed_batch02_artifact as recover_claimed_batch02_artifact,
 )
 from scripts.research.lib.research_harness import (
     ArtifactExistsError,

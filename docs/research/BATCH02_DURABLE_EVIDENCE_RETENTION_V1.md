@@ -267,10 +267,69 @@ Chunked archives additionally record, in the same committed receipt:
 - `archive_representation = raw_chunks`
 - `manifest_path`, `manifest_sha256`
 - `chunk_count`, `chunk_size_bytes`
-- `recovery_tool`, `recovery_code_sha`
+- `execution_code_sha`, `execution_code_tree`
+- `recovery_code_sha`, `recovery_code_tree`
+- `reservation_commit_sha`, `claim_commit_sha`
+- `recovery_tool`
+
+First-run archival on the execution commit may honestly set
+`recovery_code_sha == execution_code_sha`. Post-outcome crash recovery must
+not relabel a later infrastructure commit as the scientific execution SHA.
+Execution identity remains the historical commit/tree that produced the
+artifact. Recovery identity is the clean checkout that performs retention.
 
 Receipts, logs, and artifacts must not contain secrets, credentials, or
 environment tokens.
+
+## 7.1 Fresh-process post-outcome recovery
+
+`archive_batch02_result()` requires minted in-memory reservation/claim/persist
+objects from the original scientific process. Those objects die with the
+process. `recover_claimed_batch02_artifact()` is the dedicated operator
+entry point after process loss.
+
+It is callable from a completely fresh Python process. It does not require
+the original `DurableEvidenceReservation`, `DurableOutcomeAccessClaim`,
+`PersistedBatch02ResultProof`, or `_EvidenceBackend` objects. It reconstructs
+and verifies authority from durable facts plus explicit immutable identity
+inputs. It does not remint a reservation or push a new claim.
+
+Required explicit inputs include scientific identity, historical execution
+SHA/tree, recovery SHA/tree, evidence ref, expected reservation/claim
+commits, expected local artifact digest/size, local path, and
+`run_identity_sha256`. Scientific identity is not inferred from mutable
+local state.
+
+Dual verification:
+
+- historical execution identity is proven from Git objects
+  (`commit exists`, SHA match, tree match) without checking out or freezing
+  the current worktree to the execution SHA;
+- the current recovery checkout must be a clean freeze of
+  `recovery_code_sha` / `recovery_code_tree`.
+
+Before the local artifact is read, recovery independently fetches the
+evidence ref and requires `OUTCOME_ACCESS_CLAIMED`, exact expected claim
+SHA, claim parent = expected reservation SHA, tree exactly
+`reservation.json` + `outcome_claim.json`, and byte-exact reservation/claim
+payloads rebuilt from the explicit inputs. Any mismatch fails closed with
+no push.
+
+The local artifact must then be a regular non-symlink file whose size and
+SHA256 equal the explicit expected values. Exact raw bytes are chunked;
+JSON is not parsed or rewritten. Artifacts `<= 90 MiB` keep the V1
+single-blob archive. Larger artifacts use `raw_chunks` / 64 MiB.
+
+The archive commit must be exactly one child of the expected claim SHA.
+Immediately before push, remote HEAD must still equal that claim SHA.
+Push is ordinary fast-forward only. Force, force-with-lease, ref reset,
+and delete+recreate are forbidden.
+
+Independent readback after push requires parent = claim SHA, unchanged
+reservation/claim bytes, exact receipt/manifest/chunk paths, exact chunk
+SHA256/size, no missing/extra chunks, numeric order, and
+`sha256(b"".join(chunks_in_numeric_order))` equal to the expected artifact
+digest and size. Only then is the remote state `ARCHIVED`.
 
 ## 8. Failure semantics
 

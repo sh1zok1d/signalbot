@@ -643,6 +643,7 @@ _CANONICAL_PUBLIC_API = {
     "PreOutcomeRetentionError",
     "PostOutcomeRetentionFailure",
     "AmbiguousOutcomeAccessStateError",
+    "recover_claimed_batch02_artifact",
 }
 
 
