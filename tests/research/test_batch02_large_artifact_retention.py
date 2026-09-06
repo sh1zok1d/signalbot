@@ -9,6 +9,7 @@ from __future__ import annotations
 import inspect
 import json
 import subprocess
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -22,8 +23,10 @@ from scripts.research.lib.batch02_contracts import (
 )
 
 from scripts.research.lib.batch02_evidence_retention import (
+    ALREADY_ARCHIVED_EXACT,
     ARCHIVE_REPRESENTATION_RAW_CHUNKS,
     ARCHIVE_REPRESENTATION_SINGLE_BLOB,
+    ARCHIVE_SUCCEEDED_LOCAL_CHANGED,
     CHUNKED_ENCODING,
     GITHUB_REGULAR_GIT_OBJECT_LIMIT_BYTES,
     HISTORICAL_ARTIFACT_BINDING_OPERATOR_ADJUDICATED,
@@ -36,6 +39,7 @@ from scripts.research.lib.batch02_evidence_retention import (
     STATE_ARCHIVED,
     STATE_CLAIMED,
     STATE_UNKNOWN,
+    ArchiveSucceededLocalChangedError,
     artifact_relpath,
     build_raw_chunk_manifest,
     build_recovery_authority_payload,
@@ -563,6 +567,7 @@ def test_fresh_process_recovery_archives_after_minted_objects_are_gone(
     )
     assert payload["recovery_proves"] == RECOVERY_PROVES_AUTHORITY_CONSISTENCY
     assert payload["historical_execution_persistence_proven"] is False
+    assert receipt.recovery_state == "ARCHIVED"
     assert payload["chunk_size_bytes"] == 16
     assert _hex64(payload["manifest_sha256"])
     manifest_path = chunked_manifest_relpath(
@@ -1138,4 +1143,361 @@ def test_recovery_rejects_unknown_historical_artifact_binding(
     kwargs["recovery_code_tree"] = rec_tree
     with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
         recover_claimed_batch02_artifact(**kwargs)
+    assert result_path.read_bytes() == source
+
+
+def _install_push_counter(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, ...]]:
+    original = retention.run_git
+    pushes: list[tuple[str, ...]] = []
+
+    def wrapped(cwd, args):
+        if args and args[0] == "push":
+            pushes.append(tuple(str(arg) for arg in args))
+        return original(cwd, args)
+
+    monkeypatch.setattr(retention, "run_git", wrapped)
+    return pushes
+
+
+def _mutate_local_result(result_path: Path, source: bytes, status: str) -> bytes:
+    mutated = json.loads(source.decode("utf-8"))
+    mutated["status"] = status
+    encoded = (
+        json.dumps(mutated, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
+    ).encode("utf-8")
+    result_path.write_bytes(encoded)
+    return encoded
+
+
+def _replace_archived_blob(
+    bare: Path, evidence_ref: str, relative: str, new_bytes: bytes
+) -> None:
+    work = Path(tempfile.mkdtemp()) / "rewrite"
+    _checkout_evidence(bare, work, evidence_ref)
+    dest = work / relative
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(new_bytes)
+    subprocess.run(
+        ["git", "add", "--", relative],
+        cwd=work,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Retention Test",
+            "-c",
+            "user.email=retention@example.invalid",
+            "commit",
+            "--amend",
+            "--no-edit",
+        ],
+        cwd=work,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    subprocess.run(
+        ["git", "--git-dir", str(bare), "fetch", str(work), f"+HEAD:{evidence_ref}"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_local_mutation_before_push_is_ordinary_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    kwargs, _repo, bare, result_path, source, authority, _r, _rt = _process_loss_ready(
+        tmp_path, monkeypatch
+    )
+    pushes = _install_push_counter(monkeypatch)
+    _mutate_local_result(result_path, source, "changed_before_push")
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
+        recover_claimed_batch02_artifact(**kwargs)
+    assert pushes == []
+    assert classify_evidence_tree(_remote_tree(bare, str(authority["evidence_ref"]))) == STATE_CLAIMED
+    assert "receipt.json" not in set(_remote_tree(bare, str(authority["evidence_ref"])))
+
+
+def test_local_mutation_after_verified_archive_is_explicit_committed_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    kwargs, _repo, bare, result_path, source, authority, _r, _rt = _process_loss_ready(
+        tmp_path, monkeypatch
+    )
+    original = retention._independent_reconstruct_raw_chunks
+
+    def mutate_after_readback(*args, **kwargs_inner):
+        out = original(*args, **kwargs_inner)
+        _mutate_local_result(result_path, source, "changed_after_verified_archive")
+        return out
+
+    monkeypatch.setattr(retention, "_independent_reconstruct_raw_chunks", mutate_after_readback)
+    with pytest.raises(ArchiveSucceededLocalChangedError) as caught:
+        recover_claimed_batch02_artifact(**kwargs)
+    exc = caught.value
+    assert exc.state == ARCHIVE_SUCCEEDED_LOCAL_CHANGED
+    assert exc.archive_completed is True
+    assert exc.archive_commit_sha
+    assert exc.expected_artifact_sha256 == authority["artifact_sha256"]
+    assert exc.expected_artifact_size_bytes == authority["artifact_size_bytes"]
+    assert exc.evidence_ref == authority["evidence_ref"]
+    assert not isinstance(exc, PostOutcomeRetentionFailure)
+    assert classify_evidence_tree(_remote_tree(bare, str(authority["evidence_ref"]))) == STATE_ARCHIVED
+    parent = subprocess.run(
+        ["git", "--git-dir", str(bare), "rev-parse", f"{authority['evidence_ref']}^"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip().lower()
+    assert parent == authority["claim_commit_sha"]
+
+
+def test_local_disappearance_after_verified_archive_is_explicit_committed_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    kwargs, _repo, bare, result_path, source, authority, _r, _rt = _process_loss_ready(
+        tmp_path, monkeypatch
+    )
+    original = retention._independent_reconstruct_raw_chunks
+
+    def unlink_after_readback(*args, **kwargs_inner):
+        out = original(*args, **kwargs_inner)
+        result_path.unlink()
+        return out
+
+    monkeypatch.setattr(retention, "_independent_reconstruct_raw_chunks", unlink_after_readback)
+    with pytest.raises(ArchiveSucceededLocalChangedError) as caught:
+        recover_claimed_batch02_artifact(**kwargs)
+    exc = caught.value
+    assert exc.state == ARCHIVE_SUCCEEDED_LOCAL_CHANGED
+    assert exc.archive_commit_sha
+    assert exc.expected_artifact_sha256 == authority["artifact_sha256"]
+    assert classify_evidence_tree(_remote_tree(bare, str(authority["evidence_ref"]))) == STATE_ARCHIVED
+    assert not result_path.exists()
+    assert source
+
+
+def test_second_recovery_recognizes_exact_archive_and_does_not_push(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    kwargs, _repo, bare, result_path, source, authority, _r, _rt = _process_loss_ready(
+        tmp_path, monkeypatch
+    )
+    pushes = _install_push_counter(monkeypatch)
+    first = recover_claimed_batch02_artifact(**kwargs)
+    assert first.recovery_state == "ARCHIVED"
+    assert first.receipt_payload["historical_artifact_binding"] == (
+        HISTORICAL_ARTIFACT_BINDING_OPERATOR_ADJUDICATED
+    )
+    assert first.receipt_payload["historical_execution_persistence_proven"] is False
+    first_head = subprocess.run(
+        ["git", "--git-dir", str(bare), "rev-parse", str(authority["evidence_ref"])],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip().lower()
+    assert first.archive_commit_sha == first_head
+    assert len(pushes) == 1
+    second = recover_claimed_batch02_artifact(**kwargs)
+    assert second.recovery_state == ALREADY_ARCHIVED_EXACT
+    assert second.archive_commit_sha == first.archive_commit_sha
+    assert second.receipt_payload["historical_artifact_binding"] == (
+        HISTORICAL_ARTIFACT_BINDING_OPERATOR_ADJUDICATED
+    )
+    assert second.receipt_payload["historical_execution_persistence_proven"] is False
+    assert len(pushes) == 1
+    second_head = subprocess.run(
+        ["git", "--git-dir", str(bare), "rev-parse", str(authority["evidence_ref"])],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip().lower()
+    assert second_head == first_head
+    parent = subprocess.run(
+        ["git", "--git-dir", str(bare), "rev-parse", f"{authority['evidence_ref']}^"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip().lower()
+    assert parent == authority["claim_commit_sha"]
+    assert result_path.read_bytes() == source
+
+
+def test_already_archived_wrong_artifact_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    kwargs, _repo, bare, result_path, source, authority, _r, _rt = _process_loss_ready(
+        tmp_path, monkeypatch
+    )
+    recover_claimed_batch02_artifact(**kwargs)
+    names = set(_remote_tree(bare, str(authority["evidence_ref"])))
+    part = next(name for name in names if name.endswith(".part"))
+    _replace_archived_blob(bare, str(authority["evidence_ref"]), part, b"NOT-THE-CHUNK")
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
+        recover_claimed_batch02_artifact(**kwargs)
+
+
+def test_already_archived_wrong_receipt_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    kwargs, _repo, bare, result_path, source, authority, _r, _rt = _process_loss_ready(
+        tmp_path, monkeypatch
+    )
+    recover_claimed_batch02_artifact(**kwargs)
+    remote_receipt = json.loads(
+        _remote_blob(bare, str(authority["evidence_ref"]), RECEIPT_BLOB_PATH)
+    )
+    remote_receipt["artifact_sha256"] = "c" * 64
+    _replace_archived_blob(
+        bare,
+        str(authority["evidence_ref"]),
+        RECEIPT_BLOB_PATH,
+        canonical_json_bytes(remote_receipt) + b"\n",
+    )
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
+        recover_claimed_batch02_artifact(**kwargs)
+
+
+def test_already_archived_wrong_parent_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    kwargs, _repo, bare, result_path, source, authority, _r, _rt = _process_loss_ready(
+        tmp_path, monkeypatch
+    )
+    recover_claimed_batch02_artifact(**kwargs)
+    work = Path(tmp_path) / "extra-child"
+    _checkout_evidence(bare, work, str(authority["evidence_ref"]))
+    (work / "extra.txt").write_text("second-child\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "extra.txt"],
+        cwd=work,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Retention Test",
+            "-c",
+            "user.email=retention@example.invalid",
+            "commit",
+            "-m",
+            "unexpected-second-archive-child",
+        ],
+        cwd=work,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    subprocess.run(
+        [
+            "git",
+            "--git-dir",
+            str(bare),
+            "fetch",
+            str(work),
+            f"+HEAD:{authority['evidence_ref']}",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
+        recover_claimed_batch02_artifact(**kwargs)
+
+
+def test_already_archived_missing_chunk_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    kwargs, _repo, bare, result_path, source, authority, _r, _rt = _process_loss_ready(
+        tmp_path, monkeypatch
+    )
+    recover_claimed_batch02_artifact(**kwargs)
+    names = set(_remote_tree(bare, str(authority["evidence_ref"])))
+    part = next(name for name in names if name.endswith(".part"))
+    work = Path(tmp_path) / "missing-chunk"
+    _checkout_evidence(bare, work, str(authority["evidence_ref"]))
+    (work / part).unlink()
+    subprocess.run(
+        ["git", "rm", "--", part],
+        cwd=work,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Retention Test",
+            "-c",
+            "user.email=retention@example.invalid",
+            "commit",
+            "--amend",
+            "--no-edit",
+        ],
+        cwd=work,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    subprocess.run(
+        ["git", "--git-dir", str(bare), "fetch", str(work), f"+HEAD:{authority['evidence_ref']}"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
+        recover_claimed_batch02_artifact(**kwargs)
+
+
+def test_already_archived_reordered_chunk_manifest_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    kwargs, _repo, bare, result_path, source, authority, _r, _rt = _process_loss_ready(
+        tmp_path, monkeypatch
+    )
+    recover_claimed_batch02_artifact(**kwargs)
+    names = set(_remote_tree(bare, str(authority["evidence_ref"])))
+    manifest_path = next(name for name in names if name.endswith("manifest.json"))
+    manifest = json.loads(_remote_blob(bare, str(authority["evidence_ref"]), manifest_path))
+    manifest["chunks"] = list(reversed(list(manifest["chunks"])))
+    _replace_archived_blob(
+        bare,
+        str(authority["evidence_ref"]),
+        manifest_path,
+        json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        + b"\n",
+    )
+    with pytest.raises(PostOutcomeRetentionFailure, match=POST_OUTCOME_STATE):
+        recover_claimed_batch02_artifact(**kwargs)
+
+
+def test_recovery_states_do_not_add_caller_authority_or_change_binding(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    kwargs, _repo, _bare, result_path, source, authority, _r, _rt = _process_loss_ready(
+        tmp_path, monkeypatch
+    )
+    allowed = {
+        "repo_root",
+        "recovery_code_sha",
+        "recovery_code_tree",
+        "authority_relpath",
+        "test_bare_remote",
+    }
+    assert set(inspect.signature(recover_claimed_batch02_artifact).parameters) == allowed
+    receipt = recover_claimed_batch02_artifact(**kwargs)
+    assert (
+        receipt.receipt_payload["historical_artifact_binding"]
+        == HISTORICAL_ARTIFACT_BINDING_OPERATOR_ADJUDICATED
+    )
+    assert receipt.receipt_payload["historical_execution_persistence_proven"] is False
     assert result_path.read_bytes() == source

@@ -394,6 +394,17 @@ SHA256/size, no missing/extra chunks, numeric order, and
 `sha256(b"".join(chunks_in_numeric_order))` equal to the expected artifact
 digest and size. Only then is the remote state `ARCHIVED`.
 
+After that verified archive exists, a later local-artifact mutation or
+disappearance is `ARCHIVE_SUCCEEDED_LOCAL_CHANGED`, not ordinary
+`POST_OUTCOME_RETENTION_FAILURE`. The exception carries the verified
+archive commit SHA, evidence ref, and expected artifact digest/size.
+
+A later `recover_claimed_batch02_artifact()` call against an archive that
+is exactly one child of the expected claim, with exact reservation/claim
+bytes, exact expected receipt, and reconstructed artifact SHA/size, returns
+`ALREADY_ARCHIVED_EXACT` and performs no push. Any other ARCHIVED state
+fails closed.
+
 ## 8. Failure semantics
 
 ### A. Pre-outcome retention failure
