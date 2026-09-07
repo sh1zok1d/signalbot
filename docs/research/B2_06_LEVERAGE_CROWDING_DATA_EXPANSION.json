@@ -71,6 +71,7 @@
     "funding_calc_time_is_legal_available_at": false,
     "legal_available_at": null,
     "legal_consumption_from_calc_time_alone": false,
+    "caller_constructed_row_cannot_self_attest_publication": true,
     "max_staleness_ms": 28800000,
     "missing_settlement": "MISSING_OR_NOT_READY",
     "object_period_mismatch": "CORRUPT",

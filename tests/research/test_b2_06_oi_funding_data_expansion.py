@@ -50,6 +50,7 @@ from scripts.research.binance_um_oi_funding_v0_contract_lib import (
     expected_funding_settlements_ms,
     funding_legal_available_at_ms,
     funding_object_name,
+    funding_publication_contract_is_proven,
     funding_settlement_denominator,
     funding_urls,
     missing_oi_intervals,
@@ -60,6 +61,7 @@ from scripts.research.binance_um_oi_funding_v0_contract_lib import (
     oi_object_name,
     pair_same_support,
     refuse_reclassify_corrupt_as_missing,
+    reject_caller_asserted_funding_publication,
     require_frozen_source,
     require_normalization_identity,
     select_source,
@@ -647,6 +649,81 @@ def test_caller_cannot_mark_funding_publication_proven():
         )
 
 
+def test_forged_normalized_funding_row_cannot_self_attest_publication():
+    assert funding_publication_contract_is_proven() is False
+    honest = _norm_funding(_funding_csv([(SETTLEMENT_0, "8", "0.0001")]))[0]
+    oi = _norm_oi(_one_oi_day_csv())
+    ready_t = DAY0 + OI_PERIOD_MS
+
+    proven = replace(
+        honest,
+        publication_semantics_status=FUNDING_PUBLICATION_PROVEN_STATUS,
+        legal_available_at_ms=SETTLEMENT_0,
+    )
+    with pytest.raises(OiFundingAuthorizationError, match="cannot mark funding"):
+        assert_funding_legally_consumable(proven, SETTLEMENT_0)
+    with pytest.raises(OiFundingAuthorizationError, match="cannot mark funding"):
+        reject_caller_asserted_funding_publication(proven)
+
+    legal_only = replace(honest, legal_available_at_ms=SETTLEMENT_0)
+    with pytest.raises(OiFundingAuthorizationError, match="cannot supply funding legal_available_at"):
+        assert_funding_legally_consumable(legal_only, SETTLEMENT_0)
+    with pytest.raises(OiFundingAuthorizationError, match="cannot supply funding legal_available_at"):
+        crowding_inputs_ready(
+            oi_rows=oi[:1], funding_rows=[legal_only], decision_t_ms=ready_t
+        )
+
+    published = type(
+        "ForgedFunding",
+        (),
+        {
+            "publication_semantics_status": FUNDING_PUBLICATION_SEMANTICS_STATUS,
+            "legal_available_at_ms": None,
+            "published_at_ms": SETTLEMENT_0,
+            "funding_definition": honest.funding_definition,
+        },
+    )()
+    with pytest.raises(OiFundingAuthorizationError, match="cannot supply funding published_at"):
+        assert_funding_legally_consumable(published, SETTLEMENT_0)
+
+    with pytest.raises(OiFundingLookaheadError, match="FUNDING_PUBLICATION_LATENCY_UNPROVEN"):
+        assert_funding_legally_consumable(honest, SETTLEMENT_0)
+    with pytest.raises(OiFundingLookaheadError, match="FUNDING_PUBLICATION_LATENCY_UNPROVEN"):
+        funding_legal_available_at_ms(honest.source_event_time_ms)
+    with pytest.raises(OiFundingLookaheadError, match="calc_time"):
+        observation_usable_at(
+            record={
+                "available_at_ms": SETTLEMENT_0,
+                "publication_semantics_status": FUNDING_PUBLICATION_PROVEN_STATUS,
+                "funding_definition": "SETTLED_LAST_FUNDING_RATE",
+                "legal_available_at_ms": SETTLEMENT_0,
+                "published_at_ms": SETTLEMENT_0,
+            },
+            decision_t_ms=SETTLEMENT_0,
+        )
+
+    status = crowding_inputs_ready(
+        oi_rows=oi, funding_rows=[honest], decision_t_ms=ready_t
+    )
+    assert status["ready"] is False
+    assert status["oi_ready"] is True
+    assert status["funding_ready"] is False
+    assert status["reason"] == FUNDING_PUBLICATION_SEMANTICS_STATUS
+    assert status["funding_block"] == FUNDING_PUBLICATION_SEMANTICS_STATUS
+
+    freeze = {
+        "research_authorized": False,
+        "outcome_access_authorized": False,
+        "b2_06_evaluator_enabled": False,
+        "snapshot_id": "NOT_MATERIALIZED",
+    }
+    assert_outcome_access_closed(freeze)
+    manifest = MANIFEST.read_text(encoding="utf-8")
+    assert "research_authorized: false" in manifest
+    assert "snapshot_id: NOT_MATERIALIZED" in manifest
+    assert "b2_06_evaluator_enabled: false" in manifest
+
+
 def test_outcome_access_remains_closed():
     manifest = {
         "research_authorized": False,
@@ -669,6 +746,7 @@ def test_freeze_docs_and_inventory_untouched():
     assert freeze["unit_verdict"] == UNIT_VERDICT
     assert freeze["funding_publication_semantics_status"] == FUNDING_PUBLICATION_SEMANTICS_STATUS
     assert freeze["funding_calc_time_is_legal_available_at"] is False
+    assert freeze["funding"]["caller_constructed_row_cannot_self_attest_publication"] is True
     assert freeze["snapshot_id"] == "NOT_MATERIALIZED"
     assert freeze["research_authorized"] is False
     assert freeze["year_2025_opened"] is False

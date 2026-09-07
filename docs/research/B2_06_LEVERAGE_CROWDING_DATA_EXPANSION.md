@@ -133,7 +133,7 @@ Last legally available OI at `T` is the latest snapshot with `available_at <= T`
 | `legal_available_at` | **unset**. No first-party Vision evidence in this unit establishes zero publication latency for historical `calc_time`. Inventing +1s/+1m/+5m is forbidden. |
 | decision time `T` | same `T` as OI/price |
 
-`calc_time <= T` does **not** make a settled funding row legally research-usable. `funding_legal_available_at_ms` and `assert_funding_legally_consumable` fail closed until a later materialization/provenance unit freezes a separately evidenced first-party publication-availability rule. Callers cannot supply `published_at` or mark the status `PROVEN_FIRST_PARTY_PUBLICATION`.
+`calc_time <= T` does **not** make a settled funding row legally research-usable. `funding_legal_available_at_ms`, `assert_funding_legally_consumable`, and `crowding_inputs_ready` share one contract-state gate (`FUNDING_PUBLICATION_SEMANTICS_STATUS`). Callers cannot make a row legally consumable by setting `publication_semantics_status`, `legal_available_at_ms`, or `published_at` on a constructed `NormalizedFundingRow`. Inventing +1s/+1m/+5m is forbidden.
 
 Equating `calc_time` with the snapped 8h label remains forbidden for settlement identity: that would allow using a rate up to the snap tolerance **before** the source timestamp.
 

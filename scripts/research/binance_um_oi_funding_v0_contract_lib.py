@@ -390,6 +390,42 @@ def nearest_8h_settlement_ms(calc_time_ms: int) -> int:
     return int(quarter * FUNDING_PERIOD_MS)
 
 
+def funding_publication_contract_is_proven() -> bool:
+    """Publication authority is the frozen module contract, not a row field.
+
+    A later materialization/provenance unit may change
+    ``FUNDING_PUBLICATION_SEMANTICS_STATUS`` only after pinning first-party
+    evidence. Callers cannot self-attest by constructing ``NormalizedFundingRow``.
+    """
+    return FUNDING_PUBLICATION_SEMANTICS_STATUS == FUNDING_PUBLICATION_PROVEN_STATUS
+
+
+def reject_caller_asserted_funding_publication(row: object) -> None:
+    """Fail closed if a caller-constructed row claims publication proof.
+
+    Shared by ``crowding_inputs_ready`` and ``assert_funding_legally_consumable``
+    so the helpers cannot drift. Row fields are not first-party authority.
+    """
+    if funding_publication_contract_is_proven():
+        return
+    status = getattr(row, "publication_semantics_status", None)
+    if status == FUNDING_PUBLICATION_PROVEN_STATUS:
+        raise OiFundingAuthorizationError(
+            "caller cannot mark funding publication semantics as proven"
+        )
+    if getattr(row, "legal_available_at_ms", None) is not None:
+        raise OiFundingAuthorizationError(
+            "caller cannot supply funding legal_available_at while unproven"
+        )
+    published = getattr(row, "published_at_ms", None)
+    if published is None:
+        published = getattr(row, "published_at", None)
+    if published is not None:
+        raise OiFundingAuthorizationError(
+            "caller cannot supply funding published_at while unproven"
+        )
+
+
 def funding_legal_available_at_ms(_calc_time_ms: int) -> int:
     """Fail closed: archive calc_time is not a proven publication clock.
 
@@ -397,9 +433,13 @@ def funding_legal_available_at_ms(_calc_time_ms: int) -> int:
     Inventing +1s/+1m/+5m would be unscientific. Legal consumption is blocked
     until a later materialization unit freezes a first-party publication rule.
     """
+    if not funding_publication_contract_is_proven():
+        raise OiFundingLookaheadError(
+            "FUNDING_PUBLICATION_LATENCY_UNPROVEN: calc_time is not a proven "
+            "legal_available_at and must not authorize research use"
+        )
     raise OiFundingLookaheadError(
-        "FUNDING_PUBLICATION_LATENCY_UNPROVEN: calc_time is not a proven "
-        "legal_available_at and must not authorize research use"
+        "first-party funding publication rule is not implemented in this contract"
     )
 
 
@@ -442,19 +482,14 @@ def require_availability_metadata(record: Mapping[str, Any]) -> int:
 
 def observation_usable_at(*, record: Mapping[str, Any], decision_t_ms: int) -> bool:
     status = record.get("publication_semantics_status")
-    if status == FUNDING_PUBLICATION_SEMANTICS_STATUS or (
-        record.get("funding_definition") == FUNDING_DEFINITION
-        and status != FUNDING_PUBLICATION_PROVEN_STATUS
-    ):
+    funding_like = record.get("funding_definition") == FUNDING_DEFINITION or status in {
+        FUNDING_PUBLICATION_SEMANTICS_STATUS,
+        FUNDING_PUBLICATION_PROVEN_STATUS,
+    }
+    if funding_like and not funding_publication_contract_is_proven():
         raise OiFundingLookaheadError(
             "FUNDING_PUBLICATION_LATENCY_UNPROVEN: archived settled funding "
             "cannot be used at T merely because calc_time <= T"
-        )
-    if record.get("legal_available_at_ms") is None and record.get(
-        "funding_definition"
-    ) == FUNDING_DEFINITION:
-        raise OiFundingLookaheadError(
-            "FUNDING_PUBLICATION_LATENCY_UNPROVEN: legal_available_at is not established"
         )
     available_at = require_availability_metadata(record)
     published = record.get("published_at_ms")
@@ -479,13 +514,11 @@ def assert_funding_legally_consumable(
     row: "NormalizedFundingRow",
     decision_t_ms: int,
 ) -> None:
-    if row.publication_semantics_status != FUNDING_PUBLICATION_PROVEN_STATUS:
+    reject_caller_asserted_funding_publication(row)
+    if not funding_publication_contract_is_proven():
         raise OiFundingLookaheadError(
-            "FUNDING_PUBLICATION_LATENCY_UNPROVEN: calc_time is not legal_available_at"
-        )
-    if row.legal_available_at_ms is None:
-        raise OiFundingLookaheadError(
-            "FUNDING_PUBLICATION_LATENCY_UNPROVEN: legal_available_at is not established"
+            "FUNDING_PUBLICATION_LATENCY_UNPROVEN: calc_time is not legal_available_at "
+            "and caller-constructed row fields cannot authorize use"
         )
     observation_usable_at(
         record={
@@ -862,14 +895,7 @@ def crowding_inputs_ready(
     decision_t_ms: int,
 ) -> dict[str, Any]:
     for row in funding_rows:
-        if row.publication_semantics_status == FUNDING_PUBLICATION_PROVEN_STATUS:
-            raise OiFundingAuthorizationError(
-                "caller cannot mark funding publication semantics as proven"
-            )
-        if row.legal_available_at_ms is not None:
-            raise OiFundingAuthorizationError(
-                "caller cannot supply funding legal_available_at while unproven"
-            )
+        reject_caller_asserted_funding_publication(row)
     oi = last_legally_available(
         oi_rows, decision_t_ms=decision_t_ms, max_staleness_ms=OI_MAX_STALENESS_MS
     )
