@@ -48,6 +48,7 @@ from scripts.research.binance_um_oi_funding_v0_contract_lib import (
     crowding_inputs_ready,
     eligible_decision_keys,
     expected_funding_settlements_ms,
+    expected_oi_period_starts,
     funding_legal_available_at_ms,
     funding_object_name,
     funding_publication_contract_is_proven,
@@ -59,6 +60,8 @@ from scripts.research.binance_um_oi_funding_v0_contract_lib import (
     normalize_oi_rows,
     observation_usable_at,
     oi_object_name,
+    oi_urls,
+    parse_oi_archive_day,
     pair_same_support,
     refuse_reclassify_corrupt_as_missing,
     reject_caller_asserted_funding_publication,
@@ -184,6 +187,10 @@ def _git_commit(root: Path, message: str) -> str:
             "user.name=B2-06 Repair",
             "-c",
             "user.email=b206@example.invalid",
+            "-c",
+            "commit.gpgsign=false",
+            "-c",
+            "core.hooksPath=/dev/null",
             "commit",
             "-m",
             message,
@@ -774,6 +781,45 @@ def test_object_url_identity_is_first_party_binance_vision():
     assert checksum_url.endswith(".CHECKSUM")
     assert "data.binance.vision" in zip_url
     assert oi_object_name("2020-09-01") == "BTCUSDT-metrics-2020-09-01.zip"
+
+
+def test_impossible_oi_calendar_dates_are_corrupt_not_valueerror():
+    leap = expected_oi_period_starts("2024-02-29")
+    assert len(leap) == 288
+    assert leap[0] == int(datetime(2024, 2, 29, tzinfo=UTC).timestamp() * 1000)
+    assert oi_object_name("2024-02-29") == "BTCUSDT-metrics-2024-02-29.zip"
+    assert parse_oi_archive_day("BTCUSDT-metrics-2024-02-29.zip") == "2024-02-29"
+    zip_url, checksum_url = oi_urls("2024-02-29")
+    assert zip_url.endswith("/BTCUSDT-metrics-2024-02-29.zip")
+    assert checksum_url.endswith(".CHECKSUM")
+
+    invalid_days = (
+        "2023-02-29",
+        "2024-02-30",
+        "2024-04-31",
+        "2024-13-01",
+        "2024-00-10",
+        "2024-01-00",
+        "2024-01-32",
+    )
+    for day in invalid_days:
+        for helper in (expected_oi_period_starts, oi_object_name, oi_urls):
+            with pytest.raises(OiFundingCorruptError) as caught:
+                helper(day)
+            assert type(caught.value) is OiFundingCorruptError
+            assert classify_failure(caught.value) == "CORRUPT"
+        with pytest.raises(OiFundingCorruptError) as named:
+            parse_oi_archive_day(f"BTCUSDT-metrics-{day}.zip")
+        assert type(named.value) is OiFundingCorruptError
+        assert classify_failure(named.value) == "CORRUPT"
+
+
+def test_git_commit_fixture_isolates_signing_and_hooks():
+    import inspect
+
+    source = inspect.getsource(_git_commit)
+    assert "commit.gpgsign=false" in source
+    assert "core.hooksPath=/dev/null" in source
 
 
 def test_staleness_bound_does_not_invent_1m_oi():

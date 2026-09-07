@@ -761,12 +761,35 @@ def normalize_oi_rows(
     return out
 
 
-def expected_oi_period_starts(day_yyyy_mm_dd: str) -> list[int]:
+def _require_utc_calendar_day(day_yyyy_mm_dd: str) -> tuple[int, int, int]:
+    """Reject syntactically YYYY-MM-DD dates that are not real UTC calendar days.
+
+    Impossible dates are CORRUPT archive identity, not silently normalized.
+    """
     match = _YEAR_MONTH_DAY_RE.fullmatch(day_yyyy_mm_dd)
     if not match:
         raise OiFundingCorruptError(f"OI day must be YYYY-MM-DD, got {day_yyyy_mm_dd!r}")
     year, month, day = (int(match.group(1)), int(match.group(2)), int(match.group(3)))
-    start = datetime(year, month, day, tzinfo=UTC)
+    if not 1 <= month <= 12:
+        raise OiFundingCorruptError(
+            f"OI day is not a valid UTC calendar date: {day_yyyy_mm_dd!r}"
+        )
+    last_day = calendar.monthrange(year, month)[1]
+    if not 1 <= day <= last_day:
+        raise OiFundingCorruptError(
+            f"OI day is not a valid UTC calendar date: {day_yyyy_mm_dd!r}"
+        )
+    return year, month, day
+
+
+def expected_oi_period_starts(day_yyyy_mm_dd: str) -> list[int]:
+    year, month, day = _require_utc_calendar_day(day_yyyy_mm_dd)
+    try:
+        start = datetime(year, month, day, tzinfo=UTC)
+    except ValueError as exc:
+        raise OiFundingCorruptError(
+            f"OI day is not a valid UTC calendar date: {day_yyyy_mm_dd!r}"
+        ) from exc
     start_ms = int(start.timestamp() * 1000)
     return [start_ms + i * OI_PERIOD_MS for i in range(288)]
 
@@ -1292,10 +1315,7 @@ def funding_object_name(year_month: str) -> str:
 
 
 def oi_object_name(day: str) -> str:
-    match = _YEAR_MONTH_DAY_RE.fullmatch(day)
-    if not match:
-        raise OiFundingCorruptError(f"OI day must be YYYY-MM-DD, got {day!r}")
-    year, month, day_n = int(match.group(1)), int(match.group(2)), int(match.group(3))
+    year, month, day_n = _require_utc_calendar_day(day)
     return OI_OBJECT_TEMPLATE.format(year=year, month=month, day=day_n)
 
 
