@@ -1,6 +1,6 @@
 # Signalbot — Current Project Status
 
-**Status date:** 2026-09-04
+**Status date:** 2026-09-07
 **Operating mode:** `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN`
 
 This file is the canonical answer to: **what is Signalbot doing now?**
@@ -93,14 +93,16 @@ itself is immutable. Post-outcome status lives in
 - B2-01 `VOLATILITY_TRANSITION`: `CLOSED_NO_PROMOTION`
 - B2-02 `BOUNDARY_INTERACTION_PATH`: `CLOSED_NO_PROMOTION`
 - B2-03 `IMPULSE_MORPHOLOGY`: `CLOSED_NO_PROMOTION`
-- next frozen unit: `B2-04_MODERATE_PULLBACK_STRUCTURE` (preregistration
-  frozen in `docs/research/B2_04_MODERATE_PULLBACK_STRUCTURE_PREREG.md`; not
-  implemented and not outcome-authorized)
+- B2-04 `MODERATE_PULLBACK_STRUCTURE`: `CLOSED_NO_PROMOTION`
+- B2-05 `FLOW_ABSORPTION`: development consumed; durable evidence
+  `B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED` at archive
+  `e31e5666fe845116197b6f2531289bf17d848027` (historical bytes
+  operator-adjudicated, not proven)
+- B2-06 `LEVERAGE_CROWDING`: `BLOCKED_MISSING_OBSERVABLE`
 
-Family F1 remains `ACTIVE` because B2-04 is still untested. 2025 validation and
-2026 OOS remain untouched. No Batch02 formulation has a promoted candidate, so
-there is no Batch02 validation path to open. See
-`docs/research/B2_03_IMPULSE_MORPHOLOGY_RESULT.md`.
+Family F1 is `CLOSED_NO_PROMOTION`. 2025 validation and 2026 OOS remain
+untouched. No Batch02 formulation has a promoted candidate, so there is no
+Batch02 validation path to open.
 
 ### V2 / E1-RUN-001
 
@@ -144,12 +146,11 @@ See `docs/HISTORICAL_DATA_STRATEGY.md`.
 
 ## 7. Active objective
 
-The immediate objective is to execute the remaining frozen Batch02 formulations
-in inventory order. B2-04 preregistration is now frozen; the next unit is
-B2-04 implementation, then a separate development-outcome authorization,
-without rescuing closed B2-01, B2-02, or B2-03 results. `V2_RESEARCH_HARNESS_V1`
-is already accepted; Batch02 design is already frozen. This status update does
-not implement B2-04 or authorize B2-04 outcomes.
+The immediate objective is to keep the remaining frozen Batch02 inventory
+honest: B2-05 durable-evidence recovery is closed as
+`B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED`; B2-06 remains
+`BLOCKED_MISSING_OBSERVABLE`. Do not rerun B2-05, do not reopen CORE / 2025 /
+2026 for this incident, and do not rescue closed B2-01 through B2-04 results.
 
 The research objective remains:
 

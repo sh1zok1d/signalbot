@@ -3,7 +3,7 @@
 **Ledger type:** post-outcome status record  
 **Frozen inventory source:** `docs/research/V2_FORMULATION_INVENTORY.md`  
 **Inventory mutability:** IMMUTABLE after first real Batch02 outcome  
-**Current Batch02 outcome count:** 4 completed formulations  
+**Current Batch02 outcome count:** 4 completed result documents; B2-05 development consumed and durable-evidence recovery archived
 **2025 validation:** UNTOUCHED  
 **2026 OOS:** UNTOUCHED
 
@@ -25,7 +25,7 @@ The authoritative formulation set remains the already-frozen six-entry inventory
 | `B2-02_BOUNDARY_INTERACTION_PATH` | F1 | `CLOSED_NO_PROMOTION` | completed one-shot development verdict; see `B2_02_BOUNDARY_INTERACTION_PATH_RESULT.md` |
 | `B2-03_IMPULSE_MORPHOLOGY` | F1 | `CLOSED_NO_PROMOTION` | completed one-shot development verdict; see `B2_03_IMPULSE_MORPHOLOGY_RESULT.md` |
 | `B2-04_MODERATE_PULLBACK_STRUCTURE` | F1 | `CLOSED_NO_PROMOTION` | completed one-shot development verdict; explicit H04 post-hoc child; see `B2_04_MODERATE_PULLBACK_STRUCTURE_RESULT.md` |
-| `B2-05_FLOW_ABSORPTION` | F4 | `PLANNED` | no real outcomes opened |
+| `B2-05_FLOW_ABSORPTION` | F4 | `DEVELOPMENT_CONSUMED` | durable evidence `ARCHIVED` (`B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED`); historical bytes not cryptographically proven; no RESULT.md in this closeout |
 | `B2-06_LEVERAGE_CROWDING` | F5 | `BLOCKED_MISSING_OBSERVABLE` | OI + funding data expansion still required |
 
 ## 3. Family ledger
@@ -35,11 +35,11 @@ The authoritative formulation set remains the already-frozen six-entry inventory
 | F1 Directional persistence | `CLOSED_NO_PROMOTION` | B2-02, B2-03, and the sole B2-04 H04-derived child all closed without promotion |
 | F2 Reversion/failure | `RETIRED` | no novelty-qualified F2 formulation exists in frozen inventory |
 | F3 Volatility dynamics | `CLOSED_NO_PROMOTION` | sole frozen F3 formulation B2-01 closed without promotion |
-| F4 Participation/order-flow | `UNTESTED` | B2-05 remains frozen and unopened |
+| F4 Participation/order-flow | `DEVELOPMENT_CONSUMED` | B2-05 one-shot consumed; durable recovery archived; scientific RESULT.md is not this closeout |
 | F5 State-mechanism interaction | `BLOCKED_MISSING_OBSERVABLE` | B2-06 requires separately authorized OI/funding observables |
 | F6 State routing | `RETIRED` | no current-V2 routing formulation admitted |
 
-## 4. Canonical state after B2-04
+## 4. Canonical state after B2-05 durable-evidence recovery
 
 ```text
 BATCH01 = CLOSED
@@ -47,7 +47,7 @@ V2_RESEARCH_HARNESS_V1 = ACCEPTED
 V2_RESEARCH_PROGRAM = CHARTER_ACCEPTED
 V2_FORMULATION_INVENTORY = FROZEN_6_IMMUTABLE
 
-REAL_BATCH02_OUTCOMES = OPENED_B2_01_AND_B2_02_AND_B2_03_AND_B2_04
+REAL_BATCH02_OUTCOMES = OPENED_B2_01_AND_B2_02_AND_B2_03_AND_B2_04_AND_B2_05
 
 B2_01 = CLOSED_NO_PROMOTION
 B2_02 = CLOSED_NO_PROMOTION
@@ -55,17 +55,20 @@ B2_03 = CLOSED_NO_PROMOTION
 B2_04 = CLOSED_NO_PROMOTION
 B2_04_POSTHOC_PROVENANCE = H04_EXPLICIT_CHILD
 B2_04_H04_CHILD_PATH = CLOSED
-B2_05 = PLANNED
+B2_05 = DEVELOPMENT_CONSUMED
+B2_05_RECOVERY = B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED
+B2_05_EVIDENCE = ARCHIVED
 B2_06 = BLOCKED_MISSING_OBSERVABLE
 
 F1 = CLOSED_NO_PROMOTION
 F2 = RETIRED
 F3 = CLOSED_NO_PROMOTION
-F4 = UNTESTED
+F4 = DEVELOPMENT_CONSUMED
 F5 = BLOCKED_MISSING_OBSERVABLE
 F6 = RETIRED
 
-NEXT_FROZEN_FORMULATION = B2_05_FLOW_ABSORPTION
+NEXT_FROZEN_FORMULATION = B2_06_LEVERAGE_CROWDING
+NEXT_FROZEN_FORMULATION_STATUS = BLOCKED_MISSING_OBSERVABLE
 
 2025_VALIDATION = UNTOUCHED
 2026_OOS = UNTOUCHED
@@ -132,6 +135,10 @@ interpretation, one-sided direction rescue, or any second H04-derived child.
 Any such idea conceived after these outcomes remains future-program material
 only and cannot enter current V2.
 
+B2-05 durable-evidence recovery does not authorize a scientific rerun, does
+not reopen CORE / 2025 / 2026, and does not convert operator adjudication
+into historical byte-proof.
+
 ## 8. B2-03 terminal record
 
 ```text
@@ -186,19 +193,15 @@ all closed without promotion, F1 directional persistence closes for current V2.
 
 ## 10. Next allowed research unit
 
-The next eligible frozen formulation on the current accepted CORE is:
+B2-05 development is consumed. Its durable-evidence recovery incident is
+closed as `B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED`. This ledger does
+not transcribe a scientific RESULT.md and does not authorize a B2-05 rerun.
 
-`B2-05_FLOW_ABSORPTION`
+The next frozen inventory unit is:
 
-Its inventory mechanism is the interaction between aggressive taker flow and
-contemporaneous price response, conditional on imbalance and price/volatility
-state. It is not an H05 imbalance-alone rescue.
+`B2-06_LEVERAGE_CROWDING`
 
-B2-05 still requires its own final preregistration/implementation/review/merge
-ceremony before any real development outcome access. This ledger does not
-authorize B2-05 outcomes.
-
-B2-06 remains `BLOCKED_MISSING_OBSERVABLE` until a separate OI/funding data
+It remains `BLOCKED_MISSING_OBSERVABLE` until a separate OI/funding data
 expansion is authorized and frozen.
 
 ## 11. Validation boundary
@@ -206,4 +209,43 @@ expansion is authorized and frozen.
 No 2025 validation or 2026 OOS outcome has been opened by Batch02 so far.
 
 B2-01, B2-02, B2-03, and B2-04 are closed at development and have no promoted
-candidate, therefore none has a validation path to open.
+candidate, therefore none has a validation path to open. B2-05 development is
+consumed and its durable archive is operator-adjudicated; this closeout does
+not open 2025 or 2026 and does not transcribe a scientific RESULT.md.
+
+## 12. B2-05 durable-evidence recovery terminal record
+
+This record closes the B2-05 post-outcome retention incident. It does not
+relabel the recovered bytes as historically cryptographically proven, and it
+does not claim the original failed process had already durably persisted
+these exact bytes. Scientific RESULT.md transcription is not this closeout.
+
+```text
+FORMULATION = B2-05_FLOW_ABSORPTION
+TERMINAL_STATUS = B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED
+B2_05_RECOVERY_STATUS = ARCHIVED
+EVIDENCE_REF = refs/heads/research-evidence/batch02/B2-05/669ae93c6a5c1d102a46fd129f04292f1beff978
+ARCHIVED_SHA = e31e5666fe845116197b6f2531289bf17d848027
+CLAIMED_SHA = e6590062b3dba06b716199552b74f9c68b14f4b2
+RESERVED_SHA = 40cd095122b32d0f5fdb731fa429901d546777e3
+ARCHIVE_PARENT = e6590062b3dba06b716199552b74f9c68b14f4b2
+RESULT_ARTIFACT_SHA256 = 530342759e70a135915ef82382b4b97bd939620ce02925524b745ccf6cc9a57c
+ARTIFACT_SIZE_BYTES = 280017092
+CHUNK_COUNT = 5
+ARCHIVE_REPRESENTATION = raw_chunks
+RECOVERY_CODE_SHA = 3f1b42a667fe982bf399921d1c200b2b56885a28
+RECOVERY_CODE_TREE = b97a31f9688c2d76176264e420de50511ea1ca6a
+EXECUTION_SHA = 669ae93c6a5c1d102a46fd129f04292f1beff978
+EXECUTION_TREE = 7a5c31aef771e4bbdeb686045ae154d33e7c8fd4
+HISTORICAL_ARTIFACT_BINDING = OPERATOR_ADJUDICATED
+HISTORICAL_EXECUTION_PERSISTENCE_PROVEN = false
+RECOVERY_PROVES = artifact_equals_authority_committed_during_recovery
+PRODUCTION_RECOVERY_INVOCATION_COUNT = 1
+B2_05_RERUN = NO
+CORE_REOPENED = NO
+FORCE_PUSH = NO
+AUTOMATIC_RETRY = NO
+LOCAL_ARTIFACT_UNCHANGED_AFTER_RECOVERY = YES
+EVIDENCE_REF_POINTS_AT_EXACT_ARCHIVE = YES
+RERUN_AUTHORIZED = NO
+```

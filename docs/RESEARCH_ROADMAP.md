@@ -117,7 +117,7 @@ to H06 and do not reopen a rejected family through parameter rescue.
 `V2_RESEARCH_HARNESS_V1`; after independent audit, perform
 `BATCH02_DESIGN`. See `docs/research/BATCH01_SYNTHESIS.md`.
 
-### Batch02 status (2026-09-04)
+### Batch02 status (2026-09-07)
 
 `V2_RESEARCH_HARNESS_V1` is accepted and the six-entry Batch02 inventory is
 frozen/immutable. Real development outcomes opened so far:
@@ -125,16 +125,18 @@ frozen/immutable. Real development outcomes opened so far:
 - B2-01 `VOLATILITY_TRANSITION` = `CLOSED_NO_PROMOTION`
 - B2-02 `BOUNDARY_INTERACTION_PATH` = `CLOSED_NO_PROMOTION`
 - B2-03 `IMPULSE_MORPHOLOGY` = `CLOSED_NO_PROMOTION`
+- B2-04 `MODERATE_PULLBACK_STRUCTURE` = `CLOSED_NO_PROMOTION`
+- B2-05 `FLOW_ABSORPTION` development consumed; durable-evidence recovery
+  `B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED` at
+  `e31e5666fe845116197b6f2531289bf17d848027`
 
-2025 validation and 2026 OOS remain untouched. Do not rerun B2-01, B2-02, or
-B2-03. Do not rescue any closed formulation inside current V2.
+2025 validation and 2026 OOS remain untouched. Do not rerun B2-01 through
+B2-05. Do not rescue any closed formulation inside current V2. Historical
+B2-05 artifact bytes remain `OPERATOR_ADJUDICATED`, not proven.
 
-Family F1 remains `ACTIVE`. **Next frozen unit:**
-`B2-04_MODERATE_PULLBACK_STRUCTURE`. Its outcome-blind preregistration is
-frozen in `docs/research/B2_04_MODERATE_PULLBACK_STRUCTURE_PREREG.md`. It still
-requires implementation, exact-SHA CI, reviews, merge, and a separate
-development-outcome authorization. This roadmap note does not implement B2-04
-or authorize B2-04 outcomes. See `docs/research/BATCH02_STATUS_LEDGER.md`.
+Family F1 is `CLOSED_NO_PROMOTION`. **Next frozen unit:**
+`B2-06_LEVERAGE_CROWDING`, still `BLOCKED_MISSING_OBSERVABLE`. See
+`docs/research/BATCH02_STATUS_LEDGER.md`.
 
 ### Exit
 A small set of candidate mechanisms shows enough development evidence to justify formal validation. It is acceptable for none to qualify.
