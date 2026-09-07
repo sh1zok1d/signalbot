@@ -125,6 +125,14 @@ importing the retention module directly. Local bare remotes exist only through
 the private test seam and are not part of the hypothesis API.
 See `docs/research/BATCH02_DURABLE_EVIDENCE_RETENTION_V1.md`.
 
+### B2-06 OI/funding data expansion
+
+`scripts/research/binance_um_oi_funding_v0_contract_lib.py` is
+`ACTIVE_RESEARCH_INFRA` for the outcome-blind B2-06 data-expansion freeze.
+It is not a B2-06 evaluator and must not be used to authorize crowding
+thresholds or 2025/2026 outcome access. See
+`docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md`.
+
 ---
 
 ## `storage/`, `data_ingestion/`, `backfill/`

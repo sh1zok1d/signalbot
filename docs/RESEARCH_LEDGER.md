@@ -1326,3 +1326,32 @@ historical cryptographic proof of the original persisted bytes.
 
 Status ledger: `docs/research/BATCH02_STATUS_LEDGER.md`
 Recovery authority: `docs/research/batch02_recovery_authority/B2-05/669ae93c6a5c1d102a46fd129f04292f1beff978.json`
+
+---
+
+## 2026-09-07 — B2-06 OI/funding data-expansion contract frozen
+
+**Decision:** `DATA_EXPANSION_FEASIBLE_TO_FREEZE`
+
+This entry records an outcome-blind first-party Binance USD-M `BTCUSDT`
+open-interest + settled-funding identity freeze. It does **not** execute
+B2-06, does not create a RESULT, does not inspect B2-06 predictive
+outcomes, does not open 2025 validation or 2026 OOS, does not modify the
+frozen inventory, and does not touch B2-05.
+
+- dataset_id: `B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0`
+- status: `CONTRACT_FROZEN_NOT_MATERIALIZED`
+- research_authorized: **false**
+- outcome_access_authorized: **false**
+- provider/venue: Binance / Binance
+- market_type / contract / symbol: `USD_M_FUTURES` / `PERPETUAL` / `BTCUSDT`
+- OI: Vision `daily/metrics` `sum_open_interest` (BTC, native 5m, `available_at = period_end`)
+- funding: Vision `monthly/fundingRate` settled `last_funding_rate` (8h, `available_at = calc_time`)
+- joint development overlap: `[2020-09-01T00:00:00Z, 2025-01-01T00:00:00Z)`
+- archive-object gaps in that overlap: **none** listed
+- cross-provider / cross-venue / cross-timeframe fallback: **NO**
+- scientific evaluator / crowding thresholds: **NO**
+- CORE kline snapshot: not used as an OI/funding source
+- formulation status remains: `BLOCKED_MISSING_OBSERVABLE` until a materialized Git-bound snapshot exists
+
+Contract: `docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md`

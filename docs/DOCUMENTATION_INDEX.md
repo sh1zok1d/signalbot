@@ -32,7 +32,10 @@ Read these first:
 | `research/H01_DEV_SUMMARY.md` | **FROZEN_EVIDENCE** | H01 development-only result; verdict `H01_KILL` |
 | `research/H02_FAILED_BREAKOUT_MEAN_REVERSION_PREREG.md` | **FROZEN_EVIDENCE** | H02 preregistration (before development outcomes) |
 | `research/H02_DEV_SUMMARY.md` | **FROZEN_EVIDENCE** | H02 development-only result; verdict `H02_KILL` |
-| `research/BATCH02_STATUS_LEDGER.md` | **ACTIVE RECORD** | Post-outcome Batch02 formulation/family status, including B2-05 durable-evidence recovery closeout `B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED` at archive `e31e5666fe845116197b6f2531289bf17d848027`; does not mutate the frozen inventory |
+| `research/BATCH02_STATUS_LEDGER.md` | **ACTIVE RECORD** | Post-outcome Batch02 formulation/family status, including B2-05 durable-evidence recovery closeout `B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED` at archive `e31e5666fe845116197b6f2531289bf17d848027`; B2-06 remains `BLOCKED_MISSING_OBSERVABLE` after an outcome-blind OI/funding contract freeze that does not authorize execution; does not mutate the frozen inventory |
+| `research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md` | **ACTIVE / RESEARCH DATA CONTRACT** | Outcome-blind B2-06 OI+funding identity, decision-time, missing-vs-corrupt, same-support, and snapshot-binding freeze; `DATA_EXPANSION_FEASIBLE_TO_FREEZE`; not a B2-06 RESULT |
+| `research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.json` | **ACTIVE / RESEARCH DATA CONTRACT** | Machine-readable twin of the B2-06 data-expansion freeze |
+| `manifests/B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0.yaml` | **CONTRACT_FROZEN_NOT_MATERIALIZED** | Planning manifest for the B2-06 first-party OI/funding dataset; `research_authorized: false`; snapshot `NOT_MATERIALIZED` |
 | `research/B2_01_VOLATILITY_TRANSITION_RESULT.md` | **FROZEN_EVIDENCE** | B2-01 development-only result; verdict `B2_01_CLOSED_NO_PROMOTION` |
 | `research/B2_02_BOUNDARY_INTERACTION_PATH_RESULT.md` | **FROZEN_EVIDENCE** | B2-02 development-only result; verdict `B2_02_CLOSED_NO_PROMOTION` |
 | `research/B2_03_IMPULSE_MORPHOLOGY_PREREG.md` | **FROZEN_EVIDENCE** | B2-03 preregistration (before development outcomes) |

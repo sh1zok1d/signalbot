@@ -134,8 +134,12 @@ frozen/immutable. Real development outcomes opened so far:
 B2-05. Do not rescue any closed formulation inside current V2. Historical
 B2-05 artifact bytes remain `OPERATOR_ADJUDICATED`, not proven.
 
-Family F1 is `CLOSED_NO_PROMOTION`. **Next frozen unit:**
-`B2-06_LEVERAGE_CROWDING`, still `BLOCKED_MISSING_OBSERVABLE`. See
+Family F1 is `CLOSED_NO_PROMOTION`. **Next frozen scientific unit:**
+`B2-06_LEVERAGE_CROWDING`, still `BLOCKED_MISSING_OBSERVABLE`. The
+outcome-blind OI/funding data-expansion contract is frozen as
+`DATA_EXPANSION_FEASIBLE_TO_FREEZE` / `CONTRACT_FROZEN_NOT_MATERIALIZED`
+(`docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md`). That freeze is
+not B2-06 execution and does not authorize 2025/2026. See
 `docs/research/BATCH02_STATUS_LEDGER.md`.
 
 ### Exit
