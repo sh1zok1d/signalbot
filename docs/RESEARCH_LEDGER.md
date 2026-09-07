@@ -1285,3 +1285,44 @@ strict last-legal `T` chronology, continuous `FINAL_DEPTH` OLS depth
 isolation replacing `DEPTH_HALF`, construction/scoring lifecycle
 separation, and a corrected mixed H04 provenance statement. Still no
 CORE access, reservation, claim, or runner.
+
+---
+
+## 2026-09-07 — B2-05 durable-evidence recovery closed
+
+**Decision:** `B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED`
+
+This entry records the one authorized production recovery of the already
+consumed B2-05 local artifact. It does not rerun B2-05, does not reopen
+CORE / 2025 / 2026, and does not convert operator adjudication into
+historical cryptographic proof of the original persisted bytes.
+
+- hypothesis: `B2-05_FLOW_ABSORPTION`
+- recovery status: **`ARCHIVED`**
+- evidence ref: `refs/heads/research-evidence/batch02/B2-05/669ae93c6a5c1d102a46fd129f04292f1beff978`
+- archive SHA: `e31e5666fe845116197b6f2531289bf17d848027`
+- archive parent / claim SHA: `e6590062b3dba06b716199552b74f9c68b14f4b2`
+- reservation SHA: `40cd095122b32d0f5fdb731fa429901d546777e3`
+- artifact SHA256: `530342759e70a135915ef82382b4b97bd939620ce02925524b745ccf6cc9a57c`
+- artifact size: `280017092`
+- chunk count: **5** (`raw_chunks`)
+- recovery code SHA: `3f1b42a667fe982bf399921d1c200b2b56885a28`
+- recovery code tree: `b97a31f9688c2d76176264e420de50511ea1ca6a`
+- historical execution SHA: `669ae93c6a5c1d102a46fd129f04292f1beff978`
+- historical execution tree: `7a5c31aef771e4bbdeb686045ae154d33e7c8fd4`
+- `historical_artifact_binding` = `OPERATOR_ADJUDICATED`
+- `historical_execution_persistence_proven` = **false**
+- `recovery_proves` = `artifact_equals_authority_committed_during_recovery`
+- production recovery invocation count = **1**
+- B2-05 rerun = **NO**
+- CORE reopened = **NO**
+- force push = **NO**
+- automatic retry = **NO**
+- local artifact unchanged after recovery = **YES**
+- evidence ref now points at the exact archive commit = **YES**
+- 2025 validation: **UNTOUCHED**
+- 2026 OOS: **UNTOUCHED**
+- rerun authorized: **NO**
+
+Status ledger: `docs/research/BATCH02_STATUS_LEDGER.md`
+Recovery authority: `docs/research/batch02_recovery_authority/B2-05/669ae93c6a5c1d102a46fd129f04292f1beff978.json`

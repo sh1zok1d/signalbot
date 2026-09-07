@@ -353,6 +353,11 @@ Uncommitted local sidecars are not Git-immutable evidence. Any future
 B2-05 recovery authority for those bytes can therefore only be
 `OPERATOR_ADJUDICATED`. This document is not that authority file.
 
+The B2-05 durable-evidence recovery incident is now closed. The production
+archive is recorded in `docs/research/BATCH02_STATUS_LEDGER.md` as
+`B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED`. That closeout does not
+convert operator adjudication into historical cryptographic proof.
+
 Dual verification:
 
 - historical execution identity is proven from Git objects
