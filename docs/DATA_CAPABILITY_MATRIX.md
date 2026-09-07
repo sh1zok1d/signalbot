@@ -1,7 +1,7 @@
 # Signalbot — Historical Data Capability Matrix
 
 **Status:** ACTIVE / RESEARCH DATA DESIGN  
-**Verified:** 2026-08-26; Binance USD-M BTCUSDT funding/OI archive paths independently listed and schema-sampled for development years on 2026-09-07 (B2-06 data-expansion freeze; no B2-06 outcomes).
+**Verified:** 2026-08-26; Binance USD-M BTCUSDT funding/OI archive paths listed and schema-sampled for development years on 2026-09-07 as a **design-time listing** for the B2-06 data-expansion freeze (not a materialized snapshot; no B2-06 outcomes).
 **Scope:** candidate market-data sources for the 2020/2021–2026 research program.
 
 This document answers a narrower question than `HISTORICAL_DATA_STRATEGY.md`:

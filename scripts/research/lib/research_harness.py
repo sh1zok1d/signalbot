@@ -335,20 +335,71 @@ def _run_git(
         ) from exc
 
 
-def _git_show_text(code_freeze: VerifiedCodeFreeze, git_path: str) -> str:
+def _validate_frozen_git_path(git_path: str) -> str:
     if not git_path or git_path.startswith("/") or ".." in Path(git_path).parts:
         raise DatasetIdentityError(f"invalid frozen git path: {git_path!r}")
-    raw = _run_git(
-        code_freeze.repo_root,
-        "show",
-        f"{code_freeze.code_sha}:{git_path}",
-    )
+    return git_path
+
+
+def _git_show_text(code_freeze: VerifiedCodeFreeze, git_path: str) -> str:
+    raw = read_frozen_git_bytes(code_freeze, git_path)
     try:
         return raw.decode("utf-8")
     except UnicodeDecodeError as exc:
         raise DatasetIdentityError(
             f"invalid UTF-8 in frozen git evidence: {git_path}"
         ) from exc
+
+
+def read_frozen_git_bytes(code_freeze: VerifiedCodeFreeze, git_path: str) -> bytes:
+    """Read a blob from the exact frozen commit/tree, never from worktree bytes.
+
+    Requires a minted ``VerifiedCodeFreeze``. The path must exist as a blob in
+    that commit's tree. Callers cannot substitute working-tree contents.
+    """
+    if not isinstance(code_freeze, VerifiedCodeFreeze):
+        raise CodeIdentityError("code_freeze must be a verify_git_freeze proof")
+    _reverify_code_freeze(code_freeze)
+    path = _validate_frozen_git_path(git_path)
+    listing = _run_git(
+        code_freeze.repo_root,
+        "ls-tree",
+        "-z",
+        code_freeze.code_sha,
+        "--",
+        path,
+    )
+    entries = [item for item in listing.split(b"\0") if item]
+    if not entries:
+        raise DatasetIdentityError(
+            f"frozen git path absent from commit tree: {path}"
+        )
+    if len(entries) != 1:
+        raise DatasetIdentityError(
+            f"frozen git path is not a unique tree blob: {path}"
+        )
+    try:
+        meta, raw_path = entries[0].split(b"\t", 1)
+        _mode, object_type, _oid = meta.split(b" ", 2)
+    except ValueError as exc:
+        raise DatasetIdentityError(
+            f"unable to parse frozen git tree entry for {path}"
+        ) from exc
+    if object_type != b"blob":
+        raise DatasetIdentityError(
+            f"frozen git path is not a blob: {path}"
+        )
+    listed_path = raw_path.decode("utf-8", errors="surrogateescape")
+    if listed_path != path:
+        raise DatasetIdentityError(
+            f"frozen git path identity drift: {listed_path!r} != {path!r}"
+        )
+    return _run_git(
+        code_freeze.repo_root,
+        "cat-file",
+        "blob",
+        f"{code_freeze.code_sha}:{path}",
+    )
 
 
 def _worktree_blob_oid(repo_root: Path, path: Path, mode: str) -> str:

@@ -2,6 +2,7 @@ dataset_id: B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0
 manifest_version: 0
 status: CONTRACT_FROZEN_NOT_MATERIALIZED
 current_state: CONTRACT_FROZEN_NOT_MATERIALIZED
+unit_verdict: DATA_CONTRACT_FROZEN_AWAITING_MATERIALIZATION_AND_FUNDING_AVAILABILITY_AUTHORITY
 research_authorized: false
 confirmatory_authorized: false
 outcome_access_authorized: false
@@ -17,7 +18,8 @@ purpose:
     Outcome-blind first-party Binance USD-M BTCUSDT open-interest and
     settled-funding identity freeze for B2-06. This manifest does not
     materialize bytes, does not authorize discovery runs, and does not
-    extend CORE_BTC_BINANCE_V0.
+    extend CORE_BTC_BINANCE_V0. Funding publication latency is unproven;
+    calc_time is not legal_available_at.
   not_an_edge_claim: true
   not_a_b2_06_result: true
 
@@ -47,8 +49,24 @@ excluded:
   - silent_cross_provider_fill
   - silent_cross_venue_fill
   - silent_cross_timeframe_fill
+  - calc_time_as_proven_legal_available_at
+  - caller_supplied_git_authority
 
-availability_semantics_version: v1-oi-bar-end-exclusive-funding-calc-time
+availability_semantics_version: v2-oi-bar-end-exclusive-funding-publication-unproven
 schema_version: v1
 normalization_version: v1
-snapshot_authority: GIT_TRACKED_REPOSITORY_MANIFEST
+snapshot_identity_version: v2-exact-git-object-authority
+snapshot_authority: EXACT_GIT_COMMIT_TREE_OBJECT_AUTHORITY
+funding_publication_semantics_status: FUNDING_PUBLICATION_LATENCY_UNPROVEN
+funding_calc_time_is_legal_available_at: false
+oi_duplicate_equality_rule: ENTIRE_FROZEN_RAW_ROW
+coverage_claim_class: DESIGN_TIME_ARCHIVE_OBJECT_LISTING_NOT_MATERIALIZED_SNAPSHOT
+zip_materializer_fail_closed:
+  - unexpected member filename
+  - multiple CSV members
+  - duplicate member names
+  - extra hidden CSV members
+  - path traversal
+  - absolute paths
+  - malformed UTF-8
+  - unsupported compression/container shape

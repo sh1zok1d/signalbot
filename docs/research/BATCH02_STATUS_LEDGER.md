@@ -26,7 +26,7 @@ The authoritative formulation set remains the already-frozen six-entry inventory
 | `B2-03_IMPULSE_MORPHOLOGY` | F1 | `CLOSED_NO_PROMOTION` | completed one-shot development verdict; see `B2_03_IMPULSE_MORPHOLOGY_RESULT.md` |
 | `B2-04_MODERATE_PULLBACK_STRUCTURE` | F1 | `CLOSED_NO_PROMOTION` | completed one-shot development verdict; explicit H04 post-hoc child; see `B2_04_MODERATE_PULLBACK_STRUCTURE_RESULT.md` |
 | `B2-05_FLOW_ABSORPTION` | F4 | `DEVELOPMENT_CONSUMED` | durable evidence `ARCHIVED` (`B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED`); historical bytes not cryptographically proven; no RESULT.md in this closeout |
-| `B2-06_LEVERAGE_CROWDING` | F5 | `BLOCKED_MISSING_OBSERVABLE` | OI + funding **data-expansion contract frozen** (`DATA_EXPANSION_FEASIBLE_TO_FREEZE`); snapshot not materialized; no B2-06 RESULT |
+| `B2-06_LEVERAGE_CROWDING` | F5 | `BLOCKED_MISSING_OBSERVABLE` | OI + funding data-expansion **identity** frozen; unit verdict `DATA_CONTRACT_FROZEN_AWAITING_MATERIALIZATION_AND_FUNDING_AVAILABILITY_AUTHORITY`; funding publication latency unproven; snapshot not materialized; no B2-06 RESULT |
 
 ## 3. Family ledger
 
@@ -60,6 +60,8 @@ B2_05_RECOVERY = B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED
 B2_05_EVIDENCE = ARCHIVED
 B2_06 = BLOCKED_MISSING_OBSERVABLE
 B2_06_DATA_EXPANSION = DATA_EXPANSION_FEASIBLE_TO_FREEZE
+B2_06_DATA_EXPANSION_UNIT_VERDICT = DATA_CONTRACT_FROZEN_AWAITING_MATERIALIZATION_AND_FUNDING_AVAILABILITY_AUTHORITY
+B2_06_FUNDING_PUBLICATION = FUNDING_PUBLICATION_LATENCY_UNPROVEN
 B2_06_DATASET = B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0
 B2_06_DATASET_STATUS = CONTRACT_FROZEN_NOT_MATERIALIZED
 B2_06_OUTCOME_ACCESS = NO
@@ -206,13 +208,16 @@ The next frozen inventory unit is:
 `B2-06_LEVERAGE_CROWDING`
 
 It remains `BLOCKED_MISSING_OBSERVABLE` for scientific execution. The
-required OI/funding **data-expansion contract** is frozen outcome-blind as
+required OI/funding **data-expansion identity** is frozen outcome-blind as
 `DATA_EXPANSION_FEASIBLE_TO_FREEZE` in
 `docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md` with dataset
 `B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0` still
-`CONTRACT_FROZEN_NOT_MATERIALIZED`. Next allowed work is materialization
-and Git-bound snapshot authorization — not B2-06 outcome access, not 2025,
-not 2026, and not crowding-threshold search.
+`CONTRACT_FROZEN_NOT_MATERIALIZED` and unit verdict
+`DATA_CONTRACT_FROZEN_AWAITING_MATERIALIZATION_AND_FUNDING_AVAILABILITY_AUTHORITY`.
+Funding `calc_time` is not a proven legal availability clock. Next allowed
+work is materialization, Git-bound snapshot authorization, and a separately
+frozen first-party funding publication rule — not B2-06 outcome access, not
+2025, not 2026, and not crowding-threshold search.
 
 ## 11. Validation boundary
 
