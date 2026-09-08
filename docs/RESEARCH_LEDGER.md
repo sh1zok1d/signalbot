@@ -1497,3 +1497,23 @@ cross-checkout durability (RESIDUAL-R1) and stale in-process import
 - production_monte_carlo_arm_authorized: **false**
 - b2_06_scientific_execution_authorized: **false**
 - status: `AUTHORIZATION_FROZEN_BEFORE_PRODUCTION_EXECUTION`
+
+## 2026-09-08 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 production durability
+
+**Decision:** implement production durability, aggregation, and result
+persistence above the frozen scientific primitives without executing the
+3200-world calibration.
+**Unit verdict:** unarmed; no RESULT minted; #114 local reservation superseded
+on this HEAD.
+
+Canonical production execution must cross a fresh Python interpreter and
+re-verify exact HEAD/tree plus execution-authority bytes inside that process
+(R1). Run identity is a function of tracked commit authority only, so local
+reservation deletion or another clone/worktree cannot mint a distinct
+authoritative identity (R2). Global process exclusion is not claimed.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- b2_06_scientific_execution_authorized: **false**
+- status: `PRODUCTION_DURABILITY_IMPLEMENTED_UNARMED`

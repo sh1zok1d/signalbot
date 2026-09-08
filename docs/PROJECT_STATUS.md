@@ -110,9 +110,10 @@ itself is immutable. Post-outcome status lives in
   `production_calibration_executed = false`,
   `authorization_consumed = false`,
   `production_monte_carlo_arm_authorized = false`).
-  Residual cross-checkout durability and stale-import identity findings
-  must be closed before the Monte Carlo seam may be armed. This does not
-  authorize B2-06 science.
+  Production durability/aggregation/result-persistence is implemented and
+  remains unarmed (`production_monte_carlo_arm_authorized = false`).
+  Canonical execution requires a later explicit arming unit. This does
+  not authorize B2-06 science.
 
 Family F1 is `CLOSED_NO_PROMOTION`. 2025 validation and 2026 OOS remain
 untouched. No Batch02 formulation has a promoted candidate, so there is no
