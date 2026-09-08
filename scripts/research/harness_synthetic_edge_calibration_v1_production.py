@@ -38,6 +38,7 @@ from scripts.research.harness_synthetic_edge_calibration_v1_lib import (
     PRODUCTION_WORLDS_PER_CELL,
     ROOT_SEED,
     UNIT_ID,
+    IncompleteWorld,
     SyntheticExecutionNotAuthorized,
     ae_metrics,
     candidate_features,
@@ -55,6 +56,7 @@ from scripts.research.harness_synthetic_edge_calibration_v1_lib import (
     scored_mask,
     select_blind,
     simulate_dgp,
+    small_band,
     specificity_verdict,
     support_diagnostics,
     taxonomy_flags,
@@ -125,6 +127,26 @@ ORACLE_MODERATE_MIN = 0.70
 BLIND_EASY_USEFUL_MIN = 0.80
 BLIND_MODERATE_USEFUL_MIN = 0.50
 WORKER_FLAG = "--fresh-process-worker"
+R1_PROBE_MODE = "r1-probe"
+WORKER_MODE = "worker"
+ISOLATED_CHILD_BOOTSTRAP = (
+    "import sys\n"
+    "from pathlib import Path\n"
+    "root = Path(sys.argv[1]).resolve()\n"
+    "mode = sys.argv[2]\n"
+    "sys.path.insert(0, str(root))\n"
+    "from scripts.research.harness_synthetic_edge_calibration_v1_production import "
+    "_isolated_child_main\n"
+    "raise SystemExit(_isolated_child_main(mode))\n"
+)
+R1_PROBE_GATE_ARGS = {
+    "mean_ae_improvement": 0.05,
+    "relative_mae_improvement": 0.03,
+    "bootstrap_positive": True,
+    "placebo_separation": True,
+    "era_improvements": {"E2": 0.1, "E3": 0.1, "E4": 0.1, "E5": -0.01},
+    "candidate_positive_count": 50,
+}
 
 
 class ProductionNotArmed(SyntheticExecutionNotAuthorized):
@@ -273,11 +295,63 @@ def _head_blob(repo_root: Path, git_path: str) -> bytes | None:
     return _git(repo_root, "cat-file", "blob", f"HEAD:{git_path}")
 
 
-def production_monte_carlo_arm_authorized(repo_root: Path | None = None) -> bool:
-    """Arming is a separate later unit. This durability PR keeps the flag false.
+def _commit_blob(repo_root: Path, commit: str, git_path: str) -> bytes | None:
+    if git_path.startswith("/") or ".." in Path(git_path).parts:
+        _refuse("invalid git path")
+    exists = subprocess.run(
+        ["git", "-C", str(repo_root), "cat-file", "-e", f"{commit}:{git_path}"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if exists.returncode != 0:
+        return None
+    return _git(repo_root, "cat-file", "blob", f"{commit}:{git_path}")
 
-    A tracked ARM artifact may not authorize a descendant commit. The armed
-    HEAD/tree inside the artifact must match the exact executing commit.
+
+def _parent_sha(repo_root: Path) -> str | None:
+    proc = subprocess.run(
+        ["git", "-C", str(repo_root), "rev-parse", "HEAD^"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if proc.returncode != 0:
+        return None
+    return proc.stdout.decode("ascii").strip().lower()
+
+
+def _commit_tree_sha(repo_root: Path, commit: str) -> str:
+    return _git(repo_root, "rev-parse", f"{commit}^{{tree}}").decode("ascii").strip().lower()
+
+
+def _authority_digests_at(repo_root: Path, commit: str) -> dict[str, str]:
+    digests: dict[str, str] = {}
+    mapping = {
+        "lib": LIB_REL,
+        "runner": RUNNER_REL,
+        "auth": AUTH_REL,
+        "production": PRODUCTION_REL,
+        "prereg_json": PREREG_JSON_REL,
+        "prereg_md": PREREG_MD_REL,
+    }
+    for key, rel in mapping.items():
+        blob = _commit_blob(repo_root, commit, rel)
+        if blob is None:
+            _refuse(f"execution authority missing from {commit}: {rel}")
+        digests[key] = _sha256_bytes(blob)
+    durability = _commit_blob(repo_root, commit, CANONICAL_DURABILITY_PATH)
+    if durability is not None:
+        digests["durability"] = _sha256_bytes(durability)
+    return digests
+
+
+def production_monte_carlo_arm_authorized(repo_root: Path | None = None) -> bool:
+    """ARM in commit C_arm authorizes its parent execution commit C_exec.
+
+    This is constructible: the ARM artifact is not a fixed point of its own
+    commit/tree. A descendant of C_arm is not armed. This PR does not add a
+    live ARM artifact.
     """
     root = repo_root or _repo_root()
     blob = _head_blob(root, CANONICAL_ARM_PATH)
@@ -289,9 +363,34 @@ def production_monte_carlo_arm_authorized(repo_root: Path | None = None) -> bool
         return False
     if payload.get("production_monte_carlo_arm_authorized") is not True:
         return False
-    armed_head = str(payload.get("armed_head_sha") or "").strip().lower()
-    armed_tree = str(payload.get("armed_tree_sha") or "").strip().lower()
-    return armed_head == _head_sha(root) and armed_tree == _tree_sha(root)
+    parent = _parent_sha(root)
+    if parent is None:
+        return False
+    authorized_commit = str(payload.get("authorized_execution_commit") or "").strip().lower()
+    authorized_tree = str(payload.get("authorized_execution_tree") or "").strip().lower()
+    if authorized_commit != parent:
+        return False
+    if authorized_tree != _commit_tree_sha(root, parent):
+        return False
+    listed = payload.get("execution_authority_sha256")
+    if not isinstance(listed, dict):
+        return False
+    try:
+        actual = _authority_digests_at(root, parent)
+    except SyntheticExecutionNotAuthorized:
+        return False
+    required = ("lib", "runner", "auth", "production", "prereg_json", "prereg_md")
+    if any(key not in listed for key in required):
+        return False
+    for key, digest in listed.items():
+        if actual.get(key) != str(digest).strip().lower():
+            return False
+    for rel in EXECUTION_AUTHORITY_PATHS:
+        head_bytes = _head_blob(root, rel)
+        parent_bytes = _commit_blob(root, parent, rel)
+        if head_bytes is None or parent_bytes is None or head_bytes != parent_bytes:
+            return False
+    return True
 
 
 def _executing_file(rel: str) -> Path:
@@ -351,11 +450,36 @@ def verify_executed_production_authority(repo_root: Path | None = None) -> dict[
     return bound
 
 
-def canonical_run_identity(repo_root: Path | None = None) -> str:
-    """Durable run identity from tracked execution-commit authority only."""
-    root = repo_root or _repo_root()
-    bound = verify_executed_production_authority(root)
-    grid = frozen_production_grid()
+def _bound_from_commit_blobs(repo_root: Path, commit: str) -> dict[str, str]:
+    """Authority digests from git objects at an exact commit. No worktree authority."""
+    commit = str(commit).strip().lower()
+    bound: dict[str, str] = {
+        "head_sha": commit,
+        "tree_sha": _commit_tree_sha(repo_root, commit),
+    }
+    for rel in EXECUTION_AUTHORITY_PATHS:
+        blob = _commit_blob(repo_root, commit, rel)
+        if blob is None:
+            _refuse(f"execution authority missing from {commit}: {rel}")
+        digest = _sha256_bytes(blob)
+        if rel == LIB_REL and digest != FROZEN_REVIEWED_LIB_SHA256:
+            _refuse("commit scientific lib is not the frozen reviewed implementation")
+        bound[rel] = digest
+    for rel, expected_key in (
+        (PREREG_JSON_REL, "prereg_json_sha256"),
+        (PREREG_MD_REL, "prereg_md_sha256"),
+    ):
+        blob = _commit_blob(repo_root, commit, rel)
+        if blob is None:
+            _refuse(f"frozen prereg missing from {commit}: {rel}")
+        bound[expected_key] = _sha256_bytes(blob)
+    auth_blob = _commit_blob(repo_root, commit, CANONICAL_AUTHORIZATION_PATH)
+    if auth_blob is not None:
+        bound["authorization_sha256"] = _sha256_bytes(auth_blob)
+    return bound
+
+
+def _run_identity_from_bound(bound: Mapping[str, str]) -> str:
     payload = {
         "durability_id": DURABILITY_ID,
         "unit_id": UNIT_ID,
@@ -367,13 +491,19 @@ def canonical_run_identity(repo_root: Path | None = None) -> str:
         "production_sha256": bound[PRODUCTION_REL],
         "prereg_json_sha256": bound["prereg_json_sha256"],
         "prereg_md_sha256": bound["prereg_md_sha256"],
-        "grid": grid,
+        "grid": frozen_production_grid(),
         "authorization_sha256": bound.get("authorization_sha256"),
         "result_path": CANONICAL_RESULT_PATH,
         "reservation_path": CANONICAL_RESERVATION_PATH,
         "claim_path": CANONICAL_CLAIM_PATH,
     }
     return _sha256_bytes(canonical_json_bytes(payload))
+
+
+def canonical_run_identity(repo_root: Path | None = None) -> str:
+    """Durable run identity from tracked execution-commit authority only."""
+    root = repo_root or _repo_root()
+    return _run_identity_from_bound(verify_executed_production_authority(root))
 
 
 def _optional_head_sha256(repo_root: Path, git_path: str) -> str | None:
@@ -449,62 +579,70 @@ def evaluate_production_candidate(
     x2 = world["X2"]
     s = world["S"]
     reasons: list[str] = []
-    preds = expanding_era_predictions(y, x1, x2, feature, n)
-    mask = scored_mask(n)
-    metrics = ae_metrics(y, preds["BASE_PRED"], preds["CAND_PRED"], mask)
-    ae_imp_full = np.full(n, np.nan, dtype=np.float64)
-    ae_imp_full[mask] = np.abs(y[mask] - preds["BASE_PRED"][mask]) - np.abs(
-        y[mask] - preds["CAND_PRED"][mask]
-    )
-    diag = support_diagnostics(s, ae_imp_full, mask, n)
-    era_imp = era_mean_improvements(y, preds["BASE_PRED"], preds["CAND_PRED"], n)
-    cand_pos = int(np.sum(feature[mask] == 1.0))
-    identity = str(world.get("world_identity", world_identity(scenario_id, n, world_index)))
-    wseed = int(world_seed(identity))
-    vis = visibility_from_residuals(
-        y - preds["BASE_PRED"],
-        s,
-        n,
-        replicates=PRODUCTION_VISIBILITY_REPLICATES,
-        block_rows=PRODUCTION_BLOCK_ROWS,
-        rng=pcg64_generator(namespace_seed(wseed, "VISIBILITY")),
-    )
-    boot = prediction_bootstrap(
-        ae_imp_full,
-        n,
-        replicates=PRODUCTION_BOOTSTRAP_REPLICATES,
-        block_rows=PRODUCTION_BLOCK_ROWS,
-        rng=pcg64_generator(namespace_seed(wseed, "BOOTSTRAP", feature_id)),
-    )
-    if boot["world_invalid"]:
-        reasons.append("bootstrap_invalid")
-    plac = placebo_q95(
-        world=world,
-        feature=feature,
-        n_rows=n,
-        replicates=PRODUCTION_PLACEBO_REPLICATES,
-        rng=pcg64_generator(namespace_seed(wseed, "PLACEBO", feature_id)),
-    )
-    if plac["world_invalid"]:
-        reasons.append("placebo_invalid")
-    placebo_sep = (
-        (not plac["placebo_invalid"])
-        and np.isfinite(plac["placebo_q95"])
-        and metrics["MEAN_AE_IMPROVEMENT"] > plac["placebo_q95"]
-    )
-    scenario = scenario_by_id(scenario_id)
-    materiality_fraction = materiality_fraction_of_attainable(
-        metrics["RELATIVE_MAE_IMPROVEMENT"],
-        float(scenario.get("asymptotic_max_relative_mae_improvement_approx", 0.0)),
-    )
-    gates = compose_gates(
-        mean_ae_improvement=metrics["MEAN_AE_IMPROVEMENT"],
-        relative_mae_improvement=metrics["RELATIVE_MAE_IMPROVEMENT"],
-        bootstrap_positive=bool(boot["bootstrap_positive"]),
-        placebo_separation=bool(placebo_sep),
-        era_improvements=era_imp,
-        candidate_positive_count=cand_pos,
-    )
+    try:
+        preds = expanding_era_predictions(y, x1, x2, feature, n)
+        mask = scored_mask(n)
+        metrics = ae_metrics(y, preds["BASE_PRED"], preds["CAND_PRED"], mask)
+        ae_imp_full = np.full(n, np.nan, dtype=np.float64)
+        ae_imp_full[mask] = np.abs(y[mask] - preds["BASE_PRED"][mask]) - np.abs(
+            y[mask] - preds["CAND_PRED"][mask]
+        )
+        diag = support_diagnostics(s, ae_imp_full, mask, n)
+        era_imp = era_mean_improvements(y, preds["BASE_PRED"], preds["CAND_PRED"], n)
+        cand_pos = int(np.sum(feature[mask] == 1.0))
+        identity = str(world.get("world_identity", world_identity(scenario_id, n, world_index)))
+        wseed = int(world_seed(identity))
+        vis = visibility_from_residuals(
+            y - preds["BASE_PRED"],
+            s,
+            n,
+            replicates=PRODUCTION_VISIBILITY_REPLICATES,
+            block_rows=PRODUCTION_BLOCK_ROWS,
+            rng=pcg64_generator(namespace_seed(wseed, "VISIBILITY")),
+        )
+        boot = prediction_bootstrap(
+            ae_imp_full,
+            n,
+            replicates=PRODUCTION_BOOTSTRAP_REPLICATES,
+            block_rows=PRODUCTION_BLOCK_ROWS,
+            rng=pcg64_generator(namespace_seed(wseed, "BOOTSTRAP", feature_id)),
+        )
+        if boot["world_invalid"]:
+            reasons.append("bootstrap_invalid")
+        plac = placebo_q95(
+            world=world,
+            feature=feature,
+            n_rows=n,
+            replicates=PRODUCTION_PLACEBO_REPLICATES,
+            rng=pcg64_generator(namespace_seed(wseed, "PLACEBO", feature_id)),
+        )
+        if plac["world_invalid"]:
+            reasons.append("placebo_invalid")
+        placebo_sep = (
+            (not plac["placebo_invalid"])
+            and np.isfinite(plac["placebo_q95"])
+            and metrics["MEAN_AE_IMPROVEMENT"] > plac["placebo_q95"]
+        )
+        scenario = scenario_by_id(scenario_id)
+        materiality_fraction = materiality_fraction_of_attainable(
+            metrics["RELATIVE_MAE_IMPROVEMENT"],
+            float(scenario.get("asymptotic_max_relative_mae_improvement_approx", 0.0)),
+        )
+        gates = compose_gates(
+            mean_ae_improvement=metrics["MEAN_AE_IMPROVEMENT"],
+            relative_mae_improvement=metrics["RELATIVE_MAE_IMPROVEMENT"],
+            bootstrap_positive=bool(boot["bootstrap_positive"]),
+            placebo_separation=bool(placebo_sep),
+            era_improvements=era_imp,
+            candidate_positive_count=cand_pos,
+        )
+    except IncompleteWorld as exc:
+        return {
+            "feature_id": feature_id,
+            "valid": False,
+            "invalid_reasons": (str(exc),),
+            "stays_in_denominator": True,
+        }
     return {
         "feature_id": feature_id,
         "valid": not reasons,
@@ -518,6 +656,7 @@ def evaluate_production_candidate(
         "placebo": plac,
         "era_improvements": era_imp,
         "candidate_positive_count": cand_pos,
+        "train_end_by_score_era": preds["train_end_by_score_era"],
         "MATERIALITY_FRACTION_OF_ATTAINABLE": materiality_fraction,
         "stays_in_denominator": True,
     }
@@ -583,13 +722,18 @@ def evaluate_production_world(
             "taxonomy_flags": taxonomy_flags(label),
             "visibility": oracle["visibility"],
             "materiality": {
-                "RELATIVE_MAE_IMPROVEMENT": oracle["RELATIVE_MAE_IMPROVEMENT"],
-                "MATERIALITY_FRACTION_OF_ATTAINABLE": oracle[
+                "RELATIVE_MAE_IMPROVEMENT": oracle.get("RELATIVE_MAE_IMPROVEMENT"),
+                "MATERIALITY_FRACTION_OF_ATTAINABLE": oracle.get(
                     "MATERIALITY_FRACTION_OF_ATTAINABLE"
-                ],
-                "STRICT_PASS": oracle["gates"]["STRICT_PASS"],
-                "STRICT_PASS_EX_MATERIALITY": oracle["gates"]["STRICT_PASS_EX_MATERIALITY"],
+                ),
+                "STRICT_PASS": (oracle.get("gates") or {}).get("STRICT_PASS"),
+                "STRICT_PASS_EX_MATERIALITY": oracle.get("gates", {}).get(
+                    "STRICT_PASS_EX_MATERIALITY"
+                )
+                if oracle.get("gates")
+                else None,
             },
+            "train_end_by_score_era": oracle.get("train_end_by_score_era"),
             "stays_in_denominator": True,
         }
     )
@@ -607,6 +751,7 @@ def _cell_records(
 
 def _require_unique_planned_set(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     jobs = planned_production_jobs()
+    planned = set(jobs)
     by_identity: dict[str, Mapping[str, Any]] = {}
     by_job: dict[tuple[str, int, int], Mapping[str, Any]] = {}
     for rec in records:
@@ -620,6 +765,10 @@ def _require_unique_planned_set(records: Sequence[Mapping[str, Any]]) -> dict[st
         if identity != expected_identity:
             raise ProductionIntegrityError(
                 "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: world identity does not match job"
+            )
+        if job not in planned:
+            raise ProductionIntegrityError(
+                "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: extra world is not in the planned production set"
             )
         digest = _sha256_bytes(canonical_json_bytes(_jsonable(dict(rec))))
         if identity in by_identity:
@@ -638,10 +787,12 @@ def _require_unique_planned_set(records: Sequence[Mapping[str, Any]]) -> dict[st
         by_identity[identity] = rec
         by_job[job] = rec
     missing = [job for job in jobs if job not in by_job]
+    invalid_records = [rec for rec in records if rec.get("valid") is not True]
     return {
         "by_job": by_job,
         "missing": missing,
-        "incomplete_execution": bool(missing),
+        "invalid_records": invalid_records,
+        "incomplete_execution": bool(missing) or bool(invalid_records),
         "planned_world_count": len(jobs),
         "observed_world_count": len(by_job),
     }
@@ -721,6 +872,9 @@ def aggregate_planned_worlds(records: Sequence[Mapping[str, Any]]) -> dict[str, 
     easy_visibility = _wilson_arm(easys, _oracle_visible)
     easy_strict = _wilson_arm(easys, _oracle_strict)
     easy_strict_ex = _wilson_arm(easys, _oracle_strict_ex)
+    true_discovery = _wilson_arm(
+        records, lambda rec: bool((rec.get("taxonomy_flags") or {}).get("TRUE_DISCOVERY"))
+    )
 
     incomplete = bool(integrity["incomplete_execution"])
 
@@ -826,9 +980,31 @@ def aggregate_planned_worlds(records: Sequence[Mapping[str, Any]]) -> dict[str, 
                 "verdict": moderate_useful_v,
                 "threshold": BLIND_MODERATE_USEFUL_MIN,
             },
-            "SMALL_ORACLE_MODEL_DETECTED_N5000": small_oracle_5000,
-            "SMALL_ORACLE_MODEL_DETECTED_N2500": small_oracle_2500,
-            "SMALL_ORACLE_MODEL_DETECTED_N10000": small_oracle_10000,
+            "SMALL_ORACLE_MODEL_DETECTED_N5000": {
+                **small_oracle_5000,
+                "band": small_band(small_oracle_5000["interval"])
+                if small_oracle_5000["n"]
+                else "INDETERMINATE",
+            },
+            "SMALL_ORACLE_MODEL_DETECTED_N2500": {
+                **small_oracle_2500,
+                "band": small_band(small_oracle_2500["interval"])
+                if small_oracle_2500["n"]
+                else "INDETERMINATE",
+            },
+            "SMALL_ORACLE_MODEL_DETECTED_N10000": {
+                **small_oracle_10000,
+                "band": small_band(small_oracle_10000["interval"])
+                if small_oracle_10000["n"]
+                else "INDETERMINATE",
+            },
+            "TRUE_DISCOVERY_RATE": {
+                **true_discovery,
+                "band": small_band(true_discovery["interval"])
+                if true_discovery["n"]
+                else "INDETERMINATE",
+                "descriptive_only": True,
+            },
             "VISIBILITY_FLOOR_EASY_ORACLE": easy_visibility,
             "MODEL_FLOOR_EASY_ORACLE": easy_oracle,
             "MATERIALITY_ONLY_DIAGNOSTIC": {
@@ -856,17 +1032,24 @@ def aggregate_planned_worlds(records: Sequence[Mapping[str, Any]]) -> dict[str, 
     }
 
 
-def bind_result_document(
-    *,
-    aggregates: Mapping[str, Any],
-    repo_root: Path | None = None,
-    reservation_sha256: str | None = None,
-    claim_sha256: str | None = None,
-) -> dict[str, Any]:
-    root = repo_root or _repo_root()
-    bound = verify_executed_production_authority(root)
-    run_identity = canonical_run_identity(root)
-    core = {
+def canonical_world_set_bytes(records):
+    integrity = _require_unique_planned_set(records)
+    jobs = planned_production_jobs()
+    ordered = [integrity["by_job"][job] for job in jobs if job in integrity["by_job"]]
+    return canonical_json_bytes({"worlds": [_jsonable(dict(rec)) for rec in ordered]})
+
+
+def world_set_sha256(records):
+    return _sha256_bytes(canonical_world_set_bytes(records))
+
+
+def _bind_result_core(*, records, repo_root):
+    """Private non-authoritative core builder. Callers must go through mint_final_result."""
+    bound = verify_executed_production_authority(repo_root)
+    aggregates = aggregate_planned_worlds(records)
+    reservation = durable_reservation_document(repo_root)
+    claim = durable_claim_document(repo_root)
+    return {
         "schema_version": "1.0",
         "unit_id": UNIT_ID,
         "durability_id": DURABILITY_ID,
@@ -883,13 +1066,10 @@ def bind_result_document(
         "prereg_md_sha256": bound["prereg_md_sha256"],
         "frozen_lib_sha256": bound[LIB_REL],
         "authorization_sha256": bound.get("authorization_sha256"),
-        "reservation_sha256": reservation_sha256
-        if reservation_sha256 is not None
-        else _optional_head_sha256(root, CANONICAL_RESERVATION_PATH),
-        "claim_sha256": claim_sha256
-        if claim_sha256 is not None
-        else _optional_head_sha256(root, CANONICAL_CLAIM_PATH),
-        "run_identity": run_identity,
+        "reservation_sha256": _sha256_bytes(canonical_json_bytes(reservation)),
+        "claim_sha256": _sha256_bytes(canonical_json_bytes(claim)),
+        "run_identity": canonical_run_identity(repo_root),
+        "world_set_sha256": world_set_sha256(records),
         "planned_world_count": aggregates["planned_world_count"],
         "observed_world_count": aggregates["observed_world_count"],
         "aggregates": _jsonable(aggregates),
@@ -906,41 +1086,20 @@ def bind_result_document(
             for name, arm in aggregates.get("arms", {}).items()
             if isinstance(arm, Mapping) and "interval" in arm
         },
+        "persistence": {
+            "canonical_result_path": CANONICAL_RESULT_PATH,
+            "uncommitted_worktree_write_is_not_authority": True,
+            "verify_from_git_object_at_claim_commit": True,
+        },
     }
-    raw = canonical_json_bytes(core)
-    document = dict(core)
-    document["result_sha256"] = _sha256_bytes(raw)
-    document["result_size"] = len(raw)
-    return document
 
 
-def verify_bound_result_document(document: Mapping[str, Any], repo_root: Path | None = None) -> None:
-    core = {
-        key: value
-        for key, value in document.items()
-        if key not in {"result_sha256", "result_size"}
-    }
-    raw = canonical_json_bytes(core)
-    if document.get("result_sha256") != _sha256_bytes(raw):
-        raise ProductionIntegrityError(
-            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: result digest tamper detected"
-        )
-    if document.get("result_size") != len(raw):
-        raise ProductionIntegrityError(
-            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: result size tamper detected"
-        )
-    expected_run = canonical_run_identity(repo_root)
-    if document.get("run_identity") != expected_run:
-        raise ProductionIntegrityError(
-            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: run_identity tamper detected"
-        )
+def bind_result_document(*args, **kwargs):
+    """Removed public binder. Caller-supplied aggregates cannot mint a RESULT."""
+    _refuse("caller-supplied aggregates cannot mint a production RESULT")
 
 
-def mint_final_result(
-    records: Sequence[Mapping[str, Any]],
-    *args: Any,
-    **kwargs: Any,
-) -> dict[str, Any]:
+def mint_final_result(records, *args, **kwargs):
     if args or kwargs:
         _refuse("caller arguments cannot authorize a production RESULT")
     root = _repo_root()
@@ -953,39 +1112,99 @@ def mint_final_result(
     if (
         aggregates["incomplete_execution"]
         or aggregates["observed_world_count"] != PRODUCTION_PLANNED_TOTAL_WORLDS
+        or aggregates["mechanical_conclusion"] == "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM"
     ):
-        _refuse("partial world set cannot finalize")
-    if aggregates["mechanical_conclusion"] == "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM":
         _refuse("incomplete execution cannot mint a final RESULT")
-    reservation = durable_reservation_document(root)
-    claim = durable_claim_document(root)
-    return bind_result_document(
-        aggregates=aggregates,
-        repo_root=root,
-        reservation_sha256=_sha256_bytes(canonical_json_bytes(reservation)),
-        claim_sha256=_sha256_bytes(canonical_json_bytes(claim)),
-    )
+    core = _bind_result_core(records=records, repo_root=root)
+    core_bytes = canonical_json_bytes(core)
+    return {
+        "core": core,
+        "core_sha256": _sha256_bytes(core_bytes),
+        "core_size": len(core_bytes),
+    }
 
 
-def persist_partial_worlds(records: Sequence[Mapping[str, Any]], *args: Any, **kwargs: Any) -> dict[str, Any]:
+def verify_bound_result_document(document, records, *args, **kwargs):
+    if args or kwargs:
+        _refuse("caller arguments cannot authorize result verification")
+    if "core" not in document:
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: result envelope is missing core"
+        )
+    core = document["core"]
+    core_bytes = canonical_json_bytes(core)
+    if document.get("core_sha256") != _sha256_bytes(core_bytes):
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: core digest tamper detected"
+        )
+    if document.get("core_size") != len(core_bytes):
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: core size tamper detected"
+        )
+    expected = _bind_result_core(records=records, repo_root=_repo_root())
+    if core.get("run_identity") != expected["run_identity"]:
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: run_identity tamper detected"
+        )
+    if core.get("world_set_sha256") != expected["world_set_sha256"]:
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: world_set_sha256 tamper detected"
+        )
+    if core.get("reservation_sha256") != expected["reservation_sha256"]:
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: reservation digest is not tracked authority"
+        )
+    if core.get("claim_sha256") != expected["claim_sha256"]:
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: claim digest is not tracked authority"
+        )
+    if core.get("aggregates") != expected["aggregates"]:
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: aggregates were not derived from the world set"
+        )
+
+
+def persist_partial_worlds(records, *args, **kwargs):
     if args or kwargs:
         _refuse("caller arguments cannot authorize partial persistence")
-    return {
+    root = _repo_root()
+    bound = verify_executed_production_authority(root)
+    payload = {
         "schema_version": "1.0",
         "status": "PARTIAL_NOT_RESULT",
         "unit_id": UNIT_ID,
+        "canonical_path": CANONICAL_PARTIAL_PATH,
+        "run_identity": canonical_run_identity(root),
+        "execution_head": bound["head_sha"],
+        "execution_tree": bound["tree_sha"],
+        "grid": frozen_production_grid(),
         "observed_world_count": len(records),
         "planned_world_count": PRODUCTION_PLANNED_TOTAL_WORLDS,
+        "world_set_sha256": _sha256_bytes(
+            canonical_json_bytes({"worlds": [_jsonable(dict(rec)) for rec in records]})
+        ),
         "final_result_minted": False,
         "automatic_retry_authorized": False,
         "records": _jsonable(list(records)),
     }
+    raw = canonical_json_bytes(payload)
+    payload["partial_sha256"] = _sha256_bytes(raw)
+    payload["partial_size"] = len(raw)
+    return payload
 
 
-def recover_partial_from_tracked_authority(*args: Any, **kwargs: Any) -> dict[str, Any]:
+def recover_partial_from_tracked_authority(*args, **kwargs):
+    """Recover a committed partial from git objects at HEAD (claim/result commit).
+
+    Persistence is commit-mediated. An uncommitted worktree write of the
+    canonical partial/result path is not executable authority. The artifact's
+    execution identity is the named execution commit, which must be an
+    ancestor of HEAD; current HEAD may be a later claim/result commit.
+    """
     if args or kwargs:
         _refuse("caller arguments cannot supply recovery/digest/grid/result authority")
     root = _repo_root()
+    verify_executed_production_authority(root)
     blob = _head_blob(root, CANONICAL_PARTIAL_PATH)
     if blob is None:
         _refuse("tracked recovery authority/partial artifact is absent")
@@ -995,42 +1214,148 @@ def recover_partial_from_tracked_authority(*args: Any, **kwargs: Any) -> dict[st
         raise SyntheticExecutionNotAuthorized(
             "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: malformed tracked partial artifact"
         ) from exc
+    if payload.get("canonical_path") != CANONICAL_PARTIAL_PATH:
+        _refuse("partial artifact path is not canonical")
+    exec_head = str(payload.get("execution_head") or "").strip().lower()
+    exec_tree = str(payload.get("execution_tree") or "").strip().lower()
+    if not exec_head or not exec_tree:
+        _refuse("partial artifact is missing execution commit/tree")
+    ancestor = subprocess.run(
+        ["git", "-C", str(root), "merge-base", "--is-ancestor", exec_head, "HEAD"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if ancestor.returncode != 0:
+        _refuse("partial artifact execution commit is not an ancestor of HEAD")
+    try:
+        expected_tree = _commit_tree_sha(root, exec_head)
+        expected_identity = _run_identity_from_bound(_bound_from_commit_blobs(root, exec_head))
+    except SyntheticExecutionNotAuthorized as exc:
+        raise SyntheticExecutionNotAuthorized(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: partial artifact execution identity is not tracked authority"
+        ) from exc
+    if exec_tree != expected_tree:
+        _refuse("partial artifact execution tree does not match the named execution commit")
+    if payload.get("run_identity") != expected_identity:
+        _refuse("partial artifact run_identity does not match the named execution identity")
+    if payload.get("grid") != frozen_production_grid():
+        _refuse("partial artifact grid identity is not frozen authority")
+    records = payload.get("records")
+    if not isinstance(records, list):
+        _refuse("partial artifact world-set identity is missing")
+    expected_world_set = _sha256_bytes(
+        canonical_json_bytes({"worlds": [_jsonable(dict(rec)) for rec in records]})
+    )
+    if payload.get("world_set_sha256") != expected_world_set:
+        _refuse("partial artifact world-set identity mismatch")
+    body = {key: value for key, value in payload.items() if key not in {"partial_sha256", "partial_size"}}
+    raw = canonical_json_bytes(body)
+    if payload.get("partial_sha256") != _sha256_bytes(raw):
+        _refuse("partial artifact digest mismatch")
+    if payload.get("partial_size") != len(raw):
+        _refuse("partial artifact size mismatch")
     if payload.get("final_result_minted") is True:
         _refuse("partial artifact must not claim a final RESULT")
     return payload
 
 
-def spawn_canonical_production_process(*args: Any, **kwargs: Any) -> int:
-    """Canonical production path: a fresh interpreter, then re-verify, then refuse if unarmed.
-
-    The child executes this checkout's tracked production module by absolute
-    path. Inherited PYTHONPATH cannot substitute another tree. Bytecode is not
-    written into the worktree.
-    """
-    if args or kwargs:
-        _refuse("caller arguments cannot authorize production execution")
-    root = _repo_root()
+def _isolated_child_env():
     env = {
         key: value
         for key, value in os.environ.items()
-        if "AUTHORIZ" not in key.upper() and key != "PYTHONPATH"
+        if "AUTHORIZ" not in key.upper()
+        and key
+        not in {
+            "PYTHONPATH",
+            "PYTHONHOME",
+            "PYTHONUSERBASE",
+            "PYTHONSAFEPATH",
+            "PYTHONSTARTUP",
+        }
     }
-    env["PYTHONPATH"] = str(root)
     env["PYTHONDONTWRITEBYTECODE"] = "1"
-    worker = root / PRODUCTION_REL
-    if worker.is_symlink() or not worker.is_file():
-        _refuse("canonical production worker is not a regular file")
-    proc = subprocess.run(
-        [sys.executable, "-B", str(worker), WORKER_FLAG],
+    return env
+
+
+def _spawn_isolated_child(mode, repo_root=None):
+    root = (repo_root or _repo_root()).resolve()
+    return subprocess.run(
+        [
+            sys.executable,
+            "-I",
+            "-B",
+            "-P",
+            "-c",
+            ISOLATED_CHILD_BOOTSTRAP,
+            str(root),
+            mode,
+        ],
         cwd=str(root),
-        env=env,
+        env=_isolated_child_env(),
         check=False,
+        capture_output=True,
+        text=True,
     )
+
+
+def spawn_canonical_production_process(*args, **kwargs):
+    """Canonical production path: isolated interpreter, then re-verify, then refuse if unarmed."""
+    if args or kwargs:
+        _refuse("caller arguments cannot authorize production execution")
+    proc = _spawn_isolated_child(WORKER_MODE)
+    if proc.stderr:
+        sys.stderr.write(proc.stderr)
+    if proc.stdout:
+        sys.stdout.write(proc.stdout)
     return int(proc.returncode)
 
 
-def fresh_process_worker_main() -> int:
-    """Runs only inside a fresh interpreter. Re-verifies then fail-closes while unarmed."""
+def spawn_isolated_r1_probe(*args, **kwargs):
+    """Test-only isolated probe. Cannot authorize or run production Monte Carlo."""
+    if args or kwargs:
+        _refuse("caller arguments cannot authorize the R1 probe")
+    return _spawn_isolated_child(R1_PROBE_MODE)
+
+
+def r1_probe_fingerprint():
+    if __name__ != "scripts.research.harness_synthetic_edge_calibration_v1_production":
+        _refuse("R1 probe must run as the canonical package module")
+    verify_executed_production_authority()
+    gates = compose_gates(**R1_PROBE_GATE_ARGS)
+    return {
+        "module": __name__,
+        "compose_gates": _jsonable(gates),
+        "wilson_0_400": _jsonable(wilson_interval(0, 400)),
+        "frozen_lib_sha256": FROZEN_REVIEWED_LIB_SHA256,
+        "production_monte_carlo_arm_authorized": False,
+        "production_calibration_executed": False,
+        "sys_path0": sys.path[0],
+    }
+
+
+def _isolated_child_main(mode):
+    try:
+        if __name__ != "scripts.research.harness_synthetic_edge_calibration_v1_production":
+            print(
+                "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: child module is not the canonical package",
+                file=sys.stderr,
+            )
+            return 2
+        if mode == R1_PROBE_MODE:
+            print(canonical_json_bytes(r1_probe_fingerprint()).decode("utf-8"), end="")
+            return 0
+        if mode == WORKER_MODE:
+            return fresh_process_worker_main()
+        print("SYNTHETIC_EXECUTION_NOT_AUTHORIZED: unknown isolated child mode", file=sys.stderr)
+        return 2
+    except SyntheticExecutionNotAuthorized as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+
+def fresh_process_worker_main():
+    """Runs only inside a fresh isolated interpreter. Re-verifies then fail-closes while unarmed."""
     root = _repo_root()
     verify_executed_production_authority(root)
     frozen_production_grid()
@@ -1045,7 +1370,7 @@ def fresh_process_worker_main() -> int:
     return 2
 
 
-def production_durability_identity() -> dict[str, Any]:
+def production_durability_identity():
     return {
         "stage": "production_durability_unarmed",
         "unit_id": UNIT_ID,
@@ -1075,14 +1400,8 @@ def production_durability_identity() -> dict[str, Any]:
     }
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv=None):
     args = list(sys.argv[1:] if argv is None else argv)
-    if args == [WORKER_FLAG]:
-        try:
-            return fresh_process_worker_main()
-        except SyntheticExecutionNotAuthorized as exc:
-            print(str(exc), file=sys.stderr)
-            return 2
     print("SYNTHETIC_EXECUTION_NOT_AUTHORIZED", file=sys.stderr)
     return 2
 
