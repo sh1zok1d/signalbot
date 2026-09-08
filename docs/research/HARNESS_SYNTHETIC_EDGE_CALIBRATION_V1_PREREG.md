@@ -1,49 +1,52 @@
-# HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — Frozen Design Preregistration
+# HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — Repaired Outcome-Blind Preregistration
 
-**Status:** `PREREG_CANDIDATE_OUTCOME_BLIND`  
+**Status:** `PREREG_CANDIDATE_OUTCOME_BLIND_REPAIRED_AFTER_REDTEAM`  
 **Unit ID:** `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1`  
 **Unit type:** methodology calibration, not a market hypothesis  
 **Base main at design start:** `79f68df395ecdda064386050d4d280cb994c4bbf`  
-**This document:** design-only. No synthetic execution, no real-market outcome access, no B2-06 evaluator, no 2025 validation, no 2026 OOS.
+**Execution status:** `synthetic_execution_authorized = false`
 
 Machine-readable twin: [`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.json`](HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.json).
 
 ---
 
-## 0. Purpose and authority
+## 0. Purpose
 
-Signalbot currently has strong defenses against false edge: outcome-blind preregistration, same-support comparison, causal availability rules, placebo controls, block bootstrap, stability gates, anti-rescue rules, exact Git/evidence authority, and untouched validation/OOS boundaries.
+This unit asks whether the current Signalbot-style research process can detect small, noisy, sparse, conditional predictive structure while continuing to reject false structure.
 
-The unresolved methodological question is different:
+It calibrates four different layers that must not be conflated:
 
-> Has the research process become so conservative that it is good at proving the absence of strong/simple edge but has low power for small, noisy, sparse, conditional edge?
+```text
+GROUND_TRUTH_VISIBLE
+        ↓
+MODEL_DETECTED
+        ↓
+STRICT_PASS_EX_MATERIALITY
+        ↓
+STRICT_PASS
+```
 
-This unit calibrates the measurement instrument itself before B2-06 scientific execution.
+The purpose is diagnostic. Synthetic data are never market evidence.
 
-It does **not** attempt to prove that any market edge exists. Synthetic data are not market evidence and may never be cited as market validation.
-
-The calibration becomes a mandatory methodology gate before the first B2-06 scientific outcome is opened.
-
-`B2-06_LEVERAGE_CROWDING` remains separately blocked by `FUNDING_PUBLICATION_LATENCY_UNPROVEN`. Passing this calibration does not authorize B2-06 data consumption or execution.
+The calibration remains a mandatory methodology gate before B2-06 scientific execution, but it cannot authorize B2-06. `B2-06_LEVERAGE_CROWDING` remains independently blocked by `FUNDING_PUBLICATION_LATENCY_UNPROVEN` and closed research/outcome/evaluator authorization.
 
 ---
 
-## 1. Explicit non-goals and hard boundaries
+## 1. Hard boundaries
 
-This design unit does not:
+This preregistration does not authorize or perform:
 
-- read CORE, OI, funding, market parquet, exchange APIs, or any real market dataset;
-- inspect or derive B2-06 predictive outcomes;
-- open 2025 validation or 2026 OOS;
-- modify `docs/research/V2_FORMULATION_INVENTORY.md`;
-- rerun B2-01 through B2-05;
-- reopen B2-05 recovery;
-- create a B2-07 hypothesis;
-- promote any market candidate;
-- claim that a synthetic pass implies tradeability, PnL, or economic alpha;
-- weaken provenance/no-lookahead/evidence-retention guarantees.
+- synthetic production execution;
+- implementation of the production calibration runner;
+- access to CORE, OI, funding, exchange APIs, or any real market data;
+- B2-06 predictive outcome access;
+- 2025 validation or 2026 OOS access;
+- any modification to `V2_FORMULATION_INVENTORY.md`;
+- any rerun of B2-01 through B2-05;
+- any B2-05 recovery change;
+- any market promotion.
 
-Frozen flags for this unit:
+Frozen flags:
 
 ```text
 synthetic_execution_authorized = false
@@ -51,636 +54,575 @@ real_market_data_access_authorized = false
 b2_06_scientific_execution_authorized = false
 validation_2025_authorized = false
 oos_2026_authorized = false
+market_promotion_possible = false
 ```
-
-No implementation runner may be added in the design-only PR. The implementation/execution PR is a later unit after independent red-team acceptance of this preregistration.
 
 ---
 
-## 2. What V1 is and is not calibrating
+## 2. Two calibration modes
 
-V1 separates two questions that must not be conflated.
+### 2.1 `ORACLE_CONFIRMATORY`
 
-### 2.1 ORACLE_CONFIRMATORY mode
-
-The evaluator is explicitly given the correct candidate feature representing the injected mechanism.
+The evaluator receives the correct candidate feature `F03`, but receives no truth metadata, no privileged support labels and no generator internals.
 
 Question:
 
-> If the formulation is already correct, can a Signalbot-style strict confirmatory gate detect a small noisy conditional increment over a baseline?
+> Once the correct candidate formulation is already specified, at which stage does the process lose power?
 
-This diagnoses **confirmatory power**. Failure here means the harness can miss a real edge even after the correct mechanism has already been specified.
+### 2.2 `BLIND_LIBRARY_DISCOVERY`
 
-### 2.2 BLIND_LIBRARY_DISCOVERY mode
-
-The evaluator receives a fixed, preregistered library of candidate features under generic feature identities. Exactly one library member is the true injected mechanism in positive worlds; none is true in null worlds.
+The evaluator receives a fixed library of ten opaque candidate IDs and applies the complete frozen search → select → evaluate procedure.
 
 Question:
 
-> Given a bounded preregistered search surface, can the process identify a sparse conditional mechanism without selecting placebo structure?
+> Within a bounded preregistered search surface, can the process find true or legitimate proxy structure without selecting pure placebo structure?
 
-This diagnoses **bounded discovery sensitivity**.
-
-V1 does **not** claim to calibrate unrestricted ML discovery, arbitrary feature engineering, threshold mining, or open-ended human hypothesis generation. If BLIND_LIBRARY_DISCOVERY performs poorly while ORACLE_CONFIRMATORY performs well, the conclusion is specifically that the bottleneck is discovery/search rather than strict confirmation.
+This is a bounded discovery calibration. It is not unrestricted ML discovery, human feature engineering or independent confirmation after search.
 
 ---
 
-## 3. Primary estimand
+## 3. Four-stage diagnostic contract
 
-The primary output is a detection surface, not a single PASS/FAIL world:
+### `GROUND_TRUTH_VISIBLE`
+
+Ground-truth-aware artifact diagnostic only. The true trigger may be used here after a world has been generated, but it is forbidden from candidate fitting, candidate selection, placebo generation and tie-breaking.
+
+### `MODEL_DETECTED`
+
+Literal conjunction:
 
 ```text
-P(DETECT | scenario, support, injected_effect, sample_size, noise_profile)
+primary_positive
+AND bootstrap_positive
+AND placebo_separation
 ```
 
-with a paired false-positive surface under null/placebo worlds.
+This asks whether the model/evaluation machinery sees incremental predictive structure before materiality and long-horizon stability requirements are applied.
 
-Primary methodology outputs:
+### `STRICT_PASS_EX_MATERIALITY`
 
-1. `ORACLE_DETECTION_RATE` for each positive scenario;
-2. `BLIND_DISCOVERY_RATE` for each positive scenario;
-3. `NULL_FALSE_POSITIVE_RATE` for confirmatory and discovery modes;
-4. gate-level attrition rates showing which required gate rejected the true mechanism;
-5. a declared `DETECTION_FLOOR` region where the process has insufficient power to interpret `NO_PROMOTION` as strong evidence of no edge.
+Literal conjunction:
 
-The calibration is diagnostic. It is forbidden to redefine success criteria after seeing the Monte Carlo results.
+```text
+primary_positive
+AND bootstrap_positive
+AND placebo_separation
+AND era_stability
+AND support_sanity
+```
+
+### `STRICT_PASS`
+
+```text
+STRICT_PASS_EX_MATERIALITY
+AND RELATIVE_MAE_IMPROVEMENT >= 0.02
+```
+
+The 2% pooled relative-MAE threshold is intentionally unchanged. It is an object of calibration, not a target to tune against synthetic outcomes.
 
 ---
 
-## 4. Synthetic timeline and unit of observation
+## 4. Synthetic chronology
 
-Each synthetic world contains an ordered sequence of decision-time observations indexed by integer `t = 0..N-1`.
+Each world has ordered rows `t = 0..N-1` and five equal contiguous eras `E1..E5`.
 
-There are no timestamps corresponding to real dates. Synthetic chronology exists only to test causal training, serial dependence, chronological stability, and block resampling.
-
-Each row contains only synthetic fields generated at or before synthetic decision time `t` plus target `Y_t` for evaluation. No field may depend on future synthetic rows except the target-generating innovation for that row.
-
-Primary sample size:
+Primary size:
 
 ```text
-N = 5000 rows per world
+N = 5000
 ```
 
-Sample-size sensitivity for the SMALL scenario only:
+SMALL sample-size sensitivity:
 
 ```text
 N ∈ {2500, 10000}
 ```
 
-The primary chronological partitions are five equal contiguous eras `E1..E5`, each containing exactly `N/5` rows for N divisible by 5.
+`E1` is training only. Scored eras are `E2..E5` using expanding chronology:
+
+- fit E1 → score E2;
+- fit E1+E2 → score E3;
+- fit E1+E2+E3 → score E4;
+- fit E1+E2+E3+E4 → score E5.
+
+Random split and future information are forbidden.
 
 ---
 
-## 5. Frozen base data-generating process
+## 5. Frozen DGP
 
-All continuous synthetic quantities use IEEE-754 float64 and NumPy `Generator(PCG64)` semantics in the future implementation. No global `numpy.random` state is permitted.
+All continuous quantities are float64. RNG is NumPy `Generator(PCG64)`.
 
-For each world, generate two causal baseline states:
+Baseline states:
 
 ```text
-X1_t = 0.70 * X1_(t-1) + sqrt(1-0.70^2) * U1_t
-X2_t = 0.40 * X2_(t-1) + sqrt(1-0.40^2) * U2_t
-U1_t, U2_t ~ iid Normal(0,1)
+X1_t = 0.70*X1_(t-1) + sqrt(1-0.70^2)*U1_t
+X2_t = 0.40*X2_(t-1) + sqrt(1-0.40^2)*U2_t
+U1_t, U2_t ~ N(0,1)
 X1_0 = X2_0 = 0
-```
-
-Generate two binary mechanism components independently of the baseline states:
-
-```text
-A_t ~ Bernoulli(q)
-B_t ~ Bernoulli(q)
-TRUE_TRIGGER_t = A_t * B_t
-q = sqrt(target_support)
-```
-
-Thus expected trigger prevalence is `target_support`; realized support is reported and never forced by outcome-aware resampling.
-
-The true mechanism is an **interaction**. Neither A nor B alone carries injected alpha.
-
-Baseline conditional mean:
-
-```text
 MU_BASE_t = 0.20*X1_t - 0.15*X2_t
 ```
 
-Primary heavy-tail/heteroskedastic/serial noise:
+The baseline is deliberately correctly specified. V1 therefore does **not** calibrate a candidate absorbing baseline-model misspecification.
+
+### 5.1 Persistent sparse support
+
+The original iid trigger is replaced pre-outcome by a persistent two-state Markov trigger `S_t`.
+
+For each scenario with target stationary support `p`:
+
+```text
+rho = 0.90
+P(S_t=1 | S_(t-1)=1) = rho
+P(S_t=1 | S_(t-1)=0) = p01
+p01 = p*(1-rho)/(1-p)
+S_0 ~ Bernoulli(p)
+TRUE_TRIGGER_t = S_t
+```
+
+Thus support is sparse **and clustered**. This stresses effective support rather than pretending positive rows are iid.
+
+Mechanism-transition uniforms, `U1`, `U2` and noise innovations are mutually independent.
+
+### 5.2 Noise
 
 ```text
 RAW_t ~ StudentT(df=5) / sqrt(5/3)
 ETA_t = 0.25*ETA_(t-1) + sqrt(1-0.25^2)*RAW_t
-SIGMA_t = 1.0 + 0.30*abs(X1_t)
-NOISE_t = SIGMA_t * ETA_t
 ETA_0 = 0
+SIGMA_t = 1.0 + 0.30*abs(X1_t)
+NOISE_t = SIGMA_t*ETA_t
 ```
 
-The Student-t scale factor normalizes the independent innovation to unit variance before serial/heteroskedastic transformation.
-
-Synthetic outcome:
+Outcome:
 
 ```text
-Y_t = MU_BASE_t + beta * TRUE_TRIGGER_t + NOISE_t
+Y_t = MU_BASE_t + beta_t*TRUE_TRIGGER_t + NOISE_t
 ```
-
-All positive primary scenarios use `beta > 0`. Post-result sign reversal is forbidden.
-
-This is intentionally not a market simulator. The goal is to reproduce methodological difficulties: small support, baseline structure, heavy tails, heteroskedasticity, serial dependence, chronological evaluation, and incremental rather than unconditional signal.
 
 ---
 
-## 6. Frozen primary scenario ladder
+## 6. Frozen scenario ladder and pre-outcome scale audit
 
-Exactly these primary scenarios are preregistered:
+The red-team arithmetic showed that the original 2% pooled-MAE gate is above the best attainable pooled-MAE gain for every positive stationary rung. We freeze that fact **before execution** rather than hide it or increase beta until the test passes.
 
-| Scenario | Expected support | beta | Purpose |
-|---|---:|---:|---|
-| `NULL` | 0% effective injected edge | 0.00 | false-positive control |
-| `EASY` | 20% | 0.40 | sanity check; should be visible |
-| `MODERATE` | 10% | 0.25 | ordinary conditional edge |
-| `SMALL` | 5% | 0.18 | primary concern: small sparse edge |
-| `TINY_NOISY` | 2.5% | 0.12 | stress/detection-floor case |
-| `NONSTATIONARY_TRAP` | 10% | +0.30 in E1-E2; 0 in E3; -0.30 in E4-E5 | stability negative control |
+Approximate analytic references:
 
-For `NULL`, A/B/trigger features are still generated with q corresponding to 10% expected trigger support, but beta is zero. This prevents the null case from being trivially identifiable because the candidate feature is absent.
+| scenario | support | beta | beta / residual SD | expected trigger rows at N=5000 | asymptotic max pooled relative-MAE improvement |
+|---|---:|---:|---:|---:|---:|
+| `NULL` | 10% generated support | 0.00 | 0.000 | 500 | 0.000% |
+| `EASY` | 20% | 0.40 | 0.319 | 1000 | 1.07% |
+| `MODERATE` | 10% | 0.25 | 0.200 | 500 | 0.24% |
+| `SMALL` | 5% | 0.18 | 0.144 | 250 | 0.064% |
+| `TINY_NOISY` | 2.5% | 0.12 | 0.096 | 125 | 0.014% |
 
-For `NONSTATIONARY_TRAP`, the average injected effect is intentionally not a stable positive edge. A correct strict methodology should **not** treat it as a robust detection even if pooled statistics look attractive in some Monte Carlo worlds.
+Reference residual SD ≈ `1.253`; mean absolute noise ≈ `0.919`. These are pre-outcome analytic references, not calibration results.
 
-Primary Monte Carlo worlds:
+The stationary scenarios are exactly:
+
+- `NULL`: beta = 0;
+- `EASY`: support 0.20, beta 0.40;
+- `MODERATE`: support 0.10, beta 0.25;
+- `SMALL`: support 0.05, beta 0.18;
+- `TINY_NOISY`: support 0.025, beta 0.12.
+
+Negative control:
 
 ```text
-200 independent worlds per primary scenario
+NONSTATIONARY_TRAP support = 0.10
+beta(E1)=0.30
+beta(E2)=0.30
+beta(E3)=0.30
+beta(E4)=0.00
+beta(E5)=0.00
 ```
 
-Additional sample-size sensitivity:
+This tests a mechanism that appears stable early and then vanishes, rather than a trivial sign reversal.
+
+A scale-matched diagnostic is mandatory:
 
 ```text
-SMALL at N=2500: 200 worlds
-SMALL at N=10000: 200 worlds
+MATERIALITY_FRACTION_OF_ATTAINABLE
+  = observed_RELATIVE_MAE_IMPROVEMENT
+    / asymptotic_max_relative_mae_improvement_approx
 ```
 
-Total planned primary/sensitivity worlds = `6*200 + 2*200 = 1600`.
-
-No new scenario may be added after any calibration outcome is observed. A future V2 requires a new preregistration.
+Unavailable when the denominator is non-positive.
 
 ---
 
-## 7. Frozen RNG authority
+## 7. RNG authority
 
-Root seed literal:
+Root seed:
 
 ```text
 20260908
 ```
 
-Each world seed is derived from the UTF-8 bytes of:
+World identity:
 
 ```text
 HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1|scenario|N|world_index
 ```
 
-where `world_index` is zero-based integer `0..199`.
+`world_index` is zero-based.
 
-Derivation primitive:
+Seed derivation:
 
 ```text
-digest = SHA256(root_seed_decimal + "|" + identity_string)
-seed_int = int.from_bytes(digest[0:8], byteorder="big", signed=False)
+raw = utf8(root_seed_decimal + "|" + identity_string)
+digest = SHA256(raw)
+seed_int = int.from_bytes(digest[:8], "big", signed=False)
 rng = numpy.random.Generator(numpy.random.PCG64(seed_int))
 ```
 
-Exact serialization, SHA-256 primitive, first-eight-byte slice, big-endian interpretation, and zero-based world index are frozen. Python `hash()` is forbidden.
-
-Bootstrap/permutation RNG must use separately namespaced seed identities and must never consume the generator stream used for the DGP.
+Python `hash()` is forbidden. DGP, bootstrap, placebo and visibility use separate namespaces. Rerolling is forbidden.
 
 ---
 
-## 8. Candidate library for bounded discovery
+## 8. Ten distinct discovery candidates
 
-The discovery search surface is fixed before outcomes.
-
-The future implementation must expose generic names `F01..F12` to the discovery evaluator. The mapping to semantic feature definitions is frozen in code/spec before execution and must not be changed between worlds.
-
-Candidate library:
+The following mapping is the **only authoritative mapping**:
 
 ```text
-F01 = A
-F02 = B
-F03 = A*B                         # true interaction in positive worlds
-F04 = 1-A
-F05 = 1-B
-F06 = XOR(A,B)
-F07 = I(X1 > 0)
-F08 = I(X2 > 0)
-F09 = I(X1 > 1)
-F10 = I(X2 < -1)
-F11 = A * I(X1 > 0)
-F12 = B * I(X2 < 0)
+F01 = S_(t-1), with F01_0 = 0
+F02 = S_t * I(X1_t > 0)
+F03 = S_t                         # exact true feature
+F04 = I(X1_t > 0)
+F05 = I(X2_t > 0)
+F06 = I(X1_t > 1)
+F07 = I(X2_t < -1)
+F08 = S_t * I(X2_t > 0)
+F09 = I(X1_t + X2_t > 0)
+F10 = I(X1_t - X2_t > 0)
 ```
 
-No thresholds other than the literals above may be searched. No polynomial, tree, neural net, spline, alternate interaction, regime split, continuous transform, or candidate invented after results.
+Frozen classes:
 
-The true feature is F03 by construction, but the discovery evaluator may not receive a privileged `TRUE_TRIGGER` flag or truth metadata.
+```text
+TRUE   = {F03}
+PROXY  = {F01, F02, F08}
+FALSE  = {F04, F05, F06, F07, F09, F10}
+```
 
-Discovery may evaluate all 12 candidates using the same frozen procedure. Candidate selection uses the preregistered deterministic rule in Section 13.
+The discovery selector receives opaque IDs, not semantic class labels. No feature may be added or reclassified after outcomes.
 
 ---
 
-## 9. Baseline and candidate forecast families
+## 9. Forecast family
 
-The synthetic comparison intentionally follows the common Signalbot incremental-information pattern rather than copying one market hypothesis verbatim.
-
-Baseline model:
+Baseline:
 
 ```text
 Y ~ intercept + X1 + X2
 ```
 
-Candidate model for feature `Fj`:
+Candidate `Fj`:
 
 ```text
 Y ~ intercept + X1 + X2 + Fj
 ```
 
-Estimator: unweighted ordinary least squares.
-
-Frozen solver contract:
-
-- float64;
-- `numpy.linalg.lstsq(X, y, rcond=None)`;
-- intercept included;
-- no regularization;
-- no feature standardization required because X1/X2 are already controlled synthetic states and Fj is binary;
-- full returned rank required;
-- finite coefficients required;
-- no pseudoinverse fallback;
-- no column dropping;
-- no ridge/lasso rescue;
-- candidate and baseline scored on exact same evaluation rows.
-
-The only allowed information increment is one frozen candidate feature.
-
----
-
-## 10. Chronological fitting and evaluation
-
-Use expanding chronological prediction with five eras.
-
-- `E1` is warm-up/training only and never scored.
-- Fit on all rows strictly earlier than the scored era.
-- Score `E2`, then refit using `E1+E2` and score `E3`, continuing through `E5`.
-- A row's target may enter training only after that row is chronologically before the scored era.
-- No random train/test split.
-- No future-era information in transforms, thresholds, feature choice, or fit.
-
-The primary evaluation support is the pooled score rows from `E2..E5`, with era identity retained for stability gates.
-
-Both baseline and candidate must be available on the exact same rows. A candidate-specific support filter is forbidden.
-
----
-
-## 11. Primary incremental metric
-
-For each scored row:
+Frozen estimator:
 
 ```text
-BASE_AE_t = abs(Y_t - BASE_PRED_t)
-CAND_AE_t = abs(Y_t - CAND_PRED_t)
-AE_IMPROVEMENT_t = BASE_AE_t - CAND_AE_t
+numpy.linalg.lstsq(X, y, rcond=None)
 ```
 
-Pooled metrics:
+Unweighted OLS, no regularization, full rank required, finite coefficients required, no pseudoinverse fallback, no column dropping. Baseline and candidate share exact scoring rows.
+
+---
+
+## 10. Prediction metrics
+
+For every scored row:
+
+```text
+BASE_AE = abs(Y - BASE_PRED)
+CAND_AE = abs(Y - CAND_PRED)
+AE_IMPROVEMENT = BASE_AE - CAND_AE
+```
+
+Pooled:
 
 ```text
 MEAN_AE_IMPROVEMENT = mean(AE_IMPROVEMENT)
 RELATIVE_MAE_IMPROVEMENT = 1 - mean(CAND_AE)/mean(BASE_AE)
 ```
 
-Positive values favor the candidate.
+Truth-aware diagnostics, never usable for candidate selection:
 
-No PnL, Sharpe, hit-rate, directional trade simulation, transaction cost, or market interpretation is permitted in V1.
+- realized `SUPPORT_COVERAGE`;
+- `SUPPORT_CONDITIONAL_MEAN_AE_IMPROVEMENT`;
+- `OFF_SUPPORT_MEAN_AE_IMPROVEMENT`;
+- support run-length distribution;
+- support cluster count;
+- raw positive-support count;
+- effective-support-N design-effect diagnostic based on trigger autocorrelation.
+
+This explicitly separates conditional utility/coverage from whole-population MAE dilution.
 
 ---
 
-## 12. Strict reference gate
+## 11. Ground-truth visibility
 
-The strict reference gate is designed to expose where a Signalbot-style confirmatory process loses power. It is not retroactively claimed to be identical to every Batch02 hypothesis.
+Using the same chronological baseline predictions:
 
-A candidate `STRICT_PASS = true` only if all of the following are literal true:
+```text
+BASE_RESIDUAL = Y - BASE_PRED
+VISIBILITY_STAT = mean(BASE_RESIDUAL | TRUE_TRIGGER=1)
+                - mean(BASE_RESIDUAL | TRUE_TRIGGER=0)
+```
+
+Use 500 contiguous-50-row block-bootstrap replicates, never crossing era boundaries.
+
+```text
+GROUND_TRUTH_VISIBLE = visibility_bootstrap_q025 > 0
+```
+
+This truth-aware statistic is for attribution only. It is forbidden from model fitting, discovery, selection, placebo generation and tie-breaking.
+
+---
+
+## 12. Strict reference gates
+
+Frozen gate order:
 
 1. `primary_positive`: pooled `MEAN_AE_IMPROVEMENT > 0`;
 2. `material_relative_mae`: `RELATIVE_MAE_IMPROVEMENT >= 0.02`;
-3. `bootstrap_positive`: lower 2.5% bound of the frozen block-bootstrap distribution of pooled mean AE improvement is `> 0`;
-4. `placebo_separation`: real pooled mean AE improvement is strictly greater than the 95th percentile of the frozen within-era candidate-label permutation distribution;
-5. `era_stability`: pooled mean AE improvement is `> 0` in at least 3 of 4 scored eras (`E2..E5`);
-6. `support_sanity`: realized candidate-positive support among scored rows is finite, nonzero, and at least 50 rows.
+3. `bootstrap_positive`: frozen bootstrap q025 of pooled mean AE improvement `> 0`;
+4. `placebo_separation`: real pooled mean AE improvement `> placebo_q95`;
+5. `era_stability`: mean AE improvement `> 0` in at least 3 of E2..E5;
+6. `support_sanity`: evaluated candidate feature has at least 50 positive scored rows and finite/nonzero support.
 
-The 2% relative-MAE threshold is intentionally retained as a strict reference because this type of materiality floor already exists in Batch02 methodology. The calibration is allowed to reveal that this gate is too insensitive; it may not lower the threshold after seeing results.
+For ORACLE `F03`, candidate-positive support equals the true trigger support. In BLIND mode, `support_sanity` is candidate-specific and does not expose true-support labels.
 
-Gate-level booleans and raw statistics must be reported for every world so power loss can be attributed to a specific criterion rather than hidden behind the conjunction.
-
----
-
-## 13. Block bootstrap and placebo contract
-
-### 13.1 Bootstrap
-
-Synthetic rows are partitioned into contiguous non-overlapping blocks of 50 scored rows within each era. No block crosses an era boundary.
-
-Use 500 bootstrap replicates per evaluated candidate/world.
-
-For each replicate, sample the same number of blocks with replacement from the pooled ordered block list and compute pooled mean `AE_IMPROVEMENT` over concatenated whole blocks.
-
-Bootstrap seed identity:
-
-```text
-HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1|BOOTSTRAP|scenario|N|world_index|feature_id
-```
-
-Seed derivation uses the same SHA-256/first-8-big-endian primitive, but a distinct namespace from DGP generation.
-
-No reroll of failed replicates. Any nonfinite replicate invalidates `bootstrap_positive` for that candidate/world.
-
-### 13.2 Placebo permutation
-
-Use 100 permutation replicates per candidate/world.
-
-Permutation is performed **within each scored era separately** on the candidate feature labels, leaving `Y`, X1, X2, row order, and baseline predictions fixed. The candidate model is refit under the same expanding-era rules for each placebo replicate.
-
-Placebo seed identity:
-
-```text
-HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1|PLACEBO|scenario|N|world_index|feature_id|replicate_index
-```
-
-Replicate index is zero-based.
-
-The placebo statistic is pooled mean `AE_IMPROVEMENT`.
-
-`placebo_q95` is valid only if all 100 placebo statistics are finite. Quantile method = NumPy `linear`.
+No hidden gate is allowed.
 
 ---
 
-## 14. ORACLE_CONFIRMATORY decision
+## 13. Bootstrap and placebo
 
-In ORACLE mode only F03 is evaluated.
+### Bootstrap
 
-For each world:
+- block size: 50 contiguous scored rows;
+- no block crosses an era;
+- 500 replicates;
+- statistic: pooled mean `AE_IMPROVEMENT`;
+- q025 uses linear quantile interpolation;
+- no reroll.
 
-```text
-ORACLE_DETECTED = STRICT_PASS(F03)
-```
+### Placebo
 
-The evaluator may know that F03 is the candidate being tested, but may not inspect scenario truth, beta, or realized injected outcome contribution while computing the gate.
-
-Primary ORACLE outputs are detection rates across the 200 worlds per scenario and exact binomial Wilson 95% confidence intervals.
-
----
-
-## 15. BLIND_LIBRARY_DISCOVERY decision
-
-All 12 candidates are evaluated with the same strict reference gate.
-
-Selection rule:
-
-1. retain candidates with `STRICT_PASS = true`;
-2. among retained candidates, choose the largest `MEAN_AE_IMPROVEMENT`;
-3. ties at exact float equality resolve by ascending generic feature ID (`F01` before `F02`, etc.);
-4. if none pass, discovery returns `NO_CANDIDATE`.
-
-World-level discovery outcomes:
-
-```text
-TRUE_DISCOVERY      = selected_feature == F03
-FALSE_DISCOVERY     = selected_feature not in {F03, NO_CANDIDATE}
-NO_DISCOVERY        = selected_feature == NO_CANDIDATE
-```
-
-For `NULL`, there is no true candidate. Any selected feature is a false positive.
-
-For `NONSTATIONARY_TRAP`, selecting F03 still does not count as successful robust detection if F03 fails the strict gate. The expected scientific behavior is usually `NO_CANDIDATE`; the realized rate is measured, not assumed.
-
-No top-k rescue, manual inspection rescue, sign reversal, threshold rescue, or second selection rule is allowed.
+- 999 replicates per evaluated candidate/world;
+- candidate labels permuted separately within each scored era;
+- Y, X1, X2 and row order stay fixed;
+- same expanding-era model procedure is refit;
+- statistic: pooled mean AE improvement;
+- `placebo_q95` uses linear interpolation;
+- all nominal replicates must be finite or placebo separation is false.
 
 ---
 
-## 16. Calibration acceptance and interpretation rules
+## 14. Monte Carlo size and interval policy
 
-The project needs both specificity and sensitivity. Therefore the calibration produces separate conclusions rather than one opaque global verdict.
-
-### 16.1 Specificity criterion
-
-For the 200 primary `NULL` worlds:
+Primary scenarios:
 
 ```text
-ORACLE_NULL_FPR <= 0.05
-BLIND_LIBRARY_NULL_FPR <= 0.10
+400 worlds × 6 scenarios = 2400 worlds
 ```
 
-The discovery FPR allowance is wider because it tests 12 preregistered candidates, but a 10% false-discovery frequency remains the maximum acceptable calibration target.
-
-`NONSTATIONARY_TRAP` robust-detection rate must be `<= 0.20` in ORACLE mode. Higher values indicate that the stability contract is too permissive.
-
-### 16.2 Sanity-power criterion
+SMALL sample-size sensitivity:
 
 ```text
-ORACLE EASY detection rate >= 0.90
-ORACLE MODERATE detection rate >= 0.70
+N=2500: 400 worlds
+N=10000: 400 worlds
 ```
 
-Failure means the strict reference process is too insensitive even to effects that this calibration considers non-marginal.
-
-### 16.3 SMALL-edge sensitivity classification
-
-`SMALL` is deliberately not assigned an arbitrary must-pass threshold before calibration. Instead classify observed ORACLE power using frozen bands:
+Total planned worlds:
 
 ```text
->= 0.80  => HIGH_SENSITIVITY
-0.50-0.799999... => MODERATE_SENSITIVITY
-0.20-0.499999... => LOW_SENSITIVITY
-< 0.20  => VERY_LOW_SENSITIVITY
+3200
 ```
 
-This is the central diagnostic result.
+Every reported Monte Carlo rate receives a Wilson score 95% interval.
 
-If `SMALL` ORACLE sensitivity is below 0.50, future `NO_PROMOTION` outcomes for hypotheses believed to live in a comparable sparse/noisy regime must not be described as strong evidence of absence without a power caveat.
+Frozen decision policy:
 
-### 16.4 Detection floor
+- specificity passes only when the **Wilson upper bound** is at or below the maximum;
+- power passes only when the **Wilson lower bound** is at or above the minimum;
+- power fails only when the **Wilson upper bound** is below the minimum;
+- if the interval straddles a threshold, result = `INDETERMINATE`.
 
-A scenario is inside the declared `DETECTION_FLOOR` if ORACLE detection rate is `< 0.50`.
+Point estimates alone may not trigger a methodology consequence.
 
-The detection-floor label is a statement about harness sensitivity under the synthetic DGP, not a statement about market truth.
-
-### 16.5 Discovery bottleneck diagnosis
-
-For each positive scenario compute:
-
-```text
-DISCOVERY_GAP = ORACLE_DETECTION_RATE - BLIND_DISCOVERY_RATE
-```
-
-Interpretation:
-
-- small gap + low oracle power => confirmatory strictness/statistical power bottleneck;
-- large gap + adequate oracle power => bounded discovery/search bottleneck;
-- both adequate => no synthetic evidence in V1 that either layer is grossly underpowered for that scenario.
-
-No business/product claim follows from these labels.
+Failed worlds stay in the denominator and make the aggregate `INCOMPLETE_EXECUTION` unless the exact frozen execution is reproduced before outcomes are opened.
 
 ---
 
-## 17. Gate attrition diagnosis
+## 15. BLIND discovery taxonomy
 
-For F03 in every positive world, record the first failed gate in this frozen order:
+Evaluate all ten candidates using the same frozen procedure.
+
+Primary ex-materiality selector:
+
+1. retain candidates with `STRICT_PASS_EX_MATERIALITY=true`;
+2. choose maximum `MEAN_AE_IMPROVEMENT`;
+3. exact tie → ascending `feature_id`;
+4. none → `NO_CANDIDATE`.
+
+Also report the analogous selection using full `STRICT_PASS`.
+
+Every world receives exactly one ex-materiality discovery class:
 
 ```text
-primary_positive
-material_relative_mae
-bootstrap_positive
-placebo_separation
-era_stability
-support_sanity
-PASS
+TRUE_DISCOVERY   = selected F03
+PROXY_DISCOVERY  = selected F01/F02/F08
+FALSE_DISCOVERY  = selected F04/F05/F06/F07/F09/F10
+NO_DISCOVERY     = no selected candidate
+ANY_EDGE_DECLARED = not NO_DISCOVERY
 ```
 
-Also retain all gate booleans independently; the first-failure view is only a diagnostic summary.
+`BLIND_LIBRARY_NULL_FPR` is `ANY_EDGE_DECLARED` under NULL **after the complete search-select-evaluate procedure**, not a per-feature FPR.
 
-This matters because a low detection rate caused primarily by the 2% materiality floor requires a different methodology discussion from low detection caused by bootstrap uncertainty or chronological instability.
-
-Changing/removing a gate after observing attrition is forbidden inside V1. Any repair becomes `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2` or a separately preregistered methodology revision.
+No claim of independent confirmation is made from the same world used for search and selection.
 
 ---
 
-## 18. Required output artifact
+## 16. Frozen acceptance/interpretation rules
 
-The future execution must produce one immutable machine-readable result with at least:
+### Specificity
 
-- exact code Git commit/tree;
+Using Wilson **upper bounds**:
+
+```text
+ORACLE NULL MODEL_DETECTED FPR <= 0.05
+BLIND full-pipeline NULL ANY_EDGE_DECLARED FPR <= 0.10
+NONSTATIONARY_TRAP STRICT_PASS_EX_MATERIALITY detection <= 0.20
+```
+
+### Sanity power
+
+Using Wilson **lower bounds**:
+
+```text
+EASY ORACLE MODEL_DETECTION >= 0.90
+MODERATE ORACLE MODEL_DETECTION >= 0.70
+```
+
+### SMALL sensitivity bands
+
+Bands use `MODEL_DETECTION_RATE`:
+
+```text
+HIGH       >= 0.80
+MODERATE   >= 0.50 and < 0.80
+LOW        >= 0.20 and < 0.50
+VERY_LOW   < 0.20
+```
+
+A band label is allowed only if the **entire Wilson interval** lies inside one band; otherwise `INDETERMINATE`.
+
+### Detection-floor attribution
+
+For each difficulty region:
+
+```text
+if GROUND_TRUTH_VISIBLE Wilson upper < 0.50:
+    VISIBILITY_FLOOR
+elif MODEL_DETECTION Wilson upper < 0.50:
+    MODEL_FLOOR
+else:
+    ABOVE_MEASURED_FLOOR
+```
+
+Materiality is reported separately by comparing `STRICT_PASS_EX_MATERIALITY` with `STRICT_PASS` and by `MATERIALITY_FRACTION_OF_ATTAINABLE`.
+
+Thus a sparse edge can be classified as:
+
+- statistically not visible at this effective support;
+- visible but not captured by the model/evaluation procedure;
+- captured and confirmatory-stable but rejected by the 2% pooled materiality floor;
+- fully strict-pass.
+
+---
+
+## 17. Required result artifact
+
+A future authorized production run must retain at least:
+
+- exact implementation commit/tree;
 - exact prereg MD/JSON blob identities;
-- schema/version;
-- root seed and seed-derivation contract;
-- scenario definitions;
-- world count expected/completed/failed;
-- per-world realized support;
-- per-world raw pooled metrics;
-- per-world six gate booleans;
-- per-world first failed gate;
-- ORACLE detection outcome;
-- all 12 discovery candidate outcomes;
-- selected discovery feature;
-- aggregate detection/FPR rates;
-- Wilson 95% intervals;
-- sample-size sensitivity results;
-- detection-floor labels;
-- explicit conclusion text generated mechanically from frozen rules.
-
-Partial world subsets may not silently replace the planned denominator. Any failed world remains in the denominator and makes aggregate calibration `INCOMPLETE_EXECUTION` unless the failure is repaired and the entire exact planned run is reproduced under the same frozen code identity before result opening.
-
-No hand-edited summary may override machine-readable results.
+- world/scenario/N/world-index identities and seeds;
+- realized support and support-run statistics;
+- support cluster count and effective-support-N diagnostic;
+- pooled and support-conditional metrics;
+- every gate boolean and raw gate statistic;
+- `GROUND_TRUTH_VISIBLE`, `MODEL_DETECTED`, `STRICT_PASS_EX_MATERIALITY`, `STRICT_PASS` per world;
+- materiality fraction of attainable ceiling;
+- every discovery candidate result;
+- selected feature and TRUE/PROXY/FALSE/NO_DISCOVERY taxonomy;
+- aggregate rates with Wilson 95% intervals;
+- SMALL N sensitivity;
+- detection-floor reason labels;
+- mechanically generated methodology conclusion.
 
 ---
 
-## 19. Blinding and anti-tuning ceremony
+## 18. B2-06 consequences
 
-V1 does not rely on secrecy as its primary protection; it relies on freeze-before-outcome discipline. Nevertheless the future implementation should preserve separation between truth and evaluation interfaces.
+Synthetic calibration never authorizes market execution.
 
-Required execution ordering:
+Frozen interpretations:
 
-1. independent red-team accepts this preregistration;
-2. implementation PR is written against this frozen design using synthetic fixture tests only;
-3. implementation PR is independently reviewed without running the 1600-world production calibration;
+- specificity failure → `METHODOLOGY_REPAIR_REQUIRED_BEFORE_B2_06`;
+- EASY/MODERATE model-power failure → `METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06`;
+- `VISIBILITY_FLOOR` → a comparable negative market result cannot strongly establish absence of edge;
+- `MODEL_FLOOR` → model/evaluation sensitivity requires repair or an explicit power caveat before interpreting comparable `NO_PROMOTION`;
+- materiality-only failure → record that the unchanged 2% pooled materiality criterion suppresses otherwise detectable sparse structure.
+
+A materiality-only finding does **not** authorize changing a market gate. Any such change requires a separate outcome-blind preregistration.
+
+`INDETERMINATE` produces no binary methodology claim and cannot be resolved by tuning thresholds on the same outcomes.
+
+---
+
+## 19. Anti-rescue
+
+After any production synthetic outcome is opened, forbidden changes include:
+
+- lowering the 2% gate;
+- changing beta, support, rho, noise, scenario definitions or sample sizes;
+- changing which diagnostic layer drives a conclusion;
+- dropping hard/failed worlds;
+- seed selection or reroll;
+- denominator replacement;
+- candidate addition or proxy reclassification;
+- sign reversal;
+- bootstrap/block/placebo changes;
+- treating synthetic success as market evidence.
+
+Any scientific change after outcome opening requires a new calibration version.
+
+---
+
+## 20. Execution ceremony
+
+Required order:
+
+1. independent red-team accepts this repaired prereg;
+2. implementation is written using synthetic fixture tests only;
+3. implementation is independently reviewed without production-grid execution;
 4. exact implementation commit/tree is frozen;
-5. one production calibration execution is authorized;
-6. result artifact is persisted before any methodology change;
-7. only then may humans inspect aggregate calibration outcomes and gate attrition;
-8. any methodology change creates a new frozen version and may not overwrite V1 results.
+5. one production calibration is explicitly authorized;
+6. complete result is persisted before methodology changes;
+7. outcomes are inspected once;
+8. any subsequent methodology change becomes a new version.
 
-During evaluation, the API used by BLIND_LIBRARY_DISCOVERY must expose only generic feature IDs and must not expose a boolean `is_true_feature`, beta, injected contribution, or scenario-specific hand tuning hook.
-
-Synthetic fixture/unit tests may use tiny toy worlds with explicit expected answers. They must not execute the frozen production seed/scenario grid before authorization.
-
----
-
-## 20. Anti-rescue rules
-
-After V1 calibration outcomes are opened, all of the following are forbidden as V1 reinterpretation:
-
-- lowering the 2% materiality gate and calling the same run a pass;
-- changing beta/support definitions;
-- dropping hard worlds;
-- increasing N only for failed scenarios and replacing the primary result;
-- changing Student-t df, AR coefficient, heteroskedasticity, eras, block size, bootstrap count, permutation count, or candidate library;
-- selecting only favorable seeds;
-- replacing denominator 200 with successful worlds only;
-- redefining true discovery to include correlated placebo features;
-- adding feature candidates after seeing which pattern would have worked;
-- treating `TINY_NOISY` failure as proof of methodological failure without considering its preregistered stress-test role;
-- treating synthetic success as evidence of real B2-06 edge.
-
-A methodology modification is allowed only in a new preregistered unit with V1 retained as historical calibration evidence.
-
----
-
-## 21. Decision consequences for B2-06
-
-This calibration is a mandatory **methodology gate**, not a scientific B2-06 result.
-
-After V1 execution:
-
-### Case A — specificity fails
-
-If NULL FPR or NONSTATIONARY_TRAP control exceeds its frozen bound:
+Current state:
 
 ```text
-METHODOLOGY_REPAIR_REQUIRED_BEFORE_B2_06
-```
-
-B2-06 remains blocked even if funding publication authority is later solved.
-
-### Case B — EASY or MODERATE oracle power fails
-
-```text
-METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06
-```
-
-The current strict process is not trusted to interpret B2-06 failure.
-
-### Case C — specificity and sanity power pass, SMALL is low
-
-B2-06 may later proceed only after its own data/legal gates are solved and preregistration is frozen, but any negative interpretation must carry the calibration's detection-floor caveat if B2-06 effective support/effect regime is comparable.
-
-This result may motivate a separately preregistered discovery-methodology improvement before B2-06; it does not automatically authorize changing B2-06 after outcomes.
-
-### Case D — specificity and sanity power pass, SMALL sensitivity is moderate/high
-
-No methodology repair is required by V1. This still does not solve funding availability and does not authorize real outcomes.
-
----
-
-## 22. Design acceptance gate
-
-This preregistration is not frozen merely because it is committed.
-
-Before any implementation/execution:
-
-- independent adversarial review must verify the DGP mathematics, RNG identity, null/control logic, chronological causal semantics, gate definitions, discovery multiplicity behavior, denominator policy, and anti-rescue boundary;
-- all Blockers and Majors must be closed;
-- accepted exact HEAD/tree must be recorded;
-- then status may advance from `PREREG_CANDIDATE_OUTCOME_BLIND` to `FROZEN_BEFORE_IMPLEMENTATION`.
-
-Until then:
-
-```text
+implementation_exists = false
+production_calibration_executed = false
 synthetic_execution_authorized = false
 ```
-
----
-
-## 23. Why this calibration exists
-
-A rigorous research harness has two independent failure modes:
-
-1. it may be too permissive and manufacture edge from noise;
-2. it may be too conservative and systematically erase real but small conditional information.
-
-Signalbot has spent substantial effort defending against the first failure mode. `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1` makes the second failure mode measurable before more negative market results are interpreted too strongly.
-
-The desired outcome is not that every injected edge passes. The desired outcome is that we know, quantitatively and before B2-06, **what size/support/noise regime the current methodology can and cannot see**.
