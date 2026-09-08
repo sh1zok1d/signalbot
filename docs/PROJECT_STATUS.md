@@ -1,6 +1,6 @@
 # Signalbot — Current Project Status
 
-**Status date:** 2026-09-07
+**Status date:** 2026-09-08
 **Operating mode:** `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN`
 
 This file is the canonical answer to: **what is Signalbot doing now?**
@@ -103,6 +103,11 @@ itself is immutable. Post-outcome status lives in
   `5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33`
   (`docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md`); funding
   publication latency is unproven; B2-06 outcomes remain unauthorized.
+  The mandatory pre-B2-06 methodology unit
+  `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1` has fixture-only implementation
+  (`implementation_exists = true`) pending independent implementation
+  review. `synthetic_execution_authorized = false`; this does not
+  authorize B2-06 science.
 
 Family F1 is `CLOSED_NO_PROMOTION`. 2025 validation and 2026 OOS remain
 untouched. No Batch02 formulation has a promoted candidate, so there is no

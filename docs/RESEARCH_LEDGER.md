@@ -1426,3 +1426,18 @@ publication latency, open 2025/2026, modify the inventory, or touch B2-05.
 - b2_06_evaluator_enabled: **false**
 - durability: raw ZIP and normalized JSONL remain gitignored; current snapshot proves historical identity at materialization time, not current local recoverability
 - `.CHECKSUM` sidecars: transient corroborating evidence, not Git-retained
+
+## 2026-09-08 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 fixture implementation
+
+**Decision:** fixture-only implementation for independent review.
+**Unit verdict:** execution remains unauthorized.
+
+Implements the frozen synthetic calibration instrument with tiny deterministic
+fixtures only. Does **not** run the 3200-world grid, create a RESULT, inspect
+calibration outcomes, access real market data, open B2-06, open 2025/2026,
+modify the frozen inventory, or touch B2-05.
+
+- implementation_exists: **true**
+- synthetic_execution_authorized: **false**
+- production_calibration_executed: **false**
+- b2_06_scientific_execution_authorized: **false**
