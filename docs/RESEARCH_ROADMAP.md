@@ -116,7 +116,7 @@ to H06 and do not reopen a rejected family through parameter rescue.
 `V2_RESEARCH_HARNESS_V1`; after independent audit, perform
 `BATCH02_DESIGN`. See `docs/research/BATCH01_SYNTHESIS.md`.
 
-### Batch02 status (2026-09-08)
+### Batch02 status (2026-09-07)
 
 `V2_RESEARCH_HARNESS_V1` is accepted and the six-entry Batch02 inventory is
 frozen/immutable. Real development outcomes opened so far:
@@ -149,8 +149,8 @@ Before any B2-06 scientific outcome is opened, run a separate methodology
 unit: `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1`.
 
 Its purpose is to measure whether the current Signalbot-style research
-process can detect small, noisy, sparse, conditional incremental information
-without materially increasing false positives. It is not a market
+process can detect small, noisy, sparse, clustered conditional incremental
+information without materially increasing false positives. It is not a market
 hypothesis, not B2-07, and synthetic results are never market evidence.
 
 Frozen sequence:
@@ -165,16 +165,25 @@ Frozen sequence:
 8. only then may B2-06 scientific execution be considered, and only if its
    separate funding-publication/data/legal gates are also solved.
 
-The calibration separately measures:
+The repaired calibration separates four diagnostic layers:
 
-- ORACLE confirmatory power when the correct injected feature is known;
-- bounded BLIND-LIBRARY discovery power over a preregistered candidate menu;
-- NULL false-positive rate;
-- rejection of a nonstationary sign-flip trap;
-- gate-level attrition;
+- `GROUND_TRUTH_VISIBLE` — injected structure is statistically visible under frozen block-aware uncertainty;
+- `MODEL_DETECTED` — the model/evaluation procedure detects incremental prediction;
+- `STRICT_PASS_EX_MATERIALITY` — strict confirmatory gates pass except the 2% pooled-MAE materiality requirement;
+- `STRICT_PASS` — the unchanged full strict gate passes.
+
+It also measures:
+
+- ORACLE confirmatory sensitivity when the correct candidate is supplied without truth metadata;
+- bounded BLIND-LIBRARY discovery over ten distinct preregistered candidates;
+- TRUE / PROXY / FALSE / NO_DISCOVERY outcomes;
+- full-pipeline NULL false-positive rate;
+- rejection of an initially stable edge that later vanishes (`NONSTATIONARY_TRAP`);
+- clustered-support effective-N diagnostics;
+- gate-level attrition and support-conditional utility;
 - SMALL-edge sample-size sensitivity;
-- an explicit synthetic `DETECTION_FLOOR` where `NO_PROMOTION` must not be
-  interpreted as strong evidence of absence without a power caveat.
+- explicit `VISIBILITY_FLOOR` versus `MODEL_FLOOR` attribution;
+- materiality-only suppression by comparing full strict pass with strict pass excluding materiality.
 
 Canonical design candidate:
 `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md` and `.json`.
