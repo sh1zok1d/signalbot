@@ -136,7 +136,7 @@ MATERIALITY_FRACTION_OF_ATTAINABLE
    / asymptotic_max_relative_mae_improvement_approx
 ```
 
-Unavailable when denominator <= 0.
+Unavailable when denominator <= 0 and descriptive only; it is not a promotion/detection gate.
 
 ---
 
@@ -187,6 +187,8 @@ Candidate: `Y ~ intercept + X1 + X2 + Fj`.
 
 Estimator: `numpy.linalg.lstsq(X,y,rcond=None)`, unweighted, no regularization, full rank and finite coefficients required, no fallback, exact same scoring support.
 
+If required full rank is absent or any fitted coefficient/prediction/statistic is non-finite, the affected world is invalid, remains in the planned denominator, and the aggregate execution state is `INCOMPLETE_EXECUTION`. There is no fallback, replacement world, or reroll.
+
 ---
 
 ## 9. Metrics and clustered-support diagnostics
@@ -205,7 +207,9 @@ Truth-aware reporting also includes support coverage; support-conditional and of
 N_eff = N_positive / (1 + 2*sum(rho_k, k=1..K))
 ```
 
-`rho_k` is sample autocorrelation of the binary true-trigger series over scored rows. K is the largest lag before the first pair `(rho_k + rho_(k+1)) <= 0`. For positive support, cap N_eff into `[1,N_positive]`. N_eff is diagnostic only.
+`rho_k` is sample autocorrelation of the binary true-trigger series over scored rows. K is the largest lag before the first adjacent pair `(rho_k + rho_(k+1)) <= 0`; that first non-positive pair and all later lags are excluded. If no such pair occurs before the largest estimable lag, use all estimable positive-pair lags. For positive support, cap N_eff into `[1,N_positive]`. N_eff is diagnostic only.
+
+`support_sanity` is a separate gate, not a statistical-power metric. Sparse clustered worlds can fail it because realized candidate-positive support falls below 50; gate-level attrition must report that separately from `MODEL_DETECTED` failure. This is particularly relevant to `TINY_NOISY` and SMALL at N=2500 and must not be described as pure model-power failure.
 
 ---
 
@@ -245,9 +249,11 @@ No hidden gate.
 
 ## 12. Prediction bootstrap and placebo
 
-Prediction bootstrap: 500 replicates using the same era-local block construction/sampling/truncation as visibility, but on rows carrying AE improvement. Statistic = pooled mean AE improvement; q025 linear; all nominal replicates finite required.
+Prediction bootstrap: 500 replicates using the same era-local block construction/sampling/truncation as visibility, but on rows carrying AE improvement. Statistic = pooled mean AE improvement; q025 linear. If any nominal replicate is non-finite or otherwise invalid, the candidate/world cannot satisfy `bootstrap_positive`; the world is invalid for aggregate execution, remains in the planned denominator, and aggregate state becomes `INCOMPLETE_EXECUTION`. No replacement replicate/world and no reroll.
 
-Placebo: 999 replicates per candidate/world. Permute the literal Fj vector separately within each original era per replicate. The same replicate-specific permuted historical table is reused consistently by each expanding fit containing that era. Y/X1/X2/order remain fixed. Statistic = pooled mean AE improvement; q95 linear; all nominal replicates finite required. Truth/proxy metadata never enter permutation.
+Placebo: 999 replicates per candidate/world. Permute the literal Fj vector separately within each original era per replicate. The same replicate-specific permuted historical table is reused consistently by each expanding fit containing that era. Y/X1/X2/order remain fixed. Statistic = pooled mean AE improvement; q95 linear. If any nominal replicate is non-finite or otherwise invalid, the candidate/world cannot satisfy `placebo_separation`; the world is invalid for aggregate execution, remains in the planned denominator, and aggregate state becomes `INCOMPLETE_EXECUTION`. No replacement replicate/world and no reroll. Truth/proxy metadata never enter permutation.
+
+The within-era permutation is intentionally calibrated empirically by the frozen NULL full-pipeline arm; V1 does not claim an a-priori exact permutation null under arbitrary clustered feature processes.
 
 ---
 
@@ -265,7 +271,9 @@ half=z/(1+z^2/n)*sqrt(p_hat*(1-p_hat)/n+z^2/(4*n^2))
 
 Specificity pass if upper<=max; specificity fail if lower>max. Power pass if lower>=min; power fail if upper<min. Otherwise `INDETERMINATE`. Point estimates alone do not trigger conclusions.
 
-Failed worlds remain in the denominator and cause `INCOMPLETE_EXECUTION`.
+Failed/invalid worlds remain in the denominator and make the aggregate execution state `INCOMPLETE_EXECUTION`; no methodology PASS/FAIL conclusion may be emitted from an incomplete aggregate.
+
+There is no automatic second Monte Carlo batch in V1. Any threshold-straddling `INDETERMINATE` remains indeterminate; increasing worlds after outcome inspection requires a new prereg/version and fresh world identities.
 
 ---
 
@@ -274,18 +282,21 @@ Failed worlds remain in the denominator and cause `INCOMPLETE_EXECUTION`.
 Evaluate all F01..F10. Among candidates with `STRICT_PASS_EX_MATERIALITY=true`, choose max pooled mean AE improvement; exact tie uses ascending feature ID; none=`NO_CANDIDATE`. Also report analogous full-STRICT selection.
 
 ```text
-TRUE_DISCOVERY  = F03
-PROXY_DISCOVERY = F01/F02/F08
-FALSE_DISCOVERY = F04/F05/F06/F07/F09/F10
+TRUE_DISCOVERY  = selected F03
+PROXY_DISCOVERY = selected F01/F02/F08
+FALSE_DISCOVERY = selected F04/F05/F06/F07/F09/F10
 NO_DISCOVERY    = none
-ANY_EDGE_DECLARED = not none
+ANY_EDGE_DECLARED = TRUE or PROXY or FALSE
+USEFUL_DISCOVERY = TRUE or PROXY
 ```
 
 NULL FPR is ANY_EDGE_DECLARED after the entire search-select-evaluate pipeline. Same-world search is not independent confirmation.
 
+TRUE-vs-PROXY split is descriptive mechanism-recovery detail. At weak rungs it may be noise-dominated; V1 methodology conclusions use `USEFUL_DISCOVERY = TRUE+PROXY`, while exact TRUE recovery is reported with its own Wilson interval and is never inferred from a point estimate alone.
+
 ---
 
-## 15. Acceptance and floor attribution
+## 15. Acceptance, discovery diagnosis, and floor attribution
 
 Specificity thresholds, judged by Wilson upper:
 
@@ -302,7 +313,51 @@ EASY ORACLE MODEL_DETECTION >= .90
 MODERATE ORACLE MODEL_DETECTION >= .70
 ```
 
-SMALL MODEL_DETECTION bands: HIGH >=.80; MODERATE [.50,.80); LOW [.20,.50); VERY_LOW <.20. Entire Wilson interval must fit the band or result is `INDETERMINATE`.
+SMALL ORACLE `MODEL_DETECTED` sensitivity bands:
+
+```text
+HIGH      >= .80
+MODERATE  [.50,.80)
+LOW       [.20,.50)
+VERY_LOW  < .20
+```
+
+An entire Wilson interval must lie inside one band; otherwise the result is `INDETERMINATE`.
+
+### Frozen BLIND discovery bands
+
+For EASY and MODERATE at N=5000, compute both:
+
+- `TRUE_DISCOVERY_RATE`;
+- `USEFUL_DISCOVERY_RATE = TRUE_DISCOVERY + PROXY_DISCOVERY`.
+
+`USEFUL_DISCOVERY_RATE` is the methodology decision statistic for bounded discovery. Exact TRUE recovery is a stricter descriptive diagnostic, not the sole criterion.
+
+Frozen minimum useful-discovery requirements:
+
+```text
+EASY BLIND USEFUL_DISCOVERY >= .80
+MODERATE BLIND USEFUL_DISCOVERY >= .50
+```
+
+Power-style Wilson rules apply: PASS only if lower>=minimum; FAIL only if upper<minimum; otherwise `INDETERMINATE`.
+
+`TRUE_DISCOVERY_RATE` must always be reported with a Wilson interval. For descriptive labeling only, use the same HIGH/MODERATE/LOW/VERY_LOW bands as SMALL; the whole interval must fit the band, otherwise label `INDETERMINATE_TRUE_RECOVERY`. No methodology consequence is allowed solely from TRUE-vs-PROXY split.
+
+Frozen discovery diagnosis is conditional on an adequate confirmatory path and controlled specificity:
+
+```text
+if ORACLE specificity fails or BLIND NULL specificity fails:
+    SPECIFICITY_FAILURE has priority; do not diagnose discovery bottleneck
+elif EASY/MODERATE ORACLE MODEL_DETECTED criterion FAILS:
+    CONFIRMATORY_POWER_FAILURE has priority; do not diagnose discovery bottleneck
+elif EASY or MODERATE BLIND USEFUL_DISCOVERY criterion FAILS:
+    DISCOVERY_BOTTLENECK
+elif any required ORACLE/BLIND criterion is INDETERMINATE:
+    CALIBRATION_INDETERMINATE
+else:
+    NO_V1_EVIDENCE_OF_DISCOVERY_BOTTLENECK
+```
 
 Detection floor:
 
@@ -318,14 +373,19 @@ Materiality is independently diagnosed from strict-ex-materiality vs full strict
 
 ## 16. Mechanical conclusion authority
 
-The future result may only emit consequences from these frozen mappings:
+The future result may only emit consequences from these frozen mappings, in this priority order:
 
-- specificity failure → `METHODOLOGY_REPAIR_REQUIRED_BEFORE_B2_06`;
-- EASY/MODERATE model-power failure → `METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06`;
-- VISIBILITY_FLOOR → comparable negative market evidence cannot strongly establish absence of edge;
-- MODEL_FLOOR → model/evaluation requires repair or explicit power caveat;
-- materiality-only failure → record suppression by the 2% pooled gate; **no market-gate change is authorized**;
-- `INDETERMINATE` → no binary methodology claim.
+1. incomplete execution → `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`;
+2. specificity failure → `METHODOLOGY_REPAIR_REQUIRED_BEFORE_B2_06`;
+3. EASY/MODERATE ORACLE model-power failure → `METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06`;
+4. adequate ORACLE confirmatory power + controlled specificity + EASY/MODERATE BLIND useful-discovery failure → `DISCOVERY_BOTTLENECK_BEFORE_B2_06`;
+5. required Wilson decision straddles a boundary → `CALIBRATION_INDETERMINATE`;
+6. VISIBILITY_FLOOR → comparable negative market evidence cannot strongly establish absence of edge;
+7. MODEL_FLOOR → model/evaluation requires repair or explicit power caveat;
+8. materiality-only failure → record suppression by the 2% pooled gate; **no market-gate change is authorized**;
+9. controlled specificity + adequate ORACLE sanity power + adequate BLIND useful discovery → `NO_V1_EVIDENCE_OF_DISCOVERY_BOTTLENECK`.
+
+Multiple non-conflicting diagnostic labels may coexist only when their antecedents are mechanically true; the priority order governs the single top-level methodology consequence. Human post-outcome relabeling is forbidden.
 
 Passing calibration never authorizes B2-06.
 
@@ -333,13 +393,13 @@ Passing calibration never authorizes B2-06.
 
 ## 17. Required immutable result
 
-Future authorized execution must retain exact implementation commit/tree and prereg blobs; world identities/seeds; support runs/clusters/effective N; pooled and conditional metrics; every raw gate statistic and boolean; all four ORACLE stages; materiality fraction; all discovery candidate results and taxonomy; aggregate Wilson intervals; SMALL N sensitivity; floor labels; and mechanically generated conclusion.
+Future authorized execution must retain exact implementation commit/tree and prereg blobs; world identities/seeds; support runs/clusters/effective N; pooled and conditional metrics; every raw gate statistic and boolean; all four ORACLE stages; materiality fraction; all discovery candidate results and taxonomy; TRUE/PROXY/FALSE/NO rates; `USEFUL_DISCOVERY_RATE`; aggregate Wilson intervals; SMALL N sensitivity; floor labels; and mechanically generated conclusion.
 
 ---
 
 ## 18. Anti-rescue
 
-After outcomes: no lowering 2%; no beta/support/rho/noise/sample-size changes; no switching diagnostic layer; no dropping worlds; no reroll/favorable seed; no denominator replacement; no candidate/proxy reclassification; no sign reversal; no bootstrap/placebo alteration; no synthetic result as market evidence.
+After outcomes: no lowering 2%; no beta/support/rho/noise/sample-size changes; no switching diagnostic layer; no dropping worlds; no reroll/favorable seed; no denominator replacement; no candidate/proxy reclassification; no discovery-band/threshold changes; no conclusion remapping; no sign reversal; no bootstrap/placebo alteration; no synthetic result as market evidence.
 
 Any scientific change after outcome opening requires a new version.
 
