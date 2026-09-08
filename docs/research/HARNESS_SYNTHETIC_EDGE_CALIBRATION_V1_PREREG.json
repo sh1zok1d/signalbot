@@ -1,10 +1,10 @@
 {
-  "schema_version": "1.0",
-  "status": "PREREG_CANDIDATE_OUTCOME_BLIND",
+  "schema_version": "1.1",
+  "status": "PREREG_CANDIDATE_OUTCOME_BLIND_REPAIRED_AFTER_REDTEAM",
   "unit_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1",
   "unit_type": "METHODOLOGY_CALIBRATION_NOT_MARKET_HYPOTHESIS",
   "base_main_at_design_start": "79f68df395ecdda064386050d4d280cb994c4bbf",
-  "purpose": "measure sensitivity and specificity of the Signalbot-style research process for small, noisy, sparse, conditional edge before B2-06 scientific execution",
+  "purpose": "measure ground-truth visibility, model detection, confirmatory-gate sensitivity, materiality-gate attrition, bounded discovery sensitivity and full-pipeline specificity for small noisy sparse conditional edge before B2-06 scientific execution",
   "boundaries": {
     "synthetic_execution_authorized": false,
     "real_market_data_access_authorized": false,
@@ -16,18 +16,31 @@
     "touch_b2_05_recovery": false,
     "market_promotion_possible": false
   },
+  "diagnostic_stack": [
+    "GROUND_TRUTH_VISIBLE",
+    "MODEL_DETECTED",
+    "STRICT_PASS_EX_MATERIALITY",
+    "STRICT_PASS"
+  ],
+  "diagnostic_meaning": {
+    "GROUND_TRUTH_VISIBLE": "ground-truth-aware reviewer metric only: the injected support-conditional mean shift is statistically distinguishable from zero under the frozen block-aware uncertainty rule; never available to discovery selection",
+    "MODEL_DETECTED": "candidate model has positive incremental prediction with block-bootstrap lower bound > 0 and placebo separation; materiality and era-stability gates are not required",
+    "STRICT_PASS_EX_MATERIALITY": "all strict gates except the 2 percent pooled relative-MAE materiality gate",
+    "STRICT_PASS": "all strict gates including the unchanged 2 percent pooled relative-MAE materiality gate"
+  },
   "modes": {
     "ORACLE_CONFIRMATORY": {
       "candidate": "F03",
-      "question": "given the correct formulation, can the strict confirmatory gate detect the injected incremental edge"
+      "truth_metadata_visible_to_evaluator": false,
+      "question": "given the correct candidate feature without privileged support labels, where does the path visibility-to-model-to-confirmation-to-materiality lose power"
     },
     "BLIND_LIBRARY_DISCOVERY": {
-      "candidate_count": 12,
+      "nominal_candidate_count": 10,
+      "effective_distinct_model_count": 10,
       "generic_feature_ids": true,
-      "question": "within a bounded preregistered library, can the process identify the true sparse conditional mechanism without selecting placebo structure"
+      "question": "within a bounded preregistered library, can the full search-select-evaluate process identify true/proxy structure without selecting pure placebo structure"
     }
   },
-  "primary_estimand": "P(DETECT | scenario, support, injected_effect, sample_size, noise_profile)",
   "sample_sizes": {
     "primary_N": 5000,
     "small_sensitivity_N": [2500, 10000],
@@ -37,17 +50,22 @@
   "dgp": {
     "dtype": "float64",
     "rng": "numpy.random.Generator(numpy.random.PCG64(seed_int))",
+    "independence": "U1, U2, mechanism-state transition uniforms and RAW innovations are mutually independent within a world; all world RNG streams are independently namespaced",
     "baseline": {
       "X1": "X1_t = 0.70*X1_(t-1) + sqrt(1-0.70^2)*U1_t; U1~N(0,1); X1_0=0",
       "X2": "X2_t = 0.40*X2_(t-1) + sqrt(1-0.40^2)*U2_t; U2~N(0,1); X2_0=0",
-      "MU_BASE": "0.20*X1_t - 0.15*X2_t"
+      "MU_BASE": "0.20*X1_t - 0.15*X2_t",
+      "baseline_is_correctly_specified": true,
+      "realism_limitation": "V1 does not calibrate candidate absorption of baseline-model misspecification"
     },
     "mechanism": {
-      "A": "Bernoulli(q)",
-      "B": "Bernoulli(q)",
-      "q": "sqrt(target_support)",
-      "TRUE_TRIGGER": "A*B",
-      "single_components_have_injected_edge": false
+      "primary_support_process": "persistent two-state Markov trigger S_t",
+      "target_stationary_support": "scenario.target_support",
+      "persistence": 0.90,
+      "transition_derivation": "P(S_t=1|S_t-1=1)=rho; P(S_t=1|S_t-1=0)=p01=target_support*(1-rho)/(1-target_support); initialize S_0~Bernoulli(target_support)",
+      "TRUE_TRIGGER": "S_t",
+      "support_clusters_expected": true,
+      "iid_support_arm": "not primary; no iid-support methodology conclusion may substitute for the clustered-support primary arm"
     },
     "noise": {
       "RAW": "StudentT(df=5)/sqrt(5/3)",
@@ -58,19 +76,33 @@
     "outcome": "Y_t = MU_BASE_t + beta*TRUE_TRIGGER_t + NOISE_t",
     "positive_sign_frozen": true
   },
+  "effect_scale_reference": {
+    "residual_sd_approx": 1.253,
+    "mean_abs_noise_approx": 0.919,
+    "derivation_status": "PRE_OUTCOME_ANALYTIC_REFERENCE_NOT_CALIBRATION_RESULT",
+    "required_per_scenario_fields": ["beta_over_residual_sd", "expected_trigger_count_at_N5000", "asymptotic_max_relative_mae_improvement_approx"],
+    "ceiling_interpretation": "the 2 percent materiality gate is expected to be unreachable for the frozen positive ladder under perfect-oracle pooled MAE; this is intentional diagnostic information and may not be hidden or used to change beta after outcomes",
+    "scale_matched_materiality_metric": "MATERIALITY_FRACTION_OF_ATTAINABLE = observed_RELATIVE_MAE_IMPROVEMENT / asymptotic_max_relative_mae_improvement_approx; unavailable if denominator <=0"
+  },
   "scenarios": [
-    {"id": "NULL", "target_support": 0.10, "beta": 0.00, "role": "false_positive_control"},
-    {"id": "EASY", "target_support": 0.20, "beta": 0.40, "role": "sanity_power"},
-    {"id": "MODERATE", "target_support": 0.10, "beta": 0.25, "role": "ordinary_conditional_edge"},
-    {"id": "SMALL", "target_support": 0.05, "beta": 0.18, "role": "primary_small_sparse_edge"},
-    {"id": "TINY_NOISY", "target_support": 0.025, "beta": 0.12, "role": "stress_detection_floor"},
-    {"id": "NONSTATIONARY_TRAP", "target_support": 0.10, "beta_by_era": {"E1": 0.30, "E2": 0.30, "E3": 0.00, "E4": -0.30, "E5": -0.30}, "role": "stability_negative_control"}
+    {"id":"NULL","target_support":0.10,"beta":0.00,"beta_over_residual_sd":0.000,"expected_trigger_count_at_N5000":500,"asymptotic_max_relative_mae_improvement_approx":0.0000,"role":"full_pipeline_false_positive_control"},
+    {"id":"EASY","target_support":0.20,"beta":0.40,"beta_over_residual_sd":0.319,"expected_trigger_count_at_N5000":1000,"asymptotic_max_relative_mae_improvement_approx":0.0107,"role":"sanity_power"},
+    {"id":"MODERATE","target_support":0.10,"beta":0.25,"beta_over_residual_sd":0.200,"expected_trigger_count_at_N5000":500,"asymptotic_max_relative_mae_improvement_approx":0.0024,"role":"ordinary_conditional_edge"},
+    {"id":"SMALL","target_support":0.05,"beta":0.18,"beta_over_residual_sd":0.144,"expected_trigger_count_at_N5000":250,"asymptotic_max_relative_mae_improvement_approx":0.00064,"role":"primary_small_sparse_clustered_edge"},
+    {"id":"TINY_NOISY","target_support":0.025,"beta":0.12,"beta_over_residual_sd":0.096,"expected_trigger_count_at_N5000":125,"asymptotic_max_relative_mae_improvement_approx":0.00014,"role":"stress_detection_floor"},
+    {"id":"NONSTATIONARY_TRAP","target_support":0.10,"beta_by_era":{"E1":0.30,"E2":0.30,"E3":0.30,"E4":0.00,"E5":0.00},"role":"edge_vanishes_after_initial_stable_period_negative_control"}
   ],
   "monte_carlo": {
-    "worlds_per_primary_scenario": 200,
-    "small_worlds_per_extra_sample_size": 200,
-    "planned_total_worlds": 1600,
-    "failed_world_denominator_policy": "failed worlds remain in denominator and make aggregate calibration INCOMPLETE_EXECUTION unless entire exact planned run is reproduced under same frozen code identity before result opening"
+    "worlds_per_primary_scenario": 400,
+    "small_worlds_per_extra_sample_size": 400,
+    "planned_total_worlds": 3200,
+    "decision_interval": "Wilson score 95 percent",
+    "boundary_policy": "rates whose Wilson interval straddles a frozen decision threshold are INDETERMINATE; no hard methodology PASS/FAIL may be inferred from them",
+    "specificity_pass_rule": "Wilson upper bound <= frozen maximum",
+    "power_pass_rule": "Wilson lower bound >= frozen minimum",
+    "power_fail_rule": "Wilson upper bound < frozen minimum",
+    "otherwise": "INDETERMINATE",
+    "failed_world_denominator_policy": "failed worlds remain in denominator and make aggregate calibration INCOMPLETE_EXECUTION unless the exact frozen run is reproduced under the same code identity before result opening"
   },
   "rng_authority": {
     "root_seed": 20260908,
@@ -82,36 +114,48 @@
     "byte_order": "big",
     "signed": false,
     "python_hash_forbidden": true,
-    "separate_namespaces_for_bootstrap_placebo": true
+    "separate_namespaces": ["DGP","BOOTSTRAP","PLACEBO","VISIBILITY"],
+    "reroll_forbidden": true
   },
   "candidate_library": {
-    "F01": "A",
-    "F02": "B",
-    "F03": "A*B",
-    "F04": "1-A",
-    "F05": "1-B",
-    "F06": "XOR(A,B)",
-    "F07": "I(X1>0)",
-    "F08": "I(X2>0)",
-    "F09": "I(X1>1)",
-    "F10": "I(X2<-1)",
-    "F11": "A*I(X1>0)",
-    "F12": "B*I(X2<0)",
+    "F01": "S",
+    "F02": "S*I(X1>0)",
+    "F03": "S",
+    "F04": "I(X1>0)",
+    "F05": "I(X2>0)",
+    "F06": "I(X1>1)",
+    "F07": "I(X2<-1)",
+    "F08": "S*I(X2>0)",
+    "F09": "I(X1+X2>0)",
+    "F10": "I(X1-X2>0)",
+    "note": "F01 is renamed proxy carrier and F03 remains exact true feature only in semantic authority; the evaluator receives opaque IDs and a separate evaluator-visible matrix in which F01 is a one-step-lagged trigger S_(t-1), not S_t",
+    "evaluator_visible_definitions": {
+      "F01": "S_(t-1), with F01_0=0",
+      "F02": "S_t*I(X1_t>0)",
+      "F03": "S_t",
+      "F04": "I(X1_t>0)",
+      "F05": "I(X2_t>0)",
+      "F06": "I(X1_t>1)",
+      "F07": "I(X2_t<-1)",
+      "F08": "S_t*I(X2_t>0)",
+      "F09": "I(X1_t+X2_t>0)",
+      "F10": "I(X1_t-X2_t>0)"
+    },
     "true_feature": "F03",
+    "proxy_features": ["F01","F02","F08"],
+    "pure_placebo_features": ["F04","F05","F06","F07","F09","F10"],
     "open_ended_feature_search": false,
     "threshold_search": false,
     "post_result_candidate_addition": false
   },
   "forecast": {
-    "baseline": ["intercept", "X1", "X2"],
-    "candidate": ["intercept", "X1", "X2", "Fj"],
+    "baseline": ["intercept","X1","X2"],
+    "candidate": ["intercept","X1","X2","Fj"],
     "estimator": "numpy.linalg.lstsq(X,y,rcond=None)",
     "unweighted": true,
     "regularization": "none",
     "full_rank_required": true,
     "finite_coefficients_required": true,
-    "pseudoinverse_fallback": false,
-    "column_drop_fallback": false,
     "same_scoring_support": true
   },
   "chronology": {
@@ -128,104 +172,139 @@
     "CAND_AE": "abs(Y-CAND_PRED)",
     "AE_IMPROVEMENT": "BASE_AE-CAND_AE",
     "MEAN_AE_IMPROVEMENT": "mean(AE_IMPROVEMENT)",
-    "RELATIVE_MAE_IMPROVEMENT": "1-mean(CAND_AE)/mean(BASE_AE)"
+    "RELATIVE_MAE_IMPROVEMENT": "1-mean(CAND_AE)/mean(BASE_AE)",
+    "SUPPORT_COVERAGE": "mean(TRUE_TRIGGER==1) on scored rows; reporting/ground-truth diagnostics only",
+    "SUPPORT_CONDITIONAL_MEAN_AE_IMPROVEMENT": "mean(AE_IMPROVEMENT | TRUE_TRIGGER==1); ground-truth diagnostic only and never available to evaluator selection",
+    "OFF_SUPPORT_MEAN_AE_IMPROVEMENT": "mean(AE_IMPROVEMENT | TRUE_TRIGGER==0); ground-truth diagnostic only",
+    "SUPPORT_RUN_LENGTHS": "contiguous scored-row run lengths where TRUE_TRIGGER==1",
+    "SUPPORT_CLUSTER_COUNT": "number of contiguous positive-support runs",
+    "EFFECTIVE_SUPPORT_N": "N_positive / (1 + 2*sum_{k=1..K} rho_k) using positive-support indicator autocorrelations through first non-positive pair cutoff; reporting diagnostic, not a gate"
+  },
+  "ground_truth_visibility": {
+    "statistic": "mean(BASE_RESIDUAL | TRUE_TRIGGER=1) - mean(BASE_RESIDUAL | TRUE_TRIGGER=0)",
+    "baseline_residual": "Y-BASE_PRED from the same chronological baseline predictions used by evaluation",
+    "uncertainty": "500 replicate contiguous-50-row block bootstrap on scored rows, preserving full rows and trigger labels",
+    "visible": "visibility_bootstrap_q025 > 0",
+    "truth_access": "artifact-generation diagnostic only; forbidden to candidate selection, candidate fitting, placebo, and discovery tie-breaking"
   },
   "strict_reference_gate": {
-    "gate_order": ["primary_positive", "material_relative_mae", "bootstrap_positive", "placebo_separation", "era_stability", "support_sanity"],
+    "gate_order": ["primary_positive","material_relative_mae","bootstrap_positive","placebo_separation","era_stability","support_sanity"],
     "primary_positive": "MEAN_AE_IMPROVEMENT > 0",
     "material_relative_mae": "RELATIVE_MAE_IMPROVEMENT >= 0.02",
     "bootstrap_positive": "bootstrap_q025_of_mean_AE_IMPROVEMENT > 0",
     "placebo_separation": "real_MEAN_AE_IMPROVEMENT > placebo_q95",
     "era_stability": "mean_AE_improvement > 0 in at least 3 of 4 scored eras",
     "support_sanity": "candidate-positive scored support finite, nonzero, >=50 rows",
-    "all_required": true,
+    "STRICT_PASS_EX_MATERIALITY": "primary_positive AND bootstrap_positive AND placebo_separation AND era_stability AND support_sanity",
+    "STRICT_PASS": "STRICT_PASS_EX_MATERIALITY AND material_relative_mae",
+    "MODEL_DETECTED": "primary_positive AND bootstrap_positive AND placebo_separation",
     "hidden_gate_forbidden": true
   },
   "bootstrap": {
     "block_rows": 50,
-    "block_crosses_era": false,
     "replicates": 500,
-    "sampling": "whole contiguous blocks with replacement",
+    "sampling": "whole contiguous blocks with replacement, no block crosses era",
     "statistic": "pooled mean AE_IMPROVEMENT",
-    "interval": [0.025, 0.975],
+    "q025": 0.025,
     "quantile_method": "linear",
-    "seed_identity": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1|BOOTSTRAP|scenario|N|world_index|feature_id",
-    "reroll": false,
-    "nonfinite_replicate": "gate_false"
+    "reroll": false
   },
   "placebo": {
-    "replicates": 100,
-    "operation": "permute candidate labels separately within each scored era; Y/X1/X2/order fixed; refit using same expanding-era procedure",
+    "replicates": 999,
+    "operation": "permute candidate labels separately within each scored era; Y/X1/X2/order fixed; refit same expanding-era procedure",
     "statistic": "pooled mean AE_IMPROVEMENT",
     "q": 0.95,
     "quantile_method": "linear",
-    "seed_identity": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1|PLACEBO|scenario|N|world_index|feature_id|replicate_index",
-    "replicate_index_zero_based": true,
     "all_replicates_required_finite": true
   },
-  "oracle_decision": "ORACLE_DETECTED = STRICT_PASS(F03)",
+  "oracle_outputs": [
+    "GROUND_TRUTH_VISIBLE_RATE",
+    "MODEL_DETECTION_RATE",
+    "STRICT_EX_MATERIALITY_RATE",
+    "STRICT_DETECTION_RATE",
+    "MATERIALITY_ATTRITION_RATE"
+  ],
   "discovery": {
-    "evaluate": ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10", "F11", "F12"],
-    "selection": "among STRICT_PASS candidates choose max MEAN_AE_IMPROVEMENT; exact ties ascending feature_id; none => NO_CANDIDATE",
-    "TRUE_DISCOVERY": "selected_feature == F03",
-    "FALSE_DISCOVERY": "selected_feature not in {F03, NO_CANDIDATE}",
-    "NULL_false_positive": "any selected feature",
-    "top_k_rescue": false
+    "evaluate": ["F01","F02","F03","F04","F05","F06","F07","F08","F09","F10"],
+    "selection_statistic": "STRICT_PASS_EX_MATERIALITY candidates only, choose max MEAN_AE_IMPROVEMENT; exact ties ascending feature_id; none=>NO_CANDIDATE",
+    "full_strict_selected_also_reported": true,
+    "outcomes": {
+      "TRUE_DISCOVERY": "selected_feature==F03",
+      "PROXY_DISCOVERY": "selected_feature in {F01,F02,F08}",
+      "FALSE_DISCOVERY": "selected_feature in {F04,F05,F06,F07,F09,F10}",
+      "NO_DISCOVERY": "selected_feature==NO_CANDIDATE",
+      "ANY_EDGE_DECLARED": "selected_feature!=NO_CANDIDATE"
+    },
+    "NULL_false_positive": "ANY_EDGE_DECLARED under NULL after full search-select-evaluate pipeline",
+    "no_same_world_claim_of_independent_confirmation": true,
+    "interpretation": "BLIND mode calibrates bounded discovery/search behavior, not independent confirmatory validation"
   },
   "acceptance": {
     "specificity": {
-      "ORACLE_NULL_FPR_max": 0.05,
+      "ORACLE_NULL_MODEL_FPR_max": 0.05,
       "BLIND_LIBRARY_NULL_FPR_max": 0.10,
-      "NONSTATIONARY_TRAP_ORACLE_detection_max": 0.20
+      "NONSTATIONARY_TRAP_STRICT_EX_MATERIALITY_detection_max": 0.20,
+      "decision_uses_Wilson_upper_bound": true
     },
     "sanity_power": {
-      "EASY_ORACLE_detection_min": 0.90,
-      "MODERATE_ORACLE_detection_min": 0.70
+      "EASY_ORACLE_MODEL_detection_min": 0.90,
+      "MODERATE_ORACLE_MODEL_detection_min": 0.70,
+      "decision_uses_Wilson_lower_bound": true
     },
-    "small_sensitivity_bands": {
+    "small_sensitivity_bands_on_MODEL_DETECTION": {
       "HIGH_SENSITIVITY": ">=0.80",
       "MODERATE_SENSITIVITY": ">=0.50 and <0.80",
       "LOW_SENSITIVITY": ">=0.20 and <0.50",
-      "VERY_LOW_SENSITIVITY": "<0.20"
+      "VERY_LOW_SENSITIVITY": "<0.20",
+      "classification_requires_interval_entirely_inside_band": true,
+      "otherwise": "INDETERMINATE"
     },
-    "detection_floor": "ORACLE detection rate < 0.50",
-    "discovery_gap": "ORACLE_DETECTION_RATE - BLIND_DISCOVERY_RATE"
+    "detection_floor": "lowest difficulty region where MODEL_DETECTION Wilson upper bound <0.50 OR GROUND_TRUTH_VISIBLE Wilson upper bound <0.50, with reason label VISIBILITY_FLOOR or MODEL_FLOOR",
+    "materiality_gate_diagnostic": "report STRICT_PASS minus STRICT_PASS_EX_MATERIALITY and MATERIALITY_FRACTION_OF_ATTAINABLE; full STRICT_PASS is not the sole calibration success variable"
   },
   "b2_06_consequences": {
     "specificity_failure": "METHODOLOGY_REPAIR_REQUIRED_BEFORE_B2_06",
-    "easy_or_moderate_power_failure": "METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06",
-    "small_oracle_below_0_50": "negative results in comparable sparse/noisy regimes require an explicit power caveat; methodology improvement may be separately preregistered",
-    "small_oracle_at_least_0_50_with_specificity_and_sanity_power_pass": "no V1 methodology repair required, but B2-06 remains separately blocked until its data/legal/prereg gates are solved"
+    "easy_or_moderate_model_power_failure": "METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06",
+    "visibility_floor": "negative market results in comparable effective-support regimes cannot be interpreted strongly as absence of edge",
+    "model_floor": "candidate family/evaluation sensitivity requires repair or explicit power caveat before interpreting comparable NO_PROMOTION",
+    "materiality_only_failure": "record that strict 2 percent pooled materiality suppresses statistically/model-detectable sparse edge; any future market-gate change requires separate outcome-blind preregistration and is not authorized by calibration itself",
+    "indeterminate": "no binary methodology claim; do not tune thresholds from the same calibration outcomes",
+    "passing_calibration_does_not_authorize_b2_06": true
   },
   "required_result": {
     "exact_code_commit_tree": true,
     "exact_prereg_blob_identities": true,
     "per_world_realized_support": true,
-    "per_world_raw_metrics": true,
+    "per_world_support_run_lengths": true,
+    "per_world_effective_support_N": true,
+    "per_world_all_raw_metrics": true,
+    "per_world_conditional_metrics": true,
     "per_world_all_gate_booleans": true,
-    "per_world_first_failed_gate": true,
-    "oracle_detection": true,
+    "ground_truth_visibility": true,
+    "oracle_four_stage_diagnostics": true,
     "all_discovery_candidate_results": true,
     "selected_feature": true,
+    "discovery_taxonomy": true,
     "aggregate_rates": true,
     "wilson_95_intervals": true,
     "sample_size_sensitivity": true,
-    "detection_floor_labels": true,
+    "detection_floor_reason_labels": true,
     "mechanically_generated_conclusion": true
   },
   "anti_rescue": [
     "no lowering 2 percent materiality threshold after outcomes",
-    "no beta or support changes",
+    "no switching primary conclusion from one diagnostic layer to another after outcomes",
+    "no beta/support/persistence changes",
     "no dropping hard worlds",
     "no favorable-seed selection",
-    "no denominator replacement with successful worlds only",
-    "no post-result candidate additions",
+    "no denominator replacement",
+    "no post-result candidate additions or proxy reclassification",
     "no sign reversal",
     "no noise/era/block/bootstrap/permutation changes",
     "no synthetic-success-as-market-evidence"
   ],
   "execution_ceremony": [
-    "independent red-team accepts prereg",
+    "independent red-team accepts repaired prereg",
     "implementation written using synthetic fixture tests only",
     "implementation independently reviewed without production grid execution",
     "exact implementation commit/tree frozen",
