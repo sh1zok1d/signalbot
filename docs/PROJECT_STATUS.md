@@ -105,7 +105,8 @@ itself is immutable. Post-outcome status lives in
   publication latency is unproven; B2-06 outcomes remain unauthorized.
   The mandatory pre-B2-06 methodology unit
   `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1` has frozen implementation and a
-  tracked unused one-shot production authorization
+  tracked unused one-shot production authorization under focused
+  authorization-boundary re-review
   (`synthetic_execution_authorized = true`,
   `production_calibration_executed = false`,
   `authorization_consumed = false`). This does not authorize B2-06 science.

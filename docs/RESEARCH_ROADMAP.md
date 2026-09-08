@@ -155,8 +155,8 @@ hypothesis, not B2-07, and synthetic results are never market evidence.
 
 Current design status: `FROZEN_BEFORE_IMPLEMENTATION`.
 Implementation is frozen before production execution.
-A tracked one-shot production authorization now exists for independent
-authorization-boundary review:
+A tracked one-shot production authorization now exists and is in focused
+authorization-boundary re-review:
 `implementation_exists = true`,
 `implementation_frozen_before_production_execution = true`,
 `synthetic_execution_authorized = true`,

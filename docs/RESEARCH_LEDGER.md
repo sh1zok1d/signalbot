@@ -1458,3 +1458,19 @@ consume the authorization, access real market data, open B2-06, or open
 - production_calibration_executed: **false**
 - authorization_consumed: **false**
 - b2_06_scientific_execution_authorized: **false**
+
+## 2026-09-08 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 authorization-boundary repair
+
+**Decision:** focused repair of OPUS authorization-boundary findings on the existing one-shot authorization.
+**Unit verdict:** unused; production calibration not executed; not an authorization freeze.
+
+Binds production execution to exact executed bytes, adds atomic one-shot
+reservation, and stops proof objects from defining the production grid. Does
+**not** run the 3200-world grid, create a RESULT, consume the live
+authorization, access real market data, open B2-06, or open 2025/2026.
+
+- synthetic_execution_authorized: **true**
+- production_calibration_executed: **false**
+- authorization_consumed: **false**
+- b2_06_scientific_execution_authorized: **false**
+- status: `ONE_SHOT_SYNTHETIC_EXECUTION_AUTHORIZATION_READY_FOR_FOCUSED_REDTEAM`
