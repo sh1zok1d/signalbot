@@ -1,7 +1,7 @@
 # Signalbot — Historical Data Capability Matrix
 
 **Status:** ACTIVE / RESEARCH DATA DESIGN  
-**Verified:** 2026-08-26  
+**Verified:** 2026-08-26; Binance USD-M BTCUSDT funding/OI archive paths listed and schema-sampled for development years on 2026-09-07 as a **design-time listing** for the B2-06 data-expansion freeze (not a materialized snapshot; no B2-06 outcomes).
 **Scope:** candidate market-data sources for the 2020/2021–2026 research program.
 
 This document answers a narrower question than `HISTORICAL_DATA_STRATEGY.md`:
@@ -107,8 +107,8 @@ Access class:
 | Mark-price klines | official futures archive tooling from 2020 | 1m+ | FREE | `OFFICIAL_ARCHIVE` | Optional CORE/diagnostic |
 | Index-price klines | official futures archive tooling from 2020 | 1m+ | FREE | `OFFICIAL_ARCHIVE` | Optional CORE/diagnostic |
 | Premium-index klines | official futures archive tooling from 2020 | 1m+ | FREE | `OFFICIAL_ARCHIVE` | Candidate derivatives enrichment |
-| Historical funding | public API/source exists; full earliest archive path not yet frozen here | funding interval | FREE | `NEEDS_PROBE` | Probe before CORE inclusion |
-| Historical OI | exchange-native historical depth is not being assumed here | n/a | — | `NEEDS_PROBE` | Do not make CORE depend on it |
+| Historical funding | Vision `monthly/fundingRate/BTCUSDT` listed 2020-01…; settled `last_funding_rate` at 8h. Frozen for B2-06 as `B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0` (not CORE) | 8h native | FREE | `OFFICIAL_ARCHIVE` | **B2-06 primary funding**; do not fold into CORE klines; snapshot not yet materialized |
+| Historical OI | Vision `daily/metrics/BTCUSDT` listed from 2020-09-01; `sum_open_interest` native 5m. Frozen for B2-06 as `B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0` (not CORE) | 5m native | FREE | `OFFICIAL_ARCHIVE` | **B2-06 primary OI**; do not make CORE depend on it; do not upsample to 1m |
 | OI via Tardis | captured since 2020-05-13/14 | ~30s REST poll in vendor capture | PAID | `VENDOR_CAPTURED_RAW` / normalized derivative ticker | **RICH candidate** |
 | Liquidations / force orders via Tardis | raw forceOrder channel historically captured; completeness semantics vary by exchange/API era | event/snapshot | PAID | `VENDOR_CAPTURED_RAW` | RICH only; completeness audit mandatory |
 
@@ -394,5 +394,10 @@ Primary sources used for this matrix:
 - Bybit public historical-data/download directories;
 - OKX historical-market-data page and V5 public API documentation;
 - Tardis.dev per-exchange historical-data documentation and normalized data-type schema.
+
+B2-06 OI/funding identity was frozen outcome-blind on 2026-09-07 in
+`docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md`. That freeze does
+not materialize bytes, does not authorize B2-06 outcomes, and does not add
+OI/funding to `CORE_BTC_BINANCE_V0`.
 
 Availability can change. Before an actual bulk acquisition, re-run the small capability probes and freeze the resulting source/version identity in the dataset manifest.
