@@ -741,8 +741,10 @@ def test_inf_funding_rate_fails(tmp_path: Path):
 
 def _clone_head(tmp_path: Path) -> Path:
     dest = tmp_path / "clone"
+    # --no-local still copies from the current repo without network; --local
+    # hardlinks fail in this environment when packfiles cannot be linked.
     subprocess.run(
-        ["git", "clone", "--local", "--", str(REPO), str(dest)],
+        ["git", "clone", "--no-local", "--", str(REPO), str(dest)],
         check=True,
         capture_output=True,
         text=True,
@@ -847,7 +849,7 @@ def test_stale_evidence_manifest_fails(tmp_path: Path):
     text = manifest_path.read_text(encoding="utf-8")
     stale = text.replace(
         "521d42a471cc5fec74d808e8a4a3ea0078c87342b801df5dbf3836b4b69b4296",
-        "0" * 64,
+        "a" * 64,
         1,
     )
     assert stale != text
