@@ -1441,3 +1441,59 @@ modify the frozen inventory, or touch B2-05.
 - synthetic_execution_authorized: **false**
 - production_calibration_executed: **false**
 - b2_06_scientific_execution_authorized: **false**
+
+## 2026-09-08 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 one-shot authorization
+
+**Decision:** tracked one-shot production authorization for independent boundary review.
+**Unit verdict:** unused; production calibration not executed.
+
+Adds a Git-HEAD-blob authorization contract for exactly one frozen synthetic
+calibration run. Does **not** run the 3200-world grid, create a RESULT,
+consume the authorization, access real market data, open B2-06, or open
+2025/2026.
+
+- implementation_frozen_before_production_execution: **true**
+- synthetic_execution_authorized: **true**
+- authorized_run_count: **1**
+- production_calibration_executed: **false**
+- authorization_consumed: **false**
+- b2_06_scientific_execution_authorized: **false**
+
+## 2026-09-08 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 authorization-boundary repair
+
+**Decision:** focused repair of OPUS authorization-boundary findings on the existing one-shot authorization.
+**Unit verdict:** unused; production calibration not executed; not an authorization freeze.
+
+Binds production execution to exact executed bytes, adds atomic one-shot
+reservation, and stops proof objects from defining the production grid. Does
+**not** run the 3200-world grid, create a RESULT, consume the live
+authorization, access real market data, open B2-06, or open 2025/2026.
+
+- synthetic_execution_authorized: **true**
+- production_calibration_executed: **false**
+- authorization_consumed: **false**
+- b2_06_scientific_execution_authorized: **false**
+- status: `ONE_SHOT_SYNTHETIC_EXECUTION_AUTHORIZATION_READY_FOR_FOCUSED_REDTEAM`
+
+## 2026-09-08 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 authorization freeze
+
+**Decision:** freeze the reviewed one-shot authorization implementation before production execution.
+**Unit verdict:** unused; production calibration not executed; Monte Carlo remains unarmed.
+
+Records OPUS `GO_FOR_AUTHORIZATION_FREEZE` at reviewed HEAD
+`7b308f6520fc8b71e9e51c8cf0013e0edc77874c` / tree
+`842a5a8f1a7ea73d08e4d88e2ab58ca39bda42c8`. Does **not** run the 3200-world
+grid, arm the Monte Carlo seam, create a RESULT, consume the live
+authorization, access real market data, open B2-06, or open 2025/2026.
+
+Residual findings preserved as hard preconditions before any arming:
+cross-checkout durability (RESIDUAL-R1) and stale in-process import
+(RESIDUAL-R2).
+
+- synthetic_execution_authorized: **true**
+- authorized_run_count: **1**
+- production_calibration_executed: **false**
+- authorization_consumed: **false**
+- production_monte_carlo_arm_authorized: **false**
+- b2_06_scientific_execution_authorized: **false**
+- status: `AUTHORIZATION_FROZEN_BEFORE_PRODUCTION_EXECUTION`

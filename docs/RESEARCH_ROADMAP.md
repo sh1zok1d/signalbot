@@ -154,10 +154,19 @@ information without materially increasing false positives. It is not a market
 hypothesis, not B2-07, and synthetic results are never market evidence.
 
 Current design status: `FROZEN_BEFORE_IMPLEMENTATION`.
-Fixture-only implementation exists for independent implementation review.
-`implementation_exists = true`. Production execution remains unauthorized:
-`synthetic_execution_authorized = false` and
-`production_calibration_executed = false`.
+Implementation is frozen before production execution.
+A tracked one-shot production authorization now exists and is frozen before
+production execution:
+`implementation_exists = true`,
+`implementation_frozen_before_production_execution = true`,
+`synthetic_execution_authorized = true`,
+`production_calibration_executed = false`,
+`authorization_consumed = false`,
+`production_monte_carlo_arm_authorized = false`.
+Cross-checkout durable one-shot and stale-import execution identity remain
+open residual findings and must be closed before the Monte Carlo seam may
+be armed. This does not mean the 3200-world calibration has been run, and
+it does not authorize B2-06, 2025, or 2026.
 
 Frozen sequence:
 
@@ -193,10 +202,12 @@ It also measures:
 
 Canonical frozen prereg:
 `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md` and `.json`.
-Implementation-review status:
+Implementation freeze:
 `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_IMPLEMENTATION_REVIEW.md`.
-Until a later execution is explicitly authorized,
-`synthetic_execution_authorized = false`.
+One-shot authorization artifact:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_EXECUTION_AUTHORIZATION.json`.
+Until a later execution ceremony consumes that authorization,
+`production_calibration_executed = false`.
 
 This methodology gate does not weaken or bypass the current B2-06 state:
 `FUNDING_PUBLICATION_LATENCY_UNPROVEN`, `research_authorized = false`,

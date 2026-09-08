@@ -104,9 +104,14 @@ itself is immutable. Post-outcome status lives in
   (`docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md`); funding
   publication latency is unproven; B2-06 outcomes remain unauthorized.
   The mandatory pre-B2-06 methodology unit
-  `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1` has fixture-only implementation
-  (`implementation_exists = true`) pending independent implementation
-  review. `synthetic_execution_authorized = false`; this does not
+  `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1` has frozen implementation and a
+  frozen unused one-shot production authorization
+  (`synthetic_execution_authorized = true`,
+  `production_calibration_executed = false`,
+  `authorization_consumed = false`,
+  `production_monte_carlo_arm_authorized = false`).
+  Residual cross-checkout durability and stale-import identity findings
+  must be closed before the Monte Carlo seam may be armed. This does not
   authorize B2-06 science.
 
 Family F1 is `CLOSED_NO_PROMOTION`. 2025 validation and 2026 OOS remain

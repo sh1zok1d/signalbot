@@ -139,12 +139,16 @@ commit/tree object access, not caller mappings. See
 
 ### Synthetic methodology calibration harness
 
-`scripts/research/harness_synthetic_edge_calibration_v1.py` and
-`harness_synthetic_edge_calibration_v1_lib.py` are fixture-only
-implementation-review tooling for `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1`.
-`implementation_exists = true`. Production grid execution is fail-closed
-(`synthetic_execution_authorized = false`). This is not a market hypothesis
-and does not authorize B2-06, 2025, or 2026.
+`scripts/research/harness_synthetic_edge_calibration_v1.py`,
+`harness_synthetic_edge_calibration_v1_lib.py`, and
+`harness_synthetic_edge_calibration_v1_auth.py` implement the frozen
+synthetic calibration instrument plus a tracked one-shot production
+authorization. Implementation is frozen. Authorization implementation is
+frozen before production execution. One unused production run is
+authorized by repository state, not caller kwargs.
+`production_calibration_executed = false`.
+`production_monte_carlo_arm_authorized = false`. This is not a market
+hypothesis and does not authorize B2-06, 2025, or 2026.
 
 ---
 
