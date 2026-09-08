@@ -153,9 +153,11 @@ process can detect small, noisy, sparse, clustered conditional incremental
 information without materially increasing false positives. It is not a market
 hypothesis, not B2-07, and synthetic results are never market evidence.
 
-Current design status: `PREREG_CANDIDATE_OUTCOME_BLIND_REPAIRED_AFTER_REDTEAM`.
-The repaired prereg remains execution-unauthorized and must pass independent
-focused re-review before it can be frozen for implementation.
+Current design status: `FROZEN_BEFORE_IMPLEMENTATION`.
+Fixture-only implementation exists for independent implementation review.
+`implementation_exists = true`. Production execution remains unauthorized:
+`synthetic_execution_authorized = false` and
+`production_calibration_executed = false`.
 
 Frozen sequence:
 
@@ -189,10 +191,12 @@ It also measures:
 - explicit `VISIBILITY_FLOOR` versus `MODEL_FLOOR` attribution;
 - materiality-only suppression by comparing full strict pass with strict pass excluding materiality.
 
-Canonical design candidate:
+Canonical frozen prereg:
 `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md` and `.json`.
-Until that design is independently accepted and a later execution is
-explicitly authorized, `synthetic_execution_authorized = false`.
+Implementation-review status:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_IMPLEMENTATION_REVIEW.md`.
+Until a later execution is explicitly authorized,
+`synthetic_execution_authorized = false`.
 
 This methodology gate does not weaken or bypass the current B2-06 state:
 `FUNDING_PUBLICATION_LATENCY_UNPROVEN`, `research_authorized = false`,

@@ -137,6 +137,15 @@ commit/tree object access, not caller mappings. See
 `docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md` and
 `docs/research/B2_06_FUNDING_PUBLICATION_AUTHORITY.md`.
 
+### Synthetic methodology calibration harness
+
+`scripts/research/harness_synthetic_edge_calibration_v1.py` and
+`harness_synthetic_edge_calibration_v1_lib.py` are fixture-only
+implementation-review tooling for `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1`.
+`implementation_exists = true`. Production grid execution is fail-closed
+(`synthetic_execution_authorized = false`). This is not a market hypothesis
+and does not authorize B2-06, 2025, or 2026.
+
 ---
 
 ## `storage/`, `data_ingestion/`, `backfill/`
