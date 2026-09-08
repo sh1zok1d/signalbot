@@ -84,7 +84,6 @@ Prefer questions such as:
 - `P(return to range after failed break)`;
 - `E[directional return | setup strength]`;
 - `P(continuation | regime, setup)`;
-
 over forcing every detector to output a continuous LONG/SHORT opinion.
 
 ### Required discipline
@@ -117,7 +116,7 @@ to H06 and do not reopen a rejected family through parameter rescue.
 `V2_RESEARCH_HARNESS_V1`; after independent audit, perform
 `BATCH02_DESIGN`. See `docs/research/BATCH01_SYNTHESIS.md`.
 
-### Batch02 status (2026-09-07)
+### Batch02 status (2026-09-08)
 
 `V2_RESEARCH_HARNESS_V1` is accepted and the six-entry Batch02 inventory is
 frozen/immutable. Real development outcomes opened so far:
@@ -143,6 +142,48 @@ outcome-blind OI/funding snapshot is Git-bound as
 `5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33`).
 Materialized bytes are not B2-06 execution and do not authorize 2025/2026.
 See `docs/research/BATCH02_STATUS_LEDGER.md`.
+
+### Mandatory pre-B2-06 methodology calibration
+
+Before any B2-06 scientific outcome is opened, run a separate methodology
+unit: `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1`.
+
+Its purpose is to measure whether the current Signalbot-style research
+process can detect small, noisy, sparse, conditional incremental information
+without materially increasing false positives. It is not a market
+hypothesis, not B2-07, and synthetic results are never market evidence.
+
+Frozen sequence:
+
+1. design/preregistration only;
+2. independent adversarial review and closure of all Blockers/Majors;
+3. implementation using toy synthetic fixtures only;
+4. independent implementation review before production synthetic outcomes;
+5. one frozen Monte Carlo calibration execution;
+6. immutable calibration result;
+7. methodology decision;
+8. only then may B2-06 scientific execution be considered, and only if its
+   separate funding-publication/data/legal gates are also solved.
+
+The calibration separately measures:
+
+- ORACLE confirmatory power when the correct injected feature is known;
+- bounded BLIND-LIBRARY discovery power over a preregistered candidate menu;
+- NULL false-positive rate;
+- rejection of a nonstationary sign-flip trap;
+- gate-level attrition;
+- SMALL-edge sample-size sensitivity;
+- an explicit synthetic `DETECTION_FLOOR` where `NO_PROMOTION` must not be
+  interpreted as strong evidence of absence without a power caveat.
+
+Canonical design candidate:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md` and `.json`.
+Until that design is independently accepted and a later execution is
+explicitly authorized, `synthetic_execution_authorized = false`.
+
+This methodology gate does not weaken or bypass the current B2-06 state:
+`FUNDING_PUBLICATION_LATENCY_UNPROVEN`, `research_authorized = false`,
+`outcome_access_authorized = false`, and `b2_06_evaluator_enabled = false`.
 
 ### Exit
 A small set of candidate mechanisms shows enough development evidence to justify formal validation. It is acceptable for none to qualify.
