@@ -1356,3 +1356,23 @@ frozen inventory, and does not touch B2-05.
 - formulation status remains: `BLOCKED_MISSING_OBSERVABLE` until a materialized Git-bound snapshot **and** a frozen first-party funding publication rule exist
 
 Contract: `docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md`
+
+---
+
+## 2026-09-08 — B2-06 OI/funding materializer + funding publication authority
+
+**Decision:** `FUNDING_PUBLICATION_LATENCY_UNPROVEN`
+**Dataset status at this commit:** materializer implemented; historical snapshot not yet Git-bound (acquire is a later step against this code identity).
+
+First-party Binance Vision README and USD-M `GET /fapi/v1/fundingRate` / premium-index docs were inspected for a public-availability clock for settled `last_funding_rate`. None proves that archive `calc_time` is `legal_available_at`. No latency was invented.
+
+This entry does **not** execute B2-06, does not create a RESULT, does not inspect predictive outcomes, does not open 2025/2026, does not modify the frozen inventory, and does not touch B2-05.
+
+- research_authorized: **false**
+- outcome_access_authorized: **false**
+- b2_06_evaluator_enabled: **false**
+- funding publication: `FUNDING_PUBLICATION_LATENCY_UNPROVEN`
+- OI availability rule: unchanged `period_end = create_time + 300000ms`
+
+Authority note: `docs/research/B2_06_FUNDING_PUBLICATION_AUTHORITY.md`
+Materializer: `scripts/research/binance_um_oi_funding_v0_materializer.py`

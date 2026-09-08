@@ -129,10 +129,13 @@ See `docs/research/BATCH02_DURABLE_EVIDENCE_RETENTION_V1.md`.
 
 `scripts/research/binance_um_oi_funding_v0_contract_lib.py` is
 `ACTIVE_RESEARCH_INFRA` for the outcome-blind B2-06 data-expansion freeze.
-It is not a B2-06 evaluator and must not be used to authorize crowding
-thresholds or 2025/2026 outcome access. Funding publication latency is
-unproven; Git authority is exact commit/tree object access, not caller
-mappings. See `docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md`.
+`scripts/research/binance_um_oi_funding_v0_materializer.py` is the
+companion snapshot materializer. It is not a B2-06 evaluator and must not
+be used to authorize crowding thresholds or 2025/2026 outcome access.
+Funding publication latency is unproven; Git authority is exact
+commit/tree object access, not caller mappings. See
+`docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md` and
+`docs/research/B2_06_FUNDING_PUBLICATION_AUTHORITY.md`.
 
 ---
 
