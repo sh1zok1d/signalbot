@@ -1,6 +1,6 @@
 # HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — Repaired Outcome-Blind Preregistration
 
-**Status:** `PREREG_CANDIDATE_OUTCOME_BLIND_REPAIRED_AFTER_REDTEAM`  
+**Status:** `FROZEN_BEFORE_IMPLEMENTATION`  
 **Unit ID:** `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1`  
 **Unit type:** methodology calibration, not a market hypothesis  
 **Base main at design start:** `79f68df395ecdda064386050d4d280cb994c4bbf`  
@@ -393,7 +393,7 @@ Passing calibration never authorizes B2-06.
 
 ## 17. Required immutable result
 
-Future authorized execution must retain exact implementation commit/tree and prereg blobs; world identities/seeds; support runs/clusters/effective N; pooled and conditional metrics; every raw gate statistic and boolean; all four ORACLE stages; materiality fraction; all discovery candidate results and taxonomy; aggregate Wilson intervals; SMALL N sensitivity; floor labels; and mechanically generated conclusion.
+Future authorized execution must retain exact implementation commit/tree and prereg blobs; world identities/seeds; support runs/clusters/effective N; pooled and conditional metrics; every raw gate statistic and boolean; all four ORACLE stages; materiality fraction; all discovery candidate results; TRUE/PROXY/FALSE/NO_DISCOVERY rates; `USEFUL_DISCOVERY_RATE`; taxonomy; aggregate Wilson intervals; SMALL N sensitivity; floor labels; and mechanically generated conclusion.
 
 ---
 
