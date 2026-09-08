@@ -351,10 +351,10 @@ if ORACLE specificity fails or BLIND NULL specificity fails:
     SPECIFICITY_FAILURE has priority; do not diagnose discovery bottleneck
 elif EASY/MODERATE ORACLE MODEL_DETECTED criterion FAILS:
     CONFIRMATORY_POWER_FAILURE has priority; do not diagnose discovery bottleneck
-elif EASY or MODERATE BLIND USEFUL_DISCOVERY criterion FAILS:
-    DISCOVERY_BOTTLENECK
 elif any required ORACLE/BLIND criterion is INDETERMINATE:
     CALIBRATION_INDETERMINATE
+elif EASY or MODERATE BLIND USEFUL_DISCOVERY criterion FAILS:
+    DISCOVERY_BOTTLENECK
 else:
     NO_V1_EVIDENCE_OF_DISCOVERY_BOTTLENECK
 ```
@@ -378,8 +378,8 @@ The future result may only emit consequences from these frozen mappings, in this
 1. incomplete execution → `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`;
 2. specificity failure → `METHODOLOGY_REPAIR_REQUIRED_BEFORE_B2_06`;
 3. EASY/MODERATE ORACLE model-power failure → `METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06`;
-4. adequate ORACLE confirmatory power + controlled specificity + EASY/MODERATE BLIND useful-discovery failure → `DISCOVERY_BOTTLENECK_BEFORE_B2_06`;
-5. required Wilson decision straddles a boundary → `CALIBRATION_INDETERMINATE`;
+4. required Wilson decision straddles a boundary → `CALIBRATION_INDETERMINATE`;
+5. adequate ORACLE confirmatory power + controlled specificity + EASY/MODERATE BLIND useful-discovery failure → `DISCOVERY_BOTTLENECK_BEFORE_B2_06`;
 6. VISIBILITY_FLOOR → comparable negative market evidence cannot strongly establish absence of edge;
 7. MODEL_FLOOR → model/evaluation requires repair or explicit power caveat;
 8. materiality-only failure → record suppression by the 2% pooled gate; **no market-gate change is authorized**;
@@ -393,13 +393,13 @@ Passing calibration never authorizes B2-06.
 
 ## 17. Required immutable result
 
-Future authorized execution must retain exact implementation commit/tree and prereg blobs; world identities/seeds; support runs/clusters/effective N; pooled and conditional metrics; every raw gate statistic and boolean; all four ORACLE stages; materiality fraction; all discovery candidate results and taxonomy; TRUE/PROXY/FALSE/NO rates; `USEFUL_DISCOVERY_RATE`; aggregate Wilson intervals; SMALL N sensitivity; floor labels; and mechanically generated conclusion.
+Future authorized execution must retain exact implementation commit/tree and prereg blobs; world identities/seeds; support runs/clusters/effective N; pooled and conditional metrics; every raw gate statistic and boolean; all four ORACLE stages; materiality fraction; all discovery candidate results and taxonomy; aggregate Wilson intervals; SMALL N sensitivity; floor labels; and mechanically generated conclusion.
 
 ---
 
 ## 18. Anti-rescue
 
-After outcomes: no lowering 2%; no beta/support/rho/noise/sample-size changes; no switching diagnostic layer; no dropping worlds; no reroll/favorable seed; no denominator replacement; no candidate/proxy reclassification; no discovery-band/threshold changes; no conclusion remapping; no sign reversal; no bootstrap/placebo alteration; no synthetic result as market evidence.
+After outcomes: no lowering 2%; no beta/support/rho/noise/sample-size changes; no switching diagnostic layer; no dropping worlds; no reroll/favorable seed; no denominator replacement; no candidate/proxy reclassification; no sign reversal; no bootstrap/placebo alteration; no discovery-band/threshold changes; no conclusion remapping; no synthetic result as market evidence.
 
 Any scientific change after outcome opening requires a new version.
 
