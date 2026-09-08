@@ -513,16 +513,30 @@ def test_discovery_bottleneck_requires_controlled_specificity_and_oracle_power()
 
 
 def test_production_execution_lock():
-    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="SYNTHETIC_EXECUTION_NOT_AUTHORIZED"):
-        lib.run_frozen_production_grid()
-    with pytest.raises(lib.SyntheticExecutionNotAuthorized):
+    from scripts.research.harness_synthetic_edge_calibration_v1_auth import (
+        AuthorizedExecutionBoundaryReached,
+        describe_authorization_state,
+    )
+
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="caller arguments"):
         lib.run_frozen_production_grid(authorized=True)
-    with pytest.raises(lib.SyntheticExecutionNotAuthorized):
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="caller arguments"):
+        lib.run_frozen_production_grid(force=True)
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="caller arguments"):
         lib.run_frozen_production_grid(worlds=1, n_rows=50)
     desc = lib.planned_production_grid_descriptor()
     assert desc["planned_total_worlds"] == 3200
     assert desc["callable"] is False
-    assert runner.main(["--run-production-grid"]) == 2
+    assert desc["monte_carlo_armed"] is False
+    state = describe_authorization_state()
+    if state["lifecycle"] == "AUTHORIZED_UNUSED":
+        with pytest.raises(AuthorizedExecutionBoundaryReached):
+            lib.run_frozen_production_grid()
+        assert runner.main(["--run-production-grid"]) == 0
+    else:
+        with pytest.raises(lib.SyntheticExecutionNotAuthorized):
+            lib.run_frozen_production_grid()
+        assert runner.main(["--run-production-grid"]) == 2
     assert runner.main([]) == 2
     identity = json.loads(
         subprocess.check_output(
@@ -536,9 +550,9 @@ def test_production_execution_lock():
             text=True,
         )
     )
-    assert identity["synthetic_execution_authorized"] is False
     assert identity["production_calibration_executed"] is False
     assert identity["real_data_path"] is False
+    assert identity["monte_carlo_armed"] is False
     source = Path(lib.__file__).read_text(encoding="utf-8") + Path(runner.__file__).read_text(
         encoding="utf-8"
     )

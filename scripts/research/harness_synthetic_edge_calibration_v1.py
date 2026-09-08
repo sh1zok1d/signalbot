@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Fail-closed entrypoint for HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1.
 
-Fixture-only implementation review may import helpers from
-``harness_synthetic_edge_calibration_v1_lib``. This CLI cannot run the frozen
-3200-world production grid and accepts no authorization flag or environment
-bypass.
+Production execution is authorized only by the tracked one-shot artifact in
+the exact Git HEAD. This CLI accepts no authorize/force/unsafe flag, no
+environment bypass, and no caller authority path. It does not run the
+3200-world Monte Carlo in this authorization stage.
 """
 
 from __future__ import annotations
@@ -13,6 +13,9 @@ import argparse
 import json
 import sys
 
+from scripts.research.harness_synthetic_edge_calibration_v1_auth import (
+    AuthorizedExecutionBoundaryReached,
+)
 from scripts.research.harness_synthetic_edge_calibration_v1_lib import (
     SyntheticExecutionNotAuthorized,
     implementation_identity,
@@ -25,13 +28,13 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
             "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 entrypoint. "
-            "Production execution is not authorized."
+            "One-shot production execution is authorized only by tracked Git state."
         )
     )
     parser.add_argument(
         "--identity",
         action="store_true",
-        help="print implementation-review identity JSON (no execution)",
+        help="print implementation/authorization identity JSON (no execution)",
     )
     parser.add_argument(
         "--describe-grid",
@@ -41,9 +44,24 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--run-production-grid",
         action="store_true",
-        help="always fails closed; production calibration is not authorized",
+        help=(
+            "verify tracked one-shot authorization and reach the production "
+            "execution boundary without running the Monte Carlo in this stage"
+        ),
+    )
+    parser.add_argument(
+        "--expected-head",
+        default=None,
+        help="optional exact HEAD SHA confirmation; cannot authorize by itself",
     )
     args = parser.parse_args(argv)
+    if args.expected_head:
+        from scripts.research.harness_synthetic_edge_calibration_v1_auth import _head_sha, _repo_root
+
+        actual = _head_sha(_repo_root())
+        if actual != args.expected_head.strip().lower():
+            print("SYNTHETIC_EXECUTION_NOT_AUTHORIZED: expected-head mismatch", file=sys.stderr)
+            return 2
     if args.identity:
         print(json.dumps(implementation_identity(), sort_keys=True, indent=2))
         return 0
@@ -53,6 +71,24 @@ def main(argv: list[str] | None = None) -> int:
     if args.run_production_grid:
         try:
             run_frozen_production_grid()
+        except AuthorizedExecutionBoundaryReached as exc:
+            print(
+                json.dumps(
+                    {
+                        "status": "AUTHORIZED_UNUSED_PRODUCTION_EXECUTION_BOUNDARY",
+                        "production_calibration_executed": False,
+                        "authorization_consumed": False,
+                        "monte_carlo_invoked": False,
+                        "authorization_id": exc.proof.authorization_id,
+                        "authorization_blob_sha256": exc.proof.authorization_blob_sha256,
+                        "head_sha": exc.proof.head_sha,
+                        "tree_sha": exc.proof.tree_sha,
+                    },
+                    sort_keys=True,
+                    indent=2,
+                )
+            )
+            return 0
         except SyntheticExecutionNotAuthorized as exc:
             print(str(exc), file=sys.stderr)
             return 2

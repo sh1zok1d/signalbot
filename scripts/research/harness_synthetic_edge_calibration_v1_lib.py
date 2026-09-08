@@ -1049,31 +1049,51 @@ def evaluate_fixture_world(config: FixtureExecutionConfig) -> dict[str, Any]:
     }
 
 
-def run_frozen_production_grid(*_args: Any, **_kwargs: Any) -> None:
-    raise SyntheticExecutionNotAuthorized("SYNTHETIC_EXECUTION_NOT_AUTHORIZED")
+def run_frozen_production_grid(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    from scripts.research.harness_synthetic_edge_calibration_v1_auth import (
+        run_authorized_production_grid,
+    )
+
+    return run_authorized_production_grid(*args, **kwargs)
 
 
 def planned_production_grid_descriptor() -> dict[str, Any]:
     """Describe the frozen grid without executing it."""
+    from scripts.research.harness_synthetic_edge_calibration_v1_auth import (
+        describe_authorization_state,
+    )
+
+    state = describe_authorization_state()
     return {
         "planned_total_worlds": PRODUCTION_PLANNED_TOTAL_WORLDS,
         "worlds_per_cell": PRODUCTION_WORLDS_PER_CELL,
         "primary_N": PRODUCTION_PRIMARY_N,
         "small_N": list(PRODUCTION_SMALL_N),
         "callable": False,
-        "synthetic_execution_authorized": False,
+        "synthetic_execution_authorized": bool(state["synthetic_execution_authorized"]),
+        "authorization_lifecycle": state["lifecycle"],
+        "production_calibration_executed": False,
+        "monte_carlo_armed": False,
     }
 
 
 def implementation_identity() -> dict[str, Any]:
+    from scripts.research.harness_synthetic_edge_calibration_v1_auth import (
+        describe_authorization_state,
+    )
+
     authority = frozen_production_authority()
     boundaries = frozen_boundaries()
+    state = describe_authorization_state()
     return {
-        "stage": "fixture_implementation_review",
+        "stage": "one_shot_synthetic_execution_authorization",
         "unit_id": UNIT_ID,
         "implementation_exists": True,
+        "implementation_frozen_before_production_execution": True,
         "production_calibration_executed": False,
-        "synthetic_execution_authorized": False,
+        "synthetic_execution_authorized": bool(state["synthetic_execution_authorized"]),
+        "authorization_consumed": bool(state["authorization_consumed"]),
+        "authorization_lifecycle": state["lifecycle"],
         "real_market_data_access_authorized": False,
         "b2_06_scientific_execution_authorized": False,
         "validation_2025_authorized": False,
@@ -1084,4 +1104,5 @@ def implementation_identity() -> dict[str, Any]:
         "planned_total_worlds": authority["planned_total_worlds"],
         "boundaries": boundaries,
         "real_data_path": False,
+        "monte_carlo_armed": False,
     }

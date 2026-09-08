@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "unit_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1",
+  "authorization_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_ONE_SHOT_PRODUCTION_EXECUTION_V1",
+  "status": "AUTHORIZED_FOR_ONE_PRODUCTION_EXECUTION",
+  "lifecycle": "AUTHORIZED_UNUSED",
+  "authorized_run_count": 1,
+  "frozen_prereg_identity": {
+    "json_path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.json",
+    "md_path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md",
+    "json_sha256": "78fcddf03ce84a0369a955d5b571c2423129d12b22e35f77eab26d6ac5eff708",
+    "md_sha256": "a54c838d2b4903f039b4fd39d79198415ce095f5a9726fc51949cbb47153e5a3"
+  },
+  "frozen_implementation_identity": {
+    "reviewed_implementation_commit": "c996ba08c49961afde5daba2bd97832fded4725a",
+    "reviewed_implementation_tree": "f8c239aafca06f807c02c38ed1a726d1dda9ee31",
+    "implementation_freeze_commit": "65b2ee2675dab4235ddbab9da7f4ee425f94d600",
+    "main_merge_commit": "a1c9eda737bc527cee3752e0e32f798c08283544",
+    "lib_path": "scripts/research/harness_synthetic_edge_calibration_v1_lib.py",
+    "lib_sha256_at_reviewed_implementation_commit": "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51"
+  },
+  "authorized_grid": {
+    "planned_worlds": 3200,
+    "worlds_per_cell": 400,
+    "scenario_ids": ["NULL", "EASY", "MODERATE", "SMALL", "TINY_NOISY", "NONSTATIONARY_TRAP"],
+    "root_seed": 20260908,
+    "primary_n_rows": 5000,
+    "small_sensitivity_n": [2500, 10000],
+    "bootstrap_replicates": 500,
+    "placebo_replicates": 999,
+    "visibility_replicates": 500,
+    "block_rows": 50
+  },
+  "synthetic_execution_authorized": true,
+  "production_calibration_executed": false,
+  "authorization_consumed": false,
+  "real_market_data_access_authorized": false,
+  "b2_06_scientific_execution_authorized": false,
+  "validation_2025_authorized": false,
+  "oos_2026_authorized": false,
+  "consumption": {
+    "durable_claim_path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_EXECUTION_CLAIM.json",
+    "transition": "AUTHORIZED_UNUSED -> production execution -> immutable RESULT/claim -> AUTHORIZATION_CONSUMED",
+    "second_run_policy": "fail_closed"
+  },
+  "authorization_commit_binding": {
+    "note": "This artifact does not self-hash its future authorization commit. Runtime verifies HEAD blobs, ancestry of the frozen implementation commit, and records the execution commit/tree only in the later durable claim.",
+    "canonical_path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_EXECUTION_AUTHORIZATION.json"
+  }
+}
