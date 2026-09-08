@@ -1474,3 +1474,26 @@ authorization, access real market data, open B2-06, or open 2025/2026.
 - authorization_consumed: **false**
 - b2_06_scientific_execution_authorized: **false**
 - status: `ONE_SHOT_SYNTHETIC_EXECUTION_AUTHORIZATION_READY_FOR_FOCUSED_REDTEAM`
+
+## 2026-09-08 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 authorization freeze
+
+**Decision:** freeze the reviewed one-shot authorization implementation before production execution.
+**Unit verdict:** unused; production calibration not executed; Monte Carlo remains unarmed.
+
+Records OPUS `GO_FOR_AUTHORIZATION_FREEZE` at reviewed HEAD
+`7b308f6520fc8b71e9e51c8cf0013e0edc77874c` / tree
+`842a5a8f1a7ea73d08e4d88e2ab58ca39bda42c8`. Does **not** run the 3200-world
+grid, arm the Monte Carlo seam, create a RESULT, consume the live
+authorization, access real market data, open B2-06, or open 2025/2026.
+
+Residual findings preserved as hard preconditions before any arming:
+cross-checkout durability (RESIDUAL-R1) and stale in-process import
+(RESIDUAL-R2).
+
+- synthetic_execution_authorized: **true**
+- authorized_run_count: **1**
+- production_calibration_executed: **false**
+- authorization_consumed: **false**
+- production_monte_carlo_arm_authorized: **false**
+- b2_06_scientific_execution_authorized: **false**
+- status: `AUTHORIZATION_FROZEN_BEFORE_PRODUCTION_EXECUTION`

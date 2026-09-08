@@ -155,15 +155,18 @@ hypothesis, not B2-07, and synthetic results are never market evidence.
 
 Current design status: `FROZEN_BEFORE_IMPLEMENTATION`.
 Implementation is frozen before production execution.
-A tracked one-shot production authorization now exists and is in focused
-authorization-boundary re-review:
+A tracked one-shot production authorization now exists and is frozen before
+production execution:
 `implementation_exists = true`,
 `implementation_frozen_before_production_execution = true`,
 `synthetic_execution_authorized = true`,
 `production_calibration_executed = false`,
-`authorization_consumed = false`.
-This does not mean the 3200-world calibration has been run, and it does not
-authorize B2-06, 2025, or 2026.
+`authorization_consumed = false`,
+`production_monte_carlo_arm_authorized = false`.
+Cross-checkout durable one-shot and stale-import execution identity remain
+open residual findings and must be closed before the Monte Carlo seam may
+be armed. This does not mean the 3200-world calibration has been run, and
+it does not authorize B2-06, 2025, or 2026.
 
 Frozen sequence:
 

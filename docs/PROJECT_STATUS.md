@@ -105,11 +105,14 @@ itself is immutable. Post-outcome status lives in
   publication latency is unproven; B2-06 outcomes remain unauthorized.
   The mandatory pre-B2-06 methodology unit
   `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1` has frozen implementation and a
-  tracked unused one-shot production authorization under focused
-  authorization-boundary re-review
+  frozen unused one-shot production authorization
   (`synthetic_execution_authorized = true`,
   `production_calibration_executed = false`,
-  `authorization_consumed = false`). This does not authorize B2-06 science.
+  `authorization_consumed = false`,
+  `production_monte_carlo_arm_authorized = false`).
+  Residual cross-checkout durability and stale-import identity findings
+  must be closed before the Monte Carlo seam may be armed. This does not
+  authorize B2-06 science.
 
 Family F1 is `CLOSED_NO_PROMOTION`. 2025 validation and 2026 OOS remain
 untouched. No Batch02 formulation has a promoted candidate, so there is no
