@@ -37,7 +37,7 @@ Read these first:
 | `research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.json` | **ACTIVE / RESEARCH DATA CONTRACT** | Machine-readable twin of the B2-06 data-expansion freeze |
 | `research/B2_06_FUNDING_PUBLICATION_AUTHORITY.md` | **ACTIVE / RESEARCH AUTHORITY** | First-party investigation of settled `last_funding_rate` public availability; verdict `FUNDING_PUBLICATION_LATENCY_UNPROVEN`; does not invent latency |
 | `manifests/B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0.yaml` | **SNAPSHOT_MATERIALIZED_NOT_RESEARCH_AUTHORIZED** | Planning/identity manifest for the B2-06 first-party OI/funding dataset; `research_authorized: false`; snapshot `5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33` |
-| `research_data/B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0/` | **MATERIALIZED EVIDENCE / NOT RESEARCH AUTHORIZED** | Snapshot identity, object ledger, and quality report for `5a9d036b…`; raw/normalized bytes remain gitignored |
+| `research_data/B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0/` | **MATERIALIZED EVIDENCE / NOT RESEARCH AUTHORIZED** | Snapshot identity, object ledger, and quality report for `5a9d036b…`; SHA256 values anchored in the YAML manifest; raw ZIP and normalized JSONL remain gitignored and are not currently locally recoverable |
 | `research/B2_01_VOLATILITY_TRANSITION_RESULT.md` | **FROZEN_EVIDENCE** | B2-01 development-only result; verdict `B2_01_CLOSED_NO_PROMOTION` |
 | `research/B2_02_BOUNDARY_INTERACTION_PATH_RESULT.md` | **FROZEN_EVIDENCE** | B2-02 development-only result; verdict `B2_02_CLOSED_NO_PROMOTION` |
 | `research/B2_03_IMPULSE_MORPHOLOGY_PREREG.md` | **FROZEN_EVIDENCE** | B2-03 preregistration (before development outcomes) |

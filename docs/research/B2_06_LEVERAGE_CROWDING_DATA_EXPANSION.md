@@ -267,13 +267,24 @@ Joint-period snapshot bound at materializer commit
 - raw container bytes: 18564934
 - normalized JSONL bytes: 256788119
 - snapshot manifest SHA256: `bb216f9abdb9fcd7c7648bbffb8541e811af06498d062faa5f31037793768e5e`
+- object ledger SHA256: `521d42a471cc5fec74d808e8a4a3ea0078c87342b801df5dbf3836b4b69b4296`
+- quality report SHA256: `a6b46df8350871bd737f02197b201b58d6069b19896d1767bda4c286bdc6c7b3`
 - snapshot id: `5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33`
 - OI missing native 5m buckets: 631 across 70 objects (MISSING, not filled)
 - funding missing settlements: 0
 
-Raw ZIP/CHECKSUM and canonical JSONL live under gitignored
-`artifacts/research_data/B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0/`.
+Raw ZIP bytes, `.CHECKSUM` sidecars, and canonical JSONL are gitignored and
+**not currently retained in Git**. `.CHECKSUM` files are transient
+corroborating evidence used at materialization only. The committed snapshot
+proves exact historical existence/identity at materialization time. Exact
+future recovery depends on upstream Binance Vision bytes remaining available
+and unchanged unless separate durable retention is added. This repository
+does **not** claim current local recoverability of the raw or normalized
+bytes.
+
 Identity evidence: `docs/research_data/B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0/`.
+Tracked manifest `docs/manifests/B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0.yaml`
+anchors snapshot, object-ledger, and quality-report SHA256 values.
 
 Upstream archive revision requires a new manifest/snapshot revision. It must not mutate this freeze in place after outcomes exist.
 

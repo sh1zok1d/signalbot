@@ -1405,3 +1405,24 @@ the frozen inventory, or touch B2-05.
 
 Evidence: `docs/research_data/B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0/`
 Authority note: `docs/research/B2_06_FUNDING_PUBLICATION_AUTHORITY.md`
+
+## 2026-09-08 — B2-06 evidence hashes anchored; verify-only added
+
+**Decision:** metadata/manifest rebuild only. Snapshot identity unchanged.
+**Unit verdict:** unchanged `SNAPSHOT_MATERIALIZED_FUNDING_PUBLICATION_UNPROVEN_RESEARCH_UNAUTHORIZED`
+
+The committed object ledger and quality report are now SHA256-anchored in
+`docs/manifests/B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0.yaml`. Verify-only
+reads current HEAD blobs and does not download. This does **not** rematerialize
+bytes, change `snapshot_id`, authorize B2-06 science, invent funding
+publication latency, open 2025/2026, modify the inventory, or touch B2-05.
+
+- snapshot_id: `5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33` (unchanged)
+- object_ledger_sha256: `521d42a471cc5fec74d808e8a4a3ea0078c87342b801df5dbf3836b4b69b4296`
+- quality_report_sha256: `a6b46df8350871bd737f02197b201b58d6069b19896d1767bda4c286bdc6c7b3`
+- rematerialization: **no**
+- research_authorized: **false**
+- outcome_access_authorized: **false**
+- b2_06_evaluator_enabled: **false**
+- durability: raw ZIP and normalized JSONL remain gitignored; current snapshot proves historical identity at materialization time, not current local recoverability
+- `.CHECKSUM` sidecars: transient corroborating evidence, not Git-retained

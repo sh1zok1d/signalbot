@@ -28,5 +28,15 @@ Authorization remains closed:
 - `b2_06_evaluator_enabled = false`
 - funding publication = `FUNDING_PUBLICATION_LATENCY_UNPROVEN`
 
-Not committed here (and must not be): raw ZIP/CHECKSUM files or canonical JSONL.
+## Durability
+
+- Raw ZIP bytes are gitignored and not currently retained in Git.
+- Normalized JSONL bytes are gitignored and not currently retained in Git.
+- `.CHECKSUM` sidecars are transient corroborating evidence only; they are not Git-retained.
+- This snapshot proves exact historical existence/identity at materialization time.
+- Exact future recovery depends on upstream Binance Vision bytes remaining available and unchanged unless separate durable retention is added.
+- This repository does not currently claim local recoverability of the raw or normalized bytes.
+- Durability status: `IDENTITY_PROVEN_AT_MATERIALIZATION_RAW_BYTES_NOT_GIT_RETAINED`.
+- Checksum sidecar status: `TRANSIENT_CORROBORATING_EVIDENCE_NOT_GIT_RETAINED`.
+
 Canonical repository manifest: `docs/manifests/B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0.yaml`.

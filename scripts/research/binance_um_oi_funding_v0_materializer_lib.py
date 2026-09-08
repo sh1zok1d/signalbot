@@ -10,6 +10,7 @@ from __future__ import annotations
 import fcntl
 import json
 import os
+import subprocess
 import tempfile
 import urllib.error
 import urllib.request
@@ -18,6 +19,8 @@ from dataclasses import asdict, dataclass
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterator, Mapping, Sequence
+
+import yaml
 
 from scripts.research.binance_um_oi_funding_v0_contract_lib import (
     AVAILABILITY_SEMANTICS_VERSION,
@@ -28,6 +31,7 @@ from scripts.research.binance_um_oi_funding_v0_contract_lib import (
     FUNDING_PUBLICATION_SEMANTICS_STATUS,
     JOINT_DEVELOPMENT_END_EXCLUSIVE,
     JOINT_DEVELOPMENT_START_INCLUSIVE,
+    MANIFEST_PATH,
     NORMALIZATION_MODULE,
     OI_CSV_MEMBER_TEMPLATE,
     SNAPSHOT_AUTHORITY_KIND,
@@ -74,6 +78,8 @@ EVIDENCE_GIT_DIR = Path("docs/research_data") / DATASET_ID
 USER_AGENT = "signalbot-research/binance-um-oi-funding-v0-materializer"
 SNAPSHOT_IDENTITY_VERSION = "v3-materialized-exact-git-object-authority"
 LOCK_FILENAME = ".oi_funding_v0.lock"
+CHECKSUM_SIDECAR_STATUS = "TRANSIENT_CORROBORATING_EVIDENCE_NOT_GIT_RETAINED"
+DURABILITY_STATUS = "IDENTITY_PROVEN_AT_MATERIALIZATION_RAW_BYTES_NOT_GIT_RETAINED"
 
 
 class CachingFetch:
@@ -600,6 +606,134 @@ def write_snapshot_bundle(
     }
 
 
+def _git_output(repo_root: Path, *args: str) -> str:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_root), *args],
+            check=True,
+            capture_output=True,
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise OiFundingAuthorizationError(
+            f"git command failed: {' '.join(args)}"
+        ) from exc
+    return result.stdout.decode("utf-8").strip()
+
+
+def _require_40_hex(value: str, label: str) -> str:
+    text = value.strip().lower()
+    if len(text) != 40 or any(ch not in "0123456789abcdef" for ch in text):
+        raise OiFundingAuthorizationError(f"{label} must be an exact 40-hex SHA")
+    return text
+
+
+def _require_64_hex(value: object, label: str) -> str:
+    if not isinstance(value, str):
+        raise OiFundingCorruptError(f"missing {label}")
+    text = value.strip().lower()
+    if len(text) != 64 or any(ch not in "0123456789abcdef" for ch in text):
+        raise OiFundingCorruptError(f"{label} must be an exact 64-hex digest")
+    if value != text:
+        raise OiFundingCorruptError(f"{label} must be lowercase hex")
+    return text
+
+
+def read_commit_blob(repo_root: Path, commit_sha: str, git_path: str) -> bytes:
+    """Read a blob from an exact commit without requiring HEAD to equal it."""
+    commit = _require_40_hex(commit_sha, "commit_sha")
+    if not git_path or git_path.startswith("/") or ".." in Path(git_path).parts:
+        raise OiFundingAuthorizationError(f"invalid git path {git_path!r}")
+    listing = subprocess.run(
+        ["git", "-C", str(repo_root), "ls-tree", "-z", commit, "--", git_path],
+        capture_output=True,
+        check=False,
+    )
+    if listing.returncode != 0 or not listing.stdout.strip(b"\0"):
+        raise OiFundingAuthorizationError(
+            f"tracked Git path absent from {commit}: {git_path}"
+        )
+    try:
+        return subprocess.run(
+            ["git", "-C", str(repo_root), "cat-file", "blob", f"{commit}:{git_path}"],
+            check=True,
+            capture_output=True,
+        ).stdout
+    except subprocess.CalledProcessError as exc:
+        raise OiFundingAuthorizationError(
+            f"unable to cat-file {commit}:{git_path}"
+        ) from exc
+
+
+def evidence_paths_for_snapshot(snapshot_id: str) -> dict[str, str]:
+    prefix = _require_64_hex(snapshot_id, "snapshot_id")[:8]
+    base = EVIDENCE_GIT_DIR.as_posix()
+    return {
+        "snapshot": f"{base}/SNAPSHOT_{prefix}.json",
+        "object_ledger": f"{base}/OBJECT_LEDGER_{prefix}.json",
+        "quality_report": f"{base}/QUALITY_REPORT_{prefix}.json",
+        "readme": f"{base}/README.md",
+    }
+
+
+def render_evidence_readme(
+    *,
+    snapshot_id: str,
+    snapshot_manifest_sha256: str,
+    object_ledger_sha256: str,
+    quality_report_sha256: str,
+    provenance_git_commit_sha: str,
+    provenance_git_tree_sha: str,
+    expected_oi_objects: int,
+    expected_funding_objects: int,
+    accepted_oi_objects: int,
+    accepted_funding_objects: int,
+    rejected_oi_objects: int,
+    rejected_funding_objects: int,
+    raw_byte_total: int,
+    normalized_byte_total: int,
+) -> str:
+    prefix = snapshot_id[:8]
+    return (
+        f"# {DATASET_ID} snapshot evidence\n\n"
+        f"**Status:** `{MATERIALIZED_STATUS}`\n"
+        f"**Snapshot ID:** `{snapshot_id}`\n"
+        f"**Materializer commit:** `{provenance_git_commit_sha}`\n"
+        f"**Materializer tree:** `{provenance_git_tree_sha}`\n\n"
+        "These files are byte-identical copies of the runtime artifacts under the\n"
+        f"gitignored dataset root `artifacts/research_data/{DATASET_ID}/`.\n\n"
+        "| Archival file | Runtime source | SHA-256 |\n"
+        "|---|---|---|\n"
+        f"| `SNAPSHOT_{prefix}.json` | `reports/snapshot_manifest.json` | `{snapshot_manifest_sha256}` |\n"
+        f"| `OBJECT_LEDGER_{prefix}.json` | `reports/object_ledger.json` | `{object_ledger_sha256}` |\n"
+        f"| `QUALITY_REPORT_{prefix}.json` | `reports/quality_report.json` | `{quality_report_sha256}` |\n\n"
+        "Joint period `[2020-09-01, 2025-01-01)`:\n\n"
+        f"- OI objects expected/fetched/accepted/rejected = {expected_oi_objects} / {accepted_oi_objects} / {accepted_oi_objects} / {rejected_oi_objects}\n"
+        f"- funding objects expected/fetched/accepted/rejected = {expected_funding_objects} / {accepted_funding_objects} / {accepted_funding_objects} / {rejected_funding_objects}\n"
+        f"- raw container bytes = {raw_byte_total}\n"
+        f"- normalized JSONL bytes = {normalized_byte_total}\n\n"
+        "Authorization remains closed:\n\n"
+        "- `research_authorized = false`\n"
+        "- `outcome_access_authorized = false`\n"
+        "- `b2_06_evaluator_enabled = false`\n"
+        "- funding publication = `FUNDING_PUBLICATION_LATENCY_UNPROVEN`\n\n"
+        "## Durability\n\n"
+        "- Raw ZIP bytes are gitignored and not currently retained in Git.\n"
+        "- Normalized JSONL bytes are gitignored and not currently retained in Git.\n"
+        "- `.CHECKSUM` sidecars are transient corroborating evidence only; they are "
+        "not Git-retained.\n"
+        "- This snapshot proves exact historical existence/identity at materialization "
+        "time.\n"
+        "- Exact future recovery depends on upstream Binance Vision bytes remaining "
+        "available and unchanged unless separate durable retention is added.\n"
+        "- This repository does not currently claim local recoverability of the raw "
+        "or normalized bytes.\n"
+        f"- Durability status: `{DURABILITY_STATUS}`.\n"
+        f"- Checksum sidecar status: `{CHECKSUM_SIDECAR_STATUS}`.\n\n"
+        "Canonical repository manifest: "
+        f"`{MANIFEST_PATH}`.\n"
+    )
+
+
 def copy_identity_evidence_to_git(
     *,
     repo_root: Path,
@@ -609,31 +743,248 @@ def copy_identity_evidence_to_git(
     src_reports = Path(dataset_root) / "reports"
     dest = Path(repo_root) / EVIDENCE_GIT_DIR
     dest.mkdir(parents=True, exist_ok=True)
-    prefix = snapshot_id[:8]
+    paths = evidence_paths_for_snapshot(snapshot_id)
     mapping = {
-        src_reports / "snapshot_manifest.json": dest / f"SNAPSHOT_{prefix}.json",
-        src_reports / "object_ledger.json": dest / f"OBJECT_LEDGER_{prefix}.json",
-        src_reports / "quality_report.json": dest / f"QUALITY_REPORT_{prefix}.json",
+        src_reports / "snapshot_manifest.json": Path(repo_root) / paths["snapshot"],
+        src_reports / "object_ledger.json": Path(repo_root) / paths["object_ledger"],
+        src_reports / "quality_report.json": Path(repo_root) / paths["quality_report"],
     }
     written: dict[str, Path] = {}
+    hashes: dict[str, str] = {}
     for src, dst in mapping.items():
         data = src.read_bytes()
         atomic_write_bytes(dst, data)
         written[dst.name] = dst
-    readme = dest / "README.md"
-    atomic_write_text(
-        readme,
-        (
-            f"# {DATASET_ID} snapshot evidence\n\n"
-            f"**Status:** `{MATERIALIZED_STATUS}`\n"
-            f"**Snapshot ID:** `{snapshot_id}`\n\n"
-            "Raw ZIP/CHECKSUM bytes and canonical JSONL live under gitignored "
-            f"`artifacts/research_data/{DATASET_ID}/`. This directory stores "
-            "identity/integrity evidence only. Research remains unauthorized. "
-            "Funding publication latency remains unproven. B2-06 is not executed.\n"
-        ),
+        hashes[dst.name] = sha256_hex(data)
+    quality = json.loads(
+        (src_reports / "quality_report.json").read_text(encoding="utf-8")
     )
+    snapshot = json.loads(
+        (src_reports / "snapshot_manifest.json").read_text(encoding="utf-8")
+    )
+    payload = snapshot.get("identity_payload") or {}
+    readme = Path(repo_root) / paths["readme"]
+    readme_text = render_evidence_readme(
+        snapshot_id=snapshot_id,
+        snapshot_manifest_sha256=hashes[Path(paths["snapshot"]).name],
+        object_ledger_sha256=hashes[Path(paths["object_ledger"]).name],
+        quality_report_sha256=hashes[Path(paths["quality_report"]).name],
+        provenance_git_commit_sha=str(payload.get("provenance_git_commit_sha") or ""),
+        provenance_git_tree_sha=str(payload.get("provenance_git_tree_sha") or ""),
+        expected_oi_objects=int(quality["expected_oi_objects"]),
+        expected_funding_objects=int(quality["expected_funding_objects"]),
+        accepted_oi_objects=int(quality["accepted_oi_objects"]),
+        accepted_funding_objects=int(quality["accepted_funding_objects"]),
+        rejected_oi_objects=int(quality["rejected_oi_objects"]),
+        rejected_funding_objects=int(quality["rejected_funding_objects"]),
+        raw_byte_total=int(quality["raw_byte_total"]),
+        normalized_byte_total=int(quality["normalized_byte_total"]),
+    )
+    atomic_write_text(readme, readme_text)
+    written[readme.name] = readme
     return written
+
+
+def _require_worktree_matches_head(
+    repo_root: Path, git_path: str, head_sha: str
+) -> bytes:
+    blob = read_commit_blob(repo_root, head_sha, git_path)
+    worktree = Path(repo_root) / git_path
+    if not worktree.is_file():
+        raise OiFundingCorruptError(f"missing worktree evidence file {git_path}")
+    worktree_bytes = worktree.read_bytes()
+    if worktree_bytes != blob:
+        raise OiFundingCorruptError(
+            f"worktree bytes differ from tracked Git blob for {git_path}"
+        )
+    return blob
+
+
+def verify_committed_oi_funding_evidence(
+    *,
+    repo_root: Path,
+    claimed_hashes: Mapping[str, str] | None = None,
+    claimed_manifest: Mapping[str, Any] | None = None,
+    tracked_manifest: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Verify the committed evidence bundle without downloading.
+
+    Authority is the current HEAD Git blobs plus the historical provenance
+    commit recorded in the tracked manifest. Callers cannot supply hashes or
+    mappings. HEAD does not need to equal the pre-materialization commit.
+    """
+    if claimed_manifest is not None or tracked_manifest is not None:
+        raise OiFundingAuthorizationError(
+            "caller-supplied manifest mapping is not Git authority"
+        )
+    repo_root = Path(repo_root).resolve()
+    head_sha = _require_40_hex(_git_output(repo_root, "rev-parse", "HEAD"), "HEAD")
+    head_tree = _require_40_hex(
+        _git_output(repo_root, "rev-parse", "HEAD^{tree}"), "HEAD tree"
+    )
+    yaml_bytes = _require_worktree_matches_head(repo_root, MANIFEST_PATH, head_sha)
+    try:
+        manifest = yaml.safe_load(yaml_bytes.decode("utf-8"))
+    except (UnicodeDecodeError, yaml.YAMLError) as exc:
+        raise OiFundingAuthorizationError("tracked manifest is not valid UTF-8 YAML") from exc
+    if not isinstance(manifest, dict):
+        raise OiFundingAuthorizationError("tracked manifest must be a mapping")
+    if manifest.get("dataset_id") != DATASET_ID:
+        raise OiFundingIdentityError("tracked manifest dataset_id mismatch")
+    if manifest.get("research_authorized") is not False:
+        raise OiFundingAuthorizationError("research_authorized must remain false")
+    if manifest.get("outcome_access_authorized") not in (False, None):
+        raise OiFundingAuthorizationError("outcome access is not authorized")
+    if manifest.get("b2_06_evaluator_enabled") not in (False, None):
+        raise OiFundingAuthorizationError("scientific evaluator is not authorized")
+    snapshot_id = _require_64_hex(manifest.get("snapshot_id"), "snapshot_id")
+    expected_snapshot_hash = _require_64_hex(
+        manifest.get("snapshot_manifest_sha256"), "snapshot_manifest_sha256"
+    )
+    expected_ledger_hash = _require_64_hex(
+        manifest.get("object_ledger_sha256"), "object_ledger_sha256"
+    )
+    expected_quality_hash = _require_64_hex(
+        manifest.get("quality_report_sha256"), "quality_report_sha256"
+    )
+    paths = evidence_paths_for_snapshot(snapshot_id)
+    snapshot_bytes = _require_worktree_matches_head(repo_root, paths["snapshot"], head_sha)
+    ledger_bytes = _require_worktree_matches_head(
+        repo_root, paths["object_ledger"], head_sha
+    )
+    quality_bytes = _require_worktree_matches_head(
+        repo_root, paths["quality_report"], head_sha
+    )
+    readme_bytes = _require_worktree_matches_head(repo_root, paths["readme"], head_sha)
+    actual = {
+        "snapshot_manifest_sha256": sha256_hex(snapshot_bytes),
+        "object_ledger_sha256": sha256_hex(ledger_bytes),
+        "quality_report_sha256": sha256_hex(quality_bytes),
+    }
+    claimed_hashes = dict(claimed_hashes or {})
+    for label, actual_digest in actual.items():
+        require_no_caller_hash_substitution(
+            actual_sha256=actual_digest,
+            claimed_sha256=claimed_hashes.get(label),
+            label=label,
+        )
+    if actual["snapshot_manifest_sha256"] != expected_snapshot_hash:
+        raise OiFundingCorruptError("snapshot manifest SHA256 does not match tracked manifest")
+    if actual["object_ledger_sha256"] != expected_ledger_hash:
+        raise OiFundingCorruptError("object ledger SHA256 does not match tracked manifest")
+    if actual["quality_report_sha256"] != expected_quality_hash:
+        raise OiFundingCorruptError("quality report SHA256 does not match tracked manifest")
+    try:
+        snapshot = json.loads(snapshot_bytes.decode("utf-8"))
+        ledger = json.loads(ledger_bytes.decode("utf-8"))
+        quality = json.loads(quality_bytes.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise OiFundingCorruptError("committed evidence JSON is malformed") from exc
+    if snapshot.get("snapshot_id") != snapshot_id:
+        raise OiFundingCorruptError("snapshot file snapshot_id mismatch")
+    payload = snapshot.get("identity_payload")
+    if not isinstance(payload, dict):
+        raise OiFundingCorruptError("snapshot identity_payload missing")
+    recomputed = sha256_of_canonical_identity_payload(payload)
+    if recomputed != snapshot_id:
+        raise OiFundingCorruptError("snapshot_id does not hash to identity_payload")
+    if quality.get("snapshot_id") != snapshot_id:
+        raise OiFundingCorruptError("quality report snapshot_id mismatch")
+    if quality.get("snapshot_manifest_sha256") != actual["snapshot_manifest_sha256"]:
+        raise OiFundingCorruptError("quality report snapshot_manifest_sha256 mismatch")
+    if quality.get("research_authorized") is not False:
+        raise OiFundingAuthorizationError("quality report cannot authorize research")
+    if quality.get("funding_publication_semantics_status") != FUNDING_PUBLICATION_SEMANTICS_STATUS:
+        raise OiFundingAuthorizationError("funding publication status drifted")
+    objects = ledger.get("objects")
+    if not isinstance(objects, list):
+        raise OiFundingCorruptError("object ledger objects list missing")
+    oi_n = sum(1 for item in objects if item.get("series") == "oi")
+    funding_n = sum(1 for item in objects if item.get("series") == "funding")
+    joint = manifest.get("joint_period") or {}
+    expected_oi = int(joint.get("expected_oi_objects", quality.get("expected_oi_objects")))
+    expected_funding = int(
+        joint.get("expected_funding_objects", quality.get("expected_funding_objects"))
+    )
+    if oi_n != expected_oi or funding_n != expected_funding:
+        raise OiFundingCorruptError("object ledger headline counts drifted")
+    if int(quality.get("accepted_oi_objects", -1)) != oi_n:
+        raise OiFundingCorruptError("quality OI count does not match ledger")
+    if int(quality.get("accepted_funding_objects", -1)) != funding_n:
+        raise OiFundingCorruptError("quality funding count does not match ledger")
+    if len(payload.get("source_object_identities") or []) != oi_n + funding_n:
+        raise OiFundingCorruptError("snapshot source_object_identities count drifted")
+    provenance_commit = _require_40_hex(
+        str(manifest.get("provenance_git_commit_sha") or payload.get("provenance_git_commit_sha") or ""),
+        "provenance_git_commit_sha",
+    )
+    provenance_tree = _require_40_hex(
+        str(manifest.get("provenance_git_tree_sha") or payload.get("provenance_git_tree_sha") or ""),
+        "provenance_git_tree_sha",
+    )
+    actual_tree = _require_40_hex(
+        _git_output(repo_root, "rev-parse", f"{provenance_commit}^{{tree}}"),
+        "provenance tree",
+    )
+    if actual_tree != provenance_tree:
+        raise OiFundingAuthorizationError("provenance tree does not match tracked Git authority")
+    if provenance_commit != payload.get("provenance_git_commit_sha"):
+        raise OiFundingAuthorizationError("snapshot provenance commit drifted")
+    contract_sha = sha256_hex(read_commit_blob(repo_root, provenance_commit, CONTRACT_PATH))
+    norm_sha = sha256_hex(read_commit_blob(repo_root, provenance_commit, NORMALIZATION_MODULE))
+    mat_sha = sha256_hex(read_commit_blob(repo_root, provenance_commit, MATERIALIZER_MODULE))
+    cli_sha = sha256_hex(read_commit_blob(repo_root, provenance_commit, MATERIALIZER_CLI_MODULE))
+    if contract_sha != payload.get("contract_sha256"):
+        raise OiFundingAuthorizationError("contract blob does not match snapshot Git authority")
+    if norm_sha != payload.get("normalization_source_sha256"):
+        raise OiFundingAuthorizationError(
+            "normalization blob does not match snapshot Git authority"
+        )
+    if mat_sha != payload.get("materializer_source_sha256"):
+        raise OiFundingAuthorizationError(
+            "materializer blob does not match snapshot Git authority"
+        )
+    if cli_sha != payload.get("materializer_cli_sha256"):
+        raise OiFundingAuthorizationError(
+            "materializer CLI blob does not match snapshot Git authority"
+        )
+    generated_readme = render_evidence_readme(
+        snapshot_id=snapshot_id,
+        snapshot_manifest_sha256=actual["snapshot_manifest_sha256"],
+        object_ledger_sha256=actual["object_ledger_sha256"],
+        quality_report_sha256=actual["quality_report_sha256"],
+        provenance_git_commit_sha=provenance_commit,
+        provenance_git_tree_sha=provenance_tree,
+        expected_oi_objects=expected_oi,
+        expected_funding_objects=expected_funding,
+        accepted_oi_objects=oi_n,
+        accepted_funding_objects=funding_n,
+        rejected_oi_objects=int(quality.get("rejected_oi_objects", 0)),
+        rejected_funding_objects=int(quality.get("rejected_funding_objects", 0)),
+        raw_byte_total=int(quality["raw_byte_total"]),
+        normalized_byte_total=int(quality["normalized_byte_total"]),
+    )
+    if readme_bytes.decode("utf-8") != generated_readme:
+        raise OiFundingCorruptError("evidence README is not the deterministic generated text")
+    assert_outcome_access_closed(manifest)
+    assert_outcome_access_closed(quality)
+    return {
+        "snapshot_id": snapshot_id,
+        "head_sha": head_sha,
+        "head_tree": head_tree,
+        "provenance_git_commit_sha": provenance_commit,
+        "provenance_git_tree_sha": provenance_tree,
+        **actual,
+        "accepted_oi_objects": oi_n,
+        "accepted_funding_objects": funding_n,
+        "research_authorized": False,
+        "outcome_access_authorized": False,
+        "b2_06_evaluator_enabled": False,
+        "funding_publication_semantics_status": FUNDING_PUBLICATION_SEMANTICS_STATUS,
+        "checksum_sidecar_status": CHECKSUM_SIDECAR_STATUS,
+        "durability_status": DURABILITY_STATUS,
+        "network_required": False,
+    }
 
 
 def strip_runtime_rows(record: Mapping[str, Any]) -> dict[str, Any]:

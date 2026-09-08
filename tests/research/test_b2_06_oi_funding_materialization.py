@@ -5,8 +5,11 @@ or treats calc_time as legal availability.
 """
 from __future__ import annotations
 
+import inspect
 import io
+import json
 import subprocess
+import urllib.request
 import zipfile
 from dataclasses import replace
 from datetime import datetime, timezone
@@ -34,11 +37,13 @@ from scripts.research.binance_um_oi_funding_v0_contract_lib import (
     sha256_of_canonical_identity_payload,
 )
 from scripts.research.binance_um_oi_funding_v0_materializer_lib import (
+    EVIDENCE_GIT_DIR,
     MATERIALIZER_CLI_MODULE,
     MATERIALIZER_MODULE,
     RequestedArchiveObject,
     StrictPrefetchFetch,
     bind_materialized_snapshot,
+    copy_identity_evidence_to_git,
     expected_joint_funding_months,
     expected_joint_oi_days,
     frozen_requested_objects,
@@ -47,9 +52,12 @@ from scripts.research.binance_um_oi_funding_v0_materializer_lib import (
     materialize_one_object,
     oi_object_name,
     oi_urls,
+    read_commit_blob,
+    render_evidence_readme,
     require_frozen_request_set,
     require_no_caller_hash_substitution,
     run_materialization,
+    verify_committed_oi_funding_evidence,
     verify_oi_funding_git_authority,
     verify_written_source_bytes,
 )
@@ -223,6 +231,8 @@ def _fixture_manifest_bytes() -> bytes:
     data["outcome_access_authorized"] = False
     data["b2_06_evaluator_enabled"] = False
     data.pop("snapshot_manifest_sha256", None)
+    data.pop("object_ledger_sha256", None)
+    data.pop("quality_report_sha256", None)
     data.pop("provenance_git_commit_sha", None)
     data.pop("provenance_git_tree_sha", None)
     data.pop("materialized_at_utc", None)
@@ -670,6 +680,7 @@ def test_strict_prefetch_rejects_unexpected_url():
 def test_cli_has_no_period_override():
     source = MAT_CLI.read_text(encoding="utf-8")
     assert "--allow-acquire" in source
+    assert "--verify-only" in source
     assert "--start" not in source
     assert "--end" not in source
     assert "--period" not in source
@@ -726,3 +737,210 @@ def test_inf_funding_rate_fails(tmp_path: Path):
     store[funding.checksum_url] = (_checksum(FUNDING_ZIP, funding_zip), 200)
     with pytest.raises(OiFundingCorruptError, match="non-finite"):
         _run(tmp_path, _fetch_from(store))
+
+
+def _clone_head(tmp_path: Path) -> Path:
+    dest = tmp_path / "clone"
+    subprocess.run(
+        ["git", "clone", "--local", "--", str(REPO), str(dest)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return dest
+
+
+def _tracked_evidence_paths() -> dict[str, Path]:
+    snapshot_id = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))["snapshot_id"]
+    prefix = snapshot_id[:8]
+    base = REPO / EVIDENCE_GIT_DIR
+    return {
+        "snapshot_manifest_sha256": base / f"SNAPSHOT_{prefix}.json",
+        "object_ledger_sha256": base / f"OBJECT_LEDGER_{prefix}.json",
+        "quality_report_sha256": base / f"QUALITY_REPORT_{prefix}.json",
+        "readme": base / "README.md",
+    }
+
+
+def _mutate_json(path: Path):
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["_redteam_mutation"] = True
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def test_committed_evidence_hashes_match_tracked_manifest():
+    manifest = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))
+    paths = _tracked_evidence_paths()
+    for label in (
+        "snapshot_manifest_sha256",
+        "object_ledger_sha256",
+        "quality_report_sha256",
+    ):
+        actual = sha256_hex(paths[label].read_bytes())
+        assert actual == manifest[label], label
+
+
+def test_verify_committed_evidence_without_network(monkeypatch):
+    source = inspect.getsource(verify_committed_oi_funding_evidence)
+    assert "urlopen" not in source
+    assert "urllib_fetch" not in source
+    assert "retrying_urllib_fetch" not in source
+
+    def boom(*_args, **_kwargs):
+        raise AssertionError("network must not be used in verify-only")
+
+    monkeypatch.setattr(urllib.request, "urlopen", boom)
+    result = verify_committed_oi_funding_evidence(repo_root=REPO)
+    assert result["network_required"] is False
+    assert result["snapshot_id"] == (
+        "5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33"
+    )
+    assert result["research_authorized"] is False
+    assert result["outcome_access_authorized"] is False
+    assert result["b2_06_evaluator_enabled"] is False
+    assert result["funding_publication_semantics_status"] == (
+        "FUNDING_PUBLICATION_LATENCY_UNPROVEN"
+    )
+
+
+def test_mutate_object_ledger_fails_verification(tmp_path: Path):
+    clone = _clone_head(tmp_path)
+    path = clone / EVIDENCE_GIT_DIR / "OBJECT_LEDGER_5a9d036b.json"
+    _mutate_json(path)
+    _git(clone, "add", "-A")
+    _git_commit(clone, "mutate object ledger")
+    with pytest.raises(OiFundingCorruptError, match="object ledger SHA256"):
+        verify_committed_oi_funding_evidence(repo_root=clone)
+
+
+def test_mutate_quality_report_fails_verification(tmp_path: Path):
+    clone = _clone_head(tmp_path)
+    path = clone / EVIDENCE_GIT_DIR / "QUALITY_REPORT_5a9d036b.json"
+    _mutate_json(path)
+    _git(clone, "add", "-A")
+    _git_commit(clone, "mutate quality report")
+    with pytest.raises(OiFundingCorruptError, match="quality report SHA256"):
+        verify_committed_oi_funding_evidence(repo_root=clone)
+
+
+def test_mutate_snapshot_manifest_fails_verification(tmp_path: Path):
+    clone = _clone_head(tmp_path)
+    path = clone / EVIDENCE_GIT_DIR / "SNAPSHOT_5a9d036b.json"
+    _mutate_json(path)
+    _git(clone, "add", "-A")
+    _git_commit(clone, "mutate snapshot manifest")
+    with pytest.raises(OiFundingCorruptError, match="snapshot manifest SHA256"):
+        verify_committed_oi_funding_evidence(repo_root=clone)
+
+
+def test_manifest_hash_forgery_fails():
+    with pytest.raises(OiFundingCorruptError, match="caller-forged"):
+        verify_committed_oi_funding_evidence(
+            repo_root=REPO,
+            claimed_hashes={"object_ledger_sha256": "0" * 64},
+        )
+
+
+def test_stale_evidence_manifest_fails(tmp_path: Path):
+    clone = _clone_head(tmp_path)
+    manifest_path = clone / MANIFEST_PATH
+    text = manifest_path.read_text(encoding="utf-8")
+    stale = text.replace(
+        "521d42a471cc5fec74d808e8a4a3ea0078c87342b801df5dbf3836b4b69b4296",
+        "0" * 64,
+        1,
+    )
+    assert stale != text
+    manifest_path.write_text(stale, encoding="utf-8")
+    _git(clone, "add", "-A")
+    _git_commit(clone, "stale evidence manifest")
+    with pytest.raises(OiFundingCorruptError, match="object ledger SHA256"):
+        verify_committed_oi_funding_evidence(repo_root=clone)
+
+
+def test_verification_requires_exact_tracked_git_authority():
+    with pytest.raises(OiFundingAuthorizationError, match="not Git authority"):
+        verify_committed_oi_funding_evidence(
+            repo_root=REPO,
+            claimed_manifest={"snapshot_id": "a" * 64},
+        )
+    with pytest.raises(OiFundingAuthorizationError, match="not Git authority"):
+        verify_committed_oi_funding_evidence(
+            repo_root=REPO,
+            tracked_manifest={"snapshot_id": "a" * 64},
+        )
+    with pytest.raises(OiFundingAuthorizationError, match="must be an exact 40-hex SHA"):
+        read_commit_blob(REPO, "not-a-commit", MANIFEST_PATH)
+    with pytest.raises(OiFundingAuthorizationError, match="tracked Git path absent"):
+        read_commit_blob(REPO, "0" * 40, MANIFEST_PATH)
+
+
+def test_readme_generation_is_idempotent(tmp_path: Path):
+    result = _run(tmp_path, _fetch_from(_store()))
+    repo = tmp_path / "repo"
+    dataset = tmp_path / "dataset"
+    snapshot_id = result["snapshot"]["snapshot_id"]
+    copy_identity_evidence_to_git(
+        repo_root=repo, dataset_root=dataset, snapshot_id=snapshot_id
+    )
+    copy_identity_evidence_to_git(
+        repo_root=repo, dataset_root=dataset, snapshot_id=snapshot_id
+    )
+    payload = result["snapshot"]["identity_payload"]
+    quality = result["quality"]
+    hashes = result["hashes"]
+    expected = render_evidence_readme(
+        snapshot_id=snapshot_id,
+        snapshot_manifest_sha256=hashes["snapshot_manifest_sha256"],
+        object_ledger_sha256=hashes["object_ledger_sha256"],
+        quality_report_sha256=hashes["quality_report_sha256"],
+        provenance_git_commit_sha=payload["provenance_git_commit_sha"],
+        provenance_git_tree_sha=payload["provenance_git_tree_sha"],
+        expected_oi_objects=quality["expected_oi_objects"],
+        expected_funding_objects=quality["expected_funding_objects"],
+        accepted_oi_objects=quality["accepted_oi_objects"],
+        accepted_funding_objects=quality["accepted_funding_objects"],
+        rejected_oi_objects=quality["rejected_oi_objects"],
+        rejected_funding_objects=quality["rejected_funding_objects"],
+        raw_byte_total=quality["raw_byte_total"],
+        normalized_byte_total=quality["normalized_byte_total"],
+    )
+    readme = (repo / EVIDENCE_GIT_DIR / "README.md").read_text(encoding="utf-8")
+    assert readme == expected
+    committed = _tracked_evidence_paths()["readme"].read_text(encoding="utf-8")
+    live_manifest = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))
+    live_quality = json.loads(
+        _tracked_evidence_paths()["quality_report_sha256"].read_text(encoding="utf-8")
+    )
+    live_expected = render_evidence_readme(
+        snapshot_id=live_manifest["snapshot_id"],
+        snapshot_manifest_sha256=live_manifest["snapshot_manifest_sha256"],
+        object_ledger_sha256=live_manifest["object_ledger_sha256"],
+        quality_report_sha256=live_manifest["quality_report_sha256"],
+        provenance_git_commit_sha=live_manifest["provenance_git_commit_sha"],
+        provenance_git_tree_sha=live_manifest["provenance_git_tree_sha"],
+        expected_oi_objects=live_quality["expected_oi_objects"],
+        expected_funding_objects=live_quality["expected_funding_objects"],
+        accepted_oi_objects=live_quality["accepted_oi_objects"],
+        accepted_funding_objects=live_quality["accepted_funding_objects"],
+        rejected_oi_objects=live_quality["rejected_oi_objects"],
+        rejected_funding_objects=live_quality["rejected_funding_objects"],
+        raw_byte_total=live_quality["raw_byte_total"],
+        normalized_byte_total=live_quality["normalized_byte_total"],
+    )
+    assert committed == live_expected
+
+
+def test_verify_only_cli_does_not_prefetch(monkeypatch):
+    from scripts.research.binance_um_oi_funding_v0_materializer import main
+
+    def boom(*_args, **_kwargs):
+        raise AssertionError("verify-only must not prefetch or download")
+
+    monkeypatch.setattr(
+        "scripts.research.binance_um_oi_funding_v0_materializer._prefetch",
+        boom,
+    )
+    monkeypatch.setattr(urllib.request, "urlopen", boom)
+    assert main(["--verify-only", "--allow-acquire", "--repo-root", str(REPO)]) == 2
+    assert main(["--verify-only", "--repo-root", str(REPO)]) == 0

@@ -758,6 +758,18 @@ def test_freeze_docs_and_inventory_untouched():
     assert freeze["funding_calc_time_is_legal_available_at"] is False
     assert freeze["funding"]["caller_constructed_row_cannot_self_attest_publication"] is True
     assert freeze["snapshot_id"] == "5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33"
+    assert freeze["snapshot_manifest_sha256"] == "bb216f9abdb9fcd7c7648bbffb8541e811af06498d062faa5f31037793768e5e"
+    assert freeze["object_ledger_sha256"] == "521d42a471cc5fec74d808e8a4a3ea0078c87342b801df5dbf3836b4b69b4296"
+    assert freeze["quality_report_sha256"] == "a6b46df8350871bd737f02197b201b58d6069b19896d1767bda4c286bdc6c7b3"
+    assert freeze["checksum_sidecar_status"] == (
+        "TRANSIENT_CORROBORATING_EVIDENCE_NOT_GIT_RETAINED"
+    )
+    assert freeze["durability_status"] == (
+        "IDENTITY_PROVEN_AT_MATERIALIZATION_RAW_BYTES_NOT_GIT_RETAINED"
+    )
+    assert freeze["raw_zip_bytes_git_retained"] is False
+    assert freeze["normalized_jsonl_bytes_git_retained"] is False
+    assert freeze["current_local_recoverability_claimed"] is False
     assert freeze["snapshot_materialized"] is True
     assert freeze["research_authorized"] is False
     assert freeze["year_2025_opened"] is False
@@ -771,6 +783,10 @@ def test_freeze_docs_and_inventory_untouched():
     assert "research_authorized: false" in manifest
     assert MATERIALIZED_STATUS in manifest
     assert "5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33" in manifest
+    assert "521d42a471cc5fec74d808e8a4a3ea0078c87342b801df5dbf3836b4b69b4296" in manifest
+    assert "a6b46df8350871bd737f02197b201b58d6069b19896d1767bda4c286bdc6c7b3" in manifest
+    assert "object_ledger_sha256:" in manifest
+    assert "quality_report_sha256:" in manifest
     assert "EXACT_GIT_COMMIT_TREE_OBJECT_AUTHORITY" in manifest
     assert "FUNDING_PUBLICATION_LATENCY_UNPROVEN" in manifest
     inventory = INVENTORY.read_text(encoding="utf-8")

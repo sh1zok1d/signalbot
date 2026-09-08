@@ -30,6 +30,7 @@ from scripts.research.binance_um_oi_funding_v0_materializer_lib import (
     frozen_requested_objects,
     retrying_urllib_fetch,
     run_materialization,
+    verify_committed_oi_funding_evidence,
 )
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -89,6 +90,7 @@ def main(argv: list[str] | None = None) -> int:
         )
     )
     parser.add_argument("--allow-acquire", action="store_true")
+    parser.add_argument("--verify-only", action="store_true")
     parser.add_argument("--repo-root", type=Path, default=_REPO_ROOT)
     parser.add_argument("--dataset-root", type=Path, default=None)
     parser.add_argument("--authority-commit", default=None)
@@ -98,6 +100,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-copy-git-evidence", action="store_true")
     args = parser.parse_args(argv)
 
+    if args.verify_only:
+        if args.allow_acquire:
+            print("verify-only cannot download; omit --allow-acquire", file=sys.stderr)
+            return 2
+        result = verify_committed_oi_funding_evidence(repo_root=args.repo_root.resolve())
+        print(dumps_deterministic(result))
+        return 0
     if not args.allow_acquire:
         print(
             "refusing to download: pass --allow-acquire after reviewing the "

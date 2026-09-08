@@ -24,6 +24,13 @@
   "snapshot_authority": "EXACT_GIT_COMMIT_TREE_OBJECT_AUTHORITY",
   "snapshot_materialized": true,
   "snapshot_manifest_sha256": "bb216f9abdb9fcd7c7648bbffb8541e811af06498d062faa5f31037793768e5e",
+  "object_ledger_sha256": "521d42a471cc5fec74d808e8a4a3ea0078c87342b801df5dbf3836b4b69b4296",
+  "quality_report_sha256": "a6b46df8350871bd737f02197b201b58d6069b19896d1767bda4c286bdc6c7b3",
+  "checksum_sidecar_status": "TRANSIENT_CORROBORATING_EVIDENCE_NOT_GIT_RETAINED",
+  "durability_status": "IDENTITY_PROVEN_AT_MATERIALIZATION_RAW_BYTES_NOT_GIT_RETAINED",
+  "raw_zip_bytes_git_retained": false,
+  "normalized_jsonl_bytes_git_retained": false,
+  "current_local_recoverability_claimed": false,
   "evidence_dir": "docs/research_data/B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0",
   "normalization_module": "scripts/research/binance_um_oi_funding_v0_contract_lib.py",
   "git_authority": {
