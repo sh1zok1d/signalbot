@@ -8,12 +8,12 @@ real market data, open B2-06, or inspect 2025/2026.
 from __future__ import annotations
 
 import hashlib
-import importlib.util
 import json
 import subprocess
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from scripts.research import harness_synthetic_edge_calibration_v1 as runner
@@ -59,7 +59,7 @@ def _live_bytes(rel: str) -> bytes:
 
 def _commit_production_tree(tmp_path: Path, *, extra: dict[str, bytes] | None = None) -> Path:
     repo = tmp_path / "repo"
-    repo.mkdir()
+    repo.mkdir(parents=True)
     _git(repo, "init")
     _git(repo, "config", "user.email", "test@example.com")
     _git(repo, "config", "user.name", "test")
@@ -141,6 +141,7 @@ def _mock_record(
         "selected_STRICT_PASS": "F03" if useful else "NO_CANDIDATE",
         "taxonomy": "TRUE_DISCOVERY" if useful else "NO_DISCOVERY",
         "taxonomy_flags": {
+            "TRUE_DISCOVERY": useful,
             "ANY_EDGE_DECLARED": any_edge,
             "USEFUL_DISCOVERY": useful,
         },
@@ -161,6 +162,93 @@ def _planned_records(cell_flags=None) -> list[dict]:
         kwargs = dict(flags.get(key, {}))
         records.append(_mock_record(scenario_id, n_rows, world_index, **kwargs))
     return records
+
+
+def _authority_sha_map(repo: Path) -> dict[str, str]:
+    return {
+        "lib": _sha((repo / LIB_PATH).read_bytes()),
+        "runner": _sha((repo / RUNNER_PATH).read_bytes()),
+        "auth": _sha((repo / AUTH_MOD_PATH).read_bytes()),
+        "production": _sha((repo / PRODUCTION_PATH).read_bytes()),
+        "prereg_json": _sha(
+            (repo / "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.json").read_bytes()
+        ),
+        "prereg_md": _sha(
+            (repo / "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md").read_bytes()
+        ),
+    }
+
+
+def _commit_arm_authorizing_parent(repo: Path) -> str:
+    parent = _git(repo, "rev-parse", "HEAD")
+    tree = _git(repo, "rev-parse", "HEAD^{tree}")
+    payload = {
+        "production_monte_carlo_arm_authorized": True,
+        "authorized_execution_commit": parent,
+        "authorized_execution_tree": tree,
+        "execution_authority_sha256": _authority_sha_map(repo),
+    }
+    _write(repo / prod.CANONICAL_ARM_PATH, json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "arm parent execution commit")
+    return parent
+
+
+def _rank_safe_world(n_rows: int = 50) -> dict:
+    width = n_rows // 5
+    pattern_x1 = np.array([-2.0, -1.5, -0.4, 0.3, 0.8, 1.2, 1.6, 2.0, -0.2, 0.5], dtype=np.float64)
+    pattern_x2 = np.array([-2.0, -1.4, -0.3, 0.2, 0.7, 1.1, -1.2, 1.8, 0.1, -0.6], dtype=np.float64)
+    pattern_s = np.array([0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0], dtype=np.float64)
+    x1 = np.empty(n_rows, dtype=np.float64)
+    x2 = np.empty(n_rows, dtype=np.float64)
+    s = np.empty(n_rows, dtype=np.float64)
+    for i in range(5):
+        slc = slice(i * width, (i + 1) * width)
+        x1[slc] = np.resize(pattern_x1, width)
+        x2[slc] = np.resize(pattern_x2, width)
+        s[slc] = np.resize(pattern_s, width)
+    y = (0.20 * x1 - 0.15 * x2 + 0.25 * s + 0.01 * np.arange(n_rows, dtype=np.float64)).astype(
+        np.float64
+    )
+    return {
+        "Y": y,
+        "X1": x1,
+        "X2": x2,
+        "S": s,
+        "world_identity": lib.world_identity("EASY", n_rows, 0),
+    }
+
+
+def _records_with_invalid_prefix(n_invalid: int) -> list[dict]:
+    records = _planned_records()
+    for i in range(n_invalid):
+        rec = dict(records[i])
+        rec["valid"] = False
+        rec["invalid_reasons"] = ["bootstrap_invalid"]
+        records[i] = rec
+    return records
+
+
+def _records_with_cell_successes(scenario_id: str, n_rows: int, field: str, k: int) -> list[dict]:
+    records = []
+    seen = 0
+    for rec in _planned_records():
+        if rec["scenario_id"] == scenario_id and rec["n_rows"] == n_rows and seen < k:
+            records.append(
+                _mock_record(scenario_id, n_rows, rec["world_index"], **{field: True})
+            )
+            seen += 1
+        else:
+            records.append(rec)
+    return records
+
+
+def _k_for_verdict(kind: str, threshold: float, wanted: str, n: int = 400) -> int:
+    fn = lib.specificity_verdict if kind == "specificity" else lib.power_verdict
+    for k in range(n + 1):
+        if fn(lib.wilson_interval(k, n), threshold) == wanted:
+            return k
+    raise AssertionError(f"no success count yields {wanted} for {kind} {threshold}")
 
 
 def test_frozen_lib_and_prereg_unchanged():
@@ -214,39 +302,43 @@ def test_frozen_grid_is_derived_from_tracked_authority_only():
         prod.mint_final_result([], grid=grid)
 
 
-def test_stale_imported_module_disk_restoration_cannot_execute(tmp_path, monkeypatch, capfd):
+def test_stale_imported_module_disk_restoration_cannot_execute(tmp_path, monkeypatch):
     repo = _commit_production_tree(tmp_path)
     _bind_prod(monkeypatch, repo)
     source = Path(prod.__file__).read_text(encoding="utf-8")
-    assert "subprocess.run" in source
-    assert "sys.executable" in source
-    assert prod.WORKER_FLAG in source
-    original = (repo / PRODUCTION_PATH).read_bytes()
-    stale_spawn = prod.spawn_canonical_production_process
-    tampered = original + b"\nSTALE_IMPORT_MARKER = True  # stale tamper\n"
-    outside = tmp_path / "outside_git_root"
-    tamper_path = outside / "stale_production.py"
-    _write(tamper_path, tampered)
-    spec = importlib.util.spec_from_file_location("stale_production_mod", tamper_path)
-    stale_mod = importlib.util.module_from_spec(spec)
-    assert spec is not None and spec.loader is not None
-    spec.loader.exec_module(stale_mod)
-    assert stale_mod is not prod
-    assert stale_mod.STALE_IMPORT_MARKER is True
-    (repo / PRODUCTION_PATH).write_bytes(tampered)
-    (repo / PRODUCTION_PATH).write_bytes(original)
-    assert (repo / PRODUCTION_PATH).read_bytes() == original
-    assert not hasattr(prod, "STALE_IMPORT_MARKER")
+    assert "-I" in source
+    assert "-P" in source
+    assert "ISOLATED_CHILD_BOOTSTRAP" in source
     _assert_clean(repo)
-    rc = stale_spawn()
-    captured = capfd.readouterr()
+
+    def tampered_gates(**kwargs):
+        return {
+            "primary_positive": False,
+            "material_relative_mae": False,
+            "bootstrap_positive": False,
+            "placebo_separation": False,
+            "era_stability": False,
+            "support_sanity": False,
+            "MODEL_DETECTED": False,
+            "STRICT_PASS_EX_MATERIALITY": False,
+            "STRICT_PASS": False,
+            "TAMPERED_IN_PARENT": True,
+        }
+
+    monkeypatch.setattr(lib, "compose_gates", tampered_gates)
+    monkeypatch.setattr(prod, "compose_gates", tampered_gates)
+    assert lib.compose_gates(**prod.R1_PROBE_GATE_ARGS)["TAMPERED_IN_PARENT"] is True
     _assert_clean(repo)
-    assert rc == 2
-    assert "production_monte_carlo_arm_authorized=false" in captured.err
-    assert "working tree is not clean" not in captured.err
-    assert prod.production_monte_carlo_arm_authorized(repo) is False
-    with pytest.raises(prod.ProductionNotArmed, match="production_monte_carlo_arm_authorized=false"):
-        prod.evaluate_production_world("NULL", 5000, 0)
+    proc = prod.spawn_isolated_r1_probe()
+    assert proc.returncode == 0, proc.stderr
+    fingerprint = json.loads(proc.stdout)
+    assert fingerprint["module"] == "scripts.research.harness_synthetic_edge_calibration_v1_production"
+    assert fingerprint["compose_gates"]["MODEL_DETECTED"] is True
+    assert fingerprint["compose_gates"].get("TAMPERED_IN_PARENT") is None
+    assert fingerprint["production_monte_carlo_arm_authorized"] is False
+    assert fingerprint["frozen_lib_sha256"] == FROZEN_LIB_SHA256
+    _assert_clean(repo)
+    assert prod.spawn_canonical_production_process() == 2
 
 
 def test_modified_runner_bytes_fail(tmp_path, monkeypatch):
@@ -343,11 +435,9 @@ def test_alternate_clone_cannot_mint_distinct_run_identity(tmp_path, monkeypatch
     reservation_b = prod.canonical_json_bytes(prod.durable_reservation_document(clone))
     assert ident_a == ident_b
     assert reservation_a == reservation_b
-    doc_a = prod.bind_result_document(aggregates=prod.aggregate_planned_worlds(_planned_records()), repo_root=repo)
-    _bind_prod(monkeypatch, clone)
-    doc_b = prod.bind_result_document(aggregates=prod.aggregate_planned_worlds(_planned_records()), repo_root=clone)
-    assert doc_a["run_identity"] == doc_b["run_identity"] == ident_a
-    assert prod.canonical_json_bytes(doc_a) == prod.canonical_json_bytes(doc_b)
+    records = _planned_records()
+    assert prod.world_set_sha256(records) == prod.world_set_sha256(records)
+    assert prod.canonical_run_identity(repo) == ident_a
 
 
 def test_reservation_deletion_cannot_create_distinct_run(tmp_path, monkeypatch):
@@ -434,7 +524,7 @@ def test_partial_world_set_cannot_finalize(tmp_path, monkeypatch):
     assert aggregates["incomplete_execution"] is True
     assert aggregates["mechanical_conclusion"] == "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM"
     monkeypatch.setattr(prod, "production_monte_carlo_arm_authorized", lambda repo_root=None: True)
-    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="partial world set cannot finalize"):
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="incomplete execution cannot mint"):
         prod.mint_final_result(records)
     partial = prod.persist_partial_worlds(records)
     assert partial["final_result_minted"] is False
@@ -482,6 +572,8 @@ def test_invalid_worlds_remain_in_planned_denominator():
     assert aggregates["invalid_counts_by_cell"]["NULL|5000"]["invalid_count"] == 10
     assert aggregates["invalid_counts_total"]["invalid_count"] == 10
     assert aggregates["invalid_counts_total"]["reasons"]["bootstrap_invalid"] == 10
+    assert aggregates["incomplete_execution"] is True
+    assert aggregates["mechanical_conclusion"] == "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM"
 
 
 def test_wilson_thresholds_exact():
@@ -502,77 +594,582 @@ def test_wilson_thresholds_exact():
 
 
 def test_mechanical_conclusion_priority_exact():
-    incomplete = prod.aggregate_planned_worlds(_planned_records()[:10])
-    assert incomplete["mechanical_conclusion"] == "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM"
-    all_fail_null = _planned_records(
-        {("NULL", 5000): {"oracle_model": True, "any_edge": True}}
-    )
-    repaired = prod.aggregate_planned_worlds(all_fail_null)
-    expected = lib.mechanical_conclusion(
-        incomplete_execution=False,
-        oracle_null_specificity=repaired["verdicts"]["oracle_null_specificity"],
-        blind_null_specificity=repaired["verdicts"]["blind_null_specificity"],
-        trap_specificity=repaired["verdicts"]["trap_specificity"],
-        easy_oracle_power=repaired["verdicts"]["easy_oracle_power"],
-        moderate_oracle_power=repaired["verdicts"]["moderate_oracle_power"],
-        easy_blind_useful=repaired["verdicts"]["easy_blind_useful"],
-        moderate_blind_useful=repaired["verdicts"]["moderate_blind_useful"],
-        visibility_wilson_upper=repaired["arms"]["VISIBILITY_FLOOR_EASY_ORACLE"]["interval"]["upper"],
-        model_detection_wilson_upper=repaired["arms"]["MODEL_FLOOR_EASY_ORACLE"]["interval"]["upper"],
-        materiality_only_failure=repaired["arms"]["MATERIALITY_ONLY_DIAGNOSTIC"][
-            "materiality_only_failure"
-        ],
-    )
-    assert repaired["mechanical_conclusion"] == expected
-    assert expected == "METHODOLOGY_REPAIR_REQUIRED_BEFORE_B2_06"
+    vectors = [
+        (
+            "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM",
+            dict(
+                incomplete_execution=True,
+                oracle_null_specificity=lib.FAIL,
+                blind_null_specificity=lib.PASS,
+                trap_specificity=lib.PASS,
+                easy_oracle_power=lib.FAIL,
+                moderate_oracle_power=lib.PASS,
+                easy_blind_useful=lib.PASS,
+                moderate_blind_useful=lib.PASS,
+            ),
+        ),
+        (
+            "METHODOLOGY_REPAIR_REQUIRED_BEFORE_B2_06",
+            dict(
+                incomplete_execution=False,
+                oracle_null_specificity=lib.FAIL,
+                blind_null_specificity=lib.PASS,
+                trap_specificity=lib.PASS,
+                easy_oracle_power=lib.PASS,
+                moderate_oracle_power=lib.PASS,
+                easy_blind_useful=lib.PASS,
+                moderate_blind_useful=lib.PASS,
+            ),
+        ),
+        (
+            "METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06",
+            dict(
+                incomplete_execution=False,
+                oracle_null_specificity=lib.PASS,
+                blind_null_specificity=lib.PASS,
+                trap_specificity=lib.PASS,
+                easy_oracle_power=lib.FAIL,
+                moderate_oracle_power=lib.PASS,
+                easy_blind_useful=lib.PASS,
+                moderate_blind_useful=lib.PASS,
+            ),
+        ),
+        (
+            "CALIBRATION_INDETERMINATE",
+            dict(
+                incomplete_execution=False,
+                oracle_null_specificity=lib.INDETERMINATE,
+                blind_null_specificity=lib.PASS,
+                trap_specificity=lib.PASS,
+                easy_oracle_power=lib.PASS,
+                moderate_oracle_power=lib.PASS,
+                easy_blind_useful=lib.PASS,
+                moderate_blind_useful=lib.PASS,
+            ),
+        ),
+        (
+            "DISCOVERY_BOTTLENECK_BEFORE_B2_06",
+            dict(
+                incomplete_execution=False,
+                oracle_null_specificity=lib.PASS,
+                blind_null_specificity=lib.PASS,
+                trap_specificity=lib.PASS,
+                easy_oracle_power=lib.PASS,
+                moderate_oracle_power=lib.PASS,
+                easy_blind_useful=lib.FAIL,
+                moderate_blind_useful=lib.PASS,
+            ),
+        ),
+        (
+            "VISIBILITY_FLOOR",
+            dict(
+                incomplete_execution=False,
+                oracle_null_specificity=lib.PASS,
+                blind_null_specificity=lib.PASS,
+                trap_specificity=lib.PASS,
+                easy_oracle_power=lib.PASS,
+                moderate_oracle_power=lib.PASS,
+                easy_blind_useful=lib.PASS,
+                moderate_blind_useful=lib.PASS,
+                visibility_wilson_upper=0.49,
+                model_detection_wilson_upper=0.90,
+            ),
+        ),
+        (
+            "MODEL_FLOOR",
+            dict(
+                incomplete_execution=False,
+                oracle_null_specificity=lib.PASS,
+                blind_null_specificity=lib.PASS,
+                trap_specificity=lib.PASS,
+                easy_oracle_power=lib.PASS,
+                moderate_oracle_power=lib.PASS,
+                easy_blind_useful=lib.PASS,
+                moderate_blind_useful=lib.PASS,
+                visibility_wilson_upper=0.90,
+                model_detection_wilson_upper=0.49,
+            ),
+        ),
+        (
+            "MATERIALITY_ONLY_DIAGNOSTIC",
+            dict(
+                incomplete_execution=False,
+                oracle_null_specificity=lib.PASS,
+                blind_null_specificity=lib.PASS,
+                trap_specificity=lib.PASS,
+                easy_oracle_power=lib.PASS,
+                moderate_oracle_power=lib.PASS,
+                easy_blind_useful=lib.PASS,
+                moderate_blind_useful=lib.PASS,
+                visibility_wilson_upper=0.90,
+                model_detection_wilson_upper=0.90,
+                materiality_only_failure=True,
+            ),
+        ),
+        (
+            "NO_V1_EVIDENCE_OF_DISCOVERY_BOTTLENECK",
+            dict(
+                incomplete_execution=False,
+                oracle_null_specificity=lib.PASS,
+                blind_null_specificity=lib.PASS,
+                trap_specificity=lib.PASS,
+                easy_oracle_power=lib.PASS,
+                moderate_oracle_power=lib.PASS,
+                easy_blind_useful=lib.PASS,
+                moderate_blind_useful=lib.PASS,
+                visibility_wilson_upper=0.90,
+                model_detection_wilson_upper=0.90,
+                materiality_only_failure=False,
+            ),
+        ),
+    ]
+    for expected, kwargs in vectors:
+        assert lib.mechanical_conclusion(**kwargs) == expected
 
 
 def test_canonical_result_bytes_deterministic(tmp_path, monkeypatch):
     repo = _commit_production_tree(tmp_path)
     _bind_prod(monkeypatch, repo)
-    aggregates = prod.aggregate_planned_worlds(_planned_records())
-    first = prod.bind_result_document(aggregates=aggregates, repo_root=repo)
-    second = prod.bind_result_document(aggregates=aggregates, repo_root=repo)
+    records = _planned_records()
+    monkeypatch.setattr(prod, "production_monte_carlo_arm_authorized", lambda repo_root=None: True)
+    first = prod.mint_final_result(records)
+    second = prod.mint_final_result(records)
     assert prod.canonical_json_bytes(first) == prod.canonical_json_bytes(second)
-    assert first["result_sha256"] == second["result_sha256"]
-    assert first["result_size"] == second["result_size"]
-    assert first["run_identity"] == prod.canonical_run_identity(repo)
-    assert first["frozen_lib_sha256"] == FROZEN_LIB_SHA256
-    assert first["real_market_data_access_authorized"] is False
-    assert first["b2_06_scientific_execution_authorized"] is False
-    assert first["validation_2025_authorized"] is False
-    assert first["oos_2026_authorized"] is False
-    prod.verify_bound_result_document(first, repo_root=repo)
+    assert first["core_sha256"] == second["core_sha256"]
+    assert first["core_size"] == second["core_size"]
+    assert first["core_size"] == len(prod.canonical_json_bytes(first["core"]))
+    assert "result_sha256" not in first
+    assert "result_sha256" not in first["core"]
+    assert first["core"]["run_identity"] == prod.canonical_run_identity(repo)
+    assert first["core"]["world_set_sha256"] == prod.world_set_sha256(records)
+    assert first["core"]["frozen_lib_sha256"] == FROZEN_LIB_SHA256
+    assert first["core"]["real_market_data_access_authorized"] is False
+    assert first["core"]["b2_06_scientific_execution_authorized"] is False
+    assert first["core"]["validation_2025_authorized"] is False
+    assert first["core"]["oos_2026_authorized"] is False
+    prod.verify_bound_result_document(first, records)
 
 
 def test_digest_size_run_identity_tamper_detected(tmp_path, monkeypatch):
     repo = _commit_production_tree(tmp_path)
     _bind_prod(monkeypatch, repo)
-    document = prod.bind_result_document(
-        aggregates=prod.aggregate_planned_worlds(_planned_records()), repo_root=repo
-    )
+    records = _planned_records()
+    monkeypatch.setattr(prod, "production_monte_carlo_arm_authorized", lambda repo_root=None: True)
+    document = prod.mint_final_result(records)
     digest_tamper = dict(document)
-    digest_tamper["result_sha256"] = "ab" * 32
-    with pytest.raises(prod.ProductionIntegrityError, match="result digest tamper"):
-        prod.verify_bound_result_document(digest_tamper, repo_root=repo)
+    digest_tamper["core_sha256"] = "ab" * 32
+    with pytest.raises(prod.ProductionIntegrityError, match="core digest tamper"):
+        prod.verify_bound_result_document(digest_tamper, records)
     size_tamper = dict(document)
-    size_tamper["result_size"] = int(document["result_size"]) + 1
-    with pytest.raises(prod.ProductionIntegrityError, match="result size tamper"):
-        prod.verify_bound_result_document(size_tamper, repo_root=repo)
-    ident_tamper = dict(document)
-    ident_tamper["run_identity"] = "cd" * 32
-    ident_tamper["result_sha256"] = _sha(
-        prod.canonical_json_bytes(
-            {key: value for key, value in ident_tamper.items() if key not in {"result_sha256", "result_size"}}
-        )
-    )
-    ident_tamper["result_size"] = len(
-        prod.canonical_json_bytes(
-            {key: value for key, value in ident_tamper.items() if key not in {"result_sha256", "result_size"}}
-        )
-    )
+    size_tamper["core_size"] = int(document["core_size"]) + 1
+    with pytest.raises(prod.ProductionIntegrityError, match="core size tamper"):
+        prod.verify_bound_result_document(size_tamper, records)
+    ident_core = dict(document["core"])
+    ident_core["run_identity"] = "cd" * 32
+    ident_bytes = prod.canonical_json_bytes(ident_core)
+    ident_tamper = {
+        "core": ident_core,
+        "core_sha256": _sha(ident_bytes),
+        "core_size": len(ident_bytes),
+    }
     with pytest.raises(prod.ProductionIntegrityError, match="run_identity tamper"):
-        prod.verify_bound_result_document(ident_tamper, repo_root=repo)
+        prod.verify_bound_result_document(ident_tamper, records)
+    world_core = dict(document["core"])
+    world_core["world_set_sha256"] = "ee" * 32
+    world_bytes = prod.canonical_json_bytes(world_core)
+    world_tamper = {
+        "core": world_core,
+        "core_sha256": _sha(world_bytes),
+        "core_size": len(world_bytes),
+    }
+    with pytest.raises(prod.ProductionIntegrityError, match="world_set_sha256 tamper"):
+        prod.verify_bound_result_document(world_tamper, records)
+
+
+def test_forged_aggregates_without_world_records_refused(tmp_path, monkeypatch):
+    repo = _commit_production_tree(tmp_path)
+    _bind_prod(monkeypatch, repo)
+    forged_core = {
+        "aggregates": {"mechanical_conclusion": "NO_V1_EVIDENCE_OF_DISCOVERY_BOTTLENECK"},
+        "reservation_sha256": "aa" * 32,
+        "claim_sha256": "bb" * 32,
+        "run_identity": "cc" * 32,
+        "world_set_sha256": "dd" * 32,
+        "planned_world_count": 3200,
+        "observed_world_count": 3200,
+    }
+    core_bytes = prod.canonical_json_bytes(forged_core)
+    forged = {
+        "core": forged_core,
+        "core_sha256": _sha(core_bytes),
+        "core_size": len(core_bytes),
+    }
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="caller-supplied aggregates"):
+        prod.bind_result_document(
+            aggregates=forged_core["aggregates"],
+            reservation_sha256=forged_core["reservation_sha256"],
+            claim_sha256=forged_core["claim_sha256"],
+        )
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="caller arguments"):
+        prod.mint_final_result(
+            [],
+            aggregates=forged_core["aggregates"],
+            reservation_sha256="aa" * 32,
+            claim_sha256="bb" * 32,
+        )
+    with pytest.raises(prod.ProductionIntegrityError):
+        prod.verify_bound_result_document(forged, [])
+
+
+@pytest.mark.parametrize("n_invalid", [1, 25])
+def test_invalid_worlds_force_incomplete_and_refuse_mint(tmp_path, monkeypatch, n_invalid):
+    repo = _commit_production_tree(tmp_path)
+    _bind_prod(monkeypatch, repo)
+    records = _records_with_invalid_prefix(n_invalid)
+    aggregates = prod.aggregate_planned_worlds(records)
+    assert aggregates["observed_world_count"] == 3200
+    assert aggregates["planned_world_count"] == 3200
+    assert aggregates["invalid_counts_by_cell"]["NULL|5000"]["planned"] == 400
+    assert aggregates["invalid_counts_by_cell"]["NULL|5000"]["invalid_count"] == n_invalid
+    assert aggregates["invalid_counts_total"]["invalid_count"] == n_invalid
+    assert aggregates["incomplete_execution"] is True
+    assert aggregates["mechanical_conclusion"] == "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM"
+    monkeypatch.setattr(prod, "production_monte_carlo_arm_authorized", lambda repo_root=None: True)
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="incomplete execution cannot mint"):
+        prod.mint_final_result(records)
+
+
+def test_extra_non_planned_world_rejected():
+    records = _planned_records()
+    records.append(_mock_record("NULL", 5000, 999))
+    with pytest.raises(prod.ProductionIntegrityError, match="extra world is not in the planned production set"):
+        prod.aggregate_planned_worlds(records)
+
+
+def test_descriptive_small_bands_and_true_discovery_interval():
+    aggregates = prod.aggregate_planned_worlds(_planned_records())
+    allowed = {"HIGH", "MODERATE", "LOW", "VERY_LOW", "INDETERMINATE"}
+    for name in (
+        "SMALL_ORACLE_MODEL_DETECTED_N5000",
+        "SMALL_ORACLE_MODEL_DETECTED_N2500",
+        "SMALL_ORACLE_MODEL_DETECTED_N10000",
+    ):
+        arm = aggregates["arms"][name]
+        assert arm["band"] in allowed
+        assert "interval" in arm
+        assert arm["n"] == 400
+    discovery = aggregates["arms"]["TRUE_DISCOVERY_RATE"]
+    assert discovery["descriptive_only"] is True
+    assert "interval" in discovery
+    assert "lower" in discovery["interval"]
+    assert "upper" in discovery["interval"]
+    assert discovery["band"] in allowed
+
+
+def test_wilson_boundary_success_counts_at_each_threshold():
+    cases = (
+        ("ORACLE_NULL_MODEL_DETECTED", "NULL", 5000, "oracle_model", 0.05, "specificity"),
+        ("BLIND_NULL_ANY_EDGE_DECLARED", "NULL", 5000, "any_edge", 0.10, "specificity"),
+        ("NONSTATIONARY_TRAP_STRICT_PASS_EX_MATERIALITY", "NONSTATIONARY_TRAP", 5000, "strict_ex", 0.20, "specificity"),
+        ("ORACLE_EASY_MODEL_DETECTED", "EASY", 5000, "oracle_model", 0.90, "power"),
+        ("ORACLE_MODERATE_MODEL_DETECTED", "MODERATE", 5000, "oracle_model", 0.70, "power"),
+        ("BLIND_EASY_USEFUL_DISCOVERY", "EASY", 5000, "useful", 0.80, "power"),
+        ("BLIND_MODERATE_USEFUL_DISCOVERY", "MODERATE", 5000, "useful", 0.50, "power"),
+    )
+    for arm_name, scenario_id, n_rows, field, threshold, kind in cases:
+        for wanted in (lib.PASS, lib.INDETERMINATE, lib.FAIL):
+            k = _k_for_verdict(kind, threshold, wanted)
+            records = _records_with_cell_successes(scenario_id, n_rows, field, k)
+            aggregates = prod.aggregate_planned_worlds(records)
+            arm = aggregates["arms"][arm_name]
+            assert arm["n"] == 400
+            assert arm["successes"] == k
+            assert arm["verdict"] == wanted
+            assert arm["threshold"] == threshold
+            assert aggregates["incomplete_execution"] is False
+
+
+def test_incomplete_world_is_recorded_invalid_and_stays_in_denominator():
+    n = 50
+    world = {
+        "Y": np.arange(n, dtype=np.float64),
+        "X1": np.ones(n, dtype=np.float64),
+        "X2": np.ones(n, dtype=np.float64),
+        "S": np.ones(n, dtype=np.float64),
+        "world_identity": lib.world_identity("NULL", 5000, 0),
+    }
+    out = prod.evaluate_production_candidate(
+        world, "F03", scenario_id="NULL", n_rows=n, world_index=0
+    )
+    assert out["valid"] is False
+    assert out["stays_in_denominator"] is True
+    assert any("full rank" in str(reason) for reason in out["invalid_reasons"])
+    records = _planned_records()
+    invalid = dict(records[0])
+    invalid["valid"] = False
+    invalid["invalid_reasons"] = list(out["invalid_reasons"])
+    records[0] = invalid
+    aggregates = prod.aggregate_planned_worlds(records)
+    assert aggregates["observed_world_count"] == 3200
+    assert aggregates["invalid_counts_by_cell"]["NULL|5000"]["planned"] == 400
+    assert aggregates["invalid_counts_by_cell"]["NULL|5000"]["invalid_count"] == 1
+    assert aggregates["incomplete_execution"] is True
+    assert aggregates["mechanical_conclusion"] == "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM"
+
+
+def test_train_end_by_score_era_preserved_on_candidate(monkeypatch):
+    world = _rank_safe_world(50)
+    monkeypatch.setattr(
+        prod,
+        "visibility_from_residuals",
+        lambda *args, **kwargs: {"GROUND_TRUTH_VISIBLE": False},
+    )
+    monkeypatch.setattr(
+        prod,
+        "prediction_bootstrap",
+        lambda *args, **kwargs: {"world_invalid": False, "bootstrap_positive": True},
+    )
+    monkeypatch.setattr(
+        prod,
+        "placebo_q95",
+        lambda *args, **kwargs: {
+            "world_invalid": False,
+            "placebo_invalid": False,
+            "placebo_q95": 0.0,
+        },
+    )
+    out = prod.evaluate_production_candidate(
+        world, "F03", scenario_id="EASY", n_rows=50, world_index=0
+    )
+    assert out["valid"] is True
+    assert "train_end_by_score_era" in out
+    assert set(out["train_end_by_score_era"]) == {"E2", "E3", "E4", "E5"}
+    source = Path(prod.__file__).read_text(encoding="utf-8")
+    assert "train_end_by_score_era" in source
+
+
+def test_malicious_usercustomize_cannot_alter_compose_gates(tmp_path, monkeypatch):
+    repo = _commit_production_tree(tmp_path)
+    _bind_prod(monkeypatch, repo)
+    marker = tmp_path / "usercustomize_ran"
+    user_site = (
+        tmp_path
+        / "userbase"
+        / "lib"
+        / f"python{sys.version_info.major}.{sys.version_info.minor}"
+        / "site-packages"
+    )
+    user_site.mkdir(parents=True)
+    _write(
+        user_site / "usercustomize.py",
+        f"from pathlib import Path\nPath({str(marker)!r}).write_text('ran')\n",
+    )
+    monkeypatch.setenv("PYTHONUSERBASE", str(tmp_path / "userbase"))
+    proc = prod.spawn_isolated_r1_probe()
+    assert proc.returncode == 0, proc.stderr
+    fingerprint = json.loads(proc.stdout)
+    assert fingerprint["compose_gates"]["MODEL_DETECTED"] is True
+    assert fingerprint["module"] == "scripts.research.harness_synthetic_edge_calibration_v1_production"
+    assert marker.exists() is False
+
+
+def test_malicious_sitecustomize_cannot_alter_scientific_module(tmp_path, monkeypatch):
+    repo = _commit_production_tree(tmp_path)
+    _bind_prod(monkeypatch, repo)
+    marker = tmp_path / "sitecustomize_ran"
+    site_dir = tmp_path / "sitecustomize_dir"
+    site_dir.mkdir()
+    _write(
+        site_dir / "sitecustomize.py",
+        (
+            "from pathlib import Path\n"
+            f"Path({str(marker)!r}).write_text('ran')\n"
+            "import builtins\n"
+            "_real = builtins.__import__\n"
+            "def _hook(name, *args, **kwargs):\n"
+            "    mod = _real(name, *args, **kwargs)\n"
+            "    if 'harness_synthetic_edge_calibration_v1_lib' in name:\n"
+            "        mod.compose_gates = lambda **kw: {'MODEL_DETECTED': False, 'TAMPERED_SITECUSTOMIZE': True}\n"
+            "    return mod\n"
+            "builtins.__import__ = _hook\n"
+        ),
+    )
+    monkeypatch.setenv("PYTHONPATH", str(site_dir))
+    proc = prod.spawn_isolated_r1_probe()
+    assert proc.returncode == 0, proc.stderr
+    fingerprint = json.loads(proc.stdout)
+    assert fingerprint["compose_gates"]["MODEL_DETECTED"] is True
+    assert fingerprint["compose_gates"].get("TAMPERED_SITECUSTOMIZE") is None
+    assert marker.exists() is False
+
+
+def test_hostile_scripts_research_numpy_cannot_execute_before_verification(tmp_path, monkeypatch):
+    marker = tmp_path / "hostile_numpy_ran"
+    hostile = (
+        "from pathlib import Path\n"
+        f"Path({str(marker)!r}).write_text('hostile numpy executed')\n"
+        "raise RuntimeError('hostile numpy executed')\n"
+    )
+    repo = _commit_production_tree(
+        tmp_path, extra={"scripts/research/numpy.py": hostile.encode("utf-8")}
+    )
+    _bind_prod(monkeypatch, repo)
+    _assert_clean(repo)
+    proc = prod.spawn_isolated_r1_probe()
+    assert proc.returncode == 0, proc.stderr
+    fingerprint = json.loads(proc.stdout)
+    assert fingerprint["module"] == "scripts.research.harness_synthetic_edge_calibration_v1_production"
+    assert fingerprint["compose_gates"]["MODEL_DETECTED"] is True
+    assert marker.exists() is False
+
+
+def test_isolated_child_canonical_module_identity_not_main(tmp_path, monkeypatch):
+    repo = _commit_production_tree(tmp_path)
+    _bind_prod(monkeypatch, repo)
+    proc = prod.spawn_isolated_r1_probe()
+    assert proc.returncode == 0, proc.stderr
+    fingerprint = json.loads(proc.stdout)
+    assert fingerprint["module"] == "scripts.research.harness_synthetic_edge_calibration_v1_production"
+    assert fingerprint["module"] != "__main__"
+    assert Path(fingerprint["sys_path0"]).resolve() == repo.resolve()
+
+
+def test_inherited_pythonpath_cannot_substitute_another_checkout(tmp_path, monkeypatch):
+    repo = _commit_production_tree(tmp_path)
+    _bind_prod(monkeypatch, repo)
+    hostile = tmp_path / "hostile_checkout"
+    package = hostile / "scripts" / "research"
+    package.mkdir(parents=True)
+    _write(hostile / "scripts" / "__init__.py", "")
+    _write(package / "__init__.py", "")
+    _write(
+        package / "harness_synthetic_edge_calibration_v1_production.py",
+        (
+            "def _isolated_child_main(mode):\n"
+            "    print('{\"module\": \"TAMPERED_PYTHONPATH\", \"compose_gates\": {\"MODEL_DETECTED\": false}}')\n"
+            "    return 0\n"
+        ),
+    )
+    monkeypatch.setenv("PYTHONPATH", str(hostile))
+    proc = prod.spawn_isolated_r1_probe()
+    assert proc.returncode == 0, proc.stderr
+    fingerprint = json.loads(proc.stdout)
+    assert fingerprint["module"] == "scripts.research.harness_synthetic_edge_calibration_v1_production"
+    assert fingerprint["compose_gates"]["MODEL_DETECTED"] is True
+    assert fingerprint["module"] != "TAMPERED_PYTHONPATH"
+
+
+def test_arm_parent_commit_positive_control(tmp_path, monkeypatch):
+    repo = _commit_production_tree(tmp_path)
+    parent = _commit_arm_authorizing_parent(repo)
+    _bind_prod(monkeypatch, repo)
+    _assert_clean(repo)
+    assert prod.production_monte_carlo_arm_authorized(repo) is True
+    assert _git(repo, "rev-parse", "HEAD^") == parent
+    rc = prod.spawn_canonical_production_process()
+    assert rc == 2
+    _write(repo / "docs/research/NOTE.txt", "descendant after ARM\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "descendant after ARM")
+    assert prod.production_monte_carlo_arm_authorized(repo) is False
+
+
+def test_arm_wrong_parent_tree_digest_and_modified_bytes_fail(tmp_path, monkeypatch):
+    repo = _commit_production_tree(tmp_path)
+    parent = _git(repo, "rev-parse", "HEAD")
+    tree = _git(repo, "rev-parse", "HEAD^{tree}")
+    digests = _authority_sha_map(repo)
+    wrong_parent = dict(
+        production_monte_carlo_arm_authorized=True,
+        authorized_execution_commit="0" * 40,
+        authorized_execution_tree=tree,
+        execution_authority_sha256=digests,
+    )
+    _write(repo / prod.CANONICAL_ARM_PATH, json.dumps(wrong_parent, indent=2) + "\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "wrong parent ARM")
+    _bind_prod(monkeypatch, repo)
+    assert prod.production_monte_carlo_arm_authorized(repo) is False
+
+    repo2 = _commit_production_tree(tmp_path / "tree")
+    wrong_tree = {
+        "production_monte_carlo_arm_authorized": True,
+        "authorized_execution_commit": _git(repo2, "rev-parse", "HEAD"),
+        "authorized_execution_tree": "0" * 40,
+        "execution_authority_sha256": _authority_sha_map(repo2),
+    }
+    _write(repo2 / prod.CANONICAL_ARM_PATH, json.dumps(wrong_tree, indent=2) + "\n")
+    _git(repo2, "add", "-A")
+    _git(repo2, "commit", "-m", "wrong tree ARM")
+    _bind_prod(monkeypatch, repo2)
+    assert prod.production_monte_carlo_arm_authorized(repo2) is False
+
+    repo3 = _commit_production_tree(tmp_path / "digest")
+    parent3 = _git(repo3, "rev-parse", "HEAD")
+    tree3 = _git(repo3, "rev-parse", "HEAD^{tree}")
+    bad_digests = dict(_authority_sha_map(repo3))
+    bad_digests["lib"] = "ab" * 32
+    wrong_digest = {
+        "production_monte_carlo_arm_authorized": True,
+        "authorized_execution_commit": parent3,
+        "authorized_execution_tree": tree3,
+        "execution_authority_sha256": bad_digests,
+    }
+    _write(repo3 / prod.CANONICAL_ARM_PATH, json.dumps(wrong_digest, indent=2) + "\n")
+    _git(repo3, "add", "-A")
+    _git(repo3, "commit", "-m", "wrong digest ARM")
+    _bind_prod(monkeypatch, repo3)
+    assert prod.production_monte_carlo_arm_authorized(repo3) is False
+
+    repo4 = _commit_production_tree(tmp_path / "bytes")
+    parent4 = _git(repo4, "rev-parse", "HEAD")
+    tree4 = _git(repo4, "rev-parse", "HEAD^{tree}")
+    payload = {
+        "production_monte_carlo_arm_authorized": True,
+        "authorized_execution_commit": parent4,
+        "authorized_execution_tree": tree4,
+        "execution_authority_sha256": _authority_sha_map(repo4),
+    }
+    _write(repo4 / prod.CANONICAL_ARM_PATH, json.dumps(payload, indent=2) + "\n")
+    (repo4 / RUNNER_PATH).write_bytes(_live_bytes(RUNNER_PATH) + b"\n# arm-commit tamper\n")
+    _git(repo4, "add", "-A")
+    _git(repo4, "commit", "-m", "ARM plus modified runner")
+    _bind_prod(monkeypatch, repo4)
+    assert prod.production_monte_carlo_arm_authorized(repo4) is False
+
+
+def test_recover_partial_from_committed_artifact_and_reject_foreign_identity(tmp_path, monkeypatch):
+    repo = _commit_production_tree(tmp_path)
+    _bind_prod(monkeypatch, repo)
+    records = _planned_records()[:10]
+    payload = prod.persist_partial_worlds(records)
+    exec_head = payload["execution_head"]
+    _write(repo / prod.CANONICAL_PARTIAL_PATH, prod.canonical_json_bytes(payload).decode("utf-8"))
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="clean verified freeze"):
+        prod.recover_partial_from_tracked_authority()
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "commit partial artifact")
+    recovered = prod.recover_partial_from_tracked_authority()
+    assert recovered["canonical_path"] == prod.CANONICAL_PARTIAL_PATH
+    assert recovered["run_identity"] == payload["run_identity"]
+    assert recovered["execution_head"] == exec_head
+    assert recovered["observed_world_count"] == 10
+    assert recovered["final_result_minted"] is False
+
+    forged = dict(payload)
+    forged["run_identity"] = "ab" * 32
+    body = {key: value for key, value in forged.items() if key not in {"partial_sha256", "partial_size"}}
+    raw = prod.canonical_json_bytes(body)
+    forged["partial_sha256"] = _sha(raw)
+    forged["partial_size"] = len(raw)
+    _write(repo / prod.CANONICAL_PARTIAL_PATH, prod.canonical_json_bytes(forged).decode("utf-8"))
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "foreign run identity partial")
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized,
+        match="run_identity does not match the named execution identity",
+    ):
+        prod.recover_partial_from_tracked_authority()
 
 
 def test_114_local_reservation_superseded_when_production_module_tracked(tmp_path, monkeypatch):
@@ -586,6 +1183,10 @@ def test_cli_uses_fresh_process_and_stays_unarmed():
     source = Path(runner.__file__).read_text(encoding="utf-8")
     assert "spawn_canonical_production_process" in source
     assert "run_authorized_production_grid" not in source
+    production_source = Path(prod.__file__).read_text(encoding="utf-8")
+    assert "-I" in production_source
+    assert "-P" in production_source
+    assert "ISOLATED_CHILD_BOOTSTRAP" in production_source
     identity = json.loads(
         subprocess.check_output(
             [
