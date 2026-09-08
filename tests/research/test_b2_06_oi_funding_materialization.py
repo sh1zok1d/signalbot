@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
+import yaml
 
 from scripts.research.binance_um_oi_funding_v0_contract_lib import (
     CONTRACT_PATH,
@@ -208,6 +209,26 @@ def _git_commit(root: Path, message: str) -> str:
     return _git(root, "rev-parse", "HEAD")
 
 
+def _fixture_manifest_bytes() -> bytes:
+    """Git fixtures must remain unmaterialized so a 1-object run can bind."""
+    data = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))
+    data["status"] = "CONTRACT_FROZEN_NOT_MATERIALIZED"
+    data["current_state"] = "CONTRACT_FROZEN_NOT_MATERIALIZED"
+    data["snapshot_id"] = "NOT_MATERIALIZED"
+    data["unit_verdict"] = (
+        "DATA_CONTRACT_FROZEN_AWAITING_MATERIALIZATION_AND_FUNDING_AVAILABILITY_AUTHORITY"
+    )
+    data["research_authorized"] = False
+    data["confirmatory_authorized"] = False
+    data["outcome_access_authorized"] = False
+    data["b2_06_evaluator_enabled"] = False
+    data.pop("snapshot_manifest_sha256", None)
+    data.pop("provenance_git_commit_sha", None)
+    data.pop("provenance_git_tree_sha", None)
+    data.pop("materialized_at_utc", None)
+    return yaml.safe_dump(data, sort_keys=False).encode("utf-8")
+
+
 def _write_rel(root: Path, rel: str, data: bytes) -> None:
     path = root / rel
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -223,7 +244,7 @@ def _init_materializer_repo(root: Path) -> dict[str, str]:
         capture_output=True,
         text=True,
     )
-    _write_rel(root, MANIFEST_PATH, MANIFEST.read_bytes())
+    _write_rel(root, MANIFEST_PATH, _fixture_manifest_bytes())
     _write_rel(root, CONTRACT_PATH, CONTRACT.read_bytes())
     _write_rel(root, NORMALIZATION_MODULE, NORM.read_bytes())
     _write_rel(root, MATERIALIZER_MODULE, MAT_LIB.read_bytes())

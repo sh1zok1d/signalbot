@@ -26,7 +26,7 @@ The authoritative formulation set remains the already-frozen six-entry inventory
 | `B2-03_IMPULSE_MORPHOLOGY` | F1 | `CLOSED_NO_PROMOTION` | completed one-shot development verdict; see `B2_03_IMPULSE_MORPHOLOGY_RESULT.md` |
 | `B2-04_MODERATE_PULLBACK_STRUCTURE` | F1 | `CLOSED_NO_PROMOTION` | completed one-shot development verdict; explicit H04 post-hoc child; see `B2_04_MODERATE_PULLBACK_STRUCTURE_RESULT.md` |
 | `B2-05_FLOW_ABSORPTION` | F4 | `DEVELOPMENT_CONSUMED` | durable evidence `ARCHIVED` (`B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED`); historical bytes not cryptographically proven; no RESULT.md in this closeout |
-| `B2-06_LEVERAGE_CROWDING` | F5 | `BLOCKED_MISSING_OBSERVABLE` | OI + funding data-expansion **identity** frozen; unit verdict `DATA_CONTRACT_FROZEN_AWAITING_MATERIALIZATION_AND_FUNDING_AVAILABILITY_AUTHORITY`; funding publication latency unproven; snapshot not materialized; no B2-06 RESULT |
+| `B2-06_LEVERAGE_CROWDING` | F5 | `BLOCKED_MISSING_OBSERVABLE` | OI + funding snapshot Git-bound (`5a9d036b…`); unit verdict `SNAPSHOT_MATERIALIZED_FUNDING_PUBLICATION_UNPROVEN_RESEARCH_UNAUTHORIZED`; funding publication latency unproven; no B2-06 RESULT |
 
 ## 3. Family ledger
 
@@ -36,7 +36,7 @@ The authoritative formulation set remains the already-frozen six-entry inventory
 | F2 Reversion/failure | `RETIRED` | no novelty-qualified F2 formulation exists in frozen inventory |
 | F3 Volatility dynamics | `CLOSED_NO_PROMOTION` | sole frozen F3 formulation B2-01 closed without promotion |
 | F4 Participation/order-flow | `DEVELOPMENT_CONSUMED` | B2-05 one-shot consumed; durable recovery archived; scientific RESULT.md is not this closeout |
-| F5 State-mechanism interaction | `BLOCKED_MISSING_OBSERVABLE` | B2-06 identity frozen outcome-blind; snapshot not materialized; no outcome access |
+| F5 State-mechanism interaction | `BLOCKED_MISSING_OBSERVABLE` | B2-06 snapshot materialized outcome-blind; funding publication unproven; no outcome access |
 | F6 State routing | `RETIRED` | no current-V2 routing formulation admitted |
 
 ## 4. Canonical state after B2-05 durable-evidence recovery
@@ -60,10 +60,11 @@ B2_05_RECOVERY = B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED
 B2_05_EVIDENCE = ARCHIVED
 B2_06 = BLOCKED_MISSING_OBSERVABLE
 B2_06_DATA_EXPANSION = DATA_EXPANSION_FEASIBLE_TO_FREEZE
-B2_06_DATA_EXPANSION_UNIT_VERDICT = DATA_CONTRACT_FROZEN_AWAITING_MATERIALIZATION_AND_FUNDING_AVAILABILITY_AUTHORITY
+B2_06_DATA_EXPANSION_UNIT_VERDICT = SNAPSHOT_MATERIALIZED_FUNDING_PUBLICATION_UNPROVEN_RESEARCH_UNAUTHORIZED
 B2_06_FUNDING_PUBLICATION = FUNDING_PUBLICATION_LATENCY_UNPROVEN
 B2_06_DATASET = B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0
-B2_06_DATASET_STATUS = CONTRACT_FROZEN_NOT_MATERIALIZED
+B2_06_DATASET_STATUS = SNAPSHOT_MATERIALIZED_NOT_RESEARCH_AUTHORIZED
+B2_06_SNAPSHOT_ID = 5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33
 B2_06_OUTCOME_ACCESS = NO
 
 F1 = CLOSED_NO_PROMOTION
@@ -211,13 +212,14 @@ It remains `BLOCKED_MISSING_OBSERVABLE` for scientific execution. The
 required OI/funding **data-expansion identity** is frozen outcome-blind as
 `DATA_EXPANSION_FEASIBLE_TO_FREEZE` in
 `docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md` with dataset
-`B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0` still
-`CONTRACT_FROZEN_NOT_MATERIALIZED` and unit verdict
-`DATA_CONTRACT_FROZEN_AWAITING_MATERIALIZATION_AND_FUNDING_AVAILABILITY_AUTHORITY`.
-Funding `calc_time` is not a proven legal availability clock. Next allowed
-work is materialization, Git-bound snapshot authorization, and a separately
-frozen first-party funding publication rule — not B2-06 outcome access, not
-2025, not 2026, and not crowding-threshold search.
+`B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0` now
+`SNAPSHOT_MATERIALIZED_NOT_RESEARCH_AUTHORIZED` (snapshot
+`5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33`) and
+unit verdict
+`SNAPSHOT_MATERIALIZED_FUNDING_PUBLICATION_UNPROVEN_RESEARCH_UNAUTHORIZED`.
+Funding `calc_time` is not a proven legal availability clock. Materialized
+bytes do not authorize B2-06 outcome access, 2025, 2026, or
+crowding-threshold search.
 
 ## 11. Validation boundary
 

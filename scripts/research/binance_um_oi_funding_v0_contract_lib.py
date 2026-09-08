@@ -54,8 +54,12 @@ NORMALIZATION_VERSION = "v1"
 RETRIEVAL_METHOD_VERSION = "binance-vision-official-archive-sha256sum-v1"
 SNAPSHOT_IDENTITY_VERSION = "v2-exact-git-object-authority"
 CONTRACT_STATUS = "CONTRACT_FROZEN_NOT_MATERIALIZED"
+MATERIALIZED_STATUS = "SNAPSHOT_MATERIALIZED_NOT_RESEARCH_AUTHORIZED"
 UNIT_VERDICT = (
     "DATA_CONTRACT_FROZEN_AWAITING_MATERIALIZATION_AND_FUNDING_AVAILABILITY_AUTHORITY"
+)
+MATERIALIZED_UNIT_VERDICT = (
+    "SNAPSHOT_MATERIALIZED_FUNDING_PUBLICATION_UNPROVEN_RESEARCH_UNAUTHORIZED"
 )
 FUNDING_PUBLICATION_SEMANTICS_STATUS = "FUNDING_PUBLICATION_LATENCY_UNPROVEN"
 FUNDING_PUBLICATION_PROVEN_STATUS = "PROVEN_FIRST_PARTY_PUBLICATION"
@@ -154,6 +158,10 @@ _SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 _YEAR_MONTH_RE = re.compile(r"^(\d{4})-(\d{2})$")
 _YEAR_MONTH_DAY_RE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
 _UTF8_BOM = "\ufeff"
+
+
+def _is_hex_snapshot_id(value: object) -> bool:
+    return isinstance(value, str) and bool(_SHA256_RE.fullmatch(value.lower())) and value == value.lower()
 
 
 class OiFundingContractError(ValueError):
@@ -1096,9 +1104,21 @@ def verify_oi_funding_git_authority(
         raise OiFundingAuthorizationError("frozen manifest must be a mapping")
     if manifest.get("dataset_id") != DATASET_ID:
         raise OiFundingIdentityError("tracked manifest dataset_id mismatch")
-    if manifest.get("snapshot_id") not in (None, "NOT_MATERIALIZED"):
+    snapshot_id = manifest.get("snapshot_id")
+    status = manifest.get("status")
+    if snapshot_id in (None, "NOT_MATERIALIZED"):
+        if status not in (None, CONTRACT_STATUS):
+            raise OiFundingAuthorizationError(
+                "unmaterialized snapshot_id requires unmaterialized status"
+            )
+    elif _is_hex_snapshot_id(snapshot_id):
+        if status != MATERIALIZED_STATUS:
+            raise OiFundingAuthorizationError(
+                "materialized snapshot_id requires unauthorized materialized status"
+            )
+    else:
         raise OiFundingAuthorizationError(
-            "unmaterialized dataset snapshot_id must remain NOT_MATERIALIZED"
+            "snapshot_id must be NOT_MATERIALIZED or an exact 64-hex digest"
         )
     if manifest.get("research_authorized") is not False:
         raise OiFundingAuthorizationError("research_authorized must be false")
@@ -1179,11 +1199,6 @@ def bind_snapshot_to_tracked_authority(
         normalization_git_path=git_authority.normalization_git_path,
     )
     manifest = refreshed.manifest
-    if manifest.get("status") != CONTRACT_STATUS:
-        raise OiFundingAuthorizationError(
-            f"tracked manifest status must remain {CONTRACT_STATUS}, got "
-            f"{manifest.get('status')!r}"
-        )
     if manifest.get("research_authorized") is not False:
         raise OiFundingAuthorizationError("research_authorized must be false")
     if manifest.get("confirmatory_authorized") is not False:
@@ -1192,20 +1207,37 @@ def bind_snapshot_to_tracked_authority(
         raise OiFundingAuthorizationError("outcome access is not authorized")
     if manifest.get("b2_06_evaluator_enabled") not in (False, None):
         raise OiFundingAuthorizationError("scientific evaluator is not authorized")
-    if manifest.get("snapshot_id") not in (None, "NOT_MATERIALIZED"):
-        raise OiFundingAuthorizationError("snapshot substitution is forbidden")
-    if claimed_snapshot_id not in (None, "NOT_MATERIALIZED"):
+    tracked_id = manifest.get("snapshot_id")
+    status = manifest.get("status")
+    if tracked_id in (None, "NOT_MATERIALIZED"):
+        if status != CONTRACT_STATUS:
+            raise OiFundingAuthorizationError(
+                f"tracked manifest status must remain {CONTRACT_STATUS}, got "
+                f"{status!r}"
+            )
+        if claimed_snapshot_id not in (None, "NOT_MATERIALIZED"):
+            raise OiFundingAuthorizationError(
+                "unmaterialized dataset cannot accept a caller-chosen snapshot_id"
+            )
+        if snapshot is not None and snapshot.get("snapshot_id") not in (
+            None,
+            "NOT_MATERIALIZED",
+        ):
+            raise OiFundingAuthorizationError(
+                "unmaterialized dataset cannot accept a caller-chosen snapshot_id"
+            )
+        return "NOT_MATERIALIZED"
+    if not _is_hex_snapshot_id(tracked_id):
+        raise OiFundingAuthorizationError("tracked snapshot_id is not a 64-hex digest")
+    if status != MATERIALIZED_STATUS:
         raise OiFundingAuthorizationError(
-            "unmaterialized dataset cannot accept a caller-chosen snapshot_id"
+            "materialized snapshot_id requires unauthorized materialized status"
         )
-    if snapshot is not None and snapshot.get("snapshot_id") not in (
-        None,
-        "NOT_MATERIALIZED",
-    ):
-        raise OiFundingAuthorizationError(
-            "unmaterialized dataset cannot accept a caller-chosen snapshot_id"
-        )
-    return "NOT_MATERIALIZED"
+    if claimed_snapshot_id not in (None, tracked_id):
+        raise OiFundingAuthorizationError("snapshot-id tampering is forbidden")
+    if snapshot is not None and snapshot.get("snapshot_id") not in (None, tracked_id):
+        raise OiFundingAuthorizationError("snapshot-id tampering is forbidden")
+    return tracked_id
 
 
 def build_snapshot_identity(
