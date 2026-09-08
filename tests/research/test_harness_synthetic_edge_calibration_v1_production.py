@@ -71,6 +71,7 @@ def _commit_production_tree(tmp_path: Path, *, extra: dict[str, bytes] | None = 
         RUNNER_PATH: _live_bytes(RUNNER_PATH),
         AUTH_MOD_PATH: _live_bytes(AUTH_MOD_PATH),
         PRODUCTION_PATH: _live_bytes(PRODUCTION_PATH),
+        "scripts/__init__.py": _live_bytes("scripts/__init__.py"),
         "scripts/research/__init__.py": _live_bytes("scripts/research/__init__.py"),
         "scripts/research/lib/__init__.py": _live_bytes("scripts/research/lib/__init__.py"),
         "scripts/research/lib/research_harness.py": _live_bytes(
@@ -84,6 +85,15 @@ def _commit_production_tree(tmp_path: Path, *, extra: dict[str, bytes] | None = 
     _git(repo, "add", "-A")
     _git(repo, "commit", "-m", "production durability tree")
     return repo
+
+
+def _porcelain(repo: Path) -> str:
+    return _git(repo, "status", "--porcelain", "--untracked-files=all")
+
+
+def _assert_clean(repo: Path) -> None:
+    status = _porcelain(repo)
+    assert status == "", f"temporary checkout is dirty before/at the barrier:\n{status}"
 
 
 def _bind_prod(monkeypatch, repo: Path) -> None:
@@ -204,7 +214,7 @@ def test_frozen_grid_is_derived_from_tracked_authority_only():
         prod.mint_final_result([], grid=grid)
 
 
-def test_stale_imported_module_disk_restoration_cannot_execute(tmp_path, monkeypatch):
+def test_stale_imported_module_disk_restoration_cannot_execute(tmp_path, monkeypatch, capfd):
     repo = _commit_production_tree(tmp_path)
     _bind_prod(monkeypatch, repo)
     source = Path(prod.__file__).read_text(encoding="utf-8")
@@ -213,20 +223,29 @@ def test_stale_imported_module_disk_restoration_cannot_execute(tmp_path, monkeyp
     assert prod.WORKER_FLAG in source
     original = (repo / PRODUCTION_PATH).read_bytes()
     stale_spawn = prod.spawn_canonical_production_process
-    tampered = original + b"\nRAISE_PRODUCTION = True  # stale tamper\n"
-    tamper_path = tmp_path / "stale_production.py"
-    tamper_path.write_bytes(tampered)
+    tampered = original + b"\nSTALE_IMPORT_MARKER = True  # stale tamper\n"
+    outside = tmp_path / "outside_git_root"
+    tamper_path = outside / "stale_production.py"
+    _write(tamper_path, tampered)
     spec = importlib.util.spec_from_file_location("stale_production_mod", tamper_path)
     stale_mod = importlib.util.module_from_spec(spec)
     assert spec is not None and spec.loader is not None
     spec.loader.exec_module(stale_mod)
+    assert stale_mod is not prod
+    assert stale_mod.STALE_IMPORT_MARKER is True
     (repo / PRODUCTION_PATH).write_bytes(tampered)
     (repo / PRODUCTION_PATH).write_bytes(original)
     assert (repo / PRODUCTION_PATH).read_bytes() == original
+    assert not hasattr(prod, "STALE_IMPORT_MARKER")
+    _assert_clean(repo)
     rc = stale_spawn()
+    captured = capfd.readouterr()
+    _assert_clean(repo)
     assert rc == 2
+    assert "production_monte_carlo_arm_authorized=false" in captured.err
+    assert "working tree is not clean" not in captured.err
     assert prod.production_monte_carlo_arm_authorized(repo) is False
-    with pytest.raises(prod.ProductionNotArmed):
+    with pytest.raises(prod.ProductionNotArmed, match="production_monte_carlo_arm_authorized=false"):
         prod.evaluate_production_world("NULL", 5000, 0)
 
 
@@ -278,7 +297,7 @@ def test_assume_unchanged_tamper_fails(tmp_path, monkeypatch):
         prod.verify_executed_production_authority(repo)
 
 
-def test_descendant_commit_not_explicitly_armed_fails(tmp_path, monkeypatch):
+def test_descendant_commit_not_explicitly_armed_fails(tmp_path, monkeypatch, capfd):
     repo = _commit_production_tree(tmp_path)
     ancestor_head = _git(repo, "rev-parse", "HEAD")
     ancestor_tree = _git(repo, "rev-parse", "HEAD^{tree}")
@@ -296,11 +315,19 @@ def test_descendant_commit_not_explicitly_armed_fails(tmp_path, monkeypatch):
     )
     _git(repo, "add", "-A")
     _git(repo, "commit", "-m", "descendant with ancestor ARM")
+    descendant_head = _git(repo, "rev-parse", "HEAD")
+    assert descendant_head != ancestor_head
+    _git(repo, "merge-base", "--is-ancestor", ancestor_head, descendant_head)
     _bind_prod(monkeypatch, repo)
+    _assert_clean(repo)
     assert prod.production_monte_carlo_arm_authorized(repo) is False
     rc = prod.spawn_canonical_production_process()
+    captured = capfd.readouterr()
+    _assert_clean(repo)
     assert rc == 2
-    with pytest.raises(prod.ProductionNotArmed):
+    assert "production_monte_carlo_arm_authorized=false" in captured.err
+    assert "working tree is not clean" not in captured.err
+    with pytest.raises(prod.ProductionNotArmed, match="unarmed"):
         prod.mint_final_result(_planned_records())
 
 

@@ -1001,26 +1001,27 @@ def recover_partial_from_tracked_authority(*args: Any, **kwargs: Any) -> dict[st
 
 
 def spawn_canonical_production_process(*args: Any, **kwargs: Any) -> int:
-    """Canonical production path: a fresh interpreter, then re-verify, then refuse if unarmed."""
+    """Canonical production path: a fresh interpreter, then re-verify, then refuse if unarmed.
+
+    The child executes this checkout's tracked production module by absolute
+    path. Inherited PYTHONPATH cannot substitute another tree. Bytecode is not
+    written into the worktree.
+    """
     if args or kwargs:
         _refuse("caller arguments cannot authorize production execution")
     root = _repo_root()
     env = {
         key: value
         for key, value in os.environ.items()
-        if "AUTHORIZ" not in key.upper()
+        if "AUTHORIZ" not in key.upper() and key != "PYTHONPATH"
     }
-    existing_pythonpath = env.get("PYTHONPATH", "")
-    env["PYTHONPATH"] = (
-        str(root) if not existing_pythonpath else os.pathsep.join((str(root), existing_pythonpath))
-    )
+    env["PYTHONPATH"] = str(root)
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    worker = root / PRODUCTION_REL
+    if worker.is_symlink() or not worker.is_file():
+        _refuse("canonical production worker is not a regular file")
     proc = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "scripts.research.harness_synthetic_edge_calibration_v1_production",
-            WORKER_FLAG,
-        ],
+        [sys.executable, "-B", str(worker), WORKER_FLAG],
         cwd=str(root),
         env=env,
         check=False,
