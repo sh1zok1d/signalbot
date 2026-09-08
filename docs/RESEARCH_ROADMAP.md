@@ -153,6 +153,10 @@ process can detect small, noisy, sparse, clustered conditional incremental
 information without materially increasing false positives. It is not a market
 hypothesis, not B2-07, and synthetic results are never market evidence.
 
+Current design status: `PREREG_CANDIDATE_OUTCOME_BLIND_REPAIRED_AFTER_REDTEAM`.
+The repaired prereg remains execution-unauthorized and must pass independent
+focused re-review before it can be frozen for implementation.
+
 Frozen sequence:
 
 1. design/preregistration only;
