@@ -43,6 +43,32 @@ def _tiny(**kwargs) -> lib.FixtureExecutionConfig:
     return lib.FixtureExecutionConfig(**params)
 
 
+def _rank_safe_world(n_rows: int = 50) -> dict:
+    """Synthetic arrays with era-local rank for intercept+X1+X2+Fj."""
+    width = n_rows // 5
+    pattern_x1 = np.array([-2.0, -1.5, -0.4, 0.3, 0.8, 1.2, 1.6, 2.0, -0.2, 0.5], dtype=np.float64)
+    pattern_x2 = np.array([-2.0, -1.4, -0.3, 0.2, 0.7, 1.1, -1.2, 1.8, 0.1, -0.6], dtype=np.float64)
+    pattern_s = np.array([0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0], dtype=np.float64)
+    x1 = np.empty(n_rows, dtype=np.float64)
+    x2 = np.empty(n_rows, dtype=np.float64)
+    s = np.empty(n_rows, dtype=np.float64)
+    for i in range(5):
+        slc = slice(i * width, (i + 1) * width)
+        x1[slc] = np.resize(pattern_x1, width)
+        x2[slc] = np.resize(pattern_x2, width)
+        s[slc] = np.resize(pattern_s, width)
+    y = (0.20 * x1 - 0.15 * x2 + 0.25 * s + 0.01 * np.arange(n_rows, dtype=np.float64)).astype(
+        np.float64
+    )
+    return {
+        "Y": y,
+        "X1": x1,
+        "X2": x2,
+        "S": s,
+        "world_identity": lib.world_identity("EASY", n_rows, 0),
+    }
+
+
 def test_frozen_constants_match_json_prereg():
     prereg = _prereg()
     authority = lib.frozen_production_authority()
@@ -492,14 +518,7 @@ def test_production_execution_lock():
     with pytest.raises(lib.SyntheticExecutionNotAuthorized):
         lib.run_frozen_production_grid(authorized=True)
     with pytest.raises(lib.SyntheticExecutionNotAuthorized):
-        lib.FixtureExecutionConfig(
-            n_rows=5000,
-            scenario_id="EASY",
-            visibility_replicates=500,
-            bootstrap_replicates=500,
-            placebo_replicates=999,
-            block_rows=50,
-        )
+        lib.run_frozen_production_grid(worlds=1, n_rows=50)
     desc = lib.planned_production_grid_descriptor()
     assert desc["planned_total_worlds"] == 3200
     assert desc["callable"] is False
@@ -520,6 +539,107 @@ def test_production_execution_lock():
     assert identity["synthetic_execution_authorized"] is False
     assert identity["production_calibration_executed"] is False
     assert identity["real_data_path"] is False
+    source = Path(lib.__file__).read_text(encoding="utf-8") + Path(runner.__file__).read_text(
+        encoding="utf-8"
+    )
+    for token in ("--authorize", "--force", "--unsafe", "getenv", "authorized=True"):
+        assert token not in source
+
+
+def test_fixture_envelope_rejects_near_production_and_accepts_tiny():
+    accepted = _tiny()
+    assert accepted.n_rows == 50
+    lib.FixtureExecutionConfig(
+        n_rows=500,
+        scenario_id="EASY",
+        visibility_replicates=50,
+        bootstrap_replicates=50,
+        placebo_replicates=50,
+        block_rows=5,
+    )
+    rejected = [
+        {
+            "n_rows": 5000,
+            "scenario_id": "EASY",
+            "visibility_replicates": 500,
+            "bootstrap_replicates": 500,
+            "placebo_replicates": 999,
+            "block_rows": 50,
+        },
+        {
+            "n_rows": 5000,
+            "scenario_id": "EASY",
+            "visibility_replicates": 499,
+            "bootstrap_replicates": 500,
+            "placebo_replicates": 999,
+        },
+        {
+            "n_rows": 5000,
+            "scenario_id": "EASY",
+            "visibility_replicates": 500,
+            "bootstrap_replicates": 500,
+            "placebo_replicates": 998,
+        },
+        {
+            "n_rows": 5000,
+            "scenario_id": "EASY",
+            "visibility_replicates": 500,
+            "bootstrap_replicates": 499,
+            "placebo_replicates": 999,
+        },
+        {
+            "n_rows": 5005,
+            "scenario_id": "EASY",
+            "visibility_replicates": 500,
+            "bootstrap_replicates": 500,
+            "placebo_replicates": 999,
+        },
+        {
+            "n_rows": 5005,
+            "scenario_id": "EASY",
+            "visibility_replicates": 3,
+            "bootstrap_replicates": 3,
+            "placebo_replicates": 3,
+        },
+        {
+            "n_rows": 2500,
+            "scenario_id": "EASY",
+            "visibility_replicates": 3,
+            "bootstrap_replicates": 3,
+            "placebo_replicates": 3,
+        },
+        {
+            "n_rows": 10000,
+            "scenario_id": "EASY",
+            "visibility_replicates": 3,
+            "bootstrap_replicates": 3,
+            "placebo_replicates": 3,
+        },
+        {
+            "n_rows": 50,
+            "scenario_id": "EASY",
+            "visibility_replicates": 51,
+            "bootstrap_replicates": 3,
+            "placebo_replicates": 3,
+        },
+        {
+            "n_rows": 50,
+            "scenario_id": "EASY",
+            "visibility_replicates": 3,
+            "bootstrap_replicates": 51,
+            "placebo_replicates": 3,
+        },
+        {
+            "n_rows": 50,
+            "scenario_id": "EASY",
+            "visibility_replicates": 3,
+            "bootstrap_replicates": 3,
+            "placebo_replicates": 51,
+        },
+    ]
+    for params in rejected:
+        with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="SYNTHETIC_EXECUTION_NOT_AUTHORIZED"):
+            lib.FixtureExecutionConfig(**params)
 
 
 def test_no_real_data_path():
@@ -555,6 +675,80 @@ def test_fixture_world_stays_in_denominator_and_is_deterministic():
         "FALSE_DISCOVERY",
         "NO_DISCOVERY",
     }
+
+
+def test_visibility_invalid_does_not_invalidate_candidate_or_world(monkeypatch):
+    n = 50
+    world = _rank_safe_world(n)
+    world = dict(world)
+    world["S"] = np.ones(n, dtype=np.float64)
+    world["Y"] = (0.20 * world["X1"] - 0.15 * world["X2"] + 0.25 * world["S"]).astype(np.float64)
+    ev = lib.evaluate_fixture_candidate(world, "F04", _tiny())
+    vis = ev.payload["visibility"]
+    assert vis["visibility_invalid"] is True
+    assert vis["GROUND_TRUTH_VISIBLE"] is False
+    assert ev.valid is True
+    assert "visibility_invalid" not in ev.invalid_reasons
+    assert "GROUND_TRUTH_VISIBLE" not in ev.payload["gates"]
+    assert ev.payload["gates"]["bootstrap_positive"] in {True, False}
+
+    monkeypatch.setattr(lib, "simulate_dgp", lambda **kwargs: _rank_safe_world(kwargs["n_rows"]))
+    monkeypatch.setattr(
+        lib,
+        "visibility_from_residuals",
+        lambda *args, **kwargs: {
+            "GROUND_TRUTH_VISIBLE": False,
+            "visibility_invalid": True,
+            "visibility_q025": float("nan"),
+            "stays_in_denominator": True,
+        },
+    )
+    out = lib.evaluate_fixture_world(_tiny())
+    assert all(row["visibility"]["visibility_invalid"] for row in out["candidates"])
+    assert all(row["visibility"]["GROUND_TRUTH_VISIBLE"] is False for row in out["candidates"])
+    assert out["valid"] is True
+    assert out["incomplete_execution"] is False
+    assert "visibility_invalid" not in out["invalid_reasons"]
+    assert out["selected_STRICT_PASS_EX_MATERIALITY"] in (*lib.FEATURE_IDS, "NO_CANDIDATE")
+
+
+def test_bootstrap_invalidity_still_invalidates_world(monkeypatch):
+    monkeypatch.setattr(lib, "simulate_dgp", lambda **kwargs: _rank_safe_world(kwargs["n_rows"]))
+    monkeypatch.setattr(
+        lib,
+        "prediction_bootstrap",
+        lambda *args, **kwargs: {
+            "bootstrap_positive": False,
+            "bootstrap_invalid": True,
+            "bootstrap_q025": float("nan"),
+            "world_invalid": True,
+            "stays_in_denominator": True,
+        },
+    )
+    out = lib.evaluate_fixture_world(_tiny())
+    assert out["valid"] is False
+    assert out["incomplete_execution"] is True
+    assert "bootstrap_invalid" in out["invalid_reasons"]
+    assert out["stays_in_denominator"] is True
+
+
+def test_placebo_invalidity_still_invalidates_world(monkeypatch):
+    monkeypatch.setattr(lib, "simulate_dgp", lambda **kwargs: _rank_safe_world(kwargs["n_rows"]))
+    monkeypatch.setattr(
+        lib,
+        "placebo_q95",
+        lambda *args, **kwargs: {
+            "placebo_q95": float("nan"),
+            "placebo_invalid": True,
+            "world_invalid": True,
+            "stays_in_denominator": True,
+        },
+    )
+    out = lib.evaluate_fixture_world(_tiny())
+    assert out["valid"] is False
+    assert out["incomplete_execution"] is True
+    assert "placebo_invalid" in out["invalid_reasons"]
+    assert out["stays_in_denominator"] is True
 
 
 def test_invalid_candidate_remains_in_planned_denominator():

@@ -34,6 +34,8 @@ PRODUCTION_PRIMARY_N = 5000
 PRODUCTION_SMALL_N = (2500, 10000)
 PRODUCTION_WORLDS_PER_CELL = 400
 PRODUCTION_PLANNED_TOTAL_WORLDS = 3200
+FIXTURE_MAX_N_ROWS = 500
+FIXTURE_MAX_REPLICATES = 50
 ROOT_SEED = 20260908
 RHO = 0.90
 SUPPORT_SANITY_MIN = 50
@@ -522,19 +524,25 @@ class FixtureExecutionConfig:
             raise ValueError("fixture N must be divisible by 5")
         if self.n_rows <= 0:
             raise ValueError("fixture N must be positive")
+        if min(self.visibility_replicates, self.bootstrap_replicates, self.placebo_replicates) < 1:
+            raise ValueError("fixture replicate counts must be >= 1")
         production_n = {PRODUCTION_PRIMARY_N, *PRODUCTION_SMALL_N}
-        production_scale = (
-            self.n_rows in production_n
-            and self.visibility_replicates >= PRODUCTION_VISIBILITY_REPLICATES
-            and self.bootstrap_replicates >= PRODUCTION_BOOTSTRAP_REPLICATES
-            and self.placebo_replicates >= PRODUCTION_PLACEBO_REPLICATES
+        over_envelope = (
+            self.n_rows > FIXTURE_MAX_N_ROWS
+            or self.visibility_replicates > FIXTURE_MAX_REPLICATES
+            or self.bootstrap_replicates > FIXTURE_MAX_REPLICATES
+            or self.placebo_replicates > FIXTURE_MAX_REPLICATES
         )
-        if production_scale:
+        production_n_used = self.n_rows in production_n
+        production_replicate = (
+            self.visibility_replicates >= PRODUCTION_VISIBILITY_REPLICATES
+            or self.bootstrap_replicates >= PRODUCTION_BOOTSTRAP_REPLICATES
+            or self.placebo_replicates >= PRODUCTION_PLACEBO_REPLICATES
+        )
+        if over_envelope or production_n_used or production_replicate:
             raise SyntheticExecutionNotAuthorized(
                 "SYNTHETIC_EXECUTION_NOT_AUTHORIZED"
             )
-        if min(self.visibility_replicates, self.bootstrap_replicates, self.placebo_replicates) < 1:
-            raise ValueError("fixture replicate counts must be >= 1")
 
 
 def _scored_era_values(values: np.ndarray, n_rows: int) -> dict[str, np.ndarray]:
@@ -936,8 +944,8 @@ def evaluate_fixture_candidate(
             block_rows=config.block_rows,
             rng=pcg64_generator(namespace_seed(wseed, "VISIBILITY")),
         )
-        if vis["visibility_invalid"]:
-            reasons.append("visibility_invalid")
+        # Visibility invalidity is diagnostic-only: GROUND_TRUTH_VISIBLE stays
+        # false and visibility_invalid stays true, but the world remains valid.
         if include_bootstrap:
             boot = prediction_bootstrap(
                 ae_imp_full,
