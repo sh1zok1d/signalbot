@@ -770,6 +770,10 @@ def _require_utc_calendar_day(day_yyyy_mm_dd: str) -> tuple[int, int, int]:
     if not match:
         raise OiFundingCorruptError(f"OI day must be YYYY-MM-DD, got {day_yyyy_mm_dd!r}")
     year, month, day = (int(match.group(1)), int(match.group(2)), int(match.group(3)))
+    if year < 1:
+        raise OiFundingCorruptError(
+            f"OI day is not a valid UTC calendar date: {day_yyyy_mm_dd!r}"
+        )
     if not 1 <= month <= 12:
         raise OiFundingCorruptError(
             f"OI day is not a valid UTC calendar date: {day_yyyy_mm_dd!r}"

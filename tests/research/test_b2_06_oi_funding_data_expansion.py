@@ -794,6 +794,7 @@ def test_impossible_oi_calendar_dates_are_corrupt_not_valueerror():
     assert checksum_url.endswith(".CHECKSUM")
 
     invalid_days = (
+        "0000-01-01",
         "2023-02-29",
         "2024-02-30",
         "2024-04-31",
