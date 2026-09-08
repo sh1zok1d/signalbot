@@ -20,13 +20,14 @@ exact reviewed-head CI run = 34229846184
 exact reviewed-head CI conclusion = success
 ```
 
-The implementation bytes reviewed above are frozen before any production synthetic execution. This freeze does not itself authorize execution.
+The implementation bytes reviewed above are frozen before any production synthetic execution. This freeze does not itself authorize execution. One-shot production authorization, if present, lives in the separate tracked artifact [`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_EXECUTION_AUTHORIZATION.json`](HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_EXECUTION_AUTHORIZATION.json) and does not rewrite this freeze record's scientific bytes.
 
 ```text
 implementation_exists = true
 implementation_frozen_before_production_execution = true
-synthetic_execution_authorized = false
+synthetic_execution_authorized = true   # one-shot tracked authorization; see EXECUTION_AUTHORIZATION.json
 production_calibration_executed = false
+authorization_consumed = false
 real_market_data_access_authorized = false
 b2_06_scientific_execution_authorized = false
 validation_2025_authorized = false
@@ -37,6 +38,7 @@ Code:
 
 - `scripts/research/harness_synthetic_edge_calibration_v1_lib.py`
 - `scripts/research/harness_synthetic_edge_calibration_v1.py`
+- `scripts/research/harness_synthetic_edge_calibration_v1_auth.py`
 - `tests/research/test_harness_synthetic_edge_calibration_v1.py`
 
 The CLI and `run_frozen_production_grid` fail closed with `SYNTHETIC_EXECUTION_NOT_AUTHORIZED`. There is no environment-variable or `authorized=True` bypass. Tiny fixture configs are a separate type and cannot encode the frozen 3200-world production grid.

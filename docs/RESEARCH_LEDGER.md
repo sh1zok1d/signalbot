@@ -1441,3 +1441,20 @@ modify the frozen inventory, or touch B2-05.
 - synthetic_execution_authorized: **false**
 - production_calibration_executed: **false**
 - b2_06_scientific_execution_authorized: **false**
+
+## 2026-09-08 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 one-shot authorization
+
+**Decision:** tracked one-shot production authorization for independent boundary review.
+**Unit verdict:** unused; production calibration not executed.
+
+Adds a Git-HEAD-blob authorization contract for exactly one frozen synthetic
+calibration run. Does **not** run the 3200-world grid, create a RESULT,
+consume the authorization, access real market data, open B2-06, or open
+2025/2026.
+
+- implementation_frozen_before_production_execution: **true**
+- synthetic_execution_authorized: **true**
+- authorized_run_count: **1**
+- production_calibration_executed: **false**
+- authorization_consumed: **false**
+- b2_06_scientific_execution_authorized: **false**
