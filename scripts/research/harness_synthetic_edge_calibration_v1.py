@@ -2,7 +2,8 @@
 """Fail-closed entrypoint for HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1.
 
 Production execution is authorized only by the tracked one-shot artifact in
-the exact Git HEAD. This CLI accepts no authorize/force/unsafe flag, no
+the exact Git HEAD, the bytes actually executed from this checkout, and an
+atomic local reservation. This CLI accepts no authorize/force/unsafe flag, no
 environment bypass, and no caller authority path. It does not run the
 3200-world Monte Carlo in this authorization stage.
 """
@@ -15,12 +16,12 @@ import sys
 
 from scripts.research.harness_synthetic_edge_calibration_v1_auth import (
     AuthorizedExecutionBoundaryReached,
+    production_authorization_identity,
+    run_authorized_production_grid,
 )
 from scripts.research.harness_synthetic_edge_calibration_v1_lib import (
     SyntheticExecutionNotAuthorized,
-    implementation_identity,
     planned_production_grid_descriptor,
-    run_frozen_production_grid,
 )
 
 
@@ -28,7 +29,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
             "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 entrypoint. "
-            "One-shot production execution is authorized only by tracked Git state."
+            "One-shot production execution is authorized only by tracked Git state "
+            "and exact executed bytes."
         )
     )
     parser.add_argument(
@@ -45,8 +47,9 @@ def main(argv: list[str] | None = None) -> int:
         "--run-production-grid",
         action="store_true",
         help=(
-            "verify tracked one-shot authorization and reach the production "
-            "execution boundary without running the Monte Carlo in this stage"
+            "verify executed-byte authority, obtain the one-shot reservation, "
+            "and reach the production execution boundary without running the "
+            "Monte Carlo in this stage"
         ),
     )
     parser.add_argument(
@@ -63,26 +66,31 @@ def main(argv: list[str] | None = None) -> int:
             print("SYNTHETIC_EXECUTION_NOT_AUTHORIZED: expected-head mismatch", file=sys.stderr)
             return 2
     if args.identity:
-        print(json.dumps(implementation_identity(), sort_keys=True, indent=2))
+        print(json.dumps(production_authorization_identity(), sort_keys=True, indent=2))
         return 0
     if args.describe_grid:
         print(json.dumps(planned_production_grid_descriptor(), sort_keys=True, indent=2))
         return 0
     if args.run_production_grid:
         try:
-            run_frozen_production_grid()
+            run_authorized_production_grid()
         except AuthorizedExecutionBoundaryReached as exc:
+            diagnostics = exc.diagnostics
             print(
                 json.dumps(
                     {
-                        "status": "AUTHORIZED_UNUSED_PRODUCTION_EXECUTION_BOUNDARY",
+                        "status": "AUTHORIZED_PRODUCTION_EXECUTION_BOUNDARY",
                         "production_calibration_executed": False,
-                        "authorization_consumed": False,
+                        "authorization_consumed": True,
+                        "authorization_lifecycle": diagnostics.reservation_lifecycle,
                         "monte_carlo_invoked": False,
-                        "authorization_id": exc.proof.authorization_id,
-                        "authorization_blob_sha256": exc.proof.authorization_blob_sha256,
-                        "head_sha": exc.proof.head_sha,
-                        "tree_sha": exc.proof.tree_sha,
+                        "authorization_id": diagnostics.authorization_id,
+                        "authorization_blob_sha256": diagnostics.authorization_blob_sha256,
+                        "head_sha": diagnostics.head_sha,
+                        "tree_sha": diagnostics.tree_sha,
+                        "reservation_sha256": diagnostics.reservation_sha256,
+                        "run_identity": diagnostics.run_identity,
+                        "proof_exported": exc.proof is not None,
                     },
                     sort_keys=True,
                     indent=2,

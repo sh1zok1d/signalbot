@@ -19,6 +19,17 @@
     "lib_path": "scripts/research/harness_synthetic_edge_calibration_v1_lib.py",
     "lib_sha256_at_reviewed_implementation_commit": "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51"
   },
+  "execution_authority": {
+    "paths": [
+      "scripts/research/harness_synthetic_edge_calibration_v1_lib.py",
+      "scripts/research/harness_synthetic_edge_calibration_v1.py",
+      "scripts/research/harness_synthetic_edge_calibration_v1_auth.py"
+    ],
+    "lib_sha256": "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51",
+    "runner_sha256": "5f5264a7f5893920d50ab4e3d06dfc78ae60ebcf505042072541572c660a055e",
+    "auth_sha256": "1d90ddf8aa73b5ae4fc263f5f9943fe20968063097755e4be4e20fa1351ec661",
+    "binding_rule": "executing worktree bytes == HEAD blobs == these sha256s; lib_sha256 must equal the frozen reviewed implementation bytes at c996ba08c49961afde5daba2bd97832fded4725a; runner and auth sha256s are the repaired authorization implementation at this HEAD, not the superseded PR #114 bytes"
+  },
   "authorized_grid": {
     "planned_worlds": 3200,
     "worlds_per_cell": 400,
@@ -39,12 +50,14 @@
   "validation_2025_authorized": false,
   "oos_2026_authorized": false,
   "consumption": {
+    "durable_reservation_path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_RESERVATION.json",
     "durable_claim_path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_EXECUTION_CLAIM.json",
-    "transition": "AUTHORIZED_UNUSED -> production execution -> immutable RESULT/claim -> AUTHORIZATION_CONSUMED",
-    "second_run_policy": "fail_closed"
+    "transition": "AUTHORIZED_UNUSED -> atomic RESERVED -> production attempt -> EXECUTED_CONSUMED or FAILED_CONSUMED",
+    "second_run_policy": "fail_closed",
+    "automatic_retry_authorized": false
   },
   "authorization_commit_binding": {
-    "note": "This artifact does not self-hash its future authorization commit. Runtime verifies HEAD blobs, ancestry of the frozen implementation commit, and records the execution commit/tree only in the later durable claim.",
+    "note": "This artifact does not self-hash its future authorization commit. Runtime verifies clean HEAD, exact executed bytes of the production execution-authority paths, ancestry of the frozen implementation commit, and records attempt identity in the reservation. A later durable claim is additional success evidence, not the first consumption event.",
     "canonical_path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_EXECUTION_AUTHORIZATION.json"
   }
 }

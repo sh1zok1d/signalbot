@@ -514,29 +514,27 @@ def test_discovery_bottleneck_requires_controlled_specificity_and_oracle_power()
 
 def test_production_execution_lock():
     from scripts.research.harness_synthetic_edge_calibration_v1_auth import (
-        AuthorizedExecutionBoundaryReached,
         describe_authorization_state,
+        production_authorization_identity,
     )
 
-    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="caller arguments"):
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized):
         lib.run_frozen_production_grid(authorized=True)
-    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="caller arguments"):
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized):
         lib.run_frozen_production_grid(force=True)
-    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="caller arguments"):
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized):
         lib.run_frozen_production_grid(worlds=1, n_rows=50)
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized):
+        lib.run_frozen_production_grid()
     desc = lib.planned_production_grid_descriptor()
     assert desc["planned_total_worlds"] == 3200
     assert desc["callable"] is False
-    assert desc["monte_carlo_armed"] is False
+    assert desc["synthetic_execution_authorized"] is False
     state = describe_authorization_state()
-    if state["lifecycle"] == "AUTHORIZED_UNUSED":
-        with pytest.raises(AuthorizedExecutionBoundaryReached):
-            lib.run_frozen_production_grid()
-        assert runner.main(["--run-production-grid"]) == 0
-    else:
-        with pytest.raises(lib.SyntheticExecutionNotAuthorized):
-            lib.run_frozen_production_grid()
-        assert runner.main(["--run-production-grid"]) == 2
+    assert state["production_calibration_executed"] is False
+    assert state["real_data_path"] is False
+    # Do not invoke the production entrypoint against the live checkout: that
+    # obtains the one-shot reservation. Temp-repo tests cover the boundary.
     assert runner.main([]) == 2
     identity = json.loads(
         subprocess.check_output(
@@ -553,6 +551,8 @@ def test_production_execution_lock():
     assert identity["production_calibration_executed"] is False
     assert identity["real_data_path"] is False
     assert identity["monte_carlo_armed"] is False
+    assert identity["authorization_consumed"] is False
+    assert production_authorization_identity()["monte_carlo_armed"] is False
     source = Path(lib.__file__).read_text(encoding="utf-8") + Path(runner.__file__).read_text(
         encoding="utf-8"
     )
