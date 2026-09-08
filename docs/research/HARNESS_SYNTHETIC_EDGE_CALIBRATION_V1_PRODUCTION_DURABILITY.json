@@ -1,4 +1,5 @@
 {
+  "arm_authorizes_parent_execution_commit": true,
   "canonical_paths": {
     "arm": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_ARM.json",
     "claim": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_EXECUTION_CLAIM.json",
@@ -11,11 +12,15 @@
   "fresh_process_required": true,
   "global_process_exclusion_claimed": false,
   "idempotent_duplicate_computation": true,
+  "invalid_world_forces_incomplete_execution": true,
+  "isolated_interpreter": true,
+  "persistence_commit_mediated": true,
   "production_calibration_executed": false,
   "production_monte_carlo_arm_authorized": false,
   "production_result_minted": false,
   "r1_stale_import_closed": true,
   "r2_cross_checkout_replay_closed": true,
+  "result_envelope": "core/core_sha256/core_size",
   "run_identity_bound_to_tracked_commit_authority": true,
   "schema_version": "1.0",
   "status": "PRODUCTION_DURABILITY_IMPLEMENTED_UNARMED",

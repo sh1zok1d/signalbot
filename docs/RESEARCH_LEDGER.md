@@ -1517,3 +1517,11 @@ authoritative identity (R2). Global process exclusion is not claimed.
 - production_result_minted: **false**
 - b2_06_scientific_execution_authorized: **false**
 - status: `PRODUCTION_DURABILITY_IMPLEMENTED_UNARMED`
+
+Repair of OPUS `REPAIR_REQUIRED` on reviewed HEAD `4aab2f0c`: invalid planned
+worlds force `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`; public RESULT minting
+cannot bind caller-supplied aggregates; isolated `python -I -B -P` bootstrap
+imports the canonical package module; ARM authorizes the parent execution
+commit rather than a self-referential HEAD/tree fixed point; IncompleteWorld is
+recorded as an invalid world that stays in the planned denominator; persistence
+is commit-mediated. Production remains unarmed. No Monte Carlo. No RESULT.
