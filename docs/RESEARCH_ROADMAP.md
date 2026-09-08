@@ -84,7 +84,6 @@ Prefer questions such as:
 - `P(return to range after failed break)`;
 - `E[directional return | setup strength]`;
 - `P(continuation | regime, setup)`;
-
 over forcing every detector to output a continuous LONG/SHORT opinion.
 
 ### Required discipline
@@ -143,6 +142,61 @@ outcome-blind OI/funding snapshot is Git-bound as
 `5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33`).
 Materialized bytes are not B2-06 execution and do not authorize 2025/2026.
 See `docs/research/BATCH02_STATUS_LEDGER.md`.
+
+### Mandatory pre-B2-06 methodology calibration
+
+Before any B2-06 scientific outcome is opened, run a separate methodology
+unit: `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1`.
+
+Its purpose is to measure whether the current Signalbot-style research
+process can detect small, noisy, sparse, clustered conditional incremental
+information without materially increasing false positives. It is not a market
+hypothesis, not B2-07, and synthetic results are never market evidence.
+
+Current design status: `PREREG_CANDIDATE_OUTCOME_BLIND_REPAIRED_AFTER_REDTEAM`.
+The repaired prereg remains execution-unauthorized and must pass independent
+focused re-review before it can be frozen for implementation.
+
+Frozen sequence:
+
+1. design/preregistration only;
+2. independent adversarial review and closure of all Blockers/Majors;
+3. implementation using toy synthetic fixtures only;
+4. independent implementation review before production synthetic outcomes;
+5. one frozen Monte Carlo calibration execution;
+6. immutable calibration result;
+7. methodology decision;
+8. only then may B2-06 scientific execution be considered, and only if its
+   separate funding-publication/data/legal gates are also solved.
+
+The repaired calibration separates four diagnostic layers:
+
+- `GROUND_TRUTH_VISIBLE` — injected structure is statistically visible under frozen block-aware uncertainty;
+- `MODEL_DETECTED` — the model/evaluation procedure detects incremental prediction;
+- `STRICT_PASS_EX_MATERIALITY` — strict confirmatory gates pass except the 2% pooled-MAE materiality requirement;
+- `STRICT_PASS` — the unchanged full strict gate passes.
+
+It also measures:
+
+- ORACLE confirmatory sensitivity when the correct candidate is supplied without truth metadata;
+- bounded BLIND-LIBRARY discovery over ten distinct preregistered candidates;
+- TRUE / PROXY / FALSE / NO_DISCOVERY outcomes;
+- full-pipeline NULL false-positive rate;
+- rejection of an initially stable edge that later vanishes (`NONSTATIONARY_TRAP`);
+- clustered-support effective-N diagnostics;
+- gate-level attrition and support-conditional utility;
+- SMALL-edge sample-size sensitivity;
+- explicit `VISIBILITY_FLOOR` versus `MODEL_FLOOR` attribution;
+- materiality-only suppression by comparing full strict pass with strict pass excluding materiality.
+
+Canonical design candidate:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md` and `.json`.
+Until that design is independently accepted and a later execution is
+explicitly authorized, `synthetic_execution_authorized = false`.
+
+This methodology gate does not weaken or bypass the current B2-06 state:
+`FUNDING_PUBLICATION_LATENCY_UNPROVEN`, `research_authorized = false`,
+`outcome_access_authorized = false`, and `b2_06_evaluator_enabled = false`.
 
 ### Exit
 A small set of candidate mechanisms shows enough development evidence to justify formal validation. It is acceptable for none to qualify.
