@@ -1356,3 +1356,73 @@ frozen inventory, and does not touch B2-05.
 - formulation status remains: `BLOCKED_MISSING_OBSERVABLE` until a materialized Git-bound snapshot **and** a frozen first-party funding publication rule exist
 
 Contract: `docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md`
+
+---
+
+## 2026-09-08 — B2-06 OI/funding materializer + funding publication authority
+
+**Decision:** `FUNDING_PUBLICATION_LATENCY_UNPROVEN`
+**Dataset status at this commit:** materializer implemented; historical snapshot not yet Git-bound (acquire is a later step against this code identity).
+
+First-party Binance Vision README and USD-M `GET /fapi/v1/fundingRate` / premium-index docs were inspected for a public-availability clock for settled `last_funding_rate`. None proves that archive `calc_time` is `legal_available_at`. No latency was invented.
+
+This entry does **not** execute B2-06, does not create a RESULT, does not inspect predictive outcomes, does not open 2025/2026, does not modify the frozen inventory, and does not touch B2-05.
+
+- research_authorized: **false**
+- outcome_access_authorized: **false**
+- b2_06_evaluator_enabled: **false**
+- funding publication: `FUNDING_PUBLICATION_LATENCY_UNPROVEN`
+- OI availability rule: unchanged `period_end = create_time + 300000ms`
+
+## 2026-09-08 — B2-06 OI/funding snapshot materialized, research unauthorized
+
+**Decision:** `SNAPSHOT_MATERIALIZED_NOT_RESEARCH_AUTHORIZED`
+**Unit verdict:** `SNAPSHOT_MATERIALIZED_FUNDING_PUBLICATION_UNPROVEN_RESEARCH_UNAUTHORIZED`
+
+Git-bound Vision snapshot for `B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0` over
+`[2020-09-01T00:00:00Z, 2025-01-01T00:00:00Z)`:
+
+- snapshot_id: `5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33`
+- snapshot_manifest_sha256: `bb216f9abdb9fcd7c7648bbffb8541e811af06498d062faa5f31037793768e5e`
+- materializer git commit/tree: `78d5bdf9d5686b740ebc48e46227bbf0f990cbbe` / `2b3e48ba36dd19f40a00fabe5c1a548b0b94d72f`
+- OI objects expected/fetched/accepted/rejected: 1583 / 1583 / 1583 / 0
+- funding objects expected/fetched/accepted/rejected: 52 / 52 / 52 / 0
+- raw container bytes: 18564934
+- normalized JSONL bytes: 256788119
+- OI missing native 5m buckets: 631 (MISSING, not filled)
+- funding missing settlements: 0
+
+First-party funding publication remains `FUNDING_PUBLICATION_LATENCY_UNPROVEN`.
+`calc_time` is not `legal_available_at`. Materialization does **not** execute
+B2-06, create a RESULT, inspect predictive outcomes, open 2025/2026, modify
+the frozen inventory, or touch B2-05.
+
+- research_authorized: **false**
+- outcome_access_authorized: **false**
+- b2_06_evaluator_enabled: **false**
+- b2_06_inputs_legally_consumable: **false**
+- formulation status remains: `BLOCKED_MISSING_OBSERVABLE`
+
+Evidence: `docs/research_data/B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0/`
+Authority note: `docs/research/B2_06_FUNDING_PUBLICATION_AUTHORITY.md`
+
+## 2026-09-08 — B2-06 evidence hashes anchored; verify-only added
+
+**Decision:** metadata/manifest rebuild only. Snapshot identity unchanged.
+**Unit verdict:** unchanged `SNAPSHOT_MATERIALIZED_FUNDING_PUBLICATION_UNPROVEN_RESEARCH_UNAUTHORIZED`
+
+The committed object ledger and quality report are now SHA256-anchored in
+`docs/manifests/B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0.yaml`. Verify-only
+reads current HEAD blobs and does not download. This does **not** rematerialize
+bytes, change `snapshot_id`, authorize B2-06 science, invent funding
+publication latency, open 2025/2026, modify the inventory, or touch B2-05.
+
+- snapshot_id: `5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33` (unchanged)
+- object_ledger_sha256: `521d42a471cc5fec74d808e8a4a3ea0078c87342b801df5dbf3836b4b69b4296`
+- quality_report_sha256: `a6b46df8350871bd737f02197b201b58d6069b19896d1767bda4c286bdc6c7b3`
+- rematerialization: **no**
+- research_authorized: **false**
+- outcome_access_authorized: **false**
+- b2_06_evaluator_enabled: **false**
+- durability: raw ZIP and normalized JSONL remain gitignored; current snapshot proves historical identity at materialization time, not current local recoverability
+- `.CHECKSUM` sidecars: transient corroborating evidence, not Git-retained

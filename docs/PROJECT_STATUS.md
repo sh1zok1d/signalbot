@@ -99,10 +99,10 @@ itself is immutable. Post-outcome status lives in
   `e31e5666fe845116197b6f2531289bf17d848027` (historical bytes
   operator-adjudicated, not proven)
 - B2-06 `LEVERAGE_CROWDING`: `BLOCKED_MISSING_OBSERVABLE`. An outcome-blind
-  first-party OI/funding **data-expansion identity** is frozen
+  first-party OI/funding snapshot is Git-bound as
+  `5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33`
   (`docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md`); funding
-  publication latency is unproven; the snapshot is not materialized and
-  B2-06 outcomes remain unauthorized.
+  publication latency is unproven; B2-06 outcomes remain unauthorized.
 
 Family F1 is `CLOSED_NO_PROMOTION`. 2025 validation and 2026 OOS remain
 untouched. No Batch02 formulation has a promoted candidate, so there is no

@@ -30,7 +30,8 @@ from scripts.research.binance_um_oi_funding_v0_contract_lib import (
     OI_HEADER,
     OI_PERIOD_MS,
     SNAPSHOT_AUTHORITY_KIND,
-    UNIT_VERDICT,
+    MATERIALIZED_STATUS,
+    MATERIALIZED_UNIT_VERDICT,
     ZIP_MATERIALIZER_FAIL_CLOSED,
     OiFundingAuthorizationError,
     OiFundingCorruptError,
@@ -727,8 +728,9 @@ def test_forged_normalized_funding_row_cannot_self_attest_publication():
     assert_outcome_access_closed(freeze)
     manifest = MANIFEST.read_text(encoding="utf-8")
     assert "research_authorized: false" in manifest
-    assert "snapshot_id: NOT_MATERIALIZED" in manifest
     assert "b2_06_evaluator_enabled: false" in manifest
+    assert "FUNDING_PUBLICATION_LATENCY_UNPROVEN" in manifest
+    assert "research_authorized: true" not in manifest
 
 
 def test_outcome_access_remains_closed():
@@ -750,11 +752,25 @@ def test_freeze_docs_and_inventory_untouched():
     freeze = json.loads(FREEZE_JSON.read_text(encoding="utf-8"))
     assert freeze["dataset_id"] == DATASET_ID
     assert freeze["availability_semantics_version"] == AVAILABILITY_SEMANTICS_VERSION
-    assert freeze["unit_verdict"] == UNIT_VERDICT
+    assert freeze["unit_verdict"] == MATERIALIZED_UNIT_VERDICT
+    assert freeze["status"] == MATERIALIZED_STATUS
     assert freeze["funding_publication_semantics_status"] == FUNDING_PUBLICATION_SEMANTICS_STATUS
     assert freeze["funding_calc_time_is_legal_available_at"] is False
     assert freeze["funding"]["caller_constructed_row_cannot_self_attest_publication"] is True
-    assert freeze["snapshot_id"] == "NOT_MATERIALIZED"
+    assert freeze["snapshot_id"] == "5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33"
+    assert freeze["snapshot_manifest_sha256"] == "bb216f9abdb9fcd7c7648bbffb8541e811af06498d062faa5f31037793768e5e"
+    assert freeze["object_ledger_sha256"] == "521d42a471cc5fec74d808e8a4a3ea0078c87342b801df5dbf3836b4b69b4296"
+    assert freeze["quality_report_sha256"] == "a6b46df8350871bd737f02197b201b58d6069b19896d1767bda4c286bdc6c7b3"
+    assert freeze["checksum_sidecar_status"] == (
+        "TRANSIENT_CORROBORATING_EVIDENCE_NOT_GIT_RETAINED"
+    )
+    assert freeze["durability_status"] == (
+        "IDENTITY_PROVEN_AT_MATERIALIZATION_RAW_BYTES_NOT_GIT_RETAINED"
+    )
+    assert freeze["raw_zip_bytes_git_retained"] is False
+    assert freeze["normalized_jsonl_bytes_git_retained"] is False
+    assert freeze["current_local_recoverability_claimed"] is False
+    assert freeze["snapshot_materialized"] is True
     assert freeze["research_authorized"] is False
     assert freeze["year_2025_opened"] is False
     assert freeze["year_2026_opened"] is False
@@ -765,8 +781,12 @@ def test_freeze_docs_and_inventory_untouched():
     assert DATASET_ID in freeze_text
     manifest = MANIFEST.read_text(encoding="utf-8")
     assert "research_authorized: false" in manifest
-    assert "CONTRACT_FROZEN_NOT_MATERIALIZED" in manifest
-    assert "NOT_MATERIALIZED" in manifest
+    assert MATERIALIZED_STATUS in manifest
+    assert "5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33" in manifest
+    assert "521d42a471cc5fec74d808e8a4a3ea0078c87342b801df5dbf3836b4b69b4296" in manifest
+    assert "a6b46df8350871bd737f02197b201b58d6069b19896d1767bda4c286bdc6c7b3" in manifest
+    assert "object_ledger_sha256:" in manifest
+    assert "quality_report_sha256:" in manifest
     assert "EXACT_GIT_COMMIT_TREE_OBJECT_AUTHORITY" in manifest
     assert "FUNDING_PUBLICATION_LATENCY_UNPROVEN" in manifest
     inventory = INVENTORY.read_text(encoding="utf-8")
@@ -994,7 +1014,8 @@ def test_exact_git_commit_manifest_and_normalization_accepted(tmp_path: Path):
     )
     git_norm = sha256_hex(_git_blob(repo, ids["sha"], NORMALIZATION_MODULE))
     assert authority.normalization_source_sha256 == git_norm
-    assert bind_snapshot_to_tracked_authority(git_authority=authority) == "NOT_MATERIALIZED"
+    bound = bind_snapshot_to_tracked_authority(git_authority=authority)
+    assert bound == authority.manifest.get("snapshot_id")
     assert require_normalization_identity(
         git_authority=authority,
         claimed_sha256=git_norm,
@@ -1183,7 +1204,10 @@ def test_claimed_snapshot_id_substitution_rejected_with_git_proof(tmp_path: Path
         authority_commit_sha=ids["sha"],
         authority_tree_sha=ids["tree"],
     )
-    with pytest.raises(OiFundingAuthorizationError, match="caller-chosen snapshot_id"):
+    with pytest.raises(
+        OiFundingAuthorizationError,
+        match="caller-chosen snapshot_id|snapshot-id tampering",
+    ):
         bind_snapshot_to_tracked_authority(
             git_authority=authority,
             claimed_snapshot_id="a" * 64,
@@ -1199,12 +1223,16 @@ def test_claimed_snapshot_id_substitution_rejected_with_git_proof(tmp_path: Path
         first_last_timestamps={"funding": {"first": "2020-01-01T00:00:00Z"}},
         provenance_git_commit_sha=ids["sha"],
     )
-    with pytest.raises(OiFundingAuthorizationError, match="caller-chosen snapshot_id"):
+    with pytest.raises(
+        OiFundingAuthorizationError,
+        match="caller-chosen snapshot_id|snapshot-id tampering",
+    ):
         bind_snapshot_to_tracked_authority(
             git_authority=authority,
             snapshot=computed,
         )
-    assert bind_snapshot_to_tracked_authority(git_authority=authority) == "NOT_MATERIALIZED"
+    bound = bind_snapshot_to_tracked_authority(git_authority=authority)
+    assert bound == authority.manifest.get("snapshot_id")
 
 
 def test_alternate_authority_path_is_rejected(tmp_path: Path):

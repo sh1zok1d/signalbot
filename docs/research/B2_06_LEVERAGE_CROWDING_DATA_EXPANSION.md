@@ -1,16 +1,17 @@
 # B2-06 leverage-crowding data expansion
 
-- **Status:** `CONTRACT_FROZEN_NOT_MATERIALIZED`
+- **Status:** `SNAPSHOT_MATERIALIZED_NOT_RESEARCH_AUTHORIZED`
 - **Identity feasibility:** `DATA_EXPANSION_FEASIBLE_TO_FREEZE`
-- **Unit verdict:** `DATA_CONTRACT_FROZEN_AWAITING_MATERIALIZATION_AND_FUNDING_AVAILABILITY_AUTHORITY`
+- **Unit verdict:** `SNAPSHOT_MATERIALIZED_FUNDING_PUBLICATION_UNPROVEN_RESEARCH_UNAUTHORIZED`
 - **Formulation status (inventory, unchanged):** `BLOCKED_MISSING_OBSERVABLE`
 - **Dataset ID:** `B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0`
-- **Date:** 2026-09-07
+- **Snapshot ID:** `5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33`
+- **Date:** 2026-09-08
 - **Inventory mutability:** this unit does **not** edit `docs/research/V2_FORMULATION_INVENTORY.md`
 - **Outcome access:** **NO**. B2-06 is not executed. No RESULT is created. 2025 validation and 2026 OOS remain unopened. B2-05 is not reinterpreted.
 - **Funding publication authority:** `FUNDING_PUBLICATION_LATENCY_UNPROVEN` (fail closed). `calc_time` is not a proven `legal_available_at`.
 
-This is an outcome-blind data-expansion design unit. It freezes source identity, decision-time semantics, missing-vs-corrupt rules, same-support eligibility, and snapshot/provenance binding so a later materializer can exist without shopping for convenient OI/funding coverage after seeing B2-06 outcomes.
+This is an outcome-blind data-expansion unit. It froze source identity, then materialized the exact Binance Vision joint-period bytes into a Git-bound snapshot. Materialization does **not** authorize B2-06 science.
 
 It is **not**:
 
@@ -236,11 +237,14 @@ Materialization (a later unit) must bind all of:
 - provenance git commit SHA + tree SHA;
 - `snapshot_id = SHA256(canonical JSON identity payload)`.
 
-`snapshot_id` is **computed** at materialization time. This unmaterialized contract cannot accept a caller-chosen snapshot id.
+`snapshot_id` is **computed** from accepted source bytes plus the exact Git
+commit/tree blobs of the materializer/contract. Callers cannot supply it.
 
-### 6.1 Future materializer ZIP fail-closed checklist
+### 6.1 Materializer ZIP fail-closed checklist
 
-The downloader/materializer is **not** implemented in this PR. When it exists it **must** fail closed on:
+The materializer is implemented as
+`scripts/research/binance_um_oi_funding_v0_materializer.py`. It **must**
+fail closed on:
 
 - unexpected member filename;
 - multiple CSV members;
@@ -251,7 +255,36 @@ The downloader/materializer is **not** implemented in this PR. When it exists it
 - malformed UTF-8;
 - unsupported compression/container shape.
 
-A standalone member-identity validator exists for that future unit. It does not download history.
+A standalone member-identity validator exists in the frozen contract. The
+materializer uses it on every accepted archive.
+
+Joint-period snapshot bound at materializer commit
+`78d5bdf9d5686b740ebc48e46227bbf0f990cbbe` / tree
+`2b3e48ba36dd19f40a00fabe5c1a548b0b94d72f`:
+
+- expected/fetched/accepted OI objects: 1583 / 1583 / 1583 (rejected 0)
+- expected/fetched/accepted funding objects: 52 / 52 / 52 (rejected 0)
+- raw container bytes: 18564934
+- normalized JSONL bytes: 256788119
+- snapshot manifest SHA256: `bb216f9abdb9fcd7c7648bbffb8541e811af06498d062faa5f31037793768e5e`
+- object ledger SHA256: `521d42a471cc5fec74d808e8a4a3ea0078c87342b801df5dbf3836b4b69b4296`
+- quality report SHA256: `a6b46df8350871bd737f02197b201b58d6069b19896d1767bda4c286bdc6c7b3`
+- snapshot id: `5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33`
+- OI missing native 5m buckets: 631 across 70 objects (MISSING, not filled)
+- funding missing settlements: 0
+
+Raw ZIP bytes, `.CHECKSUM` sidecars, and canonical JSONL are gitignored and
+**not currently retained in Git**. `.CHECKSUM` files are transient
+corroborating evidence used at materialization only. The committed snapshot
+proves exact historical existence/identity at materialization time. Exact
+future recovery depends on upstream Binance Vision bytes remaining available
+and unchanged unless separate durable retention is added. This repository
+does **not** claim current local recoverability of the raw or normalized
+bytes.
+
+Identity evidence: `docs/research_data/B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0/`.
+Tracked manifest `docs/manifests/B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0.yaml`
+anchors snapshot, object-ledger, and quality-report SHA256 values.
 
 Upstream archive revision requires a new manifest/snapshot revision. It must not mutate this freeze in place after outcomes exist.
 
@@ -310,14 +343,13 @@ This unit does not choose crowding thresholds or forecast targets.
 
 ## 9. What remains blocked
 
-`B2-06_LEVERAGE_CROWDING` remains `BLOCKED_MISSING_OBSERVABLE` in the frozen inventory and in the Batch02 status ledger **as a scientific formulation**. The observable class now has a frozen first-party identity, but:
+`B2-06_LEVERAGE_CROWDING` remains `BLOCKED_MISSING_OBSERVABLE` in the frozen inventory and in the Batch02 status ledger **as a scientific formulation**. The observable class now has a frozen first-party identity **and** a Git-bound snapshot, but:
 
-- the snapshot is not materialized;
 - the dataset is not `research_authorized`;
 - funding publication latency is unproven, so settled funding is not legally consumable from `calc_time`;
 - no evaluator, promotion gate, or outcome window is opened.
 
-A later materialization + **funding availability authority** + authorization unit is required before any B2-06 development outcome. That unit still must not open 2025/2026 unless a frozen prereg says so.
+A later **funding availability authority** + authorization unit is required before any B2-06 development outcome. That unit still must not open 2025/2026 unless a frozen prereg says so.
 
 ---
 
@@ -325,11 +357,11 @@ A later materialization + **funding availability authority** + authorization uni
 
 Identity freeze: `DATA_EXPANSION_FEASIBLE_TO_FREEZE`
 
-Unit verdict: `DATA_CONTRACT_FROZEN_AWAITING_MATERIALIZATION_AND_FUNDING_AVAILABILITY_AUTHORITY`
+Unit verdict: `SNAPSHOT_MATERIALIZED_FUNDING_PUBLICATION_UNPROVEN_RESEARCH_UNAUTHORIZED`
 
-Exact identity, first-party provenance, development-year archive-object **listing**, decision-time clocks, Git-object snapshot binding, object-period row binding, funding missingness denominator, entire-row OI duplicate equality, and ZIP materializer fail-closed requirements can all be made defensible without lowering the bar. Intra-file 5m holes are handled as missingness rather than by mixing sources.
+Exact identity, first-party provenance, Git-bound snapshot bytes, decision-time clocks, object-period row binding, funding missingness denominator, entire-row OI duplicate equality, and ZIP materializer fail-closed requirements can all be made defensible without lowering the bar. Intra-file 5m holes are handled as missingness rather than by mixing sources.
 
-Funding `calc_time` is **not** claimed as a proven zero-latency `legal_available_at`. Publication semantics remain `FUNDING_PUBLICATION_LATENCY_UNPROVEN`. B2-06 is not retired; execution stays blocked.
+Funding `calc_time` is **not** claimed as a proven zero-latency `legal_available_at`. Publication semantics remain `FUNDING_PUBLICATION_LATENCY_UNPROVEN`. B2-06 is not retired; execution stays blocked. Bytes downloaded ≠ scientific readiness.
 
 `READY_FOR_FOCUSED_RE_REVIEW = YES`
-`VERDICT = DATA_CONTRACT_FROZEN_AWAITING_MATERIALIZATION_AND_FUNDING_AVAILABILITY_AUTHORITY`
+`VERDICT = SNAPSHOT_MATERIALIZED_FUNDING_PUBLICATION_UNPROVEN_RESEARCH_UNAUTHORIZED`

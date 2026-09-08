@@ -136,13 +136,13 @@ B2-05 artifact bytes remain `OPERATOR_ADJUDICATED`, not proven.
 
 Family F1 is `CLOSED_NO_PROMOTION`. **Next frozen scientific unit:**
 `B2-06_LEVERAGE_CROWDING`, still `BLOCKED_MISSING_OBSERVABLE`. The
-outcome-blind OI/funding data-expansion contract is frozen as
-`DATA_EXPANSION_FEASIBLE_TO_FREEZE` /
-`DATA_CONTRACT_FROZEN_AWAITING_MATERIALIZATION_AND_FUNDING_AVAILABILITY_AUTHORITY`
-/ `CONTRACT_FROZEN_NOT_MATERIALIZED`
-(`docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md`). That freeze is
-not B2-06 execution and does not authorize 2025/2026. See
-`docs/research/BATCH02_STATUS_LEDGER.md`.
+outcome-blind OI/funding snapshot is Git-bound as
+`SNAPSHOT_MATERIALIZED_NOT_RESEARCH_AUTHORIZED` /
+`SNAPSHOT_MATERIALIZED_FUNDING_PUBLICATION_UNPROVEN_RESEARCH_UNAUTHORIZED`
+(`docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md`, snapshot
+`5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33`).
+Materialized bytes are not B2-06 execution and do not authorize 2025/2026.
+See `docs/research/BATCH02_STATUS_LEDGER.md`.
 
 ### Exit
 A small set of candidate mechanisms shows enough development evidence to justify formal validation. It is acceptable for none to qualify.

@@ -50,6 +50,20 @@ Parquet I/O requires `pyarrow==17.0.0` from `requirements-research.txt`
 (or `requirements-dev.txt` in CI). Do not add pyarrow to production
 `requirements.txt`.
 
+## B2-06 OI/funding snapshot materializer
+
+`binance_um_oi_funding_v0_materializer.py` (+
+`binance_um_oi_funding_v0_materializer_lib.py`) is an `AUDIT_TOOL` /
+research-data materializer for dataset
+`B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0`. It downloads only the frozen
+Binance Vision joint-period USD-M `BTCUSDT` OI and funding objects,
+binds a Git-object snapshot identity, and does **not** authorize B2-06
+science. Funding publication latency remains
+`FUNDING_PUBLICATION_LATENCY_UNPROVEN`. See
+`docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md` and
+`docs/research/B2_06_FUNDING_PUBLICATION_AUTHORITY.md`. Production
+acquisition requires `--allow-acquire`; there is no period override.
+
 ## H01 compression → expansion
 
 `h01_compression_expansion.py` (+ `h01_compression_expansion_lib.py`) is an
