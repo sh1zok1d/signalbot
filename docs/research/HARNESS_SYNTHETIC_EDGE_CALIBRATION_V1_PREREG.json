@@ -1,6 +1,6 @@
 {
   "schema_version": "1.2",
-  "status": "PREREG_CANDIDATE_OUTCOME_BLIND_REPAIRED_AFTER_REDTEAM",
+  "status": "FROZEN_BEFORE_IMPLEMENTATION",
   "unit_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1",
   "unit_type": "METHODOLOGY_CALIBRATION_NOT_MARKET_HYPOTHESIS",
   "base_main_at_design_start": "79f68df395ecdda064386050d4d280cb994c4bbf",
