@@ -63,6 +63,10 @@ jobs:
       V2_EPISODE_EVENT_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_test
     steps:
       - uses: actions/checkout@v4
+        with:
+          # B2-06 verify-only reads provenance blobs from ancestor
+          # 78d5bdf without checking that commit out as HEAD.
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5

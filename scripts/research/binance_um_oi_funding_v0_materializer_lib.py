@@ -614,8 +614,14 @@ def _git_output(repo_root: Path, *args: str) -> str:
             capture_output=True,
         )
     except (OSError, subprocess.CalledProcessError) as exc:
+        detail = ""
+        if isinstance(exc, subprocess.CalledProcessError) and exc.stderr:
+            detail = exc.stderr.decode("utf-8", errors="replace").strip().splitlines()
+            detail = detail[0] if detail else ""
         raise OiFundingAuthorizationError(
-            f"git command failed: {' '.join(args)}"
+            "git command failed: "
+            + " ".join(args)
+            + (f" ({detail})" if detail else "")
         ) from exc
     return result.stdout.decode("utf-8").strip()
 
@@ -923,7 +929,12 @@ def verify_committed_oi_funding_evidence(
         "provenance_git_tree_sha",
     )
     actual_tree = _require_40_hex(
-        _git_output(repo_root, "rev-parse", f"{provenance_commit}^{{tree}}"),
+        _git_output(
+            repo_root,
+            "rev-parse",
+            "--verify",
+            f"{provenance_commit}^{{tree}}",
+        ),
         "provenance tree",
     )
     if actual_tree != provenance_tree:

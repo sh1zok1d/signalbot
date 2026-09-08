@@ -794,6 +794,7 @@ def test_verify_committed_evidence_without_network(monkeypatch):
     monkeypatch.setattr(urllib.request, "urlopen", boom)
     result = verify_committed_oi_funding_evidence(repo_root=REPO)
     assert result["network_required"] is False
+    assert result["head_sha"] != result["provenance_git_commit_sha"]
     assert result["snapshot_id"] == (
         "5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33"
     )
