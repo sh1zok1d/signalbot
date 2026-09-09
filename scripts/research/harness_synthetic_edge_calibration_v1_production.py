@@ -22,8 +22,10 @@ RESULT verification has two distinct authority models:
 - TRACKED / historical: `verify_bound_result_from_tracked_authority` reads
   `execution_head` from the RESULT core itself, loads authority from git
   objects at that exact commit, and re-verifies ARM topology at execution
-  time. Current HEAD being a later unarmed RESULT commit is not authority and
-  must not invalidate a historically valid RESULT.
+  time. Production scientific fields are recomputed from the tracked
+  WORLD_RECORDS artifact, not from RESULT-declared aggregates. Current HEAD
+  being a later unarmed RESULT commit is not authority and must not
+  invalidate a historically valid RESULT.
 """
 
 from __future__ import annotations
@@ -117,12 +119,12 @@ CANONICAL_ARM_PATH = (
 CANONICAL_DRIVER_FREEZE_PATH = (
     "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_DRIVER_FREEZE.json"
 )
-CANONICAL_RECORD_MANIFEST_PATH = (
-    "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_RECORD_MANIFEST.json"
+CANONICAL_WORLD_RECORDS_PATH = (
+    "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_WORLD_RECORDS.json"
 )
 WORKER_STDOUT_KIND_COMPLETE_RESULT = "COMPLETE_RESULT"
 WORKER_STDOUT_KIND_PARTIAL = "PARTIAL_NOT_RESULT"
-RECORD_MANIFEST_KIND = "PRODUCTION_RECORD_MANIFEST"
+WORLD_RECORDS_KIND = "PRODUCTION_WORLD_RECORDS"
 # Scientifically material literals a production RESULT core may never assert
 # otherwise. Verified exactly during historical verification.
 PRODUCTION_PROTECTED_CORE_LITERALS = {
@@ -1485,9 +1487,9 @@ def _bind_result_core_from_bound(
     `armed` must be the ARM state at the execution commit, not current HEAD.
     """
     reservation = _durable_reservation_from_bound(bound)
-    digest_chain = list(_ordered_record_digest_chain(records))
     if fixture:
         jsonable_records = [_jsonable(dict(rec)) for rec in records]
+        digest_chain = list(_ordered_record_digest_chain(jsonable_records))
         return {
             "schema_version": "1.0",
             "fixture": True,
@@ -1513,8 +1515,14 @@ def _bind_result_core_from_bound(
             "production_monte_carlo_arm_authorized": armed,
             "production_calibration_executed": False,
         }
+    records = _require_canonical_production_records(records)
+    digest_chain = list(_ordered_record_digest_chain(records))
     aggregates = aggregate_planned_worlds(records)
     claim = _durable_claim_from_bound(bound)
+    artifact = _production_world_records_from_bound(records, bound=bound)
+    artifact_bytes = canonical_json_bytes(_jsonable(artifact))
+    artifact_digest = _sha256_bytes(artifact_bytes)
+    artifact_size = len(artifact_bytes)
     return {
         "schema_version": "1.0",
         "unit_id": UNIT_ID,
@@ -1537,6 +1545,10 @@ def _bind_result_core_from_bound(
         "run_identity": _run_identity_from_bound(bound),
         "world_set_sha256": world_set_sha256(records),
         "record_digest_chain": digest_chain,
+        "records_artifact_path": CANONICAL_WORLD_RECORDS_PATH,
+        "records_artifact_sha256": artifact_digest,
+        "records_artifact_size": artifact_size,
+        "record_count": PRODUCTION_PLANNED_TOTAL_WORLDS,
         "planned_world_count": aggregates["planned_world_count"],
         "observed_world_count": aggregates["observed_world_count"],
         "aggregates": _jsonable(aggregates),
@@ -1572,23 +1584,34 @@ def _bind_result_core(*, records, repo_root, fixture: bool = False):
     )
 
 
-def _production_record_manifest_from_bound(
+def _require_canonical_production_records(
+    records: Sequence[Mapping[str, Any]],
+) -> list[Mapping[str, Any]]:
+    """Fail closed unless records are exactly the frozen 3200-job plan in order."""
+    jobs = planned_production_jobs()
+    if len(jobs) != PRODUCTION_PLANNED_TOTAL_WORLDS:
+        _refuse("production world plan is not 3200 identities")
+    if len(records) != PRODUCTION_PLANNED_TOTAL_WORLDS:
+        _tamper("production world records count is not the frozen 3200-world plan")
+    owned: list[Mapping[str, Any]] = []
+    for rec, job in zip(records, jobs, strict=True):
+        _record_job_identity(rec, *job)
+        owned.append(_jsonable(dict(rec)))
+    _require_unique_planned_set(owned)
+    return owned
+
+
+def _production_world_records_from_bound(
     records, *, bound: Mapping[str, str]
 ) -> dict[str, Any]:
-    """Sibling evidence artifact carrying the exact per-world record digests.
-
-    A production RESULT cannot embed 3200 full records, so `world_set_sha256`
-    and `record_digest_chain` are bound here instead of being free-floating
-    assertions inside the RESULT. The historical verifier loads this from
-    tracked git authority and compares it against the RESULT core.
-    """
-    jsonable_records = [_jsonable(dict(rec)) for rec in records]
-    payload = {
+    """Canonical WORLD_RECORDS evidence. Records are the authority, not aggregates."""
+    jsonable_records = _require_canonical_production_records(records)
+    body = {
         "schema_version": "1.0",
-        "kind": RECORD_MANIFEST_KIND,
+        "kind": WORLD_RECORDS_KIND,
         "unit_id": UNIT_ID,
         "durability_id": DURABILITY_ID,
-        "canonical_path": CANONICAL_RECORD_MANIFEST_PATH,
+        "canonical_path": CANONICAL_WORLD_RECORDS_PATH,
         "execution_head": bound["head_sha"],
         "execution_tree": bound["tree_sha"],
         "run_identity": _run_identity_from_bound(bound),
@@ -1596,20 +1619,19 @@ def _production_record_manifest_from_bound(
         "jobs": [list(job) for job in planned_production_jobs()],
         "planned_world_count": PRODUCTION_PLANNED_TOTAL_WORLDS,
         "observed_world_count": len(jsonable_records),
-        "world_set_sha256": _sha256_bytes(
-            canonical_json_bytes({"worlds": jsonable_records})
-        ),
-        "record_digest_chain": list(_ordered_record_digest_chain(records)),
-        "final_result_minted": False,
-        "production_monte_carlo_arm_authorized": False,
+        "record_count": len(jsonable_records),
+        "world_set_sha256": world_set_sha256(jsonable_records),
+        "record_digest_chain": list(_ordered_record_digest_chain(jsonable_records)),
+        "records": jsonable_records,
         "real_market_data_access_authorized": False,
         "b2_06_scientific_execution_authorized": False,
         "validation_2025_authorized": False,
         "oos_2026_authorized": False,
     }
-    raw = canonical_json_bytes(_jsonable(payload))
-    payload["manifest_sha256"] = _sha256_bytes(raw)
-    payload["manifest_size"] = len(raw)
+    raw = canonical_json_bytes(_jsonable(body))
+    payload = dict(body)
+    payload["world_records_sha256"] = _sha256_bytes(raw)
+    payload["world_records_size"] = len(raw)
     return payload
 
 
@@ -1891,11 +1913,11 @@ def _mint_from_session(session: _CanonicalExecutionSession) -> dict[str, Any]:
             fixture=False,
         )
         envelope = _result_envelope_from_core(core)
-        manifest = _production_record_manifest_from_bound(
+        world_records = _production_world_records_from_bound(
             session.records, bound=bound
         )
         _close_session(session)
-        return {"result": envelope, "record_manifest": manifest}
+        return {"result": envelope, "world_records": world_records}
     core = _bind_result_core(
         records=session.records,
         repo_root=session.repo_root,
@@ -2232,250 +2254,12 @@ def _refuse_conflicting_terminal_result(repo_root: Path, document_bytes: bytes) 
         _refuse("RESULT document does not match tracked artifact")
 
 
-_PRODUCTION_SPECIFICITY_ARMS = (
-    ("ORACLE_NULL_MODEL_DETECTED", "oracle_null_specificity", ORACLE_NULL_FPR_MAX),
-    ("BLIND_NULL_ANY_EDGE_DECLARED", "blind_null_specificity", BLIND_NULL_FPR_MAX),
-    (
-        "NONSTATIONARY_TRAP_STRICT_PASS_EX_MATERIALITY",
-        "trap_specificity",
-        TRAP_STRICT_EX_MAX,
-    ),
-)
-_PRODUCTION_POWER_ARMS = (
-    ("ORACLE_EASY_MODEL_DETECTED", "easy_oracle_power", ORACLE_EASY_MIN),
-    ("ORACLE_MODERATE_MODEL_DETECTED", "moderate_oracle_power", ORACLE_MODERATE_MIN),
-    ("BLIND_EASY_USEFUL_DISCOVERY", "easy_blind_useful", BLIND_EASY_USEFUL_MIN),
-    ("BLIND_MODERATE_USEFUL_DISCOVERY", "moderate_blind_useful", BLIND_MODERATE_USEFUL_MIN),
-)
-_PRODUCTION_BAND_ARMS = (
-    "SMALL_ORACLE_MODEL_DETECTED_N5000",
-    "SMALL_ORACLE_MODEL_DETECTED_N2500",
-    "SMALL_ORACLE_MODEL_DETECTED_N10000",
-)
-_PRODUCTION_CELL_ARMS = (
-    "ORACLE_NULL_MODEL_DETECTED",
-    "BLIND_NULL_ANY_EDGE_DECLARED",
-    "NONSTATIONARY_TRAP_STRICT_PASS_EX_MATERIALITY",
-    "ORACLE_EASY_MODEL_DETECTED",
-    "ORACLE_MODERATE_MODEL_DETECTED",
-    "BLIND_EASY_USEFUL_DISCOVERY",
-    "BLIND_MODERATE_USEFUL_DISCOVERY",
-    "SMALL_ORACLE_MODEL_DETECTED_N5000",
-    "SMALL_ORACLE_MODEL_DETECTED_N2500",
-    "SMALL_ORACLE_MODEL_DETECTED_N10000",
-    "VISIBILITY_FLOOR_EASY_ORACLE",
-    "MODEL_FLOOR_EASY_ORACLE",
-)
-_PRODUCTION_CELL_KEYS = (
-    "NULL|5000",
-    "EASY|5000",
-    "MODERATE|5000",
-    "SMALL|5000",
-    "TINY_NOISY|5000",
-    "NONSTATIONARY_TRAP|5000",
-    "SMALL|2500",
-    "SMALL|10000",
-)
-
-
 def _tamper(detail: str) -> None:
     raise ProductionIntegrityError(f"SYNTHETIC_EXECUTION_NOT_AUTHORIZED: {detail}")
 
 
 def _canonical_equal(left: Any, right: Any) -> bool:
     return canonical_json_bytes(_jsonable(left)) == canonical_json_bytes(_jsonable(right))
-
-
-def _expected_wilson_arm(successes: int, n: int) -> dict[str, Any]:
-    """Mirror `_wilson_arm` from irreducible (successes, n) only."""
-    if n <= 0:
-        interval = {
-            "n": 0.0,
-            "successes": 0.0,
-            "phat": 0.0,
-            "center": 0.0,
-            "lower": 0.0,
-            "upper": 0.0,
-        }
-    else:
-        interval = wilson_interval(successes, n)
-    return {
-        "successes": successes,
-        "n": n,
-        "interval": interval,
-        "incomplete_cell": n != PRODUCTION_WORLDS_PER_CELL,
-    }
-
-
-def _arm_counts(arms: Mapping[str, Any], name: str) -> tuple[Mapping[str, Any], int, int]:
-    arm = arms.get(name)
-    if not isinstance(arm, Mapping):
-        _tamper(f"aggregate arm is missing or malformed: {name}")
-    n = arm.get("n")
-    successes = arm.get("successes")
-    for value in (n, successes):
-        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
-            _tamper(f"aggregate arm counts are not valid integers: {name}")
-    if successes > n:
-        _tamper(f"aggregate arm successes exceed n: {name}")
-    return arm, int(successes), int(n)
-
-
-def _assert_production_aggregates_self_consistent(
-    aggregates: Mapping[str, Any]
-) -> dict[str, Any]:
-    """Re-derive every derivable scientific field from irreducible arm counts.
-
-    Only per-arm (successes, n), the missing-job list and the invalid counters
-    are treated as inputs. Wilson intervals, verdicts, bands, floors and the
-    mechanical conclusion are all recomputed with the frozen helpers and
-    compared exactly.
-    """
-    if not isinstance(aggregates, Mapping):
-        _tamper("production RESULT aggregates are missing or malformed")
-    arms = aggregates.get("arms")
-    if not isinstance(arms, Mapping):
-        _tamper("production RESULT aggregate arms are missing or malformed")
-
-    for key, expected in PRODUCTION_PROTECTED_AGGREGATE_LITERALS.items():
-        if aggregates.get(key) is not expected:
-            _tamper(f"aggregate scope authorization flag tamper detected: {key}")
-
-    if aggregates.get("planned_world_count") != PRODUCTION_PLANNED_TOTAL_WORLDS:
-        _tamper("aggregate planned_world_count is not the frozen 3200-world plan")
-    if aggregates.get("observed_world_count") != PRODUCTION_PLANNED_TOTAL_WORLDS:
-        _tamper("aggregate observed_world_count is not the frozen 3200-world plan")
-    missing = aggregates.get("missing_jobs")
-    if not isinstance(missing, list):
-        _tamper("aggregate missing_jobs is malformed")
-
-    invalid_total = aggregates.get("invalid_counts_total")
-    invalid_by_cell = aggregates.get("invalid_counts_by_cell")
-    if not isinstance(invalid_total, Mapping) or not isinstance(invalid_by_cell, Mapping):
-        _tamper("aggregate invalid counters are missing or malformed")
-    if set(invalid_by_cell) != set(_PRODUCTION_CELL_KEYS):
-        _tamper("aggregate invalid_counts_by_cell does not cover the frozen cells")
-    cell_invalid_sum = 0
-    observed_sum = 0
-    for cell_key in _PRODUCTION_CELL_KEYS:
-        cell = invalid_by_cell.get(cell_key)
-        if not isinstance(cell, Mapping):
-            _tamper(f"aggregate invalid cell is malformed: {cell_key}")
-        if cell.get("planned") != PRODUCTION_WORLDS_PER_CELL:
-            _tamper(f"aggregate cell planned count is not 400: {cell_key}")
-        observed = cell.get("observed")
-        count = cell.get("invalid_count")
-        for value in (observed, count):
-            if not isinstance(value, int) or isinstance(value, bool) or value < 0:
-                _tamper(f"aggregate cell counters are not valid integers: {cell_key}")
-        if observed != PRODUCTION_WORLDS_PER_CELL:
-            _tamper(f"aggregate cell observed count is not 400: {cell_key}")
-        cell_invalid_sum += int(count)
-        observed_sum += int(observed)
-    if observed_sum != PRODUCTION_PLANNED_TOTAL_WORLDS:
-        _tamper("aggregate per-cell observed counts do not sum to 3200")
-    total_invalid = invalid_total.get("invalid_count")
-    if not isinstance(total_invalid, int) or isinstance(total_invalid, bool):
-        _tamper("aggregate invalid_counts_total is malformed")
-    if int(total_invalid) != cell_invalid_sum:
-        _tamper("aggregate invalid_counts_total does not match the per-cell counters")
-
-    recomputed_incomplete = bool(missing) or int(total_invalid) > 0
-    if aggregates.get("incomplete_execution") is not recomputed_incomplete:
-        _tamper("aggregate incomplete_execution does not match missing/invalid counters")
-    if recomputed_incomplete:
-        _tamper("a terminal production RESULT cannot carry incomplete execution state")
-
-    for name in _PRODUCTION_CELL_ARMS:
-        _, _, n = _arm_counts(arms, name)
-        if n != PRODUCTION_WORLDS_PER_CELL:
-            _tamper(f"aggregate arm denominator is not the planned 400: {name}")
-    _, _, true_disc_n = _arm_counts(arms, "TRUE_DISCOVERY_RATE")
-    if true_disc_n != PRODUCTION_PLANNED_TOTAL_WORLDS:
-        _tamper("TRUE_DISCOVERY_RATE denominator is not the planned 3200")
-
-    verdicts: dict[str, str] = {}
-    for name, verdict_key, threshold in _PRODUCTION_SPECIFICITY_ARMS:
-        arm, successes, n = _arm_counts(arms, name)
-        base = _expected_wilson_arm(successes, n)
-        verdict = specificity_verdict(base["interval"], threshold) if n else "INDETERMINATE"
-        if not _canonical_equal(arm, {**base, "verdict": verdict, "threshold": threshold}):
-            _tamper(f"aggregate specificity arm was not derived from its counts: {name}")
-        verdicts[verdict_key] = verdict
-    for name, verdict_key, threshold in _PRODUCTION_POWER_ARMS:
-        arm, successes, n = _arm_counts(arms, name)
-        base = _expected_wilson_arm(successes, n)
-        verdict = power_verdict(base["interval"], threshold) if n else "INDETERMINATE"
-        if not _canonical_equal(arm, {**base, "verdict": verdict, "threshold": threshold}):
-            _tamper(f"aggregate power arm was not derived from its counts: {name}")
-        verdicts[verdict_key] = verdict
-    for name in _PRODUCTION_BAND_ARMS:
-        arm, successes, n = _arm_counts(arms, name)
-        base = _expected_wilson_arm(successes, n)
-        band = small_band(base["interval"]) if n else "INDETERMINATE"
-        if not _canonical_equal(arm, {**base, "band": band}):
-            _tamper(f"aggregate SMALL band arm was not derived from its counts: {name}")
-    arm, successes, n = _arm_counts(arms, "TRUE_DISCOVERY_RATE")
-    base = _expected_wilson_arm(successes, n)
-    band = small_band(base["interval"]) if n else "INDETERMINATE"
-    if not _canonical_equal(
-        arm, {**base, "band": band, "descriptive_only": True}
-    ):
-        _tamper("aggregate TRUE_DISCOVERY_RATE arm was not derived from its counts")
-
-    visibility_arm, vis_k, vis_n = _arm_counts(arms, "VISIBILITY_FLOOR_EASY_ORACLE")
-    if not _canonical_equal(visibility_arm, _expected_wilson_arm(vis_k, vis_n)):
-        _tamper("aggregate visibility floor arm was not derived from its counts")
-    easy_arm, easy_k, easy_n = _arm_counts(arms, "ORACLE_EASY_MODEL_DETECTED")
-    model_floor, floor_k, floor_n = _arm_counts(arms, "MODEL_FLOOR_EASY_ORACLE")
-    expected_floor = _expected_wilson_arm(easy_k, easy_n)
-    if not _canonical_equal(model_floor, expected_floor):
-        _tamper("aggregate model floor arm was not derived from its counts")
-    if (floor_k, floor_n) != (easy_k, easy_n):
-        _tamper("aggregate model floor arm disagrees with the EASY oracle arm")
-
-    diagnostic = arms.get("MATERIALITY_ONLY_DIAGNOSTIC")
-    if not isinstance(diagnostic, Mapping):
-        _tamper("aggregate materiality diagnostic is missing or malformed")
-    strict_ex, sx_k, sx_n = _arm_counts(diagnostic, "strict_ex")
-    strict, s_k, s_n = _arm_counts(diagnostic, "strict")
-    if not _canonical_equal(strict_ex, _expected_wilson_arm(sx_k, sx_n)):
-        _tamper("aggregate strict-ex diagnostic arm was not derived from its counts")
-    if not _canonical_equal(strict, _expected_wilson_arm(s_k, s_n)):
-        _tamper("aggregate strict diagnostic arm was not derived from its counts")
-    materiality_only = bool(sx_k > s_k and sx_n == PRODUCTION_WORLDS_PER_CELL)
-    if diagnostic.get("materiality_only_failure") is not materiality_only:
-        _tamper("aggregate materiality_only_failure was not derived from its counts")
-
-    if not _canonical_equal(aggregates.get("verdicts"), verdicts):
-        _tamper("aggregate verdicts were not derived from the Wilson intervals")
-
-    visibility_upper = float(visibility_arm["interval"]["upper"]) if vis_n else None
-    model_upper = float(easy_arm["interval"]["upper"]) if easy_n else None
-    conclusion = mechanical_conclusion(
-        incomplete_execution=recomputed_incomplete,
-        oracle_null_specificity=verdicts["oracle_null_specificity"],
-        blind_null_specificity=verdicts["blind_null_specificity"],
-        trap_specificity=verdicts["trap_specificity"],
-        easy_oracle_power=verdicts["easy_oracle_power"],
-        moderate_oracle_power=verdicts["moderate_oracle_power"],
-        easy_blind_useful=verdicts["easy_blind_useful"],
-        moderate_blind_useful=verdicts["moderate_blind_useful"],
-        visibility_wilson_upper=visibility_upper,
-        model_detection_wilson_upper=model_upper,
-        materiality_only_failure=materiality_only,
-    )
-    if aggregates.get("mechanical_conclusion") != conclusion:
-        _tamper("aggregate mechanical_conclusion was not derived from the verdicts")
-    return {
-        "verdicts": verdicts,
-        "mechanical_conclusion": conclusion,
-        "wilson_intervals": {
-            name: arm.get("interval")
-            for name, arm in arms.items()
-            if isinstance(arm, Mapping) and "interval" in arm
-        },
-    }
 
 
 def _assert_production_protected_literals(core: Mapping[str, Any]) -> None:
@@ -2487,73 +2271,82 @@ def _assert_production_protected_literals(core: Mapping[str, Any]) -> None:
             _tamper(f"protected scope authorization flag tamper detected: {key}")
 
 
-def _assert_production_record_evidence(
+def _load_tracked_world_records(
     repo_root: Path, core: Mapping[str, Any], bound: Mapping[str, str]
-) -> None:
-    """Bind world_set_sha256/record_digest_chain to the tracked sibling manifest.
+) -> list[Mapping[str, Any]]:
+    """Load canonical WORLD_RECORDS from git objects and return the records.
 
-    A production RESULT cannot carry 3200 records, so these two fields are not
-    self-verifiable. They are bound to an immutable tracked manifest instead of
-    being accepted as caller assertions.
+    Worktree bytes are not authority. Aggregates inside RESULT are not inputs.
     """
-    blob = _head_blob(repo_root, CANONICAL_RECORD_MANIFEST_PATH)
+    blob = _head_blob(repo_root, CANONICAL_WORLD_RECORDS_PATH)
     if blob is None:
         _refuse(
-            "tracked production record manifest is absent; "
-            "world_set_sha256/record_digest_chain cannot be verified"
+            "tracked production WORLD_RECORDS artifact is absent; "
+            "scientific payload cannot be verified"
         )
+    if core.get("records_artifact_path") != CANONICAL_WORLD_RECORDS_PATH:
+        _tamper("records_artifact_path is not the canonical WORLD_RECORDS path")
+    if core.get("records_artifact_sha256") != _sha256_bytes(blob):
+        _tamper("records_artifact_sha256 does not match tracked WORLD_RECORDS bytes")
+    if core.get("records_artifact_size") != len(blob):
+        _tamper("records_artifact_size does not match tracked WORLD_RECORDS bytes")
     try:
-        manifest = json.loads(blob.decode("utf-8"))
+        payload = json.loads(blob.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise SyntheticExecutionNotAuthorized(
-            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: malformed tracked production record manifest"
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: malformed tracked WORLD_RECORDS artifact"
         ) from exc
-    if not isinstance(manifest, dict):
-        _refuse("malformed tracked production record manifest")
+    if not isinstance(payload, dict):
+        _refuse("malformed tracked WORLD_RECORDS artifact")
     body = {
         key: value
-        for key, value in manifest.items()
-        if key not in {"manifest_sha256", "manifest_size"}
+        for key, value in payload.items()
+        if key not in {"world_records_sha256", "world_records_size"}
     }
     raw = canonical_json_bytes(_jsonable(body))
-    if manifest.get("manifest_sha256") != _sha256_bytes(raw):
-        _tamper("production record manifest digest mismatch")
-    if manifest.get("manifest_size") != len(raw):
-        _tamper("production record manifest size mismatch")
-    if manifest.get("kind") != RECORD_MANIFEST_KIND:
-        _tamper("production record manifest kind is not canonical")
-    if manifest.get("canonical_path") != CANONICAL_RECORD_MANIFEST_PATH:
-        _tamper("production record manifest path is not canonical")
-    if manifest.get("execution_head") != bound["head_sha"]:
-        _tamper("production record manifest execution_head does not match the RESULT")
-    if manifest.get("execution_tree") != bound["tree_sha"]:
-        _tamper("production record manifest execution_tree does not match the RESULT")
-    if manifest.get("run_identity") != _run_identity_from_bound(bound):
-        _tamper("production record manifest run_identity does not match the RESULT")
-    if not _canonical_equal(manifest.get("grid"), frozen_production_grid()):
-        _tamper("production record manifest grid is not frozen authority")
+    if payload.get("world_records_sha256") != _sha256_bytes(raw):
+        _tamper("production WORLD_RECORDS digest mismatch")
+    if payload.get("world_records_size") != len(raw):
+        _tamper("production WORLD_RECORDS size mismatch")
+    if payload.get("kind") != WORLD_RECORDS_KIND:
+        _tamper("production WORLD_RECORDS kind is not canonical")
+    if payload.get("canonical_path") != CANONICAL_WORLD_RECORDS_PATH:
+        _tamper("production WORLD_RECORDS path is not canonical")
+    if payload.get("execution_head") != bound["head_sha"]:
+        _tamper("production WORLD_RECORDS execution_head does not match the RESULT")
+    if payload.get("execution_tree") != bound["tree_sha"]:
+        _tamper("production WORLD_RECORDS execution_tree does not match the RESULT")
+    if payload.get("run_identity") != _run_identity_from_bound(bound):
+        _tamper("production WORLD_RECORDS run_identity does not match the RESULT")
+    if not _canonical_equal(payload.get("grid"), frozen_production_grid()):
+        _tamper("production WORLD_RECORDS grid is not frozen authority")
     expected_jobs = [list(job) for job in planned_production_jobs()]
-    if not _canonical_equal(manifest.get("jobs"), expected_jobs):
-        _tamper("production record manifest job plan is not the frozen 3200-world plan")
-    if manifest.get("planned_world_count") != PRODUCTION_PLANNED_TOTAL_WORLDS:
-        _tamper("production record manifest planned_world_count is not 3200")
-    if manifest.get("observed_world_count") != PRODUCTION_PLANNED_TOTAL_WORLDS:
-        _tamper("production record manifest observed_world_count is not 3200")
-    chain = manifest.get("record_digest_chain")
-    if not isinstance(chain, list) or len(chain) != PRODUCTION_PLANNED_TOTAL_WORLDS:
-        _tamper("production record manifest digest chain is not 3200 entries")
-    for digest in chain:
-        if not isinstance(digest, str) or len(digest) != 64:
-            _tamper("production record manifest digest chain entry is malformed")
-        if any(ch not in "0123456789abcdef" for ch in digest.lower()):
-            _tamper("production record manifest digest chain entry is malformed")
-    world_set = manifest.get("world_set_sha256")
-    if not isinstance(world_set, str) or len(world_set) != 64:
-        _tamper("production record manifest world_set_sha256 is malformed")
-    if core.get("world_set_sha256") != world_set:
+    if not _canonical_equal(payload.get("jobs"), expected_jobs):
+        _tamper("production WORLD_RECORDS job plan is not the frozen 3200-world plan")
+    records = payload.get("records")
+    if not isinstance(records, list):
+        _tamper("production WORLD_RECORDS records are missing")
+    owned = _require_canonical_production_records(records)
+    if payload.get("planned_world_count") != PRODUCTION_PLANNED_TOTAL_WORLDS:
+        _tamper("production WORLD_RECORDS planned_world_count is not the frozen 3200-world plan")
+    if payload.get("observed_world_count") != PRODUCTION_PLANNED_TOTAL_WORLDS:
+        _tamper("production WORLD_RECORDS observed_world_count is not the frozen 3200-world plan")
+    if payload.get("record_count") != PRODUCTION_PLANNED_TOTAL_WORLDS:
+        _tamper("production WORLD_RECORDS record_count is not the frozen 3200-world plan")
+    recomputed_chain = list(_ordered_record_digest_chain(owned))
+    recomputed_world = world_set_sha256(owned)
+    if payload.get("world_set_sha256") != recomputed_world:
+        _tamper("WORLD_RECORDS world_set_sha256 was not derived from the records")
+    if not _canonical_equal(payload.get("record_digest_chain"), recomputed_chain):
+        _tamper("WORLD_RECORDS record_digest_chain was not derived from the records")
+    if core.get("world_set_sha256") != recomputed_world:
         _tamper("world_set_sha256 tamper detected")
-    if not _canonical_equal(core.get("record_digest_chain"), chain):
+    if not _canonical_equal(core.get("record_digest_chain"), recomputed_chain):
         _tamper("record_digest_chain tamper detected")
+    if core.get("record_count") != PRODUCTION_PLANNED_TOTAL_WORLDS:
+        _tamper("record_count is not the frozen 3200-world plan")
+    return owned
+
 
 
 def _assert_historical_production_identity(
@@ -2652,30 +2445,18 @@ def verify_bound_result_from_tracked_authority(
         )
         _assert_result_core_matches_expected(core, core_bytes, expected)
     else:
-        # Production shape. Identity alone is not enough: the scientific
-        # payload must be re-derived, the protected literals checked exactly,
-        # and the record evidence bound to the tracked sibling manifest.
+        # Production shape. Identity is not scientific authority. Load the
+        # tracked WORLD_RECORDS git object, recompute aggregates from those
+        # records, reconstruct the expected core, and compare exactly.
         _assert_historical_production_identity(core, bound)
         _assert_production_protected_literals(core)
-        derived = _assert_production_aggregates_self_consistent(core.get("aggregates"))
-        if core.get("mechanical_conclusion") != derived["mechanical_conclusion"]:
-            _tamper("mechanical_conclusion was not derived from the aggregates")
-        if not _canonical_equal(core.get("verdicts"), derived["verdicts"]):
-            _tamper("verdicts were not derived from the aggregates")
-        if not _canonical_equal(core.get("wilson_intervals"), derived["wilson_intervals"]):
-            _tamper("wilson_intervals were not derived from the aggregates")
-        if core.get("planned_world_count") != PRODUCTION_PLANNED_TOTAL_WORLDS:
-            _tamper("planned_world_count is not the frozen 3200-world plan")
-        if core.get("observed_world_count") != PRODUCTION_PLANNED_TOTAL_WORLDS:
-            _tamper("observed_world_count is not the frozen 3200-world plan")
-        records = core.get("records")
-        if isinstance(records, list):
-            expected = _bind_result_core_from_bound(
-                records, bound=bound, fixture=False, armed=True
-            )
-            _assert_result_core_matches_expected(core, core_bytes, expected)
-        else:
-            _assert_production_record_evidence(root, core, bound)
+        if isinstance(core.get("records"), list):
+            _tamper("production RESULT must not carry records as a substitute for WORLD_RECORDS")
+        records = _load_tracked_world_records(root, core, bound)
+        expected = _bind_result_core_from_bound(
+            records, bound=bound, fixture=False, armed=True
+        )
+        _assert_result_core_matches_expected(core, core_bytes, expected)
     _refuse_conflicting_terminal_result(root, document_bytes)
     return _jsonable(dict(document))
 
@@ -2890,7 +2671,7 @@ class CanonicalWorkerCapture:
 def canonical_worker_stdout_bytes(
     kind: str,
     payload: Mapping[str, Any],
-    record_manifest: Mapping[str, Any] | None = None,
+    world_records: Mapping[str, Any] | None = None,
 ) -> bytes:
     if kind == WORKER_STDOUT_KIND_COMPLETE_RESULT:
         final = True
@@ -2904,17 +2685,21 @@ def canonical_worker_stdout_bytes(
         "final_result_minted": final,
         "payload": payload,
     }
-    if record_manifest is not None:
-        envelope["record_manifest"] = record_manifest
+    if kind == WORKER_STDOUT_KIND_COMPLETE_RESULT:
+        if world_records is None:
+            _refuse("canonical worker COMPLETE_RESULT must emit WORLD_RECORDS")
+        envelope["world_records"] = world_records
+    elif world_records is not None:
+        _refuse("PARTIAL_NOT_RESULT cannot carry WORLD_RECORDS")
     return canonical_json_bytes(_jsonable(envelope))
 
 
 def _emit_canonical_worker_stdout(
     kind: str,
     payload: Mapping[str, Any],
-    record_manifest: Mapping[str, Any] | None = None,
+    world_records: Mapping[str, Any] | None = None,
 ) -> bytes:
-    raw = canonical_worker_stdout_bytes(kind, payload, record_manifest)
+    raw = canonical_worker_stdout_bytes(kind, payload, world_records)
     sys.stdout.buffer.write(raw)
     sys.stdout.flush()
     return raw
@@ -3000,9 +2785,9 @@ def fresh_process_worker_main():
     try:
         produced = run_canonical_production_execution()
         envelope = produced["result"]
-        manifest = produced["record_manifest"]
+        world_records = produced["world_records"]
         emitted = _emit_canonical_worker_stdout(
-            WORKER_STDOUT_KIND_COMPLETE_RESULT, envelope, manifest
+            WORKER_STDOUT_KIND_COMPLETE_RESULT, envelope, world_records
         )
         if not emitted:
             _refuse("canonical RESULT payload was not emitted")
@@ -3057,7 +2842,7 @@ def production_durability_identity():
             "durability": CANONICAL_DURABILITY_PATH,
             "arm": CANONICAL_ARM_PATH,
             "driver_freeze": CANONICAL_DRIVER_FREEZE_PATH,
-            "record_manifest": CANONICAL_RECORD_MANIFEST_PATH,
+            "world_records": CANONICAL_WORLD_RECORDS_PATH,
         },
     }
 
