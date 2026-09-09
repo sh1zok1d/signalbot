@@ -1497,3 +1497,140 @@ cross-checkout durability (RESIDUAL-R1) and stale in-process import
 - production_monte_carlo_arm_authorized: **false**
 - b2_06_scientific_execution_authorized: **false**
 - status: `AUTHORIZATION_FROZEN_BEFORE_PRODUCTION_EXECUTION`
+
+## 2026-09-08 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 production durability
+
+**Decision:** implement production durability, aggregation, and result
+persistence above the frozen scientific primitives without executing the
+3200-world calibration.
+**Unit verdict:** unarmed; no RESULT minted; #114 local reservation superseded
+on this HEAD.
+
+Canonical production execution must cross a fresh Python interpreter and
+re-verify exact HEAD/tree plus execution-authority bytes inside that process
+(R1). Run identity is a function of tracked commit authority only, so local
+reservation deletion or another clone/worktree cannot mint a distinct
+authoritative identity (R2). Global process exclusion is not claimed.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- b2_06_scientific_execution_authorized: **false**
+- status: `PRODUCTION_DURABILITY_IMPLEMENTED_UNARMED`
+
+Repair of OPUS `REPAIR_REQUIRED` on reviewed HEAD `4aab2f0c`: invalid planned
+worlds force `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`; public RESULT minting
+cannot bind caller-supplied aggregates; isolated `python -I -B -P` bootstrap
+imports the canonical package module; ARM authorizes the parent execution
+commit rather than a self-referential HEAD/tree fixed point; IncompleteWorld is
+recorded as an invalid world that stays in the planned denominator; persistence
+is commit-mediated. Production remains unarmed. No Monte Carlo. No RESULT.
+
+## 2026-09-09 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 production durability implementation freeze
+
+**Decision:** freeze the reviewed production-durability implementation before any
+production arming or 3200-world execution.
+**Unit verdict:** unused; production calibration not executed; Monte Carlo remains unarmed.
+
+Records OPUS `GO_FOR_IMPLEMENTATION_FREEZE` (BLOCKERS=0, MAJORS=0, MINORS=0)
+at reviewed implementation HEAD
+`d5277c42141a26948b195afe3d4ad30030151855` / tree
+`7ab4178f222ecf8a2b5c8bf7d7bec9279fa3cf89`. Exact reviewed-head GitHub CI run
+`34319781573` SUCCESS. The freeze commit is a docs/ledger/metadata descendant
+and is not itself the reviewed code HEAD.
+
+Does **not** run the 3200-world grid, arm the Monte Carlo seam, create a RESULT,
+open B2-06, or open 2025/2026. Frozen scientific lib and prereg bytes remain
+byte-identical.
+
+Non-blocking observation: `artifacts` exists in the pinned root allowlist but
+is not currently a tracked top-level package and is not imported in the verified
+execution chain. It was empirically inert during OPUS review and is unchanged
+by this freeze. Any future unit which makes `artifacts` a real/imported root
+package must explicitly re-review the pre-import allowlist authority boundary.
+
+- implementation_frozen: **true**
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- b2_06_scientific_execution_authorized: **false**
+- validation_2025_authorized: **false**
+- oos_2026_authorized: **false**
+- status: `PRODUCTION_DURABILITY_IMPLEMENTATION_FROZEN_UNARMED`
+
+## 2026-09-09 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 historical ARM #116 rejected
+
+**Decision:** do not merge ARM HEAD `940d85bf58673396c6c0cc05ce2134a2e2e92809`.
+**Unit verdict:** unused; production calibration not executed; Monte Carlo remains unarmed.
+
+Records OPUS `REPAIR_REQUIRED` on the parent-authorizing ARM unit. The ARM
+mechanism is sound; sequencing is invalid because the ARM was created before
+the canonical production driver existed. Status:
+`REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`. Git history is
+preserved. The ARM artifact is not copied onto the driver-first branch.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- authorization_consumed: **false**
+- status: `REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`
+
+## 2026-09-09 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 production execution driver
+
+**Decision:** implement the canonical 3200-world production driver while remaining
+unarmed, before any final ARM.
+**Unit verdict:** unused; production calibration not executed; Monte Carlo remains unarmed.
+
+Starts from frozen #115 HEAD `502a62ddee0a3106967b21f0095be7e1629a56b2` /
+tree `f21570983530f785d85639554741f3dd82164278`. Replaces the unconditional
+armed refusal with `run_canonical_production_execution()`. Final RESULT minting
+requires an unforgeable in-process canonical session capability; caller-supplied
+records are never sufficient. #115 remains authoritative for reservation,
+claim, result, and `run_identity`. Future ARM verification machine-checks
+declared contract fields and reviewed-implementation binding. Identity
+reporting reflects verified ARM state without granting authority.
+
+Does **not** run the 3200-world grid, add a live ARM artifact, mint a RESULT,
+open B2-06, or open 2025/2026. Frozen scientific lib and prereg bytes remain
+byte-identical. The `artifacts` root package remains unactivated.
+
+- canonical_production_driver_implemented: **true**
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_EXECUTION_DRIVER_IMPLEMENTED_UNARMED`
+
+## 2026-09-09 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 production driver OPUS repair
+
+**Decision:** close OPUS `REPAIR_REQUIRED` on driver HEAD `d62e1f3` without arming.
+**Unit verdict:** unused; production calibration not executed; Monte Carlo remains unarmed.
+
+Closes BLK-1 stdout RESULT/partial emission, BLK-2 mint/verify core derivation,
+MAJ-1 strict-ancestor + tracked driver-freeze chain, MAJ-2 full-record digest
+binding, and MIN-1 BaseException session retirement. No live freeze artifact. No
+live ARM. No 3200-world execution. No RESULT persisted.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_EXECUTION_DRIVER_REPAIR_UNARMED`
+
+## 2026-09-09 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 post-commit RESULT verification
+
+**Decision:** close post-commit RESULT verification before freeze without arming.
+**Unit verdict:** unused; production calibration not executed; Monte Carlo remains unarmed.
+
+Adds historical RESULT verification from the artifact's embedded
+`execution_head`, using git-object blobs and ARM topology at execution time.
+Current HEAD need not be armed. Wires `#115` RESULT claim persistence from
+tracked authority. Removes the duplicate `abandon_canonical_session` definition.
+Post-RESULT rerun reports one-shot consumed rather than merely unarmed. No live
+freeze artifact. No live ARM. No 3200-world execution. No RESULT persisted.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_EXECUTION_DRIVER_REPAIR_UNARMED`
