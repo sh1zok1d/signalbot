@@ -577,10 +577,11 @@ def _live_session(capability: object):
 def _emit_capture(monkeypatch):
     captured: dict[str, object] = {}
 
-    def emit(kind, payload):
-        raw = prod.canonical_worker_stdout_bytes(kind, payload)
+    def emit(kind, payload, record_manifest=None):
+        raw = prod.canonical_worker_stdout_bytes(kind, payload, record_manifest)
         captured["kind"] = kind
         captured["payload"] = payload
+        captured["record_manifest"] = record_manifest
         captured["raw"] = raw
         return raw
 
@@ -622,12 +623,20 @@ def test_fixture_session_result_roundtrips_through_verifier(tmp_path, monkeypatc
 def test_worker_emits_complete_result_canonical_bytes(tmp_path, monkeypatch):
     repo = _armed_repo(tmp_path, monkeypatch)
     envelope = prod.run_canonical_fixture_driver(FIXTURE_JOBS, _valid_evaluator)
-    monkeypatch.setattr(prod, "run_canonical_production_execution", lambda: envelope)
+    manifest = prod._production_record_manifest_from_bound(
+        [_valid_evaluator(*job) for job in FIXTURE_JOBS],
+        bound=prod.verify_executed_production_authority(repo),
+    )
+    monkeypatch.setattr(
+        prod,
+        "run_canonical_production_execution",
+        lambda: {"result": envelope, "record_manifest": manifest},
+    )
     captured = _emit_capture(monkeypatch)
     rc = prod.fresh_process_worker_main()
     assert rc == 0
     expected = prod.canonical_worker_stdout_bytes(
-        prod.WORKER_STDOUT_KIND_COMPLETE_RESULT, envelope
+        prod.WORKER_STDOUT_KIND_COMPLETE_RESULT, envelope, manifest
     )
     assert captured["raw"] == expected
     parsed = json.loads(captured["raw"].decode("utf-8"))
@@ -635,7 +644,11 @@ def test_worker_emits_complete_result_canonical_bytes(tmp_path, monkeypatch):
     assert parsed["final_result_minted"] is True
     assert parsed["kind"] != prod.WORKER_STDOUT_KIND_PARTIAL
     assert parsed["payload"] == envelope
+    # The sibling record manifest travels with the RESULT on the same stdout.
+    assert parsed["record_manifest"]["kind"] == prod.RECORD_MANIFEST_KIND
+    assert parsed["record_manifest"]["world_set_sha256"] == manifest["world_set_sha256"]
     assert (repo / prod.CANONICAL_RESULT_PATH).exists() is False
+    assert (repo / prod.CANONICAL_RECORD_MANIFEST_PATH).exists() is False
 
 
 def test_worker_emits_distinguishable_partial_payload(tmp_path, monkeypatch):

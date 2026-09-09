@@ -849,7 +849,9 @@ def test_digest_size_run_identity_tamper_detected(tmp_path, monkeypatch):
         ("validation_2025_authorized", True),
         ("oos_2026_authorized", True),
         ("production_monte_carlo_arm_authorized", True),
-        ("production_calibration_executed", True),
+        # A complete production core legitimately carries True, so the tamper
+        # under test is flipping it to False.
+        ("production_calibration_executed", False),
     ):
         field_core = dict(document["core"])
         field_core[field] = value
@@ -1421,9 +1423,19 @@ def _rehash_result(core: dict) -> dict:
     }
 
 
-def _commit_result_envelope(repo: Path, envelope: dict, message: str = "tracked RESULT") -> bytes:
+def _commit_result_envelope(
+    repo: Path,
+    envelope: dict,
+    message: str = "tracked RESULT",
+    record_manifest: dict | None = None,
+) -> bytes:
     raw = prod.canonical_json_bytes(prod._jsonable(envelope))
     _write(repo / prod.CANONICAL_RESULT_PATH, raw.decode("utf-8"))
+    if record_manifest is not None:
+        _write(
+            repo / prod.CANONICAL_RECORD_MANIFEST_PATH,
+            prod.canonical_json_bytes(prod._jsonable(record_manifest)).decode("utf-8"),
+        )
     _git(repo, "add", "-A")
     _git(repo, "commit", "-m", message)
     return raw
@@ -1559,12 +1571,15 @@ def test_historical_result_production_blob_and_wrong_arm_topology(tmp_path, monk
     freeze = _git(repo, "rev-parse", "HEAD^")
     records = _planned_records()
     core = prod._bind_result_core(records=records, repo_root=repo, fixture=False)
+    manifest = prod._production_record_manifest_from_bound(
+        records, bound=prod.verify_executed_production_authority(repo)
+    )
     envelope = {
         "core": core,
         "core_sha256": _sha(prod.canonical_json_bytes(prod._jsonable(core))),
         "core_size": len(prod.canonical_json_bytes(prod._jsonable(core))),
     }
-    _commit_result_envelope(repo, envelope)
+    _commit_result_envelope(repo, envelope, record_manifest=manifest)
     assert prod.production_monte_carlo_arm_authorized(repo) is False
     prod.verify_bound_result_from_tracked_authority(repo, envelope)
     blob_core = dict(core)
@@ -1606,3 +1621,239 @@ def test_historical_result_claim_conflict_and_duplicate_abandon_removed(tmp_path
         prod.durable_result_claim_from_tracked_authority(repo, envelope)
     source = Path(prod.__file__).read_text(encoding="utf-8")
     assert source.count("def abandon_canonical_session") == 1
+
+
+def _commit_production_result(repo: Path, *, core_mut=None, manifest_mut=None):
+    """Commit exactly ONE production-shaped RESULT (plus sibling manifest).
+
+    A single tracked version per topology, so the duplicate/conflicting-RESULT
+    guard can never mask a scientific tamper.
+    """
+    records = _planned_records()
+    bound = prod.verify_executed_production_authority(repo)
+    core = prod._bind_result_core_from_bound(
+        records, bound=bound, fixture=False, armed=True
+    )
+    manifest = prod._production_record_manifest_from_bound(records, bound=bound)
+    core = json.loads(json.dumps(prod._jsonable(core)))
+    manifest = json.loads(json.dumps(prod._jsonable(manifest)))
+    if core_mut is not None:
+        core = core_mut(core)
+    if manifest_mut is not None:
+        manifest = manifest_mut(manifest)
+        body = {
+            key: value
+            for key, value in manifest.items()
+            if key not in {"manifest_sha256", "manifest_size"}
+        }
+        raw = prod.canonical_json_bytes(prod._jsonable(body))
+        manifest["manifest_sha256"] = _sha(raw)
+        manifest["manifest_size"] = len(raw)
+    envelope = prod._result_envelope_from_core(core)
+    _commit_result_envelope(repo, envelope, record_manifest=manifest)
+    return envelope, manifest
+
+
+def test_historical_production_result_verifies_and_binds_record_manifest(
+    tmp_path, monkeypatch
+):
+    repo = _armed_fixture_repo(tmp_path, monkeypatch)
+    envelope, manifest = _commit_production_result(repo)
+    assert envelope["core"]["production_calibration_executed"] is True
+    assert "fixture" not in envelope["core"]
+    assert len(manifest["record_digest_chain"]) == 3200
+    assert manifest["world_set_sha256"] == envelope["core"]["world_set_sha256"]
+    verified = prod.verify_bound_result_from_tracked_authority(repo)
+    assert verified["core"]["mechanical_conclusion"] == envelope["core"][
+        "mechanical_conclusion"
+    ]
+    claim = prod.durable_result_claim_from_tracked_authority(repo)
+    assert claim["final_result_minted"] is True
+    assert claim["production_calibration_executed"] is True
+
+
+def test_historical_production_result_requires_tracked_record_manifest(
+    tmp_path, monkeypatch
+):
+    repo = _armed_fixture_repo(tmp_path, monkeypatch)
+    records = _planned_records()
+    bound = prod.verify_executed_production_authority(repo)
+    core = prod._bind_result_core_from_bound(
+        records, bound=bound, fixture=False, armed=True
+    )
+    _commit_result_envelope(repo, prod._result_envelope_from_core(core))
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized,
+        match="tracked production record manifest is absent",
+    ):
+        prod.verify_bound_result_from_tracked_authority(repo)
+
+
+def _mut_arm(core, arm, key, value):
+    core = dict(core)
+    aggregates = json.loads(json.dumps(core["aggregates"]))
+    aggregates["arms"][arm][key] = value
+    core["aggregates"] = aggregates
+    return core
+
+
+PRODUCTION_CORE_TAMPERS = (
+    (
+        "mechanical_conclusion",
+        lambda c: {**c, "mechanical_conclusion": "HARNESS_METHODOLOGY_VALIDATED_FOR_B2_06"},
+        "mechanical_conclusion was not derived",
+    ),
+    (
+        "one_verdict",
+        lambda c: {**c, "verdicts": {**c["verdicts"], "trap_specificity": "FAIL"}},
+        "verdicts were not derived",
+    ),
+    (
+        "aggregate_count",
+        lambda c: _mut_arm(c, "ORACLE_NULL_MODEL_DETECTED", "successes", 7),
+        "was not derived from its counts",
+    ),
+    (
+        "wilson_interval",
+        lambda c: _mut_arm(
+            c,
+            "ORACLE_EASY_MODEL_DETECTED",
+            "interval",
+            {
+                "n": 400.0,
+                "successes": 400.0,
+                "phat": 1.0,
+                "center": 0.9,
+                "lower": 0.99,
+                "upper": 1.0,
+            },
+        ),
+        "was not derived from its counts",
+    ),
+    (
+        "observed_world_count",
+        lambda c: {**c, "observed_world_count": 1},
+        "observed_world_count is not the frozen 3200-world plan",
+    ),
+    (
+        "incomplete_execution",
+        lambda c: {
+            **c,
+            "aggregates": {**c["aggregates"], "incomplete_execution": True},
+        },
+        "incomplete_execution does not match",
+    ),
+    (
+        "world_set_sha256",
+        lambda c: {**c, "world_set_sha256": "aa" * 32},
+        "world_set_sha256 tamper detected",
+    ),
+    (
+        "record_digest_chain",
+        lambda c: {**c, "record_digest_chain": ["00" * 32] * 3200},
+        "record_digest_chain tamper detected",
+    ),
+    (
+        "production_calibration_executed",
+        lambda c: {**c, "production_calibration_executed": False},
+        "protected scope authorization flag tamper detected",
+    ),
+    (
+        "b2_06_scientific_execution_authorized",
+        lambda c: {**c, "b2_06_scientific_execution_authorized": True},
+        "protected scope authorization flag tamper detected",
+    ),
+    (
+        "validation_2025_authorized",
+        lambda c: {**c, "validation_2025_authorized": True},
+        "protected scope authorization flag tamper detected",
+    ),
+    (
+        "oos_2026_authorized",
+        lambda c: {**c, "oos_2026_authorized": True},
+        "protected scope authorization flag tamper detected",
+    ),
+    (
+        "aggregate_scope_flag",
+        lambda c: {
+            **c,
+            "aggregates": {
+                **c["aggregates"],
+                "b2_06_scientific_execution_authorized": True,
+            },
+        },
+        "aggregate scope authorization flag tamper detected",
+    ),
+    (
+        "aggregate_mechanical_conclusion",
+        lambda c: {
+            **c,
+            "aggregates": {
+                **c["aggregates"],
+                "mechanical_conclusion": "HARNESS_METHODOLOGY_VALIDATED_FOR_B2_06",
+            },
+        },
+        "mechanical_conclusion was not derived",
+    ),
+    (
+        "wilson_intervals_wiped",
+        lambda c: {**c, "wilson_intervals": {}},
+        "wilson_intervals were not derived",
+    ),
+)
+
+
+@pytest.mark.parametrize("label,mutate,message", PRODUCTION_CORE_TAMPERS)
+def test_historical_production_scientific_payload_tamper_refused(
+    tmp_path, monkeypatch, label, mutate, message
+):
+    repo = _armed_fixture_repo(tmp_path, monkeypatch)
+    _commit_production_result(repo, core_mut=mutate)
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized) as excinfo:
+        prod.verify_bound_result_from_tracked_authority(repo)
+    detail = str(excinfo.value)
+    assert message in detail, detail
+    # Never satisfied by the duplicate/conflicting-RESULT guard.
+    assert "duplicate/conflicting" not in detail
+
+
+PRODUCTION_MANIFEST_TAMPERS = (
+    (
+        "chain",
+        lambda m: {**m, "record_digest_chain": ["11" * 32] * 3200},
+        "record_digest_chain tamper detected",
+    ),
+    (
+        "world_set",
+        lambda m: {**m, "world_set_sha256": "bb" * 32},
+        "world_set_sha256 tamper detected",
+    ),
+    (
+        "jobs",
+        lambda m: {**m, "jobs": m["jobs"][:-1]},
+        "job plan is not the frozen 3200-world plan",
+    ),
+    (
+        "run_identity",
+        lambda m: {**m, "run_identity": "cc" * 32},
+        "run_identity does not match",
+    ),
+    (
+        "execution_head",
+        lambda m: {**m, "execution_head": "de" * 20},
+        "execution_head does not match",
+    ),
+)
+
+
+@pytest.mark.parametrize("label,mutate,message", PRODUCTION_MANIFEST_TAMPERS)
+def test_historical_production_record_manifest_tamper_refused(
+    tmp_path, monkeypatch, label, mutate, message
+):
+    repo = _armed_fixture_repo(tmp_path, monkeypatch)
+    _commit_production_result(repo, manifest_mut=mutate)
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized) as excinfo:
+        prod.verify_bound_result_from_tracked_authority(repo)
+    detail = str(excinfo.value)
+    assert message in detail, detail
+    assert "duplicate/conflicting" not in detail

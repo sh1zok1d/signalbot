@@ -183,11 +183,46 @@ does not grant authority. Absent ARM reports unarmed. A valid disposable ARM
 reports armed. Malformed ARM fails closed. Identity must not say UNARMED while
 the canonical ARM verifier says armed.
 
+## Production RESULT scientific payload is re-derived, never trusted
+
+A production RESULT names its execution commit, but naming a legitimately armed
+execution does not make its scientific payload authoritative. Historical
+verification of a production-shaped RESULT additionally:
+
+- checks the protected literals exactly — `production_calibration_executed`
+  true, `production_monte_carlo_arm_authorized` true, and
+  `real_market_data_access_authorized`, `B2_06_scientific_execution_authorized`,
+  `validation_2025_authorized`, `oos_2026_authorized` all false — and refuses a
+  core that declares `fixture` or `not_a_production_result`;
+- re-derives every derivable scientific field from the irreducible per-arm
+  `(successes, n)` counts using the frozen helpers: Wilson intervals, the seven
+  specificity/power verdicts, the SMALL sensitivity bands, the TRUE_DISCOVERY
+  band, the visibility and model floors, the materiality-only diagnostic and the
+  mechanical conclusion, then compares each to the embedded value exactly;
+- re-derives `incomplete_execution` from the missing-job list and the invalid
+  counters, and refuses any terminal RESULT that carries incomplete state;
+- requires every planned denominator to be exactly 400 per cell and 3200 total.
+
+`world_set_sha256` and `record_digest_chain` cannot be recomputed without the
+3200 records, so they are **not** accepted as caller assertions. They are bound
+to a tracked sibling evidence artifact:
+
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_RECORD_MANIFEST.json`
+
+The manifest is emitted on the canonical worker's stdout alongside the RESULT,
+committed with it, and loaded from git objects during historical verification.
+It self-binds by digest and size and must agree with the RESULT on execution
+head, execution tree, run identity, the frozen grid, the exact 3200-job plan,
+and both record-evidence fields. A production RESULT without a tracked manifest
+fails closed.
+
 ## Execution status
 
 ```text
 canonical_production_driver_implemented = true
 post_commit_result_verification = true
+production_result_scientific_payload_rederived = true
+production_result_record_evidence_bound_to_tracked_manifest = true
 production_monte_carlo_arm_authorized = false
 ACTUAL_PRODUCTION_EXECUTION_RUN = NO
 PRODUCTION_RESULT_MINTED = NO

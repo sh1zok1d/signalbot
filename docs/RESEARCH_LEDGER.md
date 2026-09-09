@@ -1634,3 +1634,30 @@ freeze artifact. No live ARM. No 3200-world execution. No RESULT persisted.
 - production_result_minted: **false**
 - authorization_consumed: **false**
 - status: `PRODUCTION_EXECUTION_DRIVER_REPAIR_UNARMED`
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — production RESULT scientific payload binding
+
+Closes the final pre-freeze blocker: a production-shaped historical RESULT
+previously proved execution identity and ARM topology but trusted its own
+scientific payload, so a first-and-only committed RESULT from a legitimate
+armed execution could assert a fabricated conclusion or protected scope flags.
+
+Historical verification of a production RESULT now checks the protected
+literals exactly, re-derives every derivable scientific field from the
+irreducible per-arm `(successes, n)` counts with the frozen helpers — Wilson
+intervals, verdicts, bands, floors, materiality diagnostic and mechanical
+conclusion — and re-derives `incomplete_execution` from the missing-job and
+invalid counters. `world_set_sha256` and `record_digest_chain` are not
+recomputable without the 3200 records, so they are bound to a tracked sibling
+evidence artifact (`..._PRODUCTION_RECORD_MANIFEST.json`) emitted on the
+canonical worker's stdout with the RESULT and loaded from git objects at
+verification time. A production RESULT without a tracked manifest fails closed.
+
+No live freeze artifact. No live ARM. No 3200-world execution. No RESULT
+persisted. Frozen lib and prereg bytes unchanged.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_EXECUTION_DRIVER_REPAIR_UNARMED`
