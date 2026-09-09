@@ -15,6 +15,15 @@ capability; caller-supplied records cannot mint.
 Run identity is a pure function of tracked authority at the exact execution
 commit. Local untracked reservation files cannot mint a distinct run/result.
 This module does not claim global process exclusion.
+
+RESULT verification has two distinct authority models:
+- LIVE / execution-context: `verify_bound_result_document` re-derives the
+  expected core from current HEAD, worktree, and caller-supplied records.
+- TRACKED / historical: `verify_bound_result_from_tracked_authority` reads
+  `execution_head` from the RESULT core itself, loads authority from git
+  objects at that exact commit, and re-verifies ARM topology at execution
+  time. Current HEAD being a later unarmed RESULT commit is not authority and
+  must not invalidate a historically valid RESULT.
 """
 
 from __future__ import annotations
@@ -423,9 +432,9 @@ def _commit_blob(repo_root: Path, commit: str, git_path: str) -> bytes | None:
     return _git(repo_root, "cat-file", "blob", f"{commit}:{git_path}")
 
 
-def _parent_sha(repo_root: Path) -> str | None:
+def _parent_sha_of(repo_root: Path, commit: str) -> str | None:
     proc = subprocess.run(
-        ["git", "-C", str(repo_root), "rev-parse", "HEAD^"],
+        ["git", "-C", str(repo_root), "rev-parse", f"{commit}^"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         check=False,
@@ -433,6 +442,31 @@ def _parent_sha(repo_root: Path) -> str | None:
     if proc.returncode != 0:
         return None
     return proc.stdout.decode("ascii").strip().lower()
+
+
+def _parent_sha(repo_root: Path) -> str | None:
+    return _parent_sha_of(repo_root, "HEAD")
+
+
+def _commit_exists(repo_root: Path, commit: str) -> bool:
+    commit = str(commit or "").strip()
+    if not commit:
+        return False
+    proc = subprocess.run(
+        ["git", "-C", str(repo_root), "cat-file", "-t", commit],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if proc.returncode != 0:
+        return False
+    return proc.stdout.decode("ascii").strip() == "commit"
+
+
+def _commit_changes_execution_authority(repo_root: Path, commit: str) -> bool:
+    names = _git(repo_root, "diff-tree", "--no-commit-id", "--name-only", "-r", commit)
+    forbidden = set(EXECUTION_AUTHORITY_PATHS) | {PREREG_JSON_REL, PREREG_MD_REL}
+    return any(name in forbidden for name in names.decode("utf-8").splitlines())
 
 
 def _commit_tree_sha(repo_root: Path, commit: str) -> str:
@@ -612,12 +646,15 @@ def _reviewed_implementation_binds_parent(
     return _driver_freeze_binds_parent(repo_root, payload, parent)
 
 
-def _arm_payload_authorizes(repo_root: Path, payload: Mapping[str, Any]) -> bool:
+def _arm_payload_authorizes_at_commit(
+    repo_root: Path, commit: str, payload: Mapping[str, Any]
+) -> bool:
+    """ARM topology at an exact commit using git objects, not current HEAD."""
     if payload.get("production_monte_carlo_arm_authorized") is not True:
         return False
     if not _arm_declared_contract_holds(payload):
         return False
-    parent = _parent_sha(repo_root)
+    parent = _parent_sha_of(repo_root, commit)
     if parent is None:
         return False
     authorized_commit = str(payload.get("authorized_execution_commit") or "").strip().lower()
@@ -640,13 +677,17 @@ def _arm_payload_authorizes(repo_root: Path, payload: Mapping[str, Any]) -> bool
         if actual.get(key) != str(digest).strip().lower():
             return False
     for rel in EXECUTION_AUTHORITY_PATHS:
-        head_bytes = _head_blob(repo_root, rel)
+        commit_bytes = _commit_blob(repo_root, commit, rel)
         parent_bytes = _commit_blob(repo_root, parent, rel)
-        if head_bytes is None or parent_bytes is None or head_bytes != parent_bytes:
+        if commit_bytes is None or parent_bytes is None or commit_bytes != parent_bytes:
             return False
     if not _reviewed_implementation_binds_parent(repo_root, payload, parent):
         return False
     return True
+
+
+def _arm_payload_authorizes(repo_root: Path, payload: Mapping[str, Any]) -> bool:
+    return _arm_payload_authorizes_at_commit(repo_root, _head_sha(repo_root), payload)
 
 
 def inspect_production_arm_state(repo_root: Path | None = None) -> dict[str, Any]:
@@ -804,16 +845,39 @@ def _optional_head_sha256(repo_root: Path, git_path: str) -> str | None:
     return _sha256_bytes(blob)
 
 
-def durable_reservation_document(repo_root: Path | None = None) -> dict[str, Any]:
-    """Reservation identity is a function of tracked commit authority only."""
-    root = repo_root or _repo_root()
-    bound = verify_executed_production_authority(root)
+def verify_historical_execution_authority(
+    *, repo_root: Path, execution_commit: str
+) -> dict[str, str]:
+    """Prove execution_commit was correctly armed using git objects at that commit.
+
+    Current HEAD being unarmed is irrelevant. This does not grant live ARM.
+    """
+    commit = str(execution_commit or "").strip().lower()
+    if not _commit_exists(repo_root, commit):
+        _refuse("execution commit does not exist in git")
+    bound = _bound_from_commit_blobs(repo_root, commit)
+    arm_blob = _commit_blob(repo_root, commit, CANONICAL_ARM_PATH)
+    if arm_blob is None:
+        _refuse("historical execution commit is not armed")
+    try:
+        payload = json.loads(arm_blob.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        _refuse("historical ARM artifact cannot be verified")
+    if not isinstance(payload, dict):
+        _refuse("historical ARM artifact cannot be verified")
+    if not _arm_payload_authorizes_at_commit(repo_root, commit, payload):
+        _refuse("historical execution commit ARM topology is not authorized")
+    return bound
+
+
+def _durable_reservation_from_bound(bound: Mapping[str, str]) -> dict[str, Any]:
+    """Reservation identity from an exact bound. Does not consult current ARM."""
     return {
         "schema_version": "1.0",
         "durability_id": DURABILITY_ID,
         "unit_id": UNIT_ID,
         "canonical_path": CANONICAL_RESERVATION_PATH,
-        "run_identity": canonical_run_identity(root),
+        "run_identity": _run_identity_from_bound(bound),
         "execution_head": bound["head_sha"],
         "execution_tree": bound["tree_sha"],
         "authority_sha256": {
@@ -832,9 +896,9 @@ def durable_reservation_document(repo_root: Path | None = None) -> dict[str, Any
     }
 
 
-def durable_claim_document(repo_root: Path | None = None) -> dict[str, Any]:
-    """Claim identity is the same tracked run identity as the reservation."""
-    reservation = durable_reservation_document(repo_root)
+def _durable_claim_from_bound(bound: Mapping[str, str]) -> dict[str, Any]:
+    """#115 claim identity from an exact bound. Does not consult current ARM."""
+    reservation = _durable_reservation_from_bound(bound)
     return {
         "schema_version": "1.0",
         "durability_id": DURABILITY_ID,
@@ -851,6 +915,18 @@ def durable_claim_document(repo_root: Path | None = None) -> dict[str, Any]:
         "production_calibration_executed": False,
         "final_result_minted": False,
     }
+
+
+def durable_reservation_document(repo_root: Path | None = None) -> dict[str, Any]:
+    """Reservation identity is a function of tracked commit authority only."""
+    root = repo_root or _repo_root()
+    return _durable_reservation_from_bound(verify_executed_production_authority(root))
+
+
+def durable_claim_document(repo_root: Path | None = None) -> dict[str, Any]:
+    """Claim identity is the same tracked run identity as the reservation."""
+    root = repo_root or _repo_root()
+    return _durable_claim_from_bound(verify_executed_production_authority(root))
 
 
 def evaluate_production_candidate(
@@ -1375,13 +1451,21 @@ def _ordered_record_digest_chain(records: Sequence[Mapping[str, Any]]) -> tuple[
     return tuple(_record_content_digest(rec) for rec in records)
 
 
-def _bind_result_core(*, records, repo_root, fixture: bool = False):
-    """Private non-authoritative core builder. Public mint requires a session capability."""
-    bound = verify_executed_production_authority(repo_root)
-    reservation = durable_reservation_document(repo_root)
-    armed = production_monte_carlo_arm_authorized(repo_root) is True
+def _bind_result_core_from_bound(
+    records,
+    *,
+    bound: Mapping[str, str],
+    fixture: bool = False,
+    armed: bool,
+):
+    """Reconstruct a RESULT core from an exact execution bound.
+
+    `armed` must be the ARM state at the execution commit, not current HEAD.
+    """
+    reservation = _durable_reservation_from_bound(bound)
     digest_chain = list(_ordered_record_digest_chain(records))
     if fixture:
+        jsonable_records = [_jsonable(dict(rec)) for rec in records]
         return {
             "schema_version": "1.0",
             "fixture": True,
@@ -1390,12 +1474,13 @@ def _bind_result_core(*, records, repo_root, fixture: bool = False):
             "durability_id": DURABILITY_ID,
             "execution_head": bound["head_sha"],
             "execution_tree": bound["tree_sha"],
-            "run_identity": canonical_run_identity(repo_root),
+            "run_identity": _run_identity_from_bound(bound),
             "reservation_sha256": _sha256_bytes(canonical_json_bytes(reservation)),
             "world_set_sha256": _sha256_bytes(
-                canonical_json_bytes({"worlds": [_jsonable(dict(rec)) for rec in records]})
+                canonical_json_bytes({"worlds": jsonable_records})
             ),
             "record_digest_chain": digest_chain,
+            "records": jsonable_records,
             "planned_world_count": len(records),
             "observed_world_count": len(records),
             "mechanical_conclusion": "FIXTURE_COMPLETE_NOT_PRODUCTION",
@@ -1407,7 +1492,7 @@ def _bind_result_core(*, records, repo_root, fixture: bool = False):
             "production_calibration_executed": False,
         }
     aggregates = aggregate_planned_worlds(records)
-    claim = durable_claim_document(repo_root)
+    claim = _durable_claim_from_bound(bound)
     return {
         "schema_version": "1.0",
         "unit_id": UNIT_ID,
@@ -1427,7 +1512,7 @@ def _bind_result_core(*, records, repo_root, fixture: bool = False):
         "authorization_sha256": bound.get("authorization_sha256"),
         "reservation_sha256": _sha256_bytes(canonical_json_bytes(reservation)),
         "claim_sha256": _sha256_bytes(canonical_json_bytes(claim)),
-        "run_identity": canonical_run_identity(repo_root),
+        "run_identity": _run_identity_from_bound(bound),
         "world_set_sha256": world_set_sha256(records),
         "record_digest_chain": digest_chain,
         "planned_world_count": aggregates["planned_world_count"],
@@ -1452,6 +1537,15 @@ def _bind_result_core(*, records, repo_root, fixture: bool = False):
             "verify_from_git_object_at_claim_commit": True,
         },
     }
+
+
+def _bind_result_core(*, records, repo_root, fixture: bool = False):
+    """LIVE core builder from current HEAD. Public mint requires a session capability."""
+    bound = verify_executed_production_authority(repo_root)
+    armed = production_monte_carlo_arm_authorized(repo_root) is True
+    return _bind_result_core_from_bound(
+        records, bound=bound, fixture=fixture, armed=armed
+    )
 
 
 def bind_result_document(*args, **kwargs):
@@ -1537,6 +1631,15 @@ def _fixture_jobs_forbidden_as_production(jobs: Sequence[tuple[str, int, int]]) 
             _refuse("fixture world identity is invalid")
 
 
+def _terminal_production_result_present(repo_root: Path) -> bool:
+    return _head_blob(repo_root, CANONICAL_RESULT_PATH) is not None
+
+
+def _refuse_if_terminal_result_exists(repo_root: Path) -> None:
+    if _terminal_production_result_present(repo_root):
+        _refuse("production RESULT already exists; one-shot authority is consumed")
+
+
 def _open_canonical_session(
     *,
     repo_root: Path,
@@ -1545,18 +1648,17 @@ def _open_canonical_session(
     evaluator: Any | None,
 ) -> _CanonicalExecutionSession:
     bound = verify_executed_production_authority(repo_root)
-    if production_monte_carlo_arm_authorized(repo_root) is not True:
-        raise ProductionNotArmed(
-            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: production_monte_carlo_arm_authorized=false"
-        )
     if production:
         frozen_production_grid()
         jobs = planned_production_jobs()
         if len(jobs) != PRODUCTION_PLANNED_TOTAL_WORLDS:
             _refuse("production world plan is not 3200 identities")
-        if _head_blob(repo_root, CANONICAL_RESULT_PATH) is not None:
-            _refuse("production RESULT already exists; one-shot authority is consumed")
-    else:
+        _refuse_if_terminal_result_exists(repo_root)
+    if production_monte_carlo_arm_authorized(repo_root) is not True:
+        raise ProductionNotArmed(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: production_monte_carlo_arm_authorized=false"
+        )
+    if not production:
         _fixture_jobs_forbidden_as_production(jobs)
         if evaluator is None:
             _refuse("fixture driver requires an explicit non-production evaluator")
@@ -1823,16 +1925,6 @@ def abandon_canonical_session(capability: object, *args: Any, **kwargs: Any) -> 
     _retire_session(session)
 
 
-def abandon_canonical_session(capability: object, *args: Any, **kwargs: Any) -> None:
-    """Mark a live session crashed/abandoned. Cannot mint afterwards."""
-    if args or kwargs:
-        _refuse("caller arguments cannot authorize session abandonment")
-    session = _session_from_capability(capability)
-    if session.production and session.records:
-        persist_partial_worlds(session.records)
-    _retire_session(session)
-
-
 def run_canonical_production_execution(*args: Any, **kwargs: Any) -> dict[str, Any]:
     """Canonical 3200-world driver. Requires ARM. Never accepts caller records."""
     if args or kwargs:
@@ -1894,9 +1986,7 @@ def mint_final_result(*args: Any, **kwargs: Any):
     _refuse("caller-supplied records cannot mint a production RESULT")
 
 
-def verify_bound_result_document(document, records, *args, **kwargs):
-    if args or kwargs:
-        _refuse("caller arguments cannot authorize result verification")
+def _parse_result_envelope(document) -> tuple[Mapping[str, Any], bytes]:
     if not isinstance(document, Mapping) or "core" not in document:
         raise ProductionIntegrityError(
             "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: result envelope is missing core"
@@ -1919,11 +2009,12 @@ def verify_bound_result_document(document, records, *args, **kwargs):
         raise ProductionIntegrityError(
             "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: core size tamper detected"
         )
-    expected = _bind_result_core(
-        records=records,
-        repo_root=_repo_root(),
-        fixture=core.get("fixture") is True or core.get("not_a_production_result") is True,
-    )
+    return core, core_bytes
+
+
+def _assert_result_core_matches_expected(
+    core: Mapping[str, Any], core_bytes: bytes, expected: Mapping[str, Any]
+) -> None:
     expected_bytes = canonical_json_bytes(_jsonable(expected))
     if core.get("run_identity") != expected["run_identity"]:
         raise ProductionIntegrityError(
@@ -1949,10 +2040,284 @@ def verify_bound_result_document(document, records, *args, **kwargs):
         raise ProductionIntegrityError(
             "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: world_set_sha256 tamper detected"
         )
+    if core.get("mechanical_conclusion") != expected.get("mechanical_conclusion"):
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: core payload tamper detected"
+        )
     if core_bytes != expected_bytes:
         raise ProductionIntegrityError(
             "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: core payload tamper detected"
         )
+
+
+def verify_bound_result_document(document, records, *args, **kwargs):
+    """LIVE / execution-context RESULT verification against current HEAD.
+
+    Reconstructs the expected core from caller-supplied records and the live
+    execution checkout. After a later RESULT commit, current HEAD is not the
+    execution commit; use `verify_bound_result_from_tracked_authority`.
+    """
+    if args or kwargs:
+        _refuse("caller arguments cannot authorize result verification")
+    core, core_bytes = _parse_result_envelope(document)
+    expected = _bind_result_core(
+        records=records,
+        repo_root=_repo_root(),
+        fixture=core.get("fixture") is True or core.get("not_a_production_result") is True,
+    )
+    _assert_result_core_matches_expected(core, core_bytes, expected)
+
+
+def _load_result_document(result_document_or_path, repo_root: Path) -> tuple[dict[str, Any], bytes]:
+    if result_document_or_path is None:
+        blob = _head_blob(repo_root, CANONICAL_RESULT_PATH)
+        if blob is None:
+            _refuse("tracked RESULT artifact is absent")
+        try:
+            payload = json.loads(blob.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise SyntheticExecutionNotAuthorized(
+                "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: malformed tracked RESULT artifact"
+            ) from exc
+        if not isinstance(payload, dict):
+            _refuse("malformed tracked RESULT artifact")
+        return payload, blob
+    if isinstance(result_document_or_path, (str, Path)):
+        path = Path(result_document_or_path)
+        if not path.is_absolute():
+            path = repo_root / path
+        if path.resolve() == (repo_root / CANONICAL_RESULT_PATH).resolve():
+            blob = _head_blob(repo_root, CANONICAL_RESULT_PATH)
+            if blob is None:
+                _refuse("tracked RESULT artifact is absent")
+            try:
+                payload = json.loads(blob.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise SyntheticExecutionNotAuthorized(
+                    "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: malformed tracked RESULT artifact"
+                ) from exc
+            if not isinstance(payload, dict):
+                _refuse("malformed tracked RESULT artifact")
+            return payload, blob
+        blob = path.read_bytes()
+        try:
+            payload = json.loads(blob.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise SyntheticExecutionNotAuthorized(
+                "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: malformed RESULT artifact"
+            ) from exc
+        if not isinstance(payload, dict):
+            _refuse("malformed RESULT artifact")
+        return payload, blob
+    if isinstance(result_document_or_path, Mapping):
+        payload = dict(result_document_or_path)
+        return payload, canonical_json_bytes(_jsonable(payload))
+    _refuse("RESULT document is not a mapping or path")
+
+
+def _require_docs_only_descendants(repo_root: Path, *, ancestor: str) -> None:
+    head = _head_sha(repo_root)
+    if ancestor == head:
+        return
+    if not _is_ancestor(repo_root, ancestor, head):
+        _refuse("execution commit is not an ancestor of current HEAD")
+    commit = head
+    walked = 0
+    while commit != ancestor:
+        if _commit_changes_execution_authority(repo_root, commit):
+            _refuse(
+                "commits after execution are not docs-only; historical RESULT authority is refused"
+            )
+        parent = _parent_sha_of(repo_root, commit)
+        if parent is None:
+            _refuse("execution commit is not an ancestor of current HEAD")
+        commit = parent
+        walked += 1
+        if walked > 10000:
+            _refuse("historical RESULT ancestry walk exceeded bound")
+
+
+def _tracked_result_blobs(repo_root: Path) -> list[bytes]:
+    proc = subprocess.run(
+        ["git", "-C", str(repo_root), "log", "--pretty=%H", "--", CANONICAL_RESULT_PATH],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if proc.returncode != 0:
+        _refuse("git log of RESULT path failed")
+    blobs: list[bytes] = []
+    for commit in proc.stdout.decode("ascii").split():
+        blob = _commit_blob(repo_root, commit, CANONICAL_RESULT_PATH)
+        if blob is not None:
+            blobs.append(blob)
+    return blobs
+
+
+def _refuse_conflicting_terminal_result(repo_root: Path, document_bytes: bytes) -> None:
+    blobs = _tracked_result_blobs(repo_root)
+    unique = set(blobs)
+    if len(unique) > 1:
+        _refuse("duplicate/conflicting terminal production RESULT")
+    if unique and document_bytes not in unique:
+        _refuse("RESULT document does not match tracked artifact")
+
+
+def _assert_historical_production_identity(
+    core: Mapping[str, Any], bound: Mapping[str, str]
+) -> None:
+    reservation = _durable_reservation_from_bound(bound)
+    claim = _durable_claim_from_bound(bound)
+    expected_auth = {
+        "lib": bound[LIB_REL],
+        "runner": bound[RUNNER_REL],
+        "auth": bound[AUTH_REL],
+        "production": bound[PRODUCTION_REL],
+    }
+    if core.get("execution_head") != bound["head_sha"]:
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: execution_head tamper detected"
+        )
+    if core.get("execution_tree") != bound["tree_sha"]:
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: execution_tree tamper detected"
+        )
+    if core.get("run_identity") != _run_identity_from_bound(bound):
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: run_identity tamper detected"
+        )
+    if core.get("reservation_sha256") != _sha256_bytes(canonical_json_bytes(reservation)):
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: reservation digest is not tracked authority"
+        )
+    if core.get("claim_sha256") != _sha256_bytes(canonical_json_bytes(claim)):
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: claim digest is not tracked authority"
+        )
+    if core.get("authority_sha256") != expected_auth:
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: production blob differs from bound digest"
+        )
+    if core.get("frozen_lib_sha256") != bound[LIB_REL]:
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: frozen lib identity tamper detected"
+        )
+    if core.get("prereg_json_sha256") != bound["prereg_json_sha256"]:
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: prereg json identity tamper detected"
+        )
+    if core.get("prereg_md_sha256") != bound["prereg_md_sha256"]:
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: prereg md identity tamper detected"
+        )
+    if core.get("production_monte_carlo_arm_authorized") is not True:
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: historical RESULT ARM field tamper detected"
+        )
+
+
+def verify_bound_result_from_tracked_authority(
+    repo_root: Path | None = None,
+    result_document_or_path: Mapping[str, Any] | str | Path | None = None,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """TRACKED / historical RESULT verification.
+
+    Authority is the RESULT core's embedded execution_head. Caller-supplied
+    commits, records, or ARM flags cannot authorize. Current HEAD need not be
+    armed; the named execution commit must have been correctly armed.
+    """
+    if kwargs:
+        _refuse("caller-supplied historical RESULT authority is refused")
+    root = Path(repo_root) if repo_root is not None else _repo_root()
+    verify_executed_production_authority(root)
+    document, document_bytes = _load_result_document(result_document_or_path, root)
+    core, core_bytes = _parse_result_envelope(document)
+    execution_head = str(core.get("execution_head") or "").strip().lower()
+    execution_tree = str(core.get("execution_tree") or "").strip().lower()
+    if not execution_head or not execution_tree:
+        _refuse("RESULT is missing execution commit/tree")
+    if not _commit_exists(root, execution_head):
+        _refuse("execution commit does not exist in git")
+    if _commit_tree_sha(root, execution_head) != execution_tree:
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: execution tree does not match the named execution commit"
+        )
+    if not _is_ancestor(root, execution_head, _head_sha(root)):
+        _refuse("execution commit is not an ancestor of current HEAD")
+    _require_docs_only_descendants(root, ancestor=execution_head)
+    bound = verify_historical_execution_authority(
+        repo_root=root, execution_commit=execution_head
+    )
+    fixture = core.get("fixture") is True or core.get("not_a_production_result") is True
+    if fixture:
+        records = core.get("records")
+        if not isinstance(records, list):
+            _refuse("fixture RESULT is missing records required for historical reconstruction")
+        expected = _bind_result_core_from_bound(
+            records, bound=bound, fixture=True, armed=True
+        )
+        _assert_result_core_matches_expected(core, core_bytes, expected)
+    else:
+        records = core.get("records")
+        if isinstance(records, list):
+            expected = _bind_result_core_from_bound(
+                records, bound=bound, fixture=False, armed=True
+            )
+            _assert_result_core_matches_expected(core, core_bytes, expected)
+        else:
+            _assert_historical_production_identity(core, bound)
+    _refuse_conflicting_terminal_result(root, document_bytes)
+    return _jsonable(dict(document))
+
+
+def durable_result_claim_from_tracked_authority(
+    repo_root: Path | None = None,
+    result_document_or_path: Mapping[str, Any] | str | Path | None = None,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Return a #115-compatible RESULT claim after historical verification.
+
+    Does not write the worktree. Uncommitted claim files are not authority.
+    """
+    if kwargs:
+        _refuse("caller arguments cannot authorize a durable RESULT claim")
+    root = Path(repo_root) if repo_root is not None else _repo_root()
+    verified = verify_bound_result_from_tracked_authority(root, result_document_or_path)
+    core = verified["core"]
+    bound = _bound_from_commit_blobs(root, str(core["execution_head"]))
+    reservation = _durable_reservation_from_bound(bound)
+    artifact_bytes = canonical_json_bytes(_jsonable(dict(verified)))
+    claim = {
+        "schema_version": "1.0",
+        "durability_id": DURABILITY_ID,
+        "unit_id": UNIT_ID,
+        "canonical_path": CANONICAL_CLAIM_PATH,
+        "run_identity": core["run_identity"],
+        "execution_head": core["execution_head"],
+        "execution_tree": core["execution_tree"],
+        "reservation_sha256": _sha256_bytes(canonical_json_bytes(reservation)),
+        "artifact_kind": "result",
+        "artifact_relative": CANONICAL_RESULT_PATH,
+        "artifact_sha256": _sha256_bytes(artifact_bytes),
+        "artifact_size": len(artifact_bytes),
+        "lifecycle": "TRACKED_RESULT_CLAIMED",
+        "automatic_retry_authorized": False,
+        "global_process_exclusion_claimed": False,
+        "production_monte_carlo_arm_authorized": False,
+        "production_calibration_executed": core.get("fixture") is not True,
+        "final_result_minted": True,
+    }
+    tracked = _head_blob(root, CANONICAL_CLAIM_PATH)
+    if tracked is not None:
+        try:
+            existing = json.loads(tracked.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            _refuse("tracked durable claim cannot be verified")
+        if existing != claim:
+            _refuse("duplicate/conflicting durable RESULT claim")
+        return existing
+    return claim
 
 
 def persist_partial_worlds(records, *args, **kwargs):
@@ -2201,6 +2566,12 @@ def fresh_process_worker_main():
     verify_executed_production_authority(root)
     frozen_production_grid()
     planned_production_jobs()
+    if _terminal_production_result_present(root):
+        print(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: production RESULT already exists; one-shot authority is consumed",
+            file=sys.stderr,
+        )
+        return 2
     if production_monte_carlo_arm_authorized(root) is not True:
         print(
             "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: production_monte_carlo_arm_authorized=false",
