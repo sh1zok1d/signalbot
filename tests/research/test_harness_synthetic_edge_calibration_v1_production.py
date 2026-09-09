@@ -187,6 +187,10 @@ def _commit_arm_authorizing_parent(repo: Path) -> str:
         "authorized_execution_commit": parent,
         "authorized_execution_tree": tree,
         "execution_authority_sha256": _authority_sha_map(repo),
+        "reviewed_implementation_head": parent,
+        "reviewed_implementation_tree": tree,
+        "authorized_grid": prod.frozen_production_grid(),
+        **prod.ARM_REQUIRED_LITERALS,
     }
     _write(repo / prod.CANONICAL_ARM_PATH, json.dumps(payload, indent=2, sort_keys=True) + "\n")
     _git(repo, "add", "-A")
@@ -421,7 +425,9 @@ def test_descendant_commit_not_explicitly_armed_fails(tmp_path, monkeypatch, cap
     assert rc == 2
     assert "production_monte_carlo_arm_authorized=false" in captured.err
     assert "working tree is not clean" not in captured.err
-    with pytest.raises(prod.ProductionNotArmed, match="unarmed"):
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized, match="caller-supplied records cannot mint"
+    ):
         prod.mint_final_result(_planned_records())
 
 
@@ -526,7 +532,9 @@ def test_partial_world_set_cannot_finalize(tmp_path, monkeypatch):
     assert aggregates["incomplete_execution"] is True
     assert aggregates["mechanical_conclusion"] == "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM"
     monkeypatch.setattr(prod, "production_monte_carlo_arm_authorized", lambda repo_root=None: True)
-    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="incomplete execution cannot mint"):
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized, match="caller-supplied records cannot mint"
+    ):
         prod.mint_final_result(records)
     partial = prod.persist_partial_worlds(records)
     assert partial["final_result_minted"] is False
@@ -733,9 +741,20 @@ def test_canonical_result_bytes_deterministic(tmp_path, monkeypatch):
     repo = _commit_production_tree(tmp_path)
     _bind_prod(monkeypatch, repo)
     records = _planned_records()
-    monkeypatch.setattr(prod, "production_monte_carlo_arm_authorized", lambda repo_root=None: True)
-    first = prod.mint_final_result(records)
-    second = prod.mint_final_result(records)
+    core = prod._bind_result_core(records=records, repo_root=repo)
+    core_bytes = prod.canonical_json_bytes(prod._jsonable(core))
+    first = {
+        "core": core,
+        "core_sha256": _sha(core_bytes),
+        "core_size": len(core_bytes),
+    }
+    second_core = prod._bind_result_core(records=records, repo_root=repo)
+    second_bytes = prod.canonical_json_bytes(prod._jsonable(second_core))
+    second = {
+        "core": second_core,
+        "core_sha256": _sha(second_bytes),
+        "core_size": len(second_bytes),
+    }
     assert prod.canonical_json_bytes(first) == prod.canonical_json_bytes(second)
     assert first["core_sha256"] == second["core_sha256"]
     assert first["core_size"] == second["core_size"]
@@ -756,8 +775,13 @@ def test_digest_size_run_identity_tamper_detected(tmp_path, monkeypatch):
     repo = _commit_production_tree(tmp_path)
     _bind_prod(monkeypatch, repo)
     records = _planned_records()
-    monkeypatch.setattr(prod, "production_monte_carlo_arm_authorized", lambda repo_root=None: True)
-    document = prod.mint_final_result(records)
+    core = prod._bind_result_core(records=records, repo_root=repo)
+    core_bytes = prod.canonical_json_bytes(prod._jsonable(core))
+    document = {
+        "core": core,
+        "core_sha256": _sha(core_bytes),
+        "core_size": len(core_bytes),
+    }
     digest_tamper = dict(document)
     digest_tamper["core_sha256"] = "ab" * 32
     with pytest.raises(prod.ProductionIntegrityError, match="core digest tamper"):
@@ -870,7 +894,9 @@ def test_invalid_worlds_force_incomplete_and_refuse_mint(tmp_path, monkeypatch, 
     assert aggregates["incomplete_execution"] is True
     assert aggregates["mechanical_conclusion"] == "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM"
     monkeypatch.setattr(prod, "production_monte_carlo_arm_authorized", lambda repo_root=None: True)
-    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="incomplete execution cannot mint"):
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized, match="caller-supplied records cannot mint"
+    ):
         prod.mint_final_result(records)
 
 
@@ -1175,8 +1201,8 @@ def test_arm_parent_commit_positive_control(tmp_path, monkeypatch):
     _assert_clean(repo)
     assert prod.production_monte_carlo_arm_authorized(repo) is True
     assert _git(repo, "rev-parse", "HEAD^") == parent
-    rc = prod.spawn_canonical_production_process()
-    assert rc == 2
+    # Isolated worker would run the 3200-world driver once armed. This unit
+    # never invokes that path; fixture-driver tests cover orchestration.
     _write(repo / "docs/research/NOTE.txt", "descendant after ARM\n")
     _git(repo, "add", "-A")
     _git(repo, "commit", "-m", "descendant after ARM")
