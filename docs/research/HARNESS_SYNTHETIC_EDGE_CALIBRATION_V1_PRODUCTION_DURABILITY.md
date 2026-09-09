@@ -1,14 +1,49 @@
 # HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — production durability contract
 
-**Status:** `PRODUCTION_DURABILITY_IMPLEMENTED_UNARMED`
+**Status:** `PRODUCTION_DURABILITY_IMPLEMENTATION_FROZEN_UNARMED`
 
 **Unit ID:** `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1`
+
+**Freeze record:** [`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_DURABILITY_IMPLEMENTATION_FREEZE.md`](HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_DURABILITY_IMPLEMENTATION_FREEZE.md)
 
 **Not a RESULT. Not Monte Carlo authorization. Not B2-06, 2025, or 2026 authorization.**
 
 This document records the production durability, aggregation, and result-persistence
 layer above the frozen scientific primitives. It does not rewrite frozen prereg or
 scientific lib bytes. It does not execute the 3200-world calibration.
+
+## Implementation freeze identity
+
+The production-durability implementation identity reviewed by OPUS is frozen.
+This contract document is freeze metadata on that identity. It does **not** claim
+that a later docs-only freeze commit was itself the reviewed code HEAD.
+
+```text
+REVIEWED_IMPLEMENTATION_HEAD = d5277c42141a26948b195afe3d4ad30030151855
+REVIEWED_IMPLEMENTATION_TREE = 7ab4178f222ecf8a2b5c8bf7d7bec9279fa3cf89
+
+implementation_frozen = true
+production_monte_carlo_arm_authorized = false
+production_calibration_executed = false
+production_result_minted = false
+B2_06_scientific_execution_authorized = false
+validation_2025_authorized = false
+oos_2026_authorized = false
+
+OPUS FINAL VERDICT = GO_FOR_IMPLEMENTATION_FREEZE
+BLOCKERS = 0
+MAJORS = 0
+MINORS = 0
+```
+
+GitHub CI for the reviewed implementation HEAD: run `34319781573` SUCCESS.
+
+Non-blocking observation: `artifacts` exists in the pinned root allowlist but is
+not currently a tracked top-level package and is not imported in the verified
+execution chain. It was empirically inert during OPUS review. This freeze does
+not change that allowlist entry. Any future unit which makes `artifacts` a
+real/imported root package must explicitly re-review the pre-import allowlist
+authority boundary.
 
 ## Closed residuals
 
@@ -124,6 +159,7 @@ ancestor of HEAD.
 ## Execution status
 
 ```text
+implementation_frozen = true
 production_monte_carlo_arm_authorized = false
 production_calibration_executed = false
 production_result_minted = false

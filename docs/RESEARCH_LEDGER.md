@@ -1525,3 +1525,35 @@ imports the canonical package module; ARM authorizes the parent execution
 commit rather than a self-referential HEAD/tree fixed point; IncompleteWorld is
 recorded as an invalid world that stays in the planned denominator; persistence
 is commit-mediated. Production remains unarmed. No Monte Carlo. No RESULT.
+
+## 2026-09-09 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 production durability implementation freeze
+
+**Decision:** freeze the reviewed production-durability implementation before any
+production arming or 3200-world execution.
+**Unit verdict:** unused; production calibration not executed; Monte Carlo remains unarmed.
+
+Records OPUS `GO_FOR_IMPLEMENTATION_FREEZE` (BLOCKERS=0, MAJORS=0, MINORS=0)
+at reviewed implementation HEAD
+`d5277c42141a26948b195afe3d4ad30030151855` / tree
+`7ab4178f222ecf8a2b5c8bf7d7bec9279fa3cf89`. Exact reviewed-head GitHub CI run
+`34319781573` SUCCESS. The freeze commit is a docs/ledger/metadata descendant
+and is not itself the reviewed code HEAD.
+
+Does **not** run the 3200-world grid, arm the Monte Carlo seam, create a RESULT,
+open B2-06, or open 2025/2026. Frozen scientific lib and prereg bytes remain
+byte-identical.
+
+Non-blocking observation: `artifacts` exists in the pinned root allowlist but
+is not currently a tracked top-level package and is not imported in the verified
+execution chain. It was empirically inert during OPUS review and is unchanged
+by this freeze. Any future unit which makes `artifacts` a real/imported root
+package must explicitly re-review the pre-import allowlist authority boundary.
+
+- implementation_frozen: **true**
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- b2_06_scientific_execution_authorized: **false**
+- validation_2025_authorized: **false**
+- oos_2026_authorized: **false**
+- status: `PRODUCTION_DURABILITY_IMPLEMENTATION_FROZEN_UNARMED`
