@@ -141,14 +141,18 @@ commit/tree object access, not caller mappings. See
 
 `scripts/research/harness_synthetic_edge_calibration_v1.py`,
 `harness_synthetic_edge_calibration_v1_lib.py`, and
-`harness_synthetic_edge_calibration_v1_auth.py` implement the frozen
-synthetic calibration instrument plus a tracked one-shot production
-authorization. Implementation is frozen. Authorization implementation is
-frozen before production execution. One unused production run is
-authorized by repository state, not caller kwargs.
+`harness_synthetic_edge_calibration_v1_auth.py`, and
+`harness_synthetic_edge_calibration_v1_production.py` implement the frozen
+synthetic calibration instrument, the unused #114 one-shot authorization
+bytes, and the frozen unarmed production durability/aggregation layer.
+Reviewed production-durability implementation HEAD
+`d5277c42141a26948b195afe3d4ad30030151855` is frozen before any production
+arming. Production execution remains fail-closed until a separate later
+arming unit. `implementation_frozen = true`.
 `production_calibration_executed = false`.
-`production_monte_carlo_arm_authorized = false`. This is not a market
-hypothesis and does not authorize B2-06, 2025, or 2026.
+`production_monte_carlo_arm_authorized = false`.
+`production_result_minted = false`. This is not a market hypothesis and does
+not authorize B2-06, 2025, or 2026.
 
 ---
 
