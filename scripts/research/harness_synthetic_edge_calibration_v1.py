@@ -73,7 +73,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.run_production_grid:
         try:
-            return spawn_canonical_production_process()
+            return int(spawn_canonical_production_process())
         except SyntheticExecutionNotAuthorized as exc:
             print(str(exc), file=sys.stderr)
             return 2

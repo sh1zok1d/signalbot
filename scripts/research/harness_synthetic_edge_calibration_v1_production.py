@@ -105,6 +105,11 @@ CANONICAL_DURABILITY_PATH = (
 CANONICAL_ARM_PATH = (
     "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_ARM.json"
 )
+CANONICAL_DRIVER_FREEZE_PATH = (
+    "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_DRIVER_FREEZE.json"
+)
+WORKER_STDOUT_KIND_COMPLETE_RESULT = "COMPLETE_RESULT"
+WORKER_STDOUT_KIND_PARTIAL = "PARTIAL_NOT_RESULT"
 FROZEN_GRID_LITERALS = {
     "planned_worlds": 3200,
     "worlds_per_cell": 400,
@@ -452,6 +457,9 @@ def _authority_digests_at(repo_root: Path, commit: str) -> dict[str, str]:
     durability = _commit_blob(repo_root, commit, CANONICAL_DURABILITY_PATH)
     if durability is not None:
         digests["durability"] = _sha256_bytes(durability)
+    freeze = _commit_blob(repo_root, commit, CANONICAL_DRIVER_FREEZE_PATH)
+    if freeze is not None:
+        digests["driver_freeze"] = _sha256_bytes(freeze)
     return digests
 
 
@@ -467,6 +475,17 @@ ARM_REQUIRED_LITERALS = {
     "validation_2025_authorized": False,
     "oos_2026_authorized": False,
 }
+DRIVER_FREEZE_REQUIRED_LITERALS = {
+    "production_monte_carlo_arm_authorized": False,
+    "descendant_implementation_change_authorized": False,
+    "authorization_consumed": False,
+    "real_market_data_access_authorized": False,
+    "other_hypothesis_authorized": False,
+    "B2_06_scientific_execution_authorized": False,
+    "validation_2025_authorized": False,
+    "oos_2026_authorized": False,
+    "freeze_docs_only": True,
+}
 
 
 def _is_ancestor(repo_root: Path, maybe_ancestor: str, commit: str) -> bool:
@@ -477,6 +496,27 @@ def _is_ancestor(repo_root: Path, maybe_ancestor: str, commit: str) -> bool:
         check=False,
     )
     return proc.returncode == 0
+
+
+def _is_strict_ancestor(repo_root: Path, maybe_ancestor: str, commit: str) -> bool:
+    ancestor = str(maybe_ancestor or "").strip().lower()
+    commit = str(commit or "").strip().lower()
+    if ancestor == commit:
+        return False
+    return _is_ancestor(repo_root, ancestor, commit)
+
+
+def _load_commit_json(repo_root: Path, commit: str, git_path: str) -> dict[str, Any] | None:
+    blob = _commit_blob(repo_root, commit, git_path)
+    if blob is None:
+        return None
+    try:
+        payload = json.loads(blob.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    return payload
 
 
 def _arm_declared_contract_holds(payload: Mapping[str, Any]) -> bool:
@@ -491,33 +531,85 @@ def _arm_declared_contract_holds(payload: Mapping[str, Any]) -> bool:
         return False
 
 
-def _reviewed_implementation_binds_parent(
+def _driver_freeze_binds_parent(
     repo_root: Path, payload: Mapping[str, Any], parent: str
 ) -> bool:
-    reviewed_head = str(payload.get("reviewed_implementation_head") or "").strip().lower()
-    reviewed_tree = str(payload.get("reviewed_implementation_tree") or "").strip().lower()
+    freeze = _load_commit_json(repo_root, parent, CANONICAL_DRIVER_FREEZE_PATH)
+    if freeze is None:
+        return False
+    for key, expected in DRIVER_FREEZE_REQUIRED_LITERALS.items():
+        if freeze.get(key) != expected:
+            return False
+    freeze_status = freeze.get("freeze_status")
+    if not isinstance(freeze_status, str) or not freeze_status.strip():
+        return False
+    reviewed_head = str(freeze.get("reviewed_implementation_head") or "").strip().lower()
+    reviewed_tree = str(freeze.get("reviewed_implementation_tree") or "").strip().lower()
     if len(reviewed_head) != 40 or len(reviewed_tree) != 40:
         return False
     if any(ch not in "0123456789abcdef" for ch in reviewed_head + reviewed_tree):
         return False
-    if not _is_ancestor(repo_root, reviewed_head, parent):
+    if reviewed_head == parent:
+        return False
+    if not _is_strict_ancestor(repo_root, reviewed_head, parent):
         return False
     if _commit_tree_sha(repo_root, reviewed_head) != reviewed_tree:
+        return False
+    arm_reviewed_head = str(payload.get("reviewed_implementation_head") or "").strip().lower()
+    arm_reviewed_tree = str(payload.get("reviewed_implementation_tree") or "").strip().lower()
+    if arm_reviewed_head != reviewed_head or arm_reviewed_tree != reviewed_tree:
+        return False
+    if arm_reviewed_head == parent:
         return False
     for rel in EXECUTION_AUTHORITY_PATHS:
         reviewed_bytes = _commit_blob(repo_root, reviewed_head, rel)
         parent_bytes = _commit_blob(repo_root, parent, rel)
         if reviewed_bytes is None or parent_bytes is None or reviewed_bytes != parent_bytes:
             return False
+    reviewed_production = _commit_blob(repo_root, reviewed_head, PRODUCTION_REL)
+    parent_production = _commit_blob(repo_root, parent, PRODUCTION_REL)
+    if reviewed_production is None or parent_production is None:
+        return False
+    freeze_production = str(freeze.get("reviewed_production_sha256") or "").strip().lower()
+    if freeze_production != _sha256_bytes(reviewed_production):
+        return False
+    if freeze_production != _sha256_bytes(parent_production):
+        return False
     listed = payload.get("execution_authority_sha256")
     if not isinstance(listed, dict):
         return False
-    reviewed_production = _commit_blob(repo_root, reviewed_head, PRODUCTION_REL)
-    if reviewed_production is None:
+    if str(listed.get("production") or "").strip().lower() != freeze_production:
         return False
-    if str(listed.get("production") or "").strip().lower() != _sha256_bytes(reviewed_production):
+    if str(freeze.get("frozen_lib_sha256") or "").strip().lower() != FROZEN_REVIEWED_LIB_SHA256:
         return False
+    reviewed_lib = _commit_blob(repo_root, reviewed_head, LIB_REL)
+    parent_lib = _commit_blob(repo_root, parent, LIB_REL)
+    if reviewed_lib is None or parent_lib is None:
+        return False
+    if _sha256_bytes(reviewed_lib) != freeze["frozen_lib_sha256"]:
+        return False
+    if _sha256_bytes(parent_lib) != freeze["frozen_lib_sha256"]:
+        return False
+    for rel, freeze_key, bound_key in (
+        (PREREG_JSON_REL, "prereg_json_sha256", "prereg_json"),
+        (PREREG_MD_REL, "prereg_md_sha256", "prereg_md"),
+    ):
+        reviewed_blob = _commit_blob(repo_root, reviewed_head, rel)
+        parent_blob = _commit_blob(repo_root, parent, rel)
+        freeze_digest = str(freeze.get(freeze_key) or "").strip().lower()
+        if reviewed_blob is None or parent_blob is None:
+            return False
+        if _sha256_bytes(reviewed_blob) != freeze_digest or _sha256_bytes(parent_blob) != freeze_digest:
+            return False
+        if str(listed.get(bound_key) or "").strip().lower() != freeze_digest:
+            return False
     return True
+
+
+def _reviewed_implementation_binds_parent(
+    repo_root: Path, payload: Mapping[str, Any], parent: str
+) -> bool:
+    return _driver_freeze_binds_parent(repo_root, payload, parent)
 
 
 def _arm_payload_authorizes(repo_root: Path, payload: Mapping[str, Any]) -> bool:
@@ -1259,11 +1351,62 @@ def world_set_sha256(records):
     return _sha256_bytes(canonical_world_set_bytes(records))
 
 
-def _bind_result_core(*, records, repo_root):
+def _record_content_digest(rec: Mapping[str, Any]) -> str:
+    return _sha256_bytes(canonical_json_bytes(_jsonable(dict(rec))))
+
+
+def _immutable_record(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return MappingProxyType({str(key): _immutable_record(val) for key, val in value.items()})
+    if isinstance(value, (list, tuple)):
+        return tuple(_immutable_record(item) for item in value)
+    return value
+
+
+def _mac_record_digest_chain(secret: bytes, digests: Sequence[str]) -> str:
+    mac = hashlib.sha256(secret)
+    for digest in digests:
+        mac.update(b"\x00")
+        mac.update(str(digest).encode("ascii"))
+    return mac.hexdigest()
+
+
+def _ordered_record_digest_chain(records: Sequence[Mapping[str, Any]]) -> tuple[str, ...]:
+    return tuple(_record_content_digest(rec) for rec in records)
+
+
+def _bind_result_core(*, records, repo_root, fixture: bool = False):
     """Private non-authoritative core builder. Public mint requires a session capability."""
     bound = verify_executed_production_authority(repo_root)
-    aggregates = aggregate_planned_worlds(records)
     reservation = durable_reservation_document(repo_root)
+    armed = production_monte_carlo_arm_authorized(repo_root) is True
+    digest_chain = list(_ordered_record_digest_chain(records))
+    if fixture:
+        return {
+            "schema_version": "1.0",
+            "fixture": True,
+            "not_a_production_result": True,
+            "unit_id": UNIT_ID,
+            "durability_id": DURABILITY_ID,
+            "execution_head": bound["head_sha"],
+            "execution_tree": bound["tree_sha"],
+            "run_identity": canonical_run_identity(repo_root),
+            "reservation_sha256": _sha256_bytes(canonical_json_bytes(reservation)),
+            "world_set_sha256": _sha256_bytes(
+                canonical_json_bytes({"worlds": [_jsonable(dict(rec)) for rec in records]})
+            ),
+            "record_digest_chain": digest_chain,
+            "planned_world_count": len(records),
+            "observed_world_count": len(records),
+            "mechanical_conclusion": "FIXTURE_COMPLETE_NOT_PRODUCTION",
+            "real_market_data_access_authorized": False,
+            "b2_06_scientific_execution_authorized": False,
+            "validation_2025_authorized": False,
+            "oos_2026_authorized": False,
+            "production_monte_carlo_arm_authorized": armed,
+            "production_calibration_executed": False,
+        }
+    aggregates = aggregate_planned_worlds(records)
     claim = durable_claim_document(repo_root)
     return {
         "schema_version": "1.0",
@@ -1286,6 +1429,7 @@ def _bind_result_core(*, records, repo_root):
         "claim_sha256": _sha256_bytes(canonical_json_bytes(claim)),
         "run_identity": canonical_run_identity(repo_root),
         "world_set_sha256": world_set_sha256(records),
+        "record_digest_chain": digest_chain,
         "planned_world_count": aggregates["planned_world_count"],
         "observed_world_count": aggregates["observed_world_count"],
         "aggregates": _jsonable(aggregates),
@@ -1294,7 +1438,7 @@ def _bind_result_core(*, records, repo_root):
         "b2_06_scientific_execution_authorized": False,
         "validation_2025_authorized": False,
         "oos_2026_authorized": False,
-        "production_monte_carlo_arm_authorized": False,
+        "production_monte_carlo_arm_authorized": armed,
         "production_calibration_executed": False,
         "verdicts": aggregates["verdicts"],
         "wilson_intervals": {
@@ -1332,10 +1476,14 @@ class _CanonicalExecutionSession:
         "bound",
         "reservation",
         "records",
+        "record_digest_chain",
+        "chain_secret",
+        "chain_mac",
         "capability",
         "open",
         "completed",
         "evaluator",
+        "partial_payload",
     )
 
 
@@ -1422,10 +1570,14 @@ def _open_canonical_session(
     session.run_identity = canonical_run_identity(repo_root)
     session.bound = bound
     session.reservation = durable_reservation_document(repo_root)
-    session.records = []
+    session.records = ()
+    session.record_digest_chain = ()
+    session.chain_secret = os.urandom(32)
+    session.chain_mac = _mac_record_digest_chain(session.chain_secret, ())
     session.open = True
     session.completed = False
     session.evaluator = evaluator
+    session.partial_payload = None
     _register_session(session)
     return session
 
@@ -1453,6 +1605,7 @@ def _append_session_record(
 ) -> None:
     _record_job_identity(rec, *job)
     owned = _jsonable(dict(rec))
+    digest = _record_content_digest(owned)
     seen = {(str(item["scenario_id"]), int(item["n_rows"]), int(item["world_index"])) for item in session.records}
     if job in seen:
         _refuse("duplicate world identity")
@@ -1461,7 +1614,9 @@ def _append_session_record(
     expected_index = len(session.records)
     if session.jobs[expected_index] != job:
         _refuse("canonical evaluation order drifted from the planned job list")
-    session.records.append(MappingProxyType(owned))
+    session.records = tuple(session.records) + (_immutable_record(owned),)
+    session.record_digest_chain = tuple(session.record_digest_chain) + (digest,)
+    session.chain_mac = _mac_record_digest_chain(session.chain_secret, session.record_digest_chain)
 
 
 def _evaluate_session_job(
@@ -1519,7 +1674,26 @@ def _session_plan_integrity(session: _CanonicalExecutionSession) -> dict[str, An
     }
 
 
+def _verify_session_record_chain(session: _CanonicalExecutionSession) -> None:
+    recomputed = _ordered_record_digest_chain(session.records)
+    if recomputed != tuple(session.record_digest_chain):
+        _refuse("canonical record content digest chain mismatch")
+    expected_mac = _mac_record_digest_chain(session.chain_secret, recomputed)
+    if expected_mac != session.chain_mac:
+        _refuse("canonical record content digest chain mismatch")
+
+
+def _result_envelope_from_core(core: Mapping[str, Any]) -> dict[str, Any]:
+    core_bytes = canonical_json_bytes(_jsonable(core))
+    return {
+        "core": core,
+        "core_sha256": _sha256_bytes(core_bytes),
+        "core_size": len(core_bytes),
+    }
+
+
 def _mint_from_session(session: _CanonicalExecutionSession) -> dict[str, Any]:
+    _verify_session_record_chain(session)
     integrity = _session_plan_integrity(session)
     if integrity["incomplete_execution"]:
         if session.production:
@@ -1543,32 +1717,44 @@ def _mint_from_session(session: _CanonicalExecutionSession) -> dict[str, Any]:
             or aggregates["mechanical_conclusion"] == "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM"
         ):
             _refuse("incomplete execution cannot mint a final RESULT")
-        core = _bind_result_core(records=session.records, repo_root=session.repo_root)
-        core["production_monte_carlo_arm_authorized"] = True
-        core_bytes = canonical_json_bytes(_jsonable(core))
-        envelope = {
-            "core": core,
-            "core_sha256": _sha256_bytes(core_bytes),
-            "core_size": len(core_bytes),
-        }
+        core = _bind_result_core(
+            records=session.records,
+            repo_root=session.repo_root,
+            fixture=False,
+        )
+        envelope = _result_envelope_from_core(core)
         _close_session(session)
         return envelope
-    envelope = {
-        "schema_version": "1.0",
-        "fixture": True,
-        "not_a_production_result": True,
-        "run_identity": session.run_identity,
-        "planned_world_count": integrity["planned_world_count"],
-        "observed_world_count": integrity["observed_world_count"],
-        "records": list(session.records),
-        "mechanical_conclusion": "FIXTURE_COMPLETE_NOT_PRODUCTION",
-        "real_market_data_access_authorized": False,
-        "b2_06_scientific_execution_authorized": False,
-        "validation_2025_authorized": False,
-        "oos_2026_authorized": False,
-    }
+    core = _bind_result_core(
+        records=session.records,
+        repo_root=session.repo_root,
+        fixture=True,
+    )
+    envelope = _result_envelope_from_core(core)
     _close_session(session)
     return envelope
+
+
+def _attach_partial_payload(exc: BaseException, partial: Mapping[str, Any] | None) -> None:
+    if partial is None:
+        return
+    try:
+        setattr(exc, "_canonical_partial", partial)
+    except Exception:
+        return
+
+
+def _abort_session(session: _CanonicalExecutionSession, exc: BaseException) -> None:
+    partial = None
+    if session.production and session.records:
+        try:
+            partial = persist_partial_worlds(session.records)
+            session.partial_payload = partial
+        except Exception:
+            partial = None
+    _attach_partial_payload(exc, partial)
+    if session.capability is not None and id(session.capability) in _LIVE_SESSIONS:
+        _retire_session(session)
 
 
 def _run_session_jobs(session: _CanonicalExecutionSession) -> dict[str, Any]:
@@ -1577,10 +1763,12 @@ def _run_session_jobs(session: _CanonicalExecutionSession) -> dict[str, Any]:
             rec = _evaluate_session_job(session, *job)
             _append_session_record(session, rec, job)
         return _mint_from_session(session)
-    except Exception:
-        if session.production and session.records:
-            persist_partial_worlds(session.records)
-        _retire_session(session)
+    except SyntheticExecutionNotAuthorized:
+        if session.capability is not None and id(session.capability) in _LIVE_SESSIONS:
+            _retire_session(session)
+        raise
+    except BaseException as exc:
+        _abort_session(session, exc)
         raise
 
 
@@ -1613,10 +1801,26 @@ def evaluate_canonical_session_job(
     if args or kwargs:
         _refuse("caller arguments cannot authorize canonical evaluation")
     session = _session_from_capability(capability)
-    job = (str(scenario_id), int(n_rows), int(world_index))
-    rec = _evaluate_session_job(session, *job)
-    _append_session_record(session, rec, job)
-    return rec
+    try:
+        job = (str(scenario_id), int(n_rows), int(world_index))
+        rec = _evaluate_session_job(session, *job)
+        _append_session_record(session, rec, job)
+        return rec
+    except SyntheticExecutionNotAuthorized:
+        raise
+    except BaseException as exc:
+        _abort_session(session, exc)
+        raise
+
+
+def abandon_canonical_session(capability: object, *args: Any, **kwargs: Any) -> None:
+    """Mark a live session crashed/abandoned. Cannot mint afterwards."""
+    if args or kwargs:
+        _refuse("caller arguments cannot authorize session abandonment")
+    session = _session_from_capability(capability)
+    if session.production and session.records:
+        persist_partial_worlds(session.records)
+    _retire_session(session)
 
 
 def abandon_canonical_session(capability: object, *args: Any, **kwargs: Any) -> None:
@@ -1673,7 +1877,13 @@ def mint_session_result(capability: object, *args: Any, **kwargs: Any) -> dict[s
     if args or kwargs:
         _refuse("caller arguments cannot authorize a production RESULT")
     session = _session_from_capability(capability)
-    return _mint_from_session(session)
+    try:
+        return _mint_from_session(session)
+    except SyntheticExecutionNotAuthorized:
+        raise
+    except BaseException as exc:
+        _abort_session(session, exc)
+        raise
 
 
 def mint_final_result(*args: Any, **kwargs: Any):
@@ -1709,7 +1919,11 @@ def verify_bound_result_document(document, records, *args, **kwargs):
         raise ProductionIntegrityError(
             "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: core size tamper detected"
         )
-    expected = _bind_result_core(records=records, repo_root=_repo_root())
+    expected = _bind_result_core(
+        records=records,
+        repo_root=_repo_root(),
+        fixture=core.get("fixture") is True or core.get("not_a_production_result") is True,
+    )
     expected_bytes = canonical_json_bytes(_jsonable(expected))
     if core.get("run_identity") != expected["run_identity"]:
         raise ProductionIntegrityError(
@@ -1723,13 +1937,17 @@ def verify_bound_result_document(document, records, *args, **kwargs):
         raise ProductionIntegrityError(
             "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: reservation digest is not tracked authority"
         )
-    if core.get("claim_sha256") != expected["claim_sha256"]:
+    if "claim_sha256" in expected and core.get("claim_sha256") != expected["claim_sha256"]:
         raise ProductionIntegrityError(
             "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: claim digest is not tracked authority"
         )
-    if core.get("aggregates") != expected["aggregates"]:
+    if "aggregates" in expected and core.get("aggregates") != expected["aggregates"]:
         raise ProductionIntegrityError(
             "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: aggregates were not derived from the world set"
+        )
+    if core.get("record_digest_chain") != expected.get("record_digest_chain"):
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: world_set_sha256 tamper detected"
         )
     if core_bytes != expected_bytes:
         raise ProductionIntegrityError(
@@ -1851,7 +2069,7 @@ def _isolated_child_env():
     return env
 
 
-def _spawn_isolated_child(mode, repo_root=None):
+def _spawn_isolated_child(mode, repo_root=None, *, text: bool = True):
     root = (repo_root or _repo_root()).resolve()
     return subprocess.run(
         [
@@ -1868,20 +2086,69 @@ def _spawn_isolated_child(mode, repo_root=None):
         env=_isolated_child_env(),
         check=False,
         capture_output=True,
-        text=True,
+        text=text,
     )
+
+
+class CanonicalWorkerCapture:
+    """Exact stdout capture from the isolated canonical production worker."""
+
+    __slots__ = ("returncode", "stdout", "stderr", "stdout_bytes")
+
+    def __init__(self, returncode: int, stdout_bytes: bytes, stderr: str):
+        self.returncode = int(returncode)
+        self.stdout_bytes = bytes(stdout_bytes)
+        self.stdout = stdout_bytes.decode("utf-8", "surrogateescape")
+        self.stderr = stderr
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, int):
+            return self.returncode == other
+        return NotImplemented
+
+    def __int__(self) -> int:
+        return self.returncode
+
+    def __index__(self) -> int:
+        return self.returncode
+
+
+def canonical_worker_stdout_bytes(kind: str, payload: Mapping[str, Any]) -> bytes:
+    if kind == WORKER_STDOUT_KIND_COMPLETE_RESULT:
+        final = True
+    elif kind == WORKER_STDOUT_KIND_PARTIAL:
+        final = False
+    else:
+        _refuse("canonical worker stdout kind is not distinguished")
+    envelope = {
+        "schema_version": "1.0",
+        "kind": kind,
+        "final_result_minted": final,
+        "payload": payload,
+    }
+    return canonical_json_bytes(_jsonable(envelope))
+
+
+def _emit_canonical_worker_stdout(kind: str, payload: Mapping[str, Any]) -> bytes:
+    raw = canonical_worker_stdout_bytes(kind, payload)
+    sys.stdout.buffer.write(raw)
+    sys.stdout.flush()
+    return raw
 
 
 def spawn_canonical_production_process(*args, **kwargs):
     """Canonical production path: isolated interpreter, then re-verify, then refuse if unarmed."""
     if args or kwargs:
         _refuse("caller arguments cannot authorize production execution")
-    proc = _spawn_isolated_child(WORKER_MODE)
-    if proc.stderr:
-        sys.stderr.write(proc.stderr)
-    if proc.stdout:
-        sys.stdout.write(proc.stdout)
-    return int(proc.returncode)
+    proc = _spawn_isolated_child(WORKER_MODE, text=False)
+    stdout_bytes = proc.stdout or b""
+    stderr_text = (proc.stderr or b"").decode("utf-8", "surrogateescape")
+    if stderr_text:
+        sys.stderr.write(stderr_text)
+    if stdout_bytes:
+        sys.stdout.buffer.write(stdout_bytes)
+        sys.stdout.flush()
+    return CanonicalWorkerCapture(int(proc.returncode), stdout_bytes, stderr_text)
 
 
 def spawn_isolated_r1_probe(*args, **kwargs):
@@ -1940,8 +2207,23 @@ def fresh_process_worker_main():
             file=sys.stderr,
         )
         return 2
-    run_canonical_production_execution()
-    return 0
+    try:
+        envelope = run_canonical_production_execution()
+        emitted = _emit_canonical_worker_stdout(WORKER_STDOUT_KIND_COMPLETE_RESULT, envelope)
+        if not emitted:
+            _refuse("canonical RESULT payload was not emitted")
+        return 0
+    except BaseException as exc:
+        partial = getattr(exc, "_canonical_partial", None)
+        if isinstance(partial, Mapping):
+            _emit_canonical_worker_stdout(WORKER_STDOUT_KIND_PARTIAL, partial)
+        if isinstance(exc, (KeyboardInterrupt, SystemExit)):
+            raise
+        if isinstance(exc, SyntheticExecutionNotAuthorized):
+            print(str(exc), file=sys.stderr)
+            return 2
+        print(str(exc), file=sys.stderr)
+        return 2
 
 
 def production_durability_identity():
@@ -1980,6 +2262,7 @@ def production_durability_identity():
             "partial": CANONICAL_PARTIAL_PATH,
             "durability": CANONICAL_DURABILITY_PATH,
             "arm": CANONICAL_ARM_PATH,
+            "driver_freeze": CANONICAL_DRIVER_FREEZE_PATH,
         },
     }
 
