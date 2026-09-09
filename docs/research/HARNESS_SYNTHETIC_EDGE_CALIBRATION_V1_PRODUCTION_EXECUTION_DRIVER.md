@@ -13,23 +13,39 @@ does not run the 3200-world calibration and does not mint a production RESULT.
 ## Sequence
 
 ```text
-C_driver  (this unit)
-    production implementation fully complete
-    canonical 3200-world driver exists
-    production remains unarmed
+C_reviewed_driver
+    exact independently-reviewed implementation
 
-↓ independent OPUS review / freeze
+↓
+
+C_driver_freeze
+    docs/metadata-only descendant
+    records reviewed implementation identity and exact reviewed production SHA256
+
+↓
 
 C_arm
-    docs/authority-only child
-    authorizes exact C_driver/freeze parent
+    immediate child of C_driver_freeze
+    authorizes exact parent
     modifies NO execution-authority bytes
 
 ↓ canonical execution
 ```
 
+`reviewed_implementation_head` must be a strict ancestor of the authorized
+parent. ARM cannot self-bless `reviewed_implementation_head == parent`.
+Future ARM verification reads the tracked driver-freeze artifact at the
+authorized parent rather than trusting caller-updated ARM fields.
+
+This repair unit does **not** add the live freeze artifact. The actual freeze
+comes after OPUS closes this repair.
+
 No further code-changing commit is required between a later ARM and the
 canonical run.
+
+Successful complete execution emits a machine-readable stdout envelope
+`kind=COMPLETE_RESULT` containing the canonical RESULT bytes. Crash/partial
+emits `kind=PARTIAL_NOT_RESULT`. RESULT is not written into the worktree.
 
 ## Historical ARM #116
 

@@ -1600,3 +1600,19 @@ byte-identical. The `artifacts` root package remains unactivated.
 - production_result_minted: **false**
 - authorization_consumed: **false**
 - status: `PRODUCTION_EXECUTION_DRIVER_IMPLEMENTED_UNARMED`
+
+## 2026-09-09 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 production driver OPUS repair
+
+**Decision:** close OPUS `REPAIR_REQUIRED` on driver HEAD `d62e1f3` without arming.
+**Unit verdict:** unused; production calibration not executed; Monte Carlo remains unarmed.
+
+Closes BLK-1 stdout RESULT/partial emission, BLK-2 mint/verify core derivation,
+MAJ-1 strict-ancestor + tracked driver-freeze chain, MAJ-2 full-record digest
+binding, and MIN-1 BaseException session retirement. No live freeze artifact. No
+live ARM. No 3200-world execution. No RESULT persisted.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_EXECUTION_DRIVER_REPAIR_UNARMED`
