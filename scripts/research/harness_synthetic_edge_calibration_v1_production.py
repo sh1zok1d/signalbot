@@ -680,63 +680,76 @@ def evaluate_production_world(
         raise ProductionNotArmed(
             "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: production_monte_carlo_arm_authorized=false"
         )
-    world = simulate_dgp(
-        scenario_id=scenario_id,
-        n_rows=int(n_rows),
-        world_index=int(world_index),
-    )
-    rows = []
-    any_invalid = False
-    reasons: list[str] = []
-    for feature_id in FEATURE_IDS:
-        ev = evaluate_production_candidate(
-            world,
-            feature_id,
+    identity = world_identity(scenario_id, int(n_rows), int(world_index))
+    try:
+        world = simulate_dgp(
             scenario_id=scenario_id,
             n_rows=int(n_rows),
             world_index=int(world_index),
         )
-        if not ev["valid"]:
-            any_invalid = True
-            reasons.extend(ev["invalid_reasons"])
-        rows.append(ev)
-    oracle = next(row for row in rows if row["feature_id"] == "F03")
-    selected_ex = select_blind(rows, gate="STRICT_PASS_EX_MATERIALITY")
-    selected_strict = select_blind(rows, gate="STRICT_PASS")
-    label = taxonomy_of(None if selected_ex == "NO_CANDIDATE" else selected_ex)
-    identity = world_identity(scenario_id, int(n_rows), int(world_index))
-    return _jsonable(
-        {
-            "scenario_id": scenario_id,
-            "n_rows": int(n_rows),
-            "world_index": int(world_index),
-            "world_identity": identity,
-            "world_seed": int(world_seed(identity)),
-            "valid": not any_invalid,
-            "invalid_reasons": tuple(reasons),
-            "oracle_F03": oracle,
-            "candidates": rows,
-            "selected_STRICT_PASS_EX_MATERIALITY": selected_ex,
-            "selected_STRICT_PASS": selected_strict,
-            "taxonomy": label,
-            "taxonomy_flags": taxonomy_flags(label),
-            "visibility": oracle["visibility"],
-            "materiality": {
-                "RELATIVE_MAE_IMPROVEMENT": oracle.get("RELATIVE_MAE_IMPROVEMENT"),
-                "MATERIALITY_FRACTION_OF_ATTAINABLE": oracle.get(
-                    "MATERIALITY_FRACTION_OF_ATTAINABLE"
-                ),
-                "STRICT_PASS": (oracle.get("gates") or {}).get("STRICT_PASS"),
-                "STRICT_PASS_EX_MATERIALITY": oracle.get("gates", {}).get(
-                    "STRICT_PASS_EX_MATERIALITY"
-                )
-                if oracle.get("gates")
-                else None,
-            },
-            "train_end_by_score_era": oracle.get("train_end_by_score_era"),
-            "stays_in_denominator": True,
-        }
-    )
+        rows = []
+        any_invalid = False
+        reasons: list[str] = []
+        for feature_id in FEATURE_IDS:
+            ev = evaluate_production_candidate(
+                world,
+                feature_id,
+                scenario_id=scenario_id,
+                n_rows=int(n_rows),
+                world_index=int(world_index),
+            )
+            if not ev["valid"]:
+                any_invalid = True
+                reasons.extend(ev["invalid_reasons"])
+            rows.append(ev)
+        oracle = next(row for row in rows if row["feature_id"] == "F03")
+        selected_ex = select_blind(rows, gate="STRICT_PASS_EX_MATERIALITY")
+        selected_strict = select_blind(rows, gate="STRICT_PASS")
+        label = taxonomy_of(None if selected_ex == "NO_CANDIDATE" else selected_ex)
+        oracle_gates = oracle.get("gates") or {}
+        return _jsonable(
+            {
+                "scenario_id": scenario_id,
+                "n_rows": int(n_rows),
+                "world_index": int(world_index),
+                "world_identity": identity,
+                "world_seed": int(world_seed(identity)),
+                "valid": not any_invalid,
+                "invalid_reasons": tuple(reasons),
+                "oracle_F03": oracle,
+                "candidates": rows,
+                "selected_STRICT_PASS_EX_MATERIALITY": selected_ex,
+                "selected_STRICT_PASS": selected_strict,
+                "taxonomy": label,
+                "taxonomy_flags": taxonomy_flags(label),
+                "visibility": oracle.get("visibility"),
+                "materiality": {
+                    "RELATIVE_MAE_IMPROVEMENT": oracle.get("RELATIVE_MAE_IMPROVEMENT"),
+                    "MATERIALITY_FRACTION_OF_ATTAINABLE": oracle.get(
+                        "MATERIALITY_FRACTION_OF_ATTAINABLE"
+                    ),
+                    "STRICT_PASS": oracle_gates.get("STRICT_PASS"),
+                    "STRICT_PASS_EX_MATERIALITY": oracle_gates.get(
+                        "STRICT_PASS_EX_MATERIALITY"
+                    ),
+                },
+                "train_end_by_score_era": oracle.get("train_end_by_score_era"),
+                "stays_in_denominator": True,
+            }
+        )
+    except IncompleteWorld as exc:
+        return _jsonable(
+            {
+                "scenario_id": scenario_id,
+                "n_rows": int(n_rows),
+                "world_index": int(world_index),
+                "world_identity": identity,
+                "world_seed": int(world_seed(identity)),
+                "valid": False,
+                "invalid_reasons": (str(exc),),
+                "stays_in_denominator": True,
+            }
+        )
 
 
 def _cell_records(
@@ -1116,7 +1129,7 @@ def mint_final_result(records, *args, **kwargs):
     ):
         _refuse("incomplete execution cannot mint a final RESULT")
     core = _bind_result_core(records=records, repo_root=root)
-    core_bytes = canonical_json_bytes(core)
+    core_bytes = canonical_json_bytes(_jsonable(core))
     return {
         "core": core,
         "core_sha256": _sha256_bytes(core_bytes),
@@ -1127,12 +1140,20 @@ def mint_final_result(records, *args, **kwargs):
 def verify_bound_result_document(document, records, *args, **kwargs):
     if args or kwargs:
         _refuse("caller arguments cannot authorize result verification")
-    if "core" not in document:
+    if not isinstance(document, Mapping) or "core" not in document:
         raise ProductionIntegrityError(
             "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: result envelope is missing core"
         )
+    if set(document.keys()) != {"core", "core_sha256", "core_size"}:
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: result envelope is not the canonical core envelope"
+        )
     core = document["core"]
-    core_bytes = canonical_json_bytes(core)
+    if not isinstance(core, Mapping):
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: result envelope is missing core"
+        )
+    core_bytes = canonical_json_bytes(_jsonable(dict(core)))
     if document.get("core_sha256") != _sha256_bytes(core_bytes):
         raise ProductionIntegrityError(
             "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: core digest tamper detected"
@@ -1142,6 +1163,7 @@ def verify_bound_result_document(document, records, *args, **kwargs):
             "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: core size tamper detected"
         )
     expected = _bind_result_core(records=records, repo_root=_repo_root())
+    expected_bytes = canonical_json_bytes(_jsonable(expected))
     if core.get("run_identity") != expected["run_identity"]:
         raise ProductionIntegrityError(
             "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: run_identity tamper detected"
@@ -1161,6 +1183,10 @@ def verify_bound_result_document(document, records, *args, **kwargs):
     if core.get("aggregates") != expected["aggregates"]:
         raise ProductionIntegrityError(
             "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: aggregates were not derived from the world set"
+        )
+    if core_bytes != expected_bytes:
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: core payload tamper detected"
         )
 
 
