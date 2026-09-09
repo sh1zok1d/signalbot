@@ -47,6 +47,40 @@ Successful complete execution emits a machine-readable stdout envelope
 `kind=COMPLETE_RESULT` containing the canonical RESULT bytes. Crash/partial
 emits `kind=PARTIAL_NOT_RESULT`. RESULT is not written into the worktree.
 
+## RESULT verification authority models
+
+RESULT verification has two distinct functions. They do not silently switch
+authority models.
+
+```text
+verify_bound_result_document(document, records)
+    LIVE / execution-context
+    re-derives the expected core from current HEAD, worktree, and
+    caller-supplied records
+
+verify_bound_result_from_tracked_authority(repo_root, result_document_or_path)
+    TRACKED / historical
+    reads execution_head from the RESULT core itself
+    loads execution-authority blobs from that exact commit via git objects
+    re-verifies ARM/freeze topology at execution time
+    reconstructs the expected core relative to the execution commit
+    current HEAD need not be armed
+```
+
+Caller-supplied execution commits cannot authorize historical verification.
+After a later RESULT commit `C_result`, `production_monte_carlo_arm_authorized`
+at current HEAD is correctly false. Historical verification still proves that
+`C_arm` was correctly armed for its freeze parent and execution bytes.
+
+Captured canonical RESULT bytes → tracked RESULT commit → historical RESULT
+verification → `durable_result_claim_from_tracked_authority()` is the complete
+#115-compatible claim path. The helper returns a claim document; it does not
+write the worktree. Duplicate/conflicting terminal RESULT blobs are refused.
+
+A post-RESULT rerun refuses because the terminal production RESULT already exists
+(one-shot consumed), not merely because current HEAD is unarmed. First
+execution still requires ARM.
+
 ## Historical ARM #116
 
 `#116` HEAD `940d85bf58673396c6c0cc05ce2134a2e2e92809` remains historical
@@ -153,6 +187,7 @@ the canonical ARM verifier says armed.
 
 ```text
 canonical_production_driver_implemented = true
+post_commit_result_verification = true
 production_monte_carlo_arm_authorized = false
 ACTUAL_PRODUCTION_EXECUTION_RUN = NO
 PRODUCTION_RESULT_MINTED = NO

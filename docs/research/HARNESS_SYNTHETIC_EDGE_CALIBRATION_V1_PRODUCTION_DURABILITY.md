@@ -127,10 +127,16 @@ envelope = {
 artifact digest/size, if any, is maintained by the external claim/persistence
 layer and is not embedded self-referentially inside the core.
 
-Verification re-derives the entire core from the supplied canonical world records
-and tracked git authority, then compares canonical core bytes. Recomputing
-`core_sha256` / `core_size` after changing an uncompared field is not authority.
-The envelope may contain only `core`, `core_sha256`, and `core_size`.
+Verification has two distinct authority models. LIVE
+`verify_bound_result_document` re-derives the entire core from the supplied
+canonical world records and current HEAD. TRACKED
+`verify_bound_result_from_tracked_authority` follows the partial-recovery
+model: it reads `execution_head` from the RESULT core, loads exact git-object
+blobs at that commit, re-verifies historical ARM/freeze topology, and
+compares canonical core bytes. Current HEAD being a later unarmed RESULT
+commit is not authority. Recomputing `core_sha256` / `core_size` after
+changing an uncompared field is not authority. The envelope may contain only
+`core`, `core_sha256`, and `core_size`.
 
 ## Persistence lifecycle
 

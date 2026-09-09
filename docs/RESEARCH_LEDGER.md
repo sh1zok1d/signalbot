@@ -1616,3 +1616,21 @@ live ARM. No 3200-world execution. No RESULT persisted.
 - production_result_minted: **false**
 - authorization_consumed: **false**
 - status: `PRODUCTION_EXECUTION_DRIVER_REPAIR_UNARMED`
+
+## 2026-09-09 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 post-commit RESULT verification
+
+**Decision:** close post-commit RESULT verification before freeze without arming.
+**Unit verdict:** unused; production calibration not executed; Monte Carlo remains unarmed.
+
+Adds historical RESULT verification from the artifact's embedded
+`execution_head`, using git-object blobs and ARM topology at execution time.
+Current HEAD need not be armed. Wires `#115` RESULT claim persistence from
+tracked authority. Removes the duplicate `abandon_canonical_session` definition.
+Post-RESULT rerun reports one-shot consumed rather than merely unarmed. No live
+freeze artifact. No live ARM. No 3200-world execution. No RESULT persisted.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_EXECUTION_DRIVER_REPAIR_UNARMED`
