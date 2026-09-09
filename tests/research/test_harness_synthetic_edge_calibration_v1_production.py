@@ -1097,14 +1097,23 @@ def test_hostile_scripts_research_numpy_cannot_execute_before_verification(tmp_p
     assert marker.exists() is False
 
 
-def test_root_numpy_shadow_does_not_execute_before_authority_verification(tmp_path, monkeypatch):
-    marker = tmp_path / "root_numpy_ran"
+@pytest.mark.parametrize(
+    "rel",
+    (
+        "numpy.py",
+        "numpy/__init__.py",
+        "json/__init__.py",
+        "math/__init__.py",
+    ),
+)
+def test_root_shadows_do_not_execute_before_authority_verification(tmp_path, monkeypatch, rel):
+    marker = tmp_path / "root_shadow_ran"
     hostile = (
         "from pathlib import Path\n"
-        f"Path({str(marker)!r}).write_text('ROOT_NUMPY_SHADOW_EXECUTED')\n"
-        "raise RuntimeError('root numpy executed')\n"
+        f"Path({str(marker)!r}).write_text({rel!r})\n"
+        "raise RuntimeError('root shadow executed')\n"
     )
-    repo = _commit_production_tree(tmp_path, extra={"numpy.py": hostile.encode("utf-8")})
+    repo = _commit_production_tree(tmp_path, extra={rel: hostile.encode("utf-8")})
     _bind_prod(monkeypatch, repo)
     _assert_clean(repo)
     bootstrap = prod.ISOLATED_CHILD_BOOTSTRAP
@@ -1112,6 +1121,7 @@ def test_root_numpy_shadow_does_not_execute_before_authority_verification(tmp_pa
     import_at = bootstrap.find("from scripts.research.harness_synthetic_edge_calibration_v1_production import")
     assert "import hashlib" in bootstrap
     assert "import subprocess" in bootstrap
+    assert "ALLOWED_ROOT_DIRS" in bootstrap
     assert "repo-root module shadow" in bootstrap
     assert insert_at != -1 and import_at != -1 and insert_at < import_at
     assert bootstrap.find("import numpy") == -1
@@ -1119,8 +1129,7 @@ def test_root_numpy_shadow_does_not_execute_before_authority_verification(tmp_pa
     assert marker.exists() is False
     assert proc.returncode == 2
     assert "repo-root module shadow is not allowed execution authority" in proc.stderr
-    assert "ROOT_NUMPY_SHADOW_EXECUTED" not in (proc.stdout + proc.stderr)
-    assert proc.returncode != 0
+    assert "root shadow executed" not in (proc.stdout + proc.stderr)
 
 
 def test_isolated_child_canonical_module_identity_not_main(tmp_path, monkeypatch):
