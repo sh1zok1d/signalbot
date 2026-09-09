@@ -13,14 +13,18 @@ scientific lib bytes. It does not execute the 3200-world calibration.
 ## Closed residuals
 
 - **R1 stale import:** canonical production execution spawns an isolated Python
-  interpreter (`python -I -B -P -c` bootstrap) that inserts the exact resolved repo
-  root into `sys.path`, imports the canonical package module
-  `scripts.research.harness_synthetic_edge_calibration_v1_production`, and
+  interpreter (`python -I -B -P -c` bootstrap). The bootstrap uses stdlib only
+  until it has verified git top-level/HEAD/tree, a clean worktree, no
+  skip-worktree/assume-unchanged hiding, exact execution-authority/prereg bytes,
+  and the absence of repo-root module shadows such as `numpy.py`. Only then does
+  it insert the verified repo root into `sys.path` and import
+  `scripts.research.harness_synthetic_edge_calibration_v1_production`. The child
   re-verifies exact HEAD/tree plus execution-authority bytes inside that process
   immediately before evaluation. User site, sitecustomize/usercustomize,
-  inherited `PYTHONPATH`, and `scripts/research` script-directory shadowing cannot
-  authorize or substitute execution. Restoring on-disk bytes after a stale parent
-  import cannot authorize execution from the stale in-process objects.
+  inherited `PYTHONPATH`, `scripts/research` script-directory shadowing, and a
+  committed root-level `numpy.py` cannot execute before authority verification.
+  Restoring on-disk bytes after a stale parent import cannot authorize execution
+  from the stale in-process objects.
 - **R2 cross-checkout replay:** `run_identity` is a pure function of tracked
   authority at the exact execution commit. Deleting a local untracked reservation
   cannot mint a distinct identity. Another clone/worktree of the same commit can

@@ -16,6 +16,7 @@
   "invalid_world_forces_incomplete_execution": true,
   "isolated_interpreter": true,
   "persistence_commit_mediated": true,
+  "preimport_stdlib_authority_verification": true,
   "production_calibration_executed": false,
   "production_monte_carlo_arm_authorized": false,
   "production_result_minted": false,
