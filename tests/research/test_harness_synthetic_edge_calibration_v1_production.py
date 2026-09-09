@@ -1392,3 +1392,217 @@ def test_production_modules_have_no_real_data_path():
     ):
         assert token not in source
     assert prod.production_durability_identity()["global_process_exclusion_claimed"] is False
+
+
+FIXTURE_JOBS = (
+    ("NULL", 50, 0),
+    ("EASY", 50, 0),
+    ("MODERATE", 50, 1),
+)
+
+
+def _clear_sessions() -> None:
+    prod._LIVE_SESSIONS.clear()
+    prod._CAPABILITY_KEEPALIVE.clear()
+    prod._CLOSED_SESSIONS.clear()
+    prod._CLOSED_CAPABILITY_KEEPALIVE.clear()
+
+
+def _fixture_eval(scenario_id: str, n_rows: int, world_index: int) -> dict:
+    return _mock_record(scenario_id, n_rows, world_index)
+
+
+def _rehash_result(core: dict) -> dict:
+    core_bytes = prod.canonical_json_bytes(prod._jsonable(dict(core)))
+    return {
+        "core": core,
+        "core_sha256": _sha(core_bytes),
+        "core_size": len(core_bytes),
+    }
+
+
+def _commit_result_envelope(repo: Path, envelope: dict, message: str = "tracked RESULT") -> bytes:
+    raw = prod.canonical_json_bytes(prod._jsonable(envelope))
+    _write(repo / prod.CANONICAL_RESULT_PATH, raw.decode("utf-8"))
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", message)
+    return raw
+
+
+def _armed_fixture_repo(tmp_path, monkeypatch) -> Path:
+    repo = _commit_production_tree(tmp_path)
+    _commit_arm_authorizing_parent(repo)
+    _bind_prod(monkeypatch, repo)
+    _assert_clean(repo)
+    return repo
+
+
+def _mint_fixture_envelope(repo: Path) -> tuple[dict, list]:
+    _clear_sessions()
+    cap = prod.open_canonical_fixture_session(FIXTURE_JOBS, _fixture_eval)
+    records = [prod.evaluate_canonical_session_job(cap, *job) for job in FIXTURE_JOBS]
+    envelope = prod.mint_session_result(cap)
+    return envelope, records
+
+
+def test_historical_result_verifies_after_commit_and_later_docs_only(tmp_path, monkeypatch):
+    repo = _armed_fixture_repo(tmp_path, monkeypatch)
+    envelope, records = _mint_fixture_envelope(repo)
+    prod.verify_bound_result_document(envelope, records)
+    execution_head = envelope["core"]["execution_head"]
+    execution_tree = envelope["core"]["execution_tree"]
+    assert execution_head == _git(repo, "rev-parse", "HEAD")
+    assert envelope["core"]["production_monte_carlo_arm_authorized"] is True
+    raw = _commit_result_envelope(repo, envelope)
+    assert prod.production_monte_carlo_arm_authorized(repo) is False
+    with pytest.raises(prod.ProductionIntegrityError):
+        prod.verify_bound_result_document(envelope, records)
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized,
+        match="caller-supplied historical RESULT authority is refused",
+    ):
+        prod.verify_bound_result_from_tracked_authority(
+            repo, envelope, execution_head=execution_head
+        )
+    verified = prod.verify_bound_result_from_tracked_authority(repo, envelope)
+    assert verified["core"]["execution_head"] == execution_head
+    assert verified["core"]["execution_tree"] == execution_tree
+    tracked = prod.verify_bound_result_from_tracked_authority(repo)
+    assert tracked["core"]["run_identity"] == envelope["core"]["run_identity"]
+    claim = prod.durable_result_claim_from_tracked_authority(repo, envelope)
+    assert claim["run_identity"] == envelope["core"]["run_identity"]
+    assert claim["execution_head"] == execution_head
+    assert claim["artifact_sha256"] == _sha(raw)
+    assert claim["artifact_size"] == len(raw)
+    assert claim["final_result_minted"] is True
+    assert claim["artifact_kind"] == "result"
+    _write(repo / "docs/research/LATER_DESCENDANT.md", "docs-only descendant\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "later docs-only descendant")
+    assert prod.production_monte_carlo_arm_authorized(repo) is False
+    later = prod.verify_bound_result_from_tracked_authority(repo, envelope)
+    assert later["core"]["execution_head"] == execution_head
+    again = prod.durable_result_claim_from_tracked_authority(repo)
+    assert again["artifact_sha256"] == claim["artifact_sha256"]
+
+
+def test_historical_result_post_commit_attacks_refused(tmp_path, monkeypatch):
+    repo = _armed_fixture_repo(tmp_path, monkeypatch)
+    freeze = _git(repo, "rev-parse", "HEAD^")
+    envelope, _records = _mint_fixture_envelope(repo)
+    arm_head = envelope["core"]["execution_head"]
+    _commit_result_envelope(repo, envelope)
+    initial = _git(repo, "rev-list", "--max-parents=0", "HEAD")
+
+    def refuse(document, match):
+        with pytest.raises(lib.SyntheticExecutionNotAuthorized, match=match):
+            prod.verify_bound_result_from_tracked_authority(repo, document)
+
+    head_core = dict(envelope["core"])
+    head_core["execution_head"] = freeze
+    head_core["execution_tree"] = _git(repo, "rev-parse", f"{freeze}^{{tree}}")
+    refuse(_rehash_result(head_core), "not armed|ARM topology")
+    tree_core = dict(envelope["core"])
+    tree_core["execution_tree"] = "ab" * 20
+    refuse(_rehash_result(tree_core), "execution tree")
+    ident_core = dict(envelope["core"])
+    ident_core["run_identity"] = "cd" * 32
+    refuse(_rehash_result(ident_core), "run_identity tamper")
+    digest_tamper = dict(envelope)
+    digest_tamper["core_sha256"] = "ab" * 32
+    refuse(digest_tamper, "core digest tamper")
+    size_tamper = dict(envelope)
+    size_tamper["core_size"] = int(envelope["core_size"]) + 1
+    refuse(size_tamper, "core size tamper")
+    rec_core = dict(envelope["core"])
+    records = [dict(item) for item in rec_core["records"]]
+    records[0] = dict(records[0])
+    records[0]["taxonomy"] = "TRUE_DISCOVERY"
+    rec_core["records"] = records
+    refuse(_rehash_result(rec_core), "world_set|core payload tamper")
+    conclusion_core = dict(envelope["core"])
+    conclusion_core["mechanical_conclusion"] = "NO_V1_EVIDENCE_OF_DISCOVERY_BOTTLENECK"
+    refuse(_rehash_result(conclusion_core), "core payload tamper")
+    result_head = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "checkout", freeze)
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized,
+        match="not an ancestor of current HEAD",
+    ):
+        prod.verify_bound_result_from_tracked_authority(repo, envelope)
+    _git(repo, "checkout", result_head)
+    fake_core = dict(envelope["core"])
+    fake_core["execution_head"] = initial
+    fake_core["execution_tree"] = _git(repo, "rev-parse", f"{initial}^{{tree}}")
+    refuse(_rehash_result(fake_core), "not armed|ARM topology")
+    wrong_run = dict(envelope["core"])
+    wrong_run["run_identity"] = _sha(b"different-run")
+    refuse(_rehash_result(wrong_run), "run_identity tamper")
+    alt_records = [dict(item) for item in envelope["core"]["records"]]
+    alt_records[0] = dict(alt_records[0])
+    alt_records[0]["taxonomy"] = "TRUE_DISCOVERY"
+    bound = prod._bound_from_commit_blobs(repo, arm_head)
+    alt_core = prod._bind_result_core_from_bound(
+        alt_records, bound=bound, fixture=True, armed=True
+    )
+    _commit_result_envelope(repo, _rehash_result(alt_core), "conflicting terminal RESULT")
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized,
+        match="duplicate/conflicting terminal production RESULT",
+    ):
+        prod.verify_bound_result_from_tracked_authority(repo)
+    assert arm_head == envelope["core"]["execution_head"]
+
+
+def test_historical_result_production_blob_and_wrong_arm_topology(tmp_path, monkeypatch):
+    repo = _armed_fixture_repo(tmp_path, monkeypatch)
+    freeze = _git(repo, "rev-parse", "HEAD^")
+    records = _planned_records()
+    core = prod._bind_result_core(records=records, repo_root=repo, fixture=False)
+    envelope = {
+        "core": core,
+        "core_sha256": _sha(prod.canonical_json_bytes(prod._jsonable(core))),
+        "core_size": len(prod.canonical_json_bytes(prod._jsonable(core))),
+    }
+    _commit_result_envelope(repo, envelope)
+    assert prod.production_monte_carlo_arm_authorized(repo) is False
+    prod.verify_bound_result_from_tracked_authority(repo, envelope)
+    blob_core = dict(core)
+    listed = dict(blob_core["authority_sha256"])
+    listed["production"] = "ab" * 32
+    blob_core["authority_sha256"] = listed
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized,
+        match="production blob differs from bound digest",
+    ):
+        prod.verify_bound_result_from_tracked_authority(repo, _rehash_result(blob_core))
+    freeze_core = dict(core)
+    freeze_core["execution_head"] = freeze
+    freeze_core["execution_tree"] = _git(repo, "rev-parse", f"{freeze}^{{tree}}")
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized,
+        match="not armed|ARM topology",
+    ):
+        prod.verify_bound_result_from_tracked_authority(repo, _rehash_result(freeze_core))
+
+
+def test_historical_result_claim_conflict_and_duplicate_abandon_removed(tmp_path, monkeypatch):
+    repo = _armed_fixture_repo(tmp_path, monkeypatch)
+    envelope, _records = _mint_fixture_envelope(repo)
+    _commit_result_envelope(repo, envelope)
+    claim = prod.durable_result_claim_from_tracked_authority(repo, envelope)
+    other = dict(claim)
+    other["run_identity"] = "ab" * 32
+    _write(
+        repo / prod.CANONICAL_CLAIM_PATH,
+        prod.canonical_json_bytes(other).decode("utf-8"),
+    )
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "conflicting durable claim")
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized,
+        match="duplicate/conflicting durable RESULT claim",
+    ):
+        prod.durable_result_claim_from_tracked_authority(repo, envelope)
+    source = Path(prod.__file__).read_text(encoding="utf-8")
+    assert source.count("def abandon_canonical_session") == 1

@@ -334,6 +334,39 @@ def test_conflicting_second_attempt_follows_115_result_consumed_semantics(tmp_pa
         prod.run_canonical_production_execution()
 
 
+def test_post_result_rerun_reports_one_shot_consumed_not_unarmed(tmp_path, monkeypatch):
+    repo = _armed_repo(tmp_path, monkeypatch)
+    cap = prod.open_canonical_fixture_session(FIXTURE_JOBS, _valid_evaluator)
+    for job in FIXTURE_JOBS:
+        prod.evaluate_canonical_session_job(cap, *job)
+    envelope = prod.mint_session_result(cap)
+    raw = prod.canonical_json_bytes(prod._jsonable(envelope))
+    _write(repo / prod.CANONICAL_RESULT_PATH, raw.decode("utf-8"))
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "canonical RESULT descendant")
+    assert prod.production_monte_carlo_arm_authorized(repo) is False
+    _science_probe(monkeypatch)
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized,
+        match="production RESULT already exists; one-shot authority is consumed",
+    ):
+        prod.run_canonical_production_execution()
+    rc = prod.fresh_process_worker_main()
+    assert rc == 2
+    # Worker prints the one-shot reason on stderr; capture via monkeypatch of print is
+    # unnecessary because the same RESULT-first guard is asserted above. Re-run the
+    # worker path with stderr capture through the isolated helper:
+    import io
+    from contextlib import redirect_stderr
+
+    buf = io.StringIO()
+    with redirect_stderr(buf):
+        rc2 = prod.fresh_process_worker_main()
+    assert rc2 == 2
+    assert "one-shot authority is consumed" in buf.getvalue()
+    assert "production_monte_carlo_arm_authorized=false" not in buf.getvalue()
+
+
 def test_dirty_worktree_refuses_before_science(tmp_path, monkeypatch):
     repo = _armed_repo(tmp_path, monkeypatch)
     _science_probe(monkeypatch)
