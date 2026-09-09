@@ -766,7 +766,7 @@ def test_digest_size_run_identity_tamper_detected(tmp_path, monkeypatch):
         prod.verify_bound_result_document(size_tamper, records)
     ident_core = dict(document["core"])
     ident_core["run_identity"] = "cd" * 32
-    ident_bytes = prod.canonical_json_bytes(ident_core)
+    ident_bytes = prod.canonical_json_bytes(prod._jsonable(dict(ident_core)))
     ident_tamper = {
         "core": ident_core,
         "core_sha256": _sha(ident_bytes),
@@ -776,7 +776,7 @@ def test_digest_size_run_identity_tamper_detected(tmp_path, monkeypatch):
         prod.verify_bound_result_document(ident_tamper, records)
     world_core = dict(document["core"])
     world_core["world_set_sha256"] = "ee" * 32
-    world_bytes = prod.canonical_json_bytes(world_core)
+    world_bytes = prod.canonical_json_bytes(prod._jsonable(dict(world_core)))
     world_tamper = {
         "core": world_core,
         "core_sha256": _sha(world_bytes),
@@ -784,6 +784,39 @@ def test_digest_size_run_identity_tamper_detected(tmp_path, monkeypatch):
     }
     with pytest.raises(prod.ProductionIntegrityError, match="world_set_sha256 tamper"):
         prod.verify_bound_result_document(world_tamper, records)
+    for field, value in (
+        ("mechanical_conclusion", "NO_V1_EVIDENCE_OF_DISCOVERY_BOTTLENECK"),
+        ("real_market_data_access_authorized", True),
+        ("b2_06_scientific_execution_authorized", True),
+        ("validation_2025_authorized", True),
+        ("oos_2026_authorized", True),
+        ("production_monte_carlo_arm_authorized", True),
+        ("production_calibration_executed", True),
+    ):
+        field_core = dict(document["core"])
+        field_core[field] = value
+        field_bytes = prod.canonical_json_bytes(prod._jsonable(dict(field_core)))
+        field_tamper = {
+            "core": field_core,
+            "core_sha256": _sha(field_bytes),
+            "core_size": len(field_bytes),
+        }
+        with pytest.raises(prod.ProductionIntegrityError, match="core payload tamper"):
+            prod.verify_bound_result_document(field_tamper, records)
+    extra_core = dict(document["core"])
+    extra_core["attacker_field"] = True
+    extra_bytes = prod.canonical_json_bytes(prod._jsonable(dict(extra_core)))
+    extra_tamper = {
+        "core": extra_core,
+        "core_sha256": _sha(extra_bytes),
+        "core_size": len(extra_bytes),
+    }
+    with pytest.raises(prod.ProductionIntegrityError, match="core payload tamper"):
+        prod.verify_bound_result_document(extra_tamper, records)
+    envelope_tamper = dict(document)
+    envelope_tamper["attacker_field"] = True
+    with pytest.raises(prod.ProductionIntegrityError, match="canonical core envelope"):
+        prod.verify_bound_result_document(envelope_tamper, records)
 
 
 def test_forged_aggregates_without_world_records_refused(tmp_path, monkeypatch):
@@ -913,6 +946,45 @@ def test_incomplete_world_is_recorded_invalid_and_stays_in_denominator():
     assert aggregates["observed_world_count"] == 3200
     assert aggregates["invalid_counts_by_cell"]["NULL|5000"]["planned"] == 400
     assert aggregates["invalid_counts_by_cell"]["NULL|5000"]["invalid_count"] == 1
+    assert aggregates["incomplete_execution"] is True
+    assert aggregates["mechanical_conclusion"] == "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM"
+
+
+def test_incomplete_world_world_record_does_not_escape(tmp_path, monkeypatch):
+    repo = _commit_production_tree(tmp_path)
+    _bind_prod(monkeypatch, repo)
+    monkeypatch.setattr(prod, "production_monte_carlo_arm_authorized", lambda repo_root=None: True)
+    n = 5000
+    rank_deficient = {
+        "Y": np.ones(n, dtype=np.float64),
+        "X1": np.ones(n, dtype=np.float64),
+        "X2": np.ones(n, dtype=np.float64),
+        "S": np.ones(n, dtype=np.float64),
+        "world_identity": lib.world_identity("NULL", 5000, 0),
+    }
+    monkeypatch.setattr(prod, "simulate_dgp", lambda **kwargs: rank_deficient)
+    rec = prod.evaluate_production_world("NULL", 5000, 0)
+    assert rec["valid"] is False
+    assert rec["stays_in_denominator"] is True
+    assert rec["world_identity"] == lib.world_identity("NULL", 5000, 0)
+    assert rec["scenario_id"] == "NULL"
+    assert rec["n_rows"] == 5000
+    assert rec["world_index"] == 0
+    assert rec["invalid_reasons"]
+    assert any(
+        "full rank" in str(reason) or "design shape" in str(reason)
+        for reason in rec["invalid_reasons"]
+    )
+    records = _planned_records()
+    records[0] = {
+        **records[0],
+        "valid": False,
+        "invalid_reasons": list(rec["invalid_reasons"]),
+        "stays_in_denominator": True,
+    }
+    aggregates = prod.aggregate_planned_worlds(records)
+    assert aggregates["observed_world_count"] == 3200
+    assert aggregates["invalid_counts_by_cell"]["NULL|5000"]["planned"] == 400
     assert aggregates["incomplete_execution"] is True
     assert aggregates["mechanical_conclusion"] == "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM"
 
