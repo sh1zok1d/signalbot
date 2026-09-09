@@ -44,8 +44,9 @@ No further code-changing commit is required between a later ARM and the
 canonical run.
 
 Successful complete execution emits a machine-readable stdout envelope
-`kind=COMPLETE_RESULT` containing the canonical RESULT bytes. Crash/partial
-emits `kind=PARTIAL_NOT_RESULT`. RESULT is not written into the worktree.
+`kind=COMPLETE_RESULT` containing the canonical RESULT bytes and the exact
+canonical WORLD_RECORDS bytes. Crash/partial emits `kind=PARTIAL_NOT_RESULT`.
+RESULT and WORLD_RECORDS are not written into the worktree.
 
 ## RESULT verification authority models
 
@@ -63,7 +64,9 @@ verify_bound_result_from_tracked_authority(repo_root, result_document_or_path)
     reads execution_head from the RESULT core itself
     loads execution-authority blobs from that exact commit via git objects
     re-verifies ARM/freeze topology at execution time
-    reconstructs the expected core relative to the execution commit
+    loads the tracked WORLD_RECORDS artifact from git objects, not the worktree
+    recomputes record evidence, aggregates, and all derived scientific fields
+    reconstructs the expected core and compares it exactly
     current HEAD need not be armed
 ```
 
@@ -183,38 +186,40 @@ does not grant authority. Absent ARM reports unarmed. A valid disposable ARM
 reports armed. Malformed ARM fails closed. Identity must not say UNARMED while
 the canonical ARM verifier says armed.
 
-## Production RESULT scientific payload is re-derived, never trusted
+## Production RESULT scientific payload is recomputed from WORLD_RECORDS
 
 A production RESULT names its execution commit, but naming a legitimately armed
-execution does not make its scientific payload authoritative. Historical
-verification of a production-shaped RESULT additionally:
+execution does not make its scientific payload authoritative. Aggregates,
+Wilson intervals, verdicts, bands, floors, and `mechanical_conclusion` are
+not historical inputs. Historical verification of a production-shaped RESULT:
 
 - checks the protected literals exactly — `production_calibration_executed`
   true, `production_monte_carlo_arm_authorized` true, and
   `real_market_data_access_authorized`, `B2_06_scientific_execution_authorized`,
   `validation_2025_authorized`, `oos_2026_authorized` all false — and refuses a
   core that declares `fixture` or `not_a_production_result`;
-- re-derives every derivable scientific field from the irreducible per-arm
-  `(successes, n)` counts using the frozen helpers: Wilson intervals, the seven
-  specificity/power verdicts, the SMALL sensitivity bands, the TRUE_DISCOVERY
-  band, the visibility and model floors, the materiality-only diagnostic and the
-  mechanical conclusion, then compares each to the embedded value exactly;
-- re-derives `incomplete_execution` from the missing-job list and the invalid
-  counters, and refuses any terminal RESULT that carries incomplete state;
-- requires every planned denominator to be exactly 400 per cell and 3200 total.
+- loads the tracked sibling WORLD_RECORDS artifact from git objects at HEAD,
+  not from the worktree and not from RESULT-declared aggregates;
+- verifies canonical path, digest, size, kind, execution identity, frozen grid,
+  and the exact 3200-job plan in canonical order;
+- preserves invalid worlds, refuses missing/duplicate/extra jobs, and
+  recomputes `world_set_sha256` and `record_digest_chain` from those records;
+- recomputes production aggregates from those records, then every derived
+  scientific field: per-arm successes/n, Wilson intervals, specificity and
+  power verdicts, SMALL bands, TRUE_DISCOVERY band, visibility and model
+  floors, the materiality-only diagnostic, `incomplete_execution`,
+  `observed_world_count`, and `mechanical_conclusion`;
+- reconstructs the expected canonical RESULT core and compares it exactly.
 
-`world_set_sha256` and `record_digest_chain` cannot be recomputed without the
-3200 records, so they are **not** accepted as caller assertions. They are bound
-to a tracked sibling evidence artifact:
+The canonical WORLD_RECORDS artifact is:
 
-`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_RECORD_MANIFEST.json`
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_WORLD_RECORDS.json`
 
-The manifest is emitted on the canonical worker's stdout alongside the RESULT,
-committed with it, and loaded from git objects during historical verification.
-It self-binds by digest and size and must agree with the RESULT on execution
-head, execution tree, run identity, the frozen grid, the exact 3200-job plan,
-and both record-evidence fields. A production RESULT without a tracked manifest
-fails closed.
+The worker emits those exact bytes on stdout alongside the RESULT. The operator
+persists the captured bytes without regenerating records or recomputing
+science. A production RESULT without a tracked WORLD_RECORDS artifact fails
+closed. A first-and-only RESULT whose aggregates were rewritten to a different
+self-consistent payload is refused while the original WORLD_RECORDS remain.
 
 ## Execution status
 
@@ -222,7 +227,7 @@ fails closed.
 canonical_production_driver_implemented = true
 post_commit_result_verification = true
 production_result_scientific_payload_rederived = true
-production_result_record_evidence_bound_to_tracked_manifest = true
+production_result_world_records_bound = true
 production_monte_carlo_arm_authorized = false
 ACTUAL_PRODUCTION_EXECUTION_RUN = NO
 PRODUCTION_RESULT_MINTED = NO

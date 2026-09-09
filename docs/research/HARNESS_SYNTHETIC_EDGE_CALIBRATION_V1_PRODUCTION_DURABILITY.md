@@ -130,13 +130,14 @@ layer and is not embedded self-referentially inside the core.
 Verification has two distinct authority models. LIVE
 `verify_bound_result_document` re-derives the entire core from the supplied
 canonical world records and current HEAD. TRACKED
-`verify_bound_result_from_tracked_authority` follows the partial-recovery
-model: it reads `execution_head` from the RESULT core, loads exact git-object
-blobs at that commit, re-verifies historical ARM/freeze topology, and
-compares canonical core bytes. Current HEAD being a later unarmed RESULT
-commit is not authority. Recomputing `core_sha256` / `core_size` after
-changing an uncompared field is not authority. The envelope may contain only
-`core`, `core_sha256`, and `core_size`.
+`verify_bound_result_from_tracked_authority` reads `execution_head` from the
+RESULT core, loads exact git-object blobs at that commit, re-verifies
+historical ARM/freeze topology, loads the tracked WORLD_RECORDS artifact from
+git objects, recomputes aggregates from those records, reconstructs the
+expected core, and compares canonical core bytes. Current HEAD being a later
+unarmed RESULT commit is not authority. Recomputing `core_sha256` /
+`core_size` after changing an uncompared field is not authority. The envelope
+may contain only `core`, `core_sha256`, and `core_size`.
 
 ## Persistence lifecycle
 
@@ -162,6 +163,7 @@ ancestor of HEAD.
 | reservation | `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_RESERVATION.json` | absent |
 | claim | `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_EXECUTION_CLAIM.json` | absent |
 | result | `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_RESULT.json` | absent |
+| world records | `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_WORLD_RECORDS.json` | absent |
 | partial | `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_PARTIAL.json` | optional diagnostic only |
 | arm | `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_ARM.json` | absent; later explicit arming unit |
 
