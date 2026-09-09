@@ -179,16 +179,48 @@ def _authority_sha_map(repo: Path) -> dict[str, str]:
     }
 
 
+def _driver_freeze_payload(repo: Path, reviewed_head: str, reviewed_tree: str) -> dict:
+    return {
+        "schema_version": "1.0",
+        "unit_id": prod.UNIT_ID,
+        "freeze_status": "FIXTURE_DRIVER_IMPLEMENTATION_FROZEN_UNARMED",
+        "reviewed_implementation_head": reviewed_head,
+        "reviewed_implementation_tree": reviewed_tree,
+        "reviewed_production_sha256": _sha((repo / PRODUCTION_PATH).read_bytes()),
+        "frozen_lib_sha256": FROZEN_LIB_SHA256,
+        "prereg_json_sha256": FROZEN_PREREG_JSON_SHA256,
+        "prereg_md_sha256": FROZEN_PREREG_MD_SHA256,
+        **prod.DRIVER_FREEZE_REQUIRED_LITERALS,
+    }
+
+
+def _commit_driver_freeze(repo: Path) -> tuple[str, str]:
+    reviewed_head = _git(repo, "rev-parse", "HEAD")
+    reviewed_tree = _git(repo, "rev-parse", "HEAD^{tree}")
+    payload = _driver_freeze_payload(repo, reviewed_head, reviewed_tree)
+    _write(
+        repo / prod.CANONICAL_DRIVER_FREEZE_PATH,
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+    )
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "docs-only driver freeze")
+    return reviewed_head, reviewed_tree
+
+
 def _commit_arm_authorizing_parent(repo: Path) -> str:
+    tracked_freeze = _git(repo, "ls-files", prod.CANONICAL_DRIVER_FREEZE_PATH)
+    if not tracked_freeze:
+        _commit_driver_freeze(repo)
     parent = _git(repo, "rev-parse", "HEAD")
     tree = _git(repo, "rev-parse", "HEAD^{tree}")
+    freeze = json.loads((repo / prod.CANONICAL_DRIVER_FREEZE_PATH).read_text(encoding="utf-8"))
     payload = {
         "production_monte_carlo_arm_authorized": True,
         "authorized_execution_commit": parent,
         "authorized_execution_tree": tree,
         "execution_authority_sha256": _authority_sha_map(repo),
-        "reviewed_implementation_head": parent,
-        "reviewed_implementation_tree": tree,
+        "reviewed_implementation_head": freeze["reviewed_implementation_head"],
+        "reviewed_implementation_tree": freeze["reviewed_implementation_tree"],
         "authorized_grid": prod.frozen_production_grid(),
         **prod.ARM_REQUIRED_LITERALS,
     }

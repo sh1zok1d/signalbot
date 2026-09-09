@@ -21,7 +21,9 @@ from tests.research.test_harness_synthetic_edge_calibration_v1_production import
     _authority_sha_map,
     _bind_prod,
     _commit_arm_authorizing_parent,
+    _commit_driver_freeze,
     _commit_production_tree,
+    _driver_freeze_payload,
     _git,
     _live_bytes,
     _mock_record,
@@ -35,6 +37,19 @@ FIXTURE_JOBS = (
     ("EASY", 50, 0),
     ("MODERATE", 50, 1),
 )
+
+
+@pytest.fixture(autouse=True)
+def _isolate_canonical_sessions():
+    prod._LIVE_SESSIONS.clear()
+    prod._CAPABILITY_KEEPALIVE.clear()
+    prod._CLOSED_SESSIONS.clear()
+    prod._CLOSED_CAPABILITY_KEEPALIVE.clear()
+    yield
+    prod._LIVE_SESSIONS.clear()
+    prod._CAPABILITY_KEEPALIVE.clear()
+    prod._CLOSED_SESSIONS.clear()
+    prod._CLOSED_CAPABILITY_KEEPALIVE.clear()
 
 
 def _fixture_record(scenario_id: str, n_rows: int, world_index: int, **kwargs) -> dict:
@@ -89,19 +104,20 @@ def test_positive_armed_fixture_driver_reaches_result_mint_path(tmp_path, monkey
     reservation = prod.durable_reservation_document(repo)
     envelope = prod.run_canonical_fixture_driver(FIXTURE_JOBS, evaluator)
     assert evaluated == list(FIXTURE_JOBS)
-    assert envelope["fixture"] is True
-    assert envelope["not_a_production_result"] is True
-    assert envelope["planned_world_count"] == 3
-    assert envelope["observed_world_count"] == 3
-    assert envelope["run_identity"] == prod.canonical_run_identity(repo)
-    assert envelope["run_identity"] == reservation["run_identity"]
-    assert envelope["mechanical_conclusion"] == "FIXTURE_COMPLETE_NOT_PRODUCTION"
-    assert envelope["real_market_data_access_authorized"] is False
-    assert envelope["b2_06_scientific_execution_authorized"] is False
-    assert envelope["validation_2025_authorized"] is False
-    assert envelope["oos_2026_authorized"] is False
-    identities = [rec["world_identity"] for rec in envelope["records"]]
-    assert identities == [lib.world_identity(*job) for job in FIXTURE_JOBS]
+    assert set(envelope.keys()) == {"core", "core_sha256", "core_size"}
+    core = envelope["core"]
+    assert core["fixture"] is True
+    assert core["not_a_production_result"] is True
+    assert core["planned_world_count"] == 3
+    assert core["observed_world_count"] == 3
+    assert core["run_identity"] == prod.canonical_run_identity(repo)
+    assert core["run_identity"] == reservation["run_identity"]
+    assert core["mechanical_conclusion"] == "FIXTURE_COMPLETE_NOT_PRODUCTION"
+    assert core["real_market_data_access_authorized"] is False
+    assert core["b2_06_scientific_execution_authorized"] is False
+    assert core["validation_2025_authorized"] is False
+    assert core["oos_2026_authorized"] is False
+    assert len(core["record_digest_chain"]) == 3
     assert (repo / prod.CANONICAL_RESULT_PATH).exists() is False
     assert prod.production_monte_carlo_arm_authorized(repo) is True
 
@@ -158,7 +174,7 @@ def test_cross_session_capability_refuses(tmp_path, monkeypatch):
         ):
             prod.mint_session_result(cap_b)
         minted = prod.mint_session_result(cap_a)
-        assert minted["not_a_production_result"] is True
+        assert minted["core"]["not_a_production_result"] is True
         with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="stale"):
             prod.mint_session_result(cap_a)
     finally:
@@ -175,7 +191,7 @@ def test_stale_capability_after_completion_refuses(tmp_path, monkeypatch):
     for job in FIXTURE_JOBS:
         prod.evaluate_canonical_session_job(cap, *job)
     envelope = prod.mint_session_result(cap)
-    assert envelope["not_a_production_result"] is True
+    assert envelope["core"]["not_a_production_result"] is True
     with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="stale"):
         prod.mint_session_result(cap)
     with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="stale"):
@@ -366,6 +382,7 @@ def test_fixture_driver_cannot_encode_production_grid_or_n(tmp_path, monkeypatch
 
 def test_future_arm_declared_fields_are_machine_checked(tmp_path, monkeypatch):
     repo = _commit_production_tree(tmp_path)
+    reviewed_head, reviewed_tree = _commit_driver_freeze(repo)
     parent = _git(repo, "rev-parse", "HEAD")
     tree = _git(repo, "rev-parse", "HEAD^{tree}")
     base = {
@@ -373,8 +390,8 @@ def test_future_arm_declared_fields_are_machine_checked(tmp_path, monkeypatch):
         "authorized_execution_commit": parent,
         "authorized_execution_tree": tree,
         "execution_authority_sha256": _authority_sha_map(repo),
-        "reviewed_implementation_head": parent,
-        "reviewed_implementation_tree": tree,
+        "reviewed_implementation_head": reviewed_head,
+        "reviewed_implementation_tree": reviewed_tree,
         "authorized_grid": prod.frozen_production_grid(),
         **prod.ARM_REQUIRED_LITERALS,
     }
@@ -513,3 +530,276 @@ def test_no_reroll_and_planned_3200_remain_authoritative():
     assert "caller-supplied records cannot mint a production RESULT" in source
     assert "automatic_retry_authorized" in source
     assert source.count("automatic_retry_authorized") >= 1
+    assert prod.WORKER_STDOUT_KIND_COMPLETE_RESULT == "COMPLETE_RESULT"
+    assert prod.WORKER_STDOUT_KIND_PARTIAL == "PARTIAL_NOT_RESULT"
+    assert (REPO / prod.CANONICAL_DRIVER_FREEZE_PATH).exists() is False
+
+
+def _live_session(capability: object):
+    session = prod._LIVE_SESSIONS.get(id(capability))
+    assert session is not None
+    return session
+
+
+def _emit_capture(monkeypatch):
+    captured: dict[str, object] = {}
+
+    def emit(kind, payload):
+        raw = prod.canonical_worker_stdout_bytes(kind, payload)
+        captured["kind"] = kind
+        captured["payload"] = payload
+        captured["raw"] = raw
+        return raw
+
+    monkeypatch.setattr(prod, "_emit_canonical_worker_stdout", emit)
+    return captured
+
+
+def test_fixture_session_result_roundtrips_through_verifier(tmp_path, monkeypatch):
+    _armed_repo(tmp_path, monkeypatch)
+    cap = prod.open_canonical_fixture_session(FIXTURE_JOBS, _valid_evaluator)
+    records = [prod.evaluate_canonical_session_job(cap, *job) for job in FIXTURE_JOBS]
+    envelope = prod.mint_session_result(cap)
+    raw = prod.canonical_json_bytes(envelope)
+    parsed = json.loads(raw.decode("utf-8"))
+    prod.verify_bound_result_document(parsed, records)
+    assert parsed["core"]["fixture"] is True
+    for field, value in (
+        ("mechanical_conclusion", "NO_V1_EVIDENCE_OF_DISCOVERY_BOTTLENECK"),
+        ("production_monte_carlo_arm_authorized", False),
+        ("run_identity", "ab" * 32),
+    ):
+        core = dict(parsed["core"])
+        core[field] = value
+        tamper_bytes = prod.canonical_json_bytes(prod._jsonable(core))
+        tamper = {
+            "core": core,
+            "core_sha256": _sha(tamper_bytes),
+            "core_size": len(tamper_bytes),
+        }
+        with pytest.raises(prod.ProductionIntegrityError, match="core payload tamper|run_identity tamper"):
+            prod.verify_bound_result_document(tamper, records)
+    mutated = [dict(rec) for rec in records]
+    mutated[0] = dict(mutated[0])
+    mutated[0]["taxonomy"] = "TRUE_DISCOVERY"
+    with pytest.raises(prod.ProductionIntegrityError, match="core payload tamper|world_set"):
+        prod.verify_bound_result_document(parsed, mutated)
+
+
+def test_worker_emits_complete_result_canonical_bytes(tmp_path, monkeypatch):
+    repo = _armed_repo(tmp_path, monkeypatch)
+    envelope = prod.run_canonical_fixture_driver(FIXTURE_JOBS, _valid_evaluator)
+    monkeypatch.setattr(prod, "run_canonical_production_execution", lambda: envelope)
+    captured = _emit_capture(monkeypatch)
+    rc = prod.fresh_process_worker_main()
+    assert rc == 0
+    expected = prod.canonical_worker_stdout_bytes(
+        prod.WORKER_STDOUT_KIND_COMPLETE_RESULT, envelope
+    )
+    assert captured["raw"] == expected
+    parsed = json.loads(captured["raw"].decode("utf-8"))
+    assert parsed["kind"] == prod.WORKER_STDOUT_KIND_COMPLETE_RESULT
+    assert parsed["final_result_minted"] is True
+    assert parsed["kind"] != prod.WORKER_STDOUT_KIND_PARTIAL
+    assert parsed["payload"] == envelope
+    assert (repo / prod.CANONICAL_RESULT_PATH).exists() is False
+
+
+def test_worker_emits_distinguishable_partial_payload(tmp_path, monkeypatch):
+    repo = _armed_repo(tmp_path, monkeypatch)
+    partial = prod.persist_partial_worlds([_valid_evaluator(*FIXTURE_JOBS[0])])
+    assert partial["final_result_minted"] is False
+    assert partial["status"] == "PARTIAL_NOT_RESULT"
+
+    def boom():
+        exc = RuntimeError("canonical crash")
+        exc._canonical_partial = partial
+        raise exc
+
+    monkeypatch.setattr(prod, "run_canonical_production_execution", boom)
+    captured = _emit_capture(monkeypatch)
+    rc = prod.fresh_process_worker_main()
+    assert rc == 2
+    expected = prod.canonical_worker_stdout_bytes(prod.WORKER_STDOUT_KIND_PARTIAL, partial)
+    assert captured["raw"] == expected
+    parsed = json.loads(captured["raw"].decode("utf-8"))
+    assert parsed["kind"] == prod.WORKER_STDOUT_KIND_PARTIAL
+    assert parsed["final_result_minted"] is False
+    assert parsed["kind"] != prod.WORKER_STDOUT_KIND_COMPLETE_RESULT
+    assert parsed["payload"]["status"] == "PARTIAL_NOT_RESULT"
+
+
+def test_spawn_capture_unarmed_has_no_result_payload(tmp_path, monkeypatch):
+    repo = _commit_production_tree(tmp_path)
+    _bind_prod(monkeypatch, repo)
+    capture = prod.spawn_canonical_production_process()
+    assert capture == 2
+    assert isinstance(capture, prod.CanonicalWorkerCapture)
+    assert isinstance(capture.stdout_bytes, bytes)
+    assert prod.WORKER_STDOUT_KIND_COMPLETE_RESULT.encode("ascii") not in capture.stdout_bytes
+    assert b"core_sha256" not in capture.stdout_bytes
+    assert "production_monte_carlo_arm_authorized=false" in capture.stderr
+
+
+def test_self_reviewed_parent_arm_refused(tmp_path, monkeypatch):
+    repo = _commit_production_tree(tmp_path)
+    parent = _git(repo, "rev-parse", "HEAD")
+    tree = _git(repo, "rev-parse", "HEAD^{tree}")
+    payload = {
+        "production_monte_carlo_arm_authorized": True,
+        "authorized_execution_commit": parent,
+        "authorized_execution_tree": tree,
+        "execution_authority_sha256": _authority_sha_map(repo),
+        "reviewed_implementation_head": parent,
+        "reviewed_implementation_tree": tree,
+        "authorized_grid": prod.frozen_production_grid(),
+        **prod.ARM_REQUIRED_LITERALS,
+    }
+    _write(repo / prod.CANONICAL_ARM_PATH, json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "self-bless ARM without freeze")
+    _bind_prod(monkeypatch, repo)
+    assert prod.production_monte_carlo_arm_authorized(repo) is False
+
+
+def test_modified_parent_consistent_arm_and_freeze_refused(tmp_path, monkeypatch):
+    repo = _commit_production_tree(tmp_path)
+    _commit_driver_freeze(repo)
+    (repo / PRODUCTION_PATH).write_bytes(_live_bytes(PRODUCTION_PATH) + b"\n# altered driver\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "modify production.py after freeze")
+    parent = _git(repo, "rev-parse", "HEAD")
+    tree = _git(repo, "rev-parse", "HEAD^{tree}")
+    freeze = _driver_freeze_payload(repo, parent, tree)
+    _write(
+        repo / prod.CANONICAL_DRIVER_FREEZE_PATH,
+        json.dumps(freeze, indent=2, sort_keys=True) + "\n",
+    )
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "rewrite freeze onto modified parent")
+    parent = _git(repo, "rev-parse", "HEAD")
+    tree = _git(repo, "rev-parse", "HEAD^{tree}")
+    payload = {
+        "production_monte_carlo_arm_authorized": True,
+        "authorized_execution_commit": parent,
+        "authorized_execution_tree": tree,
+        "execution_authority_sha256": _authority_sha_map(repo),
+        "reviewed_implementation_head": parent,
+        "reviewed_implementation_tree": tree,
+        "authorized_grid": prod.frozen_production_grid(),
+        **prod.ARM_REQUIRED_LITERALS,
+    }
+    _write(repo / prod.CANONICAL_ARM_PATH, json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "consistent ARM of modified self-reviewed parent")
+    _bind_prod(monkeypatch, repo)
+    assert prod.production_monte_carlo_arm_authorized(repo) is False
+
+
+def test_record_content_substitution_and_cross_session_swap_refuse(tmp_path, monkeypatch):
+    _armed_repo(tmp_path, monkeypatch)
+    cap = prod.open_canonical_fixture_session(FIXTURE_JOBS, _valid_evaluator)
+    for job in FIXTURE_JOBS:
+        prod.evaluate_canonical_session_job(cap, *job)
+    session = _live_session(cap)
+    genuine = prod._jsonable(dict(session.records[0]))
+    fake = dict(genuine)
+    fake["taxonomy"] = "TRUE_DISCOVERY"
+    fake["taxonomy_flags"] = {**genuine["taxonomy_flags"], "TRUE_DISCOVERY": True}
+    session.records = (prod._immutable_record(fake),) + tuple(session.records[1:])
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized, match="record content digest chain mismatch"
+    ):
+        prod.mint_session_result(cap)
+
+    cap_valid = prod.open_canonical_fixture_session(FIXTURE_JOBS, _valid_evaluator)
+    for job in FIXTURE_JOBS:
+        prod.evaluate_canonical_session_job(cap_valid, *job)
+    session = _live_session(cap_valid)
+    flipped = prod._jsonable(dict(session.records[1]))
+    flipped["valid"] = False
+    fake_reason = dict(flipped)
+    fake_reason["invalid_reasons"] = ["fabricated"]
+    session.records = (session.records[0], prod._immutable_record(fake_reason)) + tuple(
+        session.records[2:]
+    )
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized, match="record content digest chain mismatch"
+    ):
+        prod.mint_session_result(cap_valid)
+
+    cap_metric = prod.open_canonical_fixture_session(FIXTURE_JOBS, _valid_evaluator)
+    for job in FIXTURE_JOBS:
+        prod.evaluate_canonical_session_job(cap_metric, *job)
+    session = _live_session(cap_metric)
+    metric = prod._jsonable(dict(session.records[2]))
+    metric["oracle_F03"] = {
+        **metric.get("oracle_F03", {}),
+        "gates": {"MODEL_DETECTED": True, "STRICT_PASS": True},
+    }
+    session.records = tuple(session.records[:2]) + (prod._immutable_record(metric),)
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized, match="record content digest chain mismatch"
+    ):
+        prod.mint_session_result(cap_metric)
+
+    cap_a = prod.open_canonical_fixture_session(FIXTURE_JOBS, _valid_evaluator)
+    cap_b = prod.open_canonical_fixture_session(
+        (("SMALL", 50, 0), ("TINY_NOISY", 50, 0), ("NULL", 50, 1)),
+        _valid_evaluator,
+    )
+    for job in FIXTURE_JOBS:
+        prod.evaluate_canonical_session_job(cap_a, *job)
+    for job in (("SMALL", 50, 0), ("TINY_NOISY", 50, 0), ("NULL", 50, 1)):
+        prod.evaluate_canonical_session_job(cap_b, *job)
+    session_a = _live_session(cap_a)
+    session_b = _live_session(cap_b)
+    session_a.records = (session_b.records[0],) + tuple(session_a.records[1:])
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized,
+        match="record content digest chain mismatch|does not match planned job",
+    ):
+        prod.mint_session_result(cap_a)
+    prod.abandon_canonical_session(cap_b)
+
+    cap_mix = prod.open_canonical_fixture_session(FIXTURE_JOBS, _valid_evaluator)
+    for job in FIXTURE_JOBS:
+        prod.evaluate_canonical_session_job(cap_mix, *job)
+    session = _live_session(cap_mix)
+    fabricated = _valid_evaluator(*FIXTURE_JOBS[2])
+    fabricated["taxonomy"] = "FALSE_DISCOVERY"
+    session.records = tuple(session.records[:2]) + (prod._immutable_record(fabricated),)
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized, match="record content digest chain mismatch"
+    ):
+        prod.mint_session_result(cap_mix)
+
+
+def test_abort_paths_retire_session_and_refuse_mint(tmp_path, monkeypatch):
+    _armed_repo(tmp_path, monkeypatch)
+
+    def _assert_retired(exc_type, factory):
+        cap = prod.open_canonical_fixture_session(FIXTURE_JOBS, factory)
+        assert id(cap) in prod._LIVE_SESSIONS
+        with pytest.raises(exc_type):
+            prod.evaluate_canonical_session_job(cap, *FIXTURE_JOBS[0])
+        assert id(cap) not in prod._LIVE_SESSIONS
+        assert len(prod._LIVE_SESSIONS) == 0
+        with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="stale|not valid"):
+            prod.mint_session_result(cap)
+
+    def interrupt(*args, **kwargs):
+        raise KeyboardInterrupt()
+
+    def sys_exit(*args, **kwargs):
+        raise SystemExit(9)
+
+    def generic(*args, **kwargs):
+        raise RuntimeError("evaluator failed")
+
+    _assert_retired(KeyboardInterrupt, interrupt)
+    assert not prod._LIVE_SESSIONS
+    _assert_retired(SystemExit, sys_exit)
+    assert not prod._LIVE_SESSIONS
+    _assert_retired(RuntimeError, generic)
+    assert not prod._LIVE_SESSIONS
