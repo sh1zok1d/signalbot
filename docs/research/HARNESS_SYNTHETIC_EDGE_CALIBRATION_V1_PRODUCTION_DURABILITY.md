@@ -16,13 +16,15 @@ scientific lib bytes. It does not execute the 3200-world calibration.
   interpreter (`python -I -B -P -c` bootstrap). The bootstrap uses stdlib only
   until it has verified git top-level/HEAD/tree, a clean worktree, no
   skip-worktree/assume-unchanged hiding, exact execution-authority/prereg bytes,
-  and the absence of repo-root module shadows such as `numpy.py`. Only then does
+  and the absence of repo-root module or package shadows such as `numpy.py` or
+  `json/__init__.py`. Only then does
   it insert the verified repo root into `sys.path` and import
   `scripts.research.harness_synthetic_edge_calibration_v1_production`. The child
   re-verifies exact HEAD/tree plus execution-authority bytes inside that process
   immediately before evaluation. User site, sitecustomize/usercustomize,
-  inherited `PYTHONPATH`, `scripts/research` script-directory shadowing, and a
-  committed root-level `numpy.py` cannot execute before authority verification.
+  inherited `PYTHONPATH`, `scripts/research` script-directory shadowing, and
+  committed root-level files or packages such as `numpy.py` or `json/` cannot
+  execute before authority verification.
   Restoring on-disk bytes after a stale parent import cannot authorize execution
   from the stale in-process objects.
 - **R2 cross-checkout replay:** `run_identity` is a pure function of tracked
