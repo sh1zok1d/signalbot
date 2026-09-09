@@ -149,8 +149,23 @@ PRODUCTION_REL = "scripts/research/harness_synthetic_edge_calibration_v1_product
 PREREG_JSON_REL = "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.json"
 PREREG_MD_REL = "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md"
 AUTHORITY = (LIB_REL, RUNNER_REL, AUTH_REL, PRODUCTION_REL, PREREG_JSON_REL, PREREG_MD_REL)
-FORBIDDEN_ROOT_SHADOWS = ("numpy", "yaml")
 ALLOWED_ROOT_PY = {"main.py"}
+ALLOWED_ROOT_DIRS = {
+    "analytics",
+    "artifacts",
+    "backfill",
+    "common",
+    "config",
+    "data_ingestion",
+    "deploy",
+    "docs",
+    "notifications",
+    "runtime",
+    "scripts",
+    "storage",
+    "symbols",
+    "tests",
+}
 
 def refuse(detail):
     print("SYNTHETIC_EXECUTION_NOT_AUTHORIZED: " + detail, file=sys.stderr)
@@ -212,13 +227,18 @@ for rel in AUTHORITY:
         refuse("HEAD prereg JSON is not the frozen reviewed blob")
     if rel == PREREG_MD_REL and digest != FROZEN_PREREG_MD:
         refuse("HEAD prereg MD is not the frozen reviewed blob")
-for name in FORBIDDEN_ROOT_SHADOWS:
-    for candidate in (root / (name + ".py"), root / (name + ".pyc"), root / (name + ".so"), root / name):
-        if candidate.exists():
-            refuse("repo-root module shadow is not allowed execution authority: " + name)
 for child in root.iterdir():
-    if child.suffix == ".py" and child.name not in ALLOWED_ROOT_PY:
-        refuse("repo-root module shadow is not allowed execution authority: " + child.name)
+    name = child.name
+    if name.startswith(".") or name == "__pycache__":
+        continue
+    if child.is_file():
+        if child.suffix in (".py", ".pyc", ".pyo", ".so") and name not in ALLOWED_ROOT_PY:
+            refuse("repo-root module shadow is not allowed execution authority: " + name)
+        continue
+    if name in ALLOWED_ROOT_DIRS:
+        continue
+    if (child / "__init__.py").exists() or (child / "__init__.pyc").exists() or name.isidentifier():
+        refuse("repo-root module shadow is not allowed execution authority: " + name)
 sys.path.insert(0, str(root))
 from scripts.research.harness_synthetic_edge_calibration_v1_production import _isolated_child_main
 raise SystemExit(_isolated_child_main(mode))
