@@ -129,16 +129,100 @@ BLIND_MODERATE_USEFUL_MIN = 0.50
 WORKER_FLAG = "--fresh-process-worker"
 R1_PROBE_MODE = "r1-probe"
 WORKER_MODE = "worker"
-ISOLATED_CHILD_BOOTSTRAP = (
-    "import sys\n"
-    "from pathlib import Path\n"
-    "root = Path(sys.argv[1]).resolve()\n"
-    "mode = sys.argv[2]\n"
-    "sys.path.insert(0, str(root))\n"
-    "from scripts.research.harness_synthetic_edge_calibration_v1_production import "
-    "_isolated_child_main\n"
-    "raise SystemExit(_isolated_child_main(mode))\n"
-)
+# Stdlib-only isolated bootstrap. Repo root is import-active only after this
+# pre-import authority verification succeeds. Do not import numpy or the
+# production package before the shadow/authority checks below.
+ISOLATED_CHILD_BOOTSTRAP = """
+import hashlib
+import stat
+import subprocess
+import sys
+from pathlib import Path
+
+FROZEN_LIB = "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51"
+FROZEN_PREREG_JSON = "78fcddf03ce84a0369a955d5b571c2423129d12b22e35f77eab26d6ac5eff708"
+FROZEN_PREREG_MD = "a54c838d2b4903f039b4fd39d79198415ce095f5a9726fc51949cbb47153e5a3"
+LIB_REL = "scripts/research/harness_synthetic_edge_calibration_v1_lib.py"
+RUNNER_REL = "scripts/research/harness_synthetic_edge_calibration_v1.py"
+AUTH_REL = "scripts/research/harness_synthetic_edge_calibration_v1_auth.py"
+PRODUCTION_REL = "scripts/research/harness_synthetic_edge_calibration_v1_production.py"
+PREREG_JSON_REL = "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.json"
+PREREG_MD_REL = "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md"
+AUTHORITY = (LIB_REL, RUNNER_REL, AUTH_REL, PRODUCTION_REL, PREREG_JSON_REL, PREREG_MD_REL)
+FORBIDDEN_ROOT_SHADOWS = ("numpy", "yaml")
+ALLOWED_ROOT_PY = {"main.py"}
+
+def refuse(detail):
+    print("SYNTHETIC_EXECUTION_NOT_AUTHORIZED: " + detail, file=sys.stderr)
+    raise SystemExit(2)
+
+def git(root, *args):
+    proc = subprocess.run(
+        ["git", "-C", str(root), *args],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if proc.returncode != 0:
+        refuse("pre-import git " + " ".join(args) + " failed")
+    return proc.stdout
+
+root = Path(sys.argv[1]).resolve()
+mode = sys.argv[2]
+top = Path(git(root, "rev-parse", "--show-toplevel").decode().strip()).resolve()
+if top != root:
+    refuse("supplied root is not the git top-level")
+head = git(root, "rev-parse", "HEAD").decode("ascii").strip().lower()
+if len(head) != 40 or any(ch not in "0123456789abcdef" for ch in head):
+    refuse("git HEAD is not an exact 40-hex commit")
+tree = git(root, "rev-parse", "HEAD^{tree}").decode("ascii").strip().lower()
+if len(tree) != 40 or any(ch not in "0123456789abcdef" for ch in tree):
+    refuse("git tree identity is invalid")
+status = git(root, "status", "--porcelain", "--untracked-files=all").decode("utf-8", "surrogateescape")
+if status.strip():
+    refuse("working tree is not clean")
+flagged = git(root, "ls-files", "-v", "-z")
+for raw_entry in flagged.split(bytes([0])):
+    if not raw_entry:
+        continue
+    tag = chr(raw_entry[0])
+    if tag == "S" or tag.islower():
+        refuse("tracked file uses skip-worktree/assume-unchanged")
+for rel in AUTHORITY:
+    if rel.startswith("/") or ".." in Path(rel).parts:
+        refuse("invalid git path")
+    path = root / rel
+    if path.is_symlink() or not path.is_file() or not stat.S_ISREG(path.stat().st_mode):
+        refuse("execution authority worktree is not a regular file: " + rel)
+    exists = subprocess.run(
+        ["git", "-C", str(root), "cat-file", "-e", "HEAD:" + rel],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if exists.returncode != 0:
+        refuse("execution authority missing from HEAD: " + rel)
+    blob = git(root, "cat-file", "blob", "HEAD:" + rel)
+    if path.read_bytes() != blob:
+        refuse("worktree bytes differ from HEAD for " + rel)
+    digest = hashlib.sha256(blob).hexdigest()
+    if rel == LIB_REL and digest != FROZEN_LIB:
+        refuse("HEAD scientific lib is not the frozen reviewed implementation")
+    if rel == PREREG_JSON_REL and digest != FROZEN_PREREG_JSON:
+        refuse("HEAD prereg JSON is not the frozen reviewed blob")
+    if rel == PREREG_MD_REL and digest != FROZEN_PREREG_MD:
+        refuse("HEAD prereg MD is not the frozen reviewed blob")
+for name in FORBIDDEN_ROOT_SHADOWS:
+    for candidate in (root / (name + ".py"), root / (name + ".pyc"), root / (name + ".so"), root / name):
+        if candidate.exists():
+            refuse("repo-root module shadow is not allowed execution authority: " + name)
+for child in root.iterdir():
+    if child.suffix == ".py" and child.name not in ALLOWED_ROOT_PY:
+        refuse("repo-root module shadow is not allowed execution authority: " + child.name)
+sys.path.insert(0, str(root))
+from scripts.research.harness_synthetic_edge_calibration_v1_production import _isolated_child_main
+raise SystemExit(_isolated_child_main(mode))
+"""
 R1_PROBE_GATE_ARGS = {
     "mean_ae_improvement": 0.05,
     "relative_mae_improvement": 0.03,
