@@ -1557,3 +1557,31 @@ package must explicitly re-review the pre-import allowlist authority boundary.
 - validation_2025_authorized: **false**
 - oos_2026_authorized: **false**
 - status: `PRODUCTION_DURABILITY_IMPLEMENTATION_FROZEN_UNARMED`
+
+## 2026-09-09 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 production execution ARM
+
+**Decision:** add the minimal tracked parent-authorizing ARM that unlocks
+exactly one production attempt of the frozen synthetic calibration instrument.
+**Unit verdict:** unused; production calibration not executed; no RESULT minted.
+
+The ARM commit authorizes its exact parent freeze HEAD
+`502a62ddee0a3106967b21f0095be7e1629a56b2` / tree
+`f21570983530f785d85639554741f3dd82164278`. It does **not** rewrite #115
+implementation, frozen lib, or prereg bytes. It does **not** run the
+3200-world grid, mint a RESULT, consume authority, open B2-06, or open
+2025/2026.
+
+Non-blocking observation: `artifacts` remains in the pinned root allowlist
+and is still not a tracked/imported root package. This unit does not activate
+it.
+
+- implementation_frozen: **true**
+- production_monte_carlo_arm_authorized: **true**
+- authorized_run_count: **1**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- authorization_consumed: **false**
+- b2_06_scientific_execution_authorized: **false**
+- validation_2025_authorized: **false**
+- oos_2026_authorized: **false**
+- status: `PRODUCTION_MONTE_CARLO_ARM_AUTHORIZED_UNUSED`

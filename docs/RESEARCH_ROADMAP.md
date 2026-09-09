@@ -161,18 +161,21 @@ production execution:
 `implementation_frozen_before_production_execution = true`,
 `synthetic_execution_authorized = true`,
 `production_calibration_executed = false`,
-`authorization_consumed = false`,
-`production_monte_carlo_arm_authorized = false`.
+`authorization_consumed = false`.
+The #114 local reservation remains superseded.
 Production durability, aggregation, and result persistence are
-implementation-frozen and unarmed
+implementation-frozen. A tracked parent-authorizing ARM now exists for
+exactly one production attempt
 (`implementation_frozen = true`,
-`production_monte_carlo_arm_authorized = false`,
+`production_monte_carlo_arm_authorized = true`,
+`authorized_run_count = 1`,
 `production_calibration_executed = false`,
-`production_result_minted = false`). Canonical production execution requires a
-fresh process and a tracked run identity bound to the exact execution commit.
-Local #114 reservation is superseded on this HEAD. Monte Carlo remains unarmed.
-This does not mean the 3200-world calibration has been run, and it does not
-authorize B2-06, 2025, or 2026.
+`production_result_minted = false`,
+`authorization_consumed = false`). Canonical production execution still
+requires a fresh process and a tracked run identity bound to the exact
+execution commit. Local #114 reservation remains superseded. This does not
+mean the 3200-world calibration has been run, and it does not authorize
+B2-06, 2025, or 2026.
 
 Frozen sequence:
 

@@ -111,11 +111,14 @@ itself is immutable. Post-outcome status lives in
   `authorization_consumed = false`,
   `production_monte_carlo_arm_authorized = false`).
   Production durability/aggregation/result-persistence is
-  `implementation_frozen = true` and remains unarmed
-  (`production_monte_carlo_arm_authorized = false`,
-  `production_calibration_executed = false`,
-  `production_result_minted = false`). Canonical execution requires a later
-  explicit arming unit. This does not authorize B2-06 science.
+  `implementation_frozen = true`. Tracked parent-authorizing ARM now exists
+  (`production_monte_carlo_arm_authorized = true`,
+  `authorized_run_count = 1`) and remains unused
+  (`production_calibration_executed = false`,
+  `production_result_minted = false`,
+  `authorization_consumed = false`). Independent OPUS review of the exact
+  ARM HEAD is required before the 3200-world calibration is invoked. This
+  does not authorize B2-06 science.
 
 Family F1 is `CLOSED_NO_PROMOTION`. 2025 validation and 2026 OOS remain
 untouched. No Batch02 formulation has a promoted candidate, so there is no

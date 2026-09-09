@@ -1288,7 +1288,7 @@ def test_114_local_reservation_superseded_when_production_module_tracked(tmp_pat
         auth.run_authorized_production_grid()
 
 
-def test_cli_uses_fresh_process_and_stays_unarmed():
+def test_cli_uses_fresh_process_and_does_not_execute():
     source = Path(runner.__file__).read_text(encoding="utf-8")
     assert "spawn_canonical_production_process" in source
     assert "run_authorized_production_grid" not in source
@@ -1308,13 +1308,15 @@ def test_cli_uses_fresh_process_and_stays_unarmed():
             text=True,
         )
     )
-    assert identity["production_monte_carlo_arm_authorized"] is False
+    # Frozen #115 identity helper remains a durability-stage fingerprint.
+    # Live ARM authority is the tracked ARM artifact plus
+    # production_monte_carlo_arm_authorized(), covered in the ARM unit tests.
     assert identity["production_calibration_executed"] is False
     assert identity["production_result_minted"] is False
-    assert identity["monte_carlo_armed"] is False
+    assert identity["authorization_consumed"] is False
     assert identity["real_data_path"] is False
     assert (REPO / prod.CANONICAL_RESULT_PATH).exists() is False
-    assert (REPO / prod.CANONICAL_ARM_PATH).exists() is False
+    assert (REPO / prod.CANONICAL_ARM_PATH).exists() is True
 
 
 def test_production_modules_have_no_real_data_path():

@@ -1,0 +1,56 @@
+{
+  "B2_06_scientific_execution_authorized": false,
+  "arm_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_EXECUTION_ARM",
+  "authorization_consumed": false,
+  "authorized_execution_commit": "502a62ddee0a3106967b21f0095be7e1629a56b2",
+  "authorized_execution_tree": "f21570983530f785d85639554741f3dd82164278",
+  "authorized_grid": {
+    "block_rows": 50,
+    "bootstrap_replicates": 500,
+    "placebo_replicates": 999,
+    "planned_worlds": 3200,
+    "primary_n_rows": 5000,
+    "root_seed": 20260908,
+    "scenario_ids": [
+      "NULL",
+      "EASY",
+      "MODERATE",
+      "SMALL",
+      "TINY_NOISY",
+      "NONSTATIONARY_TRAP"
+    ],
+    "small_sensitivity_n": [
+      2500,
+      10000
+    ],
+    "visibility_replicates": 500,
+    "worlds_per_cell": 400
+  },
+  "authorized_run_count": 1,
+  "descendant_implementation_change_authorized": false,
+  "execution_authority_sha256": {
+    "auth": "0e174ac6b73530ec28501b0c076e0cad7874ab31bb1ed6941e4b525d12e35507",
+    "durability": "7a29337fb05c75641c584fd6bc051dc40fdc575b72ddb53edd51d0c52f1554b0",
+    "lib": "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51",
+    "prereg_json": "78fcddf03ce84a0369a955d5b571c2423129d12b22e35f77eab26d6ac5eff708",
+    "prereg_md": "a54c838d2b4903f039b4fd39d79198415ce095f5a9726fc51949cbb47153e5a3",
+    "production": "1cd4bcf6d1b8585dbe92103cda4669e38e4aad77bef95a0a81805325dd9ca9d0",
+    "runner": "ee799a78e3eb2beed65c971d35488d05ff9daf3c763996a52286be8214be0faf"
+  },
+  "frozen_lib_sha256": "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51",
+  "oos_2026_authorized": false,
+  "other_hypothesis_authorized": false,
+  "prereg_json_sha256": "78fcddf03ce84a0369a955d5b571c2423129d12b22e35f77eab26d6ac5eff708",
+  "prereg_md_sha256": "a54c838d2b4903f039b4fd39d79198415ce095f5a9726fc51949cbb47153e5a3",
+  "production_calibration_executed": false,
+  "production_monte_carlo_arm_authorized": true,
+  "production_only_scope": true,
+  "production_result_minted": false,
+  "real_market_data_access_authorized": false,
+  "reviewed_implementation_head": "d5277c42141a26948b195afe3d4ad30030151855",
+  "reviewed_implementation_tree": "7ab4178f222ecf8a2b5c8bf7d7bec9279fa3cf89",
+  "schema_version": "1.0",
+  "scope": "production_synthetic_calibration_only",
+  "unit_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1",
+  "validation_2025_authorized": false
+}
