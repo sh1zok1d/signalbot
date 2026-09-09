@@ -97,7 +97,10 @@ planned world is invalid, or any planned job is missing:
 - `incomplete_execution = true`
 - mechanical conclusion is `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`
 - no methodology PASS/FAIL conclusion may be emitted
-- `mint_final_result` refuses to mint a terminal RESULT
+- `mint_final_result` refuses to mint a terminal RESULT from caller records;
+  the canonical driver mints only from a verified in-process session
+  capability after later ARM. See
+  [`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_EXECUTION_DRIVER.md`](HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_EXECUTION_DRIVER.md).
 
 Extra `(scenario_id, n_rows, world_index)` identities that are not in
 `planned_production_jobs()` fail closed.
@@ -170,5 +173,6 @@ oos_2026_authorized = false
 ```
 
 The #114 local one-shot reservation is superseded on any HEAD that tracks the
-production durability module. Production remains fail-closed until a separate
-later arming unit.
+production durability module. The canonical 3200-world driver now exists and
+remains unarmed. Production remains fail-closed until a separate later arming
+unit. No live ARM artifact is present on this HEAD.

@@ -1557,3 +1557,46 @@ package must explicitly re-review the pre-import allowlist authority boundary.
 - validation_2025_authorized: **false**
 - oos_2026_authorized: **false**
 - status: `PRODUCTION_DURABILITY_IMPLEMENTATION_FROZEN_UNARMED`
+
+## 2026-09-09 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 historical ARM #116 rejected
+
+**Decision:** do not merge ARM HEAD `940d85bf58673396c6c0cc05ce2134a2e2e92809`.
+**Unit verdict:** unused; production calibration not executed; Monte Carlo remains unarmed.
+
+Records OPUS `REPAIR_REQUIRED` on the parent-authorizing ARM unit. The ARM
+mechanism is sound; sequencing is invalid because the ARM was created before
+the canonical production driver existed. Status:
+`REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`. Git history is
+preserved. The ARM artifact is not copied onto the driver-first branch.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- authorization_consumed: **false**
+- status: `REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`
+
+## 2026-09-09 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 production execution driver
+
+**Decision:** implement the canonical 3200-world production driver while remaining
+unarmed, before any final ARM.
+**Unit verdict:** unused; production calibration not executed; Monte Carlo remains unarmed.
+
+Starts from frozen #115 HEAD `502a62ddee0a3106967b21f0095be7e1629a56b2` /
+tree `f21570983530f785d85639554741f3dd82164278`. Replaces the unconditional
+armed refusal with `run_canonical_production_execution()`. Final RESULT minting
+requires an unforgeable in-process canonical session capability; caller-supplied
+records are never sufficient. #115 remains authoritative for reservation,
+claim, result, and `run_identity`. Future ARM verification machine-checks
+declared contract fields and reviewed-implementation binding. Identity
+reporting reflects verified ARM state without granting authority.
+
+Does **not** run the 3200-world grid, add a live ARM artifact, mint a RESULT,
+open B2-06, or open 2025/2026. Frozen scientific lib and prereg bytes remain
+byte-identical. The `artifacts` root package remains unactivated.
+
+- canonical_production_driver_implemented: **true**
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_EXECUTION_DRIVER_IMPLEMENTED_UNARMED`
