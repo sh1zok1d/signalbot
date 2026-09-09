@@ -1497,3 +1497,91 @@ cross-checkout durability (RESIDUAL-R1) and stale in-process import
 - production_monte_carlo_arm_authorized: **false**
 - b2_06_scientific_execution_authorized: **false**
 - status: `AUTHORIZATION_FROZEN_BEFORE_PRODUCTION_EXECUTION`
+
+## 2026-09-08 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 production durability
+
+**Decision:** implement production durability, aggregation, and result
+persistence above the frozen scientific primitives without executing the
+3200-world calibration.
+**Unit verdict:** unarmed; no RESULT minted; #114 local reservation superseded
+on this HEAD.
+
+Canonical production execution must cross a fresh Python interpreter and
+re-verify exact HEAD/tree plus execution-authority bytes inside that process
+(R1). Run identity is a function of tracked commit authority only, so local
+reservation deletion or another clone/worktree cannot mint a distinct
+authoritative identity (R2). Global process exclusion is not claimed.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- b2_06_scientific_execution_authorized: **false**
+- status: `PRODUCTION_DURABILITY_IMPLEMENTED_UNARMED`
+
+Repair of OPUS `REPAIR_REQUIRED` on reviewed HEAD `4aab2f0c`: invalid planned
+worlds force `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`; public RESULT minting
+cannot bind caller-supplied aggregates; isolated `python -I -B -P` bootstrap
+imports the canonical package module; ARM authorizes the parent execution
+commit rather than a self-referential HEAD/tree fixed point; IncompleteWorld is
+recorded as an invalid world that stays in the planned denominator; persistence
+is commit-mediated. Production remains unarmed. No Monte Carlo. No RESULT.
+
+## 2026-09-09 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 production durability implementation freeze
+
+**Decision:** freeze the reviewed production-durability implementation before any
+production arming or 3200-world execution.
+**Unit verdict:** unused; production calibration not executed; Monte Carlo remains unarmed.
+
+Records OPUS `GO_FOR_IMPLEMENTATION_FREEZE` (BLOCKERS=0, MAJORS=0, MINORS=0)
+at reviewed implementation HEAD
+`d5277c42141a26948b195afe3d4ad30030151855` / tree
+`7ab4178f222ecf8a2b5c8bf7d7bec9279fa3cf89`. Exact reviewed-head GitHub CI run
+`34319781573` SUCCESS. The freeze commit is a docs/ledger/metadata descendant
+and is not itself the reviewed code HEAD.
+
+Does **not** run the 3200-world grid, arm the Monte Carlo seam, create a RESULT,
+open B2-06, or open 2025/2026. Frozen scientific lib and prereg bytes remain
+byte-identical.
+
+Non-blocking observation: `artifacts` exists in the pinned root allowlist but
+is not currently a tracked top-level package and is not imported in the verified
+execution chain. It was empirically inert during OPUS review and is unchanged
+by this freeze. Any future unit which makes `artifacts` a real/imported root
+package must explicitly re-review the pre-import allowlist authority boundary.
+
+- implementation_frozen: **true**
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- b2_06_scientific_execution_authorized: **false**
+- validation_2025_authorized: **false**
+- oos_2026_authorized: **false**
+- status: `PRODUCTION_DURABILITY_IMPLEMENTATION_FROZEN_UNARMED`
+
+## 2026-09-09 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 production execution ARM
+
+**Decision:** add the minimal tracked parent-authorizing ARM that unlocks
+exactly one production attempt of the frozen synthetic calibration instrument.
+**Unit verdict:** unused; production calibration not executed; no RESULT minted.
+
+The ARM commit authorizes its exact parent freeze HEAD
+`502a62ddee0a3106967b21f0095be7e1629a56b2` / tree
+`f21570983530f785d85639554741f3dd82164278`. It does **not** rewrite #115
+implementation, frozen lib, or prereg bytes. It does **not** run the
+3200-world grid, mint a RESULT, consume authority, open B2-06, or open
+2025/2026.
+
+Non-blocking observation: `artifacts` remains in the pinned root allowlist
+and is still not a tracked/imported root package. This unit does not activate
+it.
+
+- implementation_frozen: **true**
+- production_monte_carlo_arm_authorized: **true**
+- authorized_run_count: **1**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- authorization_consumed: **false**
+- b2_06_scientific_execution_authorized: **false**
+- validation_2025_authorized: **false**
+- oos_2026_authorized: **false**
+- status: `PRODUCTION_MONTE_CARLO_ARM_AUTHORIZED_UNUSED`

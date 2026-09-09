@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Fail-closed entrypoint for HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1.
 
-Production execution is authorized only by the tracked one-shot artifact in
-the exact Git HEAD, the bytes actually executed from this checkout, and an
-atomic local reservation. This CLI accepts no authorize/force/unsafe flag, no
-environment bypass, and no caller authority path. It does not run the
-3200-world Monte Carlo in this authorization stage.
+Canonical production execution, if later armed by a separate unit, must spawn a
+fresh Python interpreter and re-verify exact HEAD/tree plus execution-authority
+bytes inside that process. This durability unit does not arm Monte Carlo, does
+not mint a production RESULT, and does not keep #114 local reservation executable
+after authority-code changes.
 """
 
 from __future__ import annotations
@@ -14,14 +14,13 @@ import argparse
 import json
 import sys
 
-from scripts.research.harness_synthetic_edge_calibration_v1_auth import (
-    AuthorizedExecutionBoundaryReached,
-    production_authorization_identity,
-    run_authorized_production_grid,
-)
 from scripts.research.harness_synthetic_edge_calibration_v1_lib import (
     SyntheticExecutionNotAuthorized,
     planned_production_grid_descriptor,
+)
+from scripts.research.harness_synthetic_edge_calibration_v1_production import (
+    production_durability_identity,
+    spawn_canonical_production_process,
 )
 
 
@@ -29,14 +28,13 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
             "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 entrypoint. "
-            "One-shot production execution is authorized only by tracked Git state "
-            "and exact executed bytes."
+            "Production execution remains fail-closed until a later arming unit."
         )
     )
     parser.add_argument(
         "--identity",
         action="store_true",
-        help="print implementation/authorization identity JSON (no execution)",
+        help="print durability/authorization identity JSON (no execution)",
     )
     parser.add_argument(
         "--describe-grid",
@@ -47,9 +45,8 @@ def main(argv: list[str] | None = None) -> int:
         "--run-production-grid",
         action="store_true",
         help=(
-            "verify executed-byte authority, obtain the one-shot reservation, "
-            "and reach the production execution boundary without running the "
-            "Monte Carlo in this stage"
+            "spawn a fresh interpreter, re-verify executed-byte authority, "
+            "and fail closed while production remains unarmed"
         ),
     )
     parser.add_argument(
@@ -59,44 +56,24 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     if args.expected_head:
-        from scripts.research.harness_synthetic_edge_calibration_v1_auth import _head_sha, _repo_root
+        from scripts.research.harness_synthetic_edge_calibration_v1_auth import (
+            _head_sha,
+            _repo_root,
+        )
 
         actual = _head_sha(_repo_root())
         if actual != args.expected_head.strip().lower():
             print("SYNTHETIC_EXECUTION_NOT_AUTHORIZED: expected-head mismatch", file=sys.stderr)
             return 2
     if args.identity:
-        print(json.dumps(production_authorization_identity(), sort_keys=True, indent=2))
+        print(json.dumps(production_durability_identity(), sort_keys=True, indent=2))
         return 0
     if args.describe_grid:
         print(json.dumps(planned_production_grid_descriptor(), sort_keys=True, indent=2))
         return 0
     if args.run_production_grid:
         try:
-            run_authorized_production_grid()
-        except AuthorizedExecutionBoundaryReached as exc:
-            diagnostics = exc.diagnostics
-            print(
-                json.dumps(
-                    {
-                        "status": "AUTHORIZED_PRODUCTION_EXECUTION_BOUNDARY",
-                        "production_calibration_executed": False,
-                        "authorization_consumed": True,
-                        "authorization_lifecycle": diagnostics.reservation_lifecycle,
-                        "monte_carlo_invoked": False,
-                        "authorization_id": diagnostics.authorization_id,
-                        "authorization_blob_sha256": diagnostics.authorization_blob_sha256,
-                        "head_sha": diagnostics.head_sha,
-                        "tree_sha": diagnostics.tree_sha,
-                        "reservation_sha256": diagnostics.reservation_sha256,
-                        "run_identity": diagnostics.run_identity,
-                        "proof_exported": exc.proof is not None,
-                    },
-                    sort_keys=True,
-                    indent=2,
-                )
-            )
-            return 0
+            return spawn_canonical_production_process()
         except SyntheticExecutionNotAuthorized as exc:
             print(str(exc), file=sys.stderr)
             return 2
