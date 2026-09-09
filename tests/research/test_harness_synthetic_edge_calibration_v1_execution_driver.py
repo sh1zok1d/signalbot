@@ -565,7 +565,11 @@ def test_no_reroll_and_planned_3200_remain_authoritative():
     assert source.count("automatic_retry_authorized") >= 1
     assert prod.WORKER_STDOUT_KIND_COMPLETE_RESULT == "COMPLETE_RESULT"
     assert prod.WORKER_STDOUT_KIND_PARTIAL == "PARTIAL_NOT_RESULT"
+    assert prod.CANONICAL_WORLD_RECORDS_PATH.endswith("PRODUCTION_WORLD_RECORDS.json")
+    assert "PRODUCTION_RECORD_MANIFEST" not in source
+    assert "_assert_production_aggregates_self_consistent" not in source
     assert (REPO / prod.CANONICAL_DRIVER_FREEZE_PATH).exists() is False
+    assert (REPO / prod.CANONICAL_WORLD_RECORDS_PATH).exists() is False
 
 
 def _live_session(capability: object):
@@ -577,11 +581,11 @@ def _live_session(capability: object):
 def _emit_capture(monkeypatch):
     captured: dict[str, object] = {}
 
-    def emit(kind, payload, record_manifest=None):
-        raw = prod.canonical_worker_stdout_bytes(kind, payload, record_manifest)
+    def emit(kind, payload, world_records=None):
+        raw = prod.canonical_worker_stdout_bytes(kind, payload, world_records)
         captured["kind"] = kind
         captured["payload"] = payload
-        captured["record_manifest"] = record_manifest
+        captured["world_records"] = world_records
         captured["raw"] = raw
         return raw
 
@@ -623,20 +627,23 @@ def test_fixture_session_result_roundtrips_through_verifier(tmp_path, monkeypatc
 def test_worker_emits_complete_result_canonical_bytes(tmp_path, monkeypatch):
     repo = _armed_repo(tmp_path, monkeypatch)
     envelope = prod.run_canonical_fixture_driver(FIXTURE_JOBS, _valid_evaluator)
-    manifest = prod._production_record_manifest_from_bound(
-        [_valid_evaluator(*job) for job in FIXTURE_JOBS],
-        bound=prod.verify_executed_production_authority(repo),
-    )
+    world_records = {
+        "kind": prod.WORLD_RECORDS_KIND,
+        "canonical_path": prod.CANONICAL_WORLD_RECORDS_PATH,
+        "world_set_sha256": envelope["core"]["world_set_sha256"],
+        "record_digest_chain": envelope["core"]["record_digest_chain"],
+        "record_count": 3,
+    }
     monkeypatch.setattr(
         prod,
         "run_canonical_production_execution",
-        lambda: {"result": envelope, "record_manifest": manifest},
+        lambda: {"result": envelope, "world_records": world_records},
     )
     captured = _emit_capture(monkeypatch)
     rc = prod.fresh_process_worker_main()
     assert rc == 0
     expected = prod.canonical_worker_stdout_bytes(
-        prod.WORKER_STDOUT_KIND_COMPLETE_RESULT, envelope, manifest
+        prod.WORKER_STDOUT_KIND_COMPLETE_RESULT, envelope, world_records
     )
     assert captured["raw"] == expected
     parsed = json.loads(captured["raw"].decode("utf-8"))
@@ -644,11 +651,10 @@ def test_worker_emits_complete_result_canonical_bytes(tmp_path, monkeypatch):
     assert parsed["final_result_minted"] is True
     assert parsed["kind"] != prod.WORKER_STDOUT_KIND_PARTIAL
     assert parsed["payload"] == envelope
-    # The sibling record manifest travels with the RESULT on the same stdout.
-    assert parsed["record_manifest"]["kind"] == prod.RECORD_MANIFEST_KIND
-    assert parsed["record_manifest"]["world_set_sha256"] == manifest["world_set_sha256"]
+    assert parsed["world_records"]["kind"] == prod.WORLD_RECORDS_KIND
+    assert parsed["world_records"]["world_set_sha256"] == world_records["world_set_sha256"]
     assert (repo / prod.CANONICAL_RESULT_PATH).exists() is False
-    assert (repo / prod.CANONICAL_RECORD_MANIFEST_PATH).exists() is False
+    assert (repo / prod.CANONICAL_WORLD_RECORDS_PATH).exists() is False
 
 
 def test_worker_emits_distinguishable_partial_payload(tmp_path, monkeypatch):

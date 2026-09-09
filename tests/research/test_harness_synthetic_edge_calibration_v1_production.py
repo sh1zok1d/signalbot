@@ -1427,14 +1427,14 @@ def _commit_result_envelope(
     repo: Path,
     envelope: dict,
     message: str = "tracked RESULT",
-    record_manifest: dict | None = None,
+    world_records: dict | None = None,
 ) -> bytes:
     raw = prod.canonical_json_bytes(prod._jsonable(envelope))
     _write(repo / prod.CANONICAL_RESULT_PATH, raw.decode("utf-8"))
-    if record_manifest is not None:
+    if world_records is not None:
         _write(
-            repo / prod.CANONICAL_RECORD_MANIFEST_PATH,
-            prod.canonical_json_bytes(prod._jsonable(record_manifest)).decode("utf-8"),
+            repo / prod.CANONICAL_WORLD_RECORDS_PATH,
+            prod.canonical_json_bytes(prod._jsonable(world_records)).decode("utf-8"),
         )
     _git(repo, "add", "-A")
     _git(repo, "commit", "-m", message)
@@ -1571,7 +1571,7 @@ def test_historical_result_production_blob_and_wrong_arm_topology(tmp_path, monk
     freeze = _git(repo, "rev-parse", "HEAD^")
     records = _planned_records()
     core = prod._bind_result_core(records=records, repo_root=repo, fixture=False)
-    manifest = prod._production_record_manifest_from_bound(
+    world_records = prod._production_world_records_from_bound(
         records, bound=prod.verify_executed_production_authority(repo)
     )
     envelope = {
@@ -1579,7 +1579,7 @@ def test_historical_result_production_blob_and_wrong_arm_topology(tmp_path, monk
         "core_sha256": _sha(prod.canonical_json_bytes(prod._jsonable(core))),
         "core_size": len(prod.canonical_json_bytes(prod._jsonable(core))),
     }
-    _commit_result_envelope(repo, envelope, record_manifest=manifest)
+    _commit_result_envelope(repo, envelope, world_records=world_records)
     assert prod.production_monte_carlo_arm_authorized(repo) is False
     prod.verify_bound_result_from_tracked_authority(repo, envelope)
     blob_core = dict(core)
@@ -1623,8 +1623,10 @@ def test_historical_result_claim_conflict_and_duplicate_abandon_removed(tmp_path
     assert source.count("def abandon_canonical_session") == 1
 
 
-def _commit_production_result(repo: Path, *, core_mut=None, manifest_mut=None):
-    """Commit exactly ONE production-shaped RESULT (plus sibling manifest).
+def _commit_production_result(
+    repo: Path, *, core_mut=None, world_records_mut=None, rebind_artifact: bool = True
+):
+    """Commit exactly ONE production-shaped RESULT plus sibling WORLD_RECORDS.
 
     A single tracked version per topology, so the duplicate/conflicting-RESULT
     guard can never mask a scientific tamper.
@@ -1634,45 +1636,54 @@ def _commit_production_result(repo: Path, *, core_mut=None, manifest_mut=None):
     core = prod._bind_result_core_from_bound(
         records, bound=bound, fixture=False, armed=True
     )
-    manifest = prod._production_record_manifest_from_bound(records, bound=bound)
+    world_records = prod._production_world_records_from_bound(records, bound=bound)
     core = json.loads(json.dumps(prod._jsonable(core)))
-    manifest = json.loads(json.dumps(prod._jsonable(manifest)))
-    if core_mut is not None:
-        core = core_mut(core)
-    if manifest_mut is not None:
-        manifest = manifest_mut(manifest)
+    world_records = json.loads(json.dumps(prod._jsonable(world_records)))
+    if world_records_mut is not None:
+        world_records = world_records_mut(world_records)
         body = {
             key: value
-            for key, value in manifest.items()
-            if key not in {"manifest_sha256", "manifest_size"}
+            for key, value in world_records.items()
+            if key not in {"world_records_sha256", "world_records_size"}
         }
         raw = prod.canonical_json_bytes(prod._jsonable(body))
-        manifest["manifest_sha256"] = _sha(raw)
-        manifest["manifest_size"] = len(raw)
+        world_records["world_records_sha256"] = _sha(raw)
+        world_records["world_records_size"] = len(raw)
+        if rebind_artifact:
+            full = prod.canonical_json_bytes(prod._jsonable(world_records))
+            core["records_artifact_sha256"] = _sha(full)
+            core["records_artifact_size"] = len(full)
+    if core_mut is not None:
+        core = core_mut(core)
     envelope = prod._result_envelope_from_core(core)
-    _commit_result_envelope(repo, envelope, record_manifest=manifest)
-    return envelope, manifest
+    _commit_result_envelope(repo, envelope, world_records=world_records)
+    return envelope, world_records
 
 
-def test_historical_production_result_verifies_and_binds_record_manifest(
+def test_historical_production_result_verifies_and_binds_world_records(
     tmp_path, monkeypatch
 ):
     repo = _armed_fixture_repo(tmp_path, monkeypatch)
-    envelope, manifest = _commit_production_result(repo)
-    assert envelope["core"]["production_calibration_executed"] is True
-    assert "fixture" not in envelope["core"]
-    assert len(manifest["record_digest_chain"]) == 3200
-    assert manifest["world_set_sha256"] == envelope["core"]["world_set_sha256"]
+    envelope, world_records = _commit_production_result(repo)
+    core = envelope["core"]
+    assert core["production_calibration_executed"] is True
+    assert "fixture" not in core
+    assert core["records_artifact_path"] == prod.CANONICAL_WORLD_RECORDS_PATH
+    assert core["record_count"] == 3200
+    assert len(world_records["records"]) == 3200
+    assert len(world_records["record_digest_chain"]) == 3200
+    assert world_records["world_set_sha256"] == core["world_set_sha256"]
+    tracked = prod.canonical_json_bytes(prod._jsonable(world_records))
+    assert core["records_artifact_sha256"] == _sha(tracked)
+    assert core["records_artifact_size"] == len(tracked)
     verified = prod.verify_bound_result_from_tracked_authority(repo)
-    assert verified["core"]["mechanical_conclusion"] == envelope["core"][
-        "mechanical_conclusion"
-    ]
+    assert verified["core"]["mechanical_conclusion"] == core["mechanical_conclusion"]
     claim = prod.durable_result_claim_from_tracked_authority(repo)
     assert claim["final_result_minted"] is True
     assert claim["production_calibration_executed"] is True
 
 
-def test_historical_production_result_requires_tracked_record_manifest(
+def test_historical_production_result_requires_tracked_world_records(
     tmp_path, monkeypatch
 ):
     repo = _armed_fixture_repo(tmp_path, monkeypatch)
@@ -1684,9 +1695,80 @@ def test_historical_production_result_requires_tracked_record_manifest(
     _commit_result_envelope(repo, prod._result_envelope_from_core(core))
     with pytest.raises(
         lib.SyntheticExecutionNotAuthorized,
-        match="tracked production record manifest is absent",
+        match="tracked production WORLD_RECORDS artifact is absent",
     ):
         prod.verify_bound_result_from_tracked_authority(repo)
+
+
+def test_historical_world_records_worktree_is_not_authority(tmp_path, monkeypatch):
+    repo = _armed_fixture_repo(tmp_path, monkeypatch)
+    envelope, world_records = _commit_production_result(repo)
+    committed = prod.canonical_json_bytes(prod._jsonable(world_records))
+    forged_records = _records_with_cell_successes("NULL", 5000, "oracle_model", 400)
+    bound = prod._bound_from_commit_blobs(repo, envelope["core"]["execution_head"])
+    forged = prod._production_world_records_from_bound(forged_records, bound=bound)
+    forged_bytes = prod.canonical_json_bytes(prod._jsonable(forged))
+    _write(
+        repo / prod.CANONICAL_WORLD_RECORDS_PATH,
+        forged_bytes.decode("utf-8"),
+    )
+    blob = prod._head_blob(repo, prod.CANONICAL_WORLD_RECORDS_PATH)
+    assert blob == committed
+    assert blob != forged_bytes
+    _git(repo, "checkout", "--", prod.CANONICAL_WORLD_RECORDS_PATH)
+    verified = prod.verify_bound_result_from_tracked_authority(repo)
+    assert verified["core"]["world_set_sha256"] == envelope["core"]["world_set_sha256"]
+    assert (
+        verified["core"]["aggregates"]["arms"]["ORACLE_NULL_MODEL_DETECTED"]["successes"]
+        == 0
+    )
+
+
+def test_consistent_aggregate_rewrite_refused(tmp_path, monkeypatch):
+    """Keep original WORLD_RECORDS, rewrite RESULT science from a different record set."""
+    repo = _armed_fixture_repo(tmp_path, monkeypatch)
+    honest_records = _planned_records()
+    forged_records = _records_with_cell_successes("NULL", 5000, "oracle_model", 400)
+    bound = prod.verify_executed_production_authority(repo)
+    honest = prod._bind_result_core_from_bound(
+        honest_records, bound=bound, fixture=False, armed=True
+    )
+    forged = prod._bind_result_core_from_bound(
+        forged_records, bound=bound, fixture=False, armed=True
+    )
+    assert honest["aggregates"]["arms"]["ORACLE_NULL_MODEL_DETECTED"]["successes"] == 0
+    assert forged["aggregates"]["arms"]["ORACLE_NULL_MODEL_DETECTED"]["successes"] == 400
+    assert honest["mechanical_conclusion"] != forged["mechanical_conclusion"]
+    rewritten = dict(honest)
+    for key in (
+        "aggregates",
+        "verdicts",
+        "wilson_intervals",
+        "mechanical_conclusion",
+        "planned_world_count",
+        "observed_world_count",
+    ):
+        rewritten[key] = forged[key]
+    assert rewritten["execution_head"] == honest["execution_head"]
+    assert rewritten["execution_tree"] == honest["execution_tree"]
+    assert rewritten["run_identity"] == honest["run_identity"]
+    assert rewritten["world_set_sha256"] == honest["world_set_sha256"]
+    assert rewritten["record_digest_chain"] == honest["record_digest_chain"]
+    assert rewritten["records_artifact_sha256"] == honest["records_artifact_sha256"]
+    world_records = prod._production_world_records_from_bound(
+        honest_records, bound=bound
+    )
+    _commit_result_envelope(
+        repo, prod._result_envelope_from_core(rewritten), world_records=world_records
+    )
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized) as excinfo:
+        prod.verify_bound_result_from_tracked_authority(repo)
+    detail = str(excinfo.value)
+    assert "duplicate/conflicting" not in detail
+    assert (
+        "aggregates were not derived from the world set" in detail
+        or "core payload tamper" in detail
+    )
 
 
 def _mut_arm(core, arm, key, value):
@@ -1701,17 +1783,17 @@ PRODUCTION_CORE_TAMPERS = (
     (
         "mechanical_conclusion",
         lambda c: {**c, "mechanical_conclusion": "HARNESS_METHODOLOGY_VALIDATED_FOR_B2_06"},
-        "mechanical_conclusion was not derived",
+        "core payload tamper",
     ),
     (
         "one_verdict",
         lambda c: {**c, "verdicts": {**c["verdicts"], "trap_specificity": "FAIL"}},
-        "verdicts were not derived",
+        "core payload tamper",
     ),
     (
         "aggregate_count",
         lambda c: _mut_arm(c, "ORACLE_NULL_MODEL_DETECTED", "successes", 7),
-        "was not derived from its counts",
+        "aggregates were not derived from the world set",
     ),
     (
         "wilson_interval",
@@ -1728,12 +1810,12 @@ PRODUCTION_CORE_TAMPERS = (
                 "upper": 1.0,
             },
         ),
-        "was not derived from its counts",
+        "aggregates were not derived from the world set",
     ),
     (
         "observed_world_count",
         lambda c: {**c, "observed_world_count": 1},
-        "observed_world_count is not the frozen 3200-world plan",
+        "core payload tamper",
     ),
     (
         "incomplete_execution",
@@ -1741,7 +1823,7 @@ PRODUCTION_CORE_TAMPERS = (
             **c,
             "aggregates": {**c["aggregates"], "incomplete_execution": True},
         },
-        "incomplete_execution does not match",
+        "aggregates were not derived from the world set",
     ),
     (
         "world_set_sha256",
@@ -1752,6 +1834,26 @@ PRODUCTION_CORE_TAMPERS = (
         "record_digest_chain",
         lambda c: {**c, "record_digest_chain": ["00" * 32] * 3200},
         "record_digest_chain tamper detected",
+    ),
+    (
+        "records_artifact_sha256",
+        lambda c: {**c, "records_artifact_sha256": "aa" * 32},
+        "records_artifact_sha256 does not match tracked WORLD_RECORDS bytes",
+    ),
+    (
+        "records_artifact_size",
+        lambda c: {**c, "records_artifact_size": int(c["records_artifact_size"]) + 1},
+        "records_artifact_size does not match tracked WORLD_RECORDS bytes",
+    ),
+    (
+        "records_artifact_path",
+        lambda c: {**c, "records_artifact_path": "docs/research/FORGED_WORLD_RECORDS.json"},
+        "records_artifact_path is not the canonical WORLD_RECORDS path",
+    ),
+    (
+        "record_count",
+        lambda c: {**c, "record_count": 1},
+        "record_count is not the frozen 3200-world plan",
     ),
     (
         "production_calibration_executed",
@@ -1782,7 +1884,7 @@ PRODUCTION_CORE_TAMPERS = (
                 "b2_06_scientific_execution_authorized": True,
             },
         },
-        "aggregate scope authorization flag tamper detected",
+        "aggregates were not derived from the world set",
     ),
     (
         "aggregate_mechanical_conclusion",
@@ -1793,12 +1895,12 @@ PRODUCTION_CORE_TAMPERS = (
                 "mechanical_conclusion": "HARNESS_METHODOLOGY_VALIDATED_FOR_B2_06",
             },
         },
-        "mechanical_conclusion was not derived",
+        "aggregates were not derived from the world set",
     ),
     (
         "wilson_intervals_wiped",
         lambda c: {**c, "wilson_intervals": {}},
-        "wilson_intervals were not derived",
+        "core payload tamper",
     ),
 )
 
@@ -1817,16 +1919,25 @@ def test_historical_production_scientific_payload_tamper_refused(
     assert "duplicate/conflicting" not in detail
 
 
-PRODUCTION_MANIFEST_TAMPERS = (
+def _unrelated_world_records(artifact):
+    forged_records = _records_with_cell_successes("NULL", 5000, "oracle_model", 400)
+    artifact = dict(artifact)
+    artifact["records"] = forged_records
+    artifact["world_set_sha256"] = prod.world_set_sha256(forged_records)
+    artifact["record_digest_chain"] = list(prod._ordered_record_digest_chain(forged_records))
+    return artifact
+
+
+PRODUCTION_WORLD_RECORDS_TAMPERS = (
     (
         "chain",
         lambda m: {**m, "record_digest_chain": ["11" * 32] * 3200},
-        "record_digest_chain tamper detected",
+        "WORLD_RECORDS record_digest_chain was not derived from the records",
     ),
     (
         "world_set",
         lambda m: {**m, "world_set_sha256": "bb" * 32},
-        "world_set_sha256 tamper detected",
+        "WORLD_RECORDS world_set_sha256 was not derived from the records",
     ),
     (
         "jobs",
@@ -1843,17 +1954,38 @@ PRODUCTION_MANIFEST_TAMPERS = (
         lambda m: {**m, "execution_head": "de" * 20},
         "execution_head does not match",
     ),
+    (
+        "unrelated_records",
+        _unrelated_world_records,
+        "world_set_sha256 tamper detected",
+    ),
 )
 
 
-@pytest.mark.parametrize("label,mutate,message", PRODUCTION_MANIFEST_TAMPERS)
-def test_historical_production_record_manifest_tamper_refused(
+@pytest.mark.parametrize("label,mutate,message", PRODUCTION_WORLD_RECORDS_TAMPERS)
+def test_historical_production_world_records_tamper_refused(
     tmp_path, monkeypatch, label, mutate, message
 ):
     repo = _armed_fixture_repo(tmp_path, monkeypatch)
-    _commit_production_result(repo, manifest_mut=mutate)
+    _commit_production_result(repo, world_records_mut=mutate)
     with pytest.raises(lib.SyntheticExecutionNotAuthorized) as excinfo:
         prod.verify_bound_result_from_tracked_authority(repo)
     detail = str(excinfo.value)
     assert message in detail, detail
     assert "duplicate/conflicting" not in detail
+
+
+def test_historical_production_world_records_unbound_content_tamper_refused(
+    tmp_path, monkeypatch
+):
+    repo = _armed_fixture_repo(tmp_path, monkeypatch)
+    _commit_production_result(
+        repo,
+        world_records_mut=lambda m: {**m, "world_set_sha256": "bb" * 32},
+        rebind_artifact=False,
+    )
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized,
+        match="records_artifact_sha256 does not match tracked WORLD_RECORDS bytes",
+    ):
+        prod.verify_bound_result_from_tracked_authority(repo)
