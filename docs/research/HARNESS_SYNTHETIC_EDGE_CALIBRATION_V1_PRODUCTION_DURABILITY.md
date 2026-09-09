@@ -49,8 +49,9 @@ This unit does **not** add a live ARM artifact.
 ## Invalid worlds and incomplete execution
 
 Invalid planned worlds remain in the exact planned denominator. They are not
-rerolled or replaced. If any planned world is invalid, or any planned job is
-missing:
+rerolled or replaced. `IncompleteWorld` during candidate or world evaluation is
+recorded as `valid=false` with the exact reason and does not escape. If any
+planned world is invalid, or any planned job is missing:
 
 - `incomplete_execution = true`
 - mechanical conclusion is `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`
@@ -82,8 +83,10 @@ envelope = {
 artifact digest/size, if any, is maintained by the external claim/persistence
 layer and is not embedded self-referentially inside the core.
 
-Verification re-derives the core from the supplied canonical world records and
-tracked git authority. A self-checking document is not authority.
+Verification re-derives the entire core from the supplied canonical world records
+and tracked git authority, then compares canonical core bytes. Recomputing
+`core_sha256` / `core_size` after changing an uncompared field is not authority.
+The envelope may contain only `core`, `core_sha256`, and `core_size`.
 
 ## Persistence lifecycle
 

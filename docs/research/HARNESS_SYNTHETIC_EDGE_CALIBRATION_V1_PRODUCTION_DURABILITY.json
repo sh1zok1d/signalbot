@@ -10,6 +10,7 @@
   },
   "durability_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_DURABILITY_V1",
   "fresh_process_required": true,
+  "full_core_result_verification": true,
   "global_process_exclusion_claimed": false,
   "idempotent_duplicate_computation": true,
   "invalid_world_forces_incomplete_execution": true,
