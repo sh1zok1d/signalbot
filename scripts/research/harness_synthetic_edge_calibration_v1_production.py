@@ -4,9 +4,13 @@ This layer sits above frozen scientific primitives. It does not change RNG, DGP,
 gates, Wilson, taxonomy, or mechanical-conclusion semantics. It does not weaken
 FixtureExecutionConfig.
 
-Production Monte Carlo remains unarmed. Canonical execution, when later armed by a
-separate unit, must cross a fresh Python interpreter boundary and re-verify exact
-HEAD/tree plus execution-authority bytes inside that process.
+The canonical 3200-world driver exists in this module. Production Monte Carlo
+remains unarmed on this HEAD: a later docs-only ARM child must authorize the
+reviewed driver/freeze parent before any production execution. Canonical
+execution, when later armed, must cross a fresh Python interpreter boundary and
+re-verify exact HEAD/tree plus execution-authority bytes inside that process.
+Final RESULT minting requires an unforgeable in-process canonical session
+capability; caller-supplied records cannot mint.
 
 Run identity is a pure function of tracked authority at the exact execution
 commit. Local untracked reservation files cannot mint a distinct run/result.
@@ -22,6 +26,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Mapping, Sequence
 
 import numpy as np
@@ -254,7 +259,7 @@ R1_PROBE_GATE_ARGS = {
 
 
 class ProductionNotArmed(SyntheticExecutionNotAuthorized):
-    """Production Monte Carlo is not armed by this durability unit."""
+    """Production Monte Carlo is not armed by a verified parent-authorizing ARM."""
 
 
 class ProductionIntegrityError(SyntheticExecutionNotAuthorized):
@@ -450,6 +455,123 @@ def _authority_digests_at(repo_root: Path, commit: str) -> dict[str, str]:
     return digests
 
 
+ARM_REQUIRED_LITERALS = {
+    "authorized_run_count": 1,
+    "scope": "production_synthetic_calibration_only",
+    "production_only_scope": True,
+    "authorization_consumed": False,
+    "descendant_implementation_change_authorized": False,
+    "real_market_data_access_authorized": False,
+    "other_hypothesis_authorized": False,
+    "B2_06_scientific_execution_authorized": False,
+    "validation_2025_authorized": False,
+    "oos_2026_authorized": False,
+}
+
+
+def _is_ancestor(repo_root: Path, maybe_ancestor: str, commit: str) -> bool:
+    proc = subprocess.run(
+        ["git", "-C", str(repo_root), "merge-base", "--is-ancestor", maybe_ancestor, commit],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    return proc.returncode == 0
+
+
+def _arm_declared_contract_holds(payload: Mapping[str, Any]) -> bool:
+    if not isinstance(payload, Mapping):
+        return False
+    for key, expected in ARM_REQUIRED_LITERALS.items():
+        if payload.get(key) != expected:
+            return False
+    try:
+        return payload.get("authorized_grid") == frozen_production_grid()
+    except SyntheticExecutionNotAuthorized:
+        return False
+
+
+def _reviewed_implementation_binds_parent(
+    repo_root: Path, payload: Mapping[str, Any], parent: str
+) -> bool:
+    reviewed_head = str(payload.get("reviewed_implementation_head") or "").strip().lower()
+    reviewed_tree = str(payload.get("reviewed_implementation_tree") or "").strip().lower()
+    if len(reviewed_head) != 40 or len(reviewed_tree) != 40:
+        return False
+    if any(ch not in "0123456789abcdef" for ch in reviewed_head + reviewed_tree):
+        return False
+    if not _is_ancestor(repo_root, reviewed_head, parent):
+        return False
+    if _commit_tree_sha(repo_root, reviewed_head) != reviewed_tree:
+        return False
+    for rel in EXECUTION_AUTHORITY_PATHS:
+        reviewed_bytes = _commit_blob(repo_root, reviewed_head, rel)
+        parent_bytes = _commit_blob(repo_root, parent, rel)
+        if reviewed_bytes is None or parent_bytes is None or reviewed_bytes != parent_bytes:
+            return False
+    listed = payload.get("execution_authority_sha256")
+    if not isinstance(listed, dict):
+        return False
+    reviewed_production = _commit_blob(repo_root, reviewed_head, PRODUCTION_REL)
+    if reviewed_production is None:
+        return False
+    if str(listed.get("production") or "").strip().lower() != _sha256_bytes(reviewed_production):
+        return False
+    return True
+
+
+def _arm_payload_authorizes(repo_root: Path, payload: Mapping[str, Any]) -> bool:
+    if payload.get("production_monte_carlo_arm_authorized") is not True:
+        return False
+    if not _arm_declared_contract_holds(payload):
+        return False
+    parent = _parent_sha(repo_root)
+    if parent is None:
+        return False
+    authorized_commit = str(payload.get("authorized_execution_commit") or "").strip().lower()
+    authorized_tree = str(payload.get("authorized_execution_tree") or "").strip().lower()
+    if authorized_commit != parent:
+        return False
+    if authorized_tree != _commit_tree_sha(repo_root, parent):
+        return False
+    listed = payload.get("execution_authority_sha256")
+    if not isinstance(listed, dict):
+        return False
+    try:
+        actual = _authority_digests_at(repo_root, parent)
+    except SyntheticExecutionNotAuthorized:
+        return False
+    required = ("lib", "runner", "auth", "production", "prereg_json", "prereg_md")
+    if any(key not in listed for key in required):
+        return False
+    for key, digest in listed.items():
+        if actual.get(key) != str(digest).strip().lower():
+            return False
+    for rel in EXECUTION_AUTHORITY_PATHS:
+        head_bytes = _head_blob(repo_root, rel)
+        parent_bytes = _commit_blob(repo_root, parent, rel)
+        if head_bytes is None or parent_bytes is None or head_bytes != parent_bytes:
+            return False
+    if not _reviewed_implementation_binds_parent(repo_root, payload, parent):
+        return False
+    return True
+
+
+def inspect_production_arm_state(repo_root: Path | None = None) -> dict[str, Any]:
+    """Inspect tracked ARM without granting authority. Fail closed if unverifiable."""
+    root = repo_root or _repo_root()
+    blob = _head_blob(root, CANONICAL_ARM_PATH)
+    if blob is None:
+        return {"present": False, "authorized": False}
+    try:
+        payload = json.loads(blob.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        _refuse("ARM artifact is present but cannot be verified")
+    if not isinstance(payload, dict):
+        _refuse("ARM artifact is present but cannot be verified")
+    return {"present": True, "authorized": _arm_payload_authorizes(root, payload)}
+
+
 def production_monte_carlo_arm_authorized(repo_root: Path | None = None) -> bool:
     """ARM in commit C_arm authorizes its parent execution commit C_exec.
 
@@ -465,36 +587,9 @@ def production_monte_carlo_arm_authorized(repo_root: Path | None = None) -> bool
         payload = json.loads(blob.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError):
         return False
-    if payload.get("production_monte_carlo_arm_authorized") is not True:
+    if not isinstance(payload, dict):
         return False
-    parent = _parent_sha(root)
-    if parent is None:
-        return False
-    authorized_commit = str(payload.get("authorized_execution_commit") or "").strip().lower()
-    authorized_tree = str(payload.get("authorized_execution_tree") or "").strip().lower()
-    if authorized_commit != parent:
-        return False
-    if authorized_tree != _commit_tree_sha(root, parent):
-        return False
-    listed = payload.get("execution_authority_sha256")
-    if not isinstance(listed, dict):
-        return False
-    try:
-        actual = _authority_digests_at(root, parent)
-    except SyntheticExecutionNotAuthorized:
-        return False
-    required = ("lib", "runner", "auth", "production", "prereg_json", "prereg_md")
-    if any(key not in listed for key in required):
-        return False
-    for key, digest in listed.items():
-        if actual.get(key) != str(digest).strip().lower():
-            return False
-    for rel in EXECUTION_AUTHORITY_PATHS:
-        head_bytes = _head_blob(root, rel)
-        parent_bytes = _commit_blob(root, parent, rel)
-        if head_bytes is None or parent_bytes is None or head_bytes != parent_bytes:
-            return False
-    return True
+    return _arm_payload_authorizes(root, payload)
 
 
 def _executing_file(rel: str) -> Path:
@@ -766,24 +861,7 @@ def evaluate_production_candidate(
     }
 
 
-def evaluate_production_world(
-    scenario_id: str,
-    n_rows: int,
-    world_index: int,
-    *args: Any,
-    **kwargs: Any,
-) -> dict[str, Any]:
-    """Evaluate one frozen-grid world. Refuses unless a later unit has armed Monte Carlo."""
-    if args or kwargs:
-        _refuse("caller arguments cannot authorize production evaluation")
-    root = _repo_root()
-    verify_executed_production_authority(root)
-    if (scenario_id, int(n_rows), int(world_index)) not in set(planned_production_jobs()):
-        _refuse("world is not a frozen production-grid identity")
-    if production_monte_carlo_arm_authorized(root) is not True:
-        raise ProductionNotArmed(
-            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: production_monte_carlo_arm_authorized=false"
-        )
+def _evaluate_planned_world_body(scenario_id: str, n_rows: int, world_index: int) -> dict[str, Any]:
     identity = world_identity(scenario_id, int(n_rows), int(world_index))
     try:
         world = simulate_dgp(
@@ -854,6 +932,27 @@ def evaluate_production_world(
                 "stays_in_denominator": True,
             }
         )
+
+
+def evaluate_production_world(
+    scenario_id: str,
+    n_rows: int,
+    world_index: int,
+    *args: Any,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Evaluate one frozen-grid world. Refuses unless a later unit has armed Monte Carlo."""
+    if args or kwargs:
+        _refuse("caller arguments cannot authorize production evaluation")
+    root = _repo_root()
+    verify_executed_production_authority(root)
+    if (scenario_id, int(n_rows), int(world_index)) not in set(planned_production_jobs()):
+        _refuse("world is not a frozen production-grid identity")
+    if production_monte_carlo_arm_authorized(root) is not True:
+        raise ProductionNotArmed(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: production_monte_carlo_arm_authorized=false"
+        )
+    return _evaluate_planned_world_body(scenario_id, n_rows, world_index)
 
 
 def _cell_records(
@@ -1161,7 +1260,7 @@ def world_set_sha256(records):
 
 
 def _bind_result_core(*, records, repo_root):
-    """Private non-authoritative core builder. Callers must go through mint_final_result."""
+    """Private non-authoritative core builder. Public mint requires a session capability."""
     bound = verify_executed_production_authority(repo_root)
     aggregates = aggregate_planned_worlds(records)
     reservation = durable_reservation_document(repo_root)
@@ -1216,29 +1315,373 @@ def bind_result_document(*args, **kwargs):
     _refuse("caller-supplied aggregates cannot mint a production RESULT")
 
 
-def mint_final_result(records, *args, **kwargs):
+_LIVE_SESSIONS: dict[int, "_CanonicalExecutionSession"] = {}
+_CAPABILITY_KEEPALIVE: dict[int, object] = {}
+_CLOSED_SESSIONS: dict[int, "_CanonicalExecutionSession"] = {}
+_CLOSED_CAPABILITY_KEEPALIVE: dict[int, object] = {}
+
+
+class _CanonicalExecutionSession:
+    """Module-private session storage. Constructing this class grants no authority."""
+
+    __slots__ = (
+        "repo_root",
+        "production",
+        "jobs",
+        "run_identity",
+        "bound",
+        "reservation",
+        "records",
+        "capability",
+        "open",
+        "completed",
+        "evaluator",
+    )
+
+
+def _register_session(session: _CanonicalExecutionSession) -> object:
+    capability = object()
+    session.capability = capability
+    _LIVE_SESSIONS[id(capability)] = session
+    _CAPABILITY_KEEPALIVE[id(capability)] = capability
+    return capability
+
+
+def _session_from_capability(capability: object) -> _CanonicalExecutionSession:
+    session = _LIVE_SESSIONS.get(id(capability))
+    if session is not None and session.capability is capability:
+        if session.open is not True:
+            _refuse("canonical session capability is stale")
+        return session
+    closed = _CLOSED_SESSIONS.get(id(capability))
+    if closed is not None and closed.capability is capability:
+        _refuse("canonical session capability is stale")
+    _refuse("canonical session capability is not valid")
+
+
+def _retire_session(session: _CanonicalExecutionSession) -> None:
+    session.open = False
+    cap = session.capability
+    _LIVE_SESSIONS.pop(id(cap), None)
+    _CAPABILITY_KEEPALIVE.pop(id(cap), None)
+    _CLOSED_SESSIONS[id(cap)] = session
+    _CLOSED_CAPABILITY_KEEPALIVE[id(cap)] = cap
+
+
+def _close_session(session: _CanonicalExecutionSession) -> None:
+    session.completed = True
+    _retire_session(session)
+
+
+def _fixture_jobs_forbidden_as_production(jobs: Sequence[tuple[str, int, int]]) -> None:
+    planned = planned_production_jobs()
+    if tuple(jobs) == planned:
+        _refuse("fixture driver cannot encode the frozen production grid")
+    if len(jobs) >= PRODUCTION_PLANNED_TOTAL_WORLDS:
+        _refuse("fixture driver cannot encode the frozen production grid")
+    production_n = {PRODUCTION_PRIMARY_N, *PRODUCTION_SMALL_N}
+    for scenario_id, n_rows, world_index in jobs:
+        if int(n_rows) in production_n:
+            _refuse("fixture driver cannot encode production N")
+        if int(world_index) < 0:
+            _refuse("fixture world index is invalid")
+        if not str(scenario_id):
+            _refuse("fixture world identity is invalid")
+
+
+def _open_canonical_session(
+    *,
+    repo_root: Path,
+    production: bool,
+    jobs: tuple[tuple[str, int, int], ...],
+    evaluator: Any | None,
+) -> _CanonicalExecutionSession:
+    bound = verify_executed_production_authority(repo_root)
+    if production_monte_carlo_arm_authorized(repo_root) is not True:
+        raise ProductionNotArmed(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: production_monte_carlo_arm_authorized=false"
+        )
+    if production:
+        frozen_production_grid()
+        jobs = planned_production_jobs()
+        if len(jobs) != PRODUCTION_PLANNED_TOTAL_WORLDS:
+            _refuse("production world plan is not 3200 identities")
+        if _head_blob(repo_root, CANONICAL_RESULT_PATH) is not None:
+            _refuse("production RESULT already exists; one-shot authority is consumed")
+    else:
+        _fixture_jobs_forbidden_as_production(jobs)
+        if evaluator is None:
+            _refuse("fixture driver requires an explicit non-production evaluator")
+    for existing in _LIVE_SESSIONS.values():
+        if existing.production and production and existing.open:
+            _refuse("conflicting canonical production session is already open")
+    session = _CanonicalExecutionSession()
+    session.repo_root = repo_root
+    session.production = bool(production)
+    session.jobs = tuple(jobs)
+    session.run_identity = canonical_run_identity(repo_root)
+    session.bound = bound
+    session.reservation = durable_reservation_document(repo_root)
+    session.records = []
+    session.open = True
+    session.completed = False
+    session.evaluator = evaluator
+    _register_session(session)
+    return session
+
+
+def _record_job_identity(rec: Mapping[str, Any], scenario_id: str, n_rows: int, world_index: int) -> None:
+    job = (str(scenario_id), int(n_rows), int(world_index))
+    identity = world_identity(*job)
+    if str(rec.get("scenario_id")) != job[0]:
+        _refuse("canonical record scenario_id does not match planned job")
+    if int(rec.get("n_rows", -1)) != job[1]:
+        _refuse("canonical record n_rows does not match planned job")
+    if int(rec.get("world_index", -1)) != job[2]:
+        _refuse("canonical record world_index does not match planned job")
+    if str(rec.get("world_identity", "")) != identity:
+        _refuse("canonical record world identity does not match frozen plan")
+    expected_seed = int(world_seed(identity))
+    if int(rec.get("world_seed", -1)) != expected_seed:
+        _refuse("canonical record world seed does not match frozen plan")
+    if rec.get("stays_in_denominator") is not True:
+        _refuse("canonical record must remain in the planned denominator")
+
+
+def _append_session_record(
+    session: _CanonicalExecutionSession, rec: Mapping[str, Any], job: tuple[str, int, int]
+) -> None:
+    _record_job_identity(rec, *job)
+    owned = _jsonable(dict(rec))
+    seen = {(str(item["scenario_id"]), int(item["n_rows"]), int(item["world_index"])) for item in session.records}
+    if job in seen:
+        _refuse("duplicate world identity")
+    if job not in set(session.jobs):
+        _refuse("extra world is not in the session plan")
+    expected_index = len(session.records)
+    if session.jobs[expected_index] != job:
+        _refuse("canonical evaluation order drifted from the planned job list")
+    session.records.append(MappingProxyType(owned))
+
+
+def _evaluate_session_job(
+    session: _CanonicalExecutionSession, scenario_id: str, n_rows: int, world_index: int
+) -> Mapping[str, Any]:
+    job = (str(scenario_id), int(n_rows), int(world_index))
+    if session.production:
+        rec = _evaluate_planned_world_body(scenario_id, n_rows, world_index)
+    else:
+        try:
+            rec = session.evaluator(scenario_id, n_rows, world_index)
+        except IncompleteWorld as exc:
+            identity = world_identity(*job)
+            rec = {
+                "scenario_id": scenario_id,
+                "n_rows": int(n_rows),
+                "world_index": int(world_index),
+                "world_identity": identity,
+                "world_seed": int(world_seed(identity)),
+                "valid": False,
+                "invalid_reasons": (str(exc),),
+                "stays_in_denominator": True,
+            }
+        if not isinstance(rec, Mapping):
+            _refuse("fixture evaluator did not return a world record")
+        rec = _jsonable(dict(rec))
+    return rec
+
+
+def _session_plan_integrity(session: _CanonicalExecutionSession) -> dict[str, Any]:
+    planned = list(session.jobs)
+    planned_set = set(planned)
+    by_job: dict[tuple[str, int, int], Mapping[str, Any]] = {}
+    for rec in session.records:
+        job = (
+            str(rec.get("scenario_id")),
+            int(rec.get("n_rows", -1)),
+            int(rec.get("world_index", -1)),
+        )
+        if job not in planned_set:
+            _refuse("extra world is not in the session plan")
+        if job in by_job:
+            _refuse("duplicate world identity")
+        _record_job_identity(rec, *job)
+        by_job[job] = rec
+    missing = [job for job in planned if job not in by_job]
+    invalid_records = [rec for rec in session.records if rec.get("valid") is not True]
+    return {
+        "by_job": by_job,
+        "missing": missing,
+        "invalid_records": invalid_records,
+        "incomplete_execution": bool(missing) or bool(invalid_records),
+        "planned_world_count": len(planned),
+        "observed_world_count": len(by_job),
+    }
+
+
+def _mint_from_session(session: _CanonicalExecutionSession) -> dict[str, Any]:
+    integrity = _session_plan_integrity(session)
+    if integrity["incomplete_execution"]:
+        if session.production:
+            aggregates = aggregate_planned_worlds(session.records)
+            if aggregates["mechanical_conclusion"] != "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM":
+                _refuse(
+                    "incomplete execution cannot mint a final RESULT: "
+                    "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM"
+                )
+        _refuse(
+            "incomplete execution cannot mint a final RESULT: "
+            "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM"
+        )
+    if session.production:
+        if integrity["planned_world_count"] != PRODUCTION_PLANNED_TOTAL_WORLDS:
+            _refuse("production world plan is not 3200 identities")
+        aggregates = aggregate_planned_worlds(session.records)
+        if (
+            aggregates["incomplete_execution"]
+            or aggregates["observed_world_count"] != PRODUCTION_PLANNED_TOTAL_WORLDS
+            or aggregates["mechanical_conclusion"] == "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM"
+        ):
+            _refuse("incomplete execution cannot mint a final RESULT")
+        core = _bind_result_core(records=session.records, repo_root=session.repo_root)
+        core["production_monte_carlo_arm_authorized"] = True
+        core_bytes = canonical_json_bytes(_jsonable(core))
+        envelope = {
+            "core": core,
+            "core_sha256": _sha256_bytes(core_bytes),
+            "core_size": len(core_bytes),
+        }
+        _close_session(session)
+        return envelope
+    envelope = {
+        "schema_version": "1.0",
+        "fixture": True,
+        "not_a_production_result": True,
+        "run_identity": session.run_identity,
+        "planned_world_count": integrity["planned_world_count"],
+        "observed_world_count": integrity["observed_world_count"],
+        "records": list(session.records),
+        "mechanical_conclusion": "FIXTURE_COMPLETE_NOT_PRODUCTION",
+        "real_market_data_access_authorized": False,
+        "b2_06_scientific_execution_authorized": False,
+        "validation_2025_authorized": False,
+        "oos_2026_authorized": False,
+    }
+    _close_session(session)
+    return envelope
+
+
+def _run_session_jobs(session: _CanonicalExecutionSession) -> dict[str, Any]:
+    try:
+        for job in session.jobs:
+            rec = _evaluate_session_job(session, *job)
+            _append_session_record(session, rec, job)
+        return _mint_from_session(session)
+    except Exception:
+        if session.production and session.records:
+            persist_partial_worlds(session.records)
+        _retire_session(session)
+        raise
+
+
+def open_canonical_fixture_session(
+    jobs: Sequence[tuple[str, int, int]],
+    world_evaluator,
+    *args: Any,
+    **kwargs: Any,
+) -> object:
     if args or kwargs:
-        _refuse("caller arguments cannot authorize a production RESULT")
+        _refuse("caller arguments cannot authorize the fixture driver")
+    root = _repo_root()
+    session = _open_canonical_session(
+        repo_root=root,
+        production=False,
+        jobs=tuple((str(s), int(n), int(i)) for s, n, i in jobs),
+        evaluator=world_evaluator,
+    )
+    return session.capability
+
+
+def evaluate_canonical_session_job(
+    capability: object,
+    scenario_id: str,
+    n_rows: int,
+    world_index: int,
+    *args: Any,
+    **kwargs: Any,
+) -> Mapping[str, Any]:
+    if args or kwargs:
+        _refuse("caller arguments cannot authorize canonical evaluation")
+    session = _session_from_capability(capability)
+    job = (str(scenario_id), int(n_rows), int(world_index))
+    rec = _evaluate_session_job(session, *job)
+    _append_session_record(session, rec, job)
+    return rec
+
+
+def abandon_canonical_session(capability: object, *args: Any, **kwargs: Any) -> None:
+    """Mark a live session crashed/abandoned. Cannot mint afterwards."""
+    if args or kwargs:
+        _refuse("caller arguments cannot authorize session abandonment")
+    session = _session_from_capability(capability)
+    if session.production and session.records:
+        persist_partial_worlds(session.records)
+    _retire_session(session)
+
+
+def run_canonical_production_execution(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Canonical 3200-world driver. Requires ARM. Never accepts caller records."""
+    if args or kwargs:
+        _refuse("caller arguments cannot authorize production execution")
     root = _repo_root()
     verify_executed_production_authority(root)
-    if production_monte_carlo_arm_authorized(root) is not True:
-        raise ProductionNotArmed(
-            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: production RESULT cannot be minted while unarmed"
-        )
-    aggregates = aggregate_planned_worlds(records)
-    if (
-        aggregates["incomplete_execution"]
-        or aggregates["observed_world_count"] != PRODUCTION_PLANNED_TOTAL_WORLDS
-        or aggregates["mechanical_conclusion"] == "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM"
-    ):
-        _refuse("incomplete execution cannot mint a final RESULT")
-    core = _bind_result_core(records=records, repo_root=root)
-    core_bytes = canonical_json_bytes(_jsonable(core))
-    return {
-        "core": core,
-        "core_sha256": _sha256_bytes(core_bytes),
-        "core_size": len(core_bytes),
-    }
+    session = _open_canonical_session(
+        repo_root=root,
+        production=True,
+        jobs=planned_production_jobs(),
+        evaluator=None,
+    )
+    return _run_session_jobs(session)
+
+
+def run_canonical_fixture_driver(
+    jobs: Sequence[tuple[str, int, int]],
+    world_evaluator,
+    *args: Any,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Test-only orchestration over an explicit non-production plan.
+
+    Requires the same verify/ARM/reservation/session capability path. Cannot
+    encode the frozen 3200-world production grid or production N.
+    """
+    if args or kwargs:
+        _refuse("caller arguments cannot authorize the fixture driver")
+    root = _repo_root()
+    verify_executed_production_authority(root)
+    session = _open_canonical_session(
+        repo_root=root,
+        production=False,
+        jobs=tuple((str(s), int(n), int(i)) for s, n, i in jobs),
+        evaluator=world_evaluator,
+    )
+    return _run_session_jobs(session)
+
+
+def mint_session_result(capability: object, *args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Mint from a live canonical session capability only."""
+    if args or kwargs:
+        _refuse("caller arguments cannot authorize a production RESULT")
+    session = _session_from_capability(capability)
+    return _mint_from_session(session)
+
+
+def mint_final_result(*args: Any, **kwargs: Any):
+    if kwargs:
+        _refuse("caller arguments cannot authorize a production RESULT")
+    if args:
+        _refuse("caller-supplied records cannot mint a production RESULT")
+    _refuse("caller-supplied records cannot mint a production RESULT")
 
 
 def verify_bound_result_document(document, records, *args, **kwargs):
@@ -1453,12 +1896,13 @@ def r1_probe_fingerprint():
         _refuse("R1 probe must run as the canonical package module")
     verify_executed_production_authority()
     gates = compose_gates(**R1_PROBE_GATE_ARGS)
+    armed = production_monte_carlo_arm_authorized()
     return {
         "module": __name__,
         "compose_gates": _jsonable(gates),
         "wilson_0_400": _jsonable(wilson_interval(0, 400)),
         "frozen_lib_sha256": FROZEN_REVIEWED_LIB_SHA256,
-        "production_monte_carlo_arm_authorized": False,
+        "production_monte_carlo_arm_authorized": armed,
         "production_calibration_executed": False,
         "sys_path0": sys.path[0],
     }
@@ -1485,7 +1929,7 @@ def _isolated_child_main(mode):
 
 
 def fresh_process_worker_main():
-    """Runs only inside a fresh isolated interpreter. Re-verifies then fail-closes while unarmed."""
+    """Runs only inside a fresh isolated interpreter. Re-verifies, then drives if armed."""
     root = _repo_root()
     verify_executed_production_authority(root)
     frozen_production_grid()
@@ -1496,18 +1940,28 @@ def fresh_process_worker_main():
             file=sys.stderr,
         )
         return 2
-    _refuse("armed production Monte Carlo is not part of this durability unit")
-    return 2
+    run_canonical_production_execution()
+    return 0
 
 
 def production_durability_identity():
+    state = inspect_production_arm_state()
+    verifier_armed = production_monte_carlo_arm_authorized() is True
+    armed = state["authorized"] is True
+    if armed is not verifier_armed:
+        _refuse("identity ARM state disagrees with the canonical ARM verifier")
+    result_present = _head_blob(_repo_root(), CANONICAL_RESULT_PATH) is not None
     return {
-        "stage": "production_durability_unarmed",
+        "stage": (
+            "production_execution_driver_unarmed"
+            if not armed
+            else "production_monte_carlo_arm_authorized"
+        ),
         "unit_id": UNIT_ID,
         "durability_id": DURABILITY_ID,
-        "production_monte_carlo_arm_authorized": False,
+        "production_monte_carlo_arm_authorized": armed,
         "production_calibration_executed": False,
-        "production_result_minted": False,
+        "production_result_minted": result_present,
         "fresh_process_required": True,
         "durable_run_identity": True,
         "global_process_exclusion_claimed": False,
@@ -1516,8 +1970,8 @@ def production_durability_identity():
         "validation_2025_authorized": False,
         "oos_2026_authorized": False,
         "real_data_path": False,
-        "monte_carlo_armed": False,
-        "authorization_consumed": False,
+        "monte_carlo_armed": armed,
+        "authorization_consumed": result_present,
         "synthetic_execution_authorized": False,
         "canonical_paths": {
             "reservation": CANONICAL_RESERVATION_PATH,
