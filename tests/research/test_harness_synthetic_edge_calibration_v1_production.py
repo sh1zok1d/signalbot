@@ -307,8 +307,10 @@ def test_stale_imported_module_disk_restoration_cannot_execute(tmp_path, monkeyp
     _bind_prod(monkeypatch, repo)
     source = Path(prod.__file__).read_text(encoding="utf-8")
     assert "-I" in source
+    assert "-B" in source
     assert "-P" in source
     assert "ISOLATED_CHILD_BOOTSTRAP" in source
+    assert "repo-root module shadow" in prod.ISOLATED_CHILD_BOOTSTRAP
     _assert_clean(repo)
 
     def tampered_gates(**kwargs):
@@ -1093,6 +1095,32 @@ def test_hostile_scripts_research_numpy_cannot_execute_before_verification(tmp_p
     assert fingerprint["module"] == "scripts.research.harness_synthetic_edge_calibration_v1_production"
     assert fingerprint["compose_gates"]["MODEL_DETECTED"] is True
     assert marker.exists() is False
+
+
+def test_root_numpy_shadow_does_not_execute_before_authority_verification(tmp_path, monkeypatch):
+    marker = tmp_path / "root_numpy_ran"
+    hostile = (
+        "from pathlib import Path\n"
+        f"Path({str(marker)!r}).write_text('ROOT_NUMPY_SHADOW_EXECUTED')\n"
+        "raise RuntimeError('root numpy executed')\n"
+    )
+    repo = _commit_production_tree(tmp_path, extra={"numpy.py": hostile.encode("utf-8")})
+    _bind_prod(monkeypatch, repo)
+    _assert_clean(repo)
+    bootstrap = prod.ISOLATED_CHILD_BOOTSTRAP
+    insert_at = bootstrap.find("sys.path.insert")
+    import_at = bootstrap.find("from scripts.research.harness_synthetic_edge_calibration_v1_production import")
+    assert "import hashlib" in bootstrap
+    assert "import subprocess" in bootstrap
+    assert "repo-root module shadow" in bootstrap
+    assert insert_at != -1 and import_at != -1 and insert_at < import_at
+    assert bootstrap.find("import numpy") == -1
+    proc = prod.spawn_isolated_r1_probe()
+    assert marker.exists() is False
+    assert proc.returncode == 2
+    assert "repo-root module shadow is not allowed execution authority" in proc.stderr
+    assert "ROOT_NUMPY_SHADOW_EXECUTED" not in (proc.stdout + proc.stderr)
+    assert proc.returncode != 0
 
 
 def test_isolated_child_canonical_module_identity_not_main(tmp_path, monkeypatch):
