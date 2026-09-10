@@ -22,10 +22,14 @@ RESULT verification has two distinct authority models:
 - TRACKED / historical: `verify_bound_result_from_tracked_authority` reads
   `execution_head` from the RESULT core itself, loads authority from git
   objects at that exact commit, and re-verifies ARM topology at execution
-  time. Production scientific fields are recomputed from the tracked
-  WORLD_RECORDS artifact, not from RESULT-declared aggregates. Current HEAD
-  being a later unarmed RESULT commit is not authority and must not
-  invalidate a historically valid RESULT.
+  time. Production WORLD_RECORDS are retained evidence, not self-authenticating
+  authority. Authoritative historical verification proves the executing
+  scientific/production blobs match that execution commit, independently
+  recomputes all 3200 frozen-plan worlds, compares the canonical WORLD_RECORDS
+  artifact, then recomputes aggregates and every derived RESULT field.
+  Spot-checks cannot mint or validate durable claims. Current HEAD being a
+  later unarmed RESULT commit is not authority and must not invalidate a
+  historically valid RESULT.
 """
 
 from __future__ import annotations
@@ -172,6 +176,8 @@ BLIND_MODERATE_USEFUL_MIN = 0.50
 WORKER_FLAG = "--fresh-process-worker"
 R1_PROBE_MODE = "r1-probe"
 WORKER_MODE = "worker"
+HISTORICAL_RECOMPUTE_MODE = "historical-recompute"
+AUTHORITATIVE_HISTORICAL_VERIFICATION = "FULL_3200_RECOMPUTATION"
 # Stdlib-only isolated bootstrap. Repo root is import-active only after this
 # pre-import authority verification succeeds. Do not import numpy or the
 # production package before the shadow/authority checks below.
@@ -2245,6 +2251,23 @@ def _tracked_result_blobs(repo_root: Path) -> list[bytes]:
     return blobs
 
 
+def _terminal_result_commit(repo_root: Path, document_bytes: bytes) -> str:
+    """Commit that tracks the verified RESULT blob. Later docs-only HEAD is not identity."""
+    proc = subprocess.run(
+        ["git", "-C", str(repo_root), "log", "--pretty=%H", "--", CANONICAL_RESULT_PATH],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if proc.returncode != 0:
+        _refuse("git log of RESULT path failed")
+    for commit in proc.stdout.decode("ascii").split():
+        blob = _commit_blob(repo_root, commit, CANONICAL_RESULT_PATH)
+        if blob == document_bytes:
+            return commit.strip().lower()
+    _refuse("terminal RESULT commit cannot be located")
+
+
 def _refuse_conflicting_terminal_result(repo_root: Path, document_bytes: bytes) -> None:
     blobs = _tracked_result_blobs(repo_root)
     unique = set(blobs)
@@ -2273,10 +2296,13 @@ def _assert_production_protected_literals(core: Mapping[str, Any]) -> None:
 
 def _load_tracked_world_records(
     repo_root: Path, core: Mapping[str, Any], bound: Mapping[str, str]
-) -> list[Mapping[str, Any]]:
-    """Load canonical WORLD_RECORDS from git objects and return the records.
+) -> tuple[bytes, dict[str, Any], list[Mapping[str, Any]]]:
+    """Load tracked WORLD_RECORDS from git objects as retained evidence.
 
-    Worktree bytes are not authority. Aggregates inside RESULT are not inputs.
+    Worktree bytes are not authority. Record bodies are not scientific inputs.
+    The authoritative verifier independently recomputes the 3200 worlds and
+    compares this artifact; it does not treat the tracked records as the
+    frozen experiment.
     """
     blob = _head_blob(repo_root, CANONICAL_WORLD_RECORDS_PATH)
     if blob is None:
@@ -2345,7 +2371,142 @@ def _load_tracked_world_records(
         _tamper("record_digest_chain tamper detected")
     if core.get("record_count") != PRODUCTION_PLANNED_TOTAL_WORLDS:
         _tamper("record_count is not the frozen 3200-world plan")
-    return owned
+    return blob, payload, owned
+
+
+def _assert_historical_recompute_uses_authorized_code(
+    repo_root: Path, bound: Mapping[str, str]
+) -> None:
+    """Prove the executing modules are the historically authorized execution blobs.
+
+    Historical recomputation must not run current-HEAD science against an old
+    RESULT. Executing lib/runner/auth/production bytes must equal the git
+    objects at `execution_head`.
+    """
+    execution_head = bound["head_sha"]
+    for rel in EXECUTION_AUTHORITY_PATHS:
+        historical = _commit_blob(repo_root, execution_head, rel)
+        if historical is None:
+            _tamper(f"historical recomputation authority missing at execution_head: {rel}")
+        executing = _executing_file(rel).read_bytes()
+        if executing != historical:
+            _tamper(
+                "historical recomputation is not executing the authorized execution blobs"
+            )
+        if bound[rel] != _sha256_bytes(historical):
+            _tamper("historical recomputation bound digest does not match execution blobs")
+        if rel == LIB_REL and _sha256_bytes(executing) != FROZEN_REVIEWED_LIB_SHA256:
+            _tamper("historical recomputation lib is not the frozen reviewed implementation")
+    for rel, key in (
+        (PREREG_JSON_REL, "prereg_json_sha256"),
+        (PREREG_MD_REL, "prereg_md_sha256"),
+    ):
+        historical = _commit_blob(repo_root, execution_head, rel)
+        if historical is None or _sha256_bytes(historical) != bound[key]:
+            _tamper("historical recomputation prereg does not match execution authority")
+
+
+def _recompute_production_records_from_frozen_execution(
+    bound: Mapping[str, str],
+) -> list[Mapping[str, Any]]:
+    """Independently recompute all 3200 canonical production world bodies.
+
+    Uses the frozen planned job set and `_evaluate_planned_world_body`, the
+    same evaluator the canonical production session uses. Does not require
+    live ARM (historical HEAD may be an unarmed RESULT descendant). Does not
+    mint, write artifacts, or consume one-shot authority. Tracked
+    WORLD_RECORDS bodies are not inputs.
+    """
+    jobs = planned_production_jobs()
+    if len(jobs) != PRODUCTION_PLANNED_TOTAL_WORLDS:
+        _refuse("production world plan is not 3200 identities")
+    if jobs[0] != ("NULL", 5000, 0) or jobs[-1] != ("SMALL", 10000, 399):
+        _refuse("production world plan identity order drifted")
+    records: list[Mapping[str, Any]] = []
+    for scenario_id, n_rows, world_index in jobs:
+        rec = _evaluate_planned_world_body(scenario_id, n_rows, world_index)
+        identity = world_identity(scenario_id, int(n_rows), int(world_index))
+        if str(rec.get("world_identity", "")) != identity:
+            _tamper("recomputed world identity does not match the frozen plan")
+        if int(rec.get("world_seed", -1)) != int(world_seed(identity)):
+            _tamper("recomputed world seed does not match the frozen plan")
+        records.append(rec)
+    return _require_canonical_production_records(records)
+
+
+def _compare_recomputed_world_records(
+    *,
+    tracked_blob: bytes,
+    tracked_records: Sequence[Mapping[str, Any]],
+    recomputed_records: Sequence[Mapping[str, Any]],
+    bound: Mapping[str, str],
+) -> dict[str, Any]:
+    """Fail closed unless tracked WORLD_RECORDS match independent recomputation."""
+    expected_artifact = _production_world_records_from_bound(
+        recomputed_records, bound=bound
+    )
+    expected_blob = canonical_json_bytes(_jsonable(expected_artifact))
+    if not _canonical_equal(tracked_records, recomputed_records):
+        _tamper("tracked WORLD_RECORDS were not produced by frozen execution")
+    if tracked_blob != expected_blob:
+        _tamper("tracked WORLD_RECORDS were not produced by frozen execution")
+    return expected_artifact
+
+
+def diagnose_historical_result_spotcheck(
+    repo_root: Path | None = None,
+    result_document_or_path: Mapping[str, Any] | str | Path | None = None,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """NON-AUTHORITATIVE diagnostic. Must not mint or validate durable claims.
+
+    This is a developer/CI convenience only. It is not historical verification,
+    not cryptographic authenticity, and not a substitute for full 3200-world
+    recomputation. `durable_result_claim_from_tracked_authority` never calls it.
+    Sampling is a fixed prefix of the frozen plan, not a `run_identity` secret.
+    """
+    if kwargs:
+        _refuse("caller arguments cannot authorize a historical spot-check")
+    root = Path(repo_root) if repo_root is not None else _repo_root()
+    verify_executed_production_authority(root)
+    document, _document_bytes = _load_result_document(result_document_or_path, root)
+    core, _core_bytes = _parse_result_envelope(document)
+    if core.get("fixture") is True or core.get("not_a_production_result") is True:
+        _refuse("spot-check diagnostic does not apply to fixture RESULT documents")
+    execution_head = str(core.get("execution_head") or "").strip().lower()
+    bound = verify_historical_execution_authority(
+        repo_root=root, execution_commit=execution_head
+    )
+    _blob, _payload, tracked = _load_tracked_world_records(root, core, bound)
+    jobs = planned_production_jobs()[:8]
+    mismatches: list[dict[str, Any]] = []
+    for scenario_id, n_rows, world_index in jobs:
+        recomputed = _jsonable(_evaluate_planned_world_body(scenario_id, n_rows, world_index))
+        job = (str(scenario_id), int(n_rows), int(world_index))
+        tracked_rec = next(
+            (
+                rec
+                for rec in tracked
+                if (
+                    str(rec.get("scenario_id")),
+                    int(rec.get("n_rows", -1)),
+                    int(rec.get("world_index", -1)),
+                )
+                == job
+            ),
+            None,
+        )
+        if tracked_rec is None or not _canonical_equal(tracked_rec, recomputed):
+            mismatches.append({"job": [scenario_id, n_rows, world_index], "mismatch": True})
+    return {
+        "authoritative": False,
+        "authoritative_historical_verification": False,
+        "durable_claim_authorized": False,
+        "full_recompute": False,
+        "n_checked": len(jobs),
+        "mismatches": mismatches,
+        "note": "spot-check is not historical verification and cannot mint a durable claim",
+    }
 
 
 
@@ -2411,7 +2572,11 @@ def verify_bound_result_from_tracked_authority(
 
     Authority is the RESULT core's embedded execution_head. Caller-supplied
     commits, records, or ARM flags cannot authorize. Current HEAD need not be
-    armed; the named execution commit must have been correctly armed.
+    armed; the named execution commit must have been correctly armed. Production
+    verification independently recomputes all 3200 frozen-plan worlds using
+    the historically authorized evaluator. Tracked WORLD_RECORDS are cached
+    evidence compared against that recomputation; they are not authority.
+    Spot-checks cannot satisfy this function.
     """
     if kwargs:
         _refuse("caller-supplied historical RESULT authority is refused")
@@ -2445,16 +2610,27 @@ def verify_bound_result_from_tracked_authority(
         )
         _assert_result_core_matches_expected(core, core_bytes, expected)
     else:
-        # Production shape. Identity is not scientific authority. Load the
-        # tracked WORLD_RECORDS git object, recompute aggregates from those
-        # records, reconstruct the expected core, and compare exactly.
+        # Production shape. Identity and a self-consistent WORLD_RECORDS
+        # artifact are not scientific authority. Independently recompute the
+        # frozen 3200-world experiment from historically authorized code, then
+        # compare tracked evidence and reconstruct the expected RESULT.
         _assert_historical_production_identity(core, bound)
         _assert_production_protected_literals(core)
         if isinstance(core.get("records"), list):
             _tamper("production RESULT must not carry records as a substitute for WORLD_RECORDS")
-        records = _load_tracked_world_records(root, core, bound)
+        tracked_blob, _tracked_payload, tracked_records = _load_tracked_world_records(
+            root, core, bound
+        )
+        _assert_historical_recompute_uses_authorized_code(root, bound)
+        recomputed = _recompute_production_records_from_frozen_execution(bound)
+        _compare_recomputed_world_records(
+            tracked_blob=tracked_blob,
+            tracked_records=tracked_records,
+            recomputed_records=recomputed,
+            bound=bound,
+        )
         expected = _bind_result_core_from_bound(
-            records, bound=bound, fixture=False, armed=True
+            recomputed, bound=bound, fixture=False, armed=True
         )
         _assert_result_core_matches_expected(core, core_bytes, expected)
     _refuse_conflicting_terminal_result(root, document_bytes)
@@ -2466,9 +2642,11 @@ def durable_result_claim_from_tracked_authority(
     result_document_or_path: Mapping[str, Any] | str | Path | None = None,
     **kwargs: Any,
 ) -> dict[str, Any]:
-    """Return a #115-compatible RESULT claim after historical verification.
+    """Return a #115-compatible RESULT claim after full historical verification.
 
     Does not write the worktree. Uncommitted claim files are not authority.
+    Production claims explicitly bind RESULT and WORLD_RECORDS digest/size
+    only after full 3200-world recomputation succeeds.
     """
     if kwargs:
         _refuse("caller arguments cannot authorize a durable RESULT claim")
@@ -2478,6 +2656,7 @@ def durable_result_claim_from_tracked_authority(
     bound = _bound_from_commit_blobs(root, str(core["execution_head"]))
     reservation = _durable_reservation_from_bound(bound)
     artifact_bytes = canonical_json_bytes(_jsonable(dict(verified)))
+    terminal_commit = _terminal_result_commit(root, artifact_bytes)
     claim = {
         "schema_version": "1.0",
         "durability_id": DURABILITY_ID,
@@ -2491,6 +2670,10 @@ def durable_result_claim_from_tracked_authority(
         "artifact_relative": CANONICAL_RESULT_PATH,
         "artifact_sha256": _sha256_bytes(artifact_bytes),
         "artifact_size": len(artifact_bytes),
+        "result_artifact_sha256": _sha256_bytes(artifact_bytes),
+        "result_artifact_size": len(artifact_bytes),
+        "terminal_commit": terminal_commit,
+        "terminal_tree": _commit_tree_sha(root, terminal_commit),
         "lifecycle": "TRACKED_RESULT_CLAIMED",
         "automatic_retry_authorized": False,
         "global_process_exclusion_claimed": False,
@@ -2498,6 +2681,10 @@ def durable_result_claim_from_tracked_authority(
         "production_calibration_executed": core.get("fixture") is not True,
         "final_result_minted": True,
     }
+    if core.get("fixture") is not True:
+        claim["records_artifact_path"] = CANONICAL_WORLD_RECORDS_PATH
+        claim["records_artifact_sha256"] = core["records_artifact_sha256"]
+        claim["records_artifact_size"] = core["records_artifact_size"]
     tracked = _head_blob(root, CANONICAL_CLAIM_PATH)
     if tracked is not None:
         try:
