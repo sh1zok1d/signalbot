@@ -1794,8 +1794,37 @@ WORLD_RECORDS.
 - MAJOR-1: crash-safe durable partial world evidence with exact resume.
   Partial ≠ RESULT / WORLD_RECORDS / AUTHORITY_CONSUMED.
 
-Next required step: OPUS review of the exact repaired HEAD, then a new
-performance/execution freeze and a new immediate-child ARM.
+Next required step after BLOCKER-1/MAJOR-1 was OPUS review. A remaining
+red-team finding (BLOCKER-2) is recorded and closed in the following entry.
+
+- production_monte_carlo_arm_authorized (live HEAD): **false**
+- historical ARM unused: **true**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PERFORMANCE_ONLY_UNARMED_REPAIR_PENDING_OPUS_REVIEW`
+
+## 2026-09-10 — HARNESS_PERFORMANCE_V1 BLOCKER-2 checkpoint authenticity
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — HARNESS_PERFORMANCE_V1 repair
+
+**Decision:** close independent-review finding BLOCKER-2. Durable checkpoint
+content remains structurally/digest-checked for resume, but is not scientific
+authority. Authoritative production mint authenticates cached/computed world
+records in an isolated child from exact frozen git execution bytes. No HMAC
+or secret key. No scientific-methodology change. No 3200-world production
+execution. No ARM consume/create. No RESULT / WORLD_RECORDS.
+
+- BLOCKER-1 remains closed: worker.py remains in the live execution TCB.
+- MAJOR-1 remains closed: crash-safe durable partial evidence and exact resume
+  still avoid immediate recompute of completed worlds.
+- BLOCKER-2: self-consistent forgery, whole-checkpoint fabrication, mixed
+  legitimate+forged stores, and current-module self-attestation are refused
+  before canonical mint.
+
+Next required step: OPUS narrow review of BLOCKER-2 on the exact repaired HEAD,
+then a new performance/execution freeze and a new immediate-child ARM.
 
 - production_monte_carlo_arm_authorized (live HEAD): **false**
 - historical ARM unused: **true**

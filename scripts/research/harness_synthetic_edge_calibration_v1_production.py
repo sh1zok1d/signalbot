@@ -156,6 +156,28 @@ CANONICAL_WORLD_RECORDS_PATH = (
 )
 DURABLE_PARTIAL_KIND = "DURABLE_PARTIAL_WORLD_EVIDENCE"
 DURABLE_PARTIAL_RECORD_KIND = "DURABLE_PARTIAL_WORLD_EVIDENCE_RECORD"
+UNTRUSTED_CACHED_WORLD_RECORDS_KIND = "UNTRUSTED_CACHED_WORLD_RECORDS"
+CHECKPOINT_CACHED = "CHECKPOINT_CACHED"
+CHECKPOINT_STRUCTURALLY_VALID = "CHECKPOINT_STRUCTURALLY_VALID"
+CHECKPOINT_SCIENTIFICALLY_VERIFIED = "CHECKPOINT_SCIENTIFICALLY_VERIFIED"
+AUTHENTICATE_CACHED_RECORDS_PROOF_KIND = "CACHED_WORLD_RECORDS_FROZEN_EXECUTION_PROOF"
+_AUTHENTICATE_CACHED_RECORDS_PROOF_KEYS = frozenset(
+    {
+        "schema_version",
+        "kind",
+        "mode",
+        "verification_success",
+        "trust_state",
+        "execution_head",
+        "execution_tree",
+        "run_identity",
+        "plan_sha256",
+        "world_set_sha256",
+        "record_digest_chain",
+        "observed_world_count",
+        "verification_authority",
+    }
+)
 DURABLE_PARTIAL_REL = (
     "artifacts/research/harness_synthetic_edge_calibration_v1/"
     "durable_partial_world_evidence"
@@ -217,6 +239,7 @@ WORKER_FLAG = "--fresh-process-worker"
 R1_PROBE_MODE = "r1-probe"
 WORKER_MODE = "worker"
 HISTORICAL_RECOMPUTE_MODE = "historical-recompute"
+AUTHENTICATE_CACHED_RECORDS_MODE = "authenticate-cached-records"
 AUTHORITATIVE_HISTORICAL_VERIFICATION = "FULL_3200_RECOMPUTATION"
 HISTORICAL_RECOMPUTE_PROOF_KIND = "HISTORICAL_RECOMPUTE_PROOF"
 _HISTORICAL_RECOMPUTE_PROOF_KEYS = frozenset(
@@ -1209,8 +1232,8 @@ class DurablePartialWorldStore:
         digest = _sha256_bytes(str(world_id).encode("utf-8"))
         return self.worlds_dir / f"{digest}.json"
 
-    def load_verified_completed(self) -> dict[tuple[str, int, int], dict[str, Any]]:
-        """Fail closed on torn, duplicate, unexpected, or foreign records."""
+    def load_structurally_valid_cached(self) -> dict[tuple[str, int, int], dict[str, Any]]:
+        """UNTRUSTED cached records. Structural/digest checks only. Not scientific authority."""
         completed: dict[tuple[str, int, int], dict[str, Any]] = {}
         for path in sorted(self.worlds_dir.glob("*.json")):
             if path.name.endswith(".tmp"):
@@ -1227,6 +1250,10 @@ class DurablePartialWorldStore:
                 _refuse("unexpected persisted world identity")
             completed[job] = rec_payload["record"]
         return completed
+
+    def load_verified_completed(self) -> dict[tuple[str, int, int], dict[str, Any]]:
+        """Compatibility alias. Returns STRUCTURALLY_VALID cached records, not science."""
+        return self.load_structurally_valid_cached()
 
     def _load_world_file(self, path: Path) -> dict[str, Any]:
         raw = path.read_bytes()
@@ -1629,6 +1656,11 @@ def evaluate_planned_jobs_fail_closed(
     Does not read ARM, mint RESULT, or write WORLD_RECORDS. Worker scheduling
     cannot seed science. Fail-closed on crash/malformed/duplicate/missing/
     unexpected identities. Caller digests cannot pin the worker.
+
+    Durable checkpoints are UNTRUSTED cached compute. Resume may reuse
+    STRUCTURALLY_VALID records to avoid immediate recomputation. They are not
+    scientific authority and cannot enter WORLD_RECORDS/RESULT until isolated
+    frozen-git authentication succeeds.
     """
     if kwargs:
         _refuse("caller arguments cannot authorize worker/execution identity")
@@ -1637,7 +1669,7 @@ def evaluate_planned_jobs_fail_closed(
     apply_worker_blas_thread_limits()
     completed_by_job: dict[tuple[str, int, int], Mapping[str, Any]] = {}
     if durable_partial is not None:
-        completed_by_job = dict(durable_partial.load_verified_completed())
+        completed_by_job = dict(durable_partial.load_structurally_valid_cached())
     _interrupt_after_checkpoint_if_needed(len(completed_by_job))
     missing = [job for job in planned if job not in completed_by_job]
     if missing:
@@ -1675,6 +1707,204 @@ def _interrupt_after_checkpoint_if_needed(completed_count: int) -> None:
         return
     if completed_count >= int(after):
         raise RuntimeError("NON_PRODUCTION durability interrupt after checkpoint")
+
+
+def _untrusted_cached_records_payload(
+    *,
+    bound: Mapping[str, str],
+    planned: Sequence[tuple[str, int, int]],
+    records: Sequence[Mapping[str, Any]],
+    production: bool,
+) -> dict[str, Any]:
+    planned_jobs = tuple((str(job[0]), int(job[1]), int(job[2])) for job in planned)
+    ordered = assemble_canonical_world_records(
+        planned_jobs=planned_jobs, completed_records=records
+    )
+    return {
+        "kind": UNTRUSTED_CACHED_WORLD_RECORDS_KIND,
+        "schema_version": 1,
+        "not_scientific_authority": True,
+        "not_a_production_result": production is not True,
+        "not_canonical_world_records": True,
+        "trust_state": CHECKPOINT_STRUCTURALLY_VALID,
+        "production": bool(production),
+        "execution_head": bound["head_sha"],
+        "execution_tree": bound["tree_sha"],
+        "run_identity": _run_identity_from_bound(bound),
+        "plan_sha256": planned_jobs_sha256(planned_jobs),
+        "jobs": [list(job) for job in planned_jobs],
+        "records": _jsonable(list(ordered)),
+    }
+
+
+def authenticate_cached_world_records_from_frozen_execution(
+    *,
+    planned: Sequence[tuple[str, int, int]],
+    records: Sequence[Mapping[str, Any]],
+    repo_root: Path | None = None,
+    production: bool = False,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Authenticate untrusted cached records against isolated frozen git bytes.
+
+    The parent does not recompute science and has no in-process fallback.
+    Checkpoint self-hashes are not scientific authority.
+    """
+    if kwargs:
+        _refuse("caller arguments cannot authorize cached-record authentication")
+    root = Path(repo_root) if repo_root is not None else _repo_root()
+    bound = verify_executed_production_authority(root)
+    planned_jobs = tuple((str(job[0]), int(job[1]), int(job[2])) for job in planned)
+    if production:
+        if planned_jobs != planned_production_jobs():
+            _refuse("production authentication plan is not the frozen 3200-world plan")
+    else:
+        _fixture_jobs_forbidden_as_production(planned_jobs)
+    payload = _untrusted_cached_records_payload(
+        bound=bound,
+        planned=planned_jobs,
+        records=records,
+        production=production,
+    )
+    try:
+        completed = _spawn_isolated_child(
+            AUTHENTICATE_CACHED_RECORDS_MODE,
+            repo_root=root,
+            text=False,
+            stdin=canonical_json_bytes(_jsonable(payload)),
+        )
+    except OSError as exc:
+        _refuse(f"isolated cached-record authentication child could not spawn: {exc}")
+    if int(completed.returncode) != 0:
+        detail = _isolated_child_stderr_text(completed).strip()
+        first = detail.splitlines()[0] if detail else (
+            f"isolated cached-record authentication child failed (exit {int(completed.returncode)})"
+        )
+        if first.startswith("SYNTHETIC_EXECUTION_NOT_AUTHORIZED"):
+            raise SyntheticExecutionNotAuthorized(first)
+        _refuse(f"cached world records do not match frozen execution: {first}")
+    proof = _parse_authenticate_cached_records_proof(completed.stdout or b"")
+    expected_world = _sha256_bytes(
+        canonical_json_bytes({"worlds": _jsonable(list(payload["records"]))})
+    )
+    expected_chain = list(_ordered_record_digest_chain(payload["records"]))
+    if proof.get("execution_head") != bound["head_sha"]:
+        _refuse("cached-record authentication proof execution_head does not match git HEAD")
+    if proof.get("execution_tree") != bound["tree_sha"]:
+        _refuse("cached-record authentication proof execution_tree does not match git HEAD")
+    if proof.get("run_identity") != _run_identity_from_bound(bound):
+        _refuse("cached-record authentication proof run_identity does not match git HEAD")
+    if proof.get("plan_sha256") != planned_jobs_sha256(planned_jobs):
+        _refuse("cached-record authentication proof plan does not match the submitted jobs")
+    if proof.get("world_set_sha256") != expected_world:
+        _refuse("cached world records do not match frozen execution")
+    if not _canonical_equal(proof.get("record_digest_chain"), expected_chain):
+        _refuse("cached world records do not match frozen execution")
+    if proof.get("trust_state") != CHECKPOINT_SCIENTIFICALLY_VERIFIED:
+        _refuse("cached-record authentication did not derive SCIENTIFICALLY_VERIFIED")
+    return proof
+
+
+def _parse_authenticate_cached_records_proof(raw: bytes) -> dict[str, Any]:
+    if not raw:
+        _refuse("isolated cached-record authentication child produced no proof")
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise SyntheticExecutionNotAuthorized(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: isolated cached-record authentication proof is not UTF-8"
+        ) from exc
+    decoder = json.JSONDecoder()
+    try:
+        payload, end = decoder.raw_decode(text)
+    except json.JSONDecodeError as exc:
+        raise SyntheticExecutionNotAuthorized(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: isolated cached-record authentication proof is not JSON"
+        ) from exc
+    if text[end:].strip():
+        _refuse("isolated cached-record authentication child produced duplicate or trailing output")
+    if not isinstance(payload, dict):
+        _refuse("isolated cached-record authentication proof is not an object")
+    if frozenset(payload) != _AUTHENTICATE_CACHED_RECORDS_PROOF_KEYS:
+        _refuse("isolated cached-record authentication proof keys are not canonical")
+    if payload.get("schema_version") != "1.0":
+        _refuse("isolated cached-record authentication proof schema is not canonical")
+    if payload.get("kind") != AUTHENTICATE_CACHED_RECORDS_PROOF_KIND:
+        _refuse("isolated cached-record authentication proof kind is not canonical")
+    if payload.get("mode") != AUTHENTICATE_CACHED_RECORDS_MODE:
+        _refuse("isolated cached-record authentication proof mode is not canonical")
+    if payload.get("verification_success") is not True:
+        _refuse("isolated cached-record authentication proof did not attest success")
+    if payload.get("verification_authority") != "ISOLATED_FROZEN_GIT_EXECUTION":
+        _refuse("cached-record authentication authority is not isolated frozen git bytes")
+    return payload
+
+
+def authenticate_cached_records_worker_main() -> dict[str, Any]:
+    """Isolated child: recompute planned jobs from frozen git bytes and compare."""
+    root = _repo_root()
+    bound = verify_executed_production_authority(root)
+    raw = sys.stdin.buffer.read()
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise SyntheticExecutionNotAuthorized(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: untrusted cached records payload is malformed"
+        ) from exc
+    if not isinstance(payload, dict):
+        _refuse("untrusted cached records payload is malformed")
+    if payload.get("kind") != UNTRUSTED_CACHED_WORLD_RECORDS_KIND:
+        _refuse("cached records payload kind is not untrusted")
+    if payload.get("not_scientific_authority") is not True:
+        _refuse("cached records must be marked untrusted")
+    if payload.get("trust_state") == CHECKPOINT_SCIENTIFICALLY_VERIFIED:
+        _refuse("checkpoint must not self-attest scientific verification")
+    jobs_raw = payload.get("jobs")
+    records = payload.get("records")
+    if not isinstance(jobs_raw, list) or not isinstance(records, list):
+        _refuse("untrusted cached records payload is missing jobs or records")
+    jobs = tuple((str(job[0]), int(job[1]), int(job[2])) for job in jobs_raw)
+    production = payload.get("production") is True
+    if production:
+        if jobs != planned_production_jobs():
+            _refuse("production authentication plan is not the frozen 3200-world plan")
+    else:
+        _fixture_jobs_forbidden_as_production(jobs)
+    if str(payload.get("execution_head") or "") != bound["head_sha"]:
+        _refuse("cached records execution_head does not match isolated git HEAD")
+    if str(payload.get("execution_tree") or "") != bound["tree_sha"]:
+        _refuse("cached records execution_tree does not match isolated git HEAD")
+    if payload.get("run_identity") != _run_identity_from_bound(bound):
+        _refuse("cached records run_identity does not match isolated git HEAD")
+    if payload.get("plan_sha256") != planned_jobs_sha256(jobs):
+        _refuse("cached records plan_sha256 does not match isolated planned jobs")
+    cached = assemble_canonical_world_records(planned_jobs=jobs, completed_records=records)
+    recomputed = [
+        _jsonable(_evaluate_planned_world_body(scenario_id, n_rows, world_index))
+        for scenario_id, n_rows, world_index in jobs
+    ]
+    recomputed = assemble_canonical_world_records(
+        planned_jobs=jobs, completed_records=recomputed
+    )
+    cached_bytes = canonical_json_bytes({"worlds": cached})
+    recomputed_bytes = canonical_json_bytes({"worlds": recomputed})
+    if cached_bytes != recomputed_bytes:
+        _refuse("cached world records do not match frozen execution")
+    return {
+        "schema_version": "1.0",
+        "kind": AUTHENTICATE_CACHED_RECORDS_PROOF_KIND,
+        "mode": AUTHENTICATE_CACHED_RECORDS_MODE,
+        "verification_success": True,
+        "trust_state": CHECKPOINT_SCIENTIFICALLY_VERIFIED,
+        "execution_head": bound["head_sha"],
+        "execution_tree": bound["tree_sha"],
+        "run_identity": _run_identity_from_bound(bound),
+        "plan_sha256": planned_jobs_sha256(jobs),
+        "world_set_sha256": _sha256_bytes(recomputed_bytes),
+        "record_digest_chain": list(_ordered_record_digest_chain(recomputed)),
+        "observed_world_count": len(recomputed),
+        "verification_authority": "ISOLATED_FROZEN_GIT_EXECUTION",
+    }
 
 
 def _job_from_record(rec: Mapping[str, Any]) -> tuple[str, int, int]:
@@ -2680,6 +2910,12 @@ def _mint_from_session(session: _CanonicalExecutionSession) -> dict[str, Any]:
             or aggregates["mechanical_conclusion"] == "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM"
         ):
             _refuse("incomplete execution cannot mint a final RESULT")
+        authenticate_cached_world_records_from_frozen_execution(
+            planned=session.jobs,
+            records=session.records,
+            repo_root=session.repo_root,
+            production=True,
+        )
         bound = verify_executed_production_authority(session.repo_root)
         core = _bind_result_core(
             records=session.records,
@@ -3739,6 +3975,7 @@ def _isolated_child_env():
         key: value
         for key, value in os.environ.items()
         if "AUTHORIZ" not in key.upper()
+        and "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_TEST_" not in key
         and key
         not in {
             "PYTHONPATH",
@@ -3752,7 +3989,7 @@ def _isolated_child_env():
     return env
 
 
-def _spawn_isolated_child(mode, repo_root=None, *, text: bool = True):
+def _spawn_isolated_child(mode, repo_root=None, *, text: bool = True, stdin=None):
     """Spawn the existing isolated interpreter. No timeout: historical
     `FULL_3200_RECOMPUTATION` is synchronous and may take many hours.
     """
@@ -3773,6 +4010,7 @@ def _spawn_isolated_child(mode, repo_root=None, *, text: bool = True):
         check=False,
         capture_output=True,
         text=text,
+        input=stdin,
     )
 
 
@@ -3963,6 +4201,11 @@ def _isolated_child_main(mode):
             sys.stdout.buffer.write(canonical_json_bytes(_jsonable(payload)))
             sys.stdout.flush()
             return 0
+        if mode == AUTHENTICATE_CACHED_RECORDS_MODE:
+            payload = authenticate_cached_records_worker_main()
+            sys.stdout.buffer.write(canonical_json_bytes(_jsonable(payload)))
+            sys.stdout.flush()
+            return 0
         print("SYNTHETIC_EXECUTION_NOT_AUTHORIZED: unknown isolated child mode", file=sys.stderr)
         return 2
     except SyntheticExecutionNotAuthorized as exc:
@@ -4053,6 +4296,8 @@ def production_durability_identity():
         },
         "durable_partial_is_not_result": True,
         "durable_partial_is_not_world_records": True,
+        "durable_partial_is_not_scientific_authority": True,
+        "checkpoint_content_trusted_directly": False,
     }
 
 

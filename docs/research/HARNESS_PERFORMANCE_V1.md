@@ -18,7 +18,7 @@ existing ARM, does not create a new ARM, and does not execute the canonical
 3200-world grid.
 
 Independent review accepted the performance result as genuine and required
-two repairs, now implemented on this HEAD:
+repairs, now implemented on this HEAD:
 
 1. **BLOCKER-1** — pin `harness_synthetic_edge_calibration_v1_worker.py` in the
    live execution TCB from git objects (`WORKER_PATH` / `WORKER_SHA256` /
@@ -27,6 +27,11 @@ two repairs, now implemented on this HEAD:
 2. **MAJOR-1** — crash-safe durable partial world evidence, distinct from
    canonical `WORLD_RECORDS` / scientific RESULT. Partial evidence is not
    one-shot consumption. Resume is exact and identity-bound.
+3. **BLOCKER-2** — checkpoint bytes are untrusted cached compute. A
+   self-consistent forged record (honest SHA256, valid schema/identity) must
+   not become scientific authority. Authoritative mint authenticates every
+   cached/computed record against isolated frozen git execution bytes. Secrets
+   and HMAC are not scientific authority.
 
 Required topology after this unit:
 
@@ -151,15 +156,40 @@ rejects duplicates/unexpected/malformed/foreign records, schedules only
 missing worlds, and canonical-reorders before aggregation. Worker completion
 order remains irrelevant.
 
+Checkpoint trust states are derived, not persisted:
+
+```
+CHECKPOINT_CACHED
+CHECKPOINT_STRUCTURALLY_VALID   # resume may retain these without recomputing
+CHECKPOINT_SCIENTIFICALLY_VERIFIED  # derived by isolated frozen-git verifier only
+```
+
+`HASH(checkpoint content) == stored hash` is not proof that the scientific
+computation occurred. Resume may use STRUCTURALLY_VALID records to continue
+compute. Canonical `WORLD_RECORDS` / RESULT mint requires isolated
+`authenticate-cached-records` against exact frozen git execution bytes, the
+frozen plan, and exact world identities. A self-consistent forgery, a
+whole-checkpoint fabrication, or a mixed legitimate+forged store fails
+closed. Persisted `verified=true` metadata is ignored/refused; verification
+status is not trusted from checkpoint content.
+
+Authoritative verification cost is a separate isolated scientific pass at
+production mint (same frozen `_evaluate_planned_world_body` as live compute,
+executed from git objects in a fresh `-I -B -P` child). Claim-time
+`FULL_3200_RECOMPUTATION` remains the existing historical RESULT verifier.
+Do not hide that cost inside the optimized production runtime. Resume does
+not immediately recompute completed worlds.
+
 State machine:
 
 ```
 AUTHORIZED -> RUNNING/PARTIAL -> COMPLETE -> RESULT CLAIM
 ```
 
-An aborted run with verified durable partial evidence is not consumed. Resume
+An aborted run with durable partial evidence is not consumed. Resume
 is allowed only under the exact execution identity that created the partial
-evidence. A different implementation/freeze/ARM must not reuse it.
+evidence. A different implementation/freeze/ARM must not reuse it. Partial
+evidence is not scientific authority.
 
 ## Bounded diagnostic measurements (not production N)
 
