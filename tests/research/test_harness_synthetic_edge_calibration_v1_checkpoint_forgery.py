@@ -30,8 +30,6 @@ from tests.research.test_harness_synthetic_edge_calibration_v1_tcb_durability im
     _store,
 )
 
-pytestmark = pytest.mark.research
-
 TWO = JOBS[:2]
 
 
