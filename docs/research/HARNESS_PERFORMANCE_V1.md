@@ -105,3 +105,35 @@ production reads `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_WORKERS`.
 A future ARM that authorizes this performance HEAD must pin
 `harness_synthetic_edge_calibration_v1_worker.py` in addition to the existing
 execution-authority paths.
+
+## Bounded diagnostic measurements (not production N)
+
+Fixture: `NON_PRODUCTION_PERFORMANCE_DIAGNOSTIC`, 3 worlds, `n=80`,
+production replicate counts (visibility 500 / bootstrap 500 / placebo 999).
+Host: 4 logical CPUs. Python 3.12.3.
+
+These rows are **MEASURED** on the diagnostic fixture. They are not n=5000.
+
+| configuration | s/world | worlds/hour | speedup vs frozen sequential oracle | peak RSS (KB) |
+|---|---|---|---|---|
+| OLD frozen sequential oracle | 2.8707 | 1254 | 1.00 | 55456 |
+| NEW sequential workers=1 | 1.2840 | 2804 | 2.24 | 55456 |
+| NEW workers=2 | 1.0098 | 3565 | 2.84 | 55720 |
+| NEW workers=4 | 0.6576 | 5475 | 4.37 | 55720 |
+
+Parent `process_time` does not include spawn-worker CPU; wall-clock is the
+throughput metric for workers>1.
+
+Workers=4 on only 3 worlds cannot demonstrate 4-way linear scaling (at most
+3 worlds run at once). Parallel efficiency from that cell is not a 3200-world
+scaling law.
+
+Prior aborted production run (**MEASURED_PRIOR_RUN**, n=5000): 11.92 s/world,
+~302 worlds/hour, 10.5–13 h projected sequential 3200.
+
+If the 2.24× sequential diagnostic speedup versus the frozen oracle also holds
+at n=5000, sequential production would be about 5.3 s/world (**EXTRAPOLATED**,
+~4.7 h for 3200). Dedicated 16-core execution at ~70% of linear scaling on that
+rate would be about 0.4–0.5 h (**EXTRAPOLATED**). That is a target-shaped
+extrapolation from mixed n=80/n=5000 evidence, not a measured 3200-world runtime.
+Do not treat n=80 × 3200 as a production estimate.
