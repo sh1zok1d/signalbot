@@ -568,6 +568,9 @@ def test_no_reroll_and_planned_3200_remain_authoritative():
     assert prod.CANONICAL_WORLD_RECORDS_PATH.endswith("PRODUCTION_WORLD_RECORDS.json")
     assert "PRODUCTION_RECORD_MANIFEST" not in source
     assert "_assert_production_aggregates_self_consistent" not in source
+    assert "_recompute_production_records_from_frozen_execution" in source
+    assert "tracked WORLD_RECORDS were not produced by frozen execution" in source
+    assert prod.AUTHORITATIVE_HISTORICAL_VERIFICATION == "FULL_3200_RECOMPUTATION"
     assert (REPO / prod.CANONICAL_DRIVER_FREEZE_PATH).exists() is False
     assert (REPO / prod.CANONICAL_WORLD_RECORDS_PATH).exists() is False
 

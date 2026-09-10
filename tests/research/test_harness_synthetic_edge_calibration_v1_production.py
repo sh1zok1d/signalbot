@@ -1441,10 +1441,20 @@ def _commit_result_envelope(
     return raw
 
 
+def _bind_mock_production_evaluator(monkeypatch) -> None:
+    """Disposable mock evaluator. Tests must not invoke the real production Monte Carlo."""
+
+    def fake(scenario_id, n_rows, world_index):
+        return _mock_record(scenario_id, n_rows, world_index)
+
+    monkeypatch.setattr(prod, "_evaluate_planned_world_body", fake)
+
+
 def _armed_fixture_repo(tmp_path, monkeypatch) -> Path:
     repo = _commit_production_tree(tmp_path)
     _commit_arm_authorizing_parent(repo)
     _bind_prod(monkeypatch, repo)
+    _bind_mock_production_evaluator(monkeypatch)
     _assert_clean(repo)
     return repo
 
@@ -1631,7 +1641,10 @@ def _commit_production_result(
     A single tracked version per topology, so the duplicate/conflicting-RESULT
     guard can never mask a scientific tamper.
     """
-    records = _planned_records()
+    records = [
+        prod._evaluate_planned_world_body(*job)
+        for job in prod.planned_production_jobs()
+    ]
     bound = prod.verify_executed_production_authority(repo)
     core = prod._bind_result_core_from_bound(
         records, bound=bound, fixture=False, armed=True
@@ -1681,6 +1694,16 @@ def test_historical_production_result_verifies_and_binds_world_records(
     claim = prod.durable_result_claim_from_tracked_authority(repo)
     assert claim["final_result_minted"] is True
     assert claim["production_calibration_executed"] is True
+    assert claim["result_artifact_sha256"] == claim["artifact_sha256"]
+    assert claim["result_artifact_size"] == claim["artifact_size"]
+    assert claim["records_artifact_sha256"] == core["records_artifact_sha256"]
+    assert claim["records_artifact_size"] == core["records_artifact_size"]
+    assert claim["records_artifact_path"] == prod.CANONICAL_WORLD_RECORDS_PATH
+    assert claim["execution_head"] == core["execution_head"]
+    assert claim["execution_tree"] == core["execution_tree"]
+    assert claim["run_identity"] == core["run_identity"]
+    assert claim["terminal_commit"]
+    assert claim["terminal_tree"]
 
 
 def test_historical_production_result_requires_tracked_world_records(
@@ -1769,6 +1792,92 @@ def test_consistent_aggregate_rewrite_refused(tmp_path, monkeypatch):
         "aggregates were not derived from the world set" in detail
         or "core payload tamper" in detail
     )
+
+
+def test_historical_production_recomputes_all_3200_worlds(tmp_path, monkeypatch):
+    repo = _armed_fixture_repo(tmp_path, monkeypatch)
+    calls: list[tuple[str, int, int]] = []
+    inner = prod._evaluate_planned_world_body
+
+    def counting(scenario_id, n_rows, world_index):
+        calls.append((scenario_id, n_rows, world_index))
+        return inner(scenario_id, n_rows, world_index)
+
+    monkeypatch.setattr(prod, "_evaluate_planned_world_body", counting)
+    _commit_production_result(repo)
+    calls.clear()
+    prod.verify_bound_result_from_tracked_authority(repo)
+    assert len(calls) == 3200
+    assert calls == list(prod.planned_production_jobs())
+    assert calls[0] == ("NULL", 5000, 0)
+    assert calls[-1] == ("SMALL", 10000, 399)
+
+
+def test_consistent_result_plus_world_records_rewrite_refused(tmp_path, monkeypatch):
+    """First-and-only self-consistent fabricated WORLD_RECORDS + RESULT pair."""
+    repo = _armed_fixture_repo(tmp_path, monkeypatch)
+    bound = prod.verify_executed_production_authority(repo)
+    honest_records = [
+        prod._evaluate_planned_world_body(*job)
+        for job in prod.planned_production_jobs()
+    ]
+    forged_records = _records_with_cell_successes("NULL", 5000, "oracle_model", 400)
+    honest = prod._bind_result_core_from_bound(
+        honest_records, bound=bound, fixture=False, armed=True
+    )
+    forged = prod._bind_result_core_from_bound(
+        forged_records, bound=bound, fixture=False, armed=True
+    )
+    forged_world_records = prod._production_world_records_from_bound(
+        forged_records, bound=bound
+    )
+    assert honest["aggregates"]["arms"]["ORACLE_NULL_MODEL_DETECTED"]["successes"] == 0
+    assert forged["aggregates"]["arms"]["ORACLE_NULL_MODEL_DETECTED"]["successes"] == 400
+    assert honest["mechanical_conclusion"] != forged["mechanical_conclusion"]
+    assert forged["execution_head"] == honest["execution_head"]
+    assert forged["execution_tree"] == honest["execution_tree"]
+    assert forged["run_identity"] == honest["run_identity"]
+    assert forged["records_artifact_sha256"] != honest["records_artifact_sha256"]
+    _commit_result_envelope(
+        repo,
+        prod._result_envelope_from_core(forged),
+        world_records=forged_world_records,
+    )
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized) as excinfo:
+        prod.verify_bound_result_from_tracked_authority(repo)
+    detail = str(excinfo.value)
+    assert "duplicate/conflicting" not in detail
+    assert "tracked WORLD_RECORDS were not produced by frozen execution" in detail
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized) as claim_exc:
+        prod.durable_result_claim_from_tracked_authority(repo)
+    claim_detail = str(claim_exc.value)
+    assert "duplicate/conflicting" not in claim_detail
+    assert "tracked WORLD_RECORDS were not produced by frozen execution" in claim_detail
+
+
+def test_historical_spotcheck_is_not_claim_authority(tmp_path, monkeypatch):
+    source = Path(prod.__file__).read_text(encoding="utf-8")
+    claim_src = source.split("def durable_result_claim_from_tracked_authority", 1)[1].split(
+        "def persist_partial_worlds", 1
+    )[0]
+    verify_src = source.split("def verify_bound_result_from_tracked_authority", 1)[1].split(
+        "def durable_result_claim_from_tracked_authority", 1
+    )[0]
+    assert "diagnose_historical_result_spotcheck" not in claim_src
+    assert "diagnose_historical_result_spotcheck" not in verify_src
+    assert prod.AUTHORITATIVE_HISTORICAL_VERIFICATION == "FULL_3200_RECOMPUTATION"
+    repo = _armed_fixture_repo(tmp_path, monkeypatch)
+    _commit_production_result(repo)
+    diagnostic = prod.diagnose_historical_result_spotcheck(repo)
+    assert diagnostic["authoritative"] is False
+    assert diagnostic["authoritative_historical_verification"] is False
+    assert diagnostic["durable_claim_authorized"] is False
+    assert diagnostic["full_recompute"] is False
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized,
+        match="caller arguments cannot authorize a historical spot-check",
+    ):
+        prod.diagnose_historical_result_spotcheck(repo, n=8)
 
 
 def _mut_arm(core, arm, key, value):
