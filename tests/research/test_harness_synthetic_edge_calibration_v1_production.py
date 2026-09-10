@@ -35,10 +35,36 @@ FROZEN_PREREG_JSON_SHA256 = (
 FROZEN_PREREG_MD_SHA256 = (
     "a54c838d2b4903f039b4fd39d79198415ce095f5a9726fc51949cbb47153e5a3"
 )
+FREEZE_PARENT_HEAD = "40e54b8c0497593aa3daf0bddc0e014bf048489f"
+FREEZE_PARENT_TREE = "0f6be102b29ce964f0ea8f3947927854888eef08"
+REVIEWED_IMPLEMENTATION_HEAD = "3fadc391ee0002e35463b526301d287d4a662828"
+REVIEWED_IMPLEMENTATION_TREE = "5fb77727c418cc42bf3c1c6553355a0475f42efc"
+SUPERSEDED_HISTORICAL_ARM_HEAD = "940d85bf58673396c6c0cc05ce2134a2e2e92809"
 
 
 def _git(repo: Path, *args: str) -> str:
     return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+
+
+def _canonical_arm_commit(repo: Path) -> str:
+    """Locate the ARM commit as the immediate freeze child, even on a merge HEAD."""
+    commits = _git(
+        repo,
+        "log",
+        "--pretty=%H",
+        f"{FREEZE_PARENT_HEAD}..HEAD",
+        "--",
+        prod.CANONICAL_ARM_PATH,
+    ).splitlines()
+    for commit in commits:
+        parent = _git(repo, "rev-parse", f"{commit}^")
+        if parent == FREEZE_PARENT_HEAD:
+            return commit
+    raise AssertionError("canonical ARM commit is not an immediate child of DRIVER FREEZE")
+
+
+def _head_is_canonical_arm(repo: Path) -> bool:
+    return _git(repo, "rev-parse", "HEAD") == _canonical_arm_commit(repo)
 
 
 def _write(path: Path, data: bytes | str) -> None:
@@ -1407,7 +1433,7 @@ def test_114_local_reservation_superseded_when_production_module_tracked(tmp_pat
         auth.run_authorized_production_grid()
 
 
-def test_cli_uses_fresh_process_and_stays_unarmed():
+def test_cli_uses_fresh_process_and_stays_unexecuted():
     source = Path(runner.__file__).read_text(encoding="utf-8")
     assert "spawn_canonical_production_process" in source
     assert "run_authorized_production_grid" not in source
@@ -1427,13 +1453,28 @@ def test_cli_uses_fresh_process_and_stays_unarmed():
             text=True,
         )
     )
-    assert identity["production_monte_carlo_arm_authorized"] is False
+    head_is_arm = _head_is_canonical_arm(REPO)
+    assert identity["production_monte_carlo_arm_authorized"] is head_is_arm
+    assert identity["monte_carlo_armed"] is head_is_arm
+    assert identity["stage"] == (
+        "production_monte_carlo_arm_authorized" if head_is_arm else "production_execution_driver_unarmed"
+    )
     assert identity["production_calibration_executed"] is False
     assert identity["production_result_minted"] is False
-    assert identity["monte_carlo_armed"] is False
+    assert identity["authorization_consumed"] is False
     assert identity["real_data_path"] is False
+    assert identity["real_market_data_access_authorized"] is False
+    assert identity["b2_06_scientific_execution_authorized"] is False
+    assert identity["validation_2025_authorized"] is False
+    assert identity["oos_2026_authorized"] is False
     assert (REPO / prod.CANONICAL_RESULT_PATH).exists() is False
-    assert (REPO / prod.CANONICAL_ARM_PATH).exists() is False
+    assert (REPO / prod.CANONICAL_WORLD_RECORDS_PATH).exists() is False
+    assert (REPO / prod.CANONICAL_ARM_PATH).exists() is True
+    assert prod._arm_payload_authorizes_at_commit(
+        REPO,
+        _canonical_arm_commit(REPO),
+        json.loads((REPO / prod.CANONICAL_ARM_PATH).read_text(encoding="utf-8")),
+    ) is True
 
 
 def test_production_modules_have_no_real_data_path():

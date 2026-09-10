@@ -1,17 +1,21 @@
 # HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — production execution driver
 
-**Status:** `PRODUCTION_DRIVER_IMPLEMENTATION_FROZEN_UNARMED`
+**Status:** `PRODUCTION_MONTE_CARLO_ARM_AUTHORIZED_UNEXECUTED`
 
 **Unit ID:** `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1`
 
 **Freeze record:** [`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_DRIVER_FREEZE.md`](HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_DRIVER_FREEZE.md)
 
-**Not a RESULT. Not Monte Carlo authorization. Not B2-06, 2025, or 2026 authorization.**
+**ARM record:** [`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_ARM.md`](HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_ARM.md)
+
+**Not a RESULT. Not an execution. Not B2-06, 2025, or 2026 authorization.**
 
 This unit completes the canonical production execution path on top of the
 frozen #115 durability/aggregation layer. The independently reviewed driver
-implementation is frozen. Production remains unarmed. This HEAD does not run
-the 3200-world calibration and does not mint a production RESULT.
+implementation is frozen. This HEAD is the docs-only ARM immediate child of
+that freeze. It authorizes exactly one synthetic production Monte Carlo
+against the frozen 3200-world plan. It does not run the calibration and does
+not mint a production RESULT.
 
 ## Sequence
 
@@ -37,17 +41,17 @@ C_arm
 
 `reviewed_implementation_head` must be a strict ancestor of the authorized
 parent. ARM cannot self-bless `reviewed_implementation_head == parent`.
-Future ARM verification reads the tracked driver-freeze artifact at the
+ARM verification reads the tracked driver-freeze artifact at the
 authorized parent rather than trusting caller-updated ARM fields.
 
-This freeze commit **is** that docs-only `C_driver_freeze` descendant. It
-records reviewed implementation HEAD
+The freeze parent `40e54b8c0497593aa3daf0bddc0e014bf048489f` /
+tree `0f6be102b29ce964f0ea8f3947927854888eef08` is that docs-only
+`C_driver_freeze` descendant. It records reviewed implementation HEAD
 `3fadc391ee0002e35463b526301d287d4a662828` / tree
-`5fb77727c418cc42bf3c1c6553355a0475f42efc`. It does **not** claim that the
-docs-only freeze commit itself was the reviewed code HEAD.
-
-No further code-changing commit is required between a later ARM and the
-canonical run. This freeze does not create the ARM.
+`5fb77727c418cc42bf3c1c6553355a0475f42efc`. This ARM commit is the
+immediate child. It authorizes that freeze parent and modifies no
+execution-authority bytes. No further code-changing commit is required
+between this ARM and the canonical run. This ARM does not execute.
 
 Successful complete execution emits a machine-readable stdout envelope
 `kind=COMPLETE_RESULT` containing the canonical RESULT bytes and the exact
@@ -165,10 +169,9 @@ tiny non-production plan. It cannot encode the frozen 3200-world grid or
 production N `{2500, 5000, 10000}`. Tests may use disposable ARM fixtures.
 They must not weaken production guards.
 
-## Future ARM machine checks
+## ARM machine checks
 
-Because `production.py` changed in this driver unit, future ARM verification
-now machine-checks material contract fields:
+ARM verification machine-checks material contract fields:
 
 - `authorized_run_count == 1`
 - `scope == "production_synthetic_calibration_only"`
@@ -182,7 +185,7 @@ now machine-checks material contract fields:
 - `oos_2026_authorized == false`
 - `authorized_grid` exactly equals the frozen grid
 
-Future ARM must also bind the independently reviewed driver implementation:
+The live ARM also binds the independently reviewed driver implementation:
 
 ```text
 reviewed_implementation_head / reviewed_implementation_tree
@@ -193,7 +196,9 @@ parent execution-authority bytes == reviewed execution-authority bytes
 A caller may not keep a reviewed identity whose `production.py` bytes differ
 from the authorized parent by rewriting ARM digests or reviewed fields.
 
-This unit does **not** add a live ARM artifact.
+This HEAD adds the live docs-only ARM artifact. The ARM authorizes only
+its freeze parent and the exact frozen 3200-world plan. A descendant of
+the ARM commit is not armed.
 
 ## Identity
 
@@ -292,7 +297,7 @@ historical_recompute_mode = historical-recompute
 full_historical_verification_is_intentionally_expensive = true
 spot_check_cannot_validate_or_mint_durable_claims = true
 tracked_world_records_are_evidence_not_authority = true
-production_monte_carlo_arm_authorized = false
+production_monte_carlo_arm_authorized = true
 production_calibration_executed = false
 world_records_persisted = false
 ACTUAL_PRODUCTION_EXECUTION_RUN = NO
@@ -304,5 +309,6 @@ oos_2026_authorized = false
 ARTIFACTS_ROOT_PACKAGE_ACTIVATED = NO
 ```
 
-The live driver-freeze artifact is tracked. No tracked live ARM artifact
-authorizes this HEAD. Frozen scientific lib and prereg bytes are unchanged.
+The live driver-freeze artifact remains tracked at the freeze parent. The
+live ARM artifact authorizes that parent. Frozen scientific lib and prereg
+bytes are unchanged. Production calibration is not executed.

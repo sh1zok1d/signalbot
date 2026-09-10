@@ -1720,3 +1720,32 @@ non-authoritative.
 - world_records_persisted: **false**
 - authorization_consumed: **false**
 - status: `PRODUCTION_DRIVER_IMPLEMENTATION_FROZEN_UNARMED`
+
+## 2026-09-10 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 final production Monte Carlo ARM
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — final production Monte Carlo ARM
+
+**Decision:** authorize exactly one frozen synthetic production Monte Carlo
+as the immediate child of DRIVER FREEZE `40e54b8c0497593aa3daf0bddc0e014bf048489f`.
+**Unit verdict:** unused; production calibration not executed; ARM not consumed.
+
+Docs/authority-artifact-only ARM. Binds the tracked freeze artifact at the
+freeze parent, the reviewed implementation HEAD
+`3fadc391ee0002e35463b526301d287d4a662828` / tree
+`5fb77727c418cc42bf3c1c6553355a0475f42efc`, the freeze-recorded
+execution-authority SHA256 values, and the exact frozen 3200-world plan.
+Does not modify production/scientific/test implementation except live-HEAD
+unarmed→armed state-transition tests. Does not execute the 3200-world
+calibration. Does not persist WORLD_RECORDS or RESULT. Does not mint a
+durable claim. Does not consume one-shot authority. Historical ARM
+`940d85bf58673396c6c0cc05ce2134a2e2e92809` remains rejected and is not
+this ARM. B2-06 / 2025 / 2026 / other hypotheses / real market data remain
+unauthorized.
+
+- driver_implementation_frozen: **true**
+- production_monte_carlo_arm_authorized: **true**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_MONTE_CARLO_ARM_AUTHORIZED_UNEXECUTED`

@@ -1,7 +1,10 @@
 {
   "B2_06_scientific_execution_authorized": false,
   "actual_production_execution_run": false,
-  "arm_artifact_present": false,
+  "arm_artifact_present": true,
+  "arm_path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_ARM.json",
+  "freeze_parent_head": "40e54b8c0497593aa3daf0bddc0e014bf048489f",
+  "freeze_parent_tree": "0f6be102b29ce964f0ea8f3947927854888eef08",
   "artifacts_root_package_activated": false,
   "authorization_consumed": false,
   "base_head": "502a62ddee0a3106967b21f0095be7e1629a56b2",
@@ -50,12 +53,12 @@
   "tracked_world_records_are_evidence_not_authority": true,
   "prereg_json_sha256": "78fcddf03ce84a0369a955d5b571c2423129d12b22e35f77eab26d6ac5eff708",
   "prereg_md_sha256": "a54c838d2b4903f039b4fd39d79198415ce095f5a9726fc51949cbb47153e5a3",
-  "production_monte_carlo_arm_authorized": false,
+  "production_monte_carlo_arm_authorized": true,
   "production_calibration_executed": false,
   "production_result_minted": false,
   "world_records_persisted": false,
   "result_requires_canonical_session_capability": true,
-  "status": "PRODUCTION_DRIVER_IMPLEMENTATION_FROZEN_UNARMED",
+  "status": "PRODUCTION_MONTE_CARLO_ARM_AUTHORIZED_UNEXECUTED",
   "unit_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1",
   "validation_2025_authorized": false
 }

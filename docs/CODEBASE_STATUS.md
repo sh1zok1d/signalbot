@@ -145,15 +145,15 @@ commit/tree object access, not caller mappings. See
 `harness_synthetic_edge_calibration_v1_production.py` implement the frozen
 synthetic calibration instrument, the unused #114 one-shot authorization
 bytes, the frozen unarmed production durability/aggregation layer, and the
-canonical 3200-world production driver. The driver is implementation-frozen
-and remains unarmed. Caller-supplied records cannot mint a RESULT. Historical
-ARM HEAD `940d85bf58673396c6c0cc05ce2134a2e2e92809` is
+canonical 3200-world production driver. The driver is implementation-frozen.
+The live docs-only ARM authorizes exactly one synthetic production Monte
+Carlo against the freeze parent. Caller-supplied records cannot mint a
+RESULT. Historical ARM HEAD `940d85bf58673396c6c0cc05ce2134a2e2e92809` is
 `REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`. Production
-execution remains fail-closed until a separate later ARM immediate child of
-the driver freeze. `driver_implementation_frozen = true`.
+calibration is not executed. `driver_implementation_frozen = true`.
 `implementation_frozen = true`.
 `production_calibration_executed = false`.
-`production_monte_carlo_arm_authorized = false`.
+`production_monte_carlo_arm_authorized = true`.
 `production_result_minted = false`. This is not a market hypothesis and does
 not authorize B2-06, 2025, or 2026.
 
