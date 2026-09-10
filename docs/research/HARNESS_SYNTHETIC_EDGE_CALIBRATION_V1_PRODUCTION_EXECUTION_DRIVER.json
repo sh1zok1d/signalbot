@@ -33,6 +33,8 @@
   "production_result_protected_scope_flags_literal_checked": true,
   "production_result_world_records_bound": true,
   "production_result_scientific_payload_rederived": true,
+  "authoritative_historical_verification": "FULL_3200_RECOMPUTATION",
+  "tracked_world_records_are_evidence_not_authority": true,
   "prereg_json_sha256": "78fcddf03ce84a0369a955d5b571c2423129d12b22e35f77eab26d6ac5eff708",
   "prereg_md_sha256": "a54c838d2b4903f039b4fd39d79198415ce095f5a9726fc51949cbb47153e5a3",
   "production_monte_carlo_arm_authorized": false,

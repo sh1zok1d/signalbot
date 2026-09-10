@@ -64,8 +64,10 @@ verify_bound_result_from_tracked_authority(repo_root, result_document_or_path)
     reads execution_head from the RESULT core itself
     loads execution-authority blobs from that exact commit via git objects
     re-verifies ARM/freeze topology at execution time
-    loads the tracked WORLD_RECORDS artifact from git objects, not the worktree
-    recomputes record evidence, aggregates, and all derived scientific fields
+    proves executing scientific/production blobs match that execution commit
+    independently recomputes all 3200 frozen-plan worlds
+    compares canonical WORLD_RECORDS evidence against that recomputation
+    recomputes aggregates and all derived scientific fields
     reconstructs the expected core and compares it exactly
     current HEAD need not be armed
 ```
@@ -186,30 +188,48 @@ does not grant authority. Absent ARM reports unarmed. A valid disposable ARM
 reports armed. Malformed ARM fails closed. Identity must not say UNARMED while
 the canonical ARM verifier says armed.
 
-## Production RESULT scientific payload is recomputed from WORLD_RECORDS
+## Production RESULT is recomputed from frozen execution, not WORLD_RECORDS trust
 
 A production RESULT names its execution commit, but naming a legitimately armed
-execution does not make its scientific payload authoritative. Aggregates,
-Wilson intervals, verdicts, bands, floors, and `mechanical_conclusion` are
-not historical inputs. Historical verification of a production-shaped RESULT:
+execution does not make its scientific payload authoritative. Tracked
+WORLD_RECORDS are retained evidence / cached output, not self-authenticating
+authority. Aggregates, Wilson intervals, verdicts, bands, floors, and
+`mechanical_conclusion` are not historical inputs.
+
+Authoritative `verify_bound_result_from_tracked_authority` of a production
+RESULT:
 
 - checks the protected literals exactly — `production_calibration_executed`
   true, `production_monte_carlo_arm_authorized` true, and
   `real_market_data_access_authorized`, `B2_06_scientific_execution_authorized`,
   `validation_2025_authorized`, `oos_2026_authorized` all false — and refuses a
   core that declares `fixture` or `not_a_production_result`;
-- loads the tracked sibling WORLD_RECORDS artifact from git objects at HEAD,
-  not from the worktree and not from RESULT-declared aggregates;
-- verifies canonical path, digest, size, kind, execution identity, frozen grid,
-  and the exact 3200-job plan in canonical order;
-- preserves invalid worlds, refuses missing/duplicate/extra jobs, and
-  recomputes `world_set_sha256` and `record_digest_chain` from those records;
-- recomputes production aggregates from those records, then every derived
-  scientific field: per-arm successes/n, Wilson intervals, specificity and
-  power verdicts, SMALL bands, TRUE_DISCOVERY band, visibility and model
-  floors, the materiality-only diagnostic, `incomplete_execution`,
-  `observed_world_count`, and `mechanical_conclusion`;
+- loads the tracked sibling WORLD_RECORDS artifact from git objects, not the
+  worktree, and verifies canonical path, digest, size, kind, execution
+  identity, frozen grid, and the exact 3200-job plan in canonical order;
+- proves the executing lib/runner/auth/production bytes equal the git objects
+  at `execution_head`, so recomputation cannot silently run current-HEAD science;
+- independently recomputes all 3200 frozen-plan worlds through
+  `_evaluate_planned_world_body` (no reroll; invalid worlds stay in the
+  denominator);
+- constructs canonical WORLD_RECORDS from those recomputed records and refuses
+  any difference from the tracked artifact;
+- recomputes `world_set_sha256`, `record_digest_chain`, aggregates, Wilson
+  intervals, specificity/power verdicts, SMALL bands, TRUE_DISCOVERY band,
+  visibility/model floors, the materiality-only diagnostic,
+  `incomplete_execution`, `observed_world_count`, and `mechanical_conclusion`
+  from the independently generated records;
 - reconstructs the expected canonical RESULT core and compares it exactly.
+
+A first-and-only self-consistent fabricated WORLD_RECORDS + RESULT pair on a
+legitimate freeze → ARM → execution topology is refused because recomputation
+does not reproduce the tracked records. Durable claims are constructed only
+after that full recomputation succeeds, and they explicitly bind RESULT and
+WORLD_RECORDS digest/size plus execution/terminal identity.
+
+A sampled spot-check may exist only as a non-authoritative diagnostic. It
+cannot mint or validate a durable claim and is not derived from `run_identity`
+as cryptographic authenticity.
 
 The canonical WORLD_RECORDS artifact is:
 
@@ -218,8 +238,7 @@ The canonical WORLD_RECORDS artifact is:
 The worker emits those exact bytes on stdout alongside the RESULT. The operator
 persists the captured bytes without regenerating records or recomputing
 science. A production RESULT without a tracked WORLD_RECORDS artifact fails
-closed. A first-and-only RESULT whose aggregates were rewritten to a different
-self-consistent payload is refused while the original WORLD_RECORDS remain.
+closed.
 
 ## Execution status
 
@@ -228,6 +247,8 @@ canonical_production_driver_implemented = true
 post_commit_result_verification = true
 production_result_scientific_payload_rederived = true
 production_result_world_records_bound = true
+authoritative_historical_verification = FULL_3200_RECOMPUTATION
+tracked_world_records_are_evidence_not_authority = true
 production_monte_carlo_arm_authorized = false
 ACTUAL_PRODUCTION_EXECUTION_RUN = NO
 PRODUCTION_RESULT_MINTED = NO

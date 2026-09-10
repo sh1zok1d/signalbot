@@ -1635,31 +1635,25 @@ freeze artifact. No live ARM. No 3200-world execution. No RESULT persisted.
 - authorization_consumed: **false**
 - status: `PRODUCTION_EXECUTION_DRIVER_REPAIR_UNARMED`
 
-### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — production WORLD_RECORDS scientific payload binding
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — full historical 3200-world recomputation
 
-Closes the remaining scientific-payload blocker: a first-and-only
-production-shaped RESULT could rewrite successes/n, aggregates, Wilson
-intervals, verdicts, bands/floors, and `mechanical_conclusion` while keeping
-valid execution identity, ARM topology, `world_set_sha256`,
-`record_digest_chain`, and a hash-only sibling manifest. Historical
-verification accepted that forge because the 3200 world records were not
-stored as independent evidence.
+Closes the remaining terminal-author trust: a first-and-only fabricated
+WORLD_RECORDS + RESULT pair could be authored together on a legitimate freeze
+→ ARM → execution topology and pass because historical verification proved
+identity plus internal WORLD_RECORDS/RESULT consistency, not that the records
+were the deterministic output of frozen execution.
 
-Historical verification now loads the tracked WORLD_RECORDS artifact from git
-objects, not the worktree and not RESULT-declared aggregates. It verifies
-canonical path/digest/size, the exact 3200-job plan in canonical order, preserves
-invalid worlds, recomputes `world_set_sha256` and `record_digest_chain` from
-those records, recomputes aggregates and every derived scientific field, then
-reconstructs the expected RESULT core and compares it exactly. A consistent
-aggregate rewrite against the original WORLD_RECORDS is refused.
+Authoritative historical verification now proves executing scientific and
+production blobs match `execution_head`, independently recomputes all 3200
+frozen-plan worlds, compares canonical WORLD_RECORDS evidence against that
+recomputation, then recomputes aggregates and every derived RESULT field.
+Tracked WORLD_RECORDS are retained evidence, not self-authenticating
+authority. Spot-checks cannot mint or validate durable claims. Durable claims
+are emitted only after full recomputation and explicitly bind RESULT and
+WORLD_RECORDS digest/size.
 
-Canonical path:
-`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_WORLD_RECORDS.json`
-
-The canonical worker emits exact RESULT and WORLD_RECORDS bytes. Neither is
-written into the worktree during execution. No live freeze artifact. No live
-ARM. No 3200-world execution. No RESULT persisted. Frozen lib and prereg bytes
-unchanged.
+No live freeze artifact. No live ARM. No 3200-world production execution. No
+RESULT persisted. Frozen lib and prereg bytes unchanged.
 
 - production_monte_carlo_arm_authorized: **false**
 - production_calibration_executed: **false**
