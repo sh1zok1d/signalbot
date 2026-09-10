@@ -126,8 +126,11 @@ itself is immutable. Post-outcome status lives in
   tree `0f6be102b29ce964f0ea8f3947927854888eef08`.
   Historical ARM HEAD `940d85bf58673396c6c0cc05ce2134a2e2e92809` is
   `REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`.
-  This does not execute the 3200-world calibration and does not authorize
-  B2-06 science.
+  A performance-only descendant (`docs/research/HARNESS_PERFORMANCE_V1.md`)
+  may exist on a later HEAD. That descendant does not reuse ARM `0abc5fe`,
+  does not mint RESULT/WORLD_RECORDS, and is unarmed until a NEW ARM after
+  independent review. This does not execute the 3200-world calibration and
+  does not authorize B2-06 science.
 
 Family F1 is `CLOSED_NO_PROMOTION`. 2025 validation and 2026 OOS remain
 untouched. No Batch02 formulation has a promoted candidate, so there is no

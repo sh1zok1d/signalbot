@@ -1,0 +1,107 @@
+# HARNESS_PERFORMANCE_V1 — production-path performance repair
+
+**Status:** `PERFORMANCE_ONLY / NOT_A_PRODUCTION_RESULT / UNARMED`
+
+**Unit ID:** `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1`
+
+**Parent ARM (unused, must not be reused):** `0abc5fe167e018ebe1f7efbb70694887ac095e17`
+
+**Reviewed sequential oracle:** `3fadc391ee0002e35463b526301d287d4a662828`
+
+This is a performance-only descendant of the frozen synthetic production
+calibration. It does not change scientific methodology, does not consume the
+existing ARM, does not create a new ARM, and does not execute the canonical
+3200-world grid.
+
+Required topology after this unit:
+
+```
+optimized implementation
+    -> independent review
+    -> performance/science-equivalence freeze
+    -> NEW ARM
+    -> canonical production run
+```
+
+Do not shortcut that topology. The unused ARM at `0abc5fe` authorizes the
+freeze-parent driver bytes, not this HEAD.
+
+## What changed
+
+Same science, same randomness, same logical results, faster execution.
+
+1. **Placebo BASE cache.** Frozen `placebo_q95` refits `Y ~ 1+X1+X2` on every
+   placebo replicate. BASE expanding-era predictions are now computed once per
+   candidate and reused. The candidate model is still refit on every
+   within-era permutation. Permutation RNG consumption is unchanged.
+2. **Single-factorization rank.** Frozen `fit_lstsq` calls `matrix_rank` then
+   `lstsq`. `numpy.linalg.lstsq(..., rcond=None)` already returns rank under the
+   same default cutoff. The hot path uses lstsq rank and still raises
+   `IncompleteWorld("design is not full rank")` without returning coefficients
+   when rank-deficient. Success-path coefficients are the lstsq result.
+   This optimization is retained only because exact equality vs frozen
+   `fit_lstsq` was demonstrated (random designs + DGP expanding-era designs).
+3. **World-level multiprocessing.** Independent planned jobs may run in spawn
+   workers. Unordered completed records are reordered to `planned_production_jobs()`
+   / the explicit diagnostic plan before any digest chain, aggregation, or
+   mint. Worker PID, wall clock, worker index, and completion order do not seed
+   science. Default worker count is **1**. `--workers N` is explicit.
+   Conservative operator hint: `conservative_worker_count()` = half of
+   detected CPUs, capped at 16. Do not blindly spawn `os.cpu_count()`.
+4. **BLAS limits.** Workers set `OPENBLAS_NUM_THREADS=1`, `OMP_NUM_THREADS=1`,
+   `MKL_NUM_THREADS=1`, `NUMEXPR_NUM_THREADS=1` before importing numpy.
+
+Frozen scientific library bytes are unchanged
+(`FROZEN_REVIEWED_LIB_SHA256 = 12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51`).
+
+## What did not change
+
+3200 production worlds, scenario definitions/order, N values, world
+identities, `world_seed` / namespace RNG, DGP, `FEATURE_IDS`, candidate
+ordering, visibility=500, bootstrap=500, placebo=999, OLS specification,
+era definitions, expanding-era prediction semantics, metrics, thresholds,
+gates, invalid-world/denominator/Wilson/aggregation/mechanical-conclusion
+semantics, canonical JSON schema, `record_digest_chain`,
+`world_set_sha256`, preregistration.
+
+No reduction in scientific workload.
+
+## Fail-closed parallelism
+
+If any worker crashes, times out via exception, returns malformed data,
+returns a duplicate/unknown identity, omits a planned world, or the
+completed set does not match the planned set:
+
+- NO RESULT
+- NO WORLD_RECORDS
+- NO AUTHORITY CONSUMPTION
+- no reroll, no replacement seeds, no skipped worlds
+
+## Production isolation
+
+`scripts/research/harness_synthetic_edge_calibration_v1_performance.py` is
+labelled `NON_PRODUCTION_PERFORMANCE_DIAGNOSTIC`. It cannot:
+
+- treat an ARM as permission
+- consume production authority
+- write RESULT / WORLD_RECORDS / reservation / claim
+- encode production N `{2500, 5000, 10000}` or the 3200-world plan
+- invoke `--run-production-grid`
+- touch B2-06, validation 2025, OOS 2026, or real market data
+
+Equivalence tests load sequential oracle bytes from git commit `3fadc39`,
+not by aliasing the live optimized module.
+
+## Operator notes (future armed run only)
+
+```text
+python3 -m scripts.research.harness_synthetic_edge_calibration_v1 \
+  --run-production-grid --expected-head <NEW_ARM_HEAD> --workers N
+```
+
+This unit does **not** execute that command. Default `N=1`. Isolated
+production reads `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_WORKERS`.
+
+A future ARM that authorizes this performance HEAD must pin
+`harness_synthetic_edge_calibration_v1_worker.py` in addition to the existing
+execution-authority paths.

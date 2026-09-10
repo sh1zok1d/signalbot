@@ -1749,3 +1749,33 @@ unauthorized.
 - world_records_persisted: **false**
 - authorization_consumed: **false**
 - status: `PRODUCTION_MONTE_CARLO_ARM_AUTHORIZED_UNEXECUTED`
+
+## 2026-09-10 — HARNESS_PERFORMANCE_V1 performance-only repair
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — HARNESS_PERFORMANCE_V1
+
+**Decision:** performance-only repair of the frozen synthetic production
+path after the aborted canonical run. Same science, same randomness, same
+logical results, faster execution. Not a scientific RESULT.
+
+ARM `0abc5fe167e018ebe1f7efbb70694887ac095e17` remains unused and must not be
+reused for the optimized implementation. No new production ARM. No 3200-world
+grid execution. No RESULT / WORLD_RECORDS / reservation / claim. No B2-06 /
+2025 / 2026 / real-market access.
+
+Optimizations: placebo BASE expanding-era cache; lstsq rank in place of a
+prior `matrix_rank` SVD where exact IncompleteWorld/float equality holds;
+deterministic world-level spawn multiprocessing with canonical reorder;
+BLAS thread limits; explicit `--workers N` (default 1).
+
+Oracle is git commit `3fadc391ee0002e35463b526301d287d4a662828`, not a
+self-import of the optimized module.
+
+- production_monte_carlo_arm_authorized (live HEAD): **false**
+- historical ARM unused: **true**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PERFORMANCE_ONLY_UNARMED_NOT_A_RESULT`
+
