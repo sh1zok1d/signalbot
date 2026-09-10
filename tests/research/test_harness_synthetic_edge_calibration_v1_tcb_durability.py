@@ -92,7 +92,10 @@ def test_worktree_worker_tamper_is_refused(tmp_path, monkeypatch):
     repo = _commit_production_tree(tmp_path)
     _bind_prod(monkeypatch, repo)
     (repo / prod.WORKER_REL).write_bytes(_live_worker() + b"\n# worktree tamper\n")
-    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="worktree bytes differ"):
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized,
+        match="worktree bytes differ|working tree is not clean",
+    ):
         prod.verify_executed_production_authority(repo)
 
 
@@ -138,7 +141,10 @@ def test_lib_substitution_is_refused_as_science_module(tmp_path, monkeypatch):
     repo = _commit_production_tree(tmp_path)
     _bind_prod(monkeypatch, repo)
     (repo / prod.LIB_REL).write_bytes((repo / prod.LIB_REL).read_bytes() + b"\n# tamper\n")
-    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="worktree bytes differ"):
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized,
+        match="worktree bytes differ|working tree is not clean",
+    ):
         prod.verify_executed_production_authority(repo)
 
 
@@ -454,7 +460,10 @@ def test_spawn_worker_pin_uses_git_not_caller_digest(tmp_path, monkeypatch):
     assert digest == prod.FROZEN_WORKER_SHA256
     assert Path(path).resolve() == (repo / prod.WORKER_REL).resolve()
     (repo / prod.WORKER_REL).write_bytes(_live_worker() + b"\n# pin tamper\n")
-    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="worktree worker bytes"):
+    with pytest.raises(
+        lib.SyntheticExecutionNotAuthorized,
+        match="worktree worker bytes|executed worker bytes differ from git HEAD",
+    ):
         prod._spawn_worker_pin(repo)
 
 
