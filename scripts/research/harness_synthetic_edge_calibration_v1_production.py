@@ -23,13 +23,17 @@ RESULT verification has two distinct authority models:
   `execution_head` from the RESULT core itself, loads authority from git
   objects at that exact commit, and re-verifies ARM topology at execution
   time. Production WORLD_RECORDS are retained evidence, not self-authenticating
-  authority. Authoritative historical verification proves the executing
-  scientific/production blobs match that execution commit, independently
-  recomputes all 3200 frozen-plan worlds, compares the canonical WORLD_RECORDS
-  artifact, then recomputes aggregates and every derived RESULT field.
-  Spot-checks cannot mint or validate durable claims. Current HEAD being a
-  later unarmed RESULT commit is not authority and must not invalidate a
-  historically valid RESULT.
+  authority. Authoritative historical verification of a production RESULT
+  crosses a fresh isolated interpreter (`HISTORICAL_RECOMPUTE_MODE`) using
+  the existing `#115` bootstrap. That child independently proves executing
+  scientific/production blobs match `execution_head`, derives the frozen plan
+  internally, recomputes all 3200 worlds, compares canonical WORLD_RECORDS
+  evidence, then recomputes RESULT science. The parent treats the child's
+  success proof as the recomputation result and does not re-run or override
+  science in-process. There is no in-process fallback. Spot-checks cannot mint
+  or validate durable claims. Full verification is intentionally expensive
+  and synchronous. Current HEAD being a later unarmed RESULT commit is not
+  authority and must not invalidate a historically valid RESULT.
 """
 
 from __future__ import annotations
@@ -178,6 +182,24 @@ R1_PROBE_MODE = "r1-probe"
 WORKER_MODE = "worker"
 HISTORICAL_RECOMPUTE_MODE = "historical-recompute"
 AUTHORITATIVE_HISTORICAL_VERIFICATION = "FULL_3200_RECOMPUTATION"
+HISTORICAL_RECOMPUTE_PROOF_KIND = "HISTORICAL_RECOMPUTE_PROOF"
+_HISTORICAL_RECOMPUTE_PROOF_KEYS = frozenset(
+    {
+        "schema_version",
+        "kind",
+        "mode",
+        "verification",
+        "verification_success",
+        "execution_head",
+        "execution_tree",
+        "run_identity",
+        "result_artifact_sha256",
+        "result_artifact_size",
+        "records_artifact_sha256",
+        "records_artifact_size",
+        "recomputed_world_records_sha256",
+    }
+)
 # Stdlib-only isolated bootstrap. Repo root is import-active only after this
 # pre-import authority verification succeeds. Do not import numpy or the
 # production package before the shadow/authority checks below.
@@ -2464,6 +2486,8 @@ def diagnose_historical_result_spotcheck(
     not cryptographic authenticity, and not a substitute for full 3200-world
     recomputation. `durable_result_claim_from_tracked_authority` never calls it.
     Sampling is a fixed prefix of the frozen plan, not a `run_identity` secret.
+    Operators must not replace full isolated `FULL_3200_RECOMPUTATION` with
+    this diagnostic because the authoritative path is intentionally expensive.
     """
     if kwargs:
         _refuse("caller arguments cannot authorize a historical spot-check")
@@ -2563,6 +2587,159 @@ def _assert_historical_production_identity(
         )
 
 
+def _require_hex_token(value: object, *, label: str, length: int) -> str:
+    if not isinstance(value, str) or len(value) != length:
+        _tamper(f"isolated historical recompute proof {label} is not a {length}-hex token")
+    if any(ch not in "0123456789abcdef" for ch in value):
+        _tamper(f"isolated historical recompute proof {label} is not a {length}-hex token")
+    return value
+
+
+def _isolated_child_stderr_text(completed: subprocess.CompletedProcess) -> str:
+    stderr = completed.stderr
+    if stderr is None:
+        return ""
+    if isinstance(stderr, bytes):
+        return stderr.decode("utf-8", "replace")
+    return str(stderr)
+
+
+def _fail_closed_isolated_historical_recompute(
+    completed: subprocess.CompletedProcess,
+) -> None:
+    detail = _isolated_child_stderr_text(completed).strip()
+    if not detail:
+        _refuse(
+            f"isolated historical recompute child failed (exit {int(completed.returncode)})"
+        )
+    first = detail.splitlines()[0]
+    for line in detail.splitlines():
+        if line.startswith("SYNTHETIC_EXECUTION_NOT_AUTHORIZED"):
+            raise SyntheticExecutionNotAuthorized(line)
+    _refuse(f"isolated historical recompute child failed: {first}")
+
+
+def _parse_historical_recompute_proof(stdout: bytes) -> dict[str, Any]:
+    if not stdout:
+        _refuse("isolated historical recompute child produced no proof")
+    try:
+        text = stdout.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise SyntheticExecutionNotAuthorized(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: isolated historical recompute proof is not UTF-8"
+        ) from exc
+    try:
+        payload, idx = json.JSONDecoder().raw_decode(text)
+    except json.JSONDecodeError as exc:
+        raise SyntheticExecutionNotAuthorized(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: isolated historical recompute proof is not JSON"
+        ) from exc
+    if text[idx:].strip():
+        _refuse("isolated historical recompute child produced duplicate or trailing output")
+    if not isinstance(payload, dict):
+        _refuse("isolated historical recompute proof is not an object")
+    if frozenset(payload) != _HISTORICAL_RECOMPUTE_PROOF_KEYS:
+        _refuse("isolated historical recompute proof keys are not canonical")
+    if payload.get("schema_version") != "1.0":
+        _refuse("isolated historical recompute proof schema is not canonical")
+    if payload.get("kind") != HISTORICAL_RECOMPUTE_PROOF_KIND:
+        _refuse("isolated historical recompute proof kind is not canonical")
+    if payload.get("mode") != HISTORICAL_RECOMPUTE_MODE:
+        _refuse("isolated historical recompute proof mode is not canonical")
+    if payload.get("verification") != AUTHORITATIVE_HISTORICAL_VERIFICATION:
+        _refuse("isolated historical recompute proof is not FULL_3200_RECOMPUTATION")
+    if payload.get("verification_success") is not True:
+        _refuse("isolated historical recompute proof did not attest success")
+    return payload
+
+
+def _bind_historical_recompute_proof(
+    proof: Mapping[str, Any],
+    *,
+    repo_root: Path,
+    core: Mapping[str, Any],
+    document_bytes: bytes,
+) -> None:
+    execution_head = _require_hex_token(
+        proof.get("execution_head"), label="execution_head", length=40
+    )
+    execution_tree = _require_hex_token(
+        proof.get("execution_tree"), label="execution_tree", length=40
+    )
+    run_identity = _require_hex_token(
+        proof.get("run_identity"), label="run_identity", length=64
+    )
+    result_digest = _require_hex_token(
+        proof.get("result_artifact_sha256"), label="result_artifact_sha256", length=64
+    )
+    records_digest = _require_hex_token(
+        proof.get("records_artifact_sha256"), label="records_artifact_sha256", length=64
+    )
+    recomputed_digest = _require_hex_token(
+        proof.get("recomputed_world_records_sha256"),
+        label="recomputed_world_records_sha256",
+        length=64,
+    )
+    if not isinstance(proof.get("result_artifact_size"), int) or isinstance(
+        proof.get("result_artifact_size"), bool
+    ):
+        _tamper("isolated historical recompute proof result size is invalid")
+    if not isinstance(proof.get("records_artifact_size"), int) or isinstance(
+        proof.get("records_artifact_size"), bool
+    ):
+        _tamper("isolated historical recompute proof records size is invalid")
+    if proof["result_artifact_size"] != len(document_bytes):
+        _tamper("isolated historical recompute proof does not bind this RESULT")
+    if result_digest != _sha256_bytes(document_bytes):
+        _tamper("isolated historical recompute proof does not bind this RESULT")
+    if execution_head != core.get("execution_head"):
+        _tamper("isolated historical recompute proof execution_head does not bind this RESULT")
+    if execution_tree != core.get("execution_tree"):
+        _tamper("isolated historical recompute proof execution_tree does not bind this RESULT")
+    if run_identity != core.get("run_identity"):
+        _tamper("isolated historical recompute proof run_identity does not bind this RESULT")
+    tracked = _head_blob(repo_root, CANONICAL_WORLD_RECORDS_PATH)
+    if tracked is None:
+        _refuse(
+            "tracked production WORLD_RECORDS artifact is absent; "
+            "scientific payload cannot be verified"
+        )
+    if records_digest != _sha256_bytes(tracked):
+        _tamper("isolated historical recompute proof does not bind tracked WORLD_RECORDS")
+    if proof["records_artifact_size"] != len(tracked):
+        _tamper("isolated historical recompute proof does not bind tracked WORLD_RECORDS")
+    if records_digest != core.get("records_artifact_sha256"):
+        _tamper("isolated historical recompute proof records digest does not bind this RESULT")
+    if proof["records_artifact_size"] != core.get("records_artifact_size"):
+        _tamper("isolated historical recompute proof records size does not bind this RESULT")
+    if recomputed_digest != records_digest:
+        _tamper("isolated historical recompute proof does not attest matching WORLD_RECORDS")
+
+
+def _require_isolated_historical_recompute(
+    repo_root: Path, *, core: Mapping[str, Any], document_bytes: bytes
+) -> None:
+    """Authoritative production recomputation must happen in a fresh child.
+
+    The parent does not recompute science, does not accept caller-supplied
+    evaluators/plans/seeds/aggregates/record bodies, and has no in-process
+    fallback. Full 3200-world recomputation is intentionally expensive and
+    synchronous; there is no timeout because it may take many hours.
+    """
+    try:
+        completed = _spawn_isolated_child(
+            HISTORICAL_RECOMPUTE_MODE, repo_root=repo_root, text=False
+        )
+    except OSError as exc:
+        _refuse(f"isolated historical recompute child could not spawn: {exc}")
+    if int(completed.returncode) != 0:
+        _fail_closed_isolated_historical_recompute(completed)
+    proof = _parse_historical_recompute_proof(completed.stdout or b"")
+    _bind_historical_recompute_proof(
+        proof, repo_root=repo_root, core=core, document_bytes=document_bytes
+    )
+
+
 def verify_bound_result_from_tracked_authority(
     repo_root: Path | None = None,
     result_document_or_path: Mapping[str, Any] | str | Path | None = None,
@@ -2572,11 +2749,18 @@ def verify_bound_result_from_tracked_authority(
 
     Authority is the RESULT core's embedded execution_head. Caller-supplied
     commits, records, or ARM flags cannot authorize. Current HEAD need not be
-    armed; the named execution commit must have been correctly armed. Production
-    verification independently recomputes all 3200 frozen-plan worlds using
-    the historically authorized evaluator. Tracked WORLD_RECORDS are cached
-    evidence compared against that recomputation; they are not authority.
-    Spot-checks cannot satisfy this function.
+    armed; the named execution commit must have been correctly armed.
+
+    Production verification does not recompute the 3200-world experiment in
+    the caller process. It spawns `HISTORICAL_RECOMPUTE_MODE` through the
+    existing isolated-child bootstrap. The child independently proves executing
+    scientific/production blobs match `execution_head`, derives the frozen
+    plan and seeds internally, recomputes all 3200 worlds, compares tracked
+    WORLD_RECORDS evidence, and recomputes RESULT science. The parent treats
+    a bound child success proof as the authoritative recomputation result and
+    does not re-run or override science in-process. There is no in-process
+    fallback. Spot-checks cannot satisfy this function. Full verification is
+    intentionally expensive and synchronous.
     """
     if kwargs:
         _refuse("caller-supplied historical RESULT authority is refused")
@@ -2611,28 +2795,16 @@ def verify_bound_result_from_tracked_authority(
         _assert_result_core_matches_expected(core, core_bytes, expected)
     else:
         # Production shape. Identity and a self-consistent WORLD_RECORDS
-        # artifact are not scientific authority. Independently recompute the
-        # frozen 3200-world experiment from historically authorized code, then
-        # compare tracked evidence and reconstruct the expected RESULT.
+        # artifact are not scientific authority. Authoritative 3200-world
+        # recomputation must occur in a fresh isolated child; the parent
+        # never falls back to in-process evaluation.
         _assert_historical_production_identity(core, bound)
         _assert_production_protected_literals(core)
         if isinstance(core.get("records"), list):
             _tamper("production RESULT must not carry records as a substitute for WORLD_RECORDS")
-        tracked_blob, _tracked_payload, tracked_records = _load_tracked_world_records(
-            root, core, bound
+        _require_isolated_historical_recompute(
+            root, core=core, document_bytes=document_bytes
         )
-        _assert_historical_recompute_uses_authorized_code(root, bound)
-        recomputed = _recompute_production_records_from_frozen_execution(bound)
-        _compare_recomputed_world_records(
-            tracked_blob=tracked_blob,
-            tracked_records=tracked_records,
-            recomputed_records=recomputed,
-            bound=bound,
-        )
-        expected = _bind_result_core_from_bound(
-            recomputed, bound=bound, fixture=False, armed=True
-        )
-        _assert_result_core_matches_expected(core, core_bytes, expected)
     _refuse_conflicting_terminal_result(root, document_bytes)
     return _jsonable(dict(document))
 
@@ -2646,7 +2818,9 @@ def durable_result_claim_from_tracked_authority(
 
     Does not write the worktree. Uncommitted claim files are not authority.
     Production claims explicitly bind RESULT and WORLD_RECORDS digest/size
-    only after full 3200-world recomputation succeeds.
+    only after isolated `FULL_3200_RECOMPUTATION` succeeds. Claim minting
+    therefore transitively requires the fresh historical-recompute child.
+    There is no alternate claim path.
     """
     if kwargs:
         _refuse("caller arguments cannot authorize a durable RESULT claim")
@@ -2812,6 +2986,9 @@ def _isolated_child_env():
 
 
 def _spawn_isolated_child(mode, repo_root=None, *, text: bool = True):
+    """Spawn the existing isolated interpreter. No timeout: historical
+    `FULL_3200_RECOMPUTATION` is synchronous and may take many hours.
+    """
     root = (repo_root or _repo_root()).resolve()
     return subprocess.run(
         [
@@ -2931,6 +3108,76 @@ def r1_probe_fingerprint():
     }
 
 
+def historical_recompute_worker_main() -> dict[str, Any]:
+    """Fresh-process authoritative historical verification.
+
+    Starts after the stdlib-only bootstrap and package import. Does not
+    accept caller-supplied evaluators, plans, seeds, aggregates, record
+    bodies, or module-path authority. Does not mint RESULT, write the
+    worktree, or consume one-shot authority. Live ARM is not required.
+    """
+    if __name__ != "scripts.research.harness_synthetic_edge_calibration_v1_production":
+        _refuse("historical-recompute child module is not the canonical package")
+    root = _repo_root()
+    verify_executed_production_authority(root)
+    document, document_bytes = _load_result_document(None, root)
+    core, core_bytes = _parse_result_envelope(document)
+    if core.get("fixture") is True or core.get("not_a_production_result") is True:
+        _refuse("historical-recompute child cannot verify fixture RESULT documents")
+    execution_head = str(core.get("execution_head") or "").strip().lower()
+    execution_tree = str(core.get("execution_tree") or "").strip().lower()
+    if not execution_head or not execution_tree:
+        _refuse("RESULT is missing execution commit/tree")
+    if not _commit_exists(root, execution_head):
+        _refuse("execution commit does not exist in git")
+    if _commit_tree_sha(root, execution_head) != execution_tree:
+        raise ProductionIntegrityError(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: execution tree does not match the named execution commit"
+        )
+    if not _is_ancestor(root, execution_head, _head_sha(root)):
+        _refuse("execution commit is not an ancestor of current HEAD")
+    _require_docs_only_descendants(root, ancestor=execution_head)
+    bound = verify_historical_execution_authority(
+        repo_root=root, execution_commit=execution_head
+    )
+    _assert_historical_production_identity(core, bound)
+    _assert_production_protected_literals(core)
+    if isinstance(core.get("records"), list):
+        _tamper("production RESULT must not carry records as a substitute for WORLD_RECORDS")
+    tracked_blob, _tracked_payload, tracked_records = _load_tracked_world_records(
+        root, core, bound
+    )
+    _assert_historical_recompute_uses_authorized_code(root, bound)
+    recomputed = _recompute_production_records_from_frozen_execution(bound)
+    expected_artifact = _compare_recomputed_world_records(
+        tracked_blob=tracked_blob,
+        tracked_records=tracked_records,
+        recomputed_records=recomputed,
+        bound=bound,
+    )
+    expected = _bind_result_core_from_bound(
+        recomputed, bound=bound, fixture=False, armed=True
+    )
+    _assert_result_core_matches_expected(core, core_bytes, expected)
+    _refuse_conflicting_terminal_result(root, document_bytes)
+    recomputed_blob = canonical_json_bytes(_jsonable(expected_artifact))
+    return {
+        "schema_version": "1.0",
+        "kind": HISTORICAL_RECOMPUTE_PROOF_KIND,
+        "mode": HISTORICAL_RECOMPUTE_MODE,
+        "verification": AUTHORITATIVE_HISTORICAL_VERIFICATION,
+        "verification_success": True,
+        "execution_head": bound["head_sha"],
+        "execution_tree": bound["tree_sha"],
+        "run_identity": _run_identity_from_bound(bound),
+        "result_artifact_sha256": _sha256_bytes(document_bytes),
+        "result_artifact_size": len(document_bytes),
+        "records_artifact_sha256": _sha256_bytes(tracked_blob),
+        "records_artifact_size": len(tracked_blob),
+        "recomputed_world_records_sha256": _sha256_bytes(recomputed_blob),
+    }
+
+
 def _isolated_child_main(mode):
     try:
         if __name__ != "scripts.research.harness_synthetic_edge_calibration_v1_production":
@@ -2944,6 +3191,11 @@ def _isolated_child_main(mode):
             return 0
         if mode == WORKER_MODE:
             return fresh_process_worker_main()
+        if mode == HISTORICAL_RECOMPUTE_MODE:
+            payload = historical_recompute_worker_main()
+            sys.stdout.buffer.write(canonical_json_bytes(_jsonable(payload)))
+            sys.stdout.flush()
+            return 0
         print("SYNTHETIC_EXECUTION_NOT_AUTHORIZED: unknown isolated child mode", file=sys.stderr)
         return 2
     except SyntheticExecutionNotAuthorized as exc:
