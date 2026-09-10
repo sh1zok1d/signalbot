@@ -1,6 +1,6 @@
 # HARNESS_PERFORMANCE_V1 — production-path performance repair
 
-**Status:** `PERFORMANCE_ONLY / NOT_A_PRODUCTION_RESULT / UNARMED`
+**Status:** `PERFORMANCE_ONLY / NOT_A_PRODUCTION_RESULT / UNARMED / REPAIR_REQUIRED_CLOSED_PENDING_OPUS_REVIEW`
 
 **Unit ID:** `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1`
 
@@ -8,23 +8,39 @@
 
 **Reviewed sequential oracle:** `3fadc391ee0002e35463b526301d287d4a662828`
 
+**Previous reviewed implementation (performance, REPAIR_REQUIRED):**
+HEAD `c461f09e3d7eafac8ddd95ff87cd741b3af29534` /
+TREE `e23199bb28f6b2f61eaee0f682d1b351ae34f8ee`
+
 This is a performance-only descendant of the frozen synthetic production
 calibration. It does not change scientific methodology, does not consume the
 existing ARM, does not create a new ARM, and does not execute the canonical
 3200-world grid.
 
+Independent review accepted the performance result as genuine and required
+two repairs, now implemented on this HEAD:
+
+1. **BLOCKER-1** — pin `harness_synthetic_edge_calibration_v1_worker.py` in the
+   live execution TCB from git objects (`WORKER_PATH` / `WORKER_SHA256` /
+   `WORKER_SIZE`). A worker-byte change after freeze must invalidate that
+   freeze/ARM.
+2. **MAJOR-1** — crash-safe durable partial world evidence, distinct from
+   canonical `WORLD_RECORDS` / scientific RESULT. Partial evidence is not
+   one-shot consumption. Resume is exact and identity-bound.
+
 Required topology after this unit:
 
 ```
-optimized implementation
-    -> independent review
-    -> performance/science-equivalence freeze
-    -> NEW ARM
+REPAIRED IMPLEMENTATION
+    -> independent OPUS review
+    -> performance/execution freeze
+    -> NEW immediate-child ARM
     -> canonical production run
 ```
 
 Do not shortcut that topology. The unused ARM at `0abc5fe` authorizes the
-freeze-parent driver bytes, not this HEAD.
+freeze-parent driver bytes, not this HEAD. No migration of old partial
+evidence onto a different implementation/freeze is authorized.
 
 ## What changed
 
@@ -104,7 +120,46 @@ production reads `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_WORKERS`.
 
 A future ARM that authorizes this performance HEAD must pin
 `harness_synthetic_edge_calibration_v1_worker.py` in addition to the existing
-execution-authority paths.
+execution-authority paths. Live execution TCB is:
+
+- `scripts/research/harness_synthetic_edge_calibration_v1_lib.py`
+- `scripts/research/harness_synthetic_edge_calibration_v1.py`
+- `scripts/research/harness_synthetic_edge_calibration_v1_auth.py`
+- `scripts/research/harness_synthetic_edge_calibration_v1_production.py`
+- `scripts/research/harness_synthetic_edge_calibration_v1_worker.py`
+
+Authority is git-object bytes at the authorized commit (`path` / `sha256` /
+`size`), not worktree trust, filename-only binding, or caller-supplied digests.
+`scripts/research/harness_synthetic_edge_calibration_v1_performance.py` remains
+outside the TCB.
+
+## Durable partial world evidence
+
+Completed worlds may be checkpointed under
+`artifacts/research/harness_synthetic_edge_calibration_v1/durable_partial_world_evidence`
+(`DURABLE_PARTIAL_WORLD_EVIDENCE`). That directory is not:
+
+- `PRODUCTION_WORLD_RECORDS`
+- `PRODUCTION_RESULT`
+- `AUTHORITY_CONSUMED`
+- `CALIBRATION_COMPLETE`
+
+Writes are per-world atomic (`*.tmp` + fsync + `os.replace`). Torn/truncated
+files fail closed. Incomplete in-flight worlds are not persisted and are
+recomputed from the frozen identity. Resume verifies execution/plan identity,
+rejects duplicates/unexpected/malformed/foreign records, schedules only
+missing worlds, and canonical-reorders before aggregation. Worker completion
+order remains irrelevant.
+
+State machine:
+
+```
+AUTHORIZED -> RUNNING/PARTIAL -> COMPLETE -> RESULT CLAIM
+```
+
+An aborted run with verified durable partial evidence is not consumed. Resume
+is allowed only under the exact execution identity that created the partial
+evidence. A different implementation/freeze/ARM must not reuse it.
 
 ## Bounded diagnostic measurements (not production N)
 

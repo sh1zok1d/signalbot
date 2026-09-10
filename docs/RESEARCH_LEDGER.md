@@ -1779,3 +1779,29 @@ self-import of the optimized module.
 - authorization_consumed: **false**
 - status: `PERFORMANCE_ONLY_UNARMED_NOT_A_RESULT`
 
+## 2026-09-10 — HARNESS_PERFORMANCE_V1 authority/durability repair
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — HARNESS_PERFORMANCE_V1 repair
+
+**Decision:** close independent-review findings BLOCKER-1 and MAJOR-1 on the
+accepted performance implementation. No scientific-methodology change. No
+3200-world production execution. No ARM consume/create. No RESULT /
+WORLD_RECORDS.
+
+- BLOCKER-1: live execution TCB now pins worker.py git bytes (path/sha256/size)
+  plus lib/runner/auth/production. Old ARM `0abc5fe` still verifies at its
+  own commit and does not authorize this HEAD.
+- MAJOR-1: crash-safe durable partial world evidence with exact resume.
+  Partial ≠ RESULT / WORLD_RECORDS / AUTHORITY_CONSUMED.
+
+Next required step: OPUS review of the exact repaired HEAD, then a new
+performance/execution freeze and a new immediate-child ARM.
+
+- production_monte_carlo_arm_authorized (live HEAD): **false**
+- historical ARM unused: **true**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PERFORMANCE_ONLY_UNARMED_REPAIR_PENDING_OPUS_REVIEW`
+

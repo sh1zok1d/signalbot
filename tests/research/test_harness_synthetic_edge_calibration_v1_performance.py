@@ -337,6 +337,7 @@ def test_no_production_artifact_writes_and_arm_unconsumed():
     assert payload["authority_consumed"] is False
     assert (REPO / prod.CANONICAL_RESULT_PATH).exists() is False
     assert (REPO / prod.CANONICAL_WORLD_RECORDS_PATH).exists() is False
+    assert (REPO / prod.DURABLE_PARTIAL_REL).exists() is False
     assert json.loads(arm_path.read_text(encoding="utf-8"))["authorization_consumed"] is False
 
 
