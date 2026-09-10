@@ -1691,3 +1691,32 @@ RESULT persisted. Frozen lib and prereg bytes unchanged.
 - production_result_minted: **false**
 - authorization_consumed: **false**
 - status: `PRODUCTION_EXECUTION_DRIVER_REPAIR_UNARMED`
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — production execution-driver implementation freeze
+
+**Decision:** freeze the independently reviewed #117 production execution
+driver without arming.
+**Unit verdict:** unused; production calibration not executed; Monte Carlo
+remains unarmed.
+
+Records OPUS `GO_FOR_DRIVER_FREEZE` (BLOCKERS=0, MAJORS=0) against reviewed
+implementation HEAD `3fadc391ee0002e35463b526301d287d4a662828` / tree
+`5fb77727c418cc42bf3c1c6553355a0475f42efc`. The freeze is a docs-only
+descendant. It does not claim that the freeze commit itself was the reviewed
+code HEAD. Future ARM must bind this freeze parent and the exact reviewed
+authority SHA256 values. No live ARM. No 3200-world production execution. No
+RESULT or WORLD_RECORDS persisted. Frozen lib and prereg bytes unchanged.
+
+Full authoritative historical verification remains intentionally expensive
+and synchronous; the full end-to-end real production verification path has
+not yet been run to completion. That operational caveat does not weaken full
+recompute as the durable-claim authority model. Spot-check remains
+non-authoritative.
+
+- driver_implementation_frozen: **true**
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_DRIVER_IMPLEMENTATION_FROZEN_UNARMED`

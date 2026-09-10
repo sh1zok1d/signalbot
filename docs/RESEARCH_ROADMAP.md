@@ -164,15 +164,17 @@ production execution:
 `authorization_consumed = false`,
 `production_monte_carlo_arm_authorized = false`.
 Production durability, aggregation, and result persistence are
-implementation-frozen and unarmed. The canonical 3200-world driver now exists
-and remains unarmed
-(`canonical_production_driver_implemented = true`,
+implementation-frozen and unarmed. The canonical 3200-world driver is
+implementation-frozen and remains unarmed
+(`driver_implementation_frozen = true`,
+`canonical_production_driver_implemented = true`,
 `production_monte_carlo_arm_authorized = false`,
 `production_calibration_executed = false`,
-`production_result_minted = false`). Canonical production execution requires a
+`production_result_minted = false`,
+`world_records_persisted = false`). Canonical production execution requires a
 fresh process, a tracked run identity bound to the exact execution commit, and
-a later docs-only ARM child of the independently reviewed driver/freeze parent.
-Caller-supplied records cannot mint a RESULT. Local #114 reservation is
+a later docs-only ARM child of this independently reviewed driver/freeze
+parent. Caller-supplied records cannot mint a RESULT. Local #114 reservation is
 superseded on this HEAD. Historical ARM HEAD
 `940d85bf58673396c6c0cc05ce2134a2e2e92809` is rejected and not merged.
 Monte Carlo remains unarmed. This does not mean the 3200-world calibration

@@ -15,6 +15,9 @@ import pytest
 from scripts.research import harness_synthetic_edge_calibration_v1_lib as lib
 from scripts.research import harness_synthetic_edge_calibration_v1_production as prod
 from tests.research.test_harness_synthetic_edge_calibration_v1_production import (
+    FROZEN_LIB_SHA256,
+    FROZEN_PREREG_JSON_SHA256,
+    FROZEN_PREREG_MD_SHA256,
     PRODUCTION_PATH,
     REPO,
     _assert_clean,
@@ -590,7 +593,22 @@ def test_no_reroll_and_planned_3200_remain_authoritative():
     assert "verify_bound_result_from_tracked_authority" in claim_src
     assert "diagnose_historical_result_spotcheck" not in claim_src
     assert "HISTORICAL_RECOMPUTE_TEST_STUB" not in source
-    assert (REPO / prod.CANONICAL_DRIVER_FREEZE_PATH).exists() is False
+    freeze_path = REPO / prod.CANONICAL_DRIVER_FREEZE_PATH
+    assert freeze_path.is_file()
+    freeze = json.loads(freeze_path.read_text(encoding="utf-8"))
+    for key, expected in prod.DRIVER_FREEZE_REQUIRED_LITERALS.items():
+        assert freeze.get(key) is expected, key
+    assert freeze["reviewed_implementation_head"] == "3fadc391ee0002e35463b526301d287d4a662828"
+    assert freeze["reviewed_implementation_tree"] == "5fb77727c418cc42bf3c1c6553355a0475f42efc"
+    assert freeze["reviewed_production_sha256"] == _sha(_live_bytes(PRODUCTION_PATH))
+    assert freeze["frozen_lib_sha256"] == FROZEN_LIB_SHA256
+    assert freeze["prereg_json_sha256"] == FROZEN_PREREG_JSON_SHA256
+    assert freeze["prereg_md_sha256"] == FROZEN_PREREG_MD_SHA256
+    assert freeze["driver_implementation_frozen"] is True
+    assert freeze["production_calibration_executed"] is False
+    assert freeze["production_result_minted"] is False
+    assert freeze["world_records_persisted"] is False
+    assert freeze["opus_closure"] == "GO_FOR_DRIVER_FREEZE"
     assert (REPO / prod.CANONICAL_WORLD_RECORDS_PATH).exists() is False
 
 

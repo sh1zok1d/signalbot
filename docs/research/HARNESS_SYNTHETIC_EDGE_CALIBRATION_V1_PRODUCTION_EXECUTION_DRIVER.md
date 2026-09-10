@@ -1,14 +1,17 @@
 # HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — production execution driver
 
-**Status:** `PRODUCTION_EXECUTION_DRIVER_IMPLEMENTED_UNARMED`
+**Status:** `PRODUCTION_DRIVER_IMPLEMENTATION_FROZEN_UNARMED`
 
 **Unit ID:** `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1`
+
+**Freeze record:** [`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_DRIVER_FREEZE.md`](HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_DRIVER_FREEZE.md)
 
 **Not a RESULT. Not Monte Carlo authorization. Not B2-06, 2025, or 2026 authorization.**
 
 This unit completes the canonical production execution path on top of the
-frozen #115 durability/aggregation layer. Production remains unarmed. This HEAD
-does not run the 3200-world calibration and does not mint a production RESULT.
+frozen #115 durability/aggregation layer. The independently reviewed driver
+implementation is frozen. Production remains unarmed. This HEAD does not run
+the 3200-world calibration and does not mint a production RESULT.
 
 ## Sequence
 
@@ -37,11 +40,14 @@ parent. ARM cannot self-bless `reviewed_implementation_head == parent`.
 Future ARM verification reads the tracked driver-freeze artifact at the
 authorized parent rather than trusting caller-updated ARM fields.
 
-This repair unit does **not** add the live freeze artifact. The actual freeze
-comes after OPUS closes this repair.
+This freeze commit **is** that docs-only `C_driver_freeze` descendant. It
+records reviewed implementation HEAD
+`3fadc391ee0002e35463b526301d287d4a662828` / tree
+`5fb77727c418cc42bf3c1c6553355a0475f42efc`. It does **not** claim that the
+docs-only freeze commit itself was the reviewed code HEAD.
 
 No further code-changing commit is required between a later ARM and the
-canonical run.
+canonical run. This freeze does not create the ARM.
 
 Successful complete execution emits a machine-readable stdout envelope
 `kind=COMPLETE_RESULT` containing the canonical RESULT bytes and the exact
@@ -241,10 +247,14 @@ verification first; there is no alternate claim path.
 
 Authoritative historical verification performs full 3200-world
 recomputation (`FULL_3200_RECOMPUTATION`) and is intentionally expensive. On
-current hardware it may take many hours. It is synchronous. Spot-check
-mode is diagnostic only. Spot-check cannot validate or mint durable
-production claims. Operators must not replace full verification with
-spot-check because of runtime cost.
+current hardware it may take many hours. It is synchronous. Current observed
+single-world cost implies a complete 3200-world verification may take many
+hours. The full end-to-end real production verification path has not yet been
+run to completion. This is an operational caveat only. It does not weaken
+the requirement that durable production claim verification uses full
+recomputation. Spot-check mode is diagnostic only. Spot-check cannot validate
+or mint durable production claims. Operators must not replace full
+verification with spot-check because of runtime cost.
 
 A first-and-only self-consistent fabricated WORLD_RECORDS + RESULT pair on a
 legitimate freeze → ARM → execution topology is refused because the isolated
@@ -271,6 +281,7 @@ closed.
 ## Execution status
 
 ```text
+driver_implementation_frozen = true
 canonical_production_driver_implemented = true
 post_commit_result_verification = true
 production_result_scientific_payload_rederived = true
@@ -282,6 +293,8 @@ full_historical_verification_is_intentionally_expensive = true
 spot_check_cannot_validate_or_mint_durable_claims = true
 tracked_world_records_are_evidence_not_authority = true
 production_monte_carlo_arm_authorized = false
+production_calibration_executed = false
+world_records_persisted = false
 ACTUAL_PRODUCTION_EXECUTION_RUN = NO
 PRODUCTION_RESULT_MINTED = NO
 AUTHORITY_CONSUMED = NO
@@ -291,5 +304,5 @@ oos_2026_authorized = false
 ARTIFACTS_ROOT_PACKAGE_ACTIVATED = NO
 ```
 
-No tracked live ARM artifact authorizes this HEAD. Frozen scientific lib and
-prereg bytes are unchanged.
+The live driver-freeze artifact is tracked. No tracked live ARM artifact
+authorizes this HEAD. Frozen scientific lib and prereg bytes are unchanged.

@@ -112,15 +112,19 @@ itself is immutable. Post-outcome status lives in
   `production_monte_carlo_arm_authorized = false`).
   Production durability/aggregation/result-persistence is
   `implementation_frozen = true` and remains unarmed.
-  The canonical 3200-world production driver now exists and remains unarmed
+  The canonical 3200-world production driver is
+  `driver_implementation_frozen = true` and remains unarmed
   (`production_monte_carlo_arm_authorized = false`,
   `production_calibration_executed = false`,
   `production_result_minted = false`,
+  `world_records_persisted = false`,
   `authorization_consumed = false`).
+  Reviewed implementation HEAD `3fadc391ee0002e35463b526301d287d4a662828` /
+  tree `5fb77727c418cc42bf3c1c6553355a0475f42efc`.
   Historical ARM HEAD `940d85bf58673396c6c0cc05ce2134a2e2e92809` is
   `REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`.
-  Canonical execution still requires a later explicit arming unit after
-  independent review of this driver. This does not authorize B2-06 science.
+  Canonical execution still requires a later explicit ARM immediate child of
+  this driver freeze. This does not authorize B2-06 science.
 
 Family F1 is `CLOSED_NO_PROMOTION`. 2025 validation and 2026 OOS remain
 untouched. No Batch02 formulation has a promoted candidate, so there is no
