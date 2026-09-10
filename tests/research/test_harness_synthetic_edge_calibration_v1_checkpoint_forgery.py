@@ -63,31 +63,56 @@ def _authenticate(records, jobs, repo):
     )
 
 
+def _oracle(rec):
+    oracle = rec.get("oracle_F03")
+    if not isinstance(oracle, dict):
+        oracle = {}
+        rec["oracle_F03"] = oracle
+    return oracle
+
+
 def _mutate_candidate_metric(rec):
-    rec["oracle_F03"]["MEAN_AE_IMPROVEMENT"] = float(
-        rec["oracle_F03"]["MEAN_AE_IMPROVEMENT"]
-    ) + 0.01
+    oracle = _oracle(rec)
+    current = oracle.get("MEAN_AE_IMPROVEMENT")
+    oracle["MEAN_AE_IMPROVEMENT"] = (
+        float(current) + 0.01 if isinstance(current, (int, float)) else 0.99
+    )
     return rec
 
 
 def _mutate_placebo_q95(rec):
-    rec["oracle_F03"]["placebo"]["placebo_q95"] = float(
-        rec["oracle_F03"]["placebo"]["placebo_q95"]
-    ) + 0.01
+    oracle = _oracle(rec)
+    placebo = oracle.get("placebo")
+    if not isinstance(placebo, dict):
+        placebo = {}
+        oracle["placebo"] = placebo
+    current = placebo.get("placebo_q95")
+    placebo["placebo_q95"] = (
+        float(current) + 0.01 if isinstance(current, (int, float)) else 0.42
+    )
     return rec
 
 
 def _mutate_bootstrap(rec):
-    rec["oracle_F03"]["bootstrap"]["bootstrap_q025"] = float(
-        rec["oracle_F03"]["bootstrap"]["bootstrap_q025"]
-    ) - 0.01
+    oracle = _oracle(rec)
+    bootstrap = oracle.get("bootstrap")
+    if not isinstance(bootstrap, dict):
+        bootstrap = {}
+        oracle["bootstrap"] = bootstrap
+    current = bootstrap.get("bootstrap_q025")
+    bootstrap["bootstrap_q025"] = (
+        float(current) - 0.01 if isinstance(current, (int, float)) else 0.99
+    )
+    bootstrap["bootstrap_positive"] = not bool(bootstrap.get("bootstrap_positive"))
     return rec
 
 
 def _mutate_visibility(rec):
-    rec["visibility"]["GROUND_TRUTH_VISIBLE"] = not rec["visibility"][
-        "GROUND_TRUTH_VISIBLE"
-    ]
+    vis = rec.get("visibility")
+    if not isinstance(vis, dict):
+        vis = {}
+    vis["GROUND_TRUTH_VISIBLE"] = not bool(vis.get("GROUND_TRUTH_VISIBLE"))
+    rec["visibility"] = vis
     return rec
 
 
