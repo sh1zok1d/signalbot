@@ -115,10 +115,11 @@ FROZEN_REVIEWED_LIB_SHA256 = (
     "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51"
 )
 FROZEN_WORKER_SHA256 = (
-    "446367881d3ca5ab474e17aa23987cbd3f4cc582eb7805bfae236be7367703c5"
+    "9aee03fdae012f9054c59adc4cea8072b88493521456fb6141ced926961c886e"
 )
-FROZEN_WORKER_SIZE = 2620
+FROZEN_WORKER_SIZE = 3994
 EXECUTION_WORKERS_ENV = "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_WORKERS"
+VERIFY_WORKERS_ENV = "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_VERIFY_WORKERS"
 BLAS_THREAD_LIMIT_KEYS = (
     "OPENBLAS_NUM_THREADS",
     "OMP_NUM_THREADS",
@@ -270,8 +271,8 @@ import sys
 from pathlib import Path
 
 FROZEN_LIB = "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51"
-FROZEN_WORKER = "446367881d3ca5ab474e17aa23987cbd3f4cc582eb7805bfae236be7367703c5"
-FROZEN_WORKER_SIZE = 2620
+FROZEN_WORKER = "9aee03fdae012f9054c59adc4cea8072b88493521456fb6141ced926961c886e"
+FROZEN_WORKER_SIZE = 3994
 FROZEN_PREREG_JSON = "78fcddf03ce84a0369a955d5b571c2423129d12b22e35f77eab26d6ac5eff708"
 FROZEN_PREREG_MD = "a54c838d2b4903f039b4fd39d79198415ce095f5a9726fc51949cbb47153e5a3"
 LIB_REL = "scripts/research/harness_synthetic_edge_calibration_v1_lib.py"
@@ -1452,6 +1453,27 @@ def resolve_execution_workers(workers: object | None = None) -> int:
     return workers
 
 
+def resolve_verification_workers(workers: object | None = None) -> int:
+    """Operational verifier parallelism. Not scientific authority.
+
+    Worker count must not change world identities, seeds, records, digests,
+    or mechanical conclusions. Default is 1. If VERIFY_WORKERS is unset,
+    EXECUTION_WORKERS is reused so mint/claim verification can share the same
+    operational pool size as compute. An explicit `workers` argument wins.
+    """
+    if workers is None:
+        raw = os.environ.get(VERIFY_WORKERS_ENV)
+        if raw is None or str(raw).strip() == "":
+            raw = os.environ.get(EXECUTION_WORKERS_ENV, "1")
+        try:
+            workers = int(str(raw).strip() or "1")
+        except (TypeError, ValueError):
+            _refuse("verification workers must be a positive int")
+    if type(workers) is not int or workers < 1:
+        _refuse("verification workers must be a positive int")
+    return workers
+
+
 def fit_lstsq_lstsq_rank(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     """Single-factorization OLS rank decision.
 
@@ -1743,12 +1765,14 @@ def authenticate_cached_world_records_from_frozen_execution(
     records: Sequence[Mapping[str, Any]],
     repo_root: Path | None = None,
     production: bool = False,
+    workers: object | None = None,
     **kwargs: Any,
 ) -> dict[str, Any]:
     """Authenticate untrusted cached records against isolated frozen git bytes.
 
     The parent does not recompute science and has no in-process fallback.
-    Checkpoint self-hashes are not scientific authority.
+    Checkpoint self-hashes are not scientific authority. `workers` is
+    operational parallelism only.
     """
     if kwargs:
         _refuse("caller arguments cannot authorize cached-record authentication")
@@ -1760,6 +1784,7 @@ def authenticate_cached_world_records_from_frozen_execution(
             _refuse("production authentication plan is not the frozen 3200-world plan")
     else:
         _fixture_jobs_forbidden_as_production(planned_jobs)
+    workers_n = resolve_verification_workers(workers)
     payload = _untrusted_cached_records_payload(
         bound=bound,
         planned=planned_jobs,
@@ -1772,6 +1797,7 @@ def authenticate_cached_world_records_from_frozen_execution(
             repo_root=root,
             text=False,
             stdin=canonical_json_bytes(_jsonable(payload)),
+            extra_env={VERIFY_WORKERS_ENV: str(workers_n)},
         )
     except OSError as exc:
         _refuse(f"isolated cached-record authentication child could not spawn: {exc}")
@@ -1800,6 +1826,12 @@ def authenticate_cached_world_records_from_frozen_execution(
         _refuse("cached world records do not match frozen execution")
     if not _canonical_equal(proof.get("record_digest_chain"), expected_chain):
         _refuse("cached world records do not match frozen execution")
+    if type(proof.get("observed_world_count")) is not int:
+        _refuse("cached-record authentication observed_world_count is not an int")
+    if proof.get("observed_world_count") != len(payload["records"]):
+        _refuse("cached-record authentication observed_world_count does not match submitted records")
+    if proof.get("observed_world_count") != len(planned_jobs):
+        _refuse("cached-record authentication observed_world_count does not match planned jobs")
     if proof.get("trust_state") != CHECKPOINT_SCIENTIFICALLY_VERIFIED:
         _refuse("cached-record authentication did not derive SCIENTIFICALLY_VERIFIED")
     return proof
@@ -1837,6 +1869,8 @@ def _parse_authenticate_cached_records_proof(raw: bytes) -> dict[str, Any]:
         _refuse("isolated cached-record authentication proof did not attest success")
     if payload.get("verification_authority") != "ISOLATED_FROZEN_GIT_EXECUTION":
         _refuse("cached-record authentication authority is not isolated frozen git bytes")
+    if type(payload.get("observed_world_count")) is not int:
+        _refuse("isolated cached-record authentication proof observed_world_count is not an int")
     return payload
 
 
@@ -1879,12 +1913,8 @@ def authenticate_cached_records_worker_main() -> dict[str, Any]:
     if payload.get("plan_sha256") != planned_jobs_sha256(jobs):
         _refuse("cached records plan_sha256 does not match isolated planned jobs")
     cached = assemble_canonical_world_records(planned_jobs=jobs, completed_records=records)
-    recomputed = [
-        _jsonable(_evaluate_planned_world_body(scenario_id, n_rows, world_index))
-        for scenario_id, n_rows, world_index in jobs
-    ]
-    recomputed = assemble_canonical_world_records(
-        planned_jobs=jobs, completed_records=recomputed
+    recomputed = _evaluate_jobs_for_verification(
+        jobs, resolve_verification_workers(None)
     )
     cached_bytes = canonical_json_bytes({"worlds": cached})
     recomputed_bytes = canonical_json_bytes({"worlds": recomputed})
@@ -1959,7 +1989,34 @@ def _evaluate_jobs_multiprocess(
         _refuse(f"worker execution failed closed: {type(exc).__name__}: {exc}")
     if not isinstance(completed, list):
         _refuse("malformed worker record set")
+    if len(completed) != len(payloads):
+        _refuse("worker execution failed closed: incomplete world set")
     return completed
+
+
+def _evaluate_jobs_for_verification(
+    jobs: Sequence[tuple[str, int, int]],
+    workers: object | None = None,
+) -> list[dict[str, Any]]:
+    """Recompute planned jobs with optional world-parallel spawn workers.
+
+    Worker count is operational. Results are canonical-reordered before
+    return. Used by isolated authentication and historical recomputation.
+    """
+    planned = tuple((str(job[0]), int(job[1]), int(job[2])) for job in jobs)
+    workers_n = resolve_verification_workers(workers)
+    apply_worker_blas_thread_limits()
+    if workers_n == 1:
+        completed = [
+            _jsonable(_evaluate_planned_world_body(*job)) for job in planned
+        ]
+    else:
+        completed = [
+            _jsonable(rec) for rec in _evaluate_jobs_multiprocess(planned, workers_n)
+        ]
+    return assemble_canonical_world_records(
+        planned_jobs=planned, completed_records=completed
+    )
 
 
 def evaluate_production_candidate(
@@ -2915,6 +2972,7 @@ def _mint_from_session(session: _CanonicalExecutionSession) -> dict[str, Any]:
             records=session.records,
             repo_root=session.repo_root,
             production=True,
+            workers=resolve_verification_workers(None),
         )
         bound = verify_executed_production_authority(session.repo_root)
         core = _bind_result_core(
@@ -2968,6 +3026,8 @@ def _run_session_jobs(
         if session.production:
             if os.environ.get("HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_TEST_WORKER_CRASH"):
                 _refuse("test worker crash injection cannot enter production")
+            if os.environ.get("HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_VERIFY_STAGGER_MS"):
+                _refuse("verification stagger cannot enter production")
             _refuse_production_durability_hooks()
             store = DurablePartialWorldStore.open(
                 session.repo_root / DURABLE_PARTIAL_REL,
@@ -3441,26 +3501,27 @@ def _recompute_production_records_from_frozen_execution(
 ) -> list[Mapping[str, Any]]:
     """Independently recompute all 3200 canonical production world bodies.
 
-    Uses the frozen planned job set and `_evaluate_planned_world_body`, the
-    same evaluator the canonical production session uses. Does not require
-    live ARM (historical HEAD may be an unarmed RESULT descendant). Does not
-    mint, write artifacts, or consume one-shot authority. Tracked
-    WORLD_RECORDS bodies are not inputs.
+    Uses the frozen planned job set and `_evaluate_jobs_for_verification`
+    (world-parallel spawn over `_evaluate_planned_world_body` when workers>1).
+    Worker count is operational and must not change scientific output. Does not
+    require live ARM. Does not mint, write artifacts, or consume one-shot
+    authority. Tracked WORLD_RECORDS bodies are not inputs.
     """
     jobs = planned_production_jobs()
     if len(jobs) != PRODUCTION_PLANNED_TOTAL_WORLDS:
         _refuse("production world plan is not 3200 identities")
     if jobs[0] != ("NULL", 5000, 0) or jobs[-1] != ("SMALL", 10000, 399):
         _refuse("production world plan identity order drifted")
-    records: list[Mapping[str, Any]] = []
-    for scenario_id, n_rows, world_index in jobs:
-        rec = _evaluate_planned_world_body(scenario_id, n_rows, world_index)
+    records = _evaluate_jobs_for_verification(
+        jobs, resolve_verification_workers(None)
+    )
+    for rec, job in zip(records, jobs, strict=True):
+        scenario_id, n_rows, world_index = job
         identity = world_identity(scenario_id, int(n_rows), int(world_index))
         if str(rec.get("world_identity", "")) != identity:
             _tamper("recomputed world identity does not match the frozen plan")
         if int(rec.get("world_seed", -1)) != int(world_seed(identity)):
             _tamper("recomputed world seed does not match the frozen plan")
-        records.append(rec)
     return _require_canonical_production_records(records)
 
 
@@ -3731,7 +3792,12 @@ def _require_isolated_historical_recompute(
     """
     try:
         completed = _spawn_isolated_child(
-            HISTORICAL_RECOMPUTE_MODE, repo_root=repo_root, text=False
+            HISTORICAL_RECOMPUTE_MODE,
+            repo_root=repo_root,
+            text=False,
+            extra_env={
+                VERIFY_WORKERS_ENV: str(resolve_verification_workers(None)),
+            },
         )
     except OSError as exc:
         _refuse(f"isolated historical recompute child could not spawn: {exc}")
@@ -3989,11 +4055,19 @@ def _isolated_child_env():
     return env
 
 
-def _spawn_isolated_child(mode, repo_root=None, *, text: bool = True, stdin=None):
+def _spawn_isolated_child(
+    mode, repo_root=None, *, text: bool = True, stdin=None, extra_env=None
+):
     """Spawn the existing isolated interpreter. No timeout: historical
     `FULL_3200_RECOMPUTATION` is synchronous and may take many hours.
+    Worker count is operational and is passed via extra_env, not as
+    scientific authority.
     """
     root = (repo_root or _repo_root()).resolve()
+    env = _isolated_child_env()
+    if extra_env:
+        for key, value in extra_env.items():
+            env[str(key)] = str(value)
     return subprocess.run(
         [
             sys.executable,
@@ -4006,7 +4080,7 @@ def _spawn_isolated_child(mode, repo_root=None, *, text: bool = True, stdin=None
             mode,
         ],
         cwd=str(root),
-        env=_isolated_child_env(),
+        env=env,
         check=False,
         capture_output=True,
         text=text,

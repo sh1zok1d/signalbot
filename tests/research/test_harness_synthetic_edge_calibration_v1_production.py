@@ -1933,7 +1933,12 @@ def test_historical_production_recomputes_all_3200_worlds(tmp_path, monkeypatch)
         "def _recompute_production_records_from_frozen_execution", 1
     )[1].split("def _compare_recomputed_world_records", 1)[0]
     assert "planned_production_jobs" in recompute_src
-    assert "_evaluate_planned_world_body" in recompute_src
+    assert "_evaluate_jobs_for_verification" in recompute_src
+    helper_src = source.split("def _evaluate_jobs_for_verification", 1)[1].split(
+        "def evaluate_production_candidate", 1
+    )[0]
+    assert "_evaluate_planned_world_body" in helper_src
+    assert "_evaluate_jobs_multiprocess" in helper_src
     assert "_require_isolated_historical_recompute" in verify_src
     assert "_recompute_production_records_from_frozen_execution" not in verify_src
     assert "_evaluate_planned_world_body" not in verify_src

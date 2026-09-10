@@ -69,6 +69,13 @@ Same science, same randomness, same logical results, faster execution.
    science. Default worker count is **1**. `--workers N` is explicit.
    Conservative operator hint: `conservative_worker_count()` = half of
    detected CPUs, capped at 16. Do not blindly spawn `os.cpu_count()`.
+   Isolated mint-time authentication and claim-time historical recomputation
+   reuse the same spawn semantics via `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_VERIFY_WORKERS`
+   (falls back to `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_WORKERS` if unset).
+   Worker count is operational, not scientific authority. Changing it must
+   not change identities, seeds, records, digests, or conclusions. The two
+   trust passes remain distinct: mint auth does not replace claim-time
+   `FULL_3200_RECOMPUTATION`.
 4. **BLAS limits.** Workers set `OPENBLAS_NUM_THREADS=1`, `OMP_NUM_THREADS=1`,
    `MKL_NUM_THREADS=1`, `NUMEXPR_NUM_THREADS=1` before importing numpy.
 
@@ -174,11 +181,13 @@ closed. Persisted `verified=true` metadata is ignored/refused; verification
 status is not trusted from checkpoint content.
 
 Authoritative verification cost is a separate isolated scientific pass at
-production mint (same frozen `_evaluate_planned_world_body` as live compute,
-executed from git objects in a fresh `-I -B -P` child). Claim-time
-`FULL_3200_RECOMPUTATION` remains the existing historical RESULT verifier.
-Do not hide that cost inside the optimized production runtime. Resume does
-not immediately recompute completed worlds.
+production mint and a distinct claim-time `FULL_3200_RECOMPUTATION`. Both
+isolated children may use the same world-parallel spawn path as compute.
+Worker count is operational (`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_VERIFY_WORKERS`,
+falling back to `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_WORKERS`). The two
+trust passes stay independent. Parent authentication proofs must match
+`observed_world_count` to the submitted/planned world count; digest agreement
+alone is not enough. Resume does not immediately recompute completed worlds.
 
 State machine:
 

@@ -154,7 +154,7 @@ def test_authenticate_parent_does_not_call_current_evaluator():
             "\ndef _job_from_record"
         )
     ]
-    assert "_evaluate_planned_world_body(" in child
+    assert "_evaluate_jobs_for_verification" in child
     assert "ISOLATED_FROZEN_GIT_EXECUTION" in child
 
 
