@@ -57,7 +57,64 @@ def _live_bytes(rel: str) -> bytes:
     return (REPO / rel).read_bytes()
 
 
-def _commit_production_tree(tmp_path: Path, *, extra: dict[str, bytes] | None = None) -> Path:
+_HISTORICAL_RECOMPUTE_TEST_STUB = '''
+# HISTORICAL_RECOMPUTE_TEST_STUB: disposable-topology surrogate evaluator.
+# Bound by ARM on this checkout only. Not present on the live workspace.
+
+def _evaluate_planned_world_body(scenario_id: str, n_rows: int, world_index: int) -> dict[str, Any]:
+    identity = world_identity(scenario_id, int(n_rows), int(world_index))
+    return {
+        "scenario_id": scenario_id,
+        "n_rows": n_rows,
+        "world_index": world_index,
+        "world_identity": identity,
+        "world_seed": int(world_seed(identity)),
+        "valid": True,
+        "invalid_reasons": [],
+        "oracle_F03": {
+            "gates": {
+                "MODEL_DETECTED": False,
+                "STRICT_PASS_EX_MATERIALITY": False,
+                "STRICT_PASS": False,
+            },
+            "visibility": {"GROUND_TRUTH_VISIBLE": False},
+        },
+        "selected_STRICT_PASS_EX_MATERIALITY": "NO_CANDIDATE",
+        "selected_STRICT_PASS": "NO_CANDIDATE",
+        "taxonomy": "NO_DISCOVERY",
+        "taxonomy_flags": {
+            "TRUE_DISCOVERY": False,
+            "ANY_EDGE_DECLARED": False,
+            "USEFUL_DISCOVERY": False,
+        },
+        "visibility": {"GROUND_TRUTH_VISIBLE": False},
+        "materiality": {
+            "STRICT_PASS": False,
+            "STRICT_PASS_EX_MATERIALITY": False,
+        },
+        "stays_in_denominator": True,
+    }
+
+'''
+
+
+def _install_historical_recompute_test_stub(repo: Path) -> None:
+    path = repo / PRODUCTION_PATH
+    text = path.read_text(encoding="utf-8")
+    marker = 'if __name__ == "__main__":\n'
+    if marker not in text:
+        raise AssertionError("production.py is missing the isolated-child main guard")
+    if "HISTORICAL_RECOMPUTE_TEST_STUB" in text:
+        return
+    path.write_text(text.replace(marker, _HISTORICAL_RECOMPUTE_TEST_STUB + marker, 1), encoding="utf-8")
+
+
+def _commit_production_tree(
+    tmp_path: Path,
+    *,
+    extra: dict[str, bytes] | None = None,
+    historical_recompute_stub: bool = False,
+) -> Path:
     repo = tmp_path / "repo"
     repo.mkdir(parents=True)
     _git(repo, "init")
@@ -82,6 +139,8 @@ def _commit_production_tree(tmp_path: Path, *, extra: dict[str, bytes] | None = 
         copies.update(extra)
     for rel, data in copies.items():
         _write(repo / rel, data)
+    if historical_recompute_stub:
+        _install_historical_recompute_test_stub(repo)
     _git(repo, "add", "-A")
     _git(repo, "commit", "-m", "production durability tree")
     return repo
@@ -1451,10 +1510,9 @@ def _bind_mock_production_evaluator(monkeypatch) -> None:
 
 
 def _armed_fixture_repo(tmp_path, monkeypatch) -> Path:
-    repo = _commit_production_tree(tmp_path)
+    repo = _commit_production_tree(tmp_path, historical_recompute_stub=True)
     _commit_arm_authorizing_parent(repo)
     _bind_prod(monkeypatch, repo)
-    _bind_mock_production_evaluator(monkeypatch)
     _assert_clean(repo)
     return repo
 
@@ -1641,10 +1699,7 @@ def _commit_production_result(
     A single tracked version per topology, so the duplicate/conflicting-RESULT
     guard can never mask a scientific tamper.
     """
-    records = [
-        prod._evaluate_planned_world_body(*job)
-        for job in prod.planned_production_jobs()
-    ]
+    records = _planned_records()
     bound = prod.verify_executed_production_authority(repo)
     core = prod._bind_result_core_from_bound(
         records, bound=bound, fixture=False, armed=True
@@ -1796,31 +1851,54 @@ def test_consistent_aggregate_rewrite_refused(tmp_path, monkeypatch):
 
 def test_historical_production_recomputes_all_3200_worlds(tmp_path, monkeypatch):
     repo = _armed_fixture_repo(tmp_path, monkeypatch)
-    calls: list[tuple[str, int, int]] = []
-    inner = prod._evaluate_planned_world_body
-
-    def counting(scenario_id, n_rows, world_index):
-        calls.append((scenario_id, n_rows, world_index))
-        return inner(scenario_id, n_rows, world_index)
-
-    monkeypatch.setattr(prod, "_evaluate_planned_world_body", counting)
     _commit_production_result(repo)
-    calls.clear()
-    prod.verify_bound_result_from_tracked_authority(repo)
-    assert len(calls) == 3200
-    assert calls == list(prod.planned_production_jobs())
-    assert calls[0] == ("NULL", 5000, 0)
-    assert calls[-1] == ("SMALL", 10000, 399)
+    modes: list[str] = []
+    original = prod._spawn_isolated_child
+
+    def wrapped(mode, repo_root=None, **kwargs):
+        modes.append(mode)
+        return original(mode, repo_root=repo_root, **kwargs)
+
+    def boom(*args, **kwargs):
+        raise AssertionError("parent in-process historical recomputation")
+
+    monkeypatch.setattr(prod, "_spawn_isolated_child", wrapped)
+    monkeypatch.setattr(prod, "_recompute_production_records_from_frozen_execution", boom)
+    monkeypatch.setattr(prod, "_evaluate_planned_world_body", boom)
+    verified = prod.verify_bound_result_from_tracked_authority(repo)
+    assert modes == [prod.HISTORICAL_RECOMPUTE_MODE]
+    assert verified["core"]["record_count"] == 3200
+    assert verified["core"]["aggregates"]["arms"]["ORACLE_NULL_MODEL_DETECTED"]["successes"] == 0
+    source = Path(prod.__file__).read_text(encoding="utf-8")
+    child_src = source.split("def _isolated_child_main", 1)[1].split(
+        "def fresh_process_worker_main", 1
+    )[0]
+    worker_src = source.split("def historical_recompute_worker_main", 1)[1].split(
+        "def _isolated_child_main", 1
+    )[0]
+    verify_src = source.split("def verify_bound_result_from_tracked_authority", 1)[1].split(
+        "def durable_result_claim_from_tracked_authority", 1
+    )[0]
+    assert "HISTORICAL_RECOMPUTE_MODE" in child_src
+    assert "_recompute_production_records_from_frozen_execution" in worker_src
+    assert "_load_tracked_world_records" in worker_src
+    assert "_assert_historical_recompute_uses_authorized_code" in worker_src
+    recompute_src = source.split(
+        "def _recompute_production_records_from_frozen_execution", 1
+    )[1].split("def _compare_recomputed_world_records", 1)[0]
+    assert "planned_production_jobs" in recompute_src
+    assert "_evaluate_planned_world_body" in recompute_src
+    assert "_require_isolated_historical_recompute" in verify_src
+    assert "_recompute_production_records_from_frozen_execution" not in verify_src
+    assert "_evaluate_planned_world_body" not in verify_src
+    assert "HISTORICAL_RECOMPUTE_TEST_STUB" not in source
 
 
 def test_consistent_result_plus_world_records_rewrite_refused(tmp_path, monkeypatch):
     """First-and-only self-consistent fabricated WORLD_RECORDS + RESULT pair."""
     repo = _armed_fixture_repo(tmp_path, monkeypatch)
     bound = prod.verify_executed_production_authority(repo)
-    honest_records = [
-        prod._evaluate_planned_world_body(*job)
-        for job in prod.planned_production_jobs()
-    ]
+    honest_records = _planned_records()
     forged_records = _records_with_cell_successes("NULL", 5000, "oracle_model", 400)
     honest = prod._bind_result_core_from_bound(
         honest_records, bound=bound, fixture=False, armed=True
@@ -1868,6 +1946,7 @@ def test_historical_spotcheck_is_not_claim_authority(tmp_path, monkeypatch):
     assert prod.AUTHORITATIVE_HISTORICAL_VERIFICATION == "FULL_3200_RECOMPUTATION"
     repo = _armed_fixture_repo(tmp_path, monkeypatch)
     _commit_production_result(repo)
+    _bind_mock_production_evaluator(monkeypatch)
     diagnostic = prod.diagnose_historical_result_spotcheck(repo)
     assert diagnostic["authoritative"] is False
     assert diagnostic["authoritative_historical_verification"] is False
@@ -2098,3 +2177,132 @@ def test_historical_production_world_records_unbound_content_tamper_refused(
         match="records_artifact_sha256 does not match tracked WORLD_RECORDS bytes",
     ):
         prod.verify_bound_result_from_tracked_authority(repo)
+
+
+def test_fixture_historical_verify_does_not_spawn_isolated_child(tmp_path, monkeypatch):
+    repo = _armed_fixture_repo(tmp_path, monkeypatch)
+    envelope, _records = _mint_fixture_envelope(repo)
+    _commit_result_envelope(repo, envelope)
+
+    def boom(*args, **kwargs):
+        raise AssertionError("fixture historical verify must not spawn an isolated child")
+
+    monkeypatch.setattr(prod, "_spawn_isolated_child", boom)
+    verified = prod.verify_bound_result_from_tracked_authority(repo, envelope)
+    assert verified["core"]["fixture"] is True
+
+
+def _parent_science_boom(*args, **kwargs):
+    raise AssertionError("parent-process science must not authorize historical verification")
+
+
+def test_parent_monkeypatch_cannot_affect_honest_historical_verify(tmp_path, monkeypatch):
+    repo = _armed_fixture_repo(tmp_path, monkeypatch)
+    envelope, _world_records = _commit_production_result(repo)
+    production_bytes = (repo / PRODUCTION_PATH).read_bytes()
+    assert "HISTORICAL_RECOMPUTE_TEST_STUB" in production_bytes.decode("utf-8")
+
+    def fabricated(scenario_id, n_rows, world_index):
+        return _mock_record(
+            scenario_id,
+            n_rows,
+            world_index,
+            oracle_model=scenario_id == "NULL" and n_rows == 5000,
+        )
+
+    monkeypatch.setattr(prod, "_evaluate_planned_world_body", fabricated)
+    monkeypatch.setattr(prod, "aggregate_planned_worlds", _parent_science_boom)
+    monkeypatch.setattr(prod, "planned_production_jobs", _parent_science_boom)
+    monkeypatch.setattr(prod, "_recompute_production_records_from_frozen_execution", _parent_science_boom)
+    monkeypatch.setattr(prod, "_bind_result_core_from_bound", _parent_science_boom)
+    verified = prod.verify_bound_result_from_tracked_authority(repo)
+    assert verified["core"]["execution_head"] == envelope["core"]["execution_head"]
+    assert verified["core"]["run_identity"] == envelope["core"]["run_identity"]
+    assert verified["core"]["aggregates"]["arms"]["ORACLE_NULL_MODEL_DETECTED"]["successes"] == 0
+    assert (repo / PRODUCTION_PATH).read_bytes() == production_bytes
+    claim = prod.durable_result_claim_from_tracked_authority(repo)
+    assert claim["records_artifact_sha256"] == envelope["core"]["records_artifact_sha256"]
+
+
+def test_parent_monkeypatch_cannot_mint_fabricated_historical_pair(tmp_path, monkeypatch):
+    repo = _armed_fixture_repo(tmp_path, monkeypatch)
+    production_bytes = (repo / PRODUCTION_PATH).read_bytes()
+    bound = prod.verify_executed_production_authority(repo)
+    honest_records = _planned_records()
+    forged_records = _records_with_cell_successes("NULL", 5000, "oracle_model", 400)
+    honest = prod._bind_result_core_from_bound(
+        honest_records, bound=bound, fixture=False, armed=True
+    )
+    forged = prod._bind_result_core_from_bound(
+        forged_records, bound=bound, fixture=False, armed=True
+    )
+    forged_world_records = prod._production_world_records_from_bound(
+        forged_records, bound=bound
+    )
+    assert honest["aggregates"]["arms"]["ORACLE_NULL_MODEL_DETECTED"]["successes"] == 0
+    assert forged["aggregates"]["arms"]["ORACLE_NULL_MODEL_DETECTED"]["successes"] == 400
+    assert honest["mechanical_conclusion"] != forged["mechanical_conclusion"]
+    assert forged["execution_head"] == honest["execution_head"]
+    assert forged["run_identity"] == honest["run_identity"]
+
+    def fabricated(scenario_id, n_rows, world_index):
+        return _mock_record(
+            scenario_id,
+            n_rows,
+            world_index,
+            oracle_model=scenario_id == "NULL" and n_rows == 5000,
+        )
+
+    monkeypatch.setattr(prod, "_evaluate_planned_world_body", fabricated)
+    monkeypatch.setattr(prod, "aggregate_planned_worlds", _parent_science_boom)
+    monkeypatch.setattr(prod, "planned_production_jobs", _parent_science_boom)
+    monkeypatch.setattr(prod, "_recompute_production_records_from_frozen_execution", _parent_science_boom)
+    _commit_result_envelope(
+        repo,
+        prod._result_envelope_from_core(forged),
+        world_records=forged_world_records,
+    )
+    assert (repo / PRODUCTION_PATH).read_bytes() == production_bytes
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized) as excinfo:
+        prod.verify_bound_result_from_tracked_authority(repo)
+    detail = str(excinfo.value)
+    assert "duplicate/conflicting" not in detail
+    assert "tracked WORLD_RECORDS were not produced by frozen execution" in detail
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized) as claim_exc:
+        prod.durable_result_claim_from_tracked_authority(repo)
+    claim_detail = str(claim_exc.value)
+    assert "duplicate/conflicting" not in claim_detail
+    assert "tracked WORLD_RECORDS were not produced by frozen execution" in claim_detail
+    assert (repo / PRODUCTION_PATH).read_bytes() == production_bytes
+
+
+def test_malformed_historical_recompute_proof_fails_closed():
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="produced no proof"):
+        prod._parse_historical_recompute_proof(b"")
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="not JSON"):
+        prod._parse_historical_recompute_proof(b"not-json")
+    proof = {
+        "schema_version": "1.0",
+        "kind": prod.HISTORICAL_RECOMPUTE_PROOF_KIND,
+        "mode": prod.HISTORICAL_RECOMPUTE_MODE,
+        "verification": prod.AUTHORITATIVE_HISTORICAL_VERIFICATION,
+        "verification_success": True,
+        "execution_head": "ab" * 20,
+        "execution_tree": "cd" * 20,
+        "run_identity": "ef" * 32,
+        "result_artifact_sha256": "11" * 32,
+        "result_artifact_size": 1,
+        "records_artifact_sha256": "22" * 32,
+        "records_artifact_size": 1,
+        "recomputed_world_records_sha256": "22" * 32,
+    }
+    raw = prod.canonical_json_bytes(proof)
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="duplicate or trailing"):
+        prod._parse_historical_recompute_proof(raw + b'{"extra": true}\n')
+    proof["verification_success"] = False
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="did not attest success"):
+        prod._parse_historical_recompute_proof(prod.canonical_json_bytes(proof))
+    proof["verification_success"] = True
+    proof["extra"] = True
+    with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="keys are not canonical"):
+        prod._parse_historical_recompute_proof(prod.canonical_json_bytes(proof))

@@ -1660,3 +1660,34 @@ RESULT persisted. Frozen lib and prereg bytes unchanged.
 - production_result_minted: **false**
 - authorization_consumed: **false**
 - status: `PRODUCTION_EXECUTION_DRIVER_REPAIR_UNARMED`
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — isolate authoritative historical recomputation
+
+Closes the remaining stale-import / runtime-mutation class for historical
+verification. Authoritative 3200-world recomputation previously ran in the
+caller process: it compared on-disk bytes to `execution_head`, but an
+in-process monkeypatch of `_evaluate_planned_world_body` (or already-imported
+runtime objects) could still make a fabricated WORLD_RECORDS + RESULT pair
+verify and mint a durable claim while repository bytes stayed unchanged.
+
+Production `verify_bound_result_from_tracked_authority` now spawns
+`HISTORICAL_RECOMPUTE_MODE` through the existing isolated-child bootstrap. The
+child independently re-proves historical identity, loads git-object blobs,
+proves executing bytes match `execution_head`, derives the frozen plan
+internally, recomputes all 3200 worlds, compares tracked WORLD_RECORDS
+evidence, and recomputes RESULT science. The parent treats only a bound
+child success proof as the recomputation result. There is no in-process
+fallback. Durable claims still require this verification first.
+
+Full verification is intentionally expensive and synchronous; it may take
+many hours. Spot-check remains diagnostic only and cannot mint or validate
+durable production claims.
+
+No live freeze artifact. No live ARM. No 3200-world production execution. No
+RESULT persisted. Frozen lib and prereg bytes unchanged.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_EXECUTION_DRIVER_REPAIR_UNARMED`

@@ -64,11 +64,19 @@ verify_bound_result_from_tracked_authority(repo_root, result_document_or_path)
     reads execution_head from the RESULT core itself
     loads execution-authority blobs from that exact commit via git objects
     re-verifies ARM/freeze topology at execution time
-    proves executing scientific/production blobs match that execution commit
-    independently recomputes all 3200 frozen-plan worlds
-    compares canonical WORLD_RECORDS evidence against that recomputation
-    recomputes aggregates and all derived scientific fields
-    reconstructs the expected core and compares it exactly
+    production path spawns HISTORICAL_RECOMPUTE_MODE through the existing
+    isolated-child bootstrap (python -I -B -P, stdlib-only pre-import
+    checks, root file/package shadow checks, worktree=HEAD, frozen lib/prereg)
+    the child independently:
+        proves executing scientific/production blobs match execution_head
+        derives the frozen 3200-world plan and seeds internally
+        recomputes all 3200 worlds
+        compares canonical WORLD_RECORDS evidence against that recomputation
+        recomputes aggregates and all derived scientific fields
+        reconstructs the expected core and compares it exactly
+    the parent treats a bound child success proof as the recomputation
+    result and does not re-run or override science in-process
+    there is no in-process fallback
     current HEAD need not be armed
 ```
 
@@ -197,18 +205,20 @@ authority. Aggregates, Wilson intervals, verdicts, bands, floors, and
 `mechanical_conclusion` are not historical inputs.
 
 Authoritative `verify_bound_result_from_tracked_authority` of a production
-RESULT:
+RESULT does **not** recompute science in the caller process. It spawns
+`HISTORICAL_RECOMPUTE_MODE` through the existing `#115` isolated-child
+bootstrap (`python -I -B -P`, stdlib-only pre-import checks, root file and
+package shadow checks, worktree=HEAD, frozen lib/prereg). The parent does not
+supply an evaluator, plan, seeds, aggregates, record bodies, or module-path
+authority. There is no in-process fallback. The isolated child:
 
-- checks the protected literals exactly — `production_calibration_executed`
-  true, `production_monte_carlo_arm_authorized` true, and
-  `real_market_data_access_authorized`, `B2_06_scientific_execution_authorized`,
-  `validation_2025_authorized`, `oos_2026_authorized` all false — and refuses a
-  core that declares `fixture` or `not_a_production_result`;
-- loads the tracked sibling WORLD_RECORDS artifact from git objects, not the
-  worktree, and verifies canonical path, digest, size, kind, execution
-  identity, frozen grid, and the exact 3200-job plan in canonical order;
+- starts from that protected fresh-process/import boundary;
+- independently verifies the requested historical execution identity;
+- loads exact historical RESULT and WORLD_RECORDS blobs from git objects;
 - proves the executing lib/runner/auth/production bytes equal the git objects
-  at `execution_head`, so recomputation cannot silently run current-HEAD science;
+  at `execution_head`, so recomputation cannot silently run current-HEAD science
+  or a parent-process monkeypatch;
+- derives the frozen 3200-world plan and seeds internally;
 - independently recomputes all 3200 frozen-plan worlds through
   `_evaluate_planned_world_body` (no reroll; invalid worlds stay in the
   denominator);
@@ -221,10 +231,28 @@ RESULT:
   from the independently generated records;
 - reconstructs the expected canonical RESULT core and compares it exactly.
 
+The parent accepts only a minimal machine-readable success proof bound to
+`execution_head`, `run_identity`, RESULT digest/size, WORLD_RECORDS
+digest/size, and the recomputed WORLD_RECORDS digest. Malformed, missing, or
+duplicate child output fails closed. Durable claims require this isolated
+verification first; there is no alternate claim path.
+
+### Verification cost
+
+Authoritative historical verification performs full 3200-world
+recomputation (`FULL_3200_RECOMPUTATION`) and is intentionally expensive. On
+current hardware it may take many hours. It is synchronous. Spot-check
+mode is diagnostic only. Spot-check cannot validate or mint durable
+production claims. Operators must not replace full verification with
+spot-check because of runtime cost.
+
 A first-and-only self-consistent fabricated WORLD_RECORDS + RESULT pair on a
-legitimate freeze → ARM → execution topology is refused because recomputation
-does not reproduce the tracked records. Durable claims are constructed only
-after that full recomputation succeeds, and they explicitly bind RESULT and
+legitimate freeze → ARM → execution topology is refused because the isolated
+child's genuine recomputation does not reproduce the tracked records. Parent
+monkeypatches of `_evaluate_planned_world_body`, `aggregate_planned_worlds`,
+or `planned_production_jobs` cannot authorize that pair while on-disk bytes
+remain unchanged. Durable claims are constructed only after that full
+isolated recomputation succeeds, and they explicitly bind RESULT and
 WORLD_RECORDS digest/size plus execution/terminal identity.
 
 A sampled spot-check may exist only as a non-authoritative diagnostic. It
@@ -248,6 +276,10 @@ post_commit_result_verification = true
 production_result_scientific_payload_rederived = true
 production_result_world_records_bound = true
 authoritative_historical_verification = FULL_3200_RECOMPUTATION
+authoritative_historical_verification_uses_fresh_child = true
+historical_recompute_mode = historical-recompute
+full_historical_verification_is_intentionally_expensive = true
+spot_check_cannot_validate_or_mint_durable_claims = true
 tracked_world_records_are_evidence_not_authority = true
 production_monte_carlo_arm_authorized = false
 ACTUAL_PRODUCTION_EXECUTION_RUN = NO

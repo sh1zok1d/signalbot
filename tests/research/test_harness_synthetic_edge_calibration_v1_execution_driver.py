@@ -571,6 +571,25 @@ def test_no_reroll_and_planned_3200_remain_authoritative():
     assert "_recompute_production_records_from_frozen_execution" in source
     assert "tracked WORLD_RECORDS were not produced by frozen execution" in source
     assert prod.AUTHORITATIVE_HISTORICAL_VERIFICATION == "FULL_3200_RECOMPUTATION"
+    assert prod.HISTORICAL_RECOMPUTE_MODE == "historical-recompute"
+    child_src = source.split("def _isolated_child_main", 1)[1].split(
+        "def fresh_process_worker_main", 1
+    )[0]
+    verify_src = source.split("def verify_bound_result_from_tracked_authority", 1)[1].split(
+        "def durable_result_claim_from_tracked_authority", 1
+    )[0]
+    claim_src = source.split("def durable_result_claim_from_tracked_authority", 1)[1].split(
+        "def persist_partial_worlds", 1
+    )[0]
+    assert "HISTORICAL_RECOMPUTE_MODE" in child_src
+    assert "historical_recompute_worker_main" in child_src
+    assert "_require_isolated_historical_recompute" in verify_src
+    assert "_recompute_production_records_from_frozen_execution" not in verify_src
+    assert "_evaluate_planned_world_body" not in verify_src
+    assert "diagnose_historical_result_spotcheck" not in verify_src
+    assert "verify_bound_result_from_tracked_authority" in claim_src
+    assert "diagnose_historical_result_spotcheck" not in claim_src
+    assert "HISTORICAL_RECOMPUTE_TEST_STUB" not in source
     assert (REPO / prod.CANONICAL_DRIVER_FREEZE_PATH).exists() is False
     assert (REPO / prod.CANONICAL_WORLD_RECORDS_PATH).exists() is False
 

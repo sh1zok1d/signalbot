@@ -132,11 +132,16 @@ Verification has two distinct authority models. LIVE
 canonical world records and current HEAD. TRACKED
 `verify_bound_result_from_tracked_authority` reads `execution_head` from the
 RESULT core, loads exact git-object blobs at that commit, re-verifies
-historical ARM/freeze topology, proves executing scientific/production blobs
-match that execution commit, independently recomputes all 3200 frozen-plan
-worlds, compares tracked WORLD_RECORDS evidence against that recomputation,
-reconstructs the expected core, and compares canonical core bytes. Current
-HEAD being a later unarmed RESULT commit is not authority. Recomputing
+historical ARM/freeze topology, and for a production RESULT spawns
+`HISTORICAL_RECOMPUTE_MODE` through the existing isolated-child bootstrap.
+That child proves executing scientific/production blobs match that
+execution commit, independently recomputes all 3200 frozen-plan worlds,
+compares tracked WORLD_RECORDS evidence against that recomputation,
+reconstructs the expected core, and compares canonical core bytes. The
+parent does not re-run science in-process and has no in-process fallback.
+Full verification is intentionally expensive and synchronous; spot-check
+is diagnostic only and cannot mint a durable claim. Current HEAD being a
+later unarmed RESULT commit is not authority. Recomputing
 `core_sha256` / `core_size` after changing an uncompared field is not authority.
 The envelope may contain only `core`, `core_sha256`, and `core_size`.
 
