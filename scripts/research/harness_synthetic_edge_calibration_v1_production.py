@@ -4,11 +4,14 @@ This layer sits above frozen scientific primitives. It does not change RNG, DGP,
 gates, Wilson, taxonomy, or mechanical-conclusion semantics. It does not weaken
 FixtureExecutionConfig.
 
-The canonical 3200-world driver exists in this module. Production Monte Carlo
-remains unarmed on this HEAD: a later docs-only ARM child must authorize the
-reviewed driver/freeze parent before any production execution. Canonical
-execution, when later armed, must cross a fresh Python interpreter boundary and
-re-verify exact HEAD/tree plus execution-authority bytes inside that process.
+The canonical 3200-world driver exists in this module. A performance-only
+descendant may cache BASE placebo predictions, use lstsq rank, and evaluate
+independent worlds in parallel. Those changes do not authorize production:
+the unused ARM at freeze-parent child 0abc5fe remains unused and does not
+authorize this HEAD. A later independent review plus a NEW ARM is required
+before any production execution. Canonical execution, when later armed,
+must cross a fresh Python interpreter boundary and re-verify exact HEAD/tree
+plus execution-authority bytes inside that process.
 Final RESULT minting requires an unforgeable in-process canonical session
 capability; caller-supplied records cannot mint.
 
@@ -41,6 +44,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import multiprocessing
 import os
 import subprocess
 import sys
@@ -51,6 +55,7 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 from scripts.research.harness_synthetic_edge_calibration_v1_lib import (
+    ERA_NAMES,
     FEATURE_IDS,
     PRODUCTION_BLOCK_ROWS,
     PRODUCTION_BOOTSTRAP_REPLICATES,
@@ -64,17 +69,20 @@ from scripts.research.harness_synthetic_edge_calibration_v1_lib import (
     UNIT_ID,
     IncompleteWorld,
     SyntheticExecutionNotAuthorized,
+    _design_matrix,
     ae_metrics,
     candidate_features,
     compose_gates,
     era_mean_improvements,
+    era_slices,
     expanding_era_predictions,
+    linear_quantile,
     materiality_fraction_of_attainable,
     mechanical_conclusion,
     namespace_seed,
     pcg64_generator,
-    placebo_q95,
     power_verdict,
+    predict,
     prediction_bootstrap,
     scenario_by_id,
     scored_mask,
@@ -100,6 +108,13 @@ PRODUCTION_REL = "scripts/research/harness_synthetic_edge_calibration_v1_product
 EXECUTION_AUTHORITY_PATHS = (LIB_REL, RUNNER_REL, AUTH_REL, PRODUCTION_REL)
 FROZEN_REVIEWED_LIB_SHA256 = (
     "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51"
+)
+EXECUTION_WORKERS_ENV = "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_WORKERS"
+BLAS_THREAD_LIMIT_KEYS = (
+    "OPENBLAS_NUM_THREADS",
+    "OMP_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
 )
 PREREG_JSON_REL = "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.json"
 PREREG_MD_REL = "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md"
@@ -979,6 +994,275 @@ def durable_claim_document(repo_root: Path | None = None) -> dict[str, Any]:
     """Claim identity is the same tracked run identity as the reservation."""
     root = repo_root or _repo_root()
     return _durable_claim_from_bound(verify_executed_production_authority(root))
+
+
+def apply_worker_blas_thread_limits() -> None:
+    """Force single-thread BLAS/OpenMP in this process and future workers."""
+    for key in BLAS_THREAD_LIMIT_KEYS:
+        os.environ[key] = "1"
+
+
+def conservative_worker_count() -> int:
+    """Operator hint. Never an implicit production default; do not use cpu_count() raw."""
+    detected = os.cpu_count()
+    if detected is None or int(detected) < 1:
+        return 1
+    return max(1, min(int(detected) // 2, 16))
+
+
+def resolve_execution_workers(workers: object | None = None) -> int:
+    """Explicit worker count. Default is 1. Env is read only when workers is None."""
+    if workers is None:
+        raw = os.environ.get(EXECUTION_WORKERS_ENV, "1")
+        try:
+            workers = int(str(raw).strip() or "1")
+        except (TypeError, ValueError):
+            _refuse("workers must be a positive int")
+    if type(workers) is not int or workers < 1:
+        _refuse("workers must be a positive int")
+    return workers
+
+
+def fit_lstsq_lstsq_rank(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """Single-factorization OLS rank decision.
+
+    Frozen `fit_lstsq` calls `matrix_rank` then `lstsq`. numpy.linalg.lstsq
+    with rcond=None already returns rank under the same default cutoff.
+    Rank-deficient designs still raise IncompleteWorld with the frozen
+    message and do not return coefficients. Success-path coefficients are
+    the lstsq result, matching the frozen second factorization.
+    """
+    x = np.asarray(x, dtype=np.float64)
+    y = np.asarray(y, dtype=np.float64)
+    if x.ndim != 2 or y.ndim != 1 or x.shape[0] != y.shape[0]:
+        raise IncompleteWorld("design shape invalid")
+    coef, _residuals, rank, _sv = np.linalg.lstsq(x, y, rcond=None)
+    if int(rank) < x.shape[1]:
+        raise IncompleteWorld("design is not full rank")
+    coef = np.asarray(coef, dtype=np.float64)
+    if coef.shape[0] != x.shape[1] or not np.all(np.isfinite(coef)):
+        raise IncompleteWorld("non-finite coefficients")
+    return coef
+
+
+def _expanding_era_predictions_hot(
+    y: np.ndarray,
+    x1: np.ndarray,
+    x2: np.ndarray,
+    feature: np.ndarray | None,
+    n_rows: int,
+    *,
+    base_pred: np.ndarray | None = None,
+) -> dict[str, np.ndarray]:
+    """Same era boundaries as frozen expanding_era_predictions; optional BASE reuse."""
+    slices = era_slices(n_rows)
+    compute_base = base_pred is None
+    if compute_base:
+        base_out = np.full(n_rows, np.nan, dtype=np.float64)
+    else:
+        base_out = np.asarray(base_pred, dtype=np.float64)
+        if base_out.shape != (n_rows,):
+            raise IncompleteWorld("design shape invalid")
+    cand_pred = np.full(n_rows, np.nan, dtype=np.float64)
+    train_end_by_score_era: dict[str, int] = {}
+    for era_i, era_name in enumerate(ERA_NAMES):
+        if era_i == 0:
+            continue
+        train = slice(0, slices[era_name].start)
+        score = slices[era_name]
+        train_end_by_score_era[era_name] = train.stop
+        if train.stop > score.start:
+            raise IncompleteWorld("lookahead: future era entered earlier fit")
+        y_train = y[train]
+        if compute_base:
+            x_base_train = _design_matrix(x1[train], x2[train])
+            x_base_score = _design_matrix(x1[score], x2[score])
+            base_coef = fit_lstsq_lstsq_rank(x_base_train, y_train)
+            base_out[score] = predict(x_base_score, base_coef)
+        if feature is not None:
+            x_cand_train = _design_matrix(x1[train], x2[train], feature[train])
+            x_cand_score = _design_matrix(x1[score], x2[score], feature[score])
+            cand_coef = fit_lstsq_lstsq_rank(x_cand_train, y_train)
+            cand_pred[score] = predict(x_cand_score, cand_coef)
+    return {
+        "BASE_PRED": base_out,
+        "CAND_PRED": cand_pred,
+        "train_end_by_score_era": train_end_by_score_era,  # type: ignore[dict-item]
+    }
+
+
+def placebo_q95_base_cached(
+    *,
+    world: Mapping[str, np.ndarray],
+    feature: np.ndarray,
+    n_rows: int,
+    replicates: int,
+    rng: np.random.Generator,
+) -> dict[str, Any]:
+    """Placebo_q95 with BASE expanding-era predictions computed once.
+
+    Permutation RNG consumption matches frozen sequential placebo_q95:
+    each replicate permutes the candidate inside every era, then refits
+    the candidate model. BASE (Y ~ 1+X1+X2) does not depend on the
+    permutation and is reused. If BASE is IncompleteWorld, permutation
+    loops still run and every replicate is treated as invalid.
+    """
+    y = np.asarray(world["Y"], dtype=np.float64)
+    x1 = np.asarray(world["X1"], dtype=np.float64)
+    x2 = np.asarray(world["X2"], dtype=np.float64)
+    slices = era_slices(n_rows)
+    mask = scored_mask(n_rows)
+    stats: list[float] = []
+    invalid = False
+    base_pred: np.ndarray | None = None
+    base_failed = False
+    try:
+        base_pred = _expanding_era_predictions_hot(y, x1, x2, None, n_rows)["BASE_PRED"]
+    except IncompleteWorld:
+        base_failed = True
+    for _ in range(replicates):
+        permuted = np.asarray(feature, dtype=np.float64).copy()
+        for slc in slices.values():
+            idx = np.arange(slc.start, slc.stop)
+            permuted[idx] = permuted[idx][rng.permutation(idx.size)]
+        if base_failed:
+            invalid = True
+            continue
+        try:
+            preds = _expanding_era_predictions_hot(
+                y, x1, x2, permuted, n_rows, base_pred=base_pred
+            )
+            metrics = ae_metrics(y, preds["BASE_PRED"], preds["CAND_PRED"], mask)
+            value = metrics["MEAN_AE_IMPROVEMENT"]
+        except IncompleteWorld:
+            invalid = True
+            continue
+        if not np.isfinite(value):
+            invalid = True
+            continue
+        stats.append(float(value))
+    if invalid or len(stats) != replicates:
+        return {
+            "placebo_q95": float("nan"),
+            "placebo_invalid": True,
+            "world_invalid": True,
+            "stays_in_denominator": True,
+        }
+    return {
+        "placebo_q95": linear_quantile(stats, 0.95),
+        "placebo_invalid": False,
+        "world_invalid": False,
+        "stays_in_denominator": True,
+    }
+
+
+def placebo_q95(
+    *,
+    world: Mapping[str, np.ndarray],
+    feature: np.ndarray,
+    n_rows: int,
+    replicates: int,
+    rng: np.random.Generator,
+) -> dict[str, Any]:
+    """Production placebo entry. Tests may monkeypatch this name."""
+    return placebo_q95_base_cached(
+        world=world,
+        feature=feature,
+        n_rows=n_rows,
+        replicates=replicates,
+        rng=rng,
+    )
+
+
+def assemble_canonical_world_records(
+    *,
+    planned_jobs: Sequence[tuple[str, int, int]],
+    completed_records: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    """Reorder unordered worker records into frozen planned job order. Fail-closed."""
+    if isinstance(completed_records, (str, bytes)) or not isinstance(completed_records, Sequence):
+        _refuse("malformed worker record set")
+    planned = tuple((str(job[0]), int(job[1]), int(job[2])) for job in planned_jobs)
+    planned_set = set(planned)
+    if len(planned) != len(planned_set):
+        _refuse("planned jobs contain duplicate world identities")
+    by_job: dict[tuple[str, int, int], Mapping[str, Any]] = {}
+    for rec in completed_records:
+        if not isinstance(rec, Mapping):
+            _refuse("malformed worker record")
+        try:
+            job = (
+                str(rec["scenario_id"]),
+                int(rec["n_rows"]),
+                int(rec["world_index"]),
+            )
+        except Exception:
+            _refuse("malformed worker record")
+        if job not in planned_set:
+            _refuse("unexpected world identity")
+        if job in by_job:
+            _refuse("duplicate world identity")
+        _record_job_identity(rec, *job)
+        by_job[job] = rec
+    ordered: list[dict[str, Any]] = []
+    for job in planned:
+        if job not in by_job:
+            _refuse("missing planned world")
+        owned = _jsonable(dict(by_job.pop(job)))
+        ordered.append(owned)
+    if by_job:
+        _refuse("unexpected extra world identities")
+    return ordered
+
+
+def evaluate_planned_jobs_fail_closed(
+    jobs: Sequence[tuple[str, int, int]],
+    *,
+    workers: int = 1,
+) -> list[dict[str, Any]]:
+    """Evaluate planned jobs; reorder to planned order before returning.
+
+    Does not read ARM, mint RESULT, or write WORLD_RECORDS. Worker scheduling
+    cannot seed science. Fail-closed on crash/malformed/duplicate/missing/
+    unexpected identities.
+    """
+    planned = tuple((str(job[0]), int(job[1]), int(job[2])) for job in jobs)
+    workers_n = resolve_execution_workers(workers)
+    apply_worker_blas_thread_limits()
+    if workers_n == 1:
+        completed: list[Mapping[str, Any]] = [
+            _evaluate_planned_world_body(*job) for job in planned
+        ]
+    else:
+        completed = _evaluate_jobs_multiprocess(planned, workers_n)
+    return assemble_canonical_world_records(
+        planned_jobs=planned, completed_records=completed
+    )
+
+
+def _evaluate_jobs_multiprocess(
+    planned: Sequence[tuple[str, int, int]],
+    workers: int,
+) -> list[Mapping[str, Any]]:
+    apply_worker_blas_thread_limits()
+    payloads = [(str(job[0]), int(job[1]), int(job[2])) for job in planned]
+    from scripts.research.harness_synthetic_edge_calibration_v1_worker import (
+        evaluate_job_payload,
+    )
+
+    ctx = multiprocessing.get_context("spawn")
+    try:
+        with ctx.Pool(processes=int(workers)) as pool:
+            completed = list(
+                pool.imap_unordered(evaluate_job_payload, payloads, chunksize=1)
+            )
+    except SyntheticExecutionNotAuthorized:
+        raise
+    except Exception as exc:
+        _refuse(f"worker execution failed closed: {type(exc).__name__}: {exc}")
+    if not isinstance(completed, list):
+        _refuse("malformed worker record set")
+    return completed
 
 
 def evaluate_production_candidate(
@@ -1978,11 +2262,21 @@ def _abort_session(session: _CanonicalExecutionSession, exc: BaseException) -> N
         _retire_session(session)
 
 
-def _run_session_jobs(session: _CanonicalExecutionSession) -> dict[str, Any]:
+def _run_session_jobs(
+    session: _CanonicalExecutionSession, *, workers: int = 1
+) -> dict[str, Any]:
+    workers_n = resolve_execution_workers(workers)
     try:
-        for job in session.jobs:
-            rec = _evaluate_session_job(session, *job)
-            _append_session_record(session, rec, job)
+        if session.production:
+            if os.environ.get("HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_TEST_WORKER_CRASH"):
+                _refuse("test worker crash injection cannot enter production")
+            records = evaluate_planned_jobs_fail_closed(session.jobs, workers=workers_n)
+            for job, rec in zip(session.jobs, records):
+                _append_session_record(session, rec, job)
+        else:
+            for job in session.jobs:
+                rec = _evaluate_session_job(session, *job)
+                _append_session_record(session, rec, job)
         return _mint_from_session(session)
     except SyntheticExecutionNotAuthorized:
         if session.capability is not None and id(session.capability) in _LIVE_SESSIONS:
@@ -2045,9 +2339,14 @@ def abandon_canonical_session(capability: object, *args: Any, **kwargs: Any) -> 
 
 
 def run_canonical_production_execution(*args: Any, **kwargs: Any) -> dict[str, Any]:
-    """Canonical 3200-world driver. Requires ARM. Never accepts caller records."""
+    """Canonical 3200-world driver. Requires ARM. Never accepts caller records.
+
+    Worker count is not a caller kwarg. Isolated production reads
+    HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_WORKERS (default 1).
+    """
     if args or kwargs:
         _refuse("caller arguments cannot authorize production execution")
+    workers_n = resolve_execution_workers(None)
     root = _repo_root()
     verify_executed_production_authority(root)
     session = _open_canonical_session(
@@ -2056,7 +2355,7 @@ def run_canonical_production_execution(*args: Any, **kwargs: Any) -> dict[str, A
         jobs=planned_production_jobs(),
         evaluator=None,
     )
-    return _run_session_jobs(session)
+    return _run_session_jobs(session, workers=workers_n)
 
 
 def run_canonical_fixture_driver(
