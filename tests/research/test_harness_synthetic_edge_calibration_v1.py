@@ -19,6 +19,11 @@ import pytest
 
 from scripts.research import harness_synthetic_edge_calibration_v1 as runner
 from scripts.research import harness_synthetic_edge_calibration_v1_lib as lib
+from scripts.research import harness_synthetic_edge_calibration_v1_production as prod
+from tests.research.test_harness_synthetic_edge_calibration_v1_production import (
+    _canonical_arm_commit,
+    _head_is_canonical_arm,
+)
 
 REPO = Path(__file__).resolve().parents[2]
 PREREG_JSON = REPO / "docs" / "research" / "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.json"
@@ -550,9 +555,17 @@ def test_production_execution_lock():
     )
     assert identity["production_calibration_executed"] is False
     assert identity["real_data_path"] is False
-    assert identity["monte_carlo_armed"] is False
+    head_is_arm = _head_is_canonical_arm(REPO)
+    assert identity["monte_carlo_armed"] is head_is_arm
+    assert identity["production_monte_carlo_arm_authorized"] is head_is_arm
     assert identity["authorization_consumed"] is False
+    assert identity["production_result_minted"] is False
     assert production_authorization_identity()["monte_carlo_armed"] is False
+    assert prod._arm_payload_authorizes_at_commit(
+        REPO,
+        _canonical_arm_commit(REPO),
+        json.loads((REPO / "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_ARM.json").read_text(encoding="utf-8")),
+    ) is True
     source = Path(lib.__file__).read_text(encoding="utf-8") + Path(runner.__file__).read_text(
         encoding="utf-8"
     )

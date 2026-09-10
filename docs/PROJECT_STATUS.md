@@ -110,9 +110,24 @@ itself is immutable. Post-outcome status lives in
   `production_calibration_executed = false`,
   `authorization_consumed = false`,
   `production_monte_carlo_arm_authorized = false`).
-  Residual cross-checkout durability and stale-import identity findings
-  must be closed before the Monte Carlo seam may be armed. This does not
-  authorize B2-06 science.
+  Production durability/aggregation/result-persistence is
+  `implementation_frozen = true`.
+  The canonical 3200-world production driver is
+  `driver_implementation_frozen = true` and the live docs-only ARM
+  authorizes exactly one synthetic production Monte Carlo
+  (`production_monte_carlo_arm_authorized = true`,
+  `production_calibration_executed = false`,
+  `production_result_minted = false`,
+  `world_records_persisted = false`,
+  `authorization_consumed = false`).
+  Reviewed implementation HEAD `3fadc391ee0002e35463b526301d287d4a662828` /
+  tree `5fb77727c418cc42bf3c1c6553355a0475f42efc`.
+  Freeze parent `40e54b8c0497593aa3daf0bddc0e014bf048489f` /
+  tree `0f6be102b29ce964f0ea8f3947927854888eef08`.
+  Historical ARM HEAD `940d85bf58673396c6c0cc05ce2134a2e2e92809` is
+  `REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`.
+  This does not execute the 3200-world calibration and does not authorize
+  B2-06 science.
 
 Family F1 is `CLOSED_NO_PROMOTION`. 2025 validation and 2026 OOS remain
 untouched. No Batch02 formulation has a promoted candidate, so there is no

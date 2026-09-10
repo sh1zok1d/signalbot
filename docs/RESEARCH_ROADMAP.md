@@ -162,11 +162,24 @@ production execution:
 `synthetic_execution_authorized = true`,
 `production_calibration_executed = false`,
 `authorization_consumed = false`,
-`production_monte_carlo_arm_authorized = false`.
-Cross-checkout durable one-shot and stale-import execution identity remain
-open residual findings and must be closed before the Monte Carlo seam may
-be armed. This does not mean the 3200-world calibration has been run, and
-it does not authorize B2-06, 2025, or 2026.
+`production_monte_carlo_arm_authorized = false` on the unused #114
+authorization artifact.
+Production durability, aggregation, and result persistence are
+implementation-frozen. The canonical 3200-world driver is
+implementation-frozen and the live docs-only ARM authorizes exactly one
+synthetic production Monte Carlo
+(`driver_implementation_frozen = true`,
+`canonical_production_driver_implemented = true`,
+`production_monte_carlo_arm_authorized = true`,
+`production_calibration_executed = false`,
+`production_result_minted = false`,
+`world_records_persisted = false`). Canonical production execution requires a
+fresh process and a tracked run identity bound to the exact freeze parent.
+This ARM does not execute that run. Caller-supplied records cannot mint a
+RESULT. Local #114 reservation is superseded on this HEAD. Historical ARM
+HEAD `940d85bf58673396c6c0cc05ce2134a2e2e92809` is rejected and not merged.
+This does not mean the 3200-world calibration has been run, and it does not
+authorize B2-06, 2025, or 2026.
 
 Frozen sequence:
 
