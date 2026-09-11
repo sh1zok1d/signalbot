@@ -1749,3 +1749,129 @@ unauthorized.
 - world_records_persisted: **false**
 - authorization_consumed: **false**
 - status: `PRODUCTION_MONTE_CARLO_ARM_AUTHORIZED_UNEXECUTED`
+
+## 2026-09-10 — HARNESS_PERFORMANCE_V1 performance-only repair
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — HARNESS_PERFORMANCE_V1
+
+**Decision:** performance-only repair of the frozen synthetic production
+path after the aborted canonical run. Same science, same randomness, same
+logical results, faster execution. Not a scientific RESULT.
+
+ARM `0abc5fe167e018ebe1f7efbb70694887ac095e17` remains unused and must not be
+reused for the optimized implementation. No new production ARM. No 3200-world
+grid execution. No RESULT / WORLD_RECORDS / reservation / claim. No B2-06 /
+2025 / 2026 / real-market access.
+
+Optimizations: placebo BASE expanding-era cache; lstsq rank in place of a
+prior `matrix_rank` SVD where exact IncompleteWorld/float equality holds;
+deterministic world-level spawn multiprocessing with canonical reorder;
+BLAS thread limits; explicit `--workers N` (default 1).
+
+Oracle is git commit `3fadc391ee0002e35463b526301d287d4a662828`, not a
+self-import of the optimized module.
+
+- production_monte_carlo_arm_authorized (live HEAD): **false**
+- historical ARM unused: **true**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PERFORMANCE_ONLY_UNARMED_NOT_A_RESULT`
+
+## 2026-09-10 — HARNESS_PERFORMANCE_V1 authority/durability repair
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — HARNESS_PERFORMANCE_V1 repair
+
+**Decision:** close independent-review findings BLOCKER-1 and MAJOR-1 on the
+accepted performance implementation. No scientific-methodology change. No
+3200-world production execution. No ARM consume/create. No RESULT /
+WORLD_RECORDS.
+
+- BLOCKER-1: live execution TCB now pins worker.py git bytes (path/sha256/size)
+  plus lib/runner/auth/production. Old ARM `0abc5fe` still verifies at its
+  own commit and does not authorize this HEAD.
+- MAJOR-1: crash-safe durable partial world evidence with exact resume.
+  Partial ≠ RESULT / WORLD_RECORDS / AUTHORITY_CONSUMED.
+
+Next required step after BLOCKER-1/MAJOR-1 was OPUS review. A remaining
+red-team finding (BLOCKER-2) is recorded and closed in the following entry.
+
+- production_monte_carlo_arm_authorized (live HEAD): **false**
+- historical ARM unused: **true**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PERFORMANCE_ONLY_UNARMED_REPAIR_PENDING_OPUS_REVIEW`
+
+## 2026-09-10 — HARNESS_PERFORMANCE_V1 BLOCKER-2 checkpoint authenticity
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — HARNESS_PERFORMANCE_V1 repair
+
+**Decision:** close independent-review finding BLOCKER-2. Durable checkpoint
+content remains structurally/digest-checked for resume, but is not scientific
+authority. Authoritative production mint authenticates cached/computed world
+records in an isolated child from exact frozen git execution bytes. No HMAC
+or secret key. No scientific-methodology change. No 3200-world production
+execution. No ARM consume/create. No RESULT / WORLD_RECORDS.
+
+- BLOCKER-1 remains closed: worker.py remains in the live execution TCB.
+- MAJOR-1 remains closed: crash-safe durable partial evidence and exact resume
+  still avoid immediate recompute of completed worlds.
+- BLOCKER-2: self-consistent forgery, whole-checkpoint fabrication, mixed
+  legitimate+forged stores, and current-module self-attestation are refused
+  before canonical mint.
+
+Next required step: OPUS narrow review of BLOCKER-2 on the exact repaired HEAD,
+then a new performance/execution freeze and a new immediate-child ARM.
+
+- production_monte_carlo_arm_authorized (live HEAD): **false**
+- historical ARM unused: **true**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PERFORMANCE_ONLY_UNARMED_REPAIR_PENDING_OPUS_REVIEW`
+
+## 2026-09-10 — HARNESS_PERFORMANCE_V1 verifier parallelism + observed_world_count
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — HARNESS_PERFORMANCE_V1 repair
+
+**Decision:** close remaining independent-review MAJOR (sequential isolated
+recomputation) and MINOR (`observed_world_count` unvalidated). Isolated
+mint-time authentication and claim-time historical recomputation now reuse
+the reviewed world-parallel spawn path. Worker count is operational, not
+scientific. Parent authentication proofs must equal `observed_world_count`
+to submitted and planned counts. No 3200-world production execution. No ARM
+consume/create. No RESULT / WORLD_RECORDS.
+
+- BLOCKER-1 remains closed: worker.py remains git-object pinned in the live
+  execution TCB (path/sha256/size). Spawn copies parent `sys.path` into
+  children before Pool initializer; the parent therefore inserts the frozen
+  worker repository root first so children cannot import a live checkout.
+- MAJOR-1 remains closed: durable partial evidence and exact resume unchanged.
+- BLOCKER-2 remains closed: checkpoint content is still untrusted; forgery
+  still fails closed before mint.
+- Parent authenticators refuse `observed_world_count` mismatches (count-1,
+  count+1, zero, huge, string, bool, correct digests with wrong count).
+- n=5000 verifier engine **MEASURED** on this 4-CPU host: 5.6371 / 3.0444 /
+  1.5149 s/world at workers=1/2/4 (93% of 4-wide). AUTH and historical
+  isolated children share that engine. 8/16-worker lifecycle figures are
+  extrapolated; this host cannot beat the 4-worker wall clock.
+
+Next required step: FINAL_OPUS_REVIEW_THEN_PERFORMANCE_FREEZE.
+
+Targeted verifier-parallel tests: 18 passed. Harness unit files: 271
+passed. Research suite: 1586 passed (271 harness + 1315 other). Non-research
+suite: 5977 passed, 185 skipped. compileall + git diff --check: ok. Canonical
+3200-world production was not executed.
+
+- production_monte_carlo_arm_authorized (live HEAD): **false**
+- historical ARM unused: **true**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PERFORMANCE_ONLY_UNARMED_REPAIR_PENDING_OPUS_REVIEW`
+

@@ -154,6 +154,7 @@ def _commit_production_tree(
         RUNNER_PATH: _live_bytes(RUNNER_PATH),
         AUTH_MOD_PATH: _live_bytes(AUTH_MOD_PATH),
         PRODUCTION_PATH: _live_bytes(PRODUCTION_PATH),
+        prod.WORKER_REL: _live_bytes(prod.WORKER_REL),
         "scripts/__init__.py": _live_bytes("scripts/__init__.py"),
         "scripts/research/__init__.py": _live_bytes("scripts/research/__init__.py"),
         "scripts/research/lib/__init__.py": _live_bytes("scripts/research/lib/__init__.py"),
@@ -250,7 +251,7 @@ def _planned_records(cell_flags=None) -> list[dict]:
 
 
 def _authority_sha_map(repo: Path) -> dict[str, str]:
-    return {
+    mapping = {
         "lib": _sha((repo / LIB_PATH).read_bytes()),
         "runner": _sha((repo / RUNNER_PATH).read_bytes()),
         "auth": _sha((repo / AUTH_MOD_PATH).read_bytes()),
@@ -262,6 +263,10 @@ def _authority_sha_map(repo: Path) -> dict[str, str]:
             (repo / "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md").read_bytes()
         ),
     }
+    worker = repo / prod.WORKER_REL
+    if worker.is_file():
+        mapping["worker"] = _sha(worker.read_bytes())
+    return mapping
 
 
 def _driver_freeze_payload(repo: Path, reviewed_head: str, reviewed_tree: str) -> dict:
@@ -1928,7 +1933,12 @@ def test_historical_production_recomputes_all_3200_worlds(tmp_path, monkeypatch)
         "def _recompute_production_records_from_frozen_execution", 1
     )[1].split("def _compare_recomputed_world_records", 1)[0]
     assert "planned_production_jobs" in recompute_src
-    assert "_evaluate_planned_world_body" in recompute_src
+    assert "_evaluate_jobs_for_verification" in recompute_src
+    helper_src = source.split("def _evaluate_jobs_for_verification", 1)[1].split(
+        "def evaluate_production_candidate", 1
+    )[0]
+    assert "_evaluate_planned_world_body" in helper_src
+    assert "_evaluate_jobs_multiprocess" in helper_src
     assert "_require_isolated_historical_recompute" in verify_src
     assert "_recompute_production_records_from_frozen_execution" not in verify_src
     assert "_evaluate_planned_world_body" not in verify_src

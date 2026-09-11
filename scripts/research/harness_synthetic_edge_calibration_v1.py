@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from scripts.research.harness_synthetic_edge_calibration_v1_lib import (
@@ -19,7 +20,9 @@ from scripts.research.harness_synthetic_edge_calibration_v1_lib import (
     planned_production_grid_descriptor,
 )
 from scripts.research.harness_synthetic_edge_calibration_v1_production import (
+    EXECUTION_WORKERS_ENV,
     production_durability_identity,
+    resolve_execution_workers,
     spawn_canonical_production_process,
 )
 
@@ -54,6 +57,15 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="optional exact HEAD SHA confirmation; cannot authorize by itself",
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help=(
+            "explicit world-level worker count for --run-production-grid "
+            f"(env {EXECUTION_WORKERS_ENV}; default 1; does not authorize execution)"
+        ),
+    )
     args = parser.parse_args(argv)
     if args.expected_head:
         from scripts.research.harness_synthetic_edge_calibration_v1_auth import (
@@ -72,6 +84,12 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(planned_production_grid_descriptor(), sort_keys=True, indent=2))
         return 0
     if args.run_production_grid:
+        try:
+            workers = resolve_execution_workers(int(args.workers))
+        except SyntheticExecutionNotAuthorized as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        os.environ[EXECUTION_WORKERS_ENV] = str(workers)
         try:
             return int(spawn_canonical_production_process())
         except SyntheticExecutionNotAuthorized as exc:

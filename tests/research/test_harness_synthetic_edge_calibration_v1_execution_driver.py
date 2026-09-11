@@ -8,6 +8,7 @@ market data, open B2-06, or inspect 2025/2026.
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -700,7 +701,22 @@ def test_no_reroll_and_planned_3200_remain_authoritative():
         assert freeze.get(key) is expected, key
     assert freeze["reviewed_implementation_head"] == "3fadc391ee0002e35463b526301d287d4a662828"
     assert freeze["reviewed_implementation_tree"] == "5fb77727c418cc42bf3c1c6553355a0475f42efc"
-    assert freeze["reviewed_production_sha256"] == _sha(_live_bytes(PRODUCTION_PATH))
+    reviewed_production = subprocess.check_output(
+        [
+            "git",
+            "-C",
+            str(REPO),
+            "cat-file",
+            "blob",
+            f"{REVIEWED_IMPLEMENTATION_HEAD}:{PRODUCTION_PATH}",
+        ]
+    )
+    assert freeze["reviewed_production_sha256"] == _sha(reviewed_production)
+    live_production_sha = _sha(_live_bytes(PRODUCTION_PATH))
+    if _head_is_canonical_arm(REPO):
+        assert live_production_sha == freeze["reviewed_production_sha256"]
+    else:
+        assert live_production_sha != freeze["reviewed_production_sha256"]
     assert freeze["frozen_lib_sha256"] == FROZEN_LIB_SHA256
     assert freeze["prereg_json_sha256"] == FROZEN_PREREG_JSON_SHA256
     assert freeze["prereg_md_sha256"] == FROZEN_PREREG_MD_SHA256

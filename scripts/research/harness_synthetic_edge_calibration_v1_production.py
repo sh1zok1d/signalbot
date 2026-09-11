@@ -4,11 +4,14 @@ This layer sits above frozen scientific primitives. It does not change RNG, DGP,
 gates, Wilson, taxonomy, or mechanical-conclusion semantics. It does not weaken
 FixtureExecutionConfig.
 
-The canonical 3200-world driver exists in this module. Production Monte Carlo
-remains unarmed on this HEAD: a later docs-only ARM child must authorize the
-reviewed driver/freeze parent before any production execution. Canonical
-execution, when later armed, must cross a fresh Python interpreter boundary and
-re-verify exact HEAD/tree plus execution-authority bytes inside that process.
+The canonical 3200-world driver exists in this module. A performance-only
+descendant may cache BASE placebo predictions, use lstsq rank, and evaluate
+independent worlds in parallel. Those changes do not authorize production:
+the unused ARM at freeze-parent child 0abc5fe remains unused and does not
+authorize this HEAD. A later independent review plus a NEW ARM is required
+before any production execution. Canonical execution, when later armed,
+must cross a fresh Python interpreter boundary and re-verify exact HEAD/tree
+plus execution-authority bytes inside that process.
 Final RESULT minting requires an unforgeable in-process canonical session
 capability; caller-supplied records cannot mint.
 
@@ -41,6 +44,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import multiprocessing
 import os
 import subprocess
 import sys
@@ -51,6 +55,7 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 from scripts.research.harness_synthetic_edge_calibration_v1_lib import (
+    ERA_NAMES,
     FEATURE_IDS,
     PRODUCTION_BLOCK_ROWS,
     PRODUCTION_BOOTSTRAP_REPLICATES,
@@ -64,17 +69,20 @@ from scripts.research.harness_synthetic_edge_calibration_v1_lib import (
     UNIT_ID,
     IncompleteWorld,
     SyntheticExecutionNotAuthorized,
+    _design_matrix,
     ae_metrics,
     candidate_features,
     compose_gates,
     era_mean_improvements,
+    era_slices,
     expanding_era_predictions,
+    linear_quantile,
     materiality_fraction_of_attainable,
     mechanical_conclusion,
     namespace_seed,
     pcg64_generator,
-    placebo_q95,
     power_verdict,
+    predict,
     prediction_bootstrap,
     scenario_by_id,
     scored_mask,
@@ -97,9 +105,26 @@ LIB_REL = "scripts/research/harness_synthetic_edge_calibration_v1_lib.py"
 RUNNER_REL = "scripts/research/harness_synthetic_edge_calibration_v1.py"
 AUTH_REL = "scripts/research/harness_synthetic_edge_calibration_v1_auth.py"
 PRODUCTION_REL = "scripts/research/harness_synthetic_edge_calibration_v1_production.py"
-EXECUTION_AUTHORITY_PATHS = (LIB_REL, RUNNER_REL, AUTH_REL, PRODUCTION_REL)
+WORKER_REL = "scripts/research/harness_synthetic_edge_calibration_v1_worker.py"
+WORKER_PATH = WORKER_REL
+# Live execution TCB. A future freeze/ARM must pin every path here. Historical
+# ARM 0abc5fe listed only lib/runner/auth/production; worker.py is required
+# for this HEAD and for any later ARM of this implementation.
+EXECUTION_AUTHORITY_PATHS = (LIB_REL, RUNNER_REL, AUTH_REL, PRODUCTION_REL, WORKER_REL)
 FROZEN_REVIEWED_LIB_SHA256 = (
     "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51"
+)
+FROZEN_WORKER_SHA256 = (
+    "9aee03fdae012f9054c59adc4cea8072b88493521456fb6141ced926961c886e"
+)
+FROZEN_WORKER_SIZE = 3994
+EXECUTION_WORKERS_ENV = "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_WORKERS"
+VERIFY_WORKERS_ENV = "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_VERIFY_WORKERS"
+BLAS_THREAD_LIMIT_KEYS = (
+    "OPENBLAS_NUM_THREADS",
+    "OMP_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
 )
 PREREG_JSON_REL = "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.json"
 PREREG_MD_REL = "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md"
@@ -130,6 +155,40 @@ CANONICAL_DRIVER_FREEZE_PATH = (
 CANONICAL_WORLD_RECORDS_PATH = (
     "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_WORLD_RECORDS.json"
 )
+DURABLE_PARTIAL_KIND = "DURABLE_PARTIAL_WORLD_EVIDENCE"
+DURABLE_PARTIAL_RECORD_KIND = "DURABLE_PARTIAL_WORLD_EVIDENCE_RECORD"
+UNTRUSTED_CACHED_WORLD_RECORDS_KIND = "UNTRUSTED_CACHED_WORLD_RECORDS"
+CHECKPOINT_CACHED = "CHECKPOINT_CACHED"
+CHECKPOINT_STRUCTURALLY_VALID = "CHECKPOINT_STRUCTURALLY_VALID"
+CHECKPOINT_SCIENTIFICALLY_VERIFIED = "CHECKPOINT_SCIENTIFICALLY_VERIFIED"
+AUTHENTICATE_CACHED_RECORDS_PROOF_KIND = "CACHED_WORLD_RECORDS_FROZEN_EXECUTION_PROOF"
+_AUTHENTICATE_CACHED_RECORDS_PROOF_KEYS = frozenset(
+    {
+        "schema_version",
+        "kind",
+        "mode",
+        "verification_success",
+        "trust_state",
+        "execution_head",
+        "execution_tree",
+        "run_identity",
+        "plan_sha256",
+        "world_set_sha256",
+        "record_digest_chain",
+        "observed_world_count",
+        "verification_authority",
+    }
+)
+DURABLE_PARTIAL_REL = (
+    "artifacts/research/harness_synthetic_edge_calibration_v1/"
+    "durable_partial_world_evidence"
+)
+DURABLE_PARTIAL_IDENTITY_NAME = "STORE_IDENTITY.json"
+# Module-private NON_PRODUCTION test hook. Production sessions refuse if set.
+# Values: interrupt_after, crash_during_write, before_checkpoint.
+_TEST_DURABILITY_HOOK: dict[str, Any] | None = None
+TEST_CHECKPOINT_CRASH_ENV = "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_TEST_CHECKPOINT_CRASH"
+TEST_INTERRUPT_AFTER_ENV = "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_TEST_INTERRUPT_AFTER"
 WORKER_STDOUT_KIND_COMPLETE_RESULT = "COMPLETE_RESULT"
 WORKER_STDOUT_KIND_PARTIAL = "PARTIAL_NOT_RESULT"
 WORLD_RECORDS_KIND = "PRODUCTION_WORLD_RECORDS"
@@ -181,6 +240,7 @@ WORKER_FLAG = "--fresh-process-worker"
 R1_PROBE_MODE = "r1-probe"
 WORKER_MODE = "worker"
 HISTORICAL_RECOMPUTE_MODE = "historical-recompute"
+AUTHENTICATE_CACHED_RECORDS_MODE = "authenticate-cached-records"
 AUTHORITATIVE_HISTORICAL_VERIFICATION = "FULL_3200_RECOMPUTATION"
 HISTORICAL_RECOMPUTE_PROOF_KIND = "HISTORICAL_RECOMPUTE_PROOF"
 _HISTORICAL_RECOMPUTE_PROOF_KEYS = frozenset(
@@ -211,15 +271,18 @@ import sys
 from pathlib import Path
 
 FROZEN_LIB = "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51"
+FROZEN_WORKER = "9aee03fdae012f9054c59adc4cea8072b88493521456fb6141ced926961c886e"
+FROZEN_WORKER_SIZE = 3994
 FROZEN_PREREG_JSON = "78fcddf03ce84a0369a955d5b571c2423129d12b22e35f77eab26d6ac5eff708"
 FROZEN_PREREG_MD = "a54c838d2b4903f039b4fd39d79198415ce095f5a9726fc51949cbb47153e5a3"
 LIB_REL = "scripts/research/harness_synthetic_edge_calibration_v1_lib.py"
 RUNNER_REL = "scripts/research/harness_synthetic_edge_calibration_v1.py"
 AUTH_REL = "scripts/research/harness_synthetic_edge_calibration_v1_auth.py"
 PRODUCTION_REL = "scripts/research/harness_synthetic_edge_calibration_v1_production.py"
+WORKER_REL = "scripts/research/harness_synthetic_edge_calibration_v1_worker.py"
 PREREG_JSON_REL = "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.json"
 PREREG_MD_REL = "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md"
-AUTHORITY = (LIB_REL, RUNNER_REL, AUTH_REL, PRODUCTION_REL, PREREG_JSON_REL, PREREG_MD_REL)
+AUTHORITY = (LIB_REL, RUNNER_REL, AUTH_REL, PRODUCTION_REL, WORKER_REL, PREREG_JSON_REL, PREREG_MD_REL)
 ALLOWED_ROOT_PY = {"main.py"}
 ALLOWED_ROOT_DIRS = {
     "analytics",
@@ -294,6 +357,10 @@ for rel in AUTHORITY:
     digest = hashlib.sha256(blob).hexdigest()
     if rel == LIB_REL and digest != FROZEN_LIB:
         refuse("HEAD scientific lib is not the frozen reviewed implementation")
+    if rel == WORKER_REL and digest != FROZEN_WORKER:
+        refuse("HEAD worker is not the pinned execution-TCB implementation")
+    if rel == WORKER_REL and len(blob) != FROZEN_WORKER_SIZE:
+        refuse("HEAD worker size is not the pinned execution-TCB size")
     if rel == PREREG_JSON_REL and digest != FROZEN_PREREG_JSON:
         refuse("HEAD prereg JSON is not the frozen reviewed blob")
     if rel == PREREG_MD_REL and digest != FROZEN_PREREG_MD:
@@ -532,12 +599,15 @@ def _authority_digests_at(repo_root: Path, commit: str) -> dict[str, str]:
         "runner": RUNNER_REL,
         "auth": AUTH_REL,
         "production": PRODUCTION_REL,
+        "worker": WORKER_REL,
         "prereg_json": PREREG_JSON_REL,
         "prereg_md": PREREG_MD_REL,
     }
     for key, rel in mapping.items():
         blob = _commit_blob(repo_root, commit, rel)
         if blob is None:
+            if key == "worker":
+                continue
             _refuse(f"execution authority missing from {commit}: {rel}")
         digests[key] = _sha256_bytes(blob)
     durability = _commit_blob(repo_root, commit, CANONICAL_DURABILITY_PATH)
@@ -650,6 +720,8 @@ def _driver_freeze_binds_parent(
     for rel in EXECUTION_AUTHORITY_PATHS:
         reviewed_bytes = _commit_blob(repo_root, reviewed_head, rel)
         parent_bytes = _commit_blob(repo_root, parent, rel)
+        if reviewed_bytes is None and parent_bytes is None:
+            continue
         if reviewed_bytes is None or parent_bytes is None or reviewed_bytes != parent_bytes:
             return False
     reviewed_production = _commit_blob(repo_root, reviewed_head, PRODUCTION_REL)
@@ -722,7 +794,11 @@ def _arm_payload_authorizes_at_commit(
         actual = _authority_digests_at(repo_root, parent)
     except SyntheticExecutionNotAuthorized:
         return False
-    required = ("lib", "runner", "auth", "production", "prereg_json", "prereg_md")
+    required = ["lib", "runner", "auth", "production", "prereg_json", "prereg_md"]
+    if actual.get("worker") is not None:
+        required.append("worker")
+        if "worker" not in listed:
+            return False
     if any(key not in listed for key in required):
         return False
     for key, digest in listed.items():
@@ -731,6 +807,8 @@ def _arm_payload_authorizes_at_commit(
     for rel in EXECUTION_AUTHORITY_PATHS:
         commit_bytes = _commit_blob(repo_root, commit, rel)
         parent_bytes = _commit_blob(repo_root, parent, rel)
+        if commit_bytes is None and parent_bytes is None:
+            continue
         if commit_bytes is None or parent_bytes is None or commit_bytes != parent_bytes:
             return False
     if not _reviewed_implementation_binds_parent(repo_root, payload, parent):
@@ -783,6 +861,7 @@ def _executing_file(rel: str) -> Path:
         RUNNER_REL: "harness_synthetic_edge_calibration_v1.py",
         AUTH_REL: "harness_synthetic_edge_calibration_v1_auth.py",
         PRODUCTION_REL: "harness_synthetic_edge_calibration_v1_production.py",
+        WORKER_REL: "harness_synthetic_edge_calibration_v1_worker.py",
     }
     return Path(__file__).resolve().with_name(names[rel])
 
@@ -817,7 +896,20 @@ def verify_executed_production_authority(repo_root: Path | None = None) -> dict[
         digest = _sha256_bytes(head_bytes)
         if rel == LIB_REL and digest != FROZEN_REVIEWED_LIB_SHA256:
             _refuse("HEAD scientific lib is not the frozen reviewed implementation")
+        if rel == WORKER_REL and digest != FROZEN_WORKER_SHA256:
+            _refuse("HEAD worker is not the pinned execution-TCB implementation")
+        if rel == WORKER_REL and len(head_bytes) != FROZEN_WORKER_SIZE:
+            _refuse("HEAD worker size is not the pinned execution-TCB size")
         bound[rel] = digest
+        if rel == WORKER_REL:
+            bound["worker_sha256"] = digest
+            bound["worker_size"] = str(len(head_bytes))
+            bound["worker_path"] = WORKER_REL
+            from scripts.research import harness_synthetic_edge_calibration_v1_worker as worker_mod
+
+            imported = Path(getattr(worker_mod, "__file__", "") or "").resolve()
+            if not imported.is_file() or imported.read_bytes() != head_bytes:
+                _refuse("imported worker bytes differ from git HEAD")
     for rel, expected_key in (
         (PREREG_JSON_REL, "prereg_json_sha256"),
         (PREREG_MD_REL, "prereg_md_sha256"),
@@ -844,11 +936,17 @@ def _bound_from_commit_blobs(repo_root: Path, commit: str) -> dict[str, str]:
     for rel in EXECUTION_AUTHORITY_PATHS:
         blob = _commit_blob(repo_root, commit, rel)
         if blob is None:
+            if rel == WORKER_REL:
+                continue
             _refuse(f"execution authority missing from {commit}: {rel}")
         digest = _sha256_bytes(blob)
         if rel == LIB_REL and digest != FROZEN_REVIEWED_LIB_SHA256:
             _refuse("commit scientific lib is not the frozen reviewed implementation")
         bound[rel] = digest
+        if rel == WORKER_REL:
+            bound["worker_sha256"] = digest
+            bound["worker_size"] = str(len(blob))
+            bound["worker_path"] = WORKER_REL
     for rel, expected_key in (
         (PREREG_JSON_REL, "prereg_json_sha256"),
         (PREREG_MD_REL, "prereg_md_sha256"),
@@ -861,6 +959,18 @@ def _bound_from_commit_blobs(repo_root: Path, commit: str) -> dict[str, str]:
     if auth_blob is not None:
         bound["authorization_sha256"] = _sha256_bytes(auth_blob)
     return bound
+
+
+def _authority_sha256_from_bound(bound: Mapping[str, str]) -> dict[str, str]:
+    payload = {
+        "lib": bound[LIB_REL],
+        "runner": bound[RUNNER_REL],
+        "auth": bound[AUTH_REL],
+        "production": bound[PRODUCTION_REL],
+    }
+    if WORKER_REL in bound:
+        payload["worker"] = bound[WORKER_REL]
+    return payload
 
 
 def _run_identity_from_bound(bound: Mapping[str, str]) -> str:
@@ -881,7 +991,347 @@ def _run_identity_from_bound(bound: Mapping[str, str]) -> str:
         "reservation_path": CANONICAL_RESERVATION_PATH,
         "claim_path": CANONICAL_CLAIM_PATH,
     }
+    if WORKER_REL in bound:
+        payload["worker_sha256"] = bound[WORKER_REL]
+        payload["worker_path"] = bound.get("worker_path", WORKER_REL)
+        payload["worker_size"] = bound["worker_size"]
     return _sha256_bytes(canonical_json_bytes(payload))
+
+
+def execution_tcb_manifest(*, repo_root: Path, execution_head: str) -> dict[str, Any]:
+    """Tracked git-object execution TCB. Caller digests are not authority."""
+    commit = str(execution_head or "").strip().lower()
+    files: list[dict[str, Any]] = []
+    for rel in EXECUTION_AUTHORITY_PATHS:
+        blob = _commit_blob(repo_root, commit, rel)
+        if blob is None:
+            if rel == WORKER_REL:
+                continue
+            _refuse(f"execution TCB path missing from git object {commit}:{rel}")
+        files.append(
+            {
+                "path": rel,
+                "sha256": _sha256_bytes(blob),
+                "size": len(blob),
+            }
+        )
+    return {
+        "kind": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_EXECUTION_TCB",
+        "schema_version": 1,
+        "execution_head": commit,
+        "files": files,
+    }
+
+
+def assert_execution_tcb_current(
+    manifest: Mapping[str, Any],
+    *args: Any,
+    repo_root: Path | None = None,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Fail closed unless the manifest matches git objects at HEAD."""
+    if args or kwargs:
+        _refuse("caller arguments cannot authorize an execution TCB")
+    if not isinstance(manifest, Mapping):
+        _refuse("execution TCB manifest is malformed")
+    root = repo_root or _repo_root()
+    head = _head_sha(root)
+    expected = execution_tcb_manifest(repo_root=root, execution_head=head)
+    if manifest.get("kind") != expected["kind"]:
+        _refuse("execution TCB manifest kind is not canonical")
+    listed_head = str(manifest.get("execution_head") or "").strip().lower()
+    if listed_head != head:
+        _refuse("execution TCB manifest is stale")
+    listed = manifest.get("files")
+    if not isinstance(listed, list):
+        _refuse("execution TCB manifest files are missing")
+    expected_rows = {(item["path"], item["sha256"], int(item["size"])) for item in expected["files"]}
+    listed_rows = set()
+    for item in listed:
+        if not isinstance(item, Mapping):
+            _refuse("execution TCB manifest is malformed")
+        listed_rows.add((item.get("path"), item.get("sha256"), item.get("size")))
+    if listed_rows != expected_rows:
+        _refuse("execution TCB manifest does not match git HEAD objects")
+    if not any(path == WORKER_REL for path, _digest, _size in expected_rows):
+        _refuse("execution TCB is missing worker.py")
+    return expected
+
+
+def planned_jobs_sha256(jobs: Sequence[tuple[str, int, int]]) -> str:
+    planned = [(str(job[0]), int(job[1]), int(job[2])) for job in jobs]
+    return _sha256_bytes(canonical_json_bytes({"jobs": [list(job) for job in planned]}))
+
+
+def _fsync_directory(path: Path) -> None:
+    fd = os.open(str(path), os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def _durability_test_hook() -> dict[str, Any]:
+    hook = dict(_TEST_DURABILITY_HOOK or {})
+    crash = os.environ.get(TEST_CHECKPOINT_CRASH_ENV)
+    if crash:
+        hook["crash_during_write"] = True
+    interrupt = os.environ.get(TEST_INTERRUPT_AFTER_ENV)
+    if interrupt:
+        hook["interrupt_after"] = int(str(interrupt).strip())
+    return hook
+
+
+def _refuse_production_durability_hooks() -> None:
+    if _TEST_DURABILITY_HOOK:
+        _refuse("durability test hooks cannot enter production")
+    if os.environ.get(TEST_CHECKPOINT_CRASH_ENV):
+        _refuse("durability test hooks cannot enter production")
+    if os.environ.get(TEST_INTERRUPT_AFTER_ENV):
+        _refuse("durability test hooks cannot enter production")
+
+
+def _atomic_replace_bytes(final_path: Path, payload: bytes) -> None:
+    """Crash-safe replace. A torn .tmp is never the durable object."""
+    final_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = final_path.with_name(final_path.name + ".tmp")
+    hook = _durability_test_hook()
+    if hook.get("crash_during_write"):
+        truncated = payload[: max(1, len(payload) // 2)]
+        with open(tmp, "wb") as fh:
+            fh.write(truncated)
+            fh.flush()
+            os.fsync(fh.fileno())
+        raise RuntimeError("NON_PRODUCTION durability crash during checkpoint write")
+    with open(tmp, "wb") as fh:
+        fh.write(payload)
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp, final_path)
+    _fsync_directory(final_path.parent)
+
+
+def durable_partial_store_identity(
+    *,
+    bound: Mapping[str, str],
+    planned: Sequence[tuple[str, int, int]],
+    repo_root: Path,
+) -> dict[str, Any]:
+    return {
+        "kind": DURABLE_PARTIAL_KIND,
+        "schema_version": 1,
+        "not_a_production_result": True,
+        "not_canonical_world_records": True,
+        "authorization_consumed": False,
+        "calibration_complete": False,
+        "production_calibration_executed": False,
+        "execution_head": bound["head_sha"],
+        "execution_tree": bound["tree_sha"],
+        "run_identity": _run_identity_from_bound(bound),
+        "plan_sha256": planned_jobs_sha256(planned),
+        "tcb": execution_tcb_manifest(
+            repo_root=repo_root, execution_head=str(bound["head_sha"])
+        ),
+        "worker_path": bound.get("worker_path", WORKER_REL if WORKER_REL in bound else None),
+        "worker_sha256": bound.get("worker_sha256") or bound.get(WORKER_REL),
+        "worker_size": bound.get("worker_size"),
+    }
+
+
+class DurablePartialWorldStore:
+    """Append-safe per-world evidence. Never RESULT / WORLD_RECORDS / ARM consume."""
+
+    def __init__(
+        self,
+        path: Path,
+        *,
+        bound: Mapping[str, str],
+        planned: Sequence[tuple[str, int, int]],
+        repo_root: Path,
+        identity: Mapping[str, Any],
+    ) -> None:
+        self.path = Path(path)
+        self.worlds_dir = self.path / "worlds"
+        self.identity_path = self.path / DURABLE_PARTIAL_IDENTITY_NAME
+        self.bound = dict(bound)
+        self.planned = tuple((str(job[0]), int(job[1]), int(job[2])) for job in planned)
+        self.planned_set = set(self.planned)
+        self.repo_root = Path(repo_root)
+        self.identity = dict(identity)
+
+    @classmethod
+    def open(
+        cls,
+        path: Path,
+        *,
+        bound: Mapping[str, str],
+        planned: Sequence[tuple[str, int, int]],
+        repo_root: Path,
+    ) -> "DurablePartialWorldStore":
+        store_path = Path(path)
+        identity = durable_partial_store_identity(
+            bound=bound, planned=planned, repo_root=repo_root
+        )
+        store = cls(
+            store_path,
+            bound=bound,
+            planned=planned,
+            repo_root=repo_root,
+            identity=identity,
+        )
+        store._ensure_identity()
+        return store
+
+    def _ensure_identity(self) -> None:
+        self.path.mkdir(parents=True, exist_ok=True)
+        self.worlds_dir.mkdir(parents=True, exist_ok=True)
+        if not self.identity_path.is_file():
+            json_files = list(self.worlds_dir.glob("*.json"))
+            if json_files:
+                _refuse("durable partial worlds exist without a store identity")
+            payload = canonical_json_bytes(_jsonable(self.identity))
+            _atomic_replace_bytes(self.identity_path, payload)
+            return
+        existing = self._load_identity_file(self.identity_path)
+        if existing.get("kind") != DURABLE_PARTIAL_KIND:
+            _refuse("durable partial store identity kind is not canonical")
+        if existing.get("not_a_production_result") is not True:
+            _refuse("durable partial store must not claim a RESULT")
+        if existing.get("not_canonical_world_records") is not True:
+            _refuse("durable partial store must not claim WORLD_RECORDS")
+        if existing.get("authorization_consumed") is True:
+            _refuse("durable partial store must not consume one-shot authority")
+        if existing.get("calibration_complete") is True:
+            _refuse("durable partial store must not claim calibration complete")
+        for key in (
+            "execution_head",
+            "execution_tree",
+            "run_identity",
+            "plan_sha256",
+            "worker_sha256",
+            "worker_size",
+            "worker_path",
+        ):
+            if existing.get(key) != self.identity.get(key):
+                _refuse("durable partial store does not match frozen execution identity")
+        if not _canonical_equal(existing.get("tcb"), self.identity.get("tcb")):
+            _refuse("durable partial store TCB does not match frozen execution identity")
+
+    def _load_identity_file(self, path: Path) -> dict[str, Any]:
+        raw = path.read_bytes()
+        try:
+            payload = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise SyntheticExecutionNotAuthorized(
+                "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: durable partial store identity is torn or malformed"
+            ) from exc
+        if not isinstance(payload, dict):
+            _refuse("durable partial store identity is malformed")
+        return payload
+
+    def _world_path(self, world_id: str) -> Path:
+        digest = _sha256_bytes(str(world_id).encode("utf-8"))
+        return self.worlds_dir / f"{digest}.json"
+
+    def load_structurally_valid_cached(self) -> dict[tuple[str, int, int], dict[str, Any]]:
+        """UNTRUSTED cached records. Structural/digest checks only. Not scientific authority."""
+        completed: dict[tuple[str, int, int], dict[str, Any]] = {}
+        for path in sorted(self.worlds_dir.glob("*.json")):
+            if path.name.endswith(".tmp"):
+                continue
+            rec_payload = self._load_world_file(path)
+            job = (
+                str(rec_payload["scenario_id"]),
+                int(rec_payload["n_rows"]),
+                int(rec_payload["world_index"]),
+            )
+            if job in completed:
+                _refuse("duplicate persisted world identity")
+            if job not in self.planned_set:
+                _refuse("unexpected persisted world identity")
+            completed[job] = rec_payload["record"]
+        return completed
+
+    def load_verified_completed(self) -> dict[tuple[str, int, int], dict[str, Any]]:
+        """Compatibility alias. Returns STRUCTURALLY_VALID cached records, not science."""
+        return self.load_structurally_valid_cached()
+
+    def _load_world_file(self, path: Path) -> dict[str, Any]:
+        raw = path.read_bytes()
+        try:
+            payload = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise SyntheticExecutionNotAuthorized(
+                "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: durable partial world record is torn or malformed"
+            ) from exc
+        if not isinstance(payload, dict):
+            _refuse("durable partial world record is malformed")
+        if payload.get("kind") != DURABLE_PARTIAL_RECORD_KIND:
+            _refuse("durable partial world record kind is not canonical")
+        if payload.get("completion_status") != "COMPLETE":
+            _refuse("durable partial world record is not complete")
+        for key in ("execution_head", "execution_tree", "run_identity", "plan_sha256"):
+            if payload.get(key) != self.identity.get(key):
+                _refuse("durable partial world record does not match frozen execution identity")
+        record = payload.get("record")
+        if not isinstance(record, Mapping):
+            _refuse("durable partial world record body is missing")
+        owned = _jsonable(dict(record))
+        digest = _record_content_digest(owned)
+        size = len(canonical_json_bytes(owned))
+        if payload.get("record_sha256") != digest:
+            _refuse("durable partial world record digest mismatch")
+        if payload.get("record_size") != size:
+            _refuse("durable partial world record size mismatch")
+        job = (
+            str(payload.get("scenario_id")),
+            int(payload.get("n_rows", -1)),
+            int(payload.get("world_index", -1)),
+        )
+        _record_job_identity(owned, *job)
+        if str(payload.get("world_identity") or "") != str(owned.get("world_identity") or ""):
+            _refuse("durable partial world identity mismatch")
+        if int(payload.get("world_seed", -1)) != int(owned.get("world_seed", -1)):
+            _refuse("durable partial world seed mismatch")
+        payload["record"] = owned
+        return payload
+
+    def checkpoint_completed_world(
+        self, rec: Mapping[str, Any], job: tuple[str, int, int]
+    ) -> None:
+        hook = _durability_test_hook()
+        if hook.get("before_checkpoint"):
+            raise RuntimeError("NON_PRODUCTION crash before durable checkpoint")
+        job = (str(job[0]), int(job[1]), int(job[2]))
+        if job not in self.planned_set:
+            _refuse("unexpected world identity")
+        owned = _jsonable(dict(rec))
+        _record_job_identity(owned, *job)
+        identity = str(owned["world_identity"])
+        payload = {
+            "kind": DURABLE_PARTIAL_RECORD_KIND,
+            "schema_version": 1,
+            "completion_status": "COMPLETE",
+            "execution_head": self.identity["execution_head"],
+            "execution_tree": self.identity["execution_tree"],
+            "run_identity": self.identity["run_identity"],
+            "plan_sha256": self.identity["plan_sha256"],
+            "scenario_id": job[0],
+            "n_rows": job[1],
+            "world_index": job[2],
+            "world_identity": identity,
+            "world_seed": int(owned["world_seed"]),
+            "record": owned,
+            "record_sha256": _record_content_digest(owned),
+            "record_size": len(canonical_json_bytes(owned)),
+        }
+        target = self._world_path(identity)
+        if target.is_file():
+            existing = self._load_world_file(target)
+            if existing["record_sha256"] != payload["record_sha256"]:
+                _refuse("duplicate persisted world identity")
+            return
+        _atomic_replace_bytes(target, canonical_json_bytes(_jsonable(payload)))
 
 
 def canonical_run_identity(repo_root: Path | None = None) -> str:
@@ -932,12 +1382,7 @@ def _durable_reservation_from_bound(bound: Mapping[str, str]) -> dict[str, Any]:
         "run_identity": _run_identity_from_bound(bound),
         "execution_head": bound["head_sha"],
         "execution_tree": bound["tree_sha"],
-        "authority_sha256": {
-            "lib": bound[LIB_REL],
-            "runner": bound[RUNNER_REL],
-            "auth": bound[AUTH_REL],
-            "production": bound[PRODUCTION_REL],
-        },
+        "authority_sha256": _authority_sha256_from_bound(bound),
         "prereg_json_sha256": bound["prereg_json_sha256"],
         "prereg_md_sha256": bound["prereg_md_sha256"],
         "authorization_sha256": bound.get("authorization_sha256"),
@@ -979,6 +1424,633 @@ def durable_claim_document(repo_root: Path | None = None) -> dict[str, Any]:
     """Claim identity is the same tracked run identity as the reservation."""
     root = repo_root or _repo_root()
     return _durable_claim_from_bound(verify_executed_production_authority(root))
+
+
+def apply_worker_blas_thread_limits() -> None:
+    """Force single-thread BLAS/OpenMP in this process and future workers."""
+    for key in BLAS_THREAD_LIMIT_KEYS:
+        os.environ[key] = "1"
+
+
+def conservative_worker_count() -> int:
+    """Operator hint. Never an implicit production default; do not use cpu_count() raw."""
+    detected = os.cpu_count()
+    if detected is None or int(detected) < 1:
+        return 1
+    return max(1, min(int(detected) // 2, 16))
+
+
+def resolve_execution_workers(workers: object | None = None) -> int:
+    """Explicit worker count. Default is 1. Env is read only when workers is None."""
+    if workers is None:
+        raw = os.environ.get(EXECUTION_WORKERS_ENV, "1")
+        try:
+            workers = int(str(raw).strip() or "1")
+        except (TypeError, ValueError):
+            _refuse("workers must be a positive int")
+    if type(workers) is not int or workers < 1:
+        _refuse("workers must be a positive int")
+    return workers
+
+
+def resolve_verification_workers(workers: object | None = None) -> int:
+    """Operational verifier parallelism. Not scientific authority.
+
+    Worker count must not change world identities, seeds, records, digests,
+    or mechanical conclusions. Default is 1. If VERIFY_WORKERS is unset,
+    EXECUTION_WORKERS is reused so mint/claim verification can share the same
+    operational pool size as compute. An explicit `workers` argument wins.
+    """
+    if workers is None:
+        raw = os.environ.get(VERIFY_WORKERS_ENV)
+        if raw is None or str(raw).strip() == "":
+            raw = os.environ.get(EXECUTION_WORKERS_ENV, "1")
+        try:
+            workers = int(str(raw).strip() or "1")
+        except (TypeError, ValueError):
+            _refuse("verification workers must be a positive int")
+    if type(workers) is not int or workers < 1:
+        _refuse("verification workers must be a positive int")
+    return workers
+
+
+def fit_lstsq_lstsq_rank(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """Single-factorization OLS rank decision.
+
+    Frozen `fit_lstsq` calls `matrix_rank` then `lstsq`. numpy.linalg.lstsq
+    with rcond=None already returns rank under the same default cutoff.
+    Rank-deficient designs still raise IncompleteWorld with the frozen
+    message and do not return coefficients. Success-path coefficients are
+    the lstsq result, matching the frozen second factorization.
+    """
+    x = np.asarray(x, dtype=np.float64)
+    y = np.asarray(y, dtype=np.float64)
+    if x.ndim != 2 or y.ndim != 1 or x.shape[0] != y.shape[0]:
+        raise IncompleteWorld("design shape invalid")
+    coef, _residuals, rank, _sv = np.linalg.lstsq(x, y, rcond=None)
+    if int(rank) < x.shape[1]:
+        raise IncompleteWorld("design is not full rank")
+    coef = np.asarray(coef, dtype=np.float64)
+    if coef.shape[0] != x.shape[1] or not np.all(np.isfinite(coef)):
+        raise IncompleteWorld("non-finite coefficients")
+    return coef
+
+
+def _expanding_era_predictions_hot(
+    y: np.ndarray,
+    x1: np.ndarray,
+    x2: np.ndarray,
+    feature: np.ndarray | None,
+    n_rows: int,
+    *,
+    base_pred: np.ndarray | None = None,
+) -> dict[str, np.ndarray]:
+    """Same era boundaries as frozen expanding_era_predictions; optional BASE reuse."""
+    slices = era_slices(n_rows)
+    compute_base = base_pred is None
+    if compute_base:
+        base_out = np.full(n_rows, np.nan, dtype=np.float64)
+    else:
+        base_out = np.asarray(base_pred, dtype=np.float64)
+        if base_out.shape != (n_rows,):
+            raise IncompleteWorld("design shape invalid")
+    cand_pred = np.full(n_rows, np.nan, dtype=np.float64)
+    train_end_by_score_era: dict[str, int] = {}
+    for era_i, era_name in enumerate(ERA_NAMES):
+        if era_i == 0:
+            continue
+        train = slice(0, slices[era_name].start)
+        score = slices[era_name]
+        train_end_by_score_era[era_name] = train.stop
+        if train.stop > score.start:
+            raise IncompleteWorld("lookahead: future era entered earlier fit")
+        y_train = y[train]
+        if compute_base:
+            x_base_train = _design_matrix(x1[train], x2[train])
+            x_base_score = _design_matrix(x1[score], x2[score])
+            base_coef = fit_lstsq_lstsq_rank(x_base_train, y_train)
+            base_out[score] = predict(x_base_score, base_coef)
+        if feature is not None:
+            x_cand_train = _design_matrix(x1[train], x2[train], feature[train])
+            x_cand_score = _design_matrix(x1[score], x2[score], feature[score])
+            cand_coef = fit_lstsq_lstsq_rank(x_cand_train, y_train)
+            cand_pred[score] = predict(x_cand_score, cand_coef)
+    return {
+        "BASE_PRED": base_out,
+        "CAND_PRED": cand_pred,
+        "train_end_by_score_era": train_end_by_score_era,  # type: ignore[dict-item]
+    }
+
+
+def placebo_q95_base_cached(
+    *,
+    world: Mapping[str, np.ndarray],
+    feature: np.ndarray,
+    n_rows: int,
+    replicates: int,
+    rng: np.random.Generator,
+) -> dict[str, Any]:
+    """Placebo_q95 with BASE expanding-era predictions computed once.
+
+    Permutation RNG consumption matches frozen sequential placebo_q95:
+    each replicate permutes the candidate inside every era, then refits
+    the candidate model. BASE (Y ~ 1+X1+X2) does not depend on the
+    permutation and is reused. If BASE is IncompleteWorld, permutation
+    loops still run and every replicate is treated as invalid.
+    """
+    y = np.asarray(world["Y"], dtype=np.float64)
+    x1 = np.asarray(world["X1"], dtype=np.float64)
+    x2 = np.asarray(world["X2"], dtype=np.float64)
+    slices = era_slices(n_rows)
+    mask = scored_mask(n_rows)
+    stats: list[float] = []
+    invalid = False
+    base_pred: np.ndarray | None = None
+    base_failed = False
+    try:
+        base_pred = _expanding_era_predictions_hot(y, x1, x2, None, n_rows)["BASE_PRED"]
+    except IncompleteWorld:
+        base_failed = True
+    for _ in range(replicates):
+        permuted = np.asarray(feature, dtype=np.float64).copy()
+        for slc in slices.values():
+            idx = np.arange(slc.start, slc.stop)
+            permuted[idx] = permuted[idx][rng.permutation(idx.size)]
+        if base_failed:
+            invalid = True
+            continue
+        try:
+            preds = _expanding_era_predictions_hot(
+                y, x1, x2, permuted, n_rows, base_pred=base_pred
+            )
+            metrics = ae_metrics(y, preds["BASE_PRED"], preds["CAND_PRED"], mask)
+            value = metrics["MEAN_AE_IMPROVEMENT"]
+        except IncompleteWorld:
+            invalid = True
+            continue
+        if not np.isfinite(value):
+            invalid = True
+            continue
+        stats.append(float(value))
+    if invalid or len(stats) != replicates:
+        return {
+            "placebo_q95": float("nan"),
+            "placebo_invalid": True,
+            "world_invalid": True,
+            "stays_in_denominator": True,
+        }
+    return {
+        "placebo_q95": linear_quantile(stats, 0.95),
+        "placebo_invalid": False,
+        "world_invalid": False,
+        "stays_in_denominator": True,
+    }
+
+
+def placebo_q95(
+    *,
+    world: Mapping[str, np.ndarray],
+    feature: np.ndarray,
+    n_rows: int,
+    replicates: int,
+    rng: np.random.Generator,
+) -> dict[str, Any]:
+    """Production placebo entry. Tests may monkeypatch this name."""
+    return placebo_q95_base_cached(
+        world=world,
+        feature=feature,
+        n_rows=n_rows,
+        replicates=replicates,
+        rng=rng,
+    )
+
+
+def assemble_canonical_world_records(
+    *,
+    planned_jobs: Sequence[tuple[str, int, int]],
+    completed_records: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    """Reorder unordered worker records into frozen planned job order. Fail-closed."""
+    if isinstance(completed_records, (str, bytes)) or not isinstance(completed_records, Sequence):
+        _refuse("malformed worker record set")
+    planned = tuple((str(job[0]), int(job[1]), int(job[2])) for job in planned_jobs)
+    planned_set = set(planned)
+    if len(planned) != len(planned_set):
+        _refuse("planned jobs contain duplicate world identities")
+    by_job: dict[tuple[str, int, int], Mapping[str, Any]] = {}
+    for rec in completed_records:
+        if not isinstance(rec, Mapping):
+            _refuse("malformed worker record")
+        try:
+            job = (
+                str(rec["scenario_id"]),
+                int(rec["n_rows"]),
+                int(rec["world_index"]),
+            )
+        except Exception:
+            _refuse("malformed worker record")
+        if job not in planned_set:
+            _refuse("unexpected world identity")
+        if job in by_job:
+            _refuse("duplicate world identity")
+        _record_job_identity(rec, *job)
+        by_job[job] = rec
+    ordered: list[dict[str, Any]] = []
+    for job in planned:
+        if job not in by_job:
+            _refuse("missing planned world")
+        owned = _jsonable(dict(by_job.pop(job)))
+        ordered.append(owned)
+    if by_job:
+        _refuse("unexpected extra world identities")
+    return ordered
+
+
+def evaluate_planned_jobs_fail_closed(
+    jobs: Sequence[tuple[str, int, int]],
+    *,
+    workers: int = 1,
+    durable_partial: DurablePartialWorldStore | None = None,
+    **kwargs: Any,
+) -> list[dict[str, Any]]:
+    """Evaluate planned jobs; reorder to planned order before returning.
+
+    Does not read ARM, mint RESULT, or write WORLD_RECORDS. Worker scheduling
+    cannot seed science. Fail-closed on crash/malformed/duplicate/missing/
+    unexpected identities. Caller digests cannot pin the worker.
+
+    Durable checkpoints are UNTRUSTED cached compute. Resume may reuse
+    STRUCTURALLY_VALID records to avoid immediate recomputation. They are not
+    scientific authority and cannot enter WORLD_RECORDS/RESULT until isolated
+    frozen-git authentication succeeds.
+    """
+    if kwargs:
+        _refuse("caller arguments cannot authorize worker/execution identity")
+    planned = tuple((str(job[0]), int(job[1]), int(job[2])) for job in jobs)
+    workers_n = resolve_execution_workers(workers)
+    apply_worker_blas_thread_limits()
+    completed_by_job: dict[tuple[str, int, int], Mapping[str, Any]] = {}
+    if durable_partial is not None:
+        completed_by_job = dict(durable_partial.load_structurally_valid_cached())
+    _interrupt_after_checkpoint_if_needed(len(completed_by_job))
+    missing = [job for job in planned if job not in completed_by_job]
+    if missing:
+        if workers_n == 1:
+            for job in missing:
+                rec = _evaluate_planned_world_body(*job)
+                _accept_completed_world(rec, job, durable_partial, completed_by_job)
+        else:
+            for rec in _evaluate_jobs_multiprocess(missing, workers_n):
+                job = _job_from_record(rec)
+                _accept_completed_world(rec, job, durable_partial, completed_by_job)
+    ordered = [completed_by_job[job] for job in planned]
+    return assemble_canonical_world_records(
+        planned_jobs=planned, completed_records=ordered
+    )
+
+
+def _accept_completed_world(
+    rec: Mapping[str, Any],
+    job: tuple[str, int, int],
+    durable_partial: DurablePartialWorldStore | None,
+    completed_by_job: dict[tuple[str, int, int], Mapping[str, Any]],
+) -> None:
+    job = (str(job[0]), int(job[1]), int(job[2]))
+    if durable_partial is not None:
+        durable_partial.checkpoint_completed_world(rec, job)
+    completed_by_job[job] = rec
+    _interrupt_after_checkpoint_if_needed(len(completed_by_job))
+
+
+def _interrupt_after_checkpoint_if_needed(completed_count: int) -> None:
+    hook = _durability_test_hook()
+    after = hook.get("interrupt_after")
+    if after is None:
+        return
+    if completed_count >= int(after):
+        raise RuntimeError("NON_PRODUCTION durability interrupt after checkpoint")
+
+
+def _untrusted_cached_records_payload(
+    *,
+    bound: Mapping[str, str],
+    planned: Sequence[tuple[str, int, int]],
+    records: Sequence[Mapping[str, Any]],
+    production: bool,
+) -> dict[str, Any]:
+    planned_jobs = tuple((str(job[0]), int(job[1]), int(job[2])) for job in planned)
+    ordered = assemble_canonical_world_records(
+        planned_jobs=planned_jobs, completed_records=records
+    )
+    return {
+        "kind": UNTRUSTED_CACHED_WORLD_RECORDS_KIND,
+        "schema_version": 1,
+        "not_scientific_authority": True,
+        "not_a_production_result": production is not True,
+        "not_canonical_world_records": True,
+        "trust_state": CHECKPOINT_STRUCTURALLY_VALID,
+        "production": bool(production),
+        "execution_head": bound["head_sha"],
+        "execution_tree": bound["tree_sha"],
+        "run_identity": _run_identity_from_bound(bound),
+        "plan_sha256": planned_jobs_sha256(planned_jobs),
+        "jobs": [list(job) for job in planned_jobs],
+        "records": _jsonable(list(ordered)),
+    }
+
+
+def authenticate_cached_world_records_from_frozen_execution(
+    *,
+    planned: Sequence[tuple[str, int, int]],
+    records: Sequence[Mapping[str, Any]],
+    repo_root: Path | None = None,
+    production: bool = False,
+    workers: object | None = None,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Authenticate untrusted cached records against isolated frozen git bytes.
+
+    The parent does not recompute science and has no in-process fallback.
+    Checkpoint self-hashes are not scientific authority. `workers` is
+    operational parallelism only.
+    """
+    if kwargs:
+        _refuse("caller arguments cannot authorize cached-record authentication")
+    root = Path(repo_root) if repo_root is not None else _repo_root()
+    bound = verify_executed_production_authority(root)
+    planned_jobs = tuple((str(job[0]), int(job[1]), int(job[2])) for job in planned)
+    if production:
+        if planned_jobs != planned_production_jobs():
+            _refuse("production authentication plan is not the frozen 3200-world plan")
+    else:
+        _fixture_jobs_forbidden_as_production(planned_jobs)
+    workers_n = resolve_verification_workers(workers)
+    payload = _untrusted_cached_records_payload(
+        bound=bound,
+        planned=planned_jobs,
+        records=records,
+        production=production,
+    )
+    try:
+        completed = _spawn_isolated_child(
+            AUTHENTICATE_CACHED_RECORDS_MODE,
+            repo_root=root,
+            text=False,
+            stdin=canonical_json_bytes(_jsonable(payload)),
+            extra_env={VERIFY_WORKERS_ENV: str(workers_n)},
+        )
+    except OSError as exc:
+        _refuse(f"isolated cached-record authentication child could not spawn: {exc}")
+    if int(completed.returncode) != 0:
+        detail = _isolated_child_stderr_text(completed).strip()
+        first = detail.splitlines()[0] if detail else (
+            f"isolated cached-record authentication child failed (exit {int(completed.returncode)})"
+        )
+        if first.startswith("SYNTHETIC_EXECUTION_NOT_AUTHORIZED"):
+            raise SyntheticExecutionNotAuthorized(first)
+        _refuse(f"cached world records do not match frozen execution: {first}")
+    proof = _parse_authenticate_cached_records_proof(completed.stdout or b"")
+    expected_world = _sha256_bytes(
+        canonical_json_bytes({"worlds": _jsonable(list(payload["records"]))})
+    )
+    expected_chain = list(_ordered_record_digest_chain(payload["records"]))
+    if proof.get("execution_head") != bound["head_sha"]:
+        _refuse("cached-record authentication proof execution_head does not match git HEAD")
+    if proof.get("execution_tree") != bound["tree_sha"]:
+        _refuse("cached-record authentication proof execution_tree does not match git HEAD")
+    if proof.get("run_identity") != _run_identity_from_bound(bound):
+        _refuse("cached-record authentication proof run_identity does not match git HEAD")
+    if proof.get("plan_sha256") != planned_jobs_sha256(planned_jobs):
+        _refuse("cached-record authentication proof plan does not match the submitted jobs")
+    if proof.get("world_set_sha256") != expected_world:
+        _refuse("cached world records do not match frozen execution")
+    if not _canonical_equal(proof.get("record_digest_chain"), expected_chain):
+        _refuse("cached world records do not match frozen execution")
+    if type(proof.get("observed_world_count")) is not int:
+        _refuse("cached-record authentication observed_world_count is not an int")
+    if proof.get("observed_world_count") != len(payload["records"]):
+        _refuse("cached-record authentication observed_world_count does not match submitted records")
+    if proof.get("observed_world_count") != len(planned_jobs):
+        _refuse("cached-record authentication observed_world_count does not match planned jobs")
+    if proof.get("trust_state") != CHECKPOINT_SCIENTIFICALLY_VERIFIED:
+        _refuse("cached-record authentication did not derive SCIENTIFICALLY_VERIFIED")
+    return proof
+
+
+def _parse_authenticate_cached_records_proof(raw: bytes) -> dict[str, Any]:
+    if not raw:
+        _refuse("isolated cached-record authentication child produced no proof")
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise SyntheticExecutionNotAuthorized(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: isolated cached-record authentication proof is not UTF-8"
+        ) from exc
+    decoder = json.JSONDecoder()
+    try:
+        payload, end = decoder.raw_decode(text)
+    except json.JSONDecodeError as exc:
+        raise SyntheticExecutionNotAuthorized(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: isolated cached-record authentication proof is not JSON"
+        ) from exc
+    if text[end:].strip():
+        _refuse("isolated cached-record authentication child produced duplicate or trailing output")
+    if not isinstance(payload, dict):
+        _refuse("isolated cached-record authentication proof is not an object")
+    if frozenset(payload) != _AUTHENTICATE_CACHED_RECORDS_PROOF_KEYS:
+        _refuse("isolated cached-record authentication proof keys are not canonical")
+    if payload.get("schema_version") != "1.0":
+        _refuse("isolated cached-record authentication proof schema is not canonical")
+    if payload.get("kind") != AUTHENTICATE_CACHED_RECORDS_PROOF_KIND:
+        _refuse("isolated cached-record authentication proof kind is not canonical")
+    if payload.get("mode") != AUTHENTICATE_CACHED_RECORDS_MODE:
+        _refuse("isolated cached-record authentication proof mode is not canonical")
+    if payload.get("verification_success") is not True:
+        _refuse("isolated cached-record authentication proof did not attest success")
+    if payload.get("verification_authority") != "ISOLATED_FROZEN_GIT_EXECUTION":
+        _refuse("cached-record authentication authority is not isolated frozen git bytes")
+    if type(payload.get("observed_world_count")) is not int:
+        _refuse("isolated cached-record authentication proof observed_world_count is not an int")
+    return payload
+
+
+def authenticate_cached_records_worker_main() -> dict[str, Any]:
+    """Isolated child: recompute planned jobs from frozen git bytes and compare."""
+    root = _repo_root()
+    bound = verify_executed_production_authority(root)
+    raw = sys.stdin.buffer.read()
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise SyntheticExecutionNotAuthorized(
+            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: untrusted cached records payload is malformed"
+        ) from exc
+    if not isinstance(payload, dict):
+        _refuse("untrusted cached records payload is malformed")
+    if payload.get("kind") != UNTRUSTED_CACHED_WORLD_RECORDS_KIND:
+        _refuse("cached records payload kind is not untrusted")
+    if payload.get("not_scientific_authority") is not True:
+        _refuse("cached records must be marked untrusted")
+    if payload.get("trust_state") == CHECKPOINT_SCIENTIFICALLY_VERIFIED:
+        _refuse("checkpoint must not self-attest scientific verification")
+    jobs_raw = payload.get("jobs")
+    records = payload.get("records")
+    if not isinstance(jobs_raw, list) or not isinstance(records, list):
+        _refuse("untrusted cached records payload is missing jobs or records")
+    jobs = tuple((str(job[0]), int(job[1]), int(job[2])) for job in jobs_raw)
+    production = payload.get("production") is True
+    if production:
+        if jobs != planned_production_jobs():
+            _refuse("production authentication plan is not the frozen 3200-world plan")
+    else:
+        _fixture_jobs_forbidden_as_production(jobs)
+    if str(payload.get("execution_head") or "") != bound["head_sha"]:
+        _refuse("cached records execution_head does not match isolated git HEAD")
+    if str(payload.get("execution_tree") or "") != bound["tree_sha"]:
+        _refuse("cached records execution_tree does not match isolated git HEAD")
+    if payload.get("run_identity") != _run_identity_from_bound(bound):
+        _refuse("cached records run_identity does not match isolated git HEAD")
+    if payload.get("plan_sha256") != planned_jobs_sha256(jobs):
+        _refuse("cached records plan_sha256 does not match isolated planned jobs")
+    cached = assemble_canonical_world_records(planned_jobs=jobs, completed_records=records)
+    recomputed = _evaluate_jobs_for_verification(
+        jobs, resolve_verification_workers(None)
+    )
+    cached_bytes = canonical_json_bytes({"worlds": cached})
+    recomputed_bytes = canonical_json_bytes({"worlds": recomputed})
+    if cached_bytes != recomputed_bytes:
+        _refuse("cached world records do not match frozen execution")
+    return {
+        "schema_version": "1.0",
+        "kind": AUTHENTICATE_CACHED_RECORDS_PROOF_KIND,
+        "mode": AUTHENTICATE_CACHED_RECORDS_MODE,
+        "verification_success": True,
+        "trust_state": CHECKPOINT_SCIENTIFICALLY_VERIFIED,
+        "execution_head": bound["head_sha"],
+        "execution_tree": bound["tree_sha"],
+        "run_identity": _run_identity_from_bound(bound),
+        "plan_sha256": planned_jobs_sha256(jobs),
+        "world_set_sha256": _sha256_bytes(recomputed_bytes),
+        "record_digest_chain": list(_ordered_record_digest_chain(recomputed)),
+        "observed_world_count": len(recomputed),
+        "verification_authority": "ISOLATED_FROZEN_GIT_EXECUTION",
+    }
+
+
+def _job_from_record(rec: Mapping[str, Any]) -> tuple[str, int, int]:
+    return (str(rec["scenario_id"]), int(rec["n_rows"]), int(rec["world_index"]))
+
+
+def _spawn_worker_pin(repo_root: Path) -> tuple[str, str]:
+    """Pin spawn workers to git HEAD worker bytes. Caller digests are ignored."""
+    blob = _head_blob(repo_root, WORKER_REL)
+    if blob is None:
+        _refuse("worker.py missing from git HEAD execution authority")
+    digest = _sha256_bytes(blob)
+    if digest != FROZEN_WORKER_SHA256:
+        _refuse("git HEAD worker is not the pinned execution-TCB implementation")
+    if len(blob) != FROZEN_WORKER_SIZE:
+        _refuse("git HEAD worker size is not the pinned execution-TCB size")
+    executing = _executing_file(WORKER_REL)
+    if executing.read_bytes() != blob:
+        _refuse("executed worker bytes differ from git HEAD")
+    worktree = repo_root / WORKER_REL
+    if worktree.is_symlink() or not worktree.is_file() or worktree.read_bytes() != blob:
+        _refuse("worktree worker bytes differ from git HEAD")
+    return digest, str(executing.resolve())
+
+
+def _evaluate_jobs_multiprocess(
+    planned: Sequence[tuple[str, int, int]],
+    workers: int,
+) -> list[Mapping[str, Any]]:
+    """World-parallel spawn over the pinned worker module.
+
+    Spawn imports the mapped function's module before Pool initializer
+    runs. Mapping a production.py helper would re-import this file in
+    every child (pytest deadlock). Mapping worker.evaluate_job_payload
+    keeps the child TCB as worker.py plus the frozen package it imports.
+
+    Spawn children inherit cwd and PYTHONPATH. The frozen worker repo
+    root is forced first so children cannot import a different live
+    checkout of the same module name. Worker count is operational.
+    """
+    apply_worker_blas_thread_limits()
+    payloads = [(str(job[0]), int(job[1]), int(job[2])) for job in planned]
+    root = _repo_root()
+    digest, worker_path = _spawn_worker_pin(root)
+    from scripts.research.harness_synthetic_edge_calibration_v1_worker import (
+        evaluate_job_payload,
+        multiprocessing_worker_init,
+    )
+
+    frozen_root = str(Path(worker_path).resolve().parents[2])
+    old_cwd = os.getcwd()
+    old_pp = os.environ.get("PYTHONPATH")
+    old_sys_path = list(sys.path)
+    completed: list[Mapping[str, Any]] = []
+    try:
+        # spawn copies the parent's sys.path into children before Pool
+        # initializer runs. Frozen root must be first in the parent so
+        # children import the pinned worker bytes, not a live checkout.
+        while frozen_root in sys.path:
+            sys.path.remove(frozen_root)
+        sys.path.insert(0, frozen_root)
+        os.chdir(frozen_root)
+        os.environ["PYTHONPATH"] = (
+            frozen_root if not old_pp else frozen_root + os.pathsep + old_pp
+        )
+        ctx = multiprocessing.get_context("spawn")
+        with ctx.Pool(
+            processes=int(workers),
+            initializer=multiprocessing_worker_init,
+            initargs=(digest, worker_path),
+        ) as pool:
+            for rec in pool.imap_unordered(
+                evaluate_job_payload, payloads, chunksize=1
+            ):
+                completed.append(rec)
+    except SyntheticExecutionNotAuthorized:
+        raise
+    except Exception as exc:
+        _refuse(f"worker execution failed closed: {type(exc).__name__}: {exc}")
+    finally:
+        sys.path[:] = old_sys_path
+        os.chdir(old_cwd)
+        if old_pp is None:
+            os.environ.pop("PYTHONPATH", None)
+        else:
+            os.environ["PYTHONPATH"] = old_pp
+    if not isinstance(completed, list):
+        _refuse("malformed worker record set")
+    if len(completed) != len(payloads):
+        _refuse("worker execution failed closed: incomplete world set")
+    return completed
+
+
+def _evaluate_jobs_for_verification(
+    jobs: Sequence[tuple[str, int, int]],
+    workers: object | None = None,
+) -> list[dict[str, Any]]:
+    """Recompute planned jobs with optional world-parallel spawn workers.
+
+    Worker count is operational. Results are canonical-reordered before
+    return. Used by isolated authentication and historical recomputation.
+    """
+    planned = tuple((str(job[0]), int(job[1]), int(job[2])) for job in jobs)
+    workers_n = resolve_verification_workers(workers)
+    apply_worker_blas_thread_limits()
+    if workers_n == 1:
+        completed = [
+            _jsonable(_evaluate_planned_world_body(*job)) for job in planned
+        ]
+    else:
+        completed = [
+            _jsonable(rec) for rec in _evaluate_jobs_multiprocess(planned, workers_n)
+        ]
+    return assemble_canonical_world_records(
+        planned_jobs=planned, completed_records=completed
+    )
 
 
 def evaluate_production_candidate(
@@ -1558,12 +2630,7 @@ def _bind_result_core_from_bound(
         "execution_head": bound["head_sha"],
         "execution_tree": bound["tree_sha"],
         "authority_paths": list(EXECUTION_AUTHORITY_PATHS),
-        "authority_sha256": {
-            "lib": bound[LIB_REL],
-            "runner": bound[RUNNER_REL],
-            "auth": bound[AUTH_REL],
-            "production": bound[PRODUCTION_REL],
-        },
+        "authority_sha256": _authority_sha256_from_bound(bound),
         "prereg_json_sha256": bound["prereg_json_sha256"],
         "prereg_md_sha256": bound["prereg_md_sha256"],
         "frozen_lib_sha256": bound[LIB_REL],
@@ -1934,6 +3001,13 @@ def _mint_from_session(session: _CanonicalExecutionSession) -> dict[str, Any]:
             or aggregates["mechanical_conclusion"] == "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM"
         ):
             _refuse("incomplete execution cannot mint a final RESULT")
+        authenticate_cached_world_records_from_frozen_execution(
+            planned=session.jobs,
+            records=session.records,
+            repo_root=session.repo_root,
+            production=True,
+            workers=resolve_verification_workers(None),
+        )
         bound = verify_executed_production_authority(session.repo_root)
         core = _bind_result_core(
             records=session.records,
@@ -1978,11 +3052,32 @@ def _abort_session(session: _CanonicalExecutionSession, exc: BaseException) -> N
         _retire_session(session)
 
 
-def _run_session_jobs(session: _CanonicalExecutionSession) -> dict[str, Any]:
+def _run_session_jobs(
+    session: _CanonicalExecutionSession, *, workers: int = 1
+) -> dict[str, Any]:
+    workers_n = resolve_execution_workers(workers)
     try:
-        for job in session.jobs:
-            rec = _evaluate_session_job(session, *job)
-            _append_session_record(session, rec, job)
+        if session.production:
+            if os.environ.get("HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_TEST_WORKER_CRASH"):
+                _refuse("test worker crash injection cannot enter production")
+            if os.environ.get("HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_VERIFY_STAGGER_MS"):
+                _refuse("verification stagger cannot enter production")
+            _refuse_production_durability_hooks()
+            store = DurablePartialWorldStore.open(
+                session.repo_root / DURABLE_PARTIAL_REL,
+                bound=session.bound,
+                planned=session.jobs,
+                repo_root=session.repo_root,
+            )
+            records = evaluate_planned_jobs_fail_closed(
+                session.jobs, workers=workers_n, durable_partial=store
+            )
+            for job, rec in zip(session.jobs, records):
+                _append_session_record(session, rec, job)
+        else:
+            for job in session.jobs:
+                rec = _evaluate_session_job(session, *job)
+                _append_session_record(session, rec, job)
         return _mint_from_session(session)
     except SyntheticExecutionNotAuthorized:
         if session.capability is not None and id(session.capability) in _LIVE_SESSIONS:
@@ -2045,9 +3140,14 @@ def abandon_canonical_session(capability: object, *args: Any, **kwargs: Any) -> 
 
 
 def run_canonical_production_execution(*args: Any, **kwargs: Any) -> dict[str, Any]:
-    """Canonical 3200-world driver. Requires ARM. Never accepts caller records."""
+    """Canonical 3200-world driver. Requires ARM. Never accepts caller records.
+
+    Worker count is not a caller kwarg. Isolated production reads
+    HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_WORKERS (default 1).
+    """
     if args or kwargs:
         _refuse("caller arguments cannot authorize production execution")
+    workers_n = resolve_execution_workers(None)
     root = _repo_root()
     verify_executed_production_authority(root)
     session = _open_canonical_session(
@@ -2056,7 +3156,7 @@ def run_canonical_production_execution(*args: Any, **kwargs: Any) -> dict[str, A
         jobs=planned_production_jobs(),
         evaluator=None,
     )
-    return _run_session_jobs(session)
+    return _run_session_jobs(session, workers=workers_n)
 
 
 def run_canonical_fixture_driver(
@@ -2409,13 +3509,15 @@ def _assert_historical_recompute_uses_authorized_code(
     for rel in EXECUTION_AUTHORITY_PATHS:
         historical = _commit_blob(repo_root, execution_head, rel)
         if historical is None:
+            if rel == WORKER_REL:
+                continue
             _tamper(f"historical recomputation authority missing at execution_head: {rel}")
         executing = _executing_file(rel).read_bytes()
         if executing != historical:
             _tamper(
                 "historical recomputation is not executing the authorized execution blobs"
             )
-        if bound[rel] != _sha256_bytes(historical):
+        if bound.get(rel) != _sha256_bytes(historical):
             _tamper("historical recomputation bound digest does not match execution blobs")
         if rel == LIB_REL and _sha256_bytes(executing) != FROZEN_REVIEWED_LIB_SHA256:
             _tamper("historical recomputation lib is not the frozen reviewed implementation")
@@ -2433,26 +3535,27 @@ def _recompute_production_records_from_frozen_execution(
 ) -> list[Mapping[str, Any]]:
     """Independently recompute all 3200 canonical production world bodies.
 
-    Uses the frozen planned job set and `_evaluate_planned_world_body`, the
-    same evaluator the canonical production session uses. Does not require
-    live ARM (historical HEAD may be an unarmed RESULT descendant). Does not
-    mint, write artifacts, or consume one-shot authority. Tracked
-    WORLD_RECORDS bodies are not inputs.
+    Uses the frozen planned job set and `_evaluate_jobs_for_verification`
+    (world-parallel spawn over `_evaluate_planned_world_body` when workers>1).
+    Worker count is operational and must not change scientific output. Does not
+    require live ARM. Does not mint, write artifacts, or consume one-shot
+    authority. Tracked WORLD_RECORDS bodies are not inputs.
     """
     jobs = planned_production_jobs()
     if len(jobs) != PRODUCTION_PLANNED_TOTAL_WORLDS:
         _refuse("production world plan is not 3200 identities")
     if jobs[0] != ("NULL", 5000, 0) or jobs[-1] != ("SMALL", 10000, 399):
         _refuse("production world plan identity order drifted")
-    records: list[Mapping[str, Any]] = []
-    for scenario_id, n_rows, world_index in jobs:
-        rec = _evaluate_planned_world_body(scenario_id, n_rows, world_index)
+    records = _evaluate_jobs_for_verification(
+        jobs, resolve_verification_workers(None)
+    )
+    for rec, job in zip(records, jobs, strict=True):
+        scenario_id, n_rows, world_index = job
         identity = world_identity(scenario_id, int(n_rows), int(world_index))
         if str(rec.get("world_identity", "")) != identity:
             _tamper("recomputed world identity does not match the frozen plan")
         if int(rec.get("world_seed", -1)) != int(world_seed(identity)):
             _tamper("recomputed world seed does not match the frozen plan")
-        records.append(rec)
     return _require_canonical_production_records(records)
 
 
@@ -2539,12 +3642,7 @@ def _assert_historical_production_identity(
 ) -> None:
     reservation = _durable_reservation_from_bound(bound)
     claim = _durable_claim_from_bound(bound)
-    expected_auth = {
-        "lib": bound[LIB_REL],
-        "runner": bound[RUNNER_REL],
-        "auth": bound[AUTH_REL],
-        "production": bound[PRODUCTION_REL],
-    }
+    expected_auth = _authority_sha256_from_bound(bound)
     if core.get("execution_head") != bound["head_sha"]:
         raise ProductionIntegrityError(
             "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: execution_head tamper detected"
@@ -2728,7 +3826,12 @@ def _require_isolated_historical_recompute(
     """
     try:
         completed = _spawn_isolated_child(
-            HISTORICAL_RECOMPUTE_MODE, repo_root=repo_root, text=False
+            HISTORICAL_RECOMPUTE_MODE,
+            repo_root=repo_root,
+            text=False,
+            extra_env={
+                VERIFY_WORKERS_ENV: str(resolve_verification_workers(None)),
+            },
         )
     except OSError as exc:
         _refuse(f"isolated historical recompute child could not spawn: {exc}")
@@ -2972,6 +4075,7 @@ def _isolated_child_env():
         key: value
         for key, value in os.environ.items()
         if "AUTHORIZ" not in key.upper()
+        and "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_TEST_" not in key
         and key
         not in {
             "PYTHONPATH",
@@ -2985,11 +4089,19 @@ def _isolated_child_env():
     return env
 
 
-def _spawn_isolated_child(mode, repo_root=None, *, text: bool = True):
+def _spawn_isolated_child(
+    mode, repo_root=None, *, text: bool = True, stdin=None, extra_env=None
+):
     """Spawn the existing isolated interpreter. No timeout: historical
     `FULL_3200_RECOMPUTATION` is synchronous and may take many hours.
+    Worker count is operational and is passed via extra_env, not as
+    scientific authority.
     """
     root = (repo_root or _repo_root()).resolve()
+    env = _isolated_child_env()
+    if extra_env:
+        for key, value in extra_env.items():
+            env[str(key)] = str(value)
     return subprocess.run(
         [
             sys.executable,
@@ -3002,10 +4114,11 @@ def _spawn_isolated_child(mode, repo_root=None, *, text: bool = True):
             mode,
         ],
         cwd=str(root),
-        env=_isolated_child_env(),
+        env=env,
         check=False,
         capture_output=True,
         text=text,
+        input=stdin,
     )
 
 
@@ -3196,6 +4309,11 @@ def _isolated_child_main(mode):
             sys.stdout.buffer.write(canonical_json_bytes(_jsonable(payload)))
             sys.stdout.flush()
             return 0
+        if mode == AUTHENTICATE_CACHED_RECORDS_MODE:
+            payload = authenticate_cached_records_worker_main()
+            sys.stdout.buffer.write(canonical_json_bytes(_jsonable(payload)))
+            sys.stdout.flush()
+            return 0
         print("SYNTHETIC_EXECUTION_NOT_AUTHORIZED: unknown isolated child mode", file=sys.stderr)
         return 2
     except SyntheticExecutionNotAuthorized as exc:
@@ -3282,7 +4400,12 @@ def production_durability_identity():
             "arm": CANONICAL_ARM_PATH,
             "driver_freeze": CANONICAL_DRIVER_FREEZE_PATH,
             "world_records": CANONICAL_WORLD_RECORDS_PATH,
+            "durable_partial_world_evidence": DURABLE_PARTIAL_REL,
         },
+        "durable_partial_is_not_result": True,
+        "durable_partial_is_not_world_records": True,
+        "durable_partial_is_not_scientific_authority": True,
+        "checkpoint_content_trusted_directly": False,
     }
 
 
