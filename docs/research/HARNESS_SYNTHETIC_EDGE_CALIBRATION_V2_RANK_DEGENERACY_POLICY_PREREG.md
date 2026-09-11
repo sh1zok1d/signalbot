@@ -1,10 +1,10 @@
 # HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY — Preregistration
 
-**Status:** `FROZEN_BEFORE_IMPLEMENTATION`  
-**Unit ID:** `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY`  
-**Unit type:** methodology-only identifiability policy; not a market hypothesis; not a production ARM  
-**Base HEAD at design freeze:** `9ab32fc14c50df0c6f1c7ddfe2a8990d2d49c339`  
-**Base tree at design freeze:** `8aca4445f4638f678810d64a17de2a253a22763d`  
+**Status:** `FROZEN_BEFORE_IMPLEMENTATION`
+**Unit ID:** `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY`
+**Unit type:** methodology-only identifiability policy; not a market hypothesis; not a production ARM
+**Base HEAD at design freeze:** `9ab32fc14c50df0c6f1c7ddfe2a8990d2d49c339`
+**Base tree at design freeze:** `8aca4445f4638f678810d64a17de2a253a22763d`
 **Execution status:** `synthetic_execution_authorized = false`
 
 Machine-readable twin: [`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG.json`](HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG.json).
@@ -197,12 +197,12 @@ conditional_detection_rate
   = candidate_detection_count / candidate_identifiable_count
 ```
 
-If `world_valid_count = 0`, `identifiability_rate` is undefined.  
-If `candidate_identifiable_count = 0`, `conditional_detection_rate` is undefined.  
+If `world_valid_count = 0`, `identifiability_rate` is undefined.
+If `candidate_identifiable_count = 0`, `conditional_detection_rate` is undefined.
 Undefined rates cannot PASS or FAIL a detection claim.
 
-Do **not** silently use `planned_worlds` as the detection denominator.  
-Do **not** silently drop non-identifiable cases from reporting.  
+Do **not** silently use `planned_worlds` as the detection denominator.
+Do **not** silently drop non-identifiable cases from reporting.
 Always publish the five counts, even when a rate is undefined.
 
 `candidate_non_identifiable_count + candidate_identifiable_count = world_valid_count` for each candidate. `WORLD_INVALID` worlds are in `planned_worlds - world_valid_count` and are not redistributed into candidate non-identifiability.
@@ -374,7 +374,7 @@ A future V2 RESULT may emit methodology consequences only in this order:
 2. any cell/candidate required by a methodology claim has `INSUFFICIENT_IDENTIFIABILITY` → `INSUFFICIENT_IDENTIFIABILITY_NO_METHODOLOGY_CLAIM`;
 3. then the inherited V1 conclusion ladder, computed on **conditional** identifiable denominators (specificity, power, discovery, floors, materiality).
 
-Passing V2 calibration never authorizes B2-06.  
+Passing V2 calibration never authorizes B2-06.
 V2 must not claim continuity of RESULT with the failed V1 ARM.
 
 ---
