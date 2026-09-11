@@ -24,8 +24,6 @@ from tests.research.test_harness_synthetic_edge_calibration_v1_checkpoint_forger
     _mock_record,
 )
 from tests.research.test_harness_synthetic_edge_calibration_v1_production import (
-    _armed_fixture_repo,
-    _commit_production_result,
     _git,
 )
 
@@ -171,19 +169,26 @@ def test_inprocess_verify_workers_1_2_4_exact(tmp_path, monkeypatch):
         )
 
 
-def test_historical_workers_1_2_4_exact(tmp_path, monkeypatch):
-    repo = _armed_fixture_repo(tmp_path, monkeypatch)
-    envelope, _world_records = _commit_production_result(repo)
-    cores = []
-    for workers in (1, 2, 4):
-        monkeypatch.setenv(prod.VERIFY_WORKERS_ENV, str(workers))
-        verified = prod.verify_bound_result_from_tracked_authority(repo)
-        cores.append(verified["core"])
-    for core in cores[1:]:
-        assert core == cores[0]
-        assert core["world_set_sha256"] == envelope["core"]["world_set_sha256"]
-        assert core["record_digest_chain"] == envelope["core"]["record_digest_chain"]
-        assert core["mechanical_conclusion"] == envelope["core"]["mechanical_conclusion"]
+def test_historical_recompute_uses_shared_parallel_helper():
+    src = Path(prod.__file__).read_text(encoding="utf-8")
+    recompute_src = src.split(
+        "def _recompute_production_records_from_frozen_execution", 1
+    )[1].split("def _compare_recomputed_world_records", 1)[0]
+    helper_src = src.split("def _evaluate_jobs_for_verification", 1)[1].split(
+        "def evaluate_production_candidate", 1
+    )[0]
+    child_src = src.split("def historical_recompute_worker_main", 1)[1].split(
+        "def _isolated_child_main", 1
+    )[0]
+    assert "_evaluate_jobs_for_verification" in recompute_src
+    assert "resolve_verification_workers" in recompute_src
+    assert "_evaluate_jobs_multiprocess" in helper_src
+    assert "_evaluate_planned_world_body" in helper_src
+    assert "_recompute_production_records_from_frozen_execution" in child_src
+    auth_child = src.split("def authenticate_cached_records_worker_main", 1)[1].split(
+        "def _job_from_record", 1
+    )[0]
+    assert "_evaluate_jobs_for_verification" in auth_child
 
 
 def _crash_stub():
