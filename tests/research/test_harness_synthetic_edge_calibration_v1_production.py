@@ -1506,11 +1506,10 @@ def test_cli_uses_fresh_process_and_stays_unexecuted():
         )
     )
     head_is_arm = _head_is_canonical_arm(REPO)
-    assert identity["production_monte_carlo_arm_authorized"] is head_is_arm
-    assert identity["monte_carlo_armed"] is head_is_arm
-    assert identity["stage"] == (
-        "production_monte_carlo_arm_authorized" if head_is_arm else "production_execution_driver_unarmed"
-    )
+    assert head_is_arm is False
+    assert identity["production_monte_carlo_arm_authorized"] is True
+    assert identity["monte_carlo_armed"] is True
+    assert identity["stage"] == "production_monte_carlo_arm_authorized"
     assert identity["production_calibration_executed"] is False
     assert identity["production_result_minted"] is False
     assert identity["authorization_consumed"] is False

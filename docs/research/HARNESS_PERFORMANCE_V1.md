@@ -41,13 +41,13 @@ REVIEWED IMPLEMENTATION
     84b23e4c51a4f7ccf59bb36d5333ef7974ea7eab
         |
         v
-PERFORMANCE_EXECUTION_FREEZE  (this docs/metadata-only final runtime freeze)
+PERFORMANCE_EXECUTION_FREEZE  `1499bc5f5e731f226650abd5051447fc846f722b`
         |
         v
-NEW immediate-child ARM  (not created)
+NEW immediate-child ARM  (canonical ARM artifact; unexecuted)
         |
         v
-canonical production run  (not executed)
+canonical production run  (must use the exact ARM commit object; not executed)
 ```
 
 Canonical freeze artifact:
@@ -59,7 +59,7 @@ BLOCKER-1, MAJOR-1, and BLOCKER-2 remain CLOSED.
 Do not shortcut that topology. Unused driver ARM `0abc5fe` and historical
 performance ARM `120ac45` do not authorize this repaired runtime. No
 migration of old partial evidence onto a different implementation/freeze is
-authorized. This freeze does not arm production.
+authorized. Canonical production must use the exact ARM commit object.
 
 ## What changed
 

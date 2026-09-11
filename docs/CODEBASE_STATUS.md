@@ -149,16 +149,20 @@ canonical 3200-world production driver. The driver is implementation-frozen.
 The unused driver ARM at `0abc5fe` authorizes the earlier driver freeze parent
 and does **not** authorize the performance implementation. Canonical freeze
 `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json`
-now binds reviewed implementation HEAD `f47c539` / tree `84b23e4` with the
-repaired production verifier. The freeze is unarmed. Historical ARM `120ac45`
-and unused driver ARM `0abc5fe` do not authorize this runtime. Worker count is
-operational, not scientific. Caller-supplied records cannot mint a RESULT.
-Historical ARM HEAD `940d85bf58673396c6c0cc05ce2134a2e2e92809` is
+binds reviewed implementation HEAD `f47c539` / tree `84b23e4` with the
+repaired production verifier. The live canonical ARM is the immediate child
+of that freeze. It authorizes one synthetic production Monte Carlo against
+that freeze parent. Canonical production must use the exact ARM commit object.
+Historical ARM `120ac45` and unused driver ARM `0abc5fe` do not authorize this
+runtime. Worker count is operational, not scientific. Caller-supplied
+records cannot mint a RESULT. Historical ARM HEAD
+`940d85bf58673396c6c0cc05ce2134a2e2e92809` is
 `REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`. Production
 calibration is not executed. `driver_implementation_frozen = true`.
 `implementation_frozen = true`.
 `production_calibration_executed = false`.
-`production_armed = false`.
+Live canonical ARM artifact declares
+`production_monte_carlo_arm_authorized = true`, unexecuted, unconsumed.
 Runtime ARM topology keys `CANONICAL_PERFORMANCE_FREEZE_PATH`.
 `production_result_minted = false`.
 This is not a market hypothesis and does not authorize B2-06, 2025, or 2026.

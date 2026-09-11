@@ -1963,3 +1963,27 @@ step: CREATE_NEW_IMMEDIATE_CHILD_ARM.
 - authorization_consumed: **false**
 - status: `PERFORMANCE_EXECUTION_FROZEN_UNARMED`
 
+## 2026-09-11 — HARNESS_PERFORMANCE_V1 final production ARM
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — PRODUCTION_MONTE_CARLO_ARM
+
+**Decision:** docs/authority-artifact ARM immediate child of final runtime
+freeze `1499bc5f5e731f226650abd5051447fc846f722b`. Authorizes one synthetic
+3200-world production execution against reviewed implementation
+`f47c5394d8cc0c3f6312cd4156f389ba7ee81dbd`. Worker count is operational.
+Does not execute production, consume authority, or mint RESULT/WORLD_RECORDS.
+Unused driver ARM `0abc5fe` and historical performance ARM `120ac45` do not
+authorize this implementation or freeze.
+
+Canonical ARM:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_ARM.json`.
+
+- production_monte_carlo_arm_authorized (ARM artifact): **true**
+- live `production_monte_carlo_arm_authorized()` at the exact ARM commit: **true**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_MONTE_CARLO_ARM_AUTHORIZED_UNEXECUTED`
+- next required step: `EXECUTE_CANONICAL_3200_WORLD_RUN_FROM_EXACT_FINAL_ARM_COMMIT_WITH_4_WORKERS`
+

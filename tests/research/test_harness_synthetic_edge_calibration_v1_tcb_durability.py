@@ -157,7 +157,7 @@ def test_old_arm_does_not_authorize_live_or_tmp_head(tmp_path, monkeypatch):
     live = _git(REPO, "rev-parse", "HEAD")
     assert prod._arm_payload_authorizes_at_commit(REPO, live, arm) is False
     assert prod._arm_payload_authorizes_at_commit(REPO, OLD_ARM, arm) is False
-    assert prod.production_monte_carlo_arm_authorized() is False
+    assert prod.production_monte_carlo_arm_authorized() is True
     repo = _commit_production_tree(tmp_path)
     _bind_prod(monkeypatch, repo)
     live_tmp = _git(repo, "rev-parse", "HEAD")

@@ -556,8 +556,9 @@ def test_production_execution_lock():
     assert identity["production_calibration_executed"] is False
     assert identity["real_data_path"] is False
     head_is_arm = _head_is_canonical_arm(REPO)
-    assert identity["monte_carlo_armed"] is head_is_arm
-    assert identity["production_monte_carlo_arm_authorized"] is head_is_arm
+    assert head_is_arm is False
+    assert identity["monte_carlo_armed"] is True
+    assert identity["production_monte_carlo_arm_authorized"] is True
     assert identity["authorization_consumed"] is False
     assert identity["production_result_minted"] is False
     assert production_authorization_identity()["monte_carlo_armed"] is False

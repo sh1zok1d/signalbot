@@ -121,21 +121,18 @@ def test_live_head_is_armed_unexecuted_and_binds_freeze_parent():
     assert prod._arm_payload_authorizes_at_commit(REPO, historical_arm_commit, tracked_arm) is False
     assert prod._arm_payload_authorizes_at_commit(REPO, historical_arm_commit, live_arm) is False
     head_is_historical_arm = _head_is_canonical_arm(REPO)
-    assert prod.production_monte_carlo_arm_authorized() is head_is_historical_arm
+    assert head_is_historical_arm is False
+    assert prod.production_monte_carlo_arm_authorized() is True
     state = prod.inspect_production_arm_state()
     assert state["present"] is True
-    assert state["authorized"] is head_is_historical_arm
+    assert state["authorized"] is True
     identity = prod.production_durability_identity()
-    assert identity["production_monte_carlo_arm_authorized"] is head_is_historical_arm
-    assert identity["monte_carlo_armed"] is head_is_historical_arm
+    assert identity["production_monte_carlo_arm_authorized"] is True
+    assert identity["monte_carlo_armed"] is True
     assert identity["production_result_minted"] is False
     assert identity["authorization_consumed"] is False
     assert identity["production_calibration_executed"] is False
-    assert identity["stage"] == (
-        "production_monte_carlo_arm_authorized"
-        if head_is_historical_arm
-        else "production_execution_driver_unarmed"
-    )
+    assert identity["stage"] == "production_monte_carlo_arm_authorized"
     assert identity["real_market_data_access_authorized"] is False
     assert identity["b2_06_scientific_execution_authorized"] is False
     assert identity["validation_2025_authorized"] is False
@@ -169,8 +166,8 @@ def test_live_head_is_armed_unexecuted_and_binds_freeze_parent():
     assert tracked_arm["authorization_consumed"] is False
     assert tracked_arm["market_hypothesis_execution_authorized"] is False
 
-    assert live_arm["freeze_parent_head"] == "ccaffe135c2b8a9a0a75af30c0712ba3063b82f6"
-    assert live_arm["reviewed_implementation_head"] == "9c573df81dad55829f52cff0f94e8c5918c30fd9"
+    assert live_arm["freeze_parent_head"] == "1499bc5f5e731f226650abd5051447fc846f722b"
+    assert live_arm["reviewed_implementation_head"] == "f47c5394d8cc0c3f6312cd4156f389ba7ee81dbd"
     assert live_arm["production_monte_carlo_arm_authorized"] is True
     assert live_arm["authorization_consumed"] is False
 

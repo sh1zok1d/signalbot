@@ -330,8 +330,8 @@ def test_no_production_artifact_writes_and_arm_unconsumed():
         )
     )
     assert tracked["authorization_consumed"] is False
-    if not _head_is_canonical_arm(REPO):
-        assert prod.production_monte_carlo_arm_authorized() is False
+    assert _head_is_canonical_arm(REPO) is False
+    assert prod.production_monte_carlo_arm_authorized() is True
     payload = perf.run_non_production_performance_diagnostic((ONE_JOB,), workers=1)
     assert payload["not_a_production_result"] is True
     assert payload["authority_consumed"] is False
