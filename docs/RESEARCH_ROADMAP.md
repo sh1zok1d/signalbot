@@ -214,9 +214,11 @@ Canonical V2 identifiability policy prereg (active methodology successor;
 not an ARM):
 `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG.md`
 and `.json`.
-Next required step for V2: independent adversarial review of that policy
-prereg, then fixture-only implementation. Do not implement in the prereg
-unit.
+Next required step for V2: independent rereview of
+`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG_AMENDMENT_001`
+(`INDEPENDENT_REREVIEW_OF_V2_RANK_POLICY_AMENDMENT`). Do not implement
+runtime in the amendment unit. The original prereg at `ada237e` is not
+rewritten in place.
 
 This methodology gate does not weaken or bypass the current B2-06 state:
 `FUNDING_PUBLICATION_LATENCY_UNPROVEN`, `research_authorized = false`,

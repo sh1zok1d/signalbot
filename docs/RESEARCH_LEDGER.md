@@ -2027,3 +2027,24 @@ full-rank rule are unchanged. No V2 runtime, freeze, or ARM in this unit.
 - ready_for_v2_implementation_review: **false**
 - next required step: `INDEPENDENT_ADVERSARIAL_REVIEW_OF_V2_RANK_DEGENERACY_POLICY_PREREG`
 
+## 2026-09-11 — V2 rank-degeneracy policy amendment 001
+
+**Decision:** docs-only prospective amendment of
+`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY`
+to close independent-review MAJOR-1 and MINOR-1..4. The original prereg at
+`ada237edc330b44bc412332e263f124757919e93` is not rewritten in place.
+
+Canonical:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG_AMENDMENT_001.md`
+and `.json`.
+
+- L persisted per WORLD_VALID world; full L=0..10 distribution per cell
+- BLIND taxonomy stratified by L; L=0 not credited as NO_DISCOVERY
+- closed non-identifiability reason taxonomy + first failing era
+- explicit required-coverage map for every inherited conclusion
+- F01 moved to F03-like coverage tier on SMALL|2500 (0.65→0.75) and
+  TINY_NOISY|5000 (0.60→0.70); no other threshold changes
+- selective cell re-execution after a V2 attempt forbidden
+- implementation_exists: **false**
+- next required step: `INDEPENDENT_REREVIEW_OF_V2_RANK_POLICY_AMENDMENT`
+

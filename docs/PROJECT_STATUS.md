@@ -116,8 +116,8 @@ itself is immutable. Post-outcome status lives in
   `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY` is
   `FROZEN_BEFORE_IMPLEMENTATION`. It does not implement runtime, does
   not arm V2 production, and does not authorize B2-06. Next required
-  step for that unit: independent adversarial review of the V2 policy
-  prereg. Historical ARM `120ac45` and unused driver ARM `0abc5fe` do
+  step for that unit: independent rereview of amendment 001
+  (`INDEPENDENT_REREVIEW_OF_V2_RANK_POLICY_AMENDMENT`). Historical ARM `120ac45` and unused driver ARM `0abc5fe` do
   not authorize V1 or V2 runtime. This does not authorize B2-06 science.
 
 Family F1 is `CLOSED_NO_PROMOTION`. 2025 validation and 2026 OOS remain
