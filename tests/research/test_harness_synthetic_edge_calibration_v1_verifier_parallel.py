@@ -184,6 +184,11 @@ def test_historical_recompute_uses_shared_parallel_helper():
     assert "resolve_verification_workers" in recompute_src
     assert "_evaluate_jobs_multiprocess" in helper_src
     assert "_evaluate_planned_world_body" in helper_src
+    mp_src = src.split("def _evaluate_jobs_multiprocess", 1)[1].split(
+        "def _evaluate_jobs_for_verification", 1
+    )[0]
+    assert "evaluate_job_payload" in mp_src
+    assert "multiprocessing_worker_init" in mp_src
     assert "_recompute_production_records_from_frozen_execution" in child_src
     auth_child = src.split("def authenticate_cached_records_worker_main", 1)[1].split(
         "def _job_from_record", 1
@@ -320,6 +325,14 @@ def test_worker_import_isolation_source_and_pin():
     worker_bytes = worker_path.read_bytes()
     assert "_pin_frozen_package_sys_path" in worker_src
     assert "_assert_frozen_package_provenance" in worker_src
+    mp_src = src.split("def _evaluate_jobs_multiprocess", 1)[1].split(
+        "def _evaluate_jobs_for_verification", 1
+    )[0]
+    assert "evaluate_job_payload" in mp_src
+    assert "multiprocessing_worker_init" in mp_src
+    assert 'os.environ["PYTHONPATH"]' in mp_src
+    assert "os.chdir(frozen_root)" in mp_src
+    assert "_spawn_verifier_evaluate_job" not in src
     assert prod.FROZEN_WORKER_SHA256 == __import__("hashlib").sha256(worker_bytes).hexdigest()
     assert prod.FROZEN_WORKER_SIZE == len(worker_bytes)
     assert "VERIFY_WORKERS_ENV" in src

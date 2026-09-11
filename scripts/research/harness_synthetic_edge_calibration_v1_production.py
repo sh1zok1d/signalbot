@@ -1960,54 +1960,59 @@ def _spawn_worker_pin(repo_root: Path) -> tuple[str, str]:
     return digest, str(executing.resolve())
 
 
-def _spawn_verifier_worker_init(expected_sha256: str, expected_path: str) -> None:
-    """Pin spawn-worker imports to the frozen worker's repository root."""
-    root = str(Path(expected_path).resolve().parents[2])
-    while root in sys.path:
-        sys.path.remove(root)
-    sys.path.insert(0, root)
-    for name in list(sys.modules):
-        if "harness_synthetic_edge_calibration_v1" in name:
-            del sys.modules[name]
-    from scripts.research.harness_synthetic_edge_calibration_v1_worker import (
-        multiprocessing_worker_init,
-    )
-
-    multiprocessing_worker_init(expected_sha256, expected_path)
-
-
-def _spawn_verifier_evaluate_job(payload):
-    from scripts.research.harness_synthetic_edge_calibration_v1_worker import (
-        evaluate_job_payload,
-    )
-
-    return evaluate_job_payload(payload)
-
-
 def _evaluate_jobs_multiprocess(
     planned: Sequence[tuple[str, int, int]],
     workers: int,
 ) -> list[Mapping[str, Any]]:
+    """World-parallel spawn over the pinned worker module.
+
+    Spawn imports the mapped function's module before Pool initializer
+    runs. Mapping a production.py helper would re-import this file in
+    every child (pytest deadlock). Mapping worker.evaluate_job_payload
+    keeps the child TCB as worker.py plus the frozen package it imports.
+
+    Spawn children inherit cwd and PYTHONPATH. The frozen worker repo
+    root is forced first so children cannot import a different live
+    checkout of the same module name. Worker count is operational.
+    """
     apply_worker_blas_thread_limits()
     payloads = [(str(job[0]), int(job[1]), int(job[2])) for job in planned]
     root = _repo_root()
     digest, worker_path = _spawn_worker_pin(root)
-    ctx = multiprocessing.get_context("spawn")
+    from scripts.research.harness_synthetic_edge_calibration_v1_worker import (
+        evaluate_job_payload,
+        multiprocessing_worker_init,
+    )
+
+    frozen_root = str(Path(worker_path).resolve().parents[2])
+    old_cwd = os.getcwd()
+    old_pp = os.environ.get("PYTHONPATH")
     completed: list[Mapping[str, Any]] = []
     try:
+        os.chdir(frozen_root)
+        os.environ["PYTHONPATH"] = (
+            frozen_root if not old_pp else frozen_root + os.pathsep + old_pp
+        )
+        ctx = multiprocessing.get_context("spawn")
         with ctx.Pool(
             processes=int(workers),
-            initializer=_spawn_verifier_worker_init,
+            initializer=multiprocessing_worker_init,
             initargs=(digest, worker_path),
         ) as pool:
             for rec in pool.imap_unordered(
-                _spawn_verifier_evaluate_job, payloads, chunksize=1
+                evaluate_job_payload, payloads, chunksize=1
             ):
                 completed.append(rec)
     except SyntheticExecutionNotAuthorized:
         raise
     except Exception as exc:
         _refuse(f"worker execution failed closed: {type(exc).__name__}: {exc}")
+    finally:
+        os.chdir(old_cwd)
+        if old_pp is None:
+            os.environ.pop("PYTHONPATH", None)
+        else:
+            os.environ["PYTHONPATH"] = old_pp
     if not isinstance(completed, list):
         _refuse("malformed worker record set")
     if len(completed) != len(payloads):
