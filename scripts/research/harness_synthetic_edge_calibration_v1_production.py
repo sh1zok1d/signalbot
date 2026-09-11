@@ -1960,17 +1960,36 @@ def _spawn_worker_pin(repo_root: Path) -> tuple[str, str]:
     return digest, str(executing.resolve())
 
 
+def _spawn_verifier_worker_init(expected_sha256: str, expected_path: str) -> None:
+    """Pin spawn-worker imports to the frozen worker's repository root."""
+    root = str(Path(expected_path).resolve().parents[2])
+    while root in sys.path:
+        sys.path.remove(root)
+    sys.path.insert(0, root)
+    for name in list(sys.modules):
+        if "harness_synthetic_edge_calibration_v1" in name:
+            del sys.modules[name]
+    from scripts.research.harness_synthetic_edge_calibration_v1_worker import (
+        multiprocessing_worker_init,
+    )
+
+    multiprocessing_worker_init(expected_sha256, expected_path)
+
+
+def _spawn_verifier_evaluate_job(payload):
+    from scripts.research.harness_synthetic_edge_calibration_v1_worker import (
+        evaluate_job_payload,
+    )
+
+    return evaluate_job_payload(payload)
+
+
 def _evaluate_jobs_multiprocess(
     planned: Sequence[tuple[str, int, int]],
     workers: int,
 ) -> list[Mapping[str, Any]]:
     apply_worker_blas_thread_limits()
     payloads = [(str(job[0]), int(job[1]), int(job[2])) for job in planned]
-    from scripts.research.harness_synthetic_edge_calibration_v1_worker import (
-        evaluate_job_payload,
-        multiprocessing_worker_init,
-    )
-
     root = _repo_root()
     digest, worker_path = _spawn_worker_pin(root)
     ctx = multiprocessing.get_context("spawn")
@@ -1978,10 +1997,12 @@ def _evaluate_jobs_multiprocess(
     try:
         with ctx.Pool(
             processes=int(workers),
-            initializer=multiprocessing_worker_init,
+            initializer=_spawn_verifier_worker_init,
             initargs=(digest, worker_path),
         ) as pool:
-            for rec in pool.imap_unordered(evaluate_job_payload, payloads, chunksize=1):
+            for rec in pool.imap_unordered(
+                _spawn_verifier_evaluate_job, payloads, chunksize=1
+            ):
                 completed.append(rec)
     except SyntheticExecutionNotAuthorized:
         raise
