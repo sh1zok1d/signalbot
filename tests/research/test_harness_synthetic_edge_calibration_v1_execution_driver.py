@@ -100,73 +100,80 @@ def test_live_head_is_armed_unexecuted_and_binds_freeze_parent():
     assert len(prod.planned_production_jobs()) == 3200
 
     head = _git(REPO, "rev-parse", "HEAD")
-    arm_commit = _canonical_arm_commit(REPO)
-    parent = _git(REPO, "rev-parse", f"{arm_commit}^")
+    historical_arm_commit = _canonical_arm_commit(REPO)
+    parent = _git(REPO, "rev-parse", f"{historical_arm_commit}^")
     parent_tree = _git(REPO, "rev-parse", f"{parent}^{{tree}}")
     assert parent == FREEZE_PARENT_HEAD
     assert parent_tree == FREEZE_PARENT_TREE
-    assert arm_commit != FREEZE_PARENT_HEAD
-    assert arm_commit != SUPERSEDED_HISTORICAL_ARM_HEAD
+    assert historical_arm_commit != FREEZE_PARENT_HEAD
+    assert historical_arm_commit != SUPERSEDED_HISTORICAL_ARM_HEAD
     assert head != SUPERSEDED_HISTORICAL_ARM_HEAD
     changed = set(
-        _git(REPO, "diff-tree", "--no-commit-id", "--name-only", "-r", arm_commit).splitlines()
+        _git(REPO, "diff-tree", "--no-commit-id", "--name-only", "-r", historical_arm_commit).splitlines()
     )
     forbidden = set(prod.EXECUTION_AUTHORITY_PATHS) | {prod.PREREG_JSON_REL, prod.PREREG_MD_REL}
     assert changed.isdisjoint(forbidden)
 
     freeze = json.loads(_git(REPO, "cat-file", "blob", f"{parent}:{prod.CANONICAL_DRIVER_FREEZE_PATH}"))
-    tracked_arm = json.loads(_git(REPO, "cat-file", "blob", f"{arm_commit}:{prod.CANONICAL_ARM_PATH}"))
-    arm = json.loads(arm_path.read_text(encoding="utf-8"))
-    assert arm == tracked_arm
-    assert prod._arm_payload_authorizes_at_commit(REPO, arm_commit, arm) is True
-    head_is_arm = _head_is_canonical_arm(REPO)
-    assert prod.production_monte_carlo_arm_authorized() is head_is_arm
+    tracked_arm = json.loads(_git(REPO, "cat-file", "blob", f"{historical_arm_commit}:{prod.CANONICAL_ARM_PATH}"))
+    live_arm = json.loads(arm_path.read_text(encoding="utf-8"))
+    assert prod._arm_payload_authorizes_at_commit(REPO, historical_arm_commit, tracked_arm) is True
+    assert prod._arm_payload_authorizes_at_commit(REPO, historical_arm_commit, live_arm) is False
+    head_is_historical_arm = _head_is_canonical_arm(REPO)
+    assert prod.production_monte_carlo_arm_authorized() is head_is_historical_arm
     state = prod.inspect_production_arm_state()
     assert state["present"] is True
-    assert state["authorized"] is head_is_arm
+    assert state["authorized"] is head_is_historical_arm
     identity = prod.production_durability_identity()
-    assert identity["production_monte_carlo_arm_authorized"] is head_is_arm
-    assert identity["monte_carlo_armed"] is head_is_arm
+    assert identity["production_monte_carlo_arm_authorized"] is head_is_historical_arm
+    assert identity["monte_carlo_armed"] is head_is_historical_arm
     assert identity["production_result_minted"] is False
     assert identity["authorization_consumed"] is False
     assert identity["production_calibration_executed"] is False
     assert identity["stage"] == (
-        "production_monte_carlo_arm_authorized" if head_is_arm else "production_execution_driver_unarmed"
+        "production_monte_carlo_arm_authorized"
+        if head_is_historical_arm
+        else "production_execution_driver_unarmed"
     )
     assert identity["real_market_data_access_authorized"] is False
     assert identity["b2_06_scientific_execution_authorized"] is False
     assert identity["validation_2025_authorized"] is False
     assert identity["oos_2026_authorized"] is False
 
-    assert arm["authorized_execution_commit"] == parent
-    assert arm["authorized_execution_tree"] == parent_tree
-    assert arm["freeze_parent_head"] == parent
-    assert arm["freeze_parent_tree"] == parent_tree
-    assert arm["freeze_artifact_path"] == prod.CANONICAL_DRIVER_FREEZE_PATH
-    assert arm["reviewed_implementation_head"] == freeze["reviewed_implementation_head"]
-    assert arm["reviewed_implementation_tree"] == freeze["reviewed_implementation_tree"]
-    assert arm["reviewed_implementation_head"] == REVIEWED_IMPLEMENTATION_HEAD
-    assert arm["reviewed_implementation_tree"] == REVIEWED_IMPLEMENTATION_TREE
-    assert arm["unit_id"] == prod.UNIT_ID
-    assert arm["durability_id"] == prod.DURABILITY_ID
-    assert arm["authorized_grid"] == prod.frozen_production_grid()
+    assert tracked_arm["authorized_execution_commit"] == parent
+    assert tracked_arm["authorized_execution_tree"] == parent_tree
+    assert tracked_arm["freeze_parent_head"] == parent
+    assert tracked_arm["freeze_parent_tree"] == parent_tree
+    assert tracked_arm["freeze_artifact_path"] == prod.CANONICAL_DRIVER_FREEZE_PATH
+    assert tracked_arm["reviewed_implementation_head"] == freeze["reviewed_implementation_head"]
+    assert tracked_arm["reviewed_implementation_tree"] == freeze["reviewed_implementation_tree"]
+    assert tracked_arm["reviewed_implementation_head"] == REVIEWED_IMPLEMENTATION_HEAD
+    assert tracked_arm["reviewed_implementation_tree"] == REVIEWED_IMPLEMENTATION_TREE
+    assert tracked_arm["unit_id"] == prod.UNIT_ID
+    assert tracked_arm["durability_id"] == prod.DURABILITY_ID
+    assert tracked_arm["authorized_grid"] == prod.frozen_production_grid()
     for key, expected in prod.ARM_REQUIRED_LITERALS.items():
-        assert arm[key] == expected
+        assert tracked_arm[key] == expected
     actual = prod._authority_digests_at(REPO, parent)
-    listed = arm["execution_authority_sha256"]
+    listed = tracked_arm["execution_authority_sha256"]
     recorded = freeze["execution_authority_sha256"]
     for key in ("lib", "runner", "auth", "production", "prereg_json", "prereg_md"):
         assert listed[key] == actual[key] == recorded[key]
     assert listed["lib"] == FROZEN_LIB_SHA256
     assert listed["prereg_json"] == FROZEN_PREREG_JSON_SHA256
     assert listed["prereg_md"] == FROZEN_PREREG_MD_SHA256
-    assert arm["production_calibration_executed"] is False
-    assert arm["production_result_minted"] is False
-    assert arm["world_records_persisted"] is False
-    assert arm["authorization_consumed"] is False
-    assert arm["market_hypothesis_execution_authorized"] is False
+    assert tracked_arm["production_calibration_executed"] is False
+    assert tracked_arm["production_result_minted"] is False
+    assert tracked_arm["world_records_persisted"] is False
+    assert tracked_arm["authorization_consumed"] is False
+    assert tracked_arm["market_hypothesis_execution_authorized"] is False
 
-    historical = dict(arm)
+    assert live_arm["freeze_parent_head"] == "ccaffe135c2b8a9a0a75af30c0712ba3063b82f6"
+    assert live_arm["reviewed_implementation_head"] == "9c573df81dad55829f52cff0f94e8c5918c30fd9"
+    assert live_arm["production_monte_carlo_arm_authorized"] is True
+    assert live_arm["authorization_consumed"] is False
+
+    historical = dict(tracked_arm)
     historical["authorized_execution_commit"] = "502a62ddee0a3106967b21f0095be7e1629a56b2"
     historical["authorized_execution_tree"] = "f21570983530f785d85639554741f3dd82164278"
     historical["freeze_parent_head"] = historical["authorized_execution_commit"]
@@ -175,7 +182,7 @@ def test_live_head_is_armed_unexecuted_and_binds_freeze_parent():
     historical["reviewed_implementation_tree"] = "7ab4178f222ecf8a2b5c8bf7d7bec9279fa3cf89"
     assert historical["authorized_execution_commit"] != parent
     assert historical["reviewed_implementation_head"] != REVIEWED_IMPLEMENTATION_HEAD
-    assert prod._arm_payload_authorizes_at_commit(REPO, arm_commit, historical) is False
+    assert prod._arm_payload_authorizes_at_commit(REPO, historical_arm_commit, historical) is False
     with pytest.raises(lib.SyntheticExecutionNotAuthorized, match="caller arguments"):
         prod.spawn_canonical_production_process(freeze_head=parent)
 

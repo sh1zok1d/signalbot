@@ -41,13 +41,13 @@ REVIEWED IMPLEMENTATION
     b9d928687e5ea4e9773f07b0cb6f8e287b65562f
         |
         v
-PERFORMANCE_EXECUTION_FREEZE  (this docs/metadata-only freeze)
+PERFORMANCE_EXECUTION_FREEZE  `ccaffe135c2b8a9a0a75af30c0712ba3063b82f6`
         |
         v
-NEW immediate-child ARM  (not created)
+NEW immediate-child ARM  (canonical ARM artifact; unexecuted)
         |
         v
-canonical production run  (not executed)
+canonical production run  (must use the exact ARM commit object; not executed)
 ```
 
 Canonical freeze artifact:

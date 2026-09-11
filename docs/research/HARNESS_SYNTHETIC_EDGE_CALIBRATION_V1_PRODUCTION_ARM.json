@@ -3,9 +3,10 @@
   "arm_artifact_is_docs_only": true,
   "arm_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_ARM",
   "authorization_consumed": false,
-  "authorized_execution_commit": "40e54b8c0497593aa3daf0bddc0e014bf048489f",
+  "authorized_execution_commit": "ccaffe135c2b8a9a0a75af30c0712ba3063b82f6",
   "authorized_execution_kind": "synthetic_production_monte_carlo",
-  "authorized_execution_tree": "0f6be102b29ce964f0ea8f3947927854888eef08",
+  "authorized_execution_must_use_exact_arm_commit_object": true,
+  "authorized_execution_tree": "ea012c70f83346abe6064b33e5f29987278c268e",
   "authorized_grid": {
     "block_rows": 50,
     "bootstrap_replicates": 500,
@@ -29,16 +30,17 @@
     "worlds_per_cell": 400
   },
   "authorized_plan": "exact_frozen_3200_world_plan",
+  "authorized_plan_sha256": "5adf682ee48a868acbe01d9e0b9e33133db26089119396b3539b4e9cb8af5bb6",
   "authorized_run_count": 1,
   "authorized_unit": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1",
   "canonical_path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_ARM.json",
+  "descendant_checkout_not_armed": true,
   "descendant_implementation_change_authorized": false,
   "does_not_create_durable_claim": true,
   "does_not_create_partial_production_artifacts": true,
   "does_not_create_reservation": true,
   "does_not_create_result": true,
   "does_not_create_world_records": true,
-  "driver_implementation_frozen": true,
   "durability_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_DURABILITY_V1",
   "execution_authority_sha256": {
     "auth": "0e174ac6b73530ec28501b0c076e0cad7874ab31bb1ed6941e4b525d12e35507",
@@ -47,15 +49,46 @@
     "lib": "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51",
     "prereg_json": "78fcddf03ce84a0369a955d5b571c2423129d12b22e35f77eab26d6ac5eff708",
     "prereg_md": "a54c838d2b4903f039b4fd39d79198415ce095f5a9726fc51949cbb47153e5a3",
-    "production": "3fa11f9980bf1b51f4585cc53d8290c969887f277d85551dd65facd8b5d1e613",
-    "runner": "5d6e93f27584dfa181de86e43541fc927cbc143cdc5df66c2d63e988b9c41200"
+    "production": "67773bf770cb84e317b6ea640c86c0863ba31c44e0d1dcdb2e47da66bceda4a5",
+    "runner": "0a5e577cc3797b018e9912865b7c3e385908764dc6cb36a6555626205855432a",
+    "worker": "9aee03fdae012f9054c59adc4cea8072b88493521456fb6141ced926961c886e"
   },
-  "freeze_artifact_path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_DRIVER_FREEZE.json",
+  "execution_tcb": [
+    {
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1_lib.py",
+      "sha256": "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51",
+      "size": 37636
+    },
+    {
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1.py",
+      "sha256": "0a5e577cc3797b018e9912865b7c3e385908764dc6cb36a6555626205855432a",
+      "size": 3484
+    },
+    {
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1_auth.py",
+      "sha256": "0e174ac6b73530ec28501b0c076e0cad7874ab31bb1ed6941e4b525d12e35507",
+      "size": 34982
+    },
+    {
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1_production.py",
+      "sha256": "67773bf770cb84e317b6ea640c86c0863ba31c44e0d1dcdb2e47da66bceda4a5",
+      "size": 185685
+    },
+    {
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1_worker.py",
+      "sha256": "9aee03fdae012f9054c59adc4cea8072b88493521456fb6141ced926961c886e",
+      "size": 3994
+    }
+  ],
+  "freeze_artifact_path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json",
+  "freeze_artifact_sha256": "2df563ad097cbaafcf4707146166ee6acf33776acc5e60c0e5c15df3428b6c54",
+  "freeze_artifact_size": 4552,
   "freeze_identity_source": "tracked_git_parent_not_caller_supplied",
-  "freeze_parent_head": "40e54b8c0497593aa3daf0bddc0e014bf048489f",
-  "freeze_parent_tree": "0f6be102b29ce964f0ea8f3947927854888eef08",
+  "freeze_parent_head": "ccaffe135c2b8a9a0a75af30c0712ba3063b82f6",
+  "freeze_parent_tree": "ea012c70f83346abe6064b33e5f29987278c268e",
   "frozen_lib_sha256": "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51",
   "market_hypothesis_execution_authorized": false,
+  "merge_commit_not_authorized": true,
   "not_a_result": true,
   "not_an_execution": true,
   "one_shot": true,
@@ -64,14 +97,17 @@
   "other_hypothesis_authorized": false,
   "prereg_json_sha256": "78fcddf03ce84a0369a955d5b571c2423129d12b22e35f77eab26d6ac5eff708",
   "prereg_md_sha256": "a54c838d2b4903f039b4fd39d79198415ce095f5a9726fc51949cbb47153e5a3",
+  "production_armed": true,
   "production_calibration_executed": false,
+  "production_executed": false,
   "production_monte_carlo_arm_authorized": true,
   "production_only_scope": true,
   "production_result_minted": false,
   "protected_scope_flags": true,
   "real_market_data_access_authorized": false,
-  "reviewed_implementation_head": "3fadc391ee0002e35463b526301d287d4a662828",
-  "reviewed_implementation_tree": "5fb77727c418cc42bf3c1c6553355a0475f42efc",
+  "result_created": false,
+  "reviewed_implementation_head": "9c573df81dad55829f52cff0f94e8c5918c30fd9",
+  "reviewed_implementation_tree": "b9d928687e5ea4e9773f07b0cb6f8e287b65562f",
   "schema_version": "1.0",
   "scope": "production_synthetic_calibration_only",
   "superseded_historical_arm_940d85": {
@@ -79,7 +115,14 @@
     "reason": "ARM mechanism sound, sequencing invalid",
     "status": "REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE"
   },
+  "superseded_unused_arm_0abc5fe": {
+    "head": "0abc5fe167e018ebe1f7efbb70694887ac095e17",
+    "status": "SUPERSEDED / DOES_NOT_AUTHORIZE_THIS_IMPLEMENTATION"
+  },
   "unit_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1",
   "validation_2025_authorized": false,
+  "worker_count_changes_science": false,
+  "worker_count_is_operational": true,
+  "world_records_created": false,
   "world_records_persisted": false
 }

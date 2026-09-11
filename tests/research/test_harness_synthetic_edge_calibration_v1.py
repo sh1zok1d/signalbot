@@ -564,7 +564,18 @@ def test_production_execution_lock():
     assert prod._arm_payload_authorizes_at_commit(
         REPO,
         _canonical_arm_commit(REPO),
-        json.loads((REPO / "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_ARM.json").read_text(encoding="utf-8")),
+        json.loads(
+            subprocess.check_output(
+                [
+                    "git",
+                    "-C",
+                    str(REPO),
+                    "cat-file",
+                    "blob",
+                    f"{_canonical_arm_commit(REPO)}:docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_ARM.json",
+                ]
+            )
+        ),
     ) is True
     source = Path(lib.__file__).read_text(encoding="utf-8") + Path(runner.__file__).read_text(
         encoding="utf-8"
