@@ -146,24 +146,25 @@ commit/tree object access, not caller mappings. See
 synthetic calibration instrument, the unused #114 one-shot authorization
 bytes, the frozen unarmed production durability/aggregation layer, and the
 canonical 3200-world production driver. The driver is implementation-frozen.
-The docs-only ARM at `0abc5fe` authorizes exactly one synthetic production Monte
-Carlo against the freeze parent and remains **unused**. A later
-performance-only descendant (`harness_synthetic_edge_calibration_v1_worker.py`,
-`harness_synthetic_edge_calibration_v1_performance.py`, production hot-path
-cache/parallelism) is `PERFORMANCE_EXECUTION_FROZEN_UNARMED` and does not reuse
-that ARM. Canonical freeze:
+The unused driver ARM at `0abc5fe` authorizes the earlier driver freeze parent
+and does **not** authorize the performance implementation. The live canonical
+ARM is the immediate child of
 `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json`.
-A NEW immediate-child ARM is required before any canonical run. Caller-supplied
+It authorizes one synthetic production Monte Carlo against that freeze parent.
+Canonical production must use the exact ARM commit object. Worker count is
+operational, not scientific. Caller-supplied
 records cannot mint a RESULT. Historical ARM HEAD
 `940d85bf58673396c6c0cc05ce2134a2e2e92809` is
 `REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`. Production
 calibration is not executed. `driver_implementation_frozen = true`.
 `implementation_frozen = true`.
 `production_calibration_executed = false`.
-Live HEAD after the performance repair:
-`production_monte_carlo_arm_authorized = false` (ARM artifact unused, not
-consumed). `production_result_minted = false`. This is not a market hypothesis
-and does not authorize B2-06, 2025, or 2026.
+Live canonical ARM artifact: `production_monte_carlo_arm_authorized = true`,
+unexecuted, unconsumed. Frozen `production.py` still verifies ARM topology
+against `CANONICAL_DRIVER_FREEZE_PATH`, so
+`production_monte_carlo_arm_authorized()` at a performance-ARM HEAD remains
+false until a later TCB-safe verifier bind. `production_result_minted = false`.
+This is not a market hypothesis and does not authorize B2-06, 2025, or 2026.
 
 ---
 

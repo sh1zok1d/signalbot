@@ -10,37 +10,36 @@
 
 This document is a docs/authority-artifact-only ARM record. It authorizes
 exactly one frozen synthetic production Monte Carlo calibration against the
-canonical DRIVER FREEZE parent. It does not rewrite frozen prereg or
-scientific lib bytes. It does not execute the 3200-world calibration. It
-does not mint a RESULT, persist WORLD_RECORDS, create a reservation, or
-mint a durable claim.
+canonical PERFORMANCE EXECUTION FREEZE parent. It does not rewrite frozen
+prereg or scientific/execution TCB bytes. It does not execute the 3200-world
+calibration. It does not mint a RESULT, persist WORLD_RECORDS, create a
+reservation, or mint a durable claim.
 
 ## Topology
 
-The ARM commit is the immediate child of the canonical DRIVER FREEZE.
-Verification loads the tracked freeze artifact from git objects at that
-parent. Caller-supplied freeze identity is not authority.
+The ARM commit is the immediate child of the performance/execution freeze.
+Verification of this ARM record loads the tracked freeze artifact from git
+objects at that parent. Caller-supplied freeze identity is not authority.
+
+Canonical production, when executed, MUST use the exact ARM commit object.
+A descendant checkout is not armed. A merge commit is not authorized.
 
 ```text
-REVIEWED_IMPLEMENTATION_HEAD = 3fadc391ee0002e35463b526301d287d4a662828
-REVIEWED_IMPLEMENTATION_TREE = 5fb77727c418cc42bf3c1c6553355a0475f42efc
+REVIEWED_IMPLEMENTATION_HEAD = 9c573df81dad55829f52cff0f94e8c5918c30fd9
+REVIEWED_IMPLEMENTATION_TREE = b9d928687e5ea4e9773f07b0cb6f8e287b65562f
 
-FREEZE_PARENT_HEAD = 40e54b8c0497593aa3daf0bddc0e014bf048489f
-FREEZE_PARENT_TREE = 0f6be102b29ce964f0ea8f3947927854888eef08
+FREEZE_PARENT_HEAD = ccaffe135c2b8a9a0a75af30c0712ba3063b82f6
+FREEZE_PARENT_TREE = ea012c70f83346abe6064b33e5f29987278c268e
 
 ARM_COMMIT_HEAD = UNSET_UNTIL_THIS_COMMIT
 ARM_COMMIT_TREE  = UNSET_UNTIL_THIS_COMMIT
 ```
 
-No implementation, frozen scientific lib, or prereg bytes change between
-the freeze parent and this ARM. The only test change is converting the
-pre-ARM “live HEAD remains unarmed / ARM absent” assertions into a live
-schema check of this ARM artifact. That is ARM validation, not driver or
-scientific logic.
+No implementation, frozen scientific lib, worker, or prereg bytes change
+between the freeze parent and this ARM.
 
-A descendant of this ARM commit is not armed. One-shot consumption remains
-the existing canonical production execution path: successful RESULT at HEAD
-consumes authorization. This ARM does not consume itself.
+Creating this ARM does not consume one-shot authority. Consumption remains
+the existing canonical production execution path.
 
 ## Authorized scope
 
@@ -48,21 +47,29 @@ consumes authorization. This ARM does not consume itself.
 authorized_unit = HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1
 authorized_execution_kind = synthetic_production_monte_carlo
 authorized_plan = exact_frozen_3200_world_plan
+authorized_plan_sha256 = 5adf682ee48a868acbe01d9e0b9e33133db26089119396b3539b4e9cb8af5bb6
 authorized_run_count = 1
 scope = production_synthetic_calibration_only
 production_only_scope = true
 one_shot = true
+WORKER_COUNT_IS_OPERATIONAL = YES
+WORKER_COUNT_CHANGES_SCIENCE = NO
 ```
+
+Worker count is operational, not scientific authority. Changing it must not
+change world identity, RNG, scientific output, canonical order, digest chain,
+or RESULT.
 
 This ARM does **not** authorize any market-hypothesis execution.
 
 ## Bound freeze and reviewed implementation
 
-ARM verification reads:
+ARM verification of this artifact reads:
 
-`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_DRIVER_FREEZE.json`
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json`
 
-from the freeze parent. It requires:
+from the freeze parent git object. SHA256
+`2df563ad097cbaafcf4707146166ee6acf33776acc5e60c0e5c15df3428b6c54`, size 4552.
 
 ```text
 authorized_execution_commit = freeze parent HEAD
@@ -71,16 +78,17 @@ reviewed_implementation_head / tree = freeze-recorded reviewed identity
 execution-authority bytes at ARM HEAD = freeze parent bytes
 ```
 
-## Bound execution-authority SHA256
+## Bound execution-authority SHA256 / size
 
 Recomputed from git blobs at the freeze parent and required to match the
-tracked freeze artifact:
+tracked performance freeze TCB:
 
 ```text
-lib         12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51
-runner      5d6e93f27584dfa181de86e43541fc927cbc143cdc5df66c2d63e988b9c41200
-auth        0e174ac6b73530ec28501b0c076e0cad7874ab31bb1ed6941e4b525d12e35507
-production  3fa11f9980bf1b51f4585cc53d8290c969887f277d85551dd65facd8b5d1e613
+lib         12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51  size 37636
+runner      0a5e577cc3797b018e9912865b7c3e385908764dc6cb36a6555626205855432a  size 3484
+auth        0e174ac6b73530ec28501b0c076e0cad7874ab31bb1ed6941e4b525d12e35507  size 34982
+production  67773bf770cb84e317b6ea640c86c0863ba31c44e0d1dcdb2e47da66bceda4a5  size 185685
+worker      9aee03fdae012f9054c59adc4cea8072b88493521456fb6141ced926961c886e  size 3994
 prereg_json 78fcddf03ce84a0369a955d5b571c2423129d12b22e35f77eab26d6ac5eff708
 prereg_md   a54c838d2b4903f039b4fd39d79198415ce095f5a9726fc51949cbb47153e5a3
 ```
@@ -88,12 +96,15 @@ prereg_md   a54c838d2b4903f039b4fd39d79198415ce095f5a9726fc51949cbb47153e5a3
 ## Protected scope
 
 ```text
-driver_implementation_frozen = true
 production_monte_carlo_arm_authorized = true
+production_armed = true
 
+production_executed = false
 production_calibration_executed = false
 production_result_minted = false
+result_created = false
 world_records_persisted = false
+world_records_created = false
 authorization_consumed = false
 
 real_market_data_access_authorized = false
@@ -104,17 +115,13 @@ other_hypothesis_authorized = false
 market_hypothesis_execution_authorized = false
 ```
 
-No protected market data is available to this run.
+## Superseded ARMs
 
-## Historical ARM #116
+Unused driver ARM `0abc5fe167e018ebe1f7efbb70694887ac095e17` remains
+historical evidence. It does **not** authorize this implementation or freeze.
 
-HEAD `940d85bf58673396c6c0cc05ce2134a2e2e92809` remains historical evidence
-that the parent-authorizing ARM mechanism works. It is **not** this ARM and
-is not merged into this branch.
-
-```text
-status = REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE
-```
+Historical ARM `940d85bf58673396c6c0cc05ce2134a2e2e92809` remains
+`REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`.
 
 ## What this ARM does not do
 
@@ -124,4 +131,5 @@ status = REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE
 - mint a durable claim
 - create a reservation
 - consume one-shot authority
+- freeze a scientific worker count
 - open B2-06 / 2025 / 2026 / other hypotheses

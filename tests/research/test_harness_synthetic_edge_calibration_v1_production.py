@@ -1478,7 +1478,18 @@ def test_cli_uses_fresh_process_and_stays_unexecuted():
     assert prod._arm_payload_authorizes_at_commit(
         REPO,
         _canonical_arm_commit(REPO),
-        json.loads((REPO / prod.CANONICAL_ARM_PATH).read_text(encoding="utf-8")),
+        json.loads(
+            subprocess.check_output(
+                [
+                    "git",
+                    "-C",
+                    str(REPO),
+                    "cat-file",
+                    "blob",
+                    f"{_canonical_arm_commit(REPO)}:{prod.CANONICAL_ARM_PATH}",
+                ]
+            )
+        ),
     ) is True
 
 

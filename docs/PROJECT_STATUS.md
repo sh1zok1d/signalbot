@@ -131,10 +131,13 @@ itself is immutable. Post-outcome status lives in
   `9c573df81dad55829f52cff0f94e8c5918c30fd9` / tree
   `b9d928687e5ea4e9773f07b0cb6f8e287b65562f`. Canonical freeze:
   `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json`.
-  That freeze does not reuse ARM `0abc5fe`, does not mint RESULT/WORLD_RECORDS,
-  and does not arm production. A NEW immediate-child ARM is required before
-  any canonical run. This does not execute the 3200-world calibration and
-  does not authorize B2-06 science.
+  The live canonical ARM is the immediate child of that freeze and authorizes
+  exactly one synthetic production Monte Carlo
+  (`production_monte_carlo_arm_authorized = true` in the ARM artifact,
+  `production_calibration_executed = false`). Unused driver ARM `0abc5fe`
+  does not authorize this implementation. Canonical production, when run,
+  must use the exact ARM commit object. This does not execute the 3200-world
+  calibration and does not authorize B2-06 science.
 
 Family F1 is `CLOSED_NO_PROMOTION`. 2025 validation and 2026 OOS remain
 untouched. No Batch02 formulation has a promoted candidate, so there is no

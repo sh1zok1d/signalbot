@@ -1899,3 +1899,26 @@ implementation. Next required step: CREATE_NEW_IMMEDIATE_CHILD_ARM.
 - authorization_consumed: **false**
 - status: `PERFORMANCE_EXECUTION_FROZEN_UNARMED`
 
+## 2026-09-11 — HARNESS_PERFORMANCE_V1 production ARM
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — PRODUCTION_MONTE_CARLO_ARM
+
+**Decision:** docs/authority-artifact ARM immediate child of performance
+execution freeze `ccaffe135c2b8a9a0a75af30c0712ba3063b82f6`. Authorizes one
+synthetic 3200-world production execution against reviewed implementation
+`9c573df81dad55829f52cff0f94e8c5918c30fd9`. Worker count is operational.
+Does not execute production, consume authority, or mint RESULT/WORLD_RECORDS.
+Old ARM `0abc5fe` does not authorize this implementation or freeze.
+
+Canonical ARM:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_ARM.json`.
+
+- production_monte_carlo_arm_authorized (ARM artifact): **true**
+- frozen `production.py` verifier still keys `PRODUCTION_DRIVER_FREEZE.json`, so live `production_monte_carlo_arm_authorized()` remains **false** until a later TCB-safe verifier bind
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_MONTE_CARLO_ARM_AUTHORIZED_UNEXECUTED`
+- next required step: `EXECUTE_CANONICAL_PRODUCTION_FROM_EXACT_ARM_COMMIT` (exact ARM commit object only; spawn currently refuses until verifier bind)
+
