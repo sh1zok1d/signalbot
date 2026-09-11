@@ -231,3 +231,61 @@ at n=5000, sequential production would be about 5.3 s/world (**EXTRAPOLATED**,
 rate would be about 0.4–0.5 h (**EXTRAPOLATED**). That is a target-shaped
 extrapolation from mixed n=80/n=5000 evidence, not a measured 3200-world runtime.
 Do not treat n=80 × 3200 as a production estimate.
+
+## Isolated verifier parallelism (operational, not scientific)
+
+Mint-time `authenticate-cached-records` and claim-time
+`FULL_3200_RECOMPUTATION` remain distinct trust passes. Both reuse
+`_evaluate_jobs_for_verification` → spawn `worker.evaluate_job_payload`.
+Spawn children inherit the parent's `sys.path`; the parent therefore puts
+the frozen worker repository root first before creating the Pool, so
+children cannot import a live checkout of the same module name.
+
+Worker count is operational:
+
+- `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_VERIFY_WORKERS`
+- fallback: `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_WORKERS`
+- explicit `workers=` argument on the parent authenticator
+- default: 1
+
+Changing worker count must not change identities, seeds, records, digests,
+or conclusions. Parent proofs still omit worker count. Parent additionally
+requires `proof["observed_world_count"] == len(payload["records"]) == planned
+world count`.
+
+### n=5000 verifier engine (**MEASURED**, not 3200 production)
+
+Shared authentication/historical recompute engine:
+`_evaluate_jobs_for_verification`. Host: 4 logical CPUs. Python 3.12.3.
+Fixture worlds: `NULL` n=5000. Production replicate counts. Not the 3200-world
+grid.
+
+| workers | worlds timed | wall s | s/world | speedup vs 1W | notes |
+|---|---|---|---|---|
+| 1 | 1 | 5.6371 | 5.6371 | 1.00 | parent CPU ≈ wall |
+| 2 | 2 | 6.0889 | 3.0444 | 1.85 | ~1.94 child CPUs / wall |
+| 4 | 4 | 6.0596 | 1.5149 | 3.72 | ~3.89 incremental child CPUs / wall |
+
+workers=1 vs workers=4 on the same 4-world n=5000 set: **exact** canonical
+JSON equality (identities, seeds, records, digest chain).
+
+AUTH and historical isolated children use this same engine. Isolated
+interpreter spawn/compare overhead is extra and small relative to n=5000
+world cost. These rows are **MEASURED**. They are not a 3200-world runtime.
+
+### Lifecycle wall-clock model (MAIN + mint AUTH + claim HIST)
+
+Three scientific passes over 3200 worlds. Worker count does not remove a
+pass. It only changes wall clock.
+
+Using the **MEASURED** n=5000 s/world rates:
+
+| workers | s/world | 3×3200 projected wall | class |
+|---|---|---|---|
+| 1 | 5.6371 | 15.03 h | MEASURED_RATE × 3200×3 |
+| 4 | 1.5149 | 4.04 h | MEASURED_RATE × 3200×3 |
+| 8 | not measured | this 4-CPU host cannot beat ~4.04 h; on ≥8 CPUs at the measured 93% 4-wide efficiency: ~2.02 h; conservative 70% of 8-wide: ~2.68 h | EXTRAPOLATED |
+| 16 | not measured | 16-core at 70% of linear vs 1W: ~1.34 h; at 93% efficiency: ~1.01 h | EXTRAPOLATED |
+
+Do not claim linear scaling beyond the 1/2/4-worker measurements. 8- and
+16-worker figures are host-capacity extrapolations, not measurements.

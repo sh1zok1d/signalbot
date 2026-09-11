@@ -1847,13 +1847,25 @@ to submitted and planned counts. No 3200-world production execution. No ARM
 consume/create. No RESULT / WORLD_RECORDS.
 
 - BLOCKER-1 remains closed: worker.py remains git-object pinned in the live
-  execution TCB (path/sha256/size). Spawn workers pin package provenance to
-  the frozen isolated root.
+  execution TCB (path/sha256/size). Spawn copies parent `sys.path` into
+  children before Pool initializer; the parent therefore inserts the frozen
+  worker repository root first so children cannot import a live checkout.
 - MAJOR-1 remains closed: durable partial evidence and exact resume unchanged.
 - BLOCKER-2 remains closed: checkpoint content is still untrusted; forgery
   still fails closed before mint.
+- Parent authenticators refuse `observed_world_count` mismatches (count-1,
+  count+1, zero, huge, string, bool, correct digests with wrong count).
+- n=5000 verifier engine **MEASURED** on this 4-CPU host: 5.6371 / 3.0444 /
+  1.5149 s/world at workers=1/2/4 (93% of 4-wide). AUTH and historical
+  isolated children share that engine. 8/16-worker lifecycle figures are
+  extrapolated; this host cannot beat the 4-worker wall clock.
 
 Next required step: FINAL_OPUS_REVIEW_THEN_PERFORMANCE_FREEZE.
+
+Targeted verifier-parallel tests: 18 passed. Harness unit files: 271
+passed. Research suite: 1586 passed (271 harness + 1315 other). Non-research
+suite: 5977 passed, 185 skipped. compileall + git diff --check: ok. Canonical
+3200-world production was not executed.
 
 - production_monte_carlo_arm_authorized (live HEAD): **false**
 - historical ARM unused: **true**
