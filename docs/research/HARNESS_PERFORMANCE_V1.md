@@ -1,6 +1,6 @@
 # HARNESS_PERFORMANCE_V1 — production-path performance repair
 
-**Status:** `PERFORMANCE_EXECUTION_FROZEN_UNARMED / NOT_A_PRODUCTION_RESULT / NOT_AN_ARM`
+**Status:** `PERFORMANCE_EXECUTION_FROZEN_UNARMED / NOT_A_PRODUCTION_RESULT / NOT_AN_ARM / FINAL_RUNTIME_FREEZE`
 
 **Unit ID:** `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1`
 
@@ -37,29 +37,29 @@ Required topology after this unit:
 
 ```
 REVIEWED IMPLEMENTATION
-    9c573df81dad55829f52cff0f94e8c5918c30fd9 /
-    b9d928687e5ea4e9773f07b0cb6f8e287b65562f
+    f47c5394d8cc0c3f6312cd4156f389ba7ee81dbd /
+    84b23e4c51a4f7ccf59bb36d5333ef7974ea7eab
         |
         v
-PERFORMANCE_EXECUTION_FREEZE  `ccaffe135c2b8a9a0a75af30c0712ba3063b82f6`
+PERFORMANCE_EXECUTION_FREEZE  (this docs/metadata-only final runtime freeze)
         |
         v
-NEW immediate-child ARM  (canonical ARM artifact; unexecuted)
+NEW immediate-child ARM  (not created)
         |
         v
-canonical production run  (must use the exact ARM commit object; not executed)
+canonical production run  (not executed)
 ```
 
 Canonical freeze artifact:
 [`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json`](HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json)
 
-Independent final review: `GO_FOR_PERFORMANCE_FREEZE`. BLOCKERS=0 MAJORS=0 MINORS=0.
+Independent final review: `GO_FOR_FINAL_RUNTIME_FREEZE`. BLOCKERS=0 MAJORS=0 MINORS=0.
 BLOCKER-1, MAJOR-1, and BLOCKER-2 remain CLOSED.
 
-Do not shortcut that topology. The unused ARM at `0abc5fe` authorizes the
-freeze-parent driver bytes, not this implementation. No migration of old
-partial evidence onto a different implementation/freeze is authorized.
-This freeze does not arm production.
+Do not shortcut that topology. Unused driver ARM `0abc5fe` and historical
+performance ARM `120ac45` do not authorize this repaired runtime. No
+migration of old partial evidence onto a different implementation/freeze is
+authorized. This freeze does not arm production.
 
 ## What changed
 

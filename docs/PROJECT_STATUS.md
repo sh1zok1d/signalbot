@@ -128,15 +128,13 @@ itself is immutable. Post-outcome status lives in
   `REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`.
   A performance-only descendant (`docs/research/HARNESS_PERFORMANCE_V1.md`)
   is `PERFORMANCE_EXECUTION_FROZEN_UNARMED` at reviewed implementation HEAD
-  `9c573df81dad55829f52cff0f94e8c5918c30fd9` / tree
-  `b9d928687e5ea4e9773f07b0cb6f8e287b65562f`. Canonical freeze:
+  `f47c5394d8cc0c3f6312cd4156f389ba7ee81dbd` / tree
+  `84b23e4c51a4f7ccf59bb36d5333ef7974ea7eab`. Canonical freeze:
   `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json`.
-  The ARM artifact at `120ac45` is the immediate child of that freeze.
-  Runtime ARM topology now keys the performance freeze path. ARM `120ac45`
-  does not authorize a descendant HEAD that changes `production.py`.
-  Unused driver ARM `0abc5fe` does not authorize this implementation.
-  This does not execute the 3200-world calibration and does not authorize
-  B2-06 science.
+  Independent review: `GO_FOR_FINAL_RUNTIME_FREEZE`. This freeze does not arm.
+  Historical ARM `120ac45` and unused driver ARM `0abc5fe` do not authorize
+  this runtime. This does not execute the 3200-world calibration and does
+  not authorize B2-06 science.
 
 Family F1 is `CLOSED_NO_PROMOTION`. 2025 validation and 2026 OOS remain
 untouched. No Batch02 formulation has a promoted candidate, so there is no

@@ -19,14 +19,18 @@ REPO = Path(__file__).resolve().parents[2]
 FREEZE_REL = (
     "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json"
 )
-REVIEWED_HEAD = "9c573df81dad55829f52cff0f94e8c5918c30fd9"
-REVIEWED_TREE = "b9d928687e5ea4e9773f07b0cb6f8e287b65562f"
+REVIEWED_HEAD = "f47c5394d8cc0c3f6312cd4156f389ba7ee81dbd"
+REVIEWED_TREE = "84b23e4c51a4f7ccf59bb36d5333ef7974ea7eab"
 OLD_ARM = "0abc5fe167e018ebe1f7efbb70694887ac095e17"
+HISTORICAL_PERFORMANCE_ARM = "120ac456df3a22884c48eed45852bdd001706f54"
 LIB_SHA256 = "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51"
 WORKER_SHA256 = "9aee03fdae012f9054c59adc4cea8072b88493521456fb6141ced926961c886e"
 WORKER_SIZE = 3994
+PRODUCTION_SHA256 = "9e784ecdcbd53ae4128d803d9325c8ff0f6db49ce70a0a63b13c4fc6a548a4ed"
+PRODUCTION_SIZE = 193104
 PREREG_JSON_SHA256 = "78fcddf03ce84a0369a955d5b571c2423129d12b22e35f77eab26d6ac5eff708"
 PREREG_MD_SHA256 = "a54c838d2b4903f039b4fd39d79198415ce095f5a9726fc51949cbb47153e5a3"
+AUTHORIZED_PLAN_SHA256 = "5adf682ee48a868acbe01d9e0b9e33133db26089119396b3539b4e9cb8af5bb6"
 PREREG_JSON_REL = "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.json"
 PREREG_MD_REL = "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md"
 TCB_PATHS = (
@@ -139,8 +143,10 @@ def validate_performance_execution_freeze(payload: object) -> None:
         raise FreezeContractError("opus_majors is not 0")
     if payload.get("opus_minors") != 0:
         raise FreezeContractError("opus_minors is not 0")
-    if payload.get("opus_closure") != "GO_FOR_PERFORMANCE_FREEZE":
+    if payload.get("opus_closure") != "GO_FOR_FINAL_RUNTIME_FREEZE":
         raise FreezeContractError("opus_closure mismatch")
+    if payload.get("authorized_plan_sha256") != AUTHORIZED_PLAN_SHA256:
+        raise FreezeContractError("authorized_plan_sha256 mismatch")
     findings = payload.get("closed_findings")
     if not isinstance(findings, dict):
         raise FreezeContractError("closed_findings missing")
@@ -160,6 +166,13 @@ def validate_performance_execution_freeze(payload: object) -> None:
         raise FreezeContractError("old_arm commit mismatch")
     if "DOES_NOT_AUTHORIZE_THIS_IMPLEMENTATION" not in str(old_arm.get("status") or ""):
         raise FreezeContractError("old_arm status does not refuse this implementation")
+    superseded = payload.get("superseded_performance_arm_120ac45")
+    if not isinstance(superseded, dict):
+        raise FreezeContractError("superseded performance ARM missing")
+    if superseded.get("head") != HISTORICAL_PERFORMANCE_ARM:
+        raise FreezeContractError("superseded performance ARM head mismatch")
+    if "DOES_NOT_AUTHORIZE_THIS_IMPLEMENTATION" not in str(superseded.get("status") or ""):
+        raise FreezeContractError("superseded performance ARM does not refuse this implementation")
     for key in FALSE_FLAGS:
         if payload.get(key) is not False:
             raise FreezeContractError(f"{key} must be false")
@@ -209,6 +222,9 @@ def validate_performance_execution_freeze(payload: object) -> None:
         raise FreezeContractError("worker git-object identity mismatch")
     if tcb[0]["sha256"] != LIB_SHA256:
         raise FreezeContractError("lib git-object identity mismatch")
+    production = tcb[3]
+    if production["sha256"] != PRODUCTION_SHA256 or production["size"] != PRODUCTION_SIZE:
+        raise FreezeContractError("production git-object identity mismatch")
     if _sha256(_blob(REVIEWED_HEAD, PREREG_JSON_REL)) != payload["prereg_json_sha256"]:
         raise FreezeContractError("prereg JSON does not match reviewed git object")
     if _sha256(_blob(REVIEWED_HEAD, PREREG_MD_REL)) != payload["prereg_md_sha256"]:
@@ -238,14 +254,12 @@ def test_reviewed_tcb_unchanged_on_live_head():
     )
     assert ancestor.returncode == 0
     assert _git("rev-parse", f"{REVIEWED_HEAD}^{{tree}}") == REVIEWED_TREE
-    freeze_head = "ccaffe135c2b8a9a0a75af30c0712ba3063b82f6"
-    arm_head = "120ac456df3a22884c48eed45852bdd001706f54"
     for rel in TCB_PATHS + (PREREG_JSON_REL, PREREG_MD_REL):
-        assert _blob(freeze_head, rel) == _blob(REVIEWED_HEAD, rel)
-        assert _blob(arm_head, rel) == _blob(REVIEWED_HEAD, rel)
-    if head in {REVIEWED_HEAD, freeze_head, arm_head}:
-        for rel in TCB_PATHS + (PREREG_JSON_REL, PREREG_MD_REL):
-            assert _blob(head, rel) == _blob(REVIEWED_HEAD, rel)
+        assert _blob(head, rel) == _blob(REVIEWED_HEAD, rel)
+    historical_production = TCB_PATHS[3]
+    assert _blob(HISTORICAL_PERFORMANCE_ARM, historical_production) != _blob(
+        REVIEWED_HEAD, historical_production
+    )
 
 
 def test_freeze_does_not_embed_own_commit_identity():
@@ -275,6 +289,7 @@ def test_freeze_does_not_embed_own_commit_identity():
             "path",
         ),
         (lambda p: p.__setitem__("prereg_json_sha256", "d" * 64), "prereg"),
+        (lambda p: p.__setitem__("authorized_plan_sha256", "e" * 64), "authorized_plan_sha256"),
         (lambda p: p.__setitem__("opus_closure", "NO"), "opus_closure"),
         (lambda p: p.__setitem__("opus_blockers", 1), "opus_blockers"),
         (lambda p: p.__setitem__("opus_majors", 1), "opus_majors"),
@@ -292,6 +307,7 @@ def test_freeze_does_not_embed_own_commit_identity():
         "wrong_size",
         "wrong_path",
         "wrong_prereg_digest",
+        "wrong_plan_digest",
         "wrong_verdict_closure",
         "wrong_blockers",
         "wrong_majors",
@@ -315,4 +331,8 @@ def test_old_arm_does_not_authorize_reviewed_performance_head():
     assert prod._arm_payload_authorizes_at_commit(REPO, REVIEWED_HEAD, arm) is False
     live = _git("rev-parse", "HEAD")
     assert prod._arm_payload_authorizes_at_commit(REPO, live, arm) is False
-    assert prod.production_monte_carlo_arm_authorized() is False
+    historical = json.loads(_blob(HISTORICAL_PERFORMANCE_ARM, prod.CANONICAL_ARM_PATH).decode("utf-8"))
+    assert prod._arm_payload_authorizes_at_commit(REPO, live, historical) is False
+    parent = None if live == REVIEWED_HEAD else _git("rev-parse", f"{live}^")
+    if live == REVIEWED_HEAD or parent == REVIEWED_HEAD:
+        assert prod.production_monte_carlo_arm_authorized() is False

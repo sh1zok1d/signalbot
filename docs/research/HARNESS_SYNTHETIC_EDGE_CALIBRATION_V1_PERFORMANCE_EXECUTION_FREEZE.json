@@ -2,6 +2,7 @@
   "B2_06_scientific_execution_authorized": false,
   "auth_and_claim_trust_roles_distinct": true,
   "authorization_consumed": false,
+  "authorized_plan_sha256": "5adf682ee48a868acbe01d9e0b9e33133db26089119396b3539b4e9cb8af5bb6",
   "canonical_path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json",
   "canonical_reorder_required": true,
   "checkpoint_is_untrusted_cache": true,
@@ -31,8 +32,8 @@
     },
     {
       "path": "scripts/research/harness_synthetic_edge_calibration_v1_production.py",
-      "sha256": "67773bf770cb84e317b6ea640c86c0863ba31c44e0d1dcdb2e47da66bceda4a5",
-      "size": 185685
+      "sha256": "9e784ecdcbd53ae4128d803d9325c8ff0f6db49ce70a0a63b13c4fc6a548a4ed",
+      "size": 193104
     },
     {
       "path": "scripts/research/harness_synthetic_edge_calibration_v1_worker.py",
@@ -83,7 +84,7 @@
   },
   "oos_2026_authorized": false,
   "opus_blockers": 0,
-  "opus_closure": "GO_FOR_PERFORMANCE_FREEZE",
+  "opus_closure": "GO_FOR_FINAL_RUNTIME_FREEZE",
   "opus_majors": 0,
   "opus_minors": 0,
   "other_hypothesis_authorized": false,
@@ -96,11 +97,15 @@
   "production_result_minted": false,
   "real_market_data_access_authorized": false,
   "result_created": false,
-  "reviewed_implementation_head": "9c573df81dad55829f52cff0f94e8c5918c30fd9",
-  "reviewed_implementation_tree": "b9d928687e5ea4e9773f07b0cb6f8e287b65562f",
+  "reviewed_implementation_head": "f47c5394d8cc0c3f6312cd4156f389ba7ee81dbd",
+  "reviewed_implementation_tree": "84b23e4c51a4f7ccf59bb36d5333ef7974ea7eab",
   "rng_invariant_under_worker_count": true,
   "schema_version": "1.0",
   "scientific_plan_unchanged": true,
+  "superseded_performance_arm_120ac45": {
+    "head": "120ac456df3a22884c48eed45852bdd001706f54",
+    "status": "SUPERSEDED / DOES_NOT_AUTHORIZE_THIS_IMPLEMENTATION"
+  },
   "unit_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1",
   "validation_2025_authorized": false,
   "verifier_paths_world_parallel": true,
