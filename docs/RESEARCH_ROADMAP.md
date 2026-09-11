@@ -145,41 +145,35 @@ See `docs/research/BATCH02_STATUS_LEDGER.md`.
 
 ### Mandatory pre-B2-06 methodology calibration
 
-Before any B2-06 scientific outcome is opened, run a separate methodology
-unit: `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1`.
+Before any B2-06 scientific outcome is opened, a separate methodology
+calibration must complete with a claimable RESULT. V1
+(`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1`) attempted that grid and is
+permanently `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`. The active
+methodology successor for identifiability is
+`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY`
+(`FROZEN_BEFORE_IMPLEMENTATION`; not yet implemented or armed).
 
-Its purpose is to measure whether the current Signalbot-style research
-process can detect small, noisy, sparse, clustered conditional incremental
-information without materially increasing false positives. It is not a market
-hypothesis, not B2-07, and synthetic results are never market evidence.
+The original V1 purpose remains: measure whether the current Signalbot-style
+research process can detect small, noisy, sparse, clustered conditional
+incremental information without materially increasing false positives. V2
+adds a frozen identifiability policy so a rank-deficient candidate does not
+void the world. It is not a market hypothesis, not B2-07, and synthetic
+results are never market evidence.
 
-Current design status: `FROZEN_BEFORE_IMPLEMENTATION`.
-Implementation is frozen before production execution.
-A tracked one-shot production authorization now exists and is frozen before
-production execution:
-`implementation_exists = true`,
-`implementation_frozen_before_production_execution = true`,
-`synthetic_execution_authorized = true`,
-`production_calibration_executed = false`,
-`authorization_consumed = false`,
-`production_monte_carlo_arm_authorized = false` on the unused #114
-authorization artifact.
-Production durability, aggregation, and result persistence are
-implementation-frozen. The canonical 3200-world driver is
-implementation-frozen and the live docs-only ARM authorizes exactly one
-synthetic production Monte Carlo
-(`driver_implementation_frozen = true`,
-`canonical_production_driver_implemented = true`,
-`production_monte_carlo_arm_authorized = true`,
-`production_calibration_executed = false`,
-`production_result_minted = false`,
-`world_records_persisted = false`). Canonical production execution requires a
-fresh process and a tracked run identity bound to the exact freeze parent.
-This ARM does not execute that run. Caller-supplied records cannot mint a
-RESULT. Local #114 reservation is superseded on this HEAD. Historical ARM
-HEAD `940d85bf58673396c6c0cc05ce2134a2e2e92809` is rejected and not merged.
-This does not mean the 3200-world calibration has been run, and it does not
-authorize B2-06, 2025, or 2026.
+V1 design/implementation/ARM remain historical frozen records. The
+canonical V1 production attempt ran at ARM HEAD
+`9ab32fc14c50df0c6f1c7ddfe2a8990d2d49c339`. Structural completion was
+3200/3200. RESULT was not minted. Mechanical status:
+`INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`. No V1 subset is claimable.
+Do not mint a V1 RESULT and do not resume V1 as V2.
+
+V2 rank-degeneracy policy prereg:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG.md`
+and `.json`. Status: `FROZEN_BEFORE_IMPLEMENTATION`.
+`implementation_exists = false`,
+`v2_production_arm_authorized = false`,
+`synthetic_execution_authorized = false`.
+This does not authorize B2-06, 2025, or 2026.
 
 Frozen sequence:
 
@@ -211,16 +205,18 @@ It also measures:
 - gate-level attrition and support-conditional utility;
 - SMALL-edge sample-size sensitivity;
 - explicit `VISIBILITY_FLOOR` versus `MODEL_FLOOR` attribution;
+- identifiability coverage versus conditional detection (V2 policy);
 - materiality-only suppression by comparing full strict pass with strict pass excluding materiality.
 
-Canonical frozen prereg:
+Canonical frozen V1 prereg (historical; attempt incomplete):
 `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md` and `.json`.
-Implementation freeze:
-`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_IMPLEMENTATION_REVIEW.md`.
-One-shot authorization artifact:
-`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_EXECUTION_AUTHORIZATION.json`.
-Until a later execution ceremony consumes that authorization,
-`production_calibration_executed = false`.
+Canonical V2 identifiability policy prereg (active methodology successor;
+not an ARM):
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG.md`
+and `.json`.
+Next required step for V2: independent adversarial review of that policy
+prereg, then fixture-only implementation. Do not implement in the prereg
+unit.
 
 This methodology gate does not weaken or bypass the current B2-06 state:
 `FUNDING_PUBLICATION_LATENCY_UNPROVEN`, `research_authorized = false`,
