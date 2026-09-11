@@ -1,6 +1,6 @@
 # HARNESS_PERFORMANCE_V1 — production-path performance repair
 
-**Status:** `PERFORMANCE_ONLY / NOT_A_PRODUCTION_RESULT / UNARMED / REPAIR_REQUIRED_CLOSED_PENDING_OPUS_REVIEW`
+**Status:** `PERFORMANCE_EXECUTION_FROZEN_UNARMED / NOT_A_PRODUCTION_RESULT / NOT_AN_ARM`
 
 **Unit ID:** `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1`
 
@@ -36,16 +36,30 @@ repairs, now implemented on this HEAD:
 Required topology after this unit:
 
 ```
-REPAIRED IMPLEMENTATION
-    -> independent OPUS review
-    -> performance/execution freeze
-    -> NEW immediate-child ARM
-    -> canonical production run
+REVIEWED IMPLEMENTATION
+    9c573df81dad55829f52cff0f94e8c5918c30fd9 /
+    b9d928687e5ea4e9773f07b0cb6f8e287b65562f
+        |
+        v
+PERFORMANCE_EXECUTION_FREEZE  (this docs/metadata-only freeze)
+        |
+        v
+NEW immediate-child ARM  (not created)
+        |
+        v
+canonical production run  (not executed)
 ```
 
+Canonical freeze artifact:
+[`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json`](HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json)
+
+Independent final review: `GO_FOR_PERFORMANCE_FREEZE`. BLOCKERS=0 MAJORS=0 MINORS=0.
+BLOCKER-1, MAJOR-1, and BLOCKER-2 remain CLOSED.
+
 Do not shortcut that topology. The unused ARM at `0abc5fe` authorizes the
-freeze-parent driver bytes, not this HEAD. No migration of old partial
-evidence onto a different implementation/freeze is authorized.
+freeze-parent driver bytes, not this implementation. No migration of old
+partial evidence onto a different implementation/freeze is authorized.
+This freeze does not arm production.
 
 ## What changed
 
