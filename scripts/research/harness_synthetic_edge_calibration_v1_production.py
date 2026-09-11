@@ -248,6 +248,9 @@ FROZEN_GRID_LITERALS = {
     "visibility_replicates": 500,
     "block_rows": 50,
 }
+FROZEN_PLANNED_JOBS_SHA256 = (
+    "5adf682ee48a868acbe01d9e0b9e33133db26089119396b3539b4e9cb8af5bb6"
+)
 ORACLE_NULL_FPR_MAX = 0.05
 BLIND_NULL_FPR_MAX = 0.10
 TRAP_STRICT_EX_MAX = 0.20
@@ -519,7 +522,10 @@ def planned_production_jobs() -> tuple[tuple[str, int, int], ...]:
         _refuse("production world plan is not 3200 identities")
     if jobs[0] != ("NULL", 5000, 0) or jobs[-1] != ("SMALL", 10000, 399):
         _refuse("production world plan identity order drifted")
-    return tuple(jobs)
+    planned = tuple(jobs)
+    if planned_jobs_sha256(planned) != FROZEN_PLANNED_JOBS_SHA256:
+        _refuse("production world plan digest drifted")
+    return planned
 
 
 def _git(repo_root: Path, *args: str) -> bytes:
@@ -733,8 +739,7 @@ def _arm_declared_contract_holds(payload: Mapping[str, Any]) -> bool:
         if payload.get("authorized_grid") != frozen_production_grid():
             return False
         listed_plan = str(payload.get("authorized_plan_sha256") or "").strip().lower()
-        actual_plan = planned_jobs_sha256(planned_production_jobs())
-        if listed_plan != actual_plan:
+        if listed_plan != FROZEN_PLANNED_JOBS_SHA256:
             return False
     except SyntheticExecutionNotAuthorized:
         return False
@@ -975,8 +980,6 @@ def _arm_payload_authorizes_at_commit(
             return False
     if not _reviewed_implementation_binds_parent(repo_root, payload, parent):
         return False
-    if _protected_production_artifacts_present(repo_root):
-        return False
     return True
 
 
@@ -996,15 +999,23 @@ def inspect_production_arm_state(repo_root: Path | None = None) -> dict[str, Any
         _refuse("ARM artifact is present but cannot be verified")
     if not isinstance(payload, dict):
         _refuse("ARM artifact is present but cannot be verified")
-    return {"present": True, "authorized": _arm_payload_authorizes(root, payload)}
+    return {"present": True, "authorized": _live_arm_run_permitted(root, payload)}
+
+
+def _live_arm_run_permitted(repo_root: Path, payload: Mapping[str, Any]) -> bool:
+    if not _arm_payload_authorizes(repo_root, payload):
+        return False
+    if _protected_production_artifacts_present(repo_root):
+        return False
+    return True
 
 
 def production_monte_carlo_arm_authorized(repo_root: Path | None = None) -> bool:
     """ARM in commit C_arm authorizes its parent execution commit C_exec.
 
     This is constructible: the ARM artifact is not a fixed point of its own
-    commit/tree. A descendant of C_arm is not armed. This PR does not add a
-    live ARM artifact.
+    commit/tree. A descendant of C_arm is not armed. Live authorization also
+    refuses if RESULT/WORLD_RECORDS/reservation/claim already exist.
     """
     root = repo_root or _repo_root()
     blob = _head_blob(root, CANONICAL_ARM_PATH)
@@ -1016,7 +1027,7 @@ def production_monte_carlo_arm_authorized(repo_root: Path | None = None) -> bool
         return False
     if not isinstance(payload, dict):
         return False
-    return _arm_payload_authorizes(root, payload)
+    return _live_arm_run_permitted(root, payload)
 
 
 def _executing_file(rel: str) -> Path:

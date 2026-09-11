@@ -242,11 +242,13 @@ def test_arm_artifact_is_canonical_json():
 
 
 def test_arm_is_immediate_child_of_freeze_when_committed():
+    arm_commit = "120ac456df3a22884c48eed45852bdd001706f54"
+    payload = json.loads(_blob(arm_commit, ARM_REL).decode("utf-8"))
+    validate_arm_commit_topology(arm_commit, payload)
     head = _git("rev-parse", "HEAD")
-    if head == FREEZE_HEAD:
-        pytest.skip("ARM commit not created yet")
-    payload = json.loads(_blob(head, ARM_REL).decode("utf-8"))
-    validate_arm_commit_topology(head, payload)
+    if head != arm_commit and head != FREEZE_HEAD:
+        with pytest.raises(ArmContractError, match="non-immediate child"):
+            validate_arm_commit_topology(head, payload)
 
 
 def test_non_immediate_child_and_wrong_commits_refused():

@@ -238,8 +238,14 @@ def test_reviewed_tcb_unchanged_on_live_head():
     )
     assert ancestor.returncode == 0
     assert _git("rev-parse", f"{REVIEWED_HEAD}^{{tree}}") == REVIEWED_TREE
+    freeze_head = "ccaffe135c2b8a9a0a75af30c0712ba3063b82f6"
+    arm_head = "120ac456df3a22884c48eed45852bdd001706f54"
     for rel in TCB_PATHS + (PREREG_JSON_REL, PREREG_MD_REL):
-        assert _blob(head, rel) == _blob(REVIEWED_HEAD, rel)
+        assert _blob(freeze_head, rel) == _blob(REVIEWED_HEAD, rel)
+        assert _blob(arm_head, rel) == _blob(REVIEWED_HEAD, rel)
+    if head in {REVIEWED_HEAD, freeze_head, arm_head}:
+        for rel in TCB_PATHS + (PREREG_JSON_REL, PREREG_MD_REL):
+            assert _blob(head, rel) == _blob(REVIEWED_HEAD, rel)
 
 
 def test_freeze_does_not_embed_own_commit_identity():

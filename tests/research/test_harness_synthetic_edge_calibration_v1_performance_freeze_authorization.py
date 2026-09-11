@@ -247,6 +247,19 @@ def test_non_immediate_child_arm_refused(tmp_path, monkeypatch):
     assert prod._arm_payload_authorizes_at_commit(repo, arm_commit, payload) is True
 
 
+def test_existing_result_refuses_live_authorization_not_topology(tmp_path, monkeypatch):
+    repo = _commit_production_tree(tmp_path)
+    _commit_arm_authorizing_parent(repo)
+    _bind_prod(monkeypatch, repo)
+    arm_commit = _git(repo, "rev-parse", "HEAD")
+    payload = json.loads((repo / ARM_REL).read_text(encoding="utf-8"))
+    assert prod.production_monte_carlo_arm_authorized(repo) is True
+    assert prod._arm_payload_authorizes_at_commit(repo, arm_commit, payload) is True
+    _write(repo / prod.CANONICAL_RESULT_PATH, "{}\n")
+    assert prod.production_monte_carlo_arm_authorized(repo) is False
+    assert prod._arm_payload_authorizes_at_commit(repo, arm_commit, payload) is True
+
+
 def test_authorization_tests_do_not_start_production():
     src = Path(__file__).read_text(encoding="utf-8")
     forbidden = (
