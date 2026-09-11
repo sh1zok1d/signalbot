@@ -164,10 +164,11 @@ The canonical V1 production attempt at ARM HEAD `9ab32fc` completed
 3200/3200 structural worlds and did not mint RESULT.
 `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`. V1 ARM was not consumed.
 No V1 subset is claimable. Do not mint a V1 RESULT from this HEAD.
-V2 rank-degeneracy policy is docs-only
+V2 rank-degeneracy policy has a fixture-only implementation
 (`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY`);
-no V2 runtime exists. `implementation_exists = false` for V2.
+`implementation_exists = true` for the fixture module only.
 `v2_production_arm_authorized = false`.
+No V2 production runtime, RESULT, or ARM exists.
 Live V1 ARM artifact still declares
 `production_monte_carlo_arm_authorized = true` and unconsumed; that does
 not make the incomplete V1 attempt claimable and does not authorize V2.

@@ -151,7 +151,7 @@ calibration must complete with a claimable RESULT. V1
 permanently `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`. The active
 methodology successor for identifiability is
 `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY`
-(`FROZEN_BEFORE_IMPLEMENTATION`; not yet implemented or armed).
+(`FIXTURE_IMPLEMENTATION_UNARMED`; fixture module exists; not armed).
 
 The original V1 purpose remains: measure whether the current Signalbot-style
 research process can detect small, noisy, sparse, clustered conditional
@@ -169,8 +169,10 @@ Do not mint a V1 RESULT and do not resume V1 as V2.
 
 V2 rank-degeneracy policy prereg:
 `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG.md`
-and `.json`. Status: `FROZEN_BEFORE_IMPLEMENTATION`.
-`implementation_exists = false`,
+and `.json`, plus Amendment_001. Status of the methodology contract:
+`FROZEN_BEFORE_IMPLEMENTATION`. Fixture implementation identity:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_IMPLEMENTATION.md`.
+`implementation_exists = true` (fixture only),
 `v2_production_arm_authorized = false`,
 `synthetic_execution_authorized = false`.
 This does not authorize B2-06, 2025, or 2026.
@@ -214,11 +216,10 @@ Canonical V2 identifiability policy prereg (active methodology successor;
 not an ARM):
 `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG.md`
 and `.json`.
-Next required step for V2: independent rereview of
-`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG_AMENDMENT_001`
-(`INDEPENDENT_REREVIEW_OF_V2_RANK_POLICY_AMENDMENT`). Do not implement
-runtime in the amendment unit. The original prereg at `ada237e` is not
-rewritten in place.
+Next required step for V2: `INDEPENDENT_IMPLEMENTATION_REVIEW` of the
+fixture-only rank-policy module. Do not run the 3200-world production
+grid and do not mint RESULT. The original prereg at `ada237e` and
+Amendment_001 at `d8f0a99` are not rewritten in place.
 
 This methodology gate does not weaken or bypass the current B2-06 state:
 `FUNDING_PUBLICATION_LATENCY_UNPROVEN`, `research_authorized = false`,

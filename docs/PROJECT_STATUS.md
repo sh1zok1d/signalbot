@@ -113,11 +113,12 @@ itself is immutable. Post-outcome status lives in
   not minted. V1 ARM authority was not consumed. The V1 attempt and the
   3087-world subset are permanently non-claimable. Do not resume V1 mint.
   Successor methodology unit
-  `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY` is
-  `FROZEN_BEFORE_IMPLEMENTATION`. It does not implement runtime, does
-  not arm V2 production, and does not authorize B2-06. Next required
-  step for that unit: independent rereview of amendment 001
-  (`INDEPENDENT_REREVIEW_OF_V2_RANK_POLICY_AMENDMENT`). Historical ARM `120ac45` and unused driver ARM `0abc5fe` do
+  `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY` now
+  has a fixture-only implementation
+  (`FIXTURE_IMPLEMENTATION_UNARMED`). It does not arm V2 production,
+  does not run the 3200-world grid, and does not authorize B2-06. Next
+  required step for that unit: `INDEPENDENT_IMPLEMENTATION_REVIEW`.
+  Historical ARM `120ac45` and unused driver ARM `0abc5fe` do
   not authorize V1 or V2 runtime. This does not authorize B2-06 science.
 
 Family F1 is `CLOSED_NO_PROMOTION`. 2025 validation and 2026 OOS remain
