@@ -159,11 +159,12 @@ records cannot mint a RESULT. Historical ARM HEAD
 calibration is not executed. `driver_implementation_frozen = true`.
 `implementation_frozen = true`.
 `production_calibration_executed = false`.
-Live canonical ARM artifact: `production_monte_carlo_arm_authorized = true`,
-unexecuted, unconsumed. Frozen `production.py` still verifies ARM topology
-against `CANONICAL_DRIVER_FREEZE_PATH`, so
-`production_monte_carlo_arm_authorized()` at a performance-ARM HEAD remains
-false until a later TCB-safe verifier bind. `production_result_minted = false`.
+Live canonical ARM artifact at `120ac45` declares
+`production_monte_carlo_arm_authorized = true`, unexecuted, unconsumed.
+Runtime ARM topology now keys
+`CANONICAL_PERFORMANCE_FREEZE_PATH`. ARM `120ac45` does not authorize a
+descendant HEAD that changes `production.py`. Old driver freeze and ARM
+`0abc5fe` cannot authorize this runtime. `production_result_minted = false`.
 This is not a market hypothesis and does not authorize B2-06, 2025, or 2026.
 
 ---

@@ -32,6 +32,7 @@ from tests.research.test_harness_synthetic_edge_calibration_v1_production import
     _canonical_arm_commit,
     _commit_arm_authorizing_parent,
     _commit_driver_freeze,
+    _commit_performance_freeze,
     _commit_production_tree,
     _driver_freeze_payload,
     _git,
@@ -117,7 +118,7 @@ def test_live_head_is_armed_unexecuted_and_binds_freeze_parent():
     freeze = json.loads(_git(REPO, "cat-file", "blob", f"{parent}:{prod.CANONICAL_DRIVER_FREEZE_PATH}"))
     tracked_arm = json.loads(_git(REPO, "cat-file", "blob", f"{historical_arm_commit}:{prod.CANONICAL_ARM_PATH}"))
     live_arm = json.loads(arm_path.read_text(encoding="utf-8"))
-    assert prod._arm_payload_authorizes_at_commit(REPO, historical_arm_commit, tracked_arm) is True
+    assert prod._arm_payload_authorizes_at_commit(REPO, historical_arm_commit, tracked_arm) is False
     assert prod._arm_payload_authorizes_at_commit(REPO, historical_arm_commit, live_arm) is False
     head_is_historical_arm = _head_is_canonical_arm(REPO)
     assert prod.production_monte_carlo_arm_authorized() is head_is_historical_arm
@@ -189,8 +190,8 @@ def test_live_head_is_armed_unexecuted_and_binds_freeze_parent():
 
 def test_modified_tracked_freeze_artifact_cannot_arm(tmp_path, monkeypatch):
     repo = _commit_production_tree(tmp_path)
-    _commit_driver_freeze(repo)
-    freeze_path = repo / prod.CANONICAL_DRIVER_FREEZE_PATH
+    _commit_performance_freeze(repo)
+    freeze_path = repo / prod.CANONICAL_PERFORMANCE_FREEZE_PATH
     freeze = json.loads(freeze_path.read_text(encoding="utf-8"))
     freeze["frozen_lib_sha256"] = "ab" * 32
     _write(freeze_path, json.dumps(freeze, indent=2, sort_keys=True) + "\n")
@@ -526,17 +527,24 @@ def test_fixture_driver_cannot_encode_production_grid_or_n(tmp_path, monkeypatch
 
 def test_future_arm_declared_fields_are_machine_checked(tmp_path, monkeypatch):
     repo = _commit_production_tree(tmp_path)
-    reviewed_head, reviewed_tree = _commit_driver_freeze(repo)
+    reviewed_head, reviewed_tree = _commit_performance_freeze(repo)
     parent = _git(repo, "rev-parse", "HEAD")
     tree = _git(repo, "rev-parse", "HEAD^{tree}")
+    freeze_blob = (repo / prod.CANONICAL_PERFORMANCE_FREEZE_PATH).read_bytes()
+    freeze = json.loads(freeze_blob.decode("utf-8"))
     base = {
         "production_monte_carlo_arm_authorized": True,
         "authorized_execution_commit": parent,
         "authorized_execution_tree": tree,
+        "freeze_artifact_path": prod.CANONICAL_PERFORMANCE_FREEZE_PATH,
+        "freeze_artifact_sha256": _sha(freeze_blob),
+        "freeze_artifact_size": len(freeze_blob),
         "execution_authority_sha256": _authority_sha_map(repo),
+        "execution_tcb": freeze["execution_tcb"],
         "reviewed_implementation_head": reviewed_head,
         "reviewed_implementation_tree": reviewed_tree,
         "authorized_grid": prod.frozen_production_grid(),
+        "authorized_plan_sha256": prod.planned_jobs_sha256(prod.planned_production_jobs()),
         **prod.ARM_REQUIRED_LITERALS,
     }
     tamper_cases = (

@@ -1922,3 +1922,19 @@ Canonical ARM:
 - status: `PRODUCTION_MONTE_CARLO_ARM_AUTHORIZED_UNEXECUTED`
 - next required step: `EXECUTE_CANONICAL_PRODUCTION_FROM_EXACT_ARM_COMMIT` (exact ARM commit object only; spawn currently refuses until verifier bind)
 
+## 2026-09-11 — performance-freeze ARM authorization wiring repair
+
+**Decision:** runtime ARM/freeze authority wiring in
+`harness_synthetic_edge_calibration_v1_production.py` now verifies the
+canonical performance/execution freeze path. Scientific library, plan, RNG,
+and numerical path are unchanged. No production execution. No new freeze or
+ARM. ARM `120ac45` remains evidence of the previous mismatch and does not
+authorize this repaired HEAD. Old ARM `0abc5fe` remains refused.
+
+- production_monte_carlo_arm_authorized (live repaired HEAD): **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- next required step: `NARROW_AUTHORIZATION_WIRING_REVIEW_THEN_NEW_FREEZE_AND_ARM`
+

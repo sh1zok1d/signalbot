@@ -272,25 +272,22 @@ def test_no_canonical_production_artifacts_or_consumption():
 
 def test_old_arm_does_not_authorize_freeze_or_live_head():
     old = json.loads(_blob(OLD_ARM, ARM_REL).decode("utf-8"))
-    assert prod._arm_payload_authorizes_at_commit(REPO, OLD_ARM, old) is True
+    assert prod._arm_payload_authorizes_at_commit(REPO, OLD_ARM, old) is False
     assert prod._arm_payload_authorizes_at_commit(REPO, FREEZE_HEAD, old) is False
     live = _git("rev-parse", "HEAD")
     if live != OLD_ARM:
         assert prod._arm_payload_authorizes_at_commit(REPO, live, old) is False
 
 
-def test_frozen_production_verifier_still_keys_driver_freeze_path():
-    """Frozen TCB still loads CANONICAL_DRIVER_FREEZE_PATH, not this freeze."""
+def test_repaired_runtime_keys_performance_freeze_path():
     src = Path(prod.__file__).read_text(encoding="utf-8")
-    assert "CANONICAL_DRIVER_FREEZE_PATH" in src
-    assert FREEZE_REL not in src
+    assert "CANONICAL_PERFORMANCE_FREEZE_PATH" in src
+    assert FREEZE_REL in src
+    live_arm = _load_arm()
+    assert prod._arm_payload_authorizes_at_commit(REPO, "120ac456df3a22884c48eed45852bdd001706f54", live_arm) is True
     live = _git("rev-parse", "HEAD")
-    if live == FREEZE_HEAD:
-        assert prod._arm_payload_authorizes_at_commit(REPO, live, _load_arm()) is False
-        return
-    parent = _git("rev-parse", "HEAD^")
-    if parent == FREEZE_HEAD:
-        assert prod._arm_payload_authorizes_at_commit(REPO, live, _load_arm()) is False
+    if live != "120ac456df3a22884c48eed45852bdd001706f54":
+        assert prod._arm_payload_authorizes_at_commit(REPO, live, live_arm) is False
         assert prod.production_monte_carlo_arm_authorized() is False
 
 
