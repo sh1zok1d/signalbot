@@ -117,7 +117,7 @@ itself is immutable. Post-outcome status lives in
   has a fixture-only implementation
   (`FIXTURE_IMPLEMENTATION_UNARMED`). It does not arm V2 production,
   does not run the 3200-world grid, and does not authorize B2-06. Next
-  required step for that unit: `INDEPENDENT_IMPLEMENTATION_REVIEW`.
+  required step for that unit: `INDEPENDENT_NARROW_REVIEW_OF_REPAIR`.
   Historical ARM `120ac45` and unused driver ARM `0abc5fe` do
   not authorize V1 or V2 runtime. This does not authorize B2-06 science.
 

@@ -327,11 +327,10 @@ def test_k_first_failing_era_deterministic():
     assert a.candidates["F08"].nonidentifiability.first_failing_era == (
         b.candidates["F08"].nonidentifiability.first_failing_era
     )
-    assert v2.choose_first_failing_era(["E5", "E2", "E4"]) == "E2"
-    assert v2.choose_first_failing_era([v2.NOT_ERA_SCOPED]) == v2.NOT_ERA_SCOPED
+    assert not hasattr(v2, "choose_first_failing_era")
 
 
-def test_l_reason_precedence_deterministic():
+def test_l_live_reason_precedence():
     assert v2.CLOSED_REASON_TAXONOMY == (
         v2.REASON_RANK_DEFICIENT,
         v2.REASON_NONFINITE_FIT_OR_PREDICTION,
@@ -341,15 +340,27 @@ def test_l_reason_precedence_deterministic():
         v2.REASON_NONFINITE_PLACEBO,
         v2.REASON_NONFINITE_VISIBILITY,
     )
-    assert v2.choose_reason_by_precedence(
-        [v2.REASON_NONFINITE_PLACEBO, v2.REASON_RANK_DEFICIENT, v2.REASON_DESIGN_SHAPE_INVALID]
-    ) == v2.REASON_DESIGN_SHAPE_INVALID
-    assert v2.choose_reason_by_precedence(
-        [v2.REASON_NONFINITE_BOOTSTRAP, v2.REASON_NONFINITE_AE_OR_RELATIVE_MAE]
-    ) == v2.REASON_NONFINITE_AE_OR_RELATIVE_MAE
+    assert not hasattr(v2, "choose_reason_by_precedence")
+    assert v2.REASON_PRECEDENCE[:4] == (
+        v2.REASON_DESIGN_SHAPE_INVALID,
+        v2.REASON_RANK_DEFICIENT,
+        v2.REASON_NONFINITE_FIT_OR_PREDICTION,
+        v2.REASON_NONFINITE_AE_OR_RELATIVE_MAE,
+    )
     empty_y = np.array([], dtype=np.float64)
-    insp = v2.inspect_design_window(empty_y, empty_y, empty_y, empty_y, scored_era="E2")
-    assert insp.reason == v2.REASON_DESIGN_SHAPE_INVALID
+    shape = v2.inspect_design_window(empty_y, empty_y, empty_y, empty_y, scored_era="E2")
+    assert shape.ok is False
+    assert shape.reason == v2.REASON_DESIGN_SHAPE_INVALID
+    n = 10
+    y = np.arange(n, dtype=np.float64)
+    x1 = np.array([-2.0, -1.5, -0.4, 0.3, 0.8, 1.2, 1.6, 2.0, -0.2, 0.5], dtype=np.float64)
+    x2 = np.array([-2.0, -1.4, -0.3, 0.2, 0.7, 1.1, -1.2, 1.8, 0.1, -0.6], dtype=np.float64)
+    zero_feat = np.zeros(n, dtype=np.float64)
+    rank = v2.inspect_design_window(y, x1, x2, zero_feat, scored_era="E2")
+    assert rank.ok is False
+    assert rank.reason == v2.REASON_RANK_DEFICIENT
+    assert rank.rank_diagnostics.design_rank < rank.rank_diagnostics.required_rank
+    assert rank.rank_diagnostics.design_ncols == rank.rank_diagnostics.required_rank == 4
     world = _rank_safe_world()
     rec = _eval(
         world,
@@ -530,6 +541,96 @@ def test_selective_cell_combine_forbidden():
         )
 
 
+def test_null_f03_taxonomy_matches_frozen_taxonomy_of():
+    world = _rank_safe_world(scenario="NULL")
+    rec = _eval(world, scenario="NULL", force_selected_candidate="F03")
+    assert rec.world_state == v2.WORLD_VALID
+    assert rec.selected_candidate == "F03"
+    assert rec.taxonomy == lib.taxonomy_of("F03") == "TRUE_DISCOVERY"
+    assert rec.taxonomy != "FALSE_DISCOVERY"
+    assert v2.any_edge_declared(rec.taxonomy) is True
+    assert v2.useful_discovery(rec.taxonomy) is True
+    assert lib.taxonomy_flags(rec.taxonomy)["ANY_EDGE_DECLARED"] is True
+
+
+def test_null_proxy_taxonomy_matches_frozen_taxonomy_of():
+    world = _rank_safe_world(scenario="NULL")
+    rec = _eval(world, scenario="NULL", force_selected_candidate="F01")
+    assert rec.taxonomy == lib.taxonomy_of("F01") == "PROXY_DISCOVERY"
+    assert rec.taxonomy != "FALSE_DISCOVERY"
+    assert v2.any_edge_declared(rec.taxonomy) is True
+    assert v2.useful_discovery(rec.taxonomy) is True
+
+
+def test_null_false_taxonomy_matches_frozen_taxonomy_of():
+    world = _rank_safe_world(scenario="NULL")
+    rec = _eval(world, scenario="NULL", force_selected_candidate="F04")
+    assert rec.taxonomy == lib.taxonomy_of("F04") == "FALSE_DISCOVERY"
+    assert v2.any_edge_declared(rec.taxonomy) is True
+    assert v2.useful_discovery(rec.taxonomy) is False
+
+
+def test_null_no_discovery_matches_frozen_taxonomy_of():
+    world = _rank_safe_world(scenario="NULL")
+    rec = _eval(world, scenario="NULL")
+    assert rec.L == 10
+    assert rec.selected_candidate is None
+    assert rec.taxonomy == lib.taxonomy_of("NO_CANDIDATE") == "NO_DISCOVERY"
+    assert v2.any_edge_declared(rec.taxonomy) is False
+    assert v2.useful_discovery(rec.taxonomy) is False
+
+
+def test_no_scenario_specific_taxonomy_override():
+    src = inspect.getsource(v2.evaluate_v2_world) + inspect.getsource(v2._evaluate_v2_world_inner)
+    assert 'if scenario == "NULL"' not in src
+    assert "taxonomy = taxonomy_of(selected)" in src
+
+
+def test_lookahead_cannot_become_candidate_reason(monkeypatch):
+    with pytest.raises(v2.ChronologyLookaheadError):
+        v2._map_incomplete_reason("lookahead: future era entered earlier fit")
+    with pytest.raises(v2.ChronologyLookaheadError):
+        v2._map_incomplete_reason("CHRONOLOGY_LOOKAHEAD on scored era")
+    for banned in v2.CLOSED_REASON_TAXONOMY:
+        with pytest.raises(v2.ChronologyLookaheadError):
+            mapped = v2._map_incomplete_reason("lookahead: future era entered earlier fit")
+            assert mapped != banned
+
+    def boom(*_args, **_kwargs):
+        raise lib.IncompleteWorld("lookahead: future era entered earlier fit")
+
+    monkeypatch.setattr(v2, "expanding_era_predictions", boom)
+    rec = _eval(_rank_safe_world())
+    assert rec.world_state == v2.WORLD_INVALID
+    assert rec.L is None
+    for cid in lib.FEATURE_IDS:
+        assert rec.candidates[cid].state == v2.CANDIDATE_UNDEFINED_ON_INVALID_WORLD
+        assert rec.candidates[cid].nonidentifiability is None
+        assert rec.candidates[cid].detected is None
+
+
+def test_no_nonfrozen_bootstrap_placebo_visibility_branch():
+    src = inspect.getsource(v2)
+    assert "np.random.default_rng" not in src
+    assert "prediction_bootstrap(" not in src
+    assert "placebo_q95(" not in src
+    assert "visibility_from_residuals(" not in src
+    assert "skip_bootstrap_placebo" not in inspect.signature(v2.evaluate_v2_world).parameters
+    assert "skip_bootstrap_placebo" not in src
+    assert "force_candidate_reason" in inspect.signature(v2.evaluate_v2_world).parameters
+    world = _rank_safe_world()
+    rec = _eval(world, force_candidate_reason={"F06": v2.REASON_NONFINITE_PLACEBO})
+    assert rec.candidates["F06"].state == v2.CANDIDATE_NOT_IDENTIFIABLE
+    assert rec.candidates["F06"].nonidentifiability.reason == v2.REASON_NONFINITE_PLACEBO
+    with pytest.raises(v2.ProductionGridForbidden):
+        v2.evaluate_v2_world(
+            world,
+            scenario="EASY",
+            n_rows=5000,
+            force_candidate_reason={"F06": v2.REASON_NONFINITE_BOOTSTRAP},
+        )
+
+
 def test_production_grid_forbidden():
     with pytest.raises(v2.ProductionGridForbidden):
         v2.run_frozen_production_grid()
@@ -620,6 +721,6 @@ def test_implementation_identity_is_fixture_only():
     assert ident["production_calibration_executed"] is False
     assert ident["result_mint_authorized"] is False
     assert ident["authority_consumed"] is False
-    assert ident["next_required_step"] == "INDEPENDENT_IMPLEMENTATION_REVIEW"
+    assert ident["next_required_step"] == "INDEPENDENT_NARROW_REVIEW_OF_REPAIR"
     assert ident["coverage_table_entries"] == 80
     assert ident["required_coverage_map_count"] == 33

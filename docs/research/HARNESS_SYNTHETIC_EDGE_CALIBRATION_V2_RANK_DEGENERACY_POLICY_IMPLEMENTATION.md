@@ -31,7 +31,7 @@ v2_production_arm_authorized = false
 production_calibration_executed = false
 result_mint_authorized = false
 authority_consumed = false
-next_required_step = INDEPENDENT_IMPLEMENTATION_REVIEW
+next_required_step = INDEPENDENT_NARROW_REVIEW_OF_REPAIR
 ```
 
 Code:
@@ -44,6 +44,12 @@ production N / 3200-world planned sizes fail closed. V1 TCB files are not
 modified. DGP, RNG, seeds, candidates, full-rank OLS, bootstrap, placebo,
 visibility, checkpoint trust, mint auth, and historical recompute science
 are imported unchanged from the V1 lib.
+
+BLIND taxonomy is exactly `taxonomy_of(selected)` with no scenario-specific
+reinterpretation. Chronology/lookahead is a world-level failure and cannot
+become a candidate reason. This fixture stage does not execute bootstrap,
+placebo, or visibility; reserved non-finite reasons are fixture-forced only
+via `force_candidate_reason`, which cannot enter production N.
 
 This stage does not mint RESULT or WORLD_RECORDS, does not consume V1 ARM
 authority, and does not authorize B2-06.

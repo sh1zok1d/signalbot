@@ -38,14 +38,11 @@ from scripts.research.harness_synthetic_edge_calibration_v1_lib import (
     era_slices,
     expanding_era_predictions,
     fit_lstsq,
-    placebo_q95,
     predict,
-    prediction_bootstrap,
     scored_mask,
     select_blind,
     simulate_dgp,
     taxonomy_of,
-    visibility_from_residuals,
     wilson_interval,
 )
 
@@ -159,6 +156,10 @@ class UndefinedCoverageDenominator(RuntimeError):
     """Identifiability coverage with undefined/non-positive denominator fails closed."""
 
 
+class ChronologyLookaheadError(RuntimeError):
+    """CHRONOLOGY_LOOKAHEAD is a world-level structural failure, not a candidate reason."""
+
+
 def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -237,36 +238,24 @@ def run_frozen_production_grid(*_args: Any, **_kwargs: Any) -> None:
     )
 
 
-def _reason_rank(reason: str) -> int:
-    try:
-        return REASON_PRECEDENCE.index(reason)
-    except ValueError:
-        return len(REASON_PRECEDENCE) + CLOSED_REASON_TAXONOMY.index(reason)
-
-
-def choose_reason_by_precedence(reasons: Sequence[str]) -> str:
-    if not reasons:
-        raise ValueError("no reasons to choose")
-    unknown = [r for r in reasons if r not in CLOSED_REASON_TAXONOMY]
-    if unknown:
-        raise ValueError(f"reason outside closed taxonomy: {unknown}")
-    return min(reasons, key=_reason_rank)
-
-
-def _era_index(era: str) -> int:
-    return ERA_NAMES.index(era)
-
-
-def choose_first_failing_era(eras: Sequence[str]) -> str:
-    scoped = [e for e in eras if e in SCORED_ERAS]
-    if not scoped:
-        return NOT_ERA_SCOPED
-    return min(scoped, key=_era_index)
-
-
 def _map_incomplete_reason(message: str) -> str:
+    """Map a V1 IncompleteWorld message to a closed candidate reason.
+
+    Live classification uses expanding-era early return (shape → rank →
+    finite fit/prediction → AE). This mapper is only for IncompleteWorld
+    strings from the unchanged V1 primitives.
+
+    Chronology/lookahead is a world-level failure and must not become a
+    candidate non-identifiability reason.
+    """
     text = str(message)
-    if "shape" in text.lower():
+    lowered = text.lower()
+    if "lookahead" in lowered or "chronology" in lowered:
+        raise ChronologyLookaheadError(
+            "chronology/lookahead is a world-level failure, not a candidate "
+            f"non-identifiability reason: {text}"
+        )
+    if "shape" in lowered:
         return REASON_DESIGN_SHAPE_INVALID
     if "not full rank" in text:
         return REASON_RANK_DEFICIENT
@@ -376,10 +365,8 @@ def inspect_expanding_fit(
         train = slice(0, slices[era_name].start)
         score = slices[era_name]
         if train.stop > score.start:
-            return FitInspection(
-                ok=False,
-                reason=REASON_DESIGN_SHAPE_INVALID,
-                first_failing_era=era_name,
+            raise ChronologyLookaheadError(
+                "lookahead: future era entered earlier fit"
             )
         feature_train = None if feat is None else feat[train]
         insp = inspect_design_window(y[train], x1[train], x2[train], feature_train, scored_era=era_name)
@@ -582,16 +569,73 @@ def evaluate_v2_world(
     zero_e1_features: frozenset[str] | set[str] = frozenset(),
     zero_e1_baseline: bool = False,
     force_candidate_reason: dict[str, str] | None = None,
-    skip_bootstrap_placebo: bool = True,
+    force_selected_candidate: str | None = None,
     feature_overrides: Mapping[str, np.ndarray] | None = None,
 ) -> WorldRecordV2:
     """Evaluate one world under frozen V2 rank-degeneracy semantics.
 
-    ``zero_e1_features`` / ``zero_e1_baseline`` are fixture-only injections
-    applied after the unchanged DGP. They do not change DGP, RNG, seeds, or
-    candidate definitions.
+    ``zero_e1_features`` / ``zero_e1_baseline`` / ``force_candidate_reason`` /
+    ``force_selected_candidate`` are fixture-only injections applied after the
+    unchanged DGP. They do not change DGP, RNG, seeds, or candidate
+    definitions, and ``assert_not_production_grid`` forbids production N.
+
+    This fixture stage does not execute bootstrap, placebo, or visibility.
+    ``NONFINITE_BOOTSTRAP``, ``NONFINITE_PLACEBO``, and
+    ``NONFINITE_VISIBILITY`` are recorded only through
+    ``force_candidate_reason``. There is no callable scientific path here
+    that runs those procedures with non-frozen RNG or replicate counts.
     """
     assert_not_production_grid(n_rows=n_rows)
+    try:
+        return _evaluate_v2_world_inner(
+            world,
+            scenario=scenario,
+            n_rows=n_rows,
+            world_index=world_index,
+            zero_e1_features=zero_e1_features,
+            zero_e1_baseline=zero_e1_baseline,
+            force_candidate_reason=force_candidate_reason,
+            force_selected_candidate=force_selected_candidate,
+            feature_overrides=feature_overrides,
+        )
+    except ChronologyLookaheadError:
+        world_id = str(
+            world.get("world_identity", f"{scenario}|{n_rows}|{world_index}")
+        )
+        return WorldRecordV2(
+            world_id=world_id,
+            scenario=scenario,
+            N=n_rows,
+            world_index=world_index,
+            world_state=WORLD_INVALID,
+            L=None,
+            selection_state=None,
+            selected_candidate=None,
+            taxonomy=None,
+            baseline_failure=FitInspection(ok=False, first_failing_era=NOT_ERA_SCOPED),
+            candidates={
+                cid: CandidateWorldRecord(
+                    candidate_id=cid,
+                    state=CANDIDATE_UNDEFINED_ON_INVALID_WORLD,
+                    detected=None,
+                )
+                for cid in FEATURE_IDS
+            },
+        )
+
+
+def _evaluate_v2_world_inner(
+    world: Mapping[str, Any],
+    *,
+    scenario: str,
+    n_rows: int,
+    world_index: int,
+    zero_e1_features: frozenset[str] | set[str],
+    zero_e1_baseline: bool,
+    force_candidate_reason: dict[str, str] | None,
+    force_selected_candidate: str | None,
+    feature_overrides: Mapping[str, np.ndarray] | None,
+) -> WorldRecordV2:
     if zero_e1_baseline:
         world = zero_e1_baseline_regressors(world)
     y = np.asarray(world["Y"], dtype=np.float64)
@@ -702,79 +746,15 @@ def evaluate_v2_world(
                 ),
             )
             continue
-        if not skip_bootstrap_placebo:
-            mask = scored_mask(n_rows)
-            ae_imp_full = np.full(n_rows, np.nan, dtype=np.float64)
-            ae_imp_full[mask] = (
-                np.abs(y[mask] - preds["BASE_PRED"][mask])
-                - np.abs(y[mask] - preds["CAND_PRED"][mask])
-            )
-            rng = np.random.default_rng(0)
-            boot = prediction_bootstrap(
-                ae_imp_full,
-                n_rows,
-                replicates=3,
-                block_rows=2,
-                rng=rng,
-            )
-            if boot.get("bootstrap_invalid") or boot.get("world_invalid"):
-                candidate_recs[cid] = CandidateWorldRecord(
-                    candidate_id=cid,
-                    state=CANDIDATE_NOT_IDENTIFIABLE,
-                    detected=None,
-                    nonidentifiability=NonidentifiabilityRecord(
-                        candidate_id=cid,
-                        scenario=scenario,
-                        N=n_rows,
-                        world_id=world_id,
-                        reason=REASON_NONFINITE_BOOTSTRAP,
-                        first_failing_era=NOT_ERA_SCOPED,
-                    ),
-                )
-                continue
-            plac = placebo_q95(
-                world=world,
-                feature=feats[cid],
-                n_rows=n_rows,
-                replicates=3,
-                rng=rng,
-            )
-            if plac.get("placebo_invalid") or plac.get("world_invalid"):
-                candidate_recs[cid] = CandidateWorldRecord(
-                    candidate_id=cid,
-                    state=CANDIDATE_NOT_IDENTIFIABLE,
-                    detected=None,
-                    nonidentifiability=NonidentifiabilityRecord(
-                        candidate_id=cid,
-                        scenario=scenario,
-                        N=n_rows,
-                        world_id=world_id,
-                        reason=REASON_NONFINITE_PLACEBO,
-                        first_failing_era=NOT_ERA_SCOPED,
-                    ),
-                )
-                continue
-            # Visibility-only invalidity does not recode identifiability.
-            visibility_from_residuals(
-                y - preds["BASE_PRED"],
-                np.asarray(world["S"], dtype=np.float64),
-                n_rows,
-                replicates=3,
-                block_rows=2,
-                rng=np.random.default_rng(1),
-            )
         metrics = ae_metrics(y, preds["BASE_PRED"], preds["CAND_PRED"], scored_mask(n_rows))
         era_imp = era_mean_improvements(y, preds["BASE_PRED"], preds["CAND_PRED"], n_rows)
         cand_pos = int(np.sum(feats[cid][scored_mask(n_rows)] == 1.0))
+        # Fixture stage: do not execute bootstrap/placebo/visibility.
         gates = compose_gates(
             mean_ae_improvement=metrics["MEAN_AE_IMPROVEMENT"],
             relative_mae_improvement=metrics["RELATIVE_MAE_IMPROVEMENT"],
-            bootstrap_positive=False if skip_bootstrap_placebo else bool(boot["bootstrap_positive"]),
-            placebo_separation=False if skip_bootstrap_placebo else (
-                (not plac["placebo_invalid"])
-                and np.isfinite(plac["placebo_q95"])
-                and metrics["MEAN_AE_IMPROVEMENT"] > plac["placebo_q95"]
-            ),
+            bootstrap_positive=False,
+            placebo_separation=False,
             era_improvements=era_imp,
             candidate_positive_count=cand_pos,
         )
@@ -812,14 +792,16 @@ def evaluate_v2_world(
         )
 
     selected = select_blind(identifiable_rows, gate="STRICT_PASS_EX_MATERIALITY")
+    if force_selected_candidate is not None:
+        identifiable_ids = {row["feature_id"] for row in identifiable_rows}
+        if force_selected_candidate not in identifiable_ids:
+            raise ValueError("force_selected_candidate must be CANDIDATE_IDENTIFIABLE")
+        selected = force_selected_candidate
+    taxonomy = taxonomy_of(selected)
     if selected == "NO_CANDIDATE":
-        taxonomy = "NO_DISCOVERY"
         selection_state = SELECTION_SELECTED
         selected_out: str | None = None
     else:
-        taxonomy = taxonomy_of(selected)
-        if scenario == "NULL" and taxonomy != "NO_DISCOVERY":
-            taxonomy = "FALSE_DISCOVERY"
         selection_state = SELECTION_SELECTED
         selected_out = selected
     return WorldRecordV2(
@@ -1186,7 +1168,7 @@ def implementation_identity() -> dict[str, Any]:
         "required_coverage_map_count": required_coverage_map_count(),
         "blind_not_claimed_invariant_to_L": True,
         "selective_cell_reexecution_and_combine_forbidden": True,
-        "next_required_step": "INDEPENDENT_IMPLEMENTATION_REVIEW",
+        "next_required_step": "INDEPENDENT_NARROW_REVIEW_OF_REPAIR",
     }
 
 

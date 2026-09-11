@@ -216,7 +216,7 @@ Canonical V2 identifiability policy prereg (active methodology successor;
 not an ARM):
 `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG.md`
 and `.json`.
-Next required step for V2: `INDEPENDENT_IMPLEMENTATION_REVIEW` of the
+Next required step for V2: `INDEPENDENT_NARROW_REVIEW_OF_REPAIR` of the
 fixture-only rank-policy module. Do not run the 3200-world production
 grid and do not mint RESULT. The original prereg at `ada237e` and
 Amendment_001 at `d8f0a99` are not rewritten in place.

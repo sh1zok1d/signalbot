@@ -2072,3 +2072,22 @@ rewritten. V1 TCB files are unchanged.
 - authority consumed: **false**
 - next required step: `INDEPENDENT_IMPLEMENTATION_REVIEW`
 
+## 2026-09-11 — V2 rank-degeneracy fixture implementation repair
+
+**Decision:** narrow repair of the fixture-only V2 rank-policy module
+after independent implementation review (`MAJORS=1`, `MINORS=3`).
+
+Closed:
+
+- MAJOR-1: removed unauthorized NULL taxonomy override; taxonomy is
+  exactly `taxonomy_of(selected)`
+- MINOR-A: lookahead/chronology cannot map to a candidate reason
+- MINOR-B: unused precedence helpers removed; live early-return is the
+  single authoritative path
+- MINOR-C: removed non-frozen bootstrap/placebo/visibility RNG branch
+
+No prereg change. No Amendment_002. No V1 TCB change. No production
+run, ARM, RESULT, or authority consumption.
+
+- next required step: `INDEPENDENT_NARROW_REVIEW_OF_REPAIR`
+
