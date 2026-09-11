@@ -127,9 +127,13 @@ itself is immutable. Post-outcome status lives in
   Historical ARM HEAD `940d85bf58673396c6c0cc05ce2134a2e2e92809` is
   `REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`.
   A performance-only descendant (`docs/research/HARNESS_PERFORMANCE_V1.md`)
-  may exist on a later HEAD. That descendant does not reuse ARM `0abc5fe`,
-  does not mint RESULT/WORLD_RECORDS, and is unarmed until a NEW ARM after
-  independent review. This does not execute the 3200-world calibration and
+  is `PERFORMANCE_EXECUTION_FROZEN_UNARMED` at reviewed implementation HEAD
+  `9c573df81dad55829f52cff0f94e8c5918c30fd9` / tree
+  `b9d928687e5ea4e9773f07b0cb6f8e287b65562f`. Canonical freeze:
+  `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json`.
+  That freeze does not reuse ARM `0abc5fe`, does not mint RESULT/WORLD_RECORDS,
+  and does not arm production. A NEW immediate-child ARM is required before
+  any canonical run. This does not execute the 3200-world calibration and
   does not authorize B2-06 science.
 
 Family F1 is `CLOSED_NO_PROMOTION`. 2025 validation and 2026 OOS remain

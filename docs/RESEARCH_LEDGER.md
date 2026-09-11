@@ -1875,3 +1875,27 @@ suite: 5977 passed, 185 skipped. compileall + git diff --check: ok. Canonical
 - authorization_consumed: **false**
 - status: `PERFORMANCE_ONLY_UNARMED_REPAIR_PENDING_OPUS_REVIEW`
 
+## 2026-09-11 — HARNESS_PERFORMANCE_V1 performance/execution freeze
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — PERFORMANCE_EXECUTION_FREEZE
+
+**Decision:** docs/metadata-only freeze of independently reviewed performance
+implementation HEAD `9c573df81dad55829f52cff0f94e8c5918c30fd9` / tree
+`b9d928687e5ea4e9773f07b0cb6f8e287b65562f`. OPUS `GO_FOR_PERFORMANCE_FREEZE`.
+BLOCKERS=0 MAJORS=0 MINORS=0. BLOCKER-1, MAJOR-1, BLOCKER-2 remain CLOSED.
+
+Canonical freeze artifact:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json`.
+
+This freeze does not change execution-TCB bytes, prereg, or scientific plan.
+It does not arm production, consume authority, execute the 3200-world grid,
+or mint RESULT/WORLD_RECORDS. Old ARM `0abc5fe` does not authorize this
+implementation. Next required step: CREATE_NEW_IMMEDIATE_CHILD_ARM.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PERFORMANCE_EXECUTION_FROZEN_UNARMED`
+

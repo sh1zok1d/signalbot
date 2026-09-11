@@ -1,0 +1,110 @@
+{
+  "B2_06_scientific_execution_authorized": false,
+  "auth_and_claim_trust_roles_distinct": true,
+  "authorization_consumed": false,
+  "canonical_path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json",
+  "canonical_reorder_required": true,
+  "checkpoint_is_untrusted_cache": true,
+  "claim_depends_on_prior_auth_proof": false,
+  "claim_time_historical_recomputation_independent": true,
+  "closed_findings": {
+    "BLOCKER-1": "CLOSED",
+    "BLOCKER-2": "CLOSED",
+    "MAJOR-1": "CLOSED"
+  },
+  "exact_output_invariant_under_worker_count": true,
+  "execution_tcb": [
+    {
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1_lib.py",
+      "sha256": "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51",
+      "size": 37636
+    },
+    {
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1.py",
+      "sha256": "0a5e577cc3797b018e9912865b7c3e385908764dc6cb36a6555626205855432a",
+      "size": 3484
+    },
+    {
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1_auth.py",
+      "sha256": "0e174ac6b73530ec28501b0c076e0cad7874ab31bb1ed6941e4b525d12e35507",
+      "size": 34982
+    },
+    {
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1_production.py",
+      "sha256": "67773bf770cb84e317b6ea640c86c0863ba31c44e0d1dcdb2e47da66bceda4a5",
+      "size": 185685
+    },
+    {
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1_worker.py",
+      "sha256": "9aee03fdae012f9054c59adc4cea8072b88493521456fb6141ced926961c886e",
+      "size": 3994
+    }
+  ],
+  "extrapolated_lifecycle_not_measured": {
+    "class": "EXTRAPOLATED",
+    "host_cannot_beat_4w_wall_clock": true,
+    "host_logical_cpus_measured_on": 4,
+    "note": "Do not claim linear scaling beyond measured 1/2/4 workers. This 4-CPU host cannot beat the 4-worker wall clock.",
+    "workers_16_conservative_70pct_hours": 1.34,
+    "workers_16_optimistic_93pct_hours": 1.01,
+    "workers_8_conservative_70pct_hours": 2.68,
+    "workers_8_optimistic_93pct_hours": 2.02
+  },
+  "freeze_changed_paths_allowed": [
+    "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json",
+    "docs/research/HARNESS_PERFORMANCE_V1.md",
+    "docs/DOCUMENTATION_INDEX.md",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/PROJECT_STATUS.md",
+    "docs/CODEBASE_STATUS.md",
+    "tests/research/test_harness_synthetic_edge_calibration_v1_performance_execution_freeze.py"
+  ],
+  "freeze_commit_head": "UNSET_UNTIL_THIS_COMMIT",
+  "freeze_commit_tree": "UNSET_UNTIL_THIS_COMMIT",
+  "freeze_docs_only": true,
+  "freeze_purpose": "PERFORMANCE_EXECUTION_FREEZE",
+  "freeze_status": "PERFORMANCE_EXECUTION_FROZEN_UNARMED",
+  "frozen_lib_sha256": "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51",
+  "isolated_frozen_git_authentication_required_before_mint": true,
+  "measured_performance": {
+    "class": "MEASURED",
+    "fixture": "NULL n=5000 production replicate counts 500/500/999",
+    "host_logical_cpus": 4,
+    "n5000_1w_seconds_per_world": 5.6371,
+    "n5000_2w_seconds_per_world": 3.0444,
+    "n5000_4w_seconds_per_world": 1.5149,
+    "n5000_4w_speedup_vs_1w": 3.72,
+    "not_3200_world_production": true
+  },
+  "not_a_result": true,
+  "old_arm": {
+    "commit": "0abc5fe167e018ebe1f7efbb70694887ac095e17",
+    "status": "SUPERSEDED / DOES_NOT_AUTHORIZE_THIS_IMPLEMENTATION"
+  },
+  "oos_2026_authorized": false,
+  "opus_blockers": 0,
+  "opus_closure": "GO_FOR_PERFORMANCE_FREEZE",
+  "opus_majors": 0,
+  "opus_minors": 0,
+  "other_hypothesis_authorized": false,
+  "prereg_json_sha256": "78fcddf03ce84a0369a955d5b571c2423129d12b22e35f77eab26d6ac5eff708",
+  "prereg_md_sha256": "a54c838d2b4903f039b4fd39d79198415ce095f5a9726fc51949cbb47153e5a3",
+  "production_armed": false,
+  "production_calibration_executed": false,
+  "production_executed": false,
+  "production_monte_carlo_arm_authorized": false,
+  "production_result_minted": false,
+  "real_market_data_access_authorized": false,
+  "result_created": false,
+  "reviewed_implementation_head": "9c573df81dad55829f52cff0f94e8c5918c30fd9",
+  "reviewed_implementation_tree": "b9d928687e5ea4e9773f07b0cb6f8e287b65562f",
+  "rng_invariant_under_worker_count": true,
+  "schema_version": "1.0",
+  "scientific_plan_unchanged": true,
+  "unit_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1",
+  "validation_2025_authorized": false,
+  "verifier_paths_world_parallel": true,
+  "worker_count_operational_not_scientific": true,
+  "world_records_created": false,
+  "world_records_persisted": false
+}

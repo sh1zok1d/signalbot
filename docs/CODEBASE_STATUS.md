@@ -150,7 +150,10 @@ The docs-only ARM at `0abc5fe` authorizes exactly one synthetic production Monte
 Carlo against the freeze parent and remains **unused**. A later
 performance-only descendant (`harness_synthetic_edge_calibration_v1_worker.py`,
 `harness_synthetic_edge_calibration_v1_performance.py`, production hot-path
-cache/parallelism) is unarmed and does not reuse that ARM. Caller-supplied
+cache/parallelism) is `PERFORMANCE_EXECUTION_FROZEN_UNARMED` and does not reuse
+that ARM. Canonical freeze:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json`.
+A NEW immediate-child ARM is required before any canonical run. Caller-supplied
 records cannot mint a RESULT. Historical ARM HEAD
 `940d85bf58673396c6c0cc05ce2134a2e2e92809` is
 `REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`. Production
