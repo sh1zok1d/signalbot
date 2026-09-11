@@ -332,6 +332,7 @@ def test_worker_import_isolation_source_and_pin():
     assert "multiprocessing_worker_init" in mp_src
     assert 'os.environ["PYTHONPATH"]' in mp_src
     assert "os.chdir(frozen_root)" in mp_src
+    assert "sys.path.insert(0, frozen_root)" in mp_src
     assert "_spawn_verifier_evaluate_job" not in src
     assert prod.FROZEN_WORKER_SHA256 == __import__("hashlib").sha256(worker_bytes).hexdigest()
     assert prod.FROZEN_WORKER_SIZE == len(worker_bytes)

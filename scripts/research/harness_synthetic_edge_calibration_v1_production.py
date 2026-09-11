@@ -1987,8 +1987,15 @@ def _evaluate_jobs_multiprocess(
     frozen_root = str(Path(worker_path).resolve().parents[2])
     old_cwd = os.getcwd()
     old_pp = os.environ.get("PYTHONPATH")
+    old_sys_path = list(sys.path)
     completed: list[Mapping[str, Any]] = []
     try:
+        # spawn copies the parent's sys.path into children before Pool
+        # initializer runs. Frozen root must be first in the parent so
+        # children import the pinned worker bytes, not a live checkout.
+        while frozen_root in sys.path:
+            sys.path.remove(frozen_root)
+        sys.path.insert(0, frozen_root)
         os.chdir(frozen_root)
         os.environ["PYTHONPATH"] = (
             frozen_root if not old_pp else frozen_root + os.pathsep + old_pp
@@ -2008,6 +2015,7 @@ def _evaluate_jobs_multiprocess(
     except Exception as exc:
         _refuse(f"worker execution failed closed: {type(exc).__name__}: {exc}")
     finally:
+        sys.path[:] = old_sys_path
         os.chdir(old_cwd)
         if old_pp is None:
             os.environ.pop("PYTHONPATH", None)
