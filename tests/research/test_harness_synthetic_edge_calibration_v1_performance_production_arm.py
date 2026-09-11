@@ -22,18 +22,19 @@ ARM_REL = "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_ARM.js
 FREEZE_REL = (
     "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json"
 )
-REVIEWED_HEAD = "9c573df81dad55829f52cff0f94e8c5918c30fd9"
-REVIEWED_TREE = "b9d928687e5ea4e9773f07b0cb6f8e287b65562f"
-FREEZE_HEAD = "ccaffe135c2b8a9a0a75af30c0712ba3063b82f6"
-FREEZE_TREE = "ea012c70f83346abe6064b33e5f29987278c268e"
-FREEZE_SHA256 = "2df563ad097cbaafcf4707146166ee6acf33776acc5e60c0e5c15df3428b6c54"
-FREEZE_SIZE = 4552
+REVIEWED_HEAD = "f47c5394d8cc0c3f6312cd4156f389ba7ee81dbd"
+REVIEWED_TREE = "84b23e4c51a4f7ccf59bb36d5333ef7974ea7eab"
+FREEZE_HEAD = "1499bc5f5e731f226650abd5051447fc846f722b"
+FREEZE_TREE = "1a652db9a1549185da448553e8c57c613808d693"
+FREEZE_SHA256 = "2a0daa843e39ac04831e4bf31d85b1b01c3a9d347127368cef60bbfb8bf05d9d"
+FREEZE_SIZE = 4821
 OLD_ARM = "0abc5fe167e018ebe1f7efbb70694887ac095e17"
+HISTORICAL_PERFORMANCE_ARM = "120ac456df3a22884c48eed45852bdd001706f54"
 PLAN_SHA256 = "5adf682ee48a868acbe01d9e0b9e33133db26089119396b3539b4e9cb8af5bb6"
 LIB_SHA256 = "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51"
 RUNNER_SHA256 = "0a5e577cc3797b018e9912865b7c3e385908764dc6cb36a6555626205855432a"
 AUTH_SHA256 = "0e174ac6b73530ec28501b0c076e0cad7874ab31bb1ed6941e4b525d12e35507"
-PRODUCTION_SHA256 = "67773bf770cb84e317b6ea640c86c0863ba31c44e0d1dcdb2e47da66bceda4a5"
+PRODUCTION_SHA256 = "9e784ecdcbd53ae4128d803d9325c8ff0f6db49ce70a0a63b13c4fc6a548a4ed"
 WORKER_SHA256 = "9aee03fdae012f9054c59adc4cea8072b88493521456fb6141ced926961c886e"
 WORKER_SIZE = 3994
 PREREG_JSON_SHA256 = "78fcddf03ce84a0369a955d5b571c2423129d12b22e35f77eab26d6ac5eff708"
@@ -211,6 +212,11 @@ def validate_performance_production_arm(payload: object) -> None:
         raise ArmContractError("superseded/old ARM missing")
     if "DOES_NOT_AUTHORIZE_THIS_IMPLEMENTATION" not in str(old.get("status") or ""):
         raise ArmContractError("superseded/old ARM")
+    historical = payload.get("superseded_performance_arm_120ac45")
+    if not isinstance(historical, dict) or historical.get("head") != HISTORICAL_PERFORMANCE_ARM:
+        raise ArmContractError("superseded/old ARM missing")
+    if "DOES_NOT_AUTHORIZE_THIS_IMPLEMENTATION" not in str(historical.get("status") or ""):
+        raise ArmContractError("superseded/old ARM")
 
 
 def validate_arm_commit_topology(commit: str, payload: object) -> None:
@@ -242,13 +248,11 @@ def test_arm_artifact_is_canonical_json():
 
 
 def test_arm_is_immediate_child_of_freeze_when_committed():
-    arm_commit = "120ac456df3a22884c48eed45852bdd001706f54"
-    payload = json.loads(_blob(arm_commit, ARM_REL).decode("utf-8"))
-    validate_arm_commit_topology(arm_commit, payload)
     head = _git("rev-parse", "HEAD")
-    if head != arm_commit and head != FREEZE_HEAD:
-        with pytest.raises(ArmContractError, match="non-immediate child"):
-            validate_arm_commit_topology(head, payload)
+    payload = _load_arm()
+    validate_arm_commit_topology(head, payload)
+    assert _git("rev-parse", f"{head}^") == FREEZE_HEAD
+    assert _git("rev-list", "--count", f"{FREEZE_HEAD}..{head}") == "1"
 
 
 def test_non_immediate_child_and_wrong_commits_refused():
@@ -259,6 +263,8 @@ def test_non_immediate_child_and_wrong_commits_refused():
         validate_arm_commit_topology(OLD_ARM, arm)
     with pytest.raises(ArmContractError, match="non-immediate child"):
         validate_arm_commit_topology(REVIEWED_HEAD, arm)
+    with pytest.raises(ArmContractError, match="non-immediate child"):
+        validate_arm_commit_topology(HISTORICAL_PERFORMANCE_ARM, arm)
 
 
 def test_no_canonical_production_artifacts_or_consumption():
@@ -279,6 +285,8 @@ def test_old_arm_does_not_authorize_freeze_or_live_head():
     live = _git("rev-parse", "HEAD")
     if live != OLD_ARM:
         assert prod._arm_payload_authorizes_at_commit(REPO, live, old) is False
+    historical = json.loads(_blob(HISTORICAL_PERFORMANCE_ARM, ARM_REL).decode("utf-8"))
+    assert prod._arm_payload_authorizes_at_commit(REPO, live, historical) is False
 
 
 def test_repaired_runtime_keys_performance_freeze_path():
@@ -286,11 +294,13 @@ def test_repaired_runtime_keys_performance_freeze_path():
     assert "CANONICAL_PERFORMANCE_FREEZE_PATH" in src
     assert FREEZE_REL in src
     live_arm = _load_arm()
-    assert prod._arm_payload_authorizes_at_commit(REPO, "120ac456df3a22884c48eed45852bdd001706f54", live_arm) is True
     live = _git("rev-parse", "HEAD")
-    if live != "120ac456df3a22884c48eed45852bdd001706f54":
-        assert prod._arm_payload_authorizes_at_commit(REPO, live, live_arm) is False
-        assert prod.production_monte_carlo_arm_authorized() is False
+    assert prod._arm_payload_authorizes_at_commit(REPO, live, live_arm) is True
+    assert prod.production_monte_carlo_arm_authorized() is True
+    historical = json.loads(_blob(HISTORICAL_PERFORMANCE_ARM, ARM_REL).decode("utf-8"))
+    assert prod._arm_payload_authorizes_at_commit(REPO, HISTORICAL_PERFORMANCE_ARM, historical) is True
+    assert prod._arm_payload_authorizes_at_commit(REPO, live, historical) is False
+    assert prod._arm_payload_authorizes_at_commit(REPO, HISTORICAL_PERFORMANCE_ARM, live_arm) is False
 
 
 @pytest.mark.parametrize(

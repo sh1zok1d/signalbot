@@ -127,14 +127,14 @@ itself is immutable. Post-outcome status lives in
   Historical ARM HEAD `940d85bf58673396c6c0cc05ce2134a2e2e92809` is
   `REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`.
   A performance-only descendant (`docs/research/HARNESS_PERFORMANCE_V1.md`)
-  is `PERFORMANCE_EXECUTION_FROZEN_UNARMED` at reviewed implementation HEAD
-  `9c573df81dad55829f52cff0f94e8c5918c30fd9` / tree
-  `b9d928687e5ea4e9773f07b0cb6f8e287b65562f`. Canonical freeze:
-  `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json`.
-  The ARM artifact at `120ac45` is the immediate child of that freeze.
-  Runtime ARM topology now keys the performance freeze path. ARM `120ac45`
-  does not authorize a descendant HEAD that changes `production.py`.
-  Unused driver ARM `0abc5fe` does not authorize this implementation.
+  is frozen at reviewed implementation HEAD
+  `f47c5394d8cc0c3f6312cd4156f389ba7ee81dbd` / tree
+  `84b23e4c51a4f7ccf59bb36d5333ef7974ea7eab`. Canonical freeze:
+  `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json`
+  at `1499bc5f5e731f226650abd5051447fc846f722b`. Independent review:
+  `GO_FOR_FINAL_RUNTIME_FREEZE`. The live ARM is the immediate child of that
+  freeze and authorizes exactly one synthetic 3200-world run. Historical ARM
+  `120ac45` and unused driver ARM `0abc5fe` do not authorize this runtime.
   This does not execute the 3200-world calibration and does not authorize
   B2-06 science.
 

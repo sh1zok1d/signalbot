@@ -1938,3 +1938,52 @@ authorize this repaired HEAD. Old ARM `0abc5fe` remains refused.
 - authorization_consumed: **false**
 - next required step: `NARROW_AUTHORIZATION_WIRING_REVIEW_THEN_NEW_FREEZE_AND_ARM`
 
+## 2026-09-11 — HARNESS_PERFORMANCE_V1 final runtime freeze
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — FINAL_RUNTIME_FREEZE
+
+**Decision:** docs/metadata-only freeze of independently reviewed repaired
+runtime HEAD `f47c5394d8cc0c3f6312cd4156f389ba7ee81dbd` / tree
+`84b23e4c51a4f7ccf59bb36d5333ef7974ea7eab`. OPUS `GO_FOR_FINAL_RUNTIME_FREEZE`.
+BLOCKERS=0 MAJORS=0 MINORS=0. BLOCKER-1, MAJOR-1, BLOCKER-2 remain CLOSED.
+
+Canonical freeze artifact:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json`.
+
+This freeze does not change execution-TCB bytes, prereg, or scientific plan.
+It does not arm production, consume authority, execute the 3200-world grid,
+or mint RESULT/WORLD_RECORDS. Unused driver ARM `0abc5fe` and historical
+performance ARM `120ac45` do not authorize this implementation. Next required
+step: CREATE_NEW_IMMEDIATE_CHILD_ARM.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PERFORMANCE_EXECUTION_FROZEN_UNARMED`
+
+## 2026-09-11 — HARNESS_PERFORMANCE_V1 final production ARM
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — PRODUCTION_MONTE_CARLO_ARM
+
+**Decision:** docs/authority-artifact ARM immediate child of final runtime
+freeze `1499bc5f5e731f226650abd5051447fc846f722b`. Authorizes one synthetic
+3200-world production execution against reviewed implementation
+`f47c5394d8cc0c3f6312cd4156f389ba7ee81dbd`. Worker count is operational.
+Does not execute production, consume authority, or mint RESULT/WORLD_RECORDS.
+Unused driver ARM `0abc5fe` and historical performance ARM `120ac45` do not
+authorize this implementation or freeze.
+
+Canonical ARM:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_ARM.json`.
+
+- production_monte_carlo_arm_authorized (ARM artifact): **true**
+- live `production_monte_carlo_arm_authorized()` at the exact ARM commit: **true**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_MONTE_CARLO_ARM_AUTHORIZED_UNEXECUTED`
+- next required step: `EXECUTE_CANONICAL_3200_WORLD_RUN_FROM_EXACT_FINAL_ARM_COMMIT_WITH_4_WORKERS`
+

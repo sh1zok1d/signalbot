@@ -147,24 +147,24 @@ synthetic calibration instrument, the unused #114 one-shot authorization
 bytes, the frozen unarmed production durability/aggregation layer, and the
 canonical 3200-world production driver. The driver is implementation-frozen.
 The unused driver ARM at `0abc5fe` authorizes the earlier driver freeze parent
-and does **not** authorize the performance implementation. The live canonical
-ARM is the immediate child of
-`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json`.
-It authorizes one synthetic production Monte Carlo against that freeze parent.
-Canonical production must use the exact ARM commit object. Worker count is
-operational, not scientific. Caller-supplied
+and does **not** authorize the performance implementation. Canonical freeze
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json`
+binds reviewed implementation HEAD `f47c539` / tree `84b23e4` with the
+repaired production verifier. The live canonical ARM is the immediate child
+of that freeze. It authorizes one synthetic production Monte Carlo against
+that freeze parent. Canonical production must use the exact ARM commit object.
+Historical ARM `120ac45` and unused driver ARM `0abc5fe` do not authorize this
+runtime. Worker count is operational, not scientific. Caller-supplied
 records cannot mint a RESULT. Historical ARM HEAD
 `940d85bf58673396c6c0cc05ce2134a2e2e92809` is
 `REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`. Production
 calibration is not executed. `driver_implementation_frozen = true`.
 `implementation_frozen = true`.
 `production_calibration_executed = false`.
-Live canonical ARM artifact at `120ac45` declares
+Live canonical ARM artifact declares
 `production_monte_carlo_arm_authorized = true`, unexecuted, unconsumed.
-Runtime ARM topology now keys
-`CANONICAL_PERFORMANCE_FREEZE_PATH`. ARM `120ac45` does not authorize a
-descendant HEAD that changes `production.py`. Old driver freeze and ARM
-`0abc5fe` cannot authorize this runtime. `production_result_minted = false`.
+Runtime ARM topology keys `CANONICAL_PERFORMANCE_FREEZE_PATH`.
+`production_result_minted = false`.
 This is not a market hypothesis and does not authorize B2-06, 2025, or 2026.
 
 ---

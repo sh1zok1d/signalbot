@@ -27,6 +27,7 @@ from tests.research.test_harness_synthetic_edge_calibration_v1_production import
 
 PERFORMANCE_ARM = "120ac456df3a22884c48eed45852bdd001706f54"
 PERFORMANCE_FREEZE = "ccaffe135c2b8a9a0a75af30c0712ba3063b82f6"
+FINAL_FREEZE = "1499bc5f5e731f226650abd5051447fc846f722b"
 OLD_ARM = "0abc5fe167e018ebe1f7efbb70694887ac095e17"
 FREEZE_REL = prod.CANONICAL_PERFORMANCE_FREEZE_PATH
 ARM_REL = prod.CANONICAL_ARM_PATH
@@ -37,8 +38,12 @@ def _blob(commit: str, rel: str) -> bytes:
     return subprocess.check_output(["git", "-C", str(REPO), "cat-file", "blob", f"{commit}:{rel}"])
 
 
-def _live_arm() -> dict:
+def _historical_performance_arm() -> dict:
     return json.loads(_blob(PERFORMANCE_ARM, ARM_REL).decode("utf-8"))
+
+
+def _live_arm() -> dict:
+    return json.loads((REPO / ARM_REL).read_text(encoding="utf-8"))
 
 
 def _old_arm() -> dict:
@@ -73,14 +78,18 @@ def test_old_arm_refused_at_live_and_performance_heads():
 
 
 def test_canonical_performance_freeze_topology_accepted_without_execution():
-    arm = _live_arm()
-    assert arm["freeze_artifact_path"] == FREEZE_REL
-    assert arm["authorized_plan_sha256"] == PLAN_SHA256
-    assert prod._arm_payload_authorizes_at_commit(REPO, PERFORMANCE_ARM, arm) is True
+    historical = _historical_performance_arm()
+    assert historical["freeze_artifact_path"] == FREEZE_REL
+    assert historical["authorized_plan_sha256"] == PLAN_SHA256
+    assert prod._arm_payload_authorizes_at_commit(REPO, PERFORMANCE_ARM, historical) is True
+    live_arm = _live_arm()
     live = subprocess.check_output(["git", "-C", str(REPO), "rev-parse", "HEAD"], text=True).strip()
-    if live != PERFORMANCE_ARM:
-        assert prod._arm_payload_authorizes_at_commit(REPO, live, arm) is False
-        assert prod.production_monte_carlo_arm_authorized() is False
+    assert live_arm["freeze_parent_head"] == FINAL_FREEZE
+    assert live_arm["authorized_plan_sha256"] == PLAN_SHA256
+    assert prod._arm_payload_authorizes_at_commit(REPO, live, live_arm) is True
+    assert prod.production_monte_carlo_arm_authorized() is True
+    assert prod._arm_payload_authorizes_at_commit(REPO, live, historical) is False
+    assert prod._arm_payload_authorizes_at_commit(REPO, PERFORMANCE_ARM, live_arm) is False
     assert (REPO / prod.CANONICAL_RESULT_PATH).exists() is False
     assert (REPO / prod.CANONICAL_WORLD_RECORDS_PATH).exists() is False
 
