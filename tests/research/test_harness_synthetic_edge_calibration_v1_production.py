@@ -269,6 +269,14 @@ def _authority_sha_map(repo: Path) -> dict[str, str]:
     return mapping
 
 
+def _execution_tcb(repo: Path) -> list[dict]:
+    items = []
+    for rel in prod.EXECUTION_AUTHORITY_PATHS:
+        data = (repo / rel).read_bytes()
+        items.append({"path": rel, "sha256": _sha(data), "size": len(data)})
+    return items
+
+
 def _driver_freeze_payload(repo: Path, reviewed_head: str, reviewed_tree: str) -> dict:
     return {
         "schema_version": "1.0",
@@ -281,6 +289,23 @@ def _driver_freeze_payload(repo: Path, reviewed_head: str, reviewed_tree: str) -
         "prereg_json_sha256": FROZEN_PREREG_JSON_SHA256,
         "prereg_md_sha256": FROZEN_PREREG_MD_SHA256,
         **prod.DRIVER_FREEZE_REQUIRED_LITERALS,
+    }
+
+
+def _performance_freeze_payload(repo: Path, reviewed_head: str, reviewed_tree: str) -> dict:
+    return {
+        "schema_version": "1.0",
+        "unit_id": prod.UNIT_ID,
+        "freeze_status": "FIXTURE_PERFORMANCE_EXECUTION_FROZEN_UNARMED",
+        "freeze_purpose": "PERFORMANCE_EXECUTION_FREEZE",
+        "canonical_path": prod.CANONICAL_PERFORMANCE_FREEZE_PATH,
+        "reviewed_implementation_head": reviewed_head,
+        "reviewed_implementation_tree": reviewed_tree,
+        "frozen_lib_sha256": FROZEN_LIB_SHA256,
+        "prereg_json_sha256": FROZEN_PREREG_JSON_SHA256,
+        "prereg_md_sha256": FROZEN_PREREG_MD_SHA256,
+        "execution_tcb": _execution_tcb(repo),
+        **prod.PERFORMANCE_FREEZE_REQUIRED_LITERALS,
     }
 
 
@@ -297,21 +322,43 @@ def _commit_driver_freeze(repo: Path) -> tuple[str, str]:
     return reviewed_head, reviewed_tree
 
 
+def _commit_performance_freeze(repo: Path) -> tuple[str, str]:
+    reviewed_head = _git(repo, "rev-parse", "HEAD")
+    reviewed_tree = _git(repo, "rev-parse", "HEAD^{tree}")
+    payload = _performance_freeze_payload(repo, reviewed_head, reviewed_tree)
+    _write(
+        repo / prod.CANONICAL_PERFORMANCE_FREEZE_PATH,
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+    )
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "docs-only performance freeze")
+    return reviewed_head, reviewed_tree
+
+
 def _commit_arm_authorizing_parent(repo: Path) -> str:
-    tracked_freeze = _git(repo, "ls-files", prod.CANONICAL_DRIVER_FREEZE_PATH)
+    tracked_freeze = _git(repo, "ls-files", prod.CANONICAL_PERFORMANCE_FREEZE_PATH)
     if not tracked_freeze:
-        _commit_driver_freeze(repo)
+        _commit_performance_freeze(repo)
     parent = _git(repo, "rev-parse", "HEAD")
     tree = _git(repo, "rev-parse", "HEAD^{tree}")
-    freeze = json.loads((repo / prod.CANONICAL_DRIVER_FREEZE_PATH).read_text(encoding="utf-8"))
+    freeze_path = repo / prod.CANONICAL_PERFORMANCE_FREEZE_PATH
+    freeze_blob = freeze_path.read_bytes()
+    freeze = json.loads(freeze_blob.decode("utf-8"))
     payload = {
         "production_monte_carlo_arm_authorized": True,
         "authorized_execution_commit": parent,
         "authorized_execution_tree": tree,
+        "freeze_parent_head": parent,
+        "freeze_parent_tree": tree,
+        "freeze_artifact_path": prod.CANONICAL_PERFORMANCE_FREEZE_PATH,
+        "freeze_artifact_sha256": _sha(freeze_blob),
+        "freeze_artifact_size": len(freeze_blob),
         "execution_authority_sha256": _authority_sha_map(repo),
+        "execution_tcb": freeze["execution_tcb"],
         "reviewed_implementation_head": freeze["reviewed_implementation_head"],
         "reviewed_implementation_tree": freeze["reviewed_implementation_tree"],
         "authorized_grid": prod.frozen_production_grid(),
+        "authorized_plan_sha256": prod.planned_jobs_sha256(prod.planned_production_jobs()),
         **prod.ARM_REQUIRED_LITERALS,
     }
     _write(repo / prod.CANONICAL_ARM_PATH, json.dumps(payload, indent=2, sort_keys=True) + "\n")
@@ -1490,7 +1537,7 @@ def test_cli_uses_fresh_process_and_stays_unexecuted():
                 ]
             )
         ),
-    ) is True
+    ) is False
 
 
 def test_production_modules_have_no_real_data_path():

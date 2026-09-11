@@ -576,7 +576,7 @@ def test_production_execution_lock():
                 ]
             )
         ),
-    ) is True
+    ) is False
     source = Path(lib.__file__).read_text(encoding="utf-8") + Path(runner.__file__).read_text(
         encoding="utf-8"
     )

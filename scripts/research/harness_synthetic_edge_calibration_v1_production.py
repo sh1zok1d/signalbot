@@ -7,11 +7,14 @@ FixtureExecutionConfig.
 The canonical 3200-world driver exists in this module. A performance-only
 descendant may cache BASE placebo predictions, use lstsq rank, and evaluate
 independent worlds in parallel. Those changes do not authorize production:
-the unused ARM at freeze-parent child 0abc5fe remains unused and does not
-authorize this HEAD. A later independent review plus a NEW ARM is required
-before any production execution. Canonical execution, when later armed,
-must cross a fresh Python interpreter boundary and re-verify exact HEAD/tree
-plus execution-authority bytes inside that process.
+the unused driver ARM at freeze-parent child 0abc5fe remains unused and does
+not authorize this HEAD. Live ARM topology is verified against the canonical
+performance/execution freeze artifact, not the historical driver freeze.
+A later independent review plus a NEW freeze and ARM are required before any
+production execution from a HEAD that changes this module. Canonical
+execution, when later armed, must cross a fresh Python interpreter boundary
+and re-verify exact HEAD/tree plus execution-authority bytes inside that
+process.
 Final RESULT minting requires an unforgeable in-process canonical session
 capability; caller-supplied records cannot mint.
 
@@ -152,8 +155,24 @@ CANONICAL_ARM_PATH = (
 CANONICAL_DRIVER_FREEZE_PATH = (
     "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_DRIVER_FREEZE.json"
 )
+CANONICAL_PERFORMANCE_FREEZE_PATH = (
+    "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json"
+)
 CANONICAL_WORLD_RECORDS_PATH = (
     "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_WORLD_RECORDS.json"
+)
+_TCB_DIGEST_KEYS = {
+    LIB_REL: "lib",
+    RUNNER_REL: "runner",
+    AUTH_REL: "auth",
+    PRODUCTION_REL: "production",
+    WORKER_REL: "worker",
+}
+PROTECTED_PRODUCTION_ARTIFACT_PATHS = (
+    CANONICAL_RESULT_PATH,
+    CANONICAL_WORLD_RECORDS_PATH,
+    CANONICAL_RESERVATION_PATH,
+    CANONICAL_CLAIM_PATH,
 )
 DURABLE_PARTIAL_KIND = "DURABLE_PARTIAL_WORLD_EVIDENCE"
 DURABLE_PARTIAL_RECORD_KIND = "DURABLE_PARTIAL_WORLD_EVIDENCE_RECORD"
@@ -229,6 +248,9 @@ FROZEN_GRID_LITERALS = {
     "visibility_replicates": 500,
     "block_rows": 50,
 }
+FROZEN_PLANNED_JOBS_SHA256 = (
+    "5adf682ee48a868acbe01d9e0b9e33133db26089119396b3539b4e9cb8af5bb6"
+)
 ORACLE_NULL_FPR_MAX = 0.05
 BLIND_NULL_FPR_MAX = 0.10
 TRAP_STRICT_EX_MAX = 0.20
@@ -500,7 +522,10 @@ def planned_production_jobs() -> tuple[tuple[str, int, int], ...]:
         _refuse("production world plan is not 3200 identities")
     if jobs[0] != ("NULL", 5000, 0) or jobs[-1] != ("SMALL", 10000, 399):
         _refuse("production world plan identity order drifted")
-    return tuple(jobs)
+    planned = tuple(jobs)
+    if planned_jobs_sha256(planned) != FROZEN_PLANNED_JOBS_SHA256:
+        _refuse("production world plan digest drifted")
+    return planned
 
 
 def _git(repo_root: Path, *args: str) -> bytes:
@@ -613,9 +638,12 @@ def _authority_digests_at(repo_root: Path, commit: str) -> dict[str, str]:
     durability = _commit_blob(repo_root, commit, CANONICAL_DURABILITY_PATH)
     if durability is not None:
         digests["durability"] = _sha256_bytes(durability)
-    freeze = _commit_blob(repo_root, commit, CANONICAL_DRIVER_FREEZE_PATH)
-    if freeze is not None:
-        digests["driver_freeze"] = _sha256_bytes(freeze)
+    driver_freeze = _commit_blob(repo_root, commit, CANONICAL_DRIVER_FREEZE_PATH)
+    if driver_freeze is not None:
+        digests["driver_freeze"] = _sha256_bytes(driver_freeze)
+    performance_freeze = _commit_blob(repo_root, commit, CANONICAL_PERFORMANCE_FREEZE_PATH)
+    if performance_freeze is not None:
+        digests["performance_freeze"] = _sha256_bytes(performance_freeze)
     return digests
 
 
@@ -641,6 +669,20 @@ DRIVER_FREEZE_REQUIRED_LITERALS = {
     "validation_2025_authorized": False,
     "oos_2026_authorized": False,
     "freeze_docs_only": True,
+}
+PERFORMANCE_FREEZE_REQUIRED_LITERALS = {
+    "production_monte_carlo_arm_authorized": False,
+    "authorization_consumed": False,
+    "real_market_data_access_authorized": False,
+    "other_hypothesis_authorized": False,
+    "B2_06_scientific_execution_authorized": False,
+    "validation_2025_authorized": False,
+    "oos_2026_authorized": False,
+    "freeze_docs_only": True,
+    "production_armed": False,
+    "production_executed": False,
+    "result_created": False,
+    "world_records_created": False,
 }
 
 
@@ -681,15 +723,140 @@ def _arm_declared_contract_holds(payload: Mapping[str, Any]) -> bool:
     for key, expected in ARM_REQUIRED_LITERALS.items():
         if payload.get(key) != expected:
             return False
+    if payload.get("production_executed") is True:
+        return False
+    if payload.get("production_calibration_executed") is True:
+        return False
+    if payload.get("production_result_minted") is True:
+        return False
+    if payload.get("result_created") is True:
+        return False
+    if payload.get("world_records_created") is True:
+        return False
+    if payload.get("world_records_persisted") is True:
+        return False
     try:
-        return payload.get("authorized_grid") == frozen_production_grid()
+        if payload.get("authorized_grid") != frozen_production_grid():
+            return False
+        listed_plan = str(payload.get("authorized_plan_sha256") or "").strip().lower()
+        if listed_plan != FROZEN_PLANNED_JOBS_SHA256:
+            return False
     except SyntheticExecutionNotAuthorized:
         return False
+    return True
+
+
+def _protected_production_artifacts_present(repo_root: Path) -> bool:
+    for rel in PROTECTED_PRODUCTION_ARTIFACT_PATHS:
+        if (repo_root / rel).exists():
+            return True
+        if _head_blob(repo_root, rel) is not None:
+            return True
+    return False
+
+
+def _performance_freeze_binds_parent(
+    repo_root: Path, payload: Mapping[str, Any], parent: str
+) -> bool:
+    freeze_blob = _commit_blob(repo_root, parent, CANONICAL_PERFORMANCE_FREEZE_PATH)
+    if freeze_blob is None:
+        return False
+    freeze = _load_commit_json(repo_root, parent, CANONICAL_PERFORMANCE_FREEZE_PATH)
+    if freeze is None:
+        return False
+    for key, expected in PERFORMANCE_FREEZE_REQUIRED_LITERALS.items():
+        if freeze.get(key) != expected:
+            return False
+    freeze_status = freeze.get("freeze_status")
+    if not isinstance(freeze_status, str) or not freeze_status.strip():
+        return False
+    canonical = freeze.get("canonical_path")
+    if canonical not in (None, CANONICAL_PERFORMANCE_FREEZE_PATH):
+        return False
+    if str(payload.get("freeze_artifact_path") or "") != CANONICAL_PERFORMANCE_FREEZE_PATH:
+        return False
+    listed_sha = str(payload.get("freeze_artifact_sha256") or "").strip().lower()
+    listed_size = payload.get("freeze_artifact_size")
+    if listed_sha != _sha256_bytes(freeze_blob):
+        return False
+    if listed_size != len(freeze_blob):
+        return False
+    reviewed_head = str(freeze.get("reviewed_implementation_head") or "").strip().lower()
+    reviewed_tree = str(freeze.get("reviewed_implementation_tree") or "").strip().lower()
+    if len(reviewed_head) != 40 or len(reviewed_tree) != 40:
+        return False
+    if any(ch not in "0123456789abcdef" for ch in reviewed_head + reviewed_tree):
+        return False
+    if reviewed_head == parent:
+        return False
+    if not _is_strict_ancestor(repo_root, reviewed_head, parent):
+        return False
+    if _commit_tree_sha(repo_root, reviewed_head) != reviewed_tree:
+        return False
+    arm_reviewed_head = str(payload.get("reviewed_implementation_head") or "").strip().lower()
+    arm_reviewed_tree = str(payload.get("reviewed_implementation_tree") or "").strip().lower()
+    if arm_reviewed_head != reviewed_head or arm_reviewed_tree != reviewed_tree:
+        return False
+    if arm_reviewed_head == parent:
+        return False
+    tcb = freeze.get("execution_tcb")
+    if not isinstance(tcb, list) or len(tcb) != len(EXECUTION_AUTHORITY_PATHS):
+        return False
+    listed = payload.get("execution_authority_sha256")
+    if not isinstance(listed, dict):
+        return False
+    arm_tcb = payload.get("execution_tcb")
+    if arm_tcb is not None and arm_tcb != tcb:
+        return False
+    seen_paths: set[str] = set()
+    for item in tcb:
+        if not isinstance(item, dict):
+            return False
+        rel = str(item.get("path") or "")
+        digest = str(item.get("sha256") or "").strip().lower()
+        size = item.get("size")
+        key = _TCB_DIGEST_KEYS.get(rel)
+        if key is None or rel in seen_paths:
+            return False
+        seen_paths.add(rel)
+        reviewed_bytes = _commit_blob(repo_root, reviewed_head, rel)
+        parent_bytes = _commit_blob(repo_root, parent, rel)
+        if reviewed_bytes is None or parent_bytes is None:
+            return False
+        if reviewed_bytes != parent_bytes:
+            return False
+        if _sha256_bytes(reviewed_bytes) != digest or len(reviewed_bytes) != size:
+            return False
+        if str(listed.get(key) or "").strip().lower() != digest:
+            return False
+        if rel == WORKER_REL and size != FROZEN_WORKER_SIZE:
+            return False
+        if rel == LIB_REL and digest != FROZEN_REVIEWED_LIB_SHA256:
+            return False
+    if seen_paths != set(EXECUTION_AUTHORITY_PATHS):
+        return False
+    if str(freeze.get("frozen_lib_sha256") or "").strip().lower() != FROZEN_REVIEWED_LIB_SHA256:
+        return False
+    for rel, freeze_key, bound_key in (
+        (PREREG_JSON_REL, "prereg_json_sha256", "prereg_json"),
+        (PREREG_MD_REL, "prereg_md_sha256", "prereg_md"),
+    ):
+        reviewed_blob = _commit_blob(repo_root, reviewed_head, rel)
+        parent_blob = _commit_blob(repo_root, parent, rel)
+        freeze_digest = str(freeze.get(freeze_key) or "").strip().lower()
+        if reviewed_blob is None or parent_blob is None:
+            return False
+        if _sha256_bytes(reviewed_blob) != freeze_digest or _sha256_bytes(parent_blob) != freeze_digest:
+            return False
+        if str(listed.get(bound_key) or "").strip().lower() != freeze_digest:
+            return False
+    return True
 
 
 def _driver_freeze_binds_parent(
     repo_root: Path, payload: Mapping[str, Any], parent: str
 ) -> bool:
+    """Historical driver-freeze binder. Current runtime does not use this path."""
     freeze = _load_commit_json(repo_root, parent, CANONICAL_DRIVER_FREEZE_PATH)
     if freeze is None:
         return False
@@ -767,7 +934,7 @@ def _driver_freeze_binds_parent(
 def _reviewed_implementation_binds_parent(
     repo_root: Path, payload: Mapping[str, Any], parent: str
 ) -> bool:
-    return _driver_freeze_binds_parent(repo_root, payload, parent)
+    return _performance_freeze_binds_parent(repo_root, payload, parent)
 
 
 def _arm_payload_authorizes_at_commit(
@@ -832,15 +999,23 @@ def inspect_production_arm_state(repo_root: Path | None = None) -> dict[str, Any
         _refuse("ARM artifact is present but cannot be verified")
     if not isinstance(payload, dict):
         _refuse("ARM artifact is present but cannot be verified")
-    return {"present": True, "authorized": _arm_payload_authorizes(root, payload)}
+    return {"present": True, "authorized": _live_arm_run_permitted(root, payload)}
+
+
+def _live_arm_run_permitted(repo_root: Path, payload: Mapping[str, Any]) -> bool:
+    if not _arm_payload_authorizes(repo_root, payload):
+        return False
+    if _protected_production_artifacts_present(repo_root):
+        return False
+    return True
 
 
 def production_monte_carlo_arm_authorized(repo_root: Path | None = None) -> bool:
     """ARM in commit C_arm authorizes its parent execution commit C_exec.
 
     This is constructible: the ARM artifact is not a fixed point of its own
-    commit/tree. A descendant of C_arm is not armed. This PR does not add a
-    live ARM artifact.
+    commit/tree. A descendant of C_arm is not armed. Live authorization also
+    refuses if RESULT/WORLD_RECORDS/reservation/claim already exist.
     """
     root = repo_root or _repo_root()
     blob = _head_blob(root, CANONICAL_ARM_PATH)
@@ -852,7 +1027,7 @@ def production_monte_carlo_arm_authorized(repo_root: Path | None = None) -> bool
         return False
     if not isinstance(payload, dict):
         return False
-    return _arm_payload_authorizes(root, payload)
+    return _live_arm_run_permitted(root, payload)
 
 
 def _executing_file(rel: str) -> Path:
@@ -4399,6 +4574,7 @@ def production_durability_identity():
             "durability": CANONICAL_DURABILITY_PATH,
             "arm": CANONICAL_ARM_PATH,
             "driver_freeze": CANONICAL_DRIVER_FREEZE_PATH,
+            "performance_freeze": CANONICAL_PERFORMANCE_FREEZE_PATH,
             "world_records": CANONICAL_WORLD_RECORDS_PATH,
             "durable_partial_world_evidence": DURABLE_PARTIAL_REL,
         },
