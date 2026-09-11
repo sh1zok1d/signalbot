@@ -1,6 +1,6 @@
 # Signalbot — Current Project Status
 
-**Status date:** 2026-09-08
+**Status date:** 2026-09-11
 **Operating mode:** `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN`
 
 This file is the canonical answer to: **what is Signalbot doing now?**
@@ -104,39 +104,21 @@ itself is immutable. Post-outcome status lives in
   (`docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md`); funding
   publication latency is unproven; B2-06 outcomes remain unauthorized.
   The mandatory pre-B2-06 methodology unit
-  `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1` has frozen implementation and a
-  frozen unused one-shot production authorization
-  (`synthetic_execution_authorized = true`,
-  `production_calibration_executed = false`,
-  `authorization_consumed = false`,
-  `production_monte_carlo_arm_authorized = false`).
-  Production durability/aggregation/result-persistence is
-  `implementation_frozen = true`.
-  The canonical 3200-world production driver is
-  `driver_implementation_frozen = true` and the live docs-only ARM
-  authorizes exactly one synthetic production Monte Carlo
-  (`production_monte_carlo_arm_authorized = true`,
-  `production_calibration_executed = false`,
-  `production_result_minted = false`,
-  `world_records_persisted = false`,
-  `authorization_consumed = false`).
-  Reviewed implementation HEAD `3fadc391ee0002e35463b526301d287d4a662828` /
-  tree `5fb77727c418cc42bf3c1c6553355a0475f42efc`.
-  Freeze parent `40e54b8c0497593aa3daf0bddc0e014bf048489f` /
-  tree `0f6be102b29ce964f0ea8f3947927854888eef08`.
-  Historical ARM HEAD `940d85bf58673396c6c0cc05ce2134a2e2e92809` is
-  `REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`.
-  A performance-only descendant (`docs/research/HARNESS_PERFORMANCE_V1.md`)
-  is frozen at reviewed implementation HEAD
-  `f47c5394d8cc0c3f6312cd4156f389ba7ee81dbd` / tree
-  `84b23e4c51a4f7ccf59bb36d5333ef7974ea7eab`. Canonical freeze:
-  `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json`
-  at `1499bc5f5e731f226650abd5051447fc846f722b`. Independent review:
-  `GO_FOR_FINAL_RUNTIME_FREEZE`. The live ARM is the immediate child of that
-  freeze and authorizes exactly one synthetic 3200-world run. Historical ARM
-  `120ac45` and unused driver ARM `0abc5fe` do not authorize this runtime.
-  This does not execute the 3200-world calibration and does not authorize
-  B2-06 science.
+  `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1` was executed from exact ARM
+  commit `9ab32fc14c50df0c6f1c7ddfe2a8990d2d49c339` / tree
+  `8aca4445f4638f678810d64a17de2a253a22763d` (`workers=4`). All 3200
+  planned worlds completed structurally. Mint refused:
+  `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM` (113 worlds `valid=false`
+  under the V1 any-candidate rank rule). RESULT and WORLD_RECORDS were
+  not minted. V1 ARM authority was not consumed. The V1 attempt and the
+  3087-world subset are permanently non-claimable. Do not resume V1 mint.
+  Successor methodology unit
+  `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY` is
+  `FROZEN_BEFORE_IMPLEMENTATION`. It does not implement runtime, does
+  not arm V2 production, and does not authorize B2-06. Next required
+  step for that unit: independent rereview of amendment 001
+  (`INDEPENDENT_REREVIEW_OF_V2_RANK_POLICY_AMENDMENT`). Historical ARM `120ac45` and unused driver ARM `0abc5fe` do
+  not authorize V1 or V2 runtime. This does not authorize B2-06 science.
 
 Family F1 is `CLOSED_NO_PROMOTION`. 2025 validation and 2026 OOS remain
 untouched. No Batch02 formulation has a promoted candidate, so there is no

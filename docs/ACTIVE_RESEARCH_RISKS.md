@@ -36,6 +36,7 @@ The older `PROJECT_RISK_AND_DEBT_REGISTER.md` is preserved as a historical regis
 | RR-018 | MEDIUM | **Unreproducible mutable datasets.** Later DB corrections/provider changes may alter historical results. | Versioned manifests, source/revision identity, reproducible materialization commands and immutable experiment artifacts. |
 | RR-019 | MEDIUM | **Outcome metric shopping.** Switching between winrate/PnL/MFE/horizon after seeing results can create favorable narratives. | Define primary claim/outcomes before confirmatory evaluation; label post-hoc metrics exploratory. |
 | RR-020 | MEDIUM | **No-edge result rejected psychologically.** Project goal wording may pressure researchers to “find something.” | Explicitly accept `NO EDGE`, `REJECTED`, `INCONCLUSIVE_SAMPLE`; stop/pivot hypothesis classes when evidence warrants it. |
+| RR-021 | HIGH | **World-level invalidation of candidate non-identifiability.** Treating a rank-deficient candidate as a failed world can force `INCOMPLETE_EXECUTION` and invite post-hoc salvage of the remaining subset. | V1 attempt is permanently non-claimable. V2 policy prereg `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY` separates baseline vs candidate identifiability and freezes coverage gates before implementation. Do not salvage the V1 3087-world subset. |
 
 ## Frozen / historical debt
 

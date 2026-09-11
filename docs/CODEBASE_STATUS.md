@@ -157,12 +157,20 @@ Historical ARM `120ac45` and unused driver ARM `0abc5fe` do not authorize this
 runtime. Worker count is operational, not scientific. Caller-supplied
 records cannot mint a RESULT. Historical ARM HEAD
 `940d85bf58673396c6c0cc05ce2134a2e2e92809` is
-`REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`. Production
-calibration is not executed. `driver_implementation_frozen = true`.
+`REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`.
+`driver_implementation_frozen = true`.
 `implementation_frozen = true`.
-`production_calibration_executed = false`.
-Live canonical ARM artifact declares
-`production_monte_carlo_arm_authorized = true`, unexecuted, unconsumed.
+The canonical V1 production attempt at ARM HEAD `9ab32fc` completed
+3200/3200 structural worlds and did not mint RESULT.
+`INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`. V1 ARM was not consumed.
+No V1 subset is claimable. Do not mint a V1 RESULT from this HEAD.
+V2 rank-degeneracy policy is docs-only
+(`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY`);
+no V2 runtime exists. `implementation_exists = false` for V2.
+`v2_production_arm_authorized = false`.
+Live V1 ARM artifact still declares
+`production_monte_carlo_arm_authorized = true` and unconsumed; that does
+not make the incomplete V1 attempt claimable and does not authorize V2.
 Runtime ARM topology keys `CANONICAL_PERFORMANCE_FREEZE_PATH`.
 `production_result_minted = false`.
 This is not a market hypothesis and does not authorize B2-06, 2025, or 2026.

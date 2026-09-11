@@ -1987,3 +1987,64 @@ Canonical ARM:
 - status: `PRODUCTION_MONTE_CARLO_ARM_AUTHORIZED_UNEXECUTED`
 - next required step: `EXECUTE_CANONICAL_3200_WORLD_RUN_FROM_EXACT_FINAL_ARM_COMMIT_WITH_4_WORKERS`
 
+## 2026-09-11 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 canonical 3200-world attempt
+
+**Decision:** V1 production grid was executed from exact ARM commit
+`9ab32fc14c50df0c6f1c7ddfe2a8990d2d49c339` / tree
+`8aca4445f4638f678810d64a17de2a253a22763d` with `workers=4`.
+
+- planned / structural complete: 3200 / 3200
+- V1-rule valid / invalid: 3087 / 113
+- run_identity: `ac1087b75250a671f4a207defec6d2b606050cd8c2fbcfcd894b6b2876be2565`
+- RESULT minted: **false**
+- WORLD_RECORDS created: **false**
+- authority consumed: **false**
+- mechanical status (permanent): `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`
+- V1 subset claimable: **false**
+- cause class (forensic, not a RESULT): `EXPECTED_DGP_DEGENERACY`
+
+Do not mint a V1 RESULT. Do not salvage the 3087-world subset. Do not
+resume V1 production as V2. This ledger entry is not market evidence.
+
+## 2026-09-11 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2 rank-degeneracy policy prereg
+
+**Decision:** freeze methodology-only unit
+`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY`
+before implementation.
+
+Canonical:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG.md`
+and `.json`.
+
+Candidate-level rank failure does not invalidate a world unless the
+baseline is not identifiable. Detection uses identifiable denominators.
+Coverage gates are frozen prospectively. DGP/RNG/seeds/candidates/OLS
+full-rank rule are unchanged. No V2 runtime, freeze, or ARM in this unit.
+
+- implementation_exists: **false**
+- synthetic_execution_authorized: **false**
+- v2_production_arm_authorized: **false**
+- ready_for_v2_implementation_review: **false**
+- next required step: `INDEPENDENT_ADVERSARIAL_REVIEW_OF_V2_RANK_DEGENERACY_POLICY_PREREG`
+
+## 2026-09-11 — V2 rank-degeneracy policy amendment 001
+
+**Decision:** docs-only prospective amendment of
+`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY`
+to close independent-review MAJOR-1 and MINOR-1..4. The original prereg at
+`ada237edc330b44bc412332e263f124757919e93` is not rewritten in place.
+
+Canonical:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG_AMENDMENT_001.md`
+and `.json`.
+
+- L persisted per WORLD_VALID world; full L=0..10 distribution per cell
+- BLIND taxonomy stratified by L; L=0 not credited as NO_DISCOVERY
+- closed non-identifiability reason taxonomy + first failing era
+- explicit required-coverage map for every inherited conclusion
+- F01 moved to F03-like coverage tier on SMALL|2500 (0.65→0.75) and
+  TINY_NOISY|5000 (0.60→0.70); no other threshold changes
+- selective cell re-execution after a V2 attempt forbidden
+- implementation_exists: **false**
+- next required step: `INDEPENDENT_REREVIEW_OF_V2_RANK_POLICY_AMENDMENT`
+

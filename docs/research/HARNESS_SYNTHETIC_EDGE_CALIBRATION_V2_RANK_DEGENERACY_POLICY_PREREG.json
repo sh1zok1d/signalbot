@@ -1,0 +1,257 @@
+{
+  "schema_version": "1.0",
+  "status": "FROZEN_BEFORE_IMPLEMENTATION",
+  "unit_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY",
+  "unit_type": "METHODOLOGY_ONLY_IDENTIFIABILITY_POLICY_NOT_MARKET_HYPOTHESIS",
+  "canonical_path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG.json",
+  "human_companion": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG.md",
+  "base_head_at_design_freeze": "9ab32fc14c50df0c6f1c7ddfe2a8990d2d49c339",
+  "base_tree_at_design_freeze": "8aca4445f4638f678810d64a17de2a253a22763d",
+  "purpose": "Freeze candidate-level non-identifiability before any V2 implementation or new Monte Carlo. A candidate-augmented rank failure must not invalidate a world unless the baseline itself is not identifiable.",
+  "boundaries": {
+    "synthetic_execution_authorized": false,
+    "real_market_data_access_authorized": false,
+    "b2_06_scientific_execution_authorized": false,
+    "validation_2025_authorized": false,
+    "oos_2026_authorized": false,
+    "market_promotion_possible": false,
+    "v1_result_mint_authorized": false,
+    "v1_subset_claim_authorized": false,
+    "v2_production_arm_authorized": false,
+    "implementation_exists": false,
+    "production_calibration_executed": false
+  },
+  "v1_relation": {
+    "v1_status": "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM",
+    "v1_status_permanent": true,
+    "v1_subset_claimable": false,
+    "v1_result_continuity_forbidden": true,
+    "v1_compute_is_diagnostic_motivation_only": true,
+    "v1_compute_is_not_v2_evidence": true,
+    "do_not_mint_v1_result": true,
+    "do_not_consume_v1_arm_to_close_this_record": true,
+    "do_not_resume_v1_production_as_v2": true,
+    "v1_cause_class_motivation_only": "EXPECTED_DGP_DEGENERACY",
+    "v1_execution_head": "9ab32fc14c50df0c6f1c7ddfe2a8990d2d49c339",
+    "v1_execution_tree": "8aca4445f4638f678810d64a17de2a253a22763d",
+    "v1_run_identity": "ac1087b75250a671f4a207defec6d2b606050cd8c2fbcfcd894b6b2876be2565",
+    "v1_planned": 3200,
+    "v1_structural_complete": 3200,
+    "v1_world_valid_under_v1_rule": 3087,
+    "v1_world_invalid_under_v1_rule": 113,
+    "v1_result_minted": false,
+    "v1_world_records_created": false,
+    "v1_authority_consumed": false
+  },
+  "states": {
+    "WORLD_VALID": "baseline Y ~ intercept+X1+X2 identifiable at every required expanding-era training window; finite baseline coefficients and scored-row predictions",
+    "WORLD_INVALID": "baseline not identifiable at a required scored-era training window, or non-finite baseline coefficients/predictions, or any world-level failure that makes every candidate-vs-baseline comparison undefined",
+    "CANDIDATE_IDENTIFIABLE": "WORLD_VALID and candidate-augmented Y ~ intercept+X1+X2+Fj full rank at every required scored-era training window, with finite candidate coefficients/predictions and finite bootstrap/placebo statistics required to define detection",
+    "CANDIDATE_NOT_IDENTIFIABLE": "WORLD_VALID and candidate-augmented design rank-deficient at a required scored-era training window, or that candidate's fit/prediction/bootstrap/placebo path non-finite, while baseline remains identifiable"
+  },
+  "baseline_policy": {
+    "rank_deficient_baseline_at_required_scored_era": "WORLD_INVALID",
+    "reason": "candidate comparison cannot be scientifically defined",
+    "candidate_results_may_enter_detection": false
+  },
+  "candidate_policy": {
+    "rank_deficient_candidate_with_identifiable_baseline": "CANDIDATE_NOT_IDENTIFIABLE",
+    "does_not_invalidate_world": true,
+    "other_candidates_in_same_world_continue": true,
+    "contributes_to_planned_worlds": true,
+    "contributes_to_non_identifiable_count": true,
+    "contributes_to_detected_count": false,
+    "contributes_to_not_detected_count": false,
+    "MODEL_DETECTED_defined": false,
+    "placebo_or_bootstrap_IncompleteWorld_with_valid_baseline": "CANDIDATE_NOT_IDENTIFIABLE",
+    "undefined_on_WORLD_INVALID": true
+  },
+  "full_rank": {
+    "rule": "rank < number_of_columns => not identifiable",
+    "baseline_required_rank": 3,
+    "candidate_required_rank": 4,
+    "estimator": "numpy.linalg.lstsq(X,y,rcond=None)",
+    "unweighted": true,
+    "regularization": "none",
+    "changed_from_v1": false,
+    "forbidden_unless_separately_preregistered": [
+      "pseudo-inverse fallback",
+      "ridge or other regularization fallback",
+      "coefficient imputation",
+      "zero-coefficient assumption for a collinear column",
+      "arbitrary tolerance relaxation"
+    ]
+  },
+  "denominators": {
+    "report_per_scenario_N_candidate": [
+      "planned_worlds",
+      "world_valid_count",
+      "candidate_identifiable_count",
+      "candidate_non_identifiable_count",
+      "candidate_detection_count"
+    ],
+    "identifiability_rate": "candidate_identifiable_count / world_valid_count",
+    "conditional_detection_rate": "candidate_detection_count / candidate_identifiable_count",
+    "identifiable_plus_non_identifiable_equals_world_valid": true,
+    "WORLD_INVALID_not_redistributed_into_candidate_non_identifiable": true,
+    "silent_planned_worlds_detection_denominator_forbidden": true,
+    "silent_drop_of_non_identifiable_from_reporting_forbidden": true,
+    "wilson_z": 1.959963984540054,
+    "identifiability_wilson_n": "world_valid_count",
+    "detection_wilson_n": "candidate_identifiable_count"
+  },
+  "aggregation": {
+    "primary": "candidate_first_then_cell_then_scenario",
+    "secondary_blind_selection": "world_first_after_dropping_non_identifiable_candidates",
+    "do_not_average_candidates_with_unequal_identifiability": true,
+    "blind_selector": "inherited V1 STRICT_PASS_EX_MATERIALITY then max MEAN_AE_IMPROVEMENT then ascending feature ID",
+    "empty_identifiable_set": "NO_CANDIDATE",
+    "world_taxonomy_denominator": "world_valid worlds with at least one identifiable library candidate",
+    "worlds_with_zero_identifiable_candidates_not_successful_NO_DISCOVERY_for_FPR": true
+  },
+  "coverage_gate": {
+    "high_conditional_detection_with_poor_identifiability_is_not_success": true,
+    "coverage_judged_before_detection_pass_fail": true,
+    "thresholds_not_fitted_to_v1_observed_invalid_counts": true,
+    "hard_min_identifiable_count": 200,
+    "world_valid_rate_min_wilson_lower": 0.95,
+    "adequate_requires": [
+      "world_valid_count >= 1",
+      "candidate_identifiable_count >= 200",
+      "identifiability Wilson lower >= cell/candidate minimum"
+    ],
+    "otherwise": "INSUFFICIENT_IDENTIFIABILITY",
+    "boundary_straddle_is_insufficient": true,
+    "INSUFFICIENT_IDENTIFIABILITY_is_not_detection_PASS": true,
+    "INSUFFICIENT_IDENTIFIABILITY_is_not_detection_FAIL": true,
+    "min_wilson_lower_by_cell_candidate": {
+      "NULL|5000": {
+        "F01": 0.95, "F02": 0.95, "F03": 0.95, "F04": 0.95, "F05": 0.95,
+        "F06": 0.95, "F07": 0.95, "F08": 0.95, "F09": 0.95, "F10": 0.95
+      },
+      "EASY|5000": {
+        "F01": 0.90, "F02": 0.90, "F03": 0.90, "F04": 0.90, "F05": 0.90,
+        "F06": 0.90, "F07": 0.90, "F08": 0.90, "F09": 0.90, "F10": 0.90
+      },
+      "MODERATE|5000": {
+        "F01": 0.90, "F02": 0.90, "F03": 0.90, "F04": 0.90, "F05": 0.90,
+        "F06": 0.90, "F07": 0.90, "F08": 0.90, "F09": 0.90, "F10": 0.90
+      },
+      "NONSTATIONARY_TRAP|5000": {
+        "F01": 0.90, "F02": 0.90, "F03": 0.90, "F04": 0.90, "F05": 0.90,
+        "F06": 0.90, "F07": 0.90, "F08": 0.90, "F09": 0.90, "F10": 0.90
+      },
+      "SMALL|5000": {
+        "F01": 0.85, "F02": 0.85, "F03": 0.85, "F04": 0.85, "F05": 0.85,
+        "F06": 0.85, "F07": 0.85, "F08": 0.85, "F09": 0.85, "F10": 0.85
+      },
+      "SMALL|10000": {
+        "F01": 0.85, "F02": 0.85, "F03": 0.85, "F04": 0.85, "F05": 0.85,
+        "F06": 0.85, "F07": 0.85, "F08": 0.85, "F09": 0.85, "F10": 0.85
+      },
+      "SMALL|2500": {
+        "F01": 0.65, "F02": 0.65, "F03": 0.75, "F04": 0.85, "F05": 0.85,
+        "F06": 0.85, "F07": 0.85, "F08": 0.65, "F09": 0.85, "F10": 0.85
+      },
+      "TINY_NOISY|5000": {
+        "F01": 0.60, "F02": 0.60, "F03": 0.70, "F04": 0.85, "F05": 0.85,
+        "F06": 0.85, "F07": 0.85, "F08": 0.60, "F09": 0.85, "F10": 0.85
+      }
+    },
+    "threshold_rationale": {
+      "not_from_v1_observed_counts": true,
+      "hard_floor_200": "Wilson half-width at p=0.5 remains <= about 0.07; coarsest precision that can still speak to 0.05-scale FPR or 0.20-wide SMALL bands",
+      "NULL_0.95": "FPR-integrity anti-gaming floor; NULL is not a sparse-by-design cell at target_support=0.10 N=5000",
+      "EASY_MODERATE_TRAP_0.90": "sanity-power/specificity cells sized for n=400 must not be silently re-sized",
+      "SMALL_5000_10000_0.85": "protect whole-interval SMALL-band classification precision",
+      "SMALL_2500_and_TINY_S_gated_lower": "those cells are designed with smaller E1 occupancy from frozen DGP parameters (support and era width), not from V1 counts; floors still forbid handful-of-worlds conditional rates",
+      "X_only_features_remain_high": "F04-F07,F09,F10 do not depend on S and are not the sparse-E1 mechanism"
+    }
+  },
+  "oracle_policy": {
+    "oracle_candidate": "F03",
+    "F03_not_identifiable_is_not_ordinary_false_negative": true,
+    "F03_not_identifiable_does_not_increment_not_detected_count": true,
+    "F03_not_identifiable_increments_non_identifiable_count": true,
+    "conditional_detection_evaluated_only_if_F03_coverage_ADEQUATE": true,
+    "excessive_F03_non_identifiability_fails_only_via_coverage_gate": true
+  },
+  "null_policy": {
+    "false_positives_only_over_identifiable_evaluations": true,
+    "per_candidate_null_fpr": "P(candidate detection | CANDIDATE_IDENTIFIABLE) on NULL|5000",
+    "world_level_blind_null_fpr": "P(ANY_EDGE_DECLARED | WORLD_VALID and at least one identifiable library candidate)",
+    "all_library_candidates_must_have_ADEQUATE_NULL_identifiability": true,
+    "any_NULL_library_coverage_failure_makes_null_fpr_INSUFFICIENT_IDENTIFIABILITY": true,
+    "must_not_lower_fpr_by_classifying_difficult_candidates_not_identifiable": true,
+    "minimum_null_identifiability_wilson_lower": 0.95
+  },
+  "inherited_from_v1_unchanged_by_this_unit": {
+    "dgp": true,
+    "scenarios": true,
+    "candidates": true,
+    "rng": true,
+    "world_seeds": true,
+    "replicate_counts": true,
+    "ols_implementation": true,
+    "full_rank_criterion": true,
+    "visibility_bootstrap_placebo_science": true,
+    "detection_specificity_power_band_numeric_thresholds": true,
+    "materiality_gate": 0.02,
+    "wilson_z": 1.959963984540054
+  },
+  "mechanical_conclusion_priority": [
+    "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM",
+    "INSUFFICIENT_IDENTIFIABILITY_NO_METHODOLOGY_CLAIM",
+    "inherited V1 ladder on conditional identifiable denominators"
+  ],
+  "anti_rescue": [
+    "no deleting sparse worlds",
+    "no changing support/rho/beta/noise/N after outcomes",
+    "no excluding candidates after seeing detection rates",
+    "no using only the 3087 V1-valid subset",
+    "no converting NOT_IDENTIFIABLE to FAIL or PASS after results",
+    "no changing coverage thresholds after the V2 run",
+    "no minting a V1 RESULT from partial or invalid records",
+    "no silent planned-world detection denominators",
+    "no pseudo-inverse/ridge/imputed-coefficient rescue",
+    "no synthetic-as-market-evidence"
+  ],
+  "implementation_boundary": {
+    "this_unit_implements_runtime": false,
+    "minimal_expected_later_changes": [
+      "candidate evaluation state",
+      "world validity semantics",
+      "aggregation/counting",
+      "RESULT schema",
+      "mechanical conclusion logic"
+    ],
+    "expected_unchanged": [
+      "DGP",
+      "scenario definitions",
+      "candidate definitions",
+      "RNG",
+      "world seeds",
+      "replicate counts",
+      "OLS implementation",
+      "full-rank criterion",
+      "visibility/bootstrap/placebo science",
+      "performance multiprocessing",
+      "checkpoint trust model",
+      "mint authentication",
+      "historical recomputation",
+      "authority/freeze/ARM machinery"
+    ]
+  },
+  "execution_ceremony": [
+    "independent red-team accepts this policy prereg",
+    "fixture-only implementation of the policy",
+    "independent implementation review",
+    "freeze exact implementation commit/tree",
+    "explicit new ARM for one V2 production calibration",
+    "persist full V2 RESULT before methodology changes",
+    "inspect outcomes once",
+    "any methodology change requires a new version"
+  ],
+  "ready_for_v2_implementation_review": false,
+  "next_required_step": "INDEPENDENT_ADVERSARIAL_REVIEW_OF_V2_RANK_DEGENERACY_POLICY_PREREG"
+}

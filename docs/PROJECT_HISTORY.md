@@ -262,3 +262,24 @@ Suggested historical path:
 8. `docs/PROJECT_STATUS.md` + `docs/RESEARCH_ROADMAP.md` — current research-first direction.
 
 The value of this history is not that every past idea was correct. It shows how each layer of evidence changed what the project believed and therefore what it chose to build next.
+
+---
+
+## 11. Synthetic harness V1 incomplete execution and V2 identifiability policy
+
+On 2026-09-11 the canonical V1 synthetic calibration ARM run at
+`9ab32fc14c50df0c6f1c7ddfe2a8990d2d49c339` completed all 3200 planned
+worlds structurally and could not mint RESULT. The frozen V1 rule treated
+any candidate-augmented rank failure as world invalid. That produced
+`INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`. The attempt, including any
+3087-world subset, is permanently non-claimable.
+
+The project did not rescue V1 by dropping sparse worlds, changing DGP, or
+relaxing OLS rank. It opened a new methodology version:
+`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY`, frozen as
+preregistration only. V2 separates baseline identifiability from candidate
+identifiability, reports both coverage and conditional detection, and
+forbids treating non-identifiable evaluations as ordinary false negatives
+or as silent denominator deletions.
+
+This is not a market-edge claim and does not authorize B2-06.
