@@ -2091,3 +2091,39 @@ run, ARM, RESULT, or authority consumption.
 
 - next required step: `INDEPENDENT_NARROW_REVIEW_OF_REPAIR`
 
+## 2026-09-12 — V2 rank-degeneracy implementation freeze
+
+**Decision:** freeze the reviewed fixture-only V2 rank-policy
+implementation at HEAD `a310837bab4ee60c7495cca3bdb476abdc58a041`
+(tree `b15c4102b01514ff73e1728aec072eda9b528815`) after the independent
+narrow rereview of its repair closed clean (`BLOCKERS=0`, `MAJORS=0`,
+`MINORS=0`, `GO_FOR_IMPLEMENTATION_FREEZE`).
+
+Canonical freeze artifact:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_IMPLEMENTATION_FREEZE.json`.
+
+The freeze binds the reviewed implementation HEAD/TREE, the original
+prereg (`ada237e`) and Amendment_001 (`d8f0a99`) identities, the
+execution-authoritative V2 policy source
+(`scripts/research/harness_synthetic_edge_calibration_v2_rank_policy.py`)
+by git blob/SHA256/size, and the five unchanged V1 TCB files by
+SHA256/size. This freeze commit changes only the freeze artifact, its
+verifier test, and status/ledger documentation. The reviewed V2
+implementation bytes are unchanged.
+
+- reviewed_implementation_head: `a310837bab4ee60c7495cca3bdb476abdc58a041`
+- freeze_parent: `a310837bab4ee60c7495cca3bdb476abdc58a041` (immediate
+  parent of this freeze commit)
+- production_armed: **false**
+- production_executed: **false**
+- result_minted: **false**
+- world_records_created: **false**
+- authority_consumed: **false**
+- v1_attempt_status: `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`
+- v1_3087_subset_claimable: **false**
+
+No prereg change. No Amendment_002. No V1 TCB change. No V2
+implementation change. No production ARM, RESULT, or WORLD_RECORDS.
+
+- next required step: `CREATE_NEW_V2_PRODUCTION_ARM`
+

@@ -1,0 +1,94 @@
+{
+  "schema": "harness_synthetic_edge_calibration_v2_rank_degeneracy_policy_implementation_freeze",
+  "schema_version": "1.0.0",
+  "status": "FROZEN_BEFORE_V2_PRODUCTION",
+  "reviewed_implementation": {
+    "head": "a310837bab4ee60c7495cca3bdb476abdc58a041",
+    "tree": "b15c4102b01514ff73e1728aec072eda9b528815"
+  },
+  "freeze_parent_expected_head": "a310837bab4ee60c7495cca3bdb476abdc58a041",
+  "methodology_authority": {
+    "original_prereg": {
+      "head": "ada237edc330b44bc412332e263f124757919e93",
+      "tree": "ba1c0873879b7ea8556c3e238f8b962b91da6dc2"
+    },
+    "amendment_001": {
+      "head": "d8f0a996bc4341d0cbe01a1a061130b889ed5e75",
+      "tree": "09dca9b1240a43d5de9de0dadf32d27e00e7eaea"
+    },
+    "note": "Amendment_001 controls where it clarifies or retiers the original prereg. This freeze artifact does not restate their text; the git identities above are the sole methodology authority."
+  },
+  "execution_authoritative_v2_policy_source": {
+    "path": "scripts/research/harness_synthetic_edge_calibration_v2_rank_policy.py",
+    "git_blob": "ac4ee082405e5291c7b093ba407f1a41203cb752",
+    "sha256": "36336e0d6e1006a11d04911f91034898e6b5d8a52cb370fd83a2a1bdd19a2289",
+    "size_bytes": 42588
+  },
+  "v1_tcb_files": [
+    {
+      "role": "LIB",
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1_lib.py",
+      "git_blob": "8142ce5d757851bec6dfd0ca2c0bcc13652d37d7",
+      "sha256": "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51",
+      "size_bytes": 37636
+    },
+    {
+      "role": "RUNNER",
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1.py",
+      "git_blob": "c77c58bd7a5e413425029c22b3f7aca6f43cefcf",
+      "sha256": "0a5e577cc3797b018e9912865b7c3e385908764dc6cb36a6555626205855432a",
+      "size_bytes": 3484
+    },
+    {
+      "role": "AUTH",
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1_auth.py",
+      "git_blob": "c24154e991f3ab0fe685c37a53959587a98580b1",
+      "sha256": "0e174ac6b73530ec28501b0c076e0cad7874ab31bb1ed6941e4b525d12e35507",
+      "size_bytes": 34982
+    },
+    {
+      "role": "PRODUCTION",
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1_production.py",
+      "git_blob": "a27db41d5b29416274ac35fcb592e7b56f6760ec",
+      "sha256": "9e784ecdcbd53ae4128d803d9325c8ff0f6db49ce70a0a63b13c4fc6a548a4ed",
+      "size_bytes": 193104
+    },
+    {
+      "role": "WORKER",
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1_worker.py",
+      "git_blob": "a9cc3bf6b927de69e1ef1f396181602cbb3399b7",
+      "sha256": "9aee03fdae012f9054c59adc4cea8072b88493521456fb6141ced926961c886e",
+      "size_bytes": 3994
+    }
+  ],
+  "v1_attempt_status": "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM",
+  "v1_3087_subset_claimable": false,
+  "v2_core_policy_summary": {
+    "baseline_degeneracy": "WORLD_INVALID",
+    "candidate_degeneracy": "CANDIDATE_NOT_IDENTIFIABLE",
+    "candidate_not_identifiable_is_neither_detected_nor_not_detected": true,
+    "identifiable_library_size_l": {
+      "definition": "count of identifiable F01-F10 candidates per WORLD_VALID world",
+      "domain": [0, 10],
+      "l_equals_zero_semantics": "NO_CANDIDATE"
+    },
+    "blind_selection": "identifiable candidates only",
+    "blind_by_l_required": true,
+    "identifiability_coverage_required": true,
+    "coverage_precedence": [
+      "structural_incompleteness",
+      "INSUFFICIENT_IDENTIFIABILITY",
+      "inherited_detection_calibration_ladder"
+    ],
+    "null_policy": "preserved",
+    "f03_oracle_policy": "preserved",
+    "blind_not_claimed_invariant_to_l": true
+  },
+  "production_state": {
+    "production_armed": false,
+    "production_executed": false,
+    "result_minted": false,
+    "world_records_created": false,
+    "authority_consumed": false
+  }
+}

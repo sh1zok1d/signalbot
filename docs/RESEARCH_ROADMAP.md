@@ -151,7 +151,8 @@ calibration must complete with a claimable RESULT. V1
 permanently `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`. The active
 methodology successor for identifiability is
 `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY`
-(`FIXTURE_IMPLEMENTATION_UNARMED`; fixture module exists; not armed).
+(`FROZEN_BEFORE_V2_PRODUCTION`; reviewed fixture module frozen at HEAD
+`a310837`; not armed).
 
 The original V1 purpose remains: measure whether the current Signalbot-style
 research process can detect small, noisy, sparse, clustered conditional
@@ -216,10 +217,12 @@ Canonical V2 identifiability policy prereg (active methodology successor;
 not an ARM):
 `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG.md`
 and `.json`.
-Next required step for V2: `INDEPENDENT_NARROW_REVIEW_OF_REPAIR` of the
-fixture-only rank-policy module. Do not run the 3200-world production
-grid and do not mint RESULT. The original prereg at `ada237e` and
-Amendment_001 at `d8f0a99` are not rewritten in place.
+The reviewed fixture-only rank-policy module is frozen at HEAD `a310837`
+(`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_IMPLEMENTATION_FREEZE.json`).
+Next required step for V2: `CREATE_NEW_V2_PRODUCTION_ARM`. Do not run
+the 3200-world production grid and do not mint RESULT until that ARM is
+created and reviewed. The original prereg at `ada237e` and Amendment_001
+at `d8f0a99` are not rewritten in place.
 
 This methodology gate does not weaken or bypass the current B2-06 state:
 `FUNDING_PUBLICATION_LATENCY_UNPROVEN`, `research_authorized = false`,

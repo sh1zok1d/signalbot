@@ -114,10 +114,11 @@ itself is immutable. Post-outcome status lives in
   3087-world subset are permanently non-claimable. Do not resume V1 mint.
   Successor methodology unit
   `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY` now
-  has a fixture-only implementation
-  (`FIXTURE_IMPLEMENTATION_UNARMED`). It does not arm V2 production,
-  does not run the 3200-world grid, and does not authorize B2-06. Next
-  required step for that unit: `INDEPENDENT_NARROW_REVIEW_OF_REPAIR`.
+  has a reviewed fixture-only implementation frozen at HEAD `a310837`
+  (`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_IMPLEMENTATION_FREEZE.json`).
+  The freeze does not arm V2 production, does not run the 3200-world
+  grid, and does not authorize B2-06. Next required step for that unit:
+  `CREATE_NEW_V2_PRODUCTION_ARM`.
   Historical ARM `120ac45` and unused driver ARM `0abc5fe` do
   not authorize V1 or V2 runtime. This does not authorize B2-06 science.
 
