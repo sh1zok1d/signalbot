@@ -115,10 +115,14 @@ itself is immutable. Post-outcome status lives in
   Successor methodology unit
   `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY` now
   has a reviewed fixture-only implementation frozen at HEAD `a310837`
-  (`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_IMPLEMENTATION_FREEZE.json`).
-  The freeze does not arm V2 production, does not run the 3200-world
-  grid, and does not authorize B2-06. Next required step for that unit:
-  `CREATE_NEW_V2_PRODUCTION_ARM`.
+  (`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_IMPLEMENTATION_FREEZE.json`)
+  plus a production driver + canonical plan + ARM-authorization runtime
+  implementation awaiting independent review
+  (`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PRODUCTION_DRIVER.md`).
+  No V2 ARM artifact exists anywhere in the repository; V2 production
+  remains unarmed, does not run the 3200-world grid, and does not
+  authorize B2-06. Next required step for that unit:
+  `INDEPENDENT_V2_PRODUCTION_DRIVER_AND_ARM_RUNTIME_REVIEW`.
   Historical ARM `120ac45` and unused driver ARM `0abc5fe` do
   not authorize V1 or V2 runtime. This does not authorize B2-06 science.
 

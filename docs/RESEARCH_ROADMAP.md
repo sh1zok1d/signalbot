@@ -152,7 +152,8 @@ permanently `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`. The active
 methodology successor for identifiability is
 `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY`
 (`FROZEN_BEFORE_V2_PRODUCTION`; reviewed fixture module frozen at HEAD
-`a310837`; not armed).
+`a310837`; production driver + canonical plan + ARM-authorization runtime
+implemented on top and awaiting independent review; not armed).
 
 The original V1 purpose remains: measure whether the current Signalbot-style
 research process can detect small, noisy, sparse, clustered conditional
@@ -219,10 +220,16 @@ not an ARM):
 and `.json`.
 The reviewed fixture-only rank-policy module is frozen at HEAD `a310837`
 (`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_IMPLEMENTATION_FREEZE.json`).
-Next required step for V2: `CREATE_NEW_V2_PRODUCTION_ARM`. Do not run
-the 3200-world production grid and do not mint RESULT until that ARM is
-created and reviewed. The original prereg at `ada237e` and Amendment_001
-at `d8f0a99` are not rewritten in place.
+A production driver + canonical plan + ARM-authorization runtime is now
+implemented on top
+(`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PRODUCTION_DRIVER.md`)
+but is not itself an execution freeze or an ARM; no V2 ARM artifact exists
+anywhere in the repository. Next required step for V2:
+`INDEPENDENT_V2_PRODUCTION_DRIVER_AND_ARM_RUNTIME_REVIEW`, then
+`CREATE_NEW_V2_PRODUCTION_ARM`. Do not run the 3200-world production grid
+and do not mint RESULT until that ARM is created and reviewed. The
+original prereg at `ada237e` and Amendment_001 at `d8f0a99` are not
+rewritten in place.
 
 This methodology gate does not weaken or bypass the current B2-06 state:
 `FUNDING_PUBLICATION_LATENCY_UNPROVEN`, `research_authorized = false`,

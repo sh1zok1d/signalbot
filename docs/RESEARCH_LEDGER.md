@@ -2127,3 +2127,53 @@ implementation change. No production ARM, RESULT, or WORLD_RECORDS.
 
 - next required step: `CREATE_NEW_V2_PRODUCTION_ARM`
 
+## 2026-09-12 — V2 production driver + canonical plan + ARM runtime authorization
+
+**Decision:** implement, on top of the immutable V2 policy freeze
+(`f96197d`), the execution layer the frozen fixture intentionally omits: a
+canonical production plan mechanically inherited from the frozen V1 grid, a
+thin production orchestration layer, and a V2 ARM-authorization runtime. Not
+an execution freeze, not an ARM.
+
+Canonical implementation identity:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PRODUCTION_DRIVER.md`.
+
+New code:
+`scripts/research/harness_synthetic_edge_calibration_v2_production.py` and
+`tests/research/test_harness_synthetic_edge_calibration_v2_production.py`.
+
+- `canonical_v2_production_jobs() == harness_synthetic_edge_calibration_v1_production.planned_production_jobs()`
+  byte-for-byte (3200 worlds; no new world set); `canonical_v2_plan()` binds
+  that grid's identity plus the frozen V2 policy's exact blob/SHA256/size,
+  deterministically serialized and hashed.
+- Per-world classification is delegated verbatim to the frozen fixture's own
+  private `_evaluate_v2_world_inner`; proven byte-for-byte equivalent to the
+  fixture's public `evaluate_v2_world` across every scenario × non-production
+  N × world index reachable through the fixture, including the
+  forced-lookahead → `WORLD_INVALID` path.
+- `v2_production_arm_authorized()` recognizes only a self-consistent ARM
+  commit binding freeze parent HEAD/TREE, freeze artifact hash/size, V2
+  policy hash/size, all five V1 TCB hashes, the canonical plan hash, and the
+  original prereg/Amendment_001 identities, evaluated from committed git
+  object bytes (not worktree, not caller arguments).
+- No ARM artifact (`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PRODUCTION_ARM.json`)
+  exists anywhere in the repository as of this unit.
+
+The frozen V2 fixture, its freeze artifact, the original prereg, and
+Amendment_001 are all byte-identical to before this unit (verified by
+`git diff --stat`, zero output).
+
+- v2_production_arm_authorized (at this HEAD): **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_created: **false**
+- authorization_consumed: **false**
+- v1_attempt_status: `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`
+- v1_3087_subset_claimable: **false**
+
+No prereg change. No Amendment_002. No V1 TCB change. No V2 policy or
+freeze-artifact change. No real V2 ARM created anywhere in project history.
+No production run, RESULT, or WORLD_RECORDS.
+
+- next required step: `INDEPENDENT_V2_PRODUCTION_DRIVER_AND_ARM_RUNTIME_REVIEW`
+
