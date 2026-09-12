@@ -1,0 +1,1056 @@
+{
+  "schema": "harness_synthetic_edge_calibration_v2_inherited_ladder_amendment_002",
+  "schema_version": "1.0.0",
+  "status": "FROZEN_BEFORE_IMPLEMENTATION",
+  "amendment_id": "AMENDMENT_002",
+  "base_head": "38fb869feb10b762709766df071980f0c16189fd",
+  "base_tree": "6e0dd9bca9471f1dc256aacd7b4df1a557248854",
+  "supersedes": null,
+  "predecessor_audit": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_INHERITED_LADDER_PROVENANCE_AUDIT.md",
+  "original_prereg_changed": false,
+  "amendment_001_changed": false,
+  "v2_policy_changed": false,
+  "policy_freeze_changed": false,
+  "v1_tcb_changed": false,
+  "production_outcomes_inspected": false,
+  "real_arm_created": false,
+  "production_run": false,
+  "wilson_z": 1.959963984540054,
+  "hard_floor_identifiable": 200,
+  "world_valid_rate_min_wilson_lower": 0.95,
+  "state_enum": [
+    "PASS",
+    "FAIL",
+    "NOT_CLAIMABLE",
+    "INDETERMINATE",
+    "DIAGNOSTIC"
+  ],
+  "final_overall_state_enum": [
+    "STRUCTURALLY_INCOMPLETE",
+    "COVERAGE_INADEQUATE",
+    "CALIBRATION_INDETERMINATE",
+    "CALIBRATION_FAILED",
+    "CALIBRATION_PASSED"
+  ],
+  "conclusions": {
+    "NULL_ORACLE_FPR": {
+      "source_type": "INHERITED_DIRECT",
+      "source_identity": "load_frozen_prereg()['acceptance']['specificity']['ORACLE_NULL_MODEL_FPR_max']",
+      "cell": "NULL|5000",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "wilson_upper(detected=True | CANDIDATE_IDENTIFIABLE, F03, NULL|5000) <= threshold => PASS; wilson_lower(...) > threshold => FAIL; else INDETERMINATE",
+      "threshold": 0.05,
+      "bound": "Wilson upper (PASS side)",
+      "coverage_requirement": {
+        "cell": "NULL|5000",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "NULL_PER_CANDIDATE_FPR": {
+      "source_type": "NEWLY_SPECIFIED_V2_COMBINATION",
+      "source_identity": "reuses load_frozen_prereg()['acceptance']['specificity']['BLIND_LIBRARY_NULL_FPR_max'] applied per-candidate (most conservative existing frozen NULL threshold; no per-candidate-specific number exists)",
+      "cell": "NULL|5000",
+      "candidates": [
+        "F01",
+        "F02",
+        "F03",
+        "F04",
+        "F05",
+        "F06",
+        "F07",
+        "F08",
+        "F09",
+        "F10"
+      ],
+      "per_candidate": true,
+      "rule": "for each candidate c independently: wilson_upper(detected=True | CANDIDATE_IDENTIFIABLE, c, NULL|5000) <= threshold => PASS; wilson_lower(...) > threshold => FAIL; else INDETERMINATE",
+      "threshold": 0.1,
+      "bound": "Wilson upper (PASS side)",
+      "coverage_requirement": {
+        "cell": "NULL|5000",
+        "candidates": [
+          "<the one candidate under discussion>"
+        ]
+      },
+      "precedence": "coverage before detection; discussed only if that one candidate is ADEQUATE",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "NULL_BLIND_FPR": {
+      "source_type": "INHERITED_DIRECT",
+      "source_identity": "load_frozen_prereg()['acceptance']['specificity']['BLIND_LIBRARY_NULL_FPR_max']",
+      "cell": "NULL|5000",
+      "candidates": [
+        "F01",
+        "F02",
+        "F03",
+        "F04",
+        "F05",
+        "F06",
+        "F07",
+        "F08",
+        "F09",
+        "F10"
+      ],
+      "rule": "wilson_upper(ANY_EDGE_DECLARED=True, NULL|5000) <= threshold => PASS; wilson_lower(...) > threshold => FAIL; else INDETERMINATE",
+      "threshold": 0.1,
+      "bound": "Wilson upper (PASS side)",
+      "coverage_requirement": {
+        "cell": "NULL|5000",
+        "candidates": [
+          "F01",
+          "F02",
+          "F03",
+          "F04",
+          "F05",
+          "F06",
+          "F07",
+          "F08",
+          "F09",
+          "F10"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "NULL_FALSE_POSITIVE_CONCLUSION": {
+      "source_type": "NEWLY_SPECIFIED_V2_COMBINATION",
+      "source_identity": "Amendment_001 section 5.2 (all ten required); combination rule newly specified here",
+      "cell": "NULL|5000",
+      "candidates": [
+        "F01",
+        "F02",
+        "F03",
+        "F04",
+        "F05",
+        "F06",
+        "F07",
+        "F08",
+        "F09",
+        "F10"
+      ],
+      "rule": "components = [NULL_ORACLE_FPR, NULL_BLIND_FPR] + [NULL_PER_CANDIDATE_FPR(c) for c in F01..F10]; NOT_CLAIMABLE if any component NOT_CLAIMABLE; else FAIL if any component FAIL; else INDETERMINATE if any component INDETERMINATE; else PASS",
+      "threshold": null,
+      "coverage_requirement": {
+        "cell": "NULL|5000",
+        "candidates": [
+          "F01",
+          "F02",
+          "F03",
+          "F04",
+          "F05",
+          "F06",
+          "F07",
+          "F08",
+          "F09",
+          "F10"
+        ]
+      },
+      "precedence": "NOT_CLAIMABLE > FAIL > INDETERMINATE > PASS",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "EASY_ORACLE_POWER": {
+      "source_type": "INHERITED_DIRECT",
+      "source_identity": "load_frozen_prereg()['acceptance']['sanity_power']['EASY_ORACLE_MODEL_detection_min']",
+      "cell": "EASY|5000",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "wilson_lower(detected=True | CANDIDATE_IDENTIFIABLE, F03, EASY|5000) >= threshold => PASS; wilson_upper(...) < threshold => FAIL; else INDETERMINATE",
+      "threshold": 0.9,
+      "bound": "Wilson lower (PASS side)",
+      "coverage_requirement": {
+        "cell": "EASY|5000",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "EASY_BLIND_USEFUL_DISCOVERY": {
+      "source_type": "INHERITED_DIRECT",
+      "source_identity": "load_frozen_prereg()['acceptance']['discovery']['EASY_BLIND_USEFUL_DISCOVERY_min']",
+      "cell": "EASY|5000",
+      "candidates": [
+        "F01",
+        "F02",
+        "F03",
+        "F04",
+        "F05",
+        "F06",
+        "F07",
+        "F08",
+        "F09",
+        "F10"
+      ],
+      "rule": "wilson_lower(USEFUL_DISCOVERY_RATE, EASY|5000, pooled L>0) >= threshold => PASS; wilson_upper(...) < threshold => FAIL; else INDETERMINATE",
+      "threshold": 0.8,
+      "bound": "Wilson lower (PASS side)",
+      "coverage_requirement": {
+        "cell": "EASY|5000",
+        "candidates": [
+          "F01",
+          "F02",
+          "F03",
+          "F04",
+          "F05",
+          "F06",
+          "F07",
+          "F08",
+          "F09",
+          "F10"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "EASY_CONCLUSION": {
+      "source_type": "INHERITED_DIRECT",
+      "source_identity": "load_frozen_prereg()['acceptance']['discovery_diagnosis_priority'] applied within the EASY scenario using EASY_ORACLE_POWER and EASY_BLIND_USEFUL_DISCOVERY",
+      "cell": "EASY|5000",
+      "candidates": [
+        "F01",
+        "F02",
+        "F03",
+        "F04",
+        "F05",
+        "F06",
+        "F07",
+        "F08",
+        "F09",
+        "F10"
+      ],
+      "rule": "NOT_CLAIMABLE if either component NOT_CLAIMABLE; else FAIL if EASY_ORACLE_POWER==FAIL (specificity/power failure precedes); else INDETERMINATE if either component INDETERMINATE; else FAIL if EASY_BLIND_USEFUL_DISCOVERY==FAIL (discovery bottleneck); else PASS",
+      "threshold": null,
+      "coverage_requirement": {
+        "cell": "EASY|5000",
+        "candidates": [
+          "F01",
+          "F02",
+          "F03",
+          "F04",
+          "F05",
+          "F06",
+          "F07",
+          "F08",
+          "F09",
+          "F10"
+        ]
+      },
+      "precedence": "NOT_CLAIMABLE > power-FAIL > INDETERMINATE > discovery-FAIL > PASS (exact discovery_diagnosis_priority order)",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "MODERATE_ORACLE_POWER": {
+      "source_type": "INHERITED_DIRECT",
+      "source_identity": "load_frozen_prereg()['acceptance']['sanity_power']['MODERATE_ORACLE_MODEL_detection_min']",
+      "cell": "MODERATE|5000",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "wilson_lower(detected=True | CANDIDATE_IDENTIFIABLE, F03, MODERATE|5000) >= threshold => PASS; wilson_upper(...) < threshold => FAIL; else INDETERMINATE",
+      "threshold": 0.7,
+      "bound": "Wilson lower (PASS side)",
+      "coverage_requirement": {
+        "cell": "MODERATE|5000",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "MODERATE_BLIND_USEFUL_DISCOVERY": {
+      "source_type": "INHERITED_DIRECT",
+      "source_identity": "load_frozen_prereg()['acceptance']['discovery']['MODERATE_BLIND_USEFUL_DISCOVERY_min']",
+      "cell": "MODERATE|5000",
+      "candidates": [
+        "F01",
+        "F02",
+        "F03",
+        "F04",
+        "F05",
+        "F06",
+        "F07",
+        "F08",
+        "F09",
+        "F10"
+      ],
+      "rule": "wilson_lower(USEFUL_DISCOVERY_RATE, MODERATE|5000, pooled L>0) >= threshold => PASS; wilson_upper(...) < threshold => FAIL; else INDETERMINATE",
+      "threshold": 0.5,
+      "bound": "Wilson lower (PASS side)",
+      "coverage_requirement": {
+        "cell": "MODERATE|5000",
+        "candidates": [
+          "F01",
+          "F02",
+          "F03",
+          "F04",
+          "F05",
+          "F06",
+          "F07",
+          "F08",
+          "F09",
+          "F10"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "MODERATE_CONCLUSION": {
+      "source_type": "INHERITED_DIRECT",
+      "source_identity": "load_frozen_prereg()['acceptance']['discovery_diagnosis_priority'] applied within the MODERATE scenario using MODERATE_ORACLE_POWER and MODERATE_BLIND_USEFUL_DISCOVERY",
+      "cell": "MODERATE|5000",
+      "candidates": [
+        "F01",
+        "F02",
+        "F03",
+        "F04",
+        "F05",
+        "F06",
+        "F07",
+        "F08",
+        "F09",
+        "F10"
+      ],
+      "rule": "NOT_CLAIMABLE if either component NOT_CLAIMABLE; else FAIL if MODERATE_ORACLE_POWER==FAIL; else INDETERMINATE if either component INDETERMINATE; else FAIL if MODERATE_BLIND_USEFUL_DISCOVERY==FAIL; else PASS",
+      "threshold": null,
+      "coverage_requirement": {
+        "cell": "MODERATE|5000",
+        "candidates": [
+          "F01",
+          "F02",
+          "F03",
+          "F04",
+          "F05",
+          "F06",
+          "F07",
+          "F08",
+          "F09",
+          "F10"
+        ]
+      },
+      "precedence": "NOT_CLAIMABLE > power-FAIL > INDETERMINATE > discovery-FAIL > PASS",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "SMALL_ORACLE_BAND": {
+      "source_type": "INHERITED_DIRECT",
+      "source_identity": "load_frozen_prereg()['acceptance']['small_bands']",
+      "cell": "SMALL|5000",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "wilson interval of detected=True | CANDIDATE_IDENTIFIABLE for F03 on SMALL|5000; HIGH if entirely >=0.80; MODERATE if entirely in [0.50,0.80); LOW if entirely in [0.20,0.50); VERY_LOW if entirely <0.20; else INDETERMINATE (whole_interval_required)",
+      "threshold": {
+        "HIGH": ">=0.80",
+        "MODERATE": "[0.50,0.80)",
+        "LOW": "[0.20,0.50)",
+        "VERY_LOW": "<0.20"
+      },
+      "coverage_requirement": {
+        "cell": "SMALL|5000",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "HIGH",
+        "MODERATE",
+        "LOW",
+        "VERY_LOW",
+        "INDETERMINATE"
+      ]
+    },
+    "SMALL_CONCLUSION": {
+      "source_type": "INHERITED_DIRECT",
+      "source_identity": "Amendment_001 section 5.1: 'inherited SMALL oracle-band conclusion (not a BLIND decision statistic)'",
+      "cell": "SMALL|5000",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "SMALL_CONCLUSION := SMALL_ORACLE_BAND (byte-identical alias)",
+      "threshold": null,
+      "coverage_requirement": {
+        "cell": "SMALL|5000",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "HIGH",
+        "MODERATE",
+        "LOW",
+        "VERY_LOW",
+        "INDETERMINATE"
+      ]
+    },
+    "TINY_NOISY_ORACLE_DIAGNOSTIC": {
+      "source_type": "INHERITED_DIRECT",
+      "source_identity": "load_frozen_prereg()['acceptance']['detection_floor']",
+      "cell": "TINY_NOISY|5000",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "VISIBILITY_FLOOR if wilson_upper(GROUND_TRUTH_VISIBLE, TINY_NOISY|5000) < 0.50; else MODEL_FLOOR if wilson_upper(detected=True | CANDIDATE_IDENTIFIABLE, F03, TINY_NOISY|5000) < 0.50; else ABOVE_MEASURED_FLOOR",
+      "threshold": 0.5,
+      "bound": "Wilson upper",
+      "coverage_requirement": {
+        "cell": "TINY_NOISY|5000",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "coverage before detection; visibility floor precedes model floor",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "VISIBILITY_FLOOR",
+        "MODEL_FLOOR",
+        "ABOVE_MEASURED_FLOOR"
+      ]
+    },
+    "TINY_NOISY_CONCLUSION": {
+      "source_type": "INHERITED_DIRECT",
+      "source_identity": "Amendment_001 section 5.1: 'inherited TINY_NOISY oracle diagnostic (not a BLIND decision statistic)'",
+      "cell": "TINY_NOISY|5000",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "TINY_NOISY_CONCLUSION := TINY_NOISY_ORACLE_DIAGNOSTIC (byte-identical alias)",
+      "threshold": null,
+      "coverage_requirement": {
+        "cell": "TINY_NOISY|5000",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "VISIBILITY_FLOOR",
+        "MODEL_FLOOR",
+        "ABOVE_MEASURED_FLOOR"
+      ]
+    },
+    "NONSTATIONARY_TRAP_ORACLE_SPECIFICITY": {
+      "source_type": "INHERITED_DIRECT",
+      "source_identity": "load_frozen_prereg()['acceptance']['specificity']['NONSTATIONARY_TRAP_STRICT_EX_MATERIALITY_detection_max']",
+      "cell": "NONSTATIONARY_TRAP|5000",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "wilson_upper(STRICT_PASS_EX_MATERIALITY detection=True, F03, TRAP|5000) <= threshold => PASS; wilson_lower(...) > threshold => FAIL; else INDETERMINATE",
+      "threshold": 0.2,
+      "bound": "Wilson upper (PASS side)",
+      "coverage_requirement": {
+        "cell": "NONSTATIONARY_TRAP|5000",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "NONSTATIONARY_TRAP_CONCLUSION": {
+      "source_type": "INHERITED_DIRECT",
+      "source_identity": "Amendment_001 section 5.1: 'inherited TRAP oracle specificity'",
+      "cell": "NONSTATIONARY_TRAP|5000",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "NONSTATIONARY_TRAP_CONCLUSION := NONSTATIONARY_TRAP_ORACLE_SPECIFICITY (byte-identical alias)",
+      "threshold": null,
+      "coverage_requirement": {
+        "cell": "NONSTATIONARY_TRAP|5000",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "SMALL_2500_SENSITIVITY": {
+      "source_type": "INHERITED_DIRECT",
+      "source_identity": "load_frozen_prereg()['acceptance']['small_bands'] applied to cell SMALL|2500",
+      "cell": "SMALL|2500",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "same banding rule as SMALL_ORACLE_BAND, evaluated on SMALL|2500",
+      "threshold": {
+        "HIGH": ">=0.80",
+        "MODERATE": "[0.50,0.80)",
+        "LOW": "[0.20,0.50)",
+        "VERY_LOW": "<0.20"
+      },
+      "coverage_requirement": {
+        "cell": "SMALL|2500",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "HIGH",
+        "MODERATE",
+        "LOW",
+        "VERY_LOW",
+        "INDETERMINATE"
+      ]
+    },
+    "SMALL_10000_SENSITIVITY": {
+      "source_type": "INHERITED_DIRECT",
+      "source_identity": "load_frozen_prereg()['acceptance']['small_bands'] applied to cell SMALL|10000",
+      "cell": "SMALL|10000",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "same banding rule as SMALL_ORACLE_BAND, evaluated on SMALL|10000",
+      "threshold": {
+        "HIGH": ">=0.80",
+        "MODERATE": "[0.50,0.80)",
+        "LOW": "[0.20,0.50)",
+        "VERY_LOW": "<0.20"
+      },
+      "coverage_requirement": {
+        "cell": "SMALL|10000",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "HIGH",
+        "MODERATE",
+        "LOW",
+        "VERY_LOW",
+        "INDETERMINATE"
+      ]
+    },
+    "ORACLE_F03_NULL": {
+      "source_type": "NEWLY_SPECIFIED_V2_ALIAS",
+      "source_identity": "Amendment_001 section 5.1 'oracle F03 on NULL'; alias made explicit and binding by this amendment, following the same pattern already used verbatim for SMALL_CONCLUSION/TINY_NOISY_CONCLUSION/NONSTATIONARY_TRAP_CONCLUSION",
+      "cell": "NULL|5000",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "ORACLE_F03_NULL := NULL_ORACLE_FPR (byte-identical alias)",
+      "threshold": null,
+      "coverage_requirement": {
+        "cell": "NULL|5000",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "ORACLE_F03_EASY": {
+      "source_type": "NEWLY_SPECIFIED_V2_ALIAS",
+      "source_identity": "Amendment_001 section 5.1 'oracle F03 on EASY'; alias made explicit and binding by this amendment",
+      "cell": "EASY|5000",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "ORACLE_F03_EASY := EASY_ORACLE_POWER (byte-identical alias)",
+      "threshold": null,
+      "coverage_requirement": {
+        "cell": "EASY|5000",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "ORACLE_F03_MODERATE": {
+      "source_type": "NEWLY_SPECIFIED_V2_ALIAS",
+      "source_identity": "Amendment_001 section 5.1 'oracle F03 on MODERATE'; alias made explicit and binding by this amendment",
+      "cell": "MODERATE|5000",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "ORACLE_F03_MODERATE := MODERATE_ORACLE_POWER (byte-identical alias)",
+      "threshold": null,
+      "coverage_requirement": {
+        "cell": "MODERATE|5000",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "ORACLE_F03_SMALL_5000": {
+      "source_type": "NEWLY_SPECIFIED_V2_ALIAS",
+      "source_identity": "Amendment_001 section 5.1 'oracle F03 on SMALL N=5000'; alias made explicit and binding by this amendment",
+      "cell": "SMALL|5000",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "ORACLE_F03_SMALL_5000 := SMALL_ORACLE_BAND (byte-identical alias)",
+      "threshold": null,
+      "coverage_requirement": {
+        "cell": "SMALL|5000",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "HIGH",
+        "MODERATE",
+        "LOW",
+        "VERY_LOW",
+        "INDETERMINATE"
+      ]
+    },
+    "ORACLE_F03_TINY_NOISY": {
+      "source_type": "NEWLY_SPECIFIED_V2_ALIAS",
+      "source_identity": "Amendment_001 section 5.1 'oracle F03 on TINY_NOISY'; alias made explicit and binding by this amendment",
+      "cell": "TINY_NOISY|5000",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "ORACLE_F03_TINY_NOISY := TINY_NOISY_ORACLE_DIAGNOSTIC (byte-identical alias)",
+      "threshold": null,
+      "coverage_requirement": {
+        "cell": "TINY_NOISY|5000",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "VISIBILITY_FLOOR",
+        "MODEL_FLOOR",
+        "ABOVE_MEASURED_FLOOR"
+      ]
+    },
+    "ORACLE_F03_TRAP": {
+      "source_type": "NEWLY_SPECIFIED_V2_ALIAS",
+      "source_identity": "Amendment_001 section 5.1 'oracle F03 on TRAP'; alias made explicit and binding by this amendment",
+      "cell": "NONSTATIONARY_TRAP|5000",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "ORACLE_F03_TRAP := NONSTATIONARY_TRAP_ORACLE_SPECIFICITY (byte-identical alias)",
+      "threshold": null,
+      "coverage_requirement": {
+        "cell": "NONSTATIONARY_TRAP|5000",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "ORACLE_F03_SMALL_2500": {
+      "source_type": "NEWLY_SPECIFIED_V2_ALIAS",
+      "source_identity": "Amendment_001 section 5.1 'oracle F03 on SMALL N=2500'; alias made explicit and binding by this amendment",
+      "cell": "SMALL|2500",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "ORACLE_F03_SMALL_2500 := SMALL_2500_SENSITIVITY (byte-identical alias)",
+      "threshold": null,
+      "coverage_requirement": {
+        "cell": "SMALL|2500",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "HIGH",
+        "MODERATE",
+        "LOW",
+        "VERY_LOW",
+        "INDETERMINATE"
+      ]
+    },
+    "ORACLE_F03_SMALL_10000": {
+      "source_type": "NEWLY_SPECIFIED_V2_ALIAS",
+      "source_identity": "Amendment_001 section 5.1 'oracle F03 on SMALL N=10000'; alias made explicit and binding by this amendment",
+      "cell": "SMALL|10000",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "ORACLE_F03_SMALL_10000 := SMALL_10000_SENSITIVITY (byte-identical alias)",
+      "threshold": null,
+      "coverage_requirement": {
+        "cell": "SMALL|10000",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "HIGH",
+        "MODERATE",
+        "LOW",
+        "VERY_LOW",
+        "INDETERMINATE"
+      ]
+    },
+    "BLIND_DISCOVERY_EASY": {
+      "source_type": "NEWLY_SPECIFIED_V2_ALIAS",
+      "source_identity": "Amendment_001 section 5.1 'EASY BLIND useful-discovery decision'; alias made explicit and binding by this amendment",
+      "cell": "EASY|5000",
+      "candidates": [
+        "F01",
+        "F02",
+        "F03",
+        "F04",
+        "F05",
+        "F06",
+        "F07",
+        "F08",
+        "F09",
+        "F10"
+      ],
+      "rule": "BLIND_DISCOVERY_EASY := EASY_BLIND_USEFUL_DISCOVERY (byte-identical alias)",
+      "threshold": null,
+      "coverage_requirement": {
+        "cell": "EASY|5000",
+        "candidates": [
+          "F01",
+          "F02",
+          "F03",
+          "F04",
+          "F05",
+          "F06",
+          "F07",
+          "F08",
+          "F09",
+          "F10"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "BLIND_DISCOVERY_MODERATE": {
+      "source_type": "NEWLY_SPECIFIED_V2_ALIAS",
+      "source_identity": "Amendment_001 section 5.1 'MODERATE BLIND useful-discovery decision'; alias made explicit and binding by this amendment",
+      "cell": "MODERATE|5000",
+      "candidates": [
+        "F01",
+        "F02",
+        "F03",
+        "F04",
+        "F05",
+        "F06",
+        "F07",
+        "F08",
+        "F09",
+        "F10"
+      ],
+      "rule": "BLIND_DISCOVERY_MODERATE := MODERATE_BLIND_USEFUL_DISCOVERY (byte-identical alias)",
+      "threshold": null,
+      "coverage_requirement": {
+        "cell": "MODERATE|5000",
+        "candidates": [
+          "F01",
+          "F02",
+          "F03",
+          "F04",
+          "F05",
+          "F06",
+          "F07",
+          "F08",
+          "F09",
+          "F10"
+        ]
+      },
+      "precedence": "coverage before detection",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "BLIND_DISCOVERY_CONCLUSION": {
+      "source_type": "NEWLY_SPECIFIED_V2_COMBINATION",
+      "source_identity": "Amendment_001 section 5.1 'union of frozen BLIND useful-discovery decisions'; combination rule newly specified here using the same qualitative ordering as acceptance.discovery_diagnosis_priority",
+      "cell": "EASY|5000 and MODERATE|5000",
+      "candidates": [
+        "F01",
+        "F02",
+        "F03",
+        "F04",
+        "F05",
+        "F06",
+        "F07",
+        "F08",
+        "F09",
+        "F10"
+      ],
+      "rule": "NOT_CLAIMABLE if either BLIND_DISCOVERY_EASY or BLIND_DISCOVERY_MODERATE is NOT_CLAIMABLE; else FAIL if either is FAIL; else INDETERMINATE if either is INDETERMINATE; else PASS",
+      "threshold": null,
+      "coverage_requirement": {
+        "cells": [
+          "EASY|5000",
+          "MODERATE|5000"
+        ],
+        "candidates_per_named_cell": [
+          "F01",
+          "F02",
+          "F03",
+          "F04",
+          "F05",
+          "F06",
+          "F07",
+          "F08",
+          "F09",
+          "F10"
+        ]
+      },
+      "precedence": "NOT_CLAIMABLE > FAIL > INDETERMINATE > PASS",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "VISIBILITY_FLOOR": {
+      "source_type": "INHERITED_DIRECT",
+      "source_identity": "load_frozen_prereg()['acceptance']['detection_floor']",
+      "cell": "EASY|5000",
+      "candidates": [],
+      "world_baseline_only": true,
+      "rule": "wilson_upper(GROUND_TRUTH_VISIBLE=True, EASY|5000) < threshold => VISIBILITY_FLOOR; else ABOVE_MEASURED_FLOOR (subject to MODEL_FLOOR check)",
+      "threshold": 0.5,
+      "bound": "Wilson upper",
+      "coverage_requirement": {
+        "cell": "EASY|5000",
+        "candidates": [],
+        "world_baseline_only": true
+      },
+      "precedence": "coverage before detection; precedes MODEL_FLOOR",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "VISIBILITY_FLOOR",
+        "ABOVE_MEASURED_FLOOR"
+      ]
+    },
+    "MODEL_FLOOR": {
+      "source_type": "INHERITED_DIRECT",
+      "source_identity": "load_frozen_prereg()['acceptance']['detection_floor']",
+      "cell": "EASY|5000",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "given VISIBILITY_FLOOR not already binding: wilson_upper(detected=True | CANDIDATE_IDENTIFIABLE, F03, EASY|5000) < threshold => MODEL_FLOOR; else ABOVE_MEASURED_FLOOR",
+      "threshold": 0.5,
+      "bound": "Wilson upper",
+      "coverage_requirement": {
+        "cell": "EASY|5000",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "coverage before detection; evaluated only if VISIBILITY_FLOOR is not binding",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "MODEL_FLOOR",
+        "ABOVE_MEASURED_FLOOR"
+      ]
+    },
+    "MATERIALITY_ONLY_DIAGNOSTIC": {
+      "source_type": "NEWLY_SPECIFIED_V2_COMBINATION",
+      "source_identity": "load_frozen_prereg()['conclusion_authority']['materiality_only'] (non-governing role) + ['acceptance']['materiality'] (comparison named); exact per-world boolean formula newly specified here (source_type for the formula: NEWLY_SPECIFIED_V2_COMBINATION)",
+      "cell": "EASY|5000",
+      "candidates": [
+        "F03"
+      ],
+      "rule": "materiality_only_suppressed(world) := gates.STRICT_PASS_EX_MATERIALITY is True AND gates.STRICT_PASS is False; reported as Wilson interval of this rate plus MATERIALITY_FRACTION_OF_ATTAINABLE; NEVER governs FINAL_OVERALL_MECHANICAL_CONCLUSION or any other id",
+      "threshold": null,
+      "coverage_requirement": {
+        "cell": "EASY|5000",
+        "candidates": [
+          "F03"
+        ]
+      },
+      "precedence": "diagnostic only; no precedence relative to other ids; passing_does_not_authorize_b2_06=true always applies",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "DIAGNOSTIC"
+      ]
+    },
+    "FINAL_OVERALL_MECHANICAL_CONCLUSION": {
+      "source_type": "NEWLY_SPECIFIED_V2_COMBINATION",
+      "source_identity": "load_frozen_prereg()['conclusion_authority']['priority_order'] + ['acceptance']['discovery_diagnosis_priority'] + V2 mechanical_conclusion_v2 structural/coverage precedence; state-machine wiring newly specified here, every branch condition and threshold inherited directly",
+      "cell": "union (see Amendment_001 section 5.2: NULL|5000, EASY|5000, MODERATE|5000 full library; NONSTATIONARY_TRAP|5000, SMALL|5000, TINY_NOISY|5000, SMALL|2500, SMALL|10000 F03-only, plus world-baseline coverage ADEQUATE on all eight)",
+      "candidates": [
+        "union per cell, see coverage_requirement"
+      ],
+      "rule": "1: STRUCTURALLY_INCOMPLETE if not structurally_complete. 2: else COVERAGE_INADEQUATE if any required cell/candidate in the union is not ADEQUATE. 3: else CALIBRATION_FAILED(sub_status=METHODOLOGY_REPAIR_REQUIRED_BEFORE_B2_06) if NULL_FALSE_POSITIVE_CONCLUSION==FAIL. 4: else CALIBRATION_FAILED(sub_status=METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06) if EASY_ORACLE_POWER==FAIL or MODERATE_ORACLE_POWER==FAIL. 5: else CALIBRATION_INDETERMINATE if NULL_FALSE_POSITIVE_CONCLUSION, EASY_ORACLE_POWER, MODERATE_ORACLE_POWER, or BLIND_DISCOVERY_CONCLUSION is INDETERMINATE. 6: else CALIBRATION_FAILED(sub_status=DISCOVERY_BOTTLENECK_BEFORE_B2_06) if BLIND_DISCOVERY_CONCLUSION==FAIL. 7: else CALIBRATION_PASSED(sub_status=NO_V1_EVIDENCE_OF_DISCOVERY_BOTTLENECK), with floor_label from VISIBILITY_FLOOR/MODEL_FLOOR and materiality_only_diagnostic from MATERIALITY_ONLY_DIAGNOSTIC attached as non-governing qualifiers.",
+      "threshold": null,
+      "coverage_requirement": {
+        "cells": {
+          "NULL|5000": [
+            "F01",
+            "F02",
+            "F03",
+            "F04",
+            "F05",
+            "F06",
+            "F07",
+            "F08",
+            "F09",
+            "F10"
+          ],
+          "EASY|5000": [
+            "F01",
+            "F02",
+            "F03",
+            "F04",
+            "F05",
+            "F06",
+            "F07",
+            "F08",
+            "F09",
+            "F10"
+          ],
+          "MODERATE|5000": [
+            "F01",
+            "F02",
+            "F03",
+            "F04",
+            "F05",
+            "F06",
+            "F07",
+            "F08",
+            "F09",
+            "F10"
+          ],
+          "NONSTATIONARY_TRAP|5000": [
+            "F03"
+          ],
+          "SMALL|5000": [
+            "F03"
+          ],
+          "TINY_NOISY|5000": [
+            "F03"
+          ],
+          "SMALL|2500": [
+            "F03"
+          ],
+          "SMALL|10000": [
+            "F03"
+          ]
+        },
+        "world_baseline_coverage_required_on_each_cell": true
+      },
+      "precedence": "STRUCTURALLY_INCOMPLETE > COVERAGE_INADEQUATE > CALIBRATION_FAILED(specificity) > CALIBRATION_FAILED(power) > CALIBRATION_INDETERMINATE > CALIBRATION_FAILED(discovery) > CALIBRATION_PASSED",
+      "possible_states": [
+        "STRUCTURALLY_INCOMPLETE",
+        "COVERAGE_INADEQUATE",
+        "CALIBRATION_INDETERMINATE",
+        "CALIBRATION_FAILED",
+        "CALIBRATION_PASSED"
+      ]
+    }
+  }
+}
