@@ -1,29 +1,24 @@
 # HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY — production driver
 
-**Status: `PRODUCTION_DRIVER_IMPLEMENTATION_AWAITING_INDEPENDENT_REVIEW`.**
+**Status: `PRODUCTION_LIFECYCLE_IMPLEMENTATION_AWAITING_INDEPENDENT_REVIEW`.**
 
-This is **not** an execution freeze and **not** an ARM. It is an
-implementation unit that adds the execution layer the frozen V2 fixture
-intentionally omits, awaiting independent review before any freeze/ARM unit
-may reference it.
+This is **not** an execution freeze and **not** an ARM. It is a pre-outcome
+implementation unit: the complete mechanical lifecycle (plan → ARM
+authorization → durable reservation → execution → durable evidence →
+aggregation → RESULT → historical verification) now exists in code, so that
+no scientific or aggregation decision remains to be made after canonical
+outcomes are seen. No real ARM exists anywhere in this repository, and none
+is created by this unit.
 
-## What this unit is
+## History
 
-The V2 fixture module
-(`scripts/research/harness_synthetic_edge_calibration_v2_rank_policy.py`,
-frozen at HEAD `a310837bab4ee60c7495cca3bdb476abdc58a041`, implementation
-frozen at HEAD `f96197d109fc22c12e4c8ba19715d67c65187c0e`) is fixture-only: it
-hard-refuses production N (`assert_not_production_grid`) and has zero import
-path to any production/ARM machinery. Before this unit, V2 lacked:
-
-1. a canonical V2 production-plan derivation;
-2. a V2 production driver/runtime;
-3. a V2 runtime ARM-authorization function.
-
-This unit adds exactly those three things, in a new file:
-`scripts/research/harness_synthetic_edge_calibration_v2_production.py`. It
-does **not** modify the frozen fixture, the freeze artifact, the original
-prereg, or Amendment_001.
+1. First implementation unit added canonical plan derivation, a thin
+   per-world orchestration layer, and HEAD-relative ARM authorization.
+2. An independent adversarial review found 4 BLOCKERs and 1 MAJOR: no
+   historical (commit-parameterized) authorization; no durable one-shot
+   reservation/claim/consumption; RESULT/WORLD_RECORDS mint unimplemented;
+   aggregation absent; and per-world re-verification overhead.
+3. **This unit** closes all five findings, described below.
 
 ## Base policy freeze bound by this unit
 
@@ -36,121 +31,149 @@ prereg, or Amendment_001.
 - Amendment_001 `HEAD = d8f0a996bc4341d0cbe01a1a061130b889ed5e75` /
   `TREE = 09dca9b1240a43d5de9de0dadf32d27e00e7eaea`
 
-## Canonical V2 plan: `FROZEN_V1_PRODUCTION_GRID + FROZEN_V2_RANK_POLICY`
+All of these remain byte-identical through this unit (verified by
+`git diff`, zero output).
 
-`canonical_v2_plan()` does not invent a new scientific grid. It:
+## BLOCKER 1 — historical execution authority (closed)
 
-- reuses `harness_synthetic_edge_calibration_v1_production.frozen_production_grid()`
-  and `planned_production_jobs()` **unmodified** for the world set, cell
-  ordering, scenario ids, N values, worlds-per-cell, and root-seed/seed
-  derivation authority (`canonical_v2_production_jobs() ==
-  planned_production_jobs()`, proven by test, byte-for-byte, not merely
-  "equivalent");
-- binds the V2 policy source's exact git blob/SHA256/size on top;
-- serializes both deterministically (`canonical_json_bytes`, sorted keys) and
-  SHA256s the result.
+`verify_historical_v2_execution_authority(repo_root, arm_commit)` proves an
+**explicit** historical commit was correctly armed, using only git objects at
+that commit — it neither depends on nor requires ambient HEAD to equal
+`arm_commit`. It reuses the same generic `_v2_arm_payload_authorizes_at_commit`
+primitive the original HEAD-relative `v2_production_arm_authorized()` uses;
+this is an additional public entrypoint onto that primitive, not a second
+implementation. Proven by test to work identically at the ARM commit, at an
+arbitrary descendant commit, and from a clean clone containing the same
+commits — and to be unaffected by worktree-only mutation of the ARM file.
 
-`CANONICAL_WORLD_COUNT = 3200`. Changing only the V2 policy identity, or only
-the V1 grid identity, changes the plan's SHA256 (both proven by test).
+## BLOCKER 2 — durable one-shot authority (closed)
 
-## Execution-authoritative V2 files
+`v2_durable_reservation_document` / `v2_durable_claim_document` are pure
+identity derivations from an exact historically-verified bound (mirroring
+V1's own already-frozen `durable_reservation_document`/`durable_claim_document`
+design exactly — those are likewise pure identity functions, not in-process
+locks). Durability comes from committing the derived payload to git as a
+reachable descendant of the ARM: `assert_v2_reservation_available` fails
+closed the moment any of RESERVATION/CLAIM/WORLD_RECORDS/RESULT is already
+tracked. This is git-native mutual exclusion — whichever reservation commit
+is pushed/merged first durably wins, and every later or concurrent attempt's
+own availability check sees the artifact already present and refuses. This
+unit does not invent a distributed lock stronger than that; it matches the
+guarantee level V1's own already-reviewed design provides. Proven by test for
+sequential duplicate reservation and for a simulated two-process race (both
+check availability, one commits, the other's re-check then fails closed).
 
-- `scripts/research/harness_synthetic_edge_calibration_v2_rank_policy.py`
-  (frozen fixture; unmodified; semantic reference/oracle)
-- `scripts/research/harness_synthetic_edge_calibration_v2_production.py`
-  (this unit; thin orchestration only)
-- the five V1 TCB files (unmodified; hash-pinned)
+## Durable partial / checkpoint (closed)
 
-## No scientific reimplementation
+`V2DurablePartialWorldStore` is a local, untracked, crash-safe per-world
+cache, reusing V1's own atomic-write primitives (`_atomic_replace_bytes`,
+`_fsync_directory`) verbatim — no reimplementation of the durability
+mechanism. Cached records are structurally checked (kind, completeness, run
+identity, digest) but are **never** scientific authority: `mint_v2_world_records`
+always independently recomputes and exactly compares every record against
+frozen execution before accepting it, so a forged-but-self-consistent
+checkpoint cannot mint. Proven by test: checkpoint/resume produces identical
+records; a conflicting duplicate write is refused
+(`V2ProductionIntegrityError`); a store identity mismatch is refused; and a
+forged record — even if it were smuggled past the local cache entirely — is
+still caught by mint's independent recomputation.
 
-Per-world classification is never reimplemented. The production driver's
-per-world function calls the frozen fixture's own private inner function
-(`_evaluate_v2_world_inner`) — the exact function object the fixture's public
-`evaluate_v2_world` calls internally — with the same "no fixture-only
-injection" defaults the public wrapper uses. The only code duplicated is the
-public wrapper's ~15-line guard-adjacent exception-to-`WORLD_INVALID`
-conversion glue (not classification logic), and
-`test_harness_synthetic_edge_calibration_v2_production.py` proves this glue is
-byte-for-byte equivalent to the fixture's own wrapper, exhaustively, across
-every scenario × non-production N × world index the fixture's public API can
-reach, including the forced-lookahead → `WORLD_INVALID` path.
+## BLOCKER 4 — mechanical V2 aggregation (closed for everything already frozen)
 
-Worlds are built via the frozen, unmodified `simulate_dgp` — the driver never
-accepts a caller-supplied world, seed, or scientific parameter.
+`derive_v2_cell_aggregates` / `derive_v2_coverage_verdicts` /
+`derive_v2_baseline_coverage_verdicts` / `derive_v2_required_coverage_status`
+/ `derive_v2_mechanical_conclusions` wire the **frozen fixture's own
+already-reviewed aggregation pipeline** — `aggregate_v2_records`,
+`CellAggregateV2.result_schema()` (world_valid_count, per-candidate
+identifiable/non-identifiable/detection counts and rates, L distribution
+with reconciliation, BLIND-by-L + pooled + reconciliation status),
+`evaluate_cell_coverage` (the frozen 80-entry threshold table + hard floor +
+Wilson), `required_coverage_for_conclusion` (the frozen 33-entry required
+coverage map), and `mechanical_conclusion_v2` (structural incompleteness >
+insufficient identifiability > inherited ladder) — onto real evidence. **No**
+aggregation/coverage/precedence logic is reimplemented; this is orchestration
+over already-frozen functions only.
 
-## ARM runtime authorization contract
+**Explicit, deliberate scope boundary:** `mechanical_conclusion_v2`'s third
+input, the inherited V1-ladder verdict for each of the 33 named conclusions,
+is **not** computed by this unit. `frozen_required_coverage_map()`'s entries
+carry only a human-readable `inherited_claim` string (e.g. `"ORACLE NULL
+MODEL_DETECTED FPR <= 0.05"`), not a machine-executable threshold/kind
+binding, and no existing frozen function already maps that string to a
+verdict. Reconstructing that mapping from prose would itself be an
+unreviewed scientific choice — exactly what this whole framework's
+prereg-first discipline exists to prevent. `derive_v2_mechanical_conclusions`
+therefore takes `inherited_detection_conclusions` as a **required** parameter
+(fails closed if any of the 33 ids is missing) that a **separate, dedicated,
+independently reviewed** unit must supply before a real mint. See
+`KNOWN_LIMITATIONS`.
 
-`v2_production_arm_authorized()` recognizes only an ARM (tracked at
-`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PRODUCTION_ARM.json`,
-a path that does not exist anywhere in the repository as of this unit) whose
-committed git object bytes, evaluated at the exact commit under test:
+## BLOCKER 3 — WORLD_RECORDS + RESULT mint (closed, modulo the same boundary)
 
-- declare `freeze_parent_head`/`freeze_parent_tree` equal to that commit's
-  own actual immediate git parent and its tree (not merely "some freeze
-  string");
-- bind the freeze artifact's exact SHA256/size at that parent;
-- bind the V2 policy's exact SHA256/size at that commit;
-- bind all five V1 TCB SHA256 hashes, recomputed at that commit;
-- bind the canonical V2 plan SHA256, recomputed at that commit;
-- bind the exact original-prereg and Amendment_001 HEAD/TREE;
-- declare `authorization_consumed: false` and the required one-shot literal
-  contract (`V2_ARM_REQUIRED_LITERALS`);
-- have no conflicting RESULT/WORLD_RECORDS/RESERVATION/CLAIM artifact
-  tracked at that commit.
+`mint_v2_world_records` requires historical ARM authority (not ambient HEAD),
+requires exactly the canonical world count, and independently re-evaluates
+every supplied record before serializing (deterministic, digest-bound).
+`mint_v2_result` derives aggregation and mechanical conclusions internally
+from that same evidence and binds run identity, ARM commit, canonical plan
+identity, and WORLD_RECORDS digest/size/count. No caller-supplied aggregate,
+digest, or record can become authority. Never invoked with a real ARM by
+this unit — none exists.
 
-This makes the ARM commit's own parent chain and byte content the sole
-authority — not a worktree file, not a caller argument, not "any child of the
-freeze." A worktree-only mutation of the ARM file cannot change the answer
-(only a new commit can); a descendant of the ARM does not authorize (its
-parent is the ARM, not the freeze); a sibling commit without a matching,
-self-consistent ARM payload does not authorize; a V1-style ARM at a different
-path does not authorize V2.
+## §7 — historical RESULT verification (closed)
 
-`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PRODUCTION_ARM.json`
-does not exist in this repository as of this unit. Therefore, at this HEAD:
+`verify_historical_v2_result` recomputes and compares a persisted
+RESULT/WORLD_RECORDS pair entirely from scratch, from any checkout: it
+establishes authority solely via `verify_historical_v2_execution_authority`
+(commit-parameterized), independently recomputes every world record from the
+frozen DGP/policy (never trusting the payload), and independently
+re-derives the aggregation and conclusions. Proven by test to succeed for
+honest evidence from the ARM commit, a descendant commit, and a clean clone;
+and to correctly reject a forged-but-self-consistent WORLD_RECORDS payload,
+a tampered RESULT aggregate, and a fabricated conclusions block.
 
-- `v2_production_arm_authorized() = False`
-- `run_canonical_v2_production_grid()` raises `V2ProductionNotArmed`
-- `evaluate_v2_production_world(...)` raises `V2ProductionNotArmed`
-- `mint_v2_result(...)` raises `V2ProductionNotArmed`
+## MAJOR — per-world authorization overhead (closed)
 
-No 3200-world run, no RESULT, no WORLD_RECORDS, no reservation, no claim, no
-authority consumption is possible from this unit.
+`open_v2_production_session` authorizes once (historical auth + V1 TCB
+check) and returns an immutable `V2ProductionSession`; each world executes
+through `evaluate_v2_world_in_session`/`run_canonical_v2_production_grid_in_session`
+without re-verifying git/TCB/ARM state per world. The session grants no
+forgeable "authorized=True" boolean by itself — `mint_v2_world_records` /
+`mint_v2_result` / `verify_historical_v2_result` never accept or trust a
+session object; they always independently re-establish authority from git
+objects. The session is strictly an operational optimization, exactly as
+required.
+
+## No scientific reimplementation (unchanged from the prior unit)
+
+Per-world classification is still delegated verbatim to the frozen fixture's
+private `_evaluate_v2_world_inner`. Worlds are still built via the frozen,
+unmodified `simulate_dgp`. No caller-supplied world, seed, or scientific
+parameter is ever accepted.
 
 ## V1 failure history preserved
 
 - `V1_ATTEMPT_STATUS = INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`
 - `V1_3087_SUBSET_CLAIMABLE = false`
 
-Unchanged and non-resumable, exactly as recorded by the V1 production
-history and the V2 prereg/amendment/freeze chain.
+## KNOWN_LIMITATIONS
 
-## Known limitations (explicit, not silently deferred)
-
-- **Consumption marking** after a real run (writing
-  `authorization_consumed: true` durably, reservation/claim persistence
-  across process restarts, checkpointing) is not implemented. No run can
-  happen without a real ARM, which does not exist yet, so there is nothing to
-  mark consumed. A future execution-freeze/ARM unit that actually runs the
-  grid must add durable consumption/reservation persistence before that run,
-  analogous to `DurablePartialWorldStore` in the V1 production module.
-- `mint_v2_result` is a minimal, gated, unreachable stub: it verifies ARM
-  authorization and independently recomputes and equality-checks every
-  supplied `WorldRecordV2` before doing anything else, then always refuses
-  (`RESULT minting is not implemented in this unit`). A future unit must
-  replace the final refusal with real aggregate derivation, once a real ARM
-  and a real run exist to derive it from.
-- Historical/cross-commit ARM verification (`_v2_arm_payload_authorizes_at_commit`)
-  is scoped to evaluating whatever commit is checked out as `HEAD`; it does
-  not implement V1's more elaborate "search backward from HEAD for a
-  historical ARM commit" machinery. This is sufficient for every required
-  test case (each is evaluated by checking out the commit in question and
-  asking whether that HEAD is authorized) but should be revisited if a future
-  unit needs to verify authorization at an ARM commit that is not the live
-  HEAD.
+- **Inherited-ladder mapping** (see BLOCKER 4 above): the 33 conclusion ids'
+  original V1-methodology verdicts must be supplied by a separate, frozen,
+  independently reviewed mapping before a real mint. This is the one
+  remaining piece of "what does this specific inherited claim mechanically
+  evaluate to" that this repair unit deliberately does not invent.
+- The reservation/claim durability model matches V1's own already-accepted
+  guarantee level (git-native "first commit wins" exclusion checked at
+  authorization time), not a stronger distributed lock; this is a deliberate
+  match to precedent, not a shortfall relative to it.
+- `V2DurablePartialWorldStore` is a new, non-frozen class analogous to (but
+  not literally reusing) V1's `DurablePartialWorldStore`, since the latter is
+  hardcoded to V1's own record/job shape. It reuses V1's atomic-write
+  primitives verbatim; only the per-world dataclass (de)serialization and
+  identity-binding glue is V2-specific, non-scientific plumbing.
 
 ## Next required step
 
-`INDEPENDENT_V2_PRODUCTION_DRIVER_AND_ARM_RUNTIME_REVIEW`. This unit is not
+`INDEPENDENT_V2_PRODUCTION_LIFECYCLE_REREVIEW`. This unit is not
 self-certifying; the report accompanying this commit lists exact test
 commands/results/exclusions for that review to verify independently.

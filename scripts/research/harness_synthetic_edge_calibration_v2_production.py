@@ -26,6 +26,9 @@ authority.
 
 from __future__ import annotations
 
+import dataclasses
+import json
+import time
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -35,8 +38,12 @@ from scripts.research.harness_synthetic_edge_calibration_v1_lib import (
     simulate_dgp,
 )
 from scripts.research.harness_synthetic_edge_calibration_v1_production import (
+    _atomic_replace_bytes,
     _commit_blob,
+    _commit_exists,
+    _fsync_directory,
     _git,
+    _jsonable,
     _load_commit_json,
     _parent_sha_of,
     _repo_root,
@@ -48,13 +55,22 @@ from scripts.research.harness_synthetic_edge_calibration_v1_production import (
 )
 from scripts.research.harness_synthetic_edge_calibration_v2_rank_policy import (
     CANDIDATE_UNDEFINED_ON_INVALID_WORLD,
+    COVERAGE_INSUFFICIENT,
     NOT_ERA_SCOPED,
     WORLD_INVALID,
     CandidateWorldRecord,
     ChronologyLookaheadError,
     FitInspection,
+    NonidentifiabilityRecord,
+    UndefinedCoverageDenominator,
     WorldRecordV2,
     _evaluate_v2_world_inner,
+    aggregate_v2_records,
+    evaluate_cell_coverage,
+    frozen_required_coverage_map,
+    mechanical_conclusion_v2,
+    required_coverage_for_conclusion,
+    world_baseline_coverage_verdict,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -129,6 +145,13 @@ V2_ARM_REQUIRED_LITERALS = {
     "oos_2026_authorized": False,
 }
 
+V2_DURABLE_PARTIAL_KIND = "V2_DURABLE_PARTIAL_WORLD_EVIDENCE"
+V2_DURABLE_PARTIAL_RECORD_KIND = "V2_DURABLE_PARTIAL_WORLD_EVIDENCE_RECORD"
+V2_DURABLE_PARTIAL_IDENTITY_NAME = "V2_STORE_IDENTITY.json"
+
+V2_WORLD_RECORDS_SCHEMA = "harness_synthetic_edge_calibration_v2_world_records"
+V2_RESULT_SCHEMA = "harness_synthetic_edge_calibration_v2_result"
+
 
 class V2ProductionNotArmed(SyntheticExecutionNotAuthorized):
     """V2 production Monte Carlo is not armed by a verified parent-authorizing ARM."""
@@ -140,6 +163,11 @@ class V2ProductionIntegrityError(SyntheticExecutionNotAuthorized):
 
 def _refuse(detail: str) -> None:
     raise SyntheticExecutionNotAuthorized(f"SYNTHETIC_EXECUTION_NOT_AUTHORIZED: {detail}")
+
+
+def _refuse_integrity(detail: str) -> None:
+    """Structural/world-set/checkpoint integrity failures (not authorization)."""
+    raise V2ProductionIntegrityError(f"SYNTHETIC_EXECUTION_NOT_AUTHORIZED: {detail}")
 
 
 # --- V1 TCB integrity (recomputed at runtime, not just at review time) -------
@@ -424,28 +452,571 @@ def run_canonical_v2_production_grid(*args: Any, **kwargs: Any) -> tuple[WorldRe
     return tuple(records)
 
 
-def mint_v2_result(
-    evidence: Sequence[WorldRecordV2], *args: Any, **kwargs: Any
-) -> dict[str, Any]:
-    """Derive an authoritative V2 RESULT from full canonical evidence. Not reachable.
 
-    Never called by this unit. Requires ARM authorization (always False here)
-    and requires every supplied record to be recomputed and match exactly --
-    no caller-supplied aggregate or world record can become scientific
-    authority.
+# =============================================================================
+# BLOCKER 1: historical execution-authority verification (commit-parameterized,
+# not ambient-HEAD-relative). Reuses the same generic
+# _v2_arm_payload_authorizes_at_commit primitive v2_production_arm_authorized()
+# uses -- this is an additional entrypoint onto it, not a second
+# implementation.
+# =============================================================================
+
+
+def verify_historical_v2_execution_authority(
+    repo_root: Path, arm_commit: str
+) -> dict[str, Any]:
+    """Prove ``arm_commit`` was correctly armed, using git objects at that commit.
+
+    Ambient current HEAD is irrelevant: this neither requires nor implies HEAD
+    equals ``arm_commit``. This does not grant live authorization at HEAD; it
+    only proves a specific historical commit was (and, by git immutability,
+    remains) a legitimate ARM.
     """
-    if args or kwargs:
-        _refuse("caller arguments cannot authorize RESULT minting")
-    repo_root = _repo_root()
-    if v2_production_arm_authorized(repo_root) is not True:
-        raise V2ProductionNotArmed(
-            "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: v2_production_arm_authorized=false"
+    commit = str(arm_commit or "").strip().lower()
+    if not _commit_exists(repo_root, commit):
+        _refuse("historical ARM commit does not exist in git")
+    payload = _load_commit_json(repo_root, commit, CANONICAL_V2_ARM_PATH)
+    if payload is None:
+        _refuse("historical commit is not armed")
+    if not _v2_arm_payload_authorizes_at_commit(repo_root, commit, payload):
+        _refuse("historical V2 ARM topology is not authorized")
+    parent = _parent_sha_of(repo_root, commit)
+    parent_tree = _git(repo_root, "rev-parse", f"{parent}^{{tree}}").decode("ascii").strip().lower()
+    arm_tree = _git(repo_root, "rev-parse", f"{commit}^{{tree}}").decode("ascii").strip().lower()
+    bound = {
+        "arm_commit": commit,
+        "arm_tree": arm_tree,
+        "freeze_parent_head": parent,
+        "freeze_parent_tree": parent_tree,
+        "canonical_v2_plan_sha256": payload["canonical_v2_plan_sha256"],
+        "v2_policy_sha256": payload["v2_policy_sha256"],
+    }
+    bound["run_identity"] = v2_run_identity(bound)
+    return bound
+
+
+def v2_run_identity(bound: Mapping[str, Any]) -> str:
+    """Durable run identity from an exact historically-verified bound only."""
+    payload = {
+        "schema": "harness_synthetic_edge_calibration_v2_run_identity",
+        "arm_commit": bound["arm_commit"],
+        "arm_tree": bound["arm_tree"],
+        "freeze_parent_head": bound["freeze_parent_head"],
+        "canonical_v2_plan_sha256": bound["canonical_v2_plan_sha256"],
+        "v2_policy_sha256": bound["v2_policy_sha256"],
+    }
+    return _sha256_bytes(canonical_json_bytes(payload))
+
+
+# =============================================================================
+# BLOCKER 2: durable reservation / claim / consumption.
+#
+# Reservation and claim are, like V1's own already-frozen
+# durable_reservation_document/durable_claim_document, pure identity
+# derivations from an exact historically-verified bound -- they do not
+# self-attest anything. Durability comes from committing the derived payload
+# to git as an immediate/reachable descendant of the ARM: once one process's
+# reservation commit lands, it is a tracked, immutable git object, and every
+# later authorization check (this module's existing
+# _v2_protected_artifacts_present_at, extended to the reservation/claim paths)
+# fails closed against it. A concurrent second attempt racing to commit the
+# same reservation is resolved the same way git itself resolves any
+# concurrent write to a shared ref: whichever commit is pushed/merged first
+# durably wins, and the loser's authorization check sees the artifact already
+# present and refuses. This module does not invent a distributed lock beyond
+# that -- it matches the guarantee level V1's own already-reviewed
+# reservation/claim design provides.
+# =============================================================================
+
+
+def v2_durable_reservation_document(repo_root: Path, arm_commit: str) -> dict[str, Any]:
+    """Reservation identity from an exact historically-verified bound only."""
+    bound = verify_historical_v2_execution_authority(repo_root, arm_commit)
+    return {
+        "schema": "harness_synthetic_edge_calibration_v2_production_reservation",
+        "schema_version": "1.0.0",
+        "run_identity": bound["run_identity"],
+        "arm_commit": bound["arm_commit"],
+        "arm_tree": bound["arm_tree"],
+        "canonical_v2_plan_sha256": bound["canonical_v2_plan_sha256"],
+        "v2_policy_sha256": bound["v2_policy_sha256"],
+        "authorization_consumed": False,
+    }
+
+
+def v2_durable_claim_document(repo_root: Path, arm_commit: str) -> dict[str, Any]:
+    """Claim identity: the same tracked run identity as the reservation."""
+    reservation = v2_durable_reservation_document(repo_root, arm_commit)
+    return {
+        "schema": "harness_synthetic_edge_calibration_v2_production_claim",
+        "schema_version": "1.0.0",
+        "run_identity": reservation["run_identity"],
+        "arm_commit": reservation["arm_commit"],
+        "reservation_sha256": _sha256_bytes(canonical_json_bytes(reservation)),
+        "authorization_consumed": False,
+        "production_calibration_executed": False,
+        "result_minted": False,
+    }
+
+
+def assert_v2_reservation_available(repo_root: Path, arm_commit: str) -> None:
+    """Fail closed if arm_commit is not legitimate, or a reservation/claim/
+    result/world-records artifact already exists at current HEAD."""
+    verify_historical_v2_execution_authority(repo_root, arm_commit)
+    if _v2_protected_artifacts_present_at(repo_root, "HEAD"):
+        _refuse("a V2 reservation/claim/result/world-records artifact already exists")
+
+
+# =============================================================================
+# Durable partial (checkpoint) world evidence store: local, untracked,
+# crash-safe cache. NOT scientific authority by itself -- every cached record
+# must be independently re-authenticated (recomputed and compared) against
+# frozen execution before it may enter WORLD_RECORDS/RESULT. Reuses V1's own
+# atomic-write primitives verbatim (generic; no V1-specific content).
+# =============================================================================
+
+
+class V2DurablePartialWorldStore:
+    """Append-safe per-world evidence cache. Never RESULT / WORLD_RECORDS / ARM."""
+
+    def __init__(self, path: Path, *, run_identity: str, arm_commit: str) -> None:
+        self.path = Path(path)
+        self.worlds_dir = self.path / "worlds"
+        self.identity_path = self.path / V2_DURABLE_PARTIAL_IDENTITY_NAME
+        self.run_identity = str(run_identity)
+        self.arm_commit = str(arm_commit)
+
+    @classmethod
+    def open(cls, path: Path, *, run_identity: str, arm_commit: str) -> "V2DurablePartialWorldStore":
+        store = cls(Path(path), run_identity=run_identity, arm_commit=arm_commit)
+        store._ensure_identity()
+        return store
+
+    def _identity_payload(self) -> dict[str, Any]:
+        return {
+            "kind": V2_DURABLE_PARTIAL_KIND,
+            "schema_version": 1,
+            "not_a_production_result": True,
+            "not_canonical_world_records": True,
+            "authorization_consumed": False,
+            "run_identity": self.run_identity,
+            "arm_commit": self.arm_commit,
+        }
+
+    def _ensure_identity(self) -> None:
+        self.path.mkdir(parents=True, exist_ok=True)
+        self.worlds_dir.mkdir(parents=True, exist_ok=True)
+        wanted = self._identity_payload()
+        if not self.identity_path.is_file():
+            if list(self.worlds_dir.glob("*.json")):
+                _refuse("durable partial worlds exist without a store identity")
+            _atomic_replace_bytes(self.identity_path, canonical_json_bytes(wanted))
+            return
+        existing = self._load_json(self.identity_path)
+        if existing.get("kind") != V2_DURABLE_PARTIAL_KIND:
+            _refuse("durable partial store identity kind is not canonical")
+        if existing.get("authorization_consumed") is True:
+            _refuse("durable partial store must not consume one-shot authority")
+        for key in ("run_identity", "arm_commit"):
+            if existing.get(key) != wanted[key]:
+                _refuse("durable partial store does not match frozen execution identity")
+
+    @staticmethod
+    def _load_json(path: Path) -> dict[str, Any]:
+        raw = path.read_bytes()
+        try:
+            payload = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, ValueError) as exc:
+            raise SyntheticExecutionNotAuthorized(
+                "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: durable partial store payload is torn or malformed"
+            ) from exc
+        if not isinstance(payload, dict):
+            _refuse("durable partial store payload is malformed")
+        return payload
+
+    def _world_path(self, world_identity: str) -> Path:
+        digest = _sha256_bytes(world_identity.encode("utf-8"))
+        return self.worlds_dir / f"{digest}.json"
+
+    def checkpoint_completed_world(self, record: WorldRecordV2, job: tuple[str, int, int]) -> None:
+        job = (str(job[0]), int(job[1]), int(job[2]))
+        owned = _worldrecord_to_dict(record)
+        payload = {
+            "kind": V2_DURABLE_PARTIAL_RECORD_KIND,
+            "schema_version": 1,
+            "completion_status": "COMPLETE",
+            "run_identity": self.run_identity,
+            "arm_commit": self.arm_commit,
+            "scenario_id": job[0],
+            "n_rows": job[1],
+            "world_index": job[2],
+            "record": owned,
+            "record_sha256": _sha256_bytes(canonical_json_bytes(owned)),
+        }
+        target = self._world_path(record.world_id)
+        if target.is_file():
+            existing = self._load_json(target)
+            if existing.get("record_sha256") != payload["record_sha256"]:
+                _refuse_integrity("duplicate persisted world identity")
+            return
+        _atomic_replace_bytes(target, canonical_json_bytes(payload))
+
+    def load_structurally_valid_cached(self) -> dict[tuple[str, int, int], WorldRecordV2]:
+        """UNTRUSTED cached records. Structural checks only -- not scientific authority."""
+        completed: dict[tuple[str, int, int], WorldRecordV2] = {}
+        for path in sorted(self.worlds_dir.glob("*.json")):
+            if path.name.endswith(".tmp"):
+                continue
+            payload = self._load_json(path)
+            if payload.get("kind") != V2_DURABLE_PARTIAL_RECORD_KIND:
+                _refuse_integrity("durable partial world record kind is not canonical")
+            if payload.get("completion_status") != "COMPLETE":
+                _refuse_integrity("durable partial world record is not complete")
+            if payload.get("run_identity") != self.run_identity:
+                _refuse_integrity("durable partial world record does not match frozen run identity")
+            job = (str(payload["scenario_id"]), int(payload["n_rows"]), int(payload["world_index"]))
+            record_dict = payload.get("record")
+            if not isinstance(record_dict, dict):
+                _refuse_integrity("durable partial world record body is missing")
+            if payload.get("record_sha256") != _sha256_bytes(canonical_json_bytes(record_dict)):
+                _refuse_integrity("durable partial world record digest mismatch")
+            if job in completed:
+                _refuse_integrity("duplicate persisted world identity")
+            completed[job] = _worldrecord_from_dict(record_dict)
+        return completed
+
+
+# =============================================================================
+# WorldRecordV2 <-> plain-dict serialization (needed for durable checkpoints,
+# WORLD_RECORDS, and RESULT payloads). Structural glue only -- no
+# classification logic.
+# =============================================================================
+
+
+def _worldrecord_to_dict(record: WorldRecordV2) -> dict[str, Any]:
+    return _jsonable(dataclasses.asdict(record))
+
+
+def _worldrecord_from_dict(payload: Mapping[str, Any]) -> WorldRecordV2:
+    candidates = {}
+    for cid, crec in dict(payload.get("candidates") or {}).items():
+        crec = dict(crec)
+        nonident = crec.get("nonidentifiability")
+        candidates[cid] = CandidateWorldRecord(
+            candidate_id=crec["candidate_id"],
+            state=crec["state"],
+            detected=crec.get("detected"),
+            nonidentifiability=(
+                NonidentifiabilityRecord(**nonident) if isinstance(nonident, Mapping) else None
+            ),
+            gates=crec.get("gates"),
+            mean_ae_improvement=crec.get("mean_ae_improvement"),
         )
+    baseline_failure = payload.get("baseline_failure")
+    return WorldRecordV2(
+        world_id=payload["world_id"],
+        scenario=payload["scenario"],
+        N=payload["N"],
+        world_index=payload["world_index"],
+        world_state=payload["world_state"],
+        L=payload.get("L"),
+        selection_state=payload.get("selection_state"),
+        selected_candidate=payload.get("selected_candidate"),
+        taxonomy=payload.get("taxonomy"),
+        candidates=candidates,
+        baseline_failure=(FitInspection(**baseline_failure) if isinstance(baseline_failure, Mapping) else None),
+    )
+
+
+# =============================================================================
+# BLOCKER 4: complete mechanical V2 aggregation. Wires the frozen fixture's
+# own already-reviewed aggregation pipeline (aggregate_v2_records,
+# CellAggregateV2.result_schema, evaluate_cell_coverage,
+# required_coverage_for_conclusion, mechanical_conclusion_v2) onto the real
+# canonical evidence. No aggregation/coverage/precedence logic is
+# reimplemented here -- only orchestration over already-frozen functions.
+# =============================================================================
+
+
+def derive_v2_cell_aggregates(records: Sequence[WorldRecordV2]) -> dict[str, dict[str, Any]]:
+    cells = aggregate_v2_records(records)
+    return {f"{scenario}|{n}": cell.result_schema() for (scenario, n), cell in cells.items()}
+
+
+def derive_v2_coverage_verdicts(records: Sequence[WorldRecordV2]) -> dict[str, dict[str, str]]:
+    cells = aggregate_v2_records(records)
+    return {f"{scenario}|{n}": evaluate_cell_coverage(cell) for (scenario, n), cell in cells.items()}
+
+
+def derive_v2_baseline_coverage_verdicts(records: Sequence[WorldRecordV2]) -> dict[str, str]:
+    cells = aggregate_v2_records(records)
+    out: dict[str, str] = {}
+    for (scenario, n), cell in cells.items():
+        try:
+            out[f"{scenario}|{n}"] = world_baseline_coverage_verdict(
+                world_valid_count=cell.world_valid_count, planned_worlds=cell.planned_worlds
+            )
+        except UndefinedCoverageDenominator:
+            out[f"{scenario}|{n}"] = COVERAGE_INSUFFICIENT
+    return out
+
+
+def derive_v2_required_coverage_status(records: Sequence[WorldRecordV2]) -> dict[str, str]:
+    candidate_verdicts_by_cell = derive_v2_coverage_verdicts(records)
+    baseline_verdicts_by_cell = derive_v2_baseline_coverage_verdicts(records)
+    return {
+        conclusion_id: required_coverage_for_conclusion(
+            conclusion_id,
+            candidate_verdicts_by_cell=candidate_verdicts_by_cell,
+            baseline_verdicts_by_cell=baseline_verdicts_by_cell,
+        )
+        for conclusion_id in frozen_required_coverage_map()
+    }
+
+
+def derive_v2_mechanical_conclusions(
+    records: Sequence[WorldRecordV2],
+    *,
+    structurally_complete: bool,
+    inherited_detection_conclusions: Mapping[str, str],
+) -> dict[str, str]:
+    """Apply the frozen coverage-before-detection precedence to every one of
+    the 33 required conclusions.
+
+    ``inherited_detection_conclusions`` MUST be supplied by a separately
+    frozen, independently reviewed mapping from conclusion id to the exact
+    original V1-methodology verdict string for that conclusion (see
+    ``KNOWN_LIMITATIONS`` in the accompanying doc: this repair unit does not
+    invent that mapping from the human-readable ``inherited_claim`` prose in
+    ``frozen_required_coverage_map()`` -- doing so would itself be an
+    unreviewed scientific choice).
+    """
+    coverage_status = derive_v2_required_coverage_status(records)
+    conclusions: dict[str, str] = {}
+    for conclusion_id, coverage in coverage_status.items():
+        if conclusion_id not in inherited_detection_conclusions:
+            _refuse(f"missing inherited detection conclusion for {conclusion_id}")
+        conclusions[conclusion_id] = mechanical_conclusion_v2(
+            structurally_complete=structurally_complete,
+            coverage_for_conclusion=coverage,
+            inherited_detection_conclusion=inherited_detection_conclusions[conclusion_id],
+        )
+    return conclusions
+
+
+# =============================================================================
+# MAJOR repair: authorize once at session start; each world executes only
+# through that validated session. The session is an operational optimization
+# only -- mint/historical-verification below never trusts it and always
+# independently re-establishes authority from git objects.
+# =============================================================================
+
+
+@dataclasses.dataclass(frozen=True)
+class V2ProductionSession:
+    repo_root: Path
+    arm_commit: str
+    run_identity: str
+    canonical_v2_plan_sha256: str
+    v2_policy_sha256: str
+    opened_at: float
+
+
+def open_v2_production_session(
+    repo_root: Path | None = None, arm_commit: str = "HEAD"
+) -> V2ProductionSession:
+    repo_root = repo_root or _repo_root()
+    commit = arm_commit
+    if commit == "HEAD":
+        commit = _git(repo_root, "rev-parse", "HEAD").decode("ascii").strip().lower()
+    assert_v1_tcb_intact(repo_root, commit)
+    bound = verify_historical_v2_execution_authority(repo_root, commit)
+    return V2ProductionSession(
+        repo_root=repo_root,
+        arm_commit=bound["arm_commit"],
+        run_identity=bound["run_identity"],
+        canonical_v2_plan_sha256=bound["canonical_v2_plan_sha256"],
+        v2_policy_sha256=bound["v2_policy_sha256"],
+        opened_at=time.time(),
+    )
+
+
+def evaluate_v2_world_in_session(
+    session: V2ProductionSession, scenario_id: str, n_rows: int, world_index: int
+) -> WorldRecordV2:
+    job = (str(scenario_id), int(n_rows), int(world_index))
+    if job not in set(canonical_v2_production_jobs()):
+        _refuse("world is not a frozen V2 canonical production-grid identity")
+    world = simulate_dgp(scenario_id=scenario_id, n_rows=int(n_rows), world_index=int(world_index))
+    return _production_evaluate_one_world(
+        world, scenario=str(scenario_id), n_rows=int(n_rows), world_index=int(world_index)
+    )
+
+
+def run_canonical_v2_production_grid_in_session(
+    session: V2ProductionSession, *, durable_partial: V2DurablePartialWorldStore | None = None
+) -> tuple[WorldRecordV2, ...]:
+    records = []
+    cached = durable_partial.load_structurally_valid_cached() if durable_partial is not None else {}
+    for job in canonical_v2_production_jobs():
+        if job in cached:
+            rec = cached[job]
+        else:
+            rec = evaluate_v2_world_in_session(session, *job)
+            if durable_partial is not None:
+                durable_partial.checkpoint_completed_world(rec, job)
+        records.append(rec)
+    return tuple(records)
+
+
+# =============================================================================
+# BLOCKER 3 / SS7: WORLD_RECORDS + RESULT mint, and historical result
+# verification. Never invoked with a real ARM by this unit (none exists).
+# =============================================================================
+
+
+def mint_v2_world_records(
+    repo_root: Path, arm_commit: str, evidence: Sequence[WorldRecordV2]
+) -> dict[str, Any]:
+    """Derive canonical WORLD_RECORDS. Independently authenticates every record."""
+    bound = verify_historical_v2_execution_authority(repo_root, arm_commit)
     jobs = canonical_v2_production_jobs()
     if len(evidence) != len(jobs):
-        _refuse("evidence set does not match canonical world count")
+        _refuse_integrity("evidence set does not match canonical world count")
+    session = V2ProductionSession(
+        repo_root=repo_root,
+        arm_commit=bound["arm_commit"],
+        run_identity=bound["run_identity"],
+        canonical_v2_plan_sha256=bound["canonical_v2_plan_sha256"],
+        v2_policy_sha256=bound["v2_policy_sha256"],
+        opened_at=time.time(),
+    )
     for record, job in zip(evidence, jobs):
-        recomputed = evaluate_v2_production_world(*job)
+        recomputed = evaluate_v2_world_in_session(session, *job)
         if record != recomputed:
-            _refuse("caller-supplied world record does not match frozen execution")
-    _refuse("RESULT minting is not implemented in this unit")
+            _refuse_integrity("caller-supplied world record does not match frozen execution")
+    serialized = [_worldrecord_to_dict(rec) for rec in evidence]
+    records_bytes = canonical_json_bytes(serialized)
+    return {
+        "schema": V2_WORLD_RECORDS_SCHEMA,
+        "schema_version": "1.0.0",
+        "run_identity": bound["run_identity"],
+        "arm_commit": bound["arm_commit"],
+        "canonical_v2_plan_sha256": bound["canonical_v2_plan_sha256"],
+        "record_count": len(serialized),
+        "records": serialized,
+        "records_sha256": _sha256_bytes(records_bytes),
+        "records_size": len(records_bytes),
+    }
+
+
+def mint_v2_result(
+    repo_root: Path,
+    arm_commit: str,
+    evidence: Sequence[WorldRecordV2],
+    *,
+    inherited_detection_conclusions: Mapping[str, str],
+) -> dict[str, Any]:
+    """Derive an authoritative V2 RESULT from full canonical evidence.
+
+    Never called with a real ARM by this unit (none exists in the
+    repository). Requires historical ARM authority independent of ambient
+    HEAD, requires exactly the canonical 3200-world set, independently
+    authenticates every world record, and derives aggregation/conclusion
+    internally -- no caller-supplied aggregate, digest, or conclusion can
+    become authority.
+    """
+    world_records = mint_v2_world_records(repo_root, arm_commit, evidence)
+    jobs = canonical_v2_production_jobs()
+    structurally_complete = len(evidence) == len(jobs)
+    aggregates = derive_v2_cell_aggregates(evidence)
+    conclusions = derive_v2_mechanical_conclusions(
+        evidence,
+        structurally_complete=structurally_complete,
+        inherited_detection_conclusions=inherited_detection_conclusions,
+    )
+    return {
+        "schema": V2_RESULT_SCHEMA,
+        "schema_version": "1.0.0",
+        "run_identity": world_records["run_identity"],
+        "arm_commit": world_records["arm_commit"],
+        "canonical_v2_plan_sha256": world_records["canonical_v2_plan_sha256"],
+        "world_records_sha256": world_records["records_sha256"],
+        "world_records_size": world_records["records_size"],
+        "world_records_count": world_records["record_count"],
+        "cell_aggregates": aggregates,
+        "conclusions": conclusions,
+        "v1_attempt_status": "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM",
+        "v1_3087_subset_claimable": False,
+    }
+
+
+def verify_historical_v2_result(
+    repo_root: Path,
+    arm_commit: str,
+    world_records: Mapping[str, Any],
+    result: Mapping[str, Any],
+    *,
+    inherited_detection_conclusions: Mapping[str, str],
+) -> bool:
+    """Recompute and compare a persisted RESULT/WORLD_RECORDS pair from scratch.
+
+    Works from a clean clone or any later descendant checkout: authority is
+    established solely via ``verify_historical_v2_execution_authority``
+    (commit-parameterized, ambient-HEAD independent), and every world record
+    is independently recomputed from the frozen DGP/policy, never trusted
+    from the payload.
+    """
+    bound = verify_historical_v2_execution_authority(repo_root, arm_commit)
+    if world_records.get("run_identity") != bound["run_identity"]:
+        return False
+    if world_records.get("canonical_v2_plan_sha256") != bound["canonical_v2_plan_sha256"]:
+        return False
+    serialized = world_records.get("records")
+    if not isinstance(serialized, list):
+        return False
+    records_bytes = canonical_json_bytes(serialized)
+    if world_records.get("records_sha256") != _sha256_bytes(records_bytes):
+        return False
+    if world_records.get("records_size") != len(records_bytes):
+        return False
+    jobs = canonical_v2_production_jobs()
+    if len(serialized) != len(jobs):
+        return False
+    session = V2ProductionSession(
+        repo_root=repo_root,
+        arm_commit=bound["arm_commit"],
+        run_identity=bound["run_identity"],
+        canonical_v2_plan_sha256=bound["canonical_v2_plan_sha256"],
+        v2_policy_sha256=bound["v2_policy_sha256"],
+        opened_at=time.time(),
+    )
+    records: list[WorldRecordV2] = []
+    for raw, job in zip(serialized, jobs):
+        record = _worldrecord_from_dict(raw)
+        recomputed = evaluate_v2_world_in_session(session, *job)
+        if record != recomputed:
+            return False
+        records.append(record)
+    if result.get("run_identity") != bound["run_identity"]:
+        return False
+    if result.get("world_records_sha256") != world_records["records_sha256"]:
+        return False
+    if result.get("world_records_count") != world_records["record_count"]:
+        return False
+    recomputed_aggregates = derive_v2_cell_aggregates(records)
+    if not _canonical_equal_json(recomputed_aggregates, result.get("cell_aggregates")):
+        return False
+    structurally_complete = len(records) == len(jobs)
+    recomputed_conclusions = derive_v2_mechanical_conclusions(
+        records,
+        structurally_complete=structurally_complete,
+        inherited_detection_conclusions=inherited_detection_conclusions,
+    )
+    if not _canonical_equal_json(recomputed_conclusions, result.get("conclusions")):
+        return False
+    return True
+
+
+def _canonical_equal_json(left: Any, right: Any) -> bool:
+    return canonical_json_bytes(_jsonable(left)) == canonical_json_bytes(_jsonable(right))

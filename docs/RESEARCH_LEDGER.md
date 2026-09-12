@@ -2177,3 +2177,71 @@ No production run, RESULT, or WORLD_RECORDS.
 
 - next required step: `INDEPENDENT_V2_PRODUCTION_DRIVER_AND_ARM_RUNTIME_REVIEW`
 
+## 2026-09-12 — V2 production lifecycle repair (pre-outcome)
+
+**Decision:** close the independent adversarial review's 4 BLOCKERs + 1
+MAJOR (no historical authorization; no durable one-shot reservation/claim;
+RESULT/WORLD_RECORDS mint unimplemented; aggregation absent; per-world
+re-verification overhead) by implementing the complete pre-outcome
+production lifecycle on top of the unchanged V2 policy freeze (`f96197d`).
+Not an execution freeze, not an ARM.
+
+Canonical implementation identity:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PRODUCTION_DRIVER.md`.
+
+- `verify_historical_v2_execution_authority(repo_root, arm_commit)`:
+  commit-parameterized (not ambient-HEAD) verification, reusing the existing
+  generic authorization primitive; proven to work from a descendant commit
+  and from a clean clone.
+- `v2_durable_reservation_document` / `v2_durable_claim_document` /
+  `assert_v2_reservation_available`: pure identity derivations from a
+  historically-verified bound (mirroring V1's own already-frozen
+  reservation/claim design), with git-committed durability and fail-closed
+  checks proven for sequential duplicate and simulated concurrent
+  reservation races.
+- `V2DurablePartialWorldStore`: local crash-safe per-world checkpoint cache
+  reusing V1's atomic-write primitives verbatim; cached records are never
+  trusted as authority without independent recomputation at mint time.
+- `derive_v2_cell_aggregates` / `derive_v2_coverage_verdicts` /
+  `derive_v2_required_coverage_status` / `derive_v2_mechanical_conclusions`:
+  wire the frozen fixture's own already-reviewed aggregation pipeline
+  (`aggregate_v2_records`, `CellAggregateV2.result_schema`,
+  `evaluate_cell_coverage`, `required_coverage_for_conclusion`,
+  `mechanical_conclusion_v2`) onto real evidence -- no aggregation logic is
+  reimplemented.
+- `mint_v2_world_records` / `mint_v2_result` / `verify_historical_v2_result`:
+  a real, future-capable mint and independent historical re-verification
+  path, proven to accept only honest evidence and reject forged
+  checkpoints, tampered WORLD_RECORDS, and tampered RESULT payloads.
+- `V2ProductionSession` / `open_v2_production_session`: authorize once per
+  run; mint/historical verification never trust the session, only
+  independently re-established git-object authority.
+
+**Explicit, deliberate scope boundary (not silently deferred):** the
+original V1-methodology verdict for each of the 33 required-coverage-map
+conclusions (`frozen_required_coverage_map()`'s `inherited_claim` strings)
+is not reconstructed by this unit -- doing so from prose would itself be an
+unreviewed scientific choice. `derive_v2_mechanical_conclusions` requires
+this mapping as an explicit parameter and fails closed if any of the 33 ids
+is missing. A separate, dedicated, independently reviewed mapping unit must
+supply it before a real mint.
+
+The frozen V2 fixture, its freeze artifact, the original prereg,
+Amendment_001, and all five V1 TCB files remain byte-identical (verified by
+`git diff --stat`, zero output).
+
+- v2_production_arm_authorized (at this HEAD): **false**
+- real V2 ARM created: **false**
+- production run: **false**
+- real RESULT minted: **false**
+- real WORLD_RECORDS created: **false**
+- authorization consumed: **false**
+- v1_attempt_status: `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`
+- v1_3087_subset_claimable: **false**
+
+No prereg change. No Amendment_002. No V1 TCB change. No V2 policy or
+freeze-artifact change. No real V2 ARM created anywhere in project history.
+No production run, RESULT, or WORLD_RECORDS.
+
+- next required step: `INDEPENDENT_V2_PRODUCTION_LIFECYCLE_REREVIEW`
+

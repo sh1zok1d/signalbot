@@ -417,8 +417,14 @@ def test_caller_provided_result_cannot_become_authority(tmp_path):
         )
         for _ in range(3200)
     )
-    with pytest.raises(v2p.V2ProductionNotArmed):
-        v2p.mint_v2_result(fabricated)
+    head = _git(v2p._repo_root(), "rev-parse", "HEAD")
+    # No real V2 ARM exists anywhere in this repository (test_no_real_v2_arm_exists_in_project_history),
+    # so historical authorization for this (or any) commit must fail closed
+    # before fabricated evidence is ever inspected.
+    with pytest.raises(v2p.SyntheticExecutionNotAuthorized):
+        v2p.mint_v2_result(
+            v2p._repo_root(), head, fabricated, inherited_detection_conclusions={}
+        )
 
 
 # --- Part E: production safety invariants at this HEAD -----------------------

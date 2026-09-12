@@ -220,14 +220,20 @@ not an ARM):
 and `.json`.
 The reviewed fixture-only rank-policy module is frozen at HEAD `a310837`
 (`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_IMPLEMENTATION_FREEZE.json`).
-A production driver + canonical plan + ARM-authorization runtime is now
+A complete pre-outcome production lifecycle (canonical plan, historical
+commit-parameterized ARM authorization, durable reservation/claim,
+checkpointing, mechanical aggregation wired from the frozen fixture's own
+aggregation pipeline, RESULT mint, historical result re-verification) is now
 implemented on top
 (`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PRODUCTION_DRIVER.md`)
 but is not itself an execution freeze or an ARM; no V2 ARM artifact exists
-anywhere in the repository. Next required step for V2:
-`INDEPENDENT_V2_PRODUCTION_DRIVER_AND_ARM_RUNTIME_REVIEW`, then
-`CREATE_NEW_V2_PRODUCTION_ARM`. Do not run the 3200-world production grid
-and do not mint RESULT until that ARM is created and reviewed. The
+anywhere in the repository. One deliberate scope boundary remains: the
+original V1-methodology verdict for each of the 33 required-coverage-map
+conclusions must be supplied by a separate, frozen, independently reviewed
+mapping before a real mint (this unit does not reconstruct it from prose).
+Next required step for V2: `INDEPENDENT_V2_PRODUCTION_LIFECYCLE_REREVIEW`,
+then `CREATE_NEW_V2_PRODUCTION_ARM`. Do not run the 3200-world production
+grid and do not mint RESULT until that ARM is created and reviewed. The
 original prereg at `ada237e` and Amendment_001 at `d8f0a99` are not
 rewritten in place.
 
