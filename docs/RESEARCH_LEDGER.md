@@ -2245,3 +2245,64 @@ No production run, RESULT, or WORLD_RECORDS.
 
 - next required step: `INDEPENDENT_V2_PRODUCTION_LIFECYCLE_REREVIEW`
 
+## 2026-09-12 — V2 session/reservation narrow repair + inherited-ladder provenance audit
+
+**Decision:** close the second independent rereview's 3 BLOCKERs (forged/
+`None` session executed with no ARM anywhere in the repository; reservation
+primitives never invoked by the execution path, so two sessions against the
+same unreserved ARM both fully executed; `inherited_detection_conclusions`
+an unverified caller parameter able to change the final RESULT for identical
+evidence) on top of the unchanged V2 policy freeze. Not an execution freeze,
+not an ARM.
+
+- `V2ProductionSession` is now `@dataclass(frozen=True, eq=False)`, made
+  genuinely unforgeable via a module-private `WeakKeyDictionary` registry
+  populated only by `open_v2_production_session` and the internal mint/
+  historical-verification helpers. Proven to refuse `None`, `False`, `True`,
+  `{}`, a manually-instantiated session with copied field values, a
+  `dataclasses.replace()` copy, a bare string, and a session mutated via
+  `object.__setattr__` -- all before `simulate_dgp` is ever called.
+- `establish_v2_durable_reservation(repo_root, arm_commit)` enforces VERIFY
+  ARM -> VERIFY PLAN/POLICY/TCB -> ESTABLISH RESERVATION -> OPEN SESSION ->
+  EXECUTE by construction: `open_v2_production_session` now refuses unless a
+  matching reservation is already committed at HEAD. Guarantee level stated
+  precisely: airtight within one shared repository (git's own commit/ref
+  locking); a residual, explicitly-documented race remains across
+  independent unsynchronized clones, where only wasted duplicate
+  computation -- never a duplicate authoritative RESULT -- is possible.
+- Performed (not implemented) a full provenance audit of the 33
+  inherited-ladder conclusion ids against the frozen V1 prereg's
+  `acceptance`/`conclusion_authority` sections and Amendment_001's explicit
+  map:
+  `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_INHERITED_LADDER_PROVENANCE_AUDIT.md`.
+  18/33 are mechanically unambiguous; 15/33 are not yet confirmed unambiguous
+  (no explicit threshold, or would require inferring an unstated alias).
+  Per the governing stop condition, the mapping is **not** implemented or
+  bound as authority in this unit -- `inherited_detection_conclusions`
+  remains an explicit, required, caller-supplied parameter, and
+  `mint_v2_result`'s RESULT remains not scientifically self-contained until
+  a dedicated methodology amendment resolves the 15 unresolved ids.
+
+The frozen V2 fixture, its freeze artifact, the original prereg,
+Amendment_001, and all five V1 TCB files remain byte-identical (verified by
+`git diff`, zero output).
+
+- forged/None session execution: **no longer possible**
+- reservation gates execution: **yes, within one shared repository**
+- double execution from the same unreserved ARM: **no longer possible**
+- caller can still change the final conclusion via the mapping: **yes
+  (unresolved; explicit, documented, not worked around)**
+- real V2 ARM created: **false**
+- production run: **false**
+- real RESULT minted: **false**
+- real WORLD_RECORDS created: **false**
+- authorization consumed: **false**
+- v1_attempt_status: `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`
+- v1_3087_subset_claimable: **false**
+
+No prereg change. No Amendment_002. No V1 TCB change. No V2 policy or
+freeze-artifact change. No real V2 ARM created anywhere in project history.
+No production run, RESULT, or WORLD_RECORDS.
+
+- next required step: `PRE_OUTCOME_INHERITED_LADDER_METHODOLOGY_AMENDMENT`
+

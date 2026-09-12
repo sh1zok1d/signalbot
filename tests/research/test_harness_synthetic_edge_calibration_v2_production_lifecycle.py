@@ -15,6 +15,7 @@ consume V1/V2 authority.
 from __future__ import annotations
 
 import copy
+import dataclasses
 import hashlib
 import json
 import subprocess
@@ -128,12 +129,30 @@ def small_jobs():
 
 @pytest.fixture
 def armed_small_repo(tmp_path, small_jobs):
-    """A disposable repo with freeze -> small-scope ARM already committed."""
+    """A disposable repo with freeze -> small-scope ARM already committed.
+
+    Deliberately has NO reservation yet -- used by tests that specifically
+    exercise the pre-reservation state (historical auth, reservation
+    availability/duplicate/race checks).
+    """
     with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
         repo = _commit_freeze_tree(tmp_path)
         payload = _small_arm_payload(repo)
         arm_commit = _commit_arm(repo, payload)
         yield repo, arm_commit
+
+
+@pytest.fixture
+def reserved_small_repo(armed_small_repo, small_jobs):
+    """freeze -> ARM -> durable reservation already committed.
+
+    Required by any test that opens a genuine session: open_v2_production_session
+    now refuses unless a matching reservation is already tracked at HEAD.
+    """
+    repo, arm_commit = armed_small_repo
+    with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
+        v2p.establish_v2_durable_reservation(repo, arm_commit)
+    yield repo, arm_commit
 
 
 # --- Blocker 1: historical (commit-parameterized) execution authority -------
@@ -274,6 +293,87 @@ def test_concurrent_reservation_race_resolved_by_first_committer(armed_small_rep
             v2p.assert_v2_reservation_available(repo, arm_commit)
 
 
+def test_execution_path_second_sequential_reservation_cannot_begin_computation(
+    armed_small_repo, small_jobs
+):
+    repo, arm_commit = armed_small_repo
+    with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
+        v2p.establish_v2_durable_reservation(repo, arm_commit)
+        v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
+        # A second, sequential real attempt through the real entrypoint --
+        # not the standalone check -- must fail before it could ever open a
+        # session or touch simulate_dgp.
+        with pytest.raises(v2p.SyntheticExecutionNotAuthorized):
+            v2p.establish_v2_durable_reservation(repo, arm_commit)
+
+
+def test_execution_path_concurrent_reservation_race_via_real_entrypoint(armed_small_repo, small_jobs):
+    repo, arm_commit = armed_small_repo
+    with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
+        # Both "processes" pass the pre-check (no reservation exists yet).
+        v2p.assert_v2_reservation_available(repo, arm_commit)
+        v2p.assert_v2_reservation_available(repo, arm_commit)
+        # Process A wins: calls the real establish function, which commits.
+        v2p.establish_v2_durable_reservation(repo, arm_commit)
+        # Process A can now open a genuine session and execute.
+        session_a = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
+        records_a = v2p.run_canonical_v2_production_grid_in_session(session_a)
+        assert len(records_a) == len(small_jobs)
+        # Process B's real establish call (the only way it could reach
+        # scientific computation) now fails closed -- it never opens a
+        # session and never calls simulate_dgp.
+        with pytest.raises(v2p.SyntheticExecutionNotAuthorized):
+            v2p.establish_v2_durable_reservation(repo, arm_commit)
+
+
+def test_crash_after_reservation_before_first_world_requires_fresh_session(
+    armed_small_repo, small_jobs
+):
+    repo, arm_commit = armed_small_repo
+    with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
+        v2p.establish_v2_durable_reservation(repo, arm_commit)
+        # Simulate a crash: the process that would have opened a session and
+        # executed never did either. The durable reservation survives (it is
+        # a git commit); a fresh process can open a new genuine session
+        # against the SAME reservation and proceed -- it does not need (and
+        # cannot create) a second reservation.
+        session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
+        records = v2p.run_canonical_v2_production_grid_in_session(session)
+        assert len(records) == len(small_jobs)
+        # And still no second reservation is possible.
+        with pytest.raises(v2p.SyntheticExecutionNotAuthorized):
+            v2p.establish_v2_durable_reservation(repo, arm_commit)
+
+
+def test_crash_during_checkpoint_leaves_no_torn_record_on_resume(
+    armed_small_repo, small_jobs, tmp_path
+):
+    repo, arm_commit = armed_small_repo
+    with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
+        v2p.establish_v2_durable_reservation(repo, arm_commit)
+        session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
+        store = v2p.V2DurablePartialWorldStore.open(
+            tmp_path / "cache", run_identity=session.run_identity, arm_commit=session.arm_commit
+        )
+        job = small_jobs[0]
+        rec = v2p.evaluate_v2_world_in_session(session, *job)
+        # Simulate a crash mid-checkpoint-write: a torn .tmp file is left
+        # behind (never atomically renamed into place), exactly what
+        # _atomic_replace_bytes guarantees can never become the durable
+        # object.
+        target = store._world_path(rec.world_id)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        (target.with_name(target.name + ".tmp")).write_bytes(b'{"kind": "torn"')
+        assert not target.is_file()
+        # Resume: the store must not see any completed world for this job
+        # (the torn .tmp is not the durable record), so it recomputes cleanly.
+        cached_before = store.load_structurally_valid_cached()
+        assert job not in cached_before
+        store.checkpoint_completed_world(rec, job)
+        cached_after = store.load_structurally_valid_cached()
+        assert cached_after[job] == rec
+
+
 def test_forged_reservation_wrong_run_identity_is_still_detectable(armed_small_repo, small_jobs):
     repo, arm_commit = armed_small_repo
     with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
@@ -298,8 +398,8 @@ def test_forged_claim_wrong_reservation_hash_is_still_detectable(armed_small_rep
 # --- Durable partial / checkpoint --------------------------------------------
 
 
-def test_checkpoint_resume_matches_original_and_avoids_recompute(armed_small_repo, small_jobs, tmp_path):
-    repo, arm_commit = armed_small_repo
+def test_checkpoint_resume_matches_original_and_avoids_recompute(reserved_small_repo, small_jobs, tmp_path):
+    repo, arm_commit = reserved_small_repo
     with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
         session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
         store = v2p.V2DurablePartialWorldStore.open(
@@ -313,8 +413,8 @@ def test_checkpoint_resume_matches_original_and_avoids_recompute(armed_small_rep
         assert records_resumed == records
 
 
-def test_checkpoint_rejects_conflicting_duplicate_record(armed_small_repo, small_jobs, tmp_path):
-    repo, arm_commit = armed_small_repo
+def test_checkpoint_rejects_conflicting_duplicate_record(reserved_small_repo, small_jobs, tmp_path):
+    repo, arm_commit = reserved_small_repo
     with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
         session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
         store = v2p.V2DurablePartialWorldStore.open(
@@ -329,8 +429,8 @@ def test_checkpoint_rejects_conflicting_duplicate_record(armed_small_repo, small
             store.checkpoint_completed_world(forged, job)
 
 
-def test_checkpoint_store_identity_mismatch_fails_closed(armed_small_repo, small_jobs, tmp_path):
-    repo, arm_commit = armed_small_repo
+def test_checkpoint_store_identity_mismatch_fails_closed(reserved_small_repo, small_jobs, tmp_path):
+    repo, arm_commit = reserved_small_repo
     with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
         session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
         store_path = tmp_path / "cache"
@@ -341,8 +441,8 @@ def test_checkpoint_store_identity_mismatch_fails_closed(armed_small_repo, small
             v2p.V2DurablePartialWorldStore.open(store_path, run_identity="0" * 64, arm_commit=session.arm_commit)
 
 
-def test_forged_checkpoint_cannot_bypass_mint_reauthentication(armed_small_repo, small_jobs, tmp_path):
-    repo, arm_commit = armed_small_repo
+def test_forged_checkpoint_cannot_bypass_mint_reauthentication(reserved_small_repo, small_jobs, tmp_path):
+    repo, arm_commit = reserved_small_repo
     with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
         session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
         store = v2p.V2DurablePartialWorldStore.open(
@@ -367,8 +467,8 @@ def dataclasses_replace(record, **changes):
 # --- Blocker 4: aggregation wiring --------------------------------------------
 
 
-def test_cell_aggregates_reconcile_without_raising(armed_small_repo, small_jobs):
-    repo, arm_commit = armed_small_repo
+def test_cell_aggregates_reconcile_without_raising(reserved_small_repo, small_jobs):
+    repo, arm_commit = reserved_small_repo
     with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
         session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
         records = v2p.run_canonical_v2_production_grid_in_session(session)
@@ -379,8 +479,8 @@ def test_cell_aggregates_reconcile_without_raising(armed_small_repo, small_jobs)
         assert set(cell["candidates"]) == set(v2.FEATURE_IDS)
 
 
-def test_required_coverage_status_covers_all_33_conclusions(armed_small_repo, small_jobs):
-    repo, arm_commit = armed_small_repo
+def test_required_coverage_status_covers_all_33_conclusions(reserved_small_repo, small_jobs):
+    repo, arm_commit = reserved_small_repo
     with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
         session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
         records = v2p.run_canonical_v2_production_grid_in_session(session)
@@ -389,8 +489,8 @@ def test_required_coverage_status_covers_all_33_conclusions(armed_small_repo, sm
         assert all(v in (v2.COVERAGE_ADEQUATE, v2.COVERAGE_INSUFFICIENT) for v in status.values())
 
 
-def test_mechanical_conclusions_structural_incompleteness_overrides_everything(armed_small_repo, small_jobs):
-    repo, arm_commit = armed_small_repo
+def test_mechanical_conclusions_structural_incompleteness_overrides_everything(reserved_small_repo, small_jobs):
+    repo, arm_commit = reserved_small_repo
     with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
         session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
         records = v2p.run_canonical_v2_production_grid_in_session(session)
@@ -400,8 +500,8 @@ def test_mechanical_conclusions_structural_incompleteness_overrides_everything(a
         assert all(v == v2.MECHANICAL_STRUCTURAL_INCOMPLETE for v in conclusions.values())
 
 
-def test_missing_inherited_conclusion_fails_closed(armed_small_repo, small_jobs):
-    repo, arm_commit = armed_small_repo
+def test_missing_inherited_conclusion_fails_closed(reserved_small_repo, small_jobs):
+    repo, arm_commit = reserved_small_repo
     with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
         session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
         records = v2p.run_canonical_v2_production_grid_in_session(session)
@@ -416,8 +516,8 @@ def test_missing_inherited_conclusion_fails_closed(armed_small_repo, small_jobs)
 # --- Blocker 3 / SS7: mint + historical result verification -----------------
 
 
-def test_mint_world_records_detects_forged_record(armed_small_repo, small_jobs):
-    repo, arm_commit = armed_small_repo
+def test_mint_world_records_detects_forged_record(reserved_small_repo, small_jobs):
+    repo, arm_commit = reserved_small_repo
     with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
         session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
         records = list(v2p.run_canonical_v2_production_grid_in_session(session))
@@ -430,8 +530,8 @@ def test_mint_world_records_detects_forged_record(armed_small_repo, small_jobs):
         assert wr["record_count"] == len(small_jobs)
 
 
-def test_mint_world_records_rejects_wrong_count(armed_small_repo, small_jobs):
-    repo, arm_commit = armed_small_repo
+def test_mint_world_records_rejects_wrong_count(reserved_small_repo, small_jobs):
+    repo, arm_commit = reserved_small_repo
     with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
         session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
         records = v2p.run_canonical_v2_production_grid_in_session(session)
@@ -439,8 +539,8 @@ def test_mint_world_records_rejects_wrong_count(armed_small_repo, small_jobs):
             v2p.mint_v2_world_records(repo, arm_commit, records[:-1])
 
 
-def test_mint_result_end_to_end_matches_historical_verification(armed_small_repo, small_jobs):
-    repo, arm_commit = armed_small_repo
+def test_mint_result_end_to_end_matches_historical_verification(reserved_small_repo, small_jobs):
+    repo, arm_commit = reserved_small_repo
     with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
         session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
         records = v2p.run_canonical_v2_production_grid_in_session(session)
@@ -455,8 +555,8 @@ def test_mint_result_end_to_end_matches_historical_verification(armed_small_repo
         ) is True
 
 
-def test_historical_verification_from_descendant_and_clean_clone(armed_small_repo, small_jobs, tmp_path):
-    repo, arm_commit = armed_small_repo
+def test_historical_verification_from_descendant_and_clean_clone(reserved_small_repo, small_jobs, tmp_path):
+    repo, arm_commit = reserved_small_repo
     with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
         session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
         records = v2p.run_canonical_v2_production_grid_in_session(session)
@@ -478,8 +578,8 @@ def test_historical_verification_from_descendant_and_clean_clone(armed_small_rep
         ) is True
 
 
-def test_historical_verification_rejects_tampered_world_records(armed_small_repo, small_jobs):
-    repo, arm_commit = armed_small_repo
+def test_historical_verification_rejects_tampered_world_records(reserved_small_repo, small_jobs):
+    repo, arm_commit = reserved_small_repo
     with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
         session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
         records = v2p.run_canonical_v2_production_grid_in_session(session)
@@ -502,8 +602,8 @@ def test_historical_verification_rejects_tampered_world_records(armed_small_repo
         )
 
 
-def test_historical_verification_rejects_tampered_result(armed_small_repo, small_jobs):
-    repo, arm_commit = armed_small_repo
+def test_historical_verification_rejects_tampered_result(reserved_small_repo, small_jobs):
+    repo, arm_commit = reserved_small_repo
     with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
         session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
         records = v2p.run_canonical_v2_production_grid_in_session(session)
@@ -521,8 +621,8 @@ def test_historical_verification_rejects_tampered_result(armed_small_repo, small
         )
 
 
-def test_caller_provided_aggregate_cannot_become_authority(armed_small_repo, small_jobs):
-    repo, arm_commit = armed_small_repo
+def test_caller_provided_aggregate_cannot_become_authority(reserved_small_repo, small_jobs):
+    repo, arm_commit = reserved_small_repo
     with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
         session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
         records = v2p.run_canonical_v2_production_grid_in_session(session)
@@ -549,8 +649,8 @@ def test_open_session_requires_historical_auth(tmp_path):
         v2p.open_v2_production_session(repo_root=repo)  # HEAD is the freeze, unarmed
 
 
-def test_session_based_evaluation_matches_direct_fixture_equivalence(armed_small_repo, small_jobs):
-    repo, arm_commit = armed_small_repo
+def test_session_based_evaluation_matches_direct_fixture_equivalence(reserved_small_repo, small_jobs):
+    repo, arm_commit = reserved_small_repo
     with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
         session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
         for job in small_jobs:
@@ -562,12 +662,91 @@ def test_session_based_evaluation_matches_direct_fixture_equivalence(armed_small
             assert rec == direct
 
 
-def test_session_evaluation_refuses_non_canonical_job(armed_small_repo, small_jobs):
-    repo, arm_commit = armed_small_repo
+def test_session_evaluation_refuses_non_canonical_job(reserved_small_repo, small_jobs):
+    repo, arm_commit = reserved_small_repo
     with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
         session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
         with pytest.raises(v2p.SyntheticExecutionNotAuthorized):
             v2p.evaluate_v2_world_in_session(session, "NULL", 999999, 0)
+
+
+def test_genuine_session_adversarial_matrix(reserved_small_repo, small_jobs):
+    """Every forged/copied/mutated session must fail BEFORE scientific
+    computation; only the literal object issued by open_v2_production_session
+    may execute."""
+    repo, arm_commit = reserved_small_repo
+    with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
+        genuine = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
+        job = small_jobs[0]
+
+        forged = {
+            "None": None,
+            "False": False,
+            "True": True,
+            "empty_dict": {},
+            "manually_instantiated_object": v2p.V2ProductionSession(
+                repo_root=genuine.repo_root,
+                arm_commit=genuine.arm_commit,
+                run_identity=genuine.run_identity,
+                canonical_v2_plan_sha256=genuine.canonical_v2_plan_sha256,
+                v2_policy_sha256=genuine.v2_policy_sha256,
+                opened_at=genuine.opened_at,
+            ),
+            "copied_via_dataclasses_replace": dataclasses.replace(genuine, opened_at=0.0),
+            "string_masquerading_as_token": genuine.run_identity,
+        }
+        for label, candidate in forged.items():
+            with pytest.raises(v2p.SyntheticExecutionNotAuthorized):
+                v2p.evaluate_v2_world_in_session(candidate, *job)
+            with pytest.raises(v2p.SyntheticExecutionNotAuthorized):
+                v2p.run_canonical_v2_production_grid_in_session(candidate)
+
+        # Mutating the genuine session in place (bypassing frozen=True via
+        # object.__setattr__) must also be caught -- identity survives, but
+        # the registered snapshot no longer matches.
+        object.__setattr__(genuine, "run_identity", "0" * 64)
+        with pytest.raises(v2p.SyntheticExecutionNotAuthorized):
+            v2p.evaluate_v2_world_in_session(genuine, *job)
+
+        # A freshly (and correctly) opened session still works.
+        fresh = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
+        rec = v2p.evaluate_v2_world_in_session(fresh, *job)
+        assert rec.world_state in (v2.WORLD_VALID, v2.WORLD_INVALID)
+
+
+def test_session_from_different_repo_or_arm_is_independently_genuine_but_scoped(
+    tmp_path, small_jobs
+):
+    """A session legitimately opened for a different repo/ARM is itself
+    genuine (it went through open_v2_production_session for THAT repo/ARM),
+    but canonical_v2_production_jobs() is a global, not session-scoped,
+    source of truth, so it cannot be used to smuggle a different job list --
+    there is no parameter through which a session could do that."""
+    with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
+        repo_a = _commit_freeze_tree(tmp_path, name="repo_a")
+        payload_a = _small_arm_payload(repo_a)
+        arm_a = _commit_arm(repo_a, payload_a)
+        v2p.establish_v2_durable_reservation(repo_a, arm_a)
+        session_a = v2p.open_v2_production_session(repo_root=repo_a, arm_commit=arm_a)
+
+        repo_b = _commit_freeze_tree(tmp_path, name="repo_b")
+        payload_b = _small_arm_payload(repo_b)
+        arm_b = _commit_arm(repo_b, payload_b)
+        v2p.establish_v2_durable_reservation(repo_b, arm_b)
+        session_b = v2p.open_v2_production_session(repo_root=repo_b, arm_commit=arm_b)
+
+        # Two independently-issued sessions are always distinct objects (each
+        # goes through its own open_v2_production_session call and its own
+        # registry entry), regardless of whether their bound identities
+        # happen to coincide (byte-identical disposable repos can legitimately
+        # produce identical commit hashes).
+        assert session_a is not session_b
+        # Both are independently genuine and both evaluate the same
+        # canonical job identically (per-world science does not depend on
+        # which repo/ARM authorized it, only on frozen DGP/policy).
+        rec_a = v2p.evaluate_v2_world_in_session(session_a, *small_jobs[0])
+        rec_b = v2p.evaluate_v2_world_in_session(session_b, *small_jobs[0])
+        assert rec_a == rec_b
 
 
 def test_v2_production_integrity_error_is_used_meaningfully():

@@ -116,15 +116,21 @@ itself is immutable. Post-outcome status lives in
   `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY` now
   has a reviewed fixture-only implementation frozen at HEAD `a310837`
   (`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_IMPLEMENTATION_FREEZE.json`)
-  plus a complete pre-outcome production lifecycle implementation (plan,
-  historical ARM authorization, durable reservation/claim, checkpointing,
-  mechanical aggregation, RESULT mint, historical result verification)
-  awaiting independent review
+  plus a pre-outcome production lifecycle implementation (plan, historical
+  ARM authorization with an unforgeable session and durably-gated
+  reservation, checkpointing, mechanical aggregation, RESULT mint,
+  historical result verification) awaiting independent review
   (`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PRODUCTION_DRIVER.md`).
+  A dedicated provenance audit
+  (`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_INHERITED_LADDER_PROVENANCE_AUDIT.md`)
+  found only 18 of 33 inherited-ladder conclusion ids mechanically
+  unambiguous from frozen V1/V2 material, so the inherited-detection-ladder
+  mapping remains an explicit, unbound, caller-supplied parameter pending a
+  methodology amendment; RESULT is not yet scientifically self-contained.
   No V2 ARM artifact exists anywhere in the repository; V2 production
   remains unarmed, does not run the 3200-world grid, and does not
   authorize B2-06. Next required step for that unit:
-  `INDEPENDENT_V2_PRODUCTION_LIFECYCLE_REREVIEW`.
+  `PRE_OUTCOME_INHERITED_LADDER_METHODOLOGY_AMENDMENT`.
   Historical ARM `120ac45` and unused driver ARM `0abc5fe` do
   not authorize V1 or V2 runtime. This does not authorize B2-06 science.
 

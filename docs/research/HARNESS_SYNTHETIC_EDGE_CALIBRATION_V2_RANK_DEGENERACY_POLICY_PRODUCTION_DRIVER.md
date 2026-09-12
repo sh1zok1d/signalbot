@@ -1,6 +1,6 @@
 # HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY — production driver
 
-**Status: `PRODUCTION_LIFECYCLE_IMPLEMENTATION_AWAITING_INDEPENDENT_REVIEW`.**
+**Status: `PRODUCTION_LIFECYCLE_IMPLEMENTATION_AWAITING_INDEPENDENT_REVIEW` (session/reservation-authorization narrow repair applied; inherited-ladder binding intentionally stopped pending a methodology amendment — see below).**
 
 This is **not** an execution freeze and **not** an ARM. It is a pre-outcome
 implementation unit: the complete mechanical lifecycle (plan → ARM
@@ -18,7 +18,19 @@ is created by this unit.
    historical (commit-parameterized) authorization; no durable one-shot
    reservation/claim/consumption; RESULT/WORLD_RECORDS mint unimplemented;
    aggregation absent; and per-world re-verification overhead.
-3. **This unit** closes all five findings, described below.
+3. A repair unit closed BLOCKER 1 and wired the aggregation machinery, but a
+   second independent rereview found the session/reservation repair
+   incomplete: `evaluate_v2_world_in_session` accepted a forged/`None`
+   session with no ARM anywhere in the repository, the reservation
+   primitives were never actually invoked by the execution path (two
+   sessions against the same unreserved ARM both fully executed), and
+   `inherited_detection_conclusions` was an unverified caller parameter that
+   could change the final RESULT's conclusions for identical evidence.
+4. **This unit** makes the session object unforgeable, wires reservation
+   into the required VERIFY → RESERVE → OPEN SESSION → EXECUTE ordering, and
+   performs (per an explicit stop condition) a provenance audit of the
+   inherited-ladder mapping rather than implementing it — see
+   `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_INHERITED_LADDER_PROVENANCE_AUDIT.md`.
 
 ## Base policy freeze bound by this unit
 
@@ -46,22 +58,72 @@ implementation. Proven by test to work identically at the ARM commit, at an
 arbitrary descendant commit, and from a clean clone containing the same
 commits — and to be unaffected by worktree-only mutation of the ARM file.
 
-## BLOCKER 2 — durable one-shot authority (closed)
+## BLOCKER 2 — durable one-shot authority: reservation now gates execution (closed)
 
-`v2_durable_reservation_document` / `v2_durable_claim_document` are pure
-identity derivations from an exact historically-verified bound (mirroring
-V1's own already-frozen `durable_reservation_document`/`durable_claim_document`
-design exactly — those are likewise pure identity functions, not in-process
-locks). Durability comes from committing the derived payload to git as a
-reachable descendant of the ARM: `assert_v2_reservation_available` fails
-closed the moment any of RESERVATION/CLAIM/WORLD_RECORDS/RESULT is already
-tracked. This is git-native mutual exclusion — whichever reservation commit
-is pushed/merged first durably wins, and every later or concurrent attempt's
-own availability check sees the artifact already present and refuses. This
-unit does not invent a distributed lock stronger than that; it matches the
-guarantee level V1's own already-reviewed design provides. Proven by test for
-sequential duplicate reservation and for a simulated two-process race (both
-check availability, one commits, the other's re-check then fails closed).
+Previously, `assert_v2_reservation_available` existed but was never called by
+anything on the execution path — two sessions against the same unreserved ARM
+both fully executed. This unit adds `establish_v2_durable_reservation(repo_root,
+arm_commit)`, which enforces the required ordering by construction:
+
+```
+VERIFY ARM  ->  VERIFY PLAN/POLICY/TCB  ->  ESTABLISH DURABLE RESERVATION  ->  OPEN SESSION  ->  EXECUTE
+```
+
+It re-checks `assert_v2_reservation_available` immediately before writing,
+writes the reservation document via the same atomic-write primitive used for
+checkpoints, and commits it. `open_v2_production_session` now refuses unless
+a matching reservation is already tracked at HEAD
+(`_verify_v2_reservation_committed`) — there is no path from "ARM exists" to
+"scientific computation happens" that skips reservation.
+
+**Guarantee level, stated precisely (not oversold):** within one shared git
+repository/checkout, this is airtight — git's own commit/ref locking means
+only one reservation commit can ever land as HEAD's next commit; a losing
+concurrent `git commit` call fails and `establish_v2_durable_reservation`
+converts that into a clean refusal before either process could have reached
+`open_v2_production_session`. Proven by test: two real (not merely
+standalone-check) attempts through `establish_v2_durable_reservation`, with
+one already having executed via a genuine session, the second still fails
+closed; a "crash after reservation, before any world" scenario (a fresh
+session opened later against the same, still-durable, reservation) proceeds
+correctly without needing or being able to create a second reservation.
+Across independent, not-yet-synchronized clones (no shared filesystem,
+communication only via eventual git push/fetch), this repository-local
+design cannot detect a concurrent reservation attempt in a *different* clone
+before both begin computation. This residual race is not weakened away or
+hidden: it requires operational discipline (a single authoritative execution
+host/clone, or an external distributed lock/CI concurrency guard) beyond
+what git commits alone provide. Even then, only one reservation/evidence/
+RESULT chain can ever become part of the single shared canonical remote
+history (the loser's push is rejected as non-fast-forward and must not be
+force-pushed or auto-retried) — wasted duplicate computation is possible in
+that scenario, a duplicate *authoritative* RESULT is not.
+
+## Genuine, unforgeable session (closed)
+
+Previously, `evaluate_v2_world_in_session(None, "NULL", 5000, 0)` executed
+successfully with no ARM anywhere in the repository — the session object was
+never validated. `V2ProductionSession` is now `@dataclass(frozen=True,
+eq=False)`: `eq=False` makes its identity fall back to plain object identity
+(`id()`) instead of dataclass structural equality, so a copy with identical
+field values is not the same session. A module-private
+`_SESSION_REGISTRY` (`WeakKeyDictionary`) is populated only by
+`_issue_v2_production_session` — called by `open_v2_production_session` and,
+internally, by `mint_v2_world_records`/`verify_historical_v2_result` (which
+still independently re-establish authority themselves first; they never
+trust a caller-supplied session) — storing a snapshot of the session's bound
+fields at issuance. `_require_genuine_session` rejects anything that is not
+literally a registered object, or whose current fields no longer match the
+stored snapshot (catching mutation via `object.__setattr__`, which bypasses
+`frozen=True`). Proven by test against `None`, `False`, `True`, `{}`, a
+manually-instantiated `V2ProductionSession` with copied field values, a
+`dataclasses.replace()` copy, a bare string, and a mutated genuine session —
+all refused before `simulate_dgp` is ever called; a freshly-issued genuine
+session still works. This defends against callers who do not go through the
+intended API; it does not defend against an adversary with arbitrary code
+execution in the same interpreter (who could reach into the registry
+directly) — that matches Python's actual security ceiling, not a gap
+specific to this design.
 
 ## Durable partial / checkpoint (closed)
 
@@ -94,19 +156,25 @@ insufficient identifiability > inherited ladder) — onto real evidence. **No**
 aggregation/coverage/precedence logic is reimplemented; this is orchestration
 over already-frozen functions only.
 
-**Explicit, deliberate scope boundary:** `mechanical_conclusion_v2`'s third
-input, the inherited V1-ladder verdict for each of the 33 named conclusions,
-is **not** computed by this unit. `frozen_required_coverage_map()`'s entries
-carry only a human-readable `inherited_claim` string (e.g. `"ORACLE NULL
-MODEL_DETECTED FPR <= 0.05"`), not a machine-executable threshold/kind
-binding, and no existing frozen function already maps that string to a
-verdict. Reconstructing that mapping from prose would itself be an
-unreviewed scientific choice — exactly what this whole framework's
-prereg-first discipline exists to prevent. `derive_v2_mechanical_conclusions`
-therefore takes `inherited_detection_conclusions` as a **required** parameter
-(fails closed if any of the 33 ids is missing) that a **separate, dedicated,
-independently reviewed** unit must supply before a real mint. See
-`KNOWN_LIMITATIONS`.
+**Explicit, deliberate scope boundary, now backed by a full provenance
+audit:** `mechanical_conclusion_v2`'s third input, the inherited V1-ladder
+verdict for each of the 33 named conclusions, is **not** computed by this
+unit. A dedicated audit
+(`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_INHERITED_LADDER_PROVENANCE_AUDIT.md`)
+traced every one of the 33 ids against the frozen V1 prereg's `acceptance`
+and `conclusion_authority` sections and Amendment_001's explicit map: 18 are
+mechanically unambiguous (explicit frozen thresholds, banding rules, or
+floor rules), 15 are not yet confirmed unambiguous (either no explicit
+threshold exists at all, or resolving them would require inferring an alias
+relationship the frozen text does not itself state). Per the governing stop
+condition, since not all 33 are unambiguous, this unit does not implement
+the mapping — doing so for even the 18 alone while leaving the rest
+caller-supplied would not close the underlying finding (a caller could still
+alter the 15 unresolved verdicts). `derive_v2_mechanical_conclusions`
+therefore still takes `inherited_detection_conclusions` as a **required**
+parameter (fails closed if any of the 33 ids is missing) that a **separate,
+dedicated, independently reviewed methodology amendment** must supply before
+a real mint. See `KNOWN_LIMITATIONS`.
 
 ## BLOCKER 3 — WORLD_RECORDS + RESULT mint (closed, modulo the same boundary)
 
@@ -131,17 +199,20 @@ honest evidence from the ARM commit, a descendant commit, and a clean clone;
 and to correctly reject a forged-but-self-consistent WORLD_RECORDS payload,
 a tampered RESULT aggregate, and a fabricated conclusions block.
 
-## MAJOR — per-world authorization overhead (closed)
+## MAJOR — per-world authorization overhead (closed, without reintroducing forgeability)
 
-`open_v2_production_session` authorizes once (historical auth + V1 TCB
-check) and returns an immutable `V2ProductionSession`; each world executes
-through `evaluate_v2_world_in_session`/`run_canonical_v2_production_grid_in_session`
-without re-verifying git/TCB/ARM state per world. The session grants no
-forgeable "authorized=True" boolean by itself — `mint_v2_world_records` /
-`mint_v2_result` / `verify_historical_v2_result` never accept or trust a
-session object; they always independently re-establish authority from git
-objects. The session is strictly an operational optimization, exactly as
-required.
+`open_v2_production_session` authorizes once (TCB + historical ARM authority
++ durable reservation, in that order) and returns an unforgeable
+`V2ProductionSession` (see above); each world executes through
+`evaluate_v2_world_in_session`/`run_canonical_v2_production_grid_in_session`
+without re-verifying git/TCB/ARM/reservation state per world — but every call
+does re-verify session genuineness against the private registry (an O(1)
+dict lookup and field comparison, not a git subprocess call), so the
+performance objective is preserved. `mint_v2_world_records` /
+`mint_v2_result` / `verify_historical_v2_result` still never accept or trust
+a caller-supplied session; they always independently re-establish authority
+from git objects and issue (and register) their own internal session purely
+to reuse the per-world evaluation code path.
 
 ## No scientific reimplementation (unchanged from the prior unit)
 
@@ -157,23 +228,42 @@ parameter is ever accepted.
 
 ## KNOWN_LIMITATIONS
 
-- **Inherited-ladder mapping** (see BLOCKER 4 above): the 33 conclusion ids'
-  original V1-methodology verdicts must be supplied by a separate, frozen,
-  independently reviewed mapping before a real mint. This is the one
-  remaining piece of "what does this specific inherited claim mechanically
-  evaluate to" that this repair unit deliberately does not invent.
-- The reservation/claim durability model matches V1's own already-accepted
-  guarantee level (git-native "first commit wins" exclusion checked at
-  authorization time), not a stronger distributed lock; this is a deliberate
-  match to precedent, not a shortfall relative to it.
+- **Inherited-ladder mapping is still caller-supplied, deliberately.** A
+  provenance audit of frozen V1/V2 material
+  (`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_INHERITED_LADDER_PROVENANCE_AUDIT.md`)
+  found only 18 of the 33 required-coverage-map conclusion ids are
+  mechanically unambiguous from already-frozen sources; the remaining 15
+  require either locating more frozen source text or an explicit
+  methodology amendment. Per the governing stop condition, this unit does
+  **not** implement the mapping and does **not** remove
+  `inherited_detection_conclusions` as a caller-supplied parameter — doing
+  either would require inventing or inferring at least one of the 15
+  unresolved verdicts. Consequently `RESULT_SCIENTIFIC_PAYLOAD_SELF_CONTAINED`
+  remains `NO` and a caller can still change the final conclusion for
+  identical evidence by supplying a different mapping; this is unchanged
+  from the prior rereview's finding and is intentionally NOT worked around
+  here. Next step: `PRE_OUTCOME_INHERITED_LADDER_METHODOLOGY_AMENDMENT`.
+- The reservation durability model's precise guarantee (airtight within one
+  shared repository; a residual, explicitly-documented race across
+  independent unsynchronized clones) is stated above, not merely asserted by
+  analogy to V1.
 - `V2DurablePartialWorldStore` is a new, non-frozen class analogous to (but
   not literally reusing) V1's `DurablePartialWorldStore`, since the latter is
   hardcoded to V1's own record/job shape. It reuses V1's atomic-write
   primitives verbatim; only the per-world dataclass (de)serialization and
   identity-binding glue is V2-specific, non-scientific plumbing.
+- The genuine-session registry is a process-local, in-memory mechanism (a
+  `WeakKeyDictionary`); it does not and cannot persist across process
+  restarts, which is correct and intentional -- a session is only ever
+  meant to be a same-process, same-run authorization artifact. Durable,
+  cross-process state is the reservation's job (git-committed), not the
+  session's.
 
 ## Next required step
 
-`INDEPENDENT_V2_PRODUCTION_LIFECYCLE_REREVIEW`. This unit is not
+If a future unit resolves the inherited-ladder audit to 33/33 unambiguous
+and binds the mapping (Section E of the repair task this unit executed),
+next is `INDEPENDENT_V2_FINAL_PRE_FREEZE_REREVIEW`. Until then:
+`PRE_OUTCOME_INHERITED_LADDER_METHODOLOGY_AMENDMENT`. This unit is not
 self-certifying; the report accompanying this commit lists exact test
 commands/results/exclusions for that review to verify independently.

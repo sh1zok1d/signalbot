@@ -220,22 +220,27 @@ not an ARM):
 and `.json`.
 The reviewed fixture-only rank-policy module is frozen at HEAD `a310837`
 (`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_IMPLEMENTATION_FREEZE.json`).
-A complete pre-outcome production lifecycle (canonical plan, historical
-commit-parameterized ARM authorization, durable reservation/claim,
+A pre-outcome production lifecycle (canonical plan, historical
+commit-parameterized ARM authorization behind an unforgeable session,
+durable reservation that gates execution before any scientific computation,
 checkpointing, mechanical aggregation wired from the frozen fixture's own
 aggregation pipeline, RESULT mint, historical result re-verification) is now
 implemented on top
 (`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PRODUCTION_DRIVER.md`)
 but is not itself an execution freeze or an ARM; no V2 ARM artifact exists
-anywhere in the repository. One deliberate scope boundary remains: the
-original V1-methodology verdict for each of the 33 required-coverage-map
-conclusions must be supplied by a separate, frozen, independently reviewed
-mapping before a real mint (this unit does not reconstruct it from prose).
-Next required step for V2: `INDEPENDENT_V2_PRODUCTION_LIFECYCLE_REREVIEW`,
-then `CREATE_NEW_V2_PRODUCTION_ARM`. Do not run the 3200-world production
-grid and do not mint RESULT until that ARM is created and reviewed. The
-original prereg at `ada237e` and Amendment_001 at `d8f0a99` are not
-rewritten in place.
+anywhere in the repository. One deliberate scope boundary remains, now
+backed by a full provenance audit
+(`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_INHERITED_LADDER_PROVENANCE_AUDIT.md`):
+only 18 of the 33 required-coverage-map conclusion ids are mechanically
+unambiguous from frozen V1/V2 material, so the original V1-methodology
+verdict for each conclusion must still be supplied by a separate, frozen,
+independently reviewed methodology amendment before a real mint (this unit
+does not reconstruct or infer it from prose). Next required step for V2:
+`PRE_OUTCOME_INHERITED_LADDER_METHODOLOGY_AMENDMENT`, then
+`INDEPENDENT_V2_FINAL_PRE_FREEZE_REREVIEW`, then `CREATE_NEW_V2_PRODUCTION_ARM`.
+Do not run the 3200-world production grid and do not mint RESULT until that
+ARM is created and reviewed. The original prereg at `ada237e` and
+Amendment_001 at `d8f0a99` are not rewritten in place.
 
 This methodology gate does not weaken or bypass the current B2-06 state:
 `FUNDING_PUBLICATION_LATENCY_UNPROVEN`, `research_authorized = false`,

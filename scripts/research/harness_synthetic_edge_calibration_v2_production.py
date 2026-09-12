@@ -29,6 +29,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import time
+import weakref
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -567,6 +568,78 @@ def assert_v2_reservation_available(repo_root: Path, arm_commit: str) -> None:
         _refuse("a V2 reservation/claim/result/world-records artifact already exists")
 
 
+def establish_v2_durable_reservation(repo_root: Path, arm_commit: str) -> str:
+    """Durably commit a reservation as a new commit on top of current HEAD.
+
+    Required ordering, enforced by construction: this function verifies ARM
+    authority and plan/policy/TCB (via ``assert_v2_reservation_available`` ->
+    ``verify_historical_v2_execution_authority``), THEN establishes the
+    durable reservation. ``open_v2_production_session`` refuses unless this
+    has already run and its result is committed -- scientific execution is
+    therefore impossible before a durable reservation exists.
+
+    Guarantee level (stated precisely, not oversold): within one shared git
+    repository/checkout, this is airtight -- ``assert_v2_reservation_available``
+    is re-verified immediately before writing, and git's own commit/ref
+    locking (a second concurrent ``git commit`` in the same repository either
+    waits or fails outright) means only one reservation can ever land as
+    HEAD's own next commit; a losing concurrent caller's git operation fails
+    and is converted to a clean refusal here, before either process could
+    have proceeded to open a session. Across independent, not-yet-synchronized
+    clones (no shared filesystem, communication only via eventual git
+    push/fetch), this repository-local check cannot detect a concurrent
+    reservation attempt in a *different* clone before both begin scientific
+    computation -- that residual race requires operational discipline (a
+    single authoritative execution host or clone, or an external distributed
+    lock/CI concurrency guard) beyond what git commits alone can provide.
+    Even in that scenario, only one reservation/evidence/RESULT chain can
+    ever become part of the single shared canonical remote history (the
+    other's push is rejected as non-fast-forward and must not be force-pushed
+    or auto-rebased-and-retried) -- wasted duplicate computation is possible,
+    a duplicate *authoritative* RESULT is not.
+    """
+    repo_root = Path(repo_root)
+    assert_v2_reservation_available(repo_root, arm_commit)
+    status = _git(repo_root, "status", "--porcelain", "--untracked-files=all").decode(
+        "utf-8", "surrogateescape"
+    )
+    if status.strip():
+        _refuse("worktree is not clean before establishing a durable reservation")
+    reservation = v2_durable_reservation_document(repo_root, arm_commit)
+    reservation_path = repo_root / CANONICAL_V2_RESERVATION_PATH
+    _atomic_replace_bytes(reservation_path, canonical_json_bytes(reservation))
+    _git(repo_root, "add", "--", CANONICAL_V2_RESERVATION_PATH)
+    _git(repo_root, "commit", "-m", "v2 production reservation")
+    head = _git(repo_root, "rev-parse", "HEAD").decode("ascii").strip().lower()
+    committed = _load_commit_json(repo_root, head, CANONICAL_V2_RESERVATION_PATH)
+    if committed != reservation:
+        _refuse_integrity("committed reservation does not match the established reservation identity")
+    return head
+
+
+def _verify_v2_reservation_committed(
+    repo_root: Path, arm_commit: str, bound: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Refuse unless a durable reservation matching ``bound`` is tracked at HEAD."""
+    reservation = _load_commit_json(repo_root, "HEAD", CANONICAL_V2_RESERVATION_PATH)
+    if reservation is None:
+        _refuse(
+            "no durable V2 production reservation is committed at HEAD; "
+            "call establish_v2_durable_reservation before opening a session"
+        )
+    if reservation.get("run_identity") != bound["run_identity"]:
+        _refuse("committed reservation does not match this ARM's run identity")
+    if reservation.get("arm_commit") != bound["arm_commit"]:
+        _refuse("committed reservation does not match this ARM commit")
+    if reservation.get("canonical_v2_plan_sha256") != bound["canonical_v2_plan_sha256"]:
+        _refuse("committed reservation does not match the canonical V2 plan")
+    if reservation.get("v2_policy_sha256") != bound["v2_policy_sha256"]:
+        _refuse("committed reservation does not match the frozen V2 policy")
+    if reservation.get("authorization_consumed") is not False:
+        _refuse("committed reservation authorization is already consumed")
+    return reservation
+
+
 # =============================================================================
 # Durable partial (checkpoint) world evidence store: local, untracked,
 # crash-safe cache. NOT scientific authority by itself -- every cached record
@@ -809,10 +882,28 @@ def derive_v2_mechanical_conclusions(
 # through that validated session. The session is an operational optimization
 # only -- mint/historical-verification below never trusts it and always
 # independently re-establishes authority from git objects.
+#
+# GENUINE-SESSION HARDENING: a session is authorization *evidence*, not a
+# caller-visible bearer token. ``eq=False`` makes session identity fall back
+# to plain object identity (``id()``) instead of dataclass structural
+# equality, so a copied/reconstructed object with identical field values is
+# NOT the same session. ``_SESSION_REGISTRY`` is a module-private
+# WeakKeyDictionary keyed by that identity, populated ONLY by
+# ``open_v2_production_session``/the internal mint helper below, storing a
+# snapshot of the fields as issued. ``_require_genuine_session`` rejects
+# anything that (a) is not literally the object the registry knows about, or
+# (b) has been mutated (including via ``object.__setattr__`` bypassing
+# ``frozen=True``) since issuance. This defends against callers who do not go
+# through the intended API; it does not (and cannot, in pure Python) defend
+# against an adversary with arbitrary code execution in the same interpreter,
+# who could reach into the registry directly -- that matches Python's actual
+# security ceiling and is not a gap specific to this design.
 # =============================================================================
 
+_SESSION_REGISTRY: "weakref.WeakKeyDictionary[Any, dict[str, Any]]" = weakref.WeakKeyDictionary()
 
-@dataclasses.dataclass(frozen=True)
+
+@dataclasses.dataclass(frozen=True, eq=False)
 class V2ProductionSession:
     repo_root: Path
     arm_commit: str
@@ -822,16 +913,20 @@ class V2ProductionSession:
     opened_at: float
 
 
-def open_v2_production_session(
-    repo_root: Path | None = None, arm_commit: str = "HEAD"
-) -> V2ProductionSession:
-    repo_root = repo_root or _repo_root()
-    commit = arm_commit
-    if commit == "HEAD":
-        commit = _git(repo_root, "rev-parse", "HEAD").decode("ascii").strip().lower()
-    assert_v1_tcb_intact(repo_root, commit)
-    bound = verify_historical_v2_execution_authority(repo_root, commit)
-    return V2ProductionSession(
+def _snapshot_session_fields(session: "V2ProductionSession") -> dict[str, Any]:
+    return {
+        "arm_commit": session.arm_commit,
+        "run_identity": session.run_identity,
+        "canonical_v2_plan_sha256": session.canonical_v2_plan_sha256,
+        "v2_policy_sha256": session.v2_policy_sha256,
+    }
+
+
+def _issue_v2_production_session(repo_root: Path, bound: Mapping[str, Any]) -> V2ProductionSession:
+    """Construct AND register a session. The only way a session ever becomes
+    genuine: every legitimate entrypoint (open_v2_production_session, and the
+    internal mint/historical-verification helpers) must go through this."""
+    session = V2ProductionSession(
         repo_root=repo_root,
         arm_commit=bound["arm_commit"],
         run_identity=bound["run_identity"],
@@ -839,11 +934,48 @@ def open_v2_production_session(
         v2_policy_sha256=bound["v2_policy_sha256"],
         opened_at=time.time(),
     )
+    _SESSION_REGISTRY[session] = _snapshot_session_fields(session)
+    return session
+
+
+def _require_genuine_session(session: Any) -> V2ProductionSession:
+    if not isinstance(session, V2ProductionSession):
+        _refuse("not a genuine V2 production session")
+    snapshot = _SESSION_REGISTRY.get(session)
+    if snapshot is None:
+        _refuse("session was not issued by open_v2_production_session")
+    if _snapshot_session_fields(session) != snapshot:
+        _refuse("session fields were tampered with after issuance")
+    return session
+
+
+def open_v2_production_session(
+    repo_root: Path | None = None, arm_commit: str = "HEAD"
+) -> V2ProductionSession:
+    """Authorize once: verify TCB, historical ARM authority, AND that a
+    durable reservation is already committed at HEAD, in that order, before
+    any scientific computation is possible through the returned session.
+
+    ``arm_commit="HEAD"`` is only valid before a reservation has been
+    committed on top of the ARM (i.e. HEAD is still literally the ARM
+    commit). Once ``establish_v2_durable_reservation`` has committed a
+    reservation as a child of the ARM, HEAD is the reservation commit, not
+    the ARM commit, and the caller must pass the ARM commit hash explicitly.
+    """
+    repo_root = repo_root or _repo_root()
+    commit = arm_commit
+    if commit == "HEAD":
+        commit = _git(repo_root, "rev-parse", "HEAD").decode("ascii").strip().lower()
+    assert_v1_tcb_intact(repo_root, commit)
+    bound = verify_historical_v2_execution_authority(repo_root, commit)
+    _verify_v2_reservation_committed(repo_root, commit, bound)
+    return _issue_v2_production_session(repo_root, bound)
 
 
 def evaluate_v2_world_in_session(
     session: V2ProductionSession, scenario_id: str, n_rows: int, world_index: int
 ) -> WorldRecordV2:
+    _require_genuine_session(session)
     job = (str(scenario_id), int(n_rows), int(world_index))
     if job not in set(canonical_v2_production_jobs()):
         _refuse("world is not a frozen V2 canonical production-grid identity")
@@ -856,6 +988,7 @@ def evaluate_v2_world_in_session(
 def run_canonical_v2_production_grid_in_session(
     session: V2ProductionSession, *, durable_partial: V2DurablePartialWorldStore | None = None
 ) -> tuple[WorldRecordV2, ...]:
+    _require_genuine_session(session)
     records = []
     cached = durable_partial.load_structurally_valid_cached() if durable_partial is not None else {}
     for job in canonical_v2_production_jobs():
@@ -883,14 +1016,11 @@ def mint_v2_world_records(
     jobs = canonical_v2_production_jobs()
     if len(evidence) != len(jobs):
         _refuse_integrity("evidence set does not match canonical world count")
-    session = V2ProductionSession(
-        repo_root=repo_root,
-        arm_commit=bound["arm_commit"],
-        run_identity=bound["run_identity"],
-        canonical_v2_plan_sha256=bound["canonical_v2_plan_sha256"],
-        v2_policy_sha256=bound["v2_policy_sha256"],
-        opened_at=time.time(),
-    )
+    # Mint never trusts a caller-supplied session: it independently
+    # re-establishes authority above and issues its own internal session
+    # (registered like any other) purely to reuse the same per-world
+    # evaluation code path.
+    session = _issue_v2_production_session(repo_root, bound)
     for record, job in zip(evidence, jobs):
         recomputed = evaluate_v2_world_in_session(session, *job)
         if record != recomputed:
@@ -983,14 +1113,10 @@ def verify_historical_v2_result(
     jobs = canonical_v2_production_jobs()
     if len(serialized) != len(jobs):
         return False
-    session = V2ProductionSession(
-        repo_root=repo_root,
-        arm_commit=bound["arm_commit"],
-        run_identity=bound["run_identity"],
-        canonical_v2_plan_sha256=bound["canonical_v2_plan_sha256"],
-        v2_policy_sha256=bound["v2_policy_sha256"],
-        opened_at=time.time(),
-    )
+    # Historical verification never trusts a caller-supplied session either;
+    # it re-establishes authority above (via verify_historical_v2_execution_authority)
+    # and issues its own internal session purely to reuse the per-world path.
+    session = _issue_v2_production_session(repo_root, bound)
     records: list[WorldRecordV2] = []
     for raw, job in zip(serialized, jobs):
         record = _worldrecord_from_dict(raw)
