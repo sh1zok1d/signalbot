@@ -2048,3 +2048,46 @@ and `.json`.
 - implementation_exists: **false**
 - next required step: `INDEPENDENT_REREVIEW_OF_V2_RANK_POLICY_AMENDMENT`
 
+## 2026-09-11 — V2 rank-degeneracy fixture implementation
+
+**Decision:** implement frozen V2 rank-degeneracy semantics as a
+fixture-only module. No production grid, RESULT, WORLD_RECORDS, ARM, or
+authority consumption.
+
+Canonical implementation identity:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_IMPLEMENTATION.md`
+
+Code:
+`scripts/research/harness_synthetic_edge_calibration_v2_rank_policy.py`
+and `tests/research/test_harness_synthetic_edge_calibration_v2_rank_policy.py`.
+
+The original prereg (`ada237e`) and Amendment_001 (`d8f0a99`) are not
+rewritten. V1 TCB files are unchanged.
+
+- implementation_exists: **true** (fixture only)
+- synthetic_execution_authorized: **false**
+- v2_production_arm_authorized: **false**
+- production_calibration_executed: **false**
+- result minted: **false**
+- authority consumed: **false**
+- next required step: `INDEPENDENT_IMPLEMENTATION_REVIEW`
+
+## 2026-09-11 — V2 rank-degeneracy fixture implementation repair
+
+**Decision:** narrow repair of the fixture-only V2 rank-policy module
+after independent implementation review (`MAJORS=1`, `MINORS=3`).
+
+Closed:
+
+- MAJOR-1: removed unauthorized NULL taxonomy override; taxonomy is
+  exactly `taxonomy_of(selected)`
+- MINOR-A: lookahead/chronology cannot map to a candidate reason
+- MINOR-B: unused precedence helpers removed; live early-return is the
+  single authoritative path
+- MINOR-C: removed non-frozen bootstrap/placebo/visibility RNG branch
+
+No prereg change. No Amendment_002. No V1 TCB change. No production
+run, ARM, RESULT, or authority consumption.
+
+- next required step: `INDEPENDENT_NARROW_REVIEW_OF_REPAIR`
+

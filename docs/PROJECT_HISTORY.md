@@ -283,3 +283,9 @@ forbids treating non-identifiable evaluations as ordinary false negatives
 or as silent denominator deletions.
 
 This is not a market-edge claim and does not authorize B2-06.
+
+A later fixture-only implementation made those frozen V2 states, L
+accounting, BLIND-by-L taxonomy, coverage table, and required-coverage
+map executable and testable. It did not run the 3200-world grid, mint
+RESULT, or consume V1 authority. Next required step after that
+implementation is independent implementation review.
