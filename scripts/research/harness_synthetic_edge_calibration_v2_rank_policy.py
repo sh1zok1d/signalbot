@@ -364,10 +364,8 @@ def inspect_expanding_fit(
             continue
         train = slice(0, slices[era_name].start)
         score = slices[era_name]
-        if train.stop > score.start:
-            raise ChronologyLookaheadError(
-                "lookahead: future era entered earlier fit"
-            )
+        # Era windows are prior-eras-only. Chronology/lookahead is a world-level
+        # failure, not a candidate reason; do not classify it here.
         feature_train = None if feat is None else feat[train]
         insp = inspect_design_window(y[train], x1[train], x2[train], feature_train, scored_era=era_name)
         if not insp.ok:

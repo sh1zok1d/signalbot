@@ -361,9 +361,12 @@ def test_l_live_reason_precedence():
     assert rank.reason == v2.REASON_RANK_DEFICIENT
     assert rank.rank_diagnostics.design_rank < rank.rank_diagnostics.required_rank
     assert rank.rank_diagnostics.design_ncols == rank.rank_diagnostics.required_rank == 4
-    world = _rank_safe_world()
+    live = _eval(_rank_safe_world(), zero_e1_features={"F04"})
+    assert live.world_state == v2.WORLD_VALID
+    assert live.candidates["F04"].nonidentifiability.reason == v2.REASON_RANK_DEFICIENT
+    assert live.candidates["F04"].nonidentifiability.first_failing_era == "E2"
     rec = _eval(
-        world,
+        _rank_safe_world(),
         force_candidate_reason={"F10": v2.REASON_NONFINITE_BOOTSTRAP},
     )
     assert rec.candidates["F10"].nonidentifiability.reason == v2.REASON_NONFINITE_BOOTSTRAP
@@ -584,17 +587,41 @@ def test_no_scenario_specific_taxonomy_override():
     src = inspect.getsource(v2.evaluate_v2_world) + inspect.getsource(v2._evaluate_v2_world_inner)
     assert 'if scenario == "NULL"' not in src
     assert "taxonomy = taxonomy_of(selected)" in src
+    world = _rank_safe_world(scenario="NULL")
+    labels = {
+        "F03": "TRUE_DISCOVERY",
+        "F01": "PROXY_DISCOVERY",
+        "F04": "FALSE_DISCOVERY",
+    }
+    for fid, expected in labels.items():
+        rec = _eval(world, scenario="NULL", force_selected_candidate=fid)
+        frozen = lib.taxonomy_of(fid)
+        assert rec.taxonomy == frozen == expected
+        assert rec.taxonomy != "MUTATED"
+        flags = lib.taxonomy_flags(frozen)
+        assert v2.any_edge_declared(rec.taxonomy) is flags["ANY_EDGE_DECLARED"]
 
 
 def test_lookahead_cannot_become_candidate_reason(monkeypatch):
-    with pytest.raises(v2.ChronologyLookaheadError):
+    inspect_src = inspect.getsource(v2.inspect_expanding_fit)
+    assert "DESIGN_SHAPE_INVALID" not in inspect_src
+    assert "ChronologyLookaheadError" not in inspect_src
+    banned = (
+        v2.REASON_DESIGN_SHAPE_INVALID,
+        v2.REASON_RANK_DEFICIENT,
+        v2.REASON_NONFINITE_FIT_OR_PREDICTION,
+        v2.REASON_NONFINITE_AE_OR_RELATIVE_MAE,
+        v2.REASON_NONFINITE_BOOTSTRAP,
+        v2.REASON_NONFINITE_PLACEBO,
+        v2.REASON_NONFINITE_VISIBILITY,
+    )
+    with pytest.raises(v2.ChronologyLookaheadError) as excinfo:
         v2._map_incomplete_reason("lookahead: future era entered earlier fit")
+    assert excinfo.value.args[0]
+    for reason in banned:
+        assert reason not in str(excinfo.value)
     with pytest.raises(v2.ChronologyLookaheadError):
         v2._map_incomplete_reason("CHRONOLOGY_LOOKAHEAD on scored era")
-    for banned in v2.CLOSED_REASON_TAXONOMY:
-        with pytest.raises(v2.ChronologyLookaheadError):
-            mapped = v2._map_incomplete_reason("lookahead: future era entered earlier fit")
-            assert mapped != banned
 
     def boom(*_args, **_kwargs):
         raise lib.IncompleteWorld("lookahead: future era entered earlier fit")
