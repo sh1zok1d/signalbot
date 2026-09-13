@@ -1,0 +1,436 @@
+{
+  "schema": "harness_synthetic_edge_calibration_v2_inherited_ladder_amendment_004",
+  "schema_version": "1.0.0",
+  "status": "FROZEN_BEFORE_IMPLEMENTATION",
+  "amendment_id": "AMENDMENT_004",
+  "amendment_kind": "PRECEDENCE_COMPOSITION_REPAIR_ONLY",
+  "base_head": "dfba85d2bfbb4bc3f9f3c34ea87dc3ae82a2dd18",
+  "base_tree": "c0b4c00dd701eb262de021f34481161a7afe1f6f",
+  "amends": "AMENDMENT_003",
+  "amends_reason": "Independent review of Amendment_003 returned 1 BLOCKER: its STAGE 2b early return let an INDETERMINATE V2 NULL aggregate gate preempt the inherited frozen ladder and replace a stronger frozen terminal consequence (METHODOLOGY_REPAIR_REQUIRED_BEFORE_B2_06 at frozen priority 2, or METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06 at frozen priority 3) with the weaker CALIBRATION_INDETERMINATE at frozen priority 4. All four Amendment_002 blockers and all three Amendment_002 majors remain CLOSED and are not reopened here.",
+  "supersedes_entries_of_amendment_003": [
+    "FINAL_OVERALL_MECHANICAL_CONCLUSION",
+    "NULL_PER_CANDIDATE_FPR"
+  ],
+  "inherited_unchanged_from_amendment_003": [
+    "BLIND_DISCOVERY_CONCLUSION",
+    "BLIND_DISCOVERY_EASY",
+    "BLIND_DISCOVERY_MODERATE",
+    "EASY_BLIND_USEFUL_DISCOVERY",
+    "EASY_CONCLUSION",
+    "EASY_ORACLE_POWER",
+    "MATERIALITY_ONLY_DIAGNOSTIC",
+    "MODEL_FLOOR",
+    "MODERATE_BLIND_USEFUL_DISCOVERY",
+    "MODERATE_CONCLUSION",
+    "MODERATE_ORACLE_POWER",
+    "NONSTATIONARY_TRAP_CONCLUSION",
+    "NONSTATIONARY_TRAP_ORACLE_SPECIFICITY",
+    "NULL_BLIND_FPR",
+    "NULL_FALSE_POSITIVE_CONCLUSION",
+    "NULL_ORACLE_FPR",
+    "ORACLE_F03_EASY",
+    "ORACLE_F03_MODERATE",
+    "ORACLE_F03_NULL",
+    "ORACLE_F03_SMALL_10000",
+    "ORACLE_F03_SMALL_2500",
+    "ORACLE_F03_SMALL_5000",
+    "ORACLE_F03_TINY_NOISY",
+    "ORACLE_F03_TRAP",
+    "SMALL_10000_SENSITIVITY",
+    "SMALL_2500_SENSITIVITY",
+    "SMALL_CONCLUSION",
+    "SMALL_ORACLE_BAND",
+    "TINY_NOISY_CONCLUSION",
+    "TINY_NOISY_ORACLE_DIAGNOSTIC",
+    "VISIBILITY_FLOOR"
+  ],
+  "authority_precedence": [
+    "1. Frozen SHA256-pinned EXECUTABLE V1 TCB functions, where they directly define a scientific rule.",
+    "2. Frozen V2 policy artifacts (original V2 prereg, Amendment_001) where they explicitly and necessarily replace a V1 implementation detail - specifically the identifiability-conditional denominators.",
+    "3. Frozen prose (load_frozen_prereg() dicts, prereg Markdown) where no executable authority exists.",
+    "4. Explicit, prospectively-declared deterministic rules newly specified here, only where 1-3 leave a gap.",
+    "Prose may explain an executable rule but MUST NOT silently override executable semantics."
+  ],
+  "frozen_executable_authority": {
+    "file": "scripts/research/harness_synthetic_edge_calibration_v1_lib.py",
+    "sha256": "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51",
+    "git_blob": "8142ce5d757851bec6dfd0ca2c0bcc13652d37d7",
+    "size_bytes": 37636,
+    "tcb_role": "lib (1 of the 5 pinned V1 TCB files)",
+    "functions": {
+      "mechanical_conclusion": {
+        "line": 845,
+        "inputs": [
+          "incomplete_execution",
+          "oracle_null_specificity",
+          "blind_null_specificity",
+          "trap_specificity",
+          "easy_oracle_power",
+          "moderate_oracle_power",
+          "easy_blind_useful",
+          "moderate_blind_useful",
+          "visibility_wilson_upper",
+          "model_detection_wilson_upper",
+          "materiality_only_failure"
+        ],
+        "output_labels": [
+          "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM",
+          "METHODOLOGY_REPAIR_REQUIRED_BEFORE_B2_06",
+          "METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06",
+          "CALIBRATION_INDETERMINATE",
+          "DISCOVERY_BOTTLENECK_BEFORE_B2_06",
+          "VISIBILITY_FLOOR",
+          "MODEL_FLOOR",
+          "MATERIALITY_ONLY_DIAGNOSTIC",
+          "NO_V1_EVIDENCE_OF_DISCOVERY_BOTTLENECK"
+        ],
+        "precedence_position": "STAGE 3 of the Amendment_003 final state machine; transcribed verbatim",
+        "bound": true
+      },
+      "specificity_verdict": {
+        "line": 809,
+        "inputs": [
+          "interval (Wilson)",
+          "maximum"
+        ],
+        "output_labels": [
+          "PASS",
+          "FAIL",
+          "INDETERMINATE"
+        ],
+        "semantics": "PASS iff upper <= maximum; FAIL iff lower > maximum; else INDETERMINATE",
+        "precedence_position": "computes every max-type specificity verdict fed to STAGE 3",
+        "bound": true
+      },
+      "power_verdict": {
+        "line": 817,
+        "inputs": [
+          "interval (Wilson)",
+          "minimum"
+        ],
+        "output_labels": [
+          "PASS",
+          "FAIL",
+          "INDETERMINATE"
+        ],
+        "semantics": "PASS iff lower >= minimum; FAIL iff upper < minimum; else INDETERMINATE",
+        "precedence_position": "computes every min-type power and discovery verdict fed to STAGE 3",
+        "bound": true
+      },
+      "small_band": {
+        "line": 825,
+        "inputs": [
+          "interval (Wilson)"
+        ],
+        "output_labels": [
+          "HIGH",
+          "MODERATE",
+          "LOW",
+          "VERY_LOW",
+          "INDETERMINATE"
+        ],
+        "semantics": "left edges inclusive, right edges strict; whole_interval_required",
+        "precedence_position": "computes the SMALL band diagnostics; not an input to STAGE 3 (matching frozen V1, which places bands under `diagnostics`, not `verdicts`)",
+        "bound": true
+      }
+    },
+    "constants": {
+      "WILSON_Z": 1.959963984540054,
+      "PRODUCTION_WORLDS_PER_CELL": 400,
+      "CONCLUSION_PRIORITY_line": 49
+    }
+  },
+  "frozen_production_call_site": {
+    "file": "scripts/research/harness_synthetic_edge_calibration_v1_production.py",
+    "sha256": "9e784ecdcbd53ae4128d803d9325c8ff0f6db49ce70a0a63b13c4fc6a548a4ed",
+    "git_blob": "a27db41d5b29416274ac35fcb592e7b56f6760ec",
+    "tcb_role": "production (1 of the 5 pinned V1 TCB files)",
+    "aggregator": "aggregate_planned_worlds() at line 2526",
+    "mechanical_conclusion_call": "line 2612",
+    "verdict_tuple_published_at": "line 2704 ('verdicts' dict)",
+    "verdict_tuple": [
+      "oracle_null_specificity",
+      "blind_null_specificity",
+      "trap_specificity",
+      "easy_oracle_power",
+      "moderate_oracle_power",
+      "easy_blind_useful",
+      "moderate_blind_useful"
+    ],
+    "trap_specificity_bound": true,
+    "trap_specificity_identity": "trap_v = _spec(trap_ex, TRAP_STRICT_EX_MAX) at line 2572, passed as trap_specificity at line 2616; TRAP_STRICT_EX_MAX = 0.20 at line 256",
+    "materiality_only_identity": "materiality_only at line 2579",
+    "frozen_thresholds": {
+      "ORACLE_NULL_FPR_MAX": 0.05,
+      "BLIND_NULL_FPR_MAX": 0.1,
+      "TRAP_STRICT_EX_MAX": 0.2,
+      "ORACLE_EASY_MIN": 0.9,
+      "ORACLE_MODERATE_MIN": 0.7,
+      "BLIND_EASY_USEFUL_MIN": 0.8,
+      "BLIND_MODERATE_USEFUL_MIN": 0.5
+    },
+    "note": "The frozen V1 arms use len(_cell_records(...)) == 400 planned worlds as their denominator ('invalid worlds stay in the denominator'). Frozen V2 authority necessarily replaces this: V2 prereg section 7 forbids planned_worlds detection denominators and section 13.3 requires conditional identifiable denominators for specificity, power, discovery, floors and materiality. Amendment_003 therefore inherits the frozen OPERATORS, THRESHOLDS and LADDER LOGIC verbatim while computing the inputs on the frozen-V2-mandated denominators. V2 prereg section 12 authorises exactly this: 'This policy unit only changes who enters those denominators and adds the coverage gate. It does not reopen those numeric detection thresholds.'"
+  },
+  "source_type_taxonomy": {
+    "INHERITED_EXECUTABLE_DIRECT": "rule is a verbatim transcription of a frozen SHA256-pinned executable V1 TCB function, including its governing role and terminal label",
+    "INHERITED_EXECUTABLE_DIRECT_WITH_V2_PRECONDITIONS": "frozen executable rule transcribed verbatim, with V2 claimability preconditions added ahead of it that can only refuse, never permit",
+    "INHERITED_NUMERIC_WITH_V2_IDENTIFIABILITY_WRAPPER": "frozen V1 numeric threshold AND frozen V1 comparison operator, evaluated on the frozen-V2-mandated identifiability-conditional denominator",
+    "INHERITED_ALIAS_EXPLICIT": "alias stated verbatim in frozen Amendment_001 section 5.1",
+    "NEWLY_SPECIFIED_V2_ALIAS": "alias binding made explicit by this amendment by pattern-match to Amendment_001's own verbatim aliases; no new threshold, denominator or operator",
+    "NEWLY_SPECIFIED_V2_COMBINATION": "new deterministic combination operator over already-frozen inputs",
+    "NEWLY_SPECIFIED_V2_PRECONDITION": "V2 claimability gate with no counterpart in frozen mechanical_conclusion(); can only add a refusal"
+  },
+  "governing_role_enum": [
+    "GOVERNING_FINAL_STATE_MACHINE",
+    "GOVERNING_VIA_FROZEN_LADDER",
+    "GOVERNING_TERMINAL_STATE",
+    "GOVERNING_V2_PRECONDITION",
+    "DIAGNOSTIC_REPORTED_ONLY"
+  ],
+  "final_overall_state_enum": [
+    "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM",
+    "INSUFFICIENT_IDENTIFIABILITY_NO_METHODOLOGY_CLAIM",
+    "METHODOLOGY_REPAIR_REQUIRED_BEFORE_B2_06",
+    "METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06",
+    "CALIBRATION_INDETERMINATE",
+    "DISCOVERY_BOTTLENECK_BEFORE_B2_06",
+    "VISIBILITY_FLOOR",
+    "MODEL_FLOOR",
+    "MATERIALITY_ONLY_DIAGNOSTIC",
+    "NO_V1_EVIDENCE_OF_DISCOVERY_BOTTLENECK"
+  ],
+  "wilson_z": 1.959963984540054,
+  "hard_floor_identifiable": 200,
+  "world_valid_rate_min_wilson_lower": 0.95,
+  "change_scope": {
+    "kind": "PRECEDENCE_COMPOSITION_ONLY",
+    "entries_changed": 2,
+    "entries_inherited_unchanged": 31,
+    "fields_changed": {
+      "FINAL_OVERALL_MECHANICAL_CONCLUSION": [
+        "operator",
+        "precedence",
+        "source_identity",
+        "amendment_004_change"
+      ],
+      "NULL_PER_CANDIDATE_FPR": [
+        "precedence",
+        "downstream_use",
+        "source_identity",
+        "coverage_prerequisite",
+        "amendment_004_change"
+      ]
+    },
+    "thresholds_changed": false,
+    "denominators_changed": false,
+    "identifiability_rules_changed": false,
+    "blind_rules_changed": false,
+    "f03_rules_changed": false,
+    "floor_rules_changed": false,
+    "materiality_statistic_changed": false,
+    "frozen_terminal_labels_changed": false,
+    "inherited_priority_changed": false,
+    "stage_1_changed": false,
+    "stage_2_changed": false,
+    "stage_2b_early_return_removed": true,
+    "low_l_rule_changed": false
+  },
+  "documentation_corrections": {
+    "MINOR_1_materiality_direction_of_effect": {
+      "conclusion_id": "MATERIALITY_ONLY_DIAGNOSTIC",
+      "correction_of": "Amendment_003 section 3.1, titled 'One direction-of-effect disclosure'",
+      "finding": "Amendment_003 disclosed the direction of effect for VISIBILITY_FLOOR only, describing it as the single such case. At least one further case exists and was not disclosed.",
+      "disclosure": "Conditioning the materiality comparison on F03-identifiable worlds (instead of V1's all-400 planned-world aggregation) is permissive-or-neutral for MATERIALITY_ONLY_DIAGNOSTIC. Removing a world from the conditioning population either (a) removes a world that is STRICT_PASS_EX_MATERIALITY but not STRICT_PASS, which shrinks successes_ex - successes_strict by one, or (b) removes a world that is both or neither, which leaves the difference unchanged. The difference can therefore only shrink or stay equal, so the frozen boolean (successes_ex > successes_strict) can only become harder to satisfy, never easier. The effect is in the same direction as the already-disclosed VISIBILITY_FLOOR effect.",
+      "why_nevertheless_required": "V2 prereg section 7 explicitly forbids using planned_worlds as a detection denominator, and section 13.3 explicitly names materiality among the families the inherited ladder must compute on conditional identifiable denominators. The conditional denominator is therefore mandated by frozen V2 authority, not chosen. The residual gap is bounded by the STAGE 2 coverage gate, which requires at least HARD_FLOOR_IDENTIFIABLE (200) F03-identifiable worlds on EASY|5000 and world-baseline Wilson lower >= 0.95 on that cell - neither of which V1 required.",
+      "statistic_changed": false,
+      "threshold_changed": false,
+      "denominator_changed": false,
+      "documentation_only": true
+    },
+    "MINOR_2_null_authority": "Recorded in conclusions.NULL_PER_CANDIDATE_FPR.coverage_prerequisite: the frozen coverage map's own `note` field already states the per-candidate / all-ten split, so the Amendment_003 resolution is supported by three frozen authorities rather than two. Documentation only; no semantic change."
+  },
+  "low_l_residual": "UNCHANGED from Amendment_003. Amendment_001 section 3 provides no deterministic rule for turning low-L concentration into a governing PASS/FAIL/INDETERMINATE decision and explicitly forbids inventing an L-specific threshold before outcomes are seen. Amendment_004 therefore does NOT invent one and does NOT alter the Amendment_003 disclosure. L-stratified reporting, pooled/stratified reconciliation and blind_not_claimed_invariant_to_L = true remain in force.",
+  "original_prereg_changed": false,
+  "amendment_001_changed": false,
+  "amendment_002_changed": false,
+  "amendment_003_changed": false,
+  "v2_policy_changed": false,
+  "policy_freeze_changed": false,
+  "v1_tcb_changed": false,
+  "production_code_changed": false,
+  "production_outcomes_inspected": false,
+  "real_arm_created": false,
+  "production_run": false,
+  "result_minted": false,
+  "authority_consumed": false,
+  "conclusions": {
+    "FINAL_OVERALL_MECHANICAL_CONCLUSION": {
+      "conclusion_id": "FINAL_OVERALL_MECHANICAL_CONCLUSION",
+      "source_type": "INHERITED_EXECUTABLE_DIRECT_WITH_V2_PRECONDITIONS",
+      "source_identity": "STAGE 3 is a verbatim transcription of the frozen executable authority mechanical_conclusion() at scripts/research/harness_synthetic_edge_calibration_v1_lib.py:845 (priority list CONCLUSION_PRIORITY at scripts/research/harness_synthetic_edge_calibration_v1_lib.py:49; identical to load_frozen_prereg()['conclusion_authority']['priority_order']), with the verdict tuple supplied exactly as the frozen production call site supplies it at scripts/research/harness_synthetic_edge_calibration_v1_production.py:2612-2623. STAGES 1, 2 and 2b are V2 preconditions from V2 prereg section 13 and Amendment_001 sections 5.1/5.2. AMENDMENT_004 changes ONLY the composition precedence of the V2 NULL aggregate gate relative to this frozen ladder (Amendment_003 BLOCKER). The frozen ladder steps, their order, their thresholds and their terminal labels are unchanged.",
+      "input_statistic": "the frozen 7-verdict tuple (oracle_null_specificity, blind_null_specificity, trap_specificity, easy_oracle_power, moderate_oracle_power, easy_blind_useful, moderate_blind_useful) plus visibility_wilson_upper, model_detection_wilson_upper and materiality_only_failure; and the V2 preconditions structurally_complete, coverage_all_adequate and the aggregated per-candidate NULL gate",
+      "numerator": null,
+      "denominator": "not applicable (state machine over verdicts)",
+      "conditioning_population": "each input keeps its own pinned denominator",
+      "excluded_states": [],
+      "denominator_authority": "inputs carry their own pinned denominators",
+      "undefined_rate_behaviour": "any undefined input rate cannot PASS or FAIL and is blocked at STAGE 2 (coverage ADEQUATE implies every governing denominator is >= HARD_FLOOR_IDENTIFIABLE = 200)",
+      "threshold": null,
+      "operator": "STAGE 1 (V2): if not structurally_complete => INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM. STAGE 2 (V2): elif any cell/candidate in the Amendment_001 section 5.2 union is not ADEQUATE (including world-baseline coverage on each of the eight cells) => INSUFFICIENT_IDENTIFIABILITY_NO_METHODOLOGY_CLAIM. Note: the aggregated NULL_PER_CANDIDATE_FPR gate can only be NOT_CLAIMABLE when some F01..F10 candidate on NULL|5000 is not ADEQUATE, which STAGE 2 has already refused; therefore after STAGE 2 the gate is exactly one of PASS / FAIL / INDETERMINATE and missing evidence is never converted into a scientific FAIL. STAGE 3 (inherited frozen ladder, with the V2 NULL aggregate gate integrated at its scientifically corresponding frozen priority rather than as an early return): (3.1) if FAIL in (oracle_null_specificity, blind_null_specificity, trap_specificity, null_per_candidate_gate) => METHODOLOGY_REPAIR_REQUIRED_BEFORE_B2_06; (3.2) elif FAIL in (easy_oracle_power, moderate_oracle_power) => METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06; (3.3) elif INDETERMINATE in (oracle_null_specificity, blind_null_specificity, trap_specificity, easy_oracle_power, moderate_oracle_power, easy_blind_useful, moderate_blind_useful, null_per_candidate_gate) => CALIBRATION_INDETERMINATE; (3.4) elif FAIL in (easy_blind_useful, moderate_blind_useful) => DISCOVERY_BOTTLENECK_BEFORE_B2_06; (3.5) elif visibility_wilson_upper is not None and visibility_wilson_upper < 0.50 => VISIBILITY_FLOOR; (3.6) elif model_detection_wilson_upper is not None and model_detection_wilson_upper < 0.50 => MODEL_FLOOR; (3.7) elif materiality_only_failure => MATERIALITY_ONLY_DIAGNOSTIC; (3.8) else => NO_V1_EVIDENCE_OF_DISCOVERY_BOTTLENECK.",
+      "equality_behaviour": "inherited from each input's pinned equality behaviour; the floor comparisons are strict (< 0.50), so upper == 0.50 does not bind",
+      "frozen_operator_function": "mechanical_conclusion() at scripts/research/harness_synthetic_edge_calibration_v1_lib.py:845",
+      "coverage_prerequisite": {
+        "cells": {
+          "NULL|5000": [
+            "F01",
+            "F02",
+            "F03",
+            "F04",
+            "F05",
+            "F06",
+            "F07",
+            "F08",
+            "F09",
+            "F10"
+          ],
+          "EASY|5000": [
+            "F01",
+            "F02",
+            "F03",
+            "F04",
+            "F05",
+            "F06",
+            "F07",
+            "F08",
+            "F09",
+            "F10"
+          ],
+          "MODERATE|5000": [
+            "F01",
+            "F02",
+            "F03",
+            "F04",
+            "F05",
+            "F06",
+            "F07",
+            "F08",
+            "F09",
+            "F10"
+          ],
+          "NONSTATIONARY_TRAP|5000": [
+            "F03"
+          ],
+          "SMALL|5000": [
+            "F03"
+          ],
+          "TINY_NOISY|5000": [
+            "F03"
+          ],
+          "SMALL|2500": [
+            "F03"
+          ],
+          "SMALL|10000": [
+            "F03"
+          ]
+        },
+        "world_baseline_coverage_required_on_each_cell": true,
+        "authority": "Amendment_001 section 5.2 final overall union"
+      },
+      "structural_prerequisite": "STAGE 1 structurally_complete (all 3200 planned worlds present, no torn checkpoint, no malformed record)",
+      "possible_states": [
+        "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM",
+        "INSUFFICIENT_IDENTIFIABILITY_NO_METHODOLOGY_CLAIM",
+        "METHODOLOGY_REPAIR_REQUIRED_BEFORE_B2_06",
+        "METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06",
+        "CALIBRATION_INDETERMINATE",
+        "DISCOVERY_BOTTLENECK_BEFORE_B2_06",
+        "VISIBILITY_FLOOR",
+        "MODEL_FLOOR",
+        "MATERIALITY_ONLY_DIAGNOSTIC",
+        "NO_V1_EVIDENCE_OF_DISCOVERY_BOTTLENECK"
+      ],
+      "governing_role": "GOVERNING_FINAL_STATE_MACHINE",
+      "precedence": "STAGE 1 > STAGE 2 > STAGE 3.1 > 3.2 > 3.3 > 3.4 > 3.5 > 3.6 > 3.7 > 3.8. First match wins; the ladder is total (3.8 is an unconditional else). Amendment_003's separate STAGE 2b early return is REMOVED: the V2 NULL aggregate gate no longer preempts the ladder. Its FAIL is evaluated at the frozen specificity-failure priority (3.1) alongside the other definitive specificity failures, and its INDETERMINATE is evaluated at the frozen required-verdict INDETERMINATE priority (3.3). Definitive frozen FAIL states therefore always dominate an INDETERMINATE V2 wrapper. No new scientific priority is created; the existing frozen priority structure is extended mechanically. V2 may only make the result stricter where prospectively authorized; it may never downgrade a stronger frozen terminal consequence.",
+      "downstream_use": "the single canonical RESULT conclusion. passing_does_not_authorize_b2_06 = true and post_outcome_relabel_forbidden = true apply unchanged.",
+      "frozen_label_set_preserved": true,
+      "no_generic_pass_fail_labels": "Amendment_002's CALIBRATION_PASSED / CALIBRATION_FAILED / COVERAGE_INADEQUATE / STRUCTURALLY_INCOMPLETE relabelling is withdrawn. All eight frozen V1 terminal labels are preserved verbatim, plus V2's own INSUFFICIENT_IDENTIFIABILITY_NO_METHODOLOGY_CLAIM. Note that frozen V2's MECHANICAL_STRUCTURAL_INCOMPLETE is the identical string 'INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM' as frozen V1's, so STAGE 1 needs no new label.",
+      "amendment_004_change": {
+        "kind": "PRECEDENCE_COMPOSITION_ONLY",
+        "removed": "Amendment_003 STAGE 2b early-return conclusions",
+        "added": "null_per_candidate_gate integrated into frozen step 3.1 (FAIL) and frozen step 3.3 (INDETERMINATE)",
+        "thresholds_changed": false,
+        "denominators_changed": false,
+        "terminal_labels_changed": false,
+        "inherited_priority_changed": false,
+        "stage_1_changed": false,
+        "stage_2_changed": false
+      }
+    },
+    "NULL_PER_CANDIDATE_FPR": {
+      "conclusion_id": "NULL_PER_CANDIDATE_FPR",
+      "source_type": "NEWLY_SPECIFIED_V2_PRECONDITION",
+      "source_identity": "Amendment_001 section 5.1 row ('that one of F01..F10'; 'per-candidate NULL FPR on identifiable evaluations') and section 5.2 sentence ('NULL_PER_CANDIDATE_FPR for one candidate may be discussed only if that candidate is ADEQUATE'); threshold reuses the frozen BLIND_LIBRARY_NULL_FPR_max = 0.10 (no per-candidate number exists in any frozen artifact); operator: frozen specificity_verdict(). There is NO corresponding input in frozen mechanical_conclusion(), so this is a V2 addition, not an inherited ladder input. AMENDMENT_004 changes ONLY where this gate is evaluated within the composite precedence. Its statistic, numerator, denominator, conditioning population, threshold, operator, equality behaviour and coverage prerequisite are unchanged from Amendment_003.",
+      "input_statistic": "per-candidate NULL false-positive rate, evaluated independently for each of F01..F10 on NULL|5000",
+      "per_candidate": true,
+      "numerator": "candidate_detection_count[c] on NULL|5000 for the single candidate c under evaluation",
+      "denominator": "candidate_identifiable_count[c] on NULL|5000 for that same candidate c",
+      "conditioning_population": "WORLD_VALID worlds on NULL|5000 in which candidate c is CANDIDATE_IDENTIFIABLE",
+      "excluded_states": [
+        "WORLD_INVALID",
+        "CANDIDATE_NOT_IDENTIFIABLE",
+        "CANDIDATE_UNDEFINED_ON_INVALID_WORLD"
+      ],
+      "denominator_authority": "Amendment_001 section 5.1 states this id is computed 'on identifiable evaluations'; V2 prereg section 7 defines conditional_detection_rate with n = candidate_identifiable_count. CANDIDATE_NOT_IDENTIFIABLE is excluded from BOTH numerator and denominator and is never counted as a negative (non-)detection.",
+      "undefined_rate_behaviour": "candidate_identifiable_count[c] == 0 => undefined => cannot PASS or FAIL (V2 prereg section 7); the diagnostic is NOT_CLAIMABLE for that candidate",
+      "threshold": 0.1,
+      "operator": "PASS iff wilson_upper <= threshold; FAIL iff wilson_lower > threshold; otherwise INDETERMINATE",
+      "equality_behaviour": "wilson_upper == threshold => PASS; wilson_lower == threshold => INDETERMINATE (not FAIL)",
+      "frozen_operator_function": "specificity_verdict() at scripts/research/harness_synthetic_edge_calibration_v1_lib.py:809",
+      "coverage_prerequisite": {
+        "diagnostic_scope": {
+          "cell": "NULL|5000",
+          "candidates": [
+            "the single candidate c under evaluation"
+          ],
+          "authority": "Amendment_001 section 5.2"
+        },
+        "canonical_ladder_gate_scope": {
+          "cell": "NULL|5000",
+          "candidates": [
+            "F01",
+            "F02",
+            "F03",
+            "F04",
+            "F05",
+            "F06",
+            "F07",
+            "F08",
+            "F09",
+            "F10"
+          ],
+          "authority": "frozen_required_coverage_map()['NULL_PER_CANDIDATE_FPR'] and null_claim_blocked_by_coverage(); AMENDMENT_004 documentation correction: the frozen coverage map's own `note` field already states this split verbatim - \"each candidate's per-candidate FPR requires that candidate ADEQUATE; bundled NULL_FALSE_POSITIVE_CONCLUSION still requires all ten\" - so the resolution is supported by the frozen map's note, by Amendment_001 section 5.1 and by Amendment_001 section 5.2, in addition to deferring to the stricter frozen executable required_coverage_for_conclusion() for the governing use."
+        },
+        "disclosed_conflict": "MAJOR-1: the two frozen authorities above disagree on the required candidate scope for this id. Amendment_003 honours BOTH by splitting the roles (see resolution). AMENDMENT_004 refines this characterisation: the tension is more precisely between the frozen map's structured `candidates` field (all ten, which is what the executable required_coverage_for_conclusion() enforces) and the frozen map's own `note` field plus Amendment_001 sections 5.1/5.2 (that one candidate, for the per-candidate diagnostic). Amendment_003 described it as map-versus-Amendment_001 and omitted the map's own note. The resolution is unchanged and is strengthened, not weakened, by the note.",
+        "resolution": "A single candidate's per-candidate FPR may be COMPUTED AND REPORTED as a diagnostic when that candidate alone is ADEQUATE (Amendment_001 section 5.2). The canonical conclusion id NULL_PER_CANDIDATE_FPR, in its role as a pre-ladder claimability gate and as a component of NULL_FALSE_POSITIVE_CONCLUSION, is claimable only when the complete frozen required-coverage map for F01..F10 on NULL|5000 is satisfied (frozen_required_coverage_map). Fail-closed: the stricter authority governs the governing use; the looser authority governs only the reported diagnostic."
+      },
+      "structural_prerequisite": "STAGE 1 structurally_complete",
+      "possible_states": [
+        "NOT_CLAIMABLE",
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ],
+      "governing_role": "GOVERNING_V2_PRECONDITION",
+      "precedence": "Evaluated AFTER STAGE 2 coverage, and then INSIDE the inherited frozen ladder at its scientifically corresponding frozen priority - NOT as a pre-ladder early return (that was the Amendment_003 BLOCKER). FAIL participates in frozen step 3.1, the specificity-failure stage, at the same priority as oracle_null_specificity, blind_null_specificity and trap_specificity, yielding METHODOLOGY_REPAIR_REQUIRED_BEFORE_B2_06. INDETERMINATE participates in frozen step 3.3, the required-verdict INDETERMINATE tuple, yielding CALIBRATION_INDETERMINATE only when no higher-priority definitive failure is present. PASS adds no consequence. NOT_CLAIMABLE cannot reach the ladder: it implies some F01..F10 candidate on NULL|5000 is not ADEQUATE, which STAGE 2 already refuses. Consequently this V2 addition can only make the composite result stricter; it can never downgrade a stronger frozen terminal consequence and can never convert an inherited failure into success.",
+      "downstream_use": "Aggregated over all ten candidates via NOT_CLAIMABLE > FAIL > INDETERMINATE > PASS, then supplied to FINAL_OVERALL_MECHANICAL_CONCLUSION as `null_per_candidate_gate`, which is read at frozen step 3.1 (FAIL) and frozen step 3.3 (INDETERMINATE). Also a component of NULL_FALSE_POSITIVE_CONCLUSION.",
+      "amendment_004_change": {
+        "kind": "PRECEDENCE_COMPOSITION_ONLY",
+        "statistic_changed": false,
+        "threshold_changed": false,
+        "denominator_changed": false,
+        "coverage_prerequisite_changed": false
+      }
+    }
+  }
+}
