@@ -16,6 +16,7 @@ import pytest
 
 from scripts.research import harness_synthetic_edge_calibration_v1_lib as lib
 from scripts.research import harness_synthetic_edge_calibration_v1_production as prod
+from scripts.research import harness_synthetic_edge_calibration_v2_inherited_ladder as ladder
 from scripts.research import harness_synthetic_edge_calibration_v2_production as v2p
 from scripts.research import harness_synthetic_edge_calibration_v2_rank_policy as v2
 
@@ -171,6 +172,10 @@ def _v2_commit_freeze_tree(tmp_path: Path) -> Path:
         "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md": _live_bytes(
             "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md"
         ),
+        ladder.AMENDMENT_003_MD_REL: _live_bytes(ladder.AMENDMENT_003_MD_REL),
+        ladder.AMENDMENT_003_JSON_REL: _live_bytes(ladder.AMENDMENT_003_JSON_REL),
+        ladder.AMENDMENT_004_MD_REL: _live_bytes(ladder.AMENDMENT_004_MD_REL),
+        ladder.AMENDMENT_004_JSON_REL: _live_bytes(ladder.AMENDMENT_004_JSON_REL),
     }
     for rel, data in copies.items():
         _write(repo / rel, data)
@@ -200,6 +205,10 @@ def _v2_valid_arm_payload(repo: Path) -> dict:
             "original_prereg_tree": v2p.FROZEN_ORIGINAL_PREREG_TREE,
             "amendment_001_head": v2p.FROZEN_AMENDMENT_001_HEAD,
             "amendment_001_tree": v2p.FROZEN_AMENDMENT_001_TREE,
+            "amendment_003_md_sha256": ladder.FROZEN_AMENDMENT_003_SHA256[ladder.AMENDMENT_003_MD_REL],
+            "amendment_003_json_sha256": ladder.FROZEN_AMENDMENT_003_SHA256[ladder.AMENDMENT_003_JSON_REL],
+            "amendment_004_md_sha256": ladder.FROZEN_AMENDMENT_004_SHA256[ladder.AMENDMENT_004_MD_REL],
+            "amendment_004_json_sha256": ladder.FROZEN_AMENDMENT_004_SHA256[ladder.AMENDMENT_004_JSON_REL],
         }
     )
     return payload
@@ -272,6 +281,10 @@ def test_sibling_with_wrong_plan_hash_does_not_authorize(tmp_path):
         ("original_prereg_tree", "0" * 40),
         ("amendment_001_head", "0" * 40),
         ("amendment_001_tree", "0" * 40),
+        ("amendment_003_md_sha256", "0" * 64),
+        ("amendment_003_json_sha256", "0" * 64),
+        ("amendment_004_md_sha256", "0" * 64),
+        ("amendment_004_json_sha256", "0" * 64),
         ("authorization_consumed", True),
         ("status", "SOMETHING_ELSE"),
     ],
@@ -302,6 +315,39 @@ def test_wrong_v1_tcb_hash_does_not_authorize(tmp_path):
     payload2 = _v2_valid_arm_payload(repo2)
     _v2_commit_arm(repo2, payload2)
     assert v2p.v2_production_arm_authorized(repo_root=repo2) is False
+
+
+def test_wrong_amendment_003_content_does_not_authorize(tmp_path):
+    repo = _v2_commit_freeze_tree(tmp_path)
+    path = repo / ladder.AMENDMENT_003_JSON_REL
+    _write(path, path.read_bytes() + b"\n// tampered\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "tamper amendment_003 before arm")
+    payload = _v2_valid_arm_payload(repo)
+    _v2_commit_arm(repo, payload)
+    assert v2p.v2_production_arm_authorized(repo_root=repo) is False
+
+
+def test_wrong_amendment_004_content_does_not_authorize(tmp_path):
+    repo = _v2_commit_freeze_tree(tmp_path)
+    path = repo / ladder.AMENDMENT_004_MD_REL
+    _write(path, path.read_bytes() + b"\n<!-- tampered -->\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "tamper amendment_004 before arm")
+    payload = _v2_valid_arm_payload(repo)
+    _v2_commit_arm(repo, payload)
+    assert v2p.v2_production_arm_authorized(repo_root=repo) is False
+
+
+def test_amendment_003_missing_does_not_authorize(tmp_path):
+    repo = _v2_commit_freeze_tree(tmp_path)
+    path = repo / ladder.AMENDMENT_003_JSON_REL
+    path.unlink()
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "remove amendment_003 before arm")
+    payload = _v2_valid_arm_payload(repo)
+    _v2_commit_arm(repo, payload)
+    assert v2p.v2_production_arm_authorized(repo_root=repo) is False
 
 
 def test_old_v1_arm_does_not_authorize_v2(tmp_path):
@@ -424,6 +470,11 @@ def test_caller_provided_result_cannot_become_authority(tmp_path):
     # so historical authorization for this (or any) commit must fail closed
     # before fabricated evidence is ever inspected.
     with pytest.raises(v2p.SyntheticExecutionNotAuthorized):
+        v2p.mint_v2_result(v2p._repo_root(), head, fabricated)
+    # The caller-supplied mapping this used to accept is gone entirely, not
+    # merely optional: passing it now raises TypeError, before any
+    # authorization check even runs.
+    with pytest.raises(TypeError):
         v2p.mint_v2_result(
             v2p._repo_root(), head, fabricated, inherited_detection_conclusions={}
         )

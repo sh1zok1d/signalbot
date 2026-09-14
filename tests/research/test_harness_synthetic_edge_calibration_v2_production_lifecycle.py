@@ -26,12 +26,12 @@ from unittest import mock
 import pytest
 
 from scripts.research import harness_synthetic_edge_calibration_v1_production as prod
+from scripts.research import harness_synthetic_edge_calibration_v2_inherited_ladder as ladder
 from scripts.research import harness_synthetic_edge_calibration_v2_production as v2p
 from scripts.research import harness_synthetic_edge_calibration_v2_rank_policy as v2
 
 REPO = Path(__file__).resolve().parents[2]
 CONCLUSION_IDS = list(v2.frozen_required_coverage_map())
-DUMMY_INHERITED = {cid: "PLACEHOLDER_NOT_A_REAL_VERDICT" for cid in CONCLUSION_IDS}
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -79,6 +79,10 @@ def _commit_freeze_tree(tmp_path: Path, *, name: str = "repo") -> Path:
         "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md": _live_bytes(
             "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md"
         ),
+        ladder.AMENDMENT_003_MD_REL: _live_bytes(ladder.AMENDMENT_003_MD_REL),
+        ladder.AMENDMENT_003_JSON_REL: _live_bytes(ladder.AMENDMENT_003_JSON_REL),
+        ladder.AMENDMENT_004_MD_REL: _live_bytes(ladder.AMENDMENT_004_MD_REL),
+        ladder.AMENDMENT_004_JSON_REL: _live_bytes(ladder.AMENDMENT_004_JSON_REL),
     }
     for rel, data in copies.items():
         _write(repo / rel, data)
@@ -109,6 +113,10 @@ def _small_arm_payload(repo: Path) -> dict:
             "original_prereg_tree": v2p.FROZEN_ORIGINAL_PREREG_TREE,
             "amendment_001_head": v2p.FROZEN_AMENDMENT_001_HEAD,
             "amendment_001_tree": v2p.FROZEN_AMENDMENT_001_TREE,
+            "amendment_003_md_sha256": ladder.FROZEN_AMENDMENT_003_SHA256[ladder.AMENDMENT_003_MD_REL],
+            "amendment_003_json_sha256": ladder.FROZEN_AMENDMENT_003_SHA256[ladder.AMENDMENT_003_JSON_REL],
+            "amendment_004_md_sha256": ladder.FROZEN_AMENDMENT_004_SHA256[ladder.AMENDMENT_004_MD_REL],
+            "amendment_004_json_sha256": ladder.FROZEN_AMENDMENT_004_SHA256[ladder.AMENDMENT_004_JSON_REL],
         }
     )
     return payload
@@ -495,22 +503,40 @@ def test_mechanical_conclusions_structural_incompleteness_overrides_everything(r
         session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
         records = v2p.run_canonical_v2_production_grid_in_session(session)
         conclusions = v2p.derive_v2_mechanical_conclusions(
-            records, structurally_complete=False, inherited_detection_conclusions=DUMMY_INHERITED
+            records, structurally_complete=False
         )
         assert all(v == v2.MECHANICAL_STRUCTURAL_INCOMPLETE for v in conclusions.values())
 
 
-def test_missing_inherited_conclusion_fails_closed(reserved_small_repo, small_jobs):
+def test_no_caller_scientific_mapping_parameter_exists(reserved_small_repo, small_jobs):
+    """The old caller-controlled inherited_detection_conclusions mapping is
+    completely gone -- not renamed, not replaced by a kwarg/callback/strategy
+    object. derive_v2_mechanical_conclusions accepts only evidence records and
+    structurally_complete; any other keyword argument is rejected by Python
+    itself, not merely ignored."""
     repo, arm_commit = reserved_small_repo
     with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
         session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
         records = v2p.run_canonical_v2_production_grid_in_session(session)
-        incomplete = dict(DUMMY_INHERITED)
-        del incomplete[CONCLUSION_IDS[0]]
-        with pytest.raises(v2p.SyntheticExecutionNotAuthorized):
+        with pytest.raises(TypeError):
             v2p.derive_v2_mechanical_conclusions(
-                records, structurally_complete=True, inherited_detection_conclusions=incomplete
+                records,
+                structurally_complete=True,
+                inherited_detection_conclusions={},
             )
+        with pytest.raises(TypeError):
+            v2p.mint_v2_result(
+                repo, arm_commit, records, inherited_detection_conclusions={}
+            )
+        # All 33 conclusions ARE fully derivable internally with no such
+        # argument at all.
+        conclusions = v2p.derive_v2_mechanical_conclusions(records, structurally_complete=True)
+        assert set(conclusions) == set(CONCLUSION_IDS)
+
+
+def test_unknown_conclusion_id_fails_closed():
+    with pytest.raises(ladder.V2InheritedLadderAuthorityError):
+        ladder.derive_v2_inherited_conclusion("NOT_A_REAL_CONCLUSION_ID", [])
 
 
 # --- Blocker 3 / SS7: mint + historical result verification -----------------
@@ -546,12 +572,12 @@ def test_mint_result_end_to_end_matches_historical_verification(reserved_small_r
         records = v2p.run_canonical_v2_production_grid_in_session(session)
         world_records = v2p.mint_v2_world_records(repo, arm_commit, records)
         result = v2p.mint_v2_result(
-            repo, arm_commit, records, inherited_detection_conclusions=DUMMY_INHERITED
+            repo, arm_commit, records
         )
         assert result["world_records_count"] == len(small_jobs)
         assert set(result["conclusions"]) == set(CONCLUSION_IDS)
         assert v2p.verify_historical_v2_result(
-            repo, arm_commit, world_records, result, inherited_detection_conclusions=DUMMY_INHERITED
+            repo, arm_commit, world_records, result
         ) is True
 
 
@@ -562,19 +588,19 @@ def test_historical_verification_from_descendant_and_clean_clone(reserved_small_
         records = v2p.run_canonical_v2_production_grid_in_session(session)
         world_records = v2p.mint_v2_world_records(repo, arm_commit, records)
         result = v2p.mint_v2_result(
-            repo, arm_commit, records, inherited_detection_conclusions=DUMMY_INHERITED
+            repo, arm_commit, records
         )
         _write(repo / v2p.CANONICAL_V2_WORLD_RECORDS_PATH, json_bytes(world_records))
         _write(repo / v2p.CANONICAL_V2_RESULT_PATH, json_bytes(result))
         _git(repo, "add", "-A")
         _git(repo, "commit", "-m", "persist evidence and result (test)")
         assert v2p.verify_historical_v2_result(
-            repo, arm_commit, world_records, result, inherited_detection_conclusions=DUMMY_INHERITED
+            repo, arm_commit, world_records, result
         ) is True
         clone = tmp_path / "clean_clone_for_result"
         subprocess.run(["git", "clone", "-q", str(repo), str(clone)], check=True)
         assert v2p.verify_historical_v2_result(
-            clone, arm_commit, world_records, result, inherited_detection_conclusions=DUMMY_INHERITED
+            clone, arm_commit, world_records, result
         ) is True
 
 
@@ -585,7 +611,7 @@ def test_historical_verification_rejects_tampered_world_records(reserved_small_r
         records = v2p.run_canonical_v2_production_grid_in_session(session)
         world_records = v2p.mint_v2_world_records(repo, arm_commit, records)
         result = v2p.mint_v2_result(
-            repo, arm_commit, records, inherited_detection_conclusions=DUMMY_INHERITED
+            repo, arm_commit, records
         )
         tampered = copy.deepcopy(world_records)
         tampered["records"][0]["taxonomy"] = "FORGED"
@@ -596,7 +622,7 @@ def test_historical_verification_rejects_tampered_world_records(reserved_small_r
         tampered["records_size"] = len(forged_bytes)
         assert (
             v2p.verify_historical_v2_result(
-                repo, arm_commit, tampered, result, inherited_detection_conclusions=DUMMY_INHERITED
+                repo, arm_commit, tampered, result
             )
             is False
         )
@@ -609,13 +635,13 @@ def test_historical_verification_rejects_tampered_result(reserved_small_repo, sm
         records = v2p.run_canonical_v2_production_grid_in_session(session)
         world_records = v2p.mint_v2_world_records(repo, arm_commit, records)
         result = v2p.mint_v2_result(
-            repo, arm_commit, records, inherited_detection_conclusions=DUMMY_INHERITED
+            repo, arm_commit, records
         )
         tampered_result = copy.deepcopy(result)
         tampered_result["cell_aggregates"]["NULL|5000"]["world_valid_count"] = 999999
         assert (
             v2p.verify_historical_v2_result(
-                repo, arm_commit, world_records, tampered_result, inherited_detection_conclusions=DUMMY_INHERITED
+                repo, arm_commit, world_records, tampered_result
             )
             is False
         )
@@ -628,13 +654,13 @@ def test_caller_provided_aggregate_cannot_become_authority(reserved_small_repo, 
         records = v2p.run_canonical_v2_production_grid_in_session(session)
         world_records = v2p.mint_v2_world_records(repo, arm_commit, records)
         result = v2p.mint_v2_result(
-            repo, arm_commit, records, inherited_detection_conclusions=DUMMY_INHERITED
+            repo, arm_commit, records
         )
         forged_result = copy.deepcopy(result)
         forged_result["conclusions"] = {cid: "FABRICATED_PASS" for cid in CONCLUSION_IDS}
         assert (
             v2p.verify_historical_v2_result(
-                repo, arm_commit, world_records, forged_result, inherited_detection_conclusions=DUMMY_INHERITED
+                repo, arm_commit, world_records, forged_result
             )
             is False
         )
@@ -759,3 +785,118 @@ def test_v2_production_integrity_error_is_used_meaningfully():
     assert "class V2ProductionIntegrityError" in source
     assert "raise V2ProductionIntegrityError" in source
     assert source.count("_refuse_integrity(") >= 5
+
+
+# --- 33/33 implementation binding: same-evidence-same-result, forgery ------
+
+
+def test_mutated_conclusion_id_fails_historical_verification(reserved_small_repo, small_jobs):
+    """MUTATED_33_ID_RESULT_VERIFIES = NO: tampering any one of the 33 stored
+    conclusion values must be caught even though every ordinary payload hash
+    (world-records digest, evidence bytes) is left untouched."""
+    repo, arm_commit = reserved_small_repo
+    with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
+        session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
+        records = v2p.run_canonical_v2_production_grid_in_session(session)
+        world_records = v2p.mint_v2_world_records(repo, arm_commit, records)
+        result = v2p.mint_v2_result(repo, arm_commit, records)
+        tampered_result = copy.deepcopy(result)
+        cid = CONCLUSION_IDS[0]
+        original = tampered_result["conclusions"][cid]
+        # flip to a definitely-different valid-looking string
+        tampered_result["conclusions"][cid] = (
+            "PASS" if original != "PASS" else "METHODOLOGY_REPAIR_REQUIRED_BEFORE_B2_06"
+        )
+        assert (
+            v2p.verify_historical_v2_result(repo, arm_commit, world_records, tampered_result)
+            is False
+        )
+
+
+def test_mutated_final_overall_conclusion_fails_historical_verification(reserved_small_repo, small_jobs):
+    repo, arm_commit = reserved_small_repo
+    with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
+        session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
+        records = v2p.run_canonical_v2_production_grid_in_session(session)
+        world_records = v2p.mint_v2_world_records(repo, arm_commit, records)
+        result = v2p.mint_v2_result(repo, arm_commit, records)
+        tampered_result = copy.deepcopy(result)
+        tampered_result["final_overall_conclusion"] = "CALIBRATION_PASSED_FORGED"
+        assert (
+            v2p.verify_historical_v2_result(repo, arm_commit, world_records, tampered_result)
+            is False
+        )
+
+
+def test_same_evidence_same_conclusions_and_final_across_independent_calls(reserved_small_repo, small_jobs):
+    """SAME_EVIDENCE_SAME_RESULT: two independent derivation call paths over
+    byte-identical evidence must agree exactly, with no parameter available
+    to make them differ."""
+    repo, arm_commit = reserved_small_repo
+    with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
+        session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
+        records = v2p.run_canonical_v2_production_grid_in_session(session)
+
+        result_a = v2p.mint_v2_result(repo, arm_commit, records)
+        result_b = v2p.mint_v2_result(repo, arm_commit, records)
+        assert result_a["conclusions"] == result_b["conclusions"]
+        assert result_a["final_overall_conclusion"] == result_b["final_overall_conclusion"]
+
+        # Independent path: derive conclusions directly, bypassing mint entirely.
+        direct_conclusions = v2p.derive_v2_mechanical_conclusions(
+            records, structurally_complete=(len(records) == len(small_jobs))
+        )
+        direct_final = v2p.derive_v2_final_overall_mechanical_conclusion(
+            records, structurally_complete=(len(records) == len(small_jobs))
+        )
+        assert direct_conclusions == result_a["conclusions"]
+        assert direct_final == result_a["final_overall_conclusion"]
+
+        canonical_a = v2p.canonical_json_bytes(v2p._jsonable(result_a["conclusions"]))
+        canonical_b = v2p.canonical_json_bytes(v2p._jsonable(result_b["conclusions"]))
+        assert canonical_a == canonical_b
+
+
+def test_no_caller_parameter_can_produce_a_second_scientific_result(reserved_small_repo, small_jobs):
+    """SECOND_SCIENTIFIC_RESULT_POSSIBLE = NO: there is no keyword, callback,
+    or override argument anywhere in the mint path that could make identical
+    evidence produce two different final conclusions."""
+    repo, arm_commit = reserved_small_repo
+    with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
+        session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
+        records = v2p.run_canonical_v2_production_grid_in_session(session)
+        import inspect
+
+        sig = inspect.signature(v2p.mint_v2_result)
+        assert set(sig.parameters) == {"repo_root", "arm_commit", "evidence"}
+        sig2 = inspect.signature(v2p.derive_v2_mechanical_conclusions)
+        assert set(sig2.parameters) == {"records", "structurally_complete"}
+        sig3 = inspect.signature(v2p.verify_historical_v2_result)
+        assert set(sig3.parameters) == {"repo_root", "arm_commit", "world_records", "result"}
+        # And, mechanically, calling mint twice really does agree (see the
+        # dedicated same-evidence test above for the full comparison).
+        result_a = v2p.mint_v2_result(repo, arm_commit, records)
+        result_b = v2p.mint_v2_result(repo, arm_commit, records)
+        assert result_a["final_overall_conclusion"] == result_b["final_overall_conclusion"]
+
+
+def test_concurrent_mint_calls_bind_to_the_same_evidence_identity(reserved_small_repo, small_jobs):
+    """TOCTOU: two 'concurrent' derivations (simulated sequentially, since
+    mint is a pure function of its evidence argument with no shared mutable
+    state) over the same evidence never diverge, and a result bound to
+    different evidence (a different world's taxonomy) is provably distinct."""
+    repo, arm_commit = reserved_small_repo
+    with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
+        session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
+        records = list(v2p.run_canonical_v2_production_grid_in_session(session))
+        result_1 = v2p.mint_v2_result(repo, arm_commit, tuple(records))
+        result_2 = v2p.mint_v2_result(repo, arm_commit, tuple(records))
+        assert result_1["conclusions"] == result_2["conclusions"]
+        assert result_1["world_records_sha256"] == result_2["world_records_sha256"]
+        # A result minted from a different evidence identity is bound to that
+        # identity (a different world_records_sha256), never silently merged
+        # with the first.
+        mutated = list(records)
+        mutated[0] = dataclasses.replace(mutated[0], taxonomy="FORGED_FOR_TEST")
+        with pytest.raises(v2p.V2ProductionIntegrityError):
+            v2p.mint_v2_result(repo, arm_commit, tuple(mutated))

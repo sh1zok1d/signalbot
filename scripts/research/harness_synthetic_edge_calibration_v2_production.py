@@ -56,6 +56,7 @@ from scripts.research.harness_synthetic_edge_calibration_v1_production import (
 )
 from scripts.research.harness_synthetic_edge_calibration_v2_rank_policy import (
     CANDIDATE_UNDEFINED_ON_INVALID_WORLD,
+    COVERAGE_ADEQUATE,
     COVERAGE_INSUFFICIENT,
     NOT_ERA_SCOPED,
     WORLD_INVALID,
@@ -72,6 +73,20 @@ from scripts.research.harness_synthetic_edge_calibration_v2_rank_policy import (
     mechanical_conclusion_v2,
     required_coverage_for_conclusion,
     world_baseline_coverage_verdict,
+)
+from scripts.research.harness_synthetic_edge_calibration_v2_inherited_ladder import (
+    AMENDMENT_003_JSON_REL,
+    AMENDMENT_003_MD_REL,
+    AMENDMENT_004_JSON_REL,
+    AMENDMENT_004_MD_REL,
+    FROZEN_AMENDMENT_003_SHA256,
+    FROZEN_AMENDMENT_004_SHA256,
+    V2InheritedLadderAuthorityError,
+    V2VisibilityStatisticUnavailable,
+    assert_v2_inherited_ladder_authority_intact,
+    derive_all_v2_inherited_conclusions,
+    derive_v2_final_overall_conclusion,
+    derive_v2_inherited_conclusions_needed,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -315,6 +330,24 @@ def _v2_arm_payload_authorizes_at_commit(
         return False
     if payload.get("amendment_001_tree") != FROZEN_AMENDMENT_001_TREE:
         return False
+
+    # Approved 33/33 inherited-ladder methodology authority (Amendment_003 +
+    # Amendment_004, GO_FOR_33_33_IMPLEMENTATION_BINDING). Re-verified against
+    # tracked git blob content at `commit`, never trusted from the payload or
+    # from a caller-supplied hash: any drift refuses the ARM outright.
+    try:
+        assert_v2_inherited_ladder_authority_intact(repo_root, commit)
+    except (V2InheritedLadderAuthorityError, SyntheticExecutionNotAuthorized):
+        return False
+    expected_ladder_keys = {
+        "amendment_003_md_sha256": FROZEN_AMENDMENT_003_SHA256[AMENDMENT_003_MD_REL],
+        "amendment_003_json_sha256": FROZEN_AMENDMENT_003_SHA256[AMENDMENT_003_JSON_REL],
+        "amendment_004_md_sha256": FROZEN_AMENDMENT_004_SHA256[AMENDMENT_004_MD_REL],
+        "amendment_004_json_sha256": FROZEN_AMENDMENT_004_SHA256[AMENDMENT_004_JSON_REL],
+    }
+    for key, expected in expected_ladder_keys.items():
+        if payload.get(key) != expected:
+            return False
 
     if _v2_protected_artifacts_present_at(repo_root, commit):
         return False
@@ -851,30 +884,83 @@ def derive_v2_mechanical_conclusions(
     records: Sequence[WorldRecordV2],
     *,
     structurally_complete: bool,
-    inherited_detection_conclusions: Mapping[str, str],
 ) -> dict[str, str]:
     """Apply the frozen coverage-before-detection precedence to every one of
     the 33 required conclusions.
 
-    ``inherited_detection_conclusions`` MUST be supplied by a separately
-    frozen, independently reviewed mapping from conclusion id to the exact
-    original V1-methodology verdict string for that conclusion (see
-    ``KNOWN_LIMITATIONS`` in the accompanying doc: this repair unit does not
-    invent that mapping from the human-readable ``inherited_claim`` prose in
-    ``frozen_required_coverage_map()`` -- doing so would itself be an
-    unreviewed scientific choice).
+    The inherited detection conclusion for every id is now derived
+    INTERNALLY from authenticated evidence via the approved 33/33 methodology
+    binding (``AMENDMENT_003`` + ``AMENDMENT_004``,
+    GO_FOR_33_33_IMPLEMENTATION_BINDING, BLOCKERS=0/MAJORS=0). There is no
+    caller-supplied scientific mapping, override, callback, strategy object,
+    or environment-variable input of any kind: this function's only inputs
+    are the evidence records themselves and frozen, hash-pinned repository
+    authority. Raises ``V2VisibilityStatisticUnavailable`` if the evidence
+    would require deriving one of the 5 conclusion ids that the frozen V2
+    policy fixture cannot currently supply an input for (see that
+    exception's docstring in
+    ``harness_synthetic_edge_calibration_v2_inherited_ladder`` --
+    IMPLEMENTATION_REQUIRES_NEW_SCIENTIFIC_CHOICE = YES, not a defect here).
     """
     coverage_status = derive_v2_required_coverage_status(records)
+    # Only request a raw inherited value for ids whose coverage is ADEQUATE:
+    # frozen mechanical_conclusion_v2 never reads the inherited value when
+    # coverage is INSUFFICIENT (it returns MECHANICAL_INSUFFICIENT_IDENTIFIABILITY
+    # first), so a coverage-inadequate run must not be masked by an unrelated
+    # visibility-statistic refusal for an id that was never going to be
+    # consulted anyway.
+    needed = [
+        cid
+        for cid, coverage in coverage_status.items()
+        if structurally_complete and coverage == COVERAGE_ADEQUATE
+    ]
+    inherited = derive_v2_inherited_conclusions_needed(records, needed)
     conclusions: dict[str, str] = {}
     for conclusion_id, coverage in coverage_status.items():
-        if conclusion_id not in inherited_detection_conclusions:
-            _refuse(f"missing inherited detection conclusion for {conclusion_id}")
         conclusions[conclusion_id] = mechanical_conclusion_v2(
             structurally_complete=structurally_complete,
             coverage_for_conclusion=coverage,
-            inherited_detection_conclusion=inherited_detection_conclusions[conclusion_id],
+            inherited_detection_conclusion=inherited.get(conclusion_id, "INDETERMINATE"),
         )
     return conclusions
+
+
+def derive_v2_final_overall_mechanical_conclusion(
+    records: Sequence[WorldRecordV2], *, structurally_complete: bool
+) -> str:
+    """The single composite scientific conclusion (Amendment_003 + Amendment_004).
+
+    STAGE 1 (structural completeness) is the ``structurally_complete`` flag,
+    identical in meaning to every other 33-id conclusion's own STAGE 1. STAGE
+    2 (coverage adequacy over the frozen Amendment_001 section 5.2 union of
+    eight cells, world-baseline coverage included) is evaluated here from the
+    same frozen coverage primitives every individual id already uses. STAGE
+    2b+3 (the repaired inherited ladder) is delegated to
+    ``derive_v2_final_overall_conclusion`` in
+    ``harness_synthetic_edge_calibration_v2_inherited_ladder``, which calls
+    the frozen, SHA256-pinned ``mechanical_conclusion()`` verbatim.
+    """
+    if not structurally_complete:
+        return "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM"
+    baseline = derive_v2_baseline_coverage_verdicts(records)
+    coverage = derive_v2_coverage_verdicts(records)
+    union_cells = {
+        "NULL|5000": FEATURE_IDS,
+        "EASY|5000": FEATURE_IDS,
+        "MODERATE|5000": FEATURE_IDS,
+        "NONSTATIONARY_TRAP|5000": ("F03",),
+        "SMALL|5000": ("F03",),
+        "TINY_NOISY|5000": ("F03",),
+        "SMALL|2500": ("F03",),
+        "SMALL|10000": ("F03",),
+    }
+    for cell_key, candidates in union_cells.items():
+        if baseline.get(cell_key) != COVERAGE_ADEQUATE:
+            return "INSUFFICIENT_IDENTIFIABILITY_NO_METHODOLOGY_CLAIM"
+        for cid in candidates:
+            if coverage.get(cell_key, {}).get(cid) != COVERAGE_ADEQUATE:
+                return "INSUFFICIENT_IDENTIFIABILITY_NO_METHODOLOGY_CLAIM"
+    return derive_v2_final_overall_conclusion(records, structurally_complete=True)
 
 
 # =============================================================================
@@ -1044,26 +1130,26 @@ def mint_v2_result(
     repo_root: Path,
     arm_commit: str,
     evidence: Sequence[WorldRecordV2],
-    *,
-    inherited_detection_conclusions: Mapping[str, str],
 ) -> dict[str, Any]:
     """Derive an authoritative V2 RESULT from full canonical evidence.
 
     Never called with a real ARM by this unit (none exists in the
     repository). Requires historical ARM authority independent of ambient
     HEAD, requires exactly the canonical 3200-world set, independently
-    authenticates every world record, and derives aggregation/conclusion
-    internally -- no caller-supplied aggregate, digest, or conclusion can
-    become authority.
+    authenticates every world record, and derives aggregation/conclusion/final
+    conclusion internally -- no caller-supplied aggregate, digest, mapping,
+    or conclusion of any kind can become authority. Same evidence + same
+    frozen authority always yields the same conclusions bytes.
     """
     world_records = mint_v2_world_records(repo_root, arm_commit, evidence)
     jobs = canonical_v2_production_jobs()
     structurally_complete = len(evidence) == len(jobs)
     aggregates = derive_v2_cell_aggregates(evidence)
     conclusions = derive_v2_mechanical_conclusions(
-        evidence,
-        structurally_complete=structurally_complete,
-        inherited_detection_conclusions=inherited_detection_conclusions,
+        evidence, structurally_complete=structurally_complete
+    )
+    final_overall = derive_v2_final_overall_mechanical_conclusion(
+        evidence, structurally_complete=structurally_complete
     )
     return {
         "schema": V2_RESULT_SCHEMA,
@@ -1076,6 +1162,7 @@ def mint_v2_result(
         "world_records_count": world_records["record_count"],
         "cell_aggregates": aggregates,
         "conclusions": conclusions,
+        "final_overall_conclusion": final_overall,
         "v1_attempt_status": "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM",
         "v1_3087_subset_claimable": False,
     }
@@ -1086,16 +1173,21 @@ def verify_historical_v2_result(
     arm_commit: str,
     world_records: Mapping[str, Any],
     result: Mapping[str, Any],
-    *,
-    inherited_detection_conclusions: Mapping[str, str],
 ) -> bool:
     """Recompute and compare a persisted RESULT/WORLD_RECORDS pair from scratch.
 
     Works from a clean clone or any later descendant checkout: authority is
     established solely via ``verify_historical_v2_execution_authority``
     (commit-parameterized, ambient-HEAD independent), and every world record
-    is independently recomputed from the frozen DGP/policy, never trusted
-    from the payload.
+    -- and every one of the 33 conclusions, and the final overall conclusion
+    -- is independently RECOMPUTED from the frozen DGP/policy/ladder, never
+    trusted from the payload. There is no caller-supplied scientific mapping
+    parameter: a stored conclusion can only verify by matching what this
+    function derives fresh from evidence + frozen authority. Mutating any one
+    of the 33 stored conclusion values, or the stored final conclusion,
+    causes this to return False even if every ordinary payload hash the
+    caller could recompute (world-records digest, evidence bytes) is left
+    untouched.
     """
     bound = verify_historical_v2_execution_authority(repo_root, arm_commit)
     if world_records.get("run_identity") != bound["run_identity"]:
@@ -1135,11 +1227,14 @@ def verify_historical_v2_result(
         return False
     structurally_complete = len(records) == len(jobs)
     recomputed_conclusions = derive_v2_mechanical_conclusions(
-        records,
-        structurally_complete=structurally_complete,
-        inherited_detection_conclusions=inherited_detection_conclusions,
+        records, structurally_complete=structurally_complete
     )
     if not _canonical_equal_json(recomputed_conclusions, result.get("conclusions")):
+        return False
+    recomputed_final = derive_v2_final_overall_mechanical_conclusion(
+        records, structurally_complete=structurally_complete
+    )
+    if recomputed_final != result.get("final_overall_conclusion"):
         return False
     return True
 
