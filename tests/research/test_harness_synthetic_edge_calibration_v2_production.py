@@ -149,8 +149,87 @@ def test_canonical_v2_plan_changes_if_v1_grid_identity_changes(monkeypatch):
 # --- Part C: disposable-repo ARM authorization matrix ------------------------
 
 
+def _v2_execution_freeze_artifact(
+    repo: Path, implementation_head: str, implementation_tree: str
+) -> dict:
+    """A realistic, schema-correct V2 execution freeze document binding
+    ``implementation_head`` -- read straight from that commit's own git
+    blobs, never invented. Callers commit this as ``repo``'s HEAD^'s
+    immediate child at ``v2p.CANONICAL_V2_EXECUTION_FREEZE_PATH``."""
+    ladder_blob = _git(repo, "rev-parse", f"{implementation_head}:{v2p.V2_INHERITED_LADDER_REL}")
+    ladder_bytes = v2p._commit_blob(repo, implementation_head, v2p.V2_INHERITED_LADDER_REL)
+    production_blob = _git(repo, "rev-parse", f"{implementation_head}:{v2p.V2_PRODUCTION_REL}")
+    production_bytes = v2p._commit_blob(repo, implementation_head, v2p.V2_PRODUCTION_REL)
+    return {
+        "schema": v2p.V2_EXECUTION_FREEZE_SCHEMA,
+        "schema_version": "1.0.0",
+        "status": "FROZEN_BEFORE_V2_PRODUCTION",
+        "reviewed_implementation": {
+            "head": implementation_head,
+            "tree": implementation_tree,
+        },
+        "execution_authoritative_implementation_sources": [
+            {
+                "role": "INHERITED_LADDER",
+                "path": v2p.V2_INHERITED_LADDER_REL,
+                "git_blob": ladder_blob,
+                "sha256": _sha(ladder_bytes),
+                "size_bytes": len(ladder_bytes),
+            },
+            {
+                "role": "PRODUCTION",
+                "path": v2p.V2_PRODUCTION_REL,
+                "git_blob": production_blob,
+                "sha256": _sha(production_bytes),
+                "size_bytes": len(production_bytes),
+            },
+        ],
+        "methodology_authority": {
+            "original_prereg": {
+                "head": v2p.FROZEN_ORIGINAL_PREREG_HEAD,
+                "tree": v2p.FROZEN_ORIGINAL_PREREG_TREE,
+            },
+            "amendment_001": {
+                "head": v2p.FROZEN_AMENDMENT_001_HEAD,
+                "tree": v2p.FROZEN_AMENDMENT_001_TREE,
+            },
+            "amendment_002": {
+                "status": "REJECTED_HISTORICAL_AUTHORITY",
+                "governs_executable_science": False,
+            },
+            "amendment_003": {"governs_executable_science": True},
+            "amendment_004": {"governs_executable_science": True, "amends": "AMENDMENT_003"},
+        },
+        "v2_rank_policy_authority": {
+            "reviewed_implementation_head": v2p.FROZEN_V2_POLICY_REVIEWED_IMPLEMENTATION_HEAD,
+            "reviewed_implementation_tree": v2p.FROZEN_V2_POLICY_REVIEWED_IMPLEMENTATION_TREE,
+            "freeze_head": v2p.FROZEN_V2_POLICY_FREEZE_HEAD,
+            "freeze_tree": v2p.FROZEN_V2_POLICY_FREEZE_TREE,
+        },
+        "canonical_v2_plan": {
+            "sha256": v2p.FROZEN_CANONICAL_V2_PLAN_SHA256,
+            "world_count": v2p.FROZEN_CANONICAL_WORLD_COUNT,
+        },
+        "visibility_limitation": {"status": "UNRESOLVED_FAIL_CLOSED"},
+        "production_state": {
+            "production_armed": False,
+            "production_executed": False,
+            "result_minted": False,
+            "world_records_created": False,
+            "authority_consumed": False,
+            "arm_created": False,
+            "execution_authorized": False,
+            "canonical_3200_run_started": False,
+        },
+    }
+
+
 def _v2_commit_freeze_tree(tmp_path: Path, *, name: str = "repo") -> Path:
-    """Disposable clone checked out at the exact reviewed 33/33 freeze."""
+    """Disposable clone with a freshly-built, locally-authenticated V2
+    execution freeze committed as an immediate child of the live
+    implementation HEAD. Returns the clone checked out at that freeze
+    commit -- exactly the topology a future real freeze will use, built
+    with no knowledge of any hardcoded freeze SHA (there is none)."""
     import subprocess
 
     repo = tmp_path / name
@@ -160,16 +239,24 @@ def _v2_commit_freeze_tree(tmp_path: Path, *, name: str = "repo") -> Path:
         capture_output=True,
         text=True,
     )
-    _git(repo, "checkout", "-q", v2p.FROZEN_V2_33_33_FREEZE_HEAD)
     _git(repo, "config", "user.email", "test@example.com")
     _git(repo, "config", "user.name", "test")
     _git(repo, "config", "commit.gpgsign", "false")
+    implementation_head = _git(repo, "rev-parse", "HEAD")
+    implementation_tree = _git(repo, "rev-parse", "HEAD^{tree}")
+    freeze_doc = _v2_execution_freeze_artifact(repo, implementation_head, implementation_tree)
+    freeze_path = repo / v2p.CANONICAL_V2_EXECUTION_FREEZE_PATH
+    _write(freeze_path, json.dumps(freeze_doc, indent=2, sort_keys=True) + "\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "v2 execution freeze")
     return repo
 
 
-def _v2_valid_arm_payload(repo: Path) -> dict:
+def _v2_valid_arm_payload(repo: Path, *, freeze_commit: str | None = None) -> dict:
+    if freeze_commit is None:
+        freeze_commit = _git(repo, "rev-parse", "HEAD")
     payload = dict(v2p.V2_ARM_REQUIRED_LITERALS)
-    payload.update(v2p.required_v2_arm_binding_fields(repo))
+    payload.update(v2p.required_v2_arm_binding_fields(repo, freeze_commit))
     return payload
 
 
@@ -300,51 +387,42 @@ def test_wrong_v1_tcb_hash_does_not_authorize(tmp_path):
     payload = _v2_valid_arm_payload(repo)
     _v2_commit_arm(repo, payload)
     assert v2p.v2_production_arm_authorized(repo_root=repo) is True
-    # Mutate a TCB file after the fact (worktree + a further commit): the
-    # authorization must now fail because the ARM commit's own TCB no longer
-    # matches the frozen hashes -- so simulate by re-checking a state where
-    # the tracked LIB bytes at the ARM commit itself were wrong from the
-    # start.
+    # The ARM commit's OWN TCB must be checked, not merely the freeze's: the
+    # payload is built from the valid freeze first, then the LIB file is
+    # tampered in the SAME commit as the ARM file (the ARM's immediate
+    # parent must remain exactly the freeze -- no extra commit in between).
     repo2 = _v2_commit_freeze_tree(tmp_path / "repo2")
+    payload2 = _v2_valid_arm_payload(repo2)
     lib_path = repo2 / prod.LIB_REL
     _write(lib_path, lib_path.read_bytes() + b"\n# tampered\n")
-    _git(repo2, "add", "-A")
-    _git(repo2, "commit", "-m", "tamper v1 lib before arm")
-    payload2 = _v2_valid_arm_payload(repo2)
-    _v2_commit_arm(repo2, payload2)
+    _v2_commit_arm(repo2, payload2, message="arm with tampered v1 lib")
     assert v2p.v2_production_arm_authorized(repo_root=repo2) is False
 
 
 def test_wrong_amendment_003_content_does_not_authorize(tmp_path):
     repo = _v2_commit_freeze_tree(tmp_path)
+    payload = _v2_valid_arm_payload(repo)
     path = repo / ladder.AMENDMENT_003_JSON_REL
     _write(path, path.read_bytes() + b"\n// tampered\n")
-    _git(repo, "add", "-A")
-    _git(repo, "commit", "-m", "tamper amendment_003 before arm")
-    payload = _v2_valid_arm_payload(repo)
-    _v2_commit_arm(repo, payload)
+    _v2_commit_arm(repo, payload, message="arm with tampered amendment_003")
     assert v2p.v2_production_arm_authorized(repo_root=repo) is False
 
 
 def test_wrong_amendment_004_content_does_not_authorize(tmp_path):
     repo = _v2_commit_freeze_tree(tmp_path)
+    payload = _v2_valid_arm_payload(repo)
     path = repo / ladder.AMENDMENT_004_MD_REL
     _write(path, path.read_bytes() + b"\n<!-- tampered -->\n")
-    _git(repo, "add", "-A")
-    _git(repo, "commit", "-m", "tamper amendment_004 before arm")
-    payload = _v2_valid_arm_payload(repo)
-    _v2_commit_arm(repo, payload)
+    _v2_commit_arm(repo, payload, message="arm with tampered amendment_004")
     assert v2p.v2_production_arm_authorized(repo_root=repo) is False
 
 
 def test_amendment_003_missing_does_not_authorize(tmp_path):
     repo = _v2_commit_freeze_tree(tmp_path)
+    payload = _v2_valid_arm_payload(repo)
     path = repo / ladder.AMENDMENT_003_JSON_REL
     path.unlink()
-    _git(repo, "add", "-A")
-    _git(repo, "commit", "-m", "remove amendment_003 before arm")
-    payload = _v2_valid_arm_payload(repo)
-    _v2_commit_arm(repo, payload)
+    _v2_commit_arm(repo, payload, message="arm with amendment_003 removed")
     assert v2p.v2_production_arm_authorized(repo_root=repo) is False
 
 

@@ -106,12 +106,18 @@ V2_PRODUCTION_REL = (
 V2_POLICY_FREEZE_ARTIFACT_REL = (
     "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_IMPLEMENTATION_FREEZE.json"
 )
-# Current execution-authority freeze. The older rank-policy freeze remains a
-# historical dependency (policy source / fixture identity) but is not
-# sufficient ARM authorization.
-V2_FREEZE_ARTIFACT_REL = (
-    "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_33_33_IMPLEMENTATION_FREEZE.json"
+# Stable path every future V2 execution freeze commits its artifact to. This
+# path (and the schema string below) is the ONLY freeze-identifying constant
+# this module hardcodes: the freeze commit's own SHA is NEVER hardcoded here
+# (see AUTHORITY SELF-REFERENCE DESIGN below), so a new freeze requires no
+# edit to this file. Historical freeze documents that used a different path
+# (e.g. the 614295d- and c1d6acc-era freezes) remain valid historical
+# evidence; they are simply not consulted by this runtime, which only ever
+# looks for a freeze at this stable path.
+CANONICAL_V2_EXECUTION_FREEZE_PATH = (
+    "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_EXECUTION_FREEZE.json"
 )
+V2_EXECUTION_FREEZE_SCHEMA = "harness_synthetic_edge_calibration_v2_execution_freeze"
 
 V1_TCB_PATHS = {
     "lib": "scripts/research/harness_synthetic_edge_calibration_v1_lib.py",
@@ -144,28 +150,27 @@ FROZEN_ORIGINAL_PREREG_TREE = "ba1c0873879b7ea8556c3e238f8b962b91da6dc2"
 FROZEN_AMENDMENT_001_HEAD = "d8f0a996bc4341d0cbe01a1a061130b889ed5e75"
 FROZEN_AMENDMENT_001_TREE = "09dca9b1240a43d5de9de0dadf32d27e00e7eaea"
 
-# Trusted 33/33 implementation-freeze anchor. These SHAs already exist in
-# tracked history. A future ARM commit SHA is never hardcoded.
-FROZEN_V2_33_33_FREEZE_HEAD = "e50fceebfe83b82ea9de2f98954ee7ad6c9a4308"
-FROZEN_V2_33_33_FREEZE_TREE = "2f2b0943fffe143324da4c10545d560d6048079e"
-FROZEN_V2_33_33_FREEZE_ARTIFACT_SHA256 = (
-    "89ca1ba0b416a4e2af07aa03d32b0ed2e9a9ec0ecee0327e3fda113c07ff74d7"
-)
-FROZEN_V2_33_33_FREEZE_ARTIFACT_SIZE = 11273
-FROZEN_V2_33_33_IMPLEMENTATION_HEAD = (
-    "614295d4c0bf7a263bd2c6dc9a5c595e2c80055f"
-)
-FROZEN_V2_33_33_IMPLEMENTATION_TREE = (
-    "e754b12f8db93db3109a30e3b4d476eb85803e04"
-)
+# NOTE: no FROZEN_V2_33_33_FREEZE_* / FROZEN_V2_33_33_IMPLEMENTATION_* SHA
+# constants exist here. Earlier revisions of this module hardcoded a specific
+# freeze commit and a specific implementation commit as execution authority.
+# Because this file (V2_PRODUCTION_REL) is itself one of the two
+# execution-authoritative implementation sources any freeze must byte-bind,
+# hardcoding a freeze's SHA inside this file made every freeze self-defeating
+# the moment it needed to bind THIS file's own (necessarily new) bytes:
+# editing the constant changed the file, which invalidated the freeze that
+# was just made, which required another freeze, which required another edit.
+# See AUTHORITY SELF-REFERENCE DESIGN below: the freeze commit F is always
+# derived structurally as the immediate parent of the ARM commit under
+# evaluation, and the implementation commit I is always derived structurally
+# as F's own immediate parent -- never hardcoded, never caller-selected.
+#
+# The stable, never-changing scientific/historical anchors below ARE safe to
+# hardcode: none of them are this file's own bytes, so none of them create
+# the cycle above.
 FROZEN_CANONICAL_V2_PLAN_SHA256 = (
     "7fa12fd3b939cd210a69da37659fd1013a1dba43aca4c06abb6f5a6442a33800"
 )
 FROZEN_CANONICAL_WORLD_COUNT = 3200
-
-# Back-compat aliases: previously named the rank-policy reviewed fixture.
-FROZEN_REVIEWED_IMPLEMENTATION_HEAD = FROZEN_V2_33_33_IMPLEMENTATION_HEAD
-FROZEN_REVIEWED_IMPLEMENTATION_TREE = FROZEN_V2_33_33_IMPLEMENTATION_TREE
 
 # --- Canonical V2 authority artifact paths (none of these exist at this HEAD) -
 
@@ -302,58 +307,121 @@ def _v2_policy_digest_at(repo_root: Path, commit: str) -> tuple[str, int]:
     return _sha256_bytes(blob), len(blob)
 
 
-def _v2_freeze_artifact_digest_at(repo_root: Path, commit: str) -> tuple[str, int]:
-    blob = _commit_blob(repo_root, commit, V2_FREEZE_ARTIFACT_REL)
-    if blob is None:
-        _refuse(f"V2 freeze artifact missing from {commit}: {V2_FREEZE_ARTIFACT_REL}")
-    return _sha256_bytes(blob), len(blob)
+# =============================================================================
+# AUTHORITY SELF-REFERENCE DESIGN
+#
+# Target topology:  IMPLEMENTATION I -> FREEZE F -> ARM A -> SESSION
+#
+# Given ARM commit A, F is ALWAYS derived structurally as A's own immediate
+# parent, and I is ALWAYS derived structurally as F's own immediate parent.
+# Neither F's nor I's identity is ever hardcoded in this file or accepted
+# from a caller: this file is itself one of the two execution-authoritative
+# implementation sources any freeze must byte-bind, so hardcoding a specific
+# F (or I) here would mean every new freeze invalidates itself the moment it
+# needs to bind this file's own necessarily-changed bytes. See
+# ``_authenticate_v2_execution_freeze`` for the structural, non-self-attested
+# validation that makes a caller-selected/forged F impossible to pass.
+# =============================================================================
 
 
-def _load_verified_33_33_freeze(repo_root: Path) -> dict[str, Any] | None:
-    """Load the exact reviewed 33/33 freeze from tracked git objects.
+def _commit_parent_count(repo_root: Path, commit: str) -> int:
+    """Number of parents ``commit`` has (0 for a root commit, 2+ for a merge)."""
+    raw = _git(repo_root, "cat-file", "-p", commit)
+    return sum(
+        1 for line in raw.decode("utf-8", "replace").splitlines() if line.startswith("parent ")
+    )
 
-    Caller-supplied freeze bytes are irrelevant. The trusted identity is the
-    already-reviewed freeze commit, verified here from git history.
+
+def _authenticate_v2_execution_freeze(
+    repo_root: Path, freeze_commit: str
+) -> dict[str, Any] | None:
+    """Structurally authenticate ``freeze_commit`` as a valid V2 execution freeze.
+
+    ``freeze_commit``'s identity is never hardcoded or caller-trusted:
+    callers derive it as the exact immediate parent of the ARM commit under
+    evaluation. This proves, entirely from immutable git objects reachable
+    from that one commit, that it legitimately freezes its own immediate
+    parent as the approved V2 execution runtime. The freeze document's
+    *content* is never trusted merely for being internally self-consistent:
+    the two execution-authoritative implementation blobs are independently
+    re-read and re-hashed at the freeze's structural parent.
+
+    Returns the authenticated freeze payload, or ``None`` for any failure --
+    this never raises; callers translate ``None`` into refusal.
     """
-    if not _commit_exists(repo_root, FROZEN_V2_33_33_FREEZE_HEAD):
+    if not _commit_exists(repo_root, freeze_commit):
         return None
-    freeze_parent = _parent_sha_of(repo_root, FROZEN_V2_33_33_FREEZE_HEAD)
-    if freeze_parent != FROZEN_V2_33_33_IMPLEMENTATION_HEAD:
+    if _commit_parent_count(repo_root, freeze_commit) != 1:
         return None
-    tree = _git(repo_root, "rev-parse", f"{FROZEN_V2_33_33_FREEZE_HEAD}^{{tree}}")
-    tree = tree.decode("ascii").strip().lower()
-    if tree != FROZEN_V2_33_33_FREEZE_TREE:
+    implementation_head = _parent_sha_of(repo_root, freeze_commit)
+    if implementation_head is None or not _commit_exists(repo_root, implementation_head):
         return None
-    blob = _commit_blob(repo_root, FROZEN_V2_33_33_FREEZE_HEAD, V2_FREEZE_ARTIFACT_REL)
-    if blob is None:
+    implementation_tree = (
+        _git(repo_root, "rev-parse", f"{implementation_head}^{{tree}}")
+        .decode("ascii").strip().lower()
+    )
+
+    freeze = _load_commit_json(repo_root, freeze_commit, CANONICAL_V2_EXECUTION_FREEZE_PATH)
+    if freeze is None:
         return None
-    if _sha256_bytes(blob) != FROZEN_V2_33_33_FREEZE_ARTIFACT_SHA256:
+    if freeze.get("schema") != V2_EXECUTION_FREEZE_SCHEMA:
         return None
-    if len(blob) != FROZEN_V2_33_33_FREEZE_ARTIFACT_SIZE:
-        return None
-    try:
-        freeze = json.loads(blob.decode("utf-8"))
-    except (UnicodeDecodeError, ValueError):
-        return None
-    if not isinstance(freeze, dict):
-        return None
+
     reviewed = freeze.get("reviewed_implementation")
     if not isinstance(reviewed, Mapping):
         return None
-    if reviewed.get("head") != FROZEN_V2_33_33_IMPLEMENTATION_HEAD:
+    if reviewed.get("head") != implementation_head:
         return None
-    if reviewed.get("tree") != FROZEN_V2_33_33_IMPLEMENTATION_TREE:
+    if reviewed.get("tree") != implementation_tree:
         return None
-    if not _commit_exists(repo_root, FROZEN_V2_33_33_IMPLEMENTATION_HEAD):
+
+    # The two execution-authoritative implementation files: re-read and
+    # re-hash at `implementation_head` from git objects, never trusted from
+    # the freeze document's own self-report.
+    sources = freeze.get("execution_authoritative_implementation_sources")
+    if not isinstance(sources, list):
         return None
-    impl_tree = _git(
-        repo_root, "rev-parse", f"{FROZEN_V2_33_33_IMPLEMENTATION_HEAD}^{{tree}}"
-    ).decode("ascii").strip().lower()
-    if impl_tree != FROZEN_V2_33_33_IMPLEMENTATION_TREE:
+    by_path: dict[str, Mapping[str, Any]] = {}
+    for entry in sources:
+        if not isinstance(entry, Mapping):
+            return None
+        path = entry.get("path")
+        if path not in (V2_INHERITED_LADDER_REL, V2_PRODUCTION_REL):
+            continue
+        by_path[path] = entry
+    if set(by_path) != {V2_INHERITED_LADDER_REL, V2_PRODUCTION_REL}:
         return None
+    for path, entry in by_path.items():
+        real_blob = _commit_blob(repo_root, implementation_head, path)
+        if real_blob is None:
+            return None
+        if entry.get("sha256") != _sha256_bytes(real_blob):
+            return None
+        if entry.get("size_bytes") != len(real_blob):
+            return None
+        real_blob_id = (
+            _git(repo_root, "rev-parse", f"{implementation_head}:{path}")
+            .decode("ascii").strip().lower()
+        )
+        if str(entry.get("git_blob") or "").strip().lower() != real_blob_id:
+            return None
+
+    # Scientific/historical authority chain. These identities never change
+    # across freeze generations -- they are not this file's own bytes -- so
+    # comparing against the stable hardcoded constants is not circular.
     method = freeze.get("methodology_authority")
     if not isinstance(method, Mapping):
         return None
+    for label, expected_head, expected_tree in (
+        ("original_prereg", FROZEN_ORIGINAL_PREREG_HEAD, FROZEN_ORIGINAL_PREREG_TREE),
+        ("amendment_001", FROZEN_AMENDMENT_001_HEAD, FROZEN_AMENDMENT_001_TREE),
+    ):
+        entry = method.get(label)
+        if not isinstance(entry, Mapping):
+            return None
+        if entry.get("head") != expected_head or entry.get("tree") != expected_tree:
+            return None
+
     a002 = method.get("amendment_002")
     if not isinstance(a002, Mapping):
         return None
@@ -361,16 +429,87 @@ def _load_verified_33_33_freeze(repo_root: Path) -> dict[str, Any] | None:
         return None
     if a002.get("governs_executable_science") is not False:
         return None
-    sources = freeze.get("execution_authoritative_implementation_sources")
-    if not isinstance(sources, list) or not sources:
+
+    a003 = method.get("amendment_003")
+    if not isinstance(a003, Mapping):
         return None
+    if a003.get("governs_executable_science") is not True:
+        return None
+
+    a004 = method.get("amendment_004")
+    if not isinstance(a004, Mapping):
+        return None
+    if a004.get("governs_executable_science") is not True:
+        return None
+    if a004.get("amends") != "AMENDMENT_003":
+        return None
+
+    # Rank-policy authority: also a stable, never-changing historical
+    # dependency of every V2 execution freeze.
+    policy = freeze.get("v2_rank_policy_authority")
+    if not isinstance(policy, Mapping):
+        return None
+    if policy.get("reviewed_implementation_head") != FROZEN_V2_POLICY_REVIEWED_IMPLEMENTATION_HEAD:
+        return None
+    if policy.get("reviewed_implementation_tree") != FROZEN_V2_POLICY_REVIEWED_IMPLEMENTATION_TREE:
+        return None
+    if policy.get("freeze_head") != FROZEN_V2_POLICY_FREEZE_HEAD:
+        return None
+    if policy.get("freeze_tree") != FROZEN_V2_POLICY_FREEZE_TREE:
+        return None
+
+    # Canonical plan / world count: recomputed live at the freeze commit
+    # from the frozen V1 grid + V2 policy source (never from the freeze
+    # document's self-report), and cross-checked against the freeze's own
+    # declared values and the stable, never-changing constants.
+    plan_entry = freeze.get("canonical_v2_plan")
+    if not isinstance(plan_entry, Mapping):
+        return None
+    if plan_entry.get("sha256") != FROZEN_CANONICAL_V2_PLAN_SHA256:
+        return None
+    if plan_entry.get("world_count") != FROZEN_CANONICAL_WORLD_COUNT:
+        return None
+    live_plan = canonical_v2_plan(repo_root, freeze_commit)
+    if live_plan["sha256"] != FROZEN_CANONICAL_V2_PLAN_SHA256:
+        return None
+
+    # Visibility limitation must remain fail-closed; a freeze may not claim
+    # to have resolved it.
+    visibility = freeze.get("visibility_limitation")
+    if not isinstance(visibility, Mapping):
+        return None
+    if visibility.get("status") != "UNRESOLVED_FAIL_CLOSED":
+        return None
+
+    # A freeze must not itself claim execution/result authority.
+    state = freeze.get("production_state")
+    if isinstance(state, Mapping):
+        for key in (
+            "production_armed",
+            "production_executed",
+            "result_minted",
+            "world_records_created",
+            "authority_consumed",
+            "arm_created",
+            "execution_authorized",
+            "canonical_3200_run_started",
+        ):
+            if key in state and state.get(key) is not False:
+                return None
+
+    # A freeze commit must not itself carry an ARM or protected artifacts.
+    if _commit_blob(repo_root, freeze_commit, CANONICAL_V2_ARM_PATH) is not None:
+        return None
+    if _v2_protected_artifacts_present_at(repo_root, freeze_commit):
+        return None
+
     return freeze
 
 
-def _implementation_bytes_match_33_33_freeze(
-    repo_root: Path, commit: str, freeze: Mapping[str, Any]
+def _implementation_bytes_match_freeze(
+    repo_root: Path, commit: str, freeze: Mapping[str, Any], implementation_head: str
 ) -> bool:
-    """ARM-commit blobs must equal the 33/33 freeze's recorded implementation."""
+    """ARM-commit blobs must equal the authenticated freeze's implementation."""
     sources = freeze.get("execution_authoritative_implementation_sources")
     if not isinstance(sources, list):
         return False
@@ -386,11 +525,10 @@ def _implementation_bytes_match_33_33_freeze(
         return False
     for path, entry in by_path.items():
         arm_blob = _commit_blob(repo_root, commit, path)
-        impl_blob = _commit_blob(repo_root, FROZEN_V2_33_33_IMPLEMENTATION_HEAD, path)
-        freeze_blob = _commit_blob(repo_root, FROZEN_V2_33_33_FREEZE_HEAD, path)
-        if arm_blob is None or impl_blob is None or freeze_blob is None:
+        impl_blob = _commit_blob(repo_root, implementation_head, path)
+        if arm_blob is None or impl_blob is None:
             return False
-        if arm_blob != impl_blob or arm_blob != freeze_blob:
+        if arm_blob != impl_blob:
             return False
         if _sha256_bytes(arm_blob) != entry.get("sha256"):
             return False
@@ -417,25 +555,38 @@ def _payload_field_equals(payload: Mapping[str, Any], key: str, expected: Any) -
     return actual == expected
 
 
-def required_v2_arm_binding_fields(repo_root: Path) -> dict[str, Any]:
-    """Derive ARM binding fields from tracked 33/33 freeze git objects."""
-    freeze = _load_verified_33_33_freeze(repo_root)
+def required_v2_arm_binding_fields(repo_root: Path, freeze_commit: str) -> dict[str, Any]:
+    """Derive ARM binding fields from an already-authenticated execution freeze.
+
+    ``freeze_commit`` is caller-derived (the ARM's own structural parent),
+    never a module-level constant.
+    """
+    freeze = _authenticate_v2_execution_freeze(repo_root, freeze_commit)
     if freeze is None:
-        _refuse("exact reviewed 33/33 freeze is not present as tracked git history")
-    policy_sha256, policy_size = _v2_policy_digest_at(
-        repo_root, FROZEN_V2_33_33_FREEZE_HEAD
+        _refuse("candidate freeze commit does not authenticate as a valid V2 execution freeze")
+    implementation_head = _parent_sha_of(repo_root, freeze_commit)
+    implementation_tree = (
+        _git(repo_root, "rev-parse", f"{implementation_head}^{{tree}}")
+        .decode("ascii").strip().lower()
     )
-    plan = canonical_v2_plan(repo_root, FROZEN_V2_33_33_FREEZE_HEAD)
+    freeze_tree = (
+        _git(repo_root, "rev-parse", f"{freeze_commit}^{{tree}}").decode("ascii").strip().lower()
+    )
+    freeze_blob = _commit_blob(repo_root, freeze_commit, CANONICAL_V2_EXECUTION_FREEZE_PATH)
+    if freeze_blob is None:
+        _refuse("authenticated freeze artifact vanished between checks")
+    policy_sha256, policy_size = _v2_policy_digest_at(repo_root, freeze_commit)
+    plan = canonical_v2_plan(repo_root, freeze_commit)
     if plan["sha256"] != FROZEN_CANONICAL_V2_PLAN_SHA256:
-        _refuse("canonical V2 plan identity drifted from the reviewed 33/33 freeze")
+        _refuse("canonical V2 plan identity drifted from the authenticated freeze")
     return {
-        "freeze_parent_head": FROZEN_V2_33_33_FREEZE_HEAD,
-        "freeze_parent_tree": FROZEN_V2_33_33_FREEZE_TREE,
-        "freeze_artifact_path": V2_FREEZE_ARTIFACT_REL,
-        "freeze_artifact_sha256": FROZEN_V2_33_33_FREEZE_ARTIFACT_SHA256,
-        "freeze_artifact_size": FROZEN_V2_33_33_FREEZE_ARTIFACT_SIZE,
-        "reviewed_implementation_head": FROZEN_V2_33_33_IMPLEMENTATION_HEAD,
-        "reviewed_implementation_tree": FROZEN_V2_33_33_IMPLEMENTATION_TREE,
+        "freeze_parent_head": freeze_commit,
+        "freeze_parent_tree": freeze_tree,
+        "freeze_artifact_path": CANONICAL_V2_EXECUTION_FREEZE_PATH,
+        "freeze_artifact_sha256": _sha256_bytes(freeze_blob),
+        "freeze_artifact_size": len(freeze_blob),
+        "reviewed_implementation_head": implementation_head,
+        "reviewed_implementation_tree": implementation_tree,
         "v2_policy_sha256": policy_sha256,
         "v2_policy_size": policy_size,
         "canonical_v2_plan_sha256": FROZEN_CANONICAL_V2_PLAN_SHA256,
@@ -485,8 +636,10 @@ def _v2_arm_payload_authorizes_at_commit(
 ) -> bool:
     """Verify an ARM payload against tracked git objects at ``commit``.
 
-    The trusted scientific/implementation freeze is the exact reviewed 33/33
-    freeze, independently loaded from git. Payload fields must match that
+    The trusted execution freeze is structurally derived as this ARM
+    commit's own immediate parent, then independently authenticated from
+    git objects (``_authenticate_v2_execution_freeze``) -- never hardcoded,
+    never caller-selected. Payload fields must match that authenticated
     freeze; they are not themselves authority. The older rank-policy freeze
     artifact is not sufficient execution authority.
     """
@@ -497,29 +650,29 @@ def _v2_arm_payload_authorizes_at_commit(
     for key, expected in V2_ARM_REQUIRED_LITERALS.items():
         if not _payload_field_equals(payload, key, expected):
             return False
-    freeze = _load_verified_33_33_freeze(repo_root)
+
+    if _commit_parent_count(repo_root, commit) != 1:
+        return False
+    parent = _parent_sha_of(repo_root, commit)
+    if parent is None:
+        return False
+
+    freeze = _authenticate_v2_execution_freeze(repo_root, parent)
     if freeze is None:
         return False
+    implementation_head = _parent_sha_of(repo_root, parent)
+    if implementation_head is None:
+        return False
+
     try:
-        expected_bindings = required_v2_arm_binding_fields(repo_root)
+        expected_bindings = required_v2_arm_binding_fields(repo_root, parent)
     except SyntheticExecutionNotAuthorized:
         return False
     for key, expected in expected_bindings.items():
         if not _payload_field_equals(payload, key, expected):
             return False
 
-    parent = _parent_sha_of(repo_root, commit)
-    if parent is None:
-        return False
-    if parent != FROZEN_V2_33_33_FREEZE_HEAD:
-        return False
-    parent_tree = (
-        _git(repo_root, "rev-parse", f"{parent}^{{tree}}").decode("ascii").strip().lower()
-    )
-    if parent_tree != FROZEN_V2_33_33_FREEZE_TREE:
-        return False
-
-    if not _implementation_bytes_match_33_33_freeze(repo_root, commit, freeze):
+    if not _implementation_bytes_match_freeze(repo_root, commit, freeze, implementation_head):
         return False
 
     policy_sha256, policy_size = _v2_policy_digest_at(repo_root, commit)

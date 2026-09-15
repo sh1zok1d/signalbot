@@ -31,6 +31,7 @@ from scripts.research import harness_synthetic_edge_calibration_v2_production as
 from scripts.research import harness_synthetic_edge_calibration_v2_rank_policy as v2
 from tests.research.test_harness_synthetic_edge_calibration_v2_production import (
     _patch_loaded_runtime_to_commit,
+    _v2_execution_freeze_artifact,
 )
 
 REPO = Path(__file__).resolve().parents[2]
@@ -60,7 +61,13 @@ def _live_bytes(rel: str) -> bytes:
 
 
 def _commit_freeze_tree(tmp_path: Path, *, name: str = "repo") -> Path:
-    """Disposable clone checked out at the exact reviewed 33/33 freeze."""
+    """Disposable clone with a freshly-built, locally-authenticated V2
+    execution freeze committed as an immediate child of the live
+    implementation HEAD. See
+    ``test_harness_synthetic_edge_calibration_v2_production._v2_commit_freeze_tree``
+    for the same construction -- duplicated here (rather than imported) only
+    because this module's own ``_git``/``_write`` helpers are used to build
+    it, matching this file's existing local-helper style."""
     repo = tmp_path / name
     subprocess.run(
         ["git", "clone", "--local", "--", str(REPO), str(repo)],
@@ -68,17 +75,25 @@ def _commit_freeze_tree(tmp_path: Path, *, name: str = "repo") -> Path:
         capture_output=True,
         text=True,
     )
-    _git(repo, "checkout", "-q", v2p.FROZEN_V2_33_33_FREEZE_HEAD)
     _git(repo, "config", "user.email", "t@example.com")
     _git(repo, "config", "user.name", "t")
     _git(repo, "config", "commit.gpgsign", "false")
+    implementation_head = _git(repo, "rev-parse", "HEAD")
+    implementation_tree = _git(repo, "rev-parse", "HEAD^{tree}")
+    freeze_doc = _v2_execution_freeze_artifact(repo, implementation_head, implementation_tree)
+    freeze_path = repo / v2p.CANONICAL_V2_EXECUTION_FREEZE_PATH
+    _write(freeze_path, json.dumps(freeze_doc, indent=2, sort_keys=True) + "\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "v2 execution freeze")
     return repo
 
 
-def _small_arm_payload(repo: Path) -> dict:
-    """Build a self-consistent ARM payload from tracked 33/33 freeze objects."""
+def _small_arm_payload(repo: Path, *, freeze_commit: str | None = None) -> dict:
+    """Build a self-consistent ARM payload from tracked execution-freeze objects."""
+    if freeze_commit is None:
+        freeze_commit = _git(repo, "rev-parse", "HEAD")
     payload = dict(v2p.V2_ARM_REQUIRED_LITERALS)
-    payload.update(v2p.required_v2_arm_binding_fields(repo))
+    payload.update(v2p.required_v2_arm_binding_fields(repo, freeze_commit))
     return payload
 
 

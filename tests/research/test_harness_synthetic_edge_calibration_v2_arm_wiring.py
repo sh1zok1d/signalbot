@@ -1,4 +1,5 @@
-"""Adversarial ARM authorization wiring tests for the 33/33 freeze trust boundary.
+"""Adversarial ARM authorization wiring tests for the V2 execution-freeze
+trust boundary.
 
 Disposable clones only. These tests must not create a real ARM in project
 history, consume a real reservation, run the canonical 3200-world grid, or
@@ -27,6 +28,11 @@ REPO = Path(__file__).resolve().parents[2]
 OLD_RANK_POLICY_FREEZE_SHA256 = (
     "64a5dfb99411940658a69ce7b6b0339851158c2a987ad12b94bb1fbf96fce2ad"
 )
+# Historical, pre-self-reference-repair freeze commit. Its own recorded
+# production.py bytes necessarily predate this repair's changes to that same
+# file, so it is used below only as a fixed, known-divergent-bytes fixture --
+# never as production authority (nothing in production.py references it).
+HISTORICAL_POST_WIRING_FREEZE_HEAD = "75f12bd31eac631a3baedd4a627344c0f2d40190"
 
 
 def test_a_old_rank_policy_freeze_arm_alone_refused(tmp_path):
@@ -40,20 +46,23 @@ def test_a_old_rank_policy_freeze_arm_alone_refused(tmp_path):
 
 def test_a_arm_child_of_rank_policy_freeze_refused(tmp_path):
     repo = _v2_commit_freeze_tree(tmp_path)
+    valid_freeze_commit = _git(repo, "rev-parse", "HEAD")
+    payload = _v2_valid_arm_payload(repo, freeze_commit=valid_freeze_commit)
     _git(repo, "checkout", "-q", v2p.FROZEN_V2_POLICY_FREEZE_HEAD)
-    payload = _v2_valid_arm_payload(repo)
     _v2_commit_arm(repo, payload, message="arm on rank-policy freeze")
     assert v2p.v2_production_arm_authorized(repo_root=repo) is False
 
 
-def test_b_correct_33_33_binding_authorizes_historical_layer(tmp_path):
+def test_b_correct_binding_authorizes_historical_layer(tmp_path):
     repo = _v2_commit_freeze_tree(tmp_path)
+    freeze_commit = _git(repo, "rev-parse", "HEAD")
+    freeze_tree = _git(repo, "rev-parse", "HEAD^{tree}")
     payload = _v2_valid_arm_payload(repo)
     arm_commit = _v2_commit_arm(repo, payload)
     assert v2p.v2_production_arm_authorized(repo_root=repo) is True
     bound = v2p.verify_historical_v2_execution_authority(repo, arm_commit)
-    assert bound["freeze_parent_head"] == v2p.FROZEN_V2_33_33_FREEZE_HEAD
-    assert bound["freeze_parent_tree"] == v2p.FROZEN_V2_33_33_FREEZE_TREE
+    assert bound["freeze_parent_head"] == freeze_commit
+    assert bound["freeze_parent_tree"] == freeze_tree
     assert bound["canonical_v2_plan_sha256"] == v2p.FROZEN_CANONICAL_V2_PLAN_SHA256
 
 
@@ -112,9 +121,66 @@ def test_l_a002_boolean_zero_is_not_false(tmp_path):
     assert v2p.v2_production_arm_authorized(repo_root=repo) is False
 
 
+def _build_disposable_freeze_commit(tmp_path: Path, *, name: str, mutate=None) -> tuple[Path, str]:
+    """A disposable clone with a freshly-built freeze committed as an
+    immediate child of the live implementation HEAD, optionally mutated (via
+    ``mutate(freeze_doc) -> freeze_doc``) before it is committed. Returns
+    ``(repo, freeze_commit)``."""
+    import subprocess
+
+    from tests.research.test_harness_synthetic_edge_calibration_v2_production import (
+        _v2_execution_freeze_artifact,
+    )
+
+    repo = tmp_path / name
+    subprocess.run(
+        ["git", "clone", "--local", "--", str(REPO), str(repo)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    _git(repo, "config", "user.email", "test@example.com")
+    _git(repo, "config", "user.name", "test")
+    _git(repo, "config", "commit.gpgsign", "false")
+    implementation_head = _git(repo, "rev-parse", "HEAD")
+    implementation_tree = _git(repo, "rev-parse", "HEAD^{tree}")
+    freeze_doc = _v2_execution_freeze_artifact(repo, implementation_head, implementation_tree)
+    if mutate is not None:
+        freeze_doc = mutate(freeze_doc)
+    freeze_path = repo / v2p.CANONICAL_V2_EXECUTION_FREEZE_PATH
+    _write(freeze_path, json.dumps(freeze_doc, indent=2, sort_keys=True) + "\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "v2 execution freeze")
+    return repo, _git(repo, "rev-parse", "HEAD")
+
+
+def test_l_freeze_document_a002_governing_refused(tmp_path):
+    """Even if an ARM payload's own A002 literals are correct, a freeze
+    document that itself claims A002 governs must not authenticate."""
+
+    def mutate(freeze):
+        freeze["methodology_authority"]["amendment_002"]["governs_executable_science"] = True
+        return freeze
+
+    repo, freeze_commit = _build_disposable_freeze_commit(tmp_path, name="repo", mutate=mutate)
+    assert v2p._authenticate_v2_execution_freeze(repo, freeze_commit) is None
+
+
+def test_l_freeze_document_a003_non_governing_refused(tmp_path):
+    """A freeze that tries to demote Amendment_003 to non-governing (a role
+    swap toward A002's role) must not authenticate."""
+
+    def mutate(freeze):
+        freeze["methodology_authority"]["amendment_003"]["governs_executable_science"] = False
+        return freeze
+
+    repo, freeze_commit = _build_disposable_freeze_commit(tmp_path, name="repo", mutate=mutate)
+    assert v2p._authenticate_v2_execution_freeze(repo, freeze_commit) is None
+
+
 def test_m_alternate_caller_freeze_refused(tmp_path):
     repo = _v2_commit_freeze_tree(tmp_path)
-    freeze_path = repo / v2p.V2_FREEZE_ARTIFACT_REL
+    freeze_path = repo / v2p.CANONICAL_V2_EXECUTION_FREEZE_PATH
     attacker = json.loads(freeze_path.read_text(encoding="utf-8"))
     attacker["reviewed_implementation"]["head"] = "0" * 40
     attacker["reviewed_implementation"]["tree"] = "1" * 40
@@ -126,7 +192,7 @@ def test_m_alternate_caller_freeze_refused(tmp_path):
         {
             "freeze_parent_head": _git(repo, "rev-parse", "HEAD"),
             "freeze_parent_tree": _git(repo, "rev-parse", "HEAD^{tree}"),
-            "freeze_artifact_path": v2p.V2_FREEZE_ARTIFACT_REL,
+            "freeze_artifact_path": v2p.CANONICAL_V2_EXECUTION_FREEZE_PATH,
             "freeze_artifact_sha256": hashlib.sha256(freeze_path.read_bytes()).hexdigest(),
             "freeze_artifact_size": freeze_path.stat().st_size,
             "reviewed_implementation_head": "0" * 40,
@@ -154,7 +220,7 @@ def test_n_working_tree_substitution_cannot_redefine_historical_authority(tmp_pa
     payload = _v2_valid_arm_payload(repo)
     arm_commit = _v2_commit_arm(repo, payload)
     bound = v2p.verify_historical_v2_execution_authority(repo, arm_commit)
-    freeze_path = repo / v2p.V2_FREEZE_ARTIFACT_REL
+    freeze_path = repo / v2p.CANONICAL_V2_EXECUTION_FREEZE_PATH
     _write(freeze_path, b'{"attacker": true}\n')
     ladder = repo / v2p.V2_INHERITED_LADDER_REL
     _write(ladder, ladder.read_bytes() + b"\n# worktree only\n")
@@ -213,7 +279,8 @@ def test_q_reuse_after_consumption_refused(tmp_path, monkeypatch):
 
 
 def test_self_attested_authority_chain_refused(tmp_path):
-    """Internally consistent attacker freeze+impl+ARM still lacks the reviewed anchor."""
+    """Internally consistent attacker freeze+impl+ARM still lacks the
+    structural parent topology a real freeze/implementation would have."""
     repo = tmp_path / "attacker"
     repo.mkdir()
     _git(repo, "init")
@@ -222,12 +289,15 @@ def test_self_attested_authority_chain_refused(tmp_path):
     _git(repo, "config", "commit.gpgsign", "false")
     impl = b"print('attacker implementation')\n"
     freeze = {
+        "schema": v2p.V2_EXECUTION_FREEZE_SCHEMA,
         "reviewed_implementation": {"head": "a" * 40, "tree": "b" * 40},
         "methodology_authority": {
             "amendment_002": {
                 "status": "REJECTED_HISTORICAL_AUTHORITY",
                 "governs_executable_science": False,
-            }
+            },
+            "amendment_003": {"governs_executable_science": True},
+            "amendment_004": {"governs_executable_science": True, "amends": "AMENDMENT_003"},
         },
         "execution_authoritative_implementation_sources": [
             {
@@ -246,22 +316,22 @@ def test_self_attested_authority_chain_refused(tmp_path):
     }
     _write(repo / v2p.V2_INHERITED_LADDER_REL, impl)
     _write(repo / v2p.V2_PRODUCTION_REL, impl)
-    _write(repo / v2p.V2_FREEZE_ARTIFACT_REL, json.dumps(freeze, indent=2) + "\n")
+    _write(repo / v2p.CANONICAL_V2_EXECUTION_FREEZE_PATH, json.dumps(freeze, indent=2) + "\n")
     _git(repo, "add", "-A")
     _git(repo, "commit", "-m", "attacker freeze")
     freeze_head = _git(repo, "rev-parse", "HEAD")
     freeze_tree = _git(repo, "rev-parse", "HEAD^{tree}")
-    freeze_bytes = (repo / v2p.V2_FREEZE_ARTIFACT_REL).read_bytes()
+    freeze_bytes = (repo / v2p.CANONICAL_V2_EXECUTION_FREEZE_PATH).read_bytes()
     payload = dict(v2p.V2_ARM_REQUIRED_LITERALS)
     payload.update(
         {
             "freeze_parent_head": freeze_head,
             "freeze_parent_tree": freeze_tree,
-            "freeze_artifact_path": v2p.V2_FREEZE_ARTIFACT_REL,
+            "freeze_artifact_path": v2p.CANONICAL_V2_EXECUTION_FREEZE_PATH,
             "freeze_artifact_sha256": hashlib.sha256(freeze_bytes).hexdigest(),
             "freeze_artifact_size": len(freeze_bytes),
-            "reviewed_implementation_head": freeze_head,
-            "reviewed_implementation_tree": freeze_tree,
+            "reviewed_implementation_head": "a" * 40,
+            "reviewed_implementation_tree": "b" * 40,
             "v2_policy_sha256": hashlib.sha256(impl).hexdigest(),
             "v2_policy_size": len(impl),
             "canonical_v2_plan_sha256": v2p.FROZEN_CANONICAL_V2_PLAN_SHA256,
@@ -277,6 +347,9 @@ def test_self_attested_authority_chain_refused(tmp_path):
         }
     )
     _v2_commit_arm(repo, payload, message="self-attested arm")
+    # The freeze here is itself a root commit (zero parents): it cannot
+    # structurally point at any implementation commit at all, so this fails
+    # closed before any content field is even inspected.
     assert v2p.v2_production_arm_authorized(repo_root=repo) is False
     with pytest.raises(v2p.SyntheticExecutionNotAuthorized):
         v2p.verify_historical_v2_execution_authority(repo, _git(repo, "rev-parse", "HEAD"))
@@ -292,11 +365,13 @@ def test_historical_authority_uses_git_objects_not_current_checkout_bytes(tmp_pa
     assert v2p.v2_production_arm_authorized(repo_root=repo) is True
 
 
-def test_live_executed_runtime_refuses_33_33_freeze_bytes_after_wiring_repair():
+def test_live_executed_runtime_refuses_stale_historical_freeze_bytes():
+    """The live runtime's production.py today differs from the recorded
+    bytes of a historical, pre-self-reference-repair freeze commit -- this
+    proves the live-byte check genuinely compares content, not merely
+    presence. Nothing in production.py references this historical SHA."""
     with pytest.raises(v2p.SyntheticExecutionNotAuthorized, match="loaded runtime bytes"):
-        v2p._assert_executed_runtime_bound_to_commit(
-            REPO, v2p.FROZEN_V2_33_33_FREEZE_HEAD
-        )
+        v2p._assert_executed_runtime_bound_to_commit(REPO, HISTORICAL_POST_WIRING_FREEZE_HEAD)
 
 
 def test_executed_runtime_check_refuses_disposable_clone_root_mismatch(tmp_path):
@@ -315,9 +390,27 @@ def test_live_runtime_bytes_match_current_head():
     v2p._assert_executed_runtime_bound_to_commit(REPO, "HEAD")
 
 
-def test_33_33_freeze_is_required_and_rank_policy_constants_are_not_aliases():
-    assert v2p.V2_FREEZE_ARTIFACT_REL != v2p.V2_POLICY_FREEZE_ARTIFACT_REL
-    assert v2p.FROZEN_V2_33_33_FREEZE_ARTIFACT_SHA256 != OLD_RANK_POLICY_FREEZE_SHA256
-    assert v2p.FROZEN_REVIEWED_IMPLEMENTATION_HEAD == v2p.FROZEN_V2_33_33_IMPLEMENTATION_HEAD
-    assert v2p.FROZEN_V2_POLICY_REVIEWED_IMPLEMENTATION_HEAD != v2p.FROZEN_V2_33_33_IMPLEMENTATION_HEAD
+def test_execution_freeze_path_is_required_and_rank_policy_constants_are_not_aliases(tmp_path):
+    assert v2p.CANONICAL_V2_EXECUTION_FREEZE_PATH != v2p.V2_POLICY_FREEZE_ARTIFACT_REL
+    repo = _v2_commit_freeze_tree(tmp_path)
+    implementation_head = _git(repo, "rev-parse", "HEAD^")
+    assert v2p.FROZEN_V2_POLICY_REVIEWED_IMPLEMENTATION_HEAD != implementation_head
     assert v2p.FROZEN_CANONICAL_WORLD_COUNT == 3200
+
+
+def test_no_freeze_identity_constants_exist_in_production_module():
+    """Regression guard for the architectural bug this unit repairs: this
+    module must never again hardcode a specific freeze/implementation SHA
+    as execution authority."""
+    forbidden = (
+        "FROZEN_V2_33_33_FREEZE_HEAD",
+        "FROZEN_V2_33_33_FREEZE_TREE",
+        "FROZEN_V2_33_33_FREEZE_ARTIFACT_SHA256",
+        "FROZEN_V2_33_33_FREEZE_ARTIFACT_SIZE",
+        "FROZEN_V2_33_33_IMPLEMENTATION_HEAD",
+        "FROZEN_V2_33_33_IMPLEMENTATION_TREE",
+        "FROZEN_REVIEWED_IMPLEMENTATION_HEAD",
+        "FROZEN_REVIEWED_IMPLEMENTATION_TREE",
+    )
+    for name in forbidden:
+        assert not hasattr(v2p, name), f"{name} must not exist: it re-introduces the self-reference bug"
