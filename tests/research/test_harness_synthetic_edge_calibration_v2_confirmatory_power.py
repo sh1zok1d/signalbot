@@ -173,20 +173,30 @@ def test_bootstrap_and_placebo_are_executed_not_hardcoded():
     assert 'confirmatory["placebo_separation"]' in inner
 
 
-def test_rng_semantics_match_frozen_v1_on_one_candidate():
-    world = lib.simulate_dgp(scenario_id="EASY", n_rows=50, world_index=0)
-    n = 50
+def _identifiable_easy_f03_world(n_rows: int = 250, max_index: int = 20):
     cid = "F03"
-    feature = lib.candidate_features(world)[cid]
-    y = np.asarray(world["Y"], dtype=np.float64)
-    preds = lib.expanding_era_predictions(y, world["X1"], world["X2"], feature, n)
+    for world_index in range(max_index):
+        world = lib.simulate_dgp(scenario_id="EASY", n_rows=n_rows, world_index=world_index)
+        feature = lib.candidate_features(world)[cid]
+        y = np.asarray(world["Y"], dtype=np.float64)
+        try:
+            preds = lib.expanding_era_predictions(y, world["X1"], world["X2"], feature, n_rows)
+        except lib.IncompleteWorld:
+            continue
+        return world, world_index, feature, y, preds, n_rows
+    raise AssertionError("no identifiable disposable EASY F03 world")
+
+
+def test_rng_semantics_match_frozen_v1_on_one_candidate():
+    world, world_index, feature, y, preds, n = _identifiable_easy_f03_world()
+    cid = "F03"
     metrics = lib.ae_metrics(y, preds["BASE_PRED"], preds["CAND_PRED"], lib.scored_mask(n))
     got = v2._frozen_v1_confirmatory_pair(
         world=world,
         feature=feature,
         feature_id=cid,
         n_rows=n,
-        world_index=0,
+        world_index=world_index,
         scenario="EASY",
         preds=preds,
         y=y,
@@ -199,7 +209,7 @@ def test_rng_semantics_match_frozen_v1_on_one_candidate():
     ae_imp_full[mask] = np.abs(y[mask] - preds["BASE_PRED"][mask]) - np.abs(
         y[mask] - preds["CAND_PRED"][mask]
     )
-    identity = str(world.get("world_identity", lib.world_identity("EASY", n, 0)))
+    identity = str(world.get("world_identity", lib.world_identity("EASY", n, world_index)))
     wseed = int(lib.world_seed(identity))
     boot = lib.prediction_bootstrap(
         ae_imp_full,
@@ -226,7 +236,7 @@ def test_rng_semantics_match_frozen_v1_on_one_candidate():
     assert expected_sep is got["placebo_separation"]
 
     v1 = prod.evaluate_production_candidate(
-        world, cid, scenario_id="EASY", n_rows=n, world_index=0
+        world, cid, scenario_id="EASY", n_rows=n, world_index=world_index
     )
     assert v1["gates"]["bootstrap_positive"] is got["bootstrap_positive"]
     assert v1["gates"]["placebo_separation"] is got["placebo_separation"]
@@ -417,13 +427,16 @@ def test_canonical_v2_artifacts_remain_byte_identical():
 def test_disposable_confirmatory_path_reachable_not_canonical():
     """Disposable proof only. Not a 3200-world calibration and not a RESULT."""
     found = None
-    for world_index in range(5):
-        world = lib.simulate_dgp(scenario_id="EASY", n_rows=50, world_index=world_index)
-        n = 50
-        cid = "F03"
+    cid = "F03"
+    n = 250
+    for world_index in range(8):
+        world = lib.simulate_dgp(scenario_id="EASY", n_rows=n, world_index=world_index)
         feature = lib.candidate_features(world)[cid]
         y = np.asarray(world["Y"], dtype=np.float64)
-        preds = lib.expanding_era_predictions(y, world["X1"], world["X2"], feature, n)
+        try:
+            preds = lib.expanding_era_predictions(y, world["X1"], world["X2"], feature, n)
+        except lib.IncompleteWorld:
+            continue
         metrics = lib.ae_metrics(y, preds["BASE_PRED"], preds["CAND_PRED"], lib.scored_mask(n))
         confirmatory = v2._frozen_v1_confirmatory_pair(
             world=world,
