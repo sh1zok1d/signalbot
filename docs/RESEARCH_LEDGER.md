@@ -2355,3 +2355,22 @@ rewrite. No V1 TCB change. No V2 ARM, RESULT, or WORLD_RECORDS.
 
 - next required step: `INDEPENDENT_V2_33_33_IMPLEMENTATION_FREEZE_REVIEW`
 
+## 2026-09-15 — V2 authorized GROUND_TRUTH_VISIBLE plumbing
+
+**Decision:** supply the already-defined V1 `GROUND_TRUTH_VISIBLE` statistic
+for the canonical 3200 world identities as a separate visibility evidence
+artifact. Classification B from independent diagnosis: defined pre-outcome,
+required input not persisted.
+
+- no second reservation
+- no V2 candidate re-evaluation
+- canonical WORLD_RECORDS bytes unchanged (`d372eb00…`)
+- no RESULT minted
+- no threshold/denominator/operator change
+- ARM-bound `production.py` / `inherited_ladder.py` bytes unchanged
+
+Canonical visibility evidence:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_VISIBILITY.json`
+
+- next required step: `INDEPENDENT_VISIBILITY_PLUMBING_REVIEW`
+
