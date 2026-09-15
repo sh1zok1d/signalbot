@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import hashlib
 import itertools
+import json
+from unittest import mock
 
 import pytest
 
@@ -271,6 +273,8 @@ def test_needed_ids_excludes_visibility_avoids_the_raise():
     ]
     got = ladder.derive_v2_inherited_conclusions_needed(records, non_visibility)
     assert set(got) == set(non_visibility)
+    assert got[ladder.FINAL_OVERALL_ID] is not None
+    assert got[ladder.FINAL_OVERALL_ID] in ladder.frozen_final_overall_terminal_labels()
 
 
 def test_final_overall_short_circuits_before_visibility_on_definitive_fail():
@@ -419,3 +423,191 @@ def test_frozen_tcb_pin_reverified_by_this_test_file():
         ["git", "-C", str(REPO), "show", f"HEAD:{rel}"], capture_output=True
     ).stdout
     assert hashlib.sha256(blob).hexdigest() == "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51"
+
+
+def _a003_discovery_diagnosis_from_authority(oracle: str, blind: str) -> str:
+    """Expected EASY/MODERATE operator, read from frozen A003 JSON prose, not from `_comb`."""
+    auth = ladder.load_v2_inherited_ladder_authority()
+    operator = auth["conclusions"]["EASY_CONCLUSION"]["operator"]
+    assert "FAIL if EASY_ORACLE_POWER == FAIL" in operator
+    assert "INDETERMINATE if either is INDETERMINATE" in operator
+    assert "FAIL if EASY_BLIND_USEFUL_DISCOVERY == FAIL" in operator
+    if "NOT_CLAIMABLE" in (oracle, blind):
+        return "NOT_CLAIMABLE"
+    if oracle == FAIL:
+        return FAIL
+    if oracle == IND or blind == IND:
+        return IND
+    if blind == FAIL:
+        return FAIL
+    return PASS
+
+
+@pytest.mark.parametrize(
+    "oracle,blind",
+    [
+        (PASS, PASS),
+        (FAIL, PASS),
+        (PASS, FAIL),
+        (IND, PASS),
+        (PASS, IND),
+        (IND, FAIL),
+        (FAIL, IND),
+    ],
+)
+@pytest.mark.parametrize("cid", ["EASY_CONCLUSION", "MODERATE_CONCLUSION"])
+def test_easy_moderate_discovery_diagnosis_matches_a003(cid, oracle, blind):
+    expected = _a003_discovery_diagnosis_from_authority(oracle, blind)
+    assert ladder._discovery_diagnosis(oracle, blind) == expected
+    operator = ladder.load_v2_inherited_ladder_authority()["conclusions"][cid]["operator"]
+    assert "INDETERMINATE if either is INDETERMINATE" in operator
+    if (oracle, blind) == (IND, FAIL):
+        assert expected == IND
+        assert ladder._comb(oracle, blind) == FAIL
+        assert expected != ladder._comb(oracle, blind)
+    if (oracle, blind) == (FAIL, IND):
+        assert expected == FAIL
+
+
+def test_authority_code_parity_enforced_on_load():
+    auth = ladder.load_v2_inherited_ladder_authority()
+    ladder._assert_authority_code_parity(auth)  # must not raise
+    assert set(auth["conclusions"]) == set(v2.frozen_required_coverage_map())
+
+
+def test_threshold_drift_detected():
+    auth = ladder.load_v2_inherited_ladder_authority()
+    mutated = {
+        "conclusions": dict(auth["conclusions"]),
+        "amendment_003": json.loads(json.dumps(auth["amendment_003"])),
+        "amendment_004": auth["amendment_004"],
+    }
+    mutated["amendment_003"]["frozen_production_call_site"]["frozen_thresholds"]["ORACLE_NULL_FPR_MAX"] = 0.99
+    with pytest.raises(ladder.V2InheritedLadderAuthorityError, match="threshold drift"):
+        ladder._assert_authority_code_parity(mutated)
+
+
+def test_operator_drift_detected():
+    auth = ladder.load_v2_inherited_ladder_authority()
+    mutated = {
+        "conclusions": dict(auth["conclusions"]),
+        "amendment_003": auth["amendment_003"],
+        "amendment_004": auth["amendment_004"],
+    }
+    easy = dict(auth["conclusions"]["EASY_CONCLUSION"])
+    easy["operator"] = "FAIL dominates INDETERMINATE"
+    mutated["conclusions"]["EASY_CONCLUSION"] = easy
+    with pytest.raises(ladder.V2InheritedLadderAuthorityError, match="operator drift"):
+        ladder._assert_authority_code_parity(mutated)
+
+
+def _adequate_trap_fail_records():
+    records = []
+    for i in range(250):
+        records.append(make_record("NULL", 5000, i, detected_map={c: False for c in v2.FEATURE_IDS}))
+    for i in range(250):
+        rec = make_record("NONSTATIONARY_TRAP", 5000, i, detected_map={"F03": False})
+        rec.candidates["F03"].gates = {"STRICT_PASS": False, "STRICT_PASS_EX_MATERIALITY": True}
+        records.append(rec)
+    for scenario in ("EASY", "MODERATE"):
+        for i in range(250):
+            records.append(
+                make_record(
+                    scenario, 5000, i, detected_map={"F03": True},
+                    taxonomy="TRUE_DISCOVERY", selected="F03",
+                )
+            )
+    for n in (2500, 5000, 10000):
+        for i in range(250):
+            records.append(make_record("SMALL", n, i, detected_map={"F03": True}))
+    for i in range(250):
+        records.append(make_record("TINY_NOISY", 5000, i, detected_map={"F03": True}))
+    return records
+
+
+def test_adequate_final_overall_nested_matches_canonical_trap_fail():
+    from scripts.research import harness_synthetic_edge_calibration_v2_production as v2p
+
+    records = _adequate_trap_fail_records()
+    status = v2p.derive_v2_required_coverage_status(records)
+    assert status[ladder.FINAL_OVERALL_ID] == v2.COVERAGE_ADEQUATE
+    nested_final = ladder.derive_v2_final_overall_mechanical_conclusion(
+        records, structurally_complete=True
+    )
+    dedicated_final = v2p.derive_v2_final_overall_mechanical_conclusion(
+        records, structurally_complete=True
+    )
+    labels = ladder.frozen_final_overall_terminal_labels()
+    assert nested_final is not None
+    assert nested_final in labels
+    assert nested_final == dedicated_final
+    assert nested_final == "METHODOLOGY_REPAIR_REQUIRED_BEFORE_B2_06"
+
+
+def test_amendment_002_five_known_permissive_divergences_fixed():
+    """A002 remapped frozen terminals and dropped trap/floors as governing.
+    Bound implementation must keep the frozen TCB labels and governing inputs."""
+    cases = [
+        ("trap_governs", dict(trap=FAIL), "METHODOLOGY_REPAIR_REQUIRED_BEFORE_B2_06"),
+        ("visibility_governs", dict(vu=0.30), "VISIBILITY_FLOOR"),
+        ("model_floor_governs", dict(mu=0.30), "MODEL_FLOOR"),
+        ("materiality_governs", dict(mf=True), "MATERIALITY_ONLY_DIAGNOSTIC"),
+        ("success_label_preserved", {}, "NO_V1_EVIDENCE_OF_DISCOVERY_BOTTLENECK"),
+    ]
+    for name, overrides, expected in cases:
+        base = dict(
+            onull=PASS, bnull=PASS, trap=PASS, epow=PASS, mpow=PASS, eb=PASS, mb=PASS,
+            vu=0.99, mu=0.99, mf=False,
+        )
+        base.update(overrides)
+        got = _module_composite(
+            PASS, base["onull"], base["bnull"], base["trap"], base["epow"],
+            base["mpow"], base["eb"], base["mb"], base["vu"], base["mu"], base["mf"],
+        )
+        assert got == expected, name
+        assert got not in {"CALIBRATION_PASSED", "CALIBRATION_FAILED"}
+
+
+def test_33_id_value_audit_no_null_adequate():
+    from scripts.research import harness_synthetic_edge_calibration_v2_production as v2p
+
+    records = [make_record("NULL", 5000, i, detected_map={c: False for c in v2.FEATURE_IDS}) for i in range(250)]
+    status = v2p.derive_v2_required_coverage_status(records)
+    conclusions = v2p.derive_v2_mechanical_conclusions(records, structurally_complete=True)
+    specified = set(v2.frozen_required_coverage_map())
+    assert len(specified) == 33
+    assert set(conclusions) == specified
+    null_adequate = 0
+    unknown_adequate = 0
+    for cid, value in conclusions.items():
+        assert value is not None
+        assert isinstance(value, str) and value != ""
+        if status[cid] == v2.COVERAGE_ADEQUATE:
+            if value is None:
+                null_adequate += 1
+            if cid == ladder.FINAL_OVERALL_ID and value not in ladder.frozen_final_overall_terminal_labels():
+                unknown_adequate += 1
+    assert null_adequate == 0
+    assert unknown_adequate == 0
+    assert conclusions[ladder.FINAL_OVERALL_ID] == v2p.derive_v2_final_overall_mechanical_conclusion(
+        records, structurally_complete=True
+    )
+
+
+def test_adequate_missing_and_none_derivation_refuse():
+    from scripts.research.harness_synthetic_edge_calibration_v1_lib import SyntheticExecutionNotAuthorized
+    from scripts.research import harness_synthetic_edge_calibration_v2_production as v2p
+
+    records = [make_record("NULL", 5000, i, detected_map={"F03": False}) for i in range(250)]
+    status = v2p.derive_v2_required_coverage_status(records)
+    assert any(v == v2.COVERAGE_ADEQUATE for cid, v in status.items() if cid != ladder.FINAL_OVERALL_ID)
+    with mock.patch.object(v2p, "derive_v2_inherited_conclusions_needed", return_value={}):
+        with pytest.raises(SyntheticExecutionNotAuthorized, match="missing derived value"):
+            v2p.derive_v2_mechanical_conclusions(records, structurally_complete=True)
+
+    def _none_values(records, needed_ids, **kwargs):
+        return {cid: None for cid in needed_ids}
+
+    with mock.patch.object(v2p, "derive_v2_inherited_conclusions_needed", side_effect=_none_values):
+        with pytest.raises(SyntheticExecutionNotAuthorized, match="derived None"):
+            v2p.derive_v2_mechanical_conclusions(records, structurally_complete=True)

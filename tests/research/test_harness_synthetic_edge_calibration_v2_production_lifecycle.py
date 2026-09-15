@@ -576,6 +576,13 @@ def test_mint_result_end_to_end_matches_historical_verification(reserved_small_r
         )
         assert result["world_records_count"] == len(small_jobs)
         assert set(result["conclusions"]) == set(CONCLUSION_IDS)
+        nested = result["conclusions"][ladder.FINAL_OVERALL_ID]
+        assert nested is not None
+        assert nested == result["final_overall_conclusion"]
+        assert nested in ladder.frozen_final_overall_terminal_labels()
+        for cid, value in result["conclusions"].items():
+            assert value is not None
+            assert isinstance(value, str) and value != ""
         assert v2p.verify_historical_v2_result(
             repo, arm_commit, world_records, result
         ) is True
@@ -900,3 +907,54 @@ def test_concurrent_mint_calls_bind_to_the_same_evidence_identity(reserved_small
         mutated[0] = dataclasses.replace(mutated[0], taxonomy="FORGED_FOR_TEST")
         with pytest.raises(v2p.V2ProductionIntegrityError):
             v2p.mint_v2_result(repo, arm_commit, tuple(mutated))
+
+
+def test_33_id_minted_values_not_just_keys(reserved_small_repo, small_jobs):
+    repo, arm_commit = reserved_small_repo
+    with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
+        session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
+        records = v2p.run_canonical_v2_production_grid_in_session(session)
+        result = v2p.mint_v2_result(repo, arm_commit, records)
+        specified = set(CONCLUSION_IDS)
+        assert len(specified) == 33
+        assert set(result["conclusions"]) == specified
+        labels = ladder.frozen_final_overall_terminal_labels()
+        nested = result["conclusions"][ladder.FINAL_OVERALL_ID]
+        assert nested is not None
+        assert nested in labels
+        assert nested == result["final_overall_conclusion"]
+        for value in result["conclusions"].values():
+            assert value is not None
+            assert isinstance(value, str) and value != ""
+
+
+def test_verifier_rejects_final_overall_forgeries(reserved_small_repo, small_jobs):
+    repo, arm_commit = reserved_small_repo
+    with mock.patch.object(v2p, "canonical_v2_production_jobs", return_value=small_jobs):
+        session = v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
+        records = v2p.run_canonical_v2_production_grid_in_session(session)
+        world_records = v2p.mint_v2_world_records(repo, arm_commit, records)
+        result = v2p.mint_v2_result(repo, arm_commit, records)
+        correct = result["final_overall_conclusion"]
+        wrong = (
+            "METHODOLOGY_REPAIR_REQUIRED_BEFORE_B2_06"
+            if correct != "METHODOLOGY_REPAIR_REQUIRED_BEFORE_B2_06"
+            else "CALIBRATION_INDETERMINATE"
+        )
+
+        nested_null = copy.deepcopy(result)
+        nested_null["conclusions"][ladder.FINAL_OVERALL_ID] = None
+        assert v2p.verify_historical_v2_result(repo, arm_commit, world_records, nested_null) is False
+
+        nested_wrong = copy.deepcopy(result)
+        nested_wrong["conclusions"][ladder.FINAL_OVERALL_ID] = wrong
+        assert v2p.verify_historical_v2_result(repo, arm_commit, world_records, nested_wrong) is False
+
+        top_wrong = copy.deepcopy(result)
+        top_wrong["final_overall_conclusion"] = wrong
+        assert v2p.verify_historical_v2_result(repo, arm_commit, world_records, top_wrong) is False
+
+        both_wrong = copy.deepcopy(result)
+        both_wrong["conclusions"][ladder.FINAL_OVERALL_ID] = wrong
+        both_wrong["final_overall_conclusion"] = wrong
+        assert v2p.verify_historical_v2_result(repo, arm_commit, world_records, both_wrong) is False

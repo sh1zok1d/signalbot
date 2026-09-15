@@ -73,11 +73,19 @@ from scripts.research.harness_synthetic_edge_calibration_v1_production import (
     _sha256_bytes,
 )
 from scripts.research.harness_synthetic_edge_calibration_v2_rank_policy import (
+    COVERAGE_ADEQUATE,
+    COVERAGE_INSUFFICIENT,
+    MECHANICAL_INSUFFICIENT_IDENTIFIABILITY,
+    MECHANICAL_STRUCTURAL_INCOMPLETE,
     CandidateWorldRecord,
     CellAggregateV2,
+    UndefinedCoverageDenominator,
     WorldRecordV2,
     aggregate_v2_records,
+    evaluate_cell_coverage,
     frozen_required_coverage_map,
+    required_coverage_for_conclusion,
+    world_baseline_coverage_verdict,
 )
 
 # --- frozen authority artifact identity (independently reviewed, unmodified) -
@@ -107,6 +115,20 @@ APPROVED_METHODOLOGY_HEAD = "df5dcde63581198d4766fa662de89eae3e7c461e"
 APPROVED_METHODOLOGY_TREE = "95814ae17922c399350200a4f2b55b1021113442"
 
 PASS, FAIL, IND = "PASS", "FAIL", "INDETERMINATE"
+FINAL_OVERALL_ID = "FINAL_OVERALL_MECHANICAL_CONCLUSION"
+
+# V1 production call-site threshold names (from Amendment_003 JSON) bound to
+# the corresponding 33-id table entries. Values are never copied here; both
+# sides are read from the loaded, hash-verified authority.
+_V1_PRODUCTION_THRESHOLD_BINDINGS = (
+    ("ORACLE_NULL_FPR_MAX", "NULL_ORACLE_FPR"),
+    ("BLIND_NULL_FPR_MAX", "NULL_BLIND_FPR"),
+    ("TRAP_STRICT_EX_MAX", "NONSTATIONARY_TRAP_ORACLE_SPECIFICITY"),
+    ("ORACLE_EASY_MIN", "EASY_ORACLE_POWER"),
+    ("ORACLE_MODERATE_MIN", "MODERATE_ORACLE_POWER"),
+    ("BLIND_EASY_USEFUL_MIN", "EASY_BLIND_USEFUL_DISCOVERY"),
+    ("BLIND_MODERATE_USEFUL_MIN", "MODERATE_BLIND_USEFUL_DISCOVERY"),
+)
 
 
 class V2InheritedLadderAuthorityError(SyntheticExecutionNotAuthorized):
@@ -192,15 +214,114 @@ def load_v2_inherited_ladder_authority(
     frozen_map = frozen_required_coverage_map()
     if set(conclusions) != set(frozen_map):
         _refuse_authority("merged 33-id authority does not match frozen_required_coverage_map()")
-    return {"conclusions": conclusions, "amendment_003": a003, "amendment_004": a004}
+    payload = {"conclusions": conclusions, "amendment_003": a003, "amendment_004": a004}
+    _assert_authority_code_parity(payload)
+    return payload
 
 
-# --- comb(): the one composition operator Amendment_003/004 use everywhere --
-# for combining two or more PASS/FAIL/INDETERMINATE verdicts into one:
-# NOT_CLAIMABLE > FAIL > INDETERMINATE > PASS. Not invented here -- this is
-# the exact rule Amendment_003 states, verbatim, for NULL_FALSE_POSITIVE_CONCLUSION,
-# EASY_CONCLUSION, MODERATE_CONCLUSION and BLIND_DISCOVERY_CONCLUSION, and
-# Amendment_004 states, verbatim, for integrating the NULL aggregate gate.
+def frozen_final_overall_terminal_labels(repo_root: Path | None = None, commit: str = "HEAD") -> tuple[str, ...]:
+    """Exact frozen FINAL_OVERALL possible_states from hash-verified Amendment_004."""
+    auth = load_v2_inherited_ladder_authority(repo_root=repo_root, commit=commit)
+    labels = auth["conclusions"][FINAL_OVERALL_ID].get("possible_states")
+    if not isinstance(labels, list) or not labels:
+        _refuse_authority("Amendment_004 FINAL_OVERALL possible_states missing")
+    return tuple(str(x) for x in labels)
+
+
+def _numeric_threshold(conclusions: Mapping[str, Any], cid: str) -> float:
+    entry = conclusions.get(cid)
+    if not isinstance(entry, dict):
+        _refuse_authority(f"authority entry missing for {cid}")
+    threshold = entry.get("threshold")
+    if not isinstance(threshold, (int, float)):
+        _refuse_authority(f"threshold for {cid} is not a frozen numeric value")
+    return float(threshold)
+
+
+def _assert_authority_code_parity(auth: Mapping[str, Any]) -> None:
+    """Fail closed if loaded JSON thresholds/operators drift from this module's
+    declared executable identities. Threshold *values* are not copied here;
+    they are compared across JSON fields and then consumed by derivation."""
+    conclusions = auth.get("conclusions")
+    if not isinstance(conclusions, dict):
+        _refuse_authority("authority payload missing conclusions")
+    a003 = auth.get("amendment_003")
+    if not isinstance(a003, dict):
+        _refuse_authority("authority payload missing amendment_003")
+
+    v1_thresholds = (a003.get("frozen_production_call_site") or {}).get("frozen_thresholds") or {}
+    for v1_name, cid in _V1_PRODUCTION_THRESHOLD_BINDINGS:
+        if v1_name not in v1_thresholds:
+            _refuse_authority(f"threshold drift: V1 production key missing: {v1_name}")
+        json_threshold = _numeric_threshold(conclusions, cid)
+        if float(v1_thresholds[v1_name]) != json_threshold:
+            _refuse_authority(
+                f"threshold drift: {v1_name}={v1_thresholds[v1_name]!r} != {cid}={json_threshold!r}"
+            )
+
+    for cid, entry in conclusions.items():
+        if not isinstance(entry, dict):
+            _refuse_authority(f"authority entry for {cid} is not an object")
+        fn = entry.get("frozen_operator_function")
+        operator = str(entry.get("operator") or "")
+        if cid in ("EASY_CONCLUSION", "MODERATE_CONCLUSION"):
+            oracle = "EASY_ORACLE_POWER" if cid == "EASY_CONCLUSION" else "MODERATE_ORACLE_POWER"
+            blind = (
+                "EASY_BLIND_USEFUL_DISCOVERY"
+                if cid == "EASY_CONCLUSION"
+                else "MODERATE_BLIND_USEFUL_DISCOVERY"
+            )
+            required = (
+                f"FAIL if {oracle} == FAIL",
+                "INDETERMINATE if either is INDETERMINATE",
+                f"FAIL if {blind} == FAIL",
+            )
+            for token in required:
+                if token not in operator:
+                    _refuse_authority(f"operator drift: {cid} missing {token!r}")
+            continue
+        if cid in ("BLIND_DISCOVERY_CONCLUSION", "NULL_FALSE_POSITIVE_CONCLUSION"):
+            if "FAIL if either is FAIL" not in operator and "FAIL if any is FAIL" not in operator:
+                _refuse_authority(f"operator drift: {cid} is not the frozen _comb precedence")
+            continue
+        if cid == FINAL_OVERALL_ID:
+            if fn is None or "mechanical_conclusion()" not in str(fn):
+                _refuse_authority("operator drift: FINAL_OVERALL is not mechanical_conclusion()")
+            continue
+        if fn is None:
+            _refuse_authority(f"operator drift: {cid} has no frozen_operator_function")
+        fn_text = str(fn)
+        recognized = (
+            "specificity_verdict()" in fn_text
+            or "power_verdict()" in fn_text
+            or "small_band()" in fn_text
+            or "mechanical_conclusion()" in fn_text
+            or "materiality_only" in fn_text
+        )
+        if not recognized:
+            _refuse_authority(f"operator drift: {cid} frozen_operator_function={fn_text!r}")
+
+    small_band_ids = [
+        cid
+        for cid, entry in conclusions.items()
+        if isinstance(entry, dict) and "small_band()" in str(entry.get("frozen_operator_function") or "")
+    ]
+    if small_band_ids:
+        first = conclusions[small_band_ids[0]].get("threshold")
+        for cid in small_band_ids:
+            if conclusions[cid].get("threshold") != first:
+                _refuse_authority(f"threshold drift: small_band id {cid} disagrees with {small_band_ids[0]}")
+            if not isinstance(first, dict) or "HIGH" not in first:
+                _refuse_authority(f"threshold drift: small_band threshold table malformed on {cid}")
+
+
+# --- comb(): composition operator Amendment_003/004 use for aggregating
+# independent PASS/FAIL/INDETERMINATE verdicts into one:
+# NOT_CLAIMABLE > FAIL > INDETERMINATE > PASS. This is the exact rule
+# Amendment_003 states for NULL_FALSE_POSITIVE_CONCLUSION and
+# BLIND_DISCOVERY_CONCLUSION, and Amendment_004 states for integrating the
+# NULL aggregate gate. It is NOT the EASY_CONCLUSION / MODERATE_CONCLUSION
+# operator; those use discovery-diagnosis precedence below.
 
 
 def _comb(*verdicts: str) -> str:
@@ -210,6 +331,26 @@ def _comb(*verdicts: str) -> str:
         return FAIL
     if IND in verdicts:
         return IND
+    return PASS
+
+
+def _discovery_diagnosis(oracle_power: str, blind_useful: str) -> str:
+    """Amendment_003 EASY_CONCLUSION / MODERATE_CONCLUSION operator.
+
+    1. NOT_CLAIMABLE if either component is NOT_CLAIMABLE
+    2. FAIL if oracle power == FAIL (power failure precedes discovery)
+    3. INDETERMINATE if either is INDETERMINATE
+    4. FAIL if blind useful discovery == FAIL
+    5. else PASS
+    """
+    if "NOT_CLAIMABLE" in (oracle_power, blind_useful):
+        return "NOT_CLAIMABLE"
+    if oracle_power == FAIL:
+        return FAIL
+    if oracle_power == IND or blind_useful == IND:
+        return IND
+    if blind_useful == FAIL:
+        return FAIL
     return PASS
 
 
@@ -286,7 +427,9 @@ def _strict_pass_ex_materiality_count(cell: CellAggregateV2, cid: str) -> int:
     return count
 
 
-def _trap_specificity_verdict(cells: Mapping[tuple[str, int], CellAggregateV2]) -> str:
+def _trap_specificity_verdict(
+    cells: Mapping[tuple[str, int], CellAggregateV2], conclusions: Mapping[str, Any]
+) -> str:
     """NONSTATIONARY_TRAP_ORACLE_SPECIFICITY: statistic is STRICT_PASS_EX_MATERIALITY
     detection (NOT plain `detected`/STRICT_PASS), per Amendment_003."""
     cell = _cell(cells, "NONSTATIONARY_TRAP", 5000)
@@ -296,7 +439,8 @@ def _trap_specificity_verdict(cells: Mapping[tuple[str, int], CellAggregateV2]) 
     if ident <= 0:
         return IND
     ex_count = _strict_pass_ex_materiality_count(cell, "F03")
-    return specificity_verdict(wilson_interval(ex_count, ident), 0.20)
+    threshold = _numeric_threshold(conclusions, "NONSTATIONARY_TRAP_ORACLE_SPECIFICITY")
+    return specificity_verdict(wilson_interval(ex_count, ident), threshold)
 
 
 def _pooled_blind_verdict(
@@ -326,9 +470,12 @@ def _materiality_only_diagnostic(cells: Mapping[tuple[str, int], CellAggregateV2
     return label, failure
 
 
-def _null_per_candidate_aggregate(cells: Mapping[tuple[str, int], CellAggregateV2]) -> str:
+def _null_per_candidate_aggregate(
+    cells: Mapping[tuple[str, int], CellAggregateV2], conclusions: Mapping[str, Any]
+) -> str:
+    threshold = _numeric_threshold(conclusions, "NULL_PER_CANDIDATE_FPR")
     verdicts = [
-        _cand_detection_verdict(cells, "NULL", 5000, cid, op=specificity_verdict, threshold=0.10)
+        _cand_detection_verdict(cells, "NULL", 5000, cid, op=specificity_verdict, threshold=threshold)
         for cid in FEATURE_IDS
     ]
     return _comb(*verdicts)
@@ -340,9 +487,14 @@ def _null_per_candidate_aggregate(cells: Mapping[tuple[str, int], CellAggregateV
 def _derive_raw_values(
     cells: Mapping[tuple[str, int], CellAggregateV2]
 ) -> dict[str, Any]:
-    """All 33 ids' pre-STAGE-1/2 raw values. Six visibility-dependent entries
-    raise V2VisibilityStatisticUnavailable lazily (only if actually read) via
-    the sentinel below, so every OTHER id can still be derived and reported."""
+    """Pre-STAGE-1/2 raw values for every id except FINAL_OVERALL.
+
+    FINAL_OVERALL is not a raw inherited value: it is obtained only through
+    ``derive_v2_final_overall_mechanical_conclusion``. Visibility-dependent
+    entries raise ``V2VisibilityStatisticUnavailable`` lazily (only if
+    actually read) via the callable below.
+    """
+    conclusions = load_v2_inherited_ladder_authority()["conclusions"]
 
     def _blocked_by_visibility():
         raise V2VisibilityStatisticUnavailable(
@@ -354,26 +506,29 @@ def _derive_raw_values(
             "inventing a new, unreviewed scientific procedure"
         )
 
+    def thr(cid: str) -> float:
+        return _numeric_threshold(conclusions, cid)
+
     raw: dict[str, Any] = {}
 
     raw["NULL_ORACLE_FPR"] = _cand_detection_verdict(
-        cells, "NULL", 5000, "F03", op=specificity_verdict, threshold=0.05
+        cells, "NULL", 5000, "F03", op=specificity_verdict, threshold=thr("NULL_ORACLE_FPR")
     )
     raw["NULL_BLIND_FPR"] = _pooled_blind_verdict(
-        cells, "NULL", 5000, field="ANY_EDGE_DECLARED", op=specificity_verdict, threshold=0.10
+        cells, "NULL", 5000, field="ANY_EDGE_DECLARED", op=specificity_verdict, threshold=thr("NULL_BLIND_FPR")
     )
-    raw["NONSTATIONARY_TRAP_ORACLE_SPECIFICITY"] = _trap_specificity_verdict(cells)
+    raw["NONSTATIONARY_TRAP_ORACLE_SPECIFICITY"] = _trap_specificity_verdict(cells, conclusions)
     raw["EASY_ORACLE_POWER"] = _cand_detection_verdict(
-        cells, "EASY", 5000, "F03", op=power_verdict, threshold=0.90
+        cells, "EASY", 5000, "F03", op=power_verdict, threshold=thr("EASY_ORACLE_POWER")
     )
     raw["MODERATE_ORACLE_POWER"] = _cand_detection_verdict(
-        cells, "MODERATE", 5000, "F03", op=power_verdict, threshold=0.70
+        cells, "MODERATE", 5000, "F03", op=power_verdict, threshold=thr("MODERATE_ORACLE_POWER")
     )
     raw["EASY_BLIND_USEFUL_DISCOVERY"] = _pooled_blind_verdict(
-        cells, "EASY", 5000, field="USEFUL_DISCOVERY", op=power_verdict, threshold=0.80
+        cells, "EASY", 5000, field="USEFUL_DISCOVERY", op=power_verdict, threshold=thr("EASY_BLIND_USEFUL_DISCOVERY")
     )
     raw["MODERATE_BLIND_USEFUL_DISCOVERY"] = _pooled_blind_verdict(
-        cells, "MODERATE", 5000, field="USEFUL_DISCOVERY", op=power_verdict, threshold=0.50
+        cells, "MODERATE", 5000, field="USEFUL_DISCOVERY", op=power_verdict, threshold=thr("MODERATE_BLIND_USEFUL_DISCOVERY")
     )
     raw["SMALL_ORACLE_BAND"] = _cand_detection_band(cells, "SMALL", 5000, "F03")
     raw["SMALL_2500_SENSITIVITY"] = _cand_detection_band(cells, "SMALL", 2500, "F03")
@@ -383,13 +538,15 @@ def _derive_raw_values(
     raw["MATERIALITY_ONLY_DIAGNOSTIC"] = mat_label
     raw["_materiality_only_failure_bool"] = mat_failure
 
-    raw["NULL_PER_CANDIDATE_FPR"] = _null_per_candidate_aggregate(cells)
+    raw["NULL_PER_CANDIDATE_FPR"] = _null_per_candidate_aggregate(cells, conclusions)
     raw["NULL_FALSE_POSITIVE_CONCLUSION"] = _comb(
         raw["NULL_ORACLE_FPR"], raw["NULL_BLIND_FPR"], raw["NULL_PER_CANDIDATE_FPR"]
     )
 
-    raw["EASY_CONCLUSION"] = _comb(raw["EASY_ORACLE_POWER"], raw["EASY_BLIND_USEFUL_DISCOVERY"])
-    raw["MODERATE_CONCLUSION"] = _comb(
+    raw["EASY_CONCLUSION"] = _discovery_diagnosis(
+        raw["EASY_ORACLE_POWER"], raw["EASY_BLIND_USEFUL_DISCOVERY"]
+    )
+    raw["MODERATE_CONCLUSION"] = _discovery_diagnosis(
         raw["MODERATE_ORACLE_POWER"], raw["MODERATE_BLIND_USEFUL_DISCOVERY"]
     )
 
@@ -418,8 +575,6 @@ def _derive_raw_values(
     raw["TINY_NOISY_ORACLE_DIAGNOSTIC"] = _blocked_by_visibility
     raw["TINY_NOISY_CONCLUSION"] = _blocked_by_visibility
     raw["ORACLE_F03_TINY_NOISY"] = _blocked_by_visibility
-
-    raw["FINAL_OVERALL_MECHANICAL_CONCLUSION"] = None  # computed separately
     return raw
 
 
@@ -434,26 +589,44 @@ VISIBILITY_BLOCKED_IDS = frozenset(
 )
 
 
+def _require_derived_value(cid: str, value: Any) -> str:
+    if value is None:
+        _refuse_authority(f"ADEQUATE/raw derivation for {cid} produced None")
+    if callable(value):
+        value = value()
+    if value is None:
+        _refuse_authority(f"ADEQUATE/raw derivation for {cid} produced None")
+    if not isinstance(value, str) or value == "":
+        _refuse_authority(f"derivation for {cid} produced invalid value {value!r}")
+    return value
+
+
 def derive_v2_inherited_conclusion(
-    conclusion_id: str, records: Sequence[WorldRecordV2]
+    conclusion_id: str, records: Sequence[WorldRecordV2], *, structurally_complete: bool = True
 ) -> str:
     """The single per-id entrypoint that replaces the removed
     ``inherited_detection_conclusions`` caller mapping. Deterministic pure
     function of authenticated evidence only. Raises
     ``V2VisibilityStatisticUnavailable`` if -- and only if -- this specific
-    id's rule requires the unavailable GROUND_TRUTH_VISIBLE statistic."""
+    id's rule requires the unavailable GROUND_TRUTH_VISIBLE statistic.
+    FINAL_OVERALL is resolved through the canonical STAGE 1/2/2b+3 path,
+    never through a raw placeholder."""
     if conclusion_id not in frozen_required_coverage_map():
         _refuse_authority(f"unknown conclusion id: {conclusion_id}")
+    if conclusion_id == FINAL_OVERALL_ID:
+        return derive_v2_final_overall_mechanical_conclusion(
+            records, structurally_complete=structurally_complete
+        )
     cells = aggregate_v2_records(records)
     raw = _derive_raw_values(cells)
-    value = raw[conclusion_id]
-    if callable(value):
-        return value()
-    return value
+    return _require_derived_value(conclusion_id, raw[conclusion_id])
 
 
 def derive_v2_inherited_conclusions_needed(
-    records: Sequence[WorldRecordV2], needed_ids: Sequence[str]
+    records: Sequence[WorldRecordV2],
+    needed_ids: Sequence[str],
+    *,
+    structurally_complete: bool = True,
 ) -> dict[str, str]:
     """Raw (pre STAGE-1/2) values for exactly ``needed_ids``.
 
@@ -467,34 +640,45 @@ def derive_v2_inherited_conclusions_needed(
     frozen step 3.5 is actually reached, and never merely because visibility
     data theoretically doesn't exist for an id that STAGE 2 already refused
     on coverage grounds.
+
+    FINAL_OVERALL, if requested, is filled from the canonical final-ladder
+    function rather than from raw values.
     """
     cells = aggregate_v2_records(records)
-    raw = _derive_raw_values(cells)
+    raw = None
     out: dict[str, str] = {}
     for cid in needed_ids:
         if cid not in frozen_required_coverage_map():
             _refuse_authority(f"unknown conclusion id: {cid}")
-        value = raw[cid]
-        out[cid] = value() if callable(value) else value
+        if cid == FINAL_OVERALL_ID:
+            out[cid] = derive_v2_final_overall_mechanical_conclusion(
+                records, structurally_complete=structurally_complete
+            )
+            continue
+        if raw is None:
+            raw = _derive_raw_values(cells)
+        out[cid] = _require_derived_value(cid, raw[cid])
     return out
 
 
 def derive_all_v2_inherited_conclusions(
     records: Sequence[WorldRecordV2],
+    *,
+    structurally_complete: bool = True,
 ) -> dict[str, str]:
-    """All 33 raw (pre STAGE-1/2) values, unconditionally. Raises
-    ``V2VisibilityStatisticUnavailable`` listing the blocked ids -- use this
-    only when every id's raw value is genuinely needed regardless of
-    coverage (e.g. a research/audit tool). Production code (see
-    ``harness_synthetic_edge_calibration_v2_production.derive_v2_mechanical_conclusions``)
-    uses ``derive_v2_inherited_conclusions_needed`` instead, so that a
-    coverage-inadequate run is correctly reported as
-    INSUFFICIENT_IDENTIFIABILITY_NO_METHODOLOGY_CLAIM rather than masked by
-    an unrelated visibility refusal.
+    """Complete 33-id contract. FINAL_OVERALL uses the canonical
+    STAGE-1/2/2b+3 derivation. Visibility-blocked ids still raise
+    ``V2VisibilityStatisticUnavailable`` (disclosed frozen V2 fixture gap).
     """
-    cells = aggregate_v2_records(records)
-    raw = _derive_raw_values(cells)
-    blocked = sorted(cid for cid in VISIBILITY_BLOCKED_IDS if cid in frozen_required_coverage_map())
+    out: dict[str, str] = {}
+    blocked: list[str] = []
+    for cid in frozen_required_coverage_map():
+        try:
+            out[cid] = derive_v2_inherited_conclusion(
+                cid, records, structurally_complete=structurally_complete
+            )
+        except V2VisibilityStatisticUnavailable:
+            blocked.append(cid)
     if blocked:
         raise V2VisibilityStatisticUnavailable(
             "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: cannot derive the complete "
@@ -503,12 +687,11 @@ def derive_all_v2_inherited_conclusions(
             "IMPLEMENTATION_REQUIRES_NEW_SCIENTIFIC_CHOICE = YES "
             "(see V2VisibilityStatisticUnavailable docstring)."
         )
-    out: dict[str, str] = {}
-    for cid in frozen_required_coverage_map():
-        if cid == "FINAL_OVERALL_MECHANICAL_CONCLUSION":
-            continue
-        value = raw[cid]
-        out[cid] = value() if callable(value) else value
+    expected = set(frozen_required_coverage_map())
+    if set(out) != expected:
+        _refuse_authority("incomplete 33-id contract")
+    if any(value is None or value == "" for value in out.values()):
+        _refuse_authority("null/empty value in 33-id contract")
     return out
 
 
@@ -588,3 +771,50 @@ def derive_v2_final_overall_conclusion(
         model_detection_wilson_upper=model_upper,
         materiality_only_failure=bool(raw["_materiality_only_failure_bool"]),
     )
+
+
+def _coverage_inputs_for_records(
+    records: Sequence[WorldRecordV2],
+) -> tuple[dict[str, dict[str, str]], dict[str, str]]:
+    cells = aggregate_v2_records(records)
+    candidate_verdicts = {
+        f"{scenario}|{n}": evaluate_cell_coverage(cell) for (scenario, n), cell in cells.items()
+    }
+    baseline_verdicts: dict[str, str] = {}
+    for (scenario, n), cell in cells.items():
+        key = f"{scenario}|{n}"
+        try:
+            baseline_verdicts[key] = world_baseline_coverage_verdict(
+                world_valid_count=cell.world_valid_count, planned_worlds=cell.planned_worlds
+            )
+        except UndefinedCoverageDenominator:
+            baseline_verdicts[key] = COVERAGE_INSUFFICIENT
+    return candidate_verdicts, baseline_verdicts
+
+
+def derive_v2_final_overall_mechanical_conclusion(
+    records: Sequence[WorldRecordV2], *, structurally_complete: bool
+) -> str:
+    """Canonical FINAL_OVERALL: STAGE 1, STAGE 2 via frozen
+    ``required_coverage_for_conclusion``, then Amendment_004 STAGE 2b+3.
+
+    This is the single function both ``conclusions[FINAL_OVERALL]`` and
+    ``final_overall_conclusion`` must use.
+    """
+    if not structurally_complete:
+        return MECHANICAL_STRUCTURAL_INCOMPLETE
+    candidate_verdicts, baseline_verdicts = _coverage_inputs_for_records(records)
+    coverage = required_coverage_for_conclusion(
+        FINAL_OVERALL_ID,
+        candidate_verdicts_by_cell=candidate_verdicts,
+        baseline_verdicts_by_cell=baseline_verdicts,
+    )
+    if coverage != COVERAGE_ADEQUATE:
+        return MECHANICAL_INSUFFICIENT_IDENTIFIABILITY
+    label = derive_v2_final_overall_conclusion(records, structurally_complete=True)
+    if label is None or not isinstance(label, str) or label == "":
+        _refuse_authority("canonical FINAL_OVERALL produced no terminal label")
+    allowed = frozen_final_overall_terminal_labels()
+    if label not in allowed:
+        _refuse_authority(f"canonical FINAL_OVERALL produced unknown label {label!r}")
+    return label

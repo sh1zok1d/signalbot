@@ -79,14 +79,16 @@ from scripts.research.harness_synthetic_edge_calibration_v2_inherited_ladder imp
     AMENDMENT_003_MD_REL,
     AMENDMENT_004_JSON_REL,
     AMENDMENT_004_MD_REL,
+    FINAL_OVERALL_ID,
     FROZEN_AMENDMENT_003_SHA256,
     FROZEN_AMENDMENT_004_SHA256,
     V2InheritedLadderAuthorityError,
     V2VisibilityStatisticUnavailable,
     assert_v2_inherited_ladder_authority_intact,
     derive_all_v2_inherited_conclusions,
-    derive_v2_final_overall_conclusion,
+    derive_v2_final_overall_mechanical_conclusion,
     derive_v2_inherited_conclusions_needed,
+    frozen_final_overall_terminal_labels,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -912,55 +914,44 @@ def derive_v2_mechanical_conclusions(
     needed = [
         cid
         for cid, coverage in coverage_status.items()
-        if structurally_complete and coverage == COVERAGE_ADEQUATE
+        if structurally_complete
+        and coverage == COVERAGE_ADEQUATE
+        and cid != FINAL_OVERALL_ID
     ]
-    inherited = derive_v2_inherited_conclusions_needed(records, needed)
+    inherited = derive_v2_inherited_conclusions_needed(
+        records, needed, structurally_complete=structurally_complete
+    )
     conclusions: dict[str, str] = {}
     for conclusion_id, coverage in coverage_status.items():
+        if conclusion_id == FINAL_OVERALL_ID:
+            continue
+        if structurally_complete and coverage == COVERAGE_ADEQUATE:
+            if conclusion_id not in inherited:
+                _refuse(f"ADEQUATE conclusion {conclusion_id} missing derived value")
+            inherited_value = inherited[conclusion_id]
+            if inherited_value is None:
+                _refuse(f"ADEQUATE conclusion {conclusion_id} derived None")
+            if not isinstance(inherited_value, str) or inherited_value == "":
+                _refuse(
+                    f"ADEQUATE conclusion {conclusion_id} derived invalid value {inherited_value!r}"
+                )
+        else:
+            inherited_value = "NOT_CLAIMABLE"
         conclusions[conclusion_id] = mechanical_conclusion_v2(
             structurally_complete=structurally_complete,
             coverage_for_conclusion=coverage,
-            inherited_detection_conclusion=inherited.get(conclusion_id, "INDETERMINATE"),
+            inherited_detection_conclusion=inherited_value,
         )
+    conclusions[FINAL_OVERALL_ID] = derive_v2_final_overall_mechanical_conclusion(
+        records, structurally_complete=structurally_complete
+    )
+    final_label = conclusions[FINAL_OVERALL_ID]
+    if final_label is None or final_label == "":
+        _refuse("canonical FINAL_OVERALL produced None/empty")
+    allowed = frozen_final_overall_terminal_labels()
+    if final_label not in allowed:
+        _refuse(f"canonical FINAL_OVERALL produced unknown label {final_label!r}")
     return conclusions
-
-
-def derive_v2_final_overall_mechanical_conclusion(
-    records: Sequence[WorldRecordV2], *, structurally_complete: bool
-) -> str:
-    """The single composite scientific conclusion (Amendment_003 + Amendment_004).
-
-    STAGE 1 (structural completeness) is the ``structurally_complete`` flag,
-    identical in meaning to every other 33-id conclusion's own STAGE 1. STAGE
-    2 (coverage adequacy over the frozen Amendment_001 section 5.2 union of
-    eight cells, world-baseline coverage included) is evaluated here from the
-    same frozen coverage primitives every individual id already uses. STAGE
-    2b+3 (the repaired inherited ladder) is delegated to
-    ``derive_v2_final_overall_conclusion`` in
-    ``harness_synthetic_edge_calibration_v2_inherited_ladder``, which calls
-    the frozen, SHA256-pinned ``mechanical_conclusion()`` verbatim.
-    """
-    if not structurally_complete:
-        return "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM"
-    baseline = derive_v2_baseline_coverage_verdicts(records)
-    coverage = derive_v2_coverage_verdicts(records)
-    union_cells = {
-        "NULL|5000": FEATURE_IDS,
-        "EASY|5000": FEATURE_IDS,
-        "MODERATE|5000": FEATURE_IDS,
-        "NONSTATIONARY_TRAP|5000": ("F03",),
-        "SMALL|5000": ("F03",),
-        "TINY_NOISY|5000": ("F03",),
-        "SMALL|2500": ("F03",),
-        "SMALL|10000": ("F03",),
-    }
-    for cell_key, candidates in union_cells.items():
-        if baseline.get(cell_key) != COVERAGE_ADEQUATE:
-            return "INSUFFICIENT_IDENTIFIABILITY_NO_METHODOLOGY_CLAIM"
-        for cid in candidates:
-            if coverage.get(cell_key, {}).get(cid) != COVERAGE_ADEQUATE:
-                return "INSUFFICIENT_IDENTIFIABILITY_NO_METHODOLOGY_CLAIM"
-    return derive_v2_final_overall_conclusion(records, structurally_complete=True)
 
 
 # =============================================================================
@@ -1148,9 +1139,7 @@ def mint_v2_result(
     conclusions = derive_v2_mechanical_conclusions(
         evidence, structurally_complete=structurally_complete
     )
-    final_overall = derive_v2_final_overall_mechanical_conclusion(
-        evidence, structurally_complete=structurally_complete
-    )
+    final_overall = conclusions[FINAL_OVERALL_ID]
     return {
         "schema": V2_RESULT_SCHEMA,
         "schema_version": "1.0.0",
@@ -1234,7 +1223,18 @@ def verify_historical_v2_result(
     recomputed_final = derive_v2_final_overall_mechanical_conclusion(
         records, structurally_complete=structurally_complete
     )
-    if recomputed_final != result.get("final_overall_conclusion"):
+    stored_conclusions = result.get("conclusions")
+    if not isinstance(stored_conclusions, Mapping):
+        return False
+    nested_final = stored_conclusions.get(FINAL_OVERALL_ID)
+    top_final = result.get("final_overall_conclusion")
+    if nested_final is None or top_final is None:
+        return False
+    if nested_final != recomputed_final:
+        return False
+    if top_final != recomputed_final:
+        return False
+    if recomputed_conclusions.get(FINAL_OVERALL_ID) != recomputed_final:
         return False
     return True
 
