@@ -28,12 +28,17 @@ from scripts.research.harness_synthetic_edge_calibration_v1_lib import (
     world_identity,
     world_seed,
 )
-from scripts.research.harness_synthetic_edge_calibration_v1_production import canonical_json_bytes
+from scripts.research.harness_synthetic_edge_calibration_v1_production import (
+    _jsonable,
+    canonical_json_bytes,
+)
 from scripts.research.harness_synthetic_edge_calibration_v2_inherited_ladder import (
+    FINAL_OVERALL_ID,
     VISIBILITY_BLOCKED_IDS,
 )
 from scripts.research.harness_synthetic_edge_calibration_v2_production import (
     CANONICAL_V2_WORLD_RECORDS_PATH,
+    _worldrecord_from_dict,
 )
 from scripts.research import harness_synthetic_edge_calibration_v2_visibility as vis
 from scripts.research.harness_synthetic_edge_calibration_v2_rank_policy import (
@@ -257,15 +262,42 @@ def test_canonical_world_records_bytes_unchanged():
     assert len(payload["records"]) == 3200
 
 
-def test_result_plumbing_exists_and_does_not_mint():
+def test_result_plumbing_assemble_does_not_write():
     src = inspect.getsource(vis.assemble_v2_result_payload_with_visibility)
     assert "derive_v2_mechanical_conclusions_with_visibility" in src
+    assert "_atomic_replace_bytes" not in src
+    assert "write_bytes" not in src
     assert VISIBILITY_BLOCKED_IDS
+
+
+def test_canonical_result_authenticates_against_world_records_and_visibility():
     result_path = (
         REPO
         / "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_RESULT.json"
     )
-    assert not result_path.exists()
+    assert result_path.is_file()
+    payload, raw = vis.load_canonical_world_records_payload(REPO)
+    evidence = json.loads((REPO / vis.CANONICAL_V2_VISIBILITY_PATH).read_bytes().decode("utf-8"))
+    visible = vis.authenticate_v2_visibility_evidence(evidence, payload, raw)
+    records = [_worldrecord_from_dict(row) for row in payload["records"]]
+    result = json.loads(result_path.read_bytes().decode("utf-8"))
+    assert result["arm_commit"] == vis.ARM_HEAD
+    assert result["canonical_v2_plan_sha256"] == vis.PLAN_SHA
+    assert result["run_identity"] == vis.RUN_IDENTITY
+    assert result["world_records_count"] == 3200
+    assert result["world_records_sha256"] == vis.INNER_RECORDS_SHA256
+    assert _sha256(REPO / CANONICAL_V2_WORLD_RECORDS_PATH) == vis.WORLD_RECORDS_SHA256
+    assert _sha256(REPO / vis.CANONICAL_V2_VISIBILITY_PATH) == (
+        "9be8dceb07d8fc43b01ef8630d4ad9f52e7401fd6f095b3c7a5bf364701c8b65"
+    )
+    recomputed = vis.derive_v2_mechanical_conclusions_with_visibility(
+        records, structurally_complete=True, visible=visible
+    )
+    assert canonical_json_bytes(_jsonable(recomputed)) == canonical_json_bytes(
+        _jsonable(result["conclusions"])
+    )
+    assert result["final_overall_conclusion"] == recomputed[FINAL_OVERALL_ID]
+    assert result["conclusions"][FINAL_OVERALL_ID] == recomputed[FINAL_OVERALL_ID]
 
 
 def test_visibility_artifact_reconciles_canonical_world_ids_if_present():

@@ -1,8 +1,10 @@
 # V2 GROUND_TRUTH_VISIBLE plumbing
 
-**Status:** `VISIBILITY_PLUMBING_AWAITING_INDEPENDENT_REVIEW`
+**Status:** `AUTHENTICATED_CANONICAL_VISIBILITY_EVIDENCE`
 
-**Not a RESULT. Not a second canonical execution. Not a methodology amendment.**
+**Independent review:** `GO_FOR_RESULT_MINT`. This artifact is authenticated
+visibility evidence consumed by the canonical RESULT mint. It is not itself
+a RESULT. Not a second canonical execution. Not a methodology amendment.
 
 This unit supplies the already pre-outcome-defined `GROUND_TRUTH_VISIBLE`
 input required by frozen Amendment_003 visibility-dependent conclusions.

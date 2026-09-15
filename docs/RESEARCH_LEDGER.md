@@ -2374,3 +2374,32 @@ Canonical visibility evidence:
 
 - next required step: `INDEPENDENT_VISIBILITY_PLUMBING_REVIEW`
 
+## 2026-09-15 — Canonical V2 RESULT mint
+
+**Decision:** mint the one-shot canonical V2 RESULT from authenticated
+WORLD_RECORDS + authenticated visibility evidence via
+`assemble_v2_result_payload_with_visibility`. Independent visibility review
+verdict was `GO_FOR_RESULT_MINT`. No candidate re-evaluation, no world
+regeneration, no second reservation, no WORLD_RECORDS/VISIBILITY modification,
+no threshold/denominator/operator change, no post-hoc rescue.
+
+- ARM_HEAD = `18ebb4c5629e1717a6633ee6bd63cda7c0bb65ea`
+- PLAN_SHA = `7fa12fd3b939cd210a69da37659fd1013a1dba43aca4c06abb6f5a6442a33800`
+- RUN_IDENTITY = `2088e76f99685c36e65387117b6f8a49482b3b68939f01d827023e0d36991818`
+- WORLD_RECORDS SHA256 unchanged: `d372eb00d4f6df9b4f8a2b0dcb22b051d95787ddeb8494a3c0efc31561e39821`
+- INNER_RECORDS SHA256 unchanged: `763a8ce802b7b5efa133ebe3132103cbb96c86d83c7c2dacc992147c8ee4ef66`
+- VISIBILITY SHA256 unchanged: `9be8dceb07d8fc43b01ef8630d4ad9f52e7401fd6f095b3c7a5bf364701c8b65`
+- RESULT path: `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_RESULT.json`
+- RESULT SHA256: `761cc9afc59265bfb94afecbd293082c274abf3affce3d9693f463442326c1e0`
+- FINAL_OVERALL_MECHANICAL_CONCLUSION = `METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06`
+- VISIBILITY_FLOOR = `ABOVE_MEASURED_FLOOR`
+- TINY_NOISY_ORACLE_DIAGNOSTIC = `VISIBILITY_FLOOR`
+- MODEL_FLOOR = `MODEL_FLOOR`
+- TINY_NOISY_CONCLUSION = `VISIBILITY_FLOOR`
+- ORACLE_F03_TINY_NOISY = `VISIBILITY_FLOOR`
+- ARM-bound `production.py` / `inherited_ladder.py` bytes unchanged
+
+This entry records the frozen mechanical labels. It does not interpret them.
+
+- next required step: `CANONICAL_V2_RESULT_INTERPRETATION`
+
