@@ -1,0 +1,292 @@
+{
+  "schema": "harness_synthetic_edge_calibration_v2_33_33_post_wiring_runtime_freeze",
+  "schema_version": "1.0.0",
+  "status": "FROZEN_BEFORE_V2_PRODUCTION",
+  "unit_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_33_33_POST_WIRING_RUNTIME_FREEZE",
+  "implementation_review_verdict": "GO_FOR_NEW_IMPLEMENTATION_FREEZE",
+  "current_executable_runtime_freeze": true,
+  "historical_33_33_freeze_valid": true,
+  "reviewed_implementation": {
+    "head": "c1d6acc9f3db3b35f06a02d7fb2361b8d4ea69c5",
+    "tree": "67f19c997d7480f77ef741e2e2715c06cf3e8fcd"
+  },
+  "freeze_parent_expected_head": "c1d6acc9f3db3b35f06a02d7fb2361b8d4ea69c5",
+  "freeze_commit_head": "UNSET_UNTIL_THIS_COMMIT",
+  "freeze_commit_tree": "UNSET_UNTIL_THIS_COMMIT",
+  "note": "This freeze commit is a docs/test plumbing descendant of the independently reviewed post-wiring runtime. It does not claim that the freeze HEAD itself was the code HEAD independently reviewed. Binding is to reviewed_implementation.head/tree and the git blob SHA256s recorded below, all derived from that exact commit. This freeze does not hash itself. It does not mutate or supersede the historical 33/33 implementation freeze.",
+  "authority_distinction": {
+    "historical_33_33_freeze_valid": true,
+    "historical_33_33_freeze_was_invalid": false,
+    "historical_33_33_freeze_binds_implementation": "614295d4c0bf7a263bd2c6dc9a5c595e2c80055f",
+    "current_executable_runtime_freeze": "this artifact",
+    "current_executable_runtime_binds_implementation": "c1d6acc9f3db3b35f06a02d7fb2361b8d4ea69c5",
+    "reason": "production.py changed after the historical 33/33 freeze through independently reviewed authorization-only repairs. Scientific methodology did not change. The historical freeze remains exact evidence of implementation 614295d. The currently imported production runtime cannot legitimately execute under that older implementation-byte freeze."
+  },
+  "authorization_repair_provenance": [
+    {
+      "role": "V2_ARM_AUTHORIZATION_WIRING_REPAIR",
+      "head": "84f4c566fcea106156c00cfea1a825f3a050946f",
+      "tree": "82d4e2f4d41cc02bf4d6d9f3d819137633a97dfc"
+    },
+    {
+      "role": "V2_ARM_LIVE_RUNTIME_SESSION_BINDING_REPAIR",
+      "head": "c1d6acc9f3db3b35f06a02d7fb2361b8d4ea69c5",
+      "tree": "67f19c997d7480f77ef741e2e2715c06cf3e8fcd"
+    }
+  ],
+  "historical_33_33_implementation_freeze": {
+    "head": "e50fceebfe83b82ea9de2f98954ee7ad6c9a4308",
+    "tree": "2f2b0943fffe143324da4c10545d560d6048079e",
+    "reviewed_implementation_head": "614295d4c0bf7a263bd2c6dc9a5c595e2c80055f",
+    "reviewed_implementation_tree": "e754b12f8db93db3109a30e3b4d476eb85803e04",
+    "still_historically_valid": true,
+    "sufficient_for_current_executable_runtime": false,
+    "freeze_artifact": {
+      "path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_33_33_IMPLEMENTATION_FREEZE.json",
+      "git_blob": "27605749e4bd8aeb55c002013cae1a40646bd0a9",
+      "sha256": "89ca1ba0b416a4e2af07aa03d32b0ed2e9a9ec0ecee0327e3fda113c07ff74d7",
+      "size_bytes": 11273
+    },
+    "freeze_document": {
+      "path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_33_33_IMPLEMENTATION_FREEZE.md",
+      "git_blob": "dce131f34f4ace251773995be5043593d69cf5fd",
+      "sha256": "9a5466170fd7d73e8c4417c8f933802c8495cdc2af2ca4b5d0d70232fbd977eb",
+      "size_bytes": 6977
+    }
+  },
+  "methodology_authority": {
+    "original_prereg": {
+      "head": "ada237edc330b44bc412332e263f124757919e93",
+      "tree": "ba1c0873879b7ea8556c3e238f8b962b91da6dc2",
+      "files": [
+        {
+          "path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG.md",
+          "git_blob": "1ec48c96d48daa55729194898915ed30fef47606",
+          "sha256": "649267e9468b32c8c4e262e1fef753f18ac7ca694c70378ccbe955577e36f5aa",
+          "size_bytes": 18830
+        },
+        {
+          "path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG.json",
+          "git_blob": "2edadf4181075cdc7561d3daf51a4408b1070f9e",
+          "sha256": "4d59ba1e6a27c2dfe83e08cbdd3c3f305e237f62cb0bebacb99abc3e5e9ba6cc",
+          "size_bytes": 12596
+        }
+      ]
+    },
+    "amendment_001": {
+      "head": "d8f0a996bc4341d0cbe01a1a061130b889ed5e75",
+      "tree": "09dca9b1240a43d5de9de0dadf32d27e00e7eaea",
+      "files": [
+        {
+          "path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG_AMENDMENT_001.md",
+          "git_blob": "8f5b3ad4d341d6e539f02d19b649d0f23fa4c7b8",
+          "sha256": "74086f05ad71f20a598a2d0a15db01425aeed67dbc6e3dbffd7cb9390ad26316",
+          "size_bytes": 16729
+        },
+        {
+          "path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG_AMENDMENT_001.json",
+          "git_blob": "0c0a640a06ca1d64d29ad01489170d92e861ebf0",
+          "sha256": "a5cc1cac692b97c086f8d86994d7b7204c79fbffa2e1f53572539a5a919bc47b",
+          "size_bytes": 15338
+        }
+      ]
+    },
+    "amendment_002": {
+      "status": "REJECTED_HISTORICAL_AUTHORITY",
+      "governs_executable_science": false,
+      "head": "f84607594f4459f8ee1cbd14a7ab16294d586301",
+      "tree": "810f0a987e4a3dda1fc128905772727c0dcafee9",
+      "note": "Amendment_002 is rejected historical authority and cannot govern executable science. Independent review rejected it (4 BLOCKERS, 3 MAJORS, 2 MINORS). It is retained unmodified as historical evidence. Amendment_003 supersedes it. Production derivation binds Amendment_003 + Amendment_004 only.",
+      "files": [
+        {
+          "path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_INHERITED_LADDER_AMENDMENT_002.md",
+          "git_blob": "9bcb5bc0e97b3ba80733bc07c24fa40e0ce34215",
+          "sha256": "c74b449e01c9d16e0ac17f29988679b50faaefdc4f55f4c56138b45d9f6ee5c7",
+          "size_bytes": 18594
+        },
+        {
+          "path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_INHERITED_LADDER_AMENDMENT_002.json",
+          "git_blob": "69c343a9f255e99594b64c23d94dc9ec87b6a9c3",
+          "sha256": "bb84c2ba82057132dbd414f7805e10f64a5773d4ec832f899a66224fb02cb4b2",
+          "size_bytes": 32930
+        }
+      ]
+    },
+    "amendment_003": {
+      "head": "dfba85d2bfbb4bc3f9f3c34ea87dc3ae82a2dd18",
+      "tree": "c0b4c00dd701eb262de021f34481161a7afe1f6f",
+      "governs_executable_science": true,
+      "files": [
+        {
+          "path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_INHERITED_LADDER_AMENDMENT_003.md",
+          "git_blob": "06265572304459249e5a36800b6612c4e169d679",
+          "sha256": "10f26bbaeca30d47051026878ca8afd6622efdb8cc30562e44a7860abe896300",
+          "size_bytes": 30405
+        },
+        {
+          "path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_INHERITED_LADDER_AMENDMENT_003.json",
+          "git_blob": "2d4b4b62b55eb2beff6958490a6841249b892350",
+          "sha256": "f9856e8ed957bf9ed800121ef17c9c73223eee3bc4af2711130f19bf1a59b7db",
+          "size_bytes": 104008
+        }
+      ]
+    },
+    "amendment_004": {
+      "head": "df5dcde63581198d4766fa662de89eae3e7c461e",
+      "tree": "95814ae17922c399350200a4f2b55b1021113442",
+      "governs_executable_science": true,
+      "amends": "AMENDMENT_003",
+      "files": [
+        {
+          "path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_INHERITED_LADDER_AMENDMENT_004.md",
+          "git_blob": "dc869d8ddd035e0288aa34b9d43d58a92568a022",
+          "sha256": "9002838f4dc14a27a5f83870abb7cad4bd83a5c84abc75723263562045f646ca",
+          "size_bytes": 15176
+        },
+        {
+          "path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_INHERITED_LADDER_AMENDMENT_004.json",
+          "git_blob": "8ed71e70d375b61f626eec5d5711193222e7e8bf",
+          "sha256": "8c3f9d2d662e5ce807baf4b65f94c145ed84c7337c41653493867d25e6a4ea55",
+          "size_bytes": 28285
+        }
+      ]
+    },
+    "governing_methodology": "Amendment_003 + Amendment_004. Amendment_002 is rejected historical authority and cannot govern executable science.",
+    "approved_methodology_head": "df5dcde63581198d4766fa662de89eae3e7c461e",
+    "approved_methodology_tree": "95814ae17922c399350200a4f2b55b1021113442"
+  },
+  "v2_rank_policy_authority": {
+    "reviewed_implementation_head": "a310837bab4ee60c7495cca3bdb476abdc58a041",
+    "reviewed_implementation_tree": "b15c4102b01514ff73e1728aec072eda9b528815",
+    "freeze_head": "f96197d109fc22c12e4c8ba19715d67c65187c0e",
+    "freeze_tree": "ec169d8bd73896308ce4dcf1d5d5fd218cd55bd5",
+    "freeze_artifact": {
+      "path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_IMPLEMENTATION_FREEZE.json",
+      "git_blob": "ad72a2092118e07540fb977a9d748aca8354c2b5",
+      "sha256": "64a5dfb99411940658a69ce7b6b0339851158c2a987ad12b94bb1fbf96fce2ad",
+      "size_bytes": 3813
+    },
+    "execution_authoritative_v2_policy_source": {
+      "path": "scripts/research/harness_synthetic_edge_calibration_v2_rank_policy.py",
+      "git_blob": "ac4ee082405e5291c7b093ba407f1a41203cb752",
+      "sha256": "36336e0d6e1006a11d04911f91034898e6b5d8a52cb370fd83a2a1bdd19a2289",
+      "size_bytes": 42588
+    }
+  },
+  "execution_authoritative_implementation_sources": [
+    {
+      "role": "INHERITED_LADDER",
+      "path": "scripts/research/harness_synthetic_edge_calibration_v2_inherited_ladder.py",
+      "git_blob": "b6be00edf4e42460fb03a29266fcc0ff0564dd2b",
+      "sha256": "e3ef3801da5a200c43b3f3e14c84045c9f7bf52cc85e0d8f5f43a4e087591193",
+      "size_bytes": 37038,
+      "unchanged_since_historical_33_33_implementation": true
+    },
+    {
+      "role": "PRODUCTION",
+      "path": "scripts/research/harness_synthetic_edge_calibration_v2_production.py",
+      "git_blob": "7c89f4c9159fcf5b2c639bc5de31b17885b951b5",
+      "sha256": "3d002c3ac42507d3845f527c4bfe530dcb04d142a3d846dad6cd4d0619ab04ba",
+      "size_bytes": 66686,
+      "unchanged_since_historical_33_33_implementation": false,
+      "change_class": "authorization_security_repairs_only"
+    }
+  ],
+  "v1_tcb_files": [
+    {
+      "role": "LIB",
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1_lib.py",
+      "git_blob": "8142ce5d757851bec6dfd0ca2c0bcc13652d37d7",
+      "sha256": "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51",
+      "size_bytes": 37636
+    },
+    {
+      "role": "RUNNER",
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1.py",
+      "git_blob": "c77c58bd7a5e413425029c22b3f7aca6f43cefcf",
+      "sha256": "0a5e577cc3797b018e9912865b7c3e385908764dc6cb36a6555626205855432a",
+      "size_bytes": 3484
+    },
+    {
+      "role": "AUTH",
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1_auth.py",
+      "git_blob": "c24154e991f3ab0fe685c37a53959587a98580b1",
+      "sha256": "0e174ac6b73530ec28501b0c076e0cad7874ab31bb1ed6941e4b525d12e35507",
+      "size_bytes": 34982
+    },
+    {
+      "role": "PRODUCTION",
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1_production.py",
+      "git_blob": "a27db41d5b29416274ac35fcb592e7b56f6760ec",
+      "sha256": "9e784ecdcbd53ae4128d803d9325c8ff0f6db49ce70a0a63b13c4fc6a548a4ed",
+      "size_bytes": 193104
+    },
+    {
+      "role": "WORKER",
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1_worker.py",
+      "git_blob": "a9cc3bf6b927de69e1ef1f396181602cbb3399b7",
+      "sha256": "9aee03fdae012f9054c59adc4cea8072b88493521456fb6141ced926961c886e",
+      "size_bytes": 3994
+    }
+  ],
+  "canonical_v2_plan": {
+    "sha256": "7fa12fd3b939cd210a69da37659fd1013a1dba43aca4c06abb6f5a6442a33800",
+    "world_count": 3200,
+    "derivation": "canonical_v2_plan() at the reviewed implementation commit: FROZEN_V1_PRODUCTION_GRID + FROZEN_V2_RANK_POLICY. Not a tracked plan file; identity is the deterministic SHA256 of that payload.",
+    "v1_planned_jobs_sha256": "5adf682ee48a868acbe01d9e0b9e33133db26089119396b3539b4e9cb8af5bb6",
+    "v2_policy_sha256": "36336e0d6e1006a11d04911f91034898e6b5d8a52cb370fd83a2a1bdd19a2289"
+  },
+  "visibility_limitation": {
+    "status": "UNRESOLVED_FAIL_CLOSED",
+    "sentinel": "V2VisibilityStatisticUnavailable",
+    "resolved_in_this_freeze": false,
+    "note": "The frozen V2 policy fixture does not compute a GROUND_TRUTH_VISIBLE-equivalent statistic. Six conclusion ids/inputs remain visibility-blocked. The implementation refuses rather than defaulting the missing statistic. This freeze does not resolve the gap and does not authorize resolving it."
+  },
+  "known_non_blocking_limitations": [
+    {
+      "id": "MINOR-1",
+      "repaired_in_this_freeze": false,
+      "summary": "load_v2_inherited_ladder_authority() currently lacks memoization and may incur repeated git/JSON work at production scale."
+    },
+    {
+      "id": "MINOR-2",
+      "repaired_in_this_freeze": false,
+      "summary": "full mint_v2_result cannot currently be exercised with ADEQUATE FINAL_OVERALL without reaching the already-disclosed visibility-blocked sibling ids."
+    },
+    {
+      "id": "PREEXISTING-DIRECT-ENTRYPOINT-RESERVATION",
+      "repaired_in_this_freeze": false,
+      "summary": "evaluate_v2_production_world / run_canonical_v2_production_grid do not require a committed reservation; session entrypoints do. Recorded as pre-existing technical debt. This freeze does not redesign that lifecycle split."
+    }
+  ],
+  "v1_attempt_status": "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM",
+  "v1_3087_subset_claimable": false,
+  "production_state": {
+    "production_armed": false,
+    "production_executed": false,
+    "result_minted": false,
+    "world_records_created": false,
+    "authority_consumed": false,
+    "arm_created": false,
+    "execution_authorized": false,
+    "canonical_3200_run_started": false
+  },
+  "this_freeze_does_not": {
+    "modify_implementation_code": true,
+    "rewrite_historical_33_33_freeze": true,
+    "claim_historical_33_33_freeze_invalid": true,
+    "change_methodology": true,
+    "repair_minor_1": true,
+    "repair_minor_2": true,
+    "add_memoization": true,
+    "resolve_visibility_gap": true,
+    "change_reservation_semantics": true,
+    "modify_prereg_or_amendments": true,
+    "modify_v1_tcb": true,
+    "create_arm": true,
+    "authorize_execution": true,
+    "run_canonical_3200": true,
+    "create_world_records": true,
+    "create_result": true
+  }
+}
