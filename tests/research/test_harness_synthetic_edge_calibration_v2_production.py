@@ -149,68 +149,27 @@ def test_canonical_v2_plan_changes_if_v1_grid_identity_changes(monkeypatch):
 # --- Part C: disposable-repo ARM authorization matrix ------------------------
 
 
-def _v2_commit_freeze_tree(tmp_path: Path) -> Path:
-    repo = tmp_path / "repo"
-    repo.mkdir(parents=True)
-    _git(repo, "init")
+def _v2_commit_freeze_tree(tmp_path: Path, *, name: str = "repo") -> Path:
+    """Disposable clone checked out at the exact reviewed 33/33 freeze."""
+    import subprocess
+
+    repo = tmp_path / name
+    subprocess.run(
+        ["git", "clone", "--local", "--", str(REPO), str(repo)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    _git(repo, "checkout", "-q", v2p.FROZEN_V2_33_33_FREEZE_HEAD)
     _git(repo, "config", "user.email", "test@example.com")
     _git(repo, "config", "user.name", "test")
     _git(repo, "config", "commit.gpgsign", "false")
-    copies = {
-        "scripts/__init__.py": _live_bytes("scripts/__init__.py"),
-        "scripts/research/__init__.py": _live_bytes("scripts/research/__init__.py"),
-        prod.LIB_REL: _live_bytes(prod.LIB_REL),
-        prod.RUNNER_REL: _live_bytes(prod.RUNNER_REL),
-        prod.AUTH_REL: _live_bytes(prod.AUTH_REL),
-        prod.PRODUCTION_REL: _live_bytes(prod.PRODUCTION_REL),
-        prod.WORKER_REL: _live_bytes(prod.WORKER_REL),
-        v2p.V2_POLICY_REL: _live_bytes(v2p.V2_POLICY_REL),
-        v2p.V2_FREEZE_ARTIFACT_REL: _live_bytes(v2p.V2_FREEZE_ARTIFACT_REL),
-        "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.json": _live_bytes(
-            "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.json"
-        ),
-        "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md": _live_bytes(
-            "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md"
-        ),
-        ladder.AMENDMENT_003_MD_REL: _live_bytes(ladder.AMENDMENT_003_MD_REL),
-        ladder.AMENDMENT_003_JSON_REL: _live_bytes(ladder.AMENDMENT_003_JSON_REL),
-        ladder.AMENDMENT_004_MD_REL: _live_bytes(ladder.AMENDMENT_004_MD_REL),
-        ladder.AMENDMENT_004_JSON_REL: _live_bytes(ladder.AMENDMENT_004_JSON_REL),
-    }
-    for rel, data in copies.items():
-        _write(repo / rel, data)
-    _git(repo, "add", "-A")
-    _git(repo, "commit", "-m", "v2 policy freeze tree")
     return repo
 
 
 def _v2_valid_arm_payload(repo: Path) -> dict:
-    parent = _git(repo, "rev-parse", "HEAD")
-    parent_tree = _git(repo, "rev-parse", "HEAD^{tree}")
-    freeze_blob = (repo / v2p.V2_FREEZE_ARTIFACT_REL).read_bytes()
-    policy_blob = (repo / v2p.V2_POLICY_REL).read_bytes()
-    plan = v2p.canonical_v2_plan(repo_root=repo, commit="HEAD")
     payload = dict(v2p.V2_ARM_REQUIRED_LITERALS)
-    payload.update(
-        {
-            "freeze_parent_head": parent,
-            "freeze_parent_tree": parent_tree,
-            "freeze_artifact_sha256": _sha(freeze_blob),
-            "freeze_artifact_size": len(freeze_blob),
-            "v2_policy_sha256": _sha(policy_blob),
-            "v2_policy_size": len(policy_blob),
-            "canonical_v2_plan_sha256": plan["sha256"],
-            "canonical_world_count": v2p.canonical_v2_world_count(),
-            "original_prereg_head": v2p.FROZEN_ORIGINAL_PREREG_HEAD,
-            "original_prereg_tree": v2p.FROZEN_ORIGINAL_PREREG_TREE,
-            "amendment_001_head": v2p.FROZEN_AMENDMENT_001_HEAD,
-            "amendment_001_tree": v2p.FROZEN_AMENDMENT_001_TREE,
-            "amendment_003_md_sha256": ladder.FROZEN_AMENDMENT_003_SHA256[ladder.AMENDMENT_003_MD_REL],
-            "amendment_003_json_sha256": ladder.FROZEN_AMENDMENT_003_SHA256[ladder.AMENDMENT_003_JSON_REL],
-            "amendment_004_md_sha256": ladder.FROZEN_AMENDMENT_004_SHA256[ladder.AMENDMENT_004_MD_REL],
-            "amendment_004_json_sha256": ladder.FROZEN_AMENDMENT_004_SHA256[ladder.AMENDMENT_004_JSON_REL],
-        }
-    )
+    payload.update(v2p.required_v2_arm_binding_fields(repo))
     return payload
 
 
@@ -272,11 +231,15 @@ def test_sibling_with_wrong_plan_hash_does_not_authorize(tmp_path):
     "field,value",
     [
         ("freeze_artifact_sha256", "0" * 64),
+        ("freeze_artifact_path", "docs/research/attacker_freeze.json"),
+        ("freeze_artifact_size", 1),
         ("v2_policy_sha256", "0" * 64),
         ("canonical_v2_plan_sha256", "0" * 64),
         ("canonical_world_count", 1),
         ("freeze_parent_head", "0" * 40),
         ("freeze_parent_tree", "0" * 40),
+        ("reviewed_implementation_head", "0" * 40),
+        ("reviewed_implementation_tree", "0" * 40),
         ("original_prereg_head", "0" * 40),
         ("original_prereg_tree", "0" * 40),
         ("amendment_001_head", "0" * 40),
@@ -286,6 +249,8 @@ def test_sibling_with_wrong_plan_hash_does_not_authorize(tmp_path):
         ("amendment_004_md_sha256", "0" * 64),
         ("amendment_004_json_sha256", "0" * 64),
         ("authorization_consumed", True),
+        ("amendment_002_status", "GOVERNING_AUTHORITY"),
+        ("amendment_002_governs_executable_science", True),
         ("status", "SOMETHING_ELSE"),
     ],
 )
@@ -294,6 +259,22 @@ def test_mutated_arm_field_does_not_authorize(tmp_path, field, value):
     payload = _v2_valid_arm_payload(repo)
     payload[field] = value
     _v2_commit_arm(repo, payload, message=f"mutated {field}")
+    assert v2p.v2_production_arm_authorized(repo_root=repo) is False
+
+
+def test_unknown_arm_authority_field_does_not_authorize(tmp_path):
+    repo = _v2_commit_freeze_tree(tmp_path)
+    payload = _v2_valid_arm_payload(repo)
+    payload["governs_executable_science"] = True
+    _v2_commit_arm(repo, payload, message="unknown authority field")
+    assert v2p.v2_production_arm_authorized(repo_root=repo) is False
+
+
+def test_missing_required_arm_binding_does_not_authorize(tmp_path):
+    repo = _v2_commit_freeze_tree(tmp_path)
+    payload = _v2_valid_arm_payload(repo)
+    del payload["freeze_artifact_sha256"]
+    _v2_commit_arm(repo, payload, message="missing freeze digest")
     assert v2p.v2_production_arm_authorized(repo_root=repo) is False
 
 

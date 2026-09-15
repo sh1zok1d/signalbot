@@ -18,6 +18,8 @@ REPO = Path(__file__).resolve().parents[2]
 
 REVIEWED_IMPLEMENTATION_HEAD = "614295d4c0bf7a263bd2c6dc9a5c595e2c80055f"
 REVIEWED_IMPLEMENTATION_TREE = "e754b12f8db93db3109a30e3b4d476eb85803e04"
+FREEZE_HEAD = "e50fceebfe83b82ea9de2f98954ee7ad6c9a4308"
+FREEZE_TREE = "2f2b0943fffe143324da4c10545d560d6048079e"
 
 ORIGINAL_PREREG_HEAD = "ada237edc330b44bc412332e263f124757919e93"
 ORIGINAL_PREREG_TREE = "ba1c0873879b7ea8556c3e238f8b962b91da6dc2"
@@ -155,28 +157,30 @@ def _assert_bound_file(commit: str, bound: dict) -> None:
 
 
 def test_freeze_parent_is_reviewed_implementation_head_and_tree():
-    parent = _git("rev-parse", "HEAD^")
-    parent_tree = _git("rev-parse", "HEAD^^{tree}")
+    parent = _git("rev-parse", f"{FREEZE_HEAD}^")
+    parent_tree = _git("rev-parse", f"{FREEZE_HEAD}^^{{tree}}")
+    freeze_tree = _git("rev-parse", f"{FREEZE_HEAD}^{{tree}}")
     assert parent == REVIEWED_IMPLEMENTATION_HEAD
     assert parent_tree == REVIEWED_IMPLEMENTATION_TREE
+    assert freeze_tree == FREEZE_TREE
 
 
 def test_starting_worktree_was_clean_before_freeze():
-    assert _git("cat-file", "-t", "HEAD^") == "commit"
-    assert _git("cat-file", "-t", "HEAD^^{tree}") == "tree"
+    assert _git("cat-file", "-t", f"{FREEZE_HEAD}^") == "commit"
+    assert _git("cat-file", "-t", f"{FREEZE_HEAD}^^{{tree}}") == "tree"
 
 
 def test_freeze_artifact_does_not_circularly_self_hash():
-    freeze = _freeze_artifact_at("HEAD")
+    freeze = _freeze_artifact_at(FREEZE_HEAD)
     assert freeze["freeze_commit_head"] == "UNSET_UNTIL_THIS_COMMIT"
     assert freeze["freeze_commit_tree"] == "UNSET_UNTIL_THIS_COMMIT"
     encoded = json.dumps(freeze)
-    artifact_sha = _blob_sha256("HEAD", FREEZE_ARTIFACT_PATH)
+    artifact_sha = _blob_sha256(FREEZE_HEAD, FREEZE_ARTIFACT_PATH)
     assert artifact_sha not in encoded
 
 
 def test_freeze_artifact_bindings_match_git_identities():
-    freeze = _freeze_artifact_at("HEAD")
+    freeze = _freeze_artifact_at(FREEZE_HEAD)
     assert freeze["status"] == "FROZEN_BEFORE_V2_PRODUCTION"
     assert freeze["implementation_review_verdict"] == "GO_FOR_IMPLEMENTATION_FREEZE"
     assert freeze["reviewed_implementation"]["head"] == REVIEWED_IMPLEMENTATION_HEAD
@@ -220,44 +224,44 @@ def test_freeze_artifact_bindings_match_git_identities():
 
 
 def test_frozen_implementation_blobs_match_reviewed_commit_and_artifact():
-    freeze = _freeze_artifact_at("HEAD")
+    freeze = _freeze_artifact_at(FREEZE_HEAD)
     by_path = {
         entry["path"]: entry
         for entry in freeze["execution_authoritative_implementation_sources"]
     }
     assert set(by_path) == set(IMPLEMENTATION_PATHS)
     for path in IMPLEMENTATION_PATHS:
-        _assert_bound_file("HEAD", by_path[path])
+        _assert_bound_file(FREEZE_HEAD, by_path[path])
 
 
 def test_frozen_v2_policy_and_freeze_artifact_unchanged():
-    freeze = _freeze_artifact_at("HEAD")
+    freeze = _freeze_artifact_at(FREEZE_HEAD)
     policy = freeze["v2_rank_policy_authority"]
-    _assert_bound_file("HEAD", policy["execution_authoritative_v2_policy_source"])
-    _assert_bound_file("HEAD", policy["freeze_artifact"])
+    _assert_bound_file(FREEZE_HEAD, policy["execution_authoritative_v2_policy_source"])
+    _assert_bound_file(FREEZE_HEAD, policy["freeze_artifact"])
     assert policy["execution_authoritative_v2_policy_source"]["path"] == V2_POLICY_PATH
     assert policy["freeze_artifact"]["path"] == V2_POLICY_FREEZE_PATH
 
 
 def test_governing_amendment_hashes_match_frozen_values():
-    freeze = _freeze_artifact_at("HEAD")
+    freeze = _freeze_artifact_at(FREEZE_HEAD)
     method = freeze["methodology_authority"]
     for bound in method["amendment_003"]["files"]:
-        _assert_bound_file("HEAD", bound)
+        _assert_bound_file(FREEZE_HEAD, bound)
         assert bound["sha256"] == FROZEN_AMENDMENT_003_SHA256[bound["path"]]
     for bound in method["amendment_004"]["files"]:
-        _assert_bound_file("HEAD", bound)
+        _assert_bound_file(FREEZE_HEAD, bound)
         assert bound["sha256"] == FROZEN_AMENDMENT_004_SHA256[bound["path"]]
     for bound in method["amendment_002"]["files"]:
-        _assert_bound_file("HEAD", bound)
+        _assert_bound_file(FREEZE_HEAD, bound)
     for bound in method["original_prereg"]["files"]:
-        _assert_bound_file("HEAD", bound)
+        _assert_bound_file(FREEZE_HEAD, bound)
     for bound in method["amendment_001"]["files"]:
-        _assert_bound_file("HEAD", bound)
+        _assert_bound_file(FREEZE_HEAD, bound)
 
 
 def test_v1_tcb_hashes_match_frozen_values_and_freeze_artifact():
-    freeze = _freeze_artifact_at("HEAD")
+    freeze = _freeze_artifact_at(FREEZE_HEAD)
     by_path = {entry["path"]: entry for entry in freeze["v1_tcb_files"]}
     for role, path in V1_TCB_PATHS.items():
         live_sha256 = _blob_sha256("HEAD", path)
@@ -271,7 +275,7 @@ def test_v1_tcb_hashes_match_frozen_values_and_freeze_artifact():
 
 
 def test_canonical_v2_plan_identity_matches_freeze_artifact():
-    freeze = _freeze_artifact_at("HEAD")
+    freeze = _freeze_artifact_at(FREEZE_HEAD)
     plan = freeze["canonical_v2_plan"]
     assert plan["sha256"] == CANONICAL_V2_PLAN_SHA256
     assert plan["world_count"] == CANONICAL_WORLD_COUNT
@@ -291,12 +295,12 @@ def test_canonical_v2_plan_identity_matches_freeze_artifact():
 
 def test_authority_bytes_unchanged_since_reviewed_head():
     for path in AUTHORITY_MUST_BE_UNCHANGED:
-        assert _git("diff", f"{REVIEWED_IMPLEMENTATION_HEAD}..HEAD", "--", path) == ""
+        assert _git("diff", f"{REVIEWED_IMPLEMENTATION_HEAD}..{FREEZE_HEAD}", "--", path) == ""
 
 
 def test_freeze_commit_only_changed_allowed_paths():
     changed = set(
-        _git("diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD").splitlines()
+        _git("diff-tree", "--no-commit-id", "--name-only", "-r", FREEZE_HEAD).splitlines()
     )
     assert changed, "freeze commit must actually change something"
     assert changed <= FREEZE_ALLOWED_CHANGED_PATHS
@@ -315,7 +319,7 @@ def test_no_v2_production_arm_result_or_world_records_artifacts_exist():
 
 
 def test_freeze_production_state_not_armed_not_consumed():
-    freeze = _freeze_artifact_at("HEAD")
+    freeze = _freeze_artifact_at(FREEZE_HEAD)
     state = freeze["production_state"]
     assert state["production_armed"] is False
     assert state["production_executed"] is False
@@ -330,7 +334,7 @@ def test_freeze_production_state_not_armed_not_consumed():
 
 
 def test_visibility_and_minors_recorded_unrepaired():
-    freeze = _freeze_artifact_at("HEAD")
+    freeze = _freeze_artifact_at(FREEZE_HEAD)
     vis = freeze["visibility_limitation"]
     assert vis["status"] == "UNRESOLVED_FAIL_CLOSED"
     assert vis["sentinel"] == "V2VisibilityStatisticUnavailable"
