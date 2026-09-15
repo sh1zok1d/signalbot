@@ -28,6 +28,9 @@ from scripts.research.harness_synthetic_edge_calibration_v1_lib import (
     ERA_NAMES,
     FEATURE_IDS,
     IncompleteWorld,
+    PRODUCTION_BLOCK_ROWS,
+    PRODUCTION_BOOTSTRAP_REPLICATES,
+    PRODUCTION_PLACEBO_REPLICATES,
     SCORED_ERAS,
     WILSON_Z,
     _design_matrix,
@@ -38,12 +41,18 @@ from scripts.research.harness_synthetic_edge_calibration_v1_lib import (
     era_slices,
     expanding_era_predictions,
     fit_lstsq,
+    namespace_seed,
+    pcg64_generator,
+    placebo_q95,
     predict,
+    prediction_bootstrap,
     scored_mask,
     select_blind,
     simulate_dgp,
     taxonomy_of,
     wilson_interval,
+    world_identity,
+    world_seed,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -506,6 +515,80 @@ class WorldRecordV2:
         }
 
 
+def _frozen_v1_confirmatory_pair(
+    *,
+    world: Mapping[str, Any],
+    feature: np.ndarray,
+    feature_id: str,
+    n_rows: int,
+    world_index: int,
+    scenario: str,
+    preds: Mapping[str, np.ndarray],
+    y: np.ndarray,
+    mean_ae_improvement: float,
+) -> dict[str, Any]:
+    """Exact frozen V1 prediction-bootstrap + placebo pair.
+
+    Reuses ``prediction_bootstrap`` / ``placebo_q95`` with V1 replicate
+    counts, block length, and PCG64 namespaces. Invalid confirmatory
+    output is mapped to V2 ``CANDIDATE_NOT_IDENTIFIABLE``
+    (``NONFINITE_BOOTSTRAP`` / ``NONFINITE_PLACEBO``), not ``WORLD_INVALID``.
+    Bootstrap invalidity precedes placebo (frozen reason precedence).
+    """
+    mask = scored_mask(n_rows)
+    ae_imp_full = np.full(n_rows, np.nan, dtype=np.float64)
+    ae_imp_full[mask] = np.abs(y[mask] - preds["BASE_PRED"][mask]) - np.abs(
+        y[mask] - preds["CAND_PRED"][mask]
+    )
+    identity = str(world.get("world_identity", world_identity(scenario, n_rows, world_index)))
+    wseed = int(world_seed(identity))
+    try:
+        boot = prediction_bootstrap(
+            ae_imp_full,
+            n_rows,
+            replicates=PRODUCTION_BOOTSTRAP_REPLICATES,
+            block_rows=PRODUCTION_BLOCK_ROWS,
+            rng=pcg64_generator(namespace_seed(wseed, "BOOTSTRAP", feature_id)),
+        )
+        if boot["world_invalid"]:
+            return {
+                "ni_reason": REASON_NONFINITE_BOOTSTRAP,
+                "bootstrap_positive": False,
+                "placebo_separation": False,
+            }
+        plac = placebo_q95(
+            world=world,
+            feature=feature,
+            n_rows=n_rows,
+            replicates=PRODUCTION_PLACEBO_REPLICATES,
+            rng=pcg64_generator(namespace_seed(wseed, "PLACEBO", feature_id)),
+        )
+        if plac["world_invalid"]:
+            return {
+                "ni_reason": REASON_NONFINITE_PLACEBO,
+                "bootstrap_positive": bool(boot["bootstrap_positive"]),
+                "placebo_separation": False,
+            }
+        placebo_sep = (
+            (not plac["placebo_invalid"])
+            and np.isfinite(plac["placebo_q95"])
+            and mean_ae_improvement > plac["placebo_q95"]
+        )
+        return {
+            "ni_reason": None,
+            "bootstrap_positive": bool(boot["bootstrap_positive"]),
+            "placebo_separation": bool(placebo_sep),
+            "bootstrap_q025": boot["bootstrap_q025"],
+            "placebo_q95": plac["placebo_q95"],
+        }
+    except IncompleteWorld:
+        return {
+            "ni_reason": REASON_NONFINITE_BOOTSTRAP,
+            "bootstrap_positive": False,
+            "placebo_separation": False,
+        }
+
+
 def _nonident_record(
     *,
     cid: str,
@@ -577,11 +660,10 @@ def evaluate_v2_world(
     unchanged DGP. They do not change DGP, RNG, seeds, or candidate
     definitions, and ``assert_not_production_grid`` forbids production N.
 
-    This fixture stage does not execute bootstrap, placebo, or visibility.
-    ``NONFINITE_BOOTSTRAP``, ``NONFINITE_PLACEBO``, and
-    ``NONFINITE_VISIBILITY`` are recorded only through
-    ``force_candidate_reason``. There is no callable scientific path here
-    that runs those procedures with non-frozen RNG or replicate counts.
+    Executes the frozen V1 prediction-bootstrap and placebo confirmatory
+    tests (500/999 replicates, V1 RNG namespaces). Visibility remains a
+    separate evidence path and is not computed here.
+    ``NONFINITE_VISIBILITY`` is recorded only through ``force_candidate_reason``.
     """
     assert_not_production_grid(n_rows=n_rows)
     try:
@@ -747,16 +829,41 @@ def _evaluate_v2_world_inner(
         metrics = ae_metrics(y, preds["BASE_PRED"], preds["CAND_PRED"], scored_mask(n_rows))
         era_imp = era_mean_improvements(y, preds["BASE_PRED"], preds["CAND_PRED"], n_rows)
         cand_pos = int(np.sum(feats[cid][scored_mask(n_rows)] == 1.0))
-        # Fixture stage: do not execute bootstrap/placebo/visibility.
+        confirmatory = _frozen_v1_confirmatory_pair(
+            world=world,
+            feature=feats[cid],
+            feature_id=cid,
+            n_rows=n_rows,
+            world_index=world_index,
+            scenario=scenario,
+            preds=preds,
+            y=y,
+            mean_ae_improvement=metrics["MEAN_AE_IMPROVEMENT"],
+        )
+        if confirmatory["ni_reason"] is not None:
+            candidate_recs[cid] = CandidateWorldRecord(
+                candidate_id=cid,
+                state=CANDIDATE_NOT_IDENTIFIABLE,
+                detected=None,
+                nonidentifiability=NonidentifiabilityRecord(
+                    candidate_id=cid,
+                    scenario=scenario,
+                    N=n_rows,
+                    world_id=world_id,
+                    reason=confirmatory["ni_reason"],
+                    first_failing_era=NOT_ERA_SCOPED,
+                ),
+            )
+            continue
         gates = compose_gates(
             mean_ae_improvement=metrics["MEAN_AE_IMPROVEMENT"],
             relative_mae_improvement=metrics["RELATIVE_MAE_IMPROVEMENT"],
-            bootstrap_positive=False,
-            placebo_separation=False,
+            bootstrap_positive=bool(confirmatory["bootstrap_positive"]),
+            placebo_separation=bool(confirmatory["placebo_separation"]),
             era_improvements=era_imp,
             candidate_positive_count=cand_pos,
         )
-        detected = bool(gates["STRICT_PASS"])
+        detected = bool(gates["MODEL_DETECTED"])
         candidate_recs[cid] = CandidateWorldRecord(
             candidate_id=cid,
             state=CANDIDATE_IDENTIFIABLE,

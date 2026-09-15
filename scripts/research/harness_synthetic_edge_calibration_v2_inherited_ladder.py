@@ -29,14 +29,14 @@ the pre-gating "inherited raw value" that wrapper already expected from a
 caller, and now computes internally instead.
 
 KNOWN, DISCLOSED, UNRESOLVED GAP (do not paper over -- see
-``V2VisibilityStatisticUnavailable``): the frozen V2 policy fixture
-(``harness_synthetic_edge_calibration_v2_rank_policy.py``) does not compute a
-``GROUND_TRUTH_VISIBLE``-equivalent statistic anywhere. ``evaluate_v2_world``'s
-own docstring states plainly: "This fixture stage does not execute bootstrap,
-placebo, or visibility." ``WorldRecordV2`` and ``CandidateWorldRecord`` carry
-no visibility field. Six conclusion ids/inputs that Amendment_003/004 approved
-as machine-executable in fact have no computable input under the CURRENT
-frozen V2 fixture: ``VISIBILITY_FLOOR``, ``MODEL_FLOOR`` (its own rule reads
+``V2VisibilityStatisticUnavailable``): the inherited-ladder derivation itself
+does not compute ``GROUND_TRUTH_VISIBLE``. ``WorldRecordV2`` and
+``CandidateWorldRecord`` carry no visibility field. Visibility evidence is
+supplied by the separate authenticated visibility artifact, not by this
+module. ``evaluate_v2_world`` executes frozen V1 prediction-bootstrap and
+placebo; ``detected`` is ``gates["MODEL_DETECTED"]``. Six conclusion
+ids/inputs that Amendment_003/004 approved as machine-executable still have
+no visibility statistic *inside this module*: ``VISIBILITY_FLOOR``, ``MODEL_FLOOR`` (its own rule reads
 "given VISIBILITY_FLOOR not already binding"), ``TINY_NOISY_ORACLE_DIAGNOSTIC``,
 its two aliases ``TINY_NOISY_CONCLUSION`` / ``ORACLE_F03_TINY_NOISY``, and the
 ``visibility_wilson_upper`` input to ``FINAL_OVERALL_MECHANICAL_CONCLUSION``
@@ -360,9 +360,9 @@ def _discovery_diagnosis(oracle_power: str, blind_useful: str) -> str:
 # power_verdict, small_band -- all imported from the pinned V1 TCB) applied
 # to counts read from already-frozen, already-computed WorldRecordV2/
 # CellAggregateV2 fields. No classification logic is reimplemented: a world's
-# CANDIDATE_IDENTIFIABLE state and its `detected` (== frozen gates["STRICT_PASS"])
-# / gates["STRICT_PASS_EX_MATERIALITY"] values are read verbatim from records
-# the frozen V2 fixture already produced.
+# CANDIDATE_IDENTIFIABLE state and its `detected` (== frozen gates["MODEL_DETECTED"])
+# / gates["STRICT_PASS_EX_MATERIALITY"] / gates["STRICT_PASS"] values are read
+# verbatim from records the frozen V2 fixture already produced.
 #
 # Undefined-denominator fallback: mirrors the exact convention already frozen
 # in the pinned V1 TCB production module (`_spec`/`_pow`: "return verdict(...)
@@ -427,11 +427,29 @@ def _strict_pass_ex_materiality_count(cell: CellAggregateV2, cid: str) -> int:
     return count
 
 
+def _strict_pass_count(cell: CellAggregateV2, cid: str) -> int:
+    """Count already-computed ``gates["STRICT_PASS"]`` on identifiable rows.
+
+    Distinct from ``candidate_detection_count``, which after the confirmatory
+    repair tallies ``MODEL_DETECTED``. MATERIALITY_ONLY_DIAGNOSTIC compares
+    STRICT_PASS_EX_MATERIALITY vs STRICT_PASS, not vs MODEL_DETECTED.
+    """
+    count = 0
+    for rec in cell.worlds:
+        cand = rec.candidates.get(cid)
+        if cand is None or cand.state != "CANDIDATE_IDENTIFIABLE":
+            continue
+        gates = cand.gates or {}
+        if gates.get("STRICT_PASS") is True:
+            count += 1
+    return count
+
+
 def _trap_specificity_verdict(
     cells: Mapping[tuple[str, int], CellAggregateV2], conclusions: Mapping[str, Any]
 ) -> str:
     """NONSTATIONARY_TRAP_ORACLE_SPECIFICITY: statistic is STRICT_PASS_EX_MATERIALITY
-    detection (NOT plain `detected`/STRICT_PASS), per Amendment_003."""
+    (NOT ``detected``/MODEL_DETECTED and NOT STRICT_PASS), per Amendment_003."""
     cell = _cell(cells, "NONSTATIONARY_TRAP", 5000)
     if cell is None:
         return IND
@@ -463,7 +481,7 @@ def _materiality_only_diagnostic(cells: Mapping[tuple[str, int], CellAggregateV2
     cell = _cell(cells, "EASY", 5000)
     if cell is None:
         return "MATERIALITY_ONLY_DIAGNOSTIC", None
-    successes_strict = cell.candidate_detection_count.get("F03", 0)  # == STRICT_PASS count
+    successes_strict = _strict_pass_count(cell, "F03")
     successes_ex = _strict_pass_ex_materiality_count(cell, "F03")
     failure = successes_ex > successes_strict
     label = "MATERIALITY_ONLY_DIAGNOSTIC" if failure else "NO_MATERIALITY_ONLY_SUPPRESSION"

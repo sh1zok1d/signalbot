@@ -2403,3 +2403,34 @@ This entry records the frozen mechanical labels. It does not interpret them.
 
 - next required step: `CANONICAL_V2_RESULT_INTERPRETATION`
 
+## 2026-09-15 — Targeted V2 confirmatory power repair
+
+**Decision:** restore already pre-outcome-defined V1 confirmatory detection
+semantics inside the V2 evaluator. Canonical V2 RESULT remains immutable
+historical evidence. This is not V3, not threshold tuning, and not a rescue
+of `METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06`.
+
+Pre-outcome authority verified uniquely before implementation:
+
+- V1 `MODEL_DETECTED` = primary_positive AND bootstrap_positive AND placebo_separation
+- V1 production actually executed frozen bootstrap (500) and placebo (999)
+- EASY/MODERATE oracle power and MODEL_FLOOR were intended to read MODEL_DETECTED, not STRICT_PASS
+- `>=0.02` materiality remains a separate STRICT_PASS / MATERIALITY_ONLY_DIAGNOSTIC identity
+
+Repair:
+
+- execute frozen V1 `prediction_bootstrap` / `placebo_q95` in V2 inner evaluation
+- `detected` = `MODEL_DETECTED`
+- MATERIALITY_ONLY_DIAGNOSTIC counts STRICT_PASS from gates
+- do not lower 2%; do not change Wilson EASY 0.90 / MODERATE 0.70
+- do not remint RESULT / WORLD_RECORDS / VISIBILITY
+- do not run a new 3200-world calibration in this unit
+
+Canonical hashes unchanged:
+
+- WORLD_RECORDS SHA256 `d372eb00d4f6df9b4f8a2b0dcb22b051d95787ddeb8494a3c0efc31561e39821`
+- VISIBILITY SHA256 `9be8dceb07d8fc43b01ef8630d4ad9f52e7401fd6f095b3c7a5bf364701c8b65`
+- RESULT SHA256 `761cc9afc59265bfb94afecbd293082c274abf3affce3d9693f463442326c1e0`
+
+- next required step: `INDEPENDENT_POWER_REPAIR_REVIEW`
+

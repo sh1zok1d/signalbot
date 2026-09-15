@@ -639,8 +639,8 @@ def test_lookahead_cannot_become_candidate_reason(monkeypatch):
 def test_no_nonfrozen_bootstrap_placebo_visibility_branch():
     src = inspect.getsource(v2)
     assert "np.random.default_rng" not in src
-    assert "prediction_bootstrap(" not in src
-    assert "placebo_q95(" not in src
+    assert "prediction_bootstrap(" in src
+    assert "placebo_q95(" in src
     assert "visibility_from_residuals(" not in src
     assert "skip_bootstrap_placebo" not in inspect.signature(v2.evaluate_v2_world).parameters
     assert "skip_bootstrap_placebo" not in src

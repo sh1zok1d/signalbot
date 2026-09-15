@@ -47,9 +47,15 @@ are imported unchanged from the V1 lib.
 
 BLIND taxonomy is exactly `taxonomy_of(selected)` with no scenario-specific
 reinterpretation. Chronology/lookahead is a world-level failure and cannot
-become a candidate reason. This fixture stage does not execute bootstrap,
-placebo, or visibility; reserved non-finite reasons are fixture-forced only
-via `force_candidate_reason`, which cannot enter production N.
+become a candidate reason. This fixture executes the frozen V1
+prediction-bootstrap and placebo confirmatory tests (500/999 replicates,
+V1 PCG64 namespaces `BOOTSTRAP`/`PLACEBO`). Visibility remains a separate
+evidence path and is not computed here. `NONFINITE_VISIBILITY` is recorded
+only through `force_candidate_reason`, which cannot enter production N.
+`NONFINITE_BOOTSTRAP` / `NONFINITE_PLACEBO` may now arise from the executed
+confirmatory tests and map to `CANDIDATE_NOT_IDENTIFIABLE`, not
+`WORLD_INVALID`. `detected` is `gates["MODEL_DETECTED"]`. `STRICT_PASS` and
+the frozen 2% materiality gate are unchanged.
 
 This stage does not mint RESULT or WORLD_RECORDS, does not consume V1 ARM
 authority, and does not authorize B2-06.
