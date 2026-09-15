@@ -2306,3 +2306,52 @@ No production run, RESULT, or WORLD_RECORDS.
 
 - next required step: `PRE_OUTCOME_INHERITED_LADDER_METHODOLOGY_AMENDMENT`
 
+## 2026-09-15 — V2 33/33 implementation freeze
+
+**Decision:** freeze the independently reviewed V2 33/33 implementation at
+HEAD `614295d4c0bf7a263bd2c6dc9a5c595e2c80055f`
+(tree `e754b12f8db93db3109a30e3b4d476eb85803e04`) after the independent
+implementation review closed `GO_FOR_IMPLEMENTATION_FREEZE`.
+
+Canonical freeze artifact:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_33_33_IMPLEMENTATION_FREEZE.json`
+(human twin:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_33_33_IMPLEMENTATION_FREEZE.md`).
+
+The freeze binds the reviewed implementation HEAD/TREE, the two
+execution-authoritative 33/33 sources
+(`harness_synthetic_edge_calibration_v2_inherited_ladder.py`,
+`harness_synthetic_edge_calibration_v2_production.py`) by git blob/SHA256/size,
+the original V2 prereg (`ada237e`) and Amendment_001 (`d8f0a99`),
+Amendment_003 (`dfba85d`) and Amendment_004 (`df5dcde`), the rejected
+Amendment_002 identity (`f846075`) as historical non-governing authority,
+the frozen V2 rank-policy source and its implementation freeze (`f96197d`),
+the five unchanged V1 TCB files, canonical V2 plan SHA256
+`7fa12fd3b939cd210a69da37659fd1013a1dba43aca4c06abb6f5a6442a33800`, and
+world count 3200. Visibility remains `UNRESOLVED_FAIL_CLOSED`. MINOR-1
+(no memoization) and MINOR-2 (ADEQUATE FINAL_OVERALL mint blocked by
+visibility siblings) are recorded, not repaired.
+
+This freeze commit changes only the freeze artifact/document, its verifier
+test, and status/ledger/index plumbing. Reviewed implementation bytes,
+methodology, and V1 TCB are unchanged.
+
+- reviewed_implementation_head: `614295d4c0bf7a263bd2c6dc9a5c595e2c80055f`
+- freeze_parent: `614295d4c0bf7a263bd2c6dc9a5c595e2c80055f`
+- amendment_002_governs_executable_science: **false**
+- production_armed: **false**
+- production_executed: **false**
+- result_minted: **false**
+- world_records_created: **false**
+- authority_consumed: **false**
+- arm_created: **false**
+- execution_authorized: **false**
+- canonical_3200_run_started: **false**
+- v1_attempt_status: `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`
+- v1_3087_subset_claimable: **false**
+
+No implementation-code change. No methodology change. No prereg/amendment
+rewrite. No V1 TCB change. No V2 ARM, RESULT, or WORLD_RECORDS.
+
+- next required step: `INDEPENDENT_V2_33_33_IMPLEMENTATION_FREEZE_REVIEW`
+

@@ -116,21 +116,17 @@ itself is immutable. Post-outcome status lives in
   `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY` now
   has a reviewed fixture-only implementation frozen at HEAD `a310837`
   (`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_IMPLEMENTATION_FREEZE.json`)
-  plus a pre-outcome production lifecycle implementation (plan, historical
-  ARM authorization with an unforgeable session and durably-gated
-  reservation, checkpointing, mechanical aggregation, RESULT mint,
-  historical result verification) awaiting independent review
-  (`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PRODUCTION_DRIVER.md`).
-  A dedicated provenance audit
-  (`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_INHERITED_LADDER_PROVENANCE_AUDIT.md`)
-  found only 18 of 33 inherited-ladder conclusion ids mechanically
-  unambiguous from frozen V1/V2 material, so the inherited-detection-ladder
-  mapping remains an explicit, unbound, caller-supplied parameter pending a
-  methodology amendment; RESULT is not yet scientifically self-contained.
+  plus a pre-outcome production lifecycle and the independently reviewed
+  33/33 inherited-ladder implementation frozen at HEAD `614295d` / tree
+  `e754b12`
+  (`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_33_33_IMPLEMENTATION_FREEZE.json`).
+  Governing methodology is Amendment_003 + Amendment_004; Amendment_002 is
+  rejected historical authority and cannot govern executable science. The
+  visibility statistic gap remains unresolved and fail-closed. This freeze
+  does not create an ARM, authorize execution, or run the 3200-world grid.
   No V2 ARM artifact exists anywhere in the repository; V2 production
-  remains unarmed, does not run the 3200-world grid, and does not
-  authorize B2-06. Next required step for that unit:
-  `PRE_OUTCOME_INHERITED_LADDER_METHODOLOGY_AMENDMENT`.
+  remains unarmed and does not authorize B2-06. Next required step for
+  that unit: `INDEPENDENT_V2_33_33_IMPLEMENTATION_FREEZE_REVIEW`.
   Historical ARM `120ac45` and unused driver ARM `0abc5fe` do
   not authorize V1 or V2 runtime. This does not authorize B2-06 science.
 

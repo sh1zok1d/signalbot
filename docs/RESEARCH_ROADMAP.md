@@ -224,23 +224,20 @@ A pre-outcome production lifecycle (canonical plan, historical
 commit-parameterized ARM authorization behind an unforgeable session,
 durable reservation that gates execution before any scientific computation,
 checkpointing, mechanical aggregation wired from the frozen fixture's own
-aggregation pipeline, RESULT mint, historical result re-verification) is now
-implemented on top
-(`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PRODUCTION_DRIVER.md`)
-but is not itself an execution freeze or an ARM; no V2 ARM artifact exists
-anywhere in the repository. One deliberate scope boundary remains, now
-backed by a full provenance audit
-(`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_INHERITED_LADDER_PROVENANCE_AUDIT.md`):
-only 18 of the 33 required-coverage-map conclusion ids are mechanically
-unambiguous from frozen V1/V2 material, so the original V1-methodology
-verdict for each conclusion must still be supplied by a separate, frozen,
-independently reviewed methodology amendment before a real mint (this unit
-does not reconstruct or infer it from prose). Next required step for V2:
-`PRE_OUTCOME_INHERITED_LADDER_METHODOLOGY_AMENDMENT`, then
-`INDEPENDENT_V2_FINAL_PRE_FREEZE_REREVIEW`, then `CREATE_NEW_V2_PRODUCTION_ARM`.
-Do not run the 3200-world production grid and do not mint RESULT until that
-ARM is created and reviewed. The original prereg at `ada237e` and
-Amendment_001 at `d8f0a99` are not rewritten in place.
+aggregation pipeline, RESULT mint, historical result re-verification) plus
+the independently reviewed 33/33 inherited-ladder implementation are now
+frozen at reviewed HEAD `614295d` / tree `e754b12`
+(`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_33_33_IMPLEMENTATION_FREEZE.json`).
+Governing methodology is Amendment_003 + Amendment_004. Amendment_002 is
+rejected historical authority and cannot govern executable science. The
+visibility statistic gap remains unresolved and fail-closed. This
+implementation freeze is not an ARM and does not authorize execution; no V2
+ARM artifact exists anywhere in the repository. Next required step for V2:
+`INDEPENDENT_V2_33_33_IMPLEMENTATION_FREEZE_REVIEW`. Do not create a V2 ARM,
+do not run the 3200-world production grid, and do not mint RESULT until that
+independent freeze review closes and a later explicit ARM unit is authorized.
+The original prereg at `ada237e` and Amendment_001 at `d8f0a99` are not
+rewritten in place.
 
 This methodology gate does not weaken or bypass the current B2-06 state:
 `FUNDING_PUBLICATION_LATENCY_UNPROVEN`, `research_authorized = false`,
