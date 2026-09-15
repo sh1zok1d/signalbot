@@ -168,7 +168,7 @@ FROZEN_AMENDMENT_001_TREE = "09dca9b1240a43d5de9de0dadf32d27e00e7eaea"
 # hardcode: none of them are this file's own bytes, so none of them create
 # the cycle above.
 FROZEN_CANONICAL_V2_PLAN_SHA256 = (
-    "7fa12fd3b939cd210a69da37659fd1013a1dba43aca4c06abb6f5a6442a33800"
+    "b0ed15534ef0cf45f1232baa0d7c1881fb3a8aaa086477d67a5ab7e9198c677f"
 )
 FROZEN_CANONICAL_WORLD_COUNT = 3200
 

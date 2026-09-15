@@ -244,6 +244,13 @@ def _v2_commit_freeze_tree(tmp_path: Path, *, name: str = "repo") -> Path:
     _git(repo, "config", "commit.gpgsign", "false")
     implementation_head = _git(repo, "rev-parse", "HEAD")
     implementation_tree = _git(repo, "rev-parse", "HEAD^{tree}")
+    # A freeze commit must not carry ARM or protected result artifacts.
+    # Current implementation lineage may inherit those files; delete them
+    # only in the disposable freeze commit.
+    for rel in (v2p.CANONICAL_V2_ARM_PATH, *v2p.PROTECTED_V2_AUTHORITY_PATHS):
+        path = repo / rel
+        if path.exists():
+            path.unlink()
     freeze_doc = _v2_execution_freeze_artifact(repo, implementation_head, implementation_tree)
     freeze_path = repo / v2p.CANONICAL_V2_EXECUTION_FREEZE_PATH
     _write(freeze_path, json.dumps(freeze_doc, indent=2, sort_keys=True) + "\n")

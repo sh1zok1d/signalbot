@@ -2434,3 +2434,31 @@ Canonical hashes unchanged:
 
 - next required step: `INDEPENDENT_POWER_REPAIR_REVIEW`
 
+## 2026-09-15 — V2 control plan identity rebind
+
+**Decision:** rebind `FROZEN_CANONICAL_V2_PLAN_SHA256` from the historical
+unrepaired plan identity
+`7fa12fd3b939cd210a69da37659fd1013a1dba43aca4c06abb6f5a6442a33800`
+to the live `canonical_v2_plan` identity of the independently reviewed
+confirmatory-power repair:
+
+`b0ed15534ef0cf45f1232baa0d7c1881fb3a8aaa086477d67a5ab7e9198c677f`
+
+The 3200-world job list is unchanged
+(`v1_planned_jobs_sha256` =
+`5adf682ee48a868acbe01d9e0b9e33133db26089119396b3539b4e9cb8af5bb6`).
+The plan SHA changed only because repaired rank-policy bytes are part of
+canonical plan identity. No world specification, DGP, scenario, N, seed,
+feature library, or cell membership changed.
+
+This is an identity/provenance repair only. It does not create a production
+freeze, ARM, reservation, calibration, or RESULT.
+
+Canonical hashes unchanged:
+
+- WORLD_RECORDS SHA256 `d372eb00d4f6df9b4f8a2b0dcb22b051d95787ddeb8494a3c0efc31561e39821`
+- VISIBILITY SHA256 `9be8dceb07d8fc43b01ef8630d4ad9f52e7401fd6f095b3c7a5bf364701c8b65`
+- RESULT SHA256 `761cc9afc59265bfb94afecbd293082c274abf3affce3d9693f463442326c1e0`
+
+- next required step: `INDEPENDENT_IDENTITY_REBIND_REVIEW`
+

@@ -280,6 +280,7 @@ def test_canonical_v2_plan_identity_matches_freeze_artifact():
     assert plan["sha256"] == CANONICAL_V2_PLAN_SHA256
     assert plan["world_count"] == CANONICAL_WORLD_COUNT
     from scripts.research.harness_synthetic_edge_calibration_v2_production import (
+        FROZEN_CANONICAL_V2_PLAN_SHA256,
         canonical_v2_plan,
         canonical_v2_world_count,
     )
@@ -288,7 +289,11 @@ def test_canonical_v2_plan_identity_matches_freeze_artifact():
     reviewed = canonical_v2_plan(
         repo_root=REPO, commit=REVIEWED_IMPLEMENTATION_HEAD
     )
-    assert live["sha256"] == CANONICAL_V2_PLAN_SHA256
+
+    # Historical freeze/reviewed implementations keep the old plan identity.
+    # Live HEAD includes the repaired rank-policy bytes that are part of
+    # canonical plan identity, so it must match current authority.
+    assert live["sha256"] == FROZEN_CANONICAL_V2_PLAN_SHA256
     assert reviewed["sha256"] == CANONICAL_V2_PLAN_SHA256
     assert canonical_v2_world_count() == CANONICAL_WORLD_COUNT
 
