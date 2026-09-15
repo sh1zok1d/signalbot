@@ -29,6 +29,9 @@ from scripts.research import harness_synthetic_edge_calibration_v1_production as
 from scripts.research import harness_synthetic_edge_calibration_v2_inherited_ladder as ladder
 from scripts.research import harness_synthetic_edge_calibration_v2_production as v2p
 from scripts.research import harness_synthetic_edge_calibration_v2_rank_policy as v2
+from tests.research.test_harness_synthetic_edge_calibration_v2_production import (
+    _patch_loaded_runtime_to_commit,
+)
 
 REPO = Path(__file__).resolve().parents[2]
 CONCLUSION_IDS = list(v2.frozen_required_coverage_map())
@@ -93,7 +96,7 @@ def small_jobs():
 
 
 @pytest.fixture
-def armed_small_repo(tmp_path, small_jobs):
+def armed_small_repo(tmp_path, small_jobs, monkeypatch):
     """A disposable repo with freeze -> small-scope ARM already committed.
 
     Deliberately has NO reservation yet -- used by tests that specifically
@@ -104,6 +107,7 @@ def armed_small_repo(tmp_path, small_jobs):
         repo = _commit_freeze_tree(tmp_path)
         payload = _small_arm_payload(repo)
         arm_commit = _commit_arm(repo, payload)
+        _patch_loaded_runtime_to_commit(monkeypatch, repo, arm_commit)
         yield repo, arm_commit
 
 
@@ -705,7 +709,7 @@ def test_genuine_session_adversarial_matrix(reserved_small_repo, small_jobs):
 
 
 def test_session_from_different_repo_or_arm_is_independently_genuine_but_scoped(
-    tmp_path, small_jobs
+    tmp_path, small_jobs, monkeypatch
 ):
     """A session legitimately opened for a different repo/ARM is itself
     genuine (it went through open_v2_production_session for THAT repo/ARM),
@@ -716,6 +720,7 @@ def test_session_from_different_repo_or_arm_is_independently_genuine_but_scoped(
         repo_a = _commit_freeze_tree(tmp_path, name="repo_a")
         payload_a = _small_arm_payload(repo_a)
         arm_a = _commit_arm(repo_a, payload_a)
+        _patch_loaded_runtime_to_commit(monkeypatch, repo_a, arm_a)
         v2p.establish_v2_durable_reservation(repo_a, arm_a)
         session_a = v2p.open_v2_production_session(repo_root=repo_a, arm_commit=arm_a)
 

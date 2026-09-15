@@ -180,6 +180,23 @@ def _v2_commit_arm(repo: Path, payload: dict, *, message: str = "v2 production a
     return _git(repo, "rev-parse", "HEAD")
 
 
+def _patch_loaded_runtime_to_commit(monkeypatch, repo: Path, commit: str) -> None:
+    """Test-only: make the live-runtime check see authorized git blobs.
+
+    Disposable clones are git object stores; the imported production module
+    is the live workspace. This patch cannot be used by production entrypoints.
+    """
+    blobs = {
+        v2p.V2_PRODUCTION_REL: v2p._commit_blob(repo, commit, v2p.V2_PRODUCTION_REL),
+        v2p.V2_INHERITED_LADDER_REL: v2p._commit_blob(
+            repo, commit, v2p.V2_INHERITED_LADDER_REL
+        ),
+    }
+    if any(blob is None for blob in blobs.values()):
+        raise AssertionError("authorized runtime blobs missing from test commit")
+    monkeypatch.setattr(v2p, "_loaded_runtime_bytes", lambda: dict(blobs))
+
+
 def test_real_child_arm_authorizes_at_exact_arm_head(tmp_path):
     repo = _v2_commit_freeze_tree(tmp_path)
     payload = _v2_valid_arm_payload(repo)

@@ -16,6 +16,7 @@ import pytest
 from scripts.research import harness_synthetic_edge_calibration_v2_production as v2p
 from tests.research.test_harness_synthetic_edge_calibration_v2_production import (
     _git,
+    _patch_loaded_runtime_to_commit,
     _v2_commit_arm,
     _v2_commit_freeze_tree,
     _v2_valid_arm_payload,
@@ -195,10 +196,11 @@ def test_p_second_reservation_refused(tmp_path):
         v2p.establish_v2_durable_reservation(repo, arm_commit)
 
 
-def test_q_reuse_after_consumption_refused(tmp_path):
+def test_q_reuse_after_consumption_refused(tmp_path, monkeypatch):
     repo = _v2_commit_freeze_tree(tmp_path)
     payload = _v2_valid_arm_payload(repo)
     arm_commit = _v2_commit_arm(repo, payload)
+    _patch_loaded_runtime_to_commit(monkeypatch, repo, arm_commit)
     v2p.establish_v2_durable_reservation(repo, arm_commit)
     reservation_path = repo / v2p.CANONICAL_V2_RESERVATION_PATH
     reservation = json.loads(reservation_path.read_text(encoding="utf-8"))
@@ -297,11 +299,20 @@ def test_live_executed_runtime_refuses_33_33_freeze_bytes_after_wiring_repair():
         )
 
 
-def test_executed_runtime_check_is_skipped_for_disposable_clone(tmp_path):
+def test_executed_runtime_check_refuses_disposable_clone_root_mismatch(tmp_path):
     repo = _v2_commit_freeze_tree(tmp_path)
     payload = _v2_valid_arm_payload(repo)
     arm_commit = _v2_commit_arm(repo, payload)
-    v2p._assert_executed_runtime_bound_to_commit(repo, arm_commit)
+    with pytest.raises(v2p.SyntheticExecutionNotAuthorized, match="loaded runtime bytes"):
+        v2p._assert_executed_runtime_bound_to_commit(repo, arm_commit)
+
+
+def test_live_runtime_bytes_match_current_head():
+    live = Path(v2p.__file__).read_bytes()
+    head = v2p._commit_blob(REPO, "HEAD", v2p.V2_PRODUCTION_REL)
+    if live != head:
+        pytest.skip("worktree production.py differs from HEAD before the repair commit")
+    v2p._assert_executed_runtime_bound_to_commit(REPO, "HEAD")
 
 
 def test_33_33_freeze_is_required_and_rank_policy_constants_are_not_aliases():

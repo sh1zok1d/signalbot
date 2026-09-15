@@ -451,23 +451,26 @@ def required_v2_arm_binding_fields(repo_root: Path) -> dict[str, Any]:
     }
 
 
-def _assert_executed_runtime_bound_to_commit(repo_root: Path, commit: str) -> None:
-    """Refuse live execution if imported modules differ from authorized git blobs.
-
-    Disposable clones used only as git object stores are not the live runtime
-    tree; those are authenticated historically without implying that this
-    process is executing their blobs.
-    """
-    live_root = Path(__file__).resolve().parents[2]
-    if Path(repo_root).resolve() != live_root.resolve():
-        return
+def _loaded_runtime_bytes() -> dict[str, bytes]:
+    """Bytes of the production modules this process is actually executing."""
     ladder_mod = sys.modules[
         "scripts.research.harness_synthetic_edge_calibration_v2_inherited_ladder"
     ]
-    loaded = {
+    return {
         V2_PRODUCTION_REL: Path(__file__).read_bytes(),
         V2_INHERITED_LADDER_REL: Path(ladder_mod.__file__).read_bytes(),
     }
+
+
+def _assert_executed_runtime_bound_to_commit(repo_root: Path, commit: str) -> None:
+    """Refuse live execution if imported modules differ from authorized git blobs.
+
+    ``repo_root`` is only the git object store for the authorized commit.
+    The executing files are this process's imported modules. A caller-supplied
+    repo_root that differs from the live checkout is not a skip: imported
+    bytes are still compared to the authorized blobs. Mismatch refuses.
+    """
+    loaded = _loaded_runtime_bytes()
     for rel, bytes_ in loaded.items():
         blob = _commit_blob(repo_root, commit, rel)
         if blob is None or blob != bytes_:
@@ -688,7 +691,12 @@ def _production_evaluate_one_world(
 def evaluate_v2_production_world(
     scenario_id: str, n_rows: int, world_index: int, *args: Any, **kwargs: Any
 ) -> WorldRecordV2:
-    """Evaluate one frozen-grid world under the frozen V2 policy. Refuses unless armed."""
+    """Evaluate one frozen-grid world under the frozen V2 policy. Refuses unless armed.
+
+    Pre-existing technical debt (unchanged from the 33/33 freeze HEAD): this
+    direct entrypoint does not require a committed reservation. Session
+    entrypoints do. This unit does not redesign that lifecycle split.
+    """
     if args or kwargs:
         _refuse("caller arguments cannot authorize V2 production evaluation")
     repo_root = _repo_root()
@@ -1259,6 +1267,7 @@ def _require_genuine_session(session: Any) -> V2ProductionSession:
         _refuse("session was not issued by open_v2_production_session")
     if _snapshot_session_fields(session) != snapshot:
         _refuse("session fields were tampered with after issuance")
+    _assert_executed_runtime_bound_to_commit(session.repo_root, session.arm_commit)
     return session
 
 
@@ -1289,7 +1298,8 @@ def open_v2_production_session(
 def evaluate_v2_world_in_session(
     session: V2ProductionSession, scenario_id: str, n_rows: int, world_index: int
 ) -> WorldRecordV2:
-    _require_genuine_session(session)
+    session = _require_genuine_session(session)
+    _assert_executed_runtime_bound_to_commit(session.repo_root, session.arm_commit)
     job = (str(scenario_id), int(n_rows), int(world_index))
     if job not in set(canonical_v2_production_jobs()):
         _refuse("world is not a frozen V2 canonical production-grid identity")
@@ -1302,7 +1312,8 @@ def evaluate_v2_world_in_session(
 def run_canonical_v2_production_grid_in_session(
     session: V2ProductionSession, *, durable_partial: V2DurablePartialWorldStore | None = None
 ) -> tuple[WorldRecordV2, ...]:
-    _require_genuine_session(session)
+    session = _require_genuine_session(session)
+    _assert_executed_runtime_bound_to_commit(session.repo_root, session.arm_commit)
     records = []
     cached = durable_partial.load_structurally_valid_cached() if durable_partial is not None else {}
     for job in canonical_v2_production_jobs():
