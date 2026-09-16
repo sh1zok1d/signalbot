@@ -2608,3 +2608,35 @@ freeze, ARM, reservation, execution, or fresh V3 outcome.
 
 - next required step: `INDEPENDENT_V3_PREREG_REVIEW`
 
+## 2026-09-16 — V3 prereg freeze authority
+
+Independent review of `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG.md`/`.json`
+(including the exact Politis-White/Patton-Politis-White selector implementation
+binding) closed with verdict `ACCEPTED` at exact commit `4b7e0d6dfda1cb9475a610f51ccbec0906fd0133`
+/ tree `fe779fc37e31bd23700b6f70d476f4cb1249223d`.
+
+`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG_FREEZE.md`/`.json` freezes that
+exact accepted content as sole scientific authority for V3 implementation.
+The accepted prereg bytes are not modified; both SHA256s were independently
+recomputed from `4b7e0d6d`'s git objects and matched exactly (MD
+`739247ef228c80988abd40ac60b095e0e4e9e5ee45f81761cb1e3aa846161085`,
+JSON `2d3a42e7fc9c91bf1b4bafaec01b2947b454e40151c47be9f2ff3f92a6e41617`)
+before this freeze was written. `freeze_commit_head`/`freeze_commit_tree`
+are intentionally `UNSET_UNTIL_THIS_COMMIT`, matching the existing V2
+execution-freeze convention — this artifact never self-hashes.
+
+No V1/V2 frozen artifact touched. No V3 implementation exists. No V3
+world/outcome generated or inspected. No reservation or ARM created.
+
+- v3_design_complete: **true**
+- v3_prereg_materialized: **true**
+- v3_prereg_review_required: **false**
+- v3_prereg_frozen: **true**
+- v3_implementation_complete: **false**
+- v3_run_authorized: **false**
+- v3_armed: **false**
+- default_v4: **false**
+- b2_06_execution_authorized: **false**
+
+- next required step: `V3_IMPLEMENTATION`
+
