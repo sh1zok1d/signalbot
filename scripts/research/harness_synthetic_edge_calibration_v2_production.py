@@ -458,19 +458,24 @@ def _authenticate_v2_execution_freeze(
     if policy.get("freeze_tree") != FROZEN_V2_POLICY_FREEZE_TREE:
         return None
 
-    # Canonical plan / world count: recomputed live at the freeze commit
-    # from the frozen V1 grid + V2 policy source (never from the freeze
-    # document's self-report), and cross-checked against the freeze's own
-    # declared values and the stable, never-changing constants.
+    # Canonical plan / world count: recomputed independently at the freeze
+    # commit from the frozen V1 grid + V2 policy source (never from the
+    # freeze document's self-report), and cross-checked against the
+    # freeze's own declared values. This is a commit-local self-consistency
+    # proof only -- it does NOT compare against the live-imported
+    # FROZEN_CANONICAL_V2_PLAN_SHA256, so a freeze's authenticity never
+    # depends on which generation of the plan is currently live. Whether a
+    # freeze's plan is the CURRENTLY recognized authority is an ARM-level
+    # concern (``required_v2_arm_binding_fields`` /
+    # ``_v2_arm_payload_authorizes_at_commit``), checked separately and
+    # only when live/new authorization is being asserted.
     plan_entry = freeze.get("canonical_v2_plan")
     if not isinstance(plan_entry, Mapping):
         return None
-    if plan_entry.get("sha256") != FROZEN_CANONICAL_V2_PLAN_SHA256:
-        return None
     if plan_entry.get("world_count") != FROZEN_CANONICAL_WORLD_COUNT:
         return None
-    live_plan = canonical_v2_plan(repo_root, freeze_commit)
-    if live_plan["sha256"] != FROZEN_CANONICAL_V2_PLAN_SHA256:
+    recomputed_plan = canonical_v2_plan(repo_root, freeze_commit)
+    if recomputed_plan["sha256"] != plan_entry.get("sha256"):
         return None
 
     # Visibility limitation must remain fail-closed; a freeze may not claim
@@ -555,11 +560,22 @@ def _payload_field_equals(payload: Mapping[str, Any], key: str, expected: Any) -
     return actual == expected
 
 
-def required_v2_arm_binding_fields(repo_root: Path, freeze_commit: str) -> dict[str, Any]:
+def required_v2_arm_binding_fields(
+    repo_root: Path, freeze_commit: str, *, require_live_plan_authority: bool = True
+) -> dict[str, Any]:
     """Derive ARM binding fields from an already-authenticated execution freeze.
 
     ``freeze_commit`` is caller-derived (the ARM's own structural parent),
     never a module-level constant.
+
+    ``require_live_plan_authority`` (default ``True``) gates whether the
+    freeze's plan must equal the live-imported ``FROZEN_CANONICAL_V2_PLAN_SHA256``
+    -- appropriate when constructing a NEW ARM or checking live/current
+    authorization. Historical re-verification of an already-existing ARM
+    (``verify_historical_v2_execution_authority``) passes ``False``: the
+    returned ``canonical_v2_plan_sha256`` is then whatever the plan
+    independently recomputes to at ``freeze_commit`` -- a pure function of
+    that commit's own immutable git objects, never of the live global.
     """
     freeze = _authenticate_v2_execution_freeze(repo_root, freeze_commit)
     if freeze is None:
@@ -577,7 +593,7 @@ def required_v2_arm_binding_fields(repo_root: Path, freeze_commit: str) -> dict[
         _refuse("authenticated freeze artifact vanished between checks")
     policy_sha256, policy_size = _v2_policy_digest_at(repo_root, freeze_commit)
     plan = canonical_v2_plan(repo_root, freeze_commit)
-    if plan["sha256"] != FROZEN_CANONICAL_V2_PLAN_SHA256:
+    if require_live_plan_authority and plan["sha256"] != FROZEN_CANONICAL_V2_PLAN_SHA256:
         _refuse("canonical V2 plan identity drifted from the authenticated freeze")
     return {
         "freeze_parent_head": freeze_commit,
@@ -589,7 +605,7 @@ def required_v2_arm_binding_fields(repo_root: Path, freeze_commit: str) -> dict[
         "reviewed_implementation_tree": implementation_tree,
         "v2_policy_sha256": policy_sha256,
         "v2_policy_size": policy_size,
-        "canonical_v2_plan_sha256": FROZEN_CANONICAL_V2_PLAN_SHA256,
+        "canonical_v2_plan_sha256": plan["sha256"],
         "canonical_world_count": FROZEN_CANONICAL_WORLD_COUNT,
         "original_prereg_head": FROZEN_ORIGINAL_PREREG_HEAD,
         "original_prereg_tree": FROZEN_ORIGINAL_PREREG_TREE,
@@ -632,7 +648,11 @@ def _assert_executed_runtime_bound_to_commit(repo_root: Path, commit: str) -> No
 
 
 def _v2_arm_payload_authorizes_at_commit(
-    repo_root: Path, commit: str, payload: Mapping[str, Any]
+    repo_root: Path,
+    commit: str,
+    payload: Mapping[str, Any],
+    *,
+    require_live_plan_authority: bool = True,
 ) -> bool:
     """Verify an ARM payload against tracked git objects at ``commit``.
 
@@ -642,6 +662,17 @@ def _v2_arm_payload_authorizes_at_commit(
     never caller-selected. Payload fields must match that authenticated
     freeze; they are not themselves authority. The older rank-policy freeze
     artifact is not sufficient execution authority.
+
+    ``require_live_plan_authority`` (default ``True``): when ``True``, the
+    ARM's plan identity must equal the live-imported
+    ``FROZEN_CANONICAL_V2_PLAN_SHA256`` -- this is what gates whether
+    ``commit`` is the CURRENTLY recognized production authority (used for
+    live authorization at ``HEAD`` and for constructing new ARMs). When
+    ``False`` (used only by ``verify_historical_v2_execution_authority``),
+    plan identity is instead checked for pure self-consistency against
+    ``commit``'s own immutable git objects -- never against the live
+    global -- so a historical ARM's authorization can never be retroactively
+    invalidated by a later, unrelated bump of the live plan constant.
     """
     if not isinstance(payload, Mapping):
         return False
@@ -665,7 +696,9 @@ def _v2_arm_payload_authorizes_at_commit(
         return False
 
     try:
-        expected_bindings = required_v2_arm_binding_fields(repo_root, parent)
+        expected_bindings = required_v2_arm_binding_fields(
+            repo_root, parent, require_live_plan_authority=require_live_plan_authority
+        )
     except SyntheticExecutionNotAuthorized:
         return False
     for key, expected in expected_bindings.items():
@@ -687,10 +720,17 @@ def _v2_arm_payload_authorizes_at_commit(
             return False
 
     plan = canonical_v2_plan(repo_root, commit)
-    if plan["sha256"] != FROZEN_CANONICAL_V2_PLAN_SHA256:
-        return False
-    if payload["canonical_v2_plan_sha256"] != FROZEN_CANONICAL_V2_PLAN_SHA256:
-        return False
+    if require_live_plan_authority:
+        if plan["sha256"] != FROZEN_CANONICAL_V2_PLAN_SHA256:
+            return False
+        if payload["canonical_v2_plan_sha256"] != FROZEN_CANONICAL_V2_PLAN_SHA256:
+            return False
+    else:
+        # Historical: the ARM's claimed plan identity must match what
+        # independently recomputes from this exact commit's own git
+        # objects -- never the live-imported global.
+        if plan["sha256"] != payload["canonical_v2_plan_sha256"]:
+            return False
     if payload["canonical_world_count"] != FROZEN_CANONICAL_WORLD_COUNT:
         return False
     if plan["payload"]["v1_planned_worlds"] != FROZEN_CANONICAL_WORLD_COUNT:
@@ -911,7 +951,9 @@ def verify_historical_v2_execution_authority(
     payload = _load_commit_json(repo_root, commit, CANONICAL_V2_ARM_PATH)
     if payload is None:
         _refuse("historical commit is not armed")
-    if not _v2_arm_payload_authorizes_at_commit(repo_root, commit, payload):
+    if not _v2_arm_payload_authorizes_at_commit(
+        repo_root, commit, payload, require_live_plan_authority=False
+    ):
         _refuse("historical V2 ARM topology is not authorized")
     parent = _parent_sha_of(repo_root, commit)
     parent_tree = _git(repo_root, "rev-parse", f"{parent}^{{tree}}").decode("ascii").strip().lower()
