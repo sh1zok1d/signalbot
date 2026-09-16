@@ -1,6 +1,6 @@
 {
   "schema": "harness_synthetic_edge_calibration_v3_prereg_freeze",
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "status": "FROZEN_BEFORE_V3_IMPLEMENTATION",
   "unit_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG_FREEZE",
   "not_a_result": true,
@@ -8,44 +8,60 @@
   "not_monte_carlo_execution": true,
   "not_b2_06_2025_2026_authorization": true,
   "prereg_review_verdict": "ACCEPTED",
-  "accepted_prereg_content": {
-    "head": "4b7e0d6dfda1cb9475a610f51ccbec0906fd0133",
-    "tree": "fe779fc37e31bd23700b6f70d476f4cb1249223d"
+  "amendment_status": "AMENDMENT_001_APPLIED_PRE_OUTCOME",
+  "supersedes": {
+    "previous_freeze_head": "4136f530378e91d545e2644a650f0a7a07a731c3",
+    "previous_freeze_artifact": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG_FREEZE (schema_version 1.0.0)",
+    "previous_freeze_bound_content_head": "4b7e0d6dfda1cb9475a610f51ccbec0906fd0133",
+    "previous_freeze_bound_content_tree": "fe779fc37e31bd23700b6f70d476f4cb1249223d",
+    "relationship": "does not rewrite, delete, or invalidate the previous freeze; that commit remains reachable, unmodified, valid historical evidence of the pre-amendment prereg text. This freeze supersedes it as the CURRENT scientific authority because the pre-amendment text was discovered, before any implementation/ARM/reservation/outcome, to be literally unimplementable (RNG namespace blocker) and to leave one implementation ambiguity open (SE ddof)."
   },
-  "freeze_parent_expected_head": "4b7e0d6dfda1cb9475a610f51ccbec0906fd0133",
+  "accepted_prereg_content": {
+    "head": "543687fe79ba2e6254e879b0574e58a1909c15fe",
+    "tree": "50750efc5fae32b128c3c89c2b9df506d000323c"
+  },
+  "freeze_parent_expected_head": "543687fe79ba2e6254e879b0574e58a1909c15fe",
   "freeze_commit_head": "UNSET_UNTIL_THIS_COMMIT",
   "freeze_commit_tree": "UNSET_UNTIL_THIS_COMMIT",
-  "note": "This freeze commit is a docs-only provenance descendant of the accepted V3 confirmatory prereg content. It does not rewrite, reinterpret, or improve any scientific choice in that content; it does not modify HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG.md or .json at all. Binding is to accepted_prereg_content.head/tree and the git blob SHA256s recorded below, all independently recomputed from that exact commit before this freeze was written. This freeze does not hash itself: freeze_commit_head/ freeze_commit_tree remain UNSET_UNTIL_THIS_COMMIT, matching the existing V2 execution-freeze convention, so this artifact never depends on a circular self-hash of its own digest. No V1/V2 frozen scientific artifact is touched. No V3 implementation exists. No V3 world/outcome was generated or inspected. No reservation or ARM was created.",
+  "note": "This freeze commit is a docs-only provenance descendant of the amended V3 confirmatory prereg content (Amendment 001: RNG namespace + SE ddof, both pre-outcome, neither outcome-driven). It does not modify HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG.md/.json or harness_synthetic_edge_calibration_v3_rng.py at all -- those were already committed by the amendment commit this freeze points to. Binding is to accepted_prereg_content.head/tree and the git blob SHA256s recorded below, all independently recomputed from that exact commit before this freeze was written. This freeze does not hash itself: freeze_commit_head/freeze_commit_tree remain UNSET_UNTIL_THIS_COMMIT, matching the established convention. No V1/V2 frozen scientific artifact is touched. No V3 world/outcome was generated or inspected. No reservation or ARM was created.",
   "frozen_prereg_artifacts": {
     "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG.md": {
       "path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG.md",
-      "sha256": "739247ef228c80988abd40ac60b095e0e4e9e5ee45f81761cb1e3aa846161085",
-      "size_bytes": 24208
+      "sha256": "ab03c68a3781c13cf5ba74d08d6c212dd9da42b87f7642700cf79294147918e0",
+      "size_bytes": 29885
     },
     "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG.json": {
       "path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG.json",
-      "sha256": "2d3a42e7fc9c91bf1b4bafaec01b2947b454e40151c47be9f2ff3f92a6e41617",
-      "size_bytes": 30734
+      "sha256": "194fed692018560661879dc67e14a4d139c79978fc0dac00aa6e0f934bd399b5",
+      "size_bytes": 35373
+    },
+    "harness_synthetic_edge_calibration_v3_rng.py": {
+      "path": "scripts/research/harness_synthetic_edge_calibration_v3_rng.py",
+      "sha256": "8bd6aef151139bc1afd4d890d7ba293b1adec5cf66b405dde677eccb3b06d698",
+      "size_bytes": 2325,
+      "note": "new primitive introduced by Amendment 001, now part of frozen authority"
     }
   },
   "authority_chain": {
     "parent_design_unit_head": "2759e09449e2ec4c041ea9ec433191c2bbbff9a1",
-    "parent_design_unit_note": "V3_CONFIRMATORY_SPEC.md close-of-design commit, bound inside the accepted prereg's own parent_design_artifacts",
+    "parent_design_unit_note": "V3_CONFIRMATORY_SPEC.md close-of-design commit",
     "base_main_head_at_design_start": "3339812a7ea30c7e325d83276f6ce4b5399afe50",
     "prereg_content_commit_chain": [
       "2759e09449e2ec4c041ea9ec433191c2bbbff9a1  (V3_CONFIRMATORY_SPEC.md, design-complete)",
       "c4d4566ec62d89df7f48232b6b3060abe218fadd  (V3_PREREG.md/.json materialized)",
-      "4b7e0d6dfda1cb9475a610f51ccbec0906fd0133  (block-length-selector implementation authority bound; accepted content frozen here)"
+      "4b7e0d6dfda1cb9475a610f51ccbec0906fd0133  (block-length-selector implementation authority bound)",
+      "4136f530378e91d545e2644a650f0a7a07a731c3  (ORIGINAL freeze of 4b7e0d6d; PREREG_FREEZE schema 1.0.0; superseded, remains valid historical evidence)",
+      "543687fe79ba2e6254e879b0574e58a1909c15fe  (Amendment 001: RNG namespace + SE ddof, pre-outcome; accepted content frozen by THIS document)"
     ]
   },
   "frozen_v1_primitive_identity": {
-    "note": "already referenced by the accepted prereg's reused_frozen_primitives; recorded here only as a binding cross-check, not re-derived or altered",
+    "note": "already referenced by the accepted prereg's reused_frozen_primitives; recorded here only as a binding cross-check, not re-derived or altered; UNCHANGED by Amendment 001",
     "source_file": "scripts/research/harness_synthetic_edge_calibration_v1_lib.py",
     "source_file_sha256": "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51",
     "source_file_size_bytes": 37636
   },
   "v3_world_identity_authority": {
-    "note": "already declared by the accepted prereg's rng_authority; recorded here only as a binding cross-check, not re-derived or altered",
+    "note": "already declared by the accepted prereg's rng_authority; recorded here only as a binding cross-check, not re-derived or altered; UNCHANGED by Amendment 001",
     "n_rows": 5000,
     "scenarios": [
       "EASY",
@@ -57,7 +73,12 @@
     "world_index_end": 10399,
     "count_per_scenario": 400,
     "new_rng_namespace_token": "V3_CONFIRMATORY",
+    "new_rng_namespace_function": "v3_namespace_seed(world_seed_int, *context) -- see frozen_prereg_artifacts.harness_synthetic_edge_calibration_v3_rng.py",
     "identity_function_reused_unmodified": "world_identity(scenario_id, n_rows, world_index)"
+  },
+  "se_hat_convention": {
+    "ddof": 1,
+    "note": "bound by Amendment 001; ddof=1 (sample standard deviation, Bessel's correction), equivalently numpy.std(theta_star, ddof=1)"
   },
   "v2_evidence_boundary_reaffirmed": {
     "v2_development_consumed": true,
@@ -82,6 +103,7 @@
     "v3_prereg_review_required": false,
     "v3_prereg_frozen": true,
     "v3_implementation_complete": false,
+    "v3_implementation_review_required": true,
     "v3_run_authorized": false,
     "v3_armed": false,
     "default_v4": false,

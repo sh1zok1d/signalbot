@@ -2640,3 +2640,49 @@ world/outcome generated or inspected. No reservation or ARM created.
 
 - next required step: `V3_IMPLEMENTATION`
 
+## 2026-09-16 — V3 prereg Amendment 001 (pre-outcome) + re-freeze
+
+Implementation correctly stopped before writing V3 scientific code: the
+frozen prereg (`4136f53d`) was literally unimplementable
+(`namespace_seed(world_seed, "V3_CONFIRMATORY", feature_id)` -- the frozen
+V1 primitive rejects any token outside `NAMESPACES=(DGP,BOOTSTRAP,PLACEBO,VISIBILITY)`)
+and left `SE_hat`'s `ddof` unbound. No V3 world/outcome was generated or
+inspected; no ARM/reservation existed.
+
+Classified `PRE_OUTCOME_CORRECTNESS_AND_SPEC_COMPLETENESS_AMENDMENT` --
+not outcome-driven, not a power/threshold repair, not a redesign.
+
+Blocker 1: editing `harness_synthetic_edge_calibration_v1_lib.py`'s
+`NAMESPACES` allowlist was evaluated and rejected (would break live
+`assert_v1_tcb_intact()` unless `FROZEN_V1_TCB_SHA256["lib"]` is also
+updated, or, if updated, reintroduce for TCB identity the exact
+live-global commit-purity defect already repaired once for canonical
+plan identity). Resolved with a new, non-frozen-file-modifying primitive
+`scripts/research/harness_synthetic_edge_calibration_v3_rng.py`
+(`v3_namespace_seed`), reusing `_uint64_from_digest` verbatim; `v1_lib.py`
+SHA256 `12230dcad7...` unchanged. Proven by
+`tests/research/test_harness_synthetic_edge_calibration_v3_rng.py`
+(7/7): all 4 existing namespace outputs/PCG64 prefixes unchanged;
+`V3_CONFIRMATORY` deterministic, distinct from BOOTSTRAP/PLACEBO, and
+byte-identical to what `namespace_seed()` itself would compute (proven
+via a local, in-memory-only, reverted allowlist extension).
+
+Blocker 2: `SE_hat` bound to `ddof=1` (`numpy.std(theta_star, ddof=1)`).
+
+Nothing else changed. Original freeze `4136f530378e91d545e2644a650f0a7a07a731c3`
+remains valid historical evidence of the pre-amendment text, not
+rewritten. New freeze binds the amended content at `543687fe79ba2e6254e879b0574e58a1909c15fe`.
+
+- v3_pre_outcome_amendment: **COMPLETE**
+- v3_rng_namespace_blocker: **CLOSED**
+- v3_se_ddof: **1**
+- v3_prereg_frozen: **true**
+- v3_implementation_complete: **false**
+- v3_implementation_review_required: **true**
+- v3_run_authorized: **false**
+- v3_armed: **false**
+- default_v4: **false**
+- b2_06_execution_authorized: **false**
+
+- next required step: `V3_IMPLEMENTATION`
+
