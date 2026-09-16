@@ -1,15 +1,16 @@
 # HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3 — Confirmatory Preregistration
 
-**Status:** `PREREG_MATERIALIZED_AWAITING_IMPLEMENTATION_AND_FREEZE`
+**Status:** `PREREG_AMENDED_AWAITING_IMPLEMENTATION_AND_FREEZE`
 **Unit ID:** `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3`
 **Unit type:** methodology calibration, not a market hypothesis
 **Base main head at design start:** `3339812a7ea30c7e325d83276f6ce4b5399afe50`
 **Parent design unit head:** `2759e09449e2ec4c041ea9ec433191c2bbbff9a1`
-**Execution status:** `v3_prereg_frozen = false`, `v3_run_authorized = false`, `v3_armed = false`
+**Amendment history:** Amendment 001 — pre-outcome correctness/spec-completeness amendment, §16. Original accepted content frozen at `4136f530378e91d545e2644a650f0a7a07a731c3` (that freeze remains valid historical evidence of the pre-amendment text and is not rewritten).
+**Execution status:** `v3_prereg_frozen = false` (pending new freeze of this amended text), `v3_run_authorized = false`, `v3_armed = false`
 
 Machine-readable twin: [`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG.json`](HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG.json).
 
-This document materializes, without leaving any scientific choice to implementation, the V3 methodology accepted across `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_POSTRUN_FORENSIC_REVIEW.md`, `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_CONFIRMATORY_DESIGN.md`, `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_CONFIRMATORY_SPEC.md`, and two rounds of independent adversarial methodology review (the second round corrected the dependence-aware resampling scheme from a gap-closed support-only extract to full-time-axis joint resampling). It is **not** a freeze, ARM, execution authorization, or permission to inspect fresh V3 outcomes.
+This document materializes, without leaving any scientific choice to implementation, the V3 methodology accepted across `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_POSTRUN_FORENSIC_REVIEW.md`, `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_CONFIRMATORY_DESIGN.md`, `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_CONFIRMATORY_SPEC.md`, two rounds of independent adversarial methodology review (the second round corrected the dependence-aware resampling scheme from a gap-closed support-only extract to full-time-axis joint resampling), and Amendment 001 (§16), a pre-outcome correctness/spec-completeness amendment closing two implementation blockers discovered after the original freeze but before any implementation, ARM, reservation, or V3 outcome. It is **not** a freeze, ARM, execution authorization, or permission to inspect fresh V3 outcomes.
 
 ---
 
@@ -220,7 +221,9 @@ b_hat_SB = min(b_hat_SB, b_max)                               # (9)  reference a
 ## 8. Studentized statistic and p-value
 
 ```text
-SE_hat = stdev_b(theta*_b),  b=1..999
+SE_hat = sample standard deviation of theta*_b, b=1..999, with ddof=1
+       = sqrt( sum_b( (theta*_b - mean_b(theta*_b))^2 ) / (999 - 1) )
+       = numpy.std(theta_star, ddof=1)   [equivalent implementation]
 T_obs  = theta_hat / SE_hat
 T*_b   = (theta*_b - theta_hat) / SE_hat
 p_one_sided = (1 + #{b : T*_b >= T_obs}) / (999 + 1)
@@ -228,6 +231,8 @@ p_one_sided = (1 + #{b : T*_b >= T_obs}) / (999 + 1)
 DETECTED iff world_valid AND theta_hat > 0 AND p_one_sided <= 0.05
           AND all 3 per-world validity guards pass (§10)
 ```
+
+`ddof=1` (Bessel's correction, the sample standard deviation) is bound explicitly by Amendment 001 (§16) to remove an implementation ambiguity the original text left open; it does not change `B=999`, `theta_hat`, `theta*_b` construction, `T_obs`, `T*_b`, the p-value formula, `alpha`, or any acceptance threshold.
 
 Single-level recentered bootstrap-t — the standard pairing for a studentized statistic with a single-level bootstrap SE. `DETECTED` is the **single** primary decision; it is not V2's `primary_positive AND bootstrap_positive AND placebo_separation` reconstructed under a new name.
 
@@ -239,7 +244,19 @@ Reused unchanged: `ROOT_SEED`, `world_identity()`, `world_seed()`, `namespace_se
 
 **Fresh world_index range:** `world_index in [10000, 10399]` (400 worlds) for each of `EASY`, `MODERATE`, `NULL`, `NONSTATIONARY_TRAP` at `N=5000`. V1/V2's canonical 3200-world grid exhausts `world_index 0..399` for every scenario at every frozen N (verified against `planned_production_jobs()`); `10000..10399` is disjoint with a large safety margin, requires no change to any frozen identity function, and makes V2-world reuse **mechanically impossible**, not merely policy-forbidden.
 
-**New RNG namespace token:** `"V3_CONFIRMATORY"` — `pcg64_generator(namespace_seed(world_seed, "V3_CONFIRMATORY", feature_id))` is the sole stream for the stationary-bootstrap block-continuation draws, deliberately distinct from V1/V2's `"BOOTSTRAP"`/`"PLACEBO"` tokens. `python_hash_forbidden = true`, `reroll_forbidden = true`.
+**New RNG namespace token — bound by Amendment 001 (§16):** `"V3_CONFIRMATORY"` is the sole stream for the stationary-bootstrap block-continuation draws, deliberately distinct from V1/V2's `"BOOTSTRAP"`/`"PLACEBO"` tokens. The frozen V1 `namespace_seed()` rejects any token outside its own `NAMESPACES = ("DGP","BOOTSTRAP","PLACEBO","VISIBILITY")` allowlist — extending that allowlist by editing `harness_synthetic_edge_calibration_v1_lib.py` was evaluated and rejected (it would either break the live `assert_v1_tcb_intact()` check unless `FROZEN_V1_TCB_SHA256["lib"]` in `harness_synthetic_edge_calibration_v2_production.py` is also updated, or, if that constant is updated, reintroduce for TCB identity the exact live-global commit-purity defect already found and repaired once for canonical plan identity — both out of scope for this narrow amendment). Instead:
+
+```text
+V3_NAMESPACE_SOURCE   = scripts/research/harness_synthetic_edge_calibration_v3_rng.py
+V3_NAMESPACE_SHA256    = 8bd6aef151139bc1afd4d890d7ba293b1adec5cf66b405dde677eccb3b06d698
+V3_NAMESPACE_SIZE      = 2325 bytes
+V3_NAMESPACE_FUNCTION   = v3_namespace_seed(world_seed_int, *context)
+V3_NAMESPACE_TOKEN      = V3_NAMESPACE = "V3_CONFIRMATORY"
+```
+
+`v3_namespace_seed(world_seed_int, *context)` computes exactly the value `namespace_seed(world_seed_int, "V3_CONFIRMATORY", *context)` would compute if its allowlist admitted the token: identical `"|".join(str(world_seed_int), "V3_CONFIRMATORY", *[str(c) for c in context])` payload, identical `_uint64_from_digest(sha256(...))` truncation, with `_uint64_from_digest` imported from the frozen V1 module and reused verbatim (not reimplemented). `harness_synthetic_edge_calibration_v1_lib.py` is not modified by this file or by this amendment; its SHA256 remains `12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51`, unchanged.
+
+`pcg64_generator(v3_namespace_seed(world_seed, feature_id))` is the sole stream for the stationary-bootstrap block-continuation draws. `python_hash_forbidden = true`, `reroll_forbidden = true`.
 
 ---
 
@@ -307,12 +324,28 @@ V2 is `DEVELOPMENT-CONSUMED`. Its canonical RESULT (`761cc9af…`) and WORLD_REC
 
 ---
 
-## 16. Explicit state
+## 16. Amendment 001 — pre-outcome correctness/spec-completeness amendment
+
+**Classification:** `PRE_OUTCOME_CORRECTNESS_AND_SPEC_COMPLETENESS_AMENDMENT`. Not outcome-driven, not a power repair, not a threshold repair, not a methodology redesign. Discovered and resolved before any V3 implementation, ARM, reservation, canonical world, or outcome existed.
+
+**Parent frozen commit:** `4136f530378e91d545e2644a650f0a7a07a731c3` (`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG_FREEZE`), which remains valid historical evidence of the original, pre-amendment text and is not rewritten.
+
+**Blocker 1 — RNG namespace impossibility.** The original text required `pcg64_generator(namespace_seed(world_seed, "V3_CONFIRMATORY", feature_id))`, but the frozen V1 `namespace_seed()` raises `ValueError` for any token outside `NAMESPACES = ("DGP","BOOTSTRAP","PLACEBO","VISIBILITY")`. The spec was therefore literally unimplementable as written. Resolved in §9 by a new, dedicated, non-frozen-file-modifying primitive (`scripts/research/harness_synthetic_edge_calibration_v3_rng.py`, `v3_namespace_seed`) that reproduces `namespace_seed`'s own hash construction exactly for the `"V3_CONFIRMATORY"` token, without editing `harness_synthetic_edge_calibration_v1_lib.py` (its SHA256 `12230dcad7…` is unchanged) or `FROZEN_V1_TCB_SHA256` in `harness_synthetic_edge_calibration_v2_production.py` (unchanged). Proven equivalent to what the frozen `namespace_seed()` would itself produce for this token (a local, in-memory-only, immediately-reverted allowlist extension inside a test — never written to disk), proven deterministic, and proven distinct from `BOOTSTRAP`/`PLACEBO` for the same world/context, by `tests/research/test_harness_synthetic_edge_calibration_v3_rng.py` (7/7 passing). All four existing namespace outputs and PCG64 stream prefixes are proven unchanged by the same test file.
+
+**Blocker 2 — SE_hat ddof ambiguity.** The original text specified `SE_hat = stdev_b(theta*_b)` without binding the delta-degrees-of-freedom convention. Resolved in §8: `ddof=1` (sample standard deviation, Bessel's correction), equivalently `numpy.std(theta_star, ddof=1)`. `B=999`, `theta_hat`, `theta*_b` construction, `T_obs`, `T*_b`, the p-value formula, `alpha`, and every acceptance threshold are unchanged.
+
+**Scope discipline:** no other section of this document was touched by this amendment. Clark-West adjustment, the estimand, candidate construction, support semantics and floor, `effective_N` semantics, the full-time-axis joint stationary-bootstrap algorithm, the block-length selector and its implementation authority, `B=999`, zero-support-replicate behavior, `alpha`, the Wilson aggregate rules, world counts, the fresh world-index range, TRAP semantics, the required diagnostics list, and `DEFAULT_V4` are all byte-for-byte unchanged from the frozen `4136f53` text.
+
+---
+
+## 17. Explicit state
 
 ```text
 v3_design_complete = true
 v3_prereg_materialized = true
-v3_prereg_review_required = true
+v3_prereg_review_required = false
+v3_prereg_amended = true
+v3_amendment_001_applied = true
 v3_prereg_frozen = false
 v3_run_authorized = false
 v3_armed = false
@@ -320,4 +353,4 @@ default_v4 = false
 b2_06_execution_authorized = false
 ```
 
-This document is the frozen-candidate specification awaiting independent prereg review. No fresh V3 acceptance outcome exists or may be inspected before that review, freeze, and ARM.
+This document is the amended, frozen-candidate specification, closed for a new freeze. No fresh V3 acceptance outcome exists or may be inspected before that new freeze and an ARM.

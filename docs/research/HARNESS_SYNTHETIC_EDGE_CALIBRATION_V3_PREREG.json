@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "status": "PREREG_MATERIALIZED_AWAITING_IMPLEMENTATION_AND_FREEZE",
+  "status": "PREREG_AMENDED_AWAITING_IMPLEMENTATION_AND_FREEZE",
   "unit_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3",
   "unit_type": "METHODOLOGY_CALIBRATION_NOT_MARKET_HYPOTHESIS",
   "base_main_head_at_design_start": "3339812a7ea30c7e325d83276f6ce4b5399afe50",
@@ -220,7 +220,7 @@
     }
   },
   "studentization_and_test": {
-    "SE_hat": "SE_hat = stdev_b(theta_star_b), b = 1..999 (single-level bootstrap standard deviation of the replicate estimates)",
+    "SE_hat": "SE_hat = sample standard deviation of theta_star_b, b=1..999, with ddof=1 (Bessel's correction); equivalently numpy.std(theta_star, ddof=1). Bound explicitly by Amendment 001 (amendment_history[0]) to remove an implementation ambiguity the original text left open; does not change B=999, theta_hat, theta_star_b construction, T_obs, T_star_b, the p-value formula, alpha, or any acceptance threshold.",
     "T_obs": "T_obs = theta_hat / SE_hat",
     "recentered_bootstrap_t": "T_star_b = (theta_star_b - theta_hat) / SE_hat, b = 1..999",
     "p_value": "p_one_sided = (1 + count_b[T_star_b >= T_obs]) / (999 + 1)",
@@ -228,7 +228,8 @@
     "alpha": 0.05,
     "sidedness": "one-sided",
     "DETECTED_definition": "DETECTED iff world_valid AND theta_hat > 0 AND p_one_sided <= 0.05 AND all three per_world_validity_guards pass",
-    "not_a_conjunction_of_correlated_gates": "DETECTED is the single primary decision; it is not V2's primary_positive AND bootstrap_positive AND placebo_separation reconstructed under a new name"
+    "not_a_conjunction_of_correlated_gates": "DETECTED is the single primary decision; it is not V2's primary_positive AND bootstrap_positive AND placebo_separation reconstructed under a new name",
+    "SE_hat_ddof": 1
   },
   "rng_authority": {
     "reused_unchanged": [
@@ -253,10 +254,23 @@
       "rationale": "V1/V2's canonical 3200-world grid exhausts world_index 0..399 for every scenario at every frozen N (verified against planned_production_jobs()); the range 10000..10399 is disjoint from that grid with a large safety margin, requires no change to any frozen identity function, and makes V2-world reuse mechanically impossible rather than merely policy-forbidden"
     },
     "new_namespace_token": "V3_CONFIRMATORY",
-    "namespace_usage": "pcg64_generator(namespace_seed(world_seed, 'V3_CONFIRMATORY', feature_id)) is the sole RNG stream for the stationary-bootstrap block-continuation draws; the block-length selector itself consumes no RNG (see block_length_selector.rng_for_selector_itself)",
+    "namespace_usage": "pcg64_generator(v3_namespace_seed(world_seed, feature_id)) is the sole RNG stream for the stationary-bootstrap block-continuation draws; the block-length selector itself consumes no RNG (see block_length_selector.rng_for_selector_itself). Bound by Amendment 001 (amendment_history[0]): the frozen V1 namespace_seed() rejects any token outside NAMESPACES=('DGP','BOOTSTRAP','PLACEBO','VISIBILITY'), so the original direct namespace_seed(world_seed,'V3_CONFIRMATORY',feature_id) call was literally unimplementable.",
     "namespace_distinctness": "deliberately distinct from V1/V2's 'BOOTSTRAP' and 'PLACEBO' namespace tokens to avoid any accidental stream collision with the now-superseded V1/V2 confirmatory mechanism",
     "python_hash_forbidden": true,
-    "reroll_forbidden": true
+    "reroll_forbidden": true,
+    "namespace_implementation_authority": {
+      "decision": "do NOT edit harness_synthetic_edge_calibration_v1_lib.py's NAMESPACES allowlist",
+      "reason": "editing it would either break the live assert_v1_tcb_intact() check unless FROZEN_V1_TCB_SHA256['lib'] in harness_synthetic_edge_calibration_v2_production.py is also updated, or, if that constant is updated to match, reintroduce for TCB identity the exact live-global commit-purity defect already found and repaired once for canonical plan identity (the historical-plan-authority repair); both are out of scope for this narrow amendment",
+      "chosen_mechanism": "new, dedicated, non-frozen-file-modifying primitive",
+      "source_file": "scripts/research/harness_synthetic_edge_calibration_v3_rng.py",
+      "source_file_sha256": "8bd6aef151139bc1afd4d890d7ba293b1adec5cf66b405dde677eccb3b06d698",
+      "source_file_size_bytes": 2325,
+      "function": "v3_namespace_seed(world_seed_int, *context)",
+      "equivalence": "computes exactly namespace_seed(world_seed_int, 'V3_CONFIRMATORY', *context) would compute if its allowlist admitted the token: identical '|'.join(str(world_seed_int), 'V3_CONFIRMATORY', *[str(c) for c in context]) payload, identical _uint64_from_digest(sha256(...)) truncation, with _uint64_from_digest imported from the frozen V1 module and reused verbatim, not reimplemented",
+      "v1_lib_sha256_unchanged": "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51",
+      "frozen_v1_tcb_sha256_unchanged": true,
+      "regression_proof": "tests/research/test_harness_synthetic_edge_calibration_v3_rng.py (7/7 passing): existing DGP/BOOTSTRAP/PLACEBO/VISIBILITY namespace_seed outputs and PCG64 stream prefixes unchanged; v3_namespace_seed deterministic; v3_namespace_seed distinct from BOOTSTRAP/PLACEBO for the same world/context; v3_namespace_seed proven byte-identical to what namespace_seed() itself would compute for the token via a local, in-memory-only, immediately-reverted allowlist extension (never written to disk); namespace_seed() confirmed to still reject the token by default"
+    }
   },
   "per_world_validity_guards": [
     {
@@ -415,11 +429,62 @@
   "authorization_state": {
     "v3_design_complete": true,
     "v3_prereg_materialized": true,
-    "v3_prereg_review_required": true,
+    "v3_prereg_review_required": false,
     "v3_prereg_frozen": false,
     "v3_run_authorized": false,
     "v3_armed": false,
     "default_v4": false,
-    "b2_06_execution_authorized": false
-  }
+    "b2_06_execution_authorized": false,
+    "v3_prereg_amended": true,
+    "v3_amendment_001_applied": true
+  },
+  "amendment_history": [
+    {
+      "amendment_id": "AMENDMENT_001",
+      "classification": "PRE_OUTCOME_CORRECTNESS_AND_SPEC_COMPLETENESS_AMENDMENT",
+      "not": [
+        "outcome-driven repair",
+        "power repair",
+        "threshold repair",
+        "methodology redesign"
+      ],
+      "discovered_before_any_outcome": true,
+      "parent_frozen_commit": "4136f530378e91d545e2644a650f0a7a07a731c3",
+      "parent_frozen_artifact": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG_FREEZE",
+      "parent_frozen_artifact_note": "remains valid historical evidence of the pre-amendment text; not rewritten",
+      "blockers_resolved": [
+        {
+          "id": "BLOCKER_1_RNG_NAMESPACE",
+          "problem": "frozen prereg required namespace_seed(world_seed,'V3_CONFIRMATORY',feature_id); frozen V1 namespace_seed() raises ValueError for any token outside NAMESPACES=('DGP','BOOTSTRAP','PLACEBO','VISIBILITY'); spec was literally unimplementable",
+          "resolution": "see rng_authority.namespace_implementation_authority"
+        },
+        {
+          "id": "BLOCKER_2_SE_DDOF",
+          "problem": "SE_hat = stdev_b(theta_star_b) did not bind delta-degrees-of-freedom",
+          "resolution": "ddof=1 (sample standard deviation, Bessel's correction); see studentization_and_test.SE_hat / SE_hat_ddof"
+        }
+      ],
+      "unchanged": [
+        "Clark-West adjustment",
+        "estimand",
+        "candidate construction",
+        "support semantics",
+        "support floor",
+        "effective_N semantics",
+        "stationary-bootstrap algorithm",
+        "block selector",
+        "selector authority",
+        "full-time-axis resampling",
+        "B=999",
+        "zero-support behavior",
+        "alpha",
+        "Wilson rules",
+        "world counts",
+        "world identity range",
+        "TRAP semantics",
+        "diagnostics",
+        "DEFAULT_V4"
+      ]
+    }
+  ]
 }
