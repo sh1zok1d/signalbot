@@ -1,0 +1,10 @@
+{
+  "arm_commit": "710cad607ec6740e550698cdc212f7dd33004481",
+  "arm_tree": "7c51d8c041bcb93697a6c9b0db17919d0cd2b02b",
+  "authorization_consumed": false,
+  "canonical_v2_plan_sha256": "b0ed15534ef0cf45f1232baa0d7c1881fb3a8aaa086477d67a5ab7e9198c677f",
+  "run_identity": "90d38af4951b0bbe00fc5ffaf7989c8940d178c31aad987176901c7ce947ad1e",
+  "schema": "harness_synthetic_edge_calibration_v2_production_reservation",
+  "schema_version": "1.0.0",
+  "v2_policy_sha256": "1700ada1985e622c9b6def95960b313f12cbb95fd290aa608b09eb44f2cad7ec"
+}
