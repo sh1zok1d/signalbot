@@ -144,16 +144,79 @@
     "replicate_count_rationale": "reuses the project's existing PRODUCTION_PLACEBO_REPLICATES constant (already reviewed, already used elsewhere in this codebase) rather than a newly invented number; odd count avoids quantile/comparison ties; gives p-value resolution (~0.001) far finer than the alpha=0.05 decision boundary",
     "zero_support_replicate_policy": "if sum_t(S_t^(b)) = 0 for any replicate b (ratio denominator undefined), the WHOLE WORLD is INVALID; no redraw, no rescue; matches the existing frozen convention in prediction_bootstrap (any nominal invalid replicate => candidate/world cannot satisfy the confirmatory gate)",
     "block_length_selector": {
-      "algorithm_reference": "Politis, D.N. and White, H. (2004), 'Automatic Block-Length Selection for the Dependent Bootstrap', Econometric Reviews 23(1):53-70; correction: Patton, A., Politis, D.N. and White, H. (2009), 'Correction to Automatic Block-Length Selection for the Dependent Bootstrap', Econometric Reviews 28(4):372-375",
+      "algorithm_reference": "Politis, D.N. and White, H. (2004), 'Automatic Block-Length Selection for the Dependent Bootstrap', Econometric Reviews 23(1):53-70, DOI 10.1081/ETC-120028836; correction: Patton, A., Politis, D.N. and White, H. (2009), 'Correction to Automatic Block-Length Selection for the Dependent Bootstrap', Econometric Reviews 28(4):372-375, DOI 10.1080/07474930802459016",
       "input_series_definition": "z_t = S_t * (d*_t - theta_hat), computed over the full chronological t-axis of each scored era (z_t = 0 at every S_t=0 row; zeros are retained, not discarded, since their temporal position carries the run-length/gap structure)",
       "input_series_derivation": "theta_hat is a ratio estimator theta_hat = sum(S_t*d*_t)/sum(S_t); its standard delta-method/Woodruff linearization has influence term proportional to S_t*(d*_t - theta_hat) (the constant 1/E[S] scale factor is dropped because autocovariance-based block-length selection is invariant to a positive scalar multiple); z_t is therefore the correct full-time-axis representation of the dependence structure governing the sampling variability of theta_hat, not an assumed or casually adopted formula",
-      "pooling_for_selection": "the four per-era z_t series are concatenated (pooled) solely to give the selector a stable ~4000-point estimate; concatenation seams have negligible effect on the aggregate spectral-density estimate",
+      "pooling_for_selection": "the four per-era z_t series are concatenated (pooled) into one series x of length nobs = sum of the 4 eras' row counts (approx 4000 for the canonical N=5000 DGP); this x/nobs is the input to the algorithm below",
       "calls_per_world": 1,
       "call_input": "the single observed (non-resampled) pooled z_t series",
       "reused_across": "all 4 eras' resampling and all 999 replicates within that world use the same selected b_hat",
-      "integer_conversion_and_clamping": "the stationary bootstrap consumes b_hat as the mean of a Geometric continuation-probability p = 1 / round(clamp(b_hat, 1, n_e)); clamped so the implied mean block length is >= 1 and <= the era's own row count",
-      "deterministic_fallback": "if the selector returns non-finite, undefined, zero, or negative b_hat for a world, the WHOLE WORLD is INVALID; no hand-picked rescue block is permitted",
-      "rng_for_selector_itself": "none; the selector is a deterministic function of the observed pooled z_t series"
+      "integer_conversion_and_clamping": "applied to the now-exactly-defined b_hat_SB output of exact_algorithm: the stationary bootstrap consumes b_hat_SB as the mean of a Geometric continuation-probability p = 1 / round(clamp(b_hat_SB, 1, n_e)); this is a SECOND, per-era clamp distinct from exact_algorithm.step_9_cap (that cap uses the pooled nobs; this clamp uses the individual scored era's own row count n_e, since each era is resampled separately, section 7)",
+      "deterministic_fallback": "any degenerate_case_table disposition, or non-finite/undefined/<=0 b_hat_SB at any stage, invalidates the WHOLE WORLD; no hand-picked rescue block is permitted",
+      "rng_for_selector_itself": "none; the selector is a deterministic function of the observed pooled z_t series",
+      "selector_implementation_authority": {
+        "choice": "A_LITERAL_PORT_OF_IDENTIFIED_REFERENCE_IMPLEMENTATION",
+        "package": "arch",
+        "package_version": "8.0.0",
+        "package_source": "PyPI (https://pypi.org/project/arch/); author Kevin Sheppard",
+        "source_file": "arch/bootstrap/base.py",
+        "source_file_sha256": "104d3552a8e79a801e2f8cd0401160f83a7263b4ff13da44a82d763e5664fd21",
+        "source_file_size_bytes": 60275,
+        "public_entry_point": "arch.bootstrap.optimal_block_length",
+        "public_entry_point_source_sha256": "b70543178ffb368cb22490f508de9bf35152eb9882ca4b66f26d338c5f1f4f12",
+        "implementing_function": "_single_optimal_block",
+        "implementing_function_source_sha256": "355cfaf81a09a42f32dd643d2cd5fd39a78d16faec1e4cc06a79a83d729b7421",
+        "branch_used": "stationary-bootstrap branch only (b_sb / d_sb / constant c=2); the circular-bootstrap branch (b_cb / d_cb / c=4/3) computed by the same function is discarded, unused",
+        "docstring_reference_match": "the reference function's own docstring cites Politis & White (2004) and Patton, Politis & White (2009) with the same DOIs bound above, confirming it implements the target algorithm"
+      },
+      "exact_algorithm": {
+        "input": "x = pooled z_t series (length nobs, approx 4000)",
+        "step_0_demean": "eps = x - mean(x)  (demeaning is internal to the reference algorithm; V3 does not pre-demean z_t itself)",
+        "step_1_caps_and_constants": {
+          "b_max": "ceil(min(3*sqrt(nobs), nobs/3))  -- cap applied to the raw selector output INSIDE the reference algorithm; distinct from and prior to the separate, already-frozen per-era clamp in integer_conversion_and_clamping",
+          "kn": "max(5, int(log10(nobs)))  -- int() truncates toward zero (floor, for nobs>1)",
+          "m_max": "ceil(sqrt(nobs)) + kn",
+          "cv": "2 * sqrt(log10(nobs) / nobs)  -- significance threshold, constant = 2"
+        },
+        "step_2_autocovariance_and_correlogram": {
+          "acv_i": "(eps[i:] @ eps[:nobs-i]) / nobs, for i = 0..m_max  -- BIASED autocovariance estimator gamma_hat(i), divided by nobs (not nobs-i)",
+          "abs_acorr_i": "abs(eps[i:] @ eps[:nobs-i]) / sqrt(v1_i * v2_i), where v1_i = eps[i+1:] @ eps[i+1:] and v2_i = eps[:-(i+1)] @ eps[:-(i+1)]  -- used only for the significance test below, NOT used in the G_hat/g_hat(0) sums (those use acv, not abs_acorr)"
+        },
+        "step_3_automatic_truncation_m": "opt_m = None; for i in 0..m_max: if i>=kn and all(abs_acorr[i-kn:i] < cv) and opt_m is None: opt_m = i - kn  -- first index where kn consecutive prior lags are all insignificant. m = 2*max(opt_m,1) if opt_m is not None else m_max; then m = min(m, m_max)",
+        "step_4_flat_top_lag_window": "h(x) = 1 for x<=1/2; h(x) = 2*(1-x) for 1/2<x<=1 (the x>1 branch, h(x)=0, is never evaluated since the summation below only reaches k/m<=1)",
+        "step_5_G_hat": "G_hat = sum_{k=1}^{m} 2 * h(k/m) * k * acv[k]",
+        "step_6_g_hat_0": "g_hat(0) = acv[0] + sum_{k=1}^{m} 2 * h(k/m) * acv[k]  -- equals the reference code's 'lr_acv' (long-run variance estimate, sigma_hat^2); distinct from G_hat",
+        "step_7_D_hat_SB": "D_hat_SB = 2 * g_hat(0)^2  -- the Patton-Politis-White (2009) corrected quantity, matches the reference source exactly (d_sb = 2 * lr_acv**2)",
+        "step_8_b_hat_SB": "b_hat_SB = (2 * G_hat^2 / D_hat_SB)^(1/3) * nobs^(1/3)",
+        "step_9_cap": "b_hat_SB = min(b_hat_SB, b_max)  -- reference algorithm's own internal cap, using pooled nobs"
+      },
+      "degenerate_case_table": [
+        {
+          "condition": "nobs too small for log10(nobs)/kn/m_max/b_max to be finite and positive (e.g. nobs<=1)",
+          "disposition": "world INVALID"
+        },
+        {
+          "condition": "acv[0] (sample variance of x) is 0 or non-finite",
+          "disposition": "world INVALID"
+        },
+        {
+          "condition": "any of acv[i], abs_acorr[i], G_hat, g_hat(0), D_hat_SB, b_hat_SB is non-finite (NaN/Inf)",
+          "disposition": "world INVALID"
+        },
+        {
+          "condition": "D_hat_SB <= 0",
+          "disposition": "world INVALID (mathematically D_hat_SB=2*g_hat(0)^2>=0; a non-positive value only arises from numerical degeneracy)"
+        },
+        {
+          "condition": "b_hat_SB <= 0 after all of the above",
+          "disposition": "world INVALID"
+        }
+      ],
+      "intentional_deviations_from_literal_reference": [
+        "only the stationary-bootstrap branch (c=2, b_sb) is used; the reference function's circular-bootstrap branch (c=4/3, b_cb) is computed but discarded, since V3 uses the stationary bootstrap only",
+        "the reference function's own docstring discloses a known, author-acknowledged discrepancy against Patton's original MATLAB reference program (autocovariances/autocorrelations computed using the maximum sample length rather than a common sampling length); inherited as-is since V3 pins this exact Python implementation, not the MATLAB one",
+        "degenerate_case_table adds an explicit fail-closed wrapper required for V3 world-validity semantics; it does not alter any arithmetic step of exact_algorithm"
+      ]
     }
   },
   "studentization_and_test": {
