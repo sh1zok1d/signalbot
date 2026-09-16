@@ -2524,3 +2524,48 @@ No scientific-code change. No control calibration execution.
 
 - next required step: `EXECUTE_CONTROL_CALIBRATION_FROM_EXACT_ARM_COMMIT`
 
+## 2026-09-16 — V2 confirmatory-power control calibration executed
+
+**Decision:** execute exactly one canonical 3200-world control calibration
+from ARM `710cad607ec6740e550698cdc212f7dd33004481`.
+
+Topology verified before reservation:
+
+- IMPLEMENTATION `8917c776ac8c148828bfab4395fd84890ff3c847`
+- FREEZE `bd5b5d3030f811faf7055517f314a2b1a51ba41e`
+- ARM `710cad607ec6740e550698cdc212f7dd33004481`
+- `ARM_AUTHORIZATION_VALID = YES`
+
+Reservation `068874d8fa710f474f91fe61224a7cc54a42e0cd` created by
+`establish_v2_durable_reservation`. RUN_IDENTITY
+`90d38af4951b0bbe00fc5ffaf7989c8940d178c31aad987176901c7ce947ad1e`.
+PLAN `b0ed15534ef0cf45f1232baa0d7c1881fb3a8aaa086477d67a5ab7e9198c677f`.
+WORLD_JOB_SHA `5adf682ee48a868acbe01d9e0b9e33133db26089119396b3539b4e9cb8af5bb6`.
+
+Execution: 3200/3200 worlds completed; WORLD_VALID=3200; WORLD_INVALID=0;
+CANDIDATE_IDENTIFIABLE=31708; CANDIDATE_NOT_IDENTIFIABLE=292.
+Coverage for all 33 required conclusions: ADEQUATE.
+
+Control-calibration evidence (does not overwrite historical blobs):
+
+- WORLD_RECORDS SHA256 `e8667f930a4acc7fb5dd26fa62414a8f4b359121336902aac651cb76f4e50dbf`
+- RECORDS_INNER SHA256 `f0d18ca1c8ed654856abca03d9e0f8d22b72ab5f6f4683cc11e45f3353bc0559`
+- VISIBILITY SHA256 `ed1c17f0e2eb8f04ed917a7c84811d10a0d152f770a9315d2ade1cac1be93f9b`
+- RESULT SHA256 `ffce3daa24eb9039526d6de4b11a6ac43cfd36803058fe21827f1cd1f839100b`
+
+`mint_v2_result` refused `V2VisibilityStatisticUnavailable`. RESULT assembled
+by `assemble_v2_result_payload_with_visibility` from independently derived
+per-world `GROUND_TRUTH_VISIBLE`. Frozen evaluator FINAL:
+`METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06`.
+
+Historical WORLD_RECORDS `d372eb00…` / VISIBILITY `9be8dceb…` / RESULT
+`761cc9af…` remain immutable at their minting commits.
+
+- production_executed: **true**
+- world_records_created: **true**
+- result_minted: **true** (control-calibration RESULT; `mint_v2_result` refused)
+- selective_rerun: **false**
+- second_canonical_attempt: **false**
+
+- next required step: `RECORD_FROZEN_CONTROL_CALIBRATION_EVALUATOR_OUTPUT`
+
