@@ -2462,3 +2462,38 @@ Canonical hashes unchanged:
 
 - next required step: `INDEPENDENT_IDENTITY_REBIND_REVIEW`
 
+## 2026-09-16 — V2 control-calibration execution freeze
+
+**Decision:** freeze the independently reviewed confirmatory-power control
+calibration runtime at implementation
+`8917c776ac8c148828bfab4395fd84890ff3c847`
+(tree `15664b6a47b7196fcd230619e134f6a89feec23e`).
+
+Canonical freeze artifact path remains
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_EXECUTION_FREEZE.json`.
+The freeze commit is the immediate child of `8917c776`. It does not rewrite
+historical freeze `2523b389` or historical ARM `18ebb4c`. Those remain the
+authority for historical plan `7fa12fd3…` and RUN_IDENTITY `2088e76f…`.
+
+This freeze binds plan
+`b0ed15534ef0cf45f1232baa0d7c1881fb3a8aaa086477d67a5ab7e9198c677f`,
+world count 3200, V1 jobs
+`5adf682ee48a868acbe01d9e0b9e33133db26089119396b3539b4e9cb8af5bb6`,
+and reviewed rank-policy
+`1700ada1985e622c9b6def95960b313f12cbb95fd290aa608b09eb44f2cad7ec`
+(size 46396). Freeze authentication forbids carrying ARM/RESULT/
+WORLD_RECORDS/RESERVATION on the freeze commit; those historical blobs
+remain byte-identical at their minting commits.
+
+- production_armed: **false**
+- production_executed: **false**
+- result_minted: **false**
+- world_records_created: **false**
+- arm_created: **false**
+- canonical_3200_run_started: **false**
+
+No scientific-code change in the freeze commit. No reservation. No control
+calibration execution. No RESULT mint.
+
+- next required step: `CREATE_CONTROL_CALIBRATION_PRODUCTION_ARM`
+

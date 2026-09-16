@@ -2,25 +2,31 @@
   "schema": "harness_synthetic_edge_calibration_v2_execution_freeze",
   "schema_version": "1.0.0",
   "status": "FROZEN_BEFORE_V2_PRODUCTION",
-  "unit_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_EXECUTION_FREEZE",
-  "implementation_review_verdict": "GO_FOR_NEW_IMPLEMENTATION_FREEZE",
+  "unit_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_CONTROL_CALIBRATION_EXECUTION_FREEZE",
+  "implementation_review_verdict": "TARGETED_REPAIR_COMPLETE",
   "reviewed_implementation": {
-    "head": "baf9f23045f4c19418eaaf3a9a7a1b69e21aff98",
-    "tree": "bd7aee5db2e6194058196d96c8a054bca08d0b86"
+    "head": "8917c776ac8c148828bfab4395fd84890ff3c847",
+    "tree": "15664b6a47b7196fcd230619e134f6a89feec23e"
   },
-  "freeze_parent_expected_head": "baf9f23045f4c19418eaaf3a9a7a1b69e21aff98",
+  "freeze_parent_expected_head": "8917c776ac8c148828bfab4395fd84890ff3c847",
   "freeze_commit_head": "UNSET_UNTIL_THIS_COMMIT",
   "freeze_commit_tree": "UNSET_UNTIL_THIS_COMMIT",
-  "note": "This freeze commit is a docs/test plumbing descendant of the independently reviewed authority-self-reference-repaired runtime. It does not claim that the freeze HEAD itself was the code HEAD independently reviewed. Binding is to reviewed_implementation.head/tree and the git blob SHA256s recorded below, all derived from that exact commit. This freeze does not hash itself. Unlike the two historical freezes it supersedes as CURRENT execution authority, this freeze's identity is never hardcoded into the byte-bound implementation it freezes: the runtime (as of baf9f23) derives the freeze commit structurally as the immediate parent of a future ARM, then authenticates it from git objects at this document's stable canonical path -- so no further implementation edit is required to make this freeze consumable.",
+  "note": "This freeze commit is a docs/test plumbing descendant of the independently reviewed confirmatory-power + plan-identity-rebind + historical-plan-authority-commit-purity implementation. It does not claim that the freeze HEAD itself was the code HEAD independently reviewed. Binding is to reviewed_implementation.head/tree and the git blob SHA256s recorded below, all derived from that exact commit. This freeze does not hash itself. Freeze identity is never hardcoded into production.py: the runtime derives the freeze commit structurally as the immediate parent of a future ARM, then authenticates it from git objects at this document's stable canonical path. Historical ARM 18ebb4c / freeze 2523b389 remain valid historical authority for plan 7fa12fd3 and are not rewritten. This freeze does not carry historical ARM/RESULT/WORLD_RECORDS/RESERVATION artifacts; those blobs remain immutable at their historical commits.",
   "authority_distinction": {
     "historical_33_33_freeze_valid": true,
     "historical_33_33_freeze_binds_implementation": "614295d4c0bf7a263bd2c6dc9a5c595e2c80055f",
     "historical_post_wiring_freeze_valid": true,
     "historical_post_wiring_freeze_binds_implementation": "c1d6acc9f3db3b35f06a02d7fb2361b8d4ea69c5",
-    "historical_post_wiring_freeze_sufficient_for_current_runtime": false,
+    "historical_self_reference_execution_freeze_valid": true,
+    "historical_self_reference_execution_freeze_binds_implementation": "baf9f23045f4c19418eaaf3a9a7a1b69e21aff98",
+    "historical_self_reference_execution_freeze_head": "2523b389e10585c81e18a69f43cc1e38fface41f",
+    "historical_canonical_arm_head": "18ebb4c5629e1717a6633ee6bd63cda7c0bb65ea",
+    "historical_canonical_plan_sha256": "7fa12fd3b939cd210a69da37659fd1013a1dba43aca4c06abb6f5a6442a33800",
+    "historical_canonical_run_identity": "2088e76f99685c36e65387117b6f8a49482b3b68939f01d827023e0d36991818",
     "current_execution_freeze": "this artifact",
-    "current_execution_freeze_binds_implementation": "baf9f23045f4c19418eaaf3a9a7a1b69e21aff98",
-    "reason": "production.py changed twice after the historical 33/33 freeze (ARM-authorization-wiring repair at 84f4c566, live-runtime session-binding repair at c1d6acc), and a third time in this unit's own implementation predecessor (authority-self-reference repair at baf9f23, removing the hardcoded freeze/implementation SHAs that made the post-wiring freeze at 75f12bd unconsumable by any future ARM). Scientific methodology did not change at any step. Each historical freeze remains exact evidence of the implementation it names; none of them authorizes execution of a later, byte-different production.py."
+    "current_execution_freeze_binds_implementation": "8917c776ac8c148828bfab4395fd84890ff3c847",
+    "current_canonical_plan_sha256": "b0ed15534ef0cf45f1232baa0d7c1881fb3a8aaa086477d67a5ab7e9198c677f",
+    "reason": "This freeze binds the confirmatory-power control-calibration runtime (reviewed rank-policy 1700ada1, plan b0ed1553). The prior execution freeze 2523b389 remains exact historical evidence of baf9f23 / plan 7fa12fd3 and of canonical WORLD_RECORDS/VISIBILITY/RESULT. It does not authorize this later, byte-different production.py or rank_policy."
   },
   "authorization_repair_provenance": [
     {
@@ -37,6 +43,21 @@
       "role": "V2_AUTHORITY_SELF_REFERENCE_DESIGN_REPAIR",
       "head": "baf9f23045f4c19418eaaf3a9a7a1b69e21aff98",
       "tree": "bd7aee5db2e6194058196d96c8a054bca08d0b86"
+    },
+    {
+      "role": "V2_CONFIRMATORY_POWER_REPAIR",
+      "head": "dfd05b6b45eee12660ea4c5914fc781bd327104b",
+      "tree": "306ac8c5224d9b9c898bf34f1a89a7751544999d"
+    },
+    {
+      "role": "V2_CONTROL_PLAN_IDENTITY_REBIND",
+      "head": "ae0887b256b5625acb3932ad43ee2b754eb70c22",
+      "tree": "8a411441dc80a82ab7da84ebf312223457e9ea8e"
+    },
+    {
+      "role": "V2_HISTORICAL_PLAN_AUTHORITY_COMMIT_PURITY_REPAIR",
+      "head": "8917c776ac8c148828bfab4395fd84890ff3c847",
+      "tree": "15664b6a47b7196fcd230619e134f6a89feec23e"
     }
   ],
   "historical_freezes": [
@@ -68,6 +89,24 @@
         "git_blob": "4c367954333cf89e92a2e06727af86aad387eecb",
         "sha256": "f3563cbef13305e601d5698a4ec5b1933e6531b2d18388647ffd814ed1199306",
         "size_bytes": 14328
+      }
+    },
+    {
+      "role": "HISTORICAL_SELF_REFERENCE_EXECUTION_FREEZE",
+      "head": "2523b389e10585c81e18a69f43cc1e38fface41f",
+      "tree": "c779d293214e0e1e7994464afbbc2be928d6ce4d",
+      "reviewed_implementation_head": "baf9f23045f4c19418eaaf3a9a7a1b69e21aff98",
+      "reviewed_implementation_tree": "bd7aee5db2e6194058196d96c8a054bca08d0b86",
+      "still_historically_valid": true,
+      "rewritten_by_this_unit": false,
+      "canonical_plan_sha256": "7fa12fd3b939cd210a69da37659fd1013a1dba43aca4c06abb6f5a6442a33800",
+      "historical_arm_head": "18ebb4c5629e1717a6633ee6bd63cda7c0bb65ea",
+      "freeze_artifact": {
+        "path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_EXECUTION_FREEZE.json",
+        "git_blob": "d93bf3c7eeb04c05c51ef181dfa7fa84c5898386",
+        "sha256": "662424d5186b5abf861e291b8c11235da1c3cde56cb96a9af05febe3d878ba7f",
+        "size_bytes": 15774,
+        "recorded_at_commit": "2523b389e10585c81e18a69f43cc1e38fface41f"
       }
     }
   ],
@@ -185,28 +224,30 @@
     },
     "execution_authoritative_v2_policy_source": {
       "path": "scripts/research/harness_synthetic_edge_calibration_v2_rank_policy.py",
-      "git_blob": "ac4ee082405e5291c7b093ba407f1a41203cb752",
-      "sha256": "36336e0d6e1006a11d04911f91034898e6b5d8a52cb370fd83a2a1bdd19a2289",
-      "size_bytes": 42588
+      "git_blob": "77e485002ef32dd50dccf953874a36a3dfbd92e5",
+      "sha256": "1700ada1985e622c9b6def95960b313f12cbb95fd290aa608b09eb44f2cad7ec",
+      "size_bytes": 46396,
+      "note": "Reviewed confirmatory-power repair bytes. Distinct from the historical fixture freeze source 36336e0d. Scientific semantics: detected=MODEL_DETECTED."
     }
   },
   "execution_authoritative_implementation_sources": [
     {
       "role": "INHERITED_LADDER",
       "path": "scripts/research/harness_synthetic_edge_calibration_v2_inherited_ladder.py",
-      "git_blob": "b6be00edf4e42460fb03a29266fcc0ff0564dd2b",
-      "sha256": "e3ef3801da5a200c43b3f3e14c84045c9f7bf52cc85e0d8f5f43a4e087591193",
-      "size_bytes": 37038,
-      "unchanged_since_historical_33_33_implementation": true
+      "git_blob": "95c8ee7da8abebfa30c364532ba58ea73f706546",
+      "sha256": "a206f97cdc597ec8e8c68943df80f21ce3eed508459b2dc2c298fa50159fec17",
+      "size_bytes": 37701,
+      "unchanged_since_historical_33_33_implementation": false,
+      "change_class": "confirmatory_power_MATERIALITY_ONLY_DIAGNOSTIC_counts_STRICT_PASS"
     },
     {
       "role": "PRODUCTION",
       "path": "scripts/research/harness_synthetic_edge_calibration_v2_production.py",
-      "git_blob": "9c0451a35ea9e0b42709769545f606018e88dee9",
-      "sha256": "ca04e53aca9f5260c00ab529036e0690a7652f5448b1dfa1c9e39651c75e02df",
-      "size_bytes": 73721,
+      "git_blob": "bc8aa38d5722d8940e8730cf3073af3172068c53",
+      "sha256": "79aac05a9fa16795c52191d5e43113a93ff2601b52aa21175ea5e30fc47ad3ed",
+      "size_bytes": 76011,
       "unchanged_since_historical_33_33_implementation": false,
-      "change_class": "authorization_wiring_and_self_reference_design_repairs_only"
+      "change_class": "plan_identity_rebind_and_historical_plan_authority_commit_purity_repair"
     }
   ],
   "v1_tcb_files": [
@@ -247,17 +288,33 @@
     }
   ],
   "canonical_v2_plan": {
-    "sha256": "7fa12fd3b939cd210a69da37659fd1013a1dba43aca4c06abb6f5a6442a33800",
+    "sha256": "b0ed15534ef0cf45f1232baa0d7c1881fb3a8aaa086477d67a5ab7e9198c677f",
     "world_count": 3200,
     "derivation": "canonical_v2_plan() at the reviewed implementation commit: FROZEN_V1_PRODUCTION_GRID + FROZEN_V2_RANK_POLICY. Not a tracked plan file; identity is the deterministic SHA256 of that payload.",
     "v1_planned_jobs_sha256": "5adf682ee48a868acbe01d9e0b9e33133db26089119396b3539b4e9cb8af5bb6",
-    "v2_policy_sha256": "36336e0d6e1006a11d04911f91034898e6b5d8a52cb370fd83a2a1bdd19a2289"
+    "v2_policy_sha256": "1700ada1985e622c9b6def95960b313f12cbb95fd290aa608b09eb44f2cad7ec",
+    "v2_policy_size": 46396
+  },
+  "scientific_semantics": {
+    "MODEL_DETECTED": "primary_positive AND bootstrap_positive AND placebo_separation",
+    "EASY_POWER_INPUT": "MODEL_DETECTED",
+    "MODERATE_POWER_INPUT": "MODEL_DETECTED",
+    "MODEL_FLOOR_INPUT": "MODEL_DETECTED",
+    "NULL_FPR_INPUT": "MODEL_DETECTED",
+    "STRICT_PASS": "unchanged",
+    "MATERIALITY": 0.02,
+    "EASY_wilson_lower_min": 0.9,
+    "MODERATE_wilson_lower_min": 0.7,
+    "NULL_wilson_upper_max": 0.05,
+    "TRAP_protection": "unchanged",
+    "identifiability_semantics": "unchanged",
+    "visibility_semantics": "unchanged"
   },
   "visibility_limitation": {
     "status": "UNRESOLVED_FAIL_CLOSED",
     "sentinel": "V2VisibilityStatisticUnavailable",
     "resolved_in_this_freeze": false,
-    "note": "The frozen V2 policy fixture does not compute a GROUND_TRUTH_VISIBLE-equivalent statistic. Six conclusion ids/inputs remain visibility-blocked. The implementation refuses rather than defaulting the missing statistic. This freeze does not resolve the gap and does not authorize resolving it."
+    "note": "This freeze does not resolve visibility for the control calibration and does not authorize resolving it. Historical canonical visibility evidence 9be8dceb remains immutable at its historical commit and is not this freeze's visibility resolution."
   },
   "known_non_blocking_limitations": [
     {
@@ -292,7 +349,9 @@
     "modify_implementation_code": true,
     "rewrite_historical_33_33_freeze": true,
     "rewrite_historical_post_wiring_freeze": true,
+    "rewrite_historical_self_reference_execution_freeze": true,
     "claim_any_historical_freeze_invalid": true,
+    "modify_old_canonical_world_records_visibility_or_result_blobs": true,
     "change_methodology": true,
     "repair_minor_1": true,
     "repair_minor_2": true,
