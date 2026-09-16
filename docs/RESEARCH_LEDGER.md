@@ -2497,3 +2497,30 @@ calibration execution. No RESULT mint.
 
 - next required step: `CREATE_CONTROL_CALIBRATION_PRODUCTION_ARM`
 
+## 2026-09-16 — V2 control-calibration production ARM
+
+**Decision:** arm exactly one canonical 3200-world V2 control-calibration
+production execution as the immediate child of freeze
+`bd5b5d3030f811faf7055517f314a2b1a51ba41e`.
+
+ARM binds:
+
+- reviewed implementation `8917c776ac8c148828bfab4395fd84890ff3c847`
+- plan `b0ed15534ef0cf45f1232baa0d7c1881fb3a8aaa086477d67a5ab7e9198c677f`
+- world count 3200
+- rank-policy `1700ada1985e622c9b6def95960b313f12cbb95fd290aa608b09eb44f2cad7ec`
+
+Historical ARM `18ebb4c5629e1717a6633ee6bd63cda7c0bb65ea` remains valid for
+plan `7fa12fd3…` and RUN_IDENTITY `2088e76f…`. The new ARM does not
+authorize that historical plan.
+
+- authorization_consumed: **false**
+- reservation_created: **false**
+- production_executed: **false**
+- result_minted: **false**
+- world_records_created: **false**
+
+No scientific-code change. No control calibration execution.
+
+- next required step: `EXECUTE_CONTROL_CALIBRATION_FROM_EXACT_ARM_COMMIT`
+
