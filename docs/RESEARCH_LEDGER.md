@@ -2569,3 +2569,42 @@ Historical WORLD_RECORDS `d372eb00…` / VISIBILITY `9be8dceb…` / RESULT
 
 - next required step: `RECORD_FROZEN_CONTROL_CALIBRATION_EVALUATOR_OUTPUT`
 
+## 2026-09-16 — V3 confirmatory preregistration materialized
+
+Materializes `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_CONFIRMATORY_DESIGN.md` /
+`_SPEC.md` plus two rounds of independent adversarial methodology review
+into a single binding prereg (`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG.md`
+/ `.json`). No scientific choice left to implementation.
+
+Binds: claim-conditional Clark-West-adjusted estimand `theta_hat =
+sum(S_t*d*_t)/sum(S_t)` on the unmodified `expanding_era_predictions`
+nested BASE/CAND construction (overlay-with-fallback forbidden for this
+calibration); full-time-axis joint `(d*_t,S_t)` stationary bootstrap
+(gap-closed support-only resampling forbidden); Politis-White (2004) +
+Patton-Politis-White (2009) automatic block length on the derived
+influence series `z_t=S_t*(d*_t-theta_hat)`, one selector call per world;
+`B=999`; recentered bootstrap-t one-sided p-value, `alpha=0.05`; exactly 3
+per-world validity guards (chronology, support validity, identifiability
+and resampling validity) — `NONSTATIONARY_TRAP` reclassified as a fourth
+aggregate acceptance cell, not a guard, using the identical `DETECTED`
+indicator; `support_count>=50` hard floor, `effective_N` diagnostic-only;
+one-sided Wilson `z=1.6448536269514722`, 400 fresh worlds/cell
+(EASY/MODERATE/NULL/NONSTATIONARY_TRAP), exact integer PASS/FAIL
+boundaries; fresh `world_index 10000..10399` at `N=5000` (disjoint from
+the V1/V2 canonical grid's `0..399`, mechanically not policy-only); new
+RNG namespace `V3_CONFIRMATORY`.
+
+No V1/V2 frozen artifact modified. No implementation exists yet. No
+freeze, ARM, reservation, execution, or fresh V3 outcome.
+
+- v3_design_complete: **true**
+- v3_prereg_materialized: **true**
+- v3_prereg_review_required: **true**
+- v3_prereg_frozen: **false**
+- v3_run_authorized: **false**
+- v3_armed: **false**
+- default_v4: **false**
+- b2_06_execution_authorized: **false**
+
+- next required step: `INDEPENDENT_V3_PREREG_REVIEW`
+

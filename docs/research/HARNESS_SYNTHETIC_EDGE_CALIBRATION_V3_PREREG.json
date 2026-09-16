@@ -1,0 +1,362 @@
+{
+  "schema_version": "1.0",
+  "status": "PREREG_MATERIALIZED_AWAITING_IMPLEMENTATION_AND_FREEZE",
+  "unit_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3",
+  "unit_type": "METHODOLOGY_CALIBRATION_NOT_MARKET_HYPOTHESIS",
+  "base_main_head_at_design_start": "3339812a7ea30c7e325d83276f6ce4b5399afe50",
+  "parent_design_unit_head": "2759e09449e2ec4c041ea9ec433191c2bbbff9a1",
+  "parent_design_artifacts": {
+    "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_POSTRUN_FORENSIC_REVIEW.md": {
+      "sha256": "96a61ed5e06a1c77719f54070ff800aa951e0e17fcaa376ecc1f0b798a544ca5",
+      "role": "empirical motivation only; not V3 acceptance evidence"
+    },
+    "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_CONFIRMATORY_DESIGN.md": {
+      "sha256": "daab14f030de7b1a6d7bf22b10930527398ebebc1cd3752c59e52eecb01e971c",
+      "role": "revised design direction, accepted"
+    },
+    "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_CONFIRMATORY_SPEC.md": {
+      "sha256": "3cfa48ce3863c67883eb713961d112c6ca340191afe42534869c66e87451187c",
+      "role": "closed design-complete spec, accepted; this prereg materializes it"
+    },
+    "independent_adversarial_methodology_review": {
+      "rounds": 2,
+      "round_1_scope": "Clark-West appropriateness; stationary bootstrap; block-length selector; support validity; TRAP rule; Wilson n=400 arithmetic; hard-guard/diagnostic separation; falsification pass",
+      "round_2_scope": "narrow correction: full-time-axis joint stationary-bootstrap resampling in place of gap-closed support-only resampling; derivation of z_t block-length-selector input; hard-guard/aggregate-gate taxonomy correction (TRAP is not a per-world guard)",
+      "outcome": "no blocker; two implementation-detail gaps closed by specification, not redesign",
+      "not_a_git_artifact": "review conducted in the reviewing session; not committed separately; this prereg is its materialization"
+    }
+  },
+  "purpose": "measure V3 confirmatory-power sensitivity for one prospectively frozen conditional claim, subject to a fixed false-positive budget and preserved nonstationary/trap protection, correcting the specific V2 measured deficiency (bootstrap confirmation gate far less sensitive than the primary point-estimate/placebo paths on the MODERATE DGP) without reopening general methodology redesign",
+  "not_this_unit": [
+    "not a general discovery framework",
+    "not multi-candidate/multiplicity correction",
+    "not a V4 or further synthetic iteration",
+    "not B2-06 authorization",
+    "not real market data access",
+    "not a rescue of the completed V2 canonical RESULT"
+  ],
+  "boundaries": {
+    "v3_prereg_frozen": false,
+    "v3_run_authorized": false,
+    "v3_armed": false,
+    "default_v4": false,
+    "b2_06_scientific_execution_authorized": false,
+    "real_market_data_access_authorized": false,
+    "validation_2025_authorized": false,
+    "oos_2026_authorized": false,
+    "modify_v1_v2_frozen_artifacts": false,
+    "modify_v2_inventory": false,
+    "rerun_v2_canonical_worlds": false,
+    "market_promotion_possible": false
+  },
+  "explicit_estimand_change_from_v2": {
+    "v2_estimand": "pooled mean AE improvement over ALL scored rows (S=0 and S=1 mixed), STRICT_PASS-style AND-of-gates confirmatory decision",
+    "v3_estimand": "claim-aligned conditional mean of a Clark-West-adjusted squared-loss differential, restricted to S_t=1, single studentized dependence-aware confirmatory decision",
+    "acknowledgement": "this is a genuine semantic change, not a strictly more powerful implementation of the identical V2 question; must remain explicit in every V3 result artifact"
+  },
+  "reused_frozen_primitives": {
+    "note": "V3 must call these exactly as committed; it may not reimplement, wrap-with-different-semantics, or fork them",
+    "source_file": "scripts/research/harness_synthetic_edge_calibration_v1_lib.py",
+    "source_file_sha256": "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51",
+    "source_file_size": 37636,
+    "functions": [
+      "simulate_dgp",
+      "world_identity",
+      "world_seed",
+      "namespace_seed",
+      "pcg64_generator",
+      "candidate_features",
+      "expanding_era_predictions",
+      "era_slices",
+      "scored_mask",
+      "era_blocks",
+      "ae_metrics",
+      "IncompleteWorld"
+    ],
+    "constants": [
+      "ROOT_SEED",
+      "SCORED_ERAS",
+      "ERA_NAMES",
+      "RHO"
+    ],
+    "explicitly_not_reused": [
+      "compose_gates (V1/V2 MODEL_DETECTED/STRICT_PASS gate composition; V3 has its own single DETECTED rule)",
+      "prediction_bootstrap / placebo_q95 / resample_era_rows (V1/V2 fixed-block bootstrap and permutation placebo; superseded by the V3 stationary-bootstrap procedure in this document)",
+      "evaluate_production_candidate (V1 production per-candidate orchestrator; V3 has its own orchestrator reusing only the primitives listed above)"
+    ]
+  },
+  "candidate_baseline_construction": {
+    "method": "reuse expanding_era_predictions(y, x1, x2, feature, n_rows) unchanged: BASE fit on (1, X1, X2), CAND fit on (1, X1, X2, feature), both OLS, same expanding per-era training window, refit once per scored era (E2..E5)",
+    "nesting": "CAND strictly nests BASE (BASE is CAND with the feature coefficient fixed at zero); required for Clark-West validity",
+    "overlay_with_baseline_fallback": "FORBIDDEN_FOR_THIS_CALIBRATION",
+    "overlay_forbidden_reason": "an overlay construction (candidate prediction = baseline + contribution only inside support, exact baseline fallback outside support) is a materially different nesting relationship; the Clark-West bias-correction identity in this document is derived for and verified against the expanding_era_predictions nested-OLS construction only, and does not transfer to an overlay construction without independent re-derivation and re-review",
+    "candidate_for_freeze": "F03 (oracle candidate, feature = S_t itself), matching the V1/V2 oracle-arm convention; V3 core validates one frozen claim, not the blind discovery library"
+  },
+  "loss": {
+    "primary_loss": "squared forecast error: L(y, yhat) = (y - yhat)^2",
+    "e_base_t": "e_B,t = Y_t - CAND-independent BASE_PRED_t",
+    "e_cand_t": "e_C,t = Y_t - CAND_PRED_t",
+    "raw_differential": "d_t = e_B,t^2 - e_C,t^2",
+    "raw_differential_role": "mandatory diagnostic; not the primary acceptance statistic"
+  },
+  "clark_west_adjustment": {
+    "formula": "d*_t = e_B,t^2 - (e_C,t^2 - (yhat_B,t - yhat_C,t)^2)",
+    "reference": "Clark, T.E. and West, K.D. (2007), 'Approximately normal tests for equal predictive accuracy in nested models', Journal of Econometrics 138(1):291-311",
+    "applicability_condition": "candidate must be actually nested in baseline per candidate_baseline_construction; if implementation review at freeze time finds the concrete construction is not nested in this sense, execution must remain blocked and this prereg must be revised before freeze without using fresh V3 outcomes",
+    "role": "removes the parameter-estimation-noise bias that inflates the apparent baseline advantage under H0 for nested OLS models; verified against the actual expanding_era_predictions construction, not assumed generically"
+  },
+  "estimand": {
+    "support_indicator": "w_t = S_t in {0,1}; support is the frozen DGP trigger process, fixed before confirmation, never learned from confirmation outcomes",
+    "theta_definition": "theta = E[d*_t | S_t = 1]",
+    "point_estimator": "theta_hat = sum_t(S_t * d*_t) / sum_t(S_t), sum over all scored rows of all four scored eras (E2..E5) pooled",
+    "estimator_class": "ratio (M-)estimator of a conditional mean",
+    "hypotheses": {
+      "H0": "theta <= 0",
+      "H1": "theta > 0"
+    },
+    "alpha": 0.05,
+    "sidedness": "one-sided"
+  },
+  "support_validity": {
+    "hard_floor": "support_count >= 50 finite scored S_t=1 observations, pooled over E2..E5",
+    "effective_N": {
+      "role": "mandatory diagnostic and [1, support_count] finiteness/range validity check only",
+      "not_a_power_veto": true,
+      "reason": "under the frozen persistent Markov support process (RHO=0.90), effective independent sample size is legitimately far below raw support_count (empirically verified: mean S=1 run length approx 8-12 rows, approx 25-80 independent runs per 4000-row scored world even when support_count is in the hundreds) even when the scenario is behaving exactly as designed; an effective_N hard gate would manufacture a new, unjustified power veto"
+    }
+  },
+  "dependence_aware_calibration": {
+    "resampling_family": "Politis-Romano stationary bootstrap (Politis, D.N. and Romano, J.P. (1994), 'The Stationary Bootstrap', Journal of the American Statistical Association 89(428):1303-1313)",
+    "resampled_object": "the full chronological paired sequence (d*_t, S_t) for every scored row t of a given era, t = 1..n_e; NOT the gap-closed {d*_t : S_t=1} extract",
+    "gap_closed_extract_forbidden": true,
+    "gap_closed_extract_forbidden_reason": "bootstrapping the support-only extract after deleting S_t=0 rows makes temporally distant support runs appear chronologically adjacent inside a resampled block, destroying the true Markov-run/gap structure; per-era-only resampling of the gap-closed extract does not fix this because multiple distinct S=1 runs commonly occur within one era",
+    "block_construction_algorithm": [
+      "1. per world, compute theta_hat once from the full observed pooled series (estimand.point_estimator)",
+      "2. select one expected block length b_hat once per world (block_length_selector)",
+      "3. per bootstrap replicate b=1..B, independently for each scored era e: draw stationary-bootstrap blocks over the full chronological row index 1..n_e of that era; each block is a contiguous run of original adjacent rows carrying its joint (d*_t, S_t) pair for every row in the block, never split; block start positions drawn uniformly on 1..n_e; block lengths i.i.d. Geometric(p=1/b_hat); if a block would run past n_e, wrap circularly within that era only, never into another era or into E1 (training-only)",
+      "4. concatenate drawn blocks until length >= n_e, then truncate to exactly n_e",
+      "5. concatenate the 4 resampled eras in era order without crossing era/refit boundaries to form the replicate's full resampled series (d*_t^(b), S_t^(b))",
+      "6. compute theta_star_b = sum_t(S_t^(b) * d*_t^(b)) / sum_t(S_t^(b))"
+    ],
+    "cross_era_block_crossing": "forbidden; blocks are drawn and resampled independently within each scored era, matching the frozen expanding-window per-era refit boundaries",
+    "circular_wrap_scope": "within the same scored era only",
+    "replicates": 999,
+    "replicate_count_rationale": "reuses the project's existing PRODUCTION_PLACEBO_REPLICATES constant (already reviewed, already used elsewhere in this codebase) rather than a newly invented number; odd count avoids quantile/comparison ties; gives p-value resolution (~0.001) far finer than the alpha=0.05 decision boundary",
+    "zero_support_replicate_policy": "if sum_t(S_t^(b)) = 0 for any replicate b (ratio denominator undefined), the WHOLE WORLD is INVALID; no redraw, no rescue; matches the existing frozen convention in prediction_bootstrap (any nominal invalid replicate => candidate/world cannot satisfy the confirmatory gate)",
+    "block_length_selector": {
+      "algorithm_reference": "Politis, D.N. and White, H. (2004), 'Automatic Block-Length Selection for the Dependent Bootstrap', Econometric Reviews 23(1):53-70; correction: Patton, A., Politis, D.N. and White, H. (2009), 'Correction to Automatic Block-Length Selection for the Dependent Bootstrap', Econometric Reviews 28(4):372-375",
+      "input_series_definition": "z_t = S_t * (d*_t - theta_hat), computed over the full chronological t-axis of each scored era (z_t = 0 at every S_t=0 row; zeros are retained, not discarded, since their temporal position carries the run-length/gap structure)",
+      "input_series_derivation": "theta_hat is a ratio estimator theta_hat = sum(S_t*d*_t)/sum(S_t); its standard delta-method/Woodruff linearization has influence term proportional to S_t*(d*_t - theta_hat) (the constant 1/E[S] scale factor is dropped because autocovariance-based block-length selection is invariant to a positive scalar multiple); z_t is therefore the correct full-time-axis representation of the dependence structure governing the sampling variability of theta_hat, not an assumed or casually adopted formula",
+      "pooling_for_selection": "the four per-era z_t series are concatenated (pooled) solely to give the selector a stable ~4000-point estimate; concatenation seams have negligible effect on the aggregate spectral-density estimate",
+      "calls_per_world": 1,
+      "call_input": "the single observed (non-resampled) pooled z_t series",
+      "reused_across": "all 4 eras' resampling and all 999 replicates within that world use the same selected b_hat",
+      "integer_conversion_and_clamping": "the stationary bootstrap consumes b_hat as the mean of a Geometric continuation-probability p = 1 / round(clamp(b_hat, 1, n_e)); clamped so the implied mean block length is >= 1 and <= the era's own row count",
+      "deterministic_fallback": "if the selector returns non-finite, undefined, zero, or negative b_hat for a world, the WHOLE WORLD is INVALID; no hand-picked rescue block is permitted",
+      "rng_for_selector_itself": "none; the selector is a deterministic function of the observed pooled z_t series"
+    }
+  },
+  "studentization_and_test": {
+    "SE_hat": "SE_hat = stdev_b(theta_star_b), b = 1..999 (single-level bootstrap standard deviation of the replicate estimates)",
+    "T_obs": "T_obs = theta_hat / SE_hat",
+    "recentered_bootstrap_t": "T_star_b = (theta_star_b - theta_hat) / SE_hat, b = 1..999",
+    "p_value": "p_one_sided = (1 + count_b[T_star_b >= T_obs]) / (999 + 1)",
+    "p_value_construction_rationale": "single-level recentered bootstrap-t (Efron & Tibshirani-style studentized/percentile-t construction); the natural pairing for a studentized statistic with a single-level bootstrap SE, giving the asymptotic-refinement benefit studentization is intended to provide, as opposed to a plain percentile-CI-on-theta test",
+    "alpha": 0.05,
+    "sidedness": "one-sided",
+    "DETECTED_definition": "DETECTED iff world_valid AND theta_hat > 0 AND p_one_sided <= 0.05 AND all three per_world_validity_guards pass",
+    "not_a_conjunction_of_correlated_gates": "DETECTED is the single primary decision; it is not V2's primary_positive AND bootstrap_positive AND placebo_separation reconstructed under a new name"
+  },
+  "rng_authority": {
+    "reused_unchanged": [
+      "ROOT_SEED",
+      "world_identity()",
+      "world_seed()",
+      "namespace_seed()",
+      "pcg64_generator()"
+    ],
+    "world_identity_scheme": "reuse the frozen world_identity(scenario_id, n_rows, world_index) function unmodified; the identity string literal prefix is unchanged (it is part of the frozen, pinned V1 TCB and is not edited for V3)",
+    "fresh_world_index_range": {
+      "n_rows": 5000,
+      "scenarios": [
+        "EASY",
+        "MODERATE",
+        "NULL",
+        "NONSTATIONARY_TRAP"
+      ],
+      "world_index_start": 10000,
+      "world_index_end": 10399,
+      "count_per_scenario": 400,
+      "rationale": "V1/V2's canonical 3200-world grid exhausts world_index 0..399 for every scenario at every frozen N (verified against planned_production_jobs()); the range 10000..10399 is disjoint from that grid with a large safety margin, requires no change to any frozen identity function, and makes V2-world reuse mechanically impossible rather than merely policy-forbidden"
+    },
+    "new_namespace_token": "V3_CONFIRMATORY",
+    "namespace_usage": "pcg64_generator(namespace_seed(world_seed, 'V3_CONFIRMATORY', feature_id)) is the sole RNG stream for the stationary-bootstrap block-continuation draws; the block-length selector itself consumes no RNG (see block_length_selector.rng_for_selector_itself)",
+    "namespace_distinctness": "deliberately distinct from V1/V2's 'BOOTSTRAP' and 'PLACEBO' namespace tokens to avoid any accidental stream collision with the now-superseded V1/V2 confirmatory mechanism",
+    "python_hash_forbidden": true,
+    "reroll_forbidden": true
+  },
+  "per_world_validity_guards": [
+    {
+      "id": "CHRONOLOGY",
+      "definition": "chronology/no-lookahead integrity: the training window for a scored era must never include that era or any later era"
+    },
+    {
+      "id": "SUPPORT_VALIDITY",
+      "definition": "support_count < 50, or effective_N non-finite or outside [1, support_count], invalidates the world (see support_validity)"
+    },
+    {
+      "id": "IDENTIFIABILITY_AND_RESAMPLING_VALIDITY",
+      "definition": "non-identifiability (rank-deficient OLS fit), non-finite required fit/prediction/statistic, block-length selector non-finite/undefined (see block_length_selector.deterministic_fallback), or any bootstrap replicate with zero resampled support (see zero_support_replicate_policy) invalidates the world"
+    }
+  ],
+  "validity_guard_count": 3,
+  "diagnostics_not_additional_gates": [
+    "placebo result (if computed for reference)",
+    "raw unadjusted conditional MSE differential (d_t | S_t=1)",
+    "unconditional/pool-wide MSE differential (mean d*_t over all scored rows, S=0 and S=1)",
+    "era-level effects",
+    "economic/materiality statistic (synthetic V3 imposes no fees/slippage acceptance gate; belongs to a real MARKET claim)",
+    "near-oracle diagnostic reference, if implemented",
+    "resampling-distribution shape/quantiles beyond the primary decision",
+    "effective_N beyond the validity/range check in support_validity",
+    "selected block length b_hat itself (reported, not a threshold)"
+  ],
+  "diagnostics_note": "a robustness item may become a hard guard only when it protects a distinct validity/correctness failure mode not already covered by the 3 per_world_validity_guards; none of the above qualify",
+  "aggregate_acceptance": {
+    "fresh_worlds_per_cell": 400,
+    "cells": [
+      "EASY",
+      "MODERATE",
+      "NULL",
+      "NONSTATIONARY_TRAP"
+    ],
+    "cell_kind": "AGGREGATE_ACCEPTANCE_CELLS, evaluated over the per-world DETECTED/NOT_DETECTED decision (studentization_and_test.DETECTED_definition); NOT per-world validity guards",
+    "world_seeds": "exactly rng_authority.fresh_world_index_range; no V1/V2 world_index reused, no reroll, no substitution",
+    "wilson": {
+      "sidedness": "one-sided",
+      "confidence": 0.95,
+      "z": 1.6448536269514722,
+      "formula": "center=(phat+z^2/(2n))/(1+z^2/n); half=z/(1+z^2/n)*sqrt(phat*(1-phat)/n+z^2/(4n^2)); lower=center-half; upper=center+half"
+    },
+    "targets": {
+      "EASY_power_min": 0.9,
+      "MODERATE_power_min": 0.7,
+      "NULL_fpr_max": 0.05,
+      "TRAP_detection_max": 0.2
+    },
+    "pass_fail_indeterminate_mechanics": {
+      "power_cells": "PASS iff Wilson lower(DETECTED rate) >= target_min; FAIL iff Wilson upper(DETECTED rate) < target_min; otherwise INDETERMINATE",
+      "specificity_ceiling_cells": "PASS iff Wilson upper(DETECTED rate) <= target_max; FAIL iff Wilson lower(DETECTED rate) > target_max; otherwise INDETERMINATE"
+    },
+    "exact_integer_boundaries_at_n_400": {
+      "EASY": {
+        "PASS_min_x": 370,
+        "PASS_min_x_lower": 0.9003675517007089,
+        "FAIL_max_x": 350,
+        "FAIL_max_x_upper": 0.899705108254052,
+        "INDETERMINATE_x_range": [
+          351,
+          369
+        ]
+      },
+      "MODERATE": {
+        "PASS_min_x": 296,
+        "PASS_min_x_lower": 0.7023983709167714,
+        "FAIL_max_x": 264,
+        "FAIL_max_x_upper": 0.6977679177361024,
+        "INDETERMINATE_x_range": [
+          265,
+          295
+        ]
+      },
+      "NULL": {
+        "PASS_max_x": 12,
+        "PASS_max_x_upper": 0.04749211413890585,
+        "FAIL_min_x": 28,
+        "FAIL_min_x_lower": 0.05177696149430949,
+        "INDETERMINATE_x_range": [
+          13,
+          27
+        ]
+      },
+      "NONSTATIONARY_TRAP": {
+        "PASS_max_x": 66,
+        "PASS_max_x_upper": 0.19775796867898285,
+        "FAIL_min_x": 94,
+        "FAIL_min_x_lower": 0.20198134253025068,
+        "INDETERMINATE_x_range": [
+          67,
+          93
+        ]
+      }
+    },
+    "n_400_structural_adequacy": "independently verified: n=400 is not structurally unable to reach any target; wide PASS/FAIL bands exist well inside [0,400] for every cell",
+    "trap_statistic": "EXACTLY the same per-world DETECTED indicator used for EASY/MODERATE/NULL (studentization_and_test.DETECTED_definition), evaluated on NONSTATIONARY_TRAP-scenario worlds; NOT V2 STRICT_PASS or STRICT_PASS_EX_MATERIALITY terminology or gate composition",
+    "trap_scientific_intent": "NONSTATIONARY_TRAP has beta_by_era = {E1:0.3, E2:0.3, E3:0.3, E4:0.0, E5:0.0} (frozen V1 prereg scenario definition, unchanged); the true effect exists in early scored eras and vanishes by E4/E5; pooling d*_t across all four scored eras under the identical DETECTED rule is expected to produce a diluted-but-not-zero average effect, which is why the historical ceiling is 0.20 rather than 0.05 like NULL",
+    "failed_world_policy": "failed or invalid worlds remain in the planned denominator; if a scientific-execution invalidity prevents the frozen aggregate from being evaluated, the result is INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM; worlds are never replaced or rerolled",
+    "indeterminate_escalation": "no automatic second acceptance batch; resolving INDETERMINATE after outcome inspection requires a new prereg/version and fresh world identities outside this document's authorized range"
+  },
+  "world_record_required_fields": [
+    "scenario, world identity, seed, exact run identity",
+    "support_count, support fraction, support runs/clusters, effective_N",
+    "raw conditional MSE differential (d_t | S_t=1)",
+    "Clark-West-adjusted conditional differential theta_hat",
+    "unconditional/pool-wide MSE differential",
+    "SE_hat",
+    "T_obs",
+    "selected expected block length b_hat and selector status",
+    "one-sided p-value p_one_sided and margin to the alpha=0.05 boundary",
+    "resampling summaries sufficient to explain a miss (e.g. quantiles of theta_star_b, T_star_b)",
+    "era-level effects",
+    "visibility diagnostic (if computed for reference)",
+    "identifiability state/reason",
+    "chronology/leakage state",
+    "materiality/economic diagnostic (non-authoritative)",
+    "which of the 3 per_world_validity_guards (if any) invalidated the world"
+  ],
+  "world_record_note": "no statistic required to explain an acceptance failure may be computed and discarded, as V2 discarded bootstrap_q025/placebo_q95 from canonical WORLD_RECORDS",
+  "anti_rescue": [
+    "no threshold, support rule, loss, statistic, block-length rule, alpha, confidence rule, or acceptance mapping may change after fresh V3 acceptance outcomes are inspected",
+    "no selective rerun, replacement world, second reservation, or second canonical attempt",
+    "no seed reroll",
+    "no denominator replacement",
+    "no lowering the NULL 0.05 budget or the TRAP 0.20 ceiling to manufacture a PASS",
+    "no switching resampling family or block-length selector after seeing outcomes",
+    "no converting a diagnostic into a gate, or a gate into a diagnostic, after seeing outcomes",
+    "no synthetic-as-market-evidence",
+    "no automatic second acceptance batch to resolve INDETERMINATE"
+  ],
+  "v2_evidence_boundary": {
+    "v2_development_consumed": true,
+    "v2_forbidden_as_v3_acceptance_evidence": true,
+    "v2_canonical_result_sha256": "761cc9afc59265bfb94afecbd293082c274abf3affce3d9693f463442326c1e0",
+    "v2_canonical_world_records_sha256": "e8667f930a4acc7fb5dd26fa62414a8f4b359121336902aac651cb76f4e50dbf",
+    "v2_role": "diagnosis and design motivation only, per V2_POSTRUN_FORENSIC_REVIEW.md; V2 world_index 0..399 ranges are excluded from V3 acceptance by construction (rng_authority.fresh_world_index_range)"
+  },
+  "execution_ceremony": [
+    "this prereg materialized (current unit)",
+    "independent prereg/implementation review",
+    "exact implementation + disposable, non-canonical unit tests proving the mechanics in this document",
+    "freeze exact implementation commit/tree",
+    "independent freeze review",
+    "explicit one-run ARM authorization",
+    "exactly one fresh sealed acceptance execution using rng_authority.fresh_world_index_range",
+    "persist complete WORLD_RECORDS/RESULT evidence before any methodology change is considered",
+    "inspect outcomes once",
+    "any new methodology choice after outcomes requires a new prereg/version"
+  ],
+  "implementation_exists": false,
+  "v3_module_planned_path": "scripts/research/harness_synthetic_edge_calibration_v3_confirmatory.py",
+  "v3_test_module_planned_path": "tests/research/test_harness_synthetic_edge_calibration_v3_confirmatory.py",
+  "production_calibration_executed": false,
+  "authorization_state": {
+    "v3_design_complete": true,
+    "v3_prereg_materialized": true,
+    "v3_prereg_review_required": true,
+    "v3_prereg_frozen": false,
+    "v3_run_authorized": false,
+    "v3_armed": false,
+    "default_v4": false,
+    "b2_06_execution_authorized": false
+  }
+}
