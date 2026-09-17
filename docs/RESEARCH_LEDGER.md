@@ -3027,3 +3027,30 @@ Evidence:
 
 - next required step: `MARKET-01_IMPLEMENTATION`
 
+## 2026-09-17 — MARKET-01 frozen contract implemented, not armed
+
+Implemented the frozen MARKET-01 preregistration as in-memory scientific
+machinery. Bound CORE/OI snapshot evaluation is refused. No ARM, no
+execution reservation, no MARKET outcome inspection, no 2025/2026, no
+B2-06, no V3 modification, no V4. Prereg and freeze bytes unchanged.
+
+Tests use synthetic fixtures only.
+
+Evidence:
+`scripts/research/market_01_oi_expansion_weak_continuation_lib.py`,
+`scripts/research/market_01_oi_expansion_weak_continuation_authority.py`,
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_IMPLEMENTATION.md`.
+
+- market_01_phase: **IMPLEMENTATION**
+- market_01_prereg_frozen: **true**
+- market_01_implemented: **true**
+- market_01_armed: **false**
+- market_01_outcome_inspected: **false**
+- market_01_executed: **false**
+- market_01_test_calibrated: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- default_v4: **false**
+
+- next required step: `MARKET-01_IMPLEMENTATION_REVIEW`
+

@@ -12,13 +12,13 @@ active research program. Do not repair, rerun, or reinterpret V3. Do not
 create V4 (`DEFAULT_V4 = NO`). `V3_METHODOLOGY_CLAIMABLE = NO`.
 `V3_RERUN_AUTHORIZED = NO`.
 
-The next substantive unit is `MARKET-01` implementation of the frozen
-contract (not execution). Outcome-blind data feasibility is recorded in
-`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_DATA_FEASIBILITY.md`.
+The next substantive unit is independent review of the MARKET-01
+implementation against the frozen prereg (not ARM, not execution).
 The complete outcome-blind preregistration is **frozen** by
 `docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_FREEZE.md`
-(`MARKET_01_PREREG_FROZEN = YES`, `MARKET_01_FREEZE_REQUIRED = NO`).
-Do not execute MARKET-01 in this freeze. Do not inspect MARKET outcomes.
+(`MARKET_01_PREREG_FROZEN = YES`) and implemented (not armed) in
+`scripts/research/market_01_oi_expansion_weak_continuation_lib.py`.
+Do not execute MARKET-01. Do not inspect MARKET outcomes.
 Do not design a large new MARKET framework.
 Do not create new infrastructure merely because MARKET is beginning. Operating
 priority is approximately 70–80% actual market research and 20–30%
@@ -160,8 +160,8 @@ B2-05 artifact bytes remain `OPERATOR_ADJUDICATED`, not proven.
 
 Family F1 is `CLOSED_NO_PROMOTION`. B2-06 `LEVERAGE_CROWDING` remains
 `BLOCKED_MISSING_OBSERVABLE` and is **not** the next active research
-unit. The next substantive unit is `MARKET-01` implementation of the
-frozen contract (not execution). The outcome-blind
+unit. The next substantive unit is independent MARKET-01 implementation
+review (not ARM, not execution). The outcome-blind
 OI/funding snapshot is Git-bound as
 `SNAPSHOT_MATERIALIZED_NOT_RESEARCH_AUTHORIZED` /
 `SNAPSHOT_MATERIALIZED_FUNDING_PUBLICATION_UNPROVEN_RESEARCH_UNAUTHORIZED`
@@ -289,7 +289,8 @@ not by itself be treated as sufficient evidence of a robust market edge.
 This limitation is not authorization for immediate V4.
 
 Next required V3 step: none authorized. Next required project step:
-`MARKET-01_IMPLEMENTATION` (prereg `FROZEN_OUTCOME_BLIND`, not executed).
+`MARKET-01_IMPLEMENTATION_REVIEW` (prereg frozen, implemented, not armed,
+not executed).
 Do not rerun V3, do not create V4, and do not execute B2-06.
 
 This methodology closeout does not weaken or bypass the current B2-06 state:
