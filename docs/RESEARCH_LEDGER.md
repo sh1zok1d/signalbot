@@ -3054,3 +3054,40 @@ Evidence:
 
 - next required step: `MARKET-01_IMPLEMENTATION_REVIEW`
 
+## 2026-09-17 — MARKET-01 implementation frozen and one-shot ARM
+
+Implementation freeze of accepted HEAD
+`1019c5725a58c62d460276159a5683a202c1c3ea` / tree
+`2a7a5ce74f9b0c419cf40093271df243ffb02d46` after independent review
+verdict `IMPLEMENTATION_ACCEPTED`. Exactly one canonical MARKET-01
+execution is armed and unused. No MARKET-01 execution, no MARKET
+outcome inspection, no 2025/2026, no B2-06, no V3 modification, no V4.
+
+Run identity:
+`f430399f46e6122a2633a34e99e9bd0ab8fe65c1baf9c05b5982551a4608739d`.
+
+`CANONICAL_EXECUTIONS_AUTHORIZED = 1`.
+`CANONICAL_EXECUTIONS_CONSUMED = 0`.
+`MARKET_01_TEST_CALIBRATED = NO`.
+
+Evidence:
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_IMPLEMENTATION_FREEZE.md`,
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_ARM.md`,
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_RESERVATION.json`.
+
+- market_01_phase: **ARM**
+- market_01_prereg_frozen: **true**
+- market_01_implementation_accepted: **true**
+- market_01_implementation_frozen: **true**
+- market_01_armed: **true**
+- market_01_canonical_executions_authorized: **1**
+- market_01_canonical_executions_consumed: **0**
+- market_01_outcome_inspected: **false**
+- market_01_executed: **false**
+- market_01_test_calibrated: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- default_v4: **false**
+
+- next required step: `ONE_CANONICAL_MARKET_01_EXECUTION`
+

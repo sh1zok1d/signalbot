@@ -220,17 +220,15 @@ See `docs/HISTORICAL_DATA_STRATEGY.md`.
 ## 7. Active objective
 
 The active research phase is **MARKET**. `MARKET-01`
-(`OI_EXPANSION_WEAK_CONTINUATION`) preregistration is
-**`FROZEN_OUTCOME_BLIND`** and the frozen contract is
-**`IMPLEMENTED_NOT_ARMED`**. It is **not** executed and not armed.
+(`OI_EXPANSION_WEAK_CONTINUATION`) is **`ARMED_NOT_EXECUTED`**:
+preregistration **`FROZEN_OUTCOME_BLIND`**, implementation accepted and
+frozen, exactly one canonical execution authorized and unused. It is
+**not** executed. Outcomes have not been inspected.
 The confirmatory test is a new stratified two-group OLS identity, not
 V3, and is explicitly uncalibrated (`MARKET_01_TEST_CALIBRATED = NO`).
-Freeze authority:
-`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_FREEZE.md`.
-Implementation:
-`scripts/research/market_01_oi_expansion_weak_continuation_lib.py`.
-Next permitted lifecycle state: independent implementation review, not
-ARM or execution.
+ARM authority:
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_ARM.md`.
+Next permitted lifecycle state: one canonical MARKET-01 execution.
 
 Post-calibration operating priority:
 

@@ -1,28 +1,20 @@
 # MARKET-01 implementation identity
 
-- **Status:** `IMPLEMENTED_NOT_ARMED`
+- **Status:** `IMPLEMENTED_THEN_FROZEN_AND_ARMED` (historical unit record)
 - **Research ID:** `MARKET-01_OI_EXPANSION_WEAK_CONTINUATION`
 - **Date:** 2026-09-17
 
-This unit implements the frozen outcome-blind MARKET-01 contract. It is
-not an ARM, not execution, and not a RESULT.
+This unit implemented the frozen outcome-blind MARKET-01 contract.
+Live lifecycle authority after the ARM unit is:
 
-Scientific authority remains:
+- implementation freeze: `docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_IMPLEMENTATION_FREEZE.md`
+- ARM: `docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_ARM.md`
+- reservation: `docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_RESERVATION.json`
 
-- `docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.md`
-- `docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.json`
-- freeze: `docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_FREEZE.md`
-
-Those prereg/freeze bytes are unchanged. Bound CORE/OI snapshot
-evaluation is refused. Tests use synthetic fixtures only.
-
-Modules:
-
-- `scripts/research/market_01_oi_expansion_weak_continuation_authority.py`
-- `scripts/research/market_01_oi_expansion_weak_continuation_lib.py`
+Scientific authority remains the frozen prereg bytes. This file does
+not authorize a second implementation, a rerun, or outcome inspection.
 
 `MARKET_01_TEST_CALIBRATED = NO`. V3 is not the MARKET-01 test.
 `DEFAULT_V4 = NO`. B2-06 remains blocked.
 
-Next lifecycle state: independent implementation review against the
-frozen prereg. Not ARM. Not execution.
+Next lifecycle state: one canonical MARKET-01 execution. Not this unit.

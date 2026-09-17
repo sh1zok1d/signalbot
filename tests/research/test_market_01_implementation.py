@@ -572,5 +572,7 @@ def test_evaluate_market_01_on_synthetic_fixture_does_not_use_bound_snapshots():
     assert result["price_snapshot_id"] == (
         "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415"
     )
-    assert result["MARKET_01_ARMED"] is False
+    assert result["MARKET_01_ARMED"] is True
+    assert result["MARKET_01_EXECUTION_AUTHORIZED"] is True
+    assert result["MARKET_01_TEST_CALIBRATED"] is False
     assert result["episode_diagnostics"]["n_confirmatory_eligible"] == 0

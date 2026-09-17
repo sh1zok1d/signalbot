@@ -28,8 +28,6 @@ from scripts.research.market_01_oi_expansion_weak_continuation_authority import 
     FROZEN_FREEZE_MD_SHA256,
     FROZEN_PREREG_JSON_SHA256,
     FROZEN_PREREG_MD_SHA256,
-    MARKET_01_ARMED,
-    MARKET_01_EXECUTION_AUTHORIZED,
     MARKET_01_TEST_CALIBRATED,
     OI_SNAPSHOT_ID,
     PRICE_DATASET_ID,
@@ -38,6 +36,8 @@ from scripts.research.market_01_oi_expansion_weak_continuation_authority import 
     RESEARCH_ID,
     authenticate_arch_selector,
     authenticate_frozen_prereg_bytes,
+    authorize_bound_market_01_views,
+    inspect_market_01_authorization_state,
     refuse_bound_execution,
     snapshot_is_bound,
 )
@@ -410,9 +410,7 @@ def reversal_return(price: PriceView, t_ms: int, d: int) -> float | None:
 def _guard_views(price: PriceView, oi: OiView) -> None:
     authenticate_frozen_prereg_bytes()
     if snapshot_is_bound(price.snapshot_id) or snapshot_is_bound(oi.snapshot_id):
-        refuse_bound_execution()
-    if MARKET_01_EXECUTION_AUTHORIZED or MARKET_01_ARMED:
-        refuse_bound_execution()
+        authorize_bound_market_01_views(price.snapshot_id, oi.snapshot_id)
 
 
 def construct_episodes(price: PriceView, oi: OiView) -> list[EpisodeRecord]:
@@ -895,8 +893,22 @@ def evaluate_market_01(price: PriceView, oi: OiView) -> dict[str, Any]:
     return result
 
 
-def evaluate_bound_market_01(*_args: Any, **_kwargs: Any) -> None:
-    refuse_bound_execution()
+def evaluate_bound_market_01(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Canonical bound-view entry after ARM.
+
+    Requires the exact armed authority. Does not load CORE/OI from disk.
+    Caller-supplied scientific kwargs are rejected. Missing views refuse
+    because this unit has no bound materializer.
+    """
+    if kwargs:
+        refuse_bound_execution()
+    if len(args) != 2:
+        refuse_bound_execution()
+    price, oi = args
+    if not isinstance(price, PriceView) or not isinstance(oi, OiView):
+        refuse_bound_execution()
+    authorize_bound_market_01_views(price.snapshot_id, oi.snapshot_id)
+    return evaluate_market_01(price, oi)
 
 
 def _stratum_counts(rows: Sequence[Mapping[str, Any]]) -> dict[str, dict[str, int]]:
@@ -935,6 +947,7 @@ def _result_payload(
     support_public = {
         k: v for k, v in support.items() if k != "primary_rows"
     }
+    auth = inspect_market_01_authorization_state()
     payload = {
         "research_id": RESEARCH_ID,
         "status": "IMPLEMENTED_NOT_ARMED",
@@ -961,8 +974,8 @@ def _result_payload(
         "robustness": None if robustness is None else dict(robustness),
         "final_classification": classification,
         "MARKET_01_TEST_CALIBRATED": MARKET_01_TEST_CALIBRATED,
-        "MARKET_01_ARMED": MARKET_01_ARMED,
-        "MARKET_01_EXECUTION_AUTHORIZED": MARKET_01_EXECUTION_AUTHORIZED,
+        "MARKET_01_ARMED": bool(auth["MARKET_01_ARMED"]),
+        "MARKET_01_EXECUTION_AUTHORIZED": bool(auth["MARKET_01_EXECUTION_AUTHORIZED"]),
         "PROTECTED_OOS_AUTHORIZED": PROTECTED_OOS_AUTHORIZED,
         "PROTECTED_OOS_TOUCHED": False,
         "B2_06_EXECUTION_AUTHORIZED": B2_06_EXECUTION_AUTHORIZED,
