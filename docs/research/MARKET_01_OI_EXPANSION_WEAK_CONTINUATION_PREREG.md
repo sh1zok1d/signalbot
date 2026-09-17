@@ -508,7 +508,7 @@ z_i = x̃_i * (ỹ_i - x̃_i * beta_hat)
 ```
 
 `b_hat = optimal_stationary_block_length(z)`. Selector consumes no RNG.
-If `b_hat` is non-finite or `<= 0`: 
+If `b_hat` is non-finite or `<= 0`:
 `NOT_IDENTIFIABLE_OR_INSUFFICIENT_SUPPORT`.
 
 ```text
