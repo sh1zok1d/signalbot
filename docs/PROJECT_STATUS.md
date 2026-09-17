@@ -130,6 +130,15 @@ itself is immutable. Post-outcome status lives in
   Historical ARM `120ac45` and unused driver ARM `0abc5fe` do
   not authorize V1 or V2 runtime. This does not authorize B2-06 science.
 
+V3 confirmatory calibration implementation was independently accepted at
+HEAD `70673673` / tree `e94e18cb` (`IMPLEMENTATION_ACCEPTED`; F1/F2/F3
+CLOSED). `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_IMPLEMENTATION_FREEZE`
+now freezes that exact identity and binds the prereg canonical 1600-world
+grid (`EASY`/`MODERATE`/`NULL`/`NONSTATIONARY_TRAP`, `world_index
+10000..10399`, B=999, F03). Pre-ARM binding exists;
+`v3_run_authorized = false`; `v3_armed = false`. No canonical V3 world
+has been executed. This does not authorize B2-06 or V4.
+
 Family F1 is `CLOSED_NO_PROMOTION`. 2025 validation and 2026 OOS remain
 untouched. No Batch02 formulation has a promoted candidate, so there is no
 Batch02 validation path to open.

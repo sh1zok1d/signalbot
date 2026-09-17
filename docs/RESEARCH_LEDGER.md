@@ -2686,3 +2686,41 @@ rewritten. New freeze binds the amended content at `543687fe79ba2e6254e879b0574e
 
 - next required step: `V3_IMPLEMENTATION`
 
+## 2026-09-17 — V3 implementation freeze + pre-ARM execution binding
+
+Independent review of the V3 confirmatory implementation closed
+`IMPLEMENTATION_ACCEPTED` at exact commit
+`70673673f5bc0108e6bcf2aaf55a762ebc49940a` / tree
+`e94e18cb900a44824b96dee1d4b6cbb574c95e5a` (lineage `fd21ed7f` →
+`e1b7502` → `70673673`; F1/F2/F3 CLOSED).
+
+`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_IMPLEMENTATION_FREEZE.md`/`.json`
+freezes that exact accepted implementation identity. Scientific bytes
+are not modified. Binding is to:
+
+- confirmatory implementation SHA256 `38a494917dcf721b…` (24059 bytes)
+- RNG shim SHA256 `8bd6aef151139bc1…` (2325 bytes)
+- frozen prereg MD/JSON SHA256 `ab03c68a…` / `194fed69…`
+- inherited V1 lib SHA256 `12230dcad714e3a0…` (37636 bytes)
+- arch 8.0.0 selector hashes already pinned by prereg
+- canonical grid: EASY/MODERATE/NULL/NONSTATIONARY_TRAP,
+  `world_index 10000..10399`, 400/cell, 1600 worlds, B=999, F03,
+  frozen one-sided Wilson integer boundaries
+
+`harness_synthetic_edge_calibration_v3_authority.py` is pre-ARM plumbing
+only: it derives a deterministic scientific run identity from tracked
+frozen authority and refuses caller kwargs, path/env substitution,
+reservation, WORLD_RECORDS/RESULT minting, and canonical execution.
+Freeze and ARM remain separable. No ARM artifact was created.
+
+- v3_implementation_complete: **true**
+- v3_implementation_review_required: **false**
+- v3_implementation_frozen: **true**
+- v3_pre_arm_binding_complete: **true**
+- v3_run_authorized: **false**
+- v3_armed: **false**
+- default_v4: **false**
+- b2_06_execution_authorized: **false**
+
+- next required step: `V3_ONE_SHOT_CANONICAL_ARM`
+

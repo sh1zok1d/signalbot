@@ -239,6 +239,15 @@ independent freeze review closes and a later explicit ARM unit is authorized.
 The original prereg at `ada237e` and Amendment_001 at `d8f0a99` are not
 rewritten in place.
 
+V3 confirmatory calibration is the current methodology successor for a
+claimable synthetic RESULT. The accepted implementation
+`70673673f5bc0108e6bcf2aaf55a762ebc49940a` / tree
+`e94e18cb900a44824b96dee1d4b6cbb574c95e5a` is frozen by
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_IMPLEMENTATION_FREEZE.json`.
+Pre-ARM execution binding is complete. V3 is not armed and the canonical
+1600-world grid (`world_index 10000..10399`) has not been executed. Next
+required V3 step: `V3_ONE_SHOT_CANONICAL_ARM`. Do not ARM in this unit.
+
 This methodology gate does not weaken or bypass the current B2-06 state:
 `FUNDING_PUBLICATION_LATENCY_UNPROVEN`, `research_authorized = false`,
 `outcome_access_authorized = false`, and `b2_06_evaluator_enabled = false`.
