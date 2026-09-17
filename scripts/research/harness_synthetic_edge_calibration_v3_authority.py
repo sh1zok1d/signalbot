@@ -715,10 +715,23 @@ def derive_v3_run_identity(*args: Any, **kwargs: Any) -> str:
     return str(canonical_v3_plan()["sha256"])
 
 
+def _commit_header_lines(raw: str) -> list[str]:
+    header: list[str] = []
+    for line in raw.splitlines():
+        if line == "":
+            break
+        header.append(line)
+    return header
+
+
 def _parent_count(repo_root: Path, commit: str) -> int:
     proc = _run_git(repo_root, "cat-file", "-p", commit)
     raw = _require_git_ok(proc, "cat-file commit").decode("utf-8", "replace")
-    return sum(1 for line in raw.splitlines() if line.startswith("parent "))
+    return sum(
+        1
+        for line in _commit_header_lines(raw)
+        if line.startswith("parent ") and len(line.split()) >= 2
+    )
 
 
 def _parent_sha(repo_root: Path, commit: str) -> str:
