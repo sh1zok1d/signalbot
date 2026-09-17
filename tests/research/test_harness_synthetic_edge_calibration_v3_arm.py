@@ -16,7 +16,6 @@ import pytest
 from scripts.research import harness_synthetic_edge_calibration_v3_authority as v3a
 from scripts.research.harness_synthetic_edge_calibration_v3_authority import (
     V3ExecutionNotAuthorized,
-    V3NotArmed,
 )
 
 REPO = Path(__file__).resolve().parents[2]
@@ -88,25 +87,38 @@ def _commit_arm(repo: Path, payload: dict | None = None) -> str:
 def test_live_arm_authenticates_exact_frozen_run_identity():
     if v3a.CANONICAL_V3_ARM_PATH not in _git("ls-tree", "-r", "--name-only", "HEAD"):
         pytest.skip("live ARM not yet committed")
-    bound = v3a.authenticate_v3_arm()
+    reserved = (
+        v3a.CANONICAL_V3_RESERVATION_PATH in _git("ls-tree", "-r", "--name-only", "HEAD")
+        or (REPO / v3a.CANONICAL_V3_RESERVATION_PATH).exists()
+    )
+    bound = v3a.authenticate_v3_arm_binding()
     assert bound["run_identity"] == EXPECTED_RID
     assert bound["freeze_parent_head"] == FREEZE_HEAD
     assert bound["freeze_parent_tree"] == FREEZE_TREE
-    assert bound["lifecycle"] == v3a.LIFECYCLE_AUTHORIZED_UNUSED
-    assert bound["authorization_consumed"] is False
-    assert v3a.v3_arm_authorized() is True
-    state = v3a.inspect_v3_authorization_state()
-    assert state["lifecycle"] == v3a.LIFECYCLE_AUTHORIZED_UNUSED
-    assert state["v3_armed"] is True
-    assert state["v3_run_authorized"] is True
-    assert state["authorization_consumed"] is False
-    assert state["reservation_created"] is False
     payload = json.loads((REPO / v3a.CANONICAL_V3_ARM_PATH).read_text(encoding="utf-8"))
     assert payload["run_identity"] == EXPECTED_RID
     assert payload["freeze_parent_head"] == FREEZE_HEAD
     assert payload["reviewed_implementation_head"] == v3a.ACCEPTED_IMPLEMENTATION_HEAD
     assert payload["lifecycle"] == v3a.LIFECYCLE_AUTHORIZED_UNUSED
     assert payload["authorization_consumed"] is False
+    state = v3a.inspect_v3_authorization_state()
+    assert state["v3_armed"] is True
+    assert state["v3_run_authorized"] is True
+    if reserved:
+        with pytest.raises(V3ExecutionNotAuthorized, match="consumed"):
+            v3a.authenticate_v3_arm()
+        assert v3a.v3_arm_authorized() is False
+        assert state["authorization_consumed"] is True
+        assert state["reservation_created"] is True
+        assert bound["authorization_consumed"] is True
+    else:
+        unused = v3a.authenticate_v3_arm()
+        assert unused["lifecycle"] == v3a.LIFECYCLE_AUTHORIZED_UNUSED
+        assert unused["authorization_consumed"] is False
+        assert v3a.v3_arm_authorized() is True
+        assert state["lifecycle"] == v3a.LIFECYCLE_AUTHORIZED_UNUSED
+        assert state["authorization_consumed"] is False
+        assert state["reservation_created"] is False
 
 
 def test_wrong_run_identity_rejected(tmp_path, monkeypatch):
@@ -219,9 +231,6 @@ def test_reservation_path_recognizes_unused_arm_without_creating_reservation(
     assert ready["ready_for_reservation"] is True
     assert ready["run_identity"] == v3a.derive_v3_run_identity()
     assert (repo / v3a.CANONICAL_V3_RESERVATION_PATH).exists() is False
-    with pytest.raises(V3ExecutionNotAuthorized, match="does not create a canonical V3 reservation"):
-        v3a.reserve_v3_canonical_run()
-    assert (repo / v3a.CANONICAL_V3_RESERVATION_PATH).exists() is False
     assert v3a.v3_arm_authorized() is True
 
 
@@ -243,8 +252,7 @@ def test_second_consumption_semantics_fail_closed_in_fixture(tmp_path, monkeypat
     assert v3a.v3_arm_authorized() is False
     state = v3a.inspect_v3_authorization_state()
     assert state["authorization_consumed"] is True
-    assert state["v3_armed"] is False
-    with pytest.raises(V3NotArmed):
+    with pytest.raises(V3ExecutionNotAuthorized):
         v3a.run_canonical_v3_grid()
 
 

@@ -4,9 +4,11 @@ This module does not redefine V3 scientific semantics. It records and
 enforces already-accepted freeze authority and authenticates the one-shot
 canonical ARM.
 
-Creating or validating ARM does not reserve, execute world_index
-10000..10399, or mint WORLD_RECORDS / RESULT. Caller kwargs, environment
-variables, and alternate paths cannot substitute scientific authority.
+Validating ARM does not reserve, execute world_index 10000..10399, or mint
+WORLD_RECORDS / RESULT. Canonical reservation/execution is delegated to
+``harness_synthetic_edge_calibration_v3_production`` after pre-reservation
+authentication. Caller kwargs, environment variables, and alternate paths
+cannot substitute scientific authority.
 
 Reuse: ``verify_git_freeze``, ``canonical_json_bytes``,
 ``SyntheticExecutionNotAuthorized``. Freeze identity is never hardcoded
@@ -934,8 +936,8 @@ def required_v3_arm_binding_fields(*args: Any, **kwargs: Any) -> dict[str, Any]:
     return payload
 
 
-def authenticate_v3_arm(*args: Any, **kwargs: Any) -> dict[str, Any]:
-    """Authenticate the tracked one-shot ARM. Does not consume it."""
+def authenticate_v3_arm_binding(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Authenticate ARM bytes/topology even after reservation consumption."""
     _reject_caller_kwargs(args, kwargs)
     _refuse_env_substitution()
     repo_root = _repo_root()
@@ -957,11 +959,23 @@ def authenticate_v3_arm(*args: Any, **kwargs: Any) -> dict[str, Any]:
     derived = derive_v3_run_identity()
     if bound["run_identity"] != derived:
         _refuse("V3 ARM run_identity is not the frozen scientific run identity")
+    if derived != FROZEN_V3_RUN_IDENTITY:
+        _refuse("derived run identity is not the frozen V3 run identity")
     consumed = _consumption_lifecycle_at(repo_root, "HEAD")
     bound["lifecycle"] = consumed or LIFECYCLE_AUTHORIZED_UNUSED
     bound["authorization_consumed"] = consumed is not None
-    if consumed is not None:
+    bound["arm_artifact_sha256"] = _sha256_bytes(arm_blob)
+    return bound
+
+
+def authenticate_v3_arm(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Authenticate the tracked one-shot ARM while it is still UNUSED."""
+    _reject_caller_kwargs(args, kwargs)
+    bound = authenticate_v3_arm_binding()
+    if bound["authorization_consumed"] is True:
         _refuse("V3 one-shot authorization is already consumed")
+    bound["lifecycle"] = LIFECYCLE_AUTHORIZED_UNUSED
+    bound["authorization_consumed"] = False
     return bound
 
 
@@ -981,9 +995,9 @@ def inspect_v3_authorization_state(*args: Any, **kwargs: Any) -> dict[str, Any]:
     repo_root = _repo_root()
     consumed = _consumption_lifecycle_at(repo_root, "HEAD")
     try:
-        bound = authenticate_v3_arm()
+        bound = authenticate_v3_arm_binding()
         lifecycle = bound["lifecycle"]
-        armed = lifecycle == LIFECYCLE_AUTHORIZED_UNUSED
+        armed = True
         run_identity = bound["run_identity"]
         freeze_parent_head = bound["freeze_parent_head"]
         freeze_parent_tree = bound["freeze_parent_tree"]
@@ -995,20 +1009,29 @@ def inspect_v3_authorization_state(*args: Any, **kwargs: Any) -> dict[str, Any]:
         freeze_parent_tree = None
         if consumed is None and _commit_blob(repo_root, "HEAD", CANONICAL_V3_ARM_PATH) is None:
             lifecycle = LIFECYCLE_NOT_AUTHORIZED
+    reservation_created = bool(
+        (repo_root / CANONICAL_V3_RESERVATION_PATH).exists()
+        or _commit_blob(repo_root, "HEAD", CANONICAL_V3_RESERVATION_PATH) is not None
+    )
+    world_records_created = bool(
+        (repo_root / CANONICAL_V3_WORLD_RECORDS_PATH).exists()
+        or _commit_blob(repo_root, "HEAD", CANONICAL_V3_WORLD_RECORDS_PATH) is not None
+    )
+    result_minted = bool(
+        (repo_root / CANONICAL_V3_RESULT_PATH).exists()
+        or _commit_blob(repo_root, "HEAD", CANONICAL_V3_RESULT_PATH) is not None
+    )
     return {
         "lifecycle": lifecycle,
         "v3_implementation_frozen": True,
         "v3_pre_arm_binding_complete": True,
         "v3_run_authorized": armed,
         "v3_armed": armed,
-        "authorization_consumed": lifecycle in _CONSUMED_LIFECYCLES,
-        "reservation_created": bool(
-            (repo_root / CANONICAL_V3_RESERVATION_PATH).exists()
-            or _commit_blob(repo_root, "HEAD", CANONICAL_V3_RESERVATION_PATH) is not None
-        ),
-        "world_records_created": False,
-        "result_minted": False,
-        "canonical_execution_started": False,
+        "authorization_consumed": lifecycle in _CONSUMED_LIFECYCLES or reservation_created,
+        "reservation_created": reservation_created,
+        "world_records_created": world_records_created,
+        "result_minted": result_minted,
+        "canonical_execution_started": world_records_created or result_minted,
         "default_v4": False,
         "b2_06_execution_authorized": False,
         "run_identity": run_identity,
@@ -1074,36 +1097,72 @@ def assert_v3_executed_bytes_bound(*args: Any, **kwargs: Any) -> None:
         _refuse("verified freeze identity drifted from HEAD")
 
 
-def evaluate_v3_canonical_world(*args: Any, **kwargs: Any) -> None:
+def evaluate_v3_canonical_world(*args: Any, **kwargs: Any) -> Any:
     if kwargs:
         _refuse("caller arguments cannot authorize canonical V3 world evaluation")
-    if v3_arm_authorized() is not True:
-        raise V3NotArmed("SYNTHETIC_EXECUTION_NOT_AUTHORIZED: v3_arm_authorized=false")
-    _refuse("canonical V3 world evaluation requires unused reservation")
+    if not v3_protected_artifacts_present():
+        if v3_arm_authorized() is not True:
+            raise V3NotArmed("SYNTHETIC_EXECUTION_NOT_AUTHORIZED: v3_arm_authorized=false")
+        _refuse("canonical V3 world evaluation requires unused reservation")
+    if len(args) != 3:
+        _refuse("canonical world evaluation requires exact (scenario, n_rows, world_index)")
+    from scripts.research.harness_synthetic_edge_calibration_v3_production import (
+        evaluate_canonical_v3_world,
+    )
+
+    return evaluate_canonical_v3_world(str(args[0]), int(args[1]), int(args[2]))
 
 
-def run_canonical_v3_grid(*args: Any, **kwargs: Any) -> None:
+def run_canonical_v3_grid(*args: Any, **kwargs: Any) -> Any:
     if args or kwargs:
         _refuse("caller arguments cannot authorize the canonical V3 grid")
-    if v3_arm_authorized() is not True:
-        raise V3NotArmed("SYNTHETIC_EXECUTION_NOT_AUTHORIZED: v3_arm_authorized=false")
-    _refuse("canonical V3 grid execution requires unused reservation")
+    if not v3_protected_artifacts_present():
+        if v3_arm_authorized() is not True:
+            raise V3NotArmed("SYNTHETIC_EXECUTION_NOT_AUTHORIZED: v3_arm_authorized=false")
+        _refuse("canonical V3 grid execution requires unused reservation")
+    from scripts.research.harness_synthetic_edge_calibration_v3_production import (
+        open_default_v3_durable_store,
+        run_canonical_v3_grid_in_session,
+    )
+
+    store = open_default_v3_durable_store()
+    return run_canonical_v3_grid_in_session(durable_partial=store)
 
 
-def reserve_v3_canonical_run(*args: Any, **kwargs: Any) -> None:
+def reserve_v3_canonical_run(*args: Any, **kwargs: Any) -> Any:
     _reject_caller_kwargs(args, kwargs)
-    inspect_v3_reservation_readiness()
-    _refuse("this unit does not create a canonical V3 reservation")
+    from scripts.research.harness_synthetic_edge_calibration_v3_production import (
+        establish_v3_durable_reservation,
+    )
+
+    return establish_v3_durable_reservation()
 
 
-def mint_v3_world_records(*args: Any, **kwargs: Any) -> None:
+def mint_v3_world_records(*args: Any, **kwargs: Any) -> Any:
     _reject_caller_kwargs(args, kwargs)
-    _refuse("V3 WORLD_RECORDS cannot be minted before ARM/reservation")
+    if not v3_protected_artifacts_present():
+        _refuse("V3 WORLD_RECORDS cannot be minted before ARM/reservation")
+    from scripts.research.harness_synthetic_edge_calibration_v3_production import (
+        execute_canonical_v3_production,
+    )
+
+    return execute_canonical_v3_production()["world_records_file"]
 
 
-def mint_v3_result(*args: Any, **kwargs: Any) -> None:
+def mint_v3_result(*args: Any, **kwargs: Any) -> Any:
     _reject_caller_kwargs(args, kwargs)
-    _refuse("V3 RESULT cannot be minted before ARM/reservation")
+    if not v3_protected_artifacts_present():
+        _refuse("V3 RESULT cannot be minted before ARM/reservation")
+    repo_root = _repo_root()
+    if not (repo_root / CANONICAL_V3_WORLD_RECORDS_PATH).exists():
+        _refuse("V3 RESULT cannot be minted before authenticated WORLD_RECORDS")
+    if (repo_root / CANONICAL_V3_RESULT_PATH).exists():
+        _refuse("canonical V3 RESULT already exists")
+    from scripts.research.harness_synthetic_edge_calibration_v3_production import (
+        mint_result_from_persisted_world_records,
+    )
+
+    return mint_result_from_persisted_world_records()
 
 
 def assert_index_not_canonical(world_index: int) -> None:
