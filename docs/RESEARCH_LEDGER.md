@@ -2786,3 +2786,82 @@ unauthorized.
 
 - next required step: `NONE_V3_RESULT_RECORDED_NO_RERUN_NO_V4_NO_B2_06_NO_MARKET`
 
+## 2026-09-17 — V3 Microscope calibration closed; MARKET phase active
+
+Status/closeout unit only. Canonical V3 RESULT is recorded as immutable
+historical evidence and is not repaired, rerun, or reinterpreted.
+
+Canonical RESULT authority: commit
+`99b409cae279513eaf489194e7fa206082c60aef`. WORLD_RECORDS SHA256
+`5d09631db5180f562076b2191fe002aa21318a3925d3cd1c4014d83e4b41eb4f`.
+RESULT SHA256
+`f72eedcdcb511e2c7f22369cbdef164688317dfc99f9ab3e533df14cb2a27866`.
+
+Mechanical cell verdicts (unchanged):
+
+- EASY: 400/400 detected, `PASS`
+- MODERATE: 313/400 detected, `PASS`
+- NULL: 21/400 detected, `INDETERMINATE`
+- NONSTATIONARY_TRAP: 188/400 detected, `FAIL`
+
+`methodology_claimable = false`. `incomplete_execution = false`.
+
+Narrow scientific interpretation:
+
+1. V3 successfully repaired the measured V2 confirmatory sensitivity
+   problem (`EASY` `PASS`, `MODERATE` `PASS`).
+2. V3 did not establish a generally claimable methodology (`NULL`
+   `INDETERMINATE`, `NONSTATIONARY_TRAP` `FAIL`,
+   `methodology_claimable = false`).
+3. Known limitation: the current V3 confirmatory decision is
+   insufficiently protected against the frozen nonstationary trap. Do
+   not translate 188/400 into a general real-market false-positive rate;
+   it applies only to the frozen synthetic trap DGP.
+4. Consequence for MARKET research: V3 `DETECTED`/`PASS` is research
+   evidence but must not by itself be treated as sufficient evidence of
+   a robust market edge. Any promising MARKET result must retain
+   explicit regime / nonstationarity scrutiny before stronger promotion
+   claims.
+5. The limitation is not authorization for immediate V4. Future
+   methodology repair requires independent new evidence from actual
+   research workload or a separately justified fresh calibration design.
+
+Microscope status:
+
+- `V3_CALIBRATION_CLOSED = YES`
+- `V3_RERUN_AUTHORIZED = NO`
+- `V3_METHODOLOGY_CLAIMABLE = NO`
+- `CONFIRMATORY_SENSITIVITY = DEMONSTRATED_ON_FROZEN_SYNTHETIC_EASY_MODERATE`
+- `NONSTATIONARY_TRAP_PROTECTION = INADEQUATE_ON_FROZEN_TRAP_DGP`
+- `DEFAULT_V4 = NO`
+- `MICROSCOPE_ACTIVE_RESEARCH_PHASE = NO`
+- `MARKET_ACTIVE_RESEARCH_PHASE = YES`
+
+The Microscope remains available as scientific instrumentation. It is
+not deleted. It is no longer the active research program.
+
+Active next phase: `MARKET`. Next substantive unit: `MARKET-01` (one
+real crypto-market hypothesis through the existing research process).
+This closeout does not execute `MARKET-01`, does not design a new MARKET
+framework, and does not create infrastructure merely because MARKET is
+beginning. Post-calibration operating priority: approximately 70–80%
+actual market research, 20–30% infrastructure only when concrete
+research blockers require it. Primary progress metric: MARKET hypotheses
+honestly closed per week. Initial observational milestone: 25–50 real
+market hypotheses through the stable research process — not a promise
+that 25–50 studies establish alpha.
+
+B2-06 remains `BLOCKED_MISSING_OBSERVABLE` / funding publication-latency
+unproven. `MARKET-01` is not B2-06 and does not silently unblock it.
+
+- v3_calibration_closed: **true**
+- v3_methodology_claimable: **false**
+- v3_rerun_authorized: **false**
+- default_v4: **false**
+- microscope_active_research_phase: **false**
+- market_active_research_phase: **true**
+- market_01_executed: **false**
+- b2_06_execution_authorized: **false**
+
+- next required step: `MARKET-01`
+

@@ -5,6 +5,26 @@
 
 The project does not resume product architecture work merely because an implementation stage is technically available. Research evidence is now the gating dependency.
 
+**Active next phase (2026-09-17):** `MARKET`. The synthetic Microscope
+calibration is closed (`V3_CALIBRATION_CLOSED = YES`). The Microscope
+remains available as scientific instrumentation and is no longer the
+active research program. Do not repair, rerun, or reinterpret V3. Do not
+create V4 (`DEFAULT_V4 = NO`). `V3_METHODOLOGY_CLAIMABLE = NO`.
+`V3_RERUN_AUTHORIZED = NO`.
+
+The next substantive unit is `MARKET-01`: take one real crypto-market
+hypothesis through the existing research process as quickly and honestly
+as possible. Do not design a large new MARKET framework. Do not create
+new infrastructure merely because MARKET is beginning. Operating
+priority is approximately 70–80% actual market research and 20–30%
+infrastructure only when concrete research blockers require it. Primary
+progress metric: MARKET hypotheses honestly closed per week. Initial
+observational milestone: 25–50 real market hypotheses through the stable
+research process — not a promise that 25–50 studies establish alpha.
+
+B2-06 remains `BLOCKED_MISSING_OBSERVABLE`. `MARKET-01` is not required
+to be B2-06 and does not silently unblock it.
+
 ## R0 — E1 frozen experiment closeout
 
 **Status:** `CLOSED_AT_DEVELOPMENT / HOLDOUT_UNOPENED`
@@ -133,9 +153,10 @@ frozen/immutable. Real development outcomes opened so far:
 B2-05. Do not rescue any closed formulation inside current V2. Historical
 B2-05 artifact bytes remain `OPERATOR_ADJUDICATED`, not proven.
 
-Family F1 is `CLOSED_NO_PROMOTION`. **Next frozen scientific unit:**
-`B2-06_LEVERAGE_CROWDING`, still `BLOCKED_MISSING_OBSERVABLE`. The
-outcome-blind OI/funding snapshot is Git-bound as
+Family F1 is `CLOSED_NO_PROMOTION`. B2-06 `LEVERAGE_CROWDING` remains
+`BLOCKED_MISSING_OBSERVABLE` and is **not** the next active research
+unit. The next substantive unit is `MARKET-01`. The outcome-blind
+OI/funding snapshot is Git-bound as
 `SNAPSHOT_MATERIALIZED_NOT_RESEARCH_AUTHORIZED` /
 `SNAPSHOT_MATERIALIZED_FUNDING_PUBLICATION_UNPROVEN_RESEARCH_UNAUTHORIZED`
 (`docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md`, snapshot
@@ -144,6 +165,10 @@ Materialized bytes are not B2-06 execution and do not authorize 2025/2026.
 See `docs/research/BATCH02_STATUS_LEDGER.md`.
 
 ### Mandatory pre-B2-06 methodology calibration
+
+This gate still applies **only** to B2-06. It does not block `MARKET-01`.
+V3 closeout / MARKET becoming the active phase does not silently unblock
+B2-06.
 
 Before any B2-06 scientific outcome is opened, a separate methodology
 calibration must complete with a claimable RESULT. V1
@@ -239,16 +264,29 @@ independent freeze review closes and a later explicit ARM unit is authorized.
 The original prereg at `ada237e` and Amendment_001 at `d8f0a99` are not
 rewritten in place.
 
-V3 confirmatory calibration completed its one-shot canonical RESULT.
-Accepted implementation `70673673f5bc0108e6bcf2aaf55a762ebc49940a` /
-tree `e94e18cb900a44824b96dee1d4b6cbb574c95e5a` remains frozen.
-Mechanical cell verdicts from authenticated WORLD_RECORDS: EASY `PASS`,
-MODERATE `PASS`, NULL `INDETERMINATE`, NONSTATIONARY_TRAP `FAIL`.
-`methodology_claimable = false`. Next required V3 step: none authorized.
-Do not rerun V3, do not create V4, do not execute B2-06, and do not start
-MARKET from this result.
+V3 confirmatory calibration is **closed**. Canonical RESULT authority is
+commit `99b409cae279513eaf489194e7fa206082c60aef`, WORLD_RECORDS SHA256
+`5d09631db5180f562076b2191fe002aa21318a3925d3cd1c4014d83e4b41eb4f`,
+RESULT SHA256
+`f72eedcdcb511e2c7f22369cbdef164688317dfc99f9ab3e533df14cb2a27866`.
+Mechanical cell verdicts: EASY `PASS` (400/400), MODERATE `PASS`
+(313/400), NULL `INDETERMINATE` (21/400), NONSTATIONARY_TRAP `FAIL`
+(188/400). `methodology_claimable = false`. `incomplete_execution = false`.
 
-This methodology gate does not weaken or bypass the current B2-06 state:
+Narrow interpretation: V3 repaired the measured V2 confirmatory
+sensitivity problem (`EASY`/`MODERATE` `PASS`) but did **not** establish
+a generally claimable methodology. Known limitation:
+`NONSTATIONARY_TRAP_PROTECTION = INADEQUATE_ON_FROZEN_TRAP_DGP`. Do not
+translate 188/400 into a general real-market false-positive rate; it
+applies only to the frozen synthetic trap DGP. V3 `DETECTED`/`PASS` must
+not by itself be treated as sufficient evidence of a robust market edge.
+This limitation is not authorization for immediate V4.
+
+Next required V3 step: none authorized. Next required project step:
+`MARKET-01` (not executed in this closeout). Do not rerun V3, do not
+create V4, and do not execute B2-06.
+
+This methodology closeout does not weaken or bypass the current B2-06 state:
 `FUNDING_PUBLICATION_LATENCY_UNPROVEN`, `research_authorized = false`,
 `outcome_access_authorized = false`, and `b2_06_evaluator_enabled = false`.
 
@@ -374,6 +412,10 @@ Do not resurrect old Stage 6–10 scope automatically. Re-evaluate what is actua
 - no claim that one favorable month is durable alpha.
 
 ## Definition of progress
+
+During the MARKET phase, the primary progress metric is **MARKET
+hypotheses honestly closed per week**. Infrastructure work is progress
+only when it unblocks a concrete research blocker.
 
 Report separately:
 

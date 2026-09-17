@@ -1,7 +1,8 @@
 # Signalbot — Current Project Status
 
-**Status date:** 2026-09-11
+**Status date:** 2026-09-17
 **Operating mode:** `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN`
+**Active research phase:** `MARKET`
 
 This file is the canonical answer to: **what is Signalbot doing now?**
 
@@ -11,7 +12,9 @@ Further product/forecasting architecture development is frozen until the project
 
 The goal is **not** to force the discovery of an edge. `NO EDGE`, `INSUFFICIENT DATA`, and `REJECTED` are valid outcomes.
 
-Signalbot is temporarily operating as a market-research platform rather than as a product-development program.
+Signalbot is operating as a market-research platform rather than as a product-development program.
+
+The synthetic Microscope calibration is closed. Canonical V3 is immutable historical evidence, not a live research program. The active next phase is **MARKET**: take real crypto-market hypotheses through the existing research process. Do not repair, rerun, or reinterpret V3. Do not create V4. V3 `DETECTED`/`PASS` is not by itself sufficient evidence of a robust market edge.
 
 ## 2. Why the direction changed
 
@@ -86,9 +89,10 @@ robustness/incremental-information controls. See
 
 ### R2 Batch02
 
-Batch02 is in progress on the already-frozen six-entry inventory. The inventory
-itself is immutable. Post-outcome status lives in
-`docs/research/BATCH02_STATUS_LEDGER.md`.
+Batch02 inventory remains frozen/immutable and is **not** the active
+research program after the V3 Microscope closeout. Post-outcome status
+lives in `docs/research/BATCH02_STATUS_LEDGER.md`. B2-06 remains
+blocked; `MARKET-01` does not have to be B2-06.
 
 - B2-01 `VOLATILITY_TRANSITION`: `CLOSED_NO_PROMOTION`
 - B2-02 `BOUNDARY_INTERACTION_PATH`: `CLOSED_NO_PROMOTION`
@@ -130,15 +134,44 @@ itself is immutable. Post-outcome status lives in
   Historical ARM `120ac45` and unused driver ARM `0abc5fe` do
   not authorize V1 or V2 runtime. This does not authorize B2-06 science.
 
-V3 confirmatory calibration implementation was independently accepted at
-HEAD `70673673` / tree `e94e18cb` (`IMPLEMENTATION_ACCEPTED`; F1/F2/F3
-CLOSED). `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_IMPLEMENTATION_FREEZE`
-freezes that identity at `76f21007` / tree `dd59466b`. The one-shot ARM
-authorized run identity `ce664429…` / 1600 worlds and was consumed by
-exactly one reservation. Canonical execution completed: EASY `PASS`
-(400/400), MODERATE `PASS` (313/400), NULL `INDETERMINATE` (21/400),
-NONSTATIONARY_TRAP `FAIL` (188/400). `methodology_claimable = false`.
-This does not authorize a V3 rerun, V4, B2-06, or MARKET.
+V3 confirmatory calibration is **closed**. Canonical RESULT authority is
+commit `99b409cae279513eaf489194e7fa206082c60aef`, WORLD_RECORDS SHA256
+`5d09631db5180f562076b2191fe002aa21318a3925d3cd1c4014d83e4b41eb4f`,
+RESULT SHA256
+`f72eedcdcb511e2c7f22369cbdef164688317dfc99f9ab3e533df14cb2a27866`.
+Mechanical cell verdicts: EASY `PASS` (400/400), MODERATE `PASS`
+(313/400), NULL `INDETERMINATE` (21/400), NONSTATIONARY_TRAP `FAIL`
+(188/400). `methodology_claimable = false`. `incomplete_execution = false`.
+
+Narrow closeout interpretation (do not reinterpret the mechanical RESULT):
+
+1. V3 repaired the measured V2 confirmatory sensitivity problem (`EASY`
+   `PASS`, `MODERATE` `PASS`).
+2. V3 did not establish a generally claimable methodology (`NULL`
+   `INDETERMINATE`, `NONSTATIONARY_TRAP` `FAIL`,
+   `methodology_claimable = false`).
+3. Known limitation: the current V3 confirmatory decision is
+   insufficiently protected against the frozen nonstationary trap. Do
+   **not** translate 188/400 into a general real-market false-positive
+   rate; it applies only to the frozen synthetic trap DGP.
+4. V3 `DETECTED`/`PASS` is research evidence but must not by itself be
+   treated as sufficient evidence of a robust market edge. Any promising
+   MARKET result must retain explicit regime / nonstationarity scrutiny
+   before stronger promotion claims.
+5. This limitation is **not** authorization for immediate V4.
+
+Microscope closeout flags:
+
+- `V3_CALIBRATION_CLOSED = YES`
+- `V3_RERUN_AUTHORIZED = NO`
+- `V3_METHODOLOGY_CLAIMABLE = NO`
+- `CONFIRMATORY_SENSITIVITY = DEMONSTRATED_ON_FROZEN_SYNTHETIC_EASY_MODERATE`
+- `NONSTATIONARY_TRAP_PROTECTION = INADEQUATE_ON_FROZEN_TRAP_DGP`
+- `DEFAULT_V4 = NO`
+
+The Microscope remains available as scientific instrumentation. It is
+not deleted. It is no longer the active research program. B2-06 remains
+`BLOCKED_MISSING_OBSERVABLE`; MARKET-01 does not unblock it.
 
 Family F1 is `CLOSED_NO_PROMOTION`. 2025 validation and 2026 OOS remain
 untouched. No Batch02 formulation has a promoted candidate, so there is no
@@ -186,20 +219,34 @@ See `docs/HISTORICAL_DATA_STRATEGY.md`.
 
 ## 7. Active objective
 
-The immediate objective is to keep the remaining frozen Batch02 inventory
-honest: B2-05 durable-evidence recovery is closed as
-`B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED`; B2-06 remains
-`BLOCKED_MISSING_OBSERVABLE` pending a later materialized OI/funding snapshot
-and a first-party funding publication-availability rule bound to the frozen
-data-expansion contract. Do not rerun B2-05, do not
-execute B2-06 science in this unit, do not reopen CORE / 2025 / 2026 for
-outcomes, and do not rescue closed B2-01 through B2-04 results.
+The active research phase is **MARKET**. The next substantive unit is
+`MARKET-01`: take one real crypto-market hypothesis through the existing
+research process as quickly and honestly as possible. This closeout does
+**not** execute `MARKET-01` and does **not** design a new MARKET
+framework or infrastructure.
+
+Post-calibration operating priority:
+
+- approximately 70–80% actual market research;
+- approximately 20–30% infrastructure only when concrete research
+  blockers require it.
+
+Primary progress metric: MARKET hypotheses honestly closed per week.
+
+Initial evidence milestone: 25–50 real market hypotheses through the
+stable research process. That milestone is observational/research-oriented;
+it is not a promise that 25–50 studies establish alpha.
+
+B2-06 remains `BLOCKED_MISSING_OBSERVABLE` / funding publication-latency
+unproven. `MARKET-01` does not have to be B2-06 and does not silently
+unblock it. Do not rerun B2-05 or rescue closed B2-01 through B2-04
+results. Do not repair, rerun, or reinterpret V3. Do not create V4.
 
 The research objective remains:
 
 > Discover and independently validate one or two market mechanisms with stable incremental information — or falsify the investigated mechanisms without rescuing them through post-hoc complexity.
 
-A valid edge must survive more than a favorable backtest window. Exact requirements are defined in `docs/EDGE_RESEARCH_PROTOCOL.md`.
+A valid edge must survive more than a favorable backtest window. Exact requirements are defined in `docs/EDGE_RESEARCH_PROTOCOL.md`. Any promising MARKET result must retain explicit regime / nonstationarity scrutiny before stronger promotion claims.
 
 ## 8. Restart gate for product architecture
 

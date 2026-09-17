@@ -19,8 +19,8 @@ Read these first:
 
 | Document | Status | Purpose |
 |---|---|---|
-| `PROJECT_STATUS.md` | **ACTIVE / CANONICAL** | Current project posture, freeze, empirical state and restart gate |
-| `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order |
+| `PROJECT_STATUS.md` | **ACTIVE / CANONICAL** | Current project posture, freeze, empirical state and restart gate. Active research phase: `MARKET`. V3 Microscope calibration closed. |
+| `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. Next substantive unit: `MARKET-01` (not executed). V3 closed; no V4; B2-06 remains blocked. |
 | `EDGE_RESEARCH_PROTOCOL.md` | **ACTIVE / CANONICAL** | Discovery/validation rules and anti-overfit discipline |
 | `HISTORICAL_DATA_STRATEGY.md` | **ACTIVE / CANONICAL** | Multi-year CORE vs shorter RICH evidence strategy |
 | `DATA_CAPABILITY_MATRIX.md` | **ACTIVE / RESEARCH DATA DESIGN** | Verified source/venue/date/granularity map and acquisition order for the 2020/2021–2026 research program |
@@ -70,8 +70,8 @@ Read these first:
 | `research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PRODUCTION_ARM.json` | **ARMED_FOR_ONE_CANONICAL_V3_PRODUCTION_EXECUTION / CONSUMED** | Machine-readable one-shot ARM bytes remain `33354b48…`; lifecycle consumption is by reservation presence, not ARM rewrite |
 | `scripts/research/harness_synthetic_edge_calibration_v3_production.py` | **CANONICAL_EXECUTION_PLUMBING / EXECUTED** | One-shot reservation, durable checkpoint resume, WORLD_RECORDS/RESULT mint; frozen science unchanged |
 | `research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PRODUCTION_RESERVATION.json` | **RESERVED / CONSUMED** | Exactly one canonical reservation; identity `0bb58c95…`; SHA256 `8a062f1a…` |
-| `research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_WORLD_RECORDS.json` | **CANONICAL WORLD_RECORDS / IMMUTABLE** | 1600 terminal worlds; file SHA256 `5d09631d…`; inner records SHA256 `57f8361b…` |
-| `research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_RESULT.json` | **CANONICAL RESULT / IMMUTABLE** | Mechanically derived; SHA256 `f72eedcd…`; EASY PASS, MODERATE PASS, NULL INDETERMINATE, TRAP FAIL; not a V4/B2-06/MARKET authorization |
+| `research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_WORLD_RECORDS.json` | **CANONICAL WORLD_RECORDS / IMMUTABLE / V3_CALIBRATION_CLOSED** | 1600 terminal worlds; file SHA256 `5d09631d…`; inner records SHA256 `57f8361b…`; closed historical evidence, not a live calibration program |
+| `research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_RESULT.json` | **CANONICAL RESULT / IMMUTABLE / V3_CALIBRATION_CLOSED** | Mechanically derived; SHA256 `f72eedcd…`; EASY PASS, MODERATE PASS, NULL INDETERMINATE, TRAP FAIL; `methodology_claimable = false`; not a V4/B2-06 authorization; V3 `DETECTED`/`PASS` is not by itself a robust market-edge claim |
 | `research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_IMPLEMENTATION_REVIEW.md` | **IMPLEMENTATION_FROZEN_BEFORE_PRODUCTION_EXECUTION** | Frozen fixture implementation identity; not a RESULT |
 | `research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_EXECUTION_AUTHORIZATION.json` | **AUTHORIZED_FOR_ONE_PRODUCTION_EXECUTION / UNUSED** | Tracked one-shot production authorization; bytes frozen at reviewed HEAD `7b308f6`; `production_calibration_executed = false`; `production_monte_carlo_arm_authorized = false` |
 | `research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_EXECUTION_AUTHORIZATION.md` | **AUTHORIZATION_FROZEN_BEFORE_PRODUCTION_EXECUTION / UNUSED** | Human companion to the frozen unused one-shot authorization |
@@ -121,7 +121,8 @@ If a historical document conflicts with the active canonical set about **what th
 - shift from correctness to falsification;
 - E1 detector-separation experiment;
 - discovery that one month of rich overlap is inadequate for durable-edge claims;
-- 2026-08-26 research-first pivot.
+- 2026-08-26 research-first pivot;
+- V3 Microscope calibration closeout and MARKET-phase transition (2026-09-17).
 
 `history/README.md` complements that narrative with direct links to the full immutable source documents exactly as they existed before the pivot and records retired branch/PR history needed for safe branch cleanup.
 

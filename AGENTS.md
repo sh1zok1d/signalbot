@@ -6,7 +6,15 @@ This file tells coding/review agents what is authoritative **now**. Keep it conc
 
 Signalbot is currently in `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN` mode.
 
-The active objective is to discover and independently validate one or two robust conditional market mechanisms — or reject the investigated hypotheses without post-hoc rescue. There is no current claim of durable trading edge.
+The synthetic Microscope calibration is closed (`V3_CALIBRATION_CLOSED = YES`). Canonical V3 is immutable historical evidence: confirmatory sensitivity was demonstrated on frozen synthetic `EASY`/`MODERATE`, but the methodology is not generally claimable (`NULL` `INDETERMINATE`, `NONSTATIONARY_TRAP` `FAIL`; `V3_METHODOLOGY_CLAIMABLE = NO`). Do not repair, rerun, or reinterpret V3 (`V3_RERUN_AUTHORIZED = NO`). Do not create V4 (`DEFAULT_V4 = NO`). V3 `DETECTED`/`PASS` is not by itself sufficient evidence of a robust market edge.
+
+The active research phase is **MARKET**. The next substantive unit is `MARKET-01`: take one real crypto-market hypothesis through the existing research process. Do not design a large new MARKET framework or new infrastructure merely because MARKET is beginning. Operating priority is approximately 70–80% actual market research and 20–30% infrastructure only when concrete research blockers require it. Primary progress metric: MARKET hypotheses honestly closed per week.
+
+B2-06 remains blocked (`BLOCKED_MISSING_OBSERVABLE` / funding publication-latency unproven). `MARKET-01` is not B2-06 and does not unblock it.
+
+The Microscope remains available as scientific instrumentation. It is not the active research program.
+
+The research objective remains: discover and independently validate one or two robust conditional market mechanisms — or reject the investigated hypotheses without post-hoc rescue. There is no current claim of durable trading edge.
 
 V1 is frozen. V2 code is retained as research material, but V2 is **not** the active product-development roadmap.
 
@@ -42,7 +50,7 @@ Unless a task explicitly changes the project posture, do not build:
 - speculative generic frameworks;
 - new data/features merely to rescue weak results.
 
-Allowed work is research-supporting work: historical expansion, reproducible datasets, hypothesis tooling, baselines/controls, empirical evaluation, correctness fixes that protect evidence, and completion of already-frozen experiments.
+Allowed work is research-supporting work: MARKET hypothesis formulation and honest closeout through the existing process; historical expansion; reproducible datasets; hypothesis tooling; baselines/controls; empirical evaluation; correctness fixes that protect evidence; and completion of already-frozen experiments. Infrastructure is in-scope only when a concrete research blocker requires it. Do not repair/rerun V3, create V4, execute B2-06, or treat V3 `DETECTED`/`PASS` as a robust market-edge claim.
 
 ## Research governance
 
@@ -92,6 +100,10 @@ Do not change its:
 - verdict criteria.
 
 The final holdout may be opened only by its frozen one-shot evaluator after the timestamp-only coverage gate passes. Correctness fixes require explicit documentation and may not be motivated by observed holdout metrics.
+
+## V3 Microscope load-bearing rule
+
+Canonical V3 is closed immutable historical evidence. Do not change V3 scientific code, prereg, WORLD_RECORDS, or RESULT. Do not repair, rerun, or reinterpret V3. Do not create V4. `V3_CALIBRATION_CLOSED = YES`. `V3_METHODOLOGY_CLAIMABLE = NO`. `V3_RERUN_AUTHORIZED = NO`. `DEFAULT_V4 = NO`.
 
 ## History-preservation rule
 
@@ -149,6 +161,7 @@ For docs-only changes, inspect references and `git diff --check`; do not fabrica
 - inspect final diff for accidental product-scope expansion;
 - confirm V2 remains disabled unless explicitly authorized;
 - confirm frozen experiments were not semantically changed;
+- confirm canonical V3 WORLD_RECORDS/RESULT bytes were not modified;
 - report what validation actually ran;
 - update `docs/DOCUMENTATION_INDEX.md` when documentation authority changes;
 - update `docs/RESEARCH_LEDGER.md` when a research window/result/hypothesis is consumed;
