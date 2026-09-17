@@ -12,10 +12,12 @@ active research program. Do not repair, rerun, or reinterpret V3. Do not
 create V4 (`DEFAULT_V4 = NO`). `V3_METHODOLOGY_CLAIMABLE = NO`.
 `V3_RERUN_AUTHORIZED = NO`.
 
-The next substantive unit is `MARKET-01`: take one real crypto-market
-hypothesis through the existing research process as quickly and honestly
-as possible. Do not design a large new MARKET framework. Do not create
-new infrastructure merely because MARKET is beginning. Operating
+The next substantive unit after this closeout was `MARKET-01`. Its
+outcome-blind data feasibility inventory is recorded in
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_DATA_FEASIBILITY.md`
+(`MARKET_01_PREREG_FEASIBLE = YES`). The preregistration is **not**
+written in that inventory. Do not design a large new MARKET framework.
+Do not create new infrastructure merely because MARKET is beginning. Operating
 priority is approximately 70–80% actual market research and 20–30%
 infrastructure only when concrete research blockers require it. Primary
 progress metric: MARKET hypotheses honestly closed per week. Initial

@@ -219,11 +219,11 @@ See `docs/HISTORICAL_DATA_STRATEGY.md`.
 
 ## 7. Active objective
 
-The active research phase is **MARKET**. The next substantive unit is
-`MARKET-01`: take one real crypto-market hypothesis through the existing
-research process as quickly and honestly as possible. This closeout does
-**not** execute `MARKET-01` and does **not** design a new MARKET
-framework or infrastructure.
+The active research phase is **MARKET**. `MARKET-01`
+(`OI_EXPANSION_WEAK_CONTINUATION`) has completed an outcome-blind data
+feasibility inventory only. A preregistration has **not** been written
+and the hypothesis has **not** been tested. See
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_DATA_FEASIBILITY.md`.
 
 Post-calibration operating priority:
 

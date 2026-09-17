@@ -2865,3 +2865,48 @@ unproven. `MARKET-01` is not B2-06 and does not silently unblock it.
 
 - next required step: `MARKET-01`
 
+## 2026-09-17 — MARKET-01 outcome-blind data feasibility (OI_EXPANSION_WEAK_CONTINUATION)
+
+Inspected existing price and OI authorities only. No hypothesis test, no
+candidate outcomes, no prereg, no RESULT, no 2025/2026 access, no B2-06
+execution.
+
+Working direction (not frozen): after a directional price impulse, OI
+expansion plus weak subsequent price continuation may mark a leverage-
+accumulation state with possible later-reversal information. Absorption
+is interpretation, not an observable.
+
+Price authority: `CORE_BTC_BINANCE_V0` snapshot `717d37a4…` — Binance
+USD-M `BTCUSDT` 1m klines, `available_at = bar_end_exclusive`,
+`[2020-01-01, 2026-08-26)`, 0 missing minutes,
+`ACCEPTED_FOR_DISCOVERY`.
+
+OI authority: Vision `sum_open_interest` in snapshot `5a9d036b…` —
+native 5m, `create_time` = bucket start, `available_at = period_end`,
+`[2020-09-01, 2025-01-01)`, 455273 rows, 631 missing native buckets,
+`oi_decision_time_availability_proven = true`. Dataset
+`research_authorized = false` remains the B2-06 funding gate. MARKET-01
+does not need funding and does not unblock B2-06.
+
+Common usable overlap: `[2020-09-01T00:00:00Z, 2025-01-01T00:00:00Z)` at
+**5m OI grain**. Causal alignment is defensible on exclusive-end clocks.
+Local CORE parquet and OI JSONL are not in this worktree.
+
+Mechanical sufficiency:
+
+- `PRICE_POINT_IN_TIME_USABLE = YES`
+- `OI_POINT_IN_TIME_USABLE = YES`
+- `PRICE_OI_CAUSAL_ALIGNMENT_POSSIBLE = YES`
+- `MARKET_01_PREREG_FEASIBLE = YES`
+
+Evidence:
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_DATA_FEASIBILITY.md`.
+
+- market_01_phase: **OUTCOME_BLIND_FEASIBILITY**
+- market_01_outcome_inspected: **false**
+- market_01_prereg_created: **false**
+- market_01_executed: **false**
+- b2_06_execution_authorized: **false**
+
+- next required step: `MARKET-01_PREREG`
+
