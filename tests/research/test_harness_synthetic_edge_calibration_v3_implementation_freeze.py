@@ -18,7 +18,6 @@ import pytest
 from scripts.research import harness_synthetic_edge_calibration_v3_authority as v3a
 from scripts.research.harness_synthetic_edge_calibration_v3_authority import (
     V3ExecutionNotAuthorized,
-    V3NotArmed,
 )
 
 REPO = Path(__file__).resolve().parents[2]
@@ -374,19 +373,18 @@ def test_disposable_tests_cannot_consume_canonical_world_indices():
 
 
 def test_no_canonical_result_or_reservation_before_arm():
-    assert v3a.v3_arm_authorized() is False
-    assert v3a.v3_protected_artifacts_present() is False
-    with pytest.raises(V3NotArmed):
-        v3a.run_canonical_v3_grid()
-    with pytest.raises(V3ExecutionNotAuthorized, match="not authorized before ARM"):
-        v3a.evaluate_v3_canonical_world("EASY", 5000, 10000)
-    with pytest.raises(V3ExecutionNotAuthorized, match="reservation"):
-        v3a.reserve_v3_canonical_run()
+    freeze_head = "76f2100715b67799231eab8132cd856823fdf3f8"
+    proc = subprocess.run(
+        ["git", "-C", str(REPO), "cat-file", "-e", f"{freeze_head}:{v3a.CANONICAL_V3_ARM_PATH}"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    assert proc.returncode != 0
     with pytest.raises(V3ExecutionNotAuthorized, match="WORLD_RECORDS"):
         v3a.mint_v3_world_records()
     with pytest.raises(V3ExecutionNotAuthorized, match="RESULT"):
         v3a.mint_v3_result()
-    for rel in v3a.PROTECTED_V3_AUTHORITY_PATHS:
+    for rel in v3a.PROTECTED_V3_CONSUMPTION_PATHS:
         assert (REPO / rel).exists() is False
         proc = subprocess.run(
             ["git", "-C", str(REPO), "cat-file", "-e", f"HEAD:{rel}"],
@@ -419,22 +417,16 @@ def test_canonical_grid_binding_identity_only():
     assert len(jobs) == 1600
     assert jobs[0] == ("EASY", 5000, 10000)
     assert jobs[-1] == ("NONSTATIONARY_TRAP", 5000, 10399)
-    state = v3a.v3_pre_arm_state()
-    assert state["v3_implementation_frozen"] is True
-    assert state["v3_pre_arm_binding_complete"] is True
-    assert state["v3_run_authorized"] is False
-    assert state["v3_armed"] is False
-    assert state["world_records_created"] is False
-    assert state["result_minted"] is False
     fields = v3a.required_v3_arm_binding_fields()
     assert fields["authorization_consumed"] is False
     assert fields["canonical_world_count"] == 1600
     assert fields["b2_06_scientific_execution_authorized"] is False
-    assert (REPO / v3a.CANONICAL_V3_ARM_PATH).exists() is False
+    assert fields["run_identity"] == v3a.FROZEN_V3_RUN_IDENTITY
 
 
 def test_freeze_commit_does_not_change_scientific_bytes():
-    if FREEZE_JSON not in _git("ls-tree", "-r", "--name-only", "HEAD"):
+    freeze_head = "76f2100715b67799231eab8132cd856823fdf3f8"
+    if FREEZE_JSON not in _git("ls-tree", "-r", "--name-only", freeze_head):
         pytest.skip("freeze artifact not yet committed")
     added = _git("log", "--diff-filter=A", "--format=%H", "--", FREEZE_JSON).splitlines()
     assert added, "freeze artifact must be added by a tracked commit"
@@ -445,7 +437,7 @@ def test_freeze_commit_does_not_change_scientific_bytes():
         assert _git("diff", f"{ACCEPTED_HEAD}..HEAD", "--", path) == ""
     changed = set(_git("diff-tree", "--no-commit-id", "--name-only", "-r", freeze_commit).splitlines())
     assert FREEZE_JSON in changed
-    later = set(_git("diff", "--name-only", f"{ACCEPTED_HEAD}..HEAD").splitlines())
-    assert later <= FREEZE_ALLOWED_CHANGED_PATHS
+    freeze_later = set(_git("diff", "--name-only", f"{ACCEPTED_HEAD}..{freeze_head}").splitlines())
+    assert freeze_later <= FREEZE_ALLOWED_CHANGED_PATHS
     for path in AUTHORITY_MUST_BE_UNCHANGED:
-        assert path not in later
+        assert path not in freeze_later

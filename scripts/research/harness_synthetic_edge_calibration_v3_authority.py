@@ -1,12 +1,12 @@
 """V3 implementation-freeze / pre-ARM execution binding.
 
 This module does not redefine V3 scientific semantics. It records and
-enforces already-accepted authority so a later unit can arm exactly one
-canonical V3 execution.
+enforces already-accepted freeze authority and authenticates the one-shot
+canonical ARM.
 
-It does not ARM, reserve, execute world_index 10000..10399, or mint
-WORLD_RECORDS / RESULT. Caller kwargs, environment variables, and
-alternate paths cannot substitute scientific authority.
+Creating or validating ARM does not reserve, execute world_index
+10000..10399, or mint WORLD_RECORDS / RESULT. Caller kwargs, environment
+variables, and alternate paths cannot substitute scientific authority.
 
 Reuse: ``verify_git_freeze``, ``canonical_json_bytes``,
 ``SyntheticExecutionNotAuthorized``. Freeze identity is never hardcoded
@@ -184,12 +184,76 @@ SCIENTIFIC_PATHS = (
     CANONICAL_PREREG_MD_PATH,
     CANONICAL_PREREG_JSON_PATH,
 )
-PROTECTED_V3_AUTHORITY_PATHS = (
-    CANONICAL_V3_ARM_PATH,
+PROTECTED_V3_CONSUMPTION_PATHS = (
     CANONICAL_V3_RESERVATION_PATH,
     CANONICAL_V3_WORLD_RECORDS_PATH,
     CANONICAL_V3_RESULT_PATH,
     CANONICAL_V3_CLAIM_PATH,
+)
+PROTECTED_V3_AUTHORITY_PATHS = PROTECTED_V3_CONSUMPTION_PATHS
+
+IMPLEMENTATION_FREEZE_HEAD = "76f2100715b67799231eab8132cd856823fdf3f8"
+IMPLEMENTATION_FREEZE_TREE = "dd59466b02c56f101764cb17052a6d5eb514b945"
+FROZEN_V3_RUN_IDENTITY = (
+    "ce66442985a637f05508c980257f5ca8b869df15e2b94b87d1110c3ef75fd69f"
+)
+FROZEN_FREEZE_ARTIFACT_SHA256 = (
+    "16fe65503381b453fd8759e8fe12fd449786ff5f13394da5306a621def904674"
+)
+FROZEN_FREEZE_ARTIFACT_SIZE = 8364
+
+LIFECYCLE_NOT_AUTHORIZED = "NOT_AUTHORIZED"
+LIFECYCLE_AUTHORIZED_UNUSED = "AUTHORIZED_UNUSED"
+LIFECYCLE_RESERVED = "RESERVED"
+LIFECYCLE_EXECUTED_CONSUMED = "EXECUTED_CONSUMED"
+LIFECYCLE_FAILED_CONSUMED = "FAILED_CONSUMED"
+_CONSUMED_LIFECYCLES = frozenset(
+    {
+        LIFECYCLE_RESERVED,
+        LIFECYCLE_EXECUTED_CONSUMED,
+        LIFECYCLE_FAILED_CONSUMED,
+    }
+)
+
+V3_ARM_REQUIRED_LITERALS = {
+    "schema": "harness_synthetic_edge_calibration_v3_production_arm",
+    "status": "ARMED_FOR_ONE_CANONICAL_V3_PRODUCTION_EXECUTION",
+    "authorized_run_count": 1,
+    "authorization_consumed": False,
+    "lifecycle": LIFECYCLE_AUTHORIZED_UNUSED,
+    "one_shot": True,
+    "one_shot_consumption_path": "canonical_reservation_then_execution_only",
+    "descendant_implementation_change_authorized": False,
+    "real_market_data_access_authorized": False,
+    "b2_06_scientific_execution_authorized": False,
+    "validation_2025_authorized": False,
+    "oos_2026_authorized": False,
+    "default_v4": False,
+    "not_a_reservation": True,
+    "not_an_execution": True,
+    "implementation_review_verdict": "IMPLEMENTATION_ACCEPTED",
+    "canonical_world_count": FROZEN_PLANNED_WORLDS,
+}
+
+V3_ARM_REQUIRED_BINDING_KEYS = (
+    "freeze_parent_head",
+    "freeze_parent_tree",
+    "freeze_artifact_path",
+    "freeze_artifact_sha256",
+    "freeze_artifact_size",
+    "reviewed_implementation_head",
+    "reviewed_implementation_tree",
+    "prereg_freeze_head",
+    "confirmatory_sha256",
+    "rng_sha256",
+    "v1_lib_sha256",
+    "selector_source_file_sha256",
+    "canonical_v3_plan_sha256",
+    "run_identity",
+)
+
+V3_ARM_ALLOWED_KEYS = frozenset(V3_ARM_REQUIRED_LITERALS) | frozenset(
+    V3_ARM_REQUIRED_BINDING_KEYS
 )
 _FORBIDDEN_ENV = (
     "HARNESS_V3_PREREG_PATH",
@@ -651,37 +715,192 @@ def derive_v3_run_identity(*args: Any, **kwargs: Any) -> str:
     return str(canonical_v3_plan()["sha256"])
 
 
+def _parent_count(repo_root: Path, commit: str) -> int:
+    proc = _run_git(repo_root, "cat-file", "-p", commit)
+    raw = _require_git_ok(proc, "cat-file commit").decode("utf-8", "replace")
+    return sum(1 for line in raw.splitlines() if line.startswith("parent "))
+
+
+def _parent_sha(repo_root: Path, commit: str) -> str:
+    proc = _run_git(repo_root, "rev-parse", f"{commit}^")
+    return _require_git_ok(proc, "rev-parse parent").decode("ascii").strip().lower()
+
+
+def _commit_tree_of(repo_root: Path, commit: str) -> str:
+    proc = _run_git(repo_root, "rev-parse", f"{commit}^{{tree}}")
+    return _require_git_ok(proc, "rev-parse commit tree").decode("ascii").strip().lower()
+
+
+def _payload_field_equals(payload: Mapping[str, Any], key: str, expected: Any) -> bool:
+    got = payload.get(key)
+    if isinstance(expected, bool) or expected is False or expected is True:
+        return got is expected
+    if isinstance(expected, int) and not isinstance(expected, bool):
+        try:
+            return int(got) == int(expected)
+        except (TypeError, ValueError):
+            return False
+    return str(got) == str(expected)
+
+
+def _consumption_lifecycle_at(repo_root: Path, commit: str) -> str | None:
+    if _commit_blob(repo_root, commit, CANONICAL_V3_CLAIM_PATH) is not None:
+        return LIFECYCLE_EXECUTED_CONSUMED
+    if (repo_root / CANONICAL_V3_CLAIM_PATH).exists():
+        return LIFECYCLE_EXECUTED_CONSUMED
+    for rel in (
+        CANONICAL_V3_WORLD_RECORDS_PATH,
+        CANONICAL_V3_RESULT_PATH,
+        CANONICAL_V3_RESERVATION_PATH,
+    ):
+        blob = _commit_blob(repo_root, commit, rel)
+        path = repo_root / rel
+        if blob is None and not path.exists():
+            continue
+        if rel != CANONICAL_V3_RESERVATION_PATH:
+            return LIFECYCLE_EXECUTED_CONSUMED
+        raw = blob if blob is not None else path.read_bytes()
+        try:
+            payload = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError, TypeError):
+            return LIFECYCLE_FAILED_CONSUMED
+        if not isinstance(payload, dict):
+            return LIFECYCLE_FAILED_CONSUMED
+        lifecycle = payload.get("lifecycle")
+        if lifecycle in _CONSUMED_LIFECYCLES:
+            return str(lifecycle)
+        return LIFECYCLE_RESERVED
+    return None
+
+
 def v3_protected_artifacts_present(*args: Any, **kwargs: Any) -> bool:
     _reject_caller_kwargs(args, kwargs)
     repo_root = _repo_root()
-    for rel in PROTECTED_V3_AUTHORITY_PATHS:
+    for rel in PROTECTED_V3_CONSUMPTION_PATHS:
         if (repo_root / rel).exists() or _commit_blob(repo_root, "HEAD", rel) is not None:
             return True
     return False
 
 
-def v3_arm_authorized(*args: Any, **kwargs: Any) -> bool:
-    """True only if a later unit committed a verified ARM. This unit never does."""
+def discover_v3_arm_commit(*args: Any, **kwargs: Any) -> str | None:
+    """Unique commit that added the ARM artifact. None if unarmed."""
     _reject_caller_kwargs(args, kwargs)
     repo_root = _repo_root()
-    if _commit_blob(repo_root, "HEAD", CANONICAL_V3_ARM_PATH) is not None:
-        _refuse("V3 ARM artifact is present but this unit does not authenticate ARM")
-    if (repo_root / CANONICAL_V3_ARM_PATH).exists():
-        _refuse("uncommitted V3 ARM artifact cannot authorize execution")
-    return False
+    proc = _run_git(
+        repo_root,
+        "log",
+        "--diff-filter=A",
+        "--format=%H",
+        "--",
+        CANONICAL_V3_ARM_PATH,
+    )
+    if proc.returncode != 0:
+        return None
+    added = [line.strip().lower() for line in proc.stdout.decode("ascii").splitlines() if line.strip()]
+    if not added:
+        return None
+    return added[-1]
+
+
+def _authenticate_v3_arm_payload(
+    repo_root: Path, commit: str, payload: Mapping[str, Any]
+) -> dict[str, Any]:
+    if set(payload) != V3_ARM_ALLOWED_KEYS:
+        _refuse("V3 ARM authority fields are not the frozen closed set")
+    for key, expected in V3_ARM_REQUIRED_LITERALS.items():
+        if not _payload_field_equals(payload, key, expected):
+            _refuse(f"V3 ARM literal mismatch for {key}")
+    if _parent_count(repo_root, commit) != 1:
+        _refuse("V3 ARM commit must have exactly one parent")
+    parent = _parent_sha(repo_root, commit)
+    parent_tree = _commit_tree_of(repo_root, parent)
+    if str(payload.get("freeze_parent_head", "")).lower() != parent:
+        _refuse("V3 ARM freeze_parent_head is not the ARM commit's parent")
+    if str(payload.get("freeze_parent_tree", "")).lower() != parent_tree:
+        _refuse("V3 ARM freeze_parent_tree is not the freeze parent tree")
+    if _commit_blob(repo_root, parent, CANONICAL_V3_ARM_PATH) is not None:
+        _refuse("V3 freeze parent must not itself carry an ARM")
+    freeze_blob = _commit_blob(repo_root, parent, CANONICAL_FREEZE_JSON_PATH)
+    if freeze_blob is None:
+        _refuse("V3 freeze parent is missing the implementation-freeze artifact")
+    if _sha256_bytes(freeze_blob) != str(payload.get("freeze_artifact_sha256", "")).lower():
+        _refuse("V3 ARM freeze artifact hash mismatch")
+    if len(freeze_blob) != int(payload.get("freeze_artifact_size", -1)):
+        _refuse("V3 ARM freeze artifact size mismatch")
+    if str(payload.get("freeze_artifact_path", "")) != CANONICAL_FREEZE_JSON_PATH:
+        _refuse("V3 ARM freeze_artifact_path is not canonical")
+    expected_bindings = {
+        "reviewed_implementation_head": ACCEPTED_IMPLEMENTATION_HEAD,
+        "reviewed_implementation_tree": ACCEPTED_IMPLEMENTATION_TREE,
+        "prereg_freeze_head": PREREG_FREEZE_HEAD,
+        "confirmatory_sha256": FROZEN_CONFIRMATORY_SHA256,
+        "rng_sha256": FROZEN_RNG_SHA256,
+        "v1_lib_sha256": FROZEN_V1_LIB_SHA256,
+        "selector_source_file_sha256": FROZEN_SELECTOR_AUTHORITY["source_file_sha256"],
+    }
+    for key, expected in expected_bindings.items():
+        if str(payload.get(key, "")).lower() != str(expected).lower():
+            _refuse(f"V3 ARM scientific binding mismatch for {key}")
+    for rel, sha256, size in (
+        (CONFIRMATORY_REL, FROZEN_CONFIRMATORY_SHA256, FROZEN_CONFIRMATORY_SIZE),
+        (RNG_REL, FROZEN_RNG_SHA256, FROZEN_RNG_SIZE),
+        (V1_LIB_REL, FROZEN_V1_LIB_SHA256, FROZEN_V1_LIB_SIZE),
+        (CANONICAL_PREREG_MD_PATH, FROZEN_PREREG_MD_SHA256, FROZEN_PREREG_MD_SIZE),
+        (CANONICAL_PREREG_JSON_PATH, FROZEN_PREREG_JSON_SHA256, FROZEN_PREREG_JSON_SIZE),
+    ):
+        blob = _commit_blob(repo_root, commit, rel)
+        if blob is None or _sha256_bytes(blob) != sha256 or len(blob) != size:
+            _refuse(f"V3 ARM scientific-byte mutation rejected: {rel}")
+        parent_blob = _commit_blob(repo_root, parent, rel)
+        if parent_blob != blob:
+            _refuse(f"V3 ARM changed scientific bytes relative to freeze parent: {rel}")
+    spec = _literal_grid()
+    if int(payload.get("canonical_world_count", -1)) != spec["planned_worlds"]:
+        _refuse("canonical-grid mutation rejected")
+    run_identity = str(payload.get("run_identity", "")).lower()
+    plan_sha = str(payload.get("canonical_v3_plan_sha256", "")).lower()
+    if run_identity != plan_sha:
+        _refuse("V3 ARM run_identity is not the frozen plan identity")
+    return {
+        "arm_commit": commit.lower(),
+        "freeze_parent_head": parent,
+        "freeze_parent_tree": parent_tree,
+        "run_identity": run_identity,
+        "payload": dict(payload),
+    }
+
+
+def _load_arm_payload_at(repo_root: Path, commit: str) -> dict[str, Any] | None:
+    blob = _commit_blob(repo_root, commit, CANONICAL_V3_ARM_PATH)
+    if blob is None:
+        return None
+    try:
+        payload = json.loads(blob.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError, TypeError):
+        _refuse("V3 ARM artifact is not valid JSON")
+    if not isinstance(payload, dict):
+        _refuse("V3 ARM artifact is not an object")
+    return payload
 
 
 def required_v3_arm_binding_fields(*args: Any, **kwargs: Any) -> dict[str, Any]:
-    """Fields a later one-shot ARM must bind. Does not create the ARM."""
+    """Fields the one-shot ARM must bind. Does not create or consume the ARM."""
     _reject_caller_kwargs(args, kwargs)
+    repo_root = _repo_root()
     freeze = load_v3_implementation_freeze()
     plan = canonical_v3_plan()
-    freeze_bytes = _worktree_bytes(_repo_root(), CANONICAL_FREEZE_JSON_PATH)
-    return {
-        "schema": "harness_synthetic_edge_calibration_v3_production_arm",
-        "status": "ARMED_FOR_ONE_CANONICAL_V3_PRODUCTION_EXECUTION",
-        "authorized_run_count": 1,
-        "authorization_consumed": False,
+    freeze_bytes = _worktree_bytes(repo_root, CANONICAL_FREEZE_JSON_PATH)
+    arm_commit = discover_v3_arm_commit()
+    if arm_commit is not None:
+        freeze_parent_head = _parent_sha(repo_root, arm_commit)
+        freeze_parent_tree = _commit_tree_of(repo_root, freeze_parent_head)
+    else:
+        freeze_parent_head = _head_sha(repo_root)
+        freeze_parent_tree = _tree_sha(repo_root)
+    payload = {
+        **V3_ARM_REQUIRED_LITERALS,
+        "freeze_parent_head": freeze_parent_head,
+        "freeze_parent_tree": freeze_parent_tree,
         "freeze_artifact_path": CANONICAL_FREEZE_JSON_PATH,
         "freeze_artifact_sha256": _sha256_bytes(freeze_bytes),
         "freeze_artifact_size": len(freeze_bytes),
@@ -693,29 +912,129 @@ def required_v3_arm_binding_fields(*args: Any, **kwargs: Any) -> dict[str, Any]:
         "v1_lib_sha256": FROZEN_V1_LIB_SHA256,
         "selector_source_file_sha256": FROZEN_SELECTOR_AUTHORITY["source_file_sha256"],
         "canonical_v3_plan_sha256": plan["sha256"],
-        "canonical_world_count": FROZEN_PLANNED_WORLDS,
         "run_identity": plan["sha256"],
-        "real_market_data_access_authorized": False,
-        "b2_06_scientific_execution_authorized": False,
-        "validation_2025_authorized": False,
-        "oos_2026_authorized": False,
+    }
+    if freeze["implementation_review_verdict"] != payload["implementation_review_verdict"]:
+        _refuse("implementation freeze verdict is not IMPLEMENTATION_ACCEPTED")
+    if set(payload) != V3_ARM_ALLOWED_KEYS:
+        _refuse("required V3 ARM binding fields drifted from the closed set")
+    return payload
+
+
+def authenticate_v3_arm(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Authenticate the tracked one-shot ARM. Does not consume it."""
+    _reject_caller_kwargs(args, kwargs)
+    _refuse_env_substitution()
+    repo_root = _repo_root()
+    assert_v3_scientific_authority_intact()
+    arm_commit = discover_v3_arm_commit()
+    if arm_commit is None:
+        _refuse("V3 ARM artifact is not present")
+    payload = _load_arm_payload_at(repo_root, arm_commit)
+    if payload is None:
+        _refuse("V3 ARM artifact is not present")
+    head_payload = _load_arm_payload_at(repo_root, "HEAD")
+    if head_payload is None:
+        _refuse("HEAD is missing the V3 ARM artifact")
+    bound = _authenticate_v3_arm_payload(repo_root, arm_commit, payload)
+    head_blob = _commit_blob(repo_root, "HEAD", CANONICAL_V3_ARM_PATH)
+    arm_blob = _commit_blob(repo_root, arm_commit, CANONICAL_V3_ARM_PATH)
+    if head_blob is None or arm_blob is None or head_blob != arm_blob:
+        _refuse("HEAD ARM bytes do not match the authenticated ARM commit")
+    derived = derive_v3_run_identity()
+    if bound["run_identity"] != derived:
+        _refuse("V3 ARM run_identity is not the frozen scientific run identity")
+    consumed = _consumption_lifecycle_at(repo_root, "HEAD")
+    bound["lifecycle"] = consumed or LIFECYCLE_AUTHORIZED_UNUSED
+    bound["authorization_consumed"] = consumed is not None
+    if consumed is not None:
+        _refuse("V3 one-shot authorization is already consumed")
+    return bound
+
+
+def v3_arm_authorized(*args: Any, **kwargs: Any) -> bool:
+    """True iff the tracked one-shot ARM authenticates and is still UNUSED."""
+    _reject_caller_kwargs(args, kwargs)
+    try:
+        bound = authenticate_v3_arm()
+    except V3ExecutionNotAuthorized:
+        return False
+    return bound["lifecycle"] == LIFECYCLE_AUTHORIZED_UNUSED and bound["authorization_consumed"] is False
+
+
+def inspect_v3_authorization_state(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Read-only lifecycle. Validating ARM does not consume it."""
+    _reject_caller_kwargs(args, kwargs)
+    repo_root = _repo_root()
+    consumed = _consumption_lifecycle_at(repo_root, "HEAD")
+    try:
+        bound = authenticate_v3_arm()
+        lifecycle = bound["lifecycle"]
+        armed = lifecycle == LIFECYCLE_AUTHORIZED_UNUSED
+        run_identity = bound["run_identity"]
+        freeze_parent_head = bound["freeze_parent_head"]
+        freeze_parent_tree = bound["freeze_parent_tree"]
+    except V3ExecutionNotAuthorized:
+        lifecycle = consumed or LIFECYCLE_NOT_AUTHORIZED
+        armed = False
+        run_identity = None
+        freeze_parent_head = None
+        freeze_parent_tree = None
+        if consumed is None and _commit_blob(repo_root, "HEAD", CANONICAL_V3_ARM_PATH) is None:
+            lifecycle = LIFECYCLE_NOT_AUTHORIZED
+    return {
+        "lifecycle": lifecycle,
+        "v3_implementation_frozen": True,
+        "v3_pre_arm_binding_complete": True,
+        "v3_run_authorized": armed,
+        "v3_armed": armed,
+        "authorization_consumed": lifecycle in _CONSUMED_LIFECYCLES,
+        "reservation_created": bool(
+            (repo_root / CANONICAL_V3_RESERVATION_PATH).exists()
+            or _commit_blob(repo_root, "HEAD", CANONICAL_V3_RESERVATION_PATH) is not None
+        ),
+        "world_records_created": False,
+        "result_minted": False,
+        "canonical_execution_started": False,
         "default_v4": False,
-        "implementation_review_verdict": freeze["implementation_review_verdict"],
+        "b2_06_execution_authorized": False,
+        "run_identity": run_identity,
+        "freeze_parent_head": freeze_parent_head,
+        "freeze_parent_tree": freeze_parent_tree,
+        "canonical_world_count": FROZEN_PLANNED_WORLDS,
+    }
+
+
+def inspect_v3_reservation_readiness(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Recognize valid unused ARM without creating a reservation."""
+    _reject_caller_kwargs(args, kwargs)
+    bound = authenticate_v3_arm()
+    if v3_protected_artifacts_present():
+        _refuse("canonical reservation/evidence already exists")
+    return {
+        "arm_authentic": True,
+        "authorization_unused": True,
+        "reservation_created": False,
+        "ready_for_reservation": True,
+        "run_identity": bound["run_identity"],
+        "freeze_parent_head": bound["freeze_parent_head"],
+        "canonical_world_count": FROZEN_PLANNED_WORLDS,
     }
 
 
 def v3_pre_arm_state(*args: Any, **kwargs: Any) -> dict[str, Any]:
     _reject_caller_kwargs(args, kwargs)
     assert_v3_scientific_authority_intact()
-    armed = v3_arm_authorized()
+    if discover_v3_arm_commit() is not None or (_repo_root() / CANONICAL_V3_ARM_PATH).exists():
+        _refuse("pre-arm state is not valid after ARM; use inspect_v3_authorization_state")
     protected = v3_protected_artifacts_present()
     if protected:
-        _refuse("canonical V3 result/evidence/reservation/ARM artifact already present")
+        _refuse("canonical V3 result/evidence/reservation artifact already present")
     return {
         "v3_implementation_frozen": True,
         "v3_pre_arm_binding_complete": True,
         "v3_run_authorized": False,
-        "v3_armed": armed,
+        "v3_armed": False,
         "reservation_created": False,
         "world_records_created": False,
         "result_minted": False,
@@ -743,7 +1062,11 @@ def assert_v3_executed_bytes_bound(*args: Any, **kwargs: Any) -> None:
 
 
 def evaluate_v3_canonical_world(*args: Any, **kwargs: Any) -> None:
-    _refuse("canonical V3 world evaluation is not authorized before ARM")
+    if kwargs:
+        _refuse("caller arguments cannot authorize canonical V3 world evaluation")
+    if v3_arm_authorized() is not True:
+        raise V3NotArmed("SYNTHETIC_EXECUTION_NOT_AUTHORIZED: v3_arm_authorized=false")
+    _refuse("canonical V3 world evaluation requires unused reservation")
 
 
 def run_canonical_v3_grid(*args: Any, **kwargs: Any) -> None:
@@ -751,12 +1074,13 @@ def run_canonical_v3_grid(*args: Any, **kwargs: Any) -> None:
         _refuse("caller arguments cannot authorize the canonical V3 grid")
     if v3_arm_authorized() is not True:
         raise V3NotArmed("SYNTHETIC_EXECUTION_NOT_AUTHORIZED: v3_arm_authorized=false")
-    _refuse("canonical V3 grid execution is not authorized by this freeze unit")
+    _refuse("canonical V3 grid execution requires unused reservation")
 
 
 def reserve_v3_canonical_run(*args: Any, **kwargs: Any) -> None:
     _reject_caller_kwargs(args, kwargs)
-    _refuse("V3 reservation cannot be created before ARM")
+    inspect_v3_reservation_readiness()
+    _refuse("this unit does not create a canonical V3 reservation")
 
 
 def mint_v3_world_records(*args: Any, **kwargs: Any) -> None:

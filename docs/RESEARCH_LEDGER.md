@@ -2724,3 +2724,30 @@ Freeze and ARM remain separable. No ARM artifact was created.
 
 - next required step: `V3_ONE_SHOT_CANONICAL_ARM`
 
+## 2026-09-17 — V3 one-shot canonical ARM
+
+`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PRODUCTION_ARM.md`/`.json` is a
+tracked one-shot authorization for the already-frozen V3 canonical
+execution. Immediate parent is implementation-freeze HEAD
+`76f2100715b67799231eab8132cd856823fdf3f8` / tree
+`dd59466b02c56f101764cb17052a6d5eb514b945`. Bound run identity
+`ce66442985a637f05508c980257f5ca8b869df15e2b94b87d1110c3ef75fd69f`.
+Accepted implementation `70673673f5bc0108e6bcf2aaf55a762ebc49940a`
+unchanged.
+
+Lifecycle `AUTHORIZED_UNUSED`. `authorization_consumed = false`. ARM
+creation does not consume the one-shot. No reservation, no
+`world_index 10000..10399` execution, no WORLD_RECORDS, no RESULT.
+
+- v3_implementation_frozen: **true**
+- v3_pre_arm_binding_complete: **true**
+- v3_run_authorized: **true**
+- v3_armed: **true**
+- authorization_consumed: **false**
+- canonical_reservation_created: **false**
+- canonical_execution_started: **false**
+- default_v4: **false**
+- b2_06_execution_authorized: **false**
+
+- next required step: `V3_CANONICAL_RESERVATION`
+
