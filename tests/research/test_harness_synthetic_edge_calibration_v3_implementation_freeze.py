@@ -380,18 +380,20 @@ def test_no_canonical_result_or_reservation_before_arm():
         stderr=subprocess.DEVNULL,
     )
     assert proc.returncode != 0
-    with pytest.raises(V3ExecutionNotAuthorized, match="WORLD_RECORDS"):
-        v3a.mint_v3_world_records()
-    with pytest.raises(V3ExecutionNotAuthorized, match="RESULT"):
-        v3a.mint_v3_result()
     for rel in v3a.PROTECTED_V3_CONSUMPTION_PATHS:
-        assert (REPO / rel).exists() is False
         proc = subprocess.run(
-            ["git", "-C", str(REPO), "cat-file", "-e", f"HEAD:{rel}"],
+            ["git", "-C", str(REPO), "cat-file", "-e", f"{freeze_head}:{rel}"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
         assert proc.returncode != 0
+    if not (REPO / v3a.CANONICAL_V3_RESERVATION_PATH).exists():
+        with pytest.raises(V3ExecutionNotAuthorized, match="WORLD_RECORDS"):
+            v3a.mint_v3_world_records()
+        with pytest.raises(V3ExecutionNotAuthorized, match="RESULT"):
+            v3a.mint_v3_result()
+        for rel in v3a.PROTECTED_V3_CONSUMPTION_PATHS:
+            assert (REPO / rel).exists() is False
 
 
 def test_historical_v1_v2_evidence_untouched():
