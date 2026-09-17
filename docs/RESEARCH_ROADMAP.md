@@ -239,18 +239,14 @@ independent freeze review closes and a later explicit ARM unit is authorized.
 The original prereg at `ada237e` and Amendment_001 at `d8f0a99` are not
 rewritten in place.
 
-V3 confirmatory calibration is the current methodology successor for a
-claimable synthetic RESULT. The accepted implementation
-`70673673f5bc0108e6bcf2aaf55a762ebc49940a` / tree
-`e94e18cb900a44824b96dee1d4b6cbb574c95e5a` is frozen at
-`76f2100715b67799231eab8132cd856823fdf3f8`. The one-shot ARM
-`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PRODUCTION_ARM.json`
-authorizes exactly run identity
-`ce66442985a637f05508c980257f5ca8b869df15e2b94b87d1110c3ef75fd69f`
-(1600 worlds). Authorization is UNUSED. The canonical grid
-(`world_index 10000..10399`) has not been reserved or executed. Next
-required V3 step: `V3_CANONICAL_RESERVATION`. Do not reserve or execute
-in this unit.
+V3 confirmatory calibration completed its one-shot canonical RESULT.
+Accepted implementation `70673673f5bc0108e6bcf2aaf55a762ebc49940a` /
+tree `e94e18cb900a44824b96dee1d4b6cbb574c95e5a` remains frozen.
+Mechanical cell verdicts from authenticated WORLD_RECORDS: EASY `PASS`,
+MODERATE `PASS`, NULL `INDETERMINATE`, NONSTATIONARY_TRAP `FAIL`.
+`methodology_claimable = false`. Next required V3 step: none authorized.
+Do not rerun V3, do not create V4, do not execute B2-06, and do not start
+MARKET from this result.
 
 This methodology gate does not weaken or bypass the current B2-06 state:
 `FUNDING_PUBLICATION_LATENCY_UNPROVEN`, `research_authorized = false`,

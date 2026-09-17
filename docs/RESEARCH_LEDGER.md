@@ -2751,3 +2751,38 @@ creation does not consume the one-shot. No reservation, no
 
 - next required step: `V3_CANONICAL_RESERVATION`
 
+## 2026-09-17 — V3 one-shot canonical reservation + RESULT
+
+Exactly one reservation consumed ARM `de7b38341c65eb82b66494d910fefd3395f8b232`
+for run identity
+`ce66442985a637f05508c980257f5ca8b869df15e2b94b87d1110c3ef75fd69f`.
+Reservation identity
+`0bb58c95ad4de4909b6157688c7444e35e5cc122ffb10811ccefbfc82e216f34`.
+Canonical grid `world_index 10000..10399` executed once (1600/1600
+terminal; 0 invalid). WORLD_RECORDS SHA256
+`5d09631db5180f562076b2191fe002aa21318a3925d3cd1c4014d83e4b41eb4f`.
+RESULT SHA256
+`f72eedcdcb511e2c7f22369cbdef164688317dfc99f9ab3e533df14cb2a27866`.
+
+Mechanical cell verdicts (frozen Wilson n=400):
+
+- EASY: 400/400 DETECTED, Wilson lower 0.99328, `PASS`
+- MODERATE: 313/400 DETECTED, Wilson lower 0.74673, `PASS`
+- NULL: 21/400 DETECTED, Wilson upper 0.07403, `INDETERMINATE`
+- NONSTATIONARY_TRAP: 188/400 DETECTED, Wilson lower 0.42929, `FAIL`
+
+`methodology_claimable = false`. No selective rerun, no second
+reservation, no second RESULT. `DEFAULT_V4 = NO`. B2-06 and MARKET remain
+unauthorized.
+
+- v3_authorization_consumed: **true**
+- v3_canonical_reservation_created: **true**
+- v3_canonical_execution_complete: **true**
+- v3_result_minted: **true**
+- v3_rerun_authorized: **false**
+- default_v4: **false**
+- b2_06_execution_authorized: **false**
+- market_execution_authorized: **false**
+
+- next required step: `NONE_V3_RESULT_RECORDED_NO_RERUN_NO_V4_NO_B2_06_NO_MARKET`
+

@@ -134,11 +134,11 @@ V3 confirmatory calibration implementation was independently accepted at
 HEAD `70673673` / tree `e94e18cb` (`IMPLEMENTATION_ACCEPTED`; F1/F2/F3
 CLOSED). `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_IMPLEMENTATION_FREEZE`
 freezes that identity at `76f21007` / tree `dd59466b`. The one-shot ARM
-`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PRODUCTION_ARM` authorizes exactly
-run identity `ce664429…` / 1600 worlds. `v3_run_authorized = true`;
-`v3_armed = true`; `authorization_consumed = false`. No reservation and
-no canonical V3 world has been executed. This does not authorize B2-06
-or V4.
+authorized run identity `ce664429…` / 1600 worlds and was consumed by
+exactly one reservation. Canonical execution completed: EASY `PASS`
+(400/400), MODERATE `PASS` (313/400), NULL `INDETERMINATE` (21/400),
+NONSTATIONARY_TRAP `FAIL` (188/400). `methodology_claimable = false`.
+This does not authorize a V3 rerun, V4, B2-06, or MARKET.
 
 Family F1 is `CLOSED_NO_PROMOTION`. 2025 validation and 2026 OOS remain
 untouched. No Batch02 formulation has a promoted candidate, so there is no
