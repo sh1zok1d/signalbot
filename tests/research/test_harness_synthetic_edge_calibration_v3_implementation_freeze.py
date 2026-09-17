@@ -7,6 +7,7 @@ or reservation.
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import subprocess
@@ -358,8 +359,18 @@ def test_disposable_tests_cannot_consume_canonical_world_indices():
     with pytest.raises(V3ExecutionNotAuthorized, match="V1/V2"):
         v3a.assert_index_not_canonical(0)
     source = Path(__file__).read_text(encoding="utf-8")
-    assert "evaluate_v3_world(" not in source
-    assert "simulate_dgp(" not in source
+    tree = ast.parse(source)
+    called = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if isinstance(func, ast.Name):
+            called.add(func.id)
+        elif isinstance(func, ast.Attribute):
+            called.add(func.attr)
+    assert "evaluate_v3_world" not in called
+    assert "simulate_dgp" not in called
 
 
 def test_no_canonical_result_or_reservation_before_arm():
