@@ -182,15 +182,18 @@ def test_effective_n_is_diagnostic_only_not_a_detected_veto():
     assert "effective_n" not in detected_line and "eff_n" not in detected_line
 
 
-def test_effective_support_n_geyer_truncation_matches_hand_construction():
-    rng = np.random.default_rng(12345)
-    support = (rng.random(2000) < 0.15).astype(np.float64)
-    support_count = int(support.sum())
-    eff = v3c.effective_support_n(support, support_count)
-    assert eff is not None
-    assert 1.0 <= eff <= support_count
-
-    rhos = v3c._biased_autocorrelations(support)
+def _old_divergent_paired_effective_n(support: np.ndarray) -> float:
+    """The DELETED, non-frozen local V3 estimator this repair removes
+    (non-overlapping paired-lag truncation, step=2). Reference-only, kept
+    solely to prove the fixture below actually exercises a case where it
+    diverges from the frozen V1 authority -- this function is not part of
+    the implementation under test."""
+    support = np.asarray(support, dtype=np.float64)
+    support_count = int(np.sum(support))
+    n = support.shape[0]
+    eps = support - support.mean()
+    gamma0 = float(eps @ eps) / n
+    rhos = np.array([float(eps[k:] @ eps[: n - k]) / n / gamma0 for k in range(1, n)])
     total = 0.0
     k = 0
     while k + 1 < len(rhos):
@@ -199,9 +202,51 @@ def test_effective_support_n_geyer_truncation_matches_hand_construction():
             break
         total += pair
         k += 2
-    expected = support_count / (1 + 2 * total)
-    expected = min(max(expected, 1.0), support_count)
-    assert math.isclose(eff, expected)
+    denom = 1.0 + 2.0 * total
+    raw = support_count / denom
+    return min(max(raw, 1.0), support_count)
+
+
+def test_effective_n_uses_frozen_v1_authority_exactly():
+    # Deterministic fixture, sized to the real n_rows=5000 scored window
+    # (4 scored eras * 1000 rows = 4000), where the deleted paired (step=2)
+    # estimator and the frozen V1 overlapping (step=1) estimator disagree --
+    # proving this is a real regression guard, not a vacuous equality.
+    n_rows = 5000
+    mask = v1lib.scored_mask(n_rows)
+    scored_idx = np.flatnonzero(mask)
+    rng = np.random.default_rng(2)
+    support = (rng.random(scored_idx.shape[0]) < 0.15).astype(np.float64)
+
+    frozen = v1lib.effective_support_n(support)
+    divergent_old = _old_divergent_paired_effective_n(support)
+    assert not math.isclose(frozen, divergent_old), (
+        "fixture does not exercise a real divergence between the frozen "
+        "and the deleted estimator; pick a different seed"
+    )
+
+    wi = _next_disposable()
+    _assert_disposable(wi)
+    real_world = v1lib.simulate_dgp(scenario_id="NULL", n_rows=n_rows, world_index=wi)
+    s_new = np.array(real_world["S"], dtype=np.float64, copy=True)
+    s_new[scored_idx] = support
+    forced = dict(real_world)
+    forced["S"] = s_new
+    with mock.patch.object(v3c, "simulate_dgp", return_value=forced):
+        rec = v3c.evaluate_v3_world("NULL", n_rows, wi)
+
+    assert rec.world_valid is True
+    assert math.isclose(rec.effective_n, frozen)
+
+
+def test_effective_n_ordinary_disposable_support_series_matches_frozen_v1():
+    wi = _next_disposable()
+    rec = v3c.evaluate_v3_world("EASY", 5000, wi)
+    assert rec.world_valid is True
+    mask = v1lib.scored_mask(5000)
+    world = v3c.simulate_dgp(scenario_id="EASY", n_rows=5000, world_index=wi)
+    support = np.asarray(world["S"], dtype=np.float64)[mask]
+    assert math.isclose(rec.effective_n, v1lib.effective_support_n(support))
 
 
 # =============================================================================
@@ -289,6 +334,49 @@ def test_selector_degenerate_cases_fail_closed():
             ),
             theta_hat=0.0, world_seed_int=1, feature_id="F03",
         )
+
+
+def test_selector_tiny_nobs_fails_closed_no_uncaught_exception():
+    # nobs=2..7: the pinned arch==8.0.0 reference algorithm itself throws a
+    # shape-mismatch ValueError for these (m_max > nobs there too -- this is
+    # not an implementation gap, it's the reference algorithm's own
+    # degenerate regime). The literal port must fail closed instead.
+    rng = np.random.default_rng(99)
+    for nobs in range(2, 8):
+        x = rng.normal(size=nobs)
+        result = v3c.optimal_stationary_block_length(x)  # must not raise
+        assert math.isnan(result)
+
+
+def test_selector_tiny_nobs_maps_to_identifiability_guard_in_bootstrap():
+    # SCORED_ERAS has exactly 4 eras, so the full-time-axis nobs is always a
+    # multiple of 4; era width 1 -> nobs=4, squarely in the 2..7 degenerate
+    # regime the selector must now fail closed on.
+    n_e = 1
+    rng = np.random.default_rng(100)
+    d_star = rng.normal(size=4 * n_e)
+    support = np.ones(4 * n_e)
+    diff = v3c.ScoredDifferential(
+        d=d_star.copy(),
+        d_star=d_star,
+        support=support,
+        era_index=np.repeat(np.arange(4), n_e),
+    )
+    with pytest.raises(v3c.V3WorldInvalid) as exc:
+        v3c.run_stationary_bootstrap(diff, theta_hat=0.0, world_seed_int=1, feature_id="F03")
+    assert exc.value.guard == v3c.VALIDITY_IDENTIFIABILITY
+
+
+def test_selector_valid_vectors_still_match_pinned_arch_reference_after_repair():
+    # F3's fail-closed guard must not alter arithmetic for ordinary valid
+    # series (only tiny/degenerate nobs gains new behavior).
+    arch_base = pytest.importorskip("arch.bootstrap.base")
+    rng = np.random.default_rng(2024)
+    for nobs in (8, 9, 10, 20, 50, 137, 999):
+        x = rng.normal(size=nobs).cumsum() * 0.1 + rng.normal(size=nobs)
+        mine = v3c.optimal_stationary_block_length(x)
+        ref_sb, _ = arch_base._single_optimal_block(x)
+        assert mine == float(ref_sb)
 
 
 def test_selector_called_once_per_world():
@@ -531,6 +619,80 @@ def test_diagnostic_fields_cannot_veto_detected():
     src = inspect.getsource(v3c.evaluate_v3_world)
     line = [l for l in src.splitlines() if l.strip().startswith("detected = bool(")][0]
     for forbidden in ("relative_mae", "era_effects", "placebo", "strict_pass", "support_count"):
+        assert forbidden not in line
+
+
+# =============================================================================
+# F2 repair: required miss-explaining diagnostics are persisted, losslessly,
+# and cannot influence DETECTED.
+# =============================================================================
+
+
+def test_f2_required_evidence_fields_exist_and_are_populated():
+    rec = v3c.evaluate_v3_world("EASY", 5000, _next_disposable())
+    assert rec.world_valid is True
+    assert rec.world_seed_int is not None and isinstance(rec.world_seed_int, int)
+    assert rec.raw_conditional_effect is not None and math.isfinite(rec.raw_conditional_effect)
+    assert rec.p_margin_to_alpha is not None and math.isfinite(rec.p_margin_to_alpha)
+    assert rec.bootstrap_evidence is not None
+
+
+def test_f2_world_seed_persisted_even_when_world_invalid():
+    # Replay identity must be recoverable even for a rejected world.
+    wi = _next_disposable()
+    _assert_disposable(wi)
+    forced = _world_with_forced_support("NULL", 5000, wi, range(10))  # below support floor
+    with mock.patch.object(v3c, "simulate_dgp", return_value=forced):
+        rec = v3c.evaluate_v3_world("NULL", 5000, wi)
+    assert rec.world_valid is False
+    assert rec.world_seed_int == int(v1lib.world_seed(rec.world_id))
+
+
+def test_f2_persisted_evidence_exactly_matches_computed_objects():
+    wi = _next_disposable()
+    rec = v3c.evaluate_v3_world("EASY", 5000, wi)
+    assert rec.world_valid is True
+
+    # Recompute independently from the same disposable identity and check
+    # every persisted diagnostic matches bit-for-bit -- not just "exists".
+    world = v3c.simulate_dgp(scenario_id="EASY", n_rows=5000, world_index=wi)
+    y, preds = v3c._candidate_predictions(world, "F03", 5000)
+    diff = v3c._scored_differential(world, y, preds, 5000)
+    theta_hat = v3c.compute_theta_hat(diff.support, diff.d_star)
+    w_seed = int(v1lib.world_seed(rec.world_id))
+    evidence = v3c.run_stationary_bootstrap(
+        diff, theta_hat, world_seed_int=w_seed, feature_id="F03"
+    )
+
+    assert rec.world_seed_int == w_seed
+    expected_raw_conditional = float(np.mean(diff.d[diff.support == 1.0]))
+    assert math.isclose(rec.raw_conditional_effect, expected_raw_conditional)
+    assert math.isclose(rec.p_margin_to_alpha, rec.p_one_sided - v3c.V3_ALPHA_ONE_SIDED)
+
+    assert rec.bootstrap_evidence is not None
+    assert rec.bootstrap_evidence.b_hat == evidence.b_hat
+    assert rec.bootstrap_evidence.se_hat == evidence.se_hat
+    assert rec.bootstrap_evidence.t_obs == evidence.t_obs
+    assert rec.bootstrap_evidence.p_one_sided == evidence.p_one_sided
+    np.testing.assert_array_equal(rec.bootstrap_evidence.theta_star, evidence.theta_star)
+    np.testing.assert_array_equal(rec.bootstrap_evidence.t_star, evidence.t_star)
+    # And the record's own top-level fields are exactly the evidence's.
+    assert rec.b_hat == rec.bootstrap_evidence.b_hat
+    assert rec.se_hat == rec.bootstrap_evidence.se_hat
+    assert rec.t_obs == rec.bootstrap_evidence.t_obs
+    assert rec.p_one_sided == rec.bootstrap_evidence.p_one_sided
+
+
+def test_f2_diagnostic_persistence_cannot_change_detected():
+    rec = v3c.evaluate_v3_world("EASY", 5000, _next_disposable())
+    assert rec.world_valid is True
+    recomputed = bool(rec.theta_hat > 0 and rec.p_one_sided <= v3c.V3_ALPHA_ONE_SIDED)
+    assert rec.detected == recomputed
+    src = inspect.getsource(v3c.evaluate_v3_world)
+    line = [l for l in src.splitlines() if l.strip().startswith("detected = bool(")][0]
+    for forbidden in (
+        "world_seed_int", "raw_conditional_effect", "bootstrap_evidence", "p_margin_to_alpha",
+    ):
         assert forbidden not in line
 
 

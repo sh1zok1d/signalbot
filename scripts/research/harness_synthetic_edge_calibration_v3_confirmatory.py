@@ -17,8 +17,11 @@ Frozen primitives reused unmodified from
 ``12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51``, not
 edited by this module): ``simulate_dgp``, ``world_identity``, ``world_seed``,
 ``pcg64_generator``, ``candidate_features``, ``expanding_era_predictions``,
-``era_slices``, ``scored_mask``, ``ae_metrics``, ``IncompleteWorld``, and
-constants ``SCORED_ERAS``/``ERA_NAMES``. RNG for the new
+``era_slices``, ``scored_mask``, ``ae_metrics``, ``effective_support_n``,
+``IncompleteWorld``, and constants ``SCORED_ERAS``/``ERA_NAMES``. In
+particular, ``effective_N`` (prereg section 6) is exactly the inherited
+``effective_support_n(support)`` -- it is not reimplemented here. RNG for
+the new
 ``"V3_CONFIRMATORY"`` namespace comes only from
 ``harness_synthetic_edge_calibration_v3_rng.py`` (``v3_namespace_seed``);
 ``harness_synthetic_edge_calibration_v1_lib.py``'s own ``NAMESPACES``
@@ -48,6 +51,7 @@ from scripts.research.harness_synthetic_edge_calibration_v1_lib import (
     IncompleteWorld,
     ae_metrics,
     candidate_features,
+    effective_support_n,
     era_slices,
     expanding_era_predictions,
     pcg64_generator,
@@ -176,52 +180,16 @@ def compute_theta_hat(support: np.ndarray, d_star: np.ndarray) -> float:
 
 
 # =============================================================================
-# Section 6: support validity / effective_N (Geyer paired-lag truncation,
-# the "EFFECTIVE_SUPPORT_N" formula already frozen in
-# HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.json's metrics block:
-# "N_positive/(1+2*sum rho_k); rho pairs included only while adjacent pair
-# sum remains positive; first nonpositive pair and later lags excluded; if
-# none then all estimable positive-pair lags; cap [1,N_positive]").
+# Section 6: support validity / effective_N.
+#
+# effective_N is NOT computed locally here: it is the already-frozen V1
+# inherited authority `effective_support_n(scored_trigger)` in
+# harness_synthetic_edge_calibration_v1_lib.py (overlapping initial-
+# positive-sequence truncation of the support indicator's sample
+# autocorrelation, via `sample_acf`), imported and called unmodified above.
+# Diagnostic and range-validity only (prereg section 6): never a
+# confirmatory power veto.
 # =============================================================================
-
-
-def _biased_autocorrelations(x: np.ndarray) -> np.ndarray:
-    x = np.asarray(x, dtype=np.float64)
-    n = x.shape[0]
-    eps = x - x.mean()
-    gamma0 = float(eps @ eps) / n
-    if not math.isfinite(gamma0) or gamma0 <= 0:
-        return np.array([], dtype=np.float64)
-    max_lag = n - 1
-    rhos = np.empty(max_lag, dtype=np.float64)
-    for k in range(1, max_lag + 1):
-        gamma_k = float(eps[k:] @ eps[: n - k]) / n
-        rhos[k - 1] = gamma_k / gamma0
-    return rhos
-
-
-def effective_support_n(support: np.ndarray, support_count: int) -> float | None:
-    """Geyer-style initial-positive-pair-sequence effective sample size.
-
-    Diagnostic and range-validity only (prereg section 6): never a
-    confirmatory power veto. Returns None if it cannot be computed.
-    """
-    rhos = _biased_autocorrelations(support)
-    total = 0.0
-    k = 0
-    while k + 1 < rhos.shape[0]:
-        pair_sum = float(rhos[k] + rhos[k + 1])
-        if not math.isfinite(pair_sum) or pair_sum <= 0:
-            break
-        total += pair_sum
-        k += 2
-    denom = 1.0 + 2.0 * total
-    if not math.isfinite(denom) or denom <= 0:
-        return None
-    raw = support_count / denom
-    if not math.isfinite(raw):
-        return None
-    return float(min(max(raw, 1.0), support_count))
 
 
 # =============================================================================
@@ -233,54 +201,83 @@ def effective_support_n(support: np.ndarray, support_count: int) -> float | None
 
 def optimal_stationary_block_length(x: np.ndarray) -> float:
     """b_hat_SB per prereg section 7. NaN on any degenerate condition;
-    callers must treat non-finite/<=0 output as world INVALID."""
+    callers must treat non-finite/<=0 output as world INVALID.
+
+    Fails closed (returns NaN) rather than raising for every frozen
+    degenerate condition, including tiny/insufficient ``nobs``: the literal
+    arch==8.0.0 reference algorithm itself indexes ``eps[i:] @ eps[:nobs-i]``
+    for ``i`` up to ``m_max``, which is only shape-consistent while
+    ``i <= nobs`` -- for tiny series where ``m_max > nobs`` the reference
+    implementation itself throws a shape-mismatch exception rather than
+    producing a value, so that regime is degenerate/unusable by
+    construction, not merely an implementation gap here.
+    """
     x = np.asarray(x, dtype=np.float64)
     nobs = x.shape[0]
     if nobs <= 1:
         return float("nan")
-    with np.errstate(divide="ignore", invalid="ignore"):
-        eps = x - x.mean(0)
-        try:
-            log10_nobs = math.log10(nobs)
-        except ValueError:
-            return float("nan")
-        b_max = math.ceil(min(3.0 * math.sqrt(nobs), nobs / 3.0))
-        kn = max(5, int(log10_nobs))
-        m_max = int(math.ceil(math.sqrt(nobs))) + kn
-        cv = 2.0 * math.sqrt(log10_nobs / nobs)
+    try:
+        with np.errstate(divide="ignore", invalid="ignore"):
+            eps = x - x.mean(0)
+            try:
+                log10_nobs = math.log10(nobs)
+            except ValueError:
+                return float("nan")
+            b_max = math.ceil(min(3.0 * math.sqrt(nobs), nobs / 3.0))
+            kn = max(5, int(log10_nobs))
+            m_max = int(math.ceil(math.sqrt(nobs))) + kn
+            cv = 2.0 * math.sqrt(log10_nobs / nobs)
 
-        acv = np.zeros(m_max + 1, dtype=np.float64)
-        abs_acorr = np.zeros(m_max + 1, dtype=np.float64)
-        opt_m: int | None = None
-        for i in range(m_max + 1):
-            v1 = eps[i + 1 :] @ eps[i + 1 :]
-            v2 = eps[: -(i + 1)] @ eps[: -(i + 1)]
-            cross_prod = eps[i:] @ eps[: nobs - i]
-            acv[i] = cross_prod / nobs
-            abs_acorr[i] = np.abs(cross_prod) / np.sqrt(v1 * v2)
-            if i >= kn:
-                window = abs_acorr[i - kn : i]
-                if opt_m is None and np.all(np.isfinite(window)) and np.all(window < cv):
-                    opt_m = i - kn
-        m = 2 * max(opt_m, 1) if opt_m is not None else m_max
-        m = min(m, m_max)
-        if m < 1:
-            return float("nan")
+            # Root-cause guard: for i > nobs, "eps[i:]" (length 0) and
+            # "eps[:nobs-i]" (nobs-i negative, so a nonzero-length tail
+            # slice under ordinary Python slicing semantics) stop matching
+            # in length -- insufficient usable lags for this nobs. This
+            # leaves the arithmetic below byte-for-byte unchanged whenever
+            # m_max <= nobs (the only regime it was ever exercised in).
+            if m_max > nobs:
+                return float("nan")
 
-        g = 0.0
-        lr_acv = acv[0]
-        for k in range(1, m + 1):
-            lam = 1.0 if (k / m) <= 0.5 else 2.0 * (1.0 - k / m)
-            g += 2.0 * lam * k * acv[k]
-            lr_acv += 2.0 * lam * acv[k]
+            acv = np.zeros(m_max + 1, dtype=np.float64)
+            abs_acorr = np.zeros(m_max + 1, dtype=np.float64)
+            opt_m: int | None = None
+            for i in range(m_max + 1):
+                v1 = eps[i + 1 :] @ eps[i + 1 :]
+                v2 = eps[: -(i + 1)] @ eps[: -(i + 1)]
+                cross_prod = eps[i:] @ eps[: nobs - i]
+                acv[i] = cross_prod / nobs
+                abs_acorr[i] = np.abs(cross_prod) / np.sqrt(v1 * v2)
+                if i >= kn:
+                    window = abs_acorr[i - kn : i]
+                    if opt_m is None and np.all(np.isfinite(window)) and np.all(window < cv):
+                        opt_m = i - kn
+            if not np.all(np.isfinite(acv)):
+                return float("nan")
+            m = 2 * max(opt_m, 1) if opt_m is not None else m_max
+            m = min(m, m_max)
+            if m < 1:
+                return float("nan")
 
-        d_sb = 2.0 * lr_acv**2
-        if not math.isfinite(d_sb) or d_sb <= 0:
-            return float("nan")
-        b_sb = ((2.0 * g**2) / d_sb) ** (1.0 / 3.0) * nobs ** (1.0 / 3.0)
-        if not math.isfinite(b_sb) or b_sb <= 0:
-            return float("nan")
-        return float(min(b_sb, b_max))
+            g = 0.0
+            lr_acv = acv[0]
+            for k in range(1, m + 1):
+                lam = 1.0 if (k / m) <= 0.5 else 2.0 * (1.0 - k / m)
+                g += 2.0 * lam * k * acv[k]
+                lr_acv += 2.0 * lam * acv[k]
+            if not math.isfinite(g) or not math.isfinite(lr_acv):
+                return float("nan")
+
+            d_sb = 2.0 * lr_acv**2
+            if not math.isfinite(d_sb) or d_sb <= 0:
+                return float("nan")
+            b_sb = ((2.0 * g**2) / d_sb) ** (1.0 / 3.0) * nobs ** (1.0 / 3.0)
+            if not math.isfinite(b_sb) or b_sb <= 0:
+                return float("nan")
+            return float(min(b_sb, b_max))
+    except (ValueError, IndexError, ZeroDivisionError, FloatingPointError):
+        # Belt-and-suspenders: any other insufficient-usable-lags
+        # arithmetic/index/shape condition fails closed rather than
+        # escaping as an uncaught exception (frozen prereg section 7).
+        return float("nan")
 
 
 def block_continuation_probability(b_hat: float, n_e: int) -> float:
@@ -394,12 +391,19 @@ class V3WorldRecord:
     validity_guard_failed: str | None = None
     validity_reason: str | None = None
 
+    # Required for replay (prereg section 12): the integer world seed
+    # derived from world_id, independent of whether the world is valid.
+    world_seed_int: int | None = None
+
     support_count: int | None = None
     support_fraction: float | None = None
     support_run_count: int | None = None
     effective_n: float | None = None
 
     theta_hat: float | None = None
+    # mean(d_t | S_t=1) on the raw (non-Clark-West-adjusted) differential,
+    # prereg section 12's "raw conditional differential" -- diagnostic only.
+    raw_conditional_effect: float | None = None
     unconditional_effect: float | None = None
     era_effects: dict[str, float] = field(default_factory=dict)
 
@@ -407,6 +411,14 @@ class V3WorldRecord:
     se_hat: float | None = None
     t_obs: float | None = None
     p_one_sided: float | None = None
+    # p_one_sided - V3_ALPHA_ONE_SIDED; prereg section 12's "margin to 0.05".
+    p_margin_to_alpha: float | None = None
+
+    # The full, already-computed bootstrap evidence (theta_star/t_star
+    # arrays included) -- prereg section 12's "resampling summaries
+    # sufficient to explain a miss". Persisted losslessly rather than
+    # reduced to an unbound, not-frozen quantile grid.
+    bootstrap_evidence: BootstrapEvidence | None = None
 
     relative_mae_improvement: float | None = None
 
@@ -438,6 +450,9 @@ def evaluate_v3_world(
     existing project convention (WORLD_INVALID stays in the denominator).
     """
     expected_id = world_identity(scenario_id, n_rows, world_index)
+    # Available for replay regardless of validity outcome: world_seed() is a
+    # pure function of expected_id alone, computed before any guard can fire.
+    w_seed = int(world_seed(expected_id))
     try:
         world = simulate_dgp(scenario_id=scenario_id, n_rows=n_rows, world_index=world_index)
         got_id = str(world["world_identity"])
@@ -452,13 +467,15 @@ def evaluate_v3_world(
             raise V3WorldInvalid(
                 VALIDITY_SUPPORT, f"support_count={support_count} < {V3_SUPPORT_COUNT_MIN}"
             )
-        eff_n = effective_support_n(diff.support, support_count)
-        if eff_n is None or not (1.0 <= eff_n <= support_count):
+        # Frozen V1 inherited authority (prereg section 6): NOT a locally
+        # reimplemented estimator. Returns NaN (not None) on failure.
+        eff_n = effective_support_n(diff.support)
+        if not math.isfinite(eff_n) or not (1.0 <= eff_n <= support_count):
             raise V3WorldInvalid(VALIDITY_SUPPORT, f"effective_N invalid or out of range: {eff_n!r}")
 
         theta_hat = compute_theta_hat(diff.support, diff.d_star)
+        raw_conditional_effect = float(np.mean(diff.d[diff.support == 1.0]))
 
-        w_seed = int(world_seed(expected_id))
         evidence = run_stationary_bootstrap(
             diff, theta_hat, world_seed_int=w_seed, feature_id=feature_id
         )
@@ -490,17 +507,21 @@ def evaluate_v3_world(
             world_id=expected_id,
             feature_id=feature_id,
             world_valid=True,
+            world_seed_int=w_seed,
             support_count=support_count,
             support_fraction=support_count / diff.support.shape[0],
             support_run_count=_support_runs(diff.support),
             effective_n=eff_n,
             theta_hat=theta_hat,
+            raw_conditional_effect=raw_conditional_effect,
             unconditional_effect=unconditional_effect,
             era_effects=era_effects,
             b_hat=evidence.b_hat,
             se_hat=evidence.se_hat,
             t_obs=evidence.t_obs,
             p_one_sided=evidence.p_one_sided,
+            p_margin_to_alpha=float(evidence.p_one_sided - V3_ALPHA_ONE_SIDED),
+            bootstrap_evidence=evidence,
             relative_mae_improvement=rel_mae,
             detected=detected,
         )
@@ -520,6 +541,7 @@ def evaluate_v3_world(
             world_valid=False,
             validity_guard_failed=guard,
             validity_reason=str(exc),
+            world_seed_int=w_seed,
         )
     except V3WorldInvalid as exc:
         return V3WorldRecord(
@@ -531,6 +553,7 @@ def evaluate_v3_world(
             world_valid=False,
             validity_guard_failed=exc.guard,
             validity_reason=exc.reason,
+            world_seed_int=w_seed,
         )
 
 
