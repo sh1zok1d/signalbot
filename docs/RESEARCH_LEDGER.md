@@ -2910,3 +2910,44 @@ Evidence:
 
 - next required step: `MARKET-01_PREREG`
 
+## 2026-09-17 — MARKET-01 prereg design blocked on three semantics
+
+Outcome-blind design unit. Complete preregistration was **not**
+materialized. No MARKET outcomes, no 2025/2026, no V3-on-market, no
+B2-06 execution, no V4.
+
+Research ID: `MARKET-01_OI_EXPANSION_WEAK_CONTINUATION`.
+
+Unambiguous design intent (not a freeze): 30m impulse / 30m state /
+60m outcome; 5m grain; common period `[2020-09-01, 2025-01-01)`; CORE
+snapshot `717d37a4…`; OI snapshot `5a9d036b…` OI-only; candidate =
+qualifying impulse ∧ OI expansion ∧ weak continuation; primary outcome
+= 60m `reversal_return`.
+
+Blockers (existing primitives cannot bind without changing their
+estimands; no new matcher/V4/regime framework invented):
+
+1. `BLOCKER_BASELINE_MATCHING_SEMANTICS` — no existing primitive
+   implements two-group comparability on impulse magnitude and trailing
+   volatility.
+2. `V3_CONFIRMATORY_ESTIMAND_NOT_MAPPABLE_TO_TWO_GROUP_REVERSAL_CONTRAST`
+   — V3 Clark-West nested OLS on equal synthetic eras cannot consume
+   this comparison exactly; V3 was not modified.
+3. `BLOCKER_ROBUSTNESS_SEMANTICS` — no existing mechanical
+   concentration/downgrade rule binds to
+   `DETECTED_BUT_NOT_ROBUST` vs `ROBUST_CANDIDATE` on this overlap.
+
+Evidence:
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_DESIGN.md`.
+
+- market_01_phase: **PREREG_DESIGN**
+- market_01_prereg_materialized: **false**
+- market_01_prereg_ready: **false**
+- market_01_freeze_required: **true**
+- market_01_outcome_inspected: **false**
+- market_01_executed: **false**
+- b2_06_execution_authorized: **false**
+- default_v4: **false**
+
+- next required step: `MARKET-01_AUTHOR_DECISIONS_ON_MATCHING_V3_MAPPING_ROBUSTNESS`
+

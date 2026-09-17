@@ -220,10 +220,15 @@ See `docs/HISTORICAL_DATA_STRATEGY.md`.
 ## 7. Active objective
 
 The active research phase is **MARKET**. `MARKET-01`
-(`OI_EXPANSION_WEAK_CONTINUATION`) has completed an outcome-blind data
-feasibility inventory only. A preregistration has **not** been written
-and the hypothesis has **not** been tested. See
-`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_DATA_FEASIBILITY.md`.
+(`OI_EXPANSION_WEAK_CONTINUATION`) completed outcome-blind data
+feasibility (`MARKET_01_PREREG_FEASIBLE = YES`) and a prereg-design
+attempt that is **blocked**: matching, V3 mapping, and robustness
+semantics cannot be bound from existing primitives without changing
+their estimands. No complete preregistration was materialized. The
+hypothesis has **not** been tested. See
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_DATA_FEASIBILITY.md`
+and
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_DESIGN.md`.
 
 Post-calibration operating priority:
 
