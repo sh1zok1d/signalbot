@@ -220,15 +220,17 @@ See `docs/HISTORICAL_DATA_STRATEGY.md`.
 ## 7. Active objective
 
 The active research phase is **MARKET**. `MARKET-01`
-(`OI_EXPANSION_WEAK_CONTINUATION`) has an outcome-blind preregistration
-materialized (`MARKET_01_PREREG_MATERIALIZED = YES`,
-`MARKET_01_PREREG_READY = YES`) and **not yet frozen**
-(`MARKET_01_FREEZE_REQUIRED = YES`). It is **not** executed. The
-confirmatory test is a new stratified two-group OLS identity, not V3,
-and is explicitly uncalibrated (`MARKET_01_TEST_CALIBRATED = NO`). See
-`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.md`. The
-prior blocked design record is preserved at
-`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_DESIGN.md`.
+(`OI_EXPANSION_WEAK_CONTINUATION`) preregistration is
+**`FROZEN_OUTCOME_BLIND`** (`MARKET_01_PREREG_FROZEN = YES`,
+`MARKET_01_FREEZE_REQUIRED = NO`). It is **not** executed, not armed,
+and not implemented. The confirmatory test is a new stratified
+two-group OLS identity, not V3, and is explicitly uncalibrated
+(`MARKET_01_TEST_CALIBRATED = NO`). Freeze authority:
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_FREEZE.md`.
+Frozen payload:
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.md`.
+Next permitted lifecycle state: implement the frozen contract, not
+execution.
 
 Post-calibration operating priority:
 

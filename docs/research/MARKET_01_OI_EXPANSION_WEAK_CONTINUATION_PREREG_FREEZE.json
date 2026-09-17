@@ -1,0 +1,113 @@
+{
+  "schema": "market_01_oi_expansion_weak_continuation_prereg_freeze",
+  "schema_version": "1.0.0",
+  "status": "FROZEN_OUTCOME_BLIND",
+  "unit_id": "MARKET-01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_FREEZE",
+  "research_id": "MARKET-01_OI_EXPANSION_WEAK_CONTINUATION",
+  "date": "2026-09-17",
+  "not_a_result": true,
+  "not_an_arm": true,
+  "not_market_01_execution": true,
+  "not_an_evaluator": true,
+  "not_b2_06_2025_2026_authorization": true,
+  "not_v3": true,
+  "not_v4": true,
+  "accepted_prereg_content": {
+    "head": "9c1a661c52ad1ee7295cb898c1e1a048d5281d2f",
+    "tree": "1928969ed4d12896a3793a7048aff163dc1b3dac"
+  },
+  "freeze_parent_expected_head": "9c1a661c52ad1ee7295cb898c1e1a048d5281d2f",
+  "freeze_commit_head": "UNSET_UNTIL_THIS_COMMIT",
+  "freeze_commit_tree": "UNSET_UNTIL_THIS_COMMIT",
+  "note": "This freeze commit is a docs-only provenance descendant of the MARKET-01 prereg materialization. It does not modify MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.md/.json at all -- those exact bytes are the frozen object. Binding is to accepted_prereg_content.head/tree and the git blob SHA256s recorded below, all independently recomputed from that exact commit before this freeze was written. This freeze does not hash itself: freeze_commit_head/freeze_commit_tree remain UNSET_UNTIL_THIS_COMMIT, matching the established convention. The prereg files' internal materialization-unit status string PREREGISTERED_OUTCOME_BLIND_UNFROZEN is left unchanged; current freeze authority is this document.",
+  "frozen_prereg_artifacts": {
+    "MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.md": {
+      "path": "docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.md",
+      "sha256": "d82b60e1a923e8eb897252abc4a9013b6535357004f2dc7dc08f56f072542866",
+      "size_bytes": 21718
+    },
+    "MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.json": {
+      "path": "docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.json",
+      "sha256": "6885abaf178401a1307e9adc5c02c69dac4fb5f3034bfddebfafc2439dde2ce4",
+      "size_bytes": 22576
+    }
+  },
+  "authority_chain": {
+    "feasibility_commit": "901f96eaa551e2591a6212a14ddd4488f5528e8e",
+    "design_blocker_commit": "5a629819676240e98b6b125aa4606e8759c1f0f2",
+    "prereg_materialization_head": "9c1a661c52ad1ee7295cb898c1e1a048d5281d2f",
+    "prereg_materialization_tree": "1928969ed4d12896a3793a7048aff163dc1b3dac"
+  },
+  "data_authorities_crosscheck": {
+    "note": "already contained in the frozen prereg; recorded here only as a binding cross-check, not re-derived or altered",
+    "price": {
+      "dataset_id": "CORE_BTC_BINANCE_V0",
+      "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415"
+    },
+    "open_interest": {
+      "source": "Binance Vision daily/metrics/BTCUSDT",
+      "field": "sum_open_interest",
+      "snapshot_id": "5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33"
+    },
+    "common_period": {
+      "start_inclusive": "2020-09-01T00:00:00Z",
+      "end_exclusive": "2025-01-01T00:00:00Z",
+      "decision_grain": "UTC_EPOCH_5_MINUTE_BOUNDARIES"
+    }
+  },
+  "limitations_preserved": {
+    "market_01_confirmatory_identity_is_not_v3": true,
+    "market_01_test_calibrated": false,
+    "v3_synthetic_calibration_validates_market_01": false,
+    "v3_nonstationary_trap_role": "motivated the prospective MARKET-01 temporal robustness downgrade layer only",
+    "new_synthetic_calibration_authorized": false,
+    "default_v4": false,
+    "robust_candidate_does_not_mean": [
+      "validated alpha",
+      "causal proof",
+      "profitable strategy",
+      "production readiness",
+      "permission to trade",
+      "automatic protected-OOS promotion"
+    ]
+  },
+  "freeze_semantics": [
+    "the prereg scientific payload (frozen_prereg_artifacts) is immutable authority",
+    "implementation may only implement the frozen payload",
+    "implementation cannot choose new scientific constants/algorithms",
+    "any required scientific change discovered during implementation invalidates execution authorization and requires an explicit pre-outcome amendment/re-freeze, not a silent edit",
+    "no MARKET outcomes may be inspected by this freeze",
+    "no MARKET-01 execution is authorized",
+    "no ARM is authorized",
+    "protected 2025 validation and 2026 OOS remain forbidden",
+    "B2-06 remains BLOCKED_MISSING_OBSERVABLE; using the bound OI snapshot for MARKET-01 does not unblock B2-06",
+    "no selective rerun / post-outcome threshold repair"
+  ],
+  "explicit_state": {
+    "market_01_outcome_inspected": false,
+    "market_01_prereg_materialized": true,
+    "market_01_prereg_ready": true,
+    "market_01_prereg_frozen": true,
+    "market_01_freeze_required": false,
+    "market_01_executed": false,
+    "market_01_armed": false,
+    "market_01_implementation_authorized": true,
+    "market_01_execution_authorized": false,
+    "market_01_test_calibrated": false,
+    "protected_oos_authorized": false,
+    "protected_oos_touched": false,
+    "v3_reused_as_market_01_test": false,
+    "v3_methodology_claimable": false,
+    "b2_06_execution_authorized": false,
+    "default_v4": false
+  },
+  "forbidden_outcome_dependent_labels": [
+    "ARMED",
+    "EXECUTING",
+    "EXECUTED",
+    "DETECTED",
+    "ROBUST_CANDIDATE"
+  ],
+  "next_lifecycle_state": "MARKET-01_IMPLEMENTATION",
+  "next_lifecycle_state_note": "Implement the already-frozen MARKET-01 contract. Not execution. Not ARM. MARKET hypotheses in this repository do not require the V3 synthetic one-shot ARM sequence."
+}

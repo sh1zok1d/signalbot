@@ -8,7 +8,7 @@ Signalbot is currently in `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN` mode.
 
 The synthetic Microscope calibration is closed (`V3_CALIBRATION_CLOSED = YES`). Canonical V3 is immutable historical evidence: confirmatory sensitivity was demonstrated on frozen synthetic `EASY`/`MODERATE`, but the methodology is not generally claimable (`NULL` `INDETERMINATE`, `NONSTATIONARY_TRAP` `FAIL`; `V3_METHODOLOGY_CLAIMABLE = NO`). Do not repair, rerun, or reinterpret V3 (`V3_RERUN_AUTHORIZED = NO`). Do not create V4 (`DEFAULT_V4 = NO`). V3 `DETECTED`/`PASS` is not by itself sufficient evidence of a robust market edge.
 
-The active research phase is **MARKET**. The next substantive unit is `MARKET-01`: take one real crypto-market hypothesis through the existing research process. Do not design a large new MARKET framework or new infrastructure merely because MARKET is beginning. Operating priority is approximately 70–80% actual market research and 20–30% infrastructure only when concrete research blockers require it. Primary progress metric: MARKET hypotheses honestly closed per week.
+The active research phase is **MARKET**. The next substantive unit is `MARKET-01` implementation of the frozen outcome-blind preregistration (not execution). Do not design a large new MARKET framework or new infrastructure merely because MARKET is beginning. Operating priority is approximately 70–80% actual market research and 20–30% infrastructure only when concrete research blockers require it. Primary progress metric: MARKET hypotheses honestly closed per week.
 
 B2-06 remains blocked (`BLOCKED_MISSING_OBSERVABLE` / funding publication-latency unproven). `MARKET-01` is not B2-06 and does not unblock it.
 

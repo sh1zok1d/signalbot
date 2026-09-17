@@ -2991,3 +2991,39 @@ Prior blocker record preserved:
 
 - next required step: `MARKET-01_PREREG_FREEZE`
 
+## 2026-09-17 — MARKET-01 preregistration frozen outcome-blind
+
+Docs-only freeze of the exact MARKET-01 preregistration bytes at
+materialization commit `9c1a661c52ad1ee7295cb898c1e1a048d5281d2f` /
+tree `1928969ed4d12896a3793a7048aff163dc1b3dac`. Prereg files were not
+modified. No evaluator, no MARKET-01 execution, no MARKET outcome
+inspection, no 2025/2026, no B2-06, no V3 modification, no V4, no ARM.
+
+Research ID: `MARKET-01_OI_EXPANSION_WEAK_CONTINUATION`.
+
+Frozen payload SHA256:
+
+- md `d82b60e1a923e8eb897252abc4a9013b6535357004f2dc7dc08f56f072542866`
+- json `6885abaf178401a1307e9adc5c02c69dac4fb5f3034bfddebfafc2439dde2ce4`
+
+`MARKET_01_TEST_CALIBRATED = NO`. Confirmatory identity is not V3.
+`DEFAULT_V4 = NO`. B2-06 remains `BLOCKED_MISSING_OBSERVABLE`.
+
+Evidence:
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_FREEZE.md`,
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_FREEZE.json`.
+
+- market_01_phase: **PREREG_FREEZE**
+- market_01_prereg_materialized: **true**
+- market_01_prereg_ready: **true**
+- market_01_prereg_frozen: **true**
+- market_01_freeze_required: **false**
+- market_01_outcome_inspected: **false**
+- market_01_executed: **false**
+- market_01_test_calibrated: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- default_v4: **false**
+
+- next required step: `MARKET-01_IMPLEMENTATION`
+
