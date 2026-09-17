@@ -2951,3 +2951,43 @@ Evidence:
 
 - next required step: `MARKET-01_AUTHOR_DECISIONS_ON_MATCHING_V3_MAPPING_ROBUSTNESS`
 
+## 2026-09-17 — MARKET-01 outcome-blind preregistration materialized (unfrozen)
+
+Author decisions resolved the three design blockers and the unbound
+support floor. Complete preregistration materialized in human and
+machine-readable form. No freeze, no ARM, no evaluator, no MARKET-01
+execution, no MARKET outcome inspection, no 2025/2026, no B2-06, no V3
+modification, no V4.
+
+Research ID: `MARKET-01_OI_EXPANSION_WEAK_CONTINUATION`.
+
+Bound confirmatory identity (new; not V3): stratified OLS
+`reversal_return ~ candidate_indicator + stratum FE` on impulse-magnitude
+× `PRE_VOL_60` tertiles; one-sided Politis–Romano stationary bootstrap
+`B=999`, `alpha=0.05`; support floors `TOTAL>=100`, `CANDIDATE>=30`,
+`BASELINE>=30`, `USABLE_STRATA>=3` with both groups `>=5`; LOEO sign
+stability across five frozen calendar eras plus candidate-share
+`<= 0.50` as a downgrade-only robustness layer.
+
+`MARKET_01_TEST_CALIBRATED = NO`. V3 TRAP motivates the robustness layer
+only; V3 synthetic calibration does not validate this test.
+
+Evidence:
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.md`,
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.json`.
+Prior blocker record preserved:
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_DESIGN.md`.
+
+- market_01_phase: **PREREG_MATERIALIZATION**
+- market_01_prereg_materialized: **true**
+- market_01_prereg_ready: **true**
+- market_01_freeze_required: **true**
+- market_01_outcome_inspected: **false**
+- market_01_executed: **false**
+- market_01_test_calibrated: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- default_v4: **false**
+
+- next required step: `MARKET-01_PREREG_FREEZE`
+

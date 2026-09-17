@@ -1,25 +1,50 @@
 # MARKET-01 OI_EXPANSION_WEAK_CONTINUATION — outcome-blind prereg design
 
-- **Status:** `PREREG_DESIGN_BLOCKED`
+- **Status:** `PREREG_DESIGN_RESOLVED_BY_AUTHOR_DECISIONS / HISTORICAL_BLOCKER_RECORD`
 - **Research ID:** `MARKET-01_OI_EXPANSION_WEAK_CONTINUATION`
-- **Unit type:** design / prereg materialization attempt; **not** a frozen prereg
+- **Unit type:** design / blocker record; **not** the live preregistration
+- **Live preregistration (unfrozen):** `docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.md` and `.json`
 - **Parent feasibility:** `docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_DATA_FEASIBILITY.md`
 - **Feasibility commit:** `901f96eaa551e2591a6212a14ddd4488f5528e8e`
 - **Date:** 2026-09-17
 - **Outcome inspection:** **NO**
-- **Prereg materialized:** **NO**
-- **Prereg ready:** **NO**
+- **Prereg materialized:** **YES** (separate document; freeze is still required)
+- **Prereg ready:** **YES** (semantics bound; `MARKET_01_FREEZE_REQUIRED = YES`)
 - **MARKET-01 executed:** **NO**
 - **B2-06 execution authorized:** **NO**
 - **V4 created:** **NO**
 
-This unit asked whether the complete MARKET-01 scientific design can be
-frozen unambiguously using existing authorities and primitives.
+This file is the **historical blocker record** of the design unit that
+stopped because existing primitives could not bind matching, V3 mapping,
+robustness, or the support floor. That unit's body below is preserved.
 
-Answer: **NO**. Three scientific semantics cannot be bound without either
-changing an existing primitive's meaning or inventing a new rule. The
-unambiguous design intent below is recorded so it is not re-litigated.
-It is **not** a preregistration freeze.
+Current scientific authority for MARKET-01 is the outcome-blind
+preregistration, not this design file:
+
+- `docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.md`
+- `docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.json`
+
+Author decisions that resolved the blockers (do not re-litigate here):
+
+1. `BLOCKER_BASELINE_MATCHING_SEMANTICS` → stratified two-group
+   comparison on impulse magnitude × `PRE_VOL_60` tertiles (max 9
+   strata; historical 30-day tertiles before impulse start).
+2. `V3_CONFIRMATORY_ESTIMAND_NOT_MAPPABLE_TO_TWO_GROUP_REVERSAL_CONTRAST`
+   → MARKET-01 does **not** use V3. Primary estimand is stratified OLS
+   `reversal_return ~ candidate_indicator + stratum FE` with one-sided
+   stationary bootstrap `B=999`, `alpha=0.05`.
+3. `BLOCKER_ROBUSTNESS_SEMANTICS` → five frozen calendar eras, LOEO
+   sign-stability plus candidate-share `<= 0.50`; robustness may only
+   downgrade a primary `DETECTED`.
+4. Support floor → `TOTAL>=100`, `CANDIDATE>=30`, `BASELINE>=30`,
+   `USABLE_STRATA>=3` with both groups `>=5` per usable stratum.
+
+This file is **not** a freeze. The prereg remains unfrozen until a
+separate freeze unit.
+
+The original blocked-unit narrative follows unchanged so the stop is
+auditable. Where it says `MARKET_01_PREREG_READY = NO`, that was true
+of **this design unit**. The live prereg supersedes those flags.
 
 No MARKET outcomes, 2025/2026 partitions, V3 RESULT reinterpretation,
 threshold search, or B2-06 execution occurred.
@@ -322,13 +347,13 @@ This unit does not fill the mapping gap.
 
 ---
 
-## 13. Next step
+## 13. Next step (this design unit; now satisfied)
 
-Author scientific decisions on, in order:
+This design unit required author decisions on:
 
 1. `BLOCKER_BASELINE_MATCHING_SEMANTICS`
 2. `V3_CONFIRMATORY_ESTIMAND_NOT_MAPPABLE_TO_TWO_GROUP_REVERSAL_CONTRAST`
 3. `BLOCKER_ROBUSTNESS_SEMANTICS`
 
-A complete preregistration and a separate freeze remain required after
-those decisions. They are not this unit.
+Those decisions are now bound in the live preregistration. Next required
+project step: **separate MARKET-01 prereg freeze**. Not this file.
