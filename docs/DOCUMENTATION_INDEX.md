@@ -20,7 +20,7 @@ Read these first:
 | Document | Status | Purpose |
 |---|---|---|
 | `PROJECT_STATUS.md` | **ACTIVE / CANONICAL** | Current project posture, freeze, empirical state and restart gate. Active research phase: `MARKET`. V3 Microscope calibration closed. |
-| `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. Next substantive unit: one canonical MARKET-01 execution. V3 closed; no V4; B2-06 remains blocked. |
+| `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. MARKET-01 closed `NO_EVIDENCE`; V3 closed; no V4; B2-06 remains blocked. |
 | `EDGE_RESEARCH_PROTOCOL.md` | **ACTIVE / CANONICAL** | Discovery/validation rules and anti-overfit discipline |
 | `HISTORICAL_DATA_STRATEGY.md` | **ACTIVE / CANONICAL** | Multi-year CORE vs shorter RICH evidence strategy |
 | `DATA_CAPABILITY_MATRIX.md` | **ACTIVE / RESEARCH DATA DESIGN** | Verified source/venue/date/granularity map and acquisition order for the 2020/2021–2026 research program |
@@ -41,11 +41,15 @@ Read these first:
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_IMPLEMENTATION.md` | **HISTORICAL IMPLEMENTATION UNIT** | Implementation-unit identity; live freeze/ARM authority is the implementation-freeze and ARM documents |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_IMPLEMENTATION_FREEZE.md` | **IMPLEMENTATION_FROZEN** | Accepted implementation HEAD `1019c57` / tree `2a7a5ce`; not execution |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_IMPLEMENTATION_FREEZE.json` | **IMPLEMENTATION_FROZEN** | Machine-readable twin; SHA256 `a057260f…`; freeze_commit_head/tree `UNSET_UNTIL_THIS_COMMIT` |
-| `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_ARM.md` | **ARMED_NOT_EXECUTED / CURRENT ARM AUTHORITY** | One-shot canonical ARM; `CANONICAL_EXECUTIONS_AUTHORIZED = 1`, consumed `0`; not execution |
-| `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_ARM.json` | **ARMED_NOT_EXECUTED / CURRENT ARM AUTHORITY** | Machine-readable twin; SHA256 `5b639453…`; run identity `f430399f…` |
-| `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_RESERVATION.json` | **RESERVED_UNUSED** | One unused canonical execution reservation; consumed `0`; no rerun pre-authorized |
-| `scripts/research/market_01_oi_expansion_weak_continuation_lib.py` | **ARMED_NOT_EXECUTED** | MARKET-01 scientific pipeline; bound snapshots require authenticated ARM |
-| `scripts/research/market_01_oi_expansion_weak_continuation_authority.py` | **ARMED_NOT_EXECUTED** | Prereg/freeze/ARM authentication; one unused canonical execution |
+| `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_ARM.md` | **EXECUTED / CONSUMED** | One-shot canonical ARM; consumed `1`; unused SHA256 `5b639453…` bound into RESULT |
+| `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_ARM.json` | **EXECUTED / CONSUMED** | Consumed ARM twin; unused identity `5b639453…`; run identity `f430399f…` |
+| `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_RESERVATION.json` | **CONSUMED** | Canonical execution reservation consumed `1`; no rerun pre-authorized |
+| `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_RESULT.json` | **CANONICAL RESULT** | Sealed MARKET-01 RESULT; SHA256 `5310946b…`; `FINAL_CLASSIFICATION = NO_EVIDENCE` |
+| `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_RESULT.md` | **CANONICAL RESULT** | Mechanical restatement of the sealed RESULT; not a stronger claim |
+| `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_CONSUMPTION_LOCK.json` | **CONSUMED** | Pre-evaluate consumption boundary lock; not a scientific RESULT |
+| `scripts/research/market_01_oi_expansion_weak_continuation_lib.py` | **EXECUTED / FROZEN** | MARKET-01 scientific pipeline; bound snapshots refuse rerun |
+| `scripts/research/market_01_oi_expansion_weak_continuation_authority.py` | **EXECUTED / CONSUMED** | Prereg/freeze/ARM authentication; canonical reservation consumed |
+| `scripts/research/market_01_oi_expansion_weak_continuation_canonical_execution.py` | **EXECUTED / ONE-SHOT** | Canonical execution runner; not a second scientific implementation |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_DESIGN.md` | **PREREG_DESIGN_RESOLVED / HISTORICAL_BLOCKER_RECORD** | Preserved blocked-design unit; live scientific authority is the frozen prereg |
 | `research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md` | **ACTIVE / RESEARCH DATA CONTRACT** | Outcome-blind B2-06 OI+funding identity + Git-bound snapshot `5a9d036b…`; unit verdict `SNAPSHOT_MATERIALIZED_FUNDING_PUBLICATION_UNPROVEN_RESEARCH_UNAUTHORIZED`; not a B2-06 RESULT |
 | `research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.json` | **ACTIVE / RESEARCH DATA CONTRACT** | Machine-readable twin of the B2-06 data-expansion freeze |

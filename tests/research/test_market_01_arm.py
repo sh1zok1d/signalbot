@@ -85,6 +85,21 @@ def _copy_live(rel: str, dest_root: Path) -> None:
     shutil.copy2(src, dest)
 
 
+ARMED_EXECUTION_HEAD = "9e6f398e4d0a294adff317354c64fdbce91315a2"
+
+
+def _copy_unused_arm_authority(rel: str, dest_root: Path) -> None:
+    if rel in {m01a.ARM_JSON_REL, m01a.RESERVATION_JSON_REL}:
+        data = subprocess.check_output(
+            ["git", "-C", str(REPO), "show", f"{ARMED_EXECUTION_HEAD}:{rel}"]
+        )
+        dest = dest_root / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(data)
+        return
+    _copy_live(rel, dest_root)
+
+
 def _bind(monkeypatch, repo: Path) -> None:
     monkeypatch.setattr(m01a, "_repo_root", lambda: repo)
 
@@ -93,27 +108,24 @@ def _armed_repo(tmp_path: Path) -> Path:
     repo = tmp_path / "repo"
     repo.mkdir()
     for rel in _TRACKED:
-        _copy_live(rel, repo)
+        _copy_unused_arm_authority(rel, repo)
     return repo
 
 
-def test_live_arm_authenticates_without_outcome_fields():
-    bound = authenticate_market_01_arm()
-    assert bound["run_identity"] == FROZEN_MARKET_01_RUN_IDENTITY
+def test_live_arm_is_consumed_and_refuses_rerun():
     assert derive_market_01_run_identity() == FROZEN_MARKET_01_RUN_IDENTITY
-    payload = bound["payload"]
+    with pytest.raises(Market01ExecutionNotAuthorized, match="CONSUMED"):
+        authenticate_market_01_arm()
+    with pytest.raises(Market01ExecutionNotAuthorized):
+        authenticate_market_01_canonical_execution()
+    payload = json.loads((REPO / m01a.ARM_JSON_REL).read_text(encoding="utf-8"))
     for field in m01a.ARM_OUTCOME_FIELDS:
         assert field not in payload
+    assert payload["run_identity"] == FROZEN_MARKET_01_RUN_IDENTITY
+    assert payload["authorization_consumed"] is True
     state = inspect_market_01_authorization_state()
-    assert state["MARKET_01_ARMED"] is True
-    assert state["MARKET_01_EXECUTION_AUTHORIZED"] is True
-    assert state["CANONICAL_EXECUTIONS_AUTHORIZED"] == 1
-    assert state["CANONICAL_EXECUTIONS_CONSUMED"] == 0
-    assert state["MARKET_01_EXECUTED"] is False
-    assert state["MARKET_01_OUTCOME_INSPECTED"] is False
+    assert state["MARKET_01_EXECUTION_AUTHORIZED"] is False
     assert state["MARKET_01_TEST_CALIBRATED"] is False
-    canonical = authenticate_market_01_canonical_execution()
-    assert canonical["run_identity"] == FROZEN_MARKET_01_RUN_IDENTITY
 
 
 def test_unarmed_bound_execution_refuses():
@@ -181,16 +193,20 @@ def test_wrong_snapshot_identity_refuses():
         construct_episodes(price, oi)
 
 
-def test_exact_synthetic_armed_identity_reaches_pipeline():
+def test_bound_snapshots_refuse_after_canonical_consumption():
     price = _price(120, COMMON_START_MS, np.full(120, 100.0), PRICE_SNAPSHOT_ID)
     oi = _oi(30, COMMON_START_MS, np.full(30, 10.0), OI_SNAPSHOT_ID)
-    episodes = construct_episodes(price, oi)
+    with pytest.raises(Market01ExecutionNotAuthorized):
+        construct_episodes(price, oi)
+    with pytest.raises(Market01ExecutionNotAuthorized):
+        evaluate_bound_market_01(price, oi)
+
+
+def test_synthetic_unbound_pipeline_still_runs_after_consumption():
+    price = _price(120, COMMON_START_MS, np.full(120, 100.0), SYNTHETIC_SNAPSHOT)
+    oi = _oi(30, COMMON_START_MS, np.full(30, 10.0), SYNTHETIC_SNAPSHOT)
     result = evaluate_market_01(price, oi)
-    bound = evaluate_bound_market_01(price, oi)
-    assert isinstance(episodes, list)
     assert result["final_classification"] == "NOT_IDENTIFIABLE_OR_INSUFFICIENT_SUPPORT"
-    assert bound["final_classification"] == result["final_classification"]
-    assert result["MARKET_01_ARMED"] is True
     assert result["MARKET_01_TEST_CALIBRATED"] is False
     assert result["DEFAULT_V4"] is False
     assert result["B2_06_EXECUTION_AUTHORIZED"] is False
@@ -271,5 +287,5 @@ def test_accepted_implementation_identity_is_bound():
     assert arm["run_identity"] == FROZEN_MARKET_01_RUN_IDENTITY
     reservation = json.loads((REPO / m01a.RESERVATION_JSON_REL).read_text(encoding="utf-8"))
     assert reservation["CANONICAL_EXECUTIONS_AUTHORIZED"] == 1
-    assert reservation["CANONICAL_EXECUTIONS_CONSUMED"] == 0
+    assert reservation["CANONICAL_EXECUTIONS_CONSUMED"] == 1
     assert reservation["rerun_preauthorized"] is False

@@ -12,16 +12,13 @@ active research program. Do not repair, rerun, or reinterpret V3. Do not
 create V4 (`DEFAULT_V4 = NO`). `V3_METHODOLOGY_CLAIMABLE = NO`.
 `V3_RERUN_AUTHORIZED = NO`.
 
-The next substantive unit is **one canonical MARKET-01 execution**.
-The complete outcome-blind preregistration is **frozen** by
-`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_FREEZE.md`
-(`MARKET_01_PREREG_FROZEN = YES`), the accepted implementation is
-**frozen** by
-`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_IMPLEMENTATION_FREEZE.md`,
-and exactly one canonical run is **armed unused** by
-`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_ARM.md`.
-Do not execute MARKET-01 in the ARM unit. Do not inspect MARKET outcomes.
-Do not design a large new MARKET framework.
+MARKET-01 is **closed** under its frozen design. Mechanical
+classification: **`NO_EVIDENCE`**. Canonical RESULT:
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_RESULT.json`
+(SHA256 `5310946b44dd3ebc609d05a13f92f6cb414e3a0727141d0ee324bce0aa626c5e`).
+`CANONICAL_EXECUTIONS_CONSUMED = 1`. Do not rerun MARKET-01. Do not
+change its thresholds or windows. Do not design a large new MARKET
+framework. A later market hypothesis requires a new research ID.
 Do not create new infrastructure merely because MARKET is beginning. Operating
 priority is approximately 70–80% actual market research and 20–30%
 infrastructure only when concrete research blockers require it. Primary
@@ -162,8 +159,8 @@ B2-05 artifact bytes remain `OPERATOR_ADJUDICATED`, not proven.
 
 Family F1 is `CLOSED_NO_PROMOTION`. B2-06 `LEVERAGE_CROWDING` remains
 `BLOCKED_MISSING_OBSERVABLE` and is **not** the next active research
-unit. The next substantive unit is one canonical MARKET-01 execution.
-MARKET-01 is ARMED_NOT_EXECUTED. The outcome-blind
+unit. MARKET-01 is closed (`NO_EVIDENCE`); it does not unblock B2-06.
+The outcome-blind
 OI/funding snapshot is Git-bound as
 `SNAPSHOT_MATERIALIZED_NOT_RESEARCH_AUTHORIZED` /
 `SNAPSHOT_MATERIALIZED_FUNDING_PUBLICATION_UNPROVEN_RESEARCH_UNAUTHORIZED`
@@ -290,9 +287,9 @@ applies only to the frozen synthetic trap DGP. V3 `DETECTED`/`PASS` must
 not by itself be treated as sufficient evidence of a robust market edge.
 This limitation is not authorization for immediate V4.
 
-Next required V3 step: none authorized. Next required project step:
-`MARKET-01_IMPLEMENTATION_REVIEW` (prereg frozen, implemented, not armed,
-not executed).
+Next required V3 step: none authorized. MARKET-01 is closed
+(`FINAL_CLASSIFICATION = NO_EVIDENCE`). A later market hypothesis
+requires a new research ID. Do not rerun MARKET-01.
 Do not rerun V3, do not create V4, and do not execute B2-06.
 
 This methodology closeout does not weaken or bypass the current B2-06 state:
