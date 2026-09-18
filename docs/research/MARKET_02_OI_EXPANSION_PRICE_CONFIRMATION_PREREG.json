@@ -1,5 +1,5 @@
 {
-  "status": "PREREGISTERED_OUTCOME_BLIND_UNFROZEN",
+  "status": "PREREGISTERED_OUTCOME_BLIND_FROZEN",
   "research_id": "MARKET-02_OI_EXPANSION_PRICE_CONFIRMATION",
   "date": "2026-09-18",
   "parent_design": "docs/research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_DESIGN.md",
@@ -76,7 +76,7 @@
     "block_selector": "arch==8.0.0 optimal_block_length stationary-bootstrap b_sb branch",
     "seed_material": "MARKET-02_OI_EXPANSION_PRICE_CONFIRMATION|CONFIRMATORY_STATIONARY_BOOTSTRAP|B=999",
     "seed_material_sha256": "19b71ee831e69f273338ef94e65ff4cc339eb6d8054c365fd160c7769955558f",
-    "seed": 1852983754304692007,
+    "seed": 1852983754304692000,
     "namespace": [
       "BOOTSTRAP",
       "PRIMARY_BETA_CONFIRMATION"
@@ -109,12 +109,12 @@
     "default_v4": false,
     "b2_06_execution_authorized": false,
     "protected_oos_authorized": false,
-    "prereg_frozen": false,
+    "prereg_frozen": true,
     "implemented": false,
     "armed": false,
     "executed": false
   },
-  "next_required_step": "MARKET-02_PREREG_FREEZE",
+  "next_required_step": "MARKET-02_IMPLEMENTATION",
   "human_readable_twin": "docs/research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_PREREG.md",
   "authority": {
     "scientific_authority": "human_readable_twin",
@@ -131,5 +131,11 @@
     "redraw": false,
     "interpolate": false,
     "fallback_source": false
+  },
+  "freeze": {
+    "review_verdict": "FREEZE_READY",
+    "outcome_inspection_performed": false,
+    "frozen_scientific_authority": true,
+    "material_change_requires_new_research_identity": true
   }
 }
