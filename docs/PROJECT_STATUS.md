@@ -235,20 +235,18 @@ Post-close episode-construction throughput work is research
 infrastructure only (`docs/research/MARKET_01_EPISODE_CONSTRUCTION_PERF.md`);
 it does not reopen MARKET-01 or change the sealed RESULT.
 
-`MARKET-03_PUBLIC_STRATEGY_REPLICATION` completed **preregistration
-design** after data acquisition. Design verdict:
-**`READY_FOR_MARKET_03_PREREG`** at ceiling
-**`LEVEL_2_FAITHFUL_REIMPLEMENTATION`**. Author headline `20191001-`
-overlaps protected 2025/2026 OOS; evaluation is truncated to
-`[2019-10-01T00:00:00Z, 2025-01-01T00:00:00Z)`. Primary classification
-is directional MDD reproduction; magnitude fidelity is descriptive.
-Not the live prereg, ARM, execution, or RESULT. Do not substitute CORE
-perpetual prices. Do not consume B2-06 as MARKET-03 funding authority.
-Do not inspect Signalbot 2025/2026 OOS. Authority:
-`docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG_DESIGN.md`. Prior units
-remain historical at
-`docs/research/MARKET_03_PUBLIC_STRATEGY_SOURCE_FEASIBILITY.md` and
-`docs/research/MARKET_03_DATA_ACQUISITION.md`.
+`MARKET-03_PUBLIC_STRATEGY_REPLICATION` **preregistration is frozen**.
+Materialization HEAD `06d6ec0121a9a35f8ee947fbe89e37e97388b6e2` /
+tree `50bc810eb127ea7aea1843ef2ede0dd4fe8905d1`. Prereg SHA256
+`044bb2a6…` / `3f35f9a1…`. Ceiling
+**`LEVEL_2_FAITHFUL_REIMPLEMENTATION`**. Evaluation truncated to
+`[2019-10-01T00:00:00Z, 2025-01-01T00:00:00Z)`. Funding named snapshot
+is a pre-ARM required artifact (`FUNDING_SNAPSHOT_READY = NO`). Not ARM,
+execution, or RESULT. Do not substitute CORE perpetual prices. Do not
+consume B2-06 as MARKET-03 funding authority. Do not inspect Signalbot
+2025/2026 OOS. Freeze authority:
+`docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG_FREEZE.md`. Payload:
+`docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG.md`.
 
 Post-calibration operating priority:
 

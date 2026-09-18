@@ -19,9 +19,9 @@ classification: **`NO_EVIDENCE`**. Canonical RESULT:
 `CANONICAL_EXECUTIONS_CONSUMED = 1`. Do not rerun MARKET-01. Do not
 change its thresholds or windows. Post-close `construct_episodes`
 throughput work is infrastructure only and does not reopen the closed
-RESULT. MARKET-03 completed **preregistration design**
-(`READY_FOR_MARKET_03_PREREG`, ceiling `LEVEL_2`). That unit is not the
-live prereg, ARM, or execution. Do not design a large new MARKET
+RESULT. MARKET-03 **preregistration is frozen**
+(`FROZEN_OUTCOME_BLIND`, ceiling `LEVEL_2`). That freeze is not ARM
+or execution. Funding snapshot identity wrap remains pre-ARM. Do not design a large new MARKET
 framework. A later market hypothesis requires a new research ID.
 Do not create new infrastructure merely because MARKET is beginning. Operating
 priority is approximately 70–80% actual market research and 20–30%
@@ -292,8 +292,8 @@ not by itself be treated as sufficient evidence of a robust market edge.
 This limitation is not authorization for immediate V4.
 
 Next required V3 step: none authorized. MARKET-01 is closed
-(`FINAL_CLASSIFICATION = NO_EVIDENCE`). MARKET-03 preregistration design
-is complete (`READY_FOR_MARKET_03_PREREG`, not preregistered).
+(`FINAL_CLASSIFICATION = NO_EVIDENCE`). MARKET-03 preregistration is
+frozen (`FROZEN_OUTCOME_BLIND`, not armed, not executed).
 Do not rerun MARKET-01.
 Do not rerun V3, do not create V4, and do not execute B2-06.
 

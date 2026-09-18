@@ -3289,3 +3289,36 @@ Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG_DESIGN.md`.
 - STRICT_HISTORICAL_PUBLICATION_LATENCY: **UNPROVEN**
 
 - next required step: `MARKET_03_PREREG_IF_AUTHORIZED` (not this unit)
+
+## 2026-09-18 — MARKET-03 preregistration + freeze
+
+Materialized and froze the MARKET-03 preregistration from the approved
+design without executing the strategy. Object remains **EXTERNAL
+HISTORICAL CLAIM REPRODUCTION** at
+`LEVEL_2_FAITHFUL_REIMPLEMENTATION`. Evaluation truncated to
+`[2019-10-01T00:00:00Z, 2025-01-01T00:00:00Z)`. Primary classification
+is signed `MDD_filtered > MDD_baseline`. Funding named snapshot is a
+pre-ARM required artifact. Canonical executions authorized/consumed = 0.
+
+```text
+PRE_PREREG_HEAD = 9454af65398df1d3f5e0cb3af5e48c0986049d2d
+PREREG_HEAD     = 06d6ec0121a9a35f8ee947fbe89e37e97388b6e2
+PREREG_MD_SHA256   = 044bb2a6bbd51c49c856b02eb7866b43171664a05d947dce995489389eeb0b57
+PREREG_JSON_SHA256 = 3f35f9a1d0575eaff3a1993a4779642259c0891dbdda1d49f22b958eba714f89
+```
+
+Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG_FREEZE.md`.
+
+- market_03_prereg: **true**
+- market_03_prereg_frozen: **true**
+- market_03_armed: **false**
+- market_03_executed: **false**
+- market_03_outcome_inspected: **false**
+- market_03_parameter_search: **false**
+- canonical_executions_authorized: **0**
+- canonical_executions_consumed: **0**
+- funding_snapshot_ready: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+
+- next required step: `MARKET_03_IMPLEMENTATION_IF_AUTHORIZED` (not ARM, not execution)

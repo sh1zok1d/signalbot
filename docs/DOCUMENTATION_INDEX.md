@@ -20,7 +20,7 @@ Read these first:
 | Document | Status | Purpose |
 |---|---|---|
 | `PROJECT_STATUS.md` | **ACTIVE / CANONICAL** | Current project posture, freeze, empirical state and restart gate. Active research phase: `MARKET`. V3 Microscope calibration closed. |
-| `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. MARKET-01 closed `NO_EVIDENCE`; MARKET-03 prereg **design** `READY_FOR_MARKET_03_PREREG` (not the live prereg); V3 closed; no V4; B2-06 remains blocked. |
+| `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. MARKET-01 closed `NO_EVIDENCE`; MARKET-03 prereg **frozen** (`FROZEN_OUTCOME_BLIND`, not ARM/execution); V3 closed; no V4; B2-06 remains blocked. |
 | `EDGE_RESEARCH_PROTOCOL.md` | **ACTIVE / CANONICAL** | Discovery/validation rules and anti-overfit discipline |
 | `HISTORICAL_DATA_STRATEGY.md` | **ACTIVE / CANONICAL** | Multi-year CORE vs shorter RICH evidence strategy |
 | `DATA_CAPABILITY_MATRIX.md` | **ACTIVE / RESEARCH DATA DESIGN** | Verified source/venue/date/granularity map and acquisition order for the 2020/2021–2026 research program |
@@ -38,8 +38,12 @@ Read these first:
 | `research/MARKET_03_PUBLIC_STRATEGY_SOURCE_FEASIBILITY.json` | **OUTCOME_BLIND_SOURCE_FEASIBILITY twin / HISTORICAL UNIT** | Machine-readable twin; pinned commit `b68a5518…`; no Signalbot strategy outcomes |
 | `research/MARKET_03_DATA_ACQUISITION.md` | **DATA_ACQUISITION_COMPLETE_NOT_PREREGISTERED / HISTORICAL UNIT** | Binance SPOT BTCUSDT 1h snapshot + funding provenance; unit verdict `READY_FOR_MARKET_03_PREREG_DESIGN`; superseded for current execution by the prereg-design unit; not a prereg/ARM/RESULT |
 | `research/MARKET_03_DATA_ACQUISITION.json` | **DATA_ACQUISITION twin / HISTORICAL UNIT** | Machine-readable twin; snapshot `2ce1f504…`; SHA256 `f1dfd27c…`; all strategy/prereg/ARM flags false |
-| `research/MARKET_03_PUBLIC_STRATEGY_PREREG_DESIGN.md` | **PREREG_DESIGN_COMPLETE_NOT_PREREGISTERED** | MARKET-03 scientific identity/classification before execution; verdict `READY_FOR_MARKET_03_PREREG`; not the live prereg, ARM, or RESULT |
-| `research/MARKET_03_PUBLIC_STRATEGY_PREREG_DESIGN.json` | **PREREG DESIGN twin** | Machine-readable twin; SHA256 `91e36249…`; directional primary classification; truncated authorized interval; all strategy/prereg/ARM flags false |
+| `research/MARKET_03_PUBLIC_STRATEGY_PREREG_DESIGN.md` | **PREREG_DESIGN_COMPLETE / HISTORICAL UNIT** | MARKET-03 scientific identity/classification before execution; unit verdict `READY_FOR_MARKET_03_PREREG`; superseded for current execution by the frozen prereg |
+| `research/MARKET_03_PUBLIC_STRATEGY_PREREG_DESIGN.json` | **PREREG DESIGN twin / HISTORICAL UNIT** | Machine-readable twin; SHA256 `91e36249…`; directional primary classification; truncated authorized interval |
+| `research/MARKET_03_PUBLIC_STRATEGY_PREREG.md` | **FROZEN_OUTCOME_BLIND payload** | Frozen MARKET-03 preregistration bytes; SHA256 `044bb2a6…`; internal status `PREREGISTERED_OUTCOME_BLIND` left unchanged; freeze authority is the freeze document |
+| `research/MARKET_03_PUBLIC_STRATEGY_PREREG.json` | **FROZEN_OUTCOME_BLIND payload** | Frozen machine-readable twin; SHA256 `3f35f9a1…` |
+| `research/MARKET_03_PUBLIC_STRATEGY_PREREG_FREEZE.md` | **FROZEN_OUTCOME_BLIND / CURRENT FREEZE AUTHORITY** | Docs-only freeze of materialization `06d6ec01…` / tree `50bc810e…`; not an ARM; not execution |
+| `research/MARKET_03_PUBLIC_STRATEGY_PREREG_FREEZE.json` | **FROZEN_OUTCOME_BLIND / CURRENT FREEZE AUTHORITY** | Machine-readable twin; `freeze_commit_head`/`tree` intentionally `UNSET_UNTIL_THIS_COMMIT` |
 | `research_data/MARKET_03_BTC_STRATEGY_LAB_B68A5518/` | **PINNED_EXTERNAL_SOURCE** | Immutable hashes + text snapshots of `wiktorj137/btc-strategy-lab` at `b68a5518…` |
 | `research_data/MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0/` | **RESEARCH INFRASTRUCTURE SNAPSHOT** | SPOT 1h identity `2ce1f504…`; not MARKET-03 scientifically bound; raw bytes gitignored |
 | `manifests/MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0.yaml` | **SNAPSHOT_MATERIALIZED_RESEARCH_INFRASTRUCTURE** | Planning/identity manifest; `research_authorized: false`; `market_03_scientifically_bound: false` |
