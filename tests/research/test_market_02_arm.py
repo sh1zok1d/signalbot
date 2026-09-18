@@ -113,6 +113,21 @@ def _copy_live(rel: str, dest_root: Path) -> None:
     shutil.copy2(src, dest)
 
 
+ARMED_EXECUTION_HEAD = "6486dfadd920fc24a72fabe37d7dd906154cbc76"
+
+
+def _copy_unused_arm_authority(rel: str, dest_root: Path) -> None:
+    if rel in {m02a.ARM_JSON_REL, m02a.RESERVATION_JSON_REL}:
+        data = subprocess.check_output(
+            ["git", "-C", str(REPO), "show", f"{ARMED_EXECUTION_HEAD}:{rel}"]
+        )
+        dest = dest_root / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(data)
+        return
+    _copy_live(rel, dest_root)
+
+
 def _bind(monkeypatch, repo: Path) -> None:
     monkeypatch.setattr(m02a, "_repo_root", lambda: repo)
 
@@ -121,32 +136,28 @@ def _armed_repo(tmp_path: Path) -> Path:
     repo = tmp_path / "repo"
     repo.mkdir()
     for rel in _TRACKED:
-        _copy_live(rel, repo)
+        _copy_unused_arm_authority(rel, repo)
     return repo
 
 
-def test_live_arm_is_unused_and_does_not_consume_execution():
+def test_live_arm_is_consumed_and_refuses_rerun():
     assert derive_market_02_run_identity() == FROZEN_MARKET_02_RUN_IDENTITY
-    arm = authenticate_market_02_arm()
-    assert arm["sha256"] == m02a.ARM_JSON_SHA256
-    assert arm["payload"]["authorization_consumed"] is False
-    assert arm["payload"]["authorized_run_count"] == 1
-    assert arm["payload"]["MARKET_02_TEST_CALIBRATED"] is False
-    assert arm["payload"]["MARKET_02_EXECUTED"] is False
-    reservation = authenticate_market_02_canonical_execution()["reservation"]
-    assert reservation["CANONICAL_EXECUTIONS_AUTHORIZED"] == 1
-    assert reservation["CANONICAL_EXECUTIONS_CONSUMED"] == 0
+    with pytest.raises(Market02ExecutionNotAuthorized, match="CONSUMED"):
+        authenticate_market_02_arm()
+    with pytest.raises(Market02ExecutionNotAuthorized):
+        authenticate_market_02_canonical_execution()
     payload = json.loads((REPO / m02a.ARM_JSON_REL).read_text(encoding="utf-8"))
     for field in m02a.ARM_OUTCOME_FIELDS:
         assert field not in payload
-    assert (REPO / m02a.RESULT_JSON_REL).exists() is False
+    assert payload["run_identity"] == FROZEN_MARKET_02_RUN_IDENTITY
+    assert payload["authorization_consumed"] is True
+    reservation = json.loads((REPO / m02a.RESERVATION_JSON_REL).read_text(encoding="utf-8"))
+    assert reservation["CANONICAL_EXECUTIONS_AUTHORIZED"] == 1
+    assert reservation["CANONICAL_EXECUTIONS_CONSUMED"] == 1
     state = inspect_market_02_authorization_state()
-    assert state["MARKET_02_ARMED"] is True
-    assert state["MARKET_02_EXECUTION_AUTHORIZED"] is True
-    assert state["CANONICAL_EXECUTIONS_AUTHORIZED"] == 1
-    assert state["CANONICAL_EXECUTIONS_CONSUMED"] == 0
+    assert state["MARKET_02_EXECUTION_AUTHORIZED"] is False
     assert state["MARKET_02_TEST_CALIBRATED"] is False
-    assert MARKET_02_TEST_CALIBRATED is False
+    assert (REPO / m02a.RESULT_JSON_REL).exists() is True
 
 
 def test_unarmed_repo_refuses_bound_pair(tmp_path, monkeypatch):
@@ -267,12 +278,14 @@ def test_unbound_replacement_cannot_authorize_as_bound(tmp_path, monkeypatch):
         m02a.authorize_bound_market_02_views(price.snapshot_id, oi.snapshot_id)
 
 
-def test_exact_snapshot_identity_after_arm_synthetic_views_only():
+def test_exact_snapshot_identity_after_arm_synthetic_views_only(tmp_path, monkeypatch):
+    repo = _armed_repo(tmp_path)
+    _bind(monkeypatch, repo)
     price = _price(3, COMMON_START_MS, np.array([1.0, 1.0, 1.0]), PRICE_SNAPSHOT_ID)
     oi = _oi(1, COMMON_START_MS, np.array([1.0]), OI_SNAPSHOT_ID)
     episodes = construct_episodes(price, oi)
     assert isinstance(episodes, list)
-    # Tiny synthetic series; no CORE/OI load and no canonical RESULT.
+    # Tiny synthetic series; no CORE/OI load and no second canonical RESULT.
 
 
 def test_wrong_execution_seed_refuses(tmp_path, monkeypatch):
@@ -395,6 +408,5 @@ def test_frozen_implementation_identity_is_bound():
     assert arm["lib_armed_lifecycle_sha256"] == m02a.LIB_ARMED_LIFECYCLE_SHA256
     reservation = json.loads((REPO / m02a.RESERVATION_JSON_REL).read_text(encoding="utf-8"))
     assert reservation["CANONICAL_EXECUTIONS_AUTHORIZED"] == 1
-    assert reservation["CANONICAL_EXECUTIONS_CONSUMED"] == 0
+    assert reservation["CANONICAL_EXECUTIONS_CONSUMED"] == 1
     assert reservation["rerun_preauthorized"] is False
-    assert reservation["result_present"] is False

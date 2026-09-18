@@ -1,11 +1,11 @@
 {
   "B2_06_EXECUTION_AUTHORIZED": false,
   "CANONICAL_EXECUTIONS_AUTHORIZED": 1,
-  "CANONICAL_EXECUTIONS_CONSUMED": 0,
+  "CANONICAL_EXECUTIONS_CONSUMED": 1,
   "DEFAULT_V4": false,
   "MARKET_02_ARMED": true,
-  "MARKET_02_EXECUTED": false,
-  "MARKET_02_OUTCOME_INSPECTED": false,
+  "MARKET_02_EXECUTED": true,
+  "MARKET_02_OUTCOME_INSPECTED": true,
   "MARKET_02_TEST_CALIBRATED": false,
   "PROTECTED_OOS_TOUCHED": false,
   "accepted_implementation_head": "1d2b0abf73d245f37cd9ca55ece99d1628dc80ee",
@@ -15,7 +15,7 @@
   "date": "2026-09-18",
   "frozen_implementation_head": "124da2bfdb0b5dfb6e0a8da5789a474af526f27f",
   "frozen_implementation_tree": "7303a4507cba716209ea012f2c4e180eef31ba18",
-  "lifecycle": "RESERVED_UNUSED",
+  "lifecycle": "CONSUMED",
   "not_a_result": true,
   "not_an_execution": true,
   "not_outcome_inspection": true,
@@ -28,7 +28,7 @@
   "run_identity": "4ef6a6c543f6a11930fe0ae26cb6bfbe7f19feac4c645d8fed992eebcd36a032",
   "schema": "market_02_oi_expansion_price_confirmation_reservation",
   "schema_version": "1.0.0",
-  "status": "RESERVED_UNUSED",
+  "status": "CONSUMED",
   "unit_id": "MARKET-02_OI_EXPANSION_PRICE_CONFIRMATION_RESERVATION",
   "v3_reused_as_market_02_test": false
 }

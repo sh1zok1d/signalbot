@@ -594,8 +594,8 @@ def test_robust_and_fragile_paths_and_uncalibrated_flag():
     b = evaluate_from_confirmatory_rows(rows)
     assert a["final_classification"] == CLASS_ROBUST
     assert a["MARKET_02_TEST_CALIBRATED"] is False
-    assert a["MARKET_02_ARMED"] is True
-    assert a["MARKET_02_EXECUTION_AUTHORIZED"] is True
+    assert a["MARKET_02_ARMED"] is False
+    assert a["MARKET_02_EXECUTION_AUTHORIZED"] is False
     assert a["MARKET_02_EXECUTED"] is False
     assert a["PROTECTED_OOS_TOUCHED"] is False
     assert a["B2_06_EXECUTION_AUTHORIZED"] is False
@@ -635,8 +635,8 @@ def test_evaluate_market_02_synthetic_does_not_use_bound_snapshots():
     result = evaluate_market_02(price, oi)
     assert result["final_classification"] == CLASS_NOT_IDENTIFIABLE
     assert result["price_snapshot_id"] == PRICE_SNAPSHOT_ID
-    assert result["MARKET_02_ARMED"] is True
-    assert result["MARKET_02_EXECUTION_AUTHORIZED"] is True
+    assert result["MARKET_02_ARMED"] is False
+    assert result["MARKET_02_EXECUTION_AUTHORIZED"] is False
     assert result["MARKET_02_TEST_CALIBRATED"] is MARKET_02_TEST_CALIBRATED
     assert np.__version__ == "2.1.3"
 

@@ -235,11 +235,18 @@ Post-close episode-construction throughput work is research
 infrastructure only (`docs/research/MARKET_01_EPISODE_CONSTRUCTION_PERF.md`);
 it does not reopen MARKET-01 or change the sealed RESULT.
 
-`MARKET-02_OI_EXPANSION_PRICE_CONFIRMATION` is **armed unused** against
-its already frozen implementation. `CANONICAL_EXECUTIONS_AUTHORIZED = 1`.
-`CANONICAL_EXECUTIONS_CONSUMED = 0`. `MARKET_02_TEST_CALIBRATED = NO`.
-This ARM does not execute MARKET-02, inspect outcomes, or open
-protected OOS. This is not a MARKET-01 rerun or rescue.
+`MARKET-02_OI_EXPANSION_PRICE_CONFIRMATION` is **`RESULT`** and closed
+under its frozen design. Mechanical classification: **`NO_EVIDENCE`**.
+Canonical RESULT SHA256
+`68e084b35201d227ecd9f48e99cc65a937b15fcb55a5849b1630c5d61850b478`.
+`CANONICAL_EXECUTIONS_CONSUMED = 1`. No rerun is authorized. Do not
+change thresholds, windows, or specification. The confirmatory test
+remains a new stratified two-group OLS identity, not V3, and remains
+uncalibrated (`MARKET_02_TEST_CALIBRATED = NO`). Sequential same-history
+follow-up, not MARKET-01 rescue or independent replication. This is not
+validated alpha, not a causal OI effect, and not OOS validation.
+RESULT authority:
+`docs/research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_RESULT.json`.
 
 Post-calibration operating priority:
 

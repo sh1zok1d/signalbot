@@ -3262,3 +3262,53 @@ MARKET_02_TEST_CALIBRATED = NO
 
 - next required step: `MARKET_02_CANONICAL_EXECUTION_IF_AUTHORIZED` (not this unit)
 
+## 2026-09-18 — MARKET-02 canonical execution RESULT (NO_EVIDENCE)
+
+One canonical MARKET-02 execution completed from ARM HEAD
+`6486dfadd920fc24a72fabe37d7dd906154cbc76` / tree
+`6f022334ea015756c8551bad73debed81ba4f8a9`. Reservation consumed
+exactly once. No rerun. Protected OOS untouched. B2-06 remains blocked.
+`MARKET_02_TEST_CALIBRATED = NO`.
+
+Run identity:
+`4ef6a6c543f6a11930fe0ae26cb6bfbe7f19feac4c645d8fed992eebcd36a032`.
+
+RESULT SHA256:
+`68e084b35201d227ecd9f48e99cc65a937b15fcb55a5849b1630c5d61850b478`.
+
+Mechanical classification: **`NO_EVIDENCE`**.
+`TOTAL_ELIGIBLE_EPISODES = 2487`.
+`CANDIDATE_EPISODES = 767`.
+`BASELINE_EPISODES = 1720`.
+`USABLE_STRATA = 3`.
+`beta_confirmation = -0.00018378788969437528`.
+`bootstrap_se = 0.0004006951864901606`.
+`bootstrap_p_one_sided = 0.647`.
+`DETECTED = NO`.
+Robustness not evaluated.
+
+Do not change thresholds or rerun. This is not proof that no
+relationship exists. It is not validated alpha, not a causal OI effect,
+not independent replication of MARKET-01, and not OOS validation.
+
+Evidence:
+`docs/research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_RESULT.json`.
+
+- market_02_phase: **RESULT**
+- market_02_prereg_frozen: **true**
+- market_02_implemented: **true**
+- market_02_implementation_frozen: **true**
+- market_02_armed: **true**
+- market_02_canonical_executions_authorized: **1**
+- market_02_canonical_executions_consumed: **1**
+- market_02_outcome_inspected: **true**
+- market_02_executed: **true**
+- market_02_test_calibrated: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- default_v4: **false**
+- rerun_occurred: **false**
+- final_classification: **NO_EVIDENCE**
+
+- next required step: `NEW_MARKET_HYPOTHESIS_ID_IF_AUTHORIZED` (not MARKET-02 rerun)
+
