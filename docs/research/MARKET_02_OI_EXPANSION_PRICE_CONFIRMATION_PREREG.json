@@ -76,7 +76,7 @@
     "block_selector": "arch==8.0.0 optimal_block_length stationary-bootstrap b_sb branch",
     "seed_material": "MARKET-02_OI_EXPANSION_PRICE_CONFIRMATION|CONFIRMATORY_STATIONARY_BOOTSTRAP|B=999",
     "seed_material_sha256": "19b71ee831e69f273338ef94e65ff4cc339eb6d8054c365fd160c7769955558f",
-    "seed": 1852983754304692000,
+    "seed": 1852983754304692007,
     "namespace": [
       "BOOTSTRAP",
       "PRIMARY_BETA_CONFIRMATION"
