@@ -76,6 +76,39 @@ Can Signalbot test a market claim materially cheaper/faster/more reliably than
 the ordinary workflow, with conclusions that change a research decision, and can
 that capability transfer to an external user's claim?
 
+
+### External-claim validation policy (2026-09-18)
+
+Public, pre-existing crypto strategies and market hypotheses are the preferred
+initial source for external transferability tests. Do not require private alpha,
+positions, sizing, execution logic, or proprietary code from traders.
+
+Maintain an `EXTERNAL_CLAIMS` candidate pool independently of the active MARKET
+execution. Candidate selection should prefer claims that:
+- were publicly timestamped before Signalbot selected them;
+- have a clear economic assertion that can be separated from the author's full strategy;
+- are testable with defensible available-at data;
+- do not require copying a published backtest or treating its reported performance as evidence;
+- are materially distinct from claims already tested by Signalbot.
+
+For the first external experiment, freeze the public source, publication date,
+original claim, and Signalbot's interpretation before outcome inspection. The
+research target is the underlying claim, not reproduction of the author's PnL.
+
+The intended transferability test is:
+external public idea -> explicit Research Contract -> semantic confirmation where
+available -> reproducible test -> adversarial checks -> sealed result.
+
+Author participation is optional. After sealing, the author may be contacted to
+assess whether Signalbot represented the intended claim correctly and whether the
+audit would change a research decision. Lack of an author response does not erase
+the transferability evidence, but semantic confirmation must not be falsely claimed.
+
+Do not interrupt or modify frozen MARKET-02 for this work. Candidate discovery may
+run in parallel. After MARKET-02, choose the next experiment by information gain;
+`EXTERNAL-01` is not automatically required to precede an internally generated
+MARKET-03.
+
 B2-06 remains `BLOCKED_MISSING_OBSERVABLE`. `MARKET-01` is not required
 to be B2-06 and does not silently unblock it.
 
