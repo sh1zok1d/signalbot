@@ -3258,3 +3258,34 @@ Evidence: `docs/research/MARKET_03_DATA_ACQUISITION.md`.
 - REPRODUCTION_FUNDINGTIME_ASSUMPTION: **ACCEPTABLE**
 
 - next required step: `MARKET_03_PREREG_DESIGN_IF_AUTHORIZED` (not this unit)
+
+## 2026-09-18 — MARKET-03 preregistration design
+
+Froze MARKET-03 scientific identity before execution. Object:
+**EXTERNAL HISTORICAL CLAIM REPRODUCTION** of the pinned
+`EmaCross` vs `EmaCrossFunding` drawdown-reduction claim at
+`LEVEL_2_FAITHFUL_REIMPLEMENTATION`. Author open-ended `20191001-`
+overlaps protected 2025/2026 OOS; evaluation truncated to
+`[2019-10-01T00:00:00Z, 2025-01-01T00:00:00Z)` without opening OOS.
+Primary classification is directional (`REPRODUCED_DIRECTION` /
+`NOT_REPRODUCED_DIRECTION`); magnitude fidelity is descriptive (no
+invented ±pp gate). B2-06 is not funding authority; ARM requires a
+dedicated REST funding snapshot from already-acquired JSONL
+`e7885cd5…`. No p-value. Not the live prereg.
+
+Verdict: **`READY_FOR_MARKET_03_PREREG`**.
+
+Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG_DESIGN.md`.
+
+- market_03_prereg: **false**
+- market_03_armed: **false**
+- market_03_executed: **false**
+- market_03_outcome_inspected: **false**
+- market_03_parameter_search: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- design_verdict: **READY_FOR_MARKET_03_PREREG**
+- replication_level: **LEVEL_2_FAITHFUL_REIMPLEMENTATION**
+- STRICT_HISTORICAL_PUBLICATION_LATENCY: **UNPROVEN**
+
+- next required step: `MARKET_03_PREREG_IF_AUTHORIZED` (not this unit)

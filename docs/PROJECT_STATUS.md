@@ -1,6 +1,6 @@
 # Signalbot — Current Project Status
 
-**Status date:** 2026-09-17
+**Status date:** 2026-09-18
 **Operating mode:** `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN`
 **Active research phase:** `MARKET`
 
@@ -235,17 +235,20 @@ Post-close episode-construction throughput work is research
 infrastructure only (`docs/research/MARKET_01_EPISODE_CONSTRUCTION_PERF.md`);
 it does not reopen MARKET-01 or change the sealed RESULT.
 
-`MARKET-03_PUBLIC_STRATEGY_REPLICATION` completed **data acquisition +
-provenance** after source feasibility. Spot snapshot
-`MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0` /
-`2ce1f504709dc40c37a70dddcf73acb444e715820e9c855f6817c48f10d2b345`.
-Reassessment: **`READY_FOR_MARKET_03_PREREG_DESIGN`** at ceiling
-**`LEVEL_2_FAITHFUL_REIMPLEMENTATION`**. Not a prereg, ARM, execution, or
-RESULT. Do not substitute CORE perpetual prices. Do not consume B2-06 as
-B2-06 science. Do not inspect Signalbot 2025/2026 OOS. Authority:
-`docs/research/MARKET_03_DATA_ACQUISITION.md`. The prior source-feasibility
-record remains historical at
-`docs/research/MARKET_03_PUBLIC_STRATEGY_SOURCE_FEASIBILITY.md`.
+`MARKET-03_PUBLIC_STRATEGY_REPLICATION` completed **preregistration
+design** after data acquisition. Design verdict:
+**`READY_FOR_MARKET_03_PREREG`** at ceiling
+**`LEVEL_2_FAITHFUL_REIMPLEMENTATION`**. Author headline `20191001-`
+overlaps protected 2025/2026 OOS; evaluation is truncated to
+`[2019-10-01T00:00:00Z, 2025-01-01T00:00:00Z)`. Primary classification
+is directional MDD reproduction; magnitude fidelity is descriptive.
+Not the live prereg, ARM, execution, or RESULT. Do not substitute CORE
+perpetual prices. Do not consume B2-06 as MARKET-03 funding authority.
+Do not inspect Signalbot 2025/2026 OOS. Authority:
+`docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG_DESIGN.md`. Prior units
+remain historical at
+`docs/research/MARKET_03_PUBLIC_STRATEGY_SOURCE_FEASIBILITY.md` and
+`docs/research/MARKET_03_DATA_ACQUISITION.md`.
 
 Post-calibration operating priority:
 
