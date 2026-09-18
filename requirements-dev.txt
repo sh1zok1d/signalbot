@@ -11,6 +11,7 @@
 -r requirements.txt
 
 pyarrow==17.0.0
+arch==8.0.0
 
 # Test runner used explicitly by .github/workflows/ci.yml.
 pytest==8.3.5

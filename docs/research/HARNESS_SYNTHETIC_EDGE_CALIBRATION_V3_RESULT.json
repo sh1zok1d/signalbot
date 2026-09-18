@@ -1,0 +1,155 @@
+{
+  "accepted_implementation_head": "70673673f5bc0108e6bcf2aaf55a762ebc49940a",
+  "accepted_implementation_tree": "e94e18cb900a44824b96dee1d4b6cbb574c95e5a",
+  "arm_artifact_sha256": "33354b488fea49909540a149c3de9f404342d8fc9c99dbfe43764943ec122822",
+  "arm_commit": "de7b38341c65eb82b66494d910fefd3395f8b232",
+  "b2_06_scientific_execution_authorized": false,
+  "canonical_v3_plan_sha256": "ce66442985a637f05508c980257f5ca8b869df15e2b94b87d1110c3ef75fd69f",
+  "cell_aggregates": {
+    "EASY": {
+      "attempted": 400,
+      "detected": 400,
+      "frozen_target": {
+        "FAIL_max_x": 350,
+        "INDETERMINATE_x_range": [
+          351,
+          369
+        ],
+        "PASS_min_x": 370,
+        "kind": "power_min",
+        "value": 0.9
+      },
+      "invalid": 0,
+      "invalid_by_guard": {},
+      "not_detected": 0,
+      "planned": 400,
+      "rate": 1.0,
+      "structurally_complete": true,
+      "valid": 400,
+      "verdict": "PASS",
+      "wilson_lower": 0.9932815837823105,
+      "wilson_upper": 0.9999999999999999,
+      "wilson_z": 1.6448536269514722
+    },
+    "MODERATE": {
+      "attempted": 400,
+      "detected": 313,
+      "frozen_target": {
+        "FAIL_max_x": 264,
+        "INDETERMINATE_x_range": [
+          265,
+          295
+        ],
+        "PASS_min_x": 296,
+        "kind": "power_min",
+        "value": 0.7
+      },
+      "invalid": 0,
+      "invalid_by_guard": {},
+      "not_detected": 87,
+      "planned": 400,
+      "rate": 0.7825,
+      "structurally_complete": true,
+      "valid": 400,
+      "verdict": "PASS",
+      "wilson_lower": 0.7467341470680088,
+      "wilson_upper": 0.8144699477689966,
+      "wilson_z": 1.6448536269514722
+    },
+    "NONSTATIONARY_TRAP": {
+      "attempted": 400,
+      "detected": 188,
+      "frozen_target": {
+        "FAIL_min_x": 94,
+        "INDETERMINATE_x_range": [
+          67,
+          93
+        ],
+        "PASS_max_x": 66,
+        "kind": "detect_max",
+        "value": 0.2
+      },
+      "invalid": 0,
+      "invalid_by_guard": {},
+      "not_detected": 212,
+      "planned": 400,
+      "rate": 0.47,
+      "structurally_complete": true,
+      "valid": 400,
+      "verdict": "FAIL",
+      "wilson_lower": 0.42929191910719994,
+      "wilson_upper": 0.5111111858658615,
+      "wilson_z": 1.6448536269514722
+    },
+    "NULL": {
+      "attempted": 400,
+      "detected": 21,
+      "frozen_target": {
+        "FAIL_min_x": 28,
+        "INDETERMINATE_x_range": [
+          13,
+          27
+        ],
+        "PASS_max_x": 12,
+        "kind": "fpr_max",
+        "value": 0.05
+      },
+      "invalid": 0,
+      "invalid_by_guard": {},
+      "not_detected": 379,
+      "planned": 400,
+      "rate": 0.0525,
+      "structurally_complete": true,
+      "valid": 400,
+      "verdict": "INDETERMINATE",
+      "wilson_lower": 0.0369798022275433,
+      "wilson_upper": 0.0740331802872887,
+      "wilson_z": 1.6448536269514722
+    }
+  },
+  "conclusions": {
+    "b2_06_scientific_execution_authorized": false,
+    "cell_verdicts": {
+      "EASY": "PASS",
+      "MODERATE": "PASS",
+      "NONSTATIONARY_TRAP": "FAIL",
+      "NULL": "INDETERMINATE"
+    },
+    "default_v4": false,
+    "final_mechanical_conclusion": {
+      "EASY": "PASS",
+      "MODERATE": "PASS",
+      "NONSTATIONARY_TRAP": "FAIL",
+      "NULL": "INDETERMINATE"
+    },
+    "incomplete_execution": false,
+    "market_execution_authorized": false,
+    "methodology_claimable": false,
+    "structurally_complete": true,
+    "v3_rerun_authorized": false
+  },
+  "default_v4": false,
+  "final_mechanical_conclusion": {
+    "EASY": "PASS",
+    "MODERATE": "PASS",
+    "NONSTATIONARY_TRAP": "FAIL",
+    "NULL": "INDETERMINATE"
+  },
+  "freeze_parent_head": "76f2100715b67799231eab8132cd856823fdf3f8",
+  "freeze_parent_tree": "dd59466b02c56f101764cb17052a6d5eb514b945",
+  "incomplete_execution": false,
+  "market_execution_authorized": false,
+  "methodology_claimable": false,
+  "prereg_json_sha256": "194fed692018560661879dc67e14a4d139c79978fc0dac00aa6e0f934bd399b5",
+  "reservation_identity": "0bb58c95ad4de4909b6157688c7444e35e5cc122ffb10811ccefbfc82e216f34",
+  "run_identity": "ce66442985a637f05508c980257f5ca8b869df15e2b94b87d1110c3ef75fd69f",
+  "schema": "harness_synthetic_edge_calibration_v3_result",
+  "schema_version": "1.0.0",
+  "v3_rerun_authorized": false,
+  "world_records_count": 1600,
+  "world_records_inner_sha256": "57f8361b8e922b040c7038eedcc75700d7b0933ab0d588a77a8146df9b75d86a",
+  "world_records_inner_size": 94807955,
+  "world_records_path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_WORLD_RECORDS.json",
+  "world_records_sha256": "5d09631db5180f562076b2191fe002aa21318a3925d3cd1c4014d83e4b41eb4f",
+  "world_records_size": 101336855
+}

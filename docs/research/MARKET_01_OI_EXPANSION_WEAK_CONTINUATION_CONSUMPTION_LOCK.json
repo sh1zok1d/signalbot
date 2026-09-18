@@ -1,0 +1,19 @@
+{
+  "B2_06_EXECUTION_AUTHORIZED": false,
+  "CANONICAL_EXECUTIONS_AUTHORIZED": 1,
+  "CANONICAL_EXECUTIONS_CONSUMED": 1,
+  "DEFAULT_V4": false,
+  "MARKET_01_TEST_CALIBRATED": false,
+  "PROTECTED_OOS_TOUCHED": false,
+  "arm_artifact_sha256": "5b639453030ae3d18efc40dc3ffffeeade0b152719cc38ba4cac660aecba75dd",
+  "canonical_run_identity": "f430399f46e6122a2633a34e99e9bd0ab8fe65c1baf9c05b5982551a4608739d",
+  "consumption_boundary": "FIRST_OUTCOME_BEARING_EVALUATE_BOUND_MARKET_01",
+  "execution_head": "9e6f398e4d0a294adff317354c64fdbce91315a2",
+  "execution_tree": "0f3092e8d61e040f34cb60f633584764c9cb6a6e",
+  "not_a_scientific_result": true,
+  "research_id": "MARKET-01_OI_EXPANSION_WEAK_CONTINUATION",
+  "reservation_sha256_unused": "ebfa2cae43541c617540d19c879e9858b692c99c60563dc9aa206c9355455845",
+  "schema": "market_01_oi_expansion_weak_continuation_consumption_lock",
+  "schema_version": "1.0.0",
+  "written_at_utc": "2026-09-17T10:16:39Z"
+}

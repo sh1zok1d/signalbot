@@ -1,0 +1,466 @@
+{
+  "schema_version": "1.0",
+  "status": "PREREGISTERED_OUTCOME_BLIND_UNFROZEN",
+  "research_id": "MARKET-01_OI_EXPANSION_WEAK_CONTINUATION",
+  "unit_type": "MARKET_RELATIONSHIP_STUDY_NOT_TRADING_STRATEGY",
+  "date": "2026-09-17",
+  "human_readable_twin": "docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.md",
+  "parent_authorities": {
+    "feasibility_doc": "docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_DATA_FEASIBILITY.md",
+    "feasibility_commit": "901f96eaa551e2591a6212a14ddd4488f5528e8e",
+    "design_blocker_doc": "docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_DESIGN.md",
+    "design_blocker_commit": "5a629819676240e98b6b125aa4606e8759c1f0f2",
+    "resolved_blockers": [
+      "BLOCKER_BASELINE_MATCHING_SEMANTICS",
+      "V3_CONFIRMATORY_ESTIMAND_NOT_MAPPABLE_TO_TWO_GROUP_REVERSAL_CONTRAST",
+      "BLOCKER_ROBUSTNESS_SEMANTICS",
+      "UNBOUND_MARKET_01_SUPPORT_FLOOR"
+    ]
+  },
+  "primary_claim": "After a significant directional 30-minute price impulse, the state in which open interest expands while price exhibits weak continuation in the impulse direction is associated with stronger subsequent 60-minute reversal than comparable impulse episodes without the full OI-expansion / weak-continuation state.",
+  "not_this_unit": [
+    "not a trading strategy",
+    "not entries/exits/stops/take-profits/fees/Sharpe/position-sizing/PnL",
+    "not production enablement",
+    "not automatic protected-OOS promotion",
+    "not proven absorption/crowding/leverage accumulation",
+    "not V3 confirmatory reuse",
+    "not V3 modification",
+    "not V4",
+    "not B2-06 execution",
+    "not funding use",
+    "not MARKET-01 execution",
+    "not evaluator implementation",
+    "not prereg freeze",
+    "not ARM",
+    "not synthetic recalibration"
+  ],
+  "boundaries": {
+    "prereg_frozen": false,
+    "implementation_authorized": false,
+    "arm_authorized": false,
+    "market_01_execution_authorized": false,
+    "b2_06_execution_authorized": false,
+    "protected_oos_authorized": false,
+    "default_v4": false,
+    "v3_reused_as_market_01_test": false,
+    "v3_methodology_claimable": false,
+    "market_01_test_calibrated": false,
+    "outcome_inspection_authorized": false,
+    "threshold_repair_authorized": false,
+    "selective_rerun_authorized": false
+  },
+  "v3_non_applicability": {
+    "market_01_uses_v3_as_confirmatory_test": false,
+    "clark_west_estimand_inherited": false,
+    "evaluate_v3_world_on_market_data": false,
+    "v3_detected_used": false,
+    "v3_status": "historical scientific instrumentation; V3_METHODOLOGY_CLAIMABLE = NO",
+    "v3_trap_role": "reason MARKET-01 prospectively includes a temporal robustness downgrade layer only",
+    "v3_synthetic_calibration_validates_market_01": false,
+    "market_01_test_identity": "NEW_MARKET_01_STRATIFIED_TWO_GROUP_OLS_STATIONARY_BOOTSTRAP",
+    "new_synthetic_calibration_authorized_now": false
+  },
+  "data": {
+    "price": {
+      "dataset_id": "CORE_BTC_BINANCE_V0",
+      "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+      "venue": "Binance",
+      "instrument": "BTCUSDT",
+      "market_type": "USD_M_FUTURES_PERPETUAL",
+      "native_grain": "1m_klines",
+      "evidence_tier": "OFFICIAL_ARCHIVE / HISTORICAL_COMPARABLE",
+      "research_authorized_discovery": true,
+      "confirmatory_authorized": false,
+      "open_time_ms": "bar_start",
+      "available_at": "bar_end_exclusive = open_time + 60s",
+      "close_at_clock_T": "close of the canonical 1m bar whose bar_end_exclusive equals T; still-forming bar never used",
+      "require_strictly_positive_close": true
+    },
+    "open_interest": {
+      "source": "Binance Vision daily/metrics/BTCUSDT",
+      "field": "sum_open_interest",
+      "snapshot_id": "5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33",
+      "native_grain": "5m",
+      "create_time": "bucket_start",
+      "available_at": "create_time + 5 minutes",
+      "legal_oi_at_clock_U": "latest observation with available_at <= U AND (U - available_at) <= 300000 ms",
+      "max_staleness_ms": 300000,
+      "interpolation": false,
+      "zero_substitution": false,
+      "unauthorized_forward_fill": false,
+      "upsample_to_1m": false,
+      "funding_in_scope": false,
+      "using_oi_unblocks_b2_06": false
+    },
+    "common_legal_period": {
+      "start_inclusive": "2020-09-01T00:00:00Z",
+      "end_exclusive": "2025-01-01T00:00:00Z",
+      "decision_grain": "UTC_EPOCH_5_MINUTE_BOUNDARIES",
+      "accepted_episode_span_rule": "impulse_start >= 2020-09-01T00:00:00Z AND outcome_end <= 2025-01-01T00:00:00Z",
+      "price_after_2025_01_01_unavailable_to_this_study": true,
+      "protected_2025_validation_forbidden": true,
+      "protected_2026_oos_forbidden": true
+    }
+  },
+  "temporal_design": {
+    "impulse_window_minutes": 30,
+    "state_formation_window_minutes": 30,
+    "outcome_horizon_minutes": 60,
+    "full_episode_span_minutes": 120,
+    "impulse_start": "t - 30m",
+    "impulse_end": "t",
+    "state_start": "t",
+    "decision_time_T": "t + 30m",
+    "outcome_end": "T + 60m = t + 90m",
+    "t_definition": "UTC 5-minute boundary (impulse endpoint)",
+    "outcome_information_may_enter_eligibility": false
+  },
+  "logarithm": "natural_log",
+  "impulse": {
+    "impulse_return": "ln(close(t) / close(t-30m))",
+    "D": "sign(impulse_return); +1 if >0, -1 if <0",
+    "abs_impulse": "abs(impulse_return)",
+    "exact_zero_impulse_return": "EPISODE_NOT_ELIGIBLE; D undefined",
+    "historical_normalization": {
+      "window": "previous 30 calendar days ending before impulse_start",
+      "calendar_day_ms": 86400000,
+      "reference_population": "UTC 5-minute boundaries tau with 30-minute price window [tau-30m, tau] fully legally available, tau in [impulse_start - 30*86400000ms, impulse_start)",
+      "current_episode_excluded": true,
+      "percentile": "midrank P_impulse = (#{ref < abs_impulse} + 0.5 * #{ref == abs_impulse}) / N_ref",
+      "percentile_authority": "H01/H03/B2-03 midrank formula"
+    },
+    "QUALIFYING_IMPULSE": "P_impulse >= 0.90 AND N_ref >= 1 AND D defined",
+    "empty_or_nonfinite_reference": "EPISODE_NOT_ELIGIBLE",
+    "fallback_threshold": false
+  },
+  "oi_expansion": {
+    "OI_start": "legal OI at U = t",
+    "OI_end": "legal OI at U = T = t+30m",
+    "delta_oi": "ln(OI_end / OI_start)",
+    "require_both_oi_finite_strictly_positive": true,
+    "historical_normalization": {
+      "window": "previous 30 calendar days ending before state_start",
+      "reference_population": "UTC 5-minute boundaries tau in [state_start - 30*86400000ms, state_start) with legal_OI(tau) and legal_OI(tau-30m) defined, finite, and strictly positive",
+      "percentile": "midrank P_oi = (#{ref < delta_oi} + 0.5 * #{ref == delta_oi}) / N_ref"
+    },
+    "OI_EXPANSION": "P_oi > 0.75 (strict) AND N_ref >= 1",
+    "missing_stale_nonpositive_nonfinite_or_empty_reference": "EPISODE_NOT_ELIGIBLE",
+    "interpolation": false,
+    "redraw": false
+  },
+  "weak_continuation": {
+    "state_return": "ln(close(T) / close(t))",
+    "signed_continuation": "D * state_return",
+    "continuation_ratio": "signed_continuation / abs_impulse",
+    "WEAK_CONTINUATION": "continuation_ratio <= 0.25",
+    "negative_signed_continuation_satisfies_weak_continuation": true,
+    "negative_signed_continuation_is_observed_absorption": false,
+    "nonfinite_state_return_or_zero_abs_impulse": "EPISODE_NOT_ELIGIBLE"
+  },
+  "candidate_and_baseline": {
+    "CANDIDATE": "QUALIFYING_IMPULSE AND OI_EXPANSION AND WEAK_CONTINUATION",
+    "BASELINE": "QUALIFYING_IMPULSE AND confirmatory-eligible (valid inputs, stratum, finite reversal_return, span inside common period) AND NOT CANDIDATE",
+    "candidate_indicator": "1 if CANDIDATE else 0",
+    "identity_determined_before_outcome_window": true,
+    "do_not_match_on": [
+      "OI expansion",
+      "weak continuation",
+      "future return",
+      "outcome",
+      "funding",
+      "post-impulse/state information other than candidate identity"
+    ]
+  },
+  "primary_outcome": {
+    "name": "reversal_return",
+    "outcome_return": "ln(close(T+60m) / close(T))",
+    "reversal_return": "-D * outcome_return",
+    "horizons": [60],
+    "alternative_horizons_forbidden": true,
+    "is_pnl": false,
+    "nonfinite_required_close": "EPISODE_NOT_ELIGIBLE"
+  },
+  "overlap_policy": {
+    "full_episode_minutes": 120,
+    "walk_order": "chronological UTC 5-minute impulse endpoints t ascending",
+    "accepted_slot_rule": "next_impulse_start >= current_impulse_start + 120m = current outcome_end",
+    "conflict_resolution": "chronologically earliest eligible qualifying impulse wins",
+    "same_rule_regardless_of_candidate_baseline_identity": true,
+    "outcome_influences_overlap": false,
+    "occupancy": "an accepted QUALIFYING_IMPULSE occupies the 120-minute slot even if later OI/state/stratum/outcome checks make it EPISODE_NOT_ELIGIBLE for confirmatory use",
+    "not_completable_inside_common_period": "not accepted; does not occupy"
+  },
+  "missing_data_policy": {
+    "fail_closed": true,
+    "interpolate_native_oi": false,
+    "treat_missing_oi_as_zero_change": false,
+    "unauthorized_forward_fill": false,
+    "staleness_gt_5m": "illegal",
+    "required_oi_unavailable": "EPISODE_NOT_ELIGIBLE",
+    "exclusion_counts_are_diagnostics_only": true
+  },
+  "trailing_volatility": {
+    "bound_definition_id": "PRE_VOL_60",
+    "authority": "B2-03 / B2-02 unique frozen pre-state VOL_STATE statistic",
+    "code_primitive": "scripts/research/b2_03_impulse_morphology_lib.py:pre_vol_60",
+    "b2_02_alias": "PRE_VOL (same formula)",
+    "h01_RV_L_not_used": "H01 RV_L uses the same L=60 formula as a feature search surface with L in {30,60,120}; MARKET-01 does not use L in {30,120} and does not treat H01 search-surface L as the matching state",
+    "evaluation_clock": "impulse endpoint t (pre-state; window does not include STATE FORMATION [t, t+30m])",
+    "formula": "sqrt(sum_{i=1..60} r_i^2); r_i=ln(close_i/close_{i-1}); close_0=close(t-60m); close_1..close_60 cover [t-60m, t) exactly 60 complete 1m bars; available_at<=t for close_0 and all 60 bars",
+    "return_count": 60,
+    "fewer_or_more_than_60_or_unavailable_or_nonfinite": "EPISODE_NOT_ELIGIBLE",
+    "alternate_vol_metric": false,
+    "nearest_neighbor_matching": false,
+    "propensity_matching": false
+  },
+  "stratification": {
+    "type": "outcome_blind_stratified_two_group_comparison",
+    "dimensions": [
+      {
+        "name": "impulse_magnitude",
+        "statistic": "abs_impulse(t)"
+      },
+      {
+        "name": "trailing_volatility",
+        "statistic": "PRE_VOL_60(t)"
+      }
+    ],
+    "levels_per_dimension": ["LOW", "MID", "HIGH"],
+    "maximum_strata": 9,
+    "tertile_boundaries": {
+      "computed_from": "historical observations legally available before impulse_start of the current episode",
+      "window": "previous 30 calendar days ending before impulse_start",
+      "current_episode_excluded": true,
+      "outcome_information_enters": false,
+      "reference_population_impulse_magnitude": "UTC 5-minute boundaries tau in [impulse_start - 30*86400000ms, impulse_start) with abs(ln(close(tau)/close(tau-30m))) fully legally available",
+      "reference_population_trailing_vol": "UTC 5-minute boundaries tau in [impulse_start - 30*86400000ms, impulse_start) with PRE_VOL_60(tau) fully legally available at window end tau",
+      "percentile": "midrank P = (#{ref < x} + 0.5 * #{ref == x}) / N_ref",
+      "cuts_authority": "B2-03 causal_midrank_tertiles",
+      "LOW": "P < 1/3",
+      "MID": "1/3 <= P < 2/3",
+      "HIGH": "P >= 2/3",
+      "empty_or_nonfinite_reference": "EPISODE_NOT_ELIGIBLE"
+    },
+    "stratum_id": "IMPULSE_MAG_STATE|TRAILING_VOL_STATE",
+    "stratum_id_format": "uppercase LOW/MID/HIGH, single '|', no direction field, no whitespace",
+    "nearest_neighbor": false,
+    "propensity": false,
+    "outcome_chosen_bins": false,
+    "stratum_merging": false,
+    "match_on_oi_expansion": false,
+    "match_on_weak_continuation": false
+  },
+  "support_and_identifiability": {
+    "confirmatory_sample": "accepted confirmatory-eligible episodes with valid candidate/baseline identity, valid stratum, finite reversal_return, full span inside common legal period",
+    "usable_stratum": {
+      "candidate_count_in_stratum_min": 5,
+      "baseline_count_in_stratum_min": 5
+    },
+    "only_usable_strata_enter_primary_regression": true,
+    "non_usable_strata": "reportable diagnostics only; do not enter primary confirmatory regression",
+    "primary_test_eligible_iff_all": {
+      "TOTAL_ELIGIBLE_EPISODES_min": 100,
+      "CANDIDATE_EPISODES_min": 30,
+      "BASELINE_EPISODES_min": 30,
+      "USABLE_STRATA_min": 3,
+      "counts_are_usable_stratum_episodes_only": true,
+      "regression_finite_and_full_rank": true
+    },
+    "failure_classification": "NOT_IDENTIFIABLE_OR_INSUFFICIENT_SUPPORT",
+    "threshold_repair": false,
+    "stratum_merging": false,
+    "fallback_unstratified_test": false,
+    "selective_removal_to_obtain_support": false,
+    "ridge": false,
+    "pseudoinverse": false,
+    "lstsq": false
+  },
+  "primary_estimand": {
+    "identity": "stratified_ols_candidate_group_effect",
+    "not_v3": true,
+    "not_clark_west": true,
+    "not_nested_ols_on_regular_bar_grid": true,
+    "specification": "reversal_return_i = alpha_{stratum(i)} + beta_candidate * candidate_indicator_i + e_i",
+    "design_matrix": {
+      "stratum_dummies": "one dummy column per usable stratum_id sorted lexicographically",
+      "separate_intercept": false,
+      "candidate_indicator_column": "last column",
+      "X": "[I_s1, I_s2, ..., I_sK, candidate_indicator]"
+    },
+    "solver": {
+      "equation": "X'X beta = X'y",
+      "method": "numpy.linalg.solve",
+      "numpy_version": "2.1.3",
+      "rank_check": "numpy.linalg.matrix_rank(X'X) == ncols",
+      "nonfinite_or_rank_deficient": "NOT_IDENTIFIABLE_OR_INSUFFICIENT_SUPPORT"
+    },
+    "primary_parameter": "beta_candidate",
+    "H0": "beta_candidate <= 0",
+    "H1": "beta_candidate > 0",
+    "exactly_one_primary_confirmatory_test": true
+  },
+  "bootstrap": {
+    "identity": "one_sided_stationary_bootstrap_over_chronological_eligible_episode_sequence",
+    "algorithm": "Politis-Romano stationary bootstrap",
+    "sequence_order": "decision time T ascending, then impulse_start ascending",
+    "joint_tuple": ["reversal_return", "candidate_indicator", "stratum_id"],
+    "independent_shuffle_of_tuple_components": false,
+    "circular_wrap_scope": "within the confirmatory episode sequence only",
+    "not_v3_equal_width_era_split": true,
+    "not_evaluate_v3_world": true,
+    "replicates_B": 999,
+    "alpha": 0.05,
+    "block_length_selector": {
+      "algorithm_reference": "Politis, D.N. and White, H. (2004), Automatic Block-Length Selection for the Dependent Bootstrap, Econometric Reviews 23(1):53-70; correction Patton, A., Politis, D.N. and White, H. (2009), Econometric Reviews 28(4):372-375",
+      "branch": "stationary-bootstrap only (c=2, b_sb); circular-bootstrap branch unused",
+      "package": "arch",
+      "package_version": "8.0.0",
+      "public_entry_point": "arch.bootstrap.optimal_block_length",
+      "implementing_function": "_single_optimal_block",
+      "source_file": "arch/bootstrap/base.py",
+      "source_file_sha256": "104d3552a8e79a801e2f8cd0401160f83a7263b4ff13da44a82d763e5664fd21",
+      "repository_algorithm_reuse": "scripts/research/harness_synthetic_edge_calibration_v3_confirmatory.py:optimal_stationary_block_length as algorithm identity only; not V3 DETECTED; not Clark-West estimand",
+      "input_series": {
+        "name": "z",
+        "definition": "Frisch-Waugh OLS influence for beta_candidate after within-usable-stratum demeaning",
+        "M": "residual maker onto the usable-stratum dummy columns (not including candidate_indicator)",
+        "x_tilde": "M * candidate_indicator",
+        "y_tilde": "M * reversal_return",
+        "z_i": "x_tilde_i * (y_tilde_i - x_tilde_i * beta_hat)",
+        "scale_invariance_note": "PW/PPW autocovariance selector is invariant to positive scalar multiple"
+      },
+      "rng_for_selector": "none; deterministic function of observed z",
+      "nonfinite_or_nonpositive_b_hat": "NOT_IDENTIFIABLE_OR_INSUFFICIENT_SUPPORT",
+      "p_geom": "1 / round(clamp(b_hat, 1, n))",
+      "round": "Python 3 round half-to-even of a real number to nearest integer",
+      "n": "confirmatory episode count (usable-stratum primary sample)"
+    },
+    "replicate_draw": {
+      "index_path_length": "n",
+      "start": "uniform on {0, ..., n-1} via numpy Generator.integers(0, n)",
+      "block_length": "i.i.d. Geometric(p_geom) on {1,2,...} via numpy Generator.geometric(p_geom)",
+      "indices": "(start + j) mod n; concatenate until length n; truncate",
+      "refit": "same section-14 OLS on resampled tuples, same primary usable-stratum dummy column set",
+      "rank_deficient_or_nonfinite_replicate": "entire primary confirmatory test = NOT_IDENTIFIABLE_OR_INSUFFICIENT_SUPPORT; no redraw; no drop"
+    },
+    "studentized_one_sided_p_value": {
+      "SE_hat": "sample std of {beta*_b}, ddof=1; equivalently numpy.std(beta_star, ddof=1)",
+      "T_obs": "beta_hat / SE_hat",
+      "T_star_b": "(beta*_b - beta_hat) / SE_hat",
+      "centering": "replicate coefficients centered at observed beta_hat",
+      "p_one_sided": "(1 + #{b : T*_b >= T_obs}) / (999 + 1)",
+      "SE_hat_nonfinite_or_nonpositive": "NOT_IDENTIFIABLE_OR_INSUFFICIENT_SUPPORT",
+      "arithmetic_authority": "same one-sided SB p-value construction already frozen in the repository; applied to beta_candidate, not V3 theta_hat"
+    },
+    "DETECTED": "support/identifiability pass AND beta_hat > 0 AND p_one_sided <= 0.05",
+    "rng": {
+      "seed_material": "MARKET-01_OI_EXPANSION_WEAK_CONTINUATION|CONFIRMATORY_STATIONARY_BOOTSTRAP|B=999",
+      "seed_material_sha256": "a960350293eacee83f5cfcb21e138f5f4dbbea1af4547d298e5a1da2ec571dbe",
+      "MARKET_01_BOOTSTRAP_SEED": 12204813275361890024,
+      "seed_derivation": "int(sha256(seed_material)[:16 hex], 16)",
+      "stream": "pcg64_generator(namespace_seed(MARKET_01_BOOTSTRAP_SEED, \"BOOTSTRAP\", \"PRIMARY_BETA_CANDIDATE\"))",
+      "stream_primitive": "scripts/research/harness_synthetic_edge_calibration_v1_lib.py",
+      "namespace_token": "BOOTSTRAP",
+      "v3_confirmatory_namespace": false,
+      "python_hash": false,
+      "reroll": false
+    },
+    "second_primary_test": false,
+    "later_test_shopping": false
+  },
+  "robustness": {
+    "evaluated_only_after_valid_primary_DETECTED": true,
+    "may_downgrade": true,
+    "may_rescue_failed_primary": false,
+    "era_assignment_clock": "decision time T",
+    "eras": {
+      "ERA_1": {"start_inclusive": "2020-09-01T00:00:00Z", "end_exclusive": "2021-01-01T00:00:00Z"},
+      "ERA_2": {"start_inclusive": "2021-01-01T00:00:00Z", "end_exclusive": "2022-01-01T00:00:00Z"},
+      "ERA_3": {"start_inclusive": "2022-01-01T00:00:00Z", "end_exclusive": "2023-01-01T00:00:00Z"},
+      "ERA_4": {"start_inclusive": "2023-01-01T00:00:00Z", "end_exclusive": "2024-01-01T00:00:00Z"},
+      "ERA_5": {"start_inclusive": "2024-01-01T00:00:00Z", "end_exclusive": "2025-01-01T00:00:00Z"}
+    },
+    "leave_one_era_out": {
+      "refits": 5,
+      "sample": "primary confirmatory usable-stratum episodes with T not in ERA_k",
+      "same_stratum_dummy_columns_as_primary": true,
+      "recompute_tertiles": false,
+      "reselect_usable_strata": false,
+      "merge_strata": false,
+      "add_previously_excluded_strata": false,
+      "require_bootstrap_p_per_loeo": false,
+      "recorded_parameter": "beta_candidate_LOEO_k",
+      "sign_stable_false_if": [
+        "remaining TOTAL < 100",
+        "remaining CANDIDATE < 30",
+        "remaining BASELINE < 30",
+        "any primary usable stratum has remaining candidate_count < 5 or remaining baseline_count < 5",
+        "OLS rank-deficient or any coefficient non-finite"
+      ],
+      "ROBUSTNESS_SIGN_STABLE": "beta_candidate_LOEO_k > 0 (finite) for ALL five refits",
+      "support_repair": false
+    },
+    "concentration": {
+      "candidate_share_k": "count of primary confirmatory candidates with T in ERA_k / count of primary confirmatory candidates",
+      "ROBUSTNESS_CONCENTRATION_OK": "max_k candidate_share_k <= 0.50",
+      "exactly_0_50_passes": true,
+      "greater_than_0_50_fails": true
+    },
+    "ROBUSTNESS_PASS": "ROBUSTNESS_SIGN_STABLE AND ROBUSTNESS_CONCENTRATION_OK",
+    "robustness_changes_primary_test": false
+  },
+  "final_classification": {
+    "CASE_1": {
+      "when": "primary support/identifiability requirements fail, including bootstrap selector/replicate/SE failure",
+      "label": "NOT_IDENTIFIABLE_OR_INSUFFICIENT_SUPPORT"
+    },
+    "CASE_2": {
+      "when": "primary test valid AND (beta_hat <= 0 OR p_one_sided > 0.05)",
+      "label": "NO_EVIDENCE"
+    },
+    "CASE_3": {
+      "when": "primary DETECTED (beta_hat > 0 AND p_one_sided <= 0.05) AND ROBUSTNESS_PASS = false",
+      "label": "DETECTED_BUT_NOT_ROBUST"
+    },
+    "CASE_4": {
+      "when": "primary DETECTED AND ROBUSTNESS_PASS = true",
+      "label": "ROBUST_CANDIDATE"
+    },
+    "ROBUST_CANDIDATE_means": "the preregistered MARKET-01 relationship produced positive primary evidence and survived the frozen temporal robustness downgrade checks",
+    "ROBUST_CANDIDATE_does_not_mean": [
+      "validated alpha",
+      "profitable strategy",
+      "production readiness",
+      "causal proof",
+      "proven absorption",
+      "permission to trade",
+      "automatic promotion to protected OOS"
+    ]
+  },
+  "no_lookahead": {
+    "decision_T_information": "available_at <= T only",
+    "impulse_and_vol_percentiles_history_end": "before impulse_start",
+    "oi_percentiles_history_end": "before state_start",
+    "tertiles_history_end": "before impulse_start",
+    "outcome_enters_tertiles": false
+  },
+  "forbidden_after_this_prereg": [
+    "changing 90th / 75th / 0.25",
+    "changing 30m / 30m / 60m",
+    "changing support floors or era bounds",
+    "opening 2025/2026",
+    "using funding or executing B2-06",
+    "modifying V3 or creating V4",
+    "inspecting outcomes to choose among tests",
+    "selective rerun or post-outcome threshold repair"
+  ],
+  "materially_different_rule": "requires a new hypothesis ID",
+  "next_required_step": "MARKET-01_PREREG_FREEZE",
+  "MARKET_01_FREEZE_REQUIRED": true,
+  "MARKET_01_EXECUTED": false,
+  "MARKET_01_TEST_CALIBRATED": false,
+  "PROTECTED_OOS_TOUCHED": false,
+  "B2_06_EXECUTION_AUTHORIZED": false,
+  "DEFAULT_V4": false
+}

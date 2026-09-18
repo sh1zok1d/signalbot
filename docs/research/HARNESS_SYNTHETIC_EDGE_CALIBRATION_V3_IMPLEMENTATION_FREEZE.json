@@ -1,0 +1,211 @@
+{
+  "schema": "harness_synthetic_edge_calibration_v3_implementation_freeze",
+  "schema_version": "1.0.0",
+  "status": "FROZEN_BEFORE_V3_ARM",
+  "unit_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_IMPLEMENTATION_FREEZE",
+  "not_a_result": true,
+  "not_an_arm": true,
+  "not_monte_carlo_execution": true,
+  "not_b2_06_2025_2026_authorization": true,
+  "not_a_reservation": true,
+  "implementation_review_verdict": "IMPLEMENTATION_ACCEPTED",
+  "findings": {
+    "F1": "CLOSED",
+    "F2": "CLOSED",
+    "F3": "CLOSED"
+  },
+  "reviewed_implementation": {
+    "head": "70673673f5bc0108e6bcf2aaf55a762ebc49940a",
+    "tree": "e94e18cb900a44824b96dee1d4b6cbb574c95e5a"
+  },
+  "implementation_lineage": [
+    "fd21ed7f8cf8279d367d7a7cf3f1740398d73883",
+    "e1b750286c9552a5b853a6ac3c68f4d9dffefdc1",
+    "70673673f5bc0108e6bcf2aaf55a762ebc49940a"
+  ],
+  "freeze_parent_expected_head": "70673673f5bc0108e6bcf2aaf55a762ebc49940a",
+  "freeze_commit_head": "UNSET_UNTIL_THIS_COMMIT",
+  "freeze_commit_tree": "UNSET_UNTIL_THIS_COMMIT",
+  "note": "The freeze commit is a docs/test/authority-plumbing descendant of the independently accepted V3 implementation. It does not claim that the freeze HEAD itself was the code HEAD independently reviewed. Binding is to reviewed_implementation.head/tree and the git blob SHA256s recorded below, all derived from that exact commit. This freeze does not hash itself. Historical prereg freeze fd21ed7f remains historical and is not rewritten. This freeze does not redefine scientific semantics.",
+  "prereg_authority": {
+    "prereg_freeze_head": "fd21ed7f8cf8279d367d7a7cf3f1740398d73883",
+    "prereg_freeze_tree": "a854578e6d88ef2d6f546824f3196e33f4e95e55",
+    "accepted_prereg_content_head": "543687fe79ba2e6254e879b0574e58a1909c15fe",
+    "accepted_prereg_content_tree": "50750efc5fae32b128c3c89c2b9df506d000323c",
+    "historical_prereg_freeze_unchanged": true,
+    "files": [
+      {
+        "role": "PREREG_MD",
+        "path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG.md",
+        "git_blob": "1f3af0cea848945641950b65f7c7dd28ed36b91d",
+        "sha256": "ab03c68a3781c13cf5ba74d08d6c212dd9da42b87f7642700cf79294147918e0",
+        "size_bytes": 29885
+      },
+      {
+        "role": "PREREG_JSON",
+        "path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG.json",
+        "git_blob": "f26449b690c6ff6ed9dc1aa8b9ad5f2bbd070a89",
+        "sha256": "194fed692018560661879dc67e14a4d139c79978fc0dac00aa6e0f934bd399b5",
+        "size_bytes": 35373
+      },
+      {
+        "role": "PREREG_FREEZE_MD",
+        "path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG_FREEZE.md",
+        "git_blob": "31969e5754c58d6a874b97cdb09136daba358312",
+        "sha256": "2194557c80faddf7184c8512d90d323c4841300dd863368bc68e0a26a6a5e33f",
+        "size_bytes": 8007
+      },
+      {
+        "role": "PREREG_FREEZE_JSON",
+        "path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG_FREEZE.json",
+        "git_blob": "991c54a8a207e30414cc30ac0003a290dfd04eb1",
+        "sha256": "c095570a87bb5fc906a4d781e86c00548d47c22d7259022c0ad02ac877eefe16",
+        "size_bytes": 6968
+      }
+    ]
+  },
+  "execution_authoritative_implementation_sources": [
+    {
+      "role": "CONFIRMATORY",
+      "path": "scripts/research/harness_synthetic_edge_calibration_v3_confirmatory.py",
+      "git_blob": "85314b5bfbfdb1eacf819b4e71bc0e2af283a616",
+      "sha256": "38a494917dcf721b828a7c3f885d4c60ab6df437003abc0c71e510e33b4b0505",
+      "size_bytes": 24059
+    },
+    {
+      "role": "RNG_SHIM",
+      "path": "scripts/research/harness_synthetic_edge_calibration_v3_rng.py",
+      "git_blob": "1a5bdd5b9660bf939ef8669e34cd76d3c9f15865",
+      "sha256": "8bd6aef151139bc1afd4d890d7ba293b1adec5cf66b405dde677eccb3b06d698",
+      "size_bytes": 2325
+    }
+  ],
+  "accepted_implementation_test_identity": [
+    {
+      "role": "CONFIRMATORY_TESTS",
+      "path": "tests/research/test_harness_synthetic_edge_calibration_v3_confirmatory.py",
+      "git_blob": "74aa85dce30d4a42daca63de93c634fd54c6d5c9",
+      "sha256": "97125ae8aa0af16095ccfa651a1c3e32f8978c5881305f98161338d7533a696a",
+      "size_bytes": 35297
+    },
+    {
+      "role": "RNG_TESTS",
+      "path": "tests/research/test_harness_synthetic_edge_calibration_v3_rng.py",
+      "git_blob": "9326bef23ed1ebc9bdfc4607fb741be5fba1773a",
+      "sha256": "3412ea308a46dd2043d91355ce435fa1924c35f8cb8df2eee15c314add528f51",
+      "size_bytes": 4875
+    }
+  ],
+  "inherited_v1_scientific_authority": {
+    "note": "V3 reuses harness_synthetic_edge_calibration_v1_lib.py unmodified. Binding is a cross-check against the already-frozen V1 TCB lib identity; this freeze does not rewrite V1.",
+    "path": "scripts/research/harness_synthetic_edge_calibration_v1_lib.py",
+    "git_blob": "8142ce5d757851bec6dfd0ca2c0bcc13652d37d7",
+    "sha256": "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51",
+    "size_bytes": 37636
+  },
+  "selector_authority": {
+    "choice": "A_LITERAL_PORT_OF_IDENTIFIED_REFERENCE_IMPLEMENTATION",
+    "package": "arch",
+    "package_version": "8.0.0",
+    "source_file": "arch/bootstrap/base.py",
+    "source_file_sha256": "104d3552a8e79a801e2f8cd0401160f83a7263b4ff13da44a82d763e5664fd21",
+    "source_file_size_bytes": 60275,
+    "public_entry_point": "arch.bootstrap.optimal_block_length",
+    "public_entry_point_source_sha256": "b70543178ffb368cb22490f508de9bf35152eb9882ca4b66f26d338c5f1f4f12",
+    "implementing_function": "_single_optimal_block",
+    "implementing_function_source_sha256": "355cfaf81a09a42f32dd643d2cd5fd39a78d16faec1e4cc06a79a83d729b7421",
+    "branch_used": "stationary-bootstrap branch only (b_sb / d_sb / constant c=2)",
+    "note": "Pinned by the frozen V3 prereg; recorded here as execution-binding cross-check only. This freeze does not re-derive or alter selector semantics."
+  },
+  "canonical_v3_execution_spec": {
+    "source": "frozen prereg rng_authority.fresh_world_index_range and aggregate_acceptance; not caller kwargs",
+    "scenarios": [
+      "EASY",
+      "MODERATE",
+      "NULL",
+      "NONSTATIONARY_TRAP"
+    ],
+    "n_rows": 5000,
+    "world_index_start": 10000,
+    "world_index_end": 10399,
+    "worlds_per_cell": 400,
+    "planned_worlds": 1600,
+    "bootstrap_replicates": 999,
+    "feature_id": "F03",
+    "alpha_one_sided": 0.05,
+    "se_ddof": 1,
+    "wilson": {
+      "sidedness": "one-sided",
+      "confidence": 0.95,
+      "z": 1.6448536269514722
+    },
+    "acceptance_cells": {
+      "EASY": {
+        "kind": "power_min",
+        "value": 0.9,
+        "PASS_min_x": 370,
+        "FAIL_max_x": 350,
+        "INDETERMINATE_x_range": [351, 369]
+      },
+      "MODERATE": {
+        "kind": "power_min",
+        "value": 0.7,
+        "PASS_min_x": 296,
+        "FAIL_max_x": 264,
+        "INDETERMINATE_x_range": [265, 295]
+      },
+      "NULL": {
+        "kind": "fpr_max",
+        "value": 0.05,
+        "PASS_max_x": 12,
+        "FAIL_min_x": 28,
+        "INDETERMINATE_x_range": [13, 27]
+      },
+      "NONSTATIONARY_TRAP": {
+        "kind": "detect_max",
+        "value": 0.2,
+        "PASS_max_x": 66,
+        "FAIL_min_x": 94,
+        "INDETERMINATE_x_range": [67, 93]
+      }
+    }
+  },
+  "production_state": {
+    "implementation_frozen": true,
+    "pre_arm_binding_complete": true,
+    "v3_run_authorized": false,
+    "v3_armed": false,
+    "reservation_created": false,
+    "canonical_1600_run_started": false,
+    "world_records_created": false,
+    "result_minted": false,
+    "authority_consumed": false,
+    "default_v4": false,
+    "b2_06_execution_authorized": false
+  },
+  "this_freeze_does_not": {
+    "modify_implementation_code": true,
+    "modify_prereg_or_prereg_freeze": true,
+    "modify_v3_rng_shim": true,
+    "modify_v1_tcb": true,
+    "redefine_scientific_semantics": true,
+    "create_arm": true,
+    "authorize_execution": true,
+    "create_reservation": true,
+    "run_canonical_1600": true,
+    "mint_world_records": true,
+    "mint_result": true,
+    "execute_b2_06": true,
+    "create_v4": true
+  },
+  "explicit_state": {
+    "v3_implementation_complete": true,
+    "v3_implementation_review_required": false,
+    "v3_implementation_frozen": true,
+    "v3_pre_arm_binding_complete": true,
+    "v3_run_authorized": false,
+    "v3_armed": false,
+    "default_v4": false,
+    "b2_06_execution_authorized": false
+  }
+}

@@ -5,6 +5,32 @@
 
 The project does not resume product architecture work merely because an implementation stage is technically available. Research evidence is now the gating dependency.
 
+**Active next phase (2026-09-17):** `MARKET`. The synthetic Microscope
+calibration is closed (`V3_CALIBRATION_CLOSED = YES`). The Microscope
+remains available as scientific instrumentation and is no longer the
+active research program. Do not repair, rerun, or reinterpret V3. Do not
+create V4 (`DEFAULT_V4 = NO`). `V3_METHODOLOGY_CLAIMABLE = NO`.
+`V3_RERUN_AUTHORIZED = NO`.
+
+MARKET-01 is **closed** under its frozen design. Mechanical
+classification: **`NO_EVIDENCE`**. Canonical RESULT:
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_RESULT.json`
+(SHA256 `5310946b44dd3ebc609d05a13f92f6cb414e3a0727141d0ee324bce0aa626c5e`).
+`CANONICAL_EXECUTIONS_CONSUMED = 1`. Do not rerun MARKET-01. Do not
+change its thresholds or windows. Post-close `construct_episodes`
+throughput work is infrastructure only and does not reopen the closed
+RESULT. Do not design a large new MARKET
+framework. A later market hypothesis requires a new research ID.
+Do not create new infrastructure merely because MARKET is beginning. Operating
+priority is approximately 70–80% actual market research and 20–30%
+infrastructure only when concrete research blockers require it. Primary
+progress metric: MARKET hypotheses honestly closed per week. Initial
+observational milestone: 25–50 real market hypotheses through the stable
+research process — not a promise that 25–50 studies establish alpha.
+
+B2-06 remains `BLOCKED_MISSING_OBSERVABLE`. `MARKET-01` is not required
+to be B2-06 and does not silently unblock it.
+
 ## R0 — E1 frozen experiment closeout
 
 **Status:** `CLOSED_AT_DEVELOPMENT / HOLDOUT_UNOPENED`
@@ -133,9 +159,11 @@ frozen/immutable. Real development outcomes opened so far:
 B2-05. Do not rescue any closed formulation inside current V2. Historical
 B2-05 artifact bytes remain `OPERATOR_ADJUDICATED`, not proven.
 
-Family F1 is `CLOSED_NO_PROMOTION`. **Next frozen scientific unit:**
-`B2-06_LEVERAGE_CROWDING`, still `BLOCKED_MISSING_OBSERVABLE`. The
-outcome-blind OI/funding snapshot is Git-bound as
+Family F1 is `CLOSED_NO_PROMOTION`. B2-06 `LEVERAGE_CROWDING` remains
+`BLOCKED_MISSING_OBSERVABLE` and is **not** the next active research
+unit. MARKET-01 is closed (`NO_EVIDENCE`); it does not unblock B2-06.
+The outcome-blind
+OI/funding snapshot is Git-bound as
 `SNAPSHOT_MATERIALIZED_NOT_RESEARCH_AUTHORIZED` /
 `SNAPSHOT_MATERIALIZED_FUNDING_PUBLICATION_UNPROVEN_RESEARCH_UNAUTHORIZED`
 (`docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md`, snapshot
@@ -145,28 +173,43 @@ See `docs/research/BATCH02_STATUS_LEDGER.md`.
 
 ### Mandatory pre-B2-06 methodology calibration
 
-Before any B2-06 scientific outcome is opened, run a separate methodology
-unit: `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1`.
+This gate still applies **only** to B2-06. It does not block `MARKET-01`.
+V3 closeout / MARKET becoming the active phase does not silently unblock
+B2-06.
 
-Its purpose is to measure whether the current Signalbot-style research
-process can detect small, noisy, sparse, clustered conditional incremental
-information without materially increasing false positives. It is not a market
-hypothesis, not B2-07, and synthetic results are never market evidence.
+Before any B2-06 scientific outcome is opened, a separate methodology
+calibration must complete with a claimable RESULT. V1
+(`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1`) attempted that grid and is
+permanently `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`. The active
+methodology successor for identifiability is
+`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY`
+(`FROZEN_BEFORE_V2_PRODUCTION`; reviewed fixture module frozen at HEAD
+`a310837`; production driver + canonical plan + ARM-authorization runtime
+implemented on top and awaiting independent review; not armed).
 
-Current design status: `FROZEN_BEFORE_IMPLEMENTATION`.
-Implementation is frozen before production execution.
-A tracked one-shot production authorization now exists and is frozen before
-production execution:
-`implementation_exists = true`,
-`implementation_frozen_before_production_execution = true`,
-`synthetic_execution_authorized = true`,
-`production_calibration_executed = false`,
-`authorization_consumed = false`,
-`production_monte_carlo_arm_authorized = false`.
-Cross-checkout durable one-shot and stale-import execution identity remain
-open residual findings and must be closed before the Monte Carlo seam may
-be armed. This does not mean the 3200-world calibration has been run, and
-it does not authorize B2-06, 2025, or 2026.
+The original V1 purpose remains: measure whether the current Signalbot-style
+research process can detect small, noisy, sparse, clustered conditional
+incremental information without materially increasing false positives. V2
+adds a frozen identifiability policy so a rank-deficient candidate does not
+void the world. It is not a market hypothesis, not B2-07, and synthetic
+results are never market evidence.
+
+V1 design/implementation/ARM remain historical frozen records. The
+canonical V1 production attempt ran at ARM HEAD
+`9ab32fc14c50df0c6f1c7ddfe2a8990d2d49c339`. Structural completion was
+3200/3200. RESULT was not minted. Mechanical status:
+`INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`. No V1 subset is claimable.
+Do not mint a V1 RESULT and do not resume V1 as V2.
+
+V2 rank-degeneracy policy prereg:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG.md`
+and `.json`, plus Amendment_001. Status of the methodology contract:
+`FROZEN_BEFORE_IMPLEMENTATION`. Fixture implementation identity:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_IMPLEMENTATION.md`.
+`implementation_exists = true` (fixture only),
+`v2_production_arm_authorized = false`,
+`synthetic_execution_authorized = false`.
+This does not authorize B2-06, 2025, or 2026.
 
 Frozen sequence:
 
@@ -198,18 +241,60 @@ It also measures:
 - gate-level attrition and support-conditional utility;
 - SMALL-edge sample-size sensitivity;
 - explicit `VISIBILITY_FLOOR` versus `MODEL_FLOOR` attribution;
+- identifiability coverage versus conditional detection (V2 policy);
 - materiality-only suppression by comparing full strict pass with strict pass excluding materiality.
 
-Canonical frozen prereg:
+Canonical frozen V1 prereg (historical; attempt incomplete):
 `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PREREG.md` and `.json`.
-Implementation freeze:
-`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_IMPLEMENTATION_REVIEW.md`.
-One-shot authorization artifact:
-`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_EXECUTION_AUTHORIZATION.json`.
-Until a later execution ceremony consumes that authorization,
-`production_calibration_executed = false`.
+Canonical V2 identifiability policy prereg (active methodology successor;
+not an ARM):
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG.md`
+and `.json`.
+The reviewed fixture-only rank-policy module is frozen at HEAD `a310837`
+(`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_IMPLEMENTATION_FREEZE.json`).
+A pre-outcome production lifecycle (canonical plan, historical
+commit-parameterized ARM authorization behind an unforgeable session,
+durable reservation that gates execution before any scientific computation,
+checkpointing, mechanical aggregation wired from the frozen fixture's own
+aggregation pipeline, RESULT mint, historical result re-verification) plus
+the independently reviewed 33/33 inherited-ladder implementation are now
+frozen at reviewed HEAD `614295d` / tree `e754b12`
+(`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_33_33_IMPLEMENTATION_FREEZE.json`).
+Governing methodology is Amendment_003 + Amendment_004. Amendment_002 is
+rejected historical authority and cannot govern executable science. The
+visibility statistic gap remains unresolved and fail-closed. This
+implementation freeze is not an ARM and does not authorize execution; no V2
+ARM artifact exists anywhere in the repository. Next required step for V2:
+`INDEPENDENT_V2_33_33_IMPLEMENTATION_FREEZE_REVIEW`. Do not create a V2 ARM,
+do not run the 3200-world production grid, and do not mint RESULT until that
+independent freeze review closes and a later explicit ARM unit is authorized.
+The original prereg at `ada237e` and Amendment_001 at `d8f0a99` are not
+rewritten in place.
 
-This methodology gate does not weaken or bypass the current B2-06 state:
+V3 confirmatory calibration is **closed**. Canonical RESULT authority is
+commit `99b409cae279513eaf489194e7fa206082c60aef`, WORLD_RECORDS SHA256
+`5d09631db5180f562076b2191fe002aa21318a3925d3cd1c4014d83e4b41eb4f`,
+RESULT SHA256
+`f72eedcdcb511e2c7f22369cbdef164688317dfc99f9ab3e533df14cb2a27866`.
+Mechanical cell verdicts: EASY `PASS` (400/400), MODERATE `PASS`
+(313/400), NULL `INDETERMINATE` (21/400), NONSTATIONARY_TRAP `FAIL`
+(188/400). `methodology_claimable = false`. `incomplete_execution = false`.
+
+Narrow interpretation: V3 repaired the measured V2 confirmatory
+sensitivity problem (`EASY`/`MODERATE` `PASS`) but did **not** establish
+a generally claimable methodology. Known limitation:
+`NONSTATIONARY_TRAP_PROTECTION = INADEQUATE_ON_FROZEN_TRAP_DGP`. Do not
+translate 188/400 into a general real-market false-positive rate; it
+applies only to the frozen synthetic trap DGP. V3 `DETECTED`/`PASS` must
+not by itself be treated as sufficient evidence of a robust market edge.
+This limitation is not authorization for immediate V4.
+
+Next required V3 step: none authorized. MARKET-01 is closed
+(`FINAL_CLASSIFICATION = NO_EVIDENCE`). A later market hypothesis
+requires a new research ID. Do not rerun MARKET-01.
+Do not rerun V3, do not create V4, and do not execute B2-06.
+
+This methodology closeout does not weaken or bypass the current B2-06 state:
 `FUNDING_PUBLICATION_LATENCY_UNPROVEN`, `research_authorized = false`,
 `outcome_access_authorized = false`, and `b2_06_evaluator_enabled = false`.
 
@@ -335,6 +420,10 @@ Do not resurrect old Stage 6–10 scope automatically. Re-evaluate what is actua
 - no claim that one favorable month is durable alpha.
 
 ## Definition of progress
+
+During the MARKET phase, the primary progress metric is **MARKET
+hypotheses honestly closed per week**. Infrastructure work is progress
+only when it unblocks a concrete research blocker.
 
 Report separately:
 

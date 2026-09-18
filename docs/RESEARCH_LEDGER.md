@@ -1497,3 +1497,1665 @@ cross-checkout durability (RESIDUAL-R1) and stale in-process import
 - production_monte_carlo_arm_authorized: **false**
 - b2_06_scientific_execution_authorized: **false**
 - status: `AUTHORIZATION_FROZEN_BEFORE_PRODUCTION_EXECUTION`
+
+## 2026-09-08 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 production durability
+
+**Decision:** implement production durability, aggregation, and result
+persistence above the frozen scientific primitives without executing the
+3200-world calibration.
+**Unit verdict:** unarmed; no RESULT minted; #114 local reservation superseded
+on this HEAD.
+
+Canonical production execution must cross a fresh Python interpreter and
+re-verify exact HEAD/tree plus execution-authority bytes inside that process
+(R1). Run identity is a function of tracked commit authority only, so local
+reservation deletion or another clone/worktree cannot mint a distinct
+authoritative identity (R2). Global process exclusion is not claimed.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- b2_06_scientific_execution_authorized: **false**
+- status: `PRODUCTION_DURABILITY_IMPLEMENTED_UNARMED`
+
+Repair of OPUS `REPAIR_REQUIRED` on reviewed HEAD `4aab2f0c`: invalid planned
+worlds force `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`; public RESULT minting
+cannot bind caller-supplied aggregates; isolated `python -I -B -P` bootstrap
+imports the canonical package module; ARM authorizes the parent execution
+commit rather than a self-referential HEAD/tree fixed point; IncompleteWorld is
+recorded as an invalid world that stays in the planned denominator; persistence
+is commit-mediated. Production remains unarmed. No Monte Carlo. No RESULT.
+
+## 2026-09-09 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 production durability implementation freeze
+
+**Decision:** freeze the reviewed production-durability implementation before any
+production arming or 3200-world execution.
+**Unit verdict:** unused; production calibration not executed; Monte Carlo remains unarmed.
+
+Records OPUS `GO_FOR_IMPLEMENTATION_FREEZE` (BLOCKERS=0, MAJORS=0, MINORS=0)
+at reviewed implementation HEAD
+`d5277c42141a26948b195afe3d4ad30030151855` / tree
+`7ab4178f222ecf8a2b5c8bf7d7bec9279fa3cf89`. Exact reviewed-head GitHub CI run
+`34319781573` SUCCESS. The freeze commit is a docs/ledger/metadata descendant
+and is not itself the reviewed code HEAD.
+
+Does **not** run the 3200-world grid, arm the Monte Carlo seam, create a RESULT,
+open B2-06, or open 2025/2026. Frozen scientific lib and prereg bytes remain
+byte-identical.
+
+Non-blocking observation: `artifacts` exists in the pinned root allowlist but
+is not currently a tracked top-level package and is not imported in the verified
+execution chain. It was empirically inert during OPUS review and is unchanged
+by this freeze. Any future unit which makes `artifacts` a real/imported root
+package must explicitly re-review the pre-import allowlist authority boundary.
+
+- implementation_frozen: **true**
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- b2_06_scientific_execution_authorized: **false**
+- validation_2025_authorized: **false**
+- oos_2026_authorized: **false**
+- status: `PRODUCTION_DURABILITY_IMPLEMENTATION_FROZEN_UNARMED`
+
+## 2026-09-09 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 historical ARM #116 rejected
+
+**Decision:** do not merge ARM HEAD `940d85bf58673396c6c0cc05ce2134a2e2e92809`.
+**Unit verdict:** unused; production calibration not executed; Monte Carlo remains unarmed.
+
+Records OPUS `REPAIR_REQUIRED` on the parent-authorizing ARM unit. The ARM
+mechanism is sound; sequencing is invalid because the ARM was created before
+the canonical production driver existed. Status:
+`REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`. Git history is
+preserved. The ARM artifact is not copied onto the driver-first branch.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- authorization_consumed: **false**
+- status: `REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`
+
+## 2026-09-09 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 production execution driver
+
+**Decision:** implement the canonical 3200-world production driver while remaining
+unarmed, before any final ARM.
+**Unit verdict:** unused; production calibration not executed; Monte Carlo remains unarmed.
+
+Starts from frozen #115 HEAD `502a62ddee0a3106967b21f0095be7e1629a56b2` /
+tree `f21570983530f785d85639554741f3dd82164278`. Replaces the unconditional
+armed refusal with `run_canonical_production_execution()`. Final RESULT minting
+requires an unforgeable in-process canonical session capability; caller-supplied
+records are never sufficient. #115 remains authoritative for reservation,
+claim, result, and `run_identity`. Future ARM verification machine-checks
+declared contract fields and reviewed-implementation binding. Identity
+reporting reflects verified ARM state without granting authority.
+
+Does **not** run the 3200-world grid, add a live ARM artifact, mint a RESULT,
+open B2-06, or open 2025/2026. Frozen scientific lib and prereg bytes remain
+byte-identical. The `artifacts` root package remains unactivated.
+
+- canonical_production_driver_implemented: **true**
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_EXECUTION_DRIVER_IMPLEMENTED_UNARMED`
+
+## 2026-09-09 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 production driver OPUS repair
+
+**Decision:** close OPUS `REPAIR_REQUIRED` on driver HEAD `d62e1f3` without arming.
+**Unit verdict:** unused; production calibration not executed; Monte Carlo remains unarmed.
+
+Closes BLK-1 stdout RESULT/partial emission, BLK-2 mint/verify core derivation,
+MAJ-1 strict-ancestor + tracked driver-freeze chain, MAJ-2 full-record digest
+binding, and MIN-1 BaseException session retirement. No live freeze artifact. No
+live ARM. No 3200-world execution. No RESULT persisted.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_EXECUTION_DRIVER_REPAIR_UNARMED`
+
+## 2026-09-09 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 post-commit RESULT verification
+
+**Decision:** close post-commit RESULT verification before freeze without arming.
+**Unit verdict:** unused; production calibration not executed; Monte Carlo remains unarmed.
+
+Adds historical RESULT verification from the artifact's embedded
+`execution_head`, using git-object blobs and ARM topology at execution time.
+Current HEAD need not be armed. Wires `#115` RESULT claim persistence from
+tracked authority. Removes the duplicate `abandon_canonical_session` definition.
+Post-RESULT rerun reports one-shot consumed rather than merely unarmed. No live
+freeze artifact. No live ARM. No 3200-world execution. No RESULT persisted.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_EXECUTION_DRIVER_REPAIR_UNARMED`
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — full historical 3200-world recomputation
+
+Closes the remaining terminal-author trust: a first-and-only fabricated
+WORLD_RECORDS + RESULT pair could be authored together on a legitimate freeze
+→ ARM → execution topology and pass because historical verification proved
+identity plus internal WORLD_RECORDS/RESULT consistency, not that the records
+were the deterministic output of frozen execution.
+
+Authoritative historical verification now proves executing scientific and
+production blobs match `execution_head`, independently recomputes all 3200
+frozen-plan worlds, compares canonical WORLD_RECORDS evidence against that
+recomputation, then recomputes aggregates and every derived RESULT field.
+Tracked WORLD_RECORDS are retained evidence, not self-authenticating
+authority. Spot-checks cannot mint or validate durable claims. Durable claims
+are emitted only after full recomputation and explicitly bind RESULT and
+WORLD_RECORDS digest/size.
+
+No live freeze artifact. No live ARM. No 3200-world production execution. No
+RESULT persisted. Frozen lib and prereg bytes unchanged.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_EXECUTION_DRIVER_REPAIR_UNARMED`
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — isolate authoritative historical recomputation
+
+Closes the remaining stale-import / runtime-mutation class for historical
+verification. Authoritative 3200-world recomputation previously ran in the
+caller process: it compared on-disk bytes to `execution_head`, but an
+in-process monkeypatch of `_evaluate_planned_world_body` (or already-imported
+runtime objects) could still make a fabricated WORLD_RECORDS + RESULT pair
+verify and mint a durable claim while repository bytes stayed unchanged.
+
+Production `verify_bound_result_from_tracked_authority` now spawns
+`HISTORICAL_RECOMPUTE_MODE` through the existing isolated-child bootstrap. The
+child independently re-proves historical identity, loads git-object blobs,
+proves executing bytes match `execution_head`, derives the frozen plan
+internally, recomputes all 3200 worlds, compares tracked WORLD_RECORDS
+evidence, and recomputes RESULT science. The parent treats only a bound
+child success proof as the recomputation result. There is no in-process
+fallback. Durable claims still require this verification first.
+
+Full verification is intentionally expensive and synchronous; it may take
+many hours. Spot-check remains diagnostic only and cannot mint or validate
+durable production claims.
+
+No live freeze artifact. No live ARM. No 3200-world production execution. No
+RESULT persisted. Frozen lib and prereg bytes unchanged.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_EXECUTION_DRIVER_REPAIR_UNARMED`
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — production execution-driver implementation freeze
+
+**Decision:** freeze the independently reviewed #117 production execution
+driver without arming.
+**Unit verdict:** unused; production calibration not executed; Monte Carlo
+remains unarmed.
+
+Records OPUS `GO_FOR_DRIVER_FREEZE` (BLOCKERS=0, MAJORS=0) against reviewed
+implementation HEAD `3fadc391ee0002e35463b526301d287d4a662828` / tree
+`5fb77727c418cc42bf3c1c6553355a0475f42efc`. The freeze is a docs-only
+descendant. It does not claim that the freeze commit itself was the reviewed
+code HEAD. Future ARM must bind this freeze parent and the exact reviewed
+authority SHA256 values. No live ARM. No 3200-world production execution. No
+RESULT or WORLD_RECORDS persisted. Frozen lib and prereg bytes unchanged.
+
+Full authoritative historical verification remains intentionally expensive
+and synchronous; the full end-to-end real production verification path has
+not yet been run to completion. That operational caveat does not weaken full
+recompute as the durable-claim authority model. Spot-check remains
+non-authoritative.
+
+- driver_implementation_frozen: **true**
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_DRIVER_IMPLEMENTATION_FROZEN_UNARMED`
+
+## 2026-09-10 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 final production Monte Carlo ARM
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — final production Monte Carlo ARM
+
+**Decision:** authorize exactly one frozen synthetic production Monte Carlo
+as the immediate child of DRIVER FREEZE `40e54b8c0497593aa3daf0bddc0e014bf048489f`.
+**Unit verdict:** unused; production calibration not executed; ARM not consumed.
+
+Docs/authority-artifact-only ARM. Binds the tracked freeze artifact at the
+freeze parent, the reviewed implementation HEAD
+`3fadc391ee0002e35463b526301d287d4a662828` / tree
+`5fb77727c418cc42bf3c1c6553355a0475f42efc`, the freeze-recorded
+execution-authority SHA256 values, and the exact frozen 3200-world plan.
+Does not modify production/scientific/test implementation except live-HEAD
+unarmed→armed state-transition tests. Does not execute the 3200-world
+calibration. Does not persist WORLD_RECORDS or RESULT. Does not mint a
+durable claim. Does not consume one-shot authority. Historical ARM
+`940d85bf58673396c6c0cc05ce2134a2e2e92809` remains rejected and is not
+this ARM. B2-06 / 2025 / 2026 / other hypotheses / real market data remain
+unauthorized.
+
+- driver_implementation_frozen: **true**
+- production_monte_carlo_arm_authorized: **true**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_MONTE_CARLO_ARM_AUTHORIZED_UNEXECUTED`
+
+## 2026-09-10 — HARNESS_PERFORMANCE_V1 performance-only repair
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — HARNESS_PERFORMANCE_V1
+
+**Decision:** performance-only repair of the frozen synthetic production
+path after the aborted canonical run. Same science, same randomness, same
+logical results, faster execution. Not a scientific RESULT.
+
+ARM `0abc5fe167e018ebe1f7efbb70694887ac095e17` remains unused and must not be
+reused for the optimized implementation. No new production ARM. No 3200-world
+grid execution. No RESULT / WORLD_RECORDS / reservation / claim. No B2-06 /
+2025 / 2026 / real-market access.
+
+Optimizations: placebo BASE expanding-era cache; lstsq rank in place of a
+prior `matrix_rank` SVD where exact IncompleteWorld/float equality holds;
+deterministic world-level spawn multiprocessing with canonical reorder;
+BLAS thread limits; explicit `--workers N` (default 1).
+
+Oracle is git commit `3fadc391ee0002e35463b526301d287d4a662828`, not a
+self-import of the optimized module.
+
+- production_monte_carlo_arm_authorized (live HEAD): **false**
+- historical ARM unused: **true**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PERFORMANCE_ONLY_UNARMED_NOT_A_RESULT`
+
+## 2026-09-10 — HARNESS_PERFORMANCE_V1 authority/durability repair
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — HARNESS_PERFORMANCE_V1 repair
+
+**Decision:** close independent-review findings BLOCKER-1 and MAJOR-1 on the
+accepted performance implementation. No scientific-methodology change. No
+3200-world production execution. No ARM consume/create. No RESULT /
+WORLD_RECORDS.
+
+- BLOCKER-1: live execution TCB now pins worker.py git bytes (path/sha256/size)
+  plus lib/runner/auth/production. Old ARM `0abc5fe` still verifies at its
+  own commit and does not authorize this HEAD.
+- MAJOR-1: crash-safe durable partial world evidence with exact resume.
+  Partial ≠ RESULT / WORLD_RECORDS / AUTHORITY_CONSUMED.
+
+Next required step after BLOCKER-1/MAJOR-1 was OPUS review. A remaining
+red-team finding (BLOCKER-2) is recorded and closed in the following entry.
+
+- production_monte_carlo_arm_authorized (live HEAD): **false**
+- historical ARM unused: **true**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PERFORMANCE_ONLY_UNARMED_REPAIR_PENDING_OPUS_REVIEW`
+
+## 2026-09-10 — HARNESS_PERFORMANCE_V1 BLOCKER-2 checkpoint authenticity
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — HARNESS_PERFORMANCE_V1 repair
+
+**Decision:** close independent-review finding BLOCKER-2. Durable checkpoint
+content remains structurally/digest-checked for resume, but is not scientific
+authority. Authoritative production mint authenticates cached/computed world
+records in an isolated child from exact frozen git execution bytes. No HMAC
+or secret key. No scientific-methodology change. No 3200-world production
+execution. No ARM consume/create. No RESULT / WORLD_RECORDS.
+
+- BLOCKER-1 remains closed: worker.py remains in the live execution TCB.
+- MAJOR-1 remains closed: crash-safe durable partial evidence and exact resume
+  still avoid immediate recompute of completed worlds.
+- BLOCKER-2: self-consistent forgery, whole-checkpoint fabrication, mixed
+  legitimate+forged stores, and current-module self-attestation are refused
+  before canonical mint.
+
+Next required step: OPUS narrow review of BLOCKER-2 on the exact repaired HEAD,
+then a new performance/execution freeze and a new immediate-child ARM.
+
+- production_monte_carlo_arm_authorized (live HEAD): **false**
+- historical ARM unused: **true**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PERFORMANCE_ONLY_UNARMED_REPAIR_PENDING_OPUS_REVIEW`
+
+## 2026-09-10 — HARNESS_PERFORMANCE_V1 verifier parallelism + observed_world_count
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — HARNESS_PERFORMANCE_V1 repair
+
+**Decision:** close remaining independent-review MAJOR (sequential isolated
+recomputation) and MINOR (`observed_world_count` unvalidated). Isolated
+mint-time authentication and claim-time historical recomputation now reuse
+the reviewed world-parallel spawn path. Worker count is operational, not
+scientific. Parent authentication proofs must equal `observed_world_count`
+to submitted and planned counts. No 3200-world production execution. No ARM
+consume/create. No RESULT / WORLD_RECORDS.
+
+- BLOCKER-1 remains closed: worker.py remains git-object pinned in the live
+  execution TCB (path/sha256/size). Spawn copies parent `sys.path` into
+  children before Pool initializer; the parent therefore inserts the frozen
+  worker repository root first so children cannot import a live checkout.
+- MAJOR-1 remains closed: durable partial evidence and exact resume unchanged.
+- BLOCKER-2 remains closed: checkpoint content is still untrusted; forgery
+  still fails closed before mint.
+- Parent authenticators refuse `observed_world_count` mismatches (count-1,
+  count+1, zero, huge, string, bool, correct digests with wrong count).
+- n=5000 verifier engine **MEASURED** on this 4-CPU host: 5.6371 / 3.0444 /
+  1.5149 s/world at workers=1/2/4 (93% of 4-wide). AUTH and historical
+  isolated children share that engine. 8/16-worker lifecycle figures are
+  extrapolated; this host cannot beat the 4-worker wall clock.
+
+Next required step: FINAL_OPUS_REVIEW_THEN_PERFORMANCE_FREEZE.
+
+Targeted verifier-parallel tests: 18 passed. Harness unit files: 271
+passed. Research suite: 1586 passed (271 harness + 1315 other). Non-research
+suite: 5977 passed, 185 skipped. compileall + git diff --check: ok. Canonical
+3200-world production was not executed.
+
+- production_monte_carlo_arm_authorized (live HEAD): **false**
+- historical ARM unused: **true**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PERFORMANCE_ONLY_UNARMED_REPAIR_PENDING_OPUS_REVIEW`
+
+## 2026-09-11 — HARNESS_PERFORMANCE_V1 performance/execution freeze
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — PERFORMANCE_EXECUTION_FREEZE
+
+**Decision:** docs/metadata-only freeze of independently reviewed performance
+implementation HEAD `9c573df81dad55829f52cff0f94e8c5918c30fd9` / tree
+`b9d928687e5ea4e9773f07b0cb6f8e287b65562f`. OPUS `GO_FOR_PERFORMANCE_FREEZE`.
+BLOCKERS=0 MAJORS=0 MINORS=0. BLOCKER-1, MAJOR-1, BLOCKER-2 remain CLOSED.
+
+Canonical freeze artifact:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json`.
+
+This freeze does not change execution-TCB bytes, prereg, or scientific plan.
+It does not arm production, consume authority, execute the 3200-world grid,
+or mint RESULT/WORLD_RECORDS. Old ARM `0abc5fe` does not authorize this
+implementation. Next required step: CREATE_NEW_IMMEDIATE_CHILD_ARM.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PERFORMANCE_EXECUTION_FROZEN_UNARMED`
+
+## 2026-09-11 — HARNESS_PERFORMANCE_V1 production ARM
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — PRODUCTION_MONTE_CARLO_ARM
+
+**Decision:** docs/authority-artifact ARM immediate child of performance
+execution freeze `ccaffe135c2b8a9a0a75af30c0712ba3063b82f6`. Authorizes one
+synthetic 3200-world production execution against reviewed implementation
+`9c573df81dad55829f52cff0f94e8c5918c30fd9`. Worker count is operational.
+Does not execute production, consume authority, or mint RESULT/WORLD_RECORDS.
+Old ARM `0abc5fe` does not authorize this implementation or freeze.
+
+Canonical ARM:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_ARM.json`.
+
+- production_monte_carlo_arm_authorized (ARM artifact): **true**
+- frozen `production.py` verifier still keys `PRODUCTION_DRIVER_FREEZE.json`, so live `production_monte_carlo_arm_authorized()` remains **false** until a later TCB-safe verifier bind
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_MONTE_CARLO_ARM_AUTHORIZED_UNEXECUTED`
+- next required step: `EXECUTE_CANONICAL_PRODUCTION_FROM_EXACT_ARM_COMMIT` (exact ARM commit object only; spawn currently refuses until verifier bind)
+
+## 2026-09-11 — performance-freeze ARM authorization wiring repair
+
+**Decision:** runtime ARM/freeze authority wiring in
+`harness_synthetic_edge_calibration_v1_production.py` now verifies the
+canonical performance/execution freeze path. Scientific library, plan, RNG,
+and numerical path are unchanged. No production execution. No new freeze or
+ARM. ARM `120ac45` remains evidence of the previous mismatch and does not
+authorize this repaired HEAD. Old ARM `0abc5fe` remains refused.
+
+- production_monte_carlo_arm_authorized (live repaired HEAD): **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- next required step: `NARROW_AUTHORIZATION_WIRING_REVIEW_THEN_NEW_FREEZE_AND_ARM`
+
+## 2026-09-11 — HARNESS_PERFORMANCE_V1 final runtime freeze
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — FINAL_RUNTIME_FREEZE
+
+**Decision:** docs/metadata-only freeze of independently reviewed repaired
+runtime HEAD `f47c5394d8cc0c3f6312cd4156f389ba7ee81dbd` / tree
+`84b23e4c51a4f7ccf59bb36d5333ef7974ea7eab`. OPUS `GO_FOR_FINAL_RUNTIME_FREEZE`.
+BLOCKERS=0 MAJORS=0 MINORS=0. BLOCKER-1, MAJOR-1, BLOCKER-2 remain CLOSED.
+
+Canonical freeze artifact:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json`.
+
+This freeze does not change execution-TCB bytes, prereg, or scientific plan.
+It does not arm production, consume authority, execute the 3200-world grid,
+or mint RESULT/WORLD_RECORDS. Unused driver ARM `0abc5fe` and historical
+performance ARM `120ac45` do not authorize this implementation. Next required
+step: CREATE_NEW_IMMEDIATE_CHILD_ARM.
+
+- production_monte_carlo_arm_authorized: **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PERFORMANCE_EXECUTION_FROZEN_UNARMED`
+
+## 2026-09-11 — HARNESS_PERFORMANCE_V1 final production ARM
+
+### HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 — PRODUCTION_MONTE_CARLO_ARM
+
+**Decision:** docs/authority-artifact ARM immediate child of final runtime
+freeze `1499bc5f5e731f226650abd5051447fc846f722b`. Authorizes one synthetic
+3200-world production execution against reviewed implementation
+`f47c5394d8cc0c3f6312cd4156f389ba7ee81dbd`. Worker count is operational.
+Does not execute production, consume authority, or mint RESULT/WORLD_RECORDS.
+Unused driver ARM `0abc5fe` and historical performance ARM `120ac45` do not
+authorize this implementation or freeze.
+
+Canonical ARM:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_ARM.json`.
+
+- production_monte_carlo_arm_authorized (ARM artifact): **true**
+- live `production_monte_carlo_arm_authorized()` at the exact ARM commit: **true**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_persisted: **false**
+- authorization_consumed: **false**
+- status: `PRODUCTION_MONTE_CARLO_ARM_AUTHORIZED_UNEXECUTED`
+- next required step: `EXECUTE_CANONICAL_3200_WORLD_RUN_FROM_EXACT_FINAL_ARM_COMMIT_WITH_4_WORKERS`
+
+## 2026-09-11 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1 canonical 3200-world attempt
+
+**Decision:** V1 production grid was executed from exact ARM commit
+`9ab32fc14c50df0c6f1c7ddfe2a8990d2d49c339` / tree
+`8aca4445f4638f678810d64a17de2a253a22763d` with `workers=4`.
+
+- planned / structural complete: 3200 / 3200
+- V1-rule valid / invalid: 3087 / 113
+- run_identity: `ac1087b75250a671f4a207defec6d2b606050cd8c2fbcfcd894b6b2876be2565`
+- RESULT minted: **false**
+- WORLD_RECORDS created: **false**
+- authority consumed: **false**
+- mechanical status (permanent): `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`
+- V1 subset claimable: **false**
+- cause class (forensic, not a RESULT): `EXPECTED_DGP_DEGENERACY`
+
+Do not mint a V1 RESULT. Do not salvage the 3087-world subset. Do not
+resume V1 production as V2. This ledger entry is not market evidence.
+
+## 2026-09-11 — HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2 rank-degeneracy policy prereg
+
+**Decision:** freeze methodology-only unit
+`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY`
+before implementation.
+
+Canonical:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG.md`
+and `.json`.
+
+Candidate-level rank failure does not invalidate a world unless the
+baseline is not identifiable. Detection uses identifiable denominators.
+Coverage gates are frozen prospectively. DGP/RNG/seeds/candidates/OLS
+full-rank rule are unchanged. No V2 runtime, freeze, or ARM in this unit.
+
+- implementation_exists: **false**
+- synthetic_execution_authorized: **false**
+- v2_production_arm_authorized: **false**
+- ready_for_v2_implementation_review: **false**
+- next required step: `INDEPENDENT_ADVERSARIAL_REVIEW_OF_V2_RANK_DEGENERACY_POLICY_PREREG`
+
+## 2026-09-11 — V2 rank-degeneracy policy amendment 001
+
+**Decision:** docs-only prospective amendment of
+`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY`
+to close independent-review MAJOR-1 and MINOR-1..4. The original prereg at
+`ada237edc330b44bc412332e263f124757919e93` is not rewritten in place.
+
+Canonical:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG_AMENDMENT_001.md`
+and `.json`.
+
+- L persisted per WORLD_VALID world; full L=0..10 distribution per cell
+- BLIND taxonomy stratified by L; L=0 not credited as NO_DISCOVERY
+- closed non-identifiability reason taxonomy + first failing era
+- explicit required-coverage map for every inherited conclusion
+- F01 moved to F03-like coverage tier on SMALL|2500 (0.65→0.75) and
+  TINY_NOISY|5000 (0.60→0.70); no other threshold changes
+- selective cell re-execution after a V2 attempt forbidden
+- implementation_exists: **false**
+- next required step: `INDEPENDENT_REREVIEW_OF_V2_RANK_POLICY_AMENDMENT`
+
+## 2026-09-11 — V2 rank-degeneracy fixture implementation
+
+**Decision:** implement frozen V2 rank-degeneracy semantics as a
+fixture-only module. No production grid, RESULT, WORLD_RECORDS, ARM, or
+authority consumption.
+
+Canonical implementation identity:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_IMPLEMENTATION.md`
+
+Code:
+`scripts/research/harness_synthetic_edge_calibration_v2_rank_policy.py`
+and `tests/research/test_harness_synthetic_edge_calibration_v2_rank_policy.py`.
+
+The original prereg (`ada237e`) and Amendment_001 (`d8f0a99`) are not
+rewritten. V1 TCB files are unchanged.
+
+- implementation_exists: **true** (fixture only)
+- synthetic_execution_authorized: **false**
+- v2_production_arm_authorized: **false**
+- production_calibration_executed: **false**
+- result minted: **false**
+- authority consumed: **false**
+- next required step: `INDEPENDENT_IMPLEMENTATION_REVIEW`
+
+## 2026-09-11 — V2 rank-degeneracy fixture implementation repair
+
+**Decision:** narrow repair of the fixture-only V2 rank-policy module
+after independent implementation review (`MAJORS=1`, `MINORS=3`).
+
+Closed:
+
+- MAJOR-1: removed unauthorized NULL taxonomy override; taxonomy is
+  exactly `taxonomy_of(selected)`
+- MINOR-A: lookahead/chronology cannot map to a candidate reason
+- MINOR-B: unused precedence helpers removed; live early-return is the
+  single authoritative path
+- MINOR-C: removed non-frozen bootstrap/placebo/visibility RNG branch
+
+No prereg change. No Amendment_002. No V1 TCB change. No production
+run, ARM, RESULT, or authority consumption.
+
+- next required step: `INDEPENDENT_NARROW_REVIEW_OF_REPAIR`
+
+## 2026-09-12 — V2 rank-degeneracy implementation freeze
+
+**Decision:** freeze the reviewed fixture-only V2 rank-policy
+implementation at HEAD `a310837bab4ee60c7495cca3bdb476abdc58a041`
+(tree `b15c4102b01514ff73e1728aec072eda9b528815`) after the independent
+narrow rereview of its repair closed clean (`BLOCKERS=0`, `MAJORS=0`,
+`MINORS=0`, `GO_FOR_IMPLEMENTATION_FREEZE`).
+
+Canonical freeze artifact:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_IMPLEMENTATION_FREEZE.json`.
+
+The freeze binds the reviewed implementation HEAD/TREE, the original
+prereg (`ada237e`) and Amendment_001 (`d8f0a99`) identities, the
+execution-authoritative V2 policy source
+(`scripts/research/harness_synthetic_edge_calibration_v2_rank_policy.py`)
+by git blob/SHA256/size, and the five unchanged V1 TCB files by
+SHA256/size. This freeze commit changes only the freeze artifact, its
+verifier test, and status/ledger documentation. The reviewed V2
+implementation bytes are unchanged.
+
+- reviewed_implementation_head: `a310837bab4ee60c7495cca3bdb476abdc58a041`
+- freeze_parent: `a310837bab4ee60c7495cca3bdb476abdc58a041` (immediate
+  parent of this freeze commit)
+- production_armed: **false**
+- production_executed: **false**
+- result_minted: **false**
+- world_records_created: **false**
+- authority_consumed: **false**
+- v1_attempt_status: `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`
+- v1_3087_subset_claimable: **false**
+
+No prereg change. No Amendment_002. No V1 TCB change. No V2
+implementation change. No production ARM, RESULT, or WORLD_RECORDS.
+
+- next required step: `CREATE_NEW_V2_PRODUCTION_ARM`
+
+## 2026-09-12 — V2 production driver + canonical plan + ARM runtime authorization
+
+**Decision:** implement, on top of the immutable V2 policy freeze
+(`f96197d`), the execution layer the frozen fixture intentionally omits: a
+canonical production plan mechanically inherited from the frozen V1 grid, a
+thin production orchestration layer, and a V2 ARM-authorization runtime. Not
+an execution freeze, not an ARM.
+
+Canonical implementation identity:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PRODUCTION_DRIVER.md`.
+
+New code:
+`scripts/research/harness_synthetic_edge_calibration_v2_production.py` and
+`tests/research/test_harness_synthetic_edge_calibration_v2_production.py`.
+
+- `canonical_v2_production_jobs() == harness_synthetic_edge_calibration_v1_production.planned_production_jobs()`
+  byte-for-byte (3200 worlds; no new world set); `canonical_v2_plan()` binds
+  that grid's identity plus the frozen V2 policy's exact blob/SHA256/size,
+  deterministically serialized and hashed.
+- Per-world classification is delegated verbatim to the frozen fixture's own
+  private `_evaluate_v2_world_inner`; proven byte-for-byte equivalent to the
+  fixture's public `evaluate_v2_world` across every scenario × non-production
+  N × world index reachable through the fixture, including the
+  forced-lookahead → `WORLD_INVALID` path.
+- `v2_production_arm_authorized()` recognizes only a self-consistent ARM
+  commit binding freeze parent HEAD/TREE, freeze artifact hash/size, V2
+  policy hash/size, all five V1 TCB hashes, the canonical plan hash, and the
+  original prereg/Amendment_001 identities, evaluated from committed git
+  object bytes (not worktree, not caller arguments).
+- No ARM artifact (`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PRODUCTION_ARM.json`)
+  exists anywhere in the repository as of this unit.
+
+The frozen V2 fixture, its freeze artifact, the original prereg, and
+Amendment_001 are all byte-identical to before this unit (verified by
+`git diff --stat`, zero output).
+
+- v2_production_arm_authorized (at this HEAD): **false**
+- production_calibration_executed: **false**
+- production_result_minted: **false**
+- world_records_created: **false**
+- authorization_consumed: **false**
+- v1_attempt_status: `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`
+- v1_3087_subset_claimable: **false**
+
+No prereg change. No Amendment_002. No V1 TCB change. No V2 policy or
+freeze-artifact change. No real V2 ARM created anywhere in project history.
+No production run, RESULT, or WORLD_RECORDS.
+
+- next required step: `INDEPENDENT_V2_PRODUCTION_DRIVER_AND_ARM_RUNTIME_REVIEW`
+
+## 2026-09-12 — V2 production lifecycle repair (pre-outcome)
+
+**Decision:** close the independent adversarial review's 4 BLOCKERs + 1
+MAJOR (no historical authorization; no durable one-shot reservation/claim;
+RESULT/WORLD_RECORDS mint unimplemented; aggregation absent; per-world
+re-verification overhead) by implementing the complete pre-outcome
+production lifecycle on top of the unchanged V2 policy freeze (`f96197d`).
+Not an execution freeze, not an ARM.
+
+Canonical implementation identity:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PRODUCTION_DRIVER.md`.
+
+- `verify_historical_v2_execution_authority(repo_root, arm_commit)`:
+  commit-parameterized (not ambient-HEAD) verification, reusing the existing
+  generic authorization primitive; proven to work from a descendant commit
+  and from a clean clone.
+- `v2_durable_reservation_document` / `v2_durable_claim_document` /
+  `assert_v2_reservation_available`: pure identity derivations from a
+  historically-verified bound (mirroring V1's own already-frozen
+  reservation/claim design), with git-committed durability and fail-closed
+  checks proven for sequential duplicate and simulated concurrent
+  reservation races.
+- `V2DurablePartialWorldStore`: local crash-safe per-world checkpoint cache
+  reusing V1's atomic-write primitives verbatim; cached records are never
+  trusted as authority without independent recomputation at mint time.
+- `derive_v2_cell_aggregates` / `derive_v2_coverage_verdicts` /
+  `derive_v2_required_coverage_status` / `derive_v2_mechanical_conclusions`:
+  wire the frozen fixture's own already-reviewed aggregation pipeline
+  (`aggregate_v2_records`, `CellAggregateV2.result_schema`,
+  `evaluate_cell_coverage`, `required_coverage_for_conclusion`,
+  `mechanical_conclusion_v2`) onto real evidence -- no aggregation logic is
+  reimplemented.
+- `mint_v2_world_records` / `mint_v2_result` / `verify_historical_v2_result`:
+  a real, future-capable mint and independent historical re-verification
+  path, proven to accept only honest evidence and reject forged
+  checkpoints, tampered WORLD_RECORDS, and tampered RESULT payloads.
+- `V2ProductionSession` / `open_v2_production_session`: authorize once per
+  run; mint/historical verification never trust the session, only
+  independently re-established git-object authority.
+
+**Explicit, deliberate scope boundary (not silently deferred):** the
+original V1-methodology verdict for each of the 33 required-coverage-map
+conclusions (`frozen_required_coverage_map()`'s `inherited_claim` strings)
+is not reconstructed by this unit -- doing so from prose would itself be an
+unreviewed scientific choice. `derive_v2_mechanical_conclusions` requires
+this mapping as an explicit parameter and fails closed if any of the 33 ids
+is missing. A separate, dedicated, independently reviewed mapping unit must
+supply it before a real mint.
+
+The frozen V2 fixture, its freeze artifact, the original prereg,
+Amendment_001, and all five V1 TCB files remain byte-identical (verified by
+`git diff --stat`, zero output).
+
+- v2_production_arm_authorized (at this HEAD): **false**
+- real V2 ARM created: **false**
+- production run: **false**
+- real RESULT minted: **false**
+- real WORLD_RECORDS created: **false**
+- authorization consumed: **false**
+- v1_attempt_status: `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`
+- v1_3087_subset_claimable: **false**
+
+No prereg change. No Amendment_002. No V1 TCB change. No V2 policy or
+freeze-artifact change. No real V2 ARM created anywhere in project history.
+No production run, RESULT, or WORLD_RECORDS.
+
+- next required step: `INDEPENDENT_V2_PRODUCTION_LIFECYCLE_REREVIEW`
+
+## 2026-09-12 — V2 session/reservation narrow repair + inherited-ladder provenance audit
+
+**Decision:** close the second independent rereview's 3 BLOCKERs (forged/
+`None` session executed with no ARM anywhere in the repository; reservation
+primitives never invoked by the execution path, so two sessions against the
+same unreserved ARM both fully executed; `inherited_detection_conclusions`
+an unverified caller parameter able to change the final RESULT for identical
+evidence) on top of the unchanged V2 policy freeze. Not an execution freeze,
+not an ARM.
+
+- `V2ProductionSession` is now `@dataclass(frozen=True, eq=False)`, made
+  genuinely unforgeable via a module-private `WeakKeyDictionary` registry
+  populated only by `open_v2_production_session` and the internal mint/
+  historical-verification helpers. Proven to refuse `None`, `False`, `True`,
+  `{}`, a manually-instantiated session with copied field values, a
+  `dataclasses.replace()` copy, a bare string, and a session mutated via
+  `object.__setattr__` -- all before `simulate_dgp` is ever called.
+- `establish_v2_durable_reservation(repo_root, arm_commit)` enforces VERIFY
+  ARM -> VERIFY PLAN/POLICY/TCB -> ESTABLISH RESERVATION -> OPEN SESSION ->
+  EXECUTE by construction: `open_v2_production_session` now refuses unless a
+  matching reservation is already committed at HEAD. Guarantee level stated
+  precisely: airtight within one shared repository (git's own commit/ref
+  locking); a residual, explicitly-documented race remains across
+  independent unsynchronized clones, where only wasted duplicate
+  computation -- never a duplicate authoritative RESULT -- is possible.
+- Performed (not implemented) a full provenance audit of the 33
+  inherited-ladder conclusion ids against the frozen V1 prereg's
+  `acceptance`/`conclusion_authority` sections and Amendment_001's explicit
+  map:
+  `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_INHERITED_LADDER_PROVENANCE_AUDIT.md`.
+  18/33 are mechanically unambiguous; 15/33 are not yet confirmed unambiguous
+  (no explicit threshold, or would require inferring an unstated alias).
+  Per the governing stop condition, the mapping is **not** implemented or
+  bound as authority in this unit -- `inherited_detection_conclusions`
+  remains an explicit, required, caller-supplied parameter, and
+  `mint_v2_result`'s RESULT remains not scientifically self-contained until
+  a dedicated methodology amendment resolves the 15 unresolved ids.
+
+The frozen V2 fixture, its freeze artifact, the original prereg,
+Amendment_001, and all five V1 TCB files remain byte-identical (verified by
+`git diff`, zero output).
+
+- forged/None session execution: **no longer possible**
+- reservation gates execution: **yes, within one shared repository**
+- double execution from the same unreserved ARM: **no longer possible**
+- caller can still change the final conclusion via the mapping: **yes
+  (unresolved; explicit, documented, not worked around)**
+- real V2 ARM created: **false**
+- production run: **false**
+- real RESULT minted: **false**
+- real WORLD_RECORDS created: **false**
+- authorization consumed: **false**
+- v1_attempt_status: `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`
+- v1_3087_subset_claimable: **false**
+
+No prereg change. No Amendment_002. No V1 TCB change. No V2 policy or
+freeze-artifact change. No real V2 ARM created anywhere in project history.
+No production run, RESULT, or WORLD_RECORDS.
+
+- next required step: `PRE_OUTCOME_INHERITED_LADDER_METHODOLOGY_AMENDMENT`
+
+## 2026-09-15 — V2 33/33 implementation freeze
+
+**Decision:** freeze the independently reviewed V2 33/33 implementation at
+HEAD `614295d4c0bf7a263bd2c6dc9a5c595e2c80055f`
+(tree `e754b12f8db93db3109a30e3b4d476eb85803e04`) after the independent
+implementation review closed `GO_FOR_IMPLEMENTATION_FREEZE`.
+
+Canonical freeze artifact:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_33_33_IMPLEMENTATION_FREEZE.json`
+(human twin:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_33_33_IMPLEMENTATION_FREEZE.md`).
+
+The freeze binds the reviewed implementation HEAD/TREE, the two
+execution-authoritative 33/33 sources
+(`harness_synthetic_edge_calibration_v2_inherited_ladder.py`,
+`harness_synthetic_edge_calibration_v2_production.py`) by git blob/SHA256/size,
+the original V2 prereg (`ada237e`) and Amendment_001 (`d8f0a99`),
+Amendment_003 (`dfba85d`) and Amendment_004 (`df5dcde`), the rejected
+Amendment_002 identity (`f846075`) as historical non-governing authority,
+the frozen V2 rank-policy source and its implementation freeze (`f96197d`),
+the five unchanged V1 TCB files, canonical V2 plan SHA256
+`7fa12fd3b939cd210a69da37659fd1013a1dba43aca4c06abb6f5a6442a33800`, and
+world count 3200. Visibility remains `UNRESOLVED_FAIL_CLOSED`. MINOR-1
+(no memoization) and MINOR-2 (ADEQUATE FINAL_OVERALL mint blocked by
+visibility siblings) are recorded, not repaired.
+
+This freeze commit changes only the freeze artifact/document, its verifier
+test, and status/ledger/index plumbing. Reviewed implementation bytes,
+methodology, and V1 TCB are unchanged.
+
+- reviewed_implementation_head: `614295d4c0bf7a263bd2c6dc9a5c595e2c80055f`
+- freeze_parent: `614295d4c0bf7a263bd2c6dc9a5c595e2c80055f`
+- amendment_002_governs_executable_science: **false**
+- production_armed: **false**
+- production_executed: **false**
+- result_minted: **false**
+- world_records_created: **false**
+- authority_consumed: **false**
+- arm_created: **false**
+- execution_authorized: **false**
+- canonical_3200_run_started: **false**
+- v1_attempt_status: `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`
+- v1_3087_subset_claimable: **false**
+
+No implementation-code change. No methodology change. No prereg/amendment
+rewrite. No V1 TCB change. No V2 ARM, RESULT, or WORLD_RECORDS.
+
+- next required step: `INDEPENDENT_V2_33_33_IMPLEMENTATION_FREEZE_REVIEW`
+
+## 2026-09-15 — V2 authorized GROUND_TRUTH_VISIBLE plumbing
+
+**Decision:** supply the already-defined V1 `GROUND_TRUTH_VISIBLE` statistic
+for the canonical 3200 world identities as a separate visibility evidence
+artifact. Classification B from independent diagnosis: defined pre-outcome,
+required input not persisted.
+
+- no second reservation
+- no V2 candidate re-evaluation
+- canonical WORLD_RECORDS bytes unchanged (`d372eb00…`)
+- no RESULT minted
+- no threshold/denominator/operator change
+- ARM-bound `production.py` / `inherited_ladder.py` bytes unchanged
+
+Canonical visibility evidence:
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_VISIBILITY.json`
+
+- next required step: `INDEPENDENT_VISIBILITY_PLUMBING_REVIEW`
+
+## 2026-09-15 — Canonical V2 RESULT mint
+
+**Decision:** mint the one-shot canonical V2 RESULT from authenticated
+WORLD_RECORDS + authenticated visibility evidence via
+`assemble_v2_result_payload_with_visibility`. Independent visibility review
+verdict was `GO_FOR_RESULT_MINT`. No candidate re-evaluation, no world
+regeneration, no second reservation, no WORLD_RECORDS/VISIBILITY modification,
+no threshold/denominator/operator change, no post-hoc rescue.
+
+- ARM_HEAD = `18ebb4c5629e1717a6633ee6bd63cda7c0bb65ea`
+- PLAN_SHA = `7fa12fd3b939cd210a69da37659fd1013a1dba43aca4c06abb6f5a6442a33800`
+- RUN_IDENTITY = `2088e76f99685c36e65387117b6f8a49482b3b68939f01d827023e0d36991818`
+- WORLD_RECORDS SHA256 unchanged: `d372eb00d4f6df9b4f8a2b0dcb22b051d95787ddeb8494a3c0efc31561e39821`
+- INNER_RECORDS SHA256 unchanged: `763a8ce802b7b5efa133ebe3132103cbb96c86d83c7c2dacc992147c8ee4ef66`
+- VISIBILITY SHA256 unchanged: `9be8dceb07d8fc43b01ef8630d4ad9f52e7401fd6f095b3c7a5bf364701c8b65`
+- RESULT path: `docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_RESULT.json`
+- RESULT SHA256: `761cc9afc59265bfb94afecbd293082c274abf3affce3d9693f463442326c1e0`
+- FINAL_OVERALL_MECHANICAL_CONCLUSION = `METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06`
+- VISIBILITY_FLOOR = `ABOVE_MEASURED_FLOOR`
+- TINY_NOISY_ORACLE_DIAGNOSTIC = `VISIBILITY_FLOOR`
+- MODEL_FLOOR = `MODEL_FLOOR`
+- TINY_NOISY_CONCLUSION = `VISIBILITY_FLOOR`
+- ORACLE_F03_TINY_NOISY = `VISIBILITY_FLOOR`
+- ARM-bound `production.py` / `inherited_ladder.py` bytes unchanged
+
+This entry records the frozen mechanical labels. It does not interpret them.
+
+- next required step: `CANONICAL_V2_RESULT_INTERPRETATION`
+
+## 2026-09-15 — Targeted V2 confirmatory power repair
+
+**Decision:** restore already pre-outcome-defined V1 confirmatory detection
+semantics inside the V2 evaluator. Canonical V2 RESULT remains immutable
+historical evidence. This is not V3, not threshold tuning, and not a rescue
+of `METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06`.
+
+Pre-outcome authority verified uniquely before implementation:
+
+- V1 `MODEL_DETECTED` = primary_positive AND bootstrap_positive AND placebo_separation
+- V1 production actually executed frozen bootstrap (500) and placebo (999)
+- EASY/MODERATE oracle power and MODEL_FLOOR were intended to read MODEL_DETECTED, not STRICT_PASS
+- `>=0.02` materiality remains a separate STRICT_PASS / MATERIALITY_ONLY_DIAGNOSTIC identity
+
+Repair:
+
+- execute frozen V1 `prediction_bootstrap` / `placebo_q95` in V2 inner evaluation
+- `detected` = `MODEL_DETECTED`
+- MATERIALITY_ONLY_DIAGNOSTIC counts STRICT_PASS from gates
+- do not lower 2%; do not change Wilson EASY 0.90 / MODERATE 0.70
+- do not remint RESULT / WORLD_RECORDS / VISIBILITY
+- do not run a new 3200-world calibration in this unit
+
+Canonical hashes unchanged:
+
+- WORLD_RECORDS SHA256 `d372eb00d4f6df9b4f8a2b0dcb22b051d95787ddeb8494a3c0efc31561e39821`
+- VISIBILITY SHA256 `9be8dceb07d8fc43b01ef8630d4ad9f52e7401fd6f095b3c7a5bf364701c8b65`
+- RESULT SHA256 `761cc9afc59265bfb94afecbd293082c274abf3affce3d9693f463442326c1e0`
+
+- next required step: `INDEPENDENT_POWER_REPAIR_REVIEW`
+
+## 2026-09-15 — V2 control plan identity rebind
+
+**Decision:** rebind `FROZEN_CANONICAL_V2_PLAN_SHA256` from the historical
+unrepaired plan identity
+`7fa12fd3b939cd210a69da37659fd1013a1dba43aca4c06abb6f5a6442a33800`
+to the live `canonical_v2_plan` identity of the independently reviewed
+confirmatory-power repair:
+
+`b0ed15534ef0cf45f1232baa0d7c1881fb3a8aaa086477d67a5ab7e9198c677f`
+
+The 3200-world job list is unchanged
+(`v1_planned_jobs_sha256` =
+`5adf682ee48a868acbe01d9e0b9e33133db26089119396b3539b4e9cb8af5bb6`).
+The plan SHA changed only because repaired rank-policy bytes are part of
+canonical plan identity. No world specification, DGP, scenario, N, seed,
+feature library, or cell membership changed.
+
+This is an identity/provenance repair only. It does not create a production
+freeze, ARM, reservation, calibration, or RESULT.
+
+Canonical hashes unchanged:
+
+- WORLD_RECORDS SHA256 `d372eb00d4f6df9b4f8a2b0dcb22b051d95787ddeb8494a3c0efc31561e39821`
+- VISIBILITY SHA256 `9be8dceb07d8fc43b01ef8630d4ad9f52e7401fd6f095b3c7a5bf364701c8b65`
+- RESULT SHA256 `761cc9afc59265bfb94afecbd293082c274abf3affce3d9693f463442326c1e0`
+
+- next required step: `INDEPENDENT_IDENTITY_REBIND_REVIEW`
+
+## 2026-09-16 — V2 control-calibration execution freeze
+
+**Decision:** freeze the independently reviewed confirmatory-power control
+calibration runtime at implementation
+`8917c776ac8c148828bfab4395fd84890ff3c847`
+(tree `15664b6a47b7196fcd230619e134f6a89feec23e`).
+
+Canonical freeze artifact path remains
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_EXECUTION_FREEZE.json`.
+The freeze commit is the immediate child of `8917c776`. It does not rewrite
+historical freeze `2523b389` or historical ARM `18ebb4c`. Those remain the
+authority for historical plan `7fa12fd3…` and RUN_IDENTITY `2088e76f…`.
+
+This freeze binds plan
+`b0ed15534ef0cf45f1232baa0d7c1881fb3a8aaa086477d67a5ab7e9198c677f`,
+world count 3200, V1 jobs
+`5adf682ee48a868acbe01d9e0b9e33133db26089119396b3539b4e9cb8af5bb6`,
+and reviewed rank-policy
+`1700ada1985e622c9b6def95960b313f12cbb95fd290aa608b09eb44f2cad7ec`
+(size 46396). Freeze authentication forbids carrying ARM/RESULT/
+WORLD_RECORDS/RESERVATION on the freeze commit; those historical blobs
+remain byte-identical at their minting commits.
+
+- production_armed: **false**
+- production_executed: **false**
+- result_minted: **false**
+- world_records_created: **false**
+- arm_created: **false**
+- canonical_3200_run_started: **false**
+
+No scientific-code change in the freeze commit. No reservation. No control
+calibration execution. No RESULT mint.
+
+- next required step: `CREATE_CONTROL_CALIBRATION_PRODUCTION_ARM`
+
+## 2026-09-16 — V2 control-calibration production ARM
+
+**Decision:** arm exactly one canonical 3200-world V2 control-calibration
+production execution as the immediate child of freeze
+`bd5b5d3030f811faf7055517f314a2b1a51ba41e`.
+
+ARM binds:
+
+- reviewed implementation `8917c776ac8c148828bfab4395fd84890ff3c847`
+- plan `b0ed15534ef0cf45f1232baa0d7c1881fb3a8aaa086477d67a5ab7e9198c677f`
+- world count 3200
+- rank-policy `1700ada1985e622c9b6def95960b313f12cbb95fd290aa608b09eb44f2cad7ec`
+
+Historical ARM `18ebb4c5629e1717a6633ee6bd63cda7c0bb65ea` remains valid for
+plan `7fa12fd3…` and RUN_IDENTITY `2088e76f…`. The new ARM does not
+authorize that historical plan.
+
+- authorization_consumed: **false**
+- reservation_created: **false**
+- production_executed: **false**
+- result_minted: **false**
+- world_records_created: **false**
+
+No scientific-code change. No control calibration execution.
+
+- next required step: `EXECUTE_CONTROL_CALIBRATION_FROM_EXACT_ARM_COMMIT`
+
+## 2026-09-16 — V2 confirmatory-power control calibration executed
+
+**Decision:** execute exactly one canonical 3200-world control calibration
+from ARM `710cad607ec6740e550698cdc212f7dd33004481`.
+
+Topology verified before reservation:
+
+- IMPLEMENTATION `8917c776ac8c148828bfab4395fd84890ff3c847`
+- FREEZE `bd5b5d3030f811faf7055517f314a2b1a51ba41e`
+- ARM `710cad607ec6740e550698cdc212f7dd33004481`
+- `ARM_AUTHORIZATION_VALID = YES`
+
+Reservation `068874d8fa710f474f91fe61224a7cc54a42e0cd` created by
+`establish_v2_durable_reservation`. RUN_IDENTITY
+`90d38af4951b0bbe00fc5ffaf7989c8940d178c31aad987176901c7ce947ad1e`.
+PLAN `b0ed15534ef0cf45f1232baa0d7c1881fb3a8aaa086477d67a5ab7e9198c677f`.
+WORLD_JOB_SHA `5adf682ee48a868acbe01d9e0b9e33133db26089119396b3539b4e9cb8af5bb6`.
+
+Execution: 3200/3200 worlds completed; WORLD_VALID=3200; WORLD_INVALID=0;
+CANDIDATE_IDENTIFIABLE=31708; CANDIDATE_NOT_IDENTIFIABLE=292.
+Coverage for all 33 required conclusions: ADEQUATE.
+
+Control-calibration evidence (does not overwrite historical blobs):
+
+- WORLD_RECORDS SHA256 `e8667f930a4acc7fb5dd26fa62414a8f4b359121336902aac651cb76f4e50dbf`
+- RECORDS_INNER SHA256 `f0d18ca1c8ed654856abca03d9e0f8d22b72ab5f6f4683cc11e45f3353bc0559`
+- VISIBILITY SHA256 `ed1c17f0e2eb8f04ed917a7c84811d10a0d152f770a9315d2ade1cac1be93f9b`
+- RESULT SHA256 `ffce3daa24eb9039526d6de4b11a6ac43cfd36803058fe21827f1cd1f839100b`
+
+`mint_v2_result` refused `V2VisibilityStatisticUnavailable`. RESULT assembled
+by `assemble_v2_result_payload_with_visibility` from independently derived
+per-world `GROUND_TRUTH_VISIBLE`. Frozen evaluator FINAL:
+`METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06`.
+
+Historical WORLD_RECORDS `d372eb00…` / VISIBILITY `9be8dceb…` / RESULT
+`761cc9af…` remain immutable at their minting commits.
+
+- production_executed: **true**
+- world_records_created: **true**
+- result_minted: **true** (control-calibration RESULT; `mint_v2_result` refused)
+- selective_rerun: **false**
+- second_canonical_attempt: **false**
+
+- next required step: `RECORD_FROZEN_CONTROL_CALIBRATION_EVALUATOR_OUTPUT`
+
+## 2026-09-16 — V3 confirmatory preregistration materialized
+
+Materializes `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_CONFIRMATORY_DESIGN.md` /
+`_SPEC.md` plus two rounds of independent adversarial methodology review
+into a single binding prereg (`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG.md`
+/ `.json`). No scientific choice left to implementation.
+
+Binds: claim-conditional Clark-West-adjusted estimand `theta_hat =
+sum(S_t*d*_t)/sum(S_t)` on the unmodified `expanding_era_predictions`
+nested BASE/CAND construction (overlay-with-fallback forbidden for this
+calibration); full-time-axis joint `(d*_t,S_t)` stationary bootstrap
+(gap-closed support-only resampling forbidden); Politis-White (2004) +
+Patton-Politis-White (2009) automatic block length on the derived
+influence series `z_t=S_t*(d*_t-theta_hat)`, one selector call per world;
+`B=999`; recentered bootstrap-t one-sided p-value, `alpha=0.05`; exactly 3
+per-world validity guards (chronology, support validity, identifiability
+and resampling validity) — `NONSTATIONARY_TRAP` reclassified as a fourth
+aggregate acceptance cell, not a guard, using the identical `DETECTED`
+indicator; `support_count>=50` hard floor, `effective_N` diagnostic-only;
+one-sided Wilson `z=1.6448536269514722`, 400 fresh worlds/cell
+(EASY/MODERATE/NULL/NONSTATIONARY_TRAP), exact integer PASS/FAIL
+boundaries; fresh `world_index 10000..10399` at `N=5000` (disjoint from
+the V1/V2 canonical grid's `0..399`, mechanically not policy-only); new
+RNG namespace `V3_CONFIRMATORY`.
+
+No V1/V2 frozen artifact modified. No implementation exists yet. No
+freeze, ARM, reservation, execution, or fresh V3 outcome.
+
+- v3_design_complete: **true**
+- v3_prereg_materialized: **true**
+- v3_prereg_review_required: **true**
+- v3_prereg_frozen: **false**
+- v3_run_authorized: **false**
+- v3_armed: **false**
+- default_v4: **false**
+- b2_06_execution_authorized: **false**
+
+- next required step: `INDEPENDENT_V3_PREREG_REVIEW`
+
+## 2026-09-16 — V3 prereg freeze authority
+
+Independent review of `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG.md`/`.json`
+(including the exact Politis-White/Patton-Politis-White selector implementation
+binding) closed with verdict `ACCEPTED` at exact commit `4b7e0d6dfda1cb9475a610f51ccbec0906fd0133`
+/ tree `fe779fc37e31bd23700b6f70d476f4cb1249223d`.
+
+`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG_FREEZE.md`/`.json` freezes that
+exact accepted content as sole scientific authority for V3 implementation.
+The accepted prereg bytes are not modified; both SHA256s were independently
+recomputed from `4b7e0d6d`'s git objects and matched exactly (MD
+`739247ef228c80988abd40ac60b095e0e4e9e5ee45f81761cb1e3aa846161085`,
+JSON `2d3a42e7fc9c91bf1b4bafaec01b2947b454e40151c47be9f2ff3f92a6e41617`)
+before this freeze was written. `freeze_commit_head`/`freeze_commit_tree`
+are intentionally `UNSET_UNTIL_THIS_COMMIT`, matching the existing V2
+execution-freeze convention — this artifact never self-hashes.
+
+No V1/V2 frozen artifact touched. No V3 implementation exists. No V3
+world/outcome generated or inspected. No reservation or ARM created.
+
+- v3_design_complete: **true**
+- v3_prereg_materialized: **true**
+- v3_prereg_review_required: **false**
+- v3_prereg_frozen: **true**
+- v3_implementation_complete: **false**
+- v3_run_authorized: **false**
+- v3_armed: **false**
+- default_v4: **false**
+- b2_06_execution_authorized: **false**
+
+- next required step: `V3_IMPLEMENTATION`
+
+## 2026-09-16 — V3 prereg Amendment 001 (pre-outcome) + re-freeze
+
+Implementation correctly stopped before writing V3 scientific code: the
+frozen prereg (`4136f53d`) was literally unimplementable
+(`namespace_seed(world_seed, "V3_CONFIRMATORY", feature_id)` -- the frozen
+V1 primitive rejects any token outside `NAMESPACES=(DGP,BOOTSTRAP,PLACEBO,VISIBILITY)`)
+and left `SE_hat`'s `ddof` unbound. No V3 world/outcome was generated or
+inspected; no ARM/reservation existed.
+
+Classified `PRE_OUTCOME_CORRECTNESS_AND_SPEC_COMPLETENESS_AMENDMENT` --
+not outcome-driven, not a power/threshold repair, not a redesign.
+
+Blocker 1: editing `harness_synthetic_edge_calibration_v1_lib.py`'s
+`NAMESPACES` allowlist was evaluated and rejected (would break live
+`assert_v1_tcb_intact()` unless `FROZEN_V1_TCB_SHA256["lib"]` is also
+updated, or, if updated, reintroduce for TCB identity the exact
+live-global commit-purity defect already repaired once for canonical
+plan identity). Resolved with a new, non-frozen-file-modifying primitive
+`scripts/research/harness_synthetic_edge_calibration_v3_rng.py`
+(`v3_namespace_seed`), reusing `_uint64_from_digest` verbatim; `v1_lib.py`
+SHA256 `12230dcad7...` unchanged. Proven by
+`tests/research/test_harness_synthetic_edge_calibration_v3_rng.py`
+(7/7): all 4 existing namespace outputs/PCG64 prefixes unchanged;
+`V3_CONFIRMATORY` deterministic, distinct from BOOTSTRAP/PLACEBO, and
+byte-identical to what `namespace_seed()` itself would compute (proven
+via a local, in-memory-only, reverted allowlist extension).
+
+Blocker 2: `SE_hat` bound to `ddof=1` (`numpy.std(theta_star, ddof=1)`).
+
+Nothing else changed. Original freeze `4136f530378e91d545e2644a650f0a7a07a731c3`
+remains valid historical evidence of the pre-amendment text, not
+rewritten. New freeze binds the amended content at `543687fe79ba2e6254e879b0574e58a1909c15fe`.
+
+- v3_pre_outcome_amendment: **COMPLETE**
+- v3_rng_namespace_blocker: **CLOSED**
+- v3_se_ddof: **1**
+- v3_prereg_frozen: **true**
+- v3_implementation_complete: **false**
+- v3_implementation_review_required: **true**
+- v3_run_authorized: **false**
+- v3_armed: **false**
+- default_v4: **false**
+- b2_06_execution_authorized: **false**
+
+- next required step: `V3_IMPLEMENTATION`
+
+## 2026-09-17 — V3 implementation freeze + pre-ARM execution binding
+
+Independent review of the V3 confirmatory implementation closed
+`IMPLEMENTATION_ACCEPTED` at exact commit
+`70673673f5bc0108e6bcf2aaf55a762ebc49940a` / tree
+`e94e18cb900a44824b96dee1d4b6cbb574c95e5a` (lineage `fd21ed7f` →
+`e1b7502` → `70673673`; F1/F2/F3 CLOSED).
+
+`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_IMPLEMENTATION_FREEZE.md`/`.json`
+freezes that exact accepted implementation identity. Scientific bytes
+are not modified. Binding is to:
+
+- confirmatory implementation SHA256 `38a494917dcf721b…` (24059 bytes)
+- RNG shim SHA256 `8bd6aef151139bc1…` (2325 bytes)
+- frozen prereg MD/JSON SHA256 `ab03c68a…` / `194fed69…`
+- inherited V1 lib SHA256 `12230dcad714e3a0…` (37636 bytes)
+- arch 8.0.0 selector hashes already pinned by prereg
+- canonical grid: EASY/MODERATE/NULL/NONSTATIONARY_TRAP,
+  `world_index 10000..10399`, 400/cell, 1600 worlds, B=999, F03,
+  frozen one-sided Wilson integer boundaries
+
+`harness_synthetic_edge_calibration_v3_authority.py` is pre-ARM plumbing
+only: it derives a deterministic scientific run identity from tracked
+frozen authority and refuses caller kwargs, path/env substitution,
+reservation, WORLD_RECORDS/RESULT minting, and canonical execution.
+Freeze and ARM remain separable. No ARM artifact was created.
+
+- v3_implementation_complete: **true**
+- v3_implementation_review_required: **false**
+- v3_implementation_frozen: **true**
+- v3_pre_arm_binding_complete: **true**
+- v3_run_authorized: **false**
+- v3_armed: **false**
+- default_v4: **false**
+- b2_06_execution_authorized: **false**
+
+- next required step: `V3_ONE_SHOT_CANONICAL_ARM`
+
+## 2026-09-17 — V3 one-shot canonical ARM
+
+`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PRODUCTION_ARM.md`/`.json` is a
+tracked one-shot authorization for the already-frozen V3 canonical
+execution. Immediate parent is implementation-freeze HEAD
+`76f2100715b67799231eab8132cd856823fdf3f8` / tree
+`dd59466b02c56f101764cb17052a6d5eb514b945`. Bound run identity
+`ce66442985a637f05508c980257f5ca8b869df15e2b94b87d1110c3ef75fd69f`.
+Accepted implementation `70673673f5bc0108e6bcf2aaf55a762ebc49940a`
+unchanged.
+
+Lifecycle `AUTHORIZED_UNUSED`. `authorization_consumed = false`. ARM
+creation does not consume the one-shot. No reservation, no
+`world_index 10000..10399` execution, no WORLD_RECORDS, no RESULT.
+
+- v3_implementation_frozen: **true**
+- v3_pre_arm_binding_complete: **true**
+- v3_run_authorized: **true**
+- v3_armed: **true**
+- authorization_consumed: **false**
+- canonical_reservation_created: **false**
+- canonical_execution_started: **false**
+- default_v4: **false**
+- b2_06_execution_authorized: **false**
+
+- next required step: `V3_CANONICAL_RESERVATION`
+
+## 2026-09-17 — V3 one-shot canonical reservation + RESULT
+
+Exactly one reservation consumed ARM `de7b38341c65eb82b66494d910fefd3395f8b232`
+for run identity
+`ce66442985a637f05508c980257f5ca8b869df15e2b94b87d1110c3ef75fd69f`.
+Reservation identity
+`0bb58c95ad4de4909b6157688c7444e35e5cc122ffb10811ccefbfc82e216f34`.
+Canonical grid `world_index 10000..10399` executed once (1600/1600
+terminal; 0 invalid). WORLD_RECORDS SHA256
+`5d09631db5180f562076b2191fe002aa21318a3925d3cd1c4014d83e4b41eb4f`.
+RESULT SHA256
+`f72eedcdcb511e2c7f22369cbdef164688317dfc99f9ab3e533df14cb2a27866`.
+
+Mechanical cell verdicts (frozen Wilson n=400):
+
+- EASY: 400/400 DETECTED, Wilson lower 0.99328, `PASS`
+- MODERATE: 313/400 DETECTED, Wilson lower 0.74673, `PASS`
+- NULL: 21/400 DETECTED, Wilson upper 0.07403, `INDETERMINATE`
+- NONSTATIONARY_TRAP: 188/400 DETECTED, Wilson lower 0.42929, `FAIL`
+
+`methodology_claimable = false`. No selective rerun, no second
+reservation, no second RESULT. `DEFAULT_V4 = NO`. B2-06 and MARKET remain
+unauthorized.
+
+- v3_authorization_consumed: **true**
+- v3_canonical_reservation_created: **true**
+- v3_canonical_execution_complete: **true**
+- v3_result_minted: **true**
+- v3_rerun_authorized: **false**
+- default_v4: **false**
+- b2_06_execution_authorized: **false**
+- market_execution_authorized: **false**
+
+- next required step: `NONE_V3_RESULT_RECORDED_NO_RERUN_NO_V4_NO_B2_06_NO_MARKET`
+
+## 2026-09-17 — V3 Microscope calibration closed; MARKET phase active
+
+Status/closeout unit only. Canonical V3 RESULT is recorded as immutable
+historical evidence and is not repaired, rerun, or reinterpreted.
+
+Canonical RESULT authority: commit
+`99b409cae279513eaf489194e7fa206082c60aef`. WORLD_RECORDS SHA256
+`5d09631db5180f562076b2191fe002aa21318a3925d3cd1c4014d83e4b41eb4f`.
+RESULT SHA256
+`f72eedcdcb511e2c7f22369cbdef164688317dfc99f9ab3e533df14cb2a27866`.
+
+Mechanical cell verdicts (unchanged):
+
+- EASY: 400/400 detected, `PASS`
+- MODERATE: 313/400 detected, `PASS`
+- NULL: 21/400 detected, `INDETERMINATE`
+- NONSTATIONARY_TRAP: 188/400 detected, `FAIL`
+
+`methodology_claimable = false`. `incomplete_execution = false`.
+
+Narrow scientific interpretation:
+
+1. V3 successfully repaired the measured V2 confirmatory sensitivity
+   problem (`EASY` `PASS`, `MODERATE` `PASS`).
+2. V3 did not establish a generally claimable methodology (`NULL`
+   `INDETERMINATE`, `NONSTATIONARY_TRAP` `FAIL`,
+   `methodology_claimable = false`).
+3. Known limitation: the current V3 confirmatory decision is
+   insufficiently protected against the frozen nonstationary trap. Do
+   not translate 188/400 into a general real-market false-positive rate;
+   it applies only to the frozen synthetic trap DGP.
+4. Consequence for MARKET research: V3 `DETECTED`/`PASS` is research
+   evidence but must not by itself be treated as sufficient evidence of
+   a robust market edge. Any promising MARKET result must retain
+   explicit regime / nonstationarity scrutiny before stronger promotion
+   claims.
+5. The limitation is not authorization for immediate V4. Future
+   methodology repair requires independent new evidence from actual
+   research workload or a separately justified fresh calibration design.
+
+Microscope status:
+
+- `V3_CALIBRATION_CLOSED = YES`
+- `V3_RERUN_AUTHORIZED = NO`
+- `V3_METHODOLOGY_CLAIMABLE = NO`
+- `CONFIRMATORY_SENSITIVITY = DEMONSTRATED_ON_FROZEN_SYNTHETIC_EASY_MODERATE`
+- `NONSTATIONARY_TRAP_PROTECTION = INADEQUATE_ON_FROZEN_TRAP_DGP`
+- `DEFAULT_V4 = NO`
+- `MICROSCOPE_ACTIVE_RESEARCH_PHASE = NO`
+- `MARKET_ACTIVE_RESEARCH_PHASE = YES`
+
+The Microscope remains available as scientific instrumentation. It is
+not deleted. It is no longer the active research program.
+
+Active next phase: `MARKET`. Next substantive unit: `MARKET-01` (one
+real crypto-market hypothesis through the existing research process).
+This closeout does not execute `MARKET-01`, does not design a new MARKET
+framework, and does not create infrastructure merely because MARKET is
+beginning. Post-calibration operating priority: approximately 70–80%
+actual market research, 20–30% infrastructure only when concrete
+research blockers require it. Primary progress metric: MARKET hypotheses
+honestly closed per week. Initial observational milestone: 25–50 real
+market hypotheses through the stable research process — not a promise
+that 25–50 studies establish alpha.
+
+B2-06 remains `BLOCKED_MISSING_OBSERVABLE` / funding publication-latency
+unproven. `MARKET-01` is not B2-06 and does not silently unblock it.
+
+- v3_calibration_closed: **true**
+- v3_methodology_claimable: **false**
+- v3_rerun_authorized: **false**
+- default_v4: **false**
+- microscope_active_research_phase: **false**
+- market_active_research_phase: **true**
+- market_01_executed: **false**
+- b2_06_execution_authorized: **false**
+
+- next required step: `MARKET-01`
+
+## 2026-09-17 — MARKET-01 outcome-blind data feasibility (OI_EXPANSION_WEAK_CONTINUATION)
+
+Inspected existing price and OI authorities only. No hypothesis test, no
+candidate outcomes, no prereg, no RESULT, no 2025/2026 access, no B2-06
+execution.
+
+Working direction (not frozen): after a directional price impulse, OI
+expansion plus weak subsequent price continuation may mark a leverage-
+accumulation state with possible later-reversal information. Absorption
+is interpretation, not an observable.
+
+Price authority: `CORE_BTC_BINANCE_V0` snapshot `717d37a4…` — Binance
+USD-M `BTCUSDT` 1m klines, `available_at = bar_end_exclusive`,
+`[2020-01-01, 2026-08-26)`, 0 missing minutes,
+`ACCEPTED_FOR_DISCOVERY`.
+
+OI authority: Vision `sum_open_interest` in snapshot `5a9d036b…` —
+native 5m, `create_time` = bucket start, `available_at = period_end`,
+`[2020-09-01, 2025-01-01)`, 455273 rows, 631 missing native buckets,
+`oi_decision_time_availability_proven = true`. Dataset
+`research_authorized = false` remains the B2-06 funding gate. MARKET-01
+does not need funding and does not unblock B2-06.
+
+Common usable overlap: `[2020-09-01T00:00:00Z, 2025-01-01T00:00:00Z)` at
+**5m OI grain**. Causal alignment is defensible on exclusive-end clocks.
+Local CORE parquet and OI JSONL are not in this worktree.
+
+Mechanical sufficiency:
+
+- `PRICE_POINT_IN_TIME_USABLE = YES`
+- `OI_POINT_IN_TIME_USABLE = YES`
+- `PRICE_OI_CAUSAL_ALIGNMENT_POSSIBLE = YES`
+- `MARKET_01_PREREG_FEASIBLE = YES`
+
+Evidence:
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_DATA_FEASIBILITY.md`.
+
+- market_01_phase: **OUTCOME_BLIND_FEASIBILITY**
+- market_01_outcome_inspected: **false**
+- market_01_prereg_created: **false**
+- market_01_executed: **false**
+- b2_06_execution_authorized: **false**
+
+- next required step: `MARKET-01_PREREG`
+
+## 2026-09-17 — MARKET-01 prereg design blocked on three semantics
+
+Outcome-blind design unit. Complete preregistration was **not**
+materialized. No MARKET outcomes, no 2025/2026, no V3-on-market, no
+B2-06 execution, no V4.
+
+Research ID: `MARKET-01_OI_EXPANSION_WEAK_CONTINUATION`.
+
+Unambiguous design intent (not a freeze): 30m impulse / 30m state /
+60m outcome; 5m grain; common period `[2020-09-01, 2025-01-01)`; CORE
+snapshot `717d37a4…`; OI snapshot `5a9d036b…` OI-only; candidate =
+qualifying impulse ∧ OI expansion ∧ weak continuation; primary outcome
+= 60m `reversal_return`.
+
+Blockers (existing primitives cannot bind without changing their
+estimands; no new matcher/V4/regime framework invented):
+
+1. `BLOCKER_BASELINE_MATCHING_SEMANTICS` — no existing primitive
+   implements two-group comparability on impulse magnitude and trailing
+   volatility.
+2. `V3_CONFIRMATORY_ESTIMAND_NOT_MAPPABLE_TO_TWO_GROUP_REVERSAL_CONTRAST`
+   — V3 Clark-West nested OLS on equal synthetic eras cannot consume
+   this comparison exactly; V3 was not modified.
+3. `BLOCKER_ROBUSTNESS_SEMANTICS` — no existing mechanical
+   concentration/downgrade rule binds to
+   `DETECTED_BUT_NOT_ROBUST` vs `ROBUST_CANDIDATE` on this overlap.
+
+Evidence:
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_DESIGN.md`.
+
+- market_01_phase: **PREREG_DESIGN**
+- market_01_prereg_materialized: **false**
+- market_01_prereg_ready: **false**
+- market_01_freeze_required: **true**
+- market_01_outcome_inspected: **false**
+- market_01_executed: **false**
+- b2_06_execution_authorized: **false**
+- default_v4: **false**
+
+- next required step: `MARKET-01_AUTHOR_DECISIONS_ON_MATCHING_V3_MAPPING_ROBUSTNESS`
+
+## 2026-09-17 — MARKET-01 outcome-blind preregistration materialized (unfrozen)
+
+Author decisions resolved the three design blockers and the unbound
+support floor. Complete preregistration materialized in human and
+machine-readable form. No freeze, no ARM, no evaluator, no MARKET-01
+execution, no MARKET outcome inspection, no 2025/2026, no B2-06, no V3
+modification, no V4.
+
+Research ID: `MARKET-01_OI_EXPANSION_WEAK_CONTINUATION`.
+
+Bound confirmatory identity (new; not V3): stratified OLS
+`reversal_return ~ candidate_indicator + stratum FE` on impulse-magnitude
+× `PRE_VOL_60` tertiles; one-sided Politis–Romano stationary bootstrap
+`B=999`, `alpha=0.05`; support floors `TOTAL>=100`, `CANDIDATE>=30`,
+`BASELINE>=30`, `USABLE_STRATA>=3` with both groups `>=5`; LOEO sign
+stability across five frozen calendar eras plus candidate-share
+`<= 0.50` as a downgrade-only robustness layer.
+
+`MARKET_01_TEST_CALIBRATED = NO`. V3 TRAP motivates the robustness layer
+only; V3 synthetic calibration does not validate this test.
+
+Evidence:
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.md`,
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.json`.
+Prior blocker record preserved:
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_DESIGN.md`.
+
+- market_01_phase: **PREREG_MATERIALIZATION**
+- market_01_prereg_materialized: **true**
+- market_01_prereg_ready: **true**
+- market_01_freeze_required: **true**
+- market_01_outcome_inspected: **false**
+- market_01_executed: **false**
+- market_01_test_calibrated: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- default_v4: **false**
+
+- next required step: `MARKET-01_PREREG_FREEZE`
+
+## 2026-09-17 — MARKET-01 preregistration frozen outcome-blind
+
+Docs-only freeze of the exact MARKET-01 preregistration bytes at
+materialization commit `9c1a661c52ad1ee7295cb898c1e1a048d5281d2f` /
+tree `1928969ed4d12896a3793a7048aff163dc1b3dac`. Prereg files were not
+modified. No evaluator, no MARKET-01 execution, no MARKET outcome
+inspection, no 2025/2026, no B2-06, no V3 modification, no V4, no ARM.
+
+Research ID: `MARKET-01_OI_EXPANSION_WEAK_CONTINUATION`.
+
+Frozen payload SHA256:
+
+- md `d82b60e1a923e8eb897252abc4a9013b6535357004f2dc7dc08f56f072542866`
+- json `6885abaf178401a1307e9adc5c02c69dac4fb5f3034bfddebfafc2439dde2ce4`
+
+`MARKET_01_TEST_CALIBRATED = NO`. Confirmatory identity is not V3.
+`DEFAULT_V4 = NO`. B2-06 remains `BLOCKED_MISSING_OBSERVABLE`.
+
+Evidence:
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_FREEZE.md`,
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_FREEZE.json`.
+
+- market_01_phase: **PREREG_FREEZE**
+- market_01_prereg_materialized: **true**
+- market_01_prereg_ready: **true**
+- market_01_prereg_frozen: **true**
+- market_01_freeze_required: **false**
+- market_01_outcome_inspected: **false**
+- market_01_executed: **false**
+- market_01_test_calibrated: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- default_v4: **false**
+
+- next required step: `MARKET-01_IMPLEMENTATION`
+
+## 2026-09-17 — MARKET-01 frozen contract implemented, not armed
+
+Implemented the frozen MARKET-01 preregistration as in-memory scientific
+machinery. Bound CORE/OI snapshot evaluation is refused. No ARM, no
+execution reservation, no MARKET outcome inspection, no 2025/2026, no
+B2-06, no V3 modification, no V4. Prereg and freeze bytes unchanged.
+
+Tests use synthetic fixtures only.
+
+Evidence:
+`scripts/research/market_01_oi_expansion_weak_continuation_lib.py`,
+`scripts/research/market_01_oi_expansion_weak_continuation_authority.py`,
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_IMPLEMENTATION.md`.
+
+- market_01_phase: **IMPLEMENTATION**
+- market_01_prereg_frozen: **true**
+- market_01_implemented: **true**
+- market_01_armed: **false**
+- market_01_outcome_inspected: **false**
+- market_01_executed: **false**
+- market_01_test_calibrated: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- default_v4: **false**
+
+- next required step: `MARKET-01_IMPLEMENTATION_REVIEW`
+
+## 2026-09-17 — MARKET-01 implementation frozen and one-shot ARM
+
+Implementation freeze of accepted HEAD
+`1019c5725a58c62d460276159a5683a202c1c3ea` / tree
+`2a7a5ce74f9b0c419cf40093271df243ffb02d46` after independent review
+verdict `IMPLEMENTATION_ACCEPTED`. Exactly one canonical MARKET-01
+execution is armed and unused. No MARKET-01 execution, no MARKET
+outcome inspection, no 2025/2026, no B2-06, no V3 modification, no V4.
+
+Run identity:
+`f430399f46e6122a2633a34e99e9bd0ab8fe65c1baf9c05b5982551a4608739d`.
+
+`CANONICAL_EXECUTIONS_AUTHORIZED = 1`.
+`CANONICAL_EXECUTIONS_CONSUMED = 0`.
+`MARKET_01_TEST_CALIBRATED = NO`.
+
+Evidence:
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_IMPLEMENTATION_FREEZE.md`,
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_ARM.md`,
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_RESERVATION.json`.
+
+- market_01_phase: **ARM**
+- market_01_prereg_frozen: **true**
+- market_01_implementation_accepted: **true**
+- market_01_implementation_frozen: **true**
+- market_01_armed: **true**
+- market_01_canonical_executions_authorized: **1**
+- market_01_canonical_executions_consumed: **0**
+- market_01_outcome_inspected: **false**
+- market_01_executed: **false**
+- market_01_test_calibrated: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- default_v4: **false**
+
+- next required step: `ONE_CANONICAL_MARKET_01_EXECUTION`
+
+## 2026-09-17 — MARKET-01 canonical execution RESULT (NO_EVIDENCE)
+
+One canonical MARKET-01 execution completed from ARM HEAD
+`9e6f398e4d0a294adff317354c64fdbce91315a2` / tree
+`0f3092e8d61e040f34cb60f633584764c9cb6a6e`. Reservation consumed
+exactly once. No rerun. Protected OOS untouched. B2-06 remains blocked.
+`MARKET_01_TEST_CALIBRATED = NO`.
+
+Run identity:
+`f430399f46e6122a2633a34e99e9bd0ab8fe65c1baf9c05b5982551a4608739d`.
+
+RESULT SHA256:
+`5310946b44dd3ebc609d05a13f92f6cb414e3a0727141d0ee324bce0aa626c5e`.
+
+Mechanical classification: **`NO_EVIDENCE`**.
+`TOTAL_ELIGIBLE_EPISODES = 7701`.
+`CANDIDATE_EPISODES = 1720`.
+`BASELINE_EPISODES = 5981`.
+`USABLE_STRATA = 3`.
+`beta_candidate = -0.00016324445975347867`.
+`bootstrap_se = 0.00022218794009876234`.
+`bootstrap_p_one_sided = 0.757`.
+`DETECTED = NO`.
+Robustness not evaluated.
+
+Do not change thresholds or rerun. This is not validated alpha, not a
+production signal, and not OOS validation.
+
+Evidence:
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_RESULT.json`.
+
+- market_01_phase: **RESULT**
+- market_01_prereg_frozen: **true**
+- market_01_implementation_accepted: **true**
+- market_01_implementation_frozen: **true**
+- market_01_armed: **true**
+- market_01_canonical_executions_authorized: **1**
+- market_01_canonical_executions_consumed: **1**
+- market_01_outcome_inspected: **true**
+- market_01_executed: **true**
+- market_01_test_calibrated: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- default_v4: **false**
+- final_classification: **NO_EVIDENCE**
+
+- next required step: `NEW_MARKET_HYPOTHESIS_ID_IF_AUTHORIZED` (not MARKET-01 rerun)
+
+## 2026-09-18 — MARKET-01 episode-construction throughput (not a rerun)
+
+Post-close engineering investigation of canonical `construct_episodes`
+runtime. Frozen prereg/RESULT/lib/thresholds/estimand unchanged.
+Reservation not consumed again. Protected OOS not opened. MARKET-02 not
+started. Synthetic `SYNTHETIC_SNAPSHOT` profiling only.
+
+Dominant cost was O(T × W) repeated 30d `|impulse|` and PRE_VOL_60
+rebuilds via `close_at` / `b2_03.pre_vol_60`, not occupancy or
+`EpisodeRecord` allocation. Semantics-preserving fast path added beside
+the frozen library. Canonical RESULT SHA256 remains
+`5310946b44dd3ebc609d05a13f92f6cb414e3a0727141d0ee324bce0aa626c5e`.
+
+- market_01_executed: **true** (prior canonical run; not repeated)
+- market_01_scientifically_rerun: **false**
+- protected_oos_touched: **false**
+- frozen_scientific_bytes_changed: **false**
+
+- next required step: `NEW_MARKET_HYPOTHESIS_ID_IF_AUTHORIZED` (not MARKET-01 rerun)
+

@@ -56,6 +56,7 @@ AUTHORIZATION_ID = (
 LIB_REL = "scripts/research/harness_synthetic_edge_calibration_v1_lib.py"
 RUNNER_REL = "scripts/research/harness_synthetic_edge_calibration_v1.py"
 AUTH_REL = "scripts/research/harness_synthetic_edge_calibration_v1_auth.py"
+PRODUCTION_REL = "scripts/research/harness_synthetic_edge_calibration_v1_production.py"
 EXECUTION_AUTHORITY_PATHS = (LIB_REL, RUNNER_REL, AUTH_REL)
 FROZEN_REVIEWED_LIB_SHA256 = (
     "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51"
@@ -774,6 +775,11 @@ def run_authorized_production_grid(*args: Any, **kwargs: Any) -> dict[str, Any]:
             "SYNTHETIC_EXECUTION_NOT_AUTHORIZED: caller arguments cannot authorize execution"
         )
     root = _repo_root()
+    if _head_blob(root, PRODUCTION_REL) is not None:
+        _refuse(
+            "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PRODUCTION_DURABILITY supersedes "
+            "#114 local reservation; production remains unarmed"
+        )
     reservation: dict[str, Any] | None = None
     reservation_path = root / CANONICAL_RESERVATION_PATH
     try:

@@ -1,0 +1,356 @@
+{
+  "schema_version": "1.0",
+  "status": "FROZEN_BEFORE_IMPLEMENTATION",
+  "unit_id": "HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY",
+  "amendment_id": "AMENDMENT_001",
+  "amendment_type": "DOCS_ONLY_PROSPECTIVE_REVIEW_REPAIR",
+  "canonical_path": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG_AMENDMENT_001.json",
+  "human_companion": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG_AMENDMENT_001.md",
+  "original_prereg_md": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG.md",
+  "original_prereg_json": "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_PREREG.json",
+  "original_prereg_rewritten_in_place": false,
+  "amended_prereg_head": "ada237edc330b44bc412332e263f124757919e93",
+  "amended_prereg_tree": "ba1c0873879b7ea8556c3e238f8b962b91da6dc2",
+  "review_verdict": "PREREG_REPAIR_REQUIRED",
+  "blockers": 0,
+  "majors": 1,
+  "minors": 4,
+  "closes": ["MAJOR-1", "MINOR-1", "MINOR-2", "MINOR-3", "MINOR-4"],
+  "boundaries": {
+    "synthetic_execution_authorized": false,
+    "v2_production_arm_authorized": false,
+    "implementation_exists": false,
+    "v1_result_mint_authorized": false,
+    "v1_subset_claim_authorized": false
+  },
+  "preserved_sound_semantics": {
+    "WORLD_VALID_WORLD_INVALID_unchanged": true,
+    "CANDIDATE_IDENTIFIABLE_CANDIDATE_NOT_IDENTIFIABLE_unchanged": true,
+    "baseline_degeneracy_is_WORLD_INVALID": true,
+    "candidate_degeneracy_with_valid_baseline_is_CANDIDATE_NOT_IDENTIFIABLE": true,
+    "NOT_IDENTIFIABLE_is_neither_PASS_nor_FAIL": true,
+    "candidate_first_confirmatory_aggregation": true,
+    "planned_world_valid_identifiable_non_identifiable_detection_counters": true,
+    "wilson_semantics_unchanged": true,
+    "hard_min_identifiable_count": 200,
+    "NULL_per_candidate_conjunction_unchanged": true,
+    "oracle_F03_policy_unchanged": true,
+    "full_rank_rule_unchanged": true,
+    "mechanical_precedence": [
+      "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM",
+      "INSUFFICIENT_IDENTIFIABILITY_NO_METHODOLOGY_CLAIM",
+      "inherited detection ladder"
+    ],
+    "v1_status": "INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM",
+    "v1_status_changed": false,
+    "v1_subset_claimable": false
+  },
+  "identifiable_library_size": {
+    "definition": "For every WORLD_VALID world, L = number of F01-F10 candidates whose state is CANDIDATE_IDENTIFIABLE",
+    "symbol": "L",
+    "domain": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    "recorded_per_WORLD_VALID_world": true,
+    "undefined_on_WORLD_INVALID": true
+  },
+  "L_distribution": {
+    "scope": "per scenario × N cell",
+    "required_buckets": ["L=0", "L=1", "L=2", "L=3", "L=4", "L=5", "L=6", "L=7", "L=8", "L=9", "L=10"],
+    "silent_omission_forbidden": true,
+    "reconciliation_identity": "sum_{l=0}^{10} count(L=l) = world_valid_count"
+  },
+  "zero_identifiable": {
+    "field": "worlds_with_zero_identifiable_candidates",
+    "scope": "PER scenario × N cell",
+    "global_sum_optional": true,
+    "per_cell_authoritative": true,
+    "identity": "worlds_with_zero_identifiable_candidates(cell) = count(L=0)(cell)"
+  },
+  "blind_selection": {
+    "restricted_to_CANDIDATE_IDENTIFIABLE": true,
+    "unidentifiable_candidates_not_reintroduced": true,
+    "L0_selection_state": "NO_CANDIDATE",
+    "L0_enters_blind_taxonomy_denominators": false,
+    "L0_credited_as_successful_NO_DISCOVERY": false,
+    "L0_remains_visible_in": [
+      "planned_worlds",
+      "world_valid_count",
+      "candidate non-identifiability counts",
+      "L=0 distribution",
+      "coverage gates"
+    ]
+  },
+  "L_stratified_blind_taxonomy": {
+    "required_for_each_scenario_N_L_with_L_gt_0": [
+      "BLIND_WORLD_COUNT",
+      "TRUE_DISCOVERY",
+      "PROXY_DISCOVERY",
+      "FALSE_DISCOVERY",
+      "NO_DISCOVERY",
+      "ANY_EDGE_DECLARED",
+      "USEFUL_DISCOVERY",
+      "TRUE_DISCOVERY_RATE",
+      "USEFUL_DISCOVERY_RATE",
+      "TRUE_DISCOVERY_RATE_wilson",
+      "USEFUL_DISCOVERY_RATE_wilson",
+      "selected_STRICT_PASS_EX_MATERIALITY_counts_by_feature_id",
+      "selected_STRICT_PASS_counts_by_feature_id"
+    ],
+    "pooled_totals_also_required": true,
+    "pooled_must_not_replace_stratified": true,
+    "taxonomy_denominator": "WORLD_VALID worlds with L > 0"
+  },
+  "L_reconciliation_identities": {
+    "sum_L1_to_L10_BLIND_WORLD_COUNT": "world_valid_count - count(L=0)",
+    "sum_L1_to_L10_TRUE_DISCOVERY": "pooled TRUE_DISCOVERY",
+    "sum_L1_to_L10_PROXY_DISCOVERY": "pooled PROXY_DISCOVERY",
+    "sum_L1_to_L10_FALSE_DISCOVERY": "pooled FALSE_DISCOVERY",
+    "sum_L1_to_L10_NO_DISCOVERY": "pooled NO_DISCOVERY",
+    "sum_L1_to_L10_ANY_EDGE_DECLARED": "pooled ANY_EDGE_DECLARED",
+    "sum_L1_to_L10_USEFUL_DISCOVERY": "pooled USEFUL_DISCOVERY"
+  },
+  "variable_competition_interpretation": {
+    "reduction_in_L_can_change_blind_selection_difficulty": true,
+    "favorable_pooled_blind_not_sufficient_if_concentrated_in_reduced_L": true,
+    "L_stratification_makes_effect_observable": true,
+    "additional_L_specific_PASS_threshold": false,
+    "L_stratification_role": "DIAGNOSTIC",
+    "inherited_confirmatory_conclusion_must_not_claim_invariance_to_L": true,
+    "blind_not_claimed_invariant_to_L": true,
+    "no_post_hoc_L_correction_after_v2_outcomes": true
+  },
+  "nonidentifiability_reason_taxonomy": [
+    "RANK_DEFICIENT",
+    "NONFINITE_FIT_OR_PREDICTION",
+    "DESIGN_SHAPE_INVALID",
+    "NONFINITE_AE_OR_RELATIVE_MAE",
+    "NONFINITE_BOOTSTRAP",
+    "NONFINITE_PLACEBO",
+    "NONFINITE_VISIBILITY"
+  ],
+  "nonidentifiability_reason_meanings": {
+    "RANK_DEFICIENT": "candidate-augmented design rank < ncols at a required scored-era training window",
+    "NONFINITE_FIT_OR_PREDICTION": "non-finite candidate coefficients or scored-row predictions",
+    "DESIGN_SHAPE_INVALID": "candidate design shape invalid",
+    "NONFINITE_AE_OR_RELATIVE_MAE": "candidate-path AE non-finite, or relative MAE undefined while baseline remains defined",
+    "NONFINITE_BOOTSTRAP": "required bootstrap replicate non-finite/invalid after successful scientific fit",
+    "NONFINITE_PLACEBO": "required placebo replicate non-finite/invalid after successful scientific fit",
+    "NONFINITE_VISIBILITY": "reserved; visibility-only invalidity does not recode candidate identifiability; baseline residual failure is WORLD_INVALID"
+  },
+  "first_failing_era": {
+    "required": true,
+    "expanding_era_values": ["E2", "E3", "E4", "E5"],
+    "bootstrap_placebo_visibility_reserved_after_era_fits": "NOT_ERA_SCOPED",
+    "world_level_lookahead_is_WORLD_INVALID": true
+  },
+  "rank_diagnostics": {
+    "required_when_reason_is_RANK_DEFICIENT": true,
+    "fields": ["design_nrows", "design_ncols", "design_rank", "required_rank"],
+    "diagnostics_only_do_not_change_scientific_state": true
+  },
+  "nonidentifiability_required_record_fields": [
+    "candidate_id",
+    "scenario",
+    "N",
+    "world_id",
+    "reason",
+    "first_failing_era"
+  ],
+  "required_coverage_map": {
+    "coverage_judged_before_detection": true,
+    "insufficient_component_makes_dependent_conclusion_INSUFFICIENT_IDENTIFIABILITY": true,
+    "world_baseline_required_for_each_component_cell": true,
+    "library": ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10"],
+    "conclusions": {
+      "NULL_ORACLE_FPR": {
+        "cell": "NULL|5000",
+        "candidates": ["F03"],
+        "inherited_claim": "ORACLE NULL MODEL_DETECTED FPR <= 0.05"
+      },
+      "NULL_PER_CANDIDATE_FPR": {
+        "cell": "NULL|5000",
+        "candidates": ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10"],
+        "note": "each candidate's per-candidate FPR requires that candidate ADEQUATE; bundled NULL_FALSE_POSITIVE_CONCLUSION still requires all ten"
+      },
+      "NULL_BLIND_FPR": {
+        "cell": "NULL|5000",
+        "candidates": ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10"],
+        "inherited_claim": "BLIND NULL ANY_EDGE_DECLARED FPR <= 0.10"
+      },
+      "NULL_FALSE_POSITIVE_CONCLUSION": {
+        "cell": "NULL|5000",
+        "candidates": ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10"]
+      },
+      "EASY_ORACLE_POWER": {
+        "cell": "EASY|5000",
+        "candidates": ["F03"],
+        "inherited_claim": "EASY ORACLE MODEL_DETECTED >= 0.90"
+      },
+      "EASY_BLIND_USEFUL_DISCOVERY": {
+        "cell": "EASY|5000",
+        "candidates": ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10"],
+        "inherited_claim": "EASY BLIND USEFUL_DISCOVERY >= 0.80"
+      },
+      "EASY_CONCLUSION": {
+        "cell": "EASY|5000",
+        "candidates": ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10"]
+      },
+      "MODERATE_ORACLE_POWER": {
+        "cell": "MODERATE|5000",
+        "candidates": ["F03"],
+        "inherited_claim": "MODERATE ORACLE MODEL_DETECTED >= 0.70"
+      },
+      "MODERATE_BLIND_USEFUL_DISCOVERY": {
+        "cell": "MODERATE|5000",
+        "candidates": ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10"],
+        "inherited_claim": "MODERATE BLIND USEFUL_DISCOVERY >= 0.50"
+      },
+      "MODERATE_CONCLUSION": {
+        "cell": "MODERATE|5000",
+        "candidates": ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10"]
+      },
+      "SMALL_ORACLE_BAND": {
+        "cell": "SMALL|5000",
+        "candidates": ["F03"]
+      },
+      "SMALL_CONCLUSION": {
+        "cell": "SMALL|5000",
+        "candidates": ["F03"]
+      },
+      "TINY_NOISY_ORACLE_DIAGNOSTIC": {
+        "cell": "TINY_NOISY|5000",
+        "candidates": ["F03"]
+      },
+      "TINY_NOISY_CONCLUSION": {
+        "cell": "TINY_NOISY|5000",
+        "candidates": ["F03"]
+      },
+      "NONSTATIONARY_TRAP_ORACLE_SPECIFICITY": {
+        "cell": "NONSTATIONARY_TRAP|5000",
+        "candidates": ["F03"],
+        "inherited_claim": "TRAP STRICT_PASS_EX_MATERIALITY detection <= 0.20"
+      },
+      "NONSTATIONARY_TRAP_CONCLUSION": {
+        "cell": "NONSTATIONARY_TRAP|5000",
+        "candidates": ["F03"]
+      },
+      "SMALL_2500_SENSITIVITY": {
+        "cell": "SMALL|2500",
+        "candidates": ["F03"]
+      },
+      "SMALL_10000_SENSITIVITY": {
+        "cell": "SMALL|10000",
+        "candidates": ["F03"]
+      },
+      "ORACLE_F03_NULL": {"cell": "NULL|5000", "candidates": ["F03"]},
+      "ORACLE_F03_EASY": {"cell": "EASY|5000", "candidates": ["F03"]},
+      "ORACLE_F03_MODERATE": {"cell": "MODERATE|5000", "candidates": ["F03"]},
+      "ORACLE_F03_SMALL_5000": {"cell": "SMALL|5000", "candidates": ["F03"]},
+      "ORACLE_F03_TINY_NOISY": {"cell": "TINY_NOISY|5000", "candidates": ["F03"]},
+      "ORACLE_F03_TRAP": {"cell": "NONSTATIONARY_TRAP|5000", "candidates": ["F03"]},
+      "ORACLE_F03_SMALL_2500": {"cell": "SMALL|2500", "candidates": ["F03"]},
+      "ORACLE_F03_SMALL_10000": {"cell": "SMALL|10000", "candidates": ["F03"]},
+      "BLIND_DISCOVERY_EASY": {
+        "cell": "EASY|5000",
+        "candidates": ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10"]
+      },
+      "BLIND_DISCOVERY_MODERATE": {
+        "cell": "MODERATE|5000",
+        "candidates": ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10"]
+      },
+      "BLIND_DISCOVERY_CONCLUSION": {
+        "cells": ["EASY|5000", "MODERATE|5000"],
+        "candidates_per_named_cell": ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10"]
+      },
+      "VISIBILITY_FLOOR": {
+        "cell": "EASY|5000",
+        "candidates": [],
+        "world_baseline_only": true
+      },
+      "MODEL_FLOOR": {
+        "cell": "EASY|5000",
+        "candidates": ["F03"]
+      },
+      "MATERIALITY_ONLY_DIAGNOSTIC": {
+        "cell": "EASY|5000",
+        "candidates": ["F03"]
+      },
+      "FINAL_OVERALL_MECHANICAL_CONCLUSION": {
+        "union": {
+          "NULL|5000": ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10"],
+          "EASY|5000": ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10"],
+          "MODERATE|5000": ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10"],
+          "NONSTATIONARY_TRAP|5000": ["F03"],
+          "SMALL|5000": ["F03"],
+          "TINY_NOISY|5000": ["F03"],
+          "SMALL|2500": ["F03"],
+          "SMALL|10000": ["F03"]
+        },
+        "world_baseline_required_on_each_union_cell": true
+      }
+    }
+  },
+  "f01_policy": {
+    "decision": "MOVE_TO_F03_LIKE_TIER",
+    "option": "B",
+    "threshold_changed": true,
+    "other_thresholds_changed": false,
+    "prospective_before_v2_execution": true,
+    "not_post_outcome_repair": true,
+    "rationale": "F01 is lagged S (F01_0=0). The occupancy mechanism that makes F03 identically zero on E1 also makes F01 identically zero on that training window. F02 and F08 intersect S with an X-sign indicator and have a strictly larger non-identifiability set. Coverage floors follow occupancy mechanism, not PROXY-versus-TRUE taxonomy.",
+    "before": {
+      "SMALL|2500": {"F01": 0.65},
+      "TINY_NOISY|5000": {"F01": 0.60}
+    },
+    "after": {
+      "SMALL|2500": {"F01": 0.75},
+      "TINY_NOISY|5000": {"F01": 0.70}
+    }
+  },
+  "amended_min_wilson_lower_by_cell_candidate": {
+    "NULL|5000": {
+      "F01": 0.95, "F02": 0.95, "F03": 0.95, "F04": 0.95, "F05": 0.95,
+      "F06": 0.95, "F07": 0.95, "F08": 0.95, "F09": 0.95, "F10": 0.95
+    },
+    "EASY|5000": {
+      "F01": 0.90, "F02": 0.90, "F03": 0.90, "F04": 0.90, "F05": 0.90,
+      "F06": 0.90, "F07": 0.90, "F08": 0.90, "F09": 0.90, "F10": 0.90
+    },
+    "MODERATE|5000": {
+      "F01": 0.90, "F02": 0.90, "F03": 0.90, "F04": 0.90, "F05": 0.90,
+      "F06": 0.90, "F07": 0.90, "F08": 0.90, "F09": 0.90, "F10": 0.90
+    },
+    "NONSTATIONARY_TRAP|5000": {
+      "F01": 0.90, "F02": 0.90, "F03": 0.90, "F04": 0.90, "F05": 0.90,
+      "F06": 0.90, "F07": 0.90, "F08": 0.90, "F09": 0.90, "F10": 0.90
+    },
+    "SMALL|5000": {
+      "F01": 0.85, "F02": 0.85, "F03": 0.85, "F04": 0.85, "F05": 0.85,
+      "F06": 0.85, "F07": 0.85, "F08": 0.85, "F09": 0.85, "F10": 0.85
+    },
+    "SMALL|10000": {
+      "F01": 0.85, "F02": 0.85, "F03": 0.85, "F04": 0.85, "F05": 0.85,
+      "F06": 0.85, "F07": 0.85, "F08": 0.85, "F09": 0.85, "F10": 0.85
+    },
+    "SMALL|2500": {
+      "F01": 0.75, "F02": 0.65, "F03": 0.75, "F04": 0.85, "F05": 0.85,
+      "F06": 0.85, "F07": 0.85, "F08": 0.65, "F09": 0.85, "F10": 0.85
+    },
+    "TINY_NOISY|5000": {
+      "F01": 0.70, "F02": 0.60, "F03": 0.70, "F04": 0.85, "F05": 0.85,
+      "F06": 0.85, "F07": 0.85, "F08": 0.60, "F09": 0.85, "F10": 0.85
+    }
+  },
+  "selective_reexecution": {
+    "after_any_v2_production_attempt_selected_cell_rerun_and_combine_forbidden": true,
+    "methodology_changing_successor_requires_new_prereg_and_complete_authorized_execution": true,
+    "identical_frozen_resume_of_interrupted_run_remains_allowed_under_existing_resume_semantics": true
+  },
+  "anti_rescue_additions": [
+    "no selective scenario × N re-execution combined with an original V2 attempt",
+    "no inventing L-specific PASS thresholds after V2 outcomes",
+    "no crediting L=0 worlds as successful NO_DISCOVERY"
+  ],
+  "ready_for_v2_implementation_review": false,
+  "ready_for_amendment_rereview": true,
+  "next_required_step": "INDEPENDENT_REREVIEW_OF_V2_RANK_POLICY_AMENDMENT"
+}

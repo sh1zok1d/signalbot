@@ -259,6 +259,75 @@ Suggested historical path:
 5. `docs/V2_PRODUCT_CONTRACT.md` and `docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md` — formal V2-v0 semantics;
 6. `docs/V2_EMPIRICAL_RED_TEAM_PLAN.md` — shift toward falsification;
 7. `docs/E1_DETECTOR_SEPARATION_PREREG.md` + `docs/e1/` — first detector-level empirical gate;
-8. `docs/PROJECT_STATUS.md` + `docs/RESEARCH_ROADMAP.md` — current research-first direction.
+8. `docs/PROJECT_STATUS.md` + `docs/RESEARCH_ROADMAP.md` — current MARKET-phase research-first direction after V3 Microscope closeout.
 
 The value of this history is not that every past idea was correct. It shows how each layer of evidence changed what the project believed and therefore what it chose to build next.
+
+---
+
+## 11. Synthetic harness V1 incomplete execution and V2 identifiability policy
+
+On 2026-09-11 the canonical V1 synthetic calibration ARM run at
+`9ab32fc14c50df0c6f1c7ddfe2a8990d2d49c339` completed all 3200 planned
+worlds structurally and could not mint RESULT. The frozen V1 rule treated
+any candidate-augmented rank failure as world invalid. That produced
+`INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`. The attempt, including any
+3087-world subset, is permanently non-claimable.
+
+The project did not rescue V1 by dropping sparse worlds, changing DGP, or
+relaxing OLS rank. It opened a new methodology version:
+`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY`, frozen as
+preregistration only. V2 separates baseline identifiability from candidate
+identifiability, reports both coverage and conditional detection, and
+forbids treating non-identifiable evaluations as ordinary false negatives
+or as silent denominator deletions.
+
+This is not a market-edge claim and does not authorize B2-06.
+
+A later fixture-only implementation made those frozen V2 states, L
+accounting, BLIND-by-L taxonomy, coverage table, and required-coverage
+map executable and testable. It did not run the 3200-world grid, mint
+RESULT, or consume V1 authority. Next required step after that
+implementation is independent implementation review.
+
+---
+
+## 12. V3 Microscope closeout and MARKET transition (2026-09-17)
+
+The one-shot canonical V3 confirmatory calibration completed and is now
+closed as immutable historical evidence. Canonical RESULT authority is
+commit `99b409cae279513eaf489194e7fa206082c60aef`, WORLD_RECORDS SHA256
+`5d09631db5180f562076b2191fe002aa21318a3925d3cd1c4014d83e4b41eb4f`,
+RESULT SHA256
+`f72eedcdcb511e2c7f22369cbdef164688317dfc99f9ab3e533df14cb2a27866`.
+
+Mechanical verdicts: `EASY` `PASS` (400/400), `MODERATE` `PASS`
+(313/400), `NULL` `INDETERMINATE` (21/400), `NONSTATIONARY_TRAP` `FAIL`
+(188/400). `methodology_claimable = false`. `incomplete_execution = false`.
+
+What this means, narrowly:
+
+- V3 repaired the measured V2 confirmatory sensitivity problem on the
+  frozen synthetic `EASY`/`MODERATE` cells.
+- V3 did not establish a generally claimable methodology.
+- The current V3 confirmatory decision is insufficiently protected
+  against the frozen nonstationary trap. The 188/400 trap detection
+  count is **not** a general real-market false-positive rate; it applies
+  only to the frozen synthetic trap DGP.
+- V3 `DETECTED`/`PASS` must not by itself be treated as sufficient
+  evidence of a robust market edge. Future MARKET results still need
+  explicit regime / nonstationarity scrutiny before stronger promotion
+  claims.
+- The limitation is not authorization to build V4. Future methodology
+  repair requires independent new evidence from actual research workload
+  or a separately justified fresh calibration design.
+
+The Microscope remains in the repository as scientific instrumentation.
+It is no longer the active research program.
+
+The project therefore returns to real-market hypothesis work as the
+active phase. The next substantive unit is `MARKET-01`: one real
+crypto-market hypothesis through the existing research process. That
+unit is named, not executed, by this closeout. B2-06 remains blocked on
+its missing-observable / funding publication-latency record and is not
+silently unblocked by MARKET becoming active.

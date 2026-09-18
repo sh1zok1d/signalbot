@@ -1,0 +1,40 @@
+# MARKET-01 OI_EXPANSION_WEAK_CONTINUATION — one-shot canonical ARM
+
+- **Status:** `EXECUTED` / `CONSUMED_EXECUTED`
+- **Unit ID:** `MARKET-01_OI_EXPANSION_WEAK_CONTINUATION_ARM`
+- **Research ID:** `MARKET-01_OI_EXPANSION_WEAK_CONTINUATION`
+- **Date:** 2026-09-17
+
+**Not a RESULT.** The canonical RESULT is
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_RESULT.json`.
+Not B2-06, 2025, or 2026 authorization. Not V3. Not V4.
+
+Canonical machine-readable twin:
+`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_ARM.json`.
+
+This ARM authorized **exactly one** canonical MARKET-01 execution.
+That reservation is consumed. No rerun is pre-authorized.
+
+Unused ARM SHA256 (bound into the RESULT):
+`5b639453030ae3d18efc40dc3ffffeeade0b152719cc38ba4cac660aecba75dd`.
+
+```text
+REVIEWED_IMPLEMENTATION_HEAD = 1019c5725a58c62d460276159a5683a202c1c3ea
+REVIEWED_IMPLEMENTATION_TREE = 2a7a5ce74f9b0c419cf40093271df243ffb02d46
+RUN_IDENTITY = f430399f46e6122a2633a34e99e9bd0ab8fe65c1baf9c05b5982551a4608739d
+
+CANONICAL_EXECUTIONS_AUTHORIZED = 1
+CANONICAL_EXECUTIONS_CONSUMED = 1
+MARKET_01_ARMED = YES
+MARKET_01_EXECUTED = YES
+MARKET_01_OUTCOME_INSPECTED = YES
+
+EXECUTION_HEAD = 9e6f398e4d0a294adff317354c64fdbce91315a2
+EXECUTION_TREE = 0f3092e8d61e040f34cb60f633584764c9cb6a6e
+```
+
+`MARKET_01_TEST_CALIBRATED = NO`. V3 is not the MARKET-01 test.
+`DEFAULT_V4 = NO`. B2-06 remains blocked. Protected OOS remains
+untouched.
+
+This ARM does not silently issue a replacement reservation.

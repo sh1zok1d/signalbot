@@ -141,14 +141,40 @@ commit/tree object access, not caller mappings. See
 
 `scripts/research/harness_synthetic_edge_calibration_v1.py`,
 `harness_synthetic_edge_calibration_v1_lib.py`, and
-`harness_synthetic_edge_calibration_v1_auth.py` implement the frozen
-synthetic calibration instrument plus a tracked one-shot production
-authorization. Implementation is frozen. Authorization implementation is
-frozen before production execution. One unused production run is
-authorized by repository state, not caller kwargs.
-`production_calibration_executed = false`.
-`production_monte_carlo_arm_authorized = false`. This is not a market
-hypothesis and does not authorize B2-06, 2025, or 2026.
+`harness_synthetic_edge_calibration_v1_auth.py`, and
+`harness_synthetic_edge_calibration_v1_production.py` implement the frozen
+synthetic calibration instrument, the unused #114 one-shot authorization
+bytes, the frozen unarmed production durability/aggregation layer, and the
+canonical 3200-world production driver. The driver is implementation-frozen.
+The unused driver ARM at `0abc5fe` authorizes the earlier driver freeze parent
+and does **not** authorize the performance implementation. Canonical freeze
+`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1_PERFORMANCE_EXECUTION_FREEZE.json`
+binds reviewed implementation HEAD `f47c539` / tree `84b23e4` with the
+repaired production verifier. The live canonical ARM is the immediate child
+of that freeze. It authorizes one synthetic production Monte Carlo against
+that freeze parent. Canonical production must use the exact ARM commit object.
+Historical ARM `120ac45` and unused driver ARM `0abc5fe` do not authorize this
+runtime. Worker count is operational, not scientific. Caller-supplied
+records cannot mint a RESULT. Historical ARM HEAD
+`940d85bf58673396c6c0cc05ce2134a2e2e92809` is
+`REJECTED_NOT_MERGED / SUPERSEDED_BY_DRIVER_FIRST_SEQUENCE`.
+`driver_implementation_frozen = true`.
+`implementation_frozen = true`.
+The canonical V1 production attempt at ARM HEAD `9ab32fc` completed
+3200/3200 structural worlds and did not mint RESULT.
+`INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM`. V1 ARM was not consumed.
+No V1 subset is claimable. Do not mint a V1 RESULT from this HEAD.
+V2 rank-degeneracy policy has a fixture-only implementation
+(`HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY`);
+`implementation_exists = true` for the fixture module only.
+`v2_production_arm_authorized = false`.
+No V2 production runtime, RESULT, or ARM exists.
+Live V1 ARM artifact still declares
+`production_monte_carlo_arm_authorized = true` and unconsumed; that does
+not make the incomplete V1 attempt claimable and does not authorize V2.
+Runtime ARM topology keys `CANONICAL_PERFORMANCE_FREEZE_PATH`.
+`production_result_minted = false`.
+This is not a market hypothesis and does not authorize B2-06, 2025, or 2026.
 
 ---
 
