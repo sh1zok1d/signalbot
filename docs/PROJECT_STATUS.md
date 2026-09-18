@@ -235,6 +235,16 @@ Post-close episode-construction throughput work is research
 infrastructure only (`docs/research/MARKET_01_EPISODE_CONSTRUCTION_PERF.md`);
 it does not reopen MARKET-01 or change the sealed RESULT.
 
+`MARKET-03_PUBLIC_STRATEGY_REPLICATION` is in **source capture /
+outcome-blind feasibility** only. Selected public family: `EmaCross` vs
+`EmaCrossFunding` from pinned `wiktorj137/btc-strategy-lab`
+`b68a5518b4a3eba2fde1733160d7d7de356023b5`. Verdict:
+**`DATA_ACQUISITION_REQUIRED`**. Not a prereg, ARM, execution, or RESULT.
+Do not substitute CORE perpetual prices for the author's Binance **spot**
+market. Do not consume B2-06 funding. Do not inspect Signalbot 2025/2026
+OOS. Authority:
+`docs/research/MARKET_03_PUBLIC_STRATEGY_SOURCE_FEASIBILITY.md`.
+
 Post-calibration operating priority:
 
 - approximately 70–80% actual market research;

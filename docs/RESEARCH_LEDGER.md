@@ -3159,3 +3159,69 @@ the frozen library. Canonical RESULT SHA256 remains
 
 - next required step: `NEW_MARKET_HYPOTHESIS_ID_IF_AUTHORIZED` (not MARKET-01 rerun)
 
+## 2026-09-18 — MARKET-03 source capture + outcome-blind feasibility
+
+External public strategy family `EmaCross` vs `EmaCrossFunding` from
+`https://github.com/wiktorj137/btc-strategy-lab` pinned at
+`b68a5518b4a3eba2fde1733160d7d7de356023b5` /
+tree `f7717e681c911ea3ccce15492246053cf15883cb`. Capture
+`2026-09-18T16:46:53Z`. No Signalbot strategy run. No prereg, ARM, or
+RESULT. Protected OOS not opened. B2-06 remains blocked.
+
+Author trades Binance **spot** `BTC/USDT` 1h and uses perpetual REST
+funding only as an entry filter (`funding_max_pct=55` on a 180d
+percentile of 3-day mean funding). Signalbot has no spot BTCUSDT
+dataset. CORE is USD-M perpetual and excludes spot. Funding publication
+latency remains unproven.
+
+Verdict: **`DATA_ACQUISITION_REQUIRED`**. Faithful reproduction with
+current snapshots is `NOT_FEASIBLE`. Do not substitute perpetual price
+for spot. Do not describe EMA=600 / funding 55 / BTC as independently
+preregistered by the author.
+
+Evidence:
+`docs/research/MARKET_03_PUBLIC_STRATEGY_SOURCE_FEASIBILITY.md`.
+
+- market_03_prereg: **false**
+- market_03_armed: **false**
+- market_03_executed: **false**
+- market_03_outcome_inspected: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- feasibility_verdict: **DATA_ACQUISITION_REQUIRED**
+
+- next required step: `MARKET_03_DATA_ACQUISITION_OR_NAMED_ASSUMPTION_IF_AUTHORIZED` (not prereg, not execution)
+
+## 2026-09-18 — MARKET-03 source capture + outcome-blind feasibility
+
+External public strategy family `EmaCross` vs `EmaCrossFunding` from
+`https://github.com/wiktorj137/btc-strategy-lab` pinned at
+`b68a5518b4a3eba2fde1733160d7d7de356023b5` /
+tree `f7717e681c911ea3ccce15492246053cf15883cb`. Capture
+`2026-09-18T16:46:53Z`. No Signalbot strategy run. No prereg, ARM, or
+RESULT. Protected OOS not opened. B2-06 remains blocked.
+
+Author trades Binance **spot** `BTC/USDT` 1h and uses perpetual REST
+funding only as an entry filter (`funding_max_pct=55` on a 180d
+percentile of 3-day mean funding). Signalbot has no spot BTCUSDT
+dataset. CORE is USD-M perpetual and excludes spot. Funding publication
+latency remains unproven.
+
+Verdict: **`DATA_ACQUISITION_REQUIRED`**. Faithful reproduction with
+current snapshots is `NOT_FEASIBLE`. Do not substitute perpetual price
+for spot. Do not describe EMA=600 / funding 55 / BTC as independently
+preregistered by the author.
+
+Evidence:
+`docs/research/MARKET_03_PUBLIC_STRATEGY_SOURCE_FEASIBILITY.md`.
+
+- market_03_prereg: **false**
+- market_03_armed: **false**
+- market_03_executed: **false**
+- market_03_outcome_inspected: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- feasibility_verdict: **DATA_ACQUISITION_REQUIRED**
+
+- next required step: `MARKET_03_DATA_ACQUISITION_OR_NAMED_ASSUMPTION_IF_AUTHORIZED` (not prereg, not execution)
+
