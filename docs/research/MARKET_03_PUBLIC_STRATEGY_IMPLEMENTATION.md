@@ -247,3 +247,7 @@ if not run to finish.
 
 Implementation freeze, then ARM, then at most one canonical execution.
 This unit authorizes none of those.
+
+Live implementation-freeze authority (later unit; scientific bytes
+unchanged):
+`docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_FREEZE.md`.

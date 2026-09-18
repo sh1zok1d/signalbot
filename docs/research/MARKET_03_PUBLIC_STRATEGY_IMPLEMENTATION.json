@@ -154,7 +154,8 @@
     "SPOT_SNAPSHOT_CHANGED": false,
     "FUNDING_SNAPSHOT_CHANGED": false
   },
-  "next_lifecycle_state": "MARKET-03_IMPLEMENTATION_FREEZE",
-  "next_lifecycle_state_note": "A later unit may freeze these implementation bytes after re-review. This unit does not freeze, ARM, or execute.",
-  "repair_record": "docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_REPAIR.md"
+    "next_lifecycle_state": "MARKET-03_IMPLEMENTATION_FREEZE",
+    "next_lifecycle_state_note": "A later unit may freeze these implementation bytes after re-review. This unit does not freeze, ARM, or execute.",
+    "repair_record": "docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_REPAIR.md",
+    "later_freeze_authority": "docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_FREEZE.md"
 }

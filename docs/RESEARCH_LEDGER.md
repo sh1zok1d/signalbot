@@ -3434,3 +3434,35 @@ Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_REPAIR.md`.
 - funding_snapshot_changed: **false**
 
 - next required step: `MARKET_03_IMPLEMENTATION_RE_REVIEW_THEN_FREEZE_IF_AUTHORIZED` (not ARM, not execution)
+
+## 2026-09-18 — MARKET-03 implementation freeze (not ARM, not execution)
+
+Docs-only freeze of the targeted re-review identity
+`03411aaa…` / tree `87a1da25…` (`READY_FOR_IMPLEMENTATION_FREEZE`).
+Scientific implementation bytes were not modified.
+
+```text
+FROZEN_IMPLEMENTATION_HEAD = 03411aaa1a2f938169f07f8f3576f17227a2b14b
+FROZEN_IMPLEMENTATION_TREE = 87a1da250a56343c44625e3f5187a6877035d1da
+LIB_SHA256       = 46ec2449e967172b61eec32f5ab6caf897ff9db04249395ac55a2368840289a5
+AUTHORITY_SHA256 = 97f000c6afc2427db9fe3f90548f77c7e7ab4da0e43ba3283159101565a305e4
+EXECUTE_SHA256   = 90fd315d926b2b957391ed31c71bff6a33b0f22257960d0779e27e277cb40bcf
+EXACT_DIFFERENTIAL_TESTS = PARTIAL
+FULL_PYTEST_AT_REVIEW    = NOT_COMPLETED
+```
+
+Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_FREEZE.md`.
+
+- implementation_frozen: **true**
+- market_03_armed: **false**
+- market_03_executed: **false**
+- market_03_outcome_inspected: **false**
+- market_03_parameter_search: **false**
+- canonical_executions_authorized: **0**
+- canonical_executions_consumed: **0**
+- protected_oos_touched: **false**
+- prereg_changed: **false**
+- spot_snapshot_changed: **false**
+- funding_snapshot_changed: **false**
+
+- next required step: `MARKET_03_ARM_IF_AUTHORIZED` (not execution)

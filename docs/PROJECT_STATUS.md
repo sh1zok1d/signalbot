@@ -244,19 +244,18 @@ tree `50bc810eb127ea7aea1843ef2ede0dd4fe8905d1`. Prereg SHA256
 snapshot is materialized (`FUNDING_SNAPSHOT_READY = YES`):
 `MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0` /
 `d47b7b78b6e7dbb842c7d9eb122c81063e0b804e179a53dd87723f9a8a8adc68`
-from REST JSONL `e7885cd5…`. Implementation is **complete and not
-frozen** (`IMPLEMENTATION_COMPLETE = YES`,
-`IMPLEMENTATION_FROZEN = NO`) after the F1/F2/F3/F5 outcome-blind
-repair; still not a freeze. Bound real-data execution remains
+from REST JSONL `e7885cd5…`. Implementation is **frozen**
+(`IMPLEMENTATION_FROZEN = YES`) at reviewed HEAD `03411aaa…` /
+tree `87a1da25…` after targeted re-review
+`READY_FOR_IMPLEMENTATION_FREEZE`. Bound real-data execution remains
 fail-closed. Not ARM, execution, or RESULT. Do not substitute CORE
 perpetual prices. Do not consume B2-06 as MARKET-03 funding authority.
-Do not inspect Signalbot 2025/2026 OOS. Freeze authority:
+Do not inspect Signalbot 2025/2026 OOS. Prereg freeze authority:
 `docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG_FREEZE.md`. Payload:
 `docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG.md`. Funding snapshot:
-`docs/research/MARKET_03_FUNDING_SNAPSHOT.md`. Implementation record:
-`docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION.md`.
-Repair record:
-`docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_REPAIR.md`.
+`docs/research/MARKET_03_FUNDING_SNAPSHOT.md`. Implementation freeze
+authority:
+`docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_FREEZE.md`.
 
 Post-calibration operating priority:
 
