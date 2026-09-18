@@ -21,7 +21,8 @@
     "impulse_minutes": 30,
     "state_minutes": 30,
     "outcome_minutes": 60,
-    "full_episode_minutes": 120
+    "full_episode_minutes": 120,
+    "no_lookahead": "No information from [T,T+60m] may enter eligibility, state, normalization, overlap, strata, or support decisions."
   },
   "impulse": {
     "historical_days": 30,
@@ -55,7 +56,18 @@
     "family": "STRATIFIED_TWO_GROUP_CONDITIONAL_CONTRAST",
     "parameter": "beta_confirmation",
     "h0": "beta_confirmation <= 0",
-    "h1": "beta_confirmation > 0"
+    "h1": "beta_confirmation > 0",
+    "design_matrix": "one dummy per usable stratum_id sorted lexicographically; no separate intercept; candidate_indicator last",
+    "solver": {
+      "numpy_version": "2.1.3",
+      "solve": "numpy.linalg.solve(X'X, X'y)",
+      "rank_test": "numpy.linalg.matrix_rank(X'X) == ncols",
+      "applies_to": [
+        "primary",
+        "bootstrap_replicates",
+        "LOEO"
+      ]
+    }
   },
   "bootstrap": {
     "algorithm": "Politis-Romano stationary bootstrap",
@@ -68,7 +80,10 @@
     "namespace": [
       "BOOTSTRAP",
       "PRIMARY_BETA_CONFIRMATION"
-    ]
+    ],
+    "influence_series": "z_i = x_tilde_i * (y_tilde_i - x_tilde_i * beta_hat), after within-stratum demeaning",
+    "p_value": "(1 + #{b: T*_b >= T_obs}) / 1000; T_obs=beta_hat/SE_hat; T*_b=(beta*_b-beta_hat)/SE_hat",
+    "detected_rule": "beta_hat > 0 AND p_one_sided <= 0.05"
   },
   "robustness": {
     "mode": "PRIMARY_DETECTED_ONLY_DOWNGRADE",
@@ -99,5 +114,22 @@
     "armed": false,
     "executed": false
   },
-  "next_required_step": "MARKET-02_PREREG_FREEZE"
+  "next_required_step": "MARKET-02_PREREG_FREEZE",
+  "human_readable_twin": "docs/research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_PREREG.md",
+  "authority": {
+    "scientific_authority": "human_readable_twin",
+    "json_role": "machine-readable twin/index",
+    "disagreement_policy": "FAIL_CLOSED_BLOCK_FREEZE_AND_EXECUTION",
+    "json_never_overrides_md": true
+  },
+  "overlap": {
+    "policy": "MARKET-01 exact earliest-first 120m occupancy",
+    "failed_after_occupancy_still_occupies": true
+  },
+  "missingness": {
+    "policy": "FAIL_CLOSED",
+    "redraw": false,
+    "interpolate": false,
+    "fallback_source": false
+  }
 }
