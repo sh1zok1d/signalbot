@@ -10,22 +10,14 @@ import argparse
 import sys
 
 from scripts.research.market_03_public_strategy_authority import (
-    CANONICAL_EXECUTIONS_AUTHORIZED,
-    MARKET_03_ARMED,
-    MARKET_03_BOUND_EXECUTION_AUTHORIZED,
     Market03ExecutionNotAuthorized,
     inspect_market_03_authorization_state,
-    refuse_bound_execution,
+    refuse_unarmed_canonical_execution,
 )
 
 
 def execute_bound_market_03(*_args: object, **_kwargs: object) -> None:
-    refuse_bound_execution(
-        "MARKET_03_BOUND_EXECUTION_REFUSED_IMPLEMENTATION_UNIT:"
-        f"ARMED={MARKET_03_ARMED},"
-        f"BOUND_AUTHORIZED={MARKET_03_BOUND_EXECUTION_AUTHORIZED},"
-        f"CANONICAL_AUTHORIZED={CANONICAL_EXECUTIONS_AUTHORIZED}"
-    )
+    refuse_unarmed_canonical_execution()
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -19,6 +19,7 @@ import pytest
 from scripts.research.market_03_public_strategy_authority import (
     ALLOWED_TEST_ORIGINS,
     B2_06_SNAPSHOT_ID,
+    DEGENERATE_ROW_OPEN_TIME_UTC,
     EVALUATION_END_EXCLUSIVE,
     EVALUATION_START_INCLUSIVE,
     EXTERNAL_COMMIT,
@@ -33,16 +34,21 @@ from scripts.research.market_03_public_strategy_authority import (
     MARKET_03_BOUND_EXECUTION_AUTHORIZED,
     PROTECTED_OOS_START,
     SPOT_DATA_SHA256,
+    SPOT_DATASET_ID,
+    SPOT_GAP_COUNT,
     SPOT_SNAPSHOT_ID,
     STRICT_HISTORICAL_PUBLICATION_LATENCY,
+    WARMUP_START_INCLUSIVE,
     Market03AuthorityError,
     Market03BoundDataRefused,
     Market03ExecutionNotAuthorized,
     authenticate_frozen_prereg_bytes,
+    bind_canonical_scientific_identity,
     inspect_market_03_authorization_state,
     refuse_bound_execution,
     refuse_bound_scientific_inputs,
     refuse_b2_06_as_authority,
+    refuse_unarmed_canonical_execution,
 )
 from scripts.research.market_03_public_strategy_execute import (
     execute_bound_market_03,
@@ -58,20 +64,27 @@ from scripts.research.market_03_public_strategy_lib import (
     EMA_PERIOD,
     FEE_PER_SIDE,
     FUNDING_MAX_PCT,
+    INITIAL_CAPITAL_USDT,
     STOPLOSS,
+    Trade,
     advise_signals,
     classify_primary,
     crossed_above,
     crossed_below,
     descriptive_magnitude,
     ema_exit_level,
+    evaluate_canonical_market_03_reproduction,
     evaluate_market_03_reproduction,
+    freqtrade_2026_7_wallet_points,
     funding_allows_entry,
     funding_series_from_observations,
     mdd_from_daily_equity,
     pinned_external_funding_features,
     populate_entry_trend,
     populate_indicators,
+    realized_closed_profit_abs,
+    restrict_candles_to_indicator_origin,
+    require_frozen_indicator_origin_coverage,
     risk_report,
     same_candle_exit_order,
     simulate_strategy,
@@ -880,7 +893,7 @@ def test_implementation_record_locks_scientific_file_hashes():
     assert payload["explicit_state"]["IMPLEMENTATION_FROZEN"] is False
     assert payload["explicit_state"]["MARKET_03_ARMED"] is False
     assert payload["explicit_state"]["CANONICAL_EXECUTIONS_AUTHORIZED"] == 0
-    assert payload["fidelity"]["EXACT_DIFFERENTIAL_TESTS"] is True
+    assert payload["fidelity"]["EXACT_DIFFERENTIAL_TESTS"] == "PARTIAL"
     assert payload["fidelity"]["SEMANTIC_FIXTURE_TESTS"] is True
     md = (REPO / "docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION.md").read_text(
         encoding="utf-8"
@@ -903,3 +916,474 @@ def test_frozen_interval_constants():
     assert EMA_PERIOD == 600
     assert FUNDING_MAX_PCT == 55.0
     assert STRICT_HISTORICAL_PUBLICATION_LATENCY == "UNPROVEN"
+    assert WARMUP_START_INCLUSIVE == "2019-08-07T20:00:00Z"
+    assert SPOT_GAP_COUNT == 43
+    assert DEGENERATE_ROW_OPEN_TIME_UTC == "2020-12-21T14:00:00Z"
+
+
+def _canonical_identity(**overrides):
+    payload = {
+        "external_commit": EXTERNAL_COMMIT,
+        "external_tree": EXTERNAL_TREE,
+        "spot_dataset_id": SPOT_DATASET_ID,
+        "spot_snapshot_id": SPOT_SNAPSHOT_ID,
+        "spot_data_sha256": SPOT_DATA_SHA256,
+        "funding_dataset_id": FUNDING_DATASET_ID,
+        "funding_snapshot_id": FUNDING_SNAPSHOT_ID,
+        "funding_data_sha256": FUNDING_DATA_SHA256,
+        "warmup_start_inclusive": WARMUP_START_INCLUSIVE,
+        "evaluation_start_inclusive": EVALUATION_START_INCLUSIVE,
+        "evaluation_end_exclusive": EVALUATION_END_EXCLUSIVE,
+        "spot_gap_count": SPOT_GAP_COUNT,
+        "degenerate_row_open_time_utc": DEGENERATE_ROW_OPEN_TIME_UTC,
+    }
+    payload.update(overrides)
+    return payload
+
+
+def _open_trade_fixture(amount: float = 99.0, rate: float = 100.0) -> Trade:
+    return Trade(
+        id=1,
+        open_date=pd.Timestamp("2019-10-01T01:00:00Z"),
+        open_rate=rate,
+        amount=amount,
+        stake_amount=amount * rate,
+        fee_open=amount * rate * FEE_PER_SIDE,
+        enter_tag="ema_cross_up",
+        stop_loss=rate * 0.85,
+        initial_stop_loss=rate * 0.85,
+    )
+
+
+# ---------------------------------------------------------------------------
+# F1 CLOSED: force-exit cannot double terminal equity
+# ---------------------------------------------------------------------------
+
+
+def _independent_freqtrade_2026_7_spot_equity(
+    initial: float,
+    realized: float,
+    open_trade: Trade | None,
+    btc_price: float,
+) -> tuple[float, float, float]:
+    """Inline of 2026.7 spot `_update_dry` + capture, not the lib constructor.
+
+    used_stake = 0 for a filled spot trade (unfilled entry orders only).
+    USDT.total = start + tot_profit - open stake_amount.
+    """
+    open_stake = 0.0
+    btc_total = 0.0
+    if open_trade is not None and open_trade.is_open and open_trade.amount > 0:
+        open_stake = float(open_trade.stake_amount)
+        btc_total = float(open_trade.amount)
+    usdt_total = float(initial) + float(realized) - open_stake
+    return usdt_total, btc_total * float(btc_price), usdt_total + btc_total * float(btc_price)
+
+
+def test_f1_force_exit_does_not_double_terminal_equity():
+    df = _flat_signal_frame(36)
+    df.loc[2, "enter_long"] = 1
+    sim = simulate_strategy(
+        df,
+        variant="baseline",
+        origin="handcrafted",
+        evaluation_start="2019-10-01T00:00:00Z",
+        evaluation_end="2019-10-03T00:00:00Z",
+    )
+    assert sim.force_exited is True
+    last_ts = pd.Timestamp(df.iloc[-1]["date"])
+    at_last = [w for w in sim.wallet if pd.Timestamp(w.date) == last_ts]
+    usdt_rows = [w for w in at_last if w.currency == "USDT"]
+    btc_rows = [w for w in at_last if w.currency == "BTC"]
+    assert len(usdt_rows) == 1
+    assert len(btc_rows) == 1
+    last_equity = float(sim.daily_equity.iloc[-1])
+    expected = usdt_rows[0].total_quote + btc_rows[0].total_quote
+    assert last_equity == pytest.approx(expected)
+    trade = sim.trades[0]
+    _, _, pinned_equity = _independent_freqtrade_2026_7_spot_equity(
+        10000.0, 0.0, _open_trade_fixture(trade.amount, trade.open_rate), 100.0
+    )
+    # Filled-spot open-position object: USDT leftover-of-stake + BTC MTM = 10000,
+    # not start+stake still inside USDT (19900) and not the pre-repair
+    # leftover-cash + BTC + post-exit cash ≈ 19970.
+    assert last_equity == pytest.approx(pinned_equity)
+    assert last_equity == pytest.approx(10000.0)
+    assert last_equity != pytest.approx(19900.0, abs=1.0)
+    assert last_equity != pytest.approx(19970.3, abs=1.0)
+
+
+def test_f1_declining_open_position_has_no_fake_final_recovery():
+    n = 24 * 5
+    close = np.linspace(100.0, 86.0, n)
+    df = _hourly("2019-10-01T00:00:00Z", n, close)
+    df["high"] = df["open"]
+    df["low"] = df["open"]
+    df["ema"] = 1.0
+    df["ema_exit"] = 0.98
+    df["enter_long"] = 0
+    df["exit_long"] = 0
+    df["enter_tag"] = None
+    df["exit_tag"] = None
+    df.loc[2, "enter_long"] = 1
+    sim = simulate_strategy(
+        df,
+        variant="baseline",
+        origin="handcrafted",
+        evaluation_start="2019-10-01T00:00:00Z",
+        evaluation_end="2019-10-06T00:00:00Z",
+    )
+    assert sim.force_exited is True
+    eq = sim.daily_equity.to_numpy(dtype=float)
+    assert len(eq) >= 2
+    assert eq[-1] < eq[-2]
+    last_ts = pd.Timestamp(df.iloc[-1]["date"])
+    assert sum(1 for w in sim.wallet if pd.Timestamp(w.date) == last_ts and w.currency == "USDT") == 1
+
+
+# ---------------------------------------------------------------------------
+# F2 CLOSED: pre-warmup history cannot seed EMA/signals
+# ---------------------------------------------------------------------------
+
+
+def test_f2_pre_warmup_history_cannot_change_canonical_ema_or_signals():
+    origin = pd.Timestamp(WARMUP_START_INCLUSIVE)
+    n = 700
+    post_close = 10000.0 + np.cumsum(np.random.default_rng(2).normal(0.0, 15.0, size=n))
+    dates_a = pd.date_range(origin, periods=n, freq="h", tz="UTC")
+    frame_a = pd.DataFrame(
+        {
+            "date": dates_a,
+            "open": post_close,
+            "high": post_close + 1.0,
+            "low": post_close - 1.0,
+            "close": post_close,
+            "volume": np.ones(n),
+        }
+    )
+    extra = 164
+    pre_close = 8000.0 + np.cumsum(np.random.default_rng(3).normal(0.0, 40.0, size=extra))
+    pre_dates = pd.date_range(origin - pd.Timedelta(hours=extra), periods=extra, freq="h", tz="UTC")
+    frame_b = pd.concat(
+        [
+            pd.DataFrame(
+                {
+                    "date": pre_dates,
+                    "open": pre_close,
+                    "high": pre_close + 1.0,
+                    "low": pre_close - 1.0,
+                    "close": pre_close,
+                    "volume": np.ones(extra),
+                }
+            ),
+            frame_a,
+        ],
+        ignore_index=True,
+    )
+    sliced_b = restrict_candles_to_indicator_origin(frame_b)
+    assert sliced_b["date"].iloc[0] == origin
+    assert len(sliced_b) == len(frame_a)
+    np.testing.assert_allclose(sliced_b["close"].to_numpy(), frame_a["close"].to_numpy())
+    ema_a = populate_indicators(frame_a)["ema"].to_numpy()
+    ema_b = populate_indicators(frame_b)["ema"].to_numpy()
+    np.testing.assert_allclose(ema_a, ema_b, equal_nan=True)
+    sig_a = advise_signals(frame_a, "baseline")
+    sig_b = advise_signals(frame_b, "baseline")
+    np.testing.assert_array_equal(sig_a["enter_long"].to_numpy(), sig_b["enter_long"].to_numpy())
+    np.testing.assert_array_equal(sig_a["exit_long"].to_numpy(), sig_b["exit_long"].to_numpy())
+    require_frozen_indicator_origin_coverage(restrict_candles_to_indicator_origin(frame_a))
+    with pytest.raises(Market03AuthorityError, match="INDICATOR_ORIGIN_MISMATCH"):
+        require_frozen_indicator_origin_coverage(_hourly("2019-10-01T00:00:00Z", 8))
+
+
+def test_f2_restrict_does_not_compute_ema_on_dropped_prefix():
+    origin = pd.Timestamp(WARMUP_START_INCLUSIVE)
+    extra = pd.DataFrame(
+        {
+            "date": pd.date_range(origin - pd.Timedelta(hours=10), periods=10, freq="h", tz="UTC"),
+            "open": np.arange(10.0),
+            "high": np.arange(10.0) + 1,
+            "low": np.arange(10.0),
+            "close": np.arange(10.0),
+            "volume": np.ones(10),
+        }
+    )
+    body = _hourly(WARMUP_START_INCLUSIVE, 20, np.full(20, 50.0))
+    combined = pd.concat([extra, body], ignore_index=True)
+    sliced = restrict_candles_to_indicator_origin(combined)
+    assert sliced["close"].iloc[0] == pytest.approx(50.0)
+    assert sliced["date"].min() == origin
+    with pytest.raises(Market03AuthorityError, match="INDICATOR_ORIGIN_EMPTY"):
+        restrict_candles_to_indicator_origin(extra)
+
+
+# ---------------------------------------------------------------------------
+# F3 CLOSED: open-position wallet matches pinned Freqtrade 2026.7 totals
+# ---------------------------------------------------------------------------
+
+
+def test_f3_wallet_composition_no_position_after_entry_profit_loss_close_force_exit():
+    ts = pd.Timestamp("2019-10-01T03:00:00Z")
+    # 1. no position
+    flat = freqtrade_2026_7_wallet_points(
+        ts, initial_capital=10000.0, realized_profit_abs=0.0, open_trade=None, btc_price=100.0
+    )
+    assert [w.currency for w in flat] == ["USDT"]
+    assert flat[0].total == pytest.approx(10000.0)
+    usdt, btc_q, eq = _independent_freqtrade_2026_7_spot_equity(10000.0, 0.0, None, 100.0)
+    assert flat[0].total == pytest.approx(usdt)
+    assert eq == pytest.approx(10000.0)
+
+    trade = _open_trade_fixture(99.0, 100.0)
+    # 2. immediately after entry (next-candle capture; fill candle is pre-entry)
+    after_entry = freqtrade_2026_7_wallet_points(
+        ts, initial_capital=10000.0, realized_profit_abs=0.0, open_trade=trade, btc_price=100.0
+    )
+    usdt, btc_q, eq = _independent_freqtrade_2026_7_spot_equity(10000.0, 0.0, trade, 100.0)
+    assert [w.currency for w in after_entry] == ["USDT", "BTC"]
+    assert after_entry[0].total == pytest.approx(100.0)
+    assert after_entry[0].total == pytest.approx(usdt)
+    assert after_entry[1].total_quote == pytest.approx(9900.0)
+    assert after_entry[1].total_quote == pytest.approx(btc_q)
+    assert sum(w.total_quote for w in after_entry) == pytest.approx(10000.0)
+    assert sum(w.total_quote for w in after_entry) == pytest.approx(eq)
+    leftover_cash = 10000.0 - 9900.0 - 99.0 * 100.0 * FEE_PER_SIDE
+    assert after_entry[0].total != pytest.approx(leftover_cash)
+
+    # 3. profitable open position
+    profit = freqtrade_2026_7_wallet_points(
+        ts, initial_capital=10000.0, realized_profit_abs=0.0, open_trade=trade, btc_price=200.0
+    )
+    _, _, eq = _independent_freqtrade_2026_7_spot_equity(10000.0, 0.0, trade, 200.0)
+    assert sum(w.total_quote for w in profit) == pytest.approx(100.0 + 99.0 * 200.0)
+    assert sum(w.total_quote for w in profit) == pytest.approx(eq)
+
+    # 4. losing open position
+    loss = freqtrade_2026_7_wallet_points(
+        ts, initial_capital=10000.0, realized_profit_abs=0.0, open_trade=trade, btc_price=50.0
+    )
+    _, _, eq = _independent_freqtrade_2026_7_spot_equity(10000.0, 0.0, trade, 50.0)
+    assert sum(w.total_quote for w in loss) == pytest.approx(100.0 + 99.0 * 50.0)
+    assert sum(w.total_quote for w in loss) == pytest.approx(eq)
+
+    # 5. after closed round-trip: USDT.total = start + profit_abs, no BTC
+    closed = Trade(
+        id=2,
+        open_date=pd.Timestamp("2019-10-01T01:00:00Z"),
+        open_rate=100.0,
+        amount=99.0,
+        stake_amount=9900.0,
+        fee_open=9.9,
+        enter_tag="ema_cross_up",
+        stop_loss=85.0,
+        initial_stop_loss=85.0,
+        close_date=pd.Timestamp("2019-10-01T05:00:00Z"),
+        close_rate=100.0,
+        fee_close=9.9,
+        exit_reason="exit_signal",
+        is_open=False,
+    )
+    realized = realized_closed_profit_abs([closed])
+    after_close = freqtrade_2026_7_wallet_points(
+        ts,
+        initial_capital=10000.0,
+        realized_profit_abs=realized,
+        open_trade=None,
+        btc_price=100.0,
+    )
+    assert [w.currency for w in after_close] == ["USDT"]
+    assert after_close[0].total == pytest.approx(10000.0 + realized)
+
+    # 6. force-exit at end: last capture remains open-position composition
+    df = _flat_signal_frame(12)
+    df.loc[2, "enter_long"] = 1
+    sim = simulate_strategy(
+        df,
+        variant="baseline",
+        origin="handcrafted",
+        evaluation_start="2019-10-01T00:00:00Z",
+        evaluation_end="2019-10-02T00:00:00Z",
+    )
+    assert sim.force_exited is True
+    last_ts = pd.Timestamp(df.iloc[-1]["date"])
+    at_last = [w for w in sim.wallet if pd.Timestamp(w.date) == last_ts]
+    assert {w.currency for w in at_last} == {"USDT", "BTC"}
+    assert sum(w.total_quote for w in at_last) == pytest.approx(10000.0)
+
+
+def test_f3_simulate_matches_independent_freqtrade_wallet_formula_on_open_and_close():
+    df = _flat_signal_frame(16)
+    df.loc[2, "enter_long"] = 1
+    df.loc[8, "exit_long"] = 1
+    sim = simulate_strategy(
+        df,
+        variant="baseline",
+        origin="handcrafted",
+        evaluation_start="2019-10-01T00:00:00Z",
+        evaluation_end="2019-10-02T00:00:00Z",
+        initial_capital=INITIAL_CAPITAL_USDT,
+    )
+    trade = sim.trades[0]
+    fill_ts = trade.open_date
+    # Capture at fill timestamp is before the entry order.
+    at_fill = [w for w in sim.wallet if pd.Timestamp(w.date) == fill_ts]
+    assert [w.currency for w in at_fill] == ["USDT"]
+    assert at_fill[0].total == pytest.approx(10000.0)
+    next_ts = fill_ts + pd.Timedelta(hours=1)
+    at_next = [w for w in sim.wallet if pd.Timestamp(w.date) == next_ts]
+    usdt, btc_q, eq = _independent_freqtrade_2026_7_spot_equity(
+        10000.0, 0.0, _open_trade_fixture(trade.amount, trade.open_rate), 100.0
+    )
+    assert [w.currency for w in at_next] == ["USDT", "BTC"]
+    assert at_next[0].total == pytest.approx(usdt)
+    assert at_next[1].total_quote == pytest.approx(btc_q)
+    assert sum(w.total_quote for w in at_next) == pytest.approx(eq)
+    # First capture after the close candle should drop BTC and include realized PnL.
+    close_ts = trade.close_date
+    after_close_ts = close_ts + pd.Timedelta(hours=1)
+    at_after = [w for w in sim.wallet if pd.Timestamp(w.date) == after_close_ts]
+    assert [w.currency for w in at_after] == ["USDT"]
+    assert at_after[0].total == pytest.approx(10000.0 + float(trade.profit_abs))
+
+
+# ---------------------------------------------------------------------------
+# Pipeline: wallet → daily aggregation → metrics.py MDD → signed compare
+# ---------------------------------------------------------------------------
+
+
+def test_pipeline_wallet_to_signed_mdd_no_same_day_duplication():
+    idx = pd.date_range("2019-10-01T00:00:00Z", periods=8, freq="h", tz="UTC")
+    from scripts.research.market_03_public_strategy_lib import WalletPoint
+
+    # Multiple captures in one day: last timestamp of the day wins after sum-per-ts.
+    points = [
+        WalletPoint(date=idx[0], currency="USDT", price=1.0, total=10000.0),
+        WalletPoint(date=idx[1], currency="USDT", price=1.0, total=10000.0),
+        WalletPoint(date=idx[1], currency="BTC", price=100.0, total=99.0),
+        WalletPoint(date=idx[7], currency="USDT", price=1.0, total=10000.0),
+        WalletPoint(date=idx[7], currency="BTC", price=90.0, total=99.0),
+    ]
+    eq = wallet_to_daily_equity(points)
+    assert eq.loc["2019-10-01"].item() == pytest.approx(10000.0 + 99.0 * 90.0)
+
+    gain = pd.Series(np.linspace(100.0, 200.0, 10), index=pd.date_range("2019-10-01", periods=10, freq="D", tz="UTC"))
+    loss = pd.Series(np.linspace(200.0, 100.0, 10), index=gain.index)
+    recover = pd.Series([100.0, 150.0, 80.0, 120.0], index=pd.date_range("2019-10-01", periods=4, freq="D", tz="UTC"))
+    pinned = _load_pinned_metrics()
+    assert mdd_from_daily_equity(gain) == pytest.approx(pinned.risk_report(gain.pct_change().dropna())["Max drawdown"])
+    assert mdd_from_daily_equity(loss) == pytest.approx(pinned.risk_report(loss.pct_change().dropna())["Max drawdown"])
+    assert mdd_from_daily_equity(recover) == pytest.approx(
+        pinned.risk_report(recover.pct_change().dropna())["Max drawdown"]
+    )
+    assert classify_primary(-0.338, -0.494) == CLASS_REPRODUCED_DIRECTION
+    assert classify_primary(-0.494, -0.338) == CLASS_NOT_REPRODUCED_DIRECTION
+
+    # Open losing position through force-exit: last day is not a jump recovery.
+    n = 48
+    close = np.linspace(100.0, 90.0, n)
+    df = _hourly("2019-10-01T00:00:00Z", n, close)
+    df["high"] = df["open"]
+    df["low"] = df["open"]
+    df["ema"] = 1.0
+    df["ema_exit"] = 0.98
+    df["enter_long"] = 0
+    df["exit_long"] = 0
+    df["enter_tag"] = None
+    df["exit_tag"] = None
+    df.loc[2, "enter_long"] = 1
+    sim = simulate_strategy(
+        df,
+        variant="baseline",
+        origin="handcrafted",
+        evaluation_start="2019-10-01T00:00:00Z",
+        evaluation_end="2019-10-03T00:00:00Z",
+    )
+    assert sim.force_exited is True
+    assert float(sim.daily_equity.iloc[-1]) <= float(sim.daily_equity.iloc[0]) + 1e-9
+    mdd = mdd_from_daily_equity(sim.daily_equity)
+    if mdd is not None:
+        assert mdd <= 0.0
+
+
+# ---------------------------------------------------------------------------
+# F5 CLOSED: canonical path rejects incomplete/wrong identity and stays unarmed
+# ---------------------------------------------------------------------------
+
+
+def test_f5_canonical_path_requires_complete_identity_and_stays_unarmed():
+    incomplete = evaluate_canonical_market_03_reproduction()
+    assert incomplete["primary_classification"] == CLASS_EXECUTION_INVALID
+    assert "CANONICAL_AUTHORITY_INCOMPLETE" in (incomplete["invalid_reason"] or "")
+
+    wrong = evaluate_canonical_market_03_reproduction(**_canonical_identity(external_commit="deadbeef"))
+    assert wrong["primary_classification"] == CLASS_EXECUTION_INVALID
+    assert "EXTERNAL_COMMIT_MISMATCH" in (wrong["invalid_reason"] or "")
+
+    b2 = evaluate_canonical_market_03_reproduction(
+        **_canonical_identity(funding_snapshot_id=B2_06_SNAPSHOT_ID)
+    )
+    assert b2["primary_classification"] == CLASS_EXECUTION_INVALID
+    assert "B2_06" in (b2["invalid_reason"] or "")
+
+    interval = evaluate_canonical_market_03_reproduction(
+        **_canonical_identity(evaluation_end_exclusive="2026-01-01T00:00:00Z")
+    )
+    assert interval["primary_classification"] == CLASS_EXECUTION_INVALID
+    assert "EVALUATION_INTERVAL_MISMATCH" in (interval["invalid_reason"] or "")
+
+    warmup = evaluate_canonical_market_03_reproduction(
+        **_canonical_identity(warmup_start_inclusive="2019-08-01T00:00:00Z")
+    )
+    assert warmup["primary_classification"] == CLASS_EXECUTION_INVALID
+    assert "WARMUP_INTERVAL_MISMATCH" in (warmup["invalid_reason"] or "")
+
+    sha = evaluate_canonical_market_03_reproduction(
+        **_canonical_identity(spot_data_sha256="0" * 64)
+    )
+    assert sha["primary_classification"] == CLASS_EXECUTION_INVALID
+    assert "SPOT_DATA_SHA256_MISMATCH" in (sha["invalid_reason"] or "")
+
+    fund_sha = evaluate_canonical_market_03_reproduction(
+        **_canonical_identity(funding_data_sha256="0" * 64)
+    )
+    assert fund_sha["primary_classification"] == CLASS_EXECUTION_INVALID
+    assert "FUNDING_DATA_SHA256_MISMATCH" in (fund_sha["invalid_reason"] or "")
+
+    gaps = evaluate_canonical_market_03_reproduction(
+        **_canonical_identity(spot_gap_count=0)
+    )
+    assert gaps["primary_classification"] == CLASS_EXECUTION_INVALID
+    assert "SPOT_GAP_POLICY_MISMATCH" in (gaps["invalid_reason"] or "")
+
+    degenerate = evaluate_canonical_market_03_reproduction(
+        **_canonical_identity(degenerate_row_open_time_utc="2020-01-01T00:00:00Z")
+    )
+    assert degenerate["primary_classification"] == CLASS_EXECUTION_INVALID
+    assert "DEGENERATE_ROW_MISMATCH" in (degenerate["invalid_reason"] or "")
+
+    oos = evaluate_canonical_market_03_reproduction(
+        **_canonical_identity(evaluation_end_exclusive="2025-06-01T00:00:00Z")
+    )
+    assert oos["primary_classification"] == CLASS_EXECUTION_INVALID
+    assert "EVALUATION_INTERVAL_MISMATCH" in (oos["invalid_reason"] or "")
+
+    ok_identity = evaluate_canonical_market_03_reproduction(**_canonical_identity())
+    assert ok_identity["primary_classification"] == CLASS_EXECUTION_INVALID
+    assert "CANONICAL_PATH_NOT_ARMED" in (ok_identity["invalid_reason"] or "")
+    assert ok_identity["mdd_baseline"] is None
+
+    with pytest.raises(Market03BoundDataRefused):
+        evaluate_canonical_market_03_reproduction(
+            **_canonical_identity(),
+            candles=_hourly("2019-10-01T00:00:00Z", 4),
+        )
+
+
+def test_f5_bind_canonical_identity_direct():
+    bind_canonical_scientific_identity(**_canonical_identity())
+    with pytest.raises(Market03AuthorityError, match="INCOMPLETE"):
+        bind_canonical_scientific_identity(
+            **_canonical_identity(spot_snapshot_id=None)
+        )
+    with pytest.raises(Market03ExecutionNotAuthorized, match="NOT_ARMED"):
+        refuse_unarmed_canonical_execution()

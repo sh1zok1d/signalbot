@@ -3398,3 +3398,39 @@ Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION.md`.
 - funding_snapshot_changed: **false**
 
 - next required step: `MARKET_03_IMPLEMENTATION_FREEZE_IF_AUTHORIZED` (not ARM, not execution)
+
+## 2026-09-18 — MARKET-03 implementation repair (not freeze, not ARM, not execution)
+
+Outcome-blind repair of red-team `B. REPAIR_REQUIRED` on HEAD
+`cada1bef…` / tree `95a6f7de…`.
+
+```text
+F1_CLOSED = YES  force-exit no longer appends a second same-timestamp capture
+F2_CLOSED = YES  EMA/signals restricted to warmup 2019-08-07T20:00:00Z
+F3_CLOSED = YES  USDT.total = start + closed profit_abs - open stake (spot)
+F5_CLOSED = YES  canonical path requires full identity then refuses unarmed
+EXACT_DIFFERENTIAL_TESTS = PARTIAL
+LIB_SHA256       = 46ec2449e967172b61eec32f5ab6caf897ff9db04249395ac55a2368840289a5
+AUTHORITY_SHA256 = 97f000c6afc2427db9fe3f90548f77c7e7ab4da0e43ba3283159101565a305e4
+EXECUTE_SHA256   = 90fd315d926b2b957391ed31c71bff6a33b0f22257960d0779e27e277cb40bcf
+```
+
+Prereg, spot snapshot, and funding snapshot unchanged. Bound real
+OHLCV/funding not loaded into strategy logic.
+
+Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_REPAIR.md`.
+
+- implementation_complete: **true**
+- implementation_frozen: **false**
+- market_03_armed: **false**
+- market_03_executed: **false**
+- market_03_outcome_inspected: **false**
+- market_03_parameter_search: **false**
+- canonical_executions_authorized: **0**
+- canonical_executions_consumed: **0**
+- protected_oos_touched: **false**
+- prereg_changed: **false**
+- spot_snapshot_changed: **false**
+- funding_snapshot_changed: **false**
+
+- next required step: `MARKET_03_IMPLEMENTATION_RE_REVIEW_THEN_FREEZE_IF_AUTHORIZED` (not ARM, not execution)

@@ -22,12 +22,16 @@ from scripts.research.market_03_public_strategy_authority import (
     EVALUATION_END_EXCLUSIVE,
     EVALUATION_START_INCLUSIVE,
     PROTECTED_OOS_START,
+    STARTUP_CANDLE_COUNT as AUTHORITY_STARTUP_CANDLE_COUNT,
     STRICT_HISTORICAL_PUBLICATION_LATENCY,
+    WARMUP_START_INCLUSIVE,
     Market03AuthorityError,
     Market03BoundDataRefused,
     Market03ExecutionNotAuthorized,
     authenticate_frozen_prereg_bytes,
+    bind_canonical_scientific_identity,
     refuse_bound_scientific_inputs,
+    refuse_unarmed_canonical_execution,
     require_external_source_identity,
 )
 
@@ -44,7 +48,7 @@ TRAILING_STOP_POSITIVE_OFFSET = 0.0
 TRAILING_ONLY_OFFSET_IS_REACHED = False
 MINIMAL_ROI = {"0": 10.0}
 ROI_EFFECTIVELY_INACTIVE = True
-STARTUP_CANDLE_COUNT = 1300
+STARTUP_CANDLE_COUNT = AUTHORITY_STARTUP_CANDLE_COUNT
 MAX_OPEN_TRADES = 1
 CAN_SHORT = False
 FEE_PER_SIDE = 0.001
@@ -209,6 +213,40 @@ def funding_allows_entry(funding_pct: float | np.floating | None, threshold: flo
     return float(funding_pct) < float(threshold)
 
 
+def _as_utc_timestamp(value: Any) -> pd.Timestamp:
+    ts = pd.Timestamp(value)
+    if ts.tzinfo is None:
+        return ts.tz_localize("UTC")
+    return ts.tz_convert("UTC")
+
+
+def restrict_candles_to_indicator_origin(candles: pd.DataFrame) -> pd.DataFrame:
+    """F2: drop bars strictly before frozen warmup start *before* EMA.
+
+    Does not synthesize missing hours. Does not repair the degenerate row.
+    Pre-warmup history cannot seed TA-Lib SMA-seed EMA or funding rolls.
+    """
+    if candles is None or len(candles) == 0:
+        raise Market03AuthorityError("MARKET_03_INDICATOR_ORIGIN_EMPTY")
+    out = candles.copy()
+    out["date"] = pd.to_datetime(out["date"], utc=True)
+    origin = _as_utc_timestamp(WARMUP_START_INCLUSIVE)
+    sliced = out.loc[out["date"] >= origin].reset_index(drop=True)
+    if sliced.empty:
+        raise Market03AuthorityError("MARKET_03_INDICATOR_ORIGIN_EMPTY")
+    return sliced
+
+
+def require_frozen_indicator_origin_coverage(candles: pd.DataFrame) -> None:
+    """Canonical coverage: first remaining bar must be exactly warmup start."""
+    if candles is None or len(candles) == 0:
+        raise Market03AuthorityError("MARKET_03_INDICATOR_ORIGIN_EMPTY")
+    first = _as_utc_timestamp(pd.to_datetime(candles["date"], utc=True).iloc[0])
+    origin = _as_utc_timestamp(WARMUP_START_INCLUSIVE)
+    if first != origin:
+        raise Market03AuthorityError("MARKET_03_INDICATOR_ORIGIN_MISMATCH")
+
+
 # ---------------------------------------------------------------------------
 # Signal generation
 # ---------------------------------------------------------------------------
@@ -227,9 +265,11 @@ def populate_indicators(
     `candles` must contain date, open, high, low, close, volume. Missing
     native hours must already be omitted. Degenerate volume=0 rows are
     retained unrepaired.
+
+    F2: pre-warmup rows are dropped *before* EMA/funding/signal work.
+    EMA is never computed on bars before WARMUP_START_INCLUSIVE.
     """
-    out = candles.copy()
-    out["date"] = pd.to_datetime(out["date"], utc=True)
+    out = restrict_candles_to_indicator_origin(candles)
     out["ema"] = talib_ema(np.asarray(out["close"], dtype=np.float64), ema_period)
     out["ema_exit"] = ema_exit_level(out["ema"], exit_threshold_pct)
     if include_funding:
@@ -474,10 +514,99 @@ def _close_trade(trade: Trade, close_date: pd.Timestamp, close_rate: float, reas
     return cash + proceeds
 
 
-def _capture(wallet: list[WalletPoint], ts: pd.Timestamp, cash: float, trade: Trade | None, price: float) -> None:
-    wallet.append(WalletPoint(date=ts, currency="USDT", price=1.0, total=cash))
-    if trade is not None and trade.is_open and trade.amount > 0:
-        wallet.append(WalletPoint(date=ts, currency="BTC", price=price, total=trade.amount))
+def realized_closed_profit_abs(closed_trades: Sequence[Trade]) -> float:
+    """Sum of Freqtrade-style profit_abs on fully closed trades."""
+    total = 0.0
+    for trade in closed_trades:
+        value = trade.profit_abs
+        if value is None:
+            continue
+        total += float(value)
+    return total
+
+
+def freqtrade_2026_7_wallet_points(
+    ts: pd.Timestamp,
+    *,
+    initial_capital: float,
+    realized_profit_abs: float,
+    open_trade: Trade | None,
+    btc_price: float,
+) -> list[WalletPoint]:
+    """Pinned Freqtrade 2026.7 backtest wallet capture identity.
+
+    Independently re-checked against freqtrade tag `2026.7`
+    `Wallets._update_dry` and `Backtesting._capture_wallet` /
+    `handle_left_open`. MARKET-03 config is spot (`trading_mode=spot`).
+
+    Spot `_update_dry` (filled trade, no unfilled entry orders):
+
+        tot_profit    = LocalTrade.bt_total_profit
+                      + sum(open_trade.realized_profit)   # 0 without partials
+        tot_in_trades = sum(open_trade.stake_amount)
+        used_stake    = sum(unfilled *entry* order stakes)  # 0 once filled
+        current_stake = start_cap + tot_profit - tot_in_trades
+        USDT.total    = current_stake + used_stake
+                      = start_cap + tot_profit - tot_in_trades
+        BTC.total     = trade.amount   (start_cap BTC is 0)
+
+    Futures assigns `used_stake = tot_in_trades`, which would put tied-up
+    stake back into USDT.total. That branch is not MARKET-03.
+
+    USDT.total is therefore **not** leftover cash after entry fee (fees
+    enter tot_profit only when the trade closes) and **not** start+profit
+    with stake still inside the USDT total.
+
+    Capture (`_capture_wallet`): append `(ts, currency, price, get_total)`
+    only if get_total is truthy. Backtest loop captures USDT at price 1
+    and the pair base at candle open **before** that candle's orders.
+    `handle_left_open` force-exits then `wallets.update()` and does **not**
+    append another wallet_captures row.
+
+    Author `research/results.py`:
+      groupby(date).sum(total_quote) → resample('D').last().ffill()
+    """
+    open_stake = 0.0
+    open_amount = 0.0
+    if open_trade is not None and open_trade.is_open and open_trade.amount > 0:
+        open_stake = float(open_trade.stake_amount)
+        open_amount = float(open_trade.amount)
+    # Filled spot: used_stake of unfilled entry orders is 0.
+    usdt_total = float(initial_capital) + float(realized_profit_abs) - open_stake
+    points: list[WalletPoint] = []
+    if usdt_total:
+        points.append(WalletPoint(date=ts, currency="USDT", price=1.0, total=usdt_total))
+    if open_amount:
+        points.append(
+            WalletPoint(
+                date=ts,
+                currency="BTC",
+                price=float(btc_price),
+                total=open_amount,
+            )
+        )
+    return points
+
+
+def _capture(
+    wallet: list[WalletPoint],
+    ts: pd.Timestamp,
+    *,
+    initial_capital: float,
+    realized_profit_abs: float,
+    open_trade: Trade | None,
+    btc_price: float,
+) -> None:
+    """Append the Freqtrade wallet state at `ts`. Never called twice for one ts."""
+    wallet.extend(
+        freqtrade_2026_7_wallet_points(
+            ts,
+            initial_capital=initial_capital,
+            realized_profit_abs=realized_profit_abs,
+            open_trade=open_trade,
+            btc_price=btc_price,
+        )
+    )
 
 
 def wallet_to_daily_equity(wallet: Sequence[WalletPoint]) -> pd.Series:
@@ -581,6 +710,12 @@ def simulate_strategy(
     Same-candle order: exit_signal → stoploss → ROI → trailing.
     No shorts. max_open_trades=1. Last-row entries are refused; leftover
     positions force_exit at last in-interval candle open.
+
+    Wallet captures follow Freqtrade 2026.7 spot `_update_dry`: one
+    capture at each candle open before orders. USDT.total = start +
+    realized closed profit_abs − open stake_amount (filled-spot
+    used_stake of unfilled entries is 0). BTC.total = amount while
+    open. Force-exit does not append a second capture.
     """
     if CAN_SHORT:
         raise Market03AuthorityError("MARKET_03_SHORTS_MUST_REMAIN_DISABLED")
@@ -606,13 +741,21 @@ def simulate_strategy(
     wallet: list[WalletPoint] = []
     trade_id = 0
     force_exited = False
+    realized = 0.0
     n_rows = len(shifted)
     for i, row in shifted.iterrows():
         ts = pd.Timestamp(row["date"])
         is_last = i == n_rows - 1
         in_eval = eval_start <= ts < eval_end
         # Wallet capture at candle open, before this candle's orders (Freqtrade).
-        _capture(wallet, ts, cash, open_trade, float(row["open"]))
+        _capture(
+            wallet,
+            ts,
+            initial_capital=initial_capital,
+            realized_profit_abs=realized,
+            open_trade=open_trade,
+            btc_price=float(row["open"]),
+        )
 
         enter_flag = int(row["enter_long"]) == 1
         exit_flag = int(row["exit_long"]) == 1
@@ -650,6 +793,7 @@ def simulate_strategy(
             if exits:
                 reason, rate = exits[0]
                 cash = _close_trade(open_trade, ts, rate, reason, cash)
+                realized += float(open_trade.profit_abs or 0.0)
                 trades.append(open_trade)
                 open_trade = None
 
@@ -662,7 +806,9 @@ def simulate_strategy(
         trades.append(open_trade)
         open_trade = None
         force_exited = True
-        _capture(wallet, last_ts, cash, None, 1.0)
+        # F1: Freqtrade handle_left_open updates live wallets but does NOT
+        # append another wallet_captures row. The last capture remains the
+        # pre-force-exit open-position state taken at last-candle open.
 
     equity_all = wallet_to_daily_equity(wallet)
     if equity_all.empty:
@@ -817,6 +963,70 @@ def evaluate_market_03_reproduction(
             "STRICT_HISTORICAL_PUBLICATION_LATENCY": STRICT_HISTORICAL_PUBLICATION_LATENCY,
             "origin": origin,
         }
+
+
+def evaluate_canonical_market_03_reproduction(
+    *,
+    external_commit: str | None = None,
+    external_tree: str | None = None,
+    spot_dataset_id: str | None = None,
+    spot_snapshot_id: str | None = None,
+    spot_data_sha256: str | None = None,
+    funding_dataset_id: str | None = None,
+    funding_snapshot_id: str | None = None,
+    funding_data_sha256: str | None = None,
+    warmup_start_inclusive: str | None = None,
+    evaluation_start_inclusive: str | None = None,
+    evaluation_end_exclusive: str | None = None,
+    spot_gap_count: int | None = None,
+    degenerate_row_open_time_utc: str | None = None,
+    candles: pd.DataFrame | None = None,
+    funding: pd.Series | None = None,
+) -> dict[str, Any]:
+    """Canonical bound-identity path. Separate from synthetic evaluate_*.
+
+    F5: requires exact prereg/source/snapshot/interval/gap identity, then
+    refuses execution while this unit remains unarmed. Never loads bound
+    OHLCV or funding into simulate_strategy.
+    """
+    if candles is not None or funding is not None:
+        raise Market03BoundDataRefused("MARKET_03_CANONICAL_PATH_MUST_NOT_RECEIVE_SERIES")
+    try:
+        bind_canonical_scientific_identity(
+            external_commit=external_commit,
+            external_tree=external_tree,
+            spot_dataset_id=spot_dataset_id,
+            spot_snapshot_id=spot_snapshot_id,
+            spot_data_sha256=spot_data_sha256,
+            funding_dataset_id=funding_dataset_id,
+            funding_snapshot_id=funding_snapshot_id,
+            funding_data_sha256=funding_data_sha256,
+            warmup_start_inclusive=warmup_start_inclusive,
+            evaluation_start_inclusive=evaluation_start_inclusive,
+            evaluation_end_exclusive=evaluation_end_exclusive,
+            spot_gap_count=spot_gap_count,
+            degenerate_row_open_time_utc=degenerate_row_open_time_utc,
+        )
+        refuse_unarmed_canonical_execution()
+    except (Market03AuthorityError, Market03BoundDataRefused, Market03ExecutionNotAuthorized) as exc:
+        return {
+            "primary_classification": CLASS_EXECUTION_INVALID,
+            "invalid_reason": str(exc),
+            "mdd_baseline": None,
+            "mdd_filtered": None,
+            "magnitude_descriptive": None,
+            "replication_level": "LEVEL_2_FAITHFUL_REIMPLEMENTATION",
+            "origin": "canonical",
+        }
+    return {
+        "primary_classification": CLASS_EXECUTION_INVALID,
+        "invalid_reason": "MARKET_03_CANONICAL_PATH_NOT_ARMED",
+        "mdd_baseline": None,
+        "mdd_filtered": None,
+        "magnitude_descriptive": None,
+        "replication_level": "LEVEL_2_FAITHFUL_REIMPLEMENTATION",
+        "origin": "canonical",
+    }
 
 
 def same_candle_exit_order() -> tuple[str, ...]:

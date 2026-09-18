@@ -101,9 +101,9 @@ is `force_exit`ed on the last in-interval candle open, without reading
 
 | File | Role | SHA256 |
 |---|---|---|
-| `scripts/research/market_03_public_strategy_lib.py` | Scientific core (indicators, funding, signals, sim, MDD, classification) | `3e69943368b72d37067a55ce93c0999e4688887a8b89d07ab2008ea0901d3b79` |
-| `scripts/research/market_03_public_strategy_authority.py` | Frozen identity + fail-closed bound-data guard | `d828af5cbbf9810ccf79a16d0582ec450c8db88a958cfc5d7282cc685e43023d` |
-| `scripts/research/market_03_public_strategy_execute.py` | Bound-execution stub (always refuses) | `4e54b5d6759e5d2d8f53de1401de9bdc8c59da0bd557cab226ca9ab7af382a1b` |
+| `scripts/research/market_03_public_strategy_lib.py` | Scientific core (indicators, funding, signals, sim, MDD, classification) | `46ec2449e967172b61eec32f5ab6caf897ff9db04249395ac55a2368840289a5` |
+| `scripts/research/market_03_public_strategy_authority.py` | Frozen identity + fail-closed bound-data guard | `97f000c6afc2427db9fe3f90548f77c7e7ab4da0e43ba3283159101565a305e4` |
+| `scripts/research/market_03_public_strategy_execute.py` | Bound-execution stub (always refuses) | `90fd315d926b2b957391ed31c71bff6a33b0f22257960d0779e27e277cb40bcf` |
 | `tests/research/test_market_03_public_strategy_implementation.py` | Synthetic / fixture / handcrafted tests | recorded in JSON after the hash-lock test |
 
 Scientific functions are separable from ARM, reservation, result
@@ -116,19 +116,16 @@ persistence, CLI execution, and bound dataset loading.
 `LEVEL_2_FAITHFUL_REIMPLEMENTATION`. Exact pinned source was the
 implementation reference, not README prose.
 
-### EXACT_DIFFERENTIAL_TESTS = YES
+### EXACT_DIFFERENTIAL_TESTS = PARTIAL
 
 Executed against identical synthetic/fixture inputs:
 
-1. qtpylib `crossed_above` / `crossed_below` vs the published Freqtrade
-   technical formula, including the Freqtrade test vector
-   `[56,97,19,76,65,25,87,91,79,79]` vs `60`.
-2. Funding alignment / ffill / 3-day mean / 180-day percentile vs the
-   **literal** pinned `EmaCrossFunding.py` pandas body
-   (`reindex(..., method="ffill")`, `rolling(72, min_periods=24).mean()`,
-   `rolling(24*180, min_periods=24*30).rank(pct=True)*100`).
-3. `risk_report` MDD / return / CAGR / Sharpe / Sortino vs pinned
-   `research/metrics.py` imported from the captured source tree.
+1. **Genuine external differential:** qtpylib `crossed_above` vs the published Freqtrade test vector `[56,97,19,76,65,25,87,91,79,79]` vs `60`.
+2. **Genuine external differential:** Funding alignment / ffill / 3-day mean / 180-day percentile vs an independently inlined copy of the pinned `EmaCrossFunding.py` pandas body.
+3. **Genuine external differential:** `risk_report` MDD / return / CAGR / Sharpe / Sortino vs pinned `research/metrics.py` imported from the captured source tree.
+4. **Tautological/shared-formula:** `crossed_below` vs the same qtpylib formula rewritten in the test.
+
+Do **not** claim global exact differential fidelity. EMA and the trade engine remain semantic fixtures.
 
 ### SEMANTIC_FIXTURE_TESTS = YES
 
@@ -157,12 +154,18 @@ fixture was tested.
    documented+source semantics.
 3. Exchange `price_to_precision` / amount precision (`ROUND_UP` on long
    stops) is not applied (no Binance tick-size table in this unit).
-4. Wallet cadence: Freqtrade captures at candle open before processing;
-   this reimplementation matches that, then adds one terminal capture
-   after `force_exit` so end-of-window force-exit fees enter daily
-   equity (prereg: force-exits included). Tick-level `wallet.feather`
-   identity vs Freqtrade is not claimed.
-5. `STRICT_HISTORICAL_PUBLICATION_LATENCY = UNPROVEN`. Reproduction
+4. Wallet captures follow Freqtrade 2026.7 spot `Wallets._update_dry` +
+   `_capture_wallet`: USDT.total = start + closed `profit_abs` − open
+   `stake_amount` (filled-spot `used_stake` is unfilled entry orders
+   only, so tied-up stake is **not** inside USDT.total) plus BTC amount
+   × candle open while a position is open. Capture is at candle open
+   before that candle's orders. Force-exit does **not** append a second
+   same-timestamp row. Tick-level `wallet.feather` identity vs a live
+   Freqtrade process is not claimed because `freqtrade` is not executed.
+5. Indicator input is restricted to `WARMUP_START_INCLUSIVE =
+   2019-08-07T20:00:00Z` before EMA/funding/signals. Pre-warmup bound
+   bars (spot starts 2019-08-01) are dropped, not used as SMA-seed.
+6. `STRICT_HISTORICAL_PUBLICATION_LATENCY = UNPROVEN`. Reproduction
    treats a funding observation as available at raw `fundingTime`
    (LEVEL_2 assumption only; not `legal_available_at`; does not resolve
    B2-06).
@@ -209,12 +212,18 @@ No bootstrap, p-values, optimization, or parameter sweep.
 
 `scripts/research/market_03_public_strategy_execute.py` always refuses.
 
-`evaluate_market_03_reproduction` refuses bound snapshot IDs, B2-06,
-bound paths, unknown origins, protected OOS, and prereg/source mismatch.
+`evaluate_market_03_reproduction` is the **synthetic/fixture** scientific
+entry. `evaluate_canonical_market_03_reproduction` is the **canonical**
+identity path: it requires exact prereg/source/snapshot/SHA/interval/gap
+fields and then refuses execution while unarmed. It never loads bound
+series.
 
 Tests may use `synthetic` / `pinned_external_fixture` / `handcrafted`
 only. They do not load the bound full spot or funding scientific
 snapshots into strategy logic.
+
+Repair record:
+`docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_REPAIR.md`.
 
 ---
 

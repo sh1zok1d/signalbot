@@ -46,8 +46,10 @@ Read these first:
 | `research/MARKET_03_PUBLIC_STRATEGY_PREREG_FREEZE.json` | **FROZEN_OUTCOME_BLIND / CURRENT FREEZE AUTHORITY** | Machine-readable twin; `freeze_commit_head`/`tree` intentionally `UNSET_UNTIL_THIS_COMMIT` |
 | `research/MARKET_03_FUNDING_SNAPSHOT.md` | **FUNDING_SNAPSHOT_READY / CURRENT FUNDING AUTHORITY** | Dedicated REST funding snapshot wrap; snapshot `d47b7b78…`; not ARM/execution |
 | `research/MARKET_03_FUNDING_SNAPSHOT.json` | **FUNDING_SNAPSHOT_READY twin** | Machine-readable twin; SHA256 `870dd397…`; source `e7885cd5…`; all strategy/ARM flags false |
-| `research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION.md` | **IMPLEMENTATION_COMPLETE_NOT_FROZEN** | MARKET-03 LEVEL_2 scientific implementation identity; not a freeze; not ARM; not execution |
-| `research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION.json` | **IMPLEMENTATION_COMPLETE_NOT_FROZEN twin** | Machine-readable twin; scientific file SHA256s; `EXACT_DIFFERENTIAL_TESTS=true`; `SEMANTIC_FIXTURE_TESTS=true` |
+| `research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION.md` | **IMPLEMENTATION_COMPLETE_NOT_FROZEN** | MARKET-03 LEVEL_2 scientific implementation identity after F1/F2/F3/F5 repair; not a freeze; not ARM; not execution |
+| `research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION.json` | **IMPLEMENTATION_COMPLETE_NOT_FROZEN twin** | Machine-readable twin; repaired scientific file SHA256s; `EXACT_DIFFERENTIAL_TESTS=PARTIAL` |
+| `research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_REPAIR.md` | **REPAIR_COMPLETE_NOT_FROZEN** | Outcome-blind F1/F2/F3/F5 repair record vs review HEAD `cada1bef…`; not freeze/ARM/execution |
+| `research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_REPAIR.json` | **REPAIR_COMPLETE_NOT_FROZEN twin** | Machine-readable twin of the implementation repair |
 | `scripts/research/market_03_public_strategy_lib.py` | **IMPLEMENTATION_COMPLETE_NOT_FROZEN** | Pure deterministic EmaCross / EmaCrossFunding / MDD / classification core; bound snapshots refused |
 | `scripts/research/market_03_public_strategy_authority.py` | **IMPLEMENTATION_COMPLETE_NOT_FROZEN** | Frozen prereg identity + fail-closed bound-execution guard |
 | `scripts/research/market_03_public_strategy_execute.py` | **IMPLEMENTATION_COMPLETE_NOT_FROZEN / FAIL_CLOSED** | Bound execution stub; always refuses while unarmed |

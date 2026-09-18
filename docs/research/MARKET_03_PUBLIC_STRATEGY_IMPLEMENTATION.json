@@ -72,26 +72,29 @@
   },
   "implementation_files": {
     "scripts/research/market_03_public_strategy_lib.py": {
-      "sha256": "3e69943368b72d37067a55ce93c0999e4688887a8b89d07ab2008ea0901d3b79",
+      "sha256": "46ec2449e967172b61eec32f5ab6caf897ff9db04249395ac55a2368840289a5",
       "role": "scientific_core"
     },
     "scripts/research/market_03_public_strategy_authority.py": {
-      "sha256": "d828af5cbbf9810ccf79a16d0582ec450c8db88a958cfc5d7282cc685e43023d",
+      "sha256": "97f000c6afc2427db9fe3f90548f77c7e7ab4da0e43ba3283159101565a305e4",
       "role": "identity_and_fail_closed_guard"
     },
     "scripts/research/market_03_public_strategy_execute.py": {
-      "sha256": "4e54b5d6759e5d2d8f53de1401de9bdc8c59da0bd557cab226ca9ab7af382a1b",
+      "sha256": "90fd315d926b2b957391ed31c71bff6a33b0f22257960d0779e27e277cb40bcf",
       "role": "bound_execution_stub"
     }
   },
   "fidelity": {
     "method": "LEVEL_2_FAITHFUL_REIMPLEMENTATION",
-    "EXACT_DIFFERENTIAL_TESTS": true,
+    "EXACT_DIFFERENTIAL_TESTS": "PARTIAL",
     "SEMANTIC_FIXTURE_TESTS": true,
     "exact_differential": [
-      "qtpylib crossed_above/crossed_below vs published formula and Freqtrade vector",
-      "EmaCrossFunding.py pandas funding ffill/3d/percentile snippet vs reimplementation",
-      "pinned research/metrics.py risk_report vs reimplementation on synthetic returns"
+      "qtpylib crossed_above vs Freqtrade test vector (genuine)",
+      "EmaCrossFunding.py pandas funding ffill/3d/percentile snippet vs reimplementation (genuine independent copy)",
+      "pinned research/metrics.py risk_report vs reimplementation on synthetic returns (genuine import)"
+    ],
+    "tautological_or_shared_formula": [
+      "qtpylib crossed_below vs the same formula rewritten in the test"
     ],
     "semantic_fixture": [
       "TA-Lib EMA SMA-seed k=2/(n+1) without talib C library",
@@ -102,7 +105,8 @@
     "talib C EMA not executed; SMA-seed algorithm reimplemented",
     "freqtrade package not executed; 2026.7 documented+source engine reimplemented",
     "exchange price_to_precision / amount precision not applied",
-    "extra terminal wallet capture after force_exit so force-exit fees enter daily equity",
+    "wallet identity is Freqtrade 2026.7 spot USDT.total=start+closed profit_abs-open stake_amount plus BTC amount*open; no second force-exit capture",
+    "indicator origin sliced to 2019-08-07T20:00:00Z before EMA; pre-warmup bars dropped",
     "STRICT_HISTORICAL_PUBLICATION_LATENCY remains UNPROVEN"
   ],
   "primary_classification": {
@@ -123,7 +127,9 @@
     "bound_snapshots_refused": true,
     "b2_06_refused": true,
     "protected_oos_refused": true,
-    "allowed_test_origins": ["synthetic", "pinned_external_fixture", "handcrafted"]
+    "allowed_test_origins": ["synthetic", "pinned_external_fixture", "handcrafted"],
+    "canonical_path": "evaluate_canonical_market_03_reproduction",
+    "synthetic_path": "evaluate_market_03_reproduction"
   },
   "tests": {
     "commands": [
@@ -149,5 +155,6 @@
     "FUNDING_SNAPSHOT_CHANGED": false
   },
   "next_lifecycle_state": "MARKET-03_IMPLEMENTATION_FREEZE",
-  "next_lifecycle_state_note": "A later unit may freeze these implementation bytes. This unit does not freeze, ARM, or execute."
+  "next_lifecycle_state_note": "A later unit may freeze these implementation bytes after re-review. This unit does not freeze, ARM, or execute.",
+  "repair_record": "docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_REPAIR.md"
 }

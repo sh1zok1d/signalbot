@@ -23,8 +23,8 @@ RESULT. MARKET-03 **preregistration is frozen**
 (`FROZEN_OUTCOME_BLIND`, ceiling `LEVEL_2`). That freeze is not ARM
 or execution. Dedicated funding snapshot is materialized
 (`MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0` / `d47b7b78…`).
-LEVEL_2 implementation is complete and **not frozen**; bound execution
-remains fail-closed. Do not design a large new MARKET
+LEVEL_2 implementation is complete, repaired against the F1/F2/F3/F5
+red-team, and **not frozen**; bound execution remains fail-closed. Do not design a large new MARKET
 framework. A later market hypothesis requires a new research ID.
 Do not create new infrastructure merely because MARKET is beginning. Operating
 priority is approximately 70–80% actual market research and 20–30%
@@ -297,9 +297,10 @@ This limitation is not authorization for immediate V4.
 Next required V3 step: none authorized. MARKET-01 is closed
 (`FINAL_CLASSIFICATION = NO_EVIDENCE`). MARKET-03 preregistration is
 frozen (`FROZEN_OUTCOME_BLIND`, not armed, not executed). Dedicated
-funding snapshot is ready (`d47b7b78…`). Implementation is complete
-and not frozen; next required step is implementation freeze if
-authorized, not ARM and not execution.
+funding snapshot is ready (`d47b7b78…`). Implementation is complete,
+repaired (F1/F2/F3/F5), and not frozen; next required step is
+re-review then implementation freeze if authorized, not ARM and not
+execution.
 Do not rerun MARKET-01.
 Do not rerun V3, do not create V4, and do not execute B2-06.
 

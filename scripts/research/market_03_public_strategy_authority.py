@@ -51,6 +51,11 @@ FUNDING_ROWS = 5819
 FUNDING_FIRST_UTC = "2019-09-10T08:00:00Z"
 FUNDING_LAST_UTC = "2024-12-31T16:00:00Z"
 
+SPOT_ROWS = 47477
+SPOT_GAP_COUNT = 43
+DEGENERATE_ROW_OPEN_TIME_UTC = "2020-12-21T14:00:00Z"
+STARTUP_CANDLE_COUNT = 1300
+
 B2_06_DATASET_ID = "B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0"
 B2_06_SNAPSHOT_ID = "5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33"
 
@@ -213,10 +218,104 @@ def inspect_market_03_authorization_state() -> dict[str, Any]:
 def require_external_source_identity(
     commit: str | None = None, tree: str | None = None
 ) -> None:
+    """Optional check used by the synthetic test path.
+
+    Canonical execution must call `bind_canonical_scientific_identity`,
+    which requires commit/tree to be present and exact.
+    """
     if commit is not None and commit != EXTERNAL_COMMIT:
         raise Market03AuthorityError("MARKET_03_EXTERNAL_COMMIT_MISMATCH")
     if tree is not None and tree != EXTERNAL_TREE:
         raise Market03AuthorityError("MARKET_03_EXTERNAL_TREE_MISMATCH")
+
+
+def bind_canonical_scientific_identity(
+    *,
+    external_commit: str | None,
+    external_tree: str | None,
+    spot_dataset_id: str | None,
+    spot_snapshot_id: str | None,
+    spot_data_sha256: str | None,
+    funding_dataset_id: str | None,
+    funding_snapshot_id: str | None,
+    funding_data_sha256: str | None,
+    warmup_start_inclusive: str | None,
+    evaluation_start_inclusive: str | None,
+    evaluation_end_exclusive: str | None,
+    spot_gap_count: int | None = None,
+    degenerate_row_open_time_utc: str | None = None,
+) -> dict[str, str]:
+    """Fail-closed canonical identity. Does not load bound snapshots.
+
+    Row counts and `origin='synthetic'` are not scientific authority.
+    """
+    authenticate_frozen_prereg_bytes()
+    required = {
+        "external_commit": external_commit,
+        "external_tree": external_tree,
+        "spot_dataset_id": spot_dataset_id,
+        "spot_snapshot_id": spot_snapshot_id,
+        "spot_data_sha256": spot_data_sha256,
+        "funding_dataset_id": funding_dataset_id,
+        "funding_snapshot_id": funding_snapshot_id,
+        "funding_data_sha256": funding_data_sha256,
+        "warmup_start_inclusive": warmup_start_inclusive,
+        "evaluation_start_inclusive": evaluation_start_inclusive,
+        "evaluation_end_exclusive": evaluation_end_exclusive,
+        "spot_gap_count": spot_gap_count,
+        "degenerate_row_open_time_utc": degenerate_row_open_time_utc,
+    }
+    missing = [name for name, value in required.items() if value is None or value == ""]
+    if missing:
+        raise Market03AuthorityError(
+            "MARKET_03_CANONICAL_AUTHORITY_INCOMPLETE:" + ",".join(missing)
+        )
+    if funding_dataset_id == B2_06_DATASET_ID or funding_snapshot_id == B2_06_SNAPSHOT_ID:
+        refuse_b2_06_as_authority()
+    if spot_dataset_id == B2_06_DATASET_ID or spot_snapshot_id == B2_06_SNAPSHOT_ID:
+        refuse_b2_06_as_authority()
+    if external_commit != EXTERNAL_COMMIT:
+        raise Market03AuthorityError("MARKET_03_EXTERNAL_COMMIT_MISMATCH")
+    if external_tree != EXTERNAL_TREE:
+        raise Market03AuthorityError("MARKET_03_EXTERNAL_TREE_MISMATCH")
+    if spot_dataset_id != SPOT_DATASET_ID:
+        raise Market03AuthorityError("MARKET_03_SPOT_DATASET_MISMATCH")
+    if spot_snapshot_id != SPOT_SNAPSHOT_ID:
+        raise Market03AuthorityError("MARKET_03_SPOT_SNAPSHOT_MISMATCH")
+    if spot_data_sha256 != SPOT_DATA_SHA256:
+        raise Market03AuthorityError("MARKET_03_SPOT_DATA_SHA256_MISMATCH")
+    if funding_dataset_id != FUNDING_DATASET_ID:
+        raise Market03AuthorityError("MARKET_03_FUNDING_DATASET_MISMATCH")
+    if funding_snapshot_id != FUNDING_SNAPSHOT_ID:
+        raise Market03AuthorityError("MARKET_03_FUNDING_SNAPSHOT_MISMATCH")
+    if funding_data_sha256 != FUNDING_DATA_SHA256:
+        raise Market03AuthorityError("MARKET_03_FUNDING_DATA_SHA256_MISMATCH")
+    if warmup_start_inclusive != WARMUP_START_INCLUSIVE:
+        raise Market03AuthorityError("MARKET_03_WARMUP_INTERVAL_MISMATCH")
+    if evaluation_start_inclusive != EVALUATION_START_INCLUSIVE:
+        raise Market03AuthorityError("MARKET_03_EVALUATION_INTERVAL_MISMATCH")
+    if evaluation_end_exclusive != EVALUATION_END_EXCLUSIVE:
+        raise Market03AuthorityError("MARKET_03_EVALUATION_INTERVAL_MISMATCH")
+    if int(spot_gap_count) != SPOT_GAP_COUNT:
+        raise Market03AuthorityError("MARKET_03_SPOT_GAP_POLICY_MISMATCH")
+    if degenerate_row_open_time_utc != DEGENERATE_ROW_OPEN_TIME_UTC:
+        raise Market03AuthorityError("MARKET_03_DEGENERATE_ROW_MISMATCH")
+    return {
+        "prereg_md_sha256": FROZEN_PREREG_MD_SHA256,
+        "prereg_json_sha256": FROZEN_PREREG_JSON_SHA256,
+        "external_commit": EXTERNAL_COMMIT,
+        "external_tree": EXTERNAL_TREE,
+        "spot_snapshot_id": SPOT_SNAPSHOT_ID,
+        "funding_snapshot_id": FUNDING_SNAPSHOT_ID,
+    }
+
+
+def refuse_unarmed_canonical_execution() -> None:
+    if MARKET_03_BOUND_EXECUTION_AUTHORIZED or MARKET_03_ARMED:
+        raise Market03AuthorityError("MARKET_03_LIFECYCLE_FLAG_MUST_REMAIN_UNARMED")
+    if CANONICAL_EXECUTIONS_AUTHORIZED != 0:
+        raise Market03AuthorityError("MARKET_03_CANONICAL_AUTHORIZATION_MUST_REMAIN_ZERO")
+    refuse_bound_execution("MARKET_03_CANONICAL_PATH_NOT_ARMED")
 
 
 def caller_kwargs_rejected(args: tuple[Any, ...], kwargs: Mapping[str, Any]) -> None:
