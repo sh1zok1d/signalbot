@@ -28,6 +28,54 @@ progress metric: MARKET hypotheses honestly closed per week. Initial
 observational milestone: 25–50 real market hypotheses through the stable
 research process — not a promise that 25–50 studies establish alpha.
 
+
+### Near-term research-thesis checkpoint (2026-09-18)
+
+The next MARKET cycle tests whether Signalbot reduces the cost of reliable
+market research; it is not required to discover positive alpha to have value.
+
+Capability ladder:
+1. research execution — claim -> explicit contract -> reproducible test -> result;
+2. research audit — attack leakage, assumptions, confounders, and conclusion scope;
+3. diagnosis — distinguish identified failure modes from unresolved explanations;
+4. research guidance — propose a justified next hypothesis when evidence supports one;
+5. autonomous discovery — use research memory to generate and test candidates.
+
+Levels 4–5 are not prerequisites for Levels 1–2 to be useful.
+
+Target human-in-the-loop workflow:
+idea -> Signalbot drafts the Research Contract -> human confirms semantic intent ->
+automatic execution -> adversarial validation -> sealed RESULT.
+Do not optimize for zero human decisions. Optimize away repeated programming and
+avoidable repair work while preserving explicit semantic approval.
+
+For MARKET-02 onward, record lightweight operational evidence where practical:
+active human time, wall-clock time, new scientific code required, material review
+blockers, semantic corrections, reruns, and whether the result changed the next
+research decision. Compare later studies with the ordinary analyst/notebook
+workflow without building a benchmark framework solely for this measurement.
+
+Research-memory provenance must retain which prior results/observations motivated
+a new hypothesis, which historical data influenced its design, attempted variants,
+and which evidence remains untouched for independent confirmation. A new research
+ID alone does not imply independence.
+
+After roughly 3–5 MARKET studies, evaluate whether supported experiments become
+cheaper/faster/more reliable and whether the process transfers beyond hypotheses
+authored inside Signalbot. Include at least one external-user claim when feasible:
+Signalbot drafts the contract, the external user confirms meaning, then the normal
+research lifecycle runs.
+
+Commercial discovery may begin in parallel with MARKET research. Initial demand
+test should focus on research audit/validation problems rather than promising
+trading performance. Monitoring/decision support remains a possible later wedge,
+not the default pivot.
+
+Checkpoint question:
+Can Signalbot test a market claim materially cheaper/faster/more reliably than
+the ordinary workflow, with conclusions that change a research decision, and can
+that capability transfer to an external user's claim?
+
 B2-06 remains `BLOCKED_MISSING_OBSERVABLE`. `MARKET-01` is not required
 to be B2-06 and does not silently unblock it.
 
