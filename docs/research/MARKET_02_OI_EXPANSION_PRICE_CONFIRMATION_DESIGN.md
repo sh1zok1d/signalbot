@@ -236,8 +236,8 @@ These must be resolved without inspecting MARKET-02 subgroup outcomes.
 
 ```text
 MARKET_01                     = CLOSED / NO_EVIDENCE / NO RERUN
-MARKET_02_DESIGN              = OPEN
-MARKET_02_PREREG              = NOT MATERIALIZED
+MARKET_02_DESIGN              = RESOLVED / SUPERSEDED_BY_PREREG
+MARKET_02_PREREG              = MATERIALIZED / UNFROZEN
 MARKET_02_PREREG_FREEZE       = NO
 MARKET_02_IMPLEMENTED         = NO
 MARKET_02_ARMED               = NO
@@ -247,6 +247,9 @@ B2_06_EXECUTION_AUTHORIZED    = NO
 DEFAULT_V4                    = NO
 ```
 
-Next step: resolve only the seven prereg decisions in section 8, then
-materialize the complete MARKET-02 prereg as a separate commit. Freeze must
-be a later unit; implementation must not precede freeze.
+The seven prereg decisions in section 8 were resolved outcome-blind and the
+complete MARKET-02 prereg has now been materialized. This design record is
+superseded by `MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_PREREG.md` for
+scientific authority. Next step: independent prereg re-review, then a
+separate freeze if and only if it is `FREEZE_READY`. Implementation must not
+precede freeze.
