@@ -1,0 +1,103 @@
+{
+  "status": "PREREGISTERED_OUTCOME_BLIND_UNFROZEN",
+  "research_id": "MARKET-02_OI_EXPANSION_PRICE_CONFIRMATION",
+  "date": "2026-09-18",
+  "parent_design": "docs/research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_DESIGN.md",
+  "sequential_research": {
+    "market_01_closed": "NO_EVIDENCE",
+    "independent_replication": false,
+    "market_01_rerun_authorized": false
+  },
+  "data": {
+    "price_snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+    "oi_snapshot_id": "5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33",
+    "common_start_inclusive": "2020-09-01T00:00:00Z",
+    "common_end_exclusive": "2025-01-01T00:00:00Z",
+    "decision_grain_minutes": 5,
+    "funding_authorized": false,
+    "protected_oos_authorized": false
+  },
+  "temporal": {
+    "impulse_minutes": 30,
+    "state_minutes": 30,
+    "outcome_minutes": 60,
+    "full_episode_minutes": 120
+  },
+  "impulse": {
+    "historical_days": 30,
+    "midrank_percentile_min": 0.9
+  },
+  "oi_expansion": {
+    "historical_days": 30,
+    "midrank_percentile_strict_gt": 0.75,
+    "max_staleness_minutes": 5
+  },
+  "confirmation": {
+    "statistic": "D * ln(close(T)/close(t)) / abs_impulse",
+    "candidate_strict_gt": 0.25,
+    "baseline_lte": 0.25
+  },
+  "primary_population": "QUALIFYING_IMPULSE AND OI_EXPANSION",
+  "outcome": "continuation_return = D * ln(close(T+60m)/close(T))",
+  "strata": [
+    "abs_impulse trailing-30d midrank tertile",
+    "PRE_VOL_60 trailing-30d midrank tertile"
+  ],
+  "support": {
+    "candidate_per_stratum_min": 5,
+    "baseline_per_stratum_min": 5,
+    "total_min": 100,
+    "candidate_min": 30,
+    "baseline_min": 30,
+    "usable_strata_min": 3
+  },
+  "estimand": {
+    "family": "STRATIFIED_TWO_GROUP_CONDITIONAL_CONTRAST",
+    "parameter": "beta_confirmation",
+    "h0": "beta_confirmation <= 0",
+    "h1": "beta_confirmation > 0"
+  },
+  "bootstrap": {
+    "algorithm": "Politis-Romano stationary bootstrap",
+    "B": 999,
+    "alpha": 0.05,
+    "block_selector": "arch==8.0.0 optimal_block_length stationary-bootstrap b_sb branch",
+    "seed_material": "MARKET-02_OI_EXPANSION_PRICE_CONFIRMATION|CONFIRMATORY_STATIONARY_BOOTSTRAP|B=999",
+    "seed_material_sha256": "19b71ee831e69f273338ef94e65ff4cc339eb6d8054c365fd160c7769955558f",
+    "seed": 1852983754304692000,
+    "namespace": [
+      "BOOTSTRAP",
+      "PRIMARY_BETA_CONFIRMATION"
+    ]
+  },
+  "robustness": {
+    "mode": "PRIMARY_DETECTED_ONLY_DOWNGRADE",
+    "eras": [
+      "2020-09-01/2021-01-01",
+      "2021-01-01/2022-01-01",
+      "2022-01-01/2023-01-01",
+      "2023-01-01/2024-01-01",
+      "2024-01-01/2025-01-01"
+    ],
+    "loeo_requires_positive_beta_all": true,
+    "candidate_era_share_max": 0.5
+  },
+  "classification": {
+    "support_fail": "NOT_IDENTIFIABLE_OR_INSUFFICIENT_SUPPORT",
+    "primary_not_detected": "NO_EVIDENCE",
+    "detected_robust": "EVIDENCE_WITH_PROSPECTIVE_ROBUSTNESS",
+    "detected_fragile": "EVIDENCE_FRAGILE_NONSTATIONARITY"
+  },
+  "governance": {
+    "market_02_test_calibrated": false,
+    "v3_reused_as_market_02_test": false,
+    "default_v4": false,
+    "b2_06_execution_authorized": false,
+    "protected_oos_authorized": false,
+    "prereg_frozen": false,
+    "implemented": false,
+    "armed": false,
+    "executed": false
+  },
+  "next_required_step": "MARKET-02_PREREG_FREEZE"
+}
