@@ -3,6 +3,8 @@
 - **Status:** `PREREGISTERED_OUTCOME_BLIND_UNFROZEN`
 - **Research ID:** `MARKET-02_OI_EXPANSION_PRICE_CONFIRMATION`
 - **Parent design:** `docs/research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_DESIGN.md`
+- **Machine-readable twin:** `docs/research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_PREREG.json`
+- **Authority:** this MD is the complete scientific authority; the JSON is a machine-readable twin/index and MUST agree on every duplicated field. Any disagreement is fail-closed and blocks freeze/execution; JSON never overrides this MD.
 - **Date:** 2026-09-18
 - **Outcome inspection for MARKET-02 design/prereg:** **NO**
 - **Prereg freeze:** **NO — separate next unit required**
@@ -220,8 +222,10 @@ continuation_return_i =
 Exact design matrix: one dummy per usable `stratum_id` sorted
 lexicographically, no separate intercept, candidate indicator last.
 
-Solve `X'X beta = X'y` with `numpy.linalg.solve`. Rank deficiency,
-`LinAlgError`, or non-finite coefficient =>
+Solve `X'X beta = X'y` with `numpy.linalg.solve` under `numpy==2.1.3`.
+Before solve, require `numpy.linalg.matrix_rank(X'X) == ncols`. The same exact
+rank test and numpy version apply to every bootstrap and LOEO refit. Rank
+deficiency, `LinAlgError`, or non-finite coefficient =>
 `NOT_IDENTIFIABLE_OR_INSUFFICIENT_SUPPORT`.
 
 Primary parameter is the last coefficient:
