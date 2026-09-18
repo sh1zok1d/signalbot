@@ -231,6 +231,9 @@ stratified two-group OLS identity, not V3, and remains uncalibrated
 production signal, and not OOS validation.
 RESULT authority:
 `docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_RESULT.json`.
+Post-close episode-construction throughput work is research
+infrastructure only (`docs/research/MARKET_01_EPISODE_CONSTRUCTION_PERF.md`);
+it does not reopen MARKET-01 or change the sealed RESULT.
 
 Post-calibration operating priority:
 

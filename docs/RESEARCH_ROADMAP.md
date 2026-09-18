@@ -17,7 +17,9 @@ classification: **`NO_EVIDENCE`**. Canonical RESULT:
 `docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_RESULT.json`
 (SHA256 `5310946b44dd3ebc609d05a13f92f6cb414e3a0727141d0ee324bce0aa626c5e`).
 `CANONICAL_EXECUTIONS_CONSUMED = 1`. Do not rerun MARKET-01. Do not
-change its thresholds or windows. Do not design a large new MARKET
+change its thresholds or windows. Post-close `construct_episodes`
+throughput work is infrastructure only and does not reopen the closed
+RESULT. Do not design a large new MARKET
 framework. A later market hypothesis requires a new research ID.
 Do not create new infrastructure merely because MARKET is beginning. Operating
 priority is approximately 70–80% actual market research and 20–30%

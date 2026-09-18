@@ -50,6 +50,9 @@ Read these first:
 | `scripts/research/market_01_oi_expansion_weak_continuation_lib.py` | **EXECUTED / FROZEN** | MARKET-01 scientific pipeline; bound snapshots refuse rerun |
 | `scripts/research/market_01_oi_expansion_weak_continuation_authority.py` | **EXECUTED / CONSUMED** | Prereg/freeze/ARM authentication; canonical reservation consumed |
 | `scripts/research/market_01_oi_expansion_weak_continuation_canonical_execution.py` | **EXECUTED / ONE-SHOT** | Canonical execution runner; not a second scientific implementation |
+| `research/MARKET_01_EPISODE_CONSTRUCTION_PERF.md` | **RESEARCH INFRASTRUCTURE / NOT SCIENTIFIC EVIDENCE** | Post-close `construct_episodes` runtime diagnosis and semantics-preserving fast path; does not rerun MARKET-01 or change RESULT/prereg |
+| `scripts/research/market_01_episode_construction_fast.py` | **RESEARCH INFRASTRUCTURE** | Frozen-rule episode construction with precomputed rolling arrays; not a second MARKET-01 execution |
+| `scripts/research/market_01_episode_construction_perf_bench.py` | **RESEARCH INFRASTRUCTURE** | SYNTHETIC_SNAPSHOT only; profiles/benches construction; refuses bound snapshots via the frozen guard |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_DESIGN.md` | **PREREG_DESIGN_RESOLVED / HISTORICAL_BLOCKER_RECORD** | Preserved blocked-design unit; live scientific authority is the frozen prereg |
 | `research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md` | **ACTIVE / RESEARCH DATA CONTRACT** | Outcome-blind B2-06 OI+funding identity + Git-bound snapshot `5a9d036b…`; unit verdict `SNAPSHOT_MATERIALIZED_FUNDING_PUBLICATION_UNPROVEN_RESEARCH_UNAUTHORIZED`; not a B2-06 RESULT |
 | `research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.json` | **ACTIVE / RESEARCH DATA CONTRACT** | Machine-readable twin of the B2-06 data-expansion freeze |

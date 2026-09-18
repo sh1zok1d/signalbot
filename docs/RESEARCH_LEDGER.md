@@ -3139,3 +3139,23 @@ Evidence:
 
 - next required step: `NEW_MARKET_HYPOTHESIS_ID_IF_AUTHORIZED` (not MARKET-01 rerun)
 
+## 2026-09-18 — MARKET-01 episode-construction throughput (not a rerun)
+
+Post-close engineering investigation of canonical `construct_episodes`
+runtime. Frozen prereg/RESULT/lib/thresholds/estimand unchanged.
+Reservation not consumed again. Protected OOS not opened. MARKET-02 not
+started. Synthetic `SYNTHETIC_SNAPSHOT` profiling only.
+
+Dominant cost was O(T × W) repeated 30d `|impulse|` and PRE_VOL_60
+rebuilds via `close_at` / `b2_03.pre_vol_60`, not occupancy or
+`EpisodeRecord` allocation. Semantics-preserving fast path added beside
+the frozen library. Canonical RESULT SHA256 remains
+`5310946b44dd3ebc609d05a13f92f6cb414e3a0727141d0ee324bce0aa626c5e`.
+
+- market_01_executed: **true** (prior canonical run; not repeated)
+- market_01_scientifically_rerun: **false**
+- protected_oos_touched: **false**
+- frozen_scientific_bytes_changed: **false**
+
+- next required step: `NEW_MARKET_HYPOTHESIS_ID_IF_AUTHORIZED` (not MARKET-01 rerun)
+
