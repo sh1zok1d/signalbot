@@ -86,8 +86,8 @@ def test_canonical_performance_freeze_topology_accepted_without_execution():
     live = subprocess.check_output(["git", "-C", str(REPO), "rev-parse", "HEAD"], text=True).strip()
     assert live_arm["freeze_parent_head"] == FINAL_FREEZE
     assert live_arm["authorized_plan_sha256"] == PLAN_SHA256
-    assert prod._arm_payload_authorizes_at_commit(REPO, live, live_arm) is True
-    assert prod.production_monte_carlo_arm_authorized() is True
+    assert prod._arm_payload_authorizes_at_commit(REPO, live, live_arm) is False
+    assert prod.production_monte_carlo_arm_authorized() is False
     assert prod._arm_payload_authorizes_at_commit(REPO, live, historical) is False
     assert prod._arm_payload_authorizes_at_commit(REPO, PERFORMANCE_ARM, live_arm) is False
     assert (REPO / prod.CANONICAL_RESULT_PATH).exists() is False

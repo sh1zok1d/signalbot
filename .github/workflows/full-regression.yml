@@ -1,0 +1,75 @@
+name: Full regression
+
+# FULL REGRESSION = available for integration/checkpoint validation.
+# Not required for ordinary PR iteration. PRs to main use the fast gate
+# in ci.yml (`python scripts/ci/pr_gate.py`).
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: timescale/timescaledb:2.17.2-pg16@sha256:4e459e217f00cbb09920c34d245501e63427e6767a495de57ce76823ff280f12
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: signalbot_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      KLINES_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_test
+      V2_VERSION_SWITCH_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_test
+      V2_INSTRUMENT_HISTORY_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_test
+      V2_EPISODE_EVENT_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Compile check (syntax)
+        run: python -m compileall -q .
+
+      - name: Prove TimescaleDB extension is available on the CI service
+        run: |
+          python - <<'PY'
+          import asyncio
+          import os
+          import asyncpg
+
+          async def main():
+              conn = await asyncpg.connect(os.environ["V2_EPISODE_EVENT_TEST_DSN"])
+              await conn.execute("CREATE EXTENSION IF NOT EXISTS timescaledb")
+              row = await conn.fetchrow(
+                  "SELECT extname, extversion FROM pg_extension"
+                  " WHERE extname = 'timescaledb'"
+              )
+              assert row is not None, "timescaledb extension missing after CREATE EXTENSION"
+              pg_version = await conn.fetchval("SHOW server_version")
+              print(
+                  f"TimescaleDB {row['extversion']} available "
+                  f"(PostgreSQL {pg_version})"
+              )
+              await conn.close()
+
+          asyncio.run(main())
+          PY
+
+      - name: Full test suite
+        run: python -m pytest -q

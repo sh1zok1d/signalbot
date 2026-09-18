@@ -139,6 +139,12 @@ def _git(*args: str) -> str:
     return subprocess.check_output(["git", "-C", str(REPO), *args], text=True).strip()
 
 
+def _freeze_commit() -> str:
+    from tests.research.historical_stage import unique_child_on_ancestry
+
+    return unique_child_on_ancestry(REVIEWED_IMPLEMENTATION_HEAD)
+
+
 def _blob_id(commit: str, path: str) -> str:
     return _git("rev-parse", f"{commit}:{path}")
 
@@ -171,8 +177,9 @@ def _assert_bound_file(commit: str, bound: dict, *, identity_head: str) -> None:
 
 
 def test_freeze_parent_is_reviewed_implementation_head_and_tree():
-    parent = _git("rev-parse", "HEAD^")
-    parent_tree = _git("rev-parse", "HEAD^^{tree}")
+    freeze = _freeze_commit()
+    parent = _git("rev-parse", f"{freeze}^")
+    parent_tree = _git("rev-parse", f"{freeze}^^{{tree}}")
     assert parent == REVIEWED_IMPLEMENTATION_HEAD
     assert parent_tree == REVIEWED_IMPLEMENTATION_TREE
 
@@ -282,40 +289,43 @@ def test_historical_33_33_freeze_identity_preserved():
 
 
 def test_frozen_implementation_blobs_match_reviewed_commit_and_artifact():
-    freeze = _freeze_artifact_at("HEAD")
+    freeze_commit = _freeze_commit()
+    freeze = _freeze_artifact_at(freeze_commit)
     by_path = {
         entry["path"]: entry
         for entry in freeze["execution_authoritative_implementation_sources"]
     }
     assert set(by_path) == set(IMPLEMENTATION_PATHS)
     for path in IMPLEMENTATION_PATHS:
-        _assert_bound_file("HEAD", by_path[path], identity_head=REVIEWED_IMPLEMENTATION_HEAD)
+        _assert_bound_file(freeze_commit, by_path[path], identity_head=REVIEWED_IMPLEMENTATION_HEAD)
 
 
 def test_production_changed_and_inherited_ladder_did_not():
-    freeze = _freeze_artifact_at("HEAD")
+    freeze_commit = _freeze_commit()
+    freeze = _freeze_artifact_at(freeze_commit)
     by_path = {
         entry["path"]: entry
         for entry in freeze["execution_authoritative_implementation_sources"]
     }
     assert by_path[LADDER_PATH]["unchanged_since_historical_33_33_implementation"] is True
     assert by_path[PRODUCTION_PATH]["unchanged_since_historical_33_33_implementation"] is False
-    assert _blob_id("HEAD", LADDER_PATH) == _blob_id(HISTORICAL_33_33_IMPLEMENTATION_HEAD, LADDER_PATH)
-    assert _blob_id("HEAD", PRODUCTION_PATH) != _blob_id(
+    assert _blob_id(freeze_commit, LADDER_PATH) == _blob_id(HISTORICAL_33_33_IMPLEMENTATION_HEAD, LADDER_PATH)
+    assert _blob_id(freeze_commit, PRODUCTION_PATH) != _blob_id(
         HISTORICAL_33_33_IMPLEMENTATION_HEAD, PRODUCTION_PATH
     )
 
 
 def test_frozen_v2_policy_and_freeze_artifact_unchanged():
-    freeze = _freeze_artifact_at("HEAD")
+    freeze_commit = _freeze_commit()
+    freeze = _freeze_artifact_at(freeze_commit)
     policy = freeze["v2_rank_policy_authority"]
     _assert_bound_file(
-        "HEAD",
+        freeze_commit,
         policy["execution_authoritative_v2_policy_source"],
         identity_head=REVIEWED_IMPLEMENTATION_HEAD,
     )
     _assert_bound_file(
-        "HEAD", policy["freeze_artifact"], identity_head=V2_POLICY_FREEZE_HEAD
+        freeze_commit, policy["freeze_artifact"], identity_head=V2_POLICY_FREEZE_HEAD
     )
     assert policy["execution_authoritative_v2_policy_source"]["path"] == V2_POLICY_PATH
     assert policy["freeze_artifact"]["path"] == V2_POLICY_FREEZE_PATH
@@ -382,13 +392,15 @@ def test_canonical_v2_plan_identity_matches_freeze_artifact():
 
 
 def test_authority_bytes_unchanged_since_reviewed_runtime():
+    freeze = _freeze_commit()
     for path in AUTHORITY_MUST_BE_UNCHANGED:
-        assert _git("diff", f"{REVIEWED_IMPLEMENTATION_HEAD}..HEAD", "--", path) == ""
+        assert _git("diff", f"{REVIEWED_IMPLEMENTATION_HEAD}..{freeze}", "--", path) == ""
 
 
 def test_freeze_commit_only_changed_allowed_paths():
+    freeze = _freeze_commit()
     changed = set(
-        _git("diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD").splitlines()
+        _git("diff-tree", "--no-commit-id", "--name-only", "-r", freeze).splitlines()
     )
     assert changed, "freeze commit must actually change something"
     assert changed <= FREEZE_ALLOWED_CHANGED_PATHS
@@ -397,7 +409,8 @@ def test_freeze_commit_only_changed_allowed_paths():
 
 
 def test_no_v2_production_arm_result_or_world_records_artifacts_exist():
-    tracked = _git("ls-tree", "-r", "--name-only", "HEAD", "--", "docs/research").splitlines()
+    freeze = _freeze_commit()
+    tracked = _git("ls-tree", "-r", "--name-only", freeze, "--", "docs/research").splitlines()
     forbidden_markers = ("_ARM", "_RESULT", "_WORLD_RECORDS", "_RESERVATION", "_CLAIM")
     for path in tracked:
         if "V2_RANK_DEGENERACY_POLICY" not in path and "V2_33_33" not in path:

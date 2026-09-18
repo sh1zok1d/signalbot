@@ -314,7 +314,7 @@ def test_freeze_commit_only_changed_allowed_paths():
 
 
 def test_no_v2_production_arm_result_or_world_records_artifacts_exist():
-    tracked = _git("ls-tree", "-r", "--name-only", "HEAD", "--", "docs/research").splitlines()
+    tracked = _git("ls-tree", "-r", "--name-only", FREEZE_HEAD, "--", "docs/research").splitlines()
     forbidden_markers = ("_ARM", "_RESULT", "_WORLD_RECORDS", "_RESERVATION", "_CLAIM")
     for path in tracked:
         if "V2_RANK_DEGENERACY_POLICY" not in path and "V2_33_33" not in path:

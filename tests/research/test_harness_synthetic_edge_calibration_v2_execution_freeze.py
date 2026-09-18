@@ -231,14 +231,18 @@ def test_worktree_tamper_does_not_change_git_object_verification(tmp_path):
     freeze_commit = _freeze_commit()
     freeze = _freeze_artifact_at(freeze_commit)
     artifact_path = REPO / FREEZE_ARTIFACT_PATH
-    original = artifact_path.read_bytes()
+    worktree_bytes = artifact_path.read_bytes()
+    freeze_blob = subprocess.check_output(
+        ["git", "-C", str(REPO), "cat-file", "-p", f"{freeze_commit}:{FREEZE_ARTIFACT_PATH}"]
+    )
     try:
-        artifact_path.write_bytes(original + b"\n")
+        artifact_path.write_bytes(worktree_bytes + b"\n")
         reread = _freeze_artifact_at(freeze_commit)
         assert reread == freeze
-        assert _blob_sha256(freeze_commit, FREEZE_ARTIFACT_PATH) == hashlib.sha256(original).hexdigest()
+        assert artifact_path.read_bytes() != freeze_blob
+        assert _blob_sha256(freeze_commit, FREEZE_ARTIFACT_PATH) == hashlib.sha256(freeze_blob).hexdigest()
     finally:
-        artifact_path.write_bytes(original)
+        artifact_path.write_bytes(worktree_bytes)
 
 
 def test_freeze_artifact_bindings_match_git_identities():
@@ -580,11 +584,23 @@ def test_future_arm_can_bind_this_freeze_without_runtime_edit(tmp_path):
     sp.run(["git", "-C", str(repo), "config", "commit.gpgsign", "false"], check=True)
 
     payload = dict(v2p.V2_ARM_REQUIRED_LITERALS)
-    payload.update(v2p.required_v2_arm_binding_fields(repo, freeze_commit))
+    # Historical freeze plan identity (7fa12fd3...) is not the live rebind
+    # (b0ed1553...). Binding fields are derived from freeze git objects only.
+    payload.update(
+        v2p.required_v2_arm_binding_fields(
+            repo, freeze_commit, require_live_plan_authority=False
+        )
+    )
+    assert payload["canonical_v2_plan_sha256"] == CANONICAL_V2_PLAN_SHA256
     (repo / v2p.CANONICAL_V2_ARM_PATH).write_text(
         json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     sp.run(["git", "-C", str(repo), "add", "-A"], check=True)
     sp.run(["git", "-C", str(repo), "commit", "-q", "-m", "disposable arm probe (not pushed)"], check=True)
 
-    assert v2p.v2_production_arm_authorized(repo_root=repo) is True
+    arm_commit = sp.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip()
+    bound = v2p.verify_historical_v2_execution_authority(repo, arm_commit)
+    assert bound["freeze_parent_head"] == freeze_commit
+    assert bound["canonical_v2_plan_sha256"] == CANONICAL_V2_PLAN_SHA256
+    # Live imported plan identity was later rebound; this freeze is historical.
+    assert v2p.v2_production_arm_authorized(repo_root=repo) is False

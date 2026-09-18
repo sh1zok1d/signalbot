@@ -60,6 +60,12 @@ def _git(*args: str) -> str:
     return subprocess.check_output(["git", "-C", str(REPO), *args], text=True).strip()
 
 
+def _freeze_commit() -> str:
+    from tests.research.historical_stage import unique_child_on_ancestry
+
+    return unique_child_on_ancestry(REVIEWED_IMPLEMENTATION_HEAD)
+
+
 def _blob_id(commit: str, path: str) -> str:
     return _git("rev-parse", f"{commit}:{path}")
 
@@ -83,8 +89,9 @@ def _freeze_artifact_at(commit: str) -> dict:
 
 
 def test_freeze_parent_is_reviewed_implementation_head_and_tree():
-    parent = _git("rev-parse", "HEAD^")
-    parent_tree = _git("rev-parse", "HEAD^^{tree}")
+    freeze = _freeze_commit()
+    parent = _git("rev-parse", f"{freeze}^")
+    parent_tree = _git("rev-parse", f"{freeze}^^{{tree}}")
     assert parent == REVIEWED_IMPLEMENTATION_HEAD
     assert parent_tree == REVIEWED_IMPLEMENTATION_TREE
 
@@ -116,12 +123,13 @@ def test_freeze_artifact_bindings_match_git_identities():
 
 
 def test_v2_policy_blob_hash_size_match_freeze_artifact_and_git():
-    freeze = _freeze_artifact_at("HEAD")
+    freeze_commit = _freeze_commit()
+    freeze = _freeze_artifact_at(freeze_commit)
     bound = freeze["execution_authoritative_v2_policy_source"]
     assert bound["path"] == V2_POLICY_PATH
-    live_blob = _blob_id("HEAD", V2_POLICY_PATH)
-    live_sha256 = _blob_sha256("HEAD", V2_POLICY_PATH)
-    live_size = _blob_size("HEAD", V2_POLICY_PATH)
+    live_blob = _blob_id(freeze_commit, V2_POLICY_PATH)
+    live_sha256 = _blob_sha256(freeze_commit, V2_POLICY_PATH)
+    live_size = _blob_size(freeze_commit, V2_POLICY_PATH)
     assert bound["git_blob"] == live_blob
     assert bound["sha256"] == live_sha256
     assert bound["size_bytes"] == live_size
@@ -143,15 +151,17 @@ def test_v1_tcb_hashes_match_frozen_values_and_freeze_artifact():
 
 
 def test_v2_implementation_bytes_unchanged_since_reviewed_head():
-    diff = _git("diff", f"{REVIEWED_IMPLEMENTATION_HEAD}..HEAD", "--", V2_POLICY_PATH)
+    freeze = _freeze_commit()
+    diff = _git("diff", f"{REVIEWED_IMPLEMENTATION_HEAD}..{freeze}", "--", V2_POLICY_PATH)
     assert diff == ""
     for path in V1_TCB_PATHS.values():
-        assert _git("diff", f"{REVIEWED_IMPLEMENTATION_HEAD}..HEAD", "--", path) == ""
+        assert _git("diff", f"{REVIEWED_IMPLEMENTATION_HEAD}..{freeze}", "--", path) == ""
 
 
 def test_freeze_commit_only_changed_allowed_paths():
+    freeze = _freeze_commit()
     changed = set(
-        _git("diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD").splitlines()
+        _git("diff-tree", "--no-commit-id", "--name-only", "-r", freeze).splitlines()
     )
     assert changed, "freeze commit must actually change something"
     assert changed <= FREEZE_ALLOWED_CHANGED_PATHS
@@ -161,7 +171,8 @@ def test_freeze_commit_only_changed_allowed_paths():
 
 
 def test_no_v2_production_arm_result_or_world_records_artifacts_exist():
-    tracked = _git("ls-tree", "-r", "--name-only", "HEAD", "--", "docs/research").splitlines()
+    freeze = _freeze_commit()
+    tracked = _git("ls-tree", "-r", "--name-only", freeze, "--", "docs/research").splitlines()
     forbidden_markers = ("_ARM", "_RESULT", "_WORLD_RECORDS")
     for path in tracked:
         if "V2_RANK_DEGENERACY_POLICY" not in path:

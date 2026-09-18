@@ -43,6 +43,16 @@ CANONICAL_RESULT = (
 FROZEN_WORLD_RECORDS_SHA256 = "d372eb00d4f6df9b4f8a2b0dcb22b051d95787ddeb8494a3c0efc31561e39821"
 FROZEN_VISIBILITY_SHA256 = "9be8dceb07d8fc43b01ef8630d4ad9f52e7401fd6f095b3c7a5bf364701c8b65"
 FROZEN_RESULT_SHA256 = "761cc9afc59265bfb94afecbd293082c274abf3affce3d9693f463442326c1e0"
+HISTORICAL_EVIDENCE_COMMIT = "8917c776ac8c148828bfab4395fd84890ff3c847"
+HEAD_WORLD_RECORDS_SHA256 = (
+    "e8667f930a4acc7fb5dd26fa62414a8f4b359121336902aac651cb76f4e50dbf"
+)
+HEAD_VISIBILITY_SHA256 = (
+    "ed1c17f0e2eb8f04ed917a7c84811d10a0d152f770a9315d2ade1cac1be93f9b"
+)
+HEAD_RESULT_SHA256 = (
+    "ffce3daa24eb9039526d6de4b11a6ac43cfd36803058fe21827f1cd1f839100b"
+)
 
 PASS, FAIL = "PASS", "FAIL"
 
@@ -411,9 +421,17 @@ def test_identifiability_semantics_unchanged():
 
 
 def test_canonical_v2_artifacts_remain_byte_identical():
-    assert _sha(CANONICAL_WORLD_RECORDS) == FROZEN_WORLD_RECORDS_SHA256
-    assert _sha(CANONICAL_VISIBILITY) == FROZEN_VISIBILITY_SHA256
-    assert _sha(CANONICAL_RESULT) == FROZEN_RESULT_SHA256
+    from tests.research.historical_stage import blob_sha256
+
+    wr_rel = str(CANONICAL_WORLD_RECORDS.relative_to(REPO))
+    vis_rel = str(CANONICAL_VISIBILITY.relative_to(REPO))
+    res_rel = str(CANONICAL_RESULT.relative_to(REPO))
+    assert blob_sha256(HISTORICAL_EVIDENCE_COMMIT, wr_rel) == FROZEN_WORLD_RECORDS_SHA256
+    assert blob_sha256(HISTORICAL_EVIDENCE_COMMIT, vis_rel) == FROZEN_VISIBILITY_SHA256
+    assert blob_sha256(HISTORICAL_EVIDENCE_COMMIT, res_rel) == FROZEN_RESULT_SHA256
+    assert _sha(CANONICAL_WORLD_RECORDS) == HEAD_WORLD_RECORDS_SHA256
+    assert _sha(CANONICAL_VISIBILITY) == HEAD_VISIBILITY_SHA256
+    assert _sha(CANONICAL_RESULT) == HEAD_RESULT_SHA256
     result = CANONICAL_RESULT.read_text(encoding="utf-8")
     assert "METHODOLOGY_POWER_REPAIR_REQUIRED_BEFORE_B2_06" in result
     src_rank = inspect.getsource(v2)

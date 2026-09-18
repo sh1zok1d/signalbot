@@ -120,6 +120,9 @@ Read these first:
 | `ACTIVE_RESEARCH_RISKS.md` | **ACTIVE RECORD** | Risks that can invalidate the current research-first program |
 | `RESEARCH_LEDGER.md` | **ACTIVE RECORD** | Experiment/hypothesis history and consumed windows |
 | `CODEBASE_STATUS.md` | **ACTIVE / CANONICAL MAP** | Which code surfaces are active, frozen, deferred or operational |
+| `.github/workflows/ci.yml` | **ACTIVE / FAST PR GATE** | Required CI for `pull_request` → `main`; `python scripts/ci/pr_gate.py`. Does not run the full ~8k suite. |
+| `.github/workflows/full-regression.yml` | **ACTIVE / FULL REGRESSION** | Complete `python -m pytest -q` on `workflow_dispatch` and push to `main`. Not required for ordinary PR iteration. |
+| `scripts/ci/pr_gate.py` | **ACTIVE / FAST PR GATE** | compileall + explicit current-invariant paths + tests mapped from the PR diff. Does not rerun MARKET-01. |
 | `PROJECT_HISTORY.md` | **ACTIVE HISTORY** | Narrative evolution of Signalbot's ideas, architecture and philosophy |
 | `history/README.md` | **ACTIVE HISTORY INDEX** | Direct links to immutable full historical roadmaps/contracts/specifications |
 | `DATA_DURABILITY_RUNBOOK.md` | **OPERATIONS** | Data durability/recovery reference |

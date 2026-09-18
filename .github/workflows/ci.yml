@@ -1,8 +1,9 @@
 name: CI
 
+# FAST PR GATE = required for ordinary PR iteration against main.
+# FULL REGRESSION = .github/workflows/full-regression.yml
+#   (workflow_dispatch and push to main): python -m pytest -q
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 
@@ -61,11 +62,13 @@ jobs:
       # pre-H3-database-upgrade suite
       # (tests/storage/test_v2_episode_event_id_constraint_upgrade.py).
       V2_EPISODE_EVENT_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_test
+      PR_GATE_BASE: ${{ github.event.pull_request.base.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
           # B2-06 verify-only reads provenance blobs from ancestor
           # 78d5bdf without checking that commit out as HEAD.
+          # Freeze tests also locate historical git objects by ancestry.
           fetch-depth: 0
 
       - name: Set up Python
@@ -75,9 +78,6 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
-
-      - name: Compile check (syntax)
-        run: python -m compileall -q .
 
       - name: Prove TimescaleDB extension is available on the CI service
         run: |
@@ -104,49 +104,5 @@ jobs:
           asyncio.run(main())
           PY
 
-      - name: Full test suite
-        run: python -m pytest -q
-
-      - name: V2-H2d raw-kline no-downgrade (real PostgreSQL, explicit)
-        run: python -m pytest -q tests/storage/test_klines_no_downgrade.py -v
-
-      - name: V2-H2b DRAIN-BEFORE-ACTIVATE version switch (real PostgreSQL, explicit)
-        run: python -m pytest -q tests/storage/test_v2_version_switch_readers.py -v
-
-      - name: V2-H2c as-of instrument metadata (real PostgreSQL, explicit)
-        run: python -m pytest -q tests/storage/test_v2_instrument_history_readers.py -v
-
-      - name: V2-H3 atomic/idempotent episode-event persistence (real PostgreSQL, explicit)
-        run: python -m pytest -q tests/storage/test_v2_episode_event_transactions.py -v
-
-      - name: V2-H3 pre-H3 database upgrade to hash-format ID constraints (real PostgreSQL, explicit)
-        run: python -m pytest -q tests/storage/test_v2_episode_event_id_constraint_upgrade.py -v
-
-      - name: V2 rules/manifest integrity (focused)
-        run: python -m pytest -q tests/analytics/test_forecasting_v2_rules_manifest.py tests/analytics/test_forecasting_v2_family_quality.py
-
-      - name: V2-H2a/H2b provenance/readiness/version-switch (focused)
-        run: >
-          python -m pytest -q
-          tests/analytics/test_forecasting_v2_activation_readiness.py
-          tests/analytics/test_forecasting_v2_ports.py
-          tests/analytics/test_forecasting_v2_version_switch.py
-          tests/analytics/test_forecasting_v2_version_switch_orchestrator.py
-          tests/storage/test_v2_version_switch_schema.py
-          tests/storage/test_v2_instrument_history_schema.py
-          tests/storage/test_v2_setup_readers.py
-          tests/storage/test_stage2_db.py
-
-      - name: V2 Stage 4/5 detectors (focused)
-        run: >
-          python -m pytest -q
-          tests/analytics/test_forecasting_v2_regime_4h.py
-          tests/analytics/test_forecasting_v2_bias_1h.py
-          tests/analytics/test_forecasting_v2_context_snapshot.py
-          tests/analytics/test_forecasting_v2_setup_common.py
-          tests/analytics/test_forecasting_v2_trend_pullback.py
-          tests/analytics/test_forecasting_v2_trend_pullback_inputs.py
-          tests/analytics/test_forecasting_v2_compression_breakout.py
-          tests/analytics/test_forecasting_v2_compression_breakout_inputs.py
-          tests/analytics/test_forecasting_v2_confirmed_breakout.py
-          tests/analytics/test_forecasting_v2_confirmed_breakout_inputs.py
+      - name: Fast PR gate
+        run: python scripts/ci/pr_gate.py

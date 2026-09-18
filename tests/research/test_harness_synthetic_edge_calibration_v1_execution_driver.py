@@ -122,17 +122,17 @@ def test_live_head_is_armed_unexecuted_and_binds_freeze_parent():
     assert prod._arm_payload_authorizes_at_commit(REPO, historical_arm_commit, live_arm) is False
     head_is_historical_arm = _head_is_canonical_arm(REPO)
     assert head_is_historical_arm is False
-    assert prod.production_monte_carlo_arm_authorized() is True
+    assert prod.production_monte_carlo_arm_authorized() is False
     state = prod.inspect_production_arm_state()
     assert state["present"] is True
-    assert state["authorized"] is True
+    assert state["authorized"] is False
     identity = prod.production_durability_identity()
-    assert identity["production_monte_carlo_arm_authorized"] is True
-    assert identity["monte_carlo_armed"] is True
+    assert identity["production_monte_carlo_arm_authorized"] is False
+    assert identity["monte_carlo_armed"] is False
     assert identity["production_result_minted"] is False
     assert identity["authorization_consumed"] is False
     assert identity["production_calibration_executed"] is False
-    assert identity["stage"] == "production_monte_carlo_arm_authorized"
+    assert identity["stage"] == "production_execution_driver_unarmed"
     assert identity["real_market_data_access_authorized"] is False
     assert identity["b2_06_scientific_execution_authorized"] is False
     assert identity["validation_2025_authorized"] is False

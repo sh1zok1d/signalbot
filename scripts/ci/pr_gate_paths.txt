@@ -1,0 +1,57 @@
+# Fast PR gate — required on pull_request → main.
+# One pytest path or nodeid per line. Comments and blanks ignored.
+# Full regression remains: python -m pytest -q
+# See scripts/ci/pr_gate.py and .github/workflows/ci.yml.
+
+# Compile/import sanity is enforced by scripts/ci/pr_gate.py (compileall).
+
+# MARKET-01 lifecycle / RESULT immutability / episode-construction equivalence
+tests/research/test_market_01_arm.py
+tests/research/test_market_01_canonical_result.py
+tests/research/test_market_01_episode_construction_fast.py
+tests/research/test_market_01_implementation.py
+tests/research/test_market_01_prereg_freeze.py
+
+# Current V3 freeze / ARM / confirmatory implementation invariants
+tests/research/test_harness_synthetic_edge_calibration_v3_arm.py
+tests/research/test_harness_synthetic_edge_calibration_v3_confirmatory.py
+tests/research/test_harness_synthetic_edge_calibration_v3_implementation_freeze.py
+tests/research/test_harness_synthetic_edge_calibration_v3_production.py
+tests/research/test_harness_synthetic_edge_calibration_v3_rng.py
+
+# Current-HEAD live-unarmed + historical-stage git-object freeze/ARM checks
+tests/research/test_harness_synthetic_edge_calibration_v1.py
+tests/research/test_harness_synthetic_edge_calibration_v1_execution_driver.py
+tests/research/test_harness_synthetic_edge_calibration_v1_performance.py
+tests/research/test_harness_synthetic_edge_calibration_v1_performance_freeze_authorization.py
+tests/research/test_harness_synthetic_edge_calibration_v1_performance_production_arm.py
+tests/research/test_harness_synthetic_edge_calibration_v1_tcb_durability.py
+tests/research/test_harness_synthetic_edge_calibration_v1_production.py::test_cli_uses_fresh_process_and_stays_unexecuted
+tests/research/test_harness_synthetic_edge_calibration_v2_33_33_implementation_freeze.py
+tests/research/test_harness_synthetic_edge_calibration_v2_33_33_post_wiring_runtime_freeze.py
+tests/research/test_harness_synthetic_edge_calibration_v2_arm_live_runtime.py
+tests/research/test_harness_synthetic_edge_calibration_v2_arm_wiring.py
+tests/research/test_harness_synthetic_edge_calibration_v2_confirmatory_power.py
+tests/research/test_harness_synthetic_edge_calibration_v2_control_plan_identity_rebind.py
+tests/research/test_harness_synthetic_edge_calibration_v2_execution_freeze.py
+tests/research/test_harness_synthetic_edge_calibration_v2_production.py::test_run_canonical_v2_production_grid_refuses_without_arm
+tests/research/test_harness_synthetic_edge_calibration_v2_production.py::test_no_real_v2_arm_exists_in_project_history
+tests/research/test_harness_synthetic_edge_calibration_v2_production.py::test_v2_production_identity_reports_unarmed_and_unconsumed
+tests/research/test_harness_synthetic_edge_calibration_v2_production.py::test_canonical_v2_world_count_is_3200
+tests/research/test_harness_synthetic_edge_calibration_v2_production.py::test_v1_tcb_intact_at_this_head
+tests/research/test_harness_synthetic_edge_calibration_v2_rank_policy_implementation_freeze.py
+tests/research/test_harness_synthetic_edge_calibration_v2_visibility.py
+tests/research/test_pr_gate_paths.py
+
+# Current product fail-closed / provenance invariants required to merge
+tests/test_telegram_isolation.py
+tests/analytics/test_forecasting_v2_activation_readiness.py
+tests/analytics/test_forecasting_v2_ports.py
+tests/analytics/test_forecasting_v2_version_switch.py
+tests/analytics/test_forecasting_v2_rules_manifest.py
+tests/analytics/test_forecasting_v2_family_quality.py
+tests/storage/test_klines_no_downgrade.py
+tests/storage/test_v2_version_switch_schema.py
+tests/storage/test_v2_instrument_history_schema.py
+tests/storage/test_stage2_schema.py
+tests/storage/test_v2_setup_readers.py

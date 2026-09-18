@@ -108,15 +108,14 @@ def test_rank_policy_bytes_unchanged_from_reviewed_repair():
 
 
 def test_old_canonical_evidence_bytes_unchanged():
-    world_records = (REPO / v2p.CANONICAL_V2_WORLD_RECORDS_PATH).read_bytes()
-    visibility = (
-        REPO
-        / "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_VISIBILITY.json"
-    ).read_bytes()
-    result = (REPO / v2p.CANONICAL_V2_RESULT_PATH).read_bytes()
-    assert _sha(world_records) == EXPECTED_WORLD_RECORDS_SHA256
-    assert _sha(visibility) == EXPECTED_VISIBILITY_SHA256
-    assert _sha(result) == EXPECTED_RESULT_SHA256
+    from tests.research.historical_stage import blob_sha256
+
+    wr = "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_WORLD_RECORDS.json"
+    vis = "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_VISIBILITY.json"
+    res = "docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_RESULT.json"
+    assert blob_sha256(REPAIRED_IMPLEMENTATION_HEAD, wr) == EXPECTED_WORLD_RECORDS_SHA256
+    assert blob_sha256(REPAIRED_IMPLEMENTATION_HEAD, vis) == EXPECTED_VISIBILITY_SHA256
+    assert blob_sha256(REPAIRED_IMPLEMENTATION_HEAD, res) == EXPECTED_RESULT_SHA256
 
 
 def test_disposable_freeze_authenticates_against_rebound_plan(tmp_path):

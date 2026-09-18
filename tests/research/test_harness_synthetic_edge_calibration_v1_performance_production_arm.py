@@ -248,11 +248,13 @@ def test_arm_artifact_is_canonical_json():
 
 
 def test_arm_is_immediate_child_of_freeze_when_committed():
-    head = _git("rev-parse", "HEAD")
-    payload = _load_arm()
-    validate_arm_commit_topology(head, payload)
-    assert _git("rev-parse", f"{head}^") == FREEZE_HEAD
-    assert _git("rev-list", "--count", f"{FREEZE_HEAD}..{head}") == "1"
+    from tests.research.historical_stage import unique_child_on_ancestry
+
+    arm_commit = unique_child_on_ancestry(FREEZE_HEAD)
+    payload = json.loads(_blob(arm_commit, ARM_REL).decode("utf-8"))
+    validate_arm_commit_topology(arm_commit, payload)
+    assert _git("rev-parse", f"{arm_commit}^") == FREEZE_HEAD
+    assert _git("rev-list", "--count", f"{FREEZE_HEAD}..{arm_commit}") == "1"
 
 
 def test_non_immediate_child_and_wrong_commits_refused():
@@ -295,8 +297,8 @@ def test_repaired_runtime_keys_performance_freeze_path():
     assert FREEZE_REL in src
     live_arm = _load_arm()
     live = _git("rev-parse", "HEAD")
-    assert prod._arm_payload_authorizes_at_commit(REPO, live, live_arm) is True
-    assert prod.production_monte_carlo_arm_authorized() is True
+    assert prod._arm_payload_authorizes_at_commit(REPO, live, live_arm) is False
+    assert prod.production_monte_carlo_arm_authorized() is False
     historical = json.loads(_blob(HISTORICAL_PERFORMANCE_ARM, ARM_REL).decode("utf-8"))
     assert prod._arm_payload_authorizes_at_commit(REPO, HISTORICAL_PERFORMANCE_ARM, historical) is True
     assert prod._arm_payload_authorizes_at_commit(REPO, live, historical) is False

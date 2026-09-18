@@ -375,11 +375,17 @@ def test_live_executed_runtime_refuses_stale_historical_freeze_bytes():
 
 
 def test_executed_runtime_check_refuses_disposable_clone_root_mismatch(tmp_path):
-    repo = _v2_commit_freeze_tree(tmp_path)
-    payload = _v2_valid_arm_payload(repo)
-    arm_commit = _v2_commit_arm(repo, payload)
+    import subprocess as sp
+
+    repo = tmp_path / "clone"
+    sp.run(
+        ["git", "clone", "--local", "--", str(REPO), str(repo)],
+        check=True,
+        capture_output=True,
+    )
+    historical = HISTORICAL_POST_WIRING_FREEZE_HEAD
     with pytest.raises(v2p.SyntheticExecutionNotAuthorized, match="loaded runtime bytes"):
-        v2p._assert_executed_runtime_bound_to_commit(repo, arm_commit)
+        v2p._assert_executed_runtime_bound_to_commit(repo, historical)
 
 
 def test_live_runtime_bytes_match_current_head():

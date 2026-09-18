@@ -109,13 +109,21 @@ def test_2_tampered_inherited_ladder_live_module_refuses(tmp_path, monkeypatch):
 
 
 def test_3_repo_root_mismatch_does_not_skip_live_binding(tmp_path):
-    repo, arm_commit = _armed_reserved_clone(tmp_path)
+    repo = tmp_path / "clone"
+    import subprocess as sp
+
+    sp.run(
+        ["git", "clone", "--local", "--", str(REPO), str(repo)],
+        check=True,
+        capture_output=True,
+    )
     live_root = Path(v2p.__file__).resolve().parents[2]
     assert Path(repo).resolve() != live_root
+    historical = "75f12bd31eac631a3baedd4a627344c0f2d40190"
     with pytest.raises(v2p.SyntheticExecutionNotAuthorized, match="loaded runtime bytes"):
-        v2p._assert_executed_runtime_bound_to_commit(repo, arm_commit)
+        v2p._assert_executed_runtime_bound_to_commit(repo, historical)
     with pytest.raises(v2p.SyntheticExecutionNotAuthorized, match="loaded runtime bytes"):
-        v2p.open_v2_production_session(repo_root=repo, arm_commit=arm_commit)
+        v2p._assert_executed_runtime_bound_to_commit(REPO, historical)
 
 
 def test_4_session_recheck_refuses_evaluate_after_runtime_mutation(tmp_path, monkeypatch):

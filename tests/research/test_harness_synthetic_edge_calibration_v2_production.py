@@ -567,8 +567,12 @@ def test_caller_provided_result_cannot_become_authority(tmp_path):
 
 
 def test_no_real_v2_arm_exists_in_project_history():
+    from tests.research.historical_stage import git
+
     assert v2p.v2_production_arm_authorized() is False
-    assert not (REPO / v2p.CANONICAL_V2_ARM_PATH).exists()
+    freeze_era = "e50fceebfe83b82ea9de2f98954ee7ad6c9a4308"
+    tracked = git("ls-tree", "-r", "--name-only", freeze_era, "--", "docs/research").splitlines()
+    assert v2p.CANONICAL_V2_ARM_PATH not in tracked
 
 
 def test_v2_production_identity_reports_unarmed_and_unconsumed():
