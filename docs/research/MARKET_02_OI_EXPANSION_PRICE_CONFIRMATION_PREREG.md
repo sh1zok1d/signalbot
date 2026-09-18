@@ -1,17 +1,18 @@
 # MARKET-02 OI_EXPANSION_PRICE_CONFIRMATION — Preregistration
 
-- **Status:** `PREREGISTERED_OUTCOME_BLIND_UNFROZEN`
+- **Status:** `PREREGISTERED_OUTCOME_BLIND_FROZEN`
 - **Research ID:** `MARKET-02_OI_EXPANSION_PRICE_CONFIRMATION`
 - **Parent design:** `docs/research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_DESIGN.md`
 - **Machine-readable twin:** `docs/research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_PREREG.json`
 - **Authority:** this MD is the complete scientific authority; the JSON is a machine-readable twin/index and MUST agree on every duplicated field. Any disagreement is fail-closed and blocks freeze/execution; JSON never overrides this MD.
 - **Date:** 2026-09-18
 - **Outcome inspection for MARKET-02 design/prereg:** **NO**
-- **Prereg freeze:** **NO — separate next unit required**
+- **Prereg freeze:** **YES — frozen after independent blocker-closure review**
 - **Evaluator / ARM / execution:** **NO / NO / NO**
 
-This is the complete outcome-blind MARKET-02 preregistration. It does not
-freeze, implement, ARM, execute, enumerate MARKET-02 episodes, or inspect
+This is the complete frozen outcome-blind MARKET-02 preregistration. The
+scientific semantics below are immutable under this research identity. It
+does not implement, ARM, execute, enumerate MARKET-02 episodes, or inspect
 MARKET-02 subgroup outcomes.
 
 ## 0. Sequential-research disclosure
@@ -364,11 +365,12 @@ MARKET-01 scientific/evidence bytes must remain untouched.
 Current state:
 ```text
 MARKET_02_PREREG_MATERIALIZED = YES
-MARKET_02_PREREG_FROZEN       = NO
+MARKET_02_PREREG_FROZEN       = YES
 MARKET_02_IMPLEMENTED         = NO
 MARKET_02_ARMED               = NO
 MARKET_02_EXECUTED            = NO
 ```
 
 Any materially different rule after freeze requires a new research identity.
-Next authorized unit after materialization review: **separate prereg freeze**.
+Independent blocker-closure review returned `FREEZE_READY = YES`. Next
+authorized unit: **MARKET-02 implementation against these frozen semantics**.
