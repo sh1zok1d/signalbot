@@ -1,8 +1,8 @@
 """MARKET-03 preregistration-design tests.
 
 Does not run EmaCross/EmaCrossFunding, construct trades, or compute
-Signalbot strategy returns/drawdown/Sharpe. Does not write or require
-the final preregistration.
+Signalbot strategy returns/drawdown/Sharpe. This file tests the design
+unit bytes; a later unit may write the live preregistration.
 """
 
 from __future__ import annotations
@@ -14,8 +14,6 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 MD = REPO / "docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG_DESIGN.md"
 JS = REPO / "docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG_DESIGN.json"
-FINAL_PREREG_MD = REPO / "docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG.md"
-FINAL_PREREG_JS = REPO / "docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG.json"
 
 EXPECTED_COMMIT = "b68a5518b4a3eba2fde1733160d7d7de356023b5"
 EXPECTED_TREE = "f7717e681c911ea3ccce15492246053cf15883cb"
@@ -148,7 +146,7 @@ def test_semantics_claim_and_classification():
     assert payload["mdd_definition"]["not_freqtrade_absolute_drawdown_percent"] is True
 
 
-def test_markdown_binds_verdict_and_does_not_write_final_prereg():
+def test_markdown_binds_verdict_and_records_design_unit_stop():
     text = MD.read_text(encoding="utf-8")
     assert "READY_FOR_MARKET_03_PREREG" in text
     assert "DESIGN_VERDICT = READY_FOR_MARKET_03_PREREG" in text
@@ -160,8 +158,9 @@ def test_markdown_binds_verdict_and_does_not_write_final_prereg():
     assert "STRICT_HISTORICAL_PUBLICATION_LATENCY = UNPROVEN" in text
     assert "does **not** write the final preregistration" in text
     assert "91e3624988442901a21693dabd3eb4bfa9502d2fa6ccd8df9b6a7f9e04146a57" in text
-    assert not FINAL_PREREG_MD.exists()
-    assert not FINAL_PREREG_JS.exists()
+    payload = json.loads(JS.read_text(encoding="utf-8"))
+    assert payload["final_prereg_written"] is False
+    assert payload["MARKET_03_PREREGISTERED"] is False
 
 
 def test_outcome_blindness_flags_are_all_false():
