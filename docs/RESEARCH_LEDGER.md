@@ -3192,3 +3192,29 @@ MARKET_02_TEST_CALIBRATED = NO
 
 - next required step: `MARKET_02_IMPLEMENTATION_FREEZE_REVIEW_IF_AUTHORIZED` (not ARM, not execution)
 
+## 2026-09-18 — MARKET-02 implementation freeze (not armed, not executed)
+
+Outcome-blind implementation freeze of reviewed scientific HEAD
+`1d2b0abf73d245f37cd9ca55ece99d1628dc80ee` / tree
+`9e18ccf690e280bbd4b033f4a44f3b0700a5bedb`. Pre-freeze red-team
+verdict `READY_FOR_IMPLEMENTATION_FREEZE`. Scientific lib bytes
+unchanged. Freeze commit adds freeze records, documentation, and a
+canonical chronological-order invariant test only.
+
+MD bootstrap seed `1852983754304692007` remains authoritative. JSON
+twin numeric `1852983754304692000` is a historical IEEE/JSON
+representation discrepancy; neither prereg file was modified.
+`MARKET_02_TEST_CALIBRATED = NO`. Not ARM. Not execution.
+
+- market_02_prereg_frozen: **true**
+- market_02_implemented: **true**
+- market_02_implementation_frozen: **true**
+- market_02_armed: **false**
+- market_02_executed: **false**
+- market_02_outcome_inspected: **false**
+- canonical_executions_consumed: **0**
+- protected_oos_touched: **false**
+- market_02_test_calibrated: **false**
+
+- next required step: `MARKET_02_ARM_IF_AUTHORIZED` (not execution in this unit)
+

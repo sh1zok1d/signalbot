@@ -637,3 +637,49 @@ def test_evaluate_market_02_synthetic_does_not_use_bound_snapshots():
     assert result["MARKET_02_ARMED"] is False
     assert result["MARKET_02_TEST_CALIBRATED"] is MARKET_02_TEST_CALIBRATED
     assert np.__version__ == "2.1.3"
+
+
+def test_canonical_path_supplies_chronological_confirmatory_rows():
+    """Canonical evaluate_market_02 feeds T-sorted rows into bootstrap.
+
+    Does not redesign evaluate_from_confirmatory_rows. Does not add a
+    scientific transformation. Proves confirmatory_rows sorts by
+    (decision_T_ms, impulse_start_ms) and that evaluate_market_02 uses
+    that function before evaluate_from_confirmatory_rows.
+    """
+    canon = inspect.getsource(evaluate_market_02)
+    assert "rows = confirmatory_rows(episodes)" in canon
+    assert "evaluate_from_confirmatory_rows(rows" in canon
+    rows_src = inspect.getsource(confirmatory_rows)
+    assert 'rows.sort(key=lambda r: (int(r["decision_T_ms"]), int(r["impulse_start_ms"])))' in rows_src
+
+    def _eligible(T: int, start: int) -> EpisodeRecord:
+        return EpisodeRecord(
+            impulse_end_t_ms=int(T) - THIRTY_M_MS,
+            impulse_start_ms=int(start),
+            decision_T_ms=int(T),
+            outcome_end_ms=int(T) + SIXTY_M_MS,
+            D=1,
+            oi_expansion=True,
+            primary_population=True,
+            candidate=True,
+            stratum_id="HIGH|HIGH",
+            continuation_return=0.01,
+            confirmatory_eligible=True,
+        )
+
+    late = COMMON_START_MS + 9 * FIVE_MS
+    mid = COMMON_START_MS + 5 * FIVE_MS
+    early = COMMON_START_MS + FIVE_MS
+    shuffled = [
+        _eligible(late, late - THIRTY_M_MS),
+        _eligible(early, early - THIRTY_M_MS + 1),
+        _eligible(early, early - THIRTY_M_MS),
+        _eligible(mid, mid - THIRTY_M_MS),
+    ]
+    ordered = confirmatory_rows(shuffled)
+    keys = [(r["decision_T_ms"], r["impulse_start_ms"]) for r in ordered]
+    assert keys == sorted(keys)
+    assert keys[0][0] == early
+    assert keys[0][1] < keys[1][1]
+    assert [r["decision_T_ms"] for r in ordered] == [early, early, mid, late]

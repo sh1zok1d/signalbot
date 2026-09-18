@@ -1,0 +1,214 @@
+{
+  "schema": "market_02_oi_expansion_price_confirmation_implementation_freeze",
+  "schema_version": "1.0.0",
+  "status": "IMPLEMENTATION_FROZEN_NOT_ARMED",
+  "unit_id": "MARKET-02_OI_EXPANSION_PRICE_CONFIRMATION_IMPLEMENTATION_FREEZE",
+  "research_id": "MARKET-02_OI_EXPANSION_PRICE_CONFIRMATION",
+  "date": "2026-09-18",
+  "not_a_result": true,
+  "not_an_execution": true,
+  "not_outcome_inspection": true,
+  "not_an_arm": true,
+  "not_b2_06_2025_2026_authorization": true,
+  "not_v3": true,
+  "not_v4": true,
+  "implementation_review_verdict": "READY_FOR_IMPLEMENTATION_FREEZE",
+  "reviewed_implementation": {
+    "head": "1d2b0abf73d245f37cd9ca55ece99d1628dc80ee",
+    "tree": "9e18ccf690e280bbd4b033f4a44f3b0700a5bedb",
+    "note": "Independently reviewed scientific implementation. This freeze commit may add only freeze records, documentation, and a chronological-order invariant test. Scientific lib SHA256 must remain reviewed_sha256."
+  },
+  "freeze_parent_expected_head": "1d2b0abf73d245f37cd9ca55ece99d1628dc80ee",
+  "freeze_commit_head": "UNSET_UNTIL_THIS_COMMIT",
+  "freeze_commit_tree": "UNSET_UNTIL_THIS_COMMIT",
+  "note": "This freeze is a docs/test-invariant descendant of the reviewed MARKET-02 implementation. It does not claim that this freeze HEAD itself was the code HEAD independently reviewed. Binding is to reviewed_implementation.head/tree and the SHA256s below. This freeze does not hash itself.",
+  "prereg_authority": {
+    "scientific_authority": "human_readable_twin",
+    "json_never_overrides_md": true,
+    "prereg_md_freeze_head": "0f332d3cfd848d95c2fbe5de7f86dfe7aa631540",
+    "prereg_json_twin_head": "aebdb9570f08c7a05149336d90f6fcd11541d10d",
+    "files": [
+      {
+        "role": "PREREG_MD",
+        "path": "docs/research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_PREREG.md",
+        "git_blob": "11d1b5867d3673412fb5f539131503bb2d9e3efd",
+        "sha256": "4f19fd27435adddf4cc7e3c5568a8e316d8865b64468cdc30a9fd3918ffc3275",
+        "size_bytes": 11643
+      },
+      {
+        "role": "PREREG_JSON",
+        "path": "docs/research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_PREREG.json",
+        "git_blob": "f837e12387679960ac6b2c40e919052add5b0035",
+        "sha256": "ffc11ffd0f9d76ca12542ce45f466a6a7f9c651f1a030168a1617af2caa545a7",
+        "size_bytes": 4928
+      }
+    ]
+  },
+  "seed_authority": {
+    "md_authoritative_seed": "1852983754304692007",
+    "json_twin_stored_numeric": "1852983754304692000",
+    "seed_material": "MARKET-02_OI_EXPANSION_PRICE_CONFIRMATION|CONFIRMATORY_STATIONARY_BOOTSTRAP|B=999",
+    "seed_material_sha256": "19b71ee831e69f273338ef94e65ff4cc339eb6d8054c365fd160c7769955558f",
+    "int_first_16_hex": "1852983754304692007",
+    "discrepancy_class": "HISTORICAL_JSON_IEEE_PRECISION_LOSS",
+    "exists_in_already_frozen_prereg_artifacts": true,
+    "silent_prereg_repair": false,
+    "prereg_files_unmodified_by_this_freeze": true,
+    "implementation_uses": "MD",
+    "json_never_overrides_md": true,
+    "namespace": ["BOOTSTRAP", "PRIMARY_BETA_CONFIRMATION"]
+  },
+  "accepted_scientific_implementation": [
+    {
+      "role": "MARKET_02_LIB",
+      "path": "scripts/research/market_02_oi_expansion_price_confirmation_lib.py",
+      "reviewed_git_blob": "bee32e3feb748e122d2469e95be645c5881400d0",
+      "reviewed_sha256": "51638796db235a999bd1a12d44a57aace9e21f4b0cfffeea14bdabaf3eac7ea6",
+      "reviewed_size_bytes": 38441,
+      "lifecycle_delta": "none; scientific lib bytes unchanged by this freeze"
+    }
+  ],
+  "implementation_tests": [
+    {
+      "role": "MARKET_02_IMPLEMENTATION_TESTS_AT_FREEZE",
+      "path": "tests/research/test_market_02_implementation.py",
+      "sha256": "70553e0a2133c2af84d9038b5ac3f0c92eb59f165b9eea346b4bb77702fd2b93",
+      "size_bytes": 25911,
+      "git_blob": "e43d40ee2ea2d275d93fb53efe226ff6a927138f",
+      "includes_canonical_chronological_order_invariant": true
+    }
+  ],
+  "transitive_scientific_dependencies": [
+    {
+      "role": "FAST_PRECOMPUTE",
+      "path": "scripts/research/market_01_episode_construction_fast.py",
+      "git_blob": "404a7479568654ebfed69abe770474d3d4e2f88a",
+      "sha256": "ddcabb999c2ea033a674ee84a484333802d3f863ab012c6784eb1784af2640ef",
+      "size_bytes": 14994,
+      "reuse": "rolling primitives only; not MARKET-01 EpisodeRecord semantics"
+    },
+    {
+      "role": "MARKET_01_LIB_PRIMITIVES",
+      "path": "scripts/research/market_01_oi_expansion_weak_continuation_lib.py",
+      "git_blob": "0bd88b3c4b95af688fc5876d858f565ca76bd823",
+      "sha256": "9a8f46b39114558d38ae61600cb632fb963c7751d37e7699c4f155d91126dc09",
+      "size_bytes": 33797,
+      "reuse": "clocks/OI/impulse/stratum primitives; MARKET-01 estimand unused"
+    },
+    {
+      "role": "PRE_VOL_60",
+      "path": "scripts/research/b2_03_impulse_morphology_lib.py",
+      "git_blob": "6a4fdee3557e4f5c3002b8cf8aa5afdf9249b360",
+      "sha256": "6da1e590f83edab09247b8d238e410ef7ce4333f4f20ef0d8d1ad205391eb6ce",
+      "size_bytes": 55409
+    },
+    {
+      "role": "RNG",
+      "path": "scripts/research/harness_synthetic_edge_calibration_v1_lib.py",
+      "git_blob": "8142ce5d757851bec6dfd0ca2c0bcc13652d37d7",
+      "sha256": "12230dcad714e3a06d3f57de69b78fedcab088be950af3d06f959366f01d6c51",
+      "size_bytes": 37636,
+      "functions": ["namespace_seed", "pcg64_generator"]
+    },
+    {
+      "role": "STATIONARY_BLOCK_SELECTOR_MODULE",
+      "path": "scripts/research/harness_synthetic_edge_calibration_v3_confirmatory.py",
+      "git_blob": "85314b5bfbfdb1eacf819b4e71bc0e2af283a616",
+      "sha256": "38a494917dcf721b828a7c3f885d4c60ab6df437003abc0c71e510e33b4b0505",
+      "size_bytes": 24059,
+      "reuse": "algorithm identity only; not V3 DETECTED; not MARKET-02 calibration",
+      "function": "optimal_stationary_block_length",
+      "function_sha256": "66ed0ea015b773f8e469a470ddcd0e648806803249c93de14211ff6b8a4782b1"
+    }
+  ],
+  "selector_authority": {
+    "package": "arch",
+    "package_version": "8.0.0",
+    "source_file": "arch/bootstrap/base.py",
+    "source_file_sha256": "104d3552a8e79a801e2f8cd0401160f83a7263b4ff13da44a82d763e5664fd21",
+    "branch": "stationary-bootstrap only (c=2, b_sb)"
+  },
+  "data_authority": {
+    "price_dataset_id": "CORE_BTC_BINANCE_V0",
+    "price_snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+    "oi_source": "Binance Vision daily/metrics/BTCUSDT",
+    "oi_field": "sum_open_interest",
+    "oi_snapshot_id": "5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33",
+    "common_start_inclusive": "2020-09-01T00:00:00Z",
+    "common_end_exclusive": "2025-01-01T00:00:00Z",
+    "funding_in_scope": false,
+    "b2_06_execution_authorized": false,
+    "protected_oos_authorized": false
+  },
+  "bootstrap_identity": {
+    "algorithm": "Politis-Romano stationary bootstrap",
+    "resamples": "chronological filtered confirmatory episode sequence",
+    "B": 999,
+    "alpha": 0.05,
+    "seed_material": "MARKET-02_OI_EXPANSION_PRICE_CONFIRMATION|CONFIRMATORY_STATIONARY_BOOTSTRAP|B=999",
+    "seed_material_sha256": "19b71ee831e69f273338ef94e65ff4cc339eb6d8054c365fd160c7769955558f",
+    "MARKET_02_BOOTSTRAP_SEED": "1852983754304692007",
+    "stream": "pcg64_generator(namespace_seed(MARKET_02_BOOTSTRAP_SEED, \"BOOTSTRAP\", \"PRIMARY_BETA_CONFIRMATION\"))"
+  },
+  "ordering_invariant": {
+    "canonical_path": "construct_episodes -> confirmatory_rows -> evaluate_from_confirmatory_rows",
+    "confirmatory_rows_sort_key": ["decision_T_ms", "impulse_start_ms"],
+    "evaluate_from_confirmatory_rows_redesigned": false,
+    "row_api_redesigned": false,
+    "scientific_transformation_added": false
+  },
+  "interpretation_constraints": {
+    "pooled_estimand": {
+      "beta_confirmation_is_pooled_within_stratum_contrast": true,
+      "detected_does_not_imply_every_stratum": true,
+      "detected_does_not_imply_monotonic_confirmation_continuation": true,
+      "detected_does_not_imply_universal_threshold_0_25": true
+    },
+    "bootstrap_limitation": {
+      "resamples_filtered_confirmatory_sequence": true,
+      "known_real_market_operating_characteristics": false,
+      "p_value_is_not_calibrated_real_market_false_positive_probability": true
+    },
+    "program_level": {
+      "sequential_after_market_01_no_evidence": true,
+      "not_validated_signalbot_alpha": true,
+      "not_independent_replication_of_market_01": true,
+      "not_rescue_or_reclassification_of_market_01": true,
+      "not_program_level_discovery": true
+    },
+    "temporal_persistence": {
+      "robustness_mode": "PRIMARY_DETECTED_ONLY_DOWNGRADE",
+      "passing_robustness_does_not_establish_current_edge": true,
+      "passing_robustness_does_not_establish_persistent_edge": true,
+      "passing_robustness_does_not_establish_production_validity": true,
+      "passing_robustness_does_not_establish_untouched_oos_confirmation": true
+    },
+    "allowed_detected_claim": "Within the preregistered occupancy-thinned population of qualifying-impulse AND OI-expansion episodes satisfying the frozen completeness/support rules, continuation_ratio > 0.25 versus <= 0.25 is tested as a pooled within-stratum contrast in direction-adjusted subsequent 60m continuation under the frozen OLS/bootstrap procedure. DETECTED is only the mechanical result of that frozen test. It is a relationship-study result and the MARKET-02 test is uncalibrated."
+  },
+  "explicit_state": {
+    "market_02_prereg_frozen": true,
+    "market_02_implementation_complete": true,
+    "market_02_implementation_frozen": true,
+    "market_02_armed": false,
+    "canonical_executions_consumed": 0,
+    "real_market_02_outcome_inspection": false,
+    "bound_market_02_execution": false,
+    "protected_oos_touched": false,
+    "market_02_test_calibrated": false,
+    "market_02_executed": false
+  },
+  "limitations_preserved": {
+    "MARKET_02_TEST_CALIBRATED": false,
+    "v3_reused_as_market_02_test": false,
+    "v3_synthetic_calibration_validates_market_02": false,
+    "new_synthetic_calibration_authorized": false,
+    "default_v4": false,
+    "b2_06_execution_authorized": false,
+    "protected_oos_authorized": false,
+    "market_02_executed": false,
+    "market_02_outcome_inspected": false,
+    "market_02_armed": false,
+    "canonical_executions_consumed": 0
+  },
+  "next_lifecycle_state": "MARKET_02_ARM_IF_AUTHORIZED"
+}

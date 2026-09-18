@@ -235,8 +235,8 @@ Post-close episode-construction throughput work is research
 infrastructure only (`docs/research/MARKET_01_EPISODE_CONSTRUCTION_PERF.md`);
 it does not reopen MARKET-01 or change the sealed RESULT.
 
-`MARKET-02_OI_EXPANSION_PRICE_CONFIRMATION` is implemented against its
-already frozen prereg and is **not** armed or executed.
+`MARKET-02_OI_EXPANSION_PRICE_CONFIRMATION` is **implementation-frozen**
+against its already frozen prereg and is **not** armed or executed.
 `MARKET_02_TEST_CALIBRATED = NO`. Bound CORE/OI snapshots are refused.
 This is not a MARKET-01 rerun or rescue. Do not inspect MARKET-02
 outcomes in this unit.
