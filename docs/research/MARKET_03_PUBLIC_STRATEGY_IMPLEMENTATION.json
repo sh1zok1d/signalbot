@@ -1,0 +1,153 @@
+{
+  "schema": "market_03_public_strategy_implementation",
+  "schema_version": "1.0.0",
+  "status": "IMPLEMENTATION_COMPLETE_NOT_FROZEN",
+  "unit_id": "MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION",
+  "research_id": "MARKET-03_PUBLIC_STRATEGY_REPLICATION",
+  "date_utc": "2026-09-18",
+  "human_readable_twin": "docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION.md",
+  "not_a_result": true,
+  "not_an_arm": true,
+  "not_implementation_freeze": true,
+  "not_market_03_execution": true,
+  "not_parameter_search": true,
+  "not_b2_06_authority": true,
+  "replication_level": "LEVEL_2_FAITHFUL_REIMPLEMENTATION",
+  "scientific_identity": "EXTERNAL_HISTORICAL_CLAIM_REPRODUCTION",
+  "pinned_external_source": {
+    "repo": "https://github.com/wiktorj137/btc-strategy-lab",
+    "commit": "b68a5518b4a3eba2fde1733160d7d7de356023b5",
+    "tree": "f7717e681c911ea3ccce15492246053cf15883cb",
+    "family": "EmaCross vs EmaCrossFunding",
+    "freqtrade_engine_docs_pin": "2026.7",
+    "inventory_path": "docs/research_data/MARKET_03_BTC_STRATEGY_LAB_B68A5518/"
+  },
+  "prereg": {
+    "md_path": "docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG.md",
+    "json_path": "docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG.json",
+    "md_sha256": "044bb2a6bbd51c49c856b02eb7866b43171664a05d947dce995489389eeb0b57",
+    "json_sha256": "3f35f9a1d0575eaff3a1993a4779642259c0891dbdda1d49f22b958eba714f89",
+    "changed": false
+  },
+  "json_sidecar_parameters": {
+    "ema_period": 600,
+    "exit_threshold": 2.0,
+    "funding_max_pct": 55,
+    "class_defaults_are_not_the_contrast": true
+  },
+  "data_authorities": {
+    "spot": {
+      "dataset_id": "MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0",
+      "snapshot_id": "2ce1f504709dc40c37a70dddcf73acb444e715820e9c855f6817c48f10d2b345",
+      "data_sha256": "e560bebb6ba9d070ee0fa58aaa5cf922caaa24d4b7e2b4eac8c7c0041c9495d4",
+      "changed": false,
+      "loaded_into_strategy_logic_this_unit": false
+    },
+    "funding": {
+      "dataset_id": "MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0",
+      "snapshot_id": "d47b7b78b6e7dbb842c7d9eb122c81063e0b804e179a53dd87723f9a8a8adc68",
+      "data_sha256": "e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb",
+      "rows": 5819,
+      "first_fundingTime_utc": "2019-09-10T08:00:00Z",
+      "last_fundingTime_utc": "2024-12-31T16:00:00Z",
+      "changed": false,
+      "loaded_into_strategy_logic_this_unit": false,
+      "b2_06_is_not_authority": true
+    }
+  },
+  "intervals": {
+    "warmup_start_inclusive": "2019-08-07T20:00:00Z",
+    "warmup_end_exclusive": "2019-10-01T00:00:00Z",
+    "evaluation_start_inclusive": "2019-10-01T00:00:00Z",
+    "evaluation_end_exclusive": "2025-01-01T00:00:00Z",
+    "protected_oos_start": "2025-01-01T00:00:00Z",
+    "protected_oos_touched": false
+  },
+  "fundingTime_assumption": {
+    "STRICT_HISTORICAL_PUBLICATION_LATENCY": "UNPROVEN",
+    "REPRODUCTION_FUNDINGTIME_ASSUMPTION": "ACCEPTABLE",
+    "available_at": "fundingTime",
+    "fundingTime_rounded": false,
+    "not_legal_available_at": true
+  },
+  "implementation_files": {
+    "scripts/research/market_03_public_strategy_lib.py": {
+      "sha256": "3e69943368b72d37067a55ce93c0999e4688887a8b89d07ab2008ea0901d3b79",
+      "role": "scientific_core"
+    },
+    "scripts/research/market_03_public_strategy_authority.py": {
+      "sha256": "d828af5cbbf9810ccf79a16d0582ec450c8db88a958cfc5d7282cc685e43023d",
+      "role": "identity_and_fail_closed_guard"
+    },
+    "scripts/research/market_03_public_strategy_execute.py": {
+      "sha256": "4e54b5d6759e5d2d8f53de1401de9bdc8c59da0bd557cab226ca9ab7af382a1b",
+      "role": "bound_execution_stub"
+    }
+  },
+  "fidelity": {
+    "method": "LEVEL_2_FAITHFUL_REIMPLEMENTATION",
+    "EXACT_DIFFERENTIAL_TESTS": true,
+    "SEMANTIC_FIXTURE_TESTS": true,
+    "exact_differential": [
+      "qtpylib crossed_above/crossed_below vs published formula and Freqtrade vector",
+      "EmaCrossFunding.py pandas funding ffill/3d/percentile snippet vs reimplementation",
+      "pinned research/metrics.py risk_report vs reimplementation on synthetic returns"
+    ],
+    "semantic_fixture": [
+      "TA-Lib EMA SMA-seed k=2/(n+1) without talib C library",
+      "Freqtrade 2026.7 trade/wallet/stoploss/trailing/same-candle engine without freqtrade package"
+    ]
+  },
+  "known_level_2_deviations": [
+    "talib C EMA not executed; SMA-seed algorithm reimplemented",
+    "freqtrade package not executed; 2026.7 documented+source engine reimplemented",
+    "exchange price_to_precision / amount precision not applied",
+    "extra terminal wallet capture after force_exit so force-exit fees enter daily equity",
+    "STRICT_HISTORICAL_PUBLICATION_LATENCY remains UNPROVEN"
+  ],
+  "primary_classification": {
+    "equation": "REPRODUCED_DIRECTION iff finite(MDD_filtered) and finite(MDD_baseline) and (MDD_filtered > MDD_baseline)",
+    "mdd_signed": true,
+    "magnitude_cannot_override": true,
+    "invalid_must_not_become_not_reproduced_direction": true
+  },
+  "statistical_inference": {
+    "used": false,
+    "bootstrap": false,
+    "p_value": false,
+    "optimization": false,
+    "parameter_sweep": false
+  },
+  "fail_closed": {
+    "MARKET_03_BOUND_EXECUTION_AUTHORIZED": false,
+    "bound_snapshots_refused": true,
+    "b2_06_refused": true,
+    "protected_oos_refused": true,
+    "allowed_test_origins": ["synthetic", "pinned_external_fixture", "handcrafted"]
+  },
+  "tests": {
+    "commands": [
+      "python3 -m compileall -q .",
+      "python3 -m pytest -q tests/research/test_market_03_public_strategy_implementation.py",
+      "git diff --check"
+    ],
+    "focused_market_03_implementation": "see unit closeout",
+    "full_suite_completed": false
+  },
+  "explicit_state": {
+    "IMPLEMENTATION_COMPLETE": true,
+    "IMPLEMENTATION_FROZEN": false,
+    "MARKET_03_ARMED": false,
+    "CANONICAL_EXECUTIONS_AUTHORIZED": 0,
+    "CANONICAL_EXECUTIONS_CONSUMED": 0,
+    "MARKET_03_STRATEGY_EXECUTED": false,
+    "MARKET_03_OUTCOMES_INSPECTED": false,
+    "MARKET_03_PARAMETER_SEARCH": false,
+    "PROTECTED_OOS_TOUCHED": false,
+    "PREREG_CHANGED": false,
+    "SPOT_SNAPSHOT_CHANGED": false,
+    "FUNDING_SNAPSHOT_CHANGED": false
+  },
+  "next_lifecycle_state": "MARKET-03_IMPLEMENTATION_FREEZE",
+  "next_lifecycle_state_note": "A later unit may freeze these implementation bytes. This unit does not freeze, ARM, or execute."
+}

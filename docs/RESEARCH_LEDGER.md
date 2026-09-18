@@ -3360,3 +3360,41 @@ Evidence: `docs/research/MARKET_03_FUNDING_SNAPSHOT.md`.
 - unit_verdict: **A. FUNDING_SNAPSHOT_READY**
 
 - next required step: `MARKET_03_IMPLEMENTATION_IF_AUTHORIZED` (not ARM, not execution)
+
+## 2026-09-18 — MARKET-03 implementation (not freeze, not ARM, not execution)
+
+Implemented LEVEL_2 EmaCross baseline and EmaCrossFunding filtered
+reproduction semantics from the pinned external source without running
+the strategy on bound real MARKET-03 snapshots.
+
+```text
+PREREG_MD_SHA256   = 044bb2a6bbd51c49c856b02eb7866b43171664a05d947dce995489389eeb0b57
+PREREG_JSON_SHA256 = 3f35f9a1d0575eaff3a1993a4779642259c0891dbdda1d49f22b958eba714f89
+LIB_SHA256         = 3e69943368b72d37067a55ce93c0999e4688887a8b89d07ab2008ea0901d3b79
+AUTHORITY_SHA256   = d828af5cbbf9810ccf79a16d0582ec450c8db88a958cfc5d7282cc685e43023d
+EXECUTE_SHA256     = 4e54b5d6759e5d2d8f53de1401de9bdc8c59da0bd557cab226ca9ab7af382a1b
+EXACT_DIFFERENTIAL_TESTS = YES
+SEMANTIC_FIXTURE_TESTS   = YES
+```
+
+Fail-closed bound execution. Synthetic/fixture/handcrafted tests only.
+`STRICT_HISTORICAL_PUBLICATION_LATENCY = UNPROVEN`. B2-06 is not
+authority. Protected 2025/2026 OOS untouched.
+
+Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION.md`.
+
+- implementation_complete: **true**
+- implementation_frozen: **false**
+- market_03_armed: **false**
+- market_03_executed: **false**
+- market_03_outcome_inspected: **false**
+- market_03_parameter_search: **false**
+- canonical_executions_authorized: **0**
+- canonical_executions_consumed: **0**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- prereg_changed: **false**
+- spot_snapshot_changed: **false**
+- funding_snapshot_changed: **false**
+
+- next required step: `MARKET_03_IMPLEMENTATION_FREEZE_IF_AUTHORIZED` (not ARM, not execution)
