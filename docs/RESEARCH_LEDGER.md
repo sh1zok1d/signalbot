@@ -3225,3 +3225,36 @@ Evidence:
 
 - next required step: `MARKET_03_DATA_ACQUISITION_OR_NAMED_ASSUMPTION_IF_AUTHORIZED` (not prereg, not execution)
 
+
+## 2026-09-18 — MARKET-03 data acquisition + provenance
+
+Closed the source-feasibility gaps without running the strategy. Built
+immutable SPOT dataset `MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0` snapshot
+`2ce1f504709dc40c37a70dddcf73acb444e715820e9c855f6817c48f10d2b345`
+covering `[2019-08-01, 2025-01-01)` native Binance 1h klines (47477 rows,
+43 enumerated gaps, 0 duplicates). Vision USD-M `fundingRate` ZIP bytes
+are 52/52 identical to B2-06 on 2020-09..2024-12. REST
+`/fapi/v1/fundingRate` vs Vision `last_funding_rate`/`calc_time` matched
+5481/5481 records on the authorized overlap. Publication latency remains
+**UNPROVEN**. Named `fundingTime`-as-available assumption is
+**ACCEPTABLE** for LEVEL_2 only and does not unblock B2-06.
+
+Verdict: **`READY_FOR_MARKET_03_PREREG_DESIGN`**. Ceiling
+`LEVEL_2_FAITHFUL_REIMPLEMENTATION`. Not LEVEL_1. Not a prereg, ARM, or
+RESULT. Protected OOS not used for science.
+
+Evidence: `docs/research/MARKET_03_DATA_ACQUISITION.md`.
+
+- market_03_prereg: **false**
+- market_03_armed: **false**
+- market_03_executed: **false**
+- market_03_outcome_inspected: **false**
+- market_03_parameter_search: **false**
+- protected_oos_used_for_science: **false**
+- b2_06_execution_authorized: **false**
+- feasibility_verdict: **READY_FOR_MARKET_03_PREREG_DESIGN**
+- replication_level: **LEVEL_2_FAITHFUL_REIMPLEMENTATION**
+- STRICT_HISTORICAL_PUBLICATION_LATENCY: **UNPROVEN**
+- REPRODUCTION_FUNDINGTIME_ASSUMPTION: **ACCEPTABLE**
+
+- next required step: `MARKET_03_PREREG_DESIGN_IF_AUTHORIZED` (not this unit)

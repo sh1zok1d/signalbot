@@ -18,12 +18,10 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from scripts.research.market_03_binance_spot_btcusdt_1h_v0_lib import (
     ACQUIRE_END_MONTH_INCLUSIVE,
-    ACQUIRE_START_MONTH,
-    ARCHIVE_ROOT,
     B2_06_DATASET_ID,
     B2_06_OBJECT_LEDGER,
     B2_06_SNAPSHOT_ID,
@@ -33,6 +31,7 @@ from scripts.research.market_03_binance_spot_btcusdt_1h_v0_lib import (
     END_EXCLUSIVE,
     FUNDING_PRODUCT,
     FUNDING_REST_ENDPOINT,
+    FUNDING_REST_FALLBACK_ENDPOINT,
     FUNDING_REST_PATH,
     FUNDING_SYMBOL,
     FUNDING_VISION_START_MONTH,
@@ -161,6 +160,19 @@ def write_json(path: Path, payload: Any) -> None:
     path.write_text(dumps_deterministic(payload), encoding="utf-8")
 
 
+def _reuse_or_fetch(
+    path: Path,
+    url: str,
+    *,
+    timeout: float,
+) -> tuple[int, bytes, bool]:
+    if path.exists() and path.stat().st_size > 0:
+        return 200, path.read_bytes(), True
+    status, body, _ = http_get(url, timeout=timeout)
+    time.sleep(SLEEP_BETWEEN_REQUESTS)
+    return status, body, False
+
+
 def acquire_spot_month(
     year_month: str,
     raw_dir: Path,
@@ -172,10 +184,12 @@ def acquire_spot_month(
     zip_path = raw_dir / zip_name
     checksum_path = raw_dir / f"{zip_name}.CHECKSUM"
     retrieved_at = _now_utc()
-    checksum_status, checksum_body, _ = http_get(checksum_url, timeout=timeout)
-    time.sleep(SLEEP_BETWEEN_REQUESTS)
-    zip_status, zip_body, _ = http_get(zip_url, timeout=timeout)
-    time.sleep(SLEEP_BETWEEN_REQUESTS)
+    checksum_status, checksum_body, checksum_reused = _reuse_or_fetch(
+        checksum_path, checksum_url, timeout=timeout
+    )
+    zip_status, zip_body, zip_reused = _reuse_or_fetch(
+        zip_path, zip_url, timeout=timeout
+    )
     record: dict[str, Any] = {
         "period": year_month,
         "market_type": MARKET_TYPE,
@@ -195,9 +209,12 @@ def acquire_spot_month(
         "retrieval_timestamp_utc": retrieved_at,
         "http_status_zip": zip_status,
         "http_status_checksum": checksum_status,
+        "zip_reused_local_bytes": zip_reused,
+        "checksum_reused_local_bytes": checksum_reused,
     }
     if checksum_status == 200:
-        checksum_path.write_bytes(checksum_body)
+        if not checksum_reused:
+            checksum_path.write_bytes(checksum_body)
         parsed_checksum = parse_checksum_text(checksum_body.decode("utf-8"))
         record["checksum_sidecar_sha256"] = sha256_of_bytes(checksum_body)
         record["expected_sha256"] = parsed_checksum["sha256"]
@@ -210,7 +227,8 @@ def acquire_spot_month(
         record["retrieval_status"] = "FETCH_FAILED"
         record["container_sha256"] = None
         return record
-    zip_path.write_bytes(zip_body)
+    if not zip_reused:
+        zip_path.write_bytes(zip_body)
     local_sha = sha256_of_bytes(zip_body)
     record["container_bytes"] = len(zip_body)
     record["container_sha256"] = local_sha
@@ -250,11 +268,15 @@ def acquire_funding_month(
 ) -> dict[str, Any]:
     zip_url, checksum_url = funding_archive_urls(year_month)
     zip_name = funding_archive_object_name(year_month)
+    zip_path = raw_dir / zip_name
+    checksum_path = raw_dir / f"{zip_name}.CHECKSUM"
     retrieved_at = _now_utc()
-    checksum_status, checksum_body, _ = http_get(checksum_url, timeout=timeout)
-    time.sleep(SLEEP_BETWEEN_REQUESTS)
-    zip_status, zip_body, _ = http_get(zip_url, timeout=timeout)
-    time.sleep(SLEEP_BETWEEN_REQUESTS)
+    checksum_status, checksum_body, checksum_reused = _reuse_or_fetch(
+        checksum_path, checksum_url, timeout=timeout
+    )
+    zip_status, zip_body, zip_reused = _reuse_or_fetch(
+        zip_path, zip_url, timeout=timeout
+    )
     record: dict[str, Any] = {
         "period": year_month,
         "product": FUNDING_PRODUCT,
@@ -265,6 +287,8 @@ def acquire_funding_month(
         "retrieval_timestamp_utc": retrieved_at,
         "http_status_zip": zip_status,
         "http_status_checksum": checksum_status,
+        "zip_reused_local_bytes": zip_reused,
+        "checksum_reused_local_bytes": checksum_reused,
     }
     if zip_status == 404:
         record["retrieval_status"] = "NOT_FOUND"
@@ -274,10 +298,12 @@ def acquire_funding_month(
         record["retrieval_status"] = "FETCH_FAILED"
         record["container_sha256"] = None
         return record
-    (raw_dir / zip_name).write_bytes(zip_body)
+    if not zip_reused:
+        zip_path.write_bytes(zip_body)
     parsed_checksum = None
     if checksum_status == 200:
-        (raw_dir / f"{zip_name}.CHECKSUM").write_bytes(checksum_body)
+        if not checksum_reused:
+            checksum_path.write_bytes(checksum_body)
         parsed_checksum = parse_checksum_text(checksum_body.decode("utf-8"))
         record["expected_sha256"] = parsed_checksum["sha256"]
     record["container_bytes"] = len(zip_body)
@@ -304,6 +330,13 @@ def acquire_funding_month(
     return record
 
 
+def _rest_page_url(endpoint: str, start: int, end_inclusive: int) -> str:
+    return (
+        f"{endpoint}?symbol={FUNDING_SYMBOL}"
+        f"&startTime={start}&endTime={end_inclusive}&limit=1000"
+    )
+
+
 def fetch_rest_funding(*, timeout: float) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     bounds = rest_funding_query_bounds()
     start = bounds["startTime_ms"]
@@ -311,14 +344,24 @@ def fetch_rest_funding(*, timeout: float) -> tuple[list[dict[str, Any]], dict[st
     rows: list[dict[str, Any]] = []
     pages = 0
     retrieved_at = _now_utc()
+    used_endpoint = FUNDING_REST_ENDPOINT
+    fallback_used = False
+    primary_status = None
     while True:
-        url = (
-            f"{FUNDING_REST_ENDPOINT}?symbol={FUNDING_SYMBOL}"
-            f"&startTime={start}&endTime={end_inclusive}&limit=1000"
-        )
+        url = _rest_page_url(used_endpoint, start, end_inclusive)
         status, body, _ = http_get(url, timeout=timeout, accept="application/json")
         pages += 1
         time.sleep(0.25)
+        if (
+            status == 451
+            and used_endpoint == FUNDING_REST_ENDPOINT
+            and not fallback_used
+        ):
+            primary_status = status
+            used_endpoint = FUNDING_REST_FALLBACK_ENDPOINT
+            fallback_used = True
+            pages = 0
+            continue
         if status != 200:
             raise RuntimeError(f"REST fundingRate HTTP {status}: {body[:200]!r}")
         batch = json.loads(body.decode("utf-8"))
@@ -330,7 +373,13 @@ def fetch_rest_funding(*, timeout: float) -> tuple[list[dict[str, Any]], dict[st
             time_ms = int(item["fundingTime"])
             if time_ms >= PROTECTED_OOS_START_MS:
                 continue
-            rows.append(item)
+            rows.append(
+                {
+                    "symbol": item.get("symbol"),
+                    "fundingTime": int(item["fundingTime"]),
+                    "fundingRate": str(item["fundingRate"]),
+                }
+            )
         last = int(batch[-1]["fundingTime"])
         if last <= start or len(batch) < 1000:
             break
@@ -339,6 +388,9 @@ def fetch_rest_funding(*, timeout: float) -> tuple[list[dict[str, Any]], dict[st
             break
     provenance = {
         **bounds,
+        "endpoint_used": used_endpoint,
+        "primary_endpoint_http_status": primary_status,
+        "fallback_endpoint_used": fallback_used,
         "retrieval_timestamp_utc": retrieved_at,
         "pages": pages,
         "raw_row_count_including_filtered": len(rows),
@@ -346,7 +398,8 @@ def fetch_rest_funding(*, timeout: float) -> tuple[list[dict[str, Any]], dict[st
         "user_agent": USER_AGENT,
         "note": (
             "REST-now returning a historical row is not proof of historical "
-            "publication latency. STRICT_HISTORICAL_PUBLICATION_LATENCY remains UNPROVEN."
+            "publication latency. STRICT_HISTORICAL_PUBLICATION_LATENCY remains UNPROVEN. "
+            "Queries are bounded endTime < 2025-01-01; latest/unbounded REST pages are not fetched."
         ),
     }
     return rows, provenance
@@ -467,7 +520,6 @@ def run_acquisition(
             {
                 "fundingRate": item["fundingRate"],
                 "fundingTime": int(item["fundingTime"]),
-                "markPrice": item.get("markPrice"),
                 "symbol": item.get("symbol"),
             },
             sort_keys=True,

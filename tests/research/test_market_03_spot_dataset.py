@@ -159,6 +159,7 @@ def test_kline_mapping_documents_open_time_as_freqtrade_date():
 def test_funding_rest_bounds_stop_before_2025_and_vision_vs_rest_compare():
     bounds = rest_funding_query_bounds()
     assert bounds["path"] == "/fapi/v1/fundingRate"
+    assert bounds["fallback_endpoint"].endswith("/fapi/v1/fundingRate")
     assert bounds["endTime_exclusive_ms"] == PROTECTED_OOS_START_MS
     assert bounds["startTime_ms"] < PROTECTED_OOS_START_MS
     rest = parse_rest_funding_records(

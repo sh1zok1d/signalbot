@@ -235,14 +235,16 @@ Post-close episode-construction throughput work is research
 infrastructure only (`docs/research/MARKET_01_EPISODE_CONSTRUCTION_PERF.md`);
 it does not reopen MARKET-01 or change the sealed RESULT.
 
-`MARKET-03_PUBLIC_STRATEGY_REPLICATION` is in **source capture /
-outcome-blind feasibility** only. Selected public family: `EmaCross` vs
-`EmaCrossFunding` from pinned `wiktorj137/btc-strategy-lab`
-`b68a5518b4a3eba2fde1733160d7d7de356023b5`. Verdict:
-**`DATA_ACQUISITION_REQUIRED`**. Not a prereg, ARM, execution, or RESULT.
-Do not substitute CORE perpetual prices for the author's Binance **spot**
-market. Do not consume B2-06 funding. Do not inspect Signalbot 2025/2026
-OOS. Authority:
+`MARKET-03_PUBLIC_STRATEGY_REPLICATION` completed **data acquisition +
+provenance** after source feasibility. Spot snapshot
+`MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0` /
+`2ce1f504709dc40c37a70dddcf73acb444e715820e9c855f6817c48f10d2b345`.
+Reassessment: **`READY_FOR_MARKET_03_PREREG_DESIGN`** at ceiling
+**`LEVEL_2_FAITHFUL_REIMPLEMENTATION`**. Not a prereg, ARM, execution, or
+RESULT. Do not substitute CORE perpetual prices. Do not consume B2-06 as
+B2-06 science. Do not inspect Signalbot 2025/2026 OOS. Authority:
+`docs/research/MARKET_03_DATA_ACQUISITION.md`. The prior source-feasibility
+record remains historical at
 `docs/research/MARKET_03_PUBLIC_STRATEGY_SOURCE_FEASIBILITY.md`.
 
 Post-calibration operating priority:

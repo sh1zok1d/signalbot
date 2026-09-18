@@ -60,6 +60,7 @@ FUNDING_VISION_ROOT = (
     "https://data.binance.vision/data/futures/um/monthly/fundingRate/BTCUSDT"
 )
 FUNDING_REST_ENDPOINT = "https://fapi.binance.com/fapi/v1/fundingRate"
+FUNDING_REST_FALLBACK_ENDPOINT = "https://www.binance.com/fapi/v1/fundingRate"
 FUNDING_REST_PATH = "/fapi/v1/fundingRate"
 FUNDING_PRODUCT = "USD_M_PERPETUAL"
 FUNDING_SYMBOL = "BTCUSDT"
@@ -937,6 +938,7 @@ def rest_funding_query_bounds() -> dict[str, Any]:
     end_ms = int(end.timestamp() * 1000)
     return {
         "endpoint": FUNDING_REST_ENDPOINT,
+        "fallback_endpoint": FUNDING_REST_FALLBACK_ENDPOINT,
         "path": FUNDING_REST_PATH,
         "symbol": FUNDING_SYMBOL,
         "startTime_ms": start_ms,
