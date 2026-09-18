@@ -19,8 +19,9 @@ classification: **`NO_EVIDENCE`**. Canonical RESULT:
 `CANONICAL_EXECUTIONS_CONSUMED = 1`. Do not rerun MARKET-01. Do not
 change its thresholds or windows. Post-close `construct_episodes`
 throughput work is infrastructure only and does not reopen the closed
-RESULT. MARKET-02 is implementation-frozen against its frozen prereg
-and is not armed and not executed. Do not design a
+RESULT. MARKET-02 is armed against its frozen implementation and is
+not executed. The unused reservation authorizes exactly one canonical
+run (`CANONICAL_EXECUTIONS_CONSUMED = 0`). Do not design a
 large new MARKET framework.
 Do not create new infrastructure merely because MARKET is beginning. Operating
 priority is approximately 70–80% actual market research and 20–30%
@@ -291,9 +292,9 @@ not by itself be treated as sufficient evidence of a robust market edge.
 This limitation is not authorization for immediate V4.
 
 Next required V3 step: none authorized. MARKET-01 is closed
-(`FINAL_CLASSIFICATION = NO_EVIDENCE`). MARKET-02 is
-implementation-frozen against its frozen prereg and is not armed and
-not executed. Do not rerun MARKET-01.
+(`FINAL_CLASSIFICATION = NO_EVIDENCE`). MARKET-02 is armed unused
+against its frozen implementation (`CANONICAL_EXECUTIONS_CONSUMED = 0`)
+and is not executed. Do not rerun MARKET-01.
 Do not rerun V3, do not create V4, and do not execute B2-06.
 
 This methodology closeout does not weaken or bypass the current B2-06 state:

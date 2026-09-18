@@ -53,7 +53,7 @@ from scripts.research.market_02_oi_expansion_price_confirmation_lib import (
     SYNTHETIC_SNAPSHOT,
     THIRTY_M_MS,
     EpisodeRecord,
-    Market02NotArmed,
+    Market02ExecutionNotAuthorized,
     OiView,
     PriceView,
     authenticate_frozen_prereg_bytes,
@@ -549,7 +549,7 @@ def test_missing_nonfinite_data_fail_closed():
     assert continuation_return(zero, COMMON_START_MS + THIRTY_M_MS, 1) is None
 
 
-def test_bound_snapshots_refused_because_not_armed():
+def test_bound_snapshots_require_exact_armed_pair_and_refuse_kwargs():
     price, oi, _ = _impulse_fixture()
     bound_price = PriceView(
         price.open_time_ms,
@@ -563,14 +563,14 @@ def test_bound_snapshots_refused_because_not_armed():
         oi.sum_open_interest,
         snapshot_id=OI_SNAPSHOT_ID,
     )
-    with pytest.raises(Market02NotArmed, match="MARKET_02_NOT_ARMED"):
+    with pytest.raises(Market02ExecutionNotAuthorized, match="SNAPSHOT"):
         construct_episodes(bound_price, oi)
-    with pytest.raises(Market02NotArmed, match="MARKET_02_NOT_ARMED"):
+    with pytest.raises(Market02ExecutionNotAuthorized, match="SNAPSHOT"):
         construct_episodes(price, bound_oi)
-    with pytest.raises(Market02NotArmed, match="MARKET_02_NOT_ARMED"):
-        evaluate_bound_market_02(bound_price, bound_oi)
-    with pytest.raises(Market02NotArmed, match="MARKET_02_NOT_ARMED"):
+    with pytest.raises(Market02ExecutionNotAuthorized):
         evaluate_bound_market_02()
+    with pytest.raises(Market02ExecutionNotAuthorized):
+        evaluate_bound_market_02(bound_price, bound_oi, windows=30)
 
 
 def test_market_01_frozen_scientific_bytes_remain_identical():
@@ -594,7 +594,8 @@ def test_robust_and_fragile_paths_and_uncalibrated_flag():
     b = evaluate_from_confirmatory_rows(rows)
     assert a["final_classification"] == CLASS_ROBUST
     assert a["MARKET_02_TEST_CALIBRATED"] is False
-    assert a["MARKET_02_ARMED"] is False
+    assert a["MARKET_02_ARMED"] is True
+    assert a["MARKET_02_EXECUTION_AUTHORIZED"] is True
     assert a["MARKET_02_EXECUTED"] is False
     assert a["PROTECTED_OOS_TOUCHED"] is False
     assert a["B2_06_EXECUTION_AUTHORIZED"] is False
@@ -634,7 +635,8 @@ def test_evaluate_market_02_synthetic_does_not_use_bound_snapshots():
     result = evaluate_market_02(price, oi)
     assert result["final_classification"] == CLASS_NOT_IDENTIFIABLE
     assert result["price_snapshot_id"] == PRICE_SNAPSHOT_ID
-    assert result["MARKET_02_ARMED"] is False
+    assert result["MARKET_02_ARMED"] is True
+    assert result["MARKET_02_EXECUTION_AUTHORIZED"] is True
     assert result["MARKET_02_TEST_CALIBRATED"] is MARKET_02_TEST_CALIBRATED
     assert np.__version__ == "2.1.3"
 

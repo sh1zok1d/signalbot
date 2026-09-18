@@ -3216,5 +3216,49 @@ representation discrepancy; neither prereg file was modified.
 - protected_oos_touched: **false**
 - market_02_test_calibrated: **false**
 
-- next required step: `MARKET_02_ARM_IF_AUTHORIZED` (not execution in this unit)
+- next required step: `MARKET_02_CANONICAL_EXECUTION_IF_AUTHORIZED` (not executed in this ARM unit)
+
+## 2026-09-18 — MARKET-02 ARM (not executed)
+
+Outcome-blind one-shot ARM of frozen MARKET-02 implementation HEAD
+`124da2bfdb0b5dfb6e0a8da5789a474af526f27f` / tree
+`7303a4507cba716209ea012f2c4e180eef31ba18`. Reviewed scientific HEAD
+`1d2b0abf73d245f37cd9ca55ece99d1628dc80ee` remains the scientific
+function identity. ARM plumbing authenticates bound CORE/OI views.
+Reservation unused. No RESULT. Protected OOS not opened.
+
+Bound identity documents only: CORE snapshot
+`717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`
+and OI snapshot
+`5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33`.
+Allowed window `[2020-09-01T00:00:00Z, 2025-01-01T00:00:00Z)`.
+MD seed `1852983754304692007`. JSON twin numeric discrepancy
+untouched. `MARKET_02_TEST_CALIBRATED = NO`.
+
+```text
+PREREG_FROZEN = YES
+IMPLEMENTATION_COMPLETE = YES
+IMPLEMENTATION_FROZEN = YES
+ARMED = YES
+CANONICAL_EXECUTIONS_AUTHORIZED = 1
+CANONICAL_EXECUTIONS_CONSUMED = 0
+REAL_MARKET_02_OUTCOME_INSPECTION = NO
+BOUND_MARKET_02_EXECUTION = NO
+PROTECTED_OOS_TOUCHED = NO
+MARKET_02_TEST_CALIBRATED = NO
+```
+
+- market_02_prereg_frozen: **true**
+- market_02_implemented: **true**
+- market_02_implementation_frozen: **true**
+- market_02_armed: **true**
+- market_02_executed: **false**
+- market_02_outcome_inspected: **false**
+- canonical_executions_authorized: **1**
+- canonical_executions_consumed: **0**
+- protected_oos_touched: **false**
+- market_02_test_calibrated: **false**
+- market_01_frozen_bytes_changed: **false**
+
+- next required step: `MARKET_02_CANONICAL_EXECUTION_IF_AUTHORIZED` (not this unit)
 

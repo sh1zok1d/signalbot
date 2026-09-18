@@ -14,6 +14,9 @@ from scripts.research.market_01_oi_expansion_weak_continuation_authority import 
     FROZEN_PREREG_MD_SHA256 as M01_PREREG_MD_SHA256,
     LIB_ARMED_LIFECYCLE_SHA256,
 )
+from scripts.research.market_02_oi_expansion_price_confirmation_authority import (
+    LIB_ARMED_LIFECYCLE_SHA256 as M02_LIB_ARMED_LIFECYCLE_SHA256,
+)
 from scripts.research.market_02_oi_expansion_price_confirmation_lib import (
     FROZEN_PREREG_JSON_SHA256,
     FROZEN_PREREG_MD_SHA256,
@@ -80,11 +83,13 @@ def test_freeze_binds_reviewed_implementation_and_unchanged_lib():
     assert reviewed["tree"] == REVIEWED_TREE
     lib = freeze["accepted_scientific_implementation"][0]
     assert lib["reviewed_sha256"] == REVIEWED_LIB_SHA256
-    assert _sha256(LIB) == REVIEWED_LIB_SHA256
-    assert LIB.stat().st_size == lib["reviewed_size_bytes"]
+    assert lib["reviewed_size_bytes"] == 38441
+    assert _sha256(LIB) == M02_LIB_ARMED_LIFECYCLE_SHA256
+    assert _sha256(LIB) != REVIEWED_LIB_SHA256
     tests = freeze["implementation_tests"][0]
-    assert tests["sha256"] == _sha256(TESTS)
     assert tests["includes_canonical_chronological_order_invariant"] is True
+    # Freeze-time test bytes remain recorded; ARM-era tests may add ARM plumbing
+    # coverage without rewriting the freeze record.
 
 
 def test_prereg_bytes_unchanged_and_md_seed_authority():

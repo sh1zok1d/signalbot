@@ -16,9 +16,10 @@ OUTCOME:
 Non-OI-expansion occupying episodes are outside the primary population.
 They are not MARKET-02 baselines.
 
-In-memory scientific pipeline only. Bound CORE/OI snapshot evaluation is
-refused because MARKET-02 is not armed. Does not ARM, execute, or inspect
-real MARKET-02 outcomes. Does not load CORE/OI from disk.
+In-memory scientific pipeline only. Bound CORE/OI snapshot evaluation
+requires MARKET-02 ARM authentication and does not load CORE/OI from
+disk. This module does not execute the canonical MARKET-02 run or
+inspect real MARKET-02 outcomes.
 
 Construction uses MARKET-01's proven fast precompute primitives
 (`_close_1m_clock`, rolling OI/PRE_VOL arrays). It does not delegate
@@ -56,6 +57,13 @@ from scripts.research.market_01_episode_construction_fast import (
 )
 from scripts.research.market_01_oi_expansion_weak_continuation_authority import (
     authenticate_arch_selector,
+)
+from scripts.research.market_02_oi_expansion_price_confirmation_authority import (
+    Market02ExecutionNotAuthorized,
+    Market02NotArmed,
+    authorize_bound_market_02_views,
+    inspect_market_02_authorization_state,
+    refuse_bound_execution,
     snapshot_is_bound,
 )
 from scripts.research.market_01_oi_expansion_weak_continuation_lib import (
@@ -151,11 +159,6 @@ class Market02Error(RuntimeError):
     """Contract or construction failure."""
 
 
-class Market02NotArmed(RuntimeError):
-    def __init__(self, message: str = "MARKET_02_NOT_ARMED") -> None:
-        super().__init__(message)
-
-
 @dataclass
 class EpisodeRecord:
     """MARKET-02 episode identity. Not MARKET-01 EpisodeRecord.
@@ -222,7 +225,7 @@ def _require_numpy_2_1_3() -> None:
 def _guard_views(price: PriceView, oi: OiView) -> None:
     authenticate_frozen_prereg_bytes()
     if snapshot_is_bound(price.snapshot_id) or snapshot_is_bound(oi.snapshot_id):
-        raise Market02NotArmed("MARKET_02_NOT_ARMED")
+        authorize_bound_market_02_views(price.snapshot_id, oi.snapshot_id)
 
 
 def classify_price_confirmation(
@@ -999,9 +1002,22 @@ def evaluate_market_02(price: PriceView, oi: OiView) -> dict[str, Any]:
     return result
 
 
-def evaluate_bound_market_02(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
-    """Bound CORE/OI evaluation is refused: MARKET-02 is not armed."""
-    raise Market02NotArmed("MARKET_02_NOT_ARMED")
+def evaluate_bound_market_02(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Canonical bound-view entry after ARM.
+
+    Requires the exact armed authority. Does not load CORE/OI from disk.
+    Caller-supplied scientific kwargs are rejected. Missing views refuse
+    because this unit has no bound materializer and does not execute.
+    """
+    if kwargs:
+        refuse_bound_execution()
+    if len(args) != 2:
+        refuse_bound_execution()
+    price, oi = args
+    if not isinstance(price, PriceView) or not isinstance(oi, OiView):
+        refuse_bound_execution()
+    authorize_bound_market_02_views(price.snapshot_id, oi.snapshot_id)
+    return evaluate_market_02(price, oi)
 
 
 def _stratum_counts(rows: Sequence[Mapping[str, Any]]) -> dict[str, dict[str, int]]:
@@ -1034,13 +1050,14 @@ def _result_payload(
     classification: str,
 ) -> dict[str, Any]:
     support_public = {k: v for k, v in support.items() if k != "primary_rows"}
+    auth = inspect_market_02_authorization_state()
     payload = {
         "research_id": RESEARCH_ID,
         "status": "IMPLEMENTED_NOT_ARMED",
         "prereg_md_sha256": FROZEN_PREREG_MD_SHA256,
         "prereg_json_sha256": FROZEN_PREREG_JSON_SHA256,
         "implementation_frozen": False,
-        "armed": False,
+        "armed": bool(auth["MARKET_02_ARMED"]),
         "executed": False,
         "price_dataset_id": PRICE_DATASET_ID,
         "price_snapshot_id": PRICE_SNAPSHOT_ID,
@@ -1058,7 +1075,8 @@ def _result_payload(
         "robustness": None if robustness is None else dict(robustness),
         "final_classification": classification,
         "MARKET_02_TEST_CALIBRATED": MARKET_02_TEST_CALIBRATED,
-        "MARKET_02_ARMED": MARKET_02_ARMED,
+        "MARKET_02_ARMED": bool(auth["MARKET_02_ARMED"]),
+        "MARKET_02_EXECUTION_AUTHORIZED": bool(auth["MARKET_02_EXECUTION_AUTHORIZED"]),
         "MARKET_02_EXECUTED": MARKET_02_EXECUTED,
         "PROTECTED_OOS_AUTHORIZED": PROTECTED_OOS_AUTHORIZED,
         "PROTECTED_OOS_TOUCHED": False,

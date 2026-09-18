@@ -20,7 +20,7 @@ Read these first:
 | Document | Status | Purpose |
 |---|---|---|
 | `PROJECT_STATUS.md` | **ACTIVE / CANONICAL** | Current project posture, freeze, empirical state and restart gate. Active research phase: `MARKET`. V3 Microscope calibration closed. |
-| `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. MARKET-01 closed `NO_EVIDENCE`; MARKET-02 implementation frozen not armed; V3 closed; no V4; B2-06 remains blocked. |
+| `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. MARKET-01 closed `NO_EVIDENCE`; MARKET-02 armed unused (not executed); V3 closed; no V4; B2-06 remains blocked. |
 | `EDGE_RESEARCH_PROTOCOL.md` | **ACTIVE / CANONICAL** | Discovery/validation rules and anti-overfit discipline |
 | `HISTORICAL_DATA_STRATEGY.md` | **ACTIVE / CANONICAL** | Multi-year CORE vs shorter RICH evidence strategy |
 | `DATA_CAPABILITY_MATRIX.md` | **ACTIVE / RESEARCH DATA DESIGN** | Verified source/venue/date/granularity map and acquisition order for the 2020/2021–2026 research program |
@@ -56,10 +56,14 @@ Read these first:
 | `research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_DESIGN.md` | **SEQUENTIAL DESIGN / SUPERSEDED_BY_PREREG** | Outcome-aware sequential design record; live scientific authority is the frozen MARKET-02 prereg |
 | `research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_PREREG.md` | **FROZEN_OUTCOME_BLIND** | Frozen MARKET-02 scientific authority; SHA256 `4f19fd27…`; sequential follow-up, not MARKET-01 rescue |
 | `research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_PREREG.json` | **FROZEN_OUTCOME_BLIND twin** | Machine-readable twin; SHA256 `ffc11ffd…`; JSON never overrides MD (including bootstrap seed) |
-| `research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_IMPLEMENTATION.md` | **IMPLEMENTATION_FROZEN_NOT_ARMED** | Implementation-unit identity; live freeze authority is the implementation-freeze document; not ARM |
-| `research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_IMPLEMENTATION_FREEZE.md` | **IMPLEMENTATION_FROZEN** | Reviewed scientific HEAD `1d2b0ab` / tree `9e18ccf`; not ARM; not execution |
+| `research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_IMPLEMENTATION.md` | **IMPLEMENTATION_FROZEN_AND_ARMED_NOT_EXECUTED** | Implementation-unit identity; live freeze authority is the implementation-freeze document; live execution allowance is the ARM/reservation pair |
+| `research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_IMPLEMENTATION_FREEZE.md` | **IMPLEMENTATION_FROZEN** | Reviewed scientific HEAD `1d2b0ab` / tree `9e18ccf`; freeze HEAD `124da2bf` / tree `7303a450`; not itself an ARM |
 | `research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_IMPLEMENTATION_FREEZE.json` | **IMPLEMENTATION_FROZEN** | Machine-readable twin; SHA256 `204da487…`; freeze_commit_head/tree `UNSET_UNTIL_THIS_COMMIT` |
-| `scripts/research/market_02_oi_expansion_price_confirmation_lib.py` | **IMPLEMENTATION_FROZEN_NOT_ARMED** | MARKET-02 scientific pipeline; bound CORE/OI snapshots refuse because not armed |
+| `research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_ARM.md` | **ARMED_NOT_EXECUTED** | One-shot MARKET-02 ARM; `CANONICAL_EXECUTIONS_AUTHORIZED = 1`; `CONSUMED = 0`; not a RESULT |
+| `research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_ARM.json` | **ARMED_NOT_EXECUTED** | Machine-readable ARM; SHA256 `4cbb2212…`; run identity `4ef6a6c5…` |
+| `research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_RESERVATION.json` | **RESERVED_UNUSED** | One unused canonical execution; SHA256 `ca0eb13a…`; does not consume by existing |
+| `scripts/research/market_02_oi_expansion_price_confirmation_lib.py` | **ARMED_NOT_EXECUTED** | MARKET-02 scientific pipeline; bound CORE/OI snapshots require ARM authentication; scientific functions match reviewed HEAD |
+| `scripts/research/market_02_oi_expansion_price_confirmation_authority.py` | **ARMED_NOT_EXECUTED** | Prereg/freeze/ARM authentication; reservation unused |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_DESIGN.md` | **PREREG_DESIGN_RESOLVED / HISTORICAL_BLOCKER_RECORD** | Preserved blocked-design unit; live scientific authority is the frozen prereg |
 | `research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md` | **ACTIVE / RESEARCH DATA CONTRACT** | Outcome-blind B2-06 OI+funding identity + Git-bound snapshot `5a9d036b…`; unit verdict `SNAPSHOT_MATERIALIZED_FUNDING_PUBLICATION_UNPROVEN_RESEARCH_UNAUTHORIZED`; not a B2-06 RESULT |
 | `research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.json` | **ACTIVE / RESEARCH DATA CONTRACT** | Machine-readable twin of the B2-06 data-expansion freeze |
