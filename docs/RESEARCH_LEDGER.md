@@ -3159,3 +3159,278 @@ the frozen library. Canonical RESULT SHA256 remains
 
 - next required step: `NEW_MARKET_HYPOTHESIS_ID_IF_AUTHORIZED` (not MARKET-01 rerun)
 
+## 2026-09-18 — MARKET-03 source capture + outcome-blind feasibility
+
+External public strategy family `EmaCross` vs `EmaCrossFunding` from
+`https://github.com/wiktorj137/btc-strategy-lab` pinned at
+`b68a5518b4a3eba2fde1733160d7d7de356023b5` /
+tree `f7717e681c911ea3ccce15492246053cf15883cb`. Capture
+`2026-09-18T16:46:53Z`. No Signalbot strategy run. No prereg, ARM, or
+RESULT. Protected OOS not opened. B2-06 remains blocked.
+
+Author trades Binance **spot** `BTC/USDT` 1h and uses perpetual REST
+funding only as an entry filter (`funding_max_pct=55` on a 180d
+percentile of 3-day mean funding). Signalbot has no spot BTCUSDT
+dataset. CORE is USD-M perpetual and excludes spot. Funding publication
+latency remains unproven.
+
+Verdict: **`DATA_ACQUISITION_REQUIRED`**. Faithful reproduction with
+current snapshots is `NOT_FEASIBLE`. Do not substitute perpetual price
+for spot. Do not describe EMA=600 / funding 55 / BTC as independently
+preregistered by the author.
+
+Evidence:
+`docs/research/MARKET_03_PUBLIC_STRATEGY_SOURCE_FEASIBILITY.md`.
+
+- market_03_prereg: **false**
+- market_03_armed: **false**
+- market_03_executed: **false**
+- market_03_outcome_inspected: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- feasibility_verdict: **DATA_ACQUISITION_REQUIRED**
+
+- next required step: `MARKET_03_DATA_ACQUISITION_OR_NAMED_ASSUMPTION_IF_AUTHORIZED` (not prereg, not execution)
+
+## 2026-09-18 — MARKET-03 source capture + outcome-blind feasibility
+
+External public strategy family `EmaCross` vs `EmaCrossFunding` from
+`https://github.com/wiktorj137/btc-strategy-lab` pinned at
+`b68a5518b4a3eba2fde1733160d7d7de356023b5` /
+tree `f7717e681c911ea3ccce15492246053cf15883cb`. Capture
+`2026-09-18T16:46:53Z`. No Signalbot strategy run. No prereg, ARM, or
+RESULT. Protected OOS not opened. B2-06 remains blocked.
+
+Author trades Binance **spot** `BTC/USDT` 1h and uses perpetual REST
+funding only as an entry filter (`funding_max_pct=55` on a 180d
+percentile of 3-day mean funding). Signalbot has no spot BTCUSDT
+dataset. CORE is USD-M perpetual and excludes spot. Funding publication
+latency remains unproven.
+
+Verdict: **`DATA_ACQUISITION_REQUIRED`**. Faithful reproduction with
+current snapshots is `NOT_FEASIBLE`. Do not substitute perpetual price
+for spot. Do not describe EMA=600 / funding 55 / BTC as independently
+preregistered by the author.
+
+Evidence:
+`docs/research/MARKET_03_PUBLIC_STRATEGY_SOURCE_FEASIBILITY.md`.
+
+- market_03_prereg: **false**
+- market_03_armed: **false**
+- market_03_executed: **false**
+- market_03_outcome_inspected: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- feasibility_verdict: **DATA_ACQUISITION_REQUIRED**
+
+- next required step: `MARKET_03_DATA_ACQUISITION_OR_NAMED_ASSUMPTION_IF_AUTHORIZED` (not prereg, not execution)
+
+
+## 2026-09-18 — MARKET-03 data acquisition + provenance
+
+Closed the source-feasibility gaps without running the strategy. Built
+immutable SPOT dataset `MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0` snapshot
+`2ce1f504709dc40c37a70dddcf73acb444e715820e9c855f6817c48f10d2b345`
+covering `[2019-08-01, 2025-01-01)` native Binance 1h klines (47477 rows,
+43 enumerated gaps, 0 duplicates). Vision USD-M `fundingRate` ZIP bytes
+are 52/52 identical to B2-06 on 2020-09..2024-12. REST
+`/fapi/v1/fundingRate` vs Vision `last_funding_rate`/`calc_time` matched
+5481/5481 records on the authorized overlap. Publication latency remains
+**UNPROVEN**. Named `fundingTime`-as-available assumption is
+**ACCEPTABLE** for LEVEL_2 only and does not unblock B2-06.
+
+Verdict: **`READY_FOR_MARKET_03_PREREG_DESIGN`**. Ceiling
+`LEVEL_2_FAITHFUL_REIMPLEMENTATION`. Not LEVEL_1. Not a prereg, ARM, or
+RESULT. Protected OOS not used for science.
+
+Evidence: `docs/research/MARKET_03_DATA_ACQUISITION.md`.
+
+- market_03_prereg: **false**
+- market_03_armed: **false**
+- market_03_executed: **false**
+- market_03_outcome_inspected: **false**
+- market_03_parameter_search: **false**
+- protected_oos_used_for_science: **false**
+- b2_06_execution_authorized: **false**
+- feasibility_verdict: **READY_FOR_MARKET_03_PREREG_DESIGN**
+- replication_level: **LEVEL_2_FAITHFUL_REIMPLEMENTATION**
+- STRICT_HISTORICAL_PUBLICATION_LATENCY: **UNPROVEN**
+- REPRODUCTION_FUNDINGTIME_ASSUMPTION: **ACCEPTABLE**
+
+- next required step: `MARKET_03_PREREG_DESIGN_IF_AUTHORIZED` (not this unit)
+
+## 2026-09-18 — MARKET-03 preregistration design
+
+Froze MARKET-03 scientific identity before execution. Object:
+**EXTERNAL HISTORICAL CLAIM REPRODUCTION** of the pinned
+`EmaCross` vs `EmaCrossFunding` drawdown-reduction claim at
+`LEVEL_2_FAITHFUL_REIMPLEMENTATION`. Author open-ended `20191001-`
+overlaps protected 2025/2026 OOS; evaluation truncated to
+`[2019-10-01T00:00:00Z, 2025-01-01T00:00:00Z)` without opening OOS.
+Primary classification is directional (`REPRODUCED_DIRECTION` /
+`NOT_REPRODUCED_DIRECTION`); magnitude fidelity is descriptive (no
+invented ±pp gate). B2-06 is not funding authority; ARM requires a
+dedicated REST funding snapshot from already-acquired JSONL
+`e7885cd5…`. No p-value. Not the live prereg.
+
+Verdict: **`READY_FOR_MARKET_03_PREREG`**.
+
+Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG_DESIGN.md`.
+
+- market_03_prereg: **false**
+- market_03_armed: **false**
+- market_03_executed: **false**
+- market_03_outcome_inspected: **false**
+- market_03_parameter_search: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- design_verdict: **READY_FOR_MARKET_03_PREREG**
+- replication_level: **LEVEL_2_FAITHFUL_REIMPLEMENTATION**
+- STRICT_HISTORICAL_PUBLICATION_LATENCY: **UNPROVEN**
+
+- next required step: `MARKET_03_PREREG_IF_AUTHORIZED` (not this unit)
+
+## 2026-09-18 — MARKET-03 preregistration + freeze
+
+Materialized and froze the MARKET-03 preregistration from the approved
+design without executing the strategy. Object remains **EXTERNAL
+HISTORICAL CLAIM REPRODUCTION** at
+`LEVEL_2_FAITHFUL_REIMPLEMENTATION`. Evaluation truncated to
+`[2019-10-01T00:00:00Z, 2025-01-01T00:00:00Z)`. Primary classification
+is signed `MDD_filtered > MDD_baseline`. Funding named snapshot is a
+pre-ARM required artifact. Canonical executions authorized/consumed = 0.
+
+```text
+PRE_PREREG_HEAD = 9454af65398df1d3f5e0cb3af5e48c0986049d2d
+PREREG_HEAD     = 06d6ec0121a9a35f8ee947fbe89e37e97388b6e2
+PREREG_MD_SHA256   = 044bb2a6bbd51c49c856b02eb7866b43171664a05d947dce995489389eeb0b57
+PREREG_JSON_SHA256 = 3f35f9a1d0575eaff3a1993a4779642259c0891dbdda1d49f22b958eba714f89
+```
+
+Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG_FREEZE.md`.
+
+- market_03_prereg: **true**
+- market_03_prereg_frozen: **true**
+- market_03_armed: **false**
+- market_03_executed: **false**
+- market_03_outcome_inspected: **false**
+- market_03_parameter_search: **false**
+- canonical_executions_authorized: **0**
+- canonical_executions_consumed: **0**
+- funding_snapshot_ready: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+
+- next required step: `MARKET_03_IMPLEMENTATION_IF_AUTHORIZED` (not ARM, not execution)
+
+## 2026-09-18 — MARKET-03 dedicated funding snapshot
+
+Wrapped the already-acquired Binance USD-M BTCUSDT REST
+`/fapi/v1/fundingRate` JSONL into a dedicated immutable dataset without
+running the strategy or modifying the frozen prereg.
+
+```text
+SOURCE_SHA256         = e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb
+SOURCE_SIZE           = 442988
+FUNDING_DATASET_ID    = MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0
+FUNDING_SNAPSHOT_ID   = d47b7b78b6e7dbb842c7d9eb122c81063e0b804e179a53dd87723f9a8a8adc68
+FUNDING_DATA_SHA256   = e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb
+FUNDING_ROWS          = 5819
+FUNDING_TIME_BOUNDS   = 2019-09-10T08:00:00Z .. 2024-12-31T16:00:00Z
+```
+
+Identity copy of source bytes. 0 duplicate `fundingTime`. 0 missing 8h
+hour-floor events. 2438 millisecond residuals preserved, not rounded.
+`STRICT_HISTORICAL_PUBLICATION_LATENCY = UNPROVEN`.
+`REPRODUCTION_FUNDINGTIME_ASSUMPTION = ACCEPTABLE`. B2-06 is not
+authority. Spot snapshot `2ce1f504…` and prereg SHA256 `044bb2a6…` /
+`3f35f9a1…` unchanged.
+
+Evidence: `docs/research/MARKET_03_FUNDING_SNAPSHOT.md`.
+
+- funding_snapshot_ready: **true**
+- market_03_armed: **false**
+- market_03_executed: **false**
+- market_03_outcome_inspected: **false**
+- market_03_parameter_search: **false**
+- canonical_executions_authorized: **0**
+- canonical_executions_consumed: **0**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- unit_verdict: **A. FUNDING_SNAPSHOT_READY**
+
+- next required step: `MARKET_03_IMPLEMENTATION_IF_AUTHORIZED` (not ARM, not execution)
+
+## 2026-09-18 — MARKET-03 implementation (not freeze, not ARM, not execution)
+
+Implemented LEVEL_2 EmaCross baseline and EmaCrossFunding filtered
+reproduction semantics from the pinned external source without running
+the strategy on bound real MARKET-03 snapshots.
+
+```text
+PREREG_MD_SHA256   = 044bb2a6bbd51c49c856b02eb7866b43171664a05d947dce995489389eeb0b57
+PREREG_JSON_SHA256 = 3f35f9a1d0575eaff3a1993a4779642259c0891dbdda1d49f22b958eba714f89
+LIB_SHA256         = 3e69943368b72d37067a55ce93c0999e4688887a8b89d07ab2008ea0901d3b79
+AUTHORITY_SHA256   = d828af5cbbf9810ccf79a16d0582ec450c8db88a958cfc5d7282cc685e43023d
+EXECUTE_SHA256     = 4e54b5d6759e5d2d8f53de1401de9bdc8c59da0bd557cab226ca9ab7af382a1b
+EXACT_DIFFERENTIAL_TESTS = YES
+SEMANTIC_FIXTURE_TESTS   = YES
+```
+
+Fail-closed bound execution. Synthetic/fixture/handcrafted tests only.
+`STRICT_HISTORICAL_PUBLICATION_LATENCY = UNPROVEN`. B2-06 is not
+authority. Protected 2025/2026 OOS untouched.
+
+Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION.md`.
+
+- implementation_complete: **true**
+- implementation_frozen: **false**
+- market_03_armed: **false**
+- market_03_executed: **false**
+- market_03_outcome_inspected: **false**
+- market_03_parameter_search: **false**
+- canonical_executions_authorized: **0**
+- canonical_executions_consumed: **0**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- prereg_changed: **false**
+- spot_snapshot_changed: **false**
+- funding_snapshot_changed: **false**
+
+- next required step: `MARKET_03_IMPLEMENTATION_FREEZE_IF_AUTHORIZED` (not ARM, not execution)
+
+## 2026-09-18 — MARKET-03 implementation repair (not freeze, not ARM, not execution)
+
+Outcome-blind repair of red-team `B. REPAIR_REQUIRED` on HEAD
+`cada1bef…` / tree `95a6f7de…`.
+
+```text
+F1_CLOSED = YES  force-exit no longer appends a second same-timestamp capture
+F2_CLOSED = YES  EMA/signals restricted to warmup 2019-08-07T20:00:00Z
+F3_CLOSED = YES  USDT.total = start + closed profit_abs - open stake (spot)
+F5_CLOSED = YES  canonical path requires full identity then refuses unarmed
+EXACT_DIFFERENTIAL_TESTS = PARTIAL
+LIB_SHA256       = 46ec2449e967172b61eec32f5ab6caf897ff9db04249395ac55a2368840289a5
+AUTHORITY_SHA256 = 97f000c6afc2427db9fe3f90548f77c7e7ab4da0e43ba3283159101565a305e4
+EXECUTE_SHA256   = 90fd315d926b2b957391ed31c71bff6a33b0f22257960d0779e27e277cb40bcf
+```
+
+Prereg, spot snapshot, and funding snapshot unchanged. Bound real
+OHLCV/funding not loaded into strategy logic.
+
+Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_REPAIR.md`.
+
+- implementation_complete: **true**
+- implementation_frozen: **false**
+- market_03_armed: **false**
+- market_03_executed: **false**
+- market_03_outcome_inspected: **false**
+- market_03_parameter_search: **false**
+- canonical_executions_authorized: **0**
+- canonical_executions_consumed: **0**
+- protected_oos_touched: **false**
+- prereg_changed: **false**
+- spot_snapshot_changed: **false**
+- funding_snapshot_changed: **false**
+
+- next required step: `MARKET_03_IMPLEMENTATION_RE_REVIEW_THEN_FREEZE_IF_AUTHORIZED` (not ARM, not execution)

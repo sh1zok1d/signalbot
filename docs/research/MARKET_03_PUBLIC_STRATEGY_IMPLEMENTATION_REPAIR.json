@@ -1,0 +1,94 @@
+{
+  "schema": "market_03_public_strategy_implementation_repair",
+  "schema_version": "1.0.0",
+  "status": "REPAIR_COMPLETE_NOT_FROZEN",
+  "unit_id": "MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_REPAIR",
+  "research_id": "MARKET-03_PUBLIC_STRATEGY_REPLICATION",
+  "date_utc": "2026-09-18",
+  "human_readable_twin": "docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_REPAIR.md",
+  "not_a_result": true,
+  "not_an_arm": true,
+  "not_implementation_freeze": true,
+  "not_market_03_execution": true,
+  "not_parameter_search": true,
+  "pre_repair_head": "cada1bef4d2852ef07b2b4868cbb3b1ab42769e0",
+  "pre_repair_tree": "95a6f7deb2c97a5f0c38026ea93b3456114169dd",
+  "repaired_head": "UNSET_UNTIL_THIS_COMMIT",
+  "repaired_tree": "UNSET_UNTIL_THIS_COMMIT",
+  "red_team_verdict": "B. REPAIR_REQUIRED",
+  "prereg": {
+    "md_sha256": "044bb2a6bbd51c49c856b02eb7866b43171664a05d947dce995489389eeb0b57",
+    "json_sha256": "3f35f9a1d0575eaff3a1993a4779642259c0891dbdda1d49f22b958eba714f89",
+    "changed": false
+  },
+  "pinned_external_source": {
+    "commit": "b68a5518b4a3eba2fde1733160d7d7de356023b5",
+    "tree": "f7717e681c911ea3ccce15492246053cf15883cb"
+  },
+  "data_authorities": {
+    "spot_snapshot_id": "2ce1f504709dc40c37a70dddcf73acb444e715820e9c855f6817c48f10d2b345",
+    "spot_data_sha256": "e560bebb6ba9d070ee0fa58aaa5cf922caaa24d4b7e2b4eac8c7c0041c9495d4",
+    "funding_snapshot_id": "d47b7b78b6e7dbb842c7d9eb122c81063e0b804e179a53dd87723f9a8a8adc68",
+    "funding_data_sha256": "e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb",
+    "spot_snapshot_changed": false,
+    "funding_snapshot_changed": false,
+    "loaded_into_strategy_logic_this_unit": false
+  },
+  "scientific_files_after_repair": {
+    "scripts/research/market_03_public_strategy_lib.py": "46ec2449e967172b61eec32f5ab6caf897ff9db04249395ac55a2368840289a5",
+    "scripts/research/market_03_public_strategy_authority.py": "97f000c6afc2427db9fe3f90548f77c7e7ab4da0e43ba3283159101565a305e4",
+    "scripts/research/market_03_public_strategy_execute.py": "90fd315d926b2b957391ed31c71bff6a33b0f22257960d0779e27e277cb40bcf"
+  },
+  "change_map": {
+    "F1": ["simulate_strategy: remove extra force-exit wallet capture"],
+    "F2": ["restrict_candles_to_indicator_origin", "populate_indicators slices before EMA"],
+    "F3": ["freqtrade_2026_7_wallet_points", "_capture"],
+    "F5": ["bind_canonical_scientific_identity", "evaluate_canonical_market_03_reproduction", "execute_bound_market_03"],
+    "F4": ["EXACT_DIFFERENTIAL_TESTS=PARTIAL"]
+  },
+  "f1": {
+    "closed": true,
+    "root_cause": "second USDT capture at the same force-exit timestamp summed by groupby date",
+    "repair": "do not recapture after force_exit; last capture remains pre-exit open-position state at last open",
+    "regression": "test_f1_force_exit_does_not_double_terminal_equity"
+  },
+  "f2": {
+    "closed": true,
+    "root_cause": "EMA computed on frames that could include 2019-08-01 pre-warmup bars",
+    "repair": "drop date < 2019-08-07T20:00:00Z before EMA/funding/signals",
+    "regression": "test_f2_pre_warmup_history_cannot_change_canonical_ema_or_signals"
+  },
+  "f3": {
+    "closed": true,
+    "pinned_wallet_identity": "SPOT: USDT.total=start+closed profit_abs-open stake_amount (used_stake is unfilled entry orders only); BTC.total=amount; BTC.price=candle open; capture before orders; no recapture after force-exit",
+    "repair": "freqtrade_2026_7_wallet_points is the only capture constructor",
+    "regression": "test_f3_wallet_composition_no_position_after_entry_profit_loss_close_force_exit"
+  },
+  "f5": {
+    "closed": true,
+    "canonical_path": "evaluate_canonical_market_03_reproduction",
+    "synthetic_path": "evaluate_market_03_reproduction",
+    "row_count_is_not_authority": true
+  },
+  "f4": {
+    "EXACT_DIFFERENTIAL_TESTS": "PARTIAL"
+  },
+  "remaining_level_2_deviations": [
+    "talib C EMA not executed",
+    "freqtrade package not executed",
+    "exchange precision not applied",
+    "STRICT_HISTORICAL_PUBLICATION_LATENCY=UNPROVEN"
+  ],
+  "explicit_state": {
+    "IMPLEMENTATION_COMPLETE": true,
+    "IMPLEMENTATION_FROZEN": false,
+    "MARKET_03_ARMED": false,
+    "CANONICAL_EXECUTIONS_AUTHORIZED": 0,
+    "CANONICAL_EXECUTIONS_CONSUMED": 0,
+    "MARKET_03_STRATEGY_EXECUTED": false,
+    "MARKET_03_OUTCOMES_INSPECTED": false,
+    "MARKET_03_PARAMETER_SEARCH": false,
+    "PROTECTED_OOS_TOUCHED": false
+  },
+  "unit_verdict": "A. REPAIR_COMPLETE_READY_FOR_RE_REVIEW"
+}

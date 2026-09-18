@@ -1,0 +1,380 @@
+{
+  "unit_id": "MARKET_03_PUBLIC_STRATEGY_PREREG_DESIGN",
+  "research_id": "MARKET-03_PUBLIC_STRATEGY_REPLICATION",
+  "date_utc": "2026-09-18",
+  "status": "PREREG_DESIGN_COMPLETE_NOT_PREREGISTERED",
+  "schema": "market_03_public_strategy_prereg_design",
+  "schema_version": "1.0.0",
+  "scientific_identity": "EXTERNAL_HISTORICAL_CLAIM_REPRODUCTION",
+  "replication_level": "LEVEL_2_FAITHFUL_REIMPLEMENTATION",
+  "replication_level_not": [
+    "LEVEL_1_EXACT_REPRODUCTION",
+    "LEVEL_3_CONCEPTUAL_REPLICATION",
+    "INDEPENDENT_FORWARD_REPLICATION",
+    "UNTOUCHED_OOS_CONFIRMATION"
+  ],
+  "addresses": "A_REPRODUCE_FINAL_PUBLISHED_STRATEGY_CLAIM",
+  "does_not_address": "B_VALIDATE_AUTHOR_STRATEGY_SELECTION_PROCESS",
+  "prior_units": {
+    "source_feasibility": "docs/research/MARKET_03_PUBLIC_STRATEGY_SOURCE_FEASIBILITY.md",
+    "data_acquisition": "docs/research/MARKET_03_DATA_ACQUISITION.md"
+  },
+  "pinned_external_source": {
+    "repo": "https://github.com/wiktorj137/btc-strategy-lab",
+    "author": "wiktorj137",
+    "commit": "b68a5518b4a3eba2fde1733160d7d7de356023b5",
+    "tree": "f7717e681c911ea3ccce15492246053cf15883cb",
+    "family": "EmaCross vs EmaCrossFunding",
+    "replaced": false,
+    "publication_date_utc": "2026-08-22",
+    "license": "GPL-3.0",
+    "freqtrade_requirement": "freqtrade>=2026.7",
+    "freqtrade_requirement_upper_bound": null,
+    "frozen_engine_docs": "Freqtrade 2026.7 documented backtesting/stoploss/IStrategy defaults"
+  },
+  "source_selection_history": {
+    "independently_preregistered_before_author_research": false,
+    "n_public_strategies_benchmarked": 42,
+    "winner_then_parameterized": "EMAPriceCrossoverWithThreshold",
+    "ema_and_exit_selected_after_sweep": true,
+    "funding_threshold_selected_after_sweep": true,
+    "btc_selected_after_cross_asset_comparison": true,
+    "walk_forward_on_emacross_not_funding": true,
+    "full_pipeline_dsr": false,
+    "MARKET_03_does_not_validate_that_search": true
+  },
+  "protected_oos_conflict": {
+    "author_headline_timerange": "20191001-",
+    "author_timerange_is_open_ended": true,
+    "author_implied_terminal": "approximately 2026-08 (funding.feather last 2026-08-21T16:00:00.001Z; walk_forward END=2026-08-01; publication 2026-08-22; CAGR 50.9% on +1604% implies ~6.89y from 2019-10-01)",
+    "signalbot_protected_oos_start_exclusive_end": "2025-01-01T00:00:00Z",
+    "headline_overlaps_protected_oos": true,
+    "resolution": "TRUNCATE_TO_AUTHORIZED_INTERVAL_DO_NOT_OPEN_PROTECTED_OOS",
+    "protected_oos_opened": false
+  },
+  "intervals": {
+    "spot_dataset_bounds": {
+      "start_inclusive": "2019-08-01T00:00:00Z",
+      "end_exclusive": "2025-01-01T00:00:00Z"
+    },
+    "warmup_interval": {
+      "start_inclusive": "2019-08-07T20:00:00Z",
+      "end_exclusive": "2019-10-01T00:00:00Z",
+      "basis": "Freqtrade startup_candle_count=1300 hours immediately before evaluation start",
+      "contributes_to_performance_metrics": false
+    },
+    "evaluation_interval": {
+      "start_inclusive": "2019-10-01T00:00:00Z",
+      "end_exclusive": "2025-01-01T00:00:00Z",
+      "matches_author_full_headline": false,
+      "truncation_reason": "author open-ended 20191001- extends into Signalbot protected 2025/2026 OOS"
+    },
+    "no_fill_open_time_on_or_after": "2025-01-01T00:00:00Z",
+    "end_of_interval_open_trades": "force_exit on last authorized in-interval candle only; do not read 2025/2026 prices"
+  },
+  "coverage_mismatch": {
+    "author_download_timerange": "20180101-",
+    "author_headline_timerange": "20191001-",
+    "author_funding_span": "2019-09-10T08:00:00Z .. 2026-08-21T16:00:00.001Z",
+    "signalbot_spot_span": "[2019-08-01T00:00:00Z, 2025-01-01T00:00:00Z)",
+    "signalbot_rest_funding_span": "2019-09-10T08:00:00Z .. 2024-12-31T16:00:00Z",
+    "pre_2019_08_author_download_not_in_signalbot": true,
+    "post_2024_author_headline_not_in_authorized_signalbot": true,
+    "gap_set_author_ccxt_vs_vision": "UNKNOWN_MAY_DIFFER",
+    "degenerate_vision_row_may_be_absent_from_author_ccxt": true
+  },
+  "baseline": {
+    "name": "EmaCross",
+    "json_sidecar_required": true,
+    "class_defaults_are_not_the_contrast": true
+  },
+  "filtered": {
+    "name": "EmaCrossFunding",
+    "json_sidecar_required": true,
+    "class_defaults_are_not_the_contrast": true,
+    "only_trading_rule_difference_under_json": "entry conjunct on funding_pct"
+  },
+  "strategy_semantics": {
+    "market": "Binance SPOT BTC/USDT",
+    "timeframe": "1h",
+    "ema_period": 600,
+    "ema_source": "TA-Lib EMA on close",
+    "exit_threshold_pct": 2.0,
+    "ema_exit": "ema * (100 - 2.0) / 100",
+    "entry_signal": "qtpylib.crossed_above(close, ema) AND volume > 0",
+    "entry_tag_baseline": "ema_cross_up",
+    "entry_tag_filtered": "ema_cross_funding_ok",
+    "exit_signal": "qtpylib.crossed_below(close, ema_exit)",
+    "exit_tag": "ema_cross_down",
+    "shorts": false,
+    "can_short": false,
+    "max_open_trades": 1,
+    "pyramiding": false,
+    "position_adjustment_enable": false,
+    "stoploss": -0.15,
+    "trailing_stop": true,
+    "trailing_stop_positive": null,
+    "trailing_stop_positive_offset": 0.0,
+    "trailing_only_offset_is_reached": false,
+    "trailing_behavior": "trail the -15% stoploss from highest observed price; no tighter positive trail because trailing_stop_positive is None",
+    "minimal_roi": {"0": 10},
+    "roi_effectively_inactive": true,
+    "startup_candle_count": 1300,
+    "process_only_new_candles": true,
+    "interface_version": 3,
+    "use_exit_signal": true,
+    "exit_profit_only": false,
+    "exit_profit_offset": 0.0,
+    "ignore_roi_if_entry_signal": false,
+    "order_types": {
+      "entry": "limit",
+      "exit": "limit",
+      "stoploss": "limit",
+      "stoploss_on_exchange": false
+    },
+    "order_time_in_force": {
+      "entry": "GTC",
+      "exit": "GTC"
+    },
+    "fee_per_side": 0.001,
+    "fee_applied_twice": true,
+    "slippage": "none if requested price inside candle high/low (Freqtrade 2026.7 backtesting assumption)",
+    "timeframe_detail": false,
+    "protections_enabled": false,
+    "stake_amount": "unlimited",
+    "tradable_balance_ratio": 0.99,
+    "initial_capital_usdt": 10000.0,
+    "stake_currency": "USDT",
+    "compounding": true,
+    "entry_signal_timing": "evaluated on candle close",
+    "exit_signal_timing": "evaluated on candle close",
+    "entry_fill": "open of the next candle",
+    "exit_signal_fill": "open of the next candle",
+    "stoploss_fill": "exactly at stoploss price even if low was lower; loss is 2*fees higher than stoploss price",
+    "same_candle_evaluation_sequence": [
+      "exit_signal",
+      "stoploss",
+      "roi",
+      "trailing_stoploss"
+    ],
+    "exit_signal_favored_over_stoploss": true,
+    "intra_candle_trailing": "high first adjusts stop; low uses adjusted stop; trail only adjusted if stop remains below candle low",
+    "live_order_book_pricing_not_used_in_backtest": true,
+    "crossed_uses_previous_present_dataframe_row": true,
+    "custom_exit": false,
+    "custom_stoploss": false
+  },
+  "funding_semantics": {
+    "source_required_at_arm": "dedicated MARKET-03 REST funding snapshot; NOT B2-06; NOT author funding.feather",
+    "endpoint": "/fapi/v1/fundingRate",
+    "symbol": "BTCUSDT",
+    "product": "USD_M_PERPETUAL",
+    "field": "fundingRate",
+    "timestamp_field": "fundingTime",
+    "join": "reindex onto Freqtrade candle date (open) with ffill; last fundingTime <= candle date",
+    "funding_3d": "rolling 72 hours mean, min_periods=24",
+    "funding_pct": "rolling 4320 hours (24*180) rank(pct=True)*100, min_periods=720 (24*30)",
+    "current_observation_enters_own_percentile": true,
+    "threshold": 55,
+    "skip_entry_iff": "funding_pct >= 55",
+    "missing_percentile_allows_entry": true,
+    "filter_affects_entries_only": true,
+    "exits_unchanged": true,
+    "funding_payments_in_spot_pnl": false,
+    "REPRODUCTION_ASSUMPTION": "A funding observation is treated as available at fundingTime",
+    "STRICT_HISTORICAL_PUBLICATION_LATENCY": "UNPROVEN",
+    "REPRODUCTION_FUNDINGTIME_ASSUMPTION": "ACCEPTABLE",
+    "assumption_does_not_establish_zero_latency_availability": true
+  },
+  "funding_dataset_authority": {
+    "b2_06_unauthorized": true,
+    "b2_06_is_not_market_03_authority": true,
+    "required_before_arm": true,
+    "proposed_dataset_id": "MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0",
+    "source_bytes_already_acquired": true,
+    "acquired_rest_jsonl_sha256": "e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb",
+    "acquired_rest_row_count": 5819,
+    "acquired_bounds": {
+      "request_start_inclusive": "2019-09-01T00:00:00Z",
+      "request_end_exclusive": "2025-01-01T00:00:00Z",
+      "observed_first_utc": "2019-09-10T08:00:00Z",
+      "observed_last_utc": "2024-12-31T16:00:00Z"
+    },
+    "named_snapshot_identity_materialized": false,
+    "spot_dataset_id": "MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0",
+    "spot_snapshot_id": "2ce1f504709dc40c37a70dddcf73acb444e715820e9c855f6817c48f10d2b345",
+    "spot_currently_scientifically_bound": false,
+    "spot_bind_at": "ARM"
+  },
+  "gap_and_degenerate_row_policy": {
+    "enumerated_gaps": 43,
+    "synthesize_missing_hours": false,
+    "retain_native_present_rows": true,
+    "freqtrade_dataframe_omits_missing_hours": true,
+    "crossed_and_ema_use_present_rows_only": true,
+    "volume_zero_blocks_entry": true,
+    "degenerate_row": {
+      "open_time_utc": "2020-12-21T14:00:00Z",
+      "violation": "close_time_before_open_time",
+      "volume": 0,
+      "policy": "RETAIN_UNREPAIRED",
+      "may_enter_ema_and_exit_cross": true,
+      "cannot_satisfy_volume_gt_0_entry": true
+    },
+    "author_data_scrub": "WARNs gaps and stale vol=0 candles but still ready for backtest; does not drop",
+    "chosen_without_strategy_outcomes": true
+  },
+  "mdd_definition": {
+    "identity": "author research/metrics.py risk_report Max drawdown on daily wallet equity",
+    "not_freqtrade_absolute_drawdown_percent": true,
+    "author_note_freqtrade_print_vs_percentage": "Freqtrade Absolute drawdown % printed -23.6% where metrics.py gives -33.8% for the filtered strategy",
+    "initial_capital_usdt": 10000.0,
+    "equity_construction": "Freqtrade wallet.feather: groupby date sum(total_quote); equivalent LEVEL_2 reconstruction is mark-to-market USDT cash + BTC position quote value at each wallet timestamp",
+    "daily_resample": "resample('D').last().ffill()",
+    "returns": "daily_equity.pct_change()",
+    "risk_report_dropna": true,
+    "cum": "(1 + r).cumprod()",
+    "drawdown": "cum / cum.cummax() - 1",
+    "max_drawdown": "float(dd.min())",
+    "sign": "negative ratio",
+    "open_trades_included": true,
+    "fees_included": true,
+    "funding_payments_included": false,
+    "compounding": true,
+    "periods_per_year": 365,
+    "warmup_excluded_from_metrics": true,
+    "force_exited_end_trades_included_in_wallet": true
+  },
+  "primary_external_claim": {
+    "statement": "Adding the published funding filter to EmaCross reduces maximum percentage drawdown on the published BTC historical evaluation.",
+    "not_return_improvement": true,
+    "author_mdd_baseline_pct": -49.4,
+    "author_mdd_filtered_pct": -33.8,
+    "author_mdd_baseline_ratio": -0.494,
+    "author_mdd_filtered_ratio": -0.338,
+    "author_abs_reduction_pp": 15.6,
+    "author_rel_reduction": 0.3157894736842105,
+    "author_rel_reduction_pct_1dp": 31.6,
+    "arithmetic_verified": true,
+    "arithmetic": "49.4 - 33.8 = 15.6; 15.6 / 49.4 = 0.3157894736842105 ≈ 31.6%"
+  },
+  "primary_classification": {
+    "structure": "DIRECTION_PRIMARY_MAGNITUDE_DESCRIPTIVE",
+    "binary_magnitude_tolerance_invented": false,
+    "why_no_binary_magnitude_gate": [
+      "author headline values rounded to 0.1 percentage point",
+      "authorized evaluation is truncated vs author open-ended 20191001- through ~2026-08",
+      "LEVEL_2 data/engine differences (Vision vs author ccxt download, 43 gaps, degenerate row, unpinned Freqtrade minor)",
+      "scientific purpose is historical reproduction of the published direction, not a fake closeness-to-15.6pp test"
+    ],
+    "rule": "If MDD_filtered and MDD_baseline are both finite signed ratios from the frozen metrics.py pipeline: REPRODUCED_DIRECTION iff MDD_filtered > MDD_baseline (strict; less negative). Else NOT_REPRODUCED_DIRECTION. Equality is NOT_REPRODUCED_DIRECTION. Non-finite MDD is EXECUTION_INCOMPLETE, not a scientific claim.",
+    "labels": [
+      "REPRODUCED_DIRECTION",
+      "NOT_REPRODUCED_DIRECTION",
+      "EXECUTION_INCOMPLETE"
+    ],
+    "trivial_filtered_lt_baseline_alone_is_insufficient_as_magnitude_claim": true,
+    "secondary_metrics_cannot_override": true
+  },
+  "magnitude_fidelity": {
+    "role": "DESCRIPTIVE_NOT_A_GATE",
+    "author_abs_reduction_pp": 15.6,
+    "author_rel_reduction": 0.3157894736842105,
+    "report": [
+      "OBS_MDD_BASELINE",
+      "OBS_MDD_FILTERED",
+      "OBS_ABS_REDUCTION_PP = 100 * (MDD_filtered - MDD_baseline)",
+      "OBS_REL_REDUCTION = (MDD_filtered - MDD_baseline) / abs(MDD_baseline) if MDD_baseline != 0",
+      "ABS_REDUCTION_PP_ERROR = OBS_ABS_REDUCTION_PP - 15.6",
+      "REL_REDUCTION_ERROR = OBS_REL_REDUCTION - 0.3157894736842105"
+    ]
+  },
+  "internal_contrast_vs_external_fidelity": {
+    "A_internal_contrast": "MDD(EmaCrossFunding) vs MDD(EmaCross) on the frozen Signalbot reimplementation and authorized interval; this is the primary directional classification",
+    "B_external_fidelity": "Signalbot-reimplemented absolute MDD/return/CAGR/Sharpe/Sortino/trade-count vs author-reported headlines",
+    "external_fidelity_confounded_by_truncation": true,
+    "must_not_hide_external_fidelity_mismatch": true,
+    "possible_outcome_template": "REPRODUCED_DIRECTION with material external-fidelity mismatch is reported as directional reproduction on the truncated authorized interval, not as matching the author's 49.4%/33.8% headlines"
+  },
+  "secondary_metrics": {
+    "role": "DESCRIPTIVE_NOT_SUCCESS_CRITERIA",
+    "metrics": [
+      "total_return",
+      "cagr",
+      "sharpe",
+      "sortino",
+      "trade_count",
+      "baseline_mdd",
+      "filtered_mdd",
+      "absolute_mdd_reduction_pp",
+      "relative_mdd_reduction"
+    ],
+    "definitions_from": "research/metrics.py risk_report plus trade-list length",
+    "ppy": 365,
+    "high_return_plus_failed_mdd_direction_remains_failure": true
+  },
+  "statistical_inference": {
+    "used": false,
+    "p_value": false,
+    "bootstrap": false,
+    "market_01_02_machinery_imported": false,
+    "reason": "MARKET-03 is historical reproduction of one deterministic published strategy path. There is no sampling model, no two-group estimand, and no confirmatory OOS trial. A p-value would be theater."
+  },
+  "claim_boundaries": {
+    "if_reproduced_direction_allowed": "Under the frozen LEVEL_2 faithful reimplementation of the pinned external strategy and its explicit fundingTime availability assumption, adding the published funding filter reduced historical maximum drawdown relative to the corresponding baseline over the frozen reproduction interval.",
+    "if_reproduced_direction_forbidden": [
+      "live profitability",
+      "current alpha",
+      "causal funding effect",
+      "independent replication",
+      "OOS confirmation",
+      "validation of author's parameter selection",
+      "calibrated statistical evidence",
+      "proven funding publication timing",
+      "independent confirmation of Signalbot OI hypotheses",
+      "rescue of MARKET-01/02"
+    ],
+    "if_not_reproduced_direction_allowed": "Signalbot's frozen faithful reimplementation did not reproduce the direction of the published drawdown-reduction claim.",
+    "if_not_reproduced_direction_forbidden": [
+      "funding filters do not work",
+      "generalization beyond this frozen family/interval/assumption"
+    ]
+  },
+  "program_level": {
+    "market_01": "NO_EVIDENCE",
+    "market_02": "NO_EVIDENCE",
+    "those_results_do_not_alter_market_03_semantics": true,
+    "market_03_is_not_a_rescue_experiment": true,
+    "positive_market_03_is_not_confirmation_of_oi_hypotheses": true
+  },
+  "design_verdict": "READY_FOR_MARKET_03_PREREG",
+  "design_verdict_letter": "A",
+  "unresolved_blockers": [
+    "FUNDING_SNAPSHOT_IDENTITY_NOT_YET_MATERIALIZED (required before ARM; REST JSONL sha256 already acquired)",
+    "SPOT snapshot not yet scientifically bound (ARM binds MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0 / 2ce1f504…)",
+    "freqtrade>=2026.7 has no upper bound; LEVEL_2 freezes 2026.7 documented semantics",
+    "STRICT_HISTORICAL_PUBLICATION_LATENCY remains UNPROVEN",
+    "authorized evaluation is truncated vs author headline; not a blocker, a frozen mismatch",
+    "author ccxt gap set vs Vision 43 gaps / degenerate row may differ"
+  ],
+  "material_execution_semantic_unresolved": false,
+  "MARKET_03_STRATEGY_EXECUTED": false,
+  "MARKET_03_OUTCOMES_INSPECTED": false,
+  "MARKET_03_PARAMETER_SEARCH": false,
+  "MARKET_03_PREREGISTERED": false,
+  "MARKET_03_ARMED": false,
+  "PROTECTED_OOS_TOUCHED": false,
+  "B2_06_EXECUTION_AUTHORIZED": false,
+  "final_prereg_written": false,
+  "implemented": false,
+  "outcome_blindness": {
+    "emacross_executed": false,
+    "emacrossfunding_executed": false,
+    "strategy_trades": false,
+    "strategy_returns": false,
+    "strategy_drawdown": false,
+    "sharpe_sortino": false,
+    "parameter_sensitivity": false,
+    "protected_oos_inspected": false
+  }
+}
