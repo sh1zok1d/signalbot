@@ -3322,3 +3322,41 @@ Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG_FREEZE.md`.
 - b2_06_execution_authorized: **false**
 
 - next required step: `MARKET_03_IMPLEMENTATION_IF_AUTHORIZED` (not ARM, not execution)
+
+## 2026-09-18 — MARKET-03 dedicated funding snapshot
+
+Wrapped the already-acquired Binance USD-M BTCUSDT REST
+`/fapi/v1/fundingRate` JSONL into a dedicated immutable dataset without
+running the strategy or modifying the frozen prereg.
+
+```text
+SOURCE_SHA256         = e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb
+SOURCE_SIZE           = 442988
+FUNDING_DATASET_ID    = MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0
+FUNDING_SNAPSHOT_ID   = d47b7b78b6e7dbb842c7d9eb122c81063e0b804e179a53dd87723f9a8a8adc68
+FUNDING_DATA_SHA256   = e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb
+FUNDING_ROWS          = 5819
+FUNDING_TIME_BOUNDS   = 2019-09-10T08:00:00Z .. 2024-12-31T16:00:00Z
+```
+
+Identity copy of source bytes. 0 duplicate `fundingTime`. 0 missing 8h
+hour-floor events. 2438 millisecond residuals preserved, not rounded.
+`STRICT_HISTORICAL_PUBLICATION_LATENCY = UNPROVEN`.
+`REPRODUCTION_FUNDINGTIME_ASSUMPTION = ACCEPTABLE`. B2-06 is not
+authority. Spot snapshot `2ce1f504…` and prereg SHA256 `044bb2a6…` /
+`3f35f9a1…` unchanged.
+
+Evidence: `docs/research/MARKET_03_FUNDING_SNAPSHOT.md`.
+
+- funding_snapshot_ready: **true**
+- market_03_armed: **false**
+- market_03_executed: **false**
+- market_03_outcome_inspected: **false**
+- market_03_parameter_search: **false**
+- canonical_executions_authorized: **0**
+- canonical_executions_consumed: **0**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- unit_verdict: **A. FUNDING_SNAPSHOT_READY**
+
+- next required step: `MARKET_03_IMPLEMENTATION_IF_AUTHORIZED` (not ARM, not execution)
