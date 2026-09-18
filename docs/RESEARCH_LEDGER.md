@@ -3159,3 +3159,36 @@ the frozen library. Canonical RESULT SHA256 remains
 
 - next required step: `NEW_MARKET_HYPOTHESIS_ID_IF_AUTHORIZED` (not MARKET-01 rerun)
 
+## 2026-09-18 — MARKET-02 implementation (not armed, not executed)
+
+Outcome-blind implementation of frozen
+`MARKET-02_OI_EXPANSION_PRICE_CONFIRMATION`. Scientific identity is
+primary population `QUALIFYING_IMPULSE AND OI_EXPANSION` with candidate
+`continuation_ratio > 0.25` and outcome `continuation_return = D *
+ln(close(T+60m)/close(T))`. Not MARKET-01 weak-continuation/reversal.
+Fast construction primitives reused; MARKET-01 frozen scientific bytes
+untouched. Bound snapshots refused. Synthetic tests only.
+
+```text
+prereg frozen = YES
+implementation complete = YES
+implementation frozen = NO
+armed = NO
+executed = NO
+outcome inspection = NO
+protected OOS touched = NO
+MARKET_02_TEST_CALIBRATED = NO
+```
+
+- market_02_prereg_frozen: **true**
+- market_02_implemented: **true**
+- market_02_implementation_frozen: **false**
+- market_02_armed: **false**
+- market_02_executed: **false**
+- market_02_outcome_inspected: **false**
+- market_01_scientifically_rerun: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+
+- next required step: `MARKET_02_IMPLEMENTATION_FREEZE_REVIEW_IF_AUTHORIZED` (not ARM, not execution)
+
