@@ -20,7 +20,7 @@ Read these first:
 | Document | Status | Purpose |
 |---|---|---|
 | `PROJECT_STATUS.md` | **ACTIVE / CANONICAL** | Current project posture, freeze, empirical state and restart gate. Active research phase: `MARKET`. V3 Microscope calibration closed. |
-| `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. MARKET-01 closed `NO_EVIDENCE`; V3 closed; no V4; B2-06 remains blocked. |
+| `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. MARKET-01 closed `NO_EVIDENCE`; MARKET-03 **RESULT** `REPRODUCED_DIRECTION` (consumed); V3 closed; no V4; B2-06 remains blocked. |
 | `EDGE_RESEARCH_PROTOCOL.md` | **ACTIVE / CANONICAL** | Discovery/validation rules and anti-overfit discipline |
 | `HISTORICAL_DATA_STRATEGY.md` | **ACTIVE / CANONICAL** | Multi-year CORE vs shorter RICH evidence strategy |
 | `DATA_CAPABILITY_MATRIX.md` | **ACTIVE / RESEARCH DATA DESIGN** | Verified source/venue/date/granularity map and acquisition order for the 2020/2021–2026 research program |
@@ -32,8 +32,48 @@ Read these first:
 | `research/H01_DEV_SUMMARY.md` | **FROZEN_EVIDENCE** | H01 development-only result; verdict `H01_KILL` |
 | `research/H02_FAILED_BREAKOUT_MEAN_REVERSION_PREREG.md` | **FROZEN_EVIDENCE** | H02 preregistration (before development outcomes) |
 | `research/H02_DEV_SUMMARY.md` | **FROZEN_EVIDENCE** | H02 development-only result; verdict `H02_KILL` |
+| `research/EVIDENCE_REGISTRY_H_B_M01_M03.md` | **FROZEN PROGRAM EVIDENCE REGISTRY** | Canonical outcome-blind synthesis of H01–H05, B2-01–B2-06, MARKET-01–03. Later MARKET-04 candidate selection is a separate identity freeze, not a rewrite of this registry. |
+| `research/EVIDENCE_REGISTRY_H_B_M01_M03.json` | **FROZEN PROGRAM EVIDENCE REGISTRY twin** | Machine-readable semantic twin of the H/B/M01–M03 evidence registry |
+| `research/MARKET_04_CANDIDATE_SELECTION.md` | **CANDIDATE IDENTITY FROZEN / NOT PREREGISTERED / NOT AUTHORIZED** | Outcome-blind MARKET-04 identity `MARKET-04_FUNDING_STATE_ADVERSE_PATH_RISK`; role `RISK_STATE_FILTER`; funding availability later audited as still unresolved; no ARM/RESULT |
+| `research/MARKET_04_CANDIDATE_SELECTION.json` | **CANDIDATE IDENTITY FROZEN twin** | Machine-readable twin; `execution_authorized=false`; `independent_replication_of_market_03=false` |
+| `research/MARKET_04_FUNDING_AVAILABILITY_AUDIT.md` | **TEMPORAL AUTHORITY / UNRESOLVED** | Outcome-blind first-party audit of Binance settled-funding publication; `FUNDING_HISTORICAL_AVAILABILITY_UNRESOLVED`; `legal_available_at` unset; does not ARM/execute MARKET-04 or B2-06 |
+| `research/MARKET_04_FUNDING_AVAILABILITY_AUDIT.json` | **TEMPORAL AUTHORITY twin** | Machine-readable twin; `historical_availability_proven=false`; `B2_06_FUNDING_BLOCKER_IMPLICATION=UNCHANGED` |
 | `research/BATCH02_STATUS_LEDGER.md` | **ACTIVE RECORD** | Post-outcome Batch02 formulation/family status, including B2-05 durable-evidence recovery closeout `B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED` at archive `e31e5666fe845116197b6f2531289bf17d848027`; B2-06 remains `BLOCKED_MISSING_OBSERVABLE` after an outcome-blind OI/funding snapshot bind that does not authorize execution; does not mutate the frozen inventory |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_DATA_FEASIBILITY.md` | **OUTCOME_BLIND_FEASIBILITY** | MARKET-01 price/OI inventory only; `MARKET_01_PREREG_FEASIBLE = YES`; no outcomes, no B2-06 execution |
+| `research/MARKET_03_PUBLIC_STRATEGY_SOURCE_FEASIBILITY.md` | **OUTCOME_BLIND_SOURCE_FEASIBILITY / HISTORICAL UNIT** | MARKET-03 external EmaCross/EmaCrossFunding capture; unit verdict `DATA_ACQUISITION_REQUIRED`; superseded for current execution by later MARKET-03 units; not a prereg/ARM/RESULT |
+| `research/MARKET_03_PUBLIC_STRATEGY_SOURCE_FEASIBILITY.json` | **OUTCOME_BLIND_SOURCE_FEASIBILITY twin / HISTORICAL UNIT** | Machine-readable twin; pinned commit `b68a5518…`; no Signalbot strategy outcomes |
+| `research/MARKET_03_DATA_ACQUISITION.md` | **DATA_ACQUISITION_COMPLETE_NOT_PREREGISTERED / HISTORICAL UNIT** | Binance SPOT BTCUSDT 1h snapshot + funding provenance; unit verdict `READY_FOR_MARKET_03_PREREG_DESIGN`; superseded for current execution by the prereg-design unit; not a prereg/ARM/RESULT |
+| `research/MARKET_03_DATA_ACQUISITION.json` | **DATA_ACQUISITION twin / HISTORICAL UNIT** | Machine-readable twin; snapshot `2ce1f504…`; SHA256 `f1dfd27c…`; all strategy/prereg/ARM flags false |
+| `research/MARKET_03_PUBLIC_STRATEGY_PREREG_DESIGN.md` | **PREREG_DESIGN_COMPLETE / HISTORICAL UNIT** | MARKET-03 scientific identity/classification before execution; unit verdict `READY_FOR_MARKET_03_PREREG`; superseded for current execution by the frozen prereg |
+| `research/MARKET_03_PUBLIC_STRATEGY_PREREG_DESIGN.json` | **PREREG DESIGN twin / HISTORICAL UNIT** | Machine-readable twin; SHA256 `91e36249…`; directional primary classification; truncated authorized interval |
+| `research/MARKET_03_PUBLIC_STRATEGY_PREREG.md` | **FROZEN_OUTCOME_BLIND payload** | Frozen MARKET-03 preregistration bytes; SHA256 `044bb2a6…`; internal status `PREREGISTERED_OUTCOME_BLIND` left unchanged; freeze authority is the freeze document |
+| `research/MARKET_03_PUBLIC_STRATEGY_PREREG.json` | **FROZEN_OUTCOME_BLIND payload** | Frozen machine-readable twin; SHA256 `3f35f9a1…` |
+| `research/MARKET_03_PUBLIC_STRATEGY_PREREG_FREEZE.md` | **FROZEN_OUTCOME_BLIND / CURRENT FREEZE AUTHORITY** | Docs-only freeze of materialization `06d6ec01…` / tree `50bc810e…`; not an ARM; not execution |
+| `research/MARKET_03_PUBLIC_STRATEGY_PREREG_FREEZE.json` | **FROZEN_OUTCOME_BLIND / CURRENT FREEZE AUTHORITY** | Machine-readable twin; `freeze_commit_head`/`tree` intentionally `UNSET_UNTIL_THIS_COMMIT` |
+| `research/MARKET_03_FUNDING_SNAPSHOT.md` | **FUNDING_SNAPSHOT_READY / CURRENT FUNDING AUTHORITY** | Dedicated REST funding snapshot wrap; snapshot `d47b7b78…`; not ARM/execution |
+| `research/MARKET_03_FUNDING_SNAPSHOT.json` | **FUNDING_SNAPSHOT_READY twin** | Machine-readable twin; SHA256 `870dd397…`; source `e7885cd5…`; all strategy/ARM flags false |
+| `research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION.md` | **HISTORICAL IMPLEMENTATION UNIT** | Implementation-unit identity after F1/F2/F3/F5 repair; live freeze authority is the implementation-freeze document |
+| `research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION.json` | **HISTORICAL IMPLEMENTATION UNIT twin** | Machine-readable twin; repaired scientific file SHA256s; `EXACT_DIFFERENTIAL_TESTS=PARTIAL` |
+| `research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_REPAIR.md` | **REPAIR_COMPLETE_NOT_FROZEN / HISTORICAL UNIT** | Outcome-blind F1/F2/F3/F5 repair record vs review HEAD `cada1bef…`; not ARM/execution |
+| `research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_REPAIR.json` | **REPAIR_COMPLETE_NOT_FROZEN twin / HISTORICAL UNIT** | Machine-readable twin of the implementation repair |
+| `research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_FREEZE.md` | **IMPLEMENTATION_FROZEN / CURRENT IMPLEMENTATION FREEZE AUTHORITY** | Docs-only freeze of reviewed HEAD `03411aaa…` / tree `87a1da25…`; not ARM; not execution |
+| `research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_FREEZE.json` | **IMPLEMENTATION_FROZEN twin / CURRENT IMPLEMENTATION FREEZE AUTHORITY** | Machine-readable twin; `freeze_commit_head`/`tree` intentionally `UNSET_UNTIL_THIS_COMMIT` |
+| `research/MARKET_03_PUBLIC_STRATEGY_ARM.md` | **EXECUTED / CONSUMED** | One-shot canonical ARM; consumed `1`; unused SHA256 `7c801cdc…` bound into RESULT |
+| `research/MARKET_03_PUBLIC_STRATEGY_ARM.json` | **EXECUTED / CONSUMED twin** | Consumed ARM twin; unused identity `7c801cdc…`; run identity `f68b6de7…` |
+| `research/MARKET_03_PUBLIC_STRATEGY_RESERVATION.json` | **CONSUMED** | Canonical execution reservation consumed `1`; no rerun pre-authorized |
+| `research/MARKET_03_PUBLIC_STRATEGY_RESULT.md` | **CANONICAL RESULT** | Mechanical restatement; `PRIMARY_CLASSIFICATION = REPRODUCED_DIRECTION` |
+| `research/MARKET_03_PUBLIC_STRATEGY_RESULT.json` | **CANONICAL RESULT** | Sealed MARKET-03 RESULT; SHA256 `32b9157f…`; unused ARM `7c801cdc…` |
+| `research/MARKET_03_PUBLIC_STRATEGY_CONSUMPTION_LOCK.json` | **CONSUMED** | Pre-evaluate consumption boundary lock; not a scientific RESULT |
+| `scripts/research/market_03_public_strategy_lib.py` | **IMPLEMENTATION_FROZEN** | Frozen scientific core at SHA256 `46ec2449…`; bound snapshots refused by frozen guards |
+| `scripts/research/market_03_public_strategy_authority.py` | **IMPLEMENTATION_FROZEN** | Frozen identity + fail-closed guard at SHA256 `97f000c6…`; code identity remains unarmed |
+| `scripts/research/market_03_public_strategy_execute.py` | **IMPLEMENTATION_FROZEN / FAIL_CLOSED** | Frozen bound-execution stub; still refuses while frozen flags stay unarmed |
+| `scripts/research/market_03_public_strategy_arm_authority.py` | **ARM LIFECYCLE AUTHORITY** | RUN_IDENTITY / ARM / reservation authentication outside frozen scientific bytes |
+| `scripts/research/market_03_public_strategy_canonical_execution.py` | **EXECUTED / ONE-SHOT** | Canonical execution runner; reservation consumed; not a second scientific implementation |
+| `research_data/MARKET_03_BTC_STRATEGY_LAB_B68A5518/` | **PINNED_EXTERNAL_SOURCE** | Immutable hashes + text snapshots of `wiktorj137/btc-strategy-lab` at `b68a5518…` |
+| `research_data/MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0/` | **RESEARCH INFRASTRUCTURE SNAPSHOT** | SPOT 1h identity `2ce1f504…`; not MARKET-03 scientifically bound; raw bytes gitignored |
+| `manifests/MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0.yaml` | **SNAPSHOT_MATERIALIZED_RESEARCH_INFRASTRUCTURE** | Planning/identity manifest; `research_authorized: false`; `market_03_scientifically_bound: false` |
+| `research_data/MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0/` | **DEDICATED FUNDING SNAPSHOT** | REST funding identity `d47b7b78…`; source SHA256 `e7885cd5…`; not B2-06; raw bytes gitignored |
+| `manifests/MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0.yaml` | **SNAPSHOT_MATERIALIZED_PRE_ARM** | Funding identity manifest; `research_authorized: false`; `market_03_arm_bound: false` |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.md` | **FROZEN_OUTCOME_BLIND payload** | Frozen MARKET-01 preregistration bytes; SHA256 `d82b60e1…`; internal materialization-unit status string left unchanged; freeze authority is the freeze document |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.json` | **FROZEN_OUTCOME_BLIND payload** | Frozen machine-readable twin; SHA256 `6885abaf…` |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_FREEZE.md` | **FROZEN_OUTCOME_BLIND / CURRENT FREEZE AUTHORITY** | Docs-only freeze of materialization `9c1a661c…` / tree `1928969e…`; SHA256 `e0e0da9e…`; not an ARM; not execution |
