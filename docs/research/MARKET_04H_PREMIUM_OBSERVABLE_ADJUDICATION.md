@@ -198,9 +198,9 @@ chosen by returns.
 
 ## 6. Frozen question family only
 
-Does Premium Index funding-pressure state add stable incremental
-information about future crowding-side adverse-path risk beyond
-price/trend/volatility state?
+Does Premium Index funding-pressure state add stable incremental information about future crowding-side adverse-path risk beyond price/trend/volatility state?
+
+This unit does not inspect future returns.
 
 ```text
 PRIMARY_OUTCOME_FAMILY = FUTURE_CROWDING_SIDE_ADVERSE_PATH_RISK
@@ -210,8 +210,8 @@ pnl_is_primary_outcome = false
 Horizon, adverse-path statistic, baseline specification, uncertainty
 method, and materiality remain for a later preregistration unit **if**
 the observable is later unblocked. This unit does not inspect future MAE,
-future returns, correlations, Premium Index buckets, horizons, yearly or
-regime performance, or any regression/bootstrap result.
+inspect future returns, calculate correlations, compare Premium Index
+buckets, search horizons, or run regressions.
 
 Same-support contract, if later unblocked:
 
