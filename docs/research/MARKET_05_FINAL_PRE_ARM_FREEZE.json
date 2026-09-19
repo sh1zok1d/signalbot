@@ -56,9 +56,9 @@
     "scripts/research/market05_cross_asset_lib.py": "84b55646b736272505079633572b239ded46a723658fc864e89c032a445e4cde",
     "scripts/research/market05_eth_execution_binding.py": "3b5d25bf37c7f7d000b52d1399cd00f48ebad2b2cb9018108aa867d56c4060af"
   },
-  "scientific_implementation_head": "0000000000000000000000000000000000000000",
-  "scientific_implementation_head_note": "Filled after the scientific repair commit. All-zero is a freeze-in-progress sentinel and must never authorize execution.",
-  "scientific_implementation_tree": "0000000000000000000000000000000000000000",
+  "scientific_implementation_head": "23d9d18a58f43307d14a2c9c1890636cd581cba3",
+  "scientific_implementation_head_note": "Scientific/authority source commit of this freeze. Later documentation-only commits are not this value.",
+  "scientific_implementation_tree": "957d41f4382ec3ef4d65ad93dfe68b58ff1e3237",
   "scientific_math_changed": false,
   "scientific_outcomes_inspected": false,
   "semantic_contract_sha256": "1591c0b8fd70a0e1dfb4f1cad8aa9c66786b691a6fff087db0b3d3d7821f994e",
