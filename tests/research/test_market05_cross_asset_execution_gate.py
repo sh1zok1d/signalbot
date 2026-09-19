@@ -6,7 +6,6 @@ or surface protected 2025/2026 values.
 
 from __future__ import annotations
 
-import io
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,6 +24,7 @@ from scripts.research.core_eth_binance_v0_acceptor_lib import (
 )
 from scripts.research.market05_cross_asset_authority import (
     ETH_INVENTORY_SHA256,
+    ETH_SNAPSHOT_ID,
     FROZEN_PREREG_JSON_SHA256,
     FROZEN_PREREG_MD_SHA256,
     MARKET_05_ARMED,
@@ -32,6 +32,7 @@ from scripts.research.market05_cross_asset_authority import (
     Market05ExecutionNotAuthorized,
     authenticate_frozen_prereg_bytes,
     inspect_market_05_authorization_state,
+    load_accepted_eth_snapshot_id,
     refuse_scientific_result_instantiation,
     refuse_unarmed_canonical_execution,
     require_execution_authorized_before_outcome_load,
@@ -151,6 +152,8 @@ def test_eth_inventory_identity_is_bound_and_eth_not_btc():
     b = snapshot_id_from_payload(payload)
     assert a == b
     assert len(a) == 64
+    assert load_accepted_eth_snapshot_id() == ETH_SNAPSHOT_ID
+    assert ETH_SNAPSHOT_ID == "4b9c113f659e1c1ca71498096dfdc2628a1016346aed40e19020efb64c85ad15"
 
 
 def test_eth_csv_member_reader_fixture_roundtrip(tmp_path: Path):

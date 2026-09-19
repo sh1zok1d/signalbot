@@ -295,14 +295,18 @@ MARKET-05 is now selected outcome-blind as
 ETH is context only. The companion feasibility unit
 `docs/research/MARKET_05_CROSS_ASSET_DATA_FEASIBILITY.md` is
 `MARKET_05_CANDIDATE_FROZEN_DATA_FEASIBLE`. `CORE_BTC_BINANCE_V0`
-remains the BTC authority. `CORE_ETH_BINANCE_V0` is
-source-inventory-bound and not accepted. MARKET-05 exact
-preregistration is now frozen outcome-blind in
-`docs/research/MARKET_05_CROSS_ASSET_PREREG.md`. Daily 00:00 UTC
-decisions, 24h lookback, 24h direction-aligned MAE, continuous
-`ETH_CONFIRMATION`. Next MARKET-05 step:
-`OUTCOME_BLIND_MARKET_05_IMPLEMENTATION`. Do not ARM, execute,
-or inspect scientific outcomes.
+remains the BTC authority. `CORE_ETH_BINANCE_V0` is now
+`ACCEPTED_FOR_DISCOVERY` as snapshot
+`4b9c113f659e1c1ca71498096dfdc2628a1016346aed40e19020efb64c85ad15`.
+MARKET-05 exact preregistration is frozen outcome-blind in
+`docs/research/MARKET_05_CROSS_ASSET_PREREG.md`. The evaluator
+implementation is frozen in
+`docs/research/MARKET_05_IMPLEMENTATION_FREEZE.md`
+(`IMPLEMENTATION_FROZEN = true`). Daily 00:00 UTC decisions, 24h
+lookback, 24h direction-aligned MAE, continuous `ETH_CONFIRMATION`.
+Next MARKET-05 step:
+`OUTCOME_BLIND_MARKET_05_IMPLEMENTATION_RED_TEAM_AUDIT`. Do not ARM,
+execute, or inspect scientific outcomes.
 
 Post-calibration operating priority:
 

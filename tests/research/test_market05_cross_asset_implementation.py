@@ -68,7 +68,7 @@ from scripts.research.market05_cross_asset_lib import (
     prefix_open_time,
     relative_mae_improvement,
     result_schema,
-    test_fold_name,
+    heldout_fold_name,
     training_mean_sd,
 )
 
@@ -350,10 +350,10 @@ def test_fold_boundaries_land_in_exactly_one_test_partition():
         names = [name for name, spec in FOLDS.items() if in_half_open(t_ms, spec["test"])]
         if expected is None:
             assert names == []
-            assert test_fold_name(t_ms) is None
+            assert heldout_fold_name(t_ms) is None
         else:
             assert names == [expected]
-            assert test_fold_name(t_ms) == expected
+            assert heldout_fold_name(t_ms) == expected
     assert in_half_open(_ms(2022, 1, 1), FOLDS["FOLD_1"]["train"]) is False
     assert in_half_open(_ms(2021, 12, 31), FOLDS["FOLD_1"]["train"]) is True
 
@@ -513,11 +513,11 @@ def test_no_near_pass_states_and_result_schema_not_instantiated():
 def _synthetic_dev_rows() -> list[EligibleRow]:
     rows = []
     dates = [
-        (2020, 1, 3), (2020, 6, 1), (2020, 12, 1),
-        (2021, 1, 1), (2021, 6, 1), (2021, 12, 1),
-        (2022, 1, 1), (2022, 6, 1), (2022, 12, 1),
-        (2023, 1, 1), (2023, 6, 1), (2023, 12, 1),
-        (2024, 1, 1), (2024, 6, 1), (2024, 12, 1), (2024, 12, 31),
+        (2020, 1, 3), (2020, 2, 1), (2020, 4, 1), (2020, 6, 1), (2020, 8, 1), (2020, 10, 1), (2020, 12, 1),
+        (2021, 1, 1), (2021, 3, 1), (2021, 5, 1), (2021, 7, 1), (2021, 9, 1), (2021, 11, 1),
+        (2022, 1, 1), (2022, 3, 1), (2022, 6, 1), (2022, 9, 1), (2022, 12, 1),
+        (2023, 1, 1), (2023, 3, 1), (2023, 6, 1), (2023, 9, 1), (2023, 12, 1),
+        (2024, 1, 1), (2024, 3, 1), (2024, 6, 1), (2024, 9, 1), (2024, 12, 1), (2024, 12, 31),
     ]
     for i, (y, m, d) in enumerate(dates):
         eth = -0.4 + 0.05 * i
@@ -525,10 +525,10 @@ def _synthetic_dev_rows() -> list[EligibleRow]:
             EligibleRow(
                 t_ms=_ms(y, m, d),
                 btc_side=1.0 if i % 2 == 0 else -1.0,
-                abs_z_btc=0.8 + 0.15 * i,
-                rv_btc_24h=0.01 + 0.002 * i,
+                abs_z_btc=0.4 + 0.21 * ((i * 3) % 7),
+                rv_btc_24h=0.008 + 0.0017 * ((i * 5) % 11),
                 eth_confirmation=eth,
-                y=0.05 + 0.01 * i - 0.04 * eth,
+                y=0.04 + 0.006 * i - 0.05 * eth + 0.004 * ((i * 3) % 7),
             )
         )
     return rows

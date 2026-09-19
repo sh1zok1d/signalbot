@@ -259,11 +259,13 @@ Purpose: same-exchange ETH companion for MARKET-05 cross-asset
 confirmation context. Not an independent ETH CORE program and not a
 second asset replication.
 
-Status on 2026-09-19: `SOURCE_INVENTORY_BOUND_NOT_MATERIALIZED_NOT_ACCEPTED`.
-Official Vision USD-M ETHUSDT 1m objects exist for the same CORE window
-`[2020-01-01T00:00:00Z, 2026-08-26T00:00:00Z)` (104/104 ZIP+CHECKSUM).
-Bar-end-exclusive availability matches `CORE_BTC_BINANCE_V0`. This does
-**not** redefine CORE BTC and is not discovery authorization.
+Status on 2026-09-19: `ACCEPTED_FOR_DISCOVERY` as snapshot
+`4b9c113f659e1c1ca71498096dfdc2628a1016346aed40e19020efb64c85ad15`.
+Official Vision USD-M ETHUSDT 1m objects cover the same CORE window
+`[2020-01-01T00:00:00Z, 2026-08-26T00:00:00Z)` (104/104 ZIP+CHECKSUM;
+3,497,760 1m rows; 0 gaps). Bar-end-exclusive availability matches
+`CORE_BTC_BINANCE_V0`. This does **not** redefine CORE BTC, does not
+ARM MARKET-05, and is not a scientific result.
 
 ### `CORE_BTC_BYBIT_REPLICATION_V0`
 

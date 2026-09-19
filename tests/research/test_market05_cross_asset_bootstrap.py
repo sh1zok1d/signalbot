@@ -108,10 +108,10 @@ def test_coefficient_bootstrap_refit_required_and_deterministic():
         EligibleRow(
             t_ms=1578009600000 + i * 86_400_000,
             btc_side=1.0 if i % 2 == 0 else -1.0,
-            abs_z_btc=0.5 + 0.2 * i,
-            rv_btc_24h=0.01 + 0.001 * i,
-            eth_confirmation=-0.3 + 0.1 * i,
-            y=0.08 - 0.02 * (-0.3 + 0.1 * i),
+            abs_z_btc=0.5 + 0.37 * ((i * 3) % 5),
+            rv_btc_24h=0.01 + 0.004 * ((i * 2) % 7),
+            eth_confirmation=-0.5 + 0.31 * ((i * 5) % 4),
+            y=0.08 + 0.01 * i - 0.03 * (-0.5 + 0.31 * ((i * 5) % 4)),
         )
         for i in range(8)
     ]

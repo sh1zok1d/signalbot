@@ -380,7 +380,7 @@ def in_half_open(t_ms: int, bounds: tuple[int, int]) -> bool:
     return lo <= int(t_ms) < hi
 
 
-def test_fold_name(t_ms: int) -> Optional[str]:
+def heldout_fold_name(t_ms: int) -> Optional[str]:
     for name, spec in FOLDS.items():
         if in_half_open(t_ms, spec["test"]):
             return name

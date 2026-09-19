@@ -1,26 +1,29 @@
 dataset_id: CORE_ETH_BINANCE_V0
 manifest_version: 0
-status: SOURCE_INVENTORY_BOUND_NOT_MATERIALIZED_NOT_ACCEPTED
-current_state: SOURCE_INVENTORY_BOUND_NOT_MATERIALIZED_NOT_ACCEPTED
-research_authorized: false
+status: ACCEPTED_FOR_DISCOVERY
+current_state: ACCEPTED_FOR_DISCOVERY
+research_authorized: true
 confirmatory_authorized: false
-accepted_for_discovery: false
+accepted_for_discovery: true
 created_at_utc: '2026-09-19T00:00:00Z'
+accepted_on_utc: '2026-09-19'
 contract_path: docs/CORE_BTC_BINANCE_V0_CONTRACT.md
 companion_of: CORE_BTC_BINANCE_V0
 does_not_redefine_core_btc_binance_v0: true
 source_inventory_path: docs/research_data/CORE_ETH_BINANCE_V0/SOURCE_INVENTORY.json
 source_inventory_sha256: 033a06428d5d2a56fcde23a8fe64ebe4d8afa2f57d5d3263e3d0b9c6db38e49e
-bound_by_unit: MARKET_05_CROSS_ASSET_DATA_FEASIBILITY
+snapshot_id: 4b9c113f659e1c1ca71498096dfdc2628a1016346aed40e19020efb64c85ad15
+bound_by_unit: MARKET_05_CROSS_ASSET_IMPLEMENTATION
+btc_companion_snapshot_id: 717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415
 
 purpose:
   class: CORE_LONG_HISTORY_COMPANION
   description: >-
-    Planned ETH companion to CORE_BTC_BINANCE_V0 for MARKET-05
-    cross-asset confirmation research. Same exchange, same instrument
-    class, same frozen range, same bar-end-exclusive availability.
-    Source inventory is bound; the dataset is not materialized and not
-    accepted for discovery.
+    ETH companion to CORE_BTC_BINANCE_V0 for MARKET-05 cross-asset
+    confirmation research. Same exchange, same instrument class, same
+    frozen range, same bar-end-exclusive availability. Accepted for
+    discovery identity only. This is not a MARKET-05 RESULT and does
+    not authorize scientific execution.
   not_an_edge_claim: true
   not_a_market_05_result: true
 
@@ -39,6 +42,8 @@ frozen_target_range:
   end_exclusive: '2026-08-26T00:00:00Z'
   timezone: UTC
   matches_core_btc_binance_v0: true
+  observed_first_open_time: '2020-01-01T00:00:00Z'
+  observed_last_open_time: '2026-08-25T23:59:00Z'
 
 availability_semantics:
   source_bar_duration_seconds: 60
@@ -67,9 +72,17 @@ object_inventory:
   missing_zip_objects: 0
   missing_checksum_objects: 0
   checksum_filename_mismatches: 0
-  full_continuity_audit_complete: false
-  accepted_1m_rows: null
+  full_continuity_audit_complete: true
+  accepted_1m_rows: 3497760
   expected_1m_rows_if_complete: 3497760
+  missing_1m_rows: 0
+  duplicate_1m_rows: 0
+
+acceptance_meaning:
+  ACCEPTED_FOR_DISCOVERY: >-
+    The snapshot is authorized as the ETH companion identity for
+    MARKET-05 implementation. It does not authorize ARM, scientific
+    execution, outcome inspection, or confirmatory research.
 
 excluded_sources_and_features:
   - open_interest
@@ -88,8 +101,11 @@ notes:
     This identity exists so MARKET-05 can name a same-exchange ETH
     companion without mutating CORE_BTC_BINANCE_V0.
   - >-
-    SOURCE_INVENTORY_BOUND is not ACCEPTED_FOR_DISCOVERY. Later
-    rematerialization must reuse CORE BTC semantics.
+    Snapshot identity hashes verified ZIP bytes plus timestamp coverage.
+    Price values are not retained in the snapshot payload.
+  - >-
+    Protected 2025/2026 timestamps were audited for coverage/order/duplicates
+    only. Scientific OHLC evaluation of those values was not performed.
   - >-
     2026-08 monthly ZIP exists on Vision but is outside the CORE cutoff
     and is not adopted.

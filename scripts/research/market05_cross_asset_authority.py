@@ -45,6 +45,7 @@ ETH_INVENTORY_SHA256 = (
 BTC_DATASET_ID = "CORE_BTC_BINANCE_V0"
 BTC_SNAPSHOT_ID = "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415"
 ETH_DATASET_ID = "CORE_ETH_BINANCE_V0"
+ETH_SNAPSHOT_ID = "4b9c113f659e1c1ca71498096dfdc2628a1016346aed40e19020efb64c85ad15"
 
 MARKET_05_ARMED = False
 MARKET_05_EXECUTION_AUTHORIZED = False
@@ -98,7 +99,7 @@ def load_accepted_eth_snapshot_id() -> str:
         if line.startswith("snapshot_id:"):
             snap = line.split(":", 1)[1].strip()
             break
-    if not snap or len(snap) != 64:
+    if not snap or snap != ETH_SNAPSHOT_ID:
         raise Market05AuthorityError("CORE_ETH_SNAPSHOT_ID_MISSING")
     inv = sha256_file(_path(ETH_INVENTORY_REL))
     if inv != ETH_INVENTORY_SHA256:
@@ -177,6 +178,8 @@ def refuse_bound_scientific_inputs(
         raise Market05ExecutionNotAuthorized("MARKET_05_BOUND_DATASET_REFUSED")
     if btc_snapshot_id == BTC_SNAPSHOT_ID:
         raise Market05ExecutionNotAuthorized("MARKET_05_BOUND_BTC_SNAPSHOT_REFUSED")
+    if eth_snapshot_id is not None and eth_snapshot_id == ETH_SNAPSHOT_ID:
+        raise Market05ExecutionNotAuthorized("MARKET_05_BOUND_ETH_SNAPSHOT_REFUSED")
     if eth_snapshot_id is not None:
         raise Market05ExecutionNotAuthorized("MARKET_05_BOUND_ETH_SNAPSHOT_REFUSED")
     if not origin_is_allowed_for_tests(origin):
