@@ -1,0 +1,56 @@
+dataset_id: MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0
+manifest_version: 1
+status: SNAPSHOT_MATERIALIZED_RESEARCH_INFRASTRUCTURE
+current_state: SNAPSHOT_MATERIALIZED_RESEARCH_INFRASTRUCTURE
+research_authorized: false
+confirmatory_authorized: false
+market_03_scientifically_bound: false
+snapshot_id: 2ce1f504709dc40c37a70dddcf73acb444e715820e9c855f6817c48f10d2b345
+snapshot_manifest_sha256: c4b6236c45e798aa4949ce255d91d9acfdc20833aa4ef4900e10d53e70219242
+object_ledger_sha256: 26184b845cd581170235ffbcf61c58f9a5c4e7d687801e28862e757323db8cc3
+quality_report_sha256: 0532f2f8f27ce194890a869e167fd25014bdec28aa7be7011b15e7e50ec71bfc
+funding_compatibility_sha256: 3c7a40b85735403dced0d7ee95dcfdd239cf611262e92878c9ce2435972e4384
+canonical_klines_sha256: e560bebb6ba9d070ee0fa58aaa5cf922caaa24d4b7e2b4eac8c7c0041c9495d4
+durability_status: IDENTITY_PROVEN_AT_MATERIALIZATION_RAW_BYTES_NOT_GIT_RETAINED
+provenance_git_commit_sha: dab57bf947c5e07f0427ffb2f6032c9d540e9557
+created_at_utc: '2026-09-18T00:00:00Z'
+evidence_dir: docs/research_data/MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0
+acquisition_report: docs/research/MARKET_03_DATA_ACQUISITION.md
+
+purpose:
+  class: RESEARCH_INFRASTRUCTURE_SPOT_KLINES
+  description: >-
+    Official Binance SPOT BTCUSDT native 1h kline snapshot for reusable
+    research infrastructure, including MARKET-03 data-gap closure.
+    Not a MARKET-03 prereg bind, not an edge claim, not CORE.
+  not_an_edge_claim: true
+  not_a_market_03_result: true
+
+source:
+  provider: Binance
+  venue: Binance
+  evidence_tier: OFFICIAL_ARCHIVE
+  archive_root: https://data.binance.vision/data/spot/monthly/klines
+  market_type: SPOT
+  instrument: BTCUSDT
+  data_type: klines
+  native_interval: 1h
+  documented_api_origin: /api/v3/klines
+
+excluded:
+  - USD_M_PERPETUAL
+  - COIN_M_PERPETUAL
+  - CORE_BTC_BINANCE_V0
+  - aggregated_external_price_feeds
+  - other_exchanges
+  - silent_gap_fill
+  - 2025_2026_protected_oos
+
+coverage:
+  start_inclusive: '2019-08-01T00:00:00Z'
+  end_exclusive: '2025-01-01T00:00:00Z'
+  accepted_rows: 47477
+  expected_native_hours: 47520
+  gaps: 43
+  duplicates: 0
+  source_months_verified: 65

@@ -1,0 +1,126 @@
+{
+  "anomalies": [
+    {
+      "class": "FUNDINGTIME_MILLISECOND_RESIDUAL",
+      "count": 2438,
+      "max_ms": 47,
+      "min_ms": 1,
+      "note": "Raw fundingTime milliseconds after the UTC hour are preserved. They are not rounded and are not treated as proven publication latency.",
+      "policy": "PRESERVE_RAW_FUNDINGTIME_DO_NOT_ROUND_TO_HOUR",
+      "repaired": false
+    }
+  ],
+  "anomalies_repaired": false,
+  "b2_06_used_as_authority": false,
+  "canonical_bytes": 442988,
+  "canonical_funding_sha256": "e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb",
+  "chronological_non_decreasing": true,
+  "chronological_strictly_increasing": true,
+  "conflicting_duplicate_fundingTime_count": 0,
+  "conflicting_duplicate_fundingTime_ms": [],
+  "dataset_id": "MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0",
+  "duplicate_fundingTime_count": 0,
+  "duplicate_fundingTime_ms": [],
+  "duplicate_policy": "ENUMERATE_DO_NOT_KEEP_FIRST_OR_LAST_OR_REPAIR",
+  "eight_hour_hour_floor_expected_count": 5819,
+  "eight_hour_hour_floor_observed_count": 5819,
+  "exact_8h_adjacent_count": 2465,
+  "exact_duplicate_row_count": 0,
+  "fidelity": {
+    "fundingRate_decimal_identical_count": 5819,
+    "fundingRate_string_identical_count": 5819,
+    "fundingTime_identical_count": 5819,
+    "mismatch_count": 0,
+    "mismatches": [],
+    "row_count": 5819,
+    "scientifically_relevant_values_unaltered": true,
+    "source_line_byte_identical_count": 5819
+  },
+  "finite_fundingRate_count": 5819,
+  "first_fundingTime_ms": 1568102400000,
+  "first_fundingTime_utc": "2019-09-10T08:00:00Z",
+  "fundingtime_not_legal_available_at": true,
+  "gap_policy": "ENUMERATE_MISSING_8H_HOUR_FLOOR_EVENTS_DO_NOT_SYNTHESIZE",
+  "hour_residual_max_ms": 47,
+  "hour_residual_min_ms": 1,
+  "hours_from_first_observation_to_evaluation_start": 496.0,
+  "interval_distribution_head": [
+    {
+      "count": 2465,
+      "delta_ms": 28800000
+    },
+    {
+      "count": 443,
+      "delta_ms": 28800001
+    },
+    {
+      "count": 422,
+      "delta_ms": 28799999
+    },
+    {
+      "count": 140,
+      "delta_ms": 28799998
+    },
+    {
+      "count": 126,
+      "delta_ms": 28800004
+    },
+    {
+      "count": 122,
+      "delta_ms": 28800003
+    },
+    {
+      "count": 122,
+      "delta_ms": 28800002
+    },
+    {
+      "count": 118,
+      "delta_ms": 28800005
+    },
+    {
+      "count": 117,
+      "delta_ms": 28799996
+    },
+    {
+      "count": 113,
+      "delta_ms": 28799997
+    },
+    {
+      "count": 107,
+      "delta_ms": 28800006
+    },
+    {
+      "count": 104,
+      "delta_ms": 28799995
+    }
+  ],
+  "interval_unique_count": 70,
+  "last_fundingTime_ms": 1735660800000,
+  "last_fundingTime_utc": "2024-12-31T16:00:00Z",
+  "missing_expected_8h_hour_floor_count": 0,
+  "missing_expected_8h_hour_floor_utc_head": [],
+  "ms_residual_policy": "PRESERVE_RAW_FUNDINGTIME_DO_NOT_ROUND_TO_HOUR",
+  "non_finite_rate_count": 0,
+  "nonzero_hour_residual_count": 2438,
+  "protected_oos_row_count": 0,
+  "protected_oos_used_for_science": false,
+  "publication_latency_not_upgraded": true,
+  "reproduction_fundingtime_assumption": "ACCEPTABLE",
+  "reproduction_fundingtime_assumption_meaning": "A funding observation is treated as historically available at its Binance fundingTime because that matches the pinned external EmaCrossFunding implementation. This LEVEL_2 reproduction assumption is ACCEPTABLE. It does not prove publication latency, does not set legal_available_at, and does not solve the B2-06 publication-timing blocker.",
+  "row_count": 5819,
+  "rows_before_evaluation_start": 62,
+  "rows_on_or_after_evaluation_start": 5757,
+  "schema_ok": true,
+  "snapshot_id": "d47b7b78b6e7dbb842c7d9eb122c81063e0b804e179a53dd87723f9a8a8adc68",
+  "source_bytes": 442988,
+  "strategy_quantities_computed": false,
+  "strict_historical_publication_latency": "UNPROVEN",
+  "symbol_identity_ok": true,
+  "unexpected_hour_floor_count": 0,
+  "utc_hour_counts": {
+    "0": 1939,
+    "16": 1940,
+    "8": 1940
+  },
+  "valid_fundingTime_count": 5819
+}

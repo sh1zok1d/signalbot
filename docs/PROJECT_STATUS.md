@@ -1,6 +1,6 @@
 # Signalbot — Current Project Status
 
-**Status date:** 2026-09-17
+**Status date:** 2026-09-18
 **Operating mode:** `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN`
 **Active research phase:** `MARKET`
 
@@ -234,6 +234,34 @@ RESULT authority:
 Post-close episode-construction throughput work is research
 infrastructure only (`docs/research/MARKET_01_EPISODE_CONSTRUCTION_PERF.md`);
 it does not reopen MARKET-01 or change the sealed RESULT.
+
+`MARKET-03_PUBLIC_STRATEGY_REPLICATION` **preregistration is frozen**.
+Materialization HEAD `06d6ec0121a9a35f8ee947fbe89e37e97388b6e2` /
+tree `50bc810eb127ea7aea1843ef2ede0dd4fe8905d1`. Prereg SHA256
+`044bb2a6…` / `3f35f9a1…`. Ceiling
+**`LEVEL_2_FAITHFUL_REIMPLEMENTATION`**. Evaluation truncated to
+`[2019-10-01T00:00:00Z, 2025-01-01T00:00:00Z)`. Dedicated funding
+snapshot is materialized (`FUNDING_SNAPSHOT_READY = YES`):
+`MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0` /
+`d47b7b78b6e7dbb842c7d9eb122c81063e0b804e179a53dd87723f9a8a8adc68`
+from REST JSONL `e7885cd5…`. Implementation is **frozen**
+(`IMPLEMENTATION_FROZEN = YES`) at reviewed HEAD `03411aaa…` /
+tree `87a1da25…` after targeted re-review
+`READY_FOR_IMPLEMENTATION_FREEZE`. MARKET-03 is **ARMED**
+(`MARKET_03_ARMED = YES`) with a single unused canonical reservation
+(`CANONICAL_EXECUTIONS_AUTHORIZED = 1`,
+`CANONICAL_EXECUTIONS_CONSUMED = 0`, `RUN_IDENTITY` `f68b6de7…`).
+This ARM is not execution or RESULT. Frozen scientific bytes were not
+mutated to flip lifecycle flags. Do not substitute CORE perpetual
+prices. Do not consume B2-06 as MARKET-03 funding authority.
+Do not inspect Signalbot 2025/2026 OOS. Prereg freeze authority:
+`docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG_FREEZE.md`. Payload:
+`docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG.md`. Funding snapshot:
+`docs/research/MARKET_03_FUNDING_SNAPSHOT.md`. Implementation freeze
+authority:
+`docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_FREEZE.md`.
+ARM authority:
+`docs/research/MARKET_03_PUBLIC_STRATEGY_ARM.md`.
 
 Post-calibration operating priority:
 
