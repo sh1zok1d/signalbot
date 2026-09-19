@@ -3600,3 +3600,24 @@ MARKET_04_NEXT_STEP = BLOCKED_OBSERVABLE_OR_NEW_CANDIDATE_SELECTION
 ```
 
 Evidence: `docs/research/MARKET_04_FUNDING_AVAILABILITY_AUDIT.md`.
+
+## 2026-09-19 — MARKET-04H Premium Index observable blocked
+
+Outcome-blind child adjudication from audit HEAD `6e58882…` / tree
+`714cd0b…`. Parent candidate files were not rewritten. No outcomes, ARM,
+evaluator, or preregistration. Settled funding is not claimed.
+
+```text
+RESEARCH_ID = MARKET-04H_PREMIUM_INDEX_ADVERSE_PATH_RISK
+LINEAGE_KIND = OUTCOME_BLIND_OBSERVABLE_SUBSTITUTION_AFTER_TEMPORAL_FEASIBILITY_FAILURE
+observable_semantic_role = FUNDING_PRESSURE_PROXY
+settled_funding_claimed = false
+archive_day_timezone = UNRESOLVED
+safe_usable_at_proven = false
+relevant_files_revision_status = REVISION_STATUS_UNRESOLVED
+historical_coverage_usable = false
+execution_authorized = false
+NEXT_UNIT = BLOCKED_OBSERVABLE_OR_NEW_CANDIDATE_SELECTION
+```
+
+Evidence: `docs/research/MARKET_04H_PREMIUM_OBSERVABLE_ADJUDICATION.md`.

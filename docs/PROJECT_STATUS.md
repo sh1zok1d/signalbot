@@ -279,6 +279,12 @@ funding-availability audit in
 `legal_available_at` remains unset. MARKET-04 is `BLOCKED_OBSERVABLE`.
 Next step:
 `BLOCKED_OBSERVABLE_OR_NEW_CANDIDATE_SELECTION`.
+The historical child `MARKET-04H_PREMIUM_INDEX_ADVERSE_PATH_RISK` was
+adjudicated outcome-blind in
+`docs/research/MARKET_04H_PREMIUM_OBSERVABLE_ADJUDICATION.md` and is
+`MARKET_04H_PREMIUM_OBSERVABLE_BLOCKED`. Archive-day timezone and
+retrospective Vision byte identity remain unresolved. Do not adopt
+`close_time` or `D+2` as `legal_available_at`.
 
 Post-calibration operating priority:
 
