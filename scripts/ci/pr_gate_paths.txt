@@ -5,6 +5,9 @@
 
 # Compile/import sanity is enforced by scripts/ci/pr_gate.py (compileall).
 
+# MARKET-03 implementation (synthetic / fail-closed; not execution)
+tests/research/test_market_03_public_strategy_implementation.py
+
 # MARKET-01 lifecycle / RESULT immutability / episode-construction equivalence
 tests/research/test_market_01_arm.py
 tests/research/test_market_01_canonical_result.py

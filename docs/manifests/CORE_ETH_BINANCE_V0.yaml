@@ -1,0 +1,111 @@
+dataset_id: CORE_ETH_BINANCE_V0
+manifest_version: 0
+status: ACCEPTED_FOR_DISCOVERY
+current_state: ACCEPTED_FOR_DISCOVERY
+research_authorized: true
+confirmatory_authorized: false
+accepted_for_discovery: true
+created_at_utc: '2026-09-19T00:00:00Z'
+accepted_on_utc: '2026-09-19'
+contract_path: docs/CORE_BTC_BINANCE_V0_CONTRACT.md
+companion_of: CORE_BTC_BINANCE_V0
+does_not_redefine_core_btc_binance_v0: true
+source_inventory_path: docs/research_data/CORE_ETH_BINANCE_V0/SOURCE_INVENTORY.json
+source_inventory_sha256: 033a06428d5d2a56fcde23a8fe64ebe4d8afa2f57d5d3263e3d0b9c6db38e49e
+snapshot_id: 4b9c113f659e1c1ca71498096dfdc2628a1016346aed40e19020efb64c85ad15
+bound_by_unit: MARKET_05_CROSS_ASSET_IMPLEMENTATION
+btc_companion_snapshot_id: 717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415
+
+purpose:
+  class: CORE_LONG_HISTORY_COMPANION
+  description: >-
+    ETH companion to CORE_BTC_BINANCE_V0 for MARKET-05 cross-asset
+    confirmation research. Same exchange, same instrument class, same
+    frozen range, same bar-end-exclusive availability. Accepted for
+    discovery identity only. This is not a MARKET-05 RESULT and does
+    not authorize scientific execution.
+  not_an_edge_claim: true
+  not_a_market_05_result: true
+
+source:
+  provider: Binance
+  evidence_tier: OFFICIAL_ARCHIVE
+  archive_root: https://data.binance.vision/data/futures/um
+  market_type: USD_M_FUTURES
+  instrument: ETHUSDT
+  data_type: klines
+  native_interval: 1m
+  documented_api_origin: /fapi/v1/klines
+
+frozen_target_range:
+  start_inclusive: '2020-01-01T00:00:00Z'
+  end_exclusive: '2026-08-26T00:00:00Z'
+  timezone: UTC
+  matches_core_btc_binance_v0: true
+  observed_first_open_time: '2020-01-01T00:00:00Z'
+  observed_last_open_time: '2026-08-25T23:59:00Z'
+
+availability_semantics:
+  source_bar_duration_seconds: 60
+  canonical_available_at: bar_end_exclusive
+  eligibility_rule: bar_end_exclusive <= decision_time
+  close_time_is_not_available_at: true
+  archive_is_live_equivalent: false
+  evidence_semantics: HISTORICAL_COMPARABLE
+
+acquisition_policy:
+  completed_months_prefer_monthly_archive: true
+  incomplete_month_use_daily_archive: true
+  intended_initial_monthly_range:
+    start_month: '2020-01'
+    end_month: '2026-07'
+  intended_initial_daily_range:
+    start_date: '2026-08-01'
+    end_date: '2026-08-25'
+  require_source_checksum: true
+  overwrite_frozen_raw_files: false
+
+object_inventory:
+  expected_objects: 104
+  listed_zip_objects: 104
+  listed_checksum_objects: 104
+  missing_zip_objects: 0
+  missing_checksum_objects: 0
+  checksum_filename_mismatches: 0
+  full_continuity_audit_complete: true
+  accepted_1m_rows: 3497760
+  expected_1m_rows_if_complete: 3497760
+  missing_1m_rows: 0
+  duplicate_1m_rows: 0
+
+acceptance_meaning:
+  ACCEPTED_FOR_DISCOVERY: >-
+    The snapshot is authorized as the ETH companion identity for
+    MARKET-05 implementation. It does not authorize ARM, scientific
+    execution, outcome inspection, or confirmatory research.
+
+excluded_sources_and_features:
+  - open_interest
+  - funding
+  - liquidations
+  - order_book
+  - spot_market
+  - bybit
+  - okx
+  - btc_binance_plus_eth_other_exchange
+  - btc_perp_plus_eth_spot
+  - silent_redefinition_of_CORE_BTC_BINANCE_V0
+
+notes:
+  - >-
+    This identity exists so MARKET-05 can name a same-exchange ETH
+    companion without mutating CORE_BTC_BINANCE_V0.
+  - >-
+    Snapshot identity hashes verified ZIP bytes plus timestamp coverage.
+    Price values are not retained in the snapshot payload.
+  - >-
+    Protected 2025/2026 timestamps were audited for coverage/order/duplicates
+    only. Scientific OHLC evaluation of those values was not performed.
+  - >-
+    2026-08 monthly ZIP exists on Vision but is outside the CORE cutoff
+    and is not adopted.

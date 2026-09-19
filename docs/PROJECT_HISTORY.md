@@ -331,3 +331,23 @@ crypto-market hypothesis through the existing research process. That
 unit is named, not executed, by this closeout. B2-06 remains blocked on
 its missing-observable / funding publication-latency record and is not
 silently unblocked by MARKET becoming active.
+
+---
+
+## 13. MARKET-05 final pre-ARM production repair (2026-09-19)
+
+MARKET-05 was selected, preregistered, and implementation-frozen
+outcome-blind as `MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK`.
+An independent read-only red-team of that freeze at `da66716…` /
+tree `69d03914…` returned `MARKET_05_DO_NOT_ARM`: the one-shot could
+evaluate twice, consume after RESULT (deadlock), drop RESULT evidence,
+load close-only bars, leave ETH parquet unbound, glob a partial BTC
+set, and honor git replace / PATH ambiguity.
+
+The repair does not change preregistered mathematics. It makes the
+frozen experiment executable once: structural preflight, atomic
+`O_EXCL` claim as consumption, then science; ETH execution bytes bound
+to accepted ZIP SHA256s; exact 2020-01..2024-12 BTC objects; RESULT
+schema 1.2.0. The project remains unarmed. Next unit is independent
+final pre-ARM red-team, not ARM.
+

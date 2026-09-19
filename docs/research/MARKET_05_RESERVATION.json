@@ -1,0 +1,9 @@
+{
+  "CANONICAL_EXECUTIONS_AUTHORIZED": 1,
+  "CANONICAL_EXECUTIONS_CONSUMED": 0,
+  "MARKET_05_EXECUTED": false,
+  "protected_oos_authorized": false,
+  "rerun_preauthorized": false,
+  "research_id": "MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK",
+  "run_identity": "6957613de4b035d850fc97edb833565c5fd3d7b085aa158e0992b88142190635"
+}
