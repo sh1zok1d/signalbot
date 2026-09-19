@@ -40,8 +40,10 @@ remain blocked-observable and are not scientific failures.
 MARKET-05 candidate identity is selected outcome-blind as
 `MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK` and is not
 preregistered, armed, or execution-authorized. BTC/ETH same-exchange
-data feasibility is `MARKET_05_CANDIDATE_FROZEN_DATA_FEASIBLE`. Next
-MARKET-05 step: `OUTCOME_BLIND_MARKET_05_EXACT_PREREGISTRATION`. Do not
+data feasibility is `MARKET_05_CANDIDATE_FROZEN_DATA_FEASIBLE`. Exact
+MARKET-05 preregistration is frozen outcome-blind
+(`FULL_PREREGISTRATION_FROZEN = true`). Next MARKET-05 step:
+`OUTCOME_BLIND_MARKET_05_IMPLEMENTATION`. Do not
 invent publication latency, do not treat `close_time` as publication
 time, and do not inspect MARKET-05 scientific outcomes.
 Do not create new infrastructure merely because MARKET is beginning. Operating

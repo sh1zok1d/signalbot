@@ -1,0 +1,209 @@
+{
+  "schema": "signalbot_market_05_cross_asset_prereg",
+  "schema_version": "1.0.0",
+  "unit_id": "MARKET_05_CROSS_ASSET_PREREG",
+  "status": "PREREGISTERED_OUTCOME_BLIND",
+  "date": "2026-09-19",
+  "research_id": "MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK",
+  "short_name": "MARKET-05",
+  "mechanism_family": "F7_CROSS_ASSET_MARKET_CONTEXT",
+  "target_market": "BTCUSDT",
+  "context_market": "ETHUSDT",
+  "primary_role": "MARKET_BREADTH_CONFIRMATION_STATE",
+  "simple_direction_predictor": false,
+  "eth_is_independent_replication": false,
+  "one_btc_experiment": true,
+  "lineage_kind": "NEW_MECHANISM_SELECTED_FROM_PROGRAM_LEVEL_INFORMATION_GAP",
+  "parent_scientific_unit": null,
+  "market_01_02_rescue": false,
+  "market_03_replication": false,
+  "market_04_rescue": false,
+  "full_preregistration_frozen": true,
+  "implementation_frozen": false,
+  "armed": false,
+  "execution_authorized": false,
+  "scientific_outcomes_inspected": false,
+  "protected_oos_touched": false,
+  "MARKET_05_TEST_CALIBRATED": "NO",
+  "primary_claim": "Conditional on BTC's own recent directional displacement and volatility state, stronger contemporaneous ETH confirmation of BTC's direction predicts LOWER subsequent BTC adverse excursion against that direction.",
+  "explicitly_not": [
+    "ETH predicts BTC direction",
+    "ETH leads BTC",
+    "BTC/ETH correlation is profitable",
+    "cross-asset confirmation causes continuation",
+    "a pair trade",
+    "a PnL claim"
+  ],
+  "data": {
+    "btc_dataset": "CORE_BTC_BINANCE_V0",
+    "eth_dataset": "CORE_ETH_BINANCE_V0",
+    "btc_snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+    "eth_status": "SOURCE_INVENTORY_BOUND_NOT_MATERIALIZED_NOT_ACCEPTED",
+    "common_coverage": "[2020-01-01T00:00:00Z, 2026-08-26T00:00:00Z)",
+    "bar_availability": "bar_end_exclusive",
+    "core_btc_redefined": false,
+    "mixed_venue_or_instrument_class": false
+  },
+  "development_window": "[2020-01-01T00:00:00Z, 2025-01-01T00:00:00Z)",
+  "protected_oos": "[2025-01-01T00:00:00Z, onward)",
+  "decision_grid": {
+    "decision_time": "00:00:00 UTC",
+    "decision_frequency": "DAILY",
+    "intraday_decision_grid": false,
+    "alternative_utc_hour_forbidden_after_execution": true
+  },
+  "feature_lookback": "24 hours",
+  "outcome_horizon": "24 hours",
+  "first_usable_decision_time": "2020-01-03T00:00:00Z",
+  "last_usable_decision_time": "2024-12-31T00:00:00Z",
+  "price_convention": {
+    "P_A_U": "close of the final asset-A 1m bar whose bar_end_exclusive = U",
+    "no_bar_beginning_at_T_in_features": true,
+    "future_outcome_window": "[T, T+24h)"
+  },
+  "btc_displacement": {
+    "R_BTC_24H": "ln(P_BTC_T / P_BTC_T_MINUS_24H)",
+    "BTC_SIDE": "sign(R_BTC_24H)",
+    "BTC_DISPLACEMENT_MAG": "abs(R_BTC_24H)",
+    "exact_zero_exclusion_only": true,
+    "epsilon_threshold_permitted": false,
+    "minimum_move_threshold_permitted": false
+  },
+  "eth_displacement": {
+    "R_ETH_24H": "ln(P_ETH_T / P_ETH_T_MINUS_24H)"
+  },
+  "realized_volatility": {
+    "formula": "sqrt(sum(r_A_1m^2))",
+    "window": "[T - 24h, T)",
+    "annualization": false,
+    "alternative_estimator_allowed": false
+  },
+  "normalization": {
+    "Z_BTC": "R_BTC_24H / RV_BTC_24H",
+    "Z_ETH": "R_ETH_24H / RV_ETH_24H",
+    "clipping": false,
+    "winsorization": false,
+    "percentile_transform": false,
+    "rolling_z_score": false,
+    "rank_transform": false
+  },
+  "eth_confirmation": {
+    "formula": "BTC_SIDE * Z_ETH",
+    "family": "ETH_CONFIRMATION_STATE",
+    "continuous_feature_required": true,
+    "threshold_search_allowed": false,
+    "bucket_defines_primary_test": false
+  },
+  "primary_outcome": {
+    "name": "BTC_DIRECTION_ALIGNED_MAE_24H",
+    "horizon": "24 hours",
+    "window": "[T, T+24h)",
+    "y_nonnegative": true,
+    "final_return_substitution": false,
+    "mfe_pnl_substitution": false
+  },
+  "baseline_model": "Y ~ BTC_SIDE + ABS_Z_BTC + RV_BTC_24H",
+  "candidate_model": "Y ~ BTC_SIDE + ABS_Z_BTC + RV_BTC_24H + ETH_CONFIRMATION",
+  "baseline_regressors": ["INTERCEPT", "BTC_SIDE", "ABS_Z_BTC", "RV_BTC_24H"],
+  "candidate_adds_only": "ETH_CONFIRMATION",
+  "interaction_terms": false,
+  "polynomial_terms": false,
+  "eth_volatility_as_separate_candidate_regressor": false,
+  "eth_return_as_separate_candidate_regressor": false,
+  "feature_selection": false,
+  "funding_oi_taker_contamination": false,
+  "ml_forbidden": true,
+  "regularization": false,
+  "hyperparameter_tuning": false,
+  "model_class": "ORDINARY_LEAST_SQUARES_LINEAR_REGRESSION",
+  "prediction_clipping": false,
+  "same_support_required": true,
+  "standardization": {
+    "learned_from": "training partition of each fold only",
+    "formula": "(x - training_mean) / training_sd",
+    "btc_side_standardized": false,
+    "intercept_standardized": false,
+    "continuous_features": ["ABS_Z_BTC", "RV_BTC_24H", "ETH_CONFIRMATION"],
+    "zero_training_sd_fail_closed": true,
+    "full_period_normalization_before_chronological_evaluation": false
+  },
+  "folds": {
+    "FOLD_1": {
+      "train": "[2020-01-03T00:00:00Z, 2022-01-01T00:00:00Z)",
+      "test": "[2022-01-01T00:00:00Z, 2023-01-01T00:00:00Z)",
+      "test_year": 2022
+    },
+    "FOLD_2": {
+      "train": "[2020-01-03T00:00:00Z, 2023-01-01T00:00:00Z)",
+      "test": "[2023-01-01T00:00:00Z, 2024-01-01T00:00:00Z)",
+      "test_year": 2023
+    },
+    "FOLD_3": {
+      "train": "[2020-01-03T00:00:00Z, 2024-01-01T00:00:00Z)",
+      "test": "[2024-01-01T00:00:00Z, 2025-01-01T00:00:00Z)",
+      "test_year": 2024
+    },
+    "heldout_years": [2022, 2023, 2024],
+    "random_split": false,
+    "years_2020_2021_never_heldout_evidence": true
+  },
+  "primary_metric": "RELATIVE_MAE_IMPROVEMENT",
+  "relative_mae_improvement": "1 - (POOLED_MAE_CANDIDATE / POOLED_MAE_BASELINE)",
+  "materiality_threshold": 0.02,
+  "materiality_is_not_trading_profitability": true,
+  "expected_beta_sign": "negative",
+  "beta_gate": "BETA_ETH_CONFIRMATION < 0",
+  "bootstrap": {
+    "unit": "UTC calendar day rows",
+    "block_length": 14,
+    "replicates": 5000,
+    "random_seed": 2026091905,
+    "kind": "CIRCULAR_MOVING_BLOCK",
+    "predictive_refit": false,
+    "coefficient_refit_on_development_blocks": true,
+    "method_chosen_before_results": true
+  },
+  "gates": {
+    "GATE_1_DIRECTION": "full-development BETA_ETH_CONFIRMATION < 0",
+    "GATE_2_DIRECTION_UNCERTAINTY": "95% block-bootstrap upper confidence bound for BETA_ETH_CONFIRMATION < 0",
+    "GATE_3_PREDICTIVE_SIGN": "RELATIVE_MAE_IMPROVEMENT > 0",
+    "GATE_4_PREDICTIVE_UNCERTAINTY": "95% block-bootstrap lower confidence bound for RELATIVE_MAE_IMPROVEMENT > 0",
+    "GATE_5_MATERIALITY": "RELATIVE_MAE_IMPROVEMENT >= 0.02",
+    "TEMPORAL_STABILITY_GATE": "at least 2 of 3 test years YEAR_RELATIVE_MAE_IMPROVEMENT > 0 AND no held-out year YEAR_RELATIVE_MAE_IMPROVEMENT <= -0.02"
+  },
+  "parameter_robustness_grid": false,
+  "promotion_classification": "MARKET_05_PROMOTED_HISTORICAL_CANDIDATE",
+  "fail_classification": "MARKET_05_NO_EVIDENCE",
+  "integrity_fail_classification": "MARKET_05_INCOMPLETE_EXECUTION",
+  "forbidden_promotion_states": ["NEAR_PASS", "MIXED", "PROMISING", "PARTIAL_PASS"],
+  "identifiability": {
+    "eth_confirmation_is_not_restated_btc_displacement": true,
+    "collinear_or_rank_deficient_fold": "MARKET_05_INCOMPLETE_EXECUTION"
+  },
+  "lifecycle": {
+    "full_preregistration_frozen": true,
+    "implementation_frozen": false,
+    "armed": false,
+    "execution_authorized": false,
+    "scientific_outcomes_inspected": false,
+    "protected_oos_touched": false,
+    "result_created": false,
+    "arm_created": false,
+    "evaluator_implemented": false
+  },
+  "next_unit": "OUTCOME_BLIND_MARKET_05_IMPLEMENTATION",
+  "pre_prereg_head": "c44fb1503f9c5472b1452d56ea1fd5c372338176",
+  "pre_prereg_tree": "0f3a96e1b6ee0265c2a80da62488f2da5e1174ee",
+  "bound_candidate": {
+    "path_md": "docs/research/MARKET_05_CROSS_ASSET_CANDIDATE.md",
+    "path_json": "docs/research/MARKET_05_CROSS_ASSET_CANDIDATE.json",
+    "md_sha256": "f5017796af3e98abe15c87b6a15df9f51db2d649eba82300da8c60ac837f5958",
+    "json_sha256": "e601069214284f30700b5c3f3b9391c3f4382762a5b08153a695bb68f09a81bb"
+  },
+  "bound_feasibility": {
+    "path_md": "docs/research/MARKET_05_CROSS_ASSET_DATA_FEASIBILITY.md",
+    "path_json": "docs/research/MARKET_05_CROSS_ASSET_DATA_FEASIBILITY.json",
+    "md_sha256": "fa09bdaaa4562da94cee4035f30033325b766934934f0093a39e96bc46f02aeb",
+    "json_sha256": "40092057179bdd3d1b78ebf0a01812f42be31bba4e2e2e4b2e90819594eb9a2c"
+  }
+}

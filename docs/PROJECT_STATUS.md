@@ -296,8 +296,12 @@ ETH is context only. The companion feasibility unit
 `docs/research/MARKET_05_CROSS_ASSET_DATA_FEASIBILITY.md` is
 `MARKET_05_CANDIDATE_FROZEN_DATA_FEASIBLE`. `CORE_BTC_BINANCE_V0`
 remains the BTC authority. `CORE_ETH_BINANCE_V0` is
-source-inventory-bound and not accepted. Next MARKET-05 step:
-`OUTCOME_BLIND_MARKET_05_EXACT_PREREGISTRATION`. Do not ARM, execute,
+source-inventory-bound and not accepted. MARKET-05 exact
+preregistration is now frozen outcome-blind in
+`docs/research/MARKET_05_CROSS_ASSET_PREREG.md`. Daily 00:00 UTC
+decisions, 24h lookback, 24h direction-aligned MAE, continuous
+`ETH_CONFIRMATION`. Next MARKET-05 step:
+`OUTCOME_BLIND_MARKET_05_IMPLEMENTATION`. Do not ARM, execute,
 or inspect scientific outcomes.
 
 Post-calibration operating priority:
