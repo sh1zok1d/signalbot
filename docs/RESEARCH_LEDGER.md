@@ -3468,3 +3468,38 @@ Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_FREEZE.md`.
 - funding_snapshot_changed: **false**
 
 - next required step: `MARKET_03_ARM_IF_AUTHORIZED` (not execution)
+
+## 2026-09-19 — MARKET-03 ARM (not execution, not RESULT)
+
+One-shot unused ARM of the frozen MARKET-03 identity. Lifecycle
+authority lives outside frozen scientific bytes. Reservation remains
+`authorized=1` / `consumed=0`. Bound spot/funding rows were not loaded
+into strategy logic.
+
+```text
+PRE_ARM_HEAD = 60c3e3054cd35652d0a4276349ad418967241cc0
+PRE_ARM_TREE = c51d068f3bbd0560ee4bc40c3fcb8b96eb7a43a1
+FROZEN_IMPLEMENTATION_HEAD = 03411aaa1a2f938169f07f8f3576f17227a2b14b
+FROZEN_IMPLEMENTATION_TREE = 87a1da250a56343c44625e3f5187a6877035d1da
+RUN_IDENTITY = f68b6de7d6c127f67908c48bf4be73cf986ea5d9daf9257bdae07f9ac626f397
+ARM_MD_SHA256   = ab268bfd1b5669ba33f700b540a15a91aedfb3bfc503ae7e9cd62e89b9f5970e
+ARM_JSON_SHA256 = 7c801cdc713d2b2a58c35f4b28a1cd8b6d464b7e06dace1c374ed46ef6a3075c
+CANONICAL_EXECUTIONS_AUTHORIZED = 1
+CANONICAL_EXECUTIONS_CONSUMED   = 0
+```
+
+Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_ARM.md`.
+
+- implementation_frozen: **true**
+- market_03_armed: **true**
+- market_03_executed: **false**
+- market_03_outcome_inspected: **false**
+- market_03_parameter_search: **false**
+- canonical_executions_authorized: **1**
+- canonical_executions_consumed: **0**
+- protected_oos_touched: **false**
+- prereg_changed: **false**
+- spot_snapshot_changed: **false**
+- funding_snapshot_changed: **false**
+
+- next required step: `MARKET_03_CANONICAL_EXECUTION_IF_AUTHORIZED` (not this unit)

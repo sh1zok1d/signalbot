@@ -247,15 +247,21 @@ snapshot is materialized (`FUNDING_SNAPSHOT_READY = YES`):
 from REST JSONL `e7885cd5…`. Implementation is **frozen**
 (`IMPLEMENTATION_FROZEN = YES`) at reviewed HEAD `03411aaa…` /
 tree `87a1da25…` after targeted re-review
-`READY_FOR_IMPLEMENTATION_FREEZE`. Bound real-data execution remains
-fail-closed. Not ARM, execution, or RESULT. Do not substitute CORE
-perpetual prices. Do not consume B2-06 as MARKET-03 funding authority.
+`READY_FOR_IMPLEMENTATION_FREEZE`. MARKET-03 is **ARMED**
+(`MARKET_03_ARMED = YES`) with a single unused canonical reservation
+(`CANONICAL_EXECUTIONS_AUTHORIZED = 1`,
+`CANONICAL_EXECUTIONS_CONSUMED = 0`, `RUN_IDENTITY` `f68b6de7…`).
+This ARM is not execution or RESULT. Frozen scientific bytes were not
+mutated to flip lifecycle flags. Do not substitute CORE perpetual
+prices. Do not consume B2-06 as MARKET-03 funding authority.
 Do not inspect Signalbot 2025/2026 OOS. Prereg freeze authority:
 `docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG_FREEZE.md`. Payload:
 `docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG.md`. Funding snapshot:
 `docs/research/MARKET_03_FUNDING_SNAPSHOT.md`. Implementation freeze
 authority:
 `docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_FREEZE.md`.
+ARM authority:
+`docs/research/MARKET_03_PUBLIC_STRATEGY_ARM.md`.
 
 Post-calibration operating priority:
 

@@ -24,7 +24,8 @@ RESULT. MARKET-03 **preregistration is frozen**
 or execution. Dedicated funding snapshot is materialized
 (`MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0` / `d47b7b78…`).
 LEVEL_2 implementation is **frozen** at reviewed HEAD `03411aaa…` /
-tree `87a1da25…`; bound execution remains fail-closed. Not ARM.
+tree `87a1da25…`. MARKET-03 is **ARMED** with one unused canonical
+reservation (`authorized=1`, `consumed=0`). Not execution.
 Do not design a large new MARKET
 framework. A later market hypothesis requires a new research ID.
 Do not create new infrastructure merely because MARKET is beginning. Operating
@@ -299,8 +300,9 @@ Next required V3 step: none authorized. MARKET-01 is closed
 (`FINAL_CLASSIFICATION = NO_EVIDENCE`). MARKET-03 preregistration is
 frozen (`FROZEN_OUTCOME_BLIND`, not armed, not executed). Dedicated
 funding snapshot is ready (`d47b7b78…`). Implementation is frozen
-(`03411aaa…` / `87a1da25…`); next required step is ARM if authorized,
-not execution.
+(`03411aaa…` / `87a1da25…`). MARKET-03 is **ARMED**
+(`RUN_IDENTITY` `f68b6de7…`, authorized `1` consumed `0`); next
+required step is exactly one canonical execution if authorized.
 Do not rerun MARKET-01.
 Do not rerun V3, do not create V4, and do not execute B2-06.
 
