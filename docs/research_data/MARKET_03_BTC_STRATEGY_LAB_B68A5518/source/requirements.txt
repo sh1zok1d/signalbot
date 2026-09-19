@@ -1,0 +1,10 @@
+freqtrade>=2026.7
+pandas
+numpy
+scipy
+plotly
+kaleido
+streamlit
+yfinance
+requests
+pyarrow
