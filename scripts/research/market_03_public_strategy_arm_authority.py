@@ -398,6 +398,8 @@ def authenticate_market_03_arm(*args: Any, **kwargs: Any) -> dict[str, Any]:
         raise Market03CanonicalExecutionNotAuthorized(
             "MARKET_03_ARM_REPLICATION_LEVEL_MISMATCH"
         )
+    _reject_b2_06(payload.get("funding_dataset_id"), payload.get("funding_snapshot_id"))
+    _reject_b2_06(payload.get("spot_dataset_id"), payload.get("spot_snapshot_id"))
     if payload.get("spot_snapshot_id") != SPOT_SNAPSHOT_ID:
         raise Market03CanonicalExecutionNotAuthorized("MARKET_03_ARM_SNAPSHOT_MISMATCH")
     if payload.get("spot_dataset_id") != SPOT_DATASET_ID:
@@ -410,8 +412,6 @@ def authenticate_market_03_arm(*args: Any, **kwargs: Any) -> dict[str, Any]:
         raise Market03CanonicalExecutionNotAuthorized("MARKET_03_ARM_SNAPSHOT_MISMATCH")
     if payload.get("funding_data_sha256") != FUNDING_DATA_SHA256:
         raise Market03CanonicalExecutionNotAuthorized("MARKET_03_ARM_SNAPSHOT_MISMATCH")
-    _reject_b2_06(payload.get("funding_dataset_id"), payload.get("funding_snapshot_id"))
-    _reject_b2_06(payload.get("spot_dataset_id"), payload.get("spot_snapshot_id"))
     if payload.get("primary_classification_rule") != PRIMARY_CLASSIFICATION_RULE:
         raise Market03CanonicalExecutionNotAuthorized(
             "MARKET_03_ARM_PRIMARY_RULE_MISMATCH"
