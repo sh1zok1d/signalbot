@@ -41,8 +41,7 @@ execution_authorized = false
 STATUS = SELECTED_OUTCOME_BLIND_NOT_PREREGISTERED_NOT_AUTHORIZED
 ```
 
-This unit does **not**: run MARKET-05; inspect future BTC returns; inspect
-future MAE; compute ETH-confirmation correlations with future outcomes;
+This unit does **not**: run MARKET-05; inspect future BTC returns; inspect future MAE; compute ETH-confirmation correlations with future outcomes;
 calculate regression coefficients; compare confirmation buckets; test
 lookbacks or horizons against outcomes; inspect yearly or regime
 scientific performance; optimize normalization; create RESULT or ARM
