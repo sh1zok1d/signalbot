@@ -336,6 +336,167 @@ def test_parser_failure_still_preserves_raw_evidence(tmp_path):
     assert decode_raw_payload(envelope["raw_payload"]) == raw
     assert envelope["parse_error"]
     assert result["parsed"] is None
+    assert envelope["source_observation_valid"] is False
+
+
+# =============================================================================
+# Response validity: HTTP error bodies / malformed payloads are never
+# treated as market observations, even when their bytes happen to parse.
+# =============================================================================
+
+
+def _oi_runtime(tmp_path: Path) -> SourceRuntime:
+    config = default_config(root_dir=str(tmp_path))
+    created = create_session(repo=REPO, root=tmp_path, config=config)
+    source = next(item for item in config["sources"] if "OPEN_INTEREST" in item["source_id"])
+    return SourceRuntime(
+        session_id=created["session"]["session_id"],
+        session_dir=created["session_dir"],
+        source=source,
+        max_messages=100,
+        max_bytes=1_000_000,
+    )
+
+
+def _premium_runtime(tmp_path: Path) -> SourceRuntime:
+    config = default_config(root_dir=str(tmp_path))
+    created = create_session(repo=REPO, root=tmp_path, config=config)
+    source = next(item for item in config["sources"] if "PREMIUM_INDEX" in item["source_id"])
+    return SourceRuntime(
+        session_id=created["session"]["session_id"],
+        session_dir=created["session_dir"],
+        source=source,
+        max_messages=100,
+        max_bytes=1_000_000,
+    )
+
+
+def test_http_451_preserved_operationally_but_invalid(tmp_path):
+    runtime = _oi_runtime(tmp_path)
+    # A real restricted-location body: valid JSON, but not the OI schema.
+    body = b'{"code":0,"msg":"Service unavailable from a restricted location"}'
+    receipt = rest_response_body_bytes(
+        body,
+        endpoint="https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT",
+        stream="GET /fapi/v1/openInterest",
+        http_status=451,
+    )
+    result = runtime.ingest(receipt)
+    envelope = result["envelope"]
+    # Operational transport evidence is preserved exactly.
+    assert decode_raw_payload(envelope["raw_payload"]) == body
+    assert envelope["transport"]["http_status"] == 451
+    # But it is never a valid market observation.
+    assert envelope["source_observation_valid"] is False
+
+
+def test_http_500_is_invalid(tmp_path):
+    runtime = _oi_runtime(tmp_path)
+    body = b'{"code":-1000,"msg":"An unknown error occurred"}'
+    receipt = rest_response_body_bytes(
+        body,
+        endpoint="https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT",
+        stream="GET /fapi/v1/openInterest",
+        http_status=500,
+    )
+    result = runtime.ingest(receipt)
+    assert result["envelope"]["transport"]["http_status"] == 500
+    assert result["envelope"]["source_observation_valid"] is False
+
+
+def test_http_200_with_malformed_schema_is_invalid(tmp_path):
+    runtime = _oi_runtime(tmp_path)
+    # HTTP 200 but not the openInterest schema (no "openInterest" key).
+    body = b'{"symbol":"BTCUSDT","time":1589428639544}'
+    receipt = rest_response_body_bytes(
+        body,
+        endpoint="https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT",
+        stream="GET /fapi/v1/openInterest",
+        http_status=200,
+    )
+    result = runtime.ingest(receipt)
+    assert result["envelope"]["transport"]["http_status"] == 200
+    assert result["envelope"]["source_observation_valid"] is False
+
+
+def test_http_200_with_unparseable_json_is_invalid(tmp_path):
+    runtime = _oi_runtime(tmp_path)
+    body = b"not json at all {{{"
+    receipt = rest_response_body_bytes(
+        body,
+        endpoint="https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT",
+        stream="GET /fapi/v1/openInterest",
+        http_status=200,
+    )
+    result = runtime.ingest(receipt)
+    assert result["envelope"]["parse_error"] is not None
+    assert result["envelope"]["source_observation_valid"] is False
+
+
+def test_valid_premium_native_response_is_accepted(tmp_path):
+    runtime = _premium_runtime(tmp_path)
+    receipt = rest_response_body_bytes(
+        PREMIUM_JSON,
+        endpoint="https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT",
+        stream="GET /fapi/v1/premiumIndex",
+        http_status=200,
+    )
+    result = runtime.ingest(receipt)
+    envelope = result["envelope"]
+    assert envelope["transport"]["http_status"] == 200
+    assert envelope["source_observation_valid"] is True
+    assert result["parsed"]["native_fields"]["mark_price"] == "11793.63102583"
+
+
+def test_valid_oi_native_response_is_accepted(tmp_path):
+    runtime = _oi_runtime(tmp_path)
+    receipt = rest_response_body_bytes(
+        OI_JSON,
+        endpoint="https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT",
+        stream="GET /fapi/v1/openInterest",
+        http_status=200,
+    )
+    result = runtime.ingest(receipt)
+    envelope = result["envelope"]
+    assert envelope["transport"]["http_status"] == 200
+    assert envelope["source_observation_valid"] is True
+    assert result["parsed"]["native_fields"]["open_interest"] == "23520.636"
+
+
+def test_valid_mark_price_ws_payload_is_accepted(tmp_path):
+    runtime = _runtime(tmp_path)
+    result = runtime.ingest(_ws_receipt(MARK_JSON))
+    envelope = result["envelope"]
+    assert envelope["transport"]["transport"] == "websocket"
+    assert envelope["source_observation_valid"] is True
+    assert result["parsed"]["native_fields"]["funding_rate"] == "0.00030000"
+
+
+def test_ws_connection_notice_is_not_a_valid_native_payload(tmp_path):
+    runtime = _runtime(tmp_path)
+    # A generic WS control/notice frame: valid JSON, not the markPrice schema.
+    receipt = _ws_receipt(b'{"id":1,"result":null}')
+    result = runtime.ingest(receipt)
+    assert result["envelope"]["source_observation_valid"] is False
+
+
+def test_invalid_observations_counted_in_health_not_scientific(tmp_path):
+    runtime = _oi_runtime(tmp_path)
+    receipt = rest_response_body_bytes(
+        b'{"code":0,"msg":"restricted"}',
+        endpoint="https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT",
+        stream="GET /fapi/v1/openInterest",
+        http_status=451,
+    )
+    runtime.ingest(receipt)
+    runtime.finalize()
+    health = json.loads(
+        (runtime.session_dir / "health" / f"{runtime.source_id}.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert health["invalid_observation_count"] == 1
+    assert_no_scientific_fields(health, where="health")
 
 
 def test_no_scientific_fields_in_collector_schema():
@@ -425,14 +586,17 @@ def test_cli_collect_refuses_authoritative_start():
 
 
 def test_implementation_freeze_binds_collector_sha_set():
-    from scripts.research.forward_market_observability_v1.identity import (
-        FREEZE_JSON,
-        collector_implementation_sha_set,
-    )
+    """The ORIGINAL freeze is historical evidence of the pre-repair bytes.
+
+    It intentionally no longer matches the live tree: the lifecycle repair
+    changed several files and added two new authority modules. It is
+    explicitly marked superseded; live-tree consistency is asserted
+    against the NEW refreeze instead, in
+    test_forward_market_observability_v1_collection_arm.py.
+    """
+    from scripts.research.forward_market_observability_v1.identity import FREEZE_JSON
 
     freeze = json.loads((REPO / FREEZE_JSON).read_text(encoding="utf-8"))
-    expected = collector_implementation_sha_set(REPO)
-    assert freeze["collector_implementation_sha_set"] == expected
     assert freeze["raw_envelope_schema"] == RAW_ENVELOPE_SCHEMA
     assert freeze["chunk_schema"] == CHUNK_SCHEMA
     assert freeze["manifest_schema"] == MANIFEST_SCHEMA
@@ -443,7 +607,8 @@ def test_implementation_freeze_binds_collector_sha_set():
     assert freeze["computes_scientific_outcomes"] is False
     assert freeze["smoke_data_scientifically_excluded"] is True
     assert freeze["legal_available_at_rule"] == "local_received_at_utc"
-    assert freeze["next_unit"] == (
-        "FORWARD_MARKET_OBSERVABILITY_V1_AUTHORITATIVE_COLLECTION_START"
+    assert freeze["is_current_authority"] is False
+    assert freeze["superseded_by"] == (
+        "docs/research/FORWARD_MARKET_OBSERVABILITY_V1_COLLECTOR_REFREEZE.json"
     )
 

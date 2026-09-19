@@ -32,6 +32,7 @@ from scripts.research.forward_market_observability_v1.schemas import (
     SOURCE_TYPE_BACKFILL,
     SOURCE_TYPE_LIVE,
     assert_no_scientific_fields,
+    classify_source_observation_validity,
 )
 from scripts.research.forward_market_observability_v1.storage import (
     ChunkStore,
@@ -77,6 +78,7 @@ class SourceRuntime:
         self.message_count = 0
         self.parse_error_count = 0
         self.checksum_failure_count = 0
+        self.invalid_observation_count = 0
         self.reconnect_count = 0
         self.seen_hashes: dict[str, int] = {}
         self.last_durable_receipt_utc: str | None = None
@@ -92,6 +94,7 @@ class SourceRuntime:
             "reconnect_count": 0,
             "parse_error_count": 0,
             "checksum_failures": 0,
+            "invalid_observation_count": 0,
             "clock_anomalies": 0,
             "coverage_gaps": 0,
             "chunk_count": 0,
@@ -147,11 +150,21 @@ class SourceRuntime:
                     "raw_payload_sha256": envelope["raw_payload_sha256"],
                 }
             )
+        source_observation_valid = classify_source_observation_validity(
+            self.source_id,
+            transport=receipt.transport,
+            native=native,
+            parse_error=parse_error,
+        )
+        if not source_observation_valid:
+            self.invalid_observation_count += 1
+            self._health["invalid_observation_count"] = self.invalid_observation_count
         envelope = attach_parse_metadata(
             envelope,
             exchange_event_time=None if native is None else native.get("exchange_event_time"),
             exchange_sequence=None if native is None else native.get("exchange_sequence"),
             parse_error=parse_error,
+            source_observation_valid=source_observation_valid,
         )
         digest = envelope["raw_payload_sha256"]
         duplicate = digest in self.seen_hashes

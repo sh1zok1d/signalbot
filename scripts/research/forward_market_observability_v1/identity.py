@@ -20,6 +20,8 @@ COLLECTOR_IMPLEMENTATION_RELPATHS: tuple[str, ...] = (
     "scripts/research/forward_market_observability_v1/sources.py",
     "scripts/research/forward_market_observability_v1/storage.py",
     "scripts/research/forward_market_observability_v1/transport.py",
+    "scripts/research/forward_market_observability_v1/collection_authority.py",
+    "scripts/research/forward_market_observability_v1/authority_root.py",
     "docs/research/FORWARD_MARKET_OBSERVABILITY_V1_CONFIG.json",
     "docs/research/FORWARD_MARKET_OBSERVABILITY_V1_SCHEMAS.json",
     "docs/research/FORWARD_MARKET_OBSERVABILITY_V1_COLLECTOR_CONTRACT.json",

@@ -1,6 +1,11 @@
 {
   "schema": "forward_market_observability_v1_implementation_freeze/1.0.0",
   "status": "IMPLEMENTED_FROZEN_NOT_AUTHORITATIVE_COLLECTION",
+  "superseded_by": "docs/research/FORWARD_MARKET_OBSERVABILITY_V1_COLLECTOR_REFREEZE.json",
+  "superseded_reason": "COLLECT_COULD_NOT_TRANSITION_TO_AUTHORIZED_STATE_WITHOUT_CODE_CHANGE",
+  "is_current_authority": false,
+  "describes_commit": "7dfae71b8d3cfe7c941f489f5502813dba7272e9",
+  "implementation_sha_set_describes": "the pre-repair bytes at 7dfae71b, intentionally not updated",
   "unit_id": "FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION",
   "date_utc": "2026-09-19",
   "human_readable_twin": "docs/research/FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION_FREEZE.md",

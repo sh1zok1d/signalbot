@@ -44,8 +44,16 @@ DEFAULT_SOURCES: list[dict[str, Any]] = [
 
 
 def default_config(*, root_dir: str = "artifacts/forward_market_observability_v1") -> dict[str, Any]:
+    """Config carries no authorization state.
+
+    Collection authorization lives entirely in the external, authenticated
+    collection ARM (``collection_authority.py``); nothing in this dict is
+    ever read to decide whether ``collect`` may proceed. A prior revision
+    hardcoded ``authoritative_collection_authorized = False`` here, but
+    nothing consulted it -- the CLI refused unconditionally regardless.
+    """
     return {
-        "schema": "forward_market_observability_v1_config/1.0.0",
+        "schema": "forward_market_observability_v1_config/1.1.0",
         "instrument": INSTRUMENT,
         "market_type": MARKET_TYPE,
         "venue": "binance",
@@ -54,7 +62,6 @@ def default_config(*, root_dir: str = "artifacts/forward_market_observability_v1
         "chunk_max_bytes": 1_048_576,
         "sources": DEFAULT_SOURCES,
         "scientific_outcomes_forbidden": True,
-        "authoritative_collection_authorized": False,
         "m04_fwd_created": False,
         "market_06_created": False,
     }

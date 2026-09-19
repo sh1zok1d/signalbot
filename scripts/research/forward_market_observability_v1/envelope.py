@@ -66,6 +66,10 @@ def build_raw_envelope(
         "source_type": source_type,
         "message_index": message_index,
         "parse_error": None,
+        # Set by attach_parse_metadata once the payload has been classified.
+        # Never true before classification: an unclassified observation is
+        # never treated as valid market evidence.
+        "source_observation_valid": False,
     }
     if source_type == SOURCE_TYPE_BACKFILL:
         envelope["original_live_receipt"] = False
@@ -83,8 +87,11 @@ def attach_parse_metadata(
     exchange_event_time: Any = None,
     exchange_sequence: Any = None,
     parse_error: str | None = None,
+    source_observation_valid: bool = False,
 ) -> dict[str, Any]:
     """Add derivative metadata. Must not change raw payload fields."""
+    if not isinstance(source_observation_valid, bool):
+        raise TypeError("SOURCE_OBSERVATION_VALID_MUST_BE_BOOL")
     updated = dict(envelope)
     raw_before = updated["raw_payload"]
     sha_before = updated["raw_payload_sha256"]
@@ -95,6 +102,7 @@ def attach_parse_metadata(
     updated["exchange_event_time"] = exchange_event_time
     updated["exchange_sequence"] = exchange_sequence
     updated["parse_error"] = parse_error
+    updated["source_observation_valid"] = source_observation_valid
     if updated["raw_payload"] != raw_before:
         raise ValueError("RAW_PAYLOAD_MUTATED")
     if updated["raw_payload_sha256"] != sha_before:

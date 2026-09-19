@@ -68,9 +68,68 @@ RAW_ENVELOPE_REQUIRED_FIELDS = (
     "transport",
 )
 
+# Response validity (frozen contract): a REST observation counts as valid
+# only with an expected successful HTTP status AND a schema-valid native
+# payload. An HTTP error body (451, 500, ...) is retained as operational
+# transport evidence but is NEVER a valid market observation.
+REST_SUCCESS_HTTP_STATUS = 200
+
+# Native fields every source's payload must carry, non-null, to count as a
+# valid observation. Keyed by source_id so config/source-set changes are
+# visible instead of silently accepted.
+SOURCE_REQUIRED_NATIVE_FIELDS: dict[str, tuple[str, ...]] = {
+    "BINANCE_UM_BTCUSDT_MARK_PRICE_WS": (
+        "mark_price",
+        "funding_rate",
+        "next_funding_time",
+    ),
+    "BINANCE_UM_BTCUSDT_PREMIUM_INDEX_REST": (
+        "mark_price",
+        "index_price",
+    ),
+    "BINANCE_UM_BTCUSDT_OPEN_INTEREST_REST": (
+        "open_interest",
+    ),
+}
+
 
 class CollectorSchemaError(ValueError):
     """Collector record violates the frozen acquisition schema."""
+
+
+def classify_source_observation_validity(
+    source_id: str,
+    *,
+    transport: Mapping[str, Any],
+    native: Mapping[str, Any] | None,
+    parse_error: str | None,
+) -> bool:
+    """True only for a genuine, schema-valid native market observation.
+
+    REST: requires the expected successful HTTP status AND every required
+    native field present and non-null. An HTTP 4xx/5xx body -- including
+    451 restricted-location and 500 -- is never valid, regardless of
+    whether its bytes happen to parse as JSON.
+
+    WebSocket: requires a schema-valid native payload (no HTTP status to
+    check); a connection notice or malformed frame is never valid.
+    """
+    if parse_error is not None or native is None:
+        return False
+    if source_id not in SOURCE_REQUIRED_NATIVE_FIELDS:
+        # An unrecognized/unfrozen source can never be validated as ready.
+        return False
+    transport_kind = transport.get("transport")
+    if transport_kind == "rest":
+        status = transport.get("http_status")
+        if status != REST_SUCCESS_HTTP_STATUS:
+            return False
+    elif transport_kind == "websocket":
+        pass
+    else:
+        return False
+    required = SOURCE_REQUIRED_NATIVE_FIELDS[source_id]
+    return all(native.get(field) not in (None, "") for field in required)
 
 
 def assert_no_scientific_fields(payload: Mapping[str, Any], *, where: str) -> None:

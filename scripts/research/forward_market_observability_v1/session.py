@@ -94,13 +94,32 @@ def _client_library_versions() -> dict[str, str]:
     return versions
 
 
+INFRASTRUCTURE_SMOKE_TEST_ONLY = "INFRASTRUCTURE_SMOKE_TEST_ONLY"
+INFRASTRUCTURE_READINESS_CHECK_ONLY = "INFRASTRUCTURE_READINESS_CHECK_ONLY"
+# Labels whose data is always scientifically excluded, never an
+# authoritative session, regardless of caller intent.
+NON_AUTHORITATIVE_LABELS = frozenset(
+    {INFRASTRUCTURE_SMOKE_TEST_ONLY, INFRASTRUCTURE_READINESS_CHECK_ONLY}
+)
+
+
 def create_session(
     *,
     repo: Path,
     root: Path,
     config: Mapping[str, Any],
     infrastructure_label: str | None = None,
+    authoritative_collection: bool = False,
+    collection_authority: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    if authoritative_collection and infrastructure_label in NON_AUTHORITATIVE_LABELS:
+        raise SessionError(
+            f"AUTHORITATIVE_SESSION_CANNOT_CARRY_NON_AUTHORITATIVE_LABEL:{infrastructure_label}"
+        )
+    if authoritative_collection and infrastructure_label is None:
+        raise SessionError("AUTHORITATIVE_SESSION_REQUIRES_EXPLICIT_LABEL")
+    if authoritative_collection and collection_authority is None:
+        raise SessionError("AUTHORITATIVE_SESSION_REQUIRES_COLLECTION_AUTHORITY_IDENTITY")
     _reject_secrets(config)
     stamp = capture_receipt()
     git_ids = capture_git_identity(repo)
@@ -122,11 +141,14 @@ def create_session(
         "clock_timezone_configuration": _clock_status(),
         "infrastructure_label": infrastructure_label,
         "scientific_evidence": False,
-        "authoritative_collection": False,
+        "authoritative_collection": bool(authoritative_collection),
+        "collection_authority_identity": (
+            dict(collection_authority) if collection_authority is not None else None
+        ),
         "m04_fwd_created": False,
         "market_06_created": False,
     }
-    if infrastructure_label == "INFRASTRUCTURE_SMOKE_TEST_ONLY":
+    if infrastructure_label in NON_AUTHORITATIVE_LABELS:
         session["scientific_evidence"] = False
         session["smoke_data_scientifically_excluded"] = True
     assert_no_scientific_fields(session, where="session")

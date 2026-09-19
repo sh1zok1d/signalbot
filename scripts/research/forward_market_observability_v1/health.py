@@ -9,6 +9,7 @@ ALLOWED_OPERATIONAL_METRICS = (
     "reconnect_count",
     "parse_error_count",
     "checksum_failures",
+    "invalid_observation_count",
     "clock_anomalies",
     "coverage_gaps",
     "last_receipt_age",
