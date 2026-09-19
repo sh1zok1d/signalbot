@@ -1,12 +1,19 @@
-# FORWARD_MARKET_OBSERVABILITY_V1 — Design (not an implementation)
+# FORWARD_MARKET_OBSERVABILITY_V1 — Design
 
-**Status:** `DESIGN_ONLY_NOT_IMPLEMENTED`
+**Status:** `DESIGN_IMPLEMENTED_FROZEN` (this file remains the design contract; it is not the collector freeze)
 **Unit kind:** infrastructure / data collection design.
 **Not** a hypothesis test. **Not** MARKET-06. **Not** a preregistration.
 **Machine-readable twin:** [`FORWARD_MARKET_OBSERVABILITY_V1_COLLECTOR_CONTRACT.json`](FORWARD_MARKET_OBSERVABILITY_V1_COLLECTOR_CONTRACT.json)
+**Implementation:** [`FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION.md`](FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION.md)
+**Implementation freeze:** [`FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION_FREEZE.md`](FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION_FREEZE.md)
+
+The original design below is preserved. A later authorized unit implemented
+and froze the collector. Authoritative collection has **not** started.
 
 ```text
-IMPLEMENTATION_AUTHORIZED = false
+IMPLEMENTATION_AUTHORIZED = true
+IMPLEMENTATION_FROZEN = true
+AUTHORITATIVE_COLLECTION_STARTED = false
 SCIENTIFIC_TEST_AUTHORIZED = false
 MARKET_HYPOTHESIS_FROZEN = false
 THRESHOLDS_SELECTED = false
@@ -34,14 +41,15 @@ This is:
 
 This is **not**:
 
-- a collector implementation;
 - a scientific execution;
 - MARKET-06;
+- M04-FWD preregistration;
 - a third historical proxy salvage;
 - authorization to treat current Binance historical archives as
   point-in-time safe;
 - permission to compute future return, MAE, drawdown, prediction, beta,
-  or classification during collection setup.
+  or classification during collection setup;
+- authorization to start authoritative collection (that is a later unit).
 
 ## 3. Evidence model
 
@@ -171,8 +179,9 @@ execution. That later identity is not created here.
 ## 7. Next unit
 
 ```text
-NEXT_UNIT = FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION
+NEXT_UNIT = FORWARD_MARKET_OBSERVABILITY_V1_AUTHORITATIVE_COLLECTION_START
 ```
 
-Implementation is a later authorized unit. This file is design only.
-'''
+Implementation and freeze exist. Authoritative collection has not started.
+Smoke data, if any, remains `INFRASTRUCTURE_SMOKE_TEST_ONLY` and is not
+scientific evidence.
