@@ -17,6 +17,7 @@
   "authority_root_commit_is_documentation_only": true,
   "authority_root_file": "scripts/research/market05_cross_asset_authority_root.py",
   "authority_root_head": "UNSET_UNTIL_THIS_COMMIT",
+  "authority_root_head_note": "Self-reference: a documentation commit cannot embed its own SHA. The scientific implementation commit is recorded exactly in scientific_implementation_head; this sentinel is deliberately not that value and must never be read as the scientific implementation commit.",
   "canonical_executions_authorized": 0,
   "canonical_executions_consumed": 0,
   "data": {
@@ -77,8 +78,8 @@
     "scripts/research/market05_cross_asset_data.py": "f7a3b0ceed2e691716346a89e4800def29f2e7526559dda0407bb1d33d6c8357",
     "scripts/research/market05_cross_asset_lib.py": "b0e3f441d23f372efc18c94adaab033e9eb9a219654954e1312b42489cf61274"
   },
-  "scientific_implementation_head": "PENDING",
-  "scientific_implementation_tree": "PENDING",
+  "scientific_implementation_head": "97eebf2fbc42e301be55dfb95d07e42664b6bd0d",
+  "scientific_implementation_tree": "5757fafce63233852f9fdf55f1c9911bdeb34a80",
   "scientific_math_changed": false,
   "scientific_outcomes_inspected": false,
   "status": "MARKET_05_IMPLEMENTATION_REFROZEN_OUTCOME_BLIND",
@@ -89,7 +90,7 @@
     "previous_implementation_tree": "9c8575f6380977de2b2ad0d4d4c935ad819da6ef"
   },
   "test_files": {
-    "tests/research/test_market05_arm_lifecycle.py": "a0f79d7ea21f2214070c8e71f24d8f8094c56d1f83ed1d86e141b93418c03558",
+    "tests/research/test_market05_arm_lifecycle.py": "0ad11426bd80f8de7a73b8881b519a8a6e0b8e4b480fc2dc35aaa4906fe8f68e",
     "tests/research/test_market05_cross_asset_bootstrap.py": "eff31e9c4453d4574c046c85ced5ac007db5a77583f5f390f2e45e152f1c495f",
     "tests/research/test_market05_cross_asset_candidate.py": "3b091766ae5589e0997f8bb0005286e59900dc069bce495733c5788ca8fc2ef3",
     "tests/research/test_market05_cross_asset_data_feasibility.py": "a4df058e01c27f954b8ae73caa3ae3dc9a87e90c0481bf1a5a986a1c29328f03",

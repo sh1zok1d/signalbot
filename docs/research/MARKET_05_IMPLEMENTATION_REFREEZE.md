@@ -94,12 +94,31 @@ POST_ARM_CODE_CHANGE_REQUIRED   = false
 ## 5. RUN_IDENTITY
 
 ```text
-RUN_IDENTITY = 0cbd5c23259ec6a43b8fdaf032822c6cecb53ad69ec7a2b9b760609b56c74c0e
+RUN_IDENTITY = d683c3b25377e61917eeb37a4fc6cda9ebf3f8000dbe2011323a03fc37f7417a
 ```
 
 Recomputed independently by the authority on every authorization decision
 and compared against the ARM; never trusted from the ARM. Construction is
 documented in `MARKET_05_ARM_CONTRACT.md` §3.
+
+## 5b. Authority root of trust and exact provenance
+
+```text
+SCIENTIFIC_IMPLEMENTATION_HEAD = 97eebf2fbc42e301be55dfb95d07e42664b6bd0d
+SCIENTIFIC_IMPLEMENTATION_TREE = 5757fafce63233852f9fdf55f1c9911bdeb34a80
+```
+
+These name the commit carrying the scientific and authority **source**.
+The later documentation-only commit that records this provenance
+(`authority_root_head`) changes no code and is **not** the scientific
+implementation commit; it is never presented as such.
+
+The ARM authority previously vouched for everything except itself. An
+independent root, `market05_cross_asset_authority_root.py`, now pins the
+git blob id of every authority/scientific file including the ARM
+authority, and is itself anchored by the frozen commit/tree above. A
+mutation of the ARM-authority module is refused before scientific data
+loading.
 
 ## 6. Bound scientific implementation
 

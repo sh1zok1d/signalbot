@@ -34,7 +34,18 @@
   ],
   "implementation_authority": {
     "arm_authority_file": "scripts/research/market05_cross_asset_arm_authority.py",
-    "arm_authority_sha256": "0afeb3528bd06fcada61b37871ff785ca82f917dcef0ecfb50caaa85f8c7f33a",
+    "arm_authority_sha256": "b4308a3a47956a5f6263a307846e2083ea6dc457e0ec7f5a653a4d3f45ac067d",
+    "authority_root_blob_ids": {
+      "scripts/research/core_eth_binance_v0_acceptor_lib.py": "ff5631dcf51d40f1597c8a21903ed168f8fd610f",
+      "scripts/research/market05_cross_asset.py": "cd3f82b9fff37f431bac815cd6f7e7fd566dc6fd",
+      "scripts/research/market05_cross_asset_arm_authority.py": "93adc219238b3151276329a8ed192999baf1bd20",
+      "scripts/research/market05_cross_asset_authority.py": "aa39e8f5685f93b20bf2c487cd8b3ac1db42722c",
+      "scripts/research/market05_cross_asset_canonical_execution.py": "3b940a9747a843af74a0c4d5ff3769e1b587b54d",
+      "scripts/research/market05_cross_asset_data.py": "37b2c462ac4b089577ca706960cb404892e4c594",
+      "scripts/research/market05_cross_asset_lib.py": "331a5e884bf4ccd99514af7961cb0c102cfa330f"
+    },
+    "authority_root_file": "scripts/research/market05_cross_asset_authority_root.py",
+    "root_of_trust": "git blob identity pinned in the authority root, cross-bound to the frozen commit/tree recorded in the re-freeze artifact; the ARM authority never attests to its own bytes",
     "scientific_implementation_hashes": {
       "scripts/research/core_eth_binance_v0_acceptor_lib.py": "6f86ae1ed08fe7595a0de3eb4e0c273aa2850a8238675d72696bbd088c118764",
       "scripts/research/market05_cross_asset.py": "1a587d58c970e99c5db49478f89cfb5f040537658ff8034af403fa378f0a997c",
@@ -42,7 +53,9 @@
       "scripts/research/market05_cross_asset_canonical_execution.py": "bbf7371bc53ac931dac7f9361a1b6ac8a41700cdd9fdd86662dbf65bb11ac348",
       "scripts/research/market05_cross_asset_data.py": "f7a3b0ceed2e691716346a89e4800def29f2e7526559dda0407bb1d33d6c8357",
       "scripts/research/market05_cross_asset_lib.py": "2f5f9384a917111782c0f2d8822f2a31577ce0f3fdc83f194a0a32f6911b8a24"
-    }
+    },
+    "scientific_implementation_head": "97eebf2fbc42e301be55dfb95d07e42664b6bd0d",
+    "scientific_implementation_tree": "5757fafce63233852f9fdf55f1c9911bdeb34a80"
   },
   "is_a_real_arm": false,
   "next_unit": "OUTCOME_BLIND_MARKET_05_IMPLEMENTATION_RED_TEAM_AUDIT",
@@ -88,10 +101,21 @@
     "json": "docs/research/MARKET_05_RESULT.json",
     "md": "docs/research/MARKET_05_RESULT.md"
   },
-  "result_schema_identity": "market_05_cross_asset_result/1.0.0",
-  "run_identity": "0cbd5c23259ec6a43b8fdaf032822c6cecb53ad69ec7a2b9b760609b56c74c0e",
+  "result_schema_identity": "market_05_cross_asset_result/1.1.0",
+  "run_identity": "d683c3b25377e61917eeb37a4fc6cda9ebf3f8000dbe2011323a03fc37f7417a",
   "run_identity_derivation": "sha256(canonical_json_bytes(scientific_run_identity_payload()))",
   "run_identity_preimage": {
+    "arm_authority_file": "scripts/research/market05_cross_asset_arm_authority.py",
+    "authority_root_blob_ids": {
+      "scripts/research/core_eth_binance_v0_acceptor_lib.py": "ff5631dcf51d40f1597c8a21903ed168f8fd610f",
+      "scripts/research/market05_cross_asset.py": "cd3f82b9fff37f431bac815cd6f7e7fd566dc6fd",
+      "scripts/research/market05_cross_asset_arm_authority.py": "93adc219238b3151276329a8ed192999baf1bd20",
+      "scripts/research/market05_cross_asset_authority.py": "aa39e8f5685f93b20bf2c487cd8b3ac1db42722c",
+      "scripts/research/market05_cross_asset_canonical_execution.py": "3b940a9747a843af74a0c4d5ff3769e1b587b54d",
+      "scripts/research/market05_cross_asset_data.py": "37b2c462ac4b089577ca706960cb404892e4c594",
+      "scripts/research/market05_cross_asset_lib.py": "331a5e884bf4ccd99514af7961cb0c102cfa330f"
+    },
+    "authority_root_file": "scripts/research/market05_cross_asset_authority_root.py",
     "btc_dataset_id": "CORE_BTC_BINANCE_V0",
     "btc_snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
     "canonical_executions_authorized": 1,
@@ -109,7 +133,7 @@
     "protected_oos_start": "2025-01-01T00:00:00Z",
     "purpose": "CANONICAL_MARKET_05_EXECUTION",
     "research_id": "MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK",
-    "result_schema_identity": "market_05_cross_asset_result/1.0.0",
+    "result_schema_identity": "market_05_cross_asset_result/1.1.0",
     "schema": "market_05_cross_asset_scientific_run_identity",
     "schema_version": "1.0.0",
     "scientific_constants": {
@@ -137,9 +161,9 @@
       "scripts/research/core_eth_binance_v0_acceptor_lib.py": "6f86ae1ed08fe7595a0de3eb4e0c273aa2850a8238675d72696bbd088c118764",
       "scripts/research/market05_cross_asset.py": "1a587d58c970e99c5db49478f89cfb5f040537658ff8034af403fa378f0a997c",
       "scripts/research/market05_cross_asset_authority.py": "441f48f438ca6a240911bd3de8a8a96f1a9e93c1b182a4ebb0d2b09da26bb9fc",
-      "scripts/research/market05_cross_asset_canonical_execution.py": "bbf7371bc53ac931dac7f9361a1b6ac8a41700cdd9fdd86662dbf65bb11ac348",
+      "scripts/research/market05_cross_asset_canonical_execution.py": "df9bf457d379a3810ce98b06545b138fc813aa9b8fa49a48f11ca124f0f2c67d",
       "scripts/research/market05_cross_asset_data.py": "f7a3b0ceed2e691716346a89e4800def29f2e7526559dda0407bb1d33d6c8357",
-      "scripts/research/market05_cross_asset_lib.py": "2f5f9384a917111782c0f2d8822f2a31577ce0f3fdc83f194a0a32f6911b8a24"
+      "scripts/research/market05_cross_asset_lib.py": "b0e3f441d23f372efc18c94adaab033e9eb9a219654954e1312b42489cf61274"
     }
   },
   "schema": "signalbot_market_05_arm_contract",

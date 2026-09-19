@@ -51,7 +51,7 @@ PROTECTED_OOS_AUTHORIZED        = false
 ## 3. RUN_IDENTITY
 
 ```text
-RUN_IDENTITY = 0cbd5c23259ec6a43b8fdaf032822c6cecb53ad69ec7a2b9b760609b56c74c0e
+RUN_IDENTITY = d683c3b25377e61917eeb37a4fc6cda9ebf3f8000dbe2011323a03fc37f7417a
 ```
 
 Derived as `sha256(canonical_json_bytes(scientific_run_identity_payload()))`.
@@ -85,8 +85,12 @@ scripts/research/core_eth_binance_v0_acceptor_lib.py
 ```
 
 Exact hashes are in the JSON twin. `market05_cross_asset_arm_authority.py`
-cannot pin its own hash (self-reference), so this contract and the
-re-freeze artifact bind it instead. The scientific library imports only
+cannot pin its own hash (self-reference), so an independent root of trust,
+`market05_cross_asset_authority_root.py`, pins its **git blob id** and is
+itself anchored by the frozen commit/tree recorded in the re-freeze
+artifact. Code pins blobs; docs pin the commit. Canonical execution and the
+data loader verify that root BEFORE invoking the ARM authority, so a
+mutation of the ARM authority is refused before any scientific data opens. The scientific library imports only
 the standard library and numpy (pinned `2.1.3`), so no unbound project
 module can alter behaviour — this is not a fake freeze.
 
