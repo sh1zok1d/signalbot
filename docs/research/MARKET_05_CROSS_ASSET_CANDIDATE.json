@@ -1,0 +1,201 @@
+{
+  "schema": "signalbot_market_05_cross_asset_candidate",
+  "schema_version": "1.0.0",
+  "unit_id": "MARKET_05_CROSS_ASSET_CANDIDATE",
+  "status": "SELECTED_OUTCOME_BLIND_NOT_PREREGISTERED_NOT_AUTHORIZED",
+  "date": "2026-09-19",
+  "market_05_selected": true,
+  "candidate_identity_frozen": true,
+  "research_id": "MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK",
+  "short_name": "MARKET-05",
+  "mechanism_family": "F7_CROSS_ASSET_MARKET_CONTEXT",
+  "target_market": "BTCUSDT",
+  "context_market": "ETHUSDT",
+  "primary_role": "MARKET_BREADTH_CONFIRMATION_STATE",
+  "not_role": "SIMPLE_DIRECTION_PREDICTOR",
+  "simple_direction_predictor": false,
+  "lineage_kind": "NEW_MECHANISM_SELECTED_FROM_PROGRAM_LEVEL_INFORMATION_GAP",
+  "parent_scientific_unit": null,
+  "posthoc_child_of_h01_h05": false,
+  "market_01_02_rescue": false,
+  "market_03_replication": false,
+  "market_04_rescue": false,
+  "context_feature_family": "ETH_CONFIRMATION_STATE",
+  "continuous_feature_required": true,
+  "threshold_search_allowed": false,
+  "same_support_required": true,
+  "primary_outcome_family": "FUTURE_BTC_DIRECTION_ALIGNED_ADVERSE_PATH_RISK",
+  "pnl_is_primary_outcome": false,
+  "final_horizon_return_is_primary": false,
+  "scientific_outcomes_inspected": false,
+  "protected_oos_touched": false,
+  "full_preregistration_frozen": false,
+  "implementation_frozen": false,
+  "armed": false,
+  "execution_authorized": false,
+  "scientific_question": "When BTC has a directional displacement, does contemporaneous ETH confirmation add stable incremental information about BTC's subsequent adverse-path risk beyond BTC's own price / path / volatility state?",
+  "intended_mechanism": "BTC movement confirmed by ETH may represent broader crypto-market participation and therefore differ in subsequent path reliability from BTC movement that is weakly confirmed or contradicted by ETH.",
+  "explicitly_not": [
+    "ETH predicts BTC direction",
+    "BTC and ETH are correlated",
+    "buy BTC when ETH rises",
+    "a generic pair-trading hypothesis",
+    "a claim that cross-asset confirmation causes BTC continuation",
+    "a simple direction predictor"
+  ],
+  "target_feature_distinction": {
+    "target": "BTCUSDT",
+    "context_feature_market": "ETHUSDT",
+    "eth_is_independent_replication": false,
+    "one_btc_experiment": true
+  },
+  "conceptual_feature": {
+    "family": "ETH_CONFIRMATION_STATE",
+    "btc_direction": "sign(recent BTC directional displacement)",
+    "eth_confirmation": "BTC_DIRECTION * normalized contemporaneous ETH displacement",
+    "normalization_formula_frozen": false,
+    "continuous_feature_required": true,
+    "threshold_search_allowed": false,
+    "forbidden_in_first_formulation": [
+      "ETH_CONFIRMATION > threshold",
+      "BTC move > optimized threshold",
+      "correlation > optimized threshold",
+      "percentile bucket selection",
+      "top/bottom decile selection",
+      "threshold search",
+      "window search using outcomes",
+      "choosing only large divergences because they look predictive"
+    ]
+  },
+  "baseline_architecture": {
+    "baseline": "BTC-only information available at T",
+    "baseline_allowed_categories": [
+      "BTC directional displacement",
+      "BTC realized volatility",
+      "BTC simple path/range state"
+    ],
+    "candidate": "exact BASELINE + continuous ETH_CONFIRMATION_STATE",
+    "same_support_required": true,
+    "ml_forbidden_in_first_formulation": true,
+    "funding_oi_taker_contamination_forbidden": true,
+    "large_indicator_library_forbidden": true
+  },
+  "outcome_family": {
+    "primary": "FUTURE_BTC_DIRECTION_ALIGNED_ADVERSE_PATH_RISK",
+    "conceptual_form": {
+      "s_T": "sign(BTC displacement before T)",
+      "aligned_future_return": "s_T * log(BTC_price(T+u) / BTC_price(T))",
+      "direction_aligned_adverse_excursion": "maximum excursion against s_T after T"
+    },
+    "computed_in_this_unit": false,
+    "exact_horizon_frozen": false,
+    "exact_primary_statistic_frozen": false,
+    "pnl_must_not_be_primary": true,
+    "final_horizon_return_may_be_secondary_diagnostic_later": true
+  },
+  "same_support": {
+    "same_support_required": true,
+    "missingness_rule": "if BTC missing or ETH missing at T: row ineligible for BOTH baseline and candidate",
+    "no_silent_candidate_only_drop": true,
+    "no_venue_or_instrument_class_fallback": true
+  },
+  "lineage": {
+    "kind": "NEW_MECHANISM_SELECTED_FROM_PROGRAM_LEVEL_INFORMATION_GAP",
+    "parent_scientific_unit": null,
+    "posthoc_child_of_h01_h05": false,
+    "market_01_02_rescue": false,
+    "market_03_replication": false,
+    "market_04_rescue": false,
+    "independent_replication_of_earlier_units": false,
+    "program_level_information_gap_is_not_positive_evidence": true
+  },
+  "market_04_parent_state": {
+    "research_id": "MARKET-04_FUNDING_STATE_ADVERSE_PATH_RISK",
+    "status": "SELECTED",
+    "tested": false,
+    "rejected": false,
+    "blocked_observable": true,
+    "scientific_failure": false,
+    "not_tested": true,
+    "not_rejected": true
+  },
+  "market_04h_state": {
+    "research_id": "MARKET-04H_PREMIUM_INDEX_ADVERSE_PATH_RISK",
+    "status": "MARKET_04H_PREMIUM_OBSERVABLE_BLOCKED",
+    "scientific_failure": false
+  },
+  "anti_rescue_contract": {
+    "cannot_later_be_rescued_by": [
+      "ETH to SOL",
+      "ETH to a basket",
+      "BTC target to another asset",
+      "confirmation sign",
+      "feature normalization",
+      "lookback window",
+      "horizon",
+      "primary outcome",
+      "baseline",
+      "subset",
+      "bull/bear years",
+      "regime",
+      "threshold",
+      "materiality requirement",
+      "uncertainty method"
+    ],
+    "material_change_after_execution_requires_new_research_identity": true
+  },
+  "identifiability": {
+    "later_prereg_must_include_identifiability_contract": true,
+    "must_not_credit_eth_confirmation_as_restated_btc_displacement": true,
+    "outcome_blind_identifiability_diagnostic_performed": false
+  },
+  "interpretation_boundary": {
+    "numeric_success_thresholds_created_in_this_unit": false,
+    "future_positive_means_only": "ETH confirmation added stable incremental historical information about BTC adverse-path risk beyond the frozen BTC-only baseline.",
+    "future_positive_does_not_mean": [
+      "validated alpha",
+      "profitable strategy",
+      "causality",
+      "independent OOS confirmation",
+      "ETH predicts BTC direction",
+      "cross-asset context generally works"
+    ],
+    "future_negative_means_only": "the exact frozen ETH-confirmation formulation did not establish stable incremental information",
+    "future_negative_does_not_mean": "all cross-asset information is useless"
+  },
+  "lifecycle": {
+    "full_preregistration_frozen": false,
+    "implementation_frozen": false,
+    "armed": false,
+    "execution_authorized": false,
+    "scientific_outcomes_inspected": false,
+    "protected_oos_touched": false,
+    "result_created": false,
+    "arm_created": false,
+    "evaluator_implemented": false,
+    "prereg_created": false
+  },
+  "this_unit_does_not": [
+    "run MARKET-05",
+    "inspect future BTC returns",
+    "inspect future MAE",
+    "compute ETH-confirmation correlations with future outcomes",
+    "calculate regression coefficients",
+    "compare confirmation buckets",
+    "test lookbacks or horizons against outcomes",
+    "inspect yearly or regime scientific performance",
+    "optimize normalization",
+    "create RESULT or ARM artifacts",
+    "create a preregistration",
+    "open protected 2025/2026 OOS for parameter or year-retention decisions"
+  ],
+  "next_unit": "OUTCOME_BLIND_MARKET_05_EXACT_PREREGISTRATION",
+  "feasibility_companion": {
+    "path_md": "docs/research/MARKET_05_CROSS_ASSET_DATA_FEASIBILITY.md",
+    "path_json": "docs/research/MARKET_05_CROSS_ASSET_DATA_FEASIBILITY.json"
+  },
+  "pre_m05_head": "e8d77b3b5c016582304db55c6ff2dacff92f0210",
+  "pre_m05_tree": "9c2d3853d2683393adad41f7ac628e2bbfb3c159",
+  "selection_head": "UNSET_UNTIL_THIS_COMMIT",
+  "selection_tree": "UNSET_UNTIL_THIS_COMMIT"
+}
