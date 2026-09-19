@@ -19,8 +19,33 @@ classification: **`NO_EVIDENCE`**. Canonical RESULT:
 `CANONICAL_EXECUTIONS_CONSUMED = 1`. Do not rerun MARKET-01. Do not
 change its thresholds or windows. Post-close `construct_episodes`
 throughput work is infrastructure only and does not reopen the closed
-RESULT. Do not design a large new MARKET
+RESULT. MARKET-03 **preregistration is frozen**
+(`FROZEN_OUTCOME_BLIND`, ceiling `LEVEL_2`). That freeze is not ARM
+or execution. Dedicated funding snapshot is materialized
+(`MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0` / `d47b7b78…`).
+LEVEL_2 implementation is **frozen** at reviewed HEAD `03411aaa…` /
+tree `87a1da25…`. MARKET-03 is **RESULT**
+(`PRIMARY_CLASSIFICATION = REPRODUCED_DIRECTION`; authorized `1`
+consumed `1`). No rerun is authorized.
+Do not design a large new MARKET
 framework. A later market hypothesis requires a new research ID.
+The H + B + MARKET-01..03 evidence state is frozen in
+`docs/research/EVIDENCE_REGISTRY_H_B_M01_M03.md`. MARKET-04 candidate
+identity is selected outcome-blind as
+`MARKET-04_FUNDING_STATE_ADVERSE_PATH_RISK` and is not preregistered,
+armed, or execution-authorized. The funding-availability audit is
+`FUNDING_HISTORICAL_AVAILABILITY_UNRESOLVED`. The MARKET-04H Premium
+Index child is `MARKET_04H_PREMIUM_OBSERVABLE_BLOCKED`. MARKET-04/04H
+remain blocked-observable and are not scientific failures.
+MARKET-05 candidate identity is selected outcome-blind as
+`MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK` and is not
+preregistered, armed, or execution-authorized. BTC/ETH same-exchange
+data feasibility is `MARKET_05_CANDIDATE_FROZEN_DATA_FEASIBLE`. Exact
+MARKET-05 preregistration is frozen outcome-blind
+(`FULL_PREREGISTRATION_FROZEN = true`). Next MARKET-05 step:
+`OUTCOME_BLIND_MARKET_05_IMPLEMENTATION`. Do not
+invent publication latency, do not treat `close_time` as publication
+time, and do not inspect MARKET-05 scientific outcomes.
 Do not create new infrastructure merely because MARKET is beginning. Operating
 priority is approximately 70–80% actual market research and 20–30%
 infrastructure only when concrete research blockers require it. Primary
@@ -290,8 +315,13 @@ not by itself be treated as sufficient evidence of a robust market edge.
 This limitation is not authorization for immediate V4.
 
 Next required V3 step: none authorized. MARKET-01 is closed
-(`FINAL_CLASSIFICATION = NO_EVIDENCE`). A later market hypothesis
-requires a new research ID. Do not rerun MARKET-01.
+(`FINAL_CLASSIFICATION = NO_EVIDENCE`). MARKET-03 preregistration is
+frozen (`FROZEN_OUTCOME_BLIND`, not armed, not executed). Dedicated
+funding snapshot is ready (`d47b7b78…`). Implementation is frozen
+(`03411aaa…` / `87a1da25…`). MARKET-03 is **RESULT**
+(`RUN_IDENTITY` `f68b6de7…`, `REPRODUCED_DIRECTION`, authorized `1`
+consumed `1`). No second canonical execution is authorized.
+Do not rerun MARKET-01.
 Do not rerun V3, do not create V4, and do not execute B2-06.
 
 This methodology closeout does not weaken or bypass the current B2-06 state:

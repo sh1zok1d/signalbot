@@ -1,7 +1,7 @@
 # Signalbot — Historical Data Capability Matrix
 
 **Status:** ACTIVE / RESEARCH DATA DESIGN  
-**Verified:** 2026-08-26; Binance USD-M BTCUSDT funding/OI archive paths listed and schema-sampled for development years on 2026-09-07 as a **design-time listing** for the B2-06 data-expansion freeze (not a materialized snapshot; no B2-06 outcomes).
+**Verified:** 2026-08-26; Binance USD-M BTCUSDT funding/OI archive paths listed and schema-sampled for development years on 2026-09-07 as a **design-time listing** for the B2-06 data-expansion freeze (not a materialized snapshot; no B2-06 outcomes). Binance **SPOT** BTCUSDT native 1h Vision klines materialized 2026-09-18 as `MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0` snapshot `2ce1f504…` for research infrastructure (not a MARKET-03 scientific bind).
 **Scope:** candidate market-data sources for the 2020/2021–2026 research program.
 
 This document answers a narrower question than `HISTORICAL_DATA_STRATEGY.md`:
@@ -111,6 +111,16 @@ Access class:
 | Historical OI | Vision `daily/metrics/BTCUSDT` listed from 2020-09-01; `sum_open_interest` native 5m. Frozen for B2-06 as `B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0` (not CORE) | 5m native | FREE | `OFFICIAL_ARCHIVE` | **B2-06 primary OI**; snapshot `5a9d036b…` materialized; do not make CORE depend on it; do not upsample to 1m |
 | OI via Tardis | captured since 2020-05-13/14 | ~30s REST poll in vendor capture | PAID | `VENDOR_CAPTURED_RAW` / normalized derivative ticker | **RICH candidate** |
 | Liquidations / force orders via Tardis | raw forceOrder channel historically captured; completeness semantics vary by exchange/API era | event/snapshot | PAID | `VENDOR_CAPTURED_RAW` | RICH only; completeness audit mandatory |
+
+### Binance Spot
+
+| Data | Earliest research target / verified availability | Native / useful granularity | Access | Evidence tier | Decision |
+|---|---|---:|---|---|---|
+| BTCUSDT OHLCV | Vision `data/spot/monthly/klines/BTCUSDT/1h/` materialized `[2019-08-01, 2025-01-01)` as `MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0` snapshot `2ce1f504…` | native 1h | FREE | `OFFICIAL_ARCHIVE` | **SPOT PRIMARY for MARKET-03 data gap**; reusable infrastructure, not CORE, not a MARKET-03 scientific bind |
+| Kline taker-buy volume | same spot 1h archive | native 1h | FREE | `OFFICIAL_ARCHIVE` | retained in snapshot; unused by EmaCross |
+| REST USD-M fundingRate | `/fapi/v1/fundingRate` observed `2019-09-10`…`2024-12-31` on an authorized pre-2025 slice; Vision `last_funding_rate`/`calc_time` record-equivalent on 2020-01…2024-12 (5481/5481) | 8h native | FREE | `OFFICIAL_API_HISTORY` / `OFFICIAL_ARCHIVE` | **external EmaCrossFunding source class**; B2-06 Vision ZIP bytes 52/52 identical on 2020-09…2024-12; B2-06 remains unauthorized; publication latency **UNPROVEN** |
+
+Spot klines are a different market from CORE USD-M perpetual klines. Do not substitute.
 
 Important Binance archive note:
 
@@ -242,6 +252,18 @@ Fields:
 No OI requirement.  
 No liquidation requirement.  
 No OKX/Bybit availability requirement.
+
+### `CORE_ETH_BINANCE_V0`
+
+Purpose: same-exchange ETH companion for MARKET-05 cross-asset
+confirmation context. Not an independent ETH CORE program and not a
+second asset replication.
+
+Status on 2026-09-19: `SOURCE_INVENTORY_BOUND_NOT_MATERIALIZED_NOT_ACCEPTED`.
+Official Vision USD-M ETHUSDT 1m objects exist for the same CORE window
+`[2020-01-01T00:00:00Z, 2026-08-26T00:00:00Z)` (104/104 ZIP+CHECKSUM).
+Bar-end-exclusive availability matches `CORE_BTC_BINANCE_V0`. This does
+**not** redefine CORE BTC and is not discovery authorization.
 
 ### `CORE_BTC_BYBIT_REPLICATION_V0`
 
