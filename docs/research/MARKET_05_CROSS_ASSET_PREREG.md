@@ -248,8 +248,7 @@ ABS_Z_BTC = abs(Z_BTC)
 ```
 
 Baseline design matrix: INTERCEPT, BTC_SIDE, ABS_Z_BTC, RV_BTC_24H.
-No technical indicators. No trend filter. No range indicator. No
-funding. No OI. No taker imbalance. No ETH field.
+No technical indicators. No trend filter. No range indicator. No funding. No OI. No taker imbalance. No ETH field.
 
 Candidate = exact BASELINE + ETH_CONFIRMATION.
 No interaction terms. No polynomial terms. No ETH volatility as a
