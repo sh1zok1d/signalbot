@@ -26,15 +26,25 @@ from scripts.research import market05_cross_asset_lib as m05lib
 REPO = Path(__file__).resolve().parents[2]
 
 AUTH_FILES = tuple(sorted(m05arm.SCIENTIFIC_IMPLEMENTATION_HASHES))
+# The ARM authority cannot pin its own hash, and the authority root pins it
+# instead; both must exist in a fixture repo for the root of trust to run.
+ROOT_FILES = (
+    m05arm.ARM_AUTHORITY_REL,
+    m05arm.AUTHORITY_ROOT_REL,
+)
 DOC_FILES = (
     m05arm.PREREG_MD_REL,
     m05arm.PREREG_JSON_REL,
+    m05arm.REFREEZE_JSON_REL,
 )
 
 
 def _bind(monkeypatch, repo: Path) -> None:
     """Point the production authority at an isolated temp repository."""
+    from scripts.research import market05_cross_asset_authority_root as _root
+
     monkeypatch.setattr(m05arm, "_repo_root", lambda: repo)
+    monkeypatch.setattr(_root, "_repo_root", lambda: repo)
 
 
 def _git(repo: Path, *argv: str) -> None:
@@ -46,7 +56,7 @@ def _git(repo: Path, *argv: str) -> None:
 def _fixture_repo(tmp_path: Path) -> Path:
     """Isolated repo carrying the REAL frozen bytes, plus git tracking."""
     repo = tmp_path / "repo"
-    for rel in AUTH_FILES + DOC_FILES:
+    for rel in AUTH_FILES + ROOT_FILES + DOC_FILES:
         dst = repo / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(REPO / rel, dst)
@@ -363,8 +373,13 @@ def test_implementation_mutated_after_arm_refused(tmp_path, monkeypatch):
     assert m05arm.market_05_execution_is_authorized() is True
     target = repo / m05arm.LIB_REL
     target.write_text(target.read_text(encoding="utf-8") + "\n# mutated\n", encoding="utf-8")
+    # The authority root now catches this before the sha256 layer: it runs
+    # first and refuses on git blob identity.
+    from scripts.research import market05_cross_asset_authority_root as _root
+
     with pytest.raises(
-        m05arm.Market05ArmAuthorityError, match="IMPLEMENTATION_BYTE_IDENTITY_MISMATCH"
+        (_root.Market05AuthorityRootError, m05arm.Market05ArmAuthorityError),
+        match="BLOB_MISMATCH|IMPLEMENTATION_BYTE_IDENTITY_MISMATCH",
     ):
         m05arm.authenticate_market_05_arm()
     assert m05arm.market_05_execution_is_authorized() is False
@@ -671,14 +686,19 @@ def test_frozen_scientific_math_is_unchanged_by_the_repair():
     ).stdout
     live = (REPO / m05arm.LIB_REL).read_text(encoding="utf-8")
 
-    def _before_result_fn(text: str) -> str:
-        marker = "def instantiate_scientific_result("
+    def _math_section(text: str) -> str:
+        # Everything before the RESULT schema/serialization block: features,
+        # outcomes, folds, standardization, OLS, bootstrap, classification.
+        marker = "RESULT_SCHEMA_KEYS = ("
         assert marker in text
         return text.split(marker)[0]
 
-    # Everything preceding the RESULT function is byte-identical: features,
-    # outcomes, folds, standardization, OLS, bootstrap, classification.
-    assert _before_result_fn(frozen) == _before_result_fn(live)
+    assert _math_section(frozen) == _math_section(live)
+
+    # The only post-marker changes are RESULT provenance schema 1.1.0 and
+    # the RESULT-authority function: no statistic, gate or constant.
+    for banned in ("def evaluate_prepared_rows", "def classify", "def fit_ols"):
+        assert _math_section(live).count(banned) == _math_section(frozen).count(banned)
 
 
 def test_scientific_constants_match_the_frozen_prereg_values():
@@ -720,4 +740,171 @@ def test_evaluator_output_is_deterministic_across_repeat_runs():
     )
     assert json.dumps(a, sort_keys=True, default=str) == json.dumps(
         b, sort_keys=True, default=str
+    )
+
+
+# =============================================================================
+# Authority root of trust: the ARM authority cannot vouch for itself.
+# =============================================================================
+
+from scripts.research import market05_cross_asset_authority_root as m05root  # noqa: E402
+
+
+def test_authority_root_pins_the_arm_authority_blob():
+    assert m05root.ARM_AUTHORITY_REL in m05root.FROZEN_BLOB_IDS
+    # ...and the ARM authority does NOT pin its own sha256 (self-reference).
+    assert m05arm.ARM_AUTHORITY_REL not in m05arm.SCIENTIFIC_IMPLEMENTATION_HASHES
+
+
+def test_authority_root_blob_ids_match_live_bytes():
+    seen = m05root.verify_frozen_blob_ids()
+    assert set(seen) == set(m05root.FROZEN_BLOB_IDS)
+    for rel, blob in seen.items():
+        assert blob == m05root.git_blob_id((REPO / rel).read_bytes())
+
+
+def test_git_blob_id_matches_git_hash_object():
+    rel = m05root.ARM_AUTHORITY_REL
+    expected = subprocess.run(
+        ["git", "hash-object", rel],
+        cwd=str(REPO), capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    assert m05root.git_blob_id((REPO / rel).read_bytes()) == expected
+
+
+def test_arm_authority_mutation_after_arm_is_refused(tmp_path, monkeypatch):
+    """THE root-repair test: mutate the ARM authority itself."""
+    repo = _armed_repo(tmp_path)
+    _bind(monkeypatch, repo)
+
+    # Baseline: the unmutated ARM authority passes the root check.
+    m05root.verify_frozen_blob_ids()
+
+    target = repo / m05arm.ARM_AUTHORITY_REL
+    target.write_text(
+        target.read_text(encoding="utf-8").replace(
+            'if payload.get("MARKET_05_ARMED") is not True:',
+            "if False:",
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(
+        m05root.Market05AuthorityRootError, match="BLOB_MISMATCH"
+    ):
+        m05root.verify_frozen_blob_ids()
+    with pytest.raises(m05root.Market05AuthorityRootError, match="BLOB_MISMATCH"):
+        m05root.verify_authority_root()
+    # Refused BEFORE any scientific data loading.
+    with pytest.raises(m05root.Market05AuthorityRootError, match="BLOB_MISMATCH"):
+        m05exec.load_bound_development_rows()
+
+
+@pytest.mark.parametrize(
+    "rel",
+    [
+        "scripts/research/market05_cross_asset_lib.py",
+        "scripts/research/market05_cross_asset_authority.py",
+        "scripts/research/market05_cross_asset_data.py",
+        "scripts/research/market05_cross_asset_canonical_execution.py",
+        "scripts/research/market05_cross_asset.py",
+    ],
+)
+def test_any_scientific_file_mutation_refused_by_root(tmp_path, monkeypatch, rel):
+    repo = _armed_repo(tmp_path)
+    _bind(monkeypatch, repo)
+    target = repo / rel
+    target.write_text(target.read_text(encoding="utf-8") + "\n# mutated\n", encoding="utf-8")
+    with pytest.raises(
+        m05root.Market05AuthorityRootError, match=f"BLOB_MISMATCH:{rel}"
+    ):
+        m05root.verify_frozen_blob_ids()
+
+
+def test_authority_root_symlink_refused(tmp_path, monkeypatch):
+    repo = _armed_repo(tmp_path)
+    _bind(monkeypatch, repo)
+    target = repo / m05arm.ARM_AUTHORITY_REL
+    real = repo / "elsewhere_authority.py"
+    real.write_bytes(target.read_bytes())
+    target.unlink()
+    target.symlink_to(real)
+    with pytest.raises(m05root.Market05AuthorityRootError, match="SYMLINK_REFUSED"):
+        m05root.verify_frozen_blob_ids()
+
+
+def test_run_identity_binds_the_authority_root_blob_ids():
+    p = m05arm.scientific_run_identity_payload()
+    assert p["arm_authority_file"] == m05arm.ARM_AUTHORITY_REL
+    assert p["authority_root_file"] == m05arm.AUTHORITY_ROOT_REL
+    assert (
+        p["authority_root_blob_ids"][m05arm.ARM_AUTHORITY_REL]
+        == m05root.FROZEN_BLOB_IDS[m05arm.ARM_AUTHORITY_REL]
+    )
+
+
+# =============================================================================
+# Provenance: exact, non-placeholder, and honestly distinguished.
+# =============================================================================
+
+
+def test_frozen_provenance_is_exact_and_not_a_placeholder():
+    prov = m05root.load_frozen_provenance()
+    for key in ("head", "tree"):
+        assert len(prov[key]) == 40
+        assert "UNSET" not in prov[key]
+        int(prov[key], 16)  # must be a real hex object id
+
+
+def test_refreeze_distinguishes_scientific_commit_from_docs_commit():
+    payload = json.loads((REPO / m05arm.REFREEZE_JSON_REL).read_text(encoding="utf-8"))
+    sci = payload["scientific_implementation_head"]
+    assert "UNSET" not in sci
+    # A docs-only authority commit must never be presented as the
+    # scientific implementation commit.
+    assert payload["authority_root_head"] != sci
+    assert payload["authority_root_commit_is_documentation_only"] is True
+
+
+def test_authority_root_verifies_against_the_frozen_commit():
+    out = m05root.verify_authority_root()
+    assert out["git_verified"] is True
+    assert out["scientific_implementation_head"] == (
+        m05root.load_frozen_provenance()["head"]
+    )
+
+
+# =============================================================================
+# RESULT provenance schema 1.1.0.
+# =============================================================================
+
+
+def test_result_schema_has_separate_commit_and_hash_fields():
+    keys = m05lib.RESULT_SCHEMA_KEYS
+    assert "implementation_head" in keys
+    assert "implementation_tree" in keys
+    assert "scientific_implementation_hashes" in keys
+    assert m05arm.RESULT_SCHEMA_IDENTITY == "market_05_cross_asset_result/1.1.0"
+
+
+def test_result_fixture_carries_exact_head_tree_and_separate_hash_map(
+    tmp_path, monkeypatch
+):
+    repo = _armed_repo(tmp_path)
+    _bind(monkeypatch, repo)
+
+    evaluation = {"classification": m05lib.CLASS_NO_EVIDENCE}
+    payload = m05exec._assemble_result_payload(
+        evaluation, m05arm.derive_market_05_run_identity()
+    )
+    result = m05lib.instantiate_scientific_result(payload)
+
+    prov = m05root.load_frozen_provenance()
+    assert result["implementation_head"] == prov["head"]
+    assert result["implementation_tree"] == prov["tree"]
+    assert isinstance(result["implementation_head"], str)
+    assert isinstance(result["implementation_tree"], str)
+    # Commit fields must NOT be overloaded with the hash map.
+    assert result["implementation_head"] != result["scientific_implementation_hashes"]
+    assert result["scientific_implementation_hashes"] == dict(
+        sorted(m05arm.SCIENTIFIC_IMPLEMENTATION_HASHES.items())
     )

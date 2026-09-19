@@ -760,8 +760,12 @@ RESULT_SCHEMA_KEYS = (
     "research_id",
     "prereg_md_sha256",
     "prereg_json_sha256",
+    # Commit provenance and per-file identity are SEPARATE fields; the
+    # commit fields carry exact git SHAs and are never overloaded with a
+    # hash map (schema 1.1.0).
     "implementation_head",
     "implementation_tree",
+    "scientific_implementation_hashes",
     "btc_dataset_id",
     "btc_snapshot_id",
     "eth_dataset_id",

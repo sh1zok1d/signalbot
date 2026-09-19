@@ -156,7 +156,16 @@ def load_bound_development_rows() -> list[EligibleRow]:
 
     Dataset roots and snapshot identity come from frozen authority, never
     from a caller, so no alternate data path can be substituted.
+
+    The independent authority root is verified BEFORE the ARM authority is
+    invoked, so a mutation of the ARM-authority module itself is refused
+    before any scientific data is opened.
     """
+    from scripts.research.market05_cross_asset_authority_root import (
+        verify_authority_root,
+    )
+
+    verify_authority_root()
     authenticate_market_05_canonical_execution()
 
     btc_checksums = _load_snapshot_checksums(
@@ -218,6 +227,11 @@ def run_canonical_market_05_execution(*args: Any, **kwargs: Any) -> dict[str, An
         raise Market05CanonicalExecutionNotAuthorized(
             "caller arguments cannot redefine MARKET-05 canonical execution"
         )
+    from scripts.research.market05_cross_asset_authority_root import (
+        verify_authority_root,
+    )
+
+    verify_authority_root()
     bound = authenticate_market_05_canonical_execution()
     run_identity = bound["run_identity"]
     if run_identity != derive_market_05_run_identity():
@@ -259,14 +273,24 @@ def _assemble_result_payload(
         RESEARCH_ID,
     )
 
+    from scripts.research.market05_cross_asset_authority_root import (
+        SCIENTIFIC_IMPLEMENTATION_HEAD,
+        SCIENTIFIC_IMPLEMENTATION_TREE,
+    )
+
     payload: dict[str, Any] = {key: None for key in RESULT_SCHEMA_KEYS}
     payload.update(
         {
             "research_id": RESEARCH_ID,
             "prereg_md_sha256": FROZEN_PREREG_MD_SHA256,
             "prereg_json_sha256": FROZEN_PREREG_JSON_SHA256,
-            "implementation_head": SCIENTIFIC_IMPLEMENTATION_HASHES,
-            "implementation_tree": None,
+            # Commit provenance: exact git SHAs, never a hash map.
+            "implementation_head": SCIENTIFIC_IMPLEMENTATION_HEAD,
+            "implementation_tree": SCIENTIFIC_IMPLEMENTATION_TREE,
+            # Per-file identity, kept separate from commit provenance.
+            "scientific_implementation_hashes": dict(
+                sorted(SCIENTIFIC_IMPLEMENTATION_HASHES.items())
+            ),
             "btc_dataset_id": BTC_DATASET_ID,
             "btc_snapshot_id": BTC_SNAPSHOT_ID,
             "eth_dataset_id": ETH_DATASET_ID,

@@ -54,6 +54,7 @@ ARM_AUTHORITY_REL = "scripts/research/market05_cross_asset_arm_authority.py"
 CLI_REL = "scripts/research/market05_cross_asset.py"
 DATA_REL = "scripts/research/market05_cross_asset_data.py"
 EXECUTION_REL = "scripts/research/market05_cross_asset_canonical_execution.py"
+AUTHORITY_ROOT_REL = "scripts/research/market05_cross_asset_authority_root.py"
 ETH_ACCEPTOR_LIB_REL = "scripts/research/core_eth_binance_v0_acceptor_lib.py"
 
 BTC_SNAPSHOT_DOC_REL = "docs/research_data/CORE_BTC_BINANCE_V0/SNAPSHOT_717d37a4.json"
@@ -110,17 +111,19 @@ SCIENTIFIC_CONSTANTS: dict[str, Any] = {
 # This module cannot pin its own hash (self-reference); the ARM CONTRACT and
 # the re-freeze artifact bind ARM_AUTHORITY_REL instead.
 SCIENTIFIC_IMPLEMENTATION_HASHES: dict[str, str] = {
-    LIB_REL: "2f5f9384a917111782c0f2d8822f2a31577ce0f3fdc83f194a0a32f6911b8a24",
+    LIB_REL: "b0e3f441d23f372efc18c94adaab033e9eb9a219654954e1312b42489cf61274",
     AUTHORITY_REL: "441f48f438ca6a240911bd3de8a8a96f1a9e93c1b182a4ebb0d2b09da26bb9fc",
     CLI_REL: "1a587d58c970e99c5db49478f89cfb5f040537658ff8034af403fa378f0a997c",
     DATA_REL: "f7a3b0ceed2e691716346a89e4800def29f2e7526559dda0407bb1d33d6c8357",
-    EXECUTION_REL: "bbf7371bc53ac931dac7f9361a1b6ac8a41700cdd9fdd86662dbf65bb11ac348",
+    EXECUTION_REL: "df9bf457d379a3810ce98b06545b138fc813aa9b8fa49a48f11ca124f0f2c67d",
     ETH_ACCEPTOR_LIB_REL: (
         "6f86ae1ed08fe7595a0de3eb4e0c273aa2850a8238675d72696bbd088c118764"
     ),
 }
 
-RESULT_SCHEMA_IDENTITY = "market_05_cross_asset_result/1.0.0"
+# 1.1.0 separates commit provenance (implementation_head/implementation_tree,
+# exact git SHAs) from per-file identity (scientific_implementation_hashes).
+RESULT_SCHEMA_IDENTITY = "market_05_cross_asset_result/1.1.0"
 
 CANONICAL_EXECUTIONS_AUTHORIZED_EXPECTED = 1
 
@@ -258,6 +261,12 @@ def scientific_run_identity_payload() -> dict[str, Any]:
         "scientific_implementation_hashes": dict(
             sorted(SCIENTIFIC_IMPLEMENTATION_HASHES.items())
         ),
+        # The ARM authority itself is part of the bound identity. It cannot
+        # pin its own hash here (self-reference), so RUN_IDENTITY binds the
+        # authority-root module that carries its git blob id instead.
+        "arm_authority_file": ARM_AUTHORITY_REL,
+        "authority_root_file": AUTHORITY_ROOT_REL,
+        "authority_root_blob_ids": _authority_root_blob_ids(),
         "btc_dataset_id": BTC_DATASET_ID,
         "btc_snapshot_id": BTC_SNAPSHOT_ID,
         "eth_dataset_id": ETH_DATASET_ID,
@@ -288,6 +297,47 @@ def authenticate_frozen_prereg_bytes(*args: Any, **kwargs: Any) -> dict[str, str
     if md != FROZEN_PREREG_MD_SHA256 or js != FROZEN_PREREG_JSON_SHA256:
         raise Market05ArmAuthorityError("MARKET_05_PREREG_BYTE_IDENTITY_MISMATCH")
     return {"prereg_md_sha256": md, "prereg_json_sha256": js}
+
+
+def _refusal_exceptions() -> tuple[type[BaseException], ...]:
+    """Every exception class that means "not authorized", never a crash.
+
+    Includes the authority-root failure, so a mutated authority module
+    fails CLOSED (reported as unauthorized) instead of propagating.
+    """
+    from scripts.research.market05_cross_asset_authority_root import (
+        Market05AuthorityRootError,
+    )
+
+    return (
+        Market05ArmAuthorityError,
+        Market05CanonicalExecutionNotAuthorized,
+        Market05AuthorityRootError,
+        OSError,
+        json.JSONDecodeError,
+    )
+
+
+def _authority_root():
+    """Lazily resolve the independent authority-root module."""
+    from scripts.research import market05_cross_asset_authority_root as root
+
+    return root
+
+
+def _authority_root_blob_ids() -> dict[str, str]:
+    """Git blob ids pinned by the authority root, including this module's.
+
+    Bound into RUN_IDENTITY so the ARM authority's own bytes are part of
+    the canonical identity without this module attesting to itself.
+    """
+    return dict(sorted(_authority_root().FROZEN_BLOB_IDS.items()))
+
+
+def verify_authority_root(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Delegate to the independent root of trust."""
+    _reject_caller_kwargs(args, kwargs)
+    return _authority_root().verify_authority_root()
 
 
 def authenticate_frozen_scientific_bytes(*args: Any, **kwargs: Any) -> dict[str, str]:
@@ -334,6 +384,9 @@ def authenticate_market_05_arm(*args: Any, **kwargs: Any) -> dict[str, Any]:
     protected-OOS authorization, and already-consumed authorizations.
     """
     _reject_caller_kwargs(args, kwargs)
+    # Independent root of trust FIRST: proves this module's own bytes are
+    # the frozen ones before any of its decisions are relied upon.
+    verify_authority_root()
     authenticate_frozen_prereg_bytes()
     authenticate_frozen_scientific_bytes()
 
@@ -478,12 +531,7 @@ def market_05_execution_is_authorized() -> bool:
     """Non-raising predicate used by the frozen pre-ARM barrier."""
     try:
         authenticate_market_05_canonical_execution()
-    except (
-        Market05ArmAuthorityError,
-        Market05CanonicalExecutionNotAuthorized,
-        OSError,
-        json.JSONDecodeError,
-    ):
+    except _refusal_exceptions():
         return False
     return True
 
@@ -507,12 +555,7 @@ def inspect_market_05_arm_state() -> dict[str, Any]:
             "MARKET_05_TEST_CALIBRATED": False,
             "PROTECTED_OOS_AUTHORIZED": False,
         }
-    except (
-        Market05ArmAuthorityError,
-        Market05CanonicalExecutionNotAuthorized,
-        OSError,
-        json.JSONDecodeError,
-    ):
+    except _refusal_exceptions():
         return {
             "MARKET_05_ARMED": False,
             "IMPLEMENTATION_FROZEN": True,
