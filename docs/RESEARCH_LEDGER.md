@@ -3580,3 +3580,23 @@ NEXT_UNIT = OUTCOME_BLIND_FUNDING_AVAILABILITY_AND_MARKET04_DESIGN_FEASIBILITY
 ```
 
 Evidence: `docs/research/MARKET_04_CANDIDATE_SELECTION.md`.
+
+## 2026-09-19 — MARKET-04 funding availability audit unresolved
+
+Outcome-blind first-party temporal-authority audit from candidate HEAD
+`33ef399…` / tree `04ae63d…`. No MARKET-04 execution, outcomes, ARM,
+evaluator, or preregistration. MARKET-03 `fundingTime` assumption was
+not treated as authority. No latency was invented.
+
+```text
+audit_outcome = FUNDING_HISTORICAL_AVAILABILITY_UNRESOLVED
+historical_availability_proven = false
+legal_available_at_rule = null
+market_04_funding_observable_usable = false
+execution_authorized = false
+B2_06_FUNDING_BLOCKER_IMPLICATION = UNCHANGED
+protected_oos_touched = false
+MARKET_04_NEXT_STEP = BLOCKED_OBSERVABLE_OR_NEW_CANDIDATE_SELECTION
+```
+
+Evidence: `docs/research/MARKET_04_FUNDING_AVAILABILITY_AUDIT.md`.

@@ -1,0 +1,42 @@
+{
+  "schema": "signalbot_market_04_funding_availability_source_bind",
+  "accessed_at": "2026-09-19",
+  "scientific_outcomes_inspected": false,
+  "protected_oos_touched": false,
+  "objects": [
+    {
+      "id": "BINANCE_PUBLIC_DATA_README",
+      "publisher": "Binance",
+      "url": "https://raw.githubusercontent.com/binance/binance-public-data/master/README.md",
+      "repo_path": "docs/research_data/MARKET_04_FUNDING_AVAILABILITY_AUDIT/BINANCE_PUBLIC_DATA_README.md",
+      "sha256": "085ab91377aa9325d44f4c7ad27cce4ab381e158403e1d7df2bad39d1a66f7c6",
+      "retained_in_git": true
+    },
+    {
+      "id": "WAYBACK_20220315_UM_FUTURES_HTML",
+      "publisher": "Binance / Internet Archive copy of official docs",
+      "url": "https://web.archive.org/web/20220315120000id_/https://binance-docs.github.io/apidocs/futures/en/",
+      "original_url": "https://binance-docs.github.io/apidocs/futures/en/",
+      "sha256": "e152c724228a18a87f685f1987231ef1f5bf00770aaa2b863c9dd6382b59134e",
+      "retained_in_git": false,
+      "excerpt_path": "docs/research_data/MARKET_04_FUNDING_AVAILABILITY_AUDIT/WAYBACK_20220315_UM_FUTURES_FUNDING_EXCERPT.md",
+      "note": "Full HTML was hashed at access time; repo retains the funding-relevant excerpt only."
+    },
+    {
+      "id": "BINANCE_FUTURES_CONNECTOR_UM_MARKET_PY",
+      "publisher": "Binance",
+      "url": "https://raw.githubusercontent.com/binance/binance-futures-connector-python/main/binance/um_futures/market.py",
+      "sha256": "9e55db014233d92bad66a90ec36212f1fada7f1f93a092ec5d6bc9298988659f",
+      "retained_in_git": false,
+      "note": "Official connector retrieved at access time for current endpoint identity; not treated as publication-clock authority."
+    },
+    {
+      "id": "BINANCE_COINM_DELIVERY_TESTNET_APIDOCS",
+      "publisher": "Binance",
+      "url": "https://binance-docs.github.io/apidocs/delivery_testnet/en/",
+      "sha256": "c5f5398dd8a58a0520b8e895350b6e039242e86458b8c002f417f32309a649c2",
+      "retained_in_git": false,
+      "note": "COIN-M testnet HTML retrieved at access time as corroborating first-party field names. Not USD-M production publication authority."
+    }
+  ]
+}

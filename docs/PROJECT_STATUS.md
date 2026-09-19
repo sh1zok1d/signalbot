@@ -272,9 +272,13 @@ identity is now selected outcome-blind as
 `MARKET-04_FUNDING_STATE_ADVERSE_PATH_RISK` (`RISK_STATE_FILTER`,
 primary family `FUTURE_ADVERSE_PATH_RISK`) in
 `docs/research/MARKET_04_CANDIDATE_SELECTION.md`. That selection is not
-a preregistration, ARM, or execution authorization. Funding legal
-historical availability remains `UNRESOLVED`. Next unit:
-`OUTCOME_BLIND_FUNDING_AVAILABILITY_AND_MARKET04_DESIGN_FEASIBILITY`.
+a preregistration, ARM, or execution authorization. The outcome-blind
+funding-availability audit in
+`docs/research/MARKET_04_FUNDING_AVAILABILITY_AUDIT.md` concludes
+`FUNDING_HISTORICAL_AVAILABILITY_UNRESOLVED`. Settled funding
+`legal_available_at` remains unset. MARKET-04 is `BLOCKED_OBSERVABLE`.
+Next step:
+`BLOCKED_OBSERVABLE_OR_NEW_CANDIDATE_SELECTION`.
 
 Post-calibration operating priority:
 
