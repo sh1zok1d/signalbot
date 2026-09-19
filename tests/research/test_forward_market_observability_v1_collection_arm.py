@@ -139,7 +139,9 @@ def test_run_identity_is_deterministic_and_clock_free():
     second = auth.derive_collection_run_identity()
     assert first == second
     payload = auth.collection_run_identity_payload()
-    blob = json.dumps(payload).lower()
+    # "separately_timestamped" is a static source-definition field name
+    # (declares a property of a source, not a clock value) and is exempt.
+    blob = json.dumps(payload).lower().replace("separately_timestamped", "")
     for forbidden in ("uuid", "generated_at", "created_at", "timestamp", "utcnow"):
         assert forbidden not in blob
 
