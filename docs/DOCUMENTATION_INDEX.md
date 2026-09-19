@@ -38,8 +38,14 @@ Read these first:
 | `research/EVIDENCE_REGISTRY_H_B_M01_M03.json` | **FROZEN HISTORICAL SNAPSHOT twin** | Machine-readable twin of the 14-unit historical snapshot; SHA256 `0892f66d…` |
 | `research/MARKET_05_PROGRAM_INTERPRETATION.md` | **PROGRAM CLOSEOUT / NOT A NEW EXPERIMENT** | Binds MARKET-05 RESULT `828c6916…` / `MARKET_05_NO_EVIDENCE`; pauses same-information-set generation; next phase `INFORMATION_SET_EXPANSION` |
 | `research/MARKET_05_PROGRAM_INTERPRETATION.json` | **PROGRAM CLOSEOUT twin** | Machine-readable twin; `market_06_created=false`; `scientific_outcomes_inspected_during_update=false` |
-| `research/FORWARD_MARKET_OBSERVABILITY_V1.md` | **DESIGN ONLY / NOT IMPLEMENTED** | Forward funding/premium/leverage collection design; `legal_available_at=local_received_at_utc`; not a hypothesis test |
-| `research/FORWARD_MARKET_OBSERVABILITY_V1_COLLECTOR_CONTRACT.json` | **DESIGN ONLY contract draft** | Machine-readable collector contract; `implementation_authorized=false`; `computes_scientific_outcomes=false` |
+| `research/FORWARD_MARKET_OBSERVABILITY_V1.md` | **DESIGN / IMPLEMENTED_FROZEN** | Forward funding/premium/leverage collection design; `legal_available_at=local_received_at_utc`; not a hypothesis test |
+| `research/FORWARD_MARKET_OBSERVABILITY_V1_COLLECTOR_CONTRACT.json` | **IMPLEMENTED_FROZEN contract** | Machine-readable collector contract; `authoritative_collection_started=false`; `computes_scientific_outcomes=false` |
+| `research/FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION.md` | **IMPLEMENTATION / NOT AUTHORITATIVE COLLECTION** | Binance USD-M BTCUSDT acquisition package; CLI `smoke` / refused `collect` |
+| `research/FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION_FREEZE.md` | **IMPLEMENTATION_FROZEN / CURRENT COLLECTOR FREEZE AUTHORITY** | Freeze of collector SHA256 map + schema identities; not collection start; not M04-FWD |
+| `research/FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION_FREEZE.json` | **IMPLEMENTATION_FROZEN twin** | `collector_head`/`tree` `UNSET_UNTIL_THIS_COMMIT`; `authoritative_collection_start_utc=null` |
+| `research/FORWARD_MARKET_OBSERVABILITY_V1_CONFIG.json` | **COLLECTOR CONFIG IDENTITY** | BTCUSDT USD-M sources; OI separately timestamped; not scientific evidence |
+| `research/FORWARD_MARKET_OBSERVABILITY_V1_SCHEMAS.json` | **COLLECTOR SCHEMA IDENTITY** | Raw envelope / chunk / manifest schema ids; legal_available_at rule |
+| `scripts/research/forward_market_observability_v1/` | **IMPLEMENTATION_FROZEN collector** | Hypothesis-neutral acquisition; raw append-only evidence; no scientific outcomes |
 | `research/MARKET_04_CANDIDATE_SELECTION.md` | **CANDIDATE IDENTITY FROZEN / NOT PREREGISTERED / NOT AUTHORIZED** | Outcome-blind MARKET-04 identity `MARKET-04_FUNDING_STATE_ADVERSE_PATH_RISK`; role `RISK_STATE_FILTER`; funding availability later audited as still unresolved; no ARM/RESULT |
 | `research/MARKET_04_CANDIDATE_SELECTION.json` | **CANDIDATE IDENTITY FROZEN twin** | Machine-readable twin; `execution_authorized=false`; `independent_replication_of_market_03=false` |
 | `research/MARKET_04_FUNDING_AVAILABILITY_AUDIT.md` | **TEMPORAL AUTHORITY / UNRESOLVED** | Outcome-blind first-party audit of Binance settled-funding publication; `FUNDING_HISTORICAL_AVAILABILITY_UNRESOLVED`; `legal_available_at` unset; does not ARM/execute MARKET-04 or B2-06 |

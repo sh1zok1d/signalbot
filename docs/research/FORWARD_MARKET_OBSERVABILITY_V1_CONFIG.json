@@ -1,0 +1,43 @@
+{
+  "schema": "forward_market_observability_v1_config/1.0.0",
+  "instrument": "BTCUSDT",
+  "market_type": "BINANCE_USD_M_FUTURES",
+  "venue": "binance",
+  "root_dir": "artifacts/forward_market_observability_v1",
+  "chunk_max_messages": 100,
+  "chunk_max_bytes": 1048576,
+  "scientific_outcomes_forbidden": true,
+  "authoritative_collection_authorized": false,
+  "m04_fwd_created": false,
+  "market_06_created": false,
+  "sources": [
+    {
+      "source_id": "BINANCE_UM_BTCUSDT_MARK_PRICE_WS",
+      "family": "mark_price_funding_next_funding",
+      "transport": "websocket",
+      "endpoint": "wss://fstream.binance.com/ws/btcusdt@markPrice@1s",
+      "stream": "btcusdt@markPrice@1s",
+      "instrument": "BTCUSDT"
+    },
+    {
+      "source_id": "BINANCE_UM_BTCUSDT_PREMIUM_INDEX_REST",
+      "family": "premium_index_basis",
+      "transport": "rest",
+      "endpoint": "https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT",
+      "stream": "GET /fapi/v1/premiumIndex",
+      "poll_interval_seconds": 5,
+      "instrument": "BTCUSDT"
+    },
+    {
+      "source_id": "BINANCE_UM_BTCUSDT_OPEN_INTEREST_REST",
+      "family": "open_interest",
+      "transport": "rest",
+      "endpoint": "https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT",
+      "stream": "GET /fapi/v1/openInterest",
+      "poll_interval_seconds": 5,
+      "instrument": "BTCUSDT",
+      "separately_timestamped": true,
+      "must_not_merge_clock_with": "BINANCE_UM_BTCUSDT_MARK_PRICE_WS"
+    }
+  ]
+}

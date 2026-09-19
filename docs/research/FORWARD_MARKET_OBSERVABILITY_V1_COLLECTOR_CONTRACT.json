@@ -1,11 +1,15 @@
 {
-  "schema": "signalbot_forward_market_observability_v1_collector_contract_draft",
+  "schema": "signalbot_forward_market_observability_v1_collector_contract",
   "schema_version": "1.0.0",
-  "status": "DESIGN_ONLY_NOT_IMPLEMENTED",
-  "implementation_authorized": false,
+  "status": "IMPLEMENTED_FROZEN_NOT_AUTHORITATIVE_COLLECTION",
+  "implementation_authorized": true,
+  "implementation_frozen": true,
   "scientific_test_authorized": false,
+  "authoritative_collection_started": false,
+  "authoritative_collection_start_utc": null,
   "market_hypothesis_frozen": false,
   "market_06_created": false,
+  "m04_fwd_created": false,
   "thresholds_selected": false,
   "outcome_gates_defined": false,
   "computes_scientific_outcomes": false,
@@ -22,19 +26,24 @@
   "legal_available_at_rule": "local_received_at_utc",
   "legal_available_at_is_not": "exchange_event_time",
   "stronger_legal_available_at_requires_separate_proof": true,
+  "websocket_authoritative_raw_bytes": "exact application-message payload bytes delivered by the WebSocket client after transport framing/decompression but BEFORE JSON/text parsing",
+  "rest_authoritative_raw_bytes": "exact HTTP response body bytes returned by the client BEFORE JSON parsing",
   "raw_record_required_fields": [
-    "local_received_at_utc",
-    "exchange_event_time_if_present",
+    "schema_version",
+    "session_id",
+    "source_id",
     "instrument",
-    "stream_or_source",
-    "raw_exact_message_bytes",
-    "sha256_raw_bytes",
-    "collector_version_git_identity",
-    "connection_session_identity",
-    "sequence_or_order_information_where_available"
+    "local_received_at_utc",
+    "local_received_monotonic_ns",
+    "legal_available_at",
+    "raw_payload_length",
+    "raw_payload_sha256",
+    "raw_payload",
+    "transport"
   ],
   "parsed_record_may_replace_raw_immutable_evidence": false,
   "received_at_generated_before_parsing_or_analysis": true,
+  "monotonic_receipt_captured": true,
   "observable_family_supported_where_legitimately_available": [
     "funding_rate_state",
     "premium_basis_state",
@@ -42,6 +51,8 @@
     "next_funding_metadata",
     "open_interest_state_via_separately_timestamped_collector"
   ],
+  "initial_instrument": "BTCUSDT",
+  "initial_market_type": "BINANCE_USD_M_FUTURES",
   "immutability": {
     "raw_messages_append_only": true,
     "each_object_or_chunk_has_sha256": true,
@@ -56,5 +67,10 @@
     "coverage_holes_recorded_not_filled_by_exchange_event_time": true,
     "live_backfill_must_not_be_labeled_as_original_live_receipt": true
   },
-  "next_unit": "FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION"
+  "smoke_data_scientifically_excluded": true,
+  "implementation_docs": [
+    "docs/research/FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION.md",
+    "docs/research/FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION_FREEZE.md"
+  ],
+  "next_unit": "FORWARD_MARKET_OBSERVABILITY_V1_AUTHORITATIVE_COLLECTION_START"
 }

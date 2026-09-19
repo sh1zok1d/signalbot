@@ -308,15 +308,15 @@ Further immediate same-information-set hypothesis generation is
 the existing price/OI/cross-asset information set.
 
 Next program phase: **`INFORMATION_SET_EXPANSION`**. Initial target:
-**`POINT_IN_TIME_FUNDING_PREMIUM_OBSERVABILITY`**. Design-only
-collector contract:
-`docs/research/FORWARD_MARKET_OBSERVABILITY_V1.md`. Conservative
-`legal_available_at = local_received_at_utc`. Do not implement/run the
-collector in this unit. Do not freeze a new MARKET hypothesis. Do not
-attempt a third historical proxy salvage. This does not guarantee that
-funding will work.
+**`POINT_IN_TIME_FUNDING_PREMIUM_OBSERVABILITY`**. Collector
+implementation is **frozen**:
+`docs/research/FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION_FREEZE.md`.
+Conservative `legal_available_at = local_received_at_utc`. Authoritative
+collection has **not** started. Do not freeze a new MARKET hypothesis.
+Do not create M04-FWD. Do not attempt a third historical proxy salvage.
+This does not guarantee that funding will work.
 
-Next unit: `FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION`.
+Next unit: `FORWARD_MARKET_OBSERVABILITY_V1_AUTHORITATIVE_COLLECTION_START`.
 
 Post-calibration operating priority:
 

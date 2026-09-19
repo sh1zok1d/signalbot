@@ -43,11 +43,13 @@ Validated OOS candidates = 0. Protected OOS untouched.
 create MARKET-06 from another simple transform of the same
 price/OI/cross-asset information set. Next program phase:
 `INFORMATION_SET_EXPANSION`. Initial target:
-`POINT_IN_TIME_FUNDING_PREMIUM_OBSERVABILITY`. Design only:
-`docs/research/FORWARD_MARKET_OBSERVABILITY_V1.md`. Next unit:
-`FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION`. Do not invent
-publication latency, do not treat `close_time` as publication time,
-and do not implement the collector in this unit.
+`POINT_IN_TIME_FUNDING_PREMIUM_OBSERVABILITY`. Collector
+implementation is frozen at
+`docs/research/FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION_FREEZE.md`.
+Authoritative collection has not started. Next unit:
+`FORWARD_MARKET_OBSERVABILITY_V1_AUTHORITATIVE_COLLECTION_START`. Do
+not invent publication latency, do not treat `close_time` as
+publication time, and do not create M04-FWD or MARKET-06.
 Do not create new infrastructure merely because MARKET is beginning. Operating
 priority is approximately 70–80% actual market research and 20–30%
 infrastructure only when concrete research blockers require it. Primary

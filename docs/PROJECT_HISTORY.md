@@ -377,9 +377,11 @@ The project therefore pauses further immediate hypothesis generation
 on the same price/OI/cross-asset information set. This is not
 termination of Signalbot research. The next program phase is
 `INFORMATION_SET_EXPANSION`, initially targeting
-point-in-time funding/premium observability via the design-only
-`FORWARD_MARKET_OBSERVABILITY_V1` contract. Conservative
-`legal_available_at = local_received_at_utc`. MARKET-06 is not
-created. Funding is not guaranteed to work; the information gap that
-blocked MARKET-04 is the reason for the expansion.
+point-in-time funding/premium observability. The
+`FORWARD_MARKET_OBSERVABILITY_V1` collector implementation is frozen
+as acquisition infrastructure. Conservative
+`legal_available_at = local_received_at_utc`. Authoritative collection
+has not started. MARKET-06 is not created. M04-FWD is not created.
+Funding is not guaranteed to work; the information gap that blocked
+MARKET-04 is the reason for the expansion.
 

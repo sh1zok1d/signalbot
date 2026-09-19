@@ -3778,3 +3778,26 @@ NEXT_UNIT = FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION
 Current registry: `docs/research/EVIDENCE_REGISTRY_H_B_M01_M05.md`.
 Interpretation: `docs/research/MARKET_05_PROGRAM_INTERPRETATION.md`.
 Design: `docs/research/FORWARD_MARKET_OBSERVABILITY_V1.md`.
+
+## 2026-09-19 — FORWARD_MARKET_OBSERVABILITY_V1 implementation freeze
+
+Data acquisition infrastructure only. Not a scientific experiment. Did
+not create MARKET-06, M04-FWD, or inspect predictive relationships.
+Evidence-registry scientific conclusions were not altered.
+
+```text
+PRE_IMPLEMENTATION_HEAD = 649ea868ba95a78e3718bdd4acbbe542ddd1befd
+PRE_IMPLEMENTATION_TREE = 8a1ea21cf958740b33b6318643a2cee3694a6e94
+COLLECTOR_HEAD = UNSET_UNTIL_THIS_COMMIT
+COLLECTOR_TREE = UNSET_UNTIL_THIS_COMMIT
+LEGAL_AVAILABLE_AT = local_received_at_utc
+AUTHORITATIVE_COLLECTION_STARTED = false
+AUTHORITATIVE_COLLECTION_START_UTC = null
+MARKET_06_CREATED = false
+M04_FWD_CREATED = false
+SCIENTIFIC_OUTCOMES_INSPECTED = false
+NEXT_UNIT = FORWARD_MARKET_OBSERVABILITY_V1_AUTHORITATIVE_COLLECTION_START
+```
+
+Freeze: `docs/research/FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION_FREEZE.md`.
+Collector: `scripts/research/forward_market_observability_v1/`.
