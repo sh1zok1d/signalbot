@@ -5,7 +5,7 @@
 
 The project does not resume product architecture work merely because an implementation stage is technically available. Research evidence is now the gating dependency.
 
-**Active next phase (2026-09-17):** `MARKET`. The synthetic Microscope
+**Active next phase (2026-09-19):** `MARKET` / `INFORMATION_SET_EXPANSION`. The synthetic Microscope
 calibration is closed (`V3_CALIBRATION_CLOSED = YES`). The Microscope
 remains available as scientific instrumentation and is no longer the
 active research program. Do not repair, rerun, or reinterpret V3. Do not
@@ -29,28 +29,25 @@ tree `87a1da25…`. MARKET-03 is **RESULT**
 consumed `1`). No rerun is authorized.
 Do not design a large new MARKET
 framework. A later market hypothesis requires a new research ID.
-The H + B + MARKET-01..03 evidence state is frozen in
-`docs/research/EVIDENCE_REGISTRY_H_B_M01_M03.md`. MARKET-04 candidate
-identity is selected outcome-blind as
-`MARKET-04_FUNDING_STATE_ADVERSE_PATH_RISK` and is not preregistered,
-armed, or execution-authorized. The funding-availability audit is
-`FUNDING_HISTORICAL_AVAILABILITY_UNRESOLVED`. The MARKET-04H Premium
-Index child is `MARKET_04H_PREMIUM_OBSERVABLE_BLOCKED`. MARKET-04/04H
-remain blocked-observable and are not scientific failures.
-MARKET-05 candidate identity is selected outcome-blind as
-`MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK`. BTC/ETH
-same-exchange data feasibility is
-`MARKET_05_CANDIDATE_FROZEN_DATA_FEASIBLE`. Exact MARKET-05
-preregistration is frozen outcome-blind
-(`FULL_PREREGISTRATION_FROZEN = true`). The evaluator implementation
-is frozen. A final pre-ARM production repair freeze is recorded in
-`docs/research/MARKET_05_FINAL_PRE_ARM_FREEZE.md`
-(`MARKET_05_FINAL_PRE_ARM_IMPLEMENTATION_FROZEN`). `CORE_ETH_BINANCE_V0` is
-accepted as snapshot `4b9c113f…`. MARKET-05 is not armed and not
-execution-authorized. Next MARKET-05 step:
-`INDEPENDENT_FINAL_MARKET_05_PRE_ARM_RED_TEAM`. Do not
-invent publication latency, do not treat `close_time` as publication
-time, and do not inspect MARKET-05 scientific outcomes.
+Current program evidence is
+`docs/research/EVIDENCE_REGISTRY_H_B_M01_M05.md` (16 units). The
+14-unit `EVIDENCE_REGISTRY_H_B_M01_M03` snapshot remains immutable
+history. MARKET-05 is **closed** `MARKET_05_NO_EVIDENCE` at RESULT
+HEAD `828c6916…` / tree `338e72d2…`; scientifically spent; no rerun;
+negative relative MAE does not authorize a reverse hypothesis.
+MARKET-04 remains `SELECTED / NOT_TESTED / BLOCKED_OBSERVABLE` and is
+**not** rejected. MARKET-04H remains a nested blocked observable, not
+a scientific unit. Internal historical candidates promoted = 0.
+Validated OOS candidates = 0. Protected OOS untouched.
+`SAME_INFORMATION_SET_HYPOTHESIS_GENERATION_PAUSED = true`. Do not
+create MARKET-06 from another simple transform of the same
+price/OI/cross-asset information set. Next program phase:
+`INFORMATION_SET_EXPANSION`. Initial target:
+`POINT_IN_TIME_FUNDING_PREMIUM_OBSERVABILITY`. Design only:
+`docs/research/FORWARD_MARKET_OBSERVABILITY_V1.md`. Next unit:
+`FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION`. Do not invent
+publication latency, do not treat `close_time` as publication time,
+and do not implement the collector in this unit.
 Do not create new infrastructure merely because MARKET is beginning. Operating
 priority is approximately 70–80% actual market research and 20–30%
 infrastructure only when concrete research blockers require it. Primary

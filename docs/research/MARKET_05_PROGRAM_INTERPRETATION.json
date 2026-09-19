@@ -1,0 +1,101 @@
+{
+  "schema": "signalbot_market_05_program_interpretation",
+  "schema_version": "1.0.0",
+  "unit_id": "MARKET_05_PROGRAM_INTERPRETATION_AND_PROGRAM_UPDATE",
+  "status": "MARKET_05_SCIENTIFICALLY_SPENT",
+  "program_verdict": "PROGRAM_UPDATED_INFORMATION_SET_EXPANSION",
+  "is_new_scientific_experiment": false,
+  "scientific_outcomes_inspected_during_update": false,
+  "protected_oos_touched": false,
+  "market_06_created": false,
+  "new_scientific_hypothesis_id_created": false,
+  "rerun_authorized": false,
+  "pre_update_head": "828c6916fdb0da7b3f9fbad2bc0a97d87efcbb4b",
+  "pre_update_tree": "338e72d23ff7f5547191221527b762a47e4e48bc",
+  "canonical_result": {
+    "result_head": "828c6916fdb0da7b3f9fbad2bc0a97d87efcbb4b",
+    "result_tree": "338e72d23ff7f5547191221527b762a47e4e48bc",
+    "run_identity": "6957613de4b035d850fc97edb833565c5fd3d7b085aa158e0992b88142190635",
+    "classification": "MARKET_05_NO_EVIDENCE",
+    "result_json_sha256": "80a29335dc697e784c1bb6d47c81dd1760f2f19bc49d36573b59372255a47f14",
+    "result_md_sha256": "f0849bdaf3cf1fb0e939696d2fdc230342045717f902fcb5ef12f28b889db6ed",
+    "eligible_rows": 1825,
+    "BETA_ETH_CONFIRMATION": -0.0002567502511611957,
+    "BETA_ETH_CONFIRMATION_CI": [-0.0023464584123732146, 0.0015931596784811688],
+    "POOLED_MAE_BASELINE": 0.01474832634118777,
+    "POOLED_MAE_CANDIDATE": 0.014768642312125536,
+    "RELATIVE_MAE_IMPROVEMENT": -0.0013775102657600513,
+    "RELATIVE_MAE_IMPROVEMENT_CI": [-0.00249762914797686, -0.000375839559399871],
+    "YEAR_2022": 0.000026398780684000478,
+    "YEAR_2023": -0.004303506211586372,
+    "YEAR_2024": -0.00045725937785223714,
+    "G1": "PASS",
+    "G2": "FAIL",
+    "G3": "FAIL",
+    "G4": "FAIL",
+    "G5": "FAIL",
+    "G6": "FAIL",
+    "protected_oos_touched": false
+  },
+  "closed_exact_formulation": {
+    "decision_clock": "daily 00:00 UTC decisions",
+    "btc_state": "24h BTC state",
+    "eth_feature": "continuous ETH confirmation",
+    "outcome": "24h BTC direction-aligned adverse-path risk",
+    "incremental_test": "BTC-only baseline vs baseline + ETH_CONFIRMATION"
+  },
+  "interpretation": {
+    "candidate_provided_stable_incremental_predictive_value": false,
+    "scientifically_spent": true,
+    "no_rerun": true,
+    "negative_relative_mae_authorizes_reverse_hypothesis": false,
+    "forbidden_writings": [
+      "cross-asset context is useless",
+      "ETH contains no predictive information",
+      "divergence is validated",
+      "reverse sign is validated",
+      "ETH worsens BTC forecasting generally"
+    ]
+  },
+  "program_state_after_m05": {
+    "internal_historical_candidates_promoted": 0,
+    "validated_oos_candidates": 0,
+    "protected_oos_touched": false,
+    "MARKET_01": "NO_EVIDENCE",
+    "MARKET_02": "NO_EVIDENCE",
+    "MARKET_03": "EXTERNAL_REPRODUCTION / REPRODUCED_DIRECTION",
+    "MARKET_04": "BLOCKED_OBSERVABLE / NOT_TESTED",
+    "MARKET_05": "NO_EVIDENCE",
+    "experiment_count_is_independent_evidence": false,
+    "m01_m02_dependent_sequential": true,
+    "m03_is_external_historical_reproduction": true,
+    "m05_is_distinct_information_family_historical_development_evidence": true
+  },
+  "market_04": {
+    "status": "SELECTED_NOT_TESTED_BLOCKED_HISTORICAL_OBSERVABLE",
+    "rejected": false,
+    "tested": false,
+    "parent_hypothesis_scientifically_alive": true,
+    "blocker": "historical availability/provenance, not mechanism failure",
+    "m04h": {
+      "lineage_kind": "OUTCOME_BLIND_OBSERVABLE_SUBSTITUTION_AFTER_TEMPORAL_FEASIBILITY_FAILURE",
+      "status": "BLOCKED_OBSERVABLE",
+      "scientific_negative_evidence": false,
+      "independent_scientific_evidence_unit": false
+    }
+  },
+  "program_decision": {
+    "same_information_set_hypothesis_generation_paused": true,
+    "do_not_create_market_06_from_same_information_set": true,
+    "reason": "The program has spent several distinct historical formulations without producing an internal candidate. Further nearby feature generation has declining information gain and increasing adaptive-search risk.",
+    "this_is_not_termination_of_signalbot_research": true,
+    "transition_from": "MORE HYPOTHESIS GENERATION ON THE SAME INFORMATION SET",
+    "transition_to": "EXPAND / IMPROVE THE INFORMATION SET",
+    "next_program_phase": "INFORMATION_SET_EXPANSION",
+    "next_information_family": "POINT_IN_TIME_FUNDING_PREMIUM_OBSERVABILITY",
+    "next_unit": "FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION",
+    "third_historical_proxy_salvage_authorized": false,
+    "current_binance_historical_archives_point_in_time_safe": false,
+    "funding_working_is_not_guaranteed": true
+  }
+}

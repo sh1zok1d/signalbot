@@ -1,0 +1,60 @@
+{
+  "schema": "signalbot_forward_market_observability_v1_collector_contract_draft",
+  "schema_version": "1.0.0",
+  "status": "DESIGN_ONLY_NOT_IMPLEMENTED",
+  "implementation_authorized": false,
+  "scientific_test_authorized": false,
+  "market_hypothesis_frozen": false,
+  "market_06_created": false,
+  "thresholds_selected": false,
+  "outcome_gates_defined": false,
+  "computes_scientific_outcomes": false,
+  "forbidden_computations_during_collection": [
+    "future return",
+    "future MAE",
+    "drawdown",
+    "prediction",
+    "beta",
+    "classification"
+  ],
+  "collection_may_not_tune_a_later_hypothesis": true,
+  "collection_start_must_precede_future_m04_fwd_preregistration": true,
+  "legal_available_at_rule": "local_received_at_utc",
+  "legal_available_at_is_not": "exchange_event_time",
+  "stronger_legal_available_at_requires_separate_proof": true,
+  "raw_record_required_fields": [
+    "local_received_at_utc",
+    "exchange_event_time_if_present",
+    "instrument",
+    "stream_or_source",
+    "raw_exact_message_bytes",
+    "sha256_raw_bytes",
+    "collector_version_git_identity",
+    "connection_session_identity",
+    "sequence_or_order_information_where_available"
+  ],
+  "parsed_record_may_replace_raw_immutable_evidence": false,
+  "received_at_generated_before_parsing_or_analysis": true,
+  "observable_family_supported_where_legitimately_available": [
+    "funding_rate_state",
+    "premium_basis_state",
+    "mark_price_state",
+    "next_funding_metadata",
+    "open_interest_state_via_separately_timestamped_collector"
+  ],
+  "immutability": {
+    "raw_messages_append_only": true,
+    "each_object_or_chunk_has_sha256": true,
+    "manifest_binds_ordered_objects": true,
+    "collector_source_version_bound": true,
+    "later_parser_changes_cannot_alter_historical_raw_bytes": true,
+    "scientific_code_never_overwrites_acquisition_evidence": true
+  },
+  "crash_reconnect": {
+    "new_session_identity_on_restart": true,
+    "incomplete_chunks_never_completed_in_place": true,
+    "coverage_holes_recorded_not_filled_by_exchange_event_time": true,
+    "live_backfill_must_not_be_labeled_as_original_live_receipt": true
+  },
+  "next_unit": "FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION"
+}

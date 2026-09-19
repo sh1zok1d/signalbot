@@ -351,3 +351,35 @@ to accepted ZIP SHA256s; exact 2020-01..2024-12 BTC objects; RESULT
 schema 1.2.0. The project remains unarmed. Next unit is independent
 final pre-ARM red-team, not ARM.
 
+---
+
+## 14. MARKET-05 closeout and information-set expansion (2026-09-19)
+
+Canonical MARKET-05 execution completed at RESULT HEAD
+`828c6916fdb0da7b3f9fbad2bc0a97d87efcbb4b` / tree
+`338e72d23ff7f5547191221527b762a47e4e48bc` with classification
+`MARKET_05_NO_EVIDENCE`. The exact preregistered ETH-confirmation
+incremental-MAE formulation did not provide stable incremental
+predictive value. That formulation is scientifically spent. No rerun.
+Negative relative MAE does not authorize a reverse hypothesis.
+
+The program-level evidence registry is extended to 16 scientific units
+(`EVIDENCE_REGISTRY_H_B_M01_M05`) without mutating the frozen 14-unit
+H/B/M01–M03 snapshot. MARKET-04 remains selected, not tested, and
+blocked on historical observable provenance; it is not rejected.
+MARKET-04H remains nested blocked-observable history, not a
+seventeenth scientific unit.
+
+Internal historical candidates promoted remain 0. Validated OOS
+candidates remain 0. Protected OOS remains untouched.
+
+The project therefore pauses further immediate hypothesis generation
+on the same price/OI/cross-asset information set. This is not
+termination of Signalbot research. The next program phase is
+`INFORMATION_SET_EXPANSION`, initially targeting
+point-in-time funding/premium observability via the design-only
+`FORWARD_MARKET_OBSERVABILITY_V1` contract. Conservative
+`legal_available_at = local_received_at_utc`. MARKET-06 is not
+created. Funding is not guaranteed to work; the information gap that
+blocked MARKET-04 is the reason for the expansion.
+

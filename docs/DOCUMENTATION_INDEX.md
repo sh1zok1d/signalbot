@@ -19,8 +19,8 @@ Read these first:
 
 | Document | Status | Purpose |
 |---|---|---|
-| `PROJECT_STATUS.md` | **ACTIVE / CANONICAL** | Current project posture, freeze, empirical state and restart gate. Active research phase: `MARKET`. V3 Microscope calibration closed. |
-| `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. MARKET-01 closed `NO_EVIDENCE`; MARKET-03 **RESULT** `REPRODUCED_DIRECTION` (consumed); V3 closed; no V4; B2-06 remains blocked. |
+| `PROJECT_STATUS.md` | **ACTIVE / CANONICAL** | Current project posture, freeze, empirical state and restart gate. Active research phase: `MARKET` / `INFORMATION_SET_EXPANSION`. MARKET-05 closed `NO_EVIDENCE`. V3 Microscope calibration closed. |
+| `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. Same-information-set hypothesis generation paused; next phase `INFORMATION_SET_EXPANSION`; MARKET-04 blocked/not tested; V3 closed; no V4; B2-06 remains blocked. |
 | `EDGE_RESEARCH_PROTOCOL.md` | **ACTIVE / CANONICAL** | Discovery/validation rules and anti-overfit discipline |
 | `HISTORICAL_DATA_STRATEGY.md` | **ACTIVE / CANONICAL** | Multi-year CORE vs shorter RICH evidence strategy |
 | `DATA_CAPABILITY_MATRIX.md` | **ACTIVE / RESEARCH DATA DESIGN** | Verified source/venue/date/granularity map and acquisition order for the 2020/2021–2026 research program |
@@ -32,8 +32,14 @@ Read these first:
 | `research/H01_DEV_SUMMARY.md` | **FROZEN_EVIDENCE** | H01 development-only result; verdict `H01_KILL` |
 | `research/H02_FAILED_BREAKOUT_MEAN_REVERSION_PREREG.md` | **FROZEN_EVIDENCE** | H02 preregistration (before development outcomes) |
 | `research/H02_DEV_SUMMARY.md` | **FROZEN_EVIDENCE** | H02 development-only result; verdict `H02_KILL` |
-| `research/EVIDENCE_REGISTRY_H_B_M01_M03.md` | **FROZEN PROGRAM EVIDENCE REGISTRY** | Canonical outcome-blind synthesis of H01–H05, B2-01–B2-06, MARKET-01–03. Later MARKET-04 candidate selection is a separate identity freeze, not a rewrite of this registry. |
-| `research/EVIDENCE_REGISTRY_H_B_M01_M03.json` | **FROZEN PROGRAM EVIDENCE REGISTRY twin** | Machine-readable semantic twin of the H/B/M01–M03 evidence registry |
+| `research/EVIDENCE_REGISTRY_H_B_M01_M05.md` | **CURRENT PROGRAM EVIDENCE REGISTRY** | 16 scientific units: H01–H05, B2-01–B2-06, MARKET-01–05. MARKET-04H nested under MARKET-04. MARKET-06 not created. |
+| `research/EVIDENCE_REGISTRY_H_B_M01_M05.json` | **CURRENT PROGRAM EVIDENCE REGISTRY twin** | Machine-readable semantic twin; prior H/B/M01–M03 unit objects copied verbatim |
+| `research/EVIDENCE_REGISTRY_H_B_M01_M03.md` | **FROZEN HISTORICAL SNAPSHOT / SUPERSEDED AS CURRENT AUTHORITY** | Immutable 14-unit synthesis of H01–H05, B2-01–B2-06, MARKET-01–03. Bytes unchanged. Current authority is `EVIDENCE_REGISTRY_H_B_M01_M05`. |
+| `research/EVIDENCE_REGISTRY_H_B_M01_M03.json` | **FROZEN HISTORICAL SNAPSHOT twin** | Machine-readable twin of the 14-unit historical snapshot; SHA256 `0892f66d…` |
+| `research/MARKET_05_PROGRAM_INTERPRETATION.md` | **PROGRAM CLOSEOUT / NOT A NEW EXPERIMENT** | Binds MARKET-05 RESULT `828c6916…` / `MARKET_05_NO_EVIDENCE`; pauses same-information-set generation; next phase `INFORMATION_SET_EXPANSION` |
+| `research/MARKET_05_PROGRAM_INTERPRETATION.json` | **PROGRAM CLOSEOUT twin** | Machine-readable twin; `market_06_created=false`; `scientific_outcomes_inspected_during_update=false` |
+| `research/FORWARD_MARKET_OBSERVABILITY_V1.md` | **DESIGN ONLY / NOT IMPLEMENTED** | Forward funding/premium/leverage collection design; `legal_available_at=local_received_at_utc`; not a hypothesis test |
+| `research/FORWARD_MARKET_OBSERVABILITY_V1_COLLECTOR_CONTRACT.json` | **DESIGN ONLY contract draft** | Machine-readable collector contract; `implementation_authorized=false`; `computes_scientific_outcomes=false` |
 | `research/MARKET_04_CANDIDATE_SELECTION.md` | **CANDIDATE IDENTITY FROZEN / NOT PREREGISTERED / NOT AUTHORIZED** | Outcome-blind MARKET-04 identity `MARKET-04_FUNDING_STATE_ADVERSE_PATH_RISK`; role `RISK_STATE_FILTER`; funding availability later audited as still unresolved; no ARM/RESULT |
 | `research/MARKET_04_CANDIDATE_SELECTION.json` | **CANDIDATE IDENTITY FROZEN twin** | Machine-readable twin; `execution_authorized=false`; `independent_replication_of_market_03=false` |
 | `research/MARKET_04_FUNDING_AVAILABILITY_AUDIT.md` | **TEMPORAL AUTHORITY / UNRESOLVED** | Outcome-blind first-party audit of Binance settled-funding publication; `FUNDING_HISTORICAL_AVAILABILITY_UNRESOLVED`; `legal_available_at` unset; does not ARM/execute MARKET-04 or B2-06 |
@@ -53,8 +59,14 @@ Read these first:
 | `research/MARKET_05_ARM_CONTRACT.md` | **DOCUMENTARY MIRROR / NOT RUNTIME AUTHORITY** | Prior ARM-contract text; not an ARM; hash maps describe `46a7f6e0…` and are not runtime-enforced |
 | `research/MARKET_05_ARM_CONTRACT.json` | **DOCUMENTARY MIRROR twin** | `authority_role=DOCUMENTARY_MIRROR_OF_PRIOR_FREEZE`; `executable_authority=false` |
 | `research/MARKET_05_ARM_SEMANTIC_CONTRACT.json` | **EXECUTABLE SEMANTIC CONTRACT** | Non-self-referential ARM semantic payload; SHA256 bound into `RUN_IDENTITY` |
-| `research/MARKET_05_FINAL_PRE_ARM_FREEZE.md` | **CURRENT PRE-ARM EXECUTABLE FREEZE / NOT ARMED** | Claim-before-outcomes one-shot; ETH execution-data binding; RESULT schema 1.2.0; no ARM/RESULT |
-| `research/MARKET_05_FINAL_PRE_ARM_FREEZE.json` | **CURRENT PRE-ARM EXECUTABLE FREEZE twin** | `MARKET_05_FINAL_PRE_ARM_IMPLEMENTATION_FROZEN`; `execution_authorized=false` |
+| `research/MARKET_05_FINAL_PRE_ARM_FREEZE.md` | **HISTORICAL PRE-ARM EXECUTABLE FREEZE** | Claim-before-outcomes one-shot freeze; superseded as current lifecycle by ARM/RESULT; still valid historical freeze authority |
+| `research/MARKET_05_FINAL_PRE_ARM_FREEZE.json` | **HISTORICAL PRE-ARM EXECUTABLE FREEZE twin** | `MARKET_05_FINAL_PRE_ARM_IMPLEMENTATION_FROZEN`; ARM/RESULT now exist |
+| `research/MARKET_05_ARM.md` | **EXECUTED / CONSUMED** | One-shot canonical ARM; consumed by RESULT HEAD `828c6916…` |
+| `research/MARKET_05_ARM.json` | **EXECUTED / CONSUMED twin** | ARM SHA256 `a7688057…`; `RUN_IDENTITY` `6957613d…` |
+| `research/MARKET_05_RESERVATION.json` | **CONSUMED** | Canonical execution reservation; SHA256 `ad0cc648…` |
+| `research/MARKET_05_RESULT.json` | **CANONICAL RESULT** | Sealed MARKET-05 RESULT; SHA256 `80a29335…`; `classification=MARKET_05_NO_EVIDENCE` |
+| `research/MARKET_05_RESULT.md` | **CANONICAL RESULT** | Mechanical restatement of the sealed RESULT; not a stronger claim |
+| `research/MARKET_05_EXECUTION_CLAIM.json` | **CONSUMED EXECUTION CLAIM** | One-shot O_EXCL claim; RESULT binds pre-status-stamp SHA `95094a5a…` |
 | `research_data/CORE_ETH_BINANCE_V0/MARKET_05_EXECUTION_BINDING.json` | **ETH EXECUTION-DATA BINDING** | 2020-01..2024-12 parquet SHA256s bound to accepted ZIP SHA256s; `ETH_EXECUTION_DATA_ID` |
 | `manifests/CORE_ETH_BINANCE_V0.yaml` | **ACCEPTED_FOR_DISCOVERY** | ETH companion to `CORE_BTC_BINANCE_V0`; snapshot `4b9c113f…`; does not redefine CORE BTC; not ARM/execution |
 | `research_data/CORE_ETH_BINANCE_V0/` | **ACCEPTED COMPANION IDENTITY** | Vision ETHUSDT 1m inventory + accepted snapshot identity; no scientific MARKET-05 outcomes |

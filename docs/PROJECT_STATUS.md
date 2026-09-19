@@ -2,7 +2,7 @@
 
 **Status date:** 2026-09-19
 **Operating mode:** `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN`
-**Active research phase:** `MARKET`
+**Active research phase:** `MARKET` / `INFORMATION_SET_EXPANSION`
 
 This file is the canonical answer to: **what is Signalbot doing now?**
 
@@ -266,48 +266,57 @@ authority:
 ARM authority:
 `docs/research/MARKET_03_PUBLIC_STRATEGY_ARM.md`.
 
-Program-level H + B + MARKET-01..03 evidence is frozen in
-`docs/research/EVIDENCE_REGISTRY_H_B_M01_M03.md`. MARKET-04 candidate
-identity is now selected outcome-blind as
-`MARKET-04_FUNDING_STATE_ADVERSE_PATH_RISK` (`RISK_STATE_FILTER`,
-primary family `FUTURE_ADVERSE_PATH_RISK`) in
-`docs/research/MARKET_04_CANDIDATE_SELECTION.md`. That selection is not
-a preregistration, ARM, or execution authorization. The outcome-blind
-funding-availability audit in
-`docs/research/MARKET_04_FUNDING_AVAILABILITY_AUDIT.md` concludes
-`FUNDING_HISTORICAL_AVAILABILITY_UNRESOLVED`. Settled funding
-`legal_available_at` remains unset. MARKET-04 is `BLOCKED_OBSERVABLE`.
-Next step:
-`BLOCKED_OBSERVABLE_OR_NEW_CANDIDATE_SELECTION`.
-The historical child `MARKET-04H_PREMIUM_INDEX_ADVERSE_PATH_RISK` was
-adjudicated outcome-blind in
-`docs/research/MARKET_04H_PREMIUM_OBSERVABLE_ADJUDICATION.md` and is
-`MARKET_04H_PREMIUM_OBSERVABLE_BLOCKED`. Archive-day timezone and
-retrospective Vision byte identity remain unresolved. Do not adopt
-`close_time` or `D+2` as `legal_available_at`. Those units remain
-`NOT_TESTED` / `NOT_REJECTED` / blocked-observable. They are not
-scientific failures.
-MARKET-05 is now selected outcome-blind as
-`MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK`
-(`MARKET_BREADTH_CONFIRMATION_STATE`, family
-`F7_CROSS_ASSET_MARKET_CONTEXT`) in
-`docs/research/MARKET_05_CROSS_ASSET_CANDIDATE.md`. BTC is the target;
-ETH is context only. The companion feasibility unit
-`docs/research/MARKET_05_CROSS_ASSET_DATA_FEASIBILITY.md` is
-`MARKET_05_CANDIDATE_FROZEN_DATA_FEASIBLE`. `CORE_BTC_BINANCE_V0`
-remains the BTC authority. `CORE_ETH_BINANCE_V0` is now
-`ACCEPTED_FOR_DISCOVERY` as snapshot
-`4b9c113f659e1c1ca71498096dfdc2628a1016346aed40e19020efb64c85ad15`.
-MARKET-05 exact preregistration is frozen outcome-blind in
-`docs/research/MARKET_05_CROSS_ASSET_PREREG.md`. The evaluator
-implementation is frozen. Current executable pre-ARM authority is
-`docs/research/MARKET_05_FINAL_PRE_ARM_FREEZE.md`
-(`MARKET_05_FINAL_PRE_ARM_IMPLEMENTATION_FROZEN`). Daily 00:00 UTC
-decisions, 24h lookback, 24h direction-aligned MAE, continuous
-`ETH_CONFIRMATION`. One-shot consumption is the atomic execution claim.
-Next MARKET-05 step:
-`INDEPENDENT_FINAL_MARKET_05_PRE_ARM_RED_TEAM`. Do not ARM,
-execute, or inspect scientific outcomes.
+Current program evidence is
+`docs/research/EVIDENCE_REGISTRY_H_B_M01_M05.md` (16 scientific units).
+The earlier 14-unit snapshot
+`docs/research/EVIDENCE_REGISTRY_H_B_M01_M03.md` remains an immutable
+historical freeze.
+
+MARKET-05 is **closed**. Canonical RESULT HEAD
+`828c6916fdb0da7b3f9fbad2bc0a97d87efcbb4b` / tree
+`338e72d23ff7f5547191221527b762a47e4e48bc` /
+`RUN_IDENTITY` `6957613de4b035d850fc97edb833565c5fd3d7b085aa158e0992b88142190635`.
+Classification **`MARKET_05_NO_EVIDENCE`**. The exact preregistered
+formulation (daily 00:00 UTC, 24h BTC state, continuous ETH
+confirmation, 24h BTC direction-aligned adverse-path risk, BTC-only
+baseline vs baseline + `ETH_CONFIRMATION`) did not provide stable
+incremental predictive value. MARKET-05 is scientifically spent. No
+rerun. Negative relative MAE does **not** authorize a reverse
+hypothesis. Do not write that ETH is generally useless, that
+divergence is validated, or that reverse sign is validated.
+Interpretation:
+`docs/research/MARKET_05_PROGRAM_INTERPRETATION.md`.
+
+Program-level state after MARKET-05:
+
+- `INTERNAL_HISTORICAL_CANDIDATES_PROMOTED = 0`
+- `VALIDATED_OOS_CANDIDATES = 0`
+- `PROTECTED_OOS_TOUCHED = false`
+- MARKET-01 `NO_EVIDENCE`; MARKET-02 `NO_EVIDENCE`; MARKET-03
+  `EXTERNAL_REPRODUCTION / REPRODUCED_DIRECTION`; MARKET-04
+  `BLOCKED_OBSERVABLE / NOT_TESTED`; MARKET-05 `NO_EVIDENCE`
+
+MARKET-04 remains **SELECTED / NOT TESTED / BLOCKED HISTORICAL
+OBSERVABLE**. Do **not** mark it rejected. The parent hypothesis
+remains scientifically alive. The blocker was historical
+availability/provenance, not mechanism failure. MARKET-04H remains
+`OUTCOME_BLIND_OBSERVABLE_SUBSTITUTION_AFTER_TEMPORAL_FEASIBILITY_FAILURE`
+/ `BLOCKED OBSERVABLE` and is not scientific negative evidence.
+
+Further immediate same-information-set hypothesis generation is
+**paused**. Do not create MARKET-06 from another simple transform of
+the existing price/OI/cross-asset information set.
+
+Next program phase: **`INFORMATION_SET_EXPANSION`**. Initial target:
+**`POINT_IN_TIME_FUNDING_PREMIUM_OBSERVABILITY`**. Design-only
+collector contract:
+`docs/research/FORWARD_MARKET_OBSERVABILITY_V1.md`. Conservative
+`legal_available_at = local_received_at_utc`. Do not implement/run the
+collector in this unit. Do not freeze a new MARKET hypothesis. Do not
+attempt a third historical proxy salvage. This does not guarantee that
+funding will work.
+
+Next unit: `FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION`.
 
 Post-calibration operating priority:
 
