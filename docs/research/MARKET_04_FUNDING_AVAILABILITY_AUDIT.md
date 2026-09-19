@@ -9,9 +9,11 @@
 - **Machine-readable twin:** [`MARKET_04_FUNDING_AVAILABILITY_AUDIT.json`](MARKET_04_FUNDING_AVAILABILITY_AUDIT.json)
 
 This unit is a data-semantics / temporal-authority audit only. It does not
-run MARKET-04, inspect outcomes, inspect protected 2025/2026 OOS, ARM an
-experiment, implement an evaluator, or create RESULT / preregistration
-files.
+run MARKET-04, inspect outcomes, inspect future returns, inspect future MAE,
+inspect protected 2025/2026 OOS, ARM an experiment, implement an evaluator,
+or create RESULT / preregistration files.
+
+It does not search funding thresholds, search funding percentile windows, or search horizons.
 
 Bound candidate freeze:
 
