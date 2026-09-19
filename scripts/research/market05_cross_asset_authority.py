@@ -155,13 +155,17 @@ def require_execution_authorized_before_outcome_load(*args: Any, **kwargs: Any) 
 def refuse_scientific_result_instantiation(*args: Any, **kwargs: Any) -> None:
     """RESULT barrier.
 
-    Unarmed: refuses. Armed and unconsumed: permits, provided no RESULT
-    artifact already exists (a RESULT may never be overwritten).
+    Unarmed / unclaimed: refuses.
+    After a valid execution claim: permits, provided RESULT JSON does not
+    already exist (a RESULT may never be overwritten). Claim presence is
+    consumption; RESULT absence is not required for the claim itself.
     """
     _reject_caller_kwargs(args, kwargs)
-    if _path(RESULT_JSON_REL).exists() or _path(RESULT_MD_REL).exists():
+    if _path(RESULT_JSON_REL).exists():
         raise Market05AuthorityError("MARKET_05_RESULT_ARTIFACT_MUST_NOT_EXIST")
-    if _arm_authority().market_05_execution_is_authorized():
+    from scripts.research.market05_cross_asset_execution_claim import claim_exists
+
+    if claim_exists():
         return
     raise Market05ExecutionNotAuthorized("MARKET_05_RESULT_INSTANTIATION_FORBIDDEN")
 

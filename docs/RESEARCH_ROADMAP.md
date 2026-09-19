@@ -43,10 +43,12 @@ same-exchange data feasibility is
 `MARKET_05_CANDIDATE_FROZEN_DATA_FEASIBLE`. Exact MARKET-05
 preregistration is frozen outcome-blind
 (`FULL_PREREGISTRATION_FROZEN = true`). The evaluator implementation
-is frozen (`IMPLEMENTATION_FROZEN = true`); `CORE_ETH_BINANCE_V0` is
+is frozen. A final pre-ARM production repair freeze is recorded in
+`docs/research/MARKET_05_FINAL_PRE_ARM_FREEZE.md`
+(`MARKET_05_FINAL_PRE_ARM_IMPLEMENTATION_FROZEN`). `CORE_ETH_BINANCE_V0` is
 accepted as snapshot `4b9c113f…`. MARKET-05 is not armed and not
 execution-authorized. Next MARKET-05 step:
-`OUTCOME_BLIND_MARKET_05_IMPLEMENTATION_RED_TEAM_AUDIT`. Do not
+`INDEPENDENT_FINAL_MARKET_05_PRE_ARM_RED_TEAM`. Do not
 invent publication latency, do not treat `close_time` as publication
 time, and do not inspect MARKET-05 scientific outcomes.
 Do not create new infrastructure merely because MARKET is beginning. Operating

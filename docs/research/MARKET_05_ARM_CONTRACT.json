@@ -3,6 +3,7 @@
   "arm_must_be_git_tracked": true,
   "armed": false,
   "authority_must_recompute_run_identity": true,
+  "authority_role": "DOCUMENTARY_MIRROR_OF_PRIOR_FREEZE",
   "canonical_executions_authorized": 1,
   "canonical_executions_consumed": 0,
   "data": {
@@ -12,6 +13,13 @@
     "eth_snapshot_id": "4b9c113f659e1c1ca71498096dfdc2628a1016346aed40e19020efb64c85ad15"
   },
   "date": "2026-09-19",
+  "executable_authority": false,
+  "executable_authority_artifacts": [
+    "docs/research/MARKET_05_ARM_SEMANTIC_CONTRACT.json",
+    "docs/research/MARKET_05_FINAL_PRE_ARM_FREEZE.json",
+    "scripts/research/market05_cross_asset_arm_authority.py",
+    "scripts/research/market05_cross_asset_authority_root.py"
+  ],
   "execution_authorized": false,
   "forbidden_arm_fields": [
     "RESULT",
@@ -60,7 +68,7 @@
   },
   "is_a_real_arm": false,
   "next_unit": "OUTCOME_BLIND_MARKET_05_IMPLEMENTATION_RED_TEAM_AUDIT",
-  "note": "Binding contract for a FUTURE ARM. This document is not an ARM and authorizes nothing.",
+  "note": "Documentary mirror of the prior ARM-contract freeze. This document is not an ARM, authorizes nothing, and is not runtime-enforced. Executable authority is production code + RUN_IDENTITY + ARM_SEMANTIC_CONTRACT_SHA256. Hash maps below describe scientific implementation 46a7f6e0 and must not be read as the current executable pin set.",
   "prereg": {
     "head": "5b2a582cd3c42af7114ded7fe61ac7c9f39c9dd5",
     "json_sha256": "f2b2f6b98a3674412b584e6bd2686efa8fb9ce08b5d936e503e5d570a2428b25",
@@ -190,6 +198,6 @@
     "rng": "SplitMix64",
     "std_ddof": 0
   },
-  "status": "ARM_CONTRACT_FROZEN",
+  "status": "ARM_CONTRACT_DOCUMENTARY_MIRROR",
   "unit_id": "MARKET_05_CROSS_ASSET_ARM_CONTRACT"
 }

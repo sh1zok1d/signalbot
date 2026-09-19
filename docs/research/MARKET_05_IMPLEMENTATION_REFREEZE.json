@@ -31,7 +31,8 @@
   "execution_authorized": false,
   "full_preregistration_frozen": true,
   "implementation_frozen": true,
-  "next_unit": "OUTCOME_BLIND_MARKET_05_IMPLEMENTATION_RED_TEAM_AUDIT",
+  "is_current_authority": false,
+  "next_unit": "INDEPENDENT_FINAL_MARKET_05_PRE_ARM_RED_TEAM",
   "post_arm_code_change_required": false,
   "prereg": {
     "head": "5b2a582cd3c42af7114ded7fe61ac7c9f39c9dd5",
@@ -84,6 +85,7 @@
   "scientific_math_changed": false,
   "scientific_outcomes_inspected": false,
   "status": "MARKET_05_IMPLEMENTATION_REFROZEN_OUTCOME_BLIND",
+  "superseded_by": "docs/research/MARKET_05_FINAL_PRE_ARM_FREEZE.json",
   "supersedes": {
     "previous_freeze_artifact": "docs/research/MARKET_05_IMPLEMENTATION_FREEZE.json",
     "previous_freeze_remains_valid_for": "the pre-repair commit it describes",

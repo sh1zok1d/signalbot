@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import subprocess
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -38,13 +37,15 @@ UNIT_ID = "MARKET_05_CROSS_ASSET_ARM"
 
 PREREG_MD_REL = "docs/research/MARKET_05_CROSS_ASSET_PREREG.md"
 PREREG_JSON_REL = "docs/research/MARKET_05_CROSS_ASSET_PREREG.json"
-REFREEZE_MD_REL = "docs/research/MARKET_05_IMPLEMENTATION_REFREEZE.md"
-REFREEZE_JSON_REL = "docs/research/MARKET_05_IMPLEMENTATION_REFREEZE.json"
+REFREEZE_MD_REL = "docs/research/MARKET_05_FINAL_PRE_ARM_FREEZE.md"
+REFREEZE_JSON_REL = "docs/research/MARKET_05_FINAL_PRE_ARM_FREEZE.json"
 ARM_CONTRACT_MD_REL = "docs/research/MARKET_05_ARM_CONTRACT.md"
 ARM_CONTRACT_JSON_REL = "docs/research/MARKET_05_ARM_CONTRACT.json"
+SEMANTIC_CONTRACT_REL = "docs/research/MARKET_05_ARM_SEMANTIC_CONTRACT.json"
 ARM_JSON_REL = "docs/research/MARKET_05_ARM.json"
 ARM_MD_REL = "docs/research/MARKET_05_ARM.md"
 RESERVATION_JSON_REL = "docs/research/MARKET_05_RESERVATION.json"
+CLAIM_JSON_REL = "docs/research/MARKET_05_EXECUTION_CLAIM.json"
 RESULT_JSON_REL = "docs/research/MARKET_05_RESULT.json"
 RESULT_MD_REL = "docs/research/MARKET_05_RESULT.md"
 
@@ -56,6 +57,13 @@ DATA_REL = "scripts/research/market05_cross_asset_data.py"
 EXECUTION_REL = "scripts/research/market05_cross_asset_canonical_execution.py"
 AUTHORITY_ROOT_REL = "scripts/research/market05_cross_asset_authority_root.py"
 ETH_ACCEPTOR_LIB_REL = "scripts/research/core_eth_binance_v0_acceptor_lib.py"
+BOOTSTRAP_REL = "scripts/research/market05_cross_asset_bootstrap.py"
+CLAIM_MOD_REL = "scripts/research/market05_cross_asset_execution_claim.py"
+PREFLIGHT_REL = "scripts/research/market05_cross_asset_data_preflight.py"
+ETH_BINDING_LIB_REL = "scripts/research/market05_eth_execution_binding.py"
+ETH_EXECUTION_BINDING_REL = (
+    "docs/research_data/CORE_ETH_BINANCE_V0/MARKET_05_EXECUTION_BINDING.json"
+)
 
 BTC_SNAPSHOT_DOC_REL = "docs/research_data/CORE_BTC_BINANCE_V0/SNAPSHOT_717d37a4.json"
 ETH_SNAPSHOT_DOC_REL = "docs/research_data/CORE_ETH_BINANCE_V0/SNAPSHOT_4b9c113f.json"
@@ -81,6 +89,14 @@ PROTECTED_OOS_START = "2025-01-01T00:00:00Z"
 PROTECTED_OOS_AUTHORIZED = False
 
 NUMPY_PINNED_VERSION = "2.1.3"
+PYARROW_PINNED_VERSION = "17.0.0"
+EXECUTION_CLAIM_PROTOCOL = "MARKET_05_ATOMIC_O_EXCL_CLAIM_V1"
+ETH_EXECUTION_DATA_ID = (
+    "b5c6228a2c4214b641cd10fda87010c2898040e3fc53cdacee9211e028752484"
+)
+ARM_SEMANTIC_CONTRACT_SHA256 = (
+    "1591c0b8fd70a0e1dfb4f1cad8aa9c66786b691a6fff087db0b3d3d7821f994e"
+)
 
 # Frozen scientific constants. The ARM must reproduce these EXACTLY; it has
 # no authority to redefine any of them.
@@ -111,19 +127,23 @@ SCIENTIFIC_CONSTANTS: dict[str, Any] = {
 # This module cannot pin its own hash (self-reference); the ARM CONTRACT and
 # the re-freeze artifact bind ARM_AUTHORITY_REL instead.
 SCIENTIFIC_IMPLEMENTATION_HASHES: dict[str, str] = {
-    LIB_REL: "b0e3f441d23f372efc18c94adaab033e9eb9a219654954e1312b42489cf61274",
-    AUTHORITY_REL: "441f48f438ca6a240911bd3de8a8a96f1a9e93c1b182a4ebb0d2b09da26bb9fc",
-    CLI_REL: "1a587d58c970e99c5db49478f89cfb5f040537658ff8034af403fa378f0a997c",
+    LIB_REL: "84b55646b736272505079633572b239ded46a723658fc864e89c032a445e4cde",
+    AUTHORITY_REL: "a894991e74fcfb8080d409f17fa38421bfa60d54a90652a807fe8f452c49cc5e",
+    CLI_REL: "1539053263a6b9f0f29420750257e3d0f1c4522265bf20254fe370df006f4e3c",
     DATA_REL: "f7a3b0ceed2e691716346a89e4800def29f2e7526559dda0407bb1d33d6c8357",
-    EXECUTION_REL: "df9bf457d379a3810ce98b06545b138fc813aa9b8fa49a48f11ca124f0f2c67d",
+    EXECUTION_REL: "d779a4b0aa3e8c32bba2bde1730ff84beb42ca39579d5a8b677d97cbf32279d5",
     ETH_ACCEPTOR_LIB_REL: (
         "6f86ae1ed08fe7595a0de3eb4e0c273aa2850a8238675d72696bbd088c118764"
     ),
+    BOOTSTRAP_REL: "1cf24f4b750ca27ab62be4f58c20edf5ef3d73469e43a8ef4483fd22062a0284",
+    CLAIM_MOD_REL: "419f72792c3fe2f58955386618c759a5f6d9827127c8f276c304e7695de6f812",
+    PREFLIGHT_REL: "a53ddcad6afac48d91c3a587f4c2a7e8af7badafd64d01a5b136532e78c2bbfe",
+    ETH_BINDING_LIB_REL: "3b5d25bf37c7f7d000b52d1399cd00f48ebad2b2cb9018108aa867d56c4060af",
 }
 
 # 1.1.0 separates commit provenance (implementation_head/implementation_tree,
 # exact git SHAs) from per-file identity (scientific_implementation_hashes).
-RESULT_SCHEMA_IDENTITY = "market_05_cross_asset_result/1.1.0"
+RESULT_SCHEMA_IDENTITY = "market_05_cross_asset_result/1.2.0"
 
 CANONICAL_EXECUTIONS_AUTHORIZED_EXPECTED = 1
 
@@ -225,15 +245,8 @@ def require_git_tracked_authority(rel: str) -> None:
     UNTRACKED.
     """
     _require_regular_file(rel)
-    root = _repo_root()
     try:
-        proc = subprocess.run(
-            ["git", "ls-files", "--error-unmatch", "--", rel],
-            cwd=str(root),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        proc = _authority_root().git_ls_files(rel)
     except OSError as exc:
         raise Market05ArmAuthorityError("MARKET_05_GIT_UNAVAILABLE") from exc
     if proc.returncode != 0:
@@ -271,6 +284,7 @@ def scientific_run_identity_payload() -> dict[str, Any]:
         "btc_snapshot_id": BTC_SNAPSHOT_ID,
         "eth_dataset_id": ETH_DATASET_ID,
         "eth_snapshot_id": ETH_SNAPSHOT_ID,
+        "eth_execution_data_id": ETH_EXECUTION_DATA_ID,
         "development_window": {
             "start_inclusive": DEVELOPMENT_START_INCLUSIVE,
             "end_exclusive": DEVELOPMENT_END_EXCLUSIVE,
@@ -280,6 +294,9 @@ def scientific_run_identity_payload() -> dict[str, Any]:
         "scientific_constants": dict(sorted(SCIENTIFIC_CONSTANTS.items())),
         "result_schema_identity": RESULT_SCHEMA_IDENTITY,
         "numpy_version": NUMPY_PINNED_VERSION,
+        "pyarrow_version": PYARROW_PINNED_VERSION,
+        "arm_semantic_contract_sha256": ARM_SEMANTIC_CONTRACT_SHA256,
+        "execution_claim_protocol": EXECUTION_CLAIM_PROTOCOL,
         "canonical_executions_authorized": CANONICAL_EXECUTIONS_AUTHORIZED_EXPECTED,
     }
 
@@ -308,11 +325,15 @@ def _refusal_exceptions() -> tuple[type[BaseException], ...]:
     from scripts.research.market05_cross_asset_authority_root import (
         Market05AuthorityRootError,
     )
+    from scripts.research.market05_cross_asset_execution_claim import (
+        Market05ExecutionClaimError,
+    )
 
     return (
         Market05ArmAuthorityError,
         Market05CanonicalExecutionNotAuthorized,
         Market05AuthorityRootError,
+        Market05ExecutionClaimError,
         OSError,
         json.JSONDecodeError,
     )
@@ -372,6 +393,12 @@ def reject_protected_oos_authorization(payload: Mapping[str, Any]) -> None:
 
 def _require_field(payload: Mapping[str, Any], key: str, expected: Any, code: str) -> None:
     if payload.get(key) != expected:
+        raise Market05CanonicalExecutionNotAuthorized(f"{code}:{key}")
+
+
+def _require_exact_int(payload: Mapping[str, Any], key: str, expected: int, code: str) -> None:
+    value = payload.get(key)
+    if type(value) is not int or value != expected:
         raise Market05CanonicalExecutionNotAuthorized(f"{code}:{key}")
 
 
@@ -461,10 +488,15 @@ def authenticate_market_05_arm(*args: Any, **kwargs: Any) -> dict[str, Any]:
         raise Market05CanonicalExecutionNotAuthorized("MARKET_05_OUTCOME_INSPECTED")
     if payload.get("authorization_consumed") is True:
         raise Market05CanonicalExecutionNotAuthorized("MARKET_05_ARM_CONSUMED")
-    if int(payload.get("CANONICAL_EXECUTIONS_AUTHORIZED", 0)) != 1:
-        raise Market05CanonicalExecutionNotAuthorized("MARKET_05_ARM_AUTHORIZED_MISMATCH")
-    if int(payload.get("CANONICAL_EXECUTIONS_CONSUMED", 1)) != 0:
-        raise Market05CanonicalExecutionNotAuthorized("MARKET_05_ARM_CONSUMED")
+    _require_exact_int(
+        payload, "CANONICAL_EXECUTIONS_AUTHORIZED", 1, "MARKET_05_ARM_AUTHORIZED_MISMATCH"
+    )
+    _require_exact_int(
+        payload, "CANONICAL_EXECUTIONS_CONSUMED", 0, "MARKET_05_ARM_CONSUMED"
+    )
+    authenticate_semantic_contract()
+    if payload.get("eth_execution_data_id") not in (None, ETH_EXECUTION_DATA_ID):
+        raise Market05CanonicalExecutionNotAuthorized("MARKET_05_ARM_ETH_EXECUTION_DATA_MISMATCH")
 
     return {
         "payload": payload,
@@ -488,12 +520,15 @@ def authenticate_market_05_reservation(*args: Any, **kwargs: Any) -> dict[str, A
         raise Market05CanonicalExecutionNotAuthorized(
             "MARKET_05_RESERVATION_RUN_IDENTITY_MISMATCH"
         )
-    if int(payload.get("CANONICAL_EXECUTIONS_AUTHORIZED", 0)) != 1:
-        raise Market05CanonicalExecutionNotAuthorized(
-            "MARKET_05_RESERVATION_AUTHORIZED_MISMATCH"
-        )
-    if int(payload.get("CANONICAL_EXECUTIONS_CONSUMED", 1)) != 0:
-        raise Market05CanonicalExecutionNotAuthorized("MARKET_05_RESERVATION_CONSUMED")
+    _require_exact_int(
+        payload,
+        "CANONICAL_EXECUTIONS_AUTHORIZED",
+        1,
+        "MARKET_05_RESERVATION_AUTHORIZED_MISMATCH",
+    )
+    _require_exact_int(
+        payload, "CANONICAL_EXECUTIONS_CONSUMED", 0, "MARKET_05_RESERVATION_CONSUMED"
+    )
     if payload.get("rerun_preauthorized") is True:
         raise Market05CanonicalExecutionNotAuthorized("MARKET_05_RERUN_PREAUTHORIZED")
     if payload.get("MARKET_05_EXECUTED") is not False:
@@ -503,57 +538,210 @@ def authenticate_market_05_reservation(*args: Any, **kwargs: Any) -> dict[str, A
     return {"payload": payload, "sha256": sha256_file(_path(RESERVATION_JSON_REL))}
 
 
-def authenticate_market_05_canonical_execution(*args: Any, **kwargs: Any) -> dict[str, Any]:
-    """Full authorization decision for exactly one canonical execution."""
+def authenticate_semantic_contract(*args: Any, **kwargs: Any) -> str:
+    """Runtime-enforce the non-self-referential ARM semantic contract."""
     _reject_caller_kwargs(args, kwargs)
+    payload = _load_json(SEMANTIC_CONTRACT_REL)
+    digest = _sha256_bytes(canonical_json_bytes(payload))
+    if digest != ARM_SEMANTIC_CONTRACT_SHA256:
+        raise Market05ArmAuthorityError("MARKET_05_SEMANTIC_CONTRACT_HASH_MISMATCH")
+    if payload.get("research_id") != RESEARCH_ID:
+        raise Market05ArmAuthorityError("MARKET_05_SEMANTIC_CONTRACT_RESEARCH_ID")
+    if payload.get("scientific_constants") != SCIENTIFIC_CONSTANTS:
+        raise Market05ArmAuthorityError("MARKET_05_SEMANTIC_CONTRACT_CONSTANTS")
+    if payload.get("result_schema_identity") != RESULT_SCHEMA_IDENTITY:
+        raise Market05ArmAuthorityError("MARKET_05_SEMANTIC_CONTRACT_RESULT_SCHEMA")
+    if payload.get("protected_oos_authorized") is not False:
+        raise Market05ArmAuthorityError("MARKET_05_SEMANTIC_CONTRACT_OOS")
+    if payload.get("canonical_executions_authorized") != 1:
+        raise Market05ArmAuthorityError("MARKET_05_SEMANTIC_CONTRACT_COUNT")
+    if payload.get("execution_claim_protocol") != EXECUTION_CLAIM_PROTOCOL:
+        raise Market05ArmAuthorityError("MARKET_05_SEMANTIC_CONTRACT_CLAIM_PROTOCOL")
+    if payload.get("eth_snapshot_id") != ETH_SNAPSHOT_ID:
+        raise Market05ArmAuthorityError("MARKET_05_SEMANTIC_CONTRACT_ETH_SNAPSHOT")
+    return digest
+
+
+def verify_execution_environment(*args: Any, **kwargs: Any) -> dict[str, str]:
+    """Require the pinned numpy/pyarrow versions before the claim is burned."""
+    _reject_caller_kwargs(args, kwargs)
+    import numpy
+
+    numpy_version = str(numpy.__version__)
+    if numpy_version != NUMPY_PINNED_VERSION:
+        raise Market05CanonicalExecutionNotAuthorized(
+            f"MARKET_05_NUMPY_VERSION_MISMATCH:{numpy_version}"
+        )
+    try:
+        import pyarrow
+    except ImportError as exc:
+        raise Market05CanonicalExecutionNotAuthorized(
+            "MARKET_05_PYARROW_VERSION_MISMATCH:missing"
+        ) from exc
+    pyarrow_version = str(pyarrow.__version__)
+    if pyarrow_version != PYARROW_PINNED_VERSION:
+        raise Market05CanonicalExecutionNotAuthorized(
+            f"MARKET_05_PYARROW_VERSION_MISMATCH:{pyarrow_version}"
+        )
+    return execution_environment_record()
+
+
+def execution_environment_record() -> dict[str, str]:
+    import platform
+    import sys
+
+    import numpy
+    import pyarrow
+
+    from scripts.research.market05_cross_asset_authority_root import (
+        git_executable_metadata,
+    )
+
+    git_meta = git_executable_metadata()
+    return {
+        "numpy_version": str(numpy.__version__),
+        "pyarrow_version": str(pyarrow.__version__),
+        "python_version": sys.version.split()[0],
+        "python_implementation": platform.python_implementation(),
+        "platform": platform.platform(),
+        **git_meta,
+    }
+
+
+def _claim_blocks_new_execution() -> None:
+    from scripts.research.market05_cross_asset_execution_claim import claim_exists
+
+    if claim_exists():
+        raise Market05CanonicalExecutionNotAuthorized("MARKET_05_EXECUTION_CLAIMED")
+
+
+def authenticate_market_05_pre_claim(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Pre-flight authorization. Refuses if a claim already exists.
+
+    Does NOT require RESULT absence after a claim; the claim itself is
+    consumption. RESULT presence before a claim is still a forgery.
+    """
+    _reject_caller_kwargs(args, kwargs)
+    _claim_blocks_new_execution()
     arm = authenticate_market_05_arm()
     reservation = authenticate_market_05_reservation()
     if arm["payload"].get("run_identity") != reservation["payload"].get("run_identity"):
         raise Market05CanonicalExecutionNotAuthorized(
             "MARKET_05_ARM_RESERVATION_RUN_IDENTITY_DISAGREEMENT"
         )
-    # RESULT must not already exist.
     for rel in (RESULT_JSON_REL, RESULT_MD_REL):
         if _path(rel).exists():
             raise Market05CanonicalExecutionNotAuthorized(
                 "MARKET_05_RESULT_ALREADY_PRESENT"
             )
+    from scripts.research.market05_cross_asset_authority_root import (
+        load_frozen_provenance,
+    )
+
+    provenance = load_frozen_provenance()
+    claim_payload = {
+        "research_id": RESEARCH_ID,
+        "run_identity": arm["run_identity"],
+        "arm_json_sha256": arm["sha256"],
+        "reservation_sha256": reservation["sha256"],
+        "scientific_implementation_head": provenance["head"],
+        "scientific_implementation_tree": provenance["tree"],
+        "btc_snapshot_id": BTC_SNAPSHOT_ID,
+        "eth_snapshot_id": ETH_SNAPSHOT_ID,
+        "eth_execution_data_id": ETH_EXECUTION_DATA_ID,
+        "result_schema_identity": RESULT_SCHEMA_IDENTITY,
+    }
     return {
         "run_identity": arm["run_identity"],
         "arm": arm["payload"],
         "reservation": reservation["payload"],
         "arm_sha256": arm["sha256"],
         "reservation_sha256": reservation["sha256"],
+        "claim_payload": claim_payload,
     }
 
 
+def authenticate_market_05_canonical_execution(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Pre-claim authorization only. A claim is consumed-by-existence."""
+    return authenticate_market_05_pre_claim(*args, **kwargs)
+
+
+def authenticate_existing_claim(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Post-claim completion authority. RESULT absence is not required."""
+    _reject_caller_kwargs(args, kwargs)
+    from scripts.research.market05_cross_asset_execution_claim import (
+        load_execution_claim,
+        validate_claim_payload,
+    )
+    from scripts.research.market05_cross_asset_authority_root import (
+        load_frozen_provenance,
+    )
+
+    payload = load_execution_claim()
+    provenance = load_frozen_provenance()
+    derived = derive_market_05_run_identity()
+    expected = {
+        "research_id": RESEARCH_ID,
+        "run_identity": derived,
+        "scientific_implementation_head": provenance["head"],
+        "scientific_implementation_tree": provenance["tree"],
+        "btc_snapshot_id": BTC_SNAPSHOT_ID,
+        "eth_snapshot_id": ETH_SNAPSHOT_ID,
+        "eth_execution_data_id": ETH_EXECUTION_DATA_ID,
+        "result_schema_identity": RESULT_SCHEMA_IDENTITY,
+        "execution_claim_protocol": EXECUTION_CLAIM_PROTOCOL,
+    }
+    validate_claim_payload(payload, expected)
+    return {"payload": payload, "run_identity": derived}
+
+
 def market_05_execution_is_authorized() -> bool:
-    """Non-raising predicate used by the frozen pre-ARM barrier."""
+    """True only for an unclaimed, valid ARM+RESERVATION pair."""
     try:
-        authenticate_market_05_canonical_execution()
+        authenticate_market_05_pre_claim()
     except _refusal_exceptions():
         return False
     return True
 
 
 def inspect_market_05_arm_state() -> dict[str, Any]:
-    """Derive lifecycle state from artifacts. Never hardcoded."""
-    try:
-        arm = authenticate_market_05_arm()
-        reservation = authenticate_market_05_reservation()
-        authorized = int(reservation["payload"]["CANONICAL_EXECUTIONS_AUTHORIZED"])
-        consumed = int(reservation["payload"]["CANONICAL_EXECUTIONS_CONSUMED"])
+    """Derive lifecycle state from artifacts. Claim presence means consumed."""
+    from scripts.research.market05_cross_asset_execution_claim import claim_exists
+
+    if claim_exists():
+        try:
+            derived = derive_market_05_run_identity()
+        except _refusal_exceptions():
+            derived = None
+        result_exists = _path(RESULT_JSON_REL).exists()
         return {
             "MARKET_05_ARMED": True,
             "IMPLEMENTATION_FROZEN": True,
-            "MARKET_05_EXECUTION_AUTHORIZED": authorized == 1 and consumed == 0,
-            "CANONICAL_EXECUTIONS_AUTHORIZED": authorized,
-            "CANONICAL_EXECUTIONS_CONSUMED": consumed,
+            "MARKET_05_EXECUTION_AUTHORIZED": False,
+            "CANONICAL_EXECUTIONS_AUTHORIZED": 1,
+            "CANONICAL_EXECUTIONS_CONSUMED": 1,
+            "run_identity": derived,
+            "MARKET_05_EXECUTED": result_exists,
+            "MARKET_05_OUTCOME_INSPECTED": result_exists,
+            "MARKET_05_TEST_CALIBRATED": False,
+            "PROTECTED_OOS_AUTHORIZED": False,
+            "MARKET_05_EXECUTION_CLAIMED": True,
+        }
+    try:
+        arm = authenticate_market_05_arm()
+        reservation = authenticate_market_05_reservation()
+        return {
+            "MARKET_05_ARMED": True,
+            "IMPLEMENTATION_FROZEN": True,
+            "MARKET_05_EXECUTION_AUTHORIZED": True,
+            "CANONICAL_EXECUTIONS_AUTHORIZED": 1,
+            "CANONICAL_EXECUTIONS_CONSUMED": 0,
             "run_identity": arm["run_identity"],
-            "MARKET_05_EXECUTED": bool(consumed),
+            "MARKET_05_EXECUTED": False,
             "MARKET_05_OUTCOME_INSPECTED": False,
             "MARKET_05_TEST_CALIBRATED": False,
             "PROTECTED_OOS_AUTHORIZED": False,
+            "MARKET_05_EXECUTION_CLAIMED": False,
         }
     except _refusal_exceptions():
         return {
@@ -567,39 +755,24 @@ def inspect_market_05_arm_state() -> dict[str, Any]:
             "MARKET_05_OUTCOME_INSPECTED": False,
             "MARKET_05_TEST_CALIBRATED": False,
             "PROTECTED_OOS_AUTHORIZED": False,
+            "MARKET_05_EXECUTION_CLAIMED": False,
         }
 
 
 def consume_authorization_atomically(*args: Any, **kwargs: Any) -> dict[str, str]:
-    """Durable single-use claim: 1/0 -> 1/1 written to disk.
-
-    Re-authenticates first, so a crash/retry cannot produce two different
-    scientific runs: once CONSUMED=1 is on disk, every later attempt fails
-    authentication at MARKET_05_RESERVATION_CONSUMED.
-    """
+    """Compatibility wrapper: consumption is the exclusive claim create."""
     _reject_caller_kwargs(args, kwargs)
-    authenticate_market_05_canonical_execution()
-    reservation_path = _path(RESERVATION_JSON_REL)
-    arm_path = _path(ARM_JSON_REL)
-    reservation = json.loads(reservation_path.read_text(encoding="utf-8"))
-    arm = json.loads(arm_path.read_text(encoding="utf-8"))
-    if int(reservation.get("CANONICAL_EXECUTIONS_CONSUMED", 1)) != 0:
-        raise Market05CanonicalExecutionNotAuthorized("MARKET_05_RESERVATION_CONSUMED")
-    if arm.get("authorization_consumed") is True:
-        raise Market05CanonicalExecutionNotAuthorized("MARKET_05_ARM_CONSUMED")
-    reservation["CANONICAL_EXECUTIONS_CONSUMED"] = 1
-    reservation["MARKET_05_EXECUTED"] = True
-    reservation["status"] = "CONSUMED"
-    reservation["rerun_preauthorized"] = False
-    arm["authorization_consumed"] = True
-    arm["CANONICAL_EXECUTIONS_CONSUMED"] = 1
-    arm["MARKET_05_EXECUTED"] = True
-    arm["status"] = "EXECUTED"
-    reservation_path.write_bytes(canonical_json_bytes(reservation))
-    arm_path.write_bytes(canonical_json_bytes(arm))
+    bound = authenticate_market_05_pre_claim()
+    from scripts.research.market05_cross_asset_execution_claim import (
+        create_execution_claim_atomically,
+        sha256_claim_file,
+    )
+
+    create_execution_claim_atomically(bound["claim_payload"])
     return {
-        "reservation_sha256_consumed": sha256_file(reservation_path),
-        "arm_sha256_consumed": sha256_file(arm_path),
+        "reservation_sha256_consumed": bound["reservation_sha256"],
+        "arm_sha256_consumed": bound["arm_sha256"],
+        "claim_sha256": sha256_claim_file(),
         "CANONICAL_EXECUTIONS_AUTHORIZED": "1",
         "CANONICAL_EXECUTIONS_CONSUMED": "1",
     }

@@ -753,6 +753,12 @@ def evaluate_prepared_rows(
         "bootstrap_replicates_predictive": predictive_replicates,
         "bootstrap_replicates_coefficient": coefficient_replicates,
         "random_seed": RANDOM_SEED,
+        "row_counts": {"eligible_rows": len(rows), "held_out_rows": len(held_y)},
+        "fold_counts": {
+            str(item["name"]): {"train_n": item["train_n"], "test_n": item["test_n"]}
+            for item in fold_payload
+        },
+        "exclusion_counts": {"pure_evaluator": 0},
     }
 
 
@@ -760,9 +766,6 @@ RESULT_SCHEMA_KEYS = (
     "research_id",
     "prereg_md_sha256",
     "prereg_json_sha256",
-    # Commit provenance and per-file identity are SEPARATE fields; the
-    # commit fields carry exact git SHAs and are never overloaded with a
-    # hash map (schema 1.1.0).
     "implementation_head",
     "implementation_tree",
     "scientific_implementation_hashes",
@@ -770,10 +773,23 @@ RESULT_SCHEMA_KEYS = (
     "btc_snapshot_id",
     "eth_dataset_id",
     "eth_snapshot_id",
+    "eth_execution_data_id",
     "run_identity",
+    "execution_claim_sha256",
+    "arm_sha256",
+    "reservation_sha256",
+    "result_schema_identity",
+    "result_status",
+    "numpy_version",
+    "pyarrow_version",
+    "python_version",
+    "python_implementation",
+    "git_executable",
+    "git_version",
     "row_counts",
     "exclusion_counts",
     "fold_counts",
+    "folds",
     "coefficients",
     "bootstrap",
     "bootstrap_cis",
@@ -788,6 +804,58 @@ RESULT_SCHEMA_KEYS = (
 
 def result_schema() -> dict:
     return {key: None for key in RESULT_SCHEMA_KEYS}
+
+
+def required_complete_result_paths(payload: Mapping) -> list[str]:
+    """Paths that a COMPLETE RESULT must populate with non-None evidence."""
+    required = [
+        ("row_counts", payload.get("row_counts")),
+        ("exclusion_counts", payload.get("exclusion_counts")),
+        ("fold_counts", payload.get("fold_counts")),
+        (
+            "coefficients.BETA_ETH_CONFIRMATION",
+            (payload.get("coefficients") or {}).get("BETA_ETH_CONFIRMATION"),
+        ),
+        (
+            "bootstrap_cis.BETA_ETH_CONFIRMATION_CI",
+            (payload.get("bootstrap_cis") or {}).get("BETA_ETH_CONFIRMATION_CI"),
+        ),
+        (
+            "bootstrap_cis.RELATIVE_MAE_IMPROVEMENT_CI",
+            (payload.get("bootstrap_cis") or {}).get("RELATIVE_MAE_IMPROVEMENT_CI"),
+        ),
+        (
+            "maes.POOLED_MAE_BASELINE",
+            (payload.get("maes") or {}).get("POOLED_MAE_BASELINE"),
+        ),
+        (
+            "maes.POOLED_MAE_CANDIDATE",
+            (payload.get("maes") or {}).get("POOLED_MAE_CANDIDATE"),
+        ),
+        (
+            "maes.RELATIVE_MAE_IMPROVEMENT",
+            (payload.get("maes") or {}).get("RELATIVE_MAE_IMPROVEMENT"),
+        ),
+        ("year_metrics", payload.get("year_metrics")),
+        ("folds", payload.get("folds")),
+        ("gates", payload.get("gates")),
+        ("classification", payload.get("classification")),
+        ("run_identity", payload.get("run_identity")),
+        ("execution_claim_sha256", payload.get("execution_claim_sha256")),
+        ("arm_sha256", payload.get("arm_sha256")),
+        ("reservation_sha256", payload.get("reservation_sha256")),
+        ("eth_execution_data_id", payload.get("eth_execution_data_id")),
+        ("numpy_version", payload.get("numpy_version")),
+        ("pyarrow_version", payload.get("pyarrow_version")),
+        ("scientific_consumed", payload.get("scientific_consumed")),
+        ("protected_oos_touched", payload.get("protected_oos_touched")),
+    ]
+    missing = [name for name, value in required if value is None]
+    years = payload.get("year_metrics") or {}
+    for year in (2022, 2023, 2024):
+        if years.get(year) is None and years.get(str(year)) is None:
+            missing.append(f"year_metrics.{year}")
+    return missing
 
 
 def instantiate_scientific_result(payload: Mapping) -> dict:
@@ -821,4 +889,11 @@ def instantiate_scientific_result(payload: Mapping) -> dict:
         raise Market05IntegrityError(
             f"MARKET_05_RESULT_SCHEMA_MISMATCH:missing={missing}:extra={extra}"
         )
+    if payload.get("result_status") == "COMPLETE":
+        missing_values = required_complete_result_paths(payload)
+        if missing_values:
+            raise Market05IntegrityError(
+                "MARKET_05_RESULT_NUMERIC_EVIDENCE_INCOMPLETE:"
+                + ",".join(missing_values)
+            )
     return {key: payload[key] for key in RESULT_SCHEMA_KEYS}

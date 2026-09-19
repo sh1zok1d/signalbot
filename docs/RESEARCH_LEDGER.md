@@ -3700,3 +3700,26 @@ NEXT_UNIT = OUTCOME_BLIND_MARKET_05_IMPLEMENTATION_RED_TEAM_AUDIT
 ```
 
 Evidence: `docs/research/MARKET_05_IMPLEMENTATION_FREEZE.md`.
+
+## 2026-09-19 — MARKET-05 final pre-ARM production repair freeze
+
+Independent read-only red-team of `da66716…` / tree `69d03914…`
+returned `MARKET_05_DO_NOT_ARM` (F1–F10 production blockers). This
+unit repairs those blockers outcome-blind without changing prereg
+mathematics. Atomic `O_EXCL` execution claim is consumption. ETH
+execution parquet is bound as `ETH_EXECUTION_DATA_ID`. No ARM, RESULT,
+or scientific-outcome inspection. Protected 2025/2026 OOS untouched.
+
+```text
+RESEARCH_ID = MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK
+PRE_REPAIR_AUDIT = MARKET_05_DO_NOT_ARM
+PREREG_CHANGED = false
+SCIENTIFIC_MATH_CHANGED = false
+ARMED = false
+EXECUTION_AUTHORIZED = false
+SCIENTIFIC_OUTCOMES_INSPECTED = false
+PROTECTED_OOS_TOUCHED = false
+NEXT_UNIT = INDEPENDENT_FINAL_MARKET_05_PRE_ARM_RED_TEAM
+```
+
+Evidence: `docs/research/MARKET_05_FINAL_PRE_ARM_FREEZE.md`.

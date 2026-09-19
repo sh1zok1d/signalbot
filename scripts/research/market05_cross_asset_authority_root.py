@@ -35,18 +35,68 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
+
+# GIT_* variables that can redirect object/worktree lookup. Stripped for
+# every authority git invocation. A fully compromised OS is out of scope;
+# this removes avoidable replacement/object-directory/worktree ambiguity.
+_GIT_ENV_BLOCKLIST_PREFIX = "GIT_"
+_GIT_ENV_KEEP = {"GIT_CONFIG_NOSYSTEM"}
+
+
+class Market05AuthorityRootError(RuntimeError):
+    """The executing authority bytes are not the frozen authority bytes."""
 
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
+def _authority_git_env() -> dict[str, str]:
+    env = {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith(_GIT_ENV_BLOCKLIST_PREFIX)
+    }
+    env["GIT_CONFIG_NOSYSTEM"] = "1"
+    env["GIT_CONFIG_GLOBAL"] = "/dev/null"
+    env["PATH"] = os.environ.get("PATH", "")
+    if "HOME" in os.environ:
+        env["HOME"] = os.environ["HOME"]
+    if "LANG" in os.environ:
+        env["LANG"] = os.environ["LANG"]
+    return env
+
+
+def resolved_git_executable() -> str:
+    found = shutil.which("git")
+    if not found:
+        raise Market05AuthorityRootError(
+            "MARKET_05_AUTHORITY_ROOT_GIT_VERIFICATION_REQUIRED:git_unavailable"
+        )
+    return str(Path(found).resolve())
+
+
+def git_executable_metadata() -> dict[str, str]:
+    exe = resolved_git_executable()
+    proc = subprocess.run(
+        [exe, "--version"],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=_authority_git_env(),
+    )
+    version = (proc.stdout or proc.stderr or "").strip()
+    return {"git_executable": exe, "git_version": version}
+
+
 AUTHORITY_ROOT_REL = "scripts/research/market05_cross_asset_authority_root.py"
 ARM_AUTHORITY_REL = "scripts/research/market05_cross_asset_arm_authority.py"
-REFREEZE_JSON_REL = "docs/research/MARKET_05_IMPLEMENTATION_REFREEZE.json"
+REFREEZE_JSON_REL = "docs/research/MARKET_05_FINAL_PRE_ARM_FREEZE.json"
 
 # The frozen SCIENTIFIC implementation commit. This is the commit that
 # carries the scientific + authority source. Later documentation-only
@@ -63,31 +113,39 @@ SCIENTIFIC_IMPLEMENTATION_TREE_KEY = "scientific_implementation_tree"
 # materially change authorization or scientific results.
 FROZEN_BLOB_IDS: dict[str, str] = {
     "scripts/research/market05_cross_asset_lib.py": (
-        "331a5e884bf4ccd99514af7961cb0c102cfa330f"
+        "d5ae6fb657dc2261261b2746c69d25f40acdc537"
     ),
     "scripts/research/market05_cross_asset_authority.py": (
-        "aa39e8f5685f93b20bf2c487cd8b3ac1db42722c"
-    ),
-    "scripts/research/market05_cross_asset_arm_authority.py": (
-        "93adc219238b3151276329a8ed192999baf1bd20"
+        "2205dfa1f356a4d5999df340636be786a58f9725"
     ),
     "scripts/research/market05_cross_asset.py": (
-        "cd3f82b9fff37f431bac815cd6f7e7fd566dc6fd"
+        "6360e9a042d410f32f4731795441422fc8d91942"
     ),
     "scripts/research/market05_cross_asset_data.py": (
         "37b2c462ac4b089577ca706960cb404892e4c594"
     ),
     "scripts/research/market05_cross_asset_canonical_execution.py": (
-        "3b940a9747a843af74a0c4d5ff3769e1b587b54d"
+        "010f2594688268458762e6ee9f041d68cc32941d"
     ),
     "scripts/research/core_eth_binance_v0_acceptor_lib.py": (
         "ff5631dcf51d40f1597c8a21903ed168f8fd610f"
     ),
+    "scripts/research/market05_cross_asset_bootstrap.py": (
+        "d87dfddcf2563fb9fe73a6f0b10f76c1962c4395"
+    ),
+    "scripts/research/market05_cross_asset_execution_claim.py": (
+        "98cfd46a0ec00b482e0598f781d3ec38ef452e77"
+    ),
+    "scripts/research/market05_cross_asset_data_preflight.py": (
+        "b4616b61903fa0aabf1b04d31d76fa39b1264bf8"
+    ),
+    "scripts/research/market05_eth_execution_binding.py": (
+        "701fcd4ea818b655b5538e38937ded90930f7719"
+    ),
+    "scripts/research/market05_cross_asset_arm_authority.py": (
+        "237d233439cf6b8f04a106669064b06123a37927"
+    ),
 }
-
-
-class Market05AuthorityRootError(RuntimeError):
-    """The executing authority bytes are not the frozen authority bytes."""
 
 
 def git_blob_id(data: bytes) -> str:
@@ -101,13 +159,15 @@ def _path(rel: str) -> Path:
 
 
 def _git(*argv: str) -> subprocess.CompletedProcess:
-    """Run git. A missing/unusable git binary is an authority-root failure."""
+    """Run git without replace-refs or GIT_* repository redirection."""
     try:
+        exe = resolved_git_executable()
         return subprocess.run(
-            ["git", *argv],
+            [exe, "--no-replace-objects", "-c", "core.useReplaceRefs=false", *argv],
             cwd=str(_repo_root()),
             capture_output=True,
             check=False,
+            env=_authority_git_env(),
         )
     except OSError as exc:
         raise Market05AuthorityRootError(
@@ -163,11 +223,20 @@ def load_frozen_provenance() -> dict[str, str]:
             raise Market05AuthorityRootError(
                 f"MARKET_05_AUTHORITY_ROOT_PROVENANCE_INVALID:{label}"
             )
-        if "UNSET" in value:
+        if (
+            "UNSET" in value.upper()
+            or value == "0" * 40
+            or any(ch not in "0123456789abcdef" for ch in value.lower())
+        ):
             raise Market05AuthorityRootError(
                 f"MARKET_05_AUTHORITY_ROOT_PROVENANCE_PLACEHOLDER:{label}"
             )
     return {"head": head, "tree": tree}
+
+
+def git_ls_files(rel: str) -> subprocess.CompletedProcess:
+    """Tracked-file probe using the same sanitized git as authority checks."""
+    return _git("ls-files", "--error-unmatch", "--", rel)
 
 
 def verify_frozen_commit_tree(provenance: dict[str, str]) -> dict[str, Any]:

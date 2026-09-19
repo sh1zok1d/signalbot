@@ -130,6 +130,7 @@ numpy (pinned `2.1.3`); no unbound project module can alter behaviour.
 ## 7. Relationship to the previous freeze
 
 `MARKET_05_IMPLEMENTATION_FREEZE.{md,json}` remains valid as a record of
-what was frozen at `0016e4fc…`. It is superseded as *current* authority by
-this document, and it is annotated to say so. Its implementation hashes
-intentionally still describe the pre-repair bytes.
+what was frozen at `0016e4fc…`. This re-freeze remains valid as a record
+of the lifecycle-gate repair at `46a7f6e0…`. **Current executable
+authority is** `MARKET_05_FINAL_PRE_ARM_FREEZE.{md,json}`.
+

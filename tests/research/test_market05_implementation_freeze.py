@@ -76,7 +76,7 @@ def test_eth_accepted_and_constants_bound():
     )
     assert payload["describes_commit"] == "0016e4fc616af9222f9c9fd581a4a4199b1bdccf"
 
-    # The CURRENT authority must match the live tree byte-for-byte.
+    # The prior re-freeze is itself superseded by the final pre-ARM freeze.
     refreeze = json.loads(
         (REPO / "docs/research/MARKET_05_IMPLEMENTATION_REFREEZE.json").read_text(
             encoding="utf-8"
@@ -85,16 +85,30 @@ def test_eth_accepted_and_constants_bound():
     assert refreeze["status"] == "MARKET_05_IMPLEMENTATION_REFROZEN_OUTCOME_BLIND"
     assert refreeze["armed"] is False
     assert refreeze["execution_authorized"] is False
-    assert refreeze["post_arm_code_change_required"] is False
     assert refreeze["scientific_math_changed"] is False
     assert refreeze["prereg_changed"] is False
-    for rel, digest in refreeze["scientific_implementation_hashes"].items():
-        assert _sha256(REPO / rel) == digest, rel
-    assert _sha256(REPO / refreeze["arm_authority_file"]) == (
-        refreeze["arm_authority_sha256"]
+    assert refreeze["is_current_authority"] is False
+    assert refreeze["superseded_by"] == (
+        "docs/research/MARKET_05_FINAL_PRE_ARM_FREEZE.json"
     )
-    for rel, digest in refreeze["test_files"].items():
+
+    freeze = json.loads(
+        (REPO / "docs/research/MARKET_05_FINAL_PRE_ARM_FREEZE.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert freeze["status"] == "MARKET_05_FINAL_PRE_ARM_IMPLEMENTATION_FROZEN"
+    assert freeze["armed"] is False
+    assert freeze["execution_authorized"] is False
+    assert freeze["scientific_math_changed"] is False
+    assert freeze["prereg_changed"] is False
+    assert freeze["real_arm_created"] is False
+    assert freeze["result_created"] is False
+    for rel, digest in freeze["scientific_implementation_hashes"].items():
         assert _sha256(REPO / rel) == digest, rel
+    assert _sha256(REPO / "scripts/research/market05_cross_asset_arm_authority.py") == (
+        freeze["arm_authority_sha256"]
+    )
 
 
 def test_no_arm_or_result_and_audit_answers_are_no_for_invalid_paths():

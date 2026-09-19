@@ -46,8 +46,16 @@ Read these first:
 | `research/MARKET_05_CROSS_ASSET_DATA_FEASIBILITY.json` | **OUTCOME_BLIND_FEASIBILITY twin** | Machine-readable twin; `common_decision_timestamps_feasible=true`; `protected_oos_touched=false` |
 | `research/MARKET_05_CROSS_ASSET_PREREG.md` | **FROZEN_OUTCOME_BLIND preregistration** | Exact MARKET-05 formulation; daily 00:00 UTC; 24h/24h; continuous ETH confirmation; not ARM/execution |
 | `research/MARKET_05_CROSS_ASSET_PREREG.json` | **FROZEN_OUTCOME_BLIND prereg twin** | Machine-readable twin; `FULL_PREREGISTRATION_FROZEN=true`; `MARKET_05_TEST_CALIBRATED=NO`; `execution_authorized=false` |
-| `research/MARKET_05_IMPLEMENTATION_FREEZE.md` | **IMPLEMENTATION_FROZEN / NOT ARMED** | Exact MARKET-05 evaluator freeze; CORE ETH accepted; no ARM/RESULT/scientific execution |
-| `research/MARKET_05_IMPLEMENTATION_FREEZE.json` | **IMPLEMENTATION_FROZEN twin** | Machine-readable twin; `IMPLEMENTATION_FROZEN=true`; `execution_authorized=false`; ETH snapshot `4b9c113f…` |
+| `research/MARKET_05_IMPLEMENTATION_FREEZE.md` | **IMPLEMENTATION_FROZEN / HISTORICAL** | Original MARKET-05 evaluator freeze at `0016e4fc…`; superseded as current authority by the final pre-ARM freeze |
+| `research/MARKET_05_IMPLEMENTATION_FREEZE.json` | **IMPLEMENTATION_FROZEN twin / HISTORICAL** | Machine-readable twin of the original freeze; `is_current_authority=false` |
+| `research/MARKET_05_IMPLEMENTATION_REFREEZE.md` | **IMPLEMENTATION_REFROZEN / HISTORICAL** | Lifecycle-gate repair freeze at `46a7f6e0…`; superseded as current authority by the final pre-ARM freeze |
+| `research/MARKET_05_IMPLEMENTATION_REFREEZE.json` | **IMPLEMENTATION_REFROZEN twin / HISTORICAL** | Machine-readable twin; `is_current_authority=false`; `superseded_by` final pre-ARM freeze |
+| `research/MARKET_05_ARM_CONTRACT.md` | **DOCUMENTARY MIRROR / NOT RUNTIME AUTHORITY** | Prior ARM-contract text; not an ARM; hash maps describe `46a7f6e0…` and are not runtime-enforced |
+| `research/MARKET_05_ARM_CONTRACT.json` | **DOCUMENTARY MIRROR twin** | `authority_role=DOCUMENTARY_MIRROR_OF_PRIOR_FREEZE`; `executable_authority=false` |
+| `research/MARKET_05_ARM_SEMANTIC_CONTRACT.json` | **EXECUTABLE SEMANTIC CONTRACT** | Non-self-referential ARM semantic payload; SHA256 bound into `RUN_IDENTITY` |
+| `research/MARKET_05_FINAL_PRE_ARM_FREEZE.md` | **CURRENT PRE-ARM EXECUTABLE FREEZE / NOT ARMED** | Claim-before-outcomes one-shot; ETH execution-data binding; RESULT schema 1.2.0; no ARM/RESULT |
+| `research/MARKET_05_FINAL_PRE_ARM_FREEZE.json` | **CURRENT PRE-ARM EXECUTABLE FREEZE twin** | `MARKET_05_FINAL_PRE_ARM_IMPLEMENTATION_FROZEN`; `execution_authorized=false` |
+| `research_data/CORE_ETH_BINANCE_V0/MARKET_05_EXECUTION_BINDING.json` | **ETH EXECUTION-DATA BINDING** | 2020-01..2024-12 parquet SHA256s bound to accepted ZIP SHA256s; `ETH_EXECUTION_DATA_ID` |
 | `manifests/CORE_ETH_BINANCE_V0.yaml` | **ACCEPTED_FOR_DISCOVERY** | ETH companion to `CORE_BTC_BINANCE_V0`; snapshot `4b9c113f…`; does not redefine CORE BTC; not ARM/execution |
 | `research_data/CORE_ETH_BINANCE_V0/` | **ACCEPTED COMPANION IDENTITY** | Vision ETHUSDT 1m inventory + accepted snapshot identity; no scientific MARKET-05 outcomes |
 | `research/BATCH02_STATUS_LEDGER.md` | **ACTIVE RECORD** | Post-outcome Batch02 formulation/family status, including B2-05 durable-evidence recovery closeout `B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED` at archive `e31e5666fe845116197b6f2531289bf17d848027`; B2-06 remains `BLOCKED_MISSING_OBSERVABLE` after an outcome-blind OI/funding snapshot bind that does not authorize execution; does not mutate the frozen inventory |

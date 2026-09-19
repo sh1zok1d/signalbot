@@ -1,15 +1,26 @@
 # MARKET-05 CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK — ARM CONTRACT
 
-- **Status:** `ARM_CONTRACT_FROZEN`
+- **Status:** `ARM_CONTRACT_DOCUMENTARY_MIRROR`
 - **Unit ID:** `MARKET_05_CROSS_ASSET_ARM_CONTRACT`
 - **Research ID:** `MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK`
 - **Date:** 2026-09-19
 - **Machine-readable twin:** `MARKET_05_ARM_CONTRACT.json`
 
-**This document is NOT an ARM. It authorizes nothing.** It is the frozen
-contract that a *future* ARM must satisfy. No ARM artifact exists;
-`ARMED = false`, `EXECUTION_AUTHORIZED = false`,
+**This document is NOT an ARM. It authorizes nothing.**
+
+**Executable authority is not this file.** Runtime authorization is
+production code + independently recomputed `RUN_IDENTITY` +
+`docs/research/MARKET_05_ARM_SEMANTIC_CONTRACT.json`
+(`ARM_SEMANTIC_CONTRACT_SHA256`). Hash maps in this document describe
+the prior freeze at scientific implementation `46a7f6e0…` and are **not**
+re-checked at runtime. Do not treat this markdown or its JSON twin as
+stronger than the live `RUN_IDENTITY` payload.
+
+No ARM artifact exists; `ARMED = false`, `EXECUTION_AUTHORIZED = false`,
 `CANONICAL_EXECUTIONS_AUTHORIZED = 0`.
+
+Current executable freeze: `docs/research/MARKET_05_FINAL_PRE_ARM_FREEZE.md`.
+
 
 ## 1. Why this contract exists
 
