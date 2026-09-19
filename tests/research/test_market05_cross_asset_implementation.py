@@ -15,6 +15,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from scripts.research.market05_cross_asset_authority import Market05AuthorityError
 from scripts.research.market05_cross_asset_lib import (
     BAR_MS,
     BASELINE_COLUMN_NAMES,
@@ -504,7 +505,10 @@ def test_no_near_pass_states_and_result_schema_not_instantiated():
     ):
         assert key in schema
         assert schema[key] is None
-    with pytest.raises(Market05IntegrityError, match="RESULT_INSTANTIATION_FORBIDDEN"):
+    with pytest.raises(
+        (Market05IntegrityError, Market05AuthorityError),
+        match="RESULT_INSTANTIATION_FORBIDDEN|RESULT_ARTIFACT_MUST_NOT_EXIST",
+    ):
         instantiate_scientific_result({"classification": CLASS_PROMOTED})
     for forbidden in ("NEAR_PASS", "PROMISING", "MIXED", "PARTIAL_PASS"):
         assert forbidden not in {CLASS_PROMOTED, CLASS_NO_EVIDENCE, CLASS_INCOMPLETE}

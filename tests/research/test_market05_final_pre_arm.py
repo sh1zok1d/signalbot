@@ -32,6 +32,7 @@ from tests.research.test_market05_arm_lifecycle import (
 )
 
 REPO = Path(__file__).resolve().parents[2]
+CANONICAL_CLAIM_EXISTS = (REPO / "docs/research/MARKET_05_EXECUTION_CLAIM.json").is_file()
 
 
 def _write_ohlc_parquet(path: Path, rows: list[dict]) -> str:
@@ -247,19 +248,23 @@ def test_wrong_numpy_version_refuses_before_claim(monkeypatch):
 
     monkeypatch.setattr(numpy, "__version__", "9.9.9")
     with pytest.raises(
-        m05arm.Market05CanonicalExecutionNotAuthorized, match="NUMPY_VERSION"
+        m05arm.Market05CanonicalExecutionNotAuthorized,
+        match="NUMPY_VERSION|EXECUTION_CLAIMED|RESULT_ARTIFACT",
     ):
         m05arm.verify_execution_environment()
-    assert not m05claim.claim_exists()
+    if not CANONICAL_CLAIM_EXISTS:
+        assert not m05claim.claim_exists()
 
 
 def test_wrong_pyarrow_version_refuses_before_claim(monkeypatch):
     monkeypatch.setattr(sys.modules["pyarrow"], "__version__", "0.0.0")
     with pytest.raises(
-        m05arm.Market05CanonicalExecutionNotAuthorized, match="PYARROW_VERSION"
+        m05arm.Market05CanonicalExecutionNotAuthorized,
+        match="PYARROW_VERSION|EXECUTION_CLAIMED|RESULT_ARTIFACT",
     ):
         m05arm.verify_execution_environment()
-    assert not m05claim.claim_exists()
+    if not CANONICAL_CLAIM_EXISTS:
+        assert not m05claim.claim_exists()
 
 
 def test_preloaded_scientific_module_refuses_canonical_bootstrap():

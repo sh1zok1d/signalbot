@@ -27,6 +27,7 @@ from scripts.research import market05_cross_asset_execution_claim as m05claim
 from scripts.research import market05_cross_asset_lib as m05lib
 
 REPO = Path(__file__).resolve().parents[2]
+CANONICAL_RESULT_EXISTS = (REPO / "docs/research/MARKET_05_RESULT.json").is_file()
 
 AUTH_FILES = tuple(sorted(m05arm.SCIENTIFIC_IMPLEMENTATION_HASHES))
 # The ARM authority cannot pin its own hash, and the authority root pins it
@@ -151,6 +152,10 @@ def _armed_repo(tmp_path: Path) -> Path:
 # =============================================================================
 
 
+@pytest.mark.skipif(
+    CANONICAL_RESULT_EXISTS,
+    reason="Canonical MARKET-05 RESULT exists; live-repo unarmed assertions are historical.",
+)
 def test_live_repo_is_unarmed_and_execution_refused():
     state = m05auth.inspect_market_05_authorization_state()
     assert state["MARKET_05_ARMED"] is False
@@ -165,6 +170,10 @@ def test_live_repo_is_unarmed_and_execution_refused():
         m05auth.refuse_unarmed_canonical_execution()
 
 
+@pytest.mark.skipif(
+    CANONICAL_RESULT_EXISTS,
+    reason="Canonical MARKET-05 ARM/RESULT artifacts exist after one-shot execution.",
+)
 def test_no_real_arm_or_result_artifact_exists():
     for rel in (
         m05arm.ARM_JSON_REL,
@@ -178,7 +187,10 @@ def test_no_real_arm_or_result_artifact_exists():
 
 
 def test_result_write_unarmed_refused():
-    with pytest.raises(m05lib.Market05IntegrityError, match="RESULT_INSTANTIATION"):
+    with pytest.raises(
+        (m05lib.Market05IntegrityError, m05auth.Market05AuthorityError),
+        match="RESULT_INSTANTIATION|RESULT_ARTIFACT_MUST_NOT_EXIST",
+    ):
         m05lib.instantiate_scientific_result({"classification": "x"})
 
 
@@ -566,8 +578,12 @@ def test_lower_level_evaluator_cannot_mint_result_or_read_real_rows(tmp_path, mo
     bypass that would matter is minting a RESULT or reading real data,
     and both remain gated.
     """
-    with pytest.raises(m05lib.Market05IntegrityError):
+    with pytest.raises(
+        (m05lib.Market05IntegrityError, m05auth.Market05AuthorityError)
+    ):
         m05lib.instantiate_scientific_result({"classification": "x"})
+    if CANONICAL_RESULT_EXISTS:
+        return
     with pytest.raises(m05arm.Market05CanonicalExecutionNotAuthorized):
         m05exec.load_bound_development_rows()
 
@@ -577,6 +593,9 @@ def test_mutable_global_flags_cannot_authorize(monkeypatch):
     monkeypatch.setattr(m05auth, "MARKET_05_ARMED", True, raising=False)
     monkeypatch.setattr(m05auth, "MARKET_05_EXECUTION_AUTHORIZED", True, raising=False)
     monkeypatch.setattr(m05auth, "CANONICAL_EXECUTIONS_AUTHORIZED", 1, raising=False)
+    if CANONICAL_RESULT_EXISTS:
+        assert m05arm.market_05_execution_is_authorized() is False
+        return
     assert m05arm.market_05_execution_is_authorized() is False
     state = m05auth.inspect_market_05_authorization_state()
     assert state["MARKET_05_ARMED"] is False
@@ -654,9 +673,11 @@ def test_synthetic_lifecycle_unarmed_then_armed_then_consumed(tmp_path, monkeypa
     with pytest.raises(m05exec.Market05CanonicalExecutionError):
         m05exec.execute_synthetic_after_claim(rows)
 
-    # No real artifacts were created anywhere in the live repository.
-    for rel in (m05arm.ARM_JSON_REL, m05arm.RESULT_JSON_REL):
-        assert not (REPO / rel).exists()
+    # Later canonical artifacts may exist in the live repository after the
+    # one-shot; this synthetic fixture must not be mistaken for them.
+    if not CANONICAL_RESULT_EXISTS:
+        for rel in (m05arm.ARM_JSON_REL, m05arm.RESULT_JSON_REL):
+            assert not (REPO / rel).exists()
     assert {rel: (REPO / rel).read_bytes() for rel in AUTH_FILES} == before
 
 
@@ -1090,6 +1111,10 @@ def test_git_verified_is_mandatory_for_authorization(monkeypatch):
 # =============================================================================
 
 
+@pytest.mark.skipif(
+    CANONICAL_RESULT_EXISTS,
+    reason="Canonical claim exists; pre_claim now fails closed as EXECUTION_CLAIMED.",
+)
 @pytest.mark.parametrize(
     "call",
     [

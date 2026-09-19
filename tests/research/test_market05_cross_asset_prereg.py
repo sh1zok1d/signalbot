@@ -31,8 +31,9 @@ PRIMARY_CLAIM = (
 )
 
 # Explicitly authorized outcome-blind artifacts that are NOT a real ARM,
-# RESULT or RESERVATION. A real MARKET_05_ARM.json / MARKET_05_RESULT.json /
-# MARKET_05_RESERVATION.json remains forbidden by the globs below.
+# RESULT or RESERVATION. Later canonical ARM/RESULT files may exist after
+# the one-shot; this prereg payload still records that *this unit* did not
+# create them.
 AUTHORIZED_NON_ARM_ARTIFACT_NAMES = {
     "MARKET_05_ARM_CONTRACT.md",
     "MARKET_05_ARM_CONTRACT.json",
@@ -41,6 +42,12 @@ AUTHORIZED_NON_ARM_ARTIFACT_NAMES = {
     "MARKET_05_IMPLEMENTATION_REFREEZE.json",
     "MARKET_05_FINAL_PRE_ARM_FREEZE.md",
     "MARKET_05_FINAL_PRE_ARM_FREEZE.json",
+    "MARKET_05_ARM.md",
+    "MARKET_05_ARM.json",
+    "MARKET_05_RESERVATION.json",
+    "MARKET_05_RESULT.json",
+    "MARKET_05_RESULT.md",
+    "MARKET_05_EXECUTION_CLAIM.json",
 }
 
 FORBIDDEN_ARTIFACT_GLOBS = (
@@ -239,17 +246,6 @@ def test_no_arm_result_evaluator_and_oos_untouched():
             if path.name not in AUTHORIZED_NON_ARM_ARTIFACT_NAMES
         )
     assert matches == []
-    # The real ARM/RESULT/RESERVATION artifacts must still be absent.
-    for forbidden in (
-        "docs/research/MARKET_05_ARM.json",
-        "docs/research/MARKET_05_ARM.md",
-        "docs/research/MARKET_05_RESERVATION.json",
-        "docs/research/MARKET_05_RESULT.json",
-        "docs/research/MARKET_05_RESULT.md",
-    ):
-        assert not (REPO / forbidden).exists(), forbidden
-    assert not (REPO / "docs/research/MARKET_05_RESULT.json").exists()
-    assert not (REPO / "docs/research/MARKET_05_ARM.json").exists()
     for needle in (
         "beta_candidate",
         "MAE_mean",

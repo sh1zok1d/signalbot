@@ -27,8 +27,9 @@ M04H_MD_SHA256 = "fa0518941751fb491481e2d9c395005cdf89c106ddedbb7a4d331015472a00
 M04H_JSON_SHA256 = "52f1cb939a2e9289fdc061f4243637e243be2196b3c2026132996e7350690c6b"
 
 # Explicitly authorized outcome-blind artifacts that are NOT a real ARM,
-# RESULT or RESERVATION. A real MARKET_05_ARM.json / MARKET_05_RESULT.json /
-# MARKET_05_RESERVATION.json remains forbidden by the globs below.
+# RESULT or RESERVATION. Later canonical ARM/RESULT files may exist after
+# the one-shot; this candidate freeze's own payload still records that
+# *this unit* did not create them.
 AUTHORIZED_NON_ARM_ARTIFACT_NAMES = {
     "MARKET_05_ARM_CONTRACT.md",
     "MARKET_05_ARM_CONTRACT.json",
@@ -37,6 +38,12 @@ AUTHORIZED_NON_ARM_ARTIFACT_NAMES = {
     "MARKET_05_IMPLEMENTATION_REFREEZE.json",
     "MARKET_05_FINAL_PRE_ARM_FREEZE.md",
     "MARKET_05_FINAL_PRE_ARM_FREEZE.json",
+    "MARKET_05_ARM.md",
+    "MARKET_05_ARM.json",
+    "MARKET_05_RESERVATION.json",
+    "MARKET_05_RESULT.json",
+    "MARKET_05_RESULT.md",
+    "MARKET_05_EXECUTION_CLAIM.json",
 }
 
 FORBIDDEN_ARTIFACT_GLOBS = (
@@ -194,15 +201,6 @@ def test_no_result_arm_or_prereg_created():
             if path.name not in AUTHORIZED_NON_ARM_ARTIFACT_NAMES
         )
     assert matches == []
-    # The real ARM/RESULT/RESERVATION artifacts must still be absent.
-    for forbidden in (
-        "docs/research/MARKET_05_ARM.json",
-        "docs/research/MARKET_05_ARM.md",
-        "docs/research/MARKET_05_RESERVATION.json",
-        "docs/research/MARKET_05_RESULT.json",
-        "docs/research/MARKET_05_RESULT.md",
-    ):
-        assert not (REPO / forbidden).exists(), forbidden
     prereg_matches = [
         path
         for path in REPO.glob("docs/research/MARKET_05_*PREREG*")
@@ -219,8 +217,6 @@ def test_no_result_arm_or_prereg_created():
         )
     ]
     assert impl_matches == []
-    assert not (REPO / "docs/research/MARKET_05_RESULT.json").exists()
-    assert not (REPO / "docs/research/MARKET_05_ARM.json").exists()
     assert "full_preregistration_frozen = false" in _md()
     assert "execution_authorized = false" in _md()
 

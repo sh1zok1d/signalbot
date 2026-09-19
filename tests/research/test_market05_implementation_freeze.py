@@ -113,8 +113,10 @@ def test_eth_accepted_and_constants_bound():
 
 def test_no_arm_or_result_and_audit_answers_are_no_for_invalid_paths():
     payload = json.loads(JSON_PATH.read_text(encoding="utf-8"))
-    assert not (REPO / "docs/research/MARKET_05_ARM.json").exists()
-    assert not (REPO / "docs/research/MARKET_05_RESULT.json").exists()
+    assert payload["armed"] is False
+    assert payload["execution_authorized"] is False
+    assert payload["result_created"] is False
+    assert payload["arm_created"] is False
     answers = payload["audit_answers"]
     assert answers["ordinary_test_import_triggers_scientific_execution"] is False
     assert answers["evaluator_can_read_protected_oos"] is False

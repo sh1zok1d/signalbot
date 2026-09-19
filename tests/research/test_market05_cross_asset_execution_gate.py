@@ -29,6 +29,7 @@ from scripts.research.market05_cross_asset_authority import (
     FROZEN_PREREG_MD_SHA256,
     MARKET_05_ARMED,
     MARKET_05_EXECUTION_AUTHORIZED,
+    Market05AuthorityError,
     Market05ExecutionNotAuthorized,
     authenticate_frozen_prereg_bytes,
     inspect_market_05_authorization_state,
@@ -56,15 +57,19 @@ from scripts.research.market05_cross_asset_lib import (
 
 UTC = timezone.utc
 REPO = Path(__file__).resolve().parents[2]
+CANONICAL_RESULT_EXISTS = (REPO / "docs/research/MARKET_05_RESULT.json").is_file()
 
 
 def test_prereg_authentication_and_unarmed_flags():
     bound = authenticate_frozen_prereg_bytes()
     assert bound["prereg_md_sha256"] == FROZEN_PREREG_MD_SHA256
     assert bound["prereg_json_sha256"] == FROZEN_PREREG_JSON_SHA256
+    state = inspect_market_05_authorization_state()
+    if CANONICAL_RESULT_EXISTS:
+        assert state["result_artifact_exists"] is True
+        return
     assert MARKET_05_ARMED is False
     assert MARKET_05_EXECUTION_AUTHORIZED is False
-    state = inspect_market_05_authorization_state()
     assert state["MARKET_05_ARMED"] is False
     assert state["MARKET_05_EXECUTION_AUTHORIZED"] is False
     assert state["arm_artifact_exists"] is False
@@ -85,16 +90,17 @@ def test_cli_and_direct_execution_refuse_before_outcomes():
     def _should_not_run() -> None:
         outcome_loaded.append(True)
 
-    with pytest.raises(Market05ExecutionNotAuthorized):
+    _refused = (Market05ExecutionNotAuthorized, Market05AuthorityError)
+    with pytest.raises(_refused):
         require_execution_authorized_before_outcome_load()
         _should_not_run()
     assert outcome_loaded == []
 
-    with pytest.raises(Market05ExecutionNotAuthorized):
+    with pytest.raises(_refused):
         refuse_unarmed_canonical_execution()
-    with pytest.raises(Market05ExecutionNotAuthorized):
+    with pytest.raises(_refused):
         refuse_scientific_result_instantiation()
-    with pytest.raises(Market05ExecutionNotAuthorized):
+    with pytest.raises(_refused):
         load_real_development_scientific_rows()
     assert cli.main([]) == 2
     assert cli.main(["--write-result"]) == 2
