@@ -69,9 +69,7 @@ predictor.
 
 ## 2. Scientific question
 
-Does historically available funding state add stable incremental
-information about future adverse price-path risk beyond a simple
-price / trend / volatility state?
+Does historically available funding state add stable incremental information about future adverse price-path risk beyond a simple price / trend / volatility state?
 
 Intended interpretation: funding may be useful for identifying dangerous
 market states, even when it does not reliably predict the sign of
@@ -90,9 +88,7 @@ This is specifically **not**:
 
 ## 3. Primary mechanism
 
-Crowded / elevated funding may identify market states in which long
-exposure experiences worse subsequent adverse path / downside risk than
-would be expected from contemporaneous price and volatility state alone.
+Crowded / elevated funding may identify market states in which long exposure experiences worse subsequent adverse path / downside risk than would be expected from contemporaneous price and volatility state alone.
 
 The feature must earn incremental value on identical support:
 
