@@ -11,6 +11,7 @@ outcome is computed, and no protected 2025/2026 value is read.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import subprocess
@@ -908,3 +909,276 @@ def test_result_fixture_carries_exact_head_tree_and_separate_hash_map(
     assert result["scientific_implementation_hashes"] == dict(
         sorted(m05arm.SCIENTIFIC_IMPLEMENTATION_HASHES.items())
     )
+
+
+# =============================================================================
+# Authority root FAILS CLOSED without a verifiable git object store.
+# =============================================================================
+
+
+def _root_repo(tmp_path: Path) -> Path:
+    """Fixture repo with authority files but NO frozen scientific commit."""
+    repo = _fixture_repo(tmp_path)
+    shutil.copy2(REPO / m05root.REFREEZE_JSON_REL, repo / m05root.REFREEZE_JSON_REL)
+    return repo
+
+
+def test_no_git_executable_refuses_authorization(tmp_path, monkeypatch):
+    monkeypatch.setattr(m05root, "_repo_root", lambda: REPO)
+
+    def _no_git(*a, **k):
+        raise FileNotFoundError("git")
+
+    monkeypatch.setattr(m05root.subprocess, "run", _no_git)
+    with pytest.raises(
+        m05root.Market05AuthorityRootError, match="GIT_VERIFICATION_REQUIRED"
+    ):
+        m05root.verify_authority_root()
+
+
+def test_missing_frozen_commit_object_refuses(tmp_path, monkeypatch):
+    repo = _root_repo(tmp_path)
+    monkeypatch.setattr(m05root, "_repo_root", lambda: repo)
+    # The fixture repo's history does not contain the frozen scientific
+    # commit, so the root of trust cannot be established.
+    with pytest.raises(
+        m05root.Market05AuthorityRootError, match="GIT_VERIFICATION_REQUIRED"
+    ):
+        m05root.verify_authority_root()
+
+
+def test_exported_tree_without_git_repository_refuses(tmp_path, monkeypatch):
+    """A plain directory export (no .git at all) must never authorize."""
+    export = tmp_path / "export"
+    for rel in AUTH_FILES + ROOT_FILES + DOC_FILES:
+        dst = export / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(REPO / rel, dst)
+    shutil.copy2(REPO / m05root.REFREEZE_JSON_REL, export / m05root.REFREEZE_JSON_REL)
+    monkeypatch.setattr(m05root, "_repo_root", lambda: export)
+    # Blob ids alone would pass; the frozen commit cannot be resolved.
+    m05root.verify_frozen_blob_ids()
+    with pytest.raises(
+        m05root.Market05AuthorityRootError, match="GIT_VERIFICATION_REQUIRED"
+    ):
+        m05root.verify_authority_root()
+
+
+def test_wrong_frozen_tree_refuses(tmp_path, monkeypatch):
+    export = tmp_path / "wrongtree"
+    export.mkdir()
+    (export / "docs" / "research").mkdir(parents=True)
+    payload = json.loads((REPO / m05root.REFREEZE_JSON_REL).read_text(encoding="utf-8"))
+    payload[m05root.SCIENTIFIC_IMPLEMENTATION_TREE_KEY] = "0" * 40
+    (export / m05root.REFREEZE_JSON_REL).write_text(json.dumps(payload), encoding="utf-8")
+    # Run inside the real repo so the commit resolves but the tree disagrees.
+    monkeypatch.setattr(m05root, "load_frozen_provenance", lambda: {
+        "head": payload[m05root.SCIENTIFIC_IMPLEMENTATION_HEAD_KEY],
+        "tree": "0" * 40,
+    })
+    monkeypatch.setattr(m05root, "_repo_root", lambda: REPO)
+    with pytest.raises(m05root.Market05AuthorityRootError, match="TREE_MISMATCH"):
+        m05root.verify_authority_root()
+
+
+def test_authority_root_self_mutation_refused(tmp_path, monkeypatch):
+    """The root module is anchored by the frozen commit, not by itself."""
+    live = (REPO / m05root.AUTHORITY_ROOT_REL).read_bytes()
+    monkeypatch.setattr(m05root, "_repo_root", lambda: REPO)
+    real_git = m05root._git
+
+    def _mutated(*argv):
+        out = real_git(*argv)
+        if argv[:2] == ("cat-file", "-p") and argv[2].endswith(
+            m05root.AUTHORITY_ROOT_REL
+        ):
+            out.stdout = live + b"\n# mutated\n"
+        return out
+
+    monkeypatch.setattr(m05root, "_git", _mutated)
+    with pytest.raises(m05root.Market05AuthorityRootError, match="SELF_MUTATED"):
+        m05root.verify_authority_root()
+
+
+def test_valid_repository_with_exact_commit_and_tree_passes():
+    out = m05root.verify_authority_root()
+    assert out["git_verified"] is True
+    prov = m05root.load_frozen_provenance()
+    assert out["scientific_implementation_head"] == prov["head"]
+    assert out["scientific_implementation_tree"] == prov["tree"]
+
+
+def test_git_verified_is_mandatory_for_authorization(monkeypatch):
+    """Even if the commit check were to report False, it must not authorize."""
+    monkeypatch.setattr(
+        m05root,
+        "verify_frozen_commit_tree",
+        lambda prov: {"git_verified": False, "head": prov["head"], "tree": prov["tree"]},
+    )
+    with pytest.raises(
+        m05root.Market05AuthorityRootError, match="GIT_VERIFICATION_REQUIRED"
+    ):
+        m05root.verify_authority_root()
+
+
+# =============================================================================
+# Root must precede ARM authorization on every protected path.
+# =============================================================================
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        "load_bound_development_rows",
+        "run_canonical_market_05_execution",
+    ],
+)
+def test_protected_paths_verify_root_before_trusting_arm(monkeypatch, call):
+    """Root runs FIRST: an authority-root failure wins over ARM success."""
+    order: list[str] = []
+
+    def _root_fails():
+        order.append("root")
+        raise m05root.Market05AuthorityRootError(
+            "MARKET_05_AUTHORITY_ROOT_GIT_VERIFICATION_REQUIRED"
+        )
+
+    def _arm_would_succeed(*a, **k):
+        order.append("arm")
+        return {"run_identity": "x", "arm": {}, "reservation": {}}
+
+    monkeypatch.setattr(m05root, "verify_authority_root", _root_fails)
+    monkeypatch.setattr(
+        m05exec, "authenticate_market_05_canonical_execution", _arm_would_succeed
+    )
+    with pytest.raises(
+        m05root.Market05AuthorityRootError, match="GIT_VERIFICATION_REQUIRED"
+    ):
+        getattr(m05exec, call)()
+    # ARM authority was never consulted.
+    assert order == ["root"]
+
+
+def test_arm_authority_itself_verifies_root_first(monkeypatch):
+    order: list[str] = []
+
+    def _root_fails(*a, **k):
+        order.append("root")
+        raise m05root.Market05AuthorityRootError(
+            "MARKET_05_AUTHORITY_ROOT_GIT_VERIFICATION_REQUIRED"
+        )
+
+    monkeypatch.setattr(m05arm, "verify_authority_root", _root_fails)
+    monkeypatch.setattr(
+        m05arm, "authenticate_frozen_prereg_bytes", lambda: order.append("prereg")
+    )
+    with pytest.raises(m05root.Market05AuthorityRootError):
+        m05arm.authenticate_market_05_arm()
+    assert order == ["root"]
+    # ...and it fails closed rather than propagating.
+    assert m05arm.market_05_execution_is_authorized() is False
+
+
+# =============================================================================
+# Cross-artifact authority consistency: exactly ONE canonical value each.
+# =============================================================================
+
+
+def _read_json(rel: str) -> dict:
+    return json.loads((REPO / rel).read_text(encoding="utf-8"))
+
+
+def _sha256_path(rel: str) -> str:
+    return hashlib.sha256((REPO / rel).read_bytes()).hexdigest()
+
+
+def test_frozen_authority_artifacts_are_fully_consistent():
+    """Reads the production artifacts independently; any silent
+    disagreement between duplicated authority fields fails closed."""
+    contract = _read_json(m05arm.ARM_CONTRACT_JSON_REL)
+    refreeze = _read_json(m05arm.REFREEZE_JSON_REL)
+    prereg_md = _sha256_path(m05arm.PREREG_MD_REL)
+    prereg_json = _sha256_path(m05arm.PREREG_JSON_REL)
+
+    # RUN_IDENTITY: derived independently, then required everywhere.
+    payload = m05arm.scientific_run_identity_payload()
+    derived = hashlib.sha256(
+        (
+            json.dumps(
+                payload, sort_keys=True, indent=2, ensure_ascii=False, allow_nan=False
+            )
+            + "\n"
+        ).encode("utf-8")
+    ).hexdigest()
+    assert derived == m05arm.derive_market_05_run_identity()
+    assert derived == contract["run_identity"]
+    assert derived == refreeze["run_identity"]
+
+    # prereg identity
+    assert prereg_md == m05arm.FROZEN_PREREG_MD_SHA256 == contract["prereg"]["md_sha256"]
+    assert prereg_md == refreeze["prereg"]["md_sha256"]
+    assert (
+        prereg_json
+        == m05arm.FROZEN_PREREG_JSON_SHA256
+        == contract["prereg"]["json_sha256"]
+        == refreeze["prereg"]["json_sha256"]
+    )
+
+    # scientific implementation commit provenance
+    prov = m05root.load_frozen_provenance()
+    assert prov["head"] == refreeze["scientific_implementation_head"]
+    assert prov["tree"] == refreeze["scientific_implementation_tree"]
+    assert prov["head"] == (
+        contract["implementation_authority"]["scientific_implementation_head"]
+    )
+    assert prov["tree"] == (
+        contract["implementation_authority"]["scientific_implementation_tree"]
+    )
+
+    # dataset snapshots
+    assert contract["data"]["btc_snapshot_id"] == m05arm.BTC_SNAPSHOT_ID
+    assert contract["data"]["eth_snapshot_id"] == m05arm.ETH_SNAPSHOT_ID
+    assert refreeze["data"]["btc_snapshot_id"] == m05arm.BTC_SNAPSHOT_ID
+    assert refreeze["data"]["eth_snapshot_id"] == m05arm.ETH_SNAPSHOT_ID
+
+    # RESULT schema identity
+    assert contract["result_schema_identity"] == m05arm.RESULT_SCHEMA_IDENTITY
+    assert refreeze["result_schema_identity"] == m05arm.RESULT_SCHEMA_IDENTITY
+
+    # scientific constants
+    assert contract["scientific_constants"] == dict(sorted(m05arm.SCIENTIFIC_CONSTANTS.items()))
+    assert refreeze["scientific_constants"] == dict(sorted(m05arm.SCIENTIFIC_CONSTANTS.items()))
+
+    # authority root blob map
+    blobs = dict(sorted(m05root.FROZEN_BLOB_IDS.items()))
+    assert contract["implementation_authority"]["authority_root_blob_ids"] == blobs
+    assert refreeze["authority_root_blob_ids"] == blobs
+
+    # per-file scientific hashes
+    hashes = dict(sorted(m05arm.SCIENTIFIC_IMPLEMENTATION_HASHES.items()))
+    assert contract["implementation_authority"]["scientific_implementation_hashes"] == hashes
+    assert refreeze["scientific_implementation_hashes"] == hashes
+
+    # unarmed lifecycle
+    assert contract["protected_oos_authorized"] is False
+    assert refreeze["protected_oos_touched"] is False
+    assert refreeze["armed"] is False
+    assert refreeze["execution_authorized"] is False
+    assert refreeze["canonical_executions_authorized"] == 0
+    assert refreeze["canonical_executions_consumed"] == 0
+    assert refreeze["real_arm_created"] is False
+    assert refreeze["result_created"] is False
+
+
+def test_refreeze_binds_the_exact_current_arm_contract_bytes():
+    """Hash the contract bytes independently; the re-freeze must agree."""
+    refreeze = _read_json(m05arm.REFREEZE_JSON_REL)
+    assert refreeze["arm_contract_md_sha256"] == _sha256_path(m05arm.ARM_CONTRACT_MD_REL)
+    assert refreeze["arm_contract_json_sha256"] == _sha256_path(
+        m05arm.ARM_CONTRACT_JSON_REL
+    )
+
+
+def test_arm_authority_sha256_binding_is_current():
+    refreeze = _read_json(m05arm.REFREEZE_JSON_REL)
+    assert refreeze["arm_authority_sha256"] == _sha256_path(m05arm.ARM_AUTHORITY_REL)

@@ -101,12 +101,18 @@ def _path(rel: str) -> Path:
 
 
 def _git(*argv: str) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        ["git", *argv],
-        cwd=str(_repo_root()),
-        capture_output=True,
-        check=False,
-    )
+    """Run git. A missing/unusable git binary is an authority-root failure."""
+    try:
+        return subprocess.run(
+            ["git", *argv],
+            cwd=str(_repo_root()),
+            capture_output=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise Market05AuthorityRootError(
+            "MARKET_05_AUTHORITY_ROOT_GIT_VERIFICATION_REQUIRED:git_unavailable"
+        ) from exc
 
 
 def verify_frozen_blob_ids() -> dict[str, str]:
@@ -167,7 +173,7 @@ def load_frozen_provenance() -> dict[str, str]:
 def verify_frozen_commit_tree(provenance: dict[str, str]) -> dict[str, Any]:
     """Cross-check the frozen commit/tree against the pinned blob ids.
 
-    Verifies, when the git object store is available:
+    Fails closed: the git object store MUST be available. Verifies:
 
     * the recorded commit resolves and its tree equals the recorded tree;
     * this module's own bytes at that commit equal the bytes executing now
@@ -178,11 +184,21 @@ def verify_frozen_commit_tree(provenance: dict[str, str]) -> dict[str, Any]:
     head = provenance["head"]
     tree = provenance["tree"]
 
-    resolved = _git("rev-parse", "--verify", "--quiet", f"{head}^{{tree}}")
+    # FAIL CLOSED. This module is deliberately absent from FROZEN_BLOB_IDS
+    # (it cannot self-pin), so the frozen git object IS its only integrity
+    # anchor. Without a resolvable object store the root of trust is
+    # incomplete, and an incomplete root must never authorize execution.
+    try:
+        resolved = _git("rev-parse", "--verify", "--quiet", f"{head}^{{tree}}")
+    except OSError as exc:
+        raise Market05AuthorityRootError(
+            "MARKET_05_AUTHORITY_ROOT_GIT_VERIFICATION_REQUIRED:git_unavailable"
+        ) from exc
     if resolved.returncode != 0:
-        # Object store unavailable (e.g. an exported tree). Blob-id
-        # verification above still stands on its own.
-        return {"git_verified": False, "head": head, "tree": tree}
+        raise Market05AuthorityRootError(
+            "MARKET_05_AUTHORITY_ROOT_GIT_VERIFICATION_REQUIRED:"
+            "frozen_commit_unresolvable"
+        )
     if resolved.stdout.decode().strip() != tree:
         raise Market05AuthorityRootError("MARKET_05_AUTHORITY_ROOT_TREE_MISMATCH")
 
@@ -224,6 +240,12 @@ def verify_authority_root(*args: Any, **kwargs: Any) -> dict[str, Any]:
     blobs = verify_frozen_blob_ids()
     provenance = load_frozen_provenance()
     commit = verify_frozen_commit_tree(provenance)
+    # Mandatory invariant: scientific authorization requires the frozen git
+    # object to be locally verifiable. There is no exported-tree mode.
+    if commit.get("git_verified") is not True:
+        raise Market05AuthorityRootError(
+            "MARKET_05_AUTHORITY_ROOT_GIT_VERIFICATION_REQUIRED"
+        )
     return {
         "blob_ids": blobs,
         "scientific_implementation_head": commit["head"],
