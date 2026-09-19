@@ -1,8 +1,8 @@
 # Signalbot — Current Project Status
 
-**Status date:** 2026-09-17
+**Status date:** 2026-09-19
 **Operating mode:** `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN`
-**Active research phase:** `MARKET`
+**Active research phase:** `MARKET` / `INFORMATION_SET_EXPANSION`
 
 This file is the canonical answer to: **what is Signalbot doing now?**
 
@@ -234,6 +234,89 @@ RESULT authority:
 Post-close episode-construction throughput work is research
 infrastructure only (`docs/research/MARKET_01_EPISODE_CONSTRUCTION_PERF.md`);
 it does not reopen MARKET-01 or change the sealed RESULT.
+
+`MARKET-03_PUBLIC_STRATEGY_REPLICATION` **preregistration is frozen**.
+Materialization HEAD `06d6ec0121a9a35f8ee947fbe89e37e97388b6e2` /
+tree `50bc810eb127ea7aea1843ef2ede0dd4fe8905d1`. Prereg SHA256
+`044bb2a6…` / `3f35f9a1…`. Ceiling
+**`LEVEL_2_FAITHFUL_REIMPLEMENTATION`**. Evaluation truncated to
+`[2019-10-01T00:00:00Z, 2025-01-01T00:00:00Z)`. Dedicated funding
+snapshot is materialized (`FUNDING_SNAPSHOT_READY = YES`):
+`MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0` /
+`d47b7b78b6e7dbb842c7d9eb122c81063e0b804e179a53dd87723f9a8a8adc68`
+from REST JSONL `e7885cd5…`. Implementation is **frozen**
+(`IMPLEMENTATION_FROZEN = YES`) at reviewed HEAD `03411aaa…` /
+tree `87a1da25…` after targeted re-review
+`READY_FOR_IMPLEMENTATION_FREEZE`. MARKET-03 is **ARMED**
+(`MARKET_03_ARMED = YES`) and the one-shot reservation is **consumed**
+(`CANONICAL_EXECUTIONS_AUTHORIZED = 1`,
+`CANONICAL_EXECUTIONS_CONSUMED = 1`, `RUN_IDENTITY` `f68b6de7…`).
+Canonical RESULT: `PRIMARY_CLASSIFICATION = REPRODUCED_DIRECTION`
+(`MDD_filtered = -0.337755…` > `MDD_baseline = -0.493554…`).
+That is a frozen LEVEL_2 historical-reproduction statement only. It is
+not current alpha, live profitability, OOS confirmation, or a second
+run. Frozen scientific bytes were not mutated to flip lifecycle flags. Do not substitute CORE perpetual
+prices. Do not consume B2-06 as MARKET-03 funding authority.
+Do not inspect Signalbot 2025/2026 OOS. Prereg freeze authority:
+`docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG_FREEZE.md`. Payload:
+`docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG.md`. Funding snapshot:
+`docs/research/MARKET_03_FUNDING_SNAPSHOT.md`. Implementation freeze
+authority:
+`docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_FREEZE.md`.
+ARM authority:
+`docs/research/MARKET_03_PUBLIC_STRATEGY_ARM.md`.
+
+Current program evidence is
+`docs/research/EVIDENCE_REGISTRY_H_B_M01_M05.md` (16 scientific units).
+The earlier 14-unit snapshot
+`docs/research/EVIDENCE_REGISTRY_H_B_M01_M03.md` remains an immutable
+historical freeze.
+
+MARKET-05 is **closed**. Canonical RESULT HEAD
+`828c6916fdb0da7b3f9fbad2bc0a97d87efcbb4b` / tree
+`338e72d23ff7f5547191221527b762a47e4e48bc` /
+`RUN_IDENTITY` `6957613de4b035d850fc97edb833565c5fd3d7b085aa158e0992b88142190635`.
+Classification **`MARKET_05_NO_EVIDENCE`**. The exact preregistered
+formulation (daily 00:00 UTC, 24h BTC state, continuous ETH
+confirmation, 24h BTC direction-aligned adverse-path risk, BTC-only
+baseline vs baseline + `ETH_CONFIRMATION`) did not provide stable
+incremental predictive value. MARKET-05 is scientifically spent. No
+rerun. Negative relative MAE does **not** authorize a reverse
+hypothesis. Do not write that ETH is generally useless, that
+divergence is validated, or that reverse sign is validated.
+Interpretation:
+`docs/research/MARKET_05_PROGRAM_INTERPRETATION.md`.
+
+Program-level state after MARKET-05:
+
+- `INTERNAL_HISTORICAL_CANDIDATES_PROMOTED = 0`
+- `VALIDATED_OOS_CANDIDATES = 0`
+- `PROTECTED_OOS_TOUCHED = false`
+- MARKET-01 `NO_EVIDENCE`; MARKET-02 `NO_EVIDENCE`; MARKET-03
+  `EXTERNAL_REPRODUCTION / REPRODUCED_DIRECTION`; MARKET-04
+  `BLOCKED_OBSERVABLE / NOT_TESTED`; MARKET-05 `NO_EVIDENCE`
+
+MARKET-04 remains **SELECTED / NOT TESTED / BLOCKED HISTORICAL
+OBSERVABLE**. Do **not** mark it rejected. The parent hypothesis
+remains scientifically alive. The blocker was historical
+availability/provenance, not mechanism failure. MARKET-04H remains
+`OUTCOME_BLIND_OBSERVABLE_SUBSTITUTION_AFTER_TEMPORAL_FEASIBILITY_FAILURE`
+/ `BLOCKED OBSERVABLE` and is not scientific negative evidence.
+
+Further immediate same-information-set hypothesis generation is
+**paused**. Do not create MARKET-06 from another simple transform of
+the existing price/OI/cross-asset information set.
+
+Next program phase: **`INFORMATION_SET_EXPANSION`**. Initial target:
+**`POINT_IN_TIME_FUNDING_PREMIUM_OBSERVABILITY`**. Design-only
+collector contract:
+`docs/research/FORWARD_MARKET_OBSERVABILITY_V1.md`. Conservative
+`legal_available_at = local_received_at_utc`. Do not implement/run the
+collector in this unit. Do not freeze a new MARKET hypothesis. Do not
+attempt a third historical proxy salvage. This does not guarantee that
+funding will work.
+
+Next unit: `FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION`.
 
 Post-calibration operating priority:
 

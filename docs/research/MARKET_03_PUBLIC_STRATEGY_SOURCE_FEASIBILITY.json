@@ -1,0 +1,171 @@
+{
+  "B2_06_EXECUTION_AUTHORIZED": false,
+  "DEFAULT_V4": false,
+  "MARKET_03_ARMED": false,
+  "MARKET_03_EXECUTED": false,
+  "MARKET_03_IMPLEMENTED": false,
+  "MARKET_03_PREREG": false,
+  "MARKET_03_RESULT_CREATED": false,
+  "MARKET_03_TEST_CALIBRATED": false,
+  "PROTECTED_OOS_TOUCHED": false,
+  "author_reported": {
+    "author_claims_asset_robustness": false,
+    "author_claims_ema_length_drawdown_checks_6_of_6": true,
+    "author_claims_funding_improves_return_in_table": true,
+    "author_claims_funding_reduces_drawdown": true,
+    "author_prose_buys_drawdown_not_return": true,
+    "dsr_clears_full_selection_pipeline": false,
+    "emacross_max_drawdown": -0.494,
+    "emacross_total_return": 13.53,
+    "emacrossfunding_cagr": 0.509,
+    "emacrossfunding_max_drawdown": -0.338,
+    "emacrossfunding_sharpe": 1.31,
+    "emacrossfunding_sortino": 1.42,
+    "emacrossfunding_total_return": 16.04,
+    "emacrossfunding_trades": 96,
+    "timerange_headline": "20191001-"
+  },
+  "date": "2026-09-18",
+  "drawdown_metric": {
+    "author_percentage_dd": "min(equity/cummax - 1) on daily ffilled wallet total_quote cumprod",
+    "freqtrade_absolute_dd_percent_is_different": true,
+    "signalbot_metric_identity_bound": false
+  },
+  "emacross": {
+    "can_short": false,
+    "entry": "close crossed_above EMA(600) and volume>0",
+    "exchange": "binance",
+    "exit": "close crossed_below EMA*0.98",
+    "fee_headline": 0.001,
+    "leverage": null,
+    "market_type": "spot",
+    "max_open_trades": 1,
+    "minimal_roi": {
+      "0": 10
+    },
+    "pair": "BTC/USDT",
+    "stake_amount": "unlimited",
+    "startup_candle_count": 1300,
+    "stoploss": -0.15,
+    "timeframe": "1h",
+    "trailing_stop": true,
+    "trailing_stop_positive": null,
+    "uses_current_candle_close_for_signal": true
+  },
+  "emacrossfunding_differences": {
+    "alignment": "reindex ffill onto 1h candle date (open)",
+    "current_observation_enters_own_percentile": true,
+    "entry_suppression": "funding_pct < 55 OR isna",
+    "funding_3d_min_periods": 24,
+    "funding_3d_window_hours": 72,
+    "funding_changes_exits": false,
+    "funding_market": "USD_M_PERPETUAL",
+    "funding_payments_in_pnl": false,
+    "funding_source": "REST GET /fapi/v1/fundingRate",
+    "funding_symbol": "BTCUSDT",
+    "funding_timestamp_field": "fundingTime",
+    "funding_variable": "fundingRate",
+    "missing_funding_allows_entry": true,
+    "percentile_min_periods": 720,
+    "percentile_window_hours": 4320
+  },
+  "external_source": {
+    "author": "wiktorj137",
+    "capture_timestamp_utc": "2026-09-18T16:46:53Z",
+    "commit_sha": "b68a5518b4a3eba2fde1733160d7d7de356023b5",
+    "commit_tree": "f7717e681c911ea3ccce15492246053cf15883cb",
+    "committer_date": "2026-08-22T05:18:19+02:00",
+    "first_commit_sha": "0a3f134a09c468be0525bfaca57e71c6e683faf5",
+    "license": "GPL-3.0",
+    "repo": "https://github.com/wiktorj137/btc-strategy-lab"
+  },
+  "feasibility_verdict": "DATA_ACQUISITION_REQUIRED",
+  "funding_lookahead": {
+    "do_not_invent_publication_timing": true,
+    "event_timestamp": "fundingTime",
+    "exact_reproduction_blocked_by_funding_timing": true,
+    "historically_available_at": null,
+    "status": "REPRODUCTION_REQUIRES_EXPLICIT_ASSUMPTION"
+  },
+  "inventory_path": "docs/research_data/MARKET_03_BTC_STRATEGY_LAB_B68A5518/SOURCE_INVENTORY.json",
+  "level_1_exact_reproduction": false,
+  "level_3_perp_substitution_is_faithful": false,
+  "md_path": "docs/research/MARKET_03_PUBLIC_STRATEGY_SOURCE_FEASIBILITY.md",
+  "outcome_blindness": {
+    "candidate_comparison": false,
+    "drawdown": false,
+    "emacross_performance": false,
+    "emacrossfunding_performance": false,
+    "parameter_sensitivity": false,
+    "sharpe": false,
+    "strategy_return": false,
+    "strategy_trades": false
+  },
+  "outcome_inspection": false,
+  "replication_level_ceiling_if_data_acquired": "LEVEL_2_FAITHFUL_REIMPLEMENTATION",
+  "replication_level_with_current_snapshots": "NOT_FEASIBLE",
+  "research_id": "MARKET-03_PUBLIC_STRATEGY_REPLICATION",
+  "schema": "market_03_public_strategy_source_feasibility",
+  "schema_version": "1.0.0",
+  "selection_history": {
+    "btc_selected_after_cross_asset_comparison": true,
+    "ema_length_selected_after_results": true,
+    "full_pipeline_dsr": false,
+    "funding_threshold_selected_after_results": true,
+    "independently_preregistered_before_author_research": false,
+    "n_public_strategies_benchmarked": 42,
+    "neighboring_ema_examined": [
+      400,
+      500,
+      600,
+      700,
+      800,
+      1000,
+      1200
+    ],
+    "neighboring_funding_pct_examined": [
+      40,
+      50,
+      60,
+      70,
+      80,
+      90,
+      100
+    ],
+    "walk_forward_on_emacross_not_funding": true
+  },
+  "shipped_params": {
+    "ema_period": 600,
+    "exit_threshold": 2.0,
+    "funding_max_pct": 55,
+    "json_sidecars_required_for_controlled_contrast": true
+  },
+  "signalbot_compatibility": {
+    "b2_06_funding_research_authorized": false,
+    "core_is_spot": false,
+    "core_market_type": "USD_M_FUTURES",
+    "funding_publication_semantics_status": "FUNDING_PUBLICATION_LATENCY_UNPROVEN",
+    "silent_perp_for_spot_forbidden": true,
+    "spot_dataset_exists": false
+  },
+  "signalbot_inspected_head": "7e39c3c763e239ee09a601d764066e89cb0f9eb7",
+  "signalbot_inspected_tree": "4fe44daaa362fd4caa02fe40b0720a960365441e",
+  "spot_vs_perpetual": {
+    "conceptual_perp_replication_is_not_faithful": true,
+    "external_funding_from_perpetual": true,
+    "external_trades_spot": true,
+    "faithful_with_current_snapshots": false
+  },
+  "status": "OUTCOME_BLIND_SOURCE_FEASIBILITY",
+  "strategy_family": [
+    "EmaCross",
+    "EmaCrossFunding"
+  ],
+  "time_range": {
+    "external_published": "2026-08-22",
+    "headline_start": "2019-10-01",
+    "historical_reproduction_of_author_claim_not_forward_confirmation": true,
+    "signalbot_2025_2026_opened": false
+  },
+  "unit_id": "MARKET-03_PUBLIC_STRATEGY_SOURCE_FEASIBILITY"
+}

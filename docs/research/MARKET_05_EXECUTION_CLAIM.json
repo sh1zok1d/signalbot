@@ -1,0 +1,16 @@
+{
+  "arm_json_sha256": "a76880579fd24a005ab4d7ebfcf9b4400b2716528bb695c77643a8506531e794",
+  "btc_snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+  "canonical_execution_number": 1,
+  "eth_execution_data_id": "b5c6228a2c4214b641cd10fda87010c2898040e3fc53cdacee9211e028752484",
+  "eth_snapshot_id": "4b9c113f659e1c1ca71498096dfdc2628a1016346aed40e19020efb64c85ad15",
+  "execution_claim_protocol": "MARKET_05_ATOMIC_O_EXCL_CLAIM_V1",
+  "research_id": "MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK",
+  "reservation_sha256": "ad0cc648d7395c1074ee1c33e7d3d7b3427a994f25d5033c420999a26aec38d3",
+  "result_schema_identity": "market_05_cross_asset_result/1.2.0",
+  "result_status": "COMPLETE",
+  "run_identity": "6957613de4b035d850fc97edb833565c5fd3d7b085aa158e0992b88142190635",
+  "scientific_implementation_head": "23d9d18a58f43307d14a2c9c1890636cd581cba3",
+  "scientific_implementation_tree": "957d41f4382ec3ef4d65ad93dfe68b58ff1e3237",
+  "scientific_run_consumed": true
+}

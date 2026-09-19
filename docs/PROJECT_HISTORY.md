@@ -331,3 +331,55 @@ crypto-market hypothesis through the existing research process. That
 unit is named, not executed, by this closeout. B2-06 remains blocked on
 its missing-observable / funding publication-latency record and is not
 silently unblocked by MARKET becoming active.
+
+---
+
+## 13. MARKET-05 final pre-ARM production repair (2026-09-19)
+
+MARKET-05 was selected, preregistered, and implementation-frozen
+outcome-blind as `MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK`.
+An independent read-only red-team of that freeze at `da66716…` /
+tree `69d03914…` returned `MARKET_05_DO_NOT_ARM`: the one-shot could
+evaluate twice, consume after RESULT (deadlock), drop RESULT evidence,
+load close-only bars, leave ETH parquet unbound, glob a partial BTC
+set, and honor git replace / PATH ambiguity.
+
+The repair does not change preregistered mathematics. It makes the
+frozen experiment executable once: structural preflight, atomic
+`O_EXCL` claim as consumption, then science; ETH execution bytes bound
+to accepted ZIP SHA256s; exact 2020-01..2024-12 BTC objects; RESULT
+schema 1.2.0. The project remains unarmed. Next unit is independent
+final pre-ARM red-team, not ARM.
+
+---
+
+## 14. MARKET-05 closeout and information-set expansion (2026-09-19)
+
+Canonical MARKET-05 execution completed at RESULT HEAD
+`828c6916fdb0da7b3f9fbad2bc0a97d87efcbb4b` / tree
+`338e72d23ff7f5547191221527b762a47e4e48bc` with classification
+`MARKET_05_NO_EVIDENCE`. The exact preregistered ETH-confirmation
+incremental-MAE formulation did not provide stable incremental
+predictive value. That formulation is scientifically spent. No rerun.
+Negative relative MAE does not authorize a reverse hypothesis.
+
+The program-level evidence registry is extended to 16 scientific units
+(`EVIDENCE_REGISTRY_H_B_M01_M05`) without mutating the frozen 14-unit
+H/B/M01–M03 snapshot. MARKET-04 remains selected, not tested, and
+blocked on historical observable provenance; it is not rejected.
+MARKET-04H remains nested blocked-observable history, not a
+seventeenth scientific unit.
+
+Internal historical candidates promoted remain 0. Validated OOS
+candidates remain 0. Protected OOS remains untouched.
+
+The project therefore pauses further immediate hypothesis generation
+on the same price/OI/cross-asset information set. This is not
+termination of Signalbot research. The next program phase is
+`INFORMATION_SET_EXPANSION`, initially targeting
+point-in-time funding/premium observability via the design-only
+`FORWARD_MARKET_OBSERVABILITY_V1` contract. Conservative
+`legal_available_at = local_received_at_utc`. MARKET-06 is not
+created. Funding is not guaranteed to work; the information gap that
+blocked MARKET-04 is the reason for the expansion.
+
