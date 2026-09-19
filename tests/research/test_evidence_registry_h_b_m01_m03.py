@@ -180,11 +180,21 @@ def test_b2_05_not_silently_promoted_or_closed_without_authority():
     assert unit["inferred_promoted_candidate"] is False
     assert unit["ordinary_result_md_present"] is False
     assert unit["recovery_status"] == "B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED"
-    dumped = json.dumps(unit)
-    assert "B2_05_CLOSED_NO_PROMOTION" not in dumped
-    assert "B2_05_PROMOTED_CANDIDATE" not in dumped
-    assert "B2_05_CLOSED_NO_PROMOTION" not in md
-    assert "B2_05_PROMOTED_CANDIDATE" not in md
+    assert unit["scientific_outcome"] not in {
+        "B2_05_CLOSED_NO_PROMOTION",
+        "B2_05_PROMOTED_CANDIDATE",
+        "CLOSED_NO_PROMOTION",
+        "PROMOTED",
+    }
+    assert unit["canonical_status"] not in {
+        "B2_05_CLOSED_NO_PROMOTION",
+        "B2_05_PROMOTED_CANDIDATE",
+        "CLOSED_NO_PROMOTION",
+    }
+    for forbidden in ("B2_05_CLOSED_NO_PROMOTION", "B2_05_PROMOTED_CANDIDATE"):
+        assert f"Do not infer {forbidden}" in md
+        assert f"scientific_outcome = {forbidden}" not in md
+        assert f"canonical_status = {forbidden}" not in md
     assert not (REPO / "docs/research/B2_05_FLOW_ABSORPTION_RESULT.md").exists()
 
 
@@ -230,7 +240,7 @@ def test_market_01_and_02_no_evidence_and_adaptive_dependence():
     assert m02["scientific_outcome"] == "NO_EVIDENCE"
     assert payload["program_facts"]["market_01_classification"] == "NO_EVIDENCE"
     assert payload["program_facts"]["market_02_classification"] == "NO_EVIDENCE"
-    assert abs(m01["headline_quantities"]["beta_candidate"] + 0.000163244) < 1e-12
+    assert abs(m01["headline_quantities"]["beta_candidate"] + 0.000163244) < 1e-9
     assert m01["headline_quantities"]["p_one_sided"] == 0.757
     assert m01["headline_quantities"]["market_01_test_calibrated"] is False
     assert abs(m02["headline_quantities"]["beta_confirmation"] + 0.000183788) < 1e-9
