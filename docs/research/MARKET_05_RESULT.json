@@ -1,0 +1,135 @@
+{
+  "arm_sha256": "a76880579fd24a005ab4d7ebfcf9b4400b2716528bb695c77643a8506531e794",
+  "bootstrap": {
+    "block_length": 14,
+    "coefficient_bootstrap_refit": true,
+    "kind": "CIRCULAR_MOVING_BLOCK",
+    "predictive_bootstrap_refit": false,
+    "random_seed": 2026091905,
+    "replicates_coefficient": 5000,
+    "replicates_predictive": 5000
+  },
+  "bootstrap_cis": {
+    "BETA_ETH_CONFIRMATION_CI": [
+      -0.0023464584123732146,
+      0.0015931596784811688
+    ],
+    "RELATIVE_MAE_IMPROVEMENT_CI": [
+      -0.00249762914797686,
+      -0.000375839559399871
+    ]
+  },
+  "btc_dataset_id": "CORE_BTC_BINANCE_V0",
+  "btc_snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+  "classification": "MARKET_05_NO_EVIDENCE",
+  "coefficients": {
+    "BETA_ETH_CONFIRMATION": -0.0002567502511611957
+  },
+  "eth_dataset_id": "CORE_ETH_BINANCE_V0",
+  "eth_execution_data_id": "b5c6228a2c4214b641cd10fda87010c2898040e3fc53cdacee9211e028752484",
+  "eth_snapshot_id": "4b9c113f659e1c1ca71498096dfdc2628a1016346aed40e19020efb64c85ad15",
+  "exclusion_counts": {
+    "decision_candidates": 1827,
+    "eligible_rows": 1825,
+    "ineligible_after_same_support": 0,
+    "missing_prefix": 2
+  },
+  "execution_claim_sha256": "95094a5a36a03be221059ac5c5e726207a320c12dd0677ba3c515f2546ad0eb4",
+  "fold_counts": {
+    "FOLD_1": {
+      "MAE_BASELINE": 0.0170936790379196,
+      "MAE_CANDIDATE": 0.017093227785635594,
+      "test_n": 365,
+      "train_n": 729
+    },
+    "FOLD_2": {
+      "MAE_BASELINE": 0.012745194127729561,
+      "MAE_CANDIDATE": 0.012800043149826119,
+      "test_n": 365,
+      "train_n": 1094
+    },
+    "FOLD_3": {
+      "MAE_BASELINE": 0.014407040886556973,
+      "MAE_CANDIDATE": 0.014413628641109453,
+      "test_n": 366,
+      "train_n": 1459
+    }
+  },
+  "folds": [
+    {
+      "MAE_BASELINE": 0.0170936790379196,
+      "MAE_CANDIDATE": 0.017093227785635594,
+      "name": "FOLD_1",
+      "test_n": 365,
+      "test_year": 2022,
+      "train_n": 729
+    },
+    {
+      "MAE_BASELINE": 0.012745194127729561,
+      "MAE_CANDIDATE": 0.012800043149826119,
+      "name": "FOLD_2",
+      "test_n": 365,
+      "test_year": 2023,
+      "train_n": 1094
+    },
+    {
+      "MAE_BASELINE": 0.014407040886556973,
+      "MAE_CANDIDATE": 0.014413628641109453,
+      "name": "FOLD_3",
+      "test_n": 366,
+      "test_year": 2024,
+      "train_n": 1459
+    }
+  ],
+  "gates": {
+    "GATE_1_DIRECTION": true,
+    "GATE_2_DIRECTION_UNCERTAINTY": false,
+    "GATE_3_PREDICTIVE_SIGN": false,
+    "GATE_4_PREDICTIVE_UNCERTAINTY": false,
+    "GATE_5_MATERIALITY": false,
+    "GATE_6_TEMPORAL_STABILITY": false
+  },
+  "git_executable": "/usr/bin/git",
+  "git_version": "git version 2.43.0",
+  "implementation_head": "23d9d18a58f43307d14a2c9c1890636cd581cba3",
+  "implementation_tree": "957d41f4382ec3ef4d65ad93dfe68b58ff1e3237",
+  "maes": {
+    "POOLED_MAE_BASELINE": 0.01474832634118777,
+    "POOLED_MAE_CANDIDATE": 0.014768642312125536,
+    "RELATIVE_MAE_IMPROVEMENT": -0.0013775102657600513
+  },
+  "numpy_version": "2.1.3",
+  "prereg_json_sha256": "f2b2f6b98a3674412b584e6bd2686efa8fb9ce08b5d936e503e5d570a2428b25",
+  "prereg_md_sha256": "31349f8863be3a79604d0c8dc93ca7037451ab16edb83a432d31af81f8a0193e",
+  "protected_oos_touched": false,
+  "pyarrow_version": "17.0.0",
+  "python_implementation": "CPython",
+  "python_version": "3.12.3",
+  "research_id": "MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK",
+  "reservation_sha256": "ad0cc648d7395c1074ee1c33e7d3d7b3427a994f25d5033c420999a26aec38d3",
+  "result_schema_identity": "market_05_cross_asset_result/1.2.0",
+  "result_status": "COMPLETE",
+  "row_counts": {
+    "eligible_rows": 1825,
+    "held_out_rows": 1096
+  },
+  "run_identity": "6957613de4b035d850fc97edb833565c5fd3d7b085aa158e0992b88142190635",
+  "scientific_consumed": true,
+  "scientific_implementation_hashes": {
+    "scripts/research/core_eth_binance_v0_acceptor_lib.py": "6f86ae1ed08fe7595a0de3eb4e0c273aa2850a8238675d72696bbd088c118764",
+    "scripts/research/market05_cross_asset.py": "1539053263a6b9f0f29420750257e3d0f1c4522265bf20254fe370df006f4e3c",
+    "scripts/research/market05_cross_asset_authority.py": "a894991e74fcfb8080d409f17fa38421bfa60d54a90652a807fe8f452c49cc5e",
+    "scripts/research/market05_cross_asset_bootstrap.py": "1cf24f4b750ca27ab62be4f58c20edf5ef3d73469e43a8ef4483fd22062a0284",
+    "scripts/research/market05_cross_asset_canonical_execution.py": "d779a4b0aa3e8c32bba2bde1730ff84beb42ca39579d5a8b677d97cbf32279d5",
+    "scripts/research/market05_cross_asset_data.py": "f7a3b0ceed2e691716346a89e4800def29f2e7526559dda0407bb1d33d6c8357",
+    "scripts/research/market05_cross_asset_data_preflight.py": "a53ddcad6afac48d91c3a587f4c2a7e8af7badafd64d01a5b136532e78c2bbfe",
+    "scripts/research/market05_cross_asset_execution_claim.py": "419f72792c3fe2f58955386618c759a5f6d9827127c8f276c304e7695de6f812",
+    "scripts/research/market05_cross_asset_lib.py": "84b55646b736272505079633572b239ded46a723658fc864e89c032a445e4cde",
+    "scripts/research/market05_eth_execution_binding.py": "3b5d25bf37c7f7d000b52d1399cd00f48ebad2b2cb9018108aa867d56c4060af"
+  },
+  "year_metrics": {
+    "2022": 2.6398780684000478e-05,
+    "2023": -0.004303506211586372,
+    "2024": -0.00045725937785223714
+  }
+}
