@@ -30,8 +30,11 @@ consumed `1`). No rerun is authorized.
 Do not design a large new MARKET
 framework. A later market hypothesis requires a new research ID.
 The H + B + MARKET-01..03 evidence state is frozen in
-`docs/research/EVIDENCE_REGISTRY_H_B_M01_M03.md` before any later
-selection. That registry does not choose MARKET-04.
+`docs/research/EVIDENCE_REGISTRY_H_B_M01_M03.md`. MARKET-04 candidate
+identity is selected outcome-blind as
+`MARKET-04_FUNDING_STATE_ADVERSE_PATH_RISK` and is not preregistered,
+armed, or execution-authorized. Next required MARKET-04 unit:
+`OUTCOME_BLIND_FUNDING_AVAILABILITY_AND_MARKET04_DESIGN_FEASIBILITY`.
 Do not create new infrastructure merely because MARKET is beginning. Operating
 priority is approximately 70–80% actual market research and 20–30%
 infrastructure only when concrete research blockers require it. Primary

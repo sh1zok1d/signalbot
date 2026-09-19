@@ -267,9 +267,14 @@ ARM authority:
 `docs/research/MARKET_03_PUBLIC_STRATEGY_ARM.md`.
 
 Program-level H + B + MARKET-01..03 evidence is frozen in
-`docs/research/EVIDENCE_REGISTRY_H_B_M01_M03.md` before any MARKET-04
-selection. That registry does not select the next hypothesis, does not
-create a new preregistration, and does not authorize MARKET-04.
+`docs/research/EVIDENCE_REGISTRY_H_B_M01_M03.md`. MARKET-04 candidate
+identity is now selected outcome-blind as
+`MARKET-04_FUNDING_STATE_ADVERSE_PATH_RISK` (`RISK_STATE_FILTER`,
+primary family `FUTURE_ADVERSE_PATH_RISK`) in
+`docs/research/MARKET_04_CANDIDATE_SELECTION.md`. That selection is not
+a preregistration, ARM, or execution authorization. Funding legal
+historical availability remains `UNRESOLVED`. Next unit:
+`OUTCOME_BLIND_FUNDING_AVAILABILITY_AND_MARKET04_DESIGN_FEASIBILITY`.
 
 Post-calibration operating priority:
 

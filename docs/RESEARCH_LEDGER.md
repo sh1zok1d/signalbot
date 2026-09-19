@@ -3560,3 +3560,23 @@ M01_M02_INDEPENDENT_REPLICATIONS = NO
 ```
 
 Evidence: `docs/research/EVIDENCE_REGISTRY_H_B_M01_M03.md`.
+
+## 2026-09-19 — MARKET-04 candidate identity frozen outcome-blind
+
+Docs-only candidate-selection freeze from registry HEAD `ec7960d…` /
+tree `293e6d3…`. No preregistration, ARM, evaluator, execution, or
+outcome inspection.
+
+```text
+RESEARCH_ID = MARKET-04_FUNDING_STATE_ADVERSE_PATH_RISK
+CANDIDATE_ROLE = RISK_STATE_FILTER
+PRIMARY_OUTCOME_FAMILY = FUTURE_ADVERSE_PATH_RISK
+M03_LINEAGE = ADAPTIVE_HYPOTHESIS_GENERATION_FROM_EXTERNAL_REPRODUCTION
+independent_replication_of_market_03 = false
+funding_legal_historical_availability = UNRESOLVED
+execution_authorized = false
+protected_oos_touched = false
+NEXT_UNIT = OUTCOME_BLIND_FUNDING_AVAILABILITY_AND_MARKET04_DESIGN_FEASIBILITY
+```
+
+Evidence: `docs/research/MARKET_04_CANDIDATE_SELECTION.md`.
