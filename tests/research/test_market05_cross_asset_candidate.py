@@ -30,12 +30,15 @@ FORBIDDEN_ARTIFACT_GLOBS = (
     "docs/research/MARKET_05_*RESULT*",
     "docs/research/MARKET_05_*ARM*",
     "docs/research/MARKET_05_*RESERVATION*",
-    "docs/research/MARKET_05_*IMPLEMENTATION*",
     "scripts/research/market_05*",
 )
 AUTHORIZED_PREREG_NAMES = {
     "MARKET_05_CROSS_ASSET_PREREG.md",
     "MARKET_05_CROSS_ASSET_PREREG.json",
+}
+AUTHORIZED_IMPLEMENTATION_FREEZE_NAMES = {
+    "MARKET_05_IMPLEMENTATION_FREEZE.md",
+    "MARKET_05_IMPLEMENTATION_FREEZE.json",
 }
 
 H_B_FORMULATIONS = (
@@ -180,6 +183,12 @@ def test_no_result_arm_or_prereg_created():
         if path.name not in AUTHORIZED_PREREG_NAMES
     ]
     assert prereg_matches == []
+    impl_matches = [
+        path
+        for path in REPO.glob("docs/research/MARKET_05_*IMPLEMENTATION*")
+        if path.name not in AUTHORIZED_IMPLEMENTATION_FREEZE_NAMES
+    ]
+    assert impl_matches == []
     assert not (REPO / "docs/research/MARKET_05_RESULT.json").exists()
     assert not (REPO / "docs/research/MARKET_05_ARM.json").exists()
     assert "full_preregistration_frozen = false" in _md()

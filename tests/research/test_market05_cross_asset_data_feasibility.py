@@ -72,7 +72,7 @@ def test_common_coverage_and_bar_end_exclusive():
     assert "same_support_required = true" in md
 
 
-def test_eth_companion_inventory_bound_not_accepted():
+def test_eth_companion_inventory_identity_preserved():
     payload = _load()
     inv = json.loads(INVENTORY.read_text(encoding="utf-8"))
     manifest = MANIFEST.read_text(encoding="utf-8")
@@ -88,9 +88,14 @@ def test_eth_companion_inventory_bound_not_accepted():
     assert inv["dataset_id"] == "CORE_ETH_BINANCE_V0"
     assert inv["does_not_redefine_core_btc_binance_v0"] is True
     assert inv["scientific_outcomes_inspected"] is False
-    assert "SOURCE_INVENTORY_BOUND_NOT_MATERIALIZED_NOT_ACCEPTED" in manifest
-    assert "research_authorized: false" in manifest
     assert "does_not_redefine_core_btc_binance_v0: true" in manifest
+    if "status: ACCEPTED_FOR_DISCOVERY" in manifest:
+        assert "snapshot_id:" in manifest
+        assert INVENTORY_SHA256 in manifest
+        assert "companion_of: CORE_BTC_BINANCE_V0" in manifest
+    else:
+        assert "SOURCE_INVENTORY_BOUND_NOT_MATERIALIZED_NOT_ACCEPTED" in manifest
+        assert "research_authorized: false" in manifest
 
 
 def test_probe_is_timestamp_only_and_complete():
