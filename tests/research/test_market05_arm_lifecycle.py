@@ -66,6 +66,12 @@ def _fixture_repo(tmp_path: Path) -> Path:
     _git(repo, "config", "user.name", "t")
     _git(repo, "add", "-A")
     _git(repo, "commit", "-qm", "fixture")
+    # The authority root fails closed without the frozen scientific commit,
+    # so a fixture repo must genuinely carry that object.
+    frozen = json.loads(
+        (REPO / m05root.REFREEZE_JSON_REL).read_text(encoding="utf-8")
+    )[m05root.SCIENTIFIC_IMPLEMENTATION_HEAD_KEY]
+    _git(repo, "fetch", "--no-tags", "-q", str(REPO), frozen)
     return repo
 
 
@@ -937,10 +943,20 @@ def test_no_git_executable_refuses_authorization(tmp_path, monkeypatch):
 
 
 def test_missing_frozen_commit_object_refuses(tmp_path, monkeypatch):
-    repo = _root_repo(tmp_path)
+    # A repository that is real but does NOT carry the frozen scientific
+    # commit object: the root of trust cannot be established.
+    repo = tmp_path / "nofrozen"
+    for rel in AUTH_FILES + ROOT_FILES + DOC_FILES:
+        dst = repo / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(REPO / rel, dst)
+    shutil.copy2(REPO / m05root.REFREEZE_JSON_REL, repo / m05root.REFREEZE_JSON_REL)
+    _git(repo, "init", "-q")
+    _git(repo, "config", "user.email", "t@example.com")
+    _git(repo, "config", "user.name", "t")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "no frozen object")
     monkeypatch.setattr(m05root, "_repo_root", lambda: repo)
-    # The fixture repo's history does not contain the frozen scientific
-    # commit, so the root of trust cannot be established.
     with pytest.raises(
         m05root.Market05AuthorityRootError, match="GIT_VERIFICATION_REQUIRED"
     ):
