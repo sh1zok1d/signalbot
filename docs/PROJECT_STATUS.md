@@ -1,6 +1,6 @@
 # Signalbot — Current Project Status
 
-**Status date:** 2026-09-18
+**Status date:** 2026-09-19
 **Operating mode:** `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN`
 **Active research phase:** `MARKET`
 
@@ -265,6 +265,11 @@ authority:
 `docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_FREEZE.md`.
 ARM authority:
 `docs/research/MARKET_03_PUBLIC_STRATEGY_ARM.md`.
+
+Program-level H + B + MARKET-01..03 evidence is frozen in
+`docs/research/EVIDENCE_REGISTRY_H_B_M01_M03.md` before any MARKET-04
+selection. That registry does not select the next hypothesis, does not
+create a new preregistration, and does not authorize MARKET-04.
 
 Post-calibration operating priority:
 

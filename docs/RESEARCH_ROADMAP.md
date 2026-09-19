@@ -29,6 +29,9 @@ tree `87a1da25…`. MARKET-03 is **RESULT**
 consumed `1`). No rerun is authorized.
 Do not design a large new MARKET
 framework. A later market hypothesis requires a new research ID.
+The H + B + MARKET-01..03 evidence state is frozen in
+`docs/research/EVIDENCE_REGISTRY_H_B_M01_M03.md` before any later
+selection. That registry does not choose MARKET-04.
 Do not create new infrastructure merely because MARKET is beginning. Operating
 priority is approximately 70–80% actual market research and 20–30%
 infrastructure only when concrete research blockers require it. Primary

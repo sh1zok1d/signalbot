@@ -3534,3 +3534,29 @@ Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_RESULT.json`.
 - scientific_implementation_changed: **false**
 
 - next required step: none authorized for MARKET-03 (do not rerun)
+
+## 2026-09-19 — H + B + MARKET-01..03 evidence registry frozen
+
+Docs-only program-level synthesis of existing canonical evidence before
+any MARKET-04 selection. No experiment, no preregistration, no next
+hypothesis, no protected-OOS inspection, no B2-05 reconstruction.
+
+```text
+REGISTRY = EVIDENCE_REGISTRY_H_B_M01_M03
+SCOPE = H01-H05 B2-01-B2-06 MARKET-01-MARKET-03
+MARKET_04_SELECTED = NO
+NEW_HYPOTHESIS_CREATED = NO
+NEW_OUTCOME_ACCESSED = NO
+H_PROMOTED = 0
+B2_CLEAN_PROMOTED = 0
+MARKET_01 = NO_EVIDENCE
+MARKET_02 = NO_EVIDENCE (open PR #157; not on main)
+MARKET_03 = REPRODUCED_DIRECTION (open PR #162; not on main)
+B2_05 = INTEGRITY_LIMITED / ORDINARY_RESULT_UNAVAILABLE
+B2_06 = NO_EVIDENCE_UNIT
+SIGNALBOT_PROTECTED_OOS_TOUCHED = false
+EXTERNAL_M03_SELECTION_OOS_UNTOUCHED_GUARANTEED = NO
+M01_M02_INDEPENDENT_REPLICATIONS = NO
+```
+
+Evidence: `docs/research/EVIDENCE_REGISTRY_H_B_M01_M03.md`.

@@ -32,6 +32,8 @@ Read these first:
 | `research/H01_DEV_SUMMARY.md` | **FROZEN_EVIDENCE** | H01 development-only result; verdict `H01_KILL` |
 | `research/H02_FAILED_BREAKOUT_MEAN_REVERSION_PREREG.md` | **FROZEN_EVIDENCE** | H02 preregistration (before development outcomes) |
 | `research/H02_DEV_SUMMARY.md` | **FROZEN_EVIDENCE** | H02 development-only result; verdict `H02_KILL` |
+| `research/EVIDENCE_REGISTRY_H_B_M01_M03.md` | **FROZEN PROGRAM EVIDENCE REGISTRY** | Canonical outcome-blind synthesis of H01–H05, B2-01–B2-06, MARKET-01–03 before any MARKET-04 selection. Does not select the next hypothesis. |
+| `research/EVIDENCE_REGISTRY_H_B_M01_M03.json` | **FROZEN PROGRAM EVIDENCE REGISTRY twin** | Machine-readable semantic twin of the H/B/M01–M03 evidence registry |
 | `research/BATCH02_STATUS_LEDGER.md` | **ACTIVE RECORD** | Post-outcome Batch02 formulation/family status, including B2-05 durable-evidence recovery closeout `B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED` at archive `e31e5666fe845116197b6f2531289bf17d848027`; B2-06 remains `BLOCKED_MISSING_OBSERVABLE` after an outcome-blind OI/funding snapshot bind that does not authorize execution; does not mutate the frozen inventory |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_DATA_FEASIBILITY.md` | **OUTCOME_BLIND_FEASIBILITY** | MARKET-01 price/OI inventory only; `MARKET_01_PREREG_FEASIBLE = YES`; no outcomes, no B2-06 execution |
 | `research/MARKET_03_PUBLIC_STRATEGY_SOURCE_FEASIBILITY.md` | **OUTCOME_BLIND_SOURCE_FEASIBILITY / HISTORICAL UNIT** | MARKET-03 external EmaCross/EmaCrossFunding capture; unit verdict `DATA_ACQUISITION_REQUIRED`; superseded for current execution by later MARKET-03 units; not a prereg/ARM/RESULT |
