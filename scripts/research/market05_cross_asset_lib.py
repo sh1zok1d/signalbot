@@ -786,6 +786,35 @@ def result_schema() -> dict:
     return {key: None for key in RESULT_SCHEMA_KEYS}
 
 
-def instantiate_scientific_result(_payload: Mapping) -> dict:
-    """Scientific RESULT files are forbidden in this implementation unit."""
-    raise Market05IntegrityError("MARKET_05_RESULT_INSTANTIATION_FORBIDDEN")
+def instantiate_scientific_result(payload: Mapping) -> dict:
+    """Build a RESULT payload under an authenticated canonical execution.
+
+    Lifecycle-gated, not permanently forbidden: refuses while unarmed and
+    permits once an authenticated ARM + RESERVATION authorizes exactly one
+    unconsumed canonical execution. The authority decision is delegated so
+    this module holds no lifecycle state of its own.
+
+    Every RESULT_SCHEMA_KEYS field must be supplied by the caller and no
+    extra field is accepted, so a RESULT cannot self-attest authority
+    fields that the authority layer did not verify.
+    """
+    from scripts.research.market05_cross_asset_authority import (
+        Market05AuthorityError,
+        Market05ExecutionNotAuthorized,
+        refuse_scientific_result_instantiation,
+    )
+
+    try:
+        refuse_scientific_result_instantiation()
+    except (Market05ExecutionNotAuthorized, Market05AuthorityError) as exc:
+        raise Market05IntegrityError(str(exc)) from exc
+
+    provided = set(payload)
+    expected = set(RESULT_SCHEMA_KEYS)
+    if provided != expected:
+        missing = sorted(expected - provided)
+        extra = sorted(provided - expected)
+        raise Market05IntegrityError(
+            f"MARKET_05_RESULT_SCHEMA_MISMATCH:missing={missing}:extra={extra}"
+        )
+    return {key: payload[key] for key in RESULT_SCHEMA_KEYS}

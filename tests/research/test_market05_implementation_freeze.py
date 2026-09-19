@@ -68,10 +68,33 @@ def test_eth_accepted_and_constants_bound():
     assert consts["predictive_bootstrap_refit"] is False
     assert consts["coefficient_bootstrap_refit"] is True
     assert consts["invalid_replicate_dropping_authorized"] is False
-    for rel, digest in payload["implementation_files"].items():
-        assert _sha256(REPO / rel) == digest
-    for rel, digest in payload["test_files"].items():
-        assert _sha256(REPO / rel) == digest
+    # This artifact is superseded: its hashes intentionally describe the
+    # pre-repair bytes at 0016e4fc, not the current tree.
+    assert payload["is_current_authority"] is False
+    assert payload["superseded_by"] == (
+        "docs/research/MARKET_05_IMPLEMENTATION_REFREEZE.json"
+    )
+    assert payload["describes_commit"] == "0016e4fc616af9222f9c9fd581a4a4199b1bdccf"
+
+    # The CURRENT authority must match the live tree byte-for-byte.
+    refreeze = json.loads(
+        (REPO / "docs/research/MARKET_05_IMPLEMENTATION_REFREEZE.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert refreeze["status"] == "MARKET_05_IMPLEMENTATION_REFROZEN_OUTCOME_BLIND"
+    assert refreeze["armed"] is False
+    assert refreeze["execution_authorized"] is False
+    assert refreeze["post_arm_code_change_required"] is False
+    assert refreeze["scientific_math_changed"] is False
+    assert refreeze["prereg_changed"] is False
+    for rel, digest in refreeze["scientific_implementation_hashes"].items():
+        assert _sha256(REPO / rel) == digest, rel
+    assert _sha256(REPO / refreeze["arm_authority_file"]) == (
+        refreeze["arm_authority_sha256"]
+    )
+    for rel, digest in refreeze["test_files"].items():
+        assert _sha256(REPO / rel) == digest, rel
 
 
 def test_no_arm_or_result_and_audit_answers_are_no_for_invalid_paths():

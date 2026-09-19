@@ -26,6 +26,16 @@ M04_JSON_SHA256 = "e1c4270d89d891846fefbe3d14a6389c9d6ed747cb00f8bfc9906300f18d3
 M04H_MD_SHA256 = "fa0518941751fb491481e2d9c395005cdf89c106ddedbb7a4d331015472a00bc"
 M04H_JSON_SHA256 = "52f1cb939a2e9289fdc061f4243637e243be2196b3c2026132996e7350690c6b"
 
+# Explicitly authorized outcome-blind artifacts that are NOT a real ARM,
+# RESULT or RESERVATION. A real MARKET_05_ARM.json / MARKET_05_RESULT.json /
+# MARKET_05_RESERVATION.json remains forbidden by the globs below.
+AUTHORIZED_NON_ARM_ARTIFACT_NAMES = {
+    "MARKET_05_ARM_CONTRACT.md",
+    "MARKET_05_ARM_CONTRACT.json",
+    "MARKET_05_IMPLEMENTATION_REFREEZE.md",
+    "MARKET_05_IMPLEMENTATION_REFREEZE.json",
+}
+
 FORBIDDEN_ARTIFACT_GLOBS = (
     "docs/research/MARKET_05_*RESULT*",
     "docs/research/MARKET_05_*ARM*",
@@ -175,8 +185,21 @@ def test_no_result_arm_or_prereg_created():
     assert payload["lifecycle"]["prereg_created"] is False
     matches = []
     for pattern in FORBIDDEN_ARTIFACT_GLOBS:
-        matches.extend(REPO.glob(pattern))
+        matches.extend(
+            path
+            for path in REPO.glob(pattern)
+            if path.name not in AUTHORIZED_NON_ARM_ARTIFACT_NAMES
+        )
     assert matches == []
+    # The real ARM/RESULT/RESERVATION artifacts must still be absent.
+    for forbidden in (
+        "docs/research/MARKET_05_ARM.json",
+        "docs/research/MARKET_05_ARM.md",
+        "docs/research/MARKET_05_RESERVATION.json",
+        "docs/research/MARKET_05_RESULT.json",
+        "docs/research/MARKET_05_RESULT.md",
+    ):
+        assert not (REPO / forbidden).exists(), forbidden
     prereg_matches = [
         path
         for path in REPO.glob("docs/research/MARKET_05_*PREREG*")
@@ -186,7 +209,11 @@ def test_no_result_arm_or_prereg_created():
     impl_matches = [
         path
         for path in REPO.glob("docs/research/MARKET_05_*IMPLEMENTATION*")
-        if path.name not in AUTHORIZED_IMPLEMENTATION_FREEZE_NAMES
+        if path.name
+        not in (
+            AUTHORIZED_IMPLEMENTATION_FREEZE_NAMES
+            | AUTHORIZED_NON_ARM_ARTIFACT_NAMES
+        )
     ]
     assert impl_matches == []
     assert not (REPO / "docs/research/MARKET_05_RESULT.json").exists()

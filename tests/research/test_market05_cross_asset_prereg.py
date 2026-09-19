@@ -30,6 +30,16 @@ PRIMARY_CLAIM = (
     "LOWER subsequent BTC adverse excursion against that direction."
 )
 
+# Explicitly authorized outcome-blind artifacts that are NOT a real ARM,
+# RESULT or RESERVATION. A real MARKET_05_ARM.json / MARKET_05_RESULT.json /
+# MARKET_05_RESERVATION.json remains forbidden by the globs below.
+AUTHORIZED_NON_ARM_ARTIFACT_NAMES = {
+    "MARKET_05_ARM_CONTRACT.md",
+    "MARKET_05_ARM_CONTRACT.json",
+    "MARKET_05_IMPLEMENTATION_REFREEZE.md",
+    "MARKET_05_IMPLEMENTATION_REFREEZE.json",
+}
+
 FORBIDDEN_ARTIFACT_GLOBS = (
     "docs/research/MARKET_05_*RESULT*",
     "docs/research/MARKET_05_*ARM*",
@@ -220,8 +230,21 @@ def test_no_arm_result_evaluator_and_oos_untouched():
     assert "SIGNALBOT_PROTECTED_OOS_UNTOUCHED = YES" in md
     matches = []
     for pattern in FORBIDDEN_ARTIFACT_GLOBS:
-        matches.extend(REPO.glob(pattern))
+        matches.extend(
+            path
+            for path in REPO.glob(pattern)
+            if path.name not in AUTHORIZED_NON_ARM_ARTIFACT_NAMES
+        )
     assert matches == []
+    # The real ARM/RESULT/RESERVATION artifacts must still be absent.
+    for forbidden in (
+        "docs/research/MARKET_05_ARM.json",
+        "docs/research/MARKET_05_ARM.md",
+        "docs/research/MARKET_05_RESERVATION.json",
+        "docs/research/MARKET_05_RESULT.json",
+        "docs/research/MARKET_05_RESULT.md",
+    ):
+        assert not (REPO / forbidden).exists(), forbidden
     assert not (REPO / "docs/research/MARKET_05_RESULT.json").exists()
     assert not (REPO / "docs/research/MARKET_05_ARM.json").exists()
     for needle in (

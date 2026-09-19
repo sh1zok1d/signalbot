@@ -81,6 +81,18 @@ def _reject_caller_kwargs(args: tuple[Any, ...], kwargs: Mapping[str, Any]) -> N
         )
 
 
+def _arm_authority():
+    """Lazily resolve the ARM-lifecycle authority module.
+
+    Imported lazily so this barrier module stays importable on its own and
+    so the authority module object (including its repo-root resolution)
+    is the single place lifecycle decisions are made.
+    """
+    from scripts.research import market05_cross_asset_arm_authority as arm
+
+    return arm
+
+
 def authenticate_frozen_prereg_bytes(*args: Any, **kwargs: Any) -> dict[str, str]:
     _reject_caller_kwargs(args, kwargs)
     md = sha256_file(_path(PREREG_MD_REL))
@@ -112,50 +124,63 @@ def refuse_bound_execution(reason: str = "MARKET_05_EXECUTION_NOT_AUTHORIZED") -
 
 
 def refuse_unarmed_canonical_execution(*args: Any, **kwargs: Any) -> None:
+    """Refuse canonical execution unless an authenticated ARM authorizes it.
+
+    Lifecycle-capable: the presence of an ARM artifact is no longer itself
+    an error. Authorization is decided by authenticating the ARM +
+    RESERVATION pair, so the SAME frozen code transitions from refusing to
+    permitting without any source modification.
+    """
     _reject_caller_kwargs(args, kwargs)
-    if MARKET_05_EXECUTION_AUTHORIZED or MARKET_05_ARMED:
-        raise Market05AuthorityError("MARKET_05_LIFECYCLE_FLAG_MUST_REMAIN_UNARMED")
-    if _path(ARM_JSON_REL).exists() or _path(ARM_MD_REL).exists():
-        raise Market05AuthorityError("MARKET_05_ARM_ARTIFACT_MUST_NOT_EXIST")
+    if _arm_authority().market_05_execution_is_authorized():
+        return
     refuse_bound_execution("MARKET_05_EXECUTION_NOT_AUTHORIZED")
 
 
 def require_execution_authorized_before_outcome_load(*args: Any, **kwargs: Any) -> None:
     """Production scientific outcome load barrier.
 
-    ARM does not exist in this unit, so this always fail-closes before any
-    caller is allowed to read scientific outcome bars.
+    Fail-closed: returns only when an authenticated ARM + RESERVATION
+    authorizes exactly one unconsumed canonical execution. Before ARM this
+    raises, which is the pre-ARM state -- not a permanent property.
     """
     _reject_caller_kwargs(args, kwargs)
-    if _path(ARM_JSON_REL).exists() or _path(ARM_MD_REL).exists():
-        raise Market05AuthorityError("MARKET_05_ARM_ARTIFACT_MUST_NOT_EXIST")
-    if MARKET_05_EXECUTION_AUTHORIZED or MARKET_05_ARMED:
-        raise Market05AuthorityError("MARKET_05_LIFECYCLE_FLAG_MUST_REMAIN_UNARMED")
+    if _arm_authority().market_05_execution_is_authorized():
+        return
     raise Market05ExecutionNotAuthorized(
         "MARKET_05_EXECUTION_NOT_AUTHORIZED:outcome_load_refused_before_arm"
     )
 
 
 def refuse_scientific_result_instantiation(*args: Any, **kwargs: Any) -> None:
+    """RESULT barrier.
+
+    Unarmed: refuses. Armed and unconsumed: permits, provided no RESULT
+    artifact already exists (a RESULT may never be overwritten).
+    """
     _reject_caller_kwargs(args, kwargs)
     if _path(RESULT_JSON_REL).exists() or _path(RESULT_MD_REL).exists():
         raise Market05AuthorityError("MARKET_05_RESULT_ARTIFACT_MUST_NOT_EXIST")
+    if _arm_authority().market_05_execution_is_authorized():
+        return
     raise Market05ExecutionNotAuthorized("MARKET_05_RESULT_INSTANTIATION_FORBIDDEN")
 
 
 def inspect_market_05_authorization_state() -> dict[str, Any]:
+    """Report lifecycle state DERIVED from artifacts, never hardcoded."""
     arm_exists = _path(ARM_JSON_REL).exists() or _path(ARM_MD_REL).exists()
     result_exists = _path(RESULT_JSON_REL).exists() or _path(RESULT_MD_REL).exists()
+    state = _arm_authority().inspect_market_05_arm_state()
     return {
-        "MARKET_05_ARMED": False,
-        "MARKET_05_EXECUTION_AUTHORIZED": False,
-        "CANONICAL_EXECUTIONS_AUTHORIZED": 0,
-        "CANONICAL_EXECUTIONS_CONSUMED": 0,
+        "MARKET_05_ARMED": state["MARKET_05_ARMED"],
+        "MARKET_05_EXECUTION_AUTHORIZED": state["MARKET_05_EXECUTION_AUTHORIZED"],
+        "CANONICAL_EXECUTIONS_AUTHORIZED": state["CANONICAL_EXECUTIONS_AUTHORIZED"],
+        "CANONICAL_EXECUTIONS_CONSUMED": state["CANONICAL_EXECUTIONS_CONSUMED"],
         "arm_artifact_exists": arm_exists,
         "result_artifact_exists": result_exists,
-        "run_identity": None,
-        "MARKET_05_EXECUTED": False,
-        "MARKET_05_OUTCOME_INSPECTED": False,
+        "run_identity": state["run_identity"],
+        "MARKET_05_EXECUTED": state["MARKET_05_EXECUTED"],
+        "MARKET_05_OUTCOME_INSPECTED": state["MARKET_05_OUTCOME_INSPECTED"],
         "MARKET_05_TEST_CALIBRATED": False,
         "PROTECTED_OOS_AUTHORIZED": False,
     }
@@ -172,17 +197,31 @@ def refuse_bound_scientific_inputs(
     eth_snapshot_id: str | None = None,
     dataset_id: str | None = None,
 ) -> None:
-    if MARKET_05_EXECUTION_AUTHORIZED:
-        raise Market05AuthorityError("MARKET_05_BOUND_EXECUTION_FLAG_MUST_REMAIN_FALSE")
-    if dataset_id in {BTC_DATASET_ID, ETH_DATASET_ID}:
-        raise Market05ExecutionNotAuthorized("MARKET_05_BOUND_DATASET_REFUSED")
-    if btc_snapshot_id == BTC_SNAPSHOT_ID:
-        raise Market05ExecutionNotAuthorized("MARKET_05_BOUND_BTC_SNAPSHOT_REFUSED")
-    if eth_snapshot_id is not None and eth_snapshot_id == ETH_SNAPSHOT_ID:
-        raise Market05ExecutionNotAuthorized("MARKET_05_BOUND_ETH_SNAPSHOT_REFUSED")
-    if eth_snapshot_id is not None:
-        raise Market05ExecutionNotAuthorized("MARKET_05_BOUND_ETH_SNAPSHOT_REFUSED")
-    if not origin_is_allowed_for_tests(origin):
-        raise Market05ExecutionNotAuthorized(
-            "MARKET_05_ORIGIN_NOT_AUTHORIZED_FOR_IMPLEMENTATION_UNIT"
-        )
+    """Refuse caller-supplied scientific inputs.
+
+    Unarmed, the bound CORE datasets/snapshots are refused outright and
+    only synthetic/fixture origins may proceed.
+
+    Armed, the bound identifiers are still not accepted from the CALLER:
+    the canonical execution path derives them from frozen authority, so a
+    caller-controlled data path can never substitute an alternate source.
+    Any non-bound identifier remains refused in both states.
+    """
+    authorized = _arm_authority().market_05_execution_is_authorized()
+    if dataset_id is not None and dataset_id not in {BTC_DATASET_ID, ETH_DATASET_ID}:
+        raise Market05ExecutionNotAuthorized("MARKET_05_UNBOUND_DATASET_REFUSED")
+    if btc_snapshot_id is not None and btc_snapshot_id != BTC_SNAPSHOT_ID:
+        raise Market05ExecutionNotAuthorized("MARKET_05_UNBOUND_BTC_SNAPSHOT_REFUSED")
+    if eth_snapshot_id is not None and eth_snapshot_id != ETH_SNAPSHOT_ID:
+        raise Market05ExecutionNotAuthorized("MARKET_05_UNBOUND_ETH_SNAPSHOT_REFUSED")
+    if not authorized:
+        if dataset_id in {BTC_DATASET_ID, ETH_DATASET_ID}:
+            raise Market05ExecutionNotAuthorized("MARKET_05_BOUND_DATASET_REFUSED")
+        if btc_snapshot_id == BTC_SNAPSHOT_ID:
+            raise Market05ExecutionNotAuthorized("MARKET_05_BOUND_BTC_SNAPSHOT_REFUSED")
+        if eth_snapshot_id is not None:
+            raise Market05ExecutionNotAuthorized("MARKET_05_BOUND_ETH_SNAPSHOT_REFUSED")
+        if not origin_is_allowed_for_tests(origin):
+            raise Market05ExecutionNotAuthorized(
+                "MARKET_05_ORIGIN_NOT_AUTHORIZED_FOR_IMPLEMENTATION_UNIT"
+            )

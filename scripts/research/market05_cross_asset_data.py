@@ -79,9 +79,13 @@ def load_real_development_scientific_rows(
     eth_snapshot_id: str | None = None,
     dataset_id: str | None = None,
 ) -> list[EligibleRow]:
-    """Production scientific row loader. Always refuses before ARM.
+    """Production scientific row loader.
 
-    Must not load CORE outcome rows. Tests patch/spy this boundary.
+    Refuses before ARM. Once an authenticated ARM + RESERVATION authorizes
+    a canonical execution, delegates to the bound CORE loader, which
+    derives dataset roots and snapshot identity from frozen authority --
+    never from these caller arguments, which exist only so an unbound
+    alternate data path is explicitly refused rather than silently used.
     """
     require_execution_authorized_before_outcome_load()
     refuse_bound_scientific_inputs(
@@ -90,7 +94,11 @@ def load_real_development_scientific_rows(
         eth_snapshot_id=eth_snapshot_id,
         dataset_id=dataset_id,
     )
-    raise Market05ExecutionNotAuthorized("MARKET_05_EXECUTION_NOT_AUTHORIZED")
+    from scripts.research.market05_cross_asset_canonical_execution import (
+        load_bound_development_rows,
+    )
+
+    return load_bound_development_rows()
 
 
 def build_fixture_eligible_row(
