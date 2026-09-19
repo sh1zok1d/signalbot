@@ -284,7 +284,21 @@ adjudicated outcome-blind in
 `docs/research/MARKET_04H_PREMIUM_OBSERVABLE_ADJUDICATION.md` and is
 `MARKET_04H_PREMIUM_OBSERVABLE_BLOCKED`. Archive-day timezone and
 retrospective Vision byte identity remain unresolved. Do not adopt
-`close_time` or `D+2` as `legal_available_at`.
+`close_time` or `D+2` as `legal_available_at`. Those units remain
+`NOT_TESTED` / `NOT_REJECTED` / blocked-observable. They are not
+scientific failures.
+MARKET-05 is now selected outcome-blind as
+`MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK`
+(`MARKET_BREADTH_CONFIRMATION_STATE`, family
+`F7_CROSS_ASSET_MARKET_CONTEXT`) in
+`docs/research/MARKET_05_CROSS_ASSET_CANDIDATE.md`. BTC is the target;
+ETH is context only. The companion feasibility unit
+`docs/research/MARKET_05_CROSS_ASSET_DATA_FEASIBILITY.md` is
+`MARKET_05_CANDIDATE_FROZEN_DATA_FEASIBLE`. `CORE_BTC_BINANCE_V0`
+remains the BTC authority. `CORE_ETH_BINANCE_V0` is
+source-inventory-bound and not accepted. Next MARKET-05 step:
+`OUTCOME_BLIND_MARKET_05_EXACT_PREREGISTRATION`. Do not ARM, execute,
+or inspect scientific outcomes.
 
 Post-calibration operating priority:
 

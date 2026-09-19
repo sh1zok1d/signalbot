@@ -35,10 +35,15 @@ identity is selected outcome-blind as
 `MARKET-04_FUNDING_STATE_ADVERSE_PATH_RISK` and is not preregistered,
 armed, or execution-authorized. The funding-availability audit is
 `FUNDING_HISTORICAL_AVAILABILITY_UNRESOLVED`. The MARKET-04H Premium
-Index child is `MARKET_04H_PREMIUM_OBSERVABLE_BLOCKED`. Next MARKET-04
-step: `BLOCKED_OBSERVABLE_OR_NEW_CANDIDATE_SELECTION`. Do not invent
-publication latency, do not treat `close_time` as publication time, and
-do not automatically choose another candidate.
+Index child is `MARKET_04H_PREMIUM_OBSERVABLE_BLOCKED`. MARKET-04/04H
+remain blocked-observable and are not scientific failures.
+MARKET-05 candidate identity is selected outcome-blind as
+`MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK` and is not
+preregistered, armed, or execution-authorized. BTC/ETH same-exchange
+data feasibility is `MARKET_05_CANDIDATE_FROZEN_DATA_FEASIBLE`. Next
+MARKET-05 step: `OUTCOME_BLIND_MARKET_05_EXACT_PREREGISTRATION`. Do not
+invent publication latency, do not treat `close_time` as publication
+time, and do not inspect MARKET-05 scientific outcomes.
 Do not create new infrastructure merely because MARKET is beginning. Operating
 priority is approximately 70–80% actual market research and 20–30%
 infrastructure only when concrete research blockers require it. Primary

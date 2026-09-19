@@ -3621,3 +3621,33 @@ NEXT_UNIT = BLOCKED_OBSERVABLE_OR_NEW_CANDIDATE_SELECTION
 ```
 
 Evidence: `docs/research/MARKET_04H_PREMIUM_OBSERVABLE_ADJUDICATION.md`.
+
+## 2026-09-19 — MARKET-05 candidate frozen; BTC/ETH data feasible
+
+Outcome-blind candidate selection plus temporal feasibility from PRE_M05
+HEAD `e8d77b3…` / TREE `9c2d385…`. MARKET-04/04H remain blocked-observable
+and are not reinterpreted as scientific failures. No preregistration,
+ARM, evaluator, execution, or scientific-outcome inspection.
+
+```text
+RESEARCH_ID = MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK
+MECHANISM_FAMILY = F7_CROSS_ASSET_MARKET_CONTEXT
+PRIMARY_ROLE = MARKET_BREADTH_CONFIRMATION_STATE
+TARGET = BTCUSDT
+CONTEXT = ETHUSDT
+lineage_kind = NEW_MECHANISM_SELECTED_FROM_PROGRAM_LEVEL_INFORMATION_GAP
+continuous_feature_required = true
+threshold_search_allowed = false
+same_support_required = true
+feasibility_classification = MARKET_05_CANDIDATE_FROZEN_DATA_FEASIBLE
+btc_dataset = CORE_BTC_BINANCE_V0
+eth_dataset = CORE_ETH_BINANCE_V0
+eth_status = SOURCE_INVENTORY_BOUND_NOT_MATERIALIZED_NOT_ACCEPTED
+scientific_outcomes_inspected = false
+protected_oos_touched = false
+execution_authorized = false
+NEXT_UNIT = OUTCOME_BLIND_MARKET_05_EXACT_PREREGISTRATION
+```
+
+Evidence: `docs/research/MARKET_05_CROSS_ASSET_CANDIDATE.md` and
+`docs/research/MARKET_05_CROSS_ASSET_DATA_FEASIBILITY.md`.
