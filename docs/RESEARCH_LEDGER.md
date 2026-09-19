@@ -3503,3 +3503,34 @@ Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_ARM.md`.
 - funding_snapshot_changed: **false**
 
 - next required step: `MARKET_03_CANONICAL_EXECUTION_IF_AUTHORIZED` (not this unit)
+
+## 2026-09-19 — MARKET-03 canonical RESULT (one-shot, consumed)
+
+Exactly one canonical MARKET-03 execution under unused ARM
+`e3c5de3…` / `95af1b52…`. Reservation transitioned `1/0 → 1/1`
+before outcome-bearing frozen scientific calls. No rerun.
+
+```text
+RUN_IDENTITY = f68b6de7d6c127f67908c48bf4be73cf986ea5d9daf9257bdae07f9ac626f397
+PRIMARY_CLASSIFICATION = REPRODUCED_DIRECTION
+MDD_BASELINE = -0.4935539254862912
+MDD_FILTERED = -0.33775527768227054
+RESULT_JSON_SHA256 = 32b9157f9e4ce285627030218c0b9e37bed1347e6d4a30e2bd8e8ca87d46976e
+RESULT_MD_SHA256   = a338f09d0cf0cc87879c6547b8058740bcf085c6f1e59bab9148f6825eae79bc
+CANONICAL_EXECUTIONS_AUTHORIZED = 1
+CANONICAL_EXECUTIONS_CONSUMED   = 1
+PROTECTED_OOS_TOUCHED = false
+```
+
+Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_RESULT.json`.
+
+- market_03_executed: **true**
+- market_03_outcome_inspected: **true**
+- market_03_parameter_search: **false**
+- canonical_executions_authorized: **1**
+- canonical_executions_consumed: **1**
+- protected_oos_touched: **false**
+- prereg_changed: **false**
+- scientific_implementation_changed: **false**
+
+- next required step: none authorized for MARKET-03 (do not rerun)

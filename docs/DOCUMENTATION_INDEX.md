@@ -20,7 +20,7 @@ Read these first:
 | Document | Status | Purpose |
 |---|---|---|
 | `PROJECT_STATUS.md` | **ACTIVE / CANONICAL** | Current project posture, freeze, empirical state and restart gate. Active research phase: `MARKET`. V3 Microscope calibration closed. |
-| `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. MARKET-01 closed `NO_EVIDENCE`; MARKET-03 prereg **frozen**; funding snapshot **ready**; implementation **frozen**; MARKET-03 **ARMED** unused one-shot reservation (not execution); V3 closed; no V4; B2-06 remains blocked. |
+| `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. MARKET-01 closed `NO_EVIDENCE`; MARKET-03 **RESULT** `REPRODUCED_DIRECTION` (consumed); V3 closed; no V4; B2-06 remains blocked. |
 | `EDGE_RESEARCH_PROTOCOL.md` | **ACTIVE / CANONICAL** | Discovery/validation rules and anti-overfit discipline |
 | `HISTORICAL_DATA_STRATEGY.md` | **ACTIVE / CANONICAL** | Multi-year CORE vs shorter RICH evidence strategy |
 | `DATA_CAPABILITY_MATRIX.md` | **ACTIVE / RESEARCH DATA DESIGN** | Verified source/venue/date/granularity map and acquisition order for the 2020/2021–2026 research program |
@@ -52,14 +52,17 @@ Read these first:
 | `research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_REPAIR.json` | **REPAIR_COMPLETE_NOT_FROZEN twin / HISTORICAL UNIT** | Machine-readable twin of the implementation repair |
 | `research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_FREEZE.md` | **IMPLEMENTATION_FROZEN / CURRENT IMPLEMENTATION FREEZE AUTHORITY** | Docs-only freeze of reviewed HEAD `03411aaa…` / tree `87a1da25…`; not ARM; not execution |
 | `research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_FREEZE.json` | **IMPLEMENTATION_FROZEN twin / CURRENT IMPLEMENTATION FREEZE AUTHORITY** | Machine-readable twin; `freeze_commit_head`/`tree` intentionally `UNSET_UNTIL_THIS_COMMIT` |
-| `research/MARKET_03_PUBLIC_STRATEGY_ARM.md` | **ARMED / UNUSED ONE-SHOT AUTHORIZATION** | MARKET-03 ARM; `RUN_IDENTITY` `f68b6de7…`; authorized `1` consumed `0`; not execution/RESULT |
-| `research/MARKET_03_PUBLIC_STRATEGY_ARM.json` | **ARMED / UNUSED ONE-SHOT AUTHORIZATION twin** | Machine-readable twin; SHA256 `7c801cdc…`; `arm_commit_head`/`tree` intentionally `UNSET_UNTIL_THIS_COMMIT` |
-| `research/MARKET_03_PUBLIC_STRATEGY_RESERVATION.json` | **RESERVED / UNUSED** | Single-use canonical reservation; authorized `1` consumed `0`; SHA256 `ebc4338a…` |
+| `research/MARKET_03_PUBLIC_STRATEGY_ARM.md` | **EXECUTED / CONSUMED** | One-shot canonical ARM; consumed `1`; unused SHA256 `7c801cdc…` bound into RESULT |
+| `research/MARKET_03_PUBLIC_STRATEGY_ARM.json` | **EXECUTED / CONSUMED twin** | Consumed ARM twin; unused identity `7c801cdc…`; run identity `f68b6de7…` |
+| `research/MARKET_03_PUBLIC_STRATEGY_RESERVATION.json` | **CONSUMED** | Canonical execution reservation consumed `1`; no rerun pre-authorized |
+| `research/MARKET_03_PUBLIC_STRATEGY_RESULT.md` | **CANONICAL RESULT** | Mechanical restatement; `PRIMARY_CLASSIFICATION = REPRODUCED_DIRECTION` |
+| `research/MARKET_03_PUBLIC_STRATEGY_RESULT.json` | **CANONICAL RESULT** | Sealed MARKET-03 RESULT; SHA256 `32b9157f…`; unused ARM `7c801cdc…` |
+| `research/MARKET_03_PUBLIC_STRATEGY_CONSUMPTION_LOCK.json` | **CONSUMED** | Pre-evaluate consumption boundary lock; not a scientific RESULT |
 | `scripts/research/market_03_public_strategy_lib.py` | **IMPLEMENTATION_FROZEN** | Frozen scientific core at SHA256 `46ec2449…`; bound snapshots refused by frozen guards |
 | `scripts/research/market_03_public_strategy_authority.py` | **IMPLEMENTATION_FROZEN** | Frozen identity + fail-closed guard at SHA256 `97f000c6…`; code identity remains unarmed |
 | `scripts/research/market_03_public_strategy_execute.py` | **IMPLEMENTATION_FROZEN / FAIL_CLOSED** | Frozen bound-execution stub; still refuses while frozen flags stay unarmed |
 | `scripts/research/market_03_public_strategy_arm_authority.py` | **ARM LIFECYCLE AUTHORITY** | RUN_IDENTITY / ARM / reservation authentication outside frozen scientific bytes |
-| `scripts/research/market_03_public_strategy_canonical_execution.py` | **ARM WRAPPER / NOT EXECUTED** | Pre-execution verifier; does not consume, load bound rows, or create RESULT |
+| `scripts/research/market_03_public_strategy_canonical_execution.py` | **EXECUTED / ONE-SHOT** | Canonical execution runner; reservation consumed; not a second scientific implementation |
 | `research_data/MARKET_03_BTC_STRATEGY_LAB_B68A5518/` | **PINNED_EXTERNAL_SOURCE** | Immutable hashes + text snapshots of `wiktorj137/btc-strategy-lab` at `b68a5518…` |
 | `research_data/MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0/` | **RESEARCH INFRASTRUCTURE SNAPSHOT** | SPOT 1h identity `2ce1f504…`; not MARKET-03 scientifically bound; raw bytes gitignored |
 | `manifests/MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0.yaml` | **SNAPSHOT_MATERIALIZED_RESEARCH_INFRASTRUCTURE** | Planning/identity manifest; `research_authorized: false`; `market_03_scientifically_bound: false` |

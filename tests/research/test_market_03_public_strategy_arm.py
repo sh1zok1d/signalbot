@@ -1,7 +1,8 @@
 """MARKET-03 ARM fail-closed tests. Synthetic / stubbed payloads only.
 
-Does not load bound MARKET-03 spot or funding rows into strategy logic,
-create trades, calculate wallet/MDD, or inspect real outcomes.
+Does not load bound MARKET-03 spot or funding rows into strategy logic
+or rerun the canonical scientific path. Live reservation is consumed.
+Unused ARM fixtures are restored from the unused ARM commit.
 """
 
 from __future__ import annotations
@@ -9,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -64,6 +66,12 @@ from scripts.research.market_03_public_strategy_execute import (
 
 
 REPO = Path(__file__).resolve().parents[2]
+UNUSED_ARM_HEAD = "e3c5de3bcb68173af0bfb08a8c42f4a5e8981c5a"
+_UNUSED_ARM_RELS = {
+    m03arm.ARM_MD_REL,
+    m03arm.ARM_JSON_REL,
+    m03arm.RESERVATION_JSON_REL,
+}
 _TRACKED = (
     m03arm.PREREG_MD_REL,
     m03arm.PREREG_JSON_REL,
@@ -88,6 +96,12 @@ def _copy_live(rel: str, dest_root: Path) -> None:
     src = REPO / rel
     dest = dest_root / rel
     dest.parent.mkdir(parents=True, exist_ok=True)
+    if rel in _UNUSED_ARM_RELS:
+        data = subprocess.check_output(
+            ["git", "-C", str(REPO), "show", f"{UNUSED_ARM_HEAD}:{rel}"]
+        )
+        dest.write_bytes(data)
+        return
     shutil.copy2(src, dest)
 
 
@@ -109,34 +123,31 @@ def _rewrite_json(path: Path, mutator) -> None:
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
-def test_live_arm_is_unused_and_deterministic():
+def test_live_arm_is_consumed_and_refuses_rerun():
     assert derive_market_03_run_identity() == FROZEN_MARKET_03_RUN_IDENTITY
-    assert _sha256(REPO / m03arm.ARM_JSON_REL) == ARM_JSON_SHA256
-    assert _sha256(REPO / m03arm.ARM_MD_REL) == ARM_MD_SHA256
-    assert _sha256(REPO / m03arm.RESERVATION_JSON_REL) == RESERVATION_JSON_SHA256
-    bound = authenticate_market_03_canonical_execution()
-    assert bound["run_identity"] == FROZEN_MARKET_03_RUN_IDENTITY
-    assert bound["arm"]["CANONICAL_EXECUTIONS_AUTHORIZED"] == 1
-    assert bound["arm"]["CANONICAL_EXECUTIONS_CONSUMED"] == 0
-    assert bound["reservation"]["CANONICAL_EXECUTIONS_CONSUMED"] == 0
+    with pytest.raises(Market03CanonicalExecutionNotAuthorized, match="CONSUMED"):
+        authenticate_market_03_arm()
+    with pytest.raises(Market03CanonicalExecutionNotAuthorized):
+        authenticate_market_03_canonical_execution()
+    payload = json.loads((REPO / m03arm.ARM_JSON_REL).read_text(encoding="utf-8"))
     for field in ARM_OUTCOME_FIELDS:
-        assert field not in bound["arm"]
+        assert field not in payload
+    assert payload["run_identity"] == FROZEN_MARKET_03_RUN_IDENTITY
+    assert payload["authorization_consumed"] is True
+    assert payload["CANONICAL_EXECUTIONS_AUTHORIZED"] == 1
+    assert payload["CANONICAL_EXECUTIONS_CONSUMED"] == 1
+    unused = subprocess.check_output(
+        ["git", "-C", str(REPO), "show", f"{UNUSED_ARM_HEAD}:{m03arm.ARM_JSON_REL}"]
+    )
+    assert hashlib.sha256(unused).hexdigest() == ARM_JSON_SHA256
     state = inspect_market_03_arm_state()
-    assert state["MARKET_03_ARMED"] is True
-    assert state["IMPLEMENTATION_FROZEN"] is True
-    assert state["MARKET_03_EXECUTION_AUTHORIZED"] is True
-    assert state["CANONICAL_EXECUTIONS_AUTHORIZED"] == 1
-    assert state["CANONICAL_EXECUTIONS_CONSUMED"] == 0
-    assert CANONICAL_EXECUTIONS_AUTHORIZED == 1
-    assert CANONICAL_EXECUTIONS_CONSUMED == 0
+    assert state["MARKET_03_EXECUTION_AUTHORIZED"] is False
     frozen = inspect_market_03_authorization_state()
     assert frozen["MARKET_03_ARMED"] is False
     assert frozen["CANONICAL_EXECUTIONS_AUTHORIZED"] == 0
-    permit = permit_canonical_scientific_execution()
-    assert permit["permitted"] is True
-    assert permit["consumed"] is False
-    assert permit["bound_rows_loaded"] is False
-    assert run_canonical_market_03() == 0
+    assert CANONICAL_EXECUTIONS_AUTHORIZED == 1
+    assert CANONICAL_EXECUTIONS_CONSUMED == 0
+    assert run_canonical_market_03() == 3
 
 
 def test_frozen_scientific_and_prereg_and_freeze_bytes_unchanged():
@@ -375,16 +386,15 @@ def test_atomic_consume_then_second_run_fails(tmp_path, monkeypatch):
     with pytest.raises(Market03CanonicalExecutionNotAuthorized, match="CONSUMED"):
         consume_authorization_atomically()
     live = json.loads((REPO / m03arm.RESERVATION_JSON_REL).read_text())
-    assert live["CANONICAL_EXECUTIONS_CONSUMED"] == 0
+    assert live["CANONICAL_EXECUTIONS_CONSUMED"] == 1
 
 
-def test_wrapper_does_not_consume_or_evaluate_bound():
+def test_wrapper_reserved_stub_does_not_rerun_science():
     before = json.loads((REPO / m03arm.RESERVATION_JSON_REL).read_text())
-    assert before["CANONICAL_EXECUTIONS_CONSUMED"] == 0
-    assert run_canonical_market_03() == 0
+    assert before["CANONICAL_EXECUTIONS_CONSUMED"] == 1
+    assert run_canonical_market_03() == 3
     after = json.loads((REPO / m03arm.RESERVATION_JSON_REL).read_text())
-    assert after["CANONICAL_EXECUTIONS_CONSUMED"] == 0
-    assert _sha256(REPO / m03arm.RESERVATION_JSON_REL) == RESERVATION_JSON_SHA256
+    assert after["CANONICAL_EXECUTIONS_CONSUMED"] == 1
     with pytest.raises(
         Market03CanonicalExecutionReserved, match="RESERVED_FOR_EXECUTION_UNIT"
     ):
@@ -396,12 +406,14 @@ def test_wrapper_does_not_consume_or_evaluate_bound():
         )
 
 
-def test_live_reservation_unused_and_snapshot_ids_bound():
-    reservation = authenticate_market_03_reservation()
-    assert reservation["payload"]["run_identity"] == FROZEN_MARKET_03_RUN_IDENTITY
-    assert reservation["payload"]["CANONICAL_EXECUTIONS_AUTHORIZED"] == 1
-    assert reservation["payload"]["CANONICAL_EXECUTIONS_CONSUMED"] == 0
-    assert reservation["payload"]["rerun_preauthorized"] is False
+def test_live_reservation_consumed_and_snapshot_ids_bound():
+    with pytest.raises(Market03CanonicalExecutionNotAuthorized, match="CONSUMED"):
+        authenticate_market_03_reservation()
+    reservation = json.loads((REPO / m03arm.RESERVATION_JSON_REL).read_text())
+    assert reservation["run_identity"] == FROZEN_MARKET_03_RUN_IDENTITY
+    assert reservation["CANONICAL_EXECUTIONS_AUTHORIZED"] == 1
+    assert reservation["CANONICAL_EXECUTIONS_CONSUMED"] == 1
+    assert reservation["rerun_preauthorized"] is False
     arm = json.loads((REPO / m03arm.ARM_JSON_REL).read_text(encoding="utf-8"))
     assert arm["spot_snapshot_id"] == SPOT_SNAPSHOT_ID
     assert arm["funding_snapshot_id"] == FUNDING_SNAPSHOT_ID

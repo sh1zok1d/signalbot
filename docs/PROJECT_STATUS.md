@@ -248,11 +248,14 @@ from REST JSONL `e7885cd5…`. Implementation is **frozen**
 (`IMPLEMENTATION_FROZEN = YES`) at reviewed HEAD `03411aaa…` /
 tree `87a1da25…` after targeted re-review
 `READY_FOR_IMPLEMENTATION_FREEZE`. MARKET-03 is **ARMED**
-(`MARKET_03_ARMED = YES`) with a single unused canonical reservation
+(`MARKET_03_ARMED = YES`) and the one-shot reservation is **consumed**
 (`CANONICAL_EXECUTIONS_AUTHORIZED = 1`,
-`CANONICAL_EXECUTIONS_CONSUMED = 0`, `RUN_IDENTITY` `f68b6de7…`).
-This ARM is not execution or RESULT. Frozen scientific bytes were not
-mutated to flip lifecycle flags. Do not substitute CORE perpetual
+`CANONICAL_EXECUTIONS_CONSUMED = 1`, `RUN_IDENTITY` `f68b6de7…`).
+Canonical RESULT: `PRIMARY_CLASSIFICATION = REPRODUCED_DIRECTION`
+(`MDD_filtered = -0.337755…` > `MDD_baseline = -0.493554…`).
+That is a frozen LEVEL_2 historical-reproduction statement only. It is
+not current alpha, live profitability, OOS confirmation, or a second
+run. Frozen scientific bytes were not mutated to flip lifecycle flags. Do not substitute CORE perpetual
 prices. Do not consume B2-06 as MARKET-03 funding authority.
 Do not inspect Signalbot 2025/2026 OOS. Prereg freeze authority:
 `docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG_FREEZE.md`. Payload:
