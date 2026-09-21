@@ -33,11 +33,11 @@ Program-level correction is sealed in `docs/research/MARKET_PROGRAM_UPDATE_POST_
 ## Exact next unit
 
 ```
-PREVIOUS_ROUTING            = DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5
+PREVIOUS_ROUTING            = DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE_EXECUTION
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE_EXECUTION
+NEXT_UNIT                   = D2_CONFIRMATION_FEASIBILITY_AND_DESIGN
 PROTECTED_2025_OPENED       = false
 PROTECTED_2026_OPENED       = false
 INTERNAL_DISCOVERY_CARDS_EXECUTED = 4
@@ -50,6 +50,11 @@ D2_RULE_2_DISCOVERY_OUTCOME_OBSERVED = true
 D2_RULE_2_GATE_PASS               = false
 D2_RULE_2_REPLAY_EXACT_MATCH      = true
 POST_OUTCOME_DESIGN_CHANGES       = false
+D1_STATUS                         = DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH
+D1_NULL_MODEL_OBSERVABLE_MISMATCH = true
+D1_NULL_ADEQUACY_GATE_UNDERSPECIFIED = true
+D1_NULL_ADEQUACY_GATE_EXECUTED     = false
+D1_TARGET_OUTCOME_COMPUTED        = false
 ```
 
 Discovery Sprint 01 first attempt (`37921089ce289cd9bcbcebb123724a3e033dcdc3`)
@@ -65,10 +70,16 @@ still fails), D3/D4/D5 `NO_USEFUL_STRUCTURE`. Adaptive discovery only;
 not confirmatory. Protected 2025/2026 unopened. MARKET-07 not created.
 No post-outcome design changes.
 
-D1 remains `BLOCKED_PENDING_PRE_OUTCOME_FIX`. D6 remains `DEFERRED`.
+D1 was then adjudicated for `D1_NULL_ADEQUACY_GATE` and **deferred**:
+the frozen daily GARCH null cannot generate the 288×5m `ev.rv_btc_24h`
+observable used by `RV_20`, and no already-frozen mapping exists. The
+gate was not executed. Independently, gate statistics remain
+underspecified. `D1_STATUS = DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH`.
+Deferred D1 is not counted as executed. D6 remains `DEFERRED`.
 D4 `LEAD_LAG_1DAY` remains `DEFERRED_FROM_SPRINT_01`.
 
 Result records: `docs/research/discovery_results/`.
+Adjudication record: `docs/research/DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE.{json,md}`.
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by
@@ -134,11 +145,13 @@ OBSERVED_CORRELATION_RANGE - NULL_RANGE_MEDIAN >= 0.15`. D5's
 on D5's exact common interval `2022-02-01 -> 2025-01-01`), not D2
 RULE_1's unrestricted full-2020-2024 result.
 
-**Current per-card status:** `D1 = BLOCKED_PENDING_PRE_OUTCOME_FIX`;
-`D2 = PROMISING_PROTOTYPE` (adaptive discovery; RULE_1 only);
-`D3 = NO_USEFUL_STRUCTURE`; `D4 ROLLING_CORRELATION_90D =
-NO_USEFUL_STRUCTURE` (`LEAD_LAG_1DAY` still deferred); `D5 =
-NO_USEFUL_STRUCTURE`; `D6 = DEFERRED`. First blocked attempt preserved.
+**Current per-card status:** `D1 = DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH`
+(adequacy gate not executed); `D2 = PROMISING_PROTOTYPE` (adaptive
+discovery; RULE_1 only); `D3 = NO_USEFUL_STRUCTURE`; `D4
+ROLLING_CORRELATION_90D = NO_USEFUL_STRUCTURE` (`LEAD_LAG_1DAY` still
+deferred); `D5 = NO_USEFUL_STRUCTURE`; `D6 = DEFERRED`. First blocked
+attempt preserved. D2–D5 scientific bytes unchanged by the D1
+adjudication.
 
 The orthogonal-region selection is recorded in
 `docs/research/MARKET_NEXT_HYPOTHESIS_SELECTION.{json,md}` (commit

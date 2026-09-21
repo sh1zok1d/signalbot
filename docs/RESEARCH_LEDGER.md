@@ -3911,3 +3911,58 @@ Formal stall gate not triggered. D1 remains
 - `PROTECTED_2025_OPENED = false`
 - `PROTECTED_2026_OPENED = false`
 - next required step: `DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE_EXECUTION`
+
+## 2026-09-21 — Discovery Sprint 01 D1 null-adequacy gate adjudication
+
+Spec-level adjudication of `DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE`.
+This is **not** D1 scientific execution. The gate was **not** run. No
+`MEAN_STATE_RUN_LENGTH` / `HIGH_VOL_STATE` / `LOW_VOL_STATE` sequence
+was computed. D2–D5 result bytes were not altered. Protected 2025/2026
+was not opened. MARKET-07 was not created.
+
+Check A (same observable): frozen D1 null fits GARCH(1,1)+Student-t to
+one 24h BTC log-return per decision point, block-bootstraps standardized
+daily residuals, and re-injects them through daily GARCH recursion to
+produce a synthetic **daily 24h-return path**. Frozen D1 state uses
+`ev.rv_btc_24h` from 288 × 5m intra-day log returns, with
+`RV_20(t) = sqrt(sum_{i=0..19} [ev.rv_btc_24h(t-i)]^2)`. No
+already-frozen mapping from the synthetic daily-return path onto
+synthetic `ev.rv_btc_24h` / `RV_20` exists. F3 had already rejected an
+arbitrary intraday bridge. Forbidden substitutes
+(`abs(daily_return)`, GARCH sigma, squared daily return, synthetic
+conditional variance) are not used.
+
+```
+D1_NULL_MODEL_OBSERVABLE_MISMATCH = true
+D1_NULL_ADEQUACY_GATE_EXECUTED = false
+D1_TARGET_OUTCOME_COMPUTED = false
+D1_STATUS = DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH
+```
+
+Check B (independent): the frozen gate does not uniquely define the
+leverage/asymmetry proxy, the RV_20 short-lag ACF lag set, lagwise
+pass/fail, skewness/kurtosis joint vs individual evaluation, NaN /
+degenerate treatment, or exact GARCH initialization / estimation
+behavior.
+
+```
+D1_NULL_ADEQUACY_GATE_UNDERSPECIFIED = true
+```
+
+Why defer rather than repair: D2–D5 scientific outcomes are already
+known. Sprint 01 specs were intended to be frozen before any card
+outcome. A new D1 null or new gate definitions would be a
+post-sibling-outcome redesign and must be a future D1-v2 card, not an
+in-sprint repair.
+
+Deferred D1 is not counted as executed.
+
+- `INTERNAL_DISCOVERY_CARDS_EXECUTED = 4`
+- `INTERNAL_PROMISING_PROTOTYPES = 1`
+- `D2_STATUS = PROMISING_PROTOTYPE`
+- `MARKET_07_CREATED = false`
+- `PROTECTED_2025_OPENED = false`
+- `PROTECTED_2026_OPENED = false`
+- next required step: `D2_CONFIRMATION_FEASIBILITY_AND_DESIGN`
+
+Evidence: `docs/research/DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE.{json,md}`.
