@@ -31,13 +31,29 @@ LAST_FUTURE_BAR_OPEN = datetime(2025, 12, 31, 0, 0, tzinfo=UTC)
 # Frozen before any 2025 outcome. Distinct from discovery seed 20260921102.
 D2_CONFIRMATION_RANDOM_CONTROL_SEED = 20260921120
 D2_CONFIRMATION_POWER_SEED = 20260921121
+D2_CONFIRMATION_SIZE_PLANNING_SEED = 20260921122
 
 N_REPLICATES_CONFIRMATION = 10_000
 N_POWER_OUTER = 1_000
 MINIMUM_ACCEPTABLE_CONFIRMATION_POWER = 0.80
 AUTHORITATIVE_RELATIVE_EFFECT = 0.20
 SENSITIVITY_RELATIVE_EFFECTS = (0.15, 0.20, 0.25, 0.30)
+SIZE_PLANNING_RELATIVE_EFFECTS = (0.20, 0.25, 0.30)
 N_2025_DECISION_SLOTS = 364  # 2025 not leap; Dec 31 forbidden
+FRESH_SURFACE_SIZES = ((1, 364), (2, 728), (3, 1092), (4, 1456))
+
+# Frozen historical one-year year-cycled Monte Carlo (seed 20260921121).
+# Not recomputed by the size-planning amendment.
+ORIGINAL_ONE_YEAR_POWER_AT_20PCT = {
+    "power_statistical_gate": 0.011,
+    "power_both_gates": 0.006,
+    "power_practical_gate": 0.499,
+    "POWER_SEED": D2_CONFIRMATION_POWER_SEED,
+    "n_outer": N_POWER_OUTER,
+    "n_inner": N_REPLICATES_CONFIRMATION,
+    "relative_effect": AUTHORITATIVE_RELATIVE_EFFECT,
+    "method": "year-cycled empirical 2021-2024 severity; year-specific K",
+}
 
 DISCOVERY_PROVENANCE = {
     "RULE_1_eligible": 1791,
@@ -56,7 +72,6 @@ SNAPSHOT_REL = "docs/research_data/CORE_BTC_BINANCE_V0/SNAPSHOT_717d37a4.json"
 BINDING_REL = "docs/research_data/D2_CONFIRMATION_2025_METADATA_BINDING.json"
 JSON_REL = "docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.json"
 MD_REL = "docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.md"
-D2_RESULT_REL = "docs/research/discovery_results/D2_DISCOVERY_RESULT.json"
 
 
 class ProtectedPriceRefused(RuntimeError):
@@ -297,6 +312,8 @@ def estimate_power(
         "year_rule_abstain_count": {str(y): int(year_k[y]) for y in complete_years},
         "sensitivity": table,
         "POWER_AT_20PCT_MIN_EFFECT": table["20pct"]["power_both_gates"],
+        "POWER_STATISTICAL_AT_20PCT": table["20pct"]["power_statistical_gate"],
+        "POWER_JOINT_AT_20PCT": table["20pct"]["power_both_gates"],
         "POWER_SEED": int(seed),
         "method": (
             "Year-cycled empirical 2021-2024 severity vectors. For each outer "
@@ -307,6 +324,232 @@ def estimate_power(
             "is used so power is evaluated at the predeclared effect rather "
             "than at the observed discovery DELTA."
         ),
+        "historical_note": (
+            "This year-cycled estimator is the original one-year calculation. "
+            "POWER_AT_20PCT_MIN_EFFECT was the joint (both-gates) probability "
+            "and is preserved as historical output. Confirmation feasibility "
+            "now uses STATISTICAL_POWER_AT_20PCT_EFFECT as the primary "
+            "prospective criterion. JOINT_PASS_PROBABILITY is diagnostic only. "
+            "power_practical_gate ≈ 0.5 at the 20% alternative is expected "
+            "and is not itself evidence of underpower."
+        ),
+    }
+
+
+def _precompute_subset_indices(
+    n: int, k: int, n_rep: int, rng: np.random.Generator
+) -> np.ndarray:
+    keys = rng.random((int(n_rep), int(n)))
+    return np.argpartition(keys, kth=int(k) - 1, axis=1)[:, : int(k)].astype(np.intp)
+
+
+def _gates_from_indices(
+    y: np.ndarray, selected: np.ndarray, idx: np.ndarray
+) -> dict[str, Any]:
+    mask = np.asarray(selected, dtype=bool)
+    mu_rule = float(y[mask].mean())
+    uncond = float(y.mean())
+    ctrl = y[idx].mean(axis=1)
+    mu_control_mean = float(ctrl.mean())
+    delta = float(mu_rule - mu_control_mean)
+    p95 = float(np.percentile(ctrl, 95))
+    statistical = bool(mu_rule > p95)
+    practical = bool(uncond != 0.0 and delta >= AUTHORITATIVE_RELATIVE_EFFECT * uncond)
+    return {
+        "STATISTICAL_GATE": statistical,
+        "PRACTICAL_MAGNITUDE_GATE": practical,
+        "BOTH": bool(statistical and practical),
+    }
+
+
+def estimate_size_planning(
+    rows: list[C.DiscoveryRow],
+    *,
+    seed: int = D2_CONFIRMATION_SIZE_PLANNING_SEED,
+    n_outer: int = N_POWER_OUTER,
+    n_inner: int = N_REPLICATES_CONFIRMATION,
+) -> dict[str, Any]:
+    """Hypothetical fresh-surface power using exposed 2020-2024 severity only.
+
+    Does not read 2025/2026 prices. Does not change the frozen confirmation
+    rule, target, comparator, or gates.
+    """
+    mask = C.rv_abstention_mask(rows)
+    sev = np.asarray([row.severity for row in rows], dtype=np.float64)
+    fireable = np.arange(len(rows)) >= C.RV_TRAILING_WINDOW
+    fireable_n = int(fireable.sum())
+    abstain_fireable = int((mask & fireable).sum())
+    fireable_rate = float(abstain_fireable / fireable_n) if fireable_n else float("nan")
+    pool = sev[fireable]
+    if pool.size < 2:
+        raise RuntimeError("SIZE_PLANNING_EMPTY_POOL")
+    rng = np.random.default_rng(int(seed))
+    surfaces: list[dict[str, Any]] = []
+    for n_years, n_rows in FRESH_SURFACE_SIZES:
+        k = int(round(fireable_rate * n_rows))
+        if k < 1 or k >= n_rows:
+            raise RuntimeError(f"SIZE_PLANNING_BAD_K:{n_rows}:{k}")
+        idx = _precompute_subset_indices(n_rows, k, n_inner, rng)
+        counts: dict[str, dict[str, int]] = {
+            f"{int(rel * 100)}pct": {"stat": 0, "prac": 0, "both": 0}
+            for rel in SIZE_PLANNING_RELATIVE_EFFECTS
+        }
+        for _ in range(int(n_outer)):
+            y = rng.choice(pool, size=int(n_rows), replace=True)
+            selected = np.zeros(int(n_rows), dtype=bool)
+            selected[rng.choice(int(n_rows), size=k, replace=False)] = True
+            for relative in SIZE_PLANNING_RELATIVE_EFFECTS:
+                y_alt = _calibrate_relative_effect(y, selected, relative)
+                result = _gates_from_indices(y_alt, selected, idx)
+                key = f"{int(relative * 100)}pct"
+                if result["STATISTICAL_GATE"]:
+                    counts[key]["stat"] += 1
+                if result["PRACTICAL_MAGNITUDE_GATE"]:
+                    counts[key]["prac"] += 1
+                if result["BOTH"]:
+                    counts[key]["both"] += 1
+        denom = float(n_outer)
+        sensitivity: dict[str, Any] = {}
+        for relative in SIZE_PLANNING_RELATIVE_EFFECTS:
+            key = f"{int(relative * 100)}pct"
+            sensitivity[key] = {
+                "relative_effect": relative,
+                "STATISTICAL_POWER": counts[key]["stat"] / denom,
+                "JOINT_PASS_PROBABILITY": counts[key]["both"] / denom,
+                "power_practical_gate": counts[key]["prac"] / denom,
+                "n_outer": int(n_outer),
+                "n_inner": int(n_inner),
+                "authoritative": relative == AUTHORITATIVE_RELATIVE_EFFECT,
+            }
+        surfaces.append(
+            {
+                "approx_years": int(n_years),
+                "N": int(n_rows),
+                "expected_K": k,
+                "STATISTICAL_POWER_AT_20PCT": sensitivity["20pct"]["STATISTICAL_POWER"],
+                "JOINT_PASS_PROBABILITY_AT_20PCT": sensitivity["20pct"][
+                    "JOINT_PASS_PROBABILITY"
+                ],
+                "sensitivity": sensitivity,
+            }
+        )
+    min_rows: int | None = None
+    min_years: int | None = None
+    for row in surfaces:
+        if float(row["STATISTICAL_POWER_AT_20PCT"]) >= MINIMUM_ACCEPTABLE_CONFIRMATION_POWER:
+            min_rows = int(row["N"])
+            min_years = int(row["approx_years"])
+            break
+    if min_years is None:
+        requirement = "MORE_THAN_4_YEARS_OR_ALTERNATIVE_INDEPENDENT_SURFACE"
+        potential = "DO_NOT_CONSUME_2025_PLUS_2026"
+        next_unit = "D2_CONFIRMATION_ALTERNATIVE_INDEPENDENT_SURFACE_OR_WAIT"
+    elif min_years <= 2:
+        requirement = "TWO_YEARS_INDEPENDENT_FRESH" if min_years == 2 else "ONE_YEAR_INDEPENDENT_FRESH"
+        potential = "2025_PLUS_FULL_2026" if min_years == 2 else "SINGLE_YEAR_2025_STILL_NOT_OPENED"
+        next_unit = (
+            "D2_CONFIRMATION_WAIT_FOR_PREDECLARED_2025_PLUS_2026_WITHOUT_OPENING"
+            if min_years == 2
+            else "D2_CONFIRMATION_PREREG_FREEZE"
+        )
+    elif min_years == 3:
+        requirement = "THREE_YEARS_INDEPENDENT_FRESH"
+        potential = "DO_NOT_CONSUME_2025_PLUS_2026"
+        next_unit = "D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE"
+    else:
+        requirement = "FOUR_YEARS_INDEPENDENT_FRESH"
+        potential = "DO_NOT_CONSUME_2025_PLUS_2026"
+        next_unit = "D2_CONFIRMATION_WAIT_FOR_4Y_INDEPENDENT_FRESH_SURFACE"
+    by_years = {int(row["approx_years"]): row for row in surfaces}
+    return {
+        "SIZE_PLANNING_SEED": int(seed),
+        "pool_description": (
+            "Fireable 2020-2024 empirical direction-aligned MAE severity "
+            "(trailing-250 warmup excluded). Hypothetical fresh surfaces are "
+            "drawn with replacement. Expected K = round(frozen RULE_1 "
+            "fireable rate * N). Inner P95 uses 10000 RATE_MATCHED_RANDOM_"
+            "ABSTENTION replicates. No 2025/2026 prices are used."
+        ),
+        "fireable_n_2020_2024": fireable_n,
+        "fireable_abstain_count": abstain_fireable,
+        "frozen_rule_fireable_rate": fireable_rate,
+        "n_outer": int(n_outer),
+        "n_inner": int(n_inner),
+        "surfaces": surfaces,
+        "ONE_YEAR_STATISTICAL_POWER_AT_20PCT_SIZE_PLANNING": by_years[1][
+            "STATISTICAL_POWER_AT_20PCT"
+        ],
+        "TWO_YEAR_STATISTICAL_POWER_AT_20PCT": by_years[2]["STATISTICAL_POWER_AT_20PCT"],
+        "THREE_YEAR_STATISTICAL_POWER_AT_20PCT": by_years[3]["STATISTICAL_POWER_AT_20PCT"],
+        "FOUR_YEAR_STATISTICAL_POWER_AT_20PCT": by_years[4]["STATISTICAL_POWER_AT_20PCT"],
+        "TWO_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT": by_years[2][
+            "JOINT_PASS_PROBABILITY_AT_20PCT"
+        ],
+        "THREE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT": by_years[3][
+            "JOINT_PASS_PROBABILITY_AT_20PCT"
+        ],
+        "FOUR_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT": by_years[4][
+            "JOINT_PASS_PROBABILITY_AT_20PCT"
+        ],
+        "MIN_REQUIRED_FRESH_DECISION_ROWS": min_rows,
+        "MIN_REQUIRED_FRESH_YEARS": min_years,
+        "CONFIRMATION_SURFACE_REQUIREMENT": requirement,
+        "POTENTIAL_FUTURE_SURFACE": potential,
+        "AUTHORIZED_TO_OPEN": False,
+        "NEXT_UNIT": next_unit,
+        "RULE_CHANGED": False,
+        "TARGET_CHANGED": False,
+        "GATES_CHANGED": False,
+        "effect_bar_lowered": False,
+        "2025_and_2026_not_automatically_combined": True,
+    }
+
+
+def power_interpretation_block(power: dict[str, Any]) -> dict[str, Any]:
+    sens20 = power["sensitivity"]["20pct"]
+    return {
+        "PRIMARY_PROSPECTIVE_POWER_CRITERION": "STATISTICAL_POWER_AT_20PCT_EFFECT",
+        "MINIMUM_ACCEPTABLE_STATISTICAL_POWER": MINIMUM_ACCEPTABLE_CONFIRMATION_POWER,
+        "JOINT_PASS_PROBABILITY_IS_DIAGNOSTIC_ONLY": True,
+        "PRACTICAL_GATE_UNCHANGED": True,
+        "STATISTICAL_GATE_UNCHANGED": True,
+        "WHY_PRACTICAL_GATE_POWER_NEAR_HALF_IS_NOT_UNDERPOWER": (
+            "TRUE_EFFECT = 20% relative is the same magnitude as the frozen "
+            "practical confirmation gate DELTA >= 20% * UNCONDITIONAL_MEAN. "
+            "power_practical_gate at that exact boundary is therefore "
+            "approximately 0.5 by construction / sampling variability of "
+            "MU_CONTROL_MEAN. The observed original value "
+            "power_practical_gate ~= 0.499 is not itself evidence that the "
+            "study is underpowered."
+        ),
+        "A_STATISTICAL_POWER_AT_20PCT_EFFECT": (
+            "Probability that the frozen statistical gate "
+            "MU_RULE > P95(random-control means) passes when the true "
+            "relative effect is 20%."
+        ),
+        "B_JOINT_PASS_PROBABILITY_AT_20PCT_EFFECT": (
+            "Probability both statistical and practical gates pass when the "
+            "true relative effect is 20%. Diagnostic only. Not the primary "
+            "prospective power criterion."
+        ),
+        "ORIGINAL_ONE_YEAR_CALCULATION_PRESERVED": {
+            "ONE_YEAR_STATISTICAL_POWER_AT_20PCT": float(
+                sens20["power_statistical_gate"]
+            ),
+            "ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT": float(
+                sens20["power_both_gates"]
+            ),
+            "ONE_YEAR_PRACTICAL_GATE_POWER_AT_20PCT": float(
+                sens20["power_practical_gate"]
+            ),
+            "historical_POWER_AT_20PCT_MIN_EFFECT_WAS_JOINT": float(
+                power["POWER_AT_20PCT_MIN_EFFECT"]
+            ),
+            "POWER_SEED": int(power["POWER_SEED"]),
+            "method": power["method"],
+            "year_eligible_n": power.get("year_eligible_n"),
+            "year_rule_abstain_count": power.get("year_rule_abstain_count"),
+        },
     }
 
 
@@ -322,23 +565,46 @@ def load_exposed_rule1_rows(*, repo: Path | None = None) -> tuple[list[C.Discove
     return rows, log
 
 
-def run_feasibility(*, repo: Path | None = None) -> dict[str, Any]:
+def _load_preserved_one_year_power(base: Path) -> dict[str, Any] | None:
+    path = base / JSON_REL
+    if not path.is_file():
+        return None
+    existing = json.loads(path.read_text(encoding="utf-8"))
+    power = existing.get("power")
+    if not isinstance(power, dict):
+        return None
+    sens = (power.get("sensitivity") or {}).get("20pct") or {}
+    if "power_statistical_gate" not in sens:
+        return None
+    return power
+
+
+def run_feasibility(
+    *,
+    repo: Path | None = None,
+    recompute_one_year_power: bool = False,
+) -> dict[str, Any]:
     if confirmation_decision_slot_count() != N_2025_DECISION_SLOTS:
         raise RuntimeError(f"SLOT_COUNT:{confirmation_decision_slot_count()}")
-    meta = extract_2025_metadata(repo=repo)
-    rows, log = load_exposed_rule1_rows(repo=repo)
+    base = _repo(repo)
+    meta = extract_2025_metadata(repo=base)
+    rows, log = load_exposed_rule1_rows(repo=base)
     replay = evaluate_rule_1(rows)
-    power = estimate_power(rows)
-    power_20 = float(power["POWER_AT_20PCT_MIN_EFFECT"])
-    underpowered = bool(power_20 < MINIMUM_ACCEPTABLE_CONFIRMATION_POWER)
+    preserved = None if recompute_one_year_power else _load_preserved_one_year_power(base)
+    power = estimate_power(rows) if preserved is None else preserved
+    size_planning = estimate_size_planning(rows)
+    interpretation = power_interpretation_block(power)
+    original_20 = interpretation["ORIGINAL_ONE_YEAR_CALCULATION_PRESERVED"]
+    one_year_stat = float(original_20["ONE_YEAR_STATISTICAL_POWER_AT_20PCT"])
+    one_year_joint = float(original_20["ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT"])
+    # Primary prospective criterion is statistical power, not joint.
+    underpowered = bool(one_year_stat < MINIMUM_ACCEPTABLE_CONFIRMATION_POWER)
     feasibility = (
         "UNDERPOWERED_SINGLE_YEAR_2025" if underpowered else "FEASIBLE_SINGLE_YEAR_2025"
     )
-    next_unit = (
-        "D2_CONFIRMATION_LARGER_FRESH_SURFACE_OR_WAIT"
-        if underpowered
-        else "D2_CONFIRMATION_PREREG_FREEZE"
-    )
+    next_unit = str(size_planning["NEXT_UNIT"])
+    if not underpowered:
+        next_unit = "D2_CONFIRMATION_PREREG_FREEZE"
     opened = list(log.files)
     protected_price_opened = [
         item for item in opened if "2025-" in item or "2026-" in item
@@ -435,10 +701,37 @@ def run_feasibility(*, repo: Path | None = None) -> dict[str, Any]:
         "power": power,
         "EXPECTED_2025_ELIGIBLE_N": power["EXPECTED_2025_ELIGIBLE_N"],
         "EXPECTED_2025_ABSTAIN_COUNT": power["EXPECTED_2025_ABSTAIN_COUNT"],
-        "POWER_AT_20PCT_MIN_EFFECT": power_20,
+        "POWER_AT_20PCT_MIN_EFFECT": one_year_joint,
+        "POWER_AT_20PCT_MIN_EFFECT_IS_HISTORICAL_JOINT": True,
+        "ONE_YEAR_STATISTICAL_POWER_AT_20PCT": one_year_stat,
+        "ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT": one_year_joint,
+        "PRIMARY_PROSPECTIVE_POWER_CRITERION": "STATISTICAL_POWER_AT_20PCT_EFFECT",
+        "POWER_INTERPRETATION_CORRECTION": interpretation,
+        "SIZE_PLANNING": size_planning,
+        "TWO_YEAR_STATISTICAL_POWER_AT_20PCT": size_planning[
+            "TWO_YEAR_STATISTICAL_POWER_AT_20PCT"
+        ],
+        "THREE_YEAR_STATISTICAL_POWER_AT_20PCT": size_planning[
+            "THREE_YEAR_STATISTICAL_POWER_AT_20PCT"
+        ],
+        "FOUR_YEAR_STATISTICAL_POWER_AT_20PCT": size_planning[
+            "FOUR_YEAR_STATISTICAL_POWER_AT_20PCT"
+        ],
+        "MIN_REQUIRED_FRESH_DECISION_ROWS": size_planning[
+            "MIN_REQUIRED_FRESH_DECISION_ROWS"
+        ],
+        "MIN_REQUIRED_FRESH_YEARS": size_planning["MIN_REQUIRED_FRESH_YEARS"],
+        "CONFIRMATION_SURFACE_REQUIREMENT": size_planning[
+            "CONFIRMATION_SURFACE_REQUIREMENT"
+        ],
+        "POTENTIAL_FUTURE_SURFACE": size_planning["POTENTIAL_FUTURE_SURFACE"],
+        "AUTHORIZED_TO_OPEN": False,
+        "RULE_CHANGED": False,
+        "TARGET_CHANGED": False,
+        "GATES_CHANGED": False,
         "CONFIRMATION_FEASIBILITY": feasibility,
         "2025_OPEN_AUTHORIZED": False,
-        "2025_OPENING_JUSTIFIED_BY_POWER": (not underpowered),
+        "2025_OPENING_JUSTIFIED_BY_POWER": False,
         "MARKET_07_CREATED": False,
         "ARM_CREATED": False,
         "PROTECTED_2025_OPENED": False,
@@ -453,9 +746,11 @@ def run_feasibility(*, repo: Path | None = None) -> dict[str, Any]:
         "IMPLEMENTATION_COMMIT_AUTHORITY": IMPLEMENTATION_COMMIT,
         "NEXT_UNIT": next_unit,
         "WHY_NOT_CONSUME_2026": (
-            "2026 is a second reserved surface for later replication/follow-up "
-            "if justified. Combining 2025+2026 to increase N is forbidden. "
-            "Underpowering does not automatically consume 2026."
+            "2026 remains unopened and is not automatically combined with "
+            "2025. Size planning on exposed 2020-2024 data only tells whether "
+            "a future predeclared combined fresh surface could be scientifically "
+            "worthwhile. AUTHORIZED_TO_OPEN is false. If two years remain "
+            "underpowered, do not consume 2025+2026."
         ),
         "NOT_CREATED": [
             "MARKET-07",
@@ -484,21 +779,46 @@ def _flag(value: Any) -> str:
 
 def render_markdown(report: dict[str, Any], meta: dict[str, Any]) -> str:
     power = report["power"]
+    interp = report["POWER_INTERPRETATION_CORRECTION"]
+    size = report["SIZE_PLANNING"]
+    original = interp["ORIGINAL_ONE_YEAR_CALCULATION_PRESERVED"]
     sens_lines = []
     for key in ("15pct", "20pct", "25pct", "30pct"):
         row = power["sensitivity"][key]
-        mark = " (authoritative)" if row["authoritative"] else " (sensitivity only)"
+        mark = " (authoritative 20% true-effect row)" if row["authoritative"] else " (sensitivity only)"
         sens_lines.append(
             f"- {int(row['relative_effect']*100)}% relative{mark}: "
-            f"both-gates power = {row['power_both_gates']:.3f}; "
-            f"statistical = {row['power_statistical_gate']:.3f}; "
-            f"practical = {row['power_practical_gate']:.3f}"
+            f"STATISTICAL_POWER = {row['power_statistical_gate']:.3f}; "
+            f"JOINT_PASS_PROBABILITY = {row['power_both_gates']:.3f}; "
+            f"practical-gate power = {row['power_practical_gate']:.3f} (diagnostic)"
+        )
+    size_lines = []
+    for row in size["surfaces"]:
+        s20 = row["sensitivity"]["20pct"]
+        extra = []
+        for key in ("25pct", "30pct"):
+            srow = row["sensitivity"][key]
+            extra.append(
+                f"{int(srow['relative_effect']*100)}% statistical="
+                f"{srow['STATISTICAL_POWER']:.3f} / joint="
+                f"{srow['JOINT_PASS_PROBABILITY']:.3f}"
+            )
+        size_lines.append(
+            f"- {row['approx_years']} year ≈ {row['N']} decision rows, "
+            f"expected K = {row['expected_K']}: "
+            f"STATISTICAL_POWER_AT_20PCT = {s20['STATISTICAL_POWER']:.3f}; "
+            f"JOINT_PASS_PROBABILITY_AT_20PCT = {s20['JOINT_PASS_PROBABILITY']:.3f} "
+            f"(diagnostic). Sensitivity: {'; '.join(extra)}."
         )
     months = "\n".join(
         f"- `{m['period']}` source `{m['source_filename']}` "
         f"SHA256 `{m['source_SHA256']}` parquet `{m['canonical_parquet_SHA256']}`"
         for m in meta["months"]
     )
+    min_rows = report["MIN_REQUIRED_FRESH_DECISION_ROWS"]
+    min_years = report["MIN_REQUIRED_FRESH_YEARS"]
+    min_rows_txt = "null" if min_rows is None else str(min_rows)
+    min_years_txt = "null" if min_years is None else str(min_years)
     return f"""# D2 confirmation feasibility and design
 
 **Unit:** `{report["unit"]}`
@@ -509,6 +829,9 @@ def render_markdown(report: dict[str, Any], meta: dict[str, Any]) -> str:
 
 This unit does **not** execute confirmation, inspect 2025/2026 BTC price
 values, materialize protected parquet, create MARKET-07, or ARM anything.
+The scientific confirmation design is unchanged: same rule, target,
+comparator, P90 / trailing-250 / 24h horizon / severity target /
+random-abstention comparator / 20% practical gate / P95 statistical gate.
 
 ## Verdict
 
@@ -517,8 +840,18 @@ values, materialize protected parquet, create MARKET-07, or ARM anything.
 | `PRIMARY_CONFIRMATION_SURFACE` | `{report["PRIMARY_CONFIRMATION_SURFACE"]}` |
 | `SECOND_RESERVED_SURFACE` | `{report["SECOND_RESERVED_SURFACE"]}` |
 | `CONFIRMATION_FEASIBILITY` | `{report["CONFIRMATION_FEASIBILITY"]}` |
-| `POWER_AT_20PCT_MIN_EFFECT` | `{report["POWER_AT_20PCT_MIN_EFFECT"]}` |
+| `ONE_YEAR_STATISTICAL_POWER_AT_20PCT` | `{report["ONE_YEAR_STATISTICAL_POWER_AT_20PCT"]}` |
+| `ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT` | `{report["ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT"]}` |
+| `PRIMARY_PROSPECTIVE_POWER_CRITERION` | `{report["PRIMARY_PROSPECTIVE_POWER_CRITERION"]}` |
 | `MINIMUM_ACCEPTABLE_CONFIRMATION_POWER` | `{report["MINIMUM_ACCEPTABLE_CONFIRMATION_POWER"]}` |
+| `TWO_YEAR_STATISTICAL_POWER_AT_20PCT` | `{report["TWO_YEAR_STATISTICAL_POWER_AT_20PCT"]}` |
+| `THREE_YEAR_STATISTICAL_POWER_AT_20PCT` | `{report["THREE_YEAR_STATISTICAL_POWER_AT_20PCT"]}` |
+| `FOUR_YEAR_STATISTICAL_POWER_AT_20PCT` | `{report["FOUR_YEAR_STATISTICAL_POWER_AT_20PCT"]}` |
+| `MIN_REQUIRED_FRESH_DECISION_ROWS` | `{min_rows_txt}` |
+| `MIN_REQUIRED_FRESH_YEARS` | `{min_years_txt}` |
+| `CONFIRMATION_SURFACE_REQUIREMENT` | `{report["CONFIRMATION_SURFACE_REQUIREMENT"]}` |
+| `POTENTIAL_FUTURE_SURFACE` | `{report["POTENTIAL_FUTURE_SURFACE"]}` |
+| `AUTHORIZED_TO_OPEN` | `false` |
 | `EXPECTED_2025_ELIGIBLE_N` | `{report["EXPECTED_2025_ELIGIBLE_N"]}` |
 | `EXPECTED_2025_ABSTAIN_COUNT` | `{report["EXPECTED_2025_ABSTAIN_COUNT"]}` |
 | `2025_OPEN_AUTHORIZED` | `false` |
@@ -526,7 +859,82 @@ values, materialize protected parquet, create MARKET-07, or ARM anything.
 | `ARM_CREATED` | `false` |
 | `PROTECTED_2025_PRICE_VALUES_INSPECTED` | `false` |
 | `PROTECTED_2026_PRICE_VALUES_INSPECTED` | `false` |
+| `RULE_CHANGED` | `false` |
+| `TARGET_CHANGED` | `false` |
+| `GATES_CHANGED` | `false` |
 | `NEXT_UNIT` | `{report["NEXT_UNIT"]}` |
+
+Historical joint field `POWER_AT_20PCT_MIN_EFFECT` remains `{report["POWER_AT_20PCT_MIN_EFFECT"]}`
+and is **not** the primary prospective criterion.
+
+## POWER_INTERPRETATION_CORRECTION
+
+Primary prospective power criterion:
+
+`STATISTICAL_POWER_AT_20PCT_EFFECT >= 0.80`
+
+That is the probability the frozen statistical gate
+`MU_RULE > P95(random-control means)` passes when the true relative
+effect is 20%.
+
+`JOINT_PASS_PROBABILITY_AT_20PCT_EFFECT` (both statistical and practical
+gates) is diagnostic only. The practical gate itself is unchanged and
+remains an actual execution-time requirement:
+
+`DELTA >= 0.20 * UNCONDITIONAL_MEAN`
+
+{interp["WHY_PRACTICAL_GATE_POWER_NEAR_HALF_IS_NOT_UNDERPOWER"]}
+
+This amendment is an interpretation correction plus fresh-surface size
+planning. It is **not** a scientific-design rescue. The 20% effect bar
+is not lowered.
+
+### Original one-year calculation (preserved historical output)
+
+Method: {original["method"]}
+
+Seed `{original["POWER_SEED"]}`, n_outer `{power["sensitivity"]["20pct"]["n_outer"]}`,
+n_inner `{power["sensitivity"]["20pct"]["n_inner"]}`.
+
+Frozen-rule fireable rate = {power["frozen_rule_fireable_rate"]:.6f}
+({power["fireable_abstain_count"]} / {power["fireable_n_2020_2024"]}).
+
+Year-cycled K (not the size-planning frozen-rate K):
+`{power.get("year_rule_abstain_count")}`.
+
+{chr(10).join(sens_lines)}
+
+```
+ONE_YEAR_STATISTICAL_POWER_AT_20PCT = {report["ONE_YEAR_STATISTICAL_POWER_AT_20PCT"]}
+ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT = {report["ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT"]}
+historical POWER_AT_20PCT_MIN_EFFECT (joint) = {original["historical_POWER_AT_20PCT_MIN_EFFECT_WAS_JOINT"]}
+```
+
+Because `{report["ONE_YEAR_STATISTICAL_POWER_AT_20PCT"]}` is still far
+below 0.80, `CONFIRMATION_FEASIBILITY` remains
+`UNDERPOWERED_SINGLE_YEAR_2025`.
+
+## Fresh-surface size planning (2020-2024 only)
+
+{size["pool_description"]}
+
+Size-planning seed: `{size["SIZE_PLANNING_SEED"]}`.
+
+{chr(10).join(size_lines)}
+
+```
+MIN_REQUIRED_FRESH_DECISION_ROWS = {min_rows_txt}
+MIN_REQUIRED_FRESH_YEARS = {min_years_txt}
+CONFIRMATION_SURFACE_REQUIREMENT = {report["CONFIRMATION_SURFACE_REQUIREMENT"]}
+POTENTIAL_FUTURE_SURFACE = {report["POTENTIAL_FUTURE_SURFACE"]}
+AUTHORIZED_TO_OPEN = false
+```
+
+2025 remains unopened. 2026 remains unopened. They are not automatically
+combined. The sizing result only says whether a future predeclared
+combined fresh surface could be scientifically worthwhile.
+
+{report["WHY_NOT_CONSUME_2026"]}
 
 ## Candidate (exact survivor only)
 
@@ -555,7 +963,6 @@ T in {report["CONFIRMATION_T_INTERVAL"]}
 
 2020-2024 is historically exposed and is **not** independent confirmation.
 {report["WARMUP"]}
-{report["WHY_NOT_CONSUME_2026"]}
 
 ## 2025 metadata-only binding
 
@@ -603,31 +1010,6 @@ Eligible 1791, abstain 163, `MU_RULE` 0.04005839896629072,
 Do not use +0.0142 as the minimum effect. Do not power solely at that
 observed effect. Do not shrink the 20% bar. Do not call it evidence.
 
-## Prospective power (2020-2024 only)
-
-Method: {power["method"]}
-
-Frozen-rule fireable rate = {power["frozen_rule_fireable_rate"]:.6f}
-({power["fireable_abstain_count"]} / {power["fireable_n_2020_2024"]}).
-
-{chr(10).join(sens_lines)}
-
-`MINIMUM_ACCEPTABLE_CONFIRMATION_POWER = 0.80`. The 20% row is
-authoritative. Other rows are feasibility context only and were not
-selected after seeing power.
-
-At the exact predeclared 20% practical bar, practical-gate power is
-about one-half (a point-estimate hurdle placed at the alternative mean).
-Statistical-gate power at that same 20% effect is far lower (~0.01)
-because one year of ~364 eligible days and K ≈ {report["EXPECTED_2025_ABSTAIN_COUNT"]}
-rate-matched draws cannot push `MU_RULE` past the control P95 under the
-heavy-tailed adverse-path severity distribution. Joint power at 20% is
-{report["POWER_AT_20PCT_MIN_EFFECT"]:.3f}, below 0.80. Even the 30%
-sensitivity row remains below 0.80. A single independent 2025 year is
-therefore not informative enough to spend. Do not lower the 20% bar.
-Do not automatically consume 2026. Wait for a larger genuinely fresh
-surface, or obtain another independent equivalent surface.
-
 ## Independence boundary
 
 Protected 2025/2026 price values inspected: `false` / `false`.
@@ -640,58 +1022,75 @@ Protected price paths opened: {report["PROTECTED_PRICE_PATHS_OPENED"] or "none"}
 """
 
 
-def write_artifacts(*, repo: Path | None = None) -> dict[str, Any]:
+def write_artifacts(
+    *,
+    repo: Path | None = None,
+    rewrite_binding: bool = False,
+    recompute_one_year_power: bool = False,
+) -> dict[str, Any]:
     base = _repo(repo)
     meta = extract_2025_metadata(repo=base)
-    report = run_feasibility(repo=base)
-    binding = {
-        "schema": "signalbot_d2_confirmation_2025_metadata_binding",
-        "snapshot_id": CORE_SNAPSHOT,
-        "PRIMARY_CONFIRMATION_SURFACE": "2025",
-        "SECOND_RESERVED_SURFACE": "2026",
-        "contains_price_values": False,
-        "objects_materialized": False,
-        "objects": [
-            {
-                "period": m["period"],
-                "source_filename": m["source_filename"],
-                "source_SHA256": m["source_SHA256"],
-                "canonical_parquet_relative_path": m["canonical_parquet_relative_path"],
-                "canonical_parquet_SHA256": m["canonical_parquet_SHA256"],
-            }
-            for m in meta["months"]
-        ],
-        "coverage_metadata_not_prices": [
-            {
-                "period": m["period"],
-                "expected_rows": m["expected_rows"],
-                "observed_rows": m["observed_rows"],
-                "missing_bucket_count": m["missing_bucket_count"],
-                "first_open_time_ms": m["first_open_time_ms"],
-                "last_open_time_ms": m["last_open_time_ms"],
-                "admitted_to_canonical": m["admitted_to_canonical"],
-                "checksum_verification": m["checksum_verification"],
-                "parser_status": m["parser_status"],
-            }
-            for m in meta["months"]
-        ],
-        "2026_OBJECT_NEEDED_FOR_FROZEN_INTERVAL": False,
-    }
-    (base / BINDING_REL).write_text(json.dumps(binding, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    report = run_feasibility(repo=base, recompute_one_year_power=recompute_one_year_power)
+    if rewrite_binding:
+        binding = {
+            "schema": "signalbot_d2_confirmation_2025_metadata_binding",
+            "snapshot_id": CORE_SNAPSHOT,
+            "PRIMARY_CONFIRMATION_SURFACE": "2025",
+            "SECOND_RESERVED_SURFACE": "2026",
+            "contains_price_values": False,
+            "objects_materialized": False,
+            "objects": [
+                {
+                    "period": m["period"],
+                    "source_filename": m["source_filename"],
+                    "source_SHA256": m["source_SHA256"],
+                    "canonical_parquet_relative_path": m["canonical_parquet_relative_path"],
+                    "canonical_parquet_SHA256": m["canonical_parquet_SHA256"],
+                }
+                for m in meta["months"]
+            ],
+            "coverage_metadata_not_prices": [
+                {
+                    "period": m["period"],
+                    "expected_rows": m["expected_rows"],
+                    "observed_rows": m["observed_rows"],
+                    "missing_bucket_count": m["missing_bucket_count"],
+                    "first_open_time_ms": m["first_open_time_ms"],
+                    "last_open_time_ms": m["last_open_time_ms"],
+                    "admitted_to_canonical": m["admitted_to_canonical"],
+                    "checksum_verification": m["checksum_verification"],
+                    "parser_status": m["parser_status"],
+                }
+                for m in meta["months"]
+            ],
+            "2026_OBJECT_NEEDED_FOR_FROZEN_INTERVAL": False,
+        }
+        (base / BINDING_REL).write_text(
+            json.dumps(binding, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
     (base / JSON_REL).write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     (base / MD_REL).write_text(render_markdown(report, meta), encoding="utf-8")
     return report
 
 
 if __name__ == "__main__":
-    written = write_artifacts()
+    written = write_artifacts(rewrite_binding=False, recompute_one_year_power=False)
     keys = (
         "CONFIRMATION_FEASIBILITY",
-        "POWER_AT_20PCT_MIN_EFFECT",
-        "EXPECTED_2025_ELIGIBLE_N",
-        "EXPECTED_2025_ABSTAIN_COUNT",
+        "ONE_YEAR_STATISTICAL_POWER_AT_20PCT",
+        "ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT",
+        "TWO_YEAR_STATISTICAL_POWER_AT_20PCT",
+        "THREE_YEAR_STATISTICAL_POWER_AT_20PCT",
+        "FOUR_YEAR_STATISTICAL_POWER_AT_20PCT",
+        "MIN_REQUIRED_FRESH_DECISION_ROWS",
+        "MIN_REQUIRED_FRESH_YEARS",
+        "CONFIRMATION_SURFACE_REQUIREMENT",
+        "POTENTIAL_FUTURE_SURFACE",
         "NEXT_UNIT",
         "PROTECTED_2025_PRICE_VALUES_INSPECTED",
-        "metadata_2025",
+        "RULE_CHANGED",
+        "TARGET_CHANGED",
+        "GATES_CHANGED",
+        "2025_OPEN_AUTHORIZED",
     )
     print(json.dumps({k: written[k] for k in keys}, indent=2))

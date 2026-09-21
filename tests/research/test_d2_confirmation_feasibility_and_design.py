@@ -19,13 +19,16 @@ from scripts.research.d2_confirmation_feasibility_and_design import (
     BINDING_REL,
     D2_CONFIRMATION_POWER_SEED,
     D2_CONFIRMATION_RANDOM_CONTROL_SEED,
+    D2_CONFIRMATION_SIZE_PLANNING_SEED,
     FIRST_T,
+    FRESH_SURFACE_SIZES,
     JSON_REL,
     LAST_FUTURE_BAR_OPEN,
     LAST_T,
     MD_REL,
     N_2025_DECISION_SLOTS,
     N_REPLICATES_CONFIRMATION,
+    ORIGINAL_ONE_YEAR_POWER_AT_20PCT,
     ProtectedPriceRefused,
     confirmation_decision_slot_count,
     extract_2025_metadata,
@@ -56,8 +59,14 @@ def test_decision_interval_and_slot_count() -> None:
 def test_frozen_seeds_and_replicates() -> None:
     assert D2_CONFIRMATION_RANDOM_CONTROL_SEED == 20260921120
     assert D2_CONFIRMATION_POWER_SEED == 20260921121
+    assert D2_CONFIRMATION_SIZE_PLANNING_SEED == 20260921122
     assert D2_CONFIRMATION_RANDOM_CONTROL_SEED != C.D2_RANDOM_CONTROL_SEED
+    assert D2_CONFIRMATION_SIZE_PLANNING_SEED != D2_CONFIRMATION_POWER_SEED
     assert N_REPLICATES_CONFIRMATION == 10_000
+    assert ORIGINAL_ONE_YEAR_POWER_AT_20PCT["power_statistical_gate"] == 0.011
+    assert ORIGINAL_ONE_YEAR_POWER_AT_20PCT["power_both_gates"] == 0.006
+    assert ORIGINAL_ONE_YEAR_POWER_AT_20PCT["power_practical_gate"] == 0.499
+    assert FRESH_SURFACE_SIZES == ((1, 364), (2, 728), (3, 1092), (4, 1456))
 
 
 def test_2025_metadata_binding_has_twelve_months_and_no_prices() -> None:
