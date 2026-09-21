@@ -58,7 +58,13 @@ after the CORE-restore retry (adaptive discovery, not confirmatory):
 
 `INTERNAL_DISCOVERY_CARDS_EXECUTED = 4`.
 `INTERNAL_PROMISING_PROTOTYPES = 1`.
-`NEXT_UNIT = D2_CONFIRMATION_FEASIBILITY_AND_DESIGN`.
+`NEXT_UNIT = D2_CONFIRMATION_LARGER_FRESH_SURFACE_OR_WAIT`.
+
+D2 remains a `PROMISING_PROTOTYPE` (adaptive discovery only). Outcome-blind
+confirmation design for RULE_1 / `RV_ABSTENTION` found calendar 2025
+metadata-complete but **underpowered** as a single independent year at the
+predeclared 20% practical bar (`POWER_AT_20PCT_MIN_EFFECT = 0.006`).
+2025 is not opened. 2026 is not consumed.
 
 Card identities at definition time (unchanged):
 

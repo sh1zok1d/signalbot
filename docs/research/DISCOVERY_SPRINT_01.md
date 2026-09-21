@@ -357,7 +357,7 @@ been executed in the definition unit.
 `SCIENTIFIC_OUTCOMES_COMPUTED = true` (adaptive discovery, not confirmatory).
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
-`NEXT_UNIT = D2_CONFIRMATION_FEASIBILITY_AND_DESIGN`.
+`NEXT_UNIT = D2_CONFIRMATION_LARGER_FRESH_SURFACE_OR_WAIT`.
 
 ### Stall-gate semantics (corrected 2026-09-21)
 
@@ -381,7 +381,7 @@ discovery rather than confirmatory evidence.
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
 Definition-time `NEXT_UNIT = DISCOVERY_SPRINT_01_CARD_EXECUTION` is
-historical; current `NEXT_UNIT = D2_CONFIRMATION_FEASIBILITY_AND_DESIGN`.
+historical; current `NEXT_UNIT = D2_CONFIRMATION_LARGER_FRESH_SURFACE_OR_WAIT`.
 
 ## Corrective unit (2026-09-21)
 
@@ -668,4 +668,34 @@ Protected 2025/2026 unopened.
 
 Full record: `docs/research/DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE.{json,md}`.
 
-`NEXT_UNIT = D2_CONFIRMATION_FEASIBILITY_AND_DESIGN`.
+Historical `NEXT_UNIT` of this D1 unit:
+`D2_CONFIRMATION_FEASIBILITY_AND_DESIGN`.
+
+## D2 confirmation feasibility and design (2026-09-21)
+
+Outcome-blind confirmation design for the sole survivor
+`D2 / RULE_1 / RV_ABSTENTION`. Confirmation was **not** executed.
+2025/2026 price values were **not** inspected. MARKET-07 / ARM were
+**not** created.
+
+Calendar 2025 is the proposed first independent confirmation surface
+(`FIRST_T = 2025-01-01T00:05:00Z`, `LAST_T = 2025-12-30T00:05:00Z`).
+2026 remains a second reserved surface and is not consumed. Metadata-only
+binding of all 12 2025 monthly source/canonical hashes succeeded; no
+2026 object is required for the frozen interval.
+
+Power at the predeclared 20% practical bar, estimated from exposed
+2020-2024 only: `POWER_AT_20PCT_MIN_EFFECT = 0.006`
+(`MINIMUM_ACCEPTABLE_CONFIRMATION_POWER = 0.80`).
+
+```
+CONFIRMATION_FEASIBILITY = UNDERPOWERED_SINGLE_YEAR_2025
+2025_OPEN_AUTHORIZED = false
+```
+
+Do not lower the 20% bar. Do not automatically open 2026.
+D2 remains `PROMISING_PROTOTYPE` (adaptive discovery only).
+
+Full record: `docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.{json,md}`.
+
+`NEXT_UNIT = D2_CONFIRMATION_LARGER_FRESH_SURFACE_OR_WAIT`.

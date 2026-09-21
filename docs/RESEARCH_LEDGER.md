@@ -3965,4 +3965,53 @@ Deferred D1 is not counted as executed.
 - `PROTECTED_2026_OPENED = false`
 - next required step: `D2_CONFIRMATION_FEASIBILITY_AND_DESIGN`
 
+## 2026-09-21 — D2 RULE_1 confirmation feasibility and design
+
+Outcome-blind confirmation design for the first internally generated
+`PROMISING_PROTOTYPE`: `D2 / RULE_1 / RV_ABSTENTION` only. Confirmation
+was not executed. 2025/2026 price values were not inspected. Protected
+parquet was not materialized. MARKET-07 and ARM were not created. The
+D2 discovery result was not mutated.
+
+Proposed first independent surface: calendar 2025,
+`FIRST_T = 2025-01-01T00:05:00Z`, `LAST_T = 2025-12-30T00:05:00Z`
+(every 24h outcome contained in 2025; Dec 31 decision excluded).
+2026 is recorded as `SECOND_RESERVED_SURFACE` and is not consumed.
+Feature warmup may use exposed 2024 trailing-250 history.
+
+Metadata-only CORE BTC snapshot `717d37a4…` binding: exactly 12 monthly
+2025 objects, all `admitted_to_canonical`, checksum `VERIFIED`, parser
+`OK`, source and canonical SHA256 bound. No 2026 object is needed for
+the frozen interval.
+
+Confirmatory estimand preserved: `RATE_MATCHED_RANDOM_ABSTENTION` with
+the frozen year-matched convention (single-year 2025 reduces to uniform
+K-subset). Statistical gate: `MU_RULE > P95` of 10000 replicates, seed
+`D2_CONFIRMATION_RANDOM_CONTROL_SEED = 20260921120` frozen now.
+Practical gate: `DELTA >= 0.20 * UNCONDITIONAL_MEAN` (not lowered; not
+replaced by the discovery +1.42pp). Quarterly 2025 breakdowns are
+diagnostic only.
+
+Prospective power used only 2020-2024. Expected 2025 eligible N = 364,
+expected abstain count = 39. Joint power at the predeclared 20%
+relative effect = 0.006 vs minimum acceptable 0.80.
+
+```
+CONFIRMATION_FEASIBILITY = UNDERPOWERED_SINGLE_YEAR_2025
+2025_OPEN_AUTHORIZED = false
+MARKET_07_CREATED = false
+ARM_CREATED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+```
+
+Do not lower the 20% bar. Do not automatically consume 2026. A larger
+genuinely fresh surface, or another independent equivalent surface, is
+required before opening protected 2025.
+
+Evidence: `docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.{json,md}`,
+`docs/research_data/D2_CONFIRMATION_2025_METADATA_BINDING.json`.
+
+- next required step: `D2_CONFIRMATION_LARGER_FRESH_SURFACE_OR_WAIT`
+
 Evidence: `docs/research/DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE.{json,md}`.

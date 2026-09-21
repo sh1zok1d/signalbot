@@ -19,9 +19,10 @@ For the narrative evolution, read `PROJECT_HISTORY.md`. For complete original do
 
 Read these first:
 
-| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. Discovery Sprint 01: D2 PROMISING_PROTOTYPE, D3/D4/D5 NO_USEFUL_STRUCTURE; D1 deferred (`DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH`, adequacy gate not executed); `INTERNAL_DISCOVERY_CARDS_EXECUTED = 4`; `NEXT_UNIT = D2_CONFIRMATION_FEASIBILITY_AND_DESIGN` |
+| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. D2 PROMISING_PROTOTYPE remains adaptive discovery; 2025 confirmation is `UNDERPOWERED_SINGLE_YEAR_2025`; `NEXT_UNIT = D2_CONFIRMATION_LARGER_FRESH_SURFACE_OR_WAIT` |
 | `research/DISCOVERY_SPRINT_01.md` | **ACTIVE DISCOVERY SPRINT** | Six-card sprint plus first blocked attempt, CORE-restore retry results, and D1 null-adequacy deferral |
 | `research/DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE.md` | **D1 PRE-EXECUTION ADJUDICATION** | D1 deferred: null generates daily returns; state observable requires 288×5m RV. Gate not executed. |
+| `research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.md` | **D2 CONFIRMATION DESIGN** | Outcome-blind 2025 confirmation design for RULE_1 / RV_ABSTENTION; underpowered single year; 2025 not opened |
 | `research/discovery_results/` | **ADAPTIVE DISCOVERY RESULTS** | D2-D5 lightweight discovery result JSON/MD; not confirmatory |
 | `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. MARKET-01 closed `NO_EVIDENCE`; V3 closed; no V4; B2-06 remains blocked. |
 | `EDGE_RESEARCH_PROTOCOL.md` | **ACTIVE / CANONICAL** | Discovery/validation rules and anti-overfit discipline |
