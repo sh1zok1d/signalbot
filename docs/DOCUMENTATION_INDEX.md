@@ -19,9 +19,9 @@ For the narrative evolution, read `PROJECT_HISTORY.md`. For complete original do
 
 Read these first:
 
-| Document | Status | Purpose |
-|---|---|---|
-| `PROJECT_STATUS.md` | **ACTIVE / CANONICAL** | Current project posture, freeze, empirical state and restart gate. Active research phase: `MARKET`. V3 Microscope calibration closed. |
+| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. Discovery Sprint 01 partial batch ran; D2-D5 `BLOCKED_MISSING_LOCAL_DATA` pending local CORE parquet |
+| `research/DISCOVERY_SPRINT_01.md` | **ACTIVE DISCOVERY SPRINT** | Six-card sprint plus partial-execution record |
+| `research/discovery_results/` | **ADAPTIVE DISCOVERY RESULTS** | D2-D5 lightweight discovery result JSON/MD; not confirmatory |
 | `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. MARKET-01 closed `NO_EVIDENCE`; V3 closed; no V4; B2-06 remains blocked. |
 | `EDGE_RESEARCH_PROTOCOL.md` | **ACTIVE / CANONICAL** | Discovery/validation rules and anti-overfit discipline |
 | `HISTORICAL_DATA_STRATEGY.md` | **ACTIVE / CANONICAL** | Multi-year CORE vs shorter RICH evidence strategy |

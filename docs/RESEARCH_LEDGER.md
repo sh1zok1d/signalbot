@@ -3833,3 +3833,34 @@ amendments layered into `docs/research/DISCOVERY_SPRINT_01_SPEC_COMPILATION.{jso
 - `PROTECTED_2026_OPENED = false`
 - `EXECUTION_AUTHORIZED = D2, D3, D4_ROLLING, D5`
 - next required step: `DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5`
+
+## 2026-09-21 — Discovery Sprint 01 first partial batch (D2/D3/D4 rolling/D5)
+
+Authorized adaptive-discovery batch executed on
+`research/discovery-sprint-01-execution` from main `067231e`,
+implementation commit `26d8f7066533bcae7138d5a1952783f2a16f3c39`.
+
+Local data preflight: `BTC_DATA_PRESENT=false`, `ETH_DATA_PRESENT=false`,
+`M06_CROSS_VENUE_DATA_PRESENT=true`. No download/re-materialization and
+no snapshot substitution.
+
+Classifications: D2/D3/D4/D5 all `BLOCKED_MISSING_LOCAL_DATA`. D2 RULE_2
+was attempted on retained MARKET-06 durable raw; RULE_1/D3/D4/D5 could
+not complete without CORE monthly parquet. D1 remains
+`BLOCKED_PENDING_PRE_OUTCOME_FIX`. D4 `LEAD_LAG_1DAY` and D6 remain
+deferred. MARKET-07 was not created. Protected 2025/2026 unopened.
+`POST_OUTCOME_DESIGN_CHANGES = false`.
+
+Program diagnostic: `INTERNAL_DISCOVERY_CARDS_EXECUTED = 0`,
+`INTERNAL_PROMISING_PROTOTYPES = 0`, interim warning
+`ZERO_PROMISING_AFTER_FIRST_EXECUTED_INTERNAL_CARDS` with executed count
+`0`. Formal `INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED` not
+triggered.
+
+Evidence: `docs/research/discovery_results/`,
+`docs/research/DISCOVERY_SPRINT_01.{json,md}`.
+
+- `MARKET_07_CREATED = false`
+- `PROTECTED_2025_OPENED = false`
+- `PROTECTED_2026_OPENED = false`
+- next required step: `DISCOVERY_SPRINT_01_RETRY_D2_D3_D4ROLLING_D5_WHEN_CORE_LOCAL_MATERIAL_PRESENT`

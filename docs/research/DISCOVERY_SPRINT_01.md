@@ -492,3 +492,44 @@ outcome-blind.
 `NEXT_UNIT = DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5`.
 
 Full record: `docs/research/DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX.{json,md}`.
+
+## Partial execution (2026-09-21)
+
+First authorized batch ran on `research/discovery-sprint-01-execution`
+from main `067231e`, implementation commit `26d8f7066533bcae7138d5a1952783f2a16f3c39`.
+
+Local preflight:
+
+- `BTC_DATA_PRESENT = false` (`artifacts/research_data/CORE_BTC_BINANCE_V0` monthly parquet absent)
+- `ETH_DATA_PRESENT = false`
+- `M06_CROSS_VENUE_DATA_PRESENT = true` (36 Binance 5m zips 2022-01..2024-12 + 1053 OKX pages)
+
+No online substitution and no new snapshot reconstruction.
+
+Classifications (adaptive discovery only):
+
+| Card | Classification |
+|---|---|
+| D2 | `BLOCKED_MISSING_LOCAL_DATA` |
+| D3 | `BLOCKED_MISSING_LOCAL_DATA` |
+| D4 `ROLLING_CORRELATION_90D` | `BLOCKED_MISSING_LOCAL_DATA` |
+| D5 | `BLOCKED_MISSING_LOCAL_DATA` |
+
+D2 RULE_2 (`DISLOCATION_ABSTENTION`) was attempted on retained MARKET-06 durable raw because that identity was present; D2 RULE_1 was not run. The frozen two-rule card therefore remains blocked rather than classified as a completed prototype/null. D4 `LEAD_LAG_1DAY` was not executed.
+
+Program diagnostic:
+
+- `INTERNAL_DISCOVERY_CARDS_EXECUTED = 0`
+- `INTERNAL_PROMISING_PROTOTYPES = 0`
+- interim warning `ZERO_PROMISING_AFTER_FIRST_EXECUTED_INTERNAL_CARDS` with executed count `0`
+- formal `INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED` not triggered
+- `D1 = BLOCKED_PENDING_PRE_OUTCOME_FIX`
+- `D6 = DEFERRED`
+- `PROTECTED_2025_OPENED = false`
+- `PROTECTED_2026_OPENED = false`
+- `MARKET_07_CREATED = false`
+- `POST_OUTCOME_DESIGN_CHANGES = false`
+
+Result records: `docs/research/discovery_results/`.
+
+`NEXT_UNIT = DISCOVERY_SPRINT_01_RETRY_D2_D3_D4ROLLING_D5_WHEN_CORE_LOCAL_MATERIAL_PRESENT`.
