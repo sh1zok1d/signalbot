@@ -4219,3 +4219,27 @@ Evidence: `docs/research/D2_BITMEX_REPLICATION_PREREG.{json,md}`,
 `docs/research_data/D2_BITMEX_REPLICATION_EXECUTION_BINDING.json`.
 
 - next required step: `D2_BITMEX_REPLICATION_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`
+
+## 2026-09-21 — D2 BitMEX replication implementation review
+
+Outcome-blind implementation of the frozen BitMEX replication evaluator.
+The prereg-bound evaluator SHA was a firewalled stub; this unit records
+both that original identity and the reviewed execution implementation.
+Synthetic tests cover rule, gates, year-matched controls, and
+classification. Real BitMEX scientific execution is refused: no permit.
+
+```
+IMPLEMENTATION_REVIEW = PASS
+EXECUTION_READY = true
+EXECUTION_AUTHORIZED = false
+EXPECTED_ELIGIBLE_N = 1069
+D2_BITMEX_OUTCOME_COMPUTED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+```
+
+Evidence: `docs/research/D2_BITMEX_REPLICATION_IMPLEMENTATION_REVIEW.{json,md}`,
+`docs/research_data/D2_BITMEX_REPLICATION_EXECUTION_BINDING.json`.
+
+- next required step: `D2_BITMEX_REPLICATION_ONE_SHOT_EXECUTION`

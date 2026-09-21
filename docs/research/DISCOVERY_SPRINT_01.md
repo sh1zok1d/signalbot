@@ -357,7 +357,7 @@ been executed in the definition unit.
 `SCIENTIFIC_OUTCOMES_COMPUTED = true` (adaptive discovery, not confirmatory).
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
-`NEXT_UNIT = D2_BITMEX_REPLICATION_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`.
+`NEXT_UNIT = D2_BITMEX_REPLICATION_ONE_SHOT_EXECUTION`.
 
 ### Stall-gate semantics (corrected 2026-09-21)
 
@@ -381,7 +381,7 @@ discovery rather than confirmatory evidence.
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
 Definition-time `NEXT_UNIT = DISCOVERY_SPRINT_01_CARD_EXECUTION` is
-historical; current `NEXT_UNIT = D2_BITMEX_REPLICATION_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`.
+historical; current `NEXT_UNIT = D2_BITMEX_REPLICATION_ONE_SHOT_EXECUTION`.
 
 ## Corrective unit (2026-09-21)
 
@@ -791,4 +791,20 @@ D2_BITMEX_OUTCOME_COMPUTED = false
 
 Full record: `docs/research/D2_BITMEX_REPLICATION_PREREG.{json,md}`.
 
-`NEXT_UNIT = D2_BITMEX_REPLICATION_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`.
+`NEXT_UNIT` of that prereg unit: `D2_BITMEX_REPLICATION_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`.
+
+## D2 BitMEX replication implementation review (2026-09-21)
+
+Outcome-blind. Stub lineage preserved. Not executed.
+
+```
+IMPLEMENTATION_REVIEW = PASS
+EXECUTION_READY = true
+EXECUTION_AUTHORIZED = false
+EXPECTED_ELIGIBLE_N = 1069
+D2_BITMEX_OUTCOME_COMPUTED = false
+```
+
+Full record: `docs/research/D2_BITMEX_REPLICATION_IMPLEMENTATION_REVIEW.{json,md}`.
+
+`NEXT_UNIT = D2_BITMEX_REPLICATION_ONE_SHOT_EXECUTION`.
