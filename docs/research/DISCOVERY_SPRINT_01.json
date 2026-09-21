@@ -5,8 +5,28 @@
   "date": "2026-09-21",
   "parent_unit": "HYPOTHESIS_DISCOVERY_PIPELINE_V2",
   "parent_selection_commit": "a711086c36eb7129fc3f0660732049de93dd1629",
-  "status": "SIX_CARDS_DEFINED_NONE_EXECUTED",
-  "cards_executed_in_this_unit": 0,
+  "status": "PARTIAL_SPRINT_EXECUTED_ONE_PROMISING_PROTOTYPE",
+  "cards_executed_in_this_unit": 4,
+  "original_definition_state": {
+    "status": "SIX_CARDS_DEFINED_NONE_EXECUTED",
+    "cards_executed_in_this_unit": 0,
+    "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+    "note": "Definition-time top-level state when DISCOVERY_SPRINT_01 was first written as a specification-only document. Nested historical blocks below (corrective_unit, spec_compilation, red_team, pre-execution fixes, first blocked attempt) are preserved and are not current routing."
+  },
+  "current_program_diagnostic": {
+    "INTERNAL_DISCOVERY_CARDS_PLANNED": 5,
+    "INTERNAL_DISCOVERY_CARDS_EXECUTED": 4,
+    "INTERNAL_PROMISING_PROTOTYPES": 1,
+    "INTERNAL_DISCOVERY_WARNING": null,
+    "D1_STATUS": "BLOCKED_PENDING_PRE_OUTCOME_FIX",
+    "D2_STATUS": "PROMISING_PROTOTYPE",
+    "D3_STATUS": "NO_USEFUL_STRUCTURE",
+    "D4_STATUS": "NO_USEFUL_STRUCTURE",
+    "D5_STATUS": "NO_USEFUL_STRUCTURE",
+    "D6_STATUS": "DEFERRED",
+    "SCIENTIFIC_OUTCOMES_COMPUTED": true,
+    "adaptive_discovery_not_confirmatory": true
+  },
   "cards": {
     "D1": {
       "DISCOVERY_ID": "D1",
@@ -194,7 +214,7 @@
     "EXTERNAL_BENCHMARK_CARDS_PLANNED": 1,
     "EXTERNAL_BENCHMARK_CARDS_PLANNED_LIST": ["D6"],
     "EXTERNAL_PROMISING_OR_REPRODUCED": 0,
-    "note": "All counters reflect CARD DEFINITION/PLANNING only. No card has been executed in this unit; all outcome fields are pending. INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED is not yet evaluable (fewer than the 6-10 card threshold, and zero cards executed).",
+    "note": "DEFINITION-TIME counters only. No card had been executed when this block was written. Current counters are in current_program_diagnostic.",
     "stall_gate_semantics_2026_09_21": {
       "D6_never_counts_toward_internal_stall_rule": true,
       "reason": "D6 is EXTERNAL_BENCHMARK, diagnostic only, and must never count toward the 6-10 INTERNAL-card stall rule -- exactly as MARKET-03 never counts as internal discovery.",
@@ -203,7 +223,7 @@
       "formal_gate_requirement": "The formal NOT_DEMONSTRATED gate requires at least 6 materially orthogonal internal cards (i.e. a Discovery Sprint 02+ internal card beyond D1-D5)."
     }
   },
-  "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+  "SCIENTIFIC_OUTCOMES_COMPUTED": true,
   "MARKET_07_CREATED": false,
   "PROTECTED_2025_OPENED": false,
   "PROTECTED_2026_OPENED": false,
@@ -395,8 +415,24 @@
     ],
     "D2_RULE_2_DISCOVERY_OUTCOME_OBSERVED": true,
     "D2_RULE_2_GATE_PASS": false,
+    "INTERNAL_DISCOVERY_CARDS_PLANNED": 5,
     "D1_STATUS": "BLOCKED_PENDING_PRE_OUTCOME_FIX",
+    "D2_STATUS": "PROMISING_PROTOTYPE",
+    "D3_STATUS": "NO_USEFUL_STRUCTURE",
+    "D4_STATUS": "NO_USEFUL_STRUCTURE",
+    "D5_STATUS": "NO_USEFUL_STRUCTURE",
     "D6_STATUS": "DEFERRED",
+    "d2_statistical_gate_operationalization_sync": {
+      "kind": "documentation_synchronization_to_pre_outcome_implementation_26d8f7066533bcae7138d5a1952783f2a16f3c39",
+      "statistical_threshold": "MU_RULE > P95 of the 1000 RATE_MATCHED_RANDOM_ABSTENTION replicate mean-severity values",
+      "DELTA": "MU_RULE - mean(random-control replicate means)",
+      "not_a_post_outcome_gate_change": true
+    },
+    "eth_open_fallback_authorization": {
+      "behavior": "ETH 1m open := close when the frozen MARKET-05 ETH parquet schema has no open column",
+      "authorized_for": "D4 ROLLING_CORRELATION_90D close-to-close calculation only",
+      "not_authorized_for": "any future experiment that scientifically uses ETH open prices"
+    },
     "PROTECTED_2025_OPENED": false,
     "PROTECTED_2026_OPENED": false,
     "MARKET_07_CREATED": false,

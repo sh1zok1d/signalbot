@@ -413,8 +413,10 @@ def _read_parquet_ohlc(path: Path) -> list[tuple[int, float, float, float, float
 
     # Frozen CORE_ETH parquet schema is open_time_ms/high/low/close (no open).
     # Fill 1m open from close when that column is absent so 5m aggregation can
-    # proceed. D4 uses close-to-close returns only; this is schema compatibility
-    # with market05_eth_execution_parquet/1.0.0, not a scientific change.
+    # proceed. ETH open := close exists ONLY so D4 ROLLING_CORRELATION_90D's
+    # close-to-close calculation can use the frozen
+    # market05_eth_execution_parquet/1.0.0 schema. It is NOT authorized for
+    # any future experiment that scientifically uses ETH open prices.
     schema_names = set(pq.read_schema(path).names)
     required = ["open_time_ms", "high", "low", "close"]
     missing_required = [name for name in required if name not in schema_names]

@@ -167,7 +167,8 @@ Adaptive discovery result. Not confirmatory.
   "RULE_1_GATE_PASS": true,
   "RULE_2_GATE_PASS": false,
   "practical_magnitude_threshold": "DELTA >= 20% of never-abstain mean severity",
-  "statistical_threshold": "DELTA / MU_RULE exceeds the 95th percentile of rate-matched random abstention mean severity",
+  "statistical_threshold": "MU_RULE > P95 of the 1000 RATE_MATCHED_RANDOM_ABSTENTION replicate mean-severity values",
+  "DELTA": "MU_RULE - mean(random-control replicate means)",
   "temporal_consistency_check": "at least 3 year-buckets with DELTA > 0 versus that year's own rate-matched control"
 }
 ```

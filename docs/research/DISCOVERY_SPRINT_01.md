@@ -4,11 +4,24 @@
 **Parent unit:** `HYPOTHESIS_DISCOVERY_PIPELINE_V2`
 **Parent selection commit:** `a711086c36eb7129fc3f0660732049de93dd1629`
 **Date:** 2026-09-21
-**Status:** `SIX_CARDS_DEFINED_NONE_EXECUTED`
+**Status:** `PARTIAL_SPRINT_EXECUTED_ONE_PROMISING_PROTOTYPE`
 **Machine-readable record:** `docs/research/DISCOVERY_SPRINT_01.json`
 
-Six discovery cards are defined below. **None is executed in this unit.**
-Each follows the Discovery Card contract from
+Six discovery cards were defined in this document. Four INTERNAL cards
+have now executed as **adaptive discovery** on historically exposed
+2020-2024 data — not confirmatory evidence:
+
+- D2 = `PROMISING_PROTOTYPE`
+- D3 = `NO_USEFUL_STRUCTURE`
+- D4 = `NO_USEFUL_STRUCTURE`
+- D5 = `NO_USEFUL_STRUCTURE`
+- D1 remains `BLOCKED_PENDING_PRE_OUTCOME_FIX`
+- D6 remains `DEFERRED`
+
+Card definitions below are the frozen specification. Later sections
+preserve the definition-time narrative and the execution history.
+
+Each card follows the Discovery Card contract from
 `HYPOTHESIS_DISCOVERY_PIPELINE_V2`.
 
 ## D1 — `STRUCTURAL_STATE_DETECTION`
@@ -313,6 +326,9 @@ Status: `NOT_STARTED_NO_ANSWERS_RECORDED_IN_THIS_UNIT`.
 
 ## Program diagnostic state after this unit
 
+**Definition-time record** (when this document was a specification-only
+unit; not current routing):
+
 | Counter | Value |
 |---|---|
 | `INTERNAL_DISCOVERY_CARDS_PLANNED` | 5 (D1-D5) |
@@ -320,8 +336,28 @@ Status: `NOT_STARTED_NO_ANSWERS_RECORDED_IN_THIS_UNIT`.
 | `EXTERNAL_BENCHMARK_CARDS_PLANNED` | 1 (D6) |
 | `EXTERNAL_PROMISING_OR_REPRODUCED` | 0 |
 
-All counters reflect card **definition/planning** only — no card has been
-executed in this unit.
+Those counters reflected card **definition/planning** only — no card had
+been executed in the definition unit.
+
+**Current program diagnostic** (after the CORE-restore retry):
+
+| Counter | Value |
+|---|---|
+| `INTERNAL_DISCOVERY_CARDS_PLANNED` | 5 (D1-D5) |
+| `INTERNAL_DISCOVERY_CARDS_EXECUTED` | 4 (D2, D3, D4 rolling, D5) |
+| `INTERNAL_PROMISING_PROTOTYPES` | 1 (D2) |
+| `INTERNAL_DISCOVERY_WARNING` | `null` |
+| `D1_STATUS` | `BLOCKED_PENDING_PRE_OUTCOME_FIX` |
+| `D2_STATUS` | `PROMISING_PROTOTYPE` |
+| `D3_STATUS` | `NO_USEFUL_STRUCTURE` |
+| `D4_STATUS` | `NO_USEFUL_STRUCTURE` |
+| `D5_STATUS` | `NO_USEFUL_STRUCTURE` |
+| `D6_STATUS` | `DEFERRED` |
+
+`SCIENTIFIC_OUTCOMES_COMPUTED = true` (adaptive discovery, not confirmatory).
+`MARKET_07_CREATED = false`.
+`PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
+`NEXT_UNIT = DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE_EXECUTION`.
 
 ### Stall-gate semantics (corrected 2026-09-21)
 
@@ -339,9 +375,14 @@ the interim warning `INTERNAL_DISCOVERY_WARNING =
 ZERO_PROMISING_AFTER_FIRST_5_INTERNAL_CARDS`, not the formal
 `INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED` gate.
 
-`SCIENTIFIC_OUTCOMES_COMPUTED = false`. `MARKET_07_CREATED = false`.
+`SCIENTIFIC_OUTCOMES_COMPUTED = false` at definition time (historical).
+Current value is `true` after the CORE-restore retry, still adaptive
+discovery rather than confirmatory evidence.
+`MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
-`NEXT_UNIT = DISCOVERY_SPRINT_01_CARD_EXECUTION` (unchanged).
+Definition-time `NEXT_UNIT = DISCOVERY_SPRINT_01_CARD_EXECUTION` is
+historical; current `NEXT_UNIT =
+DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE_EXECUTION`.
 
 ## Corrective unit (2026-09-21)
 
@@ -559,6 +600,18 @@ D2 RULE_2 replay matched the first-attempt partial component exactly (`D2_RULE_2
 | D5 | `NO_USEFUL_STRUCTURE` (OR composition; did not beat best same-window component) |
 
 This is adaptive discovery on historically exposed 2020-2024 data, not confirmatory evidence. No threshold/sign/window rescue after outcomes.
+
+D2 statistical-gate wording (documentation sync to implementation
+`26d8f7066533bcae7138d5a1952783f2a16f3c39`; not a post-outcome gate
+change): `MU_RULE > P95` of the 1000 `RATE_MATCHED_RANDOM_ABSTENTION`
+replicate mean-severity values. `DELTA = MU_RULE -
+mean(random-control replicate means)`.
+
+ETH parquet compatibility: the frozen MARKET-05 ETH schema has no `open`
+column. `ETH open := close` exists only so D4 `ROLLING_CORRELATION_90D`
+can compute close-to-close returns against that schema. It is **not**
+authorized for any future experiment that scientifically uses ETH open
+prices.
 
 Program diagnostic:
 
