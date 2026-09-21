@@ -32,14 +32,15 @@ B2-06 remains `BLOCKED_MISSING_OBSERVABLE`. `MARKET-01` is not required
 to be B2-06 and does not silently unblock it.
 
 MARKET-06 (`MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK`) is
-**preregistered and frozen outcome-blind** after pre-outcome amendment
-002 (year-stratified predictive bootstrap). It is not executed, not
-ARMed, and not a MARKET-01 rerun. Live freeze:
+**implemented and implementation-frozen outcome-blind** after
+pre-outcome amendment 002. It is not executed, not ARMed, and not a
+MARKET-01 rerun. Live prereg freeze:
 `docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE.json`
-(amended payload `6342d24e…`). Freeze `371f71d…` (amendment 001) and
-`5f14411…` (V0) are historical evidence only. Next unit:
-`MARKET_06_IMPLEMENTATION_OUTCOME_BLIND`. Do not inspect outcomes under
-this identity until a later authorized execution.
+(payload `6342d24e…`). Live implementation freeze:
+`docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION_FREEZE.json`
+(implementation `81c8e0a8…`). Next unit:
+`MARKET_06_IMPLEMENTATION_RED_TEAM_REVIEW`. Do not inspect outcomes
+under this identity until a later authorized execution.
 
 ## R0 — E1 frozen experiment closeout
 

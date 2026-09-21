@@ -57,6 +57,10 @@ Read these first:
 | `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE_V0.json` | **HISTORICAL first freeze twin** | Binds first payload `b21bf46d…`; superseded by later freezes |
 | `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE_V1.md` | **HISTORICAL amendment-001 freeze** | Exact amendment-001 freeze bytes; SHA256 `69f4de8f…`; not live authority |
 | `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE_V1.json` | **HISTORICAL amendment-001 freeze twin** | Binds amendment-001 payload `b4459ab9…`; superseded by amendment 002 freeze |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION.md` | **IMPLEMENTED_OUTCOME_BLIND / NOT EXECUTED** | MARKET-06 evaluator identity after amendment 002; canonical execution refused |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION.json` | **IMPLEMENTED_OUTCOME_BLIND twin** | Binds prereg freeze `e2d543ea…`; `real_canonical_execution_refused=true` |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION_FREEZE.md` | **IMPLEMENTATION_FROZEN_OUTCOME_BLIND / CURRENT IMPLEMENTATION AUTHORITY** | Docs-only freeze of implementation `81c8e0a8…` / tree `7f4e0a85…`; not an ARM; not execution |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION_FREEZE.json` | **IMPLEMENTATION_FROZEN_OUTCOME_BLIND twin** | Module SHA256 inventory; `freeze_commit_head`/`tree` intentionally `UNSET_UNTIL_THIS_COMMIT` |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.md` | **FROZEN_OUTCOME_BLIND payload** | Frozen MARKET-01 preregistration bytes; SHA256 `d82b60e1…`; internal materialization-unit status string left unchanged; freeze authority is the freeze document |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.json` | **FROZEN_OUTCOME_BLIND payload** | Frozen machine-readable twin; SHA256 `6885abaf…` |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_FREEZE.md` | **FROZEN_OUTCOME_BLIND / CURRENT FREEZE AUTHORITY** | Docs-only freeze of materialization `9c1a661c…` / tree `1928969e…`; SHA256 `e0e0da9e…`; not an ARM; not execution |
