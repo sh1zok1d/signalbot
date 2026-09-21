@@ -1,3 +1,5 @@
+> **Current routing note — 2026-09-21:** use `docs/CURRENT_RESEARCH_STATE.md` first for present lifecycle/next-unit status. Frozen experiment artifacts remain authoritative for their own semantics. Some older catalog descriptions below are historical and may retain the status they had when written. Repository integration cleanup merged canonical MARKET-02, MARKET-03..05/forward-observability, and MARKET-06 histories into `main` without rewriting frozen results.
+
 # Signalbot Documentation Index
 
 **Status:** ACTIVE / CANONICAL INDEX

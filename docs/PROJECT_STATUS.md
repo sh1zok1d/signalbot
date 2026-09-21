@@ -1,372 +1,45 @@
 # Signalbot — Current Project Status
 
-**Status date:** 2026-09-19
-**Operating mode:** `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN`
-**Active research phase:** `MARKET` / `INFORMATION_SET_EXPANSION`
+**Status date:** 2026-09-21  
+**Operating mode:** `RESEARCH_FIRST / PRODUCT_BUILD_FROZEN`  
+**Active phase:** `POST_M06_ORTHOGONAL_SEARCH_SELECTION`
 
-This file is the canonical answer to: **what is Signalbot doing now?**
+This file is intentionally concise. The pre-cleanup long-form status remains immutable in git at `b25d9ca99498630183813d0ccb8c6d67b93ad915`; experiment history remains in `docs/RESEARCH_LEDGER.md`.
 
-## 1. Current decision
+## Current decision
 
-Further product/forecasting architecture development is frozen until the project demonstrates at least one independently validated market edge or produces sufficiently strong evidence that the investigated hypothesis classes do not contain one.
+Signalbot has no validated durable trading edge. Product/forecasting architecture remains frozen. The research program should stop repeating nearby “new observable -> short-horizon scalar BTC prediction” formulations and instead choose the next hypothesis from a materially orthogonal mechanism region.
 
-The goal is **not** to force the discovery of an edge. `NO EDGE`, `INSUFFICIENT DATA`, and `REJECTED` are valid outcomes.
+Canonical routing: `docs/CURRENT_RESEARCH_STATE.md`.
 
-Signalbot is operating as a market-research platform rather than as a product-development program.
+## Current evidence
 
-The synthetic Microscope calibration is closed. Canonical V3 is immutable historical evidence, not a live research program. The active next phase is **MARKET**: take real crypto-market hypotheses through the existing research process. Do not repair, rerun, or reinterpret V3. Do not create V4. V3 `DETECTED`/`PASS` is not by itself sufficient evidence of a robust market edge.
+- V3 calibration closed; methodology not generally claimable; no V4.
+- MARKET-01: `NO_EVIDENCE`.
+- MARKET-02: `NO_EVIDENCE`.
+- MARKET-03: external historical reproduction `REPRODUCED_DIRECTION`; not internal validated alpha/OOS.
+- MARKET-04 / 04H: blocked by historical observable/provenance; not scientifically rejected.
+- MARKET-05: `MARKET_05_NO_EVIDENCE`.
+- MARKET-06: `MARKET_06_NO_EVIDENCE`; exact one-shot RESULT sealed at `80c7d19f622cc7b5576154de59dbb9cdf85d4dcf`; rerun forbidden.
+- Internal historical candidates promoted: `0`.
+- Protected 2025/2026 OOS: unopened.
 
-## 2. Why the direction changed
+The exact M05/M06 additive 24h adverse-path MAE cell is `REPEATED_NULL / LOW_PRIORITY_FOR_NOW`. The broader short-horizon BTC conditional scalar-prediction family is `LOW_PRIORITY / SATURATED_FOR_NOW` as a program search-priority conclusion only.
 
-Three facts drive the change:
+## Active work
 
-1. engineering correctness and architecture progressed faster than empirical evidence;
-2. the currently available rich historical overlap is roughly one month, which is useful for falsification but far too short to support a durable-edge claim across regimes;
-3. development evidence from `E1-RUN-001` did not justify automatically continuing into additional lifecycle/product complexity.
+Next: `MARKET_NEXT_HYPOTHESIS_SELECTION_FROM_ORTHOGONAL_REGIONS`.
 
-Building Stage 6+, richer UI/notifications, ML, or more features before proving the underlying predictive structure would increase sunk cost without increasing confidence that a tradable edge exists.
+No MARKET-07 exists yet. First select a region that changes mechanism/function/information geometry rather than a parameter variant of M01-M06. Candidate region definitions live in `docs/research/MARKET_PROGRAM_UPDATE_POST_M06.json`.
 
-## 3. What is frozen
+`FORWARD_MARKET_OBSERVABILITY_V1` remains available as infrastructure; authoritative collection is not started by this cleanup. B2-06 remains blocked.
 
-Until the research restart gate in §8 is satisfied, do **not** develop:
+## Authority order
 
-- Stage 6 lifecycle / episode machinery beyond correctness fixes required to preserve existing evidence;
-- Stage 7+ product progression;
-- new production signal families;
-- new production scoring/confidence systems;
-- ML/adaptive thresholds/automatic tuning;
-- Telegram/UI/product features unrelated to research;
-- production enable/deploy of V2;
-- speculative platform abstractions;
-- business-model/monetization expansion beyond recording hypotheses.
+1. `docs/CURRENT_RESEARCH_STATE.md`
+2. `docs/PROJECT_STATUS.md`
+3. `docs/RESEARCH_ROADMAP.md`
+4. frozen prereg/result artifacts for the experiment being reproduced
+5. `docs/RESEARCH_LEDGER.md`
 
-Existing V1/V2 code is retained as research material and infrastructure. Freeze does not mean delete.
-
-## 4. What remains active
-
-Active work is limited to work that increases the quality of empirical inference:
-
-- preserve the frozen `E1-RUN-001` record and its unopened holdout; the current TP/CB/FB formulations are retired at development and the holdout is not to be spent on rescue;
-- expand historical data coverage;
-- build reproducible research datasets/manifests;
-- formulate and test market hypotheses;
-- build simple baselines and negative controls;
-- perform threshold/parameter research on development data only;
-- run chronological validation/OOS/walk-forward studies;
-- measure regime dependence, concentration, delay/cost sensitivity and effective sample size;
-- validate incremental value of richer features only after a simpler core hypothesis shows evidence.
-
-## 5. Current empirical state
-
-### V1
-
-Frozen research baseline. Autopsy found that it behaved primarily as a reactive 5m momentum/continuation state classifier, with high signal churn and notification latency that consumed much of any very-short continuation. Confidence did not demonstrate useful future-outcome ordering.
-
-V1 is not an active product-development target.
-
-### CORE_BTC_BINANCE_V0
-
-Accepted for discovery on 2026-08-26. Snapshot `717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`. Frozen interval `[2020-01-01T00:00:00Z, 2026-08-26T00:00:00Z)`. `3,497,760` complete 1m rows; 0 gaps; 0 duplicates; 104/104 checksums. Manifest: `docs/manifests/CORE_BTC_BINANCE_V0.yaml`. Evidence: `docs/research_data/CORE_BTC_BINANCE_V0/`. This is not confirmatory authorization and not an edge claim.
-
-First mechanism experiment `H01_COMPRESSION_EXPANSION` finished development-only on this snapshot. Verdict: **`H01_KILL` / `REJECTED`**. Unusually low recent realized vol predicted **lower**, not higher, subsequent vol. That reverse persistence pattern is not validated evidence.
-
-Second mechanism experiment `H02_FAILED_BREAKOUT_MEAN_REVERSION` finished development-only. Verdict: **`H02_KILL`**. Closing back inside a local range did not beat successful-breakout or show a strength-monotonic reversion surface. 2025 validation and 2026 OOS were not opened. See `docs/research/H02_DEV_SUMMARY.md`.
-
-### R2 Batch01
-
-Batch01 is closed: **0 of 5 primary mechanism families promoted**.
-
-- H01: `REJECTED / H01_KILL`
-- H02: `REJECTED / H02_KILL`
-- H03: `H03_REJECTED_SPECIFIC_CLAIM`
-- H04: `H04_REJECTED_SPECIFIC_CLAIM`
-- H05: `H05_REJECTED_SPECIFIC_CLAIM / CLOSED_DEVELOPMENT_REJECTED`
-
-2025 validation and 2026 OOS remain untouched for H01-H05. Several families
-showed raw conditional structure, but none earned promotion under the required
-robustness/incremental-information controls. See
-`docs/research/BATCH01_SYNTHESIS.md`.
-
-### R2 Batch02
-
-Batch02 inventory remains frozen/immutable and is **not** the active
-research program after the V3 Microscope closeout. Post-outcome status
-lives in `docs/research/BATCH02_STATUS_LEDGER.md`. B2-06 remains
-blocked; `MARKET-01` does not have to be B2-06.
-
-- B2-01 `VOLATILITY_TRANSITION`: `CLOSED_NO_PROMOTION`
-- B2-02 `BOUNDARY_INTERACTION_PATH`: `CLOSED_NO_PROMOTION`
-- B2-03 `IMPULSE_MORPHOLOGY`: `CLOSED_NO_PROMOTION`
-- B2-04 `MODERATE_PULLBACK_STRUCTURE`: `CLOSED_NO_PROMOTION`
-- B2-05 `FLOW_ABSORPTION`: development consumed; durable evidence
-  `B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED` at archive
-  `e31e5666fe845116197b6f2531289bf17d848027` (historical bytes
-  operator-adjudicated, not proven)
-- B2-06 `LEVERAGE_CROWDING`: `BLOCKED_MISSING_OBSERVABLE`. An outcome-blind
-  first-party OI/funding snapshot is Git-bound as
-  `5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33`
-  (`docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md`); funding
-  publication latency is unproven; B2-06 outcomes remain unauthorized.
-  The mandatory pre-B2-06 methodology unit
-  `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1` was executed from exact ARM
-  commit `9ab32fc14c50df0c6f1c7ddfe2a8990d2d49c339` / tree
-  `8aca4445f4638f678810d64a17de2a253a22763d` (`workers=4`). All 3200
-  planned worlds completed structurally. Mint refused:
-  `INCOMPLETE_EXECUTION_NO_METHODOLOGY_CLAIM` (113 worlds `valid=false`
-  under the V1 any-candidate rank rule). RESULT and WORLD_RECORDS were
-  not minted. V1 ARM authority was not consumed. The V1 attempt and the
-  3087-world subset are permanently non-claimable. Do not resume V1 mint.
-  Successor methodology unit
-  `HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY` now
-  has a reviewed fixture-only implementation frozen at HEAD `a310837`
-  (`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_IMPLEMENTATION_FREEZE.json`)
-  plus a pre-outcome production lifecycle and the independently reviewed
-  33/33 inherited-ladder implementation frozen at HEAD `614295d` / tree
-  `e754b12`
-  (`docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_33_33_IMPLEMENTATION_FREEZE.json`).
-  Governing methodology is Amendment_003 + Amendment_004; Amendment_002 is
-  rejected historical authority and cannot govern executable science. The
-  visibility statistic gap remains unresolved and fail-closed. This freeze
-  does not create an ARM, authorize execution, or run the 3200-world grid.
-  No V2 ARM artifact exists anywhere in the repository; V2 production
-  remains unarmed and does not authorize B2-06. Next required step for
-  that unit: `INDEPENDENT_V2_33_33_IMPLEMENTATION_FREEZE_REVIEW`.
-  Historical ARM `120ac45` and unused driver ARM `0abc5fe` do
-  not authorize V1 or V2 runtime. This does not authorize B2-06 science.
-
-V3 confirmatory calibration is **closed**. Canonical RESULT authority is
-commit `99b409cae279513eaf489194e7fa206082c60aef`, WORLD_RECORDS SHA256
-`5d09631db5180f562076b2191fe002aa21318a3925d3cd1c4014d83e4b41eb4f`,
-RESULT SHA256
-`f72eedcdcb511e2c7f22369cbdef164688317dfc99f9ab3e533df14cb2a27866`.
-Mechanical cell verdicts: EASY `PASS` (400/400), MODERATE `PASS`
-(313/400), NULL `INDETERMINATE` (21/400), NONSTATIONARY_TRAP `FAIL`
-(188/400). `methodology_claimable = false`. `incomplete_execution = false`.
-
-Narrow closeout interpretation (do not reinterpret the mechanical RESULT):
-
-1. V3 repaired the measured V2 confirmatory sensitivity problem (`EASY`
-   `PASS`, `MODERATE` `PASS`).
-2. V3 did not establish a generally claimable methodology (`NULL`
-   `INDETERMINATE`, `NONSTATIONARY_TRAP` `FAIL`,
-   `methodology_claimable = false`).
-3. Known limitation: the current V3 confirmatory decision is
-   insufficiently protected against the frozen nonstationary trap. Do
-   **not** translate 188/400 into a general real-market false-positive
-   rate; it applies only to the frozen synthetic trap DGP.
-4. V3 `DETECTED`/`PASS` is research evidence but must not by itself be
-   treated as sufficient evidence of a robust market edge. Any promising
-   MARKET result must retain explicit regime / nonstationarity scrutiny
-   before stronger promotion claims.
-5. This limitation is **not** authorization for immediate V4.
-
-Microscope closeout flags:
-
-- `V3_CALIBRATION_CLOSED = YES`
-- `V3_RERUN_AUTHORIZED = NO`
-- `V3_METHODOLOGY_CLAIMABLE = NO`
-- `CONFIRMATORY_SENSITIVITY = DEMONSTRATED_ON_FROZEN_SYNTHETIC_EASY_MODERATE`
-- `NONSTATIONARY_TRAP_PROTECTION = INADEQUATE_ON_FROZEN_TRAP_DGP`
-- `DEFAULT_V4 = NO`
-
-The Microscope remains available as scientific instrumentation. It is
-not deleted. It is no longer the active research program. B2-06 remains
-`BLOCKED_MISSING_OBSERVABLE`; MARKET-01 does not unblock it.
-
-Family F1 is `CLOSED_NO_PROMOTION`. 2025 validation and 2026 OOS remain
-untouched. No Batch02 formulation has a promoted candidate, so there is no
-Batch02 validation path to open.
-
-### V2 / E1-RUN-001
-
-The frozen Stage-5 detector families were:
-
-- `TREND_PULLBACK` (TP)
-- `COMPRESSION_BREAKOUT` (CB)
-- `CONFIRMED_BREAKOUT` (FB)
-
-Their development evidence was consumed and did not justify promotion. The
-chronological E1 holdout remains **unopened**.
-
-Following Batch01 synthesis, the three E1 detector formulations are now
-`RETIRED_CURRENT_FORMULATION`. This does not claim that Batch01 reran the
-exact E1 code or disproved every future trend/compression/breakout mechanism.
-It records a project decision that the existing formulations have not earned
-the right to consume their frozen holdout.
-
-The frozen evaluator, preregistration and holdout artifacts remain historical
-evidence and must not be rewritten. Any materially new child formulation must
-receive a new hypothesis identity and clean evaluation path.
-
-## 6. Evidence posture
-
-No current Signalbot configuration is claimed to possess a durable trading edge.
-
-One month of rich overlap may:
-
-- expose obvious failures;
-- reveal candidate mechanisms;
-- support engineering/correctness checks;
-
-but it may **not** by itself establish stability across market regimes.
-
-The next research program therefore separates:
-
-- **multi-year CORE evidence** for simple market mechanisms; and
-- **shorter RICH overlap evidence** for incremental value of OI/funding/liquidations/cross-venue features.
-
-See `docs/HISTORICAL_DATA_STRATEGY.md`.
-
-## 7. Active objective
-
-The active research phase is **MARKET**. `MARKET-01`
-(`OI_EXPANSION_WEAK_CONTINUATION`) is **`RESULT`** and closed under its
-frozen design. Mechanical classification: **`NO_EVIDENCE`**. Canonical
-RESULT SHA256
-`5310946b44dd3ebc609d05a13f92f6cb414e3a0727141d0ee324bce0aa626c5e`.
-`CANONICAL_EXECUTIONS_CONSUMED = 1`. No rerun is authorized. Do not
-change thresholds or windows. The confirmatory test remains a new
-stratified two-group OLS identity, not V3, and remains uncalibrated
-(`MARKET_01_TEST_CALIBRATED = NO`). This is not validated alpha, not a
-production signal, and not OOS validation.
-RESULT authority:
-`docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_RESULT.json`.
-Post-close episode-construction throughput work is research
-infrastructure only (`docs/research/MARKET_01_EPISODE_CONSTRUCTION_PERF.md`);
-it does not reopen MARKET-01 or change the sealed RESULT.
-
-`MARKET-03_PUBLIC_STRATEGY_REPLICATION` **preregistration is frozen**.
-Materialization HEAD `06d6ec0121a9a35f8ee947fbe89e37e97388b6e2` /
-tree `50bc810eb127ea7aea1843ef2ede0dd4fe8905d1`. Prereg SHA256
-`044bb2a6…` / `3f35f9a1…`. Ceiling
-**`LEVEL_2_FAITHFUL_REIMPLEMENTATION`**. Evaluation truncated to
-`[2019-10-01T00:00:00Z, 2025-01-01T00:00:00Z)`. Dedicated funding
-snapshot is materialized (`FUNDING_SNAPSHOT_READY = YES`):
-`MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0` /
-`d47b7b78b6e7dbb842c7d9eb122c81063e0b804e179a53dd87723f9a8a8adc68`
-from REST JSONL `e7885cd5…`. Implementation is **frozen**
-(`IMPLEMENTATION_FROZEN = YES`) at reviewed HEAD `03411aaa…` /
-tree `87a1da25…` after targeted re-review
-`READY_FOR_IMPLEMENTATION_FREEZE`. MARKET-03 is **ARMED**
-(`MARKET_03_ARMED = YES`) and the one-shot reservation is **consumed**
-(`CANONICAL_EXECUTIONS_AUTHORIZED = 1`,
-`CANONICAL_EXECUTIONS_CONSUMED = 1`, `RUN_IDENTITY` `f68b6de7…`).
-Canonical RESULT: `PRIMARY_CLASSIFICATION = REPRODUCED_DIRECTION`
-(`MDD_filtered = -0.337755…` > `MDD_baseline = -0.493554…`).
-That is a frozen LEVEL_2 historical-reproduction statement only. It is
-not current alpha, live profitability, OOS confirmation, or a second
-run. Frozen scientific bytes were not mutated to flip lifecycle flags. Do not substitute CORE perpetual
-prices. Do not consume B2-06 as MARKET-03 funding authority.
-Do not inspect Signalbot 2025/2026 OOS. Prereg freeze authority:
-`docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG_FREEZE.md`. Payload:
-`docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG.md`. Funding snapshot:
-`docs/research/MARKET_03_FUNDING_SNAPSHOT.md`. Implementation freeze
-authority:
-`docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_FREEZE.md`.
-ARM authority:
-`docs/research/MARKET_03_PUBLIC_STRATEGY_ARM.md`.
-
-Current program evidence is
-`docs/research/EVIDENCE_REGISTRY_H_B_M01_M05.md` (16 scientific units).
-The earlier 14-unit snapshot
-`docs/research/EVIDENCE_REGISTRY_H_B_M01_M03.md` remains an immutable
-historical freeze.
-
-MARKET-05 is **closed**. Canonical RESULT HEAD
-`828c6916fdb0da7b3f9fbad2bc0a97d87efcbb4b` / tree
-`338e72d23ff7f5547191221527b762a47e4e48bc` /
-`RUN_IDENTITY` `6957613de4b035d850fc97edb833565c5fd3d7b085aa158e0992b88142190635`.
-Classification **`MARKET_05_NO_EVIDENCE`**. The exact preregistered
-formulation (daily 00:00 UTC, 24h BTC state, continuous ETH
-confirmation, 24h BTC direction-aligned adverse-path risk, BTC-only
-baseline vs baseline + `ETH_CONFIRMATION`) did not provide stable
-incremental predictive value. MARKET-05 is scientifically spent. No
-rerun. Negative relative MAE does **not** authorize a reverse
-hypothesis. Do not write that ETH is generally useless, that
-divergence is validated, or that reverse sign is validated.
-Interpretation:
-`docs/research/MARKET_05_PROGRAM_INTERPRETATION.md`.
-
-Program-level state after MARKET-05:
-
-- `INTERNAL_HISTORICAL_CANDIDATES_PROMOTED = 0`
-- `VALIDATED_OOS_CANDIDATES = 0`
-- `PROTECTED_OOS_TOUCHED = false`
-- MARKET-01 `NO_EVIDENCE`; MARKET-02 `NO_EVIDENCE`; MARKET-03
-  `EXTERNAL_REPRODUCTION / REPRODUCED_DIRECTION`; MARKET-04
-  `BLOCKED_OBSERVABLE / NOT_TESTED`; MARKET-05 `NO_EVIDENCE`
-
-MARKET-04 remains **SELECTED / NOT TESTED / BLOCKED HISTORICAL
-OBSERVABLE**. Do **not** mark it rejected. The parent hypothesis
-remains scientifically alive. The blocker was historical
-availability/provenance, not mechanism failure. MARKET-04H remains
-`OUTCOME_BLIND_OBSERVABLE_SUBSTITUTION_AFTER_TEMPORAL_FEASIBILITY_FAILURE`
-/ `BLOCKED OBSERVABLE` and is not scientific negative evidence.
-
-Further immediate same-information-set hypothesis generation is
-**paused**. Do not create MARKET-06 from another simple transform of
-the existing price/OI/cross-asset information set.
-
-Next program phase: **`INFORMATION_SET_EXPANSION`**. Initial target:
-**`POINT_IN_TIME_FUNDING_PREMIUM_OBSERVABILITY`**. Collector
-implementation is **frozen**:
-`docs/research/FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION_FREEZE.md`.
-Conservative `legal_available_at = local_received_at_utc`. Authoritative
-collection has **not** started. Do not freeze a new MARKET hypothesis.
-Do not create M04-FWD. Do not attempt a third historical proxy salvage.
-This does not guarantee that funding will work.
-
-Next unit: `FORWARD_MARKET_OBSERVABILITY_V1_AUTHORITATIVE_COLLECTION_START`.
-
-Post-calibration operating priority:
-
-- approximately 70–80% actual market research;
-- approximately 20–30% infrastructure only when concrete research
-  blockers require it.
-
-Primary progress metric: MARKET hypotheses honestly closed per week.
-
-Initial evidence milestone: 25–50 real market hypotheses through the
-stable research process. That milestone is observational/research-oriented;
-it is not a promise that 25–50 studies establish alpha.
-
-B2-06 remains `BLOCKED_MISSING_OBSERVABLE` / funding publication-latency
-unproven. `MARKET-01` does not have to be B2-06 and does not silently
-unblock it. Do not rerun B2-05 or rescue closed B2-01 through B2-04
-results. Do not repair, rerun, or reinterpret V3. Do not create V4.
-
-The research objective remains:
-
-> Discover and independently validate one or two market mechanisms with stable incremental information — or falsify the investigated mechanisms without rescuing them through post-hoc complexity.
-
-A valid edge must survive more than a favorable backtest window. Exact requirements are defined in `docs/EDGE_RESEARCH_PROTOCOL.md`. Any promising MARKET result must retain explicit regime / nonstationarity scrutiny before stronger promotion claims.
-
-## 8. Restart gate for product architecture
-
-Product/forecasting architecture development may resume only after at least one candidate edge has:
-
-1. a clearly defined mechanism and deterministic rule;
-2. multi-year or otherwise regime-diverse evidence appropriate to the claim;
-3. chronological validation separate from discovery;
-4. an untouched OOS or equivalent forward test;
-5. separation from simple/matched controls;
-6. parameter/threshold robustness rather than one magic point;
-7. acceptable delay/cost sensitivity for the intended use;
-8. transparent sample concentration and missingness.
-
-Only then should lifecycle, risk orchestration, product UX, explanations and richer architecture be designed around the observed behavior of the validated edge.
-
-## 9. Canonical documents
-
-Read in this order:
-
-1. `docs/PROJECT_STATUS.md` — current posture and freeze;
-2. `docs/RESEARCH_ROADMAP.md` — active execution order;
-3. `docs/EDGE_RESEARCH_PROTOCOL.md` — rules for discovery/validation;
-4. `docs/HISTORICAL_DATA_STRATEGY.md` — data expansion strategy;
-5. `docs/ACTIVE_RESEARCH_RISKS.md` — current inference risks;
-6. `docs/RESEARCH_LEDGER.md` — consumed hypotheses/windows and experiment history;
-7. `docs/PROJECT_HISTORY.md` — why the project evolved into the current posture;
-8. `docs/DOCUMENTATION_INDEX.md` — current vs historical documents.
-
-When a legacy V2/Stage document conflicts with this file about **current project direction**, this file wins. Historical contracts still govern interpretation/reproduction of experiments that were frozen under them.
+Historical status text elsewhere must not be mistaken for current authorization.

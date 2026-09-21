@@ -4,34 +4,42 @@ This file tells coding/review agents what is authoritative **now**. Keep it conc
 
 ## Project posture
 
-Signalbot is currently in `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN` mode.
+Signalbot is currently in `RESEARCH_FIRST / PRODUCT_BUILD_FROZEN` mode.
 
-The synthetic Microscope calibration is closed (`V3_CALIBRATION_CLOSED = YES`). Canonical V3 is immutable historical evidence: confirmatory sensitivity was demonstrated on frozen synthetic `EASY`/`MODERATE`, but the methodology is not generally claimable (`NULL` `INDETERMINATE`, `NONSTATIONARY_TRAP` `FAIL`; `V3_METHODOLOGY_CLAIMABLE = NO`). Do not repair, rerun, or reinterpret V3 (`V3_RERUN_AUTHORIZED = NO`). Do not create V4 (`DEFAULT_V4 = NO`). V3 `DETECTED`/`PASS` is not by itself sufficient evidence of a robust market edge.
+The synthetic Microscope V3 calibration is closed immutable historical evidence. `V3_METHODOLOGY_CLAIMABLE = NO`, `V3_RERUN_AUTHORIZED = NO`, and `DEFAULT_V4 = NO`. Do not repair/rerun V3 or treat its synthetic PASS cells as a robust market-edge claim.
 
-The active research phase is **MARKET / INFORMATION_SET_EXPANSION**. MARKET-05 is **closed** (`MARKET_05_NO_EVIDENCE`); scientifically spent; no rerun; do not reinterpret negative relative MAE as a reverse effect. MARKET-01 and MARKET-02 are `NO_EVIDENCE`. MARKET-03 is `EXTERNAL_REPRODUCTION / REPRODUCED_DIRECTION`, not a validated internal candidate. MARKET-04 remains `SELECTED / NOT_TESTED / BLOCKED_OBSERVABLE` and is **not** rejected. Internal historical candidates promoted = 0. Protected OOS remains untouched. Same-information-set hypothesis generation is paused. Do **not** create MARKET-06. `FORWARD_MARKET_OBSERVABILITY_V1` collector implementation is frozen; authoritative collection has not started. Next unit is `FORWARD_MARKET_OBSERVABILITY_V1_AUTHORITATIVE_COLLECTION_START`. Do not create M04-FWD. Do not freeze a new MARKET hypothesis unless separately authorized. Operating priority is approximately 70–80% actual market research and 20–30% infrastructure only when concrete research blockers require it.
+The MARKET program is through MARKET-06:
 
-B2-06 remains blocked (`BLOCKED_MISSING_OBSERVABLE` / funding publication-latency unproven). `MARKET-01` is not B2-06 and does not unblock it.
+- MARKET-01: `NO_EVIDENCE`;
+- MARKET-02: `NO_EVIDENCE`;
+- MARKET-03: `EXTERNAL_REPRODUCTION / REPRODUCED_DIRECTION` under its own historical contract, not a validated internal edge;
+- MARKET-04 / 04H: `BLOCKED_OBSERVABLE / NOT_TESTED`, not rejected;
+- MARKET-05: `MARKET_05_NO_EVIDENCE`;
+- MARKET-06: `MARKET_06_NO_EVIDENCE`, canonical one-shot consumed and sealed; no rerun or reverse-effect rescue;
+- internal historical candidates promoted: `0`;
+- protected 2025/2026 OOS: unopened.
 
-The Microscope remains available as scientific instrumentation. It is not the active research program.
+The exact/near-exact M05/M06 cell (external/cross-market observable -> additive incremental term beside BTC own-state controls -> 24h direction-aligned adverse-path prediction -> holdout MAE improvement) is `REPEATED_NULL / LOW_PRIORITY_FOR_NOW`. The broader short-horizon BTC conditional scalar-prediction family is `LOW_PRIORITY / SATURATED_FOR_NOW` as a search-priority conclusion, not a claim that every member is false.
 
-The research objective remains: discover and independently validate one or two robust conditional market mechanisms — or reject the investigated hypotheses without post-hoc rescue. There is no current claim of durable trading edge.
+Do **not** create MARKET-07 merely to continue a queue. The next research unit is `MARKET_NEXT_HYPOTHESIS_SELECTION_FROM_ORTHOGONAL_REGIONS`: choose a materially different region by information gain/search-space coverage before any preregistration. Candidate regions are structural regime/state detection, conditional abstention/tail selection, cross-sectional relative structure, liquidity/market-structure state, execution-cost mechanisms, and composed joint state (highest rescue risk).
 
-V1 is frozen. V2 code is retained as research material, but V2 is **not** the active product-development roadmap.
+`FORWARD_MARKET_OBSERVABILITY_V1` collector implementation remains frozen; authoritative collection has not been started by this cleanup. B2-06 remains blocked on the missing/legally-timestamped observable problem.
 
-The repository intentionally preserves old plans, failed hypotheses and frozen contracts as project history. Historical presence is not current authorization.
+There is still no claim of a durable trading edge.
 
 ## Read these sources first
 
 For any new task, use this authority order:
 
-1. `docs/PROJECT_STATUS.md` — current posture and freeze;
-2. `docs/RESEARCH_ROADMAP.md` — active execution order;
-3. `docs/EDGE_RESEARCH_PROTOCOL.md` — research/validation rules;
-4. `docs/HISTORICAL_DATA_STRATEGY.md` — data evidence strategy;
-5. `docs/ACTIVE_RESEARCH_RISKS.md` — current inference risks;
-6. `docs/RESEARCH_LEDGER.md` — consumed windows/hypothesis history;
-7. `docs/DOCUMENTATION_INDEX.md` — current vs frozen/historical docs;
-8. `docs/PROJECT_HISTORY.md` — why the project evolved into the current posture.
+1. `docs/CURRENT_RESEARCH_STATE.md` — compact current routing and exact next unit;
+2. `docs/PROJECT_STATUS.md` — current posture and freeze;
+3. `docs/RESEARCH_ROADMAP.md` — active execution order;
+4. `docs/EDGE_RESEARCH_PROTOCOL.md` — research/validation rules;
+5. `docs/HISTORICAL_DATA_STRATEGY.md` — data evidence strategy;
+6. `docs/ACTIVE_RESEARCH_RISKS.md` — current inference risks;
+7. `docs/RESEARCH_LEDGER.md` — consumed windows/hypothesis history;
+8. `docs/DOCUMENTATION_INDEX.md` — current vs frozen/historical docs;
+9. `docs/PROJECT_HISTORY.md` — why the project evolved into the current posture.
 
 For `E1-RUN-001`, also read its frozen preregistration and `docs/e1/` artifacts. Those research records remain authoritative for reproducing that experiment even when current project direction has changed.
 
