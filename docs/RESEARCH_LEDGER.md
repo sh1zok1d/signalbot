@@ -3221,3 +3221,25 @@ NEXT_UNIT = MARKET_06_PREREGISTRATION_DESIGN
 
 Evidence: `docs/research/MARKET_06_OKX_SPOT_ROUTE_DESIGN_REVIEW.md`.
 
+## 2026-09-21 — MARKET-06 feasibility durable raw-evidence retention
+
+Outcome-blind durability unit only. Did not redownload. Did not mint a
+new snapshot. Did not preregister or compute scientific outcomes. Local
+runtime raw bytes were verified against frozen ledgers, then copied
+byte-for-byte into
+`docs/research_data/MARKET_06_OKX_BINANCE_FEASIBILITY_V0/durable_raw/`.
+
+```text
+DATASET_ID = MARKET_06_OKX_BINANCE_FEASIBILITY_V0
+SNAPSHOT_ID = e0403e40a9b1e2903f15fb9283ec6caf54788e48153038982e364d4318183e68
+BINANCE_OBJECTS_RETAINED = 36
+OKX_PAGES_RETAINED = 1053
+ALL_PREEXISTING_SHA256_MATCH = true
+RAW_BYTES_GIT_RETAINED = true
+NEW_SNAPSHOT_MINTED = false
+SCIENTIFIC_OUTCOMES_INSPECTED = false
+NEXT_UNIT = MARKET_06_PREREGISTRATION_DESIGN
+```
+
+Evidence: `docs/research/MARKET_06_OKX_BINANCE_FEASIBILITY_V0_DURABLE_RETENTION.md`.
+

@@ -38,7 +38,9 @@ Read these first:
 | `research/MARKET_06_CROSS_VENUE_FEASIBILITY.json` | **OUTCOME_BLIND_FEASIBILITY twin / HISTORICAL** | `verdict=MARKET_06_HISTORICAL_FEASIBILITY_REQUIRES_DESIGN_REVIEW`; Bybit spot not reachable from this host |
 | `research/MARKET_06_OKX_SPOT_ROUTE_DESIGN_REVIEW.md` | **OUTCOME_BLIND_FEASIBILITY / CURRENT SOURCE-ROUTE REVIEW** | OKX BTC-USDT spot 5m replaces Bybit before prereg; Binance USD-M 5m trade-price perp unchanged; `MARKET_06_OKX_HISTORICAL_FEASIBILITY_CONFIRMED` |
 | `research/MARKET_06_OKX_SPOT_ROUTE_DESIGN_REVIEW.json` | **OUTCOME_BLIND_FEASIBILITY twin** | Timestamp census 315648/315648 aligned; `scientific_outcomes_inspected=false`; no prereg/ARM/RESULT |
-| `research_data/MARKET_06_OKX_BINANCE_FEASIBILITY_V0/` | **IDENTITY_FROZEN / RAW BYTES NOT GIT-RETAINED** | Checksum-verified Binance ZIP SHA256s + OKX page SHA256 manifest; 2022–2024 only |
+| `research_data/MARKET_06_OKX_BINANCE_FEASIBILITY_V0/` | **IDENTITY_FROZEN + DURABLE RAW BYTES GIT-RETAINED** | Snapshot `e0403e40…` unchanged; `durable_raw/` holds exact Binance ZIPs and OKX HTTP bodies |
+| `research/MARKET_06_OKX_BINANCE_FEASIBILITY_V0_DURABLE_RETENTION.md` | **DURABLE RETENTION / NOT SCIENCE** | Outcome-blind Git retention of existing snapshot bytes; no redownload; no prereg |
+| `research/MARKET_06_OKX_BINANCE_FEASIBILITY_V0_DURABLE_RETENTION.json` | **DURABLE RETENTION twin** | `verdict=MARKET_06_DURABLE_RAW_EVIDENCE_RETAINED`; `new_snapshot_minted=false` |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.md` | **FROZEN_OUTCOME_BLIND payload** | Frozen MARKET-01 preregistration bytes; SHA256 `d82b60e1…`; internal materialization-unit status string left unchanged; freeze authority is the freeze document |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.json` | **FROZEN_OUTCOME_BLIND payload** | Frozen machine-readable twin; SHA256 `6885abaf…` |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_FREEZE.md` | **FROZEN_OUTCOME_BLIND / CURRENT FREEZE AUTHORITY** | Docs-only freeze of materialization `9c1a661c…` / tree `1928969e…`; SHA256 `e0e0da9e…`; not an ARM; not execution |
