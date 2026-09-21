@@ -65,3 +65,69 @@ def test_amendment_records_old_heads_and_pre_outcome_reason():
     assert amendment["protected_2026_opened"] is False
     md = V0_FREEZE_MD.read_text(encoding="utf-8")
     assert "FROZEN_OUTCOME_BLIND" in md
+
+
+LIVE_PREREG_MD = REPO_ROOT / "docs" / "research" / "MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.md"
+LIVE_PREREG_JSON = REPO_ROOT / "docs" / "research" / "MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.json"
+LIVE_FREEZE_JSON = REPO_ROOT / "docs" / "research" / "MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE.json"
+LIVE_FREEZE_MD = REPO_ROOT / "docs" / "research" / "MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE.md"
+
+AMENDED_MD_SHA256 = "55f6f3525a4a3a5878f870a757e890faba336e8d944f6b751087a68e94102d06"
+AMENDED_JSON_SHA256 = "191dfcf48996953f5c78873eb54b24e88430dea2307f22adb6120be4e893c7ae"
+AMENDED_PREREG_HEAD = "b4459ab96addd6c39d4baec35248410a8f5cf8e0"
+AMENDED_PREREG_TREE = "be3cf4739b0e810105403d12d2d543383d34c912"
+
+
+def test_live_prereg_byte_identity_matches_amended_materialization():
+    assert _sha256(LIVE_PREREG_MD) == AMENDED_MD_SHA256
+    assert _sha256(LIVE_PREREG_JSON) == AMENDED_JSON_SHA256
+    assert LIVE_PREREG_MD.stat().st_size == 20019
+    assert LIVE_PREREG_JSON.stat().st_size == 13307
+
+
+def test_live_freeze_authority_binds_amended_payload_and_old_heads():
+    freeze = json.loads(LIVE_FREEZE_JSON.read_text(encoding="utf-8"))
+    md = freeze["frozen_prereg_artifacts"]["MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.md"]
+    js = freeze["frozen_prereg_artifacts"]["MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.json"]
+    assert md["path"] == "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.md"
+    assert js["path"] == "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.json"
+    assert md["sha256"] == AMENDED_MD_SHA256
+    assert js["sha256"] == AMENDED_JSON_SHA256
+    assert md["sha256"] == _sha256(LIVE_PREREG_MD)
+    assert js["sha256"] == _sha256(LIVE_PREREG_JSON)
+    assert freeze["accepted_prereg_content"]["head"] == AMENDED_PREREG_HEAD
+    assert freeze["accepted_prereg_content"]["tree"] == AMENDED_PREREG_TREE
+    assert freeze["freeze_commit_head"] == "UNSET_UNTIL_THIS_COMMIT"
+    assert freeze["freeze_commit_tree"] == "UNSET_UNTIL_THIS_COMMIT"
+    hist = freeze["supersedes_historical_freeze"]
+    assert hist["old_prereg_content_head"] == OLD_PREREG_CONTENT_HEAD
+    assert hist["old_freeze_head"] == OLD_FREEZE_HEAD
+    assert hist["outcomes_inspected_before_amendment"] is False
+    corr = freeze["amendment_corrections_bound"]
+    assert corr["F1_ROBUST_SCALE_1_4826_FIXED"] is True
+    assert corr["F2_ABS_BTC_RET_CONTROL_FIXED"] is True
+    assert corr["F3_ARITHMETIC_MAE_FIXED"] is True
+    assert corr["F4_GATE2_LOWER_BOUND_FIXED"] is True
+    assert corr["GATE_2_EXACT_PREDICATE"] == "BETA_ABS_DISLOCATION_Z_CI95_LOW > 0"
+    assert "upper" not in corr["GATE_2_EXACT_PREDICATE"].lower()
+
+
+def test_live_freeze_status_is_frozen_outcome_blind_not_executed():
+    freeze = json.loads(LIVE_FREEZE_JSON.read_text(encoding="utf-8"))
+    assert freeze["status"] == "FROZEN_OUTCOME_BLIND"
+    state = freeze["explicit_state"]
+    assert state["market_06_prereg_frozen"] is True
+    assert state["market_06_outcome_inspected"] is False
+    assert state["market_06_executed"] is False
+    assert state["market_06_armed"] is False
+    assert state["market_06_execution_authorized"] is False
+    assert state["protected_oos_authorized"] is False
+    assert freeze["not_an_arm"] is True
+    assert freeze["not_v3"] is True
+    assert freeze["not_v4"] is True
+    assert freeze["next_lifecycle_state"] == "MARKET_06_IMPLEMENTATION_OUTCOME_BLIND"
+    md = LIVE_FREEZE_MD.read_text(encoding="utf-8")
+    assert "MARKET_06_TEST_CALIBRATED = NO" in md
+    assert "DEFAULT_V4 = NO" in md
+    assert "BETA_ABS_DISLOCATION_Z_CI95_LOW > 0" in md
+    assert "1.4826" in md

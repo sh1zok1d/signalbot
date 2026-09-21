@@ -1,6 +1,6 @@
 {
   "schema": "market_06_cross_venue_dislocation_prereg_freeze",
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "status": "FROZEN_OUTCOME_BLIND",
   "unit_id": "MARKET-06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE",
   "research_id": "MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK",
@@ -12,35 +12,46 @@
   "not_b2_06_2025_2026_authorization": true,
   "not_v3": true,
   "not_v4": true,
+  "supersedes_historical_freeze": {
+    "old_prereg_content_head": "b21bf46dcc39a2b9243c4172f731cd4d3fbf79b1",
+    "old_freeze_head": "5f14411abc926a2b486d83de5b696ec3cf362488",
+    "historical_freeze_path_md": "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE_V0.md",
+    "historical_freeze_path_json": "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE_V0.json",
+    "amendment_id": "MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_AMENDMENT_001",
+    "amendment_reason": "PRE_OUTCOME_SCIENTIFIC_DEFINITION_DRIFT_CORRECTION",
+    "outcomes_inspected_before_amendment": false
+  },
   "pre_prereg": {
     "head": "a75a5272f994f9728308c47c524f2839b73762a7",
     "tree": "7272614b7a2799aaf82a80f5d7c9cb1207af01ac"
   },
   "accepted_prereg_content": {
-    "head": "b21bf46dcc39a2b9243c4172f731cd4d3fbf79b1",
-    "tree": "ce436bf3d025340752f5afea765ea0cbe50e499e"
+    "head": "b4459ab96addd6c39d4baec35248410a8f5cf8e0",
+    "tree": "be3cf4739b0e810105403d12d2d543383d34c912"
   },
-  "freeze_parent_expected_head": "b21bf46dcc39a2b9243c4172f731cd4d3fbf79b1",
+  "freeze_parent_expected_head": "b4459ab96addd6c39d4baec35248410a8f5cf8e0",
   "freeze_commit_head": "UNSET_UNTIL_THIS_COMMIT",
   "freeze_commit_tree": "UNSET_UNTIL_THIS_COMMIT",
-  "note": "This freeze commit is a docs-only provenance descendant of the MARKET-06 prereg materialization. It does not modify MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.md/.json at all -- those exact bytes are the frozen object. Binding is to accepted_prereg_content.head/tree and the git blob SHA256s recorded below, all independently recomputed from that exact commit before this freeze was written. This freeze does not hash itself: freeze_commit_head/freeze_commit_tree remain UNSET_UNTIL_THIS_COMMIT, matching the established convention. The prereg files' internal materialization-unit status string PREREGISTERED_OUTCOME_BLIND_UNFROZEN is left unchanged; current freeze authority is this document.",
+  "note": "This freeze commit is a docs-only provenance descendant of the amended MARKET-06 prereg materialization. It does not modify MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.md/.json at all -- those exact bytes are the frozen object. The V0 freeze at 5f14411 remains historical evidence only. Binding is to accepted_prereg_content.head/tree and the git blob SHA256s recorded below. freeze_commit_head/freeze_commit_tree remain UNSET_UNTIL_THIS_COMMIT.",
   "frozen_prereg_artifacts": {
     "MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.md": {
       "path": "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.md",
-      "sha256": "0489fc71e999b48a7a82223615bd0acd50b1f69af8bc9901d1c681834e55cfcc",
-      "size_bytes": 19122
+      "sha256": "55f6f3525a4a3a5878f870a757e890faba336e8d944f6b751087a68e94102d06",
+      "size_bytes": 20019
     },
     "MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.json": {
       "path": "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.json",
-      "sha256": "332d91140c7ead87f4539b49c8a5647064f9c5e1d0bb8178c16dcc7eaf7a88f4",
-      "size_bytes": 12248
+      "sha256": "191dfcf48996953f5c78873eb54b24e88430dea2307f22adb6120be4e893c7ae",
+      "size_bytes": 13307
     }
   },
   "authority_chain": {
     "pre_prereg_head": "a75a5272f994f9728308c47c524f2839b73762a7",
     "source_feasibility_head": "ef439110684e5bef5d6b6f31b664c21a114111b2",
-    "prereg_materialization_head": "b21bf46dcc39a2b9243c4172f731cd4d3fbf79b1",
-    "prereg_materialization_tree": "ce436bf3d025340752f5afea765ea0cbe50e499e"
+    "old_prereg_content_head": "b21bf46dcc39a2b9243c4172f731cd4d3fbf79b1",
+    "old_freeze_head": "5f14411abc926a2b486d83de5b696ec3cf362488",
+    "prereg_materialization_head": "b4459ab96addd6c39d4baec35248410a8f5cf8e0",
+    "prereg_materialization_tree": "be3cf4739b0e810105403d12d2d543383d34c912"
   },
   "data_authorities_crosscheck": {
     "note": "already contained in the frozen prereg; recorded here only as a binding cross-check, not re-derived or altered",
@@ -52,6 +63,15 @@
     "decision_T": "00:05:00 UTC daily",
     "feature_cutoff": "T-5m",
     "primary_feature": "ABS_DISLOCATION_Z"
+  },
+  "amendment_corrections_bound": {
+    "F1_ROBUST_SCALE_1_4826_FIXED": true,
+    "F2_ABS_BTC_RET_CONTROL_FIXED": true,
+    "F3_ARITHMETIC_MAE_FIXED": true,
+    "F4_GATE2_LOWER_BOUND_FIXED": true,
+    "GATE_2_EXACT_PREDICATE": "BETA_ABS_DISLOCATION_Z_CI95_LOW > 0",
+    "baseline_model": "Y ~ 1 + BTC_SIDE + ABS_BTC_RET_24H + RV_BTC_24H",
+    "candidate_model": "Y ~ 1 + BTC_SIDE + ABS_BTC_RET_24H + RV_BTC_24H + ABS_DISLOCATION_Z"
   },
   "limitations_preserved": {
     "market_06_confirmatory_identity_is_not_v3": true,
@@ -69,8 +89,8 @@
     ]
   },
   "freeze_semantics": [
-    "the prereg scientific payload (frozen_prereg_artifacts) is immutable authority",
-    "implementation may only implement the frozen payload",
+    "the amended prereg scientific payload (frozen_prereg_artifacts) is immutable live authority",
+    "implementation may only implement the frozen amended payload",
     "implementation cannot choose new scientific constants/algorithms",
     "any required scientific change discovered during implementation invalidates execution authorization and requires an explicit pre-outcome amendment/re-freeze, not a silent edit",
     "no MARKET outcomes may be inspected by this freeze",
@@ -78,7 +98,8 @@
     "no ARM is authorized",
     "protected 2025 validation and 2026 OOS remain forbidden",
     "B2-06 remains BLOCKED_MISSING_OBSERVABLE",
-    "no selective rerun / post-outcome threshold repair"
+    "no selective rerun / post-outcome threshold repair",
+    "the V0 freeze is historical evidence only and must not be implemented"
   ],
   "explicit_state": {
     "market_06_outcome_inspected": false,
@@ -106,5 +127,5 @@
     "PROMOTED_HISTORICAL_CANDIDATE"
   ],
   "next_lifecycle_state": "MARKET_06_IMPLEMENTATION_OUTCOME_BLIND",
-  "next_lifecycle_state_note": "Implement the already-frozen MARKET-06 contract. Not execution. Not ARM. MARKET hypotheses in this repository do not require the V3 synthetic one-shot ARM sequence."
+  "next_lifecycle_state_note": "Implement the already-frozen amended MARKET-06 contract. Not execution. Not ARM."
 }
