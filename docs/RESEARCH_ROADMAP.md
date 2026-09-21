@@ -2,7 +2,7 @@
 
 **Status:** ACTIVE  
 **Updated:** 2026-09-21  
-**Current phase:** `POST_M06_ORTHOGONAL_SEARCH_SELECTION`
+**Current phase:** `POST_D2_INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`
 
 The previous long-form roadmap is preserved in git history at `b25d9ca99498630183813d0ccb8c6d67b93ad915`. This file controls current execution order.
 
@@ -58,9 +58,10 @@ after the CORE-restore retry (adaptive discovery, not confirmatory):
 
 `INTERNAL_DISCOVERY_CARDS_EXECUTED = 4`.
 `INTERNAL_PROMISING_PROTOTYPES = 1`.
-`NEXT_UNIT = PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED`.
+`D2_PROGRAM_CLASS = INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`.
+`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN`.
 
-D2 remains a `PROMISING_PROTOTYPE` (adaptive discovery only). Outcome-blind
+D2 discovery remains a `PROMISING_PROTOTYPE` (adaptive discovery label). Outcome-blind
 confirmation design for RULE_1 / `RV_ABSTENTION` found calendar 2025
 metadata-complete but **underpowered** as a single independent year
 (`ONE_YEAR_STATISTICAL_POWER_AT_20PCT = 0.011`; joint `0.006` is
@@ -83,6 +84,15 @@ one-shot then passed identity `1317/250/1067` and classified
 temporal surface. This is not `EXACT_BINANCE_CONFIRMATION`, not
 `PROVEN_ALPHA`, and not `VALIDATED_TRADING_EDGE`. Original INVALID run
 preserved. No rerun. 2025 is not opened. 2026 is not consumed.
+
+Program decision after that result: D2 is
+`INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`. Discovery and independent
+pre-2020 BitMEX replication claims are supported. Market-mechanism,
+trading-edge, and product claims are not. Binance 2025/2026 stay sealed.
+Hypothesis generation rotates across families A–I; D2 neighbors are
+forbidden. Product remains frozen. MARKET-07 is not created. Next unit is
+mechanism-decomposition **design** only:
+`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN`.
 
 Card identities at definition time (unchanged):
 

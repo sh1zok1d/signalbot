@@ -21,7 +21,14 @@ The MARKET program is through MARKET-06:
 
 The exact/near-exact M05/M06 cell (external/cross-market observable -> additive incremental term beside BTC own-state controls -> 24h direction-aligned adverse-path prediction -> holdout MAE improvement) is `REPEATED_NULL / LOW_PRIORITY_FOR_NOW`. The broader short-horizon BTC conditional scalar-prediction family is `LOW_PRIORITY / SATURATED_FOR_NOW` as a search-priority conclusion, not a claim that every member is false.
 
-Do **not** create MARKET-07 merely to continue a queue. The next research unit is `MARKET_NEXT_HYPOTHESIS_SELECTION_FROM_ORTHOGONAL_REGIONS`: choose a materially different region by information gain/search-space coverage before any preregistration. Candidate regions are structural regime/state detection, conditional abstention/tail selection, cross-sectional relative structure, liquidity/market-structure state, execution-cost mechanisms, and composed joint state (highest rescue risk).
+Do **not** create MARKET-07 merely to continue a queue. D2 / RULE_1 is an
+`INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`, not a validated trading edge
+and not a reason to restart product work. Protected Binance 2025/2026 remain
+sealed. The next research unit is
+`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN`
+(design only). Do not generate nearby D2 threshold/horizon/RV variants.
+New discovery cards, if defined, must rotate across heterogeneous families
+rather than proliferate RV_ABSTENTION.
 
 `FORWARD_MARKET_OBSERVABILITY_V1` collector implementation remains frozen; authoritative collection has not been started by this cleanup. B2-06 remains blocked on the missing/legally-timestamped observable problem.
 

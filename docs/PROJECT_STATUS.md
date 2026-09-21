@@ -2,7 +2,7 @@
 
 **Status date:** 2026-09-21  
 **Operating mode:** `RESEARCH_FIRST / PRODUCT_BUILD_FROZEN`  
-**Active phase:** `POST_M06_ORTHOGONAL_SEARCH_SELECTION`
+**Active phase:** `POST_D2_INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`
 
 This file is intentionally concise. The pre-cleanup long-form status remains immutable in git at `b25d9ca99498630183813d0ccb8c6d67b93ad915`; experiment history remains in `docs/RESEARCH_LEDGER.md`.
 
@@ -28,13 +28,12 @@ The exact M05/M06 additive 24h adverse-path MAE cell is `REPEATED_NULL / LOW_PRI
 
 ## Active work
 
-Next: `PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED`.
+Next: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN`.
 
-D2 remains a `PROMISING_PROTOTYPE`. The corrected independent pre-2020
-BitMEX replication is `D2_BITMEX_REPLICATION_SUPPORTED`; that is not a
-validated trading edge and does not create MARKET-07. The original INVALID
-BitMEX one-shot remains first-class evidence. Protected 2025/2026 remain
-sealed.
+D2 is an `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`, not a validated
+trading edge. Binance 2025/2026 remain sealed. Product build remains
+frozen. MARKET-07 is not created. The next D2 unit is mechanism-decomposition
+design only.
 
 `FORWARD_MARKET_OBSERVABILITY_V1` remains available as infrastructure; authoritative collection is not started by this cleanup. B2-06 remains blocked.
 
