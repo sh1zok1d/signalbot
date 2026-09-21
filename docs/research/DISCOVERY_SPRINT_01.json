@@ -358,5 +358,50 @@
     "POST_OUTCOME_DESIGN_CHANGES": false,
     "result_records": "docs/research/discovery_results/",
     "NEXT_UNIT": "DISCOVERY_SPRINT_01_RETRY_D2_D3_D4ROLLING_D5_WHEN_CORE_LOCAL_MATERIAL_PRESENT"
+  },
+  "retry_execution_2026_09_21": {
+    "unit": "DISCOVERY_SPRINT_01_RETRY_D2_D3_D4ROLLING_D5_AFTER_CORE_RESTORE",
+    "implementation_commit": "26d8f7066533bcae7138d5a1952783f2a16f3c39",
+    "first_attempt_result_commit": "37921089ce289cd9bcbcebb123724a3e033dcdc3",
+    "first_attempt_full_cards_completed": 0,
+    "first_attempt_partial_component_outcome": "D2_RULE_2",
+    "first_attempt_preserved_at": "docs/research/discovery_results/FIRST_ATTEMPT_BLOCKED_MISSING_LOCAL_DATA/",
+    "branch": "research/discovery-sprint-01-execution",
+    "base_main": "067231e251697478f3ce0ce9a0f2dcdd01b30140",
+    "data_preflight": {
+      "BTC_DATA_PRESENT": true,
+      "ETH_DATA_PRESENT": true,
+      "M06_CROSS_VENUE_DATA_PRESENT": true
+    },
+    "D2_RULE_2_REPLAY_EXACT_MATCH": true,
+    "classifications": {
+      "D2": "PROMISING_PROTOTYPE",
+      "D3": "NO_USEFUL_STRUCTURE",
+      "D4": "NO_USEFUL_STRUCTURE",
+      "D5": "NO_USEFUL_STRUCTURE"
+    },
+    "d2_rule_notes": {
+      "RULE_1_RV_ABSTENTION": "GATE_PASS=true; card-level PROMISING_PROTOTYPE because at least one frozen rule passed. Adaptive discovery only; not confirmatory.",
+      "RULE_2_DISLOCATION_ABSTENTION": "GATE_PASS=false; exact replay of first-attempt partial component outcome"
+    },
+    "INTERNAL_DISCOVERY_CARDS_EXECUTED": 4,
+    "INTERNAL_PROMISING_PROTOTYPES": 1,
+    "INTERNAL_DISCOVERY_WARNING": null,
+    "INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED": false,
+    "FULL_DISCOVERY_CARDS_COMPLETED": 4,
+    "PARTIAL_COMPONENT_OUTCOME_OBSERVED": true,
+    "PARTIAL_COMPONENT_OUTCOMES": [
+      "D2/RULE_2/DISLOCATION_ABSTENTION"
+    ],
+    "D2_RULE_2_DISCOVERY_OUTCOME_OBSERVED": true,
+    "D2_RULE_2_GATE_PASS": false,
+    "D1_STATUS": "BLOCKED_PENDING_PRE_OUTCOME_FIX",
+    "D6_STATUS": "DEFERRED",
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "MARKET_07_CREATED": false,
+    "POST_OUTCOME_DESIGN_CHANGES": false,
+    "result_records": "docs/research/discovery_results/",
+    "NEXT_UNIT": "DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE_EXECUTION"
   }
 }

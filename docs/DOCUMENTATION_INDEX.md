@@ -19,8 +19,8 @@ For the narrative evolution, read `PROJECT_HISTORY.md`. For complete original do
 
 Read these first:
 
-| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. Discovery Sprint 01 first attempt blocked on missing CORE parquet; RULE_2 is a partial component outcome, not a completed card; `INTERNAL_DISCOVERY_WARNING = null` |
-| `research/DISCOVERY_SPRINT_01.md` | **ACTIVE DISCOVERY SPRINT** | Six-card sprint plus partial-execution record |
+| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. Discovery Sprint 01 retry completed: D2 PROMISING_PROTOTYPE, D3/D4/D5 NO_USEFUL_STRUCTURE; D1 still blocked; `INTERNAL_DISCOVERY_CARDS_EXECUTED = 4` |
+| `research/DISCOVERY_SPRINT_01.md` | **ACTIVE DISCOVERY SPRINT** | Six-card sprint plus first blocked attempt and CORE-restore retry results |
 | `research/discovery_results/` | **ADAPTIVE DISCOVERY RESULTS** | D2-D5 lightweight discovery result JSON/MD; not confirmatory |
 | `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. MARKET-01 closed `NO_EVIDENCE`; V3 closed; no V4; B2-06 remains blocked. |
 | `EDGE_RESEARCH_PROTOCOL.md` | **ACTIVE / CANONICAL** | Discovery/validation rules and anti-overfit discipline |

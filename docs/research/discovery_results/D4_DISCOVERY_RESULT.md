@@ -11,7 +11,7 @@ Adaptive discovery result. Not confirmatory.
 ## TERMINAL_CLASSIFICATION
 
 ```json
-"BLOCKED_MISSING_LOCAL_DATA"
+"NO_USEFUL_STRUCTURE"
 ```
 
 ## SPEC_AUTHORITY
@@ -53,20 +53,48 @@ Adaptive discovery result. Not confirmatory.
 
 ```json
 {
-  "N_PAIRS": null
+  "N_PAIRS": 1790
 }
 ```
 
 ## YEAR_BREAKDOWN
 
 ```json
-{}
+{
+  "2020": 333,
+  "2021": 364,
+  "2022": 364,
+  "2023": 364,
+  "2024": 365
+}
 ```
 
 ## PRIMARY_METRICS
 
 ```json
-{}
+{
+  "GATE_PASS": false,
+  "LEAD_LAG_1DAY_EXECUTED": false,
+  "LEAD_LAG_1DAY_STATUS": "DEFERRED_FROM_SPRINT_01",
+  "NULL_RANGE_MEDIAN": 0.3392858083099633,
+  "NULL_VARIANCE_P97_5": 0.008392088183906484,
+  "N_PAIRS": 1790,
+  "N_ROLLING_POINTS": 1701,
+  "OBSERVED_CORRELATION_RANGE": 0.37871828299829235,
+  "OBSERVED_VARIANCE": 0.005883439844085059,
+  "PRACTICAL_EXCESS_RANGE": 0.039432474688329056,
+  "PRACTICAL_MAGNITUDE_MET": false,
+  "STATISTICAL_THRESHOLD_MET": false,
+  "TEMPORAL_CONSISTENCY_MET": true,
+  "UNCONDITIONAL_CORRELATION": 0.8358458665670222,
+  "YEAR_RANGES": {
+    "2020": 0.2936292963071824,
+    "2021": 0.27925069150758774,
+    "2022": 0.1662201865200189,
+    "2023": 0.2492768131977826,
+    "2024": 0.19165430662512373
+  }
+}
 ```
 
 ## BASELINE_METRICS
@@ -75,7 +103,7 @@ Adaptive discovery result. Not confirmatory.
 {
   "BLOCK_LENGTH": 20,
   "NULL": "BLOCK_BOOTSTRAP_PAIRED_RETURNS",
-  "UNCONDITIONAL_CORRELATION": null
+  "UNCONDITIONAL_CORRELATION": 0.8358458665670222
 }
 ```
 
@@ -101,7 +129,128 @@ Adaptive discovery result. Not confirmatory.
 ## FILES_OPENED
 
 ```json
-[]
+[
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-01.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-02.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-03.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-04.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-05.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-06.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-07.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-08.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-09.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-10.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-11.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-12.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-01.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-02.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-03.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-04.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-05.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-06.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-07.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-08.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-09.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-10.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-11.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-12.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-01.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-02.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-03.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-04.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-05.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-06.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-07.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-08.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-09.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-10.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-11.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-12.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-01.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-02.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-03.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-04.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-05.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-06.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-07.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-08.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-09.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-10.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-11.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-12.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-01.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-02.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-03.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-04.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-05.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-06.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-07.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-08.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-09.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-10.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-11.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-12.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2020-01.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2020-02.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2020-03.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2020-04.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2020-05.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2020-06.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2020-07.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2020-08.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2020-09.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2020-10.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2020-11.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2020-12.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2021-01.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2021-02.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2021-03.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2021-04.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2021-05.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2021-06.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2021-07.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2021-08.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2021-09.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2021-10.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2021-11.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2021-12.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2022-01.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2022-02.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2022-03.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2022-04.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2022-05.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2022-06.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2022-07.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2022-08.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2022-09.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2022-10.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2022-11.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2022-12.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2023-01.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2023-02.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2023-03.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2023-04.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2023-05.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2023-06.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2023-07.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2023-08.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2023-09.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2023-10.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2023-11.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2023-12.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2024-01.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2024-02.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2024-03.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2024-04.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2024-05.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2024-06.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2024-07.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2024-08.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2024-09.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2024-10.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2024-11.parquet",
+  "artifacts/research_data/CORE_ETH_BINANCE_V0/canonical/1m/monthly/2024-12.parquet"
+]
 ```
 
 ## KNOWN_LIMITATIONS
@@ -109,9 +258,7 @@ Adaptive discovery result. Not confirmatory.
 ```json
 [
   "Two-asset precursor only; not cross-sectional panel structure.",
-  "LEAD_LAG_1DAY deferred from Sprint 01.",
-  "missing:CORE_BTC_BINANCE_V0_MONTHLY_PARQUET",
-  "missing:CORE_ETH_BINANCE_V0_MONTHLY_PARQUET"
+  "LEAD_LAG_1DAY deferred from Sprint 01."
 ]
 ```
 

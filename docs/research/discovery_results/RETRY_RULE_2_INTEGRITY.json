@@ -1,0 +1,37 @@
+{
+  "CLASSIFICATIONS": {
+    "D2": "PROMISING_PROTOTYPE",
+    "D3": "NO_USEFUL_STRUCTURE",
+    "D4": "NO_USEFUL_STRUCTURE",
+    "D5": "NO_USEFUL_STRUCTURE"
+  },
+  "D2_CLASSIFICATION": "PROMISING_PROTOTYPE",
+  "D2_RULE_2_GOT": {
+    "ABSTAIN_COUNT": 78,
+    "DELTA": -0.0012558171628350885,
+    "GATE_PASS": false,
+    "MU_CONTROL_MEAN": 0.019338893721456706,
+    "MU_RULE": 0.018083076558621618,
+    "RULE_ELIGIBLE_N": 1062
+  },
+  "D2_RULE_2_MISMATCH": [],
+  "D2_RULE_2_REPLAY_EXACT_MATCH": true,
+  "D3_CLASSIFICATION": "NO_USEFUL_STRUCTURE",
+  "D4_CLASSIFICATION": "NO_USEFUL_STRUCTURE",
+  "D5_CLASSIFICATION": "NO_USEFUL_STRUCTURE",
+  "PREFLIGHT": {
+    "BTC_DATA_PRESENT": true,
+    "CORE_BTC_SNAPSHOT": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+    "CORE_ETH_SNAPSHOT": "4b9c113f659e1c1ca71498096dfdc2628a1016346aed40e19020efb64c85ad15",
+    "ETH_DATA_PRESENT": true,
+    "M06_CROSS_VENUE_DATA_PRESENT": true,
+    "M06_SNAPSHOT": "e0403e40a9b1e2903f15fb9283ec6caf54788e48153038982e364d4318183e68",
+    "btc_month_count": 60,
+    "btc_root": "/workspace/artifacts/research_data/CORE_BTC_BINANCE_V0",
+    "eth_month_count": 60,
+    "eth_root": "/workspace/artifacts/research_data/CORE_ETH_BINANCE_V0",
+    "m06_binance_zip_count": 36,
+    "m06_okx_page_count": 1053,
+    "m06_root": "/workspace/docs/research_data/MARKET_06_OKX_BINANCE_FEASIBILITY_V0/durable_raw"
+  }
+}

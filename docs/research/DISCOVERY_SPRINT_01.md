@@ -540,3 +540,37 @@ Program diagnostic (bookkeeping correction of result commit `37921089ce289cd9bcb
 Result records: `docs/research/discovery_results/`.
 
 `NEXT_UNIT = DISCOVERY_SPRINT_01_RETRY_D2_D3_D4ROLLING_D5_WHEN_CORE_LOCAL_MATERIAL_PRESENT`.
+
+## Retry after CORE restore (2026-09-21)
+
+Legal 2020-2024 CORE BTC (`717d37a4…`) and CORE ETH (`4b9c113f…`) monthly parquet was restored from frozen authorities (no 2025/2026 objects requested). First blocked attempt is preserved at `docs/research/discovery_results/FIRST_ATTEMPT_BLOCKED_MISSING_LOCAL_DATA/` (`FIRST_ATTEMPT_RESULT_COMMIT = 37921089ce289cd9bcbcebb123724a3e033dcdc3`).
+
+Retry used the same scientific implementation `26d8f7066533bcae7138d5a1952783f2a16f3c39`.
+
+Preflight: `BTC_DATA_PRESENT = true`, `ETH_DATA_PRESENT = true`, `M06_CROSS_VENUE_DATA_PRESENT = true`.
+
+D2 RULE_2 replay matched the first-attempt partial component exactly (`D2_RULE_2_REPLAY_EXACT_MATCH = true`): eligible 1062, `ABSTAIN_COUNT = 78`, `DELTA = -0.0012558171628350885`, `MU_RULE = 0.018083076558621618`, `MU_CONTROL_MEAN = 0.019338893721456706`, `GATE_PASS = false`.
+
+| Card | Classification |
+|---|---|
+| D2 | `PROMISING_PROTOTYPE` (RULE_1 `GATE_PASS=true`; RULE_2 remains `GATE_PASS=false`) |
+| D3 | `NO_USEFUL_STRUCTURE` (exactly 3 close-path functionals; none passed) |
+| D4 `ROLLING_CORRELATION_90D` | `NO_USEFUL_STRUCTURE` (`LEAD_LAG_1DAY` not executed) |
+| D5 | `NO_USEFUL_STRUCTURE` (OR composition; did not beat best same-window component) |
+
+This is adaptive discovery on historically exposed 2020-2024 data, not confirmatory evidence. No threshold/sign/window rescue after outcomes.
+
+Program diagnostic:
+
+- `INTERNAL_DISCOVERY_CARDS_EXECUTED = 4`
+- `INTERNAL_PROMISING_PROTOTYPES = 1`
+- `INTERNAL_DISCOVERY_WARNING = null`
+- formal `INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED` not triggered (stall gate still requires >= 6 materially orthogonal internal cards)
+- `D1 = BLOCKED_PENDING_PRE_OUTCOME_FIX`
+- `D6 = DEFERRED`
+- `PROTECTED_2025_OPENED = false`
+- `PROTECTED_2026_OPENED = false`
+- `MARKET_07_CREATED = false`
+- `POST_OUTCOME_DESIGN_CHANGES = false`
+
+`NEXT_UNIT = DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE_EXECUTION`.

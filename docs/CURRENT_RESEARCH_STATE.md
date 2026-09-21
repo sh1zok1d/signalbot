@@ -37,35 +37,33 @@ PREVIOUS_ROUTING            = DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLL
 PREVIOUS_ROUTING_SUPERSEDED = false
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = DISCOVERY_SPRINT_01_RETRY_D2_D3_D4ROLLING_D5_WHEN_CORE_LOCAL_MATERIAL_PRESENT
+NEXT_UNIT                   = DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE_EXECUTION
 PROTECTED_2025_OPENED       = false
 PROTECTED_2026_OPENED       = false
-INTERNAL_DISCOVERY_CARDS_EXECUTED = 0
-INTERNAL_PROMISING_PROTOTYPES     = 0
+INTERNAL_DISCOVERY_CARDS_EXECUTED = 4
+INTERNAL_PROMISING_PROTOTYPES     = 1
 INTERNAL_DISCOVERY_WARNING        = null
-FULL_DISCOVERY_CARDS_COMPLETED    = 0
+FULL_DISCOVERY_CARDS_COMPLETED    = 4
 PARTIAL_COMPONENT_OUTCOMES_OBSERVED = 1
 PARTIAL_COMPONENT_OUTCOMES        = D2/RULE_2/DISLOCATION_ABSTENTION
 D2_RULE_2_DISCOVERY_OUTCOME_OBSERVED = true
 D2_RULE_2_GATE_PASS               = false
+D2_RULE_2_REPLAY_EXACT_MATCH      = true
 POST_OUTCOME_DESIGN_CHANGES       = false
 ```
 
-Discovery Sprint 01's first authorized partial batch was **run** on
-`research/discovery-sprint-01-execution` (implementation
-`26d8f7066533bcae7138d5a1952783f2a16f3c39`, first result commit
-`37921089ce289cd9bcbcebb123724a3e033dcdc3`). D2/D3/D4 rolling/D5 all
-returned `BLOCKED_MISSING_LOCAL_DATA` because local
-`CORE_BTC_BINANCE_V0` / `CORE_ETH_BINANCE_V0` monthly parquet was
-absent. MARKET-06 durable raw was present; D2 RULE_2 was attempted on
-that identity only (`GATE_PASS=false`; eligible 1062). That RULE_2
-attempt is a **partial component outcome**, not a completed internal
-card: `FULL_DISCOVERY_CARDS_COMPLETED = 0`,
-`PARTIAL_COMPONENT_OUTCOMES_OBSERVED = 1`. The first-result warning
-`ZERO_PROMISING_AFTER_FIRST_EXECUTED_INTERNAL_CARDS` was a bookkeeping
-error at executed count 0 and is corrected to
-`INTERNAL_DISCOVERY_WARNING = null`. Protected 2025/2026 were not
-opened. MARKET-07 was not created. No post-outcome design changes.
+Discovery Sprint 01 first attempt (`37921089ce289cd9bcbcebb123724a3e033dcdc3`)
+is preserved as blocked: D2/D3/D4 rolling/D5 were
+`BLOCKED_MISSING_LOCAL_DATA`; D2 RULE_2 was a partial component outcome
+(`GATE_PASS=false`), not a completed card.
+
+After restoring frozen CORE BTC/ETH 2020-2024 only, the same
+implementation `26d8f7066533bcae7138d5a1952783f2a16f3c39` was retried.
+Preflight BTC/ETH/M06 all present. D2 RULE_2 replayed exactly. Retry
+classifications: D2 `PROMISING_PROTOTYPE` (RULE_1 gate pass; RULE_2
+still fails), D3/D4/D5 `NO_USEFUL_STRUCTURE`. Adaptive discovery only;
+not confirmatory. Protected 2025/2026 unopened. MARKET-07 not created.
+No post-outcome design changes.
 
 D1 remains `BLOCKED_PENDING_PRE_OUTCOME_FIX`. D6 remains `DEFERRED`.
 D4 `LEAD_LAG_1DAY` remains `DEFERRED_FROM_SPRINT_01`.
@@ -78,8 +76,9 @@ All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `docs/research/DISCOVERY_SPRINT_01_SPEC_COMPILATION.{json,md}`. That unit
 is an outcome-blind spec freeze, not a confirmatory lifecycle: no ARM, no
 claim/reservation, no one-shot execution authority. At compilation time
-no discovery outcome had been computed. The later partial batch is
-recorded above; it classified D2-D5 as `BLOCKED_MISSING_LOCAL_DATA`.
+no discovery outcome had been computed. The first partial batch is
+preserved as blocked; the CORE-restore retry completed D2-D5 as recorded
+in the next-unit box above.
 
 **Superseded by `DISCOVERY_SPRINT_01_RED_TEAM_REVIEW`** (reviewed commit
 `7bb92b0bd6238693164b6592c0711fa4c15fc9fe`,
@@ -136,13 +135,10 @@ on D5's exact common interval `2022-02-01 -> 2025-01-01`), not D2
 RULE_1's unrestricted full-2020-2024 result.
 
 **Current per-card status:** `D1 = BLOCKED_PENDING_PRE_OUTCOME_FIX`;
-`D2, D3, D5 = EXECUTABLE_DISCOVERY_SPEC` but this host's first batch
-classified them `BLOCKED_MISSING_LOCAL_DATA` (CORE monthly parquet
-absent); `D4 = EXECUTABLE_DISCOVERY_SPEC (ROLLING_CORRELATION_90D only,
-LEAD_LAG_1DAY deferred)` likewise `BLOCKED_MISSING_LOCAL_DATA`;
-`D6 = DEFERRED`.
-`EXECUTION_AUTHORIZED = D2, D3, D4_ROLLING, D5`.
-The first partial batch did not complete those executable specs.
+`D2 = PROMISING_PROTOTYPE` (adaptive discovery; RULE_1 only);
+`D3 = NO_USEFUL_STRUCTURE`; `D4 ROLLING_CORRELATION_90D =
+NO_USEFUL_STRUCTURE` (`LEAD_LAG_1DAY` still deferred); `D5 =
+NO_USEFUL_STRUCTURE`; `D6 = DEFERRED`. First blocked attempt preserved.
 
 The orthogonal-region selection is recorded in
 `docs/research/MARKET_NEXT_HYPOTHESIS_SELECTION.{json,md}` (commit

@@ -1,0 +1,22 @@
+{
+  "unit": "DISCOVERY_SPRINT_01_CORE_MATERIAL_RESTORE",
+  "BTC_SNAPSHOT_ID": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+  "ETH_SNAPSHOT_ID": "4b9c113f659e1c1ca71498096dfdc2628a1016346aed40e19020efb64c85ad15",
+  "BTC_SOURCE_OBJECTS_DOWNLOADED": 60,
+  "BTC_SOURCE_OBJECTS_VERIFIED": 60,
+  "BTC_PARQUETS_MATERIALIZED": 60,
+  "BTC_PARQUETS_HASH_MATCHED": 60,
+  "ETH_SOURCE_OBJECTS_DOWNLOADED": 60,
+  "ETH_SOURCE_OBJECTS_VERIFIED": 60,
+  "ETH_PARQUETS_MATERIALIZED": 60,
+  "ETH_PARQUETS_HASH_MATCHED": 60,
+  "REQUESTED_2025_OBJECTS": 0,
+  "REQUESTED_2026_OBJECTS": 0,
+  "PROTECTED_2025_OPENED": false,
+  "PROTECTED_2026_OPENED": false,
+  "NEW_SNAPSHOT_IDENTITY_CREATED": false,
+  "LEGAL_PERIODS": "2020-01 through 2024-12 monthly only",
+  "BTC_DESTINATION": "artifacts/research_data/CORE_BTC_BINANCE_V0/",
+  "ETH_DESTINATION": "artifacts/research_data/CORE_ETH_BINANCE_V0/",
+  "NOTE": "BTC ZIPs were downloaded and hash-verified in the first restore pass, then reused on the completing run after the ETH filename-firewall fix. ETH ZIPs were downloaded on the completing run. Canonical parquet SHA256 matched frozen SNAPSHOT_717d37a4 output_checksums (BTC) and MARKET_05_EXECUTION_BINDING canonical_parquet_sha256 (ETH). Raw/parquet remain local/untracked."
+}

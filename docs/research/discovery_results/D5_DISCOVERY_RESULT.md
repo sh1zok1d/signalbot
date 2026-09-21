@@ -11,7 +11,7 @@ Adaptive discovery result. Not confirmatory.
 ## TERMINAL_CLASSIFICATION
 
 ```json
-"BLOCKED_MISSING_LOCAL_DATA"
+"NO_USEFUL_STRUCTURE"
 ```
 
 ## SPEC_AUTHORITY
@@ -54,30 +54,118 @@ Adaptive discovery result. Not confirmatory.
 
 ```json
 {
-  "N": 0
+  "N": 1062
 }
 ```
 
 ## YEAR_BREAKDOWN
 
 ```json
-{}
+{
+  "2022": 333,
+  "2023": 364,
+  "2024": 365
+}
 ```
 
 ## PRIMARY_METRICS
 
 ```json
 {
-  "ABSTAIN_COUNTS": null,
-  "COMPONENTS": {
-    "A": null,
-    "B": null
+  "ABSTAIN_COUNTS": {
+    "A": 78,
+    "B": 78,
+    "OR": 146
   },
-  "COMPONENT_A_DELTA_FOR_D5": null,
-  "COMPONENT_B_DELTA_FOR_D5": null,
-  "COMPOSED": {},
-  "COMPOSED_BEATS_COMPONENTS": null,
-  "D5_DELTA": null
+  "COMPONENTS": {
+    "A": {
+      "ABSTAIN_COUNT": 78,
+      "ABSTAIN_RATE": 0.07344632768361582,
+      "CONTROL_P95": 0.022981549476079256,
+      "DELTA": 0.01067221321165928,
+      "MU_CONTROL_MEAN": 0.019522060831869907,
+      "MU_RULE": 0.030194274043529187,
+      "N_REPLICATES": 1000,
+      "POSITIVE_YEAR_COUNT": 3,
+      "PRACTICAL_MAGNITUDE_MET": true,
+      "PRESENT_YEAR_COUNT": 3,
+      "RULE_ELIGIBLE_N": 1062,
+      "STATISTICAL_THRESHOLD_MET": true,
+      "TEMPORAL_CONSISTENCY_MET": true,
+      "UNCONDITIONAL_MEAN": 0.020160768774641798,
+      "YEAR_ABSTAIN_COUNTS": {
+        "2022": 5,
+        "2023": 23,
+        "2024": 50
+      },
+      "YEAR_DELTAS": {
+        "2022": 0.023734492034327415,
+        "2023": 0.0036460135955584047,
+        "2024": 0.012598037152798853
+      }
+    },
+    "B": {
+      "ABSTAIN_COUNT": 78,
+      "ABSTAIN_RATE": 0.07344632768361582,
+      "CONTROL_P95": 0.02268823469326197,
+      "DELTA": -0.0012558171628350885,
+      "MU_CONTROL_MEAN": 0.019338893721456706,
+      "MU_RULE": 0.018083076558621618,
+      "N_REPLICATES": 1000,
+      "POSITIVE_YEAR_COUNT": 2,
+      "PRACTICAL_MAGNITUDE_MET": false,
+      "PRESENT_YEAR_COUNT": 3,
+      "RULE_ELIGIBLE_N": 1062,
+      "STATISTICAL_THRESHOLD_MET": false,
+      "TEMPORAL_CONSISTENCY_MET": false,
+      "UNCONDITIONAL_MEAN": 0.020160768774641798,
+      "YEAR_ABSTAIN_COUNTS": {
+        "2022": 8,
+        "2023": 28,
+        "2024": 42
+      },
+      "YEAR_DELTAS": {
+        "2022": 0.00010384053509253713,
+        "2023": 0.001798276736572943,
+        "2024": -0.003550862181093309
+      }
+    }
+  },
+  "COMPONENT_A_DELTA_FOR_D5": 0.01067221321165928,
+  "COMPONENT_B_DELTA_FOR_D5": -0.0012558171628350885,
+  "COMPOSED": {
+    "ABSTAIN_COUNT": 146,
+    "ABSTAIN_RATE": 0.1374764595103578,
+    "COMPONENT_A_DELTA_FOR_D5": 0.01067221321165928,
+    "COMPONENT_B_DELTA_FOR_D5": -0.0012558171628350885,
+    "COMPOSED_BEATS_COMPONENTS": false,
+    "CONTROL_P95": 0.021850509529448767,
+    "D5_DELTA": 0.004321285668550348,
+    "DELTA": 0.004321285668550348,
+    "GATE_PASS": false,
+    "MU_CONTROL_MEAN": 0.019509537486240045,
+    "MU_RULE": 0.023830823154790393,
+    "N_REPLICATES": 1000,
+    "POSITIVE_YEAR_COUNT": 3,
+    "PRACTICAL_MAGNITUDE_MET": true,
+    "PRESENT_YEAR_COUNT": 3,
+    "RULE_ELIGIBLE_N": 1062,
+    "STATISTICAL_THRESHOLD_MET": true,
+    "TEMPORAL_CONSISTENCY_MET": true,
+    "UNCONDITIONAL_MEAN": 0.020160768774641798,
+    "YEAR_ABSTAIN_COUNTS": {
+      "2022": 13,
+      "2023": 45,
+      "2024": 88
+    },
+    "YEAR_DELTAS": {
+      "2022": 0.009099940867544343,
+      "2023": 0.0027511395280419917,
+      "2024": 0.00441826360873164
+    }
+  },
+  "COMPOSED_BEATS_COMPONENTS": false,
+  "D5_DELTA": 0.004321285668550348
 }
 ```
 
@@ -114,6 +202,66 @@ Adaptive discovery result. Not confirmatory.
 
 ```json
 [
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-01.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-02.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-03.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-04.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-05.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-06.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-07.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-08.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-09.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-10.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-11.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2020-12.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-01.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-02.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-03.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-04.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-05.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-06.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-07.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-08.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-09.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-10.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-11.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2021-12.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-01.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-02.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-03.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-04.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-05.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-06.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-07.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-08.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-09.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-10.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-11.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2022-12.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-01.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-02.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-03.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-04.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-05.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-06.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-07.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-08.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-09.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-10.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-11.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2023-12.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-01.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-02.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-03.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-04.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-05.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-06.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-07.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-08.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-09.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-10.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-11.parquet",
+  "artifacts/research_data/CORE_BTC_BINANCE_V0/canonical/1m/monthly/2024-12.parquet",
   "docs/research_data/MARKET_06_OKX_BINANCE_FEASIBILITY_V0/durable_raw/binance/BTCUSDT-5m-2022-01.zip",
   "docs/research_data/MARKET_06_OKX_BINANCE_FEASIBILITY_V0/durable_raw/binance/BTCUSDT-5m-2022-02.zip",
   "docs/research_data/MARKET_06_OKX_BINANCE_FEASIBILITY_V0/durable_raw/binance/BTCUSDT-5m-2022-03.zip",
@@ -1211,8 +1359,7 @@ Adaptive discovery result. Not confirmatory.
 ```json
 [
   "Third look at the RV/dislocation family after D2's two individual rules.",
-  "Compared only on the exact D5 common window, never against D2 RULE_1's 2020-2024 result.",
-  "missing:CORE_BTC_BINANCE_V0_MONTHLY_PARQUET"
+  "Compared only on the exact D5 common window, never against D2 RULE_1's 2020-2024 result."
 ]
 ```
 

@@ -3881,3 +3881,33 @@ Evidence: `docs/research/discovery_results/`,
 - `PROTECTED_2025_OPENED = false`
 - `PROTECTED_2026_OPENED = false`
 - next required step: `DISCOVERY_SPRINT_01_RETRY_D2_D3_D4ROLLING_D5_WHEN_CORE_LOCAL_MATERIAL_PRESENT`
+
+## 2026-09-21 — Discovery Sprint 01 CORE restore and frozen-batch retry
+
+Legal 2020-2024 CORE BTC snapshot `717d37a4…` and CORE ETH snapshot
+`4b9c113f…` monthly parquet was restored from frozen source URLs /
+MARKET-05 ETH execution binding. 2025/2026 objects were not requested.
+First blocked attempt remains preserved at
+`docs/research/discovery_results/FIRST_ATTEMPT_BLOCKED_MISSING_LOCAL_DATA/`
+(`FIRST_ATTEMPT_RESULT_COMMIT = 37921089ce289cd9bcbcebb123724a3e033dcdc3`).
+
+Retry used scientific implementation
+`26d8f7066533bcae7138d5a1952783f2a16f3c39`. D2 RULE_2 replayed the
+first-attempt partial component exactly (`GATE_PASS=false`, eligible
+1062). Completed-card classifications:
+
+- D2 `PROMISING_PROTOTYPE` (RULE_1 `GATE_PASS=true`; RULE_2 remains fail)
+- D3 `NO_USEFUL_STRUCTURE`
+- D4 `NO_USEFUL_STRUCTURE` (`LEAD_LAG_1DAY` not executed)
+- D5 `NO_USEFUL_STRUCTURE`
+
+Adaptive discovery only; not confirmatory; no post-outcome design
+changes. `INTERNAL_DISCOVERY_CARDS_EXECUTED = 4`,
+`INTERNAL_PROMISING_PROTOTYPES = 1`, `INTERNAL_DISCOVERY_WARNING = null`.
+Formal stall gate not triggered. D1 remains
+`BLOCKED_PENDING_PRE_OUTCOME_FIX`. D6 remains `DEFERRED`.
+
+- `MARKET_07_CREATED = false`
+- `PROTECTED_2025_OPENED = false`
+- `PROTECTED_2026_OPENED = false`
+- next required step: `DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE_EXECUTION`
