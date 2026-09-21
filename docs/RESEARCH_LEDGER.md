@@ -3520,3 +3520,75 @@ Evidence: `docs/research/HYPOTHESIS_DISCOVERY_PIPELINE_V2.{json,md}`,
 - `PROTECTED_2025_OPENED = false`
 - `PROTECTED_2026_OPENED = false`
 - next required step: `DISCOVERY_SPRINT_01_CARD_EXECUTION`
+
+## 2026-09-21 — Discovery Sprint 01 pre-outcome design corrections (D2/D3/D5/D6)
+
+A narrow corrective unit, before any card execution, no scientific outcome
+computed: D2's primary comparator corrected to
+`RATE_MATCHED_RANDOM_ABSTENTION` (a random abstention control matched in
+rate and temporal composition to the candidate rule; the never-abstain/
+unconditional distribution demoted to a secondary reference only). D3
+marked not executable until exactly one prior-state descriptor (or an
+explicit unconditional design) is frozen outcome-blind. D5 marked not
+executable with adaptively-selected components: its two components,
+parameterization, and composition operator must be frozen without
+reference to D1-D4 outcomes, or the card must be deferred. D6 marked not
+executable until one external/public source (identity, mechanism, target,
+comparator) is pinned before inspecting its reproduction outcome.
+`INTERNAL_DISCOVERY_CARDS` / `EXTERNAL_BENCHMARK_CARDS` renamed to
+`*_PLANNED`; D6 explicitly excluded from the 6-10 internal-card stall
+rule, so Sprint 01 alone (5 internal cards) cannot trigger
+`INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED`; an interim
+`INTERNAL_DISCOVERY_WARNING = ZERO_PROMISING_AFTER_FIRST_5_INTERNAL_CARDS`
+state was introduced below the formal 6-card gate.
+
+Evidence: `docs/research/DISCOVERY_SPRINT_01.{json,md}`.
+
+- `MARKET_07_CREATED = false`
+- `PROTECTED_2025_OPENED = false`
+- `PROTECTED_2026_OPENED = false`
+- next required step: `DISCOVERY_SPRINT_01_CARD_EXECUTION`
+
+## 2026-09-21 — Discovery Sprint 01 spec compilation (outcome-blind)
+
+`DISCOVERY_SPRINT_01_SPEC_COMPILATION` is the final outcome-blind
+compilation step before Discovery Sprint 01 scientific outcomes are
+inspected. Each of D1-D6 was converted into either an
+`EXECUTABLE_DISCOVERY_SPEC` (fully frozen parameters) or `DEFERRED`. All
+six were made `EXECUTABLE_DISCOVERY_SPEC`; none was deferred. No discovery
+outcome was computed and no candidate performance was inspected while
+compiling these specs. No confirmatory machinery (ARM, claim/reservation,
+one-shot execution authority, MARKET-style prereg lifecycle) was
+introduced.
+
+For each executable card the unit freezes: exact dataset authority (with
+`CORE_BTC_BINANCE_V0` / `CORE_ETH_BINANCE_V0` snapshot IDs), exact
+historical discovery interval (capped before 2025-01-01 to keep protected
+2025/2026 unopened regardless of what the underlying materialized
+snapshots contain), exact unit of observation, exact feature/state/rule
+definitions, exact small search surfaces, exact target/functionals, exact
+simple baselines/controls, exact temporal breakdowns, lightweight
+`PROMISING_PROTOTYPE` evaluation fields, and deterministic seeds. D1 froze
+a GARCH(1,1)-filtered block-bootstrap surrogate null (reused by D3). D2
+froze its two abstention rules and the exact
+`RATE_MATCHED_RANDOM_ABSTENTION` construction. D3 chose the
+`UNCONDITIONAL_DESIGN` fallback outcome-blind rather than a new,
+unreviewed prior-state descriptor. D5's two components (D2's own rules)
+and OR composition operator were justified on structural-availability
+grounds, since zero D1-D4 outcomes exist anywhere at compile time. D6
+pinned the publicly documented "Pi Cycle Top Indicator" (111-day vs.
+2x350-day SMA crossover) before any reproduction, with its data-coverage
+limitation (2013/2017 coincidences predate `CORE_BTC_BINANCE_V0`) recorded
+explicitly. The `CROSS_SECTIONAL_PANEL_FEASIBILITY` sidecar's spec was
+finalized (methods only, no answers).
+
+Evidence: `docs/research/DISCOVERY_SPRINT_01_SPEC_COMPILATION.{json,md}`.
+
+- `EXECUTABLE_DISCOVERY_SPEC_COUNT = 6` (D1-D6)
+- `DEFERRED_COUNT = 0`
+- `SCIENTIFIC_OUTCOMES_COMPUTED = false`
+- `CANDIDATE_PERFORMANCE_INSPECTED = false`
+- `MARKET_07_CREATED = false`
+- `PROTECTED_2025_OPENED = false`
+- `PROTECTED_2026_OPENED = false`
+- next required step: `DISCOVERY_SPRINT_01_EXECUTION`

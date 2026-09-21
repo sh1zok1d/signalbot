@@ -37,10 +37,18 @@ PREVIOUS_ROUTING            = STRUCTURAL_REGIME_STATE_DETECTION_MECHANISM_CLASS_
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = DISCOVERY_SPRINT_01_CARD_EXECUTION
+NEXT_UNIT                   = DISCOVERY_SPRINT_01_EXECUTION
 PROTECTED_2025_OPENED       = false
 PROTECTED_2026_OPENED       = false
 ```
+
+All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
+`EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by
+`DISCOVERY_SPRINT_01_SPEC_COMPILATION`, recorded in
+`docs/research/DISCOVERY_SPRINT_01_SPEC_COMPILATION.{json,md}`. That unit
+is an outcome-blind spec freeze, not a confirmatory lifecycle: no ARM, no
+claim/reservation, no one-shot execution authority. No discovery outcome
+has been computed and no candidate performance has been inspected.
 
 The orthogonal-region selection is recorded in
 `docs/research/MARKET_NEXT_HYPOTHESIS_SELECTION.{json,md}` (commit

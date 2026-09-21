@@ -364,3 +364,17 @@ A narrow, pre-outcome design correction was applied on top of commits
    threshold.
 
 No scientific outcome was computed by this correction.
+
+## Spec compilation (2026-09-21)
+
+All six cards were converted to fully frozen `EXECUTABLE_DISCOVERY_SPEC`
+records (none deferred) in
+`docs/research/DISCOVERY_SPRINT_01_SPEC_COMPILATION.{json,md}`. That unit
+freezes exact dataset authority, discovery interval, unit of observation,
+feature/state/rule definitions, small search surfaces, target functionals,
+simple baselines/controls, temporal breakdowns, lightweight
+`PROMISING_PROTOTYPE` evaluation fields, and deterministic seeds for each
+card, still outcome-blind: no discovery outcome computed, no candidate
+performance inspected, protected 2025/2026 unopened, no MARKET-07.
+
+`NEXT_UNIT = DISCOVERY_SPRINT_01_EXECUTION`.

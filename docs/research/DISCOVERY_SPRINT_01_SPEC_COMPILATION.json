@@ -1,0 +1,246 @@
+{
+  "schema": "signalbot_discovery_sprint_spec_compilation",
+  "schema_version": "1.0.0",
+  "unit_id": "DISCOVERY_SPRINT_01_SPEC_COMPILATION",
+  "unit_type": "OUTCOME_BLIND_SPEC_FREEZE_NOT_A_CONFIRMATORY_LIFECYCLE",
+  "date": "2026-09-21",
+  "parent_unit": "DISCOVERY_SPRINT_01",
+  "parent_commits": [
+    "a711086c36eb7129fc3f0660732049de93dd1629",
+    "954fb550aa56682708a7673e2b548182ba2f965d",
+    "dcbd16ddcb157f3d855f440795a2a071c15d8e7a"
+  ],
+  "purpose": "Final outcome-blind compilation step before Discovery Sprint 01 scientific outcomes are inspected. Converts each Discovery Card (D1-D6) into either an EXECUTABLE_DISCOVERY_SPEC (fully frozen parameters, ready to run) or DEFERRED (blocking condition unmet). All executable specs are frozen in this single pass so no card's design can be informed by another card's already-observed outcome -- at compile time zero cards in this sprint have been executed, so this constraint is satisfied by construction.",
+  "no_confirmatory_machinery_introduced": {
+    "ARM": false,
+    "CLAIM_OR_RESERVATION": false,
+    "ONE_SHOT_EXECUTION_AUTHORITY": false,
+    "MARKET_STYLE_PREREG_LIFECYCLE": false,
+    "note": "This manifest freezes discovery-card parameters only. It carries none of the MARKET-06-style authority-chain machinery (permit/runner/sealed-RESULT); Discovery Card contract in HYPOTHESIS_DISCOVERY_PIPELINE_V2.json explicitly excludes that machinery from discovery."
+  },
+  "explicit_non_actions_this_unit": {
+    "DISCOVERY_OUTCOME_COMPUTED": false,
+    "CANDIDATE_PERFORMANCE_INSPECTED": false,
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "MARKET_07_CREATED": false
+  },
+  "dataset_authorities_referenced": {
+    "CORE_BTC_BINANCE_V0": {
+      "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+      "manifest": "docs/manifests/CORE_BTC_BINANCE_V0.yaml",
+      "materialized_range": "2020-01-01T00:00:00Z (inclusive) -> 2026-08-26T00:00:00Z (exclusive)",
+      "status": "ACCEPTED_FOR_DISCOVERY (research_authorized=true, confirmatory_authorized=false)",
+      "usage_note": "The materialized snapshot physically extends past 2025-01-01. This manifest does NOT authorize querying that later portion. Every card below that uses this dataset freezes its own FROZEN_DISCOVERY_INTERVAL ending no later than 2025-01-01T00:00:00Z, to keep protected 2025/2026 unopened regardless of what the raw snapshot contains."
+    },
+    "CORE_ETH_BINANCE_V0": {
+      "snapshot_id": "4b9c113f659e1c1ca71498096dfdc2628a1016346aed40e19020efb64c85ad15",
+      "manifest": "docs/manifests/CORE_ETH_BINANCE_V0.yaml",
+      "btc_companion_snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+      "materialized_range": "2020-01-01T00:00:00Z (inclusive) -> 2026-08-26T00:00:00Z (exclusive)",
+      "status": "ACCEPTED_FOR_DISCOVERY (research_authorized=true, confirmatory_authorized=false)",
+      "usage_note": "Same protected-range discipline as CORE_BTC_BINANCE_V0 applies."
+    },
+    "reused_scientific_constructions": {
+      "note": "Discovery cards reuse already-frozen MARKET-06 evaluator functions/constants for bar construction and observables rather than re-deriving them, to minimize novel engineering and researcher degrees of freedom. This reads MARKET-06 code; it does not modify it.",
+      "module": "scripts.research.market_06_cross_venue_dislocation_evaluator",
+      "reused_symbols": ["rv_btc_24h", "btc_ret_24h", "btc_side_from_ret", "robust_dislocation_z", "REFERENCE_COUNT", "RV_RETURN_COUNT", "FUTURE_BARS"],
+      "module_2": "scripts.research.market_06_cross_venue_dislocation_parsers",
+      "reused_symbols_2": ["BAR_MS"]
+    }
+  },
+  "global_discovery_interval_default": {
+    "start_inclusive": "2020-02-01T00:00:00Z",
+    "end_exclusive": "2025-01-01T00:00:00Z",
+    "rationale": "Reuses the exact H01/H02 development window already recorded as ADAPTIVE_DISCOVERY_ON_HISTORICALLY_EXPOSED_DATA in docs/CURRENT_RESEARCH_STATE.md. Its end boundary (2025-01-01) is exactly the start of protected territory, so no card using this default can open protected 2025/2026.",
+    "applies_to": ["D1", "D2", "D3", "D4", "D5"]
+  },
+  "cards": {
+    "D1": {
+      "DISCOVERY_ID": "D1",
+      "SPEC_STATUS": "EXECUTABLE_DISCOVERY_SPEC",
+      "EXACT_DATASET_AUTHORITY": "CORE_BTC_BINANCE_V0, snapshot_id 717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+      "EXACT_HISTORICAL_DISCOVERY_INTERVAL": "2020-02-01T00:00:00Z -> 2025-01-01T00:00:00Z (global default)",
+      "EXACT_UNIT_OF_OBSERVATION": "One 24h decision point on the existing MARKET-06 24h decision grid (one observation every 24h, reusing ev.rv_btc_24h / ev.btc_ret_24h bar-end semantics -- not a newly defined time scale).",
+      "EXACT_STATE_DEFINITION": {
+        "state_construction_class": "Single frozen 2-state discrete indicator (no clustering algorithm, no k selection): HIGH_VOL_STATE(t) = 1 if RV_20(t) > median(RV_20(t-250 .. t-1)) else LOW_VOL_STATE(t).",
+        "RV_20_definition": "RV_20(t) = sum of the 20-trailing-day realized-volatility values as already computed by ev.rv_btc_24h at each of the 20 most recent complete decision points ending at or before t (no lookahead; reuses the existing frozen RV construction).",
+        "rolling_baseline": "Trailing 250 completed RV_20 values immediately preceding t (t excluded), median taken with no interpolation tie-break beyond numpy default.",
+        "free_parameters_frozen_now": ["RV window length = 20 decision points", "rolling median baseline length = 250 decision points", "number of states = 2 (fixed, no k sweep)"]
+      },
+      "EXACT_SMALL_SEARCH_SURFACE": "Exactly the one state-construction class above, at RV window=20 / baseline=250, 2 states fixed. No alternative window/baseline pairs and no alternative state count are run for the primary result.",
+      "EXACT_TARGET_FUNCTIONAL": "MEAN_STATE_RUN_LENGTH = (mean consecutive-day run length of HIGH_VOL_STATE + mean consecutive-day run length of LOW_VOL_STATE) / 2, computed once over the full discovery interval.",
+      "EXACT_SIMPLE_BASELINE_NULL": {
+        "family": "GARCH(1,1)-filtered circular block-bootstrap surrogate (\"GARCH-filtered surrogate\"), a standard surrogate-data-testing construction.",
+        "fit": "Fit GARCH(1,1) with Student-t innovations (df estimated by MLE) to the discovery-interval 24h log-return series (ev.btc_ret_24h at each decision point). Extract standardized residuals.",
+        "surrogate_generation": "For each replicate, circular block-bootstrap the standardized residuals with fixed block length = 20 decision points (matched to the RV_20 window, so the null does not trivially chop up the very window being tested), reinject through the fitted GARCH(1,1) conditional-variance recursion (same omega/alpha/beta, reinitialized at the empirical unconditional variance) to produce a full-length surrogate 24h-return path.",
+        "replicates": 1000,
+        "deterministic_seed": "D1_NULL_SURROGATE_SEED = 20260921101",
+        "why_defensible": "GARCH(1,1) preserves short-memory conditional heteroskedasticity (ordinary day-to-day volatility clustering, which is NOT the structure under test) while destroying longer-horizon persistence beyond GARCH(1,1)'s implied memory -- i.e. it destroys only the multi-week regime-persistence structure D1 is testing for, per the SURROGATE_NULL_REQUIREMENT in MARKET_NEXT_HYPOTHESIS_SELECTION.json.",
+        "acknowledged_limits": "This is A defensible null under standard practice, not claimed to be the only one; it remains subject to review before execution and is not itself evidence."
+      },
+      "EXACT_TEMPORAL_BREAKDOWN": "Report MEAN_STATE_RUN_LENGTH and its surrogate-percentile position separately for calendar years 2020, 2021, 2022, 2023, 2024 (partial 2020 from 02-01), in addition to the pooled full-interval statistic.",
+      "PROMISING_PROTOTYPE_EVALUATION_FIELDS": {
+        "statistical_threshold": "Observed MEAN_STATE_RUN_LENGTH exceeds the 97.5th percentile of the 1000-replicate surrogate distribution.",
+        "practical_magnitude_threshold": "Observed value exceeds the surrogate median by at least +1.5 days.",
+        "neighborhood_stability_check": "Pre-declared (not free-choice) companion runs at block length 15 and block length 25 (fixed, both frozen now, not a sweep for selection) must place the observed statistic above at least the 90th percentile in both companion nulls.",
+        "temporal_consistency_check": "Effect must not be driven by a single calendar year: at least 3 of the 5 year-buckets must individually exceed their own year-bucket surrogate 90th percentile.",
+        "artifact_check": "Confirm RV_20/median construction uses only bar-end-available data at each t (no lookahead) and that GARCH fit uses the same discovery interval, not a different window."
+      },
+      "deterministic_seed_summary": ["D1_NULL_SURROGATE_SEED = 20260921101"]
+    },
+    "D2": {
+      "DISCOVERY_ID": "D2",
+      "SPEC_STATUS": "EXECUTABLE_DISCOVERY_SPEC",
+      "EXACT_DATASET_AUTHORITY": "CORE_BTC_BINANCE_V0, snapshot_id 717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+      "EXACT_HISTORICAL_DISCOVERY_INTERVAL": "2020-02-01T00:00:00Z -> 2025-01-01T00:00:00Z (global default)",
+      "EXACT_UNIT_OF_OBSERVATION": "One day on the existing MARKET-05/06 24h decision grid.",
+      "EXACT_OBSERVABLE_FAMILY_AND_RULES": {
+        "rule_1_name": "RV_ABSTENTION",
+        "rule_1_definition": "ABSTAIN(t) = 1 if ev.rv_btc_24h(t) > P90 of its own trailing 250-decision-point rolling distribution (t excluded), else 0.",
+        "rule_2_name": "DISLOCATION_ABSTENTION",
+        "rule_2_definition": "ABSTAIN(t) = 1 if ev.robust_dislocation_z(t) > 2.0 (fixed threshold, reusing the existing frozen z-score construction from MARKET-06's evaluator), else 0.",
+        "note": "Exactly two rules, evaluated independently in this card (no combination -- combination is D5's job)."
+      },
+      "EXACT_SMALL_SEARCH_SURFACE": "Exactly the two rules above at the frozen thresholds (P90 / 2.0). No threshold sweep, no additional observable families.",
+      "EXACT_TARGET_FUNCTIONAL": "For each rule: DELTA = mean(adverse_path_severity | rule ABSTAINS) minus mean(adverse_path_severity | RATE_MATCHED_RANDOM_ABSTENTION control ABSTAINS), where adverse_path_severity reuses the existing MARKET-06 direction-aligned 24h adverse-path severity definition.",
+      "EXACT_SIMPLE_BASELINE_CONTROL": {
+        "primary": "RATE_MATCHED_RANDOM_ABSTENTION per the 2026-09-21 correction: for each rule, compute its realized abstention rate r and count of abstained days per calendar year over the discovery interval; construct 1000 replicate random controls, each drawing -- independently within each calendar year -- the same COUNT of abstained days as the candidate rule abstained that year, sampled uniformly without replacement within the year (temporal composition matched at year granularity).",
+        "secondary_reference_only": "Never-abstain (unconditional) adverse-path severity distribution over the same interval, reported for context only, never used as the significance comparator."
+      },
+      "EXACT_TEMPORAL_BREAKDOWN": "Report DELTA (and its position in the 1000-replicate random-control distribution) separately for 2020, 2021, 2022, 2023, 2024, in addition to the pooled statistic, for each rule independently.",
+      "PROMISING_PROTOTYPE_EVALUATION_FIELDS": {
+        "statistical_threshold": "DELTA exceeds the 95th percentile of the 1000-replicate RATE_MATCHED_RANDOM_ABSTENTION distribution.",
+        "practical_magnitude_threshold": "DELTA is at least 20% relative to the secondary (never-abstain) baseline's mean severity.",
+        "temporal_consistency_check": "At least 3 of the 5 year-buckets individually show DELTA > 0 versus that year's own rate-matched control.",
+        "artifact_check": "Confirm the rule reuses ev.rv_btc_24h / ev.robust_dislocation_z verbatim (unmodified) and that FUNCTION genuinely differs from the already-tested additive-linear-term cell (no accidental re-derivation of the MARKET-05/06 target)."
+      },
+      "deterministic_seed_summary": ["D2_RANDOM_CONTROL_SEED = 20260921102"]
+    },
+    "D3": {
+      "DISCOVERY_ID": "D3",
+      "SPEC_STATUS": "EXECUTABLE_DISCOVERY_SPEC",
+      "descriptor_or_unconditional_choice": "UNCONDITIONAL_DESIGN chosen outcome-blind in this compilation, per the card's stated fallback option. This avoids introducing a new, unreviewed prior-state-descriptor degree of freedom in the same pass that also has to freeze five other cards, and lets D3 proceed without waiting on a separate descriptor-selection unit.",
+      "EXACT_DATASET_AUTHORITY": "CORE_BTC_BINANCE_V0, snapshot_id 717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+      "EXACT_HISTORICAL_DISCOVERY_INTERVAL": "2020-02-01T00:00:00Z -> 2025-01-01T00:00:00Z (global default)",
+      "EXACT_UNIT_OF_OBSERVATION": "One forward-looking 24h path per decision time on the existing MARKET-06 288x5m-bar outcome window (ev.FUTURE_BARS = 288), scored on path shape rather than terminal value.",
+      "EXACT_FUNCTIONAL_DEFINITIONS": {
+        "MAX_ADVERSE_EXCURSION_24h": "Maximum direction-aligned adverse percentage move from entry within the 288-bar forward window (worst point of the path, not the terminal value; direction reuses ev.btc_side_from_ret at entry).",
+        "TIME_TO_MAX_ADVERSE_EXCURSION": "5m-bar offset (0-287) at which MAX_ADVERSE_EXCURSION_24h occurs.",
+        "PATH_ASYMMETRY": "Ratio of MAX_ADVERSE_EXCURSION_24h to MAX_FAVORABLE_EXCURSION_24h (the analogous maximum favorable move over the same window)."
+      },
+      "EXACT_SMALL_SEARCH_SURFACE": "Exactly these 3 functionals; no functional-family fishing; no redefinition after inspection. If any functional is found (on inspection) to collapse to the terminal 24h return/MAE, that functional is reported INVALID_DISCOVERY rather than silently redefined -- reported, not fixed post hoc.",
+      "EXACT_SIMPLE_BASELINE_CONTROL": "Reuses D1's frozen GARCH(1,1)-filtered circular block-bootstrap surrogate family (same fit methodology, block length 20, Student-t innovations) applied to generate 1000 surrogate 24h forward paths; the same 3 functionals are computed on each surrogate path and compared to the empirical functional distributions. Reusing D1's null rather than inventing a bespoke one reduces bespoke-null cherry-picking risk (explicit reusability contemplated in SURROGATE_NULL_REQUIREMENT.reusability_scope).",
+      "EXACT_TEMPORAL_BREAKDOWN": "Report each functional's empirical-vs-surrogate comparison separately for 2020, 2021, 2022, 2023, 2024.",
+      "PROMISING_PROTOTYPE_EVALUATION_FIELDS": {
+        "statistical_threshold": "Empirical functional distribution's mean falls outside the [2.5th, 97.5th] percentile band of the surrogate distribution for that functional.",
+        "practical_magnitude_threshold": "Difference from surrogate median exceeds 15% of the surrogate median for that functional.",
+        "temporal_consistency_check": "At least 3 of the 5 year-buckets individually show the same-direction deviation from their own year's surrogate distribution.",
+        "artifact_check": "Confirm no functional has collapsed into a re-derivation of terminal 24h return/MAE (explicit disqualifier per the card's own TARGET_FAMILY constraint)."
+      },
+      "deterministic_seed_summary": ["D3_NULL_SURROGATE_SEED = 20260921103 (independent draw from D1's null family, same methodology, different seed)"]
+    },
+    "D4": {
+      "DISCOVERY_ID": "D4",
+      "SPEC_STATUS": "EXECUTABLE_DISCOVERY_SPEC",
+      "EXACT_DATASET_AUTHORITY": "CORE_BTC_BINANCE_V0 (snapshot 717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415) paired with CORE_ETH_BINANCE_V0 (snapshot 4b9c113f659e1c1ca71498096dfdc2628a1016346aed40e19020efb64c85ad15, explicit BTC companion snapshot matches).",
+      "EXACT_HISTORICAL_DISCOVERY_INTERVAL": "max(2020-02-01T00:00:00Z, earliest available CORE_ETH_BINANCE_V0 bar) -> 2025-01-01T00:00:00Z. Both snapshots' frozen_target_range start at 2020-01-01, so in practice this resolves to the global default 2020-02-01 -> 2025-01-01 unless execution-time inspection of the ETH source inventory finds a later effective start; that inspection is a data-range check, not an outcome inspection, and is permitted.",
+      "EXACT_UNIT_OF_OBSERVATION": "One BTC-ETH paired 24h decision-point observation, same grid as D1/D3.",
+      "EXACT_FUNCTIONAL_DEFINITIONS": {
+        "ROLLING_CORRELATION_90D": "Pearson correlation of BTC 24h log-return (ev.btc_ret_24h) and ETH 24h log-return, computed over trailing 90-decision-point rolling windows, tracked across the discovery interval.",
+        "LEAD_LAG_1DAY": "Pearson correlation of BTC_ret_24h(t) with ETH_ret_24h(t+1) (ETH lagging BTC by exactly one decision point), computed once over the full interval, compared against the contemporaneous correlation of BTC_ret_24h(t) with ETH_ret_24h(t)."
+      },
+      "EXACT_SMALL_SEARCH_SURFACE": "Exactly these 2 functionals; exactly one frozen lag (1 day) for LEAD_LAG_1DAY; no lag sweep.",
+      "EXACT_SIMPLE_BASELINE_CONTROL": {
+        "unconditional_reference": "Whole-sample unconditional BTC-ETH correlation (existing card's baseline, retained).",
+        "regime_structure_null": "BLOCK_BOOTSTRAP_PAIRED_RETURNS: circular block-bootstrap of contiguous blocks of paired (BTC,ETH) daily-return vectors, block length 20 (matched to D1 for consistency), which preserves each day's contemporaneous BTC-ETH pairing and each series' own short-memory structure while destroying longer-range co-movement regime structure. 1000 replicates.",
+        "lead_lag_null": "Same block-bootstrap replicate set; LEAD_LAG_1DAY computed on each replicate to form its null distribution (expected to center near zero net of block-preserved short-range noise)."
+      },
+      "EXACT_TEMPORAL_BREAKDOWN": "Report ROLLING_CORRELATION_90D range/variance and LEAD_LAG_1DAY separately for 2020, 2021, 2022, 2023, 2024.",
+      "PROMISING_PROTOTYPE_EVALUATION_FIELDS": {
+        "statistical_threshold": "ROLLING_CORRELATION_90D's realized variance across the interval exceeds the 97.5th percentile of the block-bootstrap null's implied variance; OR |LEAD_LAG_1DAY| exceeds the 97.5th percentile of its null distribution in magnitude.",
+        "practical_magnitude_threshold": "Rolling correlation swings by at least 0.15 correlation-points peak-to-trough beyond null-implied noise.",
+        "temporal_consistency_check": "Swing/lead-lag effect not confined to a single calendar year.",
+        "explicit_limitation_carried_forward": "Any positive result remains a two-asset precursor only, not cross-sectional (R-C) evidence, per the existing card's explicit_limitation."
+      },
+      "deterministic_seed_summary": ["D4_NULL_SEED = 20260921104"]
+    },
+    "D5": {
+      "DISCOVERY_ID": "D5",
+      "SPEC_STATUS": "EXECUTABLE_DISCOVERY_SPEC",
+      "independence_justification": "Components are selected on STRUCTURAL AVAILABILITY grounds, not performance grounds: at compile time zero D1-D4 outcomes exist anywhere (this compilation strictly precedes execution of any card), so a performance-based selection is definitionally impossible. The two components chosen are the only two fully-specified, already-frozen binary decision rules anywhere in the sprint (D2's RULE_1 and RULE_2) -- D1/D3/D4 characterize state/path/relative-structure, none of which yields a binary abstain/expose rule, so they are not candidate components for a composed decision mechanism at all.",
+      "EXACT_DATASET_AUTHORITY": "CORE_BTC_BINANCE_V0, snapshot_id 717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+      "EXACT_HISTORICAL_DISCOVERY_INTERVAL": "2020-02-01T00:00:00Z -> 2025-01-01T00:00:00Z (global default)",
+      "EXACT_UNIT_OF_OBSERVATION": "One day on the existing MARKET-05/06 24h decision grid, same as D2.",
+      "EXACT_COMPONENTS": {
+        "component_A": "D2 RULE_1 (RV_ABSTENTION) verbatim, unmodified, same threshold (P90 / 250-point rolling baseline).",
+        "component_B": "D2 RULE_2 (DISLOCATION_ABSTENTION) verbatim, unmodified, same threshold (z > 2.0)."
+      },
+      "EXACT_COMPOSITION_OPERATOR": "OR: COMPOSED_ABSTAIN(t) = 1 if component_A(t)=1 OR component_B(t)=1, else 0. AND-composition is explicitly NOT tested in this sprint (reserved for a possible future card, kept out of this frozen surface).",
+      "EXACT_SMALL_SEARCH_SURFACE": "Exactly one composition (OR) of exactly the two named components at their existing D2 parameterization. No combinatorial search over which components to combine, no parameter retuning.",
+      "EXACT_TARGET_FUNCTIONAL": "Reuses D2's exact DELTA definition (mean adverse_path_severity | ABSTAIN minus RATE_MATCHED_RANDOM_ABSTENTION control | ABSTAIN), applied to COMPOSED_ABSTAIN.",
+      "EXACT_SIMPLE_BASELINE_CONTROL": {
+        "primary": "RATE_MATCHED_RANDOM_ABSTENTION, reusing D2's exact construction methodology (year-matched random abstention at COMPOSED_ABSTAIN's realized rate), 1000 replicates.",
+        "beat_best_component": "COMPOSED DELTA must exceed BOTH component_A's own DELTA (from D2) and component_B's own DELTA (from D2), not merely beat doing nothing."
+      },
+      "EXACT_TEMPORAL_BREAKDOWN": "Same year-by-year breakdown as D2 (2020-2024).",
+      "PROMISING_PROTOTYPE_EVALUATION_FIELDS": {
+        "statistical_threshold": "COMPOSED DELTA exceeds the 95th percentile of its 1000-replicate RATE_MATCHED_RANDOM_ABSTENTION distribution.",
+        "practical_magnitude_threshold": "Same 20%-relative-to-secondary-baseline bar as D2.",
+        "beats_best_component_check": "COMPOSED DELTA > max(component_A DELTA, component_B DELTA) from D2's own results.",
+        "multiple_testing_note": "This is explicitly a THIRD look at the RV/dislocation observable family (after D2's two individual rules). Any eventual confirmatory proposal arising from D5 must account for that multiplicity across D2A/D2B/D5 jointly, not evaluate D5 as an isolated first look."
+      },
+      "deterministic_seed_summary": ["D5_RANDOM_CONTROL_SEED = 20260921105"]
+    },
+    "D6": {
+      "DISCOVERY_ID": "D6",
+      "SPEC_STATUS": "EXECUTABLE_DISCOVERY_SPEC",
+      "pinned_before_reproduction": true,
+      "selection_basis": "Chosen for being fully reconstructible from CORE_BTC_BINANCE_V0 price data alone (no new data acquisition), publicly documented with a stated formula (not a proprietary/ambiguous source), and materially different in construction and claim from MARKET-03. NOT chosen by comparing multiple external candidates' reproduction performance -- no reproduction has been run.",
+      "EXACT_SOURCE_IDENTITY": "\"Pi Cycle Top Indicator\": a publicly documented BTC technical indicator (111-day SMA crossing above 2x the 350-day SMA), originally popularized by Philip Swift / LookIntoBitcoin. No source-code repository or paper exists for this indicator; the citable version is the canonical public formula itself -- no proprietary variant, no alternate parameterization.",
+      "EXTERNALLY_STATED_MECHANISM": "A crossover of the 111-day simple moving average above 2x the 350-day simple moving average of BTC price has historically coincided closely (within days, per the source's public description) with local BTC price cycle tops in the 2013, 2017, and 2021 cycles.",
+      "EXTERNALLY_STATED_TARGET": "Calendar-day proximity between a crossover-signal date and the subsequent realized local BTC price maximum (cycle top).",
+      "EXTERNALLY_STATED_COMPARATOR": "None formally published -- the original source presents this as a descriptive/visual historical coincidence, not a backtested strategy with a stated statistical baseline. This absence is recorded as an explicit LIMITATION, not silently filled in after the fact: Signalbot's reproduction supplies its own comparator (below), which is Signalbot's addition, not the external source's.",
+      "EXACT_DATASET_AUTHORITY": "CORE_BTC_BINANCE_V0, snapshot_id 717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415, daily closes derived from the existing 1m archive.",
+      "EXACT_HISTORICAL_DISCOVERY_INTERVAL": "Full CORE_BTC_BINANCE_V0 history available before 2025-01-01T00:00:00Z (i.e. 2020-01-01T00:00:00Z -> 2025-01-01T00:00:00Z, hard-capped to keep protected 2025/2026 unopened). Known limitation: the source's originally-cited 2013 and 2017 coincidences predate this dataset's coverage and cannot be reproduced here; only whatever 111/350-day crossovers occur within 2020-2025 (expected to include at most the 2021 cycle top region) are reproducible. This partiality is reported as a limitation, not concealed.",
+      "EXACT_UNIT_OF_OBSERVATION": "One daily close per calendar day.",
+      "EXACT_SMALL_SEARCH_SURFACE": "Reproduction of the externally specified 111-day / 2x350-day SMA crossover only; no internal parameter variant search (no alternate SMA lengths, no alternate multiplier).",
+      "SIGNALBOT_SUPPLIED_COMPARATOR": "Naive baseline: proximity (in calendar days) between the nearest local BTC price maximum and a randomly chosen date within a fixed +/-180-day window, repeated 1000 times per crossover event with a fixed seed, to give an empirical null for 'how close is a local max to an arbitrary nearby date' against which the crossover-to-top proximity is compared.",
+      "EXACT_TEMPORAL_BREAKDOWN": "Reported per individual crossover event found in-window (expected to be a small number of discrete events, not a year-by-year continuous series), each with its own proximity-to-comparator comparison.",
+      "PROMISING_PROTOTYPE_EVALUATION_FIELDS": {
+        "reproduction_threshold": "Observed crossover-to-top proximity is closer (fewer calendar days) than at least 95% of the 1000 random-date replicates, for the in-window crossover event(s).",
+        "diagnostic_use_only": "A PROMISING or reproduced result here calibrates confidence in the discovery pipeline's own baseline/search-surface/prototype-gate design; it is NOT recorded as an internal discovery success and does NOT add an internal edge candidate.",
+        "counts_toward": "EXTERNAL_PROMISING_OR_REPRODUCED only, never INTERNAL_PROMISING_PROTOTYPES."
+      },
+      "deterministic_seed_summary": ["D6_COMPARATOR_SEED = 20260921106 (naive random-date comparator only; the crossover rule itself is deterministic, no RNG)"]
+    }
+  },
+  "cross_sectional_panel_feasibility_sidecar_finalized_spec": {
+    "id": "CROSS_SECTIONAL_PANEL_FEASIBILITY",
+    "is_a_discovery_card": false,
+    "still_outcome_blind": true,
+    "no_signal_or_outcome_statistics_computed": true,
+    "methods_frozen_not_answers": {
+      "point_in_time_universe_availability": "Method: enumerate exchange trading-pair listing/delisting history via the venue's public symbol-status API/documentation, cross-referenced against the repository's existing inventory of already-downloaded historical archives (docs/research_data/*). No answer computed in this unit.",
+      "listing_delisting_reconstruction": "Method: for each candidate instrument, record its earliest and latest tradable dates as reported by the venue's own historical listing metadata (not inferred from price-data presence/absence, which would conflate delisting with an acquisition gap). No answer computed in this unit.",
+      "survivorship_controls": "Method: document, for each candidate universe-construction rule, whether it would include instruments that later delisted, using only information that would have been available at each historical point in time (as-of construction). No answer computed in this unit.",
+      "liquidity_eligibility_data": "Method: identify what volume/liquidity threshold data sources exist per venue (e.g. published daily volume archives) and whether they are available point-in-time (not just currently). No answer computed in this unit.",
+      "approximate_panel_size": "Method: once the above three are answered, compute N_instruments x N_periods as a simple counting exercise from the resulting eligible universe definition -- explicitly NOT a signal or outcome statistic, a pure cardinality count. No answer computed in this unit.",
+      "acquisition_engineering_cost": "Method: rough order-of-magnitude estimate of archive downloads, storage, and loader/parser engineering required, scaled from the known CORE_BTC_BINANCE_V0/CORE_ETH_BINANCE_V0 acquisition effort as a reference point. No answer computed in this unit."
+    },
+    "status": "SPEC_FINALIZED_NO_ANSWERS_COMPUTED"
+  },
+  "sprint_execution_manifest": {
+    "EXECUTABLE_DISCOVERY_SPEC": ["D1", "D2", "D3", "D4", "D5", "D6"],
+    "DEFERRED": [],
+    "executable_count": 6,
+    "deferred_count": 0,
+    "zero_useful_cards_executable": false
+  },
+  "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+  "CANDIDATE_PERFORMANCE_INSPECTED": false,
+  "MARKET_07_CREATED": false,
+  "PROTECTED_2025_OPENED": false,
+  "PROTECTED_2026_OPENED": false,
+  "NEXT_UNIT": "DISCOVERY_SPRINT_01_EXECUTION"
+}
