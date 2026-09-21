@@ -7,9 +7,15 @@
 - **Date:** 2026-09-21
 - **Machine-readable twin:** [`MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.json`](MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.json)
 
-This document is the complete outcome-blind MARKET-06 scientific contract.
-It does **not** freeze (a separate docs-only freeze is required), ARM,
+This document is the complete outcome-blind MARKET-06 scientific contract
+after pre-outcome amendment 001
+(`MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_AMENDMENT_001`). It does
+**not** freeze (a separate docs-only freeze is required), ARM,
 implement an evaluator, execute, or create RESULT.
+
+The first frozen payload remains historical at
+`MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_V0.md` /
+`.json` (`OLD_PREREG_CONTENT_HEAD = b21bf46dcc39a2b9243c4172f731cd4d3fbf79b1`).
 
 No MARKET-06 OHLC values, dislocation values, eligible-row counts from
 price data, future returns, MAE, betas, or holdout metrics were inspected
@@ -175,6 +181,7 @@ Let `e` be the unique boundary `FEATURE_CUTOFF`. Then:
 
 ```text
 D_e = D(FEATURE_CUTOFF)
+D_E = D_e
 ```
 
 **Reference set (exactly 8640 preceding 5m dislocations, current excluded):**
@@ -190,18 +197,23 @@ missing or non-finite: the decision row is `ROW_NOT_ELIGIBLE` for
 **both** models.
 
 ```text
-MED_e = numpy.median(REF_e)          # n=8640 even; mean of items 4320 and 4321 of the sorted sample
-MAD_e = numpy.median( |D_ref - MED_e| for D_ref in REF_e )
+CENTER_T = numpy.median(REF_e)   # n=8640 even; mean of items 4320 and 4321 of the sorted sample
+MAD_T    = numpy.median( |D_ref - CENTER_T| for D_ref in REF_e )
+ROBUST_SCALE_T = 1.4826 * MAD_T
+MAD_CONSISTENCY_CONSTANT = 1.4826
+MAD_CONSISTENCY_CONSTANT_ENABLED = true
 ```
 
-No 1.4826 consistency constant. No clipping, winsorization, percentile
-transform, or rank transform of `D`.
+Do **not** use raw `MAD_T` as the z-score denominator. No clipping,
+winsorization, percentile transform, or rank transform of `D`.
 
 ```text
-MAD_e <= 0  =>  ROW_NOT_ELIGIBLE
-Z_e = (D_e - MED_e) / MAD_e
-ABS_DISLOCATION_Z = abs(Z_e)
-PRIMARY_FEATURE = ABS_DISLOCATION_Z
+MAD_T <= 0  =>  ROW_NOT_ELIGIBLE
+DISLOCATION_Z_T = (D_E - CENTER_T) / ROBUST_SCALE_T
+                = (D_E - CENTER_T) / (1.4826 * MAD_T)
+ABS_DISLOCATION_Z_T = abs(DISLOCATION_Z_T)
+ABS_DISLOCATION_Z   = ABS_DISLOCATION_Z_T
+PRIMARY_FEATURE     = ABS_DISLOCATION_Z
 ```
 
 `ABS_DISLOCATION_Z` remains CONTINUOUS. No threshold or bucket defines
@@ -219,6 +231,7 @@ BTC_SIDE    = sign(BTC_RET_24H)     # +1 if >0, -1 if <0
 
 ```text
 BTC_RET_24H == 0  =>  ROW_NOT_ELIGIBLE
+ABS_BTC_RET_24H = abs(BTC_RET_24H)
 ```
 
 Exact-zero exclusion only. No epsilon / minimum-move threshold.
@@ -238,10 +251,8 @@ No annualization. No alternative volatility estimator.
 Fewer or more than 288 returns, any unavailable required perp bar, or
 non-finite/`<= 0` `RV_BTC_24H`: `ROW_NOT_ELIGIBLE`.
 
-```text
-Z_BTC     = BTC_RET_24H / RV_BTC_24H
-ABS_Z_BTC = abs(Z_BTC)
-```
+`ABS_Z_BTC` is **not** a scientific control and must not appear as a
+baseline or candidate regressor.
 
 Spot prices do not enter BTC own-state controls.
 
@@ -252,34 +263,34 @@ Spot prices do not enter BTC own-state controls.
 ```text
 PRIMARY_OUTCOME = 24H_DIRECTION_ALIGNED_BTC_MAE
 Y_NAME          = 24H_DIRECTION_ALIGNED_BTC_MAE
+OUTCOME_SCALE   = ARITHMETIC_FRACTIONAL_EXCURSION
 OUTCOME_HORIZON = 24 hours
 FUTURE_BARS     = 288 Binance perp 5m OHLC bars
-ENTRY           = open of the Binance perp 5m bar with open_time = T
+ENTRY_PRICE     = open of the Binance perpetual 5m bar with bar_start == T
 PATH_WINDOW     = bars with open_time in [T, T+24h)
 ```
 
 Use Binance perp OHLC only. No final-return substitution. No MFE/PnL
-substitution. No spot path.
+substitution. No spot path. Do **not** use logarithmic adverse
+excursion (`ln(ENTRY / min_low)` or `ln(max_high / ENTRY)`).
 
 For `BTC_SIDE = +1`:
 
 ```text
-ADVERSE_PRICE = minimum low among the 288 path bars
-Y = max(0, ln(ENTRY / ADVERSE_PRICE))
+Y_T = max(0, (ENTRY_PRICE - min(FUTURE_LOW)) / ENTRY_PRICE)
 ```
 
 For `BTC_SIDE = -1`:
 
 ```text
-ADVERSE_PRICE = maximum high among the 288 path bars
-Y = max(0, ln(ADVERSE_PRICE / ENTRY))
+Y_T = max(0, (max(FUTURE_HIGH) - ENTRY_PRICE) / ENTRY_PRICE)
 ```
 
-Thus `Y >= 0`. Higher `Y` = worse adverse excursion against the
+Thus `Y_T >= 0`. Higher `Y_T` = worse adverse excursion against the
 pre-cutoff BTC direction.
 
 Missing/non-finite required OHLC on any of the 288 path bars, or
-non-positive `ENTRY` or `ADVERSE_PRICE`: `ROW_NOT_ELIGIBLE`.
+non-positive `ENTRY_PRICE`: `ROW_NOT_ELIGIBLE`.
 
 ---
 
@@ -289,12 +300,12 @@ A decision `T` is confirmatory-eligible iff all of:
 
 1. `T` is a frozen grid time in §8;
 2. `D_e` and all 8640 refs finite (both venues legal, `confirm=1` for OKX);
-3. `MAD_e > 0`;
+3. `MAD_T > 0`;
 4. `BTC_RET_24H` finite and `!= 0`;
 5. `RV_BTC_24H` finite and `> 0` from exactly 288 5m returns;
 6. all required feature bars have `bar_end_exclusive <= FEATURE_CUTOFF`;
 7. all 288 outcome bars exist with finite OHLC;
-8. `Y` finite.
+8. `Y_T` finite.
 
 Fail closed. Never interpolate, forward-fill, upsample, or repair gaps.
 Missingness is not zero dislocation and not zero return.
@@ -307,20 +318,20 @@ ineligible for both. Do not compute eligible-row counts in this unit.
 ## 7. Exact baseline and candidate
 
 ```text
-BASELINE_MODEL  = Y ~ BTC_SIDE + ABS_Z_BTC + RV_BTC_24H
-CANDIDATE_MODEL = Y ~ BTC_SIDE + ABS_Z_BTC + RV_BTC_24H + ABS_DISLOCATION_Z
+BASELINE_MODEL  = Y ~ 1 + BTC_SIDE + ABS_BTC_RET_24H + RV_BTC_24H
+CANDIDATE_MODEL = Y ~ 1 + BTC_SIDE + ABS_BTC_RET_24H + RV_BTC_24H + ABS_DISLOCATION_Z
 ```
 
 Baseline design matrix columns, in order:
 
 ```text
-[ INTERCEPT, BTC_SIDE, ABS_Z_BTC, RV_BTC_24H ]
+[ INTERCEPT, BTC_SIDE, ABS_BTC_RET_24H, RV_BTC_24H ]
 ```
 
 Candidate = exact baseline plus `ABS_DISLOCATION_Z` as the last column.
 
 ```text
-[ INTERCEPT, BTC_SIDE, ABS_Z_BTC, RV_BTC_24H, ABS_DISLOCATION_Z ]
+[ INTERCEPT, BTC_SIDE, ABS_BTC_RET_24H, RV_BTC_24H, ABS_DISLOCATION_Z ]
 ```
 
 No interaction terms. No polynomial terms. No signed `D_e` as a
@@ -388,7 +399,7 @@ x_std = (x - train_mean) / train_sd
 ```
 
 `BTC_SIDE` is not standardized. `INTERCEPT` is not standardized.
-Continuous features: `ABS_Z_BTC`, `RV_BTC_24H`, and (candidate only)
+Continuous features: `ABS_BTC_RET_24H`, `RV_BTC_24H`, and (candidate only)
 `ABS_DISLOCATION_Z`.
 
 Zero or non-finite train sd for any continuous feature: fail closed
@@ -484,7 +495,8 @@ coefficient replicate is non-finite/rank-deficient:
 
 ```text
 GATE_1_DIRECTION              = TRAIN BETA_ABS_DISLOCATION_Z > 0
-GATE_2_DIRECTION_UNCERTAINTY  = 95% block-bootstrap upper confidence bound for BETA_ABS_DISLOCATION_Z > 0
+GATE_2_DIRECTION_UNCERTAINTY  = 95% block-bootstrap LOWER confidence bound for BETA_ABS_DISLOCATION_Z > 0
+GATE_2_EXACT_PREDICATE        = BETA_ABS_DISLOCATION_Z_CI95_LOW > 0
 GATE_3_PREDICTIVE_SIGN        = RELATIVE_MAE_IMPROVEMENT > 0
 GATE_4_PREDICTIVE_UNCERTAINTY = 95% block-bootstrap lower confidence bound for RELATIVE_MAE_IMPROVEMENT > 0
 GATE_5_MATERIALITY            = RELATIVE_MAE_IMPROVEMENT >= 0.02
@@ -544,9 +556,10 @@ strategy, causal proof, OOS confirmation, or production readiness.
 If `NO_EVIDENCE`, the exact MARKET-06 formulation is closed. Forbidden
 rescue under the same identity: signed dislocation; Bybit spot; Binance
 spot; different UTC hour; 12h/48h horizon; z-score using mean/sd
-instead of median/MAD; 1.4826 MAD scale; 7d/60d refs; adding
-interactions; nonlinear models; year-subsetting; lowering 2%; refitting
-on holdouts; opening 2025/2026.
+instead of median/MAD; removing the 1.4826 robust scale or using raw
+MAD as the denominator; restoring `ABS_Z_BTC`; logarithmic MAE;
+7d/60d refs; adding interactions; nonlinear models; year-subsetting;
+lowering 2%; refitting on holdouts; opening 2025/2026.
 
 A materially different rule requires a **new** hypothesis ID.
 

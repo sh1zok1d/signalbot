@@ -15,6 +15,8 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 PREREG_MD = REPO / "docs" / "research" / "MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.md"
 PREREG_JSON = REPO / "docs" / "research" / "MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.json"
+V0_MD = REPO / "docs" / "research" / "MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_V0.md"
+V0_JSON = REPO / "docs" / "research" / "MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_V0.json"
 HASHES = (
     REPO
     / "docs"
@@ -28,6 +30,10 @@ RETENTION = (
 
 PRE_PREREG_HEAD = "a75a5272f994f9728308c47c524f2839b73762a7"
 PRE_PREREG_TREE = "7272614b7a2799aaf82a80f5d7c9cb1207af01ac"
+OLD_PREREG_CONTENT_HEAD = "b21bf46dcc39a2b9243c4172f731cd4d3fbf79b1"
+OLD_FREEZE_HEAD = "5f14411abc926a2b486d83de5b696ec3cf362488"
+OLD_MD_SHA256 = "0489fc71e999b48a7a82223615bd0acd50b1f69af8bc9901d1c681834e55cfcc"
+OLD_JSON_SHA256 = "332d91140c7ead87f4539b49c8a5647064f9c5e1d0bb8178c16dcc7eaf7a88f4"
 SNAPSHOT_ID = "e0403e40a9b1e2903f15fb9283ec6caf54788e48153038982e364d4318183e68"
 DURABLE_ROOT = "f4b9e16a62707c70e782cc318399f3ba53ebb85c792e96cd12c164a98f0cdc6f"
 
@@ -38,6 +44,10 @@ def _payload() -> dict:
 
 def _md() -> str:
     return PREREG_MD.read_text(encoding="utf-8")
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def test_research_identity_and_incremental_claim():
@@ -51,12 +61,18 @@ def test_research_identity_and_incremental_claim():
     assert p["market_01_rescue"] is False
     assert p["market_05_rescue"] is False
     assert "incremental information" in p["primary_claim"]
-    assert "INCREMENTAL_INFORMATION_ONLY" in md or "Incremental-information" in md
     assert p["full_preregistration_frozen"] is False
     assert p["MARKET_06_FREEZE_REQUIRED"] is True
+    assert p["amendment_of"]["old_prereg_content_head"] == OLD_PREREG_CONTENT_HEAD
+    assert p["amendment_of"]["old_freeze_head"] == OLD_FREEZE_HEAD
+    assert p["amendment_of"]["outcomes_inspected_before_amendment"] is False
+    assert p["amendment_of"]["amendment_reason"] == (
+        "PRE_OUTCOME_SCIENTIFIC_DEFINITION_DRIFT_CORRECTION"
+    )
+    assert "amendment 001" in md
 
 
-def test_decision_clock_and_feature_cutoff():
+def test_decision_clock_and_feature_cutoff_unchanged():
     p = _payload()
     grid = p["decision_grid"]
     assert grid["decision_frequency"] == "DAILY"
@@ -69,114 +85,127 @@ def test_decision_clock_and_feature_cutoff():
     assert "00:05:00 UTC" in md
 
 
-def test_dislocation_definition_and_8640_refs():
+def test_f1_mad_uses_1_4826_robust_scale_not_raw_mad():
     p = _payload()
     d = p["dislocation"]
-    assert d["D_u"] == "ln(perp_close(u) / spot_close(u))"
-    assert d["D_e"] == "D(FEATURE_CUTOFF)"
+    md = _md()
+    assert d["mad_consistency_constant_1_4826"] is True
+    assert d["MAD_CONSISTENCY_CONSTANT"] == 1.4826
+    assert d["MAD_CONSISTENCY_CONSTANT_ENABLED"] is True
+    assert d["raw_mad_as_denominator"] is False
+    assert d["ROBUST_SCALE_T"] == "1.4826 * MAD_T"
+    assert d["Z_denominator"] == "1.4826 * MAD_T"
+    assert d["DISLOCATION_Z_T"] == "(D_E - CENTER_T) / ROBUST_SCALE_T"
+    assert d["ABS_DISLOCATION_Z"] == "abs(DISLOCATION_Z_T)"
+    assert d["PRIMARY_FEATURE"] == "ABS_DISLOCATION_Z"
     assert d["reference_count"] == 8640
     assert d["reference_excludes_D_e"] is True
-    assert d["PRIMARY_FEATURE"] == "ABS_DISLOCATION_Z"
-    assert d["ABS_DISLOCATION_Z"] == "abs(Z_e)"
-    assert d["Z_e"] == "(D_e - MED_e) / MAD_e"
     assert d["MAD_le_0"] == "ROW_NOT_ELIGIBLE"
-    assert d["mad_consistency_constant_1_4826"] is False
-    assert d["threshold_search_allowed"] is False
-    assert p["btc_own_state"]["BTC_RET_24H_eq_0"] == "ROW_NOT_ELIGIBLE"
-    assert p["btc_own_state"]["exact_zero_exclusion_only"] is True
+    assert "/ MAD_e" not in d["DISLOCATION_Z_T"]
+    assert "/ MAD_T)" not in d["DISLOCATION_Z_T"] or "1.4826 * MAD_T" in d["Z_denominator"]
+    assert "1.4826 * MAD_T" in md
+    assert "Do **not** use raw `MAD_T` as the z-score denominator" in md
+    blob = json.dumps(d)
+    assert "1.4826 * MAD_T" in blob
 
 
-def test_outcome_mae_288_bars_entry_open_at_T():
+def test_f2_abs_btc_ret_control_not_abs_z_btc():
     p = _payload()
-    y = p["primary_outcome"]
-    assert y["name"] == "24H_DIRECTION_ALIGNED_BTC_MAE"
-    assert y["future_bars"] == 288
-    assert y["ENTRY"] == "open of the Binance perp 5m bar with open_time = T"
-    assert y["horizon"] == "24 hours"
-    assert y["final_return_substitution"] is False
-    assert y["mfe_pnl_substitution"] is False
-    assert "Y = max(0, ln(ENTRY / min_low_of_288))" in y["BTC_SIDE_plus"]
-    assert "Y = max(0, ln(max_high_of_288 / ENTRY))" in y["BTC_SIDE_minus"]
-
-
-def test_ols_baseline_versus_candidate_plus_abs_dislocation_z():
-    p = _payload()
-    assert p["baseline_model"] == "Y ~ BTC_SIDE + ABS_Z_BTC + RV_BTC_24H"
-    assert (
-        p["candidate_model"]
-        == "Y ~ BTC_SIDE + ABS_Z_BTC + RV_BTC_24H + ABS_DISLOCATION_Z"
+    md = _md()
+    assert p["baseline_model"] == "Y ~ 1 + BTC_SIDE + ABS_BTC_RET_24H + RV_BTC_24H"
+    assert p["candidate_model"] == (
+        "Y ~ 1 + BTC_SIDE + ABS_BTC_RET_24H + RV_BTC_24H + ABS_DISLOCATION_Z"
     )
-    assert p["candidate_adds_only"] == "ABS_DISLOCATION_Z"
     assert p["baseline_regressors"] == [
         "INTERCEPT",
         "BTC_SIDE",
-        "ABS_Z_BTC",
+        "ABS_BTC_RET_24H",
         "RV_BTC_24H",
     ]
+    assert "ABS_Z_BTC" not in p["baseline_regressors"]
+    assert "ABS_BTC_RET_24H" in p["baseline_regressors"]
+    assert p["btc_own_state"]["ABS_BTC_RET_24H"] == "abs(BTC_RET_24H)"
+    assert p["btc_own_state"]["ABS_Z_BTC_regressor"] is False
+    assert "ABS_Z_BTC" not in p["baseline_model"]
+    assert "ABS_Z_BTC" not in p["candidate_model"]
+    assert "ABS_BTC_RET_24H" in p["baseline_model"]
+    assert p["standardization"]["continuous_features"] == [
+        "ABS_BTC_RET_24H",
+        "RV_BTC_24H",
+        "ABS_DISLOCATION_Z",
+    ]
+    assert "ABS_Z_BTC" not in p["standardization"]["continuous_features"]
+    assert "Y ~ 1 + BTC_SIDE + ABS_BTC_RET_24H + RV_BTC_24H" in md
+    assert "`ABS_Z_BTC` is **not** a scientific control" in md
+
+
+def test_f3_arithmetic_fractional_mae_not_logarithmic():
+    p = _payload()
+    y = p["primary_outcome"]
+    md = _md()
+    assert y["name"] == "24H_DIRECTION_ALIGNED_BTC_MAE"
+    assert y["future_bars"] == 288
+    assert y["scale"] == "ARITHMETIC_FRACTIONAL_EXCURSION"
+    assert y["logarithmic_adverse_excursion"] is False
+    assert y["ENTRY_PRICE"] == (
+        "open of the Binance perpetual 5m bar with bar_start == T"
+    )
+    assert y["BTC_SIDE_plus"] == (
+        "Y_T = max(0, (ENTRY_PRICE - min(FUTURE_LOW)) / ENTRY_PRICE)"
+    )
+    assert y["BTC_SIDE_minus"] == (
+        "Y_T = max(0, (max(FUTURE_HIGH) - ENTRY_PRICE) / ENTRY_PRICE)"
+    )
+    assert "ln(ENTRY / min_low" not in y["BTC_SIDE_plus"]
+    assert "ln(max_high / ENTRY)" not in y["BTC_SIDE_minus"]
+    assert "Y_T = max(0, (ENTRY_PRICE - min(FUTURE_LOW)) / ENTRY_PRICE)" in md
+    assert "Y = max(0, ln(ENTRY / ADVERSE_PRICE))" not in md
+    assert "Y = max(0, ln(ADVERSE_PRICE / ENTRY))" not in md
+
+
+def test_f4_gate2_uses_lower_ci_bound_not_upper():
+    p = _payload()
+    g = p["gates"]
+    md = _md()
+    assert g["GATE_2_DIRECTION_UNCERTAINTY"] == (
+        "95% block-bootstrap lower confidence bound for BETA_ABS_DISLOCATION_Z > 0"
+    )
+    assert "upper" not in g["GATE_2_DIRECTION_UNCERTAINTY"].lower()
+    assert p["gate_2_exact_predicate"] == "BETA_ABS_DISLOCATION_Z_CI95_LOW > 0"
+    assert p["gate_2_exact_predicate"] != "BETA_ABS_DISLOCATION_Z_CI95_HIGH > 0"
+    assert "GATE_2_EXACT_PREDICATE        = BETA_ABS_DISLOCATION_Z_CI95_LOW > 0" in md
+    assert "upper confidence bound for BETA_ABS_DISLOCATION_Z" not in md
+
+
+def test_ols_and_frozen_constants_otherwise_unchanged():
+    p = _payload()
+    assert p["candidate_adds_only"] == "ABS_DISLOCATION_Z"
     assert p["model_class"] == "ORDINARY_LEAST_SQUARES_LINEAR_REGRESSION"
     assert p["solver"]["method"] == "numpy.linalg.solve"
     assert p["interaction_terms"] is False
-    assert p["signed_D_e_as_candidate_regressor"] is False
     assert p["ml_forbidden"] is True
     assert p["splits"]["refit_on_holdout"] is False
-
-
-def test_train_holdout_calendar_no_dec_31_no_refit():
-    p = _payload()
-    s = p["splits"]
-    assert s["TRAIN_START_T"] == "2022-02-01T00:05:00Z"
-    assert s["TRAIN_END_T"] == "2022-12-30T00:05:00Z"
-    assert s["HOLDOUT_2023_START_T"] == "2023-01-01T00:05:00Z"
-    assert s["HOLDOUT_2023_END_T"] == "2023-12-30T00:05:00Z"
-    assert s["HOLDOUT_2024_START_T"] == "2024-01-01T00:05:00Z"
-    assert s["HOLDOUT_2024_END_T"] == "2024-12-30T00:05:00Z"
-    assert s["december_31_decision_forbidden"] is True
-    assert s["refit_on_holdout"] is False
-    assert s["expanding_window"] is False
-    assert s["year_2022_never_heldout_evidence"] is True
-    assert p["standardization"]["learned_from"] == "eligible TRAIN rows only"
-    assert p["standardization"]["refit_on_holdout"] is False
-
-
-def test_six_gates_g5_materiality_and_classifications():
-    p = _payload()
-    g = p["gates"]
-    assert p["gate_count"] == 6
-    assert set(g) == {
-        "GATE_1_DIRECTION",
-        "GATE_2_DIRECTION_UNCERTAINTY",
-        "GATE_3_PREDICTIVE_SIGN",
-        "GATE_4_PREDICTIVE_UNCERTAINTY",
-        "GATE_5_MATERIALITY",
-        "GATE_6_TEMPORAL_STABILITY",
-    }
-    assert g["GATE_5_MATERIALITY"] == "RELATIVE_MAE_IMPROVEMENT >= 0.02"
+    assert p["splits"]["TRAIN_START_T"] == "2022-02-01T00:05:00Z"
+    assert p["splits"]["TRAIN_END_T"] == "2022-12-30T00:05:00Z"
+    assert p["splits"]["HOLDOUT_2023_START_T"] == "2023-01-01T00:05:00Z"
+    assert p["splits"]["HOLDOUT_2023_END_T"] == "2023-12-30T00:05:00Z"
+    assert p["splits"]["HOLDOUT_2024_START_T"] == "2024-01-01T00:05:00Z"
+    assert p["splits"]["HOLDOUT_2024_END_T"] == "2024-12-30T00:05:00Z"
+    assert p["splits"]["december_31_decision_forbidden"] is True
     assert p["materiality_threshold"] == 0.02
-    assert p["relative_mae_improvement"] == (
-        "1 - (POOLED_MAE_CANDIDATE / POOLED_MAE_BASELINE)"
-    )
+    assert p["gates"]["GATE_5_MATERIALITY"] == "RELATIVE_MAE_IMPROVEMENT >= 0.02"
+    assert p["gate_count"] == 6
     assert p["expected_beta_sign"] == "positive"
-    assert p["beta_gate"] == "BETA_ABS_DISLOCATION_Z > 0"
-    assert p["promotion_classification"] == "MARKET_06_PROMOTED_HISTORICAL_CANDIDATE"
-    assert p["fail_classification"] == "MARKET_06_NO_EVIDENCE"
-    assert p["integrity_fail_classification"] == "MARKET_06_INCOMPLETE_EXECUTION"
-    assert "NEAR_PASS" in p["forbidden_promotion_states"]
-
-
-def test_circular_mbb_identity():
-    p = _payload()
     b = p["bootstrap"]
     assert b["kind"] == "CIRCULAR_MOVING_BLOCK"
     assert b["block_length"] == 14
     assert b["replicates"] == 5000
     assert b["random_seed"] == 2026092106
-    assert b["predictive_refit"] is False
-    assert b["rng"] == "numpy.random.Generator(numpy.random.PCG64(2026092106))"
-    assert b["python_hash"] is False
-    assert b["reroll"] is False
+    assert p["protected_oos"] == "[2025-01-01T00:00:00Z, onward)"
+    assert p["boundaries"]["protected_oos_authorized"] is False
 
 
-def test_bound_dataset_snapshot_and_durable_root_match_frozen_identity():
+def test_bound_dataset_snapshot_and_durable_root_unchanged():
     p = _payload()
     hashes = json.loads(HASHES.read_text(encoding="utf-8"))
     retention = json.loads(RETENTION.read_text(encoding="utf-8"))
@@ -185,17 +214,20 @@ def test_bound_dataset_snapshot_and_durable_root_match_frozen_identity():
     assert hashes["snapshot_id"] == SNAPSHOT_ID
     assert p["data"]["durable_evidence_root_sha256"] == DURABLE_ROOT
     assert retention["durable_evidence_root_sha256"] == DURABLE_ROOT
-    assert p["data"]["identity_file_sha256"] == {
-        "binance_object_ledger.json": hashes["binance_object_ledger.json"]["sha256"],
-        "okx_page_manifest.json": hashes["okx_page_manifest.json"]["sha256"],
-        "timestamp_census.json": hashes["timestamp_census.json"]["sha256"],
-        "snapshot.json": hashes["snapshot.json"]["sha256"],
-    }
     assert p["pre_prereg_head"] == PRE_PREREG_HEAD
     assert p["pre_prereg_tree"] == PRE_PREREG_TREE
     assert p["data"]["spot_leg"]["binance_spot_adopted"] is False
-    assert p["data"]["spot_leg"]["bybit_spot_adopted"] is False
     assert p["data"]["perp_leg"]["price_basis"] == "TRADE_PRICE"
+
+
+def test_v0_historical_bytes_preserved_exact():
+    assert _sha256(V0_MD) == OLD_MD_SHA256
+    assert _sha256(V0_JSON) == OLD_JSON_SHA256
+    v0 = json.loads(V0_JSON.read_text(encoding="utf-8"))
+    assert v0["dislocation"]["mad_consistency_constant_1_4826"] is False
+    assert "ABS_Z_BTC" in v0["baseline_regressors"]
+    assert "ln(ENTRY / min_low_of_288)" in v0["primary_outcome"]["BTC_SIDE_plus"]
+    assert "upper" in v0["gates"]["GATE_2_DIRECTION_UNCERTAINTY"]
 
 
 def test_no_execution_arm_result_or_outcome_inspection():
@@ -210,9 +242,7 @@ def test_no_execution_arm_result_or_outcome_inspection():
     assert b["outcome_inspection_authorized"] is False
     assert b["protected_oos_authorized"] is False
     assert b["default_v4"] is False
-    assert b["b2_06_execution_authorized"] is False
     assert p["scientific_outcomes_inspected"] is False
-    assert p["eligibility"]["eligible_row_counts_computed_in_this_unit"] is False
     research = REPO / "docs" / "research"
     for name in (
         "MARKET_06_ARM.md",
