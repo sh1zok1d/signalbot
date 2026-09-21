@@ -41,16 +41,22 @@ Read these first:
 | `research_data/MARKET_06_OKX_BINANCE_FEASIBILITY_V0/` | **IDENTITY_FROZEN + DURABLE RAW BYTES GIT-RETAINED** | Snapshot `e0403e40…` unchanged; `durable_raw/` holds exact Binance ZIPs and OKX HTTP bodies |
 | `research/MARKET_06_OKX_BINANCE_FEASIBILITY_V0_DURABLE_RETENTION.md` | **DURABLE RETENTION / NOT SCIENCE** | Outcome-blind Git retention of existing snapshot bytes; no redownload; no prereg |
 | `research/MARKET_06_OKX_BINANCE_FEASIBILITY_V0_DURABLE_RETENTION.json` | **DURABLE RETENTION twin** | `verdict=MARKET_06_DURABLE_RAW_EVIDENCE_RETAINED`; `new_snapshot_minted=false` |
-| `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.md` | **FROZEN_OUTCOME_BLIND payload (amended)** | Live MARKET-06 preregistration after amendment 001; SHA256 `55f6f352…`; freeze authority is the freeze document |
-| `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.json` | **FROZEN_OUTCOME_BLIND payload (amended)** | Frozen machine-readable twin; SHA256 `191dfcf4…` |
-| `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_AMENDMENT_001.md` | **PRE_OUTCOME_AMENDMENT** | F1–F4 scientific-definition drift correction; outcomes not inspected |
-| `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_AMENDMENT_001.json` | **PRE_OUTCOME_AMENDMENT twin** | Binds `OLD_PREREG_CONTENT_HEAD=b21bf46d…` and `OLD_FREEZE_HEAD=5f14411…` |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.md` | **FROZEN_OUTCOME_BLIND payload (amended)** | Live MARKET-06 preregistration after amendment 002; SHA256 `70dd8d09…`; freeze authority is the freeze document |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.json` | **FROZEN_OUTCOME_BLIND payload (amended)** | Frozen machine-readable twin; SHA256 `f60bf0bd…` |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_AMENDMENT_001.md` | **PRE_OUTCOME_AMENDMENT / HISTORICAL** | F1–F4 scientific-definition drift correction; outcomes not inspected |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_AMENDMENT_001.json` | **PRE_OUTCOME_AMENDMENT twin / HISTORICAL** | Binds `OLD_PREREG_CONTENT_HEAD=b21bf46d…` and `OLD_FREEZE_HEAD=5f14411…` |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_AMENDMENT_002.md` | **PRE_OUTCOME_AMENDMENT** | Year-stratified predictive bootstrap correction; outcomes not inspected |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_AMENDMENT_002.json` | **PRE_OUTCOME_AMENDMENT twin** | Binds `OLD_LIVE_PREREG_HEAD=b4459ab9…` and `OLD_LIVE_FREEZE_HEAD=371f71d…` |
 | `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_V0.md` | **HISTORICAL first payload** | Exact first prereg bytes; SHA256 `0489fc71…`; not live authority |
 | `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_V0.json` | **HISTORICAL first payload twin** | Exact first JSON bytes; SHA256 `332d9114…` |
-| `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE.md` | **FROZEN_OUTCOME_BLIND / CURRENT FREEZE AUTHORITY** | Docs-only freeze of amended materialization `b4459ab9…` / tree `be3cf473…`; not an ARM; not execution |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_V1.md` | **HISTORICAL amendment-001 payload** | Exact amendment-001 live bytes; SHA256 `55f6f352…`; not live authority |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_V1.json` | **HISTORICAL amendment-001 payload twin** | Exact amendment-001 JSON bytes; SHA256 `191dfcf4…` |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE.md` | **FROZEN_OUTCOME_BLIND / CURRENT FREEZE AUTHORITY** | Docs-only freeze of amendment-002 materialization `6342d24e…` / tree `11658516…`; not an ARM; not execution |
 | `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE.json` | **FROZEN_OUTCOME_BLIND / CURRENT FREEZE AUTHORITY** | Machine-readable twin; `freeze_commit_head`/`tree` intentionally `UNSET_UNTIL_THIS_COMMIT` |
 | `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE_V0.md` | **HISTORICAL first freeze** | Exact first freeze bytes; SHA256 `3bf48957…`; not live authority |
-| `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE_V0.json` | **HISTORICAL first freeze twin** | Binds first payload `b21bf46d…`; superseded by amendment 001 freeze |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE_V0.json` | **HISTORICAL first freeze twin** | Binds first payload `b21bf46d…`; superseded by later freezes |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE_V1.md` | **HISTORICAL amendment-001 freeze** | Exact amendment-001 freeze bytes; SHA256 `69f4de8f…`; not live authority |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE_V1.json` | **HISTORICAL amendment-001 freeze twin** | Binds amendment-001 payload `b4459ab9…`; superseded by amendment 002 freeze |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.md` | **FROZEN_OUTCOME_BLIND payload** | Frozen MARKET-01 preregistration bytes; SHA256 `d82b60e1…`; internal materialization-unit status string left unchanged; freeze authority is the freeze document |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.json` | **FROZEN_OUTCOME_BLIND payload** | Frozen machine-readable twin; SHA256 `6885abaf…` |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_FREEZE.md` | **FROZEN_OUTCOME_BLIND / CURRENT FREEZE AUTHORITY** | Docs-only freeze of materialization `9c1a661c…` / tree `1928969e…`; SHA256 `e0e0da9e…`; not an ARM; not execution |

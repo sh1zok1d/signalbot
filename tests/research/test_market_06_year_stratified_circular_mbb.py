@@ -6,6 +6,8 @@ coefficients. Labels are fake year tokens only.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from scripts.research.market_06_year_stratified_circular_mbb import (
     BLOCK_LENGTH_DAYS,
     BOOTSTRAP_REPLICATES,
@@ -13,6 +15,13 @@ from scripts.research.market_06_year_stratified_circular_mbb import (
     concatenated_then_sample,
     pcg64_generator,
     year_stratified_predictive_resample,
+)
+
+SAMPLER_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "scripts"
+    / "research"
+    / "market_06_year_stratified_circular_mbb.py"
 )
 
 
@@ -87,3 +96,36 @@ def test_concatenated_before_sampling_can_cross_year_and_is_forbidden():
         if crossed:
             break
     assert crossed is True
+
+
+def test_circular_wrap_stays_inside_year_when_n_less_than_block():
+    seq_2023 = _labeled(2023, 10)
+    seq_2024 = _labeled(2024, 9)
+    rng = pcg64_generator(RANDOM_SEED)
+    boot_2023, boot_2024, blocks_2023, blocks_2024 = (
+        year_stratified_predictive_resample(
+            seq_2023, seq_2024, block_length=BLOCK_LENGTH_DAYS, rng=rng
+        )
+    )
+    assert len(boot_2023) == 10
+    assert len(boot_2024) == 9
+    assert all(item[0] == 2023 for item in boot_2023)
+    assert all(item[0] == 2024 for item in boot_2024)
+    for block in blocks_2023:
+        assert all(0 <= i < 10 for i in block)
+        assert {seq_2023[i][0] for i in block} == {2023}
+    for block in blocks_2024:
+        assert all(0 <= i < 9 for i in block)
+        assert {seq_2024[i][0] for i in block} == {2024}
+
+
+def test_sampler_module_does_not_refit_predictive_models():
+    src = SAMPLER_PATH.read_text(encoding="utf-8").lower()
+    for token in (
+        "lstsq",
+        "linearregression",
+        "numpy.linalg.solve",
+        ".fit(",
+        "refit",
+    ):
+        assert token not in src
