@@ -56,13 +56,11 @@ class RestoreError(RuntimeError):
 
 def period_is_protected(period: str) -> bool:
     text = str(period)
-    return (
-        text >= LEGAL_END_EXCLUSIVE
-        or "2025-" in text
-        or "2026-" in text
-        or text.startswith("2025")
-        or text.startswith("2026")
-    )
+    if "2025-" in text or "2026-" in text:
+        return True
+    if len(text) >= 7 and text[4] == "-" and text[:4].isdigit():
+        return text[:7] >= LEGAL_END_EXCLUSIVE
+    return text.startswith("2025") or text.startswith("2026")
 
 
 def assert_url_legal(url: str) -> None:
@@ -210,8 +208,6 @@ def restore_btc(repo: Path, *, workers: int = 8) -> dict[str, Any]:
 
 
 def eth_zip_url(filename: str) -> str:
-    if period_is_protected(filename):
-        raise RestoreError(f"PROTECTED_FILENAME:{filename}")
     url = f"{ARCHIVE_ROOT}/ETHUSDT/1m/{filename}"
     assert_url_legal(url)
     return url

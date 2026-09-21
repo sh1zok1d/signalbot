@@ -386,6 +386,8 @@ def test_restore_helper_refuses_protected_years() -> None:
     assert period_is_protected("2025-01") is True
     assert period_is_protected("2026-08") is True
     assert period_is_protected("2024-12") is False
+    assert period_is_protected("ETHUSDT-1m-2020-01.zip") is False
+    assert period_is_protected("BTCUSDT-1m-2020-01.zip") is False
     with pytest.raises(RestoreError, match="PROTECTED_URL_REFUSED"):
         assert_url_legal(
             "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2025-01.zip"
