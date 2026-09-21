@@ -357,7 +357,7 @@ been executed in the definition unit.
 `SCIENTIFIC_OUTCOMES_COMPUTED = true` (adaptive discovery, not confirmatory).
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
-`NEXT_UNIT = D2_CONFIRMATION_LARGER_FRESH_SURFACE_OR_WAIT`.
+`NEXT_UNIT = D2_CONFIRMATION_WAIT_FOR_PREDECLARED_2025_PLUS_2026_WITHOUT_OPENING`.
 
 ### Stall-gate semantics (corrected 2026-09-21)
 
@@ -381,7 +381,7 @@ discovery rather than confirmatory evidence.
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
 Definition-time `NEXT_UNIT = DISCOVERY_SPRINT_01_CARD_EXECUTION` is
-historical; current `NEXT_UNIT = D2_CONFIRMATION_LARGER_FRESH_SURFACE_OR_WAIT`.
+historical; current `NEXT_UNIT = D2_CONFIRMATION_WAIT_FOR_PREDECLARED_2025_PLUS_2026_WITHOUT_OPENING`.
 
 ## Corrective unit (2026-09-21)
 
@@ -684,18 +684,39 @@ Calendar 2025 is the proposed first independent confirmation surface
 binding of all 12 2025 monthly source/canonical hashes succeeded; no
 2026 object is required for the frozen interval.
 
-Power at the predeclared 20% practical bar, estimated from exposed
-2020-2024 only: `POWER_AT_20PCT_MIN_EFFECT = 0.006`
-(`MINIMUM_ACCEPTABLE_CONFIRMATION_POWER = 0.80`).
+Power at the predeclared 20% true effect, estimated from exposed
+2020-2024 only. Primary prospective criterion is statistical power
+(P95 gate), not joint pass probability:
 
 ```
-CONFIRMATION_FEASIBILITY = UNDERPOWERED_SINGLE_YEAR_2025
-2025_OPEN_AUTHORIZED = false
+ONE_YEAR_STATISTICAL_POWER_AT_20PCT = 0.011
+ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT = 0.006
 ```
 
-Do not lower the 20% bar. Do not automatically open 2026.
+Joint `0.006` and practical-gate power `~0.499` are diagnostic. The
+~0.5 practical-gate figure at the exact 20% boundary is expected and
+is not itself evidence of underpower. Because statistical power is
+still `<< 0.80`, `CONFIRMATION_FEASIBILITY` remains
+`UNDERPOWERED_SINGLE_YEAR_2025`.
+
+Fresh-surface size planning on the same 2020-2024 empirical severity
+(frozen RULE_1 fireable rate; N = 364/728/1092/1456):
+
+```
+TWO_YEAR_STATISTICAL_POWER_AT_20PCT = 0.903
+THREE_YEAR_STATISTICAL_POWER_AT_20PCT = 1.000
+FOUR_YEAR_STATISTICAL_POWER_AT_20PCT = 1.000
+MIN_REQUIRED_FRESH_DECISION_ROWS = 728
+MIN_REQUIRED_FRESH_YEARS = 2
+POTENTIAL_FUTURE_SURFACE = 2025_PLUS_FULL_2026
+AUTHORIZED_TO_OPEN = false
+```
+
+Do not lower the 20% bar. Do not automatically open 2025 or 2026.
+A future predeclared combined 2025+full-2026 surface could be
+scientifically worthwhile; it is not authorized now.
 D2 remains `PROMISING_PROTOTYPE` (adaptive discovery only).
 
 Full record: `docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.{json,md}`.
 
-`NEXT_UNIT = D2_CONFIRMATION_LARGER_FRESH_SURFACE_OR_WAIT`.
+`NEXT_UNIT = D2_CONFIRMATION_WAIT_FOR_PREDECLARED_2025_PLUS_2026_WITHOUT_OPENING`.

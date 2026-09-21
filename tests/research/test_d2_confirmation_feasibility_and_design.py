@@ -114,13 +114,59 @@ def test_report_does_not_open_protected_prices() -> None:
     assert report["ARM_CREATED"] is False
     assert report["2025_OPEN_AUTHORIZED"] is False
     assert report["CONFIRMATION_FEASIBILITY"] == "UNDERPOWERED_SINGLE_YEAR_2025"
-    assert report["POWER_AT_20PCT_MIN_EFFECT"] < 0.80
+    assert report["POWER_AT_20PCT_MIN_EFFECT"] == 0.006
+    assert report["ONE_YEAR_STATISTICAL_POWER_AT_20PCT"] == pytest.approx(0.011)
+    assert report["ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT"] == pytest.approx(0.006)
+    assert report["PRIMARY_PROSPECTIVE_POWER_CRITERION"] == "STATISTICAL_POWER_AT_20PCT_EFFECT"
+    assert report["ONE_YEAR_STATISTICAL_POWER_AT_20PCT"] < 0.80
     assert report["CANDIDATE"] == "D2 / RULE_1 / RV_ABSTENTION"
     assert "DISLOCATION_ABSTENTION" in report["NOT_CONFIRMED_VARIANTS"]
-    assert report["NEXT_UNIT"] == "D2_CONFIRMATION_LARGER_FRESH_SURFACE_OR_WAIT"
+    assert report["RULE_CHANGED"] is False
+    assert report["TARGET_CHANGED"] is False
+    assert report["GATES_CHANGED"] is False
+    assert report["AUTHORIZED_TO_OPEN"] is False
+    assert report["2025_OPEN_AUTHORIZED"] is False
+    assert "P90" in report["CONFIRMATION_RULE"]
+    assert "trailing 250" in report["CONFIRMATION_RULE"]
+    assert "24h direction-aligned" in report["CONFIRMATION_TARGET"]
+    assert "RATE_MATCHED_RANDOM_ABSTENTION" in report["CONFIRMATION_COMPARATOR"]
+    assert "0.20 * UNCONDITIONAL_MEAN" in report["CONFIRMATION_PRACTICAL_GATE"]
+    assert "P95" in report["CONFIRMATION_STATISTICAL_GATE"]
+    interp = report["POWER_INTERPRETATION_CORRECTION"]
+    assert interp["JOINT_PASS_PROBABILITY_IS_DIAGNOSTIC_ONLY"] is True
+    assert interp["PRACTICAL_GATE_UNCHANGED"] is True
+    orig = interp["ORIGINAL_ONE_YEAR_CALCULATION_PRESERVED"]
+    assert orig["ONE_YEAR_STATISTICAL_POWER_AT_20PCT"] == pytest.approx(0.011)
+    assert orig["ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT"] == pytest.approx(0.006)
+    assert orig["ONE_YEAR_PRACTICAL_GATE_POWER_AT_20PCT"] == pytest.approx(0.499)
+    size = report["SIZE_PLANNING"]
+    assert size["SIZE_PLANNING_SEED"] == D2_CONFIRMATION_SIZE_PLANNING_SEED
+    ns = [row["N"] for row in size["surfaces"]]
+    assert ns == [364, 728, 1092, 1456]
+    ks = [row["expected_K"] for row in size["surfaces"]]
+    assert ks == [39, 77, 116, 154]
+    assert report["TWO_YEAR_STATISTICAL_POWER_AT_20PCT"] == pytest.approx(0.903)
+    assert report["THREE_YEAR_STATISTICAL_POWER_AT_20PCT"] == pytest.approx(1.0)
+    assert report["FOUR_YEAR_STATISTICAL_POWER_AT_20PCT"] == pytest.approx(1.0)
+    assert report["MIN_REQUIRED_FRESH_DECISION_ROWS"] == 728
+    assert report["MIN_REQUIRED_FRESH_YEARS"] == 2
+    assert report["POTENTIAL_FUTURE_SURFACE"] == "2025_PLUS_FULL_2026"
+    assert report["NEXT_UNIT"] == "D2_CONFIRMATION_WAIT_FOR_PREDECLARED_2025_PLUS_2026_WITHOUT_OPENING"
     md = (REPO / MD_REL).read_text(encoding="utf-8")
     assert "UNDERPOWERED_SINGLE_YEAR_2025" in md
+    assert "## POWER_INTERPRETATION_CORRECTION" in md
     assert "MARKET-07" in md
+    assert "AUTHORIZED_TO_OPEN = false" in md
+
+
+def test_2025_metadata_binding_unchanged_by_sizing_amendment() -> None:
+    rel = BINDING_REL
+    current = (REPO / rel).read_bytes()
+    original = subprocess.check_output(
+        ["git", "show", "72746234119031b00632a92086076021c2a72ba4:" + rel],
+        cwd=REPO,
+    )
+    assert current == original
 
 
 def test_d2_discovery_result_unchanged() -> None:

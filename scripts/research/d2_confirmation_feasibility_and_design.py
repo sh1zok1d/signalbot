@@ -746,11 +746,20 @@ def run_feasibility(
         "IMPLEMENTATION_COMMIT_AUTHORITY": IMPLEMENTATION_COMMIT,
         "NEXT_UNIT": next_unit,
         "WHY_NOT_CONSUME_2026": (
-            "2026 remains unopened and is not automatically combined with "
-            "2025. Size planning on exposed 2020-2024 data only tells whether "
-            "a future predeclared combined fresh surface could be scientifically "
-            "worthwhile. AUTHORIZED_TO_OPEN is false. If two years remain "
-            "underpowered, do not consume 2025+2026."
+            "Two independent fresh years (~728 decision rows) meet the primary "
+            "statistical-power criterion at a 20% true effect. That does not "
+            "authorize opening. POTENTIAL_FUTURE_SURFACE = 2025_PLUS_FULL_2026 "
+            "is recorded only as a scientifically worthwhile future predeclared "
+            "combined fresh surface. AUTHORIZED_TO_OPEN = false. 2025 remains "
+            "unopened. 2026 remains unopened. They are not automatically combined now."
+            if size_planning["POTENTIAL_FUTURE_SURFACE"] == "2025_PLUS_FULL_2026"
+            else (
+                "2026 remains unopened and is not automatically combined with "
+                "2025. Size planning on exposed 2020-2024 data only tells whether "
+                "a future predeclared combined fresh surface could be scientifically "
+                "worthwhile. AUTHORIZED_TO_OPEN is false. Two years remain "
+                "underpowered, so do not consume 2025+2026."
+            )
         ),
         "NOT_CREATED": [
             "MARKET-07",
@@ -804,7 +813,7 @@ def render_markdown(report: dict[str, Any], meta: dict[str, Any]) -> str:
                 f"{srow['JOINT_PASS_PROBABILITY']:.3f}"
             )
         size_lines.append(
-            f"- {row['approx_years']} year ≈ {row['N']} decision rows, "
+            f"- {row['approx_years']} year{'s' if row['approx_years'] != 1 else ''} ≈ {row['N']} decision rows, "
             f"expected K = {row['expected_K']}: "
             f"STATISTICAL_POWER_AT_20PCT = {s20['STATISTICAL_POWER']:.3f}; "
             f"JOINT_PASS_PROBABILITY_AT_20PCT = {s20['JOINT_PASS_PROBABILITY']:.3f} "

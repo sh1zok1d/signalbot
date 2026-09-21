@@ -4015,3 +4015,59 @@ Evidence: `docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.{json,md}`,
 - next required step: `D2_CONFIRMATION_LARGER_FRESH_SURFACE_OR_WAIT`
 
 Evidence: `docs/research/DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE.{json,md}`.
+
+## 2026-09-21 — D2 confirmation power interpretation and size planning
+
+Interpretation correction plus fresh-surface size planning for the same
+frozen D2 RULE_1 confirmation design. Confirmation was not executed.
+2025/2026 price values were not inspected. The D2 discovery result was
+not mutated. Rule, target, comparator, P90 / trailing-250 / 24h
+horizon, severity target, random-abstention comparator, 20% practical
+gate, and P95 statistical gate are unchanged.
+
+The original year-cycled one-year Monte Carlo is preserved:
+
+```
+ONE_YEAR_STATISTICAL_POWER_AT_20PCT = 0.011
+ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT = 0.006
+historical power_practical_gate at 20% = 0.499
+```
+
+Primary prospective criterion is now statistical power at a 20% true
+effect (`>= 0.80`). Joint pass probability is diagnostic only.
+`power_practical_gate ~= 0.5` at the exact 20% boundary is expected
+and is not evidence of underpower. Because `0.011 << 0.80`,
+`CONFIRMATION_FEASIBILITY` remains `UNDERPOWERED_SINGLE_YEAR_2025`.
+This is not a scientific-design rescue.
+
+Size planning used only exposed 2020-2024 empirical severity and the
+frozen RULE_1 fireable rate (`K = round(rate * N)`), seed
+`D2_CONFIRMATION_SIZE_PLANNING_SEED = 20260921122`:
+
+```
+N=364  K=39   STATISTICAL_POWER_AT_20PCT = 0.000
+N=728  K=77   STATISTICAL_POWER_AT_20PCT = 0.903
+N=1092 K=116  STATISTICAL_POWER_AT_20PCT = 1.000
+N=1456 K=154  STATISTICAL_POWER_AT_20PCT = 1.000
+MIN_REQUIRED_FRESH_DECISION_ROWS = 728
+MIN_REQUIRED_FRESH_YEARS = 2
+POTENTIAL_FUTURE_SURFACE = 2025_PLUS_FULL_2026
+AUTHORIZED_TO_OPEN = false
+```
+
+Two independent years would meet the statistical-power bar. 2025 and
+2026 remain unopened and are not automatically combined.
+
+```
+CONFIRMATION_FEASIBILITY = UNDERPOWERED_SINGLE_YEAR_2025
+2025_OPEN_AUTHORIZED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+RULE_CHANGED = false
+TARGET_CHANGED = false
+GATES_CHANGED = false
+```
+
+Evidence: `docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.{json,md}`.
+
+- next required step: `D2_CONFIRMATION_WAIT_FOR_PREDECLARED_2025_PLUS_2026_WITHOUT_OPENING`

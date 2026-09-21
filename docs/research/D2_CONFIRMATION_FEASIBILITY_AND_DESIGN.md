@@ -8,6 +8,9 @@
 
 This unit does **not** execute confirmation, inspect 2025/2026 BTC price
 values, materialize protected parquet, create MARKET-07, or ARM anything.
+The scientific confirmation design is unchanged: same rule, target,
+comparator, P90 / trailing-250 / 24h horizon / severity target /
+random-abstention comparator / 20% practical gate / P95 statistical gate.
 
 ## Verdict
 
@@ -16,8 +19,18 @@ values, materialize protected parquet, create MARKET-07, or ARM anything.
 | `PRIMARY_CONFIRMATION_SURFACE` | `2025` |
 | `SECOND_RESERVED_SURFACE` | `2026` |
 | `CONFIRMATION_FEASIBILITY` | `UNDERPOWERED_SINGLE_YEAR_2025` |
-| `POWER_AT_20PCT_MIN_EFFECT` | `0.006` |
+| `ONE_YEAR_STATISTICAL_POWER_AT_20PCT` | `0.011` |
+| `ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT` | `0.006` |
+| `PRIMARY_PROSPECTIVE_POWER_CRITERION` | `STATISTICAL_POWER_AT_20PCT_EFFECT` |
 | `MINIMUM_ACCEPTABLE_CONFIRMATION_POWER` | `0.8` |
+| `TWO_YEAR_STATISTICAL_POWER_AT_20PCT` | `0.903` |
+| `THREE_YEAR_STATISTICAL_POWER_AT_20PCT` | `1.0` |
+| `FOUR_YEAR_STATISTICAL_POWER_AT_20PCT` | `1.0` |
+| `MIN_REQUIRED_FRESH_DECISION_ROWS` | `728` |
+| `MIN_REQUIRED_FRESH_YEARS` | `2` |
+| `CONFIRMATION_SURFACE_REQUIREMENT` | `TWO_YEARS_INDEPENDENT_FRESH` |
+| `POTENTIAL_FUTURE_SURFACE` | `2025_PLUS_FULL_2026` |
+| `AUTHORIZED_TO_OPEN` | `false` |
 | `EXPECTED_2025_ELIGIBLE_N` | `364` |
 | `EXPECTED_2025_ABSTAIN_COUNT` | `39` |
 | `2025_OPEN_AUTHORIZED` | `false` |
@@ -25,7 +38,88 @@ values, materialize protected parquet, create MARKET-07, or ARM anything.
 | `ARM_CREATED` | `false` |
 | `PROTECTED_2025_PRICE_VALUES_INSPECTED` | `false` |
 | `PROTECTED_2026_PRICE_VALUES_INSPECTED` | `false` |
-| `NEXT_UNIT` | `D2_CONFIRMATION_LARGER_FRESH_SURFACE_OR_WAIT` |
+| `RULE_CHANGED` | `false` |
+| `TARGET_CHANGED` | `false` |
+| `GATES_CHANGED` | `false` |
+| `NEXT_UNIT` | `D2_CONFIRMATION_WAIT_FOR_PREDECLARED_2025_PLUS_2026_WITHOUT_OPENING` |
+
+Historical joint field `POWER_AT_20PCT_MIN_EFFECT` remains `0.006`
+and is **not** the primary prospective criterion.
+
+## POWER_INTERPRETATION_CORRECTION
+
+Primary prospective power criterion:
+
+`STATISTICAL_POWER_AT_20PCT_EFFECT >= 0.80`
+
+That is the probability the frozen statistical gate
+`MU_RULE > P95(random-control means)` passes when the true relative
+effect is 20%.
+
+`JOINT_PASS_PROBABILITY_AT_20PCT_EFFECT` (both statistical and practical
+gates) is diagnostic only. The practical gate itself is unchanged and
+remains an actual execution-time requirement:
+
+`DELTA >= 0.20 * UNCONDITIONAL_MEAN`
+
+TRUE_EFFECT = 20% relative is the same magnitude as the frozen practical confirmation gate DELTA >= 20% * UNCONDITIONAL_MEAN. power_practical_gate at that exact boundary is therefore approximately 0.5 by construction / sampling variability of MU_CONTROL_MEAN. The observed original value power_practical_gate ~= 0.499 is not itself evidence that the study is underpowered.
+
+This amendment is an interpretation correction plus fresh-surface size
+planning. It is **not** a scientific-design rescue. The 20% effect bar
+is not lowered.
+
+### Original one-year calculation (preserved historical output)
+
+Method: Year-cycled empirical 2021-2024 severity vectors. For each outer replicate, a random K-subset (K = frozen-rule abstain count that year) is location-shifted so DELTA/UNCONDITIONAL_MEAN equals the predeclared relative effect. Inner RATE_MATCHED_RANDOM_ABSTENTION uses 10000 uniform-without-replacement draws. The random subset is used so power is evaluated at the predeclared effect rather than at the observed discovery DELTA.
+
+Seed `20260921121`, n_outer `1000`,
+n_inner `10000`.
+
+Frozen-rule fireable rate = 0.105775
+(163 / 1541).
+
+Year-cycled K (not the size-planning frozen-rate K):
+`{'2021': 48, '2022': 32, '2023': 23, '2024': 50}`.
+
+- 15% relative (sensitivity only): STATISTICAL_POWER = 0.000; JOINT_PASS_PROBABILITY = 0.000; practical-gate power = 0.000 (diagnostic)
+- 20% relative (authoritative 20% true-effect row): STATISTICAL_POWER = 0.011; JOINT_PASS_PROBABILITY = 0.006; practical-gate power = 0.499 (diagnostic)
+- 25% relative (sensitivity only): STATISTICAL_POWER = 0.500; JOINT_PASS_PROBABILITY = 0.500; practical-gate power = 1.000 (diagnostic)
+- 30% relative (sensitivity only): STATISTICAL_POWER = 0.724; JOINT_PASS_PROBABILITY = 0.724; practical-gate power = 1.000 (diagnostic)
+
+```
+ONE_YEAR_STATISTICAL_POWER_AT_20PCT = 0.011
+ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT = 0.006
+historical POWER_AT_20PCT_MIN_EFFECT (joint) = 0.006
+```
+
+Because `0.011` is still far
+below 0.80, `CONFIRMATION_FEASIBILITY` remains
+`UNDERPOWERED_SINGLE_YEAR_2025`.
+
+## Fresh-surface size planning (2020-2024 only)
+
+Fireable 2020-2024 empirical direction-aligned MAE severity (trailing-250 warmup excluded). Hypothetical fresh surfaces are drawn with replacement. Expected K = round(frozen RULE_1 fireable rate * N). Inner P95 uses 10000 RATE_MATCHED_RANDOM_ABSTENTION replicates. No 2025/2026 prices are used.
+
+Size-planning seed: `20260921122`.
+
+- 1 year ≈ 364 decision rows, expected K = 39: STATISTICAL_POWER_AT_20PCT = 0.000; JOINT_PASS_PROBABILITY_AT_20PCT = 0.000 (diagnostic). Sensitivity: 25% statistical=0.231 / joint=0.231; 30% statistical=0.969 / joint=0.969.
+- 2 years ≈ 728 decision rows, expected K = 77: STATISTICAL_POWER_AT_20PCT = 0.903; JOINT_PASS_PROBABILITY_AT_20PCT = 0.450 (diagnostic). Sensitivity: 25% statistical=1.000 / joint=1.000; 30% statistical=1.000 / joint=1.000.
+- 3 years ≈ 1092 decision rows, expected K = 116: STATISTICAL_POWER_AT_20PCT = 1.000; JOINT_PASS_PROBABILITY_AT_20PCT = 0.509 (diagnostic). Sensitivity: 25% statistical=1.000 / joint=1.000; 30% statistical=1.000 / joint=1.000.
+- 4 years ≈ 1456 decision rows, expected K = 154: STATISTICAL_POWER_AT_20PCT = 1.000; JOINT_PASS_PROBABILITY_AT_20PCT = 0.504 (diagnostic). Sensitivity: 25% statistical=1.000 / joint=1.000; 30% statistical=1.000 / joint=1.000.
+
+```
+MIN_REQUIRED_FRESH_DECISION_ROWS = 728
+MIN_REQUIRED_FRESH_YEARS = 2
+CONFIRMATION_SURFACE_REQUIREMENT = TWO_YEARS_INDEPENDENT_FRESH
+POTENTIAL_FUTURE_SURFACE = 2025_PLUS_FULL_2026
+AUTHORIZED_TO_OPEN = false
+```
+
+2025 remains unopened. 2026 remains unopened. They are not automatically
+combined. The sizing result only says whether a future predeclared
+combined fresh surface could be scientifically worthwhile.
+
+Two independent fresh years (~728 decision rows) meet the primary statistical-power criterion at a 20% true effect. That does not authorize opening. POTENTIAL_FUTURE_SURFACE = 2025_PLUS_FULL_2026 is recorded only as a scientifically worthwhile future predeclared combined fresh surface. AUTHORIZED_TO_OPEN = false. 2025 remains unopened. 2026 remains unopened. They are not automatically combined now.
 
 ## Candidate (exact survivor only)
 
@@ -54,7 +148,6 @@ T in [2025-01-01T00:05:00Z, 2025-12-31T00:00:00Z)
 
 2020-2024 is historically exposed and is **not** independent confirmation.
 Trailing-250 feature history may use already-exposed 2024 decision points. 2025 outcomes remain unexposed. Metrics are computed only on 2025 T.
-2026 is a second reserved surface for later replication/follow-up if justified. Combining 2025+2026 to increase N is forbidden. Underpowering does not automatically consume 2026.
 
 ## 2025 metadata-only binding
 
@@ -112,34 +205,6 @@ Eligible 1791, abstain 163, `MU_RULE` 0.04005839896629072,
 
 Do not use +0.0142 as the minimum effect. Do not power solely at that
 observed effect. Do not shrink the 20% bar. Do not call it evidence.
-
-## Prospective power (2020-2024 only)
-
-Method: Year-cycled empirical 2021-2024 severity vectors. For each outer replicate, a random K-subset (K = frozen-rule abstain count that year) is location-shifted so DELTA/UNCONDITIONAL_MEAN equals the predeclared relative effect. Inner RATE_MATCHED_RANDOM_ABSTENTION uses 10000 uniform-without-replacement draws. The random subset is used so power is evaluated at the predeclared effect rather than at the observed discovery DELTA.
-
-Frozen-rule fireable rate = 0.105775
-(163 / 1541).
-
-- 15% relative (sensitivity only): both-gates power = 0.000; statistical = 0.000; practical = 0.000
-- 20% relative (authoritative): both-gates power = 0.006; statistical = 0.011; practical = 0.499
-- 25% relative (sensitivity only): both-gates power = 0.500; statistical = 0.500; practical = 1.000
-- 30% relative (sensitivity only): both-gates power = 0.724; statistical = 0.724; practical = 1.000
-
-`MINIMUM_ACCEPTABLE_CONFIRMATION_POWER = 0.80`. The 20% row is
-authoritative. Other rows are feasibility context only and were not
-selected after seeing power.
-
-At the exact predeclared 20% practical bar, practical-gate power is
-about one-half (a point-estimate hurdle placed at the alternative mean).
-Statistical-gate power at that same 20% effect is far lower (~0.01)
-because one year of ~364 eligible days and K ≈ 39
-rate-matched draws cannot push `MU_RULE` past the control P95 under the
-heavy-tailed adverse-path severity distribution. Joint power at 20% is
-0.006, below 0.80. Even the 30%
-sensitivity row remains below 0.80. A single independent 2025 year is
-therefore not informative enough to spend. Do not lower the 20% bar.
-Do not automatically consume 2026. Wait for a larger genuinely fresh
-surface, or obtain another independent equivalent surface.
 
 ## Independence boundary
 

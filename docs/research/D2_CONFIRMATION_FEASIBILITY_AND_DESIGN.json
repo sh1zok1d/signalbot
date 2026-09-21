@@ -2,6 +2,7 @@
   "2025_OPENING_JUSTIFIED_BY_POWER": false,
   "2025_OPEN_AUTHORIZED": false,
   "ARM_CREATED": false,
+  "AUTHORIZED_TO_OPEN": false,
   "BASE_EXPOSURE": "full-size BTC perpetual in direction BTC_SIDE(t)",
   "CANDIDATE": "D2 / RULE_1 / RV_ABSTENTION",
   "CONFIRMATION_COMPARATOR": "RATE_MATCHED_RANDOM_ABSTENTION. Frozen D2 year-matched convention is retained. On a single-year 2025 surface it reduces to selecting exactly K eligible 2025 rows uniformly without replacement. No month/quarter matching added.",
@@ -9,6 +10,7 @@
   "CONFIRMATION_PRACTICAL_GATE": "DELTA >= 0.20 * UNCONDITIONAL_MEAN on the independent 2025 surface. Same discovery-era 20% relative bar. Not lowered. Not replaced by the observed +1.42pp discovery DELTA.",
   "CONFIRMATION_RULE": "ABSTAIN(t)=1 iff ev.rv_btc_24h(t) > P90 of its own trailing 250 completed decision-point values with t excluded. No threshold sweep.",
   "CONFIRMATION_STATISTICAL_GATE": "MU_RULE > P95 of the 10000 RATE_MATCHED_RANDOM_ABSTENTION replicate mean-severity values. Authoritative pass rule. Monte Carlo one-sided p=(1+count(control_mean>=MU_RULE))/(1+N_REPLICATES) is reported only; it does not replace the percentile gate.",
+  "CONFIRMATION_SURFACE_REQUIREMENT": "TWO_YEARS_INDEPENDENT_FRESH",
   "CONFIRMATION_TARGET": "24h direction-aligned adverse-path severity using the exact existing 288 x 5m future-bar construction (arithmetic MAE). Not terminal return, close-only MAE, MFE, drawdown, volatility, or PnL.",
   "CONFIRMATION_T_INTERVAL": "[2025-01-01T00:05:00Z, 2025-12-31T00:00:00Z)",
   "D2_CONFIRMATION_RANDOM_CONTROL_SEED": 20260921120,
@@ -38,16 +40,20 @@
     "2024"
   ],
   "FIRST_T": "2025-01-01T00:05:00Z",
+  "FOUR_YEAR_STATISTICAL_POWER_AT_20PCT": 1.0,
   "FUTURE_EXECUTION_CLASSIFICATIONS_NOT_ASSIGNED": [
     "CONFIRMED_ON_INDEPENDENT_2025_SURFACE",
     "NOT_CONFIRMED_ON_INDEPENDENT_2025_SURFACE",
     "INVALID_CONFIRMATION_EXECUTION"
   ],
+  "GATES_CHANGED": false,
   "IMPLEMENTATION_COMMIT_AUTHORITY": "26d8f7066533bcae7138d5a1952783f2a16f3c39",
   "LAST_T": "2025-12-30T00:05:00Z",
   "MARKET_07_CREATED": false,
   "MINIMUM_ACCEPTABLE_CONFIRMATION_POWER": 0.8,
-  "NEXT_UNIT": "D2_CONFIRMATION_LARGER_FRESH_SURFACE_OR_WAIT",
+  "MIN_REQUIRED_FRESH_DECISION_ROWS": 728,
+  "MIN_REQUIRED_FRESH_YEARS": 2,
+  "NEXT_UNIT": "D2_CONFIRMATION_WAIT_FOR_PREDECLARED_2025_PLUS_2026_WITHOUT_OPENING",
   "NOT_CONFIRMED_VARIANTS": [
     "DISLOCATION_ABSTENTION",
     "D5 OR composition",
@@ -68,9 +74,44 @@
     "RESULT artifact"
   ],
   "N_REPLICATES_CONFIRMATION": 10000,
+  "ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT": 0.006,
+  "ONE_YEAR_STATISTICAL_POWER_AT_20PCT": 0.011,
   "PASS_RULE": "STATISTICAL_GATE and PRACTICAL_MAGNITUDE_GATE both true",
+  "POTENTIAL_FUTURE_SURFACE": "2025_PLUS_FULL_2026",
   "POWER_AT_20PCT_MIN_EFFECT": 0.006,
+  "POWER_AT_20PCT_MIN_EFFECT_IS_HISTORICAL_JOINT": true,
+  "POWER_INTERPRETATION_CORRECTION": {
+    "A_STATISTICAL_POWER_AT_20PCT_EFFECT": "Probability that the frozen statistical gate MU_RULE > P95(random-control means) passes when the true relative effect is 20%.",
+    "B_JOINT_PASS_PROBABILITY_AT_20PCT_EFFECT": "Probability both statistical and practical gates pass when the true relative effect is 20%. Diagnostic only. Not the primary prospective power criterion.",
+    "JOINT_PASS_PROBABILITY_IS_DIAGNOSTIC_ONLY": true,
+    "MINIMUM_ACCEPTABLE_STATISTICAL_POWER": 0.8,
+    "ORIGINAL_ONE_YEAR_CALCULATION_PRESERVED": {
+      "ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT": 0.006,
+      "ONE_YEAR_PRACTICAL_GATE_POWER_AT_20PCT": 0.499,
+      "ONE_YEAR_STATISTICAL_POWER_AT_20PCT": 0.011,
+      "POWER_SEED": 20260921121,
+      "historical_POWER_AT_20PCT_MIN_EFFECT_WAS_JOINT": 0.006,
+      "method": "Year-cycled empirical 2021-2024 severity vectors. For each outer replicate, a random K-subset (K = frozen-rule abstain count that year) is location-shifted so DELTA/UNCONDITIONAL_MEAN equals the predeclared relative effect. Inner RATE_MATCHED_RANDOM_ABSTENTION uses 10000 uniform-without-replacement draws. The random subset is used so power is evaluated at the predeclared effect rather than at the observed discovery DELTA.",
+      "year_eligible_n": {
+        "2021": 364,
+        "2022": 364,
+        "2023": 364,
+        "2024": 365
+      },
+      "year_rule_abstain_count": {
+        "2021": 48,
+        "2022": 32,
+        "2023": 23,
+        "2024": 50
+      }
+    },
+    "PRACTICAL_GATE_UNCHANGED": true,
+    "PRIMARY_PROSPECTIVE_POWER_CRITERION": "STATISTICAL_POWER_AT_20PCT_EFFECT",
+    "STATISTICAL_GATE_UNCHANGED": true,
+    "WHY_PRACTICAL_GATE_POWER_NEAR_HALF_IS_NOT_UNDERPOWER": "TRUE_EFFECT = 20% relative is the same magnitude as the frozen practical confirmation gate DELTA >= 20% * UNCONDITIONAL_MEAN. power_practical_gate at that exact boundary is therefore approximately 0.5 by construction / sampling variability of MU_CONTROL_MEAN. The observed original value power_practical_gate ~= 0.499 is not itself evidence that the study is underpowered."
+  },
   "PRIMARY_CONFIRMATION_SURFACE": "2025",
+  "PRIMARY_PROSPECTIVE_POWER_CRITERION": "STATISTICAL_POWER_AT_20PCT_EFFECT",
   "PROTECTED_2025_OPENED": false,
   "PROTECTED_2025_PRICE_VALUES_INSPECTED": false,
   "PROTECTED_2026_OPENED": false,
@@ -84,7 +125,182 @@
     "RULE_ELIGIBLE_N": 1791,
     "UNCONDITIONAL_MEAN": 0.02517689228869647
   },
+  "RULE_CHANGED": false,
   "SECOND_RESERVED_SURFACE": "2026",
+  "SIZE_PLANNING": {
+    "2025_and_2026_not_automatically_combined": true,
+    "AUTHORIZED_TO_OPEN": false,
+    "CONFIRMATION_SURFACE_REQUIREMENT": "TWO_YEARS_INDEPENDENT_FRESH",
+    "FOUR_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT": 0.504,
+    "FOUR_YEAR_STATISTICAL_POWER_AT_20PCT": 1.0,
+    "GATES_CHANGED": false,
+    "MIN_REQUIRED_FRESH_DECISION_ROWS": 728,
+    "MIN_REQUIRED_FRESH_YEARS": 2,
+    "NEXT_UNIT": "D2_CONFIRMATION_WAIT_FOR_PREDECLARED_2025_PLUS_2026_WITHOUT_OPENING",
+    "ONE_YEAR_STATISTICAL_POWER_AT_20PCT_SIZE_PLANNING": 0.0,
+    "POTENTIAL_FUTURE_SURFACE": "2025_PLUS_FULL_2026",
+    "RULE_CHANGED": false,
+    "SIZE_PLANNING_SEED": 20260921122,
+    "TARGET_CHANGED": false,
+    "THREE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT": 0.509,
+    "THREE_YEAR_STATISTICAL_POWER_AT_20PCT": 1.0,
+    "TWO_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT": 0.45,
+    "TWO_YEAR_STATISTICAL_POWER_AT_20PCT": 0.903,
+    "effect_bar_lowered": false,
+    "fireable_abstain_count": 163,
+    "fireable_n_2020_2024": 1541,
+    "frozen_rule_fireable_rate": 0.10577547047371837,
+    "n_inner": 10000,
+    "n_outer": 1000,
+    "pool_description": "Fireable 2020-2024 empirical direction-aligned MAE severity (trailing-250 warmup excluded). Hypothetical fresh surfaces are drawn with replacement. Expected K = round(frozen RULE_1 fireable rate * N). Inner P95 uses 10000 RATE_MATCHED_RANDOM_ABSTENTION replicates. No 2025/2026 prices are used.",
+    "surfaces": [
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.0,
+        "N": 364,
+        "STATISTICAL_POWER_AT_20PCT": 0.0,
+        "approx_years": 1,
+        "expected_K": 39,
+        "sensitivity": {
+          "20pct": {
+            "JOINT_PASS_PROBABILITY": 0.0,
+            "STATISTICAL_POWER": 0.0,
+            "authoritative": true,
+            "n_inner": 10000,
+            "n_outer": 1000,
+            "power_practical_gate": 0.473,
+            "relative_effect": 0.2
+          },
+          "25pct": {
+            "JOINT_PASS_PROBABILITY": 0.231,
+            "STATISTICAL_POWER": 0.231,
+            "authoritative": false,
+            "n_inner": 10000,
+            "n_outer": 1000,
+            "power_practical_gate": 1.0,
+            "relative_effect": 0.25
+          },
+          "30pct": {
+            "JOINT_PASS_PROBABILITY": 0.969,
+            "STATISTICAL_POWER": 0.969,
+            "authoritative": false,
+            "n_inner": 10000,
+            "n_outer": 1000,
+            "power_practical_gate": 1.0,
+            "relative_effect": 0.3
+          }
+        }
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.45,
+        "N": 728,
+        "STATISTICAL_POWER_AT_20PCT": 0.903,
+        "approx_years": 2,
+        "expected_K": 77,
+        "sensitivity": {
+          "20pct": {
+            "JOINT_PASS_PROBABILITY": 0.45,
+            "STATISTICAL_POWER": 0.903,
+            "authoritative": true,
+            "n_inner": 10000,
+            "n_outer": 1000,
+            "power_practical_gate": 0.496,
+            "relative_effect": 0.2
+          },
+          "25pct": {
+            "JOINT_PASS_PROBABILITY": 1.0,
+            "STATISTICAL_POWER": 1.0,
+            "authoritative": false,
+            "n_inner": 10000,
+            "n_outer": 1000,
+            "power_practical_gate": 1.0,
+            "relative_effect": 0.25
+          },
+          "30pct": {
+            "JOINT_PASS_PROBABILITY": 1.0,
+            "STATISTICAL_POWER": 1.0,
+            "authoritative": false,
+            "n_inner": 10000,
+            "n_outer": 1000,
+            "power_practical_gate": 1.0,
+            "relative_effect": 0.3
+          }
+        }
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.509,
+        "N": 1092,
+        "STATISTICAL_POWER_AT_20PCT": 1.0,
+        "approx_years": 3,
+        "expected_K": 116,
+        "sensitivity": {
+          "20pct": {
+            "JOINT_PASS_PROBABILITY": 0.509,
+            "STATISTICAL_POWER": 1.0,
+            "authoritative": true,
+            "n_inner": 10000,
+            "n_outer": 1000,
+            "power_practical_gate": 0.509,
+            "relative_effect": 0.2
+          },
+          "25pct": {
+            "JOINT_PASS_PROBABILITY": 1.0,
+            "STATISTICAL_POWER": 1.0,
+            "authoritative": false,
+            "n_inner": 10000,
+            "n_outer": 1000,
+            "power_practical_gate": 1.0,
+            "relative_effect": 0.25
+          },
+          "30pct": {
+            "JOINT_PASS_PROBABILITY": 1.0,
+            "STATISTICAL_POWER": 1.0,
+            "authoritative": false,
+            "n_inner": 10000,
+            "n_outer": 1000,
+            "power_practical_gate": 1.0,
+            "relative_effect": 0.3
+          }
+        }
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.504,
+        "N": 1456,
+        "STATISTICAL_POWER_AT_20PCT": 1.0,
+        "approx_years": 4,
+        "expected_K": 154,
+        "sensitivity": {
+          "20pct": {
+            "JOINT_PASS_PROBABILITY": 0.504,
+            "STATISTICAL_POWER": 1.0,
+            "authoritative": true,
+            "n_inner": 10000,
+            "n_outer": 1000,
+            "power_practical_gate": 0.504,
+            "relative_effect": 0.2
+          },
+          "25pct": {
+            "JOINT_PASS_PROBABILITY": 1.0,
+            "STATISTICAL_POWER": 1.0,
+            "authoritative": false,
+            "n_inner": 10000,
+            "n_outer": 1000,
+            "power_practical_gate": 1.0,
+            "relative_effect": 0.25
+          },
+          "30pct": {
+            "JOINT_PASS_PROBABILITY": 1.0,
+            "STATISTICAL_POWER": 1.0,
+            "authoritative": false,
+            "n_inner": 10000,
+            "n_outer": 1000,
+            "power_practical_gate": 1.0,
+            "relative_effect": 0.3
+          }
+        }
+      }
+    ]
+  },
+  "TARGET_CHANGED": false,
   "TEMPORAL_REPORTING": {
     "no_new_quarterly_pass_rule": true,
     "primary_uses_pooled_2025": true,
@@ -96,8 +312,10 @@
       "2025-Q4"
     ]
   },
+  "THREE_YEAR_STATISTICAL_POWER_AT_20PCT": 1.0,
+  "TWO_YEAR_STATISTICAL_POWER_AT_20PCT": 0.903,
   "WARMUP": "Trailing-250 feature history may use already-exposed 2024 decision points. 2025 outcomes remain unexposed. Metrics are computed only on 2025 T.",
-  "WHY_NOT_CONSUME_2026": "2026 is a second reserved surface for later replication/follow-up if justified. Combining 2025+2026 to increase N is forbidden. Underpowering does not automatically consume 2026.",
+  "WHY_NOT_CONSUME_2026": "Two independent fresh years (~728 decision rows) meet the primary statistical-power criterion at a 20% true effect. That does not authorize opening. POTENTIAL_FUTURE_SURFACE = 2025_PLUS_FULL_2026 is recorded only as a scientifically worthwhile future predeclared combined fresh surface. AUTHORIZED_TO_OPEN = false. 2025 remains unopened. 2026 remains unopened. They are not automatically combined now.",
   "date": "2026-09-21",
   "kind": "OUTCOME_BLIND_CONFIRMATION_DESIGN",
   "metadata_2025": {
