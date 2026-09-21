@@ -1,0 +1,140 @@
+{
+  "schema": "market_03_public_strategy_prereg_freeze",
+  "schema_version": "1.0.0",
+  "status": "FROZEN_OUTCOME_BLIND",
+  "unit_id": "MARKET_03_PUBLIC_STRATEGY_PREREG_FREEZE",
+  "research_id": "MARKET-03_PUBLIC_STRATEGY_REPLICATION",
+  "date_utc": "2026-09-18",
+  "not_a_result": true,
+  "not_an_arm": true,
+  "not_market_03_execution": true,
+  "not_implementation": true,
+  "not_b2_06_2025_2026_authorization": true,
+  "not_v3": true,
+  "not_v4": true,
+  "pre_prereg": {
+    "head": "9454af65398df1d3f5e0cb3af5e48c0986049d2d",
+    "tree": "27531689a1185dda7946f6742d725a87477911e2"
+  },
+  "accepted_prereg_content": {
+    "head": "06d6ec0121a9a35f8ee947fbe89e37e97388b6e2",
+    "tree": "50bc810eb127ea7aea1843ef2ede0dd4fe8905d1"
+  },
+  "freeze_parent_expected_head": "06d6ec0121a9a35f8ee947fbe89e37e97388b6e2",
+  "freeze_commit_head": "UNSET_UNTIL_THIS_COMMIT",
+  "freeze_commit_tree": "UNSET_UNTIL_THIS_COMMIT",
+  "note": "This freeze commit is a docs-only provenance descendant of the MARKET-03 prereg materialization. It does not modify MARKET_03_PUBLIC_STRATEGY_PREREG.md/.json at all -- those exact bytes are the frozen object. Binding is to accepted_prereg_content.head/tree and the git blob SHA256s recorded below. freeze_commit_head/freeze_commit_tree remain UNSET_UNTIL_THIS_COMMIT. The prereg files' internal status string PREREGISTERED_OUTCOME_BLIND is left unchanged; current freeze authority is this document.",
+  "frozen_prereg_artifacts": {
+    "MARKET_03_PUBLIC_STRATEGY_PREREG.md": {
+      "path": "docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG.md",
+      "sha256": "044bb2a6bbd51c49c856b02eb7866b43171664a05d947dce995489389eeb0b57",
+      "size_bytes": 15063
+    },
+    "MARKET_03_PUBLIC_STRATEGY_PREREG.json": {
+      "path": "docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG.json",
+      "sha256": "3f35f9a1d0575eaff3a1993a4779642259c0891dbdda1d49f22b958eba714f89",
+      "size_bytes": 15587
+    }
+  },
+  "authority_chain": {
+    "design_commit": "9454af65398df1d3f5e0cb3af5e48c0986049d2d",
+    "design_tree": "27531689a1185dda7946f6742d725a87477911e2",
+    "design_json_sha256": "91e3624988442901a21693dabd3eb4bfa9502d2fa6ccd8df9b6a7f9e04146a57",
+    "prereg_materialization_head": "06d6ec0121a9a35f8ee947fbe89e37e97388b6e2",
+    "prereg_materialization_tree": "50bc810eb127ea7aea1843ef2ede0dd4fe8905d1"
+  },
+  "external_source_crosscheck": {
+    "repo": "https://github.com/wiktorj137/btc-strategy-lab",
+    "commit": "b68a5518b4a3eba2fde1733160d7d7de356023b5",
+    "tree": "f7717e681c911ea3ccce15492246053cf15883cb",
+    "family": "EmaCross vs EmaCrossFunding"
+  },
+  "data_authorities_crosscheck": {
+    "spot": {
+      "dataset_id": "MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0",
+      "snapshot_id": "2ce1f504709dc40c37a70dddcf73acb444e715820e9c855f6817c48f10d2b345",
+      "spot_data_sha256": "e560bebb6ba9d070ee0fa58aaa5cf922caaa24d4b7e2b4eac8c7c0041c9495d4"
+    },
+    "funding": {
+      "b2_06_is_not_market_03_authority": true,
+      "proposed_dataset_id": "MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0",
+      "acquired_rest_jsonl_sha256": "e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb",
+      "named_snapshot_identity_materialized": false,
+      "funding_snapshot_ready": false,
+      "pre_arm_required_artifact": true
+    },
+    "warmup_interval": {
+      "start_inclusive": "2019-08-07T20:00:00Z",
+      "end_exclusive": "2019-10-01T00:00:00Z"
+    },
+    "evaluation_interval": {
+      "start_inclusive": "2019-10-01T00:00:00Z",
+      "end_exclusive": "2025-01-01T00:00:00Z"
+    }
+  },
+  "primary_metric_crosscheck": {
+    "identity": "author research/metrics.py Max drawdown; signed ratio float(dd.min())",
+    "equation": "REPRODUCED_DIRECTION iff finite(MDD_filtered) and finite(MDD_baseline) and (MDD_filtered > MDD_baseline)",
+    "replication_level": "LEVEL_2_FAITHFUL_REIMPLEMENTATION"
+  },
+  "limitations_preserved": {
+    "historical_reproduction_not_independent_replication": true,
+    "evaluation_truncated_vs_author_headline": true,
+    "STRICT_HISTORICAL_PUBLICATION_LATENCY": "UNPROVEN",
+    "REPRODUCTION_FUNDINGTIME_ASSUMPTION": "ACCEPTABLE",
+    "assumption_is_reproduction_only": true,
+    "p_value_bootstrap_gate": false,
+    "default_v4": false,
+    "reproduced_direction_does_not_mean": [
+      "current alpha",
+      "live profitability",
+      "causal funding effect",
+      "independent replication",
+      "OOS confirmation",
+      "validation of author's selection pipeline",
+      "calibrated statistical evidence",
+      "proven publication timing"
+    ]
+  },
+  "freeze_semantics": [
+    "the prereg scientific payload (frozen_prereg_artifacts) is immutable authority",
+    "implementation may only implement the frozen payload",
+    "implementation cannot choose new scientific constants/algorithms",
+    "any required scientific change discovered during implementation invalidates execution authorization and requires an explicit pre-outcome amendment/re-freeze, not a silent edit",
+    "no MARKET outcomes may be inspected by this freeze",
+    "no MARKET-03 execution is authorized",
+    "no ARM is authorized",
+    "canonical executions authorized remains 0; consumed remains 0",
+    "protected 2025 validation and 2026 OOS remain forbidden",
+    "B2-06 remains unauthorized and is not MARKET-03 funding authority",
+    "funding named snapshot remains a pre-ARM required artifact",
+    "no selective rerun / post-outcome threshold repair",
+    "magnitude and secondary metrics cannot promote a failed direction"
+  ],
+  "explicit_state": {
+    "market_03_outcome_inspected": false,
+    "market_03_prereg_materialized": true,
+    "market_03_prereg_ready": true,
+    "market_03_prereg_frozen": true,
+    "market_03_freeze_required": false,
+    "market_03_executed": false,
+    "market_03_armed": false,
+    "market_03_implementation_authorized": true,
+    "market_03_execution_authorized": false,
+    "canonical_executions_authorized": 0,
+    "canonical_executions_consumed": 0,
+    "funding_snapshot_ready": false,
+    "protected_oos_authorized": false,
+    "protected_oos_touched": false,
+    "b2_06_execution_authorized": false,
+    "default_v4": false
+  },
+  "forbidden_outcome_dependent_labels": [
+    "ARMED",
+    "EXECUTING",
+    "EXECUTED",
+    "RESULT"
+  ],
+  "next_lifecycle_state": "MARKET-03_IMPLEMENTATION",
+  "next_lifecycle_state_note": "Implement the already-frozen MARKET-03 contract, including the pre-ARM funding snapshot identity wrap. Not execution. Not ARM."
+}

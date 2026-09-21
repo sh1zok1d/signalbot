@@ -1,0 +1,411 @@
+{
+  "capture_timestamp_utc": "2026-09-18T16:46:53Z",
+  "external_commit_committer_date": "2026-08-22T05:18:19+02:00",
+  "external_commit_sha": "b68a5518b4a3eba2fde1733160d7d7de356023b5",
+  "external_commit_tree": "f7717e681c911ea3ccce15492246053cf15883cb",
+  "external_repo": "https://github.com/wiktorj137/btc-strategy-lab",
+  "files": [
+    {
+      "copied_into_signalbot": false,
+      "path": ".gitignore",
+      "scientifically_material": false,
+      "sha256": "b821618338b5f988971e7aebfc4a1c68c782aff0acb77c786db9a532663904e2",
+      "size_bytes": 337
+    },
+    {
+      "copied_into_signalbot": true,
+      "path": "LICENSE",
+      "scientifically_material": true,
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "size_bytes": 35149
+    },
+    {
+      "copied_into_signalbot": true,
+      "path": "NOTICE",
+      "scientifically_material": true,
+      "sha256": "0a752cb6005fa77aab1c1af262d37bd1e22fbafb62b8d3b47fb3ca83016bceca",
+      "size_bytes": 1411
+    },
+    {
+      "copied_into_signalbot": true,
+      "path": "README.md",
+      "scientifically_material": true,
+      "sha256": "92dd726a7c9a1e2859da423612a82c4d91524a2c4722dc7c904026c324e39e72",
+      "size_bytes": 17041
+    },
+    {
+      "copied_into_signalbot": true,
+      "path": "config.json",
+      "scientifically_material": true,
+      "sha256": "a20cfbf8c9efa36b06f336ef772e8be905e9c236b6f7bed38a4a0a810879ecda",
+      "size_bytes": 1236
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "dashboard/app.py",
+      "scientifically_material": false,
+      "sha256": "2142e089d510a53cff541e86b4a5eae6c33fae3a366cbb50782d57be6e1111b7",
+      "size_bytes": 4262
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "docs/img/benchmark.png",
+      "scientifically_material": false,
+      "sha256": "664a51018204fce8b24086461380d21413be71739e92968bfd3549b7074fadb5",
+      "size_bytes": 314551
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "docs/img/drawdown.png",
+      "scientifically_material": false,
+      "sha256": "45d6ea988b910f64401e771ec15e17e1de3c41a59da29e9a7693fe40a478d26b",
+      "size_bytes": 323412
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "docs/img/growth.gif",
+      "scientifically_material": false,
+      "sha256": "6bdb81be55b57cd62af49f5d6382edce6701456bc1981e2ad80316c3ff43e6da",
+      "size_bytes": 1027101
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "docs/img/growth.mp4",
+      "scientifically_material": false,
+      "sha256": "eaef0c3b4fb60f5061407770cf1206cc3b78820cd53c9ba1ed62cbe837a7c543",
+      "size_bytes": 389606
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "docs/img/hero.png",
+      "scientifically_material": false,
+      "sha256": "cc647cd8e1ba5135b69059657257834f16f7eeef0b5b0826ba6a53a3d4ff8bed",
+      "size_bytes": 276257
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "docs/img/regimes.png",
+      "scientifically_material": false,
+      "sha256": "4b73902972d64d3973789a0e5622505d17c758de5474b3abf09b6c2d8869669a",
+      "size_bytes": 139823
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "docs/img/risk_return.png",
+      "scientifically_material": false,
+      "sha256": "7c147708392c072e912d624202ef0c7726f4079144ab2b4982414bde6b4df58f",
+      "size_bytes": 127836
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "docs/img/signals.png",
+      "scientifically_material": false,
+      "sha256": "5c7c36f7d117ef58f24a0fb4776dcc858ef0def39158eab4e752d3ff1ecc8a43",
+      "size_bytes": 304039
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "docs/img/social.png",
+      "scientifically_material": false,
+      "sha256": "fbf6134152bdb29d324689e1cdc5d7563fa38c01b47cbb5cdd95da6bf0717d00",
+      "size_bytes": 442476
+    },
+    {
+      "copied_into_signalbot": true,
+      "path": "requirements.txt",
+      "scientifically_material": true,
+      "sha256": "7a3901b84957ea3182f14ade79b9045cde1464c0fcdf29bc527fbb85b5f53639",
+      "size_bytes": 88
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/baseline.py",
+      "scientifically_material": false,
+      "sha256": "e8fc7a61c6cbe88102ae0fba986a5bd9b498af2e14455f42c784452f94d75884",
+      "size_bytes": 672
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/benchmark_strategies.py",
+      "scientifically_material": true,
+      "sha256": "0990d3ff3e47cc28a6926719b63252e8445538e058e26a0f8ddb0def454a6567",
+      "size_bytes": 4386
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/benchmarks.py",
+      "scientifically_material": false,
+      "sha256": "63cd7127c38f5feb464f850a4cd5885ff9d1cd7a50928e0db445674134a15b17",
+      "size_bytes": 2395
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/chart_signals.py",
+      "scientifically_material": false,
+      "sha256": "0b0d8904e2cdc9727099d0e1939f6f53ea983b7416989d7c4344bffd9a31f683",
+      "size_bytes": 8632
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/compare.py",
+      "scientifically_material": true,
+      "sha256": "bee031fa053977e0e5e86b984de71f40f1ff3ec34d2c1a9afdb88950c6198a1e",
+      "size_bytes": 1396
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/data_scrub.py",
+      "scientifically_material": true,
+      "sha256": "d69442d2ac0ff7aeadbfbff968040404665dff190073a5a804cec607dcdfd35c",
+      "size_bytes": 3666
+    },
+    {
+      "copied_into_signalbot": true,
+      "path": "research/fetch_onchain.py",
+      "scientifically_material": true,
+      "sha256": "2312dc978cc62b8b3acd1f75226bd1f51292704d2758fb01eb4d9ead06d876bf",
+      "size_bytes": 2289
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/fetch_orderflow.py",
+      "scientifically_material": false,
+      "sha256": "c86cdbfafb881e7d24e0a9e98ccc6f155805b6dcd5198f181487ef884a91df41",
+      "size_bytes": 2463
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/make_hero.py",
+      "scientifically_material": false,
+      "sha256": "e27c4bfe2e6dc91328d5d43443e3194c97bfb1c5afd33185da54c36f89675fc2",
+      "size_bytes": 4450
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/make_images.py",
+      "scientifically_material": false,
+      "sha256": "8492626cdf3568c9c80cfc6897000c68ccb55d7d108697bfa2142b89ff913494",
+      "size_bytes": 8165
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/make_social.py",
+      "scientifically_material": false,
+      "sha256": "4db3a7f29a0a478ea481b5a193e3a517f7e0a7b7807c3ea19b2dbd2081690d19",
+      "size_bytes": 3534
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/make_video.py",
+      "scientifically_material": false,
+      "sha256": "71d5fe8d63195b4964d3a14a803f190db11a82e2f7ee46ae23841732ecf5a286",
+      "size_bytes": 7214
+    },
+    {
+      "copied_into_signalbot": true,
+      "path": "research/metrics.py",
+      "scientifically_material": true,
+      "sha256": "982b76ff2ab8bcac0b1512015dbad9125edf5cbfde8f8af9bff0183251bc44e8",
+      "size_bytes": 4785
+    },
+    {
+      "copied_into_signalbot": true,
+      "path": "research/out/benchmark.csv",
+      "scientifically_material": true,
+      "sha256": "c47aeefcb5243605359f8b4760ead11744354b0f54fcf9cd8714a8f6f58231b5",
+      "size_bytes": 7174
+    },
+    {
+      "copied_into_signalbot": true,
+      "path": "research/out/walk_forward.csv",
+      "scientifically_material": true,
+      "sha256": "17f0422573da19b2a4665f1194cebde3a2a95c00461f4644564769b9aee4146b",
+      "size_bytes": 726
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/overfit.py",
+      "scientifically_material": true,
+      "sha256": "b74e8dfe3bd7df378aa7f26c688f08b3266dabe84898b048d47a47b981817b76",
+      "size_bytes": 3433
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/pbo.py",
+      "scientifically_material": true,
+      "sha256": "fc465b1e7e6ffc5ed2dad3aa65a6ba6c540a70d69e436cec28d42ebd0311609b",
+      "size_bytes": 4415
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/report_html.py",
+      "scientifically_material": false,
+      "sha256": "fa11518e8306b704fdaa7d718a552537749bca2578bd4af98e312da3e8a26c02",
+      "size_bytes": 7762
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/report_simple.py",
+      "scientifically_material": false,
+      "sha256": "ce74fdab61a03d8483c2f2570ff40d1f8256808b2838d3b33ef15bade0e96ea7",
+      "size_bytes": 8308
+    },
+    {
+      "copied_into_signalbot": true,
+      "path": "research/results.py",
+      "scientifically_material": true,
+      "sha256": "e83e92c4c8b8e4163cdabab0beebec99dc781a6044f39a867e5181394e44e1c3",
+      "size_bytes": 2114
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/sweep.py",
+      "scientifically_material": false,
+      "sha256": "6b4f81fd6db04a20bf391ff0b30adc609977cfa8c7152e082fbff95c09450da2",
+      "size_bytes": 3449
+    },
+    {
+      "copied_into_signalbot": true,
+      "path": "research/sweep_emacross.py",
+      "scientifically_material": true,
+      "sha256": "0e90f1e7c95d8d9fd7a5c2b91cc4d474b4155ec903a775c8d9a79c124b275ba2",
+      "size_bytes": 3321
+    },
+    {
+      "copied_into_signalbot": true,
+      "path": "research/sweep_funding.py",
+      "scientifically_material": true,
+      "sha256": "1227276e1ea11a46c9036e7cc2feece956ca3c5706e4cf1c3c9da95adae49bc3",
+      "size_bytes": 3426
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/test_onchain_edge.py",
+      "scientifically_material": true,
+      "sha256": "2f1929b2904a6ec043285e1c7037c02790dbf36260c5eabdda485f96b8d4a043",
+      "size_bytes": 2978
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/test_orderflow_edge.py",
+      "scientifically_material": false,
+      "sha256": "35cf01b59e467abeb61ba1701b6b421d4c18e8a559988840b22b76201e81203e",
+      "size_bytes": 4178
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/walk_forward.py",
+      "scientifically_material": true,
+      "sha256": "4b9e755eb3ad4c123892be1b4f7c534093d6af0d67612732842a56cef7991e27",
+      "size_bytes": 5534
+    },
+    {
+      "copied_into_signalbot": true,
+      "path": "research/walk_forward_fast.py",
+      "scientifically_material": true,
+      "sha256": "6df4b05e8aa1dd27e2f96bfd6bcfa6da1fbb3b762b21651b7ae9aa66a53e5f5c",
+      "size_bytes": 4939
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/webdata/fear_greed.feather",
+      "scientifically_material": false,
+      "sha256": "5b679f1d2ce8db997838289773eb567f64a489cafa4b0653bf90dfb0bc5d074a",
+      "size_bytes": 29426
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "research/webdata/funding.feather",
+      "scientifically_material": true,
+      "sha256": "e1bcef5fe2a058f85fdf80662b8ed11a69fefbc09bc3e7db6af2ef112d25b2f3",
+      "size_bytes": 89426
+    },
+    {
+      "copied_into_signalbot": true,
+      "path": "scripts/download_data.sh",
+      "scientifically_material": true,
+      "sha256": "ca2ff70e9b1a3aa12526c919598a7c15ad85df50381e8f1a04fda97cadce3557",
+      "size_bytes": 294
+    },
+    {
+      "copied_into_signalbot": true,
+      "path": "scripts/fetch_benchmark_strategies.sh",
+      "scientifically_material": true,
+      "sha256": "c04dd23d5638c7ac7f5a7bd1a51487582c56db2c554c40add1989d4681ac2917",
+      "size_bytes": 1003
+    },
+    {
+      "copied_into_signalbot": true,
+      "path": "scripts/setup.sh",
+      "scientifically_material": true,
+      "sha256": "d7f88c6d3c07c88e48c1772fcaa029c238db15e9ec334916dee6d2130d51ca52",
+      "size_bytes": 306
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "user_data/strategies/BtcHybrid.py",
+      "scientifically_material": false,
+      "sha256": "4f1053346fbdf5c83076f472264a118ab2c36f62e2bd4729edd0a574835f40ef",
+      "size_bytes": 7129
+    },
+    {
+      "copied_into_signalbot": true,
+      "path": "user_data/strategies/EmaCross.json",
+      "scientifically_material": true,
+      "sha256": "9209a90e5092216af166fd10b9e7415690ab16af0fb3010c7e94e162c027e3ee",
+      "size_bytes": 168
+    },
+    {
+      "copied_into_signalbot": true,
+      "path": "user_data/strategies/EmaCross.py",
+      "scientifically_material": true,
+      "sha256": "387cf39f58d266bb63d06865a0784bc2e08676edf54f4610c7d7709bb2a95f24",
+      "size_bytes": 2183
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "user_data/strategies/EmaCrossFlow.py",
+      "scientifically_material": false,
+      "sha256": "40b572ca636d8e3beda450c45b51b678e2d6d71e78917b53d00361edc1797a23",
+      "size_bytes": 4123
+    },
+    {
+      "copied_into_signalbot": true,
+      "path": "user_data/strategies/EmaCrossFunding.json",
+      "scientifically_material": true,
+      "sha256": "1641ce3122ccc0c216aaae1af77bedb15dd77670643201d1c7453066eca38f0b",
+      "size_bytes": 198
+    },
+    {
+      "copied_into_signalbot": true,
+      "path": "user_data/strategies/EmaCrossFunding.py",
+      "scientifically_material": true,
+      "sha256": "0f0d3d4677647da2e11d4dc8195adbb95fce201ce400300df0a78741cf9a9564",
+      "size_bytes": 3366
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "user_data/strategies/EmaEnsemble.py",
+      "scientifically_material": false,
+      "sha256": "8635f1310444f2da045b8871d065ecf064e7a7f7ab0e39461c444436d841efbb",
+      "size_bytes": 2430
+    },
+    {
+      "copied_into_signalbot": false,
+      "path": "user_data/strategies/EmaEnsembleVariants.py",
+      "scientifically_material": false,
+      "sha256": "0cc0e7f1b057be879ffb010e35d54a67dfabdaff65be0042b5a7e453f03317d3",
+      "size_bytes": 2332
+    }
+  ],
+  "n_files": 56,
+  "not_copied_binaries_hashed_only": [
+    "research/webdata/funding.feather",
+    "research/webdata/fear_greed.feather",
+    "docs/img/*"
+  ],
+  "note": "Binary images/feather are hashed, not copied. Text snapshots are byte copies of the pinned commit.",
+  "schema": "market_03_btc_strategy_lab_source_inventory",
+  "schema_version": "1.0.0",
+  "total_size_bytes": 3662813
+}

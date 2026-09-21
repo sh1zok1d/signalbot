@@ -1,0 +1,142 @@
+{
+  "schema": "market_03_public_strategy_implementation_freeze",
+  "schema_version": "1.0.0",
+  "status": "IMPLEMENTATION_FROZEN",
+  "unit_id": "MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_FREEZE",
+  "research_id": "MARKET-03_PUBLIC_STRATEGY_REPLICATION",
+  "date_utc": "2026-09-18",
+  "human_readable_twin": "docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_FREEZE.md",
+  "not_a_result": true,
+  "not_an_arm": true,
+  "not_market_03_execution": true,
+  "not_outcome_inspection": true,
+  "not_parameter_search": true,
+  "not_prereg_modification": true,
+  "not_data_modification": true,
+  "not_b2_06_2025_2026_authorization": true,
+  "not_v3": true,
+  "not_v4": true,
+  "replication_level": "LEVEL_2_FAITHFUL_REIMPLEMENTATION",
+  "scientific_identity": "EXTERNAL_HISTORICAL_CLAIM_REPRODUCTION",
+  "reviewed_implementation": {
+    "head": "03411aaa1a2f938169f07f8f3576f17227a2b14b",
+    "tree": "87a1da250a56343c44625e3f5187a6877035d1da"
+  },
+  "re_review": {
+    "head": "03411aaa1a2f938169f07f8f3576f17227a2b14b",
+    "tree": "87a1da250a56343c44625e3f5187a6877035d1da",
+    "verdict": "READY_FOR_IMPLEMENTATION_FREEZE"
+  },
+  "freeze_parent_expected_head": "03411aaa1a2f938169f07f8f3576f17227a2b14b",
+  "freeze_commit_head": "UNSET_UNTIL_THIS_COMMIT",
+  "freeze_commit_tree": "UNSET_UNTIL_THIS_COMMIT",
+  "note": "This freeze commit is a docs/test descendant of the independently re-reviewed MARKET-03 implementation. It does not modify market_03_public_strategy_{lib,authority,execute}.py. Binding is to reviewed_implementation.head/tree and the SHA256s below. freeze_commit_head/tree remain UNSET_UNTIL_THIS_COMMIT. The reviewed authority.py still contains IMPLEMENTATION_FROZEN=False as the unarmed code identity; changing that flag would invalidate this freeze. ARM must bind this freeze identity.",
+  "prereg": {
+    "md_path": "docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG.md",
+    "json_path": "docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG.json",
+    "md_sha256": "044bb2a6bbd51c49c856b02eb7866b43171664a05d947dce995489389eeb0b57",
+    "json_sha256": "3f35f9a1d0575eaff3a1993a4779642259c0891dbdda1d49f22b958eba714f89",
+    "md_size_bytes": 15063,
+    "json_size_bytes": 15587,
+    "changed": false,
+    "prereg_freeze_authority": "docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG_FREEZE.md"
+  },
+  "frozen_scientific_implementation": {
+    "scripts/research/market_03_public_strategy_lib.py": {
+      "role": "scientific_core",
+      "sha256": "46ec2449e967172b61eec32f5ab6caf897ff9db04249395ac55a2368840289a5",
+      "git_blob": "979f9e735163cf53a265a4e8c3dc93ba37f8b20e",
+      "size_bytes": 38012
+    },
+    "scripts/research/market_03_public_strategy_authority.py": {
+      "role": "identity_and_fail_closed_guard",
+      "sha256": "97f000c6afc2427db9fe3f90548f77c7e7ab4da0e43ba3283159101565a305e4",
+      "git_blob": "bb922ee9755e911dabf6ead1250ea1295ffa162e",
+      "size_bytes": 13235
+    },
+    "scripts/research/market_03_public_strategy_execute.py": {
+      "role": "bound_execution_stub",
+      "sha256": "90fd315d926b2b957391ed31c71bff6a33b0f22257960d0779e27e277cb40bcf",
+      "git_blob": "7d04ae75651060c52bea8e7ae848c6f97b6233dd",
+      "size_bytes": 1292
+    }
+  },
+  "pinned_external_source": {
+    "repo": "https://github.com/wiktorj137/btc-strategy-lab",
+    "commit": "b68a5518b4a3eba2fde1733160d7d7de356023b5",
+    "tree": "f7717e681c911ea3ccce15492246053cf15883cb",
+    "family": "EmaCross vs EmaCrossFunding",
+    "replication_level": "LEVEL_2_FAITHFUL_REIMPLEMENTATION"
+  },
+  "data_authorities": {
+    "spot": {
+      "dataset_id": "MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0",
+      "snapshot_id": "2ce1f504709dc40c37a70dddcf73acb444e715820e9c855f6817c48f10d2b345",
+      "data_sha256": "e560bebb6ba9d070ee0fa58aaa5cf922caaa24d4b7e2b4eac8c7c0041c9495d4"
+    },
+    "funding": {
+      "dataset_id": "MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0",
+      "snapshot_id": "d47b7b78b6e7dbb842c7d9eb122c81063e0b804e179a53dd87723f9a8a8adc68",
+      "data_sha256": "e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb",
+      "b2_06_is_not_authority": true
+    }
+  },
+  "intervals": {
+    "warmup_start_inclusive": "2019-08-07T20:00:00Z",
+    "warmup_end_exclusive": "2019-10-01T00:00:00Z",
+    "evaluation_start_inclusive": "2019-10-01T00:00:00Z",
+    "evaluation_end_exclusive": "2025-01-01T00:00:00Z",
+    "protected_oos_start": "2025-01-01T00:00:00Z"
+  },
+  "primary_classification": {
+    "equation": "REPRODUCED_DIRECTION iff finite(MDD_filtered) and finite(MDD_baseline) and (MDD_filtered > MDD_baseline)",
+    "mdd_signed": true,
+    "magnitude_cannot_override": true
+  },
+  "fundingTime_assumption": {
+    "STRICT_HISTORICAL_PUBLICATION_LATENCY": "UNPROVEN",
+    "REPRODUCTION_FUNDINGTIME_ASSUMPTION": "ACCEPTABLE"
+  },
+  "review_closures": {
+    "F1_CLOSED": true,
+    "F2_CLOSED": true,
+    "F3_CLOSED": true,
+    "F5_CLOSED": true,
+    "F1_REPRODUCIBLE_AFTER_REPAIR": false,
+    "F2_PREWARMUP_INFLUENCE_AFTER_REPAIR": false,
+    "F3_WALLET_MATCH": true,
+    "F5_CANONICAL_AUTHORITY_FAIL_CLOSED": true,
+    "FUNDING_ALIGNMENT_MATCH": true,
+    "FUNDING_PERCENTILE_MATCH": true,
+    "SIGNAL_TIMING_MATCH": true,
+    "STOPLOSS_MATCH": true,
+    "TRAILING_STOP_MATCH": true,
+    "FEE_ACCOUNTING_MATCH": true,
+    "MDD_MATCH": true,
+    "BASELINE_FILTER_ISOLATION": true
+  },
+  "fidelity": {
+    "EXACT_DIFFERENTIAL_TESTS": "PARTIAL"
+  },
+  "tests_at_review": {
+    "compileall": "PASS",
+    "focused_market_03_suite": "98 passed",
+    "git_diff_check": "PASS",
+    "FULL_PYTEST_AT_REVIEW": "NOT_COMPLETED"
+  },
+  "explicit_state": {
+    "IMPLEMENTATION_FROZEN": true,
+    "MARKET_03_ARMED": false,
+    "CANONICAL_EXECUTIONS_AUTHORIZED": 0,
+    "CANONICAL_EXECUTIONS_CONSUMED": 0,
+    "MARKET_03_STRATEGY_EXECUTED": false,
+    "MARKET_03_OUTCOMES_INSPECTED": false,
+    "MARKET_03_PARAMETER_SEARCH": false,
+    "PROTECTED_OOS_TOUCHED": false,
+    "PREREG_CHANGED": false,
+    "SPOT_SNAPSHOT_CHANGED": false,
+    "FUNDING_SNAPSHOT_CHANGED": false
+  },
+  "next_lifecycle_state": "MARKET-03_ARM",
+  "next_lifecycle_state_note": "A later unit may ARM against this exact freeze identity. This unit does not ARM or execute."
+}

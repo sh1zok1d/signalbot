@@ -1,0 +1,71 @@
+# MARKET-03 PUBLIC STRATEGY — canonical RESULT
+
+- **Status:** `RESULT`
+- **Unit ID:** `MARKET_03_PUBLIC_STRATEGY_RESULT`
+- **Research ID:** `MARKET-03_PUBLIC_STRATEGY_REPLICATION`
+- **Date:** 2026-09-19
+
+Canonical machine-readable twin:
+`docs/research/MARKET_03_PUBLIC_STRATEGY_RESULT.json`.
+
+This document restates the sealed mechanical classification. It does
+not reinterpret it. Magnitude figures are descriptive only.
+
+```text
+PRIMARY_CLASSIFICATION = REPRODUCED_DIRECTION
+CANONICAL_EXECUTIONS_AUTHORIZED = 1
+CANONICAL_EXECUTIONS_CONSUMED = 1
+MARKET_03_STRATEGY_EXECUTED = YES
+MARKET_03_OUTCOMES_INSPECTED = YES
+MARKET_03_PARAMETER_SEARCH = NO
+PROTECTED_OOS_TOUCHED = NO
+B2_06_EXECUTION_AUTHORIZED = NO
+```
+
+```text
+RUN_IDENTITY = f68b6de7d6c127f67908c48bf4be73cf986ea5d9daf9257bdae07f9ac626f397
+ARM_HEAD = e3c5de3bcb68173af0bfb08a8c42f4a5e8981c5a
+ARM_TREE = 95af1b525c938117c0a17778283116d09bd1d84d
+ARM_MD_SHA256_UNUSED = ab268bfd1b5669ba33f700b540a15a91aedfb3bfc503ae7e9cd62e89b9f5970e
+ARM_JSON_SHA256_UNUSED = 7c801cdc713d2b2a58c35f4b28a1cd8b6d464b7e06dace1c374ed46ef6a3075c
+```
+
+```text
+MDD_BASELINE = -0.4935539254862912
+MDD_FILTERED = -0.33775527768227054
+BASELINE_MDD_MAGNITUDE = 0.4935539254862912
+FILTERED_MDD_MAGNITUDE = 0.33775527768227054
+MDD_ABSOLUTE_PP_CHANGE = 15.579864780402064
+MDD_RELATIVE_MAGNITUDE_CHANGE = 0.3156669205913307
+BASELINE_TRADES = 97
+FILTERED_TRADES = 71
+```
+
+Frozen author headline (descriptive context only; not a gate):
+
+```text
+author baseline MDD magnitude = 49.4%
+author filtered MDD magnitude = 33.8%
+author absolute reduction = 15.6 percentage points
+author relative reduction ≈ 31.6%
+```
+
+Supporting descriptives from the same frozen run:
+
+```text
+BASELINE_TOTAL_RETURN = 15.043839658589459
+FILTERED_TOTAL_RETURN = 19.022942353275614
+BASELINE_FINAL_DAILY_EQUITY = 160438.3965858948
+FILTERED_FINAL_DAILY_EQUITY = 200229.42353275535
+BASELINE_TIME_IN_MARKET_HOURS = 27277.0
+FILTERED_TIME_IN_MARKET_HOURS = 24062.0
+FUNDING_FILTER_ENTRIES_REJECTED = 117
+MAX_CONSUMED_MARKET_TIMESTAMP = 2024-12-31T23:00:00Z
+```
+
+`REPRODUCED_DIRECTION` means only: finite signed
+`MDD_filtered > MDD_baseline` on the frozen interval. It does not
+authorize current alpha, live profitability, causal funding effect,
+independent replication, OOS confirmation, or a second run.
+
+No rerun is authorized.

@@ -1,0 +1,190 @@
+{
+  "schema": "signalbot_market_04_candidate_selection",
+  "schema_version": "1.0.0",
+  "unit_id": "MARKET_04_CANDIDATE_SELECTION",
+  "status": "SELECTED_OUTCOME_BLIND_NOT_PREREGISTERED_NOT_AUTHORIZED",
+  "date": "2026-09-19",
+  "market_04_selected": true,
+  "candidate_identity_frozen": true,
+  "candidate": "MARKET-04_FUNDING_STATE_ADVERSE_PATH_RISK",
+  "research_id": "MARKET-04_FUNDING_STATE_ADVERSE_PATH_RISK",
+  "short_name": "MARKET-04",
+  "mechanism_family": "F5_POSITIONING_OI_FUNDING",
+  "role": "RISK_STATE_FILTER",
+  "candidate_role": "RISK_STATE_FILTER",
+  "not_role": "DIRECTION_PREDICTOR",
+  "direction_predictor": false,
+  "primary_outcome_family": "FUTURE_ADVERSE_PATH_RISK",
+  "pnl_is_primary_outcome": false,
+  "final_horizon_return_is_primary": false,
+  "final_horizon_return_may_be_secondary_diagnostic_later": true,
+  "scientific_question": "Does historically available funding state add stable incremental information about future adverse price-path risk beyond a simple price / trend / volatility state?",
+  "intended_interpretation": "funding may be useful for identifying dangerous market states, even when it does not reliably predict the sign of subsequent return",
+  "explicitly_not": [
+    "high funding means price will fall",
+    "low funding means price will rise",
+    "a MARKET-01 / MARKET-02 rescue",
+    "a rerun of EmaCrossFunding",
+    "validation of threshold 55",
+    "a claim that funding causes drawdowns"
+  ],
+  "primary_mechanism": "Crowded / elevated funding may identify market states in which long exposure experiences worse subsequent adverse path / downside risk than would be expected from contemporaneous price and volatility state alone.",
+  "incremental_value_contract": {
+    "candidate": "CORE_PRICE_STATE + FUNDING_STATE",
+    "baseline": "CORE_PRICE_STATE",
+    "same_support_mandatory": true,
+    "funding_complexity_earns_value_only_if_incremental": true
+  },
+  "baseline_architecture": {
+    "baseline": "simple information available at T describing current price state, trend/displacement, and realized volatility",
+    "candidate": "the exact same baseline + funding-state information",
+    "same_support_mandatory": true,
+    "large_indicator_set_forbidden_in_first_formulation": true,
+    "ml_forbidden_in_first_formulation": true,
+    "exact_baseline_deferred_to_later_prereg": true
+  },
+  "outcome_family": {
+    "primary": "FUTURE_ADVERSE_PATH_RISK",
+    "must_be_based_on": "future downside / maximum adverse excursion from decision time T",
+    "allowable_later_implementation_forms": [
+      "future maximum adverse excursion",
+      "future minimum cumulative return from T",
+      "a predeclared lower-tail adverse-path statistic"
+    ],
+    "do_not_choose_among_forms_by_inspecting_outcomes": true,
+    "exact_metric_horizon_uncertainty_materiality_deferred_to_later_prereg": true,
+    "pnl_must_not_be_primary": true
+  },
+  "lineage": {
+    "parent": "MARKET-03",
+    "parent_research_id": "MARKET-03_PUBLIC_STRATEGY_REPLICATION",
+    "child": "MARKET-04",
+    "kind": "ADAPTIVE_HYPOTHESIS_GENERATION_FROM_EXTERNAL_REPRODUCTION",
+    "market_03_lineage": "ADAPTIVE_HYPOTHESIS_GENERATION_FROM_EXTERNAL_REPRODUCTION",
+    "independent_replication_of_market_03": false,
+    "market_03_positive_does_not_make_market_04_independent_replication": true,
+    "market_04_negative_does_not_invalidate_market_03_reproduction": true,
+    "questions_are_different": true,
+    "market_03_registry_class": "EXTERNAL_REPRODUCTION",
+    "market_03_scientific_outcome": "REPRODUCED_DIRECTION",
+    "market_03_used_as": "hypothesis-generation metadata only; not independent confirmation"
+  },
+  "novelty_vs_market_03": {
+    "must_not_use_external_strategy_as_core_population": true,
+    "forbidden_defining_design": [
+      "EMA600 entry population",
+      "author threshold 55 as inherited authority",
+      "author exact 180d percentile merely copied because it worked",
+      "EmaCross vs EmaCrossFunding",
+      "drawdown of the author backtest as the primary experiment",
+      "parameter search around the author published rule"
+    ],
+    "must_test_funding_as_market_state_feature_outside_specific_external_strategy": true,
+    "threshold_55_inherited": false,
+    "ema600_is_defining_population": false
+  },
+  "novelty_vs_market_01_02": {
+    "market_01_02_rescue": false,
+    "market_01_02_are_positive_support": false,
+    "market_01_02_tested": "feature -> direction / continuation return",
+    "market_04_tests": "funding state -> adverse-path risk",
+    "negative_directional_tests_are_not_positive_evidence_for_market_04": true,
+    "market_01_02_are_lineage_context_only": true
+  },
+  "funding_availability": {
+    "existing_project_authority": "FUNDING_PUBLICATION_LATENCY_UNPROVEN",
+    "market_03_fundingtime_assumption": "LEVEL_2 reproduction assumption only; not sufficient authority for a new Signalbot scientific hypothesis",
+    "funding_publication_latency_proven": false,
+    "funding_legal_historical_availability": "UNRESOLVED",
+    "funding_legal_historical_availability_resolved": false,
+    "market_04_execution_authorized": false,
+    "if_availability_cannot_be_established": "BLOCKED_OBSERVABLE",
+    "forbidden": [
+      "inventing +1 second",
+      "inventing +1 minute",
+      "inventing +5 minutes",
+      "assuming calc_time == publication time",
+      "assuming fundingTime == publication time merely because MARKET-03 did",
+      "choosing a latency because it gives more rows"
+    ]
+  },
+  "anti_rescue_contract": {
+    "cannot_later_be_rescued_by": [
+      "changing funding threshold",
+      "changing percentile window",
+      "switching high funding to low funding",
+      "changing horizon",
+      "changing primary metric",
+      "choosing only bullish/bearish years",
+      "choosing one regime post-hoc",
+      "adding OI after failure",
+      "replacing funding with another derivatives feature",
+      "switching from adverse-path risk to final return",
+      "changing baseline after outcome inspection"
+    ],
+    "material_change_after_execution_requires_new_research_identity": true
+  },
+  "interpretation_boundary": {
+    "numeric_success_thresholds_created_in_this_unit": false,
+    "future_positive_means_only": "Funding state showed stable incremental information about adverse-path risk beyond the frozen baseline under the preregistered historical test.",
+    "future_positive_does_not_mean": [
+      "validated alpha",
+      "profitable strategy",
+      "causal effect",
+      "independent confirmation of MARKET-03",
+      "OOS confirmation"
+    ],
+    "future_negative_means_only": "The frozen formulation did not establish stable incremental adverse-risk information.",
+    "future_negative_does_not_mean": "funding is useless"
+  },
+  "lifecycle": {
+    "full_preregistration_frozen": false,
+    "implementation_frozen": false,
+    "armed": false,
+    "execution_authorized": false,
+    "scientific_outcomes_inspected": false,
+    "protected_oos_touched": false,
+    "result_created": false,
+    "arm_created": false,
+    "evaluator_implemented": false
+  },
+  "full_preregistration_frozen": false,
+  "implementation_frozen": false,
+  "armed": false,
+  "execution_authorized": false,
+  "scientific_outcomes_inspected": false,
+  "protected_oos_touched": false,
+  "market_03_lineage": "ADAPTIVE_HYPOTHESIS_GENERATION_FROM_EXTERNAL_REPRODUCTION",
+  "independent_replication_of_market_03": false,
+  "market_01_02_rescue": false,
+  "funding_publication_latency_proven": false,
+  "funding_legal_historical_availability_resolved": false,
+  "next_unit": "OUTCOME_BLIND_FUNDING_AVAILABILITY_AND_MARKET04_DESIGN_FEASIBILITY",
+  "this_unit_does_not": [
+    "run MARKET-04",
+    "inspect MARKET-04 outcomes",
+    "inspect protected 2025/2026 OOS",
+    "ARM an experiment",
+    "implement an evaluator",
+    "choose thresholds by looking at returns",
+    "choose horizons by looking at returns",
+    "reuse MARKET-03 threshold 55 as scientific authority",
+    "treat MARKET-03 as independent confirmation",
+    "weaken funding publication-time requirements",
+    "infer legal availability from fundingTime without authority",
+    "create a full preregistration",
+    "create RESULT or ARM artifacts"
+  ],
+  "bound_evidence_registry": {
+    "path_md": "docs/research/EVIDENCE_REGISTRY_H_B_M01_M03.md",
+    "path_json": "docs/research/EVIDENCE_REGISTRY_H_B_M01_M03.json",
+    "registry_head": "ec7960d5cad47682fec1fa5d33b1a03997a8b62b",
+    "registry_tree": "293e6d338b0cde1e9859435036f6bef4c427520f",
+    "registry_md_sha256": "f30b44a2d333600e3e6417f517e65c5dc1bde81fb03a6d1870cfcf19576c83c2",
+    "registry_json_sha256": "0892f66db94cc679cb938980127985ab9a81efece62b2adb755c1b7e8a048c72"
+  },
+  "pre_m04_selection_head": "ec7960d5cad47682fec1fa5d33b1a03997a8b62b",
+  "pre_m04_selection_tree": "293e6d338b0cde1e9859435036f6bef4c427520f",
+  "selection_head": "UNSET_UNTIL_THIS_COMMIT",
+  "selection_tree": "UNSET_UNTIL_THIS_COMMIT"
+}

@@ -1,0 +1,532 @@
+{
+  "b2_06_dataset_id": "B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0",
+  "b2_06_execution_authorized": false,
+  "b2_06_research_authorized": false,
+  "b2_06_semantically_equivalent_on_overlapping_vision_bytes": true,
+  "b2_06_snapshot_id": "5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33",
+  "does_not_solve_b2_06_publication_blocker": true,
+  "external_product": "USD_M_PERPETUAL",
+  "external_source_endpoint": "/fapi/v1/fundingRate",
+  "external_source_field": "fundingRate",
+  "external_source_timestamp": "fundingTime",
+  "external_symbol": "BTCUSDT",
+  "protected_oos_compared": false,
+  "record_level_semantic_equivalence_authorized_overlap": {
+    "exact_timestamp_overlap_count": 5481,
+    "exact_timestamp_rate_equal_count": 5481,
+    "exact_timestamp_rate_mismatch_count": 0,
+    "exact_timestamp_rate_mismatch_head": [],
+    "hour_bucket_overlap_count": 5481,
+    "hour_bucket_rate_equal_count": 5481,
+    "hour_bucket_rate_mismatch_count": 0,
+    "hour_bucket_rate_mismatch_head": [],
+    "not_the_same_frozen_object": true,
+    "protected_oos_compared": false,
+    "rest_field": "fundingRate",
+    "rest_first_time_utc": "2020-01-01T00:00:00Z",
+    "rest_last_time_utc": "2024-12-31T16:00:00Z",
+    "rest_monotonic_fundingTime": true,
+    "rest_nonzero_ms_residual_count": 2403,
+    "rest_row_count": 5481,
+    "rest_times_absent_from_vision_count": 0,
+    "rest_timestamp_field": "fundingTime",
+    "semantic_rate_equivalence_on_hour_buckets": true,
+    "vision_field": "last_funding_rate",
+    "vision_first_time_utc": "2020-01-01T00:00:00Z",
+    "vision_last_time_utc": "2024-12-31T16:00:00Z",
+    "vision_monotonic_calc_time": true,
+    "vision_nonzero_ms_residual_count": 2403,
+    "vision_row_count": 5481,
+    "vision_times_absent_from_rest_count": 0,
+    "vision_timestamp_field": "calc_time"
+  },
+  "reproduction_fundingtime_assumption_meaning": "A funding observation is treated as available at its Binance fundingTime, matching the pinned external EmaCrossFunding implementation. This does not prove Binance publication latency is zero, does not prove live as-of availability, and does not solve the B2-06 publication-timing blocker.",
+  "rest_integrity": {
+    "duplicate_timestamp_count": 0,
+    "first_time_utc": "2019-09-10T08:00:00Z",
+    "last_time_utc": "2024-12-31T16:00:00Z",
+    "monotonic_time": true,
+    "non_finite_rate_count": 0,
+    "row_count": 5819
+  },
+  "rest_pre_vision_2019": {
+    "first_time_utc": "2019-09-10T08:00:00Z",
+    "last_time_utc": "2019-12-31T16:00:00Z",
+    "row_count": 338
+  },
+  "rest_provenance": {
+    "bytes": 442988,
+    "endTime_exclusive_ms": 1735689600000,
+    "endTime_inclusive_ms": 1735689599999,
+    "endpoint": "https://fapi.binance.com/fapi/v1/fundingRate",
+    "endpoint_used": "https://www.binance.com/fapi/v1/fundingRate",
+    "fallback_endpoint": "https://www.binance.com/fapi/v1/fundingRate",
+    "fallback_endpoint_used": true,
+    "http_ok": true,
+    "limit": 1000,
+    "note": "REST-now returning a historical row is not proof of historical publication latency. STRICT_HISTORICAL_PUBLICATION_LATENCY remains UNPROVEN. Queries are bounded endTime < 2025-01-01; latest/unbounded REST pages are not fetched.",
+    "pages": 6,
+    "path": "/fapi/v1/fundingRate",
+    "primary_endpoint_http_status": 451,
+    "protected_oos_excluded": true,
+    "raw_row_count_including_filtered": 5819,
+    "retrieval_timestamp_utc": "2026-09-18T17:06:53Z",
+    "sha256": "e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb",
+    "startTime_ms": 1567296000000,
+    "symbol": "BTCUSDT",
+    "user_agent": "signalbot-research-market-03-data-acquisition/1.0"
+  },
+  "same_economic_series_class": true,
+  "same_frozen_object_as_rest": false,
+  "strategy_outcomes_compared": false,
+  "strict_historical_publication_latency": "UNPROVEN",
+  "vision_field": "last_funding_rate",
+  "vision_integrity": {
+    "duplicate_timestamp_count": 0,
+    "first_time_utc": "2020-01-01T00:00:00Z",
+    "last_time_utc": "2024-12-31T16:00:00Z",
+    "monotonic_time": true,
+    "non_finite_rate_count": 0,
+    "row_count": 5481
+  },
+  "vision_months_not_found": [
+    "2019-09",
+    "2019-10",
+    "2019-11",
+    "2019-12"
+  ],
+  "vision_product": "USD_M_PERPETUAL",
+  "vision_series": "monthly/fundingRate/BTCUSDT",
+  "vision_start_month_present": "2020-01",
+  "vision_timestamp": "calc_time",
+  "vision_vs_b2_06_container_identity": {
+    "all_overlapping_containers_byte_identical": true,
+    "b2_06_dataset_id": "B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0",
+    "b2_06_execution_authorized_by_this_unit": false,
+    "b2_06_not_redownloaded_count": 0,
+    "b2_06_research_authorized": false,
+    "b2_06_snapshot_id": "5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33",
+    "compared_period_count": 52,
+    "container_sha256_equal_count": 52,
+    "container_sha256_mismatch_count": 0,
+    "local_not_in_b2_06_count": 0,
+    "periods": [
+      {
+        "b2_06_bytes": 838,
+        "b2_06_container_sha256": "7ae9a3b6afb2dc06e46080582908ec8c27063b707a14c7f1e679dc991ff48032",
+        "local_bytes": 838,
+        "local_container_sha256": "7ae9a3b6afb2dc06e46080582908ec8c27063b707a14c7f1e679dc991ff48032",
+        "period": "2020-09",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 828,
+        "b2_06_container_sha256": "4c55b191c101f39c7fb193a6529665dd9e83302ca21876521e4c93b3902e9fb1",
+        "local_bytes": 828,
+        "local_container_sha256": "4c55b191c101f39c7fb193a6529665dd9e83302ca21876521e4c93b3902e9fb1",
+        "period": "2020-10",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 854,
+        "b2_06_container_sha256": "676356a2d075caa51b4f8ada026e9430dc320ffd23d2343b13b7aa25324ed6d1",
+        "local_bytes": 854,
+        "local_container_sha256": "676356a2d075caa51b4f8ada026e9430dc320ffd23d2343b13b7aa25324ed6d1",
+        "period": "2020-11",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 852,
+        "b2_06_container_sha256": "d7390f90edf54cc4ad9bbe78e2f6b291ae06ad9539f591a2d0fce445873bbd63",
+        "local_bytes": 852,
+        "local_container_sha256": "d7390f90edf54cc4ad9bbe78e2f6b291ae06ad9539f591a2d0fce445873bbd63",
+        "period": "2020-12",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 981,
+        "b2_06_container_sha256": "cff916dc4b638ec3de97828e8911cd91cf7d7a3d0836ec0175869c374e66823d",
+        "local_bytes": 981,
+        "local_container_sha256": "cff916dc4b638ec3de97828e8911cd91cf7d7a3d0836ec0175869c374e66823d",
+        "period": "2021-01",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 956,
+        "b2_06_container_sha256": "819a7b107443686adb313fc5fc223302a29f3981e1d1bd9828ad0ade65a8a8af",
+        "local_bytes": 956,
+        "local_container_sha256": "819a7b107443686adb313fc5fc223302a29f3981e1d1bd9828ad0ade65a8a8af",
+        "period": "2021-02",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 918,
+        "b2_06_container_sha256": "2125fd300848938c7b992b8f7b7b5007d5b277a4ff1ebda7da083b40242729da",
+        "local_bytes": 918,
+        "local_container_sha256": "2125fd300848938c7b992b8f7b7b5007d5b277a4ff1ebda7da083b40242729da",
+        "period": "2021-03",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 914,
+        "b2_06_container_sha256": "9cd888e3b0a1954813d0062c2e60426fdc8e34a7f258f6838371ec67f535b028",
+        "local_bytes": 914,
+        "local_container_sha256": "9cd888e3b0a1954813d0062c2e60426fdc8e34a7f258f6838371ec67f535b028",
+        "period": "2021-04",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 960,
+        "b2_06_container_sha256": "ed934afb9cf84df6ecae742e755147333a84244836a66b51523abc66dd5f63af",
+        "local_bytes": 960,
+        "local_container_sha256": "ed934afb9cf84df6ecae742e755147333a84244836a66b51523abc66dd5f63af",
+        "period": "2021-05",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 883,
+        "b2_06_container_sha256": "7b8d9bfb8816636b800764dafb2aa2307d19166c695bfa245adbf7d01d61f766",
+        "local_bytes": 883,
+        "local_container_sha256": "7b8d9bfb8816636b800764dafb2aa2307d19166c695bfa245adbf7d01d61f766",
+        "period": "2021-06",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 973,
+        "b2_06_container_sha256": "8ab3df641d3bcf40527491f8e26d046ad2b662d1950ead9555ad32975571b7fe",
+        "local_bytes": 973,
+        "local_container_sha256": "8ab3df641d3bcf40527491f8e26d046ad2b662d1950ead9555ad32975571b7fe",
+        "period": "2021-07",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 781,
+        "b2_06_container_sha256": "7eb681cc45b94176f4b9192a62c3a1925d79031ba001cea2d8dec6ff6e5b9c35",
+        "local_bytes": 781,
+        "local_container_sha256": "7eb681cc45b94176f4b9192a62c3a1925d79031ba001cea2d8dec6ff6e5b9c35",
+        "period": "2021-08",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 828,
+        "b2_06_container_sha256": "03f25a7c25eef18d5f5b5b7bb0b664cab7a210b409f37e95a54e141808a0752d",
+        "local_bytes": 828,
+        "local_container_sha256": "03f25a7c25eef18d5f5b5b7bb0b664cab7a210b409f37e95a54e141808a0752d",
+        "period": "2021-09",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 951,
+        "b2_06_container_sha256": "f25820d6add687addbca3ef43bee58f70853a6da53832a0c1bc22d00dc8ec64a",
+        "local_bytes": 951,
+        "local_container_sha256": "f25820d6add687addbca3ef43bee58f70853a6da53832a0c1bc22d00dc8ec64a",
+        "period": "2021-10",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 919,
+        "b2_06_container_sha256": "e2e6b2d7218607e7e4a38137d50f553c2cfb901275c19edf567024c1cc6de85f",
+        "local_bytes": 919,
+        "local_container_sha256": "e2e6b2d7218607e7e4a38137d50f553c2cfb901275c19edf567024c1cc6de85f",
+        "period": "2021-11",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 815,
+        "b2_06_container_sha256": "bf3ce484faf41d7dccfd38c5cc3d8de34d8297df30ab10784e874cc10fd1b310",
+        "local_bytes": 815,
+        "local_container_sha256": "bf3ce484faf41d7dccfd38c5cc3d8de34d8297df30ab10784e874cc10fd1b310",
+        "period": "2021-12",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 906,
+        "b2_06_container_sha256": "22ee19079b620f5c6d820e7d7f8bafa7fde866d89bd664863b8bd527749c12cb",
+        "local_bytes": 906,
+        "local_container_sha256": "22ee19079b620f5c6d820e7d7f8bafa7fde866d89bd664863b8bd527749c12cb",
+        "period": "2022-01",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 890,
+        "b2_06_container_sha256": "fa95088258a905c79ab79e8984d2f6f66933ec2e814dbab4ef9da89b01ab484a",
+        "local_bytes": 890,
+        "local_container_sha256": "fa95088258a905c79ab79e8984d2f6f66933ec2e814dbab4ef9da89b01ab484a",
+        "period": "2022-02",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 904,
+        "b2_06_container_sha256": "4cf0883bc07f4ed4cdd3b0d8c0d166b4d15d21e666ab752f9f44401af4d6172f",
+        "local_bytes": 904,
+        "local_container_sha256": "4cf0883bc07f4ed4cdd3b0d8c0d166b4d15d21e666ab752f9f44401af4d6172f",
+        "period": "2022-03",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 926,
+        "b2_06_container_sha256": "57e2776cc68b3169fc9f8632dad67278f470cd453407a8ebe6c87963c8a31357",
+        "local_bytes": 926,
+        "local_container_sha256": "57e2776cc68b3169fc9f8632dad67278f470cd453407a8ebe6c87963c8a31357",
+        "period": "2022-04",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 915,
+        "b2_06_container_sha256": "bced8a5013d09742b96682e6fd01ad4456213515a03d7586ec2b1f2689af5255",
+        "local_bytes": 915,
+        "local_container_sha256": "bced8a5013d09742b96682e6fd01ad4456213515a03d7586ec2b1f2689af5255",
+        "period": "2022-05",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 966,
+        "b2_06_container_sha256": "0cd0708f8903829eb46f98cf60f4b2516c986e1ccddf6620a5912b48e16baf93",
+        "local_bytes": 966,
+        "local_container_sha256": "0cd0708f8903829eb46f98cf60f4b2516c986e1ccddf6620a5912b48e16baf93",
+        "period": "2022-06",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 917,
+        "b2_06_container_sha256": "29d58cce0cd45f74c6a112039835c6d9ee5a7e60e7c38c2503beb7930453a4fe",
+        "local_bytes": 917,
+        "local_container_sha256": "29d58cce0cd45f74c6a112039835c6d9ee5a7e60e7c38c2503beb7930453a4fe",
+        "period": "2022-07",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 997,
+        "b2_06_container_sha256": "6f4f0c6c84c05694b4b4a5c085776730fd4059723eecd98ee6ffeb3fde4da811",
+        "local_bytes": 997,
+        "local_container_sha256": "6f4f0c6c84c05694b4b4a5c085776730fd4059723eecd98ee6ffeb3fde4da811",
+        "period": "2022-08",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 960,
+        "b2_06_container_sha256": "d62cd4e13009de37add446dc4f63ead4c56dcc4955a1e60f6726bcadc5a68fa9",
+        "local_bytes": 960,
+        "local_container_sha256": "d62cd4e13009de37add446dc4f63ead4c56dcc4955a1e60f6726bcadc5a68fa9",
+        "period": "2022-09",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 950,
+        "b2_06_container_sha256": "ad9efed10d4ca1567b865d7a158790977cec1b925395634217069df6696c8bc9",
+        "local_bytes": 950,
+        "local_container_sha256": "ad9efed10d4ca1567b865d7a158790977cec1b925395634217069df6696c8bc9",
+        "period": "2022-10",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 1000,
+        "b2_06_container_sha256": "8febe5bec1a029e993bbf27490761f8c47c32849bf7dd13441b2b2f6ec1ffb51",
+        "local_bytes": 1000,
+        "local_container_sha256": "8febe5bec1a029e993bbf27490761f8c47c32849bf7dd13441b2b2f6ec1ffb51",
+        "period": "2022-11",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 982,
+        "b2_06_container_sha256": "4218c78331bcc4dbeb5768fa112242a880971c1f2cfd1d3f32aaa26ca34069af",
+        "local_bytes": 982,
+        "local_container_sha256": "4218c78331bcc4dbeb5768fa112242a880971c1f2cfd1d3f32aaa26ca34069af",
+        "period": "2022-12",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 863,
+        "b2_06_container_sha256": "05e3df32f28d0d50f4c5a280adee9368b4a66fc68c6ddca1b3277087ac0d19f5",
+        "local_bytes": 863,
+        "local_container_sha256": "05e3df32f28d0d50f4c5a280adee9368b4a66fc68c6ddca1b3277087ac0d19f5",
+        "period": "2023-01",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 808,
+        "b2_06_container_sha256": "5227accd9aaa59f71f5e682abffb58be5f99573ed208ab968b1704c81ac11345",
+        "local_bytes": 808,
+        "local_container_sha256": "5227accd9aaa59f71f5e682abffb58be5f99573ed208ab968b1704c81ac11345",
+        "period": "2023-02",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 956,
+        "b2_06_container_sha256": "ab022adff9b853d2f33cf80154e77c770f57c3392f0bbc36564b2e2cdbd0e872",
+        "local_bytes": 956,
+        "local_container_sha256": "ab022adff9b853d2f33cf80154e77c770f57c3392f0bbc36564b2e2cdbd0e872",
+        "period": "2023-03",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 952,
+        "b2_06_container_sha256": "2931039d26818edc65d4faefba84945fd1ba52989dd58fb127dc3cd7a12c7fbf",
+        "local_bytes": 952,
+        "local_container_sha256": "2931039d26818edc65d4faefba84945fd1ba52989dd58fb127dc3cd7a12c7fbf",
+        "period": "2023-04",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 983,
+        "b2_06_container_sha256": "5d026fece46df86293054c8c56c2c8de575d30161b82979b11831831217a246e",
+        "local_bytes": 983,
+        "local_container_sha256": "5d026fece46df86293054c8c56c2c8de575d30161b82979b11831831217a246e",
+        "period": "2023-05",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 845,
+        "b2_06_container_sha256": "3ffdde6f1dc9c3c065d77ae43f3ba64d19d4cb76512d4bc1d541933d4fb2e6f7",
+        "local_bytes": 845,
+        "local_container_sha256": "3ffdde6f1dc9c3c065d77ae43f3ba64d19d4cb76512d4bc1d541933d4fb2e6f7",
+        "period": "2023-06",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 861,
+        "b2_06_container_sha256": "0304baed9fd407293a8a8040b30a1b68bd344803b630d33530375b421733a930",
+        "local_bytes": 861,
+        "local_container_sha256": "0304baed9fd407293a8a8040b30a1b68bd344803b630d33530375b421733a930",
+        "period": "2023-07",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 846,
+        "b2_06_container_sha256": "516a8f50631c6ede6a9642f6d1590b6a22c33ba09935501d2ace8dc1396501fd",
+        "local_bytes": 846,
+        "local_container_sha256": "516a8f50631c6ede6a9642f6d1590b6a22c33ba09935501d2ace8dc1396501fd",
+        "period": "2023-08",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 914,
+        "b2_06_container_sha256": "3fd9df6fd1eef33cf5fe625c27012359bc6d64a68c109305d7b44a0354f533c2",
+        "local_bytes": 914,
+        "local_container_sha256": "3fd9df6fd1eef33cf5fe625c27012359bc6d64a68c109305d7b44a0354f533c2",
+        "period": "2023-09",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 865,
+        "b2_06_container_sha256": "03105cc140150bffca834bcccbddc6cfee245e079d2df1759653243bd6e92448",
+        "local_bytes": 865,
+        "local_container_sha256": "03105cc140150bffca834bcccbddc6cfee245e079d2df1759653243bd6e92448",
+        "period": "2023-10",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 696,
+        "b2_06_container_sha256": "8015d2997f8d5e757ff3707ee87800ca30a74da0129daa747b64117f07bcc186",
+        "local_bytes": 696,
+        "local_container_sha256": "8015d2997f8d5e757ff3707ee87800ca30a74da0129daa747b64117f07bcc186",
+        "period": "2023-11",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 810,
+        "b2_06_container_sha256": "8f02fdd2a2da261bbf13ab301c74bdb57fae005f19d5088e9ece5f8824c1a2a7",
+        "local_bytes": 810,
+        "local_container_sha256": "8f02fdd2a2da261bbf13ab301c74bdb57fae005f19d5088e9ece5f8824c1a2a7",
+        "period": "2023-12",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 696,
+        "b2_06_container_sha256": "3e0d30870672aa8f0f937881056e3cfd55913ae5c780cd50b33f2763aa0ba58e",
+        "local_bytes": 696,
+        "local_container_sha256": "3e0d30870672aa8f0f937881056e3cfd55913ae5c780cd50b33f2763aa0ba58e",
+        "period": "2024-01",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 776,
+        "b2_06_container_sha256": "daf1e4901e3d6436d82ad60f90d007eb5300be8047cfef121007203a7212cde6",
+        "local_bytes": 776,
+        "local_container_sha256": "daf1e4901e3d6436d82ad60f90d007eb5300be8047cfef121007203a7212cde6",
+        "period": "2024-02",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 939,
+        "b2_06_container_sha256": "711dcaf2a341aedfd06447b4117b540f60adb0784c5e64a313c718e4cf092bc3",
+        "local_bytes": 939,
+        "local_container_sha256": "711dcaf2a341aedfd06447b4117b540f60adb0784c5e64a313c718e4cf092bc3",
+        "period": "2024-03",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 842,
+        "b2_06_container_sha256": "6d220b8e2815362a11d294d35dbca28568370d8295351937eceec10f2b359b85",
+        "local_bytes": 842,
+        "local_container_sha256": "6d220b8e2815362a11d294d35dbca28568370d8295351937eceec10f2b359b85",
+        "period": "2024-04",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 830,
+        "b2_06_container_sha256": "aef8c5fdce1493fd570b5829a72f2f17c7e459483390f25544d16c2a30be592e",
+        "local_bytes": 830,
+        "local_container_sha256": "aef8c5fdce1493fd570b5829a72f2f17c7e459483390f25544d16c2a30be592e",
+        "period": "2024-05",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 721,
+        "b2_06_container_sha256": "43fc4473820d1fb4fe340d1b1951a87555f6841aa352e684fa95d6adffce04c6",
+        "local_bytes": 721,
+        "local_container_sha256": "43fc4473820d1fb4fe340d1b1951a87555f6841aa352e684fa95d6adffce04c6",
+        "period": "2024-06",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 847,
+        "b2_06_container_sha256": "acab0593c1452660ce74a6c239fb215c1192b0a9c6e8c1689e6495de40a0174b",
+        "local_bytes": 847,
+        "local_container_sha256": "acab0593c1452660ce74a6c239fb215c1192b0a9c6e8c1689e6495de40a0174b",
+        "period": "2024-07",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 904,
+        "b2_06_container_sha256": "7003d29a43dd5f9357f838da8766834954939e22c1d80af682d9f33984f67b71",
+        "local_bytes": 904,
+        "local_container_sha256": "7003d29a43dd5f9357f838da8766834954939e22c1d80af682d9f33984f67b71",
+        "period": "2024-08",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 924,
+        "b2_06_container_sha256": "6ef23b02392b481ef9c3855434bf3644289fb6e228b4f7d9a0dfc6d3cdff1116",
+        "local_bytes": 924,
+        "local_container_sha256": "6ef23b02392b481ef9c3855434bf3644289fb6e228b4f7d9a0dfc6d3cdff1116",
+        "period": "2024-09",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 801,
+        "b2_06_container_sha256": "26db65ac8020d80ece35df79c254c5f7e24427529bcceeb2972748c4fe2d2707",
+        "local_bytes": 801,
+        "local_container_sha256": "26db65ac8020d80ece35df79c254c5f7e24427529bcceeb2972748c4fe2d2707",
+        "period": "2024-10",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 746,
+        "b2_06_container_sha256": "e1b19cccfe2cdcba48b022790789b7b01edd86c075f39bc152e44c267d43bd51",
+        "local_bytes": 746,
+        "local_container_sha256": "e1b19cccfe2cdcba48b022790789b7b01edd86c075f39bc152e44c267d43bd51",
+        "period": "2024-11",
+        "status": "CONTAINER_SHA256_EQUAL"
+      },
+      {
+        "b2_06_bytes": 808,
+        "b2_06_container_sha256": "069409f525ebf6370ee1c7defe475167de4b97284c5ac8e68768652968cd3dc9",
+        "local_bytes": 808,
+        "local_container_sha256": "069409f525ebf6370ee1c7defe475167de4b97284c5ac8e68768652968cd3dc9",
+        "period": "2024-12",
+        "status": "CONTAINER_SHA256_EQUAL"
+      }
+    ]
+  }
+}

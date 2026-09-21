@@ -1,0 +1,61 @@
+{
+  "identity_payload": {
+    "b2_06_dataset_id_not_authority": "B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0",
+    "b2_06_is_not_market_03_authority": true,
+    "b2_06_snapshot_id_not_authority": "5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33",
+    "canonical_funding_sha256": "e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb",
+    "canonical_row_count": 5819,
+    "construction_code_sha256": {
+      "scripts/research/market_03_binance_um_btcusdt_fundingrate_rest_v0_lib.py": "4f626eea335b062f384aa6c9192cf4e55266085a4fa0b0c11686e7494a2d9a25",
+      "scripts/research/market_03_binance_um_btcusdt_fundingrate_rest_v0_materialize.py": "cbbfc63b48f32b6125b8d4517a605a523297dd3e97e9971537323928f2beadc4"
+    },
+    "dataset_id": "MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0",
+    "duplicate_fundingTime_count": 0,
+    "duplicate_policy": "ENUMERATE_DO_NOT_KEEP_FIRST_OR_LAST_OR_REPAIR",
+    "end_exclusive": "2025-01-01T00:00:00Z",
+    "endpoint_path": "/fapi/v1/fundingRate",
+    "endpoint_used": "https://www.binance.com/fapi/v1/fundingRate",
+    "evaluation_start_utc": "2019-10-01T00:00:00Z",
+    "exchange": "Binance",
+    "first_fundingTime_utc": "2019-09-10T08:00:00Z",
+    "gap_policy": "ENUMERATE_MISSING_8H_HOUR_FLOOR_EVENTS_DO_NOT_SYNTHESIZE",
+    "last_fundingTime_utc": "2024-12-31T16:00:00Z",
+    "market_03_arm_bound": false,
+    "market_03_scientifically_bound": false,
+    "market_type": "USD_M_PERPETUAL",
+    "missing_expected_8h_hour_floor_count": 0,
+    "ms_residual_policy": "PRESERVE_RAW_FUNDINGTIME_DO_NOT_ROUND_TO_HOUR",
+    "normalization_rules": [
+      "identity_copy_of_acquired_rest_jsonl",
+      "preserve_fundingRate_decimal_string",
+      "preserve_fundingTime_int_ms",
+      "preserve_symbol",
+      "no_rounding",
+      "no_forward_fill",
+      "no_resample",
+      "no_strategy_transform",
+      "no_b2_06_substitution",
+      "drop_protected_oos_if_present_fail_closed"
+    ],
+    "primary_endpoint": "https://fapi.binance.com/fapi/v1/fundingRate",
+    "protected_oos_excluded": true,
+    "provenance_git_commit_sha": "3f1722476927a13d4e1629510f12ed00f72ba3d8",
+    "provenance_git_tree_sha": "50f2d54fe4ddfc7a6774808cc7110913ea0b978b",
+    "provider": "Binance",
+    "reproduction_fundingtime_assumption": "ACCEPTABLE",
+    "request_end_exclusive_ms": 1735689600000,
+    "request_start_ms": 1567296000000,
+    "retrieval_timestamp_utc": "2026-09-18T17:06:53Z",
+    "schema": [
+      "fundingRate",
+      "fundingTime",
+      "symbol"
+    ],
+    "source_relative_path": "artifacts/research_data/MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0/canonical/BTCUSDT_UM_fundingRate_rest_authorized.jsonl",
+    "source_sha256": "e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb",
+    "source_size_bytes": 442988,
+    "strict_historical_publication_latency": "UNPROVEN",
+    "symbol": "BTCUSDT"
+  },
+  "snapshot_id": "d47b7b78b6e7dbb842c7d9eb122c81063e0b804e179a53dd87723f9a8a8adc68"
+}

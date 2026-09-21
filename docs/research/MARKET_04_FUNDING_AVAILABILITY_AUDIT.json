@@ -1,0 +1,291 @@
+{
+  "schema": "signalbot_market_04_funding_availability_audit",
+  "schema_version": "1.0.0",
+  "audit_id": "MARKET_04_FUNDING_AVAILABILITY_AUDIT",
+  "market_04_id": "MARKET-04_FUNDING_STATE_ADVERSE_PATH_RISK",
+  "short_name": "MARKET-04",
+  "candidate_role": "RISK_STATE_FILTER",
+  "primary_outcome_family": "FUTURE_ADVERSE_PATH_RISK",
+  "date": "2026-09-19",
+  "status": "FUNDING_HISTORICAL_AVAILABILITY_UNRESOLVED",
+  "audit_outcome": "FUNDING_HISTORICAL_AVAILABILITY_UNRESOLVED",
+  "unit_kind": "DATA_SEMANTICS_TEMPORAL_AUTHORITY",
+  "outcome_blind": true,
+  "settled_funding_source": "BINANCE_USD_M_HISTORICAL_FUNDINGRATE_AND_VISION_FUNDINGRATE",
+  "settled_funding_field": "fundingRate_or_last_funding_rate",
+  "event_time_semantics": "FUNDINGTIME_OR_CALC_TIME_IS_EVENT_OR_SETTLEMENT_CLOCK_NOT_PROVEN_PUBLICATION",
+  "settlement_time_semantics": "UNPROVEN_AS_PUBLIC_AVAILABILITY_CLOCK",
+  "publication_time_semantics": "UNSPECIFIED",
+  "current_api_semantics_known": true,
+  "historical_availability_proven": false,
+  "legal_available_at_rule": null,
+  "legal_available_at_authority": null,
+  "market_04_funding_observable_usable": false,
+  "b2_06_implication": "UNCHANGED",
+  "B2_06_FUNDING_BLOCKER_IMPLICATION": "UNCHANGED",
+  "alternative_observable_candidates": [
+    {
+      "id": "LIVE_PREMIUMINDEX_LAST_FUNDING_RATE",
+      "observable": "GET /fapi/v1/premiumIndex lastFundingRate",
+      "usable_for_market_04_legal_available_at": false,
+      "reason": "Current snapshot only. Official docs label it the latest funding rate. No official historical as-of series with a publication clock."
+    },
+    {
+      "id": "MARKPRICE_STREAM_FUNDING_RATE",
+      "observable": "USD-M markPrice stream field r with event time E",
+      "usable_for_market_04_legal_available_at": false,
+      "reason": "Live stream. Official page does not bind r to settled versus predicted, and no first-party multi-year historical archive of those events is documented as a publication clock."
+    },
+    {
+      "id": "VISION_ARCHIVE_OBJECT_PUBLICATION",
+      "observable": "Binance Vision daily/monthly archive file publication",
+      "usable_for_market_04_legal_available_at": false,
+      "reason": "First-party archive-object clock only. Mixing archive publication with trader market-data publication remains forbidden."
+    },
+    {
+      "id": "PREMIUM_INDEX_KLINES",
+      "observable": "GET /fapi/v1/premiumIndexKlines",
+      "usable_for_market_04_legal_available_at": false,
+      "reason": "Different observable. Premium index is not settled historical funding and must not silently replace it."
+    }
+  ],
+  "protected_oos_touched": false,
+  "scientific_outcomes_inspected": false,
+  "execution_authorized": false,
+  "full_preregistration_frozen": false,
+  "implementation_frozen": false,
+  "armed": false,
+  "market_03_fundingtime_assumption_is_authority": false,
+  "market_03_assumption_kind": "LEVEL_2_FAITHFUL_REIMPLEMENTATION_ONLY",
+  "event_time_equals_publication_time": false,
+  "calc_time_equals_publication_time": false,
+  "funding_time_equals_publication_time": false,
+  "invented_publication_latency": false,
+  "prior_settlement_later_boundary_proven": false,
+  "if_availability_cannot_be_established": "BLOCKED_OBSERVABLE",
+  "market_04_next_step": "BLOCKED_OBSERVABLE_OR_NEW_CANDIDATE_SELECTION",
+  "MARKET_04_NEXT_STEP": "BLOCKED_OBSERVABLE_OR_NEW_CANDIDATE_SELECTION",
+  "answers": {
+    "A_fundingTime": "Official USD-M history response field on GET /fapi/v1/fundingRate. Documented by field name and as the history series keyed for startTime/endTime inclusive query bounds. Not documented as publication time or legal_available_at.",
+    "B_calc_time": "Vision fundingRate CSV column used by the frozen B2-06 contract. Official Vision README does not document this column. Not proven as publication time.",
+    "C_known_at_fundingTime": false,
+    "D_publication_documented_as": "UNSPECIFIED",
+    "E_predicted_vs_settled_distinguished": "PARTIALLY. Current API separates historical fundingRate history from live lastFundingRate and nextFundingTime. Stream field r is labeled only Funding rate. No official historical predicted-funding series is established here.",
+    "F_reconstruct_without_post_T_final_value": false,
+    "G_official_field_supports_legal_available_at": false,
+    "H_other_first_party_funding_state_with_explicit_historical_availability": false
+  },
+  "clock_distinction": {
+    "EVENT_TIME": "NOT_AUTOMATICALLY_PUBLICATION_TIME",
+    "SETTLEMENT_TIME": "NOT_AUTOMATICALLY_PUBLICATION_TIME",
+    "CALCULATION_TIME": "NOT_AUTOMATICALLY_PUBLICATION_TIME",
+    "PUBLICATION_TIME": "UNSPECIFIED",
+    "API_RESPONSE_TIME": "RETRIEVAL_TIME_ONLY",
+    "RETRIEVAL_TIME": "NOT_DECISION_TIME",
+    "LEGAL_AVAILABLE_AT": null
+  },
+  "current_versus_historical": {
+    "CURRENT_API_SEMANTICS": "GET /fapi/v1/fundingRate returns historical fundingRate and fundingTime today. GET /fapi/v1/premiumIndex returns lastFundingRate, nextFundingTime, and time today.",
+    "HISTORICAL_AVAILABILITY_AUTHORITY": "UNPROVEN. Current field presence does not prove when a historical settled value became observable to a market participant."
+  },
+  "temporal_claims": [
+    {
+      "claim_id": "FUNDINGTIME_EXISTS_ON_HISTORY_ENDPOINT",
+      "claim": "GET /fapi/v1/fundingRate history rows include fundingTime and fundingRate.",
+      "evidence_strength": "DIRECT_FIRST_PARTY_AUTHORITY",
+      "proves_legal_available_at": false
+    },
+    {
+      "claim_id": "FUNDINGTIME_IS_HISTORY_QUERY_CLOCK",
+      "claim": "startTime and endTime filter the funding-rate history series inclusively.",
+      "evidence_strength": "DIRECT_FIRST_PARTY_AUTHORITY",
+      "proves_legal_available_at": false
+    },
+    {
+      "claim_id": "FUNDINGTIME_IS_EVENT_OR_SETTLEMENT_TIME",
+      "claim": "fundingTime is the economic funding-event / settlement clock.",
+      "evidence_strength": "FIRST_PARTY_INFERENCE",
+      "proves_legal_available_at": false
+    },
+    {
+      "claim_id": "FUNDINGTIME_IS_PUBLICATION_TIME",
+      "claim": "fundingTime is the public-availability timestamp.",
+      "evidence_strength": "UNPROVEN",
+      "proves_legal_available_at": false
+    },
+    {
+      "claim_id": "CALC_TIME_OFFICIAL_SCHEMA",
+      "claim": "Official Vision documentation defines fundingRate.calc_time.",
+      "evidence_strength": "UNPROVEN",
+      "proves_legal_available_at": false
+    },
+    {
+      "claim_id": "CALC_TIME_IS_PUBLICATION_TIME",
+      "claim": "Vision calc_time is legal_available_at.",
+      "evidence_strength": "UNPROVEN",
+      "proves_legal_available_at": false
+    },
+    {
+      "claim_id": "LAST_FUNDING_RATE_IS_LATEST_ON_LIVE_SNAPSHOT",
+      "claim": "GET /fapi/v1/premiumIndex lastFundingRate is documented as the lasted/latest funding rate on a current mark-price snapshot.",
+      "evidence_strength": "DIRECT_FIRST_PARTY_AUTHORITY",
+      "proves_legal_available_at": false
+    },
+    {
+      "claim_id": "STREAM_R_IS_FUNDING_RATE_ON_LIVE_MARKPRICE",
+      "claim": "USD-M markPrice stream field r is labeled Funding rate and is pushed every 1s or 3s.",
+      "evidence_strength": "DIRECT_FIRST_PARTY_AUTHORITY",
+      "proves_legal_available_at": false
+    },
+    {
+      "claim_id": "VISION_ARCHIVE_FILE_PUBLICATION",
+      "claim": "Official Vision daily archive files become available the next day and monthly files on the first Monday of the month.",
+      "evidence_strength": "DIRECT_FIRST_PARTY_AUTHORITY",
+      "proves_legal_available_at": false
+    },
+    {
+      "claim_id": "SETTLED_RATE_KNOWN_AT_FUNDINGTIME",
+      "claim": "The historical settled fundingRate was guaranteed known to market participants at fundingTime.",
+      "evidence_strength": "UNPROVEN",
+      "proves_legal_available_at": false
+    },
+    {
+      "claim_id": "PUBLICATION_LATENCY_DOCUMENTED",
+      "claim": "Binance documents a publication latency for settled historical funding.",
+      "evidence_strength": "UNPROVEN",
+      "proves_legal_available_at": false
+    },
+    {
+      "claim_id": "PRIOR_SETTLEMENT_LATER_BOUNDARY",
+      "claim": "A completed prior settlement may be used at a later decision boundary because first-party semantics prove public existence before that later boundary.",
+      "evidence_strength": "UNPROVEN",
+      "proves_legal_available_at": false
+    },
+    {
+      "claim_id": "MARKET_03_FUNDINGTIME_ASSUMPTION",
+      "claim": "MARKET-03 LEVEL_2 fundingTime-as-available assumption is scientific authority for MARKET-04.",
+      "evidence_strength": "UNPROVEN",
+      "proves_legal_available_at": false
+    }
+  ],
+  "rejected_non_authority": [
+    "MARKET-03 LEVEL_2 fundingTime assumption",
+    "MARKET-03 external author implementation",
+    "assuming calc_time == publication time",
+    "assuming fundingTime == publication time",
+    "inventing +1 second",
+    "inventing +1 minute",
+    "inventing +5 minutes",
+    "choosing a conservative latency because it seems safe",
+    "Vision next-day archive publication as trader availability",
+    "current REST row existence as decision-time evidence",
+    "blogs, Reddit, StackOverflow, trading tutorials, random GitHub repositories, third-party datasets, exchange competitors"
+  ],
+  "primary_sources": [
+    {
+      "id": "WAYBACK_20220315_UM_FUTURES_API",
+      "publisher": "Binance",
+      "document_title": "Binance USD-M Futures API documentation (archived official HTML)",
+      "url": "https://web.archive.org/web/20220315120000id_/https://binance-docs.github.io/apidocs/futures/en/",
+      "original_url": "https://binance-docs.github.io/apidocs/futures/en/",
+      "document_version_date": "2022-03-01",
+      "accessed_at": "2026-09-19",
+      "relevant_section": "Mark Price; Get Funding Rate History; Mark Price Stream",
+      "evidence_strength": "DIRECT_FIRST_PARTY_AUTHORITY",
+      "what_it_proves": "Current-as-of-2022 official USD-M field identity: GET /fapi/v1/fundingRate is Get Funding Rate History with fundingRate and fundingTime; GET /fapi/v1/premiumIndex lastFundingRate is the lasted/latest funding rate; markPrice stream has Event time E, Funding rate r, and Next funding time T.",
+      "what_it_does_not_prove": "That fundingTime or stream event time is publication time; that a historical REST row was queryable at fundingTime; any publication latency; Vision calc_time semantics."
+    },
+    {
+      "id": "BINANCE_PUBLIC_DATA_README",
+      "publisher": "Binance",
+      "document_title": "Binance Public Data README",
+      "url": "https://raw.githubusercontent.com/binance/binance-public-data/master/README.md",
+      "document_version_date": "2026-09-19",
+      "accessed_at": "2026-09-19",
+      "relevant_section": "opening availability paragraph; FUTURES data information",
+      "evidence_strength": "DIRECT_FIRST_PARTY_AUTHORITY",
+      "what_it_proves": "Vision files are official public-data dumps. New daily data become available the next day and new monthly data at the first Monday of the month.",
+      "what_it_does_not_prove": "USD-M fundingRate CSV columns; that calc_time is legal_available_at; trader-available publication of settled last_funding_rate at settlement."
+    },
+    {
+      "id": "BINANCE_UM_FUTURES_CONNECTOR_MARKET_PY",
+      "publisher": "Binance",
+      "document_title": "binance-futures-connector-python um_futures.market",
+      "url": "https://raw.githubusercontent.com/binance/binance-futures-connector-python/main/binance/um_futures/market.py",
+      "document_version_date": "2026-09-19",
+      "accessed_at": "2026-09-19",
+      "relevant_section": "mark_price (GET /fapi/v1/premiumIndex); funding_rate (GET /fapi/v1/fundingRate)",
+      "evidence_strength": "DIRECT_FIRST_PARTY_AUTHORITY",
+      "what_it_proves": "Official current endpoint identity: Funding Rate History versus Mark Price and Funding Rate. Retrieval notes: most recent limit rows if startTime/endTime omitted; ascending order.",
+      "what_it_does_not_prove": "Publication latency; historical queryability at fundingTime; legal_available_at."
+    },
+    {
+      "id": "BINANCE_COINM_DELIVERY_TESTNET_APIDOCS",
+      "publisher": "Binance",
+      "document_title": "Binance COIN-M delivery testnet API documentation",
+      "url": "https://binance-docs.github.io/apidocs/delivery_testnet/en/",
+      "document_version_date": "2020-07-30",
+      "accessed_at": "2026-09-19",
+      "relevant_section": "Change Log 2020-07-30; Index Price and Mark Price; Get Funding Rate History of Perpetual Futures; Mark Price Stream",
+      "evidence_strength": "DIRECT_FIRST_PARTY_AUTHORITY",
+      "what_it_proves": "First-party COIN-M analogue: lastFundingRate is the lasted/latest funding rate on premiumIndex; GET /dapi/v1/fundingRate is funding-rate history with fundingTime and fundingRate; stream r is funding rate and T is next funding time.",
+      "what_it_does_not_prove": "USD-M publication latency; that fundingTime is legal_available_at; historical REST queryability at settlement."
+    },
+    {
+      "id": "DEVELOPERS_BINANCE_CURRENT_FUNDING_RATE_HISTORY_URL",
+      "publisher": "Binance",
+      "document_title": "Get Funding Rate History | Binance Open Platform",
+      "url": "https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Get-Funding-Rate-History",
+      "document_version_date": "2026-09-19",
+      "accessed_at": "2026-09-19",
+      "relevant_section": "current official documentation location",
+      "evidence_strength": "DIRECT_FIRST_PARTY_AUTHORITY",
+      "what_it_proves": "The current official documentation location for USD-M funding-rate history still exists and is the URL cited by the official connector.",
+      "what_it_does_not_prove": "Field-level publication semantics. This environment received only a JavaScript/bot-check page, so current HTML wording is not bound as quoted authority."
+    }
+  ],
+  "project_historical_authority_not_rewritten": [
+    "docs/research/B2_06_FUNDING_PUBLICATION_AUTHORITY.md",
+    "docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md",
+    "docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.json",
+    "docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG.md",
+    "docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG.json",
+    "docs/research/MARKET_04_CANDIDATE_SELECTION.md",
+    "docs/research/MARKET_04_CANDIDATE_SELECTION.json"
+  ],
+  "bound_candidate": {
+    "previous_head": "33ef39988f03bf634ff61c014671b35ba9b0f6ee",
+    "previous_tree": "04ae63d2d3412a3988dea20cc17d3e177fe31205",
+    "research_id": "MARKET-04_FUNDING_STATE_ADVERSE_PATH_RISK"
+  },
+  "bound_evidence": {
+    "vision_readme_sha256": "085ab91377aa9325d44f4c7ad27cce4ab381e158403e1d7df2bad39d1a66f7c6",
+    "wayback_um_futures_html_sha256": "e152c724228a18a87f685f1987231ef1f5bf00770aaa2b863c9dd6382b59134e",
+    "wayback_excerpt_sha256": "af99eec4795efdefe814b9882ae046a158f51bedd0b8984ebd62a135490fc349",
+    "connector_market_py_sha256": "9e55db014233d92bad66a90ec36212f1fada7f1f93a092ec5d6bc9298988659f",
+    "coinm_delivery_testnet_html_sha256": "c5f5398dd8a58a0520b8e895350b6e039242e86458b8c002f417f32309a649c2"
+  },
+  "this_unit_does_not": [
+    "run MARKET-04",
+    "create MARKET-04 outcomes",
+    "inspect future returns",
+    "inspect future MAE",
+    "calculate correlations between funding and price outcomes",
+    "compare funding buckets against subsequent price behavior",
+    "search funding thresholds",
+    "search funding percentile windows",
+    "search horizons",
+    "inspect protected Signalbot 2025/2026 OOS",
+    "ARM MARKET-04",
+    "implement the MARKET-04 scientific evaluator",
+    "create MARKET-04 RESULT",
+    "reuse MARKET-03 fundingTime assumption as proof",
+    "assume calc_time == publication time",
+    "assume fundingTime == publication time without authority",
+    "invent +1 second / +1 minute / +5 minute publication latency",
+    "choose a conservative latency merely because it seems safe",
+    "silently replace settled funding with predicted funding or premium index",
+    "execute B2-06",
+    "change B2-06 scientific outcome"
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "armed": false,
+  "b2_06_is_not_market_03_authority": true,
+  "canonical_executions_authorized": 0,
+  "canonical_executions_consumed": 0,
+  "dataset_id": "MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0",
+  "normalized": {
+    "bytes": 442988,
+    "identity_copy_of_source": true,
+    "relative_path": "artifacts/research_data/MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0/canonical/BTCUSDT_UM_fundingRate.jsonl",
+    "row_count": 5819,
+    "sha256": "e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb"
+  },
+  "outcomes_inspected": false,
+  "parameter_search": false,
+  "prereg_unchanged": {
+    "json_sha256": "3f35f9a1d0575eaff3a1993a4779642259c0891dbdda1d49f22b958eba714f89",
+    "md_sha256": "044bb2a6bbd51c49c856b02eb7866b43171664a05d947dce995489389eeb0b57"
+  },
+  "protected_oos_excluded": true,
+  "reproduction_fundingtime_assumption": "ACCEPTABLE",
+  "snapshot_id": "d47b7b78b6e7dbb842c7d9eb122c81063e0b804e179a53dd87723f9a8a8adc68",
+  "source": {
+    "acquisition_compatibility_record": "docs/research_data/MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0/FUNDING_COMPATIBILITY_2ce1f504.json",
+    "class": "BINANCE_UM_FUNDINGRATE_REST_JSONL",
+    "endpoint": "https://fapi.binance.com/fapi/v1/fundingRate",
+    "endpoint_path": "/fapi/v1/fundingRate",
+    "endpoint_used": "https://www.binance.com/fapi/v1/fundingRate",
+    "fallback_endpoint_used": true,
+    "limit": 1000,
+    "market_type": "USD_M_PERPETUAL",
+    "pages": 6,
+    "primary_endpoint_http_status": 451,
+    "provider": "Binance",
+    "relative_path": "artifacts/research_data/MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0/canonical/BTCUSDT_UM_fundingRate_rest_authorized.jsonl",
+    "request_endTime_exclusive_ms": 1735689600000,
+    "request_end_exclusive": "2025-01-01T00:00:00Z",
+    "request_startTime_ms": 1567296000000,
+    "request_start_inclusive": "2019-09-01T00:00:00Z",
+    "resolved_path": "/workspace/artifacts/research_data/MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0/canonical/BTCUSDT_UM_fundingRate_rest_authorized.jsonl",
+    "retrieval_timestamp_utc": "2026-09-18T17:06:53Z",
+    "sha256": "e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb",
+    "size_bytes": 442988,
+    "symbol": "BTCUSDT",
+    "user_agent": "signalbot-research-market-03-data-acquisition/1.0",
+    "venue": "Binance"
+  },
+  "spot_authority_unchanged": {
+    "dataset_id": "MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0",
+    "snapshot_id": "2ce1f504709dc40c37a70dddcf73acb444e715820e9c855f6817c48f10d2b345",
+    "spot_data_sha256": "e560bebb6ba9d070ee0fa58aaa5cf922caaa24d4b7e2b4eac8c7c0041c9495d4"
+  },
+  "strategy_executed": false,
+  "strict_historical_publication_latency": "UNPROVEN"
+}

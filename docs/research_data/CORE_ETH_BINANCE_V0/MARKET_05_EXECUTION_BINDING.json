@@ -1,0 +1,1106 @@
+{
+  "dataset_id": "CORE_ETH_BINANCE_V0",
+  "development_end_exclusive": "2025-01-01T00:00:00Z",
+  "development_start_inclusive": "2020-01-01T00:00:00Z",
+  "eth_execution_data_id": "b5c6228a2c4214b641cd10fda87010c2898040e3fc53cdacee9211e028752484",
+  "eth_snapshot_id": "4b9c113f659e1c1ca71498096dfdc2628a1016346aed40e19020efb64c85ad15",
+  "materializer_version": "market05_eth_execution_parquet/1.0.0",
+  "object_count": 60,
+  "objects": [
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2020-01.parquet",
+      "canonical_parquet_sha256": "eb5b62a201c0c1256da8b8bb55203f6bd54fa64cebfbf1bf75b29c2319ffea76",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1577836800000,
+      "last_open_time_ms": 1580515140000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2020-01.zip",
+      "source_period": "2020-01",
+      "source_zip_sha256": "a3e4f209b53ba03eb5adbb9560faf88431cd268b1cc7890fce488fb7674f385e"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2020-02.parquet",
+      "canonical_parquet_sha256": "dc5fcb2b38e4c118ad17d9080f185e42091e93f5ab2e55b08c9e54068b7ccf18",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1580515200000,
+      "last_open_time_ms": 1583020740000,
+      "row_count": 41760,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2020-02.zip",
+      "source_period": "2020-02",
+      "source_zip_sha256": "b5267b5dc4f45cb23aedede25b0586948d41fcbb8f79e3460351ebb182633ee4"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2020-03.parquet",
+      "canonical_parquet_sha256": "106320e8a013dbd79545106351e2927a0c2fc1180fa692eafd0ac9ea7bd74900",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1583020800000,
+      "last_open_time_ms": 1585699140000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2020-03.zip",
+      "source_period": "2020-03",
+      "source_zip_sha256": "f4a6a230bf25a1d4f6a7f612d3a365e9bc8ea19a62e43b4eda6804cf923eca3f"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2020-04.parquet",
+      "canonical_parquet_sha256": "c7c91e0aa20aa32d0839082d31c350dbed791442d26653c2d32e6fb8ae315be2",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1585699200000,
+      "last_open_time_ms": 1588291140000,
+      "row_count": 43200,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2020-04.zip",
+      "source_period": "2020-04",
+      "source_zip_sha256": "01023b5182512955021849e207592b10e28a750da7f705cbba34a44fa15936dd"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2020-05.parquet",
+      "canonical_parquet_sha256": "b7e4998219d1cca5c6ff4a7b502a60a03bdb462f87e8293e7da5a48621810af4",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1588291200000,
+      "last_open_time_ms": 1590969540000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2020-05.zip",
+      "source_period": "2020-05",
+      "source_zip_sha256": "64708f859d8bfb51360835ed6cd97a23801b0a254c087639d5a2f6c7a5d51906"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2020-06.parquet",
+      "canonical_parquet_sha256": "5a36ef56034339d71e64b4b69a61a8ff5017097c69ceaf5a39d1aee66d8a8d7e",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1590969600000,
+      "last_open_time_ms": 1593561540000,
+      "row_count": 43200,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2020-06.zip",
+      "source_period": "2020-06",
+      "source_zip_sha256": "6a61c20545009bb270c237d2d083f71274486069eb0f9f9e5fad377a40e20d4f"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2020-07.parquet",
+      "canonical_parquet_sha256": "53bee0202833da95df3b822ed91ccb38a395d19e61af2e43bb8f662d784c6365",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1593561600000,
+      "last_open_time_ms": 1596239940000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2020-07.zip",
+      "source_period": "2020-07",
+      "source_zip_sha256": "dd83a3a8fa0f79ff086c7cb6d67af4c7e44f4e118f04f7a9af864200a63ee1f9"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2020-08.parquet",
+      "canonical_parquet_sha256": "35000c12e1005871b20891f2281faee86996b2610db849a3ab4a58c7438238c8",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1596240000000,
+      "last_open_time_ms": 1598918340000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2020-08.zip",
+      "source_period": "2020-08",
+      "source_zip_sha256": "3ecade833e5be335b5eb0a2c3bee4b1f09fe742c0b2c88a2185922c2fb28ad10"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2020-09.parquet",
+      "canonical_parquet_sha256": "ae08204bf895fb2bee1020a0bcd7319e788022faae12154379186d1defd7117b",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1598918400000,
+      "last_open_time_ms": 1601510340000,
+      "row_count": 43200,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2020-09.zip",
+      "source_period": "2020-09",
+      "source_zip_sha256": "20e851e03a8bf4414931db2974b21d1fe9c4f6f567172ea61296738e4a829a2a"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2020-10.parquet",
+      "canonical_parquet_sha256": "89107bcd9a1bc72693d6910c6bc014af0470543348d139b0b2587a82dc24be5c",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1601510400000,
+      "last_open_time_ms": 1604188740000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2020-10.zip",
+      "source_period": "2020-10",
+      "source_zip_sha256": "6d85dac37a0092cf8b9f687701afdd1d7b325e4471767eca5908cb3579842669"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2020-11.parquet",
+      "canonical_parquet_sha256": "f8b0dab3e50674207283335c90e3a8c0e9f06d4f5b52985b82f5f0a685592b80",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1604188800000,
+      "last_open_time_ms": 1606780740000,
+      "row_count": 43200,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2020-11.zip",
+      "source_period": "2020-11",
+      "source_zip_sha256": "0042b802f1dd09ef5b4cf1c53c54b11c76190ac147cff096da1df7a38c4c8444"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2020-12.parquet",
+      "canonical_parquet_sha256": "e556c09cb794fff7618b07a9ec4f8fdeb74340b85b6c782be06a0eeef4646fdf",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1606780800000,
+      "last_open_time_ms": 1609459140000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2020-12.zip",
+      "source_period": "2020-12",
+      "source_zip_sha256": "6a331abd5e2cbc53c3730ceb15545294a450209e0da4d4baa2cc241c872b59b1"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2021-01.parquet",
+      "canonical_parquet_sha256": "fff5cb5d9590c82d064de70fd3793fdb7a671965a8bb4d6f75dd1bae545cb955",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1609459200000,
+      "last_open_time_ms": 1612137540000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2021-01.zip",
+      "source_period": "2021-01",
+      "source_zip_sha256": "eec71d7526f3736012c0961fe9893d7f00947fe722709e45bbcd14d8b47b216f"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2021-02.parquet",
+      "canonical_parquet_sha256": "b61703abbbe8325d43e83f19cafe0fee110735bf9bfc071d8978ee2b9075fcbd",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1612137600000,
+      "last_open_time_ms": 1614556740000,
+      "row_count": 40320,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2021-02.zip",
+      "source_period": "2021-02",
+      "source_zip_sha256": "f0ad622d0add8de4d62974a79cbc4010216011bc7c2ae2c0ea5ce1a190564a38"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2021-03.parquet",
+      "canonical_parquet_sha256": "138c0fc9486c1fdb24114ae501c5b699b1121b0c02fa1975681ff4649bebf625",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1614556800000,
+      "last_open_time_ms": 1617235140000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2021-03.zip",
+      "source_period": "2021-03",
+      "source_zip_sha256": "5f452486b3ba9fbc7ee98ede470501b7202d12744048f75088943590a0edc6ff"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2021-04.parquet",
+      "canonical_parquet_sha256": "515cb86c2c9170008b6e2a8e76652598add04e69d3b8b8a14b6886bacf6211c2",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1617235200000,
+      "last_open_time_ms": 1619827140000,
+      "row_count": 43200,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2021-04.zip",
+      "source_period": "2021-04",
+      "source_zip_sha256": "b6ff07c1674a645b75578d7bf06c2fc616e0443b1c2fc5efb50f7fead2bee0f6"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2021-05.parquet",
+      "canonical_parquet_sha256": "0bec0db8523e7fc8aeb68f3d64cfa82e009a560f4506b3141bbd9a1a88c1a1ff",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1619827200000,
+      "last_open_time_ms": 1622505540000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2021-05.zip",
+      "source_period": "2021-05",
+      "source_zip_sha256": "3b8c11f3f8a87320b4a948b60257157b2920ef5363929a26f184bfe205f40446"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2021-06.parquet",
+      "canonical_parquet_sha256": "def88a7e19139fca84bfc65279bd5f1a9771642813e47ad7d941a94a20171105",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1622505600000,
+      "last_open_time_ms": 1625097540000,
+      "row_count": 43200,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2021-06.zip",
+      "source_period": "2021-06",
+      "source_zip_sha256": "b06233d329610c0f38b65a8b10255393367172119fbbec9a135923329f396166"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2021-07.parquet",
+      "canonical_parquet_sha256": "eaebcb12887511cfcf8ee912444aa5508aa496ff05b72dd044ddad452f5514c8",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1625097600000,
+      "last_open_time_ms": 1627775940000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2021-07.zip",
+      "source_period": "2021-07",
+      "source_zip_sha256": "13057ee33037fd9fb0cc063c6f28247e09fcf903023f7eac6ef59a6d6ada55d7"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2021-08.parquet",
+      "canonical_parquet_sha256": "d2a8c8fd85b78f20e729a700afc1590e36d7d9a2a24f08d398d8ab308e1ec2c2",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1627776000000,
+      "last_open_time_ms": 1630454340000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2021-08.zip",
+      "source_period": "2021-08",
+      "source_zip_sha256": "c13383864ddebabe6f5e19e399a858fbc868b567e67e298b64703697a5419629"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2021-09.parquet",
+      "canonical_parquet_sha256": "b7c86fd8372a3333f3b0f9d7ac870f6841dab9cca15c3031c8c465e71e738f62",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1630454400000,
+      "last_open_time_ms": 1633046340000,
+      "row_count": 43200,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2021-09.zip",
+      "source_period": "2021-09",
+      "source_zip_sha256": "33ea7e86283b55400613a6af94f0dcdf4c309bc7a8550011e931236f5bf1adc2"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2021-10.parquet",
+      "canonical_parquet_sha256": "61a47d0ca1ed10fba99f1e89bf1f1543900ff1aa5e4fbb087ed6cfe1ec3b829f",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1633046400000,
+      "last_open_time_ms": 1635724740000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2021-10.zip",
+      "source_period": "2021-10",
+      "source_zip_sha256": "244d0e66583023a557b8b5486a476a770d03dad315e2363ea426db62e404cf53"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2021-11.parquet",
+      "canonical_parquet_sha256": "ee2b60ab042876b8ec351937ff8c063ed2ced64ced9910512cfe63b7f25e86e9",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1635724800000,
+      "last_open_time_ms": 1638316740000,
+      "row_count": 43200,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2021-11.zip",
+      "source_period": "2021-11",
+      "source_zip_sha256": "b083257f558380a01d3eadd84c8d821ea4930c3eaa0a53d3317139e8d89b4b41"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2021-12.parquet",
+      "canonical_parquet_sha256": "0f6203c3733913f1bfa42c31eadf3ea69d9e5768950d9d4aa13358ab8b3a7357",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1638316800000,
+      "last_open_time_ms": 1640995140000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2021-12.zip",
+      "source_period": "2021-12",
+      "source_zip_sha256": "c00acbd9a587da4ef3f8e1aea30b4e0746cbc33539280247fbcec301a030885a"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2022-01.parquet",
+      "canonical_parquet_sha256": "401a8882b10f14e2fdf55b73e2fff3e8dacfcfa1911b007d0bd2e22bc98e342a",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1640995200000,
+      "last_open_time_ms": 1643673540000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2022-01.zip",
+      "source_period": "2022-01",
+      "source_zip_sha256": "6b1f5eef19ba80942734c04dd77cf177c7d82bfcc165424a6b9ad005e30df787"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2022-02.parquet",
+      "canonical_parquet_sha256": "c67360578ef1f7d1cd521184f0bb495bfdbf795840c079c705dc6933fb91687a",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1643673600000,
+      "last_open_time_ms": 1646092740000,
+      "row_count": 40320,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2022-02.zip",
+      "source_period": "2022-02",
+      "source_zip_sha256": "0a282034071d71093e41440a77eb6e5eecb9cb293191a05432df5de411a49782"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2022-03.parquet",
+      "canonical_parquet_sha256": "c095979d92258c490bd9455c4f3b0b611c9a30cbcb4c1c24504f80c813555c91",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1646092800000,
+      "last_open_time_ms": 1648771140000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2022-03.zip",
+      "source_period": "2022-03",
+      "source_zip_sha256": "8dd4fbcefdc6ed44f580daadf7ee180a2206d2c56062efa4e9c29170509b7528"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2022-04.parquet",
+      "canonical_parquet_sha256": "e8c1fbc9a659b25683039dd8c7ccd048c4ee1eeebf043da77fa7f0c8c4b832fd",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1648771200000,
+      "last_open_time_ms": 1651363140000,
+      "row_count": 43200,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2022-04.zip",
+      "source_period": "2022-04",
+      "source_zip_sha256": "f3d073fdcd87efc51b5eca9eda12bc1d6969832fedcc7279fac9189403c2ff3d"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2022-05.parquet",
+      "canonical_parquet_sha256": "0f1cd17539e163a39bf02887c9cc1debdb75aa98bfb82d0ec8ffbae5e424b675",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1651363200000,
+      "last_open_time_ms": 1654041540000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2022-05.zip",
+      "source_period": "2022-05",
+      "source_zip_sha256": "ace5b3685a0e64d51b44e8c8028c04f74f4158728e1091c0ee6485e0af8c4a28"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2022-06.parquet",
+      "canonical_parquet_sha256": "e6db53564f5f3ea90f2857ed9691d9454d2690d11aed42f85e71484c7124a4f6",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1654041600000,
+      "last_open_time_ms": 1656633540000,
+      "row_count": 43200,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2022-06.zip",
+      "source_period": "2022-06",
+      "source_zip_sha256": "fe28507344a66f351fff61708981dff001cccf5d07f6d1036431c9222a03df7b"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2022-07.parquet",
+      "canonical_parquet_sha256": "b372c2874a8595db1164a49158f2724a7127f082623919130537c7c7ff4bd403",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1656633600000,
+      "last_open_time_ms": 1659311940000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2022-07.zip",
+      "source_period": "2022-07",
+      "source_zip_sha256": "f74f6765b85cf5ecd3e566ad7c2bcd403a0cf13197a988a832b44f20d7208ca1"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2022-08.parquet",
+      "canonical_parquet_sha256": "b8595a94c380b002fa8fa8f302c380a1c4f302dd186e7f76f75f183a102b8059",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1659312000000,
+      "last_open_time_ms": 1661990340000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2022-08.zip",
+      "source_period": "2022-08",
+      "source_zip_sha256": "04e0f53dc0acd9caf96e6cbd09ad4d65a1842e34f21ef878aeb9994d04853f95"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2022-09.parquet",
+      "canonical_parquet_sha256": "cab55fb6d35e4af80e76f45841cf9285f6f0473e134b913783826546c06ae68f",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1661990400000,
+      "last_open_time_ms": 1664582340000,
+      "row_count": 43200,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2022-09.zip",
+      "source_period": "2022-09",
+      "source_zip_sha256": "a063208820fa69a391071daf2ba30a2eebafc41f1de2b4dac34752980004d83c"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2022-10.parquet",
+      "canonical_parquet_sha256": "dded30df2f79a1126ef94c0c77dd367c7858fbee512315cc5ea6f016bbfd78bd",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1664582400000,
+      "last_open_time_ms": 1667260740000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2022-10.zip",
+      "source_period": "2022-10",
+      "source_zip_sha256": "dfbf63b2f5e6131156cf6934cc414af4b08d4bd83bce6bb0c3ad8e843e084281"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2022-11.parquet",
+      "canonical_parquet_sha256": "401ba02754345fcb7fb2b528e9940dec37506e6802b259a4f212292363d273d9",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1667260800000,
+      "last_open_time_ms": 1669852740000,
+      "row_count": 43200,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2022-11.zip",
+      "source_period": "2022-11",
+      "source_zip_sha256": "28c780ededdc1f725869a5bc91edbaf570941b8d3e9fdd8ad815d32d74e07c16"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2022-12.parquet",
+      "canonical_parquet_sha256": "f0be3d38fe59d2cc613a2ce8acab22558fbc5495a3553d41c74cf2a7d43d6385",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1669852800000,
+      "last_open_time_ms": 1672531140000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2022-12.zip",
+      "source_period": "2022-12",
+      "source_zip_sha256": "1e426fd43bd84ab244e8a47630d7b09084455dc68eee32eb5ccecd9950c68af6"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2023-01.parquet",
+      "canonical_parquet_sha256": "88486c4e2d6091b81148797044428050d551daaeb7559d9db5d3fda9932d0ec4",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1672531200000,
+      "last_open_time_ms": 1675209540000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2023-01.zip",
+      "source_period": "2023-01",
+      "source_zip_sha256": "0f501c198dd70e9330e698d62fbaeaf8b4b94275a4157b859f9fc3de0498dfe4"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2023-02.parquet",
+      "canonical_parquet_sha256": "9ce097af5b2d31d4a2892d8a962ec9d1dcd8ae3b577bd20add9d90546f1de704",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1675209600000,
+      "last_open_time_ms": 1677628740000,
+      "row_count": 40320,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2023-02.zip",
+      "source_period": "2023-02",
+      "source_zip_sha256": "e19b3ba0cfb3121d51d0617a0b0f6889233d8d4e6ce6f391e573adfce2385c88"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2023-03.parquet",
+      "canonical_parquet_sha256": "1c87aa9b16c586f60b03e7e7b49c5aabefc320db6865bdb5c11a747482a78b63",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1677628800000,
+      "last_open_time_ms": 1680307140000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2023-03.zip",
+      "source_period": "2023-03",
+      "source_zip_sha256": "277ce2cc1c7175df2d19ccebe081ff286bc3ef6eb028c698f86c4eca1b9b4989"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2023-04.parquet",
+      "canonical_parquet_sha256": "75806da6bfbf251b7d10f33714dd2a0161144d3902ebc16d85e6602c748efa43",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1680307200000,
+      "last_open_time_ms": 1682899140000,
+      "row_count": 43200,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2023-04.zip",
+      "source_period": "2023-04",
+      "source_zip_sha256": "b900eb2661c1559133d58ea820a9c54d2a3fb0054ba148c7f0d86a1a790b267a"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2023-05.parquet",
+      "canonical_parquet_sha256": "8df82ed11b41f9b3356a99922d4e740621c0b880847cdb2cd8ac3d0a14105286",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1682899200000,
+      "last_open_time_ms": 1685577540000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2023-05.zip",
+      "source_period": "2023-05",
+      "source_zip_sha256": "5d75bb047ecbb013fabefd80e883b3dd6d21cd98bfbedb208147e5b2e7c395d6"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2023-06.parquet",
+      "canonical_parquet_sha256": "9a56f4af5a5c0e369898abd5fb1e4d25970364e873fd41bac90cb7c3d3564f29",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1685577600000,
+      "last_open_time_ms": 1688169540000,
+      "row_count": 43200,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2023-06.zip",
+      "source_period": "2023-06",
+      "source_zip_sha256": "726c301fe41f23a79eed5a09ff556ffb9dbdfb54ce2a66fe2737ae61c33d07c1"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2023-07.parquet",
+      "canonical_parquet_sha256": "d432d10a81db728fd23b09235a5c6cfdc1ffe4bfc971f7d86f8003eb823f81f5",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1688169600000,
+      "last_open_time_ms": 1690847940000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2023-07.zip",
+      "source_period": "2023-07",
+      "source_zip_sha256": "cd3bcf0ed40e17b4c4cbce1f6af1c8fe2be309db2fecdfc7436f7c453a15e177"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2023-08.parquet",
+      "canonical_parquet_sha256": "f0e97ad5dd0c01eaec23c3b8d5a5d8f6818adf3800d554e09c250f49bd585d42",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1690848000000,
+      "last_open_time_ms": 1693526340000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2023-08.zip",
+      "source_period": "2023-08",
+      "source_zip_sha256": "b0f54f67f3135d3f64ea2ca9a95f01fb18031c1b6d7ffbf552aa37e4965bcee5"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2023-09.parquet",
+      "canonical_parquet_sha256": "ad31d6a3806f4b3dd8a5c610926a0eda4215b71a7a93b55d547e7d931325ed93",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1693526400000,
+      "last_open_time_ms": 1696118340000,
+      "row_count": 43200,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2023-09.zip",
+      "source_period": "2023-09",
+      "source_zip_sha256": "1d57af68d4f8d652bb6a4d78cd50b6ceecb4aff4b19a2cb59c7d1cba005dc386"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2023-10.parquet",
+      "canonical_parquet_sha256": "f0408e8a28552316f0ddaf0f64586f69bb4d98bac0c58e076ce25f05b46f7fcc",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1696118400000,
+      "last_open_time_ms": 1698796740000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2023-10.zip",
+      "source_period": "2023-10",
+      "source_zip_sha256": "d14f90cbc8075341cf1dfe9cfc29dc1689a0b3c3adcc0c3a35ca360a5c78f651"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2023-11.parquet",
+      "canonical_parquet_sha256": "53357d51ba6c31d8ba6d480e99cec3da2d037119d8eacb1f2f893ddf78d3754f",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1698796800000,
+      "last_open_time_ms": 1701388740000,
+      "row_count": 43200,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2023-11.zip",
+      "source_period": "2023-11",
+      "source_zip_sha256": "5eeb6b99e8dc6889fe9d317f373f4f587c4c8d35de9ee2854a6471d6fd7b3e1b"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2023-12.parquet",
+      "canonical_parquet_sha256": "1f28c41253781bd939ab7b52d4a3c2e9cb8f914755526a81ea9e6558f244f299",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1701388800000,
+      "last_open_time_ms": 1704067140000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2023-12.zip",
+      "source_period": "2023-12",
+      "source_zip_sha256": "6ebf84e9b991619d772af5d9835175c5e456688c33c72affa35b3aecbac30d09"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2024-01.parquet",
+      "canonical_parquet_sha256": "12afebc9174689638c558a8b6939151e1b21b91ff3b03a58dc80e2248ae34f28",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1704067200000,
+      "last_open_time_ms": 1706745540000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2024-01.zip",
+      "source_period": "2024-01",
+      "source_zip_sha256": "7fa68ec5fedc6eef175ed0af6e9f252062f6ceaca016106c265e6e4b724b5ef2"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2024-02.parquet",
+      "canonical_parquet_sha256": "c6387e979afaff628ef4727db0f91a7a45eb1c078ae1ca6317129959664cd602",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1706745600000,
+      "last_open_time_ms": 1709251140000,
+      "row_count": 41760,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2024-02.zip",
+      "source_period": "2024-02",
+      "source_zip_sha256": "de3f91fcd929d207b4382afd7a728c0f44527d6bdbcb0a585b01b0fe001e24ab"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2024-03.parquet",
+      "canonical_parquet_sha256": "21f666f9ce04b9c24ee72260d9f79956767555ee569dddd9ac00dae163867bec",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1709251200000,
+      "last_open_time_ms": 1711929540000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2024-03.zip",
+      "source_period": "2024-03",
+      "source_zip_sha256": "dd10515a9b010920bac628f2ec600405ff8e41de7d0f81694fbf391ca54b86b2"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2024-04.parquet",
+      "canonical_parquet_sha256": "89db26746b4d18de729e58f660cca437d8451963d6a6824cae2e57a48ca60291",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1711929600000,
+      "last_open_time_ms": 1714521540000,
+      "row_count": 43200,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2024-04.zip",
+      "source_period": "2024-04",
+      "source_zip_sha256": "1856da8b501dbb831b9a5490e99be8564433c4a4d46de89200f0258c74dd4790"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2024-05.parquet",
+      "canonical_parquet_sha256": "ff8efbef6aebd516ca7e8ffe0af8c05350d5abc165a00ecfe7c2859dcbcb02b0",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1714521600000,
+      "last_open_time_ms": 1717199940000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2024-05.zip",
+      "source_period": "2024-05",
+      "source_zip_sha256": "d512aa43b5b6a5168fa1b6242fe4cf01c88e51c78bb9f4d202f0ca2e42338f96"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2024-06.parquet",
+      "canonical_parquet_sha256": "18465a96da8bc74eea9da11275542a1eaa79c71f5eac3ab10a945a3df2a0e8ba",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1717200000000,
+      "last_open_time_ms": 1719791940000,
+      "row_count": 43200,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2024-06.zip",
+      "source_period": "2024-06",
+      "source_zip_sha256": "57e4b010904bbd754ee951ada7d9edd34bc4242379ae49fb66352e2c5f5cb525"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2024-07.parquet",
+      "canonical_parquet_sha256": "167467341291d44f3269bc5598678cd6a207a935c79bb0d5df0e3ce384bc70e9",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1719792000000,
+      "last_open_time_ms": 1722470340000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2024-07.zip",
+      "source_period": "2024-07",
+      "source_zip_sha256": "34a3729eb2f6dd1563715e085eb936a4034357d95cba2605b96cf1cb5c533b65"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2024-08.parquet",
+      "canonical_parquet_sha256": "d9b2710c81fe2d746f9ba316e3deaf5d18a2dc68bac88b5d5ee741d516abac03",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1722470400000,
+      "last_open_time_ms": 1725148740000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2024-08.zip",
+      "source_period": "2024-08",
+      "source_zip_sha256": "2ccc1d0c491c63a6bfbabda39e8bd41e555a87052d77120199133e9e81bbf36c"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2024-09.parquet",
+      "canonical_parquet_sha256": "f31a850e69f6172c42b82090f4de77c6e82e01c5856e92ee4d59be4fedb061a0",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1725148800000,
+      "last_open_time_ms": 1727740740000,
+      "row_count": 43200,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2024-09.zip",
+      "source_period": "2024-09",
+      "source_zip_sha256": "317e18ce04f6312b4a3de3b5504bef2001a92bf72cb8e4988e160ee327c9c737"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2024-10.parquet",
+      "canonical_parquet_sha256": "c6bb111f7858cf1b8952a62a8ce1533242963a5ddda928a3ce0d40bd63454dbc",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1727740800000,
+      "last_open_time_ms": 1730419140000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2024-10.zip",
+      "source_period": "2024-10",
+      "source_zip_sha256": "d1f340994285a075a97d7d0ed5e9aca3d82dadbba8f817b2f886188420a009f1"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2024-11.parquet",
+      "canonical_parquet_sha256": "52f18ea7cdb4b7a27d0430ee3c68b542141f9356b850722361f86382bf1aaf08",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1730419200000,
+      "last_open_time_ms": 1733011140000,
+      "row_count": 43200,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2024-11.zip",
+      "source_period": "2024-11",
+      "source_zip_sha256": "4170f68dd576e8af35ecc9b19808dcb673c0423838bd560c7c4c1fabefdad5ad"
+    },
+    {
+      "archive_class": "monthly",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2024-12.parquet",
+      "canonical_parquet_sha256": "cf92bae58669e8fcd67867ae2b01b2ab8aa6e16656078199c98df593e9f1dba8",
+      "deterministic_materialization_procedure": "market05_eth_execution_parquet/1.0.0",
+      "first_open_time_ms": 1733011200000,
+      "last_open_time_ms": 1735689540000,
+      "row_count": 44640,
+      "schema": {
+        "close": "decimal_string",
+        "high": "decimal_string",
+        "low": "decimal_string",
+        "open_time_ms": "int64"
+      },
+      "source_official_zip_filename": "ETHUSDT-1m-2024-12.zip",
+      "source_period": "2024-12",
+      "source_zip_sha256": "82018947075e35e5ac0a771bb97a22118008db2c6fb6a94f8c1a2c4ebb34d12b"
+    }
+  ],
+  "parquet_root_relative": "artifacts/research_data/CORE_ETH_BINANCE_V0",
+  "price_values_scientifically_evaluated": false,
+  "protected_oos_objects_materialized": false,
+  "protected_oos_start": "2025-01-01T00:00:00Z",
+  "protected_oos_touched": false,
+  "required_columns": [
+    "open_time_ms",
+    "high",
+    "low",
+    "close"
+  ],
+  "schema": "market_05_eth_execution_binding",
+  "schema_version": "1.0.0",
+  "scientific_outcomes_inspected": false,
+  "zip_root_relative": "artifacts/research_data/CORE_ETH_BINANCE_V0/raw"
+}

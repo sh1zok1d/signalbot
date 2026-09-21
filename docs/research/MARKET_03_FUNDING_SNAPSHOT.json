@@ -1,0 +1,124 @@
+{
+  "schema": "market_03_funding_snapshot",
+  "schema_version": "1.0.0",
+  "unit_id": "MARKET_03_FUNDING_SNAPSHOT",
+  "research_id": "MARKET-03_PUBLIC_STRATEGY_REPLICATION",
+  "date_utc": "2026-09-18",
+  "status": "FUNDING_SNAPSHOT_READY",
+  "unit_verdict": "A. FUNDING_SNAPSHOT_READY",
+  "unit_verdict_letter": "A",
+  "not_a_result": true,
+  "not_an_arm": true,
+  "not_market_03_execution": true,
+  "not_implementation": true,
+  "not_parameter_search": true,
+  "not_b2_06_authority": true,
+  "human_readable_twin": "docs/research/MARKET_03_FUNDING_SNAPSHOT.md",
+  "pre_snapshot": {
+    "head": "3f1722476927a13d4e1629510f12ed00f72ba3d8",
+    "tree": "50f2d54fe4ddfc7a6774808cc7110913ea0b978b"
+  },
+  "SOURCE_PATH": "artifacts/research_data/MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0/canonical/BTCUSDT_UM_fundingRate_rest_authorized.jsonl",
+  "SOURCE_SHA256": "e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb",
+  "SOURCE_SIZE": 442988,
+  "source_provenance": {
+    "endpoint": "https://fapi.binance.com/fapi/v1/fundingRate",
+    "endpoint_used": "https://www.binance.com/fapi/v1/fundingRate",
+    "endpoint_path": "/fapi/v1/fundingRate",
+    "symbol": "BTCUSDT",
+    "market_type": "USD_M_PERPETUAL",
+    "retrieval_timestamp_utc": "2026-09-18T17:06:53Z",
+    "request_start_inclusive": "2019-09-01T00:00:00Z",
+    "request_end_exclusive": "2025-01-01T00:00:00Z",
+    "request_startTime_ms": 1567296000000,
+    "request_endTime_exclusive_ms": 1735689600000,
+    "limit": 1000,
+    "pages": 6,
+    "fallback_endpoint_used": true,
+    "primary_endpoint_http_status": 451,
+    "user_agent": "signalbot-research-market-03-data-acquisition/1.0",
+    "acquisition_record": "docs/research_data/MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0/FUNDING_COMPATIBILITY_2ce1f504.json"
+  },
+  "FUNDING_DATASET_ID": "MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0",
+  "FUNDING_SNAPSHOT_ID": "d47b7b78b6e7dbb842c7d9eb122c81063e0b804e179a53dd87723f9a8a8adc68",
+  "FUNDING_DATA_SHA256": "e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb",
+  "FUNDING_ROWS": 5819,
+  "FUNDING_TIME_BOUNDS": {
+    "request_start_inclusive": "2019-09-01T00:00:00Z",
+    "request_end_exclusive": "2025-01-01T00:00:00Z",
+    "first_fundingTime_utc": "2019-09-10T08:00:00Z",
+    "last_fundingTime_utc": "2024-12-31T16:00:00Z",
+    "evaluation_start_utc": "2019-10-01T00:00:00Z"
+  },
+  "schema_fields": ["fundingRate", "fundingTime", "symbol"],
+  "normalization": {
+    "identity_copy_of_source_jsonl": true,
+    "fundingRate_string_identical_count": 5819,
+    "fundingTime_identical_count": 5819,
+    "source_line_byte_identical_count": 5819,
+    "canonical_bytes_equal_source_bytes": true,
+    "rounded": false
+  },
+  "DUPLICATES": {
+    "duplicate_fundingTime_count": 0,
+    "exact_duplicate_row_count": 0,
+    "conflicting_duplicate_fundingTime_count": 0
+  },
+  "GAPS": {
+    "missing_expected_8h_hour_floor_count": 0,
+    "unexpected_hour_floor_count": 0,
+    "eight_hour_hour_floor_expected_count": 5819,
+    "eight_hour_hour_floor_observed_count": 5819
+  },
+  "ANOMALIES": [
+    {
+      "class": "FUNDINGTIME_MILLISECOND_RESIDUAL",
+      "count": 2438,
+      "min_ms": 1,
+      "max_ms": 47,
+      "repaired": false,
+      "policy": "PRESERVE_RAW_FUNDINGTIME_DO_NOT_ROUND_TO_HOUR"
+    }
+  ],
+  "coverage_notes": {
+    "rows_before_evaluation_start": 62,
+    "rows_on_or_after_evaluation_start": 5757,
+    "hours_from_first_observation_to_evaluation_start": 496.0,
+    "earliest_rest_observation_is_2019_09_10": true,
+    "terminal_bound_before_protected_oos": true,
+    "protected_oos_row_count": 0
+  },
+  "STRICT_HISTORICAL_PUBLICATION_LATENCY": "UNPROVEN",
+  "REPRODUCTION_FUNDINGTIME_ASSUMPTION": "ACCEPTABLE",
+  "publication_latency_not_upgraded": true,
+  "fundingtime_not_legal_available_at": true,
+  "b2_06_is_not_market_03_authority": true,
+  "b2_06_dataset_id_not_authority": "B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0",
+  "b2_06_snapshot_id_not_authority": "5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33",
+  "SPOT_DATASET_ID": "MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0",
+  "SPOT_SNAPSHOT_ID": "2ce1f504709dc40c37a70dddcf73acb444e715820e9c855f6817c48f10d2b345",
+  "SPOT_DATA_SHA256": "e560bebb6ba9d070ee0fa58aaa5cf922caaa24d4b7e2b4eac8c7c0041c9495d4",
+  "SPOT_SNAPSHOT_UNCHANGED": true,
+  "PREREG_MD_SHA256": "044bb2a6bbd51c49c856b02eb7866b43171664a05d947dce995489389eeb0b57",
+  "PREREG_JSON_SHA256": "3f35f9a1d0575eaff3a1993a4779642259c0891dbdda1d49f22b958eba714f89",
+  "PREREG_UNCHANGED": true,
+  "identity_hashes": {
+    "SNAPSHOT_d47b7b78.json": "5cf01f672b2e2de2d6ce7966109d91a0fcfc82ec8dd08fe11fcf0b1321d3b210",
+    "SOURCE_LEDGER_d47b7b78.json": "7232016e568f06e8328034ee9f665301052267a13feb1645788af40bb395bef6",
+    "QUALITY_REPORT_d47b7b78.json": "01881f1762a4faaa80ba8e6c286165c01dadfc2d91869904c94463ccc20ddde2"
+  },
+  "construction_code_sha256": {
+    "scripts/research/market_03_binance_um_btcusdt_fundingrate_rest_v0_lib.py": "4f626eea335b062f384aa6c9192cf4e55266085a4fa0b0c11686e7494a2d9a25",
+    "scripts/research/market_03_binance_um_btcusdt_fundingrate_rest_v0_materialize.py": "cbbfc63b48f32b6125b8d4517a605a523297dd3e97e9971537323928f2beadc4"
+  },
+  "durability_status": "IDENTITY_PROVEN_AT_MATERIALIZATION_RAW_BYTES_NOT_GIT_RETAINED",
+  "MARKET_03_STRATEGY_EXECUTED": false,
+  "MARKET_03_OUTCOMES_INSPECTED": false,
+  "MARKET_03_PARAMETER_SEARCH": false,
+  "MARKET_03_ARMED": false,
+  "CANONICAL_EXECUTIONS_AUTHORIZED": 0,
+  "CANONICAL_EXECUTIONS_CONSUMED": 0,
+  "PROTECTED_OOS_TOUCHED": false,
+  "next_lifecycle_state": "MARKET-03_IMPLEMENTATION",
+  "next_lifecycle_state_note": "Implement the already-frozen MARKET-03 contract against this funding snapshot and the unchanged spot snapshot. Not ARM. Not execution."
+}

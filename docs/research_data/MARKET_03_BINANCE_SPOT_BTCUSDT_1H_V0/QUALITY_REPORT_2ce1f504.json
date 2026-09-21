@@ -1,0 +1,187 @@
+{
+  "canonical_bytes": 15245180,
+  "canonical_klines_sha256": "e560bebb6ba9d070ee0fa58aaa5cf922caaa24d4b7e2b4eac8c7c0041c9495d4",
+  "dataset_id": "MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0",
+  "duplicate_count": 0,
+  "duplicate_policy": "REJECT_DUPLICATE_OPEN_TIME_DO_NOT_KEEP_FIRST_OR_LAST",
+  "end_exclusive": "2025-01-01T00:00:00Z",
+  "expected_native_hours": 47520,
+  "first_open_time_utc": "2019-08-01T00:00:00Z",
+  "gap_count": 43,
+  "gap_policy": "ENUMERATE_MISSING_NATIVE_HOURS_DO_NOT_SYNTHESIZE",
+  "gap_ranges": [
+    {
+      "count": 8,
+      "end_ms": 1565859600000,
+      "start_ms": 1565834400000
+    },
+    {
+      "count": 2,
+      "end_ms": 1573614000000,
+      "start_ms": 1573610400000
+    },
+    {
+      "count": 2,
+      "end_ms": 1574650800000,
+      "start_ms": 1574647200000
+    },
+    {
+      "count": 1,
+      "end_ms": 1581213600000,
+      "start_ms": 1581213600000
+    },
+    {
+      "count": 5,
+      "end_ms": 1582128000000,
+      "start_ms": 1582113600000
+    },
+    {
+      "count": 1,
+      "end_ms": 1583316000000,
+      "start_ms": 1583316000000
+    },
+    {
+      "count": 2,
+      "end_ms": 1587783600000,
+      "start_ms": 1587780000000
+    },
+    {
+      "count": 3,
+      "end_ms": 1593316800000,
+      "start_ms": 1593309600000
+    },
+    {
+      "count": 1,
+      "end_ms": 1606716000000,
+      "start_ms": 1606716000000
+    },
+    {
+      "count": 3,
+      "end_ms": 1608570000000,
+      "start_ms": 1608562800000
+    },
+    {
+      "count": 1,
+      "end_ms": 1608861600000,
+      "start_ms": 1608861600000
+    },
+    {
+      "count": 1,
+      "end_ms": 1613016000000,
+      "start_ms": 1613016000000
+    },
+    {
+      "count": 1,
+      "end_ms": 1614996000000,
+      "start_ms": 1614996000000
+    },
+    {
+      "count": 2,
+      "end_ms": 1618887600000,
+      "start_ms": 1618884000000
+    },
+    {
+      "count": 3,
+      "end_ms": 1619334000000,
+      "start_ms": 1619326800000
+    },
+    {
+      "count": 4,
+      "end_ms": 1628830800000,
+      "start_ms": 1628820000000
+    },
+    {
+      "count": 2,
+      "end_ms": 1632902400000,
+      "start_ms": 1632898800000
+    },
+    {
+      "count": 1,
+      "end_ms": 1679662800000,
+      "start_ms": 1679662800000
+    }
+  ],
+  "headline_timerange_start_utc": "2019-10-01T00:00:00Z",
+  "invariant_violation_count": 1,
+  "is_strictly_ordered_by_open_time": true,
+  "kline_mapping": {
+    "availability_for_closed_bar": "bar_end_exclusive = open_time_ms + 3600000",
+    "binance_close_time_semantic": "last_millisecond_inside_source_bar",
+    "binance_open_time_semantic": "candle_open_utc_ms",
+    "binance_raw_fields": [
+      "open_time",
+      "open",
+      "high",
+      "low",
+      "close",
+      "volume",
+      "close_time",
+      "quote_volume",
+      "trade_count",
+      "taker_buy_base_volume",
+      "taker_buy_quote_volume",
+      "ignore"
+    ],
+    "binance_volume_semantic": "base_asset_volume",
+    "core_derived_1h_forbidden": "CORE_BTC_BINANCE_V0 1h bars are USD-M perpetual aggregations and must not be substituted",
+    "differences": [
+      {
+        "binance_raw": "open_time (ms) and close_time (ms)",
+        "freqtrade": "single `date` column = open time",
+        "topic": "label_clock"
+      },
+      {
+        "binance_raw": "column 6 = base volume; column 8 = quote volume",
+        "freqtrade": "`volume` is base volume",
+        "topic": "volume_name"
+      },
+      {
+        "binance_raw": "close_time is last ms inside the bar, typically open+3599999",
+        "freqtrade": "populate_* runs on the closed candle; fill next open",
+        "topic": "closed_bar_availability"
+      },
+      {
+        "note": "Binance public data README: spot kline timestamps become microseconds from 2025-01-01. This dataset excludes 2025+ so remaining timestamps are milliseconds.",
+        "topic": "microsecond_era"
+      }
+    ],
+    "documented_api_origin": "/api/v3/klines",
+    "freqtrade_dataframe_date": "candle_open_utc_equal_to_open_time",
+    "freqtrade_fill_docs": "next_candle_open",
+    "freqtrade_ohlcv_columns": [
+      "date",
+      "open",
+      "high",
+      "low",
+      "close",
+      "volume"
+    ],
+    "freqtrade_signal_on": "closed_candle",
+    "signalbot_map": "freqtrade_date = datetime_utc(open_time_ms)"
+  },
+  "last_open_time_utc": "2024-12-31T23:00:00Z",
+  "malformed_source_rows": 0,
+  "market_03_scientifically_bound": false,
+  "market_type": "SPOT",
+  "native_interval": "1h",
+  "normalization_rules": [
+    "native_12_column_binance_spot_kline_csv",
+    "preserve_decimal_strings",
+    "open_time_ms_int",
+    "no_forward_fill",
+    "no_resample",
+    "no_perp_substitute",
+    "drop_ignore_column_from_canonical"
+  ],
+  "protected_oos_used_for_science": false,
+  "row_count": 47477,
+  "schema_ok": false,
+  "snapshot_id": "2ce1f504709dc40c37a70dddcf73acb444e715820e9c855f6817c48f10d2b345",
+  "source_months_accepted": 65,
+  "source_months_expected": 65,
+  "start_inclusive": "2019-08-01T00:00:00Z",
+  "startup_candle_count_external": 1300,
+  "symbol": "BTCUSDT",
+  "warmup_open_time_utc": "2019-08-07T20:00:00Z",
+  "zero_volume_count": 3
+}

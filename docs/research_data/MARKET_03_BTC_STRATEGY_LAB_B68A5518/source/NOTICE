@@ -1,0 +1,30 @@
+btc-strategy-lab
+Copyright (C) 2026 wiktorj137
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License version 3, as published by the
+Free Software Foundation. See the LICENSE file.
+
+--------------------------------------------------------------------------------
+Third-party components
+--------------------------------------------------------------------------------
+
+Freqtrade (GPL-3.0)
+    https://github.com/freqtrade/freqtrade
+    The backtesting and execution engine this project is built on. Not
+    redistributed here; installed as a dependency.
+
+EMAPriceCrossoverWithThreshold - Copyright (c) Paul Csapak (MIT)
+    https://github.com/paulcpk/freqtrade-strategies-that-work
+    user_data/strategies/EmaCross.py and EmaCrossFunding.py are derived from
+    this strategy. The trading logic is his; the parameterisation, funding-rate
+    filter and validation harness are additions. MIT-licensed code is
+    incorporated here under the terms of the GPL-3.0, as permitted by the MIT
+    license.
+
+Benchmark strategy collections
+    https://github.com/freqtrade/freqtrade-strategies
+    https://github.com/paulcpk/freqtrade-strategies-that-work
+    Used for comparison only. NOT redistributed in this repository - see
+    scripts/fetch_benchmark_strategies.sh, which clones them from source.
+    Each retains its own license and authorship.

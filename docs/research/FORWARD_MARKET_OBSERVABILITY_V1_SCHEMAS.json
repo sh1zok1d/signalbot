@@ -1,0 +1,19 @@
+{
+  "schema_family": "forward_market_observability_v1",
+  "raw_envelope_schema": "forward_market_observability_v1_raw_envelope/1.0.0",
+  "chunk_schema": "forward_market_observability_v1_chunk/1.0.0",
+  "manifest_schema": "forward_market_observability_v1_manifest/1.0.0",
+  "session_schema": "forward_market_observability_v1_session/1.0.0",
+  "parsed_derivative_schema": "forward_market_observability_v1_parsed_derivative/1.0.0",
+  "event_schema": "forward_market_observability_v1_event/1.0.0",
+  "config_schema": "forward_market_observability_v1_config/1.0.0",
+  "legal_available_at_rule": "local_received_at_utc",
+  "legal_available_at_is_not": "exchange_event_time",
+  "websocket_authoritative_raw_bytes": "exact application-message payload bytes delivered by the WebSocket client after transport framing/decompression but BEFORE JSON/text parsing",
+  "rest_authoritative_raw_bytes": "exact HTTP response body bytes returned by the client BEFORE JSON parsing",
+  "computes_scientific_outcomes": false,
+  "market_06_created": false,
+  "m04_fwd_created": false,
+  "authoritative_collection_started": false,
+  "authoritative_collection_start_utc": null
+}

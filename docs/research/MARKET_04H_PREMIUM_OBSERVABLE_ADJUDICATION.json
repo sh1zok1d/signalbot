@@ -1,0 +1,242 @@
+{
+  "schema": "signalbot_market_04h_premium_observable_adjudication",
+  "schema_version": "1.0.0",
+  "unit_id": "MARKET_04H_PREMIUM_OBSERVABLE_ADJUDICATION",
+  "date": "2026-09-19",
+  "adjudication_outcome": "MARKET_04H_PREMIUM_OBSERVABLE_BLOCKED",
+  "parent_research_id": "MARKET-04_FUNDING_STATE_ADVERSE_PATH_RISK",
+  "research_id": "MARKET-04H_PREMIUM_INDEX_ADVERSE_PATH_RISK",
+  "lineage_kind": "OUTCOME_BLIND_OBSERVABLE_SUBSTITUTION_AFTER_TEMPORAL_FEASIBILITY_FAILURE",
+  "scientific_outcome_seen_before_substitution": false,
+  "independent_confirmation_of_parent": false,
+  "market_03_independent_replication": false,
+  "observable_name": "BINANCE_USD_M_BTCUSDT_PREMIUM_INDEX_KLINES",
+  "observable_semantic_role": "FUNDING_PRESSURE_PROXY",
+  "settled_funding_claimed": false,
+  "forbidden_semantic_labels": [
+    "FINAL_SETTLED_FUNDING",
+    "EXACT_FUNDING_RATE_AT_T",
+    "KNOWN_SETTLED_FUNDING_AT_T"
+  ],
+  "primary_source_authority": "FIRST_PARTY_BINANCE_ONLY",
+  "archive_daily_availability_semantics": "DAILY_FILES_BECOME_AVAILABLE_THE_NEXT_DAY",
+  "archive_day_timezone": "UNRESOLVED",
+  "safe_usable_at_rule": null,
+  "safe_usable_at_authority": null,
+  "safe_usable_at_proven": false,
+  "proposed_but_not_adopted_safe_usable_at_rule": "start of calendar day D+2",
+  "close_time_equals_publication_time": false,
+  "close_time_equals_legal_available_at": false,
+  "funding_time_equals_publication_time": false,
+  "revision_ledger_authority": "BINANCE_PUBLIC_DATA_README_UPDATES_TABLE",
+  "revision_ledger_claimed_exhaustive": true,
+  "relevant_files_revision_status": "REVISION_STATUS_UNRESOLVED",
+  "historical_coverage_usable": false,
+  "same_support_required": true,
+  "primary_outcome_family": "FUTURE_CROWDING_SIDE_ADVERSE_PATH_RISK",
+  "pnl_is_primary_outcome": false,
+  "scientific_outcomes_inspected": false,
+  "protected_oos_touched": false,
+  "implementation_frozen": false,
+  "armed": false,
+  "execution_authorized": false,
+  "full_preregistration_frozen": false,
+  "data_manifest_created": false,
+  "next_unit": "BLOCKED_OBSERVABLE_OR_NEW_CANDIDATE_SELECTION",
+  "parent_not_rewritten": true,
+  "bound_parent": {
+    "parent_selection_head": "33ef39988f03bf634ff61c014671b35ba9b0f6ee",
+    "parent_selection_tree": "04ae63d2d3412a3988dea20cc17d3e177fe31205",
+    "audit_head": "6e58882a0b7b01036a03cd9c2ec5af7cf7b7e046",
+    "audit_tree": "714cd0b3c4708b410af862448323bfda99f15914",
+    "audit_outcome": "FUNDING_HISTORICAL_AVAILABILITY_UNRESOLVED",
+    "parent_md_sha256": "bab848737137e9a9eebd6ef6565c5b74134d94310ebe20496621aba92a20a936",
+    "parent_json_sha256": "e1c4270d89d891846fefbe3d14a6389c9d6ed747cb00f8bfc9906300f18d30a6",
+    "audit_md_sha256": "2a5a7c6e1e712d04b0ec7c78e33fce7b3f0eb3a0008b793fbbc974d18f67b021",
+    "audit_json_sha256": "b1f4e02c55c6a6b32edfc5efec278446b2ac04a375197523faee8629bd389c0d"
+  },
+  "scientific_question_family": "Does Premium Index funding-pressure state add stable incremental information about future crowding-side adverse-path risk beyond price/trend/volatility state?",
+  "baseline_architecture": {
+    "baseline": "simple price/trend/volatility state",
+    "candidate": "exact baseline + Premium Index funding-pressure proxy",
+    "same_support_required": true,
+    "same_event_timestamps": true,
+    "same_future_outcome_support": true,
+    "same_missingness_policy": true
+  },
+  "state_construction_boundary": {
+    "continuous_premium_state_preferred": true,
+    "allowed_later_aggregations_if_unblocked": ["arithmetic mean", "time-weighted mean if needed due missing intervals"],
+    "threshold_search_forbidden": true,
+    "threshold_55_inherited": false,
+    "interval_selected_by_predictive_performance": false,
+    "preferred_later_interval_if_unblocked": "1d",
+    "preferred_later_interval_reason": "simplest official daily archive grain for a daily state; not chosen by returns"
+  },
+  "decision_time_principle": {
+    "every_feature_requires_safe_usable_at_le_T": true,
+    "baseline_must_use_same_or_stricter_boundary": true,
+    "cannot_be_implemented_while_safe_usable_at_unproven": true
+  },
+  "blockers": [
+    "ARCHIVE_DAY_TIMEZONE_UNRESOLVED",
+    "SAFE_USABLE_AT_D_PLUS_2_NOT_ADOPTED",
+    "RETROSPECTIVE_ARCHIVE_BYTE_IDENTITY_UNRESOLVED"
+  ],
+  "authority_checklist": {
+    "A_funding_mechanism_includes_premium_component": true,
+    "B_premium_index_is_binance_defined_observable": true,
+    "C_public_data_provides_futures_premium_klines": true,
+    "D_daily_files_available_next_day": true,
+    "E_archived_files_may_be_revised_and_ledger_exists": true,
+    "timezone_of_archive_day_D_established": false,
+    "d_plus_2_ordering_adopted": false
+  },
+  "archive_identity": {
+    "exchange": "Binance",
+    "market": "USD_M_FUTURES",
+    "symbol": "BTCUSDT",
+    "official_script_name_in_readme": "download-futures-premiumPriceKlines.py",
+    "official_script_filename": "download-futures-premiumIndexKlines.py",
+    "official_archive_data_type": "premiumIndexKlines",
+    "alias_path_premiumPriceKlines_empty": true,
+    "daily_root": "data/futures/um/daily/premiumIndexKlines/BTCUSDT/",
+    "observed_interval_prefixes_include": ["1d", "1h"]
+  },
+  "revision_audit": {
+    "readme_quote_class": "Archived files may be updated at a later date; README calls the listed updates exhaustive.",
+    "documented_updates": [
+      {
+        "date": "2022-08-08",
+        "file": "updates/2022-08-08_kline_updates.zip",
+        "contains_premiumIndexKlines": false,
+        "contains_futures_um": false,
+        "paths_observed": "data/spot/daily/klines only"
+      },
+      {
+        "date": "2022-04-21",
+        "file": "updates/2022-04-21_aggregate_trade_updates.zip",
+        "contains_premiumIndexKlines": false,
+        "contains_futures_um": false,
+        "paths_observed": "data/spot/monthly/aggTrades"
+      }
+    ],
+    "relevant_files_in_documented_replacement": false,
+    "s3_last_modified_after_ledger_observed": true,
+    "s3_last_modified_example": "BTCUSDT-1d-2019-12-24.zip LastModified 2023-07-07T07:10:16.000Z",
+    "current_download_treated_as_original": false,
+    "historically_available_version_recovered": false
+  },
+  "anti_rescue_contract": {
+    "cannot_later_be_rescued_by_changing": [
+      "observable",
+      "Premium Index aggregation",
+      "sign convention",
+      "horizon",
+      "primary outcome",
+      "baseline",
+      "materiality threshold",
+      "uncertainty method",
+      "subset",
+      "year range",
+      "regime",
+      "side treatment"
+    ],
+    "material_post_outcome_change_requires_new_identity": true
+  },
+  "m03_not_inherited": [
+    "EMA600",
+    "funding threshold 55",
+    "180d percentile",
+    "strategy entry rules",
+    "backtest drawdown objective"
+  ],
+  "m01_m02_are_positive_support": false,
+  "primary_sources": [
+    {
+      "publisher": "Binance",
+      "document_title": "Binance USD-M Futures API documentation (archived official HTML)",
+      "url": "https://web.archive.org/web/20220315120000id_/https://binance-docs.github.io/apidocs/futures/en/",
+      "document_version_date": "2022-03-01",
+      "accessed_at": "2026-09-19",
+      "relevant_section": "Mark Price / GET /fapi/v1/premiumIndex titled Mark Price and Funding Rate",
+      "evidence_strength": "DIRECT_FIRST_PARTY_AUTHORITY",
+      "what_it_proves": "Premium Index lives on the official mark-price and funding-rate market-data surface.",
+      "what_it_does_not_prove": "That premium kline close_time is publication time; archive-day timezone; legal_available_at."
+    },
+    {
+      "publisher": "Binance",
+      "document_title": "Premium Index Kline Data | Binance Open Platform",
+      "url": "https://developers.binance.com/docs/zh-CN/derivatives/coin-margined-futures/market-data/rest-api/Premium-Index-Kline-Data",
+      "document_version_date": "accessed 2026-09-19",
+      "accessed_at": "2026-09-19",
+      "relevant_section": "合约溢价指数K线; GET /dapi/v1/premiumIndexKlines; open time / close time fields",
+      "evidence_strength": "DIRECT_FIRST_PARTY_AUTHORITY",
+      "what_it_proves": "Premium Index klines are a first-party Binance market observable with documented open and close times.",
+      "what_it_does_not_prove": "That close_time is publication time or legal_available_at; USD-M Vision archive-day timezone."
+    },
+    {
+      "publisher": "Binance",
+      "document_title": "Binance Public Data README",
+      "url": "https://raw.githubusercontent.com/binance/binance-public-data/master/README.md",
+      "document_version_date": "2026-09-19",
+      "accessed_at": "2026-09-19",
+      "relevant_section": "daily/monthly availability paragraph; Updates table claiming an exhaustive list",
+      "evidence_strength": "DIRECT_FIRST_PARTY_AUTHORITY",
+      "what_it_proves": "New daily data become available the next day. Archived files may later be updated. Binance publishes an update ledger it calls exhaustive.",
+      "what_it_does_not_prove": "The timezone of archive day D or of 'the next day'; that current object bytes equal the historically first-published bytes."
+    },
+    {
+      "publisher": "Binance",
+      "document_title": "binance-public-data python README and download-futures-premiumIndexKlines.py",
+      "url": "https://raw.githubusercontent.com/binance/binance-public-data/master/python/download-futures-premiumIndexKlines.py",
+      "document_version_date": "2026-09-19",
+      "accessed_at": "2026-09-19",
+      "relevant_section": "Futures-Only Data; get_path(... premiumIndexKlines ...); daily file name SYMBOL-INTERVAL-YYYY-MM-DD.zip",
+      "evidence_strength": "DIRECT_FIRST_PARTY_AUTHORITY",
+      "what_it_proves": "Official public-data scripts download futures premiumIndexKlines for um/cm, including daily files. README names the companion script premiumPriceKlines.",
+      "what_it_does_not_prove": "Timezone of YYYY-MM-DD; that close_time is legal_available_at."
+    },
+    {
+      "publisher": "Binance",
+      "document_title": "Binance Vision official prefix listing",
+      "url": "https://s3-ap-northeast-1.amazonaws.com/data.binance.vision?delimiter=/&prefix=data/futures/um/daily/premiumIndexKlines/BTCUSDT/",
+      "document_version_date": "2026-09-19",
+      "accessed_at": "2026-09-19",
+      "relevant_section": "CommonPrefixes for BTCUSDT daily premiumIndexKlines; empty premiumPriceKlines prefix",
+      "evidence_strength": "DIRECT_FIRST_PARTY_AUTHORITY",
+      "what_it_proves": "USD-M BTCUSDT daily premiumIndexKlines objects exist, including 1d and 1h prefixes. The premiumPriceKlines alias path is empty.",
+      "what_it_does_not_prove": "Publication timezone; historical byte identity of listed objects."
+    },
+    {
+      "publisher": "Binance",
+      "document_title": "Official public-data update ledger CSVs inside 2022-08-08 and 2022-04-21 update zips",
+      "url": "https://github.com/binance/binance-public-data/raw/master/updates/2022-08-08_kline_updates.zip",
+      "document_version_date": "2022-08-08 / 2022-04-21",
+      "accessed_at": "2026-09-19",
+      "relevant_section": "File Path,Original File Checksum,New File Checksum",
+      "evidence_strength": "DIRECT_FIRST_PARTY_AUTHORITY",
+      "what_it_proves": "The claimed exhaustive kline update list is spot daily klines only. The aggTrade update list is spot monthly aggTrades. Neither documents a BTCUSDT USD-M premiumIndexKlines replacement.",
+      "what_it_does_not_prove": "That no undocumented later rewrite occurred. S3 LastModified after the ledger remains unresolved."
+    }
+  ],
+  "this_unit_does_not": [
+    "rewrite parent MARKET-04 candidate files",
+    "claim settled funding",
+    "treat fundingTime as publication time",
+    "treat premium kline close_time as publication time",
+    "adopt SAFE_USABLE_AT without timezone authority",
+    "inspect future MAE",
+    "inspect future returns",
+    "calculate correlations",
+    "compare Premium Index buckets",
+    "search outcome horizons",
+    "test 8h vs 24h vs 48h",
+    "inspect yearly or regime performance",
+    "run regressions or bootstrap inference",
+    "inherit threshold 55",
+    "touch protected 2025/2026 OOS",
+    "create RESULT or ARM",
+    "authorize execution"
+  ]
+}

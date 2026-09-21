@@ -1,0 +1,64 @@
+dataset_id: MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0
+manifest_version: 1
+status: SNAPSHOT_MATERIALIZED_PRE_ARM
+current_state: SNAPSHOT_MATERIALIZED_PRE_ARM
+research_authorized: false
+confirmatory_authorized: false
+market_03_arm_bound: false
+market_03_scientifically_bound: false
+snapshot_id: d47b7b78b6e7dbb842c7d9eb122c81063e0b804e179a53dd87723f9a8a8adc68
+snapshot_manifest_sha256: 5cf01f672b2e2de2d6ce7966109d91a0fcfc82ec8dd08fe11fcf0b1321d3b210
+source_ledger_sha256: 7232016e568f06e8328034ee9f665301052267a13feb1645788af40bb395bef6
+quality_report_sha256: 01881f1762a4faaa80ba8e6c286165c01dadfc2d91869904c94463ccc20ddde2
+canonical_funding_sha256: e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb
+source_sha256: e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb
+source_size_bytes: 442988
+durability_status: IDENTITY_PROVEN_AT_MATERIALIZATION_RAW_BYTES_NOT_GIT_RETAINED
+provenance_git_commit_sha: 3f1722476927a13d4e1629510f12ed00f72ba3d8
+provenance_git_tree_sha: 50f2d54fe4ddfc7a6774808cc7110913ea0b978b
+created_at_utc: '2026-09-18T00:00:00Z'
+evidence_dir: docs/research_data/MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0
+provenance_report: docs/research/MARKET_03_FUNDING_SNAPSHOT.md
+
+purpose:
+  class: MARKET_03_DEDICATED_FUNDING_AUTHORITY
+  description: >-
+    Dedicated Binance USD-M BTCUSDT REST /fapi/v1/fundingRate snapshot for
+    MARKET-03. Identity wrap of the acquired REST JSONL e7885cd5…. Not B2-06.
+    Not ARM. Not a strategy result. fundingTime is not proven legal_available_at.
+  not_an_edge_claim: true
+  not_a_market_03_result: true
+
+source:
+  provider: Binance
+  venue: Binance
+  evidence_tier: OFFICIAL_REST
+  endpoint_path: /fapi/v1/fundingRate
+  endpoint_used: https://www.binance.com/fapi/v1/fundingRate
+  market_type: USD_M_PERPETUAL
+  instrument: BTCUSDT
+  data_type: fundingRate
+  timestamp_field: fundingTime
+  rate_field: fundingRate
+
+excluded:
+  - B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0
+  - CORE_BTC_BINANCE_V0
+  - author_funding_feather
+  - silent_gap_fill
+  - 2025_2026_protected_oos
+  - strategy_transforms
+  - publication_latency_claimed_proven
+
+strict_historical_publication_latency: UNPROVEN
+reproduction_fundingtime_assumption: ACCEPTABLE
+funding_time_is_legal_available_at: false
+
+coverage:
+  request_start_inclusive: '2019-09-01T00:00:00Z'
+  request_end_exclusive: '2025-01-01T00:00:00Z'
+  first_fundingTime_utc: '2019-09-10T08:00:00Z'
+  last_fundingTime_utc: '2024-12-31T16:00:00Z'
+  accepted_rows: 5819
+  duplicates: 0
+  missing_expected_8h_hour_floor_events: 0
