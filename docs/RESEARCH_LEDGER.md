@@ -3192,3 +3192,32 @@ NEXT_UNIT = MARKET_06_BYBIT_OFFICIAL_HISTORICAL_ROUTE_OR_REACHABLE_HOST_REVIEW
 
 Evidence: `docs/research/MARKET_06_CROSS_VENUE_FEASIBILITY.md`.
 
+## 2026-09-21 — MARKET-06 OKX spot source-route design review
+
+Pre-preregistration source-route review. Does not test MARKET-06. Does
+not rewrite the Bybit feasibility artifact. Bybit remains
+`VENUE_COUNTRY_ACCESS_RESTRICTION_FROM_CURRENT_EXECUTION_HOST`. Spot
+leg candidate is official OKX `GET /api/v5/market/history-candles`
+`instId=BTC-USDT` `bar=5m`. Perp leg remains Binance USD-M BTCUSDT 5m
+trade-price Vision klines. Binance spot was not adopted.
+
+Structural probes for 2022-01 / 2023-06 / 2024-12 returned native
+completed 5m candles (`confirm=1`). 2022–2024 materialization: 36/36
+Binance ZIP checksums verified; 1053 OKX official pages frozen by
+SHA256. Timestamp-only census: 315648/315648 aligned, 0 gaps, 0
+duplicates, alignment rate 1.0. No prices, dislocation, or future
+returns inspected. 2025/2026 not opened.
+
+```text
+MARKET_06_STATUS = CONCEPT_SELECTED_NOT_PREREGISTERED
+VERDICT = MARKET_06_OKX_HISTORICAL_FEASIBILITY_CONFIRMED
+OLD_SPOT_SOURCE = BYBIT_BTCUSDT_SPOT
+NEW_SPOT_SOURCE = OKX_BTC_USDT_SPOT
+SOURCE_CHANGE_OCCURRED_BEFORE_PREREG = true
+SCIENTIFIC_OUTCOMES_INSPECTED = false
+MARKET_06_PREREG_CREATED = false
+NEXT_UNIT = MARKET_06_PREREGISTRATION_DESIGN
+```
+
+Evidence: `docs/research/MARKET_06_OKX_SPOT_ROUTE_DESIGN_REVIEW.md`.
+

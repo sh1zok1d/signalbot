@@ -1,0 +1,20 @@
+{
+  "binance_object_ledger.json": {
+    "bytes": 36759,
+    "sha256": "437f10220b49a7f74e2c76445f5388ffc4006673d232c8b90f1946fe97e40fbf"
+  },
+  "okx_page_manifest.json": {
+    "bytes": 999288,
+    "sha256": "22702942c3860cd3c026784a4abda129470d893149bbb612cd36b33a99f1a9d9"
+  },
+  "scientific_outcomes_inspected": false,
+  "snapshot.json": {
+    "bytes": 1714,
+    "sha256": "dfc6006f020af551d56b26caee6b694967c26557a405e9c668a78d77f74d4ba7"
+  },
+  "snapshot_id": "e0403e40a9b1e2903f15fb9283ec6caf54788e48153038982e364d4318183e68",
+  "timestamp_census.json": {
+    "bytes": 810,
+    "sha256": "ad96ec9756ec77092a2eb26a6178e77b1a7dad4c2af21fdbc9ce92b3a2159d70"
+  }
+}
