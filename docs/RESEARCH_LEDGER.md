@@ -3159,3 +3159,156 @@ the frozen library. Canonical RESULT SHA256 remains
 
 - next required step: `NEW_MARKET_HYPOTHESIS_ID_IF_AUTHORIZED` (not MARKET-01 rerun)
 
+## 2026-09-18 — MARKET-02 implementation (not armed, not executed)
+
+Outcome-blind implementation of frozen
+`MARKET-02_OI_EXPANSION_PRICE_CONFIRMATION`. Scientific identity is
+primary population `QUALIFYING_IMPULSE AND OI_EXPANSION` with candidate
+`continuation_ratio > 0.25` and outcome `continuation_return = D *
+ln(close(T+60m)/close(T))`. Not MARKET-01 weak-continuation/reversal.
+Fast construction primitives reused; MARKET-01 frozen scientific bytes
+untouched. Bound snapshots refused. Synthetic tests only.
+
+```text
+prereg frozen = YES
+implementation complete = YES
+implementation frozen = NO
+armed = NO
+executed = NO
+outcome inspection = NO
+protected OOS touched = NO
+MARKET_02_TEST_CALIBRATED = NO
+```
+
+- market_02_prereg_frozen: **true**
+- market_02_implemented: **true**
+- market_02_implementation_frozen: **false**
+- market_02_armed: **false**
+- market_02_executed: **false**
+- market_02_outcome_inspected: **false**
+- market_01_scientifically_rerun: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+
+- next required step: `MARKET_02_IMPLEMENTATION_FREEZE_REVIEW_IF_AUTHORIZED` (not ARM, not execution)
+
+## 2026-09-18 — MARKET-02 implementation freeze (not armed, not executed)
+
+Outcome-blind implementation freeze of reviewed scientific HEAD
+`1d2b0abf73d245f37cd9ca55ece99d1628dc80ee` / tree
+`9e18ccf690e280bbd4b033f4a44f3b0700a5bedb`. Pre-freeze red-team
+verdict `READY_FOR_IMPLEMENTATION_FREEZE`. Scientific lib bytes
+unchanged. Freeze commit adds freeze records, documentation, and a
+canonical chronological-order invariant test only.
+
+MD bootstrap seed `1852983754304692007` remains authoritative. JSON
+twin numeric `1852983754304692000` is a historical IEEE/JSON
+representation discrepancy; neither prereg file was modified.
+`MARKET_02_TEST_CALIBRATED = NO`. Not ARM. Not execution.
+
+- market_02_prereg_frozen: **true**
+- market_02_implemented: **true**
+- market_02_implementation_frozen: **true**
+- market_02_armed: **false**
+- market_02_executed: **false**
+- market_02_outcome_inspected: **false**
+- canonical_executions_consumed: **0**
+- protected_oos_touched: **false**
+- market_02_test_calibrated: **false**
+
+- next required step: `MARKET_02_CANONICAL_EXECUTION_IF_AUTHORIZED` (not executed in this ARM unit)
+
+## 2026-09-18 — MARKET-02 ARM (not executed)
+
+Outcome-blind one-shot ARM of frozen MARKET-02 implementation HEAD
+`124da2bfdb0b5dfb6e0a8da5789a474af526f27f` / tree
+`7303a4507cba716209ea012f2c4e180eef31ba18`. Reviewed scientific HEAD
+`1d2b0abf73d245f37cd9ca55ece99d1628dc80ee` remains the scientific
+function identity. ARM plumbing authenticates bound CORE/OI views.
+Reservation unused. No RESULT. Protected OOS not opened.
+
+Bound identity documents only: CORE snapshot
+`717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`
+and OI snapshot
+`5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33`.
+Allowed window `[2020-09-01T00:00:00Z, 2025-01-01T00:00:00Z)`.
+MD seed `1852983754304692007`. JSON twin numeric discrepancy
+untouched. `MARKET_02_TEST_CALIBRATED = NO`.
+
+```text
+PREREG_FROZEN = YES
+IMPLEMENTATION_COMPLETE = YES
+IMPLEMENTATION_FROZEN = YES
+ARMED = YES
+CANONICAL_EXECUTIONS_AUTHORIZED = 1
+CANONICAL_EXECUTIONS_CONSUMED = 0
+REAL_MARKET_02_OUTCOME_INSPECTION = NO
+BOUND_MARKET_02_EXECUTION = NO
+PROTECTED_OOS_TOUCHED = NO
+MARKET_02_TEST_CALIBRATED = NO
+```
+
+- market_02_prereg_frozen: **true**
+- market_02_implemented: **true**
+- market_02_implementation_frozen: **true**
+- market_02_armed: **true**
+- market_02_executed: **false**
+- market_02_outcome_inspected: **false**
+- canonical_executions_authorized: **1**
+- canonical_executions_consumed: **0**
+- protected_oos_touched: **false**
+- market_02_test_calibrated: **false**
+- market_01_frozen_bytes_changed: **false**
+
+- next required step: `MARKET_02_CANONICAL_EXECUTION_IF_AUTHORIZED` (not this unit)
+
+## 2026-09-18 — MARKET-02 canonical execution RESULT (NO_EVIDENCE)
+
+One canonical MARKET-02 execution completed from ARM HEAD
+`6486dfadd920fc24a72fabe37d7dd906154cbc76` / tree
+`6f022334ea015756c8551bad73debed81ba4f8a9`. Reservation consumed
+exactly once. No rerun. Protected OOS untouched. B2-06 remains blocked.
+`MARKET_02_TEST_CALIBRATED = NO`.
+
+Run identity:
+`4ef6a6c543f6a11930fe0ae26cb6bfbe7f19feac4c645d8fed992eebcd36a032`.
+
+RESULT SHA256:
+`68e084b35201d227ecd9f48e99cc65a937b15fcb55a5849b1630c5d61850b478`.
+
+Mechanical classification: **`NO_EVIDENCE`**.
+`TOTAL_ELIGIBLE_EPISODES = 2487`.
+`CANDIDATE_EPISODES = 767`.
+`BASELINE_EPISODES = 1720`.
+`USABLE_STRATA = 3`.
+`beta_confirmation = -0.00018378788969437528`.
+`bootstrap_se = 0.0004006951864901606`.
+`bootstrap_p_one_sided = 0.647`.
+`DETECTED = NO`.
+Robustness not evaluated.
+
+Do not change thresholds or rerun. This is not proof that no
+relationship exists. It is not validated alpha, not a causal OI effect,
+not independent replication of MARKET-01, and not OOS validation.
+
+Evidence:
+`docs/research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_RESULT.json`.
+
+- market_02_phase: **RESULT**
+- market_02_prereg_frozen: **true**
+- market_02_implemented: **true**
+- market_02_implementation_frozen: **true**
+- market_02_armed: **true**
+- market_02_canonical_executions_authorized: **1**
+- market_02_canonical_executions_consumed: **1**
+- market_02_outcome_inspected: **true**
+- market_02_executed: **true**
+- market_02_test_calibrated: **false**
+- protected_oos_touched: **false**
+- b2_06_execution_authorized: **false**
+- default_v4: **false**
+- rerun_occurred: **false**
+- final_classification: **NO_EVIDENCE**
+
+- next required step: `NEW_MARKET_HYPOTHESIS_ID_IF_AUTHORIZED` (not MARKET-02 rerun)
+
