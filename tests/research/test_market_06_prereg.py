@@ -63,13 +63,25 @@ def test_research_identity_and_incremental_claim():
     assert "incremental information" in p["primary_claim"]
     assert p["full_preregistration_frozen"] is False
     assert p["MARKET_06_FREEZE_REQUIRED"] is True
+    assert p["amendment_of"]["amendment_id"] == (
+        "MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_AMENDMENT_002"
+    )
+    assert p["amendment_of"]["old_live_prereg_head"] == (
+        "b4459ab96addd6c39d4baec35248410a8f5cf8e0"
+    )
+    assert p["amendment_of"]["old_live_freeze_head"] == (
+        "371f71dd49e2c2c445269aeed1b75a39f33b3422"
+    )
+    assert p["amendment_of"]["previous_amendment_id"] == (
+        "MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_AMENDMENT_001"
+    )
     assert p["amendment_of"]["old_prereg_content_head"] == OLD_PREREG_CONTENT_HEAD
     assert p["amendment_of"]["old_freeze_head"] == OLD_FREEZE_HEAD
     assert p["amendment_of"]["outcomes_inspected_before_amendment"] is False
     assert p["amendment_of"]["amendment_reason"] == (
-        "PRE_OUTCOME_SCIENTIFIC_DEFINITION_DRIFT_CORRECTION"
+        "PRE_OUTCOME_PREDICTIVE_BOOTSTRAP_STRATIFICATION_CORRECTION"
     )
-    assert "amendment 001" in md
+    assert "amendment 002" in md
 
 
 def test_decision_clock_and_feature_cutoff_unchanged():
@@ -201,8 +213,20 @@ def test_ols_and_frozen_constants_otherwise_unchanged():
     assert b["block_length"] == 14
     assert b["replicates"] == 5000
     assert b["random_seed"] == 2026092106
+    assert b["PREDICTIVE_BOOTSTRAP_STRATIFIED_BY_YEAR"] is True
+    assert b["CROSS_YEAR_BOOTSTRAP_BLOCKS_ALLOWED"] is False
+    assert b["YEAR_SAMPLE_SIZE_PRESERVED_PER_REPLICATE"] is True
+    assert b["PREDICTIVE_MODEL_REFIT_IN_BOOTSTRAP"] is False
+    assert b["predictive_refit"] is False
+    assert b["predictive_concatenated_sequence_before_sampling"] is False
+    assert b["PREDICTIVE_BOOTSTRAP_2023_N"] == "original eligible N_2023"
+    assert b["PREDICTIVE_BOOTSTRAP_2024_N"] == "original eligible N_2024"
     assert p["protected_oos"] == "[2025-01-01T00:00:00Z, onward)"
     assert p["boundaries"]["protected_oos_authorized"] is False
+    md = _md()
+    assert "concatenated 2023+2024 holdout sequence" not in md
+    assert "PREDICTIVE_BOOTSTRAP_STRATIFIED_BY_YEAR = true" in md
+    assert "CROSS_YEAR_BOOTSTRAP_BLOCKS_ALLOWED = false" in md
 
 
 def test_bound_dataset_snapshot_and_durable_root_unchanged():

@@ -8,14 +8,18 @@
 - **Machine-readable twin:** [`MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.json`](MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.json)
 
 This document is the complete outcome-blind MARKET-06 scientific contract
-after pre-outcome amendment 001
-(`MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_AMENDMENT_001`). It does
-**not** freeze (a separate docs-only freeze is required), ARM,
-implement an evaluator, execute, or create RESULT.
+after pre-outcome amendment 002
+(`MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_AMENDMENT_002`), which
+corrects predictive-bootstrap year stratification on top of amendment
+001. It does **not** freeze (a separate docs-only freeze is required),
+ARM, implement an evaluator, execute, or create RESULT.
 
 The first frozen payload remains historical at
 `MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_V0.md` /
 `.json` (`OLD_PREREG_CONTENT_HEAD = b21bf46dcc39a2b9243c4172f731cd4d3fbf79b1`).
+Amendment 001 live bytes remain historical at
+`MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_V1.md` /
+`.json` (`OLD_LIVE_PREREG_HEAD = b4459ab96addd6c39d4baec35248410a8f5cf8e0`).
 
 No MARKET-06 OHLC values, dislocation values, eligible-row counts from
 price data, future returns, MAE, betas, or holdout metrics were inspected
@@ -464,15 +468,44 @@ RNG                  = numpy.random.Generator(numpy.random.PCG64(2026092106))
 numpy_version        = 2.1.3
 ```
 
-Deterministic circular moving-block bootstrap. Blocks wrap the end of
-the resampled series to the start. One frozen method, two predeclared
-statistics:
+Deterministic circular moving-block bootstrap. One frozen method, two
+predeclared statistics. Coefficient bootstrap on TRAIN is unchanged.
+Predictive bootstrap is **year-stratified**.
 
-1. `RELATIVE_MAE_IMPROVEMENT`: models are fit once on train; bootstrap
-   resamples held-out daily loss-difference tuples
-   `(T, abs_err_baseline, abs_err_candidate)` from the concatenated
-   2023+2024 holdout sequence in 14-day circular blocks **without
-   refitting**.
+```text
+PREDICTIVE_BOOTSTRAP_STRATIFIED_BY_YEAR = true
+CROSS_YEAR_BOOTSTRAP_BLOCKS_ALLOWED = false
+YEAR_SAMPLE_SIZE_PRESERVED_PER_REPLICATE = true
+PREDICTIVE_MODEL_REFIT_IN_BOOTSTRAP = false
+PREDICTIVE_BOOTSTRAP_2023_N = original eligible N_2023
+PREDICTIVE_BOOTSTRAP_2024_N = original eligible N_2024
+```
+
+1. `RELATIVE_MAE_IMPROVEMENT`: models are fit **once** on train. Do
+   **not** concatenate 2023+2024 before sampling. For each of 5000
+   replicates:
+
+   A. Resample eligible 2023 holdout daily loss tuples
+      `(T, abs_err_baseline, abs_err_candidate)` with circular
+      14-day moving blocks. Circular wrap is permitted **only within
+      2023**. Trim only the final sampled block to obtain exactly
+      `N_2023` observations.
+
+   B. Independently resample eligible 2024 holdout tuples with the same
+      circular moving-block rule. Circular wrap is permitted **only
+      within 2024**. Trim only the final sampled block to obtain
+      exactly `N_2024` observations.
+
+   C. Concatenate `BOOTSTRAPPED_2023` then `BOOTSTRAPPED_2024`. Compute
+
+      ```text
+      RELATIVE_MAE_IMPROVEMENT_REP =
+        1 - (POOLED_MAE_CANDIDATE_REP / POOLED_MAE_BASELINE_REP)
+      ```
+
+   A block beginning in late 2023 must not wrap into 2024. A 2024 block
+   must not wrap into 2023.
+
 2. `BETA_ABS_DISLOCATION_Z`: circular 14-day block bootstrap of TRAIN
    daily rows; **refit** only the candidate OLS on each replicate
    (reusing frozen train standardization parameters; do not re-estimate
@@ -485,8 +518,9 @@ forbidden.
 Confidence bounds are the 2.5th and 97.5th percentiles of the 5000
 replicate statistics via `numpy.percentile(..., [2.5, 97.5], method="linear")`.
 
-If a replicate series is too short to form one 14-day block, or any
-coefficient replicate is non-finite/rank-deficient:
+If a 2023 or 2024 predictive series is empty, or a TRAIN coefficient
+series is too short to form one 14-day block, or any coefficient
+replicate is non-finite/rank-deficient:
 `MARKET_06_INCOMPLETE_EXECUTION` (no redraw, no drop).
 
 ---
@@ -559,7 +593,8 @@ spot; different UTC hour; 12h/48h horizon; z-score using mean/sd
 instead of median/MAD; removing the 1.4826 robust scale or using raw
 MAD as the denominator; restoring `ABS_Z_BTC`; logarithmic MAE;
 7d/60d refs; adding interactions; nonlinear models; year-subsetting;
-lowering 2%; refitting on holdouts; opening 2025/2026.
+lowering 2%; refitting on holdouts; concatenating 2023+2024 before
+predictive-bootstrap sampling; opening 2025/2026.
 
 A materially different rule requires a **new** hypothesis ID.
 
