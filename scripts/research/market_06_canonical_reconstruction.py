@@ -37,6 +37,9 @@ from scripts.research.market_06_cross_venue_dislocation_parsers import (
     parse_okx_history_body,
 )
 
+# The ONE immutable commit canonical raw bytes may come from (red-team L12).
+CANONICAL_DATA_SOURCE_COMMIT = "e2d543eadb5425473b6d4b8d24c177c1d7ae7930"
+
 DATASET_DIR_REL = "docs/research_data/MARKET_06_OKX_BINANCE_FEASIBILITY_V0"
 DURABLE_MANIFEST_REL = f"{DATASET_DIR_REL}/DURABLE_RETENTION_MANIFEST.json"
 
@@ -104,6 +107,21 @@ def _in_window(ts: int) -> bool:
     return WINDOW_START_MS <= ts < WINDOW_END_EXCLUSIVE_MS
 
 
+def _reject_protected_year_row(ts: int, *, leg: str, logical_id: str) -> None:
+    """No retained source row may fall in a protected year.
+
+    Structural fail-closed protection, not outcome inspection: the retained
+    2022-2024 source set must contain no observation at or after
+    2025-01-01. Out-of-window rows are legitimate ONLY below the window
+    (fixed-size OKX pages straddle the lower boundary).
+    """
+
+    if ts >= WINDOW_END_EXCLUSIVE_MS:
+        raise Market06IncompleteExecution(
+            f"PROTECTED_YEAR_ROW_IN_RETAINED_SOURCE:{leg}:{logical_id}:{ts}"
+        )
+
+
 def _merge_unique(
     target: dict[int, Any],
     origin: dict[int, str],
@@ -116,6 +134,7 @@ def _merge_unique(
 
     trimmed = 0
     for ts, value in items:
+        _reject_protected_year_row(ts, leg=leg, logical_id=logical_id)
         if not _in_window(ts):
             trimmed += 1
             continue
@@ -154,18 +173,28 @@ def _assert_complete_grid(timestamps: set[int], *, leg: str) -> None:
 
 def reconstruct_canonical_dataset(
     permit: Any,
-    *,
-    source_commit: str | None = None,
+    **forbidden: Any,
 ) -> tuple[dict[int, PerpBar], dict[int, float], dict[str, Any]]:
     """Reconstruct the canonical perp/spot maps under an authenticated permit.
+
+    The dataset source commit is NOT a parameter (red-team L12). Canonical
+    raw bytes come only from the frozen dataset authority commit
+    ``CANONICAL_DATA_SOURCE_COMMIT``; no caller may point reconstruction at
+    another commit, ref, or path, and no self-consistent alternative
+    manifest on a descendant commit may substitute source bytes.
 
     Returns ``(perp_by_open_time, spot_close_by_open_time, audit)`` where
     ``audit`` is timestamp-only structural provenance with no OHLC values.
     """
 
+    if forbidden:
+        raise lifecycle.Market06ExecutionNotAuthorized(
+            f"MARKET_06_DATA_SOURCE_OVERRIDE_FORBIDDEN:{sorted(forbidden)}"
+        )
     authenticated = lifecycle.require_permit(permit)
-    commit = source_commit or lifecycle.PREREG_FREEZE_HEAD
-    resolved = gitauth.require_commit(commit, label="retained_source_commit")
+    resolved = gitauth.require_commit(
+        CANONICAL_DATA_SOURCE_COMMIT, label="frozen_dataset_authority_commit"
+    )
 
     manifest = load_manifest(resolved)
     binance_rows = list(manifest["binance_objects"])
@@ -224,6 +253,8 @@ def reconstruct_canonical_dataset(
         "durable_evidence_root_sha256": authenticated.durable_evidence_root_sha256,
         "run_identity": authenticated.run_identity,
         "source_commit": resolved,
+        "source_commit_is_frozen_authority": resolved == CANONICAL_DATA_SOURCE_COMMIT,
+        "caller_can_override_data_commit": False,
         "binance_objects": len(binance_rows),
         "okx_objects": len(okx_rows),
         "binance_timestamps": len(perp),
@@ -233,6 +264,8 @@ def reconstruct_canonical_dataset(
         "last_timestamp_ms": EXPECTED_LAST_MS,
         "binance_out_of_window_trimmed": perp_trimmed,
         "okx_out_of_window_trimmed": spot_trimmed,
+        "out_of_window_rows_are_pre_window_only": True,
+        "protected_year_rows_rejected": True,
         "interpolation": False,
         "forward_fill": False,
         "deduplication": False,

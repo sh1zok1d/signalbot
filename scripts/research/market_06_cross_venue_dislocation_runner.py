@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
 """MARKET-06 canonical runner.
 
-Permit architecture (red-team F-05). The runner no longer refuses
-unconditionally and no longer ends its success path in an ``unreachable``
-RuntimeError. It refuses today because no tracked ARM exists, and the SAME
-frozen scientific bytes proceed once a valid tracked ARM and an unconsumed
-tracked reservation exist.
+Authority chain (red-team L10/L11):
 
-CLI flags, environment variables, and kwargs cannot authorize evaluation of
-the retained 2022-2024 dataset.
+    CLAIM -> RESERVATION -> ARM -> IMPLEMENTATION FREEZE
+
+The runner never infers the ARM from current HEAD. It reads the tracked
+CLAIM from an immutable commit; the claim names its reservation commit; the
+reservation names its ARM commit; the ARM names its implementation freeze.
+No lifecycle artifact contains its own commit SHA.
+
+The durable CLAIM is consumed BEFORE any market data is parsed, so a crash
+between outcome computation and RESULT persistence cannot silently return
+the one shot. A failure after the claim is
+MARKET_06_INCOMPLETE_EXECUTION under an already-consumed claim; it is never
+an automatic rerun.
+
+CLI flags, environment variables, and kwargs cannot authorize execution.
 """
 
 from __future__ import annotations
@@ -30,16 +38,17 @@ from scripts.research.market_06_execution_lifecycle import (
 )
 
 
-def canonical_execution(permit: Any) -> dict[str, Any]:
-    """Run the one canonical evaluation under an authenticated permit.
+def run_from_claim_commit(claim_commit: str) -> dict[str, Any]:
+    """The canonical execution entry point.
 
-    Imports are local so that merely importing the runner can never pull the
-    canonical reconstruction path into an unauthorized process.
+    Imports of the scientific path are local so that merely importing this
+    runner can never pull the canonical reconstruction into an
+    unauthorized process.
     """
 
-    authenticated = lifecycle.require_permit(permit)
-    lifecycle.verify_execution_reservation(authenticated)
+    authority = lifecycle.verify_claim_from_commit(claim_commit)
 
+    from scripts.research import market_06_result_persistence as persistence
     from scripts.research.market_06_canonical_reconstruction import (
         reconstruct_canonical_dataset,
     )
@@ -47,18 +56,36 @@ def canonical_execution(permit: Any) -> dict[str, Any]:
         evaluate_from_bars,
     )
 
-    with lifecycle.Market06ExecutionLock(authenticated.run_identity):
-        perp, spot, audit = reconstruct_canonical_dataset(authenticated)
+    lifecycle.assert_shot_not_already_consumed(authority.run_identity)
+
+    with lifecycle.Market06ExecutionLock(authority.run_identity):
+        # Durably consume the shot BEFORE any market data is parsed.
+        lifecycle.record_execution_attempt(authority)
+        perp, spot, audit = reconstruct_canonical_dataset(authority.permit)
         outcome = evaluate_from_bars(perp, spot)
-    return {"run_identity": authenticated.run_identity, "audit": audit, "outcome": outcome}
+        staged = persistence.stage_canonical_result(authority, outcome, audit)
+
+    return {
+        "run_identity": authority.run_identity,
+        "authority_chain": {
+            "claim_commit": authority.claim_commit,
+            "reservation_commit": authority.reservation_commit,
+            "arm_commit": authority.arm_commit,
+            "implementation_freeze_head": authority.permit.implementation_freeze_head,
+            "prereg_freeze_head": lifecycle.PREREG_FREEZE_HEAD,
+        },
+        "result_sha256": staged.sha256,
+        "result_paths": list(staged.written_paths()),
+        "classification": staged.payload["classification"],
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     try:
-        authority = verify_prereg_authority()
+        authority_identity = verify_prereg_authority()
         data = verify_git_bound_data_authority(hash_raw_objects=False)
-        permit = lifecycle.canonical_execution_permit_or_refuse()
+        claim_authority = lifecycle.canonical_execution_permit_or_refuse()
     except Market06ExecutionNotAuthorized as exc:
         print(
             json.dumps(
@@ -66,6 +93,9 @@ def main(argv: list[str] | None = None) -> int:
                     "REAL_CANONICAL_EXECUTION_REFUSED": True,
                     "classification": "MARKET_06_EXECUTION_NOT_AUTHORIZED",
                     "reason": str(exc),
+                    "authority_chain": (
+                        "CLAIM -> RESERVATION -> ARM -> IMPLEMENTATION_FREEZE"
+                    ),
                     "argv": args,
                     "scientific_outcomes_inspected": False,
                     "real_data_parsed_for_science": False,
@@ -83,14 +113,17 @@ def main(argv: list[str] | None = None) -> int:
         return 4
 
     try:
-        executed = canonical_execution(permit)
+        executed = run_from_claim_commit(claim_authority.claim_commit)
     except Market06IncompleteExecution as exc:
+        # The claim stays consumed. This is never an automatic rerun.
         print(
             json.dumps(
                 {
                     "classification": "MARKET_06_INCOMPLETE_EXECUTION",
                     "reason": exc.reason,
-                    "authority": authority["prereg_freeze_head"],
+                    "claim_consumed": True,
+                    "automatic_rerun_authorized": False,
+                    "prereg_freeze_head": authority_identity["prereg_freeze_head"],
                     "dataset_id": data["dataset_id"],
                 },
                 sort_keys=True,

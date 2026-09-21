@@ -58,10 +58,17 @@ AUTHORIZATION_KIND = "ONE_SHOT_CANONICAL_HISTORICAL_EXECUTION"
 
 ARM_JSON_REL = "docs/research/MARKET_06_EXECUTION_ARM.json"
 RESERVATION_JSON_REL = "docs/research/MARKET_06_EXECUTION_RESERVATION.json"
+CLAIM_JSON_REL = "docs/research/MARKET_06_EXECUTION_CLAIM.json"
 RESULT_JSON_REL = "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_RESULT.json"
 RESULT_MD_REL = "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_RESULT.md"
 
 EXECUTION_LOCK_REL = ".market_06_canonical_execution.lock"
+# Durable local record that the one shot was actually taken. Unlike the
+# lock it is NEVER removed on failure (red-team L11): a crash after the
+# claim must not silently return the shot.
+EXECUTION_ATTEMPT_LEDGER_REL = ".market_06_canonical_execution_attempts.json"
+
+CLAIM_STATE_CLAIMED = "CANONICAL_EXECUTION_CLAIMED"
 
 # Scientific/lifecycle modules whose bytes are bound by the implementation
 # freeze and re-verified at permit time. Changing any of them invalidates a
@@ -76,6 +83,7 @@ SCIENTIFIC_MODULE_RELPATHS: tuple[str, ...] = (
     "scripts/research/market_06_canonical_reconstruction.py",
     "scripts/research/market_06_execution_lifecycle.py",
     "scripts/research/market_06_git_authority.py",
+    "scripts/research/market_06_result_persistence.py",
 )
 
 ARM_REQUIRED_FIELDS: tuple[str, ...] = (
@@ -118,7 +126,57 @@ FORBIDDEN_CALLER_KEYS = frozenset(
         "path",
         "paths",
         "source_path",
+        "source_commit",
+        "source_ref",
+        "data_commit",
+        "dataset_commit",
+        "reservation",
+        "claim",
     }
+)
+
+RESERVATION_REQUIRED_FIELDS: tuple[str, ...] = (
+    "research_id",
+    "run_identity",
+    "arm_commit",
+    "implementation_freeze_head",
+    "implementation_freeze_tree",
+    "dataset_id",
+    "snapshot_id",
+    "durable_evidence_root_sha256",
+    "authorization_kind",
+    "result_target_paths",
+    "claim_target_path",
+    "consumed",
+    "scientific_outcomes_inspected_before_reservation",
+    "protected_2025_opened",
+    "protected_2026_opened",
+)
+
+CLAIM_REQUIRED_FIELDS: tuple[str, ...] = (
+    "research_id",
+    "run_identity",
+    "arm_commit",
+    "reservation_commit",
+    "implementation_freeze_head",
+    "implementation_freeze_tree",
+    "dataset_id",
+    "snapshot_id",
+    "durable_evidence_root_sha256",
+    "claim_state",
+    "result_target_paths",
+    "protected_2025_opened",
+    "protected_2026_opened",
+)
+
+# An artifact must never carry its own commit SHA: its authority is the
+# commit it is read FROM (red-team L10).
+SELF_REFERENTIAL_FIELDS = (
+    "reservation_commit_sha",
+    "claim_commit_sha",
+    "self_commit",
+    "own_commit",
+    "this_commit",
 )
 
 BYPASS_ENV_KEYS = (
@@ -127,6 +185,7 @@ BYPASS_ENV_KEYS = (
     "MARKET_06_FORCE",
     "MARKET_06_ARM",
     "MARKET_06_PERMIT",
+    "MARKET_06_CLAIM",
     "SIGNALBOT_MARKET_06_EXECUTE",
 )
 
@@ -348,10 +407,9 @@ def verify_execution_arm(
         )
 
     if arm_commit is None:
-        proc = gitauth.git("rev-parse", "--verify", "--quiet", "HEAD^{commit}")
-        if proc.returncode != 0:
-            raise Market06ExecutionNotAuthorized("MARKET_06_NO_HEAD_COMMIT")
-        arm_commit = proc.stdout.decode("ascii").strip()
+        # The ARM is identified by the reservation, never by searching HEAD
+        # (red-team L10). Refuse rather than guess.
+        raise Market06ExecutionNotAuthorized("MARKET_06_ARM_COMMIT_REQUIRED")
     resolved_arm_commit = gitauth.require_commit(arm_commit, label="arm_commit")
 
     if not gitauth.blob_exists(resolved_arm_commit, ARM_JSON_REL):
@@ -450,35 +508,251 @@ def require_no_existing_result(run_identity: str, *, commit: str) -> None:
         )
 
 
-def verify_execution_reservation(permit: Any, *, commit: str | None = None) -> dict[str, Any]:
-    """A tracked, unconsumed reservation is required before any science."""
+def _reject_self_referential(payload: Mapping[str, Any], *, label: str) -> None:
+    """An artifact may not carry its own commit SHA (red-team L10)."""
 
-    authenticated = require_permit(permit)
-    target_commit = commit or authenticated.arm_commit
-    if not gitauth.blob_exists(target_commit, RESERVATION_JSON_REL):
+    for field in SELF_REFERENTIAL_FIELDS:
+        if field in payload:
+            raise Market06LifecycleError(
+                f"MARKET_06_{label}_SELF_REFERENTIAL_FIELD:{field}"
+            )
+
+
+def verify_execution_reservation_from_commit(
+    reservation_commit: str,
+) -> tuple[ExecutionPermit, dict[str, Any], str]:
+    """Authority chain RESERVATION -> ARM -> IMPLEMENTATION FREEZE.
+
+    The reservation is authoritative because of the commit it is READ FROM,
+    so it never contains its own commit SHA. It names its ARM commit; the
+    ARM is authenticated at exactly that commit (red-team L10).
+    """
+
+    resolved = gitauth.require_commit(reservation_commit, label="reservation_commit")
+    if not gitauth.blob_exists(resolved, RESERVATION_JSON_REL):
         raise Market06ExecutionNotAuthorized("MARKET_06_NO_TRACKED_RESERVATION")
-    reservation = _load_tracked_json(
-        target_commit, RESERVATION_JSON_REL, label="RESERVATION"
+    reservation = _load_tracked_json(resolved, RESERVATION_JSON_REL, label="RESERVATION")
+
+    for field in RESERVATION_REQUIRED_FIELDS:
+        if field not in reservation:
+            raise Market06LifecycleError(f"MARKET_06_RESERVATION_FIELD_MISSING:{field}")
+    _reject_self_referential(reservation, label="RESERVATION")
+
+    arm_commit = reservation["arm_commit"]
+    if not isinstance(arm_commit, str):
+        raise Market06LifecycleError("MARKET_06_RESERVATION_ARM_COMMIT_TYPE")
+
+    permit = verify_execution_arm(arm_commit=arm_commit)
+
+    gitauth.require_ancestor(
+        permit.arm_commit, resolved, label="arm_must_precede_reservation"
     )
-    if reservation.get("research_id") != RESEARCH_ID:
+
+    if reservation["research_id"] != RESEARCH_ID:
         raise Market06LifecycleError("MARKET_06_RESERVATION_RESEARCH_ID")
-    if reservation.get("run_identity") != authenticated.run_identity:
+    if reservation["run_identity"] != permit.run_identity:
         raise Market06LifecycleError("MARKET_06_RESERVATION_RUN_IDENTITY")
-    if reservation.get("arm_commit") != authenticated.arm_commit:
-        raise Market06LifecycleError("MARKET_06_RESERVATION_ARM_COMMIT")
-    if reservation.get("implementation_freeze_head") != authenticated.implementation_freeze_head:
+    if reservation["implementation_freeze_head"] != permit.implementation_freeze_head:
         raise Market06LifecycleError("MARKET_06_RESERVATION_FREEZE_HEAD")
-    if reservation.get("dataset_id") != DATASET_ID:
+    if reservation["implementation_freeze_tree"] != permit.implementation_freeze_tree:
+        raise Market06LifecycleError("MARKET_06_RESERVATION_FREEZE_TREE")
+    if reservation["dataset_id"] != DATASET_ID:
         raise Market06LifecycleError("MARKET_06_RESERVATION_DATASET_ID")
-    if reservation.get("snapshot_id") != SNAPSHOT_ID:
+    if reservation["snapshot_id"] != SNAPSHOT_ID:
         raise Market06LifecycleError("MARKET_06_RESERVATION_SNAPSHOT_ID")
-    if reservation.get("consumed") is not False:
+    if reservation["durable_evidence_root_sha256"] != DURABLE_EVIDENCE_ROOT_SHA256:
+        raise Market06LifecycleError("MARKET_06_RESERVATION_DURABLE_ROOT")
+    if reservation["authorization_kind"] != AUTHORIZATION_KIND:
+        raise Market06LifecycleError("MARKET_06_RESERVATION_AUTHORIZATION_KIND")
+    if reservation["scientific_outcomes_inspected_before_reservation"] is not False:
+        raise Market06LifecycleError("MARKET_06_RESERVATION_OUTCOMES_INSPECTED")
+    if reservation["protected_2025_opened"] is not False:
+        raise Market06LifecycleError("MARKET_06_RESERVATION_2025_OPENED")
+    if reservation["protected_2026_opened"] is not False:
+        raise Market06LifecycleError("MARKET_06_RESERVATION_2026_OPENED")
+    if reservation["consumed"] is not False:
         raise Market06ExecutionNotAuthorized("MARKET_06_RESERVATION_ALREADY_CONSUMED")
-    targets = reservation.get("result_target_paths")
+    targets = reservation["result_target_paths"]
     if not isinstance(targets, list) or RESULT_JSON_REL not in targets:
         raise Market06LifecycleError("MARKET_06_RESERVATION_RESULT_TARGETS")
-    require_no_existing_result(authenticated.run_identity, commit=target_commit)
-    return reservation
+    if reservation["claim_target_path"] != CLAIM_JSON_REL:
+        raise Market06LifecycleError("MARKET_06_RESERVATION_CLAIM_TARGET")
+
+    require_no_existing_result(permit.run_identity, commit=resolved)
+    return permit, reservation, resolved
+
+
+@dataclass(frozen=True)
+class ClaimAuthority:
+    """Fully resolved CLAIM -> RESERVATION -> ARM -> FREEZE authority."""
+
+    permit: ExecutionPermit
+    reservation: dict[str, Any]
+    claim: dict[str, Any]
+    arm_commit: str
+    reservation_commit: str
+    claim_commit: str
+
+    @property
+    def run_identity(self) -> str:
+        return self.permit.run_identity
+
+
+def verify_claim_from_commit(claim_commit: str) -> ClaimAuthority:
+    """Authenticate the durable pre-science CLAIM and the whole chain.
+
+    The claim is the DURABLE consumption point (red-team L11): it must
+    exist before any market data is parsed, so a crash between outcome
+    computation and RESULT persistence cannot silently return the one shot.
+    """
+
+    resolved = gitauth.require_commit(claim_commit, label="claim_commit")
+    if not gitauth.blob_exists(resolved, CLAIM_JSON_REL):
+        raise Market06ExecutionNotAuthorized("MARKET_06_NO_TRACKED_CLAIM")
+    claim = _load_tracked_json(resolved, CLAIM_JSON_REL, label="CLAIM")
+
+    for field in CLAIM_REQUIRED_FIELDS:
+        if field not in claim:
+            raise Market06LifecycleError(f"MARKET_06_CLAIM_FIELD_MISSING:{field}")
+    _reject_self_referential(claim, label="CLAIM")
+
+    reservation_commit = claim["reservation_commit"]
+    if not isinstance(reservation_commit, str):
+        raise Market06LifecycleError("MARKET_06_CLAIM_RESERVATION_COMMIT_TYPE")
+
+    permit, reservation, resolved_reservation = verify_execution_reservation_from_commit(
+        reservation_commit
+    )
+
+    gitauth.require_ancestor(
+        resolved_reservation, resolved, label="reservation_must_precede_claim"
+    )
+
+    if claim["research_id"] != RESEARCH_ID:
+        raise Market06LifecycleError("MARKET_06_CLAIM_RESEARCH_ID")
+    if claim["run_identity"] != permit.run_identity:
+        raise Market06LifecycleError("MARKET_06_CLAIM_RUN_IDENTITY")
+    if claim["arm_commit"] != permit.arm_commit:
+        raise Market06LifecycleError("MARKET_06_CLAIM_ARM_COMMIT")
+    if claim["implementation_freeze_head"] != permit.implementation_freeze_head:
+        raise Market06LifecycleError("MARKET_06_CLAIM_FREEZE_HEAD")
+    if claim["implementation_freeze_tree"] != permit.implementation_freeze_tree:
+        raise Market06LifecycleError("MARKET_06_CLAIM_FREEZE_TREE")
+    if claim["dataset_id"] != DATASET_ID:
+        raise Market06LifecycleError("MARKET_06_CLAIM_DATASET_ID")
+    if claim["snapshot_id"] != SNAPSHOT_ID:
+        raise Market06LifecycleError("MARKET_06_CLAIM_SNAPSHOT_ID")
+    if claim["durable_evidence_root_sha256"] != DURABLE_EVIDENCE_ROOT_SHA256:
+        raise Market06LifecycleError("MARKET_06_CLAIM_DURABLE_ROOT")
+    if claim["claim_state"] != CLAIM_STATE_CLAIMED:
+        raise Market06LifecycleError("MARKET_06_CLAIM_STATE")
+    if claim["protected_2025_opened"] is not False:
+        raise Market06LifecycleError("MARKET_06_CLAIM_2025_OPENED")
+    if claim["protected_2026_opened"] is not False:
+        raise Market06LifecycleError("MARKET_06_CLAIM_2026_OPENED")
+    targets = claim["result_target_paths"]
+    if not isinstance(targets, list) or RESULT_JSON_REL not in targets:
+        raise Market06LifecycleError("MARKET_06_CLAIM_RESULT_TARGETS")
+    for forbidden in ("classification", "gates", "outcome", "result"):
+        if forbidden in claim:
+            raise Market06LifecycleError(f"MARKET_06_CLAIM_CARRIES_OUTCOME:{forbidden}")
+
+    require_no_existing_result(permit.run_identity, commit=resolved)
+
+    return ClaimAuthority(
+        permit=permit,
+        reservation=reservation,
+        claim=claim,
+        arm_commit=permit.arm_commit,
+        reservation_commit=resolved_reservation,
+        claim_commit=resolved,
+    )
+
+
+def assert_claim_creatable(run_identity: str, *, commit: str) -> None:
+    """A second claim for the same run identity is refused (one shot)."""
+
+    if not gitauth.blob_exists(commit, CLAIM_JSON_REL):
+        return
+    claim = _load_tracked_json(commit, CLAIM_JSON_REL, label="CLAIM")
+    if claim.get("run_identity") == run_identity:
+        raise Market06ExecutionNotAuthorized(
+            "MARKET_06_CANONICAL_RUN_ALREADY_CLAIMED"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Durable local attempt ledger.
+#
+# The tracked CLAIM records that the shot was authorized; this ledger records
+# that a process actually began consuming it. It is fsynced before any market
+# data is parsed and is NEVER removed on failure, so a crash after the claim
+# cannot silently return the shot (red-team L11). Scope: this checkout only.
+# ---------------------------------------------------------------------------
+
+
+def _attempt_ledger_path() -> Path:
+    return gitauth.repo_root() / EXECUTION_ATTEMPT_LEDGER_REL
+
+
+def read_attempt_ledger() -> dict[str, Any]:
+    path = _attempt_ledger_path()
+    if not path.is_file():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise Market06LifecycleError("MARKET_06_ATTEMPT_LEDGER_MALFORMED") from exc
+    return payload if isinstance(payload, dict) else {}
+
+
+def assert_shot_not_already_consumed(run_identity: str) -> None:
+    ledger = read_attempt_ledger()
+    if run_identity in ledger:
+        raise Market06ExecutionNotAuthorized(
+            "MARKET_06_CANONICAL_RUN_ALREADY_CLAIMED"
+        )
+
+
+def record_execution_attempt(authority: "ClaimAuthority") -> None:
+    """Durably consume the shot BEFORE any science. Never rolled back."""
+
+    ledger = read_attempt_ledger()
+    if authority.run_identity in ledger:
+        raise Market06ExecutionNotAuthorized(
+            "MARKET_06_CANONICAL_RUN_ALREADY_CLAIMED"
+        )
+    ledger[authority.run_identity] = {
+        "claim_commit": authority.claim_commit,
+        "reservation_commit": authority.reservation_commit,
+        "arm_commit": authority.arm_commit,
+        "claim_state": CLAIM_STATE_CLAIMED,
+        "scientific_outcomes_inspected": False,
+    }
+    path = _attempt_ledger_path()
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    data = canonical_json_bytes(ledger)
+    with open(tmp, "wb") as handle:
+        handle.write(data)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(tmp, path)
+    directory = os.open(str(path.parent), os.O_DIRECTORY)
+    try:
+        os.fsync(directory)
+    finally:
+        os.close(directory)
+
+
+def resolve_canonical_authority(*, head: str | None = None) -> ClaimAuthority:
+    """Top-level: HEAD -> CLAIM -> RESERVATION -> ARM -> FREEZE."""
+
+    if head is None:
+        proc = gitauth.git("rev-parse", "--verify", "--quiet", "HEAD^{commit}")
+        if proc.returncode != 0:
+            raise Market06ExecutionNotAuthorized("MARKET_06_NO_HEAD_COMMIT")
+        head = proc.stdout.decode("ascii").strip()
+    return verify_claim_from_commit(head)
 
 
 class Market06ExecutionLock:
@@ -517,14 +791,21 @@ class Market06ExecutionLock:
             pass
 
 
-def canonical_execution_permit_or_refuse(*args: Any, **kwargs: Any) -> ExecutionPermit:
+def canonical_execution_permit_or_refuse(*args: Any, **kwargs: Any) -> ClaimAuthority:
     """Single entry point for canonical execution authorization.
 
-    Refuses today (no tracked ARM exists). Succeeds unchanged once a valid
-    tracked ARM exists, without editing any scientific module.
+    Canonical science now requires a durable tracked CLAIM, not merely an
+    ARM (red-team L11). Refuses today because no claim exists. Succeeds
+    unchanged once CLAIM -> RESERVATION -> ARM -> FREEZE is tracked, with
+    no edit to any scientific module.
     """
 
-    return verify_execution_arm(*args, **kwargs)
+    reject_caller_authority_override(args, kwargs)
+    if env_bypass_attempted():
+        raise Market06ExecutionNotAuthorized(
+            "environment variables cannot authorize MARKET-06 execution"
+        )
+    return resolve_canonical_authority(**kwargs)
 
 
 def inspect_lifecycle_state(*, commit: str | None = None) -> dict[str, Any]:
@@ -534,8 +815,10 @@ def inspect_lifecycle_state(*, commit: str | None = None) -> dict[str, Any]:
         "research_id": RESEARCH_ID,
         "arm_exists": False,
         "reservation_exists": False,
+        "claim_exists": False,
         "result_exists": False,
         "execution_authorized": False,
+        "authority_chain": "CLAIM -> RESERVATION -> ARM -> IMPLEMENTATION_FREEZE",
         "scientific_outcomes_inspected": False,
     }
     try:
@@ -546,9 +829,10 @@ def inspect_lifecycle_state(*, commit: str | None = None) -> dict[str, Any]:
             commit = proc.stdout.decode("ascii").strip()
         state["arm_exists"] = gitauth.blob_exists(commit, ARM_JSON_REL)
         state["reservation_exists"] = gitauth.blob_exists(commit, RESERVATION_JSON_REL)
+        state["claim_exists"] = gitauth.blob_exists(commit, CLAIM_JSON_REL)
         state["result_exists"] = gitauth.blob_exists(commit, RESULT_JSON_REL)
         try:
-            verify_execution_arm(arm_commit=commit)
+            verify_claim_from_commit(commit)
             state["execution_authorized"] = True
         except (Market06ExecutionNotAuthorized, Market06LifecycleError,
                 Market06GitAuthorityError):

@@ -148,8 +148,12 @@ def test_live_repository_has_no_arm_and_refuses():
     state = lifecycle.inspect_lifecycle_state()
     assert state["arm_exists"] is False
     assert state["reservation_exists"] is False
+    assert state["claim_exists"] is False
     assert state["result_exists"] is False
     assert state["execution_authorized"] is False
+    assert state["authority_chain"] == (
+        "CLAIM -> RESERVATION -> ARM -> IMPLEMENTATION_FREEZE"
+    )
     with pytest.raises(lifecycle.Market06ExecutionNotAuthorized):
         lifecycle.canonical_execution_permit_or_refuse()
 
@@ -296,9 +300,10 @@ def test_arm_must_descend_from_its_implementation_freeze(armed):
 
 
 def test_reservation_is_required_before_science(armed):
-    permit = lifecycle.verify_execution_arm(arm_commit=armed["arm_commit"])
+    """The ARM commit itself carries no reservation (chain: A -> R)."""
+
     with pytest.raises(lifecycle.Market06ExecutionNotAuthorized) as exc:
-        lifecycle.verify_execution_reservation(permit)
+        lifecycle.verify_execution_reservation_from_commit(armed["arm_commit"])
     assert "NO_TRACKED_RESERVATION" in str(exc.value)
 
 
@@ -308,10 +313,17 @@ def _reservation(armed, **overrides) -> dict:
         "run_identity": armed["run_identity"],
         "arm_commit": armed["arm_commit"],
         "implementation_freeze_head": armed["freeze_head"],
+        "implementation_freeze_tree": armed["freeze_tree"],
         "dataset_id": lifecycle.DATASET_ID,
         "snapshot_id": lifecycle.SNAPSHOT_ID,
+        "durable_evidence_root_sha256": lifecycle.DURABLE_EVIDENCE_ROOT_SHA256,
+        "authorization_kind": lifecycle.AUTHORIZATION_KIND,
         "consumed": False,
         "result_target_paths": [lifecycle.RESULT_JSON_REL, lifecycle.RESULT_MD_REL],
+        "claim_target_path": lifecycle.CLAIM_JSON_REL,
+        "scientific_outcomes_inspected_before_reservation": False,
+        "protected_2025_opened": False,
+        "protected_2026_opened": False,
     }
     payload.update(overrides)
     return payload
@@ -326,26 +338,27 @@ def _commit_reservation(armed, payload) -> str:
 
 
 def test_valid_unconsumed_reservation_is_accepted(armed):
-    permit = lifecycle.verify_execution_arm(arm_commit=armed["arm_commit"])
     commit = _commit_reservation(armed, _reservation(armed))
-    reservation = lifecycle.verify_execution_reservation(permit, commit=commit)
+    permit, reservation, resolved = lifecycle.verify_execution_reservation_from_commit(
+        commit
+    )
+    assert resolved == commit
     assert reservation["consumed"] is False
     assert reservation["run_identity"] == permit.run_identity
+    assert permit.arm_commit == armed["arm_commit"]
 
 
 def test_consumed_reservation_is_refused(armed):
-    permit = lifecycle.verify_execution_arm(arm_commit=armed["arm_commit"])
     commit = _commit_reservation(armed, _reservation(armed, consumed=True))
     with pytest.raises(lifecycle.Market06ExecutionNotAuthorized) as exc:
-        lifecycle.verify_execution_reservation(permit, commit=commit)
+        lifecycle.verify_execution_reservation_from_commit(commit)
     assert "RESERVATION_ALREADY_CONSUMED" in str(exc.value)
 
 
 def test_reservation_bound_to_a_different_run_identity_is_refused(armed):
-    permit = lifecycle.verify_execution_arm(arm_commit=armed["arm_commit"])
     commit = _commit_reservation(armed, _reservation(armed, run_identity="0" * 64))
     with pytest.raises(lifecycle.Market06LifecycleError):
-        lifecycle.verify_execution_reservation(permit, commit=commit)
+        lifecycle.verify_execution_reservation_from_commit(commit)
 
 
 def test_second_canonical_run_is_refused_once_a_result_exists(armed):

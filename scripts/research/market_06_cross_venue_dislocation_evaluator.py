@@ -579,12 +579,12 @@ def evaluate_canonical_market_06(*args: Any, **kwargs: Any):
     never reaches retained bytes without a permit.
     """
 
-    permit = refuse_canonical_execution(*args, **kwargs)
+    authority = refuse_canonical_execution(*args, **kwargs)
     from scripts.research.market_06_cross_venue_dislocation_runner import (
-        canonical_execution,
+        run_from_claim_commit,
     )
 
-    return canonical_execution(permit)
+    return run_from_claim_commit(authority.claim_commit)
 
 
 def incomplete_report(reason: str) -> dict[str, Any]:

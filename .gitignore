@@ -42,3 +42,7 @@ artifacts/
 .DS_Store
 .vscode/
 .idea/
+
+# MARKET-06 canonical execution runtime (local, never committed)
+.market_06_canonical_execution.lock
+.market_06_canonical_execution_attempts.json

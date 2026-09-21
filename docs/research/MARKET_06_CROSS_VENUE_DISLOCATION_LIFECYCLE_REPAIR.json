@@ -1,0 +1,106 @@
+{
+  "F04_STATUS": "HARDENING_OBSERVATION_ACCEPTED_NO_CHANGE",
+  "L10_ARM_RESERVATION_SELF_REFERENCE_FIXED": true,
+  "L11_DETERMINISTIC_RESULT_PERSISTENCE_FIXED": true,
+  "L11_DURABLE_PRE_SCIENCE_CLAIM_FIXED": true,
+  "L12_DATA_SOURCE_COMMIT_OVERRIDE_REMOVED": true,
+  "PREREG_CHANGED": false,
+  "SCIENTIFIC_DEFINITIONS_CHANGED": false,
+  "authority_chain": "CLAIM -> RESERVATION -> ARM -> IMPLEMENTATION_FREEZE",
+  "date": "2026-09-21",
+  "live_arm_exists": false,
+  "live_claim_exists": false,
+  "live_reservation_exists": false,
+  "live_result_exists": false,
+  "module_sha256": {
+    "scripts/research/market_06_canonical_reconstruction.py": "64a39f2716b88195be2556ddb2538df5a87de15ded11aca043107c756134fe14",
+    "scripts/research/market_06_cross_venue_dislocation_authority.py": "968cd24521ed413c70560f0778fd14a0d463f99d70de98923596005bde07a171",
+    "scripts/research/market_06_cross_venue_dislocation_bootstrap.py": "773b7631f76885f34532dc16a845fd07711e9ca44496d7ef18a8079e98a63ec7",
+    "scripts/research/market_06_cross_venue_dislocation_evaluator.py": "ff87062edf583af1a67affcc18cda5e184379d9e63f7ff8b0e18383978890ead",
+    "scripts/research/market_06_cross_venue_dislocation_parsers.py": "471fe3ff04b2c53cfc234d13c3721d757897ccafe1688d94793d87fe92c3cd32",
+    "scripts/research/market_06_cross_venue_dislocation_runner.py": "92c4aee5dbfe0abf537ae34b8520bd3149198853009e725d48e54a7e1eca30e4",
+    "scripts/research/market_06_execution_lifecycle.py": "8125f82f5c2e1f3df3179db5b9c6049e014627479570cb0f17d1920447942576",
+    "scripts/research/market_06_git_authority.py": "7788b850faa4da95c85ec70a09c7d78bb46b937cb68aec01bc6a9ebb033f84de",
+    "scripts/research/market_06_result_persistence.py": "0965a3efa38f1e96d7f9b88601442fd29c575653f6d96aacf2311d2847635285",
+    "scripts/research/market_06_year_stratified_circular_mbb.py": "e8545dab9c3cf28eba556b3a0fe36d0b06cf412437a48516b3dc038a9a082da3"
+  },
+  "next_unit": "MARKET_06_FINAL_LIFECYCLE_RED_TEAM",
+  "okx_window_trimming_preserved": {
+    "canonical_in_window_rows": 315648,
+    "note": "A retained source row at or after 2025-01-01 raises PROTECTED_YEAR_ROW_IN_RETAINED_SOURCE. This is structural protection, not outcome inspection.",
+    "okx_page_records_total": 315900,
+    "out_of_window_origin": "page 1053, timestamps before 2022-01-01",
+    "out_of_window_rows": 252,
+    "out_of_window_rows_are_pre_2022": true,
+    "protected_year_rows_rejected_fail_closed": true
+  },
+  "outcome_firewall": {
+    "2025_opened": false,
+    "2026_opened": false,
+    "REAL_BOOTSTRAP_RUN": false,
+    "REAL_DATA_PARSED_FOR_SCIENCE": false,
+    "REAL_DISLOCATION_COMPUTED": false,
+    "REAL_ELIGIBLE_ROWS_COMPUTED": false,
+    "REAL_GATES_COMPUTED": false,
+    "REAL_MODELS_FIT": false,
+    "REAL_OUTCOMES_COMPUTED": false,
+    "SCIENTIFIC_OUTCOMES_INSPECTED": false
+  },
+  "pre_lifecycle_repair_freeze_head": "6fc1b62935a0cb6d6c6ddbee5b88a7ff1ac8a7d6",
+  "pre_lifecycle_repair_implementation_head": "378e8fd710040c5b4bd2471379b2ce4446ce80f2",
+  "real_canonical_execution_refused_now": true,
+  "refusal_reason_now": "MARKET_06_NO_TRACKED_CLAIM",
+  "repairs": {
+    "L10": {
+      "defect": "The permit's arm_commit defaulted to HEAD and verify_execution_reservation() then read the reservation from permit.arm_commit, so a normal F -> A -> R lifecycle was impossible: the ARM and reservation had to occupy the same commit.",
+      "repair": "Reservation-first resolution. verify_execution_reservation_from_commit(R) reads the tracked reservation from R, extracts arm_commit A, authenticates the ARM at exactly A, and requires A to be an ancestor of R. verify_execution_arm() now refuses when no arm_commit is supplied (MARKET_06_ARM_COMMIT_REQUIRED) instead of searching HEAD. No artifact contains its own commit SHA; SELF_REFERENTIAL_FIELDS are rejected."
+    },
+    "L11_claim": {
+      "defect": "A local filesystem lock was the only guard before science. A crash between outcome computation and RESULT persistence silently returned the one shot.",
+      "repair": "Durable tracked CLAIM is now the consumption point and must exist before any market data is parsed. verify_claim_from_commit(C) resolves C -> R -> A -> F. A local append-only attempt ledger is fsynced before reconstruction and is never rolled back on failure, so a second attempt refuses with MARKET_06_CANONICAL_RUN_ALREADY_CLAIMED even when no RESULT exists. assert_claim_creatable refuses a second claim for the same run identity."
+    },
+    "L11_result": {
+      "repair": "market_06_result_persistence builds a deterministic canonical RESULT bound to research_id, run_identity, claim/reservation/ARM commits, implementation freeze, prereg freeze, dataset/snapshot/durable root, classification, gates, prereg metrics, eligible support, reconstruction audit and bootstrap constants. Canonical JSON (sort_keys, allow_nan=False, 2-space indent, trailing newline) defines RESULT_PAYLOAD_SHA256. Clock/uuid/host/pid/user/path fields are rejected, so identical science yields identical bytes. Staging writes only the frozen target paths and never commits."
+    },
+    "L12": {
+      "defect": "reconstruct_canonical_dataset accepted source_commit, letting a caller point canonical reconstruction at any commit whose manifest merely copied the expected identity strings.",
+      "repair": "The parameter is removed. Canonical raw bytes come only from CANONICAL_DATA_SOURCE_COMMIT = e2d543eadb5425473b6d4b8d24c177c1d7ae7930 (the frozen prereg freeze). Any source_commit/source_ref/data_commit/dataset_commit/path keyword raises MARKET_06_DATA_SOURCE_OVERRIDE_FORBIDDEN."
+    }
+  },
+  "research_id": "MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK",
+  "schema": "signalbot_market_06_lifecycle_repair",
+  "schema_version": "1.0.0",
+  "scientific_definitions_unchanged": [
+    "F-01 repaired bar-end mapping",
+    "D_E",
+    "reference window 8640",
+    "MAD 1.4826",
+    "ABS_DISLOCATION_Z",
+    "BTC_RET_24H / BTC_SIDE / ABS_BTC_RET_24H",
+    "RV 288",
+    "entry/outcome 288 bars",
+    "train 2022",
+    "holdouts 2023/2024",
+    "train-only standardization ddof=0",
+    "OLS design",
+    "14-day MBB",
+    "5000 replicates",
+    "seed 2026092106",
+    "six gates",
+    "2% materiality",
+    "classification rules",
+    "2025/2026 protection"
+  ],
+  "self_referential_commit_sha_required": false,
+  "status": "LIFECYCLE_REPAIRED_OUTCOME_BLIND_NOT_EXECUTED",
+  "test_sha256": {
+    "tests/research/test_market_06_canonical_reconstruction.py": "eebdb3c84baebe258da083e89b35c15924ca95c8a1d0cd3fc537ca03c0f6d798",
+    "tests/research/test_market_06_claim_lifecycle.py": "fb2a6c077fd080b4b69ba4d52f2d06cab7e46c11c3a587d542ca4370af2e61e8",
+    "tests/research/test_market_06_execution_lifecycle.py": "b7443da916b983b9cdd20e78653758cfc2ba624fe14bd4b3a35c8f431cb145ef",
+    "tests/research/test_market_06_implementation.py": "5d81baba1d9d1939d7c49d4d48aa060669b17f720e876f875495c233d2843408",
+    "tests/research/test_market_06_row_eligibility.py": "ba65237e5e9f66d16a2aaa77fa046f6834f14f55f7cd1e31e3eff46297779d19",
+    "tests/research/test_market_06_temporal_semantics.py": "bc1f1015d00c59943733190428a3fe7a460682db3ea290f7edae01403b0253ab",
+    "tests/research/test_market_06_year_stratified_circular_mbb.py": "c9ba75251fe166113248f5013b6a9ead444ebf584c1959cc42b5a3180e17cdb3"
+  },
+  "unit_id": "MARKET_06_NARROW_LIFECYCLE_REPAIR"
+}
