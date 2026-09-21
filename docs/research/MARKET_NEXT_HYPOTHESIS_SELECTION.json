@@ -1,0 +1,200 @@
+{
+  "MARKET_07_CREATED": false,
+  "NEXT_UNIT": "STRUCTURAL_REGIME_STATE_DETECTION_MECHANISM_CLASS_AND_NULL_MODEL_FEASIBILITY",
+  "PROTECTED_2025_OPENED": false,
+  "PROTECTED_2026_OPENED": false,
+  "REGION_SELECTED": "R-A",
+  "R_A_NEGATIVE_RESULT_CLOSES": "only the tested class of low-dimensional, price-derived, DISCRETE state representations, at the frozen time scale and frozen construction procedure; and lowers priority for future work depending specifically on that representation",
+  "R_A_NEGATIVE_RESULT_DOES_NOT_CLOSE": [
+    "continuous conditioning (what M01/M02/M05/M06 actually used)",
+    "other discrete-state constructions",
+    "other time scales",
+    "cross-sectional structure",
+    "order-book / liquidity regimes",
+    "latent states using information outside CORE BTC",
+    "'BTC regimes' generally"
+  ],
+  "R_A_SCIENTIFIC_OBJECT": "Can one pre-specified, low-degrees-of-freedom, price-derived discrete state representation at a frozen time scale exhibit chronological held-out transition/persistence structure, on historically exposed research data, that cannot be explained by a frozen lower-order null model?",
+  "R_A_constraints": [
+    "exactly one state-construction class",
+    "no cluster shopping",
+    "no sweeping k values",
+    "no trying multiple feature families and retaining the prettiest",
+    "no selecting horizon/window after label inspection",
+    "no return/MAE/alpha target",
+    "a positive state model is NOT itself an edge claim"
+  ],
+  "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+  "SELECTION_STATUS": "REGION_SELECTED_NOT_HYPOTHESIS_CREATED",
+  "SURROGATE_NULL_REQUIREMENT": {
+    "insufficient_null_warning": "A null preserving only unconditional marginal distribution + linear autocorrelation/spectrum is NOT automatically acceptable if the candidate representation uses volatility clustering, vol-of-vol, realized-volatility term structure, path roughness, or nonlinear temporal dependence. Such a null can mechanically destroy the very second-order dependence under test and manufacture a guaranteed positive contrast.",
+    "requirement": "The null must preserve every lower-order structure that the claim does not intend to label as regime structure, and may destroy only the structure under test.",
+    "reusability_scope": "A defensible lower-order null construction would be reusable methodological infrastructure for future PRICE-PATH / STATE-DETECTION studies that ask whether apparent state persistence exceeds lower-order temporal dependence. R-C, R-D and R-E may require materially different null/comparator structures.",
+    "selection_rule": "the surrogate/null family must be chosen OUTCOME-BLIND, never after seeing label persistence"
+  },
+  "corrections_applied": {
+    "FALSE_UNCONSUMED_2020_2021_CLAIM_RETRACTED": true,
+    "R_A_CLOSURE_SCOPE_NARROWED": true,
+    "SEARCH_CONCENTRATION_OVERSTATEMENT_CORRECTED": true,
+    "SURROGATE_NULL_RISK_ACKNOWLEDGED": true,
+    "null_model_reusability_claim_narrowed": true,
+    "out_of_sample_wording_corrected": true
+  },
+  "current_main": "635d391a77a8311d5dfa53188d5d975bedfda7e1",
+  "date": "2026-09-21",
+  "evaluation_surface_wording": {
+    "forbidden_phrase": "out-of-sample (unqualified) for any 2020-2024 split",
+    "reason": "historically exposed/adapted program research surface; NOT clean program-level OOS and NOT independent confirmation",
+    "required_phrase": "chronological held-out evaluation on historically exposed research data"
+  },
+  "next_unit_boundary": {
+    "must_not": "preregister MARKET-07",
+    "next_unit": "STRUCTURAL_REGIME_STATE_DETECTION_MECHANISM_CLASS_AND_NULL_MODEL_FEASIBILITY",
+    "no_label_persistence_outcome_computed_in_this_unit": true,
+    "tasks": [
+      "identify candidate lower-order null families",
+      "state exactly what each preserves and destroys",
+      "determine whether any null permits a non-tautological test",
+      "define at most ONE low-DoF state-construction class",
+      "define an allowed chronological train/held-out structure while explicitly labeling 2020-2024 historically exposed",
+      "STOP with REGION_NOT_READY if no defensible null exists"
+    ]
+  },
+  "program_state": {
+    "MARKET-01": "NO_EVIDENCE",
+    "MARKET-02": "NO_EVIDENCE",
+    "MARKET-03": "EXTERNAL_REPRODUCTION / REPRODUCED_DIRECTION",
+    "MARKET-04_04H": "BLOCKED_OBSERVABLE / NOT_TESTED (not rejected)",
+    "MARKET-05": "MARKET_05_NO_EVIDENCE",
+    "MARKET-06": "MARKET_06_NO_EVIDENCE",
+    "internal_historical_candidates_promoted": 0,
+    "protected_2025_opened": false,
+    "protected_2026_opened": false
+  },
+  "program_state_verified": true,
+  "region_selected_name": "STRUCTURAL_REGIME_STATE_DETECTION",
+  "regions_evaluated": {
+    "R-A": {
+      "data_tier": "CORE_BTC_BINANCE_V0 price path only; no new acquisition",
+      "edge_relevance": "INDIRECT — a precondition study, not an edge claim",
+      "feasibility": "HIGH",
+      "function_change": "scalar outcome prediction -> state detection",
+      "lead_time": "SHORT",
+      "name": "STRUCTURAL_REGIME_STATE_DETECTION",
+      "orthogonality": "HIGH (function, target, model form, loss contract change; reuses only the CORE BTC price tier)",
+      "point_in_time_feasibility": "HIGH for timestamp semantics (CORE_BTC_BINANCE_V0, established bar-end semantics)",
+      "posthoc_rescue_risk": "LOW — cannot rescue M05/M06; different function and target",
+      "researcher_dof_risk": "HIGH — the primary blocker (cluster shopping, k selection, feature-window choice)",
+      "selected": true
+    },
+    "R-B": {
+      "name": "CONDITIONAL_ABSTENTION_TAIL_SELECTION",
+      "not_selected_because": "requires a genuinely fresh evaluation surface. The 2020-2024 surface is historically exposed/adapted, and the only unexposed surfaces are protected 2025/2026 (forbidden) or forward-collected data. The earlier claim that 2020-2021 was unconsumed was FALSE and is retracted.",
+      "orthogonality": "MEDIUM-HIGH (function and loss change; observables and adjacent target reused)",
+      "posthoc_rescue_risk": "MEDIUM-HIGH — structurally close to retrying null observables under a new target",
+      "selected": false
+    },
+    "R-C": {
+      "comparator_note": "may require a materially different null/comparator structure from R-A",
+      "name": "CROSS_SECTIONAL_RELATIVE_STRUCTURE",
+      "not_selected_because": "no multi-instrument panel exists in the repository (only CORE BTC and CORE ETH) and no listing/delisting/survivorship reconstruction exists anywhere. Its scientific object cannot be defined today without unacceptable survivorship bias. Should be reconsidered ahead of R-D/R-E if panel acquisition is ever funded.",
+      "orthogonality": "HIGHEST in the set (unit of observation, market relationship, N-structure all change)",
+      "posthoc_rescue_risk": "LOW",
+      "selected": false
+    },
+    "R-D": {
+      "comparator_note": "may require a materially different null/comparator structure from R-A",
+      "name": "LIQUIDITY_AND_MARKET_STRUCTURE_STATE",
+      "not_selected_because": "no trade-level or L2/book data is retained anywhere in the repository; historical order-book data has no defensible available-at semantics here. Forward-collection only.",
+      "orthogonality": "HIGH (new information tier)",
+      "posthoc_rescue_risk": "LOW",
+      "selected": false
+    },
+    "R-E": {
+      "comparator_note": "may require a materially different null/comparator structure from R-A",
+      "name": "EXECUTION_COST_MECHANISM",
+      "not_selected_because": "same missing data tier as R-D; only quote/depth proxies would be constructible, and a quote-based proxy must never be labelled realized execution cost.",
+      "orthogonality": "HIGH (new target: cost, not path)",
+      "posthoc_rescue_risk": "LOW",
+      "selected": false
+    },
+    "R-F": {
+      "name": "COMPOSED_JOINT_STATE_NON_ADDITIVE",
+      "not_selected_because": "highest rescue and multiple-testing risk in the set, and it shares R-B's fresh-surface problem. Not recommended merely because individually-null variables might interact.",
+      "orthogonality": "LOW (same observables, same family; only model form changes)",
+      "posthoc_rescue_risk": "HIGH",
+      "selected": false
+    }
+  },
+  "retraction_2020_2021": {
+    "HISTORICAL_2020_2024_EXPOSURE_CLASS": {
+      "adaptive_discovery_with_outcome_inspection_allowed": "H01, H02 and further H/BATCH work across 2020-02-01 -> 2025-01-01",
+      "classification": "historically exposed/adapted program research surface; NOT clean program-level OOS and NOT independent confirmation",
+      "confirmatory_consumption": [
+        "MARKET-01 (2020-09-01 -> 2024, era-split)",
+        "MARKET-02 (same family)",
+        "MARKET-05 (2022-2024 subset)",
+        "MARKET-06 (2022-2024 subset)"
+      ],
+      "not_usable_as": "fresh/independent confirmation merely because MARKET-06 used 2022-2024",
+      "requirement": "any future confirmatory claim on this period must explicitly account for prior exposure",
+      "usable_for": [
+        "adaptive exploration",
+        "mechanism feasibility",
+        "implementation development"
+      ]
+    },
+    "retracted_claim": "2020-2021 is an unconsumed/fresh historical surface usable for independent confirmation",
+    "verified_evidence": [
+      "H01 prereg: Development / discovery 2020-02-01T00:00:00Z -> 2025-01-01T00:00:00Z, adaptation 'allowed'",
+      "H02 dev summary: same development window; runner loads 2020-2024 only",
+      "21 documents reference the 2020-02-01 -> 2025-01-01 development window",
+      "MARKET-01 common_legal_period.start_inclusive = 2020-09-01, era splits through 2024/2025"
+    ]
+  },
+  "schema": "signalbot_market_next_hypothesis_selection",
+  "schema_version": "1.0.0",
+  "search_concentration": {
+    "explicitly_withdrawn": [
+      "'prediction (all six)' — MARKET-03 is a reproduction scored on drawdown; MARKET-04/04H was never executed",
+      "'six differently-named hypotheses occupy roughly two distinct search positions' — unsupported after mapping every unit"
+    ],
+    "per_unit_function": {
+      "MARKET-01": "conditional relationship; 60m reversal_return; event/episode; stratified two-group OLS",
+      "MARKET-02": "conditional relationship; 60m continuation after impulse + OI expansion + price confirmation; event/episode",
+      "MARKET-03": "EXTERNAL public-strategy historical reproduction; primary metric is author Max drawdown direction (REPRODUCED_DIRECTION); NOT scalar prediction",
+      "MARKET-04_04H": "selected observable/risk question; NEVER scientifically executed; blocked on historical observable provenance",
+      "MARKET-05": "incremental cross-asset predictor of 24h direction-aligned adverse-path risk",
+      "MARKET-06": "incremental cross-venue predictor of 24h direction-aligned adverse-path risk"
+    },
+    "untouched_axes": [
+      "filtering / abstention",
+      "risk reduction",
+      "state detection",
+      "relative ranking",
+      "execution modelling",
+      "instrument x time panel",
+      "fill-level unit of observation",
+      "tail functionals",
+      "persistence-vs-null functionals"
+    ],
+    "valid_conclusion": "Internal hypothesis GENERATION was overconcentrated in short-horizon conditional scalar prediction, especially MARKET-01/02/05/06 and earlier H/B2 work."
+  },
+  "selection_is_provisional": true,
+  "selection_provisional_until": "a defensible lower-order null model AND one low-DoF state-construction class can both be defined outcome-blind",
+  "unit_id": "MARKET_NEXT_HYPOTHESIS_SELECTION_FROM_ORTHOGONAL_REGIONS",
+  "unit_type": "SELECTION_AND_SEARCH_SPACE_DESIGN_ONLY",
+  "why_r_a_not_selected_for": [
+    "NOT because it is cheap or easy",
+    "NOT because it is most likely to produce a positive result",
+    "NOT on a claim that it eliminates regime-conditioned research generally"
+  ],
+  "why_r_a_selected": [
+    "materially changes FUNCTION from scalar outcome prediction to state detection",
+    "does not rescue MARKET-05 or MARKET-06",
+    "feasible with existing point-in-time price data (CORE_BTC_BINANCE_V0)",
+    "a negative result removes a real, explicitly bounded representation class",
+    "researcher degrees of freedom are HIGH and are therefore the primary blocker",
+    "selection remains provisional until a defensible null model and one low-DoF construction class exist"
+  ]
+}

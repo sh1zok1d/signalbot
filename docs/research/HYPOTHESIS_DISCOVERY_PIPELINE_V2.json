@@ -1,0 +1,144 @@
+{
+  "schema": "signalbot_hypothesis_discovery_pipeline",
+  "schema_version": "2.0.0",
+  "unit_id": "HYPOTHESIS_DISCOVERY_PIPELINE_V2",
+  "unit_type": "RESEARCH_PROCESS_REDESIGN_NOT_A_MARKET_HYPOTHESIS",
+  "date": "2026-09-21",
+  "parent_selection_commit": "a711086c36eb7129fc3f0660732049de93dd1629",
+  "purpose": "Redesign and test Signalbot's internal hypothesis-DISCOVERY process, upstream of the heavy MARKET-0X confirmatory lifecycle (ARM/claim/one-shot/RESULT). This is a research-process unit, not a market hypothesis: it defines how candidate mechanisms get cheaply screened before any of them is allowed to become a preregistered, confirmatory MARKET-0N experiment.",
+  "this_unit_is_not": [
+    "MARKET-07",
+    "a preregistration of R-A or any other region",
+    "an opening of protected 2025/2026",
+    "a confirmatory experiment execution",
+    "new generic infrastructure unrelated to a concrete research blocker"
+  ],
+  "program_pivot": {
+    "ORTHOGONAL_REGION_SELECTION_PRESERVED": true,
+    "R_A_SELECTION_RETRACTED": false,
+    "R_A_SOLE_NEXT_PATH_SUPERSEDED": true,
+    "reason": "Signalbot has strong falsification/validation machinery (frozen preregistration, ARM/claim/one-shot execution, sealed RESULT, red-team hardening) but INTERNAL_PROMISING_PROTOTYPES = 0. Every internally-generated MARKET hypothesis executed so far (MARKET-01, 02, 05, 06) returned NO_EVIDENCE at the confirmatory stage. MARKET-03 is an EXTERNAL public-strategy reproduction and must not be counted as internal discovery. The evidence therefore does not support routing R-A directly into another single confirmatory attempt; it supports first testing whether the internal discovery/generation process itself can produce a promising prototype at all, across several orthogonal mechanism regions at once, before committing further confirmatory-lifecycle cost to any one of them."
+  },
+  "supersession_of_a711086_routing": {
+    "does_not_rewrite_commit": "a711086c36eb7129fc3f0660732049de93dd1629",
+    "statement": "Commit a711086 remains the valid, unmodified historical record of the orthogonal-region selection (REGION_SELECTED = R-A, SELECTION_STATUS = REGION_SELECTED_NOT_HYPOTHESIS_CREATED). This unit does not merge, rebase, or edit that commit. It supersedes only the ROUTING that followed from it (NEXT_UNIT = STRUCTURAL_REGIME_STATE_DETECTION_MECHANISM_CLASS_AND_NULL_MODEL_FEASIBILITY), by recording a later, separate program-level decision in a new commit.",
+    "r_b_r_f_fresh_surface_correction": {
+      "original_statement_in_a711086": "R-B and R-F need a fresh evaluation surface that does not exist ('R-B ... requires a genuinely fresh evaluation surface. The 2020-2024 surface is historically exposed/adapted...'; R-F 'shares R-B's fresh-surface problem').",
+      "scope_correction": "That statement is CORRECT but was written without distinguishing discovery from confirmatory use, and is hereby scoped to CONFIRMATORY use only. It was true, and remains true, that neither R-B nor R-F has an unexposed surface available for a CONFIRMATORY claim of independent evidence. It does NOT follow that R-B or R-F cannot be explored at all: cheap, outcome-inspecting, non-evidentiary ADAPTIVE DISCOVERY on historically exposed 2020-2024 data is explicitly permitted for both, under the constraints below.",
+      "discovery_feasibility_vs_confirmatory_feasibility": "DISCOVERY_FEASIBILITY != CONFIRMATORY_FEASIBILITY. DISCOVERY_FEASIBILITY asks only whether a mechanism class can be cheaply screened for a non-trivial pattern using data already exposed to prior program adaptation, with outcome inspection allowed and no evidentiary claim implied. CONFIRMATORY_FEASIBILITY asks whether a materially fresh, non-adapted, outcome-blind surface exists to test that pattern as independent evidence. R-B may be explored under DISCOVERY_FEASIBILITY on the 2020-2024 exposed surface (see DISCOVERY_SPRINT_01 card D2); any resulting pattern remains exploratory and requires an independent future confirmation surface before it can support a MARKET-0N claim. R-F may be explored under DISCOVERY_FEASIBILITY only under a tightly bounded, pre-frozen search surface (see card D5), with its HIGH rescue/multiple-testing risk explicitly carried forward, not laundered away by relabelling it 'discovery'."
+    }
+  },
+  "three_stages": {
+    "1_ADAPTIVE_DISCOVERY": {
+      "definition": "Cheap, outcome-inspecting exploration of a candidate mechanism class on historically exposed 2020-2024 research data. Outcomes MAY be inspected during construction and iteration.",
+      "data_label_required": "ADAPTIVE_DISCOVERY_ON_HISTORICALLY_EXPOSED_DATA",
+      "what_it_is_not": [
+        "independent evidence",
+        "clean out-of-sample evaluation",
+        "confirmation",
+        "validation"
+      ],
+      "allowed_terminal_states": [
+        "PROMISING_PROTOTYPE",
+        "NO_USEFUL_STRUCTURE",
+        "INCONCLUSIVE_DISCOVERY",
+        "INVALID_DISCOVERY"
+      ],
+      "governance": "A Discovery Card (see discovery_card_contract) must exist before any code is written for a mechanism class. No ARM, claim, reservation, or one-shot execution authority applies at this stage."
+    },
+    "2_PROMISING_PROTOTYPE": {
+      "definition": "A discovery result that survives the Promising Prototype Gate (see promising_prototype_gate). It is a discovery-stage filter outcome, not confirmatory evidence, and does not by itself authorize a MARKET-0N preregistration.",
+      "what_it_authorizes": "Eligibility to be proposed as a future confirmatory hypothesis. Proposal is a separate, later program-level decision, requiring its own information-gain and feasibility review exactly like MARKET_NEXT_HYPOTHESIS_SELECTION_FROM_ORTHOGONAL_REGIONS.",
+      "what_it_does_not_authorize": [
+        "creating MARKET-07 or any MARKET-0N id directly from this unit",
+        "opening protected 2025/2026",
+        "skipping preregistration, ARM/claim/one-shot execution, or sealed RESULT for the eventual confirmatory test"
+      ]
+    },
+    "3_CONFIRMATORY_RESEARCH": {
+      "definition": "The existing, unchanged heavy MARKET-0X lifecycle: frozen preregistration, outcome-blind analysis contract, point-in-time data feasibility check, ARM/reservation/claim authority chain, one-shot canonical execution, sealed RESULT. Requires a materially fresh or explicitly-accounted-for surface per CONFIRMATORY_FEASIBILITY.",
+      "relationship_to_discovery": "A PROMISING_PROTOTYPE is at most a candidate INPUT to a future confirmatory preregistration decision. It carries no evidentiary weight of its own and must not be cited as support inside a confirmatory RESULT."
+    }
+  },
+  "discovery_card_contract": {
+    "fields": {
+      "DISCOVERY_ID": "Stable short identifier, e.g. D1.",
+      "MECHANISM_CLASS": "The class of structural mechanism being screened (e.g. discrete state detection, tail filtering, path morphology).",
+      "INFORMATION_SOURCE": "What data/observable the card draws on (e.g. CORE_BTC_BINANCE_V0 price path, CORE_ETH price path, externally published strategy).",
+      "FUNCTION": "The analytical function performed: detection, filtering, characterization, relative comparison, composition, or benchmark reproduction. Never 'prediction' unless the card is explicitly a scalar-prediction screen.",
+      "TARGET_FAMILY": "The broad family of what a positive result would look like, without committing to a frozen confirmatory metric.",
+      "TIME_SCALE": "The time scale/horizon under exploration.",
+      "UNIT_OF_OBSERVATION": "What one row/observation represents.",
+      "MARKET_RELATIONSHIP": "How (if at all) the mechanism could plausibly relate to a future tradable edge, stated conservatively.",
+      "SIMPLE_BASELINE": "The trivial/naive comparator the discovery result must beat to be interesting at all.",
+      "SMALL_SEARCH_SURFACE": "The explicit, small, pre-stated set of variants/parameters allowed to be tried, to bound researcher degrees of freedom.",
+      "KNOWN_PRIOR_EXPOSURE": "What prior program work has already touched this data/mechanism combination (adaptive and/or confirmatory), citing the relevant units.",
+      "WHAT_A_NULL_DEPRIORITIZES": "What a NO_USEFUL_STRUCTURE result would mean was tried and found wanting, i.e. the information-gain payoff of a negative result.",
+      "WHAT_A_POSITIVE_WOULD_JUSTIFY_NEXT": "What a PROMISING_PROTOTYPE would make it reasonable to propose next (never 'immediate MARKET-0N creation').",
+      "RESEARCHER_DOF": "Explicit statement of researcher degrees of freedom risk (LOW/MEDIUM/HIGH) and its source.",
+      "MAX_ENGINEERING_SCOPE": "An explicit cap on how much implementation work this card may consume before it must report a terminal state."
+    },
+    "requires": [
+      "deterministic data identity (dataset/version provenance)",
+      "no lookahead / as-of semantics preserved even during discovery",
+      "a reproducible script",
+      "an explicit statement of the attempted search surface",
+      "simple controls/baselines",
+      "reporting of ALL attempted variants, not only the best one"
+    ],
+    "does_not_require": [
+      "ARM / reservation / claim authority chain",
+      "one-shot execution authority",
+      "implementation freeze chain",
+      "confirmatory lifecycle machinery (MARKET-06-style permit/runner/sealed-RESULT infrastructure)"
+    ]
+  },
+  "promising_prototype_gate": {
+    "purpose": "A discovery filter, not confirmatory evidence. Decides only whether a pattern is worth proposing for a future confirmatory test.",
+    "disqualifiers": [
+      "one magic cell (single parameter/year/split combination that happens to work)",
+      "one isolated year driving the entire effect",
+      "negligible practical magnitude even if statistically suggestive",
+      "worse than the SIMPLE_BASELINE comparator",
+      "leakage or mechanical artifact (lookahead, label leakage, boundary bug)",
+      "the product of a large hidden search surface beyond SMALL_SEARCH_SURFACE"
+    ],
+    "considerations": [
+      "practical magnitude: is the effect size large enough to matter before costs/frictions, not just distinguishable from zero",
+      "neighborhood/parameter stability where relevant: does the pattern survive small, pre-stated perturbations of the construction, or is it a knife-edge",
+      "temporal/regime consistency: does the pattern show up across more than one sub-period rather than only in a favorable regime",
+      "simple baseline/control comparison: does it beat the SIMPLE_BASELINE and a naive negative control",
+      "adequate support: enough independent observations/effective N, not a handful of overlapping events",
+      "absence of obvious artifact: no boundary/leakage/mechanical explanation found on inspection"
+    ]
+  },
+  "program_diagnostic": {
+    "tracked_counters": [
+      "INTERNAL_DISCOVERY_CARDS",
+      "INTERNAL_PROMISING_PROTOTYPES",
+      "EXTERNAL_BENCHMARK_CARDS",
+      "EXTERNAL_PROMISING_OR_REPRODUCED"
+    ],
+    "market_03_classification": "MARKET-03 belongs only to EXTERNAL evidence/history. It must never be counted toward INTERNAL_DISCOVERY_CARDS or INTERNAL_PROMISING_PROTOTYPES.",
+    "usage_rule": "These counters are diagnostic, not a formal success-probability comparison. They inform a program-level decision; they are not themselves a statistical test.",
+    "stall_rule": "After 6-10 materially orthogonal INTERNAL discovery cards, if INTERNAL_PROMISING_PROTOTYPES == 0, record INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED = true and require an explicit program-level decision before continuing another discovery batch. The correct response to that flag is NOT to generate another cluster of nearby variants."
+  },
+  "information_gain_rule": "Each new discovery card must either (A) produce a PROMISING_PROTOTYPE worth future confirmation, or (B) materially reduce priority for a distinct mechanism-space region by returning NO_USEFUL_STRUCTURE on a genuinely different mechanism class. Cards whose null would teach essentially nothing about mechanism-space coverage must not be created.",
+  "cross_sectional_sidecar_note": "DISCOVERY_SPRINT_01 additionally records one outcome-blind feasibility sidecar, CROSS_SECTIONAL_PANEL_FEASIBILITY. It is explicitly NOT one of the six discovery cards and computes no signal/outcome statistics.",
+  "explicit_non_actions_this_unit": {
+    "MARKET_07_CREATED": false,
+    "ANY_HYPOTHESIS_PREREGISTERED": false,
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "CONFIRMATORY_EXPERIMENT_EXECUTED": false,
+    "DISCOVERY_CARD_EXECUTED": false,
+    "NEW_GENERIC_INFRASTRUCTURE_BUILT": false,
+    "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+    "FROZEN_ARTIFACTS_MODIFIED": false
+  },
+  "related_artifacts": {
+    "parent_selection": "docs/research/MARKET_NEXT_HYPOTHESIS_SELECTION.json",
+    "parent_selection_commit": "a711086c36eb7129fc3f0660732049de93dd1629",
+    "discovery_sprint": "docs/research/DISCOVERY_SPRINT_01.json"
+  }
+}

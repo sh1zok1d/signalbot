@@ -32,18 +32,62 @@ Program-level correction is sealed in `docs/research/MARKET_PROGRAM_UPDATE_POST_
 
 ## Exact next unit
 
-`NEXT_UNIT = MARKET_NEXT_HYPOTHESIS_SELECTION_FROM_ORTHOGONAL_REGIONS`
+```
+PREVIOUS_ROUTING            = STRUCTURAL_REGIME_STATE_DETECTION_MECHANISM_CLASS_AND_NULL_MODEL_FEASIBILITY
+PREVIOUS_ROUTING_SUPERSEDED = true
+R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
+MARKET_07_CREATED           = false
+NEXT_UNIT                   = DISCOVERY_SPRINT_01_CARD_EXECUTION
+PROTECTED_2025_OPENED       = false
+PROTECTED_2026_OPENED       = false
+```
 
-Do not create MARKET-07 yet. Select one materially orthogonal region before feasibility/preregistration:
+The orthogonal-region selection is recorded in
+`docs/research/MARKET_NEXT_HYPOTHESIS_SELECTION.{json,md}` (commit
+`a711086c36eb7129fc3f0660732049de93dd1629`) and remains a valid historical
+record: R-A was chosen because it materially changes the FUNCTION axis
+(scalar outcome prediction -> state detection), does not rescue
+MARKET-05/06, and is feasible with existing point-in-time price data. That
+selection is **preserved, not retracted**.
 
-- R-A structural regime/state detection;
-- R-B conditional abstention / tail selection;
-- R-C cross-sectional relative structure;
-- R-D liquidity / market-structure state;
-- R-E execution-cost mechanism;
-- R-F composed joint state (highest rescue risk; must not re-interrogate consumed M06 target/window).
+A later, separate program-level decision recorded in
+`docs/research/HYPOTHESIS_DISCOVERY_PIPELINE_V2.{json,md}` and
+`docs/research/DISCOVERY_SPRINT_01.{json,md}` **supersedes only the
+routing** that followed from a711086 (i.e. turning R-A directly into the
+next confirmatory research unit). Signalbot has strong
+falsification/validation machinery but `INTERNAL_PROMISING_PROTOTYPES = 0`
+across MARKET-01/02/05/06; MARKET-03 is external reproduction, not internal
+discovery. R-A is therefore reclassified as `DISCOVERY_SPRINT_01 / D1 =
+STRUCTURAL_STATE_DETECTION`: it is explored first as one of six cheap,
+outcome-inspecting, non-evidentiary discovery cards (D1-D6), not
+immediately preregistered as a confirmatory hypothesis. R-A's null-model
+risk (surrogate/null must preserve lower-order structure, chosen
+outcome-blind) carries over unchanged into card D1.
 
-Selection criterion: information gain and search-space coverage, not “most likely profitable”.
+a711086's statement that R-B and R-F "need a fresh evaluation surface that
+does not exist" is now scoped to **confirmatory** use only.
+`DISCOVERY_FEASIBILITY != CONFIRMATORY_FEASIBILITY`: both may be explored
+under adaptive discovery on historically exposed 2020-2024 data (cards D2
+and D5 respectively), but any resulting pattern remains exploratory and
+requires an independent future confirmation surface, and D5 (R-F) carries
+an explicitly recorded HIGH rescue/multiple-testing risk. R-C is still the
+most orthogonal region but has no panel data and no listing/delisting
+reconstruction (see the `CROSS_SECTIONAL_PANEL_FEASIBILITY` sidecar in
+`DISCOVERY_SPRINT_01`). R-D and R-E remain forward-collection only.
+
+Do not create MARKET-07. `DISCOVERY_SPRINT_01_CARD_EXECUTION` must stop and
+require a program-level decision if, after 6-10 materially orthogonal
+internal discovery cards, `INTERNAL_PROMISING_PROTOTYPES == 0`.
+
+### Historical surface exposure
+
+2020-2024 is a **historically exposed/adapted program research surface**:
+H01/H02 and further H/BATCH work adapted on 2020-02-01 -> 2025-01-01 with
+outcome inspection allowed, and MARKET-01/02/05/06 consumed confirmatory
+windows inside it. A chronological split inside 2020-2024 must be called
+"chronological held-out evaluation on historically exposed research data",
+never out-of-sample or independent confirmation. The earlier claim that
+2020-2021 was unconsumed is retracted.
 
 ## Hard boundaries
 

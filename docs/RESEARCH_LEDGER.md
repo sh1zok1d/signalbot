@@ -3385,3 +3385,138 @@ coverage.
 - `INTERNAL_HISTORICAL_CANDIDATES_PROMOTED = 0`
 - `MARKET_07_CREATED = false`
 - next required step: `MARKET_NEXT_HYPOTHESIS_SELECTION_FROM_ORTHOGONAL_REGIONS`
+
+## 2026-09-21 — MARKET next-hypothesis selection from orthogonal regions
+
+Selection / search-space design only. No hypothesis preregistered, no
+MARKET-07 created, no scientific outcome computed, protected 2025/2026
+unopened.
+
+`REGION_SELECTED = R-A / STRUCTURAL_REGIME_STATE_DETECTION`.
+`SELECTION_STATUS = REGION_SELECTED_NOT_HYPOTHESIS_CREATED`. The selection
+is provisional until a defensible lower-order null model and one low-DoF
+state-construction class can both be defined outcome-blind.
+
+Two corrections were recorded before selection.
+
+RETRACTION: an earlier draft claimed 2020-2021 was an unconsumed/fresh
+surface because MARKET-06 used only 2022-2024. That is FALSE. H01 and H02
+used a 2020-02-01 -> 2025-01-01 development window with adaptation
+allowed (21 documents reference it), and MARKET-01's common legal period
+starts 2020-09-01 with era splits through 2024/2025. CONSUMED/EXPOSED:
+2020-2024 is a historically exposed and adapted program research surface,
+carrying both adaptive discovery exposure (H/BATCH work) and confirmatory
+consumption (MARKET-01, MARKET-02, MARKET-05, MARKET-06). It remains usable
+for exploration, mechanism feasibility and implementation development, but
+not as fresh independent confirmation. A chronological split inside
+2020-2024 must be described as "chronological held-out evaluation on
+historically exposed research data", never as out-of-sample or independent
+confirmation.
+
+CORRECTION: the claim that MARKET-01..06 were all scalar prediction is
+withdrawn. MARKET-03 is an external public-strategy reproduction scored on
+the author's Max drawdown direction; MARKET-04/04H was never executed. The
+defensible statement is that internal hypothesis GENERATION was
+overconcentrated in short-horizon conditional scalar prediction, namely
+MARKET-01/02/05/06 plus earlier H/B2 work.
+
+R-A's closure scope is narrow: a negative result closes only the tested
+class of low-dimensional, price-derived, discrete state representations at
+the frozen time scale and construction procedure. It does not close
+continuous conditioning (which MARKET-01/02/05/06 actually used), other
+state constructions, other time scales, cross-sectional structure,
+order-book regimes, latent states outside CORE BTC, or "BTC regimes"
+generally.
+
+The binding scientific risk is the null model: a surrogate preserving only
+marginal distribution and linear autocorrelation can mechanically destroy
+the second-order dependence under test and manufacture a guaranteed
+positive contrast. The null must preserve every lower-order structure not
+being claimed as regime structure and must be chosen outcome-blind.
+
+Evidence: `docs/research/MARKET_NEXT_HYPOTHESIS_SELECTION.json`,
+`docs/research/MARKET_NEXT_HYPOTHESIS_SELECTION.md`.
+
+- `MARKET_07_CREATED = false`
+- `INTERNAL_HISTORICAL_CANDIDATES_PROMOTED = 0`
+- next required step: `STRUCTURAL_REGIME_STATE_DETECTION_MECHANISM_CLASS_AND_NULL_MODEL_FEASIBILITY`
+
+## 2026-09-21 — Hypothesis Discovery Pipeline V2 (program pivot, research-process redesign)
+
+`HYPOTHESIS_DISCOVERY_PIPELINE_V2` is a research-process redesign, not a
+market hypothesis. It does not create MARKET-07, does not preregister R-A
+or any other region, does not open protected 2025/2026, and does not
+execute a confirmatory experiment. It is recorded as a new commit on
+`research/post-m06-orthogonal-region-selection`, after and without
+rewriting commit `a711086c36eb7129fc3f0660732049de93dd1629`, which remains
+the valid historical record of the orthogonal-region selection.
+
+`ORTHOGONAL_REGION_SELECTION_PRESERVED = true`.
+`R_A_SELECTION_RETRACTED = false`. `R_A_SOLE_NEXT_PATH_SUPERSEDED = true`.
+
+Reason: Signalbot has strong falsification/validation machinery (frozen
+preregistration, ARM/claim/one-shot execution, sealed RESULT, red-team
+hardening), but `INTERNAL_PROMISING_PROTOTYPES = 0`. Every internally
+generated MARKET hypothesis executed so far (MARKET-01, 02, 05, 06)
+returned `NO_EVIDENCE` at the confirmatory stage; MARKET-03 is an EXTERNAL
+public-strategy reproduction and must not be counted as internal discovery.
+This does not support routing R-A directly into another single
+confirmatory attempt. It supports first testing whether the internal
+discovery/generation process itself can produce a promising prototype at
+all, across several orthogonal mechanism regions, before committing
+further confirmatory-lifecycle cost to any one of them.
+
+R-A is reclassified as `DISCOVERY_SPRINT_01 / D1 =
+STRUCTURAL_STATE_DETECTION`: not MARKET-07, not yet a confirmatory
+hypothesis. Its null-model/surrogate risk from the selection unit carries
+over unchanged.
+
+CORRECTION (supersession, not a rewrite of a711086): a711086 stated that
+R-B and R-F "need a fresh evaluation surface that does not exist." That
+statement is correct and unchanged for CONFIRMATORY use. It is now
+explicitly scoped to confirmatory use only:
+`DISCOVERY_FEASIBILITY != CONFIRMATORY_FEASIBILITY`. R-B may be explored on
+historically exposed 2020-2024 data under adaptive discovery (card D2); any
+resulting pattern remains exploratory and requires an independent future
+confirmation surface. R-F may be explored only under a tightly bounded,
+pre-frozen search surface (card D5), with its HIGH rescue/multiple-testing
+risk explicitly recorded, never minimized by relabelling it "discovery."
+
+Three stages are defined: `ADAPTIVE_DISCOVERY` (outcome-inspecting,
+explicitly not independent evidence/OOS/confirmation/validation, data
+labelled `ADAPTIVE_DISCOVERY_ON_HISTORICALLY_EXPOSED_DATA`, allowed
+terminal states `PROMISING_PROTOTYPE` / `NO_USEFUL_STRUCTURE` /
+`INCONCLUSIVE_DISCOVERY` / `INVALID_DISCOVERY`) -> `PROMISING_PROTOTYPE`
+(a discovery-stage filter outcome, not confirmatory evidence, granting only
+eligibility to be *proposed* for a future confirmatory unit) ->
+`CONFIRMATORY_RESEARCH` (the existing unchanged heavy MARKET-0X lifecycle).
+
+`DISCOVERY_SPRINT_01` defines exactly six discovery cards, none executed:
+D1 `STRUCTURAL_STATE_DETECTION` (= R-A), D2
+`CONDITIONAL_ABSTENTION_TAIL_RISK` (exploratory R-B), D3 `PATH_MORPHOLOGY`,
+D4 `BTC_ETH_RELATIVE_STRUCTURE` (two-asset precursor, not cross-sectional
+panel evidence), D5 `COMPOSED_DECISION_MECHANISM` (bounded exploratory R-F,
+HIGH rescue risk recorded), D6 `EXTERNAL_MECHANISM_BENCHMARK` (diagnostic
+only; never counted as internal discovery, exactly like MARKET-03). Plus
+one non-card, outcome-blind sidecar, `CROSS_SECTIONAL_PANEL_FEASIBILITY`
+(no signal/outcome statistics).
+
+A Promising Prototype Gate disqualifies: one magic cell, one isolated year,
+negligible practical magnitude, worse than a trivial baseline,
+leakage/mechanical artifact, or the product of a large hidden search
+surface. A program diagnostic tracks `INTERNAL_DISCOVERY_CARDS`,
+`INTERNAL_PROMISING_PROTOTYPES`, `EXTERNAL_BENCHMARK_CARDS`,
+`EXTERNAL_PROMISING_OR_REPRODUCED` diagnostically, never as a formal
+success probability; after 6-10 materially orthogonal internal cards with
+`INTERNAL_PROMISING_PROTOTYPES == 0`, `INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED
+= true` must be recorded and a program-level decision made before another
+batch, never simply more nearby variants.
+
+Evidence: `docs/research/HYPOTHESIS_DISCOVERY_PIPELINE_V2.{json,md}`,
+`docs/research/DISCOVERY_SPRINT_01.{json,md}`.
+
+- `MARKET_07_CREATED = false`
+- `SCIENTIFIC_OUTCOMES_COMPUTED = false`
+- `PROTECTED_2025_OPENED = false`
+- `PROTECTED_2026_OPENED = false`
+- next required step: `DISCOVERY_SPRINT_01_CARD_EXECUTION`
