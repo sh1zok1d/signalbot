@@ -5,8 +5,28 @@
   "date": "2026-09-21",
   "parent_unit": "HYPOTHESIS_DISCOVERY_PIPELINE_V2",
   "parent_selection_commit": "a711086c36eb7129fc3f0660732049de93dd1629",
-  "status": "SIX_CARDS_DEFINED_NONE_EXECUTED",
-  "cards_executed_in_this_unit": 0,
+  "status": "PARTIAL_SPRINT_EXECUTED_ONE_PROMISING_PROTOTYPE",
+  "cards_executed_in_this_unit": 4,
+  "original_definition_state": {
+    "status": "SIX_CARDS_DEFINED_NONE_EXECUTED",
+    "cards_executed_in_this_unit": 0,
+    "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+    "note": "Definition-time top-level state when DISCOVERY_SPRINT_01 was first written as a specification-only document. Nested historical blocks below (corrective_unit, spec_compilation, red_team, pre-execution fixes, first blocked attempt) are preserved and are not current routing."
+  },
+  "current_program_diagnostic": {
+    "INTERNAL_DISCOVERY_CARDS_PLANNED": 5,
+    "INTERNAL_DISCOVERY_CARDS_EXECUTED": 4,
+    "INTERNAL_PROMISING_PROTOTYPES": 1,
+    "INTERNAL_DISCOVERY_WARNING": null,
+    "D1_STATUS": "BLOCKED_PENDING_PRE_OUTCOME_FIX",
+    "D2_STATUS": "PROMISING_PROTOTYPE",
+    "D3_STATUS": "NO_USEFUL_STRUCTURE",
+    "D4_STATUS": "NO_USEFUL_STRUCTURE",
+    "D5_STATUS": "NO_USEFUL_STRUCTURE",
+    "D6_STATUS": "DEFERRED",
+    "SCIENTIFIC_OUTCOMES_COMPUTED": true,
+    "adaptive_discovery_not_confirmatory": true
+  },
   "cards": {
     "D1": {
       "DISCOVERY_ID": "D1",
@@ -194,7 +214,7 @@
     "EXTERNAL_BENCHMARK_CARDS_PLANNED": 1,
     "EXTERNAL_BENCHMARK_CARDS_PLANNED_LIST": ["D6"],
     "EXTERNAL_PROMISING_OR_REPRODUCED": 0,
-    "note": "All counters reflect CARD DEFINITION/PLANNING only. No card has been executed in this unit; all outcome fields are pending. INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED is not yet evaluable (fewer than the 6-10 card threshold, and zero cards executed).",
+    "note": "DEFINITION-TIME counters only. No card had been executed when this block was written. Current counters are in current_program_diagnostic.",
     "stall_gate_semantics_2026_09_21": {
       "D6_never_counts_toward_internal_stall_rule": true,
       "reason": "D6 is EXTERNAL_BENCHMARK, diagnostic only, and must never count toward the 6-10 INTERNAL-card stall rule -- exactly as MARKET-03 never counts as internal discovery.",
@@ -203,7 +223,7 @@
       "formal_gate_requirement": "The formal NOT_DEMONSTRATED gate requires at least 6 materially orthogonal internal cards (i.e. a Discovery Sprint 02+ internal card beyond D1-D5)."
     }
   },
-  "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+  "SCIENTIFIC_OUTCOMES_COMPUTED": true,
   "MARKET_07_CREATED": false,
   "PROTECTED_2025_OPENED": false,
   "PROTECTED_2026_OPENED": false,
@@ -313,5 +333,111 @@
     "PROTECTED_2025_OPENED": false,
     "PROTECTED_2026_OPENED": false,
     "NEXT_UNIT": "DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5"
+  },
+  "partial_execution_2026_09_21": {
+    "unit": "DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5",
+    "implementation_commit": "26d8f7066533bcae7138d5a1952783f2a16f3c39",
+    "branch": "research/discovery-sprint-01-execution",
+    "base_main": "067231e251697478f3ce0ce9a0f2dcdd01b30140",
+    "data_preflight": {
+      "BTC_DATA_PRESENT": false,
+      "ETH_DATA_PRESENT": false,
+      "M06_CROSS_VENUE_DATA_PRESENT": true
+    },
+    "classifications": {
+      "D2": "BLOCKED_MISSING_LOCAL_DATA",
+      "D3": "BLOCKED_MISSING_LOCAL_DATA",
+      "D4": "BLOCKED_MISSING_LOCAL_DATA",
+      "D5": "BLOCKED_MISSING_LOCAL_DATA"
+    },
+    "attempted_rules": {
+      "D2_RULE_1_RV_ABSTENTION": "NOT_RUN_MISSING_CORE_BTC",
+      "D2_RULE_2_DISLOCATION_ABSTENTION": "ATTEMPTED_ON_M06_DURABLE_RAW",
+      "D4_LEAD_LAG_1DAY": "DEFERRED_FROM_SPRINT_01"
+    },
+    "INTERNAL_DISCOVERY_CARDS_EXECUTED": 0,
+    "INTERNAL_PROMISING_PROTOTYPES": 0,
+    "INTERNAL_DISCOVERY_WARNING": null,
+    "INTERNAL_DISCOVERY_WARNING_EXECUTED_COUNT": 0,
+    "INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED": false,
+    "FULL_DISCOVERY_CARDS_COMPLETED": 0,
+    "PARTIAL_COMPONENT_OUTCOME_OBSERVED": true,
+    "PARTIAL_COMPONENT_OUTCOMES_OBSERVED": 1,
+    "PARTIAL_COMPONENT_OUTCOMES": [
+      "D2/RULE_2/DISLOCATION_ABSTENTION"
+    ],
+    "D2_RULE_2_DISCOVERY_OUTCOME_OBSERVED": true,
+    "D2_RULE_2_GATE_PASS": false,
+    "D2_CARD_STATUS": "BLOCKED_MISSING_LOCAL_DATA",
+    "BOOKKEEPING_CORRECTION": "INTERNAL_DISCOVERY_WARNING was incorrectly set to ZERO_PROMISING_AFTER_FIRST_EXECUTED_INTERNAL_CARDS while INTERNAL_DISCOVERY_CARDS_EXECUTED=0. D2 RULE_2 is a partial component outcome, not a completed internal card. Warning remains null until at least one INTERNAL card completes.",
+    "D1_STATUS": "BLOCKED_PENDING_PRE_OUTCOME_FIX",
+    "D6_STATUS": "DEFERRED",
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "MARKET_07_CREATED": false,
+    "POST_OUTCOME_DESIGN_CHANGES": false,
+    "result_records": "docs/research/discovery_results/",
+    "NEXT_UNIT": "DISCOVERY_SPRINT_01_RETRY_D2_D3_D4ROLLING_D5_WHEN_CORE_LOCAL_MATERIAL_PRESENT"
+  },
+  "retry_execution_2026_09_21": {
+    "unit": "DISCOVERY_SPRINT_01_RETRY_D2_D3_D4ROLLING_D5_AFTER_CORE_RESTORE",
+    "implementation_commit": "26d8f7066533bcae7138d5a1952783f2a16f3c39",
+    "first_attempt_result_commit": "37921089ce289cd9bcbcebb123724a3e033dcdc3",
+    "first_attempt_full_cards_completed": 0,
+    "first_attempt_partial_component_outcome": "D2_RULE_2",
+    "first_attempt_preserved_at": "docs/research/discovery_results/FIRST_ATTEMPT_BLOCKED_MISSING_LOCAL_DATA/",
+    "branch": "research/discovery-sprint-01-execution",
+    "base_main": "067231e251697478f3ce0ce9a0f2dcdd01b30140",
+    "data_preflight": {
+      "BTC_DATA_PRESENT": true,
+      "ETH_DATA_PRESENT": true,
+      "M06_CROSS_VENUE_DATA_PRESENT": true
+    },
+    "D2_RULE_2_REPLAY_EXACT_MATCH": true,
+    "classifications": {
+      "D2": "PROMISING_PROTOTYPE",
+      "D3": "NO_USEFUL_STRUCTURE",
+      "D4": "NO_USEFUL_STRUCTURE",
+      "D5": "NO_USEFUL_STRUCTURE"
+    },
+    "d2_rule_notes": {
+      "RULE_1_RV_ABSTENTION": "GATE_PASS=true; card-level PROMISING_PROTOTYPE because at least one frozen rule passed. Adaptive discovery only; not confirmatory.",
+      "RULE_2_DISLOCATION_ABSTENTION": "GATE_PASS=false; exact replay of first-attempt partial component outcome"
+    },
+    "INTERNAL_DISCOVERY_CARDS_EXECUTED": 4,
+    "INTERNAL_PROMISING_PROTOTYPES": 1,
+    "INTERNAL_DISCOVERY_WARNING": null,
+    "INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED": false,
+    "FULL_DISCOVERY_CARDS_COMPLETED": 4,
+    "PARTIAL_COMPONENT_OUTCOME_OBSERVED": true,
+    "PARTIAL_COMPONENT_OUTCOMES": [
+      "D2/RULE_2/DISLOCATION_ABSTENTION"
+    ],
+    "D2_RULE_2_DISCOVERY_OUTCOME_OBSERVED": true,
+    "D2_RULE_2_GATE_PASS": false,
+    "INTERNAL_DISCOVERY_CARDS_PLANNED": 5,
+    "D1_STATUS": "BLOCKED_PENDING_PRE_OUTCOME_FIX",
+    "D2_STATUS": "PROMISING_PROTOTYPE",
+    "D3_STATUS": "NO_USEFUL_STRUCTURE",
+    "D4_STATUS": "NO_USEFUL_STRUCTURE",
+    "D5_STATUS": "NO_USEFUL_STRUCTURE",
+    "D6_STATUS": "DEFERRED",
+    "d2_statistical_gate_operationalization_sync": {
+      "kind": "documentation_synchronization_to_pre_outcome_implementation_26d8f7066533bcae7138d5a1952783f2a16f3c39",
+      "statistical_threshold": "MU_RULE > P95 of the 1000 RATE_MATCHED_RANDOM_ABSTENTION replicate mean-severity values",
+      "DELTA": "MU_RULE - mean(random-control replicate means)",
+      "not_a_post_outcome_gate_change": true
+    },
+    "eth_open_fallback_authorization": {
+      "behavior": "ETH 1m open := close when the frozen MARKET-05 ETH parquet schema has no open column",
+      "authorized_for": "D4 ROLLING_CORRELATION_90D close-to-close calculation only",
+      "not_authorized_for": "any future experiment that scientifically uses ETH open prices"
+    },
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "MARKET_07_CREATED": false,
+    "POST_OUTCOME_DESIGN_CHANGES": false,
+    "result_records": "docs/research/discovery_results/",
+    "NEXT_UNIT": "DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE_EXECUTION"
   }
 }

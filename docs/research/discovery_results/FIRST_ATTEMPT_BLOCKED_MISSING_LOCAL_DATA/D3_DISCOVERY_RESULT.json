@@ -1,0 +1,68 @@
+{
+  "BASELINE_METRICS": {
+    "BLOCK_LENGTH": 12,
+    "COMPANIONS": {},
+    "COMPANION_BLOCK_LENGTHS": [
+      6,
+      24
+    ],
+    "NULL": "5m_RETURN_TIME_OF_DAY_STRATIFIED_BLOCK_BOOTSTRAP"
+  },
+  "DATASET_IDENTITIES": {
+    "CORE_BTC_BINANCE_V0": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415"
+  },
+  "DISCOVERY_ID": "D3",
+  "FILES_OPENED": [],
+  "IMPLEMENTATION_COMMIT": "26d8f7066533bcae7138d5a1952783f2a16f3c39",
+  "INTERVAL_USED": "2020-02-01T00:05:00Z -> 2025-01-01T00:00:00Z exclusive",
+  "KNOWN_LIMITATIONS": [
+    "Adaptive discovery on historically exposed 2020-2024 data.",
+    "Unconditional close-path design; not a terminal-return card.",
+    "missing:CORE_BTC_BINANCE_V0_MONTHLY_PARQUET"
+  ],
+  "MISSING_LOCAL_DATA": [
+    "CORE_BTC_BINANCE_V0_MONTHLY_PARQUET"
+  ],
+  "NAME": "PATH_MORPHOLOGY",
+  "PREFLIGHT": {
+    "BTC_DATA_PRESENT": false,
+    "CORE_BTC_SNAPSHOT": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+    "CORE_ETH_SNAPSHOT": "4b9c113f659e1c1ca71498096dfdc2628a1016346aed40e19020efb64c85ad15",
+    "ETH_DATA_PRESENT": false,
+    "M06_CROSS_VENUE_DATA_PRESENT": true,
+    "M06_SNAPSHOT": "e0403e40a9b1e2903f15fb9283ec6caf54788e48153038982e364d4318183e68",
+    "btc_month_count": 0,
+    "btc_root": "/workspace/artifacts/research_data/CORE_BTC_BINANCE_V0",
+    "eth_month_count": 0,
+    "eth_root": "/workspace/artifacts/research_data/CORE_ETH_BINANCE_V0",
+    "m06_binance_zip_count": 36,
+    "m06_okx_page_count": 1053,
+    "m06_root": "/workspace/docs/research_data/MARKET_06_OKX_BINANCE_FEASIBILITY_V0/durable_raw"
+  },
+  "PRIMARY_METRICS": {},
+  "PROTECTED_2025_OPENED": false,
+  "PROTECTED_2026_OPENED": false,
+  "PROTOTYPE_GATE_FIELDS": {
+    "btc_side_used": false,
+    "exactly_three_functionals": true,
+    "high_low_used": false,
+    "path_asymmetry_included": false,
+    "practical_magnitude_threshold": "|emp_mean - surrogate_median| > 15% of |surrogate_median|",
+    "statistical_threshold": "empirical mean outside surrogate-mean [2.5, 97.5]",
+    "temporal_consistency_check": "at least 3 year-buckets same-direction vs surrogate median"
+  },
+  "ROW_COUNTS": {
+    "N": 0
+  },
+  "SEARCH_SURFACE_ATTEMPTED": [
+    "MAX_UPSIDE_CLOSE_24H",
+    "MAX_DOWNSIDE_CLOSE_24H",
+    "TIME_TO_MAX_ABS_CLOSE_EXCURSION"
+  ],
+  "SEEDS": {
+    "D3_NULL_SURROGATE_SEED": 20260921103
+  },
+  "SPEC_AUTHORITY": "docs/research/DISCOVERY_SPRINT_01_SPEC_COMPILATION.{json,md} superseded in place by DISCOVERY_SPRINT_01_RED_TEAM_REVIEW, DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4, and DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX (latest explicit correction blocks are authority)",
+  "TERMINAL_CLASSIFICATION": "BLOCKED_MISSING_LOCAL_DATA",
+  "YEAR_BREAKDOWN": {}
+}

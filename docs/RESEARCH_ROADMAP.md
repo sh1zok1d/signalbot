@@ -46,7 +46,21 @@ This is a research-process redesign, not a market hypothesis — it does not
 create MARKET-07, preregister R-A, open protected 2025/2026, or execute a
 confirmatory experiment.
 
-`DISCOVERY_SPRINT_01` defines six discovery cards, none executed yet:
+`DISCOVERY_SPRINT_01` defined six discovery cards. **Current routing**
+after the CORE-restore retry (adaptive discovery, not confirmatory):
+
+- **D1** `STRUCTURAL_STATE_DETECTION` — `BLOCKED_PENDING_PRE_OUTCOME_FIX`
+- **D2** `CONDITIONAL_ABSTENTION_TAIL_RISK` — `PROMISING_PROTOTYPE`
+- **D3** `PATH_MORPHOLOGY` — `NO_USEFUL_STRUCTURE`
+- **D4** `BTC_ETH_RELATIVE_STRUCTURE` (`ROLLING_CORRELATION_90D`) — `NO_USEFUL_STRUCTURE`; `LEAD_LAG_1DAY` remains deferred
+- **D5** `COMPOSED_DECISION_MECHANISM` — `NO_USEFUL_STRUCTURE`
+- **D6** `EXTERNAL_MECHANISM_BENCHMARK` — `DEFERRED` (diagnostic only, not internal discovery, never counted with MARKET-03)
+
+`INTERNAL_DISCOVERY_CARDS_EXECUTED = 4`.
+`INTERNAL_PROMISING_PROTOTYPES = 1`.
+`NEXT_UNIT = DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE_EXECUTION`.
+
+Card identities at definition time (unchanged):
 
 - **D1** `STRUCTURAL_STATE_DETECTION` — reclassified R-A;
 - **D2** `CONDITIONAL_ABSTENTION_TAIL_RISK` — exploratory R-B, historically exposed data;
@@ -57,7 +71,7 @@ confirmatory experiment.
 
 Plus one non-card, outcome-blind sidecar: `CROSS_SECTIONAL_PANEL_FEASIBILITY`.
 
-`NEXT_UNIT = DISCOVERY_SPRINT_01_CARD_EXECUTION`. If, after 6-10 materially
+The stall-gate rule is unchanged: if, after 6-10 materially
 orthogonal internal cards, `INTERNAL_PROMISING_PROTOTYPES == 0`, record
 `INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED = true` and require a
 program-level decision before another batch — never simply generate more
