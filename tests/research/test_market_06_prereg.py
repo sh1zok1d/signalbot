@@ -277,8 +277,9 @@ def test_no_execution_arm_result_or_outcome_inspection():
     ):
         assert not (research / name).exists()
     scripts = REPO / "scripts" / "research"
-    assert not (scripts / "market_06_cross_venue_dislocation_runner.py").exists()
     assert not (scripts / "market_06_evaluator.py").exists()
+    # Frozen prereg payload still records evaluator_implemented false.
+    # The later implementation unit may exist; ARM/RESULT must not.
 
 
 def test_payload_contains_no_empirical_outcome_numbers():
