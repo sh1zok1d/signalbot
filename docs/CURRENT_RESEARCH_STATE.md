@@ -37,7 +37,7 @@ PREVIOUS_ROUTING            = D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURF
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = D2_BITMEX_REPLICATION_ONE_SHOT_EXECUTION
+NEXT_UNIT                   = D2_BITMEX_REPLICATION_INTEGRITY_ADJUDICATION
 PROTECTED_2025_OPENED       = false
 PROTECTED_2026_OPENED       = false
 INTERNAL_DISCOVERY_CARDS_EXECUTED = 4
@@ -57,6 +57,10 @@ CONFIRMATION_FEASIBILITY          = FEASIBLE_PRE2020_BITMEX_CROSS_VENUE_TEMPORAL
 2026_OPEN_AUTHORIZED              = false
 ARM_CREATED                       = false
 D2_OUTCOME_COMPUTED_ON_BITMEX     = false
+D2_BITMEX_CLASSIFICATION          = D2_BITMEX_REPLICATION_INVALID
+D2_BITMEX_CONSTRUCTED_ELIGIBLE_N  = 1067
+D2_BITMEX_FROZEN_ELIGIBLE_N       = 1069
+RERUN_AUTHORIZED                  = false
 PROTECTED_2025_PRICE_VALUES_INSPECTED = false
 PROTECTED_2026_PRICE_VALUES_INSPECTED = false
 ```
@@ -139,6 +143,18 @@ reproduces `N=1069`. Execution remains unauthorized: no permit exists.
 `EXECUTION_AUTHORIZED = false`.
 Record: `docs/research/D2_BITMEX_REPLICATION_IMPLEMENTATION_REVIEW.{json,md}`.
 
+`D2_BITMEX_REPLICATION_ONE_SHOT_EXECUTION` then created the immutable
+permit and executed once. Timestamp census still matches frozen
+`N=1069` / `2017-01-24T00:05:00Z` / `2019-12-30T00:05:00Z` /
+years `341/364/364`. Constructed eligible rows after frozen
+`construct_discovery_row` were `N=1067` (years `341/363/363`). The
+sample-identity gate therefore classified
+`D2_BITMEX_REPLICATION_INVALID`. Primary MU_RULE / control metrics were
+not computed. This is not `NOT_SUPPORTED` and not a rescue. No rerun.
+Protected 2025/2026 unopened. MARKET-07 not created.
+Record: `docs/research/D2_BITMEX_REPLICATION_RESULT.{json,md}`.
+`NEXT_UNIT = D2_BITMEX_REPLICATION_INTEGRITY_ADJUDICATION`.
+
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by
 `DISCOVERY_SPRINT_01_SPEC_COMPILATION`, recorded in
@@ -206,8 +222,8 @@ RULE_1's unrestricted full-2020-2024 result.
 **Current per-card status:** `D1 = DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH`
 (adequacy gate not executed); `D2 = PROMISING_PROTOTYPE` (adaptive
 discovery; RULE_1 only; 2025 confirmation remains underpowered as a
-single year; pre-2020 BitMEX XBTUSD is a feasible independent class-A
-replication surface, not yet executed);
+single year; pre-2020 BitMEX one-shot classified
+`D2_BITMEX_REPLICATION_INVALID` on constructed N=1067 vs frozen N=1069);
 `D3 = NO_USEFUL_STRUCTURE`; `D4
 ROLLING_CORRELATION_90D = NO_USEFUL_STRUCTURE` (`LEAD_LAG_1DAY` still
 deferred); `D5 = NO_USEFUL_STRUCTURE`; `D6 = DEFERRED`. First blocked

@@ -357,7 +357,7 @@ been executed in the definition unit.
 `SCIENTIFIC_OUTCOMES_COMPUTED = true` (adaptive discovery, not confirmatory).
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
-`NEXT_UNIT = D2_BITMEX_REPLICATION_ONE_SHOT_EXECUTION`.
+`NEXT_UNIT = D2_BITMEX_REPLICATION_INTEGRITY_ADJUDICATION`.
 
 ### Stall-gate semantics (corrected 2026-09-21)
 
@@ -381,7 +381,7 @@ discovery rather than confirmatory evidence.
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
 Definition-time `NEXT_UNIT = DISCOVERY_SPRINT_01_CARD_EXECUTION` is
-historical; current `NEXT_UNIT = D2_BITMEX_REPLICATION_ONE_SHOT_EXECUTION`.
+historical; current `NEXT_UNIT = D2_BITMEX_REPLICATION_INTEGRITY_ADJUDICATION`.
 
 ## Corrective unit (2026-09-21)
 
@@ -807,4 +807,26 @@ D2_BITMEX_OUTCOME_COMPUTED = false
 
 Full record: `docs/research/D2_BITMEX_REPLICATION_IMPLEMENTATION_REVIEW.{json,md}`.
 
-`NEXT_UNIT = D2_BITMEX_REPLICATION_ONE_SHOT_EXECUTION`.
+`NEXT_UNIT` of that review unit: `D2_BITMEX_REPLICATION_ONE_SHOT_EXECUTION`.
+
+## D2 BitMEX replication one-shot execution (2026-09-21)
+
+Permit then one-shot. Timestamp census still `N=1069`. Constructed
+eligible sample was `N=1067` (2017=341, 2018=363, 2019=363). Classification
+`D2_BITMEX_REPLICATION_INVALID`. Primary metrics not computed. Not
+`NOT_SUPPORTED`. No rerun. 2025/2026 unopened. MARKET-07 not created.
+
+```
+CLASSIFICATION = D2_BITMEX_REPLICATION_INVALID
+CONSTRUCTED_ELIGIBLE_N = 1067
+FROZEN_ELIGIBLE_N = 1069
+D2_BITMEX_OUTCOME_COMPUTED = false
+RERUN_AUTHORIZED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+```
+
+Full record: `docs/research/D2_BITMEX_REPLICATION_RESULT.{json,md}`.
+
+`NEXT_UNIT = D2_BITMEX_REPLICATION_INTEGRITY_ADJUDICATION`.

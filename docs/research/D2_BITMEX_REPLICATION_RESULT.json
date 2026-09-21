@@ -1,0 +1,115 @@
+{
+  "2025_OPEN_AUTHORIZED": false,
+  "2026_OPEN_AUTHORIZED": false,
+  "BITMEX_CANONICAL_GZ_SHA256": "8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa",
+  "BITMEX_CANONICAL_SHA256": "b145013cbcda34294104a0234c89fa9e27965bded66e3bc18b23753dde03fd0f",
+  "BLOCKER": [
+    "ELIGIBLE_N:1067",
+    "YEAR_ELIGIBLE_N:{'2017': 341, '2018': 363, '2019': 363}"
+  ],
+  "CLASSIFICATION": "D2_BITMEX_REPLICATION_INVALID",
+  "D2_BITMEX_OUTCOME_COMPUTED": false,
+  "D2_DISCOVERY_STATUS": "PROMISING_PROTOTYPE",
+  "D2_REPLICATION_STATUS": null,
+  "EVIDENCE_CLASS": "INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION",
+  "EVIDENCE_LABEL": "INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION_INVALID",
+  "EXECUTION_AUTHORIZED": true,
+  "FINAL_IMPLEMENTATION_SHA256": "087e7ea5892f2ab81f26bd61c82b2709b6812b6916554e5c92846a52496d77aa",
+  "GATES": {
+    "PRACTICAL_GATE": false,
+    "PRIMARY_PASS": false,
+    "STATISTICAL_GATE": false
+  },
+  "MARKET_07_CREATED": false,
+  "NEXT_UNIT": "D2_BITMEX_REPLICATION_INTEGRITY_ADJUDICATION",
+  "NOT_EXACT_BINANCE_CONFIRMATION": true,
+  "NOT_PROVEN_ALPHA": true,
+  "NOT_VALIDATED_BINANCE_EDGE": true,
+  "NO_TWO_OF_THREE_YEAR_REQUIREMENT": true,
+  "NO_YEARLY_RESCUE": true,
+  "N_CONTROLS": 10000,
+  "ONE_SHOT": true,
+  "PERMIT_COMMIT": "d23f48b0c49d28dfbd0bf55047cb0e3d6e2cc0f2",
+  "PREREG_ARTIFACT_SHA256": "939fe29243956195f2ca97723a7b94b666ce59359c55e096f8fba4d65c7d9044",
+  "PRIMARY_METRICS": {
+    "ABSTAIN_COUNT_2017": null,
+    "ABSTAIN_COUNT_2018": null,
+    "ABSTAIN_COUNT_2019": null,
+    "ABSTAIN_COUNT_TOTAL": null,
+    "ABSTAIN_RATE": null,
+    "CONTROL_P95": null,
+    "DELTA": null,
+    "ELIGIBLE_N": 1067,
+    "K_2017": null,
+    "K_2018": null,
+    "K_2019": null,
+    "MC_P": null,
+    "MU_CONTROL_MEAN": null,
+    "MU_RULE": null,
+    "RELATIVE_DELTA": null,
+    "UNCONDITIONAL_MEAN": null
+  },
+  "PROTECTED_2025_OPENED": false,
+  "PROTECTED_2026_OPENED": false,
+  "RANDOM_SEED": 20260921125,
+  "RERUN_AUTHORIZED": false,
+  "RESULT_PAYLOAD_SHA256": "9af98e72e7afc2c3e8af7f2d359401110e1e9c9829e69185ab23519e06fba48a",
+  "RUN_IDENTITY": "b873d473e5d5ef1394d161d557b1e0ca7602bfa92e6d78d8e80df8f4d1493d71",
+  "SAMPLE_IDENTITY": {
+    "CONSTRUCTED_N": 1317,
+    "ELIGIBLE_N": 1067,
+    "FIRST_T": "2017-01-24T00:05:00Z",
+    "KNOWN_GAP_NEVER_FILLED": true,
+    "LAST_T": "2019-12-30T00:05:00Z",
+    "WARMUP_N": 250,
+    "YEAR_ELIGIBLE_N": {
+      "2017": 341,
+      "2018": 363,
+      "2019": 363
+    },
+    "YEAR_ELIGIBLE_N_CENSUS": {
+      "2017": 341,
+      "2018": 364,
+      "2019": 364
+    }
+  },
+  "SOURCE_AUTHORITY_SHA256": "2a48e025a9ecb596f7a37646a39367cae031e5aa3fd0555416c3fab692594dff",
+  "YEARLY_BREAKDOWN_DIAGNOSTIC_ONLY": true,
+  "YEARLY_DIAGNOSTICS": {
+    "2017": {
+      "DELTA": null,
+      "ELIGIBLE_N": null,
+      "K": null,
+      "MU_CONTROL_MEAN": null,
+      "MU_RULE": null,
+      "RELATIVE_DELTA": null,
+      "UNCONDITIONAL_MEAN": null,
+      "candidate_k": null,
+      "eligible_n": null
+    },
+    "2018": {
+      "DELTA": null,
+      "ELIGIBLE_N": null,
+      "K": null,
+      "MU_CONTROL_MEAN": null,
+      "MU_RULE": null,
+      "RELATIVE_DELTA": null,
+      "UNCONDITIONAL_MEAN": null,
+      "candidate_k": null,
+      "eligible_n": null
+    },
+    "2019": {
+      "DELTA": null,
+      "ELIGIBLE_N": null,
+      "K": null,
+      "MU_CONTROL_MEAN": null,
+      "MU_RULE": null,
+      "RELATIVE_DELTA": null,
+      "UNCONDITIONAL_MEAN": null,
+      "candidate_k": null,
+      "eligible_n": null
+    }
+  },
+  "kind": "CANONICAL_ONE_SHOT_SCIENTIFIC_EXECUTION",
+  "unit": "D2_BITMEX_REPLICATION_ONE_SHOT_EXECUTION"
+}
