@@ -6,6 +6,7 @@ This early product specification is no longer an active source of requirements.
 
 Current project direction is research-first and product development is frozen pending independent edge validation. See:
 
+- `CURRENT_RESEARCH_STATE.md`
 - `PROJECT_STATUS.md`
 - `RESEARCH_ROADMAP.md`
 - `EDGE_RESEARCH_PROTOCOL.md`

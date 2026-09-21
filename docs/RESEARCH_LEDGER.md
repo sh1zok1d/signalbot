@@ -3345,3 +3345,28 @@ NEXT_UNIT = MARKET_06_IMPLEMENTATION_RED_TEAM_REVIEW
 Evidence: `docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION.md`
 and `docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION_FREEZE.md`.
 
+## 2026-09-21 — Independent audit reconciliation and bounded-cycle decision
+
+Documentation-only project decision after an independent source-and-contract
+audit. No market outcomes, protected 2025/2026 observations, or MARKET-06
+scientific data were opened. Frozen preregistrations and results were not
+rewritten.
+
+```text
+CURRENT_ROUTING_INDEX = docs/CURRENT_RESEARCH_STATE.md
+ACTIVE_CARD_LIMIT = 3
+STUDY_COUNT_QUOTA = REMOVED
+NEXT_1 = MARKET_06_OUTCOME_BLIND_RANK_COMPLIANCE_REPAIR_AND_REVIEW
+NEXT_2 = EXTERNAL_VOLATILITY_BENCHMARK
+NEXT_3 = OWNER_CONFIRMED_EXTERNAL_CLAIM_VS_NOTEBOOK
+MARKET_06_LIFECYCLE_DURABILITY = REPAIRED_AT_c435158d6ef872c2228fa0b94eb8ef13728dbead
+MARKET_06_RANK_CHECK = OPEN_BLOCKER_BEFORE_ARM
+V4_AUTHORIZED = false
+GENERAL_RESEARCH_OS_BUILD_AUTHORIZED = false
+SCIENTIFIC_OUTCOMES_INSPECTED = false
+```
+
+The alpha-search thesis and assisted-audit thesis now have separate success
+and stop criteria. A negative study must record exact closure scope and one of
+`PRECISE_NEGATIVE`, `UNRESOLVED`, or `INVALID` rather than relying on an
+undifferentiated `NO_EVIDENCE` narrative.

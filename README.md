@@ -2,8 +2,8 @@
 
 Signalbot is a crypto-market research and decision-support project focused on discovering **traceable, empirically validated market structure** before building product complexity around it.
 
-> **Current mode (2026-08-26): `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN`.**  
-> Further forecasting/product architecture work is frozen until at least one market edge is independently validated, or the investigated hypothesis classes are convincingly falsified.
+> **Current mode (2026-09-21): `BOUNDED_RESEARCH_AND_ASSISTED_AUDIT_VALIDATION / PRODUCT_BUILD_FROZEN`.**
+> Signalbot is testing both market-research usefulness and comparative workflow value. Broad platform/product work remains frozen.
 
 There is currently **no claim that Signalbot has a durable trading edge**.
 
@@ -11,7 +11,7 @@ There is currently **no claim that Signalbot has a durable trading edge**.
 
 The active objective is not “finish V2”. It is:
 
-> **Discover and independently validate one or two robust conditional market mechanisms — or reject them without post-hoc rescue.**
+> **Reduce uncertainty through decision-changing studies, find useful prototypes where they exist, and test whether Signalbot audits claims better or cheaper than a competent notebook workflow.**
 
 Engineering exists to support that research.
 
@@ -46,7 +46,7 @@ V2 Stage-5 contains three frozen detector families:
 - `COMPRESSION_BREAKOUT`
 - `CONFIRMED_BREAKOUT`
 
-`E1-RUN-001` is the current frozen detector-separation experiment. Development evidence has been consumed; the chronological holdout remains unopened as of the last verified state. The holdout populations reproduced exactly (`TP=105`, `CB=17`, `FB=19`), and the one-shot final evaluator is frozen.
+`E1-RUN-001` is a frozen historical detector-separation experiment. Development evidence has been consumed; the chronological holdout remains unopened as of the last verified state. The current TP/CB/FB formulations are retired and the holdout is not an active rescue path. Its evaluator remains frozen for historical reproducibility.
 
 Do not infer a final E1 verdict until that evaluator is actually run.
 
@@ -62,19 +62,26 @@ Read [`docs/PROJECT_HISTORY.md`](docs/PROJECT_HISTORY.md) for the narrative evol
 
 For the full historical source material, use [`docs/history/README.md`](docs/history/README.md), which links directly to immutable versions of the original roadmaps/contracts/specifications.
 
-## Active work
+## Active bounded cycle
 
-Allowed work during research-first mode:
+Current order:
+
+1. outcome-blind MARKET-06 rank compliance repair, affected-surface review, then a separate execution decision;
+2. one external volatility benchmark;
+3. one owner-confirmed external claim with a notebook baseline.
+
+Allowed supporting work:
 
 - finish already-frozen E1 without changing its rules;
 - expand historical data coverage to multiple years/regimes;
 - build reproducible CORE/RICH research datasets;
-- formulate mechanism-first hypotheses;
+- formulate at most three decision-changing research cards;
 - tune thresholds/parameters on development data only;
 - compare simple baselines and negative controls;
 - run chronological validation/OOS/walk-forward studies;
 - measure regime dependence, clustering/effective N, missingness, delay and costs;
-- test richer derivatives/cross-venue features only for incremental value after a simpler core mechanism earns evidence.
+- distinguish useful prototype discovery from novel incremental-information claims;
+- record what a positive, precise-negative, unresolved, or invalid result changes.
 
 ## Frozen work
 
@@ -87,7 +94,7 @@ Do not continue by default:
 - production V2 enable/deploy;
 - speculative architecture/framework work;
 - feature accumulation to rescue weak backtests;
-- monetization/business expansion before the research gate is satisfied.
+- general product build or monetization expansion before comparative workflow value is demonstrated.
 
 ## Research philosophy
 
@@ -108,14 +115,15 @@ A one-month rich-data overlap can falsify obvious hypotheses but cannot establis
 
 ### What is true now
 
-1. [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) — current status and development freeze;
-2. [`docs/RESEARCH_ROADMAP.md`](docs/RESEARCH_ROADMAP.md) — active execution order;
-3. [`docs/EDGE_RESEARCH_PROTOCOL.md`](docs/EDGE_RESEARCH_PROTOCOL.md) — discovery/validation rules;
-4. [`docs/HISTORICAL_DATA_STRATEGY.md`](docs/HISTORICAL_DATA_STRATEGY.md) — multi-year evidence strategy;
-5. [`docs/ACTIVE_RESEARCH_RISKS.md`](docs/ACTIVE_RESEARCH_RISKS.md) — risks that can invalidate current research;
-6. [`docs/PROJECT_STRATEGY_AND_ARCHITECTURE_PRINCIPLES.md`](docs/PROJECT_STRATEGY_AND_ARCHITECTURE_PRINCIPLES.md) — evidence-first design philosophy;
-7. [`docs/CODEBASE_STATUS.md`](docs/CODEBASE_STATUS.md) — active/frozen/deferred code surfaces;
-8. [`docs/RESEARCH_LEDGER.md`](docs/RESEARCH_LEDGER.md) — experiments, hypotheses and consumed windows.
+1. [`docs/CURRENT_RESEARCH_STATE.md`](docs/CURRENT_RESEARCH_STATE.md) — branch-pinned study routing and bounded cycle;
+2. [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) — current status and development freeze;
+3. [`docs/RESEARCH_ROADMAP.md`](docs/RESEARCH_ROADMAP.md) — active execution order;
+4. [`docs/EDGE_RESEARCH_PROTOCOL.md`](docs/EDGE_RESEARCH_PROTOCOL.md) — discovery/validation rules;
+5. [`docs/HISTORICAL_DATA_STRATEGY.md`](docs/HISTORICAL_DATA_STRATEGY.md) — multi-year evidence strategy;
+6. [`docs/ACTIVE_RESEARCH_RISKS.md`](docs/ACTIVE_RESEARCH_RISKS.md) — risks that can invalidate current research;
+7. [`docs/PROJECT_STRATEGY_AND_ARCHITECTURE_PRINCIPLES.md`](docs/PROJECT_STRATEGY_AND_ARCHITECTURE_PRINCIPLES.md) — evidence-first design philosophy;
+8. [`docs/CODEBASE_STATUS.md`](docs/CODEBASE_STATUS.md) — active/frozen/deferred code surfaces;
+9. [`docs/RESEARCH_LEDGER.md`](docs/RESEARCH_LEDGER.md) — experiments, hypotheses and consumed windows.
 
 ### How the project got here
 
@@ -170,8 +178,8 @@ Regardless of research direction:
 - engineering correctness and predictive evidence are separate;
 - a complicated model must earn its complexity against simple controls.
 
-## Restart condition
+## Restart conditions
 
-Product architecture resumes only after a candidate edge earns independent validation under [`docs/EDGE_RESEARCH_PROTOCOL.md`](docs/EDGE_RESEARCH_PROTOCOL.md).
+Signal-product architecture resumes only after a candidate edge earns independent validation under [`docs/EDGE_RESEARCH_PROTOCOL.md`](docs/EDGE_RESEARCH_PROTOCOL.md). A bounded assisted-audit offering may be evaluated separately if external owners value the output and the comparison shows lower effort or additional material errors caught.
 
 At that point the old Stage 6–10 plan is **not automatically resumed**. Architecture should be redesigned around the behavior and requirements of what the data actually validated.

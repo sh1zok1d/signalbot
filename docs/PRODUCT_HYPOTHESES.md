@@ -2,13 +2,13 @@
 
 **Status:** `DEFERRED / NON-EXECUTABLE`.
 
-Product/business exploration is intentionally frozen while Signalbot is in research-first mode. Nothing in this file authorizes implementation.
+Broad product implementation is frozen. A bounded comparison of the assisted-audit workflow against an ordinary notebook workflow is active research, not authorization to build a product UI or general platform.
 
-The next product decision should happen only after at least one analytical mechanism earns independent validation under `EDGE_RESEARCH_PROTOCOL.md`, or after the research program produces a clear reason to pivot away from predictive trading use cases.
+Signal-product decisions remain gated by independent analytical validation. Assisted-audit continuation has a separate gate: an external claim owner must value the result and the workflow must save meaningful effort or catch additional material errors.
 
 ## H1 — Information compression
 
-**Status:** `UNVALIDATED`
+**Status:** `ACTIVE BOUNDED WORKFLOW TEST / UNVALIDATED PRODUCT`
 
 Hypothesis: users may value reducing many market-data streams to a small amount of traceable decision-relevant context.
 
@@ -20,7 +20,7 @@ Open question: can Signalbot do this materially better than workflows built from
 
 Hypothesis: some users may value inspectable evidence, counter-evidence, methodology, limitations and provenance rather than opaque AI scores.
 
-Open question: is this a real repeated buying/use criterion or mainly a research virtue?
+Open question: across three comparable external cases, is this a real repeated user value and does it outperform a competent notebook workflow on effort or material-error detection?
 
 ## H3 — Historical contextualization / analogue analysis
 
@@ -67,7 +67,7 @@ This is not authorization to build a regime router before the underlying mechani
 
 ## Deferred product/business questions
 
-Do not answer these through brainstorming while edge research is unresolved:
+Do not answer these through brainstorming. Use owner-confirmed evidence where the bounded workflow test requires it:
 
 - initial user segment;
 - product wedge;
@@ -79,4 +79,4 @@ Do not answer these through brainstorming while edge research is unresolved:
 
 ## Re-entry trigger
 
-Product hypotheses may be promoted into experiments only after a deliberate strategy review triggered by real research evidence, not by implementation momentum.
+Signal-product hypotheses may be promoted only after analytical evidence. A bounded assisted-audit experiment may proceed under `CURRENT_RESEARCH_STATE.md`, but it does not authorize a general OS, autonomous discovery, UI build, pricing rollout, or signal-product expansion.

@@ -8,13 +8,15 @@ Signalbot is currently in `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN` mode.
 
 The synthetic Microscope calibration is closed (`V3_CALIBRATION_CLOSED = YES`). Canonical V3 is immutable historical evidence: confirmatory sensitivity was demonstrated on frozen synthetic `EASY`/`MODERATE`, but the methodology is not generally claimable (`NULL` `INDETERMINATE`, `NONSTATIONARY_TRAP` `FAIL`; `V3_METHODOLOGY_CLAIMABLE = NO`). Do not repair, rerun, or reinterpret V3 (`V3_RERUN_AUTHORIZED = NO`). Do not create V4 (`DEFAULT_V4 = NO`). V3 `DETECTED`/`PASS` is not by itself sufficient evidence of a robust market edge.
 
-The active research phase is **MARKET**. MARKET-01 is **RESULT** / closed under its frozen design (`FINAL_CLASSIFICATION = NO_EVIDENCE`). Do not rerun MARKET-01, change its thresholds, or rescue the sealed classification. Do not design a large new MARKET framework or new infrastructure merely because MARKET continues. Operating priority is approximately 70–80% actual market research and 20–30% infrastructure only when concrete research blockers require it. Primary progress metric: MARKET hypotheses honestly closed per week.
+The active research phase is a **bounded MARKET + external-claim evaluation cycle**. MARKET-01 and MARKET-02 are closed `NO_EVIDENCE`; MARKET-03 is a limited historical reproduction under a materially different success contract; MARKET-05 is closed without promotion. Do not compare their labels as a public-vs-internal hypothesis success rate. The canonical routing table is `docs/CURRENT_RESEARCH_STATE.md`.
+
+Do not design a large MARKET framework or create MARKET-07 merely to keep a queue moving. At most three active decision cards may exist. Progress is measured by useful prototypes, precise exclusions, changed research decisions, material errors caught, and total human effort—not hypotheses closed per week.
 
 B2-06 remains blocked (`BLOCKED_MISSING_OBSERVABLE` / funding publication-latency unproven). `MARKET-01` is not B2-06 and does not unblock it.
 
 The Microscope remains available as scientific instrumentation. It is not the active research program.
 
-The research objective remains: discover and independently validate one or two robust conditional market mechanisms — or reject the investigated hypotheses without post-hoc rescue. There is no current claim of durable trading edge.
+The current cycle has two separate objectives: (1) find useful decision-relevant prototypes and only then test novel incremental information where appropriate; (2) test whether Signalbot produces a more useful, reliable, or cheaper audit than a competent notebook workflow. There is no current claim of durable trading edge or comparative product value.
 
 V1 is frozen. V2 code is retained as research material, but V2 is **not** the active product-development roadmap.
 
@@ -24,14 +26,15 @@ The repository intentionally preserves old plans, failed hypotheses and frozen c
 
 For any new task, use this authority order:
 
-1. `docs/PROJECT_STATUS.md` — current posture and freeze;
-2. `docs/RESEARCH_ROADMAP.md` — active execution order;
-3. `docs/EDGE_RESEARCH_PROTOCOL.md` — research/validation rules;
-4. `docs/HISTORICAL_DATA_STRATEGY.md` — data evidence strategy;
-5. `docs/ACTIVE_RESEARCH_RISKS.md` — current inference risks;
-6. `docs/RESEARCH_LEDGER.md` — consumed windows/hypothesis history;
-7. `docs/DOCUMENTATION_INDEX.md` — current vs frozen/historical docs;
-8. `docs/PROJECT_HISTORY.md` — why the project evolved into the current posture.
+1. `docs/CURRENT_RESEARCH_STATE.md` — branch-pinned current routing and bounded cycle;
+2. `docs/PROJECT_STATUS.md` — current posture and freeze;
+3. `docs/RESEARCH_ROADMAP.md` — active execution order;
+4. `docs/EDGE_RESEARCH_PROTOCOL.md` — research/validation rules;
+5. `docs/HISTORICAL_DATA_STRATEGY.md` — data evidence strategy;
+6. `docs/ACTIVE_RESEARCH_RISKS.md` — current inference risks;
+7. `docs/RESEARCH_LEDGER.md` — consumed windows/hypothesis history;
+8. `docs/DOCUMENTATION_INDEX.md` — current vs frozen/historical docs;
+9. `docs/PROJECT_HISTORY.md` — why the project evolved into the current posture.
 
 For `E1-RUN-001`, also read its frozen preregistration and `docs/e1/` artifacts. Those research records remain authoritative for reproducing that experiment even when current project direction has changed.
 
@@ -50,11 +53,13 @@ Unless a task explicitly changes the project posture, do not build:
 - speculative generic frameworks;
 - new data/features merely to rescue weak results.
 
-Allowed work is research-supporting work: MARKET hypothesis formulation and honest closeout through the existing process; historical expansion; reproducible datasets; hypothesis tooling; baselines/controls; empirical evaluation; correctness fixes that protect evidence; and completion of already-frozen experiments. Infrastructure is in-scope only when a concrete research blocker requires it. Do not repair/rerun V3, create V4, execute B2-06, or treat V3 `DETECTED`/`PASS` as a robust market-edge claim.
+Allowed work is research-supporting work: the three slots in `CURRENT_RESEARCH_STATE.md`; historical expansion tied to a discriminating question; reproducible datasets; baselines/controls; empirical evaluation; correctness fixes that protect evidence; and completion of already-frozen experiments. Infrastructure is in-scope only when a concrete research blocker requires it. Do not repair/rerun V3, create V4, execute B2-06, or treat V3 `DETECTED`/`PASS` as a robust market-edge claim. Do not ARM MARKET-06 until the preregistered matrix-rank predicate exists in the frozen implementation and the affected surface is reviewed.
 
 ## Research governance
 
 Research must try to falsify hypotheses rather than protect the existing implementation.
+
+Separate prototype utility from novel incremental-information claims. A study failure must be classified as `PRECISE_NEGATIVE`, `UNRESOLVED`, or `INVALID`; do not let a failed promotion gate silently become a claim that the whole mechanism is false.
 
 Rules:
 

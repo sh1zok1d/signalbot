@@ -4,10 +4,11 @@
 
 The previous Stage 6–10 forecasting/product roadmap is no longer the active execution plan.
 
-Signalbot is in `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN` mode. Product architecture will not continue automatically until a market edge earns independent validation.
+Signalbot is in a bounded research and assisted-audit validation cycle. Signal-product architecture remains gated by independent edge validation; assisted-audit continuation has a separate comparative-workflow gate.
 
 Current sources of truth:
 
+- `CURRENT_RESEARCH_STATE.md`
 - `PROJECT_STATUS.md`
 - `RESEARCH_ROADMAP.md`
 - `EDGE_RESEARCH_PROTOCOL.md`

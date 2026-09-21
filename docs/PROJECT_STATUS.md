@@ -1,20 +1,20 @@
 # Signalbot — Current Project Status
 
-**Status date:** 2026-09-17
-**Operating mode:** `RESEARCH_FIRST / PRODUCT_DEVELOPMENT_FROZEN`
-**Active research phase:** `MARKET`
+**Status date:** 2026-09-21
+**Operating mode:** `BOUNDED_RESEARCH_AND_ASSISTED_AUDIT_VALIDATION / PRODUCT_BUILD_FROZEN`
+**Active research phase:** `MARKET-06 completion + two external workflow cases`
 
 This file is the canonical answer to: **what is Signalbot doing now?**
 
 ## 1. Current decision
 
-Further product/forecasting architecture development is frozen until the project demonstrates at least one independently validated market edge or produces sufficiently strong evidence that the investigated hypothesis classes do not contain one.
+Broad product/forecasting architecture development remains frozen. Signalbot now has two separately judged theses: whether it can produce useful market knowledge, and whether its assisted-audit workflow is better or cheaper than a competent notebook workflow. Neither thesis is yet validated.
 
 The goal is **not** to force the discovery of an edge. `NO EDGE`, `INSUFFICIENT DATA`, and `REJECTED` are valid outcomes.
 
-Signalbot is operating as a market-research platform rather than as a product-development program.
+Signalbot is currently a bespoke, human-supervised research and evidence-audit workbench. It is not yet demonstrated to be a general AI-native research OS.
 
-The synthetic Microscope calibration is closed. Canonical V3 is immutable historical evidence, not a live research program. The active next phase is **MARKET**: take real crypto-market hypotheses through the existing research process. Do not repair, rerun, or reinterpret V3. Do not create V4. V3 `DETECTED`/`PASS` is not by itself sufficient evidence of a robust market edge.
+The synthetic Microscope calibration is closed. Canonical V3 is immutable historical evidence, not a live research program. Do not repair, rerun, or reinterpret V3. Do not create V4. The active work is the three-slot cycle in `CURRENT_RESEARCH_STATE.md`, not an open-ended MARKET queue.
 
 ## 2. Why the direction changed
 
@@ -235,32 +235,36 @@ Post-close episode-construction throughput work is research
 infrastructure only (`docs/research/MARKET_01_EPISODE_CONSTRUCTION_PERF.md`);
 it does not reopen MARKET-01 or change the sealed RESULT.
 
-Post-calibration operating priority:
+Later study routing is summarized in `CURRENT_RESEARCH_STATE.md`:
+MARKET-02 is closed `NO_EVIDENCE`; MARKET-03 is a limited historical
+reproduction under a weaker/different success contract; MARKET-05 closed
+without promotion; MARKET-06 is unarmed and blocked on rank-check compliance.
+These labels are not comparable public-vs-internal success counts.
 
-- approximately 70–80% actual market research;
-- approximately 20–30% infrastructure only when concrete research
-  blockers require it.
+Current bounded cycle:
 
-Primary progress metric: MARKET hypotheses honestly closed per week.
+1. repair the missing MARKET-06 preregistered rank check outcome-blind, review the affected surface, and decide separately whether to ARM the existing question;
+2. run one external volatility benchmark;
+3. audit one owner-confirmed external claim against a notebook baseline.
 
-Initial evidence milestone: 25–50 real market hypotheses through the
-stable research process. That milestone is observational/research-oriented;
-it is not a promise that 25–50 studies establish alpha.
+Do not use a study-count quota. Progress requires at least one of: a useful prototype, a precise exclusion, a changed research decision, a material error caught, or measured workflow savings.
 
 B2-06 remains `BLOCKED_MISSING_OBSERVABLE` / funding publication-latency
 unproven. `MARKET-01` does not have to be B2-06 and does not silently
 unblock it. Do not rerun B2-05 or rescue closed B2-01 through B2-04
 results. Do not repair, rerun, or reinterpret V3. Do not create V4.
 
-The research objective remains:
+The research objectives are deliberately separate:
 
-> Discover and independently validate one or two market mechanisms with stable incremental information — or falsify the investigated mechanisms without rescuing them through post-hoc complexity.
+1. find a useful decision-relevant prototype, which need not initially prove novel information;
+2. test novel incremental information only where the claim requires it;
+3. measure whether the complete assisted audit improves reliability, usefulness, or cost relative to ordinary analyst work.
 
 A valid edge must survive more than a favorable backtest window. Exact requirements are defined in `docs/EDGE_RESEARCH_PROTOCOL.md`. Any promising MARKET result must retain explicit regime / nonstationarity scrutiny before stronger promotion claims.
 
-## 8. Restart gate for product architecture
+## 8. Separate continuation gates
 
-Product/forecasting architecture development may resume only after at least one candidate edge has:
+Signal-product/forecasting architecture may resume only after at least one candidate edge has:
 
 1. a clearly defined mechanism and deterministic rule;
 2. multi-year or otherwise regime-diverse evidence appropriate to the claim;
@@ -271,19 +275,22 @@ Product/forecasting architecture development may resume only after at least one 
 7. acceptable delay/cost sensitivity for the intended use;
 8. transparent sample concentration and missingness.
 
-Only then should lifecycle, risk orchestration, product UX, explanations and richer architecture be designed around the observed behavior of the validated edge.
+Only then should signal lifecycle, risk orchestration, product UX and richer forecasting architecture be designed around the validated behavior.
+
+The assisted-audit thesis has a different gate: compare three reasonably comparable external cases on total human effort, clarification/rework, material errors caught, and owner-valued decision quality. If there is neither meaningful saving nor additional material-error detection, stop the broad OS roadmap. If owners value the output but expert interpretation remains essential, test a bounded assisted-audit service rather than pretending the workflow is autonomous.
 
 ## 9. Canonical documents
 
 Read in this order:
 
-1. `docs/PROJECT_STATUS.md` — current posture and freeze;
-2. `docs/RESEARCH_ROADMAP.md` — active execution order;
-3. `docs/EDGE_RESEARCH_PROTOCOL.md` — rules for discovery/validation;
-4. `docs/HISTORICAL_DATA_STRATEGY.md` — data expansion strategy;
-5. `docs/ACTIVE_RESEARCH_RISKS.md` — current inference risks;
-6. `docs/RESEARCH_LEDGER.md` — consumed hypotheses/windows and experiment history;
-7. `docs/PROJECT_HISTORY.md` — why the project evolved into the current posture;
-8. `docs/DOCUMENTATION_INDEX.md` — current vs historical documents.
+1. `docs/CURRENT_RESEARCH_STATE.md` — branch-pinned routing and bounded cycle;
+2. `docs/PROJECT_STATUS.md` — current posture and freeze;
+3. `docs/RESEARCH_ROADMAP.md` — active execution order;
+4. `docs/EDGE_RESEARCH_PROTOCOL.md` — rules for discovery/validation;
+5. `docs/HISTORICAL_DATA_STRATEGY.md` — data expansion strategy;
+6. `docs/ACTIVE_RESEARCH_RISKS.md` — current inference risks;
+7. `docs/RESEARCH_LEDGER.md` — consumed hypotheses/windows and experiment history;
+8. `docs/PROJECT_HISTORY.md` — why the project evolved into the current posture;
+9. `docs/DOCUMENTATION_INDEX.md` — current vs historical documents.
 
 When a legacy V2/Stage document conflicts with this file about **current project direction**, this file wins. Historical contracts still govern interpretation/reproduction of experiments that were frozen under them.

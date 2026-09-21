@@ -6,11 +6,12 @@ The former V2 implementation-stage execution plan is no longer active.
 
 Current execution authority:
 
-1. `PROJECT_STATUS.md`
-2. `RESEARCH_ROADMAP.md`
-3. `EDGE_RESEARCH_PROTOCOL.md`
-4. `HISTORICAL_DATA_STRATEGY.md`
-5. `RESEARCH_LEDGER.md`
+1. `CURRENT_RESEARCH_STATE.md`
+2. `PROJECT_STATUS.md`
+3. `RESEARCH_ROADMAP.md`
+4. `EDGE_RESEARCH_PROTOCOL.md`
+5. `HISTORICAL_DATA_STRATEGY.md`
+6. `RESEARCH_LEDGER.md`
 
 The complete previous execution plan remains in git history at commit `a9c383355690c5ab9bcc577454da3ebec75d8d89` for historical reproducibility.
 

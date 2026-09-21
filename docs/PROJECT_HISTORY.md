@@ -331,3 +331,22 @@ crypto-market hypothesis through the existing research process. That
 unit is named, not executed, by this closeout. B2-06 remains blocked on
 its missing-observable / funding publication-latency record and is not
 silently unblocked by MARKET becoming active.
+
+## 13. Independent audit and bounded-cycle correction (2026-09-21)
+
+An independent source-and-contract audit found that Signalbot had developed
+credible research-audit capabilities but had not demonstrated comparative
+value over a competent analyst + notebook workflow. It also showed that the
+search had been narrower than hypothesis names suggested and that compound
+promotion failures were sometimes at risk of being interpreted too broadly.
+
+The project therefore stopped using hypotheses-closed-per-week and a 25–50
+study quota as primary progress measures. The active plan became three bounded
+slots: finish MARKET-06 safely, test an external volatility benchmark, and
+audit one owner-confirmed external claim against a notebook baseline.
+
+This change did not erase prior results. It separated three questions that
+had been mixed together: scientific correctness, hypothesis-search quality,
+and comparative product/workflow value. It also separated finding a useful
+prototype from proving novel incremental information. Negative results now
+close an explicit tested tuple rather than an entire narrative mechanism.

@@ -19,9 +19,11 @@ Read these first:
 
 | Document | Status | Purpose |
 |---|---|---|
-| `PROJECT_STATUS.md` | **ACTIVE / CANONICAL** | Current project posture, freeze, empirical state and restart gate. Active research phase: `MARKET`. V3 Microscope calibration closed. |
-| `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. MARKET-01 closed `NO_EVIDENCE`; V3 closed; no V4; B2-06 remains blocked. |
+| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Branch-pinned current lifecycle, bounded three-slot cycle, continuation/stop criteria. Wins for present routing without rewriting historical artifacts. |
+| `PROJECT_STATUS.md` | **ACTIVE / CANONICAL** | Current project posture, separate research/audit theses, freeze and continuation gates. |
+| `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Three-slot bounded cycle; MARKET-06 rank blocker; external benchmark and owner-confirmed workflow comparison. |
 | `EDGE_RESEARCH_PROTOCOL.md` | **ACTIVE / CANONICAL** | Discovery/validation rules and anti-overfit discipline |
+| `RESEARCH_DECISION_CARD.md` | **ACTIVE TEMPLATE** | Required one-page decision/estimand/exposure/actions/cost record; maximum three active cards; not an ARM |
 | `HISTORICAL_DATA_STRATEGY.md` | **ACTIVE / CANONICAL** | Multi-year CORE vs shorter RICH evidence strategy |
 | `DATA_CAPABILITY_MATRIX.md` | **ACTIVE / RESEARCH DATA DESIGN** | Verified source/venue/date/granularity map and acquisition order for the 2020/2021–2026 research program |
 | `CORE_BTC_BINANCE_V0_PROBE_RUNBOOK.md` | **ACTIVE / RESEARCH INFRASTRUCTURE** | How to run the small deterministic `CORE_BTC_BINANCE_V0` source-capability probe; why `SOURCE_PROBE_PASSED` != `DATASET_ACCEPTED` |
@@ -59,8 +61,12 @@ Read these first:
 | `research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE_V1.json` | **HISTORICAL amendment-001 freeze twin** | Binds amendment-001 payload `b4459ab9…`; superseded by amendment 002 freeze |
 | `research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION.md` | **IMPLEMENTED_OUTCOME_BLIND / NOT EXECUTED** | MARKET-06 evaluator identity after amendment 002; canonical execution refused |
 | `research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION.json` | **IMPLEMENTED_OUTCOME_BLIND twin** | Binds prereg freeze `e2d543ea…`; `real_canonical_execution_refused=true` |
-| `research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION_FREEZE.md` | **IMPLEMENTATION_FROZEN_OUTCOME_BLIND / CURRENT IMPLEMENTATION AUTHORITY** | Docs-only freeze of implementation `81c8e0a8…` / tree `7f4e0a85…`; not an ARM; not execution |
-| `research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION_FREEZE.json` | **IMPLEMENTATION_FROZEN_OUTCOME_BLIND twin** | Module SHA256 inventory; `freeze_commit_head`/`tree` intentionally `UNSET_UNTIL_THIS_COMMIT` |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION_FREEZE.md` | **HISTORICAL INITIAL IMPLEMENTATION FREEZE** | Initial implementation `81c8e0a8…`; superseded for current routing by later implementation/lifecycle repairs and refreezes |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION_FREEZE.json` | **HISTORICAL INITIAL IMPLEMENTATION FREEZE twin** | Initial module inventory; not current routing authority |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION_REPAIR.md` | **OUTCOME_BLIND REPAIR RECORD** | Scientific/authority repair record at `378e8fd`; no outcomes, ARM, or execution |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION_REFREEZE.md` | **OUTCOME_BLIND REFREEZE** | Refreeze at `6fc1b62`; later lifecycle repair supersedes its routing status |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_LIFECYCLE_REPAIR.md` | **OUTCOME_BLIND LIFECYCLE REPAIR** | Durable claim/attempt/result lifecycle repair at `0ff43e6`; no outcomes or ARM |
+| `research/MARKET_06_CROSS_VENUE_DISLOCATION_LIFECYCLE_REFREEZE.md` | **CURRENT M06 ROUTING HEAD / UNARMED** | Refreeze at `c435158`; lifecycle durability closed, rank-check compliance still blocks ARM |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.md` | **FROZEN_OUTCOME_BLIND payload** | Frozen MARKET-01 preregistration bytes; SHA256 `d82b60e1…`; internal materialization-unit status string left unchanged; freeze authority is the freeze document |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG.json` | **FROZEN_OUTCOME_BLIND payload** | Frozen machine-readable twin; SHA256 `6885abaf…` |
 | `research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_PREREG_FREEZE.md` | **FROZEN_OUTCOME_BLIND / CURRENT FREEZE AUTHORITY** | Docs-only freeze of materialization `9c1a661c…` / tree `1928969e…`; SHA256 `e0e0da9e…`; not an ARM; not execution |

@@ -102,19 +102,19 @@ But “the market regime was bad” is only an exploratory explanation until:
 
 A no-trade state is a valid product outcome if the evidence supports conditional rather than continuous forecasting.
 
-## 9. Product positioning remains deferred
+## 9. Product positioning is split by thesis
 
 Signalbot does not aim to out-feature TradingView, CoinGlass, exchanges or general-purpose AI systems.
 
-The eventual product should target a narrow decision-support problem that is justified by real evidence and user workflow value.
+Any eventual product should target a narrow decision-support problem justified by real evidence and user workflow value.
 
-Do not decide the product wedge, moat or monetization model while the core analytical value remains unvalidated.
+Signal-product positioning remains deferred until analytical validation. A bounded assisted-audit workflow comparison is allowed now because it tests comparative user value directly; it does not authorize a general research OS, autonomous discovery, UI build, or monetization rollout.
 
-`docs/PRODUCT_HYPOTHESES.md` is a parking lot only.
+`docs/PRODUCT_HYPOTHESES.md` remains non-executable except for the bounded workflow test routed by `CURRENT_RESEARCH_STATE.md`.
 
 ## 10. Architecture restart test
 
-Before restarting product development, at least one candidate edge must satisfy the validation standard in `docs/EDGE_RESEARCH_PROTOCOL.md`.
+Before restarting signal-product development, at least one candidate edge must satisfy the validation standard in `docs/EDGE_RESEARCH_PROTOCOL.md`. Assisted-audit continuation instead requires comparative workflow evidence; the two gates are independent.
 
 Then ask:
 
@@ -146,11 +146,12 @@ Until the restart gate:
 - speculative multi-engine platform work;
 - UI/Telegram feature expansion;
 - production V2 enablement;
-- business-model expansion;
+- business-model expansion beyond the bounded external workflow-value test;
 - expensive rich-data acquisition without a specific validated-core incremental hypothesis.
 
 ## 13. Canonical companions
 
+- `CURRENT_RESEARCH_STATE.md`
 - `PROJECT_STATUS.md`
 - `RESEARCH_ROADMAP.md`
 - `EDGE_RESEARCH_PROTOCOL.md`

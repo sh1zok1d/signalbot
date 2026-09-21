@@ -5,7 +5,9 @@
 
 The project does not resume product architecture work merely because an implementation stage is technically available. Research evidence is now the gating dependency.
 
-**Active next phase (2026-09-17):** `MARKET`. The synthetic Microscope
+**Active bounded cycle (2026-09-21):** complete the existing MARKET-06
+question safely, run one external volatility benchmark, and audit one
+owner-confirmed external claim against a notebook baseline. The synthetic Microscope
 calibration is closed (`V3_CALIBRATION_CLOSED = YES`). The Microscope
 remains available as scientific instrumentation and is no longer the
 active research program. Do not repair, rerun, or reinterpret V3. Do not
@@ -21,26 +23,29 @@ change its thresholds or windows. Post-close `construct_episodes`
 throughput work is infrastructure only and does not reopen the closed
 RESULT. Do not design a large new MARKET
 framework. A later market hypothesis requires a new research ID.
-Do not create new infrastructure merely because MARKET is beginning. Operating
-priority is approximately 70–80% actual market research and 20–30%
-infrastructure only when concrete research blockers require it. Primary
-progress metric: MARKET hypotheses honestly closed per week. Initial
-observational milestone: 25–50 real market hypotheses through the stable
-research process — not a promise that 25–50 studies establish alpha.
+Do not create new infrastructure merely because MARKET continues. Do not
+create MARKET-07 or force a study-count quota. Keep at most three active
+decision cards. Progress means a useful prototype, a precise exclusion, a
+changed research decision, a material error caught, or measured workflow
+savings.
 
 B2-06 remains `BLOCKED_MISSING_OBSERVABLE`. `MARKET-01` is not required
 to be B2-06 and does not silently unblock it.
 
 MARKET-06 (`MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK`) is
-**implemented and implementation-frozen outcome-blind** after
-pre-outcome amendment 002. It is not executed, not ARMed, and not a
+**preregistered and implementation/lifecycle-frozen outcome-blind** after
+pre-outcome amendment 002 and later implementation/lifecycle repairs. It is not executed, not ARMed, and not a
 MARKET-01 rerun. Live prereg freeze:
 `docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE.json`
 (payload `6342d24e…`). Live implementation freeze:
 `docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION_FREEZE.json`
-(implementation `81c8e0a8…`). Next unit:
-`MARKET_06_IMPLEMENTATION_RED_TEAM_REVIEW`. Do not inspect outcomes
-under this identity until a later authorized execution.
+(historical implementation `81c8e0a8…`). The current routing head is
+`c435158`; see `CURRENT_RESEARCH_STATE.md` and the later repair/refreeze
+records. Lifecycle durability is repaired at that head. The preregistered
+`matrix_rank(X'X)` predicate is still absent from `ols_solve`, so MARKET-06
+is blocked before ARM. Next unit: outcome-blind rank-compliance repair plus
+affected-surface review. Do not inspect outcomes under this identity until a
+later, separate authorization.
 
 ## R0 — E1 frozen experiment closeout
 
@@ -432,9 +437,11 @@ Do not resurrect old Stage 6–10 scope automatically. Re-evaluate what is actua
 
 ## Definition of progress
 
-During the MARKET phase, the primary progress metric is **MARKET
-hypotheses honestly closed per week**. Infrastructure work is progress
-only when it unblocks a concrete research blocker.
+During this cycle, do not optimize for hypotheses closed per week. Record
+useful prototypes, precise exclusions, unresolved/invalid studies, decisions
+changed, human effort, defects/rework, and comparative notebook-workflow
+results. Infrastructure work is progress only when it unblocks a concrete
+research blocker.
 
 Report separately:
 
@@ -443,4 +450,6 @@ Report separately:
 3. **validation status**;
 4. **engineering support readiness**.
 
-Only the first three can justify restarting product development.
+The first three govern signal-product research. Comparative workflow value
+governs any assisted-audit continuation. Neither thesis may borrow success
+from the other.

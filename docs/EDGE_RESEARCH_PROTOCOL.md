@@ -3,7 +3,7 @@
 **Status:** ACTIVE  
 **Purpose:** prevent the new research-first direction from becoming unrestricted backtest mining.
 
-The objective is to discover and independently validate robust conditional market structure. The objective is **not** to force a profitable rule out of historical data.
+The objective is to reduce decision-relevant uncertainty and, where possible, discover and independently validate useful market structure. The objective is **not** to force a profitable rule out of historical data.
 
 ## 1. Evidence labels
 
@@ -14,6 +14,11 @@ Every hypothesis/configuration must be labeled as one of:
 - `VALIDATED_CANDIDATE` — survived the declared independent validation;
 - `REJECTED` — evidence does not justify continued use in its current form;
 - `INCONCLUSIVE_SAMPLE` — insufficient evidence to distinguish survival from failure.
+
+For study closure, also state one of `POSITIVE`, `PRECISE_NEGATIVE`,
+`UNRESOLVED`, or `INVALID`. These describe whether the prespecified decision
+was supported, precisely ruled out, left unresolved, or made uninterpretable
+by data/implementation/estimand failure.
 
 Do not promote `EXPLORATORY` results by rhetoric.
 
@@ -231,7 +236,32 @@ The following do not create additional market regimes:
 
 These tools can be useful for diagnostics/uncertainty, but they cannot substitute for real out-of-time market evidence.
 
-## 19. Research ledger requirement
+## 19. Decision-card requirement
+
+Before implementation, complete `RESEARCH_DECISION_CARD.md`. No more than
+three cards may be active. The card must identify what action follows every
+closure state; otherwise the study should not run.
+
+Every conclusion is scoped to `population × measurement × target × horizon ×
+model/loss × comparator × detectable effect`. A failed promotion gate does
+not automatically falsify a mechanism, and a successful historical
+comparison does not automatically establish persistence, independence, or
+tradability.
+
+Prototype utility and novel incremental information are separate objectives.
+A simple useful forecast may be worth testing before demanding a novel
+mechanism; an incremental feature must still beat its proper comparator before
+earning complexity.
+
+## 20. Adaptive exposure accounting
+
+Record exposure to raw outcomes, summaries, external authors' results, and
+related proposed/abandoned/executed variants. A new ID or preregistration does
+not make reused historical evidence independent. Work influenced by consumed
+history remains adaptive exploration unless genuinely separate evidence
+supports confirmation.
+
+## 21. Research ledger requirement
 
 Every confirmatory run and every material post-hoc hypothesis must be recorded in `docs/RESEARCH_LEDGER.md` or a versioned machine-readable successor.
 
