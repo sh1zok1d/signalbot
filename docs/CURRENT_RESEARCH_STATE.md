@@ -86,11 +86,29 @@ ordinary same-time common-factor dependence, not just the tested cross-lag;
 `LEAD_LAG_1DAY` is now `DEFERRED_FROM_SPRINT_01` (no complex replacement
 null invented), `ROLLING_CORRELATION_90D` retained unchanged.
 
+**Superseded once more by `DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX`**
+(reviewed commit `475072d22f4c4631836ca7d38ccdc5da6ce59222`,
+`docs/research/DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX.{json,md}`),
+D3, D4's practical-threshold semantics, and D5 only; D1 and D6 unchanged.
+D3's real functionals used 5m HIGH/LOW while its surrogate only ever
+produced a close-to-close path -- a real/null observable mismatch, fixed
+(without inventing synthetic high/low) by redefining D3 as CLOSE-PATH
+morphology: `MAX_UPSIDE_CLOSE_24H`, `MAX_DOWNSIDE_CLOSE_24H`,
+`TIME_TO_MAX_ABS_CLOSE_EXCURSION` (exactly 3 functionals; `PATH_ASYMMETRY`
+removed, since the original card allowed at most 2-3 and it is derivative
+of the other two anyway). D4's `ROLLING_CORRELATION_90D` practical gate
+made mathematically exact: `PRACTICAL_EXCESS_RANGE =
+OBSERVED_CORRELATION_RANGE - NULL_RANGE_MEDIAN >= 0.15`. D5's
+"beats best component" check corrected to compare against
+`COMPONENT_A_DELTA_FOR_D5` / `COMPONENT_B_DELTA_FOR_D5` (both evaluated
+on D5's exact common interval `2022-02-01 -> 2025-01-01`), not D2
+RULE_1's unrestricted full-2020-2024 result.
+
 **Current per-card status:** `D1 = BLOCKED_PENDING_PRE_OUTCOME_FIX`;
 `D2, D3, D5 = EXECUTABLE_DISCOVERY_SPEC`; `D4 =
 EXECUTABLE_DISCOVERY_SPEC (ROLLING_CORRELATION_90D only, LEAD_LAG_1DAY
 deferred)`; `D6 = DEFERRED`.
-`EXECUTION_AUTHORIZED = PARTIAL (D2, D3, D4 [rolling-correlation only], D5)`.
+`EXECUTION_AUTHORIZED = D2, D3, D4_ROLLING, D5`.
 
 The orthogonal-region selection is recorded in
 `docs/research/MARKET_NEXT_HYPOTHESIS_SELECTION.{json,md}` (commit

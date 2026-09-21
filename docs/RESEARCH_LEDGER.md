@@ -3755,3 +3755,81 @@ amendments layered into `docs/research/DISCOVERY_SPRINT_01_SPEC_COMPILATION.{jso
   gated separately on `D1_NULL_ADEQUACY_GATE_EXECUTION`,
   `D4_LEAD_LAG_REPLACEMENT_NULL_OR_PERMANENT_DEFERRAL`, and
   `D6_REPLACEMENT_BENCHMARK_SELECTION`
+
+## 2026-09-21 — Discovery Sprint 01 final mechanical pre-execution fix (D3, D4, D5 only)
+
+`DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX` (reviewed commit
+`475072d22f4c4631836ca7d38ccdc5da6ce59222`) is a narrow, outcome-blind
+mechanical correction addressing D3's real/null observable mismatch,
+D4's practical-threshold exactness, and D5's component comparison; D1
+and D6 unchanged. No card was executed; no scientific/candidate
+performance was inspected; protected 2025/2026 remained unopened; no
+MARKET-07 was created.
+
+**D3 -- real/null observable mismatch.** D3's real functionals used 5m
+bar HIGH/LOW values, but the frozen `5m_RETURN_TIME_OF_DAY_STRATIFIED_
+BLOCK_BOOTSTRAP` surrogate generates only a synthetic close-to-close
+log-return path -- it never synthesizes intra-bar high/low. Real and
+surrogate were therefore not the same observable despite sharing
+functional names. No synthetic high/low was invented. D3 is redefined
+as CLOSE-PATH morphology so real and surrogate paths are mechanically
+identical objects (a sequence of 288 5m close prices), with exactly
+three functionals: `MAX_UPSIDE_CLOSE_24H = max(0, max_k((close_k -
+entry_open)/entry_open))`, `MAX_DOWNSIDE_CLOSE_24H = max(0,
+max_k((entry_open - close_k)/entry_open))`, and
+`TIME_TO_MAX_ABS_CLOSE_EXCURSION` (earliest bar offset attaining the max
+of the two). `PATH_ASYMMETRY` is removed from Sprint 01: the original
+D3 card allowed at most 2-3 functionals, the prior correction round had
+accidentally expanded the surface to 4 by adding it, and it is
+derivative of the two excursion functionals anyway. Entry reference
+(`entry_open = ev.get_perp_bar_opening_at(perp, t_ms).open`) and tie
+handling (earliest bar offset wins) are unchanged from the prior
+correction; the time-of-day-stratified bootstrap null itself is kept
+unchanged, since it already generates exactly the close-path observable
+this fix requires.
+
+**D4 -- practical gate made exact.** `ROLLING_CORRELATION_90D`'s
+practical magnitude threshold ("swings by at least 0.15
+correlation-points beyond null-implied noise") was not mathematically
+pinned. Corrected: `OBSERVED_CORRELATION_RANGE = max(real
+rolling_corr_90d) - min(real rolling_corr_90d)`; `NULL_RANGE_MEDIAN =
+median` over the 1000 bootstrap replicates of each replicate's own
+`max - min` range; `PRACTICAL_EXCESS_RANGE = OBSERVED_CORRELATION_RANGE
+- NULL_RANGE_MEDIAN`; practical gate `PRACTICAL_EXCESS_RANGE >= 0.15`.
+The existing statistical variance-vs-null gate is retained unchanged
+alongside this now-exact practical gate. `LEAD_LAG_1DAY` remains
+`DEFERRED_FROM_SPRINT_01`.
+
+**D5 -- common-window component comparison.** D5's own execution
+interval is correctly restricted to `2022-02-01T00:05:00Z ->
+2025-01-01T00:00:00Z` (bound by component_B/RULE_2's cross-venue data
+availability), but D2 RULE_1 (component_A) reports its `DELTA` over its
+own full `2020-02-01 -> 2025-01-01` interval -- comparing D5's `DELTA`
+against RULE_1's full-interval result would not be apples-to-apples
+(different N, different sub-periods/regimes). Frozen:
+`COMPONENT_A_DELTA_FOR_D5` = D2 RULE_1 evaluated on the exact D5 common
+interval (a second, narrower evaluation of RULE_1, solely as this
+comparison's input); `COMPONENT_B_DELTA_FOR_D5` = D2 RULE_2 evaluated on
+the same interval, which already coincides with RULE_2's own native
+interval, so no additional computation is needed. `COMPOSED_BEATS_
+COMPONENTS` iff `D5_DELTA > max(COMPONENT_A_DELTA_FOR_D5,
+COMPONENT_B_DELTA_FOR_D5)`. D2 RULE_1's own broader 2020-2024 discovery
+result is unaffected and may still be separately reported. This
+overlap-window comparison is a pre-declared requirement specific to D5,
+frozen outcome-blind, and must not be selected or adjusted after
+observing any card's outcome.
+
+Evidence: `docs/research/DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX.{json,md}`,
+amendments layered into `docs/research/DISCOVERY_SPRINT_01_SPEC_COMPILATION.{json,md}`.
+
+- `D1_STATUS = BLOCKED_PENDING_PRE_OUTCOME_FIX` (unchanged)
+- `D2_STATUS = D3_STATUS = D5_STATUS = EXECUTABLE_DISCOVERY_SPEC`
+- `D4_STATUS = EXECUTABLE_DISCOVERY_SPEC (ROLLING_CORRELATION_90D only)`
+- `D6_STATUS = DEFERRED` (unchanged)
+- `SCIENTIFIC_OUTCOMES_COMPUTED = false`
+- `CANDIDATE_PERFORMANCE_INSPECTED = false`
+- `MARKET_07_CREATED = false`
+- `PROTECTED_2025_OPENED = false`
+- `PROTECTED_2026_OPENED = false`
+- `EXECUTION_AUTHORIZED = D2, D3, D4_ROLLING, D5`
+- next required step: `DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5`

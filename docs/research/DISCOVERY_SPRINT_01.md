@@ -446,3 +446,49 @@ gated separately on `D1_NULL_ADEQUACY_GATE_EXECUTION`,
 `D6_REPLACEMENT_BENCHMARK_SELECTION`.
 
 Full record: `docs/research/DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4.{json,md}`.
+
+## Final mechanical pre-execution fix (2026-09-21)
+
+`DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX` (reviewed commit
+`475072d`) corrected D3, D4's practical-threshold semantics, and D5
+only; D1 and D6 unchanged.
+
+D3's real functionals used 5m bar HIGH/LOW values, but the frozen
+surrogate (time-of-day-stratified 5m return block bootstrap) only ever
+produces a close-to-close log-return path — a real/null observable
+mismatch, without inventing synthetic intra-bar high/low. D3 is redefined
+as **CLOSE-PATH morphology**, exactly three functionals:
+`MAX_UPSIDE_CLOSE_24H`, `MAX_DOWNSIDE_CLOSE_24H`,
+`TIME_TO_MAX_ABS_CLOSE_EXCURSION` (earliest bar offset attaining the max
+of the two), both floored at zero. `PATH_ASYMMETRY` is removed (the
+original card allowed at most 2-3 functionals; the previous correction
+round had accidentally expanded to 4). The time-of-day-stratified null
+itself is unchanged — it already generates exactly the close-path
+observable this fix needs.
+
+D4's `ROLLING_CORRELATION_90D` practical magnitude threshold is made
+exact: `PRACTICAL_EXCESS_RANGE = OBSERVED_CORRELATION_RANGE -
+NULL_RANGE_MEDIAN >= 0.15`, where `NULL_RANGE_MEDIAN` is the median,
+across the 1000 bootstrap replicates, of each replicate's own
+rolling-correlation range. The existing statistical variance-vs-null
+gate is kept unchanged alongside it. `LEAD_LAG_1DAY` remains
+`DEFERRED_FROM_SPRINT_01`.
+
+D5's exact interval (`2022-02-01T00:05:00Z → 2025-01-01T00:00:00Z`) does
+not match D2 RULE_1's own broader `2020-02-01 → 2025-01-01` interval, so
+comparing D5's `DELTA` against RULE_1's full-interval result would not
+be apples-to-apples. `COMPONENT_A_DELTA_FOR_D5` (RULE_1 re-evaluated on
+D5's exact common window) and `COMPONENT_B_DELTA_FOR_D5` (RULE_2,
+already on that same window) are frozen as the comparison inputs; D2
+RULE_1's own broader result is unaffected and may still be separately
+reported. This is a pre-declared, D5-scoped comparison, decided
+outcome-blind.
+
+**Final status:** D1 `BLOCKED_PENDING_PRE_OUTCOME_FIX`; D2, D3, D5
+`EXECUTABLE_DISCOVERY_SPEC`; D4 `EXECUTABLE_DISCOVERY_SPEC` scoped to
+`ROLLING_CORRELATION_90D` only; D6 `DEFERRED`.
+
+`EXECUTION_AUTHORIZED = D2, D3, D4_ROLLING, D5`.
+`NEXT_UNIT = DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5`.
+
+Full record: `docs/research/DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX.{json,md}`.

@@ -1,0 +1,80 @@
+{
+  "schema": "signalbot_discovery_sprint_mechanical_pre_execution_fix",
+  "schema_version": "1.0.0",
+  "unit_id": "DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX",
+  "unit_type": "OUTCOME_BLIND_MECHANICAL_PRE_EXECUTION_FIX",
+  "date": "2026-09-21",
+  "reviewed_commit": "475072d22f4c4631836ca7d38ccdc5da6ce59222",
+  "scope": "D3 close-path redefinition, D4 practical-threshold exactness, D5 common-window component comparison ONLY. D1 and D6 unchanged.",
+  "explicit_non_actions_this_unit": {
+    "DISCOVERY_SPRINT_01_CARD_EXECUTED": false,
+    "CANDIDATE_PERFORMANCE_INSPECTED": false,
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "MARKET_07_CREATED": false
+  },
+  "D3_correction": {
+    "problem": "The real D3 functionals used 5m bar HIGH/LOW values (max/min excursion), but the frozen surrogate (5m_RETURN_TIME_OF_DAY_STRATIFIED_BLOCK_BOOTSTRAP) generates only a synthetic CLOSE-to-close log-return path -- it never synthesizes intra-bar high/low. The real and surrogate statistics were therefore not the same observable, even though both were labelled the same functional names. No synthetic high/low is invented to fix this; instead D3 is redefined so both real and surrogate paths are mechanically identical objects: a sequence of 288 5m CLOSE prices.",
+    "corrected_functional_definitions": {
+      "MAX_UPSIDE_CLOSE_24H": "max(0, max_{k=0..287}( (close_k - entry_open) / entry_open ))",
+      "MAX_DOWNSIDE_CLOSE_24H": "max(0, max_{k=0..287}( (entry_open - close_k) / entry_open ))",
+      "TIME_TO_MAX_ABS_CLOSE_EXCURSION": "earliest 5m bar offset (0-287) attaining max(MAX_UPSIDE_CLOSE_24H, MAX_DOWNSIDE_CLOSE_24H)"
+    },
+    "exactly_three_functionals": true,
+    "PATH_ASYMMETRY_removed": {
+      "reason": [
+        "the original D3 card allowed at most 2-3 functionals",
+        "the prior correction round accidentally expanded the surface to 4 (adding PATH_ASYMMETRY on top of the 3 excursion/timing functionals)",
+        "PATH_ASYMMETRY is derivative of MAX_UPSIDE_CLOSE_24H / MAX_DOWNSIDE_CLOSE_24H anyway and adds no independent information"
+      ]
+    },
+    "real_and_surrogate_identity": "close_k is used identically for both the real path (real future_bar_k.close, k=0..287, from CORE_BTC_BINANCE_V0) and the surrogate path (the cumulative-return-compounded close series already produced by the time-of-day-stratified 5m return bootstrap). No high/low field is read or synthesized by D3 in either case.",
+    "floors": {
+      "MAX_UPSIDE_CLOSE_24H_floor": "MAX_UPSIDE_CLOSE_24H >= 0 (if close never rises above entry_open, the maximum upside excursion is 0, not negative)",
+      "MAX_DOWNSIDE_CLOSE_24H_floor": "MAX_DOWNSIDE_CLOSE_24H >= 0 (if close never falls below entry_open, the maximum downside excursion is 0, not negative)"
+    },
+    "TIME_TO_MAX_ABS_CLOSE_EXCURSION_tie_handling": "Earliest 5m bar offset wins any tie (retained from the prior correction's tie-handling convention).",
+    "entry_reference": "entry_open = ev.get_perp_bar_opening_at(perp, t_ms).open -- unchanged, the same legally-known entry reference already frozen in the prior pre-execution correction.",
+    "null_family_kept": "5m_RETURN_TIME_OF_DAY_STRATIFIED_BLOCK_BOOTSTRAP (block length 12 bars, 1000 replicates, seed D3_NULL_SURROGATE_SEED=20260921103, companion block lengths 6/24, all slot-stratified) is UNCHANGED and now generates exactly the observable D3 needs: a synthetic 288-bar CLOSE path per replicate, computed identically to the real close path.",
+    "SPEC_STATUS_AFTER_CORRECTION": "EXECUTABLE_DISCOVERY_SPEC"
+  },
+  "D4_correction": {
+    "problem": "ROLLING_CORRELATION_90D's practical_magnitude_threshold ('swings by at least 0.15 correlation-points peak-to-trough beyond null-implied noise') was not mathematically exact -- 'beyond null-implied noise' was not pinned to a specific computable quantity.",
+    "corrected_practical_gate": {
+      "OBSERVED_CORRELATION_RANGE": "max(real ROLLING_CORRELATION_90D series) - min(real ROLLING_CORRELATION_90D series)",
+      "NULL_RANGE_MEDIAN": "median, over the 1000 BLOCK_BOOTSTRAP_PAIRED_RETURNS replicates, of [max(that replicate's ROLLING_CORRELATION_90D series) - min(that replicate's ROLLING_CORRELATION_90D series)]",
+      "PRACTICAL_EXCESS_RANGE": "OBSERVED_CORRELATION_RANGE - NULL_RANGE_MEDIAN",
+      "practical_gate": "PRACTICAL_EXCESS_RANGE >= 0.15"
+    },
+    "statistical_gate_kept": "ROLLING_CORRELATION_90D's realized variance across the interval exceeds the 97.5th percentile of the block-bootstrap null's implied variance -- UNCHANGED, retained alongside the now-exact practical gate (both must independently be checked; neither replaces the other).",
+    "LEAD_LAG_1DAY_status_unchanged": "DEFERRED_FROM_SPRINT_01 (unchanged from the prior pre-execution correction).",
+    "SPEC_STATUS_AFTER_CORRECTION": "EXECUTABLE_DISCOVERY_SPEC, scoped to ROLLING_CORRELATION_90D only"
+  },
+  "D5_correction": {
+    "problem": "D5's own execution interval is correctly restricted to 2022-02-01T00:05:00Z -> 2025-01-01T00:00:00Z (bound by component_B/RULE_2's cross-venue data availability, per the first red-team review's F1 fix). D2 RULE_1 (component_A), however, reports its DELTA over its own full 2020-02-01 -> 2025-01-01 discovery interval. Comparing D5's DELTA against RULE_1's full-interval DELTA in the 'beats best component' check would compare statistics computed over materially different windows (different N, different sub-periods/regimes) -- not a valid apples-to-apples comparison.",
+    "corrected_comparison": {
+      "COMPONENT_A_DELTA_FOR_D5": "D2 RULE_1 (RV_ABSTENTION) evaluated on the EXACT D5 common interval, 2022-02-01T00:05:00Z -> 2025-01-01T00:00:00Z, NOT RULE_1's own broader 2020-2024 reported result. This requires RULE_1 to be evaluated a second time, restricted to this narrower window, solely to serve as this comparison input.",
+      "COMPONENT_B_DELTA_FOR_D5": "D2 RULE_2 (DISLOCATION_ABSTENTION) evaluated on the exact same D5 common interval -- this already coincides with RULE_2's own native interval (both are 2022-02-01T00:05:00Z -> 2025-01-01T00:00:00Z), so no additional computation beyond RULE_2's own D2 result is needed here.",
+      "COMPOSED_BEATS_COMPONENTS_rule": "COMPOSED_BEATS_COMPONENTS iff D5_DELTA > max(COMPONENT_A_DELTA_FOR_D5, COMPONENT_B_DELTA_FOR_D5)."
+    },
+    "D2_RULE_1_own_result_unaffected": "D2 RULE_1 may still separately report its broader 2020-2024 discovery result under D2's own card; that full-interval result is NOT replaced or overwritten by the D5-scoped, narrower-window evaluation. The narrower evaluation exists solely as an input to D5's comparison and is not itself a second D2 result.",
+    "pre_declared_not_post_hoc": "This overlap-window comparison is a pre-declared requirement specific to D5, frozen now, outcome-blind. It must not be selected or adjusted after observing D2, D5, or any other card's outcome.",
+    "supersedes": "The prior 'beats_best_component_check' language ('COMPOSED DELTA > max(component_A DELTA, component_B DELTA) from D2's own results') is corrected to reference COMPONENT_A_DELTA_FOR_D5 / COMPONENT_B_DELTA_FOR_D5 specifically, not D2 RULE_1's unrestricted full-interval result.",
+    "SPEC_STATUS_AFTER_CORRECTION": "EXECUTABLE_DISCOVERY_SPEC"
+  },
+  "final_classification": {
+    "D1": "BLOCKED_PENDING_PRE_OUTCOME_FIX (unchanged)",
+    "D2": "EXECUTABLE_DISCOVERY_SPEC (unchanged)",
+    "D3": "EXECUTABLE_DISCOVERY_SPEC (close-path fix applied)",
+    "D4": "EXECUTABLE_DISCOVERY_SPEC (ROLLING_CORRELATION_90D only; practical gate now exact)",
+    "D5": "EXECUTABLE_DISCOVERY_SPEC (common-window comparison fix applied)",
+    "D6": "DEFERRED (unchanged)"
+  },
+  "EXECUTION_AUTHORIZED": ["D2", "D3", "D4_ROLLING", "D5"],
+  "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+  "CANDIDATE_PERFORMANCE_INSPECTED": false,
+  "PROTECTED_2025_OPENED": false,
+  "PROTECTED_2026_OPENED": false,
+  "MARKET_07_CREATED": false,
+  "NEXT_UNIT": "DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5"
+}

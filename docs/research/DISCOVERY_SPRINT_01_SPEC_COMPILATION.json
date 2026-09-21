@@ -39,6 +39,15 @@
     "D3_status_after": "EXECUTABLE_DISCOVERY_SPEC",
     "D4_status_after": "EXECUTABLE_DISCOVERY_SPEC (ROLLING_CORRELATION_90D only; LEAD_LAG_1DAY DEFERRED_FROM_SPRINT_01)"
   },
+  "mechanical_pre_execution_fix_2026_09_21": {
+    "record": "docs/research/DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX.{json,md}",
+    "reviewed_commit": "475072d22f4c4631836ca7d38ccdc5da6ce59222",
+    "scope": "D3 close-path redefinition, D4 practical-threshold exactness, D5 common-window component comparison only. D1 and D6 unchanged.",
+    "summary": "D3 redefined to CLOSE-PATH morphology (MAX_UPSIDE_CLOSE_24H, MAX_DOWNSIDE_CLOSE_24H, TIME_TO_MAX_ABS_CLOSE_EXCURSION; PATH_ASYMMETRY removed) so real and surrogate use the identical observable (5m close prices), fixing a real/null mismatch where real functionals used HIGH/LOW but the surrogate never synthesized intra-bar high/low. D4's ROLLING_CORRELATION_90D practical-magnitude threshold made mathematically exact (PRACTICAL_EXCESS_RANGE = OBSERVED_CORRELATION_RANGE - NULL_RANGE_MEDIAN >= 0.15), statistical gate kept unchanged. D5's beats-best-component check corrected to compare against COMPONENT_A_DELTA_FOR_D5 / COMPONENT_B_DELTA_FOR_D5 (both evaluated on D5's exact common interval 2022-02-01->2025-01-01), not D2 RULE_1's unrestricted full-2020-2024 result.",
+    "D3_status_after": "EXECUTABLE_DISCOVERY_SPEC",
+    "D4_status_after": "EXECUTABLE_DISCOVERY_SPEC (ROLLING_CORRELATION_90D only)",
+    "D5_status_after": "EXECUTABLE_DISCOVERY_SPEC"
+  },
   "dataset_authorities_referenced": {
     "CORE_BTC_BINANCE_V0": {
       "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
@@ -228,6 +237,25 @@
           "EXACT_ENTRY_REFERENCE_CONVENTION": "entry_open = ev.get_perp_bar_opening_at(perp, t_ms).open, reused verbatim from the frozen MARKET-06 entry convention (same reference ev.arithmetic_mae already uses)."
         },
         "SPEC_STATUS_AFTER_CORRECTION": "EXECUTABLE_DISCOVERY_SPEC"
+      },
+      "mechanical_pre_execution_fix_2026_09_21": {
+        "record": "docs/research/DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX.{json,md}",
+        "problem": "The real D3 functionals (MAX_UPSIDE_EXCURSION_24h / MAX_DOWNSIDE_EXCURSION_24h from the prior correction) used 5m bar HIGH/LOW values, but the frozen 5m_RETURN_TIME_OF_DAY_STRATIFIED_BLOCK_BOOTSTRAP surrogate generates only a synthetic close-to-close log-return path -- it never synthesizes intra-bar high/low. Real and surrogate were therefore not the same observable despite sharing functional names.",
+        "resolution": "No synthetic high/low invented. D3 redefined as CLOSE-PATH morphology so real and surrogate paths are mechanically identical: a sequence of 288 5m close prices.",
+        "EXACT_FUNCTIONAL_DEFINITIONS_CORRECTED_AGAIN": {
+          "MAX_UPSIDE_CLOSE_24H": "max(0, max_{k=0..287}( (close_k - entry_open) / entry_open ))",
+          "MAX_DOWNSIDE_CLOSE_24H": "max(0, max_{k=0..287}( (entry_open - close_k) / entry_open ))",
+          "TIME_TO_MAX_ABS_CLOSE_EXCURSION": "earliest 5m bar offset (0-287) attaining max(MAX_UPSIDE_CLOSE_24H, MAX_DOWNSIDE_CLOSE_24H)"
+        },
+        "exactly_three_functionals": true,
+        "PATH_ASYMMETRY_REMOVED": "Removed from Sprint 01: the original D3 card allowed at most 2-3 functionals, the prior correction round accidentally expanded the surface to 4 by adding PATH_ASYMMETRY, and it is derivative of the two excursion functionals anyway.",
+        "supersedes": "EXACT_FUNCTIONAL_DEFINITIONS_CORRECTED in pre_execution_correction_2026_09_21 above (MAX_UPSIDE_EXCURSION_24h, MAX_DOWNSIDE_EXCURSION_24h, TIME_TO_MAX_EXCURSION, PATH_ASYMMETRY -- all HIGH/LOW-based and 4-wide) is fully superseded by the 3-functional CLOSE-based definitions here.",
+        "real_and_surrogate_identity": "close_k used identically for the real path (real future_bar_k.close) and the surrogate path (the cumulative-return-compounded close series the time-of-day-stratified bootstrap already produces). No high/low field read or synthesized by D3.",
+        "floors": "MAX_UPSIDE_CLOSE_24H >= 0; MAX_DOWNSIDE_CLOSE_24H >= 0.",
+        "tie_handling": "Earliest 5m bar offset wins any tie for TIME_TO_MAX_ABS_CLOSE_EXCURSION (retained convention).",
+        "entry_reference_unchanged": "entry_open = ev.get_perp_bar_opening_at(perp, t_ms).open (unchanged from the prior correction).",
+        "null_family_kept_unchanged": "5m_RETURN_TIME_OF_DAY_STRATIFIED_BLOCK_BOOTSTRAP (block length 12, 1000 replicates, seed D3_NULL_SURROGATE_SEED=20260921103, companion block lengths 6/24, all slot-stratified) is UNCHANGED and already generates exactly the close-path observable this fix requires.",
+        "SPEC_STATUS_AFTER_CORRECTION": "EXECUTABLE_DISCOVERY_SPEC"
       }
     },
     "D4": {
@@ -271,6 +299,20 @@
         "LEAD_LAG_1DAY": "DEFERRED_FROM_SPRINT_01. Definition retained above as historical record, not deleted. D4_LEAD_LAG_NULL_SEED = 20260921107 is retained as a record of the rejected fix but is not used in Sprint 01 execution.",
         "PROMISING_PROTOTYPE_EVALUATION_FIELDS_correction": "The 'OR |LEAD_LAG_1DAY| exceeds the 97.5th percentile...' clause in PROMISING_PROTOTYPE_EVALUATION_FIELDS above no longer applies for Sprint 01 execution; only the ROLLING_CORRELATION_90D branch is in scope.",
         "SPEC_STATUS_AFTER_CORRECTION": "EXECUTABLE_DISCOVERY_SPEC, scoped to ROLLING_CORRELATION_90D only"
+      },
+      "mechanical_pre_execution_fix_2026_09_21": {
+        "record": "docs/research/DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX.{json,md}",
+        "problem": "ROLLING_CORRELATION_90D's practical_magnitude_threshold ('swings by at least 0.15 correlation-points peak-to-trough beyond null-implied noise') was not mathematically exact.",
+        "EXACT_PRACTICAL_GATE": {
+          "OBSERVED_CORRELATION_RANGE": "max(real ROLLING_CORRELATION_90D series) - min(real ROLLING_CORRELATION_90D series)",
+          "NULL_RANGE_MEDIAN": "median, over the 1000 BLOCK_BOOTSTRAP_PAIRED_RETURNS replicates, of [max(that replicate's ROLLING_CORRELATION_90D series) - min(that replicate's series)]",
+          "PRACTICAL_EXCESS_RANGE": "OBSERVED_CORRELATION_RANGE - NULL_RANGE_MEDIAN",
+          "gate": "PRACTICAL_EXCESS_RANGE >= 0.15"
+        },
+        "supersedes": "practical_magnitude_threshold in PROMISING_PROTOTYPE_EVALUATION_FIELDS above for ROLLING_CORRELATION_90D",
+        "statistical_gate_kept_unchanged": "ROLLING_CORRELATION_90D's realized variance exceeding the 97.5th percentile of the block-bootstrap null's implied variance is retained unchanged, alongside this now-exact practical gate; neither replaces the other.",
+        "LEAD_LAG_1DAY_status_unchanged": "DEFERRED_FROM_SPRINT_01 (unchanged).",
+        "SPEC_STATUS_AFTER_CORRECTION": "EXECUTABLE_DISCOVERY_SPEC, scoped to ROLLING_CORRELATION_90D only"
       }
     },
     "D5": {
@@ -307,6 +349,19 @@
         },
         "F2_base_exposure_schedule": "Inherits D2's F2 fix verbatim: EXACT_BASE_EXPOSURE_SCHEDULE = full-size BTC_SIDE(t) position; EXACT_DIRECTION_DETERMINATION = sign(ev.btc_ret_24h(t)); EXACT_LEGAL_KNOWLEDGE_TIME = strictly before T; EXACT_SEVERITY_METRIC = ev.arithmetic_mae(BTC_SIDE, entry, future_288_bars).",
         "record": "docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}"
+      },
+      "mechanical_pre_execution_fix_2026_09_21": {
+        "record": "docs/research/DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX.{json,md}",
+        "problem": "D5's own execution interval is correctly restricted to 2022-02-01T00:05:00Z -> 2025-01-01T00:00:00Z (bound by component_B/RULE_2's cross-venue data availability, per the F1 fix above). D2 RULE_1 (component_A), however, reports its DELTA over its own full 2020-02-01 -> 2025-01-01 interval. The beats_best_component_check above ('COMPOSED DELTA > max(component_A DELTA, component_B DELTA) from D2's own results') would compare D5's DELTA against RULE_1's full-interval result -- not apples-to-apples (different N, different sub-periods/regimes).",
+        "EXACT_CORRECTED_COMPARISON": {
+          "COMPONENT_A_DELTA_FOR_D5": "D2 RULE_1 (RV_ABSTENTION) evaluated on the EXACT D5 common interval, 2022-02-01T00:05:00Z -> 2025-01-01T00:00:00Z -- NOT RULE_1's own broader 2020-2024 reported result. Requires RULE_1 to be evaluated a second time, restricted to this narrower window, solely as this comparison's input.",
+          "COMPONENT_B_DELTA_FOR_D5": "D2 RULE_2 (DISLOCATION_ABSTENTION) evaluated on the same common interval -- already coincides with RULE_2's own native interval, so no additional computation is needed beyond RULE_2's own D2 result.",
+          "COMPOSED_BEATS_COMPONENTS": "iff D5_DELTA > max(COMPONENT_A_DELTA_FOR_D5, COMPONENT_B_DELTA_FOR_D5)"
+        },
+        "D2_RULE_1_own_result_unaffected": "D2 RULE_1's own broader 2020-2024 discovery result is NOT replaced and may still be separately reported under D2's own card; the narrower-window evaluation exists solely as a D5-scoped comparison input, not a second D2 result.",
+        "pre_declared_not_post_hoc": "This overlap-window comparison is a pre-declared requirement specific to D5, frozen now, outcome-blind, and must not be selected or adjusted after observing D2, D5, or any other card's outcome.",
+        "supersedes": "beats_best_component_check in PROMISING_PROTOTYPE_EVALUATION_FIELDS above and beat_best_component in EXACT_SIMPLE_BASELINE_CONTROL above (both now reference COMPONENT_A_DELTA_FOR_D5 / COMPONENT_B_DELTA_FOR_D5, not D2 RULE_1's unrestricted full-interval result)",
+        "SPEC_STATUS_AFTER_CORRECTION": "EXECUTABLE_DISCOVERY_SPEC"
       }
     },
     "D6": {
@@ -363,7 +418,7 @@
     "status": "SPEC_FINALIZED_NO_ANSWERS_COMPUTED"
   },
   "sprint_execution_manifest": {
-    "SUPERSEDED_BY": "DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4 (docs/research/DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4.{json,md}), reviewed_commit 355a1657aac288fe75b272df1845fd9b5cfcac3f; prior superseded-by DISCOVERY_SPRINT_01_RED_TEAM_REVIEW (7bb92b0) retained below for lineage",
+    "SUPERSEDED_BY": "DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX (docs/research/DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX.{json,md}), reviewed_commit 475072d22f4c4631836ca7d38ccdc5da6ce59222; prior superseded-by chain (DISCOVERY_SPRINT_01_RED_TEAM_REVIEW at 7bb92b0, DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4 at 355a165) retained above for lineage",
     "EXECUTABLE_DISCOVERY_SPEC": ["D2", "D3", "D4 (ROLLING_CORRELATION_90D only)", "D5"],
     "BLOCKED_PENDING_PRE_OUTCOME_FIX": ["D1"],
     "DEFERRED": ["D6"],
@@ -373,12 +428,14 @@
     "deferred_count": 1,
     "zero_useful_cards_executable": false,
     "original_all_six_executable_claim": "WITHDRAWN -- superseded by the red-team review; see red_team_review_2026_09_21 above and each card's red_team_correction_2026_09_21 block.",
-    "D3_D4_first_round_fix_claim": "PARTIALLY WITHDRAWN -- superseded by pre_execution_correction_2026_09_21 above; D3's direction-aligned functionals and time-of-day-blind null, and D4's INDEPENDENT_BLOCK_BOOTSTRAP lead-lag null, are each further corrected or descoped."
+    "D3_D4_first_round_fix_claim": "PARTIALLY WITHDRAWN -- superseded by pre_execution_correction_2026_09_21 above; D3's direction-aligned functionals and time-of-day-blind null, and D4's INDEPENDENT_BLOCK_BOOTSTRAP lead-lag null, are each further corrected or descoped.",
+    "D3_D4_D5_second_round_fix_claim": "FURTHER CORRECTED by mechanical_pre_execution_fix_2026_09_21 above -- D3's real/null observable mismatch (HIGH/LOW vs close-only surrogate) fixed by redefining to CLOSE-PATH morphology (3 functionals, PATH_ASYMMETRY removed); D4's practical gate made mathematically exact; D5's beats-best-component check corrected to a common-window comparison."
   },
   "SCIENTIFIC_OUTCOMES_COMPUTED": false,
   "CANDIDATE_PERFORMANCE_INSPECTED": false,
   "MARKET_07_CREATED": false,
   "PROTECTED_2025_OPENED": false,
   "PROTECTED_2026_OPENED": false,
-  "NEXT_UNIT": "DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5, gated separately on D1_NULL_ADEQUACY_GATE_EXECUTION, D4_LEAD_LAG_REPLACEMENT_NULL_OR_PERMANENT_DEFERRAL, and D6_REPLACEMENT_BENCHMARK_SELECTION"
+  "NEXT_UNIT": "DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5",
+  "NEXT_UNIT_gating_note": "D1 remains BLOCKED_PENDING_PRE_OUTCOME_FIX (pending D1_NULL_ADEQUACY_GATE_EXECUTION) and D6 remains DEFERRED (pending D6_REPLACEMENT_BENCHMARK_SELECTION); D4's LEAD_LAG_1DAY remains DEFERRED_FROM_SPRINT_01. Neither D1 nor D6 was changed by this unit, per instruction."
 }

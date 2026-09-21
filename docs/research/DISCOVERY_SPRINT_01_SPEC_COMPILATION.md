@@ -53,7 +53,7 @@ further corrected D3 and D4 only:
   `DEFERRED_FROM_SPRINT_01`; `ROLLING_CORRELATION_90D` is retained
   unchanged and cleanly specified.
 
-**Current final status:**
+**Status after that round:**
 
 | Card | Status |
 |---|---|
@@ -64,11 +64,47 @@ further corrected D3 and D4 only:
 | D5 | `EXECUTABLE_DISCOVERY_SPEC` (inherits D2's interval and exposure-schedule fixes) |
 | D6 | `DEFERRED` (insufficient diagnostic power — at most one testable historical episode) |
 
+## Final mechanical pre-execution fix (2026-09-21)
+
+`DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX` (reviewed commit
+`475072d22f4c4631836ca7d38ccdc5da6ce59222`; full record:
+`docs/research/DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX.{json,md}`)
+corrected D3, D4's practical-threshold semantics, and D5 only; D1 and D6
+unchanged:
+
+- **D3** used HIGH/LOW-based functionals while its surrogate only ever
+  produced a close-to-close path — a real/null observable mismatch.
+  Redefined as **CLOSE-PATH morphology**, exactly three functionals:
+  `MAX_UPSIDE_CLOSE_24H`, `MAX_DOWNSIDE_CLOSE_24H`,
+  `TIME_TO_MAX_ABS_CLOSE_EXCURSION`. `PATH_ASYMMETRY` removed (the
+  original card allowed at most 2-3 functionals; the prior correction
+  had accidentally expanded to 4).
+- **D4**'s `ROLLING_CORRELATION_90D` practical-magnitude threshold made
+  mathematically exact: `PRACTICAL_EXCESS_RANGE =
+  OBSERVED_CORRELATION_RANGE - NULL_RANGE_MEDIAN >= 0.15`. Statistical
+  gate unchanged.
+- **D5**'s "beats best component" check corrected to compare against
+  `COMPONENT_A_DELTA_FOR_D5` / `COMPONENT_B_DELTA_FOR_D5` (both on D5's
+  exact common interval `2022-02-01 → 2025-01-01`), not D2 RULE_1's
+  unrestricted full-2020-2024 result.
+
+**Current final status:**
+
+| Card | Status |
+|---|---|
+| D1 | `BLOCKED_PENDING_PRE_OUTCOME_FIX` (unchanged) |
+| D2 | `EXECUTABLE_DISCOVERY_SPEC` (unchanged) |
+| D3 | `EXECUTABLE_DISCOVERY_SPEC` (close-path fix applied) |
+| D4 | `EXECUTABLE_DISCOVERY_SPEC`, **ROLLING_CORRELATION_90D only** (practical gate now exact) |
+| D5 | `EXECUTABLE_DISCOVERY_SPEC` (common-window comparison fix applied) |
+| D6 | `DEFERRED` (unchanged) |
+
 Each card section below retains its original text as historical record,
-with `red_team_correction_2026_09_21` and (for D3/D4)
-`pre_execution_correction_2026_09_21` blocks layered on top in the JSON
-twin recording exactly what changed and why. Read the corrections
-alongside the original text, not as a silent replacement of it.
+with `red_team_correction_2026_09_21`, `pre_execution_correction_2026_09_21`
+(D3/D4), and `mechanical_pre_execution_fix_2026_09_21` (D3/D4/D5) blocks
+layered on top in the JSON twin recording exactly what changed and why.
+Read the corrections alongside the original text, not as a silent
+replacement of it.
 
 ## Dataset authorities referenced
 
@@ -270,18 +306,18 @@ effort). No numeric answers are computed here.
 
 ## Sprint execution manifest
 
-**Superseded by `DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4`**
-(reviewed commit `355a1657`) — see the correction tables above for the
+**Superseded by `DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX`**
+(reviewed commit `475072d`) — see the correction tables above for the
 current status. Full lineage, for record:
 
-| Card | Original status | After red-team review (7bb92b0) | After pre-execution correction (355a165) |
-|---|---|---|---|
-| D1 | `EXECUTABLE_DISCOVERY_SPEC` | `BLOCKED_PENDING_PRE_OUTCOME_FIX` | unchanged |
-| D2 | `EXECUTABLE_DISCOVERY_SPEC` | `EXECUTABLE_DISCOVERY_SPEC` (fixed) | unchanged |
-| D3 | `EXECUTABLE_DISCOVERY_SPEC` | `EXECUTABLE_DISCOVERY_SPEC` (fixed) | `EXECUTABLE_DISCOVERY_SPEC` (further corrected: unsigned + time-of-day-stratified) |
-| D4 | `EXECUTABLE_DISCOVERY_SPEC` | `EXECUTABLE_DISCOVERY_SPEC` (fixed) | `EXECUTABLE_DISCOVERY_SPEC`, `ROLLING_CORRELATION_90D` only (`LEAD_LAG_1DAY` deferred) |
-| D5 | `EXECUTABLE_DISCOVERY_SPEC` | `EXECUTABLE_DISCOVERY_SPEC` (fixed) | unchanged |
-| D6 | `EXECUTABLE_DISCOVERY_SPEC` | `DEFERRED` | unchanged |
+| Card | Original | After red-team review (7bb92b0) | After pre-exec correction (355a165) | After mechanical fix (475072d) |
+|---|---|---|---|---|
+| D1 | `EXECUTABLE_DISCOVERY_SPEC` | `BLOCKED_PENDING_PRE_OUTCOME_FIX` | unchanged | unchanged |
+| D2 | `EXECUTABLE_DISCOVERY_SPEC` | `EXECUTABLE_DISCOVERY_SPEC` (fixed) | unchanged | unchanged |
+| D3 | `EXECUTABLE_DISCOVERY_SPEC` | `EXECUTABLE_DISCOVERY_SPEC` (fixed) | unsigned + time-of-day-stratified | `EXECUTABLE_DISCOVERY_SPEC` (close-path, 3 functionals) |
+| D4 | `EXECUTABLE_DISCOVERY_SPEC` | `EXECUTABLE_DISCOVERY_SPEC` (fixed) | `ROLLING_CORRELATION_90D` only | `EXECUTABLE_DISCOVERY_SPEC` (practical gate exact) |
+| D5 | `EXECUTABLE_DISCOVERY_SPEC` | `EXECUTABLE_DISCOVERY_SPEC` (fixed) | unchanged | `EXECUTABLE_DISCOVERY_SPEC` (common-window comparison) |
+| D6 | `EXECUTABLE_DISCOVERY_SPEC` | `DEFERRED` | unchanged | unchanged |
 
 `executable_count = 4` (D2, D3, D4 [rolling-correlation only], D5).
 `blocked_count = 1` (D1). `deferred_count = 1` (D6).
@@ -291,7 +327,8 @@ current status. Full lineage, for record:
 false`. `MARKET_07_CREATED = false`. `PROTECTED_2025_OPENED = false`.
 `PROTECTED_2026_OPENED = false`.
 
-`NEXT_UNIT = DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5,
-gated separately on D1_NULL_ADEQUACY_GATE_EXECUTION,
-D4_LEAD_LAG_REPLACEMENT_NULL_OR_PERMANENT_DEFERRAL, and
-D6_REPLACEMENT_BENCHMARK_SELECTION`.
+`NEXT_UNIT = DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5`.
+D1 remains `BLOCKED_PENDING_PRE_OUTCOME_FIX` (pending
+`D1_NULL_ADEQUACY_GATE_EXECUTION`) and D6 remains `DEFERRED` (pending
+`D6_REPLACEMENT_BENCHMARK_SELECTION`); D4's `LEAD_LAG_1DAY` remains
+`DEFERRED_FROM_SPRINT_01`. Neither D1 nor D6 was changed by this unit.
