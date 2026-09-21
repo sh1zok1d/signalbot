@@ -44,7 +44,7 @@
       "TIME_SCALE": "Same 24h horizon MARKET-05/06 used, reused only as a time scale, not as the same function.",
       "UNIT_OF_OBSERVATION": "One day (BTC daily grid), same as MARKET-05/06.",
       "MARKET_RELATIONSHIP": "Indirect. Even a promising filter is an exploratory screen, not an edge claim or a rescue of MARKET-05/06's null result.",
-      "SIMPLE_BASELINE": "Unconditional (never-abstain) adverse-path exposure distribution over the same period.",
+      "SIMPLE_BASELINE": "PRIMARY comparator: RATE_MATCHED_RANDOM_ABSTENTION -- a random abstention control that abstains on the same number/share of decision rows as the candidate rule, with temporal composition matched where feasible (e.g. matched within year/regime bucket). This tests whether the rule selects WHICH exposures to avoid better than chance, not merely whether taking less exposure differs from taking all exposure. The unconditional (never-abstain) adverse-path exposure distribution over the same period may remain only as a SECONDARY reference, never the primary comparator.",
       "SMALL_SEARCH_SURFACE": "At most one or two frozen, pre-stated abstention-threshold rules per observable family already used in MARKET-05/06; no new observable families; no threshold sweep beyond the pre-stated set.",
       "KNOWN_PRIOR_EXPOSURE": "The observable families and the 2020-2024 surface were adaptively used by H01/H02 and confirmatorily consumed by MARKET-05 (MARKET_05_NO_EVIDENCE) and MARKET-06 (MARKET_06_NO_EVIDENCE) at the additive-linear-term FUNCTION. This card explicitly does NOT claim those nulls are 'rescued' -- it tests a materially different FUNCTION (filtering) on the same information source.",
       "WHAT_A_NULL_DEPRIORITIZES": "Filtering/abstention use of these specific observable families at this horizon, independent of and in addition to their already-established null as additive predictors.",
@@ -52,6 +52,13 @@
       "RESEARCHER_DOF": "MEDIUM-HIGH -- threshold choice and rule construction are constrained by SMALL_SEARCH_SURFACE but abstention rules are easy to overfit post hoc.",
       "MAX_ENGINEERING_SCOPE": "Reuse of existing MARKET-05/06 observable-construction code; one filtering-rule evaluation script; no new data acquisition.",
       "supersession_note": "This card is the explicit exercise of the a711086 R-B routing correction in HYPOTHESIS_DISCOVERY_PIPELINE_V2: R-B may be explored on historically exposed data under DISCOVERY_FEASIBILITY; any resulting pattern remains exploratory and requires an independent future confirmation surface.",
+      "baseline_correction_2026_09_21": {
+        "PRIMARY_COMPARATOR": "RATE_MATCHED_RANDOM_ABSTENTION",
+        "requirement": "The random control must abstain on the same number/share of decision rows as the candidate rule, with temporal composition matched where feasible.",
+        "SECONDARY_REFERENCE_ONLY": "never-abstain / unconditional distribution",
+        "reason": "The discovery question is whether the rule selects WHICH exposures to avoid better than random abstention, not whether taking less exposure differs from taking all exposure.",
+        "kind": "pre-outcome design correction; no scientific outcome computed"
+      },
       "data_label": "ADAPTIVE_DISCOVERY_ON_HISTORICALLY_EXPOSED_DATA"
     },
     "D3": {
@@ -71,6 +78,13 @@
       "WHAT_A_POSITIVE_WOULD_JUSTIFY_NEXT": "Proposing a future confirmatory path-morphology hypothesis, with its own fresh-surface and feasibility review.",
       "RESEARCHER_DOF": "MEDIUM -- functional choice is the main risk, bounded by SMALL_SEARCH_SURFACE.",
       "MAX_ENGINEERING_SCOPE": "Path-functional computation script reusing existing bar-construction code; no new data acquisition.",
+      "execution_bound_2026_09_21": {
+        "EXECUTABLE": false,
+        "requirement": "NOT EXECUTABLE until exactly one prior-state descriptor (or an explicit unconditional design) is frozen outcome-blind.",
+        "prohibition": "No selecting a descriptor after viewing path-morphology results.",
+        "descriptor_chosen_in_this_unit": false,
+        "note": "The descriptor is deliberately NOT chosen in this corrective unit; choosing it is a separate future step that must itself be outcome-blind."
+      },
       "data_label": "ADAPTIVE_DISCOVERY_ON_HISTORICALLY_EXPOSED_DATA"
     },
     "D4": {
@@ -111,6 +125,16 @@
       "RESEARCHER_DOF": "HIGH -- composed/interaction mechanisms carry the highest post hoc rescue and multiple-testing risk in the sprint; this is recorded explicitly, not minimized.",
       "MAX_ENGINEERING_SCOPE": "One composition-evaluation script reusing existing component implementations; no new observable families; no parameter retuning of the component rules.",
       "supersession_note": "This card is the explicit exercise of the a711086 R-F routing correction in HYPOTHESIS_DISCOVERY_PIPELINE_V2: R-F may be explored only under a tightly bounded search surface, with HIGH rescue/multiple-testing risk explicitly recorded, not merely because individually-null variables might interact.",
+      "anti_adaptive_composition_bound_2026_09_21": {
+        "prohibition": "D5 may NOT select its two components based on observed D1-D4 results from the same sprint.",
+        "must_be_frozen_without_reference_to_D1_D4_outcomes": [
+          "exactly two component rules",
+          "their parameterization",
+          "the composition operator"
+        ],
+        "if_cannot_be_done_cleanly": "D5 must be DEFERRED rather than assembled from whichever prior cards looked promising.",
+        "components_selected_in_this_unit": false
+      },
       "data_label": "ADAPTIVE_DISCOVERY_ON_HISTORICALLY_EXPOSED_DATA"
     },
     "D6": {
@@ -132,6 +156,18 @@
       "MAX_ENGINEERING_SCOPE": "One reproduction script following the external source's published methodology; no internal extension.",
       "counts_as_internal_discovery": false,
       "explicit_note": "This card must NOT count toward INTERNAL_DISCOVERY_CARDS or INTERNAL_PROMISING_PROTOTYPES in the program diagnostic. It belongs only to EXTERNAL_BENCHMARK_CARDS / EXTERNAL_PROMISING_OR_REPRODUCED, exactly as MARKET-03 belongs only to external evidence/history.",
+      "pinning_bound_2026_09_21": {
+        "EXECUTABLE": false,
+        "requirement": "NOT EXECUTABLE until one external/public source is selected and pinned BEFORE inspecting its reproduction outcome.",
+        "must_freeze": [
+          "source identity / URL / repository commit or paper version",
+          "externally stated mechanism",
+          "externally stated target",
+          "externally stated comparator where available"
+        ],
+        "prohibition": "No browsing multiple external candidates and selecting based on Signalbot performance.",
+        "source_selected_in_this_unit": false
+      },
       "data_label": "EXTERNAL_SOURCE_NOT_HISTORICALLY_EXPOSED_INTERNAL_DATA"
     }
   },
@@ -152,16 +188,42 @@
     "no_signal_or_outcome_statistics_computed": true
   },
   "program_diagnostic_state_after_this_unit": {
-    "INTERNAL_DISCOVERY_CARDS": 5,
-    "INTERNAL_DISCOVERY_CARDS_LIST": ["D1", "D2", "D3", "D4", "D5"],
+    "INTERNAL_DISCOVERY_CARDS_PLANNED": 5,
+    "INTERNAL_DISCOVERY_CARDS_PLANNED_LIST": ["D1", "D2", "D3", "D4", "D5"],
     "INTERNAL_PROMISING_PROTOTYPES": 0,
-    "EXTERNAL_BENCHMARK_CARDS": 1,
-    "EXTERNAL_BENCHMARK_CARDS_LIST": ["D6"],
+    "EXTERNAL_BENCHMARK_CARDS_PLANNED": 1,
+    "EXTERNAL_BENCHMARK_CARDS_PLANNED_LIST": ["D6"],
     "EXTERNAL_PROMISING_OR_REPRODUCED": 0,
-    "note": "All counters reflect CARD DEFINITION only. No card has been executed in this unit; all outcome fields are pending. INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED is not yet evaluable (fewer than the 6-10 card threshold, and zero cards executed)."
+    "note": "All counters reflect CARD DEFINITION/PLANNING only. No card has been executed in this unit; all outcome fields are pending. INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED is not yet evaluable (fewer than the 6-10 card threshold, and zero cards executed).",
+    "stall_gate_semantics_2026_09_21": {
+      "D6_never_counts_toward_internal_stall_rule": true,
+      "reason": "D6 is EXTERNAL_BENCHMARK, diagnostic only, and must never count toward the 6-10 INTERNAL-card stall rule -- exactly as MARKET-03 never counts as internal discovery.",
+      "sprint_01_alone_cannot_trigger_formal_gate": "DISCOVERY_SPRINT_01 plans only 5 internal cards (D1-D5). Completion of Sprint 01 alone cannot trigger INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED solely because D1-D5 all fail, since the formal gate requires at least 6 materially orthogonal internal cards.",
+      "interim_warning_state": "If D1-D5 all return NO_USEFUL_STRUCTURE/INCONCLUSIVE_DISCOVERY/INVALID_DISCOVERY with zero PROMISING_PROTOTYPE, the correct record is the interim warning INTERNAL_DISCOVERY_WARNING = ZERO_PROMISING_AFTER_FIRST_5_INTERNAL_CARDS, not the formal INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED gate.",
+      "formal_gate_requirement": "The formal NOT_DEMONSTRATED gate requires at least 6 materially orthogonal internal cards (i.e. a Discovery Sprint 02+ internal card beyond D1-D5)."
+    }
   },
   "SCIENTIFIC_OUTCOMES_COMPUTED": false,
   "MARKET_07_CREATED": false,
   "PROTECTED_2025_OPENED": false,
-  "PROTECTED_2026_OPENED": false
+  "PROTECTED_2026_OPENED": false,
+  "corrective_unit_2026_09_21": {
+    "kind": "PRE_OUTCOME_DESIGN_CORRECTION",
+    "parent_commits": [
+      "a711086c36eb7129fc3f0660732049de93dd1629",
+      "954fb550aa56682708a7673e2b548182ba2f965d"
+    ],
+    "changes": [
+      "D2 primary comparator corrected to RATE_MATCHED_RANDOM_ABSTENTION; unconditional distribution demoted to secondary reference",
+      "D3 marked NOT EXECUTABLE until a prior-state descriptor (or explicit unconditional design) is frozen outcome-blind",
+      "D5 marked NOT EXECUTABLE with adaptively-selected components; must freeze two components/parameterization/composition operator without reference to D1-D4 outcomes, or be DEFERRED",
+      "D6 marked NOT EXECUTABLE until one external source is pinned before inspecting reproduction outcome",
+      "INTERNAL_DISCOVERY_CARDS/EXTERNAL_BENCHMARK_CARDS renamed to *_PLANNED; D6 explicitly excluded from the 6-10 internal-card stall gate; interim INTERNAL_DISCOVERY_WARNING state introduced below the formal gate threshold"
+    ],
+    "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+    "MARKET_07_CREATED": false,
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "NEXT_UNIT": "DISCOVERY_SPRINT_01_CARD_EXECUTION"
+  }
 }
