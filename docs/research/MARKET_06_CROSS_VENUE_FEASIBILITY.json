@@ -1,6 +1,6 @@
 {
   "schema": "signalbot_market_06_cross_venue_feasibility",
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "unit_id": "MARKET_06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK_HISTORICAL_FEASIBILITY",
   "date": "2026-09-21",
   "market_06_id": "MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK",
@@ -14,25 +14,38 @@
     "market_05_rescue",
     "eth_confirmation_variant"
   ],
-  "base_head": "4158403b942c3ac0e2af3fb602f074f0064690fd",
-  "feasibility_branch": "cursor/market-06-cross-venue-feasibility-0474",
+  "this_unit_is": "INDEPENDENT_SOURCE_READINESS_RETRY_FROM_THIS_CURSOR_HOST",
+  "previous_feasibility_artifact_head": "97e01bd3f1f187b3885e00cdf7c59374c9c96729",
+  "previous_feasibility_verdict": "MARKET_06_FEASIBILITY_HOST_BLOCKED",
+  "previous_verdict_reused": false,
+  "previous_verdict_reason_not_reused": "The prior HOST_BLOCKED record described CONNECT-tunnel 403 before either venue was reached. This host independently reached both DNS names and received venue/CDN HTTP bodies. Binance Vision returned native archive bytes. Bybit CloudFront returned a country-block JSON. That is not the previous gateway CONNECT rejection.",
+  "network_bypass_attempted": false,
+  "https_proxy_set": false,
   "forward_market_observability_v1_collector_touched": false,
   "forward_market_observability_v1_authority_touched": false,
   "m04_fwd_changed": false,
-  "verdict": "MARKET_06_FEASIBILITY_HOST_BLOCKED",
-  "verdict_reason": "Both required official historical sources are unreachable from this execution host's network egress. The proxy's own diagnostics classify every attempt as a gateway-level CONNECT rejection (policy denial or upstream failure), never a response from Binance or Bybit. No archive listing, no kline payload, and no HTTP body of any kind (success or error) was received from either venue. This is a host-network-policy finding, not a claim that the historical sources themselves do not exist or are unavailable in principle.",
+  "verdict": "MARKET_06_HISTORICAL_FEASIBILITY_REQUIRES_DESIGN_REVIEW",
+  "verdict_reason": "Independently from this host: data.binance.vision is SOURCE_REACHABLE (HTTP 200 AmazonS3/CloudFront; 2022-01 through 2024-12 monthly USD-M BTCUSDT 5m trade-price kline ZIP and CHECKSUM objects all listed; one 2022-01 CHECKSUM sidecar body retrieved). api.bybit.com is VENUE_RESPONSE_ERROR (HTTP 403 from Bybit's CloudFront distribution: country blocked), including GET /v5/market/time and the three frozen structural kline probes (early 2022, mid 2023, late 2024). The frozen two-source construction therefore cannot be completed from this execution location on the specified official Bybit V5 route. This is not HOST_EGRESS_BLOCK (requests reached CloudFront/S3). This is not scientific rejection of 2022-2024 history. Completing feasibility requires a design/operations review: retry from a host Bybit's CDN permits, or decide whether another official Bybit historical product is allowed without changing the concept.",
   "source_unavailable_historically": false,
-  "source_inaccessible_from_current_execution_host": true,
-  "network_bypass_attempted": false,
+  "source_inaccessible_from_current_execution_host": {
+    "binance_vision": false,
+    "bybit_v5": true
+  },
+  "reachability": {
+    "BINANCE": "SOURCE_REACHABLE",
+    "BYBIT": "VENUE_RESPONSE_ERROR",
+    "HOST_EGRESS_BLOCK": false
+  },
   "data": {
     "binance_source": "Binance Public Data / USD-M perpetual futures monthly klines archive",
     "binance_source_url_prefix": "https://data.binance.vision/?prefix=data/futures/um/monthly/klines/BTCUSDT/5m/",
+    "binance_s3_list_url": "https://s3-ap-northeast-1.amazonaws.com/data.binance.vision?delimiter=/&prefix=data/futures/um/monthly/klines/BTCUSDT/5m/",
     "binance_source_native": "USD_M_FUTURES_TRADE_PRICE_KLINES",
     "binance_market": "BINANCE_USD_M_FUTURES",
     "binance_symbol": "BTCUSDT",
     "binance_interval": "5m",
     "binance_price_basis": "TRADE_PRICE",
-    "binance_price_basis_note": "Mark price is explicitly NOT to be substituted for perpetual trade price in this design; not applicable to this unit since no data was retrieved.",
+    "binance_price_basis_note": "Mark price was not substituted. Zip payloads were not downloaded in this unit because the Bybit leg was not reachable.",
     "bybit_source": "Bybit V5 historical Kline API",
     "bybit_source_endpoint": "GET https://api.bybit.com/v5/market/kline",
     "bybit_source_native": "SPOT_TRADE_PRICE_KLINES",
@@ -50,26 +63,89 @@
     "protected_oos_touched": false
   },
   "network_probe": {
-    "probe_method": "curl through the session's configured egress proxy; no proxy bypass, no alternate egress path, no VPN/tunnel substitution",
+    "probe_utc": "2026-09-21T06:21:46Z",
+    "probe_method": "stdlib urllib over this host's default route; HTTPS_PROXY unset; no proxy bypass, VPN, or alternate egress",
     "probes": [
       {
-        "host": "data.binance.vision:443",
-        "target": "Binance public-data archive index (BTCUSDT 5m USD-M futures klines prefix)",
-        "result": "CONNECT tunnel failed, response 403",
-        "proxy_diagnostic": "connect_rejected: gateway answered 403 to CONNECT (policy denial or upstream failure)",
-        "http_status_from_venue": null,
-        "bytes_received_from_venue": 0
+        "id": "BINANCE_VISION_INDEX",
+        "host": "data.binance.vision",
+        "url": "https://data.binance.vision/?prefix=data/futures/um/monthly/klines/BTCUSDT/5m/",
+        "http_status": 200,
+        "server": "AmazonS3",
+        "via": "CloudFront",
+        "class": "SOURCE_REACHABLE",
+        "http_status_from_venue": 200,
+        "bytes_received_from_venue": 2712
       },
       {
-        "host": "api.bybit.com:443",
-        "target": "GET /v5/market/time (connectivity probe only; no kline request attempted, no structural probe reached)",
-        "result": "CONNECT tunnel failed, response 403",
-        "proxy_diagnostic": "connect_rejected: gateway answered 403 to CONNECT (policy denial or upstream failure)",
-        "http_status_from_venue": null,
-        "bytes_received_from_venue": 0
+        "id": "BINANCE_VISION_SAMPLE_CHECKSUM",
+        "host": "data.binance.vision",
+        "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2022-01.zip.CHECKSUM",
+        "http_status": 200,
+        "server": "AmazonS3",
+        "class": "SOURCE_REACHABLE",
+        "sidecar_sha256": "dab154b0d36ecd4b62a43fff300bae1ac28cfaf7d557d9e68a0ac5072cf3b7e0",
+        "sidecar_text": "b2ff8cd047d5ca6177a26cb1c2942e35550f0ebbfcb872921feb49dd570d02ee  BTCUSDT-5m-2022-01.zip",
+        "named_zip_sha256": "b2ff8cd047d5ca6177a26cb1c2942e35550f0ebbfcb872921feb49dd570d02ee",
+        "zip_bytes_downloaded": false
+      },
+      {
+        "id": "BINANCE_VISION_S3_LIST",
+        "host": "s3-ap-northeast-1.amazonaws.com",
+        "target": "ListBucket prefix data/futures/um/monthly/klines/BTCUSDT/5m/",
+        "http_status": 200,
+        "class": "SOURCE_REACHABLE",
+        "zips_2022_2024_listed": 36,
+        "checksums_2022_2024_listed": 36,
+        "missing_zips_2022_2024": [],
+        "missing_checksums_2022_2024": [],
+        "later_year_objects_fetched": false
+      },
+      {
+        "id": "BYBIT_TIME",
+        "host": "api.bybit.com",
+        "url": "https://api.bybit.com/v5/market/time",
+        "http_status": 403,
+        "server": "CloudFront",
+        "class": "VENUE_RESPONSE_ERROR",
+        "body": "{     error:The Amazon CloudFront distribution is configured to block access from your country }",
+        "http_status_from_venue": 403
+      },
+      {
+        "id": "BYBIT_KLINE_EARLY_2022",
+        "host": "api.bybit.com",
+        "url": "https://api.bybit.com/v5/market/kline?category=spot&symbol=BTCUSDT&interval=5&limit=5&start=1640995200000&end=1640998200000",
+        "window": "early 2022",
+        "http_status": 403,
+        "class": "VENUE_RESPONSE_ERROR",
+        "native_kline_payload": false
+      },
+      {
+        "id": "BYBIT_KLINE_MID_2023",
+        "host": "api.bybit.com",
+        "url": "https://api.bybit.com/v5/market/kline?category=spot&symbol=BTCUSDT&interval=5&limit=5&start=1688169600000&end=1688172600000",
+        "window": "mid 2023",
+        "http_status": 403,
+        "class": "VENUE_RESPONSE_ERROR",
+        "native_kline_payload": false
+      },
+      {
+        "id": "BYBIT_KLINE_LATE_2024",
+        "host": "api.bybit.com",
+        "url": "https://api.bybit.com/v5/market/kline?category=spot&symbol=BTCUSDT&interval=5&limit=5&start=1733011200000&end=1733014200000",
+        "window": "late 2024",
+        "http_status": 403,
+        "class": "VENUE_RESPONSE_ERROR",
+        "native_kline_payload": false
       }
-    ],
-    "consistent_with_prior_finding": "Same connect_rejected signature previously observed for fapi.binance.com:443 and fstream.binance.com:443 during the FORWARD_MARKET_OBSERVABILITY_V1 readiness checks on this same host -- indicates a general outbound policy restriction on this execution host, not a per-endpoint anomaly."
+    ]
+  },
+  "binance_monthly_objects_2022_2024": {
+    "first": "BTCUSDT-5m-2022-01.zip",
+    "last": "BTCUSDT-5m-2024-12.zip",
+    "zip_count": 36,
+    "checksum_count": 36,
+    "complete": true
   },
   "binance_earliest_usable": null,
   "binance_latest_usable": null,
@@ -86,16 +162,18 @@
   "binance_longest_gap_bars": null,
   "bybit_longest_gap_bars": null,
   "binance_archive_checksums_verified": false,
+  "binance_archive_checksums_verified_note": "All 36 CHECKSUM sidecars for 2022-01..2024-12 are listed. One sidecar body (2022-01) was retrieved. Zip payloads were not downloaded, so checksum-to-zip verification was not performed.",
   "binance_snapshot_frozen": false,
   "bybit_raw_responses_frozen": false,
   "structural_probes_performed": {
-    "bybit_early_2022": false,
-    "bybit_mid_2023": false,
-    "bybit_late_2024": false,
-    "reason_not_performed": "Structural probes require a successful connection to api.bybit.com; the connection itself was rejected at the gateway before any request could be issued or any response schema inspected."
+    "bybit_early_2022": true,
+    "bybit_mid_2023": true,
+    "bybit_late_2024": true,
+    "bybit_native_schema_inspected": false,
+    "reason_schema_not_inspected": "Each official V5 kline probe returned CloudFront HTTP 403 country-block JSON. No kline array, timestamp, or row count was present to inspect."
   },
   "completed_candle_semantics_usable": null,
-  "completed_candle_semantics_note": "Not determinable in this unit: no data was retrieved from either venue, so bar_start_utc/bar_end_utc mapping could not be verified against live payload schemas. Both venues' documented kline schemas are understood to support this distinction in principle, but this unit did not verify it empirically.",
+  "completed_candle_semantics_note": "Not determinable: Binance zip payloads were not unpacked and Bybit returned no native kline schema.",
   "conservative_decision_lag_implementable": null,
   "dislocation_computed": false,
   "future_returns_computed": false,
@@ -103,6 +181,6 @@
   "market_06_prereg_created": false,
   "market_06_arm_created": false,
   "market_06_result_created": false,
-  "next_unit": "MARKET_06_HISTORICAL_FEASIBILITY_RETRY_FROM_UNBLOCKED_HOST",
-  "next_unit_note": "Re-run this exact feasibility unit (unchanged concept, unchanged source route, unchanged 2022-2024 target window) from a deployment host whose network egress can reach data.binance.vision and api.bybit.com. No code or design change is implied by this blocker; only host network reachability is the open question."
+  "next_unit": "MARKET_06_BYBIT_OFFICIAL_HISTORICAL_ROUTE_OR_REACHABLE_HOST_REVIEW",
+  "next_unit_note": "Do not preregister. Binance Vision 2022-2024 monthly 5m USD-M BTCUSDT trade-price archives are listed complete from this host. Completing the frozen two-source feasibility requires either an execution host that Bybit V5 CloudFront permits, or an explicit design decision on whether another official Bybit historical product may replace GET /v5/market/kline without changing the concept."
 }

@@ -5,7 +5,7 @@
 
 The project does not resume product architecture work merely because an implementation stage is technically available. Research evidence is now the gating dependency.
 
-**Active next phase (2026-09-19):** `MARKET` / `INFORMATION_SET_EXPANSION`. The synthetic Microscope
+**Active next phase (2026-09-17):** `MARKET`. The synthetic Microscope
 calibration is closed (`V3_CALIBRATION_CLOSED = YES`). The Microscope
 remains available as scientific instrumentation and is no longer the
 active research program. Do not repair, rerun, or reinterpret V3. Do not
@@ -19,37 +19,8 @@ classification: **`NO_EVIDENCE`**. Canonical RESULT:
 `CANONICAL_EXECUTIONS_CONSUMED = 1`. Do not rerun MARKET-01. Do not
 change its thresholds or windows. Post-close `construct_episodes`
 throughput work is infrastructure only and does not reopen the closed
-RESULT. MARKET-03 **preregistration is frozen**
-(`FROZEN_OUTCOME_BLIND`, ceiling `LEVEL_2`). That freeze is not ARM
-or execution. Dedicated funding snapshot is materialized
-(`MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0` / `d47b7b78…`).
-LEVEL_2 implementation is **frozen** at reviewed HEAD `03411aaa…` /
-tree `87a1da25…`. MARKET-03 is **RESULT**
-(`PRIMARY_CLASSIFICATION = REPRODUCED_DIRECTION`; authorized `1`
-consumed `1`). No rerun is authorized.
-Do not design a large new MARKET
+RESULT. Do not design a large new MARKET
 framework. A later market hypothesis requires a new research ID.
-Current program evidence is
-`docs/research/EVIDENCE_REGISTRY_H_B_M01_M05.md` (16 units). The
-14-unit `EVIDENCE_REGISTRY_H_B_M01_M03` snapshot remains immutable
-history. MARKET-05 is **closed** `MARKET_05_NO_EVIDENCE` at RESULT
-HEAD `828c6916…` / tree `338e72d2…`; scientifically spent; no rerun;
-negative relative MAE does not authorize a reverse hypothesis.
-MARKET-04 remains `SELECTED / NOT_TESTED / BLOCKED_OBSERVABLE` and is
-**not** rejected. MARKET-04H remains a nested blocked observable, not
-a scientific unit. Internal historical candidates promoted = 0.
-Validated OOS candidates = 0. Protected OOS untouched.
-`SAME_INFORMATION_SET_HYPOTHESIS_GENERATION_PAUSED = true`. Do not
-create MARKET-06 from another simple transform of the same
-price/OI/cross-asset information set. Next program phase:
-`INFORMATION_SET_EXPANSION`. Initial target:
-`POINT_IN_TIME_FUNDING_PREMIUM_OBSERVABILITY`. Collector
-implementation is frozen at
-`docs/research/FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION_FREEZE.md`.
-Authoritative collection has not started. Next unit:
-`FORWARD_MARKET_OBSERVABILITY_V1_AUTHORITATIVE_COLLECTION_START`. Do
-not invent publication latency, do not treat `close_time` as
-publication time, and do not create M04-FWD or MARKET-06.
 Do not create new infrastructure merely because MARKET is beginning. Operating
 priority is approximately 70–80% actual market research and 20–30%
 infrastructure only when concrete research blockers require it. Primary
@@ -59,6 +30,17 @@ research process — not a promise that 25–50 studies establish alpha.
 
 B2-06 remains `BLOCKED_MISSING_OBSERVABLE`. `MARKET-01` is not required
 to be B2-06 and does not silently unblock it.
+
+MARKET-06 (`MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK`) is
+**implemented and implementation-frozen outcome-blind** after
+pre-outcome amendment 002. It is not executed, not ARMed, and not a
+MARKET-01 rerun. Live prereg freeze:
+`docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE.json`
+(payload `6342d24e…`). Live implementation freeze:
+`docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION_FREEZE.json`
+(implementation `81c8e0a8…`). Next unit:
+`MARKET_06_IMPLEMENTATION_RED_TEAM_REVIEW`. Do not inspect outcomes
+under this identity until a later authorized execution.
 
 ## R0 — E1 frozen experiment closeout
 
@@ -319,13 +301,8 @@ not by itself be treated as sufficient evidence of a robust market edge.
 This limitation is not authorization for immediate V4.
 
 Next required V3 step: none authorized. MARKET-01 is closed
-(`FINAL_CLASSIFICATION = NO_EVIDENCE`). MARKET-03 preregistration is
-frozen (`FROZEN_OUTCOME_BLIND`, not armed, not executed). Dedicated
-funding snapshot is ready (`d47b7b78…`). Implementation is frozen
-(`03411aaa…` / `87a1da25…`). MARKET-03 is **RESULT**
-(`RUN_IDENTITY` `f68b6de7…`, `REPRODUCED_DIRECTION`, authorized `1`
-consumed `1`). No second canonical execution is authorized.
-Do not rerun MARKET-01.
+(`FINAL_CLASSIFICATION = NO_EVIDENCE`). A later market hypothesis
+requires a new research ID. Do not rerun MARKET-01.
 Do not rerun V3, do not create V4, and do not execute B2-06.
 
 This methodology closeout does not weaken or bypass the current B2-06 state:

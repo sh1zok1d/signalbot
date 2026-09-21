@@ -1,0 +1,134 @@
+{
+  "id": "OKX_2024_12",
+  "intended_window_start": "2024-12-01T00:00:00Z",
+  "request_after_ms": 1733014800000,
+  "url": "https://www.okx.com/api/v5/market/history-candles?instId=BTC-USDT&bar=5m&after=1733014800000&limit=10",
+  "http_status": 200,
+  "error": null,
+  "http_ms": 198,
+  "raw_sha256": "e325fd1c6993e43a7a47ef14855590e9816fa463ade35262463de5118b1d27e6",
+  "raw_len": 1160,
+  "okx_code": "0",
+  "okx_msg": "",
+  "parse_error": null,
+  "n_records": 10,
+  "confirm_values": [
+    "1"
+  ],
+  "all_confirm_1": true,
+  "all_ts_5m_aligned": true,
+  "n_fields_set": [
+    9
+  ],
+  "first_ts_utc": "2024-12-01T00:55:00Z",
+  "last_ts_utc": "2024-12-01T00:10:00Z",
+  "n_in_intended_month": 10,
+  "redacted_rows": [
+    {
+      "n_fields": 9,
+      "ts": "1733014500000",
+      "confirm": "1",
+      "ts_int_ok": true,
+      "ts_5m_aligned": true,
+      "bar_end_ms": 1733014800000,
+      "ts_utc": "2024-12-01T00:55:00Z",
+      "bar_end_utc": "2024-12-01T01:00:00Z"
+    },
+    {
+      "n_fields": 9,
+      "ts": "1733014200000",
+      "confirm": "1",
+      "ts_int_ok": true,
+      "ts_5m_aligned": true,
+      "bar_end_ms": 1733014500000,
+      "ts_utc": "2024-12-01T00:50:00Z",
+      "bar_end_utc": "2024-12-01T00:55:00Z"
+    },
+    {
+      "n_fields": 9,
+      "ts": "1733013900000",
+      "confirm": "1",
+      "ts_int_ok": true,
+      "ts_5m_aligned": true,
+      "bar_end_ms": 1733014200000,
+      "ts_utc": "2024-12-01T00:45:00Z",
+      "bar_end_utc": "2024-12-01T00:50:00Z"
+    },
+    {
+      "n_fields": 9,
+      "ts": "1733013600000",
+      "confirm": "1",
+      "ts_int_ok": true,
+      "ts_5m_aligned": true,
+      "bar_end_ms": 1733013900000,
+      "ts_utc": "2024-12-01T00:40:00Z",
+      "bar_end_utc": "2024-12-01T00:45:00Z"
+    },
+    {
+      "n_fields": 9,
+      "ts": "1733013300000",
+      "confirm": "1",
+      "ts_int_ok": true,
+      "ts_5m_aligned": true,
+      "bar_end_ms": 1733013600000,
+      "ts_utc": "2024-12-01T00:35:00Z",
+      "bar_end_utc": "2024-12-01T00:40:00Z"
+    },
+    {
+      "n_fields": 9,
+      "ts": "1733013000000",
+      "confirm": "1",
+      "ts_int_ok": true,
+      "ts_5m_aligned": true,
+      "bar_end_ms": 1733013300000,
+      "ts_utc": "2024-12-01T00:30:00Z",
+      "bar_end_utc": "2024-12-01T00:35:00Z"
+    },
+    {
+      "n_fields": 9,
+      "ts": "1733012700000",
+      "confirm": "1",
+      "ts_int_ok": true,
+      "ts_5m_aligned": true,
+      "bar_end_ms": 1733013000000,
+      "ts_utc": "2024-12-01T00:25:00Z",
+      "bar_end_utc": "2024-12-01T00:30:00Z"
+    },
+    {
+      "n_fields": 9,
+      "ts": "1733012400000",
+      "confirm": "1",
+      "ts_int_ok": true,
+      "ts_5m_aligned": true,
+      "bar_end_ms": 1733012700000,
+      "ts_utc": "2024-12-01T00:20:00Z",
+      "bar_end_utc": "2024-12-01T00:25:00Z"
+    },
+    {
+      "n_fields": 9,
+      "ts": "1733012100000",
+      "confirm": "1",
+      "ts_int_ok": true,
+      "ts_5m_aligned": true,
+      "bar_end_ms": 1733012400000,
+      "ts_utc": "2024-12-01T00:15:00Z",
+      "bar_end_utc": "2024-12-01T00:20:00Z"
+    },
+    {
+      "n_fields": 9,
+      "ts": "1733011800000",
+      "confirm": "1",
+      "ts_int_ok": true,
+      "ts_5m_aligned": true,
+      "bar_end_ms": 1733012100000,
+      "ts_utc": "2024-12-01T00:10:00Z",
+      "bar_end_utc": "2024-12-01T00:15:00Z"
+    }
+  ],
+  "headers": {
+    "Date": "Mon, 21 Sep 2026 06:50:30 GMT",
+    "Content-Type": "application/json",
+    "CF-Ray": "a3e722d2efab2d18-IAD",
+    "Server": "cloudflare"
+  }
+}

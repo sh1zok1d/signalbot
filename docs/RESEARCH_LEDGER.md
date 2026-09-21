@@ -3159,645 +3159,229 @@ the frozen library. Canonical RESULT SHA256 remains
 
 - next required step: `NEW_MARKET_HYPOTHESIS_ID_IF_AUTHORIZED` (not MARKET-01 rerun)
 
-## 2026-09-18 — MARKET-03 source capture + outcome-blind feasibility
+## 2026-09-21 — MARKET-06 outcome-blind historical feasibility retry
 
-External public strategy family `EmaCross` vs `EmaCrossFunding` from
-`https://github.com/wiktorj137/btc-strategy-lab` pinned at
-`b68a5518b4a3eba2fde1733160d7d7de356023b5` /
-tree `f7717e681c911ea3ccce15492246053cf15883cb`. Capture
-`2026-09-18T16:46:53Z`. No Signalbot strategy run. No prereg, ARM, or
-RESULT. Protected OOS not opened. B2-06 remains blocked.
+Independent retry of `MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK`
+historical feasibility from this Cursor host. Does not reuse the previous
+HOST_BLOCKED CONNECT-tunnel record at `97e01bd3…`.
 
-Author trades Binance **spot** `BTC/USDT` 1h and uses perpetual REST
-funding only as an entry filter (`funding_max_pct=55` on a 180d
-percentile of 3-day mean funding). Signalbot has no spot BTCUSDT
-dataset. CORE is USD-M perpetual and excludes spot. Funding publication
-latency remains unproven.
+Probed `data.binance.vision` and `api.bybit.com` on the host default
+route (`HTTPS_PROXY` unset; no bypass). Binance Vision returned HTTP 200
+AmazonS3/CloudFront; 36/36 monthly USD-M BTCUSDT 5m trade-price ZIP and
+CHECKSUM objects for 2022-01 through 2024-12 are listed. Bybit V5
+(`/v5/market/time` and structural kline probes for early 2022 / mid 2023
+/ late 2024) returned CloudFront HTTP 403 country-block JSON. Class:
+Binance `SOURCE_REACHABLE`; Bybit `VENUE_RESPONSE_ERROR`; not
+`HOST_EGRESS_BLOCK`.
 
-Verdict: **`DATA_ACQUISITION_REQUIRED`**. Faithful reproduction with
-current snapshots is `NOT_FEASIBLE`. Do not substitute perpetual price
-for spot. Do not describe EMA=600 / funding 55 / BTC as independently
-preregistered by the author.
-
-Evidence:
-`docs/research/MARKET_03_PUBLIC_STRATEGY_SOURCE_FEASIBILITY.md`.
-
-- market_03_prereg: **false**
-- market_03_armed: **false**
-- market_03_executed: **false**
-- market_03_outcome_inspected: **false**
-- protected_oos_touched: **false**
-- b2_06_execution_authorized: **false**
-- feasibility_verdict: **DATA_ACQUISITION_REQUIRED**
-
-- next required step: `MARKET_03_DATA_ACQUISITION_OR_NAMED_ASSUMPTION_IF_AUTHORIZED` (not prereg, not execution)
-
-## 2026-09-18 — MARKET-03 source capture + outcome-blind feasibility
-
-External public strategy family `EmaCross` vs `EmaCrossFunding` from
-`https://github.com/wiktorj137/btc-strategy-lab` pinned at
-`b68a5518b4a3eba2fde1733160d7d7de356023b5` /
-tree `f7717e681c911ea3ccce15492246053cf15883cb`. Capture
-`2026-09-18T16:46:53Z`. No Signalbot strategy run. No prereg, ARM, or
-RESULT. Protected OOS not opened. B2-06 remains blocked.
-
-Author trades Binance **spot** `BTC/USDT` 1h and uses perpetual REST
-funding only as an entry filter (`funding_max_pct=55` on a 180d
-percentile of 3-day mean funding). Signalbot has no spot BTCUSDT
-dataset. CORE is USD-M perpetual and excludes spot. Funding publication
-latency remains unproven.
-
-Verdict: **`DATA_ACQUISITION_REQUIRED`**. Faithful reproduction with
-current snapshots is `NOT_FEASIBLE`. Do not substitute perpetual price
-for spot. Do not describe EMA=600 / funding 55 / BTC as independently
-preregistered by the author.
-
-Evidence:
-`docs/research/MARKET_03_PUBLIC_STRATEGY_SOURCE_FEASIBILITY.md`.
-
-- market_03_prereg: **false**
-- market_03_armed: **false**
-- market_03_executed: **false**
-- market_03_outcome_inspected: **false**
-- protected_oos_touched: **false**
-- b2_06_execution_authorized: **false**
-- feasibility_verdict: **DATA_ACQUISITION_REQUIRED**
-
-- next required step: `MARKET_03_DATA_ACQUISITION_OR_NAMED_ASSUMPTION_IF_AUTHORIZED` (not prereg, not execution)
-
-
-## 2026-09-18 — MARKET-03 data acquisition + provenance
-
-Closed the source-feasibility gaps without running the strategy. Built
-immutable SPOT dataset `MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0` snapshot
-`2ce1f504709dc40c37a70dddcf73acb444e715820e9c855f6817c48f10d2b345`
-covering `[2019-08-01, 2025-01-01)` native Binance 1h klines (47477 rows,
-43 enumerated gaps, 0 duplicates). Vision USD-M `fundingRate` ZIP bytes
-are 52/52 identical to B2-06 on 2020-09..2024-12. REST
-`/fapi/v1/fundingRate` vs Vision `last_funding_rate`/`calc_time` matched
-5481/5481 records on the authorized overlap. Publication latency remains
-**UNPROVEN**. Named `fundingTime`-as-available assumption is
-**ACCEPTABLE** for LEVEL_2 only and does not unblock B2-06.
-
-Verdict: **`READY_FOR_MARKET_03_PREREG_DESIGN`**. Ceiling
-`LEVEL_2_FAITHFUL_REIMPLEMENTATION`. Not LEVEL_1. Not a prereg, ARM, or
-RESULT. Protected OOS not used for science.
-
-Evidence: `docs/research/MARKET_03_DATA_ACQUISITION.md`.
-
-- market_03_prereg: **false**
-- market_03_armed: **false**
-- market_03_executed: **false**
-- market_03_outcome_inspected: **false**
-- market_03_parameter_search: **false**
-- protected_oos_used_for_science: **false**
-- b2_06_execution_authorized: **false**
-- feasibility_verdict: **READY_FOR_MARKET_03_PREREG_DESIGN**
-- replication_level: **LEVEL_2_FAITHFUL_REIMPLEMENTATION**
-- STRICT_HISTORICAL_PUBLICATION_LATENCY: **UNPROVEN**
-- REPRODUCTION_FUNDINGTIME_ASSUMPTION: **ACCEPTABLE**
-
-- next required step: `MARKET_03_PREREG_DESIGN_IF_AUTHORIZED` (not this unit)
-
-## 2026-09-18 — MARKET-03 preregistration design
-
-Froze MARKET-03 scientific identity before execution. Object:
-**EXTERNAL HISTORICAL CLAIM REPRODUCTION** of the pinned
-`EmaCross` vs `EmaCrossFunding` drawdown-reduction claim at
-`LEVEL_2_FAITHFUL_REIMPLEMENTATION`. Author open-ended `20191001-`
-overlaps protected 2025/2026 OOS; evaluation truncated to
-`[2019-10-01T00:00:00Z, 2025-01-01T00:00:00Z)` without opening OOS.
-Primary classification is directional (`REPRODUCED_DIRECTION` /
-`NOT_REPRODUCED_DIRECTION`); magnitude fidelity is descriptive (no
-invented ±pp gate). B2-06 is not funding authority; ARM requires a
-dedicated REST funding snapshot from already-acquired JSONL
-`e7885cd5…`. No p-value. Not the live prereg.
-
-Verdict: **`READY_FOR_MARKET_03_PREREG`**.
-
-Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG_DESIGN.md`.
-
-- market_03_prereg: **false**
-- market_03_armed: **false**
-- market_03_executed: **false**
-- market_03_outcome_inspected: **false**
-- market_03_parameter_search: **false**
-- protected_oos_touched: **false**
-- b2_06_execution_authorized: **false**
-- design_verdict: **READY_FOR_MARKET_03_PREREG**
-- replication_level: **LEVEL_2_FAITHFUL_REIMPLEMENTATION**
-- STRICT_HISTORICAL_PUBLICATION_LATENCY: **UNPROVEN**
-
-- next required step: `MARKET_03_PREREG_IF_AUTHORIZED` (not this unit)
-
-## 2026-09-18 — MARKET-03 preregistration + freeze
-
-Materialized and froze the MARKET-03 preregistration from the approved
-design without executing the strategy. Object remains **EXTERNAL
-HISTORICAL CLAIM REPRODUCTION** at
-`LEVEL_2_FAITHFUL_REIMPLEMENTATION`. Evaluation truncated to
-`[2019-10-01T00:00:00Z, 2025-01-01T00:00:00Z)`. Primary classification
-is signed `MDD_filtered > MDD_baseline`. Funding named snapshot is a
-pre-ARM required artifact. Canonical executions authorized/consumed = 0.
+Zip payloads were not downloaded. No prices, dislocation, future
+returns, or other scientific quantities were computed. 2025/2026 were
+not opened. No MARKET-06 prereg/ARM/RESULT.
 
 ```text
-PRE_PREREG_HEAD = 9454af65398df1d3f5e0cb3af5e48c0986049d2d
-PREREG_HEAD     = 06d6ec0121a9a35f8ee947fbe89e37e97388b6e2
-PREREG_MD_SHA256   = 044bb2a6bbd51c49c856b02eb7866b43171664a05d947dce995489389eeb0b57
-PREREG_JSON_SHA256 = 3f35f9a1d0575eaff3a1993a4779642259c0891dbdda1d49f22b958eba714f89
-```
-
-Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_PREREG_FREEZE.md`.
-
-- market_03_prereg: **true**
-- market_03_prereg_frozen: **true**
-- market_03_armed: **false**
-- market_03_executed: **false**
-- market_03_outcome_inspected: **false**
-- market_03_parameter_search: **false**
-- canonical_executions_authorized: **0**
-- canonical_executions_consumed: **0**
-- funding_snapshot_ready: **false**
-- protected_oos_touched: **false**
-- b2_06_execution_authorized: **false**
-
-- next required step: `MARKET_03_IMPLEMENTATION_IF_AUTHORIZED` (not ARM, not execution)
-
-## 2026-09-18 — MARKET-03 dedicated funding snapshot
-
-Wrapped the already-acquired Binance USD-M BTCUSDT REST
-`/fapi/v1/fundingRate` JSONL into a dedicated immutable dataset without
-running the strategy or modifying the frozen prereg.
-
-```text
-SOURCE_SHA256         = e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb
-SOURCE_SIZE           = 442988
-FUNDING_DATASET_ID    = MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0
-FUNDING_SNAPSHOT_ID   = d47b7b78b6e7dbb842c7d9eb122c81063e0b804e179a53dd87723f9a8a8adc68
-FUNDING_DATA_SHA256   = e7885cd53407d70b4627d58b9abf2cdf5b26cdc7097a139eac2e454ad75944cb
-FUNDING_ROWS          = 5819
-FUNDING_TIME_BOUNDS   = 2019-09-10T08:00:00Z .. 2024-12-31T16:00:00Z
-```
-
-Identity copy of source bytes. 0 duplicate `fundingTime`. 0 missing 8h
-hour-floor events. 2438 millisecond residuals preserved, not rounded.
-`STRICT_HISTORICAL_PUBLICATION_LATENCY = UNPROVEN`.
-`REPRODUCTION_FUNDINGTIME_ASSUMPTION = ACCEPTABLE`. B2-06 is not
-authority. Spot snapshot `2ce1f504…` and prereg SHA256 `044bb2a6…` /
-`3f35f9a1…` unchanged.
-
-Evidence: `docs/research/MARKET_03_FUNDING_SNAPSHOT.md`.
-
-- funding_snapshot_ready: **true**
-- market_03_armed: **false**
-- market_03_executed: **false**
-- market_03_outcome_inspected: **false**
-- market_03_parameter_search: **false**
-- canonical_executions_authorized: **0**
-- canonical_executions_consumed: **0**
-- protected_oos_touched: **false**
-- b2_06_execution_authorized: **false**
-- unit_verdict: **A. FUNDING_SNAPSHOT_READY**
-
-- next required step: `MARKET_03_IMPLEMENTATION_IF_AUTHORIZED` (not ARM, not execution)
-
-## 2026-09-18 — MARKET-03 implementation (not freeze, not ARM, not execution)
-
-Implemented LEVEL_2 EmaCross baseline and EmaCrossFunding filtered
-reproduction semantics from the pinned external source without running
-the strategy on bound real MARKET-03 snapshots.
-
-```text
-PREREG_MD_SHA256   = 044bb2a6bbd51c49c856b02eb7866b43171664a05d947dce995489389eeb0b57
-PREREG_JSON_SHA256 = 3f35f9a1d0575eaff3a1993a4779642259c0891dbdda1d49f22b958eba714f89
-LIB_SHA256         = 3e69943368b72d37067a55ce93c0999e4688887a8b89d07ab2008ea0901d3b79
-AUTHORITY_SHA256   = d828af5cbbf9810ccf79a16d0582ec450c8db88a958cfc5d7282cc685e43023d
-EXECUTE_SHA256     = 4e54b5d6759e5d2d8f53de1401de9bdc8c59da0bd557cab226ca9ab7af382a1b
-EXACT_DIFFERENTIAL_TESTS = YES
-SEMANTIC_FIXTURE_TESTS   = YES
-```
-
-Fail-closed bound execution. Synthetic/fixture/handcrafted tests only.
-`STRICT_HISTORICAL_PUBLICATION_LATENCY = UNPROVEN`. B2-06 is not
-authority. Protected 2025/2026 OOS untouched.
-
-Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION.md`.
-
-- implementation_complete: **true**
-- implementation_frozen: **false**
-- market_03_armed: **false**
-- market_03_executed: **false**
-- market_03_outcome_inspected: **false**
-- market_03_parameter_search: **false**
-- canonical_executions_authorized: **0**
-- canonical_executions_consumed: **0**
-- protected_oos_touched: **false**
-- b2_06_execution_authorized: **false**
-- prereg_changed: **false**
-- spot_snapshot_changed: **false**
-- funding_snapshot_changed: **false**
-
-- next required step: `MARKET_03_IMPLEMENTATION_FREEZE_IF_AUTHORIZED` (not ARM, not execution)
-
-## 2026-09-18 — MARKET-03 implementation repair (not freeze, not ARM, not execution)
-
-Outcome-blind repair of red-team `B. REPAIR_REQUIRED` on HEAD
-`cada1bef…` / tree `95a6f7de…`.
-
-```text
-F1_CLOSED = YES  force-exit no longer appends a second same-timestamp capture
-F2_CLOSED = YES  EMA/signals restricted to warmup 2019-08-07T20:00:00Z
-F3_CLOSED = YES  USDT.total = start + closed profit_abs - open stake (spot)
-F5_CLOSED = YES  canonical path requires full identity then refuses unarmed
-EXACT_DIFFERENTIAL_TESTS = PARTIAL
-LIB_SHA256       = 46ec2449e967172b61eec32f5ab6caf897ff9db04249395ac55a2368840289a5
-AUTHORITY_SHA256 = 97f000c6afc2427db9fe3f90548f77c7e7ab4da0e43ba3283159101565a305e4
-EXECUTE_SHA256   = 90fd315d926b2b957391ed31c71bff6a33b0f22257960d0779e27e277cb40bcf
-```
-
-Prereg, spot snapshot, and funding snapshot unchanged. Bound real
-OHLCV/funding not loaded into strategy logic.
-
-Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_REPAIR.md`.
-
-- implementation_complete: **true**
-- implementation_frozen: **false**
-- market_03_armed: **false**
-- market_03_executed: **false**
-- market_03_outcome_inspected: **false**
-- market_03_parameter_search: **false**
-- canonical_executions_authorized: **0**
-- canonical_executions_consumed: **0**
-- protected_oos_touched: **false**
-- prereg_changed: **false**
-- spot_snapshot_changed: **false**
-- funding_snapshot_changed: **false**
-
-- next required step: `MARKET_03_IMPLEMENTATION_RE_REVIEW_THEN_FREEZE_IF_AUTHORIZED` (not ARM, not execution)
-
-## 2026-09-18 — MARKET-03 implementation freeze (not ARM, not execution)
-
-Docs-only freeze of the targeted re-review identity
-`03411aaa…` / tree `87a1da25…` (`READY_FOR_IMPLEMENTATION_FREEZE`).
-Scientific implementation bytes were not modified.
-
-```text
-FROZEN_IMPLEMENTATION_HEAD = 03411aaa1a2f938169f07f8f3576f17227a2b14b
-FROZEN_IMPLEMENTATION_TREE = 87a1da250a56343c44625e3f5187a6877035d1da
-LIB_SHA256       = 46ec2449e967172b61eec32f5ab6caf897ff9db04249395ac55a2368840289a5
-AUTHORITY_SHA256 = 97f000c6afc2427db9fe3f90548f77c7e7ab4da0e43ba3283159101565a305e4
-EXECUTE_SHA256   = 90fd315d926b2b957391ed31c71bff6a33b0f22257960d0779e27e277cb40bcf
-EXACT_DIFFERENTIAL_TESTS = PARTIAL
-FULL_PYTEST_AT_REVIEW    = NOT_COMPLETED
-IMPLEMENTATION_FREEZE_MD_SHA256   = 5007575f5fa9d6860465341e5bf3f2fa0239e18f3290c35a55da4960d56ebc2f
-IMPLEMENTATION_FREEZE_JSON_SHA256 = ff5d53108219aa679463ac8fae8aa334eaf52f0c15d080831f319b2079c05068
-```
-
-Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_IMPLEMENTATION_FREEZE.md`.
-
-- implementation_frozen: **true**
-- market_03_armed: **false**
-- market_03_executed: **false**
-- market_03_outcome_inspected: **false**
-- market_03_parameter_search: **false**
-- canonical_executions_authorized: **0**
-- canonical_executions_consumed: **0**
-- protected_oos_touched: **false**
-- prereg_changed: **false**
-- spot_snapshot_changed: **false**
-- funding_snapshot_changed: **false**
-
-- next required step: `MARKET_03_ARM_IF_AUTHORIZED` (not execution)
-
-## 2026-09-19 — MARKET-03 ARM (not execution, not RESULT)
-
-One-shot unused ARM of the frozen MARKET-03 identity. Lifecycle
-authority lives outside frozen scientific bytes. Reservation remains
-`authorized=1` / `consumed=0`. Bound spot/funding rows were not loaded
-into strategy logic.
-
-```text
-PRE_ARM_HEAD = 60c3e3054cd35652d0a4276349ad418967241cc0
-PRE_ARM_TREE = c51d068f3bbd0560ee4bc40c3fcb8b96eb7a43a1
-FROZEN_IMPLEMENTATION_HEAD = 03411aaa1a2f938169f07f8f3576f17227a2b14b
-FROZEN_IMPLEMENTATION_TREE = 87a1da250a56343c44625e3f5187a6877035d1da
-RUN_IDENTITY = f68b6de7d6c127f67908c48bf4be73cf986ea5d9daf9257bdae07f9ac626f397
-ARM_MD_SHA256   = ab268bfd1b5669ba33f700b540a15a91aedfb3bfc503ae7e9cd62e89b9f5970e
-ARM_JSON_SHA256 = 7c801cdc713d2b2a58c35f4b28a1cd8b6d464b7e06dace1c374ed46ef6a3075c
-CANONICAL_EXECUTIONS_AUTHORIZED = 1
-CANONICAL_EXECUTIONS_CONSUMED   = 0
-```
-
-Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_ARM.md`.
-
-- implementation_frozen: **true**
-- market_03_armed: **true**
-- market_03_executed: **false**
-- market_03_outcome_inspected: **false**
-- market_03_parameter_search: **false**
-- canonical_executions_authorized: **1**
-- canonical_executions_consumed: **0**
-- protected_oos_touched: **false**
-- prereg_changed: **false**
-- spot_snapshot_changed: **false**
-- funding_snapshot_changed: **false**
-
-- next required step: `MARKET_03_CANONICAL_EXECUTION_IF_AUTHORIZED` (not this unit)
-
-## 2026-09-19 — MARKET-03 canonical RESULT (one-shot, consumed)
-
-Exactly one canonical MARKET-03 execution under unused ARM
-`e3c5de3…` / `95af1b52…`. Reservation transitioned `1/0 → 1/1`
-before outcome-bearing frozen scientific calls. No rerun.
-
-```text
-RUN_IDENTITY = f68b6de7d6c127f67908c48bf4be73cf986ea5d9daf9257bdae07f9ac626f397
-PRIMARY_CLASSIFICATION = REPRODUCED_DIRECTION
-MDD_BASELINE = -0.4935539254862912
-MDD_FILTERED = -0.33775527768227054
-RESULT_JSON_SHA256 = 32b9157f9e4ce285627030218c0b9e37bed1347e6d4a30e2bd8e8ca87d46976e
-RESULT_MD_SHA256   = a338f09d0cf0cc87879c6547b8058740bcf085c6f1e59bab9148f6825eae79bc
-CANONICAL_EXECUTIONS_AUTHORIZED = 1
-CANONICAL_EXECUTIONS_CONSUMED   = 1
-PROTECTED_OOS_TOUCHED = false
-```
-
-Evidence: `docs/research/MARKET_03_PUBLIC_STRATEGY_RESULT.json`.
-
-- market_03_executed: **true**
-- market_03_outcome_inspected: **true**
-- market_03_parameter_search: **false**
-- canonical_executions_authorized: **1**
-- canonical_executions_consumed: **1**
-- protected_oos_touched: **false**
-- prereg_changed: **false**
-- scientific_implementation_changed: **false**
-
-- next required step: none authorized for MARKET-03 (do not rerun)
-
-## 2026-09-19 — H + B + MARKET-01..03 evidence registry frozen
-
-Docs-only program-level synthesis of existing canonical evidence before
-any MARKET-04 selection. No experiment, no preregistration, no next
-hypothesis, no protected-OOS inspection, no B2-05 reconstruction.
-
-```text
-REGISTRY = EVIDENCE_REGISTRY_H_B_M01_M03
-SCOPE = H01-H05 B2-01-B2-06 MARKET-01-MARKET-03
-MARKET_04_SELECTED = NO
-NEW_HYPOTHESIS_CREATED = NO
-NEW_OUTCOME_ACCESSED = NO
-H_PROMOTED = 0
-B2_CLEAN_PROMOTED = 0
-MARKET_01 = NO_EVIDENCE
-MARKET_02 = NO_EVIDENCE (open PR #157; not on main)
-MARKET_03 = REPRODUCED_DIRECTION (open PR #162; not on main)
-B2_05 = INTEGRITY_LIMITED / ORDINARY_RESULT_UNAVAILABLE
-B2_06 = NO_EVIDENCE_UNIT
-SIGNALBOT_PROTECTED_OOS_TOUCHED = false
-EXTERNAL_M03_SELECTION_OOS_UNTOUCHED_GUARANTEED = NO
-M01_M02_INDEPENDENT_REPLICATIONS = NO
-```
-
-Evidence: `docs/research/EVIDENCE_REGISTRY_H_B_M01_M03.md`.
-
-## 2026-09-19 — MARKET-04 candidate identity frozen outcome-blind
-
-Docs-only candidate-selection freeze from registry HEAD `ec7960d…` /
-tree `293e6d3…`. No preregistration, ARM, evaluator, execution, or
-outcome inspection.
-
-```text
-RESEARCH_ID = MARKET-04_FUNDING_STATE_ADVERSE_PATH_RISK
-CANDIDATE_ROLE = RISK_STATE_FILTER
-PRIMARY_OUTCOME_FAMILY = FUTURE_ADVERSE_PATH_RISK
-M03_LINEAGE = ADAPTIVE_HYPOTHESIS_GENERATION_FROM_EXTERNAL_REPRODUCTION
-independent_replication_of_market_03 = false
-funding_legal_historical_availability = UNRESOLVED
-execution_authorized = false
-protected_oos_touched = false
-NEXT_UNIT = OUTCOME_BLIND_FUNDING_AVAILABILITY_AND_MARKET04_DESIGN_FEASIBILITY
-```
-
-Evidence: `docs/research/MARKET_04_CANDIDATE_SELECTION.md`.
-
-## 2026-09-19 — MARKET-04 funding availability audit unresolved
-
-Outcome-blind first-party temporal-authority audit from candidate HEAD
-`33ef399…` / tree `04ae63d…`. No MARKET-04 execution, outcomes, ARM,
-evaluator, or preregistration. MARKET-03 `fundingTime` assumption was
-not treated as authority. No latency was invented.
-
-```text
-audit_outcome = FUNDING_HISTORICAL_AVAILABILITY_UNRESOLVED
-historical_availability_proven = false
-legal_available_at_rule = null
-market_04_funding_observable_usable = false
-execution_authorized = false
-B2_06_FUNDING_BLOCKER_IMPLICATION = UNCHANGED
-protected_oos_touched = false
-MARKET_04_NEXT_STEP = BLOCKED_OBSERVABLE_OR_NEW_CANDIDATE_SELECTION
-```
-
-Evidence: `docs/research/MARKET_04_FUNDING_AVAILABILITY_AUDIT.md`.
-
-## 2026-09-19 — MARKET-04H Premium Index observable blocked
-
-Outcome-blind child adjudication from audit HEAD `6e58882…` / tree
-`714cd0b…`. Parent candidate files were not rewritten. No outcomes, ARM,
-evaluator, or preregistration. Settled funding is not claimed.
-
-```text
-RESEARCH_ID = MARKET-04H_PREMIUM_INDEX_ADVERSE_PATH_RISK
-LINEAGE_KIND = OUTCOME_BLIND_OBSERVABLE_SUBSTITUTION_AFTER_TEMPORAL_FEASIBILITY_FAILURE
-observable_semantic_role = FUNDING_PRESSURE_PROXY
-settled_funding_claimed = false
-archive_day_timezone = UNRESOLVED
-safe_usable_at_proven = false
-relevant_files_revision_status = REVISION_STATUS_UNRESOLVED
-historical_coverage_usable = false
-execution_authorized = false
-NEXT_UNIT = BLOCKED_OBSERVABLE_OR_NEW_CANDIDATE_SELECTION
-```
-
-Evidence: `docs/research/MARKET_04H_PREMIUM_OBSERVABLE_ADJUDICATION.md`.
-
-## 2026-09-19 — MARKET-05 candidate frozen; BTC/ETH data feasible
-
-Outcome-blind candidate selection plus temporal feasibility from PRE_M05
-HEAD `e8d77b3…` / TREE `9c2d385…`. MARKET-04/04H remain blocked-observable
-and are not reinterpreted as scientific failures. No preregistration,
-ARM, evaluator, execution, or scientific-outcome inspection.
-
-```text
-RESEARCH_ID = MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK
-MECHANISM_FAMILY = F7_CROSS_ASSET_MARKET_CONTEXT
-PRIMARY_ROLE = MARKET_BREADTH_CONFIRMATION_STATE
-TARGET = BTCUSDT
-CONTEXT = ETHUSDT
-lineage_kind = NEW_MECHANISM_SELECTED_FROM_PROGRAM_LEVEL_INFORMATION_GAP
-continuous_feature_required = true
-threshold_search_allowed = false
-same_support_required = true
-feasibility_classification = MARKET_05_CANDIDATE_FROZEN_DATA_FEASIBLE
-btc_dataset = CORE_BTC_BINANCE_V0
-eth_dataset = CORE_ETH_BINANCE_V0
-eth_status = SOURCE_INVENTORY_BOUND_NOT_MATERIALIZED_NOT_ACCEPTED
-scientific_outcomes_inspected = false
-protected_oos_touched = false
-execution_authorized = false
-NEXT_UNIT = OUTCOME_BLIND_MARKET_05_EXACT_PREREGISTRATION
-```
-
-Evidence: `docs/research/MARKET_05_CROSS_ASSET_CANDIDATE.md` and
-`docs/research/MARKET_05_CROSS_ASSET_DATA_FEASIBILITY.md`.
-
-## 2026-09-19 — MARKET-05 exact preregistration frozen outcome-blind
-
-Docs-only exact formulation from PRE_PREREG HEAD `c44fb15…` /
-TREE `0f3a96e…`. No implementation, ARM, RESULT, or scientific-outcome
-inspection. Protected 2025/2026 OOS untouched.
-
-```text
-RESEARCH_ID = MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK
-DEVELOPMENT_WINDOW = [2020-01-01T00:00:00Z, 2025-01-01T00:00:00Z)
-DECISION_GRID = DAILY 00:00:00 UTC
-FEATURE_LOOKBACK = 24 hours
-OUTCOME_HORIZON = 24 hours
-ETH_CONFIRMATION = BTC_SIDE * Z_ETH
-PRIMARY_OUTCOME = BTC_DIRECTION_ALIGNED_MAE_24H
-MATERIALITY = 0.02
-EXPECTED_BETA_SIGN = negative
-BOOTSTRAP = 14-day circular block, 5000 replicates, seed 2026091905
-MARKET_05_TEST_CALIBRATED = NO
-FULL_PREREGISTRATION_FROZEN = true
-execution_authorized = false
-NEXT_UNIT = OUTCOME_BLIND_MARKET_05_IMPLEMENTATION
-```
-
-Evidence: `docs/research/MARKET_05_CROSS_ASSET_PREREG.md`.
-
-## 2026-09-19 — MARKET-05 implementation frozen outcome-blind
-
-Exact evaluator implementation from PRE_IMPLEMENTATION HEAD
-`5b2a582…` / TREE `c5f949ce…`. CORE_ETH_BINANCE_V0 accepted as snapshot
-`4b9c113f659e1c1ca71498096dfdc2628a1016346aed40e19020efb64c85ad15`.
-No ARM, RESULT, or scientific-outcome inspection. Protected 2025/2026
-OOS untouched.
-
-```text
-RESEARCH_ID = MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK
-ETH_DATASET = CORE_ETH_BINANCE_V0
-ETH_SNAPSHOT = 4b9c113f659e1c1ca71498096dfdc2628a1016346aed40e19020efb64c85ad15
-ETH_DATASET_ACCEPTED = true
-FULL_PREREGISTRATION_FROZEN = true
-IMPLEMENTATION_FROZEN = true
-ARMED = false
-EXECUTION_AUTHORIZED = false
+MARKET_06_STATUS = CONCEPT_SELECTED_NOT_PREREGISTERED
+VERDICT = MARKET_06_HISTORICAL_FEASIBILITY_REQUIRES_DESIGN_REVIEW
+BINANCE_VISION = SOURCE_REACHABLE
+BYBIT_V5 = VENUE_RESPONSE_ERROR
+HOST_EGRESS_BLOCK = false
+DISLOCATION_COMPUTED = false
 SCIENTIFIC_OUTCOMES_INSPECTED = false
-PROTECTED_OOS_TOUCHED = false
-NEXT_UNIT = OUTCOME_BLIND_MARKET_05_IMPLEMENTATION_RED_TEAM_AUDIT
+MARKET_06_PREREG_CREATED = false
+NEXT_UNIT = MARKET_06_BYBIT_OFFICIAL_HISTORICAL_ROUTE_OR_REACHABLE_HOST_REVIEW
 ```
 
-Evidence: `docs/research/MARKET_05_IMPLEMENTATION_FREEZE.md`.
+Evidence: `docs/research/MARKET_06_CROSS_VENUE_FEASIBILITY.md`.
 
-## 2026-09-19 — MARKET-05 final pre-ARM production repair freeze
+## 2026-09-21 — MARKET-06 OKX spot source-route design review
 
-Independent read-only red-team of `da66716…` / tree `69d03914…`
-returned `MARKET_05_DO_NOT_ARM` (F1–F10 production blockers). This
-unit repairs those blockers outcome-blind without changing prereg
-mathematics. Atomic `O_EXCL` execution claim is consumption. ETH
-execution parquet is bound as `ETH_EXECUTION_DATA_ID`. No ARM, RESULT,
-or scientific-outcome inspection. Protected 2025/2026 OOS untouched.
+Pre-preregistration source-route review. Does not test MARKET-06. Does
+not rewrite the Bybit feasibility artifact. Bybit remains
+`VENUE_COUNTRY_ACCESS_RESTRICTION_FROM_CURRENT_EXECUTION_HOST`. Spot
+leg candidate is official OKX `GET /api/v5/market/history-candles`
+`instId=BTC-USDT` `bar=5m`. Perp leg remains Binance USD-M BTCUSDT 5m
+trade-price Vision klines. Binance spot was not adopted.
+
+Structural probes for 2022-01 / 2023-06 / 2024-12 returned native
+completed 5m candles (`confirm=1`). 2022–2024 materialization: 36/36
+Binance ZIP checksums verified; 1053 OKX official pages frozen by
+SHA256. Timestamp-only census: 315648/315648 aligned, 0 gaps, 0
+duplicates, alignment rate 1.0. No prices, dislocation, or future
+returns inspected. 2025/2026 not opened.
 
 ```text
-RESEARCH_ID = MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK
-PRE_REPAIR_AUDIT = MARKET_05_DO_NOT_ARM
-PREREG_CHANGED = false
-SCIENTIFIC_MATH_CHANGED = false
-ARMED = false
-EXECUTION_AUTHORIZED = false
+MARKET_06_STATUS = CONCEPT_SELECTED_NOT_PREREGISTERED
+VERDICT = MARKET_06_OKX_HISTORICAL_FEASIBILITY_CONFIRMED
+OLD_SPOT_SOURCE = BYBIT_BTCUSDT_SPOT
+NEW_SPOT_SOURCE = OKX_BTC_USDT_SPOT
+SOURCE_CHANGE_OCCURRED_BEFORE_PREREG = true
 SCIENTIFIC_OUTCOMES_INSPECTED = false
-PROTECTED_OOS_TOUCHED = false
-NEXT_UNIT = INDEPENDENT_FINAL_MARKET_05_PRE_ARM_RED_TEAM
+MARKET_06_PREREG_CREATED = false
+NEXT_UNIT = MARKET_06_PREREGISTRATION_DESIGN
 ```
 
-Evidence: `docs/research/MARKET_05_FINAL_PRE_ARM_FREEZE.md`.
+Evidence: `docs/research/MARKET_06_OKX_SPOT_ROUTE_DESIGN_REVIEW.md`.
 
-## 2026-09-19 — MARKET-05 one-shot canonical RESULT (NO_EVIDENCE)
+## 2026-09-21 — MARKET-06 feasibility durable raw-evidence retention
 
-Canonical MARKET-05 execution completed at RESULT HEAD
-`828c6916fdb0da7b3f9fbad2bc0a97d87efcbb4b` / tree
-`338e72d23ff7f5547191221527b762a47e4e48bc`.
-
-```text
-RESEARCH_ID = MARKET-05_CROSS_ASSET_CONFIRMATION_ADVERSE_PATH_RISK
-RUN_IDENTITY = 6957613de4b035d850fc97edb833565c5fd3d7b085aa158e0992b88142190635
-CLASSIFICATION = MARKET_05_NO_EVIDENCE
-eligible_rows = 1825
-G1 = PASS
-G2 = FAIL
-G3 = FAIL
-G4 = FAIL
-G5 = FAIL
-G6 = FAIL
-CANONICAL_EXECUTIONS_CONSUMED = 1
-PROTECTED_OOS_TOUCHED = false
-SCIENTIFICALLY_SPENT = true
-RERUN_AUTHORIZED = false
-```
-
-Exact formulation closed. Negative relative MAE does not authorize a
-reverse hypothesis. Evidence: `docs/research/MARKET_05_RESULT.json`.
-
-## 2026-09-19 — MARKET-05 program closeout; information-set expansion
-
-Program-level update only. Not a new scientific experiment. Did not
-rerun MARKET-05, inspect protected OOS, create MARKET-06, or change
-MARKET-05 interpretation.
+Outcome-blind durability unit only. Did not redownload. Did not mint a
+new snapshot. Did not preregister or compute scientific outcomes. Local
+runtime raw bytes were verified against frozen ledgers, then copied
+byte-for-byte into
+`docs/research_data/MARKET_06_OKX_BINANCE_FEASIBILITY_V0/durable_raw/`.
 
 ```text
-PRE_UPDATE_HEAD = 828c6916fdb0da7b3f9fbad2bc0a97d87efcbb4b
-PRE_UPDATE_TREE = 338e72d23ff7f5547191221527b762a47e4e48bc
-EVIDENCE_REGISTRY_UNIT_COUNT = 16
-MARKET_05_STATUS = NO_EVIDENCE
-MARKET_04_STATUS = BLOCKED_OBSERVABLE / NOT_TESTED
-MARKET_03_STATUS = EXTERNAL_REPRODUCTION / REPRODUCED_DIRECTION
-INTERNAL_HISTORICAL_CANDIDATES_PROMOTED = 0
-VALIDATED_OOS_CANDIDATES = 0
-PROTECTED_OOS_TOUCHED = false
-SAME_INFORMATION_SET_HYPOTHESIS_GENERATION_PAUSED = true
-NEXT_PROGRAM_PHASE = INFORMATION_SET_EXPANSION
-NEXT_INFORMATION_FAMILY = POINT_IN_TIME_FUNDING_PREMIUM_OBSERVABILITY
-MARKET_06_CREATED = false
-FORWARD_OBSERVABILITY_DESIGN_CREATED = true
-SCIENTIFIC_OUTCOMES_INSPECTED_DURING_UPDATE = false
-NEXT_UNIT = FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION
-```
-
-Current registry: `docs/research/EVIDENCE_REGISTRY_H_B_M01_M05.md`.
-Interpretation: `docs/research/MARKET_05_PROGRAM_INTERPRETATION.md`.
-Design: `docs/research/FORWARD_MARKET_OBSERVABILITY_V1.md`.
-
-## 2026-09-19 — FORWARD_MARKET_OBSERVABILITY_V1 implementation freeze
-
-Data acquisition infrastructure only. Not a scientific experiment. Did
-not create MARKET-06, M04-FWD, or inspect predictive relationships.
-Evidence-registry scientific conclusions were not altered.
-
-```text
-PRE_IMPLEMENTATION_HEAD = 649ea868ba95a78e3718bdd4acbbe542ddd1befd
-PRE_IMPLEMENTATION_TREE = 8a1ea21cf958740b33b6318643a2cee3694a6e94
-COLLECTOR_HEAD = UNSET_UNTIL_THIS_COMMIT
-COLLECTOR_TREE = UNSET_UNTIL_THIS_COMMIT
-LEGAL_AVAILABLE_AT = local_received_at_utc
-AUTHORITATIVE_COLLECTION_STARTED = false
-AUTHORITATIVE_COLLECTION_START_UTC = null
-MARKET_06_CREATED = false
-M04_FWD_CREATED = false
+DATASET_ID = MARKET_06_OKX_BINANCE_FEASIBILITY_V0
+SNAPSHOT_ID = e0403e40a9b1e2903f15fb9283ec6caf54788e48153038982e364d4318183e68
+BINANCE_OBJECTS_RETAINED = 36
+OKX_PAGES_RETAINED = 1053
+ALL_PREEXISTING_SHA256_MATCH = true
+RAW_BYTES_GIT_RETAINED = true
+NEW_SNAPSHOT_MINTED = false
 SCIENTIFIC_OUTCOMES_INSPECTED = false
-NEXT_UNIT = FORWARD_MARKET_OBSERVABILITY_V1_AUTHORITATIVE_COLLECTION_START
+NEXT_UNIT = MARKET_06_PREREGISTRATION_DESIGN
 ```
 
-Freeze: `docs/research/FORWARD_MARKET_OBSERVABILITY_V1_IMPLEMENTATION_FREEZE.md`.
-Collector: `scripts/research/forward_market_observability_v1/`.
+Evidence: `docs/research/MARKET_06_OKX_BINANCE_FEASIBILITY_V0_DURABLE_RETENTION.md`.
+
+## 2026-09-21 — MARKET-06 outcome-blind preregistration freeze
+
+Two-step freeze of `MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK`.
+Payload materialization commit `b21bf46dcc39a2b9243c4172f731cd4d3fbf79b1`
+(tree `ce436bf3d025340752f5afea765ea0cbe50e499e`) from
+`PRE_PREREG_HEAD = a75a5272f994f9728308c47c524f2839b73762a7`. Docs-only
+freeze binds those exact prereg bytes. No evaluator, ARM, RESULT, OHLC
+inspection, dislocation-value inspection, or eligible-row counts from
+price data.
+
+```text
+MARKET_06_STATUS = FROZEN_OUTCOME_BLIND
+PRE_PREREG_HEAD = a75a5272f994f9728308c47c524f2839b73762a7
+PREREG_CONTENT_HEAD = b21bf46dcc39a2b9243c4172f731cd4d3fbf79b1
+PREREG_MD_SHA256 = 0489fc71e999b48a7a82223615bd0acd50b1f69af8bc9901d1c681834e55cfcc
+PREREG_JSON_SHA256 = 332d91140c7ead87f4539b49c8a5647064f9c5e1d0bb8178c16dcc7eaf7a88f4
+SNAPSHOT_ID = e0403e40a9b1e2903f15fb9283ec6caf54788e48153038982e364d4318183e68
+DURABLE_EVIDENCE_ROOT_SHA256 = f4b9e16a62707c70e782cc318399f3ba53ebb85c792e96cd12c164a98f0cdc6f
+SCIENTIFIC_OUTCOMES_INSPECTED = false
+MARKET_06_EXECUTED = false
+MARKET_06_ARMED = false
+NEXT_UNIT = MARKET_06_IMPLEMENTATION_OUTCOME_BLIND
+```
+
+Evidence: `docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG.md` and
+`docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE.md`.
+
+## 2026-09-21 — MARKET-06 pre-outcome prereg amendment and re-freeze
+
+Legal pre-outcome correction of scientific-definition drift (F1 MAD
+1.4826 robust scale; F2 `ABS_BTC_RET_24H` control; F3 arithmetic MAE;
+F4 Gate-2 lower CI). First freeze retained as V0 historical evidence.
+No evaluator, ARM, RESULT, or outcome inspection.
+
+```text
+AMENDMENT_REASON = PRE_OUTCOME_SCIENTIFIC_DEFINITION_DRIFT_CORRECTION
+OUTCOMES_INSPECTED_BEFORE_AMENDMENT = false
+OLD_PREREG_CONTENT_HEAD = b21bf46dcc39a2b9243c4172f731cd4d3fbf79b1
+OLD_FREEZE_HEAD = 5f14411abc926a2b486d83de5b696ec3cf362488
+AMENDED_PREREG_CONTENT_HEAD = b4459ab96addd6c39d4baec35248410a8f5cf8e0
+AMENDED_PREREG_MD_SHA256 = 55f6f3525a4a3a5878f870a757e890faba336e8d944f6b751087a68e94102d06
+AMENDED_PREREG_JSON_SHA256 = 191dfcf48996953f5c78873eb54b24e88430dea2307f22adb6120be4e893c7ae
+SCIENTIFIC_OUTCOMES_INSPECTED = false
+MARKET_06_EXECUTED = false
+MARKET_06_ARMED = false
+NEXT_UNIT = MARKET_06_IMPLEMENTATION_OUTCOME_BLIND
+```
+
+Evidence: `docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_AMENDMENT_001.md`
+and `docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE.md`.
+
+## 2026-09-21 — MARKET-06 pre-outcome amendment 002 and re-freeze
+
+Legal pre-outcome correction of predictive-bootstrap sampling structure.
+Independent circular moving-block resampling of 2023 and 2024 holdouts
+(block length 14; wrap within year only; exact N_year preserved;
+concatenate after sampling). Amendment 001 F1–F4 and V0/V1 remain
+historical evidence. No evaluator, ARM, RESULT, or outcome inspection.
+
+```text
+AMENDMENT_REASON = PRE_OUTCOME_PREDICTIVE_BOOTSTRAP_STRATIFICATION_CORRECTION
+OUTCOMES_INSPECTED_BEFORE_AMENDMENT = false
+OLD_LIVE_PREREG_HEAD = b4459ab96addd6c39d4baec35248410a8f5cf8e0
+OLD_LIVE_FREEZE_HEAD = 371f71dd49e2c2c445269aeed1b75a39f33b3422
+AMENDED_002_PREREG_HEAD = 6342d24e6d872b6dbce91f9cdb8e7cfe689a6f59
+AMENDED_002_PREREG_TREE = 11658516cab22774501daa8e2e966c9a8861c9a3
+PREREG_MD_SHA256 = 70dd8d09e07e1209e77ea6d1c741e412534ef5cccbfc36609bc46924e13cc4c6
+PREREG_JSON_SHA256 = f60bf0bdbeb5982933c648b1c9b56017f25a5dabb29ad39eac58d53b5f590a24
+PREDICTIVE_BOOTSTRAP_STRATIFIED_BY_YEAR = true
+CROSS_YEAR_BOOTSTRAP_BLOCKS_ALLOWED = false
+YEAR_SAMPLE_SIZE_PRESERVED_PER_REPLICATE = true
+PREDICTIVE_MODEL_REFIT_IN_BOOTSTRAP = false
+SCIENTIFIC_OUTCOMES_INSPECTED = false
+MARKET_06_EXECUTED = false
+MARKET_06_ARMED = false
+NEXT_UNIT = MARKET_06_IMPLEMENTATION_OUTCOME_BLIND
+```
+
+Evidence: `docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_AMENDMENT_002.md`
+and `docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE.md`.
+
+## 2026-09-21 — MARKET-06 outcome-blind implementation freeze
+
+Implemented the frozen amendment-002 MARKET-06 contract. Canonical
+evaluation of retained 2022-2024 bytes is refused. Synthetic tests only.
+No ARM, RESULT, or outcome inspection.
+
+```text
+IMPLEMENTATION_ID = MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION
+PREREG_FREEZE_HEAD = e2d543eadb5425473b6d4b8d24c177c1d7ae7930
+IMPLEMENTATION_HEAD = 81c8e0a8619190329971f5a85435c7ac4f9cb86e
+IMPLEMENTATION_TREE = 7f4e0a85dc3738924eb52bb28f85794d6a8daa7a
+REAL_CANONICAL_EXECUTION_REFUSED = true
+SCIENTIFIC_OUTCOMES_INSPECTED = false
+MARKET_06_EXECUTED = false
+MARKET_06_ARMED = false
+NEXT_UNIT = MARKET_06_IMPLEMENTATION_RED_TEAM_REVIEW
+```
+
+Evidence: `docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION.md`
+and `docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION_FREEZE.md`.
+
+
+## 2026-09-21 — MARKET-06 canonical execution consumed, sealed NO_EVIDENCE
+
+The one canonical historical MARKET-06 run executed exactly once on the
+designated canonical checkout through the frozen production runner, under
+the tracked authority chain claim `6d28144` -> reservation `de47896` ->
+ARM `2d58157` -> implementation freeze `a832252`.
+
+Research ID: `MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK`.
+
+`FINAL_CLASSIFICATION = MARKET_06_NO_EVIDENCE`.
+`RESULT_COMMIT = 80c7d19f622cc7b5576154de59dbb9cdf85d4dcf`.
+`RESULT_PAYLOAD_SHA256 = 67f6f14c9221d3d0be2c130938f6ff8588aadc6eabc52126dd00a5fbbedd2a53`.
+`run_identity = f3aa51372594d710a8f705d761d857f8385d0b848fb0ed59a36b27a16ce25c22`.
+
+Absolute BTC perpetual-vs-spot cross-venue dislocation, conditional on
+BTC's own recent directional and volatility state, did not provide stable
+incremental information about subsequent 24h direction-aligned
+adverse-path risk under the frozen design. Only G1 passed; G2-G6 failed.
+Pooled relative MAE improvement -0.0376 (CI95 [-0.0645, -0.0149]); 2023
+-0.0281; 2024 -0.0453. No reverse effect is inferred and no rescue is
+authorized.
+
+CONSUMED: the 2022 TRAIN and 2023/2024 holdout windows of
+`MARKET_06_OKX_BINANCE_FEASIBILITY_V0` (snapshot `e0403e40...`) are spent
+for the 24h direction-aligned MAE target. N_TRAIN=333, N_2023=364,
+N_2024=365. Protected 2025/2026 remain unopened.
+
+Program update `MARKET_PROGRAM_UPDATE_POST_M06` marks the narrow cell
+"single standalone observable -> additive linear term -> mean 24h
+direction-aligned MAE on a daily grid" as LOW_PRIORITY/SATURATED_FOR_NOW,
+on the basis that three materially different information sources
+(derivative positioning, cross-asset, cross-venue) produced nulls at the
+same cell. The underlying information families are NOT disproven. Six
+orthogonal, deliberately unranked candidate regions are recorded for
+coverage.
+
+- `INTERNAL_HISTORICAL_CANDIDATES_PROMOTED = 0`
+- `MARKET_07_CREATED = false`
+- next required step: `MARKET_NEXT_HYPOTHESIS_SELECTION_FROM_ORTHOGONAL_REGIONS`

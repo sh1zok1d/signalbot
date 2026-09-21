@@ -1,0 +1,31 @@
+{
+  "arm_commit": "2d5815760241042e812eef5e70357a693f38e1c6",
+  "authority_note": "Authoritative because of the Git commit it is read from. It deliberately contains no claim commit SHA of its own, and carries no outcome of any kind.",
+  "canonical_execution_performed": false,
+  "claim_state": "CANONICAL_EXECUTION_CLAIMED",
+  "dataset_id": "MARKET_06_OKX_BINANCE_FEASIBILITY_V0",
+  "date": "2026-09-21",
+  "durable_evidence_root_sha256": "f4b9e16a62707c70e782cc318399f3ba53ebb85c792e96cd12c164a98f0cdc6f",
+  "fresh_clone_replay_technically_possible": true,
+  "implementation_freeze_head": "a83225241a48baf7620731f0a791ed93f0392343",
+  "implementation_freeze_tree": "4f31a09ebca5be9b41d0bfe95adfe3a4ebc1f84c",
+  "next_lifecycle_state": "MARKET_06_CANONICAL_EXECUTION",
+  "not_a_result": true,
+  "one_shot_scope": "SINGLE_CHECKOUT_AT_MOST_ONCE",
+  "operator_policy": "DESIGNATED_CANONICAL_CHECKOUT_ONLY_NO_RERUN",
+  "operator_policy_note": "Only the designated canonical checkout may execute. After this claim: do not clone the execution state to run MARKET-06, do not execute this claim on another checkout or machine, do not remove/reset/copy the local attempt ledger, and do not reset to this commit to rerun. Any second invocation after the first execution attempt begins is invalid research conduct even where technically possible.",
+  "protected_2025_opened": false,
+  "protected_2026_opened": false,
+  "research_id": "MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK",
+  "reservation_commit": "de478963823817a705ced22efa23d883f2f2e56e",
+  "result_target_paths": [
+    "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_RESULT.json",
+    "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_RESULT.md"
+  ],
+  "run_identity": "f3aa51372594d710a8f705d761d857f8385d0b848fb0ed59a36b27a16ce25c22",
+  "schema": "signalbot_market_06_execution_claim",
+  "schema_version": "1.0.0",
+  "scientific_outcomes_inspected_before_claim": false,
+  "snapshot_id": "e0403e40a9b1e2903f15fb9283ec6caf54788e48153038982e364d4318183e68",
+  "tracked_claim_is_global_consumption_marker": false
+}

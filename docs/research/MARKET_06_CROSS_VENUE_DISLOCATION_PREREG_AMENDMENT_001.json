@@ -1,0 +1,82 @@
+{
+  "schema": "signalbot_market_06_cross_venue_dislocation_prereg_amendment_001",
+  "schema_version": "1.0.0",
+  "unit_id": "MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_AMENDMENT_001",
+  "status": "PRE_OUTCOME_AMENDMENT",
+  "date": "2026-09-21",
+  "research_id": "MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK",
+  "human_readable_twin": "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_AMENDMENT_001.md",
+  "amendment_reason": "PRE_OUTCOME_SCIENTIFIC_DEFINITION_DRIFT_CORRECTION",
+  "outcomes_inspected_before_amendment": false,
+  "not_a_result": true,
+  "not_an_arm": true,
+  "not_market_06_execution": true,
+  "not_an_evaluator": true,
+  "old_prereg_content_head": "b21bf46dcc39a2b9243c4172f731cd4d3fbf79b1",
+  "old_freeze_head": "5f14411abc926a2b486d83de5b696ec3cf362488",
+  "historical_exact_copies": {
+    "prereg_md": "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_V0.md",
+    "prereg_json": "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_V0.json",
+    "freeze_md": "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE_V0.md",
+    "freeze_json": "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE_V0.json",
+    "prereg_md_sha256": "0489fc71e999b48a7a82223615bd0acd50b1f69af8bc9901d1c681834e55cfcc",
+    "prereg_json_sha256": "332d91140c7ead87f4539b49c8a5647064f9c5e1d0bb8178c16dcc7eaf7a88f4",
+    "freeze_md_sha256": "3bf489575e39bebe5ab0abc7cca261796a1f696006eb68d534ff38d17fc4adb2",
+    "freeze_json_sha256": "d1b30ef45153b08fc8dcac325ecaa1a18b13c2aeb4a1838f743bf6fb2ca5eef7"
+  },
+  "corrections": {
+    "F1_MAD_NORMALIZATION": {
+      "was": "Z = (D_e - median) / MAD; mad_consistency_constant_1_4826 = false",
+      "now": "DISLOCATION_Z_T = (D_E - CENTER_T) / (1.4826 * MAD_T)",
+      "MAD_CONSISTENCY_CONSTANT": 1.4826,
+      "MAD_CONSISTENCY_CONSTANT_ENABLED": true,
+      "raw_mad_as_denominator": false
+    },
+    "F2_BTC_BASELINE_CONTROL": {
+      "was": "ABS_Z_BTC regressor",
+      "now": "ABS_BTC_RET_24H regressor; no ABS_Z_BTC",
+      "baseline_model": "Y ~ 1 + BTC_SIDE + ABS_BTC_RET_24H + RV_BTC_24H",
+      "candidate_model": "Y ~ 1 + BTC_SIDE + ABS_BTC_RET_24H + RV_BTC_24H + ABS_DISLOCATION_Z"
+    },
+    "F3_ADVERSE_PATH_OUTCOME_SCALE": {
+      "was": "logarithmic adverse excursion ln(ENTRY/min_low) / ln(max_high/ENTRY)",
+      "now": "arithmetic fractional excursion (ENTRY_PRICE - min_low)/ENTRY_PRICE or (max_high - ENTRY_PRICE)/ENTRY_PRICE",
+      "outcome_name": "24H_DIRECTION_ALIGNED_BTC_MAE",
+      "logarithmic_adverse_excursion": false
+    },
+    "F4_GATE2_CI_DIRECTION": {
+      "was": "95% bootstrap UPPER confidence bound for beta > 0",
+      "now": "95% bootstrap LOWER confidence bound for BETA_ABS_DISLOCATION_Z > 0",
+      "gate_2_exact_predicate": "BETA_ABS_DISLOCATION_Z_CI95_LOW > 0"
+    }
+  },
+  "unchanged": [
+    "MARKET-06 identity",
+    "Binance perp / OKX spot sources",
+    "dataset/snapshot/durable root",
+    "5m native bars",
+    "daily 00:05 UTC decision",
+    "FEATURE_CUTOFF = T - 5m",
+    "reference count 8640 excluding D_E",
+    "PRIMARY_FEATURE = ABS_DISLOCATION_Z",
+    "expected beta sign positive",
+    "24h / 288-bar outcome horizon",
+    "training and holdout dates",
+    "December 31 exclusion",
+    "no-refit rule",
+    "OLS model class",
+    "MAE prediction metric",
+    "2% materiality",
+    "circular MBB 14/5000/seed 2026092106",
+    "six promotion gates",
+    "2025/2026 protection",
+    "no-rescue rule"
+  ],
+  "scientific_outcomes_inspected": false,
+  "market_06_executed": false,
+  "market_06_armed": false,
+  "market_06_result_created": false,
+  "protected_2025_opened": false,
+  "protected_2026_opened": false,
+  "next_unit": "MARKET_06_PREREG_FREEZE"
+}

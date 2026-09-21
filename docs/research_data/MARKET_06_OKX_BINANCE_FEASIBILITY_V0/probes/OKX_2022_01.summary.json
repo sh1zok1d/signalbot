@@ -1,0 +1,134 @@
+{
+  "id": "OKX_2022_01",
+  "intended_window_start": "2022-01-01T00:00:00Z",
+  "request_after_ms": 1640998800000,
+  "url": "https://www.okx.com/api/v5/market/history-candles?instId=BTC-USDT&bar=5m&after=1640998800000&limit=10",
+  "http_status": 200,
+  "error": null,
+  "http_ms": 189,
+  "raw_sha256": "7ecfbdbd5f3bdaeee99a6e9be787f3295842d2538b3a4c54dd04fa4ce9b02406",
+  "raw_len": 1164,
+  "okx_code": "0",
+  "okx_msg": "",
+  "parse_error": null,
+  "n_records": 10,
+  "confirm_values": [
+    "1"
+  ],
+  "all_confirm_1": true,
+  "all_ts_5m_aligned": true,
+  "n_fields_set": [
+    9
+  ],
+  "first_ts_utc": "2022-01-01T00:55:00Z",
+  "last_ts_utc": "2022-01-01T00:10:00Z",
+  "n_in_intended_month": 10,
+  "redacted_rows": [
+    {
+      "n_fields": 9,
+      "ts": "1640998500000",
+      "confirm": "1",
+      "ts_int_ok": true,
+      "ts_5m_aligned": true,
+      "bar_end_ms": 1640998800000,
+      "ts_utc": "2022-01-01T00:55:00Z",
+      "bar_end_utc": "2022-01-01T01:00:00Z"
+    },
+    {
+      "n_fields": 9,
+      "ts": "1640998200000",
+      "confirm": "1",
+      "ts_int_ok": true,
+      "ts_5m_aligned": true,
+      "bar_end_ms": 1640998500000,
+      "ts_utc": "2022-01-01T00:50:00Z",
+      "bar_end_utc": "2022-01-01T00:55:00Z"
+    },
+    {
+      "n_fields": 9,
+      "ts": "1640997900000",
+      "confirm": "1",
+      "ts_int_ok": true,
+      "ts_5m_aligned": true,
+      "bar_end_ms": 1640998200000,
+      "ts_utc": "2022-01-01T00:45:00Z",
+      "bar_end_utc": "2022-01-01T00:50:00Z"
+    },
+    {
+      "n_fields": 9,
+      "ts": "1640997600000",
+      "confirm": "1",
+      "ts_int_ok": true,
+      "ts_5m_aligned": true,
+      "bar_end_ms": 1640997900000,
+      "ts_utc": "2022-01-01T00:40:00Z",
+      "bar_end_utc": "2022-01-01T00:45:00Z"
+    },
+    {
+      "n_fields": 9,
+      "ts": "1640997300000",
+      "confirm": "1",
+      "ts_int_ok": true,
+      "ts_5m_aligned": true,
+      "bar_end_ms": 1640997600000,
+      "ts_utc": "2022-01-01T00:35:00Z",
+      "bar_end_utc": "2022-01-01T00:40:00Z"
+    },
+    {
+      "n_fields": 9,
+      "ts": "1640997000000",
+      "confirm": "1",
+      "ts_int_ok": true,
+      "ts_5m_aligned": true,
+      "bar_end_ms": 1640997300000,
+      "ts_utc": "2022-01-01T00:30:00Z",
+      "bar_end_utc": "2022-01-01T00:35:00Z"
+    },
+    {
+      "n_fields": 9,
+      "ts": "1640996700000",
+      "confirm": "1",
+      "ts_int_ok": true,
+      "ts_5m_aligned": true,
+      "bar_end_ms": 1640997000000,
+      "ts_utc": "2022-01-01T00:25:00Z",
+      "bar_end_utc": "2022-01-01T00:30:00Z"
+    },
+    {
+      "n_fields": 9,
+      "ts": "1640996400000",
+      "confirm": "1",
+      "ts_int_ok": true,
+      "ts_5m_aligned": true,
+      "bar_end_ms": 1640996700000,
+      "ts_utc": "2022-01-01T00:20:00Z",
+      "bar_end_utc": "2022-01-01T00:25:00Z"
+    },
+    {
+      "n_fields": 9,
+      "ts": "1640996100000",
+      "confirm": "1",
+      "ts_int_ok": true,
+      "ts_5m_aligned": true,
+      "bar_end_ms": 1640996400000,
+      "ts_utc": "2022-01-01T00:15:00Z",
+      "bar_end_utc": "2022-01-01T00:20:00Z"
+    },
+    {
+      "n_fields": 9,
+      "ts": "1640995800000",
+      "confirm": "1",
+      "ts_int_ok": true,
+      "ts_5m_aligned": true,
+      "bar_end_ms": 1640996100000,
+      "ts_utc": "2022-01-01T00:10:00Z",
+      "bar_end_utc": "2022-01-01T00:15:00Z"
+    }
+  ],
+  "headers": {
+    "Date": "Mon, 21 Sep 2026 06:50:29 GMT",
+    "Content-Type": "application/json",
+    "CF-Ray": "a3e722d04cadea42-IAD",
+    "Server": "cloudflare"
+  }
+}

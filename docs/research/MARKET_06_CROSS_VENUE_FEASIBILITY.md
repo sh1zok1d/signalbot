@@ -1,15 +1,18 @@
 # MARKET-06 — Cross-Venue Dislocation Adverse-Path Risk: Historical Feasibility
 
-Status: `MARKET_06_FEASIBILITY_HOST_BLOCKED`
+Status: `MARKET_06_HISTORICAL_FEASIBILITY_REQUIRES_DESIGN_REVIEW`
 Date: 2026-09-21
 `MARKET_06_STATUS = CONCEPT_SELECTED_NOT_PREREGISTERED`
 
+This is an independent retry of the existing outcome-blind feasibility
+unit from this Cursor host. It does **not** reuse the previous
+`MARKET_06_FEASIBILITY_HOST_BLOCKED` record at
+`97e01bd3f1f187b3885e00cdf7c59374c9c96729`.
+
 ## What this is
 
-This is an **outcome-blind historical-data feasibility unit only**. It does
-not test, preregister, or arm the MARKET-06 hypothesis. No price-derived
-quantity of any kind was computed, because no price data was ever
-retrieved.
+Outcome-blind historical-data feasibility only. It does not test,
+preregister, or arm MARKET-06. No price-derived quantity was computed.
 
 ## Concept (not tested in this unit)
 
@@ -20,91 +23,130 @@ Conditional on BTC's own state, test whether unusually large disagreement
 between BTC perpetual and BTC spot prices contains stable incremental
 information about subsequent BTC adverse-path risk.
 
-This is explicitly **not** a funding rescue, an OI rescue, a MARKET-05
-rescue, or another ETH-confirmation variant, and none of those were tested
-here either.
+This is not a funding rescue, an OI rescue, a MARKET-05 rescue, or an
+ETH-confirmation variant.
 
-## Preferred data route
+## Preferred data route (unchanged)
 
 - **Spot leg**: Bybit, `category=spot`, `symbol=BTCUSDT`, `interval=5`,
-  official Bybit V5 historical Kline API (`GET /v5/market/kline`).
-- **Perpetual leg**: Binance USD-M perpetual futures, `symbol=BTCUSDT`,
-  `interval=5m`, official Binance Public Data archive
-  (`data/futures/um/.../klines/BTCUSDT/5m/`), trade-price klines — mark
-  price is explicitly not a substitute for the perpetual leg.
-- Both legs use the same quote asset (`BTCUSDT`), so the primary
-  dislocation does not mechanically mix BTC-USD spot with BTC-USDT
-  perpetual, and does not inject USD/USDT stablecoin basis as an
-  uncontrolled component. No source substitution (e.g. Coinbase BTC-USD)
-  was made or considered necessary.
-- Target historical overlap: `2022-01-01T00:00:00Z` through
-  `2024-12-31T23:59:59Z`. 2025 and 2026 are protected and were not opened.
+  official Bybit V5 `GET /v5/market/kline`.
+- **Perpetual leg**: Binance USD-M perpetual `BTCUSDT` 5m **trade-price**
+  klines from `https://data.binance.vision/`
+  (`data/futures/um/monthly/klines/BTCUSDT/5m/`). Mark-price klines were
+  not substituted.
+- Same quote asset on both legs (`BTCUSDT`). No Coinbase BTC-USD
+  substitution.
+- Target window: `2022-01-01T00:00:00Z` through `2024-12-31T23:59:59Z`.
+  2025 and 2026 remain protected and were not opened.
 
-## What was actually done in this unit
+## What was actually done on this host
 
-1. Created a dedicated feasibility branch
-   (`cursor/market-06-cross-venue-feasibility-0474`) from the exact
-   accepted `BASE_HEAD` (`4158403b942c3ac0e2af3fb602f074f0064690fd`),
-   touching no `FORWARD_MARKET_OBSERVABILITY_V1` collector or authority
-   file.
-2. Attempted a bare connectivity probe (no data request, no structural
-   schema inspection) against the two required official hosts, through
-   this session's normal, unmodified network egress path — no proxy
-   bypass, no alternate route, no VPN/tunnel substitution:
-   - `https://data.binance.vision` (Binance public-data archive index for
-     the BTCUSDT 5m USD-M futures klines prefix)
-   - `https://api.bybit.com` (`/v5/market/time`, a bare reachability
-     check; no kline request was attempted since even this endpoint could
-     not be reached)
-3. Both probes failed identically: `curl: (56) CONNECT tunnel failed,
-   response 403`. The session's own proxy diagnostics
-   (`$HTTPS_PROXY/__agentproxy/status`) classify both as
-   `connect_rejected: gateway answered 403 to CONNECT (policy denial or
-   upstream failure)` — a rejection of the CONNECT tunnel itself, before
-   any request reached Binance or Bybit. No HTTP status and no bytes were
-   ever produced by either venue.
-4. This is the same failure signature already observed for
-   `fapi.binance.com:443` and `fstream.binance.com:443` during the
-   `FORWARD_MARKET_OBSERVABILITY_V1` readiness checks run from this same
-   host — consistent with a general outbound network policy on this
-   execution host, not a per-endpoint anomaly and not evidence about
-   either venue's actual availability.
+`HTTPS_PROXY` was unset. No VPN, proxy bypass, or alternate route was
+used.
 
-No archive was listed, no ZIP was downloaded, no checksum was verified, no
-Bybit page was fetched, no timestamp index was built, and no cross-venue
-alignment was computed, because no bytes were ever received from either
-source.
+### 1. Independent reachability probes
+
+| Source | Class | Evidence |
+|---|---|---|
+| `data.binance.vision` prefix index | `SOURCE_REACHABLE` | HTTP 200, `Server: AmazonS3`, CloudFront |
+| `BTCUSDT-5m-2022-01.zip.CHECKSUM` | `SOURCE_REACHABLE` | HTTP 200; sidecar SHA256 `dab154b0…`; names zip SHA256 `b2ff8cd0…` |
+| S3 list of monthly 5m prefix | `SOURCE_REACHABLE` | HTTP 200; **36/36** zips and **36/36** CHECKSUM objects for 2022-01 through 2024-12 |
+| `GET https://api.bybit.com/v5/market/time` | `VENUE_RESPONSE_ERROR` | HTTP 403 CloudFront JSON: distribution configured to block access from your country |
+| Bybit V5 kline early 2022 / mid 2023 / late 2024 | `VENUE_RESPONSE_ERROR` | Same CloudFront HTTP 403; no native kline payload |
+
+This is **not** `HOST_EGRESS_BLOCK`. Requests reached Amazon S3 /
+CloudFront. It is **not** the previous CONNECT-tunnel 403.
+
+Related but distinct: live `fapi.binance.com` on this host previously
+returned a Binance-native HTTP 451. The public-data archive on
+`data.binance.vision` is a different endpoint and was reachable.
+
+### 2. What was not done
+
+Because the frozen Bybit V5 route did not return a native kline payload,
+the unit did **not**:
+
+- download Binance monthly ZIP payloads;
+- verify CHECKSUM sidecars against zip bytes (listing + one sidecar body
+  only);
+- freeze a Binance snapshot;
+- materialize Bybit 2022–2024 history;
+- count rows, duplicates, gaps, or aligned timestamps;
+- inspect prices, spreads, or any scientific outcome;
+- open 2025/2026 objects (later-year keys appeared in the S3 listing and
+  were not fetched).
+
+## Why this is not `MARKET_06_FEASIBILITY_HOST_BLOCKED`
+
+The previous HOST_BLOCKED verdict was a gateway CONNECT rejection before
+either venue answered. This host received venue/CDN HTTP bodies from both
+names. Binance Vision is reachable. Bybit's official V5 distribution
+geo-blocks this country. Collapsing that back into HOST_BLOCKED would
+erase the new Binance-archive evidence.
+
+`HOST_EGRESS_BLOCK = false`.
 
 ## Why this is not `MARKET_06_HISTORICAL_FEASIBILITY_REJECTED`
 
-Per the frozen fail-closed rule for this unit: when the official historical
-source cannot be reached because of *this host's* network policy, that
-must not be classified as scientific infeasibility of the sources
-themselves. `data.binance.vision` and `api.bybit.com` are well-documented,
-long-standing official public archives; there is no evidence here that
-BTCUSDT 5m history is unavailable on either venue for 2022–2024 — only
-that this execution host cannot currently reach either host to check.
+Binance's official 2022–2024 monthly 5m USD-M BTCUSDT trade-price
+archives exist and are listable from this host. Bybit V5 geo-block is not
+proof that Bybit spot 5m history is missing. `source_unavailable_historically = false`.
 
-- `source_unavailable_historically = false`
-- `source_inaccessible_from_current_execution_host = true`
+## Why this is not `MARKET_06_HISTORICAL_FEASIBILITY_CONFIRMED`
+
+Confirmation requires both frozen sources to produce valid native
+historical observations, checksum-verified Binance bytes, Bybit
+raw-response freeze, and timestamp-only overlap/gap/completed-candle
+census. Bybit produced no native kline payload. Zip payloads were not
+downloaded.
+
+## Structural output
+
+```text
+BINANCE_ROWS = null
+BYBIT_ROWS = null
+BINANCE_DUPLICATES = null
+BYBIT_DUPLICATES = null
+BINANCE_LONGEST_GAP_BARS = null
+BYBIT_LONGEST_GAP_BARS = null
+ALIGNED_TIMESTAMPS = null
+BINANCE_ONLY_TIMESTAMPS = null
+BYBIT_ONLY_TIMESTAMPS = null
+ALIGNMENT_RATE = null
+COMPLETED_CANDLE_SEMANTICS_USABLE = null
+CONSERVATIVE_DECISION_LAG_IMPLEMENTABLE = null
+BINANCE_ARCHIVE_CHECKSUMS_VERIFIED = false
+BINANCE_SNAPSHOT_FROZEN = false
+BYBIT_RAW_RESPONSES_FROZEN = false
+2025_OPENED = false
+2026_OPENED = false
+DISLOCATION_COMPUTED = false
+FUTURE_RETURNS_COMPUTED = false
+SCIENTIFIC_OUTCOMES_INSPECTED = false
+MARKET_06_PREREG_CREATED = false
+MARKET_06_ARM_CREATED = false
+MARKET_06_RESULT_CREATED = false
+```
+
+Listed but not materialized: 36 Binance monthly zips + 36 CHECKSUM
+sidecars, `BTCUSDT-5m-2022-01.zip` through `BTCUSDT-5m-2024-12.zip`.
 
 ## What this unit deliberately does NOT contain
 
 - No dislocation, spread, z-score, correlation, future return, MAE,
-  drawdown, regression, bootstrap, coefficient, or threshold computation.
-- No price series was inspected, charted, or manually reviewed.
-- No `MARKET_06_PREREGISTRATION`, `MARKET_06_ARM`, or `MARKET_06_RESULT`
-  artifact was created. `MARKET_06_STATUS` remains
-  `CONCEPT_SELECTED_NOT_PREREGISTERED`.
-- No 2025/2026 data, and no protected OOS dataset, was opened.
+  drawdown, regression, or threshold computation.
+- No price series was inspected.
+- No `MARKET_06.md` / prereg / ARM / RESULT.
+- No 2025/2026 data and no protected OOS.
 - No `M04-FWD` change. `FORWARD_MARKET_OBSERVABILITY_V1` collector and
-  authority artifacts are untouched.
+  authority artifacts were not touched.
 - `SCIENTIFIC_OUTCOMES_INSPECTED = false`.
 
 ## Next unit
 
-`MARKET_06_HISTORICAL_FEASIBILITY_RETRY_FROM_UNBLOCKED_HOST` — re-run this
-exact feasibility unit, unchanged in concept, source route, and target
-window, from a deployment host whose network egress can reach
-`data.binance.vision` and `api.bybit.com`. This is a reachability blocker
-only; no design or code change is implied.
+`MARKET_06_BYBIT_OFFICIAL_HISTORICAL_ROUTE_OR_REACHABLE_HOST_REVIEW`
+
+Do not preregister. Completing the frozen two-source feasibility requires
+either an execution host that Bybit V5 CloudFront permits, or an explicit
+decision on whether another official Bybit historical product may replace
+`GET /v5/market/kline` without changing the concept.
