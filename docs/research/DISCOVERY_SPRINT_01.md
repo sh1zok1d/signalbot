@@ -357,7 +357,7 @@ been executed in the definition unit.
 `SCIENTIFIC_OUTCOMES_COMPUTED = true` (adaptive discovery, not confirmatory).
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
-`NEXT_UNIT = D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE_OR_FIND_EQUIVALENT`.
+`NEXT_UNIT = D2_BITMEX_REPLICATION_PREREG_FREEZE`.
 
 ### Stall-gate semantics (corrected 2026-09-21)
 
@@ -381,7 +381,7 @@ discovery rather than confirmatory evidence.
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
 Definition-time `NEXT_UNIT = DISCOVERY_SPRINT_01_CARD_EXECUTION` is
-historical; current `NEXT_UNIT = D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE_OR_FIND_EQUIVALENT`.
+historical; current `NEXT_UNIT = D2_BITMEX_REPLICATION_PREREG_FREEZE`.
 
 ## Corrective unit (2026-09-21)
 
@@ -727,4 +727,47 @@ currently available. D2 remains `PROMISING_PROTOTYPE` (adaptive discovery only).
 
 Full record: `docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.{json,md}`.
 
-`NEXT_UNIT = D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE_OR_FIND_EQUIVALENT`.
+`NEXT_UNIT` of that size-planning unit was
+`D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE_OR_FIND_EQUIVALENT`.
+That wait-until-future-Binance default is **superseded in routing only** by
+the alternative-surface feasibility unit below.
+
+## D2 alternative independent surface feasibility (2026-09-21)
+
+Outcome-blind. Confirmation was **not** executed. BitMEX D2 outcomes were
+**not** computed. Protected Binance 2025/2026 remained sealed.
+
+Refined year-matched power on exposed Binance 2020-2024 only, seed
+`20260921124`, one 5-row local refinement between `N_BELOW=800` and
+`N_ABOVE=825`:
+
+```
+REFINED_MIN_REQUIRED_FRESH_DECISION_ROWS = 815
+POWER_AT_REFINED_MIN_N = 0.801
+POWER_95CI_AT_REFINED_MIN_N = [0.775, 0.825]
+```
+
+1092 is only the smallest previously tested size meeting power, not an
+assumed true minimum. `N=820` point-estimate `0.794` is a Monte Carlo dip
+after `N=815`; the frozen criterion is the smallest tested N with
+point-estimate power `>= 0.80`.
+
+Primary pre-2020 candidate: official BitMEX XBTUSD 5m buckets.
+
+```
+BITMEX_RAW_DATA_START = 2016-05-13T11:55:00Z
+BITMEX_FIRST_RULE_ELIGIBLE_T = 2017-01-24T00:05:00Z
+BITMEX_LAST_RULE_ELIGIBLE_T = 2019-12-30T00:05:00Z
+BITMEX_PRE2020_ELIGIBLE_N = 1069
+BITMEX_CONTRACT_COMPATIBILITY = SCIENTIFICALLY_COMPARABLE_CROSS_VENUE
+BITMEX_TEMPORAL_INDEPENDENCE_CLASS = PRE_2020_CROSS_VENUE_TEMPORAL_REPLICATION
+CONFIRMATION_FEASIBILITY = FEASIBLE_PRE2020_BITMEX_CROSS_VENUE_TEMPORAL_REPLICATION
+```
+
+A later BitMEX result, if executed, is
+`INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION`, not
+`EXACT_BINANCE_CONFIRMATION`. Next unit is prereg freeze, not MARKET-07.
+
+Full record: `docs/research/D2_ALTERNATIVE_INDEPENDENT_SURFACE_FEASIBILITY.{json,md}`.
+
+`NEXT_UNIT = D2_BITMEX_REPLICATION_PREREG_FREEZE`.

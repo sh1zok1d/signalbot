@@ -33,11 +33,11 @@ Program-level correction is sealed in `docs/research/MARKET_PROGRAM_UPDATE_POST_
 ## Exact next unit
 
 ```
-PREVIOUS_ROUTING            = D2_CONFIRMATION_FEASIBILITY_AND_DESIGN
+PREVIOUS_ROUTING            = D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE_OR_FIND_EQUIVALENT
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE_OR_FIND_EQUIVALENT
+NEXT_UNIT                   = D2_BITMEX_REPLICATION_PREREG_FREEZE
 PROTECTED_2025_OPENED       = false
 PROTECTED_2026_OPENED       = false
 INTERNAL_DISCOVERY_CARDS_EXECUTED = 4
@@ -52,9 +52,11 @@ D2_RULE_2_REPLAY_EXACT_MATCH      = true
 POST_OUTCOME_DESIGN_CHANGES       = false
 D1_STATUS                         = DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH
 D2_DISCOVERY_STATUS               = PROMISING_PROTOTYPE
-CONFIRMATION_FEASIBILITY          = UNDERPOWERED_SINGLE_YEAR_2025
+CONFIRMATION_FEASIBILITY          = FEASIBLE_PRE2020_BITMEX_CROSS_VENUE_TEMPORAL_REPLICATION
 2025_OPEN_AUTHORIZED              = false
+2026_OPEN_AUTHORIZED              = false
 ARM_CREATED                       = false
+D2_OUTCOME_COMPUTED_ON_BITMEX     = false
 PROTECTED_2025_PRICE_VALUES_INSPECTED = false
 PROTECTED_2026_PRICE_VALUES_INSPECTED = false
 ```
@@ -102,6 +104,21 @@ gives `POWER_N728 = 0.64 < 0.80` and `POWER_N1092 = 1.0`.
 `AUTHORIZED_TO_OPEN = false`. `2025_OPEN_AUTHORIZED = false`.
 Do not consume 2025+2026. Full calendar 2026 is not currently available.
 Record: `docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.{json,md}`.
+
+`D2_ALTERNATIVE_INDEPENDENT_SURFACE_FEASIBILITY` then tested whether the
+same frozen RULE_1 / RV_ABSTENTION mechanism can be replicated on pre-2020
+BitMEX XBTUSD without waiting for future Binance data and without opening
+2025/2026. Refined year-matched power on exposed 2020-2024 only gives
+`MIN_REQUIRED_FRESH_DECISION_ROWS = 815` (point-estimate power `0.801`).
+Official BitMEX 5m buckets yield `BITMEX_PRE2020_ELIGIBLE_N = 1069` legal
+decision rows whose 24h outcomes finish before 2020-01-01. Contract
+compatibility is `SCIENTIFICALLY_COMPARABLE_CROSS_VENUE` (price-path MAE,
+not inverse PnL). No D2 outcome was computed on BitMEX.
+`CONFIRMATION_FEASIBILITY = FEASIBLE_PRE2020_BITMEX_CROSS_VENUE_TEMPORAL_REPLICATION`.
+A later BitMEX result, if executed, is
+`INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION`, not exact Binance
+confirmation. Protected 2025/2026 remain sealed.
+Record: `docs/research/D2_ALTERNATIVE_INDEPENDENT_SURFACE_FEASIBILITY.{json,md}`.
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by
@@ -169,7 +186,9 @@ RULE_1's unrestricted full-2020-2024 result.
 
 **Current per-card status:** `D1 = DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH`
 (adequacy gate not executed); `D2 = PROMISING_PROTOTYPE` (adaptive
-discovery; RULE_1 only; 2025 confirmation `UNDERPOWERED_SINGLE_YEAR_2025`; two-year year-matched surface still underpowered, do not consume 2025+2026);
+discovery; RULE_1 only; 2025 confirmation remains underpowered as a
+single year; pre-2020 BitMEX XBTUSD is a feasible independent class-A
+replication surface, not yet executed);
 `D3 = NO_USEFUL_STRUCTURE`; `D4
 ROLLING_CORRELATION_90D = NO_USEFUL_STRUCTURE` (`LEAD_LAG_1DAY` still
 deferred); `D5 = NO_USEFUL_STRUCTURE`; `D6 = DEFERRED`. First blocked

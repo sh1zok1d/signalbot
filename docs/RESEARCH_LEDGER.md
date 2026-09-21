@@ -4123,3 +4123,59 @@ GATES_CHANGED = false
 Evidence: `docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.{json,md}`.
 
 - next required step: `D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE_OR_FIND_EQUIVALENT`
+
+## 2026-09-21 — D2 alternative independent surface feasibility
+
+Do not wait until 2027 as the default route. Outcome-blind feasibility of
+replicating frozen `D2 / RULE_1 / RV_ABSTENTION` on a historical surface
+Signalbot has never used for discovery or confirmation.
+
+Refined year-matched power on exposed Binance 2020-2024 only (seed
+`20260921124`; 728 and 1092 retained; 25-row coarse grid; one 5-row
+local refinement between `N_BELOW=800` and `N_ABOVE=825`):
+
+```
+REFINED_MIN_REQUIRED_FRESH_DECISION_ROWS = 815
+POWER_AT_REFINED_MIN_N = 0.801
+POWER_95CI_AT_REFINED_MIN_N = [0.7751234971811168, 0.824572794210579]
+POWER_USES_BINANCE_2025_2026 = false
+POWER_USES_BITMEX_OUTCOMES = false
+```
+
+Primary candidate: official BitMEX XBTUSD inverse perpetual, 5m
+`GET /api/v1/trade/bucketed`, timestamps = bucket end. Pre-2020 legal
+decision rows (250-point warmup, 24h future fully before 2020-01-01,
+Dec 31 excluded):
+
+```
+BITMEX_RAW_DATA_START = 2016-05-13T11:55:00Z
+BITMEX_FIRST_RULE_ELIGIBLE_T = 2017-01-24T00:05:00Z
+BITMEX_LAST_RULE_ELIGIBLE_T = 2019-12-30T00:05:00Z
+BITMEX_PRE2020_ELIGIBLE_N = 1069
+missing_5m_buckets = 288 (2016-12-07 24h hole, warmup window)
+BITMEX_CONTRACT_COMPATIBILITY = SCIENTIFICALLY_COMPARABLE_CROSS_VENUE
+BITMEX_TEMPORAL_INDEPENDENCE_CLASS = PRE_2020_CROSS_VENUE_TEMPORAL_REPLICATION
+```
+
+D2 outcomes were not computed on BitMEX. Inverse PnL was not substituted
+for arithmetic price-path MAE. 00:05 UTC clock preserved. Protected
+Binance 2025/2026 unopened. MARKET-07 / ARM not created. Contemporaneous
+venues were not pooled to inflate N.
+
+```
+CONFIRMATION_FEASIBILITY = FEASIBLE_PRE2020_BITMEX_CROSS_VENUE_TEMPORAL_REPLICATION
+D2_OUTCOME_COMPUTED_ON_BITMEX = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+ARM_CREATED = false
+```
+
+Future evidence label if later executed:
+`INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION` (not
+`EXACT_BINANCE_CONFIRMATION`). Next unit is prereg freeze.
+
+Evidence: `docs/research/D2_ALTERNATIVE_INDEPENDENT_SURFACE_FEASIBILITY.{json,md}`,
+`docs/research_data/D2_BITMEX_PRE2020_SOURCE_AUTHORITY.json`.
+
+- next required step: `D2_BITMEX_REPLICATION_PREREG_FREEZE`

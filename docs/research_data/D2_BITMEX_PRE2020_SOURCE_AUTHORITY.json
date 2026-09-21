@@ -1,0 +1,2453 @@
+{
+  "calendar_observed_timestamp_presence": {
+    "COMPLETE_DECISION_ROWS_INCLUDING_WARMUP": 1319,
+    "D2_OUTCOME_COMPUTED_ON_BITMEX": false,
+    "FIRST_RULE_ELIGIBLE_T": "2017-01-24T00:05:00.000Z",
+    "FIRST_RV_AVAILABLE_T": "2016-05-15T00:05:00.000Z",
+    "LAST_RULE_ELIGIBLE_T": "2019-12-30T00:05:00.000Z",
+    "MAX_PRE2020_ELIGIBLE_DECISION_ROWS": 1069,
+    "RAW_DATA_START": "2016-05-13T11:55:00.000Z",
+    "WARMUP_DECISION_ROWS": 250
+  },
+  "calendar_theoretical_complete_grid": {
+    "COMPLETE_DECISION_ROWS_INCLUDING_WARMUP": 1322,
+    "FIRST_RULE_ELIGIBLE_T": "2017-01-21T00:05:00.000Z",
+    "FIRST_RV_AVAILABLE_T": "2016-05-15T00:05:00.000Z",
+    "LAST_RULE_ELIGIBLE_T": "2019-12-30T00:05:00.000Z",
+    "MAX_PRE2020_ELIGIBLE_DECISION_ROWS": 1072,
+    "RAW_DATA_START": "2016-05-13T11:55:00.000Z",
+    "WARMUP_DECISION_ROWS": 250
+  },
+  "canonical_jsonl_gz_sha256": "8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa",
+  "canonical_jsonl_sha256": "b145013cbcda34294104a0234c89fa9e27965bded66e3bc18b23753dde03fd0f",
+  "canonical_relative_path": "docs/research_data/D2_BITMEX_PRE2020_XBTUSD/canonical_5m.jsonl.gz",
+  "contains_human_readable_price_dump": false,
+  "coverage": {
+    "first_open_time": "2016-05-13T11:55:00.000Z",
+    "last_open_time": "2019-12-31T23:55:00.000Z",
+    "observed_5m_bars": 382033,
+    "pre2020_end_exclusive": "2020-01-01T00:00:00.000Z",
+    "zero_trade_bucket_count": 22728,
+    "zero_trade_buckets_retained_as_official_source_bins": true
+  },
+  "gaps": {
+    "duplicates_silently_accepted": false,
+    "expected_5m_bars": 382321,
+    "gap_description": "Exactly 288 missing 5m opens: 2016-12-06T23:55:00Z through 2016-12-07T23:50:00Z (one 24h hole during RULE warmup). Not silently filled.",
+    "missing_bucket_count": 288,
+    "missing_open_timestamps_head": [
+      "2016-12-06T23:55:00.000Z",
+      "2016-12-07T00:00:00.000Z",
+      "2016-12-07T00:05:00.000Z",
+      "2016-12-07T00:10:00.000Z",
+      "2016-12-07T00:15:00.000Z",
+      "2016-12-07T00:20:00.000Z",
+      "2016-12-07T00:25:00.000Z",
+      "2016-12-07T00:30:00.000Z",
+      "2016-12-07T00:35:00.000Z",
+      "2016-12-07T00:40:00.000Z",
+      "2016-12-07T00:45:00.000Z",
+      "2016-12-07T00:50:00.000Z",
+      "2016-12-07T00:55:00.000Z",
+      "2016-12-07T01:00:00.000Z",
+      "2016-12-07T01:05:00.000Z",
+      "2016-12-07T01:10:00.000Z",
+      "2016-12-07T01:15:00.000Z",
+      "2016-12-07T01:20:00.000Z",
+      "2016-12-07T01:25:00.000Z",
+      "2016-12-07T01:30:00.000Z",
+      "2016-12-07T01:35:00.000Z",
+      "2016-12-07T01:40:00.000Z",
+      "2016-12-07T01:45:00.000Z",
+      "2016-12-07T01:50:00.000Z",
+      "2016-12-07T01:55:00.000Z"
+    ],
+    "missing_open_timestamps_sha256": "5e94399de8bc0bd72185dec26c8e82d01e9a663ffc22281c24f426370eecdeb6",
+    "missing_open_timestamps_tail": [
+      "2016-12-07T21:50:00.000Z",
+      "2016-12-07T21:55:00.000Z",
+      "2016-12-07T22:00:00.000Z",
+      "2016-12-07T22:05:00.000Z",
+      "2016-12-07T22:10:00.000Z",
+      "2016-12-07T22:15:00.000Z",
+      "2016-12-07T22:20:00.000Z",
+      "2016-12-07T22:25:00.000Z",
+      "2016-12-07T22:30:00.000Z",
+      "2016-12-07T22:35:00.000Z",
+      "2016-12-07T22:40:00.000Z",
+      "2016-12-07T22:45:00.000Z",
+      "2016-12-07T22:50:00.000Z",
+      "2016-12-07T22:55:00.000Z",
+      "2016-12-07T23:00:00.000Z",
+      "2016-12-07T23:05:00.000Z",
+      "2016-12-07T23:10:00.000Z",
+      "2016-12-07T23:15:00.000Z",
+      "2016-12-07T23:20:00.000Z",
+      "2016-12-07T23:25:00.000Z",
+      "2016-12-07T23:30:00.000Z",
+      "2016-12-07T23:35:00.000Z",
+      "2016-12-07T23:40:00.000Z",
+      "2016-12-07T23:45:00.000Z",
+      "2016-12-07T23:50:00.000Z"
+    ],
+    "missing_silently_accepted": false,
+    "observed_5m_bars": 382033
+  },
+  "instrument": "XBTUSD",
+  "instrument_metadata": {
+    "expiry": "2026-09-16T12:00:00.000Z",
+    "isInverse": true,
+    "isQuanto": false,
+    "listing": "2016-05-13T12:00:00.000Z",
+    "lotSize": 100,
+    "multiplier": -100000000,
+    "positionCurrency": "USD",
+    "quoteCurrency": "USD",
+    "referenceSymbol": ".BXBT30M",
+    "settlCurrency": "XBt",
+    "settle": "2026-09-16T12:00:00.000Z",
+    "source_url": "https://www.bitmex.com/api/v1/instrument?symbol=XBTUSD&count=1",
+    "state": "Settled",
+    "symbol": "XBTUSD",
+    "tickSize": 0.1,
+    "typ": "FFWCSX",
+    "underlying": "XBT"
+  },
+  "instrument_typ": "FFWCSX",
+  "parser_version": "D2_BITMEX_PRE2020_PARSER_V1",
+  "parser_version_note": "open_time_ms = official bucket-end timestamp minus 5 minutes",
+  "raw_page_count": 383,
+  "raw_page_hashes": [
+    {
+      "n": 1000,
+      "page": 1,
+      "sha256": "0e021e3f3afe5defc0241585538c5134ddabcb4af050f62c732c8170ab5ff6cd",
+      "startTime": "2016-05-13T12:00:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 2,
+      "sha256": "eef359d2593ac62a8e55bfbf4dc5078d31555cfa8dd53b315e97c015c56066a3",
+      "startTime": "2016-05-16T23:20:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 3,
+      "sha256": "e38d30271e7608d9dd49fd58231facac4c1dce2c21351f4eb9af23c8c4a48ac2",
+      "startTime": "2016-05-20T10:40:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 4,
+      "sha256": "df1a6d78c170ed44297ff4ee6895a6287c15c21327dd6ac38789f7024075d9df",
+      "startTime": "2016-05-23T22:00:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 5,
+      "sha256": "47fb8d2385f223d5d4eac4861e30bfa1003aa8a52316b4c8ebd89e2d5449463e",
+      "startTime": "2016-05-27T09:20:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 6,
+      "sha256": "7efbec69ee4ae25ec7820e1bd02e9300126edba7948b9e2110685b55feb3843c",
+      "startTime": "2016-05-30T20:40:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 7,
+      "sha256": "9e085addbdf506f48cceed8f932acbbbb84ab7a4703d607d44ec19c3afedab49",
+      "startTime": "2016-06-03T08:00:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 8,
+      "sha256": "ba01f44af096a6f9f24e7b3aa2a16648b9250f18db5f455cecf2484877aa1415",
+      "startTime": "2016-06-06T19:20:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 9,
+      "sha256": "05f6a61da35f5323be2c26bfa5283847327b4fcf49e919d270373b677f282868",
+      "startTime": "2016-06-10T06:40:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 10,
+      "sha256": "d49855f241c0a03575763a60218e504362d1eb1eaa315de811125c0e711610bf",
+      "startTime": "2016-06-13T18:00:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 11,
+      "sha256": "1d1cfb82de863a9165dd278af0a4e96f03305c4e5710e5860fa98e4bc8137fb5",
+      "startTime": "2016-06-17T05:20:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 12,
+      "sha256": "b955e4ff4c4a939f1f1b4a8272c44ae657a6c41c22a1510645c37bc0b3342e70",
+      "startTime": "2016-06-20T16:40:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 13,
+      "sha256": "eee95c19273288711b052d704798f6338a764e1e142b7f79412426b2d60f02af",
+      "startTime": "2016-06-24T04:00:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 14,
+      "sha256": "9fb8963f8be61817f356b2c9e71acba5ea4f293c0de7304691730ec0a2f1d103",
+      "startTime": "2016-06-27T15:20:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 15,
+      "sha256": "ac3d9bc1086ae672d40e7b2455def26ae5ebd62837dbf73f1dcf7d582fffc1dd",
+      "startTime": "2016-07-01T02:40:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 16,
+      "sha256": "67721cccdcb227157d291dd30e81d03b1c33f4a47219007c9f7b6f952f3fed6a",
+      "startTime": "2016-07-04T14:00:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 17,
+      "sha256": "7cf0b9ff387b9cd328f2236de8a959ce394f3583de8a4241f4c754bfe7516c60",
+      "startTime": "2016-07-08T01:20:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 18,
+      "sha256": "9962cfaf654720a7d3d65077912d5e567a363952cec80ffed881d792e29a0298",
+      "startTime": "2016-07-11T12:40:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 19,
+      "sha256": "86d47ca450825a4be153343d6fa4752f14405908d7bb4a58107ce6f55036429b",
+      "startTime": "2016-07-15T00:00:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 20,
+      "sha256": "cc9e9143ea57217f6a47c8348804891a0ec106ed41ff9cc578fd4884fc3785d0",
+      "startTime": "2016-07-18T11:20:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 21,
+      "sha256": "657d0633c26c098ec0876c66d07231e3ddc9f661909dc795e765be0717bc3417",
+      "startTime": "2016-07-21T22:40:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 22,
+      "sha256": "e58a641c8a247be8b3a8c84cbd4e3829a4794121a08410e53b064baabacc401d",
+      "startTime": "2016-07-25T10:00:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 23,
+      "sha256": "c6bf75463d82e228a53f3b5c8bb4562182b768da4abdbdf2d585a2b7f7128f0c",
+      "startTime": "2016-07-28T21:20:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 24,
+      "sha256": "d1722d76115c2c8998bf60bc33e6a68d14f1f87ea3144df921ce21b10a1d65be",
+      "startTime": "2016-08-01T08:40:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 25,
+      "sha256": "ac16593ab6580f4a599aec104bec7870067f9af4e4a2c3a9ec3cacc8ef185624",
+      "startTime": "2016-08-04T20:00:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 26,
+      "sha256": "10a9db4b5dac16d62ad20e92304183b3d90f076a7ffb163d5a297bd54cb6f1c3",
+      "startTime": "2016-08-08T07:20:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 27,
+      "sha256": "b4a521638ee2ff38e9e5096ae6812a3d22399d93307a7bfd121e6917c6f5ef1e",
+      "startTime": "2016-08-11T18:40:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 28,
+      "sha256": "1f1accd35c565137f07ffcd2a17b8ff08fde80b927fdba1d5ad2e535ca5793f3",
+      "startTime": "2016-08-15T06:00:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 29,
+      "sha256": "0d4a40e1a4270fdc0be9e21fe16671858ee48c4992e640c58e8e765451e72c30",
+      "startTime": "2016-08-18T17:20:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 30,
+      "sha256": "aac374025ba0bfab030e9ba50a0e395a649b9e4cc50d9aeedc48fcab73427c23",
+      "startTime": "2016-08-22T04:40:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 31,
+      "sha256": "f90b356cd7c5e8abc63f42f2b4502d7bdb13494a584acd2335994a59a7d2db88",
+      "startTime": "2016-08-25T16:00:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 32,
+      "sha256": "af08f4ce4c853605f79609370f9fcb3609f9e171c82d3a82b2752085461e8a24",
+      "startTime": "2016-08-29T03:20:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 33,
+      "sha256": "1925e84e2228f11cba95aa427764c6ec59ff46f22e89361b7ab121fd2b62775e",
+      "startTime": "2016-09-01T14:40:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 34,
+      "sha256": "7d4c2de6897d90aca8f862ca7ce6e54e179c0ec44778eb0d4069f6e68e8820d0",
+      "startTime": "2016-09-05T02:00:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 35,
+      "sha256": "8701f03a3e24670af6b66a0b5d0bee25780d29985485c701315315ea6c73eb07",
+      "startTime": "2016-09-08T13:20:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 36,
+      "sha256": "54b05d327ad693fdc386c01a1c9d7cf6deb9479f0b9f0cad3e14c337b53fcc02",
+      "startTime": "2016-09-12T00:40:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 37,
+      "sha256": "93bfcddd25ed53750dcb123f4416329d84ad5f8de15fd48db654fc0046ff12db",
+      "startTime": "2016-09-15T12:00:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 38,
+      "sha256": "b09dbeb04782197678df366bb2b7019784a5d913157248136661ae72e7fd498c",
+      "startTime": "2016-09-18T23:20:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 39,
+      "sha256": "299153d859946c9df528e1998ade0807d2c47be331c9b93bdf7dba5c26226883",
+      "startTime": "2016-09-22T10:40:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 40,
+      "sha256": "49030bd6e93345f0159d977a49b6e1fcf9f3fa429aa631765bd4d9f4b75a0e7f",
+      "startTime": "2016-09-25T22:00:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 41,
+      "sha256": "de4bf052e56622469ab9b8a00d4dd4dd126845f7be47213ef983e35600b12857",
+      "startTime": "2016-09-29T09:20:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 42,
+      "sha256": "c1b62248d61cf88dac6619890645207f69b1521d672e1eae9e9b9d7ab6040401",
+      "startTime": "2016-10-02T20:40:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 43,
+      "sha256": "cd5bf55e2aa98c04e88ff604128bf853967e475c3dc53607974c3af787623be2",
+      "startTime": "2016-10-06T08:00:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 44,
+      "sha256": "cffa6e39a962e09abaf105d9126a4c2988a4dc90d1ea79ea902d2598f3d1a631",
+      "startTime": "2016-10-09T19:20:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 45,
+      "sha256": "24384e2194237105b54b71e4358764aeddbd90e11329774c824a77166b68cc75",
+      "startTime": "2016-10-13T06:40:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 46,
+      "sha256": "f0cfd144bcfcdfa28d183b0b8ddd6a72c28d14b9ccbb63dc37fd2042c0be232d",
+      "startTime": "2016-10-16T18:00:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 47,
+      "sha256": "3f5e7ddcd95cd091239c778ac088a5a511dd3414cb7b85e2936b00a2f76e3694",
+      "startTime": "2016-10-20T05:20:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 48,
+      "sha256": "73a009b0979864265ebd5d168d587b34bd486cb66918b80e06745bce22656d83",
+      "startTime": "2016-10-23T16:40:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 49,
+      "sha256": "d55e396d8e972060e2bd41c556cd3e44b38df532ba2391acc0f69214541abf6a",
+      "startTime": "2016-10-27T04:00:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 50,
+      "sha256": "411acff3cbc0064b4e5b55cefd4f4b1fa9378adccf985446c47ba1fe3e0b02e1",
+      "startTime": "2016-10-30T15:20:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 51,
+      "sha256": "569890376ae06e3306acd4399107320e81d59d82b2093e6e4f3aaff151dbc400",
+      "startTime": "2016-11-03T02:40:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 52,
+      "sha256": "f147cae919f374e51410bf462a4bc777a6835a706ae04b1f469625eaf4820aa2",
+      "startTime": "2016-11-06T14:00:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 53,
+      "sha256": "470b99013445d9ff28eb49eee1c387d68ee8d2f5285716f0c355480d5c6e821b",
+      "startTime": "2016-11-10T01:20:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 54,
+      "sha256": "f90cf9f86ffe5545d8eb597d78d9aa8ed2db49ab437206701312478be55cdbfb",
+      "startTime": "2016-11-13T12:40:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 55,
+      "sha256": "7b0ef78775c1254965c8c5b39c5298ae7507044da97c3e68201bc814dbe2225d",
+      "startTime": "2016-11-17T00:00:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 56,
+      "sha256": "d82a3bbacd812b4674ef0883c67e806a492607619a2130583c95062cecf11405",
+      "startTime": "2016-11-20T11:20:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 57,
+      "sha256": "05317a1011aadac8f7e5e27b3d89ed47a2fbde029565d6af879fd351a1331521",
+      "startTime": "2016-11-23T22:40:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 58,
+      "sha256": "ce491fbf973328a74c798c9880b35466204b8ff3f8000f1725f8830037a28498",
+      "startTime": "2016-11-27T10:00:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 59,
+      "sha256": "63fb57c89be7092bc335b971db84301930814a06b4923447e3f5c98389667394",
+      "startTime": "2016-11-30T21:20:00.000Z"
+    },
+    {
+      "n": 761,
+      "page": 60,
+      "sha256": "e829561e48cc216db61012a3142c40134c23c39d041757ad03c9dbb7fe6bd494",
+      "startTime": "2016-12-04T08:40:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 61,
+      "sha256": "46da8d48bf7c8abfefe6f3c4a2c9f46aa3d7d033fc7aa776ded40de5fbd2f8a8",
+      "startTime": "2016-12-08T00:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 62,
+      "sha256": "ae7f386babdf3b2608b0a861208d61fafde0ce35dcaa25ae42cd6180fa30b5ca",
+      "startTime": "2016-12-11T11:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 63,
+      "sha256": "8409e4c3db4353e546ab6f9db6511bf0e647150c472e579c51c230b34f9c86ce",
+      "startTime": "2016-12-14T22:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 64,
+      "sha256": "8cc177dca399a06d62e113613237ca8fad006738701fa0606d43321f2c57c72b",
+      "startTime": "2016-12-18T10:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 65,
+      "sha256": "a21499ca8cc8789442cbabb9e8a587820f3e9b36df2f0778ed1973f86f1a0619",
+      "startTime": "2016-12-21T21:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 66,
+      "sha256": "f04d4dda44b42c747fb069d7e1c720f2fa59de181d268c00e1ddb7a5fb984d6c",
+      "startTime": "2016-12-25T08:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 67,
+      "sha256": "86b6d20c18570af0cb2b880bf2ed6686c8ce376bf7c20505a2ea49b95879e779",
+      "startTime": "2016-12-28T20:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 68,
+      "sha256": "df3ad6e738ecf57cbfcc4988ffbd03d9f83c3efbc84726ae58812d8b019b1c42",
+      "startTime": "2017-01-01T07:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 69,
+      "sha256": "01a074a4393d6d84e02a78f5b195a15dce28cefc8ad4f7daf27418c2836c5b7b",
+      "startTime": "2017-01-04T18:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 70,
+      "sha256": "85c56e1859cd08c02c9af883b48f9bfe65c9cb15b64537fcbf5d440ea78b135e",
+      "startTime": "2017-01-08T06:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 71,
+      "sha256": "08b8119a7ea36467a5a2993243164bcf2ec2f1448e51527134cca62a3e04a61c",
+      "startTime": "2017-01-11T17:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 72,
+      "sha256": "7912eb21a23255c6ce5dc724ccc0d2651bb8b92e96f6191fbf8cf267f7cdeb24",
+      "startTime": "2017-01-15T04:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 73,
+      "sha256": "3a0be1ae72be1284339c5b1ea77b3dfde9d36331652b560b6920cf1b493a6c4f",
+      "startTime": "2017-01-18T16:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 74,
+      "sha256": "55ed315e5ebf96cce5f4639ccbe0f2a64e2dcfa8d040d55b7f5143c5734c6345",
+      "startTime": "2017-01-22T03:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 75,
+      "sha256": "5fbefec47f17da93b472f701575de61c4e365bb28e1190becc961de69a8df6f6",
+      "startTime": "2017-01-25T14:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 76,
+      "sha256": "275512b1f14aaeddcb9fc0a38a8f2d717a5dd8d319e2d5215057a437be442b95",
+      "startTime": "2017-01-29T02:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 77,
+      "sha256": "5ce01d087538fff19558ce128b91f9b5df216160e7cd7bf7c83a3db3dc87020a",
+      "startTime": "2017-02-01T13:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 78,
+      "sha256": "2899e668962a8fb96df5a9e85cf7c1e49c04b0a7f458b92a1312f97cb4c1c267",
+      "startTime": "2017-02-05T00:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 79,
+      "sha256": "21bd088d84f5570acdb59c742fb708a8f1428fae56336a51e18d49207896dc1b",
+      "startTime": "2017-02-08T12:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 80,
+      "sha256": "fda6187f4b51a781ccce5d7a32adc02741e0ac9fc8c8e805d045da62412ae7f0",
+      "startTime": "2017-02-11T23:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 81,
+      "sha256": "a5242e5b0458160694a8b3d954256f2ac938231fdc1a84324b8d516188fb5b09",
+      "startTime": "2017-02-15T10:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 82,
+      "sha256": "921a570372b82e5fc7766832b3196199b9adbb54934890b79a7d5bb8ba0f0efc",
+      "startTime": "2017-02-18T22:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 83,
+      "sha256": "3b71acbf7a7f5c304bb7e3fc9089858cc0c33e9cadb59c994e7a29aa04e1d48f",
+      "startTime": "2017-02-22T09:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 84,
+      "sha256": "218dd4b70dfeee93a1a67279e0288dee1f06684730b1a0cd81cabe73b8abdffb",
+      "startTime": "2017-02-25T20:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 85,
+      "sha256": "30ea05cd4c543e027e90a3810edb1c470ed5b8d886231998a20c388b9ec14fee",
+      "startTime": "2017-03-01T08:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 86,
+      "sha256": "20ee48bcc7f2b47763ecf98606eebb07b6ff62ec37bbf395b3bd567714369ae5",
+      "startTime": "2017-03-04T19:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 87,
+      "sha256": "751b04dd41a222446e4858e748883225314c0e366449f0eaf78e2e59ca936e3f",
+      "startTime": "2017-03-08T06:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 88,
+      "sha256": "9f9ffaa3c70cb6e4e3229df93adb6f7c2a739387cb3810ba745d3521861cb7ad",
+      "startTime": "2017-03-11T18:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 89,
+      "sha256": "4c592fd0db1c2a0a042095244a97991cc440761235b463862f7a7ba1afe3c0ec",
+      "startTime": "2017-03-15T05:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 90,
+      "sha256": "22d1f0717020cfdff63c10d8133ae5b1bef9c0082d50a328238341a17028b18c",
+      "startTime": "2017-03-18T16:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 91,
+      "sha256": "5f7bd534f753a45c1a52bd9fd1b33cdca8b42846935ef111bf1bfa9e0c97ddf4",
+      "startTime": "2017-03-22T04:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 92,
+      "sha256": "75c7ecd60c3222b75510144770faf79f7aaf87d3250ab808749f15da0da26bf7",
+      "startTime": "2017-03-25T15:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 93,
+      "sha256": "ea10d37206821dba3741e8972390affd3cdcb286b0bfb52551a5578d71646ddd",
+      "startTime": "2017-03-29T02:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 94,
+      "sha256": "45273af68f49b32db12ff943eec7261427c006ca53070596e2248ae64b5c57e6",
+      "startTime": "2017-04-01T14:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 95,
+      "sha256": "40ec5ed6fe03066326407e4e2634c5f7a95bdaac2e14a2f44d68f00d1fc72621",
+      "startTime": "2017-04-05T01:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 96,
+      "sha256": "18972ad6165792fb276384d8dfe4fa312a769b5ce8b88e25bc03cd2e324d0380",
+      "startTime": "2017-04-08T12:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 97,
+      "sha256": "d094b67e1f37a9254bfe85e91d8f073412616cb3c519f7e4dccb1e913a79ea30",
+      "startTime": "2017-04-12T00:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 98,
+      "sha256": "422153a8341fdc6956eb1a36fe2b5db92298af80f946e690dd319492def9e646",
+      "startTime": "2017-04-15T11:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 99,
+      "sha256": "8a0663bd25ce90fea65e143c599367b6b9968f6370999f204496a661ebb01702",
+      "startTime": "2017-04-18T22:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 100,
+      "sha256": "1caa33432f211497020e77a1ba8943a01d1106ed1f6cbbfcc0e52ba5e7a8897a",
+      "startTime": "2017-04-22T10:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 101,
+      "sha256": "05cd7b4f71aa185a2bdaaf5fddcda0df88e3329cfa007830f462cce4558cf5da",
+      "startTime": "2017-04-25T21:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 102,
+      "sha256": "79c1a0b152ceb6ab6f0cc60b0de99af00d96f22aa71668cd7977d46551df8923",
+      "startTime": "2017-04-29T08:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 103,
+      "sha256": "af1f9b29ad0769d91cee7ab914ad08d61d66fab2edaa9cb14b9634c0d3421a17",
+      "startTime": "2017-05-02T20:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 104,
+      "sha256": "bb569b2858b1e7f30fc5f5c1ad55f742dfc342da87f6386450f972b6a57171db",
+      "startTime": "2017-05-06T07:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 105,
+      "sha256": "83b10a8bb4ae162f3f8463de5637b84bf5ebd7064e3cf6c5a5fef5da39208b25",
+      "startTime": "2017-05-09T18:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 106,
+      "sha256": "09bbaca479ac14821944cfb4200ce1370e801f574db2aba7711b5f3d0e585959",
+      "startTime": "2017-05-13T06:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 107,
+      "sha256": "d41da3cf950a5ccc312f3e58859e75ce8ca8b21545170360d4d4b1f8d55fd53f",
+      "startTime": "2017-05-16T17:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 108,
+      "sha256": "2157f26d5461058946e841487c986a0885b2427fec621dc3f188c36f17fd1b8a",
+      "startTime": "2017-05-20T04:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 109,
+      "sha256": "18be372907a63560370485641ace420de59bfca21b36a8bf11560aa2357301df",
+      "startTime": "2017-05-23T16:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 110,
+      "sha256": "a25979678e845b28492014ee65544e645f2837fd547670ead09a8783bc78b4d5",
+      "startTime": "2017-05-27T03:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 111,
+      "sha256": "015a0aaade804fdb53a5ca01509ffb8c77dae870dabb1df07776a7bf4b3cc7fb",
+      "startTime": "2017-05-30T14:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 112,
+      "sha256": "7a973da6eac208b25bd1c4d082ca276a0f22bcc64eead2dcdc3b939ab830f304",
+      "startTime": "2017-06-03T02:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 113,
+      "sha256": "331ac7963ff756653578abefbb471cc7a4d4e55edde0834c61b004658277594d",
+      "startTime": "2017-06-06T13:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 114,
+      "sha256": "4f7f67a3fc3bb65b51c12875f87746c7cf8bf9f1fa67b8a640d63c93d93d29e3",
+      "startTime": "2017-06-10T00:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 115,
+      "sha256": "d3f43302eb7bb4b66dcb7026029c10946b4f581096e9a6ab10d4b54db9ad659f",
+      "startTime": "2017-06-13T12:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 116,
+      "sha256": "5c673f1b70cd3ddfcb058120799e144ade01e9750f219e43a0cea5fd8af23bbf",
+      "startTime": "2017-06-16T23:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 117,
+      "sha256": "57d0ceb2ff131f29e1268d83dc3a1f5176f4585fb606cfb5ce55963e4095706e",
+      "startTime": "2017-06-20T10:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 118,
+      "sha256": "9d5052c049127d9e7b91827b14856f3d5fb37d10060637886fa16d4bb620e205",
+      "startTime": "2017-06-23T22:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 119,
+      "sha256": "dd081ffe2ee8fdc86a8d26a96bfedeb10f5683fb7e5dd3441fcd316b62cf7b76",
+      "startTime": "2017-06-27T09:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 120,
+      "sha256": "1f7ce67e67c1a73d66e517422ccc3614115cf4e7a7aaf9d5e8e12aeae3f01dce",
+      "startTime": "2017-06-30T20:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 121,
+      "sha256": "b9db8b2cd66791c48162396fbd77d1b15b3d4b5ab591c5ba865169bfbbd46153",
+      "startTime": "2017-07-04T08:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 122,
+      "sha256": "5407da385c7ceda19c9bc4cd832e5f72b83bacafad9c4b4fb26f729e019b97ae",
+      "startTime": "2017-07-07T19:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 123,
+      "sha256": "7171c5bac0aba1f81948d68dd6d1b846b9311fa7d828c91df06e1009bf3562df",
+      "startTime": "2017-07-11T06:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 124,
+      "sha256": "ce44a72428b2a1ce3a6e5036b4a60f7ddf582ee6fbb54b473446c770d6e91237",
+      "startTime": "2017-07-14T18:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 125,
+      "sha256": "7ba089c8b510901ebd9388b7bf60b5d818abd5362f84554073118a73429db824",
+      "startTime": "2017-07-18T05:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 126,
+      "sha256": "6fa2c63e30d1640b23b07495e9a4d860e15d6bb589ee29fd566d23899cc35846",
+      "startTime": "2017-07-21T16:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 127,
+      "sha256": "a48405e98e231082d9e9dab75692454eb66b09692d7a03310deaf76945201664",
+      "startTime": "2017-07-25T04:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 128,
+      "sha256": "a6e7220205dd7c20814b5b85f8421ea6a3fbbace79aac01933959b3b5953298e",
+      "startTime": "2017-07-28T15:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 129,
+      "sha256": "ce046a2ba78e5edaa6ceeb8d83624843b5296bedbba5a2c19087a70b662063a2",
+      "startTime": "2017-08-01T02:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 130,
+      "sha256": "39c226f0bfbeffae6509eca752077d10854fce76ff6e5702ade1c0d388a89fdf",
+      "startTime": "2017-08-04T14:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 131,
+      "sha256": "5adb302ce115d20034ad779a5ec86f99ddd2afb8ebf68857fa36a46bb4da9853",
+      "startTime": "2017-08-08T01:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 132,
+      "sha256": "8d2603c6720105e278fd743e5563f43aaf1330ed1f5744dec66a83ccce91b5c2",
+      "startTime": "2017-08-11T12:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 133,
+      "sha256": "08aae627b32e058f455e479d32a70e6b417ada440ffcd8f65e72ab16339222c7",
+      "startTime": "2017-08-15T00:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 134,
+      "sha256": "63db1c9589106b55e50bf5357efd61b40789549cc17f1bdaf59b7b6f886ca725",
+      "startTime": "2017-08-18T11:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 135,
+      "sha256": "ebfe8cf0a8a554a3beef02b719df60be5c9b619ac5682cb0590d1f40e7e421b1",
+      "startTime": "2017-08-21T22:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 136,
+      "sha256": "6d2f05ffbb17f426f7b4fbbd6cd70994a07aed8e81b8732f12103f5e01a704dc",
+      "startTime": "2017-08-25T10:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 137,
+      "sha256": "6b439a4f42ef6b35f3fd0630e18d6753f30600ae8a9746efa06297a74e816f07",
+      "startTime": "2017-08-28T21:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 138,
+      "sha256": "4253333dd6a5ee1d8360f81b9246563790a148aa6d60a0b745f553546d546a4f",
+      "startTime": "2017-09-01T08:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 139,
+      "sha256": "285da3b81e58beab5305ca9ed1d854ad32cec477df965049cbd41014ec460a1b",
+      "startTime": "2017-09-04T20:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 140,
+      "sha256": "59f532cf95e1b49e30c48b0b5c9fd0677cbff79702cf98f57b08ecf27873a2c7",
+      "startTime": "2017-09-08T07:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 141,
+      "sha256": "25120fade7f71cd433840481cc2b2c8e76f1f9ce48a170da96d4f27ac3db27db",
+      "startTime": "2017-09-11T18:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 142,
+      "sha256": "1efddadaecc037ad32be6885b7190a572eafcaef3136589a5d63b4525679644c",
+      "startTime": "2017-09-15T06:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 143,
+      "sha256": "1e60d5966b5897d00a35936c2401c90b0323a16f0322589ac948a85a41860c33",
+      "startTime": "2017-09-18T17:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 144,
+      "sha256": "24121b7a1001031c33d8dea3af04896f76d2b0cdbd0c4d30985f738e306bcccb",
+      "startTime": "2017-09-22T04:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 145,
+      "sha256": "df0549d72dfd03cde4198fb4e041ef7d3f0a6ec2ea9302eb8e75096b8dc6890d",
+      "startTime": "2017-09-25T16:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 146,
+      "sha256": "3fb598de095c88af1502d80ac5e84725c8ccba867ced72432d4ec980bc4c5020",
+      "startTime": "2017-09-29T03:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 147,
+      "sha256": "85afb3fa55c393c7d8eec8929e9e85563e5cdab63cc61a91271784d2b079c832",
+      "startTime": "2017-10-02T14:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 148,
+      "sha256": "058c2a05b5d5ca7df2afe3be31572eab6e478cae8d08482acd1244dc0cf3dc63",
+      "startTime": "2017-10-06T02:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 149,
+      "sha256": "0abfba59738cdaeb3e4b38e05264dbac89aa1dc10510d90903ed1b429f96b1f9",
+      "startTime": "2017-10-09T13:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 150,
+      "sha256": "79b32b32ee861eabbea7ee32b28b5ddbd622430ab876b2865678b04bbd2bb859",
+      "startTime": "2017-10-13T00:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 151,
+      "sha256": "17abd6b2e09569f17a5bee37636997144a8e4bdef9e9d790fa0f872a28925219",
+      "startTime": "2017-10-16T12:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 152,
+      "sha256": "19af363266966efd1ba436f0a557c3611b57ff0d1e310a16824462758fdcf3cb",
+      "startTime": "2017-10-19T23:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 153,
+      "sha256": "d95423f9cafe35fdd27f9fed03a21394caec6cd6fb461ef4c2e341a4ad48bed8",
+      "startTime": "2017-10-23T10:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 154,
+      "sha256": "7b8273e6ada75d08621e0432a2cdc10b4f1d17e183685bb5a92053b3aeadaf28",
+      "startTime": "2017-10-26T22:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 155,
+      "sha256": "e867bb143bce26e0a43c49b5be6e695b4bd2d6636fdb0a30bc01e5c7b8078103",
+      "startTime": "2017-10-30T09:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 156,
+      "sha256": "133c8415b1733a18ecbd88202efd9682856ce4ae43015858be5d9ffc39f9fb93",
+      "startTime": "2017-11-02T20:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 157,
+      "sha256": "6f45b121dd79b6b2074fbb92dee94d8e41625941e7fe4bdf3965357cd1bb4250",
+      "startTime": "2017-11-06T08:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 158,
+      "sha256": "7e0b1317197f196201c5bc580678f3494e3c90baa5de309833e00d6888097c9d",
+      "startTime": "2017-11-09T19:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 159,
+      "sha256": "7ddfa4f599b4a655ada40561e33557809e8e66265c2bc15f8d8fbadda4c8d0f5",
+      "startTime": "2017-11-13T06:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 160,
+      "sha256": "706b4590140e88e7d4be94930114d859b2522a4de796de734034a625b69297ec",
+      "startTime": "2017-11-16T18:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 161,
+      "sha256": "0ef539ca228b4d3298e90a65128a66ec245cb65bd7a1af22921b6a2bc4e68f12",
+      "startTime": "2017-11-20T05:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 162,
+      "sha256": "0e403bf72ca25cac2bcc2b3e39cef107247a18ad00112c5e9f395855a73a9fb7",
+      "startTime": "2017-11-23T16:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 163,
+      "sha256": "2c267f582f233575b7bc9d5076175664892d97be99f4936834ed351f77eb7bc9",
+      "startTime": "2017-11-27T04:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 164,
+      "sha256": "ed153763e2d7a6d285e5ab6d43f8a4eb4912f91a874c711fc6253b36035f04d8",
+      "startTime": "2017-11-30T15:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 165,
+      "sha256": "e62e499bf4b00125c6e7e831a433888769b249cd1923884bb5c7df9c535186a4",
+      "startTime": "2017-12-04T02:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 166,
+      "sha256": "2f806b756c3da2dafccc3d59b24561d7b75307a402ebaeb38cede53e1661fd17",
+      "startTime": "2017-12-07T14:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 167,
+      "sha256": "9e2cbede0ace2f92a72f43c936a7cb529a8077d2a5c5878cb40c709df8ba2da8",
+      "startTime": "2017-12-11T01:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 168,
+      "sha256": "5bb6ec27c38d9087601f5b8b74bfa82edad8f4cf3b00db0d360a45c9788f7785",
+      "startTime": "2017-12-14T12:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 169,
+      "sha256": "14d47f66b60f0e709d176b6af180e932c625e97d0c96c44a82f38d04d026bc7d",
+      "startTime": "2017-12-18T00:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 170,
+      "sha256": "d07f3f311ec3a9d71d721b3851bd1b4de956486882c9c30920baec7f6f582376",
+      "startTime": "2017-12-21T11:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 171,
+      "sha256": "6d59c471e8bdaed079f8869cd23f50ec440fb1b64c5de99dce10e2834d03ffa5",
+      "startTime": "2017-12-24T22:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 172,
+      "sha256": "b51f1c301bbabf3f956bad1d56f3000545f1795a13e3c40e8af4204a45f6d803",
+      "startTime": "2017-12-28T10:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 173,
+      "sha256": "33f5917bb2081a6f30d734a4235af9fb6af2a3d95d3dbf13951de7d14b2cb8ba",
+      "startTime": "2017-12-31T21:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 174,
+      "sha256": "5cf579b5d048837270ca3e50bd564d129632d30c73009622d369cc7788f410a4",
+      "startTime": "2018-01-04T08:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 175,
+      "sha256": "e16f31516752df3722b3cc02b933e14312747109be4baec60a7dcf4d2c18cfa6",
+      "startTime": "2018-01-07T20:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 176,
+      "sha256": "40788ba62388e109e3b156c77c1592a0e2088dc6e3b87e2f50b9f6b90e195742",
+      "startTime": "2018-01-11T07:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 177,
+      "sha256": "998a569be6418fda2ff6defaa46aa881e6000a956aff9c704f6d8f7fc25d0b19",
+      "startTime": "2018-01-14T18:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 178,
+      "sha256": "fafb2795c3b19a15c8485d0dac478177b5ee7310baa6171ab43613d934be787e",
+      "startTime": "2018-01-18T06:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 179,
+      "sha256": "4cfafd85901aa76de7f197298893ca17916a8e4aad9ca8b66831dec9bd1ff832",
+      "startTime": "2018-01-21T17:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 180,
+      "sha256": "3f12e560b21069550b6969bce04bff925d65143eea6e913b636996487cbc0126",
+      "startTime": "2018-01-25T04:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 181,
+      "sha256": "cac73496d3dc9d59636871a6ebe0c6b833c2287386f52caa354f44495562d635",
+      "startTime": "2018-01-28T16:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 182,
+      "sha256": "ad10972adef0e220f8a6f53055826cb3bafe2229b17047861122c40b21ee709b",
+      "startTime": "2018-02-01T03:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 183,
+      "sha256": "2d4fe0513e45fdd5f6b6f68f893994b0a079175e108e6d18572838dbc1ef1102",
+      "startTime": "2018-02-04T14:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 184,
+      "sha256": "c60028af3345c2a9de42361ac8dd9d07f17ad1d275829601130b42a2131d14d9",
+      "startTime": "2018-02-08T02:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 185,
+      "sha256": "252d50958c3ab63d8215a2b5814ab909c69196a72ce07492c08171f0684ed976",
+      "startTime": "2018-02-11T13:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 186,
+      "sha256": "9f2733054bc79c4a19432a717af243744d8e8122b97b9b81715ea8f584aeb4e6",
+      "startTime": "2018-02-15T00:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 187,
+      "sha256": "020fd4b1e5e571d04cc49fde821ca055d4d0393a6456a2e6d48af677e605bd08",
+      "startTime": "2018-02-18T12:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 188,
+      "sha256": "c266203de2bb8f88fd5ae29dd8a4ced9d1de2de511e759ae9f96a9e773f39cfe",
+      "startTime": "2018-02-21T23:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 189,
+      "sha256": "c93248a911ab7b796047666d6670cbc8c7a95b4b0b4fdd07d54860f156e78413",
+      "startTime": "2018-02-25T10:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 190,
+      "sha256": "91c16d63355e5bd86e273c0d7ab4750edc2e150f1fa69fe617a6e914db05bbf6",
+      "startTime": "2018-02-28T22:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 191,
+      "sha256": "8168f7276a5a351da32d11ca46e83be15757abc0ed10abf001af4fe23800b540",
+      "startTime": "2018-03-04T09:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 192,
+      "sha256": "beed2dd73a4858abe97257a66d12a2473994e7155489b11d8e368a4aa89e9000",
+      "startTime": "2018-03-07T20:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 193,
+      "sha256": "5f5430a60e45d3bbbfff08e946100f4d69965eb7cb7ddd0f9c6be05cd9b4bee4",
+      "startTime": "2018-03-11T08:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 194,
+      "sha256": "ea43d0ff9113d8033d8ede9b5538ea8ad08762c671eea2f5a712c10f08df01e6",
+      "startTime": "2018-03-14T19:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 195,
+      "sha256": "031fe62e97684a0d5fc586edc00ba4357b814680e7c3b9cd8ffe8a11ce24d7b9",
+      "startTime": "2018-03-18T06:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 196,
+      "sha256": "d79ca53195a3acf41c8f9fca90b55915e68603ce4e193530fd5fdd89537b602c",
+      "startTime": "2018-03-21T18:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 197,
+      "sha256": "b5243c12975273531bf13da58870c7ad2855a4b0d4a36f9f8ba0421076b7a96a",
+      "startTime": "2018-03-25T05:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 198,
+      "sha256": "f83d828b2d1a1c543b2af9330bbb125ede23cd43e48067ac531567b697ee39c7",
+      "startTime": "2018-03-28T16:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 199,
+      "sha256": "896580d43d78f3424dd29095d28225897fd24f60ea4e41158266051d224069b0",
+      "startTime": "2018-04-01T04:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 200,
+      "sha256": "6c53be49b129dea5b51a549e594c0415615394442faaf88bde3103b264be713c",
+      "startTime": "2018-04-04T15:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 201,
+      "sha256": "09b8f66006d0ac2854aa64203c3965a33ca6a42a2599f9214c7189069a6ed3f7",
+      "startTime": "2018-04-08T02:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 202,
+      "sha256": "53da301ea28416bc2b1f02d66788baf01f55c4a0706a1cb35162d8f0c083b0bb",
+      "startTime": "2018-04-11T14:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 203,
+      "sha256": "8e13cb77e221e10074f992f376b86d5700ee1537ffd5653bccbe0249f9290aa2",
+      "startTime": "2018-04-15T01:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 204,
+      "sha256": "32231212bb0bd856c3ef7ec6d7496b51705f2ba0f53b743279c6cd56a277d5bc",
+      "startTime": "2018-04-18T12:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 205,
+      "sha256": "e445962cdbc75f2b762b0788e6ccb20db3cb75e33f897955f754147e35624218",
+      "startTime": "2018-04-22T00:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 206,
+      "sha256": "460b90ded88435fcf9ff9fa5f8585f056bcdf377f9190fd4e16c97966208813e",
+      "startTime": "2018-04-25T11:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 207,
+      "sha256": "08974d4eb80be662382e751db01d3826a09b9bd18a63a4f9fdc0fe3024e5cc94",
+      "startTime": "2018-04-28T22:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 208,
+      "sha256": "4dcee5816f4f40f4bc5a5cb56ef26befb3247c1ce889f92af64b69a097053aaa",
+      "startTime": "2018-05-02T10:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 209,
+      "sha256": "78c0370946e7b469b80a37e57f9fe7969c43db924748c186e3fe891c44d0d4df",
+      "startTime": "2018-05-05T21:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 210,
+      "sha256": "ab7595b70dbda3d69f53ef663404348e84ab6925727876dfe73e44705243ab17",
+      "startTime": "2018-05-09T08:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 211,
+      "sha256": "5076f656c42919486e3e465fd265586475966a9c712b5299f6dec77833a18440",
+      "startTime": "2018-05-12T20:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 212,
+      "sha256": "5f37c785b584dc97470ec98811d5a1433e3fdd2307e71d25f88d61eade1e8c6d",
+      "startTime": "2018-05-16T07:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 213,
+      "sha256": "9bf4e151d06f4c91f0b9b8033a1a425639df12a597dfbf00d9c2b0d1d84b8a5a",
+      "startTime": "2018-05-19T18:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 214,
+      "sha256": "1fe8233565f4267f554be53bc60a6aafd0bd50c0ab92ca3632609a4f9b0d1fe6",
+      "startTime": "2018-05-23T06:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 215,
+      "sha256": "b6d632f76eb134adf94425b6231c90153d74e5241218464020636033b4aa789b",
+      "startTime": "2018-05-26T17:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 216,
+      "sha256": "11b968e631847b64429cd9b89c944b745071c75a020c766876219250390f5556",
+      "startTime": "2018-05-30T04:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 217,
+      "sha256": "f1be3b63dcf4d74857e19c5a9d0e4b366192ac6cb4fa8c741636cd06008f0357",
+      "startTime": "2018-06-02T16:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 218,
+      "sha256": "3e8c92ea4574c2ca4fcd43a7f1e47a9d2cc169a6c4ba94f207d0896a905f7784",
+      "startTime": "2018-06-06T03:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 219,
+      "sha256": "760e48ea9e8a016f0e51fd73ee1b12fc796ca5e3f35b84f65e96aa03b61b7087",
+      "startTime": "2018-06-09T14:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 220,
+      "sha256": "2a30d51b04815e7514b146789e60b56641b29d8f650552f54488b2bd200e9df8",
+      "startTime": "2018-06-13T02:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 221,
+      "sha256": "c78c41bf7449296893d088910ad191bf2f066ca07173c7605a0ae39412c2e96f",
+      "startTime": "2018-06-16T13:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 222,
+      "sha256": "129f57d079d17cca069893ab0be721b10740f24aba5c613fef4ef34120c4ff1f",
+      "startTime": "2018-06-20T00:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 223,
+      "sha256": "bc33ef138e691f0a9f0a810972e98b541205d4066a8f0903ce1e6cc8adb03440",
+      "startTime": "2018-06-23T12:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 224,
+      "sha256": "9ce4d23266e741dc71488588a8ebecd2a9115668bb3232cf0086a17af5161c79",
+      "startTime": "2018-06-26T23:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 225,
+      "sha256": "c30c5a14bdd4a96d3b981dfcd1aac3d653452417266511436805ab8badcddf9d",
+      "startTime": "2018-06-30T10:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 226,
+      "sha256": "9a700a16b4fd3368eb365d53828773729db86f681ada96150281c2c9e9522aa1",
+      "startTime": "2018-07-03T22:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 227,
+      "sha256": "e166e16b48772773320d408ce0e6e2c39325e2a7ae147c209c5e013541bc3adb",
+      "startTime": "2018-07-07T09:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 228,
+      "sha256": "e0745a790e66a9d7b5f65bd1d4cd3fb3ec72e48f81c1a5365260d4416e2beaad",
+      "startTime": "2018-07-10T20:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 229,
+      "sha256": "d5cdb900e0a1e397a36827706a0a9244b05f742c69a4fbda39b27dfef4812165",
+      "startTime": "2018-07-14T08:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 230,
+      "sha256": "cf073a85b50388e2d5646e99799822d2048ada23a5c9c5c91ddfa81d4f9048db",
+      "startTime": "2018-07-17T19:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 231,
+      "sha256": "edd09cc1a09cb351f1838f1483fa306601db1640a9e7e6dfd3884f5abf92399f",
+      "startTime": "2018-07-21T06:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 232,
+      "sha256": "4380669ab5f202449e4b320ccb1f228d79e4d71be46f416c20f8d90d21cde662",
+      "startTime": "2018-07-24T18:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 233,
+      "sha256": "ae4a397a1051658f1cacf6d843a155862d3029f4a2a12b99bf504f34422fe105",
+      "startTime": "2018-07-28T05:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 234,
+      "sha256": "800c74e014b3a252bee7e1d155998003f9cfc9e776cdd179f4ef596f3f7f8056",
+      "startTime": "2018-07-31T16:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 235,
+      "sha256": "86ae4918e988b19197430c69c39bdf89e51a0bd82581aa1f444e658abe13311c",
+      "startTime": "2018-08-04T04:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 236,
+      "sha256": "03935cec0a3290a0fd97b9b1c3efaa5b14ad13839c6adac43ec1bf1072d797dd",
+      "startTime": "2018-08-07T15:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 237,
+      "sha256": "19ca7e184f74ff67d726fc6e2fd9cc9a13896b37686e02d7ff2fba33699dcb3c",
+      "startTime": "2018-08-11T02:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 238,
+      "sha256": "efecad807e3e1a528158d4749541cb1d29ae688a4f443ab41ee99278d4a82a05",
+      "startTime": "2018-08-14T14:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 239,
+      "sha256": "47036cdc8ae9c9f3937cd2870954d167636d535495157cedcbf07fd8ed77d3a4",
+      "startTime": "2018-08-18T01:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 240,
+      "sha256": "276cb51ece8d3f09a7f95974d1bc0b7b70050651d1f5a40b1a8502cb83c2581a",
+      "startTime": "2018-08-21T12:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 241,
+      "sha256": "f15061c0d2ea38c1d2a8da5c6e7137ac759519d7f2c8be496c56753a6214ab3c",
+      "startTime": "2018-08-25T00:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 242,
+      "sha256": "8b802c51505cf27b91037297e869262c79c287a3f16409576a3f1087d354b36b",
+      "startTime": "2018-08-28T11:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 243,
+      "sha256": "200a397482b92c66027f5be6b3d8086db0b2e68b385bbf60d96be5167b8fe863",
+      "startTime": "2018-08-31T22:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 244,
+      "sha256": "dbd1331fa50a8991e1e6700a5d967494d6782279b1eb52682e52184bea6d6035",
+      "startTime": "2018-09-04T10:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 245,
+      "sha256": "cf8398be222265592f9102fa37827a037e246216c459deef0a69c042aa452590",
+      "startTime": "2018-09-07T21:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 246,
+      "sha256": "caffdab1d7d323028941c7678d455f581b51070d1cc9c6eee2694155bfee9116",
+      "startTime": "2018-09-11T08:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 247,
+      "sha256": "09f52e7bd5ee13bd4ce35723413392cfa3336a74a84592c423f34b70a22fe0ae",
+      "startTime": "2018-09-14T20:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 248,
+      "sha256": "c882e125377a57572bd89fb9bb0983a5ce874d4f88b2349f41a12ec57e6fcf15",
+      "startTime": "2018-09-18T07:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 249,
+      "sha256": "ceaf2c2eeff77eb989e99a80bb67dfea7cfad115a75ef6f656716d76954786e9",
+      "startTime": "2018-09-21T18:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 250,
+      "sha256": "e3a4fe2f5d93c0e255d87a5f5a20c43fcd484469ee1037fc5714787bee53d8c9",
+      "startTime": "2018-09-25T06:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 251,
+      "sha256": "1ecfce0b8236f56d305d1fccfcc67ef821f2585d43d6cd5001fc72b79f2bb744",
+      "startTime": "2018-09-28T17:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 252,
+      "sha256": "7c4bc62c6bce10758e2a0599fa619d6fbdfb6fb2c6b77dbe528e45ae15edd5a4",
+      "startTime": "2018-10-02T04:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 253,
+      "sha256": "34917ef5f791d17a90f831ad1c2e21e7560ca1498ff25ad21a0d92dd0c38e846",
+      "startTime": "2018-10-05T16:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 254,
+      "sha256": "ea2f5572c9726cb08105c5ec43cbe6876d8b6b7ad05e08a4cfd86e946dde6123",
+      "startTime": "2018-10-09T03:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 255,
+      "sha256": "4424a1df3974c9168f53cd3a964d6cb876df90e184a94e99557f13aca07534f9",
+      "startTime": "2018-10-12T14:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 256,
+      "sha256": "fd9889187ea2aaeaef876a0ccd246f50c0bd5e474d922ca62cd62aba3398f60a",
+      "startTime": "2018-10-16T02:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 257,
+      "sha256": "3d30224e8b3fa0e5092ff014c2834d1dc35a15120358d050e036b2d8d74bb5d7",
+      "startTime": "2018-10-19T13:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 258,
+      "sha256": "74bfdd0e92564c3a99f9a6cbcfcf9e22e141e4d318f17c3db4c177024050edb0",
+      "startTime": "2018-10-23T00:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 259,
+      "sha256": "990840323a5f7d9798c7b2deed79045a0e708ede0b3fc47146195720b1aa98d8",
+      "startTime": "2018-10-26T12:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 260,
+      "sha256": "9548a70d468c69b53467e6d931d72b40fb24e8c09dd0b6cdedfdac81db34794e",
+      "startTime": "2018-10-29T23:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 261,
+      "sha256": "60dc0784d90e98c58d131b3174a1b5c4b96c45130ba89b5483112a914f647a20",
+      "startTime": "2018-11-02T10:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 262,
+      "sha256": "06890615d5461e9e4869e067099b184d968557063fc890e5abe5f8a00f96a1fc",
+      "startTime": "2018-11-05T22:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 263,
+      "sha256": "b5956fea6f15171756bb4d7c3cc298f6a2eb12b828341ee613b0aac7e07cf0f9",
+      "startTime": "2018-11-09T09:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 264,
+      "sha256": "ef3ff11d38a558669327ad56faa14716e645c34f63239a38bd9a585828b74d39",
+      "startTime": "2018-11-12T20:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 265,
+      "sha256": "31e91c4d3313843dd11b1d5b973e669339fba290f31a7abac03fc244545cab20",
+      "startTime": "2018-11-16T08:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 266,
+      "sha256": "4e6ebc11cd5cebcdac6e7699886c7edd9b6b4c6c1131c4ed8050c508eb91015d",
+      "startTime": "2018-11-19T19:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 267,
+      "sha256": "aa197d29a82c950566beceb512a392632035a479deba49861c4856ac6d5e31fa",
+      "startTime": "2018-11-23T06:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 268,
+      "sha256": "441e1e7846a69c93fbb99caab5b39555bbfce48aea3e7a8f6c3d753b862ed0e5",
+      "startTime": "2018-11-26T18:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 269,
+      "sha256": "4824e9616fa8f78ade75ebc2f8fcd1f8ef3c6cacc9e40d9746eeec5f3f1cc465",
+      "startTime": "2018-11-30T05:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 270,
+      "sha256": "20f81362f82f288c9f9ee6fe049db4f9b21d80f7cd4aea4ce74883582ba66c5f",
+      "startTime": "2018-12-03T16:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 271,
+      "sha256": "6796b053a748745815a8f26522336e088e3d7d826bbc5895b4babcec41867680",
+      "startTime": "2018-12-07T04:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 272,
+      "sha256": "c33f04e24081bf475fe3b4c906bb9a4715126f4baf16edcf4c0071b4c41fb7ba",
+      "startTime": "2018-12-10T15:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 273,
+      "sha256": "9a561cb71e46763509790e5b466b524b182d5badacc17074b9425468b58b1637",
+      "startTime": "2018-12-14T02:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 274,
+      "sha256": "f7bffa605611d4e74ef6f3fbe03303e0b4e53c9532a5bb174d07f8730a5db7c4",
+      "startTime": "2018-12-17T14:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 275,
+      "sha256": "86e011afb059ae758c5d03e5f2c9678e2a7d8c2b5aa948e5b1d2855c408e07c7",
+      "startTime": "2018-12-21T01:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 276,
+      "sha256": "3c2b7194e50af34916d638a4c80337d6506ce273bf9f8283587d007548486285",
+      "startTime": "2018-12-24T12:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 277,
+      "sha256": "df6b8e07386fa91e6ff7204869c895e50b20b793986b25dd3560cb0c9ded565e",
+      "startTime": "2018-12-28T00:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 278,
+      "sha256": "7529b27e83e492cc3cc0418103133f482556c6797f30882bcb27e4d9bccd95e2",
+      "startTime": "2018-12-31T11:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 279,
+      "sha256": "ae60f057eb3127f3f90c4d86704989b57768af4ac39761cb5ca499ce1e4fb8ad",
+      "startTime": "2019-01-03T22:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 280,
+      "sha256": "58af57856355718f8c8e48c53a9639a89b8bccc5dbd6ea1abe6db3ec62f647ef",
+      "startTime": "2019-01-07T10:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 281,
+      "sha256": "417dc1ab5ae754354a4310b73f4d698c6c1f32560dc967b7ecb0922625a2f1c0",
+      "startTime": "2019-01-10T21:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 282,
+      "sha256": "015378922b5e92713399a5097ac4bac045fbd6847f48058965d80fe2889afbc6",
+      "startTime": "2019-01-14T08:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 283,
+      "sha256": "e10e8b994e0e540409ba75ffbfbb25833b698c0b99c634dd62c7d6e5c25c4911",
+      "startTime": "2019-01-17T20:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 284,
+      "sha256": "c968b83b99725ae7f1bb76c93b0c9b8c439dff59ad90ca821cfc122b4315bf24",
+      "startTime": "2019-01-21T07:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 285,
+      "sha256": "d3b014b8b2e67615746ed63343ebd8741c21d6d6d067077439063fa4b4eccfb4",
+      "startTime": "2019-01-24T18:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 286,
+      "sha256": "da3ac2809cbc6ed7f79b5d4d595cceb0b15aa665e91cc918d9b6c7f9ee1db376",
+      "startTime": "2019-01-28T06:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 287,
+      "sha256": "07656a55673e1c25c9f4552903edca1492cf61b850b7068fa658a65f55abd2e0",
+      "startTime": "2019-01-31T17:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 288,
+      "sha256": "a3a8cfce92be0646409447e7341e997321b5faadb1f8bb74c3f27781bab23e79",
+      "startTime": "2019-02-04T04:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 289,
+      "sha256": "4080c7b6a56ba3e2b9c9f5b9cc08c0e2b0866435f9a1089dad2e86129983c46a",
+      "startTime": "2019-02-07T16:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 290,
+      "sha256": "df6923c79b295ed441ced2708e00a036a59d56e418f2d5c8cff24ca0e179ea8b",
+      "startTime": "2019-02-11T03:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 291,
+      "sha256": "2b3709871299f240302a65fdb02691970a46f342390a8370e5afef91e21d73eb",
+      "startTime": "2019-02-14T14:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 292,
+      "sha256": "e4528c846a04c655cb7fa6b5bf02c73eef1f534ab543c20507ee5bc75d56f9ee",
+      "startTime": "2019-02-18T02:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 293,
+      "sha256": "896ce350c4e51aa09cdecacdb471607872f2ce115cc975b6b9863a750e1b8a82",
+      "startTime": "2019-02-21T13:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 294,
+      "sha256": "bbb5a59c8aba2d64f06f254919094cfd7b4bbbcfc9f83d4f0c74b2775e2ea6ea",
+      "startTime": "2019-02-25T00:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 295,
+      "sha256": "cbe3762beb8d611b13815353df07ed9811bf827c6bfd3ea74e7b66e8349c52ec",
+      "startTime": "2019-02-28T12:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 296,
+      "sha256": "c3ddfd0090e6385e11192233016734a04350da2d4a3d9da78e1c52b90359084d",
+      "startTime": "2019-03-03T23:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 297,
+      "sha256": "7e3bb524f852e1b9d5d36981c2be41965694fb581c3d2b1fac60467755999f59",
+      "startTime": "2019-03-07T10:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 298,
+      "sha256": "1cea7be8bc8055d1e075593d4cba275d9fa049f5519021b9a48df46c48cd28a7",
+      "startTime": "2019-03-10T22:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 299,
+      "sha256": "1c486f1f8fbaa1251c81365516979e5ed1ab584182297ffe6df387096a76b4c9",
+      "startTime": "2019-03-14T09:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 300,
+      "sha256": "28cfde206c1de7fe570a30b43dd1a144f9c804c4a96951cbc92d79cb17fa872a",
+      "startTime": "2019-03-17T20:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 301,
+      "sha256": "52e5cbf4fb6a354a77ca6e188cf0195d58deadc6b07e6fc44de6c85e7f57867c",
+      "startTime": "2019-03-21T08:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 302,
+      "sha256": "06706a0184bc0dd31aed38868211282acd3efb68eedc17a56b3b5bbe63b7b2b3",
+      "startTime": "2019-03-24T19:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 303,
+      "sha256": "dd8683af8cde1e2dd1c9d22c33a23a73b0424cb3b96401b7f35c76acdea984fa",
+      "startTime": "2019-03-28T06:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 304,
+      "sha256": "9fd402a2f4fa56e504478ab7baf0fb7d7d48e8730c5284b676a92df15877c402",
+      "startTime": "2019-03-31T18:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 305,
+      "sha256": "4aabca9ccc5007e44d5979b0766d0c4db19aed58d8c7c5086ba405f892a85544",
+      "startTime": "2019-04-04T05:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 306,
+      "sha256": "4b9108280310ba9fd742481d18daab04ad22f88ed9a8e76845e595c16180f002",
+      "startTime": "2019-04-07T16:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 307,
+      "sha256": "d41fb18e8ec0b6b2f61cde3c496563b4c3982dbb1ef22a3e100b198832b99fd1",
+      "startTime": "2019-04-11T04:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 308,
+      "sha256": "b7859ee58dfaa42c43d9fb7cae27f342d838f11b1b9b044e33384069335ce52e",
+      "startTime": "2019-04-14T15:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 309,
+      "sha256": "8d375bd01f34db3e9edac78f25fe784ddc18ea32d9259d6c71856528c31be039",
+      "startTime": "2019-04-18T02:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 310,
+      "sha256": "cfb56d44a9991413485888fce906df0c0282b2679f9b4099885a3a66ce0e2586",
+      "startTime": "2019-04-21T14:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 311,
+      "sha256": "fcb88e9f0e9a17ab2f09011667b3d6fbf68a5e3c0492d2f4dd37fd0718307bd9",
+      "startTime": "2019-04-25T01:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 312,
+      "sha256": "cf7b6751ca248458a46e75ab030f1bea3ce3ddbf7481eb98df863bc12da20385",
+      "startTime": "2019-04-28T12:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 313,
+      "sha256": "f819f354970af63cd4c92b8d6ce4c132e85bc8289b6e8f9c473122399122718b",
+      "startTime": "2019-05-02T00:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 314,
+      "sha256": "4f79ca40ed64aa15f59070571fa58ee5f8bf8e1096a66055d55c2fc8cb685414",
+      "startTime": "2019-05-05T11:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 315,
+      "sha256": "df438a02c581cfa97bc33aa8e473b9d402c8cc7f71dd00a502dccfc3728f2887",
+      "startTime": "2019-05-08T22:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 316,
+      "sha256": "c3ef3ab5ccc3ca1703f39ff7e2be9fd949efbf234fdec860f6d500c81c12a554",
+      "startTime": "2019-05-12T10:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 317,
+      "sha256": "689cf583824c40dd070dcffa6b62eb2c578f6ff42aaecc112c78da868db5d12d",
+      "startTime": "2019-05-15T21:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 318,
+      "sha256": "ff1cf821c17bf54a7546a37d98ecc7e3aebc4247933025841ef37be9efcf9044",
+      "startTime": "2019-05-19T08:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 319,
+      "sha256": "e1c3edad692386a2ecca5502570ec170aadbadbd02a09fa183f63e79344875aa",
+      "startTime": "2019-05-22T20:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 320,
+      "sha256": "98c314a2dd59fba342763cadd8d6a4a9a273c06b117163e0e38c5cae08195985",
+      "startTime": "2019-05-26T07:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 321,
+      "sha256": "4b0ed37ee37954c05f694558d7ea0bbd90328d86ec48e8e4c39191d68a48e8f2",
+      "startTime": "2019-05-29T18:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 322,
+      "sha256": "8a900b730f40926f73dc1a11554f6317d8115090016b0b3be7d37a8b17baf7fa",
+      "startTime": "2019-06-02T06:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 323,
+      "sha256": "929e1f9ca72ed4c0bbdd5861f068361a9a9142a5e4dc398c0d39a887c49bfd9a",
+      "startTime": "2019-06-05T17:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 324,
+      "sha256": "bcce2bc3d74b093e31dcf671a89076a243281af466e40172d2e1bfd351b9e56c",
+      "startTime": "2019-06-09T04:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 325,
+      "sha256": "e378e6744851072412739c7fc405113b500a844e738d89d20659a03af2a5defa",
+      "startTime": "2019-06-12T16:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 326,
+      "sha256": "fadb5f2638649b2ed11d88c3c01e8e1946e10d5d67253ff5035f76320be91167",
+      "startTime": "2019-06-16T03:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 327,
+      "sha256": "64c68cd0be454c3eb1cc3e06d19e1dc7bffae94b40ff18e5adb2e6b81fb45df6",
+      "startTime": "2019-06-19T14:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 328,
+      "sha256": "903977c09579feef6114dc1c2370cb9b7ef916cb0238cece4cddfa9c3af58f47",
+      "startTime": "2019-06-23T02:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 329,
+      "sha256": "3b402997cff42fb7052d070e97fad3c8815fd765762fc4a4cf88099803927de0",
+      "startTime": "2019-06-26T13:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 330,
+      "sha256": "e8ad02e561f8427423b32981a57b9aab0966188504c6ac4e600faa7e433920ce",
+      "startTime": "2019-06-30T00:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 331,
+      "sha256": "6beed3b556d141af39a88e7f7598b80d8e058f67eadb01e7c82507bbf14334f1",
+      "startTime": "2019-07-03T12:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 332,
+      "sha256": "43261551250268a913bde4792da703ee9ed551f348fab39c1a1106019b3c30c8",
+      "startTime": "2019-07-06T23:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 333,
+      "sha256": "07503717c91562ade7f2693fb96f76e580ccc6f7f50977c9fdb1db26389bc987",
+      "startTime": "2019-07-10T10:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 334,
+      "sha256": "2c497e208739de5f67f3e8b82cacc1cb8e16f6bbefc3a3a19ffed4605bbfe5be",
+      "startTime": "2019-07-13T22:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 335,
+      "sha256": "c3f2b39e6b7e2800e7a075a6b5bd088d422b520dfd9deefc5aaf486ca0773411",
+      "startTime": "2019-07-17T09:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 336,
+      "sha256": "d3ec389cd3bdc02715e2bc2b0c9226428f66ddd99687ef8ec7767a77b60f5656",
+      "startTime": "2019-07-20T20:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 337,
+      "sha256": "5151ace2c588eef4167941b2fb57a7374887fb22fcb82b9a73b93c6c83d9ae7c",
+      "startTime": "2019-07-24T08:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 338,
+      "sha256": "a798bb52a2302497553d43f053e0990763273e27030348c6141f9354f12ef668",
+      "startTime": "2019-07-27T19:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 339,
+      "sha256": "1e9485e189108fa13e8c984159604abcaa426c65c1b232feafe7fbbf39431d0c",
+      "startTime": "2019-07-31T06:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 340,
+      "sha256": "bddef5f1fd6664136fbc92827113863f596525d3b624b18383ed96ffe4319ee1",
+      "startTime": "2019-08-03T18:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 341,
+      "sha256": "e4986673e2d0b25ac9d6ae1e22063af71b64bf0e4bb4f8390fb04baf86554990",
+      "startTime": "2019-08-07T05:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 342,
+      "sha256": "02e97185bc60d1223b03788f671bca1973b2370aca19607905361ab4c1256db8",
+      "startTime": "2019-08-10T16:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 343,
+      "sha256": "8d70d2888dab8386397bf55bed68fd509c5daa7f4acc448ba4e01e3e5bfd0aff",
+      "startTime": "2019-08-14T04:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 344,
+      "sha256": "8bd7021e92d19605782a09c7ae4a7446f81aec23bfb5665c8a455e7eb04fcb67",
+      "startTime": "2019-08-17T15:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 345,
+      "sha256": "0d204e7d07dbcc00407bf6ec9a161867545a8d1933032e4d151aafb309327887",
+      "startTime": "2019-08-21T02:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 346,
+      "sha256": "c650ec9ecc32edac366b552f54d4c44c3e28eacfc66b584bd4593cd3276fa66d",
+      "startTime": "2019-08-24T14:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 347,
+      "sha256": "8d85b4706191f33938501c0839b340758b2ab1e2e5c5d8509378c96720c0af07",
+      "startTime": "2019-08-28T01:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 348,
+      "sha256": "334a0b2d141199512d0e1c7fc51a9c1efed70a01aba5ce92710b5296ee9307d3",
+      "startTime": "2019-08-31T12:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 349,
+      "sha256": "94bed6dfcb85509ca243f9595a015822589631c4fb8d46aededd8bdfa3a6eab2",
+      "startTime": "2019-09-04T00:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 350,
+      "sha256": "f1e2ff1d4b5870a15824812eb58066922e5a5a568aa4e8dd3929e3986af31d8f",
+      "startTime": "2019-09-07T11:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 351,
+      "sha256": "1009a32182fd3e16c86b36187d4cc7a459b65513bd4553a2555fcf5aaadb2713",
+      "startTime": "2019-09-10T22:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 352,
+      "sha256": "4aa827f605d179df80670487b122334cbcb6f7c6f16eb6c2e4ea844c070769f9",
+      "startTime": "2019-09-14T10:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 353,
+      "sha256": "cc1b8040f3cf358df532c9dbb0419ab01c6a31e93da9e5c681384520de527967",
+      "startTime": "2019-09-17T21:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 354,
+      "sha256": "5000af037a54c46b481b25dca9503f2db1d2d7a76508f5d6d17169abe6c71cdd",
+      "startTime": "2019-09-21T08:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 355,
+      "sha256": "725ab4e11bb994489e10ec87a3e57a3a3f74bfb534b47f28ffe9168d5d74699f",
+      "startTime": "2019-09-24T20:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 356,
+      "sha256": "5e76af6fa1a6dc974852ff3c80c67a524a00d1a47d4751d3c99df628131017bc",
+      "startTime": "2019-09-28T07:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 357,
+      "sha256": "adf3141d7539d1e3ed03461ae794cbb69be519b676568a50241ca48214e34104",
+      "startTime": "2019-10-01T18:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 358,
+      "sha256": "20c84fd96b1fef3013c4c2df7d76013e4e22e10d604059e8d9a6cf46c8b16895",
+      "startTime": "2019-10-05T06:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 359,
+      "sha256": "deb4670664e52fa202876280e0f2600e8cf0773746ef643326a19cc26624e336",
+      "startTime": "2019-10-08T17:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 360,
+      "sha256": "bdbe18c00535470a284267ab932e6f62c17a8e09feac216791d9d531d3d982eb",
+      "startTime": "2019-10-12T04:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 361,
+      "sha256": "d39d5151d732f4eeca0fcc4ee98bcc7604b8fb82173fb356633d7831afae456d",
+      "startTime": "2019-10-15T16:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 362,
+      "sha256": "833a39b692dfb12091424452903e642211ad8ee81a73258dda41873ff3754040",
+      "startTime": "2019-10-19T03:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 363,
+      "sha256": "784fb345ad10d7a9ce8344c68b09deea1e493d216ec28606b4c7ea383fadc677",
+      "startTime": "2019-10-22T14:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 364,
+      "sha256": "06506049246265a93f245a95e416cafea96990eccffffaadac9db9e5b93db2d3",
+      "startTime": "2019-10-26T02:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 365,
+      "sha256": "75171385a9883861f4794d3d187aa841b1e217559303a8a78fa68aa99990480a",
+      "startTime": "2019-10-29T13:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 366,
+      "sha256": "583dd5c266d7572cf62e4376ba72fa8e7f5a37653e6490ac9e9dc86689c961d6",
+      "startTime": "2019-11-02T00:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 367,
+      "sha256": "40305f003115c3e42023ccac49c9d627ee739665cd4c917c29e0fb205fbedaab",
+      "startTime": "2019-11-05T12:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 368,
+      "sha256": "00e2e01cbfe044530c9d2821a3f44fb01e4eb2dcdf47901054eb09824aa78cf7",
+      "startTime": "2019-11-08T23:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 369,
+      "sha256": "7f4c9a1b290cd1bb780eefb6b14a080d450283a2981e6e3ef65a70be0fd4c1e5",
+      "startTime": "2019-11-12T10:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 370,
+      "sha256": "4c2a016062e9c39359a7918b993874ee4fa7204616be39c14809bd202921c1bd",
+      "startTime": "2019-11-15T22:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 371,
+      "sha256": "31029853adf00941eb8bd2392692dfa8db417b0c9b9982b972da0bc56d2b064d",
+      "startTime": "2019-11-19T09:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 372,
+      "sha256": "5816c91a90effcb2200839cb1c1714deffbcfdf400c6d6244fe9cd1b5cd22193",
+      "startTime": "2019-11-22T20:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 373,
+      "sha256": "edffa3c6d0c18d9ac3e882361269a6992ba7981d125d835af384c2d764ce310c",
+      "startTime": "2019-11-26T08:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 374,
+      "sha256": "84ceb61c13103768af12db1482511ca99a75c5fe51c443cae8ab0592990cc4f6",
+      "startTime": "2019-11-29T19:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 375,
+      "sha256": "efece683c8427fb26a550cd7cb1a26a62b48d0b7e5af12785c58eb4b6c6aa8f8",
+      "startTime": "2019-12-03T06:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 376,
+      "sha256": "519233bb73cf6b7aca31bc3e26ee3973da3954d06dab5f4061e790315d0b301c",
+      "startTime": "2019-12-06T18:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 377,
+      "sha256": "8fcbac333207d263926a5ef748176387d0287df4c026c2809da536a61b0c3ae1",
+      "startTime": "2019-12-10T05:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 378,
+      "sha256": "7c6795dd0b45d2a0c907ad6cae0146b76f58f924736a8246ae13421a71386609",
+      "startTime": "2019-12-13T16:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 379,
+      "sha256": "5bdf1ceed11b560fcf9fc9634e4d34b505d53f6931abf16b9cabe7cd88842663",
+      "startTime": "2019-12-17T04:05:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 380,
+      "sha256": "dce309de596537c395b4b8090988c8f7914563ff4189d9e88d704261537e821e",
+      "startTime": "2019-12-20T15:25:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 381,
+      "sha256": "b4121f4a263b0d42668628ec6b60d1db411b6a3f88ae1b0940e7ebce71d18742",
+      "startTime": "2019-12-24T02:45:00.000Z"
+    },
+    {
+      "n": 1000,
+      "page": 382,
+      "sha256": "8fe87686483eecae00cdda43910288fd03c8611c5e0f0b9b0bc8ec186d980209",
+      "startTime": "2019-12-27T14:05:00.000Z"
+    },
+    {
+      "n": 273,
+      "page": 383,
+      "sha256": "2d018bc9d149d55214f026a45135bcbf3348b8d9a1833de47cfc1e823243667e",
+      "startTime": "2019-12-31T01:25:00.000Z"
+    }
+  ],
+  "raw_pages_concat_sha256": "2c9be7c5eb1028c2aef17f61d89ecc4516a5189197b1a847ee7ae09ffd4c0580",
+  "raw_pages_retention": "local artifacts only; page SHA256s frozen in this authority file",
+  "retrieval_end_utc": "2026-09-21T17:53:31.000Z",
+  "retrieval_start_utc": "2026-09-21T17:47:51.000Z",
+  "schema": "signalbot_d2_bitmex_pre2020_source_authority",
+  "scientific_outcomes": {
+    "D2_OUTCOME_COMPUTED_ON_BITMEX": false,
+    "DELTA": null,
+    "MU_RULE": null,
+    "candidate_severity_difference": null,
+    "confirmation_classification": null,
+    "randomization_p_value": null
+  },
+  "source_identity": {
+    "candle_support": "https://support.bitmex.com/hc/en-gb/articles/6299353754909-Where-Can-I-Find-Historical-Candlestick-Data",
+    "docs": "https://docs.bitmex.com/api-explorer/get-trade-bucketed",
+    "endpoint": "https://www.bitmex.com/api/v1/trade/bucketed",
+    "launch_post": "https://www.bitmex.com/blog/announcing-the-launch-of-the-perpetual-xbtusd-leveraged-swap",
+    "ohlc_schema": [
+      "timestamp",
+      "symbol",
+      "open",
+      "high",
+      "low",
+      "close",
+      "trades",
+      "volume"
+    ],
+    "primary": "BitMEX REST GET /api/v1/trade/bucketed binSize=5m symbol=XBTUSD partial=false",
+    "public_archive": "https://public.bitmex.com/",
+    "third_party_kaggle_used": false,
+    "timestamp_semantics": "BUCKET_END"
+  }
+}

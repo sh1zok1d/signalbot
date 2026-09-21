@@ -7,6 +7,7 @@ confirmation rule, target, comparator, or gates.
 
 from __future__ import annotations
 
+import math
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -17,6 +18,7 @@ from scripts.research.discovery_sprint_01 import common as C
 UTC = timezone.utc
 
 D2_CONFIRMATION_DEPENDENCE_PRESERVING_SEED = 20260921123
+D2_REFINED_FRESH_N_SEED = 20260921124
 N_REPLICATES_CONFIRMATION = 10_000
 N_POWER_OUTER = 1_000
 MINIMUM_ACCEPTABLE_CONFIRMATION_POWER = 0.80
@@ -24,8 +26,235 @@ AUTHORITATIVE_RELATIVE_EFFECT = 0.20
 FULL_2025_CONFIRMATION_ROWS = 364
 COMPLETE_EXPOSED_YEARS = (2021, 2022, 2023, 2024)
 FIXED_N_POWER_GRID = (364, 550, 575, 600, 625, 650, 675, 700, 728, 1092, 1456)
+# Coarse refined grid: retain previously tested 728 and 1092, plus 25-row steps.
+COARSE_REFINED_N_GRID = (
+    728,
+    750,
+    775,
+    800,
+    825,
+    850,
+    875,
+    900,
+    925,
+    950,
+    975,
+    1000,
+    1025,
+    1050,
+    1075,
+    1092,
+)
+RETAINED_PREVIOUS_POWER = {728: 0.64, 1092: 1.00}
 AUTHORITATIVE_POWER_METHOD = "YEAR_MATCHED_WHOLE_YEAR_PLUS_CONTIGUOUS_PARTIAL_BLOCK"
 STATUS_DATE = datetime(2026, 9, 21, tzinfo=UTC)
+WILSON_Z_95 = 1.959963984540054
+
+
+def wilson_score_interval(k: int, n: int, z: float = WILSON_Z_95) -> tuple[float, float]:
+    """95% Wilson score interval for a binomial proportion."""
+    if int(n) <= 0:
+        raise ValueError("WILSON_EMPTY_N")
+    k = int(k)
+    n = int(n)
+    if k < 0 or k > n:
+        raise ValueError(f"WILSON_BAD_K:{k}:{n}")
+    p = k / float(n)
+    z2 = float(z) * float(z)
+    denom = 1.0 + z2 / float(n)
+    center = (p + z2 / (2.0 * float(n))) / denom
+    half = float(z) * math.sqrt((p * (1.0 - p) + z2 / (4.0 * float(n))) / float(n)) / denom
+    lo = max(0.0, center - half)
+    hi = min(1.0, center + half)
+    return float(lo), float(hi)
+
+
+def attach_binomial_ci(row: dict[str, Any]) -> dict[str, Any]:
+    """Attach Wilson 95% CIs. Denominator is n_outer, matching reported power."""
+    n_outer = int(row["n_outer"])
+    out = dict(row)
+    mapping = {
+        "STATISTICAL_POWER_AT_20PCT": "STATISTICAL_POWER_AT_20PCT_N_SUCCESS",
+        "JOINT_PASS_PROBABILITY_AT_20PCT": "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS",
+        "power_practical_gate": "power_practical_gate_N_SUCCESS",
+    }
+    for key, success_key in mapping.items():
+        if success_key in row:
+            k = int(row[success_key])
+        else:
+            k = int(round(float(row[key]) * n_outer))
+        lo, hi = wilson_score_interval(k, n_outer)
+        out[success_key] = k
+        out[f"{key}_95CI"] = [lo, hi]
+        out[f"{key}_95CI_METHOD"] = "WILSON_SCORE_BINOMIAL"
+    return out
+
+
+def five_row_refinement_grid(n_below: int, n_above: int) -> tuple[int, ...]:
+    """Exactly one local 5-row pass strictly between N_BELOW and N_ABOVE."""
+    if int(n_below) >= int(n_above):
+        raise ValueError(f"REFINEMENT_ORDER:{n_below}:{n_above}")
+    out: list[int] = []
+    cursor = int(n_below) + 5
+    while cursor < int(n_above):
+        out.append(int(cursor))
+        cursor += 5
+    return tuple(out)
+
+
+def _power_one_n(
+    year_blocks: dict[int, dict[str, np.ndarray]],
+    n_rows: int,
+    rng: np.random.Generator,
+    *,
+    n_outer: int,
+    n_inner: int,
+) -> dict[str, Any]:
+    stat_n = 0
+    prac_n = 0
+    both_n = 0
+    injected_err = 0.0
+    n_valid = 0
+    print(
+        f"refined_fresh_n_power N={n_rows} outer={n_outer} inner={n_inner}",
+        flush=True,
+    )
+    for _ in range(int(n_outer)):
+        y, selected, slices, _meta = construct_fixed_n_surface(
+            year_blocks, int(n_rows), rng
+        )
+        k_tot = int(selected.sum())
+        if k_tot <= 0 or k_tot >= int(y.size):
+            continue
+        inner_rng = np.random.default_rng(int(rng.integers(0, 2**31 - 1)))
+        result = inject_and_gates(y, selected, slices, n_inner, inner_rng)
+        n_valid += 1
+        injected_err += abs(
+            float(result["injected_relative_vs_expected_control"])
+            - AUTHORITATIVE_RELATIVE_EFFECT
+        )
+        if result["STATISTICAL_GATE"]:
+            stat_n += 1
+        if result["PRACTICAL_MAGNITUDE_GATE"]:
+            prac_n += 1
+        if result["BOTH"]:
+            both_n += 1
+    denom = float(n_outer)
+    row = {
+        "N": int(n_rows),
+        "STATISTICAL_POWER_AT_20PCT": stat_n / denom,
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": int(stat_n),
+        "JOINT_PASS_PROBABILITY_AT_20PCT": both_n / denom,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": int(both_n),
+        "power_practical_gate": prac_n / denom,
+        "power_practical_gate_N_SUCCESS": int(prac_n),
+        "n_outer": int(n_outer),
+        "n_inner": int(n_inner),
+        "n_valid": int(n_valid),
+        "mean_abs_injection_error": (injected_err / n_valid) if n_valid else None,
+        "grid_stage": "coarse",
+    }
+    return attach_binomial_ci(row)
+
+
+def estimate_refined_fresh_n_power(
+    rows: list[C.DiscoveryRow],
+    *,
+    seed: int = D2_REFINED_FRESH_N_SEED,
+    n_outer: int = N_POWER_OUTER,
+    n_inner: int = N_REPLICATES_CONFIRMATION,
+    coarse_grid: tuple[int, ...] = COARSE_REFINED_N_GRID,
+    checkpoint: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Refine MIN_REQUIRED_FRESH_DECISION_ROWS on exposed 2021-2024 year blocks.
+
+    Does not open 2025/2026. Does not use BitMEX outcomes. One 5-row local
+    refinement between N_BELOW and N_ABOVE; no additional adaptive search.
+    """
+    year_blocks = extract_complete_year_blocks(rows)
+    rng = np.random.default_rng(int(seed))
+    by_n: dict[int, dict[str, Any]] = {}
+    if checkpoint and checkpoint.get("rng_state") is not None:
+        for item in checkpoint.get("surfaces") or []:
+            by_n[int(item["N"])] = dict(item)
+        rng = np.random.default_rng()
+        rng.bit_generator.state = checkpoint["rng_state"]
+    surfaces: list[dict[str, Any]] = []
+    for n_rows in coarse_grid:
+        if int(n_rows) in by_n and by_n[int(n_rows)].get("n_valid") == int(n_outer):
+            row = dict(by_n[int(n_rows)])
+            row.setdefault("grid_stage", "coarse")
+            surfaces.append(row)
+            continue
+        row = _power_one_n(
+            year_blocks, int(n_rows), rng, n_outer=n_outer, n_inner=n_inner
+        )
+        by_n[int(n_rows)] = row
+        surfaces.append(row)
+    ordered = sorted(int(n) for n in by_n)
+    n_above: int | None = None
+    for n_rows in ordered:
+        if float(by_n[n_rows]["STATISTICAL_POWER_AT_20PCT"]) >= MINIMUM_ACCEPTABLE_CONFIRMATION_POWER:
+            n_above = int(n_rows)
+            break
+    n_below: int | None = None
+    if n_above is not None:
+        below_candidates = [
+            n for n in ordered if n < n_above
+            and float(by_n[n]["STATISTICAL_POWER_AT_20PCT"]) < MINIMUM_ACCEPTABLE_CONFIRMATION_POWER
+        ]
+        n_below = max(below_candidates) if below_candidates else None
+    refinement: tuple[int, ...] = ()
+    if n_below is not None and n_above is not None:
+        refinement = five_row_refinement_grid(n_below, n_above)
+        for n_rows in refinement:
+            if int(n_rows) in by_n and by_n[int(n_rows)].get("n_valid") == int(n_outer):
+                row = dict(by_n[int(n_rows)])
+                row["grid_stage"] = "five_row_refinement"
+                surfaces.append(row)
+                continue
+            row = _power_one_n(
+                year_blocks, int(n_rows), rng, n_outer=n_outer, n_inner=n_inner
+            )
+            row["grid_stage"] = "five_row_refinement"
+            by_n[int(n_rows)] = row
+            surfaces.append(row)
+    min_rows: int | None = None
+    for n_rows in sorted(by_n):
+        if float(by_n[n_rows]["STATISTICAL_POWER_AT_20PCT"]) >= MINIMUM_ACCEPTABLE_CONFIRMATION_POWER:
+            min_rows = int(n_rows)
+            break
+    min_payload = by_n.get(min_rows) if min_rows is not None else None
+    return {
+        "AUTHORITATIVE_POWER_METHOD": AUTHORITATIVE_POWER_METHOD,
+        "REFINED_FRESH_N_SEED": int(seed),
+        "RETAINED_PREVIOUS_POWER_SEED": D2_CONFIRMATION_DEPENDENCE_PRESERVING_SEED,
+        "RETAINED_PREVIOUS_POWER": dict(RETAINED_PREVIOUS_POWER),
+        "n_outer": int(n_outer),
+        "n_inner": int(n_inner),
+        "COARSE_REFINED_N_GRID": [int(n) for n in coarse_grid],
+        "FIVE_ROW_REFINEMENT_GRID": [int(n) for n in refinement],
+        "COMPLETE_EXPOSED_YEARS": [int(y) for y in COMPLETE_EXPOSED_YEARS],
+        "POWER_USES_BINANCE_2025_2026": False,
+        "POWER_USES_BITMEX_OUTCOMES": False,
+        "surfaces": surfaces,
+        "POWER_BY_N": {str(n): by_n[n]["STATISTICAL_POWER_AT_20PCT"] for n in sorted(by_n)},
+        "POWER_95CI_BY_N": {
+            str(n): by_n[n]["STATISTICAL_POWER_AT_20PCT_95CI"] for n in sorted(by_n)
+        },
+        "N_BELOW": n_below,
+        "N_ABOVE": n_above,
+        "MIN_REQUIRED_FRESH_DECISION_ROWS": min_rows,
+        "POWER_AT_REFINED_MIN_N": None if min_payload is None else min_payload["STATISTICAL_POWER_AT_20PCT"],
+        "POWER_95CI_AT_REFINED_MIN_N": None if min_payload is None else min_payload["STATISTICAL_POWER_AT_20PCT_95CI"],
+        "RULE_CHANGED": False,
+        "TARGET_CHANGED": False,
+        "GATES_CHANGED": False,
+        "pooled_k_subset_used": False,
+        "iid_row_resampling_used": False,
+        "additional_adaptive_search": False,
+        "rng_state": rng.bit_generator.state,
+    }
 
 
 def extract_complete_year_blocks(rows: list[C.DiscoveryRow]) -> dict[int, dict[str, np.ndarray]]:
