@@ -122,13 +122,28 @@ def _synthetic_rows(*, n_train: int = 40, n_2023: int = 24, n_2024: int = 24) ->
 
 
 def test_prereg_authority_from_git_objects_not_caller_dicts():
-    report = authority.verify_prereg_authority()
-    assert report["prereg_freeze_head"] == authority.PREREG_FREEZE_HEAD
-    assert report["prereg_freeze_tree"] == authority.PREREG_FREEZE_TREE
-    assert report["prereg_content_head"] == authority.PREREG_CONTENT_HEAD
-    assert report["amendment_id"] == authority.LIVE_AMENDMENT_ID
-    assert report["snapshot_id"] == authority.SNAPSHOT_ID
-    assert report["durable_evidence_root_sha256"] == authority.DURABLE_EVIDENCE_ROOT_SHA256
+    """Prereg identity is still Git-bound; caller dicts still cannot override.
+
+    verify_prereg_authority() now raises Market06AuthorityError because a
+    canonical RESULT exists -- that is the correct terminal behaviour, so
+    the Git-object bindings are checked directly instead.
+    """
+
+    with pytest.raises(authority.Market06AuthorityError) as exc:
+        authority.verify_prereg_authority()
+    assert "MARKET_06_RESULT_EXISTS" in str(exc.value)
+
+    heads = authority.verify_live_prereg_freeze_objects()
+    assert heads["prereg_freeze_head"] == authority.PREREG_FREEZE_HEAD
+    assert heads["prereg_freeze_tree"] == authority.PREREG_FREEZE_TREE
+    assert heads["prereg_content_head"] == authority.PREREG_CONTENT_HEAD
+    payload = authority.load_frozen_prereg_json()
+    assert payload["amendment_of"]["amendment_id"] == authority.LIVE_AMENDMENT_ID
+    assert payload["data"]["snapshot_id"] == authority.SNAPSHOT_ID
+    assert (
+        payload["data"]["durable_evidence_root_sha256"]
+        == authority.DURABLE_EVIDENCE_ROOT_SHA256
+    )
     with pytest.raises(Market06ExecutionNotAuthorized):
         authority.verify_prereg_authority(expected_sha256="deadbeef")
 
@@ -143,15 +158,19 @@ def test_data_authority_bound_from_git_without_scientific_parse():
     assert len(hashes) == 36 + 1053
 
 
-def test_no_arm_result_or_previous_execution():
-    authority.assert_no_canonical_result()
+def test_canonical_result_exists_and_blocks_further_execution():
+    """Terminal state: the canonical RESULT exists and is a hard blocker."""
+
+    with pytest.raises(authority.Market06AuthorityError) as exc:
+        authority.assert_no_canonical_result()
+    assert "MARKET_06_RESULT_EXISTS" in str(exc.value)
+
     research = REPO / "docs" / "research"
-    for name in (
-        "MARKET_06_ARM.md",
-        "MARKET_06_ARM.json",
-        "MARKET_06_RESULT.md",
-        "MARKET_06_RESULT.json",
-    ):
+    assert (research / "MARKET_06_CROSS_VENUE_DISLOCATION_RESULT.json").exists()
+    assert (research / "MARKET_06_CROSS_VENUE_DISLOCATION_RESULT.md").exists()
+    # the superseded legacy artifact names were never used
+    for name in ("MARKET_06_ARM.md", "MARKET_06_ARM.json",
+                 "MARKET_06_RESULT.md", "MARKET_06_RESULT.json"):
         assert not (research / name).exists()
 
 
@@ -550,6 +569,8 @@ def test_retained_bytes_parse_under_synthetic_authenticated_permit(monkeypatch):
 
 
 def test_canonical_execution_refused_kwargs_env_and_cli(monkeypatch):
+    """Still refused -- now because the shot is consumed, not unarmed."""
+
     with pytest.raises(Market06ExecutionNotAuthorized):
         ev.evaluate_canonical_market_06()
     with pytest.raises(Market06ExecutionNotAuthorized):
@@ -561,8 +582,10 @@ def test_canonical_execution_refused_kwargs_env_and_cli(monkeypatch):
     monkeypatch.setenv("MARKET_06_EXECUTE", "1")
     with pytest.raises(Market06ExecutionNotAuthorized):
         authority.refuse_canonical_execution()
+    # The runner now exits on the authority error raised by the existing
+    # canonical RESULT rather than on "not authorized".
     code = runner.main(["--execute", "--force"])
-    assert code == 2
+    assert code == 3
 
 
 def test_production_modules_have_no_concatenated_then_sample_or_network():

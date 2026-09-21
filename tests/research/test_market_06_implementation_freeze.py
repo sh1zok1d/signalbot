@@ -115,23 +115,38 @@ def test_bound_module_bytes_match_freeze_inventory():
         assert listed[rel]["size_bytes"] == size
 
 
-def test_execution_still_unauthorized_after_implementation_freeze():
+def test_execution_refused_after_terminal_result():
+    """The SUPERSEDED freeze still describes its own pre-ARM commit.
+
+    Its explicit_state fields remain historically true of the commit it
+    describes. What changed is the live repository: the authority chain was
+    armed and the one canonical run is now consumed, so execution is
+    refused as already-consumed rather than as never-armed.
+    """
+
     freeze = json.loads(FREEZE_JSON.read_text(encoding="utf-8"))
     assert freeze["explicit_state"]["market_06_armed"] is False
     assert freeze["explicit_state"]["market_06_executed"] is False
     assert freeze["not_an_arm"] is True
+    assert freeze.get("is_current_authority") is False
+
     with pytest.raises(Market06ExecutionNotAuthorized):
         refuse_canonical_execution(authorize=True)
-    with pytest.raises(Market06ExecutionNotAuthorized):
+    with pytest.raises(Market06ExecutionNotAuthorized) as exc:
         refuse_canonical_execution()
+    assert "ALREADY_CONSUMED" in str(exc.value)
+
     research = REPO / "docs" / "research"
+    # the live chain and the sealed RESULT are present
     for name in (
-        "MARKET_06_ARM.md",
-        "MARKET_06_ARM.json",
-        "MARKET_06_RESULT.md",
-        "MARKET_06_RESULT.json",
         "MARKET_06_EXECUTION_ARM.json",
         "MARKET_06_EXECUTION_RESERVATION.json",
+        "MARKET_06_EXECUTION_CLAIM.json",
+        "MARKET_06_CROSS_VENUE_DISLOCATION_RESULT.json",
     ):
+        assert (research / name).exists()
+    # legacy artifact names were never used
+    for name in ("MARKET_06_ARM.md", "MARKET_06_ARM.json",
+                 "MARKET_06_RESULT.md", "MARKET_06_RESULT.json"):
         assert not (research / name).exists()
     assert CLASS_INCOMPLETE == "MARKET_06_INCOMPLETE_EXECUTION"

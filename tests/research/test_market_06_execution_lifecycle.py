@@ -144,18 +144,56 @@ def _rewrite_arm(armed, mutate) -> str:
 # --------------------------------------------------------------------------
 
 
-def test_live_repository_has_no_arm_and_refuses():
+def test_live_repository_is_in_terminal_consumed_state():
+    """MARKET-06 reached its terminal RESULT; the shot is spent.
+
+    The pre-execution assertions (no ARM, no RESULT, unauthorized because
+    no claim) are historically false BY DESIGN after the one canonical run.
+    What must still hold is that the chain is fully tracked and that a
+    further canonical execution refuses as already consumed.
+    """
+
     state = lifecycle.inspect_lifecycle_state()
-    assert state["arm_exists"] is False
-    assert state["reservation_exists"] is False
-    assert state["claim_exists"] is False
-    assert state["result_exists"] is False
+    assert state["arm_exists"] is True
+    assert state["reservation_exists"] is True
+    assert state["claim_exists"] is True
+    assert state["result_exists"] is True
     assert state["execution_authorized"] is False
     assert state["authority_chain"] == (
         "CLAIM -> RESERVATION -> ARM -> IMPLEMENTATION_FREEZE"
     )
-    with pytest.raises(lifecycle.Market06ExecutionNotAuthorized):
+    with pytest.raises(lifecycle.Market06ExecutionNotAuthorized) as exc:
         lifecycle.canonical_execution_permit_or_refuse()
+    assert "ALREADY_CONSUMED" in str(exc.value)
+
+
+def test_terminal_result_binds_the_exact_authority_chain():
+    result = json.loads(
+        (REPO / lifecycle.RESULT_JSON_REL).read_text(encoding="utf-8")
+    )
+    assert result["run_identity"] == "f3aa51372594d710a8f705d761d857f8385d0b848fb0ed59a36b27a16ce25c22"
+    assert result["claim_commit"] == "6d2814491a99bcd4e7ef4fcdd1c6ee0bc3443657"
+    assert result["reservation_commit"] == "de478963823817a705ced22efa23d883f2f2e56e"
+    assert result["arm_commit"] == "2d5815760241042e812eef5e70357a693f38e1c6"
+    assert result["implementation_freeze_head"] == "a83225241a48baf7620731f0a791ed93f0392343"
+    assert result["classification"] == "MARKET_06_NO_EVIDENCE"
+    assert result["protected_2025_opened"] is False
+    assert result["protected_2026_opened"] is False
+
+
+def test_sealed_result_bytes_are_unchanged():
+    import hashlib
+
+    raw = (REPO / lifecycle.RESULT_JSON_REL).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == (
+        "67f6f14c9221d3d0be2c130938f6ff8588aadc6eabc52126dd00a5fbbedd2a53"
+    )
+
+
+def test_second_shot_is_refused_by_the_local_attempt_ledger():
+    with pytest.raises(lifecycle.Market06ExecutionNotAuthorized) as exc:
+        lifecycle.assert_shot_not_already_consumed("f3aa51372594d710a8f705d761d857f8385d0b848fb0ed59a36b27a16ce25c22")
+    assert "ALREADY_CLAIMED" in str(exc.value)
 
 
 def test_permit_cannot_be_forged():

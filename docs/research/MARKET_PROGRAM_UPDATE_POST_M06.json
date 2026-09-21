@@ -5,6 +5,14 @@
     "No new hypothesis may be a parameter variant, sign flip, venue swap, horizon tweak, or threshold change of MARKET-01..MARKET-06.",
     "R-F carries the highest rescue risk and must never be used to re-interrogate the MARKET-06 target on the consumed window."
   ],
+  "correction": {
+    "corrected_on": "2026-09-21",
+    "correction_id": "POST_M06_OVERSTATEMENT_CORRECTION",
+    "market_01_removed_from_exact_cell": true,
+    "replaced_with": "TWO_LEVEL_EVIDENCE_STATEMENT",
+    "what_was_overstated": "Version 1.0.0 claimed that 'three materially different information sources (derivative positioning, cross-asset, cross-venue) produced nulls at the SAME (function, target, horizon, functional-form) cell', counting MARKET-01 in that cell.",
+    "why_it_was_wrong": "MARKET-01's frozen primary claim is materially different from MARKET-05/MARKET-06. Verified against its frozen preregistration on this branch: a qualifying 30m directional impulse, OI expansion plus weak continuation as an episode STATE, a 60m reversal_return outcome (-D * ln(close(T+60m)/close(T)), alternative horizons forbidden), an event/episode design with a 120m span and overlap policy, a stratified two-group OLS candidate-group effect explicitly marked 'not_nested_ols_on_regular_bar_grid', and a Politis-Romano stationary bootstrap over the episode sequence. It is not a 24h direction-aligned adverse-path MAE study and not an additive-incremental-term design on a daily grid."
+  },
   "date": "2026-09-21",
   "evidence_map": {
     "carried_from_program_instructions_unverified_here": {
@@ -76,11 +84,18 @@
       "FUNCTION": "RISK_REDUCTION_BY_FILTERING",
       "HORIZON_CLASS": "SHORT_HORIZON_PER_DECISION",
       "INFORMATION_SOURCE": "Any already-available observable, including ones that were null as additive linear predictors (OI, dislocation, cross-asset state)",
+      "MANDATORY_DESIGN_CONSTRAINTS": [
+        "The 2022-2024 window consumed by MARKET-06 must not be reused for this target; a fresh window or independent data is required.",
+        "Observable choice and any threshold must be selected OUTCOME-BLIND and frozen before evaluation.",
+        "No post-hoc selection of whichever previously-null observable happens to look best; the candidate set and selection rule must be preregistered.",
+        "Abstention rate must be matched against the random-abstention control by construction, not tuned after seeing results."
+      ],
       "MECHANISM_FAMILY": "Filtering / abstention on an existing exposure schedule",
+      "NOT_A_CLEAN_DECOMPOSITION_OF_M01_M06": "This region must NOT be described as decomposing all MARKET-01..MARKET-06 nulls. Those studies did not share one functional: MARKET-01 used a 60m reversal_return stratified two-group estimand, not a mean-MAE incremental regression. R-B speaks only to observables that were null as incremental mean/scalar predictors.",
       "POINT_IN_TIME_FEASIBILITY": "HIGH.",
       "TARGET": "Change in the UPPER TAIL (e.g. 90th/95th percentile) of the adverse-path distribution under abstention, benchmarked against random abstention matched on abstention rate",
-      "WHAT_NEGATIVE_RESULT_WOULD_ELIMINATE": "If no available observable beats rate-matched random abstention on the tail, the entire 'use a signal to sit out' mechanism class is eliminated for this observable set -- a materially different and broader conclusion than the M01-M06 mean-regression nulls.",
-      "WHY_DISTINCT_FROM_M01_M06": "M01/M05/M06 asked whether X reduces MEAN MAE inside a linear model. This asks whether X identifies decisions to DECLINE, judged on the tail, against a rate-matched random-abstention control. Mean-incremental nullity does not imply tail-abstention nullity; these are different functionals of the same joint distribution.",
+      "WHAT_NEGATIVE_RESULT_WOULD_ELIMINATE": "If no available observable beats rate-matched random abstention on the tail, the 'use a signal to decline exposure' mechanism is eliminated for that observable set and that tail functional.",
+      "WHY_DISTINCT_FROM_M01_M06": "Tests whether observables that failed as incremental MEAN/SCALAR predictors may nonetheless carry useful TAIL-SELECTION / ABSTENTION information. This is a different functional of the joint distribution (tail under selection, versus mean under an additive model) and a different decision (decline exposure, versus forecast a magnitude).",
       "id": "R-B",
       "name": "CONDITIONAL_ABSTENTION_RISK_REDUCTION"
     },
@@ -148,24 +163,58 @@
   "regions_are_not_ranked": true,
   "rescue_proposed": false,
   "saturated_region": {
-    "closed_cells": [
-      "derivative-positioning observable (open interest expansion) -> 24h adverse-path/continuation, additive linear, mean MAE  [MARKET-01]",
-      "cross-asset observable (ETH confirmation state) -> 24h direction-aligned adverse-path, additive linear, mean MAE  [MARKET-05, unverified on this branch]",
-      "cross-venue observable (perp-vs-spot dislocation) -> 24h direction-aligned adverse-path, additive linear, mean MAE  [MARKET-06]"
-    ],
-    "exact_description": "The narrow cell: ONE standalone observable X, measured at a single instant at a daily decision cutoff, entered as an ADDITIVE LINEAR term alongside BTC's own directional and volatility controls, evaluated by incremental reduction in MEAN 24h direction-aligned adverse-path excursion (MAE) on a ~1000-row daily holdout, under a >=2% relative-improvement materiality gate.",
     "explicitly_not_disproven": [
-      "cross-venue information in general",
-      "cross-asset information in general",
-      "open interest in general",
-      "funding in general",
-      "microstructure in general"
+      "open interest as an information source",
+      "cross-asset information",
+      "cross-venue information",
+      "funding / premium information",
+      "microstructure",
+      "filtering mechanisms",
+      "execution mechanisms",
+      "structural regime / state mechanisms",
+      "cross-sectional mechanisms"
     ],
-    "explicitly_not_disproven_note": "Each was tested only in one functional form, against one target, at one horizon, on one instrument, with one evaluation functional (mean MAE). Nothing here licenses a claim that these information families are uninformative.",
-    "status": "LOW_PRIORITY_SATURATED_FOR_NOW",
-    "why_saturated": "Three MATERIALLY DIFFERENT information sources -- derivative positioning, cross-asset, cross-venue -- produced nulls at the SAME (function, target, horizon, functional-form) cell. The repeated failure is evidence about the CELL, not about the information sources."
+    "explicitly_not_disproven_note": "Each was tested in a small number of functional forms against a small number of targets. Nothing here licenses a claim that these information families or mechanism classes are uninformative.",
+    "level_1_exact_cell": {
+      "EXACT_CELL_STATUS": "REPEATED_NULL / LOW_PRIORITY_FOR_NOW",
+      "evidence_carried": {
+        "MARKET-05": "NO_EVIDENCE (cross-asset ETH confirmation) [unverified on this branch]",
+        "MARKET-06": "NO_EVIDENCE (cross-venue perp-vs-spot dislocation) [verified, sealed]"
+      },
+      "exact_description": "one external/cross-market observable -> additive incremental term alongside BTC own-state controls -> 24h direction-aligned adverse-path prediction -> evaluated by holdout MAE improvement",
+      "globally_disproven": false,
+      "honest_limit": "Two nulls, one of which is unverified on this branch. This supports deprioritisation, not a claim that the cell is exhausted or that its members are false.",
+      "market_01_exclusion_reason": "different outcome (60m reversal_return vs 24h direction-aligned MAE), different design (event/episode vs daily grid), different estimand (stratified two-group OLS candidate-group effect vs additive incremental regressor), different resampling (stationary bootstrap over episodes vs 14-day circular MBB).",
+      "market_01_in_this_cell": false,
+      "n_independent_studies": 2,
+      "name": "EXACT_OR_NEAR_EXACT_NARROW_CELL"
+    },
+    "level_2_broader_family": {
+      "BROADER_FAMILY_STATUS": "LOW_PRIORITY / SATURATED_FOR_NOW",
+      "exact_description": "short-horizon BTC conditional relationship studies in which a relatively narrow observable or state is expected to provide incremental predictive information about a scalar future return/path/risk outcome",
+      "members_differ_in": [
+        "target",
+        "horizon",
+        "design",
+        "estimand",
+        "resampling"
+      ],
+      "members_with_recorded_failures": [
+        "MARKET-01 (OI expansion + weak continuation -> 60m reversal_return) [verified, sealed]",
+        "MARKET-02 [unverified on this branch]",
+        "MARKET-05 (cross-asset -> 24h adverse path) [unverified on this branch]",
+        "MARKET-06 (cross-venue -> 24h adverse path) [verified, sealed]",
+        "relevant earlier H / B2 families already recorded in program history"
+      ],
+      "name": "SHORT_HORIZON_BTC_CONDITIONAL_SCALAR_PREDICTION",
+      "nature_of_conclusion": "A PROGRAM-LEVEL SEARCH-PRIORITY conclusion. It is NOT a claim that every member of the family is false, and it is not a statistical result about the family.",
+      "reason": "Many nearby formulations, across different observables and several short-horizon scalar targets, have repeatedly failed to produce robust incremental evidence.",
+      "therefore_not": "the same cell repeatedly failing"
+    },
+    "reverse_effect_from_market_06": false,
+    "structure": "TWO_LEVEL"
   },
   "schema": "signalbot_market_program_update",
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "unit_id": "MARKET_PROGRAM_UPDATE_POST_M06"
 }
