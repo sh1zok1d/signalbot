@@ -4243,3 +4243,72 @@ Evidence: `docs/research/D2_BITMEX_REPLICATION_IMPLEMENTATION_REVIEW.{json,md}`,
 `docs/research_data/D2_BITMEX_REPLICATION_EXECUTION_BINDING.json`.
 
 - next required step: `D2_BITMEX_REPLICATION_ONE_SHOT_EXECUTION`
+
+## 2026-09-21 — D2 BitMEX replication one-shot execution
+
+Canonical two-commit one-shot. Permit
+`d23f48b0c49d28dfbd0bf55047cb0e3d6e2cc0f2` authorized execution without
+outcomes. The scientific run reconstructed timestamp-legal `N=1069` but
+constructed eligible rows were `N=1067` after frozen
+`construct_discovery_row`. Sample-identity gate classified
+`D2_BITMEX_REPLICATION_INVALID`. Primary MU_RULE / year-matched controls
+were not computed. Not reinterpreted as `NOT_SUPPORTED`. No rerun.
+Discovery history preserved. Protected 2025/2026 unopened. MARKET-07
+not created.
+
+```
+CLASSIFICATION = D2_BITMEX_REPLICATION_INVALID
+RUN_IDENTITY = b873d473e5d5ef1394d161d557b1e0ca7602bfa92e6d78d8e80df8f4d1493d71
+PERMIT_COMMIT = d23f48b0c49d28dfbd0bf55047cb0e3d6e2cc0f2
+RESULT_PAYLOAD_SHA256 = 9af98e72e7afc2c3e8af7f2d359401110e1e9c9829e69185ab23519e06fba48a
+EVIDENCE_CLASS = INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION
+CENSUS_ELIGIBLE_N = 1069
+CONSTRUCTED_ELIGIBLE_N = 1067
+FIRST_T = 2017-01-24T00:05:00Z
+LAST_T = 2019-12-30T00:05:00Z
+D2_BITMEX_OUTCOME_COMPUTED = false
+RERUN_AUTHORIZED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+D2_DISCOVERY_STATUS = PROMISING_PROTOTYPE
+```
+
+Evidence: `docs/research/D2_BITMEX_REPLICATION_RESULT.{json,md}`,
+`docs/research_data/D2_BITMEX_REPLICATION_EXECUTION_PERMIT.json`,
+`docs/research_data/D2_BITMEX_REPLICATION_EXECUTION_BINDING.json`.
+
+- next required step: `D2_BITMEX_REPLICATION_INTEGRITY_ADJUDICATION`
+
+## 2026-09-21 — D2 BitMEX replication integrity adjudication
+
+The INVALID run is preserved. Diagnostic (no severity, no MU_RULE, no
+controls) found exactly two timestamp-complete decisions dropped by
+frozen `BTC_RET_24H_EQ_0`: `2018-03-17T00:05:00Z` and
+`2019-02-10T00:05:00Z`. Adjudication class
+`REPAIRABLE_PREDECLARED_ELIGIBILITY_IDENTITY_MISMATCH`. Trailing-250
+authority is `VALID_CONSTRUCTED_ROWS` from original D2 discovery.
+Corrected eligible N=1067 > frozen floor 815; power was not recomputed.
+Original rerun unauthorized. New integrity-repair `RUN_IDENTITY` minted.
+No execution permit. 2025/2026 unopened. MARKET-07 not created.
+
+```
+ADJUDICATION_CLASS = REPAIRABLE_PREDECLARED_ELIGIBILITY_IDENTITY_MISMATCH
+DROPPED_1 = 2018-03-17T00:05:00Z BTC_RET_24H_EQ_0
+DROPPED_2 = 2019-02-10T00:05:00Z BTC_RET_24H_EQ_0
+SCIENTIFIC_ELIGIBLE_N = 1067
+TRAILING_HISTORY_AUTHORITY = VALID_CONSTRUCTED_ROWS
+ORIGINAL_PRIMARY_OUTCOME_COMPUTED = false
+ORIGINAL_RANDOM_CONTROLS_COMPUTED = false
+CORRECTED_EXECUTION_SCIENTIFICALLY_PERMISSIBLE = true
+ORIGINAL_RERUN_AUTHORIZED = false
+NEW_RUN_IDENTITY = 8e3e9ecfadc18f71dae800cd16d0b0b36845c17710a108a0258c833af0420b43
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+```
+
+Evidence: `docs/research/D2_BITMEX_REPLICATION_INTEGRITY_ADJUDICATION.{json,md}`,
+`docs/research/D2_BITMEX_REPLICATION_PREREG_AMENDMENT_V1.{json,md}`.
+
+- next required step: `D2_BITMEX_REPLICATION_CORRECTED_EXECUTION_PERMIT`

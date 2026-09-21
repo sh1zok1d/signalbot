@@ -1,4 +1,4 @@
-> **Current routing note — 2026-09-21:** use `docs/CURRENT_RESEARCH_STATE.md` first for present lifecycle/next-unit status. Frozen experiment artifacts remain authoritative for their own semantics. Some older catalog descriptions below are historical and may retain the status they had when written. Repository integration cleanup merged canonical MARKET-02, MARKET-03..05/forward-observability, and MARKET-06 histories into `main` without rewriting frozen results.
+> **Current routing note — 2026-09-21:** use `docs/CURRENT_RESEARCH_STATE.md` first for present lifecycle/next-unit status. Frozen experiment artifacts remain authoritative for their own semantics. Some older catalog descriptions below are historical and may retain the status they had when written. Repository integration cleanup merged canonical MARKET-02, MARKET-03..05/forward-observability, and MARKET-06 histories into `main` without rewriting frozen results. D2 BitMEX one-shot remains `INVALID`; integrity adjudication classed the N mismatch repairable. `NEXT_UNIT = D2_BITMEX_REPLICATION_CORRECTED_EXECUTION_PERMIT`.
 
 # Signalbot Documentation Index
 
@@ -19,13 +19,16 @@ For the narrative evolution, read `PROJECT_HISTORY.md`. For complete original do
 
 Read these first:
 
-| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. D2 PROMISING_PROTOTYPE remains adaptive discovery; BitMEX replication implementation reviewed outcome-blind; `NEXT_UNIT = D2_BITMEX_REPLICATION_ONE_SHOT_EXECUTION` |
+| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. D2 PROMISING_PROTOTYPE remains adaptive discovery; BitMEX one-shot remains `INVALID`; identity mismatch repairable; `NEXT_UNIT = D2_BITMEX_REPLICATION_CORRECTED_EXECUTION_PERMIT` |
 | `research/DISCOVERY_SPRINT_01.md` | **ACTIVE DISCOVERY SPRINT** | Six-card sprint plus first blocked attempt, CORE-restore retry results, and D1 null-adequacy deferral |
 | `research/DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE.md` | **D1 PRE-EXECUTION ADJUDICATION** | D1 deferred: null generates daily returns; state observable requires 288×5m RV. Gate not executed. |
 | `research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.md` | **D2 CONFIRMATION DESIGN** | Outcome-blind 2025 confirmation design for RULE_1 / RV_ABSTENTION; underpowered single year; year-matched two-year surface still underpowered; 2025/2026 unopened |
 | `research/D2_ALTERNATIVE_INDEPENDENT_SURFACE_FEASIBILITY.md` | **D2 ALTERNATIVE SURFACE FEASIBILITY** | Pre-2020 BitMEX XBTUSD is a feasible class-A independent replication surface; D2 outcomes not computed; 2025/2026 unopened |
 | `research/D2_BITMEX_REPLICATION_PREREG.md` | **D2 BITMEX REPLICATION PREREG (FROZEN, OUTCOME-BLIND)** | Independent pre-2020 cross-venue temporal replication contract; N=1069; not executed; 2025/2026 unopened |
 | `research/D2_BITMEX_REPLICATION_IMPLEMENTATION_REVIEW.md` | **D2 BITMEX IMPLEMENTATION REVIEW (OUTCOME-BLIND)** | Reviewed execution implementation; stub lineage preserved; no BitMEX result; execution unauthorized |
+| `research/D2_BITMEX_REPLICATION_RESULT.md` | **D2 BITMEX REPLICATION RESULT (ONE-SHOT, INVALID)** | Canonical one-shot; constructed N=1067 vs frozen 1069; primary metrics not computed; not NOT_SUPPORTED; no rerun |
+| `research/D2_BITMEX_REPLICATION_INTEGRITY_ADJUDICATION.md` | **D2 BITMEX INTEGRITY ADJUDICATION** | Two drops are predeclared BTC_RET_24H_EQ_0; Class A identity repair; original INVALID preserved; no D2 effect |
+| `research/D2_BITMEX_REPLICATION_PREREG_AMENDMENT_V1.json` | **D2 BITMEX PREREG IDENTITY AMENDMENT** | Corrected expected N=1067; historical prereg bytes unchanged; execution unauthorized |
 | `research/discovery_results/` | **ADAPTIVE DISCOVERY RESULTS** | D2-D5 lightweight discovery result JSON/MD; not confirmatory |
 | `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. MARKET-01 closed `NO_EVIDENCE`; V3 closed; no V4; B2-06 remains blocked. |
 | `EDGE_RESEARCH_PROTOCOL.md` | **ACTIVE / CANONICAL** | Discovery/validation rules and anti-overfit discipline |
