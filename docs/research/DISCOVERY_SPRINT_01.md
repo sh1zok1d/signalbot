@@ -357,7 +357,7 @@ been executed in the definition unit.
 `SCIENTIFIC_OUTCOMES_COMPUTED = true` (adaptive discovery, not confirmatory).
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
-`NEXT_UNIT = D2_BITMEX_REPLICATION_INTEGRITY_ADJUDICATION`.
+`NEXT_UNIT = D2_BITMEX_REPLICATION_CORRECTED_EXECUTION_PERMIT`.
 
 ### Stall-gate semantics (corrected 2026-09-21)
 
@@ -381,7 +381,7 @@ discovery rather than confirmatory evidence.
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
 Definition-time `NEXT_UNIT = DISCOVERY_SPRINT_01_CARD_EXECUTION` is
-historical; current `NEXT_UNIT = D2_BITMEX_REPLICATION_INTEGRITY_ADJUDICATION`.
+historical; current `NEXT_UNIT = D2_BITMEX_REPLICATION_CORRECTED_EXECUTION_PERMIT`.
 
 ## Corrective unit (2026-09-21)
 
@@ -829,4 +829,31 @@ MARKET_07_CREATED = false
 
 Full record: `docs/research/D2_BITMEX_REPLICATION_RESULT.{json,md}`.
 
-`NEXT_UNIT = D2_BITMEX_REPLICATION_INTEGRITY_ADJUDICATION`.
+`NEXT_UNIT` of that one-shot unit: `D2_BITMEX_REPLICATION_INTEGRITY_ADJUDICATION`.
+
+## D2 BitMEX replication integrity adjudication (2026-09-21)
+
+Exactly two timestamp-complete decisions fail frozen
+`construct_discovery_row` for predeclared `BTC_RET_24H_EQ_0`:
+`2018-03-17T00:05:00Z` and `2019-02-10T00:05:00Z`. Class
+`REPAIRABLE_PREDECLARED_ELIGIBILITY_IDENTITY_MISMATCH`. Original INVALID
+result preserved. No D2 effect computed. Corrected eligible N=1067.
+Original rerun unauthorized. Corrected execution scientifically
+permissible; no permit created.
+
+```
+ADJUDICATION_CLASS = REPAIRABLE_PREDECLARED_ELIGIBILITY_IDENTITY_MISMATCH
+TRAILING_HISTORY_AUTHORITY = VALID_CONSTRUCTED_ROWS
+CORRECTED_ELIGIBLE_N = 1067
+ORIGINAL_PRIMARY_OUTCOME_COMPUTED = false
+ORIGINAL_RANDOM_CONTROLS_COMPUTED = false
+CORRECTED_EXECUTION_SCIENTIFICALLY_PERMISSIBLE = true
+ORIGINAL_RERUN_AUTHORIZED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+```
+
+Full record: `docs/research/D2_BITMEX_REPLICATION_INTEGRITY_ADJUDICATION.{json,md}`.
+
+`NEXT_UNIT = D2_BITMEX_REPLICATION_CORRECTED_EXECUTION_PERMIT`.
