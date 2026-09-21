@@ -31,6 +31,13 @@ research process — not a promise that 25–50 studies establish alpha.
 B2-06 remains `BLOCKED_MISSING_OBSERVABLE`. `MARKET-01` is not required
 to be B2-06 and does not silently unblock it.
 
+MARKET-06 (`MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK`) is
+**preregistered and frozen outcome-blind**. It is not executed, not
+ARMed, and not a MARKET-01 rerun. Canonical freeze:
+`docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_FREEZE.json`.
+Next unit: `MARKET_06_IMPLEMENTATION_OUTCOME_BLIND`. Do not inspect
+outcomes under this identity until a later authorized execution.
+
 ## R0 — E1 frozen experiment closeout
 
 **Status:** `CLOSED_AT_DEVELOPMENT / HOLDOUT_UNOPENED`
