@@ -58,7 +58,7 @@ after the CORE-restore retry (adaptive discovery, not confirmatory):
 
 `INTERNAL_DISCOVERY_CARDS_EXECUTED = 4`.
 `INTERNAL_PROMISING_PROTOTYPES = 1`.
-`NEXT_UNIT = D2_BITMEX_REPLICATION_CORRECTED_EXECUTION_PERMIT`.
+`NEXT_UNIT = PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED`.
 
 D2 remains a `PROMISING_PROTOTYPE` (adaptive discovery only). Outcome-blind
 confirmation design for RULE_1 / `RV_ABSTENTION` found calendar 2025
@@ -73,15 +73,16 @@ XBTUSD official 5m history yields `1069` legal decision rows and is
 replication preregistration is frozen
 (`INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION`). The execution
 implementation has been reviewed outcome-blind (`EXECUTION_READY = true`,
-`EXECUTION_AUTHORIZED = false`). The one-shot BitMEX execution ran once
-under the frozen permit and classified
-`D2_BITMEX_REPLICATION_INVALID`: constructed eligible `N=1067` did not
-match frozen `N=1069`. Primary metrics were not computed. Integrity
+`EXECUTION_AUTHORIZED = false`). The original one-shot BitMEX execution
+classified `D2_BITMEX_REPLICATION_INVALID` (constructed eligible `N=1067`
+vs frozen census `N=1069`; primary metrics not computed). Integrity
 adjudication classed this
-`REPAIRABLE_PREDECLARED_ELIGIBILITY_IDENTITY_MISMATCH` (`BTC_RET_24H_EQ_0`
-on two timestamp-complete days). Original INVALID run preserved. Corrected
-execution is scientifically permissible; no permit yet. This is not
-`NOT_SUPPORTED`. No original rerun. 2025 is not opened. 2026 is not consumed.
+`REPAIRABLE_PREDECLARED_ELIGIBILITY_IDENTITY_MISMATCH`. The corrected
+one-shot then passed identity `1317/250/1067` and classified
+`D2_BITMEX_REPLICATION_SUPPORTED` on the independent pre-2020 cross-venue
+temporal surface. This is not `EXACT_BINANCE_CONFIRMATION`, not
+`PROVEN_ALPHA`, and not `VALIDATED_TRADING_EDGE`. Original INVALID run
+preserved. No rerun. 2025 is not opened. 2026 is not consumed.
 
 Card identities at definition time (unchanged):
 

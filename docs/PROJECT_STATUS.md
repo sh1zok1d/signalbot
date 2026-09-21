@@ -28,9 +28,13 @@ The exact M05/M06 additive 24h adverse-path MAE cell is `REPEATED_NULL / LOW_PRI
 
 ## Active work
 
-Next: `MARKET_NEXT_HYPOTHESIS_SELECTION_FROM_ORTHOGONAL_REGIONS`.
+Next: `PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED`.
 
-No MARKET-07 exists yet. First select a region that changes mechanism/function/information geometry rather than a parameter variant of M01-M06. Candidate region definitions live in `docs/research/MARKET_PROGRAM_UPDATE_POST_M06.json`.
+D2 remains a `PROMISING_PROTOTYPE`. The corrected independent pre-2020
+BitMEX replication is `D2_BITMEX_REPLICATION_SUPPORTED`; that is not a
+validated trading edge and does not create MARKET-07. The original INVALID
+BitMEX one-shot remains first-class evidence. Protected 2025/2026 remain
+sealed.
 
 `FORWARD_MARKET_OBSERVABILITY_V1` remains available as infrastructure; authoritative collection is not started by this cleanup. B2-06 remains blocked.
 
