@@ -225,5 +225,93 @@
     "PROTECTED_2025_OPENED": false,
     "PROTECTED_2026_OPENED": false,
     "NEXT_UNIT": "DISCOVERY_SPRINT_01_CARD_EXECUTION"
+  },
+  "spec_compilation_2026_09_21": {
+    "unit": "DISCOVERY_SPRINT_01_SPEC_COMPILATION",
+    "record": "docs/research/DISCOVERY_SPRINT_01_SPEC_COMPILATION.{json,md}",
+    "SPEC_STATUS": {
+      "D1": "EXECUTABLE_DISCOVERY_SPEC",
+      "D2": "EXECUTABLE_DISCOVERY_SPEC",
+      "D3": "EXECUTABLE_DISCOVERY_SPEC",
+      "D4": "EXECUTABLE_DISCOVERY_SPEC",
+      "D5": "EXECUTABLE_DISCOVERY_SPEC",
+      "D6": "EXECUTABLE_DISCOVERY_SPEC"
+    },
+    "DEFERRED": [],
+    "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+    "CANDIDATE_PERFORMANCE_INSPECTED": false,
+    "MARKET_07_CREATED": false,
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "NEXT_UNIT": "DISCOVERY_SPRINT_01_EXECUTION",
+    "SUPERSEDED_BY": "red_team_review_2026_09_21 below"
+  },
+  "red_team_review_2026_09_21": {
+    "unit": "DISCOVERY_SPRINT_01_RED_TEAM_REVIEW",
+    "record": "docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}",
+    "reviewed_commit": "7bb92b0bd6238693164b6592c0711fa4c15fc9fe",
+    "SPEC_STATUS": {
+      "D1": "BLOCKED_PENDING_PRE_OUTCOME_FIX",
+      "D2": "EXECUTABLE_DISCOVERY_SPEC",
+      "D3": "EXECUTABLE_DISCOVERY_SPEC",
+      "D4": "EXECUTABLE_DISCOVERY_SPEC",
+      "D5": "EXECUTABLE_DISCOVERY_SPEC",
+      "D6": "DEFERRED"
+    },
+    "HARD_FINDINGS": "F1,F2,F3,F4,F6 confirmed and fixed outcome-blind. F5 confirmed as an unverified null-adequacy assertion; D1_NULL_ADEQUACY_GATE now defined, not yet executed. F7 confirmed a genuine usefulness problem (at most one testable historical episode); D6 deferred.",
+    "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+    "CANDIDATE_PERFORMANCE_INSPECTED": false,
+    "MARKET_07_CREATED": false,
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "NEXT_UNIT": "DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4_D5, gated separately on D1_NULL_ADEQUACY_GATE_EXECUTION and D6_REPLACEMENT_BENCHMARK_SELECTION",
+    "SUPERSEDED_BY": "pre_execution_correction_2026_09_21 below (D3, D4 only)"
+  },
+  "pre_execution_correction_2026_09_21": {
+    "unit": "DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4",
+    "record": "docs/research/DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4.{json,md}",
+    "reviewed_commit": "355a1657aac288fe75b272df1845fd9b5cfcac3f",
+    "scope": "D3 and D4 only; D1, D2, D5, D6 unchanged from red_team_review_2026_09_21",
+    "SPEC_STATUS": {
+      "D1": "BLOCKED_PENDING_PRE_OUTCOME_FIX",
+      "D2": "EXECUTABLE_DISCOVERY_SPEC",
+      "D3": "EXECUTABLE_DISCOVERY_SPEC",
+      "D4": "EXECUTABLE_DISCOVERY_SPEC (ROLLING_CORRELATION_90D only)",
+      "D4_ROLLING_CORRELATION_STATUS": "EXECUTABLE_DISCOVERY_SPEC",
+      "D4_LEAD_LAG_STATUS": "DEFERRED_FROM_SPRINT_01",
+      "D5": "EXECUTABLE_DISCOVERY_SPEC",
+      "D6": "DEFERRED"
+    },
+    "HARD_FINDINGS": "D3's direction-aligned functionals contradicted its own UNCONDITIONAL_DESIGN label and risked smuggling in directional-predictability structure; redefined as genuinely unsigned (MAX_UPSIDE/MAX_DOWNSIDE_EXCURSION_24h, TIME_TO_MAX_EXCURSION, PATH_ASYMMETRY), with a time-of-day-stratified null replacing the time-of-day-blind one (every MARKET-06 decision point shares the same fixed UTC time, making TIME_TO_MAX_EXCURSION structurally a time-of-day statistic). D4's INDEPENDENT_BLOCK_BOOTSTRAP lead-lag null was found to over-destroy (also killing ordinary same-time common-factor dependence); LEAD_LAG_1DAY deferred, ROLLING_CORRELATION_90D retained unchanged.",
+    "EXECUTION_AUTHORIZED_CARDS": ["D2", "D3", "D4 (ROLLING_CORRELATION_90D only)", "D5"],
+    "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+    "CANDIDATE_PERFORMANCE_INSPECTED": false,
+    "MARKET_07_CREATED": false,
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "NEXT_UNIT": "DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5, gated separately on D1_NULL_ADEQUACY_GATE_EXECUTION, D4_LEAD_LAG_REPLACEMENT_NULL_OR_PERMANENT_DEFERRAL, and D6_REPLACEMENT_BENCHMARK_SELECTION",
+    "SUPERSEDED_BY": "mechanical_pre_execution_fix_2026_09_21 below (D3, D4 practical-threshold semantics, D5 only)"
+  },
+  "mechanical_pre_execution_fix_2026_09_21": {
+    "unit": "DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX",
+    "record": "docs/research/DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX.{json,md}",
+    "reviewed_commit": "475072d22f4c4631836ca7d38ccdc5da6ce59222",
+    "scope": "D3 close-path redefinition, D4 practical-threshold exactness, D5 common-window component comparison only. D1 and D6 unchanged.",
+    "SPEC_STATUS": {
+      "D1": "BLOCKED_PENDING_PRE_OUTCOME_FIX",
+      "D2": "EXECUTABLE_DISCOVERY_SPEC",
+      "D3": "EXECUTABLE_DISCOVERY_SPEC",
+      "D4": "EXECUTABLE_DISCOVERY_SPEC (ROLLING_CORRELATION_90D only)",
+      "D5": "EXECUTABLE_DISCOVERY_SPEC",
+      "D6": "DEFERRED"
+    },
+    "HARD_FINDINGS": "D3's real functionals used 5m HIGH/LOW while the frozen surrogate only ever produced a close-to-close path -- a real/null observable mismatch. Redefined as CLOSE-PATH morphology: MAX_UPSIDE_CLOSE_24H, MAX_DOWNSIDE_CLOSE_24H, TIME_TO_MAX_ABS_CLOSE_EXCURSION (exactly 3 functionals; PATH_ASYMMETRY removed). D4's ROLLING_CORRELATION_90D practical-magnitude threshold made mathematically exact (PRACTICAL_EXCESS_RANGE >= 0.15). D5's beats-best-component check corrected to compare against COMPONENT_A_DELTA_FOR_D5 / COMPONENT_B_DELTA_FOR_D5 (both on D5's exact common interval 2022-02-01->2025-01-01), not D2 RULE_1's unrestricted full-2020-2024 result.",
+    "EXECUTION_AUTHORIZED_CARDS": ["D2", "D3", "D4 (ROLLING_CORRELATION_90D only)", "D5"],
+    "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+    "CANDIDATE_PERFORMANCE_INSPECTED": false,
+    "MARKET_07_CREATED": false,
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "NEXT_UNIT": "DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5"
   }
 }

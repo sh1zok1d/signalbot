@@ -364,3 +364,131 @@ A narrow, pre-outcome design correction was applied on top of commits
    threshold.
 
 No scientific outcome was computed by this correction.
+
+## Spec compilation (2026-09-21)
+
+All six cards were converted to fully frozen `EXECUTABLE_DISCOVERY_SPEC`
+records (none deferred) in
+`docs/research/DISCOVERY_SPRINT_01_SPEC_COMPILATION.{json,md}`. That unit
+freezes exact dataset authority, discovery interval, unit of observation,
+feature/state/rule definitions, small search surfaces, target functionals,
+simple baselines/controls, temporal breakdowns, lightweight
+`PROMISING_PROTOTYPE` evaluation fields, and deterministic seeds for each
+card, still outcome-blind: no discovery outcome computed, no candidate
+performance inspected, protected 2025/2026 unopened, no MARKET-07.
+
+`NEXT_UNIT = DISCOVERY_SPRINT_01_EXECUTION`.
+
+## Red-team review (2026-09-21)
+
+`DISCOVERY_SPRINT_01_RED_TEAM_REVIEW` (reviewed commit `7bb92b0`) found
+seven suspected defects (F1-F7) in the spec compilation above. F1, F2,
+F3, F4, F6 were confirmed and fixed outcome-blind (per-rule legal
+intervals + cross-venue dataset authority for D2/D5; explicit base
+exposure schedule for D2/D5; a corrected native-5m-granularity null for
+D3; a split null for D4's lead-lag vs. rolling-correlation functionals;
+a corrected variance-level RV_20 formula for D1). F5 found the D1 null's
+defensibility had been asserted, not verified — a `D1_NULL_ADEQUACY_GATE`
+is now defined (non-target statistics only) but not yet executed. F7
+found D6's diagnostic value insufficient (at most one testable historical
+episode).
+
+**Updated status:** D1 `BLOCKED_PENDING_PRE_OUTCOME_FIX`; D2/D3/D4/D5
+`EXECUTABLE_DISCOVERY_SPEC`; D6 `DEFERRED`.
+
+`NEXT_UNIT = DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4_D5`, gated
+separately on `D1_NULL_ADEQUACY_GATE_EXECUTION` and
+`D6_REPLACEMENT_BENCHMARK_SELECTION`.
+
+Full record: `docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}`.
+
+## Final pre-execution correction (2026-09-21)
+
+`DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4` (reviewed commit
+`355a1657`) corrected D3 and D4 only; D1, D2, D5, D6 unchanged from the
+red-team review above.
+
+D3's `MAX_ADVERSE_EXCURSION_24h`/`TIME_TO_MAX_ADVERSE_EXCURSION` were
+direction-aligned via `BTC_SIDE(t)`, contradicting D3's own
+`UNCONDITIONAL_DESIGN` label and risking smuggled-in directional-
+predictability structure (momentum/mean-reversion, already tested
+elsewhere in the program) masquerading as "path morphology." Redefined
+as genuinely unsigned: `MAX_UPSIDE_EXCURSION_24h`,
+`MAX_DOWNSIDE_EXCURSION_24h`, `TIME_TO_MAX_EXCURSION`, `PATH_ASYMMETRY`
+— no `BTC_SIDE` dependency at all. Separately, D3's null was found to
+ignore UTC time-of-day; because every MARKET-06 decision point shares
+the identical fixed UTC decision time (`00:05:00Z`), bar-offset directly
+equals time-of-day, making `TIME_TO_MAX_EXCURSION` structurally a
+time-of-day statistic — a near-certain confound with ordinary session
+seasonality, shown outcome-blind from the frozen decision-grid design.
+Corrected to `5m_RETURN_TIME_OF_DAY_STRATIFIED_BLOCK_BOOTSTRAP`
+(resampling stays within the same UTC hour-slot across historical days).
+`PATH_ASYMMETRY` zero-denominator handling, `TIME_TO_MAX_EXCURSION` tie
+handling, and the entry/reference convention were also frozen.
+
+D4's `INDEPENDENT_BLOCK_BOOTSTRAP` lead-lag null (from the first review
+round) was found to over-destroy: it kills not just the true
+`BTC(t)→ETH(t+1)` cross-lag but also ordinary same-time common-factor
+dependence, which is not the target being tested — no outcome-blind
+demonstration exists that it isolates lead-lag specifically. Per the
+preferred minimal resolution, `LEAD_LAG_1DAY` is
+`DEFERRED_FROM_SPRINT_01` (no complex new lead-lag null was invented to
+keep it); `ROLLING_CORRELATION_90D` is retained unchanged and cleanly
+specified.
+
+**Final status:** D1 `BLOCKED_PENDING_PRE_OUTCOME_FIX`; D2, D3, D5
+`EXECUTABLE_DISCOVERY_SPEC`; D4 `EXECUTABLE_DISCOVERY_SPEC` scoped to
+`ROLLING_CORRELATION_90D` only (`LEAD_LAG_1DAY` deferred); D6 `DEFERRED`.
+
+`NEXT_UNIT = DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5`,
+gated separately on `D1_NULL_ADEQUACY_GATE_EXECUTION`,
+`D4_LEAD_LAG_REPLACEMENT_NULL_OR_PERMANENT_DEFERRAL`, and
+`D6_REPLACEMENT_BENCHMARK_SELECTION`.
+
+Full record: `docs/research/DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4.{json,md}`.
+
+## Final mechanical pre-execution fix (2026-09-21)
+
+`DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX` (reviewed commit
+`475072d`) corrected D3, D4's practical-threshold semantics, and D5
+only; D1 and D6 unchanged.
+
+D3's real functionals used 5m bar HIGH/LOW values, but the frozen
+surrogate (time-of-day-stratified 5m return block bootstrap) only ever
+produces a close-to-close log-return path — a real/null observable
+mismatch, without inventing synthetic intra-bar high/low. D3 is redefined
+as **CLOSE-PATH morphology**, exactly three functionals:
+`MAX_UPSIDE_CLOSE_24H`, `MAX_DOWNSIDE_CLOSE_24H`,
+`TIME_TO_MAX_ABS_CLOSE_EXCURSION` (earliest bar offset attaining the max
+of the two), both floored at zero. `PATH_ASYMMETRY` is removed (the
+original card allowed at most 2-3 functionals; the previous correction
+round had accidentally expanded to 4). The time-of-day-stratified null
+itself is unchanged — it already generates exactly the close-path
+observable this fix needs.
+
+D4's `ROLLING_CORRELATION_90D` practical magnitude threshold is made
+exact: `PRACTICAL_EXCESS_RANGE = OBSERVED_CORRELATION_RANGE -
+NULL_RANGE_MEDIAN >= 0.15`, where `NULL_RANGE_MEDIAN` is the median,
+across the 1000 bootstrap replicates, of each replicate's own
+rolling-correlation range. The existing statistical variance-vs-null
+gate is kept unchanged alongside it. `LEAD_LAG_1DAY` remains
+`DEFERRED_FROM_SPRINT_01`.
+
+D5's exact interval (`2022-02-01T00:05:00Z → 2025-01-01T00:00:00Z`) does
+not match D2 RULE_1's own broader `2020-02-01 → 2025-01-01` interval, so
+comparing D5's `DELTA` against RULE_1's full-interval result would not
+be apples-to-apples. `COMPONENT_A_DELTA_FOR_D5` (RULE_1 re-evaluated on
+D5's exact common window) and `COMPONENT_B_DELTA_FOR_D5` (RULE_2,
+already on that same window) are frozen as the comparison inputs; D2
+RULE_1's own broader result is unaffected and may still be separately
+reported. This is a pre-declared, D5-scoped comparison, decided
+outcome-blind.
+
+**Final status:** D1 `BLOCKED_PENDING_PRE_OUTCOME_FIX`; D2, D3, D5
+`EXECUTABLE_DISCOVERY_SPEC`; D4 `EXECUTABLE_DISCOVERY_SPEC` scoped to
+`ROLLING_CORRELATION_90D` only; D6 `DEFERRED`.
+
+`EXECUTION_AUTHORIZED = D2, D3, D4_ROLLING, D5`.
+`NEXT_UNIT = DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5`.
+
+Full record: `docs/research/DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX.{json,md}`.

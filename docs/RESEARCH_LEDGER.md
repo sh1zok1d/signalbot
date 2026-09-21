@@ -3520,3 +3520,316 @@ Evidence: `docs/research/HYPOTHESIS_DISCOVERY_PIPELINE_V2.{json,md}`,
 - `PROTECTED_2025_OPENED = false`
 - `PROTECTED_2026_OPENED = false`
 - next required step: `DISCOVERY_SPRINT_01_CARD_EXECUTION`
+
+## 2026-09-21 — Discovery Sprint 01 pre-outcome design corrections (D2/D3/D5/D6)
+
+A narrow corrective unit, before any card execution, no scientific outcome
+computed: D2's primary comparator corrected to
+`RATE_MATCHED_RANDOM_ABSTENTION` (a random abstention control matched in
+rate and temporal composition to the candidate rule; the never-abstain/
+unconditional distribution demoted to a secondary reference only). D3
+marked not executable until exactly one prior-state descriptor (or an
+explicit unconditional design) is frozen outcome-blind. D5 marked not
+executable with adaptively-selected components: its two components,
+parameterization, and composition operator must be frozen without
+reference to D1-D4 outcomes, or the card must be deferred. D6 marked not
+executable until one external/public source (identity, mechanism, target,
+comparator) is pinned before inspecting its reproduction outcome.
+`INTERNAL_DISCOVERY_CARDS` / `EXTERNAL_BENCHMARK_CARDS` renamed to
+`*_PLANNED`; D6 explicitly excluded from the 6-10 internal-card stall
+rule, so Sprint 01 alone (5 internal cards) cannot trigger
+`INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED`; an interim
+`INTERNAL_DISCOVERY_WARNING = ZERO_PROMISING_AFTER_FIRST_5_INTERNAL_CARDS`
+state was introduced below the formal 6-card gate.
+
+Evidence: `docs/research/DISCOVERY_SPRINT_01.{json,md}`.
+
+- `MARKET_07_CREATED = false`
+- `PROTECTED_2025_OPENED = false`
+- `PROTECTED_2026_OPENED = false`
+- next required step: `DISCOVERY_SPRINT_01_CARD_EXECUTION`
+
+## 2026-09-21 — Discovery Sprint 01 spec compilation (outcome-blind)
+
+`DISCOVERY_SPRINT_01_SPEC_COMPILATION` is the final outcome-blind
+compilation step before Discovery Sprint 01 scientific outcomes are
+inspected. Each of D1-D6 was converted into either an
+`EXECUTABLE_DISCOVERY_SPEC` (fully frozen parameters) or `DEFERRED`. All
+six were made `EXECUTABLE_DISCOVERY_SPEC`; none was deferred. No discovery
+outcome was computed and no candidate performance was inspected while
+compiling these specs. No confirmatory machinery (ARM, claim/reservation,
+one-shot execution authority, MARKET-style prereg lifecycle) was
+introduced.
+
+For each executable card the unit freezes: exact dataset authority (with
+`CORE_BTC_BINANCE_V0` / `CORE_ETH_BINANCE_V0` snapshot IDs), exact
+historical discovery interval (capped before 2025-01-01 to keep protected
+2025/2026 unopened regardless of what the underlying materialized
+snapshots contain), exact unit of observation, exact feature/state/rule
+definitions, exact small search surfaces, exact target/functionals, exact
+simple baselines/controls, exact temporal breakdowns, lightweight
+`PROMISING_PROTOTYPE` evaluation fields, and deterministic seeds. D1 froze
+a GARCH(1,1)-filtered block-bootstrap surrogate null (reused by D3). D2
+froze its two abstention rules and the exact
+`RATE_MATCHED_RANDOM_ABSTENTION` construction. D3 chose the
+`UNCONDITIONAL_DESIGN` fallback outcome-blind rather than a new,
+unreviewed prior-state descriptor. D5's two components (D2's own rules)
+and OR composition operator were justified on structural-availability
+grounds, since zero D1-D4 outcomes exist anywhere at compile time. D6
+pinned the publicly documented "Pi Cycle Top Indicator" (111-day vs.
+2x350-day SMA crossover) before any reproduction, with its data-coverage
+limitation (2013/2017 coincidences predate `CORE_BTC_BINANCE_V0`) recorded
+explicitly. The `CROSS_SECTIONAL_PANEL_FEASIBILITY` sidecar's spec was
+finalized (methods only, no answers).
+
+Evidence: `docs/research/DISCOVERY_SPRINT_01_SPEC_COMPILATION.{json,md}`.
+
+- `EXECUTABLE_DISCOVERY_SPEC_COUNT = 6` (D1-D6)
+- `DEFERRED_COUNT = 0`
+- `SCIENTIFIC_OUTCOMES_COMPUTED = false`
+- `CANDIDATE_PERFORMANCE_INSPECTED = false`
+- `MARKET_07_CREATED = false`
+- `PROTECTED_2025_OPENED = false`
+- `PROTECTED_2026_OPENED = false`
+- next required step: `DISCOVERY_SPRINT_01_EXECUTION`
+
+## 2026-09-21 — Discovery Sprint 01 red-team review (outcome-blind)
+
+`DISCOVERY_SPRINT_01_RED_TEAM_REVIEW` (reviewed commit
+`7bb92b0bd6238693164b6592c0711fa4c15fc9fe`) checked whether each frozen
+`DISCOVERY_SPRINT_01_SPEC_COMPILATION` spec was actually scientifically
+and mechanically executable, not merely well-worded. No card was
+executed; no candidate performance was inspected; protected 2025/2026
+remained unopened; no MARKET-07 was created. The review was explicitly
+authorized to demote any card from `EXECUTABLE_DISCOVERY_SPEC` and did
+not optimize for keeping all six executable.
+
+Seven suspected defects were reviewed against the actual frozen
+MARKET-06 code and artifacts:
+
+- **F1 CONFIRMED and FIXED** — D2's `DISLOCATION_ABSTENTION` rule and D5
+  use `ev.robust_dislocation_z`, which requires cross-venue Binance-perp +
+  OKX-spot data (`MARKET_06_OKX_BINANCE_FEASIBILITY_V0`, snapshot
+  `e0403e40...183e68`), verified available only for `[2022-01-01,
+  2025-01-01)` (frozen prereg `RAW_WINDOW`), not 2020-2021. D2's RV-only
+  rule (`ev.rv_btc_24h`, `CORE_BTC_BINANCE_V0` only) is unaffected and
+  keeps 2020-02-01 -> 2025-01-01. D2's dislocation rule and D5 are
+  restricted to 2022-02-01T00:05:00Z -> 2025-01-01T00:00:00Z (reusing the
+  frozen MARKET-06 `TRAIN_START_T` verbatim), with the cross-venue dataset
+  authority bound explicitly. No 2020-2021 dislocation data is fabricated.
+- **F2 CONFIRMED (underspecification) and FIXED** — D2/D5's base exposure
+  schedule, direction determination (`sign(ev.btc_ret_24h)`), legal
+  knowledge time, and severity metric (`ev.arithmetic_mae`) made explicit,
+  reusing MARKET-05/06's frozen construction verbatim.
+- **F3 CONFIRMED mechanically broken as written and FIXED** — D1's daily
+  GARCH(1,1) null produces one scalar return per day and cannot generate
+  D3's required 288x5m intraday path. Replaced with a new native-5m
+  pooled circular block-bootstrap null, not an arbitrary intraday bridge.
+- **F4 CONFIRMED and FIXED** — the paired contiguous block-bootstrap null
+  preserves the true BTC(t)->ETH(t+1) relationship inside every block,
+  making it inadequate for `LEAD_LAG_1DAY` specifically.
+  `ROLLING_CORRELATION_90D` retains the paired null under a separate
+  justification; `LEAD_LAG_1DAY` gets an independent-block-bootstrap null
+  that destroys the true cross-series pairing by construction.
+- **F5 CONFIRMED as an unverified assertion** — D1's GARCH(1,1)
+  defensibility had been asserted, not checked. A `D1_NULL_ADEQUACY_GATE`
+  is now defined against six non-target summary statistics (return
+  marginal/tails, return ACF, short-lag vs. long-lag absolute-return ACF,
+  leverage/asymmetry, RV_20 distribution) that must never use
+  `MEAN_STATE_RUN_LENGTH` or the state labels. The gate has not been
+  executed (no data was loaded in this review); D1 is blocked until it is
+  run and passed.
+- **F6 CONFIRMED and FIXED** — D1's `RV_20` was defined as a sum of
+  already-square-rooted daily RV values (L1 aggregation), not conventional
+  realized volatility, which requires variance-level (L2) aggregation.
+  Corrected to `RV_20(t) = sqrt(sum of squared daily RV values)`.
+- **F7 CONFIRMED partial defect plus a genuine usefulness problem** —
+  D6's "Pi Cycle Top Indicator" mathematical definitions (local-max
+  window, tie handling, multiple-crossover debounce) are now frozen, but
+  its immutable source pin (archived URL + retrieval date) remains
+  incomplete. Separately: `CORE_BTC_BINANCE_V0` begins 2020-01-01 while
+  the source's own cited coincidences are 2013/2017/2021, leaving at most
+  one testable historical episode -- judged to give the diagnostic
+  essentially no statistical calibration power, by the same standard the
+  Promising Prototype Gate applies elsewhere. D6 is deferred; a
+  replacement external benchmark, selected without Signalbot outcome
+  inspection, is required in a future unit.
+
+Evidence: `docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}`,
+amendments layered into `docs/research/DISCOVERY_SPRINT_01_SPEC_COMPILATION.{json,md}`.
+
+- `D1_STATUS = BLOCKED_PENDING_PRE_OUTCOME_FIX`
+- `D2_STATUS = D3_STATUS = D4_STATUS = D5_STATUS = EXECUTABLE_DISCOVERY_SPEC`
+- `D6_STATUS = DEFERRED`
+- `SCIENTIFIC_OUTCOMES_COMPUTED = false`
+- `CANDIDATE_PERFORMANCE_INSPECTED = false`
+- `MARKET_07_CREATED = false`
+- `PROTECTED_2025_OPENED = false`
+- `PROTECTED_2026_OPENED = false`
+- `EXECUTION_AUTHORIZED = PARTIAL (D2, D3, D4, D5 only)`
+- next required step: `DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4_D5`,
+  gated separately on `D1_NULL_ADEQUACY_GATE_EXECUTION` and
+  `D6_REPLACEMENT_BENCHMARK_SELECTION`
+
+## 2026-09-21 — Discovery Sprint 01 final pre-execution correction (D3, D4 only)
+
+`DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4` (reviewed commit
+`355a1657aac288fe75b272df1845fd9b5cfcac3f`) is a narrow, outcome-blind
+follow-up to the red-team review, addressing D3 and D4 only; D1, D2, D5,
+D6 are unchanged. No card was executed; no candidate performance was
+inspected; protected 2025/2026 remained unopened; no MARKET-07 was
+created.
+
+**D3 — direction/native-path null semantics.** D3 was labeled
+`UNCONDITIONAL_DESIGN` but its `MAX_ADVERSE_EXCURSION_24h` /
+`TIME_TO_MAX_ADVERSE_EXCURSION` functionals were direction-aligned via
+`BTC_SIDE(t)` (sign of the prior 24h return) -- a real, historically
+informative quantity, not a neutral label. Of the three resolutions
+considered (condition on the real shared `BTC_SIDE(t)`; generate a
+surrogate pre-history to derive a surrogate `BTC_SIDE`; remove direction
+alignment entirely), option C was selected outcome-blind: a real
+directional-predictability effect (e.g. mean reversion) could make real
+direction-aligned excursions differ from the null for reasons unrelated
+to path shape, so any direction-conditioned design risked smuggling in
+exactly the structure D1/D2/MARKET-01/02/05/06 already test. D3's
+functionals are redefined unsigned: `MAX_UPSIDE_EXCURSION_24h`,
+`MAX_DOWNSIDE_EXCURSION_24h`, `TIME_TO_MAX_EXCURSION`, `PATH_ASYMMETRY`,
+with no `ev.btc_side_from_ret` dependency.
+
+Separately, the first-round-corrected `5m_RETURN_POOLED_CIRCULAR_BLOCK_BOOTSTRAP`
+null (from `DISCOVERY_SPRINT_01_RED_TEAM_REVIEW` F3) pools 5-minute
+return blocks from anywhere in history, ignoring time-of-day. Because
+every MARKET-06 decision point starts at the identical fixed UTC clock
+time (`00:05:00Z`, per the frozen `is_forbidden_decision` check), bar
+offset is structurally equivalent to UTC time-of-day for every
+observation -- `TIME_TO_MAX_EXCURSION` is a time-of-day statistic, not
+merely correlated with one. Ordinary session-based intraday volatility
+seasonality would concentrate the real empirical distribution at
+specific bar-offsets while a time-of-day-blind null smears it flat: a
+near-certain confound, demonstrated structurally from the frozen
+decision-grid design, not from any computed outcome. Corrected to
+`5m_RETURN_TIME_OF_DAY_STRATIFIED_BLOCK_BOOTSTRAP`: the 288 bar-offsets
+are partitioned into 24 fixed 1-hour slots, and each surrogate day's
+per-slot block is drawn only from real historical blocks at that same
+slot -- preserving the UTC time-of-day volatility profile in addition to
+everything the original null preserved, while still destroying
+date-specific conditioning and cross-slot dependency. `PATH_ASYMMETRY`
+zero-denominator handling (row excluded from that functional only, not
+the others), `TIME_TO_MAX_EXCURSION` tie handling (earliest bar-offset
+wins), and the entry/reference convention (`entry_open =
+ev.get_perp_bar_opening_at(perp, t_ms).open`, reused verbatim) were also
+frozen. D3 remains `EXECUTABLE_DISCOVERY_SPEC`.
+
+**D4 — lead-lag null still destroyed too much.** The prior
+`INDEPENDENT_BLOCK_BOOTSTRAP` fix for `LEAD_LAG_1DAY` (independent draws
+of the BTC and ETH series) destroys not only the true
+`BTC(t)->ETH(t+1)` cross-lag but also ordinary same-time common-factor
+dependence (shared crypto-market-wide moves), which is not the target
+being tested -- no outcome-blind demonstration exists that it isolates
+lead-lag specifically, and by construction it cannot, since independent
+draws have zero built-in same-time dependence. Per the preferred minimal
+resolution, no complex new lead-lag null (e.g. partial-correlation
+controlling for contemporaneous co-movement) was invented merely to keep
+both functionals: `LEAD_LAG_1DAY` is `DEFERRED_FROM_SPRINT_01` (its
+definition retained as historical record, not deleted), while
+`ROLLING_CORRELATION_90D` is retained unchanged with its paired-vector
+block-bootstrap null. D4 remains `EXECUTABLE_DISCOVERY_SPEC`, scoped to
+`ROLLING_CORRELATION_90D` only for Sprint 01 execution.
+
+Evidence: `docs/research/DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4.{json,md}`,
+amendments layered into `docs/research/DISCOVERY_SPRINT_01_SPEC_COMPILATION.{json,md}`.
+
+- `D1_STATUS = BLOCKED_PENDING_PRE_OUTCOME_FIX` (unchanged)
+- `D2_STATUS = D3_STATUS = D5_STATUS = EXECUTABLE_DISCOVERY_SPEC`
+- `D4_STATUS = EXECUTABLE_DISCOVERY_SPEC (ROLLING_CORRELATION_90D only)`
+- `D4_ROLLING_CORRELATION_STATUS = EXECUTABLE_DISCOVERY_SPEC`
+- `D4_LEAD_LAG_STATUS = DEFERRED_FROM_SPRINT_01`
+- `D6_STATUS = DEFERRED` (unchanged)
+- `SCIENTIFIC_OUTCOMES_COMPUTED = false`
+- `CANDIDATE_PERFORMANCE_INSPECTED = false`
+- `MARKET_07_CREATED = false`
+- `PROTECTED_2025_OPENED = false`
+- `PROTECTED_2026_OPENED = false`
+- `EXECUTION_AUTHORIZED_CARDS = D2, D3, D4 (ROLLING_CORRELATION_90D only), D5`
+- next required step: `DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5`,
+  gated separately on `D1_NULL_ADEQUACY_GATE_EXECUTION`,
+  `D4_LEAD_LAG_REPLACEMENT_NULL_OR_PERMANENT_DEFERRAL`, and
+  `D6_REPLACEMENT_BENCHMARK_SELECTION`
+
+## 2026-09-21 — Discovery Sprint 01 final mechanical pre-execution fix (D3, D4, D5 only)
+
+`DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX` (reviewed commit
+`475072d22f4c4631836ca7d38ccdc5da6ce59222`) is a narrow, outcome-blind
+mechanical correction addressing D3's real/null observable mismatch,
+D4's practical-threshold exactness, and D5's component comparison; D1
+and D6 unchanged. No card was executed; no scientific/candidate
+performance was inspected; protected 2025/2026 remained unopened; no
+MARKET-07 was created.
+
+**D3 -- real/null observable mismatch.** D3's real functionals used 5m
+bar HIGH/LOW values, but the frozen `5m_RETURN_TIME_OF_DAY_STRATIFIED_
+BLOCK_BOOTSTRAP` surrogate generates only a synthetic close-to-close
+log-return path -- it never synthesizes intra-bar high/low. Real and
+surrogate were therefore not the same observable despite sharing
+functional names. No synthetic high/low was invented. D3 is redefined
+as CLOSE-PATH morphology so real and surrogate paths are mechanically
+identical objects (a sequence of 288 5m close prices), with exactly
+three functionals: `MAX_UPSIDE_CLOSE_24H = max(0, max_k((close_k -
+entry_open)/entry_open))`, `MAX_DOWNSIDE_CLOSE_24H = max(0,
+max_k((entry_open - close_k)/entry_open))`, and
+`TIME_TO_MAX_ABS_CLOSE_EXCURSION` (earliest bar offset attaining the max
+of the two). `PATH_ASYMMETRY` is removed from Sprint 01: the original
+D3 card allowed at most 2-3 functionals, the prior correction round had
+accidentally expanded the surface to 4 by adding it, and it is
+derivative of the two excursion functionals anyway. Entry reference
+(`entry_open = ev.get_perp_bar_opening_at(perp, t_ms).open`) and tie
+handling (earliest bar offset wins) are unchanged from the prior
+correction; the time-of-day-stratified bootstrap null itself is kept
+unchanged, since it already generates exactly the close-path observable
+this fix requires.
+
+**D4 -- practical gate made exact.** `ROLLING_CORRELATION_90D`'s
+practical magnitude threshold ("swings by at least 0.15
+correlation-points beyond null-implied noise") was not mathematically
+pinned. Corrected: `OBSERVED_CORRELATION_RANGE = max(real
+rolling_corr_90d) - min(real rolling_corr_90d)`; `NULL_RANGE_MEDIAN =
+median` over the 1000 bootstrap replicates of each replicate's own
+`max - min` range; `PRACTICAL_EXCESS_RANGE = OBSERVED_CORRELATION_RANGE
+- NULL_RANGE_MEDIAN`; practical gate `PRACTICAL_EXCESS_RANGE >= 0.15`.
+The existing statistical variance-vs-null gate is retained unchanged
+alongside this now-exact practical gate. `LEAD_LAG_1DAY` remains
+`DEFERRED_FROM_SPRINT_01`.
+
+**D5 -- common-window component comparison.** D5's own execution
+interval is correctly restricted to `2022-02-01T00:05:00Z ->
+2025-01-01T00:00:00Z` (bound by component_B/RULE_2's cross-venue data
+availability), but D2 RULE_1 (component_A) reports its `DELTA` over its
+own full `2020-02-01 -> 2025-01-01` interval -- comparing D5's `DELTA`
+against RULE_1's full-interval result would not be apples-to-apples
+(different N, different sub-periods/regimes). Frozen:
+`COMPONENT_A_DELTA_FOR_D5` = D2 RULE_1 evaluated on the exact D5 common
+interval (a second, narrower evaluation of RULE_1, solely as this
+comparison's input); `COMPONENT_B_DELTA_FOR_D5` = D2 RULE_2 evaluated on
+the same interval, which already coincides with RULE_2's own native
+interval, so no additional computation is needed. `COMPOSED_BEATS_
+COMPONENTS` iff `D5_DELTA > max(COMPONENT_A_DELTA_FOR_D5,
+COMPONENT_B_DELTA_FOR_D5)`. D2 RULE_1's own broader 2020-2024 discovery
+result is unaffected and may still be separately reported. This
+overlap-window comparison is a pre-declared requirement specific to D5,
+frozen outcome-blind, and must not be selected or adjusted after
+observing any card's outcome.
+
+Evidence: `docs/research/DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX.{json,md}`,
+amendments layered into `docs/research/DISCOVERY_SPRINT_01_SPEC_COMPILATION.{json,md}`.
+
+- `D1_STATUS = BLOCKED_PENDING_PRE_OUTCOME_FIX` (unchanged)
+- `D2_STATUS = D3_STATUS = D5_STATUS = EXECUTABLE_DISCOVERY_SPEC`
+- `D4_STATUS = EXECUTABLE_DISCOVERY_SPEC (ROLLING_CORRELATION_90D only)`
+- `D6_STATUS = DEFERRED` (unchanged)
+- `SCIENTIFIC_OUTCOMES_COMPUTED = false`
+- `CANDIDATE_PERFORMANCE_INSPECTED = false`
+- `MARKET_07_CREATED = false`
+- `PROTECTED_2025_OPENED = false`
+- `PROTECTED_2026_OPENED = false`
+- `EXECUTION_AUTHORIZED = D2, D3, D4_ROLLING, D5`
+- next required step: `DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5`

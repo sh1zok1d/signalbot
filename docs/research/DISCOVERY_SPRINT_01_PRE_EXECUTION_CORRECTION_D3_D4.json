@@ -1,0 +1,89 @@
+{
+  "schema": "signalbot_discovery_sprint_pre_execution_correction",
+  "schema_version": "1.0.0",
+  "unit_id": "DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4",
+  "unit_type": "OUTCOME_BLIND_PRE_EXECUTION_CORRECTION",
+  "date": "2026-09-21",
+  "reviewed_commit": "355a1657aac288fe75b272df1845fd9b5cfcac3f",
+  "scope": "D3 and D4 only. D1, D2, D5, D6 unchanged from DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.",
+  "purpose": "Final outcome-blind pre-execution correction before Discovery Sprint 01 scientific outcomes are inspected. Resolves a direction/unconditionality inconsistency and a time-of-day confound risk in D3, and an over-destructive null in D4's lead-lag functional.",
+  "explicit_non_actions_this_unit": {
+    "DISCOVERY_SPRINT_01_CARD_EXECUTED": false,
+    "CANDIDATE_PERFORMANCE_INSPECTED": false,
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "MARKET_07_CREATED": false
+  },
+  "D3_correction": {
+    "issue_1_direction_vs_unconditional": {
+      "problem": "D3 is labeled UNCONDITIONAL_DESIGN, but MAX_ADVERSE_EXCURSION_24h and TIME_TO_MAX_ADVERSE_EXCURSION were direction-aligned using BTC_SIDE(t) (sign of the prior 24h return) -- a real, historically informative conditioning quantity, not a neutral labeling convention. Using it to orient 'adverse' vs 'favorable' risks smuggling in exactly the directional-predictability structure D1/D2/MARKET-01/02/05/06 already test (e.g. momentum or mean-reversion), which would masquerade as 'path morphology' rather than being flagged as what it actually is.",
+      "options_considered": {
+        "A": "Condition on the real, legally-known BTC_SIDE(t) for both the real path and the surrogate path at that same decision time (shared labeling convention). REJECTED: even applied identically to real and surrogate, a real directional-predictability effect (e.g. mean reversion) would make real direction-aligned excursions systematically larger than the null's, for reasons that have nothing to do with path shape -- reintroducing exactly the risk the review flagged.",
+        "B": "Generate surrogate pre-history sufficient to derive a surrogate-specific BTC_SIDE under the same rule. REJECTED: requires extending the null to synthesize a full 48h (prior+forward) sequence and introduces a second, undecided bootstrap design choice (block length/pooling for the synthetic prior segment); risks turning D3 into a near-duplicate of D1's state-persistence question rather than a distinct path-morphology card.",
+        "C": "Remove direction alignment entirely; redefine D3 as genuinely unconditional, unsigned path morphology measured purely relative to entry price. SELECTED: requires no BTC_SIDE computation at all, cannot smuggle in directional-predictability structure by construction, and matches the card's own UNCONDITIONAL_DESIGN label exactly."
+      },
+      "decision": "C -- selected outcome-blind, on structural/design grounds only (no D3 outcome was computed or consulted).",
+      "corrected_functional_definitions": {
+        "MAX_UPSIDE_EXCURSION_24h": "max_{k=0..287}( (future_bar_k.high - entry_open) / entry_open ), i.e. the maximum favorable-if-long move relative to entry, with no directional label.",
+        "MAX_DOWNSIDE_EXCURSION_24h": "max_{k=0..287}( (entry_open - future_bar_k.low) / entry_open ), i.e. the maximum favorable-if-short move relative to entry, with no directional label.",
+        "TIME_TO_MAX_EXCURSION": "5m-bar offset (0-287) at which max(MAX_UPSIDE_EXCURSION_24h, MAX_DOWNSIDE_EXCURSION_24h) occurs -- i.e. the timing of whichever extreme (up or down) is larger in magnitude that day.",
+        "PATH_ASYMMETRY": "MAX_UPSIDE_EXCURSION_24h / MAX_DOWNSIDE_EXCURSION_24h."
+      },
+      "renamed_from": ["MAX_ADVERSE_EXCURSION_24h", "TIME_TO_MAX_ADVERSE_EXCURSION", "MAX_FAVORABLE_EXCURSION_24h (implicit denominator)"],
+      "ev_btc_side_from_ret_no_longer_used_by_D3": true
+    },
+    "issue_2_time_of_day_confound": {
+      "problem": "The F3-corrected 5m_RETURN_POOLED_CIRCULAR_BLOCK_BOOTSTRAP null pools blocks from anywhere in the historical 5m sequence, ignoring time-of-day. Because every MARKET-06 decision point starts at the SAME fixed UTC clock time (00:05:00Z, per evaluator.is_forbidden_decision requiring hour==0, minute==5), bar-offset k (0-287) corresponds to the identical UTC time-of-day (00:05 + k*5m) on every single observation. TIME_TO_MAX_EXCURSION is therefore not merely correlated with UTC time-of-day -- it IS a UTC-time-of-day statistic. Ordinary, well-documented intraday volatility seasonality (e.g. session-overlap hours) would concentrate the REAL empirical TIME_TO_MAX_EXCURSION distribution at specific bar-offsets, while a time-of-day-blind null would smear this out into a flatter distribution -- a near-certain confound, not a demonstrable irrelevance. Outcome-blind structural argument, not an outcome inspection: this follows purely from the frozen fixed-UTC-decision-time design, not from any computed statistic.",
+      "resolution": "(a) preserve time-of-day/UTC-slot structure in the bootstrap -- selected, since irrelevance could not be demonstrated (in fact the opposite could be shown structurally).",
+      "corrected_null_family": "5m_RETURN_TIME_OF_DAY_STRATIFIED_BLOCK_BOOTSTRAP: partition the 288 bar-offsets into 24 fixed 1-hour slots of 12 consecutive bar-offsets each (slot i = bar-offsets [12i, 12i+11], corresponding to a fixed UTC hour-of-day since every window starts at 00:05Z). For each surrogate day and each of the 24 slot positions independently, draw the replacement 12-bar block, WITH replacement, uniformly at random from the pool of all REAL historical blocks that occurred at that SAME slot position across the discovery interval (cross-day, within-slot resampling) -- never mixing blocks across slots.",
+      "what_it_preserves_now": "Everything the original F3 null preserved (5m-return marginal distribution, short-range <=1h autocorrelation/clustering, since blocks are real sub-sequences) PLUS the marginal UTC time-of-day volatility profile, since each slot's replacement blocks are always drawn from real observations at that identical slot.",
+      "what_it_still_destroys": "Date-specific/conditioning structure (blocks for a given slot are drawn from any historical day, not the same day) and cross-slot (>1h) dependency within the 24h span -- unchanged from the original F3 intent.",
+      "parameters_unchanged": {
+        "block_length_bars": 12,
+        "replicates": 1000,
+        "deterministic_seed": "D3_NULL_SURROGATE_SEED = 20260921103 (unchanged; now attached to the slot-stratified null)",
+        "companion_stability_checks": "block lengths 6 and 24 retained, each also slot-stratified (288/6=48 slots, 288/24=12 slots, both exact)"
+      }
+    },
+    "issue_3_edge_case_freezes": {
+      "PATH_ASYMMETRY_zero_denominator_handling": "If MAX_DOWNSIDE_EXCURSION_24h == 0 for a row, PATH_ASYMMETRY is UNDEFINED for that row and the row is excluded from the PATH_ASYMMETRY functional's distribution ONLY (not from MAX_UPSIDE_EXCURSION_24h / MAX_DOWNSIDE_EXCURSION_24h / TIME_TO_MAX_EXCURSION, which remain computable for that row); the exclusion count must be reported per the repo's missingness-denominator discipline.",
+      "TIME_TO_MAX_EXCURSION_tie_handling": "If multiple bar-offsets tie for the maximum excursion magnitude, the EARLIEST bar-offset is taken (frozen convention, consistent with D6's tie-handling convention elsewhere in this sprint).",
+      "EXACT_ENTRY_REFERENCE_CONVENTION": "entry_open = ev.get_perp_bar_opening_at(perp, t_ms).open (the bar opening at decision time T), reused verbatim from the frozen MARKET-06 entry convention (the same reference ev.arithmetic_mae already uses); future_bar_k.high/low are the k-th forward bar's high/low opening at T + k*5m, k=0..287."
+    },
+    "status_after_correction": "EXECUTABLE_DISCOVERY_SPEC"
+  },
+  "D4_correction": {
+    "issue": {
+      "problem": "The prior (first-round) fix, INDEPENDENT_BLOCK_BOOTSTRAP for LEAD_LAG_1DAY, block-bootstraps BTC and ETH series completely separately. This destroys not only the true BTC(t)->ETH(t+1) cross-lag but ALSO ordinary same-time common-factor dependence (e.g. shared crypto-market-wide moves), which is not the target being tested. A null this weak makes almost any positive contemporaneous co-movement masquerade as evidence for lead-lag specifically, since the null has nothing resembling normal cross-asset correlation left in it at all.",
+      "cannot_claim_isolation_without_outcome_blind_demonstration": "No outcome-blind demonstration exists (or was attempted) that INDEPENDENT_BLOCK_BOOTSTRAP preserves the relevant non-target cross-asset structure -- it demonstrably does not, since independent draws have zero built-in same-time dependence by construction."
+    },
+    "preferred_minimal_resolution_applied": {
+      "ROLLING_CORRELATION_90D": "RETAINED, unchanged from the DISCOVERY_SPRINT_01_RED_TEAM_REVIEW fix: paired-vector BLOCK_BOOTSTRAP_PAIRED_RETURNS (block length 20 days), cleanly specified and separately justified as a longer-horizon test, not the 1-day lag.",
+      "LEAD_LAG_1DAY": "DEFERRED_FROM_SPRINT_01. No complex new lead-lag null (e.g. a partial-cross-correlation-controlling-for-contemporaneous-correlation design) is invented to try to keep it; the functional's definition is retained in the spec as historical record, marked deferred rather than deleted.",
+      "D4_SPEC_STATUS": "EXECUTABLE_DISCOVERY_SPEC, scoped to ROLLING_CORRELATION_90D only for Sprint 01 execution purposes."
+    },
+    "PROMISING_PROTOTYPE_EVALUATION_FIELDS_correction": "The prior 'statistical_threshold' OR-clause referencing |LEAD_LAG_1DAY| is removed for Sprint 01 execution; only the ROLLING_CORRELATION_90D branch applies."
+  },
+  "final_classification": {
+    "D1": "BLOCKED_PENDING_PRE_OUTCOME_FIX (unchanged from DISCOVERY_SPRINT_01_RED_TEAM_REVIEW)",
+    "D2": "EXECUTABLE_DISCOVERY_SPEC (unchanged)",
+    "D3": "EXECUTABLE_DISCOVERY_SPEC (corrected: unsigned functionals, time-of-day-stratified null, edge cases frozen)",
+    "D4": "EXECUTABLE_DISCOVERY_SPEC (corrected: ROLLING_CORRELATION_90D only)",
+    "D4_ROLLING_CORRELATION_STATUS": "EXECUTABLE_DISCOVERY_SPEC",
+    "D4_LEAD_LAG_STATUS": "DEFERRED_FROM_SPRINT_01",
+    "D5": "EXECUTABLE_DISCOVERY_SPEC (unchanged)",
+    "D6": "DEFERRED (unchanged)"
+  },
+  "EXECUTION_AUTHORIZED_CARDS": ["D2", "D3", "D4 (ROLLING_CORRELATION_90D only)", "D5"],
+  "BLOCKED_OR_DEFERRED": {
+    "D1": "BLOCKED_PENDING_PRE_OUTCOME_FIX -- pending D1_NULL_ADEQUACY_GATE execution",
+    "D4_LEAD_LAG_1DAY": "DEFERRED_FROM_SPRINT_01 -- no adequate outcome-blind null demonstrated",
+    "D6": "DEFERRED -- pending replacement external benchmark selection"
+  },
+  "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+  "CANDIDATE_PERFORMANCE_INSPECTED": false,
+  "PROTECTED_2025_OPENED": false,
+  "PROTECTED_2026_OPENED": false,
+  "MARKET_07_CREATED": false,
+  "NEXT_UNIT": "DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5, gated separately on D1_NULL_ADEQUACY_GATE_EXECUTION, D4_LEAD_LAG_REPLACEMENT_NULL_OR_PERMANENT_DEFERRAL, and D6_REPLACEMENT_BENCHMARK_SELECTION"
+}

@@ -37,10 +37,78 @@ PREVIOUS_ROUTING            = STRUCTURAL_REGIME_STATE_DETECTION_MECHANISM_CLASS_
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = DISCOVERY_SPRINT_01_CARD_EXECUTION
+NEXT_UNIT                   = DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5
 PROTECTED_2025_OPENED       = false
 PROTECTED_2026_OPENED       = false
 ```
+
+All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
+`EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by
+`DISCOVERY_SPRINT_01_SPEC_COMPILATION`, recorded in
+`docs/research/DISCOVERY_SPRINT_01_SPEC_COMPILATION.{json,md}`. That unit
+is an outcome-blind spec freeze, not a confirmatory lifecycle: no ARM, no
+claim/reservation, no one-shot execution authority. No discovery outcome
+has been computed and no candidate performance has been inspected.
+
+**Superseded by `DISCOVERY_SPRINT_01_RED_TEAM_REVIEW`** (reviewed commit
+`7bb92b0bd6238693164b6592c0711fa4c15fc9fe`,
+`docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}`), which
+checked whether each frozen spec was actually mechanically executable, not
+merely well-worded. Seven suspected defects (F1-F7) were reviewed
+outcome-blind: F1, F2, F3, F4, F6 were confirmed and fixed (per-rule legal
+intervals + bound cross-venue dataset authority for D2/D5's
+dislocation-based rule; an explicit base exposure schedule for D2/D5; a
+corrected native-5m-granularity null for D3, replacing a mechanically
+broken daily-granularity reuse; a corrected split null for D4's lead-lag
+vs. rolling-correlation functionals; a corrected variance-level RV_20
+formula for D1). F5 found D1's null defensibility had been asserted, not
+verified -- a `D1_NULL_ADEQUACY_GATE` (non-target summary statistics only)
+is now defined but not yet executed. F7 found D6's external benchmark has
+at most one testable historical episode given `CORE_BTC_BINANCE_V0`'s
+2020 start versus the source's 2013/2017/2021 claims, judged
+diagnostically insufficient.
+
+**Superseded again by `DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4`**
+(reviewed commit `355a1657aac288fe75b272df1845fd9b5cfcac3f`,
+`docs/research/DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4.{json,md}`),
+D3 and D4 only; D1, D2, D5, D6 unchanged from the red-team review above.
+D3's excursion functionals were direction-aligned via `BTC_SIDE(t)`,
+contradicting its own `UNCONDITIONAL_DESIGN` label and risking
+smuggled-in directional-predictability structure; redefined as genuinely
+unsigned (`MAX_UPSIDE_EXCURSION_24h`, `MAX_DOWNSIDE_EXCURSION_24h`,
+`TIME_TO_MAX_EXCURSION`, `PATH_ASYMMETRY`). D3's null was also found to
+ignore UTC time-of-day -- since every MARKET-06 decision point shares the
+same fixed UTC decision time, bar-offset structurally equals
+time-of-day, making `TIME_TO_MAX_EXCURSION` a near-certain seasonality
+confound -- corrected to a time-of-day-stratified block bootstrap. D4's
+`INDEPENDENT_BLOCK_BOOTSTRAP` lead-lag null was found to also destroy
+ordinary same-time common-factor dependence, not just the tested cross-lag;
+`LEAD_LAG_1DAY` is now `DEFERRED_FROM_SPRINT_01` (no complex replacement
+null invented), `ROLLING_CORRELATION_90D` retained unchanged.
+
+**Superseded once more by `DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX`**
+(reviewed commit `475072d22f4c4631836ca7d38ccdc5da6ce59222`,
+`docs/research/DISCOVERY_SPRINT_01_MECHANICAL_PRE_EXECUTION_FIX.{json,md}`),
+D3, D4's practical-threshold semantics, and D5 only; D1 and D6 unchanged.
+D3's real functionals used 5m HIGH/LOW while its surrogate only ever
+produced a close-to-close path -- a real/null observable mismatch, fixed
+(without inventing synthetic high/low) by redefining D3 as CLOSE-PATH
+morphology: `MAX_UPSIDE_CLOSE_24H`, `MAX_DOWNSIDE_CLOSE_24H`,
+`TIME_TO_MAX_ABS_CLOSE_EXCURSION` (exactly 3 functionals; `PATH_ASYMMETRY`
+removed, since the original card allowed at most 2-3 and it is derivative
+of the other two anyway). D4's `ROLLING_CORRELATION_90D` practical gate
+made mathematically exact: `PRACTICAL_EXCESS_RANGE =
+OBSERVED_CORRELATION_RANGE - NULL_RANGE_MEDIAN >= 0.15`. D5's
+"beats best component" check corrected to compare against
+`COMPONENT_A_DELTA_FOR_D5` / `COMPONENT_B_DELTA_FOR_D5` (both evaluated
+on D5's exact common interval `2022-02-01 -> 2025-01-01`), not D2
+RULE_1's unrestricted full-2020-2024 result.
+
+**Current per-card status:** `D1 = BLOCKED_PENDING_PRE_OUTCOME_FIX`;
+`D2, D3, D5 = EXECUTABLE_DISCOVERY_SPEC`; `D4 =
+EXECUTABLE_DISCOVERY_SPEC (ROLLING_CORRELATION_90D only, LEAD_LAG_1DAY
+deferred)`; `D6 = DEFERRED`.
+`EXECUTION_AUTHORIZED = D2, D3, D4_ROLLING, D5`.
 
 The orthogonal-region selection is recorded in
 `docs/research/MARKET_NEXT_HYPOTHESIS_SELECTION.{json,md}` (commit
