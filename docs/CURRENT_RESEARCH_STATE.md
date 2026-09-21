@@ -37,7 +37,7 @@ PREVIOUS_ROUTING            = D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURF
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = D2_BITMEX_REPLICATION_CORRECTED_EXECUTION_PERMIT
+NEXT_UNIT                   = PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED
 PROTECTED_2025_OPENED       = false
 PROTECTED_2026_OPENED       = false
 INTERNAL_DISCOVERY_CARDS_EXECUTED = 4
@@ -56,14 +56,16 @@ CONFIRMATION_FEASIBILITY          = FEASIBLE_PRE2020_BITMEX_CROSS_VENUE_TEMPORAL
 2025_OPEN_AUTHORIZED              = false
 2026_OPEN_AUTHORIZED              = false
 ARM_CREATED                       = false
-D2_OUTCOME_COMPUTED_ON_BITMEX     = false
-D2_BITMEX_CLASSIFICATION          = D2_BITMEX_REPLICATION_INVALID
+D2_OUTCOME_COMPUTED_ON_BITMEX     = true
+D2_BITMEX_CLASSIFICATION          = D2_BITMEX_REPLICATION_SUPPORTED
 D2_BITMEX_ADJUDICATION_CLASS      = REPAIRABLE_PREDECLARED_ELIGIBILITY_IDENTITY_MISMATCH
 D2_BITMEX_CONSTRUCTED_ELIGIBLE_N  = 1067
 D2_BITMEX_FROZEN_ELIGIBLE_N       = 1069
 CORRECTED_EXPECTED_N              = 1067
+ORIGINAL_RUN_CLASSIFICATION       = D2_BITMEX_REPLICATION_INVALID
 ORIGINAL_RERUN_AUTHORIZED         = false
 CORRECTED_EXECUTION_SCIENTIFICALLY_PERMISSIBLE = true
+D2_REPLICATION_STATUS             = SUPPORTED_ON_INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_SURFACE
 RERUN_AUTHORIZED                  = false
 PROTECTED_2025_PRICE_VALUES_INSPECTED = false
 PROTECTED_2026_PRICE_VALUES_INSPECTED = false
@@ -166,7 +168,22 @@ run preserved. No D2 effect computed. Corrected eligible N=1067; first/last
 T unchanged. Original rerun unauthorized. A new integrity-repair lineage
 is scientifically permissible; no permit yet.
 Record: `docs/research/D2_BITMEX_REPLICATION_INTEGRITY_ADJUDICATION.{json,md}`.
-`NEXT_UNIT = D2_BITMEX_REPLICATION_CORRECTED_EXECUTION_PERMIT`.
+
+`D2_BITMEX_REPLICATION_CORRECTED_ONE_SHOT_EXECUTION` then created the
+integrity-repair permit and executed once under NEW_RUN_IDENTITY
+`8e3e9ecfadc18f71dae800cd16d0b0b36845c17710a108a0258c833af0420b43`.
+Corrected identity passed: constructed `N=1317`, warmup `250`, eligible
+`N=1067` (years `341/363/363`), first `2017-01-24T00:05:00Z`, last
+`2019-12-30T00:05:00Z`. The two `BTC_RET_24H_EQ_0` rows remain excluded.
+Original INVALID run preserved; primary metrics were computed only after
+the amended identity gate. Classification
+`D2_BITMEX_REPLICATION_SUPPORTED`. Evidence label
+`INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION_SUPPORTED`. This is
+not `EXACT_BINANCE_CONFIRMATION`, `PROVEN_ALPHA`, or
+`VALIDATED_TRADING_EDGE`. No rerun. Protected 2025/2026 unopened.
+MARKET-07 not created.
+Record: `docs/research/D2_BITMEX_REPLICATION_CORRECTED_RESULT.{json,md}`.
+`NEXT_UNIT = PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED`.
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by
@@ -234,9 +251,10 @@ RULE_1's unrestricted full-2020-2024 result.
 
 **Current per-card status:** `D1 = DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH`
 (adequacy gate not executed); `D2 = PROMISING_PROTOTYPE` (adaptive
-discovery; RULE_1 only; 2025 confirmation remains underpowered as a
-single year; pre-2020 BitMEX one-shot classified
-`D2_BITMEX_REPLICATION_INVALID` on constructed N=1067 vs frozen N=1069);
+discovery; RULE_1 only; corrected independent pre-2020 BitMEX replication
+classified `D2_BITMEX_REPLICATION_SUPPORTED`; original INVALID run
+preserved; not exact Binance confirmation and not a validated trading
+edge);
 `D3 = NO_USEFUL_STRUCTURE`; `D4
 ROLLING_CORRELATION_90D = NO_USEFUL_STRUCTURE` (`LEAD_LAG_1DAY` still
 deferred); `D5 = NO_USEFUL_STRUCTURE`; `D6 = DEFERRED`. First blocked

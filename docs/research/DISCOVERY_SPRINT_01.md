@@ -357,7 +357,7 @@ been executed in the definition unit.
 `SCIENTIFIC_OUTCOMES_COMPUTED = true` (adaptive discovery, not confirmatory).
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
-`NEXT_UNIT = D2_BITMEX_REPLICATION_CORRECTED_EXECUTION_PERMIT`.
+`NEXT_UNIT = PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED`.
 
 ### Stall-gate semantics (corrected 2026-09-21)
 
@@ -381,7 +381,7 @@ discovery rather than confirmatory evidence.
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
 Definition-time `NEXT_UNIT = DISCOVERY_SPRINT_01_CARD_EXECUTION` is
-historical; current `NEXT_UNIT = D2_BITMEX_REPLICATION_CORRECTED_EXECUTION_PERMIT`.
+historical; current `NEXT_UNIT = PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED`.
 
 ## Corrective unit (2026-09-21)
 
@@ -856,4 +856,30 @@ MARKET_07_CREATED = false
 
 Full record: `docs/research/D2_BITMEX_REPLICATION_INTEGRITY_ADJUDICATION.{json,md}`.
 
-`NEXT_UNIT = D2_BITMEX_REPLICATION_CORRECTED_EXECUTION_PERMIT`.
+`NEXT_UNIT` of that adjudication unit: `D2_BITMEX_REPLICATION_CORRECTED_EXECUTION_PERMIT`.
+
+## D2 BitMEX corrected one-shot execution (2026-09-21)
+
+Integrity-repair permit then one-shot from
+`CORRECTED_PERMIT_COMMIT = 14e9c9dfbfd6bdb989ef592b891aab1eb963f6f3`.
+Corrected identity `1317/250/1067`, years `341/363/363`, two
+`BTC_RET_24H_EQ_0` exclusions retained. Original INVALID run preserved.
+Classification `D2_BITMEX_REPLICATION_SUPPORTED`. Not exact Binance
+confirmation, not proven alpha, not a validated trading edge. No rerun.
+2025/2026 unopened. MARKET-07 not created.
+
+```
+CLASSIFICATION = D2_BITMEX_REPLICATION_SUPPORTED
+CONSTRUCTED_N = 1317
+WARMUP_N = 250
+ELIGIBLE_N = 1067
+PRIMARY_PASS = true
+RERUN_AUTHORIZED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+```
+
+Full record: `docs/research/D2_BITMEX_REPLICATION_CORRECTED_RESULT.{json,md}`.
+
+`NEXT_UNIT = PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED`.
