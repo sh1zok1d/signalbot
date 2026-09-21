@@ -1,0 +1,953 @@
+{
+  "2025_OPEN_AUTHORIZED": false,
+  "2026_OPEN_AUTHORIZED": false,
+  "ARM_CREATED": false,
+  "AUTHORITATIVE_POWER_METHOD": "YEAR_MATCHED_WHOLE_YEAR_PLUS_CONTIGUOUS_PARTIAL_BLOCK",
+  "BITMEX_5M_PATH_AVAILABLE": true,
+  "BITMEX_CONTRACT_COMPATIBILITY": "SCIENTIFICALLY_COMPARABLE_CROSS_VENUE",
+  "BITMEX_DATA_GAPS": {
+    "duplicates_silently_accepted": false,
+    "expected_5m_bars": 382321,
+    "gap_description": "Exactly 288 missing 5m opens: 2016-12-06T23:55:00Z through 2016-12-07T23:50:00Z (one 24h hole during RULE warmup). Not silently filled.",
+    "missing_bucket_count": 288,
+    "missing_open_timestamps_head": [
+      "2016-12-06T23:55:00.000Z",
+      "2016-12-07T00:00:00.000Z",
+      "2016-12-07T00:05:00.000Z",
+      "2016-12-07T00:10:00.000Z",
+      "2016-12-07T00:15:00.000Z",
+      "2016-12-07T00:20:00.000Z",
+      "2016-12-07T00:25:00.000Z",
+      "2016-12-07T00:30:00.000Z",
+      "2016-12-07T00:35:00.000Z",
+      "2016-12-07T00:40:00.000Z",
+      "2016-12-07T00:45:00.000Z",
+      "2016-12-07T00:50:00.000Z",
+      "2016-12-07T00:55:00.000Z",
+      "2016-12-07T01:00:00.000Z",
+      "2016-12-07T01:05:00.000Z",
+      "2016-12-07T01:10:00.000Z",
+      "2016-12-07T01:15:00.000Z",
+      "2016-12-07T01:20:00.000Z",
+      "2016-12-07T01:25:00.000Z",
+      "2016-12-07T01:30:00.000Z",
+      "2016-12-07T01:35:00.000Z",
+      "2016-12-07T01:40:00.000Z",
+      "2016-12-07T01:45:00.000Z",
+      "2016-12-07T01:50:00.000Z",
+      "2016-12-07T01:55:00.000Z"
+    ],
+    "missing_open_timestamps_sha256": "5e94399de8bc0bd72185dec26c8e82d01e9a663ffc22281c24f426370eecdeb6",
+    "missing_open_timestamps_tail": [
+      "2016-12-07T21:50:00.000Z",
+      "2016-12-07T21:55:00.000Z",
+      "2016-12-07T22:00:00.000Z",
+      "2016-12-07T22:05:00.000Z",
+      "2016-12-07T22:10:00.000Z",
+      "2016-12-07T22:15:00.000Z",
+      "2016-12-07T22:20:00.000Z",
+      "2016-12-07T22:25:00.000Z",
+      "2016-12-07T22:30:00.000Z",
+      "2016-12-07T22:35:00.000Z",
+      "2016-12-07T22:40:00.000Z",
+      "2016-12-07T22:45:00.000Z",
+      "2016-12-07T22:50:00.000Z",
+      "2016-12-07T22:55:00.000Z",
+      "2016-12-07T23:00:00.000Z",
+      "2016-12-07T23:05:00.000Z",
+      "2016-12-07T23:10:00.000Z",
+      "2016-12-07T23:15:00.000Z",
+      "2016-12-07T23:20:00.000Z",
+      "2016-12-07T23:25:00.000Z",
+      "2016-12-07T23:30:00.000Z",
+      "2016-12-07T23:35:00.000Z",
+      "2016-12-07T23:40:00.000Z",
+      "2016-12-07T23:45:00.000Z",
+      "2016-12-07T23:50:00.000Z"
+    ],
+    "missing_silently_accepted": false,
+    "observed_5m_bars": 382033
+  },
+  "BITMEX_FIRST_RULE_ELIGIBLE_T": "2017-01-24T00:05:00.000Z",
+  "BITMEX_FIRST_RV_AVAILABLE_T": "2016-05-15T00:05:00.000Z",
+  "BITMEX_INSTRUMENT": "XBTUSD",
+  "BITMEX_INSTRUMENT_TYP": "FFWCSX_INVERSE_PERPETUAL",
+  "BITMEX_LAST_RULE_ELIGIBLE_T": "2019-12-30T00:05:00.000Z",
+  "BITMEX_LISTING": "2016-05-13T12:00:00.000Z",
+  "BITMEX_PRE2020_ELIGIBLE_N": 1069,
+  "BITMEX_RAW_DATA_START": "2016-05-13T11:55:00.000Z",
+  "BITMEX_SOURCE_AUTHORITY": {
+    "authority_rel": "docs/research_data/D2_BITMEX_PRE2020_SOURCE_AUTHORITY.json",
+    "canonical_jsonl_gz_sha256": "8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa",
+    "canonical_jsonl_sha256": "b145013cbcda34294104a0234c89fa9e27965bded66e3bc18b23753dde03fd0f",
+    "docs": "https://docs.bitmex.com/api-explorer/get-trade-bucketed",
+    "endpoint": "https://www.bitmex.com/api/v1/trade/bucketed",
+    "launch_post": "https://www.bitmex.com/blog/announcing-the-launch-of-the-perpetual-xbtusd-leveraged-swap",
+    "parser_version": "D2_BITMEX_PRE2020_PARSER_V1",
+    "public_archive": "https://public.bitmex.com/",
+    "raw_pages_concat_sha256": "2c9be7c5eb1028c2aef17f61d89ecc4516a5189197b1a847ee7ae09ffd4c0580",
+    "third_party_kaggle_used": false,
+    "timestamp_semantics": "BUCKET_END"
+  },
+  "BITMEX_TEMPORAL_INDEPENDENCE_CLASS": "PRE_2020_CROSS_VENUE_TEMPORAL_REPLICATION",
+  "BITMEX_THEORETICAL_COMPLETE_GRID_N": 1072,
+  "CANDIDATE": "D2 / RULE_1 / RV_ABSTENTION",
+  "CLOCK_CHANGED": false,
+  "CONFIRMATION_FEASIBILITY": "FEASIBLE_PRE2020_BITMEX_CROSS_VENUE_TEMPORAL_REPLICATION",
+  "CONFIRMATION_RULE": "ABSTAIN(t)=1 iff ev.rv_btc_24h(t) > P90 of its own trailing 250 completed decision-point values with t excluded.",
+  "CONFIRMATION_TARGET": "24h direction-aligned adverse-path severity using the exact existing 288 x 5m future-bar construction (arithmetic MAE).",
+  "CONTEMPORANEOUS_VENUES_NOT_POOLED": true,
+  "CROSS_VENUE_ROW_COUNT_MULTIPLICATION": false,
+  "D2_OUTCOME_COMPUTED_ON_BITMEX": false,
+  "DIRECTION": "BTC_SIDE(t) = sign(BTC_RET_24H(t))",
+  "FUTURE_EVIDENCE_LABEL_IF_EXECUTED": "INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION",
+  "GATES_CHANGED": false,
+  "MARKET_07_CREATED": false,
+  "N820_POINT_ESTIMATE_BELOW_080_AFTER_N815": true,
+  "NEXT_UNIT": "D2_BITMEX_REPLICATION_PREREG_FREEZE",
+  "NOT_CREATED": [
+    "MARKET-07",
+    "confirmation RESULT",
+    "ARM",
+    "execution permit",
+    "candidate outcome",
+    "one-shot run"
+  ],
+  "NOT_EXACT_BINANCE_CONFIRMATION": true,
+  "POWER_95CI_AT_REFINED_MIN_N": [
+    0.7751234971811168,
+    0.824572794210579
+  ],
+  "POWER_AT_REFINED_MIN_N": 0.801,
+  "POWER_CRITERION": "POINT_ESTIMATE_STATISTICAL_POWER_GE_0.80",
+  "PRACTICAL_BAR": "DELTA >= 0.20 * UNCONDITIONAL_MEAN",
+  "PRIMARY_ALTERNATIVE_SURFACE": "BITMEX_XBTUSD_PERPETUAL",
+  "PROTECTED_2025_OPENED": false,
+  "PROTECTED_2025_PRICE_VALUES_INSPECTED": false,
+  "PROTECTED_2026_OPENED": false,
+  "PROTECTED_2026_PRICE_VALUES_INSPECTED": false,
+  "PROTECTED_BINANCE_2025_2026_REMAINS_SEALED_AS_SAME_VENUE_OOS_RESERVE": true,
+  "PR_READY_TO_MERGE": false,
+  "REFINED_FRESH_N_SEED": 20260921124,
+  "REFINED_MIN_REQUIRED_FRESH_DECISION_ROWS": 815,
+  "RETAINED_PREVIOUS_POWER": {
+    "728": 0.64,
+    "1092": 1.0
+  },
+  "RULE_CHANGED": false,
+  "STATISTICAL_CONCEPT": "candidate-abstained rows must have unusually high severity versus rate-matched random abstention",
+  "TARGET_CHANGED": false,
+  "TEMPORAL_INDEPENDENCE_CLASSES": {
+    "A": "PRE_2020_CROSS_VENUE_TEMPORAL_REPLICATION",
+    "B": "2020_2024_CROSS_VENUE_ONLY_REPLICATION",
+    "C": "FUTURE_PROTECTED_BINANCE"
+  },
+  "backup_surface_search": {
+    "candidates": [],
+    "opened": false,
+    "reason": "BitMEX primary candidate is feasible before any D2 outcome; no backup venue search."
+  },
+  "kind": "OUTCOME_BLIND_ALTERNATIVE_SURFACE_FEASIBILITY",
+  "pre2020_end_exclusive": "2020-01-01T00:00:00.000Z",
+  "refined_power": {
+    "COARSE_REFINED_N_GRID": [
+      728,
+      750,
+      775,
+      800,
+      825,
+      850,
+      875,
+      900,
+      925,
+      950,
+      975,
+      1000,
+      1025,
+      1050,
+      1075,
+      1092
+    ],
+    "COMPLETE_EXPOSED_YEARS": [
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "EXPOSED_FILES_OPENED_YEARS": [
+      "2020",
+      "2021",
+      "2022",
+      "2023",
+      "2024"
+    ],
+    "FIVE_ROW_REFINEMENT_GRID": [
+      805,
+      810,
+      815,
+      820
+    ],
+    "MIN_REQUIRED_FRESH_DECISION_ROWS": 815,
+    "N_ABOVE": 825,
+    "N_BELOW": 800,
+    "POWER_95CI_AT_REFINED_MIN_N": [
+      0.7751234971811168,
+      0.824572794210579
+    ],
+    "POWER_95CI_BY_N": {
+      "1000": [
+        0.9574965858524128,
+        0.9789062611711653
+      ],
+      "1025": [
+        0.9816905311296853,
+        0.9945592455544707
+      ],
+      "1050": [
+        0.9927371921365079,
+        0.9994513564118793
+      ],
+      "1075": [
+        0.9927371921365079,
+        0.9994513564118793
+      ],
+      "1092": [
+        0.996173241514445,
+        1.0
+      ],
+      "728": [
+        0.6453485364754667,
+        0.703312098054589
+      ],
+      "750": [
+        0.6749696568758727,
+        0.7314690256620207
+      ],
+      "775": [
+        0.7263681599761741,
+        0.7796878467131639
+      ],
+      "800": [
+        0.7336003718062974,
+        0.7864020602642429
+      ],
+      "805": [
+        0.7626295063588951,
+        0.813158627236454
+      ],
+      "810": [
+        0.7667904475082261,
+        0.8169670720192386
+      ],
+      "815": [
+        0.7751234971811168,
+        0.824572794210579
+      ],
+      "820": [
+        0.7678312571433845,
+        0.8179186088671091
+      ],
+      "825": [
+        0.7803394533741679,
+        0.8293185704326724
+      ],
+      "850": [
+        0.8023165344033985,
+        0.8491807655470485
+      ],
+      "875": [
+        0.8201985055513945,
+        0.8651686846105435
+      ],
+      "900": [
+        0.8723150421383737,
+        0.91067712569198
+      ],
+      "925": [
+        0.9026250851159918,
+        0.9361527842391708
+      ],
+      "950": [
+        0.9157879467581331,
+        0.9468980803933762
+      ],
+      "975": [
+        0.9471306895804986,
+        0.9713410390958196
+      ]
+    },
+    "POWER_AT_REFINED_MIN_N": 0.801,
+    "POWER_BY_N": {
+      "1000": 0.97,
+      "1025": 0.99,
+      "1050": 0.998,
+      "1075": 0.998,
+      "1092": 1.0,
+      "728": 0.675,
+      "750": 0.704,
+      "775": 0.754,
+      "800": 0.761,
+      "805": 0.789,
+      "810": 0.793,
+      "815": 0.801,
+      "820": 0.794,
+      "825": 0.806,
+      "850": 0.827,
+      "875": 0.844,
+      "900": 0.893,
+      "925": 0.921,
+      "950": 0.933,
+      "975": 0.961
+    },
+    "POWER_USES_BINANCE_2025_2026": false,
+    "POWER_USES_BITMEX_OUTCOMES": false,
+    "additional_adaptive_search": false,
+    "n_inner": 10000,
+    "n_outer": 1000,
+    "surfaces": [
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.337,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI": [
+          0.30837644459788477,
+          0.36687107866840624
+        ],
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": 337,
+        "N": 728,
+        "STATISTICAL_POWER_AT_20PCT": 0.675,
+        "STATISTICAL_POWER_AT_20PCT_95CI": [
+          0.6453485364754667,
+          0.703312098054589
+        ],
+        "STATISTICAL_POWER_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": 675,
+        "grid_stage": "coarse",
+        "mean_abs_injection_error": 1.936228954946273e-16,
+        "n_inner": 10000,
+        "n_outer": 1000,
+        "n_valid": 1000,
+        "power_practical_gate": 0.503,
+        "power_practical_gate_95CI": [
+          0.4720586747142764,
+          0.5339183647348104
+        ],
+        "power_practical_gate_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "power_practical_gate_N_SUCCESS": 503
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.353,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI": [
+          0.32399373843890167,
+          0.3831313285558515
+        ],
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": 353,
+        "N": 750,
+        "STATISTICAL_POWER_AT_20PCT": 0.704,
+        "STATISTICAL_POWER_AT_20PCT_95CI": [
+          0.6749696568758727,
+          0.7314690256620207
+        ],
+        "STATISTICAL_POWER_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": 704,
+        "grid_stage": "coarse",
+        "mean_abs_injection_error": 1.9162449405030202e-16,
+        "n_inner": 10000,
+        "n_outer": 1000,
+        "n_valid": 1000,
+        "power_practical_gate": 0.496,
+        "power_practical_gate_95CI": [
+          0.46508589340292905,
+          0.5269447206649553
+        ],
+        "power_practical_gate_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "power_practical_gate_N_SUCCESS": 496
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.373,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI": [
+          0.3435660379642266,
+          0.4034059586911044
+        ],
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": 373,
+        "N": 775,
+        "STATISTICAL_POWER_AT_20PCT": 0.754,
+        "STATISTICAL_POWER_AT_20PCT_95CI": [
+          0.7263681599761741,
+          0.7796878467131639
+        ],
+        "STATISTICAL_POWER_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": 754,
+        "grid_stage": "coarse",
+        "mean_abs_injection_error": 2.0000667788622196e-16,
+        "n_inner": 10000,
+        "n_outer": 1000,
+        "n_valid": 1000,
+        "power_practical_gate": 0.489,
+        "power_practical_gate_95CI": [
+          0.4581191521232714,
+          0.5199650365634109
+        ],
+        "power_practical_gate_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "power_practical_gate_N_SUCCESS": 489
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.369,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI": [
+          0.33964716115877136,
+          0.399355449564444
+        ],
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": 369,
+        "N": 800,
+        "STATISTICAL_POWER_AT_20PCT": 0.761,
+        "STATISTICAL_POWER_AT_20PCT_95CI": [
+          0.7336003718062974,
+          0.7864020602642429
+        ],
+        "STATISTICAL_POWER_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": 761,
+        "grid_stage": "coarse",
+        "mean_abs_injection_error": 1.8263168755083825e-16,
+        "n_inner": 10000,
+        "n_outer": 1000,
+        "n_valid": 1000,
+        "power_practical_gate": 0.47,
+        "power_practical_gate_95CI": [
+          0.43923991460215,
+          0.5009896909069833
+        ],
+        "power_practical_gate_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "power_practical_gate_N_SUCCESS": 470
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.39,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI": [
+          0.3602454063696288,
+          0.4205964804971933
+        ],
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": 390,
+        "N": 825,
+        "STATISTICAL_POWER_AT_20PCT": 0.806,
+        "STATISTICAL_POWER_AT_20PCT_95CI": [
+          0.7803394533741679,
+          0.8293185704326724
+        ],
+        "STATISTICAL_POWER_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": 806,
+        "grid_stage": "coarse",
+        "mean_abs_injection_error": 1.9712009802219655e-16,
+        "n_inner": 10000,
+        "n_outer": 1000,
+        "n_valid": 1000,
+        "power_practical_gate": 0.488,
+        "power_practical_gate_95CI": [
+          0.4571243966097442,
+          0.5189674455939091
+        ],
+        "power_practical_gate_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "power_practical_gate_N_SUCCESS": 488
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.416,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI": [
+          0.38582896762102037,
+          0.44681392780455287
+        ],
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": 416,
+        "N": 850,
+        "STATISTICAL_POWER_AT_20PCT": 0.827,
+        "STATISTICAL_POWER_AT_20PCT_95CI": [
+          0.8023165344033985,
+          0.8491807655470485
+        ],
+        "STATISTICAL_POWER_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": 827,
+        "grid_stage": "coarse",
+        "mean_abs_injection_error": 1.894873147278986e-16,
+        "n_inner": 10000,
+        "n_outer": 1000,
+        "n_valid": 1000,
+        "power_practical_gate": 0.51,
+        "power_practical_gate_95CI": [
+          0.47903749580454597,
+          0.5408859690257428
+        ],
+        "power_practical_gate_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "power_practical_gate_N_SUCCESS": 510
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.41,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI": [
+          0.3799172576460708,
+          0.4407715588813291
+        ],
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": 410,
+        "N": 875,
+        "STATISTICAL_POWER_AT_20PCT": 0.844,
+        "STATISTICAL_POWER_AT_20PCT_95CI": [
+          0.8201985055513945,
+          0.8651686846105435
+        ],
+        "STATISTICAL_POWER_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": 844,
+        "grid_stage": "coarse",
+        "mean_abs_injection_error": 1.9617640845126515e-16,
+        "n_inner": 10000,
+        "n_outer": 1000,
+        "n_valid": 1000,
+        "power_practical_gate": 0.481,
+        "power_practical_gate_95CI": [
+          0.4501645630755934,
+          0.5119808537468576
+        ],
+        "power_practical_gate_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "power_practical_gate_N_SUCCESS": 481
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.437,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI": [
+          0.40655624686835734,
+          0.4679259247008226
+        ],
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": 437,
+        "N": 900,
+        "STATISTICAL_POWER_AT_20PCT": 0.893,
+        "STATISTICAL_POWER_AT_20PCT_95CI": [
+          0.8723150421383737,
+          0.91067712569198
+        ],
+        "STATISTICAL_POWER_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": 893,
+        "grid_stage": "coarse",
+        "mean_abs_injection_error": 1.8718360195180139e-16,
+        "n_inner": 10000,
+        "n_outer": 1000,
+        "n_valid": 1000,
+        "power_practical_gate": 0.492,
+        "power_practical_gate_95CI": [
+          0.4611041586281342,
+          0.5229570695076347
+        ],
+        "power_practical_gate_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "power_practical_gate_N_SUCCESS": 492
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.451,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI": [
+          0.42040542652712193,
+          0.48196959580446247
+        ],
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": 451,
+        "N": 925,
+        "STATISTICAL_POWER_AT_20PCT": 0.921,
+        "STATISTICAL_POWER_AT_20PCT_95CI": [
+          0.9026250851159918,
+          0.9361527842391708
+        ],
+        "STATISTICAL_POWER_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": 921,
+        "grid_stage": "coarse",
+        "mean_abs_injection_error": 1.8543500068801677e-16,
+        "n_inner": 10000,
+        "n_outer": 1000,
+        "n_valid": 1000,
+        "power_practical_gate": 0.49,
+        "power_practical_gate_95CI": [
+          0.45911403097425707,
+          0.520962504195454
+        ],
+        "power_practical_gate_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "power_practical_gate_N_SUCCESS": 490
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.485,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI": [
+          0.4541408702709699,
+          0.5159739324835967
+        ],
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": 485,
+        "N": 950,
+        "STATISTICAL_POWER_AT_20PCT": 0.933,
+        "STATISTICAL_POWER_AT_20PCT_95CI": [
+          0.9157879467581331,
+          0.9468980803933762
+        ],
+        "STATISTICAL_POWER_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": 933,
+        "grid_stage": "coarse",
+        "mean_abs_injection_error": 1.90653048903755e-16,
+        "n_inner": 10000,
+        "n_outer": 1000,
+        "n_valid": 1000,
+        "power_practical_gate": 0.522,
+        "power_practical_gate_95CI": [
+          0.4910152521271681,
+          0.5528163704994674
+        ],
+        "power_practical_gate_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "power_practical_gate_N_SUCCESS": 522
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.515,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI": [
+          0.4840260675164033,
+          0.5458591297290302
+        ],
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": 515,
+        "N": 975,
+        "STATISTICAL_POWER_AT_20PCT": 0.961,
+        "STATISTICAL_POWER_AT_20PCT_95CI": [
+          0.9471306895804986,
+          0.9713410390958196
+        ],
+        "STATISTICAL_POWER_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": 961,
+        "grid_stage": "coarse",
+        "mean_abs_injection_error": 1.9270696149931154e-16,
+        "n_inner": 10000,
+        "n_outer": 1000,
+        "n_valid": 1000,
+        "power_practical_gate": 0.53,
+        "power_practical_gate_95CI": [
+          0.49901030909301675,
+          0.56076008539785
+        ],
+        "power_practical_gate_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "power_practical_gate_N_SUCCESS": 530
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.496,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI": [
+          0.46508589340292905,
+          0.5269447206649553
+        ],
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": 496,
+        "N": 1000,
+        "STATISTICAL_POWER_AT_20PCT": 0.97,
+        "STATISTICAL_POWER_AT_20PCT_95CI": [
+          0.9574965858524128,
+          0.9789062611711653
+        ],
+        "STATISTICAL_POWER_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": 970,
+        "grid_stage": "coarse",
+        "mean_abs_injection_error": 1.898758927865174e-16,
+        "n_inner": 10000,
+        "n_outer": 1000,
+        "n_valid": 1000,
+        "power_practical_gate": 0.506,
+        "power_practical_gate_95CI": [
+          0.47504885836338107,
+          0.5369052205347923
+        ],
+        "power_practical_gate_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "power_practical_gate_N_SUCCESS": 506
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.485,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI": [
+          0.4541408702709699,
+          0.5159739324835967
+        ],
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": 485,
+        "N": 1025,
+        "STATISTICAL_POWER_AT_20PCT": 0.99,
+        "STATISTICAL_POWER_AT_20PCT_95CI": [
+          0.9816905311296853,
+          0.9945592455544707
+        ],
+        "STATISTICAL_POWER_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": 990,
+        "grid_stage": "coarse",
+        "mean_abs_injection_error": 1.8701706849810763e-16,
+        "n_inner": 10000,
+        "n_outer": 1000,
+        "n_valid": 1000,
+        "power_practical_gate": 0.491,
+        "power_practical_gate_95CI": [
+          0.46010903314721446,
+          0.5219598485055256
+        ],
+        "power_practical_gate_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "power_practical_gate_N_SUCCESS": 491
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.501,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI": [
+          0.47006583523375295,
+          0.5319265112492759
+        ],
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": 501,
+        "N": 1050,
+        "STATISTICAL_POWER_AT_20PCT": 0.998,
+        "STATISTICAL_POWER_AT_20PCT_95CI": [
+          0.9927371921365079,
+          0.9994513564118793
+        ],
+        "STATISTICAL_POWER_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": 998,
+        "grid_stage": "coarse",
+        "mean_abs_injection_error": 1.8868240303504536e-16,
+        "n_inner": 10000,
+        "n_outer": 1000,
+        "n_valid": 1000,
+        "power_practical_gate": 0.501,
+        "power_practical_gate_95CI": [
+          0.47006583523375295,
+          0.5319265112492759
+        ],
+        "power_practical_gate_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "power_practical_gate_N_SUCCESS": 501
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.508,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI": [
+          0.47704293049236535,
+          0.5388958413718659
+        ],
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": 508,
+        "N": 1075,
+        "STATISTICAL_POWER_AT_20PCT": 0.998,
+        "STATISTICAL_POWER_AT_20PCT_95CI": [
+          0.9927371921365079,
+          0.9994513564118793
+        ],
+        "STATISTICAL_POWER_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": 998,
+        "grid_stage": "coarse",
+        "mean_abs_injection_error": 1.946776073680212e-16,
+        "n_inner": 10000,
+        "n_outer": 1000,
+        "n_valid": 1000,
+        "power_practical_gate": 0.509,
+        "power_practical_gate_95CI": [
+          0.47804015149447454,
+          0.5398909668527856
+        ],
+        "power_practical_gate_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "power_practical_gate_N_SUCCESS": 509
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.481,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI": [
+          0.4501645630755934,
+          0.5119808537468576
+        ],
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": 481,
+        "N": 1092,
+        "STATISTICAL_POWER_AT_20PCT": 1.0,
+        "STATISTICAL_POWER_AT_20PCT_95CI": [
+          0.996173241514445,
+          1.0
+        ],
+        "STATISTICAL_POWER_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": 1000,
+        "grid_stage": "coarse",
+        "mean_abs_injection_error": 1.8154922010182873e-16,
+        "n_inner": 10000,
+        "n_outer": 1000,
+        "n_valid": 1000,
+        "power_practical_gate": 0.481,
+        "power_practical_gate_95CI": [
+          0.4501645630755934,
+          0.5119808537468576
+        ],
+        "power_practical_gate_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "power_practical_gate_N_SUCCESS": 481
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.411,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI": [
+          0.3809022198018245,
+          0.4417789432086042
+        ],
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": 411,
+        "N": 805,
+        "STATISTICAL_POWER_AT_20PCT": 0.789,
+        "STATISTICAL_POWER_AT_20PCT_95CI": [
+          0.7626295063588951,
+          0.813158627236454
+        ],
+        "STATISTICAL_POWER_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": 789,
+        "grid_stage": "five_row_refinement",
+        "mean_abs_injection_error": 1.8790524691780773e-16,
+        "n_inner": 10000,
+        "n_outer": 1000,
+        "n_valid": 1000,
+        "power_practical_gate": 0.523,
+        "power_practical_gate_95CI": [
+          0.4920142012545935,
+          0.553809767855071
+        ],
+        "power_practical_gate_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "power_practical_gate_N_SUCCESS": 523
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.41,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI": [
+          0.3799172576460708,
+          0.4407715588813291
+        ],
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": 410,
+        "N": 810,
+        "STATISTICAL_POWER_AT_20PCT": 0.793,
+        "STATISTICAL_POWER_AT_20PCT_95CI": [
+          0.7667904475082261,
+          0.8169670720192386
+        ],
+        "STATISTICAL_POWER_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": 793,
+        "grid_stage": "five_row_refinement",
+        "mean_abs_injection_error": 1.9367840664585855e-16,
+        "n_inner": 10000,
+        "n_outer": 1000,
+        "n_valid": 1000,
+        "power_practical_gate": 0.495,
+        "power_practical_gate_95CI": [
+          0.4640902748007247,
+          0.525947992784131
+        ],
+        "power_practical_gate_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "power_practical_gate_N_SUCCESS": 495
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.414,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI": [
+          0.3838578816406266,
+          0.44480032081888876
+        ],
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": 414,
+        "N": 815,
+        "STATISTICAL_POWER_AT_20PCT": 0.801,
+        "STATISTICAL_POWER_AT_20PCT_95CI": [
+          0.7751234971811168,
+          0.824572794210579
+        ],
+        "STATISTICAL_POWER_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": 801,
+        "grid_stage": "five_row_refinement",
+        "mean_abs_injection_error": 1.9992341115937507e-16,
+        "n_inner": 10000,
+        "n_outer": 1000,
+        "n_valid": 1000,
+        "power_practical_gate": 0.504,
+        "power_practical_gate_95CI": [
+          0.4730552793350446,
+          0.5349141065970708
+        ],
+        "power_practical_gate_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "power_practical_gate_N_SUCCESS": 504
+      },
+      {
+        "JOINT_PASS_PROBABILITY_AT_20PCT": 0.396,
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI": [
+          0.36614144983616576,
+          0.4266545159288297
+        ],
+        "JOINT_PASS_PROBABILITY_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "JOINT_PASS_PROBABILITY_AT_20PCT_N_SUCCESS": 396,
+        "N": 820,
+        "STATISTICAL_POWER_AT_20PCT": 0.794,
+        "STATISTICAL_POWER_AT_20PCT_95CI": [
+          0.7678312571433845,
+          0.8179186088671091
+        ],
+        "STATISTICAL_POWER_AT_20PCT_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "STATISTICAL_POWER_AT_20PCT_N_SUCCESS": 794,
+        "grid_stage": "five_row_refinement",
+        "mean_abs_injection_error": 1.935396287677804e-16,
+        "n_inner": 10000,
+        "n_outer": 1000,
+        "n_valid": 1000,
+        "power_practical_gate": 0.486,
+        "power_practical_gate_95CI": [
+          0.45513525566440777,
+          0.5169718935731877
+        ],
+        "power_practical_gate_95CI_METHOD": "WILSON_SCORE_BINOMIAL",
+        "power_practical_gate_N_SUCCESS": 486
+      }
+    ]
+  },
+  "semantic_audit": {
+    "ADVERSE_SEVERITY_METRIC": {
+      "formula_long": "max(0, (entry - min(lows)) / entry)",
+      "formula_short": "max(0, (max(highs) - entry) / entry)",
+      "function": "arithmetic_mae(side, entry_open, future_bars)",
+      "normalized_price_path_observable": true,
+      "uses_contract_multiplier": false,
+      "uses_funding": false,
+      "uses_inverse_pnl": false,
+      "why_xbtusd_ohlc_preserves_target": "The frozen target is relative adverse excursion of the quoted BTC price path, not USD-M linear PnL and not inverse XBT PnL (1/entry - 1/exit). Applying the same arithmetic to XBTUSD last-trade OHLC does not convert inverse payoff into linear PnL."
+    },
+    "BITMEX_CONTRACT_COMPATIBILITY": "SCIENTIFICALLY_COMPARABLE_CROSS_VENUE",
+    "CONTRACT_STRUCTURE": {
+      "binance": "linear USD-M perpetual, quote USDT, PnL in USDT",
+      "bitmex_xbtusd": "inverse perpetual FFWCSX, quote USD, multiplier -1e8, settlCurrency XBt, isInverse true",
+      "documented_contract_changes_not_in_target": [
+        "2016-05-13 listing; funding initially Bitfinex lending",
+        "2017-03-31 tick 0.01->0.10 and .BXBT index",
+        "2017-04-21 funding interest component fixed 0.03%/day",
+        "funding interval may compress 8h->2h; not part of arithmetic_mae"
+      ],
+      "xbtusd_now_settled": "Instrument API state=Settled, expiry/settle 2026-09-16T12:00:00Z. Pre-2020 history used the live XBTUSD perpetual; 2026 settlement does not split the 2016-2019 symbol."
+    },
+    "DECISION_CLOCK": {
+      "authority": "MARKET-05/06 is_forbidden_decision NOT_DAILY_0005; D2 confirmation DECISION_SCHEDULE cites that grid. Feature cutoff is T-5m so UTC midnight features + first 5m bar entry.",
+      "clock_changed_in_this_unit": false,
+      "frozen_clock": "00:05:00Z",
+      "preserve_0005": true,
+      "scientifically_essential_vs_grid_convention": "Inherited 5m UTC grid convention from MARKET-05/06. Not redesigned here. Exact frozen clock is preserved."
+    },
+    "DIRECTION_OBSERVABLE": {
+      "definition": "sign of 24h close-to-close log return at feature cutoff",
+      "depends_on_inverse_pnl": false,
+      "portable_as_price_path": true
+    },
+    "ENTRY_SEMANTICS": {
+      "definition": "open of the 5m bar opening at T (00:05 UTC)",
+      "depends_on_inverse_pnl": false
+    },
+    "FUTURE_PATH": {
+      "definition": "288 subsequent 5m last-trade bars",
+      "depends_on_inverse_pnl": false
+    },
+    "PRICE_OBSERVABLE": {
+      "binance": "USD-M BTCUSDT last-trade 5m OHLC (CORE_BTC_BINANCE_V0)",
+      "bitmex": "XBTUSD last-trade 5m OHLC from GET /trade/bucketed",
+      "differences": [
+        "BTC/USDT vs BTC/USD quote",
+        "venue microstructure / last-price formation",
+        "index/mark conventions differ; this surface uses last-trade buckets not mark"
+      ]
+    },
+    "VOLATILITY_OBSERVABLE": {
+      "definition": "rv_btc_24h = sqrt(sum of 288 squared 5m log closes)",
+      "depends_on_inverse_pnl": false,
+      "portable_as_price_path": true
+    },
+    "exact_binance_confirmation": false,
+    "future_evidence_label_if_executed": "INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION",
+    "why_not_exact_observable_portable": "Quote (USD vs USDT), venue last-price, and inverse vs linear contract environment differ. The mathematical price-path objects are the same.",
+    "why_not_nonportable_contract_semantics": "Existing arithmetic_mae does not use linear USD-M PnL, inverse 1/x PnL, funding, or mark/index. It is a normalized OHLC path metric."
+  },
+  "unit": "D2_ALTERNATIVE_INDEPENDENT_SURFACE_FEASIBILITY"
+}

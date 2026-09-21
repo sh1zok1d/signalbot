@@ -3965,4 +3965,257 @@ Deferred D1 is not counted as executed.
 - `PROTECTED_2026_OPENED = false`
 - next required step: `D2_CONFIRMATION_FEASIBILITY_AND_DESIGN`
 
+## 2026-09-21 — D2 RULE_1 confirmation feasibility and design
+
+Outcome-blind confirmation design for the first internally generated
+`PROMISING_PROTOTYPE`: `D2 / RULE_1 / RV_ABSTENTION` only. Confirmation
+was not executed. 2025/2026 price values were not inspected. Protected
+parquet was not materialized. MARKET-07 and ARM were not created. The
+D2 discovery result was not mutated.
+
+Proposed first independent surface: calendar 2025,
+`FIRST_T = 2025-01-01T00:05:00Z`, `LAST_T = 2025-12-30T00:05:00Z`
+(every 24h outcome contained in 2025; Dec 31 decision excluded).
+2026 is recorded as `SECOND_RESERVED_SURFACE` and is not consumed.
+Feature warmup may use exposed 2024 trailing-250 history.
+
+Metadata-only CORE BTC snapshot `717d37a4…` binding: exactly 12 monthly
+2025 objects, all `admitted_to_canonical`, checksum `VERIFIED`, parser
+`OK`, source and canonical SHA256 bound. No 2026 object is needed for
+the frozen interval.
+
+Confirmatory estimand preserved: `RATE_MATCHED_RANDOM_ABSTENTION` with
+the frozen year-matched convention (single-year 2025 reduces to uniform
+K-subset). Statistical gate: `MU_RULE > P95` of 10000 replicates, seed
+`D2_CONFIRMATION_RANDOM_CONTROL_SEED = 20260921120` frozen now.
+Practical gate: `DELTA >= 0.20 * UNCONDITIONAL_MEAN` (not lowered; not
+replaced by the discovery +1.42pp). Quarterly 2025 breakdowns are
+diagnostic only.
+
+Prospective power used only 2020-2024. Expected 2025 eligible N = 364,
+expected abstain count = 39. Joint power at the predeclared 20%
+relative effect = 0.006 vs minimum acceptable 0.80.
+
+```
+CONFIRMATION_FEASIBILITY = UNDERPOWERED_SINGLE_YEAR_2025
+2025_OPEN_AUTHORIZED = false
+MARKET_07_CREATED = false
+ARM_CREATED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+```
+
+Do not lower the 20% bar. Do not automatically consume 2026. A larger
+genuinely fresh surface, or another independent equivalent surface, is
+required before opening protected 2025.
+
+Evidence: `docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.{json,md}`,
+`docs/research_data/D2_CONFIRMATION_2025_METADATA_BINDING.json`.
+
+- next required step: `D2_CONFIRMATION_LARGER_FRESH_SURFACE_OR_WAIT`
+
 Evidence: `docs/research/DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE.{json,md}`.
+
+## 2026-09-21 — D2 confirmation power interpretation and size planning
+
+Interpretation correction plus fresh-surface size planning for the same
+frozen D2 RULE_1 confirmation design. Confirmation was not executed.
+2025/2026 price values were not inspected. The D2 discovery result was
+not mutated. Rule, target, comparator, P90 / trailing-250 / 24h
+horizon, severity target, random-abstention comparator, 20% practical
+gate, and P95 statistical gate are unchanged.
+
+The original year-cycled one-year Monte Carlo is preserved:
+
+```
+ONE_YEAR_STATISTICAL_POWER_AT_20PCT = 0.011
+ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT = 0.006
+historical power_practical_gate at 20% = 0.499
+```
+
+Primary prospective criterion is now statistical power at a 20% true
+effect (`>= 0.80`). Joint pass probability is diagnostic only.
+`power_practical_gate ~= 0.5` at the exact 20% boundary is expected
+and is not evidence of underpower. Because `0.011 << 0.80`,
+`CONFIRMATION_FEASIBILITY` remains `UNDERPOWERED_SINGLE_YEAR_2025`.
+This is not a scientific-design rescue.
+
+Size planning used only exposed 2020-2024 empirical severity and the
+frozen RULE_1 fireable rate (`K = round(rate * N)`), seed
+`D2_CONFIRMATION_SIZE_PLANNING_SEED = 20260921122`:
+
+```
+N=364  K=39   STATISTICAL_POWER_AT_20PCT = 0.000
+N=728  K=77   STATISTICAL_POWER_AT_20PCT = 0.903
+N=1092 K=116  STATISTICAL_POWER_AT_20PCT = 1.000
+N=1456 K=154  STATISTICAL_POWER_AT_20PCT = 1.000
+MIN_REQUIRED_FRESH_DECISION_ROWS = 728
+MIN_REQUIRED_FRESH_YEARS = 2
+POTENTIAL_FUTURE_SURFACE = 2025_PLUS_FULL_2026
+AUTHORIZED_TO_OPEN = false
+```
+
+Two independent years would meet the statistical-power bar. 2025 and
+2026 remain unopened and are not automatically combined.
+
+```
+CONFIRMATION_FEASIBILITY = UNDERPOWERED_SINGLE_YEAR_2025
+2025_OPEN_AUTHORIZED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+RULE_CHANGED = false
+TARGET_CHANGED = false
+GATES_CHANGED = false
+```
+
+Evidence: `docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.{json,md}`.
+
+- next required step: `D2_CONFIRMATION_WAIT_FOR_PREDECLARED_2025_PLUS_2026_WITHOUT_OPENING`
+
+## 2026-09-21 — D2 dependence-preserving size planning
+
+Repaired multi-year power planning for the same frozen D2 RULE_1
+confirmation design. Confirmation was not executed. 2025/2026 price
+values were not inspected. Rule, target, comparator, and gates are
+unchanged. Original one-year powers remain:
+
+```
+ONE_YEAR_STATISTICAL_POWER_AT_20PCT = 0.011
+ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT = 0.006
+```
+
+IID pooled-K two-year power `0.903` is preserved as
+`SUPERSEDED_IID_SIZE_PLANNING` and is not authoritative.
+
+Authoritative method: year-matched whole-year block resampling from
+2021-2024 plus contiguous partial-year blocks; circular non-zero mask
+shift; 20% effect injected vs expected year-matched control mean;
+10000 year-matched inner replicates; seed `20260921123`.
+
+```
+POWER_N550 = 0.446
+POWER_N575 = 0.473
+POWER_N600 = 0.525
+POWER_N625 = 0.545
+POWER_N650 = 0.56
+POWER_N675 = 0.59
+POWER_N700 = 0.636
+POWER_N728 = 0.64
+THREE_YEAR = 1.0
+FOUR_YEAR = 1.0
+MIN_REQUIRED_FRESH_DECISION_ROWS = 1092
+POTENTIAL_FUTURE_SURFACE = MORE_THAN_2025_PLUS_2026_OR_ALTERNATIVE_INDEPENDENT_SURFACE
+AUTHORIZED_TO_OPEN = false
+```
+
+Two independent years remain below 0.80. Do not consume 2025+2026.
+Full calendar 2026 is not currently available.
+
+```
+CONFIRMATION_FEASIBILITY = UNDERPOWERED_SINGLE_YEAR_2025
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+RULE_CHANGED = false
+TARGET_CHANGED = false
+GATES_CHANGED = false
+```
+
+Evidence: `docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.{json,md}`.
+
+- next required step: `D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE_OR_FIND_EQUIVALENT`
+
+## 2026-09-21 — D2 alternative independent surface feasibility
+
+Do not wait until 2027 as the default route. Outcome-blind feasibility of
+replicating frozen `D2 / RULE_1 / RV_ABSTENTION` on a historical surface
+Signalbot has never used for discovery or confirmation.
+
+Refined year-matched power on exposed Binance 2020-2024 only (seed
+`20260921124`; 728 and 1092 retained; 25-row coarse grid; one 5-row
+local refinement between `N_BELOW=800` and `N_ABOVE=825`):
+
+```
+REFINED_MIN_REQUIRED_FRESH_DECISION_ROWS = 815
+POWER_AT_REFINED_MIN_N = 0.801
+POWER_95CI_AT_REFINED_MIN_N = [0.7751234971811168, 0.824572794210579]
+POWER_USES_BINANCE_2025_2026 = false
+POWER_USES_BITMEX_OUTCOMES = false
+```
+
+Primary candidate: official BitMEX XBTUSD inverse perpetual, 5m
+`GET /api/v1/trade/bucketed`, timestamps = bucket end. Pre-2020 legal
+decision rows (250-point warmup, 24h future fully before 2020-01-01,
+Dec 31 excluded):
+
+```
+BITMEX_RAW_DATA_START = 2016-05-13T11:55:00Z
+BITMEX_FIRST_RULE_ELIGIBLE_T = 2017-01-24T00:05:00Z
+BITMEX_LAST_RULE_ELIGIBLE_T = 2019-12-30T00:05:00Z
+BITMEX_PRE2020_ELIGIBLE_N = 1069
+missing_5m_buckets = 288 (2016-12-07 24h hole, warmup window)
+BITMEX_CONTRACT_COMPATIBILITY = SCIENTIFICALLY_COMPARABLE_CROSS_VENUE
+BITMEX_TEMPORAL_INDEPENDENCE_CLASS = PRE_2020_CROSS_VENUE_TEMPORAL_REPLICATION
+```
+
+D2 outcomes were not computed on BitMEX. Inverse PnL was not substituted
+for arithmetic price-path MAE. 00:05 UTC clock preserved. Protected
+Binance 2025/2026 unopened. MARKET-07 / ARM not created. Contemporaneous
+venues were not pooled to inflate N.
+
+```
+CONFIRMATION_FEASIBILITY = FEASIBLE_PRE2020_BITMEX_CROSS_VENUE_TEMPORAL_REPLICATION
+D2_OUTCOME_COMPUTED_ON_BITMEX = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+ARM_CREATED = false
+```
+
+Future evidence label if later executed:
+`INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION` (not
+`EXACT_BINANCE_CONFIRMATION`). Next unit is prereg freeze.
+
+Evidence: `docs/research/D2_ALTERNATIVE_INDEPENDENT_SURFACE_FEASIBILITY.{json,md}`,
+`docs/research_data/D2_BITMEX_PRE2020_SOURCE_AUTHORITY.json`.
+
+- next required step: `D2_BITMEX_REPLICATION_PREREG_FREEZE`
+
+## 2026-09-21 — D2 BitMEX replication preregistration freeze
+
+Outcome-blind freeze of the independent pre-2020 BitMEX XBTUSD
+replication contract. Not executed. No MU_RULE, DELTA, candidate/control
+severity, randomization p-value, or classification. Feasibility census
+reproduced exactly under the sealed source authority and no-fill gap
+rule.
+
+```
+PREREG_FROZEN = true
+EVIDENCE_CLASS = INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION
+INSTRUMENT = XBTUSD / FFWCSX inverse perpetual
+FIRST_RULE_ELIGIBLE_T = 2017-01-24T00:05:00Z
+LAST_RULE_ELIGIBLE_T = 2019-12-30T00:05:00Z
+EXPECTED_ELIGIBLE_N = 1069
+KNOWN_GAP_HANDLING = NO_FILL_NO_INTERPOLATION_NO_FORWARD_FILL_NO_SYNTHETIC
+TRAILING_250_VALID_HISTORY_VERIFIED = true
+REPLICATION_RANDOM_SEED = 20260921125
+N_RANDOM_CONTROLS = 10000
+STATISTICAL_GATE = MU_RULE > CONTROL_P95
+PRACTICAL_GATE = DELTA >= 0.20 * UNCONDITIONAL_MEAN
+PRIMARY_PASS_RULE = STATISTICAL_GATE and PRACTICAL_GATE
+CLASSIFICATION_ASSIGNED = null
+D2_BITMEX_OUTCOME_COMPUTED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+EXECUTION_AUTHORIZED = false
+```
+
+Use all 1069 legal rows. 815 remains a power floor, not a sampling cap.
+Year-matched `K_y` inside 2017/2018/2019; pooled-K forbidden. Yearly
+breakdowns are diagnostic only. Classification list frozen unassigned:
+`SUPPORTED` / `NOT_SUPPORTED` / `INVALID`.
+
+Evidence: `docs/research/D2_BITMEX_REPLICATION_PREREG.{json,md}`,
+`docs/research_data/D2_BITMEX_REPLICATION_EXECUTION_BINDING.json`.
+
+- next required step: `D2_BITMEX_REPLICATION_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`

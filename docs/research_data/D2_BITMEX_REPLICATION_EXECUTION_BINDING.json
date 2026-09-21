@@ -1,0 +1,33 @@
+{
+  "CLASSIFICATION_ASSIGNED": null,
+  "D2_BITMEX_OUTCOME_COMPUTED": false,
+  "EVIDENCE_CLASS": "INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION",
+  "EXECUTION_AUTHORIZED": false,
+  "EXPECTED_ELIGIBLE_N": 1069,
+  "FIRST_RULE_ELIGIBLE_T": "2017-01-24T00:05:00.000Z",
+  "IMPLEMENTATION_FILES_ALLOWED_TO_EXECUTE": [
+    "scripts/research/d2_bitmex_replication_evaluator.py",
+    "scripts/research/d2_bitmex_pre2020.py",
+    "scripts/research/market_06_cross_venue_dislocation_evaluator.py",
+    "scripts/research/discovery_sprint_01/common.py"
+  ],
+  "IMPLEMENTATION_FILE_SHA256": {
+    "scripts/research/d2_bitmex_pre2020.py": "f0c16c8e120fd6813039abf09421a41ed01f741fe699e1e9df41e9105ca86056",
+    "scripts/research/d2_bitmex_replication_evaluator.py": "e132f5ee24029b18aa971c4dda6a2e453282038a9527d8362d6656ecd40b75de",
+    "scripts/research/discovery_sprint_01/common.py": "ab152da63fa8c923fba3fd0255b7cd4d6457389b6a45be9959abc7235fa912ef",
+    "scripts/research/market_06_cross_venue_dislocation_evaluator.py": "ff87062edf583af1a67affcc18cda5e184379d9e63f7ff8b0e18383978890ead"
+  },
+  "LAST_RULE_ELIGIBLE_T": "2019-12-30T00:05:00.000Z",
+  "N_RANDOM_CONTROLS": 10000,
+  "PRACTICAL_GATE": "DELTA >= 0.20 * UNCONDITIONAL_MEAN",
+  "PREREG_FROZEN": true,
+  "PRIMARY_PASS_RULE": "STATISTICAL_GATE and PRACTICAL_GATE",
+  "REPLICATION_RANDOM_SEED": 20260921125,
+  "STATISTICAL_GATE": "MU_RULE > CONTROL_P95",
+  "authority_rel": "docs/research_data/D2_BITMEX_PRE2020_SOURCE_AUTHORITY.json",
+  "authority_sha256": "2a48e025a9ecb596f7a37646a39367cae031e5aa3fd0555416c3fab692594dff",
+  "canonical_jsonl_gz_sha256": "8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa",
+  "canonical_jsonl_sha256": "b145013cbcda34294104a0234c89fa9e27965bded66e3bc18b23753dde03fd0f",
+  "parser_version": "D2_BITMEX_PRE2020_PARSER_V1",
+  "schema": "signalbot_d2_bitmex_replication_execution_binding"
+}

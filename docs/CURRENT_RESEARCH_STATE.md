@@ -33,11 +33,11 @@ Program-level correction is sealed in `docs/research/MARKET_PROGRAM_UPDATE_POST_
 ## Exact next unit
 
 ```
-PREVIOUS_ROUTING            = DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE_EXECUTION
+PREVIOUS_ROUTING            = D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE_OR_FIND_EQUIVALENT
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = D2_CONFIRMATION_FEASIBILITY_AND_DESIGN
+NEXT_UNIT                   = D2_BITMEX_REPLICATION_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW
 PROTECTED_2025_OPENED       = false
 PROTECTED_2026_OPENED       = false
 INTERNAL_DISCOVERY_CARDS_EXECUTED = 4
@@ -51,10 +51,14 @@ D2_RULE_2_GATE_PASS               = false
 D2_RULE_2_REPLAY_EXACT_MATCH      = true
 POST_OUTCOME_DESIGN_CHANGES       = false
 D1_STATUS                         = DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH
-D1_NULL_MODEL_OBSERVABLE_MISMATCH = true
-D1_NULL_ADEQUACY_GATE_UNDERSPECIFIED = true
-D1_NULL_ADEQUACY_GATE_EXECUTED     = false
-D1_TARGET_OUTCOME_COMPUTED        = false
+D2_DISCOVERY_STATUS               = PROMISING_PROTOTYPE
+CONFIRMATION_FEASIBILITY          = FEASIBLE_PRE2020_BITMEX_CROSS_VENUE_TEMPORAL_REPLICATION
+2025_OPEN_AUTHORIZED              = false
+2026_OPEN_AUTHORIZED              = false
+ARM_CREATED                       = false
+D2_OUTCOME_COMPUTED_ON_BITMEX     = false
+PROTECTED_2025_PRICE_VALUES_INSPECTED = false
+PROTECTED_2026_PRICE_VALUES_INSPECTED = false
 ```
 
 Discovery Sprint 01 first attempt (`37921089ce289cd9bcbcebb123724a3e033dcdc3`)
@@ -80,6 +84,52 @@ D4 `LEAD_LAG_1DAY` remains `DEFERRED_FROM_SPRINT_01`.
 
 Result records: `docs/research/discovery_results/`.
 Adjudication record: `docs/research/DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE.{json,md}`.
+
+D2 RULE_1 (`RV_ABSTENTION`) was then taken through
+`D2_CONFIRMATION_FEASIBILITY_AND_DESIGN` without opening 2025/2026
+prices or creating MARKET-07/ARM. Calendar 2025 is the proposed first
+independent confirmation surface; 2026 remains a second reserved
+surface. Metadata-only 2025 monthly source/canonical hashes are bound.
+A 2020-2024 power calculation at the predeclared 20% true effect
+returned year-cycled `ONE_YEAR_STATISTICAL_POWER_AT_20PCT = 0.011`
+(joint pass probability `0.006` is diagnostic only; practical-gate
+power `~0.499` at the exact 20% boundary is expected and is not
+underpower evidence). Primary prospective criterion is statistical
+power `>= 0.80`. `CONFIRMATION_FEASIBILITY = UNDERPOWERED_SINGLE_YEAR_2025`.
+IID two-year power `0.903` is superseded. Authoritative
+year-matched whole-year-block plus contiguous partial-block power
+gives `POWER_N728 = 0.64 < 0.80` and `POWER_N1092 = 1.0`.
+`MIN_REQUIRED_FRESH_DECISION_ROWS = 1092`.
+`POTENTIAL_FUTURE_SURFACE = MORE_THAN_2025_PLUS_2026_OR_ALTERNATIVE_INDEPENDENT_SURFACE`.
+`AUTHORIZED_TO_OPEN = false`. `2025_OPEN_AUTHORIZED = false`.
+Do not consume 2025+2026. Full calendar 2026 is not currently available.
+Record: `docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.{json,md}`.
+
+`D2_ALTERNATIVE_INDEPENDENT_SURFACE_FEASIBILITY` then tested whether the
+same frozen RULE_1 / RV_ABSTENTION mechanism can be replicated on pre-2020
+BitMEX XBTUSD without waiting for future Binance data and without opening
+2025/2026. Refined year-matched power on exposed 2020-2024 only gives
+`MIN_REQUIRED_FRESH_DECISION_ROWS = 815` (point-estimate power `0.801`).
+Official BitMEX 5m buckets yield `BITMEX_PRE2020_ELIGIBLE_N = 1069` legal
+decision rows whose 24h outcomes finish before 2020-01-01. Contract
+compatibility is `SCIENTIFICALLY_COMPARABLE_CROSS_VENUE` (price-path MAE,
+not inverse PnL). No D2 outcome was computed on BitMEX.
+`CONFIRMATION_FEASIBILITY = FEASIBLE_PRE2020_BITMEX_CROSS_VENUE_TEMPORAL_REPLICATION`.
+A later BitMEX result, if executed, is
+`INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION`, not exact Binance
+confirmation. Protected 2025/2026 remain sealed.
+Record: `docs/research/D2_ALTERNATIVE_INDEPENDENT_SURFACE_FEASIBILITY.{json,md}`.
+
+`D2_BITMEX_REPLICATION_PREREG_FREEZE` then froze the outcome-blind
+replication contract without executing it. Evidence class
+`INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION`. Rule, target,
+clock, year-matched comparator, 10000-replicate seed `20260921125`,
+statistical `MU_RULE > CONTROL_P95`, and practical
+`DELTA >= 0.20 * UNCONDITIONAL_MEAN` are bound. Mechanical census
+reproduced `N=1069`, first `2017-01-24T00:05:00Z`, last
+`2019-12-30T00:05:00Z`. Classification unassigned. No BitMEX D2 outcome.
+Protected 2025/2026 unopened. MARKET-07 not created.
+Record: `docs/research/D2_BITMEX_REPLICATION_PREREG.{json,md}`.
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by
@@ -147,11 +197,13 @@ RULE_1's unrestricted full-2020-2024 result.
 
 **Current per-card status:** `D1 = DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH`
 (adequacy gate not executed); `D2 = PROMISING_PROTOTYPE` (adaptive
-discovery; RULE_1 only); `D3 = NO_USEFUL_STRUCTURE`; `D4
+discovery; RULE_1 only; 2025 confirmation remains underpowered as a
+single year; pre-2020 BitMEX XBTUSD is a feasible independent class-A
+replication surface, not yet executed);
+`D3 = NO_USEFUL_STRUCTURE`; `D4
 ROLLING_CORRELATION_90D = NO_USEFUL_STRUCTURE` (`LEAD_LAG_1DAY` still
 deferred); `D5 = NO_USEFUL_STRUCTURE`; `D6 = DEFERRED`. First blocked
-attempt preserved. D2–D5 scientific bytes unchanged by the D1
-adjudication.
+attempt preserved. D2–D5 scientific bytes unchanged.
 
 The orthogonal-region selection is recorded in
 `docs/research/MARKET_NEXT_HYPOTHESIS_SELECTION.{json,md}` (commit

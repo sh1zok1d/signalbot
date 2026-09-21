@@ -357,7 +357,7 @@ been executed in the definition unit.
 `SCIENTIFIC_OUTCOMES_COMPUTED = true` (adaptive discovery, not confirmatory).
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
-`NEXT_UNIT = D2_CONFIRMATION_FEASIBILITY_AND_DESIGN`.
+`NEXT_UNIT = D2_BITMEX_REPLICATION_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`.
 
 ### Stall-gate semantics (corrected 2026-09-21)
 
@@ -381,7 +381,7 @@ discovery rather than confirmatory evidence.
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
 Definition-time `NEXT_UNIT = DISCOVERY_SPRINT_01_CARD_EXECUTION` is
-historical; current `NEXT_UNIT = D2_CONFIRMATION_FEASIBILITY_AND_DESIGN`.
+historical; current `NEXT_UNIT = D2_BITMEX_REPLICATION_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`.
 
 ## Corrective unit (2026-09-21)
 
@@ -668,4 +668,127 @@ Protected 2025/2026 unopened.
 
 Full record: `docs/research/DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE.{json,md}`.
 
-`NEXT_UNIT = D2_CONFIRMATION_FEASIBILITY_AND_DESIGN`.
+Historical `NEXT_UNIT` of this D1 unit:
+`D2_CONFIRMATION_FEASIBILITY_AND_DESIGN`.
+
+## D2 confirmation feasibility and design (2026-09-21)
+
+Outcome-blind confirmation design for the sole survivor
+`D2 / RULE_1 / RV_ABSTENTION`. Confirmation was **not** executed.
+2025/2026 price values were **not** inspected. MARKET-07 / ARM were
+**not** created.
+
+Calendar 2025 is the proposed first independent confirmation surface
+(`FIRST_T = 2025-01-01T00:05:00Z`, `LAST_T = 2025-12-30T00:05:00Z`).
+2026 remains a second reserved surface and is not consumed. Metadata-only
+binding of all 12 2025 monthly source/canonical hashes succeeded; no
+2026 object is required for the frozen interval.
+
+Power at the predeclared 20% true effect, estimated from exposed
+2020-2024 only. Primary prospective criterion is statistical power
+(P95 gate), not joint pass probability:
+
+```
+ONE_YEAR_STATISTICAL_POWER_AT_20PCT = 0.011
+ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT = 0.006
+```
+
+Joint `0.006` and practical-gate power `~0.499` are diagnostic. The
+~0.5 practical-gate figure at the exact 20% boundary is expected and
+is not itself evidence of underpower. Because statistical power is
+still `<< 0.80`, `CONFIRMATION_FEASIBILITY` remains
+`UNDERPOWERED_SINGLE_YEAR_2025`.
+
+Fresh-surface size planning (IID pooled-K) on 2020-2024 is **superseded**:
+`SUPERSEDED_IID_TWO_YEAR_POWER = 0.903`.
+
+Authoritative method: `YEAR_MATCHED_WHOLE_YEAR_PLUS_CONTIGUOUS_PARTIAL_BLOCK`.
+Association-broken circular mask shift, year-matched controls, exact 20%
+injection vs expected year-matched control mean.
+
+```
+POWER_N550 = 0.446
+POWER_N575 = 0.473
+POWER_N600 = 0.525
+POWER_N625 = 0.545
+POWER_N650 = 0.56
+POWER_N675 = 0.59
+POWER_N700 = 0.636
+POWER_N728 = 0.64
+THREE_YEAR_STATISTICAL_POWER_AT_20PCT = 1.0
+MIN_REQUIRED_FRESH_DECISION_ROWS = 1092
+POTENTIAL_FUTURE_SURFACE = MORE_THAN_2025_PLUS_2026_OR_ALTERNATIVE_INDEPENDENT_SURFACE
+AUTHORIZED_TO_OPEN = false
+```
+
+Do not lower the 20% bar. Do not consume 2025+2026: two years remain
+below 0.80 under the authoritative method. Full calendar 2026 is not
+currently available. D2 remains `PROMISING_PROTOTYPE` (adaptive discovery only).
+
+Full record: `docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.{json,md}`.
+
+`NEXT_UNIT` of that size-planning unit was
+`D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE_OR_FIND_EQUIVALENT`.
+That wait-until-future-Binance default is **superseded in routing only** by
+the alternative-surface feasibility unit below.
+
+## D2 alternative independent surface feasibility (2026-09-21)
+
+Outcome-blind. Confirmation was **not** executed. BitMEX D2 outcomes were
+**not** computed. Protected Binance 2025/2026 remained sealed.
+
+Refined year-matched power on exposed Binance 2020-2024 only, seed
+`20260921124`, one 5-row local refinement between `N_BELOW=800` and
+`N_ABOVE=825`:
+
+```
+REFINED_MIN_REQUIRED_FRESH_DECISION_ROWS = 815
+POWER_AT_REFINED_MIN_N = 0.801
+POWER_95CI_AT_REFINED_MIN_N = [0.775, 0.825]
+```
+
+1092 is only the smallest previously tested size meeting power, not an
+assumed true minimum. `N=820` point-estimate `0.794` is a Monte Carlo dip
+after `N=815`; the frozen criterion is the smallest tested N with
+point-estimate power `>= 0.80`.
+
+Primary pre-2020 candidate: official BitMEX XBTUSD 5m buckets.
+
+```
+BITMEX_RAW_DATA_START = 2016-05-13T11:55:00Z
+BITMEX_FIRST_RULE_ELIGIBLE_T = 2017-01-24T00:05:00Z
+BITMEX_LAST_RULE_ELIGIBLE_T = 2019-12-30T00:05:00Z
+BITMEX_PRE2020_ELIGIBLE_N = 1069
+BITMEX_CONTRACT_COMPATIBILITY = SCIENTIFICALLY_COMPARABLE_CROSS_VENUE
+BITMEX_TEMPORAL_INDEPENDENCE_CLASS = PRE_2020_CROSS_VENUE_TEMPORAL_REPLICATION
+CONFIRMATION_FEASIBILITY = FEASIBLE_PRE2020_BITMEX_CROSS_VENUE_TEMPORAL_REPLICATION
+```
+
+A later BitMEX result, if executed, is
+`INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION`, not
+`EXACT_BINANCE_CONFIRMATION`. Next unit is prereg freeze, not MARKET-07.
+
+Full record: `docs/research/D2_ALTERNATIVE_INDEPENDENT_SURFACE_FEASIBILITY.{json,md}`.
+
+`NEXT_UNIT` of that feasibility unit: `D2_BITMEX_REPLICATION_PREREG_FREEZE`.
+
+## D2 BitMEX replication preregistration freeze (2026-09-21)
+
+Outcome-blind freeze. Not executed. Classification unassigned.
+
+```
+PREREG_FROZEN = true
+EVIDENCE_CLASS = INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION
+EXPECTED_ELIGIBLE_N = 1069
+FIRST_RULE_ELIGIBLE_T = 2017-01-24T00:05:00Z
+LAST_RULE_ELIGIBLE_T = 2019-12-30T00:05:00Z
+REPLICATION_RANDOM_SEED = 20260921125
+N_RANDOM_CONTROLS = 10000
+STATISTICAL_GATE = MU_RULE > CONTROL_P95
+PRACTICAL_GATE = DELTA >= 0.20 * UNCONDITIONAL_MEAN
+D2_BITMEX_OUTCOME_COMPUTED = false
+```
+
+Full record: `docs/research/D2_BITMEX_REPLICATION_PREREG.{json,md}`.
+
+`NEXT_UNIT = D2_BITMEX_REPLICATION_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`.

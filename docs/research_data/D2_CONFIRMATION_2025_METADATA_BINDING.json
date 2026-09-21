@@ -1,0 +1,229 @@
+{
+  "2026_OBJECT_NEEDED_FOR_FROZEN_INTERVAL": false,
+  "PRIMARY_CONFIRMATION_SURFACE": "2025",
+  "SECOND_RESERVED_SURFACE": "2026",
+  "contains_price_values": false,
+  "coverage_metadata_not_prices": [
+    {
+      "admitted_to_canonical": true,
+      "checksum_verification": "VERIFIED",
+      "expected_rows": 44640,
+      "first_open_time_ms": 1735689600000,
+      "last_open_time_ms": 1738367940000,
+      "missing_bucket_count": 0,
+      "observed_rows": 44640,
+      "parser_status": "OK",
+      "period": "2025-01"
+    },
+    {
+      "admitted_to_canonical": true,
+      "checksum_verification": "VERIFIED",
+      "expected_rows": 40320,
+      "first_open_time_ms": 1738368000000,
+      "last_open_time_ms": 1740787140000,
+      "missing_bucket_count": 0,
+      "observed_rows": 40320,
+      "parser_status": "OK",
+      "period": "2025-02"
+    },
+    {
+      "admitted_to_canonical": true,
+      "checksum_verification": "VERIFIED",
+      "expected_rows": 44640,
+      "first_open_time_ms": 1740787200000,
+      "last_open_time_ms": 1743465540000,
+      "missing_bucket_count": 0,
+      "observed_rows": 44640,
+      "parser_status": "OK",
+      "period": "2025-03"
+    },
+    {
+      "admitted_to_canonical": true,
+      "checksum_verification": "VERIFIED",
+      "expected_rows": 43200,
+      "first_open_time_ms": 1743465600000,
+      "last_open_time_ms": 1746057540000,
+      "missing_bucket_count": 0,
+      "observed_rows": 43200,
+      "parser_status": "OK",
+      "period": "2025-04"
+    },
+    {
+      "admitted_to_canonical": true,
+      "checksum_verification": "VERIFIED",
+      "expected_rows": 44640,
+      "first_open_time_ms": 1746057600000,
+      "last_open_time_ms": 1748735940000,
+      "missing_bucket_count": 0,
+      "observed_rows": 44640,
+      "parser_status": "OK",
+      "period": "2025-05"
+    },
+    {
+      "admitted_to_canonical": true,
+      "checksum_verification": "VERIFIED",
+      "expected_rows": 43200,
+      "first_open_time_ms": 1748736000000,
+      "last_open_time_ms": 1751327940000,
+      "missing_bucket_count": 0,
+      "observed_rows": 43200,
+      "parser_status": "OK",
+      "period": "2025-06"
+    },
+    {
+      "admitted_to_canonical": true,
+      "checksum_verification": "VERIFIED",
+      "expected_rows": 44640,
+      "first_open_time_ms": 1751328000000,
+      "last_open_time_ms": 1754006340000,
+      "missing_bucket_count": 0,
+      "observed_rows": 44640,
+      "parser_status": "OK",
+      "period": "2025-07"
+    },
+    {
+      "admitted_to_canonical": true,
+      "checksum_verification": "VERIFIED",
+      "expected_rows": 44640,
+      "first_open_time_ms": 1754006400000,
+      "last_open_time_ms": 1756684740000,
+      "missing_bucket_count": 0,
+      "observed_rows": 44640,
+      "parser_status": "OK",
+      "period": "2025-08"
+    },
+    {
+      "admitted_to_canonical": true,
+      "checksum_verification": "VERIFIED",
+      "expected_rows": 43200,
+      "first_open_time_ms": 1756684800000,
+      "last_open_time_ms": 1759276740000,
+      "missing_bucket_count": 0,
+      "observed_rows": 43200,
+      "parser_status": "OK",
+      "period": "2025-09"
+    },
+    {
+      "admitted_to_canonical": true,
+      "checksum_verification": "VERIFIED",
+      "expected_rows": 44640,
+      "first_open_time_ms": 1759276800000,
+      "last_open_time_ms": 1761955140000,
+      "missing_bucket_count": 0,
+      "observed_rows": 44640,
+      "parser_status": "OK",
+      "period": "2025-10"
+    },
+    {
+      "admitted_to_canonical": true,
+      "checksum_verification": "VERIFIED",
+      "expected_rows": 43200,
+      "first_open_time_ms": 1761955200000,
+      "last_open_time_ms": 1764547140000,
+      "missing_bucket_count": 0,
+      "observed_rows": 43200,
+      "parser_status": "OK",
+      "period": "2025-11"
+    },
+    {
+      "admitted_to_canonical": true,
+      "checksum_verification": "VERIFIED",
+      "expected_rows": 44640,
+      "first_open_time_ms": 1764547200000,
+      "last_open_time_ms": 1767225540000,
+      "missing_bucket_count": 0,
+      "observed_rows": 44640,
+      "parser_status": "OK",
+      "period": "2025-12"
+    }
+  ],
+  "objects": [
+    {
+      "canonical_parquet_SHA256": "edeff0a5e973ccd392b5461dadb06912117ee8039b4238b0a7de338b8d84ec55",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2025-01.parquet",
+      "period": "2025-01",
+      "source_SHA256": "b69ca5b2c2d1ae00d68d2790d09138cb2a44085ff19e0da5dc98b569ea7e489e",
+      "source_filename": "BTCUSDT-1m-2025-01.zip"
+    },
+    {
+      "canonical_parquet_SHA256": "565e47956ad62111d59d8067cd424779322c4e3ffc13d973d15b7b4bbc1d025b",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2025-02.parquet",
+      "period": "2025-02",
+      "source_SHA256": "d84ca981d06ee6491e16597f8d43955f62cab399a9f4b6efc2ee1b4d3a37f0fc",
+      "source_filename": "BTCUSDT-1m-2025-02.zip"
+    },
+    {
+      "canonical_parquet_SHA256": "715b2b44022860d3e081879cf79a37ed72be86310f4bf889874aeb1f890f1c0d",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2025-03.parquet",
+      "period": "2025-03",
+      "source_SHA256": "4837163333c9c9978255b8870a5a6de1bc48bd22a6c72fef54665a8d4e70b4df",
+      "source_filename": "BTCUSDT-1m-2025-03.zip"
+    },
+    {
+      "canonical_parquet_SHA256": "ee9c52b247934a16888741ca6d844a0dd83f1ba9b8e54159d6c71777f8ce69a3",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2025-04.parquet",
+      "period": "2025-04",
+      "source_SHA256": "87bca047ca7e8b1d27913091255018e121210276726c5aa445e85da6f56e2dcc",
+      "source_filename": "BTCUSDT-1m-2025-04.zip"
+    },
+    {
+      "canonical_parquet_SHA256": "25a3f5d67276d3f8782289b1d10720365805e17a43e314e775ce952e5c188848",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2025-05.parquet",
+      "period": "2025-05",
+      "source_SHA256": "7acab7e40a74db53a2d6c35373ebe327eefa85b98f8c92fbe58755881e3841ee",
+      "source_filename": "BTCUSDT-1m-2025-05.zip"
+    },
+    {
+      "canonical_parquet_SHA256": "c9e44c67682d7b7dd393af3483d7315466f5ed197049e42635b764beef0ed304",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2025-06.parquet",
+      "period": "2025-06",
+      "source_SHA256": "78872b32c4d0bbc2d89a0459539b90cff47de08a9a56fdf8d233943a32e78efc",
+      "source_filename": "BTCUSDT-1m-2025-06.zip"
+    },
+    {
+      "canonical_parquet_SHA256": "8a71c561b4979e859e96ceb880ab3c22c1a7cbcca0e027ccb5615cded33ed5cb",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2025-07.parquet",
+      "period": "2025-07",
+      "source_SHA256": "cf5fe0891c80e68d2d613eb5457100b7d886eee8cc913ccdd96ef45e757a5aaf",
+      "source_filename": "BTCUSDT-1m-2025-07.zip"
+    },
+    {
+      "canonical_parquet_SHA256": "839849f52a065920d179672664260440bdf857e9ee69458e7c3b32e6c2db94ff",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2025-08.parquet",
+      "period": "2025-08",
+      "source_SHA256": "eaf41354fc1aa96eac94ee50b3fda603cd595f95030ebf30b2ab5bea7a4462c3",
+      "source_filename": "BTCUSDT-1m-2025-08.zip"
+    },
+    {
+      "canonical_parquet_SHA256": "b7e613a4e720aaff3fcfd628714ad4fb66ab24df281d866b2452ac8a113de449",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2025-09.parquet",
+      "period": "2025-09",
+      "source_SHA256": "c296ba45c215934e9750ca82846c7b5d14be661649d8e4423eac834cf57330dc",
+      "source_filename": "BTCUSDT-1m-2025-09.zip"
+    },
+    {
+      "canonical_parquet_SHA256": "65b99b8881f85ddcccc562e9bdc0d2d994485ea57384d15eef263e01d913e025",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2025-10.parquet",
+      "period": "2025-10",
+      "source_SHA256": "bb7f53350fe27b6d8e38b5856ffc43f9ecda9d568d5bf31d0db0cd011da7100f",
+      "source_filename": "BTCUSDT-1m-2025-10.zip"
+    },
+    {
+      "canonical_parquet_SHA256": "511fc4dd27c3ad088d8141a1d6ba07218bc960d646636ce33d9b7775f5862b14",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2025-11.parquet",
+      "period": "2025-11",
+      "source_SHA256": "981da0b054f99b959fe6245fb363336b46908d358f37251d59bad308f375bc54",
+      "source_filename": "BTCUSDT-1m-2025-11.zip"
+    },
+    {
+      "canonical_parquet_SHA256": "4f6a6319e3ff492f0b174c69d9f5747bf1e89aef16bd0042a74e10093ff9c955",
+      "canonical_parquet_relative_path": "canonical/1m/monthly/2025-12.parquet",
+      "period": "2025-12",
+      "source_SHA256": "2d5b2e1887dac1dfe450010877de7203a72e19df7a771067b980bbb07ad3069c",
+      "source_filename": "BTCUSDT-1m-2025-12.zip"
+    }
+  ],
+  "objects_materialized": false,
+  "schema": "signalbot_d2_confirmation_2025_metadata_binding",
+  "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415"
+}
