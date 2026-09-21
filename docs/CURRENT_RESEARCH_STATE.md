@@ -32,18 +32,39 @@ Program-level correction is sealed in `docs/research/MARKET_PROGRAM_UPDATE_POST_
 
 ## Exact next unit
 
-`NEXT_UNIT = MARKET_NEXT_HYPOTHESIS_SELECTION_FROM_ORTHOGONAL_REGIONS`
+```
+PREVIOUS_NEXT_UNIT = MARKET_NEXT_HYPOTHESIS_SELECTION_FROM_ORTHOGONAL_REGIONS
+REGION_SELECTED    = R-A / STRUCTURAL_REGIME_STATE_DETECTION
+SELECTION_STATUS   = REGION_SELECTED_NOT_HYPOTHESIS_CREATED
+MARKET_07_CREATED  = false
+NEXT_UNIT          = STRUCTURAL_REGIME_STATE_DETECTION_MECHANISM_CLASS_AND_NULL_MODEL_FEASIBILITY
+```
 
-Do not create MARKET-07 yet. Select one materially orthogonal region before feasibility/preregistration:
+The orthogonal-region selection is recorded in
+`docs/research/MARKET_NEXT_HYPOTHESIS_SELECTION.{json,md}`. R-A was chosen
+because it materially changes the FUNCTION axis (scalar outcome prediction
+-> state detection), does not rescue MARKET-05/06, and is feasible with
+existing point-in-time price data. Its researcher degrees of freedom are
+HIGH and are the primary blocker, so the selection is **provisional**:
+it stands only if a defensible lower-order null model and exactly one
+low-DoF state-construction class can both be defined outcome-blind.
 
-- R-A structural regime/state detection;
-- R-B conditional abstention / tail selection;
-- R-C cross-sectional relative structure;
-- R-D liquidity / market-structure state;
-- R-E execution-cost mechanism;
-- R-F composed joint state (highest rescue risk; must not re-interrogate consumed M06 target/window).
+R-B and R-F need a fresh evaluation surface that does not exist. R-C is the
+most orthogonal region but has no panel data and no listing/delisting
+reconstruction. R-D and R-E are forward-collection only.
 
-Selection criterion: information gain and search-space coverage, not “most likely profitable”.
+Do not create MARKET-07. The next unit must stop with `REGION_NOT_READY`
+if no defensible null exists.
+
+### Historical surface exposure
+
+2020-2024 is a **historically exposed/adapted program research surface**:
+H01/H02 and further H/BATCH work adapted on 2020-02-01 -> 2025-01-01 with
+outcome inspection allowed, and MARKET-01/02/05/06 consumed confirmatory
+windows inside it. A chronological split inside 2020-2024 must be called
+"chronological held-out evaluation on historically exposed research data",
+never out-of-sample or independent confirmation. The earlier claim that
+2020-2021 was unconsumed is retracted.
 
 ## Hard boundaries
 

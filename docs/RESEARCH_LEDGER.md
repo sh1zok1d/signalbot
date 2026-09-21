@@ -3385,3 +3385,58 @@ coverage.
 - `INTERNAL_HISTORICAL_CANDIDATES_PROMOTED = 0`
 - `MARKET_07_CREATED = false`
 - next required step: `MARKET_NEXT_HYPOTHESIS_SELECTION_FROM_ORTHOGONAL_REGIONS`
+
+## 2026-09-21 — MARKET next-hypothesis selection from orthogonal regions
+
+Selection / search-space design only. No hypothesis preregistered, no
+MARKET-07 created, no scientific outcome computed, protected 2025/2026
+unopened.
+
+`REGION_SELECTED = R-A / STRUCTURAL_REGIME_STATE_DETECTION`.
+`SELECTION_STATUS = REGION_SELECTED_NOT_HYPOTHESIS_CREATED`. The selection
+is provisional until a defensible lower-order null model and one low-DoF
+state-construction class can both be defined outcome-blind.
+
+Two corrections were recorded before selection.
+
+RETRACTION: an earlier draft claimed 2020-2021 was an unconsumed/fresh
+surface because MARKET-06 used only 2022-2024. That is FALSE. H01 and H02
+used a 2020-02-01 -> 2025-01-01 development window with adaptation
+allowed (21 documents reference it), and MARKET-01's common legal period
+starts 2020-09-01 with era splits through 2024/2025. CONSUMED/EXPOSED:
+2020-2024 is a historically exposed and adapted program research surface,
+carrying both adaptive discovery exposure (H/BATCH work) and confirmatory
+consumption (MARKET-01, MARKET-02, MARKET-05, MARKET-06). It remains usable
+for exploration, mechanism feasibility and implementation development, but
+not as fresh independent confirmation. A chronological split inside
+2020-2024 must be described as "chronological held-out evaluation on
+historically exposed research data", never as out-of-sample or independent
+confirmation.
+
+CORRECTION: the claim that MARKET-01..06 were all scalar prediction is
+withdrawn. MARKET-03 is an external public-strategy reproduction scored on
+the author's Max drawdown direction; MARKET-04/04H was never executed. The
+defensible statement is that internal hypothesis GENERATION was
+overconcentrated in short-horizon conditional scalar prediction, namely
+MARKET-01/02/05/06 plus earlier H/B2 work.
+
+R-A's closure scope is narrow: a negative result closes only the tested
+class of low-dimensional, price-derived, discrete state representations at
+the frozen time scale and construction procedure. It does not close
+continuous conditioning (which MARKET-01/02/05/06 actually used), other
+state constructions, other time scales, cross-sectional structure,
+order-book regimes, latent states outside CORE BTC, or "BTC regimes"
+generally.
+
+The binding scientific risk is the null model: a surrogate preserving only
+marginal distribution and linear autocorrelation can mechanically destroy
+the second-order dependence under test and manufacture a guaranteed
+positive contrast. The null must preserve every lower-order structure not
+being claimed as regime structure and must be chosen outcome-blind.
+
+Evidence: `docs/research/MARKET_NEXT_HYPOTHESIS_SELECTION.json`,
+`docs/research/MARKET_NEXT_HYPOTHESIS_SELECTION.md`.
+
+- `MARKET_07_CREATED = false`
+- `INTERNAL_HISTORICAL_CANDIDATES_PROMOTED = 0`
+- next required step: `STRUCTURAL_REGIME_STATE_DETECTION_MECHANISM_CLASS_AND_NULL_MODEL_FEASIBILITY`
