@@ -1,0 +1,63 @@
+{
+  "CONDITION_NUMBER_GATE": false,
+  "CUSTOM_RANK_TOLERANCE": false,
+  "EXPLICIT_MATRIX_RANK_VALIDATION": true,
+  "F04_NEAR_SINGULAR_HARDENING_STATUS": "HARDENING_OBSERVATION_ACCEPTED_NO_CHANGE",
+  "abandoned_authority_executed": false,
+  "abandoned_authority_reason": "Created before this required rank-validation repair. The repair changes the bootstrap module bytes and therefore RUN_IDENTITY, so the abandoned ARM and reservation bind a stale run identity and are not reusable. Discarded locally by resetting the branch to the pre-repair freeze; never pushed.",
+  "abandoned_authority_was_pushed": false,
+  "abandoned_local_arm_commit": "2884d5a1c4e9d99f6f77a6a1de7695da27893498",
+  "abandoned_local_reservation_commit": "67bbea0e554036eced53ff19b4518d31217cb896",
+  "arm_exists": false,
+  "bootstrap_module_sha256": "72c51ca9ead5bc64ceaeb02b1c7cda0f50c3e70372eac07059d6975c12ad7792",
+  "changed_modules": [
+    "scripts/research/market_06_cross_venue_dislocation_bootstrap.py"
+  ],
+  "claim_exists": false,
+  "closes": "RANK_DEFICIENCY_ONLY",
+  "data_authority_changed": false,
+  "date": "2026-09-21",
+  "defect": "The frozen prereg sets identifiability.collinear_or_rank_deficient = MARKET_06_INCOMPLETE_EXECUTION, and the independent general audit additionally required an explicit numpy.linalg.matrix_rank(X.T @ X) validation. The implementation relied only on numpy.linalg.solve raising LinAlgError, which is not an explicit identifiability check.",
+  "does_not_introduce": "ANY_NEAR_SINGULARITY_POLICY",
+  "lifecycle_changed": false,
+  "new_tests": [
+    "tests/research/test_market_06_rank_validation.py"
+  ],
+  "new_tests_sha256": {
+    "tests/research/test_market_06_rank_validation.py": "36cbd446b4a59b493f2ef98c7082a0668ac63f7e05889c0d7292db5dc6db2ea9"
+  },
+  "next_unit": "MARKET_06_EXECUTION_AUTHORITY_CREATION",
+  "no_fallback": [
+    "lstsq",
+    "pinv",
+    "inv",
+    "ridge",
+    "regularization"
+  ],
+  "outcome_firewall": {
+    "2025_opened": false,
+    "2026_opened": false,
+    "REAL_BOOTSTRAP_RUN": false,
+    "REAL_DATA_PARSED_FOR_SCIENCE": false,
+    "REAL_DISLOCATION_COMPUTED": false,
+    "REAL_ELIGIBLE_ROWS_COMPUTED": false,
+    "REAL_GATES_COMPUTED": false,
+    "REAL_MODELS_FIT_ON_REAL_DATA": false,
+    "REAL_OUTCOMES_COMPUTED": false,
+    "SCIENTIFIC_OUTCOMES_INSPECTED": false
+  },
+  "pre_rank_repair_freeze_head": "c435158d6ef872c2228fa0b94eb8ef13728dbead",
+  "pre_rank_repair_implementation_head": "0ff43e6f9dff4e32c65f85466ea9a3c48b1f01e1",
+  "prereg_changed": false,
+  "repair": "ols_solve (shared by the original TRAIN fits and every coefficient-bootstrap refit) now computes rank = numpy.linalg.matrix_rank(xtx) and raises Market06IncompleteExecution('RANK_DEFICIENT') unless rank == xtx.shape[0], before numpy.linalg.solve. The existing LinAlgError handling is retained as a second defensive layer.",
+  "research_id": "MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK",
+  "reservation_exists": false,
+  "result_exists": false,
+  "result_persistence_changed": false,
+  "schema": "signalbot_market_06_rank_validation_repair",
+  "schema_version": "1.0.0",
+  "scientific_definitions_changed": false,
+  "solver_unchanged": "numpy.linalg.solve(design.T @ design, design.T @ y)",
+  "status": "RANK_VALIDATION_REPAIRED_OUTCOME_BLIND_NOT_EXECUTED",
+  "unit_id": "MARKET_06_RANK_VALIDATION_REPAIR"
+}

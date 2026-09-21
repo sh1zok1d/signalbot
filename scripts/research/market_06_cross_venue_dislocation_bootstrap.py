@@ -50,8 +50,31 @@ def percentile_ci(replicates: np.ndarray) -> tuple[float, float]:
 
 
 def ols_solve(design: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """Frozen OLS. Shared by the TRAIN fits and the coefficient bootstrap.
+
+    The prereg makes rank deficiency fail closed:
+
+        identifiability.collinear_or_rank_deficient
+            = MARKET_06_INCOMPLETE_EXECUTION
+
+    Relying on ``numpy.linalg.solve`` raising ``LinAlgError`` is not an
+    explicit identifiability check, so ``numpy.linalg.matrix_rank`` is
+    evaluated first and the solve is retained as a second defensive layer.
+
+    NumPy's default tolerance is used deliberately: no custom tolerance
+    argument, no condition-number gate, and no substitute or penalized
+    solver of any kind. This closes rank deficiency only and introduces no
+    near-singularity policy (F-04 stays
+    HARDENING_OBSERVATION_ACCEPTED_NO_CHANGE).
+    """
+
     xtx = design.T @ design
     xty = design.T @ y
+
+    rank = np.linalg.matrix_rank(xtx)
+    if rank != xtx.shape[0]:
+        raise Market06IncompleteExecution("RANK_DEFICIENT")
+
     try:
         beta = np.linalg.solve(xtx, xty)
     except np.linalg.LinAlgError as exc:
