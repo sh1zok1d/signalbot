@@ -1,0 +1,102 @@
+{
+  "data_authority": {
+    "binance_object_count": 36,
+    "caller_can_override_data_commit": false,
+    "canonical_data_source_commit": "e2d543eadb5425473b6d4b8d24c177c1d7ae7930",
+    "dataset_id": "MARKET_06_OKX_BINANCE_FEASIBILITY_V0",
+    "durable_evidence_root_sha256": "f4b9e16a62707c70e782cc318399f3ba53ebb85c792e96cd12c164a98f0cdc6f",
+    "expected_5m_timestamps": 315648,
+    "okx_page_count": 1053,
+    "snapshot_id": "e0403e40a9b1e2903f15fb9283ec6caf54788e48153038982e364d4318183e68"
+  },
+  "date": "2026-09-21",
+  "explicit_state": {
+    "market_06_arm_created": false,
+    "market_06_armed": false,
+    "market_06_claim_created": false,
+    "market_06_executed": false,
+    "market_06_execution_authorized": false,
+    "market_06_reservation_created": false,
+    "market_06_result_created": false,
+    "protected_2025_opened": false,
+    "protected_2026_opened": false,
+    "real_canonical_execution_refused": true,
+    "refusal_reason": "MARKET_06_NO_TRACKED_CLAIM",
+    "scientific_outcomes_inspected": false
+  },
+  "freeze_commit_head": "UNSET_UNTIL_THIS_COMMIT",
+  "freeze_commit_head_note": "A docs-only freeze commit cannot embed its own SHA. The repaired implementation commit is implementation_head; this sentinel is never that value.",
+  "implementation_head": "0ff43e6f9dff4e32c65f85466ea9a3c48b1f01e1",
+  "implementation_tree": "b1f0c02d0cece83be5b19a482d1b823590f5c05f",
+  "is_current_authority": true,
+  "lifecycle": {
+    "arm_relpath": "docs/research/MARKET_06_EXECUTION_ARM.json",
+    "authority_chain": "CLAIM -> RESERVATION -> ARM -> IMPLEMENTATION_FREEZE",
+    "authorization_kind": "ONE_SHOT_CANONICAL_HISTORICAL_EXECUTION",
+    "claim_relpath": "docs/research/MARKET_06_EXECUTION_CLAIM.json",
+    "durable_pre_science_claim_required": true,
+    "future_arm_can_authorize_same_frozen_implementation": true,
+    "post_arm_scientific_code_change_required": false,
+    "reservation_relpath": "docs/research/MARKET_06_EXECUTION_RESERVATION.json",
+    "result_relpath": "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_RESULT.json",
+    "self_referential_commit_sha_required": false
+  },
+  "lifecycle_repair": {
+    "F04_STATUS": "HARDENING_OBSERVATION_ACCEPTED_NO_CHANGE",
+    "L10_ARM_RESERVATION_SELF_REFERENCE_FIXED": true,
+    "L11_DETERMINISTIC_RESULT_PERSISTENCE_FIXED": true,
+    "L11_DURABLE_PRE_SCIENCE_CLAIM_FIXED": true,
+    "L12_DATA_SOURCE_COMMIT_OVERRIDE_REMOVED": true,
+    "PREREG_CHANGED": false,
+    "SCIENTIFIC_DEFINITIONS_CHANGED": false,
+    "repair_artifact": "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_LIFECYCLE_REPAIR.json"
+  },
+  "module_sha256": {
+    "scripts/research/market_06_canonical_reconstruction.py": "64a39f2716b88195be2556ddb2538df5a87de15ded11aca043107c756134fe14",
+    "scripts/research/market_06_cross_venue_dislocation_authority.py": "968cd24521ed413c70560f0778fd14a0d463f99d70de98923596005bde07a171",
+    "scripts/research/market_06_cross_venue_dislocation_bootstrap.py": "773b7631f76885f34532dc16a845fd07711e9ca44496d7ef18a8079e98a63ec7",
+    "scripts/research/market_06_cross_venue_dislocation_evaluator.py": "ff87062edf583af1a67affcc18cda5e184379d9e63f7ff8b0e18383978890ead",
+    "scripts/research/market_06_cross_venue_dislocation_parsers.py": "471fe3ff04b2c53cfc234d13c3721d757897ccafe1688d94793d87fe92c3cd32",
+    "scripts/research/market_06_cross_venue_dislocation_runner.py": "92c4aee5dbfe0abf537ae34b8520bd3149198853009e725d48e54a7e1eca30e4",
+    "scripts/research/market_06_execution_lifecycle.py": "8125f82f5c2e1f3df3179db5b9c6049e014627479570cb0f17d1920447942576",
+    "scripts/research/market_06_git_authority.py": "7788b850faa4da95c85ec70a09c7d78bb46b937cb68aec01bc6a9ebb033f84de",
+    "scripts/research/market_06_result_persistence.py": "0965a3efa38f1e96d7f9b88601442fd29c575653f6d96aacf2311d2847635285",
+    "scripts/research/market_06_year_stratified_circular_mbb.py": "e8545dab9c3cf28eba556b3a0fe36d0b06cf412437a48516b3dc038a9a082da3"
+  },
+  "next_lifecycle_state": "MARKET_06_FINAL_LIFECYCLE_RED_TEAM",
+  "not_a_claim": true,
+  "not_a_reservation": true,
+  "not_a_result": true,
+  "not_an_arm": true,
+  "prereg_authority": {
+    "prereg_amended": false,
+    "prereg_content_head": "6342d24e6d872b6dbce91f9cdb8e7cfe689a6f59",
+    "prereg_content_tree": "11658516cab22774501daa8e2e966c9a8861c9a3",
+    "prereg_freeze_head": "e2d543eadb5425473b6d4b8d24c177c1d7ae7930",
+    "prereg_freeze_tree": "a1706c775154fc65ad1d5eaaa5818f87b834a2b7"
+  },
+  "research_id": "MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK",
+  "run_identity": "28cfa4884b638f91dd1074e93673ed37215d42334eef1746c89967f4a356a88f",
+  "run_identity_note": "Deterministic sha256 over content-only preimage (module hashes + prereg content identity + dataset identity). No commit SHAs, clock, or uuid.",
+  "schema": "signalbot_market_06_implementation_refreeze",
+  "schema_version": "1.1.0",
+  "status": "LIFECYCLE_REPAIRED_AND_REFROZEN_OUTCOME_BLIND",
+  "supersedes": {
+    "previous_freeze_artifact": "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION_REFREEZE.json",
+    "previous_freeze_remains_valid_for": "the pre-lifecycle-repair commit it describes",
+    "previous_implementation_freeze_head": "6fc1b62935a0cb6d6c6ddbee5b88a7ff1ac8a7d6",
+    "previous_implementation_head": "378e8fd710040c5b4bd2471379b2ce4446ce80f2"
+  },
+  "test_sha256": {
+    "tests/research/test_market_06_canonical_reconstruction.py": "eebdb3c84baebe258da083e89b35c15924ca95c8a1d0cd3fc537ca03c0f6d798",
+    "tests/research/test_market_06_claim_lifecycle.py": "fb2a6c077fd080b4b69ba4d52f2d06cab7e46c11c3a587d542ca4370af2e61e8",
+    "tests/research/test_market_06_execution_lifecycle.py": "b7443da916b983b9cdd20e78653758cfc2ba624fe14bd4b3a35c8f431cb145ef",
+    "tests/research/test_market_06_implementation.py": "5d81baba1d9d1939d7c49d4d48aa060669b17f720e876f875495c233d2843408",
+    "tests/research/test_market_06_prereg.py": "de810c504eae30938b5d96240e712b7bf4ece0149ef419af5c15139e89f16f12",
+    "tests/research/test_market_06_prereg_freeze.py": "2e6b9570d443dc794153b03aa1982f1b34335681c04016f0055b9e1735204376",
+    "tests/research/test_market_06_row_eligibility.py": "ba65237e5e9f66d16a2aaa77fa046f6834f14f55f7cd1e31e3eff46297779d19",
+    "tests/research/test_market_06_temporal_semantics.py": "bc1f1015d00c59943733190428a3fe7a460682db3ea290f7edae01403b0253ab",
+    "tests/research/test_market_06_year_stratified_circular_mbb.py": "c9ba75251fe166113248f5013b6a9ead444ebf584c1959cc42b5a3180e17cdb3"
+  },
+  "unit_id": "MARKET_06_LIFECYCLE_REFREEZE"
+}
