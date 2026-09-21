@@ -299,6 +299,7 @@ def estimate_dependence_preserving_size_planning(
         both_n = 0
         injected_err = 0.0
         n_valid = 0
+        print(f"dependence_preserving_power N={n_rows} outer={n_outer} inner={n_inner}", flush=True)
         for _ in range(int(n_outer)):
             y, selected, slices, _meta = construct_fixed_n_surface(
                 year_blocks, int(n_rows), rng
