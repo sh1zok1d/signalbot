@@ -190,10 +190,79 @@ def test_sealed_result_bytes_are_unchanged():
     )
 
 
-def test_second_shot_is_refused_by_the_local_attempt_ledger():
+CANONICAL_RUN_IDENTITY = (
+    "f3aa51372594d710a8f705d761d857f8385d0b848fb0ed59a36b27a16ce25c22"
+)
+
+
+def test_second_shot_is_refused_by_the_local_attempt_ledger(tmp_path, monkeypatch):
+    """A ledger recording the run identity refuses a second shot.
+
+    Hermetic by construction: this uses a SYNTHETIC ledger under tmp_path
+    and never reads, writes, or depends on the real canonical attempt
+    ledger, which is gitignored and exists only in the designated canonical
+    checkout (so it is absent in a fresh clone or CI).
+    """
+
+    ledger = tmp_path / "attempts.json"
+    ledger.write_text(
+        json.dumps(
+            {
+                CANONICAL_RUN_IDENTITY: {
+                    "claim_commit": "6d2814491a99bcd4e7ef4fcdd1c6ee0bc3443657",
+                    "reservation_commit": "de478963823817a705ced22efa23d883f2f2e56e",
+                    "arm_commit": "2d5815760241042e812eef5e70357a693f38e1c6",
+                    "claim_state": lifecycle.CLAIM_STATE_CLAIMED,
+                    "scientific_outcomes_inspected": False,
+                }
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(lifecycle, "_attempt_ledger_path", lambda: ledger)
+
+    assert lifecycle.read_attempt_ledger()[CANONICAL_RUN_IDENTITY]["claim_state"] == (
+        lifecycle.CLAIM_STATE_CLAIMED
+    )
     with pytest.raises(lifecycle.Market06ExecutionNotAuthorized) as exc:
-        lifecycle.assert_shot_not_already_consumed("f3aa51372594d710a8f705d761d857f8385d0b848fb0ed59a36b27a16ce25c22")
+        lifecycle.assert_shot_not_already_consumed(CANONICAL_RUN_IDENTITY)
     assert "ALREADY_CLAIMED" in str(exc.value)
+
+
+def test_empty_synthetic_ledger_does_not_claim_local_consumption(tmp_path, monkeypatch):
+    """The complementary direction: an empty ledger must NOT refuse."""
+
+    monkeypatch.setattr(lifecycle, "_attempt_ledger_path", lambda: tmp_path / "absent.json")
+    assert lifecycle.read_attempt_ledger() == {}
+    lifecycle.assert_shot_not_already_consumed(CANONICAL_RUN_IDENTITY)
+
+    empty = tmp_path / "empty.json"
+    empty.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(lifecycle, "_attempt_ledger_path", lambda: empty)
+    assert lifecycle.read_attempt_ledger() == {}
+    lifecycle.assert_shot_not_already_consumed(CANONICAL_RUN_IDENTITY)
+
+    # a ledger holding a DIFFERENT run identity must not refuse this one
+    other = tmp_path / "other.json"
+    other.write_text(json.dumps({"0" * 64: {"claim_state": "X"}}), encoding="utf-8")
+    monkeypatch.setattr(lifecycle, "_attempt_ledger_path", lambda: other)
+    lifecycle.assert_shot_not_already_consumed(CANONICAL_RUN_IDENTITY)
+
+
+def test_ledger_tests_never_touch_the_real_canonical_ledger():
+    """Guard: the real ledger is gitignored and must stay untracked."""
+
+    real = REPO / lifecycle.EXECUTION_ATTEMPT_LEDGER_REL
+    proc = subprocess.run(
+        ["git", "ls-files", "--error-unmatch", lifecycle.EXECUTION_ATTEMPT_LEDGER_REL],
+        cwd=REPO,
+        capture_output=True,
+    )
+    assert proc.returncode != 0, "the canonical attempt ledger must never be tracked"
+    assert lifecycle.EXECUTION_ATTEMPT_LEDGER_REL in (REPO / ".gitignore").read_text()
+    # this suite must not depend on whether the real ledger happens to exist
+    assert real.name not in ("", None)
 
 
 def test_permit_cannot_be_forged():
