@@ -3159,3 +3159,36 @@ the frozen library. Canonical RESULT SHA256 remains
 
 - next required step: `NEW_MARKET_HYPOTHESIS_ID_IF_AUTHORIZED` (not MARKET-01 rerun)
 
+## 2026-09-21 — MARKET-06 outcome-blind historical feasibility retry
+
+Independent retry of `MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK`
+historical feasibility from this Cursor host. Does not reuse the previous
+HOST_BLOCKED CONNECT-tunnel record at `97e01bd3…`.
+
+Probed `data.binance.vision` and `api.bybit.com` on the host default
+route (`HTTPS_PROXY` unset; no bypass). Binance Vision returned HTTP 200
+AmazonS3/CloudFront; 36/36 monthly USD-M BTCUSDT 5m trade-price ZIP and
+CHECKSUM objects for 2022-01 through 2024-12 are listed. Bybit V5
+(`/v5/market/time` and structural kline probes for early 2022 / mid 2023
+/ late 2024) returned CloudFront HTTP 403 country-block JSON. Class:
+Binance `SOURCE_REACHABLE`; Bybit `VENUE_RESPONSE_ERROR`; not
+`HOST_EGRESS_BLOCK`.
+
+Zip payloads were not downloaded. No prices, dislocation, future
+returns, or other scientific quantities were computed. 2025/2026 were
+not opened. No MARKET-06 prereg/ARM/RESULT.
+
+```text
+MARKET_06_STATUS = CONCEPT_SELECTED_NOT_PREREGISTERED
+VERDICT = MARKET_06_HISTORICAL_FEASIBILITY_REQUIRES_DESIGN_REVIEW
+BINANCE_VISION = SOURCE_REACHABLE
+BYBIT_V5 = VENUE_RESPONSE_ERROR
+HOST_EGRESS_BLOCK = false
+DISLOCATION_COMPUTED = false
+SCIENTIFIC_OUTCOMES_INSPECTED = false
+MARKET_06_PREREG_CREATED = false
+NEXT_UNIT = MARKET_06_BYBIT_OFFICIAL_HISTORICAL_ROUTE_OR_REACHABLE_HOST_REVIEW
+```
+
+Evidence: `docs/research/MARKET_06_CROSS_VENUE_FEASIBILITY.md`.
+
