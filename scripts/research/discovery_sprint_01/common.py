@@ -411,12 +411,25 @@ def load_core_5m_perp(
 def _read_parquet_ohlc(path: Path) -> list[tuple[int, float, float, float, float]]:
     import pyarrow.parquet as pq
 
-    table = pq.read_table(path, columns=["open_time_ms", "open", "high", "low", "close"])
+    # Frozen CORE_ETH parquet schema is open_time_ms/high/low/close (no open).
+    # Fill 1m open from close when that column is absent so 5m aggregation can
+    # proceed. D4 uses close-to-close returns only; this is schema compatibility
+    # with market05_eth_execution_parquet/1.0.0, not a scientific change.
+    schema_names = set(pq.read_schema(path).names)
+    required = ["open_time_ms", "high", "low", "close"]
+    missing_required = [name for name in required if name not in schema_names]
+    if missing_required:
+        raise MissingLocalData(f"PARQUET_SCHEMA_MISSING:{path}:{missing_required}")
+    columns = list(required)
+    has_open = "open" in schema_names
+    if has_open:
+        columns.insert(1, "open")
+    table = pq.read_table(path, columns=columns)
     opens = table.column("open_time_ms").to_pylist()
-    o = table.column("open").to_pylist()
+    c = table.column("close").to_pylist()
+    o = table.column("open").to_pylist() if has_open else c
     h = table.column("high").to_pylist()
     l = table.column("low").to_pylist()
-    c = table.column("close").to_pylist()
     out: list[tuple[int, float, float, float, float]] = []
     for i, open_ms in enumerate(opens):
         ts = int(open_ms)

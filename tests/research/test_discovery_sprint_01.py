@@ -95,14 +95,14 @@ def _row(
     )
 
 
-def test_preflight_flags_absent_core_and_present_m06() -> None:
+def test_preflight_snapshot_ids_and_m06_present() -> None:
     report = C.preflight_local_data(REPO)
     assert report["CORE_BTC_SNAPSHOT"] == C.CORE_BTC_SNAPSHOT
     assert report["CORE_ETH_SNAPSHOT"] == C.CORE_ETH_SNAPSHOT
     assert report["M06_SNAPSHOT"] == C.M06_SNAPSHOT
-    assert report["BTC_DATA_PRESENT"] is False
-    assert report["ETH_DATA_PRESENT"] is False
     assert report["M06_CROSS_VENUE_DATA_PRESENT"] is True
+    assert report["BTC_DATA_PRESENT"] is (report["btc_month_count"] == 60)
+    assert report["ETH_DATA_PRESENT"] is (report["eth_month_count"] == 60)
 
 
 def test_protected_partition_refusal(tmp_path: Path) -> None:
@@ -317,16 +317,39 @@ def test_batch_blocked_without_core(tmp_path: Path) -> None:
         output_dir=tmp_path,
         repo=REPO,
         n_replicates=4,
+        core_perp={},
         m06_perp={},
         m06_spot={},
     )
     assert payload["TERMINAL_CLASSIFICATION"] == "BLOCKED_MISSING_LOCAL_DATA"
     assert payload["PROTECTED_2025_OPENED"] is False
-    d3 = run_d3(implementation_commit="TEST", output_dir=tmp_path, repo=REPO, n_replicates=2, run_companions=False)
+    d3 = run_d3(
+        implementation_commit="TEST",
+        output_dir=tmp_path,
+        repo=REPO,
+        n_replicates=2,
+        run_companions=False,
+        core_perp={},
+    )
     assert d3["TERMINAL_CLASSIFICATION"] == "BLOCKED_MISSING_LOCAL_DATA"
-    d4 = run_d4(implementation_commit="TEST", output_dir=tmp_path, repo=REPO, n_replicates=2)
+    d4 = run_d4(
+        implementation_commit="TEST",
+        output_dir=tmp_path,
+        repo=REPO,
+        n_replicates=2,
+        btc_perp={},
+        eth_perp={},
+    )
     assert d4["TERMINAL_CLASSIFICATION"] == "BLOCKED_MISSING_LOCAL_DATA"
-    d5 = run_d5(implementation_commit="TEST", output_dir=tmp_path, repo=REPO, n_replicates=2)
+    d5 = run_d5(
+        implementation_commit="TEST",
+        output_dir=tmp_path,
+        repo=REPO,
+        n_replicates=2,
+        core_perp={},
+        m06_perp={},
+        m06_spot={},
+    )
     assert d5["TERMINAL_CLASSIFICATION"] == "BLOCKED_MISSING_LOCAL_DATA"
 
 
@@ -341,7 +364,7 @@ def test_d2_rule2_executes_on_injected_m06_like_bars() -> None:
         perp[ts] = PerpBar(bar.open_time_ms, bar.open, bar.high * 1.08, bar.low, bar.close * 1.06)
     payload = run_d2(
         implementation_commit="TEST",
-        core_perp=None,
+        core_perp={},
         m06_perp=perp,
         m06_spot=spot,
         n_replicates=8,
@@ -350,3 +373,48 @@ def test_d2_rule2_executes_on_injected_m06_like_bars() -> None:
     assert payload["TERMINAL_CLASSIFICATION"] == "BLOCKED_MISSING_LOCAL_DATA"
     assert "DISLOCATION_ABSTENTION" in payload["PRIMARY_METRICS"]
     assert payload["SEARCH_SURFACE_ATTEMPTED"] == ["RV_ABSTENTION", "DISLOCATION_ABSTENTION"]
+
+
+def test_restore_helper_refuses_protected_years() -> None:
+    from scripts.research.restore_discovery_core_material import (
+        RestoreError,
+        assert_url_legal,
+        load_btc_legal_inventory,
+        period_is_protected,
+    )
+
+    assert period_is_protected("2025-01") is True
+    assert period_is_protected("2026-08") is True
+    assert period_is_protected("2024-12") is False
+    with pytest.raises(RestoreError, match="PROTECTED_URL_REFUSED"):
+        assert_url_legal(
+            "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2025-01.zip"
+        )
+    with pytest.raises(RestoreError, match="PROTECTED_URL_REFUSED"):
+        assert_url_legal(
+            "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1m/ETHUSDT-1m-2026-01.zip"
+        )
+    inventory = load_btc_legal_inventory(REPO)
+    assert len(inventory) == 60
+    assert all(not period_is_protected(str(obj["source_period"])) for obj in inventory)
+    assert all("2025-" not in str(obj["source_url"]) for obj in inventory)
+    assert all("2026-" not in str(obj["source_url"]) for obj in inventory)
+
+
+def test_eth_schema_without_open_is_readable(tmp_path: Path) -> None:
+    pa = pytest.importorskip("pyarrow")
+    pq = pytest.importorskip("pyarrow.parquet")
+    dest = tmp_path / "2020-01.parquet"
+    table = pa.table(
+        {
+            "open_time_ms": pa.array([1577836800000, 1577836860000], type=pa.int64()),
+            "high": pa.array(["100.1", "100.2"]),
+            "low": pa.array(["99.9", "99.8"]),
+            "close": pa.array(["100.0", "100.05"]),
+        }
+    )
+    pq.write_table(table, dest)
+    rows = C._read_parquet_ohlc(dest)
+    assert rows[0][1] == pytest.approx(100.0)
+    assert rows[0][4] == pytest.approx(100.0)
+    assert rows[1][1] == pytest.approx(100.05)

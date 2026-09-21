@@ -19,7 +19,7 @@ For the narrative evolution, read `PROJECT_HISTORY.md`. For complete original do
 
 Read these first:
 
-| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. Discovery Sprint 01 partial batch ran; D2-D5 `BLOCKED_MISSING_LOCAL_DATA` pending local CORE parquet |
+| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. Discovery Sprint 01 first attempt blocked on missing CORE parquet; RULE_2 is a partial component outcome, not a completed card; `INTERNAL_DISCOVERY_WARNING = null` |
 | `research/DISCOVERY_SPRINT_01.md` | **ACTIVE DISCOVERY SPRINT** | Six-card sprint plus partial-execution record |
 | `research/discovery_results/` | **ADAPTIVE DISCOVERY RESULTS** | D2-D5 lightweight discovery result JSON/MD; not confirmatory |
 | `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. MARKET-01 closed `NO_EVIDENCE`; V3 closed; no V4; B2-06 remains blocked. |

@@ -42,16 +42,30 @@ PROTECTED_2025_OPENED       = false
 PROTECTED_2026_OPENED       = false
 INTERNAL_DISCOVERY_CARDS_EXECUTED = 0
 INTERNAL_PROMISING_PROTOTYPES     = 0
+INTERNAL_DISCOVERY_WARNING        = null
+FULL_DISCOVERY_CARDS_COMPLETED    = 0
+PARTIAL_COMPONENT_OUTCOMES_OBSERVED = 1
+PARTIAL_COMPONENT_OUTCOMES        = D2/RULE_2/DISLOCATION_ABSTENTION
+D2_RULE_2_DISCOVERY_OUTCOME_OBSERVED = true
+D2_RULE_2_GATE_PASS               = false
+POST_OUTCOME_DESIGN_CHANGES       = false
 ```
 
 Discovery Sprint 01's first authorized partial batch was **run** on
 `research/discovery-sprint-01-execution` (implementation
-`26d8f7066533bcae7138d5a1952783f2a16f3c39`). D2/D3/D4 rolling/D5 all
+`26d8f7066533bcae7138d5a1952783f2a16f3c39`, first result commit
+`37921089ce289cd9bcbcebb123724a3e033dcdc3`). D2/D3/D4 rolling/D5 all
 returned `BLOCKED_MISSING_LOCAL_DATA` because local
 `CORE_BTC_BINANCE_V0` / `CORE_ETH_BINANCE_V0` monthly parquet was
 absent. MARKET-06 durable raw was present; D2 RULE_2 was attempted on
-that identity only. Protected 2025/2026 were not opened. MARKET-07 was
-not created. No post-outcome design changes.
+that identity only (`GATE_PASS=false`; eligible 1062). That RULE_2
+attempt is a **partial component outcome**, not a completed internal
+card: `FULL_DISCOVERY_CARDS_COMPLETED = 0`,
+`PARTIAL_COMPONENT_OUTCOMES_OBSERVED = 1`. The first-result warning
+`ZERO_PROMISING_AFTER_FIRST_EXECUTED_INTERNAL_CARDS` was a bookkeeping
+error at executed count 0 and is corrected to
+`INTERNAL_DISCOVERY_WARNING = null`. Protected 2025/2026 were not
+opened. MARKET-07 was not created. No post-outcome design changes.
 
 D1 remains `BLOCKED_PENDING_PRE_OUTCOME_FIX`. D6 remains `DEFERRED`.
 D4 `LEAD_LAG_1DAY` remains `DEFERRED_FROM_SPRINT_01`.

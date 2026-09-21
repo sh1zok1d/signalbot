@@ -3851,11 +3851,28 @@ not complete without CORE monthly parquet. D1 remains
 deferred. MARKET-07 was not created. Protected 2025/2026 unopened.
 `POST_OUTCOME_DESIGN_CHANGES = false`.
 
-Program diagnostic: `INTERNAL_DISCOVERY_CARDS_EXECUTED = 0`,
+Program diagnostic recorded in result commit
+`37921089ce289cd9bcbcebb123724a3e033dcdc3`:
+`INTERNAL_DISCOVERY_CARDS_EXECUTED = 0`,
 `INTERNAL_PROMISING_PROTOTYPES = 0`, interim warning
 `ZERO_PROMISING_AFTER_FIRST_EXECUTED_INTERNAL_CARDS` with executed count
 `0`. Formal `INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED` not
 triggered.
+
+**Bookkeeping correction (same first attempt, no scientific rerun):**
+the `ZERO_PROMISING_AFTER_FIRST_EXECUTED_INTERNAL_CARDS` warning is
+invalid while executed count is 0. Correct record:
+
+- `INTERNAL_DISCOVERY_WARNING = null`
+- `FULL_DISCOVERY_CARDS_COMPLETED = 0`
+- `PARTIAL_COMPONENT_OUTCOME_OBSERVED = true`
+- `PARTIAL_COMPONENT_OUTCOMES = ["D2/RULE_2/DISLOCATION_ABSTENTION"]`
+- `PARTIAL_COMPONENT_OUTCOMES_OBSERVED = 1`
+- `D2_RULE_2_DISCOVERY_OUTCOME_OBSERVED = true`
+- `D2_RULE_2_GATE_PASS = false`
+- D2 CARD remains `BLOCKED_MISSING_LOCAL_DATA` (RULE_1 not executable)
+- RULE_2 is not counted as an executed internal card
+- `POST_OUTCOME_DESIGN_CHANGES = false`
 
 Evidence: `docs/research/discovery_results/`,
 `docs/research/DISCOVERY_SPRINT_01.{json,md}`.

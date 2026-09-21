@@ -517,11 +517,18 @@ Classifications (adaptive discovery only):
 
 D2 RULE_2 (`DISLOCATION_ABSTENTION`) was attempted on retained MARKET-06 durable raw because that identity was present; D2 RULE_1 was not run. The frozen two-rule card therefore remains blocked rather than classified as a completed prototype/null. D4 `LEAD_LAG_1DAY` was not executed.
 
-Program diagnostic:
+Program diagnostic (bookkeeping correction of result commit `37921089ce289cd9bcbcebb123724a3e033dcdc3`):
 
 - `INTERNAL_DISCOVERY_CARDS_EXECUTED = 0`
 - `INTERNAL_PROMISING_PROTOTYPES = 0`
-- interim warning `ZERO_PROMISING_AFTER_FIRST_EXECUTED_INTERNAL_CARDS` with executed count `0`
+- `INTERNAL_DISCOVERY_WARNING = null` (the first-result warning `ZERO_PROMISING_AFTER_FIRST_EXECUTED_INTERNAL_CARDS` was invalid at executed count 0 and is removed until at least one INTERNAL card completes)
+- `FULL_DISCOVERY_CARDS_COMPLETED = 0`
+- `PARTIAL_COMPONENT_OUTCOME_OBSERVED = true`
+- `PARTIAL_COMPONENT_OUTCOMES = ["D2/RULE_2/DISLOCATION_ABSTENTION"]`
+- `PARTIAL_COMPONENT_OUTCOMES_OBSERVED = 1`
+- `D2_RULE_2_DISCOVERY_OUTCOME_OBSERVED = true`
+- `D2_RULE_2_GATE_PASS = false`
+- D2 as a CARD remains `BLOCKED_MISSING_LOCAL_DATA` because RULE_1 was not executable; RULE_2 is not counted as an executed card
 - formal `INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED` not triggered
 - `D1 = BLOCKED_PENDING_PRE_OUTCOME_FIX`
 - `D6 = DEFERRED`
