@@ -4071,3 +4071,55 @@ GATES_CHANGED = false
 Evidence: `docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.{json,md}`.
 
 - next required step: `D2_CONFIRMATION_WAIT_FOR_PREDECLARED_2025_PLUS_2026_WITHOUT_OPENING`
+
+## 2026-09-21 — D2 dependence-preserving size planning
+
+Repaired multi-year power planning for the same frozen D2 RULE_1
+confirmation design. Confirmation was not executed. 2025/2026 price
+values were not inspected. Rule, target, comparator, and gates are
+unchanged. Original one-year powers remain:
+
+```
+ONE_YEAR_STATISTICAL_POWER_AT_20PCT = 0.011
+ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT = 0.006
+```
+
+IID pooled-K two-year power `0.903` is preserved as
+`SUPERSEDED_IID_SIZE_PLANNING` and is not authoritative.
+
+Authoritative method: year-matched whole-year block resampling from
+2021-2024 plus contiguous partial-year blocks; circular non-zero mask
+shift; 20% effect injected vs expected year-matched control mean;
+10000 year-matched inner replicates; seed `20260921123`.
+
+```
+POWER_N550 = 0.446
+POWER_N575 = 0.473
+POWER_N600 = 0.525
+POWER_N625 = 0.545
+POWER_N650 = 0.56
+POWER_N675 = 0.59
+POWER_N700 = 0.636
+POWER_N728 = 0.64
+THREE_YEAR = 1.0
+FOUR_YEAR = 1.0
+MIN_REQUIRED_FRESH_DECISION_ROWS = 1092
+POTENTIAL_FUTURE_SURFACE = MORE_THAN_2025_PLUS_2026_OR_ALTERNATIVE_INDEPENDENT_SURFACE
+AUTHORIZED_TO_OPEN = false
+```
+
+Two independent years remain below 0.80. Do not consume 2025+2026.
+Full calendar 2026 is not currently available.
+
+```
+CONFIRMATION_FEASIBILITY = UNDERPOWERED_SINGLE_YEAR_2025
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+RULE_CHANGED = false
+TARGET_CHANGED = false
+GATES_CHANGED = false
+```
+
+Evidence: `docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.{json,md}`.
+
+- next required step: `D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE_OR_FIND_EQUIVALENT`

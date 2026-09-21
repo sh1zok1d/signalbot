@@ -37,7 +37,7 @@ PREVIOUS_ROUTING            = D2_CONFIRMATION_FEASIBILITY_AND_DESIGN
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = D2_CONFIRMATION_WAIT_FOR_PREDECLARED_2025_PLUS_2026_WITHOUT_OPENING
+NEXT_UNIT                   = D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE_OR_FIND_EQUIVALENT
 PROTECTED_2025_OPENED       = false
 PROTECTED_2026_OPENED       = false
 INTERNAL_DISCOVERY_CARDS_EXECUTED = 4
@@ -94,12 +94,13 @@ returned year-cycled `ONE_YEAR_STATISTICAL_POWER_AT_20PCT = 0.011`
 power `~0.499` at the exact 20% boundary is expected and is not
 underpower evidence). Primary prospective criterion is statistical
 power `>= 0.80`. `CONFIRMATION_FEASIBILITY = UNDERPOWERED_SINGLE_YEAR_2025`.
-Fresh-surface size planning on exposed 2020-2024 only found
-`TWO_YEAR_STATISTICAL_POWER_AT_20PCT = 0.903`, so
-`MIN_REQUIRED_FRESH_YEARS = 2` and
-`POTENTIAL_FUTURE_SURFACE = 2025_PLUS_FULL_2026`, but
+IID two-year power `0.903` is superseded. Authoritative
+year-matched whole-year-block plus contiguous partial-block power
+gives `POWER_N728 = 0.64 < 0.80` and `POWER_N1092 = 1.0`.
+`MIN_REQUIRED_FRESH_DECISION_ROWS = 1092`.
+`POTENTIAL_FUTURE_SURFACE = MORE_THAN_2025_PLUS_2026_OR_ALTERNATIVE_INDEPENDENT_SURFACE`.
 `AUTHORIZED_TO_OPEN = false`. `2025_OPEN_AUTHORIZED = false`.
-Do not automatically combine or open 2025/2026.
+Do not consume 2025+2026. Full calendar 2026 is not currently available.
 Record: `docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.{json,md}`.
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
@@ -168,7 +169,7 @@ RULE_1's unrestricted full-2020-2024 result.
 
 **Current per-card status:** `D1 = DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH`
 (adequacy gate not executed); `D2 = PROMISING_PROTOTYPE` (adaptive
-discovery; RULE_1 only; 2025 confirmation `UNDERPOWERED_SINGLE_YEAR_2025`; two-year fresh surface statistically adequate but not authorized to open);
+discovery; RULE_1 only; 2025 confirmation `UNDERPOWERED_SINGLE_YEAR_2025`; two-year year-matched surface still underpowered, do not consume 2025+2026);
 `D3 = NO_USEFUL_STRUCTURE`; `D4
 ROLLING_CORRELATION_90D = NO_USEFUL_STRUCTURE` (`LEAD_LAG_1DAY` still
 deferred); `D5 = NO_USEFUL_STRUCTURE`; `D6 = DEFERRED`. First blocked

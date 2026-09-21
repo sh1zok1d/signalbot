@@ -173,6 +173,16 @@ def test_report_does_not_open_protected_prices() -> None:
         assert dep["iid_row_resampling_used"] is False
         assert dep["FIXED_N_POWER_GRID"] == list(FIXED_N_POWER_GRID)
         assert report["PR_READY_TO_MERGE"] is False
+        assert report["TWO_YEAR_STATISTICAL_POWER_AT_20PCT"] == pytest.approx(0.64)
+        assert report["MIN_REQUIRED_FRESH_DECISION_ROWS"] == 1092
+        assert report["POTENTIAL_FUTURE_SURFACE"] == (
+            "MORE_THAN_2025_PLUS_2026_OR_ALTERNATIVE_INDEPENDENT_SURFACE"
+        )
+        assert report["NEXT_UNIT"] == (
+            "D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE_OR_FIND_EQUIVALENT"
+        )
+        assert report["MIN_REQUIRED_FRESH_2026_ROWS_AFTER_FULL_2025"] is None
+        assert report["POWER_BY_N"]["728"] == pytest.approx(0.64)
         assert "## SUPERSEDED_IID_SIZE_PLANNING" in md
         assert "YEAR_MATCHED_WHOLE_YEAR_PLUS_CONTIGUOUS_PARTIAL_BLOCK" in md
     else:

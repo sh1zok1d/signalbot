@@ -19,17 +19,29 @@ random-abstention comparator / 20% practical gate / P95 statistical gate.
 | `PRIMARY_CONFIRMATION_SURFACE` | `2025` |
 | `SECOND_RESERVED_SURFACE` | `2026` |
 | `CONFIRMATION_FEASIBILITY` | `UNDERPOWERED_SINGLE_YEAR_2025` |
+| `AUTHORITATIVE_POWER_METHOD` | `YEAR_MATCHED_WHOLE_YEAR_PLUS_CONTIGUOUS_PARTIAL_BLOCK` |
 | `ONE_YEAR_STATISTICAL_POWER_AT_20PCT` | `0.011` |
 | `ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT` | `0.006` |
+| `ONE_YEAR_STATISTICAL_POWER_AT_20PCT_DEPENDENCE_PRESERVING` | `0.033` |
 | `PRIMARY_PROSPECTIVE_POWER_CRITERION` | `STATISTICAL_POWER_AT_20PCT_EFFECT` |
 | `MINIMUM_ACCEPTABLE_CONFIRMATION_POWER` | `0.8` |
-| `TWO_YEAR_STATISTICAL_POWER_AT_20PCT` | `0.903` |
+| `POWER_N550` | `0.446` |
+| `POWER_N575` | `0.473` |
+| `POWER_N600` | `0.525` |
+| `POWER_N625` | `0.545` |
+| `POWER_N650` | `0.56` |
+| `POWER_N675` | `0.59` |
+| `POWER_N700` | `0.636` |
+| `POWER_N728` / two-year | `0.64` |
 | `THREE_YEAR_STATISTICAL_POWER_AT_20PCT` | `1.0` |
 | `FOUR_YEAR_STATISTICAL_POWER_AT_20PCT` | `1.0` |
-| `MIN_REQUIRED_FRESH_DECISION_ROWS` | `728` |
-| `MIN_REQUIRED_FRESH_YEARS` | `2` |
-| `CONFIRMATION_SURFACE_REQUIREMENT` | `TWO_YEARS_INDEPENDENT_FRESH` |
-| `POTENTIAL_FUTURE_SURFACE` | `2025_PLUS_FULL_2026` |
+| `MIN_REQUIRED_FRESH_DECISION_ROWS` | `1092` |
+| `MIN_REQUIRED_FRESH_2026_ROWS_AFTER_FULL_2025` | `null` |
+| `FROZEN_2026_PREFIX_DECISION_COUNT` | `null` |
+| `FROZEN_FINAL_DECISION_TIMESTAMP` | `null` |
+| `SUPERSEDED_IID_TWO_YEAR_POWER` | `0.903` |
+| `CONFIRMATION_SURFACE_REQUIREMENT` | `THREE_YEARS_INDEPENDENT_FRESH` |
+| `POTENTIAL_FUTURE_SURFACE` | `MORE_THAN_2025_PLUS_2026_OR_ALTERNATIVE_INDEPENDENT_SURFACE` |
 | `AUTHORIZED_TO_OPEN` | `false` |
 | `EXPECTED_2025_ELIGIBLE_N` | `364` |
 | `EXPECTED_2025_ABSTAIN_COUNT` | `39` |
@@ -41,7 +53,8 @@ random-abstention comparator / 20% practical gate / P95 statistical gate.
 | `RULE_CHANGED` | `false` |
 | `TARGET_CHANGED` | `false` |
 | `GATES_CHANGED` | `false` |
-| `NEXT_UNIT` | `D2_CONFIRMATION_WAIT_FOR_PREDECLARED_2025_PLUS_2026_WITHOUT_OPENING` |
+| `PR_READY_TO_MERGE` | `false` |
+| `NEXT_UNIT` | `D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE_OR_FIND_EQUIVALENT` |
 
 Historical joint field `POWER_AT_20PCT_MIN_EFFECT` remains `0.006`
 and is **not** the primary prospective criterion.
@@ -64,9 +77,9 @@ remains an actual execution-time requirement:
 
 TRUE_EFFECT = 20% relative is the same magnitude as the frozen practical confirmation gate DELTA >= 20% * UNCONDITIONAL_MEAN. power_practical_gate at that exact boundary is therefore approximately 0.5 by construction / sampling variability of MU_CONTROL_MEAN. The observed original value power_practical_gate ~= 0.499 is not itself evidence that the study is underpowered.
 
-This amendment is an interpretation correction plus fresh-surface size
-planning. It is **not** a scientific-design rescue. The 20% effect bar
-is not lowered.
+This amendment is an interpretation correction plus dependence-preserving
+fresh-surface size planning. It is **not** a scientific-design rescue.
+The 20% effect bar is not lowered.
 
 ### Original one-year calculation (preserved historical output)
 
@@ -96,30 +109,61 @@ Because `0.011` is still far
 below 0.80, `CONFIRMATION_FEASIBILITY` remains
 `UNDERPOWERED_SINGLE_YEAR_2025`.
 
-## Fresh-surface size planning (2020-2024 only)
+## SUPERSEDED_IID_SIZE_PLANNING
 
-Fireable 2020-2024 empirical direction-aligned MAE severity (trailing-250 warmup excluded). Hypothetical fresh surfaces are drawn with replacement. Expected K = round(frozen RULE_1 fireable rate * N). Inner P95 uses 10000 RATE_MATCHED_RANDOM_ABSTENTION replicates. No 2025/2026 prices are used.
+The previous IID daily-row bootstrap with a pooled K-subset is **not**
+authoritative. It destroyed serial dependence and did not year-match
+multi-year random controls. Preserved historical output only.
 
-Size-planning seed: `20260921122`.
+IID seed: `20260921122`.
+`SUPERSEDED_IID_TWO_YEAR_POWER = 0.903`.
 
-- 1 year ≈ 364 decision rows, expected K = 39: STATISTICAL_POWER_AT_20PCT = 0.000; JOINT_PASS_PROBABILITY_AT_20PCT = 0.000 (diagnostic). Sensitivity: 25% statistical=0.231 / joint=0.231; 30% statistical=0.969 / joint=0.969.
-- 2 years ≈ 728 decision rows, expected K = 77: STATISTICAL_POWER_AT_20PCT = 0.903; JOINT_PASS_PROBABILITY_AT_20PCT = 0.450 (diagnostic). Sensitivity: 25% statistical=1.000 / joint=1.000; 30% statistical=1.000 / joint=1.000.
-- 3 years ≈ 1092 decision rows, expected K = 116: STATISTICAL_POWER_AT_20PCT = 1.000; JOINT_PASS_PROBABILITY_AT_20PCT = 0.509 (diagnostic). Sensitivity: 25% statistical=1.000 / joint=1.000; 30% statistical=1.000 / joint=1.000.
-- 4 years ≈ 1456 decision rows, expected K = 154: STATISTICAL_POWER_AT_20PCT = 1.000; JOINT_PASS_PROBABILITY_AT_20PCT = 0.504 (diagnostic). Sensitivity: 25% statistical=1.000 / joint=1.000; 30% statistical=1.000 / joint=1.000.
+- 1 year ≈ 364 (IID superseded): statistical=0.000; joint=0.000 (diagnostic)
+- 2 years ≈ 728 (IID superseded): statistical=0.903; joint=0.450 (diagnostic)
+- 3 years ≈ 1092 (IID superseded): statistical=1.000; joint=0.509 (diagnostic)
+- 4 years ≈ 1456 (IID superseded): statistical=1.000; joint=0.504 (diagnostic)
+
+## Dependence-preserving size planning (authoritative)
+
+Method: `YEAR_MATCHED_WHOLE_YEAR_PLUS_CONTIGUOUS_PARTIAL_BLOCK`.
+
+YEAR_MATCHED_WHOLE_YEAR_PLUS_CONTIGUOUS_PARTIAL_BLOCK. Sample complete 2021-2024 years with replacement. Preserve chronological severity and circularly-shifted frozen RULE_1 mask clustering. Remainder N uses one contiguous partial-year block. Inner controls draw exactly K_b rows inside each block. No pooled K-subset. No IID daily resampling. 20% effect is injected against the expected year-matched control mean.
+
+Seed: `20260921123`.
+Grid frozen outcome-blind: `[364, 550, 575, 600, 625, 650, 675, 700, 728, 1092, 1456]`.
+Exposed year blocks: `[2021, 2022, 2023, 2024]`.
+n_outer `1000`, n_inner `10000`.
+
+- N=364: STATISTICAL_POWER_AT_20PCT = 0.033; JOINT_PASS_PROBABILITY_AT_20PCT = 0.025 (diagnostic); practical-gate power = 0.526
+- N=550: STATISTICAL_POWER_AT_20PCT = 0.446; JOINT_PASS_PROBABILITY_AT_20PCT = 0.212 (diagnostic); practical-gate power = 0.499
+- N=575: STATISTICAL_POWER_AT_20PCT = 0.473; JOINT_PASS_PROBABILITY_AT_20PCT = 0.244 (diagnostic); practical-gate power = 0.502
+- N=600: STATISTICAL_POWER_AT_20PCT = 0.525; JOINT_PASS_PROBABILITY_AT_20PCT = 0.263 (diagnostic); practical-gate power = 0.495
+- N=625: STATISTICAL_POWER_AT_20PCT = 0.545; JOINT_PASS_PROBABILITY_AT_20PCT = 0.265 (diagnostic); practical-gate power = 0.483
+- N=650: STATISTICAL_POWER_AT_20PCT = 0.560; JOINT_PASS_PROBABILITY_AT_20PCT = 0.277 (diagnostic); practical-gate power = 0.497
+- N=675: STATISTICAL_POWER_AT_20PCT = 0.590; JOINT_PASS_PROBABILITY_AT_20PCT = 0.285 (diagnostic); practical-gate power = 0.473
+- N=700: STATISTICAL_POWER_AT_20PCT = 0.636; JOINT_PASS_PROBABILITY_AT_20PCT = 0.336 (diagnostic); practical-gate power = 0.510
+- N=728: STATISTICAL_POWER_AT_20PCT = 0.640; JOINT_PASS_PROBABILITY_AT_20PCT = 0.321 (diagnostic); practical-gate power = 0.496
+- N=1092: STATISTICAL_POWER_AT_20PCT = 1.000; JOINT_PASS_PROBABILITY_AT_20PCT = 0.500 (diagnostic); practical-gate power = 0.500
+- N=1456: STATISTICAL_POWER_AT_20PCT = 1.000; JOINT_PASS_PROBABILITY_AT_20PCT = 0.522 (diagnostic); practical-gate power = 0.522
 
 ```
-MIN_REQUIRED_FRESH_DECISION_ROWS = 728
-MIN_REQUIRED_FRESH_YEARS = 2
-CONFIRMATION_SURFACE_REQUIREMENT = TWO_YEARS_INDEPENDENT_FRESH
-POTENTIAL_FUTURE_SURFACE = 2025_PLUS_FULL_2026
+MIN_REQUIRED_FRESH_DECISION_ROWS = 1092
+MIN_REQUIRED_FRESH_YEARS = 3.0
+MIN_REQUIRED_FRESH_2026_ROWS_AFTER_FULL_2025 = null
+FROZEN_2026_PREFIX_DECISION_COUNT = null
+FROZEN_FINAL_DECISION_TIMESTAMP = null
+CONFIRMATION_SURFACE_REQUIREMENT = THREE_YEARS_INDEPENDENT_FRESH
+POTENTIAL_FUTURE_SURFACE = MORE_THAN_2025_PLUS_2026_OR_ALTERNATIVE_INDEPENDENT_SURFACE
+ELAPSED_2026_COMPLETED_DECISION_COUNT_ASOF_2026_09_21 = 262
 AUTHORIZED_TO_OPEN = false
 ```
 
-2025 remains unopened. 2026 remains unopened. They are not automatically
-combined. The sizing result only says whether a future predeclared
-combined fresh surface could be scientifically worthwhile.
+Full calendar 2026 does **not** currently exist (status date 2026-09-21).
+Any 2025+2026 prefix is a possible future predeclared surface, not an
+available dataset. Elapsed 2026 completed-outcome decision count is
+mechanical calendar arithmetic only. No protected prices were opened.
 
-Two independent fresh years (~728 decision rows) meet the primary statistical-power criterion at a 20% true effect. That does not authorize opening. POTENTIAL_FUTURE_SURFACE = 2025_PLUS_FULL_2026 is recorded only as a scientifically worthwhile future predeclared combined fresh surface. AUTHORIZED_TO_OPEN = false. 2025 remains unopened. 2026 remains unopened. They are not automatically combined now.
+Full calendar 2026 does not exist yet as of 2026-09-21. POTENTIAL_FUTURE_SURFACE records only a scientifically sized future predeclared fresh surface. AUTHORIZED_TO_OPEN = false. 2025 remains unopened. 2026 remains unopened. No MARKET-07 / ARM / prereg execution. Dependence-preserving year-matched whole-year plus contiguous partial-block power is authoritative; IID two-year power 0.903 is superseded.
 
 ## Candidate (exact survivor only)
 

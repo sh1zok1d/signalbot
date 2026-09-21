@@ -58,16 +58,18 @@ after the CORE-restore retry (adaptive discovery, not confirmatory):
 
 `INTERNAL_DISCOVERY_CARDS_EXECUTED = 4`.
 `INTERNAL_PROMISING_PROTOTYPES = 1`.
-`NEXT_UNIT = D2_CONFIRMATION_WAIT_FOR_PREDECLARED_2025_PLUS_2026_WITHOUT_OPENING`.
+`NEXT_UNIT = D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE_OR_FIND_EQUIVALENT`.
 
 D2 remains a `PROMISING_PROTOTYPE` (adaptive discovery only). Outcome-blind
 confirmation design for RULE_1 / `RV_ABSTENTION` found calendar 2025
 metadata-complete but **underpowered** as a single independent year
 (`ONE_YEAR_STATISTICAL_POWER_AT_20PCT = 0.011`; joint `0.006` is
-diagnostic). Size planning on 2020-2024 only: two fresh years
-(`N=728`) reach statistical power `0.903` at a 20% true effect.
-`POTENTIAL_FUTURE_SURFACE = 2025_PLUS_FULL_2026` but
-`AUTHORIZED_TO_OPEN = false`. 2025 is not opened. 2026 is not consumed.
+diagnostic). Authoritative year-matched whole-year-block size planning
+on 2020-2024 only: `POWER_N728 = 0.64 < 0.80`; three-year `N=1092`
+reaches 1.0. IID two-year `0.903` is superseded.
+`POTENTIAL_FUTURE_SURFACE = MORE_THAN_2025_PLUS_2026_OR_ALTERNATIVE_INDEPENDENT_SURFACE`.
+2025 is not opened. 2026 is not consumed. Full calendar 2026 is not
+currently available.
 
 Card identities at definition time (unchanged):
 

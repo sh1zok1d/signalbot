@@ -357,7 +357,7 @@ been executed in the definition unit.
 `SCIENTIFIC_OUTCOMES_COMPUTED = true` (adaptive discovery, not confirmatory).
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
-`NEXT_UNIT = D2_CONFIRMATION_WAIT_FOR_PREDECLARED_2025_PLUS_2026_WITHOUT_OPENING`.
+`NEXT_UNIT = D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE_OR_FIND_EQUIVALENT`.
 
 ### Stall-gate semantics (corrected 2026-09-21)
 
@@ -381,7 +381,7 @@ discovery rather than confirmatory evidence.
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
 Definition-time `NEXT_UNIT = DISCOVERY_SPRINT_01_CARD_EXECUTION` is
-historical; current `NEXT_UNIT = D2_CONFIRMATION_WAIT_FOR_PREDECLARED_2025_PLUS_2026_WITHOUT_OPENING`.
+historical; current `NEXT_UNIT = D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE_OR_FIND_EQUIVALENT`.
 
 ## Corrective unit (2026-09-21)
 
@@ -699,24 +699,32 @@ is not itself evidence of underpower. Because statistical power is
 still `<< 0.80`, `CONFIRMATION_FEASIBILITY` remains
 `UNDERPOWERED_SINGLE_YEAR_2025`.
 
-Fresh-surface size planning on the same 2020-2024 empirical severity
-(frozen RULE_1 fireable rate; N = 364/728/1092/1456):
+Fresh-surface size planning (IID pooled-K) on 2020-2024 is **superseded**:
+`SUPERSEDED_IID_TWO_YEAR_POWER = 0.903`.
+
+Authoritative method: `YEAR_MATCHED_WHOLE_YEAR_PLUS_CONTIGUOUS_PARTIAL_BLOCK`.
+Association-broken circular mask shift, year-matched controls, exact 20%
+injection vs expected year-matched control mean.
 
 ```
-TWO_YEAR_STATISTICAL_POWER_AT_20PCT = 0.903
-THREE_YEAR_STATISTICAL_POWER_AT_20PCT = 1.000
-FOUR_YEAR_STATISTICAL_POWER_AT_20PCT = 1.000
-MIN_REQUIRED_FRESH_DECISION_ROWS = 728
-MIN_REQUIRED_FRESH_YEARS = 2
-POTENTIAL_FUTURE_SURFACE = 2025_PLUS_FULL_2026
+POWER_N550 = 0.446
+POWER_N575 = 0.473
+POWER_N600 = 0.525
+POWER_N625 = 0.545
+POWER_N650 = 0.56
+POWER_N675 = 0.59
+POWER_N700 = 0.636
+POWER_N728 = 0.64
+THREE_YEAR_STATISTICAL_POWER_AT_20PCT = 1.0
+MIN_REQUIRED_FRESH_DECISION_ROWS = 1092
+POTENTIAL_FUTURE_SURFACE = MORE_THAN_2025_PLUS_2026_OR_ALTERNATIVE_INDEPENDENT_SURFACE
 AUTHORIZED_TO_OPEN = false
 ```
 
-Do not lower the 20% bar. Do not automatically open 2025 or 2026.
-A future predeclared combined 2025+full-2026 surface could be
-scientifically worthwhile; it is not authorized now.
-D2 remains `PROMISING_PROTOTYPE` (adaptive discovery only).
+Do not lower the 20% bar. Do not consume 2025+2026: two years remain
+below 0.80 under the authoritative method. Full calendar 2026 is not
+currently available. D2 remains `PROMISING_PROTOTYPE` (adaptive discovery only).
 
 Full record: `docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.{json,md}`.
 
-`NEXT_UNIT = D2_CONFIRMATION_WAIT_FOR_PREDECLARED_2025_PLUS_2026_WITHOUT_OPENING`.
+`NEXT_UNIT = D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE_OR_FIND_EQUIVALENT`.
