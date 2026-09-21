@@ -37,7 +37,7 @@ PREVIOUS_ROUTING            = D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURF
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = D2_BITMEX_REPLICATION_PREREG_FREEZE
+NEXT_UNIT                   = D2_BITMEX_REPLICATION_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW
 PROTECTED_2025_OPENED       = false
 PROTECTED_2026_OPENED       = false
 INTERNAL_DISCOVERY_CARDS_EXECUTED = 4
@@ -119,6 +119,17 @@ A later BitMEX result, if executed, is
 `INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION`, not exact Binance
 confirmation. Protected 2025/2026 remain sealed.
 Record: `docs/research/D2_ALTERNATIVE_INDEPENDENT_SURFACE_FEASIBILITY.{json,md}`.
+
+`D2_BITMEX_REPLICATION_PREREG_FREEZE` then froze the outcome-blind
+replication contract without executing it. Evidence class
+`INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION`. Rule, target,
+clock, year-matched comparator, 10000-replicate seed `20260921125`,
+statistical `MU_RULE > CONTROL_P95`, and practical
+`DELTA >= 0.20 * UNCONDITIONAL_MEAN` are bound. Mechanical census
+reproduced `N=1069`, first `2017-01-24T00:05:00Z`, last
+`2019-12-30T00:05:00Z`. Classification unassigned. No BitMEX D2 outcome.
+Protected 2025/2026 unopened. MARKET-07 not created.
+Record: `docs/research/D2_BITMEX_REPLICATION_PREREG.{json,md}`.
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by

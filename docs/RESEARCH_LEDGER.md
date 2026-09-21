@@ -4179,3 +4179,43 @@ Evidence: `docs/research/D2_ALTERNATIVE_INDEPENDENT_SURFACE_FEASIBILITY.{json,md
 `docs/research_data/D2_BITMEX_PRE2020_SOURCE_AUTHORITY.json`.
 
 - next required step: `D2_BITMEX_REPLICATION_PREREG_FREEZE`
+
+## 2026-09-21 — D2 BitMEX replication preregistration freeze
+
+Outcome-blind freeze of the independent pre-2020 BitMEX XBTUSD
+replication contract. Not executed. No MU_RULE, DELTA, candidate/control
+severity, randomization p-value, or classification. Feasibility census
+reproduced exactly under the sealed source authority and no-fill gap
+rule.
+
+```
+PREREG_FROZEN = true
+EVIDENCE_CLASS = INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION
+INSTRUMENT = XBTUSD / FFWCSX inverse perpetual
+FIRST_RULE_ELIGIBLE_T = 2017-01-24T00:05:00Z
+LAST_RULE_ELIGIBLE_T = 2019-12-30T00:05:00Z
+EXPECTED_ELIGIBLE_N = 1069
+KNOWN_GAP_HANDLING = NO_FILL_NO_INTERPOLATION_NO_FORWARD_FILL_NO_SYNTHETIC
+TRAILING_250_VALID_HISTORY_VERIFIED = true
+REPLICATION_RANDOM_SEED = 20260921125
+N_RANDOM_CONTROLS = 10000
+STATISTICAL_GATE = MU_RULE > CONTROL_P95
+PRACTICAL_GATE = DELTA >= 0.20 * UNCONDITIONAL_MEAN
+PRIMARY_PASS_RULE = STATISTICAL_GATE and PRACTICAL_GATE
+CLASSIFICATION_ASSIGNED = null
+D2_BITMEX_OUTCOME_COMPUTED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+EXECUTION_AUTHORIZED = false
+```
+
+Use all 1069 legal rows. 815 remains a power floor, not a sampling cap.
+Year-matched `K_y` inside 2017/2018/2019; pooled-K forbidden. Yearly
+breakdowns are diagnostic only. Classification list frozen unassigned:
+`SUPPORTED` / `NOT_SUPPORTED` / `INVALID`.
+
+Evidence: `docs/research/D2_BITMEX_REPLICATION_PREREG.{json,md}`,
+`docs/research_data/D2_BITMEX_REPLICATION_EXECUTION_BINDING.json`.
+
+- next required step: `D2_BITMEX_REPLICATION_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`

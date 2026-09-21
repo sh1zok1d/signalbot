@@ -19,11 +19,12 @@ For the narrative evolution, read `PROJECT_HISTORY.md`. For complete original do
 
 Read these first:
 
-| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. D2 PROMISING_PROTOTYPE remains adaptive discovery; pre-2020 BitMEX XBTUSD is a feasible independent replication surface; `NEXT_UNIT = D2_BITMEX_REPLICATION_PREREG_FREEZE` |
+| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. D2 PROMISING_PROTOTYPE remains adaptive discovery; BitMEX replication prereg is frozen outcome-blind; `NEXT_UNIT = D2_BITMEX_REPLICATION_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW` |
 | `research/DISCOVERY_SPRINT_01.md` | **ACTIVE DISCOVERY SPRINT** | Six-card sprint plus first blocked attempt, CORE-restore retry results, and D1 null-adequacy deferral |
 | `research/DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE.md` | **D1 PRE-EXECUTION ADJUDICATION** | D1 deferred: null generates daily returns; state observable requires 288×5m RV. Gate not executed. |
 | `research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.md` | **D2 CONFIRMATION DESIGN** | Outcome-blind 2025 confirmation design for RULE_1 / RV_ABSTENTION; underpowered single year; year-matched two-year surface still underpowered; 2025/2026 unopened |
 | `research/D2_ALTERNATIVE_INDEPENDENT_SURFACE_FEASIBILITY.md` | **D2 ALTERNATIVE SURFACE FEASIBILITY** | Pre-2020 BitMEX XBTUSD is a feasible class-A independent replication surface; D2 outcomes not computed; 2025/2026 unopened |
+| `research/D2_BITMEX_REPLICATION_PREREG.md` | **D2 BITMEX REPLICATION PREREG (FROZEN, OUTCOME-BLIND)** | Independent pre-2020 cross-venue temporal replication contract; N=1069; not executed; 2025/2026 unopened |
 | `research/discovery_results/` | **ADAPTIVE DISCOVERY RESULTS** | D2-D5 lightweight discovery result JSON/MD; not confirmatory |
 | `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. MARKET-01 closed `NO_EVIDENCE`; V3 closed; no V4; B2-06 remains blocked. |
 | `EDGE_RESEARCH_PROTOCOL.md` | **ACTIVE / CANONICAL** | Discovery/validation rules and anti-overfit discipline |
