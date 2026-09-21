@@ -37,7 +37,7 @@ PREVIOUS_ROUTING            = STRUCTURAL_REGIME_STATE_DETECTION_MECHANISM_CLASS_
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = DISCOVERY_SPRINT_01_EXECUTION
+NEXT_UNIT                   = DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4_D5
 PROTECTED_2025_OPENED       = false
 PROTECTED_2026_OPENED       = false
 ```
@@ -49,6 +49,28 @@ All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 is an outcome-blind spec freeze, not a confirmatory lifecycle: no ARM, no
 claim/reservation, no one-shot execution authority. No discovery outcome
 has been computed and no candidate performance has been inspected.
+
+**Superseded by `DISCOVERY_SPRINT_01_RED_TEAM_REVIEW`** (reviewed commit
+`7bb92b0bd6238693164b6592c0711fa4c15fc9fe`,
+`docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}`), which
+checked whether each frozen spec was actually mechanically executable, not
+merely well-worded. Seven suspected defects (F1-F7) were reviewed
+outcome-blind: F1, F2, F3, F4, F6 were confirmed and fixed (per-rule legal
+intervals + bound cross-venue dataset authority for D2/D5's
+dislocation-based rule; an explicit base exposure schedule for D2/D5; a
+corrected native-5m-granularity null for D3, replacing a mechanically
+broken daily-granularity reuse; a corrected split null for D4's lead-lag
+vs. rolling-correlation functionals; a corrected variance-level RV_20
+formula for D1). F5 found D1's null defensibility had been asserted, not
+verified -- a `D1_NULL_ADEQUACY_GATE` (non-target summary statistics only)
+is now defined but not yet executed. F7 found D6's external benchmark has
+at most one testable historical episode given `CORE_BTC_BINANCE_V0`'s
+2020 start versus the source's 2013/2017/2021 claims, judged
+diagnostically insufficient.
+
+**Current per-card status:** `D1 = BLOCKED_PENDING_PRE_OUTCOME_FIX`;
+`D2/D3/D4/D5 = EXECUTABLE_DISCOVERY_SPEC`; `D6 = DEFERRED`.
+`EXECUTION_AUTHORIZED = PARTIAL (D2, D3, D4, D5 only)`.
 
 The orthogonal-region selection is recorded in
 `docs/research/MARKET_NEXT_HYPOTHESIS_SELECTION.{json,md}` (commit

@@ -3592,3 +3592,81 @@ Evidence: `docs/research/DISCOVERY_SPRINT_01_SPEC_COMPILATION.{json,md}`.
 - `PROTECTED_2025_OPENED = false`
 - `PROTECTED_2026_OPENED = false`
 - next required step: `DISCOVERY_SPRINT_01_EXECUTION`
+
+## 2026-09-21 — Discovery Sprint 01 red-team review (outcome-blind)
+
+`DISCOVERY_SPRINT_01_RED_TEAM_REVIEW` (reviewed commit
+`7bb92b0bd6238693164b6592c0711fa4c15fc9fe`) checked whether each frozen
+`DISCOVERY_SPRINT_01_SPEC_COMPILATION` spec was actually scientifically
+and mechanically executable, not merely well-worded. No card was
+executed; no candidate performance was inspected; protected 2025/2026
+remained unopened; no MARKET-07 was created. The review was explicitly
+authorized to demote any card from `EXECUTABLE_DISCOVERY_SPEC` and did
+not optimize for keeping all six executable.
+
+Seven suspected defects were reviewed against the actual frozen
+MARKET-06 code and artifacts:
+
+- **F1 CONFIRMED and FIXED** — D2's `DISLOCATION_ABSTENTION` rule and D5
+  use `ev.robust_dislocation_z`, which requires cross-venue Binance-perp +
+  OKX-spot data (`MARKET_06_OKX_BINANCE_FEASIBILITY_V0`, snapshot
+  `e0403e40...183e68`), verified available only for `[2022-01-01,
+  2025-01-01)` (frozen prereg `RAW_WINDOW`), not 2020-2021. D2's RV-only
+  rule (`ev.rv_btc_24h`, `CORE_BTC_BINANCE_V0` only) is unaffected and
+  keeps 2020-02-01 -> 2025-01-01. D2's dislocation rule and D5 are
+  restricted to 2022-02-01T00:05:00Z -> 2025-01-01T00:00:00Z (reusing the
+  frozen MARKET-06 `TRAIN_START_T` verbatim), with the cross-venue dataset
+  authority bound explicitly. No 2020-2021 dislocation data is fabricated.
+- **F2 CONFIRMED (underspecification) and FIXED** — D2/D5's base exposure
+  schedule, direction determination (`sign(ev.btc_ret_24h)`), legal
+  knowledge time, and severity metric (`ev.arithmetic_mae`) made explicit,
+  reusing MARKET-05/06's frozen construction verbatim.
+- **F3 CONFIRMED mechanically broken as written and FIXED** — D1's daily
+  GARCH(1,1) null produces one scalar return per day and cannot generate
+  D3's required 288x5m intraday path. Replaced with a new native-5m
+  pooled circular block-bootstrap null, not an arbitrary intraday bridge.
+- **F4 CONFIRMED and FIXED** — the paired contiguous block-bootstrap null
+  preserves the true BTC(t)->ETH(t+1) relationship inside every block,
+  making it inadequate for `LEAD_LAG_1DAY` specifically.
+  `ROLLING_CORRELATION_90D` retains the paired null under a separate
+  justification; `LEAD_LAG_1DAY` gets an independent-block-bootstrap null
+  that destroys the true cross-series pairing by construction.
+- **F5 CONFIRMED as an unverified assertion** — D1's GARCH(1,1)
+  defensibility had been asserted, not checked. A `D1_NULL_ADEQUACY_GATE`
+  is now defined against six non-target summary statistics (return
+  marginal/tails, return ACF, short-lag vs. long-lag absolute-return ACF,
+  leverage/asymmetry, RV_20 distribution) that must never use
+  `MEAN_STATE_RUN_LENGTH` or the state labels. The gate has not been
+  executed (no data was loaded in this review); D1 is blocked until it is
+  run and passed.
+- **F6 CONFIRMED and FIXED** — D1's `RV_20` was defined as a sum of
+  already-square-rooted daily RV values (L1 aggregation), not conventional
+  realized volatility, which requires variance-level (L2) aggregation.
+  Corrected to `RV_20(t) = sqrt(sum of squared daily RV values)`.
+- **F7 CONFIRMED partial defect plus a genuine usefulness problem** —
+  D6's "Pi Cycle Top Indicator" mathematical definitions (local-max
+  window, tie handling, multiple-crossover debounce) are now frozen, but
+  its immutable source pin (archived URL + retrieval date) remains
+  incomplete. Separately: `CORE_BTC_BINANCE_V0` begins 2020-01-01 while
+  the source's own cited coincidences are 2013/2017/2021, leaving at most
+  one testable historical episode -- judged to give the diagnostic
+  essentially no statistical calibration power, by the same standard the
+  Promising Prototype Gate applies elsewhere. D6 is deferred; a
+  replacement external benchmark, selected without Signalbot outcome
+  inspection, is required in a future unit.
+
+Evidence: `docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}`,
+amendments layered into `docs/research/DISCOVERY_SPRINT_01_SPEC_COMPILATION.{json,md}`.
+
+- `D1_STATUS = BLOCKED_PENDING_PRE_OUTCOME_FIX`
+- `D2_STATUS = D3_STATUS = D4_STATUS = D5_STATUS = EXECUTABLE_DISCOVERY_SPEC`
+- `D6_STATUS = DEFERRED`
+- `SCIENTIFIC_OUTCOMES_COMPUTED = false`
+- `CANDIDATE_PERFORMANCE_INSPECTED = false`
+- `MARKET_07_CREATED = false`
+- `PROTECTED_2025_OPENED = false`
+- `PROTECTED_2026_OPENED = false`
+- `EXECUTION_AUTHORIZED = PARTIAL (D2, D3, D4, D5 only)`
+- next required step: `DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4_D5`,
+  gated separately on `D1_NULL_ADEQUACY_GATE_EXECUTION` and
+  `D6_REPLACEMENT_BENCHMARK_SELECTION`

@@ -21,6 +21,28 @@ authority, MARKET-style prereg lifecycle) is introduced — the Discovery
 Card contract in `HYPOTHESIS_DISCOVERY_PIPELINE_V2.md` explicitly excludes
 that machinery from discovery.
 
+## Red-team review correction (2026-09-21)
+
+This document was reviewed by `DISCOVERY_SPRINT_01_RED_TEAM_REVIEW`
+(reviewed commit `7bb92b0bd6238693164b6592c0711fa4c15fc9fe`; full record:
+`docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}`). **The
+original "all six executable" classification below is withdrawn** and
+superseded by that review's findings:
+
+| Card | Status |
+|---|---|
+| D1 | `BLOCKED_PENDING_PRE_OUTCOME_FIX` (RV_20 formula corrected; `D1_NULL_ADEQUACY_GATE` defined, not yet executed) |
+| D2 | `EXECUTABLE_DISCOVERY_SPEC` (RULE_2/interval and base-exposure-schedule fixes applied) |
+| D3 | `EXECUTABLE_DISCOVERY_SPEC` (null replaced with a native-5m granularity block-bootstrap) |
+| D4 | `EXECUTABLE_DISCOVERY_SPEC` (lead-lag given its own independent-block null) |
+| D5 | `EXECUTABLE_DISCOVERY_SPEC` (inherits D2's interval and exposure-schedule fixes) |
+| D6 | `DEFERRED` (insufficient diagnostic power — at most one testable historical episode) |
+
+Each card section below retains its original text as historical record,
+with a `red_team_correction_2026_09_21` block layered on top in the JSON
+twin recording exactly what changed and why. Read the corrections
+alongside the original text, not as a silent replacement of it.
+
 ## Dataset authorities referenced
 
 | Dataset | Snapshot ID | Materialized range | Status |
@@ -221,20 +243,26 @@ effort). No numeric answers are computed here.
 
 ## Sprint execution manifest
 
-| Card | Status |
-|---|---|
-| D1 | `EXECUTABLE_DISCOVERY_SPEC` |
-| D2 | `EXECUTABLE_DISCOVERY_SPEC` |
-| D3 | `EXECUTABLE_DISCOVERY_SPEC` |
-| D4 | `EXECUTABLE_DISCOVERY_SPEC` |
-| D5 | `EXECUTABLE_DISCOVERY_SPEC` |
-| D6 | `EXECUTABLE_DISCOVERY_SPEC` |
+**Superseded by `DISCOVERY_SPRINT_01_RED_TEAM_REVIEW`** (reviewed commit
+`7bb92b0`) — see the correction table at the top of this document for the
+current status. Original (pre-review) table, for record:
 
-`DEFERRED = []`. `executable_count = 6`. `deferred_count = 0`.
-`zero_useful_cards_executable = false`.
+| Card | Original status | Status after red-team review |
+|---|---|---|
+| D1 | `EXECUTABLE_DISCOVERY_SPEC` | `BLOCKED_PENDING_PRE_OUTCOME_FIX` |
+| D2 | `EXECUTABLE_DISCOVERY_SPEC` | `EXECUTABLE_DISCOVERY_SPEC` (fixed) |
+| D3 | `EXECUTABLE_DISCOVERY_SPEC` | `EXECUTABLE_DISCOVERY_SPEC` (fixed) |
+| D4 | `EXECUTABLE_DISCOVERY_SPEC` | `EXECUTABLE_DISCOVERY_SPEC` (fixed) |
+| D5 | `EXECUTABLE_DISCOVERY_SPEC` | `EXECUTABLE_DISCOVERY_SPEC` (fixed) |
+| D6 | `EXECUTABLE_DISCOVERY_SPEC` | `DEFERRED` |
+
+`executable_count = 4` (D2, D3, D4, D5). `blocked_count = 1` (D1).
+`deferred_count = 1` (D6). `zero_useful_cards_executable = false`.
 
 `SCIENTIFIC_OUTCOMES_COMPUTED = false`. `CANDIDATE_PERFORMANCE_INSPECTED =
 false`. `MARKET_07_CREATED = false`. `PROTECTED_2025_OPENED = false`.
 `PROTECTED_2026_OPENED = false`.
 
-`NEXT_UNIT = DISCOVERY_SPRINT_01_EXECUTION`.
+`NEXT_UNIT = DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4_D5, gated
+separately on D1_NULL_ADEQUACY_GATE_EXECUTION and
+D6_REPLACEMENT_BENCHMARK_SELECTION`.

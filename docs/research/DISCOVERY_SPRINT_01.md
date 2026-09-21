@@ -378,3 +378,26 @@ card, still outcome-blind: no discovery outcome computed, no candidate
 performance inspected, protected 2025/2026 unopened, no MARKET-07.
 
 `NEXT_UNIT = DISCOVERY_SPRINT_01_EXECUTION`.
+
+## Red-team review (2026-09-21)
+
+`DISCOVERY_SPRINT_01_RED_TEAM_REVIEW` (reviewed commit `7bb92b0`) found
+seven suspected defects (F1-F7) in the spec compilation above. F1, F2,
+F3, F4, F6 were confirmed and fixed outcome-blind (per-rule legal
+intervals + cross-venue dataset authority for D2/D5; explicit base
+exposure schedule for D2/D5; a corrected native-5m-granularity null for
+D3; a split null for D4's lead-lag vs. rolling-correlation functionals;
+a corrected variance-level RV_20 formula for D1). F5 found the D1 null's
+defensibility had been asserted, not verified — a `D1_NULL_ADEQUACY_GATE`
+is now defined (non-target statistics only) but not yet executed. F7
+found D6's diagnostic value insufficient (at most one testable historical
+episode).
+
+**Updated status:** D1 `BLOCKED_PENDING_PRE_OUTCOME_FIX`; D2/D3/D4/D5
+`EXECUTABLE_DISCOVERY_SPEC`; D6 `DEFERRED`.
+
+`NEXT_UNIT = DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4_D5`, gated
+separately on `D1_NULL_ADEQUACY_GATE_EXECUTION` and
+`D6_REPLACEMENT_BENCHMARK_SELECTION`.
+
+Full record: `docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}`.

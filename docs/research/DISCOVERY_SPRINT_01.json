@@ -243,6 +243,27 @@
     "MARKET_07_CREATED": false,
     "PROTECTED_2025_OPENED": false,
     "PROTECTED_2026_OPENED": false,
-    "NEXT_UNIT": "DISCOVERY_SPRINT_01_EXECUTION"
+    "NEXT_UNIT": "DISCOVERY_SPRINT_01_EXECUTION",
+    "SUPERSEDED_BY": "red_team_review_2026_09_21 below"
+  },
+  "red_team_review_2026_09_21": {
+    "unit": "DISCOVERY_SPRINT_01_RED_TEAM_REVIEW",
+    "record": "docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}",
+    "reviewed_commit": "7bb92b0bd6238693164b6592c0711fa4c15fc9fe",
+    "SPEC_STATUS": {
+      "D1": "BLOCKED_PENDING_PRE_OUTCOME_FIX",
+      "D2": "EXECUTABLE_DISCOVERY_SPEC",
+      "D3": "EXECUTABLE_DISCOVERY_SPEC",
+      "D4": "EXECUTABLE_DISCOVERY_SPEC",
+      "D5": "EXECUTABLE_DISCOVERY_SPEC",
+      "D6": "DEFERRED"
+    },
+    "HARD_FINDINGS": "F1,F2,F3,F4,F6 confirmed and fixed outcome-blind. F5 confirmed as an unverified null-adequacy assertion; D1_NULL_ADEQUACY_GATE now defined, not yet executed. F7 confirmed a genuine usefulness problem (at most one testable historical episode); D6 deferred.",
+    "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+    "CANDIDATE_PERFORMANCE_INSPECTED": false,
+    "MARKET_07_CREATED": false,
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "NEXT_UNIT": "DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4_D5, gated separately on D1_NULL_ADEQUACY_GATE_EXECUTION and D6_REPLACEMENT_BENCHMARK_SELECTION"
   }
 }

@@ -25,6 +25,12 @@
     "PROTECTED_2026_OPENED": false,
     "MARKET_07_CREATED": false
   },
+  "red_team_review_2026_09_21": {
+    "record": "docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}",
+    "reviewed_commit": "7bb92b0bd6238693164b6592c0711fa4c15fc9fe",
+    "summary": "Seven suspected defects (F1-F7) reviewed outcome-blind. F1,F2,F3,F4,F6 confirmed and fixed in place below (see each card's red_team_correction_2026_09_21 block). F5 confirmed as an unverified assertion; a D1_NULL_ADEQUACY_GATE is now defined but not executed, so D1 is BLOCKED_PENDING_PRE_OUTCOME_FIX. F7 confirmed a genuine usefulness problem (at most one testable historical episode); D6 is DEFERRED.",
+    "final_classification_supersedes_prior_all_executable_claim": true
+  },
   "dataset_authorities_referenced": {
     "CORE_BTC_BINANCE_V0": {
       "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
@@ -58,7 +64,8 @@
   "cards": {
     "D1": {
       "DISCOVERY_ID": "D1",
-      "SPEC_STATUS": "EXECUTABLE_DISCOVERY_SPEC",
+      "SPEC_STATUS": "BLOCKED_PENDING_PRE_OUTCOME_FIX",
+      "SPEC_STATUS_CORRECTED_BY": "DISCOVERY_SPRINT_01_RED_TEAM_REVIEW (F5, F6); original SPEC_STATUS was EXECUTABLE_DISCOVERY_SPEC",
       "EXACT_DATASET_AUTHORITY": "CORE_BTC_BINANCE_V0, snapshot_id 717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
       "EXACT_HISTORICAL_DISCOVERY_INTERVAL": "2020-02-01T00:00:00Z -> 2025-01-01T00:00:00Z (global default)",
       "EXACT_UNIT_OF_OBSERVATION": "One 24h decision point on the existing MARKET-06 24h decision grid (one observation every 24h, reusing ev.rv_btc_24h / ev.btc_ret_24h bar-end semantics -- not a newly defined time scale).",
@@ -87,7 +94,27 @@
         "temporal_consistency_check": "Effect must not be driven by a single calendar year: at least 3 of the 5 year-buckets must individually exceed their own year-bucket surrogate 90th percentile.",
         "artifact_check": "Confirm RV_20/median construction uses only bar-end-available data at each t (no lookahead) and that GARCH fit uses the same discovery interval, not a different window."
       },
-      "deterministic_seed_summary": ["D1_NULL_SURROGATE_SEED = 20260921101"]
+      "deterministic_seed_summary": ["D1_NULL_SURROGATE_SEED = 20260921101"],
+      "red_team_correction_2026_09_21": {
+        "F6_RV_20_formula_fix": "RV_20_definition above ('sum of the 20-trailing-day realized-volatility values') is SUPERSEDED. Corrected: RV_20(t) := sqrt( sum_{i=0}^{19} [ev.rv_btc_24h(t-i)]^2 ) -- variance-level (L2) aggregation of the 20 trailing daily RV values, not a direct (L1) sum of already-square-rooted values. This changes the rolling_baseline (median of RV_20 values) and HIGH_VOL_STATE/LOW_VOL_STATE thresholding accordingly; no other part of EXACT_STATE_DEFINITION changes.",
+        "F5_null_adequacy_gate": {
+          "gate_name": "D1_NULL_ADEQUACY_GATE",
+          "status": "DEFINED_NOT_YET_EXECUTED",
+          "computed_on_non_target_statistics_only": true,
+          "must_not_use": "MEAN_STATE_RUN_LENGTH or the HIGH_VOL_STATE/LOW_VOL_STATE label sequence, at any point",
+          "checks": [
+            "return marginal skewness/kurtosis within surrogate [5th,95th] band",
+            "return ACF lags 1-5 within surrogate [5th,95th] band",
+            "absolute-return ACF at SHORT lags 1-10 within surrogate [5th,95th] band (ordinary vol clustering, not under test)",
+            "absolute-return ACF at lags 20+ -- divergence EXPECTED, not disqualifying (this is the tested structure)",
+            "leverage/asymmetry proxy within surrogate [5th,95th] band",
+            "RV_20 (corrected formula) mean/variance/short-lag ACF only within surrogate [5th,95th] band"
+          ],
+          "pass_rule": "ALL checks must pass or GARCH(1,1) is rejected as inadequate.",
+          "blocking": "D1 cannot be certified EXECUTABLE_DISCOVERY_SPEC until this gate is run (non-target statistics only) and passed."
+        },
+        "record": "docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}"
+      }
     },
     "D2": {
       "DISCOVERY_ID": "D2",
@@ -115,7 +142,22 @@
         "temporal_consistency_check": "At least 3 of the 5 year-buckets individually show DELTA > 0 versus that year's own rate-matched control.",
         "artifact_check": "Confirm the rule reuses ev.rv_btc_24h / ev.robust_dislocation_z verbatim (unmodified) and that FUNCTION genuinely differs from the already-tested additive-linear-term cell (no accidental re-derivation of the MARKET-05/06 target)."
       },
-      "deterministic_seed_summary": ["D2_RANDOM_CONTROL_SEED = 20260921102"]
+      "deterministic_seed_summary": ["D2_RANDOM_CONTROL_SEED = 20260921102"],
+      "red_team_correction_2026_09_21": {
+        "F1_interval_and_dataset_authority_fix": {
+          "problem": "EXACT_DATASET_AUTHORITY / EXACT_HISTORICAL_DISCOVERY_INTERVAL above apply only to RULE_1 (rv_btc_24h, CORE_BTC_BINANCE_V0 only). RULE_2 (ev.robust_dislocation_z) requires cross-venue Binance-perp + OKX-spot data, which does not exist before ~2022-01.",
+          "RULE_1_dataset_and_interval": "unchanged: CORE_BTC_BINANCE_V0 (snapshot 717d37a4...8dd415), 2020-02-01T00:00:00Z -> 2025-01-01T00:00:00Z.",
+          "RULE_2_dataset_and_interval": "corrected: MARKET_06_OKX_BINANCE_FEASIBILITY_V0 (snapshot e0403e40a9b1e2903f15fb9283ec6caf54788e48153038982e364d4318183e68, Binance USD-M perp + OKX spot), 2022-02-01T00:05:00Z -> 2025-01-01T00:00:00Z (reuses the frozen MARKET-06 TRAIN_START_T verbatim as the earliest legal decision time).",
+          "no_2020_2021_dislocation_fabricated": true
+        },
+        "F2_base_exposure_schedule": {
+          "EXACT_BASE_EXPOSURE_SCHEDULE": "Full-size BTC perp position in direction BTC_SIDE(t) from entry through the 288-bar/24h outcome window (MARKET-05/06's frozen design). Abstain = skip that exact position; exposed = take exactly that position.",
+          "EXACT_DIRECTION_DETERMINATION": "BTC_SIDE(t) = sign(ev.btc_ret_24h(t)), both closes ending at feature cutoff E = T-5m; zero-return rows already ROW_NOT_ELIGIBLE.",
+          "EXACT_LEGAL_KNOWLEDGE_TIME": "Strictly before decision time T (restates the existing no-lookahead invariant).",
+          "EXACT_SEVERITY_METRIC": "adverse_path_severity(t) = ev.arithmetic_mae(BTC_SIDE(t), entry_open(t), future_288_bars(t)), reused verbatim."
+        },
+        "record": "docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}"
+      }
     },
     "D3": {
       "DISCOVERY_ID": "D3",
@@ -138,7 +180,19 @@
         "temporal_consistency_check": "At least 3 of the 5 year-buckets individually show the same-direction deviation from their own year's surrogate distribution.",
         "artifact_check": "Confirm no functional has collapsed into a re-derivation of terminal 24h return/MAE (explicit disqualifier per the card's own TARGET_FAMILY constraint)."
       },
-      "deterministic_seed_summary": ["D3_NULL_SURROGATE_SEED = 20260921103 (independent draw from D1's null family, same methodology, different seed)"]
+      "deterministic_seed_summary": ["D3_NULL_SURROGATE_SEED = 20260921103 (now attached to the F3-corrected native-granularity null, not D1's daily null)"],
+      "red_team_correction_2026_09_21": {
+        "F3_null_granularity_fix": {
+          "problem": "EXACT_SIMPLE_BASELINE_CONTROL above ('reuses D1's GARCH(1,1) ... surrogate 24h forward paths') is MECHANICALLY BROKEN: D1's null generates exactly one scalar 24h return per day and cannot produce a 288x5m intraday path, which all three D3 functionals require.",
+          "corrected_null_family": "5m_RETURN_POOLED_CIRCULAR_BLOCK_BOOTSTRAP: pool every 5-minute log return in the discovery interval (from the same CORE_BTC_BINANCE_V0 5m bars used for the outcome window); for each surrogate day, circular block-bootstrap this pooled sequence with block length 12 bars (~1h), concatenated to 288 bars, cumulated from a fixed unit starting price. The 3 functionals are computed on each surrogate path.",
+          "what_it_preserves": "Empirical 5m-return marginal distribution and short-range (<=1h, within-block) autocorrelation/clustering, since blocks are real observed sub-sequences.",
+          "what_it_destroys": "Date-specific/conditioning structure and >1h cross-block dependency within the 24h span -- appropriate for D3's UNCONDITIONAL_DESIGN.",
+          "not_an_arbitrary_bridge": "This is the standard nonparametric block-bootstrap applied at native (5m) frequency, not a model-based or interpolated bridge between D1's daily-scale endpoints.",
+          "replicates": 1000,
+          "companion_stability_checks": "Pre-declared companion block lengths of 6 and 24 bars, frozen now (mirrors D1's own neighborhood-stability pattern)."
+        },
+        "record": "docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}"
+      }
     },
     "D4": {
       "DISCOVERY_ID": "D4",
@@ -163,7 +217,16 @@
         "temporal_consistency_check": "Swing/lead-lag effect not confined to a single calendar year.",
         "explicit_limitation_carried_forward": "Any positive result remains a two-asset precursor only, not cross-sectional (R-C) evidence, per the existing card's explicit_limitation."
       },
-      "deterministic_seed_summary": ["D4_NULL_SEED = 20260921104"]
+      "deterministic_seed_summary": ["D4_NULL_SEED = 20260921104 (retained, now for ROLLING_CORRELATION_90D only)"],
+      "red_team_correction_2026_09_21": {
+        "F4_lead_lag_null_fix": {
+          "problem": "lead_lag_null above ('same block-bootstrap replicate set' as the paired BLOCK_BOOTSTRAP_PAIRED_RETURNS) is INADEQUATE: contiguous paired-vector blocks retain the true BTC(t)->ETH(t+1) relationship intact inside every block, so the null does not destroy the very cross-lag being tested.",
+          "ROLLING_CORRELATION_90D_null": "RETAINED unchanged: BLOCK_BOOTSTRAP_PAIRED_RETURNS (paired vectors, block length 20 days), separately justified as testing longer-horizon rolling-correlation variability, not the 1-day lag.",
+          "LEAD_LAG_1DAY_null_corrected": "REPLACED with INDEPENDENT_BLOCK_BOOTSTRAP: BTC and ETH daily-return series block-bootstrapped SEPARATELY (independent draws, block length 20 days each), preserving each series' own short-memory structure while destroying the true cross-series pairing (and thus the true 1-day lag) by construction. 1000 replicates.",
+          "new_seed": "D4_LEAD_LAG_NULL_SEED = 20260921107 (distinct from D4_NULL_SEED, which now applies to ROLLING_CORRELATION_90D only)"
+        },
+        "record": "docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}"
+      }
     },
     "D5": {
       "DISCOVERY_ID": "D5",
@@ -190,11 +253,21 @@
         "beats_best_component_check": "COMPOSED DELTA > max(component_A DELTA, component_B DELTA) from D2's own results.",
         "multiple_testing_note": "This is explicitly a THIRD look at the RV/dislocation observable family (after D2's two individual rules). Any eventual confirmatory proposal arising from D5 must account for that multiplicity across D2A/D2B/D5 jointly, not evaluate D5 as an isolated first look."
       },
-      "deterministic_seed_summary": ["D5_RANDOM_CONTROL_SEED = 20260921105"]
+      "deterministic_seed_summary": ["D5_RANDOM_CONTROL_SEED = 20260921105"],
+      "red_team_correction_2026_09_21": {
+        "F1_interval_and_dataset_authority_fix": {
+          "problem": "EXACT_DATASET_AUTHORITY / EXACT_HISTORICAL_DISCOVERY_INTERVAL above ('CORE_BTC_BINANCE_V0 ... 2020-02-01 -> 2025-01-01') is wrong for D5, since component_B is D2's RULE_2 (DISLOCATION_ABSTENTION), which requires cross-venue data unavailable before ~2022-01.",
+          "corrected_interval": "2022-02-01T00:05:00Z -> 2025-01-01T00:00:00Z -- the common overlap of component_A (CORE_BTC_BINANCE_V0, available from 2020-02-01) and component_B (MARKET_06_OKX_BINANCE_FEASIBILITY_V0, snapshot e0403e40a9b1e2903f15fb9283ec6caf54788e48153038982e364d4318183e68, available from 2022-02-01T00:05:00Z); component_B is the binding constraint.",
+          "corrected_dataset_authority": "CORE_BTC_BINANCE_V0 (snapshot 717d37a4...8dd415) AND MARKET_06_OKX_BINANCE_FEASIBILITY_V0 (snapshot e0403e40...183e68), both required simultaneously for every decision row (OR-composition needs component_B defined at every row it is evaluated on)."
+        },
+        "F2_base_exposure_schedule": "Inherits D2's F2 fix verbatim: EXACT_BASE_EXPOSURE_SCHEDULE = full-size BTC_SIDE(t) position; EXACT_DIRECTION_DETERMINATION = sign(ev.btc_ret_24h(t)); EXACT_LEGAL_KNOWLEDGE_TIME = strictly before T; EXACT_SEVERITY_METRIC = ev.arithmetic_mae(BTC_SIDE, entry, future_288_bars).",
+        "record": "docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}"
+      }
     },
     "D6": {
       "DISCOVERY_ID": "D6",
-      "SPEC_STATUS": "EXECUTABLE_DISCOVERY_SPEC",
+      "SPEC_STATUS": "DEFERRED",
+      "SPEC_STATUS_CORRECTED_BY": "DISCOVERY_SPRINT_01_RED_TEAM_REVIEW (F7); original SPEC_STATUS was EXECUTABLE_DISCOVERY_SPEC",
       "pinned_before_reproduction": true,
       "selection_basis": "Chosen for being fully reconstructible from CORE_BTC_BINANCE_V0 price data alone (no new data acquisition), publicly documented with a stated formula (not a proprietary/ambiguous source), and materially different in construction and claim from MARKET-03. NOT chosen by comparing multiple external candidates' reproduction performance -- no reproduction has been run.",
       "EXACT_SOURCE_IDENTITY": "\"Pi Cycle Top Indicator\": a publicly documented BTC technical indicator (111-day SMA crossing above 2x the 350-day SMA), originally popularized by Philip Swift / LookIntoBitcoin. No source-code repository or paper exists for this indicator; the citable version is the canonical public formula itself -- no proprietary variant, no alternate parameterization.",
@@ -212,7 +285,21 @@
         "diagnostic_use_only": "A PROMISING or reproduced result here calibrates confidence in the discovery pipeline's own baseline/search-surface/prototype-gate design; it is NOT recorded as an internal discovery success and does NOT add an internal edge candidate.",
         "counts_toward": "EXTERNAL_PROMISING_OR_REPRODUCED only, never INTERNAL_PROMISING_PROTOTYPES."
       },
-      "deterministic_seed_summary": ["D6_COMPARATOR_SEED = 20260921106 (naive random-date comparator only; the crossover rule itself is deterministic, no RNG)"]
+      "deterministic_seed_summary": ["D6_COMPARATOR_SEED = 20260921106 (naive random-date comparator only; the crossover rule itself is deterministic, no RNG)"],
+      "red_team_correction_2026_09_21": {
+        "F7_source_pin_and_math_definitions": {
+          "immutable_source_pin_status": "PARTIALLY FIXED, still open: no archived/Wayback-style snapshot URL + retrieval timestamp captured; remains a pre-execution action item.",
+          "LOCAL_MAX_DEFINITION": "Maximum daily close within [crossover_date, min(crossover_date + 365d, 2025-01-01T00:00:00Z)) (frozen, truncated at protected-2025 boundary).",
+          "TIE_HANDLING": "Earliest date wins on a tie (frozen convention).",
+          "MULTIPLE_CROSSOVER_HANDLING": "A crossover counts only if preceded by >=30 days with the 111-day SMA strictly below 2x the 350-day SMA (frozen debounce rule); every debounced event is reported, none cherry-picked."
+        },
+        "F7_usefulness_decision": {
+          "problem": "CORE_BTC_BINANCE_V0 begins 2020-01-01; the source's own cited coincidences are 2013, 2017, 2021. At most ONE testable episode (2021) falls inside available (pre-2025-01-01) data.",
+          "assessment": "A benchmark resting on a single instance has essentially no statistical calibration power (a hit does not rule out a high false-positive rate; a miss does not establish over-conservatism at N=1) -- the same standard the Promising Prototype Gate applies elsewhere (disqualifying one-isolated-instance results) applied to this diagnostic card itself.",
+          "decision": "DEFER D6. A replacement external benchmark, testable with materially more than one episode inside 2020-2025 and selected without any Signalbot outcome inspection, is required before an external-benchmark card can be executed in this sprint. Selecting that replacement is out of scope for this review."
+        },
+        "record": "docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}"
+      }
     }
   },
   "cross_sectional_panel_feasibility_sidecar_finalized_spec": {
@@ -231,16 +318,20 @@
     "status": "SPEC_FINALIZED_NO_ANSWERS_COMPUTED"
   },
   "sprint_execution_manifest": {
-    "EXECUTABLE_DISCOVERY_SPEC": ["D1", "D2", "D3", "D4", "D5", "D6"],
-    "DEFERRED": [],
-    "executable_count": 6,
-    "deferred_count": 0,
-    "zero_useful_cards_executable": false
+    "SUPERSEDED_BY": "DISCOVERY_SPRINT_01_RED_TEAM_REVIEW (docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}), reviewed_commit 7bb92b0bd6238693164b6592c0711fa4c15fc9fe",
+    "EXECUTABLE_DISCOVERY_SPEC": ["D2", "D3", "D4", "D5"],
+    "BLOCKED_PENDING_PRE_OUTCOME_FIX": ["D1"],
+    "DEFERRED": ["D6"],
+    "executable_count": 4,
+    "blocked_count": 1,
+    "deferred_count": 1,
+    "zero_useful_cards_executable": false,
+    "original_all_six_executable_claim": "WITHDRAWN -- superseded by the red-team review; see red_team_review_2026_09_21 above and each card's red_team_correction_2026_09_21 block."
   },
   "SCIENTIFIC_OUTCOMES_COMPUTED": false,
   "CANDIDATE_PERFORMANCE_INSPECTED": false,
   "MARKET_07_CREATED": false,
   "PROTECTED_2025_OPENED": false,
   "PROTECTED_2026_OPENED": false,
-  "NEXT_UNIT": "DISCOVERY_SPRINT_01_EXECUTION"
+  "NEXT_UNIT": "DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4_D5, gated separately on D1_NULL_ADEQUACY_GATE_EXECUTION and D6_REPLACEMENT_BENCHMARK_SELECTION"
 }
