@@ -9,10 +9,13 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
-import subprocess
+
 from pathlib import Path
 from typing import Any, Mapping
+
+from scripts.research import market_06_git_authority as gitauth
+from scripts.research.market_06_git_authority import Market06GitAuthorityError
+from scripts.research import market_06_execution_lifecycle as lifecycle
 
 
 IMPLEMENTATION_ID = "MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION"
@@ -73,12 +76,7 @@ RESULT_RELATIVES = (
     "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_RESULT.json",
 )
 
-BYPASS_ENV_KEYS = (
-    "MARKET_06_EXECUTE",
-    "MARKET_06_AUTHORIZATION",
-    "MARKET_06_FORCE",
-    "SIGNALBOT_MARKET_06_EXECUTE",
-)
+BYPASS_ENV_KEYS = lifecycle.BYPASS_ENV_KEYS
 
 
 class Market06AuthorityError(RuntimeError):
@@ -86,6 +84,13 @@ class Market06AuthorityError(RuntimeError):
 
 
 class Market06IncompleteExecution(RuntimeError):
+    """Source/integrity failure. MUST abort canonical execution.
+
+    Never downgrade this to row ineligibility: silently dropping corrupt
+    observations would improve support by discarding evidence (red-team
+    F-03).
+    """
+
     classification = CLASS_INCOMPLETE
 
     def __init__(self, reason: str) -> None:
@@ -93,9 +98,27 @@ class Market06IncompleteExecution(RuntimeError):
         super().__init__(f"{CLASS_INCOMPLETE}:{reason}")
 
 
-class Market06ExecutionNotAuthorized(RuntimeError):
-    def __init__(self, message: str = "MARKET_06_EXECUTION_NOT_AUTHORIZED") -> None:
-        super().__init__(message)
+class Market06RowIneligible(Exception):
+    """A decision row is not eligible under a FROZEN PREREG condition.
+
+    Only the preregistered eligibility rules may raise this:
+
+    * a required timestamp is genuinely absent (no fill, no interpolation);
+    * ``BTC_RET_24H == 0`` exactly (``BTC_RET_24H_eq_0: ROW_NOT_ELIGIBLE``);
+    * ``MAD_T <= 0`` (``MAD_le_0: ROW_NOT_ELIGIBLE``);
+    * ``RV_BTC_24H <= 0`` or non-finite
+      (``RV_le_0_or_nonfinite: ROW_NOT_ELIGIBLE``).
+
+    Data corruption is NOT an eligibility condition and must raise
+    ``Market06IncompleteExecution`` instead.
+    """
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(f"MARKET_06_ROW_NOT_ELIGIBLE:{reason}")
+
+
+Market06ExecutionNotAuthorized = lifecycle.Market06ExecutionNotAuthorized
 
 
 def _repo_root() -> Path:
@@ -124,12 +147,9 @@ def canonical_json_bytes(payload: Mapping[str, Any]) -> bytes:
 
 
 def _git(*args: str) -> bytes:
-    proc = subprocess.run(
-        ["git", *args],
-        cwd=_repo_root(),
-        check=False,
-        capture_output=True,
-    )
+    """Hardened git access (red-team F-08). Delegates to the authority module."""
+
+    proc = gitauth.git(*args)
     if proc.returncode != 0:
         raise Market06IncompleteExecution(
             f"GIT_OBJECT_MISSING:{' '.join(args)}:{proc.stderr.decode('utf-8', 'replace')[:200]}"
@@ -138,104 +158,111 @@ def _git(*args: str) -> bytes:
 
 
 def git_rev_parse(ref: str) -> str:
+    """Resolve a ref. NOT proof of existence for a literal 40-hex SHA.
+
+    ``git rev-parse <40hex>`` echoes unknown SHAs back verbatim, so callers
+    that need existence must use ``gitauth.require_object``/``require_commit``.
+    """
+
     return _git("rev-parse", ref).decode("ascii").strip()
 
 
 def git_cat_file(commit: str, relpath: str) -> bytes:
-    return _git("cat-file", "-p", f"{commit}:{relpath}")
+    """Immutable blob bytes at ``commit``. Never reads the working tree."""
+
+    try:
+        return gitauth.cat_blob(commit, relpath)
+    except Market06GitAuthorityError as exc:
+        raise Market06IncompleteExecution(f"GIT_OBJECT_MISSING:{relpath}") from exc
 
 
 def _reject_caller_authority_override(args: tuple[Any, ...], kwargs: Mapping[str, Any]) -> None:
-    if args:
-        raise Market06ExecutionNotAuthorized(
-            "positional arguments cannot redefine MARKET-06 authority"
-        )
-    forbidden = {
-        "authorize",
-        "authorized",
-        "force",
-        "execute",
-        "allow_real",
-        "bypass",
-        "execution_authorized",
-        "arm",
-        "expected_sha256",
-        "prereg_head",
-        "snapshot_id",
-    }
-    hit = forbidden.intersection(kwargs)
-    if hit:
-        raise Market06ExecutionNotAuthorized(
-            f"caller kwargs cannot redefine MARKET-06 authority:{sorted(hit)}"
-        )
+    lifecycle.reject_caller_authority_override(args, kwargs)
 
 
 def _env_bypass_attempted() -> bool:
-    return any(os.environ.get(key) for key in BYPASS_ENV_KEYS)
+    return lifecycle.env_bypass_attempted()
 
 
-def execution_authorization_artifact_exists() -> bool:
-    """Only a future Git-tracked authenticated ARM can authorize execution.
+def execution_authorization_artifact_exists(*, commit: str | None = None) -> bool:
+    """True iff a TRACKED ARM blob exists in an immutable commit.
 
-    No such artifact exists now. Env/kwargs/CLI cannot create one.
+    Working-tree presence is deliberately not consulted (red-team F-07),
+    and this predicate alone never authorizes anything — it only reports
+    lifecycle state. Authorization requires a permit from
+    ``lifecycle.verify_execution_arm``.
     """
 
-    root = _repo_root()
-    for rel in ARM_RELATIVES:
-        if (root / rel).exists():
-            return False
-    return False
+    try:
+        if commit is None:
+            proc = gitauth.git("rev-parse", "--verify", "--quiet", "HEAD^{commit}")
+            if proc.returncode != 0:
+                return False
+            commit = proc.stdout.decode("ascii").strip()
+        return gitauth.blob_exists(commit, lifecycle.ARM_JSON_REL)
+    except Market06GitAuthorityError:
+        return False
 
 
-def require_execution_authorization(*args: Any, **kwargs: Any) -> None:
+def require_execution_authorization(*args: Any, **kwargs: Any):
+    """Return an authenticated execution permit, or refuse.
+
+    Repaired lifecycle (red-team F-05): this is no longer total-to-exception.
+    With no tracked ARM it refuses; with a valid tracked ARM it returns a
+    permit and the SAME frozen scientific bytes execute unchanged.
+    """
+
     _reject_caller_authority_override(args, kwargs)
-    if _env_bypass_attempted():
-        raise Market06ExecutionNotAuthorized(
-            "environment variables cannot authorize MARKET-06 execution"
-        )
-    if execution_authorization_artifact_exists():
-        raise Market06ExecutionNotAuthorized(
-            "unauthenticated ARM artifact cannot authorize MARKET-06 execution"
-        )
-    raise Market06ExecutionNotAuthorized("MARKET_06_EXECUTION_NOT_AUTHORIZED")
+    return lifecycle.canonical_execution_permit_or_refuse(**kwargs)
 
 
-def refuse_canonical_execution(*args: Any, **kwargs: Any) -> None:
-    require_execution_authorization(*args, **kwargs)
+def refuse_canonical_execution(*args: Any, **kwargs: Any):
+    return require_execution_authorization(*args, **kwargs)
 
 
-def assert_no_arm_or_result() -> None:
-    root = _repo_root()
-    for rel in ARM_RELATIVES + RESULT_RELATIVES:
-        if (root / rel).exists():
-            raise Market06AuthorityError(f"MARKET_06_ARM_OR_RESULT_EXISTS:{rel}")
+def assert_no_canonical_result(*, commit: str | None = None) -> None:
+    """A tracked canonical RESULT blocks further canonical execution.
+
+    An ARM is NOT asserted absent here: the previous implementation raised
+    when an ARM existed, which inverted the lifecycle and made arming break
+    prereg authority verification (red-team F-05/F-07).
+    """
+
+    try:
+        if commit is None:
+            proc = gitauth.git("rev-parse", "--verify", "--quiet", "HEAD^{commit}")
+            if proc.returncode != 0:
+                return
+            commit = proc.stdout.decode("ascii").strip()
+        for rel in RESULT_RELATIVES:
+            if gitauth.blob_exists(commit, rel):
+                raise Market06AuthorityError(f"MARKET_06_RESULT_EXISTS:{rel}")
+    except Market06GitAuthorityError:
+        return
 
 
 def verify_live_prereg_freeze_objects() -> dict[str, Any]:
-    head = git_rev_parse(PREREG_FREEZE_HEAD)
-    if head != PREREG_FREEZE_HEAD:
-        raise Market06AuthorityError(f"PREREG_FREEZE_HEAD_MISSING:{head}")
-    tree = git_rev_parse(f"{PREREG_FREEZE_HEAD}^{{tree}}")
-    if tree != PREREG_FREEZE_TREE:
-        raise Market06AuthorityError(f"PREREG_FREEZE_TREE_MISMATCH:{tree}")
-    current = git_rev_parse("HEAD")
-    ancestor = subprocess.run(
-        ["git", "merge-base", "--is-ancestor", PREREG_FREEZE_HEAD, "HEAD"],
-        cwd=_repo_root(),
-        check=False,
-        capture_output=True,
-    )
-    if ancestor.returncode != 0:
-        raise Market06AuthorityError(
-            f"HEAD_DOES_NOT_DESCEND_FROM_PREREG_FREEZE:{current}"
+    try:
+        head, tree = gitauth.require_commit_tree(
+            PREREG_FREEZE_HEAD, PREREG_FREEZE_TREE, label="prereg_freeze"
         )
-    payload_tree = git_rev_parse(f"{PREREG_CONTENT_HEAD}^{{tree}}")
-    if payload_tree != PREREG_CONTENT_TREE:
-        raise Market06AuthorityError(f"PREREG_CONTENT_TREE_MISMATCH:{payload_tree}")
+        _content_head, payload_tree = gitauth.require_commit_tree(
+            PREREG_CONTENT_HEAD, PREREG_CONTENT_TREE, label="prereg_content"
+        )
+        current = gitauth.git("rev-parse", "--verify", "--quiet", "HEAD^{commit}")
+        if current.returncode != 0:
+            raise Market06AuthorityError("HEAD_COMMIT_UNRESOLVABLE")
+        current_head = current.stdout.decode("ascii").strip()
+        if not gitauth.is_ancestor(PREREG_FREEZE_HEAD, current_head):
+            raise Market06AuthorityError(
+                f"HEAD_DOES_NOT_DESCEND_FROM_PREREG_FREEZE:{current_head}"
+            )
+    except Market06GitAuthorityError as exc:
+        raise Market06AuthorityError(f"PREREG_GIT_AUTHORITY:{exc}") from exc
     return {
         "prereg_freeze_head": head,
         "prereg_freeze_tree": tree,
-        "current_head": current,
+        "current_head": current_head,
         "prereg_content_head": PREREG_CONTENT_HEAD,
         "prereg_content_tree": payload_tree,
     }
@@ -287,7 +314,7 @@ def verify_prereg_authority(*args: Any, **kwargs: Any) -> dict[str, Any]:
     _reject_caller_authority_override(args, kwargs)
     heads = verify_live_prereg_freeze_objects()
     payload = load_frozen_prereg_json()
-    assert_no_arm_or_result()
+    assert_no_canonical_result()
     freeze = json.loads(
         git_cat_file(PREREG_FREEZE_HEAD, PREREG_FREEZE_JSON_REL).decode("utf-8")
     )
@@ -332,14 +359,6 @@ def retained_payload_sha256s() -> frozenset[str]:
     hashes = {str(row["sha256"]) for row in manifest["binance_objects"]}
     hashes |= {str(row["sha256"]) for row in manifest["okx_objects"]}
     return frozenset(hashes)
-
-
-def refuse_real_retained_bytes(data: bytes, *, where: str) -> None:
-    digest = sha256_bytes(data)
-    if digest in retained_payload_sha256s():
-        raise Market06ExecutionNotAuthorized(
-            f"real retained MARKET-06 bytes cannot be parsed for science:{where}:{digest}"
-        )
 
 
 def verify_git_bound_data_authority(*, hash_raw_objects: bool = True) -> dict[str, Any]:

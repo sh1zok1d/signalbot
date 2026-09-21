@@ -85,7 +85,22 @@ def test_implementation_freeze_binds_implementation_and_prereg_heads():
 
 
 def test_bound_module_bytes_match_freeze_inventory():
+    """The OLD freeze describes commit 81c8e0a, not the live tree.
+
+    After the outcome-blind repair of red-team findings F-01/F-03/F-05/
+    F-06/F-07/F-08/F-09, this freeze is HISTORICAL evidence. Its byte
+    inventory is still exactly true of the immutable commit it describes,
+    so it is verified against that commit's Git objects rather than against
+    the repaired working tree.
+    """
+
+    from scripts.research import market_06_git_authority as gitauth
+
     freeze = json.loads(FREEZE_JSON.read_text(encoding="utf-8"))
+    assert freeze.get("is_current_authority") is False
+    assert freeze.get("superseded_by")
+    assert freeze.get("describes_commit") == IMPLEMENTATION_HEAD
+
     listed = {
         row["path"]: row
         for row in freeze["accepted_scientific_implementation"]
@@ -93,9 +108,9 @@ def test_bound_module_bytes_match_freeze_inventory():
         + freeze["implementation_tests"]
     }
     for rel, (digest, size) in EXPECTED.items():
-        path = REPO / rel
-        assert _sha256(path) == digest
-        assert path.stat().st_size == size
+        blob = gitauth.cat_blob(IMPLEMENTATION_HEAD, rel)
+        assert hashlib.sha256(blob).hexdigest() == digest
+        assert len(blob) == size
         assert listed[rel]["sha256"] == digest
         assert listed[rel]["size_bytes"] == size
 
@@ -107,12 +122,16 @@ def test_execution_still_unauthorized_after_implementation_freeze():
     assert freeze["not_an_arm"] is True
     with pytest.raises(Market06ExecutionNotAuthorized):
         refuse_canonical_execution(authorize=True)
+    with pytest.raises(Market06ExecutionNotAuthorized):
+        refuse_canonical_execution()
     research = REPO / "docs" / "research"
     for name in (
         "MARKET_06_ARM.md",
         "MARKET_06_ARM.json",
         "MARKET_06_RESULT.md",
         "MARKET_06_RESULT.json",
+        "MARKET_06_EXECUTION_ARM.json",
+        "MARKET_06_EXECUTION_RESERVATION.json",
     ):
         assert not (research / name).exists()
     assert CLASS_INCOMPLETE == "MARKET_06_INCOMPLETE_EXECUTION"

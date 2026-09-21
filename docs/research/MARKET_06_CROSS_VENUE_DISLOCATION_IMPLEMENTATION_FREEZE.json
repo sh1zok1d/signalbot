@@ -1,112 +1,117 @@
 {
-  "schema": "market_06_cross_venue_dislocation_implementation_freeze",
-  "schema_version": "1.0.0",
-  "status": "IMPLEMENTATION_FROZEN_OUTCOME_BLIND",
-  "unit_id": "MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION_FREEZE",
-  "research_id": "MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK",
-  "implementation_id": "MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION",
-  "date": "2026-09-21",
-  "not_a_result": true,
-  "not_an_arm": true,
-  "not_an_execution": true,
-  "not_outcome_inspection": true,
-  "not_b2_06_2025_2026_authorization": true,
-  "not_v3": true,
-  "not_v4": true,
   "accepted_implementation": {
     "head": "81c8e0a8619190329971f5a85435c7ac4f9cb86e",
     "tree": "7f4e0a85dc3738924eb52bb28f85794d6a8daa7a"
   },
-  "freeze_parent_expected_head": "81c8e0a8619190329971f5a85435c7ac4f9cb86e",
-  "freeze_commit_head": "UNSET_UNTIL_THIS_COMMIT",
-  "freeze_commit_tree": "UNSET_UNTIL_THIS_COMMIT",
-  "note": "This freeze is a docs-only descendant of the MARKET-06 implementation commit. It does not hash itself. Binding is to accepted_implementation.head/tree and the SHA256s below. Canonical execution remains unauthorized.",
-  "prereg_authority": {
-    "prereg_freeze_head": "e2d543eadb5425473b6d4b8d24c177c1d7ae7930",
-    "prereg_freeze_tree": "a1706c775154fc65ad1d5eaaa5818f87b834a2b7",
-    "prereg_content_head": "6342d24e6d872b6dbce91f9cdb8e7cfe689a6f59",
-    "prereg_content_tree": "11658516cab22774501daa8e2e966c9a8861c9a3",
-    "prereg_md_sha256": "70dd8d09e07e1209e77ea6d1c741e412534ef5cccbfc36609bc46924e13cc4c6",
-    "prereg_json_sha256": "f60bf0bdbeb5982933c648b1c9b56017f25a5dabb29ad39eac58d53b5f590a24",
-    "live_amendment": "MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_AMENDMENT_002"
-  },
   "accepted_scientific_implementation": [
     {
-      "role": "AUTHORITY",
-      "path": "scripts/research/market_06_cross_venue_dislocation_authority.py",
       "git_blob": "8a13d942e02dd03fbcd02b89cb3a89f607873f79",
+      "path": "scripts/research/market_06_cross_venue_dislocation_authority.py",
+      "role": "AUTHORITY",
       "sha256": "dcfdc92843c91871317dae88d0b40e58b01387e10d52337090b543bdec44523f",
       "size_bytes": 14399
     },
     {
-      "role": "PARSERS",
-      "path": "scripts/research/market_06_cross_venue_dislocation_parsers.py",
       "git_blob": "74fb3d4f63d1b75151b9e220d8dcb1564a442b31",
+      "path": "scripts/research/market_06_cross_venue_dislocation_parsers.py",
+      "role": "PARSERS",
       "sha256": "057a6e763aaa1f822571dd670a8e0d65c786fb4df5796fa50a12ae94c9f265c6",
       "size_bytes": 5625
     },
     {
-      "role": "BOOTSTRAP",
-      "path": "scripts/research/market_06_cross_venue_dislocation_bootstrap.py",
       "git_blob": "c053085a1a5aeda99bb9e6765c32eb7635066749",
+      "path": "scripts/research/market_06_cross_venue_dislocation_bootstrap.py",
+      "role": "BOOTSTRAP",
       "sha256": "773b7631f76885f34532dc16a845fd07711e9ca44496d7ef18a8079e98a63ec7",
       "size_bytes": 4557
     },
     {
-      "role": "EVALUATOR",
-      "path": "scripts/research/market_06_cross_venue_dislocation_evaluator.py",
       "git_blob": "f4a44aea76ce7358555d79a847ee76f1d501e408",
+      "path": "scripts/research/market_06_cross_venue_dislocation_evaluator.py",
+      "role": "EVALUATOR",
       "sha256": "c280c609db64362ec76a5810ce0cedc25cc609ef9fdcbc87e0cd935e6d8c6545",
       "size_bytes": 17616
     },
     {
-      "role": "RUNNER",
-      "path": "scripts/research/market_06_cross_venue_dislocation_runner.py",
       "git_blob": "ef9f244fb3495b18126e708bcef60bb77358f6c1",
+      "path": "scripts/research/market_06_cross_venue_dislocation_runner.py",
+      "role": "RUNNER",
       "sha256": "e07470d1f371f0656d95d9e2116f4e5f983a416ad6f9ac8defaa619c1c416025",
       "size_bytes": 1659
     }
   ],
-  "transitive_scientific_dependencies": [
-    {
-      "role": "YEAR_STRATIFIED_CIRCULAR_MBB",
-      "path": "scripts/research/market_06_year_stratified_circular_mbb.py",
-      "git_blob": "cd377bf47eb878dd4d18004cfee54b18e7174187",
-      "sha256": "e8545dab9c3cf28eba556b3a0fe36d0b06cf412437a48516b3dc038a9a082da3",
-      "size_bytes": 2988,
-      "allowed_function": "year_stratified_predictive_resample",
-      "forbidden_function": "concatenated_then_sample"
-    }
-  ],
+  "data_authority": {
+    "binance_object_count": 36,
+    "dataset_id": "MARKET_06_OKX_BINANCE_FEASIBILITY_V0",
+    "durable_evidence_root_sha256": "f4b9e16a62707c70e782cc318399f3ba53ebb85c792e96cd12c164a98f0cdc6f",
+    "network_forbidden_in_canonical_execution": true,
+    "okx_page_count": 1053,
+    "snapshot_id": "e0403e40a9b1e2903f15fb9283ec6caf54788e48153038982e364d4318183e68"
+  },
+  "date": "2026-09-21",
+  "describes_commit": "81c8e0a8619190329971f5a85435c7ac4f9cb86e",
+  "explicit_state": {
+    "default_v4": false,
+    "market_06_armed": false,
+    "market_06_executed": false,
+    "market_06_execution_authorized": false,
+    "market_06_implementation_frozen": true,
+    "market_06_implemented": true,
+    "market_06_result_created": false,
+    "protected_2025_opened": false,
+    "protected_2026_opened": false,
+    "protected_oos_authorized": false,
+    "real_canonical_execution_refused": true,
+    "scientific_outcomes_inspected": false
+  },
+  "freeze_commit_head": "UNSET_UNTIL_THIS_COMMIT",
+  "freeze_commit_tree": "UNSET_UNTIL_THIS_COMMIT",
+  "freeze_parent_expected_head": "81c8e0a8619190329971f5a85435c7ac4f9cb86e",
+  "implementation_id": "MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION",
   "implementation_tests": [
     {
-      "path": "tests/research/test_market_06_implementation.py",
       "git_blob": "a3c50af0d99651513b191e5f6f4862f092b93e28",
+      "path": "tests/research/test_market_06_implementation.py",
       "sha256": "9caac63b74f661a1e6cda7d20c958666aef0d5e885d514f15f8cdf449e414e7d",
       "size_bytes": 21332
     }
   ],
-  "data_authority": {
-    "dataset_id": "MARKET_06_OKX_BINANCE_FEASIBILITY_V0",
-    "snapshot_id": "e0403e40a9b1e2903f15fb9283ec6caf54788e48153038982e364d4318183e68",
-    "durable_evidence_root_sha256": "f4b9e16a62707c70e782cc318399f3ba53ebb85c792e96cd12c164a98f0cdc6f",
-    "binance_object_count": 36,
-    "okx_page_count": 1053,
-    "network_forbidden_in_canonical_execution": true
+  "inventory_describes": "the immutable bytes at describes_commit, not the repaired working tree",
+  "is_current_authority": false,
+  "next_lifecycle_state": "MARKET_06_IMPLEMENTATION_RED_TEAM_REVIEW",
+  "not_a_result": true,
+  "not_an_arm": true,
+  "not_an_execution": true,
+  "not_b2_06_2025_2026_authorization": true,
+  "not_outcome_inspection": true,
+  "not_v3": true,
+  "not_v4": true,
+  "note": "This freeze is a docs-only descendant of the MARKET-06 implementation commit. It does not hash itself. Binding is to accepted_implementation.head/tree and the SHA256s below. Canonical execution remains unauthorized.",
+  "prereg_authority": {
+    "live_amendment": "MARKET_06_CROSS_VENUE_DISLOCATION_PREREG_AMENDMENT_002",
+    "prereg_content_head": "6342d24e6d872b6dbce91f9cdb8e7cfe689a6f59",
+    "prereg_content_tree": "11658516cab22774501daa8e2e966c9a8861c9a3",
+    "prereg_freeze_head": "e2d543eadb5425473b6d4b8d24c177c1d7ae7930",
+    "prereg_freeze_tree": "a1706c775154fc65ad1d5eaaa5818f87b834a2b7",
+    "prereg_json_sha256": "f60bf0bdbeb5982933c648b1c9b56017f25a5dabb29ad39eac58d53b5f590a24",
+    "prereg_md_sha256": "70dd8d09e07e1209e77ea6d1c741e412534ef5cccbfc36609bc46924e13cc4c6"
   },
-  "explicit_state": {
-    "market_06_implemented": true,
-    "market_06_implementation_frozen": true,
-    "market_06_executed": false,
-    "market_06_armed": false,
-    "market_06_result_created": false,
-    "market_06_execution_authorized": false,
-    "real_canonical_execution_refused": true,
-    "scientific_outcomes_inspected": false,
-    "protected_oos_authorized": false,
-    "protected_2025_opened": false,
-    "protected_2026_opened": false,
-    "default_v4": false
-  },
-  "next_lifecycle_state": "MARKET_06_IMPLEMENTATION_RED_TEAM_REVIEW"
+  "research_id": "MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK",
+  "schema": "market_06_cross_venue_dislocation_implementation_freeze",
+  "schema_version": "1.0.0",
+  "status": "IMPLEMENTATION_FROZEN_OUTCOME_BLIND",
+  "superseded_by": "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION_REFREEZE.json",
+  "superseded_reason": "MARKET_06_IMPLEMENTATION_REPAIR_REQUIRED red-team verdict: repaired outcome-blind for F-01 (bar-end feature semantics), F-03 (integrity vs row ineligibility), F-05 (ARM lifecycle dead end), F-06 (global canonical reconstruction), F-07 (working-tree authority), F-08 (git hardening), F-09 (tautological temporal tests). F-04 accepted as HARDENING_OBSERVATION_ACCEPTED_NO_CHANGE.",
+  "transitive_scientific_dependencies": [
+    {
+      "allowed_function": "year_stratified_predictive_resample",
+      "forbidden_function": "concatenated_then_sample",
+      "git_blob": "cd377bf47eb878dd4d18004cfee54b18e7174187",
+      "path": "scripts/research/market_06_year_stratified_circular_mbb.py",
+      "role": "YEAR_STRATIFIED_CIRCULAR_MBB",
+      "sha256": "e8545dab9c3cf28eba556b3a0fe36d0b06cf412437a48516b3dc038a9a082da3",
+      "size_bytes": 2988
+    }
+  ],
+  "unit_id": "MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION_FREEZE"
 }

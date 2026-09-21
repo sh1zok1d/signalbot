@@ -28,6 +28,7 @@ from scripts.research.market_06_cross_venue_dislocation_authority import (
     CLASS_PROMOTED,
     Market06ExecutionNotAuthorized,
     Market06IncompleteExecution,
+    Market06RowIneligible,
 )
 from scripts.research.market_06_cross_venue_dislocation_evaluator import EligibleRow
 from scripts.research.market_06_cross_venue_dislocation_parsers import PerpBar
@@ -45,6 +46,9 @@ PRODUCTION_MODULES = (
     REPO / "scripts/research/market_06_cross_venue_dislocation_bootstrap.py",
     REPO / "scripts/research/market_06_cross_venue_dislocation_evaluator.py",
     REPO / "scripts/research/market_06_cross_venue_dislocation_runner.py",
+    REPO / "scripts/research/market_06_canonical_reconstruction.py",
+    REPO / "scripts/research/market_06_execution_lifecycle.py",
+    REPO / "scripts/research/market_06_git_authority.py",
 )
 
 
@@ -140,7 +144,7 @@ def test_data_authority_bound_from_git_without_scientific_parse():
 
 
 def test_no_arm_result_or_previous_execution():
-    authority.assert_no_arm_or_result()
+    authority.assert_no_canonical_result()
     research = REPO / "docs" / "research"
     for name in (
         "MARKET_06_ARM.md",
@@ -203,7 +207,7 @@ def test_btc_ret_abs_control_and_288_rv_returns():
     assert ret == pytest.approx(math.log(1.1))
     assert ev.btc_side_from_ret(ret) == 1.0
     assert ev.btc_side_from_ret(-0.2) == -1.0
-    with pytest.raises(Market06IncompleteExecution):
+    with pytest.raises(Market06RowIneligible):
         ev.btc_ret_24h(100.0, 100.0)
     closes = [100.0 * math.exp(0.001 * i) for i in range(289)]
     rv = ev.rv_btc_24h(closes)
@@ -239,14 +243,16 @@ def test_arithmetic_long_and_short_mae_288_future_bars():
 
 
 def test_same_support_no_fill_missing_reference_makes_row_ineligible():
+    """Bar-end semantics: the oldest reference OPENS at E - 8641*5m."""
+
     t = datetime(2022, 2, 1, 0, 5, tzinfo=timezone.utc)
     t_ms = int(t.timestamp() * 1000)
     e_ms = ev.feature_cutoff_ms(t_ms)
     perp: dict[int, PerpBar] = {}
     spot: dict[int, float] = {}
-    start = e_ms - ev.REFERENCE_COUNT * parsers.BAR_MS
+    oldest_reference_open = ev.bar_open_for_close_at(e_ms - ev.REFERENCE_COUNT * parsers.BAR_MS)
     end = t_ms + ev.FUTURE_BARS * parsers.BAR_MS
-    ts = start
+    ts = oldest_reference_open
     idx = 0
     while ts < end:
         price = 100.0 + 0.01 * idx
@@ -255,26 +261,33 @@ def test_same_support_no_fill_missing_reference_makes_row_ineligible():
         ts += parsers.BAR_MS
         idx += 1
     assert ev.construct_row_or_none(t_ms, "TRAIN", perp, spot) is not None
-    missing = e_ms - 10 * parsers.BAR_MS
+    # dropping any single required bar makes the row ineligible for BOTH models
+    missing = ev.bar_open_for_close_at(e_ms - 10 * parsers.BAR_MS)
     del perp[missing]
     assert ev.construct_row_or_none(t_ms, "TRAIN", perp, spot) is None
 
 
 def test_reference_window_does_not_include_d_e():
+    """D_E is excluded from REF, addressed by BOUNDARY not by stored key.
+
+    The fixture keys bars by open_time and reasons about bar_end, so it
+    cannot pass merely because storage and lookup share a key.
+    """
+
     t = datetime(2022, 2, 1, 0, 5, tzinfo=timezone.utc)
     t_ms = int(t.timestamp() * 1000)
     e_ms = ev.feature_cutoff_ms(t_ms)
+    d_e_open = ev.bar_open_for_close_at(e_ms)
     perp: dict[int, PerpBar] = {}
     spot: dict[int, float] = {}
-    start = e_ms - ev.REFERENCE_COUNT * parsers.BAR_MS
+    ts = ev.bar_open_for_close_at(e_ms - ev.REFERENCE_COUNT * parsers.BAR_MS)
     end = t_ms + ev.FUTURE_BARS * parsers.BAR_MS
-    ts = start
     while ts < end:
-        if ts == e_ms:
+        if ts == d_e_open:
             perp_close = 200.0
             spot_close = 100.0
         else:
-            k = (e_ms - ts) // parsers.BAR_MS
+            k = (e_ms - ev.bar_end_for_open_at(ts)) // parsers.BAR_MS
             perp_close = 100.0
             spot_close = 100.0 * math.exp(0.001 + 0.00001 * (k % 17))
         perp[ts] = PerpBar(ts, perp_close, perp_close + 1, perp_close - 1, perp_close)
@@ -497,13 +510,43 @@ def test_binance_and_okx_parsers_on_synthetic_bytes():
 
 
 def test_parsers_refuse_real_retained_hashes(monkeypatch):
+    """Retained bytes stay unparseable without an authenticated permit."""
+
     payload = b"synthetic-but-listed"
     digest = hashlib.sha256(payload).hexdigest()
-    monkeypatch.setattr(authority, "retained_payload_sha256s", lambda: frozenset({digest}))
+    monkeypatch.setattr(parsers, "retained_payload_sha256s", lambda: frozenset({digest}))
     with pytest.raises(Market06ExecutionNotAuthorized):
         parsers.parse_binance_zip_bytes(payload, zip_name="BTCUSDT-5m-2022-01.zip")
     with pytest.raises(Market06ExecutionNotAuthorized):
         parsers.parse_okx_history_body(payload, source="listed")
+    # a forged "permit" is not a permit
+    with pytest.raises(Market06ExecutionNotAuthorized):
+        parsers.parse_okx_history_body(payload, source="listed", permit={"ok": True})
+
+
+def test_retained_bytes_parse_under_synthetic_authenticated_permit(monkeypatch):
+    """With a genuine permit the exact canonical parser is allowed to run."""
+
+    from scripts.research import market_06_execution_lifecycle as lifecycle
+
+    body = json.dumps(
+        {"code": "0", "data": [["1640995200000", "1", "2", "0.5", "1", "1", "1", "1", "1"]]}
+    ).encode()
+    digest = hashlib.sha256(body).hexdigest()
+    monkeypatch.setattr(parsers, "retained_payload_sha256s", lambda: frozenset({digest}))
+    permit = lifecycle.ExecutionPermit(
+        run_identity="synthetic",
+        arm_commit="a" * 40,
+        implementation_freeze_head="b" * 40,
+        implementation_freeze_tree="c" * 40,
+        dataset_id=lifecycle.DATASET_ID,
+        snapshot_id=lifecycle.SNAPSHOT_ID,
+        durable_evidence_root_sha256=lifecycle.DURABLE_EVIDENCE_ROOT_SHA256,
+        authorization_kind=lifecycle.AUTHORIZATION_KIND,
+        _token=lifecycle._PERMIT_TOKEN,
+    )
+    closes = parsers.parse_okx_history_body(body, source="listed", permit=permit)
+    assert len(closes) == 1
 
 
 def test_canonical_execution_refused_kwargs_env_and_cli(monkeypatch):
@@ -513,6 +556,8 @@ def test_canonical_execution_refused_kwargs_env_and_cli(monkeypatch):
         ev.evaluate_canonical_market_06(authorize=True, force=True)
     with pytest.raises(Market06ExecutionNotAuthorized):
         parsers.reconstruct_canonical_dataset(execute=True)
+    with pytest.raises(Market06ExecutionNotAuthorized):
+        parsers.reconstruct_canonical_dataset()
     monkeypatch.setenv("MARKET_06_EXECUTE", "1")
     with pytest.raises(Market06ExecutionNotAuthorized):
         authority.refuse_canonical_execution()
@@ -546,3 +591,50 @@ def test_bootstrap_constants_and_no_predictive_refit_in_module():
     assert "BOOTSTRAP_REPLICATES" in src
     assert "ols_solve" in src
     assert "refit predictive" not in src.lower() or "Does not refit predictive" in src
+
+
+def test_f04_no_condition_number_threshold_was_introduced():
+    """F-04 accepted as HARDENING_OBSERVATION_ACCEPTED_NO_CHANGE.
+
+    The frozen solver stays numpy.linalg.solve(X'X, X'y) with no
+    conditioning cutoff, ridge, pinv, lstsq, or regularization, because no
+    such threshold was preregistered.
+    """
+
+    for path in PRODUCTION_MODULES:
+        text = path.read_text(encoding="utf-8")
+        for forbidden in (
+            "np.linalg.cond",
+            "numpy.linalg.cond",
+            "linalg.pinv",
+            "linalg.lstsq",
+            "rcond",
+            "Ridge",
+            "regulariz",
+        ):
+            assert forbidden not in text, f"{forbidden} appeared in {path.name}"
+    source = (
+        REPO / "scripts/research/market_06_cross_venue_dislocation_bootstrap.py"
+    ).read_text(encoding="utf-8")
+    assert "np.linalg.solve(xtx, xty)" in source
+    with pytest.raises(Market06IncompleteExecution) as exc:
+        bootstrap.ols_solve(
+            np.column_stack([np.ones(6), np.ones(6), np.arange(6.0), np.arange(6.0)]),
+            np.arange(6.0),
+        )
+    assert exc.value.reason == "RANK_DEFICIENT"
+
+
+def test_temporal_api_is_the_only_bar_end_mapping():
+    """No feature call site may derive open-time/bar-end mapping itself."""
+
+    evaluator = (
+        REPO / "scripts/research/market_06_cross_venue_dislocation_evaluator.py"
+    ).read_text(encoding="utf-8")
+    assert "def bar_open_for_close_at" in evaluator
+    assert "def get_perp_bar_ending_at" in evaluator
+    assert "def get_spot_close_ending_at" in evaluator
+    assert "def get_perp_bar_opening_at" in evaluator
+    # the removed ad-hoc helpers must not come back
+    assert "def _lookup_perp" not in evaluator
+    assert "def _d_at(" not in evaluator

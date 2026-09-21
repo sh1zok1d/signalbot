@@ -1,0 +1,133 @@
+{
+  "F01_FIXED": true,
+  "F03_FIXED": true,
+  "F04_NOTE": "No condition-number threshold, ridge, pinv, lstsq, or regularization was introduced; no such guard was preregistered. Exact-singular and nonfinite coefficients remain MARKET_06_INCOMPLETE_EXECUTION.",
+  "F04_STATUS": "HARDENING_OBSERVATION_ACCEPTED_NO_CHANGE",
+  "F05_FIXED": true,
+  "F06_FIXED": true,
+  "F07_FIXED": true,
+  "F08_FIXED": true,
+  "F09_FIXED": true,
+  "K1_CONFIRMED": true,
+  "K2_CONFIRMED": true,
+  "date": "2026-09-21",
+  "market_06_arm_created": false,
+  "market_06_reservation_created": false,
+  "market_06_result_created": false,
+  "module_sha256": {
+    "scripts/research/market_06_canonical_reconstruction.py": "2550596411cab4eddd94d3f68bc82a6a38c8a05232d33ea1e874cc5904a7aca5",
+    "scripts/research/market_06_cross_venue_dislocation_authority.py": "968cd24521ed413c70560f0778fd14a0d463f99d70de98923596005bde07a171",
+    "scripts/research/market_06_cross_venue_dislocation_bootstrap.py": "773b7631f76885f34532dc16a845fd07711e9ca44496d7ef18a8079e98a63ec7",
+    "scripts/research/market_06_cross_venue_dislocation_evaluator.py": "3e54a92b471357e93cac452aef9c55ebd289f1197ca88116ff00fe41bcb12236",
+    "scripts/research/market_06_cross_venue_dislocation_parsers.py": "471fe3ff04b2c53cfc234d13c3721d757897ccafe1688d94793d87fe92c3cd32",
+    "scripts/research/market_06_cross_venue_dislocation_runner.py": "041217a9670be34a95d70cf139af6983ea0a4a2828e2131c6847c0d7ffb49eb3",
+    "scripts/research/market_06_execution_lifecycle.py": "dd218d253b31cba9e286d5a8174df2eda6493c6b675124d87d3db51e5236f54d",
+    "scripts/research/market_06_git_authority.py": "7788b850faa4da95c85ec70a09c7d78bb46b937cb68aec01bc6a9ebb033f84de",
+    "scripts/research/market_06_year_stratified_circular_mbb.py": "e8545dab9c3cf28eba556b3a0fe36d0b06cf412437a48516b3dc038a9a082da3"
+  },
+  "next_unit": "MARKET_06_IMPLEMENTATION_REPAIR_RED_TEAM_REVIEW",
+  "old_implementation_freeze_head": "b71e69f112c0e055879cd38e76d95c01945a50ca",
+  "old_implementation_freeze_tree": "b7f60613eef19ad4b9cec83821997a6fe5d57b5e",
+  "old_implementation_head": "81c8e0a8619190329971f5a85435c7ac4f9cb86e",
+  "old_implementation_preserved_as_historical_evidence": true,
+  "old_implementation_tree": "7f4e0a85dc3738924eb52bb28f85794d6a8daa7a",
+  "prereg_authority": {
+    "prereg_amended_in_this_unit": false,
+    "prereg_amendment_authorized": false,
+    "prereg_content_head": "6342d24e6d872b6dbce91f9cdb8e7cfe689a6f59",
+    "prereg_freeze_head": "e2d543eadb5425473b6d4b8d24c177c1d7ae7930"
+  },
+  "red_team_verdict": "MARKET_06_IMPLEMENTATION_REPAIR_REQUIRED",
+  "repairs": {
+    "F01_bar_end_semantics": {
+      "affected_quantities": [
+        "D_E",
+        "REF_E boundaries",
+        "BTC_RET_24H numerator and denominator",
+        "RV_BTC_24H 289 closes"
+      ],
+      "defect": "Feature-side lookups were keyed by the FEATURE_CUTOFF open_time, selecting the bar [E, E+5m) whose available_at is T, violating the frozen prereg no_lookahead.feature_information = 'available_at <= FEATURE_CUTOFF only' with perp_leg.available_at = bar_end_exclusive.",
+      "entry_and_outcome_indexing_changed": false,
+      "repair": "Single explicit mapping bar_open_for_close_at(U) = U - BAR_MS, plus an explicit temporal API (get_perp_bar_ending_at / get_spot_close_ending_at for features and BTC state, get_perp_bar_opening_at for entry/outcome). No call site derives the mapping independently.",
+      "severity": "CRITICAL"
+    },
+    "F03_integrity_vs_row_ineligibility": {
+      "repair": "Typed Market06RowIneligible. Only preregistered eligibility conditions (genuinely absent bar, BTC_RET_24H == 0 exactly, MAD_T <= 0, RV <= 0 or nonfinite) drop a row. Source corruption raises Market06IncompleteExecution and aborts canonical execution.",
+      "severity": "MEDIUM"
+    },
+    "F05_arm_lifecycle": {
+      "defect": "execution_authorization_artifact_exists() was constant False; require_execution_authorization() raised on every path; reconstruct_canonical_dataset() raised unconditionally; retained bytes were permanently unparseable; assert_no_arm_or_result() made the ARM's presence BREAK authority verification; runner ended its success path in an unreachable RuntimeError.",
+      "repair": "Permit architecture. A tracked ARM authenticated from immutable Git objects mints an opaque ExecutionPermit. No scientific module needs editing to arm.",
+      "severity": "CRITICAL"
+    },
+    "F06_global_reconstruction": {
+      "repair": "market_06_canonical_reconstruction enforces exact object inventory, per-object SHA256/byte-length, GLOBAL cross-object timestamp uniqueness, 5m alignment, exact first/last timestamp, exact count 315648, no missing timestamps, and Binance/OKX timestamp-set equality. No interpolation, forward-fill, or deduplication.",
+      "severity": "HIGH"
+    },
+    "F07_git_object_authority": {
+      "repair": "ARM/reservation/RESULT existence and bytes are read from immutable Git objects. Working-tree presence never authorizes; it is output staging only.",
+      "severity": "MEDIUM"
+    },
+    "F08_git_hardening": {
+      "repair": "market_06_git_authority strips GIT_* redirection, disables replace refs, neutralizes system/global config, resolves the git executable, and proves object existence with cat-file -e <oid>^{type} rather than trusting a rev-parse echo.",
+      "severity": "LOW"
+    },
+    "F09_adversarial_temporal_tests": {
+      "repair": "Tautological cutoff fixtures replaced. Every fixture represents open_time, bar_end, FEATURE_CUTOFF and T separately, asserts exact open-times, and a malicious extreme bar at [E, E+5m) must not move any feature.",
+      "severity": "HIGH"
+    }
+  },
+  "research_id": "MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK",
+  "schema": "signalbot_market_06_implementation_repair",
+  "schema_version": "1.0.0",
+  "scientific_constants_unchanged": {
+    "block_length_days": 14,
+    "bootstrap_replicates": 5000,
+    "december_31_forbidden": true,
+    "decision_time_T": "00:05:00 UTC daily",
+    "feature_cutoff": "T - 5 minutes",
+    "future_bars": 288,
+    "gates": 6,
+    "holdouts": [
+      "2023",
+      "2024"
+    ],
+    "mad_consistency_constant": 1.4826,
+    "materiality": 0.02,
+    "outcome": "arithmetic direction-aligned 24h MAE",
+    "primary_feature": "ABS_DISLOCATION_Z",
+    "protected_years": [
+      "2025",
+      "2026"
+    ],
+    "random_seed": 2026092106,
+    "reference_count": 8640,
+    "rv_return_count": 288,
+    "train": "2022",
+    "train_only_standardization": true,
+    "train_sd_ddof": 0,
+    "year_stratified_predictive_bootstrap": true
+  },
+  "scientific_firewall": {
+    "2025_opened": false,
+    "2026_opened": false,
+    "REAL_BOOTSTRAP_RUN": false,
+    "REAL_DATA_PARSED_FOR_SCIENCE": false,
+    "REAL_DISLOCATION_COMPUTED": false,
+    "REAL_ELIGIBLE_ROWS_COMPUTED": false,
+    "REAL_GATES_COMPUTED": false,
+    "REAL_MODELS_FIT": false,
+    "REAL_OUTCOMES_COMPUTED": false,
+    "SCIENTIFIC_OUTCOMES_INSPECTED": false
+  },
+  "status": "IMPLEMENTATION_REPAIRED_OUTCOME_BLIND_NOT_EXECUTED",
+  "test_sha256": {
+    "tests/research/test_market_06_canonical_reconstruction.py": "eebdb3c84baebe258da083e89b35c15924ca95c8a1d0cd3fc537ca03c0f6d798",
+    "tests/research/test_market_06_execution_lifecycle.py": "83bd5d232948e84033908edd5fb510de63218d024ea055cc1c34c0f59ea3e39d",
+    "tests/research/test_market_06_implementation.py": "5d81baba1d9d1939d7c49d4d48aa060669b17f720e876f875495c233d2843408",
+    "tests/research/test_market_06_row_eligibility.py": "ba65237e5e9f66d16a2aaa77fa046f6834f14f55f7cd1e31e3eff46297779d19",
+    "tests/research/test_market_06_temporal_semantics.py": "bc1f1015d00c59943733190428a3fe7a460682db3ea290f7edae01403b0253ab",
+    "tests/research/test_market_06_year_stratified_circular_mbb.py": "c9ba75251fe166113248f5013b6a9ead444ebf584c1959cc42b5a3180e17cdb3"
+  },
+  "unit_id": "MARKET_06_IMPLEMENTATION_OUTCOME_BLIND_REPAIR"
+}

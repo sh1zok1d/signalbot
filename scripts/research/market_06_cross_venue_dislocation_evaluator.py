@@ -24,6 +24,7 @@ from scripts.research.market_06_cross_venue_dislocation_authority import (
     CLASS_PROMOTED,
     FORBIDDEN_PROMOTION_STATES,
     Market06IncompleteExecution,
+    Market06RowIneligible,
     refuse_canonical_execution,
 )
 from scripts.research.market_06_cross_venue_dislocation_bootstrap import (
@@ -93,7 +94,64 @@ def _ms(moment: datetime) -> int:
 
 
 def feature_cutoff_ms(t_ms: int) -> int:
+    """FEATURE_CUTOFF E = T - 5 minutes (frozen prereg decision grid)."""
+
     return int(t_ms - BAR_MS)
+
+
+# ---------------------------------------------------------------------------
+# Explicit open-time vs bar-end temporal API (red-team F-01).
+#
+# Retained data are keyed by candle OPEN timestamp, but every frozen
+# scientific quantity expressed at a clock boundary U refers to the CLOSE of
+# the 5m bar whose bar_end_exclusive == U. The frozen prereg states this
+# directly:
+#
+#     data.perp_leg.available_at = "bar_end_exclusive" = open_time + 5m
+#     no_lookahead.feature_information = "available_at <= FEATURE_CUTOFF only"
+#
+# So the bar legal at E = 00:00 is the one OPENING at 23:55 and ENDING at
+# 00:00 -- never the bar opening at 00:00, which is not complete until
+# T = 00:05 and would erase the entire preregistered 5-minute decision lag.
+#
+# FEATURES / BTC STATE use the ENDING_AT helpers.
+# ENTRY / OUTCOME use the OPENING_AT helpers.
+# No call site may derive this mapping independently.
+# ---------------------------------------------------------------------------
+
+
+def bar_open_for_close_at(boundary_ms: int) -> int:
+    """open_time of the 5m bar whose bar_end_exclusive == ``boundary_ms``."""
+
+    return int(boundary_ms - BAR_MS)
+
+
+def bar_end_for_open_at(open_time_ms: int) -> int:
+    """bar_end_exclusive of the 5m bar opening at ``open_time_ms``."""
+
+    return int(open_time_ms + BAR_MS)
+
+
+def get_perp_bar_opening_at(perp: Mapping[int, PerpBar], open_time_ms: int) -> PerpBar | None:
+    """Entry/outcome semantics: the bar that STARTS at ``open_time_ms``."""
+
+    return perp.get(int(open_time_ms))
+
+
+def get_spot_close_opening_at(spot: Mapping[int, float], open_time_ms: int) -> float | None:
+    return spot.get(int(open_time_ms))
+
+
+def get_perp_bar_ending_at(perp: Mapping[int, PerpBar], boundary_ms: int) -> PerpBar | None:
+    """Feature semantics: the completed bar available at ``boundary_ms``."""
+
+    return perp.get(bar_open_for_close_at(boundary_ms))
+
+
+def get_spot_close_ending_at(spot: Mapping[int, float], boundary_ms: int) -> float | None:
+    """Feature semantics: the completed spot close available at ``boundary_ms``."""
+
+    return spot.get(bar_open_for_close_at(boundary_ms))
 
 
 def is_forbidden_decision(moment: datetime) -> str | None:
@@ -145,7 +203,7 @@ def robust_dislocation_z(d_e: float, ref: Sequence[float]) -> tuple[float, float
     center = float(np.median(ref_arr))
     mad = float(np.median(np.abs(ref_arr - center)))
     if not math.isfinite(mad) or mad <= 0.0:
-        raise Market06IncompleteExecution("MAD_LE_0")
+        raise Market06RowIneligible("MAD_LE_0")
     scale = MAD_CONSISTENCY_CONSTANT * mad
     z = (float(d_e) - center) / scale
     if not math.isfinite(z):
@@ -157,8 +215,11 @@ def btc_ret_24h(close_e: float, close_e_minus_24h: float) -> float:
     if close_e <= 0.0 or close_e_minus_24h <= 0.0:
         raise Market06IncompleteExecution("NONPOSITIVE_BTC_RET_CLOSE")
     value = math.log(close_e / close_e_minus_24h)
-    if not math.isfinite(value) or value == 0.0:
-        raise Market06IncompleteExecution("BTC_RET_24H_ZERO_OR_NONFINITE")
+    if not math.isfinite(value):
+        raise Market06IncompleteExecution("NONFINITE_BTC_RET_24H")
+    if value == 0.0:
+        # Frozen prereg: BTC_RET_24H_eq_0 -> ROW_NOT_ELIGIBLE (exact zero only).
+        raise Market06RowIneligible("BTC_RET_24H_EQ_0")
     return float(value)
 
 
@@ -167,7 +228,7 @@ def btc_side_from_ret(ret: float) -> float:
         return 1.0
     if ret < 0.0:
         return -1.0
-    raise Market06IncompleteExecution("BTC_RET_24H_ZERO_OR_NONFINITE")
+    raise Market06RowIneligible("BTC_RET_24H_EQ_0")
 
 
 def rv_btc_24h(closes_inclusive: Sequence[float]) -> float:
@@ -186,7 +247,8 @@ def rv_btc_24h(closes_inclusive: Sequence[float]) -> float:
         prev = current
     value = math.sqrt(total)
     if not math.isfinite(value) or value <= 0.0:
-        raise Market06IncompleteExecution("RV_LE_0_OR_NONFINITE")
+        # Frozen prereg: RV_le_0_or_nonfinite -> ROW_NOT_ELIGIBLE.
+        raise Market06RowIneligible("RV_LE_0_OR_NONFINITE")
     return float(value)
 
 
@@ -208,85 +270,76 @@ def arithmetic_mae(btc_side: float, entry: float, future_bars: Sequence[PerpBar]
     return float(y)
 
 
-def _lookup_perp(perp: Mapping[int, PerpBar], ts: int) -> PerpBar | None:
-    return perp.get(ts)
-
-
-def _lookup_spot(spot: Mapping[int, float], ts: int) -> float | None:
-    return spot.get(ts)
-
-
-def _d_at(
+def _d_ending_at(
     perp: Mapping[int, PerpBar],
     spot: Mapping[int, float],
-    ts: int,
-) -> float | None:
-    bar = _lookup_perp(perp, ts)
-    close_spot = _lookup_spot(spot, ts)
+    boundary_ms: int,
+) -> float:
+    """D(boundary) from the bar COMPLETED at ``boundary_ms``.
+
+    Raises ``Market06RowIneligible`` when a required bar is genuinely
+    absent, and ``Market06IncompleteExecution`` when present data is
+    corrupt. It never conflates the two.
+    """
+
+    bar = get_perp_bar_ending_at(perp, boundary_ms)
+    close_spot = get_spot_close_ending_at(spot, boundary_ms)
     if bar is None or close_spot is None:
-        return None
-    try:
-        return dislocation_d(bar.close, close_spot)
-    except Market06IncompleteExecution:
-        return None
+        raise Market06RowIneligible(f"MISSING_BAR_AT_BOUNDARY:{boundary_ms}")
+    return dislocation_d(bar.close, close_spot)
 
 
-def construct_row_or_none(
+def _construct_row(
     t_ms: int,
     split: str,
     perp: Mapping[int, PerpBar],
     spot: Mapping[int, float],
-) -> EligibleRow | None:
+) -> EligibleRow:
     moment = datetime.fromtimestamp(t_ms / 1000, tz=timezone.utc)
     reason = is_forbidden_decision(moment)
     if reason:
-        return None
+        raise Market06RowIneligible(f"FORBIDDEN_DECISION:{reason}")
     e_ms = feature_cutoff_ms(t_ms)
-    d_e = _d_at(perp, spot, e_ms)
-    if d_e is None:
-        return None
+
+    # D_E: the bar ENDING at the feature cutoff (open_time == E - 5m).
+    d_e = _d_ending_at(perp, spot, e_ms)
+
+    # REF_E = { D(E - k*5m) : k = 1..8640 }, excluding D_E itself.
     ref: list[float] = []
     for k in range(1, REFERENCE_COUNT + 1):
-        value = _d_at(perp, spot, e_ms - k * BAR_MS)
-        if value is None:
-            return None
-        ref.append(value)
-    try:
-        _center, _mad, _scale, z = robust_dislocation_z(d_e, ref)
-    except Market06IncompleteExecution:
-        return None
-    e_bar = _lookup_perp(perp, e_ms)
-    e_24h = _lookup_perp(perp, e_ms - FUTURE_BARS * BAR_MS)
+        ref.append(_d_ending_at(perp, spot, e_ms - k * BAR_MS))
+    _center, _mad, _scale, z = robust_dislocation_z(d_e, ref)
+
+    # BTC_RET_24H = ln(P_perp(E) / P_perp(E - 24h)), both ENDING-at closes.
+    e_bar = get_perp_bar_ending_at(perp, e_ms)
+    e_24h = get_perp_bar_ending_at(perp, e_ms - FUTURE_BARS * BAR_MS)
     if e_bar is None or e_24h is None:
-        return None
-    try:
-        ret = btc_ret_24h(e_bar.close, e_24h.close)
-        side = btc_side_from_ret(ret)
-    except Market06IncompleteExecution:
-        return None
+        raise Market06RowIneligible("MISSING_BTC_RET_BAR")
+    ret = btc_ret_24h(e_bar.close, e_24h.close)
+    side = btc_side_from_ret(ret)
+
+    # RV: 288 consecutive 5m log returns ENDING at E, from 289 closes at
+    # boundaries E-24h, E-24h+5m, ..., E.
     rv_closes: list[float] = []
     for k in range(RV_RETURN_COUNT, -1, -1):
-        bar = _lookup_perp(perp, e_ms - k * BAR_MS)
+        bar = get_perp_bar_ending_at(perp, e_ms - k * BAR_MS)
         if bar is None:
-            return None
+            raise Market06RowIneligible("MISSING_RV_BAR")
         rv_closes.append(bar.close)
-    try:
-        rv = rv_btc_24h(rv_closes)
-    except Market06IncompleteExecution:
-        return None
-    entry_bar = _lookup_perp(perp, t_ms)
+    rv = rv_btc_24h(rv_closes)
+
+    # ENTRY/OUTCOME use OPENING-at semantics: the bar with bar_start == T.
+    entry_bar = get_perp_bar_opening_at(perp, t_ms)
     if entry_bar is None:
-        return None
+        raise Market06RowIneligible("MISSING_ENTRY_BAR")
     future: list[PerpBar] = []
     for k in range(FUTURE_BARS):
-        bar = _lookup_perp(perp, t_ms + k * BAR_MS)
+        bar = get_perp_bar_opening_at(perp, t_ms + k * BAR_MS)
         if bar is None:
-            return None
+            raise Market06RowIneligible("MISSING_OUTCOME_BAR")
         future.append(bar)
-    try:
-        y = arithmetic_mae(side, entry_bar.open, future)
-    except Market06IncompleteExecution:
-        return None
+    y = arithmetic_mae(side, entry_bar.open, future)
+
     return EligibleRow(
         t_ms=t_ms,
         split=split,
@@ -297,6 +350,25 @@ def construct_row_or_none(
         abs_dislocation_z=abs(z),
         y=y,
     )
+
+
+def construct_row_or_none(
+    t_ms: int,
+    split: str,
+    perp: Mapping[int, PerpBar],
+    spot: Mapping[int, float],
+) -> EligibleRow | None:
+    """Return the eligible row, or None ONLY for preregistered ineligibility.
+
+    ``Market06IncompleteExecution`` (source corruption) deliberately
+    propagates: it must abort canonical execution rather than silently
+    shrink support (red-team F-03).
+    """
+
+    try:
+        return _construct_row(t_ms, split, perp, spot)
+    except Market06RowIneligible:
+        return None
 
 
 def build_eligible_rows(
@@ -499,8 +571,20 @@ def evaluate_from_bars(
     return evaluate_from_eligible_rows(rows)
 
 
-def evaluate_canonical_market_06(*args: Any, **kwargs: Any) -> None:
-    refuse_canonical_execution(*args, **kwargs)
+def evaluate_canonical_market_06(*args: Any, **kwargs: Any):
+    """Canonical evaluation entry point.
+
+    Requires an authenticated permit; refuses while no tracked ARM exists.
+    The canonical path itself lives in the runner so that the evaluator
+    never reaches retained bytes without a permit.
+    """
+
+    permit = refuse_canonical_execution(*args, **kwargs)
+    from scripts.research.market_06_cross_venue_dislocation_runner import (
+        canonical_execution,
+    )
+
+    return canonical_execution(permit)
 
 
 def incomplete_report(reason: str) -> dict[str, Any]:
