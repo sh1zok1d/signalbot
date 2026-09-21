@@ -1,0 +1,52 @@
+{
+  "D1_NULL_ADEQUACY_GATE_EXECUTED": false,
+  "D1_NULL_ADEQUACY_GATE_RESULT": null,
+  "D1_NULL_ADEQUACY_GATE_UNDERSPECIFIED": true,
+  "D1_NULL_MODEL_OBSERVABLE_MISMATCH": true,
+  "D1_STATUS": "DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH",
+  "D1_TARGET_OUTCOME_COMPUTED": false,
+  "D2_STATUS": "PROMISING_PROTOTYPE",
+  "D3_STATUS": "NO_USEFUL_STRUCTURE",
+  "D4_STATUS": "NO_USEFUL_STRUCTURE",
+  "D5_STATUS": "NO_USEFUL_STRUCTURE",
+  "F3_PRIOR_FINDING": "D1's frozen null (GARCH(1,1) fit to the 24h/daily return series, block-bootstrapped at that same daily granularity) generates exactly ONE scalar surrogate 24h return per decision point. D3's three functionals (MAX_ADVERSE_EXCURSION_24h, TIME_TO_MAX_ADVERSE_EXCURSION, PATH_ASYMMETRY) are all defined over the full 288x5m intra-24h path and cannot be computed from a single scalar. D1's null therefore cannot be reused for D3 as the prior compilation stated. CONFIRMED: D3 is not executable as originally written.",
+  "F3_REJECTED_INTRADAY_BRIDGE": "An arbitrary intraday bridge (e.g. a Brownian bridge or linear interpolation forced between D1's daily-scale surrogate endpoints) is explicitly NOT used, per instruction.",
+  "FORBIDDEN_SUBSTITUTE_PHRASES_PRESENT_IN_AUTHORITY": [
+    "intraday bridge",
+    "brownian bridge"
+  ],
+  "FROZEN_NULL_SURROGATE_GENERATION": "For each replicate, circular block-bootstrap the standardized residuals with fixed block length = 20 decision points (matched to the RV_20 window, so the null does not trivially chop up the very window being tested), reinject through the fitted GARCH(1,1) conditional-variance recursion (same omega/alpha/beta, reinitialized at the empirical unconditional variance) to produce a full-length surrogate 24h-return path.",
+  "FROZEN_RV_20_FORMULA": "RV_20_definition above ('sum of the 20-trailing-day realized-volatility values') is SUPERSEDED. Corrected: RV_20(t) := sqrt( sum_{i=0}^{19} [ev.rv_btc_24h(t-i)]^2 ) -- variance-level (L2) aggregation of the 20 trailing daily RV values, not a direct (L1) sum of already-square-rooted values. This changes the rolling_baseline (median of RV_20 values) and HIGH_VOL_STATE/LOW_VOL_STATE thresholding accordingly; no other part of EXACT_STATE_DEFINITION changes.",
+  "FROZEN_SAME_OBSERVABLE_MAPPING": false,
+  "INTERNAL_DISCOVERY_CARDS_EXECUTED": 4,
+  "INTERNAL_PROMISING_PROTOTYPES": 1,
+  "MARKET_07_CREATED": false,
+  "NEXT_UNIT": "D2_CONFIRMATION_FEASIBILITY_AND_DESIGN",
+  "NOT_DONE": [
+    "no synthetic intraday bridge",
+    "no 5m GARCH refit",
+    "no null replacement",
+    "no D1 scientific target",
+    "no HIGH_VOL_STATE / LOW_VOL_STATE sequence",
+    "no MEAN_STATE_RUN_LENGTH",
+    "no 2025/2026 access"
+  ],
+  "NULL_GENERATED_OBSERVABLE": "synthetic DAILY 24h-return path from GARCH(1,1)+Student-t filtered circular block-bootstrap",
+  "PROTECTED_2025_OPENED": false,
+  "PROTECTED_2026_OPENED": false,
+  "REAL_STATE_OBSERVABLE": "intraday realized volatility (ev.rv_btc_24h from 288 x 5m log returns; RV_20 L2-aggregates 20 of those daily RV values)",
+  "RV_RETURN_COUNT": 288,
+  "UNDERSPECIFIED_GATE_QUANTITIES": [
+    "LEVERAGE_PROXY_OR_CLAUSE: Leverage/asymmetry proxy (correlation of return(t) with |return(t+1)| or next-period volatility)",
+    "RV_20_SHORT_LAG_ACF_LAG_SET_UNENUMERATED: RV_20 distribution (mean, variance, and SHORT-lag autocorrelation only, using the corrected RV_20 definition from F6)",
+    "RV_20_LAGWISE_PASS_FAIL_UNSPECIFIED: real value within surrogate [5th,95th] band for mean/variance/short-lag ACF only -- long-run RV_20 persistence is explicitly out of scope for this gate, since that is adjacent to the state-detection target itself",
+    "SKEW_KURTOSIS_JOINT_VS_INDIVIDUAL_UNSPECIFIED: real-data value must fall within the surrogate replicate distribution's [5th,95th] percentile band",
+    "ABS_OR_SQUARED_RETURN_ACF_OR_CLAUSE: Absolute-return (or squared-return) ACF at SHORT lags 1-10 (within GARCH(1,1)'s expected memory)",
+    "NAN_DEGENERATE_TREATMENT_UNSPECIFIED: frozen gate never states NaN/degenerate handling",
+    "GARCH_ESTIMATION_UNSPECIFIED: Student-t MLE is named, but library, optimizer, parameter constraints, and MLE initialization are not frozen"
+  ],
+  "WHY_DEFER_RATHER_THAN_REPAIR": "D2-D5 scientific outcomes are already known. Sprint 01 specs were intended to be frozen before any card outcome. A new D1 null or new gate definitions would be a post-sibling-outcome redesign and must be a future D1-v2 card, not an in-sprint repair.",
+  "date": "2026-09-21",
+  "kind": "PRE_EXECUTION_ADJUDICATION",
+  "unit": "DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE"
+}

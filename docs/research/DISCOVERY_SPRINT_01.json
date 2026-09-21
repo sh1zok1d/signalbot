@@ -18,14 +18,15 @@
     "INTERNAL_DISCOVERY_CARDS_EXECUTED": 4,
     "INTERNAL_PROMISING_PROTOTYPES": 1,
     "INTERNAL_DISCOVERY_WARNING": null,
-    "D1_STATUS": "BLOCKED_PENDING_PRE_OUTCOME_FIX",
+    "D1_STATUS": "DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH",
     "D2_STATUS": "PROMISING_PROTOTYPE",
     "D3_STATUS": "NO_USEFUL_STRUCTURE",
     "D4_STATUS": "NO_USEFUL_STRUCTURE",
     "D5_STATUS": "NO_USEFUL_STRUCTURE",
     "D6_STATUS": "DEFERRED",
     "SCIENTIFIC_OUTCOMES_COMPUTED": true,
-    "adaptive_discovery_not_confirmatory": true
+    "adaptive_discovery_not_confirmatory": true,
+    "NEXT_UNIT": "D2_CONFIRMATION_FEASIBILITY_AND_DESIGN"
   },
   "cards": {
     "D1": {
@@ -438,6 +439,35 @@
     "MARKET_07_CREATED": false,
     "POST_OUTCOME_DESIGN_CHANGES": false,
     "result_records": "docs/research/discovery_results/",
-    "NEXT_UNIT": "DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE_EXECUTION"
+    "NEXT_UNIT": "DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE_EXECUTION",
+    "SUPERSEDED_BY": "d1_null_adequacy_gate_2026_09_21 below"
+  },
+  "d1_null_adequacy_gate_2026_09_21": {
+    "unit": "DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE",
+    "record": "docs/research/DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE.{json,md}",
+    "kind": "PRE_EXECUTION_ADJUDICATION",
+    "D1_NULL_MODEL_OBSERVABLE_MISMATCH": true,
+    "D1_NULL_ADEQUACY_GATE_UNDERSPECIFIED": true,
+    "D1_NULL_ADEQUACY_GATE_EXECUTED": false,
+    "D1_NULL_ADEQUACY_GATE_RESULT": null,
+    "D1_TARGET_OUTCOME_COMPUTED": false,
+    "D1_STATUS": "DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH",
+    "REAL_STATE_OBSERVABLE": "intraday realized volatility (ev.rv_btc_24h from 288 x 5m log returns)",
+    "NULL_GENERATED_OBSERVABLE": "synthetic DAILY 24h-return path",
+    "FROZEN_SAME_OBSERVABLE_MAPPING": false,
+    "WHY_NOT_EXECUTED": "Frozen D1 null generates a daily 24h-return path; the tested state observable requires 288 x 5m realized variance. No already-frozen mapping exists. Independently, the adequacy-gate statistics remain underspecified. Gate not executed; null not replaced; no synthetic intraday bridge.",
+    "INTERNAL_DISCOVERY_CARDS_EXECUTED": 4,
+    "INTERNAL_PROMISING_PROTOTYPES": 1,
+    "INTERNAL_DISCOVERY_WARNING": null,
+    "D2_STATUS": "PROMISING_PROTOTYPE",
+    "D3_STATUS": "NO_USEFUL_STRUCTURE",
+    "D4_STATUS": "NO_USEFUL_STRUCTURE",
+    "D5_STATUS": "NO_USEFUL_STRUCTURE",
+    "D6_STATUS": "DEFERRED",
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "MARKET_07_CREATED": false,
+    "POST_OUTCOME_DESIGN_CHANGES": false,
+    "NEXT_UNIT": "D2_CONFIRMATION_FEASIBILITY_AND_DESIGN"
   }
 }

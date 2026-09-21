@@ -15,7 +15,7 @@ have now executed as **adaptive discovery** on historically exposed
 - D3 = `NO_USEFUL_STRUCTURE`
 - D4 = `NO_USEFUL_STRUCTURE`
 - D5 = `NO_USEFUL_STRUCTURE`
-- D1 remains `BLOCKED_PENDING_PRE_OUTCOME_FIX`
+- D1 is `DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH` (adequacy gate not executed)
 - D6 remains `DEFERRED`
 
 Card definitions below are the frozen specification. Later sections
@@ -339,7 +339,7 @@ unit; not current routing):
 Those counters reflected card **definition/planning** only — no card had
 been executed in the definition unit.
 
-**Current program diagnostic** (after the CORE-restore retry):
+**Current program diagnostic** (after D1 null-adequacy adjudication; D2–D5 unchanged):
 
 | Counter | Value |
 |---|---|
@@ -347,7 +347,7 @@ been executed in the definition unit.
 | `INTERNAL_DISCOVERY_CARDS_EXECUTED` | 4 (D2, D3, D4 rolling, D5) |
 | `INTERNAL_PROMISING_PROTOTYPES` | 1 (D2) |
 | `INTERNAL_DISCOVERY_WARNING` | `null` |
-| `D1_STATUS` | `BLOCKED_PENDING_PRE_OUTCOME_FIX` |
+| `D1_STATUS` | `DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH` |
 | `D2_STATUS` | `PROMISING_PROTOTYPE` |
 | `D3_STATUS` | `NO_USEFUL_STRUCTURE` |
 | `D4_STATUS` | `NO_USEFUL_STRUCTURE` |
@@ -357,7 +357,7 @@ been executed in the definition unit.
 `SCIENTIFIC_OUTCOMES_COMPUTED = true` (adaptive discovery, not confirmatory).
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
-`NEXT_UNIT = DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE_EXECUTION`.
+`NEXT_UNIT = D2_CONFIRMATION_FEASIBILITY_AND_DESIGN`.
 
 ### Stall-gate semantics (corrected 2026-09-21)
 
@@ -381,8 +381,7 @@ discovery rather than confirmatory evidence.
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
 Definition-time `NEXT_UNIT = DISCOVERY_SPRINT_01_CARD_EXECUTION` is
-historical; current `NEXT_UNIT =
-DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE_EXECUTION`.
+historical; current `NEXT_UNIT = D2_CONFIRMATION_FEASIBILITY_AND_DESIGN`.
 
 ## Corrective unit (2026-09-21)
 
@@ -619,11 +618,54 @@ Program diagnostic:
 - `INTERNAL_PROMISING_PROTOTYPES = 1`
 - `INTERNAL_DISCOVERY_WARNING = null`
 - formal `INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED` not triggered (stall gate still requires >= 6 materially orthogonal internal cards)
-- `D1 = BLOCKED_PENDING_PRE_OUTCOME_FIX`
+- `D1 = BLOCKED_PENDING_PRE_OUTCOME_FIX` (historical status of this retry unit; superseded below)
 - `D6 = DEFERRED`
 - `PROTECTED_2025_OPENED = false`
 - `PROTECTED_2026_OPENED = false`
 - `MARKET_07_CREATED = false`
 - `POST_OUTCOME_DESIGN_CHANGES = false`
 
-`NEXT_UNIT = DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE_EXECUTION`.
+Historical `NEXT_UNIT` of this retry unit:
+`DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE_EXECUTION`.
+
+## D1 null-adequacy gate adjudication (2026-09-21)
+
+Adjudication only. The gate was **not** executed. D1 scientific targets
+were **not** computed. D2–D5 bytes are unchanged.
+
+Check A: the frozen D1 null generates a synthetic **daily** 24h-return
+path (GARCH(1,1)+Student-t filtered circular block-bootstrap). The
+tested state observable is `ev.rv_btc_24h` from **288 × 5m** intra-day
+log returns, with `RV_20` L2-aggregating 20 of those daily RV values.
+No already-frozen mapping
+`daily return path -> synthetic ev.rv_btc_24h -> synthetic RV_20`
+exists. F3 had already rejected an arbitrary intraday bridge. Forbidden
+substitutes (`abs(daily_return)`, GARCH sigma, squared daily return,
+synthetic conditional variance) are not used.
+
+```
+D1_NULL_MODEL_OBSERVABLE_MISMATCH = true
+D1_NULL_ADEQUACY_GATE_EXECUTED = false
+D1_TARGET_OUTCOME_COMPUTED = false
+D1_STATUS = DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH
+```
+
+Check B (independent): leverage/asymmetry proxy, RV_20 short-lag ACF lag
+set, lagwise pass/fail, skewness/kurtosis joint vs individual, NaN
+treatment, and GARCH estimation details remain underspecified.
+`D1_NULL_ADEQUACY_GATE_UNDERSPECIFIED = true`. No researcher-defined
+substitute is executed.
+
+Why defer rather than repair: D2–D5 outcomes are already known. A new
+null or new gate definitions would be a post-sibling-outcome redesign
+and must be a future D1-v2 card, not an in-sprint repair.
+
+Deferred D1 is not counted as executed.
+`INTERNAL_DISCOVERY_CARDS_EXECUTED = 4`.
+`INTERNAL_PROMISING_PROTOTYPES = 1`.
+D2 remains `PROMISING_PROTOTYPE`. `MARKET_07_CREATED = false`.
+Protected 2025/2026 unopened.
+
+Full record: `docs/research/DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE.{json,md}`.
+
+`NEXT_UNIT = D2_CONFIRMATION_FEASIBILITY_AND_DESIGN`.

@@ -49,7 +49,7 @@ confirmatory experiment.
 `DISCOVERY_SPRINT_01` defined six discovery cards. **Current routing**
 after the CORE-restore retry (adaptive discovery, not confirmatory):
 
-- **D1** `STRUCTURAL_STATE_DETECTION` — `BLOCKED_PENDING_PRE_OUTCOME_FIX`
+- **D1** `STRUCTURAL_STATE_DETECTION` — `DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH`
 - **D2** `CONDITIONAL_ABSTENTION_TAIL_RISK` — `PROMISING_PROTOTYPE`
 - **D3** `PATH_MORPHOLOGY` — `NO_USEFUL_STRUCTURE`
 - **D4** `BTC_ETH_RELATIVE_STRUCTURE` (`ROLLING_CORRELATION_90D`) — `NO_USEFUL_STRUCTURE`; `LEAD_LAG_1DAY` remains deferred
@@ -58,7 +58,7 @@ after the CORE-restore retry (adaptive discovery, not confirmatory):
 
 `INTERNAL_DISCOVERY_CARDS_EXECUTED = 4`.
 `INTERNAL_PROMISING_PROTOTYPES = 1`.
-`NEXT_UNIT = DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE_EXECUTION`.
+`NEXT_UNIT = D2_CONFIRMATION_FEASIBILITY_AND_DESIGN`.
 
 Card identities at definition time (unchanged):
 
