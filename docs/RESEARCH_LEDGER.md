@@ -3345,3 +3345,43 @@ NEXT_UNIT = MARKET_06_IMPLEMENTATION_RED_TEAM_REVIEW
 Evidence: `docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION.md`
 and `docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_IMPLEMENTATION_FREEZE.md`.
 
+
+## 2026-09-21 — MARKET-06 canonical execution consumed, sealed NO_EVIDENCE
+
+The one canonical historical MARKET-06 run executed exactly once on the
+designated canonical checkout through the frozen production runner, under
+the tracked authority chain claim `6d28144` -> reservation `de47896` ->
+ARM `2d58157` -> implementation freeze `a832252`.
+
+Research ID: `MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK`.
+
+`FINAL_CLASSIFICATION = MARKET_06_NO_EVIDENCE`.
+`RESULT_COMMIT = 80c7d19f622cc7b5576154de59dbb9cdf85d4dcf`.
+`RESULT_PAYLOAD_SHA256 = 67f6f14c9221d3d0be2c130938f6ff8588aadc6eabc52126dd00a5fbbedd2a53`.
+`run_identity = f3aa51372594d710a8f705d761d857f8385d0b848fb0ed59a36b27a16ce25c22`.
+
+Absolute BTC perpetual-vs-spot cross-venue dislocation, conditional on
+BTC's own recent directional and volatility state, did not provide stable
+incremental information about subsequent 24h direction-aligned
+adverse-path risk under the frozen design. Only G1 passed; G2-G6 failed.
+Pooled relative MAE improvement -0.0376 (CI95 [-0.0645, -0.0149]); 2023
+-0.0281; 2024 -0.0453. No reverse effect is inferred and no rescue is
+authorized.
+
+CONSUMED: the 2022 TRAIN and 2023/2024 holdout windows of
+`MARKET_06_OKX_BINANCE_FEASIBILITY_V0` (snapshot `e0403e40...`) are spent
+for the 24h direction-aligned MAE target. N_TRAIN=333, N_2023=364,
+N_2024=365. Protected 2025/2026 remain unopened.
+
+Program update `MARKET_PROGRAM_UPDATE_POST_M06` marks the narrow cell
+"single standalone observable -> additive linear term -> mean 24h
+direction-aligned MAE on a daily grid" as LOW_PRIORITY/SATURATED_FOR_NOW,
+on the basis that three materially different information sources
+(derivative positioning, cross-asset, cross-venue) produced nulls at the
+same cell. The underlying information families are NOT disproven. Six
+orthogonal, deliberately unranked candidate regions are recorded for
+coverage.
+
+- `INTERNAL_HISTORICAL_CANDIDATES_PROMOTED = 0`
+- `MARKET_07_CREATED = false`
+- next required step: `MARKET_NEXT_HYPOTHESIS_SELECTION_FROM_ORTHOGONAL_REGIONS`

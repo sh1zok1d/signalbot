@@ -1,0 +1,171 @@
+{
+  "binding_constraints_on_any_next_hypothesis": [
+    "The 2022-2024 OKX/Binance 5m window is now CONSUMED for the 24h direction-aligned MAE target by MARKET-06; it must not be silently reused for a variant of that target.",
+    "Protected 2025/2026 remain unopened and require separate explicit authorization.",
+    "No new hypothesis may be a parameter variant, sign flip, venue swap, horizon tweak, or threshold change of MARKET-01..MARKET-06.",
+    "R-F carries the highest rescue risk and must never be used to re-interrogate the MARKET-06 target on the consumed window."
+  ],
+  "date": "2026-09-21",
+  "evidence_map": {
+    "carried_from_program_instructions_unverified_here": {
+      "MARKET-02": "NO_EVIDENCE",
+      "MARKET-03": "EXTERNAL_REPRODUCTION / REPRODUCED_DIRECTION (not a validated internal candidate)",
+      "MARKET-04": "SELECTED / NOT_TESTED / BLOCKED_OBSERVABLE (not rejected)",
+      "MARKET-05": "NO_EVIDENCE (cross-asset ETH confirmation)"
+    },
+    "internal_historical_candidates_promoted": 0,
+    "protected_2025_2026_opened": false,
+    "provenance_note": "Only MARKET-01 and MARKET-06 artifacts exist on this branch and are verifiable here. MARKET-02..MARKET-05 statuses are carried from program-level instructions seen in session context and are NOT independently verified against artifacts on this branch.",
+    "verified_on_this_branch": {
+      "MARKET-01_OI_EXPANSION_WEAK_CONTINUATION": "NO_EVIDENCE (sealed RESULT)",
+      "MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK": "NO_EVIDENCE (sealed RESULT, this unit)"
+    }
+  },
+  "hypothesis_selected": false,
+  "market_06_sealed": {
+    "FINAL_CLASSIFICATION": "MARKET_06_NO_EVIDENCE",
+    "N_2023": 364,
+    "N_2024": 365,
+    "N_TRAIN": 333,
+    "RESULT_COMMIT": "80c7d19f622cc7b5576154de59dbb9cdf85d4dcf",
+    "RESULT_PAYLOAD_SHA256": "67f6f14c9221d3d0be2c130938f6ff8588aadc6eabc52126dd00a5fbbedd2a53",
+    "canonical_execution_count": 1,
+    "claim_commit": "6d2814491a99bcd4e7ef4fcdd1c6ee0bc3443657",
+    "gates": {
+      "G1": true,
+      "G2": false,
+      "G3": false,
+      "G4": false,
+      "G5": false,
+      "G6": false
+    },
+    "pooled_relative_mae_improvement": -0.03756596483364705,
+    "pooled_relative_mae_improvement_ci95": [
+      -0.0644801374915513,
+      -0.014898013948610516
+    ],
+    "rerun_authorized": false,
+    "research_id": "MARKET-06_CROSS_VENUE_DISLOCATION_ADVERSE_PATH_RISK",
+    "reverse_effect_inferred": false,
+    "reverse_effect_note": "The negative pooled relative MAE improvement must NOT be read as evidence of a reverse (contrarian) effect. It is a null result for the preregistered direction; the frozen design was not powered or specified to test the reverse.",
+    "run_identity": "f3aa51372594d710a8f705d761d857f8385d0b848fb0ed59a36b27a16ce25c22",
+    "scientific_conclusion": "Absolute BTC perpetual-vs-spot cross-venue dislocation, conditional on BTC's own recent directional and volatility state, did not provide stable incremental information about subsequent 24h direction-aligned adverse-path risk under the frozen MARKET-06 design.",
+    "year_2023_relative_mae_improvement": -0.02814838672162434,
+    "year_2024_relative_mae_improvement": -0.045320425619876925
+  },
+  "market_07_created": false,
+  "next_unit": "MARKET_NEXT_HYPOTHESIS_SELECTION_FROM_ORTHOGONAL_REGIONS",
+  "orthogonal_next_regions": [
+    {
+      "DATA_REQUIREMENTS": "Long-history CORE BTC OHLC only. No new acquisition.",
+      "EXPECTED_INFORMATION_GAIN": "HIGH and symmetric: a positive result supplies a conditioning variable for every later region; a negative result retires a large class of regime-conditional designs.",
+      "FUNCTION": "STATE_DETECTION",
+      "HORIZON_CLASS": "STRUCTURAL_MULTI_DAY_TO_WEEKS",
+      "INFORMATION_SOURCE": "BTC own price-path second-order structure (volatility-of-volatility, realized-vol term structure, path roughness) over multi-day windows",
+      "MECHANISM_FAMILY": "Unsupervised market-state / structural-transition identification",
+      "POINT_IN_TIME_FEASIBILITY": "HIGH -- as-of computable from completed bars with the existing bar-end semantics.",
+      "TARGET": "Existence and out-of-sample persistence of a discrete market state label; validated by label persistence and transition-rate stability, NOT by forecasting any return or excursion magnitude",
+      "WHAT_NEGATIVE_RESULT_WOULD_ELIMINATE": "If state labels show persistence and transition rates indistinguishable from a matched shuffled/synthetic-path baseline, the premise that BTC has detectable persistent structural regimes at this granularity is eliminated -- which would also weaken every conditional hypothesis that implicitly assumes regime structure.",
+      "WHY_DISTINCT_FROM_M01_M06": "M01/M05/M06 all forecast a scalar risk magnitude at a fixed 24h horizon from a single-instant observable. This region forecasts nothing: it asks whether a persistent state exists at all. A null here is about the existence of regime structure, not about any predictor's incremental value.",
+      "id": "R-A",
+      "name": "STRUCTURAL_REGIME_STATE_DETECTION"
+    },
+    {
+      "DATA_REQUIREMENTS": "Existing retained datasets; but the 2022-2024 window is now consumed for M06's target and would need a fresh window or explicit consumption accounting.",
+      "EXPECTED_INFORMATION_GAIN": "HIGH: directly tests whether the M01-M06 nulls were about the observables or about the mean-linear functional used to interrogate them.",
+      "FUNCTION": "RISK_REDUCTION_BY_FILTERING",
+      "HORIZON_CLASS": "SHORT_HORIZON_PER_DECISION",
+      "INFORMATION_SOURCE": "Any already-available observable, including ones that were null as additive linear predictors (OI, dislocation, cross-asset state)",
+      "MECHANISM_FAMILY": "Filtering / abstention on an existing exposure schedule",
+      "POINT_IN_TIME_FEASIBILITY": "HIGH.",
+      "TARGET": "Change in the UPPER TAIL (e.g. 90th/95th percentile) of the adverse-path distribution under abstention, benchmarked against random abstention matched on abstention rate",
+      "WHAT_NEGATIVE_RESULT_WOULD_ELIMINATE": "If no available observable beats rate-matched random abstention on the tail, the entire 'use a signal to sit out' mechanism class is eliminated for this observable set -- a materially different and broader conclusion than the M01-M06 mean-regression nulls.",
+      "WHY_DISTINCT_FROM_M01_M06": "M01/M05/M06 asked whether X reduces MEAN MAE inside a linear model. This asks whether X identifies decisions to DECLINE, judged on the tail, against a rate-matched random-abstention control. Mean-incremental nullity does not imply tail-abstention nullity; these are different functionals of the same joint distribution.",
+      "id": "R-B",
+      "name": "CONDITIONAL_ABSTENTION_RISK_REDUCTION"
+    },
+    {
+      "DATA_REQUIREMENTS": "Multi-instrument OHLC panel; a genuinely new acquisition unit, but from the same already-reachable archive family as the M06 Binance leg.",
+      "EXPECTED_INFORMATION_GAIN": "HIGH: the single largest untested structural axis, and the only one that materially increases effective N.",
+      "FUNCTION": "RELATIVE_RANKING",
+      "HORIZON_CLASS": "SHORT_TO_MEDIUM",
+      "INFORMATION_SOURCE": "Panel of liquid perpetuals (not BTC alone): cross-sectional dispersion, relative positioning, relative realized volatility",
+      "MECHANISM_FAMILY": "Cross-sectional / relative ordering across a universe of instruments",
+      "POINT_IN_TIME_FEASIBILITY": "MEDIUM -- requires per-instrument listing-date and survivorship handling, which is a real and explicit design risk.",
+      "TARGET": "Stability of a cross-sectional ORDERING (which instruments are relatively more exposed), not any absolute BTC quantity",
+      "WHAT_NEGATIVE_RESULT_WOULD_ELIMINATE": "If cross-sectional orderings are unstable out of sample after controlling for the common factor, the whole relative-value family is eliminated, including pair/basket constructions.",
+      "WHY_DISTINCT_FROM_M01_M06": "Every M01-M06 target was BTC's own absolute state, one row per day, effective N bounded by ~1000 daily decisions. A panel design changes the N-structure entirely (instruments x time), and relative ordering can be stable even when every instrument's absolute level is unpredictable.",
+      "id": "R-C",
+      "name": "CROSS_SECTIONAL_RELATIVE_STRUCTURE"
+    },
+    {
+      "DATA_REQUIREMENTS": "L2/trade-level data. Historical depth is sparse and costly; this most likely requires FORWARD collection, which connects directly to FORWARD_MARKET_OBSERVABILITY_V1.",
+      "EXPECTED_INFORMATION_GAIN": "HIGH per unit of evidence, but gated behind a real acquisition blocker; its main near-term value is deciding whether forward collection is worth committing to.",
+      "FUNCTION": "STATE_DETECTION_AND_CONDITIONING",
+      "HORIZON_CLASS": "INTRADAY_SHORT",
+      "INFORMATION_SOURCE": "Order-book depth and resilience, quote intensity, trade-size distribution, queue dynamics",
+      "MECHANISM_FAMILY": "Liquidity / order-book structure (not price-path derived)",
+      "POINT_IN_TIME_FEASIBILITY": "LOW for history, HIGH for forward collection. Honest expectation: a long lead time before any confirmatory test is possible.",
+      "TARGET": "Liquidity state, and whether it conditions the distribution of subsequent path behaviour",
+      "WHAT_NEGATIVE_RESULT_WOULD_ELIMINATE": "If observed liquidity state carries no conditioning information, the common assumption that microstructure fragility is the mechanism behind adverse excursions is eliminated -- which would retire a large body of informal reasoning.",
+      "WHY_DISTINCT_FROM_M01_M06": "M01 (open interest), M05 (ETH price z-score) and M06 (perp-vs-spot price ratio) are all functions of prices or aggregate positioning. None observed actual liquidity. This is a different DATA TIER, not a different formula over the same tier.",
+      "id": "R-D",
+      "name": "LIQUIDITY_AND_MARKET_STRUCTURE_STATE"
+    },
+    {
+      "DATA_REQUIREMENTS": "Trade and quote data; overlaps R-D's acquisition.",
+      "EXPECTED_INFORMATION_GAIN": "MEDIUM-HIGH, and notably: a POSITIVE result here is not an edge claim. It is a cost model, which constrains what any other region must clear to matter.",
+      "FUNCTION": "EXECUTION",
+      "HORIZON_CLASS": "IMMEDIATE_PER_FILL",
+      "INFORMATION_SOURCE": "Spread, depth at touch, trade intensity, time-of-day and session structure",
+      "MECHANISM_FAMILY": "Execution cost / slippage modelling",
+      "POINT_IN_TIME_FEASIBILITY": "LOW for history, HIGH forward.",
+      "TARGET": "Realized execution cost (effective spread paid, slippage versus arrival price) conditional on observable state",
+      "WHAT_NEGATIVE_RESULT_WOULD_ELIMINATE": "If execution cost is not conditionally predictable from contemporaneous liquidity state, then any future mechanism whose edge is smaller than cost dispersion is untestable in practice -- an important feasibility boundary for the whole program.",
+      "WHY_DISTINCT_FROM_M01_M06": "No M01-M06 hypothesis touched execution. All asked WHETHER to be exposed; none asked what exposure COSTS. The causal distance between observable and outcome is far shorter here, so a stable relationship is structurally more plausible -- a statement about mechanism proximity, not about profitability.",
+      "id": "R-E",
+      "name": "EXECUTION_COST_MECHANISM"
+    },
+    {
+      "DATA_REQUIREMENTS": "Existing observables; but the 2022-2024 holdout is CONSUMED and must not be reused for a composed variant of the same target.",
+      "EXPECTED_INFORMATION_GAIN": "MEDIUM, and this region carries the HIGHEST RESCUE RISK in the set. It is listed for coverage completeness, with an explicit warning: it is adjacent to a MARKET-06 rescue and must never be selected as a way to re-interrogate the same target on the same consumed window.",
+      "FUNCTION": "PREDICTION_UNDER_COMPOSITION",
+      "HORIZON_CLASS": "SHORT_HORIZON",
+      "INFORMATION_SOURCE": "Joint configuration of several individually-null observables (OI expansion, cross-venue dislocation, cross-asset state)",
+      "MECHANISM_FAMILY": "Composed multi-observable state (interaction structure, not additive terms)",
+      "POINT_IN_TIME_FEASIBILITY": "HIGH mechanically, LOW governance-wise without a fresh window.",
+      "TARGET": "To be defined by its own preregistration; must NOT default to 24h direction-aligned MAE",
+      "WHAT_NEGATIVE_RESULT_WOULD_ELIMINATE": "A null closes the stronger claim that this observable set is uninformative in ANY low-order composition, which is the honest generalisation the individual nulls cannot support.",
+      "WHY_DISTINCT_FROM_M01_M06": "M01/M05/M06 each tested ONE observable as an ADDITIVE LINEAR term. The open question those nulls do not answer is whether the observables carry no information at all, or carry none additively-and-linearly-alone. Composition is the explicit object of study here.",
+      "id": "R-F",
+      "name": "COMPOSED_JOINT_STATE_NON_ADDITIVE"
+    }
+  ],
+  "parameter_variant_proposed": false,
+  "protected_2025_opened": false,
+  "protected_2026_opened": false,
+  "ranking_note": "Regions are deliberately NOT ordered by expected profitability. They are selected for SEARCH-SPACE COVERAGE and INFORMATION GAIN: a region earns its place when BOTH outcomes are informative about the space.",
+  "regions_are_not_ranked": true,
+  "rescue_proposed": false,
+  "saturated_region": {
+    "closed_cells": [
+      "derivative-positioning observable (open interest expansion) -> 24h adverse-path/continuation, additive linear, mean MAE  [MARKET-01]",
+      "cross-asset observable (ETH confirmation state) -> 24h direction-aligned adverse-path, additive linear, mean MAE  [MARKET-05, unverified on this branch]",
+      "cross-venue observable (perp-vs-spot dislocation) -> 24h direction-aligned adverse-path, additive linear, mean MAE  [MARKET-06]"
+    ],
+    "exact_description": "The narrow cell: ONE standalone observable X, measured at a single instant at a daily decision cutoff, entered as an ADDITIVE LINEAR term alongside BTC's own directional and volatility controls, evaluated by incremental reduction in MEAN 24h direction-aligned adverse-path excursion (MAE) on a ~1000-row daily holdout, under a >=2% relative-improvement materiality gate.",
+    "explicitly_not_disproven": [
+      "cross-venue information in general",
+      "cross-asset information in general",
+      "open interest in general",
+      "funding in general",
+      "microstructure in general"
+    ],
+    "explicitly_not_disproven_note": "Each was tested only in one functional form, against one target, at one horizon, on one instrument, with one evaluation functional (mean MAE). Nothing here licenses a claim that these information families are uninformative.",
+    "status": "LOW_PRIORITY_SATURATED_FOR_NOW",
+    "why_saturated": "Three MATERIALLY DIFFERENT information sources -- derivative positioning, cross-asset, cross-venue -- produced nulls at the SAME (function, target, horizon, functional-form) cell. The repeated failure is evidence about the CELL, not about the information sources."
+  },
+  "schema": "signalbot_market_program_update",
+  "schema_version": "1.0.0",
+  "unit_id": "MARKET_PROGRAM_UPDATE_POST_M06"
+}
