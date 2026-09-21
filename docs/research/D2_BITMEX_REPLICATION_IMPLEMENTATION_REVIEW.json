@@ -1,0 +1,149 @@
+{
+  "2025_OPEN_AUTHORIZED": false,
+  "2026_OPEN_AUTHORIZED": false,
+  "BITMEX_CANONICAL_GZ_SHA256": "8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa",
+  "BITMEX_CANONICAL_SHA256": "b145013cbcda34294104a0234c89fa9e27965bded66e3bc18b23753dde03fd0f",
+  "BLOCKING_FINDINGS": [],
+  "CANDIDATE": "D2 / RULE_1 / RV_ABSTENTION",
+  "CLASSIFICATIONS_UNASSIGNED": [
+    "D2_BITMEX_REPLICATION_SUPPORTED",
+    "D2_BITMEX_REPLICATION_NOT_SUPPORTED",
+    "D2_BITMEX_REPLICATION_INVALID"
+  ],
+  "CLASSIFICATION_ASSIGNED": null,
+  "D2_BITMEX_OUTCOME_COMPUTED": false,
+  "EVIDENCE_CLASS": "INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION",
+  "EXECUTION_AUTHORIZED": false,
+  "EXECUTION_AUTHORIZED_FLAG": false,
+  "EXECUTION_BINDING_SHA256": "bcd6f9cff169c1e2c92492f6626119826f17c70e820c68c38f04cfa79e3c66da",
+  "EXECUTION_PERMIT_PRESENT": false,
+  "EXECUTION_READY": true,
+  "EXPECTED_ELIGIBLE_N": 1069,
+  "FINAL_IMPLEMENTATION_COMMIT": "dd21f2b26029b87893354f47bc9bcb6d13f9502a",
+  "FINAL_IMPLEMENTATION_TREE": "49158f41f7116979944ad8e029ce34e987da8b3e",
+  "FINAL_REVIEWED_IMPLEMENTATION_FILE_SHA256": {
+    "scripts/research/d2_bitmex_pre2020.py": "f0c16c8e120fd6813039abf09421a41ed01f741fe699e1e9df41e9105ca86056",
+    "scripts/research/d2_bitmex_replication_evaluator.py": "087e7ea5892f2ab81f26bd61c82b2709b6812b6916554e5c92846a52496d77aa",
+    "scripts/research/discovery_sprint_01/common.py": "ab152da63fa8c923fba3fd0255b7cd4d6457389b6a45be9959abc7235fa912ef",
+    "scripts/research/market_06_cross_venue_dislocation_evaluator.py": "ff87062edf583af1a67affcc18cda5e184379d9e63f7ff8b0e18383978890ead"
+  },
+  "FIRST_RULE_ELIGIBLE_T": "2017-01-24T00:05:00.000Z",
+  "IMPLEMENTATION_REVIEW": "PASS",
+  "LAST_RULE_ELIGIBLE_T": "2019-12-30T00:05:00.000Z",
+  "MARKET_07_CREATED": false,
+  "NEXT_UNIT": "D2_BITMEX_REPLICATION_ONE_SHOT_EXECUTION",
+  "NOT_CREATED": [
+    "RESULT",
+    "execution permit",
+    "MARKET-07",
+    "ARM"
+  ],
+  "N_CONTROLS": 10000,
+  "ORIGINAL_PREREG_IMPLEMENTATION_FILE_SHA256": {
+    "scripts/research/d2_bitmex_pre2020.py": "f0c16c8e120fd6813039abf09421a41ed01f741fe699e1e9df41e9105ca86056",
+    "scripts/research/d2_bitmex_replication_evaluator.py": "e132f5ee24029b18aa971c4dda6a2e453282038a9527d8362d6656ecd40b75de",
+    "scripts/research/discovery_sprint_01/common.py": "ab152da63fa8c923fba3fd0255b7cd4d6457389b6a45be9959abc7235fa912ef",
+    "scripts/research/market_06_cross_venue_dislocation_evaluator.py": "ff87062edf583af1a67affcc18cda5e184379d9e63f7ff8b0e18383978890ead"
+  },
+  "POST_PREREG_OUTCOME_BLIND_IMPLEMENTATION_IDENTITY": true,
+  "PREREG_ARTIFACT_SHA256": "939fe29243956195f2ca97723a7b94b666ce59359c55e096f8fba4d65c7d9044",
+  "PREREG_FROZEN": true,
+  "PREREG_SCIENTIFIC_CONTRACT": "docs/research/D2_BITMEX_REPLICATION_PREREG.json",
+  "PRE_REVIEW_HEAD": "dd21f2b26029b87893354f47bc9bcb6d13f9502a",
+  "PROTECTED_2025_OPENED": false,
+  "PROTECTED_2026_OPENED": false,
+  "PR_READY_TO_MERGE": true,
+  "RANDOM_SEED": 20260921125,
+  "RED_TEAM_FINDINGS": {
+    "F10_RNG": {
+      "note": "numpy.random.Generator(numpy.random.PCG64(20260921125)). Matches frozen rate_matched_random_abstention masks.",
+      "status": "NOT_CONFIRMED"
+    },
+    "F11_SAMPLE_DRIFT": {
+      "note": "Timestamp census reproduces 1069 / 2017-01-24T00:05Z / 2019-12-30T00:05Z. Execution identity gate classifies INVALID on mismatch.",
+      "status": "NOT_CONFIRMED"
+    },
+    "F12_RESULT_RESCUE": {
+      "note": "classify_replication ignores yearly diagnostics. No 2/3-year gate. Discovery TEMPORAL_CONSISTENCY is not copied.",
+      "status": "NOT_CONFIRMED"
+    },
+    "F13_AUTHORITY_DRIFT": {
+      "note": "Sealed gz/jsonl/authority hashes fail closed. Reacquisition forbidden.",
+      "status": "NOT_CONFIRMED"
+    },
+    "F14_ACCIDENTAL_OUTCOME_INSPECTION": {
+      "note": "execute_replication and real OHLC load require a missing execution permit. No RESULT written.",
+      "status": "NOT_CONFIRMED"
+    },
+    "F1_LOOKAHEAD": {
+      "note": "Features use frozen feature_cutoff E=T-5m and bars ending at E via construct_discovery_row.",
+      "status": "NOT_CONFIRMED"
+    },
+    "F2_ENTRY_OVERLAP": {
+      "note": "Entry uses get_perp_bar_opening_at(T). Feature close uses the bar that ended at E, a different open.",
+      "status": "NOT_CONFIRMED"
+    },
+    "F3_OUTCOME_OVERLAP": {
+      "note": "Future path is 288 bars opening at T, T+5m, ... through T+287*5m via frozen construct_discovery_row.",
+      "status": "NOT_CONFIRMED"
+    },
+    "F4_BITMEX_TIMESTAMP": {
+      "note": "Canonical rows are keyed by open_time_ms = official bucket-end timestamp minus 5m. Tests refuse keying by bucket end.",
+      "status": "NOT_CONFIRMED"
+    },
+    "F5_GAP_LEAKAGE": {
+      "note": "No fill. Missing feature or future open makes construct_discovery_row return None. Timestamp census still 1069.",
+      "status": "NOT_CONFIRMED"
+    },
+    "F6_ROLLING_HISTORY": {
+      "note": "rv_abstention_mask uses previous 250 valid constructed rows, not 250 calendar days. Warmup cannot abstain.",
+      "status": "NOT_CONFIRMED"
+    },
+    "F7_PERCENTILE": {
+      "note": "P90 of prior 250, t excluded, strict >. Equality does not fire.",
+      "status": "NOT_CONFIRMED"
+    },
+    "F8_INVERSE_CONTRACT": {
+      "note": "Severity is frozen arithmetic_mae last-trade price-path MAE, not inverse PnL, mark, index, or funding.",
+      "status": "NOT_CONFIRMED"
+    },
+    "F9_COMPARATOR": {
+      "note": "Controls draw exact K_y within each of 2017/2018/2019. Pooled-K sampling is not used.",
+      "status": "NOT_CONFIRMED"
+    }
+  },
+  "RUN_IDENTITY": "b873d473e5d5ef1394d161d557b1e0ca7602bfa92e6d78d8e80df8f4d1493d71",
+  "RUN_IDENTITY_INPUTS": {
+    "BITMEX_CANONICAL_GZ_SHA256": "8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa",
+    "BITMEX_CANONICAL_SHA256": "b145013cbcda34294104a0234c89fa9e27965bded66e3bc18b23753dde03fd0f",
+    "EXPECTED_N": 1069,
+    "FINAL_IMPLEMENTATION_COMMIT": "dd21f2b26029b87893354f47bc9bcb6d13f9502a",
+    "FINAL_IMPLEMENTATION_TREE": "49158f41f7116979944ad8e029ce34e987da8b3e",
+    "FINAL_REVIEWED_IMPLEMENTATION_FILE_SHA256": {
+      "scripts/research/d2_bitmex_pre2020.py": "f0c16c8e120fd6813039abf09421a41ed01f741fe699e1e9df41e9105ca86056",
+      "scripts/research/d2_bitmex_replication_evaluator.py": "087e7ea5892f2ab81f26bd61c82b2709b6812b6916554e5c92846a52496d77aa",
+      "scripts/research/discovery_sprint_01/common.py": "ab152da63fa8c923fba3fd0255b7cd4d6457389b6a45be9959abc7235fa912ef",
+      "scripts/research/market_06_cross_venue_dislocation_evaluator.py": "ff87062edf583af1a67affcc18cda5e184379d9e63f7ff8b0e18383978890ead"
+    },
+    "FIRST_T": "2017-01-24T00:05:00.000Z",
+    "LAST_T": "2019-12-30T00:05:00.000Z",
+    "N_CONTROLS": 10000,
+    "ORIGINAL_PREREG_IMPLEMENTATION_FILE_SHA256": {
+      "scripts/research/d2_bitmex_pre2020.py": "f0c16c8e120fd6813039abf09421a41ed01f741fe699e1e9df41e9105ca86056",
+      "scripts/research/d2_bitmex_replication_evaluator.py": "e132f5ee24029b18aa971c4dda6a2e453282038a9527d8362d6656ecd40b75de",
+      "scripts/research/discovery_sprint_01/common.py": "ab152da63fa8c923fba3fd0255b7cd4d6457389b6a45be9959abc7235fa912ef",
+      "scripts/research/market_06_cross_venue_dislocation_evaluator.py": "ff87062edf583af1a67affcc18cda5e184379d9e63f7ff8b0e18383978890ead"
+    },
+    "PREREG_ARTIFACT_SHA256": "939fe29243956195f2ca97723a7b94b666ce59359c55e096f8fba4d65c7d9044",
+    "RANDOM_SEED": 20260921125,
+    "SOURCE_AUTHORITY_SHA256": "2a48e025a9ecb596f7a37646a39367cae031e5aa3fd0555416c3fab692594dff"
+  },
+  "SOURCE_AUTHORITY_SHA256": "2a48e025a9ecb596f7a37646a39367cae031e5aa3fd0555416c3fab692594dff",
+  "kind": "OUTCOME_BLIND_IMPLEMENTATION_REVIEW",
+  "unit": "D2_BITMEX_REPLICATION_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW",
+  "verified_timestamp_census": {
+    "EXPECTED_ELIGIBLE_N": 1069,
+    "FIRST_RULE_ELIGIBLE_T": "2017-01-24T00:05:00.000Z",
+    "LAST_RULE_ELIGIBLE_T": "2019-12-30T00:05:00.000Z"
+  }
+}

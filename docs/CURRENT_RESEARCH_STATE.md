@@ -37,7 +37,7 @@ PREVIOUS_ROUTING            = D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURF
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = D2_BITMEX_REPLICATION_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW
+NEXT_UNIT                   = D2_BITMEX_REPLICATION_ONE_SHOT_EXECUTION
 PROTECTED_2025_OPENED       = false
 PROTECTED_2026_OPENED       = false
 INTERNAL_DISCOVERY_CARDS_EXECUTED = 4
@@ -130,6 +130,14 @@ reproduced `N=1069`, first `2017-01-24T00:05:00Z`, last
 `2019-12-30T00:05:00Z`. Classification unassigned. No BitMEX D2 outcome.
 Protected 2025/2026 unopened. MARKET-07 not created.
 Record: `docs/research/D2_BITMEX_REPLICATION_PREREG.{json,md}`.
+
+`D2_BITMEX_REPLICATION_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW` then
+replaced the firewalled stub evaluator with a reviewed execution
+implementation without computing BitMEX outcomes. Timestamp census still
+reproduces `N=1069`. Execution remains unauthorized: no permit exists.
+`IMPLEMENTATION_REVIEW = PASS`. `EXECUTION_READY = true`.
+`EXECUTION_AUTHORIZED = false`.
+Record: `docs/research/D2_BITMEX_REPLICATION_IMPLEMENTATION_REVIEW.{json,md}`.
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by

@@ -27,8 +27,6 @@ from scripts.research.d2_bitmex_replication_evaluator import (
     EXECUTION_AUTHORIZED,
     ExecutionNotAuthorized,
     assert_pre2020_future,
-    compute_delta,
-    compute_mu_rule,
     execute_replication,
     last_future_bar_end,
     pooled_k_is_forbidden,
@@ -195,10 +193,6 @@ def test_year_matched_controls_not_pooled_k() -> None:
 def test_no_d2_bitmex_outcome_computed() -> None:
     with pytest.raises((D2OutcomeRefused, ExecutionNotAuthorized)):
         execute_replication()
-    with pytest.raises((D2OutcomeRefused, ExecutionNotAuthorized)):
-        compute_mu_rule()
-    with pytest.raises((D2OutcomeRefused, ExecutionNotAuthorized)):
-        compute_delta()
     tree = ast.parse((REPO / "scripts/research/d2_bitmex_replication_prereg.py").read_text())
     calls = {node.func.id for node in ast.walk(tree) if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)}
     assert "arithmetic_mae" not in calls
