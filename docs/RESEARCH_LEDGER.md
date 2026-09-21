@@ -3670,3 +3670,88 @@ amendments layered into `docs/research/DISCOVERY_SPRINT_01_SPEC_COMPILATION.{jso
 - next required step: `DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4_D5`,
   gated separately on `D1_NULL_ADEQUACY_GATE_EXECUTION` and
   `D6_REPLACEMENT_BENCHMARK_SELECTION`
+
+## 2026-09-21 — Discovery Sprint 01 final pre-execution correction (D3, D4 only)
+
+`DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4` (reviewed commit
+`355a1657aac288fe75b272df1845fd9b5cfcac3f`) is a narrow, outcome-blind
+follow-up to the red-team review, addressing D3 and D4 only; D1, D2, D5,
+D6 are unchanged. No card was executed; no candidate performance was
+inspected; protected 2025/2026 remained unopened; no MARKET-07 was
+created.
+
+**D3 — direction/native-path null semantics.** D3 was labeled
+`UNCONDITIONAL_DESIGN` but its `MAX_ADVERSE_EXCURSION_24h` /
+`TIME_TO_MAX_ADVERSE_EXCURSION` functionals were direction-aligned via
+`BTC_SIDE(t)` (sign of the prior 24h return) -- a real, historically
+informative quantity, not a neutral label. Of the three resolutions
+considered (condition on the real shared `BTC_SIDE(t)`; generate a
+surrogate pre-history to derive a surrogate `BTC_SIDE`; remove direction
+alignment entirely), option C was selected outcome-blind: a real
+directional-predictability effect (e.g. mean reversion) could make real
+direction-aligned excursions differ from the null for reasons unrelated
+to path shape, so any direction-conditioned design risked smuggling in
+exactly the structure D1/D2/MARKET-01/02/05/06 already test. D3's
+functionals are redefined unsigned: `MAX_UPSIDE_EXCURSION_24h`,
+`MAX_DOWNSIDE_EXCURSION_24h`, `TIME_TO_MAX_EXCURSION`, `PATH_ASYMMETRY`,
+with no `ev.btc_side_from_ret` dependency.
+
+Separately, the first-round-corrected `5m_RETURN_POOLED_CIRCULAR_BLOCK_BOOTSTRAP`
+null (from `DISCOVERY_SPRINT_01_RED_TEAM_REVIEW` F3) pools 5-minute
+return blocks from anywhere in history, ignoring time-of-day. Because
+every MARKET-06 decision point starts at the identical fixed UTC clock
+time (`00:05:00Z`, per the frozen `is_forbidden_decision` check), bar
+offset is structurally equivalent to UTC time-of-day for every
+observation -- `TIME_TO_MAX_EXCURSION` is a time-of-day statistic, not
+merely correlated with one. Ordinary session-based intraday volatility
+seasonality would concentrate the real empirical distribution at
+specific bar-offsets while a time-of-day-blind null smears it flat: a
+near-certain confound, demonstrated structurally from the frozen
+decision-grid design, not from any computed outcome. Corrected to
+`5m_RETURN_TIME_OF_DAY_STRATIFIED_BLOCK_BOOTSTRAP`: the 288 bar-offsets
+are partitioned into 24 fixed 1-hour slots, and each surrogate day's
+per-slot block is drawn only from real historical blocks at that same
+slot -- preserving the UTC time-of-day volatility profile in addition to
+everything the original null preserved, while still destroying
+date-specific conditioning and cross-slot dependency. `PATH_ASYMMETRY`
+zero-denominator handling (row excluded from that functional only, not
+the others), `TIME_TO_MAX_EXCURSION` tie handling (earliest bar-offset
+wins), and the entry/reference convention (`entry_open =
+ev.get_perp_bar_opening_at(perp, t_ms).open`, reused verbatim) were also
+frozen. D3 remains `EXECUTABLE_DISCOVERY_SPEC`.
+
+**D4 — lead-lag null still destroyed too much.** The prior
+`INDEPENDENT_BLOCK_BOOTSTRAP` fix for `LEAD_LAG_1DAY` (independent draws
+of the BTC and ETH series) destroys not only the true
+`BTC(t)->ETH(t+1)` cross-lag but also ordinary same-time common-factor
+dependence (shared crypto-market-wide moves), which is not the target
+being tested -- no outcome-blind demonstration exists that it isolates
+lead-lag specifically, and by construction it cannot, since independent
+draws have zero built-in same-time dependence. Per the preferred minimal
+resolution, no complex new lead-lag null (e.g. partial-correlation
+controlling for contemporaneous co-movement) was invented merely to keep
+both functionals: `LEAD_LAG_1DAY` is `DEFERRED_FROM_SPRINT_01` (its
+definition retained as historical record, not deleted), while
+`ROLLING_CORRELATION_90D` is retained unchanged with its paired-vector
+block-bootstrap null. D4 remains `EXECUTABLE_DISCOVERY_SPEC`, scoped to
+`ROLLING_CORRELATION_90D` only for Sprint 01 execution.
+
+Evidence: `docs/research/DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4.{json,md}`,
+amendments layered into `docs/research/DISCOVERY_SPRINT_01_SPEC_COMPILATION.{json,md}`.
+
+- `D1_STATUS = BLOCKED_PENDING_PRE_OUTCOME_FIX` (unchanged)
+- `D2_STATUS = D3_STATUS = D5_STATUS = EXECUTABLE_DISCOVERY_SPEC`
+- `D4_STATUS = EXECUTABLE_DISCOVERY_SPEC (ROLLING_CORRELATION_90D only)`
+- `D4_ROLLING_CORRELATION_STATUS = EXECUTABLE_DISCOVERY_SPEC`
+- `D4_LEAD_LAG_STATUS = DEFERRED_FROM_SPRINT_01`
+- `D6_STATUS = DEFERRED` (unchanged)
+- `SCIENTIFIC_OUTCOMES_COMPUTED = false`
+- `CANDIDATE_PERFORMANCE_INSPECTED = false`
+- `MARKET_07_CREATED = false`
+- `PROTECTED_2025_OPENED = false`
+- `PROTECTED_2026_OPENED = false`
+- `EXECUTION_AUTHORIZED_CARDS = D2, D3, D4 (ROLLING_CORRELATION_90D only), D5`
+- next required step: `DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5`,
+  gated separately on `D1_NULL_ADEQUACY_GATE_EXECUTION`,
+  `D4_LEAD_LAG_REPLACEMENT_NULL_OR_PERMANENT_DEFERRAL`, and
+  `D6_REPLACEMENT_BENCHMARK_SELECTION`

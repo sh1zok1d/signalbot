@@ -31,6 +31,14 @@
     "summary": "Seven suspected defects (F1-F7) reviewed outcome-blind. F1,F2,F3,F4,F6 confirmed and fixed in place below (see each card's red_team_correction_2026_09_21 block). F5 confirmed as an unverified assertion; a D1_NULL_ADEQUACY_GATE is now defined but not executed, so D1 is BLOCKED_PENDING_PRE_OUTCOME_FIX. F7 confirmed a genuine usefulness problem (at most one testable historical episode); D6 is DEFERRED.",
     "final_classification_supersedes_prior_all_executable_claim": true
   },
+  "pre_execution_correction_2026_09_21": {
+    "record": "docs/research/DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4.{json,md}",
+    "reviewed_commit": "355a1657aac288fe75b272df1845fd9b5cfcac3f",
+    "scope": "D3 and D4 only",
+    "summary": "D3's direction-aligned functionals contradicted its own UNCONDITIONAL_DESIGN label and risked smuggling in directional-predictability structure; redefined as genuinely unconditional/unsigned (MAX_UPSIDE/MAX_DOWNSIDE_EXCURSION_24h, TIME_TO_MAX_EXCURSION, PATH_ASYMMETRY), and its null corrected from time-of-day-blind to 5m_RETURN_TIME_OF_DAY_STRATIFIED_BLOCK_BOOTSTRAP given every MARKET-06 decision point shares the same fixed UTC decision time (structural confound risk, demonstrated outcome-blind). D4's INDEPENDENT_BLOCK_BOOTSTRAP for LEAD_LAG_1DAY was found to over-destroy (also killing ordinary same-time common-factor dependence); LEAD_LAG_1DAY is DEFERRED_FROM_SPRINT_01, ROLLING_CORRELATION_90D retained unchanged.",
+    "D3_status_after": "EXECUTABLE_DISCOVERY_SPEC",
+    "D4_status_after": "EXECUTABLE_DISCOVERY_SPEC (ROLLING_CORRELATION_90D only; LEAD_LAG_1DAY DEFERRED_FROM_SPRINT_01)"
+  },
   "dataset_authorities_referenced": {
     "CORE_BTC_BINANCE_V0": {
       "snapshot_id": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
@@ -192,6 +200,34 @@
           "companion_stability_checks": "Pre-declared companion block lengths of 6 and 24 bars, frozen now (mirrors D1's own neighborhood-stability pattern)."
         },
         "record": "docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}"
+      },
+      "pre_execution_correction_2026_09_21": {
+        "record": "docs/research/DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4.{json,md}",
+        "issue_1_direction_vs_unconditional_FIXED": {
+          "problem": "MAX_ADVERSE_EXCURSION_24h / TIME_TO_MAX_ADVERSE_EXCURSION above were direction-aligned via BTC_SIDE(t), contradicting UNCONDITIONAL_DESIGN and risking smuggled-in directional-predictability structure.",
+          "decision": "Option C selected outcome-blind: remove direction alignment entirely; D3 redefined as genuinely unconditional, unsigned path morphology. ev.btc_side_from_ret is no longer used by D3.",
+          "EXACT_FUNCTIONAL_DEFINITIONS_CORRECTED": {
+            "MAX_UPSIDE_EXCURSION_24h": "max_{k=0..287}( (future_bar_k.high - entry_open) / entry_open )",
+            "MAX_DOWNSIDE_EXCURSION_24h": "max_{k=0..287}( (entry_open - future_bar_k.low) / entry_open )",
+            "TIME_TO_MAX_EXCURSION": "5m-bar offset (0-287) at which max(MAX_UPSIDE_EXCURSION_24h, MAX_DOWNSIDE_EXCURSION_24h) occurs",
+            "PATH_ASYMMETRY": "MAX_UPSIDE_EXCURSION_24h / MAX_DOWNSIDE_EXCURSION_24h"
+          },
+          "supersedes": "EXACT_FUNCTIONAL_DEFINITIONS above (MAX_ADVERSE_EXCURSION_24h, TIME_TO_MAX_ADVERSE_EXCURSION, PATH_ASYMMETRY's original denominator MAX_FAVORABLE_EXCURSION_24h)"
+        },
+        "issue_2_time_of_day_confound_FIXED": {
+          "problem": "The F3 null (5m_RETURN_POOLED_CIRCULAR_BLOCK_BOOTSTRAP) pools blocks ignoring time-of-day. Every MARKET-06 decision point starts at the fixed UTC clock time 00:05:00Z, so bar-offset k corresponds to the identical UTC time-of-day on every observation -- TIME_TO_MAX_EXCURSION IS a UTC time-of-day statistic. Ordinary session-based intraday volatility seasonality would concentrate the real distribution at specific bar-offsets while a time-of-day-blind null smears it out: a near-certain confound, demonstrated structurally (outcome-blind), not shown to be irrelevant.",
+          "corrected_null_family": "5m_RETURN_TIME_OF_DAY_STRATIFIED_BLOCK_BOOTSTRAP: partition the 288 bar-offsets into 24 fixed 1-hour slots of 12 consecutive bar-offsets (slot i = bar-offsets [12i, 12i+11]). For each surrogate day and each slot INDEPENDENTLY, draw the replacement 12-bar block, with replacement, only from the pool of real historical blocks at that SAME slot position across the discovery interval -- never mixing blocks across slots.",
+          "preserves_now": "Everything the original null preserved (5m-return marginal, short-range <=1h autocorrelation/clustering) PLUS the marginal UTC time-of-day volatility profile.",
+          "still_destroys": "Date-specific/conditioning structure and cross-slot (>1h) dependency -- unchanged intent.",
+          "parameters_unchanged": "block_length_bars=12, replicates=1000, seed D3_NULL_SURROGATE_SEED=20260921103, companion checks at block lengths 6 and 24 (288/6=48 and 288/24=12 slots, both exact), all now slot-stratified.",
+          "supersedes": "EXACT_SIMPLE_BASELINE_CONTROL / corrected_null_family in the F3 fix above (5m_RETURN_POOLED_CIRCULAR_BLOCK_BOOTSTRAP is superseded by the slot-stratified variant; same block length/replicates/seed)"
+        },
+        "issue_3_edge_case_freezes": {
+          "PATH_ASYMMETRY_zero_denominator_handling": "If MAX_DOWNSIDE_EXCURSION_24h == 0, PATH_ASYMMETRY is undefined for that row; the row is excluded from the PATH_ASYMMETRY distribution only (not from the other two functionals); exclusion count reported.",
+          "TIME_TO_MAX_EXCURSION_tie_handling": "Earliest bar-offset wins on a tie (frozen convention, consistent with D6).",
+          "EXACT_ENTRY_REFERENCE_CONVENTION": "entry_open = ev.get_perp_bar_opening_at(perp, t_ms).open, reused verbatim from the frozen MARKET-06 entry convention (same reference ev.arithmetic_mae already uses)."
+        },
+        "SPEC_STATUS_AFTER_CORRECTION": "EXECUTABLE_DISCOVERY_SPEC"
       }
     },
     "D4": {
@@ -226,6 +262,15 @@
           "new_seed": "D4_LEAD_LAG_NULL_SEED = 20260921107 (distinct from D4_NULL_SEED, which now applies to ROLLING_CORRELATION_90D only)"
         },
         "record": "docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}"
+      },
+      "pre_execution_correction_2026_09_21": {
+        "record": "docs/research/DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4.{json,md}",
+        "problem": "The F4-fix INDEPENDENT_BLOCK_BOOTSTRAP for LEAD_LAG_1DAY (independent draws of BTC and ETH series) destroys not only the true BTC(t)->ETH(t+1) cross-lag but also ordinary same-time common-factor dependence, which is not the target being tested. No outcome-blind demonstration exists that it preserves the relevant non-target cross-asset structure -- it demonstrably does not, by construction (independent draws have zero built-in same-time dependence).",
+        "decision": "Preferred minimal resolution applied, no complex new lead-lag null invented merely to keep both functionals.",
+        "ROLLING_CORRELATION_90D": "RETAINED unchanged: paired-vector BLOCK_BOOTSTRAP_PAIRED_RETURNS (block length 20 days), cleanly specified.",
+        "LEAD_LAG_1DAY": "DEFERRED_FROM_SPRINT_01. Definition retained above as historical record, not deleted. D4_LEAD_LAG_NULL_SEED = 20260921107 is retained as a record of the rejected fix but is not used in Sprint 01 execution.",
+        "PROMISING_PROTOTYPE_EVALUATION_FIELDS_correction": "The 'OR |LEAD_LAG_1DAY| exceeds the 97.5th percentile...' clause in PROMISING_PROTOTYPE_EVALUATION_FIELDS above no longer applies for Sprint 01 execution; only the ROLLING_CORRELATION_90D branch is in scope.",
+        "SPEC_STATUS_AFTER_CORRECTION": "EXECUTABLE_DISCOVERY_SPEC, scoped to ROLLING_CORRELATION_90D only"
       }
     },
     "D5": {
@@ -318,20 +363,22 @@
     "status": "SPEC_FINALIZED_NO_ANSWERS_COMPUTED"
   },
   "sprint_execution_manifest": {
-    "SUPERSEDED_BY": "DISCOVERY_SPRINT_01_RED_TEAM_REVIEW (docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}), reviewed_commit 7bb92b0bd6238693164b6592c0711fa4c15fc9fe",
-    "EXECUTABLE_DISCOVERY_SPEC": ["D2", "D3", "D4", "D5"],
+    "SUPERSEDED_BY": "DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4 (docs/research/DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4.{json,md}), reviewed_commit 355a1657aac288fe75b272df1845fd9b5cfcac3f; prior superseded-by DISCOVERY_SPRINT_01_RED_TEAM_REVIEW (7bb92b0) retained below for lineage",
+    "EXECUTABLE_DISCOVERY_SPEC": ["D2", "D3", "D4 (ROLLING_CORRELATION_90D only)", "D5"],
     "BLOCKED_PENDING_PRE_OUTCOME_FIX": ["D1"],
     "DEFERRED": ["D6"],
+    "DEFERRED_FUNCTIONAL_WITHIN_AN_EXECUTABLE_CARD": ["D4 LEAD_LAG_1DAY (DEFERRED_FROM_SPRINT_01)"],
     "executable_count": 4,
     "blocked_count": 1,
     "deferred_count": 1,
     "zero_useful_cards_executable": false,
-    "original_all_six_executable_claim": "WITHDRAWN -- superseded by the red-team review; see red_team_review_2026_09_21 above and each card's red_team_correction_2026_09_21 block."
+    "original_all_six_executable_claim": "WITHDRAWN -- superseded by the red-team review; see red_team_review_2026_09_21 above and each card's red_team_correction_2026_09_21 block.",
+    "D3_D4_first_round_fix_claim": "PARTIALLY WITHDRAWN -- superseded by pre_execution_correction_2026_09_21 above; D3's direction-aligned functionals and time-of-day-blind null, and D4's INDEPENDENT_BLOCK_BOOTSTRAP lead-lag null, are each further corrected or descoped."
   },
   "SCIENTIFIC_OUTCOMES_COMPUTED": false,
   "CANDIDATE_PERFORMANCE_INSPECTED": false,
   "MARKET_07_CREATED": false,
   "PROTECTED_2025_OPENED": false,
   "PROTECTED_2026_OPENED": false,
-  "NEXT_UNIT": "DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4_D5, gated separately on D1_NULL_ADEQUACY_GATE_EXECUTION and D6_REPLACEMENT_BENCHMARK_SELECTION"
+  "NEXT_UNIT": "DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5, gated separately on D1_NULL_ADEQUACY_GATE_EXECUTION, D4_LEAD_LAG_REPLACEMENT_NULL_OR_PERMANENT_DEFERRAL, and D6_REPLACEMENT_BENCHMARK_SELECTION"
 }

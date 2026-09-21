@@ -264,6 +264,31 @@
     "MARKET_07_CREATED": false,
     "PROTECTED_2025_OPENED": false,
     "PROTECTED_2026_OPENED": false,
-    "NEXT_UNIT": "DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4_D5, gated separately on D1_NULL_ADEQUACY_GATE_EXECUTION and D6_REPLACEMENT_BENCHMARK_SELECTION"
+    "NEXT_UNIT": "DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4_D5, gated separately on D1_NULL_ADEQUACY_GATE_EXECUTION and D6_REPLACEMENT_BENCHMARK_SELECTION",
+    "SUPERSEDED_BY": "pre_execution_correction_2026_09_21 below (D3, D4 only)"
+  },
+  "pre_execution_correction_2026_09_21": {
+    "unit": "DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4",
+    "record": "docs/research/DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4.{json,md}",
+    "reviewed_commit": "355a1657aac288fe75b272df1845fd9b5cfcac3f",
+    "scope": "D3 and D4 only; D1, D2, D5, D6 unchanged from red_team_review_2026_09_21",
+    "SPEC_STATUS": {
+      "D1": "BLOCKED_PENDING_PRE_OUTCOME_FIX",
+      "D2": "EXECUTABLE_DISCOVERY_SPEC",
+      "D3": "EXECUTABLE_DISCOVERY_SPEC",
+      "D4": "EXECUTABLE_DISCOVERY_SPEC (ROLLING_CORRELATION_90D only)",
+      "D4_ROLLING_CORRELATION_STATUS": "EXECUTABLE_DISCOVERY_SPEC",
+      "D4_LEAD_LAG_STATUS": "DEFERRED_FROM_SPRINT_01",
+      "D5": "EXECUTABLE_DISCOVERY_SPEC",
+      "D6": "DEFERRED"
+    },
+    "HARD_FINDINGS": "D3's direction-aligned functionals contradicted its own UNCONDITIONAL_DESIGN label and risked smuggling in directional-predictability structure; redefined as genuinely unsigned (MAX_UPSIDE/MAX_DOWNSIDE_EXCURSION_24h, TIME_TO_MAX_EXCURSION, PATH_ASYMMETRY), with a time-of-day-stratified null replacing the time-of-day-blind one (every MARKET-06 decision point shares the same fixed UTC time, making TIME_TO_MAX_EXCURSION structurally a time-of-day statistic). D4's INDEPENDENT_BLOCK_BOOTSTRAP lead-lag null was found to over-destroy (also killing ordinary same-time common-factor dependence); LEAD_LAG_1DAY deferred, ROLLING_CORRELATION_90D retained unchanged.",
+    "EXECUTION_AUTHORIZED_CARDS": ["D2", "D3", "D4 (ROLLING_CORRELATION_90D only)", "D5"],
+    "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+    "CANDIDATE_PERFORMANCE_INSPECTED": false,
+    "MARKET_07_CREATED": false,
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "NEXT_UNIT": "DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5, gated separately on D1_NULL_ADEQUACY_GATE_EXECUTION, D4_LEAD_LAG_REPLACEMENT_NULL_OR_PERMANENT_DEFERRAL, and D6_REPLACEMENT_BENCHMARK_SELECTION"
   }
 }

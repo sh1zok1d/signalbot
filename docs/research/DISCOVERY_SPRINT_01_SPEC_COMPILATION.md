@@ -27,19 +27,46 @@ This document was reviewed by `DISCOVERY_SPRINT_01_RED_TEAM_REVIEW`
 (reviewed commit `7bb92b0bd6238693164b6592c0711fa4c15fc9fe`; full record:
 `docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}`). **The
 original "all six executable" classification below is withdrawn** and
-superseded by that review's findings:
+superseded by that review's findings, which were then further corrected
+by the final pre-execution correction below.
+
+## Final pre-execution correction (2026-09-21)
+
+`DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4` (reviewed commit
+`355a1657aac288fe75b272df1845fd9b5cfcac3f`; full record:
+`docs/research/DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4.{json,md}`)
+further corrected D3 and D4 only:
+
+- **D3** was direction-aligned via `BTC_SIDE(t)`, contradicting its own
+  `UNCONDITIONAL_DESIGN` label and risking smuggled-in directional-
+  predictability structure. Redefined as genuinely unconditional/unsigned
+  (`MAX_UPSIDE_EXCURSION_24h`, `MAX_DOWNSIDE_EXCURSION_24h`,
+  `TIME_TO_MAX_EXCURSION`, `PATH_ASYMMETRY`), with no `BTC_SIDE`
+  dependency. Its null was also found to ignore UTC time-of-day, which —
+  because every MARKET-06 decision point shares the identical fixed UTC
+  decision time — makes `TIME_TO_MAX_EXCURSION` structurally equivalent
+  to a time-of-day statistic; corrected to
+  `5m_RETURN_TIME_OF_DAY_STRATIFIED_BLOCK_BOOTSTRAP`.
+- **D4**'s `INDEPENDENT_BLOCK_BOOTSTRAP` lead-lag null (from the first
+  review round) was found to over-destroy, also killing ordinary
+  same-time common-factor dependence. `LEAD_LAG_1DAY` is now
+  `DEFERRED_FROM_SPRINT_01`; `ROLLING_CORRELATION_90D` is retained
+  unchanged and cleanly specified.
+
+**Current final status:**
 
 | Card | Status |
 |---|---|
 | D1 | `BLOCKED_PENDING_PRE_OUTCOME_FIX` (RV_20 formula corrected; `D1_NULL_ADEQUACY_GATE` defined, not yet executed) |
 | D2 | `EXECUTABLE_DISCOVERY_SPEC` (RULE_2/interval and base-exposure-schedule fixes applied) |
-| D3 | `EXECUTABLE_DISCOVERY_SPEC` (null replaced with a native-5m granularity block-bootstrap) |
-| D4 | `EXECUTABLE_DISCOVERY_SPEC` (lead-lag given its own independent-block null) |
+| D3 | `EXECUTABLE_DISCOVERY_SPEC` (unsigned functionals + time-of-day-stratified null) |
+| D4 | `EXECUTABLE_DISCOVERY_SPEC`, **ROLLING_CORRELATION_90D only** (`LEAD_LAG_1DAY` deferred) |
 | D5 | `EXECUTABLE_DISCOVERY_SPEC` (inherits D2's interval and exposure-schedule fixes) |
 | D6 | `DEFERRED` (insufficient diagnostic power — at most one testable historical episode) |
 
 Each card section below retains its original text as historical record,
-with a `red_team_correction_2026_09_21` block layered on top in the JSON
+with `red_team_correction_2026_09_21` and (for D3/D4)
+`pre_execution_correction_2026_09_21` blocks layered on top in the JSON
 twin recording exactly what changed and why. Read the corrections
 alongside the original text, not as a silent replacement of it.
 
@@ -243,26 +270,28 @@ effort). No numeric answers are computed here.
 
 ## Sprint execution manifest
 
-**Superseded by `DISCOVERY_SPRINT_01_RED_TEAM_REVIEW`** (reviewed commit
-`7bb92b0`) — see the correction table at the top of this document for the
-current status. Original (pre-review) table, for record:
+**Superseded by `DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4`**
+(reviewed commit `355a1657`) — see the correction tables above for the
+current status. Full lineage, for record:
 
-| Card | Original status | Status after red-team review |
-|---|---|---|
-| D1 | `EXECUTABLE_DISCOVERY_SPEC` | `BLOCKED_PENDING_PRE_OUTCOME_FIX` |
-| D2 | `EXECUTABLE_DISCOVERY_SPEC` | `EXECUTABLE_DISCOVERY_SPEC` (fixed) |
-| D3 | `EXECUTABLE_DISCOVERY_SPEC` | `EXECUTABLE_DISCOVERY_SPEC` (fixed) |
-| D4 | `EXECUTABLE_DISCOVERY_SPEC` | `EXECUTABLE_DISCOVERY_SPEC` (fixed) |
-| D5 | `EXECUTABLE_DISCOVERY_SPEC` | `EXECUTABLE_DISCOVERY_SPEC` (fixed) |
-| D6 | `EXECUTABLE_DISCOVERY_SPEC` | `DEFERRED` |
+| Card | Original status | After red-team review (7bb92b0) | After pre-execution correction (355a165) |
+|---|---|---|---|
+| D1 | `EXECUTABLE_DISCOVERY_SPEC` | `BLOCKED_PENDING_PRE_OUTCOME_FIX` | unchanged |
+| D2 | `EXECUTABLE_DISCOVERY_SPEC` | `EXECUTABLE_DISCOVERY_SPEC` (fixed) | unchanged |
+| D3 | `EXECUTABLE_DISCOVERY_SPEC` | `EXECUTABLE_DISCOVERY_SPEC` (fixed) | `EXECUTABLE_DISCOVERY_SPEC` (further corrected: unsigned + time-of-day-stratified) |
+| D4 | `EXECUTABLE_DISCOVERY_SPEC` | `EXECUTABLE_DISCOVERY_SPEC` (fixed) | `EXECUTABLE_DISCOVERY_SPEC`, `ROLLING_CORRELATION_90D` only (`LEAD_LAG_1DAY` deferred) |
+| D5 | `EXECUTABLE_DISCOVERY_SPEC` | `EXECUTABLE_DISCOVERY_SPEC` (fixed) | unchanged |
+| D6 | `EXECUTABLE_DISCOVERY_SPEC` | `DEFERRED` | unchanged |
 
-`executable_count = 4` (D2, D3, D4, D5). `blocked_count = 1` (D1).
-`deferred_count = 1` (D6). `zero_useful_cards_executable = false`.
+`executable_count = 4` (D2, D3, D4 [rolling-correlation only], D5).
+`blocked_count = 1` (D1). `deferred_count = 1` (D6).
+`zero_useful_cards_executable = false`.
 
 `SCIENTIFIC_OUTCOMES_COMPUTED = false`. `CANDIDATE_PERFORMANCE_INSPECTED =
 false`. `MARKET_07_CREATED = false`. `PROTECTED_2025_OPENED = false`.
 `PROTECTED_2026_OPENED = false`.
 
-`NEXT_UNIT = DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4_D5, gated
-separately on D1_NULL_ADEQUACY_GATE_EXECUTION and
+`NEXT_UNIT = DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5,
+gated separately on D1_NULL_ADEQUACY_GATE_EXECUTION,
+D4_LEAD_LAG_REPLACEMENT_NULL_OR_PERMANENT_DEFERRAL, and
 D6_REPLACEMENT_BENCHMARK_SELECTION`.

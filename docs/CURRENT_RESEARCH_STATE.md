@@ -37,7 +37,7 @@ PREVIOUS_ROUTING            = STRUCTURAL_REGIME_STATE_DETECTION_MECHANISM_CLASS_
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4_D5
+NEXT_UNIT                   = DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5
 PROTECTED_2025_OPENED       = false
 PROTECTED_2026_OPENED       = false
 ```
@@ -68,9 +68,29 @@ at most one testable historical episode given `CORE_BTC_BINANCE_V0`'s
 2020 start versus the source's 2013/2017/2021 claims, judged
 diagnostically insufficient.
 
+**Superseded again by `DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4`**
+(reviewed commit `355a1657aac288fe75b272df1845fd9b5cfcac3f`,
+`docs/research/DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4.{json,md}`),
+D3 and D4 only; D1, D2, D5, D6 unchanged from the red-team review above.
+D3's excursion functionals were direction-aligned via `BTC_SIDE(t)`,
+contradicting its own `UNCONDITIONAL_DESIGN` label and risking
+smuggled-in directional-predictability structure; redefined as genuinely
+unsigned (`MAX_UPSIDE_EXCURSION_24h`, `MAX_DOWNSIDE_EXCURSION_24h`,
+`TIME_TO_MAX_EXCURSION`, `PATH_ASYMMETRY`). D3's null was also found to
+ignore UTC time-of-day -- since every MARKET-06 decision point shares the
+same fixed UTC decision time, bar-offset structurally equals
+time-of-day, making `TIME_TO_MAX_EXCURSION` a near-certain seasonality
+confound -- corrected to a time-of-day-stratified block bootstrap. D4's
+`INDEPENDENT_BLOCK_BOOTSTRAP` lead-lag null was found to also destroy
+ordinary same-time common-factor dependence, not just the tested cross-lag;
+`LEAD_LAG_1DAY` is now `DEFERRED_FROM_SPRINT_01` (no complex replacement
+null invented), `ROLLING_CORRELATION_90D` retained unchanged.
+
 **Current per-card status:** `D1 = BLOCKED_PENDING_PRE_OUTCOME_FIX`;
-`D2/D3/D4/D5 = EXECUTABLE_DISCOVERY_SPEC`; `D6 = DEFERRED`.
-`EXECUTION_AUTHORIZED = PARTIAL (D2, D3, D4, D5 only)`.
+`D2, D3, D5 = EXECUTABLE_DISCOVERY_SPEC`; `D4 =
+EXECUTABLE_DISCOVERY_SPEC (ROLLING_CORRELATION_90D only, LEAD_LAG_1DAY
+deferred)`; `D6 = DEFERRED`.
+`EXECUTION_AUTHORIZED = PARTIAL (D2, D3, D4 [rolling-correlation only], D5)`.
 
 The orthogonal-region selection is recorded in
 `docs/research/MARKET_NEXT_HYPOTHESIS_SELECTION.{json,md}` (commit

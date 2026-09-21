@@ -401,3 +401,48 @@ separately on `D1_NULL_ADEQUACY_GATE_EXECUTION` and
 `D6_REPLACEMENT_BENCHMARK_SELECTION`.
 
 Full record: `docs/research/DISCOVERY_SPRINT_01_RED_TEAM_REVIEW.{json,md}`.
+
+## Final pre-execution correction (2026-09-21)
+
+`DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4` (reviewed commit
+`355a1657`) corrected D3 and D4 only; D1, D2, D5, D6 unchanged from the
+red-team review above.
+
+D3's `MAX_ADVERSE_EXCURSION_24h`/`TIME_TO_MAX_ADVERSE_EXCURSION` were
+direction-aligned via `BTC_SIDE(t)`, contradicting D3's own
+`UNCONDITIONAL_DESIGN` label and risking smuggled-in directional-
+predictability structure (momentum/mean-reversion, already tested
+elsewhere in the program) masquerading as "path morphology." Redefined
+as genuinely unsigned: `MAX_UPSIDE_EXCURSION_24h`,
+`MAX_DOWNSIDE_EXCURSION_24h`, `TIME_TO_MAX_EXCURSION`, `PATH_ASYMMETRY`
+— no `BTC_SIDE` dependency at all. Separately, D3's null was found to
+ignore UTC time-of-day; because every MARKET-06 decision point shares
+the identical fixed UTC decision time (`00:05:00Z`), bar-offset directly
+equals time-of-day, making `TIME_TO_MAX_EXCURSION` structurally a
+time-of-day statistic — a near-certain confound with ordinary session
+seasonality, shown outcome-blind from the frozen decision-grid design.
+Corrected to `5m_RETURN_TIME_OF_DAY_STRATIFIED_BLOCK_BOOTSTRAP`
+(resampling stays within the same UTC hour-slot across historical days).
+`PATH_ASYMMETRY` zero-denominator handling, `TIME_TO_MAX_EXCURSION` tie
+handling, and the entry/reference convention were also frozen.
+
+D4's `INDEPENDENT_BLOCK_BOOTSTRAP` lead-lag null (from the first review
+round) was found to over-destroy: it kills not just the true
+`BTC(t)→ETH(t+1)` cross-lag but also ordinary same-time common-factor
+dependence, which is not the target being tested — no outcome-blind
+demonstration exists that it isolates lead-lag specifically. Per the
+preferred minimal resolution, `LEAD_LAG_1DAY` is
+`DEFERRED_FROM_SPRINT_01` (no complex new lead-lag null was invented to
+keep it); `ROLLING_CORRELATION_90D` is retained unchanged and cleanly
+specified.
+
+**Final status:** D1 `BLOCKED_PENDING_PRE_OUTCOME_FIX`; D2, D3, D5
+`EXECUTABLE_DISCOVERY_SPEC`; D4 `EXECUTABLE_DISCOVERY_SPEC` scoped to
+`ROLLING_CORRELATION_90D` only (`LEAD_LAG_1DAY` deferred); D6 `DEFERRED`.
+
+`NEXT_UNIT = DISCOVERY_SPRINT_01_PARTIAL_EXECUTION_D2_D3_D4ROLLING_D5`,
+gated separately on `D1_NULL_ADEQUACY_GATE_EXECUTION`,
+`D4_LEAD_LAG_REPLACEMENT_NULL_OR_PERMANENT_DEFERRAL`, and
+`D6_REPLACEMENT_BENCHMARK_SELECTION`.
+
+Full record: `docs/research/DISCOVERY_SPRINT_01_PRE_EXECUTION_CORRECTION_D3_D4.{json,md}`.
