@@ -15,6 +15,14 @@ import numpy as np
 
 from scripts.research.discovery_sprint_01 import common as C
 from scripts.research.discovery_sprint_01.d2_abstention_tail_risk import evaluate_rule_1
+from scripts.research.d2_confirmation_dependence_preserving_power import (
+    AUTHORITATIVE_POWER_METHOD,
+    D2_CONFIRMATION_DEPENDENCE_PRESERVING_SEED,
+    FIXED_N_POWER_GRID,
+    FULL_2025_CONFIRMATION_ROWS,
+    estimate_dependence_preserving_size_planning,
+    frozen_2026_prefix_from_total_n,
+)
 
 
 UTC = timezone.utc
@@ -32,6 +40,9 @@ LAST_FUTURE_BAR_OPEN = datetime(2025, 12, 31, 0, 0, tzinfo=UTC)
 D2_CONFIRMATION_RANDOM_CONTROL_SEED = 20260921120
 D2_CONFIRMATION_POWER_SEED = 20260921121
 D2_CONFIRMATION_SIZE_PLANNING_SEED = 20260921122
+# Canonical definition lives in d2_confirmation_dependence_preserving_power.py
+# and is re-imported above. Keep the numeric freeze visible here.
+assert D2_CONFIRMATION_DEPENDENCE_PRESERVING_SEED == 20260921123
 
 N_REPLICATES_CONFIRMATION = 10_000
 N_POWER_OUTER = 1_000
@@ -40,7 +51,13 @@ AUTHORITATIVE_RELATIVE_EFFECT = 0.20
 SENSITIVITY_RELATIVE_EFFECTS = (0.15, 0.20, 0.25, 0.30)
 SIZE_PLANNING_RELATIVE_EFFECTS = (0.20, 0.25, 0.30)
 N_2025_DECISION_SLOTS = 364  # 2025 not leap; Dec 31 forbidden
+FULL_2025_CONFIRMATION_ROWS = 364
 FRESH_SURFACE_SIZES = ((1, 364), (2, 728), (3, 1092), (4, 1456))
+COMPLETE_EXPOSED_YEARS = (2021, 2022, 2023, 2024)
+# Frozen outcome-blind before any 2025/2026 price inspection.
+FIXED_N_POWER_GRID = (364, 550, 575, 600, 625, 650, 675, 700, 728, 1092, 1456)
+AUTHORITATIVE_POWER_METHOD = "YEAR_MATCHED_WHOLE_YEAR_PLUS_CONTIGUOUS_PARTIAL_BLOCK"
+STATUS_DATE = datetime(2026, 9, 21, tzinfo=UTC)
 
 # Frozen historical one-year year-cycled Monte Carlo (seed 20260921121).
 # Not recomputed by the size-planning amendment.
@@ -54,6 +71,11 @@ ORIGINAL_ONE_YEAR_POWER_AT_20PCT = {
     "relative_effect": AUTHORITATIVE_RELATIVE_EFFECT,
     "method": "year-cycled empirical 2021-2024 severity; year-specific K",
 }
+
+SUPERSEDED_IID_TWO_YEAR_POWER = 0.903
+SUPERSEDED_IID_THREE_YEAR_POWER = 1.0
+SUPERSEDED_IID_FOUR_YEAR_POWER = 1.0
+SUPERSEDED_IID_ONE_YEAR_POWER = 0.0
 
 DISCOVERY_PROVENANCE = {
     "RULE_1_eligible": 1791,
@@ -565,6 +587,29 @@ def load_exposed_rule1_rows(*, repo: Path | None = None) -> tuple[list[C.Discove
     return rows, log
 
 
+def _load_superseded_iid_size_planning(base: Path) -> dict[str, Any] | None:
+    path = base / JSON_REL
+    if not path.is_file():
+        return None
+    existing = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(existing.get("SUPERSEDED_IID_SIZE_PLANNING"), dict):
+        return existing["SUPERSEDED_IID_SIZE_PLANNING"]
+    size = existing.get("SIZE_PLANNING")
+    if not isinstance(size, dict):
+        return None
+    if int(size.get("SIZE_PLANNING_SEED") or 0) == D2_CONFIRMATION_SIZE_PLANNING_SEED:
+        if not size.get("iid_row_resampling_used", True):
+            nested = size.get("SUPERSEDED_IID_SIZE_PLANNING")
+            if isinstance(nested, dict):
+                return nested
+            return None
+        return size
+    nested = size.get("SUPERSEDED_IID_SIZE_PLANNING")
+    if isinstance(nested, dict):
+        return nested
+    return None
+
+
 def _load_preserved_one_year_power(base: Path) -> dict[str, Any] | None:
     path = base / JSON_REL
     if not path.is_file():
@@ -592,7 +637,10 @@ def run_feasibility(
     replay = evaluate_rule_1(rows)
     preserved = None if recompute_one_year_power else _load_preserved_one_year_power(base)
     power = estimate_power(rows) if preserved is None else preserved
-    size_planning = estimate_size_planning(rows)
+    superseded_iid = _load_superseded_iid_size_planning(base)
+    if superseded_iid is None:
+        superseded_iid = estimate_size_planning(rows)
+    dep = estimate_dependence_preserving_size_planning(rows)
     interpretation = power_interpretation_block(power)
     original_20 = interpretation["ORIGINAL_ONE_YEAR_CALCULATION_PRESERVED"]
     one_year_stat = float(original_20["ONE_YEAR_STATISTICAL_POWER_AT_20PCT"])
@@ -602,7 +650,7 @@ def run_feasibility(
     feasibility = (
         "UNDERPOWERED_SINGLE_YEAR_2025" if underpowered else "FEASIBLE_SINGLE_YEAR_2025"
     )
-    next_unit = str(size_planning["NEXT_UNIT"])
+    next_unit = str(dep["NEXT_UNIT"])
     if not underpowered:
         next_unit = "D2_CONFIRMATION_PREREG_FREEZE"
     opened = list(log.files)
@@ -707,25 +755,36 @@ def run_feasibility(
         "ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT": one_year_joint,
         "PRIMARY_PROSPECTIVE_POWER_CRITERION": "STATISTICAL_POWER_AT_20PCT_EFFECT",
         "POWER_INTERPRETATION_CORRECTION": interpretation,
-        "SIZE_PLANNING": size_planning,
-        "TWO_YEAR_STATISTICAL_POWER_AT_20PCT": size_planning[
-            "TWO_YEAR_STATISTICAL_POWER_AT_20PCT"
-        ],
-        "THREE_YEAR_STATISTICAL_POWER_AT_20PCT": size_planning[
+        "SUPERSEDED_IID_SIZE_PLANNING": superseded_iid,
+        "SUPERSEDED_IID_TWO_YEAR_POWER": SUPERSEDED_IID_TWO_YEAR_POWER,
+        "AUTHORITATIVE_POWER_METHOD": AUTHORITATIVE_POWER_METHOD,
+        "DEPENDENCE_PRESERVING_SIZE_PLANNING": dep,
+        "SIZE_PLANNING": dep,
+        "TWO_YEAR_STATISTICAL_POWER_AT_20PCT": dep["TWO_YEAR_STATISTICAL_POWER_AT_20PCT"],
+        "THREE_YEAR_STATISTICAL_POWER_AT_20PCT": dep[
             "THREE_YEAR_STATISTICAL_POWER_AT_20PCT"
         ],
-        "FOUR_YEAR_STATISTICAL_POWER_AT_20PCT": size_planning[
+        "FOUR_YEAR_STATISTICAL_POWER_AT_20PCT": dep[
             "FOUR_YEAR_STATISTICAL_POWER_AT_20PCT"
         ],
-        "MIN_REQUIRED_FRESH_DECISION_ROWS": size_planning[
-            "MIN_REQUIRED_FRESH_DECISION_ROWS"
+        "ONE_YEAR_STATISTICAL_POWER_AT_20PCT_DEPENDENCE_PRESERVING": dep[
+            "ONE_YEAR_STATISTICAL_POWER_AT_20PCT_DEPENDENCE_PRESERVING"
         ],
-        "MIN_REQUIRED_FRESH_YEARS": size_planning["MIN_REQUIRED_FRESH_YEARS"],
-        "CONFIRMATION_SURFACE_REQUIREMENT": size_planning[
-            "CONFIRMATION_SURFACE_REQUIREMENT"
+        "POWER_BY_N": dep["POWER_BY_N"],
+        "MIN_REQUIRED_FRESH_DECISION_ROWS": dep["MIN_REQUIRED_FRESH_DECISION_ROWS"],
+        "MIN_REQUIRED_FRESH_YEARS": dep["MIN_REQUIRED_FRESH_YEARS"],
+        "MIN_REQUIRED_FRESH_2026_ROWS_AFTER_FULL_2025": dep[
+            "MIN_REQUIRED_FRESH_2026_ROWS_AFTER_FULL_2025"
         ],
-        "POTENTIAL_FUTURE_SURFACE": size_planning["POTENTIAL_FUTURE_SURFACE"],
+        "FROZEN_2026_PREFIX_DECISION_COUNT": dep["FROZEN_2026_PREFIX_DECISION_COUNT"],
+        "FROZEN_FINAL_DECISION_TIMESTAMP": dep["FROZEN_FINAL_DECISION_TIMESTAMP"],
+        "ELAPSED_2026_COMPLETED_DECISION_COUNT_ASOF_2026_09_21": dep[
+            "ELAPSED_2026_COMPLETED_DECISION_COUNT_ASOF_2026_09_21"
+        ],
+        "CONFIRMATION_SURFACE_REQUIREMENT": dep["CONFIRMATION_SURFACE_REQUIREMENT"],
+        "POTENTIAL_FUTURE_SURFACE": dep["POTENTIAL_FUTURE_SURFACE"],
         "AUTHORIZED_TO_OPEN": False,
+        "PR_READY_TO_MERGE": False,
         "RULE_CHANGED": False,
         "TARGET_CHANGED": False,
         "GATES_CHANGED": False,
@@ -746,20 +805,13 @@ def run_feasibility(
         "IMPLEMENTATION_COMMIT_AUTHORITY": IMPLEMENTATION_COMMIT,
         "NEXT_UNIT": next_unit,
         "WHY_NOT_CONSUME_2026": (
-            "Two independent fresh years (~728 decision rows) meet the primary "
-            "statistical-power criterion at a 20% true effect. That does not "
-            "authorize opening. POTENTIAL_FUTURE_SURFACE = 2025_PLUS_FULL_2026 "
-            "is recorded only as a scientifically worthwhile future predeclared "
-            "combined fresh surface. AUTHORIZED_TO_OPEN = false. 2025 remains "
-            "unopened. 2026 remains unopened. They are not automatically combined now."
-            if size_planning["POTENTIAL_FUTURE_SURFACE"] == "2025_PLUS_FULL_2026"
-            else (
-                "2026 remains unopened and is not automatically combined with "
-                "2025. Size planning on exposed 2020-2024 data only tells whether "
-                "a future predeclared combined fresh surface could be scientifically "
-                "worthwhile. AUTHORIZED_TO_OPEN is false. Two years remain "
-                "underpowered, so do not consume 2025+2026."
-            )
+            "Full calendar 2026 does not exist yet as of 2026-09-21. "
+            "POTENTIAL_FUTURE_SURFACE records only a scientifically sized "
+            "future predeclared fresh surface. AUTHORIZED_TO_OPEN = false. "
+            "2025 remains unopened. 2026 remains unopened. No MARKET-07 / ARM / "
+            "prereg execution. Dependence-preserving year-matched whole-year "
+            "plus contiguous partial-block power is authoritative; IID "
+            f"two-year power {SUPERSEDED_IID_TWO_YEAR_POWER} is superseded."
         ),
         "NOT_CREATED": [
             "MARKET-07",
@@ -789,7 +841,8 @@ def _flag(value: Any) -> str:
 def render_markdown(report: dict[str, Any], meta: dict[str, Any]) -> str:
     power = report["power"]
     interp = report["POWER_INTERPRETATION_CORRECTION"]
-    size = report["SIZE_PLANNING"]
+    dep = report["DEPENDENCE_PRESERVING_SIZE_PLANNING"]
+    iid = report["SUPERSEDED_IID_SIZE_PLANNING"]
     original = interp["ORIGINAL_ONE_YEAR_CALCULATION_PRESERVED"]
     sens_lines = []
     for key in ("15pct", "20pct", "25pct", "30pct"):
@@ -801,23 +854,21 @@ def render_markdown(report: dict[str, Any], meta: dict[str, Any]) -> str:
             f"JOINT_PASS_PROBABILITY = {row['power_both_gates']:.3f}; "
             f"practical-gate power = {row['power_practical_gate']:.3f} (diagnostic)"
         )
-    size_lines = []
-    for row in size["surfaces"]:
+    iid_lines = []
+    for row in iid.get("surfaces") or []:
         s20 = row["sensitivity"]["20pct"]
-        extra = []
-        for key in ("25pct", "30pct"):
-            srow = row["sensitivity"][key]
-            extra.append(
-                f"{int(srow['relative_effect']*100)}% statistical="
-                f"{srow['STATISTICAL_POWER']:.3f} / joint="
-                f"{srow['JOINT_PASS_PROBABILITY']:.3f}"
-            )
-        size_lines.append(
-            f"- {row['approx_years']} year{'s' if row['approx_years'] != 1 else ''} ≈ {row['N']} decision rows, "
-            f"expected K = {row['expected_K']}: "
-            f"STATISTICAL_POWER_AT_20PCT = {s20['STATISTICAL_POWER']:.3f}; "
-            f"JOINT_PASS_PROBABILITY_AT_20PCT = {s20['JOINT_PASS_PROBABILITY']:.3f} "
-            f"(diagnostic). Sensitivity: {'; '.join(extra)}."
+        iid_lines.append(
+            f"- {row['approx_years']} year{'s' if row['approx_years'] != 1 else ''} ≈ {row['N']} "
+            f"(IID superseded): statistical={s20['STATISTICAL_POWER']:.3f}; "
+            f"joint={s20['JOINT_PASS_PROBABILITY']:.3f} (diagnostic)"
+        )
+    dep_lines = []
+    for row in dep["surfaces"]:
+        dep_lines.append(
+            f"- N={row['N']}: STATISTICAL_POWER_AT_20PCT = "
+            f"{row['STATISTICAL_POWER_AT_20PCT']:.3f}; "
+            f"JOINT_PASS_PROBABILITY_AT_20PCT = {row['JOINT_PASS_PROBABILITY_AT_20PCT']:.3f} "
+            f"(diagnostic); practical-gate power = {row['power_practical_gate']:.3f}"
         )
     months = "\n".join(
         f"- `{m['period']}` source `{m['source_filename']}` "
@@ -828,6 +879,12 @@ def render_markdown(report: dict[str, Any], meta: dict[str, Any]) -> str:
     min_years = report["MIN_REQUIRED_FRESH_YEARS"]
     min_rows_txt = "null" if min_rows is None else str(min_rows)
     min_years_txt = "null" if min_years is None else str(min_years)
+    n2026 = report["MIN_REQUIRED_FRESH_2026_ROWS_AFTER_FULL_2025"]
+    n2026_txt = "null" if n2026 is None else str(n2026)
+    prefix_n = report["FROZEN_2026_PREFIX_DECISION_COUNT"]
+    prefix_n_txt = "null" if prefix_n is None else str(prefix_n)
+    prefix_ts = report["FROZEN_FINAL_DECISION_TIMESTAMP"] or "null"
+    by_n = report["POWER_BY_N"]
     return f"""# D2 confirmation feasibility and design
 
 **Unit:** `{report["unit"]}`
@@ -849,15 +906,27 @@ random-abstention comparator / 20% practical gate / P95 statistical gate.
 | `PRIMARY_CONFIRMATION_SURFACE` | `{report["PRIMARY_CONFIRMATION_SURFACE"]}` |
 | `SECOND_RESERVED_SURFACE` | `{report["SECOND_RESERVED_SURFACE"]}` |
 | `CONFIRMATION_FEASIBILITY` | `{report["CONFIRMATION_FEASIBILITY"]}` |
+| `AUTHORITATIVE_POWER_METHOD` | `{report["AUTHORITATIVE_POWER_METHOD"]}` |
 | `ONE_YEAR_STATISTICAL_POWER_AT_20PCT` | `{report["ONE_YEAR_STATISTICAL_POWER_AT_20PCT"]}` |
 | `ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT` | `{report["ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT"]}` |
+| `ONE_YEAR_STATISTICAL_POWER_AT_20PCT_DEPENDENCE_PRESERVING` | `{report["ONE_YEAR_STATISTICAL_POWER_AT_20PCT_DEPENDENCE_PRESERVING"]}` |
 | `PRIMARY_PROSPECTIVE_POWER_CRITERION` | `{report["PRIMARY_PROSPECTIVE_POWER_CRITERION"]}` |
 | `MINIMUM_ACCEPTABLE_CONFIRMATION_POWER` | `{report["MINIMUM_ACCEPTABLE_CONFIRMATION_POWER"]}` |
-| `TWO_YEAR_STATISTICAL_POWER_AT_20PCT` | `{report["TWO_YEAR_STATISTICAL_POWER_AT_20PCT"]}` |
+| `POWER_N550` | `{by_n.get("550", "null")}` |
+| `POWER_N575` | `{by_n.get("575", "null")}` |
+| `POWER_N600` | `{by_n.get("600", "null")}` |
+| `POWER_N625` | `{by_n.get("625", "null")}` |
+| `POWER_N650` | `{by_n.get("650", "null")}` |
+| `POWER_N675` | `{by_n.get("675", "null")}` |
+| `POWER_N700` | `{by_n.get("700", "null")}` |
+| `POWER_N728` / two-year | `{report["TWO_YEAR_STATISTICAL_POWER_AT_20PCT"]}` |
 | `THREE_YEAR_STATISTICAL_POWER_AT_20PCT` | `{report["THREE_YEAR_STATISTICAL_POWER_AT_20PCT"]}` |
 | `FOUR_YEAR_STATISTICAL_POWER_AT_20PCT` | `{report["FOUR_YEAR_STATISTICAL_POWER_AT_20PCT"]}` |
 | `MIN_REQUIRED_FRESH_DECISION_ROWS` | `{min_rows_txt}` |
-| `MIN_REQUIRED_FRESH_YEARS` | `{min_years_txt}` |
+| `MIN_REQUIRED_FRESH_2026_ROWS_AFTER_FULL_2025` | `{n2026_txt}` |
+| `FROZEN_2026_PREFIX_DECISION_COUNT` | `{prefix_n_txt}` |
+| `FROZEN_FINAL_DECISION_TIMESTAMP` | `{prefix_ts}` |
+| `SUPERSEDED_IID_TWO_YEAR_POWER` | `{report["SUPERSEDED_IID_TWO_YEAR_POWER"]}` |
 | `CONFIRMATION_SURFACE_REQUIREMENT` | `{report["CONFIRMATION_SURFACE_REQUIREMENT"]}` |
 | `POTENTIAL_FUTURE_SURFACE` | `{report["POTENTIAL_FUTURE_SURFACE"]}` |
 | `AUTHORIZED_TO_OPEN` | `false` |
@@ -871,6 +940,7 @@ random-abstention comparator / 20% practical gate / P95 statistical gate.
 | `RULE_CHANGED` | `false` |
 | `TARGET_CHANGED` | `false` |
 | `GATES_CHANGED` | `false` |
+| `PR_READY_TO_MERGE` | `false` |
 | `NEXT_UNIT` | `{report["NEXT_UNIT"]}` |
 
 Historical joint field `POWER_AT_20PCT_MIN_EFFECT` remains `{report["POWER_AT_20PCT_MIN_EFFECT"]}`
@@ -894,9 +964,9 @@ remains an actual execution-time requirement:
 
 {interp["WHY_PRACTICAL_GATE_POWER_NEAR_HALF_IS_NOT_UNDERPOWER"]}
 
-This amendment is an interpretation correction plus fresh-surface size
-planning. It is **not** a scientific-design rescue. The 20% effect bar
-is not lowered.
+This amendment is an interpretation correction plus dependence-preserving
+fresh-surface size planning. It is **not** a scientific-design rescue.
+The 20% effect bar is not lowered.
 
 ### Original one-year calculation (preserved historical output)
 
@@ -923,25 +993,46 @@ Because `{report["ONE_YEAR_STATISTICAL_POWER_AT_20PCT"]}` is still far
 below 0.80, `CONFIRMATION_FEASIBILITY` remains
 `UNDERPOWERED_SINGLE_YEAR_2025`.
 
-## Fresh-surface size planning (2020-2024 only)
+## SUPERSEDED_IID_SIZE_PLANNING
 
-{size["pool_description"]}
+The previous IID daily-row bootstrap with a pooled K-subset is **not**
+authoritative. It destroyed serial dependence and did not year-match
+multi-year random controls. Preserved historical output only.
 
-Size-planning seed: `{size["SIZE_PLANNING_SEED"]}`.
+IID seed: `{iid.get("SIZE_PLANNING_SEED")}`.
+`SUPERSEDED_IID_TWO_YEAR_POWER = {report["SUPERSEDED_IID_TWO_YEAR_POWER"]}`.
 
-{chr(10).join(size_lines)}
+{chr(10).join(iid_lines)}
+
+## Dependence-preserving size planning (authoritative)
+
+Method: `{report["AUTHORITATIVE_POWER_METHOD"]}`.
+
+{dep.get("method")}
+
+Seed: `{dep["DEPENDENCE_PRESERVING_SEED"]}`.
+Grid frozen outcome-blind: `{dep["FIXED_N_POWER_GRID"]}`.
+Exposed year blocks: `{dep["COMPLETE_EXPOSED_YEARS"]}`.
+n_outer `{dep["n_outer"]}`, n_inner `{dep["n_inner"]}`.
+
+{chr(10).join(dep_lines)}
 
 ```
 MIN_REQUIRED_FRESH_DECISION_ROWS = {min_rows_txt}
 MIN_REQUIRED_FRESH_YEARS = {min_years_txt}
+MIN_REQUIRED_FRESH_2026_ROWS_AFTER_FULL_2025 = {n2026_txt}
+FROZEN_2026_PREFIX_DECISION_COUNT = {prefix_n_txt}
+FROZEN_FINAL_DECISION_TIMESTAMP = {prefix_ts}
 CONFIRMATION_SURFACE_REQUIREMENT = {report["CONFIRMATION_SURFACE_REQUIREMENT"]}
 POTENTIAL_FUTURE_SURFACE = {report["POTENTIAL_FUTURE_SURFACE"]}
+ELAPSED_2026_COMPLETED_DECISION_COUNT_ASOF_2026_09_21 = {report["ELAPSED_2026_COMPLETED_DECISION_COUNT_ASOF_2026_09_21"]}
 AUTHORIZED_TO_OPEN = false
 ```
 
-2025 remains unopened. 2026 remains unopened. They are not automatically
-combined. The sizing result only says whether a future predeclared
-combined fresh surface could be scientifically worthwhile.
+Full calendar 2026 does **not** currently exist (status date 2026-09-21).
+Any 2025+2026 prefix is a possible future predeclared surface, not an
+available dataset. Elapsed 2026 completed-outcome decision count is
+mechanical calendar arithmetic only. No protected prices were opened.
 
 {report["WHY_NOT_CONSUME_2026"]}
 
@@ -1086,14 +1177,17 @@ if __name__ == "__main__":
     written = write_artifacts(rewrite_binding=False, recompute_one_year_power=False)
     keys = (
         "CONFIRMATION_FEASIBILITY",
+        "AUTHORITATIVE_POWER_METHOD",
         "ONE_YEAR_STATISTICAL_POWER_AT_20PCT",
-        "ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT",
         "TWO_YEAR_STATISTICAL_POWER_AT_20PCT",
         "THREE_YEAR_STATISTICAL_POWER_AT_20PCT",
         "FOUR_YEAR_STATISTICAL_POWER_AT_20PCT",
+        "POWER_BY_N",
         "MIN_REQUIRED_FRESH_DECISION_ROWS",
-        "MIN_REQUIRED_FRESH_YEARS",
-        "CONFIRMATION_SURFACE_REQUIREMENT",
+        "MIN_REQUIRED_FRESH_2026_ROWS_AFTER_FULL_2025",
+        "FROZEN_2026_PREFIX_DECISION_COUNT",
+        "FROZEN_FINAL_DECISION_TIMESTAMP",
+        "SUPERSEDED_IID_TWO_YEAR_POWER",
         "POTENTIAL_FUTURE_SURFACE",
         "NEXT_UNIT",
         "PROTECTED_2025_PRICE_VALUES_INSPECTED",
@@ -1101,5 +1195,7 @@ if __name__ == "__main__":
         "TARGET_CHANGED",
         "GATES_CHANGED",
         "2025_OPEN_AUTHORIZED",
+        "AUTHORIZED_TO_OPEN",
+        "PR_READY_TO_MERGE",
     )
     print(json.dumps({k: written[k] for k in keys}, indent=2))

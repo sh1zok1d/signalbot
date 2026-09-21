@@ -16,11 +16,14 @@ import pytest
 
 from scripts.research.discovery_sprint_01 import common as C
 from scripts.research.d2_confirmation_feasibility_and_design import (
+    AUTHORITATIVE_POWER_METHOD,
     BINDING_REL,
+    D2_CONFIRMATION_DEPENDENCE_PRESERVING_SEED,
     D2_CONFIRMATION_POWER_SEED,
     D2_CONFIRMATION_RANDOM_CONTROL_SEED,
     D2_CONFIRMATION_SIZE_PLANNING_SEED,
     FIRST_T,
+    FIXED_N_POWER_GRID,
     FRESH_SURFACE_SIZES,
     JSON_REL,
     LAST_FUTURE_BAR_OPEN,
@@ -29,11 +32,20 @@ from scripts.research.d2_confirmation_feasibility_and_design import (
     N_2025_DECISION_SLOTS,
     N_REPLICATES_CONFIRMATION,
     ORIGINAL_ONE_YEAR_POWER_AT_20PCT,
+    SUPERSEDED_IID_TWO_YEAR_POWER,
     ProtectedPriceRefused,
     confirmation_decision_slot_count,
     extract_2025_metadata,
     refuse_protected_price_path,
     _calibrate_relative_effect,
+)
+from scripts.research.d2_confirmation_dependence_preserving_power import (
+    calibrate_year_matched_relative_effect,
+    circular_shift_mask,
+    construct_fixed_n_surface,
+    expected_year_matched_control_mean,
+    frozen_2026_prefix_from_total_n,
+    year_matched_control_selected_counts,
 )
 
 
@@ -60,13 +72,18 @@ def test_frozen_seeds_and_replicates() -> None:
     assert D2_CONFIRMATION_RANDOM_CONTROL_SEED == 20260921120
     assert D2_CONFIRMATION_POWER_SEED == 20260921121
     assert D2_CONFIRMATION_SIZE_PLANNING_SEED == 20260921122
+    assert D2_CONFIRMATION_DEPENDENCE_PRESERVING_SEED == 20260921123
     assert D2_CONFIRMATION_RANDOM_CONTROL_SEED != C.D2_RANDOM_CONTROL_SEED
     assert D2_CONFIRMATION_SIZE_PLANNING_SEED != D2_CONFIRMATION_POWER_SEED
+    assert D2_CONFIRMATION_DEPENDENCE_PRESERVING_SEED != D2_CONFIRMATION_SIZE_PLANNING_SEED
     assert N_REPLICATES_CONFIRMATION == 10_000
     assert ORIGINAL_ONE_YEAR_POWER_AT_20PCT["power_statistical_gate"] == 0.011
     assert ORIGINAL_ONE_YEAR_POWER_AT_20PCT["power_both_gates"] == 0.006
     assert ORIGINAL_ONE_YEAR_POWER_AT_20PCT["power_practical_gate"] == 0.499
     assert FRESH_SURFACE_SIZES == ((1, 364), (2, 728), (3, 1092), (4, 1456))
+    assert FIXED_N_POWER_GRID == (364, 550, 575, 600, 625, 650, 675, 700, 728, 1092, 1456)
+    assert AUTHORITATIVE_POWER_METHOD == "YEAR_MATCHED_WHOLE_YEAR_PLUS_CONTIGUOUS_PARTIAL_BLOCK"
+    assert SUPERSEDED_IID_TWO_YEAR_POWER == 0.903
 
 
 def test_2025_metadata_binding_has_twelve_months_and_no_prices() -> None:
@@ -139,24 +156,27 @@ def test_report_does_not_open_protected_prices() -> None:
     assert orig["ONE_YEAR_STATISTICAL_POWER_AT_20PCT"] == pytest.approx(0.011)
     assert orig["ONE_YEAR_JOINT_PASS_PROBABILITY_AT_20PCT"] == pytest.approx(0.006)
     assert orig["ONE_YEAR_PRACTICAL_GATE_POWER_AT_20PCT"] == pytest.approx(0.499)
-    size = report["SIZE_PLANNING"]
-    assert size["SIZE_PLANNING_SEED"] == D2_CONFIRMATION_SIZE_PLANNING_SEED
-    ns = [row["N"] for row in size["surfaces"]]
-    assert ns == [364, 728, 1092, 1456]
-    ks = [row["expected_K"] for row in size["surfaces"]]
-    assert ks == [39, 77, 116, 154]
-    assert report["TWO_YEAR_STATISTICAL_POWER_AT_20PCT"] == pytest.approx(0.903)
-    assert report["THREE_YEAR_STATISTICAL_POWER_AT_20PCT"] == pytest.approx(1.0)
-    assert report["FOUR_YEAR_STATISTICAL_POWER_AT_20PCT"] == pytest.approx(1.0)
-    assert report["MIN_REQUIRED_FRESH_DECISION_ROWS"] == 728
-    assert report["MIN_REQUIRED_FRESH_YEARS"] == 2
-    assert report["POTENTIAL_FUTURE_SURFACE"] == "2025_PLUS_FULL_2026"
-    assert report["NEXT_UNIT"] == "D2_CONFIRMATION_WAIT_FOR_PREDECLARED_2025_PLUS_2026_WITHOUT_OPENING"
     md = (REPO / MD_REL).read_text(encoding="utf-8")
     assert "UNDERPOWERED_SINGLE_YEAR_2025" in md
     assert "## POWER_INTERPRETATION_CORRECTION" in md
     assert "MARKET-07" in md
     assert "AUTHORIZED_TO_OPEN = false" in md
+    if "DEPENDENCE_PRESERVING_SIZE_PLANNING" in report:
+        assert report["SUPERSEDED_IID_TWO_YEAR_POWER"] == pytest.approx(0.903)
+        iid = report["SUPERSEDED_IID_SIZE_PLANNING"]
+        assert iid["SIZE_PLANNING_SEED"] == D2_CONFIRMATION_SIZE_PLANNING_SEED
+        assert iid["TWO_YEAR_STATISTICAL_POWER_AT_20PCT"] == pytest.approx(0.903)
+        assert report["AUTHORITATIVE_POWER_METHOD"] == AUTHORITATIVE_POWER_METHOD
+        dep = report["DEPENDENCE_PRESERVING_SIZE_PLANNING"]
+        assert dep["DEPENDENCE_PRESERVING_SEED"] == D2_CONFIRMATION_DEPENDENCE_PRESERVING_SEED
+        assert dep["pooled_k_subset_used"] is False
+        assert dep["iid_row_resampling_used"] is False
+        assert dep["FIXED_N_POWER_GRID"] == list(FIXED_N_POWER_GRID)
+        assert report["PR_READY_TO_MERGE"] is False
+        assert "## SUPERSEDED_IID_SIZE_PLANNING" in md
+        assert "YEAR_MATCHED_WHOLE_YEAR_PLUS_CONTIGUOUS_PARTIAL_BLOCK" in md
+    else:
+        assert report["TWO_YEAR_STATISTICAL_POWER_AT_20PCT"] == pytest.approx(0.903)
 
 
 def test_2025_metadata_binding_unchanged_by_sizing_amendment() -> None:
@@ -192,3 +212,104 @@ def test_no_2025_parquet_materialized_locally() -> None:
     if monthly.is_dir():
         names = {p.name for p in monthly.glob("*.parquet")}
         assert not any(name.startswith("2025-") or name.startswith("2026-") for name in names)
+
+
+def test_year_matched_controls_are_not_pooled() -> None:
+    n = 20
+    block_slices = [(0, 10), (10, 20)]
+    block_k = [2, 5]
+    rng = np.random.default_rng(1)
+    selected = year_matched_control_selected_counts(block_slices, block_k, 200, rng, n)
+    assert selected.shape == (200, 20)
+    for rep in selected:
+        assert int(rep[0:10].sum()) == 2
+        assert int(rep[10:20].sum()) == 5
+        assert int(rep.sum()) == 7
+    # A pooled K=7 subset would sometimes put !=2 into the first block.
+    pooled_first = selected[:, 0:10].sum(axis=1)
+    assert np.all(pooled_first == 2)
+
+
+def test_circular_shift_breaks_alignment_and_preserves_k() -> None:
+    rng = np.random.default_rng(2)
+    mask = np.zeros(40, dtype=bool)
+    mask[0:5] = True
+    mask[20:23] = True
+    k0 = int(mask.sum())
+    shifted, offset = circular_shift_mask(mask, rng)
+    assert offset != 0
+    assert int(shifted.sum()) == k0
+    assert not np.array_equal(shifted, mask)
+    assert np.array_equal(shifted, np.roll(mask, offset))
+
+
+def test_partial_year_surface_is_contiguous_and_block_matched() -> None:
+    rng = np.random.default_rng(3)
+    year_blocks = {
+        2021: {
+            "severity": np.linspace(0.01, 0.05, 364),
+            "mask": np.array([i % 10 == 0 for i in range(364)]),
+        },
+        2022: {
+            "severity": np.linspace(0.02, 0.06, 364),
+            "mask": np.array([i % 8 == 0 for i in range(364)]),
+        },
+        2023: {
+            "severity": np.linspace(0.015, 0.04, 364),
+            "mask": np.array([i % 12 == 0 for i in range(364)]),
+        },
+        2024: {
+            "severity": np.linspace(0.01, 0.07, 365),
+            "mask": np.array([i % 9 == 0 for i in range(365)]),
+        },
+    }
+    y, selected, slices, meta = construct_fixed_n_surface(year_blocks, 650, rng)
+    assert y.size == 650
+    assert selected.size == 650
+    assert slices[0][0] == 0
+    assert slices[-1][1] == 650
+    lengths = [m["length"] for m in meta]
+    assert sum(lengths) == 650
+    assert any(m["whole_year"] for m in meta)
+    assert any(not m["whole_year"] for m in meta)
+    for m in meta:
+        assert m["contiguous"] is True
+        assert m["association_broken"] is True
+        assert m["shift_offset"] != 0
+        src = year_blocks[m["source_year"]]["severity"]
+        if not m["whole_year"]:
+            assert m["end"] - m["start"] == m["length"]
+            assert 0 <= m["start"] < m["end"] <= src.size
+    block_k = [int(selected[lo:hi].sum()) for lo, hi in slices]
+    drawn = year_matched_control_selected_counts(slices, block_k, 50, rng, 650)
+    for i, ((lo, hi), k) in enumerate(zip(slices, block_k)):
+        assert np.all(drawn[:, lo:hi].sum(axis=1) == k)
+
+
+def test_year_matched_20pct_injection_hits_expected_control_definition() -> None:
+    rng = np.random.default_rng(4)
+    y = rng.random(80) + 0.02
+    selected = np.zeros(80, dtype=bool)
+    selected[0:10] = True
+    selected[50:57] = True
+    slices = [(0, 40), (40, 80)]
+    y_alt = calibrate_year_matched_relative_effect(y, selected, slices, relative=0.20)
+    block_k = [int(selected[lo:hi].sum()) for lo, hi in slices]
+    mu_rule = float(y_alt[selected].mean())
+    e_ctrl = expected_year_matched_control_mean(y_alt, slices, block_k)
+    uncond = float(y_alt.mean())
+    rel = (mu_rule - e_ctrl) / uncond
+    assert rel == pytest.approx(0.20, abs=1e-12)
+
+
+def test_fixed_n_cutoff_is_deterministic_calendar_only() -> None:
+    prefix = frozen_2026_prefix_from_total_n(650)
+    assert prefix["FROZEN_2026_PREFIX_DECISION_COUNT"] == 286
+    assert prefix["FROZEN_FINAL_DECISION_TIMESTAMP"] == "2026-10-13T00:05:00Z"
+    full = frozen_2026_prefix_from_total_n(728)
+    assert full["FROZEN_2026_PREFIX_DECISION_COUNT"] == 364
+    assert full["FROZEN_FINAL_DECISION_TIMESTAMP"] == "2026-12-30T00:05:00Z"
+    none = frozen_2026_prefix_from_total_n(364)
+    assert none["FROZEN_2026_PREFIX_DECISION_COUNT"] == 0
+    assert none["FROZEN_FINAL_DECISION_TIMESTAMP"] is None
+
