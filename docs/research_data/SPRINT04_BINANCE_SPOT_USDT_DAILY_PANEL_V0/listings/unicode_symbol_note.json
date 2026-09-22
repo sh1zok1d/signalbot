@@ -1,0 +1,17 @@
+{
+  "symbol": "币安人生USDT",
+  "listing_method": "S3 prefix URL-encoded; XML pinned under listings/per_symbol_1d/U+5E01U+5B89U+4EBAU+751FUSDT_page_0000.xml",
+  "legal_months_2019_12_to_2024_12": [],
+  "protected_months_listed_not_fetched": [
+    "2026-01",
+    "2026-02",
+    "2026-03",
+    "2026-04",
+    "2026-05",
+    "2026-06",
+    "2026-07",
+    "2026-08"
+  ],
+  "files_downloaded": 0,
+  "reason": "Archive keys exist only in 2026. Protected years are listed for enumeration completeness and are never fetched."
+}

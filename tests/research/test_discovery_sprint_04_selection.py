@@ -14,7 +14,9 @@ SPRINT = REPO / "docs/research/DISCOVERY_SPRINT_04.json"
 ROTATION = REPO / "docs/research/HETEROGENEOUS_FAMILY_ROTATION_V3.json"
 DECISION = REPO / "docs/research/POST_SPRINT03_PROGRAM_DECISION.json"
 ROTATION_V2 = REPO / "docs/research/HETEROGENEOUS_FAMILY_ROTATION_V2.json"
-NEXT_UNIT = "DISCOVERY_SPRINT_04_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION"
+SELECTION_NEXT_UNIT = "DISCOVERY_SPRINT_04_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION"
+ROUTING_NEXT_UNIT = "DISCOVERY_SPRINT_04_D12_D13_ONE_SHOT_SCIENTIFIC_EXECUTION_DECISION"
+NEXT_UNIT = SELECTION_NEXT_UNIT
 
 CANDIDATE_FIELDS = (
     "ID",
@@ -303,7 +305,11 @@ def test_routing_docs_point_at_sprint04_next_unit():
         "docs/RESEARCH_LEDGER.md",
     ):
         text = (REPO / rel).read_text(encoding="utf-8")
-        assert NEXT_UNIT in text, rel
+        assert ROUTING_NEXT_UNIT in text or NEXT_UNIT in text, rel
+    freeze = REPO / "docs/research/DISCOVERY_SPRINT_04_IMPLEMENTATION_FREEZE.json"
+    if freeze.is_file():
+        blob = json.loads(freeze.read_text(encoding="utf-8"))
+        assert blob["NEXT_UNIT"] == ROUTING_NEXT_UNIT
     index = (REPO / "docs/DOCUMENTATION_INDEX.md").read_text(encoding="utf-8")
     for name in (
         "POST_SPRINT03_PROGRAM_DECISION",

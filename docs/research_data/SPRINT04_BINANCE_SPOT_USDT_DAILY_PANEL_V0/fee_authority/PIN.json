@@ -1,0 +1,23 @@
+{
+  "BNB_DISCOUNT_NOT_USED": true,
+  "COLUMN": "Maker / Taker",
+  "COLUMN_INDEX": 5,
+  "FEE_LEGS": 4,
+  "FRICTION_FLOOR": 0.004,
+  "HTML_BYTES": 190136,
+  "HTML_REL": "docs/research_data/SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0/fee_authority/binance_info_en_BH_fee.html",
+  "HTML_SHA256": "5bbc3c7b94e2af0eefe9d38e1da7918304127b40cc44fe0b0aba0a1c4deaae22",
+  "MAKER_PERCENT": "0.100%",
+  "PINNED_TAKER_FEE": 0.001,
+  "PROOF": "Regular User row colindex=5 is 0.100% / 0.100% under header Maker / Taker. Colindex=6 is BNB 25% off 0.07500% / 0.07500% and is not used.",
+  "RETRIEVED_AT_UTC": "2026-09-22T20:15:13Z",
+  "SOURCE_HOST": "www.binance.info",
+  "SOURCE_KIND": "BINANCE_FIRST_PARTY_PUBLIC_SPOT_FEE_SCHEDULE",
+  "SOURCE_URL": "https://www.binance.info/en-BH/fee",
+  "TAKER_PERCENT": "0.100%",
+  "TEMPORARY_PROMOTION_NOT_USED": true,
+  "TIER": "Regular User",
+  "USDC_PROMO_NOT_USED": true,
+  "USER_SPECIFIC_VIP_NOT_USED": true,
+  "VIP_NOT_USED": true
+}
