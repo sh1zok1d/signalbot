@@ -4497,3 +4497,92 @@ Evidence: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_RE
   (an explicit one-shot execution unit, requiring a future permit that
   binds the design hash, the review hash, the implementation hash, the
   CORE BTC snapshot and the recorded run identity)
+
+## 2026-09-22 — D2 excess path-risk implementation review: red-team repair (F21-F25)
+
+A second adversarial pass over the same unit confirmed five
+lifecycle/authority defects and repaired them. **No scientific window was
+consumed and no decomposition outcome was computed.** The frozen design —
+selector, SIDE, target, comparator, year×SIDE strata, target eligibility,
+RNG algorithm, seed, 10000 controls, practical 0.05, temporal 3/5, the
+PATH_SCALE diagnostic, classification order, evidence class, the
+2025/2026 seal and the BitMEX exclusion — is unchanged.
+
+**F21 canonical orchestration was a terminal stub.** The review recorded
+`EXECUTION_READY = true` while `execute_decomposition` checked the permit
+and then raised unconditionally, so the scientific execution wiring would
+have been written after the outcome-blind review. The complete dormant
+route is now implemented and reviewed: permit gate → frozen CORE BTC
+snapshot identity → frozen CORE BTC load → `C.build_rows(
+RULE1_INTERVAL_START, DISCOVERY_END)` → selector identity → exact 288×5m
+`PerpBar` re-walk → frozen comparator. Frozen parameters are not
+caller-tunable (seed or N drift raises), and an injected loader lets the
+whole route run end-to-end over the real frozen interval against a
+synthetic surface without opening a CORE byte.
+
+**F22 permit authority was under-bound.** `_verify_execution_permit` now
+takes only `repo`. Every authority value is read from the tracked permit
+artifact and compared against the tracked/current authorities: unit,
+design SHA, review SHA, evaluator SHA, CORE BTC snapshot, `RUN_IDENTITY`
+(which must equal the review's), seed, N, `EXECUTION_AUTHORIZED`,
+`ONE_SHOT`, `RERUN_AUTHORIZED`, plus the frozen selector digest and its
+version. A `CONSUMED` permit cannot authorize a rerun.
+
+**F23 selector identity proved counts, not identity.** A canonical digest
+over the ordered `(t_ms, selector_flag)` sequence of the complete
+constructed-row population is implemented and tested (equal counts with
+different firing positions give different digests).
+`ROW_COUNT_IDENTITY_VERIFIED` and `EXACT_SELECTOR_IDENTITY_VERIFIED` are
+reported separately. No expected digest is invented here.
+
+**F24 the frozen 1791 was being read as the abstain count.**
+`RULE_1_ROW_COUNT = 1791` / 334-364-364-364-365 is the CONSTRUCTED
+decision-row population (`RULE_ELIGIBLE_N`); the frozen RULE_1 abstention
+census in the same hash-bound discovery RESULT is `163`
+(10/48/32/23/50). The previous implementation asserted
+`mask.sum() == 1791`, which would have failed closed on correct canonical
+data and invited a post-hoc loosening. Both censuses are now verified
+against the frozen discovery result, which is outcome-blind for the new
+ADVERSE_SHARE target because it describes the selector only.
+
+**F25 the control percentile convention was implicit.** Now explicit as
+`np.percentile(values, 95.0, method="linear")` behind
+`control_percentile`, recorded as
+`CONTROL_P95_METHOD = NUMPY_LINEAR_INHERITED_FROM_D2` and tested to equal
+the historical `np.percentile(x, 95)` form used by D2 discovery and D2
+BitMEX. The threshold is unchanged.
+
+Review status is now derived from mechanical capability probes of the
+code rather than from the findings table.
+
+```
+IMPLEMENTATION_REVIEW               = PASS
+SCIENTIFIC_KERNEL_READY             = true
+CANONICAL_ORCHESTRATION_READY       = true
+AUTHORITY_VERIFICATION_READY        = true
+ROW_COUNT_IDENTITY_IMPLEMENTED      = true
+EXACT_SELECTOR_IDENTITY_VERIFIED    = false
+EXECUTION_READY                     = false
+EXECUTION_BLOCKED_BY                = EXPECTED_CANONICAL_SELECTOR_DIGEST_NOT_FROZEN
+EXECUTION_AUTHORIZED                = false
+EXECUTION_PERMIT_CREATED            = false
+REAL_DECOMPOSITION_OUTCOME_COMPUTED = false
+CLASSIFICATION_ASSIGNED             = null
+PROTECTED_2025_OPENED               = false
+PROTECTED_2026_OPENED               = false
+BITMEX_2017_2019_REUSED_FOR_NEW_TARGET = false
+MARKET_07_CREATED                   = false
+RESULT_CREATED                      = false
+ARM_CREATED                         = false
+```
+
+Evidence: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_REVIEW.{json,md}`.
+
+- next required step: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_IDENTITY_COMMIT`
+  — reconstruct the frozen RULE_1 rows from `CORE_BTC_BINANCE_V0` and
+  freeze the canonical selector digest BEFORE any `ADVERSE_SHARE` or
+  `PATH_SCALE` metric is computed. That step is outcome-blind for this
+  target: it touches the selector only.
+- then: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION`, whose
+  permit must carry the frozen digest and whose run must block if the
+  reconstructed digest differs.

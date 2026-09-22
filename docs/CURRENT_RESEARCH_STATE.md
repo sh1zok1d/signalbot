@@ -37,14 +37,23 @@ PREVIOUS_ROUTING            = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATI
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION
+NEXT_UNIT                   = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_IDENTITY_COMMIT
+UNIT_AFTER_NEXT             = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION
 D2_DECOMPOSITION_DESIGN_STATUS = FROZEN
 D2_DECOMPOSITION_IMPLEMENTATION_REVIEW = PASS
-D2_DECOMPOSITION_EXECUTION_READY   = true
+D2_DECOMPOSITION_SCIENTIFIC_KERNEL_READY = true
+D2_DECOMPOSITION_CANONICAL_ORCHESTRATION_READY = true
+D2_DECOMPOSITION_AUTHORITY_VERIFICATION_READY = true
+D2_DECOMPOSITION_ROW_COUNT_IDENTITY_IMPLEMENTED = true
+D2_DECOMPOSITION_EXACT_SELECTOR_IDENTITY_VERIFIED = false
+D2_DECOMPOSITION_EXECUTION_READY   = false
+D2_DECOMPOSITION_EXECUTION_BLOCKED_BY = EXPECTED_CANONICAL_SELECTOR_DIGEST_NOT_FROZEN
 D2_DECOMPOSITION_EXECUTION_AUTHORIZED = false
 D2_DECOMPOSITION_EXECUTION_PERMIT_CREATED = false
 REAL_DECOMPOSITION_OUTCOME_COMPUTED = false
 D2_DECOMPOSITION_CLASSIFICATION_ASSIGNED = null
+D2_RULE_1_CONSTRUCTED_N     = 1791
+D2_RULE_1_ABSTAIN_N         = 163
 D2_PROGRAM_CLASS            = INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE
 BINANCE_2025_2026_DECISION  = KEEP_SEALED
 PRODUCT_BUILD_FROZEN        = true
@@ -234,13 +243,47 @@ ineligibility (`TARGET_ROW_INELIGIBLE_PATH_SCALE_NONPOSITIVE`, no
 epsilon) never rebuilds the selector and is reported per year. Twenty
 red-team failure classes (F1-F20) returned `NOT_CONFIRMED`; three
 non-blocking observations were recorded; no scientific ambiguity required
-a new researcher convention. `IMPLEMENTATION_REVIEW = PASS`,
-`EXECUTION_READY = true`, `EXECUTION_AUTHORIZED = false`. No execution
-permit, no RESULT, no ARM, no MARKET-07. Protected 2025/2026 unopened.
-BitMEX 2017-2019 not reused for this target.
+a new researcher convention.
+
+A second red-team pass then **confirmed and repaired five further
+lifecycle/authority defects** (F21-F25) in that same unit:
+
+- **F21** the canonical route was a terminal stub while the review claimed
+  `EXECUTION_READY = true`. The complete dormant route is now implemented
+  and reviewed (permit → frozen snapshot identity → frozen CORE BTC load →
+  frozen row reconstruction → selector identity → exact 288×5m re-walk →
+  frozen comparator at seed `20260922131` / 10000 replicates), and is
+  exercised end-to-end against a synthetic surface with an injected loader.
+- **F22** permit authority was under-bound. The gate now takes only `repo`
+  and reads every authority value from the tracked permit artifact itself;
+  caller arguments cannot supply scientific authority, and a `CONSUMED`
+  permit cannot authorize a rerun.
+- **F23** selector identity proved counts, not identity. A canonical digest
+  over the ordered `(t_ms, selector_flag)` sequence is now implemented;
+  `ROW_COUNT_IDENTITY_VERIFIED` and `EXACT_SELECTOR_IDENTITY_VERIFIED` are
+  reported separately and no expected digest is invented here.
+- **F24** the frozen `RULE_1_ROW_COUNT = 1791` / 334-364-364-364-365 is the
+  **constructed decision-row population**, not the abstain count; the frozen
+  RULE_1 abstention census is `163` (10/48/32/23/50). The first
+  implementation asserted `mask.sum() == 1791`, which would have failed
+  closed on correct canonical data. Both censuses are now checked.
+- **F25** the control P95 interpolation is now explicit as
+  `CONTROL_P95_METHOD = NUMPY_LINEAR_INHERITED_FROM_D2`.
+
+`IMPLEMENTATION_REVIEW = PASS` (derived from mechanical capability probes,
+not from the findings table). `SCIENTIFIC_KERNEL_READY = true`,
+`CANONICAL_ORCHESTRATION_READY = true`,
+`AUTHORITY_VERIFICATION_READY = true`, but
+`EXACT_SELECTOR_IDENTITY_VERIFIED = false` and therefore
+`EXECUTION_READY = false`, blocked by
+`EXPECTED_CANONICAL_SELECTOR_DIGEST_NOT_FROZEN`.
+`EXECUTION_AUTHORIZED = false`. No execution permit, no RESULT, no ARM, no
+MARKET-07. Protected 2025/2026 unopened. BitMEX 2017-2019 not reused.
 Record: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_REVIEW.{json,md}`.
-`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION`
-(an explicit one-shot execution unit; execution was not performed here).
+`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_IDENTITY_COMMIT`
+— reconstruct the frozen RULE_1 rows and freeze the canonical selector
+digest **before** any `ADVERSE_SHARE` / `PATH_SCALE` metric exists. The
+one-shot execution unit follows only after that.
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by

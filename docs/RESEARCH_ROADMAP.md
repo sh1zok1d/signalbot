@@ -61,8 +61,11 @@ after the CORE-restore retry (adaptive discovery, not confirmatory):
 `D2_PROGRAM_CLASS = INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`.
 `D2_DECOMPOSITION_DESIGN_STATUS = FROZEN`.
 `D2_DECOMPOSITION_IMPLEMENTATION_REVIEW = PASS`.
+`D2_DECOMPOSITION_EXECUTION_READY = false`
+(blocked by `EXPECTED_CANONICAL_SELECTOR_DIGEST_NOT_FROZEN`).
 `REAL_DECOMPOSITION_OUTCOME_COMPUTED = false`.
-`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION`.
+`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_IDENTITY_COMMIT`.
+`UNIT_AFTER_NEXT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION`.
 
 D2 discovery remains a `PROMISING_PROTOTYPE` (adaptive discovery label). Outcome-blind
 confirmation design for RULE_1 / `RV_ABSTENTION` found calendar 2025
@@ -105,11 +108,27 @@ That frozen design has now been implemented and reviewed outcome-blind by
 evaluator re-walks the exact 288×5m `PerpBar` future path so `MAE_SIDE`
 and `MAE_OPPOSITE` share one path, and cross-checks `MAE_SIDE` against
 the frozen `DiscoveryRow.severity`. F1–F20 red-team classes returned
-`NOT_CONFIRMED`. **No real decomposition outcome was computed**: there is
-no execution permit, no RESULT, no ARM, no MARKET-07, protected
-2025/2026 stays sealed, and BitMEX 2017-2019 is not reused for this
-target. The next unit is an explicit one-shot execution unit:
-`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION`.
+`NOT_CONFIRMED`.
+
+A second red-team pass confirmed and repaired five lifecycle/authority
+defects (F21–F25): the canonical route was a terminal stub while the
+review claimed execution readiness; permit authority could be supplied by
+caller kwargs; selector identity proved counts rather than exact
+timestamps; the frozen `1791` was being read as the abstain count when it
+is the constructed row population (the abstain census is `163`); and the
+control P95 interpolation was implicit. The dormant canonical route,
+permit-artifact-bound authority, canonical selector digest, and an
+explicit `NUMPY_LINEAR_INHERITED_FROM_D2` percentile convention are now
+implemented and tested.
+
+**No real decomposition outcome was computed**: there is no execution
+permit, no RESULT, no ARM, no MARKET-07, protected 2025/2026 stays
+sealed, and BitMEX 2017-2019 is not reused for this target. Execution is
+not yet possible — the expected canonical selector digest has not been
+frozen, and that cannot be produced by an outcome-blind unit. The next
+unit therefore freezes it:
+`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_IDENTITY_COMMIT`,
+with the explicit one-shot execution unit following only after that.
 
 Card identities at definition time (unchanged):
 
