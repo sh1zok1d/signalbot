@@ -1019,7 +1019,7 @@ def test_execution_is_not_authorized_and_no_permit_exists():
     assert EV.PERMIT_VERIFIER_READY is True
     assert EV.SCIENTIFIC_KERNEL_READY is True
     assert not (REPO / EV.EXECUTION_PERMIT_REL).is_file()
-    assert not (REPO / EV.SELECTOR_IDENTITY_AUTHORITY_REL).is_file()
+    assert (REPO / EV.SELECTOR_IDENTITY_AUTHORITY_REL).is_file()
 
 
 def test_execute_decomposition_fails_without_permit():
@@ -1086,7 +1086,7 @@ def test_contract_summary_is_outcome_blind():
     assert summary["CONTROL_P95_METHOD"] == "NUMPY_LINEAR_INHERITED_FROM_D2"
     assert summary["EXACT_SELECTOR_IDENTITY_IMPLEMENTED"] is True
     assert summary["CANONICAL_SELECTOR_DIGEST_FROZEN"] is False
-    assert summary["SELECTOR_IDENTITY_AUTHORITY_PRESENT"] is False
+    assert summary["SELECTOR_IDENTITY_AUTHORITY_PRESENT"] is True
     assert summary["SELECTOR_IDENTITY_AUTHORITY_REL"] == EV.SELECTOR_IDENTITY_AUTHORITY_REL
     assert summary["FROZEN_RULE1_N"] == 1791
     assert summary["FROZEN_RULE1_N_MEANS_CONSTRUCTED_POPULATION"] is True
