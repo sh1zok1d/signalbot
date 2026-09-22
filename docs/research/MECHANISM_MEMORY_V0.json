@@ -27,7 +27,9 @@
       "D8",
       "D9",
       "D10",
-      "D11"
+      "D11",
+      "D12",
+      "D13"
     ],
     "MARKET": [
       "MARKET-01",
@@ -176,6 +178,36 @@
       "WHAT_REMAINS_OPEN": "Independent confirmation; N=39 is the frozen scheduled-FOMC family size. Not a directional or trading claim.",
       "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES": "Does not rescue D8. Does not authorize CPI/NFP/ECB substitution. Does not imply profitable FOMC trading or generic macro-event alpha.",
       "WHAT_WAS_ACTUALLY_TESTED": "Canonical one-shot; EVENT_N=39 CONTROL_N=551 MIN_CONTROLS=44; MEAN_EVENT_RV_6H=0.025031 MEAN_CONTROL_RV_6H=0.014226 RELATIVE=0.759579; MC_P=0.000200; all three gates true; yearly relative positive 2020-2024"
+    },
+    "D12": {
+      "DATA_STATE": "CORE_BTC_BINANCE_V0 snapshot 717d37a4… 2020-2024; 2025/2026 unopened",
+      "FUNCTION": "US DST clock-shift natural experiment on BTC UTC 24-bin quote-volume timing",
+      "GENERATION": "DISCOVERY",
+      "ID": "D12",
+      "INFORMATION_SOURCE": "CORE_BTC_BINANCE_V0 hourly quote_volume; W=6 Monday-Saturday before/after each US DST Sunday",
+      "MECHANISM": "Participation-clock anchoring (family J)",
+      "NEIGHBOR_RESCUE_WARNING": "Do not try W=5/W=7, another volume field, trade count, volatility, selected UTC hours, EU as primary, or an equity-open child. EU diagnostic cannot promote or demote D12.",
+      "POSTHOC_RESIDUALS_IF_ANY": null,
+      "STATUS_EVIDENCE_CLASS": "PROMISING_PROTOTYPE; adaptive discovery only; US_TRANSITION_N=10; NOT independently replicated",
+      "TARGET_FAMILY": "mean A=(D(0)-D(delta))/D(0) vs same-support pseudo-Sunday mix; practical A_k>0 in >=7/10; yearly mean A>0 in >=3/5 years",
+      "WHAT_REMAINS_OPEN": "Independent confirmation. Not participant identity, ETF/equity causality, direction, trading alpha, or volatility. EU MEAN_A is secondary diagnostic only.",
+      "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES": "Does not rescue D11. Does not identify who participates. Does not authorize W-window or hour-slice neighbors.",
+      "WHAT_WAS_ACTUALLY_TESTED": "Canonical one-shot; US_TRANSITION_N=10 PSEUDO_SUNDAY_N=239 MEAN_A=0.1335535649302866 MC_P=9.999000099990002e-05; statistical/practical/temporal all true; yearly mean A 2020=0.06506 2021=0.01547 2022=-0.06937 2023=0.25569 2024=0.40091 (4/5 positive); EU diagnostic MEAN_A=-0.17392447104949169 N=10 does not affect classification"
+    },
+    "D13": {
+      "DATA_STATE": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0 snapshot fdd698c6… N=82; 2025/2026 unopened",
+      "FUNCTION": "1-week formation / 1-week holding cross-sectional Spearman rank IC on frozen top-N liquid USDT names",
+      "GENERATION": "DISCOVERY",
+      "ID": "D13",
+      "INFORMATION_SOURCE": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0 SNAPSHOT_BOUND_OBJECT_LEDGER; Monday 00:00 UTC decision clock",
+      "MECHANISM": "Cross-sectional weekly relative-return structure (family H true panel)",
+      "NEIGHBOR_RESCUE_WARNING": "Do not try 2w/4w, skip-week, top 50/100, alternate liquidity window, alternate exclusions, winsorization, vol scaling, sector filter, beta-neutralization, alternate quintiles, or another exchange. Do not pick the larger of momentum vs reversal.",
+      "POSTHOC_RESIDUALS_IF_ANY": "Residual weekly IC serial dependence remains a declared discovery-stage limitation",
+      "STATUS_EVIDENCE_CLASS": "NO_USEFUL_STRUCTURE; observed pooled sign REVERSAL (IC<0); practical gate failed",
+      "TARGET_FAMILY": "MEAN_WEEKLY_CROSS_SECTIONAL_RANK_IC two-sided sign-flip MC; signed top-vs-bottom quintile vs friction floor 0.004; yearly IC same sign as pooled in >=3/5 years",
+      "WHAT_REMAINS_OPEN": "Orthogonal families already recorded. Not other horizons/venues. Residual serial dependence is a declared limitation, not a rescue path.",
+      "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES": "This frozen 1-week panel relative-return formulation. Observed reversal sign is reported, not chosen. Does not imply tradable strategy, net alpha, or factor interpretation.",
+      "WHAT_WAS_ACTUALLY_TESTED": "Canonical one-shot; N=82 WEEK_N=256 MEAN_WEEKLY_IC=-0.027440631083253317 POOLED_IC_SIGN=-1; MC_P=0.015598440155984402 statistical true; SIGNED_TOP_BOTTOM_SPREAD=-0.007875047071699056 FRICTION_FLOOR=0.004 practical false; yearly IC 2020=-0.00734 2021=-0.08205 2022=-0.01142 2023=-0.03877 2024=+0.00392 temporal true (4/5 same sign); NO_POST_T_CLOSE_SELECTED_N=0"
     },
     "D2": {
       "DATA_STATE": "CORE_BTC and BitMEX 2017-2019 consumed for those claims; 2025/2026 sealed",
@@ -463,8 +495,8 @@
       "WHAT_WAS_ACTUALLY_TESTED": "Daily 00:05 ABS_DISLOCATION_Z incremental MAE; G1 true, G2-G6 false; pooled relative MAE negative"
     }
   },
-  "INTERNAL_DISCOVERY_CARDS_EXECUTED": 8,
-  "INTERNAL_PROMISING_PROTOTYPES": 3,
+  "INTERNAL_DISCOVERY_CARDS_EXECUTED": 10,
+  "INTERNAL_PROMISING_PROTOTYPES": 4,
   "KIND": "COMPACT_ACCUMULATED_RESEARCH_MAP",
   "MARKET_03_COUNTS_AS_INTERNAL_DISCOVERY": false,
   "MARKET_07_CREATED": false,
@@ -476,7 +508,9 @@
   "SCIENTIFIC_OUTCOMES_COMPUTED": true,
   "SPRINT03_PROMISING_PROTOTYPES": 1,
   "SPRINT03_TERMINAL_SCIENTIFIC_CARDS": 3,
-  "SPRINT04_HYPOTHESES_SELECTED": false,
-  "STATUS": "FROZEN_AS_OF_POST_SPRINT03",
+  "SPRINT04_HYPOTHESES_SELECTED": true,
+  "SPRINT04_PROMISING_PROTOTYPES": 1,
+  "SPRINT04_TERMINAL_SCIENTIFIC_CARDS": 2,
+  "STATUS": "EXTENDED_THROUGH_D13",
   "UNIT": "MECHANISM_MEMORY_V0"
 }
