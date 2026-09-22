@@ -55,7 +55,9 @@
     "SANITIZATION_OVERRIDES": {
       "D1.MECHANISM": "Structural state detection",
       "D2.INFORMATION_SOURCE": "CORE_BTC 24h RV state; BitMEX XBTUSD 5m pre-2020",
-      "D4.FUNCTION": "Rolling 90d correlation range; 1-day lead-lag"
+      "D4.FUNCTION": "Rolling 90d correlation range; 1-day lead-lag",
+      "D6.FUNCTION": "Diagnostic reproduction of an external mechanism",
+      "D6.INFORMATION_SOURCE": "External mechanism source + CORE_BTC"
     },
     "STRUCTURAL_PROVENANCE_GUARD": {
       "FAIL_CLOSED_ON_MEMORY_CHANGE": "If MECHANISM_MEMORY_V0 gains or changes an entry that the materialized map does not cover under these rules, generation refuses to run until the map is regenerated and reviewed.",

@@ -432,3 +432,38 @@ def test_scanner_is_backstop_and_passes_assembled_blind_context():
     assert not deny.search(text), deny.search(text)
     # The governance authority would be caught if it ever leaked in.
     assert deny.search(json.dumps(_authority()["ROWS"]))
+
+
+# Historical state/blocker language that must never appear in a projected prior-work row.
+# Applied to the blind-map projection only, not to DATA_CATALOG_V0 (current data status is
+# intentionally visible). Mechanism vocabulary such as "failed breakout", "null model" or
+# "confirmatory" is allowed.
+BLIND_ROW_STATE_LANGUAGE = re.compile(
+    r"unpinned|\bpinned\b|unauthori[sz]ed|deferred|blocked|consumed|not executed|not tested"
+    r"|not run|insufficient (?:control|support)|insufficient|publication latency|unresolved"
+    r"|replicat|promising|prototype|rejected|no useful structure|no evidence|reclassified",
+    re.IGNORECASE,
+)
+
+
+def test_blind_map_rows_carry_no_historical_state_language():
+    blind = _load(DESIGN)["BLIND_GENERATOR_CONTEXT"]
+    projection = _blind_projection(_load(MEMORY), blind)
+    hits = {
+        key: match.group(0)
+        for key, row in projection.items()
+        for match in [BLIND_ROW_STATE_LANGUAGE.search(json.dumps(row))]
+        if match
+    }
+    assert hits == {}
+    d6 = projection["D6"]
+    assert d6["INFORMATION_SOURCE"] == "External mechanism source + CORE_BTC"
+    assert d6["FUNCTION"] == "Diagnostic reproduction of an external mechanism"
+    # The raw memory fields did leak, so the overrides are load-bearing.
+    raw = _load(MEMORY)["ENTRIES"]
+    for key, field in (("D6", "INFORMATION_SOURCE"), ("D4", "FUNCTION"), ("D1", "MECHANISM"), ("D2", "INFORMATION_SOURCE")):
+        assert BLIND_ROW_STATE_LANGUAGE.search(raw[key][field]), (key, field)
+    # The governance row itself is unchanged and still records the blocker.
+    gov = _rows_by_id(_authority())["D6"]
+    assert gov["STATE"] == "DEFERRED_OR_BLOCKED"
+    assert gov["BLOCKER_CLASS_IF_ANY"] == "DATA_PROVENANCE_SOURCE_NOT_PINNED"

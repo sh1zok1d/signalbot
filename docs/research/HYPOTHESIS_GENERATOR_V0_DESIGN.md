@@ -32,7 +32,9 @@ Derived from `MECHANISM_MEMORY_V0`:
   data state, generation.
 - **Sanitization overrides** where a whitelisted field still leaks state:
   D2's information source (mentions replication), D1's mechanism
-  ("reclassified"), D4's function ("lead-lag deferred").
+  ("reclassified"), D4's function ("lead-lag deferred"), D6's information
+  source and function ("unpinned" / "pinned" source). A contract test
+  rejects historical state or blocker language in any projected row.
 - **Every row carries the same neutral constant:**
   `REGION_STATE = PRIOR_WORK_SIGNATURE`. It says only that the signature
   exists in prior work — not whether it was executed, blocked, deferred,
