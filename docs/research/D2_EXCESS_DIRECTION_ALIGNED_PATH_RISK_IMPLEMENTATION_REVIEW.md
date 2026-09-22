@@ -62,23 +62,26 @@ CANONICAL_ORCHESTRATION_READY         = True
 PERMIT_VERIFIER_READY                 = True
 EXACT_SELECTOR_IDENTITY_IMPLEMENTED   = True
 CANONICAL_SELECTOR_DIGEST_FROZEN      = False
+SELECTOR_IDENTITY_AUTHORITY_CREATED   = False
 EXECUTION_READY                       = False
 EXECUTION_AUTHORIZED                  = False
 EXECUTION_PERMIT_PRESENT              = False
 FROZEN_AUTHORITY_STATUS               = BOUND_NO_DRIFT
 DESIGN_AUTHORITY_BLOCKERS             = []
 DESIGN_JSON_SHA256                    = 485983701d6e05a57f7dc8bb578613467d6d8f6fb1ec1e28c68d7ca42767c75b
-RUN_IDENTITY                          = 3d8ee5f38d919c7b83495be8bd5366613ad5c1b0870b8d305bd9c7d4cf1b6a92
-FINAL_IMPLEMENTATION_COMMIT           = 77ae54a4fd01abd7ca82fcd8a42038f5220bc861
+RUN_IDENTITY                          = 3fb7f1a6c4ba84e912e4ec3012faacd25285eb1cf2bfcca59772c6a441b92e7f
+FINAL_IMPLEMENTATION_COMMIT           = 9c72f48fbe8a1b233869e2a748021f2e8dedfc42
 ```
 
 PASS is justified by implemented and tested machinery, not by a hardcoded
 red-team table: Scientific kernel, dormant canonical orchestration, tracked-permit verifier, exact selector-identity machinery, and inherited D2 P95 method are implemented and covered by adversarial synthetic tests. PASS is not granted merely because the red-team table is hardcoded NOT_CONFIRMED. EXECUTION_READY remains false because the canonical selector digest is not frozen.
 
-No execution permit exists. `execute_decomposition` is the full dormant
-canonical route and still fails closed before any CORE BTC OHLC is read
-because the tracked permit artifact is absent. Count-only 1791/year census
-is a secondary check; the ordered selector digest is computed but not frozen.
+No execution permit exists and no selector-identity authority artifact
+exists. `execute_decomposition` is the full dormant canonical route and
+still fails closed before any CORE BTC OHLC is read. The route requires
+the future tracked selector-identity authority (bound by permit SHA256)
+and compares the reconstructed ordered digest to that frozen digest
+before `evaluate_decomposition`. Count-only 1791/year census is secondary.
 
 ## Red-team (F1–F20)
 
@@ -87,7 +90,7 @@ is a secondary check; the ordered selector digest is computed but not frozen.
 - `F3_CLOSES_INSTEAD_OF_HIGH_LOW`: **NOT_CONFIRMED** — MAE comes from frozen arithmetic_mae over PerpBar high/low. An AST test asserts the evaluator never reads DiscoveryRow.future_closes, and a high/low-collapsed perp map fails the severity cross-check.
 - `F4_DIFFERENT_PATHS_FOR_SIDE_AND_MIRROR`: **NOT_CONFIRMED** — mae_pair calls arithmetic_mae twice on one bars sequence. AST tests assert exactly one future_bars_for_row call and one mae_pair call per row, and LONG+SHORT shares on one path sum to exactly 1.0.
 - `F5_MAE_SIDE_SUBSTITUTION`: **NOT_CONFIRMED** — Recomputed MAE_SIDE is cross-checked bit-for-bit (tolerance 0.0) against the frozen DiscoveryRow.severity, so any substituted path fails closed.
-- `F6_SELECTOR_DRIFT`: **NOT_CONFIRMED** — The selector is frozen C.rv_abstention_mask (identity-asserted), RV_TRAILING_WINDOW=250, RV_PCTL=90.0, strict >, t excluded, imported not redefined. The 1791 / year-count census is a secondary integrity check only. Exact identity is SHA256 of the ordered constructed-row t_ms plus selector flags; that machinery is implemented and tested, but the canonical digest is NOT frozen in this outcome-blind unit (CANONICAL_SELECTOR_DIGEST_FROZEN = false) because obtaining it would require opening real CORE BTC. Count-only identity is not called exact identity.
+- `F6_SELECTOR_DRIFT`: **NOT_CONFIRMED** — The selector is frozen C.rv_abstention_mask (identity-asserted), RV_TRAILING_WINDOW=250, RV_PCTL=90.0, strict >, t excluded, imported not redefined. The 1791 / year-count census is a secondary integrity check only. Exact identity is SHA256 of the ordered constructed-row t_ms plus selector flags; that machinery is implemented and tested. canonical_orchestration compares the reconstructed digest to a tracked selector-identity authority BEFORE evaluate_decomposition. The authority artifact is NOT created in this unit (CANONICAL_SELECTOR_DIGEST_FROZEN = false) because obtaining the true canonical digest would require opening real CORE BTC. Count-only identity is not called exact identity.
 - `F7_SIDE_DRIFT`: **NOT_CONFIRMED** — SIDE is the frozen row.side = sign(BTC_RET_24H); encode_side accepts only +/-1 and rejects 0 and fractional sides.
 - `F8_TARGET_INELIGIBILITY_HANDLING`: **NOT_CONFIRMED** — PATH_SCALE<=0 or nonfinite yields exactly TARGET_ROW_INELIGIBLE_PATH_SCALE_NONPOSITIVE with no epsilon. The selector mask is never rebuilt: candidate = selector AND eligible, and SELECTOR_ROWS_TARGET_INELIGIBLE_N is reported per year.
 - `F9_POOLED_K_OR_YEAR_ONLY_FALLBACK`: **NOT_CONFIRMED** — Draws are per (calendar_year, frozen SIDE) stratum. Tests assert every replicate reproduces K exactly in every stratum, and that an all-LONG candidate set never draws a SHORT control row while a pooled draw would.
@@ -109,7 +112,7 @@ is a secondary check; the ordered selector digest is computed but not frozen.
 - `O2_CONTROL_POOL_INCLUDES_THE_ABSTAINED_ROWS` (FROZEN_SEMANTICS_CONFIRMED_NOT_A_NEW_CHOICE) — year_side_matched_control_masks draws from every target-eligible row in the stratum, including the D2-abstained rows themselves. This is the frozen design function's own behaviour and matches the original D2 discovery comparator rate_matched_random_abstention. No new researcher convention was introduced.
 - `O3_YEARLY_NAN_IS_STRUCTURALLY_IMPOSSIBLE_UNLESS_K_YEAR_IS_ZERO` (FROZEN_SEMANTICS_CONFIRMED_NOT_A_NEW_CHOICE) — Each replicate draws exactly K per stratum, so a year's replicate subset is empty only when that year has no candidate rows at all. Partial NaN across replicates is therefore impossible and is rejected explicitly rather than silently averaged.
 - `O4_CONTROL_P95_METHOD_INHERITED_FROM_D2` (FROZEN_SEMANTICS_CONFIRMED_NOT_A_NEW_CHOICE) — CONTROL_P95_METHOD = NUMPY_LINEAR_INHERITED_FROM_D2. np.percentile(values, 95.0, method='linear') is the historical D2 convention made explicit. This is not a newly selected scientific threshold. CONTROL_SHARE_P95 and CONTROL_PATH_SCALE_P95 both use it.
-- `O5_CANONICAL_SELECTOR_DIGEST_NOT_FROZEN_OUTCOME_BLIND` (HONEST_IDENTITY_GAP_NOT_A_RESCUE) — Exact selector-identity machinery is implemented (ordered t_ms + selector-flag SHA256). The true canonical digest cannot be obtained in this unit without opening prohibited real CORE BTC, so it is not guessed. CANONICAL_SELECTOR_DIGEST_FROZEN = false. A future pre-outcome identity freeze must bind that digest before ADVERSE_SHARE / PATH_SCALE outcome computation.
+- `O5_CANONICAL_SELECTOR_DIGEST_NOT_FROZEN_OUTCOME_BLIND` (HONEST_IDENTITY_GAP_NOT_A_RESCUE) — Exact selector-identity machinery is implemented (ordered t_ms + selector-flag SHA256) and the canonical route requires a tracked selector-identity authority whose SHA256 is bound by the future execution permit. The true canonical digest cannot be obtained in this unit without opening prohibited real CORE BTC, so the authority artifact is not created or guessed. CANONICAL_SELECTOR_DIGEST_FROZEN = false. The next unit only reconstructs and freezes that authority; it must not alter the reviewed scientific execution implementation.
 
 No scientific ambiguity required a new researcher convention:
 `SCIENTIFIC_AMBIGUITY_FOUND = False`.
@@ -125,13 +128,16 @@ BITMEX_2017_2019_REUSED_FOR_NEW_TARGET = False
 MARKET_07_CREATED                   = False
 RESULT_CREATED                      = False
 EXECUTION_PERMIT_CREATED            = False
+SELECTOR_IDENTITY_AUTHORITY_CREATED = False
 ```
 
 ## Next
 
 `NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE`
 
-The canonical selector digest is not frozen in this outcome-blind unit.
-The next unit is an explicit pre-outcome identity freeze, not one-shot
-execution. This review does not authorize execution: no permit exists,
-`EXECUTION_READY = false`, and `EXECUTION_AUTHORIZED = false`.
+The canonical selector digest is not frozen in this outcome-blind unit
+and the selector-identity authority artifact was not created. The next
+unit only reconstructs and freezes that tracked authority; it must not
+alter the reviewed scientific execution implementation. This review does
+not authorize execution: no permit exists, `EXECUTION_READY = false`,
+and `EXECUTION_AUTHORIZED = false`.
