@@ -48,7 +48,16 @@ def test_canonical_unit_identity_is_exact(review):
 def test_review_passes_with_no_blocking_findings(review):
     assert review["IMPLEMENTATION_REVIEW"] == "PASS"
     assert review["BLOCKING_FINDINGS"] == []
-    assert review["EXECUTION_READY"] is True
+    assert review["EXECUTION_READY"] is False
+    assert review["SCIENTIFIC_KERNEL_READY"] is True
+    assert review["CANONICAL_ORCHESTRATION_READY"] is True
+    assert review["PERMIT_VERIFIER_READY"] is True
+    assert review["EXACT_SELECTOR_IDENTITY_IMPLEMENTED"] is True
+    assert review["CANONICAL_SELECTOR_DIGEST_FROZEN"] is False
+    assert review["CONTROL_P95_METHOD"] == "NUMPY_LINEAR_INHERITED_FROM_D2"
+    assert "implemented and covered by adversarial synthetic tests" in (
+        review["IMPLEMENTATION_REVIEW_PASS_JUSTIFICATION"].lower()
+    )
     assert all(
         body["status"] == "NOT_CONFIRMED"
         for body in review["RED_TEAM_FINDINGS"].values()
@@ -97,6 +106,7 @@ def test_frozen_scientific_contract_is_recorded_unchanged(review):
     )
     assert review["RANDOM_SEED"] == 20260922131
     assert review["N_RANDOM_CONTROLS"] == 10000
+    assert review["CONTROL_P95_METHOD"] == "NUMPY_LINEAR_INHERITED_FROM_D2"
     assert review["FROZEN_RULE1_N"] == 1791
     assert review["FROZEN_RULE1_YEAR_N"] == {
         "2020": 334,
@@ -173,19 +183,27 @@ def test_design_was_not_redesigned(review):
     assert review["NEW_RESEARCHER_CONVENTION_INTRODUCED"] is False
 
 
-def test_next_unit_is_an_explicit_one_shot_execution_unit(review):
+def test_next_unit_is_pre_outcome_selector_digest_freeze(review):
     assert review["NEXT_UNIT"] == (
-        "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION"
+        "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE"
     )
     assert "RESULT" in review["NOT_CREATED"]
     assert "execution permit" in review["NOT_CREATED"]
+    assert review["LIFECYCLE_REPAIR"]["F1_CANONICAL_ORCHESTRATION"] == (
+        "CLOSED_DORMANT_ROUTE_WITH_HARD_FIREWALL"
+    )
+    assert review["LIFECYCLE_REPAIR"]["F3_EXACT_SELECTOR_IDENTITY"] == (
+        "IMPLEMENTED_DIGEST_NOT_FROZEN"
+    )
 
 
 def test_markdown_mirror_states_not_executed():
     text = (REPO / REVIEW_MD_REL).read_text(encoding="utf-8")
     assert "was NOT executed" in text
     assert "REAL_DECOMPOSITION_OUTCOME_COMPUTED = False" in text
-    assert "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION" in text
+    assert "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE" in text
+    assert "CANONICAL_SELECTOR_DIGEST_FROZEN" in text
+    assert "EXECUTION_READY                       = False" in text
 
 
 def test_review_is_byte_reproducible_from_the_implementation_commit(review):

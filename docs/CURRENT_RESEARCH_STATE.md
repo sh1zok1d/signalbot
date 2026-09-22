@@ -37,10 +37,15 @@ PREVIOUS_ROUTING            = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATI
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION
+NEXT_UNIT                   = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE
 D2_DECOMPOSITION_DESIGN_STATUS = FROZEN
 D2_DECOMPOSITION_IMPLEMENTATION_REVIEW = PASS
-D2_DECOMPOSITION_EXECUTION_READY   = true
+D2_DECOMPOSITION_SCIENTIFIC_KERNEL_READY = true
+D2_DECOMPOSITION_CANONICAL_ORCHESTRATION_READY = true
+D2_DECOMPOSITION_PERMIT_VERIFIER_READY = true
+D2_DECOMPOSITION_EXACT_SELECTOR_IDENTITY_IMPLEMENTED = true
+D2_DECOMPOSITION_CANONICAL_SELECTOR_DIGEST_FROZEN = false
+D2_DECOMPOSITION_EXECUTION_READY   = false
 D2_DECOMPOSITION_EXECUTION_AUTHORIZED = false
 D2_DECOMPOSITION_EXECUTION_PERMIT_CREATED = false
 REAL_DECOMPOSITION_OUTCOME_COMPUTED = false
@@ -232,15 +237,21 @@ that one shared sequence, cross-checking recomputed `MAE_SIDE`
 bit-for-bit against the frozen `DiscoveryRow.severity`. Target
 ineligibility (`TARGET_ROW_INELIGIBLE_PATH_SCALE_NONPOSITIVE`, no
 epsilon) never rebuilds the selector and is reported per year. Twenty
-red-team failure classes (F1-F20) returned `NOT_CONFIRMED`; three
-non-blocking observations were recorded; no scientific ambiguity required
-a new researcher convention. `IMPLEMENTATION_REVIEW = PASS`,
-`EXECUTION_READY = true`, `EXECUTION_AUTHORIZED = false`. No execution
-permit, no RESULT, no ARM, no MARKET-07. Protected 2025/2026 unopened.
-BitMEX 2017-2019 not reused for this target.
+red-team failure classes (F1-F20) returned `NOT_CONFIRMED`; PASS is
+justified by implemented/tested machinery, not by a hardcoded table.
+Integrity repair closed dormant canonical orchestration, tracked-permit
+authority verification, exact ordered selector-identity machinery, and
+the inherited D2 NumPy linear P95 method. `IMPLEMENTATION_REVIEW = PASS`,
+`SCIENTIFIC_KERNEL_READY = true`, `CANONICAL_ORCHESTRATION_READY = true`,
+`PERMIT_VERIFIER_READY = true`, `EXACT_SELECTOR_IDENTITY_IMPLEMENTED = true`,
+`CANONICAL_SELECTOR_DIGEST_FROZEN = false`, `EXECUTION_READY = false`,
+`EXECUTION_AUTHORIZED = false`. No execution permit, no RESULT, no ARM,
+no MARKET-07. Protected 2025/2026 unopened. BitMEX 2017-2019 not reused
+for this target.
 Record: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_REVIEW.{json,md}`.
-`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION`
-(an explicit one-shot execution unit; execution was not performed here).
+`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE`
+(the canonical selector digest cannot be frozen outcome-blind without
+opening real CORE BTC; that freeze must precede one-shot execution).
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by

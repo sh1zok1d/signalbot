@@ -32,20 +32,34 @@ from scripts.research.d2_excess_path_risk_beyond_vol_clustering_design import (
     verify_design_authorities,
 )
 from scripts.research.d2_excess_path_risk_evaluator import (
+    CANONICAL_ORCHESTRATION_READY,
+    CANONICAL_SELECTOR_DIGEST_FROZEN,
+    CONTROL_P95_METHOD,
+    EXACT_SELECTOR_IDENTITY_IMPLEMENTED,
     EXECUTION_AUTHORIZED,
     EXECUTION_PERMIT_REL,
+    EXECUTION_READY,
     IMPLEMENTATION_FILES,
+    PERMIT_VERIFIER_READY,
     REVIEW_JSON_REL,
     REVIEW_MD_REL,
+    SCIENTIFIC_KERNEL_READY,
     UNIT,
+    canonical_orchestration,
     compute_run_identity,
+    control_p95,
     current_artifact_sha256,
     current_implementation_file_sha256,
     frozen_contract_summary,
+    selector_digest,
+    verify_tracked_permit,
 )
 from scripts.research.discovery_sprint_01 import common as C
 
-TEST_FILES = ("tests/research/test_d2_excess_path_risk_evaluator.py",)
+TEST_FILES = (
+    "tests/research/test_d2_excess_path_risk_evaluator.py",
+    "tests/research/test_d2_excess_path_risk_implementation_review.py",
+)
 
 RED_TEAM: dict[str, dict[str, str]] = {
     "F1_LOOKAHEAD_FEATURE_OUTCOME_OVERLAP": {
@@ -93,8 +107,13 @@ RED_TEAM: dict[str, dict[str, str]] = {
         "note": (
             "The selector is frozen C.rv_abstention_mask (identity-asserted), "
             "RV_TRAILING_WINDOW=250, RV_PCTL=90.0, strict >, t excluded, imported "
-            "not redefined. verify_selector_identity fails closed unless the mask "
-            "is exactly 1791 with the frozen year breakdown."
+            "not redefined. The 1791 / year-count census is a secondary integrity "
+            "check only. Exact identity is SHA256 of the ordered constructed-row "
+            "t_ms plus selector flags; that machinery is implemented and tested, "
+            "but the canonical digest is NOT frozen in this outcome-blind unit "
+            "(CANONICAL_SELECTOR_DIGEST_FROZEN = false) because obtaining it "
+            "would require opening real CORE BTC. Count-only identity is not "
+            "called exact identity."
         ),
     },
     "F7_SIDE_DRIFT": {
@@ -188,9 +207,15 @@ RED_TEAM: dict[str, dict[str, str]] = {
     "F18_ACCIDENTAL_REAL_OUTCOME_EXECUTION": {
         "status": "NOT_CONFIRMED",
         "note": (
-            "execute_decomposition and load_canonical_core_btc_bars require an "
-            "execution permit that does not exist; EXECUTION_AUTHORIZED is False and "
-            "a forged permit still raises RealDecompositionForbidden."
+            "execute_decomposition is the full dormant canonical orchestration "
+            "route, not a terminal firewall stub. Scientific authority is read "
+            "only from a tracked permit artifact (UNIT, design/review/evaluator "
+            "SHA256, CORE snapshot, RUN_IDENTITY, seed 20260922131, N=10000, "
+            "EXECUTION_AUTHORIZED=true, ONE_SHOT=true, RERUN_AUTHORIZED=false). "
+            "Caller kwargs cannot replace those fields. No permit exists in this "
+            "unit, so the route fails closed before CORE BTC OHLC is opened. "
+            "Adversarial tests cover forged caller authority, mutated permit "
+            "bytes, and each bound-field mismatch."
         ),
     },
     "F19_PROTECTED_2025_2026_ACCESS": {
@@ -245,6 +270,28 @@ OBSERVATIONS: list[dict[str, str]] = [
             "rather than silently averaged."
         ),
     },
+    {
+        "id": "O4_CONTROL_P95_METHOD_INHERITED_FROM_D2",
+        "class": "FROZEN_SEMANTICS_CONFIRMED_NOT_A_NEW_CHOICE",
+        "note": (
+            "CONTROL_P95_METHOD = NUMPY_LINEAR_INHERITED_FROM_D2. "
+            "np.percentile(values, 95.0, method='linear') is the historical D2 "
+            "convention made explicit. This is not a newly selected scientific "
+            "threshold. CONTROL_SHARE_P95 and CONTROL_PATH_SCALE_P95 both use it."
+        ),
+    },
+    {
+        "id": "O5_CANONICAL_SELECTOR_DIGEST_NOT_FROZEN_OUTCOME_BLIND",
+        "class": "HONEST_IDENTITY_GAP_NOT_A_RESCUE",
+        "note": (
+            "Exact selector-identity machinery is implemented (ordered t_ms + "
+            "selector-flag SHA256). The true canonical digest cannot be obtained "
+            "in this unit without opening prohibited real CORE BTC, so it is not "
+            "guessed. CANONICAL_SELECTOR_DIGEST_FROZEN = false. A future "
+            "pre-outcome identity freeze must bind that digest before "
+            "ADVERSE_SHARE / PATH_SCALE outcome computation."
+        ),
+    },
 ]
 
 
@@ -272,6 +319,7 @@ def build_review(*, repo: Path, implementation_commit: str | None = None) -> dic
         "TEST_FILE_SHA256": tests,
         "RANDOM_SEED": int(RANDOM_SEED),
         "N_RANDOM_CONTROLS": int(N_RANDOM_CONTROLS),
+        "CONTROL_P95_METHOD": CONTROL_P95_METHOD,
         "PRIMARY_SELECTOR": PRIMARY_SELECTOR,
         "PRIMARY_TARGET": PRIMARY_TARGET,
         "PRIMARY_COMPARATOR": PRIMARY_COMPARATOR,
@@ -284,7 +332,35 @@ def build_review(*, repo: Path, implementation_commit: str | None = None) -> dic
     run_identity = compute_run_identity(identity_inputs)
 
     blocking = [name for name, body in RED_TEAM.items() if body["status"] == "BLOCKING"]
-    review_pass = not blocking and not blockers
+    machinery_ready = (
+        callable(canonical_orchestration)
+        and callable(verify_tracked_permit)
+        and callable(selector_digest)
+        and callable(control_p95)
+        and CONTROL_P95_METHOD == "NUMPY_LINEAR_INHERITED_FROM_D2"
+        and SCIENTIFIC_KERNEL_READY is True
+        and CANONICAL_ORCHESTRATION_READY is True
+        and PERMIT_VERIFIER_READY is True
+        and EXACT_SELECTOR_IDENTITY_IMPLEMENTED is True
+        and EXECUTION_AUTHORIZED is False
+        and not (repo / EXECUTION_PERMIT_REL).is_file()
+    )
+    pass_blockers: list[str] = []
+    if blocking:
+        pass_blockers.append("RED_TEAM_BLOCKING")
+    if blockers:
+        pass_blockers.append("DESIGN_AUTHORITY")
+    if not machinery_ready:
+        pass_blockers.append("MACHINERY_NOT_READY")
+    review_pass = not pass_blockers
+    if not review_pass:
+        next_unit = "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_REPAIR"
+    elif CANONICAL_SELECTOR_DIGEST_FROZEN:
+        next_unit = "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION"
+    else:
+        next_unit = (
+            "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE"
+        )
 
     return {
         "unit": UNIT,
@@ -295,7 +371,23 @@ def build_review(*, repo: Path, implementation_commit: str | None = None) -> dic
         "DESIGN_NOT_REDESIGNED": True,
         "CANDIDATE": "D2 / RULE_1 / RV_ABSTENTION",
         "IMPLEMENTATION_REVIEW": "PASS" if review_pass else "BLOCKED",
-        "EXECUTION_READY": bool(review_pass),
+        "IMPLEMENTATION_REVIEW_PASS_JUSTIFICATION": (
+            "Scientific kernel, dormant canonical orchestration, tracked-permit "
+            "verifier, exact selector-identity machinery, and inherited D2 P95 "
+            "method are implemented and covered by adversarial synthetic tests. "
+            "PASS is not granted merely because the red-team table is hardcoded "
+            "NOT_CONFIRMED. EXECUTION_READY remains false because the canonical "
+            "selector digest is not frozen."
+            if review_pass
+            else ",".join(pass_blockers)
+        ),
+        "SCIENTIFIC_KERNEL_READY": SCIENTIFIC_KERNEL_READY,
+        "CANONICAL_ORCHESTRATION_READY": CANONICAL_ORCHESTRATION_READY,
+        "PERMIT_VERIFIER_READY": PERMIT_VERIFIER_READY,
+        "EXACT_SELECTOR_IDENTITY_IMPLEMENTED": EXACT_SELECTOR_IDENTITY_IMPLEMENTED,
+        "CANONICAL_SELECTOR_DIGEST_FROZEN": CANONICAL_SELECTOR_DIGEST_FROZEN,
+        "CONTROL_P95_METHOD": CONTROL_P95_METHOD,
+        "EXECUTION_READY": EXECUTION_READY,
         "EXECUTION_AUTHORIZED": False,
         "EXECUTION_AUTHORIZED_FLAG": EXECUTION_AUTHORIZED,
         "EXECUTION_PERMIT_PRESENT": (repo / EXECUTION_PERMIT_REL).is_file(),
@@ -364,11 +456,13 @@ def build_review(*, repo: Path, implementation_commit: str | None = None) -> dic
         "ARM_CREATED": False,
         "SYNTHETIC_TESTS_ONLY": True,
         "CONTRACT_ECHO": contract,
-        "NEXT_UNIT": (
-            "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION"
-            if review_pass
-            else "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_REPAIR"
-        ),
+        "LIFECYCLE_REPAIR": {
+            "F1_CANONICAL_ORCHESTRATION": "CLOSED_DORMANT_ROUTE_WITH_HARD_FIREWALL",
+            "F2_TRACKED_PERMIT_AUTHORITY": "CLOSED_NO_PERMIT_CREATED",
+            "F3_EXACT_SELECTOR_IDENTITY": "IMPLEMENTED_DIGEST_NOT_FROZEN",
+            "F4_EXPLICIT_P95_METHOD": "CLOSED_NUMPY_LINEAR_INHERITED_FROM_D2",
+        },
+        "NEXT_UNIT": next_unit,
         "NOT_CREATED": ["RESULT", "execution permit", "MARKET-07", "ARM"],
     }
 
@@ -415,6 +509,7 @@ PRACTICAL_GATE     = {review["PRACTICAL_GATE"]}
 TEMPORAL_GATE      = {review["TEMPORAL_GATE"]}
 RANDOM_SEED        = {review["RANDOM_SEED"]}
 N_RANDOM_CONTROLS  = {review["N_RANDOM_CONTROLS"]}
+CONTROL_P95_METHOD = {review["CONTROL_P95_METHOD"]}
 FROZEN_RULE1_N     = {review["FROZEN_RULE1_N"]} ({year_n})
 ```
 
@@ -442,19 +537,29 @@ ineligibility is reported per year.
 ## Identity
 
 ```
-IMPLEMENTATION_REVIEW      = {review["IMPLEMENTATION_REVIEW"]}
-EXECUTION_READY            = {review["EXECUTION_READY"]}
-EXECUTION_AUTHORIZED       = {review["EXECUTION_AUTHORIZED"]}
-EXECUTION_PERMIT_PRESENT   = {review["EXECUTION_PERMIT_PRESENT"]}
-FROZEN_AUTHORITY_STATUS    = {review["FROZEN_AUTHORITY_STATUS"]}
-DESIGN_AUTHORITY_BLOCKERS  = {review["DESIGN_AUTHORITY_BLOCKERS"]}
-DESIGN_JSON_SHA256         = {review["DESIGN_JSON_SHA256"]}
-RUN_IDENTITY               = {review["RUN_IDENTITY"]}
-FINAL_IMPLEMENTATION_COMMIT = {review["FINAL_IMPLEMENTATION_COMMIT"]}
+IMPLEMENTATION_REVIEW                 = {review["IMPLEMENTATION_REVIEW"]}
+SCIENTIFIC_KERNEL_READY               = {review["SCIENTIFIC_KERNEL_READY"]}
+CANONICAL_ORCHESTRATION_READY         = {review["CANONICAL_ORCHESTRATION_READY"]}
+PERMIT_VERIFIER_READY                 = {review["PERMIT_VERIFIER_READY"]}
+EXACT_SELECTOR_IDENTITY_IMPLEMENTED   = {review["EXACT_SELECTOR_IDENTITY_IMPLEMENTED"]}
+CANONICAL_SELECTOR_DIGEST_FROZEN      = {review["CANONICAL_SELECTOR_DIGEST_FROZEN"]}
+EXECUTION_READY                       = {review["EXECUTION_READY"]}
+EXECUTION_AUTHORIZED                  = {review["EXECUTION_AUTHORIZED"]}
+EXECUTION_PERMIT_PRESENT              = {review["EXECUTION_PERMIT_PRESENT"]}
+FROZEN_AUTHORITY_STATUS               = {review["FROZEN_AUTHORITY_STATUS"]}
+DESIGN_AUTHORITY_BLOCKERS             = {review["DESIGN_AUTHORITY_BLOCKERS"]}
+DESIGN_JSON_SHA256                    = {review["DESIGN_JSON_SHA256"]}
+RUN_IDENTITY                          = {review["RUN_IDENTITY"]}
+FINAL_IMPLEMENTATION_COMMIT           = {review["FINAL_IMPLEMENTATION_COMMIT"]}
 ```
 
-No execution permit exists. `execute_decomposition` and
-`load_canonical_core_btc_bars` fail closed before any CORE BTC byte is read.
+PASS is justified by implemented and tested machinery, not by a hardcoded
+red-team table: {review["IMPLEMENTATION_REVIEW_PASS_JUSTIFICATION"]}
+
+No execution permit exists. `execute_decomposition` is the full dormant
+canonical route and still fails closed before any CORE BTC OHLC is read
+because the tracked permit artifact is absent. Count-only 1791/year census
+is a secondary check; the ordered selector digest is computed but not frozen.
 
 ## Red-team (F1–F20)
 
@@ -484,10 +589,10 @@ EXECUTION_PERMIT_CREATED            = {review["EXECUTION_PERMIT_CREATED"]}
 
 `NEXT_UNIT = {review["NEXT_UNIT"]}`
 
-That next unit is an explicit one-shot execution unit. It is not executed
-here, and this review does not authorize it: a future permit must bind the
-design hash, this review's hash, the implementation hash, the CORE BTC
-snapshot, and the run identity above.
+The canonical selector digest is not frozen in this outcome-blind unit.
+The next unit is an explicit pre-outcome identity freeze, not one-shot
+execution. This review does not authorize execution: no permit exists,
+`EXECUTION_READY = false`, and `EXECUTION_AUTHORIZED = false`.
 """
 
 
@@ -507,6 +612,11 @@ if __name__ == "__main__":
     written = write_artifacts()
     keys = (
         "IMPLEMENTATION_REVIEW",
+        "SCIENTIFIC_KERNEL_READY",
+        "CANONICAL_ORCHESTRATION_READY",
+        "PERMIT_VERIFIER_READY",
+        "EXACT_SELECTOR_IDENTITY_IMPLEMENTED",
+        "CANONICAL_SELECTOR_DIGEST_FROZEN",
         "EXECUTION_READY",
         "EXECUTION_AUTHORIZED",
         "FROZEN_AUTHORITY_STATUS",

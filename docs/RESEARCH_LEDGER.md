@@ -4497,3 +4497,56 @@ Evidence: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_RE
   (an explicit one-shot execution unit, requiring a future permit that
   binds the design hash, the review hash, the implementation hash, the
   CORE BTC snapshot and the recorded run identity)
+
+## 2026-09-22 — D2 excess path-risk implementation-review integrity repair
+
+Integrity/lifecycle repair of
+`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`
+before merge. **No scientific window was consumed and no decomposition
+outcome was computed.** Frozen scientific design bytes were not changed.
+
+The prior review over-claimed `EXECUTION_READY = true` while
+`execute_decomposition()` was only a terminal firewall stub and selector
+identity was census-only. This repair:
+
+- implements the full dormant canonical orchestration route (CORE BTC
+  snapshot identity, `C.build_rows(perp, RULE1_INTERVAL_START,
+  DISCOVERY_END)`, RULE_1 / RV selector, 288×5m PerpBar re-walk,
+  MAE_SIDE severity cross-check, `evaluate_decomposition` with seed
+  `20260922131` / `N=10000` / identity ON / severity ON), still
+  impossible on real CORE because no permit exists;
+- binds scientific authority to a tracked permit artifact rather than
+  caller kwargs; no permit was created;
+- adds exact ordered selector-identity machinery (SHA256 of ordered
+  `t_ms` + selector flags). The canonical digest is **not** frozen here
+  because it cannot be obtained outcome-blind without opening real CORE
+  BTC (`CANONICAL_SELECTOR_DIGEST_FROZEN = false`);
+- makes the inherited D2 P95 convention explicit:
+  `CONTROL_P95_METHOD = NUMPY_LINEAR_INHERITED_FROM_D2`
+  (`np.percentile(..., 95.0, method="linear")`).
+
+```
+IMPLEMENTATION_REVIEW                        = PASS
+SCIENTIFIC_KERNEL_READY                      = true
+CANONICAL_ORCHESTRATION_READY                = true
+PERMIT_VERIFIER_READY                        = true
+EXACT_SELECTOR_IDENTITY_IMPLEMENTED          = true
+CANONICAL_SELECTOR_DIGEST_FROZEN             = false
+EXECUTION_READY                              = false
+EXECUTION_AUTHORIZED                         = false
+EXECUTION_PERMIT_CREATED                     = false
+REAL_DECOMPOSITION_OUTCOME_COMPUTED          = false
+CLASSIFICATION_ASSIGNED                      = null
+PROTECTED_2025_OPENED                        = false
+PROTECTED_2026_OPENED                        = false
+BITMEX_2017_2019_REUSED_FOR_NEW_TARGET       = false
+MARKET_07_CREATED                            = false
+RESULT_CREATED                               = false
+ARM_CREATED                                  = false
+```
+
+Evidence: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_REVIEW.{json,md}`.
+
+- next required step: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE`
+  (freeze the exact canonical selector digest before ADVERSE_SHARE /
+  PATH_SCALE outcome computation; not one-shot execution)

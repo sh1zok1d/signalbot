@@ -22,6 +22,7 @@ evaluation is allowed.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -108,6 +109,49 @@ SCIENTIFIC_CONSTRUCT_ROW = C.construct_discovery_row
 SCIENTIFIC_BUILD_ROWS = C.build_rows
 
 MAE_SIDE_CROSS_CHECK_TOLERANCE = 0.0
+CONTROL_P95_METHOD = "NUMPY_LINEAR_INHERITED_FROM_D2"
+EXACT_SELECTOR_IDENTITY_IMPLEMENTED = True
+CANONICAL_SELECTOR_DIGEST_FROZEN = False
+SCIENTIFIC_KERNEL_READY = True
+CANONICAL_ORCHESTRATION_READY = True
+PERMIT_VERIFIER_READY = True
+EXECUTION_READY = False
+CALLER_FORBIDDEN_AUTHORITY_KEYS = frozenset(
+    {
+        "execution_authority",
+        "design_sha256",
+        "DESIGN_JSON_SHA256",
+        "review_sha256",
+        "IMPLEMENTATION_REVIEW_JSON_SHA256",
+        "implementation_sha256",
+        "REVIEWED_EVALUATOR_SHA256",
+        "core_btc_snapshot",
+        "CORE_BTC_SNAPSHOT_ID",
+        "run_identity",
+        "RUN_IDENTITY",
+        "seed",
+        "RANDOM_SEED",
+        "n_replicates",
+        "N_RANDOM_CONTROLS",
+        "UNIT",
+        "EXECUTION_AUTHORIZED",
+        "ONE_SHOT",
+        "RERUN_AUTHORIZED",
+    }
+)
+PERMIT_REQUIRED_KEYS = (
+    "UNIT",
+    "DESIGN_JSON_SHA256",
+    "IMPLEMENTATION_REVIEW_JSON_SHA256",
+    "REVIEWED_EVALUATOR_SHA256",
+    "CORE_BTC_SNAPSHOT_ID",
+    "RUN_IDENTITY",
+    "RANDOM_SEED",
+    "N_RANDOM_CONTROLS",
+    "EXECUTION_AUTHORIZED",
+    "ONE_SHOT",
+    "RERUN_AUTHORIZED",
+)
 
 
 class ExecutionNotAuthorized(RuntimeError):
@@ -115,11 +159,21 @@ class ExecutionNotAuthorized(RuntimeError):
 
 
 class SelectorIdentityError(RuntimeError):
-    """Reconstructed RULE_1 mask is not the frozen 1791 / year breakdown."""
+    """Reconstructed RULE_1 mask is not the frozen census and/or digest."""
 
 
 class FuturePathReconstructionError(RuntimeError):
     """The exact frozen 288x5m PerpBar future path could not be re-walked."""
+
+
+class PermitAuthorityError(ExecutionNotAuthorized):
+    """Tracked execution-permit authority failed closed."""
+
+
+def control_p95(values: Sequence[float] | np.ndarray) -> float:
+    """P95 of control means. Inherited D2 NumPy linear percentile, made explicit."""
+    arr = np.asarray(list(values) if not isinstance(values, np.ndarray) else values, dtype=np.float64)
+    return float(np.percentile(arr, 95.0, method="linear"))
 
 
 @dataclass(frozen=True)
@@ -230,11 +284,33 @@ def build_target_rows(
     ]
 
 
+def selector_digest(
+    rows: Sequence[C.DiscoveryRow],
+    mask: np.ndarray,
+) -> str:
+    """SHA256 of the ordered constructed-row clock and selector flags.
+
+    Count-only identity is not exact identity: two selections with the same
+    total N and year counts but different timestamps must hash differently.
+    The digest is computed here; it is NOT compared to a frozen canonical
+    value in this unit (CANONICAL_SELECTOR_DIGEST_FROZEN = false).
+    """
+    mask_arr = np.asarray(mask, dtype=bool)
+    if mask_arr.shape[0] != len(rows):
+        raise SelectorIdentityError("MASK_ROW_SHAPE")
+    payload = {
+        "t_ms": [int(row.t_ms) for row in rows],
+        "selector": [1 if bool(flag) else 0 for flag in mask_arr.tolist()],
+    }
+    encoded = json.dumps(payload, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+    return C.sha256_bytes(encoded)
+
+
 def selector_identity(
     rows: Sequence[C.DiscoveryRow],
     mask: np.ndarray,
 ) -> dict[str, Any]:
-    """RULE_1 mask census. Reports only; does not modify the selector."""
+    """RULE_1 mask census plus exact ordered digest. Does not modify the selector."""
     mask_arr = np.asarray(mask, dtype=bool)
     if mask_arr.shape[0] != len(rows):
         raise SelectorIdentityError("MASK_ROW_SHAPE")
@@ -249,6 +325,9 @@ def selector_identity(
     return {
         "RULE_1_ROW_COUNT": int(mask_arr.sum()),
         "RULE_1_YEAR_BREAKDOWN": year_counts,
+        "SELECTOR_DIGEST": selector_digest(rows, mask_arr),
+        "CANONICAL_SELECTOR_DIGEST_FROZEN": CANONICAL_SELECTOR_DIGEST_FROZEN,
+        "CENSUS_IS_NOT_EXACT_IDENTITY": True,
     }
 
 
@@ -256,7 +335,11 @@ def verify_selector_identity(
     rows: Sequence[C.DiscoveryRow],
     mask: np.ndarray,
 ) -> dict[str, Any]:
-    """Fail closed unless the reconstructed mask is exactly 1791 / frozen years."""
+    """Fail closed on the frozen 1791 / year census (secondary).
+
+    Also returns the exact ordered selector digest. That digest is NOT frozen
+    in this unit and is therefore not compared to a guessed canonical value.
+    """
     census = selector_identity(rows, mask)
     if int(census["RULE_1_ROW_COUNT"]) != int(FROZEN_RULE1_N):
         raise SelectorIdentityError(
@@ -374,6 +457,7 @@ def evaluate_decomposition(
         "CONTROL_STRATA": CONTROL_STRATA,
         "RANDOM_SEED": int(seed),
         "N_RANDOM_CONTROLS": int(n_replicates),
+        "CONTROL_P95_METHOD": CONTROL_P95_METHOD,
         "SELECTOR_CENSUS": census,
         "N_CONSTRUCTED_ROWS": int(len(rows)),
         "N_SELECTOR_ROWS": int(sum(mask_list)),
@@ -428,12 +512,12 @@ def evaluate_decomposition(
     mu_share_control = _control_series_mean(control_share_means)
     mu_scale_control = _control_series_mean(control_scale_means)
     control_share_p95 = (
-        float(np.percentile(control_share_means, 95.0))
+        control_p95(control_share_means)
         if bool(np.all(np.isfinite(control_share_means)))
         else None
     )
     control_scale_p95 = (
-        float(np.percentile(control_scale_means, 95.0))
+        control_p95(control_scale_means)
         if bool(np.all(np.isfinite(control_scale_means)))
         else None
     )
@@ -549,69 +633,198 @@ def compute_run_identity(payload: Mapping[str, Any]) -> str:
     return C.sha256_bytes(encoded)
 
 
-def _require_execution_permit(
-    execution_authority: Mapping[str, Any] | ExecutionPermit | None,
-    *,
-    repo: Path,
-) -> None:
-    """No permit, no real decomposition. Fails closed on every path."""
-    permit_path = repo / EXECUTION_PERMIT_REL
-    if not permit_path.is_file():
-        raise ExecutionNotAuthorized("NO_EXECUTION_PERMIT")
-    if execution_authority is None:
-        raise ExecutionNotAuthorized("EXECUTION_AUTHORITY_REQUIRED")
-    if EXECUTION_AUTHORIZED is not True:
-        raise ExecutionNotAuthorized("EXECUTION_AUTHORIZED_FALSE")
-    if isinstance(execution_authority, ExecutionPermit):
-        authority = {
-            "design_sha256": execution_authority.design_sha256,
-            "review_sha256": execution_authority.review_sha256,
-            "implementation_sha256": execution_authority.implementation_sha256,
-            "core_btc_snapshot": execution_authority.core_btc_snapshot,
-            "run_identity": execution_authority.run_identity,
-        }
-    else:
-        authority = dict(execution_authority)
+def _reject_caller_scientific_authority(kwargs: Mapping[str, Any]) -> None:
+    forbidden = sorted(k for k in kwargs if k in CALLER_FORBIDDEN_AUTHORITY_KEYS)
+    if forbidden:
+        raise PermitAuthorityError(f"CALLER_SUPPLIED_AUTHORITY_FORBIDDEN:{','.join(forbidden)}")
+
+
+def verify_core_btc_snapshot_identity(repo: Path) -> str:
+    """Fail closed unless the tracked CORE BTC snapshot document matches frozen ID.
+
+    Reads only the snapshot identity document, never 1m parquet / OHLC.
+    """
+    path = repo / C.CORE_BTC_SNAPSHOT_DOC_REL
+    if not path.is_file():
+        raise C.SnapshotIdentityError("CORE_BTC_SNAPSHOT_DOC_MISSING")
+    identity = json.loads(path.read_text(encoding="utf-8"))
+    payload = identity.get("identity_payload") or identity
+    bound = payload.get("snapshot_id") or identity.get("snapshot_id")
+    if bound != C.CORE_BTC_SNAPSHOT:
+        raise C.SnapshotIdentityError(f"CORE_BTC:snapshot_mismatch:{bound}")
+    dataset = payload.get("dataset_id")
+    if dataset not in (None, "CORE_BTC_BINANCE_V0", getattr(C, "CORE_BTC_DATASET_ID", None)):
+        raise C.SnapshotIdentityError(f"CORE_BTC:dataset_mismatch:{dataset}")
+    return str(bound)
+
+
+def verify_constructed_rule1_interval(rows: Sequence[C.DiscoveryRow]) -> None:
+    if not rows:
+        raise SelectorIdentityError("NO_CONSTRUCTED_ROWS")
+    start_ms = C.ms_from_utc(C.RULE1_INTERVAL_START)
+    end_ms = C.ms_from_utc(C.DISCOVERY_END)
+    for row in rows:
+        t_ms = int(row.t_ms)
+        if t_ms >= C.PROTECTED_START_MS:
+            raise C.ProtectedYearRefused(f"PROTECTED_CONSTRUCTED_ROW:{t_ms}")
+        if t_ms < start_ms or t_ms >= end_ms:
+            raise SelectorIdentityError(f"ROW_OUTSIDE_RULE1_INTERVAL:{t_ms}")
+
+
+def tracked_permit_expected_authority(repo: Path) -> dict[str, Any]:
+    review_path = repo / REVIEW_JSON_REL
+    if not review_path.is_file():
+        raise PermitAuthorityError("REVIEW_ARTIFACT_MISSING")
+    review = json.loads(review_path.read_text(encoding="utf-8"))
     hashes = current_artifact_sha256(repo)
-    expected = {
-        "design_sha256": hashes["DESIGN_JSON_SHA256"],
-        "review_sha256": file_sha256(repo / REVIEW_JSON_REL),
-        "implementation_sha256": hashes["IMPLEMENTATION_FILE_SHA256"][
+    return {
+        "UNIT": UNIT,
+        "DESIGN_JSON_SHA256": hashes["DESIGN_JSON_SHA256"],
+        "IMPLEMENTATION_REVIEW_JSON_SHA256": file_sha256(review_path),
+        "REVIEWED_EVALUATOR_SHA256": hashes["IMPLEMENTATION_FILE_SHA256"][
             "scripts/research/d2_excess_path_risk_evaluator.py"
         ],
-        "core_btc_snapshot": C.CORE_BTC_SNAPSHOT,
+        "CORE_BTC_SNAPSHOT_ID": C.CORE_BTC_SNAPSHOT,
+        "RUN_IDENTITY": str(review.get("RUN_IDENTITY") or ""),
+        "RANDOM_SEED": int(RANDOM_SEED),
+        "N_RANDOM_CONTROLS": int(N_RANDOM_CONTROLS),
+        "EXECUTION_AUTHORIZED": True,
+        "ONE_SHOT": True,
+        "RERUN_AUTHORIZED": False,
     }
-    for key, value in expected.items():
-        if str(authority.get(key)) != str(value):
-            raise ExecutionNotAuthorized(f"PERMIT_MISMATCH:{key}")
-    stored = json.loads(permit_path.read_text(encoding="utf-8"))
-    if str(authority.get("run_identity") or "") != str(stored.get("run_identity") or ""):
-        raise ExecutionNotAuthorized("PERMIT_RUN_IDENTITY_MISMATCH")
-    raise RealDecompositionForbidden("PERMIT_PRESENT_BUT_UNIT_REFUSES")
 
 
-def load_canonical_core_btc_bars(
-    repo: Path,
+def verify_tracked_permit(repo: Path) -> dict[str, Any]:
+    """Read the tracked permit artifact. Caller kwargs cannot replace it.
+
+    All comparisons happen before CORE BTC OHLC is opened.
+    """
+    permit_path = repo / EXECUTION_PERMIT_REL
+    if not permit_path.is_file():
+        raise PermitAuthorityError("NO_EXECUTION_PERMIT")
+    try:
+        stored = json.loads(permit_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise PermitAuthorityError("PERMIT_BYTES_UNPARSEABLE") from exc
+    if not isinstance(stored, dict):
+        raise PermitAuthorityError("PERMIT_NOT_OBJECT")
+    expected = tracked_permit_expected_authority(repo)
+    missing = [key for key in PERMIT_REQUIRED_KEYS if key not in stored]
+    if missing:
+        raise PermitAuthorityError(f"PERMIT_MISSING_KEYS:{','.join(missing)}")
+    review_path = repo / REVIEW_JSON_REL
+    review_hash = file_sha256(review_path)
+    if str(stored.get("IMPLEMENTATION_REVIEW_JSON_SHA256")) != review_hash:
+        raise PermitAuthorityError("PERMIT_MISMATCH:IMPLEMENTATION_REVIEW_JSON_SHA256")
+    review = json.loads(review_path.read_text(encoding="utf-8"))
+    if str(stored.get("RUN_IDENTITY") or "") != str(review.get("RUN_IDENTITY") or ""):
+        raise PermitAuthorityError("PERMIT_RUN_IDENTITY_NE_REVIEW_RUN_IDENTITY")
+    if str(stored.get("RUN_IDENTITY") or "") != str(expected["RUN_IDENTITY"]):
+        raise PermitAuthorityError("PERMIT_MISMATCH:RUN_IDENTITY")
+    if str(stored.get("UNIT")) != str(expected["UNIT"]):
+        raise PermitAuthorityError("PERMIT_MISMATCH:UNIT")
+    if str(stored.get("DESIGN_JSON_SHA256")) != str(expected["DESIGN_JSON_SHA256"]):
+        raise PermitAuthorityError("PERMIT_MISMATCH:DESIGN_JSON_SHA256")
+    if str(stored.get("REVIEWED_EVALUATOR_SHA256")) != str(
+        expected["REVIEWED_EVALUATOR_SHA256"]
+    ):
+        raise PermitAuthorityError("PERMIT_MISMATCH:REVIEWED_EVALUATOR_SHA256")
+    if str(stored.get("CORE_BTC_SNAPSHOT_ID")) != str(expected["CORE_BTC_SNAPSHOT_ID"]):
+        raise PermitAuthorityError("PERMIT_MISMATCH:CORE_BTC_SNAPSHOT_ID")
+    try:
+        stored_seed = int(stored.get("RANDOM_SEED"))
+        stored_n = int(stored.get("N_RANDOM_CONTROLS"))
+    except (TypeError, ValueError) as exc:
+        raise PermitAuthorityError("PERMIT_NONINTEGER_SEED_OR_N") from exc
+    if stored_seed != int(expected["RANDOM_SEED"]):
+        raise PermitAuthorityError("PERMIT_MISMATCH:RANDOM_SEED")
+    if stored_n != int(expected["N_RANDOM_CONTROLS"]):
+        raise PermitAuthorityError("PERMIT_MISMATCH:N_RANDOM_CONTROLS")
+    if stored.get("EXECUTION_AUTHORIZED") is not True:
+        raise PermitAuthorityError("PERMIT_MISMATCH:EXECUTION_AUTHORIZED")
+    if stored.get("ONE_SHOT") is not True:
+        raise PermitAuthorityError("PERMIT_MISMATCH:ONE_SHOT")
+    if stored.get("RERUN_AUTHORIZED") is not False:
+        raise PermitAuthorityError("PERMIT_MISMATCH:RERUN_AUTHORIZED")
+    return stored
+
+
+def canonical_orchestration(
     *,
-    execution_authority: Mapping[str, Any] | ExecutionPermit | None,
-) -> dict[int, PerpBar]:
-    """Load frozen CORE BTC 5m bars. Hard-gated: no permit, no bars."""
-    _require_execution_permit(execution_authority, repo=repo)
+    load_core_bars: Callable[[], Mapping[int, PerpBar]],
+    verify_core_snapshot: Callable[[], str],
+    build_rows_fn: Callable[..., list[C.DiscoveryRow]] = C.build_rows,
+) -> dict[str, Any]:
+    """Full dormant scientific route. Injected loaders may be synthetic.
+
+    Hard-wires seed 20260922131, N=10000, selector identity ON, severity
+    cross-check ON. Does not itself open CORE BTC.
+    """
+    snapshot_id = verify_core_snapshot()
+    if snapshot_id != C.CORE_BTC_SNAPSHOT:
+        raise C.SnapshotIdentityError(f"CORE_BTC:snapshot_mismatch:{snapshot_id}")
+    perp = load_core_bars()
+    rows = build_rows_fn(perp, C.RULE1_INTERVAL_START, C.DISCOVERY_END)
+    verify_constructed_rule1_interval(rows)
+    mask = SCIENTIFIC_RV_MASK(rows)
+    census = verify_selector_identity(rows, mask)
+    result = evaluate_decomposition(
+        rows,
+        perp,
+        seed=RANDOM_SEED,
+        n_replicates=N_RANDOM_CONTROLS,
+        enforce_selector_identity=True,
+        cross_check_severity=True,
+    )
+    result["SELECTOR_DIGEST"] = census["SELECTOR_DIGEST"]
+    result["CANONICAL_SELECTOR_DIGEST_FROZEN"] = CANONICAL_SELECTOR_DIGEST_FROZEN
+    result["CORE_BTC_SNAPSHOT_ID"] = snapshot_id
+    result["BUILD_ROWS_INTERVAL_START"] = C.RULE1_INTERVAL_START.strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
+    result["BUILD_ROWS_INTERVAL_END_EXCLUSIVE"] = C.DISCOVERY_END.strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
+    result["CANONICAL_ORCHESTRATION"] = True
+    result["ENFORCE_SELECTOR_IDENTITY"] = True
+    result["CROSS_CHECK_SEVERITY"] = True
+    result["RANDOM_SEED"] = int(RANDOM_SEED)
+    result["N_RANDOM_CONTROLS"] = int(N_RANDOM_CONTROLS)
+    result["CONTROL_P95_METHOD"] = CONTROL_P95_METHOD
+    return result
+
+
+def load_canonical_core_btc_bars(repo: Path) -> dict[int, PerpBar]:
+    """Load frozen CORE BTC 5m bars. Hard-gated: tracked permit first, then snapshot."""
+    verify_tracked_permit(repo)
+    verify_core_btc_snapshot_identity(repo)
     log = C.OpenedFileLog()
     return C.load_core_btc_5m(log, repo=repo)
 
 
-def execute_decomposition(**kwargs: Any) -> dict[str, Any]:
-    """Real canonical 2020-2024 decomposition. Refused in this unit.
+def execute_decomposition(*, repo: Path | None = None, **kwargs: Any) -> dict[str, Any]:
+    """Real canonical 2020-2024 decomposition.
 
-    A future one-shot execution unit must supply an immutable permit. This
-    unit creates none, so every call fails closed before any CORE BTC byte
-    is read and before any ADVERSE_SHARE is computed.
+    Scientific authority is read only from the tracked permit artifact.
+    Caller kwargs may identify the checkout (``repo``) and nothing else.
+    No permit exists in this unit, so this always fails closed before CORE
+    BTC OHLC is opened.
     """
-    repo = kwargs.get("repo")
+    _reject_caller_scientific_authority(kwargs)
     base = repo if isinstance(repo, Path) else C.repo_root()
-    _require_execution_permit(kwargs.get("execution_authority"), repo=base)
-    raise RealDecompositionForbidden("REAL_DECOMPOSITION_OUTCOME_FORBIDDEN")
+    verify_tracked_permit(base)
+
+    def _load() -> dict[int, PerpBar]:
+        return load_canonical_core_btc_bars(base)
+
+    def _snapshot() -> str:
+        return verify_core_btc_snapshot_identity(base)
+
+    return canonical_orchestration(
+        load_core_bars=_load,
+        verify_core_snapshot=_snapshot,
+        build_rows_fn=C.build_rows,
+    )
 
 
 def refuse_real_decomposition_outcome() -> None:
@@ -632,6 +845,13 @@ def frozen_contract_summary(repo: Path) -> dict[str, Any]:
         "CONTROL_STRATA": CONTROL_STRATA,
         "RANDOM_SEED": int(RANDOM_SEED),
         "N_RANDOM_CONTROLS": int(N_RANDOM_CONTROLS),
+        "CONTROL_P95_METHOD": CONTROL_P95_METHOD,
+        "EXACT_SELECTOR_IDENTITY_IMPLEMENTED": EXACT_SELECTOR_IDENTITY_IMPLEMENTED,
+        "CANONICAL_SELECTOR_DIGEST_FROZEN": CANONICAL_SELECTOR_DIGEST_FROZEN,
+        "SCIENTIFIC_KERNEL_READY": SCIENTIFIC_KERNEL_READY,
+        "CANONICAL_ORCHESTRATION_READY": CANONICAL_ORCHESTRATION_READY,
+        "PERMIT_VERIFIER_READY": PERMIT_VERIFIER_READY,
+        "EXECUTION_READY": EXECUTION_READY,
         "STATISTICAL_GATE": "MU_SHARE_RULE > CONTROL_SHARE_P95",
         "PRACTICAL_GATE": f"DELTA_SHARE >= {PRACTICAL_DELTA_SHARE}",
         "TEMPORAL_GATE": (
@@ -657,23 +877,33 @@ def frozen_contract_summary(repo: Path) -> dict[str, Any]:
 
 
 __all__ = [
+    "CANONICAL_ORCHESTRATION_READY",
+    "CANONICAL_SELECTOR_DIGEST_FROZEN",
     "CLASS_INVALID",
     "CLASS_NO_STRUCTURE",
     "CLASS_PROMISING",
     "CLASS_SCALE_COMPATIBLE",
+    "CONTROL_P95_METHOD",
+    "EXACT_SELECTOR_IDENTITY_IMPLEMENTED",
     "EXECUTION_AUTHORIZED",
     "EXECUTION_PERMIT_REL",
+    "EXECUTION_READY",
     "IMPLEMENTATION_FILES",
+    "PERMIT_VERIFIER_READY",
     "REVIEW_JSON_REL",
     "REVIEW_MD_REL",
+    "SCIENTIFIC_KERNEL_READY",
     "UNIT",
     "ExecutionNotAuthorized",
     "ExecutionPermit",
     "FuturePathReconstructionError",
+    "PermitAuthorityError",
     "SelectorIdentityError",
     "TargetRow",
     "build_target_rows",
+    "canonical_orchestration",
     "compute_run_identity",
+    "control_p95",
     "current_artifact_sha256",
     "current_implementation_file_sha256",
     "evaluate_decomposition",
@@ -682,7 +912,11 @@ __all__ = [
     "future_bars_for_row",
     "load_canonical_core_btc_bars",
     "refuse_real_decomposition_outcome",
+    "selector_digest",
     "selector_identity",
     "target_row_from_discovery_row",
+    "tracked_permit_expected_authority",
+    "verify_core_btc_snapshot_identity",
     "verify_selector_identity",
+    "verify_tracked_permit",
 ]
