@@ -94,6 +94,15 @@ REVIEW_JSON_REL = (
 REVIEW_MD_REL = (
     "docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_REVIEW.md"
 )
+SELECTOR_IDENTITY_AUTHORITY_REL = (
+    "docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_SELECTOR_IDENTITY.json"
+)
+SELECTOR_IDENTITY_AUTHORITY_UNIT = (
+    "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE"
+)
+SELECTOR_IDENTITY_AUTHORITY_KIND = "PRE_OUTCOME_SELECTOR_IDENTITY_AUTHORITY"
+SELECTOR_DIGEST_ALGORITHM = "SHA256_ORDERED_T_MS_AND_SELECTOR_FLAGS_V1"
+SELECTOR_DIGEST_VERSION = 1
 
 IMPLEMENTATION_FILES = (
     "scripts/research/d2_excess_path_risk_evaluator.py",
@@ -137,6 +146,9 @@ CALLER_FORBIDDEN_AUTHORITY_KEYS = frozenset(
         "EXECUTION_AUTHORIZED",
         "ONE_SHOT",
         "RERUN_AUTHORIZED",
+        "SELECTOR_IDENTITY_AUTHORITY_SHA256",
+        "CANONICAL_SELECTOR_DIGEST",
+        "SELECTOR_DIGEST",
     }
 )
 PERMIT_REQUIRED_KEYS = (
@@ -151,6 +163,21 @@ PERMIT_REQUIRED_KEYS = (
     "EXECUTION_AUTHORIZED",
     "ONE_SHOT",
     "RERUN_AUTHORIZED",
+    "SELECTOR_IDENTITY_AUTHORITY_SHA256",
+)
+SELECTOR_IDENTITY_AUTHORITY_REQUIRED_KEYS = (
+    "UNIT",
+    "KIND",
+    "CORE_BTC_SNAPSHOT_ID",
+    "SELECTOR_DIGEST_ALGORITHM",
+    "SELECTOR_DIGEST_VERSION",
+    "CANONICAL_SELECTOR_DIGEST",
+    "RULE_1_N",
+    "RULE_1_YEAR_N",
+    "DESIGN_JSON_SHA256",
+    "IMPLEMENTATION_REVIEW_JSON_SHA256",
+    "RUN_IDENTITY",
+    "CANONICAL_SELECTOR_DIGEST_FROZEN",
 )
 
 
@@ -671,12 +698,132 @@ def verify_constructed_rule1_interval(rows: Sequence[C.DiscoveryRow]) -> None:
             raise SelectorIdentityError(f"ROW_OUTSIDE_RULE1_INTERVAL:{t_ms}")
 
 
+def selector_identity_authority_payload(
+    *,
+    canonical_selector_digest: str,
+    design_json_sha256: str,
+    implementation_review_json_sha256: str,
+    run_identity: str,
+    core_btc_snapshot_id: str = C.CORE_BTC_SNAPSHOT,
+) -> dict[str, Any]:
+    """Schema the future digest-freeze unit must write. Does not write the file."""
+    return {
+        "UNIT": SELECTOR_IDENTITY_AUTHORITY_UNIT,
+        "KIND": SELECTOR_IDENTITY_AUTHORITY_KIND,
+        "CORE_BTC_SNAPSHOT_ID": str(core_btc_snapshot_id),
+        "SELECTOR_DIGEST_ALGORITHM": SELECTOR_DIGEST_ALGORITHM,
+        "SELECTOR_DIGEST_VERSION": int(SELECTOR_DIGEST_VERSION),
+        "CANONICAL_SELECTOR_DIGEST": str(canonical_selector_digest),
+        "RULE_1_N": int(FROZEN_RULE1_N),
+        "RULE_1_YEAR_N": dict(FROZEN_RULE1_YEAR_N),
+        "DESIGN_JSON_SHA256": str(design_json_sha256),
+        "IMPLEMENTATION_REVIEW_JSON_SHA256": str(implementation_review_json_sha256),
+        "RUN_IDENTITY": str(run_identity),
+        "CANONICAL_SELECTOR_DIGEST_FROZEN": True,
+    }
+
+
+def _canonical_digest_hex(value: Any) -> str:
+    digest = str(value or "")
+    if len(digest) != 64 or any(
+        ch not in "0123456789abcdef" for ch in digest.lower()
+    ):
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_CANONICAL_DIGEST_MISSING")
+    return digest.lower()
+
+
+def verify_selector_identity_authority_payload(
+    stored: Mapping[str, Any],
+    *,
+    design_json_sha256: str,
+    implementation_review_json_sha256: str,
+    run_identity: str,
+    core_btc_snapshot_id: str,
+) -> dict[str, Any]:
+    """Fail closed on schema and bound identities. Does not open CORE OHLC."""
+    if not isinstance(stored, dict):
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_NOT_OBJECT")
+    missing = [key for key in SELECTOR_IDENTITY_AUTHORITY_REQUIRED_KEYS if key not in stored]
+    if missing:
+        raise SelectorIdentityError(f"SELECTOR_AUTHORITY_MISSING_KEYS:{','.join(missing)}")
+    if str(stored.get("UNIT")) != SELECTOR_IDENTITY_AUTHORITY_UNIT:
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:UNIT")
+    if str(stored.get("KIND")) != SELECTOR_IDENTITY_AUTHORITY_KIND:
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:KIND")
+    if str(stored.get("CORE_BTC_SNAPSHOT_ID")) != str(core_btc_snapshot_id):
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:CORE_BTC_SNAPSHOT_ID")
+    if str(stored.get("SELECTOR_DIGEST_ALGORITHM")) != SELECTOR_DIGEST_ALGORITHM:
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:SELECTOR_DIGEST_ALGORITHM")
+    try:
+        version = int(stored.get("SELECTOR_DIGEST_VERSION"))
+    except (TypeError, ValueError) as exc:
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:SELECTOR_DIGEST_VERSION") from exc
+    if version != int(SELECTOR_DIGEST_VERSION):
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:SELECTOR_DIGEST_VERSION")
+    _canonical_digest_hex(stored.get("CANONICAL_SELECTOR_DIGEST"))
+    try:
+        rule_n = int(stored.get("RULE_1_N"))
+    except (TypeError, ValueError) as exc:
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:RULE_1_N") from exc
+    if rule_n != int(FROZEN_RULE1_N):
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:RULE_1_N")
+    year_n = stored.get("RULE_1_YEAR_N")
+    if dict(year_n or {}) != dict(FROZEN_RULE1_YEAR_N):
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:RULE_1_YEAR_N")
+    if str(stored.get("DESIGN_JSON_SHA256")) != str(design_json_sha256):
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:DESIGN_JSON_SHA256")
+    if str(stored.get("IMPLEMENTATION_REVIEW_JSON_SHA256")) != str(
+        implementation_review_json_sha256
+    ):
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:IMPLEMENTATION_REVIEW_JSON_SHA256")
+    if str(stored.get("RUN_IDENTITY") or "") != str(run_identity):
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:RUN_IDENTITY")
+    if stored.get("CANONICAL_SELECTOR_DIGEST_FROZEN") is not True:
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_NOT_FROZEN")
+    return dict(stored)
+
+
+def load_selector_identity_authority(repo: Path) -> dict[str, Any]:
+    path = repo / SELECTOR_IDENTITY_AUTHORITY_REL
+    if not path.is_file():
+        raise PermitAuthorityError("SELECTOR_IDENTITY_AUTHORITY_MISSING")
+    try:
+        stored = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise PermitAuthorityError("SELECTOR_IDENTITY_AUTHORITY_UNPARSEABLE") from exc
+    return stored
+
+
+def verify_selector_identity_authority(repo: Path) -> dict[str, Any]:
+    """Read and bind the tracked selector-identity authority. No CORE OHLC."""
+    stored = load_selector_identity_authority(repo)
+    review_path = repo / REVIEW_JSON_REL
+    if not review_path.is_file():
+        raise PermitAuthorityError("REVIEW_ARTIFACT_MISSING")
+    review = json.loads(review_path.read_text(encoding="utf-8"))
+    hashes = current_artifact_sha256(repo)
+    try:
+        return verify_selector_identity_authority_payload(
+            stored,
+            design_json_sha256=hashes["DESIGN_JSON_SHA256"],
+            implementation_review_json_sha256=file_sha256(review_path),
+            run_identity=str(review.get("RUN_IDENTITY") or ""),
+            core_btc_snapshot_id=C.CORE_BTC_SNAPSHOT,
+        )
+    except SelectorIdentityError as exc:
+        raise PermitAuthorityError(str(exc)) from exc
+
+
 def tracked_permit_expected_authority(repo: Path) -> dict[str, Any]:
     review_path = repo / REVIEW_JSON_REL
     if not review_path.is_file():
         raise PermitAuthorityError("REVIEW_ARTIFACT_MISSING")
     review = json.loads(review_path.read_text(encoding="utf-8"))
     hashes = current_artifact_sha256(repo)
+    identity_path = repo / SELECTOR_IDENTITY_AUTHORITY_REL
+    selector_authority_sha256 = (
+        file_sha256(identity_path) if identity_path.is_file() else ""
+    )
     return {
         "UNIT": UNIT,
         "DESIGN_JSON_SHA256": hashes["DESIGN_JSON_SHA256"],
@@ -691,6 +838,7 @@ def tracked_permit_expected_authority(repo: Path) -> dict[str, Any]:
         "EXECUTION_AUTHORIZED": True,
         "ONE_SHOT": True,
         "RERUN_AUTHORIZED": False,
+        "SELECTOR_IDENTITY_AUTHORITY_SHA256": selector_authority_sha256,
     }
 
 
@@ -746,6 +894,25 @@ def verify_tracked_permit(repo: Path) -> dict[str, Any]:
         raise PermitAuthorityError("PERMIT_MISMATCH:ONE_SHOT")
     if stored.get("RERUN_AUTHORIZED") is not False:
         raise PermitAuthorityError("PERMIT_MISMATCH:RERUN_AUTHORIZED")
+    identity_path = repo / SELECTOR_IDENTITY_AUTHORITY_REL
+    if not identity_path.is_file():
+        raise PermitAuthorityError("SELECTOR_IDENTITY_AUTHORITY_MISSING")
+    identity_hash = file_sha256(identity_path)
+    if str(stored.get("SELECTOR_IDENTITY_AUTHORITY_SHA256")) != identity_hash:
+        raise PermitAuthorityError("PERMIT_MISMATCH:SELECTOR_IDENTITY_AUTHORITY_SHA256")
+    authority = verify_selector_identity_authority(repo)
+    if str(authority.get("RUN_IDENTITY") or "") != str(stored.get("RUN_IDENTITY") or ""):
+        raise PermitAuthorityError("PERMIT_SELECTOR_AUTHORITY_RUN_IDENTITY_MISMATCH")
+    if str(authority.get("DESIGN_JSON_SHA256")) != str(stored.get("DESIGN_JSON_SHA256")):
+        raise PermitAuthorityError("PERMIT_SELECTOR_AUTHORITY_DESIGN_MISMATCH")
+    if str(authority.get("CORE_BTC_SNAPSHOT_ID")) != str(
+        stored.get("CORE_BTC_SNAPSHOT_ID")
+    ):
+        raise PermitAuthorityError("PERMIT_SELECTOR_AUTHORITY_SNAPSHOT_MISMATCH")
+    if str(authority.get("IMPLEMENTATION_REVIEW_JSON_SHA256")) != str(
+        stored.get("IMPLEMENTATION_REVIEW_JSON_SHA256")
+    ):
+        raise PermitAuthorityError("PERMIT_SELECTOR_AUTHORITY_REVIEW_MISMATCH")
     return stored
 
 
@@ -753,21 +920,36 @@ def canonical_orchestration(
     *,
     load_core_bars: Callable[[], Mapping[int, PerpBar]],
     verify_core_snapshot: Callable[[], str],
+    load_selector_identity_authority: Callable[[], Mapping[str, Any]],
     build_rows_fn: Callable[..., list[C.DiscoveryRow]] = C.build_rows,
 ) -> dict[str, Any]:
     """Full dormant scientific route. Injected loaders may be synthetic.
 
     Hard-wires seed 20260922131, N=10000, selector identity ON, severity
-    cross-check ON. Does not itself open CORE BTC.
+    cross-check ON. Reconstructs the exact selector digest and compares it
+    to the frozen selector-identity authority BEFORE any target-path or
+    ADVERSE_SHARE / PATH_SCALE evaluation. Does not itself open CORE BTC.
     """
     snapshot_id = verify_core_snapshot()
     if snapshot_id != C.CORE_BTC_SNAPSHOT:
         raise C.SnapshotIdentityError(f"CORE_BTC:snapshot_mismatch:{snapshot_id}")
+    authority = dict(load_selector_identity_authority())
+    frozen_digest = _canonical_digest_hex(authority.get("CANONICAL_SELECTOR_DIGEST"))
+    if str(authority.get("CORE_BTC_SNAPSHOT_ID")) != snapshot_id:
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:CORE_BTC_SNAPSHOT_ID")
+    if int(authority.get("RULE_1_N") or -1) != int(FROZEN_RULE1_N):
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:RULE_1_N")
+    if dict(authority.get("RULE_1_YEAR_N") or {}) != dict(FROZEN_RULE1_YEAR_N):
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:RULE_1_YEAR_N")
     perp = load_core_bars()
     rows = build_rows_fn(perp, C.RULE1_INTERVAL_START, C.DISCOVERY_END)
     verify_constructed_rule1_interval(rows)
     mask = SCIENTIFIC_RV_MASK(rows)
     census = verify_selector_identity(rows, mask)
+    if str(census["SELECTOR_DIGEST"]) != frozen_digest:
+        raise SelectorIdentityError(
+            f"SELECTOR_DIGEST_NE_CANONICAL:{census['SELECTOR_DIGEST']}"
+        )
     result = evaluate_decomposition(
         rows,
         perp,
@@ -777,7 +959,9 @@ def canonical_orchestration(
         cross_check_severity=True,
     )
     result["SELECTOR_DIGEST"] = census["SELECTOR_DIGEST"]
+    result["CANONICAL_SELECTOR_DIGEST"] = frozen_digest
     result["CANONICAL_SELECTOR_DIGEST_FROZEN"] = CANONICAL_SELECTOR_DIGEST_FROZEN
+    result["SELECTOR_DIGEST_ALGORITHM"] = SELECTOR_DIGEST_ALGORITHM
     result["CORE_BTC_SNAPSHOT_ID"] = snapshot_id
     result["BUILD_ROWS_INTERVAL_START"] = C.RULE1_INTERVAL_START.strftime(
         "%Y-%m-%dT%H:%M:%SZ"
@@ -820,9 +1004,13 @@ def execute_decomposition(*, repo: Path | None = None, **kwargs: Any) -> dict[st
     def _snapshot() -> str:
         return verify_core_btc_snapshot_identity(base)
 
+    def _authority() -> dict[str, Any]:
+        return verify_selector_identity_authority(base)
+
     return canonical_orchestration(
         load_core_bars=_load,
         verify_core_snapshot=_snapshot,
+        load_selector_identity_authority=_authority,
         build_rows_fn=C.build_rows,
     )
 
@@ -848,6 +1036,11 @@ def frozen_contract_summary(repo: Path) -> dict[str, Any]:
         "CONTROL_P95_METHOD": CONTROL_P95_METHOD,
         "EXACT_SELECTOR_IDENTITY_IMPLEMENTED": EXACT_SELECTOR_IDENTITY_IMPLEMENTED,
         "CANONICAL_SELECTOR_DIGEST_FROZEN": CANONICAL_SELECTOR_DIGEST_FROZEN,
+        "SELECTOR_IDENTITY_AUTHORITY_REL": SELECTOR_IDENTITY_AUTHORITY_REL,
+        "SELECTOR_IDENTITY_AUTHORITY_PRESENT": (
+            repo / SELECTOR_IDENTITY_AUTHORITY_REL
+        ).is_file(),
+        "SELECTOR_DIGEST_ALGORITHM": SELECTOR_DIGEST_ALGORITHM,
         "SCIENTIFIC_KERNEL_READY": SCIENTIFIC_KERNEL_READY,
         "CANONICAL_ORCHESTRATION_READY": CANONICAL_ORCHESTRATION_READY,
         "PERMIT_VERIFIER_READY": PERMIT_VERIFIER_READY,
@@ -893,6 +1086,10 @@ __all__ = [
     "REVIEW_JSON_REL",
     "REVIEW_MD_REL",
     "SCIENTIFIC_KERNEL_READY",
+    "SELECTOR_DIGEST_ALGORITHM",
+    "SELECTOR_IDENTITY_AUTHORITY_KIND",
+    "SELECTOR_IDENTITY_AUTHORITY_REL",
+    "SELECTOR_IDENTITY_AUTHORITY_UNIT",
     "UNIT",
     "ExecutionNotAuthorized",
     "ExecutionPermit",
@@ -911,12 +1108,16 @@ __all__ = [
     "frozen_contract_summary",
     "future_bars_for_row",
     "load_canonical_core_btc_bars",
+    "load_selector_identity_authority",
     "refuse_real_decomposition_outcome",
     "selector_digest",
     "selector_identity",
+    "selector_identity_authority_payload",
     "target_row_from_discovery_row",
     "tracked_permit_expected_authority",
     "verify_core_btc_snapshot_identity",
     "verify_selector_identity",
+    "verify_selector_identity_authority",
+    "verify_selector_identity_authority_payload",
     "verify_tracked_permit",
 ]

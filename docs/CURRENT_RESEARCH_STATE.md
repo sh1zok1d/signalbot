@@ -45,6 +45,7 @@ D2_DECOMPOSITION_CANONICAL_ORCHESTRATION_READY = true
 D2_DECOMPOSITION_PERMIT_VERIFIER_READY = true
 D2_DECOMPOSITION_EXACT_SELECTOR_IDENTITY_IMPLEMENTED = true
 D2_DECOMPOSITION_CANONICAL_SELECTOR_DIGEST_FROZEN = false
+D2_DECOMPOSITION_SELECTOR_IDENTITY_AUTHORITY_CREATED = false
 D2_DECOMPOSITION_EXECUTION_READY   = false
 D2_DECOMPOSITION_EXECUTION_AUTHORIZED = false
 D2_DECOMPOSITION_EXECUTION_PERMIT_CREATED = false
@@ -245,9 +246,11 @@ the inherited D2 NumPy linear P95 method. `IMPLEMENTATION_REVIEW = PASS`,
 `SCIENTIFIC_KERNEL_READY = true`, `CANONICAL_ORCHESTRATION_READY = true`,
 `PERMIT_VERIFIER_READY = true`, `EXACT_SELECTOR_IDENTITY_IMPLEMENTED = true`,
 `CANONICAL_SELECTOR_DIGEST_FROZEN = false`, `EXECUTION_READY = false`,
-`EXECUTION_AUTHORIZED = false`. No execution permit, no RESULT, no ARM,
-no MARKET-07. Protected 2025/2026 unopened. BitMEX 2017-2019 not reused
-for this target.
+`EXECUTION_AUTHORIZED = false`. The canonical route now requires a tracked
+selector-identity authority (permit-bound SHA256) and compares the
+reconstructed ordered digest to that frozen digest before any
+ADVERSE_SHARE / PATH_SCALE evaluation. The authority artifact was **not**
+created here. No execution permit, no RESULT, no ARM, no MARKET-07.
 Record: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_REVIEW.{json,md}`.
 `NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE`
 (the canonical selector digest cannot be frozen outcome-blind without

@@ -44,6 +44,7 @@ from scripts.research.d2_excess_path_risk_evaluator import (
     REVIEW_JSON_REL,
     REVIEW_MD_REL,
     SCIENTIFIC_KERNEL_READY,
+    SELECTOR_IDENTITY_AUTHORITY_REL,
     UNIT,
     canonical_orchestration,
     compute_run_identity,
@@ -52,6 +53,8 @@ from scripts.research.d2_excess_path_risk_evaluator import (
     current_implementation_file_sha256,
     frozen_contract_summary,
     selector_digest,
+    selector_identity_authority_payload,
+    verify_selector_identity_authority,
     verify_tracked_permit,
 )
 from scripts.research.discovery_sprint_01 import common as C
@@ -109,11 +112,13 @@ RED_TEAM: dict[str, dict[str, str]] = {
             "RV_TRAILING_WINDOW=250, RV_PCTL=90.0, strict >, t excluded, imported "
             "not redefined. The 1791 / year-count census is a secondary integrity "
             "check only. Exact identity is SHA256 of the ordered constructed-row "
-            "t_ms plus selector flags; that machinery is implemented and tested, "
-            "but the canonical digest is NOT frozen in this outcome-blind unit "
-            "(CANONICAL_SELECTOR_DIGEST_FROZEN = false) because obtaining it "
-            "would require opening real CORE BTC. Count-only identity is not "
-            "called exact identity."
+            "t_ms plus selector flags; that machinery is implemented and tested. "
+            "canonical_orchestration compares the reconstructed digest to a tracked "
+            "selector-identity authority BEFORE evaluate_decomposition. The authority "
+            "artifact is NOT created in this unit "
+            "(CANONICAL_SELECTOR_DIGEST_FROZEN = false) because obtaining the true "
+            "canonical digest would require opening real CORE BTC. Count-only identity "
+            "is not called exact identity."
         ),
     },
     "F7_SIDE_DRIFT": {
@@ -285,11 +290,14 @@ OBSERVATIONS: list[dict[str, str]] = [
         "class": "HONEST_IDENTITY_GAP_NOT_A_RESCUE",
         "note": (
             "Exact selector-identity machinery is implemented (ordered t_ms + "
-            "selector-flag SHA256). The true canonical digest cannot be obtained "
-            "in this unit without opening prohibited real CORE BTC, so it is not "
-            "guessed. CANONICAL_SELECTOR_DIGEST_FROZEN = false. A future "
-            "pre-outcome identity freeze must bind that digest before "
-            "ADVERSE_SHARE / PATH_SCALE outcome computation."
+            "selector-flag SHA256) and the canonical route requires a tracked "
+            "selector-identity authority whose SHA256 is bound by the future "
+            "execution permit. The true canonical digest cannot be obtained "
+            "in this unit without opening prohibited real CORE BTC, so the "
+            "authority artifact is not created or guessed. "
+            "CANONICAL_SELECTOR_DIGEST_FROZEN = false. The next unit only "
+            "reconstructs and freezes that authority; it must not alter the "
+            "reviewed scientific execution implementation."
         ),
     },
 ]
@@ -344,6 +352,9 @@ def build_review(*, repo: Path, implementation_commit: str | None = None) -> dic
         and EXACT_SELECTOR_IDENTITY_IMPLEMENTED is True
         and EXECUTION_AUTHORIZED is False
         and not (repo / EXECUTION_PERMIT_REL).is_file()
+        and not (repo / SELECTOR_IDENTITY_AUTHORITY_REL).is_file()
+        and callable(selector_identity_authority_payload)
+        and callable(verify_selector_identity_authority)
     )
     pass_blockers: list[str] = []
     if blocking:
@@ -392,6 +403,11 @@ def build_review(*, repo: Path, implementation_commit: str | None = None) -> dic
         "EXECUTION_AUTHORIZED_FLAG": EXECUTION_AUTHORIZED,
         "EXECUTION_PERMIT_PRESENT": (repo / EXECUTION_PERMIT_REL).is_file(),
         "EXECUTION_PERMIT_CREATED": False,
+        "SELECTOR_IDENTITY_AUTHORITY_REL": SELECTOR_IDENTITY_AUTHORITY_REL,
+        "SELECTOR_IDENTITY_AUTHORITY_PRESENT": (
+            repo / SELECTOR_IDENTITY_AUTHORITY_REL
+        ).is_file(),
+        "SELECTOR_IDENTITY_AUTHORITY_CREATED": False,
         "PRIMARY_SELECTOR": PRIMARY_SELECTOR,
         "PRIMARY_TARGET": PRIMARY_TARGET,
         "PRIMARY_COMPARATOR": PRIMARY_COMPARATOR,
@@ -459,11 +475,17 @@ def build_review(*, repo: Path, implementation_commit: str | None = None) -> dic
         "LIFECYCLE_REPAIR": {
             "F1_CANONICAL_ORCHESTRATION": "CLOSED_DORMANT_ROUTE_WITH_HARD_FIREWALL",
             "F2_TRACKED_PERMIT_AUTHORITY": "CLOSED_NO_PERMIT_CREATED",
-            "F3_EXACT_SELECTOR_IDENTITY": "IMPLEMENTED_DIGEST_NOT_FROZEN",
+            "F3_EXACT_SELECTOR_IDENTITY": "IMPLEMENTED_AUTHORITY_CONTRACT_DIGEST_NOT_FROZEN",
             "F4_EXPLICIT_P95_METHOD": "CLOSED_NUMPY_LINEAR_INHERITED_FROM_D2",
         },
         "NEXT_UNIT": next_unit,
-        "NOT_CREATED": ["RESULT", "execution permit", "MARKET-07", "ARM"],
+        "NOT_CREATED": [
+            "RESULT",
+            "execution permit",
+            "selector identity authority",
+            "MARKET-07",
+            "ARM",
+        ],
     }
 
 
@@ -543,6 +565,7 @@ CANONICAL_ORCHESTRATION_READY         = {review["CANONICAL_ORCHESTRATION_READY"]
 PERMIT_VERIFIER_READY                 = {review["PERMIT_VERIFIER_READY"]}
 EXACT_SELECTOR_IDENTITY_IMPLEMENTED   = {review["EXACT_SELECTOR_IDENTITY_IMPLEMENTED"]}
 CANONICAL_SELECTOR_DIGEST_FROZEN      = {review["CANONICAL_SELECTOR_DIGEST_FROZEN"]}
+SELECTOR_IDENTITY_AUTHORITY_CREATED   = {review["SELECTOR_IDENTITY_AUTHORITY_CREATED"]}
 EXECUTION_READY                       = {review["EXECUTION_READY"]}
 EXECUTION_AUTHORIZED                  = {review["EXECUTION_AUTHORIZED"]}
 EXECUTION_PERMIT_PRESENT              = {review["EXECUTION_PERMIT_PRESENT"]}
@@ -556,10 +579,12 @@ FINAL_IMPLEMENTATION_COMMIT           = {review["FINAL_IMPLEMENTATION_COMMIT"]}
 PASS is justified by implemented and tested machinery, not by a hardcoded
 red-team table: {review["IMPLEMENTATION_REVIEW_PASS_JUSTIFICATION"]}
 
-No execution permit exists. `execute_decomposition` is the full dormant
-canonical route and still fails closed before any CORE BTC OHLC is read
-because the tracked permit artifact is absent. Count-only 1791/year census
-is a secondary check; the ordered selector digest is computed but not frozen.
+No execution permit exists and no selector-identity authority artifact
+exists. `execute_decomposition` is the full dormant canonical route and
+still fails closed before any CORE BTC OHLC is read. The route requires
+the future tracked selector-identity authority (bound by permit SHA256)
+and compares the reconstructed ordered digest to that frozen digest
+before `evaluate_decomposition`. Count-only 1791/year census is secondary.
 
 ## Red-team (F1–F20)
 
@@ -583,16 +608,19 @@ BITMEX_2017_2019_REUSED_FOR_NEW_TARGET = {review["BITMEX_2017_2019_REUSED_FOR_NE
 MARKET_07_CREATED                   = {review["MARKET_07_CREATED"]}
 RESULT_CREATED                      = {review["RESULT_CREATED"]}
 EXECUTION_PERMIT_CREATED            = {review["EXECUTION_PERMIT_CREATED"]}
+SELECTOR_IDENTITY_AUTHORITY_CREATED = {review["SELECTOR_IDENTITY_AUTHORITY_CREATED"]}
 ```
 
 ## Next
 
 `NEXT_UNIT = {review["NEXT_UNIT"]}`
 
-The canonical selector digest is not frozen in this outcome-blind unit.
-The next unit is an explicit pre-outcome identity freeze, not one-shot
-execution. This review does not authorize execution: no permit exists,
-`EXECUTION_READY = false`, and `EXECUTION_AUTHORIZED = false`.
+The canonical selector digest is not frozen in this outcome-blind unit
+and the selector-identity authority artifact was not created. The next
+unit only reconstructs and freezes that tracked authority; it must not
+alter the reviewed scientific execution implementation. This review does
+not authorize execution: no permit exists, `EXECUTION_READY = false`,
+and `EXECUTION_AUTHORIZED = false`.
 """
 
 
@@ -628,6 +656,7 @@ if __name__ == "__main__":
         "BITMEX_2017_2019_REUSED_FOR_NEW_TARGET",
         "RESULT_CREATED",
         "EXECUTION_PERMIT_CREATED",
+        "SELECTOR_IDENTITY_AUTHORITY_CREATED",
         "NEXT_UNIT",
     )
     print(json.dumps({k: written[k] for k in keys}, indent=2))

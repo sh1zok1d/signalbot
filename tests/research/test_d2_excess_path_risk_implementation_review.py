@@ -139,6 +139,7 @@ def test_firewall_flags_are_all_closed(review):
     assert review["EXECUTION_AUTHORIZED_FLAG"] is False
     assert review["EXECUTION_PERMIT_PRESENT"] is False
     assert review["EXECUTION_PERMIT_CREATED"] is False
+    assert review["SELECTOR_IDENTITY_AUTHORITY_CREATED"] is False
     assert review["RESULT_CREATED"] is False
     assert review["ARM_CREATED"] is False
     assert review["MARKET_07_CREATED"] is False
@@ -157,6 +158,9 @@ def test_no_primary_quantity_is_populated(review):
 
 def test_no_execution_permit_file_was_created():
     assert not (REPO / EXECUTION_PERMIT_REL).is_file()
+    from scripts.research.d2_excess_path_risk_evaluator import SELECTOR_IDENTITY_AUTHORITY_REL
+
+    assert not (REPO / SELECTOR_IDENTITY_AUTHORITY_REL).is_file()
 
 
 def test_no_result_artifact_was_created():
@@ -189,11 +193,14 @@ def test_next_unit_is_pre_outcome_selector_digest_freeze(review):
     )
     assert "RESULT" in review["NOT_CREATED"]
     assert "execution permit" in review["NOT_CREATED"]
+    assert "selector identity authority" in review["NOT_CREATED"]
+    assert review["SELECTOR_IDENTITY_AUTHORITY_CREATED"] is False
+    assert review["SELECTOR_IDENTITY_AUTHORITY_PRESENT"] is False
     assert review["LIFECYCLE_REPAIR"]["F1_CANONICAL_ORCHESTRATION"] == (
         "CLOSED_DORMANT_ROUTE_WITH_HARD_FIREWALL"
     )
     assert review["LIFECYCLE_REPAIR"]["F3_EXACT_SELECTOR_IDENTITY"] == (
-        "IMPLEMENTED_DIGEST_NOT_FROZEN"
+        "IMPLEMENTED_AUTHORITY_CONTRACT_DIGEST_NOT_FROZEN"
     )
 
 

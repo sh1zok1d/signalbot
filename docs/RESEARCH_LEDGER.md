@@ -4518,9 +4518,13 @@ identity was census-only. This repair:
 - binds scientific authority to a tracked permit artifact rather than
   caller kwargs; no permit was created;
 - adds exact ordered selector-identity machinery (SHA256 of ordered
-  `t_ms` + selector flags). The canonical digest is **not** frozen here
-  because it cannot be obtained outcome-blind without opening real CORE
-  BTC (`CANONICAL_SELECTOR_DIGEST_FROZEN = false`);
+  `t_ms` + selector flags) and wires a tracked selector-identity
+  authority contract. The canonical route compares the reconstructed
+  digest to that authority BEFORE `evaluate_decomposition`. The
+  authority artifact is **not** created here
+  (`CANONICAL_SELECTOR_DIGEST_FROZEN = false`) because the true digest
+  cannot be obtained outcome-blind without opening real CORE BTC. The
+  future freeze unit only writes those bytes;
 - makes the inherited D2 P95 convention explicit:
   `CONTROL_P95_METHOD = NUMPY_LINEAR_INHERITED_FROM_D2`
   (`np.percentile(..., 95.0, method="linear")`).
@@ -4532,6 +4536,7 @@ CANONICAL_ORCHESTRATION_READY                = true
 PERMIT_VERIFIER_READY                        = true
 EXACT_SELECTOR_IDENTITY_IMPLEMENTED          = true
 CANONICAL_SELECTOR_DIGEST_FROZEN             = false
+SELECTOR_IDENTITY_AUTHORITY_CREATED          = false
 EXECUTION_READY                              = false
 EXECUTION_AUTHORIZED                         = false
 EXECUTION_PERMIT_CREATED                     = false
@@ -4548,5 +4553,5 @@ ARM_CREATED                                  = false
 Evidence: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_REVIEW.{json,md}`.
 
 - next required step: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE`
-  (freeze the exact canonical selector digest before ADVERSE_SHARE /
-  PATH_SCALE outcome computation; not one-shot execution)
+  (create/freeze the tracked selector-identity authority bytes only;
+  do not alter the reviewed scientific execution implementation)

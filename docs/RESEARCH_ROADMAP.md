@@ -110,11 +110,14 @@ evaluator re-walks the exact 288×5m `PerpBar` future path so `MAE_SIDE`
 and `MAE_OPPOSITE` share one path, and cross-checks `MAE_SIDE` against
 the frozen `DiscoveryRow.severity`. The dormant canonical route is fully
 wired behind a tracked-permit firewall that does not exist in this unit.
+The canonical route requires a tracked selector-identity authority and
+compares the reconstructed ordered digest to it before any ADVERSE_SHARE
+/ PATH_SCALE evaluation; that authority artifact is not created here.
 F1–F20 red-team classes returned `NOT_CONFIRMED`. **No real decomposition
 outcome was computed**: there is no execution permit, no RESULT, no ARM,
 no MARKET-07, protected 2025/2026 stays sealed, and BitMEX 2017-2019 is
-not reused for this target. The next unit is an explicit pre-outcome
-selector-digest freeze, not one-shot execution:
+not reused for this target. The next unit only writes/freezes the
+selector-identity authority bytes, not one-shot execution:
 `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE`.
 
 Card identities at definition time (unchanged):

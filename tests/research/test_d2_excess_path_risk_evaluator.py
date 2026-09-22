@@ -1001,6 +1001,7 @@ def test_execution_is_not_authorized_and_no_permit_exists():
     assert EV.PERMIT_VERIFIER_READY is True
     assert EV.SCIENTIFIC_KERNEL_READY is True
     assert not (REPO / EV.EXECUTION_PERMIT_REL).is_file()
+    assert not (REPO / EV.SELECTOR_IDENTITY_AUTHORITY_REL).is_file()
 
 
 def test_execute_decomposition_fails_without_permit():
@@ -1067,6 +1068,8 @@ def test_contract_summary_is_outcome_blind():
     assert summary["CONTROL_P95_METHOD"] == "NUMPY_LINEAR_INHERITED_FROM_D2"
     assert summary["EXACT_SELECTOR_IDENTITY_IMPLEMENTED"] is True
     assert summary["CANONICAL_SELECTOR_DIGEST_FROZEN"] is False
+    assert summary["SELECTOR_IDENTITY_AUTHORITY_PRESENT"] is False
+    assert summary["SELECTOR_IDENTITY_AUTHORITY_REL"] == EV.SELECTOR_IDENTITY_AUTHORITY_REL
 
 
 # --------------------------------------------------------------------------
@@ -1226,6 +1229,30 @@ _AUTHORITY_RELS = (
 )
 
 
+def _write_synthetic_selector_authority(
+    repo: Path, *, digest: str | None = None
+) -> dict:
+    from scripts.research.d2_excess_path_risk_beyond_vol_clustering_design import (
+        JSON_REL as DESIGN_JSON_REL,
+        file_sha256,
+    )
+
+    review = json.loads((repo / EV.REVIEW_JSON_REL).read_text(encoding="utf-8"))
+    payload = EV.selector_identity_authority_payload(
+        canonical_selector_digest=digest or ("ab" * 32),
+        design_json_sha256=file_sha256(repo / DESIGN_JSON_REL),
+        implementation_review_json_sha256=file_sha256(repo / EV.REVIEW_JSON_REL),
+        run_identity=str(review["RUN_IDENTITY"]),
+        core_btc_snapshot_id=C.CORE_BTC_SNAPSHOT,
+    )
+    path = repo / EV.SELECTOR_IDENTITY_AUTHORITY_REL
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    return payload
+
+
 def _copy_authority_tree(tmp_path: Path) -> Path:
     for rel in _AUTHORITY_RELS:
         dst = tmp_path / rel
@@ -1242,6 +1269,8 @@ def _write_permit(repo: Path, payload: dict) -> Path:
 
 
 def _matching_permit(repo: Path) -> dict:
+    if not (repo / EV.SELECTOR_IDENTITY_AUTHORITY_REL).is_file():
+        _write_synthetic_selector_authority(repo)
     return dict(EV.tracked_permit_expected_authority(repo))
 
 
@@ -1280,6 +1309,7 @@ def test_matching_tmp_permit_verifies_without_opening_core(tmp_path):
     assert stored["RANDOM_SEED"] == 20260922131
     assert stored["N_RANDOM_CONTROLS"] == 10000
     assert stored["UNIT"] == EV.UNIT
+    assert len(stored["SELECTOR_IDENTITY_AUTHORITY_SHA256"]) == 64
 
 
 @pytest.mark.parametrize(
@@ -1299,6 +1329,7 @@ def test_matching_tmp_permit_verifies_without_opening_core(tmp_path):
         ("EXECUTION_AUTHORIZED", "true", "EXECUTION_AUTHORIZED"),
         ("ONE_SHOT", 1, "ONE_SHOT"),
         ("RERUN_AUTHORIZED", None, "RERUN_AUTHORIZED"),
+        ("SELECTOR_IDENTITY_AUTHORITY_SHA256", "0" * 64, "SELECTOR_IDENTITY_AUTHORITY_SHA256"),
     ],
 )
 def test_tracked_permit_field_mismatch_fails_before_core(tmp_path, field, value, token):
@@ -1335,6 +1366,54 @@ def test_mutated_permit_bytes_fail_before_core(tmp_path):
     with patch.object(C, "load_core_btc_5m", side_effect=_boom):
         with pytest.raises(EV.PermitAuthorityError):
             EV.execute_decomposition(repo=repo)
+    assert core_opened["called"] is False
+
+
+def test_missing_selector_identity_authority_fails_before_core(tmp_path):
+    repo = _copy_authority_tree(tmp_path)
+    payload = dict(EV.tracked_permit_expected_authority(repo))
+    payload["SELECTOR_IDENTITY_AUTHORITY_SHA256"] = "ab" * 32
+    _write_permit(repo, payload)
+    assert not (repo / EV.SELECTOR_IDENTITY_AUTHORITY_REL).is_file()
+    core_opened = {"called": False}
+
+    def _boom(*args, **kwargs):
+        core_opened["called"] = True
+        raise AssertionError("CORE_BTC_OPENED")
+
+    with patch.object(C, "load_core_btc_5m", side_effect=_boom):
+        with pytest.raises(EV.PermitAuthorityError, match="SELECTOR_IDENTITY_AUTHORITY_MISSING"):
+            EV.execute_decomposition(repo=repo)
+    assert core_opened["called"] is False
+
+
+@pytest.mark.parametrize(
+    "mutate,token",
+    [
+        ({"CANONICAL_SELECTOR_DIGEST": ""}, "CANONICAL_DIGEST_MISSING"),
+        ({"CANONICAL_SELECTOR_DIGEST": "not-a-digest"}, "CANONICAL_DIGEST_MISSING"),
+        ({"CORE_BTC_SNAPSHOT_ID": "wrong-snapshot"}, "CORE_BTC_SNAPSHOT_ID"),
+        ({"DESIGN_JSON_SHA256": "0" * 64}, "DESIGN_JSON_SHA256"),
+        ({"RUN_IDENTITY": "wrong-run-identity"}, "RUN_IDENTITY"),
+    ],
+)
+def test_selector_authority_payload_mismatch_fails_before_core(tmp_path, mutate, token):
+    repo = _copy_authority_tree(tmp_path)
+    payload = _write_synthetic_selector_authority(repo)
+    payload.update(mutate)
+    path = repo / EV.SELECTOR_IDENTITY_AUTHORITY_REL
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    _write_permit(repo, _matching_permit(repo))
+    core_opened = {"called": False}
+
+    def _boom(*args, **kwargs):
+        core_opened["called"] = True
+        raise AssertionError("CORE_BTC_OPENED")
+
+    with patch.object(C, "load_core_btc_5m", side_effect=_boom):
+        with pytest.raises(EV.PermitAuthorityError) as exc:
+            EV.execute_decomposition(repo=repo)
+    assert token in str(exc.value)
     assert core_opened["called"] is False
 
 
@@ -1399,6 +1478,16 @@ def make_census_population() -> tuple[list[C.DiscoveryRow], dict[int, PerpBar]]:
     return rows, perp
 
 
+def _orchestration_authority(digest: str) -> dict:
+    return EV.selector_identity_authority_payload(
+        canonical_selector_digest=digest,
+        design_json_sha256="cd" * 32,
+        implementation_review_json_sha256="ef" * 32,
+        run_identity="synthetic-run-identity",
+        core_btc_snapshot_id=C.CORE_BTC_SNAPSHOT,
+    )
+
+
 def test_canonical_orchestration_uses_synthetic_loaders_and_hard_wired_contract():
     rows, perp = make_census_population()
     mask = C.rv_abstention_mask(rows)
@@ -1426,6 +1515,10 @@ def test_canonical_orchestration_uses_synthetic_loaders_and_hard_wired_contract(
         calls.append("build")
         return rows
 
+    def _authority() -> dict:
+        calls.append("authority")
+        return _orchestration_authority(census["SELECTOR_DIGEST"])
+
     def _boom(*args, **kwargs):
         raise AssertionError("CORE_BTC_OPENED")
 
@@ -1433,9 +1526,10 @@ def test_canonical_orchestration_uses_synthetic_loaders_and_hard_wired_contract(
         result = EV.canonical_orchestration(
             load_core_bars=_load,
             verify_core_snapshot=_snapshot,
+            load_selector_identity_authority=_authority,
             build_rows_fn=_build,
         )
-    assert calls == ["snapshot", "load", "build"]
+    assert calls == ["snapshot", "authority", "load", "build"]
     assert captured["start"] == C.RULE1_INTERVAL_START
     assert captured["end"] == C.DISCOVERY_END
     assert captured["perp_is_injected"] is True
@@ -1447,6 +1541,7 @@ def test_canonical_orchestration_uses_synthetic_loaders_and_hard_wired_contract(
     assert result["CONTROL_P95_METHOD"] == "NUMPY_LINEAR_INHERITED_FROM_D2"
     assert result["CORE_BTC_SNAPSHOT_ID"] == C.CORE_BTC_SNAPSHOT
     assert result["SELECTOR_DIGEST"] == census["SELECTOR_DIGEST"]
+    assert result["CANONICAL_SELECTOR_DIGEST"] == census["SELECTOR_DIGEST"]
     assert result["CANONICAL_SELECTOR_DIGEST_FROZEN"] is False
     assert result["REAL_DECOMPOSITION_OUTCOME_COMPUTED"] is False
     assert result["CLASSIFICATION"] in CLASSIFICATION_ORDER
@@ -1466,6 +1561,91 @@ def test_canonical_orchestration_hard_wires_evaluate_kwargs():
     assert "C.RULE1_INTERVAL_START" in source
     assert "C.DISCOVERY_END" in source
     assert "SCIENTIFIC_RV_MASK" in source
+    assert "load_selector_identity_authority" in source
+    assert source.index("SELECTOR_DIGEST_NE_CANONICAL") < source.index(
+        "evaluate_decomposition("
+    )
+
+
+def test_digest_mismatch_does_not_call_evaluate_decomposition():
+    rows, perp = make_census_population()
+    mask = C.rv_abstention_mask(rows)
+    real_digest = EV.selector_digest(rows, mask)
+    wrong = "0" * 64
+    assert real_digest != wrong
+    called = {"eval": False, "targets": False}
+
+    def _boom_eval(*args, **kwargs):
+        called["eval"] = True
+        raise AssertionError("EVALUATE_CALLED")
+
+    def _boom_targets(*args, **kwargs):
+        called["targets"] = True
+        raise AssertionError("BUILD_TARGET_ROWS_CALLED")
+
+    with patch.object(EV, "evaluate_decomposition", side_effect=_boom_eval):
+        with patch.object(EV, "build_target_rows", side_effect=_boom_targets):
+            with pytest.raises(EV.SelectorIdentityError, match="SELECTOR_DIGEST_NE_CANONICAL"):
+                EV.canonical_orchestration(
+                    load_core_bars=lambda: perp,
+                    verify_core_snapshot=lambda: C.CORE_BTC_SNAPSHOT,
+                    load_selector_identity_authority=lambda: _orchestration_authority(wrong),
+                    build_rows_fn=lambda perp_map, start, end: rows,
+                )
+    assert called["eval"] is False
+    assert called["targets"] is False
+
+
+def _shift_population(rows, perp, delta_ms: int):
+    new_perp = {}
+    for ms, bar in perp.items():
+        new_ms = int(ms) + delta_ms
+        new_perp[new_ms] = PerpBar(
+            new_ms, bar.open, bar.high, bar.low, bar.close
+        )
+    new_rows = [
+        C.DiscoveryRow(
+            t_ms=int(row.t_ms) + delta_ms,
+            year=int(row.year),
+            rv=float(row.rv),
+            ret=float(row.ret),
+            side=float(row.side),
+            severity=float(row.severity),
+            entry_open=float(row.entry_open),
+            future_closes=tuple(row.future_closes),
+        )
+        for row in rows
+    ]
+    return new_rows, new_perp
+
+
+def test_same_census_different_timestamps_fail_exact_identity_before_evaluate():
+    rows_a, perp_a = make_census_population()
+    rows_b, perp_b = _shift_population(rows_a, perp_a, 10 * BAR_MS)
+    mask_a = C.rv_abstention_mask(rows_a)
+    mask_b = C.rv_abstention_mask(rows_b)
+    census_a = EV.verify_selector_identity(rows_a, mask_a)
+    census_b = EV.verify_selector_identity(rows_b, mask_b)
+    assert census_a["RULE_1_ROW_COUNT"] == census_b["RULE_1_ROW_COUNT"]
+    assert census_a["RULE_1_YEAR_BREAKDOWN"] == census_b["RULE_1_YEAR_BREAKDOWN"]
+    assert census_a["SELECTOR_DIGEST"] != census_b["SELECTOR_DIGEST"]
+    called = {"eval": False}
+
+    def _boom_eval(*args, **kwargs):
+        called["eval"] = True
+        raise AssertionError("EVALUATE_CALLED")
+
+    with patch.object(EV, "evaluate_decomposition", side_effect=_boom_eval):
+        with pytest.raises(EV.SelectorIdentityError, match="SELECTOR_DIGEST_NE_CANONICAL"):
+            EV.canonical_orchestration(
+                load_core_bars=lambda: perp_b,
+                verify_core_snapshot=lambda: C.CORE_BTC_SNAPSHOT,
+                load_selector_identity_authority=lambda: _orchestration_authority(
+                    census_a["SELECTOR_DIGEST"]
+                ),
+                build_rows_fn=lambda perp_map, start, end: rows_b,
+            )
+    assert called["eval"] is False
 
 
 def test_execute_decomposition_is_not_a_terminal_stub():
@@ -1473,8 +1653,10 @@ def test_execute_decomposition_is_not_a_terminal_stub():
     assert "canonical_orchestration" in source
     assert "verify_tracked_permit" in source
     assert "_reject_caller_scientific_authority" in source
+    assert "load_selector_identity_authority" in source
     fn = _function_def("execute_decomposition")
     assert "canonical_orchestration" in _called_names(fn)
+    assert "verify_selector_identity_authority" in _called_names(fn)
 
 
 def test_snapshot_identity_reads_the_document_not_ohlc():
