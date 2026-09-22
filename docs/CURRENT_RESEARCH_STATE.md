@@ -493,9 +493,13 @@ deferred); `D5 = NO_USEFUL_STRUCTURE`; `D6 = DEFERRED`;
 selected for confirmation now); `D8 = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT`
 (not a negative scientific result; not counted as executed);
 `D9 = OUTCOME_BLIND_IMPLEMENTATION_READY` (family H venue-structure; not MARKET-06
-rescue; not executed); `D10 = OUTCOME_BLIND_IMPLEMENTATION_READY` (family D;
-no-intercept OLS; not executed); `D11 = OUTCOME_BLIND_IMPLEMENTATION_READY`
-(family G; official FOMC pinned; not executed). First blocked Sprint 01
+rescue; not executed; F1–F5 red-team repair: refractory-dropped extremes
+excluded from controls; 1:1 YEAR×SIGN_D×RV matching; P_HALF and P_CONTROL);
+`D10 = OUTCOME_BLIND_IMPLEMENTATION_READY` (family D;
+no-intercept OLS; not executed; 1:1 YEAR×SIGN_E_T×ABS_BTC_RETURN_BUCKET
+matching and stratified permutation); `D11 = OUTCOME_BLIND_IMPLEMENTATION_READY`
+(family G; official FOMC pinned; not executed; 6h control windows cannot
+overlap FOMC aftermath). First blocked Sprint 01
 attempt preserved. D2–D5 and D7 scientific bytes unchanged.
 
 The orthogonal-region selection is recorded in

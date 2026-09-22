@@ -32,7 +32,11 @@ NEXT_UNIT = DISCOVERY_SPRINT_03_IMPLEMENTATION_RED_TEAM_AND_EXECUTION_DECISION
 
 The next unit is an independent implementation red-team and execution
 decision. It must not treat this freeze as a RESULT. Real scientific
-evaluation remains unauthorized.
+evaluation remains unauthorized. Targeted F1–F5 repair is recorded in
+the implementation freeze: D9 separates extreme bars from retained
+events and 1:1-matches closing non-extreme controls; D10 1:1-matches
+and permutes inside frozen strata; IDENTITY failure precedes support
+failure.
 
 ## D9 estimand
 

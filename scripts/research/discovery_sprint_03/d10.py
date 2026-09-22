@@ -74,23 +74,14 @@ def d10_fixed_beta_row(
 
 
 def classify_d10_from_summary(summary: Mapping[str, Any]) -> str:
-    if not summary.get("SUPPORT_PASS"):
-        return "INCONCLUSIVE_DISCOVERY"
-    if not summary.get("IDENTITY_OK", True):
-        return "INVALID_DISCOVERY"
-    promising = bool(
-        summary.get("STATISTICAL_GATE")
-        and summary.get("PRACTICAL_GATE")
-        and summary.get("TEMPORAL_GATE")
-    )
-    if promising:
-        return "PROMISING_PROTOTYPE"
-    return "NO_USEFUL_STRUCTURE"
+    return C.classify_discovery(summary)
 
 
 def d10_statistical_gate(
     event_targets: Sequence[float],
     control_targets: Sequence[float],
+    event_by_cell: Mapping[str, Sequence[float]] | None = None,
+    control_by_cell: Mapping[str, Sequence[float]] | None = None,
     *,
     seed: int = C.D10_SEED,
     n: int = C.D10_N_RANDOMIZATIONS,
@@ -104,24 +95,31 @@ def d10_statistical_gate(
     mean_event = float(event.mean())
     mean_control = float(control.mean())
     delta = mean_event - mean_control
-    pooled = np.concatenate([event, control])
-    n_event = event.size
-    rng = np.random.default_rng(seed)
-    exceed = 0
-    for _ in range(n):
-        rng.shuffle(pooled)
-        fake = float(pooled[:n_event].mean() - pooled[n_event:].mean())
-        if fake >= delta:
-            exceed += 1
-    p_value = (1.0 + exceed) / (1.0 + n)
+    if event_by_cell is None or control_by_cell is None:
+        event_by_cell = {"ALL": list(event_targets)}
+        control_by_cell = {"ALL": list(control_targets)}
+    p_value = C.stratified_label_permutation_p(
+        event_by_cell,
+        control_by_cell,
+        observed=delta,
+        statistic=lambda ev, ct: float(np.mean(ev) - np.mean(ct)),
+        seed=seed,
+        n=n,
+        alternative="greater",
+    )
     return {
         "MEAN_EVENT": mean_event,
         "MEAN_CONTROL": mean_control,
         "DELTA": delta,
         "MC_P": p_value,
         "STATISTICAL_GATE": bool(p_value < C.D10_MC_ALPHA and delta > 0.0),
+        "PERMUTATION_RULE": (
+            "STRATIFIED_LABEL_PERMUTATION inside YEAR x SIGN_E_T x "
+            "ABS_BTC_RETURN_BUCKET; preserve event/control counts per stratum"
+        ),
         "SEED": seed,
         "N_RANDOMIZATIONS": n,
+        "TEMPORAL_DEPENDENCE_LIMITATION": C.D10_TEMPORAL_DEPENDENCE_LIMITATION,
     }
 
 
@@ -132,10 +130,17 @@ def evaluate_d10_scientific(
     yearly_control_targets: Mapping[str, Sequence[float]],
     *,
     support: Mapping[str, Any],
+    event_by_cell: Mapping[str, Sequence[float]] | None = None,
+    control_by_cell: Mapping[str, Sequence[float]] | None = None,
 ) -> dict[str, Any]:
     """Pure scientific evaluator on supplied arrays. No market I/O."""
 
-    stats = d10_statistical_gate(event_targets, control_targets)
+    stats = d10_statistical_gate(
+        event_targets,
+        control_targets,
+        event_by_cell=event_by_cell,
+        control_by_cell=control_by_cell,
+    )
     practical = bool(stats["DELTA"] >= C.D10_PRACTICAL_DELTA)
     temporal_ok = 0
     yearly: dict[str, float | None] = {}
@@ -235,8 +240,14 @@ def _window_all_finite(finite: np.ndarray) -> np.ndarray:
 def d10_feasibility_census(
     btc_closes: Mapping[int, float],
     eth_closes: Mapping[int, float],
+    *,
+    include_indices: bool = False,
 ) -> dict[str, Any]:
-    """Structural support only. Does not return persistence targets."""
+    """Structural support only. Does not return persistence targets.
+
+    Controls are 1:1 YEAR x SIGN_E_T x ABS_BTC_RETURN_BUCKET samples from
+    the small-|e| (trailing P50) non-event population, without replacement.
+    """
 
     hours, r_btc, r_eth, _adj = aligned_return_arrays(btc_closes, eth_closes)
     n = int(hours.size)
@@ -262,15 +273,15 @@ def d10_feasibility_census(
     btc_window_ok = _window_all_finite(np.isfinite(abs_btc) & finite_r)
 
     cs_abs_e = np.concatenate([[0.0], np.cumsum(np.where(finite_e, abs_e, 0.0))])
-    # percentile needs the actual window values; collect when checking.
 
     event_idx: list[int] = []
-    control_idx: list[int] = []
+    raw_control_idx: list[int] = []
+    event_ids_by_cell: dict[str, list[int]] = {}
+    raw_control_ids_by_cell: dict[str, list[int]] = {}
     event_by_year: dict[str, int] = {str(y): 0 for y in C.CONTROL_YEARS}
     event_by_sign: dict[str, int] = {"+1": 0, "-1": 0}
     event_by_cell: dict[str, int] = {}
     control_by_year: dict[str, int] = {str(y): 0 for y in C.CONTROL_YEARS}
-    control_by_cell: dict[str, int] = {}
     prefix_ok_n = 0
     aligned_n = int(np.sum(finite_r))
 
@@ -301,21 +312,37 @@ def d10_feasibility_census(
         is_control = (not is_event) and bool(abs_e[t] <= p50)
         if is_event:
             event_idx.append(t)
+            event_ids_by_cell.setdefault(key, []).append(t)
             event_by_year[str(year)] = event_by_year.get(str(year), 0) + 1
             event_by_sign[f"{sign:+d}"] = event_by_sign.get(f"{sign:+d}", 0) + 1
             event_by_cell[key] = event_by_cell.get(key, 0) + 1
         elif is_control:
-            control_idx.append(t)
+            raw_control_idx.append(t)
+            raw_control_ids_by_cell.setdefault(key, []).append(t)
             control_by_year[str(year)] = control_by_year.get(str(year), 0) + 1
-            control_by_cell[key] = control_by_cell.get(key, 0) + 1
 
-    matched_control_n = 0
+    matched_ids_by_cell, balanced = C.sample_matched_ids_per_cell(
+        event_ids_by_cell,
+        raw_control_ids_by_cell,
+        seed=C.D10_CONTROL_SAMPLE_SEED,
+    )
+    matched_control_by_cell = {k: len(v) for k, v in matched_ids_by_cell.items()}
+    matched_idx = [cid for ids in matched_ids_by_cell.values() for cid in ids]
+    if len(matched_idx) != len(set(matched_idx)):
+        raise C.Sprint03IntegrityError("D10_CONTROL_REUSED")
+    matched_control_n = len(matched_idx)
+    cells_balanced = bool(balanced) and matched_control_n == len(event_idx)
+    if cells_balanced:
+        for key, n_ev in event_by_cell.items():
+            if matched_control_by_cell.get(key, 0) != n_ev:
+                cells_balanced = False
+                break
     years_with_both = 0
-    for key, n_ev in event_by_cell.items():
-        matched_control_n += control_by_cell.get(key, 0)
     for year in map(str, C.CONTROL_YEARS):
         has_event = event_by_year.get(year, 0) > 0
-        has_control = any(k.startswith(f"{year}:") and v > 0 for k, v in control_by_cell.items())
+        has_control = any(
+            k.startswith(f"{year}:") and v > 0 for k, v in matched_control_by_cell.items()
+        )
         if has_event and has_control:
             years_with_both += 1
     years_with_events = [y for y, n_y in event_by_year.items() if n_y > 0]
@@ -324,33 +351,62 @@ def d10_feasibility_census(
         and len(years_with_events) >= C.D10_MIN_YEARS_WITH_EVENTS
         and matched_control_n >= C.D10_MIN_MATCHED_CONTROLS
         and years_with_both >= C.D10_MIN_YEARS_WITH_EVENT_AND_CONTROL
+        and cells_balanced
     )
     if len(event_idx) < C.D10_MIN_EVENTS or len(years_with_events) < C.D10_MIN_YEARS_WITH_EVENTS:
         status = "DEFERRED_INSUFFICIENT_EVENT_SUPPORT"
-    elif matched_control_n < C.D10_MIN_MATCHED_CONTROLS or years_with_both < C.D10_MIN_YEARS_WITH_EVENT_AND_CONTROL:
+    elif (
+        not cells_balanced
+        or matched_control_n < C.D10_MIN_MATCHED_CONTROLS
+        or years_with_both < C.D10_MIN_YEARS_WITH_EVENT_AND_CONTROL
+    ):
         status = "DEFERRED_INSUFFICIENT_CONTROL_SUPPORT"
     else:
         status = "OUTCOME_BLIND_IMPLEMENTATION_READY"
-    # Silence unused cumulative that exists only to document fail-closed identity.
     _ = cs_abs_e
-    return {
+    out: dict[str, Any] = {
         "ALIGNED_HOUR_RETURNS": aligned_n,
         "LEGAL_720H_PREFIX_SUPPORT_N": prefix_ok_n,
         "EVENT_N": len(event_idx),
-        "CONTROL_N": len(control_idx),
+        "RAW_ELIGIBLE_CONTROL_N": len(raw_control_idx),
+        "CONTROL_N": len(raw_control_idx),
         "MATCHED_CONTROL_N": matched_control_n,
+        "ALL_MATCHED_CELLS_BALANCED": cells_balanced,
         "EVENT_BY_YEAR": event_by_year,
         "CONTROL_BY_YEAR": control_by_year,
         "EVENT_BY_SIGN": event_by_sign,
         "EVENT_BY_YEAR_SIGN_BTC_BUCKET": event_by_cell,
-        "CONTROL_BY_YEAR_SIGN_BTC_BUCKET": control_by_cell,
+        "RAW_CONTROL_BY_YEAR_SIGN_BTC_BUCKET": {
+            k: len(v) for k, v in raw_control_ids_by_cell.items()
+        },
+        "MATCHED_CONTROL_BY_YEAR_SIGN_BTC_BUCKET": matched_control_by_cell,
+        "CONTROL_BY_YEAR_SIGN_BTC_BUCKET": matched_control_by_cell,
         "YEARS_WITH_EVENTS": years_with_events,
         "YEARS_WITH_EVENT_AND_CONTROL": years_with_both,
         "SUPPORT_PASS": support_pass,
         "STATUS": status,
         "REGRESSION_SPECIFICATION": C.D10_REGRESSION_SPECIFICATION,
+        "CONTROL_SAMPLE_SEED": C.D10_CONTROL_SAMPLE_SEED,
+        "PERMUTATION_SEED": C.D10_SEED,
+        "MATCH_RULE": (
+            "1:1 YEAR x SIGN_E_T x ABS_BTC_RETURN_BUCKET without replacement; "
+            "|e_t|<=trailing P50 and not event"
+        ),
+        "PERMUTATION_RULE": (
+            "STRATIFIED_LABEL_PERMUTATION inside YEAR x SIGN_E_T x "
+            "ABS_BTC_RETURN_BUCKET"
+        ),
+        "TEMPORAL_DEPENDENCE_LIMITATION": C.D10_TEMPORAL_DEPENDENCE_LIMITATION,
         "PERSISTENCE_VALUES_EMITTED": False,
     }
+    if include_indices:
+        out["EVENT_IDX"] = event_idx
+        out["RAW_CONTROL_IDX"] = raw_control_idx
+        out["MATCHED_CONTROL_IDX"] = matched_idx
+        out["EVENT_IDS_BY_CELL"] = event_ids_by_cell
+        out["MATCHED_CONTROL_IDS_BY_CELL"] = matched_ids_by_cell
+        out["RAW_CONTROL_IDS_BY_CELL"] = raw_control_ids_by_cell
+    return out
 
 
 def load_d10_inputs(*, repo: Path | None = None) -> tuple[dict[int, float], dict[int, float], dict[str, Any]]:

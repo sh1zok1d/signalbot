@@ -37,8 +37,11 @@ def _classification_contracts() -> dict[str, Any]:
                 f"|median-0.5|>= {C.D9_TEMPORAL_YEAR_ABS_VS_HALF}"
             ),
             "UNCERTAINTY_RULE": (
-                f"two-sided sign-flip MC around 0.5, N={C.D9_N_RANDOMIZATIONS}, "
-                f"seed={C.D9_SEED}, p<(1+exceed)/(1+N), alpha={C.D9_MC_ALPHA}"
+                f"P_HALF: two-sided sign-flip MC around 0.5, N={C.D9_N_RANDOMIZATIONS}, "
+                f"seed={C.D9_SEED}. P_CONTROL: two-sided stratified label permutation of "
+                f"median_event-median_matched_control inside YEAR x SIGN_D x RV_BUCKET, "
+                f"N={C.D9_N_RANDOMIZATIONS}, seed={C.D9_CONTROL_PERM_SEED}. "
+                f"STATISTICAL_GATE_D9 = P_HALF < {C.D9_MC_ALPHA} AND P_CONTROL < {C.D9_MC_ALPHA}."
             ),
             "MINIMUM_SUPPORT": {
                 "MIN_NONOVERLAPPING_EVENTS": C.D9_MIN_NONOVERLAPPING_EVENTS,
@@ -54,6 +57,15 @@ def _classification_contracts() -> dict[str, Any]:
                 "else NO_USEFUL_STRUCTURE"
             ),
             "RANDOM_SEED": C.D9_SEED,
+            "CONTROL_SAMPLE_SEED": C.D9_CONTROL_SAMPLE_SEED,
+            "CONTROL_PERM_SEED": C.D9_CONTROL_PERM_SEED,
+            "MATCH_RULE": (
+                "IS_EXTREME_BAR from trailing P90 independent of refractory; "
+                "PRIMARY EVENT = keep-first 12-bar among extremes; "
+                "controls require IS_EXTREME_BAR==false; 1:1 YEAR x SIGN_D x "
+                "RV_BUCKET closing non-extreme sample without replacement"
+            ),
+            "STATISTICAL_GATE_RULE": "P_HALF < 0.05 AND P_CONTROL < 0.05",
             "SCIENTIFIC_CLAIM_MAY_ESTABLISH": "CONDITIONAL_VENUE_RESOLUTION_ATTRIBUTION",
             "SCIENTIFIC_CLAIM_MUST_NOT_ESTABLISH": [
                 "PRICE_DISCOVERY_LEADERSHIP",
@@ -76,8 +88,10 @@ def _classification_contracts() -> dict[str, Any]:
                 "when pooled delta is positive"
             ),
             "UNCERTAINTY_RULE": (
-                f"one-sided event/control label permutation MC, N={C.D10_N_RANDOMIZATIONS}, "
-                f"seed={C.D10_SEED}, alpha={C.D10_MC_ALPHA}"
+                f"one-sided STRATIFIED event/control label permutation inside "
+                f"YEAR x SIGN_E_T x ABS_BTC_RETURN_BUCKET, N={C.D10_N_RANDOMIZATIONS}, "
+                f"seed={C.D10_SEED}, alpha={C.D10_MC_ALPHA}. 1:1 matched sample. "
+                "Does not globally shuffle across strata."
             ),
             "MINIMUM_SUPPORT": {
                 "MIN_EVENTS": C.D10_MIN_EVENTS,
@@ -92,6 +106,16 @@ def _classification_contracts() -> dict[str, Any]:
                 "else NO_USEFUL_STRUCTURE"
             ),
             "RANDOM_SEED": C.D10_SEED,
+            "CONTROL_SAMPLE_SEED": C.D10_CONTROL_SAMPLE_SEED,
+            "PERMUTATION_RULE": (
+                "STRATIFIED_LABEL_PERMUTATION inside YEAR x SIGN_E_T x "
+                "ABS_BTC_RETURN_BUCKET; preserve event/control counts per stratum"
+            ),
+            "MATCH_RULE": (
+                "1:1 YEAR x SIGN_E_T x ABS_BTC_RETURN_BUCKET without replacement "
+                "from |e_t|<=trailing P50 non-events"
+            ),
+            "TEMPORAL_DEPENDENCE_LIMITATION": C.D10_TEMPORAL_DEPENDENCE_LIMITATION,
             "REGRESSION_SPECIFICATION": C.D10_REGRESSION_SPECIFICATION,
             "REGRESSION_SPEC_REASON": (
                 "OPTION A no-intercept OLS. The frozen residual is e=r_eth-beta*r_btc with "
@@ -210,6 +234,15 @@ def assemble(d9: dict[str, Any], d10: dict[str, Any], d11: dict[str, Any]) -> di
         "D9_STATUS": d9.get("STATUS"),
         "D10_STATUS": d10.get("STATUS"),
         "D11_STATUS": d11.get("STATUS"),
+        "D9_IMPLEMENTATION_READY": d9.get("STATUS") == "OUTCOME_BLIND_IMPLEMENTATION_READY",
+        "D10_IMPLEMENTATION_READY": d10.get("STATUS") == "OUTCOME_BLIND_IMPLEMENTATION_READY",
+        "D11_IMPLEMENTATION_READY": d11.get("STATUS") == "OUTCOME_BLIND_IMPLEMENTATION_READY",
+        "CLASSIFICATION_IDENTITY_PRECEDENCE": (
+            "INVALID_DISCOVERY if IDENTITY_OK is false; else INCONCLUSIVE_DISCOVERY "
+            "if SUPPORT_PASS is false; else PROMISING_PROTOTYPE iff STATISTICAL and "
+            "PRACTICAL and TEMPORAL; else NO_USEFUL_STRUCTURE"
+        ),
+        "REPAIR_UNIT": "TARGETED_RED_TEAM_REPAIR_F1_F5",
         "NEXT_UNIT": "DISCOVERY_SPRINT_03_IMPLEMENTATION_RED_TEAM_AND_EXECUTION_DECISION",
     }
 
@@ -240,6 +273,56 @@ def _md(payload: dict[str, Any]) -> str:
             "",
             "Classification contracts are frozen. No card is classified in this unit.",
             "Real scientific target values were not inspected.",
+            "",
+            "Classification precedence (all cards): IDENTITY_OK false → "
+            "INVALID_DISCOVERY, then SUPPORT_PASS false → INCONCLUSIVE_DISCOVERY, "
+            "then PROMISING_PROTOTYPE iff STATISTICAL and PRACTICAL and TEMPORAL, "
+            "else NO_USEFUL_STRUCTURE.",
+            "",
+            "D9 repair freeze:",
+            "",
+            "- Extreme bars (`IS_EXTREME_BAR`, trailing P90 on 8640 valid |D|) are "
+            "classified independently of the 12-bar refractory rule.",
+            "- Primary events are keep-first retained extremes. Refractory-dropped "
+            "extremes are neither primary events nor controls.",
+            "- Controls require `IS_EXTREME_BAR == false`, genuine closure, and "
+            "1:1 YEAR × SIGN_D × RV_BUCKET matching of closing retained events, "
+            "without replacement, seed "
+            f"`{C.D9_CONTROL_SAMPLE_SEED}`.",
+            "- Report `RAW_EXTREME_BAR_N`, `RETAINED_EVENT_N`, "
+            "`REFRACTORY_DROPPED_EXTREME_N`, `RAW_ELIGIBLE_CLOSING_CONTROL_N`, "
+            "`MATCHED_CLOSING_CONTROL_N`. No SHARE summaries.",
+            "- `P_HALF`: sign-flip vs 0.5, seed "
+            f"`{C.D9_SEED}`. `P_CONTROL`: two-sided stratified label permutation "
+            "of median_event − median_matched_control inside YEAR × SIGN_D × "
+            f"RV_BUCKET, seed `{C.D9_CONTROL_PERM_SEED}`.",
+            "- `STATISTICAL_GATE_D9 = P_HALF < 0.05 AND P_CONTROL < 0.05`.",
+            f"- Structural: events {d9.get('EVENT_N')}; closing {d9.get('CLOSING_EVENT_N')}; "
+            f"raw extreme {d9.get('RAW_EXTREME_BAR_N')}; refractory-dropped "
+            f"{d9.get('REFRACTORY_DROPPED_EXTREME_N')}; raw eligible closing controls "
+            f"{d9.get('RAW_ELIGIBLE_CLOSING_CONTROL_N')}; matched closing controls "
+            f"{d9.get('MATCHED_CLOSING_CONTROL_N')}; cells balanced "
+            f"{d9.get('ALL_MATCHED_CELLS_BALANCED')}.",
+            "",
+            "D10 repair freeze:",
+            "",
+            "- 1:1 YEAR × SIGN_E_T × ABS_BTC_RETURN_BUCKET matching from "
+            f"|e_t| ≤ trailing P50 non-events, seed `{C.D10_CONTROL_SAMPLE_SEED}`.",
+            "- Report `RAW_ELIGIBLE_CONTROL_N` vs `MATCHED_CONTROL_N`.",
+            "- Permutation is stratified inside those frozen cells; event/control "
+            f"counts preserved per stratum; seed `{C.D10_SEED}`. No global shuffle.",
+            "- Residual discovery-stage limitation: events may cluster in calendar "
+            "time. This repair does not add a post-hoc refractory or block bootstrap.",
+            f"- Structural: events {d10.get('EVENT_N')}; raw eligible controls "
+            f"{d10.get('RAW_ELIGIBLE_CONTROL_N')}; matched controls "
+            f"{d10.get('MATCHED_CONTROL_N')}; cells balanced "
+            f"{d10.get('ALL_MATCHED_CELLS_BALANCED')}.",
+            "",
+            "D11: official scheduled FOMC only. Control windows exclude any of the "
+            "6 constituent hours that overlap FOMC event/aftermath. No scientific "
+            "redesign.",
+            f"- Structural: events {d11.get('EVENT_N')}; controls {d11.get('CONTROL_N')}; "
+            f"min controls among events {d11.get('MIN_CONTROLS_AMONG_EVENTS')}.",
             "",
         ]
     )

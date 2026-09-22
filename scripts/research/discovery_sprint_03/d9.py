@@ -51,21 +51,10 @@ def median_share(shares: Sequence[float]) -> float:
 def classify_d9_from_summary(summary: Mapping[str, Any]) -> str:
     """Deterministic discovery predicate. Does not inspect raw bars."""
 
-    if not summary.get("SUPPORT_PASS"):
-        return "INCONCLUSIVE_DISCOVERY"
-    if not summary.get("IDENTITY_OK", True):
-        return "INVALID_DISCOVERY"
-    promising = bool(
-        summary.get("STATISTICAL_GATE")
-        and summary.get("PRACTICAL_GATE")
-        and summary.get("TEMPORAL_GATE")
-    )
-    if promising:
-        return "PROMISING_PROTOTYPE"
-    return "NO_USEFUL_STRUCTURE"
+    return C.classify_discovery(summary)
 
 
-def d9_statistical_gate(
+def d9_p_half(
     event_shares: Sequence[float],
     *,
     seed: int = C.D9_SEED,
@@ -74,6 +63,8 @@ def d9_statistical_gate(
     observed = np.asarray(list(event_shares), dtype=np.float64)
     if observed.size == 0:
         raise C.Sprint03IntegrityError("D9_EMPTY_SHARE_SAMPLE")
+    if not np.all(np.isfinite(observed)):
+        raise C.Sprint03IntegrityError("D9_NONFINITE_SHARE_SAMPLE")
     obs_median = float(np.median(observed))
     obs_abs = abs(obs_median - C.D9_NULL_SHARE)
     rng = np.random.default_rng(seed)
@@ -88,8 +79,68 @@ def d9_statistical_gate(
     return {
         "MEDIAN_SHARE": obs_median,
         "ABS_VS_HALF": obs_abs,
-        "MC_P": p_value,
-        "STATISTICAL_GATE": bool(p_value < C.D9_MC_ALPHA),
+        "P_HALF": p_value,
+        "SEED_HALF": seed,
+        "N_RANDOMIZATIONS": n,
+    }
+
+
+def d9_p_control(
+    event_by_cell: Mapping[str, Sequence[float]],
+    control_by_cell: Mapping[str, Sequence[float]],
+    *,
+    seed: int = C.D9_CONTROL_PERM_SEED,
+    n: int = C.D9_N_RANDOMIZATIONS,
+) -> dict[str, Any]:
+    event_all = np.concatenate(
+        [np.asarray(list(event_by_cell[k]), dtype=np.float64) for k in sorted(event_by_cell)]
+    )
+    control_all = np.concatenate(
+        [np.asarray(list(control_by_cell[k]), dtype=np.float64) for k in sorted(control_by_cell)]
+    )
+    event_med = float(np.median(event_all))
+    control_med = float(np.median(control_all))
+    observed = event_med - control_med
+    p_value = C.stratified_label_permutation_p(
+        event_by_cell,
+        control_by_cell,
+        observed=observed,
+        statistic=lambda ev, ct: float(np.median(ev) - np.median(ct)),
+        seed=seed,
+        n=n,
+        alternative="two-sided-abs",
+    )
+    return {
+        "CONTROL_MEDIAN_SHARE": control_med,
+        "ABS_VS_CONTROL": abs(observed),
+        "P_CONTROL": p_value,
+        "SEED_CONTROL": seed,
+    }
+
+
+def d9_statistical_gate(
+    event_shares: Sequence[float],
+    control_shares: Sequence[float],
+    event_by_cell: Mapping[str, Sequence[float]] | None = None,
+    control_by_cell: Mapping[str, Sequence[float]] | None = None,
+    *,
+    seed: int = C.D9_SEED,
+    n: int = C.D9_N_RANDOMIZATIONS,
+) -> dict[str, Any]:
+    half = d9_p_half(event_shares, seed=seed, n=n)
+    if event_by_cell is None or control_by_cell is None:
+        event_by_cell = {"ALL": list(event_shares)}
+        control_by_cell = {"ALL": list(control_shares)}
+    control = d9_p_control(event_by_cell, control_by_cell, n=n)
+    statistical = bool(
+        half["P_HALF"] < C.D9_MC_ALPHA and control["P_CONTROL"] < C.D9_MC_ALPHA
+    )
+    return {
+        **half,
+        **control,
+        "MC_P": half["P_HALF"],
+        "STATISTICAL_GATE": statistical,
+        "STATISTICAL_GATE_RULE": "P_HALF < 0.05 AND P_CONTROL < 0.05",
         "SEED": seed,
         "N_RANDOMIZATIONS": n,
     }
@@ -101,12 +152,19 @@ def evaluate_d9_scientific(
     yearly_event_shares: Mapping[str, Sequence[float]],
     *,
     support: Mapping[str, Any],
+    event_by_cell: Mapping[str, Sequence[float]] | None = None,
+    control_by_cell: Mapping[str, Sequence[float]] | None = None,
 ) -> dict[str, Any]:
     """Pure scientific evaluator on supplied arrays. No market I/O."""
 
-    stats = d9_statistical_gate(event_shares)
+    stats = d9_statistical_gate(
+        event_shares,
+        control_shares,
+        event_by_cell=event_by_cell,
+        control_by_cell=control_by_cell,
+    )
     event_med = stats["MEDIAN_SHARE"]
-    control_med = C.median(control_shares) if list(control_shares) else float("nan")
+    control_med = stats["CONTROL_MEDIAN_SHARE"]
     practical = bool(
         stats["ABS_VS_HALF"] >= C.D9_PRACTICAL_ABS_VS_HALF
         and math.isfinite(control_med)
@@ -167,8 +225,17 @@ def _aligned_m06_series(
 def d9_feasibility_census(
     perp: Mapping[int, Any],
     spot: Mapping[int, float],
+    *,
+    include_indices: bool = False,
 ) -> dict[str, Any]:
-    """Structural support only. Does not return SHARE values."""
+    """Structural support only. Does not return SHARE values.
+
+    IS_EXTREME_BAR is computed from trailing P90 independently of the
+    keep-first / 12-bar refractory rule. Controls require IS_EXTREME_BAR
+    == false. A refractory-dropped extreme is neither a primary event nor
+    a control. Matched controls are a 1:1 YEAR x SIGN_D x RV_BUCKET sample
+    of closing non-extreme bars, without replacement.
+    """
 
     open_ms, perp_close, spot_close = _aligned_m06_series(perp, spot)
     n = int(open_ms.size)
@@ -190,12 +257,11 @@ def d9_feasibility_census(
         if i > 0 and open_ms[i] - open_ms[i - 1] == C.BAR_5M_MS:
             if perp_close[i - 1] > 0 and math.isfinite(perp_close[i - 1]):
                 rv[i] = abs(math.log(perp_close[i] / perp_close[i - 1]))
-    event_idx: list[int] = []
-    last_kept = -10**9
     valid_abs: list[float] = []
     valid_rv: list[float] = []
     valid_abs_pos = np.full(n, -1, dtype=np.int32)
     valid_rv_pos = np.full(n, -1, dtype=np.int32)
+    is_extreme = np.zeros(n, dtype=bool)
     for i in range(n):
         if valid_d[i]:
             valid_abs_pos[i] = len(valid_abs)
@@ -207,13 +273,20 @@ def d9_feasibility_census(
             continue
         if valid_abs_pos[i] < C.D9_TRAILING_WINDOW:
             continue
-        if i - last_kept < C.D9_MIN_EVENT_GAP_BARS:
+        trailing_abs = valid_abs[valid_abs_pos[i] - C.D9_TRAILING_WINDOW : valid_abs_pos[i]]
+        p90 = C.percentile(trailing_abs, C.D9_PCTL)
+        is_extreme[i] = bool(abs_d[i] > p90)
+
+    event_idx: list[int] = []
+    refractory_dropped_idx: list[int] = []
+    last_kept = -10**9
+    for i in range(n):
+        if not is_extreme[i]:
             continue
         if not math.isfinite(rv[i]) or valid_rv_pos[i] < C.D9_TRAILING_WINDOW:
             continue
-        trailing_abs = valid_abs[valid_abs_pos[i] - C.D9_TRAILING_WINDOW : valid_abs_pos[i]]
-        p90 = C.percentile(trailing_abs, C.D9_PCTL)
-        if not (abs_d[i] > p90):
+        if i - last_kept < C.D9_MIN_EVENT_GAP_BARS:
+            refractory_dropped_idx.append(i)
             continue
         event_idx.append(i)
         last_kept = i
@@ -230,8 +303,8 @@ def d9_feasibility_census(
     event_by_sign: dict[str, int] = {"+1": 0, "-1": 0}
     event_by_year_sign_bucket: dict[str, int] = {}
     closing_by_year_sign_bucket: dict[str, int] = {}
-    control_by_year_sign_bucket: dict[str, int] = {}
-    event_set = set(event_idx)
+    raw_control_ids_by_cell: dict[str, list[int]] = {}
+    closing_event_ids_by_cell: dict[str, list[int]] = {}
     closing_n = 0
     horizon = C.D9_H_BARS
 
@@ -261,12 +334,11 @@ def d9_feasibility_census(
             closing_event_idx.append(i)
             closing_by_year[str(year)] = closing_by_year.get(str(year), 0) + 1
             closing_by_year_sign_bucket[key] = closing_by_year_sign_bucket.get(key, 0) + 1
+            closing_event_ids_by_cell.setdefault(key, []).append(i)
 
-    raw_control_n = 0
-    years_with_both = 0
-    closing_cells = set(closing_by_year_sign_bucket)
+    raw_control_idx: list[int] = []
     for i in range(n):
-        if i in event_set or not valid_d[i]:
+        if is_extreme[i] or not valid_d[i]:
             continue
         if not math.isfinite(rv[i]):
             continue
@@ -285,51 +357,94 @@ def d9_feasibility_census(
             continue
         year = datetime.fromtimestamp(int(open_ms[i]) / 1000.0, tz=C.UTC).year
         key = cell_key(year, int(sign_d[i]), bucket)
-        control_by_year_sign_bucket[key] = control_by_year_sign_bucket.get(key, 0) + 1
-        raw_control_n += 1
-    control_n = sum(v for k, v in control_by_year_sign_bucket.items() if k in closing_cells)
+        raw_control_ids_by_cell.setdefault(key, []).append(i)
+        raw_control_idx.append(i)
 
+    matched_ids_by_cell, balanced = C.sample_matched_ids_per_cell(
+        closing_event_ids_by_cell,
+        raw_control_ids_by_cell,
+        seed=C.D9_CONTROL_SAMPLE_SEED,
+    )
+    matched_control_by_cell = {k: len(v) for k, v in matched_ids_by_cell.items()}
+    matched_idx = [cid for ids in matched_ids_by_cell.values() for cid in ids]
+    if len(matched_idx) != len(set(matched_idx)):
+        raise C.Sprint03IntegrityError("D9_CONTROL_REUSED")
+    matched_n = len(matched_idx)
+    raw_eligible_n = len(raw_control_idx)
+    years_with_both = 0
     years_closing = [y for y, n_y in closing_by_year.items() if n_y > 0]
     for year in ("2022", "2023", "2024"):
         has_event = closing_by_year.get(year, 0) > 0
         has_control = any(
-            k.startswith(f"{year}:") and v > 0
-            for k, v in control_by_year_sign_bucket.items()
+            k.startswith(f"{year}:") and v > 0 for k, v in matched_control_by_cell.items()
         )
         if has_event and has_control:
             years_with_both += 1
+    cells_balanced = bool(balanced) and matched_n == closing_n
+    if cells_balanced:
+        for key, n_ev in closing_by_year_sign_bucket.items():
+            if matched_control_by_cell.get(key, 0) != n_ev:
+                cells_balanced = False
+                break
     support_pass = bool(
         len(event_idx) >= C.D9_MIN_NONOVERLAPPING_EVENTS
         and closing_n >= C.D9_MIN_CLOSING_EVENTS
         and len(years_closing) >= C.D9_MIN_YEARS_WITH_CLOSING_EVENTS
-        and control_n >= C.D9_MIN_MATCHED_CLOSING_CONTROLS
+        and matched_n >= C.D9_MIN_MATCHED_CLOSING_CONTROLS
         and years_with_both >= C.D9_MIN_YEARS_WITH_EVENT_AND_CONTROL
+        and cells_balanced
     )
     if len(event_idx) < C.D9_MIN_NONOVERLAPPING_EVENTS or closing_n < C.D9_MIN_CLOSING_EVENTS:
         status = "DEFERRED_INSUFFICIENT_EVENT_SUPPORT"
-    elif control_n < C.D9_MIN_MATCHED_CLOSING_CONTROLS or years_with_both < C.D9_MIN_YEARS_WITH_EVENT_AND_CONTROL:
+    elif (
+        not cells_balanced
+        or matched_n < C.D9_MIN_MATCHED_CLOSING_CONTROLS
+        or years_with_both < C.D9_MIN_YEARS_WITH_EVENT_AND_CONTROL
+    ):
         status = "DEFERRED_INSUFFICIENT_CONTROL_SUPPORT"
     else:
         status = "OUTCOME_BLIND_IMPLEMENTATION_READY"
-    return {
+    out: dict[str, Any] = {
         "ALIGNED_BARS": n,
+        "RAW_EXTREME_BAR_N": int(np.sum(is_extreme)),
+        "RETAINED_EVENT_N": len(event_idx),
+        "REFRACTORY_DROPPED_EXTREME_N": len(refractory_dropped_idx),
         "EVENT_N": len(event_idx),
         "CLOSING_EVENT_N": closing_n,
-        "CONTROL_N": control_n,
-        "RAW_CLOSING_NON_EVENT_N": raw_control_n,
+        "RAW_ELIGIBLE_CLOSING_CONTROL_N": raw_eligible_n,
+        "MATCHED_CLOSING_CONTROL_N": matched_n,
+        "MATCHED_CONTROL_N": matched_n,
+        "CONTROL_N": matched_n,
+        "ALL_MATCHED_CELLS_BALANCED": cells_balanced,
         "EVENT_BY_YEAR": event_by_year,
         "CLOSING_BY_YEAR": closing_by_year,
         "EVENT_BY_SIGN": event_by_sign,
         "EVENT_BY_YEAR_SIGN_BUCKET": event_by_year_sign_bucket,
         "CLOSING_BY_YEAR_SIGN_BUCKET": closing_by_year_sign_bucket,
-        "CONTROL_BY_YEAR_SIGN_BUCKET": control_by_year_sign_bucket,
+        "RAW_CONTROL_BY_YEAR_SIGN_BUCKET": {k: len(v) for k, v in raw_control_ids_by_cell.items()},
+        "MATCHED_CONTROL_BY_YEAR_SIGN_BUCKET": matched_control_by_cell,
+        "CONTROL_BY_YEAR_SIGN_BUCKET": matched_control_by_cell,
         "YEARS_WITH_CLOSING_EVENTS": years_closing,
         "YEARS_WITH_EVENT_AND_CONTROL": years_with_both,
         "SUPPORT_PASS": support_pass,
         "STATUS": status,
         "PRIMARY_LOCATION_STATISTIC": C.D9_PRIMARY_LOCATION_STATISTIC,
+        "CONTROL_SAMPLE_SEED": C.D9_CONTROL_SAMPLE_SEED,
+        "CONTROL_PERM_SEED": C.D9_CONTROL_PERM_SEED,
+        "MATCH_RULE": "1:1 YEAR x SIGN_D x RV_BUCKET without replacement; non-extreme only",
         "SHARE_VALUES_EMITTED": False,
     }
+    if include_indices:
+        out["RETAINED_EVENT_IDX"] = event_idx
+        out["REFRACTORY_DROPPED_EXTREME_IDX"] = refractory_dropped_idx
+        out["CLOSING_EVENT_IDX"] = closing_event_idx
+        out["RAW_CONTROL_IDX"] = raw_control_idx
+        out["MATCHED_CONTROL_IDX"] = matched_idx
+        out["IS_EXTREME_IDX"] = [i for i in range(n) if is_extreme[i]]
+        out["CLOSING_EVENT_IDS_BY_CELL"] = closing_event_ids_by_cell
+        out["MATCHED_CONTROL_IDS_BY_CELL"] = matched_ids_by_cell
+        out["RAW_CONTROL_IDS_BY_CELL"] = raw_control_ids_by_cell
+    return out
 
 
 def load_d9_inputs(*, repo: Path | None = None) -> tuple[dict[int, Any], dict[int, float], dict[str, Any]]:

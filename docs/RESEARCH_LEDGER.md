@@ -5222,3 +5222,43 @@ uses OPTION A no-intercept OLS so residual semantics match
 
 Evidence: `docs/research/DISCOVERY_SPRINT_03_IMPLEMENTATION_FREEZE.{json,md}`,
 `docs/research_data/D11_FOMC_OFFICIAL_V0/`.
+
+## 2026-09-22 — Sprint 03 targeted red-team repair (F1–F5)
+
+Accepted independent red-team verdict
+`C. FIX_REQUIRED_BEFORE_SCIENTIFIC_EXECUTION`. Narrow repair only.
+No scientific outcomes. No new cards. No MARKET-07. Protected 2025/2026
+sealed. `EXECUTION_AUTHORIZED = false`.
+
+```
+D9_RAW_EXTREME_BAR_N = 35157
+D9_RETAINED_EVENT_N = 8349
+D9_REFRACTORY_DROPPED_EXTREME_N = 26808
+D9_CLOSING_EVENT_N = 7184
+D9_RAW_ELIGIBLE_CLOSING_CONTROL_N = 130238
+D9_MATCHED_CLOSING_CONTROL_N = 7184
+D9_ALL_MATCHED_CELLS_BALANCED = true
+D9_P_HALF_RULE = two-sided sign-flip vs 0.5, seed 20260922193
+D9_P_CONTROL_RULE = two-sided stratified label permutation YEAR x SIGN_D x RV_BUCKET, seed 202609221932
+D9_STATISTICAL_GATE_RULE = P_HALF < 0.05 AND P_CONTROL < 0.05
+D9_SUPPORT_PASS = true
+D10_RAW_ELIGIBLE_CONTROL_N = 21368
+D10_EVENT_N = 4442
+D10_MATCHED_CONTROL_N = 4442
+D10_ALL_MATCHED_CELLS_BALANCED = true
+D10_PERMUTATION_RULE = STRATIFIED_LABEL_PERMUTATION YEAR x SIGN_E_T x ABS_BTC_RETURN_BUCKET
+D10_SUPPORT_PASS = true
+D11_EVENT_N = 39
+D11_CONTROL_N = 551
+D11_MIN_CONTROLS_AMONG_EVENTS = 44
+CLASSIFICATION_IDENTITY_PRECEDENCE = IDENTITY_OK false -> INVALID_DISCOVERY before support failure
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+NEXT_UNIT = DISCOVERY_SPRINT_03_IMPLEMENTATION_RED_TEAM_AND_EXECUTION_DECISION
+```
+
+D9 refractory-dropped P90 extremes are excluded from controls.
+D9/D10 controls are 1:1 composition-matched without replacement.
+D10 permutation is stratified inside frozen cells.
+D11 full 6h control windows exclude FOMC aftermath hours.
+
+Evidence: `docs/research/DISCOVERY_SPRINT_03_IMPLEMENTATION_FREEZE.{json,md}`.

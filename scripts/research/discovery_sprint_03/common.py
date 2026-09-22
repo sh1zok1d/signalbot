@@ -62,6 +62,8 @@ D9_MIN_EVENT_GAP_BARS = 12
 D9_PCTL = 90.0
 D9_RV_CUTS = (25.0, 50.0, 75.0)
 D9_SEED = 20260922193
+D9_CONTROL_SAMPLE_SEED = 202609221931
+D9_CONTROL_PERM_SEED = 202609221932
 D9_N_RANDOMIZATIONS = 10_000
 D9_PRIMARY_LOCATION_STATISTIC = "MEDIAN_PERP_RESOLUTION_SHARE"
 D9_NULL_SHARE = 0.5
@@ -82,7 +84,14 @@ D10_PCTL = 90.0
 D10_CONTROL_PCTL = 50.0
 D10_RV_CUTS = (25.0, 50.0, 75.0)
 D10_SEED = 20260922194
+D10_CONTROL_SAMPLE_SEED = 202609221941
 D10_N_RANDOMIZATIONS = 10_000
+D10_TEMPORAL_DEPENDENCE_LIMITATION = (
+    "Discovery-stage limitation: D10 events may cluster in calendar time. "
+    "This repair uses 1:1 YEAR x SIGN_E_T x ABS_BTC_RETURN_BUCKET matching and "
+    "stratified label permutation inside those frozen strata. It does not add "
+    "a post-hoc event refractory or a block bootstrap."
+)
 D10_REGRESSION_SPECIFICATION = "NO_INTERCEPT_OLS"
 D10_PRACTICAL_DELTA = 0.0005
 D10_TEMPORAL_YEARS_REQUIRED = 3
@@ -175,17 +184,137 @@ def refuse_real_scientific_execution() -> None:
 
 
 def percentile(values: Sequence[float], p: float) -> float:
-    arr = np.asarray(list(values), dtype=np.float64)
+    arr = np.asarray(values, dtype=np.float64)
     if arr.size == 0:
         raise Sprint03IntegrityError("EMPTY_PERCENTILE")
+    if not np.all(np.isfinite(arr)):
+        raise Sprint03IntegrityError("NONFINITE_PERCENTILE")
     return float(np.percentile(arr, p, method=PERCENTILE_METHOD))
 
 
 def median(values: Sequence[float]) -> float:
-    arr = np.asarray(list(values), dtype=np.float64)
+    arr = np.asarray(values, dtype=np.float64)
     if arr.size == 0:
         raise Sprint03IntegrityError("EMPTY_MEDIAN")
+    if not np.all(np.isfinite(arr)):
+        raise Sprint03IntegrityError("NONFINITE_MEDIAN")
     return float(np.median(arr))
+
+
+def classify_discovery(summary: Mapping[str, Any]) -> str:
+    """IDENTITY failure precedes support failure."""
+
+    if not bool(summary.get("IDENTITY_OK", True)):
+        return "INVALID_DISCOVERY"
+    if not bool(summary.get("SUPPORT_PASS")):
+        return "INCONCLUSIVE_DISCOVERY"
+    if (
+        bool(summary.get("STATISTICAL_GATE"))
+        and bool(summary.get("PRACTICAL_GATE"))
+        and bool(summary.get("TEMPORAL_GATE"))
+    ):
+        return "PROMISING_PROTOTYPE"
+    return "NO_USEFUL_STRUCTURE"
+
+
+def cell_rng(seed: int, cell: str) -> np.random.Generator:
+    digest = hashlib.sha256(f"{int(seed)}\0{cell}".encode("utf-8")).digest()
+    seq = np.random.SeedSequence(
+        [
+            int(seed),
+            int.from_bytes(digest[:8], "little"),
+            int.from_bytes(digest[8:16], "little"),
+        ]
+    )
+    return np.random.default_rng(seq)
+
+
+def sample_matched_ids_per_cell(
+    event_ids_by_cell: Mapping[str, Sequence[int]],
+    control_ids_by_cell: Mapping[str, Sequence[int]],
+    *,
+    seed: int,
+) -> tuple[dict[str, list[int]], bool]:
+    """1:1 without-replacement sample per cell. Outcome-blind; IDs only."""
+
+    matched: dict[str, list[int]] = {}
+    used: set[int] = set()
+    balanced = True
+    for cell in sorted(event_ids_by_cell):
+        n_event = len(list(event_ids_by_cell[cell]))
+        if n_event == 0:
+            matched[cell] = []
+            continue
+        candidates = sorted(
+            {
+                int(x)
+                for x in control_ids_by_cell.get(cell, [])
+                if int(x) not in used
+            }
+        )
+        if len(candidates) < n_event:
+            balanced = False
+            matched[cell] = []
+            continue
+        rng = cell_rng(seed, cell)
+        order = np.arange(len(candidates))
+        rng.shuffle(order)
+        chosen = [candidates[int(i)] for i in order[:n_event]]
+        for cid in chosen:
+            if cid in used:
+                raise Sprint03IntegrityError(f"CONTROL_REUSED:{cid}")
+            used.add(cid)
+        matched[cell] = sorted(chosen)
+        if len(matched[cell]) != n_event:
+            balanced = False
+    return matched, balanced
+
+
+def stratified_label_permutation_p(
+    event_by_cell: Mapping[str, Sequence[float]],
+    control_by_cell: Mapping[str, Sequence[float]],
+    *,
+    observed: float,
+    statistic,
+    seed: int,
+    n: int,
+    alternative: str,
+) -> float:
+    """Permute event/control labels inside each stratum. Never across strata."""
+
+    strata: list[tuple[str, np.ndarray, np.ndarray]] = []
+    for cell in sorted(set(event_by_cell) | set(control_by_cell)):
+        ev = np.asarray(list(event_by_cell.get(cell, [])), dtype=np.float64)
+        ct = np.asarray(list(control_by_cell.get(cell, [])), dtype=np.float64)
+        if ev.size == 0 and ct.size == 0:
+            continue
+        if ev.size != ct.size:
+            raise Sprint03IntegrityError(f"STRATUM_UNBALANCED:{cell}:{ev.size}:{ct.size}")
+        if not np.all(np.isfinite(ev)) or not np.all(np.isfinite(ct)):
+            raise Sprint03IntegrityError(f"NONFINITE_STRATUM:{cell}")
+        strata.append((cell, ev, ct))
+    if not strata:
+        raise Sprint03IntegrityError("EMPTY_STRATIFIED_PERMUTATION")
+    rng = np.random.default_rng(seed)
+    exceed = 0
+    for _ in range(n):
+        fake_e: list[np.ndarray] = []
+        fake_c: list[np.ndarray] = []
+        for _cell, ev, ct in strata:
+            pooled = np.concatenate([ev, ct])
+            rng.shuffle(pooled)
+            fake_e.append(pooled[: ev.size])
+            fake_c.append(pooled[ev.size :])
+        stat = float(statistic(np.concatenate(fake_e), np.concatenate(fake_c)))
+        if alternative == "two-sided-abs":
+            if abs(stat) >= abs(observed):
+                exceed += 1
+        elif alternative == "greater":
+            if stat >= observed:
+                exceed += 1
+        else:
+            raise Sprint03IntegrityError(f"BAD_ALTERNATIVE:{alternative}")
+    return (1.0 + exceed) / (1.0 + n)
 
 
 def quantile_bucket(value: float, trailing: Sequence[float]) -> int:

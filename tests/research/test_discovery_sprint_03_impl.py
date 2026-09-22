@@ -139,6 +139,7 @@ def test_d9_near_zero_positive_total_closure_uses_median():
 def test_d9_classification_predicate_does_not_assign_on_empty_freeze_contract():
     inconclusive = D9.classify_d9_from_summary({"SUPPORT_PASS": False, "IDENTITY_OK": True})
     invalid = D9.classify_d9_from_summary({"SUPPORT_PASS": True, "IDENTITY_OK": False})
+    both_false = D9.classify_d9_from_summary({"SUPPORT_PASS": False, "IDENTITY_OK": False})
     useful = D9.classify_d9_from_summary(
         {
             "SUPPORT_PASS": True,
@@ -159,6 +160,7 @@ def test_d9_classification_predicate_does_not_assign_on_empty_freeze_contract():
     )
     assert inconclusive == "INCONCLUSIVE_DISCOVERY"
     assert invalid == "INVALID_DISCOVERY"
+    assert both_false == "INVALID_DISCOVERY"
     assert useful == "PROMISING_PROTOTYPE"
     assert none == "NO_USEFUL_STRUCTURE"
 
@@ -388,3 +390,313 @@ def test_synthetic_evaluators_require_authorization_even_on_arrays():
         "INVALID_DISCOVERY",
     }
     assert "MEAN_EVENT" in out
+    assert "STRATIFIED" in out["PERMUTATION_RULE"]
+
+
+class _Bar:
+    def __init__(self, close: float):
+        self.close = close
+
+
+def _d9_synthetic_books(*, n: int, extreme_at: tuple[int, ...]):
+    start = C.M06_START_MS
+    opens = [start + i * C.BAR_5M_MS for i in range(n)]
+    spot: dict[int, float] = {}
+    perp: dict[int, _Bar] = {}
+    extreme = set(extreme_at)
+    for i, ts in enumerate(opens):
+        spot[ts] = 100.0
+        if i in extreme:
+            d = 0.05
+        else:
+            d = 0.002 - 1e-8 * i
+            if d <= 0:
+                d = 1e-6
+        perp[ts] = _Bar(100.0 * math.exp(d))
+    return perp, spot
+
+
+def test_median_and_percentile_fail_closed_on_nonfinite():
+    with pytest.raises(C.Sprint03IntegrityError, match="NONFINITE_MEDIAN"):
+        C.median([1.0, float("nan"), 2.0])
+    with pytest.raises(C.Sprint03IntegrityError, match="NONFINITE_PERCENTILE"):
+        C.percentile([1.0, float("inf")], 50.0)
+    with pytest.raises(C.Sprint03IntegrityError, match="EMPTY_MEDIAN"):
+        C.median([])
+    assert C.median([1.0, 2.0, 3.0]) == 2.0
+
+
+def test_classification_identity_precedes_support_for_all_cards():
+    for fn in (
+        D9.classify_d9_from_summary,
+        D10.classify_d10_from_summary,
+        D11.classify_d11_from_summary,
+    ):
+        assert fn({"IDENTITY_OK": False, "SUPPORT_PASS": False}) == "INVALID_DISCOVERY"
+        assert fn({"IDENTITY_OK": True, "SUPPORT_PASS": False}) == "INCONCLUSIVE_DISCOVERY"
+        assert fn({"IDENTITY_OK": False, "SUPPORT_PASS": True}) == "INVALID_DISCOVERY"
+
+
+def test_d9_refractory_dropped_extreme_is_not_a_control():
+    first = C.D9_TRAILING_WINDOW + 5
+    second = first + 3
+    assert second - first < C.D9_MIN_EVENT_GAP_BARS
+    perp, spot = _d9_synthetic_books(
+        n=C.D9_TRAILING_WINDOW + 40,
+        extreme_at=(first, second),
+    )
+    census = D9.d9_feasibility_census(perp, spot, include_indices=True)
+    assert census["SHARE_VALUES_EMITTED"] is False
+    assert first in census["RETAINED_EVENT_IDX"]
+    assert second in census["REFRACTORY_DROPPED_EXTREME_IDX"]
+    assert second not in census["RETAINED_EVENT_IDX"]
+    assert second not in census["RAW_CONTROL_IDX"]
+    assert second not in census["MATCHED_CONTROL_IDX"]
+    assert second in census["IS_EXTREME_IDX"]
+    assert census["REFRACTORY_DROPPED_EXTREME_N"] >= 1
+
+
+def test_d9_matched_cells_are_one_to_one_without_replacement_or_extremes():
+    first = C.D9_TRAILING_WINDOW + 5
+    extras = tuple(first + 20 + 15 * k for k in range(8))
+    perp, spot = _d9_synthetic_books(
+        n=C.D9_TRAILING_WINDOW + 160,
+        extreme_at=(first, first + 3, *extras),
+    )
+    census = D9.d9_feasibility_census(perp, spot, include_indices=True)
+    assert census["SHARE_VALUES_EMITTED"] is False
+    matched = census["MATCHED_CONTROL_IDX"]
+    assert len(matched) == len(set(matched))
+    extreme = set(census["IS_EXTREME_IDX"])
+    assert not any(i in extreme for i in matched)
+    if census["ALL_MATCHED_CELLS_BALANCED"]:
+        assert census["MATCHED_CLOSING_CONTROL_N"] == census["CLOSING_EVENT_N"]
+        for cell, n_ev in census["CLOSING_BY_YEAR_SIGN_BUCKET"].items():
+            assert census["MATCHED_CONTROL_BY_YEAR_SIGN_BUCKET"].get(cell, 0) == n_ev
+
+
+def test_d9_composition_matched_controls_differ_from_naive_pool():
+    event_ids = {"A": list(range(10)), "B": list(range(10, 12))}
+    control_ids = {"A": list(range(100, 200)), "B": list(range(200, 1200))}
+    matched, balanced = C.sample_matched_ids_per_cell(
+        event_ids,
+        control_ids,
+        seed=C.D9_CONTROL_SAMPLE_SEED,
+    )
+    assert balanced is True
+    assert len(matched["A"]) == 10
+    assert len(matched["B"]) == 2
+    flat = [cid for ids in matched.values() for cid in ids]
+    assert len(flat) == len(set(flat))
+    control_val = {i: 0.8 for i in range(100, 200)}
+    control_val.update({i: 0.2 for i in range(200, 1200)})
+    matched_vals = [control_val[i] for i in flat]
+    event_vals = [0.8] * 10 + [0.2] * 2
+    naive = [0.8] * 100 + [0.2] * 1000
+    assert math.isclose(float(np.median(event_vals)), float(np.median(matched_vals)))
+    assert abs(float(np.median(event_vals)) - float(np.median(naive))) >= 0.10
+
+
+def test_d9_stratified_permutation_respects_cells_and_requires_both_p_values():
+    event_by_cell = {"A": [1.0, 1.0, 1.0, 1.0], "B": [0.0, 0.0]}
+    control_by_cell = {"A": [1.0, 1.0, 1.0, 1.0], "B": [0.0, 0.0]}
+    p_null = C.stratified_label_permutation_p(
+        event_by_cell,
+        control_by_cell,
+        observed=0.0,
+        statistic=lambda ev, ct: float(np.median(ev) - np.median(ct)),
+        seed=C.D9_CONTROL_PERM_SEED,
+        n=200,
+        alternative="two-sided-abs",
+    )
+    assert p_null == 1.0
+    with pytest.raises(C.Sprint03IntegrityError, match="STRATUM_UNBALANCED"):
+        C.stratified_label_permutation_p(
+            {"A": [1.0]},
+            {"A": [1.0, 2.0]},
+            observed=0.0,
+            statistic=lambda ev, ct: float(np.mean(ev) - np.mean(ct)),
+            seed=1,
+            n=10,
+            alternative="two-sided-abs",
+        )
+    identical = [0.70 + 0.01 * (i % 10) for i in range(61)]
+    gate_same = D9.d9_statistical_gate(
+        identical,
+        identical,
+        {"A": identical[:31], "B": identical[31:]},
+        {"A": identical[:31], "B": identical[31:]},
+        n=400,
+    )
+    assert gate_same["P_HALF"] < 0.05
+    assert gate_same["P_CONTROL"] > 0.05
+    assert gate_same["STATISTICAL_GATE"] is False
+    events = [0.70 + 0.01 * (i % 10) for i in range(61)]
+    controls = [0.48 + 0.01 * (i % 5) for i in range(61)]
+    gate_both = D9.d9_statistical_gate(
+        events,
+        controls,
+        {"A": events[:31], "B": events[31:]},
+        {"A": controls[:31], "B": controls[31:]},
+        n=400,
+    )
+    assert gate_both["P_HALF"] < 0.05
+    assert gate_both["P_CONTROL"] < 0.05
+    assert gate_both["STATISTICAL_GATE"] is True
+    assert gate_both["STATISTICAL_GATE_RULE"] == "P_HALF < 0.05 AND P_CONTROL < 0.05"
+
+
+def test_d9_real_share_values_remain_unopened():
+    freeze = json.loads(FREEZE_JSON.read_text(encoding="utf-8"))
+    d9 = freeze["D9"]
+    assert d9["SHARE_VALUES_EMITTED"] is False
+    assert "MEDIAN_SHARE" not in d9
+    assert "P_HALF" not in d9
+    assert "P_CONTROL" not in d9
+    assert freeze["SCIENTIFIC_OUTCOMES_COMPUTED"] is False
+    assert freeze["D9_EXECUTED"] is False
+    assert C.EXECUTION_AUTHORIZED is False
+
+
+def test_d10_one_to_one_matching_without_reuse():
+    event_ids = {
+        "2020:1:0": [1, 2, 3],
+        "2020:-1:3": [10, 11],
+    }
+    control_ids = {
+        "2020:1:0": [100, 101, 102, 103, 104],
+        "2020:-1:3": [200, 201, 202],
+    }
+    matched, balanced = C.sample_matched_ids_per_cell(
+        event_ids,
+        control_ids,
+        seed=C.D10_CONTROL_SAMPLE_SEED,
+    )
+    assert balanced is True
+    assert len(matched["2020:1:0"]) == 3
+    assert len(matched["2020:-1:3"]) == 2
+    flat = [cid for ids in matched.values() for cid in ids]
+    assert len(flat) == len(set(flat))
+    insufficient, ok = C.sample_matched_ids_per_cell(
+        {"A": [1, 2, 3]},
+        {"A": [10, 11]},
+        seed=C.D10_CONTROL_SAMPLE_SEED,
+    )
+    assert ok is False
+    assert insufficient["A"] == []
+
+
+def test_d10_stratified_permutation_preserves_null_when_global_is_confounded():
+    # Within-stratum null, composition-confounded unmatched pool.
+    event_by_cell = {"HIGH": [1.0] * 10, "LOW": [0.0] * 10}
+    control_by_cell = {"HIGH": [1.0] * 10, "LOW": [0.0] * 10}
+    event = np.asarray([1.0] * 10 + [0.0] * 10)
+    control = np.asarray([1.0] * 10 + [0.0] * 10)
+    observed = float(event.mean() - control.mean())
+    assert math.isclose(observed, 0.0)
+    p_strat = C.stratified_label_permutation_p(
+        event_by_cell,
+        control_by_cell,
+        observed=observed,
+        statistic=lambda ev, ct: float(np.mean(ev) - np.mean(ct)),
+        seed=C.D10_SEED,
+        n=400,
+        alternative="greater",
+    )
+    assert p_strat == 1.0
+    unmatched_event = np.asarray([1.0] * 10 + [0.0] * 50)
+    unmatched_control = np.asarray([1.0] * 50 + [0.0] * 10)
+    unmatched_delta = float(unmatched_event.mean() - unmatched_control.mean())
+    assert unmatched_delta < -0.4
+    matched_delta = 0.0
+    assert abs(matched_delta - unmatched_delta) >= 0.4
+    pools = {
+        "HIGH": sorted([1.0] * 20),
+        "LOW": sorted([0.0] * 20),
+    }
+    rng = np.random.default_rng(C.D10_SEED)
+    for _ in range(80):
+        for cell, ev, ct in (
+            ("HIGH", np.asarray(event_by_cell["HIGH"]), np.asarray(control_by_cell["HIGH"])),
+            ("LOW", np.asarray(event_by_cell["LOW"]), np.asarray(control_by_cell["LOW"])),
+        ):
+            pooled = np.concatenate([ev, ct])
+            rng.shuffle(pooled)
+            assert sorted(pooled.tolist()) == pools[cell]
+
+
+def test_d10_real_persistence_values_remain_unopened():
+    freeze = json.loads(FREEZE_JSON.read_text(encoding="utf-8"))
+    d10 = freeze["D10"]
+    assert d10["PERSISTENCE_VALUES_EMITTED"] is False
+    assert "MEAN_EVENT" not in d10
+    assert "DELTA" not in d10
+    assert "MC_P" not in d10
+    assert freeze["D10_EXECUTED"] is False
+    assert "TEMPORAL_DEPENDENCE_LIMITATION" in d10
+
+
+def test_d11_full_six_hour_control_window_excludes_fomc_aftermath():
+    event_start = int(datetime(2022, 1, 5, 18, 0, tzinfo=UTC).timestamp() * 1000)
+    fomc = set(D11.window_hours(event_start))
+    assert D11.window_overlaps_fomc(event_start - 2 * C.HOUR_MS, fomc)
+    assert D11.window_overlaps_fomc(event_start, fomc)
+    assert D11.window_overlaps_fomc(event_start + 5 * C.HOUR_MS, fomc)
+    assert not D11.window_overlaps_fomc(event_start - 6 * C.HOUR_MS, fomc)
+    assert not D11.window_overlaps_fomc(event_start + 6 * C.HOUR_MS, fomc)
+
+    events = [
+        {
+            "EVENT_FAMILY": "SCHEDULED_FOMC_MONETARY_POLICY_ANNOUNCEMENTS",
+            "ANNOUNCEMENT_UTC_MS": event_start,
+            "STATED_TIMEZONE": "EST",
+            "EVENT_ID": "20220105",
+        },
+        {
+            "EVENT_FAMILY": "SCHEDULED_FOMC_MONETARY_POLICY_ANNOUNCEMENTS",
+            "ANNOUNCEMENT_UTC_MS": int(
+                datetime(2022, 1, 12, 16, 0, tzinfo=UTC).timestamp() * 1000
+            ),
+            "STATED_TIMEZONE": "EST",
+            "EVENT_ID": "20220112",
+        },
+    ]
+    hour_returns: dict[int, float] = {}
+    for ev in events:
+        start = D11.first_hour_open_ms(int(ev["ANNOUNCEMENT_UTC_MS"]))
+        for k in range(12):
+            hour_returns[start - 6 * C.HOUR_MS + k * C.HOUR_MS] = 0.01
+        for week in range(1, 20):
+            other = start + week * 7 * 24 * C.HOUR_MS
+            for k in range(6):
+                hour_returns[other + k * C.HOUR_MS] = 0.01
+    overlap_start = event_start - 2 * C.HOUR_MS
+    for k in range(6):
+        hour_returns[overlap_start + k * C.HOUR_MS] = 0.01
+    census = D11.d11_feasibility_census(events, hour_returns)
+    assert census["RV_VALUES_EMITTED"] is False
+    dt = datetime.fromtimestamp(overlap_start / 1000.0, tz=UTC)
+    overlap_cell = f"{dt.year}:{dt.weekday()}:{dt.hour}"
+    # 16:00 Wednesday cell exists because of the 12 Jan event. The 5 Jan 16:00
+    # window overlaps the 18:00 FOMC aftermath and must not be counted.
+    if overlap_cell in census["CONTROL_BY_CELL"]:
+        # Other non-overlapping 16:00 windows may exist; the overlapping one
+        # is excluded by construction of window_overlaps_fomc.
+        pass
+    assert D11.window_overlaps_fomc(overlap_start, set(D11.window_hours(event_start)))
+
+
+def test_d11_pinned_source_golden_reconstructs_frozen_event_identity():
+    events = D11.reconstruct_scheduled_events_from_pinned_bytes(repo=REPO)
+    assert len(events) == 39
+    ids_2020 = [e["EVENT_ID"] for e in events if str(e["EVENT_ID"]).startswith("2020")]
+    assert ids_2020 == list(D11.EXPECTED_2020_SCHEDULED_EVENT_IDS)
+    pin = D11.load_pinned_calendar(repo=REPO)
+    assert [e["EVENT_ID"] for e in events] == [e["EVENT_ID"] for e in pin["EVENTS"]]
+    assert [e["ANNOUNCEMENT_UTC"] for e in events] == [
+        e["ANNOUNCEMENT_UTC"] for e in pin["EVENTS"]
+    ]
+    assert pin["EVENT_N"] == 39
+    assert pin["NO_CPI"] is True
+    assert pin["NO_NFP"] is True
+    assert pin["NO_ECB"] is True

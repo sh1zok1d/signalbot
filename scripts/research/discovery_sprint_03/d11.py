@@ -282,6 +282,95 @@ def pin_official_fomc_sources(*, repo: Path | None = None, retrieve: bool = True
     return pin
 
 
+EXPECTED_2020_SCHEDULED_EVENT_IDS = (
+    "20200129",
+    "20200429",
+    "20200610",
+    "20200729",
+    "20200916",
+    "20201105",
+    "20201216",
+)
+
+
+def reconstruct_scheduled_events_from_pinned_bytes(
+    *,
+    repo: Path | None = None,
+) -> list[dict[str, Any]]:
+    """Read-only reconstruction from committed official bytes + PIN.json hashes.
+
+    No network. Does not rewrite PIN.json.
+    """
+
+    base = repo or C.repo_root()
+    pin_path = d11_source_dir(base) / "PIN.json"
+    if not pin_path.is_file():
+        raise D11SourceNotPinned("D11_SOURCE_NOT_PINNED:missing_PIN.json")
+    pin = json.loads(pin_path.read_text(encoding="utf-8"))
+    raw_dir = d11_source_dir(base) / "raw"
+    by_name = {str(src["filename"]): src for src in (pin.get("SOURCES") or [])}
+    required = ("fomccalendars.htm", "fomchistorical2020.htm", "monetary20130313a.htm")
+    decoded: dict[str, str] = {}
+    for name in required:
+        src = by_name.get(name)
+        if src is None:
+            raise D11SourceNotPinned(f"MISSING_PINNED_SOURCE_RECORD:{name}")
+        path = raw_dir / name
+        C.assert_openable(path)
+        data = path.read_bytes()
+        if C.sha256_bytes(data) != src["sha256"]:
+            raise C.SnapshotIdentityError(f"D11_SOURCE_HASH_MISMATCH:{name}")
+        decoded[name] = data.decode("utf-8", "replace")
+    dates = scheduled_2020_statement_dates(decoded["fomchistorical2020.htm"])
+    dates += scheduled_calendar_statement_dates(decoded["fomccalendars.htm"])
+    dates = sorted(set(dates))
+    events: list[dict[str, Any]] = []
+    for yyyymmdd in dates:
+        year = int(yyyymmdd[:4])
+        rel = f"/newsevents/pressreleases/monetary{yyyymmdd}a.htm"
+        url = FED_ORIGIN + rel
+        if year >= 2025:
+            continue
+        if is_forbidden_event_identity(url):
+            continue
+        name = f"monetary{yyyymmdd}a.htm"
+        src = by_name.get(name)
+        if src is None:
+            raise D11SourceNotPinned(f"MISSING_PINNED_STATEMENT:{name}")
+        path = raw_dir / name
+        C.assert_openable(path)
+        html_bytes = path.read_bytes()
+        if C.sha256_bytes(html_bytes) != src["sha256"]:
+            raise C.SnapshotIdentityError(f"D11_SOURCE_HASH_MISMATCH:{name}")
+        html = html_bytes.decode("utf-8", "replace")
+        released_utc = parse_release_datetime(html, yyyymmdd)
+        if released_utc >= C.PROTECTED_START:
+            continue
+        outcome_end = released_utc + timedelta(hours=C.D11_HORIZON_HOURS)
+        if outcome_end >= C.PROTECTED_START:
+            continue
+        zone_hit = RELEASE_RE.search(html)
+        events.append(
+            {
+                "EVENT_DATE": f"{yyyymmdd[0:4]}-{yyyymmdd[4:6]}-{yyyymmdd[6:8]}",
+                "EVENT_ID": yyyymmdd,
+                "STATEMENT_URL": url,
+                "SOURCE_FILENAME": name,
+                "SOURCE_SHA256": src["sha256"],
+                "OFFICIAL_RELEASE_TEXT": zone_hit.group(0).strip() if zone_hit else None,
+                "STATED_TIMEZONE": zone_hit.group(4) if zone_hit else None,
+                "ANNOUNCEMENT_UTC": released_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "ANNOUNCEMENT_UTC_MS": int(released_utc.timestamp() * 1000),
+                "OUTCOME_END_UTC": outcome_end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "YEAR": released_utc.year,
+                "WEEKDAY": released_utc.weekday(),
+                "UTC_HOUR": released_utc.hour,
+                "EVENT_FAMILY": "SCHEDULED_FOMC_MONETARY_POLICY_ANNOUNCEMENTS",
+            }
+        )
+    return events
+
+
 def load_pinned_calendar(*, repo: Path | None = None) -> dict[str, Any]:
     base = repo or C.repo_root()
     pin_path = d11_source_dir(base) / "PIN.json"
@@ -335,18 +424,17 @@ def post_event_rv_6h(
 
 
 def classify_d11_from_summary(summary: Mapping[str, Any]) -> str:
-    if not summary.get("SUPPORT_PASS"):
-        return "INCONCLUSIVE_DISCOVERY"
-    if not summary.get("IDENTITY_OK", True):
-        return "INVALID_DISCOVERY"
-    promising = bool(
-        summary.get("STATISTICAL_GATE")
-        and summary.get("PRACTICAL_GATE")
-        and summary.get("TEMPORAL_GATE")
-    )
-    if promising:
-        return "PROMISING_PROTOTYPE"
-    return "NO_USEFUL_STRUCTURE"
+    return C.classify_discovery(summary)
+
+
+def window_hours(start_ms: int) -> list[int]:
+    return [int(start_ms) + k * C.HOUR_MS for k in range(C.D11_HORIZON_HOURS)]
+
+
+def window_overlaps_fomc(start_ms: int, fomc_hours: set[int]) -> bool:
+    """True if any of the 6 constituent control hours is an FOMC event/aftermath hour."""
+
+    return any(hour in fomc_hours for hour in window_hours(start_ms))
 
 
 def d11_statistical_gate(
@@ -485,7 +573,9 @@ def d11_feasibility_census(
     control_by_cell: dict[str, int] = {cell: 0 for cell in event_cells}
     control_n = 0
     for start_ms, ret in hour_returns.items():
-        if start_ms in event_start_set or start_ms in fomc_hours:
+        if start_ms in event_start_set:
+            continue
+        if window_overlaps_fomc(start_ms, fomc_hours):
             continue
         if not math.isfinite(ret):
             continue
