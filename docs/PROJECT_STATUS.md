@@ -2,7 +2,7 @@
 
 **Status date:** 2026-09-22
 **Operating mode:** `RESEARCH_FIRST / PRODUCT_BUILD_FROZEN`  
-**Active phase:** `POST_D2_INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`
+**Active phase:** `POST_D7_HETEROGENEOUS_DISCOVERY_SPRINT_03`
 
 This file is intentionally concise. The pre-cleanup long-form status remains immutable in git at `b25d9ca99498630183813d0ccb8c6d67b93ad915`; experiment history remains in `docs/RESEARCH_LEDGER.md`.
 
@@ -28,15 +28,17 @@ The exact M05/M06 additive 24h adverse-path MAE cell is `REPEATED_NULL / LOW_PRI
 
 ## Active work
 
-Next: Discovery Sprint 02 D7 one-shot scientific execution
-(`DISCOVERY_SPRINT_02_D7_ONE_SHOT_SCIENTIFIC_EXECUTION`).
+Next: Discovery Sprint 03 D9 feasibility and outcome-blind implementation
+(`DISCOVERY_SPRINT_03_D9_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION`).
 
-`HETEROGENEOUS_FAMILY_ROTATION_V1` is frozen. Sprint 02 D7
-`KLINE_FLOW_IMPACT_STATE` execution route is frozen and authorized but
-**not executed**. D8 `ENDOGENOUS_SHOCK_RECOVERY` remains
-`DEFERRED_INSUFFICIENT_CONTROL_SUPPORT` and non-executable.
-No scientific outcomes. Do not execute D7 from this routing file.
-Do not rescue D8 thresholds.
+`HETEROGENEOUS_FAMILY_ROTATION_V2` is frozen. Sprint 03 D9
+`VENUE_DISLOCATION_RESOLUTION_STRUCTURE` is defined, not executed.
+D7 `KLINE_FLOW_IMPACT_STATE` is `PROMISING_PROTOTYPE` and a confirmation
+candidate, but confirmation is **not** selected now. Family E is in
+cooldown. D8 remains `DEFERRED_INSUFFICIENT_CONTROL_SUPPORT` and is not
+a negative scientific result. Do not rerun D7. Do not execute D8 or D9
+science from this routing file. Do not create MARKET-07. Do not open
+2025/2026.
 
 D2 remains an `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE` from the
 independent pre-2020 BitMEX surface, not a validated trading edge. The
