@@ -4851,3 +4851,23 @@ NEXT_UNIT_SCOPE = D7_ONLY
 - next required step: D7-only scientific execution freeze; do not
   execute D8; do not rescue D8 thresholds/controls; do not open
   2025/2026; do not create MARKET-07
+
+## 2026-09-22 — Discovery Sprint 02 D7 scientific execution freeze
+
+Outcome-blind freeze of the D7 one-shot route. Permit created.
+Scientific outcomes were not computed. D8 remains non-executable.
+
+```
+D7_EXECUTION_AUTHORIZED = true
+D7_EXECUTED = false
+D8_EXECUTION_AUTHORIZED = false
+D8_EXECUTED = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+NEXT_UNIT = DISCOVERY_SPRINT_02_D7_ONE_SHOT_SCIENTIFIC_EXECUTION
+```
+
+- next required step: D7 one-shot scientific execution only; do not
+  execute D8; do not open 2025/2026; do not create MARKET-07
