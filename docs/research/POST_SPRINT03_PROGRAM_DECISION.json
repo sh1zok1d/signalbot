@@ -1,0 +1,87 @@
+{
+  "AUTOMATIC_SPRINT05": false,
+  "BASE_MAIN_SHA": "d74255545f709d002733b2cb5d0aa447d7b30198",
+  "BASE_MAIN_TREE": "9162dfdbd00d0d28ebf9a4be2bc053ca72748f31",
+  "CARD_STATES": {
+    "D10": "CONSUMED_NO_USEFUL_STRUCTURE",
+    "D11": "CONSUMED_PROMISING_PROTOTYPE",
+    "D9": "CONSUMED_NO_USEFUL_STRUCTURE"
+  },
+  "CONFIRMATION_DEFERRAL_REASON": "The bottleneck is still mechanism-space coverage and discovery-method maturity, not confirmation of every positive discovery.",
+  "D10": "consumed NO_USEFUL_STRUCTURE",
+  "D11": "consumed PROMISING_PROTOTYPE",
+  "D11_CONFIRMATION_CANDIDATE": true,
+  "D11_CONFIRMATION_EXECUTED": false,
+  "D11_CONFIRMATION_SELECTED_NOW": false,
+  "D12_EXECUTED": false,
+  "D13_EXECUTED": false,
+  "D14_EXECUTED": "NOT_SELECTED",
+  "D7_CONFIRMATION_CANDIDATE": true,
+  "D7_CONFIRMATION_EXECUTED": false,
+  "D7_CONFIRMATION_SELECTED_NOW": false,
+  "D7_RERUN_PERFORMED": false,
+  "D8_EXECUTED": false,
+  "D9": "consumed NO_USEFUL_STRUCTURE",
+  "D9_D10_D11_RESULT_ARTIFACTS_MUTATED": false,
+  "DATE": "2026-09-22",
+  "DO_NOT_RESCUE": [
+    "D9",
+    "D10"
+  ],
+  "EXPECTED_INTERNAL_DISCOVERY_CARDS_EXECUTED_AFTER_SPRINT04": 10,
+  "GENERATOR_BUILT_NOW": false,
+  "GENERATOR_INITIAL_KPI": "Reduce active human hypothesis-discovery effort by about 70-80% without lowering research quality (duplicate rate, rescue rate, feasibility accuracy, reviewer acceptance).",
+  "GENERATOR_READINESS_CRITERIA": {
+    "ANTI_RESCUE_LINEAGE_MACHINE_READABLE": "present in rotation V2/V3 and card definitions",
+    "CLEAN_NEGATIVES_AT_LEAST_4": "D3, D4 (rolling), D5, D9, D10 already",
+    "DATA_FEASIBILITY_METADATA_PER_CANDIDATE": "present in Sprint03/04 candidate pools",
+    "DETERMINISTIC_CARD_SCHEMA": "discovery-card contract fields exist; must be consolidated into one validated schema",
+    "DISTINCT_MECHANISM_FAMILIES_EXECUTED_AT_LEAST_6": "executed so far: A (D2), C (D3), D (D4, D10), E (D7), G (D11), H (D9) plus the composed D5; J added by D12",
+    "DUPLICATE_DETECTION_HISTORY": "Sprint01-04 candidate pools with selected/rejected reasons (about 30 candidates) give a test set for whether an LLM proposes duplicates or genuinely new ideas",
+    "EVIDENCE_STATE_SEMANTICS": "PROMISING_PROTOTYPE / NO_USEFUL_STRUCTURE / INCONCLUSIVE_DISCOVERY / INVALID_DISCOVERY / DEFERRED_* in use",
+    "EXECUTED_INTERNAL_CARDS_AT_LEAST_10": "expected 10 after Sprint04",
+    "PROMISING_PROTOTYPES_AT_LEAST_2_WITH_DISTINCTNESS_ASSESSED": "3 exist; distinctness (second-moment concentration) must be assessed",
+    "STRUCTURED_MECHANISM_MEMORY_CURRENT_THROUGH_D13": "required; V0 stops at D8"
+  },
+  "INTERNAL_DISCOVERY_CARDS_EXECUTED": 8,
+  "INTERNAL_PROMISING_PROTOTYPES": 3,
+  "KIND": "PROGRAM_LEVEL_DECISION",
+  "MARKET_07_CREATED": false,
+  "MECHANISM_MEMORY_NOTE": "MECHANISM_MEMORY_V0 is frozen as of post-D7 and is left unchanged. A successor covering D9-D13 is required input for the post-Sprint04 automation maturity decision.",
+  "MECHANISM_MEMORY_V0_MODIFIED": false,
+  "NAME": "POST_SPRINT03_PROGRAM_DECISION",
+  "NEXT_UNIT": "DISCOVERY_SPRINT_04_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION",
+  "OPTION_B_ELIGIBLE_REGIONS_NAMED_NOW": [
+    "FORWARD_EXPECTATIONS (options implied vs realized; S4-C04) — the only major information class with zero executed cards"
+  ],
+  "OPTION_B_REQUIREMENT": "A concrete, named, uncovered mechanism region whose omission would make the evaluation of the discovery process materially incomplete. 'Search a little more' and 'maybe another positive' are not sufficient.",
+  "POST_SPRINT04_AUTOMATION_MATURITY_DECISION_REQUIRED": true,
+  "POST_SPRINT04_DECISION_OPTIONS": {
+    "A": "HYPOTHESIS_GENERATOR_V0_INFRA_READY",
+    "B": "AT_MOST_ONE_FINAL_SPRINT05"
+  },
+  "PRODUCT_BUILD_FROZEN": true,
+  "PROGRAM_OBSERVATIONS": {
+    "BTC_ONLY_INFORMATION_CONCENTRATION": "Eight of eight executed internal cards used BTC (plus ETH or one second venue); no card has used a true cross-section, forward expectations, or an identification design. Sprint04 adds the first cross-section and the first natural-experiment design.",
+    "CONSEQUENCE_FOR_AUTOMATION_DECISION": "The post-Sprint04 decision must state whether the positives are distinct mechanisms before using them as generator-evaluation ground truth.",
+    "CONSEQUENCE_FOR_SPRINT04": "No volatility-level card selected; Sprint04 targets participation timing (D12) and cross-sectional relative return (D13).",
+    "D11_MATCHING_NOTE": "D11 controls were matched on UTC hour within year, which mixes NY-clock positions across DST. Recorded as a design consideration for any future D11 confirmation only; the consumed D11 RESULT is not modified or reinterpreted.",
+    "SECOND_MOMENT_CONCENTRATION": "All three promising prototypes (D2 decomposed as volatility-scale compatible, D7 impact-state persistence, D11 unsigned event volatility) are volatility/activity-level structures. Every direction/return card so far is null. The three positives may partly share one phenomenon (volatility clustering / heteroskedasticity) and must not be counted as three independent mechanisms without that check."
+  },
+  "PROTECTED_2025_OPENED": false,
+  "PROTECTED_2026_OPENED": false,
+  "SCHEMA": "signalbot_program_decision",
+  "SCHEMA_VERSION": "1.0.0",
+  "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+  "SELECTED_POLICY": "HETEROGENEOUS_FAMILY_ROTATION_V3",
+  "SPRINT03_BATCH_RESULT_PAYLOAD_SHA256": "1e1d25e13289fbbe2e0e96cd8b0c171b804c233f7b4b1d2771785b284c2e04ea",
+  "SPRINT03_RESULT_REL": "docs/research/DISCOVERY_SPRINT_03_RESULT.json",
+  "SPRINT04_SELECTED_CARDS": [
+    "D12",
+    "D13"
+  ],
+  "SPRINT04_SELECTED_COUNT": 2,
+  "SPRINT04_SELECTION_REL": "docs/research/DISCOVERY_SPRINT_04.json",
+  "STATUS": "DECIDED",
+  "UNIT": "DISCOVERY_SPRINT_03_POST_RESULT_PROGRAM_DECISION"
+}
