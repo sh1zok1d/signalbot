@@ -968,3 +968,22 @@ NEXT_UNIT = HETEROGENEOUS_FAMILY_ROTATION_V1
 ```
 
 Full record: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_RESULT.{json,md}`.
+
+## Heterogeneous family rotation V1 / Sprint 02 card definition (2026-09-22)
+
+Historical Sprint 01 routing after the D2 excess path-risk one-shot was
+`HETEROGENEOUS_FAMILY_ROTATION_V1`. That policy is now frozen and applied
+as `DISCOVERY_SPRINT_02_HETEROGENEOUS_CARD_DEFINITION`. Current routing
+lives in `docs/CURRENT_RESEARCH_STATE.md`.
+
+```
+HETEROGENEOUS_FAMILY_ROTATION_V1 = FROZEN
+DISCOVERY_SPRINT_02 = DEFINED
+D7_STATUS = DEFINED_NOT_EXECUTED
+D8_STATUS = DEFINED_NOT_EXECUTED
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+MARKET_07_CREATED = false
+NEXT_UNIT = DISCOVERY_SPRINT_02_FEASIBILITY_AND_IMPLEMENTATION
+```
+
+This Sprint 01 file remains historical. It does not execute D7/D8.

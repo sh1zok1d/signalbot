@@ -4729,3 +4729,46 @@ NEXT_UNIT = HETEROGENEOUS_FAMILY_ROTATION_V1
 
 - next required step: continue orthogonal family rotation
   (`HETEROGENEOUS_FAMILY_ROTATION_V1`); do not rerun this one-shot
+
+## 2026-09-22 — Heterogeneous family rotation V1 / Discovery Sprint 02 card definition
+
+Outcome-blind card definition only. Applied frozen
+`HETEROGENEOUS_FAMILY_ROTATION_V1`. Created exactly two internal
+discovery cards. Did not execute D7/D8. Did not inspect scientific
+outcomes. Did not open 2025/2026. Did not create MARKET-07. Did not
+modify D2 RESULT / permit / selector / evaluator / design.
+
+```
+HETEROGENEOUS_FAMILY_ROTATION_V1 = FROZEN
+DISCOVERY_SPRINT_02 = DEFINED
+DISCOVERY_SPRINT_02_INTERNAL_CARDS = 2
+D7 = KLINE_FLOW_IMPACT_STATE / FAMILY E / LIQUIDITY_EXECUTION_STATE
+D8 = ENDOGENOUS_SHOCK_RECOVERY / FAMILY G / EVENT_RESPONSE_RECOVERY
+D7_STATUS = DEFINED_NOT_EXECUTED
+D8_STATUS = DEFINED_NOT_EXECUTED
+D7_EXECUTED = false
+D8_EXECUTED = false
+F_STATUS = DEFERRED_BLOCKER_UNRESOLVED
+H_STATUS = DEFERRED_DATA_LIMITATION
+I_STATUS = DEFERRED_SOURCE_NOT_PINNED
+A_B_C_D = NOT_SELECTED_THIS_ROTATION
+DATA_LABEL = ADAPTIVE_DISCOVERY_ON_HISTORICALLY_EXPOSED_DATA
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+MARKET_07_CREATED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+PRODUCT_BUILD_FROZEN = true
+KLINE_PROXY_ONLY = true
+NOT_ORDERBOOK_LIQUIDITY = true
+NOT_REALIZED_SLIPPAGE = true
+NO_EXOGENOUS_CALENDAR = true
+NEXT_UNIT = DISCOVERY_SPRINT_02_FEASIBILITY_AND_IMPLEMENTATION
+```
+
+Evidence: `docs/research/HETEROGENEOUS_FAMILY_ROTATION_V1.{json,md}`,
+`docs/research/DISCOVERY_SPRINT_02.{json,md}`.
+
+- next required step: Sprint 02 non-outcome feasibility census,
+  implementation, synthetic tests, and outcome-blind review
+  (`DISCOVERY_SPRINT_02_FEASIBILITY_AND_IMPLEMENTATION`); do not
+  execute D7/D8 scientific outcomes automatically
