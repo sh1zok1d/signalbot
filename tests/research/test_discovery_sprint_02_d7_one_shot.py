@@ -8,6 +8,7 @@ from __future__ import annotations
 import inspect
 import json
 import math
+import os
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
@@ -506,6 +507,10 @@ def test_execute_one_shot_mocked_does_not_open_protected_years(tmp_path):
         "D7_PROMISING_PROTOTYPE",
         "D7_NO_USEFUL_STRUCTURE",
     }
+    assert "RESULT_PAYLOAD_SHA256" in result
+    stored = json.loads((repo / OS.RESULT_JSON_REL).read_text(encoding="utf-8"))
+    without = {k: v for k, v in stored.items() if k != "RESULT_PAYLOAD_SHA256"}
+    assert stored["RESULT_PAYLOAD_SHA256"] == OS.result_payload_sha256(without)
     (repo / OS.RESULT_JSON_REL).unlink()
     (repo / OS.RESULT_MD_REL).unlink()
 
@@ -675,6 +680,7 @@ def test_execute_one_shot_must_not_write_permit(tmp_path):
         "D7_PROMISING_PROTOTYPE",
         "D7_NO_USEFUL_STRUCTURE",
     }
+    assert result["RESULT_PAYLOAD_SHA256"] == OS.result_payload_sha256(result)
     (repo / OS.RESULT_JSON_REL).unlink()
     (repo / OS.RESULT_MD_REL).unlink()
 
@@ -726,3 +732,127 @@ def test_permit_binds_live_runner_and_impl_only_as_runtime_executables():
     runner_src = inspect.getsource(OS.execute_one_shot)
     assert "discovery_sprint_02_impl" in Path(OS.__file__).read_text(encoding="utf-8")
     assert "discovery_sprint_02_feasibility" not in runner_src
+    assert "market_06_result_persistence" not in Path(OS.__file__).read_text(encoding="utf-8")
+
+
+def _synthetic_wrapped(**overrides) -> dict:
+    raw = {
+        "CLASSIFICATION": "D7_NO_USEFUL_STRUCTURE",
+        "MU_D7_RULE": 0.11,
+        "MU_D7_CONTROL": 0.04,
+        "DELTA_D7": 0.07,
+        "CONTROL_D7_P95": 0.08,
+        "MC_P_D7": 0.42,
+        "YEARLY_DELTA_D7": {"2020": 0.01, "2021": 0.02},
+        "STATISTICAL_GATE": False,
+        "PRACTICAL_GATE": True,
+        "TEMPORAL_GATE": False,
+    }
+    raw.update(overrides)
+    permit = json.loads((REPO / OS.PERMIT_REL).read_text(encoding="utf-8"))
+    return OS.wrap_one_shot_result(
+        raw,
+        permit=permit,
+        permit_commit="deadbeef",
+        execution_permit_sha256="ab" * 32,
+    )
+
+
+def test_result_payload_sha256_is_deterministic():
+    payload = _synthetic_wrapped()
+    first = OS.result_payload_sha256(payload)
+    second = OS.result_payload_sha256(dict(payload))
+    assert first == second
+    assert len(first) == 64
+    assert first == OS.result_payload_sha256(
+        {**payload, "RESULT_PAYLOAD_SHA256": "0" * 64}
+    )
+
+
+@pytest.mark.parametrize("field,value", [
+    ("CLASSIFICATION", "D7_PROMISING_PROTOTYPE"),
+    ("MU_D7_RULE", 0.99),
+    ("DELTA_D7", 0.99),
+])
+def test_scientific_field_mutation_changes_result_payload_sha256(field, value):
+    payload = _synthetic_wrapped()
+    original = OS.result_payload_sha256(payload)
+    mutated = dict(payload)
+    mutated[field] = value
+    assert mutated[field] != payload[field]
+    assert OS.result_payload_sha256(mutated) != original
+
+
+def test_result_payload_sha256_excludes_itself_and_round_trips(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    payload = _synthetic_wrapped()
+    written = OS.persist_result(repo, payload)
+    raw_bytes = (repo / OS.RESULT_JSON_REL).read_bytes()
+    assert raw_bytes == I.canonical_json(written).encode("utf-8")
+    stored = json.loads(raw_bytes.decode("utf-8"))
+    assert stored == written
+    without = {key: value for key, value in stored.items() if key != "RESULT_PAYLOAD_SHA256"}
+    assert stored["RESULT_PAYLOAD_SHA256"] == OS.result_payload_sha256(without)
+    assert written["RESULT_PAYLOAD_SHA256"] == OS.result_payload_sha256(payload)
+    md = (repo / OS.RESULT_MD_REL).read_text(encoding="utf-8")
+    assert f"CLASSIFICATION = `{stored['CLASSIFICATION']}`" in md
+    assert f"RUN_IDENTITY = `{stored['RUN_IDENTITY']}`" in md
+    assert f"RESULT_PAYLOAD_SHA256 = `{stored['RESULT_PAYLOAD_SHA256']}`" in md
+    assert f"EXECUTION_PERMIT_SHA256 = `{stored['EXECUTION_PERMIT_SHA256']}`" in md
+    assert "ONE_SHOT = true" in md
+    assert "RERUN_AUTHORIZED = false" in md
+    assert OS.result_payload_sha256(stored) == stored["RESULT_PAYLOAD_SHA256"]
+    (repo / OS.RESULT_JSON_REL).unlink()
+    (repo / OS.RESULT_MD_REL).unlink()
+    assert not OS.result_exists(repo)
+
+
+def test_persist_result_uses_atomic_final_path_replacement(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    payload = _synthetic_wrapped()
+    replaced: list[tuple[str, str]] = []
+    real_replace = os.replace
+
+    def recording_replace(src, dst, *args, **kwargs):
+        replaced.append((str(src), str(dst)))
+        return real_replace(src, dst, *args, **kwargs)
+
+    original_write_text = Path.write_text
+
+    def forbid_result_write_text(self, *args, **kwargs):
+        text = str(self)
+        if "DISCOVERY_SPRINT_02_D7_RESULT" in text:
+            raise AssertionError("persist_result used Path.write_text")
+        return original_write_text(self, *args, **kwargs)
+
+    with patch("os.replace", side_effect=recording_replace), patch.object(
+        Path, "write_text", forbid_result_write_text
+    ):
+        written = OS.persist_result(repo, payload)
+    json_path = repo / OS.RESULT_JSON_REL
+    md_path = repo / OS.RESULT_MD_REL
+    assert json_path.is_file()
+    assert md_path.is_file()
+    assert not list(json_path.parent.glob("DISCOVERY_SPRINT_02_D7_RESULT*.tmp"))
+    dsts = [Path(dst).name for _src, dst in replaced]
+    assert "DISCOVERY_SPRINT_02_D7_RESULT.json" in dsts
+    assert "DISCOVERY_SPRINT_02_D7_RESULT.md" in dsts
+    srcs = [Path(src).name for src, _dst in replaced]
+    assert "DISCOVERY_SPRINT_02_D7_RESULT.json.tmp" in srcs
+    assert "DISCOVERY_SPRINT_02_D7_RESULT.md.tmp" in srcs
+    assert written["RESULT_PAYLOAD_SHA256"]
+    json_path.unlink()
+    md_path.unlink()
+
+
+def test_persist_result_does_not_repair_permit(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    payload = _synthetic_wrapped()
+
+    def boom_write(_repo):
+        raise AssertionError("write_permit called during persist_result")
+
+    with patch.object(OS, "write_permit", side_effect=boom_write):
+        OS.persist_result(repo, payload)
+    (repo / OS.RESULT_JSON_REL).unlink()
+    (repo / OS.RESULT_MD_REL).unlink()

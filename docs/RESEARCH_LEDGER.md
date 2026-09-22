@@ -4895,3 +4895,25 @@ NEXT_UNIT = DISCOVERY_SPRINT_02_D7_ONE_SHOT_SCIENTIFIC_EXECUTION
 
 - next required step remains D7 one-shot scientific execution only; do
   not execute D8; do not open 2025/2026; do not create MARKET-07
+
+## 2026-09-22 — Discovery Sprint 02 D7 RESULT-persistence integrity repair
+
+Outcome-blind repair of PR #194. Canonical one-shot RESULT persistence
+now uses atomic final-path replacement and `RESULT_PAYLOAD_SHA256` over
+canonical JSON excluding the digest field. Scientific outcomes were not
+computed. D8 remains non-executable.
+
+```
+F3_RESULT_PERSISTENCE_DURABLE = true
+RESULT_PAYLOAD_SHA256_IMPLEMENTED = true
+D7_EXECUTED = false
+D8_EXECUTED = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+NEXT_UNIT = DISCOVERY_SPRINT_02_D7_ONE_SHOT_SCIENTIFIC_EXECUTION
+```
+
+- next required step remains D7 one-shot scientific execution only; do
+  not execute D8; do not open 2025/2026; do not create MARKET-07

@@ -404,6 +404,38 @@ def wrap_one_shot_result(
     }
 
 
+def result_payload_sha256(payload: Mapping[str, Any]) -> str:
+    """SHA256 of canonical JSON excluding RESULT_PAYLOAD_SHA256 itself."""
+
+    hashed = {
+        key: value for key, value in payload.items() if key != "RESULT_PAYLOAD_SHA256"
+    }
+    return I.sha256_bytes(I.canonical_json(hashed).encode("utf-8"))
+
+
+def render_result_markdown(result: Mapping[str, Any]) -> str:
+    """Human-readable derivative. Not a second scientific authority."""
+
+    return "\n".join(
+        [
+            "# Discovery Sprint 02 D7 canonical one-shot RESULT",
+            "",
+            f"CLASSIFICATION = `{result.get('CLASSIFICATION')}`",
+            f"RUN_IDENTITY = `{result.get('RUN_IDENTITY')}`",
+            f"RESULT_PAYLOAD_SHA256 = `{result.get('RESULT_PAYLOAD_SHA256')}`",
+            f"EXECUTION_PERMIT_SHA256 = `{result.get('EXECUTION_PERMIT_SHA256')}`",
+            "ONE_SHOT = true",
+            "RERUN_AUTHORIZED = false",
+            "",
+            "Canonical JSON RESULT is the scientific payload.",
+            "Markdown is a human-readable derivative, not a second authority.",
+            "Evaluator classification is preserved without reinterpretation.",
+            "NOT_PROVEN_ALPHA. NOT_VALIDATED_TRADING_EDGE.",
+            "",
+        ]
+    )
+
+
 def _atomic_write(path: Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
@@ -412,24 +444,25 @@ def _atomic_write(path: Path, data: bytes) -> None:
         handle.flush()
         os.fsync(handle.fileno())
     os.replace(tmp, path)
+    directory = os.open(str(path.parent), os.O_DIRECTORY)
+    try:
+        os.fsync(directory)
+    finally:
+        os.close(directory)
 
 
 def persist_result(repo: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
-    (repo / RESULT_JSON_REL).write_text(I.canonical_json(payload), encoding="utf-8")
-    md = "\n".join(
-        [
-            "# Discovery Sprint 02 D7 canonical one-shot RESULT",
-            "",
-            f"CLASSIFICATION = `{payload.get('CLASSIFICATION')}`",
-            f"RUN_IDENTITY = `{payload.get('RUN_IDENTITY')}`",
-            "",
-            "Evaluator classification is preserved without reinterpretation.",
-            "NOT_PROVEN_ALPHA. NOT_VALIDATED_TRADING_EDGE.",
-            "",
-        ]
-    )
-    (repo / RESULT_MD_REL).write_text(md, encoding="utf-8")
-    return dict(payload)
+    hashed = {
+        key: value for key, value in payload.items() if key != "RESULT_PAYLOAD_SHA256"
+    }
+    digest = result_payload_sha256(hashed)
+    written = dict(hashed)
+    written["RESULT_PAYLOAD_SHA256"] = digest
+    json_bytes = I.canonical_json(written).encode("utf-8")
+    md_bytes = render_result_markdown(written).encode("utf-8")
+    _atomic_write(repo / RESULT_JSON_REL, json_bytes)
+    _atomic_write(repo / RESULT_MD_REL, md_bytes)
+    return written
 
 
 def execute_one_shot(repo: Path | None = None) -> dict[str, Any]:
