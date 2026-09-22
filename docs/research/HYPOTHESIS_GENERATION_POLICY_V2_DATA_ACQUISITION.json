@@ -1,0 +1,269 @@
+{
+  "UNIT": "HYPOTHESIS_GENERATION_POLICY_V2_DATA_ACQUISITION",
+  "STATUS": "FROZEN",
+  "DATE_UTC": "2026-09-22",
+  "BASE_MAIN_SHA": "68f5c964f7f19e7d358a3362057d6aede5eae8b1",
+  "APPLIES_FROM_NEXT_HYPOTHESIS_GENERATION_CYCLE": true,
+  "CURRENT_D7_D8_CHANGED": false,
+  "CURRENT_D7_D8_MUST_FINISH_AS_DEFINED": true,
+  "PURPOSE": "Prevent current repository data inventory from becoming an implicit hypothesis-generation prior. Data availability is an execution-cost/feasibility attribute, not a hypothesis-generation filter.",
+  "CORE_RULES": {
+    "HYPOTHESIS_GENERATION_UNCONSTRAINED_BY_CURRENT_DATA_INVENTORY": true,
+    "DATA_AVAILABILITY_IS_NOT_SCIENTIFIC_PRIORITY": true,
+    "MISSING_DATA_DOES_NOT_REJECT_HYPOTHESIS": true,
+    "NEW_DATASET_ENGINEERING_REQUIRES_A_SPECIFIC_SCIENTIFIC_QUESTION": true,
+    "DATA_ACQUISITION_MUST_BE_EVALUATED_AFTER_HYPOTHESIS_GENERATION": true,
+    "PROTECTED_2025_2026_REMAIN_SEALED": true
+  },
+  "DATA_FEASIBILITY_CLASSES": [
+    "DATA_READY",
+    "ACQUIRABLE_FREE_HISTORICAL",
+    "ACQUIRABLE_PAID_HISTORICAL",
+    "NEW_DATASET_BUILD_REQUIRED",
+    "FORWARD_COLLECTION_ONLY",
+    "CURRENTLY_INFEASIBLE"
+  ],
+  "SELECTION_DIMENSIONS": [
+    "INFORMATION_GAIN",
+    "SCIENTIFIC_NOVELTY",
+    "MECHANISM_PLAUSIBILITY",
+    "ORTHOGONALITY_TO_PRIOR_SEARCH",
+    "CONFIRMATORY_POTENTIAL",
+    "DATA_ACQUISITION_COST",
+    "ENGINEERING_COST",
+    "PROVENANCE_AND_POINT_IN_TIME_QUALITY"
+  ],
+  "SELECTION_RULE": "Do not rank a weaker hypothesis above a stronger, more orthogonal hypothesis merely because the weaker hypothesis already fits the current parquet inventory. Data/engineering cost may affect execution order, but not erase the hypothesis from mechanism-space.",
+  "NEW_INFORMATION_SOURCE_BUDGET": {
+    "REQUIRED_IN_FUTURE_SPRINTS": true,
+    "PURPOSE": "Reserve explicit search budget for mechanism families requiring information not already present in Signalbot.",
+    "EXAMPLES": [
+      "order_book_L2_or_L3",
+      "tick_trades_and_queue_or_replenishment_proxies",
+      "liquidations",
+      "options_IV_skew_term_structure",
+      "cross_venue_microstructure",
+      "cross_sectional_universe",
+      "macro_event_timestamps",
+      "news_or_event_data",
+      "on_chain_state"
+    ]
+  },
+  "DATA_SOURCE_MAP_AS_OF_2026_09_22": [
+    {
+      "SOURCE": "Binance Public Data",
+      "ACCESS": "FREE_OFFICIAL",
+      "URL": "https://data.binance.vision/",
+      "USEFUL_FOR": [
+        "klines",
+        "trades",
+        "aggTrades",
+        "bookTicker",
+        "funding",
+        "mark/index/premium price series",
+        "futures metrics/open-interest related fields",
+        "daily bookDepth snapshots/aggregates",
+        "some liquidation snapshots",
+        "options BVOLIndex/EOHSummary"
+      ],
+      "QUALITY": "HIGH_FOR_EXCHANGE_NATIVE_ARCHIVES_WITH_CHECKSUMS_BUT_REQUIRES_GAP_AND_SCHEMA_AUDIT",
+      "LIMITATIONS": [
+        "free historical bookDepth must not be treated as guaranteed full tick-by-tick L2 reconstruction",
+        "coverage differs by dataset and period",
+        "archive issues and replacements exist"
+      ]
+    },
+    {
+      "SOURCE": "OKX Historical Market Data",
+      "ACCESS": "FREE_OFFICIAL",
+      "URL": "https://www.okx.com/en-us/historical-data",
+      "USEFUL_FOR": [
+        "tick trades from 2021-09",
+        "funding rates from 2022-03",
+        "high-resolution L2 order book from 2023-03",
+        "borrowing rates from 2021-12",
+        "OHLC from 2023-07"
+      ],
+      "QUALITY": "HIGH_AND_DIRECTLY_RELEVANT_FOR_MICROSTRUCTURE_AND_CROSS_VENUE_WORK",
+      "LIMITATIONS": [
+        "historical depth does not cover the full 2020-2024 window"
+      ]
+    },
+    {
+      "SOURCE": "Tardis.dev free monthly samples",
+      "ACCESS": "FREE_SAMPLE_ONLY",
+      "URL": "https://docs.tardis.dev/downloadable-csv-files",
+      "USEFUL_FOR": [
+        "schema and feasibility checks",
+        "L2 incremental order books",
+        "order book snapshots",
+        "trades",
+        "options chains",
+        "funding/open interest",
+        "liquidations"
+      ],
+      "QUALITY": "HIGH_GRANULARITY_CAPTURED_FROM_EXCHANGE_WEBSOCKETS",
+      "LIMITATIONS": [
+        "without API key, only first day of each month is freely downloadable",
+        "not enough by itself for continuous historical research"
+      ]
+    },
+    {
+      "SOURCE": "Coin Metrics Community API",
+      "ACCESS": "FREE_NONCOMMERCIAL",
+      "URL": "https://community-api.coinmetrics.io/v4",
+      "USEFUL_FOR": [
+        "community network/on-chain metrics",
+        "reference rates",
+        "subset of market data",
+        "cross-sectional asset-level research"
+      ],
+      "QUALITY": "GOOD_FOR_COMMUNITY_METRICS_AND_REFERENCE_DATA",
+      "LIMITATIONS": [
+        "community market-data history/granularity is limited relative to Pro",
+        "CC BY-NC 4.0 / non-commercial constraints must be respected"
+      ]
+    },
+    {
+      "SOURCE": "Federal Reserve / FRED / ALFRED",
+      "ACCESS": "FREE_OFFICIAL",
+      "URL": "https://fred.stlouisfed.org/docs/api/fred/",
+      "USEFUL_FOR": [
+        "macro series",
+        "vintage/revision history",
+        "release dates",
+        "FOMC calendars/statements and event timestamps"
+      ],
+      "QUALITY": "HIGH_FOR_MACRO_AND_POLICY_EVENT_RESEARCH",
+      "LIMITATIONS": [
+        "release-date metadata is not always identical to exact first market-availability timestamp; source-specific validation is required"
+      ]
+    },
+    {
+      "SOURCE": "GDELT",
+      "ACCESS": "FREE_OPEN",
+      "URL": "https://gdeltproject.org/",
+      "USEFUL_FOR": [
+        "broad news/event discovery",
+        "event graph",
+        "global news timing and topic features"
+      ],
+      "QUALITY": "USEFUL_FOR_DISCOVERY_NOT_FINANCE_GRADE_EVENT_LABELS_WITHOUT_ADDITIONAL_VALIDATION",
+      "LIMITATIONS": [
+        "noisy taxonomy and duplicate/reporting effects",
+        "precise trading-event timestamp semantics require validation"
+      ]
+    },
+    {
+      "SOURCE": "CoinGlass",
+      "ACCESS": "PAID_LOW_TO_MEDIUM_COST",
+      "URL": "https://www.coinglass.com/pricing",
+      "USEFUL_FOR": [
+        "historical open interest",
+        "funding",
+        "liquidations",
+        "cross-exchange derivative aggregates",
+        "options OI"
+      ],
+      "CURRENT_PUBLIC_PRICE_NOTE": "Hobbyist $29/month; Startup $79/month; Standard $299/month; Professional $699/month.",
+      "LIMITATIONS": [
+        "lower tiers restrict historical interval granularity",
+        "tick liquidation order access is not on the cheapest tiers"
+      ]
+    },
+    {
+      "SOURCE": "CoinAPI",
+      "ACCESS": "PAID_USAGE_BASED",
+      "URL": "https://www.coinapi.io/products/flat-files/pricing",
+      "USEFUL_FOR": [
+        "historical order book snapshots",
+        "trades and normalized multi-exchange data"
+      ],
+      "CURRENT_PUBLIC_PRICE_NOTE": "No traditional free plan; $25 signup credits on PAYG. Flat-file L2 first 1 GiB/day/SKU starts at $8/GiB.",
+      "LIMITATIONS": [
+        "cost can grow quickly for dense L2 history"
+      ]
+    },
+    {
+      "SOURCE": "Tardis.dev subscription",
+      "ACCESS": "PAID_HIGH_QUALITY",
+      "URL": "https://tardis.dev/",
+      "USEFUL_FOR": [
+        "full tick-level L2/L3 where available",
+        "reconstructed books",
+        "trades",
+        "options chains",
+        "funding/open interest",
+        "liquidations",
+        "cross-exchange replay"
+      ],
+      "CURRENT_PUBLIC_PRICE_NOTE": "Solo roughly $700/month for Perpetuals or Options, $900/month Derivatives, $1,200/month All Exchanges; yearly billing gives 4 years historical access for Solo.",
+      "QUALITY": "STRONG_CANDIDATE_FOR_SERIOUS_MICROSTRUCTURE_HISTORY_IF_FREE_EXCHANGE_ARCHIVES_ARE_INSUFFICIENT"
+    },
+    {
+      "SOURCE": "Kaiko",
+      "ACCESS": "PAID_INSTITUTIONAL",
+      "URL": "https://www.kaiko.com/products/l1-l2-data",
+      "USEFUL_FOR": [
+        "normalized trades",
+        "L2 snapshots",
+        "market depth",
+        "spread",
+        "slippage",
+        "full order book feeds",
+        "broad exchange coverage"
+      ],
+      "CURRENT_PUBLIC_PRICE_NOTE": "Published L2 aggregation tier from about $2,000/month; L2 tick-level from about $2,500/month.",
+      "QUALITY": "INSTITUTIONAL_BUT_TOO_EXPENSIVE_FOR_DEFAULT_SIGNALBOT_DISCOVERY"
+    },
+    {
+      "SOURCE": "Amberdata",
+      "ACCESS": "PAID_INSTITUTIONAL",
+      "URL": "https://www.amberdata.io/market-data",
+      "USEFUL_FOR": [
+        "historical spot/futures/options",
+        "order book events and snapshots",
+        "funding/open interest",
+        "liquidations",
+        "liquidity/slippage analytics"
+      ],
+      "CURRENT_PUBLIC_PRICE_NOTE": "Pricing depends on package/exchange; monthly subscription provides one-year API lookback, yearly provides full historical API access.",
+      "QUALITY": "GOOD_CANDIDATE_IF_NORMALIZED_CROSS_VENUE_OR_OPTIONS_DATA_BECOMES_A_CORE_RESEARCH_NEED"
+    }
+  ],
+  "FORWARD_COLLECTION_POLICY": {
+    "PUBLIC_EXCHANGE_WEBSOCKETS_CAN_BE_COLLECTED_WITHOUT_BUYING_HISTORY": true,
+    "RULE": "When reliable historical coverage is unavailable but the mechanism is scientifically valuable, classify FORWARD_COLLECTION_ONLY and begin point-in-time collection rather than deleting the hypothesis.",
+    "TARGETS": [
+      "full L2/order-book streams",
+      "best bid/ask",
+      "trades",
+      "exchange-native derivatives streams"
+    ]
+  },
+  "PURCHASE_POLICY": {
+    "DEFAULT": "DO_NOT_BUY_DATA_BEFORE_A_SPECIFIC_CARD_OR_MECHANISM_JUSTIFIES_IT",
+    "BUY_WHEN": [
+      "free exchange-native history does not cover the needed period or granularity",
+      "cross-exchange normalization/provenance would otherwise dominate engineering effort",
+      "options-chain or full-depth history is central to the hypothesis",
+      "liquidation/OI history needs consistent multi-venue granularity",
+      "a high-information-gain card is blocked only by data access"
+    ],
+    "DO_NOT_BUY_FOR": [
+      "speculative data hoarding",
+      "generic platform completeness",
+      "near-neighbor rescue of weak families"
+    ]
+  },
+  "EXPLICIT_NON_ACTIONS_THIS_UNIT": {
+    "D7_EXECUTED": false,
+    "D8_EXECUTED": false,
+    "D7_D8_REDESIGNED": false,
+    "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "MARKET_07_CREATED": false,
+    "PRODUCT_BUILD_RESTARTED": false
+  }
+}
