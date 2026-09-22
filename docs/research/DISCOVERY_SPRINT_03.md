@@ -3,28 +3,40 @@
 **Unit:** `DISCOVERY_SPRINT_03_HETEROGENEOUS_CARD_DEFINITION`
 **Parent policy:** `HETEROGENEOUS_FAMILY_ROTATION_V2`
 **Date:** 2026-09-22
-**Status:** `DEFINED` (pre-outcome tightening)
+**Status:** `OUTCOME_BLIND_IMPLEMENTATION_FROZEN` (no scientific outcomes)
 **Memory:** `docs/research/MECHANISM_MEMORY_V0.{json,md}`
 **Machine-readable record:** `docs/research/DISCOVERY_SPRINT_03.json`
+**Implementation freeze:** `docs/research/DISCOVERY_SPRINT_03_IMPLEMENTATION_FREEZE.{json,md}`
 
-Outcome-blind card definition only. Three internal cards. No scientific
-outcomes. No D7 rerun. No D8 execution. No 2025/2026. No MARKET-07.
+Outcome-blind implementation and structural feasibility only. Three
+internal cards. No scientific outcomes. No D7 rerun. No D8 execution.
+No 2025/2026. No MARKET-07.
 
 ```
 INTERNAL_CARDS = D9, D10, D11
 SPRINT03_SELECTION_INCOMPLETE = false
 D9_CHOSEN_ESTIMAND = RELATIVE_RESOLUTION_ATTRIBUTION
+D9_PRIMARY_LOCATION_STATISTIC = MEDIAN_PERP_RESOLUTION_SHARE
 D9_SCIENTIFIC_CLAIM_MAY_ESTABLISH = CONDITIONAL_VENUE_RESOLUTION_ATTRIBUTION
 D9_SHARE_NOT_CLIPPED = true
 D10_FIXED_PRE_EVENT_BETA = true
+D10_REGRESSION_SPECIFICATION = NO_INTERCEPT_OLS
 D11_FOMC_ONLY = true
-NEXT_UNIT = DISCOVERY_SPRINT_03_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION
+D11_OFFICIAL_SOURCE_PINNED = true
+D9_STATUS = OUTCOME_BLIND_IMPLEMENTATION_READY
+D10_STATUS = OUTCOME_BLIND_IMPLEMENTATION_READY
+D11_STATUS = OUTCOME_BLIND_IMPLEMENTATION_READY
+EXECUTION_AUTHORIZED = false
+NEXT_UNIT = DISCOVERY_SPRINT_03_IMPLEMENTATION_RED_TEAM_AND_EXECUTION_DECISION
 ```
 
-The next unit may run cheap non-outcome feasibility and outcome-blind
-implementation for DATA_READY cards (D9, D10), and pin the official FOMC
-calendar without inspecting RV outcomes. It must **not** automatically
-build heavy D7-style one-shot infrastructure per card.
+The next unit is an independent implementation red-team and execution
+decision. It must not treat this freeze as a RESULT. Real scientific
+evaluation remains unauthorized. Targeted F1–F5 repair is recorded in
+the implementation freeze: D9 separates extreme bars from retained
+events and 1:1-matches closing non-extreme controls; D10 1:1-matches
+and permutes inside frozen strata; IDENTITY failure precedes support
+failure.
 
 ## D9 estimand
 
@@ -47,12 +59,17 @@ itself price-discovery proof. Primary SHARE is conditional on observed
 `TOTAL_CLOSURE > 0`.
 
 Old `-s*(rp+rs)` imbalance remains rejected. Estimand B remains rejected.
+Primary location statistic is `MEDIAN_PERP_RESOLUTION_SHARE` because SHARE
+is a ratio with an arbitrarily small positive denominator. Mean SHARE is
+not used. No outcome-derived `TOTAL_CLOSURE` cutoff.
 
 ## D10 target beta
 
-`beta_t` uses exactly the previous 720 valid completed hours strictly
-before event hour `t`. The t+1 residual **reuses** that same `beta_t`.
-Do not recompute beta at t+1. Do not let hour `t` enter the target beta.
+`OPTION A` no-intercept OLS: `beta_t = sum(x*y)/sum(x^2)` on exactly the
+previous 720 valid completed hours strictly before event hour `t`.
+The t+1 residual **reuses** that same `beta_t`. Do not recompute beta at
+t+1. Do not let hour `t` enter the target beta. Do not fit an intercept
+and then drop it.
 
 Matched baseline (frozen): `YEAR × sign(e_t) × |r_btc_t|` trailing-quantile
 bucket, plus a small `|e_t|` control population. No threshold/horizon search.
@@ -60,12 +77,13 @@ bucket, plus a small `|e_t|` control population. No threshold/horizon search.
 ## D11 event family
 
 D11 is exactly `SCHEDULED_FOMC_EVENT_VOL_RESPONSE`. Official Federal
-Reserve / FOMC scheduled monetary-policy announcement calendar only.
-No CPI, NFP, ECB, or later macro substitution. Unscheduled/emergency
-actions are excluded unless they were on the preannounced pinned
-calendar. Baseline is `YEAR × WEEKDAY × UTC_HOUR`. DST from the official
-announcement timestamp. Unsigned `POST_EVENT_RV_6H` only. If support is
-insufficient: `DEFERRED_INSUFFICIENT_CONTROL_SUPPORT`.
+Reserve / FOMC scheduled monetary-policy announcement calendar is pinned
+in `docs/research_data/D11_FOMC_OFFICIAL_V0`. No CPI, NFP, ECB, or later
+macro substitution. Unscheduled/emergency actions and notation votes are
+excluded. Baseline is `YEAR × WEEKDAY × UTC_HOUR`. DST from the official
+announcement timestamp (`For release at 2:00 p.m. EST/EDT`). Unsigned
+`POST_EVENT_RV_6H` only. If support is insufficient:
+`DEFERRED_INSUFFICIENT_CONTROL_SUPPORT`.
 
 ## Selected cards
 

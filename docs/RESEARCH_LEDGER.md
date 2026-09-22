@@ -5182,3 +5182,83 @@ NEXT_UNIT = DISCOVERY_SPRINT_03_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATI
 ```
 
 Evidence: `docs/research/DISCOVERY_SPRINT_03.{json,md}`.
+
+## 2026-09-22 — Sprint 03 batch feasibility and outcome-blind implementation
+
+Brought D9/D10/D11 from `DEFINED_NOT_EXECUTED` to
+`OUTCOME_BLIND_IMPLEMENTATION_READY`. Structural/data feasibility only.
+No scientific outcomes. No classifications. No D7 rerun. No D8. No
+MARKET-07. Protected 2025/2026 sealed.
+
+```
+D9_PRIMARY_LOCATION_STATISTIC = MEDIAN_PERP_RESOLUTION_SHARE
+D9_EVENT_N = 8349
+D9_CLOSING_EVENT_N = 7184
+D9_CONTROL_N = 151167
+D9_DATA_IDENTITY_VERIFIED = true
+D10_REGRESSION_SPECIFICATION = NO_INTERCEPT_OLS
+D10_EVENT_N = 4442
+D10_MATCHED_CONTROL_N = 21368
+D10_DATA_IDENTITY_VERIFIED = true
+D11_OFFICIAL_SOURCE_PINNED = true
+D11_EVENT_N = 39
+D11_YEAR_COVERAGE = 2020,2021,2022,2023,2024
+D11_CONTROL_N = 561
+D11_MIN_CONTROLS_AMONG_EVENTS = 44
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+D9_EXECUTED = false
+D10_EXECUTED = false
+D11_EXECUTED = false
+EXECUTION_AUTHORIZED = false
+NEXT_UNIT = DISCOVERY_SPRINT_03_IMPLEMENTATION_RED_TEAM_AND_EXECUTION_DECISION
+```
+
+D9 freeze uses median SHARE because the ratio denominator can be
+arbitrarily small and positive; no outcome-derived cutoff. D10 freeze
+uses OPTION A no-intercept OLS so residual semantics match
+`e = r_eth - beta * r_btc`. D11 pins official Fed statement HTML
+`For release at 2:00 p.m. EST/EDT` for scheduled 2020-2024 meetings
+(2020 March unscheduled/notation excluded).
+
+Evidence: `docs/research/DISCOVERY_SPRINT_03_IMPLEMENTATION_FREEZE.{json,md}`,
+`docs/research_data/D11_FOMC_OFFICIAL_V0/`.
+
+## 2026-09-22 — Sprint 03 targeted red-team repair (F1–F5)
+
+Accepted independent red-team verdict
+`C. FIX_REQUIRED_BEFORE_SCIENTIFIC_EXECUTION`. Narrow repair only.
+No scientific outcomes. No new cards. No MARKET-07. Protected 2025/2026
+sealed. `EXECUTION_AUTHORIZED = false`.
+
+```
+D9_RAW_EXTREME_BAR_N = 35157
+D9_RETAINED_EVENT_N = 8349
+D9_REFRACTORY_DROPPED_EXTREME_N = 26808
+D9_CLOSING_EVENT_N = 7184
+D9_RAW_ELIGIBLE_CLOSING_CONTROL_N = 130238
+D9_MATCHED_CLOSING_CONTROL_N = 7184
+D9_ALL_MATCHED_CELLS_BALANCED = true
+D9_P_HALF_RULE = two-sided sign-flip vs 0.5, seed 20260922193
+D9_P_CONTROL_RULE = two-sided stratified label permutation YEAR x SIGN_D x RV_BUCKET, seed 202609221932
+D9_STATISTICAL_GATE_RULE = P_HALF < 0.05 AND P_CONTROL < 0.05
+D9_SUPPORT_PASS = true
+D10_RAW_ELIGIBLE_CONTROL_N = 21368
+D10_EVENT_N = 4442
+D10_MATCHED_CONTROL_N = 4442
+D10_ALL_MATCHED_CELLS_BALANCED = true
+D10_PERMUTATION_RULE = STRATIFIED_LABEL_PERMUTATION YEAR x SIGN_E_T x ABS_BTC_RETURN_BUCKET
+D10_SUPPORT_PASS = true
+D11_EVENT_N = 39
+D11_CONTROL_N = 551
+D11_MIN_CONTROLS_AMONG_EVENTS = 44
+CLASSIFICATION_IDENTITY_PRECEDENCE = IDENTITY_OK false -> INVALID_DISCOVERY before support failure
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+NEXT_UNIT = DISCOVERY_SPRINT_03_IMPLEMENTATION_RED_TEAM_AND_EXECUTION_DECISION
+```
+
+D9 refractory-dropped P90 extremes are excluded from controls.
+D9/D10 controls are 1:1 composition-matched without replacement.
+D10 permutation is stratified inside frozen cells.
+D11 full 6h control windows exclude FOMC aftermath hours.
+
+Evidence: `docs/research/DISCOVERY_SPRINT_03_IMPLEMENTATION_FREEZE.{json,md}`.
