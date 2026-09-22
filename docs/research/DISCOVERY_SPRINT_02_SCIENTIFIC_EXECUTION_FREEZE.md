@@ -3,15 +3,22 @@
 **Unit:** `DISCOVERY_SPRINT_02_SCIENTIFIC_EXECUTION_FREEZE`
 **Status:** `FROZEN`
 **Scope:** `D7_ONLY`
-**RUN_IDENTITY:** `f739c14effc68b3ced3a8f8fb9af2b64ed8dee4fed3e8fc4fecdf32cc07dca58`
+**RUN_IDENTITY:** `8861a3b82c9eb3319e7353b413de3f87d5a10085bcad74405ac8948a57171d05`
 
 D7 one-shot route is frozen and authorized. D7 was not executed.
 D8 remains non-executable. Scientific outcomes were not computed.
 
+Provenance is non-self-referential: `AUTHORITY_PARENT_COMMIT` /
+`AUTHORITY_PARENT_TREE` are the exact `main` commit this unit branched
+from. They are not the current PR tip. Runner bytes are a pre-scientific
+execution authority bound by the tracked permit.
+
 ```
 BASE_MAIN_SHA = 55e3663b0951088261ee7b67bc70a4611bd8ba58
-HEAD = b488c28c6b7d4595b102e2c343e992797a31416f
-TREE = 66eed4264735309f6bdeaa0f9bde41f3112b686b
+PROVENANCE_MODEL = AUTHORITY_PARENT_PLUS_FILE_HASHES
+AUTHORITY_PARENT_COMMIT = 55e3663b0951088261ee7b67bc70a4611bd8ba58
+AUTHORITY_PARENT_TREE = fb8516d07eb534626c9b53104eea6208f40ebb9b
+CURRENT_PR_HEAD_BOUND = false
 CORE_BTC_SNAPSHOT_ID = 717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415
 DATA_IDENTITY_MODE = TRACKED_SNAPSHOT_FULL_MONTHLY_EXACT_BYTE_VERIFICATION
 D7_SELECTOR_N = 4545

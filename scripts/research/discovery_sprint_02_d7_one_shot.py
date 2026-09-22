@@ -34,6 +34,14 @@ ONE_SHOT_UNIT = "DISCOVERY_SPRINT_02_D7_ONE_SHOT_SCIENTIFIC_EXECUTION"
 D7_NAME = "KLINE_FLOW_IMPACT_STATE"
 KIND = "CANONICAL_ONE_SHOT_SCIENTIFIC_EXECUTION"
 BASE_MAIN_SHA = "55e3663b0951088261ee7b67bc70a4611bd8ba58"
+# Exact main commit/tree this freeze unit branched from. Not the current PR tip.
+# A tracked freeze artifact cannot truthfully store CURRENT_PR_HEAD: writing
+# that SHA into the artifact would itself create another commit.
+AUTHORITY_PARENT_COMMIT = BASE_MAIN_SHA
+AUTHORITY_PARENT_TREE = "fb8516d07eb534626c9b53104eea6208f40ebb9b"
+PROVENANCE_MODEL = "AUTHORITY_PARENT_PLUS_FILE_HASHES"
+
+_PERMIT_WRITE_FORBIDDEN = False
 
 PERMIT_REL = "docs/research/DISCOVERY_SPRINT_02_D7_EXECUTION_PERMIT.json"
 RESULT_JSON_REL = "docs/research/DISCOVERY_SPRINT_02_D7_RESULT.json"
@@ -114,6 +122,15 @@ def refuse_if_result_exists(repo: Path) -> None:
         raise OneShotExecutionError("RESULT_ALREADY_EXISTS_RERUN_FORBIDDEN")
 
 
+def current_runner_sha256(repo: Path) -> str:
+    """SHA256 of the on-disk one-shot runner. Not a self-digest constant."""
+
+    path = repo / RUNNER_REL
+    if not path.is_file():
+        raise OneShotExecutionError("MISSING_ONE_SHOT_RUNNER")
+    return I.file_sha256(path)
+
+
 def current_authority_hashes(repo: Path) -> dict[str, str]:
     payload = json.loads((repo / FEASIBILITY_JSON_REL).read_text(encoding="utf-8"))
     return {
@@ -124,6 +141,7 @@ def current_authority_hashes(repo: Path) -> dict[str, str]:
         "FEASIBILITY_CLI_SHA256": I.file_sha256(repo / FEAS_CLI_REL),
         "FEASIBILITY_ARTIFACT_SHA256": I.feasibility_artifact_sha256(payload),
         "FEASIBILITY_RUN_IDENTITY": str(payload.get("RUN_IDENTITY") or ""),
+        "ONE_SHOT_RUNNER_SHA256": current_runner_sha256(repo),
     }
 
 
@@ -146,6 +164,7 @@ def permit_binding_payload(repo: Path) -> dict[str, Any]:
         "FEASIBILITY_CLI_SHA256": hashes["FEASIBILITY_CLI_SHA256"],
         "FEASIBILITY_ARTIFACT_SHA256": hashes["FEASIBILITY_ARTIFACT_SHA256"],
         "FEASIBILITY_RUN_IDENTITY": hashes["FEASIBILITY_RUN_IDENTITY"],
+        "ONE_SHOT_RUNNER_SHA256": hashes["ONE_SHOT_RUNNER_SHA256"],
         "D7_SELECTOR_N": I.D7_SELECTOR_N,
         "D7_SELECTOR_DIGEST": I.D7_SELECTOR_DIGEST,
         "D7_CONSTRUCTED_HOURS": I.D7_CONSTRUCTED_HOURS,
@@ -179,6 +198,10 @@ def expected_permit(repo: Path) -> dict[str, Any]:
 
 
 def write_permit(repo: Path) -> dict[str, Any]:
+    """Freeze-lifecycle only. ``execute_one_shot`` must never call this."""
+
+    if _PERMIT_WRITE_FORBIDDEN:
+        raise OneShotExecutionError("EXECUTE_ONE_SHOT_MUST_NOT_WRITE_PERMIT")
     payload = expected_permit(repo)
     (repo / PERMIT_REL).write_text(I.canonical_json(payload), encoding="utf-8")
     return payload
@@ -194,6 +217,9 @@ def verify_tracked_permit(repo: Path) -> dict[str, Any]:
         raise OneShotExecutionError("PERMIT_BYTES_UNPARSEABLE") from exc
     if not isinstance(stored, dict):
         raise OneShotExecutionError("PERMIT_NOT_OBJECT")
+    runner_sha = current_runner_sha256(repo)
+    if stored.get("ONE_SHOT_RUNNER_SHA256") != runner_sha:
+        raise OneShotExecutionError("RUNNER_SHA256_NE_PERMIT")
     expected = expected_permit(repo)
     raw = path.read_text(encoding="utf-8")
     if raw != I.canonical_json(expected) or stored != expected:
@@ -407,52 +433,68 @@ def persist_result(repo: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def execute_one_shot(repo: Path | None = None) -> dict[str, Any]:
-    """Canonical D7 one-shot. Do not call on real CORE in the freeze unit."""
+    """Canonical D7 one-shot. Do not call on real CORE in the freeze unit.
 
+    Consumes the already-tracked permit. Never regenerates or repairs it.
+    """
+
+    global _PERMIT_WRITE_FORBIDDEN
     base = repo if repo is not None else repo_root()
     session = D7OneShotSession()
-    refuse_if_result_exists(base)
-    verified = verify_pre_scientific_authorities(base, session=session)
-    log = I.OpenedFileLog()
-    bars = I.load_legal_1m_bars(repo=base, log=log)
-    for rel in log.files:
-        if I.path_is_protected_partition(Path(rel)):
-            raise I.ProtectedYearRefused(f"PROTECTED_PATH_OPENED:{rel}")
-        lowered = rel.lower()
-        if "/2025-" in lowered or "/2026-" in lowered:
-            raise I.ProtectedYearRefused(f"PROTECTED_PATH_OPENED:{rel}")
-    session.opened_files = list(log.files)
-    hours = I.aggregate_completed_hours(bars)
-    del bars
-    states = I.build_d7_states(hours)
-    reconstruct_d7_selector_identity(states, session=session)
-    arrays = construct_d7_scientific_arrays(states, session=session)
-    raw = call_reviewed_d7_evaluator(arrays, session=session)
-    permit_commit = _git(base, "rev-parse", "HEAD")
-    wrapped = wrap_one_shot_result(
-        raw,
-        permit=verified["permit"],
-        permit_commit=permit_commit,
-        execution_permit_sha256=I.file_sha256(base / PERMIT_REL),
-    )
-    return persist_result(base, wrapped)
+    previous = _PERMIT_WRITE_FORBIDDEN
+    _PERMIT_WRITE_FORBIDDEN = True
+    try:
+        refuse_if_result_exists(base)
+        verified = verify_pre_scientific_authorities(base, session=session)
+        log = I.OpenedFileLog()
+        bars = I.load_legal_1m_bars(repo=base, log=log)
+        for rel in log.files:
+            if I.path_is_protected_partition(Path(rel)):
+                raise I.ProtectedYearRefused(f"PROTECTED_PATH_OPENED:{rel}")
+            lowered = rel.lower()
+            if "/2025-" in lowered or "/2026-" in lowered:
+                raise I.ProtectedYearRefused(f"PROTECTED_PATH_OPENED:{rel}")
+        session.opened_files = list(log.files)
+        hours = I.aggregate_completed_hours(bars)
+        del bars
+        states = I.build_d7_states(hours)
+        reconstruct_d7_selector_identity(states, session=session)
+        arrays = construct_d7_scientific_arrays(states, session=session)
+        raw = call_reviewed_d7_evaluator(arrays, session=session)
+        permit_commit = _git(base, "rev-parse", "HEAD")
+        wrapped = wrap_one_shot_result(
+            raw,
+            permit=verified["permit"],
+            permit_commit=permit_commit,
+            execution_permit_sha256=I.file_sha256(base / PERMIT_REL),
+        )
+        return persist_result(base, wrapped)
+    finally:
+        _PERMIT_WRITE_FORBIDDEN = previous
 
 
 def freeze_payload(
     repo: Path,
     *,
     permit: Mapping[str, Any],
-    head: str,
-    tree: str,
 ) -> dict[str, Any]:
     return {
         "UNIT": UNIT,
         "KIND": "OUTCOME_BLIND_SCIENTIFIC_EXECUTION_FREEZE",
         "STATUS": "FROZEN",
         "SCOPE": "D7_ONLY",
+        "PROVENANCE_MODEL": PROVENANCE_MODEL,
+        "PROVENANCE_MODEL_NOTE": (
+            "AUTHORITY_PARENT_COMMIT/TREE identify the exact main commit this "
+            "freeze unit branched from (BASE_MAIN_SHA). They are not the "
+            "current PR tip. Frozen machinery is identified by file SHA256 "
+            "values. CURRENT_PR_HEAD/CURRENT_PR_TREE are never stored here "
+            "because writing them would require another commit and go stale."
+        ),
         "BASE_MAIN_SHA": BASE_MAIN_SHA,
-        "HEAD": head,
-        "TREE": tree,
+        "AUTHORITY_PARENT_COMMIT": AUTHORITY_PARENT_COMMIT,
+        "AUTHORITY_PARENT_TREE": AUTHORITY_PARENT_TREE,
+        "CURRENT_PR_HEAD_BOUND": False,
         "DISCOVERY_SPRINT_02_SHA256": FROZEN_DISCOVERY_SPRINT_02_SHA256,
         "FEASIBILITY_JSON_SHA256": FROZEN_FEASIBILITY_JSON_SHA256,
         "IMPLEMENTATION_REVIEW_JSON_SHA256": FROZEN_IMPLEMENTATION_REVIEW_JSON_SHA256,
@@ -496,6 +538,15 @@ def freeze_payload(
         "PROTECTED_2026_OPENED": False,
         "MARKET_07_CREATED": False,
         "NEXT_UNIT": ONE_SHOT_UNIT,
+        "D7_RUNTIME_EXECUTABLE_DEPENDENCIES": [
+            RUNNER_REL,
+            IMPL_REL,
+        ],
+        "D7_RUNTIME_EXECUTABLE_DEPENDENCIES_NOTE": (
+            "execute_one_shot imports discovery_sprint_02_impl only. impl "
+            "scientific code uses numpy plus stdlib. feasibility CLI is a "
+            "freeze-time authority hash, not imported at execution."
+        ),
     }
 
 
@@ -510,10 +561,17 @@ def freeze_markdown(payload: Mapping[str, Any]) -> str:
 D7 one-shot route is frozen and authorized. D7 was not executed.
 D8 remains non-executable. Scientific outcomes were not computed.
 
+Provenance is non-self-referential: `AUTHORITY_PARENT_COMMIT` /
+`AUTHORITY_PARENT_TREE` are the exact `main` commit this unit branched
+from. They are not the current PR tip. Runner bytes are a pre-scientific
+execution authority bound by the tracked permit.
+
 ```
 BASE_MAIN_SHA = {payload["BASE_MAIN_SHA"]}
-HEAD = {payload["HEAD"]}
-TREE = {payload["TREE"]}
+PROVENANCE_MODEL = {payload["PROVENANCE_MODEL"]}
+AUTHORITY_PARENT_COMMIT = {payload["AUTHORITY_PARENT_COMMIT"]}
+AUTHORITY_PARENT_TREE = {payload["AUTHORITY_PARENT_TREE"]}
+CURRENT_PR_HEAD_BOUND = false
 CORE_BTC_SNAPSHOT_ID = {payload["CORE_BTC_SNAPSHOT_ID"]}
 DATA_IDENTITY_MODE = {payload["DATA_IDENTITY_MODE"]}
 D7_SELECTOR_N = {payload["D7_SELECTOR_N"]}
@@ -539,9 +597,7 @@ def write_freeze_artifacts(repo: Path | None = None) -> dict[str, Any]:
     permit = write_permit(base)
     verify_tracked_permit(base)
     I.verify_dataset_authority(base)
-    head = _git(base, "rev-parse", "HEAD")
-    tree = _git(base, "rev-parse", "HEAD^{tree}")
-    payload = freeze_payload(base, permit=permit, head=head, tree=tree)
+    payload = freeze_payload(base, permit=permit)
     (base / FREEZE_JSON_REL).write_text(I.canonical_json(payload), encoding="utf-8")
     (base / FREEZE_MD_REL).write_text(freeze_markdown(payload), encoding="utf-8")
     return {"PERMIT": permit, "FREEZE": payload}

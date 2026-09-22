@@ -28,6 +28,7 @@ _COPY_RELS = (
     I.SPRINT_JSON_REL,
     OS.IMPL_REL,
     OS.FEAS_CLI_REL,
+    OS.RUNNER_REL,
     I.CORE_BTC_SNAPSHOT_DOC_REL,
     I.CORE_BTC_MANIFEST_REL,
 )
@@ -110,6 +111,7 @@ def test_verify_tracked_permit_on_live_tree():
     assert stored["DATA_IDENTITY_MODE"] == I.DATA_IDENTITY_MODE
     assert stored["D8_SCIENTIFIC_EXECUTION_ELIGIBLE"] is False
     assert stored["SCIENTIFIC_OUTCOMES_COMPUTED"] is False
+    assert stored["ONE_SHOT_RUNNER_SHA256"] == OS.current_runner_sha256(REPO)
     hashes = OS.current_authority_hashes(REPO)
     assert hashes["DISCOVERY_SPRINT_02_SHA256"] == OS.FROZEN_DISCOVERY_SPRINT_02_SHA256
     assert hashes["FEASIBILITY_JSON_SHA256"] == OS.FROZEN_FEASIBILITY_JSON_SHA256
@@ -528,3 +530,199 @@ def test_freeze_artifact_is_d7_only_and_unexecuted():
     assert not (REPO / OS.RESULT_JSON_REL).exists()
     assert payload["SCIENTIFIC_OUTCOMES_COMPUTED"] is False
     assert "MU_D7_RULE" not in payload
+    assert "HEAD" not in payload
+    assert "TREE" not in payload
+    assert payload.get("CURRENT_PR_HEAD") is None
+    assert payload.get("CURRENT_PR_TREE") is None
+    assert payload["CURRENT_PR_HEAD_BOUND"] is False
+
+
+def test_runner_sha256_is_bound_by_permit():
+    stored = json.loads((REPO / OS.PERMIT_REL).read_text(encoding="utf-8"))
+    runner_sha = OS.current_runner_sha256(REPO)
+    assert stored["ONE_SHOT_RUNNER_SHA256"] == runner_sha
+    assert "FROZEN_ONE_SHOT_RUNNER_SHA256" not in inspect.getsource(OS)
+    source = Path(OS.__file__).read_text(encoding="utf-8")
+    assert runner_sha not in source
+
+
+def test_runner_byte_mutation_fails_before_target(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    runner = repo / OS.RUNNER_REL
+    runner.write_text(
+        runner.read_text(encoding="utf-8") + "\n# runner-byte-mutation\n",
+        encoding="utf-8",
+    )
+    called = {"target": False, "eval": False}
+
+    def boom_arrays(*_args, **_kwargs):
+        called["target"] = True
+        raise AssertionError("target constructor ran")
+
+    def boom_eval(*_args, **_kwargs):
+        called["eval"] = True
+        raise AssertionError("evaluator ran")
+
+    with pytest.raises(OS.OneShotExecutionError, match="RUNNER_SHA256_NE_PERMIT"):
+        OS.verify_tracked_permit(repo)
+    with patch.object(
+        OS, "construct_d7_scientific_arrays", side_effect=boom_arrays
+    ), patch.object(OS, "call_reviewed_d7_evaluator", side_effect=boom_eval):
+        with pytest.raises(OS.OneShotExecutionError, match="RUNNER_SHA256_NE_PERMIT"):
+            OS.execute_one_shot(repo)
+    assert called["target"] is False
+    assert called["eval"] is False
+    assert not (repo / OS.RESULT_JSON_REL).exists()
+    assert not (repo / OS.RESULT_MD_REL).exists()
+
+
+def test_permit_runner_hash_mutation_fails_before_target(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    path = repo / OS.PERMIT_REL
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["ONE_SHOT_RUNNER_SHA256"] = "0" * 64
+    path.write_text(I.canonical_json(payload), encoding="utf-8")
+    called = {"target": False, "eval": False}
+
+    def boom_arrays(*_args, **_kwargs):
+        called["target"] = True
+        raise AssertionError("target constructor ran")
+
+    def boom_eval(*_args, **_kwargs):
+        called["eval"] = True
+        raise AssertionError("evaluator ran")
+
+    with pytest.raises(OS.OneShotExecutionError, match="RUNNER_SHA256_NE_PERMIT"):
+        OS.verify_pre_scientific_authorities(repo)
+    with patch.object(
+        OS, "construct_d7_scientific_arrays", side_effect=boom_arrays
+    ), patch.object(OS, "call_reviewed_d7_evaluator", side_effect=boom_eval):
+        with pytest.raises(OS.OneShotExecutionError, match="RUNNER_SHA256_NE_PERMIT"):
+            OS.execute_one_shot(repo)
+    assert called["target"] is False
+    assert called["eval"] is False
+    assert not (repo / OS.RESULT_JSON_REL).exists()
+
+
+def test_changing_runner_sha_changes_run_identity():
+    payload = OS.permit_binding_payload(REPO)
+    original = OS.compute_run_identity(payload)
+    payload["ONE_SHOT_RUNNER_SHA256"] = "0" * 64
+    mutated = OS.compute_run_identity(payload)
+    assert original != mutated
+    assert len(original) == 64
+    assert len(mutated) == 64
+
+
+def test_execute_one_shot_must_not_write_permit(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    execute_src = inspect.getsource(OS.execute_one_shot)
+    assert "write_permit(" not in execute_src
+    assert "write_freeze_artifacts(" not in execute_src
+
+    def fake_load(**_kwargs):
+        return []
+
+    def fake_hours(_bars):
+        return []
+
+    def fake_states(_hours):
+        return []
+
+    def fake_reconstruct(states, *, session=None):
+        if session is not None:
+            session.identity_ok = True
+        return {
+            "SELECTOR_N": I.D7_SELECTOR_N,
+            "SELECTOR_DIGEST": I.D7_SELECTOR_DIGEST,
+            "CONSTRUCTED_HOURS": I.D7_CONSTRUCTED_HOURS,
+            "VALID_IMPACT_ROWS": I.D7_VALID_IMPACT_ROWS,
+            "TARGET_ELIGIBLE_ROWS": I.D7_TARGET_ELIGIBLE_ROWS,
+            "SCIENTIFIC_T_PLUS_1_ASSOCIATION_COMPUTED": False,
+        }
+
+    def fake_arrays(states, *, session=None):
+        if session is None or session.identity_ok is not True:
+            raise OS.TargetBeforeIdentityError("TARGET_BEFORE_IDENTITY_GATE")
+        session.target_constructed = True
+        candidate, target, year, buckets, eligible = _gate_arrays(
+            candidate_on=True, target_on=True
+        )
+        return {
+            "candidate": candidate,
+            "target": target,
+            "year": year,
+            "rv_bucket": buckets,
+            "target_eligible": eligible,
+        }
+
+    def boom_write(_repo):
+        raise AssertionError("write_permit called during execute_one_shot")
+
+    with patch.object(OS, "write_permit", side_effect=boom_write), patch.object(
+        I, "load_legal_1m_bars", side_effect=fake_load
+    ), patch.object(I, "aggregate_completed_hours", side_effect=fake_hours), patch.object(
+        I, "build_d7_states", side_effect=fake_states
+    ), patch.object(
+        OS, "reconstruct_d7_selector_identity", side_effect=fake_reconstruct
+    ), patch.object(
+        OS, "construct_d7_scientific_arrays", side_effect=fake_arrays
+    ), patch.object(
+        OS, "_git", return_value="deadbeef"
+    ):
+        result = OS.execute_one_shot(repo)
+    assert result["CLASSIFICATION"] in {
+        "D7_PROMISING_PROTOTYPE",
+        "D7_NO_USEFUL_STRUCTURE",
+    }
+    (repo / OS.RESULT_JSON_REL).unlink()
+    (repo / OS.RESULT_MD_REL).unlink()
+
+
+def test_freeze_provenance_is_authority_parent_not_current_pr_head():
+    path = REPO / OS.FREEZE_JSON_REL
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["PROVENANCE_MODEL"] == OS.PROVENANCE_MODEL
+    assert payload["AUTHORITY_PARENT_COMMIT"] == OS.BASE_MAIN_SHA
+    assert payload["AUTHORITY_PARENT_COMMIT"] == OS.AUTHORITY_PARENT_COMMIT
+    assert payload["AUTHORITY_PARENT_TREE"] == OS.AUTHORITY_PARENT_TREE
+    import subprocess
+
+    parent_tree = subprocess.check_output(
+        ["git", "rev-parse", f"{OS.AUTHORITY_PARENT_COMMIT}^{{tree}}"],
+        cwd=REPO,
+        text=True,
+    ).strip()
+    parent_type = subprocess.check_output(
+        ["git", "cat-file", "-t", OS.AUTHORITY_PARENT_COMMIT],
+        cwd=REPO,
+        text=True,
+    ).strip()
+    current_head = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=REPO, text=True
+    ).strip()
+    current_tree = subprocess.check_output(
+        ["git", "rev-parse", "HEAD^{tree}"], cwd=REPO, text=True
+    ).strip()
+    assert parent_type == "commit"
+    assert payload["AUTHORITY_PARENT_TREE"] == parent_tree
+    assert payload["AUTHORITY_PARENT_COMMIT"] != current_head
+    assert payload["AUTHORITY_PARENT_TREE"] != current_tree
+    assert payload["CURRENT_PR_HEAD_BOUND"] is False
+    assert "HEAD" not in payload
+    assert "TREE" not in payload
+
+
+def test_permit_binds_live_runner_and_impl_only_as_runtime_executables():
+    freeze = json.loads((REPO / OS.FREEZE_JSON_REL).read_text(encoding="utf-8"))
+    assert freeze["D7_RUNTIME_EXECUTABLE_DEPENDENCIES"] == [
+        OS.RUNNER_REL,
+        OS.IMPL_REL,
+    ]
+    impl_src = Path(I.__file__).read_text(encoding="utf-8")
+    assert "import numpy as np" in impl_src
+    assert "from scripts" not in impl_src
+    assert "import scripts" not in impl_src
+    runner_src = inspect.getsource(OS.execute_one_shot)
+    assert "discovery_sprint_02_impl" in Path(OS.__file__).read_text(encoding="utf-8")
+    assert "discovery_sprint_02_feasibility" not in runner_src
