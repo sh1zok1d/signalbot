@@ -385,3 +385,19 @@ has not started. MARKET-06 is not created. M04-FWD is not created.
 Funding is not guaranteed to work; the information gap that blocked
 MARKET-04 is the reason for the expansion.
 
+---
+
+## 15. First internally generated independent replication (2026-09-21)
+
+Discovery Sprint 01 produced one internally generated
+`PROMISING_PROTOTYPE` (D2 / RULE_1 / `RV_ABSTENTION`). That prototype
+then survived a preregistered independent pre-2020 BitMEX XBTUSD
+replication. The program class is
+`INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`.
+
+This is a process and evidence-ladder change, not a product restart and
+not a claim of durable trading edge. Exact Binance 2025/2026 confirmation
+remains reserved. Nearby D2 variants are forbidden. Hypothesis generation
+is required to rotate across heterogeneous mechanism families. MARKET-07
+is not created. Product build remains frozen.
+

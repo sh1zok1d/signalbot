@@ -357,7 +357,7 @@ been executed in the definition unit.
 `SCIENTIFIC_OUTCOMES_COMPUTED = true` (adaptive discovery, not confirmatory).
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
-`NEXT_UNIT = PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED`.
+`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN`.
 
 ### Stall-gate semantics (corrected 2026-09-21)
 
@@ -381,7 +381,7 @@ discovery rather than confirmatory evidence.
 `MARKET_07_CREATED = false`.
 `PROTECTED_2025_OPENED = false`. `PROTECTED_2026_OPENED = false`.
 Definition-time `NEXT_UNIT = DISCOVERY_SPRINT_01_CARD_EXECUTION` is
-historical; current `NEXT_UNIT = PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED`.
+historical; current `NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN`.
 
 ## Corrective unit (2026-09-21)
 
@@ -882,4 +882,24 @@ MARKET_07_CREATED = false
 
 Full record: `docs/research/D2_BITMEX_REPLICATION_CORRECTED_RESULT.{json,md}`.
 
-`NEXT_UNIT = PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED`.
+`NEXT_UNIT` of that corrected-execution unit: `PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED`.
+
+## Program decision after D2 BitMEX SUPPORTED (2026-09-21)
+
+D2 promoted to `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`. Discovery
+and independent pre-2020 BitMEX replication claims supported.
+Market-mechanism / trading-edge / product claims not supported or not
+tested. Binance 2025/2026 remain sealed. No MARKET-07. No D2 variants.
+Product build remains frozen. Hypothesis generation rotates across
+families A–I.
+
+```
+D2_PROGRAM_CLASS = INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE
+BINANCE_2025_2026_DECISION = KEEP_SEALED
+PRODUCT_BUILD_FROZEN = true
+MARKET_07_CREATED = false
+```
+
+Full record: `docs/research/PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED.{json,md}`.
+
+`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN`.

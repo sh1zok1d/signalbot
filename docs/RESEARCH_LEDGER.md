@@ -4349,3 +4349,27 @@ Evidence: `docs/research/D2_BITMEX_REPLICATION_CORRECTED_RESULT.{json,md}`,
 `docs/research_data/D2_BITMEX_REPLICATION_CORRECTED_EXECUTION_PERMIT.json`.
 
 - next required step: `PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED`
+
+## 2026-09-21 — Program decision after D2 BitMEX SUPPORTED
+
+D2 is classified `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`. Discovery
+claim and independent pre-2020 BitMEX replication claim are supported.
+Market-mechanism claim is not yet supported (vol-clustering / MAE-scale
+ambiguity remains). Trading-edge and product claims are not tested.
+Binance 2025/2026 remain sealed. Hypothesis generation policy rotates
+across families A–I; D2 neighbors forbidden. Product build remains frozen.
+MARKET-07 not created. No D2 experiment was run in this unit.
+
+```
+D2_PROGRAM_CLASS = INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE
+JUSTIFIED_CLAIM = INDEPENDENT_PRE2020_CROSS_VENUE_TEMPORAL_REPLICATION_SUPPORTED
+BINANCE_2025_2026_DECISION = KEEP_SEALED
+PRODUCT_BUILD_FROZEN = true
+HYPOTHESIS_GENERATION_POLICY_CHANGED = true
+MARKET_07_CREATED = false
+NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN
+```
+
+Evidence: `docs/research/PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED.{json,md}`.
+
+- next required step: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN`

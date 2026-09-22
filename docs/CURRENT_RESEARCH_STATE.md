@@ -1,8 +1,8 @@
 # Signalbot — Current Research State
 
-**Status date:** 2026-09-21  
+**Status date:** 2026-09-22  
 **Status:** `ACTIVE / CANONICAL ROUTING INDEX`  
-**Main integration baseline before this status commit:** `b25d9ca99498630183813d0ccb8c6d67b93ad915`
+**Main integration baseline before this status commit:** `21cca92a7f828be6b271bb09a76d3092ba5f44b9`
 
 This file is the compact answer to “what controls the project now?”. Frozen preregistrations/results remain authoritative for reproducing their own experiments; this file controls current routing only.
 
@@ -37,7 +37,11 @@ PREVIOUS_ROUTING            = D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURF
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED
+NEXT_UNIT                   = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN
+D2_PROGRAM_CLASS            = INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE
+BINANCE_2025_2026_DECISION  = KEEP_SEALED
+PRODUCT_BUILD_FROZEN        = true
+HYPOTHESIS_GENERATION_POLICY = HETEROGENEOUS_FAMILY_ROTATION_V1
 PROTECTED_2025_OPENED       = false
 PROTECTED_2026_OPENED       = false
 INTERNAL_DISCOVERY_CARDS_EXECUTED = 4
@@ -183,7 +187,15 @@ not `EXACT_BINANCE_CONFIRMATION`, `PROVEN_ALPHA`, or
 `VALIDATED_TRADING_EDGE`. No rerun. Protected 2025/2026 unopened.
 MARKET-07 not created.
 Record: `docs/research/D2_BITMEX_REPLICATION_CORRECTED_RESULT.{json,md}`.
-`NEXT_UNIT = PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED`.
+
+`PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED` then classified D2
+as `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`. Discovery claim and
+independent pre-2020 BitMEX replication claim are supported. Market-mechanism,
+trading-edge, and product claims are not. Protected 2025/2026 remain sealed.
+Hypothesis generation now rotates across families A–I; D2 neighbors are
+forbidden. Product build remains frozen. MARKET-07 not created.
+Record: `docs/research/PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED.{json,md}`.
+`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN`.
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by
@@ -252,7 +264,8 @@ RULE_1's unrestricted full-2020-2024 result.
 **Current per-card status:** `D1 = DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH`
 (adequacy gate not executed); `D2 = PROMISING_PROTOTYPE` (adaptive
 discovery; RULE_1 only; corrected independent pre-2020 BitMEX replication
-classified `D2_BITMEX_REPLICATION_SUPPORTED`; original INVALID run
+classified `D2_BITMEX_REPLICATION_SUPPORTED`; program class
+`INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`; original INVALID run
 preserved; not exact Binance confirmation and not a validated trading
 edge);
 `D3 = NO_USEFUL_STRUCTURE`; `D4
