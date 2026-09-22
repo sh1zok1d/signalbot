@@ -19,6 +19,7 @@ For the narrative evolution, read `PROJECT_HISTORY.md`. For complete original do
 
 Read these first:
 
+| `SIGNALBOT_MANDATE_V1.md` | **ACTIVE / CANONICAL STRATEGIC MANDATE** | Owner-approved project objective, anti-sycophancy rule, scientific/product/commercial mandate, agent operating principles, and amendment rules. Strategic authority; frozen experiment-specific scientific authorities still govern their own semantics. |
 | `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. D2 is `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`; Sprint 02 D7 outcome-blind ready with frozen selector identity, D8 deferred/non-executable; exact-byte CORE identity; 2025/2026 sealed; `NEXT_UNIT = DISCOVERY_SPRINT_02_SCIENTIFIC_EXECUTION_FREEZE` (D7-only) |
 | `research/HETEROGENEOUS_FAMILY_ROTATION_V1.md` | **HYPOTHESIS GENERATION POLICY (FROZEN)** | Families A–I; this rotation selects E (D7) and G (D8); F/H/I deferred; no MARKET-07 |
 | `research/DISCOVERY_SPRINT_02.md` | **DISCOVERY SPRINT 02 (DEFINED, NOT EXECUTED)** | Outcome-blind cards D7 `KLINE_FLOW_IMPACT_STATE` and D8 `ENDOGENOUS_SHOCK_RECOVERY`; no outcomes; 2025/2026 sealed |
