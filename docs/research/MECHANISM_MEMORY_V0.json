@@ -78,7 +78,7 @@
       "POSTHOC_RESIDUALS_IF_ANY": null,
       "STATUS_EVIDENCE_CLASS": "CLOSED_NO_PROMOTION",
       "TARGET_FAMILY": "Morphology ordering / continuation vs exhaustion",
-      "WHAT_REMAINS_OPEN": "Exogenous event-vol response is a different function",
+      "WHAT_REMAINS_OPEN": "Exogenous scheduled-FOMC event-vol response is a different function",
       "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES": "Impulse/path-morphology directional children (with H03)",
       "WHAT_WAS_ACTUALLY_TESTED": "Frozen B2-03_IMPULSE_MORPHOLOGY development one-shot"
     },
@@ -183,7 +183,7 @@
       "POSTHOC_RESIDUALS_IF_ANY": null,
       "STATUS_EVIDENCE_CLASS": "ROLLING_CORRELATION_90D=NO_USEFUL_STRUCTURE; LEAD_LAG_1DAY=DEFERRED_FROM_SPRINT_01",
       "TARGET_FAMILY": "Relative correlation structure / lead-lag",
-      "WHAT_REMAINS_OPEN": "ETH residual after orthogonalizing to contemporaneous BTC was not tested",
+      "WHAT_REMAINS_OPEN": "ETH residual after orthogonalizing to contemporaneous BTC with a frozen pre-event beta reused at t+1 was not tested",
       "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES": "Rolling-correlation near-neighbors; raw lead-lag without a common-factor-preserving null",
       "WHAT_WAS_ACTUALLY_TESTED": "Rolling-correlation practical excess vs null; lead-lag null would destroy common-factor dependence"
     },
@@ -408,7 +408,7 @@
       "POSTHOC_RESIDUALS_IF_ANY": null,
       "STATUS_EVIDENCE_CLASS": "MARKET_06_NO_EVIDENCE; one-shot consumed; no rerun",
       "TARGET_FAMILY": "24H_DIRECTION_ALIGNED_BTC_MAE relative improvement",
-      "WHAT_REMAINS_OPEN": "Venue relationship itself (who closes D) was not tested",
+      "WHAT_REMAINS_OPEN": "Conditional venue-resolution attribution of net D-closure was not tested; not price-discovery leadership",
       "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES": "ABS_DISLOCATION_Z as BTC-path predictor; additive incremental 24h MAE on this pair",
       "WHAT_WAS_ACTUALLY_TESTED": "Daily 00:05 ABS_DISLOCATION_Z incremental MAE; G1 true, G2-G6 false; pooled relative MAE negative"
     }

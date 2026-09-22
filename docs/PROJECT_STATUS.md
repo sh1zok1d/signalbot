@@ -34,9 +34,9 @@ implementation
 
 `HETEROGENEOUS_FAMILY_ROTATION_V2` is frozen. Sprint 03 defines three
 internal cards, none executed: D9 `VENUE_DISLOCATION_RESOLUTION_STRUCTURE`
-(family H; relative-resolution attribution), D10
+(family H; conditional venue-resolution attribution), D10
 `BTC_ETH_RESIDUAL_SHOCK_PERSISTENCE` (family D), D11
-`SCHEDULED_MACRO_EVENT_VOL_RESPONSE` (family G). D7
+`SCHEDULED_FOMC_EVENT_VOL_RESPONSE` (family G). D7
 `KLINE_FLOW_IMPACT_STATE` is `PROMISING_PROTOTYPE` and a confirmation
 candidate, but confirmation is **not** selected now. Family E is in
 cooldown. D8 remains `DEFERRED_INSUFFICIENT_CONTROL_SUPPORT` and is not

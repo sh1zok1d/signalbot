@@ -5158,3 +5158,27 @@ is superseded by the batch unit above.
 Evidence: `docs/research/MECHANISM_MEMORY_V0.{json,md}`,
 `docs/research/HETEROGENEOUS_FAMILY_ROTATION_V2.{json,md}`,
 and `docs/research/DISCOVERY_SPRINT_03.{json,md}`.
+
+## 2026-09-22 — Sprint 03 pre-outcome tightening (D9 SHARE / D10 beta / D11 FOMC)
+
+Narrow outcome-blind semantic freeze on PR #198. No scientific outcomes.
+No new cards. Families remain H/D/G.
+
+```
+D9_SCIENTIFIC_CLAIM_MAY_ESTABLISH = CONDITIONAL_VENUE_RESOLUTION_ATTRIBUTION
+D9_SHARE_NOT_CLIPPED = true
+D9_SHARE_NOT_WINSORIZED = true
+D9_SHARE_MAY_BE_OUTSIDE_UNIT_INTERVAL = true
+D9_MUST_NOT_ESTABLISH = PRICE_DISCOVERY_LEADERSHIP / CAUSAL_LEADERSHIP / WHICH_VENUE_MOVED_FIRST
+D10_FIXED_PRE_EVENT_BETA = true
+D10_PRIMARY_TARGET = sign(e_t) * e_t_plus_1_fixed_beta
+D10_MATCH = YEAR x sign(e_t) x |r_btc_t| trailing-quantile bucket + small |e_t|
+D11_NAME = SCHEDULED_FOMC_EVENT_VOL_RESPONSE
+D11_FOMC_ONLY = true
+D11_MATCH = YEAR x WEEKDAY x UTC_HOUR
+D11_DST = OFFICIAL_ANNOUNCEMENT_TIMESTAMP
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+NEXT_UNIT = DISCOVERY_SPRINT_03_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION
+```
+
+Evidence: `docs/research/DISCOVERY_SPRINT_03.{json,md}`.

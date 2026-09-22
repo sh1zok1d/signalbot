@@ -160,8 +160,11 @@ The D7 one-shot was executed once. Classification (not reinterpreted):
 `D7_PROMISING_PROTOTYPE`. Family E is in cooldown. D8 remains deferred
 and is not a negative scientific result. Rotation V2 selects three
 Sprint 03 families D/G/H as D10/D11/D9 (defined, not executed). D9
-estimand is `RELATIVE_RESOLUTION_ATTRIBUTION` (`TOTAL_CLOSURE=-s*(rp-rs)`);
-the old common-mode `RESOLUTION_IMBALANCE=-s*(rp+rs)` is rejected.
+estimand is `RELATIVE_RESOLUTION_ATTRIBUTION` (`TOTAL_CLOSURE=-s*(rp-rs)`;
+unclipped SHARE; not price-discovery leadership). D10 reuses frozen
+pre-event `beta_t` at t+1. D11 is official scheduled FOMC only
+(`YEAR × WEEKDAY × UTC_HOUR`). The old common-mode
+`RESOLUTION_IMBALANCE=-s*(rp+rs)` is rejected.
 D7 is a confirmation candidate but is not selected for confirmation now.
 `RESEARCH_DATA_DURABILITY_V1_REQUIRED = true` (not implemented here).
 `NEXT_ACTION = BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION`.

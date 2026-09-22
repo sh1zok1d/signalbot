@@ -1,6 +1,8 @@
 {
   "D10_EXECUTED": false,
+  "D10_FIXED_PRE_EVENT_BETA": true,
   "D11_EXECUTED": false,
+  "D11_FOMC_ONLY": true,
   "D7_CONFIRMATION_CANDIDATE": true,
   "D7_CONFIRMATION_SELECTED_NOW": false,
   "D7_STATUS": "PROMISING_PROTOTYPE",
@@ -9,7 +11,9 @@
   "D9_ALGEBRAIC_IDENTIFICATION_FIXED": true,
   "D9_CHOSEN_ESTIMAND": "RELATIVE_RESOLUTION_ATTRIBUTION",
   "D9_EXECUTED": false,
+  "D9_SCIENTIFIC_CLAIM_MAY_ESTABLISH": "CONDITIONAL_VENUE_RESOLUTION_ATTRIBUTION",
   "D9_SCIENTIFIC_OUTCOME_COMPUTED": false,
+  "D9_SHARE_NOT_CLIPPED": true,
   "DATE": "2026-09-22",
   "FAMILIES": {
     "A": "CONDITIONAL_RISK_ABSTENTION",
@@ -42,7 +46,7 @@
     },
     "D": {
       "CARD": "D10",
-      "REASON": "D4 rolling-corr is NO_USEFUL_STRUCTURE and lead-lag is deferred, but residual persistence after orthogonalizing ETH to contemporaneous BTC is a materially different FUNCTION/TARGET. Selected as D10.",
+      "REASON": "D4 rolling-corr is NO_USEFUL_STRUCTURE and lead-lag is deferred, but residual persistence after orthogonalizing ETH to contemporaneous BTC with a frozen pre-event beta_t reused at t+1 is a materially different FUNCTION/TARGET. Selected as D10.",
       "STATUS": "SELECTED_THIS_ROTATION"
     },
     "E": {
@@ -56,12 +60,12 @@
     },
     "G": {
       "CARD": "D11",
-      "REASON": "D8 remains DEFERRED_INSUFFICIENT_CONTROL_SUPPORT and must not be rescued. D11 is an exogenous scheduled-macro unsigned-vol card, not a D8 threshold/clock/control child.",
+      "REASON": "D8 remains DEFERRED_INSUFFICIENT_CONTROL_SUPPORT and must not be rescued. D11 is an exogenous scheduled-FOMC unsigned-vol card (YEAR x WEEKDAY x UTC_HOUR match), not a D8 threshold/clock/control child.",
       "STATUS": "SELECTED_THIS_ROTATION"
     },
     "H": {
       "CARD": "D9",
-      "REASON": "Venue-structure subfamily on MARKET_06_OKX_BINANCE_FEASIBILITY_V0. Estimand repaired to RELATIVE_RESOLUTION_ATTRIBUTION (common-mode invariant). True panel still absent.",
+      "REASON": "Venue-structure subfamily on MARKET_06_OKX_BINANCE_FEASIBILITY_V0. Estimand repaired to RELATIVE_RESOLUTION_ATTRIBUTION (common-mode invariant; unclipped SHARE; not price-discovery leadership). True panel still absent.",
       "STATUS": "SELECTED_THIS_ROTATION",
       "SUBFAMILY": "VENUE_STRUCTURE",
       "TRUE_CROSS_SECTIONAL_PANEL": false

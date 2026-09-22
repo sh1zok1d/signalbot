@@ -88,6 +88,38 @@ def d9_relative_resolution(d_u: float, rp: float, rs: float) -> dict:
     }
 
 
+def _ols_beta(r_btc: list[float], r_eth: list[float]) -> float:
+    n = len(r_btc)
+    mean_x = sum(r_btc) / n
+    mean_y = sum(r_eth) / n
+    num = sum((x - mean_x) * (y - mean_y) for x, y in zip(r_btc, r_eth))
+    den = sum((x - mean_x) ** 2 for x in r_btc)
+    return num / den
+
+
+def d10_signed_fixed_beta_target(
+    r_btc: list[float],
+    r_eth: list[float],
+    t: int,
+    window: int,
+) -> dict:
+    """Frozen D10 target algebra. Synthetic only. No market data."""
+
+    start = t - window
+    beta_t = _ols_beta(r_btc[start:t], r_eth[start:t])
+    e_t = r_eth[t] - beta_t * r_btc[t]
+    e_tp1 = r_eth[t + 1] - beta_t * r_btc[t + 1]
+    sign_et = math.copysign(1.0, e_t) if e_t != 0 else 0.0
+    return {
+        "beta_t": beta_t,
+        "e_t": e_t,
+        "e_t_plus_1_fixed_beta": e_tp1,
+        "primary_target": sign_et * e_tp1,
+        "window_end_exclusive": t,
+        "window_start": start,
+    }
+
+
 def test_mechanism_memory_covers_required_history():
     memory = _memory()
     assert memory["UNIT"] == "MECHANISM_MEMORY_V0"
@@ -236,6 +268,24 @@ def test_d9_estimand_is_relative_resolution_not_common_mode_imbalance():
     assert "INELIGIBLE" in d9["ALGEBRA"]["COMMON_MODE_RP_EQ_RS"]
     assert "24h MAE" not in d9["PRIMARY_TARGET"]
     assert "FUTURE_CONSENSUS" in d9["REJECTED_ESTIMAND_B"]
+    assert d9["SHARE_NOT_CLIPPED"] is True
+    assert d9["SHARE_NOT_WINSORIZED"] is True
+    assert d9["SHARE_MAY_BE_OUTSIDE_UNIT_INTERVAL"] is True
+    assert d9["SCIENTIFIC_CLAIM_MAY_ESTABLISH"] == (
+        "CONDITIONAL_VENUE_RESOLUTION_ATTRIBUTION"
+    )
+    assert d9["SCIENTIFIC_CLAIM_MUST_NOT_ESTABLISH"] == [
+        "PRICE_DISCOVERY_LEADERSHIP",
+        "CAUSAL_LEADERSHIP",
+        "WHICH_VENUE_MOVED_FIRST",
+    ]
+    assert "SHARE>0 alone does not mean perp contributed more" in d9[
+        "PRIMARY_TARGET_DEFINITION"
+    ]
+    assert "PRICE_DISCOVERY_LEADERSHIP" in d9["WHAT_A_POSITIVE_WOULD_JUSTIFY_NEXT"]
+    assert "CONDITIONAL_VENUE_RESOLUTION_ATTRIBUTION" in d9["WHAT_A_NULL_DEPRIORITIZES"]
+    assert "not price-discovery leadership" in d9["MECHANISM_CLASS"]
+    assert "Not causal leadership" in d9["MARKET_RELATIONSHIP"]
 
 
 def test_d9_common_mode_and_attribution_invariants():
@@ -270,6 +320,21 @@ def test_d9_common_mode_and_attribution_invariants():
     assert both_widen["eligible"] is False
     assert both_widen["perp_resolution_share"] is None
 
+    # 6. Legal SHARE > 1: perp over-closes while spot opposes.
+    over = d9_relative_resolution(d_u=0.02, rp=-0.010, rs=-0.005)
+    assert over["eligible"] is True
+    assert math.isclose(over["total_closure"], 0.005)
+    assert math.isclose(over["perp_resolution_share"], 2.0)
+    clipped = min(max(over["perp_resolution_share"], 0.0), 1.0)
+    assert over["perp_resolution_share"] != clipped
+
+    # 7. Legal SHARE < 0: perp opposes while spot over-compensates.
+    under = d9_relative_resolution(d_u=0.02, rp=0.005, rs=0.010)
+    assert under["eligible"] is True
+    assert math.isclose(under["total_closure"], 0.005)
+    assert math.isclose(under["perp_resolution_share"], -1.0)
+    assert under["perp_resolution_share"] < 0.0
+
 
 def test_old_imbalance_is_not_the_primary_and_fails_common_mode():
     """Document the rejected -s*(rp+rs) functional without using it."""
@@ -280,6 +345,89 @@ def test_old_imbalance_is_not_the_primary_and_fails_common_mode():
     assert old_imbalance != 0
     assert new["eligible"] is False
     assert _sprint()["CARDS"]["D9"]["PRIMARY_TARGET"] != "RESOLUTION_IMBALANCE"
+
+
+def test_d10_beta_excludes_t_and_reuses_same_beta_for_target():
+    d10 = _sprint()["CARDS"]["D10"]
+    assert d10["PRIMARY_TARGET"] == "sign(e_t) * e_t_plus_1_fixed_beta"
+    assert d10["T_PLUS_1_USES_SAME_BETA_T"] is True
+    assert d10["RECOMPUTE_BETA_AT_T_PLUS_1"] is False
+    assert d10["FROZEN_CONSTRUCTION"]["BETA_WINDOW_HOURS"] == 720
+    assert d10["FROZEN_CONSTRUCTION"]["BETA_WINDOW_STRICTLY_BEFORE_T"] is True
+    assert d10["FROZEN_CONSTRUCTION"]["EVENT_HOUR_T_NOT_IN_TARGET_BETA"] is True
+    assert d10["FROZEN_CONSTRUCTION"]["T_PLUS_1_RETURN_NOT_IN_BETA"] is True
+    assert d10["FROZEN_CONSTRUCTION"]["MATCH_STRATA"] == [
+        "YEAR",
+        "SIGN_E_T",
+        "ABS_BTC_RETURN_BUCKET",
+    ]
+    assert d10["MATCHED_BASELINE_FROZEN"] is True
+    assert d10["NO_THRESHOLD_HORIZON_SEARCH"] is True
+    assert "P50" in d10["FROZEN_CONSTRUCTION"]["CONTROL_SMALL_RESIDUAL"]
+
+    window = 20
+    t = window
+    r_btc = [0.01 + 0.001 * (i % 3) for i in range(window + 2)]
+    r_eth = [0.012 + 0.001 * (i % 5) for i in range(window + 2)]
+    r_btc[t] = 0.20
+    r_eth[t] = -0.15
+    r_btc[t + 1] = -0.18
+    r_eth[t + 1] = 0.22
+
+    out = d10_signed_fixed_beta_target(r_btc, r_eth, t=t, window=window)
+    assert out["window_end_exclusive"] == t
+    assert out["window_start"] == t - window
+    beta_hours = range(out["window_start"], out["window_end_exclusive"])
+    assert t not in beta_hours
+    assert (t + 1) not in beta_hours
+    assert len(list(beta_hours)) == window
+
+    beta_including_t = _ols_beta(r_btc[t - window : t + 1], r_eth[t - window : t + 1])
+    beta_including_t_plus_1 = _ols_beta(
+        r_btc[t - window + 1 : t + 2], r_eth[t - window + 1 : t + 2]
+    )
+    assert not math.isclose(out["beta_t"], beta_including_t)
+    assert not math.isclose(out["beta_t"], beta_including_t_plus_1)
+    assert math.isclose(
+        out["e_t_plus_1_fixed_beta"],
+        r_eth[t + 1] - out["beta_t"] * r_btc[t + 1],
+    )
+    wrong_future = r_eth[t + 1] - beta_including_t_plus_1 * r_btc[t + 1]
+    assert not math.isclose(out["e_t_plus_1_fixed_beta"], wrong_future)
+    sign_et = math.copysign(1.0, out["e_t"])
+    assert math.isclose(out["primary_target"], sign_et * out["e_t_plus_1_fixed_beta"])
+
+
+def test_d11_is_fomc_only_with_weekday_match_and_official_timestamp():
+    sprint = _sprint()
+    d11 = sprint["CARDS"]["D11"]
+    c3 = sprint["CANDIDATES"]["C3_SCHEDULED_FOMC_EVENT_VOL_RESPONSE"]
+    blob = json.dumps({"D11": d11, "C3": c3}).lower()
+    assert d11["NAME"] == "SCHEDULED_FOMC_EVENT_VOL_RESPONSE"
+    assert "or equivalent" not in blob
+    assert "scheduled_macro_event_vol_response" not in json.dumps(sprint).lower()
+    assert d11["EVENT_FAMILY"] == "SCHEDULED_FOMC_MONETARY_POLICY_ANNOUNCEMENTS"
+    assert d11["NO_CPI"] is True
+    assert d11["NO_NFP"] is True
+    assert d11["NO_ECB"] is True
+    assert d11["NO_MACRO_EVENT_SUBSTITUTION"] is True
+    assert d11["DIRECTIONAL_SIGN_FORBIDDEN"] is True
+    assert d11["NOT_D8_RESCUE"] is True
+    assert d11["PRIMARY_TARGET"] == "POST_EVENT_RV_6H"
+    assert d11["FROZEN_CONSTRUCTION"]["MATCH_STRATA"] == [
+        "YEAR",
+        "WEEKDAY",
+        "UTC_HOUR",
+    ]
+    assert "YEAR x WEEKDAY x UTC_HOUR" in d11["SIMPLE_BASELINE"]
+    assert d11["DST_FROM_OFFICIAL_ANNOUNCEMENT_TIMESTAMP"] is True
+    assert d11["NO_ASSUMED_FIXED_UTC_HOUR_ACROSS_SAMPLE"] is True
+    assert d11["IF_CONTROL_SUPPORT_INADEQUATE"] == (
+        "DEFERRED_INSUFFICIENT_CONTROL_SUPPORT"
+    )
+    assert "2025-01-01" in d11["LEGAL_INTERVAL"]
+    assert sprint["PROTECTED_2025_OPENED"] is False
+    assert sprint["PROTECTED_2026_OPENED"] is False
 
 
 def test_no_outcomes_no_implementations():
@@ -322,3 +470,6 @@ def test_routing_docs_point_at_batch_next_unit():
     state = (REPO / "docs/CURRENT_RESEARCH_STATE.md").read_text(encoding="utf-8")
     assert "DISCOVERY_SPRINT_03_INTERNAL_CARDS = 3" in state
     assert "RELATIVE_RESOLUTION_ATTRIBUTION" in state
+    assert "CONDITIONAL_VENUE_RESOLUTION_ATTRIBUTION" in state
+    assert "SCHEDULED_FOMC_EVENT_VOL_RESPONSE" in state
+    assert "SHARE_NOT_CLIPPED" in state
