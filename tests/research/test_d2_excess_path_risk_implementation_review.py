@@ -6,7 +6,9 @@ every firewall flag stays closed. No scientific outcome is computed.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -14,6 +16,7 @@ import pytest
 from scripts.research import d2_excess_path_risk_implementation_review as R
 from scripts.research.d2_excess_path_risk_beyond_vol_clustering_design import (
     CLASSIFICATION_ORDER,
+    file_sha256,
     verify_design_authorities,
 )
 from scripts.research.d2_excess_path_risk_evaluator import (
@@ -21,6 +24,7 @@ from scripts.research.d2_excess_path_risk_evaluator import (
     IMPLEMENTATION_FILES,
     REVIEW_JSON_REL,
     REVIEW_MD_REL,
+    SELECTOR_IDENTITY_AUTHORITY_REL,
     UNIT,
 )
 
@@ -226,25 +230,45 @@ def test_markdown_mirror_states_not_executed():
     assert "FROZEN_SELECTOR_ABSTAIN_N" in text
 
 
-def test_review_is_byte_reproducible_from_the_implementation_commit(review):
-    """A future permit binds this artifact's hash.
+def _git(*args: str) -> bytes:
+    return subprocess.check_output(["git", *args], cwd=REPO)
 
-    The freeze unit may update later tests, so a live rebuild of the review
-    generator against current TEST_FILES is not the frozen identity. The
-    stored review bytes remain the bound implementation-review authority.
+
+def _historical_sha256(commit: str, path: str) -> str:
+    return hashlib.sha256(_git("show", f"{commit}:{path}")).hexdigest()
+
+
+def test_review_is_byte_reproducible_from_the_implementation_commit(review):
+    """Historical-commit provenance, not a live working-tree rebuild.
+
+    Later lifecycle tests may change. The bound identity is the exact
+    implementation-commit bytes hashed into the frozen review artifact.
     """
 
-    assert review["RUN_IDENTITY"] == (
-        "bfe92af94df23d7aa6f3adc016dc6f558607d772977a1cc6613394ac9a92625f"
+    commit = str(review["FINAL_IMPLEMENTATION_COMMIT"])
+    tree = str(review["FINAL_IMPLEMENTATION_TREE"])
+    inputs = review["RUN_IDENTITY_INPUTS"]
+    impl_hashes = dict(review["IMPLEMENTATION_FILE_SHA256"])
+    test_hashes = dict(review["TEST_FILE_SHA256"])
+
+    actual_tree = _git("rev-parse", f"{commit}^{{tree}}").decode("ascii").strip()
+    assert actual_tree == tree
+    assert inputs["FINAL_IMPLEMENTATION_COMMIT"] == commit
+    assert inputs["FINAL_IMPLEMENTATION_TREE"] == tree
+    assert dict(inputs["IMPLEMENTATION_FILE_SHA256"]) == impl_hashes
+    assert dict(inputs["TEST_FILE_SHA256"]) == test_hashes
+
+    for path, expected in impl_hashes.items():
+        assert _historical_sha256(commit, path) == expected, path
+    for path, expected in test_hashes.items():
+        assert _historical_sha256(commit, path) == expected, path
+
+    assert R.compute_run_identity(inputs) == review["RUN_IDENTITY"]
+
+    authority = json.loads((REPO / SELECTOR_IDENTITY_AUTHORITY_REL).read_text(encoding="utf-8"))
+    assert authority["IMPLEMENTATION_REVIEW_JSON_SHA256"] == file_sha256(
+        REPO / REVIEW_JSON_REL
     )
-    assert review["FINAL_IMPLEMENTATION_COMMIT"] == (
-        "019561384a2b9660a180ff4620c3a9b7f0393727"
-    )
-    assert review["FINAL_IMPLEMENTATION_TREE"] == (
-        "9b601ab6fcf328220bd1c4c1989239646a0fab1a"
-    )
-    rebuilt_identity = R.compute_run_identity(review["RUN_IDENTITY_INPUTS"])
-    assert rebuilt_identity == review["RUN_IDENTITY"]
 
 
 def test_run_identity_binds_the_implementation_commit_and_tree(review):
