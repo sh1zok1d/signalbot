@@ -5109,3 +5109,52 @@ implemented here.
 
 Evidence: `docs/research/HETEROGENEOUS_FAMILY_ROTATION_V2.{json,md}`
 and `docs/research/DISCOVERY_SPRINT_03.{json,md}`.
+
+## 2026-09-22 — Sprint 03 pre-outcome amendment (three cards + D9 algebra)
+
+Pre-outcome correction of the first Sprint 03 freeze. Rebased onto
+`origin/main` `35511b3` (PR #197; `SIGNALBOT_MANDATE_V1` canonical).
+D7 RESULT and D8 deferred status unchanged. No scientific outcomes.
+
+`MECHANISM_MEMORY_V0` maps H01–H05, B2-01–B2-06, MARKET-01–06, D1–D8
+(`BATCH01_PROMOTED = 0/5`; MARKET-03 not internal discovery; B2-06 not
+negative evidence). Six history-aware candidates were compared. Selected
+three cards in three families:
+
+```
+INTERNAL_CARDS = D9, D10, D11
+SELECTED_THIS_ROTATION = D, G, H
+SPRINT03_SELECTION_INCOMPLETE = false
+D9_NAME = VENUE_DISLOCATION_RESOLUTION_STRUCTURE
+D9_FAMILY = H
+D9_DATA_FEASIBILITY_CLASS = DATA_READY
+D9_CHOSEN_ESTIMAND = RELATIVE_RESOLUTION_ATTRIBUTION
+D9_PRIMARY_TARGET = PERP_RESOLUTION_SHARE
+D9_ALGEBRAIC_IDENTIFICATION_FIXED = true
+OLD_RESOLUTION_IMBALANCE_REJECTED = true
+D10_NAME = BTC_ETH_RESIDUAL_SHOCK_PERSISTENCE
+D10_FAMILY = D
+D10_DATA_FEASIBILITY_CLASS = DATA_READY
+D11_NAME = SCHEDULED_MACRO_EVENT_VOL_RESPONSE
+D11_FAMILY = G
+D11_DATA_FEASIBILITY_CLASS = ACQUIRABLE_FREE_HISTORICAL
+D9_EXECUTED = false
+D10_EXECUTED = false
+D11_EXECUTED = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+NEXT_UNIT = DISCOVERY_SPRINT_03_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION
+```
+
+D9 algebra: `TOTAL_CLOSURE = -s*(rp-rs)`; `PERP_RESOLUTION_SHARE` only
+if `TOTAL_CLOSURE>0`. `rp==rs` is ineligible. Widening is ineligible.
+Estimand B (future consensus / price-discovery leadership) is rejected
+on two synchronous 5m closes. Historical next-unit
+`DISCOVERY_SPRINT_03_D9_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION`
+is superseded by the batch unit above.
+
+Evidence: `docs/research/MECHANISM_MEMORY_V0.{json,md}`,
+`docs/research/HETEROGENEOUS_FAMILY_ROTATION_V2.{json,md}`,
+and `docs/research/DISCOVERY_SPRINT_03.{json,md}`.

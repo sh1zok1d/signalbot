@@ -2,7 +2,7 @@
 
 **Status date:** 2026-09-22  
 **Status:** `ACTIVE / CANONICAL ROUTING INDEX`  
-**Main integration baseline before this status commit:** `9b25131e92ab654e46175ddba34e8cccc1db6765`
+**Main integration baseline before this status commit:** `35511b3e9665db2b80ee52480d401b795bbfe38a`
 
 This file is the compact answer to “what controls the project now?”. Frozen preregistrations/results remain authoritative for reproducing their own experiments; this file controls current routing only.
 
@@ -37,17 +37,23 @@ PREVIOUS_ROUTING            = DISCOVERY_SPRINT_02_D7_ONE_SHOT_SCIENTIFIC_EXECUTI
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = DISCOVERY_SPRINT_03_D9_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION
-NEXT_ACTION                 = D9_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION
+NEXT_UNIT                   = DISCOVERY_SPRINT_03_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION
+NEXT_ACTION                 = BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION
 HETEROGENEOUS_FAMILY_ROTATION_V1 = FROZEN_HISTORICAL_SPRINT_02_POLICY
 HETEROGENEOUS_FAMILY_ROTATION_V2 = FROZEN
 DISCOVERY_SPRINT_02 = D7_EXECUTED_D8_DEFERRED
 DISCOVERY_SPRINT_02_INTERNAL_CARDS = 2
 DISCOVERY_SPRINT_03 = DEFINED
-DISCOVERY_SPRINT_03_INTERNAL_CARDS = 1
+DISCOVERY_SPRINT_03_INTERNAL_CARDS = 3
+SPRINT03_SELECTION_INCOMPLETE = false
 D7_STATUS                   = PROMISING_PROTOTYPE
 D8_STATUS                   = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT
 D9_STATUS                   = DEFINED_NOT_EXECUTED
+D10_STATUS                  = DEFINED_NOT_EXECUTED
+D11_STATUS                  = DEFINED_NOT_EXECUTED
+D9_CHOSEN_ESTIMAND          = RELATIVE_RESOLUTION_ATTRIBUTION
+D9_ALGEBRAIC_IDENTIFICATION_FIXED = true
+MANDATE_V1_ON_MAIN          = true
 D7_IMPLEMENTATION_STATUS    = EXECUTED_ONE_SHOT
 D8_IMPLEMENTATION_STATUS    = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT
 D7_EXECUTION_AUTHORIZED     = true
@@ -60,6 +66,8 @@ D8_EXECUTION_AUTHORIZED     = false
 D8_EXECUTED                 = false
 D9_EXECUTED                 = false
 D9_SCIENTIFIC_OUTCOME_COMPUTED = false
+D10_EXECUTED                = false
+D11_EXECUTED                = false
 DATA_IDENTITY_MODE          = TRACKED_SNAPSHOT_FULL_MONTHLY_EXACT_BYTE_VERIFICATION
 D7_SELECTOR_N               = 4545
 D7_SELECTOR_DIGEST_FROZEN   = true
@@ -380,15 +388,24 @@ result. Protected 2025/2026 unopened. MARKET-07 not created.
 `POST_D7_PROGRAM_UPDATE_AND_DISCOVERY_SPRINT_03_SELECTION` then recorded
 those counters (`INTERNAL_DISCOVERY_CARDS_EXECUTED = 5`,
 `INTERNAL_PROMISING_PROTOTYPES = 2`) and froze
-`HETEROGENEOUS_FAMILY_ROTATION_V2`. Family E is in cooldown after D7.
-Family H's venue-structure subfamily is selected as the single Sprint 03
-internal card D9 `VENUE_DISLOCATION_RESOLUTION_STRUCTURE` on the existing
-`MARKET_06_OKX_BINANCE_FEASIBILITY_V0` surface. D9 is defined, not
-executed. D7 remains a confirmation candidate but is **not** selected for
+`HETEROGENEOUS_FAMILY_ROTATION_V2`. A pre-outcome amendment (this
+status) keeps D7/D8 routing, rebases onto `origin/main` `35511b3`
+(`SIGNALBOT_MANDATE_V1` canonical), and expands Sprint 03 to **three**
+orthogonal internal cards after `MECHANISM_MEMORY_V0`:
+
+- D9 `VENUE_DISLOCATION_RESOLUTION_STRUCTURE` (family H; `DATA_READY`;
+  estimand A `RELATIVE_RESOLUTION_ATTRIBUTION`; old `-s*(rp+rs)`
+  imbalance rejected);
+- D10 `BTC_ETH_RESIDUAL_SHOCK_PERSISTENCE` (family D; `DATA_READY`);
+- D11 `SCHEDULED_MACRO_EVENT_VOL_RESPONSE` (family G;
+  `ACQUIRABLE_FREE_HISTORICAL`).
+
+`SPRINT03_SELECTION_INCOMPLETE = false`. Family E remains in cooldown.
+D7 remains a confirmation candidate but is **not** selected for
 confirmation now. `RESEARCH_DATA_DURABILITY_V1` is required (CORE BTC
 bytes live in gitignored `artifacts/` without a verified object-storage
 restore path) and is **not** implemented in this unit.
-`NEXT_UNIT = DISCOVERY_SPRINT_03_D9_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION`.
+`NEXT_UNIT = DISCOVERY_SPRINT_03_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION`.
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by

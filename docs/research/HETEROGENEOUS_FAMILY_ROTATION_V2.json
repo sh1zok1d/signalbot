@@ -1,9 +1,13 @@
 {
+  "D10_EXECUTED": false,
+  "D11_EXECUTED": false,
   "D7_CONFIRMATION_CANDIDATE": true,
   "D7_CONFIRMATION_SELECTED_NOW": false,
   "D7_STATUS": "PROMISING_PROTOTYPE",
   "D8_NOT_A_NEGATIVE_SCIENTIFIC_RESULT": true,
   "D8_STATUS": "DEFERRED_INSUFFICIENT_CONTROL_SUPPORT",
+  "D9_ALGEBRAIC_IDENTIFICATION_FIXED": true,
+  "D9_CHOSEN_ESTIMAND": "RELATIVE_RESOLUTION_ATTRIBUTION",
   "D9_EXECUTED": false,
   "D9_SCIENTIFIC_OUTCOME_COMPUTED": false,
   "DATE": "2026-09-22",
@@ -29,7 +33,7 @@
       "STATUS": "NOT_SELECTED_THIS_ROTATION"
     },
     "B": {
-      "REASON": "Near the exact/near-exact MARKET-05/06 additive 24h adverse-path MAE / directional-expectation cell, which remains REPEATED_NULL / LOW_PRIORITY_FOR_NOW. A new B card would need a materially different FUNCTION/TARGET; Sprint 03 instead uses family H venue-structure.",
+      "REASON": "Near the exact/near-exact MARKET-05/06 additive 24h MAE cell. Not selected. D10 uses ETH but not this cell.",
       "STATUS": "NOT_SELECTED_THIS_ROTATION"
     },
     "C": {
@@ -37,8 +41,9 @@
       "STATUS": "NOT_SELECTED_THIS_ROTATION"
     },
     "D": {
-      "REASON": "D4 ROLLING_CORRELATION_90D returned NO_USEFUL_STRUCTURE; LEAD_LAG_1DAY remains deferred because the null destroyed ordinary common-factor dependence. BTC/ETH pairwise structure is not venue-structure evidence.",
-      "STATUS": "NOT_SELECTED_THIS_ROTATION"
+      "CARD": "D10",
+      "REASON": "D4 rolling-corr is NO_USEFUL_STRUCTURE and lead-lag is deferred, but residual persistence after orthogonalizing ETH to contemporaneous BTC is a materially different FUNCTION/TARGET. Selected as D10.",
+      "STATUS": "SELECTED_THIS_ROTATION"
     },
     "E": {
       "CARD": "D7",
@@ -50,13 +55,13 @@
       "STATUS": "DEFERRED_BLOCKER_UNRESOLVED"
     },
     "G": {
-      "CARD": "D8",
-      "REASON": "D8 remains DEFERRED_INSUFFICIENT_CONTROL_SUPPORT. That is not D8_NO_USEFUL_STRUCTURE and not a negative scientific result. Family G must not be used to rescue D8 thresholds, clocks, or control pools.",
-      "STATUS": "NOT_SELECTED_THIS_ROTATION"
+      "CARD": "D11",
+      "REASON": "D8 remains DEFERRED_INSUFFICIENT_CONTROL_SUPPORT and must not be rescued. D11 is an exogenous scheduled-macro unsigned-vol card, not a D8 threshold/clock/control child.",
+      "STATUS": "SELECTED_THIS_ROTATION"
     },
     "H": {
       "CARD": "D9",
-      "REASON": "True cross-sectional panel remains absent, so H is not a panel card. The VENUE_STRUCTURE subfamily now has an existing point-in-time surface MARKET_06_OKX_BINANCE_FEASIBILITY_V0 (snapshot e0403e40…). Sprint 03 selects one venue-relationship card that does not retry MARKET-06's failed 24h MAE claim.",
+      "REASON": "Venue-structure subfamily on MARKET_06_OKX_BINANCE_FEASIBILITY_V0. Estimand repaired to RELATIVE_RESOLUTION_ATTRIBUTION (common-mode invariant). True panel still absent.",
       "STATUS": "SELECTED_THIS_ROTATION",
       "SUBFAMILY": "VENUE_STRUCTURE",
       "TRUE_CROSS_SECTIONAL_PANEL": false
@@ -71,8 +76,8 @@
   "INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED": false,
   "INTERNAL_PROMISING_PROTOTYPES": 2,
   "KIND": "HYPOTHESIS_GENERATION_POLICY_FREEZE",
-  "MANDATE_V1_ON_MAIN": false,
-  "MANDATE_V1_READ_FROM": "origin/docs/signalbot-mandate-v1-refresh (PR #197 draft; not merged by this unit)",
+  "MANDATE_V1_ON_MAIN": true,
+  "MANDATE_V1_READ_FROM": "origin/main 35511b3 (PR #197 merged)",
   "MARKET_07_CREATED": false,
   "NAME": "HETEROGENEOUS_FAMILY_ROTATION_V2",
   "NO_MARKET_07_FROM_THIS_POLICY": true,
@@ -86,12 +91,17 @@
   "SCHEMA_VERSION": "2.0.0",
   "SCIENTIFIC_OUTCOMES_COMPUTED": false,
   "SELECTED_INTERNAL_CARDS": [
-    "D9"
+    "D9",
+    "D10",
+    "D11"
   ],
   "SELECTED_THIS_ROTATION": [
+    "D",
+    "G",
     "H"
   ],
   "SOURCE_UNIT": "POST_D7_PROGRAM_UPDATE_AND_DISCOVERY_SPRINT_03_SELECTION",
+  "SPRINT03_INTERNAL_CARDS": 3,
   "STATUS": "FROZEN",
   "SUPERSEDES_ROUTING_OF": "HETEROGENEOUS_FAMILY_ROTATION_V1",
   "THIS_ROTATION_APPLICATION": "DISCOVERY_SPRINT_03",
