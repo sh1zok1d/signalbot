@@ -49,9 +49,13 @@ D2_DECOMPOSITION_SELECTOR_IDENTITY_AUTHORITY = FROZEN
 D2_DECOMPOSITION_CANONICAL_SELECTOR_DIGEST_FROZEN = true
 D2_DECOMPOSITION_SELECTOR_IDENTITY_AUTHORITY_CREATED = true
 D2_DECOMPOSITION_EXECUTION_READY   = false
-D2_DECOMPOSITION_EXECUTION_AUTHORIZED = false
-D2_DECOMPOSITION_EXECUTION_PERMIT_CREATED = false
+D2_DECOMPOSITION_EXECUTION_AUTHORIZED = true
+D2_DECOMPOSITION_EXECUTION_PERMIT_CREATED = true
+D2_DECOMPOSITION_ONE_SHOT = true
+D2_DECOMPOSITION_RERUN_AUTHORIZED = false
 REAL_DECOMPOSITION_OUTCOME_COMPUTED = false
+RESULT_CREATED = false
+NEXT_ACTION                 = EXECUTE_EXACT_PERMIT_COMMIT_ONCE
 D2_DECOMPOSITION_CLASSIFICATION_ASSIGNED = null
 D2_PROGRAM_CLASS            = INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE
 BINANCE_2025_2026_DECISION  = KEEP_SEALED
@@ -270,8 +274,30 @@ CURRENT STATE: CANONICAL_SELECTOR_DIGEST_FROZEN = true
 ```
 
 The evaluator module constant remains `false` (review-unit truth). Current
-lifecycle truth is the verified authority. This freeze does **not**
-authorize execution.
+lifecycle truth is the verified authority.
+
+`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION` commit 1 then
+wrote the tracked execution permit
+`docs/research/D2_EXCESS_PATH_RISK_EXECUTION_PERMIT.json` (exactly
+`EV.tracked_permit_expected_authority`) and the outcome-blind one-shot
+runner `scripts/research/d2_excess_path_risk_one_shot.py`. No scientific
+run was executed in that permit commit. Evaluator-module
+`EXECUTION_AUTHORIZED` remains `false` (review-era). Tracked-permit
+`EXECUTION_AUTHORIZED = true`. No RESULT exists.
+
+```
+SELECTOR_IDENTITY_AUTHORITY = FROZEN
+EXECUTION_PERMIT_CREATED = true
+EXECUTION_AUTHORIZED = true
+ONE_SHOT = true
+RERUN_AUTHORIZED = false
+REAL_DECOMPOSITION_OUTCOME_COMPUTED = false
+RESULT_CREATED = false
+NEXT_ACTION = EXECUTE_EXACT_PERMIT_COMMIT_ONCE
+```
+
+Protected 2025/2026 remain sealed. BitMEX 2017-2019 is not reused for this
+target. MARKET-07 is not created.
 `NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION`.
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen

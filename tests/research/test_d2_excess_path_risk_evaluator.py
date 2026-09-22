@@ -1010,7 +1010,7 @@ def test_no_candidate_rows_classifies_invalid():
 # --------------------------------------------------------------------------
 
 
-def test_execution_is_not_authorized_and_no_permit_exists():
+def test_evaluator_module_flags_remain_review_era_with_tracked_permit_present():
     assert EV.EXECUTION_AUTHORIZED is False
     assert EV.EXECUTION_READY is False
     assert EV.CANONICAL_SELECTOR_DIGEST_FROZEN is False
@@ -1018,19 +1018,25 @@ def test_execution_is_not_authorized_and_no_permit_exists():
     assert EV.CANONICAL_ORCHESTRATION_READY is True
     assert EV.PERMIT_VERIFIER_READY is True
     assert EV.SCIENTIFIC_KERNEL_READY is True
-    assert not (REPO / EV.EXECUTION_PERMIT_REL).is_file()
+    assert (REPO / EV.EXECUTION_PERMIT_REL).is_file()
     assert (REPO / EV.SELECTOR_IDENTITY_AUTHORITY_REL).is_file()
+    assert not (
+        REPO / "docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_RESULT.json"
+    ).exists()
+    assert not (
+        REPO / "docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_RESULT.md"
+    ).exists()
 
 
-def test_execute_decomposition_fails_without_permit():
+def test_execute_decomposition_fails_without_permit(tmp_path):
     with pytest.raises(EV.PermitAuthorityError) as exc:
-        EV.execute_decomposition(repo=REPO)
+        EV.execute_decomposition(repo=tmp_path)
     assert "NO_EXECUTION_PERMIT" in str(exc.value)
 
 
-def test_loading_canonical_core_btc_requires_a_permit():
+def test_loading_canonical_core_btc_requires_a_permit(tmp_path):
     with pytest.raises(EV.PermitAuthorityError) as exc:
-        EV.load_canonical_core_btc_bars(REPO)
+        EV.load_canonical_core_btc_bars(tmp_path)
     assert "NO_EXECUTION_PERMIT" in str(exc.value)
 
 
@@ -1081,7 +1087,7 @@ def test_contract_summary_is_outcome_blind():
     assert summary["MARKET_07_CREATED"] is False
     assert summary["EXECUTION_AUTHORIZED"] is False
     assert summary["EXECUTION_READY"] is False
-    assert summary["EXECUTION_PERMIT_PRESENT"] is False
+    assert summary["EXECUTION_PERMIT_PRESENT"] is True
     assert summary["DESIGN_AUTHORITY_BLOCKERS"] == []
     assert summary["CONTROL_P95_METHOD"] == "NUMPY_LINEAR_INHERITED_FROM_D2"
     assert summary["EXACT_SELECTOR_IDENTITY_IMPLEMENTED"] is True

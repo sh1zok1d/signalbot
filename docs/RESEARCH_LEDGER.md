@@ -4659,3 +4659,42 @@ MODULE CONSTANT CANONICAL_SELECTOR_DIGEST_FROZEN = false
 
 - next required step: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION`
   (not authorized by this freeze; no execution permit exists)
+
+## 2026-09-22 — D2 excess path-risk one-shot permit + runner (commit 1)
+
+Outcome-blind permit commit only. Wrote tracked
+`docs/research/D2_EXCESS_PATH_RISK_EXECUTION_PERMIT.json` from
+`EV.tracked_permit_expected_authority` and added
+`scripts/research/d2_excess_path_risk_one_shot.py`. **Did not execute
+`EV.execute_decomposition`, did not open CORE BTC OHLC, did not compute
+ADVERSE_SHARE / PATH_SCALE, did not create RESULT.**
+
+```
+SELECTOR_IDENTITY_AUTHORITY = FROZEN
+EXECUTION_PERMIT_CREATED = true
+EXECUTION_AUTHORIZED = true
+ONE_SHOT = true
+RERUN_AUTHORIZED = false
+REAL_DECOMPOSITION_OUTCOME_COMPUTED = false
+RESULT_CREATED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+BITMEX_2017_2019_REUSED_FOR_NEW_TARGET = false
+MARKET_07_CREATED = false
+NEXT_ACTION = EXECUTE_EXACT_PERMIT_COMMIT_ONCE
+RUN_IDENTITY =
+  bfe92af94df23d7aa6f3adc016dc6f558607d772977a1cc6613394ac9a92625f
+DESIGN_JSON_SHA256 =
+  485983701d6e05a57f7dc8bb578613467d6d8f6fb1ec1e28c68d7ca42767c75b
+IMPLEMENTATION_REVIEW_JSON_SHA256 =
+  3e26984e2dfd44764b1de32f4d4198c87dd1f413dead1d1a6b0f471188e9d60b
+REVIEWED_EVALUATOR_SHA256 =
+  24571cf3e37356133494e7abd756f59c8acf6e1b18a1e859648040c1d4dac3ee
+SELECTOR_IDENTITY_AUTHORITY_SHA256 =
+  a982b316254ba54c4974512e0b19fa122a37f1744c8b0c49b2666046f352d13c
+CANONICAL_SELECTOR_DIGEST =
+  5eeb8480f8d1e576dec5e23f1a5545354c3d7b0fa16d76e6fbdbb89135b71f69
+```
+
+- next required step: execute the exact permit commit once
+  (`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION`)

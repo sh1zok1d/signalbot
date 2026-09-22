@@ -928,3 +928,24 @@ MARKET_07_CREATED = false
 Full record: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN.{json,md}`.
 
 `NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`.
+
+## D2 excess path-risk one-shot permit (2026-09-22)
+
+Outcome-blind permit + runner only. Tracked permit
+`docs/research/D2_EXCESS_PATH_RISK_EXECUTION_PERMIT.json` equals
+`EV.tracked_permit_expected_authority`. Runner
+`scripts/research/d2_excess_path_risk_one_shot.py` does not execute at
+import. No scientific RESULT. 2025/2026 sealed. MARKET-07 not created.
+
+```
+SELECTOR_IDENTITY_AUTHORITY = FROZEN
+EXECUTION_PERMIT_CREATED = true
+EXECUTION_AUTHORIZED = true
+ONE_SHOT = true
+RERUN_AUTHORIZED = false
+REAL_DECOMPOSITION_OUTCOME_COMPUTED = false
+RESULT_CREATED = false
+NEXT_ACTION = EXECUTE_EXACT_PERMIT_COMMIT_ONCE
+```
+
+`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION`.

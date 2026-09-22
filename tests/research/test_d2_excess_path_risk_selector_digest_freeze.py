@@ -91,7 +91,10 @@ def test_module_freeze_flag_remains_false_after_authority_exists():
 
 
 def test_no_execution_permit_or_result_created_by_the_freeze():
-    assert not (REPO / EV.EXECUTION_PERMIT_REL).is_file()
+    # The freeze unit did not write RESULT. A later permit commit may
+    # create the tracked permit file; RESULT must still be absent.
+    freeze_src = FREEZE_SRC.read_text(encoding="utf-8")
+    assert "D2_EXCESS_PATH_RISK_EXECUTION_PERMIT" not in freeze_src
     for name in (
         "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_RESULT.json",
         "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_RESULT.md",
