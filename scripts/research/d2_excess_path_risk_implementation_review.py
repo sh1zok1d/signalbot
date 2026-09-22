@@ -1,0 +1,522 @@
+"""Write the outcome-blind D2 excess path-risk implementation-review artifacts.
+
+Does not execute the scientific decomposition. Does not create an execution
+permit. Does not create a RESULT. Does not open protected 2025/2026. Does not
+reuse BitMEX 2017-2019 for this target.
+"""
+
+from __future__ import annotations
+
+import json
+import subprocess
+from pathlib import Path
+from typing import Any
+
+from scripts.research.d2_excess_path_risk_beyond_vol_clustering_design import (
+    CLASSIFICATION_ORDER,
+    CONTROL_STRATA,
+    FROZEN_RULE1_N,
+    FROZEN_RULE1_YEAR_N,
+    JSON_REL as DESIGN_JSON_REL,
+    N_RANDOM_CONTROLS,
+    PATH_SCALE_PRACTICAL_RELATIVE_BAR,
+    PRACTICAL_DELTA_SHARE,
+    PRIMARY_COMPARATOR,
+    PRIMARY_SELECTOR,
+    PRIMARY_TARGET,
+    RANDOM_SEED,
+    TARGET_INELIGIBLE_REASON,
+    TEMPORAL_YEARS_REQUIRED,
+    TEMPORAL_YEARS_TOTAL,
+    file_sha256,
+    verify_design_authorities,
+)
+from scripts.research.d2_excess_path_risk_evaluator import (
+    EXECUTION_AUTHORIZED,
+    EXECUTION_PERMIT_REL,
+    IMPLEMENTATION_FILES,
+    REVIEW_JSON_REL,
+    REVIEW_MD_REL,
+    UNIT,
+    compute_run_identity,
+    current_artifact_sha256,
+    current_implementation_file_sha256,
+    frozen_contract_summary,
+)
+from scripts.research.discovery_sprint_01 import common as C
+
+TEST_FILES = ("tests/research/test_d2_excess_path_risk_evaluator.py",)
+
+RED_TEAM: dict[str, dict[str, str]] = {
+    "F1_LOOKAHEAD_FEATURE_OUTCOME_OVERLAP": {
+        "status": "NOT_CONFIRMED",
+        "note": (
+            "Features (rv, ret, SIDE) come from frozen construct_discovery_row at "
+            "cutoff E=T-5m. The target re-walk reads only bars opening at T..T+287*5m; "
+            "a RecordingPerp test asserts min(read key) >= T."
+        ),
+    },
+    "F2_WRONG_FUTURE_BAR_WINDOW": {
+        "status": "NOT_CONFIRMED",
+        "note": (
+            "future_bars_for_row demands exactly 288 bars at T + k*BAR_MS for "
+            "k=0..287, asserts each bar.open_time_ms equals the requested key, and "
+            "fails closed on a missing or off-grid bar."
+        ),
+    },
+    "F3_CLOSES_INSTEAD_OF_HIGH_LOW": {
+        "status": "NOT_CONFIRMED",
+        "note": (
+            "MAE comes from frozen arithmetic_mae over PerpBar high/low. An AST test "
+            "asserts the evaluator never reads DiscoveryRow.future_closes, and a "
+            "high/low-collapsed perp map fails the severity cross-check."
+        ),
+    },
+    "F4_DIFFERENT_PATHS_FOR_SIDE_AND_MIRROR": {
+        "status": "NOT_CONFIRMED",
+        "note": (
+            "mae_pair calls arithmetic_mae twice on one bars sequence. AST tests "
+            "assert exactly one future_bars_for_row call and one mae_pair call per "
+            "row, and LONG+SHORT shares on one path sum to exactly 1.0."
+        ),
+    },
+    "F5_MAE_SIDE_SUBSTITUTION": {
+        "status": "NOT_CONFIRMED",
+        "note": (
+            "Recomputed MAE_SIDE is cross-checked bit-for-bit (tolerance 0.0) "
+            "against the frozen DiscoveryRow.severity, so any substituted path "
+            "fails closed."
+        ),
+    },
+    "F6_SELECTOR_DRIFT": {
+        "status": "NOT_CONFIRMED",
+        "note": (
+            "The selector is frozen C.rv_abstention_mask (identity-asserted), "
+            "RV_TRAILING_WINDOW=250, RV_PCTL=90.0, strict >, t excluded, imported "
+            "not redefined. verify_selector_identity fails closed unless the mask "
+            "is exactly 1791 with the frozen year breakdown."
+        ),
+    },
+    "F7_SIDE_DRIFT": {
+        "status": "NOT_CONFIRMED",
+        "note": (
+            "SIDE is the frozen row.side = sign(BTC_RET_24H); encode_side accepts "
+            "only +/-1 and rejects 0 and fractional sides."
+        ),
+    },
+    "F8_TARGET_INELIGIBILITY_HANDLING": {
+        "status": "NOT_CONFIRMED",
+        "note": (
+            "PATH_SCALE<=0 or nonfinite yields exactly "
+            "TARGET_ROW_INELIGIBLE_PATH_SCALE_NONPOSITIVE with no epsilon. The "
+            "selector mask is never rebuilt: candidate = selector AND eligible, "
+            "and SELECTOR_ROWS_TARGET_INELIGIBLE_N is reported per year."
+        ),
+    },
+    "F9_POOLED_K_OR_YEAR_ONLY_FALLBACK": {
+        "status": "NOT_CONFIRMED",
+        "note": (
+            "Draws are per (calendar_year, frozen SIDE) stratum. Tests assert every "
+            "replicate reproduces K exactly in every stratum, and that an all-LONG "
+            "candidate set never draws a SHORT control row while a pooled draw would."
+        ),
+    },
+    "F10_LONG_SHORT_COMPOSITION_MISMATCH": {
+        "status": "NOT_CONFIRMED",
+        "note": (
+            "Per-stratum K equality is asserted for both sides in every replicate; "
+            "K=0 strata draw zero rows."
+        ),
+    },
+    "F11_RNG_SEED_DRIFT": {
+        "status": "NOT_CONFIRMED",
+        "note": (
+            "numpy.random.Generator(numpy.random.PCG64(20260922131)), "
+            "N_RANDOM_CONTROLS=10000. Asserted distinct from the D2 discovery seed "
+            "and the D2 BitMEX seed; same seed reproduces masks, different seed does not."
+        ),
+    },
+    "F12_REPLACEMENT_SAMPLING": {
+        "status": "NOT_CONFIRMED",
+        "note": (
+            "rng.choice(..., replace=False) per stratum; tests assert each replicate "
+            "sets exactly K distinct bits, which a with-replacement draw could not."
+        ),
+    },
+    "F13_DIFFERENT_MASKS_FOR_SHARE_AND_SCALE": {
+        "status": "NOT_CONFIRMED",
+        "note": (
+            "AST tests assert exactly one year_side_matched_control_masks call and "
+            "that both means_from_shared_masks calls consume the same masks object."
+        ),
+    },
+    "F14_SEPARATE_YEARLY_CONTROL_GENERATION": {
+        "status": "NOT_CONFIRMED",
+        "note": (
+            "Yearly DELTA_SHARE uses year_means_from_shared_masks on the same masks "
+            "object, subset by year; AST asserts exactly one such call and no second "
+            "mask system."
+        ),
+    },
+    "F15_FUTURE_INFORMATION_MATCHING": {
+        "status": "NOT_CONFIRMED",
+        "note": (
+            "The comparator receives only years, sides, target-eligibility and "
+            "candidacy. No matching on PATH_SCALE, future volatility, future return, "
+            "MAE, extrema or abs(BTC_RET_24H); an AST test asserts no share/scale "
+            "array is passed."
+        ),
+    },
+    "F16_GATE_OR_CLASSIFICATION_RESCUE": {
+        "status": "NOT_CONFIRMED",
+        "note": (
+            "classify_decomposition is the frozen ordered rule. PROMISING requires "
+            "all three primary gates; PATH_SCALE elevation can only reach "
+            "VOLATILITY_SCALE_COMPATIBLE and never rescues a failed ADVERSE_SHARE "
+            "gate; the classifier never reads yearly or subgroup values."
+        ),
+    },
+    "F17_AUTHORITY_HASH_DRIFT": {
+        "status": "NOT_CONFIRMED",
+        "note": (
+            "verify_design_authorities binds the D2 discovery RESULT, program "
+            "decision, common.py, the D2 card and the arithmetic_mae module by "
+            "SHA256 and currently returns no blockers; a mutated copy raises "
+            "COMMON_SHA in test."
+        ),
+    },
+    "F18_ACCIDENTAL_REAL_OUTCOME_EXECUTION": {
+        "status": "NOT_CONFIRMED",
+        "note": (
+            "execute_decomposition and load_canonical_core_btc_bars require an "
+            "execution permit that does not exist; EXECUTION_AUTHORIZED is False and "
+            "a forged permit still raises RealDecompositionForbidden."
+        ),
+    },
+    "F19_PROTECTED_2025_2026_ACCESS": {
+        "status": "NOT_CONFIRMED",
+        "note": (
+            "construct_discovery_row refuses decisions from 2025 onward and the "
+            "target re-walk refuses any bar at or after PROTECTED_START_MS. No "
+            "protected partition is opened."
+        ),
+    },
+    "F20_BITMEX_REUSE_FOR_NEW_TARGET": {
+        "status": "NOT_CONFIRMED",
+        "note": (
+            "An AST test asserts the evaluator imports no BitMEX module. The surface "
+            "is CORE_BTC_BINANCE_V0 2020-02-01 -> 2025-01-01 only."
+        ),
+    },
+}
+
+OBSERVATIONS: list[dict[str, str]] = [
+    {
+        "id": "O1_STATISTICAL_GATE_STRICT_INEQUALITY_AT_AN_EXACT_TIE",
+        "class": "HARDENING_OBSERVATION_ACCEPTED_NO_CHANGE",
+        "note": (
+            "The frozen STATISTICAL_GATE is MU_SHARE_RULE > CONTROL_SHARE_P95. When "
+            "the rule and control means are exactly tied, floating-point noise can "
+            "decide the strict comparison. The frozen design is authoritative and is "
+            "NOT changed here. Defense in depth is already frozen: PROMISING requires "
+            "the practical (>= 0.05) and temporal (>= 3 of 5 years) gates too, so a "
+            "lone float-noise statistical pass cannot change the classification. "
+            "Covered by test_statistical_gate_alone_cannot_produce_promising."
+        ),
+    },
+    {
+        "id": "O2_CONTROL_POOL_INCLUDES_THE_ABSTAINED_ROWS",
+        "class": "FROZEN_SEMANTICS_CONFIRMED_NOT_A_NEW_CHOICE",
+        "note": (
+            "year_side_matched_control_masks draws from every target-eligible row in "
+            "the stratum, including the D2-abstained rows themselves. This is the "
+            "frozen design function's own behaviour and matches the original D2 "
+            "discovery comparator rate_matched_random_abstention. No new researcher "
+            "convention was introduced."
+        ),
+    },
+    {
+        "id": "O3_YEARLY_NAN_IS_STRUCTURALLY_IMPOSSIBLE_UNLESS_K_YEAR_IS_ZERO",
+        "class": "FROZEN_SEMANTICS_CONFIRMED_NOT_A_NEW_CHOICE",
+        "note": (
+            "Each replicate draws exactly K per stratum, so a year's replicate subset "
+            "is empty only when that year has no candidate rows at all. Partial NaN "
+            "across replicates is therefore impossible and is rejected explicitly "
+            "rather than silently averaged."
+        ),
+    },
+]
+
+
+def _git(repo: Path, *args: str) -> str:
+    return subprocess.check_output(["git", *args], cwd=repo, text=True).strip()
+
+
+def build_review(*, repo: Path, implementation_commit: str | None = None) -> dict[str, Any]:
+    blockers = verify_design_authorities(repo)
+    contract = frozen_contract_summary(repo)
+    impl = current_implementation_file_sha256(repo)
+    artifacts = current_artifact_sha256(repo)
+    tests = {rel: file_sha256(repo / rel) for rel in TEST_FILES}
+
+    head = _git(repo, "rev-parse", "HEAD")
+    tree = _git(repo, "rev-parse", "HEAD^{tree}")
+    commit = implementation_commit or head
+
+    identity_inputs = {
+        "DESIGN_JSON_SHA256": artifacts["DESIGN_JSON_SHA256"],
+        "DESIGN_MD_SHA256": artifacts["DESIGN_MD_SHA256"],
+        "IMPLEMENTATION_FILE_SHA256": impl,
+        "TEST_FILE_SHA256": tests,
+        "RANDOM_SEED": int(RANDOM_SEED),
+        "N_RANDOM_CONTROLS": int(N_RANDOM_CONTROLS),
+        "PRIMARY_SELECTOR": PRIMARY_SELECTOR,
+        "PRIMARY_TARGET": PRIMARY_TARGET,
+        "PRIMARY_COMPARATOR": PRIMARY_COMPARATOR,
+        "FROZEN_RULE1_N": int(FROZEN_RULE1_N),
+        "FROZEN_RULE1_YEAR_N": dict(FROZEN_RULE1_YEAR_N),
+        "CORE_BTC_SNAPSHOT": C.CORE_BTC_SNAPSHOT,
+        "FINAL_IMPLEMENTATION_COMMIT": commit,
+        "FINAL_IMPLEMENTATION_TREE": tree if commit == head else None,
+    }
+    run_identity = compute_run_identity(identity_inputs)
+
+    blocking = [name for name, body in RED_TEAM.items() if body["status"] == "BLOCKING"]
+    review_pass = not blocking and not blockers
+
+    return {
+        "unit": UNIT,
+        "kind": "OUTCOME_BLIND_IMPLEMENTATION_REVIEW",
+        "EVIDENCE_CLASS": "POST_REPLICATION_MECHANISM_DECOMPOSITION_DISCOVERY",
+        "DESIGN_SCIENTIFIC_CONTRACT": DESIGN_JSON_REL,
+        "DESIGN_STATUS": "FROZEN",
+        "DESIGN_NOT_REDESIGNED": True,
+        "CANDIDATE": "D2 / RULE_1 / RV_ABSTENTION",
+        "IMPLEMENTATION_REVIEW": "PASS" if review_pass else "BLOCKED",
+        "EXECUTION_READY": bool(review_pass),
+        "EXECUTION_AUTHORIZED": False,
+        "EXECUTION_AUTHORIZED_FLAG": EXECUTION_AUTHORIZED,
+        "EXECUTION_PERMIT_PRESENT": (repo / EXECUTION_PERMIT_REL).is_file(),
+        "EXECUTION_PERMIT_CREATED": False,
+        "PRIMARY_SELECTOR": PRIMARY_SELECTOR,
+        "PRIMARY_TARGET": PRIMARY_TARGET,
+        "PRIMARY_COMPARATOR": PRIMARY_COMPARATOR,
+        "CONTROL_STRATA": CONTROL_STRATA,
+        "ADVERSE_SHARE_FORMULA": "MAE_SIDE / (MAE_SIDE + MAE_OPPOSITE)",
+        "PATH_SCALE_FORMULA": "MAE_SIDE + MAE_OPPOSITE",
+        "SAME_FUTURE_PATH_REQUIRED": True,
+        "TARGET_SPECIFIC_INELIGIBILITY": TARGET_INELIGIBLE_REASON,
+        "TARGET_INELIGIBILITY_DOES_NOT_CHANGE_D2_SELECTOR": True,
+        "TARGET_INELIGIBILITY_MUST_BE_REPORTED": True,
+        "STATISTICAL_GATE": "MU_SHARE_RULE > CONTROL_SHARE_P95",
+        "PRACTICAL_GATE": f"DELTA_SHARE >= {PRACTICAL_DELTA_SHARE}",
+        "TEMPORAL_GATE": (
+            f"DELTA_SHARE > 0 in at least {TEMPORAL_YEARS_REQUIRED} of "
+            f"{TEMPORAL_YEARS_TOTAL} years"
+        ),
+        "PATH_SCALE_RELATIVE_BAR": float(PATH_SCALE_PRACTICAL_RELATIVE_BAR),
+        "PATH_SCALE_CANNOT_RESCUE_PRIMARY": True,
+        "NO_SUBGROUP_RESCUE": True,
+        "RANDOM_SEED": int(RANDOM_SEED),
+        "N_RANDOM_CONTROLS": int(N_RANDOM_CONTROLS),
+        "FROZEN_RULE1_N": int(FROZEN_RULE1_N),
+        "FROZEN_RULE1_YEAR_N": dict(FROZEN_RULE1_YEAR_N),
+        "SURFACE": {
+            "DATASET": "CORE_BTC_BINANCE_V0",
+            "SNAPSHOT": C.CORE_BTC_SNAPSHOT,
+            "INTERVAL": "2020-02-01T00:05:00Z -> 2025-01-01T00:00:00Z exclusive",
+            "LABEL": "ADAPTIVE_DISCOVERY_ON_HISTORICALLY_EXPOSED_DATA",
+        },
+        "DESIGN_AUTHORITY_BLOCKERS": blockers,
+        "FROZEN_AUTHORITY_STATUS": "BOUND_NO_DRIFT" if not blockers else "DRIFT",
+        "IMPLEMENTATION_FILES": list(IMPLEMENTATION_FILES),
+        "IMPLEMENTATION_FILE_SHA256": impl,
+        "TEST_FILES": list(TEST_FILES),
+        "TEST_FILE_SHA256": tests,
+        "DESIGN_JSON_SHA256": artifacts["DESIGN_JSON_SHA256"],
+        "DESIGN_MD_SHA256": artifacts["DESIGN_MD_SHA256"],
+        "FINAL_IMPLEMENTATION_COMMIT": commit,
+        "FINAL_IMPLEMENTATION_TREE": identity_inputs["FINAL_IMPLEMENTATION_TREE"],
+        "PRE_REVIEW_HEAD": head,
+        "RUN_IDENTITY": run_identity,
+        "RUN_IDENTITY_INPUTS": identity_inputs,
+        "RED_TEAM_FINDINGS": RED_TEAM,
+        "BLOCKING_FINDINGS": blocking,
+        "OBSERVATIONS": OBSERVATIONS,
+        "SCIENTIFIC_AMBIGUITY_FOUND": False,
+        "NEW_RESEARCHER_CONVENTION_INTRODUCED": False,
+        "CLASSIFICATIONS_UNASSIGNED": list(CLASSIFICATION_ORDER),
+        "CLASSIFICATION_ASSIGNED": None,
+        "CLASSIFICATION_ORDER": list(CLASSIFICATION_ORDER),
+        "REAL_DECOMPOSITION_OUTCOME_COMPUTED": False,
+        "MU_SHARE_RULE": None,
+        "DELTA_SHARE": None,
+        "MU_PATH_SCALE_RULE": None,
+        "DELTA_PATH_SCALE": None,
+        "PROTECTED_2025_OPENED": False,
+        "PROTECTED_2026_OPENED": False,
+        "2025_OPEN_AUTHORIZED": False,
+        "2026_OPEN_AUTHORIZED": False,
+        "BITMEX_2017_2019_REUSED_FOR_NEW_TARGET": False,
+        "MARKET_07_CREATED": False,
+        "RESULT_CREATED": False,
+        "ARM_CREATED": False,
+        "SYNTHETIC_TESTS_ONLY": True,
+        "CONTRACT_ECHO": contract,
+        "NEXT_UNIT": (
+            "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION"
+            if review_pass
+            else "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_REPAIR"
+        ),
+        "NOT_CREATED": ["RESULT", "execution permit", "MARKET-07", "ARM"],
+    }
+
+
+def render_markdown(review: dict[str, Any]) -> str:
+    findings = "\n".join(
+        f"- `{name}`: **{body['status']}** — {body['note']}"
+        for name, body in review["RED_TEAM_FINDINGS"].items()
+    )
+    observations = "\n".join(
+        f"- `{item['id']}` ({item['class']}) — {item['note']}"
+        for item in review["OBSERVATIONS"]
+    )
+    year_n = ", ".join(
+        f"{year}={count}" for year, count in sorted(review["FROZEN_RULE1_YEAR_N"].items())
+    )
+    return f"""# D2 excess direction-aligned path-risk — implementation review
+
+**Unit:** `{review["unit"]}`
+**Kind:** outcome-blind implementation review. **The decomposition was NOT executed.**
+
+## Lineage
+
+The frozen decomposition design
+`{review["DESIGN_SCIENTIFIC_CONTRACT"]}` is authoritative and was not
+redesigned. This unit adds an execution implementation plus an adversarial
+synthetic test suite, without computing any real ADVERSE_SHARE, PATH_SCALE,
+DELTA_SHARE, or classification.
+
+The selector is unchanged: `{review["PRIMARY_SELECTOR"]}` — P90 of the previous
+250 valid constructed-row RV observations, `t` excluded, strict `>`.
+
+## Scientific contract
+
+```
+PRIMARY_SELECTOR   = {review["PRIMARY_SELECTOR"]}
+PRIMARY_TARGET     = {review["PRIMARY_TARGET"]}
+ADVERSE_SHARE      = {review["ADVERSE_SHARE_FORMULA"]}
+PATH_SCALE         = {review["PATH_SCALE_FORMULA"]}
+PRIMARY_COMPARATOR = {review["PRIMARY_COMPARATOR"]}
+CONTROL_STRATA     = {review["CONTROL_STRATA"]}
+STATISTICAL_GATE   = {review["STATISTICAL_GATE"]}
+PRACTICAL_GATE     = {review["PRACTICAL_GATE"]}
+TEMPORAL_GATE      = {review["TEMPORAL_GATE"]}
+RANDOM_SEED        = {review["RANDOM_SEED"]}
+N_RANDOM_CONTROLS  = {review["N_RANDOM_CONTROLS"]}
+FROZEN_RULE1_N     = {review["FROZEN_RULE1_N"]} ({year_n})
+```
+
+Classification order is unchanged and exhaustive:
+
+1. `{review["CLASSIFICATION_ORDER"][0]}`
+2. `{review["CLASSIFICATION_ORDER"][1]}`
+3. `{review["CLASSIFICATION_ORDER"][2]}`
+4. `{review["CLASSIFICATION_ORDER"][3]}`
+
+## Future-path reconstruction
+
+`DiscoveryRow` stores `future_closes` only, so `MAE_OPPOSITE` cannot be read
+off a stored row. The implementation re-walks the exact 288 5m `PerpBar`
+sequence opening at `T … T+287*5m` and calls frozen `arithmetic_mae` twice on
+that one shared sequence. Recomputed `MAE_SIDE` is cross-checked bit-for-bit
+against the frozen `DiscoveryRow.severity`, so a wrong window, a close-path
+substitution, or a split path fails closed rather than producing a number.
+
+Rows whose envelope is nonpositive or nonfinite are target-ineligible with
+reason `{review["TARGET_SPECIFIC_INELIGIBILITY"]}` and no epsilon. This never
+rebuilds the D2 selector; the count of selector rows dropped by target
+ineligibility is reported per year.
+
+## Identity
+
+```
+IMPLEMENTATION_REVIEW      = {review["IMPLEMENTATION_REVIEW"]}
+EXECUTION_READY            = {review["EXECUTION_READY"]}
+EXECUTION_AUTHORIZED       = {review["EXECUTION_AUTHORIZED"]}
+EXECUTION_PERMIT_PRESENT   = {review["EXECUTION_PERMIT_PRESENT"]}
+FROZEN_AUTHORITY_STATUS    = {review["FROZEN_AUTHORITY_STATUS"]}
+DESIGN_AUTHORITY_BLOCKERS  = {review["DESIGN_AUTHORITY_BLOCKERS"]}
+DESIGN_JSON_SHA256         = {review["DESIGN_JSON_SHA256"]}
+RUN_IDENTITY               = {review["RUN_IDENTITY"]}
+FINAL_IMPLEMENTATION_COMMIT = {review["FINAL_IMPLEMENTATION_COMMIT"]}
+```
+
+No execution permit exists. `execute_decomposition` and
+`load_canonical_core_btc_bars` fail closed before any CORE BTC byte is read.
+
+## Red-team (F1–F20)
+
+{findings}
+
+## Observations (non-blocking)
+
+{observations}
+
+No scientific ambiguity required a new researcher convention:
+`SCIENTIFIC_AMBIGUITY_FOUND = {review["SCIENTIFIC_AMBIGUITY_FOUND"]}`.
+
+## Firewall
+
+```
+REAL_DECOMPOSITION_OUTCOME_COMPUTED = {review["REAL_DECOMPOSITION_OUTCOME_COMPUTED"]}
+CLASSIFICATION_ASSIGNED             = {review["CLASSIFICATION_ASSIGNED"]}
+PROTECTED_2025_OPENED               = {review["PROTECTED_2025_OPENED"]}
+PROTECTED_2026_OPENED               = {review["PROTECTED_2026_OPENED"]}
+BITMEX_2017_2019_REUSED_FOR_NEW_TARGET = {review["BITMEX_2017_2019_REUSED_FOR_NEW_TARGET"]}
+MARKET_07_CREATED                   = {review["MARKET_07_CREATED"]}
+RESULT_CREATED                      = {review["RESULT_CREATED"]}
+EXECUTION_PERMIT_CREATED            = {review["EXECUTION_PERMIT_CREATED"]}
+```
+
+## Next
+
+`NEXT_UNIT = {review["NEXT_UNIT"]}`
+
+That next unit is an explicit one-shot execution unit. It is not executed
+here, and this review does not authorize it: a future permit must bind the
+design hash, this review's hash, the implementation hash, the CORE BTC
+snapshot, and the run identity above.
+"""
+
+
+def write_artifacts(
+    *, repo: Path | None = None, implementation_commit: str | None = None
+) -> dict[str, Any]:
+    base = repo or C.repo_root()
+    review = build_review(repo=base, implementation_commit=implementation_commit)
+    (base / REVIEW_JSON_REL).write_text(
+        json.dumps(review, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    (base / REVIEW_MD_REL).write_text(render_markdown(review), encoding="utf-8")
+    return review
+
+
+if __name__ == "__main__":
+    written = write_artifacts()
+    keys = (
+        "IMPLEMENTATION_REVIEW",
+        "EXECUTION_READY",
+        "EXECUTION_AUTHORIZED",
+        "FROZEN_AUTHORITY_STATUS",
+        "DESIGN_AUTHORITY_BLOCKERS",
+        "RUN_IDENTITY",
+        "REAL_DECOMPOSITION_OUTCOME_COMPUTED",
+        "PROTECTED_2025_OPENED",
+        "PROTECTED_2026_OPENED",
+        "BITMEX_2017_2019_REUSED_FOR_NEW_TARGET",
+        "RESULT_CREATED",
+        "EXECUTION_PERMIT_CREATED",
+        "NEXT_UNIT",
+    )
+    print(json.dumps({k: written[k] for k in keys}, indent=2))
