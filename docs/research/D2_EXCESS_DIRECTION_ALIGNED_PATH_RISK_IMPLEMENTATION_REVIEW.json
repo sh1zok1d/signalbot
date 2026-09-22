@@ -39,13 +39,24 @@
     "EXECUTION_AUTHORIZED": false,
     "EXECUTION_PERMIT_PRESENT": false,
     "EXECUTION_READY": false,
+    "FROZEN_D2_DISCOVERY_SHA256": "42ee5d7db19a17e62d861513759192ec78898ee9ec901902b3db58e7386966c2",
     "FROZEN_RULE1_N": 1791,
+    "FROZEN_RULE1_N_MEANS_CONSTRUCTED_POPULATION": true,
     "FROZEN_RULE1_YEAR_N": {
       "2020": 334,
       "2021": 364,
       "2022": 364,
       "2023": 364,
       "2024": 365
+    },
+    "FROZEN_SELECTOR_ABSTAIN_N": 163,
+    "FROZEN_SELECTOR_ABSTAIN_PROVENANCE": "PRIMARY_METRICS.RV_ABSTENTION.ABSTAIN_COUNT/YEAR_ABSTAIN_COUNTS",
+    "FROZEN_SELECTOR_ABSTAIN_YEAR_N": {
+      "2020": 10,
+      "2021": 48,
+      "2022": 32,
+      "2023": 23,
+      "2024": 50
     },
     "FUTURE_BARS": 288,
     "MAE_OPPOSITE": "arithmetic_mae(-SIDE, entry, SAME future_288x5m_path)",
@@ -89,6 +100,27 @@
     "SELECTOR_DIGEST_ALGORITHM": "SHA256_ORDERED_T_MS_AND_SELECTOR_FLAGS_V1",
     "SELECTOR_IDENTITY_AUTHORITY_PRESENT": false,
     "SELECTOR_IDENTITY_AUTHORITY_REL": "docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_SELECTOR_IDENTITY.json",
+    "SELECTOR_IDENTITY_FACTS": {
+      "D2_DISCOVERY_RESULT_REL": "docs/research/discovery_results/D2_DISCOVERY_RESULT.json",
+      "FROZEN_D2_DISCOVERY_SHA256": "42ee5d7db19a17e62d861513759192ec78898ee9ec901902b3db58e7386966c2",
+      "RULE_1_CONSTRUCTED_N": 1791,
+      "RULE_1_CONSTRUCTED_YEAR_N": {
+        "2020": 334,
+        "2021": 364,
+        "2022": 364,
+        "2023": 364,
+        "2024": 365
+      },
+      "SELECTOR_ABSTAIN_N": 163,
+      "SELECTOR_ABSTAIN_PROVENANCE": "PRIMARY_METRICS.RV_ABSTENTION.ABSTAIN_COUNT/YEAR_ABSTAIN_COUNTS",
+      "SELECTOR_ABSTAIN_YEAR_N": {
+        "2020": 10,
+        "2021": 48,
+        "2022": 32,
+        "2023": 23,
+        "2024": 50
+      }
+    },
     "STATISTICAL_GATE": "MU_SHARE_RULE > CONTROL_SHARE_P95",
     "TEMPORAL_GATE": "DELTA_SHARE > 0 in at least 3 of 5 years",
     "UNIT": "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW"
@@ -110,16 +142,25 @@
   "EXECUTION_PERMIT_CREATED": false,
   "EXECUTION_PERMIT_PRESENT": false,
   "EXECUTION_READY": false,
-  "FINAL_IMPLEMENTATION_COMMIT": "9c72f48fbe8a1b233869e2a748021f2e8dedfc42",
-  "FINAL_IMPLEMENTATION_TREE": "b9c2ade4ef810dd12d7f251a6299a10937d489bb",
+  "FINAL_IMPLEMENTATION_COMMIT": "019561384a2b9660a180ff4620c3a9b7f0393727",
+  "FINAL_IMPLEMENTATION_TREE": "9b601ab6fcf328220bd1c4c1989239646a0fab1a",
   "FROZEN_AUTHORITY_STATUS": "BOUND_NO_DRIFT",
   "FROZEN_RULE1_N": 1791,
+  "FROZEN_RULE1_N_MEANS_CONSTRUCTED_POPULATION": true,
   "FROZEN_RULE1_YEAR_N": {
     "2020": 334,
     "2021": 364,
     "2022": 364,
     "2023": 364,
     "2024": 365
+  },
+  "FROZEN_SELECTOR_ABSTAIN_N": 163,
+  "FROZEN_SELECTOR_ABSTAIN_YEAR_N": {
+    "2020": 10,
+    "2021": 48,
+    "2022": 32,
+    "2023": 23,
+    "2024": 50
   },
   "IMPLEMENTATION_FILES": [
     "scripts/research/d2_excess_path_risk_evaluator.py",
@@ -130,7 +171,7 @@
   ],
   "IMPLEMENTATION_FILE_SHA256": {
     "scripts/research/d2_excess_path_risk_beyond_vol_clustering_design.py": "33ef9b72aaa51b71351a79bf88b3a8fa902a1f9c79822d59c0171323f2401ce8",
-    "scripts/research/d2_excess_path_risk_evaluator.py": "7a530eab01161d51403d872ef6cf45d7b1273fe4ecd146fbea4d87e6fe92c43e",
+    "scripts/research/d2_excess_path_risk_evaluator.py": "24571cf3e37356133494e7abd756f59c8acf6e1b18a1e859648040c1d4dac3ee",
     "scripts/research/discovery_sprint_01/common.py": "ab152da63fa8c923fba3fd0255b7cd4d6457389b6a45be9959abc7235fa912ef",
     "scripts/research/discovery_sprint_01/d2_abstention_tail_risk.py": "2c00d7510e497cee48b169c1e6296982600567fffe0cb94e08fb9bcef2931991",
     "scripts/research/market_06_cross_venue_dislocation_evaluator.py": "ff87062edf583af1a67affcc18cda5e184379d9e63f7ff8b0e18383978890ead"
@@ -262,7 +303,7 @@
       "status": "NOT_CONFIRMED"
     },
     "F6_SELECTOR_DRIFT": {
-      "note": "The selector is frozen C.rv_abstention_mask (identity-asserted), RV_TRAILING_WINDOW=250, RV_PCTL=90.0, strict >, t excluded, imported not redefined. The 1791 / year-count census is a secondary integrity check only. Exact identity is SHA256 of the ordered constructed-row t_ms plus selector flags; that machinery is implemented and tested. canonical_orchestration compares the reconstructed digest to a tracked selector-identity authority BEFORE evaluate_decomposition. The authority artifact is NOT created in this unit (CANONICAL_SELECTOR_DIGEST_FROZEN = false) because obtaining the true canonical digest would require opening real CORE BTC. Count-only identity is not called exact identity.",
+      "note": "The selector is frozen C.rv_abstention_mask (identity-asserted), RV_TRAILING_WINDOW=250, RV_PCTL=90.0, strict >, t excluded, imported not redefined. Selector identity reports TWO censuses: constructed RULE_1 N=1791 / years 334,364,364,364,365 (FROZEN_RULE1_N, never mask.sum()) and historical selector abstain N=163 / years 10,48,32,23,50 bound to frozen D2 PRIMARY_METRICS.RV_ABSTENTION. Those count-only censuses are secondary integrity checks only. Exact identity is SHA256 of the ordered constructed-row t_ms plus selector flags; that machinery is implemented and tested. canonical_orchestration compares the reconstructed digest to a tracked selector-identity authority BEFORE evaluate_decomposition. The authority artifact is NOT created in this unit (CANONICAL_SELECTOR_DIGEST_FROZEN = false) because obtaining the true canonical digest would require opening real CORE BTC. Count-only identity is not called exact identity.",
       "status": "NOT_CONFIRMED"
     },
     "F7_SIDE_DRIFT": {
@@ -279,15 +320,16 @@
     }
   },
   "RESULT_CREATED": false,
-  "RUN_IDENTITY": "3fb7f1a6c4ba84e912e4ec3012faacd25285eb1cf2bfcca59772c6a441b92e7f",
+  "RUN_IDENTITY": "bfe92af94df23d7aa6f3adc016dc6f558607d772977a1cc6613394ac9a92625f",
   "RUN_IDENTITY_INPUTS": {
     "CONTROL_P95_METHOD": "NUMPY_LINEAR_INHERITED_FROM_D2",
     "CORE_BTC_SNAPSHOT": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
     "DESIGN_JSON_SHA256": "485983701d6e05a57f7dc8bb578613467d6d8f6fb1ec1e28c68d7ca42767c75b",
     "DESIGN_MD_SHA256": "c05090cfdacc5884ea571a5aa3ce1c3c862d8992a6a2dae296cc43aadc84fa86",
-    "FINAL_IMPLEMENTATION_COMMIT": "9c72f48fbe8a1b233869e2a748021f2e8dedfc42",
-    "FINAL_IMPLEMENTATION_TREE": "b9c2ade4ef810dd12d7f251a6299a10937d489bb",
+    "FINAL_IMPLEMENTATION_COMMIT": "019561384a2b9660a180ff4620c3a9b7f0393727",
+    "FINAL_IMPLEMENTATION_TREE": "9b601ab6fcf328220bd1c4c1989239646a0fab1a",
     "FROZEN_RULE1_N": 1791,
+    "FROZEN_RULE1_N_MEANS_CONSTRUCTED_POPULATION": true,
     "FROZEN_RULE1_YEAR_N": {
       "2020": 334,
       "2021": 364,
@@ -295,9 +337,17 @@
       "2023": 364,
       "2024": 365
     },
+    "FROZEN_SELECTOR_ABSTAIN_N": 163,
+    "FROZEN_SELECTOR_ABSTAIN_YEAR_N": {
+      "2020": 10,
+      "2021": 48,
+      "2022": 32,
+      "2023": 23,
+      "2024": 50
+    },
     "IMPLEMENTATION_FILE_SHA256": {
       "scripts/research/d2_excess_path_risk_beyond_vol_clustering_design.py": "33ef9b72aaa51b71351a79bf88b3a8fa902a1f9c79822d59c0171323f2401ce8",
-      "scripts/research/d2_excess_path_risk_evaluator.py": "7a530eab01161d51403d872ef6cf45d7b1273fe4ecd146fbea4d87e6fe92c43e",
+      "scripts/research/d2_excess_path_risk_evaluator.py": "24571cf3e37356133494e7abd756f59c8acf6e1b18a1e859648040c1d4dac3ee",
       "scripts/research/discovery_sprint_01/common.py": "ab152da63fa8c923fba3fd0255b7cd4d6457389b6a45be9959abc7235fa912ef",
       "scripts/research/discovery_sprint_01/d2_abstention_tail_risk.py": "2c00d7510e497cee48b169c1e6296982600567fffe0cb94e08fb9bcef2931991",
       "scripts/research/market_06_cross_venue_dislocation_evaluator.py": "ff87062edf583af1a67affcc18cda5e184379d9e63f7ff8b0e18383978890ead"
@@ -308,8 +358,8 @@
     "PRIMARY_TARGET": "ADVERSE_SHARE",
     "RANDOM_SEED": 20260922131,
     "TEST_FILE_SHA256": {
-      "tests/research/test_d2_excess_path_risk_evaluator.py": "d185bd54fafe0b79eb5e4397bd004903feb3ecab4a82e9db70522810f4aae3de",
-      "tests/research/test_d2_excess_path_risk_implementation_review.py": "bc64824334c902290ebe68b2b7027912a3101df4841e53d0608d253689b789f5"
+      "tests/research/test_d2_excess_path_risk_evaluator.py": "d72c8e31fad460aaa67cd0e4c6823a733993d3e4dc7559f5c62fec8d48f6b6f9",
+      "tests/research/test_d2_excess_path_risk_implementation_review.py": "d7b8ba22d29fe99abb968e57ad8e4b5f45ccf2e0dfb31faaf524050f75f937ce"
     }
   },
   "SAME_FUTURE_PATH_REQUIRED": true,
@@ -335,8 +385,8 @@
     "tests/research/test_d2_excess_path_risk_implementation_review.py"
   ],
   "TEST_FILE_SHA256": {
-    "tests/research/test_d2_excess_path_risk_evaluator.py": "d185bd54fafe0b79eb5e4397bd004903feb3ecab4a82e9db70522810f4aae3de",
-    "tests/research/test_d2_excess_path_risk_implementation_review.py": "bc64824334c902290ebe68b2b7027912a3101df4841e53d0608d253689b789f5"
+    "tests/research/test_d2_excess_path_risk_evaluator.py": "d72c8e31fad460aaa67cd0e4c6823a733993d3e4dc7559f5c62fec8d48f6b6f9",
+    "tests/research/test_d2_excess_path_risk_implementation_review.py": "d7b8ba22d29fe99abb968e57ad8e4b5f45ccf2e0dfb31faaf524050f75f937ce"
   },
   "kind": "OUTCOME_BLIND_IMPLEMENTATION_REVIEW",
   "unit": "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW"

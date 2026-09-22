@@ -29,7 +29,8 @@ TEMPORAL_GATE      = DELTA_SHARE > 0 in at least 3 of 5 years
 RANDOM_SEED        = 20260922131
 N_RANDOM_CONTROLS  = 10000
 CONTROL_P95_METHOD = NUMPY_LINEAR_INHERITED_FROM_D2
-FROZEN_RULE1_N     = 1791 (2020=334, 2021=364, 2022=364, 2023=364, 2024=365)
+FROZEN_RULE1_N     = 1791 (2020=334, 2021=364, 2022=364, 2023=364, 2024=365)  # CONSTRUCTED population, never mask.sum()
+FROZEN_SELECTOR_ABSTAIN_N = 163 (2020=10, 2021=48, 2022=32, 2023=23, 2024=50)
 ```
 
 Classification order is unchanged and exhaustive:
@@ -69,8 +70,8 @@ EXECUTION_PERMIT_PRESENT              = False
 FROZEN_AUTHORITY_STATUS               = BOUND_NO_DRIFT
 DESIGN_AUTHORITY_BLOCKERS             = []
 DESIGN_JSON_SHA256                    = 485983701d6e05a57f7dc8bb578613467d6d8f6fb1ec1e28c68d7ca42767c75b
-RUN_IDENTITY                          = 3fb7f1a6c4ba84e912e4ec3012faacd25285eb1cf2bfcca59772c6a441b92e7f
-FINAL_IMPLEMENTATION_COMMIT           = 9c72f48fbe8a1b233869e2a748021f2e8dedfc42
+RUN_IDENTITY                          = bfe92af94df23d7aa6f3adc016dc6f558607d772977a1cc6613394ac9a92625f
+FINAL_IMPLEMENTATION_COMMIT           = 019561384a2b9660a180ff4620c3a9b7f0393727
 ```
 
 PASS is justified by implemented and tested machinery, not by a hardcoded
@@ -81,7 +82,8 @@ exists. `execute_decomposition` is the full dormant canonical route and
 still fails closed before any CORE BTC OHLC is read. The route requires
 the future tracked selector-identity authority (bound by permit SHA256)
 and compares the reconstructed ordered digest to that frozen digest
-before `evaluate_decomposition`. Count-only 1791/year census is secondary.
+before `evaluate_decomposition`. Constructed 1791/year census and historical
+163/year abstain census are secondary; `RULE_1_N` means constructed N.
 
 ## Red-team (F1–F20)
 
@@ -90,7 +92,7 @@ before `evaluate_decomposition`. Count-only 1791/year census is secondary.
 - `F3_CLOSES_INSTEAD_OF_HIGH_LOW`: **NOT_CONFIRMED** — MAE comes from frozen arithmetic_mae over PerpBar high/low. An AST test asserts the evaluator never reads DiscoveryRow.future_closes, and a high/low-collapsed perp map fails the severity cross-check.
 - `F4_DIFFERENT_PATHS_FOR_SIDE_AND_MIRROR`: **NOT_CONFIRMED** — mae_pair calls arithmetic_mae twice on one bars sequence. AST tests assert exactly one future_bars_for_row call and one mae_pair call per row, and LONG+SHORT shares on one path sum to exactly 1.0.
 - `F5_MAE_SIDE_SUBSTITUTION`: **NOT_CONFIRMED** — Recomputed MAE_SIDE is cross-checked bit-for-bit (tolerance 0.0) against the frozen DiscoveryRow.severity, so any substituted path fails closed.
-- `F6_SELECTOR_DRIFT`: **NOT_CONFIRMED** — The selector is frozen C.rv_abstention_mask (identity-asserted), RV_TRAILING_WINDOW=250, RV_PCTL=90.0, strict >, t excluded, imported not redefined. The 1791 / year-count census is a secondary integrity check only. Exact identity is SHA256 of the ordered constructed-row t_ms plus selector flags; that machinery is implemented and tested. canonical_orchestration compares the reconstructed digest to a tracked selector-identity authority BEFORE evaluate_decomposition. The authority artifact is NOT created in this unit (CANONICAL_SELECTOR_DIGEST_FROZEN = false) because obtaining the true canonical digest would require opening real CORE BTC. Count-only identity is not called exact identity.
+- `F6_SELECTOR_DRIFT`: **NOT_CONFIRMED** — The selector is frozen C.rv_abstention_mask (identity-asserted), RV_TRAILING_WINDOW=250, RV_PCTL=90.0, strict >, t excluded, imported not redefined. Selector identity reports TWO censuses: constructed RULE_1 N=1791 / years 334,364,364,364,365 (FROZEN_RULE1_N, never mask.sum()) and historical selector abstain N=163 / years 10,48,32,23,50 bound to frozen D2 PRIMARY_METRICS.RV_ABSTENTION. Those count-only censuses are secondary integrity checks only. Exact identity is SHA256 of the ordered constructed-row t_ms plus selector flags; that machinery is implemented and tested. canonical_orchestration compares the reconstructed digest to a tracked selector-identity authority BEFORE evaluate_decomposition. The authority artifact is NOT created in this unit (CANONICAL_SELECTOR_DIGEST_FROZEN = false) because obtaining the true canonical digest would require opening real CORE BTC. Count-only identity is not called exact identity.
 - `F7_SIDE_DRIFT`: **NOT_CONFIRMED** — SIDE is the frozen row.side = sign(BTC_RET_24H); encode_side accepts only +/-1 and rejects 0 and fractional sides.
 - `F8_TARGET_INELIGIBILITY_HANDLING`: **NOT_CONFIRMED** — PATH_SCALE<=0 or nonfinite yields exactly TARGET_ROW_INELIGIBLE_PATH_SCALE_NONPOSITIVE with no epsilon. The selector mask is never rebuilt: candidate = selector AND eligible, and SELECTOR_ROWS_TARGET_INELIGIBLE_N is reported per year.
 - `F9_POOLED_K_OR_YEAR_ONLY_FALLBACK`: **NOT_CONFIRMED** — Draws are per (calendar_year, frozen SIDE) stratum. Tests assert every replicate reproduces K exactly in every stratum, and that an all-LONG candidate set never draws a SHORT control row while a pooled draw would.
