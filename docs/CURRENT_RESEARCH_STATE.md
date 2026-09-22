@@ -37,7 +37,8 @@ PREVIOUS_ROUTING            = D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURF
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN
+NEXT_UNIT                   = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW
+D2_DECOMPOSITION_DESIGN_STATUS = FROZEN
 D2_PROGRAM_CLASS            = INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE
 BINANCE_2025_2026_DECISION  = KEEP_SEALED
 PRODUCT_BUILD_FROZEN        = true
@@ -195,7 +196,24 @@ trading-edge, and product claims are not. Protected 2025/2026 remain sealed.
 Hypothesis generation now rotates across families A–I; D2 neighbors are
 forbidden. Product build remains frozen. MARKET-07 not created.
 Record: `docs/research/PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED.{json,md}`.
-`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN`.
+That unit's next step was
+`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN`.
+
+`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN`
+then froze an outcome-blind post-replication mechanism-decomposition
+contract without executing it. Selector remains frozen D2 / RULE_1 /
+`RV_ABSTENTION`. Primary target is `ADVERSE_SHARE = MAE_SIDE /
+(MAE_SIDE + MAE_OPPOSITE)` on the same 24h path, versus year×SIDE-matched
+rate-matched random abstention (`N=10000`, seed `20260922131`). A
+pre-outcome correction replaced year-only matching with
+`YEAR_SIDE_MATCHED_RATE_MATCHED_RANDOM_ABSTENTION` so candidate LONG/SHORT
+composition cannot confound `ADVERSE_SHARE`. Evidence
+class is `POST_REPLICATION_MECHANISM_DECOMPOSITION_DISCOVERY`, not
+independent confirmation. BitMEX 2017-2019 is not reused for this new
+target. Protected 2025/2026 unopened. MARKET-07 not created. No real
+decomposition outcome.
+Record: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN.{json,md}`.
+`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`.
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by

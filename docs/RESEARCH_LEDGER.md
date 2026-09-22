@@ -4373,3 +4373,65 @@ NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_D
 Evidence: `docs/research/PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED.{json,md}`.
 
 - next required step: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN`
+
+## 2026-09-22 — D2 excess path-risk beyond vol-clustering design freeze
+
+Outcome-blind post-replication mechanism-decomposition design. Selector
+remains frozen D2 / RULE_1 / `RV_ABSTENTION` (P90, trailing-250, strict
+`>`, t excluded). Primary target changes from MAE_SIDE to
+`ADVERSE_SHARE = MAE_SIDE / (MAE_SIDE + MAE_OPPOSITE)` on the same 24h
+path. Comparator is year-matched rate-matched random abstention,
+`N_RANDOM_CONTROLS = 10000`, seed `20260922131` selected before outcome.
+Gates frozen: statistical `MU_SHARE_RULE > CONTROL_SHARE_P95`; practical
+`DELTA_SHARE >= 0.05`; temporal `DELTA_SHARE > 0` in at least 3 of 5
+years. Evidence class
+`POST_REPLICATION_MECHANISM_DECOMPOSITION_DISCOVERY`, not independent
+confirmation. BitMEX 2017-2019 not reused for this new target. Protected
+2025/2026 unopened. MARKET-07 not created. No real decomposition outcome.
+`DESIGN_STATUS = FROZEN`.
+
+```
+DESIGN_STATUS = FROZEN
+PRIMARY_SELECTOR = D2_RULE_1_RV_ABSTENTION
+PRIMARY_TARGET = ADVERSE_SHARE
+RANDOM_SEED = 20260922131
+N_RANDOM_CONTROLS = 10000
+D2_SELECTOR_CHANGED = false
+HORIZON_CHANGED = false
+RV_RULE_CHANGED = false
+TARGET_CHANGED_FROM_ORIGINAL_D2 = true
+REAL_DECOMPOSITION_OUTCOME_COMPUTED = false
+BITMEX_2017_2019_REUSED_FOR_NEW_TARGET = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW
+```
+
+Evidence: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN.{json,md}`.
+
+- next required step: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`
+
+## 2026-09-22 — Pre-outcome year×SIDE comparator correction
+
+Before any decomposition outcome, the design comparator was corrected from
+year-only matching to `YEAR_SIDE_MATCHED_RATE_MATCHED_RANDOM_ABSTENTION`.
+`ADVERSE_SHARE` is defined relative to frozen `SIDE`; year-only random
+matching could confound a high-RV effect with LONG/SHORT composition.
+Each replicate now preserves exact `K_{year,SIDE}` inside 2020–2024 ×
+LONG/SHORT. Seed `20260922131` unchanged. Selector and target unchanged.
+No real decomposition outcome. 2025/2026 unopened. BitMEX not reused.
+
+```
+PRIMARY_COMPARATOR = YEAR_SIDE_MATCHED_RATE_MATCHED_RANDOM_ABSTENTION
+CONTROL_STRATA = calendar_year × frozen_SIDE
+SIDE_MATCHING_ADDED = true
+SELECTOR_CHANGED = false
+TARGET_CHANGED = false
+RANDOM_SEED_CHANGED = false
+REAL_DECOMPOSITION_OUTCOME_COMPUTED = false
+```
+
+Evidence: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN.{json,md}`.
+
+- next required step: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`

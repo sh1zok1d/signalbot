@@ -1,6 +1,6 @@
 # Signalbot — Current Project Status
 
-**Status date:** 2026-09-21  
+**Status date:** 2026-09-22
 **Operating mode:** `RESEARCH_FIRST / PRODUCT_BUILD_FROZEN`  
 **Active phase:** `POST_D2_INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`
 
@@ -28,12 +28,14 @@ The exact M05/M06 additive 24h adverse-path MAE cell is `REPEATED_NULL / LOW_PRI
 
 ## Active work
 
-Next: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN`.
+Next: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`.
 
 D2 is an `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`, not a validated
-trading edge. Binance 2025/2026 remain sealed. Product build remains
-frozen. MARKET-07 is not created. The next D2 unit is mechanism-decomposition
-design only.
+trading edge. The excess direction-aligned path-risk decomposition design
+is frozen (`DESIGN_STATUS = FROZEN`); selector unchanged; primary target
+`ADVERSE_SHARE`. Binance 2025/2026 remain sealed. Product build remains
+frozen. MARKET-07 is not created. Do not execute the decomposition from
+this routing file.
 
 `FORWARD_MARKET_OBSERVABILITY_V1` remains available as infrastructure; authoritative collection is not started by this cleanup. B2-06 remains blocked.
 
