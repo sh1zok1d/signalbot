@@ -89,11 +89,8 @@ def d9_relative_resolution(d_u: float, rp: float, rs: float) -> dict:
 
 
 def _ols_beta(r_btc: list[float], r_eth: list[float]) -> float:
-    n = len(r_btc)
-    mean_x = sum(r_btc) / n
-    mean_y = sum(r_eth) / n
-    num = sum((x - mean_x) * (y - mean_y) for x, y in zip(r_btc, r_eth))
-    den = sum((x - mean_x) ** 2 for x in r_btc)
+    num = sum(x * y for x, y in zip(r_btc, r_eth))
+    den = sum(x * x for x in r_btc)
     return num / den
 
 
@@ -208,7 +205,7 @@ def test_sprint_defines_three_heterogeneous_internal_cards():
     assert set(sprint["CARDS"]) == {"D9", "D10", "D11"}
     assert sprint["SPRINT03_SELECTION_INCOMPLETE"] is False
     assert sprint["NEXT_UNIT"] == (
-        "DISCOVERY_SPRINT_03_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION"
+        "DISCOVERY_SPRINT_03_IMPLEMENTATION_RED_TEAM_AND_EXECUTION_DECISION"
     )
     families = {sprint["CARDS"][k]["FAMILY"] for k in ("D9", "D10", "D11")}
     assert families == {"H", "D", "G"}
@@ -268,7 +265,8 @@ def test_d9_estimand_is_relative_resolution_not_common_mode_imbalance():
     assert "INELIGIBLE" in d9["ALGEBRA"]["COMMON_MODE_RP_EQ_RS"]
     assert "24h MAE" not in d9["PRIMARY_TARGET"]
     assert "FUTURE_CONSENSUS" in d9["REJECTED_ESTIMAND_B"]
-    assert d9["SHARE_NOT_CLIPPED"] is True
+    assert d9["PRIMARY_LOCATION_STATISTIC"] == "MEDIAN_PERP_RESOLUTION_SHARE"
+    assert "median PERP_RESOLUTION_SHARE" in d9["SIMPLE_BASELINE"]
     assert d9["SHARE_NOT_WINSORIZED"] is True
     assert d9["SHARE_MAY_BE_OUTSIDE_UNIT_INTERVAL"] is True
     assert d9["SCIENTIFIC_CLAIM_MAY_ESTABLISH"] == (
@@ -350,6 +348,8 @@ def test_old_imbalance_is_not_the_primary_and_fails_common_mode():
 def test_d10_beta_excludes_t_and_reuses_same_beta_for_target():
     d10 = _sprint()["CARDS"]["D10"]
     assert d10["PRIMARY_TARGET"] == "sign(e_t) * e_t_plus_1_fixed_beta"
+    assert d10["REGRESSION_SPECIFICATION"] == "NO_INTERCEPT_OLS"
+    assert d10["FROZEN_CONSTRUCTION"]["OLS_INTERCEPT"] is False
     assert d10["T_PLUS_1_USES_SAME_BETA_T"] is True
     assert d10["RECOMPUTE_BETA_AT_T_PLUS_1"] is False
     assert d10["FROZEN_CONSTRUCTION"]["BETA_WINDOW_HOURS"] == 720
@@ -406,7 +406,8 @@ def test_d11_is_fomc_only_with_weekday_match_and_official_timestamp():
     assert d11["NAME"] == "SCHEDULED_FOMC_EVENT_VOL_RESPONSE"
     assert "or equivalent" not in blob
     assert "scheduled_macro_event_vol_response" not in json.dumps(sprint).lower()
-    assert d11["EVENT_FAMILY"] == "SCHEDULED_FOMC_MONETARY_POLICY_ANNOUNCEMENTS"
+    assert d11["OFFICIAL_SOURCE_PINNED"] is True
+    assert d11["NO_EXOGENOUS_CALENDAR_PINNED_YET"] is False
     assert d11["NO_CPI"] is True
     assert d11["NO_NFP"] is True
     assert d11["NO_ECB"] is True
@@ -430,12 +431,13 @@ def test_d11_is_fomc_only_with_weekday_match_and_official_timestamp():
     assert sprint["PROTECTED_2026_OPENED"] is False
 
 
-def test_no_outcomes_no_implementations():
+def test_no_outcomes_no_result_payloads():
     sprint = _sprint()
     blob = json.dumps(sprint).upper()
     assert sprint["SCIENTIFIC_OUTCOMES_COMPUTED"] is False
     assert "CLASSIFICATION_ASSIGNED" not in sprint
-    assert not list((REPO / "scripts/research").glob("*sprint_03*"))
+    assert not list((REPO / "scripts/research").glob("*sprint_03*.py"))
+    assert (REPO / "scripts/research/discovery_sprint_03").is_dir()
     assert not (
         REPO / "docs/research/discovery_results/D9_DISCOVERY_RESULT.json"
     ).exists()
@@ -453,7 +455,7 @@ def test_json_is_deterministic_sorted():
 
 def test_routing_docs_point_at_batch_next_unit():
     next_unit = (
-        "DISCOVERY_SPRINT_03_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION"
+        "DISCOVERY_SPRINT_03_IMPLEMENTATION_RED_TEAM_AND_EXECUTION_DECISION"
     )
     stale = "DISCOVERY_SPRINT_03_D9_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION"
     for rel in (
@@ -467,9 +469,11 @@ def test_routing_docs_point_at_batch_next_unit():
         assert stale not in text, rel
     index = (REPO / "docs/DOCUMENTATION_INDEX.md").read_text(encoding="utf-8")
     assert "MECHANISM_MEMORY_V0" in index
+    assert "DISCOVERY_SPRINT_03_IMPLEMENTATION_FREEZE" in index
     state = (REPO / "docs/CURRENT_RESEARCH_STATE.md").read_text(encoding="utf-8")
     assert "DISCOVERY_SPRINT_03_INTERNAL_CARDS = 3" in state
     assert "RELATIVE_RESOLUTION_ATTRIBUTION" in state
     assert "CONDITIONAL_VENUE_RESOLUTION_ATTRIBUTION" in state
     assert "SCHEDULED_FOMC_EVENT_VOL_RESPONSE" in state
     assert "SHARE_NOT_CLIPPED" in state
+    assert "OUTCOME_BLIND_IMPLEMENTATION_READY" in state

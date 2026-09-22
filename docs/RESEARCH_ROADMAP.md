@@ -75,21 +75,21 @@ after the CORE-restore retry (adaptive discovery, not confirmatory):
 `HETEROGENEOUS_FAMILY_ROTATION_V2 = FROZEN`.
 `DISCOVERY_SPRINT_02 = D7_EXECUTED_D8_DEFERRED`.
 `DISCOVERY_SPRINT_02_INTERNAL_CARDS = 2`.
-`DISCOVERY_SPRINT_03 = DEFINED`.
+`DISCOVERY_SPRINT_03 = OUTCOME_BLIND_IMPLEMENTATION_FROZEN`.
 `DISCOVERY_SPRINT_03_INTERNAL_CARDS = 3`.
 `SPRINT03_SELECTION_INCOMPLETE = false`.
 `D7_STATUS = PROMISING_PROTOTYPE`.
 `D8_STATUS = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT`.
-`D9_STATUS = DEFINED_NOT_EXECUTED`.
-`D10_STATUS = DEFINED_NOT_EXECUTED`.
-`D11_STATUS = DEFINED_NOT_EXECUTED`.
+`D9_STATUS = OUTCOME_BLIND_IMPLEMENTATION_READY`.
+`D10_STATUS = OUTCOME_BLIND_IMPLEMENTATION_READY`.
+`D11_STATUS = OUTCOME_BLIND_IMPLEMENTATION_READY`.
 `D9_CHOSEN_ESTIMAND = RELATIVE_RESOLUTION_ATTRIBUTION`.
 `D7_CONFIRMATION_CANDIDATE = true`.
 `D7_CONFIRMATION_SELECTED_NOW = false`.
 `D8_SCIENTIFIC_EXECUTION_ELIGIBLE = false`.
 `DATA_IDENTITY_MODE = TRACKED_SNAPSHOT_FULL_MONTHLY_EXACT_BYTE_VERIFICATION`.
-`NEXT_ACTION = BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION`.
-`NEXT_UNIT = DISCOVERY_SPRINT_03_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION`.
+`NEXT_ACTION = IMPLEMENTATION_RED_TEAM_AND_EXECUTION_DECISION`.
+`NEXT_UNIT = DISCOVERY_SPRINT_03_IMPLEMENTATION_RED_TEAM_AND_EXECUTION_DECISION`.
 
 D2 discovery remains a `PROMISING_PROTOTYPE` (adaptive discovery label). Outcome-blind
 confirmation design for RULE_1 / `RV_ABSTENTION` found calendar 2025
@@ -159,16 +159,17 @@ identity is frozen; D8 is non-executable for that card
 The D7 one-shot was executed once. Classification (not reinterpreted):
 `D7_PROMISING_PROTOTYPE`. Family E is in cooldown. D8 remains deferred
 and is not a negative scientific result. Rotation V2 selects three
-Sprint 03 families D/G/H as D10/D11/D9 (defined, not executed). D9
-estimand is `RELATIVE_RESOLUTION_ATTRIBUTION` (`TOTAL_CLOSURE=-s*(rp-rs)`;
-unclipped SHARE; not price-discovery leadership). D10 reuses frozen
-pre-event `beta_t` at t+1. D11 is official scheduled FOMC only
+Sprint 03 families D/G/H as D10/D11/D9 (outcome-blind implementation-ready,
+not executed). D9 estimand is `RELATIVE_RESOLUTION_ATTRIBUTION`
+(`TOTAL_CLOSURE=-s*(rp-rs)`; unclipped median SHARE; not price-discovery
+leadership). D10 is no-intercept OLS and reuses frozen pre-event `beta_t`
+at t+1. D11 is official scheduled FOMC only, calendar pinned
 (`YEAR × WEEKDAY × UTC_HOUR`). The old common-mode
 `RESOLUTION_IMBALANCE=-s*(rp+rs)` is rejected.
 D7 is a confirmation candidate but is not selected for confirmation now.
 `RESEARCH_DATA_DURABILITY_V1_REQUIRED = true` (not implemented here).
-`NEXT_ACTION = BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION`.
-`NEXT_UNIT = DISCOVERY_SPRINT_03_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION`.
+`NEXT_ACTION = IMPLEMENTATION_RED_TEAM_AND_EXECUTION_DECISION`.
+`NEXT_UNIT = DISCOVERY_SPRINT_03_IMPLEMENTATION_RED_TEAM_AND_EXECUTION_DECISION`.
 
 Card identities at definition time (unchanged):
 

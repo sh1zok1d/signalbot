@@ -28,15 +28,16 @@ The exact M05/M06 additive 24h adverse-path MAE cell is `REPEATED_NULL / LOW_PRI
 
 ## Active work
 
-Next: Discovery Sprint 03 batch feasibility and outcome-blind
-implementation
-(`DISCOVERY_SPRINT_03_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION`).
+Next: Discovery Sprint 03 implementation red-team and execution
+decision
+(`DISCOVERY_SPRINT_03_IMPLEMENTATION_RED_TEAM_AND_EXECUTION_DECISION`).
 
-`HETEROGENEOUS_FAMILY_ROTATION_V2` is frozen. Sprint 03 defines three
-internal cards, none executed: D9 `VENUE_DISLOCATION_RESOLUTION_STRUCTURE`
-(family H; conditional venue-resolution attribution), D10
-`BTC_ETH_RESIDUAL_SHOCK_PERSISTENCE` (family D), D11
-`SCHEDULED_FOMC_EVENT_VOL_RESPONSE` (family G). D7
+`HETEROGENEOUS_FAMILY_ROTATION_V2` is frozen. Sprint 03 D9/D10/D11 are
+`OUTCOME_BLIND_IMPLEMENTATION_READY` and **not** executed: D9
+`VENUE_DISLOCATION_RESOLUTION_STRUCTURE` (family H; median SHARE;
+conditional venue-resolution attribution), D10
+`BTC_ETH_RESIDUAL_SHOCK_PERSISTENCE` (family D; no-intercept OLS), D11
+`SCHEDULED_FOMC_EVENT_VOL_RESPONSE` (family G; official FOMC pinned). D7
 `KLINE_FLOW_IMPACT_STATE` is `PROMISING_PROTOTYPE` and a confirmation
 candidate, but confirmation is **not** selected now. Family E is in
 cooldown. D8 remains `DEFERRED_INSUFFICIENT_CONTROL_SUPPORT` and is not
