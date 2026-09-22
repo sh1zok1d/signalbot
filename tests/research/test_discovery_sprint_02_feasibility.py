@@ -7,6 +7,7 @@ for this module. Feasibility CLI source is checked not to compute outcomes.
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import math
 from pathlib import Path
@@ -621,3 +622,215 @@ def test_stored_feasibility_artifact_is_selector_only():
     opened = " ".join(payload.get("OPENED_FILES") or [])
     assert "2025-" not in opened
     assert "2026-" not in opened
+    assert payload["DATA_IDENTITY_MODE"] == I.DATA_IDENTITY_MODE
+    assert payload["FULL_MONTHLY_EXACT_BYTE_VERIFICATION"] is True
+    assert payload["RUNTIME_SNAPSHOT_MANIFEST_FOUND"] is False
+    assert payload["RUNTIME_SNAPSHOT_MANIFEST_ABSENCE"] == I.RUNTIME_MANIFEST_ABSENCE_MEANING
+    assert payload["D7"]["SELECTOR_N"] == I.D7_SELECTOR_N
+    assert payload["D7"]["SELECTOR_DIGEST"] == I.D7_SELECTOR_DIGEST
+    assert payload["D8_SCIENTIFIC_EXECUTION_ELIGIBLE"] is False
+    assert payload["D8_STATUS"] == I.D8_STATUS
+    assert payload["D8_NOT_D8_NO_USEFUL_STRUCTURE"] is True
+    assert payload["NEXT_UNIT"] == "DISCOVERY_SPRINT_02_SCIENTIFIC_EXECUTION_FREEZE"
+    assert payload["NEXT_UNIT_SCOPE"] == "D7_ONLY"
+
+
+def _copy_authority(tmp_path: Path) -> tuple[Path, Path]:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    snap = tmp_path / "SNAPSHOT.json"
+    man = tmp_path / "CORE.yaml"
+    snap.write_bytes((REPO / I.CORE_BTC_SNAPSHOT_DOC_REL).read_bytes())
+    man.write_bytes((REPO / I.CORE_BTC_MANIFEST_REL).read_bytes())
+    return snap, man
+
+
+def _mutate_yaml_top(text: str, key: str, new_value: str) -> str:
+    lines: list[str] = []
+    done = False
+    for line in text.splitlines(keepends=True):
+        if (
+            not done
+            and not line.startswith((" ", "\t"))
+            and line.lstrip().startswith(f"{key}:")
+        ):
+            ending = "\n" if line.endswith("\n") else ""
+            lines.append(f"{key}: {new_value}{ending}")
+            done = True
+        else:
+            lines.append(line)
+    assert done, f"missing top-level {key}"
+    return "".join(lines)
+
+
+def test_tracked_snapshot_full_monthly_exact_byte_identity_mode():
+    authority = I.verify_dataset_authority(REPO)
+    assert authority["DATA_IDENTITY_MODE"] == I.DATA_IDENTITY_MODE
+    assert authority["FULL_MONTHLY_EXACT_BYTE_VERIFICATION"] is True
+    assert authority["RUNTIME_SNAPSHOT_MANIFEST_FOUND"] is False
+    assert authority["RUNTIME_SNAPSHOT_MANIFEST_ABSENCE"] == I.RUNTIME_MANIFEST_ABSENCE_MEANING
+    assert authority["MANIFEST_DATASET_ID"] == I.CORE_BTC_DATASET_ID
+    assert authority["MANIFEST_STATUS"] == I.MANIFEST_ACCEPTED_STATUS
+    assert authority["MANIFEST_CURRENT_STATE"] == I.MANIFEST_ACCEPTED_STATUS
+    assert authority["MANIFEST_RESEARCH_AUTHORIZED"] is True
+    assert authority["MANIFEST_CONFIRMATORY_AUTHORIZED"] is False
+    assert authority["LEGAL_MONTH_COUNT"] == 60
+    assert I.legal_monthly_checksum_map_sha256(authority["output_checksums"]) == (
+        I.FROZEN_LEGAL_MONTHLY_CHECKSUM_MAP_SHA256
+    )
+
+
+def test_authority_field_mutations_fail_closed(tmp_path: Path):
+    mutations = (
+        ("dataset_id", "OTHER_DATASET"),
+        ("status", "QUALITY_AUDITED"),
+        ("current_state", "MATERIALIZED_UNVERIFIED"),
+        ("research_authorized", "false"),
+        ("confirmatory_authorized", "true"),
+        ("snapshot_id", "0" * 64),
+    )
+    for key, value in mutations:
+        snap, man = _copy_authority(tmp_path / key)
+        man.write_text(
+            _mutate_yaml_top(man.read_text(encoding="utf-8"), key, value),
+            encoding="utf-8",
+        )
+        with pytest.raises(I.SnapshotIdentityError):
+            I.verify_dataset_authority(REPO, snapshot_doc=snap, manifest=man)
+
+
+def test_snapshot_id_and_monthly_checksum_mutations_fail_closed(tmp_path: Path):
+    snap, man = _copy_authority(tmp_path / "snapshot-id")
+    identity = json.loads(snap.read_text(encoding="utf-8"))
+    identity["snapshot_id"] = "0" * 64
+    snap.write_text(json.dumps(identity), encoding="utf-8")
+    with pytest.raises(I.SnapshotIdentityError, match="REPO_SNAPSHOT_MISMATCH"):
+        I.verify_dataset_authority(REPO, snapshot_doc=snap, manifest=man)
+
+    snap2, man2 = _copy_authority(tmp_path / "checksum")
+    identity2 = json.loads(snap2.read_text(encoding="utf-8"))
+    payload = identity2.get("identity_payload") or identity2
+    key = I.legal_monthly_checksum_key("2020-01")
+    old = payload["output_checksums"][key]
+    flipped = ("a" if old[0] != "a" else "b") + old[1:]
+    payload["output_checksums"][key] = flipped
+    snap2.write_text(json.dumps(identity2), encoding="utf-8")
+    with pytest.raises(I.SnapshotIdentityError, match="LEGAL_MONTHLY_CHECKSUM_MAP_MISMATCH"):
+        I.verify_dataset_authority(REPO, snapshot_doc=snap2, manifest=man2)
+
+
+def test_checksum_verified_before_pyarrow_scientific_columns():
+    source = inspect.getsource(I.load_legal_1m_bars)
+    assert source.index("sha256_bytes(raw)") < source.index("_read_legal_parquet")
+    read_src = inspect.getsource(I._read_legal_parquet)
+    assert "pq.read_table" in read_src
+    assert "close_time_ms" in I.FORBIDDEN_1M_COLUMNS
+
+
+def test_frozen_d7_selector_identity_and_fail_closed():
+    path = REPO / "docs/research/DISCOVERY_SPRINT_02_FEASIBILITY.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    I.assert_d7_selector_identity(payload["D7"])
+    mutated = dict(payload["D7"])
+    mutated["SELECTOR_DIGEST"] = "0" * 64
+    with pytest.raises(I.SelectorIdentityError, match="SELECTOR_DIGEST"):
+        I.assert_d7_selector_identity(mutated)
+    mutated_n = dict(payload["D7"])
+    mutated_n["SELECTOR_N"] = I.D7_SELECTOR_N + 1
+    with pytest.raises(I.SelectorIdentityError, match="SELECTOR_N"):
+        I.assert_d7_selector_identity(mutated_n)
+    with pytest.raises(I.RealScientificOutcomeForbidden):
+        I.assert_d7_selector_identity(
+            {**payload["D7"], "SCIENTIFIC_T_PLUS_1_ASSOCIATION_COMPUTED": True}
+        )
+    recompute_src = inspect.getsource(I.recompute_d7_selector_identity)
+    assert "evaluate_d7_scientific" not in recompute_src
+    assert "d7_feasibility_census" in recompute_src
+    census_src = inspect.getsource(I.d7_feasibility_census)
+    assert "evaluate_d7_scientific" not in census_src
+    assert "MU_D7_RULE" not in census_src
+
+
+def test_d8_deferred_state_is_final_and_not_no_useful_structure():
+    path = REPO / "docs/research/DISCOVERY_SPRINT_02_FEASIBILITY.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    I.assert_d8_deferred_final(payload["D8"])
+    assert I.D8_SCIENTIFIC_EXECUTION_ELIGIBLE is False
+    assert payload["D8"]["FEASIBILITY_STATUS"] != "D8_NO_USEFUL_STRUCTURE"
+    assert payload["D8"]["RECOVERY_6H_COMPUTED"] is False
+    mutated = dict(payload["D8"])
+    mutated["FEASIBILITY_STATUS"] = "D8_NO_USEFUL_STRUCTURE"
+    with pytest.raises(I.Sprint02IntegrityError, match="NO_USEFUL_STRUCTURE"):
+        I.assert_d8_deferred_final(mutated)
+    mutated_n = dict(payload["D8"])
+    mutated_n["MATCHED_PAIR_N"] = 15
+    with pytest.raises(I.Sprint02IntegrityError, match="MATCHED_PAIR_N"):
+        I.assert_d8_deferred_final(mutated_n)
+
+
+def test_implementation_review_pass_requires_identity_and_d8_nonexecutable():
+    review_path = REPO / "docs/research/DISCOVERY_SPRINT_02_IMPLEMENTATION_REVIEW.json"
+    review = json.loads(review_path.read_text(encoding="utf-8"))
+    feas = json.loads(
+        (REPO / "docs/research/DISCOVERY_SPRINT_02_FEASIBILITY.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert review["STATUS"] == "PASS"
+    assert review["DATA_IDENTITY_MODE"] == I.DATA_IDENTITY_MODE
+    assert review["FULL_MONTHLY_EXACT_BYTE_VERIFICATION"] is True
+    assert review["D7_SELECTOR_N"] == I.D7_SELECTOR_N
+    assert review["D7_SELECTOR_DIGEST"] == I.D7_SELECTOR_DIGEST
+    assert review["D7_CONSTRUCTED_HOURS"] == I.D7_CONSTRUCTED_HOURS
+    assert review["D7_VALID_IMPACT_ROWS"] == I.D7_VALID_IMPACT_ROWS
+    assert review["D7_TARGET_ELIGIBLE_ROWS"] == I.D7_TARGET_ELIGIBLE_ROWS
+    assert review["D8_SCIENTIFIC_EXECUTION_ELIGIBLE"] is False
+    assert review["D8_STATUS"] == I.D8_STATUS
+    assert review["SCIENTIFIC_OUTCOMES_COMPUTED"] is False
+    assert review["PROTECTED_2025_OPENED"] is False
+    assert review["PROTECTED_2026_OPENED"] is False
+    assert review["NEXT_UNIT_SCOPE"] == "D7_ONLY"
+    assert review["FEASIBILITY_ARTIFACT_SHA256"] == I.feasibility_artifact_sha256(feas)
+    assert review["RUN_IDENTITY"] == I.run_identity_payload(feas["AUTHORITY_BINDINGS"])
+    assert feas["RUN_IDENTITY"] == review["RUN_IDENTITY"]
+    assert I.feasibility_artifact_sha256(feas) in feas["AUTHORITY_BINDINGS"].values()
+    assert I.implementation_review_status(
+        data_identity_mode=I.DATA_IDENTITY_MODE,
+        full_monthly_exact_byte_verification=True,
+        d7_selector_frozen=True,
+        d8_scientific_execution_eligible=False,
+        scientific_outcomes_computed=False,
+        protected_2025_opened=False,
+        protected_2026_opened=False,
+    ) == "PASS"
+    assert I.implementation_review_status(
+        data_identity_mode="OTHER",
+        full_monthly_exact_byte_verification=True,
+        d7_selector_frozen=True,
+        d8_scientific_execution_eligible=False,
+        scientific_outcomes_computed=False,
+        protected_2025_opened=False,
+        protected_2026_opened=False,
+    ) == "FAIL"
+    assert I.implementation_review_status(
+        data_identity_mode=I.DATA_IDENTITY_MODE,
+        full_monthly_exact_byte_verification=True,
+        d7_selector_frozen=True,
+        d8_scientific_execution_eligible=True,
+        scientific_outcomes_computed=False,
+        protected_2025_opened=False,
+        protected_2026_opened=False,
+    ) == "FAIL"
+
+
+def test_identity_harden_source_does_not_compute_outcomes():
+    source = inspect.getsource(F.harden_identity_from_stored_census)
+    assert "evaluate_d7_scientific" not in source
+    assert "evaluate_d8_scientific" not in source
+    assert "recovery_6h" not in source
+    assert "load_legal_1m_bars" not in source
+    assert "build_d7_states" not in source
+    I.assert_no_scientific_calls_in_feasibility_source(
+        (REPO / "scripts/research/discovery_sprint_02_feasibility.py").read_text(
+            encoding="utf-8"
+        )
+    )

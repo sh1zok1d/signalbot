@@ -34,6 +34,34 @@ RUNTIME_MANIFEST_RELS = (
     "artifacts/research_data/CORE_BTC_BINANCE_V0/reports/snapshot_manifest.json",
     "artifacts/research_data/CORE_BTC_BINANCE_V0/snapshot_manifest.json",
 )
+DATA_IDENTITY_MODE = "TRACKED_SNAPSHOT_FULL_MONTHLY_EXACT_BYTE_VERIFICATION"
+RUNTIME_MANIFEST_ABSENCE_MEANING = (
+    "NOT REQUIRED UNDER THIS FULL_EXACT_BYTE_IDENTITY_MODE"
+)
+MANIFEST_ACCEPTED_STATUS = "ACCEPTED_FOR_DISCOVERY"
+
+D7_SELECTOR_N = 4545
+D7_SELECTOR_DIGEST = (
+    "8794fece9541c9b09f3ed83f09a9aaf8e4d1caf5df7c6fb8ef29ba6c54889b5b"
+)
+D7_CONSTRUCTED_HOURS = 43848
+D7_VALID_IMPACT_ROWS = 43127
+D7_TARGET_ELIGIBLE_ROWS = 42407
+
+D8_STATUS = "DEFERRED_INSUFFICIENT_CONTROL_SUPPORT"
+D8_SCIENTIFIC_EXECUTION_ELIGIBLE = False
+D8_NOT_NO_USEFUL_STRUCTURE = True
+D8_SCIENTIFIC_RECOVERY_HYPOTHESIS_EVALUATED = False
+FROZEN_D8_RAW_RETURN_SHOCK_N = 547
+FROZEN_D8_RAW_EVENT_N = 528
+FROZEN_D8_RETAINED_EVENT_N = 408
+FROZEN_D8_RAW_CONTROL_N = 19
+FROZEN_D8_RETAINED_CONTROL_N = 18
+FROZEN_D8_MATCHED_PAIR_N = 14
+FROZEN_D8_UNMATCHED_EVENT_N = 394
+FROZEN_LEGAL_MONTHLY_CHECKSUM_MAP_SHA256 = (
+    "867979237169c2f3b7355d497670f03da7fd4e54bc3200e1003b317bd9dce483"
+)
 SPRINT_JSON_REL = "docs/research/DISCOVERY_SPRINT_02.json"
 POLICY_JSON_REL = "docs/research/HETEROGENEOUS_FAMILY_ROTATION_V1.json"
 DATA_POLICY_JSON_REL = "docs/research/HYPOTHESIS_GENERATION_POLICY_V2_DATA_ACQUISITION.json"
@@ -112,6 +140,10 @@ class Sprint02IntegrityError(RuntimeError):
 
 class RealScientificOutcomeForbidden(RuntimeError):
     """Real-data D7/D8 scientific outcomes are forbidden in this unit."""
+
+
+class SelectorIdentityError(RuntimeError):
+    """Frozen D7 selector identity was violated."""
 
 
 @dataclass(frozen=True)
@@ -222,29 +254,116 @@ def legal_monthly_parquet_path(dataset_root: Path, period: str) -> Path:
     return path
 
 
-def _yaml_snapshot_id(text: str) -> str:
+def _yaml_top_level_scalar(text: str, key: str) -> str:
+    prefix = f"{key}:"
     for line in text.splitlines():
+        if line.startswith(" ") or line.startswith("\t"):
+            continue
         stripped = line.strip()
-        if stripped.startswith("snapshot_id:"):
+        if stripped.startswith(prefix):
             return stripped.split(":", 1)[1].strip().strip("'\"")
-    raise SnapshotIdentityError("MANIFEST_SNAPSHOT_ID_MISSING")
+    raise SnapshotIdentityError(f"MANIFEST_{key.upper()}_MISSING")
 
 
-def verify_dataset_authority(repo: Path) -> dict[str, Any]:
-    snapshot_doc = repo / CORE_BTC_SNAPSHOT_DOC_REL
-    manifest = repo / CORE_BTC_MANIFEST_REL
-    if not snapshot_doc.is_file():
-        raise MissingLocalData(f"MISSING_SNAPSHOT_DOC:{snapshot_doc}")
-    if not manifest.is_file():
-        raise MissingLocalData(f"MISSING_DATASET_MANIFEST:{manifest}")
-    identity = json.loads(snapshot_doc.read_text(encoding="utf-8"))
+def _yaml_top_level_bool(text: str, key: str) -> bool:
+    raw = _yaml_top_level_scalar(text, key)
+    lowered = raw.lower()
+    if lowered == "true":
+        return True
+    if lowered == "false":
+        return False
+    raise SnapshotIdentityError(f"MANIFEST_{key.upper()}_NOT_BOOL:{raw}")
+
+
+def parse_core_manifest(text: str) -> dict[str, Any]:
+    return {
+        "dataset_id": _yaml_top_level_scalar(text, "dataset_id"),
+        "status": _yaml_top_level_scalar(text, "status"),
+        "current_state": _yaml_top_level_scalar(text, "current_state"),
+        "research_authorized": _yaml_top_level_bool(text, "research_authorized"),
+        "confirmatory_authorized": _yaml_top_level_bool(text, "confirmatory_authorized"),
+        "snapshot_id": _yaml_top_level_scalar(text, "snapshot_id"),
+    }
+
+
+def legal_monthly_checksum_key(period: str) -> str:
+    return f"canonical/1m/monthly/{period}.parquet"
+
+
+def legal_monthly_checksum_subset(checksums: Mapping[str, str]) -> dict[str, str]:
+    return {
+        legal_monthly_checksum_key(period): str(checksums[legal_monthly_checksum_key(period)])
+        for period in LEGAL_MONTHS
+    }
+
+
+def legal_monthly_checksum_map_sha256(checksums: Mapping[str, str]) -> str:
+    return sha256_bytes(canonical_json(legal_monthly_checksum_subset(checksums)).encode("utf-8"))
+
+
+def assert_tracked_legal_monthly_checksums(
+    checksums: Mapping[str, str],
+    *,
+    require_frozen_map: bool = True,
+) -> None:
+    if tuple(LEGAL_MONTHS) != tuple(
+        f"{year:04d}-{month:02d}" for year in range(2020, 2025) for month in range(1, 13)
+    ):
+        raise Sprint02IntegrityError("LEGAL_MONTHS_NOT_2020_01_2024_12")
+    if len(LEGAL_MONTHS) != 60:
+        raise Sprint02IntegrityError(f"LEGAL_MONTH_COUNT:{len(LEGAL_MONTHS)}!=60")
+    missing: list[str] = []
+    for period in LEGAL_MONTHS:
+        digest = checksums.get(legal_monthly_checksum_key(period))
+        if digest is None or digest == "":
+            missing.append(period)
+            continue
+        if not re.fullmatch(r"[0-9a-f]{64}", str(digest)):
+            raise SnapshotIdentityError(f"ILLEGAL_CHECKSUM_FORMAT:{period}:{digest}")
+    if missing:
+        raise SnapshotIdentityError(f"MISSING_FROZEN_CHECKSUM:{','.join(missing)}")
+    if require_frozen_map:
+        got = legal_monthly_checksum_map_sha256(checksums)
+        if got != FROZEN_LEGAL_MONTHLY_CHECKSUM_MAP_SHA256:
+            raise SnapshotIdentityError(f"LEGAL_MONTHLY_CHECKSUM_MAP_MISMATCH:{got}")
+
+
+def verify_dataset_authority(
+    repo: Path,
+    *,
+    snapshot_doc: Path | None = None,
+    manifest: Path | None = None,
+) -> dict[str, Any]:
+    snapshot_path = snapshot_doc if snapshot_doc is not None else repo / CORE_BTC_SNAPSHOT_DOC_REL
+    manifest_path = manifest if manifest is not None else repo / CORE_BTC_MANIFEST_REL
+    if not snapshot_path.is_file():
+        raise MissingLocalData(f"MISSING_SNAPSHOT_DOC:{snapshot_path}")
+    if not manifest_path.is_file():
+        raise MissingLocalData(f"MISSING_DATASET_MANIFEST:{manifest_path}")
+    identity = json.loads(snapshot_path.read_text(encoding="utf-8"))
     payload = identity.get("identity_payload") or identity
     bound = str(payload.get("snapshot_id") or identity.get("snapshot_id") or "")
     if bound != CORE_BTC_SNAPSHOT_ID:
         raise SnapshotIdentityError(f"REPO_SNAPSHOT_MISMATCH:{bound}")
-    yaml_id = _yaml_snapshot_id(manifest.read_text(encoding="utf-8"))
-    if yaml_id != CORE_BTC_SNAPSHOT_ID:
-        raise SnapshotIdentityError(f"YAML_SNAPSHOT_MISMATCH:{yaml_id}")
+    parsed = parse_core_manifest(manifest_path.read_text(encoding="utf-8"))
+    if parsed["snapshot_id"] != CORE_BTC_SNAPSHOT_ID:
+        raise SnapshotIdentityError(f"YAML_SNAPSHOT_MISMATCH:{parsed['snapshot_id']}")
+    if parsed["dataset_id"] != CORE_BTC_DATASET_ID:
+        raise SnapshotIdentityError(f"YAML_DATASET_ID_MISMATCH:{parsed['dataset_id']}")
+    if parsed["status"] != MANIFEST_ACCEPTED_STATUS:
+        raise SnapshotIdentityError(f"YAML_STATUS_MISMATCH:{parsed['status']}")
+    if parsed["current_state"] != MANIFEST_ACCEPTED_STATUS:
+        raise SnapshotIdentityError(
+            f"YAML_CURRENT_STATE_MISMATCH:{parsed['current_state']}"
+        )
+    if parsed["research_authorized"] is not True:
+        raise SnapshotIdentityError(
+            f"YAML_RESEARCH_AUTHORIZED_MISMATCH:{parsed['research_authorized']}"
+        )
+    if parsed["confirmatory_authorized"] is not False:
+        raise SnapshotIdentityError(
+            f"YAML_CONFIRMATORY_AUTHORIZED_MISMATCH:{parsed['confirmatory_authorized']}"
+        )
     runtime_rel = None
     runtime_id = None
     for rel in RUNTIME_MANIFEST_RELS:
@@ -260,12 +379,26 @@ def verify_dataset_authority(repo: Path) -> dict[str, Any]:
                 raise SnapshotIdentityError(f"RUNTIME_SNAPSHOT_MISMATCH:{runtime_id}")
             break
     checksums = dict(payload.get("output_checksums") or {})
+    assert_tracked_legal_monthly_checksums(checksums)
+    runtime_found = runtime_rel is not None
     return {
+        "DATA_IDENTITY_MODE": DATA_IDENTITY_MODE,
         "CORE_BTC_SNAPSHOT_ID": CORE_BTC_SNAPSHOT_ID,
+        "CORE_BTC_DATASET_ID": CORE_BTC_DATASET_ID,
         "REPO_SNAPSHOT_DOC": CORE_BTC_SNAPSHOT_DOC_REL,
         "DATASET_MANIFEST": CORE_BTC_MANIFEST_REL,
+        "MANIFEST_DATASET_ID": parsed["dataset_id"],
+        "MANIFEST_STATUS": parsed["status"],
+        "MANIFEST_CURRENT_STATE": parsed["current_state"],
+        "MANIFEST_RESEARCH_AUTHORIZED": parsed["research_authorized"],
+        "MANIFEST_CONFIRMATORY_AUTHORIZED": parsed["confirmatory_authorized"],
         "RUNTIME_SNAPSHOT_MANIFEST": runtime_rel,
-        "RUNTIME_SNAPSHOT_MANIFEST_FOUND": runtime_rel is not None,
+        "RUNTIME_SNAPSHOT_MANIFEST_FOUND": runtime_found,
+        "RUNTIME_SNAPSHOT_MANIFEST_ABSENCE": (
+            None if runtime_found else RUNTIME_MANIFEST_ABSENCE_MEANING
+        ),
+        "FULL_MONTHLY_EXACT_BYTE_VERIFICATION": True,
+        "LEGAL_MONTH_COUNT": len(LEGAL_MONTHS),
         "output_checksums": checksums,
     }
 
@@ -317,14 +450,19 @@ def load_legal_1m_bars(
     if not root.is_dir():
         raise MissingLocalData(f"MISSING_CORE_ROOT:{root}")
     bound_checksums = dict(checksums) if checksums is not None else authority["output_checksums"]
+    assert_tracked_legal_monthly_checksums(
+        bound_checksums, require_frozen_map=require_repo_authority
+    )
     opened = log if log is not None else OpenedFileLog()
     bars: list[MinuteBar] = []
     for period in LEGAL_MONTHS:
         path = legal_monthly_parquet_path(root, period)
         if not path.is_file():
             raise MissingLocalData(f"MISSING_MONTH:{period}")
+        # Exact-byte identity: SHA256 of parquet bytes must match the tracked
+        # snapshot before pyarrow parses any scientific columns.
         raw = path.read_bytes()
-        expected = bound_checksums.get(f"canonical/1m/monthly/{period}.parquet")
+        expected = bound_checksums.get(legal_monthly_checksum_key(period))
         if expected is None:
             raise SnapshotIdentityError(f"MISSING_FROZEN_CHECKSUM:{period}")
         if sha256_bytes(raw) != expected:
@@ -554,12 +692,6 @@ def d7_feasibility_census(states: Sequence[D7HourState]) -> dict[str, Any]:
         if support_failures
         else "OUTCOME_BLIND_READY"
     )
-    digest_src = canonical_json(
-        {
-            "rows": selector_rows,
-            "n": len(selector_rows),
-        }
-    )
     return {
         "CONSTRUCTED_HOURS": constructed,
         "VALID_IMPACT_ROWS": valid_impact,
@@ -576,7 +708,7 @@ def d7_feasibility_census(states: Sequence[D7HourState]) -> dict[str, Any]:
             str(k): int(v) for k, v in sorted(candidate_by_year_bucket.items())
         },
         "SELECTOR_N": len(selector_rows),
-        "SELECTOR_DIGEST": sha256_bytes(digest_src.encode("utf-8")),
+        "SELECTOR_DIGEST": d7_selector_digest(selector_rows),
         "SUPPORT_FAILURES": support_failures,
         "FEASIBILITY_STATUS": status,
         "D7_IMPLEMENTATION_STATUS": status,
@@ -1083,6 +1215,117 @@ def evaluate_d8_scientific(
         "SCIENTIFIC_OUTCOMES_COMPUTED": True,
         "NEGATIVE_CONTINUATION_DOES_NOT_RESCUE": True,
     }
+
+
+def d7_selector_digest(selector_rows: Sequence[tuple[int, int, int]]) -> str:
+    digest_src = canonical_json(
+        {
+            "rows": [list(row) for row in selector_rows],
+            "n": len(selector_rows),
+        }
+    )
+    return sha256_bytes(digest_src.encode("utf-8"))
+
+
+def assert_d7_selector_identity(census: Mapping[str, Any]) -> None:
+    if census.get("SCIENTIFIC_T_PLUS_1_ASSOCIATION_COMPUTED") is True:
+        raise RealScientificOutcomeForbidden("SELECTOR_IDENTITY_USED_TPLUS1")
+    if census.get("SCIENTIFIC_OUTCOMES_COMPUTED") is True:
+        raise RealScientificOutcomeForbidden("SELECTOR_IDENTITY_USED_OUTCOMES")
+    checks = (
+        ("SELECTOR_N", D7_SELECTOR_N),
+        ("SELECTOR_DIGEST", D7_SELECTOR_DIGEST),
+        ("CONSTRUCTED_HOURS", D7_CONSTRUCTED_HOURS),
+        ("VALID_IMPACT_ROWS", D7_VALID_IMPACT_ROWS),
+        ("TARGET_ELIGIBLE_ROWS", D7_TARGET_ELIGIBLE_ROWS),
+    )
+    for key, expected in checks:
+        got = census.get(key)
+        if got != expected:
+            raise SelectorIdentityError(f"D7_{key}_MISMATCH:{got}!={expected}")
+
+
+def recompute_d7_selector_identity(states: Sequence[D7HourState]) -> dict[str, Any]:
+    """Rebuild frozen D7 selector identity from states. No t+1 outcomes."""
+
+    census = d7_feasibility_census(states)
+    if census.get("SCIENTIFIC_T_PLUS_1_ASSOCIATION_COMPUTED") is not False:
+        raise RealScientificOutcomeForbidden("SELECTOR_RECOMPUTE_COMPUTED_TPLUS1")
+    if census.get("SCIENTIFIC_OUTCOMES_COMPUTED") is not False:
+        raise RealScientificOutcomeForbidden("SELECTOR_RECOMPUTE_COMPUTED_OUTCOMES")
+    assert_d7_selector_identity(census)
+    return {
+        "SELECTOR_N": census["SELECTOR_N"],
+        "SELECTOR_DIGEST": census["SELECTOR_DIGEST"],
+        "CONSTRUCTED_HOURS": census["CONSTRUCTED_HOURS"],
+        "VALID_IMPACT_ROWS": census["VALID_IMPACT_ROWS"],
+        "TARGET_ELIGIBLE_ROWS": census["TARGET_ELIGIBLE_ROWS"],
+        "SCIENTIFIC_T_PLUS_1_ASSOCIATION_COMPUTED": False,
+        "SCIENTIFIC_OUTCOMES_COMPUTED": False,
+    }
+
+
+def assert_d8_deferred_final(census: Mapping[str, Any]) -> None:
+    if census.get("RECOVERY_6H_COMPUTED") is True or census.get("RECOVERY_24H_COMPUTED") is True:
+        raise RealScientificOutcomeForbidden("D8_RECOVERY_COMPUTED")
+    if census.get("SCIENTIFIC_OUTCOMES_COMPUTED") is True:
+        raise RealScientificOutcomeForbidden("D8_SCIENTIFIC_OUTCOMES_COMPUTED")
+    if census.get("FEASIBILITY_STATUS") == "D8_NO_USEFUL_STRUCTURE":
+        raise Sprint02IntegrityError("D8_MUST_NOT_BE_NO_USEFUL_STRUCTURE")
+    if census.get("FEASIBILITY_STATUS") != D8_STATUS:
+        raise Sprint02IntegrityError(
+            f"D8_STATUS_MISMATCH:{census.get('FEASIBILITY_STATUS')}!={D8_STATUS}"
+        )
+    expected = {
+        "RAW_RETURN_SHOCK_N": FROZEN_D8_RAW_RETURN_SHOCK_N,
+        "RAW_EVENT_N": FROZEN_D8_RAW_EVENT_N,
+        "RETAINED_EVENT_N": FROZEN_D8_RETAINED_EVENT_N,
+        "RAW_CONTROL_N": FROZEN_D8_RAW_CONTROL_N,
+        "RETAINED_CONTROL_N": FROZEN_D8_RETAINED_CONTROL_N,
+        "MATCHED_PAIR_N": FROZEN_D8_MATCHED_PAIR_N,
+        "UNMATCHED_EVENT_N": FROZEN_D8_UNMATCHED_EVENT_N,
+    }
+    for key, value in expected.items():
+        got = census.get(key)
+        if got != value:
+            raise Sprint02IntegrityError(f"D8_{key}_MISMATCH:{got}!={value}")
+    if D8_SCIENTIFIC_EXECUTION_ELIGIBLE is not False:
+        raise Sprint02IntegrityError("D8_MUST_REMAIN_NON_EXECUTABLE")
+    if D8_SCIENTIFIC_RECOVERY_HYPOTHESIS_EVALUATED is not False:
+        raise Sprint02IntegrityError("D8_RECOVERY_HYPOTHESIS_MUST_REMAIN_UNEVALUATED")
+
+
+def implementation_review_status(
+    *,
+    data_identity_mode: str,
+    full_monthly_exact_byte_verification: bool,
+    d7_selector_frozen: bool,
+    d8_scientific_execution_eligible: bool,
+    scientific_outcomes_computed: bool,
+    protected_2025_opened: bool,
+    protected_2026_opened: bool,
+) -> str:
+    if (
+        data_identity_mode == DATA_IDENTITY_MODE
+        and full_monthly_exact_byte_verification is True
+        and d7_selector_frozen is True
+        and d8_scientific_execution_eligible is False
+        and scientific_outcomes_computed is False
+        and protected_2025_opened is False
+        and protected_2026_opened is False
+    ):
+        return "PASS"
+    return "FAIL"
+
+
+def feasibility_artifact_sha256(payload: Mapping[str, Any]) -> str:
+    body = {
+        key: value
+        for key, value in payload.items()
+        if key
+        not in ("RUN_IDENTITY", "AUTHORITY_BINDINGS", "FEASIBILITY_ARTIFACT_SHA256")
+    }
+    return sha256_bytes(canonical_json(body).encode("utf-8"))
 
 
 def assert_no_scientific_calls_in_feasibility_source(source: str) -> None:

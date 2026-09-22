@@ -38,14 +38,19 @@ PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
 NEXT_UNIT                   = DISCOVERY_SPRINT_02_SCIENTIFIC_EXECUTION_FREEZE
-NEXT_ACTION                 = BIND_REVIEWED_IMPLEMENTATION_BYTES_THEN_D7_ONLY
+NEXT_ACTION                 = D7_ONLY_SCIENTIFIC_EXECUTION_FREEZE
 HETEROGENEOUS_FAMILY_ROTATION_V1 = FROZEN
 DISCOVERY_SPRINT_02 = DEFINED
 DISCOVERY_SPRINT_02_INTERNAL_CARDS = 2
-D7_STATUS                   = DEFINED_NOT_EXECUTED
+D7_STATUS                   = OUTCOME_BLIND_READY
 D8_STATUS                   = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT
 D7_IMPLEMENTATION_STATUS    = OUTCOME_BLIND_READY
 D8_IMPLEMENTATION_STATUS    = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT
+D7_SCIENTIFIC_EXECUTION_ELIGIBLE = true
+D8_SCIENTIFIC_EXECUTION_ELIGIBLE = false
+DATA_IDENTITY_MODE          = TRACKED_SNAPSHOT_FULL_MONTHLY_EXACT_BYTE_VERIFICATION
+D7_SELECTOR_N               = 4545
+D7_SELECTOR_DIGEST_FROZEN   = true
 D7_EXECUTED                 = false
 D8_EXECUTED                 = false
 SCIENTIFIC_OUTCOMES_COMPUTED = false
@@ -339,10 +344,15 @@ frozen at `EVENT_DECISION_T = H+1h` with a strict
 Sprint 02 feasibility/implementation then ran selector/support census
 only on legal CORE BTC 2020-2024. D7 is `OUTCOME_BLIND_READY`. D8 is
 `DEFERRED_INSUFFICIENT_CONTROL_SUPPORT` (event support passed; 1:1
-return-shock controls did not). No scientific outcomes. Record:
-`docs/research/DISCOVERY_SPRINT_02_FEASIBILITY.{json,md}` and
+return-shock controls did not). No scientific outcomes. An outcome-blind
+integrity pass then formalized
+`DATA_IDENTITY_MODE = TRACKED_SNAPSHOT_FULL_MONTHLY_EXACT_BYTE_VERIFICATION`
+(runtime snapshot manifest is not required), froze D7 selector identity
+`N=4545` / digest `8794fece…`, and recorded D8 as final non-executable
+for this card (`NOT D8_NO_USEFUL_STRUCTURE`; recovery unevaluated).
+Record: `docs/research/DISCOVERY_SPRINT_02_FEASIBILITY.{json,md}` and
 `docs/research/DISCOVERY_SPRINT_02_IMPLEMENTATION_REVIEW.{json,md}`.
-`NEXT_UNIT = DISCOVERY_SPRINT_02_SCIENTIFIC_EXECUTION_FREEZE`.
+`NEXT_UNIT = DISCOVERY_SPRINT_02_SCIENTIFIC_EXECUTION_FREEZE` (D7-only).
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by

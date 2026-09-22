@@ -4823,3 +4823,31 @@ Evidence: `docs/research/DISCOVERY_SPRINT_02_FEASIBILITY.{json,md}`,
 - next required step: bind reviewed implementation bytes, then D7
   scientific execution freeze only; do not execute D8; do not open
   2025/2026; do not create MARKET-07
+
+## 2026-09-22 — Discovery Sprint 02 outcome-blind integrity hardening
+
+Formalized tracked-snapshot full monthly exact-byte identity. Frozen D7
+selector identity. D8 remains deferred and non-executable for this card.
+Scientific outcomes were not computed. Protected years were not opened.
+
+```
+DATA_IDENTITY_MODE = TRACKED_SNAPSHOT_FULL_MONTHLY_EXACT_BYTE_VERIFICATION
+RUNTIME_SNAPSHOT_MANIFEST_FOUND = false
+FULL_MONTHLY_EXACT_BYTE_VERIFICATION = true
+D7_SELECTOR_N = 4545
+D7_SELECTOR_DIGEST = 8794fece9541c9b09f3ed83f09a9aaf8e4d1caf5df7c6fb8ef29ba6c54889b5b
+D7_STATUS = OUTCOME_BLIND_READY
+D8_STATUS = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT
+D7_SCIENTIFIC_EXECUTION_ELIGIBLE = true
+D8_SCIENTIFIC_EXECUTION_ELIGIBLE = false
+D8_NOT_D8_NO_USEFUL_STRUCTURE = true
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+NEXT_UNIT = DISCOVERY_SPRINT_02_SCIENTIFIC_EXECUTION_FREEZE
+NEXT_UNIT_SCOPE = D7_ONLY
+```
+
+- next required step: D7-only scientific execution freeze; do not
+  execute D8; do not rescue D8 thresholds/controls; do not open
+  2025/2026; do not create MARKET-07
