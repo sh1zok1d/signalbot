@@ -28,15 +28,17 @@ The exact M05/M06 additive 24h adverse-path MAE cell is `REPEATED_NULL / LOW_PRI
 
 ## Active work
 
-Next: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION`.
+Next: continue orthogonal family rotation
+(`HETEROGENEOUS_FAMILY_ROTATION_V1`).
 
-D2 is an `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`, not a validated
-trading edge. The excess direction-aligned path-risk decomposition design
-is frozen (`DESIGN_STATUS = FROZEN`); selector unchanged; primary target
-`ADVERSE_SHARE`. The canonical selector-identity authority is frozen;
-this does **not** authorize execution (no permit). Binance 2025/2026
-remain sealed. Product build remains frozen. MARKET-07 is not created.
-Do not execute the decomposition from this routing file.
+D2 remains an `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE` from the
+independent pre-2020 BitMEX surface, not a validated trading edge. The
+excess direction-aligned path-risk one-shot is consumed. Canonical
+classification (evaluator, not reinterpreted):
+`D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT`.
+`RERUN_AUTHORIZED = false`. Binance 2025/2026 remain sealed. Product
+build remains frozen. MARKET-07 is not created. Do not rerun the
+decomposition from this routing file.
 
 `FORWARD_MARKET_OBSERVABILITY_V1` remains available as infrastructure; authoritative collection is not started by this cleanup. B2-06 remains blocked.
 

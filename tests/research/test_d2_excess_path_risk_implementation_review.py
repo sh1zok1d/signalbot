@@ -20,7 +20,6 @@ from scripts.research.d2_excess_path_risk_beyond_vol_clustering_design import (
     verify_design_authorities,
 )
 from scripts.research.d2_excess_path_risk_evaluator import (
-    EXECUTION_PERMIT_REL,
     IMPLEMENTATION_FILES,
     REVIEW_JSON_REL,
     REVIEW_MD_REL,
@@ -170,7 +169,10 @@ def test_no_primary_quantity_is_populated(review):
 
 
 def test_no_execution_permit_file_was_created(review):
-    assert not (REPO / EXECUTION_PERMIT_REL).is_file()
+    # Review-era artifact truth: that unit did not create a permit.
+    # The later one-shot permit commit may now have a live tracked permit.
+    assert review["EXECUTION_PERMIT_CREATED"] is False
+    assert review["EXECUTION_PERMIT_PRESENT"] is False
     from scripts.research.d2_excess_path_risk_evaluator import SELECTOR_IDENTITY_AUTHORITY_REL
 
     # Review unit did not create the authority; the freeze unit did.
@@ -179,11 +181,9 @@ def test_no_execution_permit_file_was_created(review):
 
 
 def test_no_result_artifact_was_created():
-    for name in (
-        "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_RESULT.json",
-        "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_RESULT.md",
-    ):
-        assert not (REPO / "docs/research" / name).exists()
+    # Review-era artifact: that unit did not create RESULT.
+    review = json.loads((REPO / REVIEW_JSON_REL).read_text(encoding="utf-8"))
+    assert review["RESULT_CREATED"] is False
 
 
 def test_authorities_are_bound_without_drift(review):
