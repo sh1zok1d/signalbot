@@ -4917,3 +4917,29 @@ NEXT_UNIT = DISCOVERY_SPRINT_02_D7_ONE_SHOT_SCIENTIFIC_EXECUTION
 
 - next required step remains D7 one-shot scientific execution only; do
   not execute D8; do not open 2025/2026; do not create MARKET-07
+
+## 2026-09-22 — Discovery Sprint 02 D7 final pre-merge integrity repair
+
+Outcome-blind repair of PR #194. Fail-closed git worktree / HEAD-blob
+identity, consume tracked freeze as a pre-scientific authority, bind
+year×RV strata maps, and add synthetic t/t+1 array semantics. Scientific
+outcomes were not computed. D8 remains non-executable.
+
+```
+GIT_WORKTREE_FAIL_CLOSED = true
+TRACKED_FREEZE_CONSUMED_AS_AUTHORITY = true
+TARGET_ELIGIBLE_STRATA_BOUND = true
+CANDIDATE_STRATA_BOUND = true
+ANALYSIS_N = 42407
+CANDIDATE_N = 4545
+D7_EXECUTED = false
+D8_EXECUTED = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+NEXT_UNIT = DISCOVERY_SPRINT_02_D7_ONE_SHOT_SCIENTIFIC_EXECUTION
+```
+
+- next required step remains D7 one-shot scientific execution only; do
+  not execute D8; do not open 2025/2026; do not create MARKET-07

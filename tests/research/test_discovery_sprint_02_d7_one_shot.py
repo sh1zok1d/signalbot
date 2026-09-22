@@ -10,6 +10,7 @@ import json
 import math
 import os
 import shutil
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
@@ -30,6 +31,7 @@ _COPY_RELS = (
     OS.IMPL_REL,
     OS.FEAS_CLI_REL,
     OS.RUNNER_REL,
+    OS.FREEZE_JSON_REL,
     I.CORE_BTC_SNAPSHOT_DOC_REL,
     I.CORE_BTC_MANIFEST_REL,
 )
@@ -44,6 +46,47 @@ def _copy_repo_tree(tmp_path: Path) -> Path:
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dst)
     return tmp_path
+
+
+def _git_init_authority(repo: Path) -> Path:
+    subprocess.check_call(["git", "init"], cwd=repo, stdout=subprocess.DEVNULL)
+    subprocess.check_call(["git", "config", "user.email", "d7@test"], cwd=repo)
+    subprocess.check_call(["git", "config", "user.name", "d7test"], cwd=repo)
+    subprocess.check_call(["git", "config", "commit.gpgsign", "false"], cwd=repo)
+    subprocess.check_call(["git", "add", "--", *_COPY_RELS], cwd=repo)
+    subprocess.check_call(
+        ["git", "commit", "-m", "authority"],
+        cwd=repo,
+        stdout=subprocess.DEVNULL,
+        env={
+            **os.environ,
+            "GIT_AUTHOR_NAME": "d7test",
+            "GIT_AUTHOR_EMAIL": "d7@test",
+            "GIT_COMMITTER_NAME": "d7test",
+            "GIT_COMMITTER_EMAIL": "d7@test",
+        },
+    )
+    return repo
+
+
+def _copy_git_repo(tmp_path: Path) -> Path:
+    return _git_init_authority(_copy_repo_tree(tmp_path))
+
+
+def _commit_paths(repo: Path, rels: tuple[str, ...], message: str = "update") -> None:
+    subprocess.check_call(["git", "add", "--", *rels], cwd=repo)
+    subprocess.check_call(
+        ["git", "commit", "-m", message],
+        cwd=repo,
+        stdout=subprocess.DEVNULL,
+        env={
+            **os.environ,
+            "GIT_AUTHOR_NAME": "d7test",
+            "GIT_AUTHOR_EMAIL": "d7@test",
+            "GIT_COMMITTER_NAME": "d7test",
+            "GIT_COMMITTER_EMAIL": "d7@test",
+        },
+    )
 
 
 def _ms(year: int, month: int = 1, day: int = 1, hour: int = 0) -> int:
@@ -316,6 +359,46 @@ def _gate_arrays(*, candidate_on: bool, target_on: bool, years=(2020, 2021, 2022
     return candidate, target, year, buckets, eligible
 
 
+def _fake_reconstruct(states, *, session=None, repo=None):
+    if session is not None:
+        session.identity_ok = True
+    return {
+        "SELECTOR_N": I.D7_SELECTOR_N,
+        "SELECTOR_DIGEST": I.D7_SELECTOR_DIGEST,
+        "CONSTRUCTED_HOURS": I.D7_CONSTRUCTED_HOURS,
+        "VALID_IMPACT_ROWS": I.D7_VALID_IMPACT_ROWS,
+        "TARGET_ELIGIBLE_ROWS": I.D7_TARGET_ELIGIBLE_ROWS,
+        "SCIENTIFIC_T_PLUS_1_ASSOCIATION_COMPUTED": False,
+    }
+
+
+def _fake_arrays(states, *, session=None):
+    if session is None or session.identity_ok is not True:
+        raise OS.TargetBeforeIdentityError("TARGET_BEFORE_IDENTITY_GATE")
+    session.target_constructed = True
+    candidate, target, year, buckets, eligible = _gate_arrays(
+        candidate_on=True, target_on=True
+    )
+    return {
+        "candidate": candidate,
+        "target": target,
+        "year": year,
+        "rv_bucket": buckets,
+        "target_eligible": eligible,
+    }
+
+
+def _mocked_execute_ctx():
+    return (
+        patch.object(I, "load_legal_1m_bars", return_value=[]),
+        patch.object(I, "aggregate_completed_hours", return_value=[]),
+        patch.object(I, "build_d7_states", return_value=[]),
+        patch.object(OS, "reconstruct_d7_selector_identity", side_effect=_fake_reconstruct),
+        patch.object(OS, "construct_d7_scientific_arrays", side_effect=_fake_arrays),
+        patch.object(OS, "assert_scientific_array_identity"),
+    )
+
+
 def test_synthetic_evaluator_promising_prototype():
     candidate, target, year, buckets, eligible = _gate_arrays(
         candidate_on=True, target_on=True
@@ -447,55 +530,9 @@ def test_d8_cannot_be_executed_through_runner():
 
 
 def test_execute_one_shot_mocked_does_not_open_protected_years(tmp_path):
-    repo = _copy_repo_tree(tmp_path)
-    session_holder: dict[str, OS.D7OneShotSession] = {}
-
-    def fake_load(**kwargs):
-        return []
-
-    def fake_hours(_bars):
-        return []
-
-    def fake_states(_hours):
-        return []
-
-    def fake_reconstruct(states, *, session=None):
-        if session is not None:
-            session.identity_ok = True
-            session_holder["session"] = session
-        return {
-            "SELECTOR_N": I.D7_SELECTOR_N,
-            "SELECTOR_DIGEST": I.D7_SELECTOR_DIGEST,
-            "CONSTRUCTED_HOURS": I.D7_CONSTRUCTED_HOURS,
-            "VALID_IMPACT_ROWS": I.D7_VALID_IMPACT_ROWS,
-            "TARGET_ELIGIBLE_ROWS": I.D7_TARGET_ELIGIBLE_ROWS,
-            "SCIENTIFIC_T_PLUS_1_ASSOCIATION_COMPUTED": False,
-        }
-
-    def fake_arrays(states, *, session=None):
-        if session is None or session.identity_ok is not True:
-            raise OS.TargetBeforeIdentityError("TARGET_BEFORE_IDENTITY_GATE")
-        session.target_constructed = True
-        candidate, target, year, buckets, eligible = _gate_arrays(
-            candidate_on=True, target_on=True
-        )
-        return {
-            "candidate": candidate,
-            "target": target,
-            "year": year,
-            "rv_bucket": buckets,
-            "target_eligible": eligible,
-        }
-
-    with patch.object(I, "load_legal_1m_bars", side_effect=fake_load), patch.object(
-        I, "aggregate_completed_hours", side_effect=fake_hours
-    ), patch.object(I, "build_d7_states", side_effect=fake_states), patch.object(
-        OS, "reconstruct_d7_selector_identity", side_effect=fake_reconstruct
-    ), patch.object(
-        OS, "construct_d7_scientific_arrays", side_effect=fake_arrays
-    ), patch.object(
-        OS, "_git", return_value="deadbeef"
-    ):
+    repo = _copy_git_repo(tmp_path)
+    ctxs = _mocked_execute_ctx()
+    with ctxs[0], ctxs[1], ctxs[2], ctxs[3], ctxs[4], ctxs[5]:
         result = OS.execute_one_shot(repo)
     assert result["SCIENTIFIC_OUTCOMES_COMPUTED"] is True
     assert result["PROTECTED_2025_OPENED"] is False
@@ -570,11 +607,19 @@ def test_runner_byte_mutation_fails_before_target(tmp_path):
 
     with pytest.raises(OS.OneShotExecutionError, match="RUNNER_SHA256_NE_PERMIT"):
         OS.verify_tracked_permit(repo)
+    git_repo = _copy_git_repo(tmp_path / "git")
+    (git_repo / OS.RUNNER_REL).write_text(
+        (git_repo / OS.RUNNER_REL).read_text(encoding="utf-8") + "\n# runner-byte-mutation\n",
+        encoding="utf-8",
+    )
     with patch.object(
         OS, "construct_d7_scientific_arrays", side_effect=boom_arrays
     ), patch.object(OS, "call_reviewed_d7_evaluator", side_effect=boom_eval):
-        with pytest.raises(OS.OneShotExecutionError, match="RUNNER_SHA256_NE_PERMIT"):
-            OS.execute_one_shot(repo)
+        with pytest.raises(
+            OS.OneShotExecutionError,
+            match="EXECUTION_TREE_DIRTY|HEAD_BLOB_NE_DISK|RUNNER_SHA256_NE_PERMIT",
+        ):
+            OS.execute_one_shot(git_repo)
     assert called["target"] is False
     assert called["eval"] is False
     assert not (repo / OS.RESULT_JSON_REL).exists()
@@ -599,11 +644,19 @@ def test_permit_runner_hash_mutation_fails_before_target(tmp_path):
 
     with pytest.raises(OS.OneShotExecutionError, match="RUNNER_SHA256_NE_PERMIT"):
         OS.verify_pre_scientific_authorities(repo)
+    git_repo = _copy_git_repo(tmp_path / "git")
+    path = git_repo / OS.PERMIT_REL
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["ONE_SHOT_RUNNER_SHA256"] = "0" * 64
+    path.write_text(I.canonical_json(payload), encoding="utf-8")
     with patch.object(
         OS, "construct_d7_scientific_arrays", side_effect=boom_arrays
     ), patch.object(OS, "call_reviewed_d7_evaluator", side_effect=boom_eval):
-        with pytest.raises(OS.OneShotExecutionError, match="RUNNER_SHA256_NE_PERMIT"):
-            OS.execute_one_shot(repo)
+        with pytest.raises(
+            OS.OneShotExecutionError,
+            match="EXECUTION_TREE_DIRTY|HEAD_BLOB_NE_DISK|RUNNER_SHA256_NE_PERMIT",
+        ):
+            OS.execute_one_shot(git_repo)
     assert called["target"] is False
     assert called["eval"] is False
     assert not (repo / OS.RESULT_JSON_REL).exists()
@@ -620,67 +673,29 @@ def test_changing_runner_sha_changes_run_identity():
 
 
 def test_execute_one_shot_must_not_write_permit(tmp_path):
-    repo = _copy_repo_tree(tmp_path)
+    repo = _copy_git_repo(tmp_path)
     execute_src = inspect.getsource(OS.execute_one_shot)
     assert "write_permit(" not in execute_src
     assert "write_freeze_artifacts(" not in execute_src
 
-    def fake_load(**_kwargs):
-        return []
-
-    def fake_hours(_bars):
-        return []
-
-    def fake_states(_hours):
-        return []
-
-    def fake_reconstruct(states, *, session=None):
-        if session is not None:
-            session.identity_ok = True
-        return {
-            "SELECTOR_N": I.D7_SELECTOR_N,
-            "SELECTOR_DIGEST": I.D7_SELECTOR_DIGEST,
-            "CONSTRUCTED_HOURS": I.D7_CONSTRUCTED_HOURS,
-            "VALID_IMPACT_ROWS": I.D7_VALID_IMPACT_ROWS,
-            "TARGET_ELIGIBLE_ROWS": I.D7_TARGET_ELIGIBLE_ROWS,
-            "SCIENTIFIC_T_PLUS_1_ASSOCIATION_COMPUTED": False,
-        }
-
-    def fake_arrays(states, *, session=None):
-        if session is None or session.identity_ok is not True:
-            raise OS.TargetBeforeIdentityError("TARGET_BEFORE_IDENTITY_GATE")
-        session.target_constructed = True
-        candidate, target, year, buckets, eligible = _gate_arrays(
-            candidate_on=True, target_on=True
-        )
-        return {
-            "candidate": candidate,
-            "target": target,
-            "year": year,
-            "rv_bucket": buckets,
-            "target_eligible": eligible,
-        }
-
     def boom_write(_repo):
         raise AssertionError("write_permit called during execute_one_shot")
 
+    def boom_freeze(_repo=None):
+        raise AssertionError("write_freeze_artifacts called during execute_one_shot")
+
+    ctxs = _mocked_execute_ctx()
     with patch.object(OS, "write_permit", side_effect=boom_write), patch.object(
-        I, "load_legal_1m_bars", side_effect=fake_load
-    ), patch.object(I, "aggregate_completed_hours", side_effect=fake_hours), patch.object(
-        I, "build_d7_states", side_effect=fake_states
-    ), patch.object(
-        OS, "reconstruct_d7_selector_identity", side_effect=fake_reconstruct
-    ), patch.object(
-        OS, "construct_d7_scientific_arrays", side_effect=fake_arrays
-    ), patch.object(
-        OS, "_git", return_value="deadbeef"
-    ):
+        OS, "write_freeze_artifacts", side_effect=boom_freeze
+    ), ctxs[0], ctxs[1], ctxs[2], ctxs[3], ctxs[4], ctxs[5]:
         result = OS.execute_one_shot(repo)
     assert result["CLASSIFICATION"] in {
         "D7_PROMISING_PROTOTYPE",
         "D7_NO_USEFUL_STRUCTURE",
     }
     assert result["RESULT_PAYLOAD_SHA256"] == OS.result_payload_sha256(result)
+    assert result["ANALYSIS_N"] == OS.ANALYSIS_N
+    assert result["CANDIDATE_N"] == OS.CANDIDATE_N
     (repo / OS.RESULT_JSON_REL).unlink()
     (repo / OS.RESULT_MD_REL).unlink()
 
@@ -692,8 +707,6 @@ def test_freeze_provenance_is_authority_parent_not_current_pr_head():
     assert payload["AUTHORITY_PARENT_COMMIT"] == OS.BASE_MAIN_SHA
     assert payload["AUTHORITY_PARENT_COMMIT"] == OS.AUTHORITY_PARENT_COMMIT
     assert payload["AUTHORITY_PARENT_TREE"] == OS.AUTHORITY_PARENT_TREE
-    import subprocess
-
     parent_tree = subprocess.check_output(
         ["git", "rev-parse", f"{OS.AUTHORITY_PARENT_COMMIT}^{{tree}}"],
         cwd=REPO,
@@ -856,3 +869,331 @@ def test_persist_result_does_not_repair_permit(tmp_path):
         OS.persist_result(repo, payload)
     (repo / OS.RESULT_JSON_REL).unlink()
     (repo / OS.RESULT_MD_REL).unlink()
+
+
+def _boom_science():
+    called = {"target": False, "eval": False}
+
+    def boom_arrays(*_args, **_kwargs):
+        called["target"] = True
+        raise AssertionError("target constructor ran")
+
+    def boom_eval(*_args, **_kwargs):
+        called["eval"] = True
+        raise AssertionError("evaluator ran")
+
+    return called, boom_arrays, boom_eval
+
+
+def test_git_has_no_repo_root_fallback():
+    assert "repo_root()" not in inspect.getsource(OS._git)
+    assert "repo_root()" not in inspect.getsource(OS.verify_execution_checkout)
+    execute_src = inspect.getsource(OS.execute_one_shot)
+    assert execute_src.index("verify_execution_checkout") < execute_src.index(
+        "construct_d7_scientific_arrays"
+    )
+    assert "verify_tracked_freeze" in inspect.getsource(OS.verify_pre_scientific_authorities)
+    assert "assert_frozen_d7_strata" in inspect.getsource(
+        OS.reconstruct_d7_selector_identity
+    )
+    assert execute_src.index("assert_scientific_array_identity") < execute_src.index(
+        "call_reviewed_d7_evaluator"
+    )
+
+
+def test_non_git_directory_fails_without_fallback(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    called, boom_arrays, boom_eval = _boom_science()
+    with patch.object(OS, "construct_d7_scientific_arrays", side_effect=boom_arrays), patch.object(
+        OS, "call_reviewed_d7_evaluator", side_effect=boom_eval
+    ):
+        with pytest.raises(OS.OneShotExecutionError, match="REPO_NOT_GIT_WORKTREE"):
+            OS.execute_one_shot(repo)
+    assert called["target"] is False
+    assert called["eval"] is False
+    assert not (repo / OS.RESULT_JSON_REL).exists()
+
+
+def test_dirty_tracked_runner_fails_before_target(tmp_path):
+    repo = _copy_git_repo(tmp_path)
+    (repo / OS.RUNNER_REL).write_text(
+        (repo / OS.RUNNER_REL).read_text(encoding="utf-8") + "\n# dirty-runner\n",
+        encoding="utf-8",
+    )
+    called, boom_arrays, boom_eval = _boom_science()
+    with patch.object(OS, "construct_d7_scientific_arrays", side_effect=boom_arrays), patch.object(
+        OS, "call_reviewed_d7_evaluator", side_effect=boom_eval
+    ):
+        with pytest.raises(
+            OS.OneShotExecutionError, match="EXECUTION_TREE_DIRTY|HEAD_BLOB_NE_DISK"
+        ):
+            OS.execute_one_shot(repo)
+    assert called["target"] is False
+    assert not (repo / OS.RESULT_JSON_REL).exists()
+
+
+def test_dirty_tracked_implementation_fails_before_target(tmp_path):
+    repo = _copy_git_repo(tmp_path)
+    (repo / OS.IMPL_REL).write_text(
+        (repo / OS.IMPL_REL).read_text(encoding="utf-8") + "\n# dirty-impl\n",
+        encoding="utf-8",
+    )
+    called, boom_arrays, boom_eval = _boom_science()
+    with patch.object(OS, "construct_d7_scientific_arrays", side_effect=boom_arrays), patch.object(
+        OS, "call_reviewed_d7_evaluator", side_effect=boom_eval
+    ):
+        with pytest.raises(
+            OS.OneShotExecutionError, match="EXECUTION_TREE_DIRTY|HEAD_BLOB_NE_DISK"
+        ):
+            OS.execute_one_shot(repo)
+    assert called["target"] is False
+    assert not (repo / OS.RESULT_JSON_REL).exists()
+
+
+def test_runner_disk_ne_head_blob_fails_before_target(tmp_path):
+    repo = _copy_git_repo(tmp_path)
+    (repo / OS.RUNNER_REL).write_text(
+        (repo / OS.RUNNER_REL).read_text(encoding="utf-8") + "\n# head-blob\n",
+        encoding="utf-8",
+    )
+    OS.write_permit(repo)
+    payload = OS.freeze_payload(
+        repo, permit=json.loads((repo / OS.PERMIT_REL).read_text(encoding="utf-8"))
+    )
+    (repo / OS.FREEZE_JSON_REL).write_text(I.canonical_json(payload), encoding="utf-8")
+    called, boom_arrays, boom_eval = _boom_science()
+    with patch.object(OS, "construct_d7_scientific_arrays", side_effect=boom_arrays), patch.object(
+        OS, "call_reviewed_d7_evaluator", side_effect=boom_eval
+    ):
+        with pytest.raises(
+            OS.OneShotExecutionError, match="EXECUTION_TREE_DIRTY|HEAD_BLOB_NE_DISK"
+        ):
+            OS.execute_one_shot(repo)
+    assert called["target"] is False
+
+
+def test_permit_disk_ne_head_blob_fails_before_target(tmp_path):
+    repo = _copy_git_repo(tmp_path)
+    path = repo / OS.PERMIT_REL
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["MARKET_07_CREATED"] = True
+    path.write_text(I.canonical_json(payload), encoding="utf-8")
+    called, boom_arrays, boom_eval = _boom_science()
+    with patch.object(OS, "construct_d7_scientific_arrays", side_effect=boom_arrays), patch.object(
+        OS, "call_reviewed_d7_evaluator", side_effect=boom_eval
+    ):
+        with pytest.raises(
+            OS.OneShotExecutionError, match="EXECUTION_TREE_DIRTY|HEAD_BLOB_NE_DISK"
+        ):
+            OS.execute_one_shot(repo)
+    assert called["target"] is False
+
+
+def test_freeze_disk_ne_head_blob_fails_before_target(tmp_path):
+    repo = _copy_git_repo(tmp_path)
+    path = repo / OS.FREEZE_JSON_REL
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["STATUS"] = "TAMPERED"
+    path.write_text(I.canonical_json(payload), encoding="utf-8")
+    called, boom_arrays, boom_eval = _boom_science()
+    with patch.object(OS, "construct_d7_scientific_arrays", side_effect=boom_arrays), patch.object(
+        OS, "call_reviewed_d7_evaluator", side_effect=boom_eval
+    ):
+        with pytest.raises(
+            OS.OneShotExecutionError, match="EXECUTION_TREE_DIRTY|HEAD_BLOB_NE_DISK"
+        ):
+            OS.execute_one_shot(repo)
+    assert called["target"] is False
+
+
+def test_runner_plus_permit_with_stale_freeze_fails_before_target(tmp_path):
+    repo = _copy_git_repo(tmp_path)
+    (repo / OS.RUNNER_REL).write_text(
+        (repo / OS.RUNNER_REL).read_text(encoding="utf-8") + "\n# stale-freeze\n",
+        encoding="utf-8",
+    )
+    OS.write_permit(repo)
+    _commit_paths(repo, (OS.RUNNER_REL, OS.PERMIT_REL), "runner-and-permit")
+    called, boom_arrays, boom_eval = _boom_science()
+    with patch.object(OS, "construct_d7_scientific_arrays", side_effect=boom_arrays), patch.object(
+        OS, "call_reviewed_d7_evaluator", side_effect=boom_eval
+    ):
+        with pytest.raises(
+            OS.OneShotExecutionError,
+            match="FREEZE_RUNNER_SHA_NE_|FREEZE_PERMIT_SHA_MISMATCH",
+        ):
+            OS.execute_one_shot(repo)
+    assert called["target"] is False
+    assert not (repo / OS.RESULT_JSON_REL).exists()
+
+
+def test_freeze_run_identity_mismatch_fails_before_target(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    permit = json.loads((repo / OS.PERMIT_REL).read_text(encoding="utf-8"))
+    freeze_path = repo / OS.FREEZE_JSON_REL
+    freeze = json.loads(freeze_path.read_text(encoding="utf-8"))
+    freeze["RUN_IDENTITY"] = "0" * 64
+    freeze_path.write_text(I.canonical_json(freeze), encoding="utf-8")
+    with pytest.raises(OS.OneShotExecutionError, match="FREEZE_RUN_IDENTITY_NE_PERMIT"):
+        OS.verify_tracked_freeze(repo, permit=permit)
+    git_repo = _copy_git_repo(tmp_path / "git")
+    freeze_path = git_repo / OS.FREEZE_JSON_REL
+    freeze = json.loads(freeze_path.read_text(encoding="utf-8"))
+    freeze["RUN_IDENTITY"] = "0" * 64
+    freeze_path.write_text(I.canonical_json(freeze), encoding="utf-8")
+    _commit_paths(git_repo, (OS.FREEZE_JSON_REL,), "stale-run-identity")
+    called, boom_arrays, boom_eval = _boom_science()
+    with patch.object(OS, "construct_d7_scientific_arrays", side_effect=boom_arrays), patch.object(
+        OS, "call_reviewed_d7_evaluator", side_effect=boom_eval
+    ):
+        with pytest.raises(OS.OneShotExecutionError, match="FREEZE_RUN_IDENTITY_NE_PERMIT"):
+            OS.execute_one_shot(git_repo)
+    assert called["target"] is False
+
+
+def test_freeze_permit_sha_mismatch_fails_before_target(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    permit = json.loads((repo / OS.PERMIT_REL).read_text(encoding="utf-8"))
+    freeze_path = repo / OS.FREEZE_JSON_REL
+    freeze = json.loads(freeze_path.read_text(encoding="utf-8"))
+    freeze["EXECUTION_PERMIT_SHA256"] = "0" * 64
+    freeze_path.write_text(I.canonical_json(freeze), encoding="utf-8")
+    with pytest.raises(OS.OneShotExecutionError, match="FREEZE_PERMIT_SHA_MISMATCH"):
+        OS.verify_tracked_freeze(repo, permit=permit)
+
+
+def test_construct_arrays_t_plus_1_alignment():
+    start = _ms(2021, 3, 1, 0)
+    session = OS.D7OneShotSession()
+    session.identity_ok = True
+    states = [
+        _state(start, 2021, d7_state=True, rv_bucket=1),
+        _state(start + I.HOUR_MS, 2021, d7_state=False, rv_bucket=1),
+    ]
+    arrays = OS.construct_d7_scientific_arrays(states, session=session)
+    assert arrays["candidate"] == [True]
+    assert arrays["target"] == [False]
+    states[1] = _state(start + I.HOUR_MS, 2021, d7_state=True, rv_bucket=1)
+    session2 = OS.D7OneShotSession()
+    session2.identity_ok = True
+    arrays2 = OS.construct_d7_scientific_arrays(states, session=session2)
+    assert arrays2["candidate"] == [True]
+    assert arrays2["target"] == [True]
+
+
+def test_construct_arrays_missing_successor_excluded():
+    session = OS.D7OneShotSession()
+    session.identity_ok = True
+    states = [_state(_ms(2021, 3, 1, 0), 2021, d7_state=True, rv_bucket=1)]
+    arrays = OS.construct_d7_scientific_arrays(states, session=session)
+    assert arrays["candidate"] == []
+    assert arrays["target"] == []
+
+
+def test_construct_arrays_invalid_tplus1_state_excluded():
+    start = _ms(2021, 3, 1, 0)
+    session = OS.D7OneShotSession()
+    session.identity_ok = True
+    states = [
+        _state(start, 2021, d7_state=True, rv_bucket=1),
+        _state(start + I.HOUR_MS, 2021, d7_state=None, rv_bucket=1),
+    ]
+    arrays = OS.construct_d7_scientific_arrays(states, session=session)
+    assert arrays["candidate"] == []
+    assert arrays["target"] == []
+
+
+def test_construct_arrays_missing_rv_bucket_at_t_excluded():
+    start = _ms(2021, 3, 1, 0)
+    session = OS.D7OneShotSession()
+    session.identity_ok = True
+    states = [
+        _state(start, 2021, d7_state=True, rv_bucket=None),
+        _state(start + I.HOUR_MS, 2021, d7_state=True, rv_bucket=1),
+    ]
+    arrays = OS.construct_d7_scientific_arrays(states, session=session)
+    assert arrays["candidate"] == []
+    assert arrays["target"] == []
+
+
+def test_construct_arrays_protected_boundary_excluded():
+    start = _ms(2024, 12, 31, 23)
+    nxt = start + I.HOUR_MS
+    assert nxt >= I.PROTECTED_START_MS
+    session = OS.D7OneShotSession()
+    session.identity_ok = True
+    states = [
+        _state(start, 2024, d7_state=True, rv_bucket=1),
+        _state(nxt, 2025, d7_state=True, rv_bucket=1),
+    ]
+    arrays = OS.construct_d7_scientific_arrays(states, session=session)
+    assert arrays["candidate"] == []
+    assert arrays["target"] == []
+    assert arrays["year"] == []
+
+
+def test_stratum_map_mismatch_fails_before_target(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    frozen = OS.frozen_d7_strata(repo)
+    census = {
+        "TARGET_ELIGIBLE_BY_YEAR_RV_BUCKET": dict(
+            frozen["TARGET_ELIGIBLE_BY_YEAR_RV_BUCKET"]
+        ),
+        "CANDIDATE_BY_YEAR_RV_BUCKET": dict(frozen["CANDIDATE_BY_YEAR_RV_BUCKET"]),
+    }
+    census["TARGET_ELIGIBLE_BY_YEAR_RV_BUCKET"]["2020:0"] = 0
+    session = OS.D7OneShotSession()
+    with pytest.raises(OS.OneShotExecutionError, match="TARGET_ELIGIBLE_STRATA_MISMATCH"):
+        OS.assert_frozen_d7_strata(census, repo)
+    assert session.identity_ok is False
+    with pytest.raises(OS.TargetBeforeIdentityError):
+        OS.construct_d7_scientific_arrays([], session=session)
+
+
+def test_candidate_stratum_mismatch_fails_before_target(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    frozen = OS.frozen_d7_strata(repo)
+    census = {
+        "TARGET_ELIGIBLE_BY_YEAR_RV_BUCKET": dict(
+            frozen["TARGET_ELIGIBLE_BY_YEAR_RV_BUCKET"]
+        ),
+        "CANDIDATE_BY_YEAR_RV_BUCKET": dict(frozen["CANDIDATE_BY_YEAR_RV_BUCKET"]),
+    }
+    census["CANDIDATE_BY_YEAR_RV_BUCKET"]["2020:3"] = 0
+    with pytest.raises(OS.OneShotExecutionError, match="CANDIDATE_STRATA_MISMATCH"):
+        OS.assert_frozen_d7_strata(census, repo)
+
+
+def test_analysis_n_mismatch_fails_before_evaluator():
+    session = OS.D7OneShotSession()
+    session.identity_ok = True
+    start = _ms(2021, 3, 1, 0)
+    states = [
+        _state(start, 2021, d7_state=True, rv_bucket=0),
+        _state(start + I.HOUR_MS, 2021, d7_state=False, rv_bucket=0),
+    ]
+    arrays = OS.construct_d7_scientific_arrays(states, session=session)
+    with pytest.raises(OS.OneShotExecutionError, match="ANALYSIS_N_MISMATCH"):
+        OS.assert_scientific_array_identity(arrays)
+    assert session.evaluator_called is False
+    execute_src = inspect.getsource(OS.execute_one_shot)
+    assert execute_src.index("assert_scientific_array_identity") < execute_src.index(
+        "call_reviewed_d7_evaluator"
+    )
+
+
+def test_frozen_strata_sums_match_selector_identity():
+    frozen = OS.frozen_d7_strata(REPO)
+    assert sum(frozen["TARGET_ELIGIBLE_BY_YEAR_RV_BUCKET"].values()) == 42407
+    assert sum(frozen["CANDIDATE_BY_YEAR_RV_BUCKET"].values()) == 4545
+    assert OS.ANALYSIS_N == 42407
+    assert OS.CANDIDATE_N == 4545
+    OS.assert_frozen_d7_strata(
+        {
+            "TARGET_ELIGIBLE_BY_YEAR_RV_BUCKET": frozen[
+                "TARGET_ELIGIBLE_BY_YEAR_RV_BUCKET"
+            ],
+            "CANDIDATE_BY_YEAR_RV_BUCKET": frozen["CANDIDATE_BY_YEAR_RV_BUCKET"],
+        },
+        REPO,
+    )

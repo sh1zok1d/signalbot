@@ -53,6 +53,9 @@ FEASIBILITY_JSON_REL = "docs/research/DISCOVERY_SPRINT_02_FEASIBILITY.json"
 IMPL_REL = "scripts/research/discovery_sprint_02_impl.py"
 FEAS_CLI_REL = "scripts/research/discovery_sprint_02_feasibility.py"
 RUNNER_REL = "scripts/research/discovery_sprint_02_d7_one_shot.py"
+EXECUTION_HEAD_RELS = (RUNNER_REL, IMPL_REL, PERMIT_REL, FREEZE_JSON_REL)
+ANALYSIS_N = I.D7_TARGET_ELIGIBLE_ROWS
+CANDIDATE_N = I.D7_SELECTOR_N
 
 FROZEN_DISCOVERY_SPRINT_02_SHA256 = (
     "b95305e67d5b7ca6e81303ee43b0f38d2605d5de240ed3840d8ffafb2d27c49b"
@@ -94,6 +97,7 @@ class D7OneShotSession:
     identity_ok: bool = False
     target_constructed: bool = False
     evaluator_called: bool = False
+    permit_commit: str | None = None
     opened_files: list[str] = field(default_factory=list)
 
 
@@ -101,7 +105,9 @@ def repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
-def _git(repo: Path, *args: str) -> str:
+def _assert_git_worktree(repo: Path) -> None:
+    """Require `repo` itself to be a git worktree. No fallback."""
+
     probe = subprocess.run(
         ["git", "rev-parse", "--is-inside-work-tree"],
         cwd=repo,
@@ -109,8 +115,69 @@ def _git(repo: Path, *args: str) -> str:
         text=True,
         check=False,
     )
-    cwd = repo if probe.returncode == 0 else repo_root()
-    return subprocess.check_output(["git", *args], cwd=cwd, text=True).strip()
+    if probe.returncode != 0 or probe.stdout.strip() != "true":
+        raise OneShotExecutionError("REPO_NOT_GIT_WORKTREE")
+    top = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if top.returncode != 0:
+        raise OneShotExecutionError("REPO_NOT_GIT_WORKTREE")
+    if Path(top.stdout.strip()).resolve() != Path(repo).resolve():
+        raise OneShotExecutionError("GIT_TOPLEVEL_NE_REPO")
+
+
+def _git(repo: Path, *args: str) -> str:
+    _assert_git_worktree(repo)
+    proc = subprocess.run(
+        ["git", *args],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        raise OneShotExecutionError(f"GIT_COMMAND_FAILED:{args[0]}")
+    return proc.stdout.strip()
+
+
+def _git_bytes(repo: Path, *args: str) -> bytes:
+    _assert_git_worktree(repo)
+    proc = subprocess.run(
+        ["git", *args],
+        cwd=repo,
+        capture_output=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        raise OneShotExecutionError(f"GIT_COMMAND_FAILED:{args[0]}")
+    return proc.stdout
+
+
+def verify_execution_checkout(repo: Path) -> str:
+    """Fail closed unless repo is a clean git worktree matching HEAD blobs."""
+
+    _assert_git_worktree(repo)
+    head = _git(repo, "rev-parse", "HEAD")
+    dirty = subprocess.run(
+        ["git", "diff", "--quiet", "HEAD", "--", *EXECUTION_HEAD_RELS],
+        cwd=repo,
+        capture_output=True,
+        check=False,
+    )
+    if dirty.returncode != 0:
+        raise OneShotExecutionError("EXECUTION_TREE_DIRTY")
+    for rel in EXECUTION_HEAD_RELS:
+        path = repo / rel
+        if not path.is_file():
+            raise OneShotExecutionError(f"MISSING_HEAD_AUTHORITY:{rel}")
+        blob = _git_bytes(repo, "show", f"HEAD:{rel}")
+        if path.read_bytes() != blob:
+            raise OneShotExecutionError(f"HEAD_BLOB_NE_DISK:{rel}")
+    return head
 
 
 def result_exists(repo: Path) -> bool:
@@ -250,6 +317,111 @@ def verify_tracked_permit(repo: Path) -> dict[str, Any]:
     return stored
 
 
+def verify_tracked_freeze(
+    repo: Path, *, permit: Mapping[str, Any]
+) -> dict[str, Any]:
+    path = repo / FREEZE_JSON_REL
+    if not path.is_file():
+        raise OneShotExecutionError("MISSING_EXECUTION_FREEZE")
+    try:
+        freeze = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        raise OneShotExecutionError("FREEZE_BYTES_UNPARSEABLE") from exc
+    if not isinstance(freeze, dict):
+        raise OneShotExecutionError("FREEZE_NOT_OBJECT")
+    if freeze.get("STATUS") != "FROZEN":
+        raise OneShotExecutionError("FREEZE_STATUS_NE_FROZEN")
+    if freeze.get("SCOPE") != "D7_ONLY":
+        raise OneShotExecutionError("FREEZE_SCOPE_NE_D7_ONLY")
+    runner = current_runner_sha256(repo)
+    impl = I.file_sha256(repo / IMPL_REL)
+    permit_sha = I.file_sha256(repo / PERMIT_REL)
+    if freeze.get("ONE_SHOT_RUNNER_SHA256") != permit.get("ONE_SHOT_RUNNER_SHA256"):
+        raise OneShotExecutionError("FREEZE_RUNNER_SHA_NE_PERMIT")
+    if freeze.get("ONE_SHOT_RUNNER_SHA256") != runner:
+        raise OneShotExecutionError("FREEZE_RUNNER_SHA_NE_DISK")
+    if freeze.get("RUN_IDENTITY") != permit.get("RUN_IDENTITY"):
+        raise OneShotExecutionError("FREEZE_RUN_IDENTITY_NE_PERMIT")
+    if freeze.get("EXECUTION_PERMIT_SHA256") != permit_sha:
+        raise OneShotExecutionError("FREEZE_PERMIT_SHA_MISMATCH")
+    if freeze.get("REVIEWED_IMPLEMENTATION_SHA256") != permit.get(
+        "REVIEWED_IMPLEMENTATION_SHA256"
+    ):
+        raise OneShotExecutionError("FREEZE_IMPL_SHA_NE_PERMIT")
+    if freeze.get("REVIEWED_IMPLEMENTATION_SHA256") != impl:
+        raise OneShotExecutionError("FREEZE_IMPL_SHA_NE_DISK")
+    if freeze.get("D7_EXECUTION_AUTHORIZED") is not True:
+        raise OneShotExecutionError("FREEZE_D7_EXECUTION_NOT_AUTHORIZED")
+    if freeze.get("D7_EXECUTED") is not False:
+        raise OneShotExecutionError("FREEZE_D7_ALREADY_EXECUTED")
+    if freeze.get("D8_EXECUTION_AUTHORIZED") is not False:
+        raise OneShotExecutionError("FREEZE_D8_EXECUTION_AUTHORIZED")
+    if freeze.get("D8_EXECUTED") is not False:
+        raise OneShotExecutionError("FREEZE_D8_EXECUTED")
+    if freeze.get("SCIENTIFIC_OUTCOMES_COMPUTED") is not False:
+        raise OneShotExecutionError("FREEZE_SCIENTIFIC_OUTCOMES_COMPUTED")
+    if freeze.get("PROTECTED_2025_OPENED") is not False:
+        raise OneShotExecutionError("FREEZE_PROTECTED_2025_OPENED")
+    if freeze.get("PROTECTED_2026_OPENED") is not False:
+        raise OneShotExecutionError("FREEZE_PROTECTED_2026_OPENED")
+    if freeze.get("MARKET_07_CREATED") is not False:
+        raise OneShotExecutionError("FREEZE_MARKET_07_CREATED")
+    return freeze
+
+
+def frozen_d7_strata(repo: Path) -> dict[str, dict[str, int]]:
+    payload = json.loads((repo / FEASIBILITY_JSON_REL).read_text(encoding="utf-8"))
+    d7 = payload.get("D7")
+    if not isinstance(d7, dict):
+        raise OneShotExecutionError("FEASIBILITY_D7_OBJECT_MISSING")
+    eligible = d7.get("TARGET_ELIGIBLE_BY_YEAR_RV_BUCKET")
+    candidate = d7.get("CANDIDATE_BY_YEAR_RV_BUCKET")
+    if not isinstance(eligible, dict) or not isinstance(candidate, dict):
+        raise OneShotExecutionError("FEASIBILITY_D7_STRATA_MISSING")
+    return {
+        "TARGET_ELIGIBLE_BY_YEAR_RV_BUCKET": {
+            str(key): int(value) for key, value in eligible.items()
+        },
+        "CANDIDATE_BY_YEAR_RV_BUCKET": {
+            str(key): int(value) for key, value in candidate.items()
+        },
+    }
+
+
+def assert_frozen_d7_strata(census: Mapping[str, Any], repo: Path) -> None:
+    frozen = frozen_d7_strata(repo)
+    got_eligible = {
+        str(key): int(value)
+        for key, value in dict(census.get("TARGET_ELIGIBLE_BY_YEAR_RV_BUCKET") or {}).items()
+    }
+    got_candidate = {
+        str(key): int(value)
+        for key, value in dict(census.get("CANDIDATE_BY_YEAR_RV_BUCKET") or {}).items()
+    }
+    if got_eligible != frozen["TARGET_ELIGIBLE_BY_YEAR_RV_BUCKET"]:
+        raise OneShotExecutionError("TARGET_ELIGIBLE_STRATA_MISMATCH")
+    if got_candidate != frozen["CANDIDATE_BY_YEAR_RV_BUCKET"]:
+        raise OneShotExecutionError("CANDIDATE_STRATA_MISMATCH")
+    if sum(got_eligible.values()) != I.D7_TARGET_ELIGIBLE_ROWS:
+        raise OneShotExecutionError("TARGET_ELIGIBLE_STRATA_SUM_MISMATCH")
+    if sum(got_candidate.values()) != I.D7_SELECTOR_N:
+        raise OneShotExecutionError("CANDIDATE_STRATA_SUM_MISMATCH")
+
+
+def assert_scientific_array_identity(arrays: Mapping[str, Any]) -> None:
+    """Structural population identity. Does not inspect target success rates."""
+
+    n = ANALYSIS_N
+    k = CANDIDATE_N
+    for field in ("target", "candidate", "year", "rv_bucket", "target_eligible"):
+        if len(arrays[field]) != n:
+            raise OneShotExecutionError(f"ANALYSIS_N_MISMATCH:{field}:{len(arrays[field])}")
+    if int(sum(bool(row) for row in arrays["candidate"])) != k:
+        raise OneShotExecutionError("CANDIDATE_N_MISMATCH")
+    if not all(bool(row) is True for row in arrays["target_eligible"]):
+        raise OneShotExecutionError("TARGET_ELIGIBLE_NOT_ALL_TRUE")
+
+
 def verify_pre_scientific_authorities(
     repo: Path, *, session: D7OneShotSession | None = None
 ) -> dict[str, Any]:
@@ -260,6 +432,7 @@ def verify_pre_scientific_authorities(
         raise OneShotExecutionError("PERMIT_DATA_IDENTITY_MODE_MISMATCH")
     if permit.get("RUN_IDENTITY") != compute_run_identity(permit):
         raise OneShotExecutionError("PERMIT_RUN_IDENTITY_MISMATCH")
+    freeze = verify_tracked_freeze(repo, permit=permit)
     authority = I.verify_dataset_authority(repo)
     if authority["DATA_IDENTITY_MODE"] != I.DATA_IDENTITY_MODE:
         raise OneShotExecutionError("DATA_IDENTITY_MODE_MISMATCH")
@@ -271,12 +444,13 @@ def verify_pre_scientific_authorities(
         raise OneShotExecutionError("MANIFEST_CONFIRMATORY_MUST_REMAIN_FALSE")
     if session is not None:
         session.authorities_ok = True
-    return {"permit": permit, "authority": authority}
+    return {"permit": permit, "freeze": freeze, "authority": authority}
 
 
 def reconstruct_d7_selector_identity(
     states: Sequence[I.D7HourState],
     *,
+    repo: Path,
     session: D7OneShotSession | None = None,
 ) -> dict[str, Any]:
     """Recompute selector identity. Does not read t+1 target booleans."""
@@ -285,6 +459,7 @@ def reconstruct_d7_selector_identity(
     if census.get("SCIENTIFIC_T_PLUS_1_ASSOCIATION_COMPUTED") is not False:
         raise I.RealScientificOutcomeForbidden("IDENTITY_COMPUTED_TPLUS1")
     I.assert_d7_selector_identity(census)
+    assert_frozen_d7_strata(census, repo)
     if session is not None:
         session.identity_ok = True
     return census
@@ -389,6 +564,8 @@ def wrap_one_shot_result(
         "EXECUTION_PERMIT_SHA256": execution_permit_sha256,
         "D7_SELECTOR_N": I.D7_SELECTOR_N,
         "D7_SELECTOR_DIGEST": I.D7_SELECTOR_DIGEST,
+        "ANALYSIS_N": ANALYSIS_N,
+        "CANDIDATE_N": CANDIDATE_N,
         "CORE_BTC_SNAPSHOT_ID": I.CORE_BTC_SNAPSHOT_ID,
         "DATA_IDENTITY_MODE": I.DATA_IDENTITY_MODE,
         "PROTECTED_2025_OPENED": False,
@@ -468,7 +645,7 @@ def persist_result(repo: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
 def execute_one_shot(repo: Path | None = None) -> dict[str, Any]:
     """Canonical D7 one-shot. Do not call on real CORE in the freeze unit.
 
-    Consumes the already-tracked permit. Never regenerates or repairs it.
+    Consumes the already-tracked permit and freeze. Never regenerates them.
     """
 
     global _PERMIT_WRITE_FORBIDDEN
@@ -478,6 +655,7 @@ def execute_one_shot(repo: Path | None = None) -> dict[str, Any]:
     _PERMIT_WRITE_FORBIDDEN = True
     try:
         refuse_if_result_exists(base)
+        session.permit_commit = verify_execution_checkout(base)
         verified = verify_pre_scientific_authorities(base, session=session)
         log = I.OpenedFileLog()
         bars = I.load_legal_1m_bars(repo=base, log=log)
@@ -491,14 +669,14 @@ def execute_one_shot(repo: Path | None = None) -> dict[str, Any]:
         hours = I.aggregate_completed_hours(bars)
         del bars
         states = I.build_d7_states(hours)
-        reconstruct_d7_selector_identity(states, session=session)
+        reconstruct_d7_selector_identity(states, repo=base, session=session)
         arrays = construct_d7_scientific_arrays(states, session=session)
+        assert_scientific_array_identity(arrays)
         raw = call_reviewed_d7_evaluator(arrays, session=session)
-        permit_commit = _git(base, "rev-parse", "HEAD")
         wrapped = wrap_one_shot_result(
             raw,
             permit=verified["permit"],
-            permit_commit=permit_commit,
+            permit_commit=session.permit_commit,
             execution_permit_sha256=I.file_sha256(base / PERMIT_REL),
         )
         return persist_result(base, wrapped)
@@ -624,6 +802,8 @@ NEXT_UNIT = {payload["NEXT_UNIT"]}
 def write_freeze_artifacts(repo: Path | None = None) -> dict[str, Any]:
     """Write permit + freeze artifacts. Does not execute D7 science."""
 
+    if _PERMIT_WRITE_FORBIDDEN:
+        raise OneShotExecutionError("EXECUTE_ONE_SHOT_MUST_NOT_WRITE_FREEZE")
     base = repo if repo is not None else repo_root()
     if result_exists(base):
         raise OneShotExecutionError("RESULT_EXISTS_FREEZE_REFUSED")
