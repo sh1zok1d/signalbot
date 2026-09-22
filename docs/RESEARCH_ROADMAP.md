@@ -60,7 +60,10 @@ after the CORE-restore retry (adaptive discovery, not confirmatory):
 `INTERNAL_PROMISING_PROTOTYPES = 1`.
 `D2_PROGRAM_CLASS = INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`.
 `D2_DECOMPOSITION_DESIGN_STATUS = FROZEN`.
-`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`.
+`D2_DECOMPOSITION_IMPLEMENTATION_REVIEW = PASS`.
+`D2_DECOMPOSITION_EXECUTION_READY = false`.
+`D2_DECOMPOSITION_CANONICAL_SELECTOR_DIGEST_FROZEN = false`.
+`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE`.
 
 D2 discovery remains a `PROMISING_PROTOTYPE` (adaptive discovery label). Outcome-blind
 confirmation design for RULE_1 / `RV_ABSTENTION` found calendar 2025
@@ -95,9 +98,27 @@ forbidden. Product remains frozen. MARKET-07 is not created. Mechanism-
 decomposition **design** is now frozen (`DESIGN_STATUS = FROZEN`):
 selector unchanged, primary target `ADVERSE_SHARE`, comparator
 `YEAR_SIDE_MATCHED_RATE_MATCHED_RANDOM_ABSTENTION`, seed `20260922131`.
-No real decomposition outcome. Next unit is implementation and
-outcome-blind review:
-`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`.
+
+That frozen design has now been implemented and reviewed outcome-blind by
+`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`
+(`IMPLEMENTATION_REVIEW = PASS`, `SCIENTIFIC_KERNEL_READY = true`,
+`CANONICAL_ORCHESTRATION_READY = true`, `PERMIT_VERIFIER_READY = true`,
+`EXACT_SELECTOR_IDENTITY_IMPLEMENTED = true`,
+`CANONICAL_SELECTOR_DIGEST_FROZEN = false`, `EXECUTION_READY = false`,
+`EXECUTION_AUTHORIZED = false`). The design was not redesigned; the
+evaluator re-walks the exact 288×5m `PerpBar` future path so `MAE_SIDE`
+and `MAE_OPPOSITE` share one path, and cross-checks `MAE_SIDE` against
+the frozen `DiscoveryRow.severity`. The dormant canonical route is fully
+wired behind a tracked-permit firewall that does not exist in this unit.
+The canonical route requires a tracked selector-identity authority and
+compares the reconstructed ordered digest to it before any ADVERSE_SHARE
+/ PATH_SCALE evaluation; that authority artifact is not created here.
+F1–F20 red-team classes returned `NOT_CONFIRMED`. **No real decomposition
+outcome was computed**: there is no execution permit, no RESULT, no ARM,
+no MARKET-07, protected 2025/2026 stays sealed, and BitMEX 2017-2019 is
+not reused for this target. The next unit only writes/freezes the
+selector-identity authority bytes, not one-shot execution:
+`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE`.
 
 Card identities at definition time (unchanged):
 

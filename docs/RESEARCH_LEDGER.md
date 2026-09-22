@@ -4435,3 +4435,159 @@ REAL_DECOMPOSITION_OUTCOME_COMPUTED = false
 Evidence: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN.{json,md}`.
 
 - next required step: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`
+
+## 2026-09-22 — D2 excess path-risk implementation and outcome-blind review
+
+`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`
+implemented the frozen decomposition design and reviewed it
+adversarially. **No scientific window was consumed and no decomposition
+outcome was computed.** This entry records an implementation/review unit,
+not evidence.
+
+The frozen design was not redesigned. Selector, SIDE, primary target,
+comparator, strata, seed, gates, thresholds and classification order are
+imported from the frozen design module rather than reimplemented. The
+only new mechanical work is future-path reconstruction: `DiscoveryRow`
+stores `future_closes` only, so the evaluator re-walks the exact 288×5m
+`PerpBar` sequence opening at `T..T+287*5m` and calls frozen
+`arithmetic_mae` twice on that one shared sequence, then cross-checks
+recomputed `MAE_SIDE` bit-for-bit against the frozen
+`DiscoveryRow.severity`. A wrong window, a close-path substitution, or a
+split SIDE/-SIDE path fails closed rather than producing a number.
+
+Target ineligibility (`TARGET_ROW_INELIGIBLE_PATH_SCALE_NONPOSITIVE`, no
+epsilon) never rebuilds the D2 selector: the candidate set is the
+intersection of selector and target eligibility, and the dropped selector
+count is reported per year.
+
+Red-team classes F1–F20 (lookahead, wrong future window, closes instead
+of high/low, split SIDE paths, selector drift, SIDE drift, target
+ineligibility handling, pooled-K / year-only fallback, LONG/SHORT
+composition mismatch, RNG/seed drift, replacement sampling, different
+masks for share and scale, separate yearly control generation, future
+information matching, gate/classification rescue, authority hash drift,
+accidental real execution, protected 2025/2026 access, BitMEX reuse) all
+returned `NOT_CONFIRMED`. Three non-blocking observations were recorded,
+including that the frozen `STATISTICAL_GATE` strict `>` can be decided by
+float noise at an exact tie — left unchanged, because the frozen design
+already requires the practical and temporal gates as well.
+
+No scientific ambiguity required a new researcher convention:
+`SCIENTIFIC_AMBIGUITY_FOUND = false`.
+
+```
+IMPLEMENTATION_REVIEW               = PASS
+EXECUTION_READY                     = true
+EXECUTION_AUTHORIZED                = false
+EXECUTION_PERMIT_CREATED            = false
+REAL_DECOMPOSITION_OUTCOME_COMPUTED = false
+CLASSIFICATION_ASSIGNED             = null
+FROZEN_AUTHORITY_STATUS             = BOUND_NO_DRIFT
+PROTECTED_2025_OPENED               = false
+PROTECTED_2026_OPENED               = false
+BITMEX_2017_2019_REUSED_FOR_NEW_TARGET = false
+MARKET_07_CREATED                   = false
+RESULT_CREATED                      = false
+ARM_CREATED                         = false
+```
+
+Evidence: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_REVIEW.{json,md}`.
+
+- next required step: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION`
+  (an explicit one-shot execution unit, requiring a future permit that
+  binds the design hash, the review hash, the implementation hash, the
+  CORE BTC snapshot and the recorded run identity)
+
+## 2026-09-22 — D2 excess path-risk implementation-review integrity repair
+
+Integrity/lifecycle repair of
+`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`
+before merge. **No scientific window was consumed and no decomposition
+outcome was computed.** Frozen scientific design bytes were not changed.
+
+The prior review over-claimed `EXECUTION_READY = true` while
+`execute_decomposition()` was only a terminal firewall stub and selector
+identity was census-only. This repair:
+
+- implements the full dormant canonical orchestration route (CORE BTC
+  snapshot identity, `C.build_rows(perp, RULE1_INTERVAL_START,
+  DISCOVERY_END)`, RULE_1 / RV selector, 288×5m PerpBar re-walk,
+  MAE_SIDE severity cross-check, `evaluate_decomposition` with seed
+  `20260922131` / `N=10000` / identity ON / severity ON), still
+  impossible on real CORE because no permit exists;
+- binds scientific authority to a tracked permit artifact rather than
+  caller kwargs; no permit was created;
+- adds exact ordered selector-identity machinery (SHA256 of ordered
+  `t_ms` + selector flags) and wires a tracked selector-identity
+  authority contract. The canonical route compares the reconstructed
+  digest to that authority BEFORE `evaluate_decomposition`. The
+  authority artifact is **not** created here
+  (`CANONICAL_SELECTOR_DIGEST_FROZEN = false`) because the true digest
+  cannot be obtained outcome-blind without opening real CORE BTC. The
+  future freeze unit only writes those bytes;
+- makes the inherited D2 P95 convention explicit:
+  `CONTROL_P95_METHOD = NUMPY_LINEAR_INHERITED_FROM_D2`
+  (`np.percentile(..., 95.0, method="linear")`).
+
+```
+IMPLEMENTATION_REVIEW                        = PASS
+SCIENTIFIC_KERNEL_READY                      = true
+CANONICAL_ORCHESTRATION_READY                = true
+PERMIT_VERIFIER_READY                        = true
+EXACT_SELECTOR_IDENTITY_IMPLEMENTED          = true
+CANONICAL_SELECTOR_DIGEST_FROZEN             = false
+SELECTOR_IDENTITY_AUTHORITY_CREATED          = false
+EXECUTION_READY                              = false
+EXECUTION_AUTHORIZED                         = false
+EXECUTION_PERMIT_CREATED                     = false
+REAL_DECOMPOSITION_OUTCOME_COMPUTED          = false
+CLASSIFICATION_ASSIGNED                      = null
+PROTECTED_2025_OPENED                        = false
+PROTECTED_2026_OPENED                        = false
+BITMEX_2017_2019_REUSED_FOR_NEW_TARGET       = false
+MARKET_07_CREATED                            = false
+RESULT_CREATED                               = false
+ARM_CREATED                                  = false
+```
+
+Evidence: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_REVIEW.{json,md}`.
+
+- next required step: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE`
+  (create/freeze the tracked selector-identity authority bytes only;
+  do not alter the reviewed scientific execution implementation)
+
+## 2026-09-22 — D2 excess path-risk selector identity census semantics
+
+Correctness repair of selector-identity machinery on the implementation-review
+unit. **No scientific window was consumed and no decomposition outcome was
+computed.** Frozen scientific formulas, comparator, gates, seed, selector,
+horizon, and target were not changed.
+
+`FROZEN_RULE1_N = 1791` / year counts `334/364/364/364/365` are the
+**constructed** RULE_1 population (`len(rows)` / `RULE_1_ROW_COUNT` /
+`YEAR_BREAKDOWN.RULE_1` from frozen
+`docs/research/discovery_results/D2_DISCOVERY_RESULT.json`, SHA
+`42ee5d7d…`). They are **not** `mask.sum()`. Historical selector/abstain
+census is frozen D2 `PRIMARY_METRICS.RV_ABSTENTION`: `ABSTAIN_COUNT = 163`,
+year counts `10/48/32/23/50`. The future selector-identity authority schema
+now binds both censuses. `RULE_1_N` remains a backwards-compatible alias
+for constructed N. Canonical runtime
+`CANONICAL_SELECTOR_DIGEST_FROZEN` is taken from the verified authority
+(must be true); the implementation-review module constant stays `false`
+because no authority artifact exists in this unit.
+
+```
+CANONICAL_SELECTOR_DIGEST_FROZEN             = false
+SELECTOR_IDENTITY_AUTHORITY_CREATED          = false
+EXECUTION_READY                              = false
+EXECUTION_AUTHORIZED                         = false
+EXECUTION_PERMIT_CREATED                     = false
+REAL_DECOMPOSITION_OUTCOME_COMPUTED          = false
+PROTECTED_2025_OPENED                        = false
+PROTECTED_2026_OPENED                        = false
+BITMEX_2017_2019_REUSED_FOR_NEW_TARGET       = false
+MARKET_07_CREATED                            = false
+RESULT_CREATED                               = false
+```
+
+- next required step: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE`

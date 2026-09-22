@@ -1,4 +1,4 @@
-> **Current routing note — 2026-09-22:** use `docs/CURRENT_RESEARCH_STATE.md` first for present lifecycle/next-unit status. Frozen experiment artifacts remain authoritative for their own semantics. Some older catalog descriptions below are historical and may retain the status they had when written. Original D2 BitMEX one-shot remains `INVALID`. Corrected execution classified `D2_BITMEX_REPLICATION_SUPPORTED`. Program class `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`. Excess path-risk decomposition design is `FROZEN`. `NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`.
+> **Current routing note — 2026-09-22:** use `docs/CURRENT_RESEARCH_STATE.md` first for present lifecycle/next-unit status. Frozen experiment artifacts remain authoritative for their own semantics. Some older catalog descriptions below are historical and may retain the status they had when written. Original D2 BitMEX one-shot remains `INVALID`. Corrected execution classified `D2_BITMEX_REPLICATION_SUPPORTED`. Program class `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`. Excess path-risk decomposition design is `FROZEN`. Implementation review `PASS` with dormant orchestration; canonical selector digest is not frozen. `NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE`.
 
 # Signalbot Documentation Index
 
@@ -19,7 +19,7 @@ For the narrative evolution, read `PROJECT_HISTORY.md`. For complete original do
 
 Read these first:
 
-| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. D2 is `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`; decomposition design frozen; 2025/2026 sealed; `NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW` |
+| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. D2 is `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`; decomposition design frozen; implementation review PASS with `EXECUTION_READY = false`; 2025/2026 sealed; `NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE` |
 | `research/DISCOVERY_SPRINT_01.md` | **ACTIVE DISCOVERY SPRINT** | Six-card sprint plus first blocked attempt, CORE-restore retry results, and D1 null-adequacy deferral |
 | `research/DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE.md` | **D1 PRE-EXECUTION ADJUDICATION** | D1 deferred: null generates daily returns; state observable requires 288×5m RV. Gate not executed. |
 | `research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.md` | **D2 CONFIRMATION DESIGN** | Outcome-blind 2025 confirmation design for RULE_1 / RV_ABSTENTION; underpowered single year; year-matched two-year surface still underpowered; 2025/2026 unopened |
@@ -32,6 +32,7 @@ Read these first:
 | `research/D2_BITMEX_REPLICATION_CORRECTED_RESULT.md` | **D2 BITMEX CORRECTED RESULT (ONE-SHOT)** | Integrity-repair execution; identity 1317/250/1067; `D2_BITMEX_REPLICATION_SUPPORTED`; not exact Binance confirmation; original INVALID preserved |
 | `research/PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED.md` | **PROGRAM DECISION AFTER D2 SUPPORTED** | D2 classed independently replicated mechanism candidate; 2025/2026 sealed; generation policy A–I; product frozen; no MARKET-07 |
 | `research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN.md` | **D2 DECOMPOSITION DESIGN (FROZEN, OUTCOME-BLIND)** | Post-replication ADVERSE_SHARE vs year×SIDE-matched random abstention; selector unchanged; seed 20260922131; not independent confirmation; not executed |
+| `research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_REVIEW.md` | **D2 DECOMPOSITION IMPLEMENTATION REVIEW (OUTCOME-BLIND)** | Frozen design implemented and red-teamed; `PASS`; dormant canonical orchestration; tracked-permit verifier; selector-identity authority contract wired but artifact not created; `EXECUTION_READY = false`; no decomposition outcome; no permit, no RESULT |
 | `research/discovery_results/` | **ADAPTIVE DISCOVERY RESULTS** | D2-D5 lightweight discovery result JSON/MD; not confirmatory |
 | `RESEARCH_ROADMAP.md` | **ACTIVE / CANONICAL** | Active execution order. MARKET-01 closed `NO_EVIDENCE`; V3 closed; no V4; B2-06 remains blocked. |
 | `EDGE_RESEARCH_PROTOCOL.md` | **ACTIVE / CANONICAL** | Discovery/validation rules and anti-overfit discipline |

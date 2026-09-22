@@ -28,7 +28,7 @@ The exact M05/M06 additive 24h adverse-path MAE cell is `REPEATED_NULL / LOW_PRI
 
 ## Active work
 
-Next: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`.
+Next: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE`.
 
 D2 is an `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`, not a validated
 trading edge. The excess direction-aligned path-risk decomposition design

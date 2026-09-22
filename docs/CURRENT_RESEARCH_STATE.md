@@ -33,12 +33,24 @@ Program-level correction is sealed in `docs/research/MARKET_PROGRAM_UPDATE_POST_
 ## Exact next unit
 
 ```
-PREVIOUS_ROUTING            = D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE_OR_FIND_EQUIVALENT
+PREVIOUS_ROUTING            = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW
+NEXT_UNIT                   = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE
 D2_DECOMPOSITION_DESIGN_STATUS = FROZEN
+D2_DECOMPOSITION_IMPLEMENTATION_REVIEW = PASS
+D2_DECOMPOSITION_SCIENTIFIC_KERNEL_READY = true
+D2_DECOMPOSITION_CANONICAL_ORCHESTRATION_READY = true
+D2_DECOMPOSITION_PERMIT_VERIFIER_READY = true
+D2_DECOMPOSITION_EXACT_SELECTOR_IDENTITY_IMPLEMENTED = true
+D2_DECOMPOSITION_CANONICAL_SELECTOR_DIGEST_FROZEN = false
+D2_DECOMPOSITION_SELECTOR_IDENTITY_AUTHORITY_CREATED = false
+D2_DECOMPOSITION_EXECUTION_READY   = false
+D2_DECOMPOSITION_EXECUTION_AUTHORIZED = false
+D2_DECOMPOSITION_EXECUTION_PERMIT_CREATED = false
+REAL_DECOMPOSITION_OUTCOME_COMPUTED = false
+D2_DECOMPOSITION_CLASSIFICATION_ASSIGNED = null
 D2_PROGRAM_CLASS            = INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE
 BINANCE_2025_2026_DECISION  = KEEP_SEALED
 PRODUCT_BUILD_FROZEN        = true
@@ -213,7 +225,36 @@ independent confirmation. BitMEX 2017-2019 is not reused for this new
 target. Protected 2025/2026 unopened. MARKET-07 not created. No real
 decomposition outcome.
 Record: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN.{json,md}`.
-`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`.
+
+`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`
+then implemented that frozen design and reviewed it adversarially
+**without executing the decomposition**. The design was not redesigned:
+selector, SIDE, target, comparator, strata, seed, gates, thresholds and
+classification order are imported from the frozen design module, not
+reimplemented. The one new mechanical part is future-path reconstruction —
+`DiscoveryRow` stores `future_closes` only, so the evaluator re-walks the
+exact 288 5m `PerpBar` path and calls frozen `arithmetic_mae` twice on
+that one shared sequence, cross-checking recomputed `MAE_SIDE`
+bit-for-bit against the frozen `DiscoveryRow.severity`. Target
+ineligibility (`TARGET_ROW_INELIGIBLE_PATH_SCALE_NONPOSITIVE`, no
+epsilon) never rebuilds the selector and is reported per year. Twenty
+red-team failure classes (F1-F20) returned `NOT_CONFIRMED`; PASS is
+justified by implemented/tested machinery, not by a hardcoded table.
+Integrity repair closed dormant canonical orchestration, tracked-permit
+authority verification, exact ordered selector-identity machinery, and
+the inherited D2 NumPy linear P95 method. `IMPLEMENTATION_REVIEW = PASS`,
+`SCIENTIFIC_KERNEL_READY = true`, `CANONICAL_ORCHESTRATION_READY = true`,
+`PERMIT_VERIFIER_READY = true`, `EXACT_SELECTOR_IDENTITY_IMPLEMENTED = true`,
+`CANONICAL_SELECTOR_DIGEST_FROZEN = false`, `EXECUTION_READY = false`,
+`EXECUTION_AUTHORIZED = false`. The canonical route now requires a tracked
+selector-identity authority (permit-bound SHA256) and compares the
+reconstructed ordered digest to that frozen digest before any
+ADVERSE_SHARE / PATH_SCALE evaluation. The authority artifact was **not**
+created here. No execution permit, no RESULT, no ARM, no MARKET-07.
+Record: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_REVIEW.{json,md}`.
+`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE`
+(the canonical selector digest cannot be frozen outcome-blind without
+opening real CORE BTC; that freeze must precede one-shot execution).
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by
