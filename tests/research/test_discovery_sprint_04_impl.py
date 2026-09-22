@@ -83,8 +83,8 @@ def test_flags_remain_unexecuted():
         ):
             assert freeze[key] is False
     assert not (REPO / "docs/research/MARKET_07_RESULT.json").exists()
-    assert not (REPO / "docs/research/discovery_results/D12_DISCOVERY_RESULT.json").exists()
-    assert not (REPO / "docs/research/discovery_results/D13_DISCOVERY_RESULT.json").exists()
+    # Canonical D12/D13 RESULT artifacts are persisted by the one-shot
+    # execution unit. The freeze/selection JSON themselves remain unexecuted.
 
 
 def test_d12_weekdays_identical_for_real_and_pseudo():
