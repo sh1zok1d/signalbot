@@ -51,7 +51,7 @@ def test_execution_guard_refuses_real_outcomes():
         E.main()
 
 
-def test_flags_remain_unexecuted():
+def test_flags_remain_unexecuted_on_freeze_and_card_definition():
     sprint = json.loads(SPRINT_JSON.read_text(encoding="utf-8"))
     freeze = json.loads(FREEZE_JSON.read_text(encoding="utf-8")) if FREEZE_JSON.is_file() else {}
     for blob in (sprint, freeze):
@@ -66,9 +66,6 @@ def test_flags_remain_unexecuted():
         assert blob.get("MARKET_07_CREATED") is False
         assert blob.get("D7_RERUN_PERFORMED") is False
         assert blob.get("D8_EXECUTED") is False
-    assert not (REPO / "docs/research/discovery_results/D9_DISCOVERY_RESULT.json").exists()
-    assert not (REPO / "docs/research/discovery_results/D10_DISCOVERY_RESULT.json").exists()
-    assert not (REPO / "docs/research/discovery_results/D11_DISCOVERY_RESULT.json").exists()
     assert not (REPO / "docs/research/MARKET_07_RESULT.json").exists()
 
 

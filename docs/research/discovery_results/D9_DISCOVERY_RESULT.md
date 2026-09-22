@@ -1,0 +1,28 @@
+# Discovery Sprint 03 D9 RESULT
+
+**Classification:** `NO_USEFUL_STRUCTURE`
+**Execution root:** `e2852f57ee946ec8380f09fa4cf834579c40f872`
+**RESULT_PAYLOAD_SHA256:** `517ce639171b6f420e844064651c7ac54928b6c73255d4880c30215d75a31ab6`
+
+Adaptive discovery on historically exposed data. Not proven alpha, not a trading edge, not a confirmed mechanism, not causal proof.
+
+```
+CLASSIFICATION = NO_USEFUL_STRUCTURE
+STATISTICAL_GATE = False
+PRACTICAL_GATE = False
+TEMPORAL_GATE = False
+PROTECTED_2025_OPENED = False
+PROTECTED_2026_OPENED = False
+```
+
+MEDIAN_EVENT_SHARE = 0.5802929601004294
+MEDIAN_MATCHED_CONTROL_SHARE = -0.5169574135394528
+DELTA_VS_HALF = 0.08029296010042941
+DELTA_VS_CONTROL = 1.0972503736398822
+P_HALF = 0.6375362463753624
+P_CONTROL = 0.001999800019998
+
+A positive may establish only CONDITIONAL_VENUE_RESOLUTION_ATTRIBUTION.
+It does not establish price-discovery leadership, causal leadership, which venue moved first, or trading alpha.
+
+YEARLY_MEDIAN_SHARE: 2022=0.5478525315402692; 2023=0.5969054992663664; 2024=0.655888218636468

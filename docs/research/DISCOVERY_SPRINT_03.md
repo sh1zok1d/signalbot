@@ -3,10 +3,16 @@
 **Unit:** `DISCOVERY_SPRINT_03_HETEROGENEOUS_CARD_DEFINITION`
 **Parent policy:** `HETEROGENEOUS_FAMILY_ROTATION_V2`
 **Date:** 2026-09-22
-**Status:** `OUTCOME_BLIND_IMPLEMENTATION_FROZEN` (no scientific outcomes)
-**Memory:** `docs/research/MECHANISM_MEMORY_V0.{json,md}`
-**Machine-readable record:** `docs/research/DISCOVERY_SPRINT_03.json`
-**Implementation freeze:** `docs/research/DISCOVERY_SPRINT_03_IMPLEMENTATION_FREEZE.{json,md}`
+**Status:** `OUTCOME_BLIND_IMPLEMENTATION_FROZEN` (card definition / freeze bytes unchanged)
+**Canonical scientific results:** `docs/research/DISCOVERY_SPRINT_03_RESULT.{json,md}` and `docs/research/discovery_results/D{9,10,11}_DISCOVERY_RESULT.{json,md}`
+**Current routing:** `NEXT_UNIT = DISCOVERY_SPRINT_03_POST_RESULT_PROGRAM_DECISION`
+
+This markdown remains the frozen card-definition narrative. Scientific
+outcomes were computed once from `EXECUTION_ROOT =
+e2852f57ee946ec8380f09fa4cf834579c40f872` and live in the RESULT files
+above. Do not mutate the hashed JSON freeze. Do not rerun. Classifications:
+D9 `NO_USEFUL_STRUCTURE`, D10 `NO_USEFUL_STRUCTURE`, D11
+`PROMISING_PROTOTYPE`.
 
 Outcome-blind implementation and structural feasibility only. Three
 internal cards. No scientific outcomes. No D7 rerun. No D8 execution.

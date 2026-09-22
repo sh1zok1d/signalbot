@@ -2,7 +2,7 @@
 
 **Status date:** 2026-09-22
 **Operating mode:** `RESEARCH_FIRST / PRODUCT_BUILD_FROZEN`  
-**Active phase:** `POST_D7_HETEROGENEOUS_DISCOVERY_SPRINT_03`
+**Active phase:** `POST_SPRINT03_DISCOVERY_PROGRAM_DECISION`
 
 This file is intentionally concise. The pre-cleanup long-form status remains immutable in git at `b25d9ca99498630183813d0ccb8c6d67b93ad915`; experiment history remains in `docs/RESEARCH_LEDGER.md`.
 
@@ -28,22 +28,19 @@ The exact M05/M06 additive 24h adverse-path MAE cell is `REPEATED_NULL / LOW_PRI
 
 ## Active work
 
-Next: Discovery Sprint 03 implementation red-team and execution
-decision
-(`DISCOVERY_SPRINT_03_IMPLEMENTATION_RED_TEAM_AND_EXECUTION_DECISION`).
+Next: Discovery Sprint 03 post-result program decision
+(`DISCOVERY_SPRINT_03_POST_RESULT_PROGRAM_DECISION`).
 
-`HETEROGENEOUS_FAMILY_ROTATION_V2` is frozen. Sprint 03 D9/D10/D11 are
-`OUTCOME_BLIND_IMPLEMENTATION_READY` and **not** executed: D9
-`VENUE_DISLOCATION_RESOLUTION_STRUCTURE` (family H; median SHARE;
-conditional venue-resolution attribution), D10
-`BTC_ETH_RESIDUAL_SHOCK_PERSISTENCE` (family D; no-intercept OLS), D11
-`SCHEDULED_FOMC_EVENT_VOL_RESPONSE` (family G; official FOMC pinned). D7
+`HETEROGENEOUS_FAMILY_ROTATION_V2` remains frozen. Sprint 03 canonical
+scientific execution is consumed: D9 `NO_USEFUL_STRUCTURE`, D10
+`NO_USEFUL_STRUCTURE`, D11 `PROMISING_PROTOTYPE`. Do not rescue D9/D10.
+D11 is unsigned scheduled-FOMC 6h RV only; not D8 rescue; not a FOMC
+trading strategy. Sprint 04 hypotheses are **not** selected here. D7
 `KLINE_FLOW_IMPACT_STATE` is `PROMISING_PROTOTYPE` and a confirmation
 candidate, but confirmation is **not** selected now. Family E is in
 cooldown. D8 remains `DEFERRED_INSUFFICIENT_CONTROL_SUPPORT` and is not
-a negative scientific result. Do not rerun D7. Do not execute D8/D9/D10/D11
-science from this routing file. Do not create MARKET-07. Do not open
-2025/2026.
+a negative scientific result. Do not rerun D7. Do not execute D8.
+Do not create MARKET-07. Do not open 2025/2026.
 
 D2 remains an `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE` from the
 independent pre-2020 BitMEX surface, not a validated trading edge. The

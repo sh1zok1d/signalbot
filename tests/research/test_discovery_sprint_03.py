@@ -148,6 +148,9 @@ def test_mechanism_memory_covers_required_history():
         "D6",
         "D7",
         "D8",
+        "D9",
+        "D10",
+        "D11",
     ):
         assert key in entries, key
         row = entries[key]
@@ -181,6 +184,12 @@ def test_mechanism_memory_covers_required_history():
     assert "NOT independently replicated" in entries["D7"]["STATUS_EVIDENCE_CLASS"]
     assert "DEFERRED_INSUFFICIENT_CONTROL_SUPPORT" in entries["D8"]["STATUS_EVIDENCE_CLASS"]
     assert "NOT NO_USEFUL_STRUCTURE" in entries["D8"]["STATUS_EVIDENCE_CLASS"]
+    assert entries["D9"]["STATUS_EVIDENCE_CLASS"] == "NO_USEFUL_STRUCTURE"
+    assert entries["D10"]["STATUS_EVIDENCE_CLASS"] == "NO_USEFUL_STRUCTURE"
+    assert "PROMISING_PROTOTYPE" in entries["D11"]["STATUS_EVIDENCE_CLASS"]
+    assert memory["INTERNAL_DISCOVERY_CARDS_EXECUTED"] == 8
+    assert memory["INTERNAL_PROMISING_PROTOTYPES"] == 3
+    assert memory["SPRINT04_HYPOTHESES_SELECTED"] is False
 
 
 def test_rotation_v2_selects_three_families():
@@ -431,18 +440,24 @@ def test_d11_is_fomc_only_with_weekday_match_and_official_timestamp():
     assert sprint["PROTECTED_2026_OPENED"] is False
 
 
-def test_no_outcomes_no_result_payloads():
+def test_no_market_07_and_sprint_json_remains_card_definition():
     sprint = _sprint()
     blob = json.dumps(sprint).upper()
     assert sprint["SCIENTIFIC_OUTCOMES_COMPUTED"] is False
     assert "CLASSIFICATION_ASSIGNED" not in sprint
     assert not list((REPO / "scripts/research").glob("*sprint_03*.py"))
     assert (REPO / "scripts/research/discovery_sprint_03").is_dir()
-    assert not (
-        REPO / "docs/research/discovery_results/D9_DISCOVERY_RESULT.json"
-    ).exists()
     assert not (REPO / "docs/research/MARKET_07_RESULT.json").exists()
     assert "D9_DISCOVERY_RESULT" not in blob
+    assert (
+        REPO / "docs/research/discovery_results/D9_DISCOVERY_RESULT.json"
+    ).is_file()
+    assert (
+        REPO / "docs/research/discovery_results/D10_DISCOVERY_RESULT.json"
+    ).is_file()
+    assert (
+        REPO / "docs/research/discovery_results/D11_DISCOVERY_RESULT.json"
+    ).is_file()
 
 
 def test_json_is_deterministic_sorted():
@@ -453,10 +468,8 @@ def test_json_is_deterministic_sorted():
         assert raw == canonical, path
 
 
-def test_routing_docs_point_at_batch_next_unit():
-    next_unit = (
-        "DISCOVERY_SPRINT_03_IMPLEMENTATION_RED_TEAM_AND_EXECUTION_DECISION"
-    )
+def test_routing_docs_point_at_post_result_next_unit():
+    next_unit = "DISCOVERY_SPRINT_03_POST_RESULT_PROGRAM_DECISION"
     stale = "DISCOVERY_SPRINT_03_D9_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION"
     for rel in (
         "docs/CURRENT_RESEARCH_STATE.md",
@@ -470,10 +483,15 @@ def test_routing_docs_point_at_batch_next_unit():
     index = (REPO / "docs/DOCUMENTATION_INDEX.md").read_text(encoding="utf-8")
     assert "MECHANISM_MEMORY_V0" in index
     assert "DISCOVERY_SPRINT_03_IMPLEMENTATION_FREEZE" in index
+    assert "DISCOVERY_SPRINT_03_RESULT" in index
     state = (REPO / "docs/CURRENT_RESEARCH_STATE.md").read_text(encoding="utf-8")
     assert "DISCOVERY_SPRINT_03_INTERNAL_CARDS = 3" in state
     assert "RELATIVE_RESOLUTION_ATTRIBUTION" in state
     assert "CONDITIONAL_VENUE_RESOLUTION_ATTRIBUTION" in state
     assert "SCHEDULED_FOMC_EVENT_VOL_RESPONSE" in state
     assert "SHARE_NOT_CLIPPED" in state
-    assert "OUTCOME_BLIND_IMPLEMENTATION_READY" in state
+    assert "D9_STATUS                   = NO_USEFUL_STRUCTURE" in state
+    assert "D10_STATUS                  = NO_USEFUL_STRUCTURE" in state
+    assert "D11_STATUS                  = PROMISING_PROTOTYPE" in state
+    assert "INTERNAL_DISCOVERY_CARDS_EXECUTED = 8" in state
+    assert "INTERNAL_PROMISING_PROTOTYPES     = 3" in state
