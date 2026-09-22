@@ -2,7 +2,7 @@
 
 **Status date:** 2026-09-22  
 **Status:** `ACTIVE / CANONICAL ROUTING INDEX`  
-**Main integration baseline before this status commit:** `55e3663b0951088261ee7b67bc70a4611bd8ba58`
+**Main integration baseline before this status commit:** `35511b3e9665db2b80ee52480d401b795bbfe38a`
 
 This file is the compact answer to “what controls the project now?”. Frozen preregistrations/results remain authoritative for reproducing their own experiments; this file controls current routing only.
 
@@ -33,31 +33,51 @@ Program-level correction is sealed in `docs/research/MARKET_PROGRAM_UPDATE_POST_
 ## Exact next unit
 
 ```
-PREVIOUS_ROUTING            = DISCOVERY_SPRINT_02_SCIENTIFIC_EXECUTION_FREEZE
+PREVIOUS_ROUTING            = DISCOVERY_SPRINT_02_D7_ONE_SHOT_SCIENTIFIC_EXECUTION
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = DISCOVERY_SPRINT_02_D7_ONE_SHOT_SCIENTIFIC_EXECUTION
-NEXT_ACTION                 = D7_ONE_SHOT_SCIENTIFIC_EXECUTION
-HETEROGENEOUS_FAMILY_ROTATION_V1 = FROZEN
-DISCOVERY_SPRINT_02 = DEFINED
+NEXT_UNIT                   = DISCOVERY_SPRINT_03_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION
+NEXT_ACTION                 = BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION
+HETEROGENEOUS_FAMILY_ROTATION_V1 = FROZEN_HISTORICAL_SPRINT_02_POLICY
+HETEROGENEOUS_FAMILY_ROTATION_V2 = FROZEN
+DISCOVERY_SPRINT_02 = D7_EXECUTED_D8_DEFERRED
 DISCOVERY_SPRINT_02_INTERNAL_CARDS = 2
-D7_STATUS                   = OUTCOME_BLIND_READY
+DISCOVERY_SPRINT_03 = DEFINED
+DISCOVERY_SPRINT_03_INTERNAL_CARDS = 3
+SPRINT03_SELECTION_INCOMPLETE = false
+D7_STATUS                   = PROMISING_PROTOTYPE
 D8_STATUS                   = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT
-D7_IMPLEMENTATION_STATUS    = OUTCOME_BLIND_READY
+D9_STATUS                   = DEFINED_NOT_EXECUTED
+D10_STATUS                  = DEFINED_NOT_EXECUTED
+D11_STATUS                  = DEFINED_NOT_EXECUTED
+D9_CHOSEN_ESTIMAND          = RELATIVE_RESOLUTION_ATTRIBUTION
+D9_ALGEBRAIC_IDENTIFICATION_FIXED = true
+D9_SCIENTIFIC_CLAIM_MAY_ESTABLISH = CONDITIONAL_VENUE_RESOLUTION_ATTRIBUTION
+D9_SHARE_NOT_CLIPPED        = true
+D10_FIXED_PRE_EVENT_BETA    = true
+D11_FOMC_ONLY               = true
+MANDATE_V1_ON_MAIN          = true
+D7_IMPLEMENTATION_STATUS    = EXECUTED_ONE_SHOT
 D8_IMPLEMENTATION_STATUS    = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT
 D7_EXECUTION_AUTHORIZED     = true
 D7_ONE_SHOT_RUNNER_BYTES_BOUND = true
 PROVENANCE_MODEL            = AUTHORITY_PARENT_PLUS_FILE_HASHES
-D7_EXECUTED                 = false
+D7_EXECUTED                 = true
+D7_CONFIRMATION_CANDIDATE   = true
+D7_CONFIRMATION_SELECTED_NOW = false
 D8_EXECUTION_AUTHORIZED     = false
 D8_EXECUTED                 = false
+D9_EXECUTED                 = false
+D9_SCIENTIFIC_OUTCOME_COMPUTED = false
+D10_EXECUTED                = false
+D11_EXECUTED                = false
 DATA_IDENTITY_MODE          = TRACKED_SNAPSHOT_FULL_MONTHLY_EXACT_BYTE_VERIFICATION
 D7_SELECTOR_N               = 4545
 D7_SELECTOR_DIGEST_FROZEN   = true
-D7_EXECUTED                 = false
-D8_EXECUTED                 = false
-SCIENTIFIC_OUTCOMES_COMPUTED = false
+SCIENTIFIC_OUTCOMES_COMPUTED = true
+THIS_UNIT_SCIENTIFIC_OUTCOMES_COMPUTED = false
+RESEARCH_DATA_DURABILITY_V1_REQUIRED = true
 D2_DECOMPOSITION_DESIGN_STATUS = FROZEN
 D2_DECOMPOSITION_IMPLEMENTATION_REVIEW = PASS
 D2_DECOMPOSITION_SCIENTIFIC_KERNEL_READY = true
@@ -80,13 +100,14 @@ D2_DECOMPOSITION_ONE_SHOT_CONSUMED = true
 D2_PROGRAM_CLASS            = INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE
 BINANCE_2025_2026_DECISION  = KEEP_SEALED
 PRODUCT_BUILD_FROZEN        = true
-HYPOTHESIS_GENERATION_POLICY = HETEROGENEOUS_FAMILY_ROTATION_V1
+HYPOTHESIS_GENERATION_POLICY = HETEROGENEOUS_FAMILY_ROTATION_V2
 PROTECTED_2025_OPENED       = false
 PROTECTED_2026_OPENED       = false
-INTERNAL_DISCOVERY_CARDS_EXECUTED = 4
-INTERNAL_PROMISING_PROTOTYPES     = 1
+INTERNAL_DISCOVERY_CARDS_EXECUTED = 5
+INTERNAL_PROMISING_PROTOTYPES     = 2
 INTERNAL_DISCOVERY_WARNING        = null
-FULL_DISCOVERY_CARDS_COMPLETED    = 4
+INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED = false
+FULL_DISCOVERY_CARDS_COMPLETED    = 5
 PARTIAL_COMPONENT_OUTCOMES_OBSERVED = 1
 PARTIAL_COMPONENT_OUTCOMES        = D2/RULE_2/DISLOCATION_ABSTENTION
 D2_RULE_2_DISCOVERY_OUTCOME_OBSERVED = true
@@ -357,8 +378,39 @@ for this card (`NOT D8_NO_USEFUL_STRUCTURE`; recovery unevaluated).
 Record: `docs/research/DISCOVERY_SPRINT_02_FEASIBILITY.{json,md}` and
 `docs/research/DISCOVERY_SPRINT_02_IMPLEMENTATION_REVIEW.{json,md}`.
 `NEXT_UNIT = DISCOVERY_SPRINT_02_D7_ONE_SHOT_SCIENTIFIC_EXECUTION` (D7-only).
-The D7 one-shot scientific execution route is now frozen and authorized
-but not executed. D8 remains non-executable. No scientific outcomes.
+The D7 one-shot scientific execution route was then executed once from
+execution root `0f22d46ab0ee41be78cb45de39842c8a5684b54e`. Canonical
+RESULT `docs/research/DISCOVERY_SPRINT_02_D7_RESULT.{json,md}` classified
+`D7_PROMISING_PROTOTYPE` (`STATISTICAL_GATE`, `PRACTICAL_GATE`, and
+`TEMPORAL_GATE` all true; yearly delta positive in 2020–2024). Evidence
+label remains `ADAPTIVE_DISCOVERY_ON_HISTORICALLY_EXPOSED_DATA`. Not
+independent confirmation, proven alpha, a validated trading edge, or an
+order-book liquidity claim. No rerun. D8 remains
+`DEFERRED_INSUFFICIENT_CONTROL_SUPPORT` and is not a negative scientific
+result. Protected 2025/2026 unopened. MARKET-07 not created.
+
+`POST_D7_PROGRAM_UPDATE_AND_DISCOVERY_SPRINT_03_SELECTION` then recorded
+those counters (`INTERNAL_DISCOVERY_CARDS_EXECUTED = 5`,
+`INTERNAL_PROMISING_PROTOTYPES = 2`) and froze
+`HETEROGENEOUS_FAMILY_ROTATION_V2`. A pre-outcome amendment (this
+status) keeps D7/D8 routing, rebases onto `origin/main` `35511b3`
+(`SIGNALBOT_MANDATE_V1` canonical), and expands Sprint 03 to **three**
+orthogonal internal cards after `MECHANISM_MEMORY_V0`:
+
+- D9 `VENUE_DISLOCATION_RESOLUTION_STRUCTURE` (family H; `DATA_READY`;
+  estimand A `RELATIVE_RESOLUTION_ATTRIBUTION` / `CONDITIONAL_VENUE_RESOLUTION_ATTRIBUTION`;
+  unclipped SHARE; old `-s*(rp+rs)` imbalance rejected);
+- D10 `BTC_ETH_RESIDUAL_SHOCK_PERSISTENCE` (family D; `DATA_READY`;
+  frozen pre-event `beta_t` reused at t+1);
+- D11 `SCHEDULED_FOMC_EVENT_VOL_RESPONSE` (family G;
+  `ACQUIRABLE_FREE_HISTORICAL`; official FOMC calendar only).
+
+`SPRINT03_SELECTION_INCOMPLETE = false`. Family E remains in cooldown.
+D7 remains a confirmation candidate but is **not** selected for
+confirmation now. `RESEARCH_DATA_DURABILITY_V1` is required (CORE BTC
+bytes live in gitignored `artifacts/` without a verified object-storage
+restore path) and is **not** implemented in this unit.
+`NEXT_UNIT = DISCOVERY_SPRINT_03_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION`.
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by
@@ -433,8 +485,13 @@ preserved; not exact Binance confirmation and not a validated trading
 edge);
 `D3 = NO_USEFUL_STRUCTURE`; `D4
 ROLLING_CORRELATION_90D = NO_USEFUL_STRUCTURE` (`LEAD_LAG_1DAY` still
-deferred); `D5 = NO_USEFUL_STRUCTURE`; `D6 = DEFERRED`. First blocked
-attempt preserved. D2–D5 scientific bytes unchanged.
+deferred); `D5 = NO_USEFUL_STRUCTURE`; `D6 = DEFERRED`;
+`D7 = PROMISING_PROTOTYPE` (adaptive discovery; family E cooldown; not
+selected for confirmation now); `D8 = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT`
+(not a negative scientific result; not counted as executed);
+`D9 = DEFINED_NOT_EXECUTED` (family H venue-structure; not MARKET-06
+rescue). First blocked Sprint 01 attempt preserved. D2–D5 and D7
+scientific bytes unchanged.
 
 The orthogonal-region selection is recorded in
 `docs/research/MARKET_NEXT_HYPOTHESIS_SELECTION.{json,md}` (commit

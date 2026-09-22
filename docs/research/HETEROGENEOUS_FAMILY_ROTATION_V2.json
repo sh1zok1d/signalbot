@@ -1,0 +1,115 @@
+{
+  "D10_EXECUTED": false,
+  "D10_FIXED_PRE_EVENT_BETA": true,
+  "D11_EXECUTED": false,
+  "D11_FOMC_ONLY": true,
+  "D7_CONFIRMATION_CANDIDATE": true,
+  "D7_CONFIRMATION_SELECTED_NOW": false,
+  "D7_STATUS": "PROMISING_PROTOTYPE",
+  "D8_NOT_A_NEGATIVE_SCIENTIFIC_RESULT": true,
+  "D8_STATUS": "DEFERRED_INSUFFICIENT_CONTROL_SUPPORT",
+  "D9_ALGEBRAIC_IDENTIFICATION_FIXED": true,
+  "D9_CHOSEN_ESTIMAND": "RELATIVE_RESOLUTION_ATTRIBUTION",
+  "D9_EXECUTED": false,
+  "D9_SCIENTIFIC_CLAIM_MAY_ESTABLISH": "CONDITIONAL_VENUE_RESOLUTION_ATTRIBUTION",
+  "D9_SCIENTIFIC_OUTCOME_COMPUTED": false,
+  "D9_SHARE_NOT_CLIPPED": true,
+  "DATE": "2026-09-22",
+  "FAMILIES": {
+    "A": "CONDITIONAL_RISK_ABSTENTION",
+    "B": "DIRECTIONAL_EXPECTATION",
+    "C": "PATH_MORPHOLOGY",
+    "D": "RELATIVE_CROSS_ASSET_STRUCTURE",
+    "E": "LIQUIDITY_EXECUTION_STATE",
+    "F": "REGIME_TRANSITION",
+    "G": "EVENT_RESPONSE_RECOVERY",
+    "H": "CROSS_SECTIONAL_OR_VENUE_STRUCTURE",
+    "I": "EXTERNALLY_DERIVED_BENCHMARK_MECHANISMS"
+  },
+  "FAMILY_A_IMMEDIATE_NEIGHBORS_FORBIDDEN": true,
+  "FAMILY_E_COOLDOWN_AFTER_D7": true,
+  "FAMILY_G_MUST_NOT_RESCUE_D8": true,
+  "FAMILY_H_TRUE_CROSS_SECTIONAL_PANEL_STILL_ABSENT": true,
+  "FAMILY_H_VENUE_STRUCTURE_SUBFAMILY_HAS_EXISTING_PIT_SURFACE": true,
+  "FAMILY_STATUS": {
+    "A": {
+      "REASON": "Immediate D2 / RULE_1 / RV_ABSTENTION neighbors remain forbidden. D2 is PROMISING_PROTOTYPE and independently replicated on pre-2020 BitMEX. No threshold, RV-window, horizon, or dislocation-abstention variant.",
+      "STATUS": "NOT_SELECTED_THIS_ROTATION"
+    },
+    "B": {
+      "REASON": "Near the exact/near-exact MARKET-05/06 additive 24h MAE cell. Not selected. D10 uses ETH but not this cell.",
+      "STATUS": "NOT_SELECTED_THIS_ROTATION"
+    },
+    "C": {
+      "REASON": "D3 PATH_MORPHOLOGY returned NO_USEFUL_STRUCTURE. No nearby path-functional relabel.",
+      "STATUS": "NOT_SELECTED_THIS_ROTATION"
+    },
+    "D": {
+      "CARD": "D10",
+      "REASON": "D4 rolling-corr is NO_USEFUL_STRUCTURE and lead-lag is deferred, but residual persistence after orthogonalizing ETH to contemporaneous BTC with a frozen pre-event beta_t reused at t+1 is a materially different FUNCTION/TARGET. Selected as D10.",
+      "STATUS": "SELECTED_THIS_ROTATION"
+    },
+    "E": {
+      "CARD": "D7",
+      "REASON": "D7 KLINE_FLOW_IMPACT_STATE classified D7_PROMISING_PROTOTYPE. Family E is in cooldown. No IMPACT_PROXY, P85/P95/P99, 720h-window, 30m/2h/4h, or other kline-impact persistence neighbor. D7 is a FUTURE confirmation candidate, not selected for confirmation now.",
+      "STATUS": "COOLDOWN_AFTER_POSITIVE"
+    },
+    "F": {
+      "REASON": "D1 null-model / observable mismatch remains unresolved. No regime-transition card until that blocker is explicitly closed.",
+      "STATUS": "DEFERRED_BLOCKER_UNRESOLVED"
+    },
+    "G": {
+      "CARD": "D11",
+      "REASON": "D8 remains DEFERRED_INSUFFICIENT_CONTROL_SUPPORT and must not be rescued. D11 is an exogenous scheduled-FOMC unsigned-vol card (YEAR x WEEKDAY x UTC_HOUR match), not a D8 threshold/clock/control child.",
+      "STATUS": "SELECTED_THIS_ROTATION"
+    },
+    "H": {
+      "CARD": "D9",
+      "REASON": "Venue-structure subfamily on MARKET_06_OKX_BINANCE_FEASIBILITY_V0. Estimand repaired to RELATIVE_RESOLUTION_ATTRIBUTION (common-mode invariant; unclipped SHARE; not price-discovery leadership). True panel still absent.",
+      "STATUS": "SELECTED_THIS_ROTATION",
+      "SUBFAMILY": "VENUE_STRUCTURE",
+      "TRUE_CROSS_SECTIONAL_PANEL": false
+    },
+    "I": {
+      "REASON": "External/public mechanism benchmarks remain useful diagnostics but do not count as internal discovery successes. D6 remains deferred pending a pinned source. I is not selected as the Sprint 03 internal card.",
+      "STATUS": "DEFERRED_SOURCE_NOT_PINNED"
+    }
+  },
+  "INTERNAL_DISCOVERY_CARDS_EXECUTED": 5,
+  "INTERNAL_DISCOVERY_WARNING": null,
+  "INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED": false,
+  "INTERNAL_PROMISING_PROTOTYPES": 2,
+  "KIND": "HYPOTHESIS_GENERATION_POLICY_FREEZE",
+  "MANDATE_V1_ON_MAIN": true,
+  "MANDATE_V1_READ_FROM": "origin/main 35511b3 (PR #197 merged)",
+  "MARKET_07_CREATED": false,
+  "NAME": "HETEROGENEOUS_FAMILY_ROTATION_V2",
+  "NO_MARKET_07_FROM_THIS_POLICY": true,
+  "PARENT_POLICY": "HETEROGENEOUS_FAMILY_ROTATION_V1",
+  "PARENT_POLICY_REL": "docs/research/HETEROGENEOUS_FAMILY_ROTATION_V1.json",
+  "PRODUCT_BUILD_FROZEN": true,
+  "PROTECTED_2025_OPENED": false,
+  "PROTECTED_2026_OPENED": false,
+  "RESEARCH_DATA_DURABILITY_V1_REQUIRED": true,
+  "SCHEMA": "signalbot_heterogeneous_family_rotation_v2",
+  "SCHEMA_VERSION": "2.0.0",
+  "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+  "SELECTED_INTERNAL_CARDS": [
+    "D9",
+    "D10",
+    "D11"
+  ],
+  "SELECTED_THIS_ROTATION": [
+    "D",
+    "G",
+    "H"
+  ],
+  "SOURCE_UNIT": "POST_D7_PROGRAM_UPDATE_AND_DISCOVERY_SPRINT_03_SELECTION",
+  "SPRINT03_INTERNAL_CARDS": 3,
+  "STATUS": "FROZEN",
+  "SUPERSEDES_ROUTING_OF": "HETEROGENEOUS_FAMILY_ROTATION_V1",
+  "THIS_ROTATION_APPLICATION": "DISCOVERY_SPRINT_03",
+  "TRUE_CROSS_SECTIONAL_PANEL_STILL_ABSENT": true,
+  "UNIT": "HETEROGENEOUS_FAMILY_ROTATION_V2",
+  "V1_PRESERVED_AS_HISTORICAL_POLICY": true
+}

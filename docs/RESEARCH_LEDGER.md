@@ -4943,3 +4943,242 @@ NEXT_UNIT = DISCOVERY_SPRINT_02_D7_ONE_SHOT_SCIENTIFIC_EXECUTION
 
 - next required step remains D7 one-shot scientific execution only; do
   not execute D8; do not open 2025/2026; do not create MARKET-07
+
+## 2026-09-22 — Canonical D7 one-shot RESULT (consumed)
+
+Canonical Discovery Sprint 02 D7 one-shot from execution root
+`0f22d46ab0ee41be78cb45de39842c8a5684b54e`. RESULT commit
+`6364670b61eed1e5215bb394b0ba67e8cd2619dd`, merged to main as
+`9b25131e92ab654e46175ddba34e8cccc1db6765`. Called `execute_one_shot()`
+exactly once. No retry.
+
+```
+D7_NAME = KLINE_FLOW_IMPACT_STATE
+D7_FAMILY = E / LIQUIDITY_EXECUTION_STATE
+D7_STATUS = PROMISING_PROTOTYPE
+CLASSIFICATION = D7_PROMISING_PROTOTYPE
+MU_D7_RULE = 0.18943894389438945
+MU_D7_CONTROL = 0.09856569856985697
+DELTA_D7 = 0.09087324532453248
+CONTROL_D7_P95 = 0.10517051705170517
+MC_P_D7 = 9.999000099990002e-05
+STATISTICAL_GATE = true
+PRACTICAL_GATE = true
+TEMPORAL_GATE = true
+YEARLY_DELTA_D7 = positive in all five years 2020–2024
+ANALYSIS_N = 42407
+CANDIDATE_N = 4545
+RESULT_PAYLOAD_SHA256 = 7a7d38ef62630a9b1acac4af90d19a2abe5c7911681a7214fb1f22696fcab1e9
+EVIDENCE_LABEL = ADAPTIVE_DISCOVERY_ON_HISTORICALLY_EXPOSED_DATA
+NOT_INDEPENDENT_CONFIRMATION = true
+NOT_PROVEN_ALPHA = true
+NOT_VALIDATED_TRADING_EDGE = true
+NOT_ORDERBOOK_LIQUIDITY_CLAIM = true
+D8_STATUS = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+RERUN_AUTHORIZED = false
+```
+
+D8 remains deferred and is not a negative scientific result. Do not
+rerun D7. Do not execute D8. Do not treat D7 as proven alpha.
+
+Evidence: `docs/research/DISCOVERY_SPRINT_02_D7_RESULT.{json,md}`.
+
+## 2026-09-22 — Post-D7 program update and Discovery Sprint 03 selection
+
+Program-level routing after D7. No new scientific outcome. Family
+rotation V2 frozen. Exactly one Sprint 03 internal card defined,
+not executed.
+
+```
+INTERNAL_DISCOVERY_CARDS_EXECUTED = 5
+INTERNAL_PROMISING_PROTOTYPES = 2
+INTERNAL_DISCOVERY_WARNING = null
+INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED = false
+D7_STATUS = PROMISING_PROTOTYPE
+D7_CONFIRMATION_CANDIDATE = true
+D7_CONFIRMATION_SELECTED_NOW = false
+D8_STATUS = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT
+SPRINT03_D9 = DEFINED_NOT_EXECUTED
+D9_NAME = VENUE_DISLOCATION_RESOLUTION_STRUCTURE
+D9_FAMILY = H / CROSS_SECTIONAL_OR_VENUE_STRUCTURE
+D9_SUBFAMILY = VENUE_STRUCTURE
+D9_EXECUTED = false
+D9_SCIENTIFIC_OUTCOME_COMPUTED = false
+D7_RERUN_PERFORMED = false
+D8_EXECUTED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+RESEARCH_DATA_DURABILITY_V1_REQUIRED = true
+RESEARCH_DATA_DURABILITY_V1_IMPLEMENTED = false
+NEXT_UNIT = DISCOVERY_SPRINT_03_D9_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION
+```
+
+Family E is in cooldown after D7. D9 studies who closes an extreme
+Binance-perp vs OKX-spot 5m dislocation. It is not a MARKET-06 MAE
+rescue and not a D7 neighbor. True cross-sectional panel remains
+absent. CORE BTC gitignored parquet/raw bytes lack a verified durable
+object-storage restore path; durability work is recorded, not
+implemented here.
+
+Evidence: `docs/research/HETEROGENEOUS_FAMILY_ROTATION_V2.{json,md}`
+and `docs/research/DISCOVERY_SPRINT_03.{json,md}`.
+
+## 2026-09-22 — Canonical D7 one-shot RESULT (consumed)
+
+Canonical Discovery Sprint 02 D7 one-shot from execution root
+`0f22d46ab0ee41be78cb45de39842c8a5684b54e`. RESULT commit
+`6364670b61eed1e5215bb394b0ba67e8cd2619dd`, merged to main as
+`9b25131e92ab654e46175ddba34e8cccc1db6765`. Called `execute_one_shot()`
+exactly once. No retry.
+
+```
+D7_NAME = KLINE_FLOW_IMPACT_STATE
+D7_FAMILY = E / LIQUIDITY_EXECUTION_STATE
+D7_STATUS = PROMISING_PROTOTYPE
+CLASSIFICATION = D7_PROMISING_PROTOTYPE
+MU_D7_RULE = 0.18943894389438945
+MU_D7_CONTROL = 0.09856569856985697
+DELTA_D7 = 0.09087324532453248
+CONTROL_D7_P95 = 0.10517051705170517
+MC_P_D7 = 9.999000099990002e-05
+STATISTICAL_GATE = true
+PRACTICAL_GATE = true
+TEMPORAL_GATE = true
+YEARLY_DELTA_D7 = positive in all five years 2020–2024
+ANALYSIS_N = 42407
+CANDIDATE_N = 4545
+RESULT_PAYLOAD_SHA256 = 7a7d38ef62630a9b1acac4af90d19a2abe5c7911681a7214fb1f22696fcab1e9
+EVIDENCE_LABEL = ADAPTIVE_DISCOVERY_ON_HISTORICALLY_EXPOSED_DATA
+NOT_INDEPENDENT_CONFIRMATION = true
+NOT_PROVEN_ALPHA = true
+NOT_VALIDATED_TRADING_EDGE = true
+NOT_ORDERBOOK_LIQUIDITY_CLAIM = true
+D8_STATUS = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+RERUN_AUTHORIZED = false
+```
+
+D8 remains deferred and is not a negative scientific result. Do not
+rerun D7. Do not execute D8. Do not treat D7 as proven alpha.
+
+Evidence: `docs/research/DISCOVERY_SPRINT_02_D7_RESULT.{json,md}`.
+
+## 2026-09-22 — Post-D7 program update and Discovery Sprint 03 selection
+
+Program-level routing after D7. No new scientific outcome. Family
+rotation V2 frozen. Exactly one Sprint 03 internal card defined,
+not executed.
+
+```
+INTERNAL_DISCOVERY_CARDS_EXECUTED = 5
+INTERNAL_PROMISING_PROTOTYPES = 2
+INTERNAL_DISCOVERY_WARNING = null
+INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED = false
+D7_STATUS = PROMISING_PROTOTYPE
+D7_CONFIRMATION_CANDIDATE = true
+D7_CONFIRMATION_SELECTED_NOW = false
+D8_STATUS = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT
+SPRINT03_D9 = DEFINED_NOT_EXECUTED
+D9_NAME = VENUE_DISLOCATION_RESOLUTION_STRUCTURE
+D9_FAMILY = H / CROSS_SECTIONAL_OR_VENUE_STRUCTURE
+D9_SUBFAMILY = VENUE_STRUCTURE
+D9_EXECUTED = false
+D9_SCIENTIFIC_OUTCOME_COMPUTED = false
+D7_RERUN_PERFORMED = false
+D8_EXECUTED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+RESEARCH_DATA_DURABILITY_V1_REQUIRED = true
+RESEARCH_DATA_DURABILITY_V1_IMPLEMENTED = false
+NEXT_UNIT = DISCOVERY_SPRINT_03_D9_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION
+```
+
+Family E is in cooldown after D7. D9 studies who closes an extreme
+Binance-perp vs OKX-spot 5m dislocation. It is not a MARKET-06 MAE
+rescue and not a D7 neighbor. True cross-sectional panel remains
+absent. CORE BTC gitignored parquet/raw bytes lack a verified durable
+object-storage restore path; durability work is recorded, not
+implemented here.
+
+Evidence: `docs/research/HETEROGENEOUS_FAMILY_ROTATION_V2.{json,md}`
+and `docs/research/DISCOVERY_SPRINT_03.{json,md}`.
+
+## 2026-09-22 — Sprint 03 pre-outcome amendment (three cards + D9 algebra)
+
+Pre-outcome correction of the first Sprint 03 freeze. Rebased onto
+`origin/main` `35511b3` (PR #197; `SIGNALBOT_MANDATE_V1` canonical).
+D7 RESULT and D8 deferred status unchanged. No scientific outcomes.
+
+`MECHANISM_MEMORY_V0` maps H01–H05, B2-01–B2-06, MARKET-01–06, D1–D8
+(`BATCH01_PROMOTED = 0/5`; MARKET-03 not internal discovery; B2-06 not
+negative evidence). Six history-aware candidates were compared. Selected
+three cards in three families:
+
+```
+INTERNAL_CARDS = D9, D10, D11
+SELECTED_THIS_ROTATION = D, G, H
+SPRINT03_SELECTION_INCOMPLETE = false
+D9_NAME = VENUE_DISLOCATION_RESOLUTION_STRUCTURE
+D9_FAMILY = H
+D9_DATA_FEASIBILITY_CLASS = DATA_READY
+D9_CHOSEN_ESTIMAND = RELATIVE_RESOLUTION_ATTRIBUTION
+D9_PRIMARY_TARGET = PERP_RESOLUTION_SHARE
+D9_ALGEBRAIC_IDENTIFICATION_FIXED = true
+OLD_RESOLUTION_IMBALANCE_REJECTED = true
+D10_NAME = BTC_ETH_RESIDUAL_SHOCK_PERSISTENCE
+D10_FAMILY = D
+D10_DATA_FEASIBILITY_CLASS = DATA_READY
+D11_NAME = SCHEDULED_MACRO_EVENT_VOL_RESPONSE
+D11_FAMILY = G
+D11_DATA_FEASIBILITY_CLASS = ACQUIRABLE_FREE_HISTORICAL
+D9_EXECUTED = false
+D10_EXECUTED = false
+D11_EXECUTED = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+NEXT_UNIT = DISCOVERY_SPRINT_03_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION
+```
+
+D9 algebra: `TOTAL_CLOSURE = -s*(rp-rs)`; `PERP_RESOLUTION_SHARE` only
+if `TOTAL_CLOSURE>0`. `rp==rs` is ineligible. Widening is ineligible.
+Estimand B (future consensus / price-discovery leadership) is rejected
+on two synchronous 5m closes. Historical next-unit
+`DISCOVERY_SPRINT_03_D9_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION`
+is superseded by the batch unit above.
+
+Evidence: `docs/research/MECHANISM_MEMORY_V0.{json,md}`,
+`docs/research/HETEROGENEOUS_FAMILY_ROTATION_V2.{json,md}`,
+and `docs/research/DISCOVERY_SPRINT_03.{json,md}`.
+
+## 2026-09-22 — Sprint 03 pre-outcome tightening (D9 SHARE / D10 beta / D11 FOMC)
+
+Narrow outcome-blind semantic freeze on PR #198. No scientific outcomes.
+No new cards. Families remain H/D/G.
+
+```
+D9_SCIENTIFIC_CLAIM_MAY_ESTABLISH = CONDITIONAL_VENUE_RESOLUTION_ATTRIBUTION
+D9_SHARE_NOT_CLIPPED = true
+D9_SHARE_NOT_WINSORIZED = true
+D9_SHARE_MAY_BE_OUTSIDE_UNIT_INTERVAL = true
+D9_MUST_NOT_ESTABLISH = PRICE_DISCOVERY_LEADERSHIP / CAUSAL_LEADERSHIP / WHICH_VENUE_MOVED_FIRST
+D10_FIXED_PRE_EVENT_BETA = true
+D10_PRIMARY_TARGET = sign(e_t) * e_t_plus_1_fixed_beta
+D10_MATCH = YEAR x sign(e_t) x |r_btc_t| trailing-quantile bucket + small |e_t|
+D11_NAME = SCHEDULED_FOMC_EVENT_VOL_RESPONSE
+D11_FOMC_ONLY = true
+D11_MATCH = YEAR x WEEKDAY x UTC_HOUR
+D11_DST = OFFICIAL_ANNOUNCEMENT_TIMESTAMP
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+NEXT_UNIT = DISCOVERY_SPRINT_03_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION
+```
+
+Evidence: `docs/research/DISCOVERY_SPRINT_03.{json,md}`.
