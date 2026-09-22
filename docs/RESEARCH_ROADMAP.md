@@ -1,7 +1,7 @@
 # Signalbot Research Roadmap
 
 **Status:** ACTIVE  
-**Updated:** 2026-09-21  
+**Updated:** 2026-09-22
 **Current phase:** `POST_D2_INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`
 
 The previous long-form roadmap is preserved in git history at `b25d9ca99498630183813d0ccb8c6d67b93ad915`. This file controls current execution order.
@@ -59,7 +59,8 @@ after the CORE-restore retry (adaptive discovery, not confirmatory):
 `INTERNAL_DISCOVERY_CARDS_EXECUTED = 4`.
 `INTERNAL_PROMISING_PROTOTYPES = 1`.
 `D2_PROGRAM_CLASS = INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`.
-`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN`.
+`D2_DECOMPOSITION_DESIGN_STATUS = FROZEN`.
+`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`.
 
 D2 discovery remains a `PROMISING_PROTOTYPE` (adaptive discovery label). Outcome-blind
 confirmation design for RULE_1 / `RV_ABSTENTION` found calendar 2025
@@ -90,9 +91,12 @@ Program decision after that result: D2 is
 pre-2020 BitMEX replication claims are supported. Market-mechanism,
 trading-edge, and product claims are not. Binance 2025/2026 stay sealed.
 Hypothesis generation rotates across families A–I; D2 neighbors are
-forbidden. Product remains frozen. MARKET-07 is not created. Next unit is
-mechanism-decomposition **design** only:
-`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN`.
+forbidden. Product remains frozen. MARKET-07 is not created. Mechanism-
+decomposition **design** is now frozen (`DESIGN_STATUS = FROZEN`):
+selector unchanged, primary target `ADVERSE_SHARE`, seed `20260922131`.
+No real decomposition outcome. Next unit is implementation and
+outcome-blind review:
+`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`.
 
 Card identities at definition time (unchanged):
 
