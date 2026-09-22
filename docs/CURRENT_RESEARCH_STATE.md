@@ -33,12 +33,17 @@ Program-level correction is sealed in `docs/research/MARKET_PROGRAM_UPDATE_POST_
 ## Exact next unit
 
 ```
-PREVIOUS_ROUTING            = DISCOVERY_SPRINT_04_D12_D13_ONE_SHOT_SCIENTIFIC_EXECUTION
+PREVIOUS_ROUTING            = POST_SPRINT04_AUTOMATION_MATURITY_DECISION
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = POST_SPRINT04_AUTOMATION_MATURITY_DECISION
-NEXT_ACTION                 = POST_SPRINT04_AUTOMATION_MATURITY_DECISION
+NEXT_UNIT                   = HYPOTHESIS_GENERATOR_V0_IMPLEMENTATION_AND_SHADOW_HARNESS
+NEXT_ACTION                 = GENERATOR_V0_INFRASTRUCTURE_ONLY_NO_SCIENTIFIC_EXECUTION
+POST_SPRINT04_AUTOMATION_MATURITY_DECISION = HYPOTHESIS_GENERATOR_V0_INFRA_READY
+HYPOTHESIS_GENERATOR_V0_DESIGN = FROZEN_NOT_IMPLEMENTED
+GENERATOR_MODE              = SHADOW_ONLY
+SPRINT05_CREATED            = false
+D12_CONFIRMATION_EXECUTED   = false
 POST_SPRINT03_PROGRAM_DECISION = DECIDED
 HETEROGENEOUS_FAMILY_ROTATION_V1 = FROZEN_HISTORICAL_SPRINT_02_POLICY
 HETEROGENEOUS_FAMILY_ROTATION_V2 = FROZEN_HISTORICAL_SPRINT_03_POLICY
@@ -184,6 +189,16 @@ existing CORE BTC) and D13 (first true cross-sectional panel, weekly
 relative return, bounded free Binance Vision acquisition). D14 not
 selected. After Sprint 04 execution a post-Sprint 04 automation maturity
 decision is required; there is no automatic Sprint 05.
+
+Post-Sprint 04 automation maturity decision
+(`docs/research/POST_SPRINT04_AUTOMATION_MATURITY_DECISION.{json,md}`):
+`HYPOTHESIS_GENERATOR_V0_INFRA_READY`. No Sprint 05. Four prototypes but
+two effective classes (D2/D7/D11 second-moment/activity; D12 participation
+timing). Datasets are not expanded ahead of the generator; its data-gap
+ledger measures demand first. Generator V0 design is frozen, not built
+(`docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.{json,md}`): shadow-only,
+blind to outcomes, provider-neutral, mock mode required, USD 30 cap for
+the first real campaign.
 
 Discovery Sprint 01 first attempt (`37921089ce289cd9bcbcebb123724a3e033dcdc3`)
 is preserved as blocked: D2/D3/D4 rolling/D5 were

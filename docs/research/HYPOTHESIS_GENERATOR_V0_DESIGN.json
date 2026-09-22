@@ -1,0 +1,422 @@
+{
+  "BASE_MAIN_SHA": "547693ce9d725d7aa6f61b107472cd8c2083ad4f",
+  "BASE_MAIN_TREE": "10565a58136205d0cb40ade097341bd25c21a529",
+  "BLIND_GENERATOR_CONTEXT": {
+    "ALSO_EXPOSED": [
+      "mechanism-family taxonomy A-J with names only (no statuses)",
+      "DATA_CATALOG_V0 (content, legal range, data status)",
+      "candidate schema and data-status taxonomy",
+      "protected-data rule",
+      "previously considered but unexecuted candidate signatures (name, family, source, function) without selection or rejection reasons",
+      "generic methodological lessons stated without card attribution (e.g. 'a conditional ratio target can create collider selection'; 'weekday composition must match across compared windows')"
+    ],
+    "CONTEXT_SCANNER": {
+      "APPLIED_TO": "the fully assembled generator context (map, catalog, prompt, few-shot examples) before every call",
+      "BACKSTOP_NOTE": "The scanner is a backstop; field exclusion is the primary protection. Rescue warnings use ordinary words such as 'positive', which the scanner must also catch.",
+      "DENYLIST_REGEX": "PROMISING|NO_USEFUL|NO_EVIDENCE|REJECTED|_KILL|\\bKILL\\b|SUPPORTED|REPRODUCED|CLOSED_NO|REPEATED_NULL|INCONCLUSIVE|INVALID_DISCOVERY|COOLDOWN|replicat|\\bMC_P\\b|p[-_ ]?value|\\b0\\.\\d{4,}|PROTOTYPE|did not pass|passed the|worked|\\bpositive\\b|\\bnegative\\b",
+      "DOMAIN_TERM_NOTE": "Domain words such as 'failed breakout', 'confirmatory', 'null model' are not outcome labels; the denylist targets label vocabulary, not these words.",
+      "ON_HIT": "HARD_FAIL: the call is not made and the run is invalid until the context is fixed",
+      "RESIDUAL_RISK": "The existence of a consumed region and the wording of mechanisms cannot be fully outcome-neutral; accepted and recorded."
+    },
+    "DERIVED_FROM": "docs/research/MECHANISM_MEMORY_V0.json",
+    "EXCLUDED_FIELDS": [
+      "STATUS_EVIDENCE_CLASS",
+      "WHAT_WAS_ACTUALLY_TESTED",
+      "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES",
+      "WHAT_REMAINS_OPEN",
+      "NEIGHBOR_RESCUE_WARNING",
+      "POSTHOC_RESIDUALS_IF_ANY",
+      "DATA_STATE",
+      "GENERATION"
+    ],
+    "NAME": "BLIND_MECHANISM_MAP_V0",
+    "NEVER_EXPOSED": [
+      "classification labels, promising/null, gate booleans",
+      "p-values, effect sizes, yearly values, any numeric result",
+      "replication, confirmation or decomposition status",
+      "family cooldown or deprioritization statuses",
+      "selection/rejection reasons from past candidate pools",
+      "profitability or trading information",
+      "outcome-derived ranking of families"
+    ],
+    "PER_ENTRY_ADDED_FIELD": {
+      "REGION_STATE": "CONSUMED (identical for every executed or consumed entry, regardless of outcome)"
+    },
+    "SANITIZATION_OVERRIDES": {
+      "D2.INFORMATION_SOURCE": "CORE_BTC 24h RV state; BitMEX XBTUSD 5m pre-2020"
+    },
+    "UNIFORM_TRANSFORMATION_RULE": "For every consumed signature, do not propose: parameter, threshold, percentile, window, horizon, lag or clock variants; observable substitutions within the same function; alternate matching strata, nulls, refractories or bootstraps; composition of consumed signatures; or relabels of the same function. This rule is applied identically to all consumed entries.",
+    "WHITELISTED_FIELDS": [
+      "ID",
+      "MECHANISM",
+      "INFORMATION_SOURCE",
+      "FUNCTION",
+      "TARGET_FAMILY"
+    ]
+  },
+  "BLIND_GENERATOR_CONTEXT_DEFINED": true,
+  "BUDGET": {
+    "GUARD": "estimated cost is checked before each call; the run stops before exceeding the cap",
+    "REAL_LLM_BUDGET_CAP_USD": 30,
+    "RECORDED": [
+      "calls",
+      "provider",
+      "model",
+      "tokens if available",
+      "estimated cost",
+      "candidate yield",
+      "critic rejection reasons"
+    ],
+    "SCOPE": "first real shadow campaign, all roles combined"
+  },
+  "CANDIDATE_SCHEMA": {
+    "FORBIDDEN_FIELDS": [
+      "EXPECTED_PROBABILITY_OF_SUCCESS"
+    ],
+    "REQUIRED_FIELDS": [
+      "CANDIDATE_ID",
+      "NAME",
+      "MECHANISM_FAMILY",
+      "MECHANISM",
+      "CAUSAL_OR_STRUCTURAL_STORY",
+      "INFORMATION_SOURCE",
+      "OBSERVABLE",
+      "FUNCTION",
+      "PRIMARY_TARGET",
+      "HORIZON",
+      "BASELINE_OR_NULL",
+      "FALSIFIER",
+      "NEAREST_TESTED_MECHANISM",
+      "MECHANISM_DISTANCE_ARGUMENT",
+      "WHY_NOT_A_RESCUE",
+      "SEARCH_SURFACE",
+      "MAIN_CONFOUNDERS",
+      "NO_LOOKAHEAD_RULE",
+      "DATA_REQUIRED",
+      "DATA_STATUS",
+      "MISSING_OBSERVABLES",
+      "DATA_GAP_CLASS",
+      "EXPECTED_IMPLEMENTATION_COST",
+      "WHAT_POSITIVE_WOULD_TEACH",
+      "WHAT_NULL_WOULD_ELIMINATE",
+      "EXPECTED_INFORMATION_GAIN",
+      "PROTECTED_DATA_REQUIREMENT"
+    ],
+    "STREAM_FIELD": "STREAM in {EXECUTABLE_NOW, HIGH_VALUE_DATA_BLOCKED} set by the feasibility critic"
+  },
+  "CANDIDATE_SCHEMA_FROZEN": true,
+  "COMPONENTS_FOR_NEXT_UNIT": [
+    "blind-context builder (whitelist projection, overrides, scanner)",
+    "candidate schema validator",
+    "provider interface",
+    "mock provider",
+    "generator",
+    "novelty critic",
+    "feasibility critic",
+    "red-team critic",
+    "selector",
+    "data-gap ledger",
+    "run ledger",
+    "budget guard",
+    "shadow batch runner"
+  ],
+  "D11_CONFIRMATION_EXECUTED": false,
+  "D12_CONFIRMATION_EXECUTED": false,
+  "D14_CREATED": false,
+  "D7_CONFIRMATION_EXECUTED": false,
+  "D7_RERUN_PERFORMED": false,
+  "D8_EXECUTED": false,
+  "DATA_ACQUISITION_PRIORITY_RULE": {
+    "ACQUIRE_IN_THIS_UNIT": false,
+    "AUTHORITY": "acquisition always requires explicit human authorization",
+    "DUPLICATE_DEMAND_GUARD": "a data class is not proposed for acquisition on the strength of candidates that are near-duplicates of each other",
+    "FORM": "(UNLOCKED_DISTINCT_MECHANISM_SPACE x AGGREGATE_INFORMATION_GAIN x EXPECTED_REUSE) / (ACQUISITION_COST x PROVENANCE_RISK x MAINTENANCE_COST)",
+    "PRECISION": "ordinal comparison between data classes, not a numeric score",
+    "WHEN": "only after at least one full shadow batch has been adjudicated"
+  },
+  "DATA_CATALOG_V0_SEED": {
+    "B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0": {
+      "CONTENT": "Binance USD-M BTCUSDT open interest and funding",
+      "LEGAL_RANGE": "per snapshot",
+      "STATUS": "DATA_BLOCKED_POINT_IN_TIME_SEMANTICS"
+    },
+    "CORE_BTC_BINANCE_V0": {
+      "CONTENT": "Binance USD-M BTCUSDT perpetual 1m klines (OHLC, volume, quote volume, trade count, taker-buy volume)",
+      "LEGAL_RANGE": "2020-01..2024-12",
+      "STATUS": "DATA_READY"
+    },
+    "CORE_ETH_BINANCE_V0": {
+      "CONTENT": "Binance USD-M ETHUSDT perpetual 1m klines",
+      "LEGAL_RANGE": "2020-01..2024-12",
+      "STATUS": "DATA_READY"
+    },
+    "D11_FOMC_OFFICIAL_V0": {
+      "CONTENT": "Official scheduled FOMC statement release times",
+      "LEGAL_RANGE": "2020..2024",
+      "STATUS": "DATA_READY"
+    },
+    "D2_BITMEX_PRE2020_XBTUSD": {
+      "CONTENT": "BitMEX XBTUSD 5m",
+      "LEGAL_RANGE": "pre-2020",
+      "STATUS": "DATA_READY"
+    },
+    "MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0": {
+      "CONTENT": "Binance spot BTCUSDT 1h",
+      "LEGAL_RANGE": "per snapshot",
+      "STATUS": "DATA_READY"
+    },
+    "MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0": {
+      "CONTENT": "Binance USD-M funding rate via REST",
+      "LEGAL_RANGE": "per snapshot",
+      "STATUS": "DATA_BLOCKED_POINT_IN_TIME_SEMANTICS"
+    },
+    "MARKET_06_OKX_BINANCE_FEASIBILITY_V0": {
+      "CONTENT": "Binance perp and OKX spot BTC 5m aligned closes",
+      "LEGAL_RANGE": "2022-01..2024-12",
+      "STATUS": "DATA_READY"
+    },
+    "PROTECTED_2025_2026": {
+      "CONTENT": "Any 2025/2026 bar of any dataset",
+      "STATUS": "FORBIDDEN_HARD_FAIL"
+    },
+    "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0": {
+      "CONTENT": "Binance spot USDT-quoted 1d klines incl. delisted symbols, pinned listings, exclusion lists, fee authority",
+      "LEGAL_RANGE": "2019-12..2024-12",
+      "STATUS": "DATA_READY"
+    },
+    "STATUTORY_DST_CALENDARS": {
+      "CONTENT": "US and EU DST transition dates (frozen in DISCOVERY_SPRINT_04.json)",
+      "LEGAL_RANGE": "2020..2024",
+      "STATUS": "DATA_READY"
+    }
+  },
+  "DATA_GAP_LEDGER_DESIGNED": true,
+  "DATA_GAP_LEDGER_V0": {
+    "AGGREGATION": "rows are grouped by MISSING_DATA_CLASS; NUMBER_OF_DISTINCT_CANDIDATES_BLOCKED counts only candidates that are mutually distinct under the novelty critic",
+    "NO_PRESET_NUMBERS": true,
+    "ROW_FIELDS": [
+      "MISSING_DATA_CLASS",
+      "MISSING_OBSERVABLE",
+      "MECHANISM_REGION",
+      "EXPECTED_INFORMATION_GAIN",
+      "NUMBER_OF_DISTINCT_CANDIDATES_BLOCKED",
+      "IS_THIS_A_DUPLICATE_DATA_DEMAND",
+      "ESTIMATED_ACQUISITION_COST",
+      "PROVENANCE_RISK",
+      "WOULD_DATA_UNLOCK_DISTINCT_MECHANISM_SPACE"
+    ]
+  },
+  "DATA_STATUS_TAXONOMY": {
+    "DATA_BLOCKED_COST": "Requires paid data or disproportionate engineering",
+    "DATA_BLOCKED_MISSING_OBSERVABLE": "No known source provides the observable",
+    "DATA_BLOCKED_POINT_IN_TIME_SEMANTICS": "The observable exists but when it became public (or whether history was revised) is unproven",
+    "DATA_BLOCKED_PROVENANCE": "A source exists but cannot be pinned or reproduced byte-exactly",
+    "DATA_READY": "Every required observable is in a tracked, snapshot-bound dataset with restore authority and legal 2020-2024 (or earlier) coverage",
+    "FEASIBILITY_REQUIRED": "A plausible free source exists but availability, completeness, provenance or point-in-time semantics are unverified; the candidate must list exactly what to verify"
+  },
+  "DATA_STATUS_TAXONOMY_FROZEN": true,
+  "DATE": "2026-09-22",
+  "FULL_GOVERNANCE_CONTEXT": {
+    "ACCESS": "novelty critic receives frozen rules only; selector receives critic outputs only; outcome labels never reach generator or selector",
+    "CONTENT": "full MECHANISM_MEMORY_V0, rotation V3 anti-rescue rules, frozen card definitions, result artifacts",
+    "FORBIDDEN_USE": "scoring a candidate as more or less likely to work because it resembles a prior positive or null card",
+    "PERMITTED_USE": "enforcing frozen anti-rescue and consumed-region rules, scientific-integrity checks, data feasibility"
+  },
+  "FULL_GOVERNANCE_CONTEXT_DEFINED": true,
+  "GENERATOR_BUILT": false,
+  "GENERATOR_EVALUATION_CRITERIA": {
+    "ANTI_GOODHART": "Downstream scientific classifications of executed candidates are never a generator reward signal and never enter generator or selector context.",
+    "BATCH_METRICS": [
+      "duplicate rate vs consumed signatures",
+      "rescue-violation rate",
+      "hard-fail rate",
+      "family and information-source coverage",
+      "Stream A / Stream B split",
+      "feasibility-critic agreement with human adjudication",
+      "novelty-critic agreement with human adjudication",
+      "human active minutes per accepted candidate",
+      "cost per accepted candidate"
+    ],
+    "FORBIDDEN_SCORES": [
+      "expected alpha",
+      "probability of positive outcome",
+      "EXPECTED_PROBABILITY_OF_SUCCESS"
+    ],
+    "HUMAN_BASELINE": "No timed historical baseline exists. The first real campaign logs human minutes; comparisons to Sprint03/04 effort are labelled estimates.",
+    "KPI": "Reduce active human hypothesis-discovery effort by about 70-80% without lowering scientific quality (quality = the dimensions above plus human acceptance).",
+    "PER_CANDIDATE_DIMENSIONS": [
+      "NOVELTY",
+      "MECHANISM_DISTANCE",
+      "NON_RESCUE",
+      "FALSIFIABILITY",
+      "DATA_SPECIFICITY",
+      "NO_LOOKAHEAD_QUALITY",
+      "CONFOUNDING_AWARENESS",
+      "SEARCH_SURFACE_DISCIPLINE",
+      "NULL_INFORMATION_GAIN",
+      "IMPLEMENTATION_BOUNDEDNESS"
+    ],
+    "SCALE": "ordinal per dimension (e.g. 0-3) recorded separately; no single opaque total score"
+  },
+  "HARD_FAIL_CRITERIA": [
+    "generator context scanner hit (outcome leakage)",
+    "candidate contains a probability-of-success or expected-alpha field",
+    "requires protected 2025/2026 data",
+    "uses information after the decision time (lookahead)",
+    "identical to a consumed signature",
+    "applies a forbidden transformation to a consumed signature",
+    "missing falsifier or baseline/null",
+    "unbounded or unstated search surface",
+    "trading, alpha or product claim",
+    "blocked DATA_STATUS without an exactly named missing observable",
+    "data source outside DATA_CATALOG_V0 claimed as DATA_READY"
+  ],
+  "HUMAN_MUTATION_RULE": "Any human edit to a generated card is recorded as an explicit mutation (field, before, after, reason); no silent edits",
+  "HUMAN_ROLE": [
+    "approve/reject batch shortlist with logged reasons",
+    "adjudicate ambiguous novelty",
+    "authorize data acquisition",
+    "authorize scientific execution",
+    "inspect unusual failures",
+    "program/product decisions"
+  ],
+  "KIND": "INFRASTRUCTURE_DESIGN_FREEZE",
+  "LLM_ARCHITECTURE": {
+    "ADAPTER_INTERFACE": "complete(role, prompt_version, context, parameters) -> raw text + usage; no provider-specific semantics in scientific code",
+    "PROVIDERS": [
+      "MOCK_DETERMINISTIC (required)",
+      "real provider adapters added behind the same interface"
+    ],
+    "PROVIDER_NEUTRAL": true,
+    "ROLE_SPECIFIC_CONFIG": "generator and critics may use different models/providers"
+  },
+  "LLM_PROVIDER_NEUTRAL": true,
+  "MARKET_07_CREATED": false,
+  "MODE": "SHADOW_ONLY",
+  "NEW_DATA_ACQUIRED": false,
+  "NEXT_UNIT": "HYPOTHESIS_GENERATOR_V0_IMPLEMENTATION_AND_SHADOW_HARNESS",
+  "OUTCOME_LABELS_HIDDEN_FROM_GENERATOR": true,
+  "OUTPUT_STREAMS": {
+    "EXECUTABLE_NOW": "DATA_READY candidates that pass all critics",
+    "HIGH_VALUE_DATA_BLOCKED": "Candidates that pass novelty and red-team checks but are blocked by data; kept, not discarded, and each writes a data-gap ledger row"
+  },
+  "PRODUCT_BUILD_FROZEN": true,
+  "PROTECTED_2025_OPENED": false,
+  "PROTECTED_2026_OPENED": false,
+  "PURPOSE": "Reduce active human effort to produce high-quality, mechanistically distinct, falsifiable research cards. Not an alpha generator and not an autonomous trader.",
+  "REAL_LLM_BUDGET_CAP": "USD 30 for the first real shadow campaign",
+  "REPO_STATUS_MAPPING": {
+    "BLOCKED_MISSING_OBSERVABLE (B2-06)": "DATA_BLOCKED_POINT_IN_TIME_SEMANTICS",
+    "BLOCKED_OBSERVABLE (MARKET-04/04H)": "DATA_BLOCKED_POINT_IN_TIME_SEMANTICS",
+    "DATA_READY_SNAPSHOT_BOUND": "DATA_READY",
+    "DEFERRED_INSUFFICIENT_CONTROL_SUPPORT (D8)": "not a data status; support blocker decided in feasibility",
+    "DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH (D1)": "not a data status; method blocker recorded under MAIN_CONFOUNDERS / red team",
+    "DEFERRED_SOURCE_NOT_PINNED (D6)": "DATA_BLOCKED_PROVENANCE",
+    "FEASIBILITY_REQUIRED": "FEASIBILITY_REQUIRED"
+  },
+  "ROLES": {
+    "FEASIBILITY_CRITIC": {
+      "CHECKS": [
+        "available data",
+        "missing observable named exactly",
+        "point-in-time semantics",
+        "provenance",
+        "engineering cost"
+      ],
+      "CONTEXT": "DATA_CATALOG_V0, data-status taxonomy, protected-data rule",
+      "OUTPUT": "confirmed DATA_STATUS, DATA_GAP_CLASS, and a data-gap ledger row when blocked"
+    },
+    "GENERATOR": {
+      "CONTEXT": "BLIND_GENERATOR_CONTEXT only",
+      "MUST_NOT": "estimate probability of success, see outcomes, or self-grade",
+      "OUTPUT": "candidate cards in the frozen schema"
+    },
+    "HUMAN": {
+      "NOT_ROLE": "inventing most hypotheses once V0 is active",
+      "ROLE": [
+        "approve/reject batch shortlist with logged reasons",
+        "adjudicate ambiguous novelty",
+        "authorize data acquisition",
+        "authorize scientific execution",
+        "inspect unusual failures",
+        "program/product decisions"
+      ]
+    },
+    "NOVELTY_CRITIC": {
+      "CHECKS": [
+        "duplicate of a consumed signature",
+        "neighbor rescue (rule-based)",
+        "cosmetic novelty",
+        "overused mechanism within the batch",
+        "functionally equivalent target"
+      ],
+      "CONTEXT": "BLIND map plus the governance anti-rescue rule set (frozen rules only, no outcome labels)",
+      "OUTPUT": "per-check verdict with cited consumed signature or rule"
+    },
+    "RED_TEAM": {
+      "CHECKS": [
+        "lookahead / leakage",
+        "outcome dependence of the selector",
+        "impossible causality",
+        "confounding",
+        "hidden search surface",
+        "p-hacking degrees of freedom"
+      ],
+      "CONTEXT": "candidate card plus methodological checklist",
+      "OUTPUT": "per-check verdict; any hard-fail condition"
+    },
+    "SELECTOR": {
+      "CONTEXT": "critic outputs and data status only",
+      "FORBIDDEN_INPUTS": [
+        "outcome labels of prior cards",
+        "similarity to prior positive or null cards (except frozen anti-rescue / consumed-region rules)",
+        "any probability-of-success estimate"
+      ],
+      "RULE": "rank surviving candidates by MECHANISM_DISTANCE x INFORMATION_GAIN x FEASIBILITY x CHEAPNESS as ordinal judgments; propose a shortlist for human adjudication"
+    }
+  },
+  "RUN_LEDGER_FIELDS": [
+    "RUN_ID",
+    "PROMPT_VERSION",
+    "CONTEXT_DIGEST",
+    "MODEL_PROVIDER",
+    "MODEL_ID",
+    "MODEL_PARAMETERS",
+    "RAW_RESPONSE_SHA256",
+    "PARSED_CARD",
+    "CRITIC_OUTPUTS",
+    "FINAL_DECISION",
+    "HUMAN_MUTATIONS"
+  ],
+  "SCHEMA": "signalbot_hypothesis_generator_design",
+  "SCHEMA_VERSION": "0.1.0",
+  "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+  "SHADOW_BATCH": {
+    "BOUNDS": [
+      25,
+      50
+    ],
+    "DIVERSITY_CONTROLS": [
+      "generate in rounds with a per-round family/source slot plan instead of one idea per call",
+      "at most 5 candidates per existing family A-J",
+      "at least 8 slots reserved for NEW_FAMILY_PROPOSAL attempts",
+      "at least 6 distinct information-source classes across the batch",
+      "the generator is told data-blocked ideas are wanted; no self-censoring for missing data"
+    ],
+    "SELECTOR_SHORTLIST_MAX": 5,
+    "TARGET_SIZE": 40
+  },
+  "SHADOW_BATCH_SIZE": 40,
+  "SHADOW_MODE_PROHIBITIONS": [
+    "no automatic execution",
+    "no automatic promotion",
+    "no protected-data access",
+    "no mutation of research contracts",
+    "no data acquisition",
+    "no trading or product claims"
+  ],
+  "SPRINT05_CREATED": false,
+  "STATUS": "FROZEN_NOT_IMPLEMENTED",
+  "UNIT": "HYPOTHESIS_GENERATOR_V0_DESIGN",
+  "ZERO_COST_MOCK_MODE_REQUIRED": true
+}
