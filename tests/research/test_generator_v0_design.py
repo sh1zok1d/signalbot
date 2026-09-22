@@ -43,7 +43,7 @@ def _blind_projection(memory: dict, blind: dict) -> dict:
             entry_id, field = target.split(".", 1)
             if entry_id == key:
                 row[field] = value
-        row["REGION_STATE"] = "CONSUMED"
+        row.update(blind["PER_ENTRY_ADDED_FIELD"])
         out[key] = row
     return out
 
@@ -132,7 +132,7 @@ def test_blind_map_whitelist_is_realizable_on_current_memory():
         if deny.search(text)
     }
     assert hits == {}
-    assert {row["REGION_STATE"] for row in projection.values()} == {"CONSUMED"}
+    assert {row["REGION_STATE"] for row in projection.values()} == {"PRIOR_WORK_SIGNATURE"}
 
 
 def test_excluded_fields_would_leak_outcomes():
@@ -157,3 +157,278 @@ def test_routing_docs_point_at_next_unit():
     index = (REPO / "docs/DOCUMENTATION_INDEX.md").read_text(encoding="utf-8")
     assert "POST_SPRINT04_AUTOMATION_MATURITY_DECISION.md" in index
     assert "HYPOTHESIS_GENERATOR_V0_DESIGN.md" in index
+
+
+# --- Pre-outcome amendment 1: neutral blind map, governance authority, roles, provenance ---
+
+SCIENTIFIC_STATE = re.compile(
+    # Governance/outcome state words; "null" alone is method vocabulary (e.g. "surrogate null").
+    r"\bCONSUMED\b|DEFERRED|BLOCKED|PARTIAL_OR_MIXED|\bEXECUTED\b|PROMISING|CONFIRMED",
+    re.IGNORECASE,
+)
+FORBIDDEN_MEMORY_FIELDS = {
+    "STATUS_EVIDENCE_CLASS",
+    "WHAT_WAS_ACTUALLY_TESTED",
+    "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES",
+    "WHAT_REMAINS_OPEN",
+    "NEIGHBOR_RESCUE_WARNING",
+    "POSTHOC_RESIDUALS_IF_ANY",
+}
+
+
+def _authority() -> dict:
+    return _load(DESIGN)["GOVERNANCE_REGION_AUTHORITY_V0"]
+
+
+def _rows_by_id(authority: dict) -> dict:
+    out = {}
+    for row in authority["ROWS"]:
+        out[row["SIGNATURE_ID"]] = row
+        for sub in row.get("SUB_SIGNATURES", []):
+            out[sub["SIGNATURE_ID"]] = sub
+    return out
+
+
+def _novelty_verdict(authority: dict, signature_id: str, relation: str) -> str:
+    row = _rows_by_id(authority)[signature_id]
+    assert row["STATE"] != "PARTIAL_OR_MIXED", "mixed rows adjudicate at sub-signature level"
+    return authority["NOVELTY_DECISION_TABLE"][row["STATE"]][relation]
+
+
+def _stream(verdict: str, data_statuses: list[str], red_team_pass: bool = True) -> str:
+    if not red_team_pass or verdict not in ("ALLOW", "ALLOW_TO_FEASIBILITY"):
+        return "NOT_A_STREAM"
+    if verdict == "ALLOW" and all(s == "DATA_READY" for s in data_statuses):
+        return "EXECUTABLE_NOW"
+    if any(s == "FEASIBILITY_REQUIRED" or s.startswith("DATA_BLOCKED_") for s in data_statuses):
+        return "HIGH_VALUE_DATA_BLOCKED"
+    return "NOT_A_STREAM"
+
+
+def test_blind_map_state_is_neutral_prior_work_signature():
+    g = _load(DESIGN)
+    blind = g["BLIND_GENERATOR_CONTEXT"]
+    assert blind["PER_ENTRY_ADDED_FIELD"] == {"REGION_STATE": "PRIOR_WORK_SIGNATURE"}
+    assert blind["REGION_STATE_VALUE"] == "PRIOR_WORK_SIGNATURE"
+    assert blind["GENERATOR_SEES_EXECUTION_STATUS"] is False
+    assert blind["GENERATOR_SEES_OUTCOME_LABELS"] is False
+    assert "cosmetic" in blind["GENERATOR_SIDE_RULE"]
+    projection = _blind_projection(_load(MEMORY), blind)
+    assert "CONSUMED" not in json.dumps(projection)
+    assert {row["REGION_STATE"] for row in projection.values()} == {"PRIOR_WORK_SIGNATURE"}
+
+
+def test_generator_context_carries_no_scientific_state():
+    g = _load(DESIGN)
+    blind = g["BLIND_GENERATOR_CONTEXT"]
+    # Status-bearing wording inside whitelisted fields is removed by reviewed overrides.
+    assert blind["SANITIZATION_OVERRIDES"]["D4.FUNCTION"] == "Rolling 90d correlation range; 1-day lead-lag"
+    assert "reclassified" not in blind["SANITIZATION_OVERRIDES"]["D1.MECHANISM"]
+    projection = _blind_projection(_load(MEMORY), blind)
+    for key, row in projection.items():
+        assert set(row) == set(blind["WHITELISTED_FIELDS"]) | {"REGION_STATE"}, key
+        assert not SCIENTIFIC_STATE.search(json.dumps(row)), key
+    assert "GOVERNANCE_REGION_AUTHORITY_V0" in g["ROLE_CONTEXT_MATRIX"]["GENERATOR"]["FORBIDDEN"]
+
+
+def test_role_context_matrix_is_explicit_and_complete():
+    g = _load(DESIGN)
+    matrix = g["ROLE_CONTEXT_MATRIX"]
+    vocab = set(g["ROLE_CONTEXT_ARTIFACTS"])
+    assert set(matrix) == set(g["ROLES"]) == {
+        "GENERATOR", "NOVELTY_CRITIC", "FEASIBILITY_CRITIC", "RED_TEAM", "SELECTOR", "HUMAN"
+    }
+    assert g["ROLE_CONTEXT_MATRIX_FROZEN"] is True
+    for role, spec in matrix.items():
+        allowed, forbidden = set(spec["ALLOWED"]), set(spec["FORBIDDEN"])
+        conditional = set(spec["CONDITIONAL"])
+        assert allowed | forbidden | conditional <= vocab, role
+        assert not allowed & forbidden and not conditional & (allowed | forbidden), role
+    assert matrix["GENERATOR"]["ALLOWED"] == [
+        "BLIND_MECHANISM_MAP_V0", "DATA_CATALOG_V0", "CANDIDATE_SCHEMA",
+        "DATA_STATUS_TAXONOMY", "GENERIC_METHODOLOGY",
+    ]
+    assert "GOVERNANCE_REGION_AUTHORITY_V0" in matrix["NOVELTY_CRITIC"]["ALLOWED"]
+    assert set(matrix["RED_TEAM"]["CONDITIONAL"]) == {"GOVERNANCE_REGION_AUTHORITY_V0"}
+    # FULL_RESEARCH_HISTORY is reachable only by the human.
+    holders = [r for r, spec in matrix.items() if "FULL_RESEARCH_HISTORY" in spec["ALLOWED"]]
+    assert holders == ["HUMAN"]
+    full = g["FULL_GOVERNANCE_CONTEXT"]
+    assert full["MODEL"] == "PER_ROLE_ONLY"
+    assert full["NO_ROLE_AGNOSTIC_FULL_CONTEXT_BUNDLE"] is True
+
+
+def test_selector_cannot_receive_memory_results_or_authority():
+    g = _load(DESIGN)
+    sel = g["ROLE_CONTEXT_MATRIX"]["SELECTOR"]
+    assert set(sel["ALLOWED"]) == {"SANITIZED_CRITIC_OUTPUTS", "DATA_STATUS", "SELECTION_JUDGMENTS"}
+    assert sel["CONDITIONAL"] == {}
+    for artifact in (
+        "MECHANISM_MEMORY_V0_RAW",
+        "RESULT_ARTIFACTS",
+        "GOVERNANCE_REGION_AUTHORITY_V0",
+        "OUTCOME_LABELS",
+        "FULL_RESEARCH_HISTORY",
+        "PRIOR_PROTOTYPE_OR_NULL_IDENTITY",
+    ):
+        assert artifact in sel["FORBIDDEN"], artifact
+    fields = set(g["SANITIZED_CRITIC_OUTPUT_FIELDS"])
+    assert not fields & {"STATE", "REGION_STATE", "CITED_SIGNATURE_STATE", "STATUS_EVIDENCE_CLASS"}
+    assert not any(SCIENTIFIC_STATE.search(f) for f in fields if f != "DATA_STATUS")
+
+
+def test_governance_authority_rows_are_outcome_free_and_cover_memory():
+    authority = _authority()
+    memory = _load(MEMORY)
+    assert _load(DESIGN)["GOVERNANCE_REGION_AUTHORITY_DESIGNED"] is True
+    assert set(authority["STATES"]) == {"CONSUMED", "DEFERRED_OR_BLOCKED", "PARTIAL_OR_MIXED"}
+    top_ids = [row["SIGNATURE_ID"] for row in authority["ROWS"]]
+    assert len(top_ids) == len(set(top_ids))
+    assert set(top_ids) == set(memory["ENTRIES"])
+    allowed = set(authority["ROW_FIELDS"])
+    outcome = re.compile(
+        r"p[-_ ]?value|effect size|prototype|promising|profit|\bgate\b|\b20[12]\d\b|\d\.\d",
+        re.IGNORECASE,
+    )
+    for sig, row in _rows_by_id(authority).items():
+        assert set(row) - {"SUB_SIGNATURES"} == allowed, sig
+        assert row["STATE"] in authority["STATES"], sig
+        text = json.dumps({k: v for k, v in row.items() if k != "SUB_SIGNATURES"})
+        assert not outcome.search(text), sig
+        assert not re.search(r"\bPASS\b|\bFAIL\b", text), sig
+        if row["STATE"] == "DEFERRED_OR_BLOCKED":
+            assert row["BLOCKER_CLASS_IF_ANY"] and row["BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY"], sig
+        if row["STATE"] == "CONSUMED":
+            assert row["BLOCKER_CLASS_IF_ANY"] is None, sig
+    assert "NOVELTY_CRITIC" in authority["CONSUMERS"]
+    assert not any(c.startswith(("GENERATOR", "SELECTOR")) for c in authority["CONSUMERS"])
+
+
+def test_decision_table_semantics():
+    table = _authority()["NOVELTY_DECISION_TABLE"]
+    assert table["CONSUMED"] == {
+        "EXACT_DUPLICATE": "REJECT",
+        "PARAMETER_NEIGHBOR": "REJECT",
+        "FUNCTIONAL_RELABEL": "REJECT",
+        "RESOLVES_BLOCKER": "HUMAN_REVIEW",
+        "ORTHOGONAL_MECHANISM": "ALLOW",
+    }
+    blocked = table["DEFERRED_OR_BLOCKED"]
+    assert blocked["EXACT_DUPLICATE"] in ("REJECT", "DEFER_BLOCKER_UNRESOLVED")
+    assert blocked["RESOLVES_BLOCKER"] == "ALLOW_TO_FEASIBILITY"
+    assert blocked["ORTHOGONAL_MECHANISM"] == "ALLOW"
+    assert table["PARTIAL_OR_MIXED"] == "APPLY_SUB_SIGNATURE_STATE"
+    assert _load(DESIGN)["DEFERRED_REGIONS_NOT_GLOBALLY_CONSUMED"] is True
+
+
+def test_blocked_and_deferred_signatures_do_not_close_their_region():
+    """F5 contract: Stream B demand survives blocked/deferred signatures."""
+    authority = _authority()
+    rows = _rows_by_id(authority)
+    assert _load(DESIGN)["STREAM_B_PRESERVED"] is True
+    assert "closes a family" in authority["FAMILY_NOT_CLOSED_BY_ROW"]
+
+    # B2-06: a distinct funding/OI candidate stays eligible as HIGH_VALUE_DATA_BLOCKED.
+    assert rows["B2-06"]["STATE"] == "DEFERRED_OR_BLOCKED"
+    for relation in ("ORTHOGONAL_MECHANISM", "RESOLVES_BLOCKER"):
+        verdict = _novelty_verdict(authority, "B2-06", relation)
+        assert _stream(verdict, ["DATA_READY", "DATA_BLOCKED_POINT_IN_TIME_SEMANTICS"]) == (
+            "HIGH_VALUE_DATA_BLOCKED"
+        ), relation
+    assert _stream(
+        _novelty_verdict(authority, "B2-06", "EXACT_DUPLICATE"),
+        ["DATA_BLOCKED_POINT_IN_TIME_SEMANTICS"],
+    ) == "NOT_A_STREAM"
+
+    # D8: a distinct event-response mechanism is allowed; the exact card is not.
+    assert rows["D8"]["STATE"] == "DEFERRED_OR_BLOCKED"
+    assert _novelty_verdict(authority, "D8", "ORTHOGONAL_MECHANISM") == "ALLOW"
+    assert _stream("ALLOW", ["DATA_READY"]) == "EXECUTABLE_NOW"
+    assert _novelty_verdict(authority, "D8", "PARAMETER_NEIGHBOR") == "REJECT"
+
+    # D6: another pinned external mechanism is allowed; family I is not consumed.
+    assert rows["D6"]["STATE"] == "DEFERRED_OR_BLOCKED"
+    assert rows["D6"]["BLOCKER_CLASS_IF_ANY"] == "DATA_PROVENANCE_SOURCE_NOT_PINNED"
+    assert _novelty_verdict(authority, "D6", "ORTHOGONAL_MECHANISM") == "ALLOW"
+    assert _novelty_verdict(authority, "D6", "RESOLVES_BLOCKER") == "ALLOW_TO_FEASIBILITY"
+    assert _stream("ALLOW_TO_FEASIBILITY", ["FEASIBILITY_REQUIRED"]) == "HIGH_VALUE_DATA_BLOCKED"
+
+
+def test_d4_mixed_subregions_are_distinct():
+    authority = _authority()
+    rows = _rows_by_id(authority)
+    assert _load(DESIGN)["D4_MIXED_STATE_REPRESENTED"] is True
+    d4 = rows["D4"]
+    assert d4["STATE"] == "PARTIAL_OR_MIXED"
+    subs = {s["SIGNATURE_ID"]: s for s in d4["SUB_SIGNATURES"]}
+    assert set(subs) == {"D4.ROLLING_CORRELATION_90D", "D4.LEAD_LAG_1DAY"}
+    assert subs["D4.ROLLING_CORRELATION_90D"]["STATE"] == "CONSUMED"
+    assert subs["D4.LEAD_LAG_1DAY"]["STATE"] == "DEFERRED_OR_BLOCKED"
+    assert subs["D4.LEAD_LAG_1DAY"]["BLOCKER_CLASS_IF_ANY"]
+    for relation in ("EXACT_DUPLICATE", "PARAMETER_NEIGHBOR", "FUNCTIONAL_RELABEL"):
+        assert _novelty_verdict(authority, "D4.ROLLING_CORRELATION_90D", relation) == "REJECT"
+    assert _novelty_verdict(authority, "D4.LEAD_LAG_1DAY", "RESOLVES_BLOCKER") == "ALLOW_TO_FEASIBILITY"
+    try:
+        _novelty_verdict(authority, "D4", "ORTHOGONAL_MECHANISM")
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("D4 must be adjudicated at sub-signature level")
+
+
+def test_structural_provenance_guard_excludes_outcome_fields():
+    g = _load(DESIGN)
+    blind = g["BLIND_GENERATOR_CONTEXT"]
+    guard = blind["STRUCTURAL_PROVENANCE_GUARD"]
+    assert g["STRUCTURAL_CONTEXT_PROVENANCE_GUARD_FROZEN"] is True
+    assert guard["PRIMARY_PROTECTION"] is True
+    assert set(guard["FORBIDDEN_SOURCE_FIELDS"]) == FORBIDDEN_MEMORY_FIELDS
+    assert "BLIND_MECHANISM_MAP_V0.json" in guard["MATERIALIZATION"]
+    assert "SHA256" in guard["MATERIALIZATION"]
+    assert "refuses" in guard["FAIL_CLOSED_ON_MEMORY_CHANGE"]
+    required = {"SOURCE_ARTIFACT", "SOURCE_FIELD", "TRANSFORM", "OUTPUT_FIELD"}
+    outputs = set()
+    for entry in guard["FIELD_ALLOWLIST"]:
+        assert set(entry) == required, entry
+        outputs.add(entry["OUTPUT_FIELD"])
+        assert not any(f in entry["SOURCE_FIELD"] for f in FORBIDDEN_MEMORY_FIELDS), entry
+        assert "RESULT" not in entry["SOURCE_ARTIFACT"], entry
+        assert "discovery_results" not in entry["SOURCE_ARTIFACT"], entry
+        assert "GOVERNANCE_REGION_AUTHORITY" not in entry["SOURCE_FIELD"], entry
+    # Every map field has a provenance entry; nothing else from memory is allowlisted.
+    assert set(blind["WHITELISTED_FIELDS"]) | {"REGION_STATE"} <= outputs
+    memory_sources = {
+        e["SOURCE_FIELD"].split(".")[-1]
+        for e in guard["FIELD_ALLOWLIST"]
+        if e["SOURCE_ARTIFACT"].endswith("MECHANISM_MEMORY_V0.json")
+    }
+    assert memory_sources == set(blind["WHITELISTED_FIELDS"])
+    assert FORBIDDEN_MEMORY_FIELDS <= set(blind["EXCLUDED_FIELDS"])
+    # Overrides may only target allowlisted fields.
+    for target in blind["SANITIZATION_OVERRIDES"]:
+        assert target.split(".", 1)[1] in blind["WHITELISTED_FIELDS"], target
+    assert any("allowlisted provenance" in h for h in g["HARD_FAIL_CRITERIA"])
+
+
+def test_scanner_is_backstop_and_passes_assembled_blind_context():
+    g = _load(DESIGN)
+    blind = g["BLIND_GENERATOR_CONTEXT"]
+    scanner = blind["CONTEXT_SCANNER"]
+    assert scanner["ROLE"] == "BACKSTOP_ONLY"
+    assert g["SCANNER_REMAINS_BACKSTOP"] is True
+    deny = re.compile(scanner["DENYLIST_REGEX"], re.IGNORECASE)
+    assembled = {
+        "BLIND_MECHANISM_MAP_V0": _blind_projection(_load(MEMORY), blind),
+        "DATA_CATALOG_V0": {
+            k: {f: v.get(f) for f in ("CONTENT", "LEGAL_RANGE", "STATUS")}
+            for k, v in g["DATA_CATALOG_V0_SEED"].items()
+        },
+        "CANDIDATE_SCHEMA": g["CANDIDATE_SCHEMA"]["REQUIRED_FIELDS"],
+        "DATA_STATUS_TAXONOMY": g["DATA_STATUS_TAXONOMY"],
+        "GENERIC_METHODOLOGY": g["GENERIC_METHODOLOGY_LESSONS"],
+        "GENERATOR_SIDE_RULE": blind["GENERATOR_SIDE_RULE"],
+    }
+    text = json.dumps(assembled, ensure_ascii=False)
+    assert not deny.search(text), deny.search(text)
+    # The governance authority would be caught if it ever leaked in.
+    assert deny.search(json.dumps(_authority()["ROWS"]))

@@ -18,10 +18,10 @@ data, or allowed to make trading/product claims.
 ## Blind generation
 
 The generator must search mechanism space, not chase previous positives.
-It works from `BLIND_GENERATOR_CONTEXT`; governance works from
-`FULL_GOVERNANCE_CONTEXT`.
+There is no role-agnostic "full governance context": every role gets
+exactly the artifacts its row in the role context matrix allows (below).
 
-### `BLIND_MECHANISM_MAP_V0`
+### `BLIND_MECHANISM_MAP_V0` (generator view)
 
 Derived from `MECHANISM_MEMORY_V0`:
 
@@ -30,57 +30,131 @@ Derived from `MECHANISM_MEMORY_V0`:
 - **Excluded fields:** evidence class, what was tested, what it
   deprioritizes, what remains open, rescue warnings, post-hoc residuals,
   data state, generation.
-- **Sanitization overrides** where a whitelisted field still leaks (today:
-  D2's information source, which mentions replication).
-- **Every entry gets the same state:** `REGION_STATE = CONSUMED`,
-  regardless of outcome.
-- **One uniform transformation rule** for all consumed signatures: no
-  parameter/threshold/window/horizon/lag/clock variants, no observable
-  substitution within the same function, no alternate strata/null/
-  refractory/bootstrap, no composition of consumed signatures, no relabel.
+- **Sanitization overrides** where a whitelisted field still leaks state:
+  D2's information source (mentions replication), D1's mechanism
+  ("reclassified"), D4's function ("lead-lag deferred").
+- **Every row carries the same neutral constant:**
+  `REGION_STATE = PRIOR_WORK_SIGNATURE`. It says only that the signature
+  exists in prior work — not whether it was executed, blocked, deferred,
+  null, promising or confirmed.
+- **Generator-side rule:** avoid exact duplicates of prior-work signatures
+  and cosmetic parameter, window, threshold or horizon relabels of them.
+  Whether a near region is closed or still open is decided by the novelty
+  critic, not the generator.
+
+```
+GENERATOR_SEES_EXECUTION_STATUS = false
+GENERATOR_SEES_OUTCOME_LABELS   = false
+```
 
 Why those fields are excluded: measured on current memory, rescue
 warnings carry outcome vocabulary in 10/30 entries and are written
 differently for positive and null cards; family cooldowns reveal which
-families produced positives. Those stay in governance.
+families produced positives. A uniform `CONSUMED` label would also have
+been wrong: it would tell the generator that blocked regions (B2-06, D6,
+D8, D4 lead-lag) are closed and suppress exactly the data-blocked demand
+Stream B exists to measure.
 
 The generator also receives the family taxonomy A–J (names only),
-`DATA_CATALOG_V0`, the schema and data-status taxonomy, the protected-data
-rule, previously considered candidate signatures **without** selection or
-rejection reasons, and generic methodological lessons without card
-attribution.
+`DATA_CATALOG_V0`, the schema and data-status taxonomy, and generic
+methodological lessons without card attribution. It never receives
+classification labels, gate results, p-values, effect sizes or any numeric
+result, replication/confirmation status, family statuses, past rejection
+reasons, profitability, outcome-ranked families, or
+`GOVERNANCE_REGION_AUTHORITY_V0` in any form.
 
-It never receives classification labels, gate results, p-values, effect
-sizes or any numeric result, replication/confirmation status, family
-statuses, past rejection reasons, profitability, or outcome-ranked
-families.
+### Structural provenance guard (primary protection)
 
-**Context scanner (hard fail).** Before every call, the fully assembled
-context (map, catalog, prompt, few-shot examples) is scanned for outcome
-vocabulary and result-like numbers. A hit stops the call. Few-shot
-examples are synthetic. The scanner is a backstop, not the main
-protection: rescue warnings use ordinary words ("D7 positive does not
-authorize…"), so the denylist includes words like `positive`/`negative`
-as well as label vocabulary. Residual risk — that a consumed region's existence
-or wording hints at its outcome — is accepted and recorded.
+Every field in generator context must have an allowlisted provenance entry
+`SOURCE_ARTIFACT, SOURCE_FIELD, TRANSFORM, OUTPUT_FIELD`. The allowlist
+covers the five memory fields above, the `REGION_STATE` constant, the data
+catalog, family names only, the schema/taxonomy and the generic lessons.
 
-### Governance context
+- Nothing from `STATUS_EVIDENCE_CLASS`, `WHAT_WAS_ACTUALLY_TESTED`,
+  `WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES`, `WHAT_REMAINS_OPEN`,
+  `NEIGHBOR_RESCUE_WARNING`, `POSTHOC_RESIDUALS_IF_ANY`, any `*_RESULT`
+  artifact, `discovery_results/**` or the governance authority may enter,
+  except through an explicitly reviewed, outcome-neutral transform recorded
+  in the design (none in V0).
+- The implementation unit materializes a tracked
+  `docs/research/BLIND_MECHANISM_MAP_V0.json` with a SHA256 digest; the
+  provider receives that artifact, never raw memory.
+- **Fail closed:** if memory gains or changes an entry the materialized map
+  does not cover, generation refuses to run until the map is regenerated
+  and reviewed.
+- A context field without an allowlisted provenance entry is a hard fail.
 
-Governance may read full memory, rotation rules and results to enforce
-frozen anti-rescue and consumed-region rules and scientific integrity. It
-may **not** score a candidate as more or less likely to work because it
-resembles a past positive or null card.
+**Context scanner (backstop only).** Before every call, the fully
+assembled context (map, catalog, prompt, few-shot examples) is scanned for
+outcome and governance-state vocabulary and result-like numbers; a hit
+stops the call. Passing the scanner is not proof of blindness — the
+provenance guard is. Few-shot examples are synthetic. Residual risk — that
+a prior region's existence or wording hints at its outcome — is accepted
+and recorded.
 
-## Roles
+### `GOVERNANCE_REGION_AUTHORITY_V0` (not generator context)
 
-| Role | Sees | Does |
+A machine-readable authority used by the novelty critic (and by the red
+team only for a specific frozen anti-rescue row). One row per memory entry;
+a memory entry without a row fails closed.
+
+Row fields only: `SIGNATURE_ID, MECHANISM, FUNCTION, STATE,
+ANTI_RESCUE_SCOPE, BLOCKER_CLASS_IF_ANY,
+BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY`. No p-values, effect sizes, gate
+results, promising/null labels, yearly outcomes, profitability or
+prototype status.
+
+| State | Meaning |
+|---|---|
+| `CONSUMED` | frozen function executed or otherwise used; outcome not recorded |
+| `DEFERRED_OR_BLOCKED` | defined but not executed because of a named blocker; region not closed |
+| `PARTIAL_OR_MIXED` | sub-signatures carry different states; adjudicate per sub-signature |
+
+Novelty decision table (candidate's relation to the nearest signature):
+
+| Relation | `CONSUMED` | `DEFERRED_OR_BLOCKED` |
 |---|---|---|
-| Generator | blind context | proposes cards in the frozen schema; no success estimates, no self-grading |
-| Novelty critic | blind map + frozen anti-rescue rules | duplicate, neighbor rescue, cosmetic novelty, batch overuse, equivalent target — each verdict cites the consumed signature or rule |
-| Feasibility critic | data catalog, taxonomy, protected rule | confirms data status, names missing observables exactly, point-in-time and provenance, cost; writes data-gap rows |
-| Red team | card + methodology checklist | lookahead/leakage, outcome-dependent selectors, impossible causality, confounding, hidden search surface, p-hacking freedom |
-| Selector | critic outputs + data status only | ordinal ranking by mechanism distance × information gain × feasibility × cheapness; shortlist ≤5 for humans |
-| Human | everything | approves/rejects with logged reasons, adjudicates novelty, authorizes data and execution, program decisions |
+| exact duplicate | reject | defer (blocker unresolved) |
+| parameter neighbor | reject | reject |
+| functional relabel | reject | defer (blocker unresolved) |
+| resolves the blocker | human review | allow → feasibility |
+| orthogonal mechanism | allow | allow |
+
+`PARTIAL_OR_MIXED` applies the sub-signature's state. No row closes a
+family or an information class. Rows are written symmetrically; outcome-
+derived family cooldowns are not encoded (humans may still apply them,
+logged).
+
+Current rows: 24 `CONSUMED`; `DEFERRED_OR_BLOCKED` for B2-06 and MARKET-04
+(point-in-time semantics), D1 (null model cannot generate the observable),
+D6 (source not pinned), D8 (insufficient control support, frozen
+thresholds kept); D4 `PARTIAL_OR_MIXED` — rolling 90d correlation
+`CONSUMED`, 1-day lead-lag `DEFERRED_OR_BLOCKED` (null destroys the common
+factor; needs a common-factor-preserving null).
+
+**Stream assignment:** `EXECUTABLE_NOW` = allow + red team pass + all data
+ready. `HIGH_VALUE_DATA_BLOCKED` = allow or allow→feasibility + red team
+pass + any observable feasibility-required or data-blocked. Everything else
+is not a stream. So a distinct funding/OI candidate near B2-06 lands in
+Stream B, a distinct event-response mechanism near D8 is allowed, another
+pinned external mechanism near D6 is allowed, and D4 rolling-correlation
+neighbors are rejected while D4 lead-lag stays open to a blocker
+resolution.
+
+## Roles and context matrix
+
+| Role | Allowed | Forbidden (besides raw memory, results, labels, magnitudes, prototype/null identity, full history) | Does |
+|---|---|---|---|
+| Generator | blind map, data catalog, schema, data-status taxonomy, generic methodology | governance authority, critic outputs | proposes cards in the frozen schema; no success estimates, no self-grading |
+| Novelty critic | blind map, governance authority, generic anti-rescue rules, current batch signatures, candidate | — | duplicate, neighbor rescue, cosmetic novelty, batch overuse, blocker resolution; each verdict cites the signature and table cell |
+| Feasibility critic | candidate, data catalog, taxonomy, blocker requirements, protected-data rules | — | confirms data status, names missing observables exactly, point-in-time and provenance, cost; writes data-gap rows |
+| Red team | candidate, methodology checklist, protected-data rules; governance row only when adjudicating a frozen anti-rescue rule | — | lookahead/leakage, outcome-dependent selectors, impossible causality, confounding, hidden search surface, p-hacking freedom |
+| Selector | sanitized critic outputs, data status, selection judgments | governance authority, blind map | ordinal ranking by mechanism distance × information gain × feasibility × cheapness; shortlist ≤5 for humans |
+| Human | full research history | — | approves/rejects with logged reasons, adjudicates novelty, authorizes data and execution, program decisions |
+
+Sanitized critic outputs carry verdicts and judgments only; the governance
+state a novelty verdict cited is stripped before the selector sees it.
+Full research history is reachable only by the human role.
 
 ## Candidate schema (frozen)
 
@@ -155,11 +229,12 @@ human minutes and any comparison with past sprints is labelled an estimate.
 never a generator reward and never enter generator or selector context.
 Never scored: expected alpha, probability of a positive result.
 
-**Hard fails:** scanner hit; success-probability field; protected-data
-requirement; lookahead; identical to a consumed signature; forbidden
-transformation of one; missing falsifier or baseline; unbounded search
-surface; trading/alpha/product claim; blocked status without a named
-missing observable; off-catalog source claimed as data-ready.
+**Hard fails:** scanner hit; generator-context field without allowlisted
+provenance; success-probability field; protected-data requirement;
+lookahead; novelty verdict reject under the decision table; missing
+falsifier or baseline; unbounded search surface; trading/alpha/product
+claim; blocked status without a named missing observable; off-catalog
+source claimed as data-ready.
 
 ## LLM architecture, budget, reproducibility
 
@@ -179,7 +254,17 @@ missing observable; off-catalog source claimed as data-ready.
 ## Next unit
 
 `HYPOTHESIS_GENERATOR_V0_IMPLEMENTATION_AND_SHADOW_HARNESS` — infrastructure
-only: blind-context builder (whitelist, overrides, scanner), schema
+only: blind-context builder (provenance allowlist, overrides, materialized
+map with digest, scanner), governance region authority, schema
 validator, provider interface and mock, generator, three critics, selector,
 data-gap ledger, run ledger, budget guard, shadow batch runner. No market
 scientific execution.
+
+## Pre-outcome amendment 1
+
+Amends PR #204 head `fd364b3`, before any generator exists or any output is
+observed: neutral `PRIOR_WORK_SIGNATURE` state replaces the uniform
+`CONSUMED` label; `GOVERNANCE_REGION_AUTHORITY_V0` added; explicit role
+context matrix replaces the full-governance-context path; structural
+provenance guard made primary with the scanner as backstop. Maturity
+decision, batch size, budget cap and all boundary flags are unchanged.

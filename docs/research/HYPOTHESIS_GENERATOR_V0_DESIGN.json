@@ -13,10 +13,12 @@
     "CONTEXT_SCANNER": {
       "APPLIED_TO": "the fully assembled generator context (map, catalog, prompt, few-shot examples) before every call",
       "BACKSTOP_NOTE": "The scanner is a backstop; field exclusion is the primary protection. Rescue warnings use ordinary words such as 'positive', which the scanner must also catch.",
-      "DENYLIST_REGEX": "PROMISING|NO_USEFUL|NO_EVIDENCE|REJECTED|_KILL|\\bKILL\\b|SUPPORTED|REPRODUCED|CLOSED_NO|REPEATED_NULL|INCONCLUSIVE|INVALID_DISCOVERY|COOLDOWN|replicat|\\bMC_P\\b|p[-_ ]?value|\\b0\\.\\d{4,}|PROTOTYPE|did not pass|passed the|worked|\\bpositive\\b|\\bnegative\\b",
+      "DENYLIST_REGEX": "PROMISING|NO_USEFUL|NO_EVIDENCE|REJECTED|_KILL|\\bKILL\\b|SUPPORTED|REPRODUCED|CLOSED_NO|REPEATED_NULL|INCONCLUSIVE|INVALID_DISCOVERY|COOLDOWN|replicat|\\bMC_P\\b|p[-_ ]?value|\\b0\\.\\d{4,}|PROTOTYPE|did not pass|passed the|worked|\\bpositive\\b|\\bnegative\\b|\\bCONSUMED\\b|DEFERRED_OR_BLOCKED|PARTIAL_OR_MIXED|\\bEXECUTED\\b",
       "DOMAIN_TERM_NOTE": "Domain words such as 'failed breakout', 'confirmatory', 'null model' are not outcome labels; the denylist targets label vocabulary, not these words.",
+      "NOT_A_PROOF": "A clean scan is not proof of outcome blindness; the structural provenance guard is the security model.",
       "ON_HIT": "HARD_FAIL: the call is not made and the run is invalid until the context is fixed",
-      "RESIDUAL_RISK": "The existence of a consumed region and the wording of mechanisms cannot be fully outcome-neutral; accepted and recorded."
+      "RESIDUAL_RISK": "The existence of a prior-work signature and the wording of mechanisms cannot be fully outcome-neutral; accepted and recorded.",
+      "ROLE": "BACKSTOP_ONLY"
     },
     "DERIVED_FROM": "docs/research/MECHANISM_MEMORY_V0.json",
     "EXCLUDED_FIELDS": [
@@ -29,23 +31,115 @@
       "DATA_STATE",
       "GENERATION"
     ],
+    "GENERATOR_SEES_EXECUTION_STATUS": false,
+    "GENERATOR_SEES_OUTCOME_LABELS": false,
+    "GENERATOR_SIDE_RULE": "Avoid exact duplicates of prior-work signatures and cosmetic parameter, window, threshold or horizon relabels of them.",
+    "GENERATOR_SIDE_RULE_RATIONALE_NOT_IN_CONTEXT": "The generator is not told whether a prior signature was executed, blocked, deferred, null, promising or confirmed; that adjudication happens only in the novelty critic via GOVERNANCE_REGION_AUTHORITY_V0. Only GENERATOR_SIDE_RULE is placed in generator context.",
     "NAME": "BLIND_MECHANISM_MAP_V0",
     "NEVER_EXPOSED": [
       "classification labels, promising/null, gate booleans",
       "p-values, effect sizes, yearly values, any numeric result",
       "replication, confirmation or decomposition status",
       "family cooldown or deprioritization statuses",
+      "scientific region state (consumed, deferred, blocked, mixed, executed)",
+      "GOVERNANCE_REGION_AUTHORITY_V0 in any form",
       "selection/rejection reasons from past candidate pools",
       "profitability or trading information",
       "outcome-derived ranking of families"
     ],
     "PER_ENTRY_ADDED_FIELD": {
-      "REGION_STATE": "CONSUMED (identical for every executed or consumed entry, regardless of outcome)"
+      "REGION_STATE": "PRIOR_WORK_SIGNATURE"
     },
+    "REGION_STATE_MEANING": "Identical constant on every row. Means only that Signalbot has previously defined or considered work near this signature. It never means closed, consumed, executed, blocked, deferred, confirmed, positive or negative.",
+    "REGION_STATE_VALUE": "PRIOR_WORK_SIGNATURE",
     "SANITIZATION_OVERRIDES": {
-      "D2.INFORMATION_SOURCE": "CORE_BTC 24h RV state; BitMEX XBTUSD 5m pre-2020"
+      "D1.MECHANISM": "Structural state detection",
+      "D2.INFORMATION_SOURCE": "CORE_BTC 24h RV state; BitMEX XBTUSD 5m pre-2020",
+      "D4.FUNCTION": "Rolling 90d correlation range; 1-day lead-lag"
     },
-    "UNIFORM_TRANSFORMATION_RULE": "For every consumed signature, do not propose: parameter, threshold, percentile, window, horizon, lag or clock variants; observable substitutions within the same function; alternate matching strata, nulls, refractories or bootstraps; composition of consumed signatures; or relabels of the same function. This rule is applied identically to all consumed entries.",
+    "STRUCTURAL_PROVENANCE_GUARD": {
+      "FAIL_CLOSED_ON_MEMORY_CHANGE": "If MECHANISM_MEMORY_V0 gains or changes an entry that the materialized map does not cover under these rules, generation refuses to run until the map is regenerated and reviewed.",
+      "FIELD_ALLOWLIST": [
+        {
+          "OUTPUT_FIELD": "ID",
+          "SOURCE_ARTIFACT": "docs/research/MECHANISM_MEMORY_V0.json",
+          "SOURCE_FIELD": "ENTRIES.*.ID",
+          "TRANSFORM": "IDENTITY"
+        },
+        {
+          "OUTPUT_FIELD": "MECHANISM",
+          "SOURCE_ARTIFACT": "docs/research/MECHANISM_MEMORY_V0.json",
+          "SOURCE_FIELD": "ENTRIES.*.MECHANISM",
+          "TRANSFORM": "IDENTITY_WITH_REVIEWED_OVERRIDES"
+        },
+        {
+          "OUTPUT_FIELD": "INFORMATION_SOURCE",
+          "SOURCE_ARTIFACT": "docs/research/MECHANISM_MEMORY_V0.json",
+          "SOURCE_FIELD": "ENTRIES.*.INFORMATION_SOURCE",
+          "TRANSFORM": "IDENTITY_WITH_REVIEWED_OVERRIDES"
+        },
+        {
+          "OUTPUT_FIELD": "FUNCTION",
+          "SOURCE_ARTIFACT": "docs/research/MECHANISM_MEMORY_V0.json",
+          "SOURCE_FIELD": "ENTRIES.*.FUNCTION",
+          "TRANSFORM": "IDENTITY_WITH_REVIEWED_OVERRIDES"
+        },
+        {
+          "OUTPUT_FIELD": "TARGET_FAMILY",
+          "SOURCE_ARTIFACT": "docs/research/MECHANISM_MEMORY_V0.json",
+          "SOURCE_FIELD": "ENTRIES.*.TARGET_FAMILY",
+          "TRANSFORM": "IDENTITY_WITH_REVIEWED_OVERRIDES"
+        },
+        {
+          "OUTPUT_FIELD": "REGION_STATE",
+          "SOURCE_ARTIFACT": "CONSTANT",
+          "SOURCE_FIELD": "NONE",
+          "TRANSFORM": "CONSTANT_PRIOR_WORK_SIGNATURE"
+        },
+        {
+          "OUTPUT_FIELD": "DATA_CATALOG_V0",
+          "SOURCE_ARTIFACT": "docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.json",
+          "SOURCE_FIELD": "DATA_CATALOG_V0_SEED.*.{CONTENT,LEGAL_RANGE,STATUS}",
+          "TRANSFORM": "IDENTITY"
+        },
+        {
+          "OUTPUT_FIELD": "FAMILY_TAXONOMY",
+          "SOURCE_ARTIFACT": "docs/research/HETEROGENEOUS_FAMILY_ROTATION_V3.json",
+          "SOURCE_FIELD": "FAMILY_STATUS.*.NAME",
+          "TRANSFORM": "NAMES_ONLY"
+        },
+        {
+          "OUTPUT_FIELD": "SCHEMA",
+          "SOURCE_ARTIFACT": "docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.json",
+          "SOURCE_FIELD": "CANDIDATE_SCHEMA, DATA_STATUS_TAXONOMY",
+          "TRANSFORM": "IDENTITY"
+        },
+        {
+          "OUTPUT_FIELD": "METHODOLOGY",
+          "SOURCE_ARTIFACT": "docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.json",
+          "SOURCE_FIELD": "GENERIC_METHODOLOGY_LESSONS",
+          "TRANSFORM": "IDENTITY"
+        }
+      ],
+      "FORBIDDEN_SOURCE_ARTIFACTS": [
+        "any *_RESULT.json / *_RESULT.md",
+        "docs/research/discovery_results/**",
+        "GOVERNANCE_REGION_AUTHORITY_V0",
+        "rotation FAMILY_STATUS beyond NAME"
+      ],
+      "FORBIDDEN_SOURCE_FIELDS": [
+        "STATUS_EVIDENCE_CLASS",
+        "WHAT_WAS_ACTUALLY_TESTED",
+        "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES",
+        "WHAT_REMAINS_OPEN",
+        "NEIGHBOR_RESCUE_WARNING",
+        "POSTHOC_RESIDUALS_IF_ANY"
+      ],
+      "MATERIALIZATION": "The implementation unit materializes a tracked docs/research/BLIND_MECHANISM_MAP_V0.json with a SHA256 digest; the provider receives that artifact, never raw mechanism memory.",
+      "PRIMARY_PROTECTION": true,
+      "REVIEWED_TRANSFORM_EXCEPTION": "A value from a forbidden field may enter only through an explicitly reviewed, outcome-neutral transformation recorded in SANITIZATION_OVERRIDES; none exist in V0.",
+      "RULE": "Every field that enters generator context carries SOURCE_ARTIFACT, SOURCE_FIELD, TRANSFORM and OUTPUT_FIELD and must match an entry in FIELD_ALLOWLIST. Anything else is refused before the provider is called."
+    },
     "WHITELISTED_FIELDS": [
       "ID",
       "MECHANISM",
@@ -123,6 +217,7 @@
   "D11_CONFIRMATION_EXECUTED": false,
   "D12_CONFIRMATION_EXECUTED": false,
   "D14_CREATED": false,
+  "D4_MIXED_STATE_REPRESENTED": true,
   "D7_CONFIRMATION_EXECUTED": false,
   "D7_RERUN_PERFORMED": false,
   "D8_EXECUTED": false,
@@ -210,17 +305,18 @@
     "DATA_BLOCKED_COST": "Requires paid data or disproportionate engineering",
     "DATA_BLOCKED_MISSING_OBSERVABLE": "No known source provides the observable",
     "DATA_BLOCKED_POINT_IN_TIME_SEMANTICS": "The observable exists but when it became public (or whether history was revised) is unproven",
-    "DATA_BLOCKED_PROVENANCE": "A source exists but cannot be pinned or reproduced byte-exactly",
+    "DATA_BLOCKED_PROVENANCE": "A source exists but cannot be pinned or re-fetched byte-exactly",
     "DATA_READY": "Every required observable is in a tracked, snapshot-bound dataset with restore authority and legal 2020-2024 (or earlier) coverage",
     "FEASIBILITY_REQUIRED": "A plausible free source exists but availability, completeness, provenance or point-in-time semantics are unverified; the candidate must list exactly what to verify"
   },
   "DATA_STATUS_TAXONOMY_FROZEN": true,
   "DATE": "2026-09-22",
+  "DEFERRED_REGIONS_NOT_GLOBALLY_CONSUMED": true,
   "FULL_GOVERNANCE_CONTEXT": {
-    "ACCESS": "novelty critic receives frozen rules only; selector receives critic outputs only; outcome labels never reach generator or selector",
-    "CONTENT": "full MECHANISM_MEMORY_V0, rotation V3 anti-rescue rules, frozen card definitions, result artifacts",
+    "DEFINITION": "Governance context is exactly the per-role allowlists in ROLE_CONTEXT_MATRIX. There is no bundle of full memory or results that any automated role can request; full research history is reachable only by the HUMAN role.",
     "FORBIDDEN_USE": "scoring a candidate as more or less likely to work because it resembles a prior positive or null card",
-    "PERMITTED_USE": "enforcing frozen anti-rescue and consumed-region rules, scientific-integrity checks, data feasibility"
+    "MODEL": "PER_ROLE_ONLY",
+    "NO_ROLE_AGNOSTIC_FULL_CONTEXT_BUNDLE": true
   },
   "FULL_GOVERNANCE_CONTEXT_DEFINED": true,
   "GENERATOR_BUILT": false,
@@ -258,13 +354,380 @@
     ],
     "SCALE": "ordinal per dimension (e.g. 0-3) recorded separately; no single opaque total score"
   },
+  "GENERIC_METHODOLOGY_LESSONS": [
+    "A target defined only on a conditioned subset (e.g. a ratio defined only when a denominator is above zero) can create collider selection.",
+    "Compared time windows must have matching weekday composition.",
+    "Controls matched on a stratum should be compared within that stratum, and permutation nulls should respect it.",
+    "Universe membership at a decision time must not depend on survival after it.",
+    "Every threshold, window and percentile is part of the search surface and must be frozen before outcomes.",
+    "A null model must be able to generate the card's own observable."
+  ],
+  "GOVERNANCE_REGION_AUTHORITY_DESIGNED": true,
+  "GOVERNANCE_REGION_AUTHORITY_V0": {
+    "CONSUMERS": [
+      "NOVELTY_CRITIC",
+      "RED_TEAM (only when adjudicating a frozen anti-rescue rule)",
+      "HUMAN"
+    ],
+    "COVERAGE_RULE": "Every MECHANISM_MEMORY_V0 entry has exactly one row (sub-signatures allowed); a memory entry without a row fails closed.",
+    "FAMILY_NOT_CLOSED_BY_ROW": "No row, whatever its state, closes a family or an information class; only the listed relations to that signature are adjudicated.",
+    "FORBIDDEN_CONTENT": [
+      "p-values",
+      "effect sizes",
+      "gate results",
+      "promising/null labels",
+      "yearly outcomes",
+      "profitability",
+      "prototype status"
+    ],
+    "MATERIALIZATION": "The implementation unit materializes a tracked docs/research/GOVERNANCE_REGION_AUTHORITY_V0.json from these rows, with a digest.",
+    "NAME": "GOVERNANCE_REGION_AUTHORITY_V0",
+    "NOT_GENERATOR_CONTEXT": true,
+    "NOVELTY_DECISION_TABLE": {
+      "CONSUMED": {
+        "EXACT_DUPLICATE": "REJECT",
+        "FUNCTIONAL_RELABEL": "REJECT",
+        "ORTHOGONAL_MECHANISM": "ALLOW",
+        "PARAMETER_NEIGHBOR": "REJECT",
+        "RESOLVES_BLOCKER": "HUMAN_REVIEW"
+      },
+      "DEFERRED_OR_BLOCKED": {
+        "EXACT_DUPLICATE": "DEFER_BLOCKER_UNRESOLVED",
+        "FUNCTIONAL_RELABEL": "DEFER_BLOCKER_UNRESOLVED",
+        "ORTHOGONAL_MECHANISM": "ALLOW",
+        "PARAMETER_NEIGHBOR": "REJECT",
+        "RESOLVES_BLOCKER": "ALLOW_TO_FEASIBILITY"
+      },
+      "PARTIAL_OR_MIXED": "APPLY_SUB_SIGNATURE_STATE"
+    },
+    "RELATIONS": {
+      "EXACT_DUPLICATE": "same mechanism, function, target and observable as the signature",
+      "FUNCTIONAL_RELABEL": "same function under a new name, observable substitution or relabelled target",
+      "ORTHOGONAL_MECHANISM": "a different mechanism or function, possibly in the same family or using the same information class",
+      "PARAMETER_NEIGHBOR": "same function with a changed parameter, threshold, window, horizon or clock",
+      "RESOLVES_BLOCKER": "the signature's own design with a proposed resolution of its named blocker"
+    },
+    "ROWS": [
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Low recent RV -> higher future RV",
+        "MECHANISM": "Compression -> subsequent RV expansion",
+        "SIGNATURE_ID": "H01",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Close-back-inside-range reversion",
+        "MECHANISM": "Failed breakout -> mean reversion",
+        "SIGNATURE_ID": "H02",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Signed continuation after impulse windows",
+        "MECHANISM": "Extreme impulse -> continuation vs exhaustion",
+        "SIGNATURE_ID": "H03",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Continuation after pullback depth bands",
+        "MECHANISM": "Trend pullback -> continuation",
+        "SIGNATURE_ID": "H04",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Signed return after taker imbalance",
+        "MECHANISM": "Taker imbalance -> subsequent return",
+        "SIGNATURE_ID": "H05",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Transition-threshold volatility dynamics",
+        "MECHANISM": "Volatility-state transition",
+        "SIGNATURE_ID": "B2-01",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Path after range-boundary breach",
+        "MECHANISM": "Boundary interaction path",
+        "SIGNATURE_ID": "B2-02",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Morphology components after impulse",
+        "MECHANISM": "Impulse morphology",
+        "SIGNATURE_ID": "B2-03",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Moderate-depth pullback continuation",
+        "MECHANISM": "Moderate pullback structure",
+        "SIGNATURE_ID": "B2-04",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Participation / order-flow absorption",
+        "MECHANISM": "Flow absorption",
+        "SIGNATURE_ID": "B2-05",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Incremental continuation after OI expansion",
+        "MECHANISM": "OI expansion weak continuation",
+        "SIGNATURE_ID": "MARKET-01",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Price-confirmation increment after OI expansion",
+        "MECHANISM": "OI expansion price confirmation",
+        "SIGNATURE_ID": "MARKET-02",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Historical reproduction of an external claim",
+        "MECHANISM": "External/public strategy reproduction",
+        "SIGNATURE_ID": "MARKET-03",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Additive incremental term beside BTC own-state",
+        "MECHANISM": "Cross-asset ETH additive term -> 24h adverse-path MAE",
+        "SIGNATURE_ID": "MARKET-05",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Additive dislocation term beside BTC controls",
+        "MECHANISM": "Cross-venue dislocation -> 24h adverse-path MAE",
+        "SIGNATURE_ID": "MARKET-06",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Filter high-RV decisions vs matched random",
+        "MECHANISM": "Conditional abstention on RV state",
+        "SIGNATURE_ID": "D2",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Unconditional 24h close-path characterization",
+        "MECHANISM": "Path morphology (unsigned close path)",
+        "SIGNATURE_ID": "D3",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Composition vs best component",
+        "MECHANISM": "Composed decision mechanism",
+        "SIGNATURE_ID": "D5",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Next-hour impact-state persistence",
+        "MECHANISM": "Kline-derived execution-impact state persistence",
+        "SIGNATURE_ID": "D7",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Conditional share of same-5m closure",
+        "MECHANISM": "Two-venue dislocation-closure attribution",
+        "SIGNATURE_ID": "D9",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Next-hour residual after trailing beta",
+        "MECHANISM": "BTC-ETH residual shock persistence",
+        "SIGNATURE_ID": "D10",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "Post-event 6h unsigned RV vs matched windows",
+        "MECHANISM": "Scheduled FOMC unsigned event volatility",
+        "SIGNATURE_ID": "D11",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "US DST shift of the intraday volume profile",
+        "MECHANISM": "Participation-clock anchoring",
+        "SIGNATURE_ID": "D12",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "1-week formation / 1-week holding rank IC",
+        "MECHANISM": "Cross-sectional weekly relative return",
+        "SIGNATURE_ID": "D13",
+        "STATE": "CONSUMED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "the same frozen card while its blocker is unresolved; parameter neighbors that weaken its frozen definitions to evade the blocker",
+        "BLOCKER_CLASS_IF_ANY": "DATA_POINT_IN_TIME_SEMANTICS",
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "First-party authority for when settled funding became public (FUNDING_PUBLICATION_LATENCY_UNPROVEN)",
+        "FUNCTION": "OI/funding crowding state -> incremental information",
+        "MECHANISM": "Leverage crowding (OI + funding state)",
+        "SIGNATURE_ID": "B2-06",
+        "STATE": "DEFERRED_OR_BLOCKED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "the same frozen card while its blocker is unresolved; parameter neighbors that weaken its frozen definitions to evade the blocker",
+        "BLOCKER_CLASS_IF_ANY": "DATA_POINT_IN_TIME_SEMANTICS",
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "Proven safe-usable-at time and archive identity for funding/premium observables",
+        "FUNCTION": "Funding/premium-conditioned path or return",
+        "MECHANISM": "Funding / premium / same-venue basis (04 / 04H)",
+        "SIGNATURE_ID": "MARKET-04",
+        "STATE": "DEFERRED_OR_BLOCKED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "the same frozen card while its blocker is unresolved; parameter neighbors that weaken its frozen definitions to evade the blocker",
+        "BLOCKER_CLASS_IF_ANY": "METHOD_NULL_MODEL_OBSERVABLE_MISMATCH",
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A null model that can generate the card's own observable, frozen before outcomes",
+        "FUNCTION": "State detection vs GARCH/surrogate null",
+        "MECHANISM": "Structural state detection",
+        "SIGNATURE_ID": "D1",
+        "STATE": "DEFERRED_OR_BLOCKED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "the same frozen card while its blocker is unresolved; parameter neighbors that weaken its frozen definitions to evade the blocker",
+        "BLOCKER_CLASS_IF_ANY": "DATA_PROVENANCE_SOURCE_NOT_PINNED",
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "Pin the external source outcome-blind before inspecting outcomes",
+        "FUNCTION": "Diagnostic reproduction of one pinned external mechanism",
+        "MECHANISM": "External mechanism benchmark",
+        "SIGNATURE_ID": "D6",
+        "STATE": "DEFERRED_OR_BLOCKED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "the same frozen card while its blocker is unresolved; parameter neighbors that weaken its frozen definitions to evade the blocker",
+        "BLOCKER_CLASS_IF_ANY": "SUPPORT_INSUFFICIENT_CONTROLS",
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A control design with adequate support that keeps D8's frozen event thresholds unchanged",
+        "FUNCTION": "Signed 6h recovery after the frozen shock rule",
+        "MECHANISM": "Endogenous high-magnitude + high-activity shock recovery",
+        "SIGNATURE_ID": "D8",
+        "STATE": "DEFERRED_OR_BLOCKED"
+      },
+      {
+        "ANTI_RESCUE_SCOPE": "Apply the sub-signature state",
+        "BLOCKER_CLASS_IF_ANY": null,
+        "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+        "FUNCTION": "See SUB_SIGNATURES",
+        "MECHANISM": "BTC-ETH relative structure",
+        "SIGNATURE_ID": "D4",
+        "STATE": "PARTIAL_OR_MIXED",
+        "SUB_SIGNATURES": [
+          {
+            "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+            "BLOCKER_CLASS_IF_ANY": null,
+            "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+            "FUNCTION": "Rolling 90d correlation range",
+            "MECHANISM": "BTC-ETH relative structure",
+            "SIGNATURE_ID": "D4.ROLLING_CORRELATION_90D",
+            "STATE": "CONSUMED"
+          },
+          {
+            "ANTI_RESCUE_SCOPE": "the same frozen card while its blocker is unresolved; parameter neighbors that weaken its frozen definitions to evade the blocker; raw lead-lag under a dependence-destroying null stays rejected",
+            "BLOCKER_CLASS_IF_ANY": "METHOD_NULL_MODEL_DESTROYS_COMMON_FACTOR",
+            "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A common-factor-preserving null frozen before outcomes",
+            "FUNCTION": "1-day lead-lag",
+            "MECHANISM": "BTC-ETH relative structure",
+            "SIGNATURE_ID": "D4.LEAD_LAG_1DAY",
+            "STATE": "DEFERRED_OR_BLOCKED"
+          }
+        ]
+      }
+    ],
+    "ROW_FIELDS": [
+      "SIGNATURE_ID",
+      "MECHANISM",
+      "FUNCTION",
+      "STATE",
+      "ANTI_RESCUE_SCOPE",
+      "BLOCKER_CLASS_IF_ANY",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY"
+    ],
+    "SCOPE_GRANULARITY": "per signature or sub-signature, never whole-family",
+    "STATES": {
+      "CONSUMED": "the signature's frozen function was executed or otherwise used; its outcome is not recorded here",
+      "DEFERRED_OR_BLOCKED": "the signature was defined but not executed because of a named blocker; the mechanism region is not closed",
+      "PARTIAL_OR_MIXED": "sub-signatures carry different states; adjudicate at sub-signature level only"
+    },
+    "STREAM_ASSIGNMENT_RULE": {
+      "EXECUTABLE_NOW": "novelty verdict ALLOW, red team passed, and every required dataset is DATA_READY",
+      "HIGH_VALUE_DATA_BLOCKED": "novelty verdict ALLOW or ALLOW_TO_FEASIBILITY, red team passed, and at least one required observable is FEASIBILITY_REQUIRED or DATA_BLOCKED_*",
+      "NOT_A_STREAM": "REJECT, DEFER_BLOCKER_UNRESOLVED, HUMAN_REVIEW, or any hard fail"
+    },
+    "SYMMETRY_RULE": "Anti-rescue scopes are written in the same form for every consumed row regardless of outcome. Outcome-derived family cooldowns from rotation V2/V3 are not encoded here; humans may still apply them at adjudication, logged."
+  },
   "HARD_FAIL_CRITERIA": [
     "generator context scanner hit (outcome leakage)",
     "candidate contains a probability-of-success or expected-alpha field",
     "requires protected 2025/2026 data",
     "uses information after the decision time (lookahead)",
-    "identical to a consumed signature",
-    "applies a forbidden transformation to a consumed signature",
+    "generator context field without an allowlisted provenance entry",
+    "novelty verdict REJECT under NOVELTY_DECISION_TABLE (exact duplicate, neighbor or relabel of a CONSUMED signature; neighbor of a DEFERRED_OR_BLOCKED one)",
     "missing falsifier or baseline/null",
     "unbounded or unstated search surface",
     "trading, alpha or product claim",
@@ -300,6 +763,14 @@
     "EXECUTABLE_NOW": "DATA_READY candidates that pass all critics",
     "HIGH_VALUE_DATA_BLOCKED": "Candidates that pass novelty and red-team checks but are blocked by data; kept, not discarded, and each writes a data-gap ledger row"
   },
+  "PRE_OUTCOME_AMENDMENT_1": {
+    "AMENDS_HEAD": "fd364b3c8da400b92a83ddd4c68950f70365e87d",
+    "F1": "Blind map state changed from CONSUMED to a neutral constant PRIOR_WORK_SIGNATURE; the generator sees no execution or outcome state",
+    "F2": "GOVERNANCE_REGION_AUTHORITY_V0 added with per-signature CONSUMED / DEFERRED_OR_BLOCKED / PARTIAL_OR_MIXED states, a relation vocabulary and a frozen decision table",
+    "F3": "Explicit ROLE_CONTEXT_MATRIX; no role-agnostic full-governance bundle",
+    "F4": "Structural field-provenance allowlist is the security model; the scanner is a backstop",
+    "MATURITY_DECISION_RECONSIDERED": false
+  },
   "PRODUCT_BUILD_FROZEN": true,
   "PROTECTED_2025_OPENED": false,
   "PROTECTED_2026_OPENED": false,
@@ -323,11 +794,11 @@
         "provenance",
         "engineering cost"
       ],
-      "CONTEXT": "DATA_CATALOG_V0, data-status taxonomy, protected-data rule",
+      "CONTEXT": "see ROLE_CONTEXT_MATRIX.FEASIBILITY_CRITIC",
       "OUTPUT": "confirmed DATA_STATUS, DATA_GAP_CLASS, and a data-gap ledger row when blocked"
     },
     "GENERATOR": {
-      "CONTEXT": "BLIND_GENERATOR_CONTEXT only",
+      "CONTEXT": "see ROLE_CONTEXT_MATRIX.GENERATOR",
       "MUST_NOT": "estimate probability of success, see outcomes, or self-grade",
       "OUTPUT": "candidate cards in the frozen schema"
     },
@@ -344,14 +815,14 @@
     },
     "NOVELTY_CRITIC": {
       "CHECKS": [
-        "duplicate of a consumed signature",
+        "relation to each nearby signature (RELATIONS) and verdict from NOVELTY_DECISION_TABLE",
         "neighbor rescue (rule-based)",
         "cosmetic novelty",
         "overused mechanism within the batch",
         "functionally equivalent target"
       ],
-      "CONTEXT": "BLIND map plus the governance anti-rescue rule set (frozen rules only, no outcome labels)",
-      "OUTPUT": "per-check verdict with cited consumed signature or rule"
+      "CONTEXT": "see ROLE_CONTEXT_MATRIX.NOVELTY_CRITIC",
+      "OUTPUT": "per-check verdict with the cited signature or rule; the cited STATE is stripped before output reaches the selector"
     },
     "RED_TEAM": {
       "CHECKS": [
@@ -362,11 +833,11 @@
         "hidden search surface",
         "p-hacking degrees of freedom"
       ],
-      "CONTEXT": "candidate card plus methodological checklist",
+      "CONTEXT": "see ROLE_CONTEXT_MATRIX.RED_TEAM",
       "OUTPUT": "per-check verdict; any hard-fail condition"
     },
     "SELECTOR": {
-      "CONTEXT": "critic outputs and data status only",
+      "CONTEXT": "see ROLE_CONTEXT_MATRIX.SELECTOR",
       "FORBIDDEN_INPUTS": [
         "outcome labels of prior cards",
         "similarity to prior positive or null cards (except frozen anti-rescue / consumed-region rules)",
@@ -375,6 +846,132 @@
       "RULE": "rank surviving candidates by MECHANISM_DISTANCE x INFORMATION_GAIN x FEASIBILITY x CHEAPNESS as ordinal judgments; propose a shortlist for human adjudication"
     }
   },
+  "ROLE_CONTEXT_ARTIFACTS": [
+    "BLIND_MECHANISM_MAP_V0",
+    "DATA_CATALOG_V0",
+    "CANDIDATE_SCHEMA",
+    "DATA_STATUS_TAXONOMY",
+    "GENERIC_METHODOLOGY",
+    "GOVERNANCE_REGION_AUTHORITY_V0",
+    "GENERIC_ANTI_RESCUE_RULES",
+    "CURRENT_BATCH_SIGNATURES",
+    "CANDIDATE",
+    "BLOCKER_REQUIREMENTS",
+    "METHODOLOGY_CHECKLIST",
+    "PROTECTED_DATA_RULES",
+    "SANITIZED_CRITIC_OUTPUTS",
+    "DATA_STATUS",
+    "SELECTION_JUDGMENTS",
+    "MECHANISM_MEMORY_V0_RAW",
+    "RESULT_ARTIFACTS",
+    "OUTCOME_LABELS",
+    "EFFECT_MAGNITUDES_AND_P_VALUES",
+    "PRIOR_PROTOTYPE_OR_NULL_IDENTITY",
+    "FULL_RESEARCH_HISTORY"
+  ],
+  "ROLE_CONTEXT_MATRIX": {
+    "FEASIBILITY_CRITIC": {
+      "ALLOWED": [
+        "CANDIDATE",
+        "DATA_CATALOG_V0",
+        "DATA_STATUS_TAXONOMY",
+        "BLOCKER_REQUIREMENTS",
+        "PROTECTED_DATA_RULES"
+      ],
+      "CONDITIONAL": {},
+      "FORBIDDEN": [
+        "MECHANISM_MEMORY_V0_RAW",
+        "RESULT_ARTIFACTS",
+        "OUTCOME_LABELS",
+        "EFFECT_MAGNITUDES_AND_P_VALUES",
+        "PRIOR_PROTOTYPE_OR_NULL_IDENTITY",
+        "FULL_RESEARCH_HISTORY"
+      ]
+    },
+    "GENERATOR": {
+      "ALLOWED": [
+        "BLIND_MECHANISM_MAP_V0",
+        "DATA_CATALOG_V0",
+        "CANDIDATE_SCHEMA",
+        "DATA_STATUS_TAXONOMY",
+        "GENERIC_METHODOLOGY"
+      ],
+      "CONDITIONAL": {},
+      "FORBIDDEN": [
+        "MECHANISM_MEMORY_V0_RAW",
+        "RESULT_ARTIFACTS",
+        "GOVERNANCE_REGION_AUTHORITY_V0",
+        "OUTCOME_LABELS",
+        "EFFECT_MAGNITUDES_AND_P_VALUES",
+        "PRIOR_PROTOTYPE_OR_NULL_IDENTITY",
+        "FULL_RESEARCH_HISTORY",
+        "SANITIZED_CRITIC_OUTPUTS"
+      ]
+    },
+    "HUMAN": {
+      "ALLOWED": [
+        "FULL_RESEARCH_HISTORY"
+      ],
+      "CONDITIONAL": {},
+      "FORBIDDEN": [],
+      "LOGGING": "every override, edit and approval is logged with a reason"
+    },
+    "NOVELTY_CRITIC": {
+      "ALLOWED": [
+        "BLIND_MECHANISM_MAP_V0",
+        "GOVERNANCE_REGION_AUTHORITY_V0",
+        "GENERIC_ANTI_RESCUE_RULES",
+        "CURRENT_BATCH_SIGNATURES",
+        "CANDIDATE"
+      ],
+      "CONDITIONAL": {},
+      "FORBIDDEN": [
+        "MECHANISM_MEMORY_V0_RAW",
+        "RESULT_ARTIFACTS",
+        "OUTCOME_LABELS",
+        "EFFECT_MAGNITUDES_AND_P_VALUES",
+        "PRIOR_PROTOTYPE_OR_NULL_IDENTITY",
+        "FULL_RESEARCH_HISTORY"
+      ]
+    },
+    "RED_TEAM": {
+      "ALLOWED": [
+        "CANDIDATE",
+        "METHODOLOGY_CHECKLIST",
+        "PROTECTED_DATA_RULES"
+      ],
+      "CONDITIONAL": {
+        "GOVERNANCE_REGION_AUTHORITY_V0": "only the specific row(s) needed to adjudicate a frozen anti-rescue rule"
+      },
+      "FORBIDDEN": [
+        "MECHANISM_MEMORY_V0_RAW",
+        "RESULT_ARTIFACTS",
+        "OUTCOME_LABELS",
+        "EFFECT_MAGNITUDES_AND_P_VALUES",
+        "PRIOR_PROTOTYPE_OR_NULL_IDENTITY",
+        "FULL_RESEARCH_HISTORY"
+      ]
+    },
+    "SELECTOR": {
+      "ALLOWED": [
+        "SANITIZED_CRITIC_OUTPUTS",
+        "DATA_STATUS",
+        "SELECTION_JUDGMENTS"
+      ],
+      "CONDITIONAL": {},
+      "FORBIDDEN": [
+        "MECHANISM_MEMORY_V0_RAW",
+        "RESULT_ARTIFACTS",
+        "GOVERNANCE_REGION_AUTHORITY_V0",
+        "OUTCOME_LABELS",
+        "EFFECT_MAGNITUDES_AND_P_VALUES",
+        "PRIOR_PROTOTYPE_OR_NULL_IDENTITY",
+        "FULL_RESEARCH_HISTORY",
+        "BLIND_MECHANISM_MAP_V0"
+      ]
+    }
+  },
+  "ROLE_CONTEXT_MATRIX_FROZEN": true,
   "RUN_LEDGER_FIELDS": [
     "RUN_ID",
     "PROMPT_VERSION",
@@ -388,6 +985,19 @@
     "FINAL_DECISION",
     "HUMAN_MUTATIONS"
   ],
+  "SANITIZED_CRITIC_OUTPUT_FIELDS": [
+    "CANDIDATE_ID",
+    "NOVELTY_VERDICT",
+    "MECHANISM_DISTANCE_JUDGMENT",
+    "FEASIBILITY_VERDICT",
+    "DATA_STATUS",
+    "DATA_GAP_CLASS",
+    "RED_TEAM_VERDICT",
+    "HARD_FAILS",
+    "INFORMATION_GAIN_JUDGMENT",
+    "COST_JUDGMENT"
+  ],
+  "SCANNER_REMAINS_BACKSTOP": true,
   "SCHEMA": "signalbot_hypothesis_generator_design",
   "SCHEMA_VERSION": "0.1.0",
   "SCIENTIFIC_OUTCOMES_COMPUTED": false,
@@ -417,6 +1027,8 @@
   ],
   "SPRINT05_CREATED": false,
   "STATUS": "FROZEN_NOT_IMPLEMENTED",
+  "STREAM_B_PRESERVED": true,
+  "STRUCTURAL_CONTEXT_PROVENANCE_GUARD_FROZEN": true,
   "UNIT": "HYPOTHESIS_GENERATOR_V0_DESIGN",
   "ZERO_COST_MOCK_MODE_REQUIRED": true
 }

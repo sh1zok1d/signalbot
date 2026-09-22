@@ -5538,3 +5538,29 @@ perpetual.
 
 Evidence: `docs/research/POST_SPRINT04_AUTOMATION_MATURITY_DECISION.{json,md}`,
 `docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.{json,md}`.
+
+### 2026-09-22 — Generator V0 design, pre-outcome amendment 1
+
+Design-only amendment to `HYPOTHESIS_GENERATOR_V0_DESIGN`, made before any
+generator exists or any generator output is observed. No window or
+hypothesis consumed.
+
+```
+BLIND_REGION_STATE = PRIOR_WORK_SIGNATURE
+GENERATOR_SEES_EXECUTION_STATUS = false
+GENERATOR_SEES_OUTCOME_LABELS = false
+GOVERNANCE_REGION_AUTHORITY_DESIGNED = true
+ROLE_CONTEXT_MATRIX_FROZEN = true
+STRUCTURAL_CONTEXT_PROVENANCE_GUARD_FROZEN = true
+SCANNER_REMAINS_BACKSTOP = true
+DEFERRED_REGIONS_NOT_GLOBALLY_CONSUMED = true
+D4_MIXED_STATE_REPRESENTED = true
+STREAM_B_PRESERVED = true
+MATURITY_DECISION = HYPOTHESIS_GENERATOR_V0_INFRA_READY (unchanged)
+NEXT_UNIT = HYPOTHESIS_GENERATOR_V0_IMPLEMENTATION_AND_SHADOW_HARNESS
+```
+
+The uniform `CONSUMED` blind label would have told the generator that
+blocked regions (B2-06, MARKET-04, D1, D6, D8, D4 lead-lag) were closed.
+Consumed-versus-deferred adjudication now lives only in
+`GOVERNANCE_REGION_AUTHORITY_V0`, read by the novelty critic.
