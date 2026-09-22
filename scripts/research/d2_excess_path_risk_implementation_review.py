@@ -259,9 +259,11 @@ def build_review(*, repo: Path, implementation_commit: str | None = None) -> dic
     artifacts = current_artifact_sha256(repo)
     tests = {rel: file_sha256(repo / rel) for rel in TEST_FILES}
 
-    head = _git(repo, "rev-parse", "HEAD")
-    tree = _git(repo, "rev-parse", "HEAD^{tree}")
-    commit = implementation_commit or head
+    commit = implementation_commit or _git(repo, "rev-parse", "HEAD")
+    # Resolve the tree OF THE IMPLEMENTATION COMMIT, never of whatever HEAD
+    # happens to be, so RUN_IDENTITY and the artifact bytes stay stable once
+    # the implementation is committed.
+    tree = _git(repo, "rev-parse", f"{commit}^{{tree}}")
 
     identity_inputs = {
         "DESIGN_JSON_SHA256": artifacts["DESIGN_JSON_SHA256"],
@@ -277,7 +279,7 @@ def build_review(*, repo: Path, implementation_commit: str | None = None) -> dic
         "FROZEN_RULE1_YEAR_N": dict(FROZEN_RULE1_YEAR_N),
         "CORE_BTC_SNAPSHOT": C.CORE_BTC_SNAPSHOT,
         "FINAL_IMPLEMENTATION_COMMIT": commit,
-        "FINAL_IMPLEMENTATION_TREE": tree if commit == head else None,
+        "FINAL_IMPLEMENTATION_TREE": tree,
     }
     run_identity = compute_run_identity(identity_inputs)
 
@@ -336,8 +338,7 @@ def build_review(*, repo: Path, implementation_commit: str | None = None) -> dic
         "DESIGN_JSON_SHA256": artifacts["DESIGN_JSON_SHA256"],
         "DESIGN_MD_SHA256": artifacts["DESIGN_MD_SHA256"],
         "FINAL_IMPLEMENTATION_COMMIT": commit,
-        "FINAL_IMPLEMENTATION_TREE": identity_inputs["FINAL_IMPLEMENTATION_TREE"],
-        "PRE_REVIEW_HEAD": head,
+        "FINAL_IMPLEMENTATION_TREE": tree,
         "RUN_IDENTITY": run_identity,
         "RUN_IDENTITY_INPUTS": identity_inputs,
         "RED_TEAM_FINDINGS": RED_TEAM,

@@ -188,9 +188,28 @@ def test_markdown_mirror_states_not_executed():
     assert "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION" in text
 
 
-def test_review_is_regenerable_and_deterministic(review):
+def test_review_is_byte_reproducible_from_the_implementation_commit(review):
+    """A future permit binds this artifact's hash, so it must regenerate exactly.
+
+    The identity is a function of repository content and the implementation
+    commit only. It must not drift with whatever HEAD happens to be.
+    """
+
     rebuilt = R.build_review(
         repo=REPO, implementation_commit=review["FINAL_IMPLEMENTATION_COMMIT"]
     )
     assert rebuilt["RUN_IDENTITY"] == review["RUN_IDENTITY"]
-    assert rebuilt["IMPLEMENTATION_REVIEW"] == review["IMPLEMENTATION_REVIEW"]
+    assert rebuilt["FINAL_IMPLEMENTATION_TREE"] == review["FINAL_IMPLEMENTATION_TREE"]
+    assert rebuilt == review, "review artifact is not byte-reproducible"
+
+
+def test_run_identity_binds_the_implementation_commit_and_tree(review):
+    inputs = review["RUN_IDENTITY_INPUTS"]
+    assert inputs["FINAL_IMPLEMENTATION_COMMIT"] == review["FINAL_IMPLEMENTATION_COMMIT"]
+    assert inputs["FINAL_IMPLEMENTATION_TREE"] == review["FINAL_IMPLEMENTATION_TREE"]
+    assert len(review["FINAL_IMPLEMENTATION_COMMIT"]) == 40
+    assert len(review["FINAL_IMPLEMENTATION_TREE"]) == 40
+    assert inputs["CORE_BTC_SNAPSHOT"] == (
+        "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415"
+    )
+    assert inputs["RANDOM_SEED"] == 20260922131
