@@ -39,6 +39,7 @@ There is still no claim of a durable trading edge.
 
 For any new task, use this authority order:
 
+0. `docs/SIGNALBOT_MANDATE_V1.md` — owner-approved strategic mandate; project success criteria, anti-sycophancy rule, scientific/product/commercial principles. It does not override frozen experiment-specific scientific authorities;
 1. `docs/CURRENT_RESEARCH_STATE.md` — compact current routing and exact next unit;
 2. `docs/PROJECT_STATUS.md` — current posture and freeze;
 3. `docs/RESEARCH_ROADMAP.md` — active execution order;
