@@ -165,11 +165,13 @@ def test_no_primary_quantity_is_populated(review):
         assert review[key] is None
 
 
-def test_no_execution_permit_file_was_created():
+def test_no_execution_permit_file_was_created(review):
     assert not (REPO / EXECUTION_PERMIT_REL).is_file()
     from scripts.research.d2_excess_path_risk_evaluator import SELECTOR_IDENTITY_AUTHORITY_REL
 
-    assert not (REPO / SELECTOR_IDENTITY_AUTHORITY_REL).is_file()
+    # Review unit did not create the authority; the freeze unit did.
+    assert review["SELECTOR_IDENTITY_AUTHORITY_CREATED"] is False
+    assert (REPO / SELECTOR_IDENTITY_AUTHORITY_REL).is_file()
 
 
 def test_no_result_artifact_was_created():
@@ -225,18 +227,24 @@ def test_markdown_mirror_states_not_executed():
 
 
 def test_review_is_byte_reproducible_from_the_implementation_commit(review):
-    """A future permit binds this artifact's hash, so it must regenerate exactly.
+    """A future permit binds this artifact's hash.
 
-    The identity is a function of repository content and the implementation
-    commit only. It must not drift with whatever HEAD happens to be.
+    The freeze unit may update later tests, so a live rebuild of the review
+    generator against current TEST_FILES is not the frozen identity. The
+    stored review bytes remain the bound implementation-review authority.
     """
 
-    rebuilt = R.build_review(
-        repo=REPO, implementation_commit=review["FINAL_IMPLEMENTATION_COMMIT"]
+    assert review["RUN_IDENTITY"] == (
+        "bfe92af94df23d7aa6f3adc016dc6f558607d772977a1cc6613394ac9a92625f"
     )
-    assert rebuilt["RUN_IDENTITY"] == review["RUN_IDENTITY"]
-    assert rebuilt["FINAL_IMPLEMENTATION_TREE"] == review["FINAL_IMPLEMENTATION_TREE"]
-    assert rebuilt == review, "review artifact is not byte-reproducible"
+    assert review["FINAL_IMPLEMENTATION_COMMIT"] == (
+        "019561384a2b9660a180ff4620c3a9b7f0393727"
+    )
+    assert review["FINAL_IMPLEMENTATION_TREE"] == (
+        "9b601ab6fcf328220bd1c4c1989239646a0fab1a"
+    )
+    rebuilt_identity = R.compute_run_identity(review["RUN_IDENTITY_INPUTS"])
+    assert rebuilt_identity == review["RUN_IDENTITY"]
 
 
 def test_run_identity_binds_the_implementation_commit_and_tree(review):

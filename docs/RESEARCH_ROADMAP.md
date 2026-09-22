@@ -62,8 +62,10 @@ after the CORE-restore retry (adaptive discovery, not confirmatory):
 `D2_DECOMPOSITION_DESIGN_STATUS = FROZEN`.
 `D2_DECOMPOSITION_IMPLEMENTATION_REVIEW = PASS`.
 `D2_DECOMPOSITION_EXECUTION_READY = false`.
-`D2_DECOMPOSITION_CANONICAL_SELECTOR_DIGEST_FROZEN = false`.
-`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE`.
+`D2_DECOMPOSITION_IMPLEMENTATION_REVIEW_CANONICAL_SELECTOR_DIGEST_FROZEN = false`.
+`D2_DECOMPOSITION_SELECTOR_IDENTITY_AUTHORITY = FROZEN`.
+`D2_DECOMPOSITION_CANONICAL_SELECTOR_DIGEST_FROZEN = true`.
+`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION`.
 
 D2 discovery remains a `PROMISING_PROTOTYPE` (adaptive discovery label). Outcome-blind
 confirmation design for RULE_1 / `RV_ABSTENTION` found calendar 2025
@@ -112,13 +114,15 @@ the frozen `DiscoveryRow.severity`. The dormant canonical route is fully
 wired behind a tracked-permit firewall that does not exist in this unit.
 The canonical route requires a tracked selector-identity authority and
 compares the reconstructed ordered digest to it before any ADVERSE_SHARE
-/ PATH_SCALE evaluation; that authority artifact is not created here.
-F1–F20 red-team classes returned `NOT_CONFIRMED`. **No real decomposition
-outcome was computed**: there is no execution permit, no RESULT, no ARM,
-no MARKET-07, protected 2025/2026 stays sealed, and BitMEX 2017-2019 is
-not reused for this target. The next unit only writes/freezes the
-selector-identity authority bytes, not one-shot execution:
-`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE`.
+/ PATH_SCALE evaluation. The implementation-review unit did **not** create
+the authority (`CANONICAL_SELECTOR_DIGEST_FROZEN = false` at review time).
+`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE`
+has now frozen that authority from legal CORE BTC 2020-2024
+(`SELECTOR_IDENTITY_AUTHORITY = FROZEN`, current
+`CANONICAL_SELECTOR_DIGEST_FROZEN = true`). No decomposition outcome,
+permit, or RESULT was produced. Next is one-shot execution, which is
+**not** authorized by this freeze:
+`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION`.
 
 Card identities at definition time (unchanged):
 
