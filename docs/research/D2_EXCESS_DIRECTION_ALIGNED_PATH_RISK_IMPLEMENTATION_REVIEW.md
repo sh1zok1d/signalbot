@@ -28,6 +28,7 @@ PRACTICAL_GATE     = DELTA_SHARE >= 0.05
 TEMPORAL_GATE      = DELTA_SHARE > 0 in at least 3 of 5 years
 RANDOM_SEED        = 20260922131
 N_RANDOM_CONTROLS  = 10000
+CONTROL_P95_METHOD = NUMPY_LINEAR_INHERITED_FROM_D2
 FROZEN_RULE1_N     = 1791 (2020=334, 2021=364, 2022=364, 2023=364, 2024=365)
 ```
 
@@ -55,19 +56,29 @@ ineligibility is reported per year.
 ## Identity
 
 ```
-IMPLEMENTATION_REVIEW      = PASS
-EXECUTION_READY            = True
-EXECUTION_AUTHORIZED       = False
-EXECUTION_PERMIT_PRESENT   = False
-FROZEN_AUTHORITY_STATUS    = BOUND_NO_DRIFT
-DESIGN_AUTHORITY_BLOCKERS  = []
-DESIGN_JSON_SHA256         = 485983701d6e05a57f7dc8bb578613467d6d8f6fb1ec1e28c68d7ca42767c75b
-RUN_IDENTITY               = 9fd706eea41b07cca53719ff00acaed329d9f443a15c8c060fb87a17015aa7b6
-FINAL_IMPLEMENTATION_COMMIT = 9573f0e2bd947d806253fc765d34ddeea247a158
+IMPLEMENTATION_REVIEW                 = PASS
+SCIENTIFIC_KERNEL_READY               = True
+CANONICAL_ORCHESTRATION_READY         = True
+PERMIT_VERIFIER_READY                 = True
+EXACT_SELECTOR_IDENTITY_IMPLEMENTED   = True
+CANONICAL_SELECTOR_DIGEST_FROZEN      = False
+EXECUTION_READY                       = False
+EXECUTION_AUTHORIZED                  = False
+EXECUTION_PERMIT_PRESENT              = False
+FROZEN_AUTHORITY_STATUS               = BOUND_NO_DRIFT
+DESIGN_AUTHORITY_BLOCKERS             = []
+DESIGN_JSON_SHA256                    = 485983701d6e05a57f7dc8bb578613467d6d8f6fb1ec1e28c68d7ca42767c75b
+RUN_IDENTITY                          = 3d8ee5f38d919c7b83495be8bd5366613ad5c1b0870b8d305bd9c7d4cf1b6a92
+FINAL_IMPLEMENTATION_COMMIT           = 77ae54a4fd01abd7ca82fcd8a42038f5220bc861
 ```
 
-No execution permit exists. `execute_decomposition` and
-`load_canonical_core_btc_bars` fail closed before any CORE BTC byte is read.
+PASS is justified by implemented and tested machinery, not by a hardcoded
+red-team table: Scientific kernel, dormant canonical orchestration, tracked-permit verifier, exact selector-identity machinery, and inherited D2 P95 method are implemented and covered by adversarial synthetic tests. PASS is not granted merely because the red-team table is hardcoded NOT_CONFIRMED. EXECUTION_READY remains false because the canonical selector digest is not frozen.
+
+No execution permit exists. `execute_decomposition` is the full dormant
+canonical route and still fails closed before any CORE BTC OHLC is read
+because the tracked permit artifact is absent. Count-only 1791/year census
+is a secondary check; the ordered selector digest is computed but not frozen.
 
 ## Red-team (F1–F20)
 
@@ -76,7 +87,7 @@ No execution permit exists. `execute_decomposition` and
 - `F3_CLOSES_INSTEAD_OF_HIGH_LOW`: **NOT_CONFIRMED** — MAE comes from frozen arithmetic_mae over PerpBar high/low. An AST test asserts the evaluator never reads DiscoveryRow.future_closes, and a high/low-collapsed perp map fails the severity cross-check.
 - `F4_DIFFERENT_PATHS_FOR_SIDE_AND_MIRROR`: **NOT_CONFIRMED** — mae_pair calls arithmetic_mae twice on one bars sequence. AST tests assert exactly one future_bars_for_row call and one mae_pair call per row, and LONG+SHORT shares on one path sum to exactly 1.0.
 - `F5_MAE_SIDE_SUBSTITUTION`: **NOT_CONFIRMED** — Recomputed MAE_SIDE is cross-checked bit-for-bit (tolerance 0.0) against the frozen DiscoveryRow.severity, so any substituted path fails closed.
-- `F6_SELECTOR_DRIFT`: **NOT_CONFIRMED** — The selector is frozen C.rv_abstention_mask (identity-asserted), RV_TRAILING_WINDOW=250, RV_PCTL=90.0, strict >, t excluded, imported not redefined. verify_selector_identity fails closed unless the mask is exactly 1791 with the frozen year breakdown.
+- `F6_SELECTOR_DRIFT`: **NOT_CONFIRMED** — The selector is frozen C.rv_abstention_mask (identity-asserted), RV_TRAILING_WINDOW=250, RV_PCTL=90.0, strict >, t excluded, imported not redefined. The 1791 / year-count census is a secondary integrity check only. Exact identity is SHA256 of the ordered constructed-row t_ms plus selector flags; that machinery is implemented and tested, but the canonical digest is NOT frozen in this outcome-blind unit (CANONICAL_SELECTOR_DIGEST_FROZEN = false) because obtaining it would require opening real CORE BTC. Count-only identity is not called exact identity.
 - `F7_SIDE_DRIFT`: **NOT_CONFIRMED** — SIDE is the frozen row.side = sign(BTC_RET_24H); encode_side accepts only +/-1 and rejects 0 and fractional sides.
 - `F8_TARGET_INELIGIBILITY_HANDLING`: **NOT_CONFIRMED** — PATH_SCALE<=0 or nonfinite yields exactly TARGET_ROW_INELIGIBLE_PATH_SCALE_NONPOSITIVE with no epsilon. The selector mask is never rebuilt: candidate = selector AND eligible, and SELECTOR_ROWS_TARGET_INELIGIBLE_N is reported per year.
 - `F9_POOLED_K_OR_YEAR_ONLY_FALLBACK`: **NOT_CONFIRMED** — Draws are per (calendar_year, frozen SIDE) stratum. Tests assert every replicate reproduces K exactly in every stratum, and that an all-LONG candidate set never draws a SHORT control row while a pooled draw would.
@@ -88,7 +99,7 @@ No execution permit exists. `execute_decomposition` and
 - `F15_FUTURE_INFORMATION_MATCHING`: **NOT_CONFIRMED** — The comparator receives only years, sides, target-eligibility and candidacy. No matching on PATH_SCALE, future volatility, future return, MAE, extrema or abs(BTC_RET_24H); an AST test asserts no share/scale array is passed.
 - `F16_GATE_OR_CLASSIFICATION_RESCUE`: **NOT_CONFIRMED** — classify_decomposition is the frozen ordered rule. PROMISING requires all three primary gates; PATH_SCALE elevation can only reach VOLATILITY_SCALE_COMPATIBLE and never rescues a failed ADVERSE_SHARE gate; the classifier never reads yearly or subgroup values.
 - `F17_AUTHORITY_HASH_DRIFT`: **NOT_CONFIRMED** — verify_design_authorities binds the D2 discovery RESULT, program decision, common.py, the D2 card and the arithmetic_mae module by SHA256 and currently returns no blockers; a mutated copy raises COMMON_SHA in test.
-- `F18_ACCIDENTAL_REAL_OUTCOME_EXECUTION`: **NOT_CONFIRMED** — execute_decomposition and load_canonical_core_btc_bars require an execution permit that does not exist; EXECUTION_AUTHORIZED is False and a forged permit still raises RealDecompositionForbidden.
+- `F18_ACCIDENTAL_REAL_OUTCOME_EXECUTION`: **NOT_CONFIRMED** — execute_decomposition is the full dormant canonical orchestration route, not a terminal firewall stub. Scientific authority is read only from a tracked permit artifact (UNIT, design/review/evaluator SHA256, CORE snapshot, RUN_IDENTITY, seed 20260922131, N=10000, EXECUTION_AUTHORIZED=true, ONE_SHOT=true, RERUN_AUTHORIZED=false). Caller kwargs cannot replace those fields. No permit exists in this unit, so the route fails closed before CORE BTC OHLC is opened. Adversarial tests cover forged caller authority, mutated permit bytes, and each bound-field mismatch.
 - `F19_PROTECTED_2025_2026_ACCESS`: **NOT_CONFIRMED** — construct_discovery_row refuses decisions from 2025 onward and the target re-walk refuses any bar at or after PROTECTED_START_MS. No protected partition is opened.
 - `F20_BITMEX_REUSE_FOR_NEW_TARGET`: **NOT_CONFIRMED** — An AST test asserts the evaluator imports no BitMEX module. The surface is CORE_BTC_BINANCE_V0 2020-02-01 -> 2025-01-01 only.
 
@@ -97,6 +108,8 @@ No execution permit exists. `execute_decomposition` and
 - `O1_STATISTICAL_GATE_STRICT_INEQUALITY_AT_AN_EXACT_TIE` (HARDENING_OBSERVATION_ACCEPTED_NO_CHANGE) — The frozen STATISTICAL_GATE is MU_SHARE_RULE > CONTROL_SHARE_P95. When the rule and control means are exactly tied, floating-point noise can decide the strict comparison. The frozen design is authoritative and is NOT changed here. Defense in depth is already frozen: PROMISING requires the practical (>= 0.05) and temporal (>= 3 of 5 years) gates too, so a lone float-noise statistical pass cannot change the classification. Covered by test_statistical_gate_alone_cannot_produce_promising.
 - `O2_CONTROL_POOL_INCLUDES_THE_ABSTAINED_ROWS` (FROZEN_SEMANTICS_CONFIRMED_NOT_A_NEW_CHOICE) — year_side_matched_control_masks draws from every target-eligible row in the stratum, including the D2-abstained rows themselves. This is the frozen design function's own behaviour and matches the original D2 discovery comparator rate_matched_random_abstention. No new researcher convention was introduced.
 - `O3_YEARLY_NAN_IS_STRUCTURALLY_IMPOSSIBLE_UNLESS_K_YEAR_IS_ZERO` (FROZEN_SEMANTICS_CONFIRMED_NOT_A_NEW_CHOICE) — Each replicate draws exactly K per stratum, so a year's replicate subset is empty only when that year has no candidate rows at all. Partial NaN across replicates is therefore impossible and is rejected explicitly rather than silently averaged.
+- `O4_CONTROL_P95_METHOD_INHERITED_FROM_D2` (FROZEN_SEMANTICS_CONFIRMED_NOT_A_NEW_CHOICE) — CONTROL_P95_METHOD = NUMPY_LINEAR_INHERITED_FROM_D2. np.percentile(values, 95.0, method='linear') is the historical D2 convention made explicit. This is not a newly selected scientific threshold. CONTROL_SHARE_P95 and CONTROL_PATH_SCALE_P95 both use it.
+- `O5_CANONICAL_SELECTOR_DIGEST_NOT_FROZEN_OUTCOME_BLIND` (HONEST_IDENTITY_GAP_NOT_A_RESCUE) — Exact selector-identity machinery is implemented (ordered t_ms + selector-flag SHA256). The true canonical digest cannot be obtained in this unit without opening prohibited real CORE BTC, so it is not guessed. CANONICAL_SELECTOR_DIGEST_FROZEN = false. A future pre-outcome identity freeze must bind that digest before ADVERSE_SHARE / PATH_SCALE outcome computation.
 
 No scientific ambiguity required a new researcher convention:
 `SCIENTIFIC_AMBIGUITY_FOUND = False`.
@@ -116,9 +129,9 @@ EXECUTION_PERMIT_CREATED            = False
 
 ## Next
 
-`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION`
+`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE`
 
-That next unit is an explicit one-shot execution unit. It is not executed
-here, and this review does not authorize it: a future permit must bind the
-design hash, this review's hash, the implementation hash, the CORE BTC
-snapshot, and the run identity above.
+The canonical selector digest is not frozen in this outcome-blind unit.
+The next unit is an explicit pre-outcome identity freeze, not one-shot
+execution. This review does not authorize execution: no permit exists,
+`EXECUTION_READY = false`, and `EXECUTION_AUTHORIZED = false`.

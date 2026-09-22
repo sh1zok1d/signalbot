@@ -6,6 +6,8 @@
   "BITMEX_2017_2019_REUSED_FOR_NEW_TARGET": false,
   "BLOCKING_FINDINGS": [],
   "CANDIDATE": "D2 / RULE_1 / RV_ABSTENTION",
+  "CANONICAL_ORCHESTRATION_READY": true,
+  "CANONICAL_SELECTOR_DIGEST_FROZEN": false,
   "CLASSIFICATIONS_UNASSIGNED": [
     "D2_DECOMPOSITION_INVALID",
     "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PROMISING",
@@ -22,16 +24,21 @@
   "CONTRACT_ECHO": {
     "ADVERSE_SHARE_FORMULA": "MAE_SIDE / (MAE_SIDE + MAE_OPPOSITE)",
     "BITMEX_2017_2019_REUSED_FOR_NEW_TARGET": false,
+    "CANONICAL_ORCHESTRATION_READY": true,
+    "CANONICAL_SELECTOR_DIGEST_FROZEN": false,
     "CLASSIFICATION_ORDER": [
       "D2_DECOMPOSITION_INVALID",
       "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PROMISING",
       "D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT",
       "D2_DECOMPOSITION_NO_USEFUL_STRUCTURE"
     ],
+    "CONTROL_P95_METHOD": "NUMPY_LINEAR_INHERITED_FROM_D2",
     "CONTROL_STRATA": "calendar_year \u00d7 frozen_SIDE",
     "DESIGN_AUTHORITY_BLOCKERS": [],
+    "EXACT_SELECTOR_IDENTITY_IMPLEMENTED": true,
     "EXECUTION_AUTHORIZED": false,
     "EXECUTION_PERMIT_PRESENT": false,
+    "EXECUTION_READY": false,
     "FROZEN_RULE1_N": 1791,
     "FROZEN_RULE1_YEAR_N": {
       "2020": 334,
@@ -47,6 +54,7 @@
     "N_RANDOM_CONTROLS": 10000,
     "PATH_SCALE_FORMULA": "MAE_SIDE + MAE_OPPOSITE",
     "PATH_SCALE_RELATIVE_BAR": 0.2,
+    "PERMIT_VERIFIER_READY": true,
     "PRACTICAL_GATE": "DELTA_SHARE >= 0.05",
     "PRIMARY_COMPARATOR": "YEAR_SIDE_MATCHED_RATE_MATCHED_RANDOM_ABSTENTION",
     "PRIMARY_TARGET": "ADVERSE_SHARE",
@@ -56,6 +64,7 @@
     "REAL_DECOMPOSITION_OUTCOME_COMPUTED": false,
     "RV_PCTL": 90.0,
     "RV_TRAILING_WINDOW": 250,
+    "SCIENTIFIC_KERNEL_READY": true,
     "SELECTOR_CONTRACT": {
       "ABSTAIN_RULE": "ABSTAIN(t)=1 iff RV_BTC_24H(t) > P90 of previous 250 valid constructed-row RV observations; t excluded; strict >",
       "BTC_RET_24H": "frozen btc_ret_24h at feature cutoff E=T-5m",
@@ -81,6 +90,7 @@
     "TEMPORAL_GATE": "DELTA_SHARE > 0 in at least 3 of 5 years",
     "UNIT": "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW"
   },
+  "CONTROL_P95_METHOD": "NUMPY_LINEAR_INHERITED_FROM_D2",
   "CONTROL_STRATA": "calendar_year \u00d7 frozen_SIDE",
   "DELTA_PATH_SCALE": null,
   "DELTA_SHARE": null,
@@ -91,13 +101,14 @@
   "DESIGN_SCIENTIFIC_CONTRACT": "docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN.json",
   "DESIGN_STATUS": "FROZEN",
   "EVIDENCE_CLASS": "POST_REPLICATION_MECHANISM_DECOMPOSITION_DISCOVERY",
+  "EXACT_SELECTOR_IDENTITY_IMPLEMENTED": true,
   "EXECUTION_AUTHORIZED": false,
   "EXECUTION_AUTHORIZED_FLAG": false,
   "EXECUTION_PERMIT_CREATED": false,
   "EXECUTION_PERMIT_PRESENT": false,
-  "EXECUTION_READY": true,
-  "FINAL_IMPLEMENTATION_COMMIT": "9573f0e2bd947d806253fc765d34ddeea247a158",
-  "FINAL_IMPLEMENTATION_TREE": "be8e84e4ed680293281062f101b8ebe1f09291d1",
+  "EXECUTION_READY": false,
+  "FINAL_IMPLEMENTATION_COMMIT": "77ae54a4fd01abd7ca82fcd8a42038f5220bc861",
+  "FINAL_IMPLEMENTATION_TREE": "a121aceefd55138fe2ea070267ce457daddd3488",
   "FROZEN_AUTHORITY_STATUS": "BOUND_NO_DRIFT",
   "FROZEN_RULE1_N": 1791,
   "FROZEN_RULE1_YEAR_N": {
@@ -116,17 +127,24 @@
   ],
   "IMPLEMENTATION_FILE_SHA256": {
     "scripts/research/d2_excess_path_risk_beyond_vol_clustering_design.py": "33ef9b72aaa51b71351a79bf88b3a8fa902a1f9c79822d59c0171323f2401ce8",
-    "scripts/research/d2_excess_path_risk_evaluator.py": "15ba2e43a7c5767eb20af881cd0942338304931da5cc895980cf945d76eb012e",
+    "scripts/research/d2_excess_path_risk_evaluator.py": "425d3ca857972df270f3207cdf684eb7bc147699f62a03e594a9e6e84563b240",
     "scripts/research/discovery_sprint_01/common.py": "ab152da63fa8c923fba3fd0255b7cd4d6457389b6a45be9959abc7235fa912ef",
     "scripts/research/discovery_sprint_01/d2_abstention_tail_risk.py": "2c00d7510e497cee48b169c1e6296982600567fffe0cb94e08fb9bcef2931991",
     "scripts/research/market_06_cross_venue_dislocation_evaluator.py": "ff87062edf583af1a67affcc18cda5e184379d9e63f7ff8b0e18383978890ead"
   },
   "IMPLEMENTATION_REVIEW": "PASS",
+  "IMPLEMENTATION_REVIEW_PASS_JUSTIFICATION": "Scientific kernel, dormant canonical orchestration, tracked-permit verifier, exact selector-identity machinery, and inherited D2 P95 method are implemented and covered by adversarial synthetic tests. PASS is not granted merely because the red-team table is hardcoded NOT_CONFIRMED. EXECUTION_READY remains false because the canonical selector digest is not frozen.",
+  "LIFECYCLE_REPAIR": {
+    "F1_CANONICAL_ORCHESTRATION": "CLOSED_DORMANT_ROUTE_WITH_HARD_FIREWALL",
+    "F2_TRACKED_PERMIT_AUTHORITY": "CLOSED_NO_PERMIT_CREATED",
+    "F3_EXACT_SELECTOR_IDENTITY": "IMPLEMENTED_DIGEST_NOT_FROZEN",
+    "F4_EXPLICIT_P95_METHOD": "CLOSED_NUMPY_LINEAR_INHERITED_FROM_D2"
+  },
   "MARKET_07_CREATED": false,
   "MU_PATH_SCALE_RULE": null,
   "MU_SHARE_RULE": null,
   "NEW_RESEARCHER_CONVENTION_INTRODUCED": false,
-  "NEXT_UNIT": "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION",
+  "NEXT_UNIT": "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE",
   "NOT_CREATED": [
     "RESULT",
     "execution permit",
@@ -150,11 +168,22 @@
       "class": "FROZEN_SEMANTICS_CONFIRMED_NOT_A_NEW_CHOICE",
       "id": "O3_YEARLY_NAN_IS_STRUCTURALLY_IMPOSSIBLE_UNLESS_K_YEAR_IS_ZERO",
       "note": "Each replicate draws exactly K per stratum, so a year's replicate subset is empty only when that year has no candidate rows at all. Partial NaN across replicates is therefore impossible and is rejected explicitly rather than silently averaged."
+    },
+    {
+      "class": "FROZEN_SEMANTICS_CONFIRMED_NOT_A_NEW_CHOICE",
+      "id": "O4_CONTROL_P95_METHOD_INHERITED_FROM_D2",
+      "note": "CONTROL_P95_METHOD = NUMPY_LINEAR_INHERITED_FROM_D2. np.percentile(values, 95.0, method='linear') is the historical D2 convention made explicit. This is not a newly selected scientific threshold. CONTROL_SHARE_P95 and CONTROL_PATH_SCALE_P95 both use it."
+    },
+    {
+      "class": "HONEST_IDENTITY_GAP_NOT_A_RESCUE",
+      "id": "O5_CANONICAL_SELECTOR_DIGEST_NOT_FROZEN_OUTCOME_BLIND",
+      "note": "Exact selector-identity machinery is implemented (ordered t_ms + selector-flag SHA256). The true canonical digest cannot be obtained in this unit without opening prohibited real CORE BTC, so it is not guessed. CANONICAL_SELECTOR_DIGEST_FROZEN = false. A future pre-outcome identity freeze must bind that digest before ADVERSE_SHARE / PATH_SCALE outcome computation."
     }
   ],
   "PATH_SCALE_CANNOT_RESCUE_PRIMARY": true,
   "PATH_SCALE_FORMULA": "MAE_SIDE + MAE_OPPOSITE",
   "PATH_SCALE_RELATIVE_BAR": 0.2,
+  "PERMIT_VERIFIER_READY": true,
   "PRACTICAL_GATE": "DELTA_SHARE >= 0.05",
   "PRIMARY_COMPARATOR": "YEAR_SIDE_MATCHED_RATE_MATCHED_RANDOM_ABSTENTION",
   "PRIMARY_SELECTOR": "D2_RULE_1_RV_ABSTENTION",
@@ -197,7 +226,7 @@
       "status": "NOT_CONFIRMED"
     },
     "F18_ACCIDENTAL_REAL_OUTCOME_EXECUTION": {
-      "note": "execute_decomposition and load_canonical_core_btc_bars require an execution permit that does not exist; EXECUTION_AUTHORIZED is False and a forged permit still raises RealDecompositionForbidden.",
+      "note": "execute_decomposition is the full dormant canonical orchestration route, not a terminal firewall stub. Scientific authority is read only from a tracked permit artifact (UNIT, design/review/evaluator SHA256, CORE snapshot, RUN_IDENTITY, seed 20260922131, N=10000, EXECUTION_AUTHORIZED=true, ONE_SHOT=true, RERUN_AUTHORIZED=false). Caller kwargs cannot replace those fields. No permit exists in this unit, so the route fails closed before CORE BTC OHLC is opened. Adversarial tests cover forged caller authority, mutated permit bytes, and each bound-field mismatch.",
       "status": "NOT_CONFIRMED"
     },
     "F19_PROTECTED_2025_2026_ACCESS": {
@@ -229,7 +258,7 @@
       "status": "NOT_CONFIRMED"
     },
     "F6_SELECTOR_DRIFT": {
-      "note": "The selector is frozen C.rv_abstention_mask (identity-asserted), RV_TRAILING_WINDOW=250, RV_PCTL=90.0, strict >, t excluded, imported not redefined. verify_selector_identity fails closed unless the mask is exactly 1791 with the frozen year breakdown.",
+      "note": "The selector is frozen C.rv_abstention_mask (identity-asserted), RV_TRAILING_WINDOW=250, RV_PCTL=90.0, strict >, t excluded, imported not redefined. The 1791 / year-count census is a secondary integrity check only. Exact identity is SHA256 of the ordered constructed-row t_ms plus selector flags; that machinery is implemented and tested, but the canonical digest is NOT frozen in this outcome-blind unit (CANONICAL_SELECTOR_DIGEST_FROZEN = false) because obtaining it would require opening real CORE BTC. Count-only identity is not called exact identity.",
       "status": "NOT_CONFIRMED"
     },
     "F7_SIDE_DRIFT": {
@@ -246,13 +275,14 @@
     }
   },
   "RESULT_CREATED": false,
-  "RUN_IDENTITY": "9fd706eea41b07cca53719ff00acaed329d9f443a15c8c060fb87a17015aa7b6",
+  "RUN_IDENTITY": "3d8ee5f38d919c7b83495be8bd5366613ad5c1b0870b8d305bd9c7d4cf1b6a92",
   "RUN_IDENTITY_INPUTS": {
+    "CONTROL_P95_METHOD": "NUMPY_LINEAR_INHERITED_FROM_D2",
     "CORE_BTC_SNAPSHOT": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
     "DESIGN_JSON_SHA256": "485983701d6e05a57f7dc8bb578613467d6d8f6fb1ec1e28c68d7ca42767c75b",
     "DESIGN_MD_SHA256": "c05090cfdacc5884ea571a5aa3ce1c3c862d8992a6a2dae296cc43aadc84fa86",
-    "FINAL_IMPLEMENTATION_COMMIT": "9573f0e2bd947d806253fc765d34ddeea247a158",
-    "FINAL_IMPLEMENTATION_TREE": "be8e84e4ed680293281062f101b8ebe1f09291d1",
+    "FINAL_IMPLEMENTATION_COMMIT": "77ae54a4fd01abd7ca82fcd8a42038f5220bc861",
+    "FINAL_IMPLEMENTATION_TREE": "a121aceefd55138fe2ea070267ce457daddd3488",
     "FROZEN_RULE1_N": 1791,
     "FROZEN_RULE1_YEAR_N": {
       "2020": 334,
@@ -263,7 +293,7 @@
     },
     "IMPLEMENTATION_FILE_SHA256": {
       "scripts/research/d2_excess_path_risk_beyond_vol_clustering_design.py": "33ef9b72aaa51b71351a79bf88b3a8fa902a1f9c79822d59c0171323f2401ce8",
-      "scripts/research/d2_excess_path_risk_evaluator.py": "15ba2e43a7c5767eb20af881cd0942338304931da5cc895980cf945d76eb012e",
+      "scripts/research/d2_excess_path_risk_evaluator.py": "425d3ca857972df270f3207cdf684eb7bc147699f62a03e594a9e6e84563b240",
       "scripts/research/discovery_sprint_01/common.py": "ab152da63fa8c923fba3fd0255b7cd4d6457389b6a45be9959abc7235fa912ef",
       "scripts/research/discovery_sprint_01/d2_abstention_tail_risk.py": "2c00d7510e497cee48b169c1e6296982600567fffe0cb94e08fb9bcef2931991",
       "scripts/research/market_06_cross_venue_dislocation_evaluator.py": "ff87062edf583af1a67affcc18cda5e184379d9e63f7ff8b0e18383978890ead"
@@ -274,11 +304,13 @@
     "PRIMARY_TARGET": "ADVERSE_SHARE",
     "RANDOM_SEED": 20260922131,
     "TEST_FILE_SHA256": {
-      "tests/research/test_d2_excess_path_risk_evaluator.py": "f2e689a1ca5f3511168bb7dc7490ae9c35098f7d4868272ea38e363413d75978"
+      "tests/research/test_d2_excess_path_risk_evaluator.py": "0e5171e9cfb3288f5ed2cd480c46d7d5cc28fdfe0bf47292f450a9eda1ec60c1",
+      "tests/research/test_d2_excess_path_risk_implementation_review.py": "47fd9f5e2ed8b9207ee6447d63471edc847b3480d7aa1687602ac09391b142d2"
     }
   },
   "SAME_FUTURE_PATH_REQUIRED": true,
   "SCIENTIFIC_AMBIGUITY_FOUND": false,
+  "SCIENTIFIC_KERNEL_READY": true,
   "STATISTICAL_GATE": "MU_SHARE_RULE > CONTROL_SHARE_P95",
   "SURFACE": {
     "DATASET": "CORE_BTC_BINANCE_V0",
@@ -292,10 +324,12 @@
   "TARGET_SPECIFIC_INELIGIBILITY": "TARGET_ROW_INELIGIBLE_PATH_SCALE_NONPOSITIVE",
   "TEMPORAL_GATE": "DELTA_SHARE > 0 in at least 3 of 5 years",
   "TEST_FILES": [
-    "tests/research/test_d2_excess_path_risk_evaluator.py"
+    "tests/research/test_d2_excess_path_risk_evaluator.py",
+    "tests/research/test_d2_excess_path_risk_implementation_review.py"
   ],
   "TEST_FILE_SHA256": {
-    "tests/research/test_d2_excess_path_risk_evaluator.py": "f2e689a1ca5f3511168bb7dc7490ae9c35098f7d4868272ea38e363413d75978"
+    "tests/research/test_d2_excess_path_risk_evaluator.py": "0e5171e9cfb3288f5ed2cd480c46d7d5cc28fdfe0bf47292f450a9eda1ec60c1",
+    "tests/research/test_d2_excess_path_risk_implementation_review.py": "47fd9f5e2ed8b9207ee6447d63471edc847b3480d7aa1687602ac09391b142d2"
   },
   "kind": "OUTCOME_BLIND_IMPLEMENTATION_REVIEW",
   "unit": "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW"
