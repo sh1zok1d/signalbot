@@ -151,6 +151,8 @@ def test_mechanism_memory_covers_required_history():
         "D9",
         "D10",
         "D11",
+        "D12",
+        "D13",
     ):
         assert key in entries, key
         row = entries[key]
@@ -187,9 +189,11 @@ def test_mechanism_memory_covers_required_history():
     assert entries["D9"]["STATUS_EVIDENCE_CLASS"] == "NO_USEFUL_STRUCTURE"
     assert entries["D10"]["STATUS_EVIDENCE_CLASS"] == "NO_USEFUL_STRUCTURE"
     assert "PROMISING_PROTOTYPE" in entries["D11"]["STATUS_EVIDENCE_CLASS"]
-    assert memory["INTERNAL_DISCOVERY_CARDS_EXECUTED"] == 8
-    assert memory["INTERNAL_PROMISING_PROTOTYPES"] == 3
-    assert memory["SPRINT04_HYPOTHESES_SELECTED"] is False
+    assert "PROMISING_PROTOTYPE" in entries["D12"]["STATUS_EVIDENCE_CLASS"]
+    assert entries["D13"]["STATUS_EVIDENCE_CLASS"].startswith("NO_USEFUL_STRUCTURE")
+    assert memory["INTERNAL_DISCOVERY_CARDS_EXECUTED"] == 10
+    assert memory["INTERNAL_PROMISING_PROTOTYPES"] == 4
+    assert memory["SPRINT04_HYPOTHESES_SELECTED"] is True
 
 
 def test_rotation_v2_selects_three_families():
@@ -493,5 +497,7 @@ def test_routing_docs_point_at_post_result_next_unit():
     assert "D9_STATUS                   = NO_USEFUL_STRUCTURE" in state
     assert "D10_STATUS                  = NO_USEFUL_STRUCTURE" in state
     assert "D11_STATUS                  = PROMISING_PROTOTYPE" in state
-    assert "INTERNAL_DISCOVERY_CARDS_EXECUTED = 8" in state
-    assert "INTERNAL_PROMISING_PROTOTYPES     = 3" in state
+    assert "D12_STATUS                  = PROMISING_PROTOTYPE" in state
+    assert "D13_STATUS                  = NO_USEFUL_STRUCTURE" in state
+    assert "INTERNAL_DISCOVERY_CARDS_EXECUTED = 10" in state
+    assert "INTERNAL_PROMISING_PROTOTYPES     = 4" in state

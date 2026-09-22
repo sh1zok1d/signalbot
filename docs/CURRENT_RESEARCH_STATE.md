@@ -2,7 +2,7 @@
 
 **Status date:** 2026-09-22  
 **Status:** `ACTIVE / CANONICAL ROUTING INDEX`  
-**Main integration baseline before this status commit:** `d74255545f709d002733b2cb5d0aa447d7b30198`
+**Main integration baseline before this status commit:** `d2a62da6e5c907def603a258505b9cc1f92ae3a5`
 
 This file is the compact answer to “what controls the project now?”. Frozen preregistrations/results remain authoritative for reproducing their own experiments; this file controls current routing only.
 
@@ -33,26 +33,31 @@ Program-level correction is sealed in `docs/research/MARKET_PROGRAM_UPDATE_POST_
 ## Exact next unit
 
 ```
-PREVIOUS_ROUTING            = DISCOVERY_SPRINT_04_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION
+PREVIOUS_ROUTING            = DISCOVERY_SPRINT_04_D12_D13_ONE_SHOT_SCIENTIFIC_EXECUTION
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = DISCOVERY_SPRINT_04_D12_D13_ONE_SHOT_SCIENTIFIC_EXECUTION_DECISION
-NEXT_ACTION                 = SPRINT04_D12_D13_ONE_SHOT_SCIENTIFIC_EXECUTION_DECISION
+NEXT_UNIT                   = POST_SPRINT04_AUTOMATION_MATURITY_DECISION
+NEXT_ACTION                 = POST_SPRINT04_AUTOMATION_MATURITY_DECISION
 POST_SPRINT03_PROGRAM_DECISION = DECIDED
 HETEROGENEOUS_FAMILY_ROTATION_V1 = FROZEN_HISTORICAL_SPRINT_02_POLICY
 HETEROGENEOUS_FAMILY_ROTATION_V2 = FROZEN_HISTORICAL_SPRINT_03_POLICY
 HETEROGENEOUS_FAMILY_ROTATION_V3 = FROZEN
-DISCOVERY_SPRINT_04 = OUTCOME_BLIND_IMPLEMENTATION_FROZEN
+DISCOVERY_SPRINT_04 = CANONICAL_SCIENTIFIC_EXECUTION_CONSUMED
 DISCOVERY_SPRINT_04_INTERNAL_CARDS = 2
 D12_NAME                    = PARTICIPATION_CLOCK_ANCHORING_DST_NATURAL_EXPERIMENT
 D12_FAMILY                  = J_PARTICIPANT_CLOCK_ANCHORING_NEW
-D12_EXECUTED                = false
-D12_STATUS                  = OUTCOME_BLIND_IMPLEMENTATION_READY
+D12_EXECUTED                = true
+D12_STATUS                  = PROMISING_PROTOTYPE
+D12_CLASSIFICATION          = PROMISING_PROTOTYPE
+D12_RESULT_PAYLOAD_SHA256   = 73299c8d8313c7c73f423bb83565a45e3c17da6a534dbc8dc8fbf12f943b6feb
 D13_NAME                    = CROSS_SECTIONAL_WEEKLY_RELATIVE_RETURN_STRUCTURE
 D13_FAMILY                  = H_TRUE_CROSS_SECTIONAL_PANEL
-D13_DATA_STATUS             = OUTCOME_BLIND_IMPLEMENTATION_READY
-D13_EXECUTED                = false
+D13_DATA_STATUS             = CANONICAL_SCIENTIFIC_EXECUTION_CONSUMED
+D13_EXECUTED                = true
+D13_STATUS                  = NO_USEFUL_STRUCTURE
+D13_CLASSIFICATION          = NO_USEFUL_STRUCTURE
+D13_RESULT_PAYLOAD_SHA256   = c18f7de5821d8ee808732e0278afa53f622bb977d77f1ec71ee7423c96f5effd
 D13_N                       = 82
 D13_NO_POST_T_CLOSE_SELECTED_N = 0
 D14                         = NOT_SELECTED
@@ -97,13 +102,18 @@ D10_EXECUTED                = true
 D10_CLASSIFICATION          = NO_USEFUL_STRUCTURE
 D11_EXECUTED                = true
 D11_CLASSIFICATION          = PROMISING_PROTOTYPE
+D12_EXECUTED                = true
+D12_CLASSIFICATION          = PROMISING_PROTOTYPE
+D13_EXECUTED                = true
+D13_CLASSIFICATION          = NO_USEFUL_STRUCTURE
 D7_RERUN_PERFORMED          = false
 DATA_IDENTITY_MODE          = TRACKED_SNAPSHOT_FULL_MONTHLY_EXACT_BYTE_VERIFICATION
 D7_SELECTOR_N               = 4545
 D7_SELECTOR_DIGEST_FROZEN   = true
 SCIENTIFIC_OUTCOMES_COMPUTED = true
-THIS_UNIT_SCIENTIFIC_OUTCOMES_COMPUTED = false
+THIS_UNIT_SCIENTIFIC_OUTCOMES_COMPUTED = true
 SPRINT03_SCIENTIFIC_OUTCOMES_COMPUTED = true
+SPRINT04_SCIENTIFIC_OUTCOMES_COMPUTED = true
 RESEARCH_DATA_DURABILITY_V1_REQUIRED = true
 D2_DECOMPOSITION_DESIGN_STATUS = FROZEN
 D2_DECOMPOSITION_IMPLEMENTATION_REVIEW = PASS
@@ -130,8 +140,8 @@ PRODUCT_BUILD_FROZEN        = true
 HYPOTHESIS_GENERATION_POLICY = HETEROGENEOUS_FAMILY_ROTATION_V3
 PROTECTED_2025_OPENED       = false
 PROTECTED_2026_OPENED       = false
-INTERNAL_DISCOVERY_CARDS_EXECUTED = 8
-INTERNAL_PROMISING_PROTOTYPES     = 3
+INTERNAL_DISCOVERY_CARDS_EXECUTED = 10
+INTERNAL_PROMISING_PROTOTYPES     = 4
 INTERNAL_DISCOVERY_WARNING        = null
 INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED = false
 FULL_DISCOVERY_CARDS_COMPLETED    = 5
@@ -500,6 +510,62 @@ D11 `PROMISING_PROTOTYPE`:
 Do not alter hypothesis-generation philosophy from one result. Do not
 create neighbor-rescue hypotheses.
 
+### SPRINT04_INFORMATION_GAIN
+
+The Sprint 04 canonical scientific execution ran once from
+`EXECUTION_ROOT = d2a62da6e5c907def603a258505b9cc1f92ae3a5`
+(`EXPECTED_TREE = 3c5c5262db5c1313c8d5c712c0d1658f32da0edb`) after the
+tracked permit commit. Classifications (frozen predicates; not rescued):
+
+- D12 `PROMISING_PROTOTYPE`
+- D13 `NO_USEFUL_STRUCTURE`
+
+Counters: `INTERNAL_DISCOVERY_CARDS_EXECUTED = 10`,
+`INTERNAL_PROMISING_PROTOTYPES = 4`. D7 was not rerun. D8 was not
+executed. D7/D11 confirmation was not executed. MARKET-07 was not
+created. Protected 2025/2026 remain sealed.
+`AUTOMATIC_SPRINT05 = false`.
+`NEXT_UNIT = POST_SPRINT04_AUTOMATION_MATURITY_DECISION`.
+
+D12 `PROMISING_PROTOTYPE`:
+
+- WHAT_THIS_RESULT_SUPPORTS: BTC Binance 2020-2024 intraday quote-volume
+  timing exhibits the frozen US-clock anchoring pattern
+  (`MEAN_A = 0.1335535649302866`; `MC_P = 9.999000099990002e-05`;
+  practical and temporal gates true). Worth considering for later
+  confirmation. Not validated alpha, not a trading edge, not a confirmed
+  mechanism, not causal proof.
+- WHAT_THIS_RESULT_DEPRIORITIZES: does not identify participants, ETFs,
+  equity-session causality, direction, trading alpha, or volatility.
+  Does not rescue D11. EU diagnostic `MEAN_A = -0.17392447104949169`
+  does not promote or demote D12 (`EU_DIAGNOSTIC_AFFECTS_CLASSIFICATION
+  = false`).
+- WHAT_REMAINS_OPEN: independent confirmation. Do not try W=5/W=7,
+  another volume field, trade count, selected UTC hours, or EU as
+  primary.
+
+D13 `NO_USEFUL_STRUCTURE`:
+
+- WHAT_THIS_RESULT_SUPPORTS: the frozen 1-week liquid Binance spot USDT
+  panel relative-return formulation did not pass the discovery gate.
+  Observed pooled sign is REVERSAL (`MEAN_WEEKLY_IC =
+  -0.027440631083253317`; `POOLED_IC_SIGN = -1`). Statistical and
+  temporal gates true; practical gate false because the same-sign
+  top-vs-bottom quintile spread
+  (`SIGNED_TOP_BOTTOM_SPREAD = -0.007875047071699056`) is below the
+  friction floor `0.004`.
+- WHAT_THIS_RESULT_DEPRIORITIZES: this 1-week frozen-panel formulation.
+  Do not pick the larger of momentum vs reversal. Do not try 2w/4w,
+  skip-week, top 50/100, alternate exclusions, winsorization, vol
+  scaling, sector filter, beta-neutralization, or another exchange.
+- WHAT_REMAINS_OPEN: orthogonal families already recorded. Residual
+  weekly IC serial dependence remains a declared discovery-stage
+  limitation, not a rescue path.
+
+Do not automatically create Sprint 05. Do not build the hypothesis
+generator in this unit. The next unit must decide
+`HYPOTHESIS_GENERATOR_V0_INFRA_READY` vs `AT_MOST_ONE_FINAL_SPRINT05`.
+
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by
 `DISCOVERY_SPRINT_01_SPEC_COMPILATION`, recorded in
@@ -582,9 +648,16 @@ SHARE-on-closing-extremes did not pass discovery gates; do not rescue);
 `D10 = NO_USEFUL_STRUCTURE` (family D; consumed one-shot; residual
 persistence did not pass discovery gates; do not add post-hoc refractory);
 `D11 = PROMISING_PROTOTYPE` (family G; consumed one-shot; unsigned
-scheduled-FOMC 6h RV; N=39; not D8 rescue; not a FOMC trading strategy).
+scheduled-FOMC 6h RV; N=39; not D8 rescue; not a FOMC trading strategy);
+`D12 = PROMISING_PROTOTYPE` (family J; consumed one-shot; US-clock
+quote-volume anchoring on CORE BTC; EU diagnostic does not classify;
+not participant identity, ETF/equity causality, direction, or D11 rescue);
+`D13 = NO_USEFUL_STRUCTURE` (family H true panel; consumed one-shot;
+observed pooled IC sign REVERSAL; practical gate failed vs friction
+floor 0.004; do not pick the larger of momentum vs reversal).
 First blocked Sprint 01 attempt preserved. D2–D5 and D7 scientific bytes
-unchanged. Sprint 03 implementation freeze bytes unchanged.
+unchanged. Sprint 03 implementation freeze bytes unchanged. Sprint 04
+scientific implementation hashes unchanged after the permit commit.
 
 The orthogonal-region selection is recorded in
 `docs/research/MARKET_NEXT_HYPOTHESIS_SELECTION.{json,md}` (commit

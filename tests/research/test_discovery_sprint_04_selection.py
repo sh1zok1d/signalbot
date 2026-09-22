@@ -14,6 +14,7 @@ SPRINT = REPO / "docs/research/DISCOVERY_SPRINT_04.json"
 ROTATION = REPO / "docs/research/HETEROGENEOUS_FAMILY_ROTATION_V3.json"
 DECISION = REPO / "docs/research/POST_SPRINT03_PROGRAM_DECISION.json"
 ROTATION_V2 = REPO / "docs/research/HETEROGENEOUS_FAMILY_ROTATION_V2.json"
+CURRENT_NEXT_UNIT = "POST_SPRINT04_AUTOMATION_MATURITY_DECISION"
 SELECTION_NEXT_UNIT = "DISCOVERY_SPRINT_04_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION"
 ROUTING_NEXT_UNIT = "DISCOVERY_SPRINT_04_D12_D13_ONE_SHOT_SCIENTIFIC_EXECUTION_DECISION"
 NEXT_UNIT = SELECTION_NEXT_UNIT
@@ -247,7 +248,7 @@ def test_mechanism_memory_reference_is_current():
     decision = _load(DECISION)
     assert decision["MECHANISM_MEMORY_CURRENT_THROUGH"] == "D11"
     memory = _load(REPO / "docs/research/MECHANISM_MEMORY_V0.json")
-    assert {"D9", "D10", "D11"} <= set(memory["ENTRIES"])
+    assert {"D9", "D10", "D11", "D12", "D13"} <= set(memory["ENTRIES"])
     for path in (
         DECISION,
         SPRINT,
@@ -305,7 +306,11 @@ def test_routing_docs_point_at_sprint04_next_unit():
         "docs/RESEARCH_LEDGER.md",
     ):
         text = (REPO / rel).read_text(encoding="utf-8")
-        assert ROUTING_NEXT_UNIT in text or NEXT_UNIT in text, rel
+        assert (
+            CURRENT_NEXT_UNIT in text
+            or ROUTING_NEXT_UNIT in text
+            or NEXT_UNIT in text
+        ), rel
     freeze = REPO / "docs/research/DISCOVERY_SPRINT_04_IMPLEMENTATION_FREEZE.json"
     if freeze.is_file():
         blob = json.loads(freeze.read_text(encoding="utf-8"))
@@ -315,5 +320,6 @@ def test_routing_docs_point_at_sprint04_next_unit():
         "POST_SPRINT03_PROGRAM_DECISION",
         "HETEROGENEOUS_FAMILY_ROTATION_V3",
         "DISCOVERY_SPRINT_04",
+        "POST_SPRINT04_AUTOMATION_MATURITY_DECISION",
     ):
         assert name in index

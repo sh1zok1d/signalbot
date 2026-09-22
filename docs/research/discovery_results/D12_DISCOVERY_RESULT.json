@@ -1,0 +1,236 @@
+{
+  "ALLOWED_CLAIM": "whether BTC Binance 2020-2024 intraday quote-volume timing exhibits the frozen US-clock anchoring pattern",
+  "AUTOMATIC_SPRINT05": false,
+  "A_BY_US_TRANSITION": [
+    {
+      "A": 0.14732998409763126,
+      "delta": 1,
+      "eligible": true,
+      "sunday": "2020-03-08",
+      "year": 2020
+    },
+    {
+      "A": -0.017210319489654822,
+      "delta": -1,
+      "eligible": true,
+      "sunday": "2020-11-01",
+      "year": 2020
+    },
+    {
+      "A": 0.16712163048996673,
+      "delta": 1,
+      "eligible": true,
+      "sunday": "2021-03-14",
+      "year": 2021
+    },
+    {
+      "A": -0.136180853949696,
+      "delta": -1,
+      "eligible": true,
+      "sunday": "2021-11-07",
+      "year": 2021
+    },
+    {
+      "A": -0.18535889377545875,
+      "delta": 1,
+      "eligible": true,
+      "sunday": "2022-03-13",
+      "year": 2022
+    },
+    {
+      "A": 0.046626998397916,
+      "delta": -1,
+      "eligible": true,
+      "sunday": "2022-11-06",
+      "year": 2022
+    },
+    {
+      "A": 0.3170733937351799,
+      "delta": 1,
+      "eligible": true,
+      "sunday": "2023-03-12",
+      "year": 2023
+    },
+    {
+      "A": 0.19431507429407768,
+      "delta": -1,
+      "eligible": true,
+      "sunday": "2023-11-05",
+      "year": 2023
+    },
+    {
+      "A": 0.4189384161605283,
+      "delta": 1,
+      "eligible": true,
+      "sunday": "2024-03-10",
+      "year": 2024
+    },
+    {
+      "A": 0.3828802193423758,
+      "delta": -1,
+      "eligible": true,
+      "sunday": "2024-11-03",
+      "year": 2024
+    }
+  ],
+  "CLASSIFICATION": "PROMISING_PROTOTYPE",
+  "D11_CONFIRMATION_EXECUTED": false,
+  "D12_EXECUTED": true,
+  "D7_CONFIRMATION_EXECUTED": false,
+  "D7_RERUN_PERFORMED": false,
+  "D8_EXECUTED": false,
+  "DATA_IDENTITY": {
+    "DATASET_ID": "CORE_BTC_BINANCE_V0",
+    "DATA_IDENTITY_MODE": "TRACKED_SNAPSHOT_FULL_MONTHLY_EXACT_BYTE_VERIFICATION",
+    "MONTH_N": 60,
+    "QUOTE_VOLUME_FIELD": true,
+    "SNAPSHOT_ID": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415"
+  },
+  "DISCOVERY_ID": "D12",
+  "EU_DIAGNOSTIC": {
+    "A_BY_TRANSITION": [
+      {
+        "A": 0.15187092836083782,
+        "delta": 1,
+        "eligible": true,
+        "sunday": "2020-03-29",
+        "year": 2020
+      },
+      {
+        "A": -0.3468028767139963,
+        "delta": -1,
+        "eligible": true,
+        "sunday": "2020-10-25",
+        "year": 2020
+      },
+      {
+        "A": 0.018430180841266044,
+        "delta": 1,
+        "eligible": true,
+        "sunday": "2021-03-28",
+        "year": 2021
+      },
+      {
+        "A": -0.4662187230411283,
+        "delta": -1,
+        "eligible": true,
+        "sunday": "2021-10-31",
+        "year": 2021
+      },
+      {
+        "A": -0.17952168194061938,
+        "delta": 1,
+        "eligible": true,
+        "sunday": "2022-03-27",
+        "year": 2022
+      },
+      {
+        "A": -0.731208260261478,
+        "delta": -1,
+        "eligible": true,
+        "sunday": "2022-10-30",
+        "year": 2022
+      },
+      {
+        "A": 0.1203880982798717,
+        "delta": 1,
+        "eligible": true,
+        "sunday": "2023-03-26",
+        "year": 2023
+      },
+      {
+        "A": 0.15857218543594842,
+        "delta": -1,
+        "eligible": true,
+        "sunday": "2023-10-29",
+        "year": 2023
+      },
+      {
+        "A": -0.4521167831302115,
+        "delta": 1,
+        "eligible": true,
+        "sunday": "2024-03-31",
+        "year": 2024
+      },
+      {
+        "A": -0.012637778325407176,
+        "delta": -1,
+        "eligible": true,
+        "sunday": "2024-10-27",
+        "year": 2024
+      }
+    ],
+    "MEAN_A": -0.17392447104949169,
+    "N": 10
+  },
+  "EU_DIAGNOSTIC_AFFECTS_CLASSIFICATION": false,
+  "EVIDENCE_LABEL": "ADAPTIVE_DISCOVERY_ON_HISTORICALLY_EXPOSED_DATA",
+  "EXECUTION_ROOT": "d2a62da6e5c907def603a258505b9cc1f92ae3a5",
+  "EXPECTED_TREE": "3c5c5262db5c1313c8d5c712c0d1658f32da0edb",
+  "FORBIDDEN_CLAIMS": [
+    "specific participant identity",
+    "ETF/institution causality",
+    "equity-session causality",
+    "directional prediction",
+    "trading alpha",
+    "volatility claim",
+    "D11 rescue/reinterpretation"
+  ],
+  "IDENTITY_OK": true,
+  "IMPLEMENTATION_FREEZE_SHA256": "e08d73a6abaefa64368bbc1917477ffadcb4358d5cecfb4f60bdf266496366bd",
+  "IMPLEMENTATION_HASHES": {
+    "scripts/research/discovery_sprint_04/__init__.py": "fd5b9b9a4f8c276fc081a67bf3b9b931034784f177f3ad0fd893d1b34c0a77de",
+    "scripts/research/discovery_sprint_04/common.py": "516d75a90f287ba11fc967f8130515d06d488b13dd36a76a6df289e88f68b126",
+    "scripts/research/discovery_sprint_04/d12.py": "a0c52fc2e309cf0a9ae018aed0bdfcb3b14d6c8f63bd20d5e8acdb0469af2b42",
+    "scripts/research/discovery_sprint_04/d13.py": "d043577e40cb65311ae71fe3e9da1669ea43aeef006e0fad08fd4639358841df",
+    "scripts/research/discovery_sprint_04/d13_acquire.py": "b6433108218b3271357399945647d3f995feb5b1348b7f9bedd6c25a529d9957",
+    "scripts/research/discovery_sprint_04/d13_exclusions.py": "801460e0a925fd70ec4b3bae7b87fdae44da4cdbcdc248bcd70d6236beb46e92",
+    "scripts/research/discovery_sprint_04/d13_panel.py": "0aaabc039abd327f56adb7c956932ea217380524d8d9a6bc9351c0df6a340d3f",
+    "scripts/research/discovery_sprint_04/d13_terminal_mark.py": "9b616d1b47aad5b4cf501c06bb179c0ef795490f6a423c984ffbf1cdc14e8e6b",
+    "scripts/research/discovery_sprint_04/evaluate.py": "8757513365a8f6139a0918f985f62b0f43f737585575be214e1774f18f041fa1",
+    "scripts/research/discovery_sprint_04/feasibility.py": "b80255a84616a07d67b1bc99e2db47bbeaafc2ffeb5a34e790a994cf0903ff4a",
+    "scripts/research/discovery_sprint_04/restore_d13_panel.py": "e3f01322c0748aa92721c78ded7eddc41439832a649a78ad525b12f6cdd33cc3"
+  },
+  "KIND": "CANONICAL_SCIENTIFIC_EXECUTION",
+  "LIMITATIONS": [
+    "Adaptive discovery on historically exposed 2020-2024 CORE BTC.",
+    "EU transitions are secondary diagnostic only and cannot change classification.",
+    "Not a participant-identity, equity-session, directional, or trading claim."
+  ],
+  "MARKET_07_CREATED": false,
+  "MC_P": 9.999000099990002e-05,
+  "MEAN_A": 0.1335535649302866,
+  "NAME": "PARTICIPATION_CLOCK_ANCHORING_DST_NATURAL_EXPERIMENT",
+  "NOT_CAUSAL_PROOF": true,
+  "NOT_CONFIRMED_MECHANISM": true,
+  "NOT_PRODUCTION_SIGNAL": true,
+  "NOT_PROVEN_ALPHA": true,
+  "NOT_VALIDATED_TRADING_EDGE": true,
+  "N_RANDOMIZATIONS": 10000,
+  "ONE_SHOT": true,
+  "ONE_SHOT_RUNNER_SHA256": "b6161a9abff29f1c139cfa44f1d1eae751d5baa953a08868382a24987aa69474",
+  "PERMIT_REL": "docs/research/DISCOVERY_SPRINT_04_EXECUTION_PERMIT.json",
+  "PERMIT_SHA256": "d0fa3acef82ff3f36bd8d92960d4c1d3a33c55305d5e8019ee9e925ab70d5aa2",
+  "POST_SPRINT04_AUTOMATION_MATURITY_DECISION_REQUIRED": true,
+  "PRACTICAL_GATE": true,
+  "PROTECTED_2025_OPENED": false,
+  "PROTECTED_2026_OPENED": false,
+  "PSEUDO_SUNDAY_N": 239,
+  "RANDOM_SEED": 20260922196,
+  "RERUN_AUTHORIZED": false,
+  "RESULT_PAYLOAD_SHA256": "73299c8d8313c7c73f423bb83565a45e3c17da6a534dbc8dc8fbf12f943b6feb",
+  "SCIENTIFIC_OUTCOMES_COMPUTED": true,
+  "STATISTICAL_GATE": true,
+  "SUPPORT_PASS": true,
+  "TEMPORAL_GATE": true,
+  "UNIT": "DISCOVERY_SPRINT_04_D12_D13_ONE_SHOT_SCIENTIFIC_EXECUTION",
+  "US_TRANSITIONS_TOTAL": 10,
+  "US_TRANSITION_N": 10,
+  "YEARLY_MEAN_A": {
+    "2020": 0.06505983230398822,
+    "2021": 0.01547038827013536,
+    "2022": -0.06936594768877137,
+    "2023": 0.25569423401462876,
+    "2024": 0.40090931775145205
+  }
+}
