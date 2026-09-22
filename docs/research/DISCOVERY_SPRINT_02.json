@@ -1,0 +1,248 @@
+{
+  "ANTI_RESCUE_MATRIX": {
+    "D7_NE_D2": {
+      "BASELINE": "D7: calendar_year x RV_BUCKET rate-matched random state. D2: year x SIDE matched random abstention on daily RULE_1 / RV_ABSTENTION.",
+      "INFORMATION_SOURCE_FUNCTION": "D7 is kline-derived hourly execution-impact state (family E). D2 is daily conditional abstention / tail-risk filtering (family A).",
+      "NULL_ELIMINATES": "D7 null deprioritizes kline volume/trade/taker-flow impact-state persistence beyond contemporaneous volatility. D2 null would deprioritize RULE_1 / RV_ABSTENTION filtering; D2 discovery was PROMISING_PROTOTYPE and is not rerun here.",
+      "SELECTOR_OR_EVENT": "D7: IMPACT_PROXY > trailing P90 over 720 hours. D2: 24h RV > trailing P90 over 250 daily observations after RULE_1.",
+      "TARGET_FAMILY": "D7: next-hour high-impact state persistence. D2: filtered vs matched-random adverse-path MAE / ADVERSE_SHARE."
+    },
+    "D7_NE_D8": {
+      "BASELINE": "D7 matches random state within year x RV bucket. D8 matches RETURN_SHOCK_MATCHED_NON_HIGH_ACTIVITY_CONTROL: same P99 return-shock gate, same EVENT_SIGN, same calendar year, fails only the P90 volume component.",
+      "INFORMATION_SOURCE_FUNCTION": "D7 is a recurring hourly state. D8 is sparse event-time recovery after a discrete shock.",
+      "NULL_ELIMINATES": "D7 null does not close shock/recovery. D8 null does not close persistent execution-impact states.",
+      "SELECTOR_OR_EVENT": "D7 high-impact hours are common P90 states. D8 shocks require joint P99 |return| and P90 volume.",
+      "TARGET_FAMILY": "D7 next-hour state indicator. D8 6h signed recovery fraction."
+    },
+    "D7_NE_MARKET_05_06": {
+      "BASELINE": "D7: year x RV-bucket matched random state. M05/M06: own-state plus external/cross-venue additive terms vs MAE.",
+      "INFORMATION_SOURCE_FUNCTION": "D7 is CORE-BTC kline-only hourly impact-state characterization. MARKET-05/06 were confirmatory 24h direction-aligned adverse-path MAE prediction with external/cross-venue add-on terms.",
+      "NULL_ELIMINATES": "D7 null does not reopen the M05/M06 additive MAE cell. M05/M06 NO_EVIDENCE is consumed and not rescued.",
+      "SELECTOR_OR_EVENT": "D7 has no external observable, no 24h MAE target, and no additive linear term.",
+      "TARGET_FAMILY": "D7 state persistence. M05/M06 relative MAE improvement."
+    },
+    "D8_NE_D3": {
+      "BASELINE": "D8: year x EVENT_SIGN return-shock-matched non-high-activity controls (same P99 |return| gate; fail P90 volume). D3: unconditional / state-blind 24h path-shape statistics.",
+      "INFORMATION_SOURCE_FUNCTION": "D8 is event-time recovery after a discrete endogenous shock (family G). D3 is generic 24h path morphology (family C), already NO_USEFUL_STRUCTURE.",
+      "NULL_ELIMINATES": "D8 null deprioritizes this endogenous high-magnitude + high-activity shock/recovery scale. It does not relabel D3 path functionals.",
+      "SELECTOR_OR_EVENT": "D8 requires a frozen two-threshold shock. D3 had no event definition.",
+      "TARGET_FAMILY": "D8 signed 6h recovery fraction. D3 unsigned excursion / time-to-extreme / path asymmetry."
+    },
+    "D8_NE_H02_MEAN_REVERSION": {
+      "BASELINE": "D8: RETURN_SHOCK_MATCHED_NON_HIGH_ACTIVITY_CONTROL. H02 tested failed-breakout mean reversion on a different construction and was killed in development.",
+      "INFORMATION_SOURCE_FUNCTION": "D8 is sparse event-response/recovery, not a continuous failed-breakout / mean-reversion screen.",
+      "NULL_ELIMINATES": "D8 null does not reopen H02. A D8 positive would not resurrect H02.",
+      "SELECTOR_OR_EVENT": "D8 joint P99 |1h return| and P90 volume shock. H02 used a failed-breakout construction, not this event rule.",
+      "TARGET_FAMILY": "D8 6h signed recovery fraction after the event hour closes. H02 was a mean-reversion / failed-breakout development hypothesis."
+    }
+  },
+  "CARDS": {
+    "D7": {
+      "DATA_LABEL": "ADAPTIVE_DISCOVERY_ON_HISTORICALLY_EXPOSED_DATA",
+      "DIAGNOSTIC_ONLY_TARGET": "IMPACT_PROXY at t+1 (continuous). Cannot change classification.",
+      "DISCOVERY_ID": "D7",
+      "FAMILY": "E",
+      "FAMILY_NAME": "LIQUIDITY_EXECUTION_STATE",
+      "FROZEN_CONSTRUCTION": {
+        "HOUR": "UTC hour from completed 1m CORE BTC bars. Incomplete hours ineligible. Never manufacture 1m from 5m.",
+        "IMPACT_PROXY": "RET_ABS_1H / QREL_1H",
+        "INELIGIBLE_IF": "QREL_1H nonpositive or nonfinite; IMPACT_PROXY nonfinite; trailing window shorter than 720 valid hours. No epsilon repair.",
+        "QREL_1H": "QUOTE_VOLUME_1H / median(previous 720 valid hourly QUOTE_VOLUME_1H), current hour excluded",
+        "QUOTE_VOLUME_1H": "sum quote_volume over the 60 closed 1m bars",
+        "RET_ABS_1H": "abs(log(close_1h / open_1h))",
+        "RV_1H": "RET_ABS_1H",
+        "RV_BUCKETS": "4 trailing quantile buckets of previous 720 valid RV_1H observations, current hour excluded, cuts at P25/P50/P75",
+        "STATE": "IMPACT_PROXY_t > P90(previous 720 valid IMPACT_PROXY observations), current t excluded, strict >",
+        "TAKER_IMBALANCE_1H": "abs(2 * sum(taker_buy_quote_volume) / sum(quote_volume) - 1). Diagnostic covariate only. Not a selector.",
+        "TRADE_COUNT_1H": "sum trade_count over the 60 closed 1m bars",
+        "TRAILING_WINDOW_HOURS": 720
+      },
+      "FUNCTION": "State characterization / persistence. NOT terminal-return prediction. NOT directional alpha. NOT D2 abstention rescue.",
+      "INFORMATION_SOURCE": "CORE_BTC_BINANCE_V0 only, historically exposed 2020-2024. No L2, OI, liquidations, mark/index/premium, bid-ask, or realized slippage.",
+      "KLINE_PROXY_ONLY": true,
+      "KNOWN_PRIOR_EXPOSURE": "CORE BTC klines were used by H01/H02 and MARKET-01/02/05/06 and Discovery Sprint 01, but not as an hourly kline-derived execution-impact state. H05 taker imbalance was a different function/horizon. This card does not reuse D2 RV_ABSTENTION or M05/M06 MAE.",
+      "LEGAL_INTERVAL": "Completed UTC hours with open in [2020-01-01T00:00:00Z, 2025-01-01T00:00:00Z). Protected 2025/2026 sealed.",
+      "MARKET_RELATIONSHIP": "Indirect. A persistent kline impact-state would at most motivate later execution-state work or richer L2/spread data. It is not a tradable edge and not an order-book liquidity claim.",
+      "MAX_ENGINEERING_SCOPE": "Reuse existing CORE loader plus one aggregation/state evaluator. No new dataset. No L2 ingestion. No execution simulator.",
+      "MECHANISM_CLASS": "Kline-derived price-impact / flow-intensity state.",
+      "NAME": "KLINE_FLOW_IMPACT_STATE",
+      "NOT_ORDERBOOK_LIQUIDITY": true,
+      "NOT_REALIZED_SLIPPAGE": true,
+      "PRIMARY_TARGET": "NEXT_HOUR_HIGH_IMPACT_STATE",
+      "PRIMARY_TARGET_DEFINITION": "I_HIGH_IMPACT(t+1) using the same frozen IMPACT_PROXY > trailing-P90 rule at t+1, current t+1 excluded. Persistence of the kline-derived high-impact state over the next 1h.",
+      "PROMISING_PROTOTYPE_REQUIREMENTS": [
+        "meaningful practical magnitude versus year x RV-bucket rate-matched random state",
+        "effect not isolated to one year",
+        "adequate support after 720-hour warmup",
+        "no obvious mechanical volatility explanation after RV-bucket matching",
+        "no hidden threshold or trailing-window search"
+      ],
+      "RESEARCHER_DOF": "LOW-MEDIUM. One frozen hourly construction, one P90 state, one 720-hour window, one primary target. Residual risk is the kline proxy being a volatility relabel despite RV matching.",
+      "SIMPLE_BASELINE": "RATE_MATCHED_RANDOM_STATE within calendar_year x RV_BUCKET. Tests whether the IMPACT_PROXY state selects persistent next-hour high-impact hours better than chance after matching contemporaneous realized volatility.",
+      "SMALL_SEARCH_SURFACE": "Exactly one state (IMPACT_PROXY > trailing P90, 720 hours). No P85/P95. No alternate windows. No alternate IMPACT_PROXY formulas. No RV-bucket retuning. TAKER_IMBALANCE is diagnostic only.",
+      "STATUS": "DEFINED_NOT_EXECUTED",
+      "TARGET_FAMILY": "Persistence of kline-derived execution-impact state over the next 1h.",
+      "TIME_SCALE": "One completed UTC hour, built from closed 1m bars.",
+      "UNIT_OF_OBSERVATION": "One completed UTC hour on CORE BTC.",
+      "WHAT_A_NULL_DEPRIORITIZES": "Using Binance kline-only volume/trade/taker-flow proxies to identify persistent execution-impact states beyond contemporaneous volatility.",
+      "WHAT_A_POSITIVE_WOULD_JUSTIFY_NEXT": "A proposal for either (a) a clean confirmatory execution-state study or (b) acquisition of richer L2/spread/slippage data. It does NOT justify calling CORE V0 an order-book liquidity dataset."
+    },
+    "D8": {
+      "CONTROL_DEFINITION": {
+        "CALENDAR_YEAR_MATCH": true,
+        "EVENT_SIGN_MATCH": true,
+        "HIGH_ACTIVITY_COMPONENT": "FAIL: EVENT_VOLUME_t <= P90(previous 720 valid hourly quote-volume observations), current t excluded. Controls fail only the frozen high-activity event component.",
+        "IF_INSUFFICIENT": "DEFERRED_INSUFFICIENT_CONTROL_SUPPORT",
+        "NAME": "RETURN_SHOCK_MATCHED_NON_HIGH_ACTIVITY_CONTROL",
+        "NO_BROADER_CONTROL_POOL": true,
+        "NO_P25_P50_P75_PRIMARY_MAGNITUDE_BUCKETS": true,
+        "NO_P99_WEAKENING_FOR_CONTROLS": true,
+        "NO_WEAKER_THRESHOLD": true,
+        "RETURN_SHOCK_GATE": "ABS_EVENT_RETURN_t > P99(previous 720 valid ABS_EVENT_RETURN observations), current t excluded, strict >. SAME frozen return-shock gate as events."
+      },
+      "DATA_LABEL": "ADAPTIVE_DISCOVERY_ON_HISTORICALLY_EXPOSED_DATA",
+      "DIAGNOSTIC_ONLY_TARGET": "RECOVERY_24H. Cannot rescue the primary 6h result.",
+      "DISCOVERY_ID": "D8",
+      "EVENT_DEFINITION": {
+        "ABS_EVENT_RETURN": "abs(log(close_1h / open_1h))",
+        "AND": true,
+        "EVENT_KNOWABLE_AFTER": "event hour close only",
+        "EVENT_SIGN": "sign(EVENT_RETURN)",
+        "EVENT_VOLUME": "quote_volume_1h",
+        "MIN_EVENT_GAP_HOURS": 6,
+        "NO_ALTERNATE_THRESHOLDS": true,
+        "NO_HORIZON_SWEEP": true,
+        "OVERLAP_RULE": "Keep the first qualifying event; drop later candidates whose event hour is within 6h of a kept event.",
+        "RETURN_THRESHOLD": "ABS_EVENT_RETURN_t > P99(previous 720 valid ABS_EVENT_RETURN), current t excluded, strict >",
+        "TRAILING_WINDOW_HOURS": 720,
+        "VOLUME_THRESHOLD": "EVENT_VOLUME_t > P90(previous 720 valid hourly quote-volume), current t excluded, strict >"
+      },
+      "FAMILY": "G",
+      "FAMILY_NAME": "EVENT_RESPONSE_RECOVERY",
+      "FEASIBILITY_CENSUS_ALLOWED_BEFORE_OUTCOMES": [
+        "total non-overlapping event count",
+        "event count by year",
+        "sign counts",
+        "return-shock control counts",
+        "counts by year/sign",
+        "event/control ABS_EVENT_RETURN distribution summaries"
+      ],
+      "FEASIBILITY_MUST_NOT_INSPECT": [
+        "RECOVERY_6H",
+        "RECOVERY_24H",
+        "any recovery outcome"
+      ],
+      "FROZEN_RECOVERY_CLOCK": {
+        "DIAGNOSTIC_24H_PROTECTED_BOUND": "EVENT_DECISION_T + 24h < 2025-01-01T00:00:00Z. Diagnostic only. Same strict protected-bound rule. No equality-at-boundary relaxation.",
+        "EVENT_CLOSE": "close of final canonical 1m bar whose available_at_ms == EVENT_DECISION_T",
+        "EVENT_DECISION_T": "H + 1h",
+        "EVENT_HOUR": "[H, H+1h)",
+        "EVENT_RETURN": "log(close of final canonical 1m bar in the event hour / open of first canonical 1m bar in the event hour)",
+        "NO_EQUALITY_AT_BOUNDARY_RELAXATION": true,
+        "PRICE_T_PLUS_6H": "close of canonical 1m bar whose available_at_ms == EVENT_DECISION_T + 6h",
+        "PROTECTED_BOUND_PRIMARY": "EVENT_DECISION_T + 6h < 2025-01-01T00:00:00Z",
+        "PROTECTED_BOUND_STRICT": true,
+        "RECOVERY_6H": "-sign(EVENT_RETURN) * log(PRICE_T_PLUS_6H / EVENT_CLOSE) / abs(EVENT_RETURN)"
+      },
+      "FUNCTION": "Event response / recovery characterization. NOT generic terminal-return prediction. NOT D2 high-RV filtering. NOT D3 generic path morphology.",
+      "INFORMATION_SOURCE": "CORE_BTC_BINANCE_V0 only. No FOMC/CPI/news calendar. No liquidations feed.",
+      "KNOWN_PRIOR_EXPOSURE": "CORE BTC 1h aggregates were not previously used as a frozen endogenous shock + 6h signed recovery event study. H02 failed-breakout mean reversion is a different construction and was killed. D3 path morphology is a different function and returned NO_USEFUL_STRUCTURE.",
+      "LEGAL_INTERVAL": "Completed UTC hours with open in [2020-01-01T00:00:00Z, 2025-01-01T00:00:00Z). Protected 2025/2026 sealed. Strict: EVENT_DECISION_T + 6h < 2025-01-01T00:00:00Z. No equality-at-boundary relaxation. Diagnostic 24h obeys EVENT_DECISION_T + 24h < 2025-01-01T00:00:00Z.",
+      "MARKET_RELATIONSHIP": "Indirect. Event-recovery structure would at most motivate a separately frozen confirmation study. Not strategy construction.",
+      "MAX_ENGINEERING_SCOPE": "One deterministic event constructor plus one recovery evaluator. No external news/calendar acquisition in this sprint.",
+      "MECHANISM_CLASS": "Event-time response/recovery following a discrete endogenous BTC shock.",
+      "MINIMUM_SUPPORT_RULE": {
+        "CONTROL_SUPPORT": {
+          "EVERY_RETAINED_EVENT_YEAR_SIGN_STRATUM_MUST_CONTAIN_RETURN_SHOCK_CONTROLS": true,
+          "IF_INADEQUATE": "DEFERRED_INSUFFICIENT_CONTROL_SUPPORT",
+          "IF_REQUIRED_CONTROL_SAMPLE_CANNOT_BE_CONSTRUCTED_WITHOUT_REPLACEMENT": "DEFERRED_INSUFFICIENT_CONTROL_SUPPORT",
+          "NO_BROADER_CONTROL_POOL": true,
+          "NO_P99_WEAKENING": true,
+          "NO_WEAKER_THRESHOLD": true,
+          "SAMPLING_MATCHING_ALGORITHM": "May be frozen in DISCOVERY_SPRINT_02_FEASIBILITY_AND_IMPLEMENTATION, outcome-blind. Do not inspect recovery values to choose it."
+        },
+        "IF_INADEQUATE": "DEFERRED_INSUFFICIENT_EVENT_SUPPORT",
+        "MIN_EVENTS_PER_YEAR_IN_AT_LEAST_TWO_YEARS": 3,
+        "MIN_NONOVERLAPPING_EVENTS": 20,
+        "MIN_YEARS_WITH_EVENTS": 3,
+        "NO_THRESHOLD_WEAKENING": true
+      },
+      "NAME": "ENDOGENOUS_SHOCK_RECOVERY",
+      "NO_EXOGENOUS_CALENDAR": true,
+      "PRIMARY_TARGET": "RECOVERY_6H",
+      "PRIMARY_TARGET_DEFINITION": "RECOVERY_6H = -sign(EVENT_RETURN) * log(PRICE_T_PLUS_6H / EVENT_CLOSE) / abs(EVENT_RETURN), using FROZEN_RECOVERY_CLOCK. Positive = retracement. 0 = no signed recovery. 1 = full retracement. If EVENT_RETURN is zero/nonfinite, row ineligible.",
+      "PROMISING_PROTOTYPE_REQUIREMENTS": [
+        "practical recovery difference versus RETURN_SHOCK_MATCHED_NON_HIGH_ACTIVITY_CONTROL",
+        "not one-year driven",
+        "sufficient events in multiple years under the frozen support rule",
+        "sufficient return-shock matched non-high-activity controls under the frozen control-support rule",
+        "no event-overlap artifact (6h gap)",
+        "no post-hoc threshold or horizon rescue"
+      ],
+      "RESEARCHER_DOF": "LOW-MEDIUM. One frozen joint P99-return / P90-volume shock, one 6h primary recovery, one 720-hour trailing window. Residual risk is sparse-event clustering.",
+      "SIMPLE_BASELINE": "RETURN_SHOCK_MATCHED_NON_HIGH_ACTIVITY_CONTROL. A control hour must satisfy the same frozen return-shock gate ABS_EVENT_RETURN_t > P99(previous 720 valid ABS_EVENT_RETURN), have the same EVENT_SIGN, be in the same calendar year, and FAIL the high-activity component EVENT_VOLUME_t <= P90(previous 720 valid hourly quote-volume). Event vs control differs primarily in the frozen high-activity condition, not by comparing P99 shocks with ordinary top-quartile moves. P25/P50/P75 magnitude buckets are not the primary baseline. Do not weaken P99 to obtain more controls. If return-shock controls are insufficient: DEFERRED_INSUFFICIENT_CONTROL_SUPPORT, not a broader control pool and not a weaker threshold.",
+      "SMALL_SEARCH_SURFACE": "Exactly one event definition (P99 |1h return| AND P90 hourly quote volume, 720-hour trailing windows). Exactly one primary recovery horizon (6h). 24h is diagnostic only. Exactly one primary control (RETURN_SHOCK_MATCHED_NON_HIGH_ACTIVITY_CONTROL). No alternate thresholds. No P99 weakening for controls. No horizon sweep. No P25/P50/P75 primary magnitude-bucket baseline.",
+      "STATUS": "DEFINED_NOT_EXECUTED",
+      "TARGET_FAMILY": "Signed recovery fraction after an endogenous high-magnitude + high-activity 1h shock.",
+      "TIME_SCALE": "Event hour plus 6h primary recovery; 24h diagnostic only.",
+      "UNIT_OF_OBSERVATION": "One non-overlapping endogenous shock event hour.",
+      "WHAT_A_NULL_DEPRIORITIZES": "Simple endogenous high-magnitude + high-activity BTC shock/recovery mechanisms at this event scale. It does NOT close exogenous news events, liquidation events, or other event families unavailable in CORE V0.",
+      "WHAT_A_POSITIVE_WOULD_JUSTIFY_NEXT": "Proposal of a separately frozen event-response confirmation study. Not immediate strategy construction."
+    }
+  },
+  "CARD_CONTRACT_FIELDS": [
+    "DISCOVERY_ID",
+    "MECHANISM_CLASS",
+    "INFORMATION_SOURCE",
+    "FUNCTION",
+    "TARGET_FAMILY",
+    "TIME_SCALE",
+    "UNIT_OF_OBSERVATION",
+    "MARKET_RELATIONSHIP",
+    "SIMPLE_BASELINE",
+    "SMALL_SEARCH_SURFACE",
+    "KNOWN_PRIOR_EXPOSURE",
+    "WHAT_A_NULL_DEPRIORITIZES",
+    "WHAT_A_POSITIVE_WOULD_JUSTIFY_NEXT",
+    "RESEARCHER_DOF",
+    "MAX_ENGINEERING_SCOPE"
+  ],
+  "D7_EXECUTED": false,
+  "D7_STATUS": "DEFINED_NOT_EXECUTED",
+  "D8_CONTROL_AND_CLOCK_INTEGRITY_REPAIR": true,
+  "D8_EXECUTED": false,
+  "D8_STATUS": "DEFINED_NOT_EXECUTED",
+  "DATA_LABEL": "ADAPTIVE_DISCOVERY_ON_HISTORICALLY_EXPOSED_DATA",
+  "DATE": "2026-09-22",
+  "INTERNAL_CARDS": [
+    "D7",
+    "D8"
+  ],
+  "KIND": "OUTCOME_BLIND_DISCOVERY_CARD_DEFINITION",
+  "MARKET_07_CREATED": false,
+  "NEXT_UNIT": "DISCOVERY_SPRINT_02_FEASIBILITY_AND_IMPLEMENTATION",
+  "NEXT_UNIT_MAY": [
+    "non-outcome feasibility censuses",
+    "implementation",
+    "synthetic tests",
+    "outcome-blind review"
+  ],
+  "NEXT_UNIT_MUST_NOT": [
+    "execute D7/D8 scientific outcomes automatically",
+    "open protected 2025/2026",
+    "create MARKET-07",
+    "create confirmatory preregistration"
+  ],
+  "NO_CONFIRMATORY_PREREGISTRATION": true,
+  "PARENT_POLICY": "HETEROGENEOUS_FAMILY_ROTATION_V1",
+  "PARENT_POLICY_REL": "docs/research/HETEROGENEOUS_FAMILY_ROTATION_V1.json",
+  "PRODUCT_BUILD_FROZEN": true,
+  "PROTECTED_2025_OPENED": false,
+  "PROTECTED_2026_OPENED": false,
+  "SCHEMA": "signalbot_discovery_sprint",
+  "SCHEMA_VERSION": "1.0.0",
+  "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+  "STATUS": "DEFINED",
+  "UNIT": "DISCOVERY_SPRINT_02",
+  "UNIT_ID": "DISCOVERY_SPRINT_02_HETEROGENEOUS_CARD_DEFINITION"
+}

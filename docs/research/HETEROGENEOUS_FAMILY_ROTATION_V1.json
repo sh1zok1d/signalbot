@@ -1,0 +1,81 @@
+{
+  "DATE": "2026-09-22",
+  "FAMILIES": {
+    "A": "CONDITIONAL_RISK_ABSTENTION",
+    "B": "DIRECTIONAL_EXPECTATION",
+    "C": "PATH_MORPHOLOGY",
+    "D": "RELATIVE_CROSS_ASSET_STRUCTURE",
+    "E": "LIQUIDITY_EXECUTION_STATE",
+    "F": "REGIME_TRANSITION",
+    "G": "EVENT_RESPONSE_RECOVERY",
+    "H": "CROSS_SECTIONAL_OR_VENUE_STRUCTURE",
+    "I": "EXTERNALLY_DERIVED_BENCHMARK_MECHANISMS"
+  },
+  "FAMILY_A_IMMEDIATE_NEIGHBORS_FORBIDDEN": true,
+  "FAMILY_B_NEAR_M05_M06_LOW_PRIORITY": true,
+  "FAMILY_C_NEAR_D3_LOW_PRIORITY": true,
+  "FAMILY_D_ROLLING_CORR_NEAR_NEIGHBORS_LOW_PRIORITY": true,
+  "FAMILY_STATUS": {
+    "A": {
+      "REASON": "Immediate D2 / RULE_1 / RV_ABSTENTION neighbors are forbidden. D2 discovery is PROMISING_PROTOTYPE; BitMEX replication is SUPPORTED; excess-alignment decomposition is D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT. No threshold, RV-window, or horizon variant.",
+      "STATUS": "NOT_SELECTED_THIS_ROTATION"
+    },
+    "B": {
+      "REASON": "Near the exact/near-exact MARKET-05/06 additive 24h adverse-path MAE / directional-expectation cell, which is REPEATED_NULL / LOW_PRIORITY_FOR_NOW.",
+      "STATUS": "NOT_SELECTED_THIS_ROTATION"
+    },
+    "C": {
+      "REASON": "Near D3 PATH_MORPHOLOGY, which returned NO_USEFUL_STRUCTURE. No nearby path-functional relabel.",
+      "STATUS": "NOT_SELECTED_THIS_ROTATION"
+    },
+    "D": {
+      "REASON": "D4 ROLLING_CORRELATION_90D returned NO_USEFUL_STRUCTURE; lead-lag remains deferred. Rolling-correlation near-neighbors are low priority.",
+      "STATUS": "NOT_SELECTED_THIS_ROTATION"
+    },
+    "E": {
+      "CARD": "D7",
+      "REASON": "First unused family with a CORE_BTC_BINANCE_V0-legal kline proxy. Not order-book liquidity.",
+      "STATUS": "SELECTED_THIS_ROTATION"
+    },
+    "F": {
+      "REASON": "D1 null-model / observable mismatch remains unresolved. No regime-transition card until that blocker is explicitly closed.",
+      "STATUS": "DEFERRED_BLOCKER_UNRESOLVED"
+    },
+    "G": {
+      "CARD": "D8",
+      "REASON": "First unused family with a deterministic endogenous CORE-only shock. No external calendar.",
+      "STATUS": "SELECTED_THIS_ROTATION"
+    },
+    "H": {
+      "REASON": "No true point-in-time cross-sectional panel. BTC/ETH pairwise structure and MARKET-06 venue dislocation are not panel evidence.",
+      "STATUS": "DEFERRED_DATA_LIMITATION"
+    },
+    "I": {
+      "REASON": "An external mechanism must be selected and pinned outcome-blind before Signalbot reproduction outcomes are inspected. D6 remains deferred.",
+      "STATUS": "DEFERRED_SOURCE_NOT_PINNED"
+    }
+  },
+  "FIRST_ROTATION_APPLICATION": "DISCOVERY_SPRINT_02",
+  "KIND": "HYPOTHESIS_GENERATION_POLICY_FREEZE",
+  "MARKET_07_CREATED": false,
+  "NAME": "HETEROGENEOUS_FAMILY_ROTATION_V1",
+  "NO_MARKET_07_FROM_THIS_POLICY": true,
+  "PARENT_AUTHORITY": "docs/research/PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED.json",
+  "PRODUCT_BUILD_FROZEN": true,
+  "PROTECTED_2025_OPENED": false,
+  "PROTECTED_2026_OPENED": false,
+  "SCHEMA": "signalbot_heterogeneous_family_rotation_v1",
+  "SCHEMA_VERSION": "1.0.0",
+  "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+  "SELECTED_INTERNAL_CARDS": [
+    "D7",
+    "D8"
+  ],
+  "SELECTED_THIS_ROTATION": [
+    "E",
+    "G"
+  ],
+  "SOURCE_UNIT": "PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED",
+  "STATUS": "FROZEN",
+  "UNIT": "HETEROGENEOUS_FAMILY_ROTATION_V1"
+}

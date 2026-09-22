@@ -28,8 +28,15 @@ The exact M05/M06 additive 24h adverse-path MAE cell is `REPEATED_NULL / LOW_PRI
 
 ## Active work
 
-Next: continue orthogonal family rotation
-(`HETEROGENEOUS_FAMILY_ROTATION_V1`).
+Next: Discovery Sprint 02 feasibility and implementation
+(`DISCOVERY_SPRINT_02_FEASIBILITY_AND_IMPLEMENTATION`).
+
+`HETEROGENEOUS_FAMILY_ROTATION_V1` is frozen. Sprint 02 defines exactly
+two internal cards, neither executed: D7 `KLINE_FLOW_IMPACT_STATE`
+(family E, kline proxy only) and D8 `ENDOGENOUS_SHOCK_RECOVERY`
+(family G). No scientific outcomes. Binance 2025/2026 remain sealed.
+Product build remains frozen. MARKET-07 is not created. Do not execute
+D7/D8 from this routing file.
 
 D2 remains an `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE` from the
 independent pre-2020 BitMEX surface, not a validated trading edge. The

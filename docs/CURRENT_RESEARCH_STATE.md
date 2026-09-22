@@ -2,7 +2,7 @@
 
 **Status date:** 2026-09-22  
 **Status:** `ACTIVE / CANONICAL ROUTING INDEX`  
-**Main integration baseline before this status commit:** `21cca92a7f828be6b271bb09a76d3092ba5f44b9`
+**Main integration baseline before this status commit:** `68f5c964f7f19e7d358a3362057d6aede5eae8b1`
 
 This file is the compact answer to “what controls the project now?”. Frozen preregistrations/results remain authoritative for reproducing their own experiments; this file controls current routing only.
 
@@ -33,12 +33,20 @@ Program-level correction is sealed in `docs/research/MARKET_PROGRAM_UPDATE_POST_
 ## Exact next unit
 
 ```
-PREVIOUS_ROUTING            = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION
+PREVIOUS_ROUTING            = HETEROGENEOUS_FAMILY_ROTATION_V1
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = HETEROGENEOUS_FAMILY_ROTATION_V1
-NEXT_ACTION                 = CONTINUE_ORTHOGONAL_FAMILY_ROTATION
+NEXT_UNIT                   = DISCOVERY_SPRINT_02_FEASIBILITY_AND_IMPLEMENTATION
+NEXT_ACTION                 = SPRINT_02_NON_OUTCOME_FEASIBILITY_AND_IMPLEMENTATION
+HETEROGENEOUS_FAMILY_ROTATION_V1 = FROZEN
+DISCOVERY_SPRINT_02 = DEFINED
+DISCOVERY_SPRINT_02_INTERNAL_CARDS = 2
+D7_STATUS                   = DEFINED_NOT_EXECUTED
+D8_STATUS                   = DEFINED_NOT_EXECUTED
+D7_EXECUTED                 = false
+D8_EXECUTED                 = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
 D2_DECOMPOSITION_DESIGN_STATUS = FROZEN
 D2_DECOMPOSITION_IMPLEMENTATION_REVIEW = PASS
 D2_DECOMPOSITION_SCIENTIFIC_KERNEL_READY = true
@@ -312,6 +320,20 @@ RESULT_PAYLOAD_SHA256 =
 NEXT_ACTION = CONTINUE_ORTHOGONAL_FAMILY_ROTATION
 NEXT_UNIT = HETEROGENEOUS_FAMILY_ROTATION_V1
 ```
+
+`HETEROGENEOUS_FAMILY_ROTATION_V1` was then frozen and applied as
+`DISCOVERY_SPRINT_02_HETEROGENEOUS_CARD_DEFINITION`: exactly two internal
+cards, D7 `KLINE_FLOW_IMPACT_STATE` (family E, kline proxy only) and D8
+`ENDOGENOUS_SHOCK_RECOVERY` (family G). Neither card is executed.
+F remains `DEFERRED_BLOCKER_UNRESOLVED`; H `DEFERRED_DATA_LIMITATION`;
+I `DEFERRED_SOURCE_NOT_PINNED`. Record:
+`docs/research/HETEROGENEOUS_FAMILY_ROTATION_V1.{json,md}` and
+`docs/research/DISCOVERY_SPRINT_02.{json,md}`.
+D8 primary control is `RETURN_SHOCK_MATCHED_NON_HIGH_ACTIVITY_CONTROL`
+(same P99 return-shock gate; fails only P90 volume). Recovery clock is
+frozen at `EVENT_DECISION_T = H+1h` with a strict
+`EVENT_DECISION_T + 6h < 2025-01-01T00:00:00Z` bound. D7 unchanged.
+`NEXT_UNIT = DISCOVERY_SPRINT_02_FEASIBILITY_AND_IMPLEMENTATION`.
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by
