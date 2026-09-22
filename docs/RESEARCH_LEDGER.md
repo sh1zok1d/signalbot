@@ -4435,3 +4435,65 @@ REAL_DECOMPOSITION_OUTCOME_COMPUTED = false
 Evidence: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN.{json,md}`.
 
 - next required step: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`
+
+## 2026-09-22 — D2 excess path-risk implementation and outcome-blind review
+
+`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`
+implemented the frozen decomposition design and reviewed it
+adversarially. **No scientific window was consumed and no decomposition
+outcome was computed.** This entry records an implementation/review unit,
+not evidence.
+
+The frozen design was not redesigned. Selector, SIDE, primary target,
+comparator, strata, seed, gates, thresholds and classification order are
+imported from the frozen design module rather than reimplemented. The
+only new mechanical work is future-path reconstruction: `DiscoveryRow`
+stores `future_closes` only, so the evaluator re-walks the exact 288×5m
+`PerpBar` sequence opening at `T..T+287*5m` and calls frozen
+`arithmetic_mae` twice on that one shared sequence, then cross-checks
+recomputed `MAE_SIDE` bit-for-bit against the frozen
+`DiscoveryRow.severity`. A wrong window, a close-path substitution, or a
+split SIDE/-SIDE path fails closed rather than producing a number.
+
+Target ineligibility (`TARGET_ROW_INELIGIBLE_PATH_SCALE_NONPOSITIVE`, no
+epsilon) never rebuilds the D2 selector: the candidate set is the
+intersection of selector and target eligibility, and the dropped selector
+count is reported per year.
+
+Red-team classes F1–F20 (lookahead, wrong future window, closes instead
+of high/low, split SIDE paths, selector drift, SIDE drift, target
+ineligibility handling, pooled-K / year-only fallback, LONG/SHORT
+composition mismatch, RNG/seed drift, replacement sampling, different
+masks for share and scale, separate yearly control generation, future
+information matching, gate/classification rescue, authority hash drift,
+accidental real execution, protected 2025/2026 access, BitMEX reuse) all
+returned `NOT_CONFIRMED`. Three non-blocking observations were recorded,
+including that the frozen `STATISTICAL_GATE` strict `>` can be decided by
+float noise at an exact tie — left unchanged, because the frozen design
+already requires the practical and temporal gates as well.
+
+No scientific ambiguity required a new researcher convention:
+`SCIENTIFIC_AMBIGUITY_FOUND = false`.
+
+```
+IMPLEMENTATION_REVIEW               = PASS
+EXECUTION_READY                     = true
+EXECUTION_AUTHORIZED                = false
+EXECUTION_PERMIT_CREATED            = false
+REAL_DECOMPOSITION_OUTCOME_COMPUTED = false
+CLASSIFICATION_ASSIGNED             = null
+FROZEN_AUTHORITY_STATUS             = BOUND_NO_DRIFT
+PROTECTED_2025_OPENED               = false
+PROTECTED_2026_OPENED               = false
+BITMEX_2017_2019_REUSED_FOR_NEW_TARGET = false
+MARKET_07_CREATED                   = false
+RESULT_CREATED                      = false
+ARM_CREATED                         = false
+```
+
+Evidence: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_REVIEW.{json,md}`.
+
+- next required step: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION`
+  (an explicit one-shot execution unit, requiring a future permit that
+  binds the design hash, the review hash, the implementation hash, the
+  CORE BTC snapshot and the recorded run identity)

@@ -33,12 +33,18 @@ Program-level correction is sealed in `docs/research/MARKET_PROGRAM_UPDATE_POST_
 ## Exact next unit
 
 ```
-PREVIOUS_ROUTING            = D2_CONFIRMATION_WAIT_FOR_3Y_INDEPENDENT_FRESH_SURFACE_OR_FIND_EQUIVALENT
+PREVIOUS_ROUTING            = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW
+NEXT_UNIT                   = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION
 D2_DECOMPOSITION_DESIGN_STATUS = FROZEN
+D2_DECOMPOSITION_IMPLEMENTATION_REVIEW = PASS
+D2_DECOMPOSITION_EXECUTION_READY   = true
+D2_DECOMPOSITION_EXECUTION_AUTHORIZED = false
+D2_DECOMPOSITION_EXECUTION_PERMIT_CREATED = false
+REAL_DECOMPOSITION_OUTCOME_COMPUTED = false
+D2_DECOMPOSITION_CLASSIFICATION_ASSIGNED = null
 D2_PROGRAM_CLASS            = INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE
 BINANCE_2025_2026_DECISION  = KEEP_SEALED
 PRODUCT_BUILD_FROZEN        = true
@@ -213,7 +219,28 @@ independent confirmation. BitMEX 2017-2019 is not reused for this new
 target. Protected 2025/2026 unopened. MARKET-07 not created. No real
 decomposition outcome.
 Record: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN.{json,md}`.
-`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`.
+
+`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`
+then implemented that frozen design and reviewed it adversarially
+**without executing the decomposition**. The design was not redesigned:
+selector, SIDE, target, comparator, strata, seed, gates, thresholds and
+classification order are imported from the frozen design module, not
+reimplemented. The one new mechanical part is future-path reconstruction —
+`DiscoveryRow` stores `future_closes` only, so the evaluator re-walks the
+exact 288 5m `PerpBar` path and calls frozen `arithmetic_mae` twice on
+that one shared sequence, cross-checking recomputed `MAE_SIDE`
+bit-for-bit against the frozen `DiscoveryRow.severity`. Target
+ineligibility (`TARGET_ROW_INELIGIBLE_PATH_SCALE_NONPOSITIVE`, no
+epsilon) never rebuilds the selector and is reported per year. Twenty
+red-team failure classes (F1-F20) returned `NOT_CONFIRMED`; three
+non-blocking observations were recorded; no scientific ambiguity required
+a new researcher convention. `IMPLEMENTATION_REVIEW = PASS`,
+`EXECUTION_READY = true`, `EXECUTION_AUTHORIZED = false`. No execution
+permit, no RESULT, no ARM, no MARKET-07. Protected 2025/2026 unopened.
+BitMEX 2017-2019 not reused for this target.
+Record: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_REVIEW.{json,md}`.
+`NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION`
+(an explicit one-shot execution unit; execution was not performed here).
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by
