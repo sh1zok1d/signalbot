@@ -1,0 +1,547 @@
+{
+  "A_VALUES_COMPUTED": false,
+  "COMPLETE_DAY_N": 1827,
+  "DATA_IDENTITY": {
+    "DATASET_ID": "CORE_BTC_BINANCE_V0",
+    "DATA_IDENTITY_MODE": "TRACKED_SNAPSHOT_FULL_MONTHLY_EXACT_BYTE_VERIFICATION",
+    "MONTH_N": 60,
+    "QUOTE_VOLUME_FIELD": true,
+    "SNAPSHOT_ID": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415"
+  },
+  "D_VALUES_COMPUTED": false,
+  "EU_TRANSITIONS_FEASIBLE": 10,
+  "EU_TRANSITIONS_TOTAL": 10,
+  "EU_WINDOWS": [
+    {
+      "after_included": 6,
+      "after_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "before_included": 6,
+      "before_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "eligible": true,
+      "eu_dst_changes": true,
+      "eu_dst_constant": false,
+      "sunday": "2020-03-29",
+      "transition_in_window": false,
+      "us_dst_changes": false,
+      "us_dst_constant": true
+    },
+    {
+      "after_included": 6,
+      "after_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "before_included": 6,
+      "before_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "eligible": true,
+      "eu_dst_changes": true,
+      "eu_dst_constant": false,
+      "sunday": "2020-10-25",
+      "transition_in_window": false,
+      "us_dst_changes": false,
+      "us_dst_constant": true
+    },
+    {
+      "after_included": 6,
+      "after_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "before_included": 6,
+      "before_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "eligible": true,
+      "eu_dst_changes": true,
+      "eu_dst_constant": false,
+      "sunday": "2021-03-28",
+      "transition_in_window": false,
+      "us_dst_changes": false,
+      "us_dst_constant": true
+    },
+    {
+      "after_included": 6,
+      "after_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "before_included": 6,
+      "before_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "eligible": true,
+      "eu_dst_changes": true,
+      "eu_dst_constant": false,
+      "sunday": "2021-10-31",
+      "transition_in_window": false,
+      "us_dst_changes": false,
+      "us_dst_constant": true
+    },
+    {
+      "after_included": 6,
+      "after_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "before_included": 6,
+      "before_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "eligible": true,
+      "eu_dst_changes": true,
+      "eu_dst_constant": false,
+      "sunday": "2022-03-27",
+      "transition_in_window": false,
+      "us_dst_changes": false,
+      "us_dst_constant": true
+    },
+    {
+      "after_included": 6,
+      "after_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "before_included": 6,
+      "before_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "eligible": true,
+      "eu_dst_changes": true,
+      "eu_dst_constant": false,
+      "sunday": "2022-10-30",
+      "transition_in_window": false,
+      "us_dst_changes": false,
+      "us_dst_constant": true
+    },
+    {
+      "after_included": 6,
+      "after_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "before_included": 6,
+      "before_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "eligible": true,
+      "eu_dst_changes": true,
+      "eu_dst_constant": false,
+      "sunday": "2023-03-26",
+      "transition_in_window": false,
+      "us_dst_changes": false,
+      "us_dst_constant": true
+    },
+    {
+      "after_included": 6,
+      "after_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "before_included": 6,
+      "before_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "eligible": true,
+      "eu_dst_changes": true,
+      "eu_dst_constant": false,
+      "sunday": "2023-10-29",
+      "transition_in_window": false,
+      "us_dst_changes": false,
+      "us_dst_constant": true
+    },
+    {
+      "after_included": 6,
+      "after_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "before_included": 6,
+      "before_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "eligible": true,
+      "eu_dst_changes": true,
+      "eu_dst_constant": false,
+      "sunday": "2024-03-31",
+      "transition_in_window": false,
+      "us_dst_changes": false,
+      "us_dst_constant": true
+    },
+    {
+      "after_included": 6,
+      "after_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "before_included": 6,
+      "before_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "eligible": true,
+      "eu_dst_changes": true,
+      "eu_dst_constant": false,
+      "sunday": "2024-10-27",
+      "transition_in_window": false,
+      "us_dst_changes": false,
+      "us_dst_constant": true
+    }
+  ],
+  "IDENTITY_OK": true,
+  "N_RANDOMIZATIONS": 10000,
+  "PROFILES_COMPUTED": false,
+  "PSEUDO_SUNDAY_N": 239,
+  "RANDOM_SEED": 20260922196,
+  "SCIENTIFIC_OUTCOME_COMPUTED": false,
+  "SUPPORT_PASS": true,
+  "US_TRANSITIONS_FEASIBLE": 10,
+  "US_TRANSITIONS_TOTAL": 10,
+  "US_WINDOWS": [
+    {
+      "after_included": 6,
+      "after_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "before_included": 6,
+      "before_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "eligible": true,
+      "eu_dst_constant": true,
+      "sunday": "2020-03-08",
+      "transition_in_window": false,
+      "us_dst_changes": true
+    },
+    {
+      "after_included": 6,
+      "after_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "before_included": 6,
+      "before_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "eligible": true,
+      "eu_dst_constant": true,
+      "sunday": "2020-11-01",
+      "transition_in_window": false,
+      "us_dst_changes": true
+    },
+    {
+      "after_included": 6,
+      "after_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "before_included": 6,
+      "before_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "eligible": true,
+      "eu_dst_constant": true,
+      "sunday": "2021-03-14",
+      "transition_in_window": false,
+      "us_dst_changes": true
+    },
+    {
+      "after_included": 6,
+      "after_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "before_included": 6,
+      "before_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "eligible": true,
+      "eu_dst_constant": true,
+      "sunday": "2021-11-07",
+      "transition_in_window": false,
+      "us_dst_changes": true
+    },
+    {
+      "after_included": 6,
+      "after_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "before_included": 6,
+      "before_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "eligible": true,
+      "eu_dst_constant": true,
+      "sunday": "2022-03-13",
+      "transition_in_window": false,
+      "us_dst_changes": true
+    },
+    {
+      "after_included": 6,
+      "after_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "before_included": 6,
+      "before_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "eligible": true,
+      "eu_dst_constant": true,
+      "sunday": "2022-11-06",
+      "transition_in_window": false,
+      "us_dst_changes": true
+    },
+    {
+      "after_included": 6,
+      "after_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "before_included": 6,
+      "before_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "eligible": true,
+      "eu_dst_constant": true,
+      "sunday": "2023-03-12",
+      "transition_in_window": false,
+      "us_dst_changes": true
+    },
+    {
+      "after_included": 6,
+      "after_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "before_included": 6,
+      "before_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "eligible": true,
+      "eu_dst_constant": true,
+      "sunday": "2023-11-05",
+      "transition_in_window": false,
+      "us_dst_changes": true
+    },
+    {
+      "after_included": 6,
+      "after_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "before_included": 6,
+      "before_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "eligible": true,
+      "eu_dst_constant": true,
+      "sunday": "2024-03-10",
+      "transition_in_window": false,
+      "us_dst_changes": true
+    },
+    {
+      "after_included": 6,
+      "after_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "before_included": 6,
+      "before_weekdays": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "eligible": true,
+      "eu_dst_constant": true,
+      "sunday": "2024-11-03",
+      "transition_in_window": false,
+      "us_dst_changes": true
+    }
+  ]
+}

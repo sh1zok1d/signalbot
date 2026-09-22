@@ -36,6 +36,8 @@ logs/
 data/
 backups/
 artifacts/
+# D13 per-symbol ListBucket XML is acquisition runtime under artifacts/,
+# not a tracked scientific authority. Do not commit docs/.../listings/per_symbol_1d/.
 *.log
 
 # OS / IDE
