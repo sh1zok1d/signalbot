@@ -48,11 +48,89 @@ def test_canonical_unit_identity_is_exact(review):
 def test_review_passes_with_no_blocking_findings(review):
     assert review["IMPLEMENTATION_REVIEW"] == "PASS"
     assert review["BLOCKING_FINDINGS"] == []
-    assert review["EXECUTION_READY"] is True
     assert all(
-        body["status"] == "NOT_CONFIRMED"
+        body["status"] in {"NOT_CONFIRMED", "CONFIRMED_AND_REPAIRED"}
         for body in review["RED_TEAM_FINDINGS"].values()
     )
+
+
+def test_review_status_is_derived_from_capability_probes_not_the_findings_table(review):
+    """PASS must be earned by the code, not asserted by a dictionary."""
+
+    caps = review["CAPABILITY_PROBES"]
+    assert caps["CANONICAL_ORCHESTRATION_IMPLEMENTED"] is True
+    assert caps["EXECUTE_IS_TERMINAL_STUB"] is False
+    assert caps["PERMIT_GATE_TAKES_ONLY_REPO"] is True
+    assert caps["PERMIT_GATE_DERIVES_AUTHORITY_FROM_REPO"] is True
+    assert caps["CANONICAL_SELECTOR_DIGEST_IMPLEMENTED"] is True
+    assert caps["CONTROL_P95_METHOD_EXPLICIT"] is True
+    assert all(caps["CANONICAL_ROUTE_STEPS"].values())
+    assert review["SCIENTIFIC_KERNEL_READY"] is True
+    assert review["CANONICAL_ORCHESTRATION_READY"] is True
+    assert review["AUTHORITY_VERIFICATION_READY"] is True
+
+
+def test_execution_ready_is_false_because_the_digest_is_not_frozen(review):
+    """EXECUTION_READY must not be a synonym for a passing review."""
+
+    assert review["EXECUTION_READY"] is False
+    assert "EXPECTED_CANONICAL_SELECTOR_DIGEST_NOT_FROZEN" in review[
+        "EXECUTION_BLOCKED_BY"
+    ]
+    assert "NO_EXECUTION_PERMIT" in review["EXECUTION_BLOCKED_BY"]
+
+
+def test_exact_selector_identity_is_distinguished_from_row_counts(review):
+    assert review["ROW_COUNT_IDENTITY_IMPLEMENTED"] is True
+    assert review["EXACT_SELECTOR_IDENTITY_VERIFIED"] is False
+    assert review["EXACT_SELECTOR_IDENTITY_STATUS"] == (
+        "DIGEST_FUNCTION_IMPLEMENTED_EXPECTED_VALUE_NOT_YET_FROZEN"
+    )
+    assert review["FROZEN_EXPECTED_SELECTOR_DIGEST"] is None
+    assert review["CANONICAL_SELECTOR_DIGEST_VERSION"] == (
+        "D2_EXCESS_PATH_RISK_SELECTOR_DIGEST_V1"
+    )
+
+
+def test_frozen_selector_census_separates_population_from_abstentions(review):
+    census = review["FROZEN_SELECTOR_CENSUS"]
+    assert census["CONSTRUCTED_N"] == 1791
+    assert census["ABSTAIN_N"] == 163
+    assert census["ABSTAIN_N"] != census["CONSTRUCTED_N"]
+
+
+def test_control_percentile_convention_is_recorded(review):
+    assert review["CONTROL_P95_METHOD"] == "NUMPY_LINEAR_INHERITED_FROM_D2"
+
+
+def test_repaired_findings_are_recorded_as_confirmed(review):
+    for name in (
+        "F21_EXECUTION_READY_OVERSTATED_STUB_ROUTE",
+        "F22_PERMIT_AUTHORITY_UNDER_BOUND",
+        "F23_SELECTOR_IDENTITY_PROVED_COUNTS_NOT_IDENTITY",
+        "F24_FROZEN_1791_MISREAD_AS_THE_ABSTAIN_COUNT",
+        "F25_CONTROL_PERCENTILE_CONVENTION_IMPLICIT",
+    ):
+        assert name in review["RED_TEAM_FINDINGS"], f"missing finding {name}"
+        assert review["RED_TEAM_FINDINGS"][name]["status"] == "CONFIRMED_AND_REPAIRED"
+
+
+def test_permit_required_fields_are_published(review):
+    for field in (
+        "UNIT",
+        "DESIGN_JSON_SHA256",
+        "IMPLEMENTATION_REVIEW_JSON_SHA256",
+        "EVALUATOR_SHA256",
+        "CORE_BTC_SNAPSHOT",
+        "RUN_IDENTITY",
+        "EXPECTED_CANONICAL_SELECTOR_DIGEST",
+        "RANDOM_SEED",
+        "N_RANDOM_CONTROLS",
+        "EXECUTION_AUTHORIZED",
+        "ONE_SHOT",
+        "RERUN_AUTHORIZED",
+    ):
+        assert field in review["PERMIT_REQUIRED_FIELDS"]
 
 
 def test_every_required_failure_class_is_reviewed(review):
@@ -173,10 +251,14 @@ def test_design_was_not_redesigned(review):
     assert review["NEW_RESEARCHER_CONVENTION_INTRODUCED"] is False
 
 
-def test_next_unit_is_an_explicit_one_shot_execution_unit(review):
+def test_next_unit_freezes_the_selector_digest_before_the_one_shot(review):
     assert review["NEXT_UNIT"] == (
+        "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_IDENTITY_COMMIT"
+    )
+    assert review["UNIT_AFTER_NEXT"] == (
         "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION"
     )
+    assert "BEFORE any ADVERSE_SHARE" in review["NEXT_UNIT_REQUIREMENT"]
     assert "RESULT" in review["NOT_CREATED"]
     assert "execution permit" in review["NOT_CREATED"]
 

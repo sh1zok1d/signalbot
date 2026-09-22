@@ -382,8 +382,9 @@ def test_selector_identity_fails_closed_on_drift():
     rows, perp = make_population(years=(2020,), rows_per_year=300)
     mask = C.rv_abstention_mask(rows)
     census = EV.selector_identity(rows, mask)
-    assert census["RULE_1_ROW_COUNT"] == int(mask.sum())
-    # Synthetic census is not the frozen 1791 -> enforcement must refuse.
+    assert census["RULE_1_ABSTAIN_COUNT"] == int(mask.sum())
+    assert census["RULE_1_CONSTRUCTED_ROW_COUNT"] == len(rows)
+    # Synthetic census is not the frozen population -> enforcement must refuse.
     with pytest.raises(EV.SelectorIdentityError):
         EV.verify_selector_identity(rows, mask)
 
@@ -398,6 +399,53 @@ def test_frozen_rule_1_identity_constants_unchanged():
         "2024": 365,
     }
     assert sum(FROZEN_RULE1_YEAR_N.values()) == FROZEN_RULE1_N
+
+
+def test_frozen_1791_is_the_constructed_population_not_the_abstain_count():
+    """1791 is RULE_ELIGIBLE_N; the frozen RULE_1 abstain census is 163.
+
+    Conflating them would make the canonical one-shot fail closed on
+    correct data (or silently accept a wrong mask if later loosened).
+    """
+
+    want = EV.frozen_selector_expectations(REPO)
+    assert want["CONSTRUCTED_N"] == 1791 == EV.FROZEN_RULE1_CONSTRUCTED_N
+    assert want["CONSTRUCTED_YEAR_N"] == dict(EV.FROZEN_RULE1_CONSTRUCTED_YEAR_N)
+    assert want["ABSTAIN_N"] == 163
+    assert want["ABSTAIN_YEAR_N"] == {
+        "2020": 10,
+        "2021": 48,
+        "2022": 32,
+        "2023": 23,
+        "2024": 50,
+    }
+    assert sum(want["ABSTAIN_YEAR_N"].values()) == want["ABSTAIN_N"]
+    assert want["ABSTAIN_N"] < want["CONSTRUCTED_N"]
+
+
+def test_selector_verification_checks_both_population_and_abstain_census():
+    rows, perp = make_population(years=(2020, 2021), rows_per_year=250)
+    mask = C.rv_abstention_mask(rows)
+    census = EV.selector_identity(rows, mask)
+    good = {
+        "CONSTRUCTED_N": census["RULE_1_CONSTRUCTED_ROW_COUNT"],
+        "CONSTRUCTED_YEAR_N": census["RULE_1_CONSTRUCTED_YEAR_BREAKDOWN"],
+        "ABSTAIN_N": census["RULE_1_ABSTAIN_COUNT"],
+        "ABSTAIN_YEAR_N": census["RULE_1_ABSTAIN_YEAR_BREAKDOWN"],
+    }
+    verified = EV.verify_selector_identity(rows, mask, expectations=good)
+    assert verified["ROW_COUNT_IDENTITY_VERIFIED"] is True
+    assert verified["ABSTAIN_CENSUS_VERIFIED"] is True
+
+    wrong_pop = dict(good, CONSTRUCTED_N=good["CONSTRUCTED_N"] + 1)
+    with pytest.raises(EV.SelectorIdentityError) as exc:
+        EV.verify_selector_identity(rows, mask, expectations=wrong_pop)
+    assert "RULE_1_CONSTRUCTED_N" in str(exc.value)
+
+    wrong_abstain = dict(good, ABSTAIN_N=good["ABSTAIN_N"] + 1)
+    with pytest.raises(EV.SelectorIdentityError) as exc:
+        EV.verify_selector_identity(rows, mask, expectations=wrong_abstain)
+    assert "RULE_1_ABSTAIN_N" in str(exc.value)
 
 
 def test_side_drift_changes_the_target_as_expected():
@@ -1003,17 +1051,50 @@ def test_execute_decomposition_fails_without_permit():
 
 def test_loading_canonical_core_btc_requires_a_permit():
     with pytest.raises(EV.ExecutionNotAuthorized):
-        EV.load_canonical_core_btc_bars(REPO, execution_authority=None)
+        EV.load_canonical_core_btc_bars(REPO)
 
 
-def test_permit_present_but_forged_still_refuses(tmp_path):
-    """Even a fabricated permit cannot unlock a real outcome in this unit."""
+def test_loading_core_btc_refuses_before_any_loader_runs():
+    """The gate precedes the loader: no CORE byte may be opened without one."""
 
-    permit = tmp_path / EV.EXECUTION_PERMIT_REL
-    permit.parent.mkdir(parents=True, exist_ok=True)
-    permit.write_text(json.dumps({"run_identity": "forged"}), encoding="utf-8")
-    with pytest.raises((EV.ExecutionNotAuthorized, RealDecompositionForbidden)):
-        EV.execute_decomposition(repo=tmp_path, execution_authority={"run_identity": "forged"})
+    def _exploding_loader(_repo):  # pragma: no cover - must never run
+        raise AssertionError("LOADER_RAN_WITHOUT_PERMIT")
+
+    with pytest.raises(EV.ExecutionNotAuthorized):
+        EV.load_canonical_core_btc_bars(REPO, loader=_exploding_loader)
+
+
+def test_execute_decomposition_refuses_before_touching_the_loader():
+    def _exploding_loader(_repo):  # pragma: no cover - must never run
+        raise AssertionError("LOADER_RAN_WITHOUT_PERMIT")
+
+    with pytest.raises(EV.ExecutionNotAuthorized) as exc:
+        EV.execute_decomposition(repo=REPO, loader=_exploding_loader)
+    assert "NO_EXECUTION_PERMIT" in str(exc.value)
+
+
+def test_caller_kwargs_cannot_supply_scientific_authority():
+    """Free caller kwargs must not be able to authorize anything."""
+
+    forged = {
+        "UNIT": EV.UNIT,
+        "DESIGN_JSON_SHA256": "0" * 64,
+        "IMPLEMENTATION_REVIEW_JSON_SHA256": "0" * 64,
+        "EVALUATOR_SHA256": "0" * 64,
+        "CORE_BTC_SNAPSHOT": C.CORE_BTC_SNAPSHOT,
+        "RUN_IDENTITY": "0" * 64,
+        "RANDOM_SEED": 20260922131,
+        "N_RANDOM_CONTROLS": 10000,
+        "EXECUTION_AUTHORIZED": True,
+        "ONE_SHOT": True,
+        "RERUN_AUTHORIZED": False,
+    }
+    with pytest.raises(EV.ExecutionNotAuthorized) as exc:
+        EV.execute_decomposition(repo=REPO, execution_authority=forged, permit=forged)
+    assert "NO_EXECUTION_PERMIT" in str(exc.value)
+    # signature accepts only repo/loader as meaningful inputs
+    params = set(inspect.signature(EV.execute_decomposition).parameters)
+    assert "execution_authority" not in params
 
 
 def test_refuse_real_decomposition_outcome_helper():
@@ -1103,3 +1184,517 @@ def test_run_identity_is_order_independent_and_stable():
     assert a == b
     assert a != c
     assert len(a) == 64
+
+
+# --------------------------------------------------------------------------
+# 12. F4 — control percentile convention is explicit and inherited.
+# --------------------------------------------------------------------------
+
+
+def test_control_p95_method_is_explicitly_frozen():
+    assert EV.CONTROL_P95 == 95.0
+    assert EV.CONTROL_P95_METHOD == "NUMPY_LINEAR_INHERITED_FROM_D2"
+
+
+def test_control_percentile_matches_historical_d2_behaviour():
+    """np.percentile(x, 95) is what D2 discovery and D2 BitMEX both used."""
+
+    rng = np.random.default_rng(20260922131)
+    for size in (10, 37, 100, 1000):
+        values = rng.normal(size=size)
+        historical = float(np.percentile(values, 95))  # inherited call form
+        assert EV.control_percentile(values) == pytest.approx(historical, abs=0.0)
+        assert EV.control_percentile(values) == float(
+            np.percentile(values, 95.0, method="linear")
+        )
+
+
+def test_control_percentile_is_interpolating_not_nearest():
+    """Pins the interpolation family: linear, not lower/higher/nearest."""
+
+    values = [0.0, 1.0]
+    assert EV.control_percentile(values) == pytest.approx(0.95)
+    for other in ("lower", "higher", "nearest", "midpoint"):
+        if float(np.percentile(values, 95.0, method=other)) != pytest.approx(0.95):
+            break
+    else:  # pragma: no cover - would mean the fixture cannot discriminate
+        raise AssertionError("fixture does not discriminate interpolation methods")
+
+
+def test_evaluate_decomposition_records_the_percentile_convention():
+    rows, perp = make_population(years=(2020, 2021, 2022), rows_per_year=120)
+    result = EV.evaluate_decomposition(rows, perp, n_replicates=32)
+    assert result["CONTROL_P95_METHOD"] == "NUMPY_LINEAR_INHERITED_FROM_D2"
+
+
+# --------------------------------------------------------------------------
+# 13. F3 — canonical selector digest: counts are not identity.
+# --------------------------------------------------------------------------
+
+
+def test_equal_counts_with_different_timestamps_give_different_digests():
+    """The core F3 point: same census, different selected rows."""
+
+    rows_a, perp_a = make_population(years=(2020,), rows_per_year=300)
+    mask_a = C.rv_abstention_mask(rows_a)
+    census_a = EV.selector_identity(rows_a, mask_a)
+
+    # Same population, same number of firings, different firing positions.
+    mask_b = np.zeros_like(mask_a)
+    fired = int(mask_a.sum())
+    assert fired >= 2
+    candidates = [i for i in range(len(rows_a)) if not mask_a[i]][:fired]
+    mask_b[candidates] = True
+    census_b = EV.selector_identity(rows_a, mask_b)
+
+    assert census_b["RULE_1_ABSTAIN_COUNT"] == census_a["RULE_1_ABSTAIN_COUNT"]
+    assert (
+        census_b["CANONICAL_SELECTOR_DIGEST"]
+        != census_a["CANONICAL_SELECTOR_DIGEST"]
+    )
+
+
+def test_digest_changes_if_the_constructed_population_changes():
+    rows, perp = make_population(years=(2020,), rows_per_year=300)
+    mask = C.rv_abstention_mask(rows)
+    full = EV.canonical_selector_digest(rows, mask)
+    trimmed = EV.canonical_selector_digest(rows[:-1], mask[:-1])
+    assert full != trimmed
+
+
+def test_digest_is_deterministic_and_version_tagged():
+    rows, perp = make_population(years=(2020,), rows_per_year=300)
+    mask = C.rv_abstention_mask(rows)
+    assert EV.canonical_selector_digest(rows, mask) == EV.canonical_selector_digest(
+        rows, mask
+    )
+    payload = EV.canonical_selector_payload(rows, mask)
+    assert payload.startswith(EV.CANONICAL_SELECTOR_DIGEST_VERSION)
+    assert EV.PRIMARY_SELECTOR in payload
+    assert len(EV.canonical_selector_digest(rows, mask)) == 64
+
+
+def test_exact_selector_identity_is_not_claimed_without_a_frozen_digest():
+    rows, perp = make_population(years=(2020, 2021), rows_per_year=250)
+    mask = C.rv_abstention_mask(rows)
+    census = EV.selector_identity(rows, mask)
+    expectations = {
+        "CONSTRUCTED_N": census["RULE_1_CONSTRUCTED_ROW_COUNT"],
+        "CONSTRUCTED_YEAR_N": census["RULE_1_CONSTRUCTED_YEAR_BREAKDOWN"],
+    }
+    verified = EV.verify_selector_identity(rows, mask, expectations=expectations)
+    assert verified["ROW_COUNT_IDENTITY_VERIFIED"] is True
+    assert verified["EXACT_SELECTOR_IDENTITY_VERIFIED"] is False
+    assert verified["EXACT_SELECTOR_IDENTITY_STATUS"] == (
+        "EXPECTED_CANONICAL_DIGEST_NOT_FROZEN"
+    )
+
+
+def test_exact_selector_identity_verified_only_on_digest_match():
+    rows, perp = make_population(years=(2020, 2021), rows_per_year=250)
+    mask = C.rv_abstention_mask(rows)
+    census = EV.selector_identity(rows, mask)
+    expectations = {
+        "CONSTRUCTED_N": census["RULE_1_CONSTRUCTED_ROW_COUNT"],
+        "CONSTRUCTED_YEAR_N": census["RULE_1_CONSTRUCTED_YEAR_BREAKDOWN"],
+    }
+    good = EV.verify_selector_identity(
+        rows,
+        mask,
+        expectations=expectations,
+        expected_canonical_digest=census["CANONICAL_SELECTOR_DIGEST"],
+    )
+    assert good["EXACT_SELECTOR_IDENTITY_VERIFIED"] is True
+    assert good["EXACT_SELECTOR_IDENTITY_STATUS"] == "CANONICAL_DIGEST_MATCHED"
+
+    with pytest.raises(EV.SelectorIdentityError) as exc:
+        EV.verify_selector_identity(
+            rows,
+            mask,
+            expectations=expectations,
+            expected_canonical_digest="f" * 64,
+        )
+    assert "CANONICAL_SELECTOR_DIGEST" in str(exc.value)
+
+
+def test_no_expected_digest_is_invented_in_this_unit():
+    """Inventing one would require reconstructing rows from real CORE data."""
+
+    assert EV.FROZEN_EXPECTED_SELECTOR_DIGEST is None
+    summary = EV.frozen_contract_summary(REPO)
+    assert summary["EXACT_SELECTOR_IDENTITY_VERIFIABLE_NOW"] is False
+    assert summary["FROZEN_EXPECTED_SELECTOR_DIGEST"] is None
+
+
+# --------------------------------------------------------------------------
+# 14. F1 — the canonical orchestration is complete and dormant, not a stub.
+# --------------------------------------------------------------------------
+
+
+def _synthetic_canonical_repo(tmp_path: Path) -> Path:
+    """A fake checkout carrying every authority the permit gate reads."""
+
+    import shutil
+
+    needed = list(EV.IMPLEMENTATION_FILES) + [
+        "docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN.json",
+        "docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN.md",
+        "docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_REVIEW.json",
+        "docs/research/discovery_results/D2_DISCOVERY_RESULT.json",
+        C.CORE_BTC_SNAPSHOT_DOC_REL,
+    ]
+    for rel in needed:
+        src = REPO / rel
+        if not src.is_file():
+            continue
+        dst = tmp_path / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
+    return tmp_path
+
+
+def _valid_permit_payload(repo: Path, digest: str) -> dict:
+    payload = dict(EV.expected_permit_authority(repo))
+    payload["EXPECTED_CANONICAL_SELECTOR_DIGEST"] = digest
+    payload["CANONICAL_SELECTOR_DIGEST_VERSION"] = EV.CANONICAL_SELECTOR_DIGEST_VERSION
+    return payload
+
+
+def test_canonical_orchestration_is_not_a_terminal_stub():
+    """The route must contain the real steps, not an unconditional raise."""
+
+    fn = _function_def("execute_decomposition")
+    called = _called_names(fn)
+    for step in (
+        "_verify_execution_permit",
+        "verify_core_btc_snapshot_identity",
+        "load_canonical_core_btc_bars",
+        "canonical_orchestration",
+    ):
+        assert step in called, f"canonical route missing step: {step}"
+
+    orchestration = _function_def("canonical_orchestration")
+    orchestration_calls = _called_names(orchestration)
+    assert "SCIENTIFIC_BUILD_ROWS" in orchestration_calls
+    assert "evaluate_decomposition" in orchestration_calls
+
+    # No unconditional raise as the function body's final act.
+    body = fn.body
+    assert not isinstance(body[-1], ast.Raise), "execute_decomposition is a stub"
+
+
+def test_canonical_orchestration_pins_frozen_parameters():
+    """seed / N / identity enforcement / cross-check are not caller-tunable."""
+
+    orchestration = _function_def("canonical_orchestration")
+    call = [
+        node
+        for node in ast.walk(orchestration)
+        if isinstance(node, ast.Call)
+        and getattr(node.func, "id", None) == "evaluate_decomposition"
+    ][0]
+    kwargs = {kw.arg: kw.value for kw in call.keywords}
+    assert isinstance(kwargs["enforce_selector_identity"], ast.Constant)
+    assert kwargs["enforce_selector_identity"].value is True
+    assert isinstance(kwargs["cross_check_severity"], ast.Constant)
+    assert kwargs["cross_check_severity"].value is True
+    # seed and n_replicates are wrapped int(RANDOM_SEED) / int(N_RANDOM_CONTROLS)
+    for key, frozen_name in (
+        ("seed", "RANDOM_SEED"),
+        ("n_replicates", "N_RANDOM_CONTROLS"),
+    ):
+        names = {
+            n.id for n in ast.walk(kwargs[key]) if isinstance(n, ast.Name)
+        }
+        assert frozen_name in names, f"{key} not pinned to {frozen_name}"
+
+
+def test_canonical_orchestration_rejects_seed_or_n_drift():
+    rows, perp = make_population(years=(2020,), rows_per_year=60)
+    with pytest.raises(EV.ExecutionNotAuthorized) as exc:
+        EV.canonical_orchestration(
+            REPO, perp, expected_canonical_digest="a" * 64, seed=1
+        )
+    assert "SEED_DRIFT" in str(exc.value)
+    with pytest.raises(EV.ExecutionNotAuthorized) as exc:
+        EV.canonical_orchestration(
+            REPO, perp, expected_canonical_digest="a" * 64, n_replicates=5
+        )
+    assert "N_CONTROLS_DRIFT" in str(exc.value)
+
+
+def test_canonical_orchestration_requires_an_expected_digest():
+    rows, perp = make_population(years=(2020,), rows_per_year=60)
+    with pytest.raises(EV.SelectorIdentityError):
+        EV.canonical_orchestration(REPO, perp, expected_canonical_digest="")
+
+
+def test_core_btc_snapshot_identity_is_verified_from_tracked_metadata():
+    assert EV.verify_core_btc_snapshot_identity(REPO) == C.CORE_BTC_SNAPSHOT
+
+
+def test_full_route_is_reachable_only_behind_the_permit(tmp_path):
+    """Prove the whole route wires up, using an injected synthetic loader.
+
+    A valid permit gets past every hash binding and still stops at the
+    module-level EXECUTION_AUTHORIZED backstop, so no CORE byte is ever read
+    and no decomposition outcome is produced in this unit.
+    """
+
+    repo = _synthetic_canonical_repo(tmp_path)
+    permit_path = repo / EV.EXECUTION_PERMIT_REL
+    permit_path.parent.mkdir(parents=True, exist_ok=True)
+    permit_path.write_text(
+        json.dumps(_valid_permit_payload(repo, "a" * 64)), encoding="utf-8"
+    )
+
+    def _loader(_repo):  # pragma: no cover - must never run
+        raise AssertionError("LOADER_RAN_DESPITE_EXECUTION_AUTHORIZED_FALSE")
+
+    with pytest.raises(EV.ExecutionNotAuthorized) as exc:
+        EV.execute_decomposition(repo=repo, loader=_loader)
+    assert "EXECUTION_AUTHORIZED_FALSE" in str(exc.value)
+
+
+# --------------------------------------------------------------------------
+# 15. F2 — permit authority is bound to the tracked artifact.
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "field,bad",
+    [
+        ("UNIT", "SOME_OTHER_UNIT"),
+        ("DESIGN_JSON_SHA256", "0" * 64),
+        ("IMPLEMENTATION_REVIEW_JSON_SHA256", "0" * 64),
+        ("EVALUATOR_SHA256", "0" * 64),
+        ("CORE_BTC_SNAPSHOT", "0" * 64),
+        ("RUN_IDENTITY", "0" * 64),
+        ("RANDOM_SEED", 12345),
+        ("N_RANDOM_CONTROLS", 1000),
+        ("EXECUTION_AUTHORIZED", False),
+        ("ONE_SHOT", False),
+        ("RERUN_AUTHORIZED", True),
+    ],
+)
+def test_wrong_permit_field_fails_closed(tmp_path, field, bad):
+    repo = _synthetic_canonical_repo(tmp_path)
+    payload = _valid_permit_payload(repo, "a" * 64)
+    payload[field] = bad
+    permit = repo / EV.EXECUTION_PERMIT_REL
+    permit.parent.mkdir(parents=True, exist_ok=True)
+    permit.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(EV.ExecutionNotAuthorized) as exc:
+        EV.execute_decomposition(repo=repo)
+    assert f"PERMIT_MISMATCH:{field}" in str(exc.value)
+
+
+def test_missing_permit_field_fails_closed(tmp_path):
+    repo = _synthetic_canonical_repo(tmp_path)
+    payload = _valid_permit_payload(repo, "a" * 64)
+    payload.pop("EVALUATOR_SHA256")
+    permit = repo / EV.EXECUTION_PERMIT_REL
+    permit.parent.mkdir(parents=True, exist_ok=True)
+    permit.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(EV.ExecutionNotAuthorized) as exc:
+        EV.execute_decomposition(repo=repo)
+    assert "PERMIT_MISSING_FIELD:EVALUATOR_SHA256" in str(exc.value)
+
+
+def test_permit_without_frozen_selector_digest_fails_closed(tmp_path):
+    repo = _synthetic_canonical_repo(tmp_path)
+    payload = _valid_permit_payload(repo, "a" * 64)
+    payload["EXPECTED_CANONICAL_SELECTOR_DIGEST"] = ""
+    permit = repo / EV.EXECUTION_PERMIT_REL
+    permit.parent.mkdir(parents=True, exist_ok=True)
+    permit.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(EV.ExecutionNotAuthorized) as exc:
+        EV.execute_decomposition(repo=repo)
+    assert "EXPECTED_CANONICAL_SELECTOR_DIGEST" in str(exc.value)
+
+
+def test_permit_with_wrong_digest_version_fails_closed(tmp_path):
+    repo = _synthetic_canonical_repo(tmp_path)
+    payload = _valid_permit_payload(repo, "a" * 64)
+    payload["CANONICAL_SELECTOR_DIGEST_VERSION"] = "SOME_OTHER_VERSION"
+    permit = repo / EV.EXECUTION_PERMIT_REL
+    permit.parent.mkdir(parents=True, exist_ok=True)
+    permit.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(EV.ExecutionNotAuthorized) as exc:
+        EV.execute_decomposition(repo=repo)
+    assert "SELECTOR_DIGEST_VERSION_MISMATCH" in str(exc.value)
+
+
+def test_consumed_permit_cannot_authorize_a_rerun(tmp_path):
+    repo = _synthetic_canonical_repo(tmp_path)
+    payload = _valid_permit_payload(repo, "a" * 64)
+    payload["CONSUMED"] = True
+    permit = repo / EV.EXECUTION_PERMIT_REL
+    permit.parent.mkdir(parents=True, exist_ok=True)
+    permit.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(EV.ExecutionNotAuthorized) as exc:
+        EV.execute_decomposition(repo=repo)
+    assert "PERMIT_ALREADY_CONSUMED_NO_RERUN" in str(exc.value)
+
+
+def test_permit_run_identity_must_equal_the_review_run_identity(tmp_path):
+    repo = _synthetic_canonical_repo(tmp_path)
+    review = json.loads(
+        (repo / EV.REVIEW_JSON_REL).read_text(encoding="utf-8")
+    )
+    payload = _valid_permit_payload(repo, "a" * 64)
+    assert payload["RUN_IDENTITY"] == review["RUN_IDENTITY"]
+    payload["RUN_IDENTITY"] = "b" * 64
+    permit = repo / EV.EXECUTION_PERMIT_REL
+    permit.parent.mkdir(parents=True, exist_ok=True)
+    permit.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(EV.ExecutionNotAuthorized) as exc:
+        EV.execute_decomposition(repo=repo)
+    assert "PERMIT_MISMATCH:RUN_IDENTITY" in str(exc.value)
+
+
+def test_tampered_review_bytes_invalidate_a_previously_valid_permit(tmp_path):
+    """Correct caller kwargs cannot compensate for wrong tracked bytes."""
+
+    repo = _synthetic_canonical_repo(tmp_path)
+    payload = _valid_permit_payload(repo, "a" * 64)
+    permit = repo / EV.EXECUTION_PERMIT_REL
+    permit.parent.mkdir(parents=True, exist_ok=True)
+    permit.write_text(json.dumps(payload), encoding="utf-8")
+
+    review_path = repo / EV.REVIEW_JSON_REL
+    review_path.write_text(
+        review_path.read_text(encoding="utf-8") + "\n", encoding="utf-8"
+    )
+    with pytest.raises(EV.ExecutionNotAuthorized) as exc:
+        EV.execute_decomposition(repo=repo, execution_authority=payload)
+    assert "PERMIT_MISMATCH:IMPLEMENTATION_REVIEW_JSON_SHA256" in str(exc.value)
+
+
+def test_tampered_design_bytes_invalidate_a_previously_valid_permit(tmp_path):
+    repo = _synthetic_canonical_repo(tmp_path)
+    payload = _valid_permit_payload(repo, "a" * 64)
+    permit = repo / EV.EXECUTION_PERMIT_REL
+    permit.parent.mkdir(parents=True, exist_ok=True)
+    permit.write_text(json.dumps(payload), encoding="utf-8")
+
+    design = repo / (
+        "docs/research/"
+        "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN.json"
+    )
+    design.write_text(design.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+    with pytest.raises(EV.ExecutionNotAuthorized) as exc:
+        EV.execute_decomposition(repo=repo)
+    assert "PERMIT_MISMATCH:DESIGN_JSON_SHA256" in str(exc.value)
+
+
+def test_unparseable_permit_fails_closed(tmp_path):
+    repo = _synthetic_canonical_repo(tmp_path)
+    permit = repo / EV.EXECUTION_PERMIT_REL
+    permit.parent.mkdir(parents=True, exist_ok=True)
+    permit.write_text("{not json", encoding="utf-8")
+    with pytest.raises(EV.ExecutionNotAuthorized) as exc:
+        EV.execute_decomposition(repo=repo)
+    assert "PERMIT_UNPARSEABLE" in str(exc.value)
+
+
+def test_permit_gate_does_not_read_authority_from_caller(tmp_path):
+    """AST: the gate derives expectations from the repo, not from arguments."""
+
+    fn = _function_def("_verify_execution_permit")
+    args = {a.arg for a in fn.args.args} | {a.arg for a in fn.args.kwonlyargs}
+    assert args == {"repo"}, f"gate takes caller authority: {args}"
+    called = _called_names(fn)
+    assert "expected_permit_authority" in called
+
+
+def test_permit_required_fields_are_complete():
+    for field in (
+        "UNIT",
+        "DESIGN_JSON_SHA256",
+        "IMPLEMENTATION_REVIEW_JSON_SHA256",
+        "EVALUATOR_SHA256",
+        "CORE_BTC_SNAPSHOT",
+        "RUN_IDENTITY",
+        "EXPECTED_CANONICAL_SELECTOR_DIGEST",
+        "CANONICAL_SELECTOR_DIGEST_VERSION",
+        "RANDOM_SEED",
+        "N_RANDOM_CONTROLS",
+        "EXECUTION_AUTHORIZED",
+        "ONE_SHOT",
+        "RERUN_AUTHORIZED",
+    ):
+        assert field in EV.PERMIT_REQUIRED_FIELDS
+
+
+def test_canonical_orchestration_runs_end_to_end_on_a_synthetic_surface():
+    """Steps 3-8 actually execute, not merely exist.
+
+    Uses a synthetic perp map over the REAL frozen decision interval, so
+    `C.build_rows(perp, RULE1_INTERVAL_START, DISCOVERY_END)` is exercised for
+    real. Decision times without bars yield no row, so the population is a
+    small synthetic prefix rather than the canonical 1791. Expectations are
+    injected for the fixture; the authorized path reads them from the frozen
+    discovery result instead.
+    """
+
+    n_days = 360
+    perp: dict[int, PerpBar] = {}
+    t_ms = BASE_MS - 2 * DAY_MS  # feature lookback
+    for day in range(n_days + 2):
+        entry = 100.0
+        down = 0.02 if day % 25 else 0.05
+        for k in range(FUTURE_BARS):
+            ms = t_ms + k * BAR_MS
+            drift = 1.0 + 0.0001 * ((day * 7 + k) % 13)
+            perp[ms] = PerpBar(
+                ms,
+                entry * drift,
+                entry * drift * (1.0 + (0.01 if k == 5 else 0.0)),
+                entry * drift * (1.0 - (down if k == 7 else 0.0)),
+                entry * drift,
+            )
+        t_ms += DAY_MS
+
+    rows = C.build_rows(perp, C.RULE1_INTERVAL_START, C.DISCOVERY_END)
+    assert rows, "build_rows produced nothing over the frozen interval"
+    mask = C.rv_abstention_mask(rows)
+    census = EV.selector_identity(rows, mask)
+    expectations = {
+        "CONSTRUCTED_N": census["RULE_1_CONSTRUCTED_ROW_COUNT"],
+        "CONSTRUCTED_YEAR_N": census["RULE_1_CONSTRUCTED_YEAR_BREAKDOWN"],
+        "ABSTAIN_N": census["RULE_1_ABSTAIN_COUNT"],
+        "ABSTAIN_YEAR_N": census["RULE_1_ABSTAIN_YEAR_BREAKDOWN"],
+    }
+
+    result = EV.canonical_orchestration(
+        REPO,
+        perp,
+        expected_canonical_digest=census["CANONICAL_SELECTOR_DIGEST"],
+        expectations=expectations,
+    )
+    assert result["CANONICAL_ORCHESTRATION"] is True
+    assert result["EXACT_SELECTOR_IDENTITY_VERIFIED"] is True
+    assert result["ROW_COUNT_IDENTITY_VERIFIED"] is True
+    assert result["RANDOM_SEED"] == 20260922131
+    assert result["N_RANDOM_CONTROLS"] == 10000
+    assert result["CLASSIFICATION"] in CLASSIFICATION_ORDER
+    # This is a synthetic fixture, never a real decomposition outcome.
+    assert result["REAL_DECOMPOSITION_OUTCOME_COMPUTED"] is False
+
+
+def test_canonical_orchestration_refuses_a_wrong_selector_population():
+    """The frozen census check bites on a surface that is not canonical."""
+
+    n_days = 30
+    perp: dict[int, PerpBar] = {}
+    t_ms = BASE_MS - 2 * DAY_MS
+    for _ in range(n_days + 2):
+        for k in range(FUTURE_BARS):
+            ms = t_ms + k * BAR_MS
+            perp[ms] = PerpBar(ms, 100.0, 101.0, 99.0, 100.0)
+        t_ms += DAY_MS
+    with pytest.raises(EV.SelectorIdentityError) as exc:
+        EV.canonical_orchestration(REPO, perp, expected_canonical_digest="a" * 64)
+    assert "RULE_1_CONSTRUCTED_N" in str(exc.value)

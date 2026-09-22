@@ -7,6 +7,7 @@ reuse BitMEX 2017-2019 for this target.
 
 from __future__ import annotations
 
+import ast
 import json
 import subprocess
 from pathlib import Path
@@ -32,9 +33,13 @@ from scripts.research.d2_excess_path_risk_beyond_vol_clustering_design import (
     verify_design_authorities,
 )
 from scripts.research.d2_excess_path_risk_evaluator import (
+    CANONICAL_SELECTOR_DIGEST_VERSION,
+    CONTROL_P95_METHOD,
     EXECUTION_AUTHORIZED,
     EXECUTION_PERMIT_REL,
+    FROZEN_EXPECTED_SELECTOR_DIGEST,
     IMPLEMENTATION_FILES,
+    PERMIT_REQUIRED_FIELDS,
     REVIEW_JSON_REL,
     REVIEW_MD_REL,
     UNIT,
@@ -42,10 +47,14 @@ from scripts.research.d2_excess_path_risk_evaluator import (
     current_artifact_sha256,
     current_implementation_file_sha256,
     frozen_contract_summary,
+    frozen_selector_expectations,
 )
 from scripts.research.discovery_sprint_01 import common as C
 
-TEST_FILES = ("tests/research/test_d2_excess_path_risk_evaluator.py",)
+TEST_FILES = (
+    "tests/research/test_d2_excess_path_risk_evaluator.py",
+    "tests/research/test_d2_excess_path_risk_implementation_review.py",
+)
 
 RED_TEAM: dict[str, dict[str, str]] = {
     "F1_LOOKAHEAD_FEATURE_OUTCOME_OVERLAP": {
@@ -93,8 +102,10 @@ RED_TEAM: dict[str, dict[str, str]] = {
         "note": (
             "The selector is frozen C.rv_abstention_mask (identity-asserted), "
             "RV_TRAILING_WINDOW=250, RV_PCTL=90.0, strict >, t excluded, imported "
-            "not redefined. verify_selector_identity fails closed unless the mask "
-            "is exactly 1791 with the frozen year breakdown."
+            "not redefined. verify_selector_identity fails closed unless the "
+            "constructed population is exactly 1791 / 334-364-364-364-365 AND the "
+            "abstention census matches the frozen 163 / 10-48-32-23-50 (see F24), "
+            "with exact timestamp identity deferred to the canonical digest (F23)."
         ),
     },
     "F7_SIDE_DRIFT": {
@@ -208,6 +219,73 @@ RED_TEAM: dict[str, dict[str, str]] = {
             "is CORE_BTC_BINANCE_V0 2020-02-01 -> 2025-01-01 only."
         ),
     },
+    "F21_EXECUTION_READY_OVERSTATED_STUB_ROUTE": {
+        "status": "CONFIRMED_AND_REPAIRED",
+        "note": (
+            "The first review recorded EXECUTION_READY=true while "
+            "execute_decomposition was a terminal stub that checked the permit and "
+            "then unconditionally raised, so the canonical wiring would have been "
+            "written AFTER the outcome-blind review. The complete dormant route is "
+            "now implemented and reviewed: permit -> frozen snapshot identity -> "
+            "frozen CORE BTC load -> C.build_rows(RULE1_INTERVAL_START, "
+            "DISCOVERY_END) -> selector identity -> exact 288x5m re-walk -> frozen "
+            "comparator at seed 20260922131 / 10000 replicates with identity "
+            "enforcement and severity cross-check ON. An end-to-end test runs steps "
+            "3-8 over the real frozen interval against a synthetic surface. Frozen "
+            "parameters are not caller-tunable: seed/N drift raises."
+        ),
+    },
+    "F22_PERMIT_AUTHORITY_UNDER_BOUND": {
+        "status": "CONFIRMED_AND_REPAIRED",
+        "note": (
+            "The first gate let caller kwargs supply design/review/implementation/"
+            "snapshot values and bound only run_identity to the permit file. The "
+            "gate now takes only `repo`: every authority value is read from the "
+            "tracked permit artifact and compared against tracked/current "
+            "authorities (unit, design SHA, review SHA, evaluator SHA, CORE BTC "
+            "snapshot, RUN_IDENTITY equal to the review's, seed, N, "
+            "EXECUTION_AUTHORIZED, ONE_SHOT, RERUN_AUTHORIZED, plus the frozen "
+            "selector digest and its version). A CONSUMED permit cannot authorize a "
+            "rerun. Parameterized tests cover every wrong/missing field, tampered "
+            "design or review bytes, unparseable permits, and forged caller kwargs."
+        ),
+    },
+    "F23_SELECTOR_IDENTITY_PROVED_COUNTS_NOT_IDENTITY": {
+        "status": "CONFIRMED_AND_REPAIRED",
+        "note": (
+            "Counts are not identity. A canonical digest over the ordered "
+            "(t_ms, selector_flag) sequence of the COMPLETE constructed-row "
+            "population is now implemented and tested (equal counts with different "
+            "firing positions produce different digests). ROW_COUNT_IDENTITY_VERIFIED "
+            "and EXACT_SELECTOR_IDENTITY_VERIFIED are reported separately. No "
+            "expected digest is invented here; the permit must carry one and the "
+            "one-shot refuses metrics without a match."
+        ),
+    },
+    "F24_FROZEN_1791_MISREAD_AS_THE_ABSTAIN_COUNT": {
+        "status": "CONFIRMED_AND_REPAIRED",
+        "note": (
+            "Found while repairing F23. The frozen RULE_1_ROW_COUNT=1791 with "
+            "334/364/364/364/365 is the CONSTRUCTED decision-row population "
+            "(RULE_ELIGIBLE_N), not the abstention count; the frozen RULE_1 "
+            "abstention census in the same hash-bound discovery RESULT is 163 "
+            "(10/48/32/23/50). The first implementation asserted mask.sum()==1791, "
+            "which would have failed closed on correct canonical data and invited a "
+            "post-hoc loosening. Both censuses are now checked against the frozen "
+            "discovery result, which is outcome-blind for the new ADVERSE_SHARE "
+            "target because it describes the selector only."
+        ),
+    },
+    "F25_CONTROL_PERCENTILE_CONVENTION_IMPLICIT": {
+        "status": "CONFIRMED_AND_REPAIRED",
+        "note": (
+            "P95 relied on NumPy's default interpolation. It is now explicit as "
+            "np.percentile(values, 95.0, method='linear') behind control_percentile, "
+            "recorded as CONTROL_P95_METHOD=NUMPY_LINEAR_INHERITED_FROM_D2, and "
+            "tested to equal the historical np.percentile(x, 95) call form used by "
+            "D2 discovery and D2 BitMEX. The threshold itself is unchanged."
+        ),
+    },
 }
 
 OBSERVATIONS: list[dict[str, str]] = [
@@ -252,6 +330,76 @@ def _git(repo: Path, *args: str) -> str:
     return subprocess.check_output(["git", *args], cwd=repo, text=True).strip()
 
 
+def _evaluator_ast(repo: Path) -> ast.Module:
+    path = repo / "scripts/research/d2_excess_path_risk_evaluator.py"
+    return ast.parse(path.read_text(encoding="utf-8"))
+
+
+def _function(tree: ast.Module, name: str) -> ast.FunctionDef | None:
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == name:
+            return node
+    return None
+
+
+def _calls(node: ast.AST) -> set[str]:
+    out: set[str] = set()
+    for child in ast.walk(node):
+        if isinstance(child, ast.Call):
+            name = getattr(child.func, "attr", None) or getattr(child.func, "id", None)
+            if name:
+                out.add(name)
+    return out
+
+
+def probe_capabilities(repo: Path) -> dict[str, Any]:
+    """Derive lifecycle status from the CODE, not from the findings table.
+
+    Each flag below is a mechanical check of the reviewed implementation, so
+    the review cannot claim a capability the code does not have.
+    """
+    tree = _evaluator_ast(repo)
+    execute = _function(tree, "execute_decomposition")
+    orchestration = _function(tree, "canonical_orchestration")
+    gate = _function(tree, "_verify_execution_permit")
+
+    execute_calls = _calls(execute) if execute else set()
+    orchestration_calls = _calls(orchestration) if orchestration else set()
+
+    canonical_route_steps = {
+        "PERMIT_GATE": "_verify_execution_permit" in execute_calls,
+        "SNAPSHOT_IDENTITY": "verify_core_btc_snapshot_identity" in execute_calls,
+        "FROZEN_CORE_LOAD": "load_canonical_core_btc_bars" in execute_calls,
+        "ROW_RECONSTRUCTION": "SCIENTIFIC_BUILD_ROWS" in orchestration_calls,
+        "EVALUATION": "evaluate_decomposition" in orchestration_calls,
+    }
+    execute_is_terminal_stub = bool(
+        execute is not None and isinstance(execute.body[-1], ast.Raise)
+    )
+    gate_args = (
+        {a.arg for a in gate.args.args} | {a.arg for a in gate.args.kwonlyargs}
+        if gate
+        else set()
+    )
+    return {
+        "CANONICAL_ROUTE_STEPS": canonical_route_steps,
+        "CANONICAL_ORCHESTRATION_IMPLEMENTED": bool(
+            all(canonical_route_steps.values()) and not execute_is_terminal_stub
+        ),
+        "EXECUTE_IS_TERMINAL_STUB": execute_is_terminal_stub,
+        "PERMIT_GATE_TAKES_ONLY_REPO": gate_args == {"repo"},
+        "PERMIT_GATE_DERIVES_AUTHORITY_FROM_REPO": (
+            "expected_permit_authority" in _calls(gate) if gate else False
+        ),
+        "CANONICAL_SELECTOR_DIGEST_IMPLEMENTED": (
+            _function(tree, "canonical_selector_digest") is not None
+        ),
+        "EXPECTED_CANONICAL_DIGEST_FROZEN": FROZEN_EXPECTED_SELECTOR_DIGEST is not None,
+        "CONTROL_P95_METHOD_EXPLICIT": CONTROL_P95_METHOD
+        == "NUMPY_LINEAR_INHERITED_FROM_D2",
+    }
+
+
 def build_review(*, repo: Path, implementation_commit: str | None = None) -> dict[str, Any]:
     blockers = verify_design_authorities(repo)
     contract = frozen_contract_summary(repo)
@@ -283,8 +431,49 @@ def build_review(*, repo: Path, implementation_commit: str | None = None) -> dic
     }
     run_identity = compute_run_identity(identity_inputs)
 
+    caps = probe_capabilities(repo)
+    selector = frozen_selector_expectations(repo)
+
     blocking = [name for name, body in RED_TEAM.items() if body["status"] == "BLOCKING"]
-    review_pass = not blocking and not blockers
+
+    # Status is derived from what the code actually does, not from the findings
+    # table. A capability that is not mechanically present cannot be claimed.
+    scientific_kernel_ready = bool(
+        caps["CONTROL_P95_METHOD_EXPLICIT"]
+        and caps["CANONICAL_SELECTOR_DIGEST_IMPLEMENTED"]
+    )
+    canonical_orchestration_ready = bool(caps["CANONICAL_ORCHESTRATION_IMPLEMENTED"])
+    authority_verification_ready = bool(
+        caps["PERMIT_GATE_TAKES_ONLY_REPO"]
+        and caps["PERMIT_GATE_DERIVES_AUTHORITY_FROM_REPO"]
+    )
+    exact_selector_identity_verified = bool(caps["EXPECTED_CANONICAL_DIGEST_FROZEN"])
+
+    review_pass = bool(
+        not blocking
+        and not blockers
+        and scientific_kernel_ready
+        and canonical_orchestration_ready
+        and authority_verification_ready
+    )
+
+    # EXECUTION_READY is NOT "the review passed". The canonical one-shot still
+    # lacks a frozen expected selector digest, which cannot legitimately be
+    # produced in an outcome-blind unit, so execution is not yet possible.
+    execution_blocked_by: list[str] = []
+    if not exact_selector_identity_verified:
+        execution_blocked_by.append("EXPECTED_CANONICAL_SELECTOR_DIGEST_NOT_FROZEN")
+    if not (repo / EXECUTION_PERMIT_REL).is_file():
+        execution_blocked_by.append("NO_EXECUTION_PERMIT")
+    if EXECUTION_AUTHORIZED is not True:
+        execution_blocked_by.append("EXECUTION_AUTHORIZED_FALSE")
+    execution_ready = bool(review_pass and not execution_blocked_by)
+
+    next_unit = (
+        "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_IDENTITY_COMMIT"
+        if review_pass
+        else "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_REPAIR"
+    )
 
     return {
         "unit": UNIT,
@@ -295,11 +484,28 @@ def build_review(*, repo: Path, implementation_commit: str | None = None) -> dic
         "DESIGN_NOT_REDESIGNED": True,
         "CANDIDATE": "D2 / RULE_1 / RV_ABSTENTION",
         "IMPLEMENTATION_REVIEW": "PASS" if review_pass else "BLOCKED",
-        "EXECUTION_READY": bool(review_pass),
+        "SCIENTIFIC_KERNEL_READY": scientific_kernel_ready,
+        "CANONICAL_ORCHESTRATION_READY": canonical_orchestration_ready,
+        "AUTHORITY_VERIFICATION_READY": authority_verification_ready,
+        "ROW_COUNT_IDENTITY_IMPLEMENTED": True,
+        "EXACT_SELECTOR_IDENTITY_VERIFIED": exact_selector_identity_verified,
+        "EXACT_SELECTOR_IDENTITY_STATUS": (
+            "CANONICAL_DIGEST_FROZEN"
+            if exact_selector_identity_verified
+            else "DIGEST_FUNCTION_IMPLEMENTED_EXPECTED_VALUE_NOT_YET_FROZEN"
+        ),
+        "CANONICAL_SELECTOR_DIGEST_VERSION": CANONICAL_SELECTOR_DIGEST_VERSION,
+        "FROZEN_EXPECTED_SELECTOR_DIGEST": FROZEN_EXPECTED_SELECTOR_DIGEST,
+        "CAPABILITY_PROBES": caps,
+        "EXECUTION_READY": execution_ready,
+        "EXECUTION_BLOCKED_BY": execution_blocked_by,
         "EXECUTION_AUTHORIZED": False,
         "EXECUTION_AUTHORIZED_FLAG": EXECUTION_AUTHORIZED,
         "EXECUTION_PERMIT_PRESENT": (repo / EXECUTION_PERMIT_REL).is_file(),
         "EXECUTION_PERMIT_CREATED": False,
+        "PERMIT_REQUIRED_FIELDS": list(PERMIT_REQUIRED_FIELDS),
+        "CONTROL_P95_METHOD": CONTROL_P95_METHOD,
+        "FROZEN_SELECTOR_CENSUS": selector,
         "PRIMARY_SELECTOR": PRIMARY_SELECTOR,
         "PRIMARY_TARGET": PRIMARY_TARGET,
         "PRIMARY_COMPARATOR": PRIMARY_COMPARATOR,
@@ -364,10 +570,15 @@ def build_review(*, repo: Path, implementation_commit: str | None = None) -> dic
         "ARM_CREATED": False,
         "SYNTHETIC_TESTS_ONLY": True,
         "CONTRACT_ECHO": contract,
-        "NEXT_UNIT": (
-            "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION"
-            if review_pass
-            else "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_REPAIR"
+        "NEXT_UNIT": next_unit,
+        "UNIT_AFTER_NEXT": "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_ONE_SHOT_EXECUTION",
+        "NEXT_UNIT_REQUIREMENT": (
+            "Reconstruct the frozen RULE_1 rows from CORE_BTC_BINANCE_V0 and freeze "
+            "the canonical selector digest BEFORE any ADVERSE_SHARE or PATH_SCALE "
+            "metric is computed. That step is outcome-blind for this target: it "
+            "touches the selector only. The one-shot permit must then carry the "
+            "frozen digest, and the one-shot must block if the reconstructed digest "
+            "differs."
         ),
         "NOT_CREATED": ["RESULT", "execution permit", "MARKET-07", "ARM"],
     }
@@ -439,24 +650,71 @@ reason `{review["TARGET_SPECIFIC_INELIGIBILITY"]}` and no epsilon. This never
 rebuilds the D2 selector; the count of selector rows dropped by target
 ineligibility is reported per year.
 
+## Lifecycle status
+
+These are distinct claims. Each is derived from a mechanical probe of the
+reviewed code, not from the findings table.
+
+```
+IMPLEMENTATION_REVIEW          = {review["IMPLEMENTATION_REVIEW"]}
+SCIENTIFIC_KERNEL_READY        = {review["SCIENTIFIC_KERNEL_READY"]}
+CANONICAL_ORCHESTRATION_READY  = {review["CANONICAL_ORCHESTRATION_READY"]}
+AUTHORITY_VERIFICATION_READY   = {review["AUTHORITY_VERIFICATION_READY"]}
+ROW_COUNT_IDENTITY_IMPLEMENTED = {review["ROW_COUNT_IDENTITY_IMPLEMENTED"]}
+EXACT_SELECTOR_IDENTITY_VERIFIED = {review["EXACT_SELECTOR_IDENTITY_VERIFIED"]}
+EXACT_SELECTOR_IDENTITY_STATUS = {review["EXACT_SELECTOR_IDENTITY_STATUS"]}
+EXECUTION_READY                = {review["EXECUTION_READY"]}
+EXECUTION_BLOCKED_BY           = {review["EXECUTION_BLOCKED_BY"]}
+EXECUTION_AUTHORIZED           = {review["EXECUTION_AUTHORIZED"]}
+```
+
+`EXECUTION_READY` is deliberately **not** a synonym for a passing review. The
+canonical route is implemented and reviewed, but the expected canonical
+selector digest has not been frozen, and that value cannot legitimately be
+produced by an outcome-blind unit. Until it exists, the one-shot must not run.
+
+## Canonical route (dormant, not a stub)
+
+```
+1. permit gate            : {review["CAPABILITY_PROBES"]["CANONICAL_ROUTE_STEPS"]["PERMIT_GATE"]}
+2. frozen snapshot identity: {review["CAPABILITY_PROBES"]["CANONICAL_ROUTE_STEPS"]["SNAPSHOT_IDENTITY"]}
+3. frozen CORE BTC load    : {review["CAPABILITY_PROBES"]["CANONICAL_ROUTE_STEPS"]["FROZEN_CORE_LOAD"]}
+4. frozen row reconstruction: {review["CAPABILITY_PROBES"]["CANONICAL_ROUTE_STEPS"]["ROW_RECONSTRUCTION"]}
+5. frozen evaluation       : {review["CAPABILITY_PROBES"]["CANONICAL_ROUTE_STEPS"]["EVALUATION"]}
+execute_is_terminal_stub   : {review["CAPABILITY_PROBES"]["EXECUTE_IS_TERMINAL_STUB"]}
+```
+
+## Frozen selector census
+
+`RULE_1_ROW_COUNT = 1791` is the **constructed decision-row population**
+(`RULE_ELIGIBLE_N`), not the abstention count. The frozen RULE_1 abstention
+census is separate and smaller.
+
+```
+CONSTRUCTED_N   = {review["FROZEN_SELECTOR_CENSUS"]["CONSTRUCTED_N"]}
+CONSTRUCTED_YEAR_N = {review["FROZEN_SELECTOR_CENSUS"]["CONSTRUCTED_YEAR_N"]}
+ABSTAIN_N       = {review["FROZEN_SELECTOR_CENSUS"]["ABSTAIN_N"]}
+ABSTAIN_YEAR_N  = {review["FROZEN_SELECTOR_CENSUS"]["ABSTAIN_YEAR_N"]}
+CONTROL_P95_METHOD = {review["CONTROL_P95_METHOD"]}
+```
+
 ## Identity
 
 ```
-IMPLEMENTATION_REVIEW      = {review["IMPLEMENTATION_REVIEW"]}
-EXECUTION_READY            = {review["EXECUTION_READY"]}
-EXECUTION_AUTHORIZED       = {review["EXECUTION_AUTHORIZED"]}
-EXECUTION_PERMIT_PRESENT   = {review["EXECUTION_PERMIT_PRESENT"]}
 FROZEN_AUTHORITY_STATUS    = {review["FROZEN_AUTHORITY_STATUS"]}
 DESIGN_AUTHORITY_BLOCKERS  = {review["DESIGN_AUTHORITY_BLOCKERS"]}
 DESIGN_JSON_SHA256         = {review["DESIGN_JSON_SHA256"]}
 RUN_IDENTITY               = {review["RUN_IDENTITY"]}
 FINAL_IMPLEMENTATION_COMMIT = {review["FINAL_IMPLEMENTATION_COMMIT"]}
+EXECUTION_PERMIT_PRESENT   = {review["EXECUTION_PERMIT_PRESENT"]}
 ```
 
 No execution permit exists. `execute_decomposition` and
 `load_canonical_core_btc_bars` fail closed before any CORE BTC byte is read.
+A future permit must itself carry every field in `PERMIT_REQUIRED_FIELDS`;
+caller arguments cannot supply scientific authority.
 
-## Red-team (F1–F20)
+## Red-team (F1–F25)
 
 {findings}
 
@@ -484,10 +742,13 @@ EXECUTION_PERMIT_CREATED            = {review["EXECUTION_PERMIT_CREATED"]}
 
 `NEXT_UNIT = {review["NEXT_UNIT"]}`
 
-That next unit is an explicit one-shot execution unit. It is not executed
-here, and this review does not authorize it: a future permit must bind the
-design hash, this review's hash, the implementation hash, the CORE BTC
-snapshot, and the run identity above.
+{review["NEXT_UNIT_REQUIREMENT"]}
+
+Only after that does the explicit one-shot execution unit
+`{review["UNIT_AFTER_NEXT"]}` become possible. Neither is executed here, and
+this review does not authorize either: a future permit must bind the design
+hash, this review's hash, the evaluator hash, the CORE BTC snapshot, the run
+identity above, the frozen selector digest, the seed and the control count.
 """
 
 
