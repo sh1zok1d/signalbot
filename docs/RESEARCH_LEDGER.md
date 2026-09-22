@@ -5322,3 +5322,65 @@ Evidence: `docs/research/discovery_results/D9_DISCOVERY_RESULT.{json,md}`,
 `docs/research/discovery_results/D10_DISCOVERY_RESULT.{json,md}`,
 `docs/research/discovery_results/D11_DISCOVERY_RESULT.{json,md}`,
 `docs/research/DISCOVERY_SPRINT_03_RESULT.{json,md}`.
+
+## 2026-09-22 — Post-Sprint 03 program decision and Discovery Sprint 04 outcome-blind selection
+
+Outcome-blind program/selection unit on `origin/main`
+`d74255545f709d002733b2cb5d0aa447d7b30198`. No window consumed. No
+scientific outcome computed. D9/D10/D11 RESULT artifacts unchanged.
+
+```
+D9  = consumed NO_USEFUL_STRUCTURE
+D10 = consumed NO_USEFUL_STRUCTURE
+D11 = consumed PROMISING_PROTOTYPE
+INTERNAL_DISCOVERY_CARDS_EXECUTED = 8
+INTERNAL_PROMISING_PROTOTYPES = 3
+D7_CONFIRMATION_SELECTED_NOW = false
+D11_CONFIRMATION_SELECTED_NOW = false
+HYPOTHESIS_GENERATION_POLICY = HETEROGENEOUS_FAMILY_ROTATION_V3
+NEW_FAMILY_PROPOSALS = [J PARTICIPANT_CLOCK_ANCHORING]
+SPRINT04_CANDIDATE_POOL_N = 12
+SPRINT04_SELECTED_CARDS = [D12, D13]
+D12 = PARTICIPATION_CLOCK_ANCHORING_DST_NATURAL_EXPERIMENT (J; CORE BTC; data ready)
+D13 = CROSS_SECTIONAL_WEEKLY_RELATIVE_RETURN_STRUCTURE (H true panel; Binance Vision; FEASIBILITY_REQUIRED)
+D14 = NOT_SELECTED
+POST_SPRINT04_AUTOMATION_MATURITY_DECISION_REQUIRED = true
+AUTOMATIC_SPRINT05 = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+D12_EXECUTED = false
+D13_EXECUTED = false
+D7_RERUN_PERFORMED = false
+D8_EXECUTED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+NEXT_UNIT = DISCOVERY_SPRINT_04_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION
+```
+
+Program observation: all three prototypes are volatility/activity-level
+structures and every direction/return card is null; Sprint 04 therefore
+selects no volatility-level card. The only data touched for D13
+feasibility was an object-key listing of the public Binance archive (no
+price bytes).
+
+Evidence: `docs/research/POST_SPRINT03_PROGRAM_DECISION.{json,md}`,
+`docs/research/HETEROGENEOUS_FAMILY_ROTATION_V3.{json,md}`,
+`docs/research/DISCOVERY_SPRINT_04.{json,md}`.
+
+## 2026-09-22 — Discovery Sprint 04 pre-outcome amendment 1
+
+Targeted pre-outcome correction of PR #201 (`fe6f252`). No outcome
+inspected; no quote-volume profile inspected; candidate pool and
+selection unchanged.
+
+```
+D12_WINDOW_DAYS = 6 (Monday-Saturday before / after each transition Sunday)
+D12_WEEKDAY_COMPOSITION_MATCHED = true
+D12_EU_CLOCK_CONSTANT = true
+D12_PSEUDO_WINDOW_SEMANTICS_MATCH_REAL = true
+MECHANISM_MEMORY_CURRENT_THROUGH = D11
+D13_NO_POST_T_SILENT_EXCLUSION = true
+D13_NO_POST_T_CLOSE_SELECTED_N = NOT_COMPUTED_IN_THIS_UNIT
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+NEXT_UNIT = DISCOVERY_SPRINT_04_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION
+```

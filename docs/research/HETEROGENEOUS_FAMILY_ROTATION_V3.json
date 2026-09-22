@@ -1,0 +1,153 @@
+{
+  "ANTI_RESCUE_RULES": {
+    "A_D2": "no RV threshold/window/horizon child; no dislocation-abstention child; no D2+D7 composition",
+    "B_MARKET05_06": "stay away from external/cross-market scalar -> additive BTC predictor -> 24h MAE",
+    "C_D3_H03_B203": "no generic path-morphology relabel",
+    "D_D10": "no beta-window, residual-percentile, horizon, refractory, block-bootstrap, ETH-replacement, or raw lead-lag rescue",
+    "E_D7": "no IMPACT_PROXY threshold, P85/P95/P99, 720h, or 30m/2h/4h persistence child; no L2 card justified as better D7",
+    "G_D11": "no FOMC horizon/direction/recovery child; no CPI/NFP/ECB/all-macro/news-NLP copy",
+    "G_D8": "do not weaken D8 thresholds or control semantics",
+    "H_D9": "no SHARE clipping, denominator cutoff, threshold/horizon variant, same-5m leadership relabel, or MARKET-06 MAE reuse"
+  },
+  "D11_CONFIRMATION_EXECUTED": false,
+  "D12_EXECUTED": false,
+  "D13_EXECUTED": false,
+  "D14_EXECUTED": "NOT_SELECTED",
+  "D7_CONFIRMATION_EXECUTED": false,
+  "D7_RERUN_PERFORMED": false,
+  "D8_EXECUTED": false,
+  "DATE": "2026-09-22",
+  "FAMILY_STATUS": {
+    "A": {
+      "NAME": "CONDITIONAL_RISK_ABSTENTION",
+      "NOTE": "Only the RV-abstention formulation was tested; abstention on other information sources is untested, not closed.",
+      "TESTED_OR_DEPRIORITIZED_SUBFAMILY": {
+        "DISLOCATION_ABSTENTION (D2 RULE_2)": "failed discovery gate; no child",
+        "RV_ABSTENTION (D2 RULE_1)": "PROMISING_PROTOTYPE; pre-2020 BitMEX replication SUPPORTED; decomposition D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT; immediate threshold/window/horizon neighbors FORBIDDEN"
+      },
+      "WHOLE_FAMILY_STATUS": "OPEN_NOT_SELECTED_THIS_ROTATION"
+    },
+    "B": {
+      "NAME": "DIRECTIONAL_EXPECTATION",
+      "NOTE": "Market-neutral cross-sectional relative return is NOT B; it is tested under H/TRUE_CROSS_SECTIONAL_PANEL (D13).",
+      "TESTED_OR_DEPRIORITIZED_SUBFAMILY": {
+        "BTC own-state / flow -> BTC return (H02-H05, B2-02..B2-05)": "rejected / closed",
+        "OI -> BTC continuation (MARKET-01/02)": "NO_EVIDENCE",
+        "external scalar -> 24h BTC MAE (MARKET-05/06)": "REPEATED_NULL / LOW_PRIORITY"
+      },
+      "WHOLE_FAMILY_STATUS": "LOW_PRIORITY_FOR_BTC_OWN_SHORT_HORIZON_SCALAR_PREDICTION"
+    },
+    "C": {
+      "NAME": "PATH_MORPHOLOGY",
+      "NOTE": "No generic path-functional relabel. Event-conditional path after a distinct event class remains untested.",
+      "TESTED_OR_DEPRIORITIZED_SUBFAMILY": {
+        "impulse morphology continuation (H03, B2-03)": "rejected / closed",
+        "unconditional close-path functionals (D3)": "NO_USEFUL_STRUCTURE"
+      },
+      "WHOLE_FAMILY_STATUS": "OPEN_BUT_DEPRIORITIZED"
+    },
+    "D": {
+      "NAME": "RELATIVE_CROSS_ASSET_STRUCTURE",
+      "NOTE": "The BTC-ETH two-asset subfamily is deprioritized after three nulls. Non-crypto cross-market pairs are untested.",
+      "TESTED_OR_DEPRIORITIZED_SUBFAMILY": {
+        "BTC-ETH raw lead-lag (D4 LEAD_LAG_1DAY)": "DEFERRED; raw lead-lag rescue forbidden",
+        "BTC-ETH residual persistence (D10)": "NO_USEFUL_STRUCTURE",
+        "BTC-ETH rolling correlation range (D4)": "NO_USEFUL_STRUCTURE",
+        "ETH additive term -> 24h BTC MAE (MARKET-05)": "NO_EVIDENCE"
+      },
+      "WHOLE_FAMILY_STATUS": "OPEN_FOR_OTHER_ASSET_PAIRS_AND_MECHANISMS"
+    },
+    "E": {
+      "NAME": "LIQUIDITY_EXECUTION_STATE",
+      "NOTE": "No IMPACT_PROXY/threshold/window/horizon neighbor; no L2 card justified as 'better D7'. True order-book liquidity is untested.",
+      "TESTED_OR_DEPRIORITIZED_SUBFAMILY": {
+        "kline IMPACT_PROXY persistence (D7)": "PROMISING_PROTOTYPE; not replicated; confirmation candidate not selected now"
+      },
+      "WHOLE_FAMILY_STATUS": "COOLDOWN_AFTER_POSITIVE"
+    },
+    "F": {
+      "NAME": "REGIME_TRANSITION",
+      "NOTE": "Regime detection from a new information source (e.g. options) remains uncovered.",
+      "TESTED_OR_DEPRIORITIZED_SUBFAMILY": {
+        "kline volatility transition (H01, B2-01)": "rejected / closed",
+        "structural state detection vs GARCH null (D1)": "DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH"
+      },
+      "WHOLE_FAMILY_STATUS": "DEFERRED_BLOCKER_UNRESOLVED"
+    },
+    "G": {
+      "NAME": "EVENT_RESPONSE_RECOVERY",
+      "NOTE": "No FOMC horizon/direction/recovery child and no CPI/NFP/ECB/all-macro copy. A different exogenous event needs an independent mechanism and must not copy the D11 template (scheduled event -> unsigned RV).",
+      "TESTED_OR_DEPRIORITIZED_SUBFAMILY": {
+        "endogenous shock recovery (D8)": "DEFERRED_INSUFFICIENT_CONTROL_SUPPORT; not negative",
+        "scheduled FOMC -> unsigned 6h BTC RV (D11)": "PROMISING_PROTOTYPE; confirmation candidate not selected now"
+      },
+      "WHOLE_FAMILY_STATUS": "COOLDOWN_AFTER_POSITIVE"
+    },
+    "H": {
+      "NAME": "CROSS_SECTIONAL_OR_VENUE_STRUCTURE",
+      "NOTE": "The same-5m two-venue subfamily is deprioritized; the true panel subfamily is opened by D13.",
+      "TESTED_OR_DEPRIORITIZED_SUBFAMILY": {
+        "TRUE_CROSS_SECTIONAL_PANEL": "SELECTED as D13 (first use)",
+        "venue dislocation -> 24h BTC MAE (MARKET-06)": "NO_EVIDENCE",
+        "venue structure: Binance perp / OKX spot same-5m SHARE (D9)": "NO_USEFUL_STRUCTURE"
+      },
+      "WHOLE_FAMILY_STATUS": "OPEN_TRUE_PANEL_SELECTED_THIS_ROTATION"
+    },
+    "I": {
+      "NAME": "EXTERNALLY_DERIVED_BENCHMARK_MECHANISMS",
+      "NOTE": "Diagnostics only; never counted as internal discovery.",
+      "TESTED_OR_DEPRIORITIZED_SUBFAMILY": {
+        "D6 external benchmark": "DEFERRED",
+        "MARKET-03 external reproduction": "REPRODUCED_DIRECTION; external, not internal discovery"
+      },
+      "WHOLE_FAMILY_STATUS": "DEFERRED_SOURCE_NOT_PINNED"
+    },
+    "J": {
+      "NAME": "PARTICIPANT_CLOCK_ANCHORING",
+      "NEW_FAMILY_PROPOSAL": true,
+      "TESTED_OR_DEPRIORITIZED_SUBFAMILY": {
+        "US-DST participation-profile shift (D12)": "SELECTED"
+      },
+      "WHOLE_FAMILY_STATUS": "NEW_SELECTED_THIS_ROTATION",
+      "WHY_A_NEW_FAMILY": "Which institutional clock organizes crypto participation is a distinct mechanism region: prior cards treated UTC time as a nuisance stratum (D3) or a matching key (D11) and never asked what anchors it. It is not event response (no event outcome), not liquidity-state persistence, and not regime transition."
+    }
+  },
+  "INCORPORATED_RESULTS": {
+    "D10": "NO_USEFUL_STRUCTURE (consumed)",
+    "D11": "PROMISING_PROTOTYPE (consumed)",
+    "D9": "NO_USEFUL_STRUCTURE (consumed)"
+  },
+  "INTERNAL_DISCOVERY_CARDS_EXECUTED": 8,
+  "INTERNAL_HYPOTHESIS_GENERATION_NOT_DEMONSTRATED": false,
+  "INTERNAL_PROMISING_PROTOTYPES": 3,
+  "KIND": "HYPOTHESIS_GENERATION_POLICY_FREEZE",
+  "MARKET_07_CREATED": false,
+  "NAME": "HETEROGENEOUS_FAMILY_ROTATION_V3",
+  "NEW_FAMILY_PROPOSALS": [
+    "J"
+  ],
+  "NO_VOLATILITY_LEVEL_CARD_THIS_ROTATION": true,
+  "PARENT_POLICY": "HETEROGENEOUS_FAMILY_ROTATION_V2",
+  "PARENT_POLICY_REL": "docs/research/HETEROGENEOUS_FAMILY_ROTATION_V2.json",
+  "PRODUCT_BUILD_FROZEN": true,
+  "PROTECTED_2025_OPENED": false,
+  "PROTECTED_2026_OPENED": false,
+  "SCHEMA": "signalbot_heterogeneous_family_rotation_v3",
+  "SCHEMA_VERSION": "3.0.0",
+  "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+  "SELECTED_INTERNAL_CARDS": [
+    "D12",
+    "D13"
+  ],
+  "SELECTED_THIS_ROTATION": [
+    "H",
+    "J"
+  ],
+  "STATUS": "FROZEN",
+  "SUPERSEDES_ROUTING_OF": "HETEROGENEOUS_FAMILY_ROTATION_V2",
+  "TAXONOMY_IS_MEMORY_NOT_ONTOLOGY": true,
+  "THIS_ROTATION_APPLICATION": "DISCOVERY_SPRINT_04",
+  "UNIT": "HETEROGENEOUS_FAMILY_ROTATION_V3",
+  "V2_PRESERVED_AS_HISTORICAL_POLICY": true,
+  "WHOLE_FAMILY_CLOSED_BY_SINGLE_FORMULATION": false
+}
