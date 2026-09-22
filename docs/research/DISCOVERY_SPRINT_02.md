@@ -71,21 +71,39 @@ calendar.
   `EVENT_VOLUME_t > P90(previous 720)`. Current `t` excluded. Strict `>`.
   Knowable only after the event hour closes.
 - **OVERLAP:** keep the first event; drop later candidates within 6h.
-- **PRIMARY TARGET:** `RECOVERY_6H = -sign(EVENT_RETURN) *
-  log(price_{t+6h} / event_close_t) / abs(EVENT_RETURN)`.
+- **PRIMARY TARGET:** `RECOVERY_6H` under `FROZEN_RECOVERY_CLOCK`.
+  Event hour `[H, H+1h)`. `EVENT_DECISION_T = H + 1h`.
+  `EVENT_RETURN = log(close of final canonical 1m bar in the event hour /
+  open of first canonical 1m bar in the event hour)`.
+  `EVENT_CLOSE` = close of the final canonical 1m bar with
+  `available_at_ms == EVENT_DECISION_T`.
+  `PRICE_T_PLUS_6H` = close of the canonical 1m bar with
+  `available_at_ms == EVENT_DECISION_T + 6h`.
+  `RECOVERY_6H = -sign(EVENT_RETURN) * log(PRICE_T_PLUS_6H / EVENT_CLOSE)
+  / abs(EVENT_RETURN)`.
   Positive = retracement. `RECOVERY_24H` is diagnostic only and cannot
   rescue the primary.
-- **SIMPLE_BASELINE:** `calendar_year × EVENT_SIGN × magnitude-bucket`
-  matched **non-event** controls. Magnitude buckets: four trailing
-  quantiles of `ABS_EVENT_RETURN`. Question: do high-activity shocks
-  recover differently than similarly large/sign-matched moves that fail
-  the full shock definition?
+- **PROTECTED BOUND (strict):** `EVENT_DECISION_T + 6h <
+  2025-01-01T00:00:00Z`. No equality-at-boundary relaxation. Diagnostic
+  24h obeys the same rule at +24h.
+- **SIMPLE_BASELINE:** `RETURN_SHOCK_MATCHED_NON_HIGH_ACTIVITY_CONTROL`.
+  A control hour must pass the **same** frozen P99 return-shock gate,
+  match `EVENT_SIGN` and calendar year, and **fail** only the high-activity
+  component (`EVENT_VOLUME_t <=` trailing P90). P25/P50/P75 magnitude
+  buckets are **not** the primary baseline. Do not weaken P99 to obtain
+  more controls. If controls are insufficient:
+  `DEFERRED_INSUFFICIENT_CONTROL_SUPPORT`.
 - **FEASIBILITY (selector-only, before outcomes):** event counts,
-  year/sign splits, baseline support. No recovery values.
+  return-shock control counts, year/sign splits, event/control
+  `ABS_EVENT_RETURN` distribution summaries. No `RECOVERY_6H`.
 - **MINIMUM SUPPORT (frozen):** `MIN_NONOVERLAPPING_EVENTS = 20`,
   `MIN_YEARS_WITH_EVENTS = 3`, at least two years with ≥3 events.
   If inadequate: `DEFERRED_INSUFFICIENT_EVENT_SUPPORT`. No weaker
-  thresholds.
+  thresholds. Control support: every retained event year/sign stratum
+  used by the primary evaluation must contain return-shock controls;
+  if the frozen evaluation cannot construct its required control sample
+  without replacement: `DEFERRED_INSUFFICIENT_CONTROL_SUPPORT`. Sampling
+  algorithm may be frozen in the next unit, outcome-blind.
 - **WHAT_A_NULL_DEPRIORITIZES:** this endogenous high-magnitude +
   high-activity shock/recovery scale. Not exogenous news, liquidations,
   or other CORE-unavailable event families.

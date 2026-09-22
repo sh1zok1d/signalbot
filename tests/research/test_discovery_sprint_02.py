@@ -121,10 +121,86 @@ def test_d8_is_family_g_with_one_frozen_shock():
         "DEFERRED_INSUFFICIENT_EVENT_SUPPORT"
     )
     assert d8["MINIMUM_SUPPORT_RULE"]["NO_THRESHOLD_WEAKENING"] is True
-    assert "non-event" in d8["SIMPLE_BASELINE"]
+    assert d8["CONTROL_DEFINITION"]["NAME"] == (
+        "RETURN_SHOCK_MATCHED_NON_HIGH_ACTIVITY_CONTROL"
+    )
+    assert "RETURN_SHOCK_MATCHED_NON_HIGH_ACTIVITY_CONTROL" in d8["SIMPLE_BASELINE"]
     for field in CONTRACT_FIELDS:
         assert field in d8, field
         assert d8[field]
+
+
+def test_d8_controls_are_return_shock_matched_not_magnitude_buckets():
+    d8 = _sprint()["CARDS"]["D8"]
+    control = d8["CONTROL_DEFINITION"]
+    assert control["NAME"] == "RETURN_SHOCK_MATCHED_NON_HIGH_ACTIVITY_CONTROL"
+    assert control["RETURN_SHOCK_GATE"].startswith("ABS_EVENT_RETURN_t > P99")
+    assert "SAME frozen return-shock gate" in control["RETURN_SHOCK_GATE"]
+    assert control["HIGH_ACTIVITY_COMPONENT"].startswith("FAIL: EVENT_VOLUME_t <= P90")
+    assert control["EVENT_SIGN_MATCH"] is True
+    assert control["CALENDAR_YEAR_MATCH"] is True
+    assert control["NO_P25_P50_P75_PRIMARY_MAGNITUDE_BUCKETS"] is True
+    assert control["NO_P99_WEAKENING_FOR_CONTROLS"] is True
+    assert control["NO_BROADER_CONTROL_POOL"] is True
+    assert control["NO_WEAKER_THRESHOLD"] is True
+    assert control["IF_INSUFFICIENT"] == "DEFERRED_INSUFFICIENT_CONTROL_SUPPORT"
+    baseline = d8["SIMPLE_BASELINE"]
+    assert "P25/P50/P75 magnitude buckets are not the primary baseline" in baseline
+    assert "event-magnitude-bucket" not in baseline
+    assert "cuts at P25/P50/P75" not in baseline
+    support = d8["MINIMUM_SUPPORT_RULE"]["CONTROL_SUPPORT"]
+    assert support["IF_INADEQUATE"] == "DEFERRED_INSUFFICIENT_CONTROL_SUPPORT"
+    assert support[
+        "IF_REQUIRED_CONTROL_SAMPLE_CANNOT_BE_CONSTRUCTED_WITHOUT_REPLACEMENT"
+    ] == "DEFERRED_INSUFFICIENT_CONTROL_SUPPORT"
+    assert support["NO_P99_WEAKENING"] is True
+    assert support["NO_BROADER_CONTROL_POOL"] is True
+    assert support["NO_WEAKER_THRESHOLD"] is True
+    assert support[
+        "EVERY_RETAINED_EVENT_YEAR_SIGN_STRATUM_MUST_CONTAIN_RETURN_SHOCK_CONTROLS"
+    ] is True
+    census = d8["FEASIBILITY_CENSUS_ALLOWED_BEFORE_OUTCOMES"]
+    assert "return-shock control counts" in census
+    assert _sprint()["SCIENTIFIC_OUTCOMES_COMPUTED"] is False
+    event = d8["EVENT_DEFINITION"]
+    assert event["RETURN_THRESHOLD"] == (
+        "ABS_EVENT_RETURN_t > P99(previous 720 valid ABS_EVENT_RETURN), "
+        "current t excluded, strict >"
+    )
+    assert event["VOLUME_THRESHOLD"] == (
+        "EVENT_VOLUME_t > P90(previous 720 valid hourly quote-volume), "
+        "current t excluded, strict >"
+    )
+    assert event["TRAILING_WINDOW_HOURS"] == 720
+    assert event["MIN_EVENT_GAP_HOURS"] == 6
+    assert d8["PRIMARY_TARGET"] == "RECOVERY_6H"
+
+
+def test_d8_recovery_clock_and_strict_protected_bound():
+    clock = _sprint()["CARDS"]["D8"]["FROZEN_RECOVERY_CLOCK"]
+    assert clock["EVENT_HOUR"] == "[H, H+1h)"
+    assert clock["EVENT_DECISION_T"] == "H + 1h"
+    assert clock["EVENT_CLOSE"] == (
+        "close of final canonical 1m bar whose available_at_ms == EVENT_DECISION_T"
+    )
+    assert clock["PRICE_T_PLUS_6H"] == (
+        "close of canonical 1m bar whose available_at_ms == EVENT_DECISION_T + 6h"
+    )
+    assert clock["RECOVERY_6H"] == (
+        "-sign(EVENT_RETURN) * log(PRICE_T_PLUS_6H / EVENT_CLOSE) / abs(EVENT_RETURN)"
+    )
+    assert clock["PROTECTED_BOUND_PRIMARY"] == (
+        "EVENT_DECISION_T + 6h < 2025-01-01T00:00:00Z"
+    )
+    assert clock["PROTECTED_BOUND_STRICT"] is True
+    assert clock["NO_EQUALITY_AT_BOUNDARY_RELAXATION"] is True
+    assert "EVENT_DECISION_T + 24h < 2025-01-01T00:00:00Z" in clock[
+        "DIAGNOSTIC_24H_PROTECTED_BOUND"
+    ]
+    assert ">=" not in clock["PROTECTED_BOUND_PRIMARY"]
+    legal = _sprint()["CARDS"]["D8"]["LEGAL_INTERVAL"]
+    assert "No equality-at-boundary relaxation" in legal
+    assert "EVENT_DECISION_T + 6h < 2025-01-01T00:00:00Z" in legal
 
 
 def test_not_a_d2_or_m05_m06_variant():

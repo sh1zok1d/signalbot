@@ -329,6 +329,10 @@ F remains `DEFERRED_BLOCKER_UNRESOLVED`; H `DEFERRED_DATA_LIMITATION`;
 I `DEFERRED_SOURCE_NOT_PINNED`. Record:
 `docs/research/HETEROGENEOUS_FAMILY_ROTATION_V1.{json,md}` and
 `docs/research/DISCOVERY_SPRINT_02.{json,md}`.
+D8 primary control is `RETURN_SHOCK_MATCHED_NON_HIGH_ACTIVITY_CONTROL`
+(same P99 return-shock gate; fails only P90 volume). Recovery clock is
+frozen at `EVENT_DECISION_T = H+1h` with a strict
+`EVENT_DECISION_T + 6h < 2025-01-01T00:00:00Z` bound. D7 unchanged.
 `NEXT_UNIT = DISCOVERY_SPRINT_02_FEASIBILITY_AND_IMPLEMENTATION`.
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen

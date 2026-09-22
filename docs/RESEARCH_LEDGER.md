@@ -4772,3 +4772,28 @@ Evidence: `docs/research/HETEROGENEOUS_FAMILY_ROTATION_V1.{json,md}`,
   implementation, synthetic tests, and outcome-blind review
   (`DISCOVERY_SPRINT_02_FEASIBILITY_AND_IMPLEMENTATION`); do not
   execute D7/D8 scientific outcomes automatically
+
+## 2026-09-22 — D8 control-comparability and recovery-clock integrity repair
+
+Outcome-blind design repair on the Sprint 02 card definition. D7
+unchanged. D8 event thresholds (P99/P90, 720h, 6h target, overlap,
+event-support philosophy) unchanged. No scientific outcomes.
+
+```
+D8_PRIMARY_BASELINE = RETURN_SHOCK_MATCHED_NON_HIGH_ACTIVITY_CONTROL
+D8_CONTROLS_PASS_P99_RETURN_SHOCK = true
+D8_CONTROLS_FAIL_ONLY_P90_VOLUME = true
+D8_PRIMARY_P25_P50_P75_MAGNITUDE_BUCKETS = false
+EVENT_DECISION_T = H + 1h
+PROTECTED_BOUND_PRIMARY = EVENT_DECISION_T + 6h < 2025-01-01T00:00:00Z
+PROTECTED_BOUND_STRICT = true
+IF_INSUFFICIENT_CONTROLS = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT
+NO_P99_WEAKENING_FOR_CONTROLS = true
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+D7_EXECUTED = false
+D8_EXECUTED = false
+NEXT_UNIT = DISCOVERY_SPRINT_02_FEASIBILITY_AND_IMPLEMENTATION
+```
+
+- next required step still: Sprint 02 non-outcome feasibility and
+  implementation; do not execute D7/D8 scientific outcomes automatically
