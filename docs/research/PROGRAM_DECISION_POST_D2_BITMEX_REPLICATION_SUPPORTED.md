@@ -2,7 +2,7 @@
 
 **Unit:** `PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTED`  
 **Kind:** program-level evidence and routing decision.  
-**Date:** 2026-09-21
+**Date:** 2026-09-22
 
 This unit does not run another D2 experiment, does not open Binance
 2025/2026, and does not generate a nearby D2 variant. It decides what the
