@@ -203,8 +203,11 @@ That unit's next step was
 then froze an outcome-blind post-replication mechanism-decomposition
 contract without executing it. Selector remains frozen D2 / RULE_1 /
 `RV_ABSTENTION`. Primary target is `ADVERSE_SHARE = MAE_SIDE /
-(MAE_SIDE + MAE_OPPOSITE)` on the same 24h path, versus year-matched
-rate-matched random abstention (`N=10000`, seed `20260922131`). Evidence
+(MAE_SIDE + MAE_OPPOSITE)` on the same 24h path, versus year×SIDE-matched
+rate-matched random abstention (`N=10000`, seed `20260922131`). A
+pre-outcome correction replaced year-only matching with
+`YEAR_SIDE_MATCHED_RATE_MATCHED_RANDOM_ABSTENTION` so candidate LONG/SHORT
+composition cannot confound `ADVERSE_SHARE`. Evidence
 class is `POST_REPLICATION_MECHANISM_DECOMPOSITION_DISCOVERY`, not
 independent confirmation. BitMEX 2017-2019 is not reused for this new
 target. Protected 2025/2026 unopened. MARKET-07 not created. No real

@@ -15,6 +15,8 @@ import math
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+import numpy as np
+
 from scripts.research.discovery_sprint_01 import common as C
 from scripts.research.market_06_cross_venue_dislocation_evaluator import (
     FUTURE_BARS,
@@ -33,6 +35,10 @@ MD_REL = (
 
 PRIMARY_SELECTOR = "D2_RULE_1_RV_ABSTENTION"
 PRIMARY_TARGET = "ADVERSE_SHARE"
+PRIMARY_COMPARATOR = "YEAR_SIDE_MATCHED_RATE_MATCHED_RANDOM_ABSTENTION"
+CONTROL_STRATA = "calendar_year × frozen_SIDE"
+CONTROL_YEARS = ("2020", "2021", "2022", "2023", "2024")
+SIDE_LABELS = ("LONG", "SHORT")
 RANDOM_SEED = 20260922131
 N_RANDOM_CONTROLS = 10000
 PRACTICAL_DELTA_SHARE = 0.05
@@ -75,10 +81,24 @@ CLASS_PROMISING = "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PROMISING"
 CLASS_SCALE_COMPATIBLE = "D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT"
 CLASS_NO_STRUCTURE = "D2_DECOMPOSITION_NO_USEFUL_STRUCTURE"
 CLASS_INVALID = "D2_DECOMPOSITION_INVALID"
+CLASSIFICATION_ORDER = (
+    CLASS_INVALID,
+    CLASS_PROMISING,
+    CLASS_SCALE_COMPATIBLE,
+    CLASS_NO_STRUCTURE,
+)
+CLASS_SCALE_COMPATIBLE_INTERPRETATION = (
+    "no ROBUST excess alignment under the frozen all-gates rule; "
+    "not proof that excess alignment is absent"
+)
 
 
 class RealDecompositionForbidden(RuntimeError):
     """Real-data decomposition outcomes are forbidden in this design unit."""
+
+
+class InsufficientStratumSupport(RuntimeError):
+    """K_{y,s} exceeds available target-eligible control population."""
 
 
 def file_sha256(path: Path) -> str:
@@ -173,6 +193,7 @@ def classify_decomposition(
     temporal: bool,
     path_scale_elevated: bool,
 ) -> str:
+    """Exhaustive pre-outcome classification. Exactly one class per execution."""
     if integrity_invalid:
         return CLASS_INVALID
     if statistical and practical and temporal:
@@ -180,6 +201,130 @@ def classify_decomposition(
     if path_scale_elevated:
         return CLASS_SCALE_COMPATIBLE
     return CLASS_NO_STRUCTURE
+
+
+def random_generator(seed: int = RANDOM_SEED) -> np.random.Generator:
+    return np.random.Generator(np.random.PCG64(int(seed)))
+
+
+def encode_side(side: float | str) -> str:
+    if isinstance(side, str):
+        label = side.upper()
+        if label not in SIDE_LABELS:
+            raise ValueError("INVALID_SIDE_LABEL")
+        return label
+    value = float(side)
+    if value == 1.0:
+        return "LONG"
+    if value == -1.0:
+        return "SHORT"
+    raise ValueError("INVALID_SIDE")
+
+
+def candidate_stratum_counts(
+    years: Sequence[int],
+    sides: Sequence[float | str],
+    candidate: Sequence[bool],
+) -> dict[tuple[str, str], int]:
+    counts = {(year, side): 0 for year in CONTROL_YEARS for side in SIDE_LABELS}
+    for year, side, flag in zip(years, sides, candidate, strict=True):
+        if not bool(flag):
+            continue
+        key = (str(int(year)), encode_side(side))
+        if key not in counts:
+            raise InsufficientStratumSupport(f"UNKNOWN_STRATUM:{key}")
+        counts[key] += 1
+    return counts
+
+
+def year_side_matched_control_masks(
+    years: Sequence[int],
+    sides: Sequence[float | str],
+    target_eligible: Sequence[bool],
+    candidate: Sequence[bool],
+    *,
+    seed: int = RANDOM_SEED,
+    n_replicates: int = N_RANDOM_CONTROLS,
+) -> np.ndarray:
+    """Boolean masks of shape (n_replicates, n). Same mask for share and scale.
+
+    Within each (calendar year, frozen SIDE) stratum independently, each
+    replicate draws exactly K_{y,s} target-eligible rows without replacement.
+    K=0 draws zero rows. K exceeding stratum population fails closed.
+    No pooled K. No year-only fallback.
+    """
+    n = len(years)
+    if not (n == len(sides) == len(target_eligible) == len(candidate)):
+        raise InsufficientStratumSupport("SHAPE_MISMATCH")
+    years_arr = np.asarray([int(year) for year in years], dtype=np.int64)
+    side_labels = np.asarray([encode_side(side) for side in sides])
+    eligible = np.asarray(list(target_eligible), dtype=bool)
+    cand = np.asarray(list(candidate), dtype=bool)
+    if np.any(cand & ~eligible):
+        raise InsufficientStratumSupport("CANDIDATE_NOT_TARGET_ELIGIBLE")
+    k_counts = candidate_stratum_counts(years, sides, candidate)
+    stratum_idx: dict[tuple[str, str], np.ndarray] = {}
+    for year in CONTROL_YEARS:
+        for side in SIDE_LABELS:
+            idx = np.flatnonzero(
+                eligible & (years_arr == int(year)) & (side_labels == side)
+            )
+            need = int(k_counts[(year, side)])
+            if need > int(idx.size):
+                raise InsufficientStratumSupport(
+                    f"K_EXCEEDS_POPULATION:{year}:{side}:{need}>{int(idx.size)}"
+                )
+            stratum_idx[(year, side)] = idx
+    rng = random_generator(seed)
+    masks = np.zeros((int(n_replicates), n), dtype=bool)
+    for replicate in range(int(n_replicates)):
+        for year in CONTROL_YEARS:
+            for side in SIDE_LABELS:
+                need = int(k_counts[(year, side)])
+                if need == 0:
+                    continue
+                chosen = rng.choice(stratum_idx[(year, side)], size=need, replace=False)
+                masks[replicate, chosen] = True
+    return masks
+
+
+def means_from_shared_masks(
+    values: Sequence[float],
+    masks: np.ndarray,
+) -> np.ndarray:
+    """Apply already-drawn year×SIDE masks to a row-level series."""
+    arr = np.asarray(list(values), dtype=np.float64)
+    if arr.shape[0] != masks.shape[1]:
+        raise InsufficientStratumSupport("VALUE_MASK_SHAPE")
+    out = np.empty(masks.shape[0], dtype=np.float64)
+    for i, row in enumerate(masks):
+        if not bool(row.any()):
+            out[i] = float("nan")
+        else:
+            out[i] = float(arr[row].mean())
+    return out
+
+
+def year_means_from_shared_masks(
+    years: Sequence[int],
+    values: Sequence[float],
+    masks: np.ndarray,
+) -> dict[str, np.ndarray]:
+    """Yearly diagnostics from the SAME year×SIDE matched replicate system."""
+    years_arr = np.asarray([int(year) for year in years], dtype=np.int64)
+    arr = np.asarray(list(values), dtype=np.float64)
+    out: dict[str, np.ndarray] = {}
+    for year in CONTROL_YEARS:
+        in_year = years_arr == int(year)
+        year_means = np.empty(masks.shape[0], dtype=np.float64)
+        for i, row in enumerate(masks):
+            selected = row & in_year
+            if not bool(selected.any()):
+                year_means[i] = float("nan")
+            else:
+                year_means[i] = float(arr[selected].mean())
+        out[year] = year_means
+    return out
 
 
 def refuse_real_decomposition_outcome() -> None:

@@ -9,7 +9,11 @@
       "descriptive decomposition, not causal proof",
       "SIDE still depends on previous 24h return",
       "high RV may proxy for other states",
-      "target-specific PATH_SCALE<=0 rows are excluded from the new estimand only"
+      "target-specific PATH_SCALE<=0 rows are excluded from the new estimand only",
+      "year × SIDE matching removes simple side-composition confounding",
+      "year × SIDE matching does not control pre-decision return magnitude",
+      "does not identify RV as the unique causal state",
+      "ADVERSE_SHARE removes common same-path amplitude scaling but not every possible volatility-related shape effect"
     ],
     "NOT_CAUSAL_IDENTIFICATION": true,
     "WHY_ADVERSE_SHARE_IS_DIFFERENT": "ADVERSE_SHARE divides MAE_SIDE by the same-path two-sided envelope MAE_SIDE+MAE_OPPOSITE, so uniform amplitude inflation cancels. It asks whether the path is disproportionately adverse relative to its own opposite-side excursion.",
@@ -24,18 +28,31 @@
   },
   "BITMEX_2017_2019_REUSED_FOR_NEW_TARGET": false,
   "CLASSIFICATION_RULES": {
-    "D2_DECOMPOSITION_INVALID": "integrity/sample/target construction fails, including D2 mask identity failure",
-    "D2_DECOMPOSITION_NO_USEFUL_STRUCTURE": "primary gates fail AND PATH_SCALE not materially elevated",
-    "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PROMISING": "STATISTICAL_GATE and PRACTICAL_GATE and TEMPORAL_GATE",
-    "D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT": "primary ADVERSE_SHARE gates fail AND PATH_SCALE_MATERIALLY_ELEVATED"
+    "D2_DECOMPOSITION_INVALID": "if integrity/sample/target construction fails, including D2 mask identity failure or K_{y,s} exceeding target-eligible stratum population",
+    "D2_DECOMPOSITION_NO_USEFUL_STRUCTURE": "else: primary all-gates fail AND PATH_SCALE not materially elevated",
+    "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PROMISING": "else if STATISTICAL_GATE and PRACTICAL_GATE and TEMPORAL_GATE",
+    "D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT": "else if PATH_SCALE_MATERIALLY_ELEVATED: no ROBUST excess alignment under the frozen all-gates rule; not proof that excess alignment is absent"
   },
+  "CLASSIFICATION_EXHAUSTIVE": true,
+  "CLASSIFICATION_ORDER": [
+    "D2_DECOMPOSITION_INVALID",
+    "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PROMISING",
+    "D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT",
+    "D2_DECOMPOSITION_NO_USEFUL_STRUCTURE"
+  ],
   "CLASSIFICATION_VOCABULARY": [
     "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PROMISING",
     "D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT",
     "D2_DECOMPOSITION_NO_USEFUL_STRUCTURE",
     "D2_DECOMPOSITION_INVALID"
   ],
-  "COMPARATOR": "YEAR_MATCHED_RATE_MATCHED_RANDOM_ABSTENTION",
+  "COMPARATOR": "YEAR_SIDE_MATCHED_RATE_MATCHED_RANDOM_ABSTENTION",
+  "COMPARATOR_CORRECTION_PRE_OUTCOME": true,
+  "CONTROL_STRATA": "calendar_year × frozen_SIDE",
+  "CONTROL_SIDES": [
+    "LONG",
+    "SHORT"
+  ],
   "CONTROL_YEARS": [
     "2020",
     "2021",
@@ -48,10 +65,11 @@
   "DESIGN_DOES_NOT_REBUILD_MASK_ON_REAL_ROWS": true,
   "DESIGN_STATUS": "FROZEN",
   "DIAGNOSTIC_QUANTITIES": {
-    "CONTROL_PATH_SCALE_P95": "P95 of 10000 year-matched random-control PATH_SCALE means",
+    "CONTROL_PATH_SCALE_P95": "P95 of 10000 year×SIDE-matched random-control PATH_SCALE means",
     "DELTA_PATH_SCALE": "MU_PATH_SCALE_RULE - MU_PATH_SCALE_CONTROL",
-    "MU_PATH_SCALE_CONTROL": "mean of 10000 year-matched random-control PATH_SCALE means",
-    "MU_PATH_SCALE_RULE": "mean PATH_SCALE on D2-abstained target-eligible rows"
+    "MU_PATH_SCALE_CONTROL": "mean of 10000 year×SIDE-matched random-control PATH_SCALE means",
+    "MU_PATH_SCALE_RULE": "mean PATH_SCALE on D2-abstained target-eligible rows",
+    "SAME_MASK_AS_PRIMARY": true
   },
   "EVIDENCE_CLASS": "POST_REPLICATION_MECHANISM_DECOMPOSITION_DISCOVERY",
   "EVIDENCE_SEMANTICS": "NOT_INDEPENDENT_CONFIRMATION_NOT_EXACT_CONFIRMATION_NOT_VALIDATED_MECHANISM",
@@ -80,10 +98,16 @@
   "MARKET_07_CREATED": false,
   "MIRROR_SIDE": "-SIDE",
   "NEXT_UNIT": "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW",
+  "NO_ABSOLUTE_BTC_RET_24H_MATCHING": true,
   "NO_D2_THRESHOLD_HORIZON_OR_RV_WINDOW_VARIANT": true,
+  "NO_FUTURE_MAE_MATCHING": true,
+  "NO_FUTURE_PATH_SCALE_MATCHING": true,
+  "NO_FUTURE_RETURN_MATCHING": true,
   "NO_FUTURE_VOL_MATCHING_IN_PRIMARY": true,
   "NO_POOLED_K": true,
+  "NO_SIDE_REDEFINITION": true,
   "NO_SUBGROUP_RESCUE": true,
+  "NO_YEAR_ONLY_FALLBACK": true,
   "N_RANDOM_CONTROLS": 10000,
   "ORIGINAL_D2_TARGET": "MAE_SIDE = arithmetic_mae(SIDE, entry, future_288x5m_path)",
   "PATH_ASYMMETRY_FORMULA": "2 * ADVERSE_SHARE - 1",
@@ -99,8 +123,9 @@
   },
   "PRACTICAL_DELTA_SHARE": 0.05,
   "PRACTICAL_GATE": "DELTA_SHARE >= 0.05",
+  "PRIMARY_COMPARATOR": "YEAR_SIDE_MATCHED_RATE_MATCHED_RANDOM_ABSTENTION",
   "PRIMARY_QUANTITIES": {
-    "CONTROL_SHARE_MEANS": "10000 year-matched random-control means of ADVERSE_SHARE",
+    "CONTROL_SHARE_MEANS": "10000 year×SIDE-matched random-control means of ADVERSE_SHARE",
     "CONTROL_SHARE_P95": "P95(CONTROL_SHARE_MEANS)",
     "DELTA_SHARE": "MU_SHARE_RULE - MU_SHARE_CONTROL",
     "MC_P_SHARE": "(1 + count(CONTROL_SHARE_MEAN >= MU_SHARE_RULE)) / 10001",
@@ -113,15 +138,21 @@
   "PROTECTED_2026_OPENED": false,
   "RANDOM_GENERATOR": "numpy.random.Generator(numpy.random.PCG64(RANDOM_SEED))",
   "RANDOM_SEED": 20260922131,
+  "RANDOM_SEED_CHANGED": false,
   "REAL_DECOMPOSITION_OUTCOME_COMPUTED": false,
   "RV_PCTL": 90.0,
   "RV_RULE_CHANGED": false,
   "RV_TRAILING_WINDOW": 250,
+  "SAME_CONTROL_MASK_FOR_SHARE_AND_PATH_SCALE": true,
   "SAME_FUTURE_PATH_REQUIRED": true,
-  "SCIENTIFIC_QUESTION": "Does frozen D2 RULE_1 RV_ABSTENTION select days whose subsequent 24h path allocates a larger share of two-sided excursion against the frozen D2 side than year-matched rate-matched random dates, after removing simple total path-scale inflation?",
+  "SCIENTIFIC_QUESTION": "Within the same calendar year and the same frozen D2 SIDE, does RULE_1 RV_ABSTENTION select days whose subsequent 24h path allocates a larger share of two-sided excursion against that side than year×SIDE-matched rate-matched random dates, after removing simple total path-scale inflation?",
   "SEED_NOT_D2_BITMEX_SEED": true,
   "SEED_NOT_D2_DISCOVERY_SEED": true,
   "SEED_SELECTED_BEFORE_OUTCOME": true,
+  "SIDE_MATCHING_ADDED": true,
+  "STRATUM_K_ZERO_DRAWS_ZERO": true,
+  "STRATUM_K_EXCEEDS_POPULATION": "D2_DECOMPOSITION_INVALID",
+  "STRATA_NOT_COLLAPSED": true,
   "SELECTOR_CONTRACT": {
     "ABSTAIN_RULE": "ABSTAIN(t)=1 iff RV_BTC_24H(t) > P90 of previous 250 valid constructed-row RV observations; t excluded; strict >",
     "BTC_RET_24H": "frozen btc_ret_24h at feature cutoff E=T-5m",
@@ -156,11 +187,14 @@
   "TARGET_CHANGED_FROM_ORIGINAL_D2": true,
   "TARGET_INELIGIBILITY_DOES_NOT_CHANGE_D2_SELECTOR": true,
   "TARGET_INELIGIBILITY_MUST_BE_REPORTED": true,
+  "TARGET_K_Y_S_IS_ABSTAIN_COUNT_INSIDE_YEAR_SIDE_PATH_SCALE_ELIGIBLE_POPULATION": true,
   "TARGET_K_Y_IS_ABSTAIN_COUNT_INSIDE_PATH_SCALE_ELIGIBLE_POPULATION": true,
   "TARGET_SPECIFIC_INELIGIBILITY": "TARGET_ROW_INELIGIBLE_PATH_SCALE_NONPOSITIVE",
   "TEMPORAL_GATE": "DELTA_SHARE > 0 in at least 3 of 5 years 2020-2024",
   "TEMPORAL_YEARS_REQUIRED": 3,
   "TEMPORAL_YEARS_TOTAL": 5,
+  "WHY_SIDE_MATCHING": "SIDE is frozen pre-decision sign(BTC_RET_24H). The selector remains RV_ABSTENTION only, but high-RV rows may have different LONG/SHORT composition. Year-only matching could confound a high-RV state effect with SIDE composition × unconditional directional market asymmetry. Year×SIDE matching asks whether, within the same year and same frozen exposure direction, the high-RV selector identifies paths with larger adverse share. This does not change the selector, SIDE, target, or condition on future information.",
+  "YEARLY_DIAGNOSTICS_USE_SAME_YEAR_SIDE_MATCHED_REPLICATES": true,
   "kind": "POST_REPLICATION_MECHANISM_DECOMPOSITION_DESIGN",
   "unit": "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN"
 }

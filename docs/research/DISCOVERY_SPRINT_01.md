@@ -907,7 +907,9 @@ Full record: `docs/research/PROGRAM_DECISION_POST_D2_BITMEX_REPLICATION_SUPPORTE
 ## D2 excess path-risk beyond vol-clustering design (2026-09-22)
 
 Outcome-blind post-replication mechanism-decomposition design freeze.
-Selector unchanged. Primary target `ADVERSE_SHARE`. Seed `20260922131`.
+Selector unchanged. Primary target `ADVERSE_SHARE`. Comparator
+`YEAR_SIDE_MATCHED_RATE_MATCHED_RANDOM_ABSTENTION` (pre-outcome year×SIDE
+correction; seed `20260922131` unchanged).
 Evidence class `POST_REPLICATION_MECHANISM_DECOMPOSITION_DISCOVERY`.
 BitMEX 2017-2019 not reused. 2025/2026 unopened. MARKET-07 not created.
 No real decomposition outcome. `DESIGN_STATUS = FROZEN`.

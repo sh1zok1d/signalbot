@@ -4411,3 +4411,27 @@ NEXT_UNIT = D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLI
 Evidence: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN.{json,md}`.
 
 - next required step: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`
+
+## 2026-09-22 — Pre-outcome year×SIDE comparator correction
+
+Before any decomposition outcome, the design comparator was corrected from
+year-only matching to `YEAR_SIDE_MATCHED_RATE_MATCHED_RANDOM_ABSTENTION`.
+`ADVERSE_SHARE` is defined relative to frozen `SIDE`; year-only random
+matching could confound a high-RV effect with LONG/SHORT composition.
+Each replicate now preserves exact `K_{year,SIDE}` inside 2020–2024 ×
+LONG/SHORT. Seed `20260922131` unchanged. Selector and target unchanged.
+No real decomposition outcome. 2025/2026 unopened. BitMEX not reused.
+
+```
+PRIMARY_COMPARATOR = YEAR_SIDE_MATCHED_RATE_MATCHED_RANDOM_ABSTENTION
+CONTROL_STRATA = calendar_year × frozen_SIDE
+SIDE_MATCHING_ADDED = true
+SELECTOR_CHANGED = false
+TARGET_CHANGED = false
+RANDOM_SEED_CHANGED = false
+REAL_DECOMPOSITION_OUTCOME_COMPUTED = false
+```
+
+Evidence: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_BEYOND_VOLATILITY_CLUSTERING_DESIGN.{json,md}`.
+
+- next required step: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`

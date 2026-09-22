@@ -79,7 +79,7 @@ substitute for those extrema.
 
 ```
 MU_SHARE_RULE       = mean ADVERSE_SHARE on D2-abstained target-eligible rows
-CONTROL_SHARE_MEANS = 10000 year-matched random-control means
+CONTROL_SHARE_MEANS = 10000 year×SIDE-matched random-control means
 MU_SHARE_CONTROL    = mean(CONTROL_SHARE_MEANS)
 DELTA_SHARE         = MU_SHARE_RULE - MU_SHARE_CONTROL
 CONTROL_SHARE_P95   = P95(CONTROL_SHARE_MEANS)
@@ -120,7 +120,12 @@ change in support, must be reported.
 - path extrema ignore ordering;
 - `SIDE` still depends on the previous 24h return;
 - high RV may proxy for other states;
-- future realized volatility is **not** a primary matching variable.
+- future realized volatility is **not** a primary matching variable;
+- year × SIDE matching removes simple side-composition confounding;
+- it does not control pre-decision return magnitude;
+- it does not identify RV as causal;
+- `ADVERSE_SHARE` removes common same-path amplitude scaling but not every
+  possible volatility-related shape effect.
 
 ## Secondary scale diagnostic
 
@@ -137,26 +142,65 @@ DELTA_PATH_SCALE >= 0.20 * MU_PATH_SCALE_CONTROL
 ```
 
 PATH_SCALE elevated + ADVERSE_SHARE not elevated is compatible with
-volatility-scale persistence. It does not uniquely prove clustering.
+volatility-scale persistence. It does not uniquely prove clustering. The
+scale-compatible class means **no ROBUST excess alignment under the frozen
+all-gates rule**, not proof that excess alignment is absent.
 
 ## Comparator
 
 ```
-YEAR_MATCHED_RATE_MATCHED_RANDOM_ABSTENTION
-N_RANDOM_CONTROLS = 10000
-RANDOM_SEED = 20260922131
+PRIMARY_COMPARATOR = YEAR_SIDE_MATCHED_RATE_MATCHED_RANDOM_ABSTENTION
+CONTROL_STRATA     = calendar_year × frozen_SIDE
+N_RANDOM_CONTROLS  = 10000
+RANDOM_SEED        = 20260922131
 ```
 
 Generator: `numpy.random.Generator(numpy.random.PCG64(20260922131))`.
-Selected now, before outcomes. Not the D2 discovery seed (`20260921102`)
-and not the BitMEX replication seed (`20260921125`).
+Unchanged from the first freeze. Not the D2 discovery seed (`20260921102`)
+and not the BitMEX replication seed (`20260921125`). No new seed was chosen
+because matching was corrected; no random outcomes have been generated.
 
-For candidate count `K_y` in each of 2020–2024, each replicate draws
-exactly `K_y` target-eligible rows from that year without replacement.
-No pooled K. The same masks are used for PATH_SCALE diagnostics.
+For every calendar year `y ∈ {2020..2024}` and frozen D2 SIDE
+`s ∈ {LONG, SHORT}`:
 
-`K_y` is the D2-abstain count **inside the path-scale-eligible target
-population**. Selector mask construction itself remains unchanged.
+```
+K_{y,s} = number of D2-abstained TARGET-ELIGIBLE rows with that year and SIDE
+```
+
+Each random replicate, within every `(year, SIDE)` stratum independently,
+selects exactly `K_{y,s}` target-eligible rows uniformly without replacement,
+then concatenates. `K=0` draws zero rows. If `K_{y,s}` exceeds the available
+target-eligible control population, classification is
+`D2_DECOMPOSITION_INVALID`. Do not collapse strata. No pooled K. No year-only
+fallback.
+
+The same control mask is used for primary `ADVERSE_SHARE` and diagnostic
+`PATH_SCALE`. Yearly `DELTA_SHARE` uses the same year×SIDE matched replicate
+system subset to that year. Do not generate a separate year-only comparator.
+
+Do not match on future volatility, future path scale, future return, future
+MAE, future extrema, or absolute `BTC_RET_24H`.
+
+### Why SIDE matching is required
+
+`SIDE = sign(BTC_RET_24H)` is frozen pre-decision information. The selector
+remains only `RV_ABSTENTION`, but candidate high-RV rows may have a different
+LONG/SHORT composition than random rows. Because `ADVERSE_SHARE` is defined
+relative to `SIDE`, year-only matching could confound a high-RV state effect
+with SIDE composition × unconditional directional market asymmetry.
+
+Matching by year × SIDE asks: within the same year and same frozen exposure
+direction, does the high-RV selector identify paths with larger adverse share?
+
+This correction does not change the D2 selector, does not change SIDE, does
+not condition on future information, does not change the target, and does not
+use outcome-dependent strata. It is made before decomposition outcome
+inspection.
+
+High-RV rows may still differ in pre-decision return magnitude or other
+states. The design removes simple future path-scale inflation, trivial year
+composition, and trivial LONG/SHORT composition. It does not identify RV as
+the unique causal state.
 
 ## Gates (frozen before outcome)
 
@@ -173,12 +217,19 @@ Binance independent evidence.
 
 ## Classification vocabulary
 
-| Class | Rule |
-|---|---|
-| `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PROMISING` | statistical and practical and temporal |
-| `D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT` | primary gates fail and PATH_SCALE materially elevated |
-| `D2_DECOMPOSITION_NO_USEFUL_STRUCTURE` | primary gates fail and PATH_SCALE not materially elevated |
-| `D2_DECOMPOSITION_INVALID` | identity / sample / target construction fails |
+Exact order. Every valid execution receives exactly one class.
+
+1. if integrity / sample / target construction invalid, including
+   `K_{y,s}` exceeding stratum population:
+   `D2_DECOMPOSITION_INVALID`
+2. else if `STATISTICAL_GATE` and `PRACTICAL_GATE` and `TEMPORAL_GATE`:
+   `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PROMISING`
+3. else if `PATH_SCALE_MATERIALLY_ELEVATED`:
+   `D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT`
+   (no ROBUST excess alignment under the frozen all-gates rule; **not**
+   proof that excess alignment is absent)
+4. else:
+   `D2_DECOMPOSITION_NO_USEFUL_STRUCTURE`
 
 No subgroup rescue. Strong ADVERSE_SHARE cannot be strengthened by a
 favorable PATH_SCALE slice.

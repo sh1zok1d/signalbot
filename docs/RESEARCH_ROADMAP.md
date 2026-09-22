@@ -93,7 +93,8 @@ trading-edge, and product claims are not. Binance 2025/2026 stay sealed.
 Hypothesis generation rotates across families A–I; D2 neighbors are
 forbidden. Product remains frozen. MARKET-07 is not created. Mechanism-
 decomposition **design** is now frozen (`DESIGN_STATUS = FROZEN`):
-selector unchanged, primary target `ADVERSE_SHARE`, seed `20260922131`.
+selector unchanged, primary target `ADVERSE_SHARE`, comparator
+`YEAR_SIDE_MATCHED_RATE_MATCHED_RANDOM_ABSTENTION`, seed `20260922131`.
 No real decomposition outcome. Next unit is implementation and
 outcome-blind review:
 `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`.
