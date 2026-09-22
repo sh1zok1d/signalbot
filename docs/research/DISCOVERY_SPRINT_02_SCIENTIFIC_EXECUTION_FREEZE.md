@@ -1,0 +1,34 @@
+# Discovery Sprint 02 scientific execution freeze
+
+**Unit:** `DISCOVERY_SPRINT_02_SCIENTIFIC_EXECUTION_FREEZE`
+**Status:** `FROZEN`
+**Scope:** `D7_ONLY`
+**RUN_IDENTITY:** `96fa430bd827cb3e284896394b5916bf2907d1f0f307fc05dc23161b97f01d36`
+
+D7 one-shot route is frozen and authorized. D7 was not executed.
+D8 remains non-executable. Scientific outcomes were not computed.
+
+Provenance is non-self-referential: `AUTHORITY_PARENT_COMMIT` /
+`AUTHORITY_PARENT_TREE` are the exact `main` commit this unit branched
+from. They are not the current PR tip. Runner bytes are a pre-scientific
+execution authority bound by the tracked permit.
+
+```
+BASE_MAIN_SHA = 55e3663b0951088261ee7b67bc70a4611bd8ba58
+PROVENANCE_MODEL = AUTHORITY_PARENT_PLUS_FILE_HASHES
+AUTHORITY_PARENT_COMMIT = 55e3663b0951088261ee7b67bc70a4611bd8ba58
+AUTHORITY_PARENT_TREE = fb8516d07eb534626c9b53104eea6208f40ebb9b
+CURRENT_PR_HEAD_BOUND = false
+CORE_BTC_SNAPSHOT_ID = 717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415
+DATA_IDENTITY_MODE = TRACKED_SNAPSHOT_FULL_MONTHLY_EXACT_BYTE_VERIFICATION
+D7_SELECTOR_N = 4545
+D7_SELECTOR_DIGEST = 8794fece9541c9b09f3ed83f09a9aaf8e4d1caf5df7c6fb8ef29ba6c54889b5b
+D7_SEED = 20260922171
+N_RANDOM_CONTROLS = 10000
+D7_EXECUTION_AUTHORIZED = true
+D7_EXECUTED = false
+D8_EXECUTION_AUTHORIZED = false
+D8_EXECUTED = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+NEXT_UNIT = DISCOVERY_SPRINT_02_D7_ONE_SHOT_SCIENTIFIC_EXECUTION
+```

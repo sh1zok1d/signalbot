@@ -2,7 +2,7 @@
 
 **Status date:** 2026-09-22  
 **Status:** `ACTIVE / CANONICAL ROUTING INDEX`  
-**Main integration baseline before this status commit:** `310578838d1a622c69dffbe1f2f11ff6927f65e7`
+**Main integration baseline before this status commit:** `55e3663b0951088261ee7b67bc70a4611bd8ba58`
 
 This file is the compact answer to “what controls the project now?”. Frozen preregistrations/results remain authoritative for reproducing their own experiments; this file controls current routing only.
 
@@ -33,12 +33,12 @@ Program-level correction is sealed in `docs/research/MARKET_PROGRAM_UPDATE_POST_
 ## Exact next unit
 
 ```
-PREVIOUS_ROUTING            = DISCOVERY_SPRINT_02_FEASIBILITY_AND_IMPLEMENTATION
+PREVIOUS_ROUTING            = DISCOVERY_SPRINT_02_SCIENTIFIC_EXECUTION_FREEZE
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = DISCOVERY_SPRINT_02_SCIENTIFIC_EXECUTION_FREEZE
-NEXT_ACTION                 = D7_ONLY_SCIENTIFIC_EXECUTION_FREEZE
+NEXT_UNIT                   = DISCOVERY_SPRINT_02_D7_ONE_SHOT_SCIENTIFIC_EXECUTION
+NEXT_ACTION                 = D7_ONE_SHOT_SCIENTIFIC_EXECUTION
 HETEROGENEOUS_FAMILY_ROTATION_V1 = FROZEN
 DISCOVERY_SPRINT_02 = DEFINED
 DISCOVERY_SPRINT_02_INTERNAL_CARDS = 2
@@ -46,8 +46,12 @@ D7_STATUS                   = OUTCOME_BLIND_READY
 D8_STATUS                   = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT
 D7_IMPLEMENTATION_STATUS    = OUTCOME_BLIND_READY
 D8_IMPLEMENTATION_STATUS    = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT
-D7_SCIENTIFIC_EXECUTION_ELIGIBLE = true
-D8_SCIENTIFIC_EXECUTION_ELIGIBLE = false
+D7_EXECUTION_AUTHORIZED     = true
+D7_ONE_SHOT_RUNNER_BYTES_BOUND = true
+PROVENANCE_MODEL            = AUTHORITY_PARENT_PLUS_FILE_HASHES
+D7_EXECUTED                 = false
+D8_EXECUTION_AUTHORIZED     = false
+D8_EXECUTED                 = false
 DATA_IDENTITY_MODE          = TRACKED_SNAPSHOT_FULL_MONTHLY_EXACT_BYTE_VERIFICATION
 D7_SELECTOR_N               = 4545
 D7_SELECTOR_DIGEST_FROZEN   = true
@@ -352,7 +356,9 @@ integrity pass then formalized
 for this card (`NOT D8_NO_USEFUL_STRUCTURE`; recovery unevaluated).
 Record: `docs/research/DISCOVERY_SPRINT_02_FEASIBILITY.{json,md}` and
 `docs/research/DISCOVERY_SPRINT_02_IMPLEMENTATION_REVIEW.{json,md}`.
-`NEXT_UNIT = DISCOVERY_SPRINT_02_SCIENTIFIC_EXECUTION_FREEZE` (D7-only).
+`NEXT_UNIT = DISCOVERY_SPRINT_02_D7_ONE_SHOT_SCIENTIFIC_EXECUTION` (D7-only).
+The D7 one-shot scientific execution route is now frozen and authorized
+but not executed. D8 remains non-executable. No scientific outcomes.
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by

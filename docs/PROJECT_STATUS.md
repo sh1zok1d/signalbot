@@ -28,15 +28,15 @@ The exact M05/M06 additive 24h adverse-path MAE cell is `REPEATED_NULL / LOW_PRI
 
 ## Active work
 
-Next: Discovery Sprint 02 scientific-execution freeze
-(`DISCOVERY_SPRINT_02_SCIENTIFIC_EXECUTION_FREEZE`).
+Next: Discovery Sprint 02 D7 one-shot scientific execution
+(`DISCOVERY_SPRINT_02_D7_ONE_SHOT_SCIENTIFIC_EXECUTION`).
 
 `HETEROGENEOUS_FAMILY_ROTATION_V1` is frozen. Sprint 02 D7
-`KLINE_FLOW_IMPACT_STATE` is implementation-ready, outcome-blind.
-D8 `ENDOGENOUS_SHOCK_RECOVERY` is `DEFERRED_INSUFFICIENT_CONTROL_SUPPORT`.
-No scientific outcomes. Do not execute D7/D8 from this routing file.
-The next unit must bind reviewed implementation bytes before any D7
-scientific outcome. Do not rescue D8 thresholds.
+`KLINE_FLOW_IMPACT_STATE` execution route is frozen and authorized but
+**not executed**. D8 `ENDOGENOUS_SHOCK_RECOVERY` remains
+`DEFERRED_INSUFFICIENT_CONTROL_SUPPORT` and non-executable.
+No scientific outcomes. Do not execute D7 from this routing file.
+Do not rescue D8 thresholds.
 
 D2 remains an `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE` from the
 independent pre-2020 BitMEX surface, not a validated trading edge. The

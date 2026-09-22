@@ -4851,3 +4851,95 @@ NEXT_UNIT_SCOPE = D7_ONLY
 - next required step: D7-only scientific execution freeze; do not
   execute D8; do not rescue D8 thresholds/controls; do not open
   2025/2026; do not create MARKET-07
+
+## 2026-09-22 — Discovery Sprint 02 D7 scientific execution freeze
+
+Outcome-blind freeze of the D7 one-shot route. Permit created.
+Scientific outcomes were not computed. D8 remains non-executable.
+
+```
+D7_EXECUTION_AUTHORIZED = true
+D7_EXECUTED = false
+D8_EXECUTION_AUTHORIZED = false
+D8_EXECUTED = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+NEXT_UNIT = DISCOVERY_SPRINT_02_D7_ONE_SHOT_SCIENTIFIC_EXECUTION
+```
+
+- next required step: D7 one-shot scientific execution only; do not
+  execute D8; do not open 2025/2026; do not create MARKET-07
+
+## 2026-09-22 — Discovery Sprint 02 D7 execution-freeze integrity repair
+
+Outcome-blind repair of PR #194. Bound one-shot runner bytes in the
+tracked permit and replaced self-referential freeze HEAD/TREE with
+`AUTHORITY_PARENT_COMMIT` / `AUTHORITY_PARENT_TREE`. Scientific outcomes
+were not computed. D8 remains non-executable.
+
+```
+F1_RUNNER_BYTES_BOUND = true
+PROVENANCE_MODEL = AUTHORITY_PARENT_PLUS_FILE_HASHES
+D7_EXECUTION_AUTHORIZED = true
+D7_EXECUTED = false
+D8_EXECUTION_AUTHORIZED = false
+D8_EXECUTED = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+NEXT_UNIT = DISCOVERY_SPRINT_02_D7_ONE_SHOT_SCIENTIFIC_EXECUTION
+```
+
+- next required step remains D7 one-shot scientific execution only; do
+  not execute D8; do not open 2025/2026; do not create MARKET-07
+
+## 2026-09-22 — Discovery Sprint 02 D7 RESULT-persistence integrity repair
+
+Outcome-blind repair of PR #194. Canonical one-shot RESULT persistence
+now uses atomic final-path replacement and `RESULT_PAYLOAD_SHA256` over
+canonical JSON excluding the digest field. Scientific outcomes were not
+computed. D8 remains non-executable.
+
+```
+F3_RESULT_PERSISTENCE_DURABLE = true
+RESULT_PAYLOAD_SHA256_IMPLEMENTED = true
+D7_EXECUTED = false
+D8_EXECUTED = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+NEXT_UNIT = DISCOVERY_SPRINT_02_D7_ONE_SHOT_SCIENTIFIC_EXECUTION
+```
+
+- next required step remains D7 one-shot scientific execution only; do
+  not execute D8; do not open 2025/2026; do not create MARKET-07
+
+## 2026-09-22 — Discovery Sprint 02 D7 final pre-merge integrity repair
+
+Outcome-blind repair of PR #194. Fail-closed git worktree / HEAD-blob
+identity, consume tracked freeze as a pre-scientific authority, bind
+year×RV strata maps, and add synthetic t/t+1 array semantics. Scientific
+outcomes were not computed. D8 remains non-executable.
+
+```
+GIT_WORKTREE_FAIL_CLOSED = true
+TRACKED_FREEZE_CONSUMED_AS_AUTHORITY = true
+TARGET_ELIGIBLE_STRATA_BOUND = true
+CANDIDATE_STRATA_BOUND = true
+ANALYSIS_N = 42407
+CANDIDATE_N = 4545
+D7_EXECUTED = false
+D8_EXECUTED = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+NEXT_UNIT = DISCOVERY_SPRINT_02_D7_ONE_SHOT_SCIENTIFIC_EXECUTION
+```
+
+- next required step remains D7 one-shot scientific execution only; do
+  not execute D8; do not open 2025/2026; do not create MARKET-07

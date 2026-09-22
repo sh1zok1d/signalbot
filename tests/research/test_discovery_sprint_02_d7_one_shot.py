@@ -1,0 +1,1199 @@
+"""Synthetic tests for the Sprint 02 D7 one-shot freeze.
+
+No real CORE scientific target is computed. Evaluator fixtures are synthetic.
+"""
+
+from __future__ import annotations
+
+import inspect
+import json
+import math
+import os
+import shutil
+import subprocess
+from datetime import datetime, timezone
+from pathlib import Path
+from unittest.mock import patch
+
+import pytest
+
+from scripts.research import discovery_sprint_02_d7_one_shot as OS
+from scripts.research import discovery_sprint_02_impl as I
+
+
+REPO = Path(__file__).resolve().parents[2]
+
+_COPY_RELS = (
+    OS.PERMIT_REL,
+    OS.REVIEW_JSON_REL,
+    OS.FEASIBILITY_JSON_REL,
+    I.SPRINT_JSON_REL,
+    OS.IMPL_REL,
+    OS.FEAS_CLI_REL,
+    OS.RUNNER_REL,
+    OS.FREEZE_JSON_REL,
+    I.CORE_BTC_SNAPSHOT_DOC_REL,
+    I.CORE_BTC_MANIFEST_REL,
+)
+
+
+def _copy_repo_tree(tmp_path: Path) -> Path:
+    for rel in _COPY_RELS:
+        src = REPO / rel
+        if not src.is_file():
+            pytest.skip(f"missing authority file {rel}")
+        dst = tmp_path / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
+    return tmp_path
+
+
+def _git_init_authority(repo: Path) -> Path:
+    subprocess.check_call(["git", "init"], cwd=repo, stdout=subprocess.DEVNULL)
+    subprocess.check_call(["git", "config", "user.email", "d7@test"], cwd=repo)
+    subprocess.check_call(["git", "config", "user.name", "d7test"], cwd=repo)
+    subprocess.check_call(["git", "config", "commit.gpgsign", "false"], cwd=repo)
+    subprocess.check_call(["git", "add", "--", *_COPY_RELS], cwd=repo)
+    subprocess.check_call(
+        ["git", "commit", "-m", "authority"],
+        cwd=repo,
+        stdout=subprocess.DEVNULL,
+        env={
+            **os.environ,
+            "GIT_AUTHOR_NAME": "d7test",
+            "GIT_AUTHOR_EMAIL": "d7@test",
+            "GIT_COMMITTER_NAME": "d7test",
+            "GIT_COMMITTER_EMAIL": "d7@test",
+        },
+    )
+    return repo
+
+
+def _copy_git_repo(tmp_path: Path) -> Path:
+    return _git_init_authority(_copy_repo_tree(tmp_path))
+
+
+def _commit_paths(repo: Path, rels: tuple[str, ...], message: str = "update") -> None:
+    subprocess.check_call(["git", "add", "--", *rels], cwd=repo)
+    subprocess.check_call(
+        ["git", "commit", "-m", message],
+        cwd=repo,
+        stdout=subprocess.DEVNULL,
+        env={
+            **os.environ,
+            "GIT_AUTHOR_NAME": "d7test",
+            "GIT_AUTHOR_EMAIL": "d7@test",
+            "GIT_COMMITTER_NAME": "d7test",
+            "GIT_COMMITTER_EMAIL": "d7@test",
+        },
+    )
+
+
+def _ms(year: int, month: int = 1, day: int = 1, hour: int = 0) -> int:
+    return int(datetime(year, month, day, hour, tzinfo=timezone.utc).timestamp() * 1000)
+
+
+def _hour(start_ms: int, year: int) -> I.HourBar:
+    return I.HourBar(
+        hour_start_ms=start_ms,
+        available_at_ms=start_ms + I.HOUR_MS,
+        year=year,
+        open_1h=100.0,
+        close_1h=101.0,
+        quote_volume_1h=10.0,
+        trade_count_1h=10,
+        taker_buy_quote_volume_1h=4.0,
+        ret_abs_1h=0.01,
+        event_return=0.01,
+    )
+
+
+def _state(
+    start_ms: int,
+    year: int,
+    *,
+    d7_state: bool | None,
+    rv_bucket: int | None = 0,
+) -> I.D7HourState:
+    return I.D7HourState(
+        hour=_hour(start_ms, year),
+        qrel_1h=1.0,
+        impact_proxy=1.0,
+        d7_state=d7_state,
+        rv_bucket=rv_bucket,
+    )
+
+
+def test_import_does_not_execute_science():
+    source = Path(OS.__file__).read_text(encoding="utf-8")
+    assert "if __name__" in source
+    assert "execute_one_shot()" not in inspect.getsource(OS.main)
+    OS.assert_runner_has_no_d8_route()
+
+
+def test_main_without_write_freeze_refuses_execution():
+    with pytest.raises(SystemExit, match="D7_SCIENTIFIC_EXECUTION_NOT_AUTHORIZED"):
+        OS.main([])
+
+
+def test_permit_matches_recomputed_authority():
+    stored = json.loads((REPO / OS.PERMIT_REL).read_text(encoding="utf-8"))
+    expected = OS.expected_permit(REPO)
+    assert stored == expected
+    raw = (REPO / OS.PERMIT_REL).read_text(encoding="utf-8")
+    assert raw == I.canonical_json(expected)
+
+
+def test_verify_tracked_permit_on_live_tree():
+    stored = OS.verify_tracked_permit(REPO)
+    assert stored["EXECUTION_AUTHORIZED"] is True
+    assert stored["ONE_SHOT"] is True
+    assert stored["RERUN_AUTHORIZED"] is False
+    assert stored["D7_SELECTOR_N"] == 4545
+    assert stored["D7_SELECTOR_DIGEST"] == I.D7_SELECTOR_DIGEST
+    assert stored["CORE_BTC_SNAPSHOT_ID"] == I.CORE_BTC_SNAPSHOT_ID
+    assert stored["DATA_IDENTITY_MODE"] == I.DATA_IDENTITY_MODE
+    assert stored["D8_SCIENTIFIC_EXECUTION_ELIGIBLE"] is False
+    assert stored["SCIENTIFIC_OUTCOMES_COMPUTED"] is False
+    assert stored["ONE_SHOT_RUNNER_SHA256"] == OS.current_runner_sha256(REPO)
+    hashes = OS.current_authority_hashes(REPO)
+    assert hashes["DISCOVERY_SPRINT_02_SHA256"] == OS.FROZEN_DISCOVERY_SPRINT_02_SHA256
+    assert hashes["FEASIBILITY_JSON_SHA256"] == OS.FROZEN_FEASIBILITY_JSON_SHA256
+    assert (
+        hashes["IMPLEMENTATION_REVIEW_JSON_SHA256"]
+        == OS.FROZEN_IMPLEMENTATION_REVIEW_JSON_SHA256
+    )
+    assert (
+        hashes["REVIEWED_IMPLEMENTATION_SHA256"]
+        == OS.FROZEN_REVIEWED_IMPLEMENTATION_SHA256
+    )
+    assert hashes["FEASIBILITY_CLI_SHA256"] == OS.FROZEN_FEASIBILITY_CLI_SHA256
+    assert hashes["FEASIBILITY_ARTIFACT_SHA256"] == OS.FROZEN_FEASIBILITY_ARTIFACT_SHA256
+
+
+@pytest.mark.parametrize(
+    "rel,token",
+    [
+        (OS.IMPL_REL, "\n# mutated-implementation-byte\n"),
+        (OS.REVIEW_JSON_REL, None),
+        (OS.FEASIBILITY_JSON_REL, None),
+    ],
+)
+def test_moved_authority_bytes_fail_permit_verify(tmp_path, rel, token):
+    repo = _copy_repo_tree(tmp_path)
+    path = repo / rel
+    if token is None:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload["STATUS"] = "TAMPERED"
+        path.write_text(json.dumps(payload), encoding="utf-8")
+    else:
+        path.write_text(path.read_text(encoding="utf-8") + token, encoding="utf-8")
+    with pytest.raises(OS.OneShotExecutionError):
+        OS.verify_tracked_permit(repo)
+
+
+def test_changed_core_snapshot_identity_fails(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    path = repo / I.CORE_BTC_SNAPSHOT_DOC_REL
+    identity = json.loads(path.read_text(encoding="utf-8"))
+    identity["snapshot_id"] = "0" * 64
+    path.write_text(json.dumps(identity), encoding="utf-8")
+    with pytest.raises(I.SnapshotIdentityError):
+        OS.verify_pre_scientific_authorities(repo)
+
+
+def test_changed_manifest_authorization_fails(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    path = repo / I.CORE_BTC_MANIFEST_REL
+    text = path.read_text(encoding="utf-8")
+    text = text.replace("research_authorized: true", "research_authorized: false", 1)
+    path.write_text(text, encoding="utf-8")
+    with pytest.raises(I.SnapshotIdentityError):
+        OS.verify_pre_scientific_authorities(repo)
+
+
+def test_protected_path_refused():
+    with pytest.raises(I.ProtectedYearRefused):
+        I.legal_monthly_parquet_path(Path("/tmp/ds"), "2025-01")
+    with pytest.raises(I.ProtectedYearRefused):
+        I.legal_monthly_parquet_path(Path("/tmp/ds"), "2026-06")
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("SELECTOR_N", I.D7_SELECTOR_N + 1),
+        ("SELECTOR_DIGEST", "0" * 64),
+        ("CONSTRUCTED_HOURS", I.D7_CONSTRUCTED_HOURS + 1),
+        ("VALID_IMPACT_ROWS", I.D7_VALID_IMPACT_ROWS + 1),
+        ("TARGET_ELIGIBLE_ROWS", I.D7_TARGET_ELIGIBLE_ROWS + 1),
+    ],
+)
+def test_selector_identity_mismatch_fails_before_outcome(field, value):
+    session = OS.D7OneShotSession()
+    census = {
+        "SELECTOR_N": I.D7_SELECTOR_N,
+        "SELECTOR_DIGEST": I.D7_SELECTOR_DIGEST,
+        "CONSTRUCTED_HOURS": I.D7_CONSTRUCTED_HOURS,
+        "VALID_IMPACT_ROWS": I.D7_VALID_IMPACT_ROWS,
+        "TARGET_ELIGIBLE_ROWS": I.D7_TARGET_ELIGIBLE_ROWS,
+        "SCIENTIFIC_T_PLUS_1_ASSOCIATION_COMPUTED": False,
+        "SCIENTIFIC_OUTCOMES_COMPUTED": False,
+    }
+    census[field] = value
+    with pytest.raises((I.SelectorIdentityError, I.RealScientificOutcomeForbidden)):
+        I.assert_d7_selector_identity(census)
+    assert session.identity_ok is False
+    with pytest.raises(OS.TargetBeforeIdentityError):
+        OS.construct_d7_scientific_arrays([], session=session)
+
+
+def test_selector_identity_recompute_does_not_inspect_tplus1_boolean():
+    start = _ms(2021, 3, 1)
+    def _triple(last_state: bool) -> list[I.D7HourState]:
+        return [
+            _state(start, 2021, d7_state=False),
+            _state(start + I.HOUR_MS, 2021, d7_state=True),
+            _state(start + 2 * I.HOUR_MS, 2021, d7_state=last_state),
+        ]
+    census_a = I.d7_feasibility_census(_triple(True))
+    census_b = I.d7_feasibility_census(_triple(False))
+    assert census_a["SELECTOR_DIGEST"] == census_b["SELECTOR_DIGEST"]
+    assert census_a["SELECTOR_N"] == census_b["SELECTOR_N"]
+    assert census_a["SCIENTIFIC_T_PLUS_1_ASSOCIATION_COMPUTED"] is False
+    src = inspect.getsource(OS.reconstruct_d7_selector_identity)
+    assert "evaluate_d7_scientific" not in src
+    assert "construct_d7_scientific_arrays" not in src
+    census_src = inspect.getsource(I.d7_feasibility_census)
+    assert "d7_state is not None" in census_src
+    assert "MU_D7_RULE" not in census_src
+
+
+def test_target_and_evaluator_cannot_run_before_identity_gate():
+    session = OS.D7OneShotSession()
+    with pytest.raises(OS.TargetBeforeIdentityError):
+        OS.construct_d7_scientific_arrays([], session=session)
+    with pytest.raises(OS.OneShotExecutionError, match="EVALUATOR_BEFORE_IDENTITY"):
+        OS.call_reviewed_d7_evaluator(
+            {
+                "candidate": [True],
+                "target": [True],
+                "year": [2020],
+                "rv_bucket": [0],
+                "target_eligible": [True],
+            },
+            session=session,
+        )
+    execute_src = inspect.getsource(OS.execute_one_shot)
+    assert execute_src.index("reconstruct_d7_selector_identity") < execute_src.index(
+        "construct_d7_scientific_arrays"
+    )
+    assert execute_src.index("construct_d7_scientific_arrays") < execute_src.index(
+        "call_reviewed_d7_evaluator"
+    )
+
+
+def test_authority_failure_produces_no_result(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    path = repo / OS.PERMIT_REL
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["REVIEWED_IMPLEMENTATION_SHA256"] = "0" * 64
+    path.write_text(I.canonical_json(payload), encoding="utf-8")
+    with pytest.raises(OS.OneShotExecutionError):
+        OS.execute_one_shot(repo)
+    assert not (repo / OS.RESULT_JSON_REL).exists()
+    assert not (repo / OS.RESULT_MD_REL).exists()
+
+
+def test_existing_result_refuses_execution(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    (repo / OS.RESULT_JSON_REL).parent.mkdir(parents=True, exist_ok=True)
+    (repo / OS.RESULT_JSON_REL).write_text("{}", encoding="utf-8")
+    with pytest.raises(OS.OneShotExecutionError, match="RESULT_ALREADY_EXISTS"):
+        OS.execute_one_shot(repo)
+
+
+@pytest.mark.parametrize(
+    "field,value,match",
+    [
+        ("ONE_SHOT", False, "ONE_SHOT"),
+        ("RERUN_AUTHORIZED", True, "RERUN"),
+        ("EXECUTION_AUTHORIZED", False, "EXECUTION"),
+    ],
+)
+def test_permit_lifecycle_flags_fail_closed(tmp_path, field, value, match):
+    repo = _copy_repo_tree(tmp_path)
+    path = repo / OS.PERMIT_REL
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload[field] = value
+    path.write_text(I.canonical_json(payload), encoding="utf-8")
+    with pytest.raises(OS.OneShotExecutionError):
+        OS.verify_tracked_permit(repo)
+
+
+def test_changed_permit_byte_fails(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    path = repo / OS.PERMIT_REL
+    path.write_text(path.read_text(encoding="utf-8") + " ", encoding="utf-8")
+    with pytest.raises(OS.OneShotExecutionError):
+        OS.verify_tracked_permit(repo)
+
+
+def _gate_arrays(*, candidate_on: bool, target_on: bool, years=(2020, 2021, 2022, 2023, 2024)):
+    candidate: list[bool] = []
+    target: list[float] = []
+    year: list[int] = []
+    buckets: list[int] = []
+    eligible: list[bool] = []
+    for y in years:
+        for j in range(20):
+            year.append(y)
+            buckets.append(0)
+            eligible.append(True)
+            is_cand = candidate_on and j == 0
+            candidate.append(is_cand)
+            if is_cand:
+                target.append(1.0 if target_on else 0.01)
+            else:
+                target.append(0.0)
+    return candidate, target, year, buckets, eligible
+
+
+def _fake_reconstruct(states, *, session=None, repo=None):
+    if session is not None:
+        session.identity_ok = True
+    return {
+        "SELECTOR_N": I.D7_SELECTOR_N,
+        "SELECTOR_DIGEST": I.D7_SELECTOR_DIGEST,
+        "CONSTRUCTED_HOURS": I.D7_CONSTRUCTED_HOURS,
+        "VALID_IMPACT_ROWS": I.D7_VALID_IMPACT_ROWS,
+        "TARGET_ELIGIBLE_ROWS": I.D7_TARGET_ELIGIBLE_ROWS,
+        "SCIENTIFIC_T_PLUS_1_ASSOCIATION_COMPUTED": False,
+    }
+
+
+def _fake_arrays(states, *, session=None):
+    if session is None or session.identity_ok is not True:
+        raise OS.TargetBeforeIdentityError("TARGET_BEFORE_IDENTITY_GATE")
+    session.target_constructed = True
+    candidate, target, year, buckets, eligible = _gate_arrays(
+        candidate_on=True, target_on=True
+    )
+    return {
+        "candidate": candidate,
+        "target": target,
+        "year": year,
+        "rv_bucket": buckets,
+        "target_eligible": eligible,
+    }
+
+
+def _mocked_execute_ctx():
+    return (
+        patch.object(I, "load_legal_1m_bars", return_value=[]),
+        patch.object(I, "aggregate_completed_hours", return_value=[]),
+        patch.object(I, "build_d7_states", return_value=[]),
+        patch.object(OS, "reconstruct_d7_selector_identity", side_effect=_fake_reconstruct),
+        patch.object(OS, "construct_d7_scientific_arrays", side_effect=_fake_arrays),
+        patch.object(OS, "assert_scientific_array_identity"),
+    )
+
+
+def test_synthetic_evaluator_promising_prototype():
+    candidate, target, year, buckets, eligible = _gate_arrays(
+        candidate_on=True, target_on=True
+    )
+    out = I.evaluate_d7_scientific(
+        candidate=candidate,
+        target=target,
+        year=year,
+        rv_bucket=buckets,
+        target_eligible=eligible,
+        n_replicates=200,
+    )
+    assert out["CLASSIFICATION"] == "D7_PROMISING_PROTOTYPE"
+    assert out["STATISTICAL_GATE"] is True
+    assert out["PRACTICAL_GATE"] is True
+    assert out["TEMPORAL_GATE"] is True
+
+
+def test_synthetic_evaluator_practical_fail_is_no_useful_structure():
+    candidate, target, year, buckets, eligible = _gate_arrays(
+        candidate_on=True, target_on=False
+    )
+    out = I.evaluate_d7_scientific(
+        candidate=candidate,
+        target=target,
+        year=year,
+        rv_bucket=buckets,
+        target_eligible=eligible,
+        n_replicates=200,
+    )
+    assert out["PRACTICAL_GATE"] is False
+    assert out["CLASSIFICATION"] == "D7_NO_USEFUL_STRUCTURE"
+
+
+def test_synthetic_evaluator_temporal_fail_is_no_useful_structure():
+    candidate, target, year, buckets, eligible = _gate_arrays(
+        candidate_on=True, target_on=True, years=(2020, 2021)
+    )
+    # remaining years exist but with no candidate / zero delta
+    for y in (2022, 2023, 2024):
+        for j in range(20):
+            year.append(y)
+            buckets.append(0)
+            eligible.append(True)
+            candidate.append(False)
+            target.append(0.0)
+    out = I.evaluate_d7_scientific(
+        candidate=candidate,
+        target=target,
+        year=year,
+        rv_bucket=buckets,
+        target_eligible=eligible,
+        n_replicates=200,
+    )
+    assert out["TEMPORAL_GATE"] is False
+    assert out["CLASSIFICATION"] == "D7_NO_USEFUL_STRUCTURE"
+
+
+def test_synthetic_null_fixture_is_no_useful_structure():
+    n = 20
+    out = I.evaluate_d7_scientific(
+        candidate=[False] * n,
+        target=[0.0] * n,
+        year=[2020] * n,
+        rv_bucket=[0] * n,
+        target_eligible=[True] * n,
+        n_replicates=20,
+    )
+    assert out["CLASSIFICATION"] == "D7_NO_USEFUL_STRUCTURE"
+
+
+def test_synthetic_evaluator_pcg64_deterministic():
+    candidate, target, year, buckets, eligible = _gate_arrays(
+        candidate_on=True, target_on=True
+    )
+    first = I.evaluate_d7_scientific(
+        candidate=candidate,
+        target=target,
+        year=year,
+        rv_bucket=buckets,
+        target_eligible=eligible,
+        seed=I.D7_SEED,
+        n_replicates=200,
+    )
+    second = I.evaluate_d7_scientific(
+        candidate=candidate,
+        target=target,
+        year=year,
+        rv_bucket=buckets,
+        target_eligible=eligible,
+        seed=I.D7_SEED,
+        n_replicates=200,
+    )
+    assert first["MC_P_D7"] == second["MC_P_D7"]
+    assert first["MU_D7_CONTROL"] == second["MU_D7_CONTROL"]
+    assert first["CONTROL_D7_P95"] == second["CONTROL_D7_P95"]
+    assert I.D7_SEED == 20260922171
+
+
+def test_gated_evaluator_uses_reviewed_function_once():
+    session = OS.D7OneShotSession()
+    session.identity_ok = True
+    session.target_constructed = True
+    candidate, target, year, buckets, eligible = _gate_arrays(
+        candidate_on=True, target_on=True
+    )
+    arrays = {
+        "candidate": candidate,
+        "target": target,
+        "year": year,
+        "rv_bucket": buckets,
+        "target_eligible": eligible,
+    }
+    first = OS.call_reviewed_d7_evaluator(arrays, session=session)
+    assert first["CLASSIFICATION"] in {
+        "D7_PROMISING_PROTOTYPE",
+        "D7_NO_USEFUL_STRUCTURE",
+    }
+    with pytest.raises(OS.OneShotExecutionError, match="ALREADY_CALLED"):
+        OS.call_reviewed_d7_evaluator(arrays, session=session)
+
+
+def test_d8_cannot_be_executed_through_runner():
+    OS.assert_runner_has_no_d8_route()
+    source = inspect.getsource(OS)
+    assert "evaluate_d8" + "_scientific(" not in source
+    assert "recovery_" + "6h(" not in inspect.getsource(OS.execute_one_shot)
+    assert not hasattr(OS, "execute_d8")
+
+
+def test_execute_one_shot_mocked_does_not_open_protected_years(tmp_path):
+    repo = _copy_git_repo(tmp_path)
+    ctxs = _mocked_execute_ctx()
+    with ctxs[0], ctxs[1], ctxs[2], ctxs[3], ctxs[4], ctxs[5]:
+        result = OS.execute_one_shot(repo)
+    assert result["SCIENTIFIC_OUTCOMES_COMPUTED"] is True
+    assert result["PROTECTED_2025_OPENED"] is False
+    assert result["PROTECTED_2026_OPENED"] is False
+    assert result["D8_EXECUTED"] is False
+    assert result["MARKET_07_CREATED"] is False
+    assert result["NOT_PROVEN_ALPHA"] is True
+    assert result["CLASSIFICATION"] in {
+        "D7_PROMISING_PROTOTYPE",
+        "D7_NO_USEFUL_STRUCTURE",
+    }
+    assert "RESULT_PAYLOAD_SHA256" in result
+    stored = json.loads((repo / OS.RESULT_JSON_REL).read_text(encoding="utf-8"))
+    without = {k: v for k, v in stored.items() if k != "RESULT_PAYLOAD_SHA256"}
+    assert stored["RESULT_PAYLOAD_SHA256"] == OS.result_payload_sha256(without)
+    (repo / OS.RESULT_JSON_REL).unlink()
+    (repo / OS.RESULT_MD_REL).unlink()
+
+
+def test_freeze_artifact_is_d7_only_and_unexecuted():
+    path = REPO / OS.FREEZE_JSON_REL
+    if not path.is_file():
+        pytest.skip("freeze artifact not written yet")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["STATUS"] == "FROZEN"
+    assert payload["SCOPE"] == "D7_ONLY"
+    assert payload["D7_EXECUTED"] is False
+    assert payload["D7_EXECUTION_AUTHORIZED"] is True
+    assert payload["D8_EXECUTION_AUTHORIZED"] is False
+    assert payload["D8_EXECUTED"] is False
+    assert payload["SCIENTIFIC_OUTCOMES_COMPUTED"] is False
+    assert payload["PROTECTED_2025_OPENED"] is False
+    assert payload["PROTECTED_2026_OPENED"] is False
+    assert payload["MARKET_07_CREATED"] is False
+    assert payload["NEXT_UNIT"] == OS.ONE_SHOT_UNIT
+    assert payload["D7_SELECTOR_DIGEST"] == I.D7_SELECTOR_DIGEST
+    assert not (REPO / OS.RESULT_JSON_REL).exists()
+    assert payload["SCIENTIFIC_OUTCOMES_COMPUTED"] is False
+    assert "MU_D7_RULE" not in payload
+    assert "HEAD" not in payload
+    assert "TREE" not in payload
+    assert payload.get("CURRENT_PR_HEAD") is None
+    assert payload.get("CURRENT_PR_TREE") is None
+    assert payload["CURRENT_PR_HEAD_BOUND"] is False
+
+
+def test_runner_sha256_is_bound_by_permit():
+    stored = json.loads((REPO / OS.PERMIT_REL).read_text(encoding="utf-8"))
+    runner_sha = OS.current_runner_sha256(REPO)
+    assert stored["ONE_SHOT_RUNNER_SHA256"] == runner_sha
+    assert "FROZEN_ONE_SHOT_RUNNER_SHA256" not in inspect.getsource(OS)
+    source = Path(OS.__file__).read_text(encoding="utf-8")
+    assert runner_sha not in source
+
+
+def test_runner_byte_mutation_fails_before_target(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    runner = repo / OS.RUNNER_REL
+    runner.write_text(
+        runner.read_text(encoding="utf-8") + "\n# runner-byte-mutation\n",
+        encoding="utf-8",
+    )
+    called = {"target": False, "eval": False}
+
+    def boom_arrays(*_args, **_kwargs):
+        called["target"] = True
+        raise AssertionError("target constructor ran")
+
+    def boom_eval(*_args, **_kwargs):
+        called["eval"] = True
+        raise AssertionError("evaluator ran")
+
+    with pytest.raises(OS.OneShotExecutionError, match="RUNNER_SHA256_NE_PERMIT"):
+        OS.verify_tracked_permit(repo)
+    git_repo = _copy_git_repo(tmp_path / "git")
+    (git_repo / OS.RUNNER_REL).write_text(
+        (git_repo / OS.RUNNER_REL).read_text(encoding="utf-8") + "\n# runner-byte-mutation\n",
+        encoding="utf-8",
+    )
+    with patch.object(
+        OS, "construct_d7_scientific_arrays", side_effect=boom_arrays
+    ), patch.object(OS, "call_reviewed_d7_evaluator", side_effect=boom_eval):
+        with pytest.raises(
+            OS.OneShotExecutionError,
+            match="EXECUTION_TREE_DIRTY|HEAD_BLOB_NE_DISK|RUNNER_SHA256_NE_PERMIT",
+        ):
+            OS.execute_one_shot(git_repo)
+    assert called["target"] is False
+    assert called["eval"] is False
+    assert not (repo / OS.RESULT_JSON_REL).exists()
+    assert not (repo / OS.RESULT_MD_REL).exists()
+
+
+def test_permit_runner_hash_mutation_fails_before_target(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    path = repo / OS.PERMIT_REL
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["ONE_SHOT_RUNNER_SHA256"] = "0" * 64
+    path.write_text(I.canonical_json(payload), encoding="utf-8")
+    called = {"target": False, "eval": False}
+
+    def boom_arrays(*_args, **_kwargs):
+        called["target"] = True
+        raise AssertionError("target constructor ran")
+
+    def boom_eval(*_args, **_kwargs):
+        called["eval"] = True
+        raise AssertionError("evaluator ran")
+
+    with pytest.raises(OS.OneShotExecutionError, match="RUNNER_SHA256_NE_PERMIT"):
+        OS.verify_pre_scientific_authorities(repo)
+    git_repo = _copy_git_repo(tmp_path / "git")
+    path = git_repo / OS.PERMIT_REL
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["ONE_SHOT_RUNNER_SHA256"] = "0" * 64
+    path.write_text(I.canonical_json(payload), encoding="utf-8")
+    with patch.object(
+        OS, "construct_d7_scientific_arrays", side_effect=boom_arrays
+    ), patch.object(OS, "call_reviewed_d7_evaluator", side_effect=boom_eval):
+        with pytest.raises(
+            OS.OneShotExecutionError,
+            match="EXECUTION_TREE_DIRTY|HEAD_BLOB_NE_DISK|RUNNER_SHA256_NE_PERMIT",
+        ):
+            OS.execute_one_shot(git_repo)
+    assert called["target"] is False
+    assert called["eval"] is False
+    assert not (repo / OS.RESULT_JSON_REL).exists()
+
+
+def test_changing_runner_sha_changes_run_identity():
+    payload = OS.permit_binding_payload(REPO)
+    original = OS.compute_run_identity(payload)
+    payload["ONE_SHOT_RUNNER_SHA256"] = "0" * 64
+    mutated = OS.compute_run_identity(payload)
+    assert original != mutated
+    assert len(original) == 64
+    assert len(mutated) == 64
+
+
+def test_execute_one_shot_must_not_write_permit(tmp_path):
+    repo = _copy_git_repo(tmp_path)
+    execute_src = inspect.getsource(OS.execute_one_shot)
+    assert "write_permit(" not in execute_src
+    assert "write_freeze_artifacts(" not in execute_src
+
+    def boom_write(_repo):
+        raise AssertionError("write_permit called during execute_one_shot")
+
+    def boom_freeze(_repo=None):
+        raise AssertionError("write_freeze_artifacts called during execute_one_shot")
+
+    ctxs = _mocked_execute_ctx()
+    with patch.object(OS, "write_permit", side_effect=boom_write), patch.object(
+        OS, "write_freeze_artifacts", side_effect=boom_freeze
+    ), ctxs[0], ctxs[1], ctxs[2], ctxs[3], ctxs[4], ctxs[5]:
+        result = OS.execute_one_shot(repo)
+    assert result["CLASSIFICATION"] in {
+        "D7_PROMISING_PROTOTYPE",
+        "D7_NO_USEFUL_STRUCTURE",
+    }
+    assert result["RESULT_PAYLOAD_SHA256"] == OS.result_payload_sha256(result)
+    assert result["ANALYSIS_N"] == OS.ANALYSIS_N
+    assert result["CANDIDATE_N"] == OS.CANDIDATE_N
+    (repo / OS.RESULT_JSON_REL).unlink()
+    (repo / OS.RESULT_MD_REL).unlink()
+
+
+def test_freeze_provenance_is_authority_parent_not_current_pr_head():
+    path = REPO / OS.FREEZE_JSON_REL
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["PROVENANCE_MODEL"] == OS.PROVENANCE_MODEL
+    assert payload["AUTHORITY_PARENT_COMMIT"] == OS.BASE_MAIN_SHA
+    assert payload["AUTHORITY_PARENT_COMMIT"] == OS.AUTHORITY_PARENT_COMMIT
+    assert payload["AUTHORITY_PARENT_TREE"] == OS.AUTHORITY_PARENT_TREE
+    parent_tree = subprocess.check_output(
+        ["git", "rev-parse", f"{OS.AUTHORITY_PARENT_COMMIT}^{{tree}}"],
+        cwd=REPO,
+        text=True,
+    ).strip()
+    parent_type = subprocess.check_output(
+        ["git", "cat-file", "-t", OS.AUTHORITY_PARENT_COMMIT],
+        cwd=REPO,
+        text=True,
+    ).strip()
+    current_head = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=REPO, text=True
+    ).strip()
+    current_tree = subprocess.check_output(
+        ["git", "rev-parse", "HEAD^{tree}"], cwd=REPO, text=True
+    ).strip()
+    assert parent_type == "commit"
+    assert payload["AUTHORITY_PARENT_TREE"] == parent_tree
+    assert payload["AUTHORITY_PARENT_COMMIT"] != current_head
+    assert payload["AUTHORITY_PARENT_TREE"] != current_tree
+    assert payload["CURRENT_PR_HEAD_BOUND"] is False
+    assert "HEAD" not in payload
+    assert "TREE" not in payload
+
+
+def test_permit_binds_live_runner_and_impl_only_as_runtime_executables():
+    freeze = json.loads((REPO / OS.FREEZE_JSON_REL).read_text(encoding="utf-8"))
+    assert freeze["D7_RUNTIME_EXECUTABLE_DEPENDENCIES"] == [
+        OS.RUNNER_REL,
+        OS.IMPL_REL,
+    ]
+    impl_src = Path(I.__file__).read_text(encoding="utf-8")
+    assert "import numpy as np" in impl_src
+    assert "from scripts" not in impl_src
+    assert "import scripts" not in impl_src
+    runner_src = inspect.getsource(OS.execute_one_shot)
+    assert "discovery_sprint_02_impl" in Path(OS.__file__).read_text(encoding="utf-8")
+    assert "discovery_sprint_02_feasibility" not in runner_src
+    assert "market_06_result_persistence" not in Path(OS.__file__).read_text(encoding="utf-8")
+
+
+def _synthetic_wrapped(**overrides) -> dict:
+    raw = {
+        "CLASSIFICATION": "D7_NO_USEFUL_STRUCTURE",
+        "MU_D7_RULE": 0.11,
+        "MU_D7_CONTROL": 0.04,
+        "DELTA_D7": 0.07,
+        "CONTROL_D7_P95": 0.08,
+        "MC_P_D7": 0.42,
+        "YEARLY_DELTA_D7": {"2020": 0.01, "2021": 0.02},
+        "STATISTICAL_GATE": False,
+        "PRACTICAL_GATE": True,
+        "TEMPORAL_GATE": False,
+    }
+    raw.update(overrides)
+    permit = json.loads((REPO / OS.PERMIT_REL).read_text(encoding="utf-8"))
+    return OS.wrap_one_shot_result(
+        raw,
+        permit=permit,
+        permit_commit="deadbeef",
+        execution_permit_sha256="ab" * 32,
+    )
+
+
+def test_result_payload_sha256_is_deterministic():
+    payload = _synthetic_wrapped()
+    first = OS.result_payload_sha256(payload)
+    second = OS.result_payload_sha256(dict(payload))
+    assert first == second
+    assert len(first) == 64
+    assert first == OS.result_payload_sha256(
+        {**payload, "RESULT_PAYLOAD_SHA256": "0" * 64}
+    )
+
+
+@pytest.mark.parametrize("field,value", [
+    ("CLASSIFICATION", "D7_PROMISING_PROTOTYPE"),
+    ("MU_D7_RULE", 0.99),
+    ("DELTA_D7", 0.99),
+])
+def test_scientific_field_mutation_changes_result_payload_sha256(field, value):
+    payload = _synthetic_wrapped()
+    original = OS.result_payload_sha256(payload)
+    mutated = dict(payload)
+    mutated[field] = value
+    assert mutated[field] != payload[field]
+    assert OS.result_payload_sha256(mutated) != original
+
+
+def test_result_payload_sha256_excludes_itself_and_round_trips(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    payload = _synthetic_wrapped()
+    written = OS.persist_result(repo, payload)
+    raw_bytes = (repo / OS.RESULT_JSON_REL).read_bytes()
+    assert raw_bytes == I.canonical_json(written).encode("utf-8")
+    stored = json.loads(raw_bytes.decode("utf-8"))
+    assert stored == written
+    without = {key: value for key, value in stored.items() if key != "RESULT_PAYLOAD_SHA256"}
+    assert stored["RESULT_PAYLOAD_SHA256"] == OS.result_payload_sha256(without)
+    assert written["RESULT_PAYLOAD_SHA256"] == OS.result_payload_sha256(payload)
+    md = (repo / OS.RESULT_MD_REL).read_text(encoding="utf-8")
+    assert f"CLASSIFICATION = `{stored['CLASSIFICATION']}`" in md
+    assert f"RUN_IDENTITY = `{stored['RUN_IDENTITY']}`" in md
+    assert f"RESULT_PAYLOAD_SHA256 = `{stored['RESULT_PAYLOAD_SHA256']}`" in md
+    assert f"EXECUTION_PERMIT_SHA256 = `{stored['EXECUTION_PERMIT_SHA256']}`" in md
+    assert "ONE_SHOT = true" in md
+    assert "RERUN_AUTHORIZED = false" in md
+    assert OS.result_payload_sha256(stored) == stored["RESULT_PAYLOAD_SHA256"]
+    (repo / OS.RESULT_JSON_REL).unlink()
+    (repo / OS.RESULT_MD_REL).unlink()
+    assert not OS.result_exists(repo)
+
+
+def test_persist_result_uses_atomic_final_path_replacement(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    payload = _synthetic_wrapped()
+    replaced: list[tuple[str, str]] = []
+    real_replace = os.replace
+
+    def recording_replace(src, dst, *args, **kwargs):
+        replaced.append((str(src), str(dst)))
+        return real_replace(src, dst, *args, **kwargs)
+
+    original_write_text = Path.write_text
+
+    def forbid_result_write_text(self, *args, **kwargs):
+        text = str(self)
+        if "DISCOVERY_SPRINT_02_D7_RESULT" in text:
+            raise AssertionError("persist_result used Path.write_text")
+        return original_write_text(self, *args, **kwargs)
+
+    with patch("os.replace", side_effect=recording_replace), patch.object(
+        Path, "write_text", forbid_result_write_text
+    ):
+        written = OS.persist_result(repo, payload)
+    json_path = repo / OS.RESULT_JSON_REL
+    md_path = repo / OS.RESULT_MD_REL
+    assert json_path.is_file()
+    assert md_path.is_file()
+    assert not list(json_path.parent.glob("DISCOVERY_SPRINT_02_D7_RESULT*.tmp"))
+    dsts = [Path(dst).name for _src, dst in replaced]
+    assert "DISCOVERY_SPRINT_02_D7_RESULT.json" in dsts
+    assert "DISCOVERY_SPRINT_02_D7_RESULT.md" in dsts
+    srcs = [Path(src).name for src, _dst in replaced]
+    assert "DISCOVERY_SPRINT_02_D7_RESULT.json.tmp" in srcs
+    assert "DISCOVERY_SPRINT_02_D7_RESULT.md.tmp" in srcs
+    assert written["RESULT_PAYLOAD_SHA256"]
+    json_path.unlink()
+    md_path.unlink()
+
+
+def test_persist_result_does_not_repair_permit(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    payload = _synthetic_wrapped()
+
+    def boom_write(_repo):
+        raise AssertionError("write_permit called during persist_result")
+
+    with patch.object(OS, "write_permit", side_effect=boom_write):
+        OS.persist_result(repo, payload)
+    (repo / OS.RESULT_JSON_REL).unlink()
+    (repo / OS.RESULT_MD_REL).unlink()
+
+
+def _boom_science():
+    called = {"target": False, "eval": False}
+
+    def boom_arrays(*_args, **_kwargs):
+        called["target"] = True
+        raise AssertionError("target constructor ran")
+
+    def boom_eval(*_args, **_kwargs):
+        called["eval"] = True
+        raise AssertionError("evaluator ran")
+
+    return called, boom_arrays, boom_eval
+
+
+def test_git_has_no_repo_root_fallback():
+    assert "repo_root()" not in inspect.getsource(OS._git)
+    assert "repo_root()" not in inspect.getsource(OS.verify_execution_checkout)
+    execute_src = inspect.getsource(OS.execute_one_shot)
+    assert execute_src.index("verify_execution_checkout") < execute_src.index(
+        "construct_d7_scientific_arrays"
+    )
+    assert "verify_tracked_freeze" in inspect.getsource(OS.verify_pre_scientific_authorities)
+    assert "assert_frozen_d7_strata" in inspect.getsource(
+        OS.reconstruct_d7_selector_identity
+    )
+    assert execute_src.index("assert_scientific_array_identity") < execute_src.index(
+        "call_reviewed_d7_evaluator"
+    )
+
+
+def test_non_git_directory_fails_without_fallback(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    called, boom_arrays, boom_eval = _boom_science()
+    with patch.object(OS, "construct_d7_scientific_arrays", side_effect=boom_arrays), patch.object(
+        OS, "call_reviewed_d7_evaluator", side_effect=boom_eval
+    ):
+        with pytest.raises(OS.OneShotExecutionError, match="REPO_NOT_GIT_WORKTREE"):
+            OS.execute_one_shot(repo)
+    assert called["target"] is False
+    assert called["eval"] is False
+    assert not (repo / OS.RESULT_JSON_REL).exists()
+
+
+def test_dirty_tracked_runner_fails_before_target(tmp_path):
+    repo = _copy_git_repo(tmp_path)
+    (repo / OS.RUNNER_REL).write_text(
+        (repo / OS.RUNNER_REL).read_text(encoding="utf-8") + "\n# dirty-runner\n",
+        encoding="utf-8",
+    )
+    called, boom_arrays, boom_eval = _boom_science()
+    with patch.object(OS, "construct_d7_scientific_arrays", side_effect=boom_arrays), patch.object(
+        OS, "call_reviewed_d7_evaluator", side_effect=boom_eval
+    ):
+        with pytest.raises(
+            OS.OneShotExecutionError, match="EXECUTION_TREE_DIRTY|HEAD_BLOB_NE_DISK"
+        ):
+            OS.execute_one_shot(repo)
+    assert called["target"] is False
+    assert not (repo / OS.RESULT_JSON_REL).exists()
+
+
+def test_dirty_tracked_implementation_fails_before_target(tmp_path):
+    repo = _copy_git_repo(tmp_path)
+    (repo / OS.IMPL_REL).write_text(
+        (repo / OS.IMPL_REL).read_text(encoding="utf-8") + "\n# dirty-impl\n",
+        encoding="utf-8",
+    )
+    called, boom_arrays, boom_eval = _boom_science()
+    with patch.object(OS, "construct_d7_scientific_arrays", side_effect=boom_arrays), patch.object(
+        OS, "call_reviewed_d7_evaluator", side_effect=boom_eval
+    ):
+        with pytest.raises(
+            OS.OneShotExecutionError, match="EXECUTION_TREE_DIRTY|HEAD_BLOB_NE_DISK"
+        ):
+            OS.execute_one_shot(repo)
+    assert called["target"] is False
+    assert not (repo / OS.RESULT_JSON_REL).exists()
+
+
+def test_runner_disk_ne_head_blob_fails_before_target(tmp_path):
+    repo = _copy_git_repo(tmp_path)
+    (repo / OS.RUNNER_REL).write_text(
+        (repo / OS.RUNNER_REL).read_text(encoding="utf-8") + "\n# head-blob\n",
+        encoding="utf-8",
+    )
+    OS.write_permit(repo)
+    payload = OS.freeze_payload(
+        repo, permit=json.loads((repo / OS.PERMIT_REL).read_text(encoding="utf-8"))
+    )
+    (repo / OS.FREEZE_JSON_REL).write_text(I.canonical_json(payload), encoding="utf-8")
+    called, boom_arrays, boom_eval = _boom_science()
+    with patch.object(OS, "construct_d7_scientific_arrays", side_effect=boom_arrays), patch.object(
+        OS, "call_reviewed_d7_evaluator", side_effect=boom_eval
+    ):
+        with pytest.raises(
+            OS.OneShotExecutionError, match="EXECUTION_TREE_DIRTY|HEAD_BLOB_NE_DISK"
+        ):
+            OS.execute_one_shot(repo)
+    assert called["target"] is False
+
+
+def test_permit_disk_ne_head_blob_fails_before_target(tmp_path):
+    repo = _copy_git_repo(tmp_path)
+    path = repo / OS.PERMIT_REL
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["MARKET_07_CREATED"] = True
+    path.write_text(I.canonical_json(payload), encoding="utf-8")
+    called, boom_arrays, boom_eval = _boom_science()
+    with patch.object(OS, "construct_d7_scientific_arrays", side_effect=boom_arrays), patch.object(
+        OS, "call_reviewed_d7_evaluator", side_effect=boom_eval
+    ):
+        with pytest.raises(
+            OS.OneShotExecutionError, match="EXECUTION_TREE_DIRTY|HEAD_BLOB_NE_DISK"
+        ):
+            OS.execute_one_shot(repo)
+    assert called["target"] is False
+
+
+def test_freeze_disk_ne_head_blob_fails_before_target(tmp_path):
+    repo = _copy_git_repo(tmp_path)
+    path = repo / OS.FREEZE_JSON_REL
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["STATUS"] = "TAMPERED"
+    path.write_text(I.canonical_json(payload), encoding="utf-8")
+    called, boom_arrays, boom_eval = _boom_science()
+    with patch.object(OS, "construct_d7_scientific_arrays", side_effect=boom_arrays), patch.object(
+        OS, "call_reviewed_d7_evaluator", side_effect=boom_eval
+    ):
+        with pytest.raises(
+            OS.OneShotExecutionError, match="EXECUTION_TREE_DIRTY|HEAD_BLOB_NE_DISK"
+        ):
+            OS.execute_one_shot(repo)
+    assert called["target"] is False
+
+
+def test_runner_plus_permit_with_stale_freeze_fails_before_target(tmp_path):
+    repo = _copy_git_repo(tmp_path)
+    (repo / OS.RUNNER_REL).write_text(
+        (repo / OS.RUNNER_REL).read_text(encoding="utf-8") + "\n# stale-freeze\n",
+        encoding="utf-8",
+    )
+    OS.write_permit(repo)
+    _commit_paths(repo, (OS.RUNNER_REL, OS.PERMIT_REL), "runner-and-permit")
+    called, boom_arrays, boom_eval = _boom_science()
+    with patch.object(OS, "construct_d7_scientific_arrays", side_effect=boom_arrays), patch.object(
+        OS, "call_reviewed_d7_evaluator", side_effect=boom_eval
+    ):
+        with pytest.raises(
+            OS.OneShotExecutionError,
+            match="FREEZE_RUNNER_SHA_NE_|FREEZE_PERMIT_SHA_MISMATCH",
+        ):
+            OS.execute_one_shot(repo)
+    assert called["target"] is False
+    assert not (repo / OS.RESULT_JSON_REL).exists()
+
+
+def test_freeze_run_identity_mismatch_fails_before_target(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    permit = json.loads((repo / OS.PERMIT_REL).read_text(encoding="utf-8"))
+    freeze_path = repo / OS.FREEZE_JSON_REL
+    freeze = json.loads(freeze_path.read_text(encoding="utf-8"))
+    freeze["RUN_IDENTITY"] = "0" * 64
+    freeze_path.write_text(I.canonical_json(freeze), encoding="utf-8")
+    with pytest.raises(OS.OneShotExecutionError, match="FREEZE_RUN_IDENTITY_NE_PERMIT"):
+        OS.verify_tracked_freeze(repo, permit=permit)
+    git_repo = _copy_git_repo(tmp_path / "git")
+    freeze_path = git_repo / OS.FREEZE_JSON_REL
+    freeze = json.loads(freeze_path.read_text(encoding="utf-8"))
+    freeze["RUN_IDENTITY"] = "0" * 64
+    freeze_path.write_text(I.canonical_json(freeze), encoding="utf-8")
+    _commit_paths(git_repo, (OS.FREEZE_JSON_REL,), "stale-run-identity")
+    called, boom_arrays, boom_eval = _boom_science()
+    with patch.object(OS, "construct_d7_scientific_arrays", side_effect=boom_arrays), patch.object(
+        OS, "call_reviewed_d7_evaluator", side_effect=boom_eval
+    ):
+        with pytest.raises(OS.OneShotExecutionError, match="FREEZE_RUN_IDENTITY_NE_PERMIT"):
+            OS.execute_one_shot(git_repo)
+    assert called["target"] is False
+
+
+def test_freeze_permit_sha_mismatch_fails_before_target(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    permit = json.loads((repo / OS.PERMIT_REL).read_text(encoding="utf-8"))
+    freeze_path = repo / OS.FREEZE_JSON_REL
+    freeze = json.loads(freeze_path.read_text(encoding="utf-8"))
+    freeze["EXECUTION_PERMIT_SHA256"] = "0" * 64
+    freeze_path.write_text(I.canonical_json(freeze), encoding="utf-8")
+    with pytest.raises(OS.OneShotExecutionError, match="FREEZE_PERMIT_SHA_MISMATCH"):
+        OS.verify_tracked_freeze(repo, permit=permit)
+
+
+def test_construct_arrays_t_plus_1_alignment():
+    start = _ms(2021, 3, 1, 0)
+    session = OS.D7OneShotSession()
+    session.identity_ok = True
+    states = [
+        _state(start, 2021, d7_state=True, rv_bucket=1),
+        _state(start + I.HOUR_MS, 2021, d7_state=False, rv_bucket=1),
+    ]
+    arrays = OS.construct_d7_scientific_arrays(states, session=session)
+    assert arrays["candidate"] == [True]
+    assert arrays["target"] == [False]
+    states[1] = _state(start + I.HOUR_MS, 2021, d7_state=True, rv_bucket=1)
+    session2 = OS.D7OneShotSession()
+    session2.identity_ok = True
+    arrays2 = OS.construct_d7_scientific_arrays(states, session=session2)
+    assert arrays2["candidate"] == [True]
+    assert arrays2["target"] == [True]
+
+
+def test_construct_arrays_missing_successor_excluded():
+    session = OS.D7OneShotSession()
+    session.identity_ok = True
+    states = [_state(_ms(2021, 3, 1, 0), 2021, d7_state=True, rv_bucket=1)]
+    arrays = OS.construct_d7_scientific_arrays(states, session=session)
+    assert arrays["candidate"] == []
+    assert arrays["target"] == []
+
+
+def test_construct_arrays_invalid_tplus1_state_excluded():
+    start = _ms(2021, 3, 1, 0)
+    session = OS.D7OneShotSession()
+    session.identity_ok = True
+    states = [
+        _state(start, 2021, d7_state=True, rv_bucket=1),
+        _state(start + I.HOUR_MS, 2021, d7_state=None, rv_bucket=1),
+    ]
+    arrays = OS.construct_d7_scientific_arrays(states, session=session)
+    assert arrays["candidate"] == []
+    assert arrays["target"] == []
+
+
+def test_construct_arrays_missing_rv_bucket_at_t_excluded():
+    start = _ms(2021, 3, 1, 0)
+    session = OS.D7OneShotSession()
+    session.identity_ok = True
+    states = [
+        _state(start, 2021, d7_state=True, rv_bucket=None),
+        _state(start + I.HOUR_MS, 2021, d7_state=True, rv_bucket=1),
+    ]
+    arrays = OS.construct_d7_scientific_arrays(states, session=session)
+    assert arrays["candidate"] == []
+    assert arrays["target"] == []
+
+
+def test_construct_arrays_protected_boundary_excluded():
+    start = _ms(2024, 12, 31, 23)
+    nxt = start + I.HOUR_MS
+    assert nxt >= I.PROTECTED_START_MS
+    session = OS.D7OneShotSession()
+    session.identity_ok = True
+    states = [
+        _state(start, 2024, d7_state=True, rv_bucket=1),
+        _state(nxt, 2025, d7_state=True, rv_bucket=1),
+    ]
+    arrays = OS.construct_d7_scientific_arrays(states, session=session)
+    assert arrays["candidate"] == []
+    assert arrays["target"] == []
+    assert arrays["year"] == []
+
+
+def test_stratum_map_mismatch_fails_before_target(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    frozen = OS.frozen_d7_strata(repo)
+    census = {
+        "TARGET_ELIGIBLE_BY_YEAR_RV_BUCKET": dict(
+            frozen["TARGET_ELIGIBLE_BY_YEAR_RV_BUCKET"]
+        ),
+        "CANDIDATE_BY_YEAR_RV_BUCKET": dict(frozen["CANDIDATE_BY_YEAR_RV_BUCKET"]),
+    }
+    census["TARGET_ELIGIBLE_BY_YEAR_RV_BUCKET"]["2020:0"] = 0
+    session = OS.D7OneShotSession()
+    with pytest.raises(OS.OneShotExecutionError, match="TARGET_ELIGIBLE_STRATA_MISMATCH"):
+        OS.assert_frozen_d7_strata(census, repo)
+    assert session.identity_ok is False
+    with pytest.raises(OS.TargetBeforeIdentityError):
+        OS.construct_d7_scientific_arrays([], session=session)
+
+
+def test_candidate_stratum_mismatch_fails_before_target(tmp_path):
+    repo = _copy_repo_tree(tmp_path)
+    frozen = OS.frozen_d7_strata(repo)
+    census = {
+        "TARGET_ELIGIBLE_BY_YEAR_RV_BUCKET": dict(
+            frozen["TARGET_ELIGIBLE_BY_YEAR_RV_BUCKET"]
+        ),
+        "CANDIDATE_BY_YEAR_RV_BUCKET": dict(frozen["CANDIDATE_BY_YEAR_RV_BUCKET"]),
+    }
+    census["CANDIDATE_BY_YEAR_RV_BUCKET"]["2020:3"] = 0
+    with pytest.raises(OS.OneShotExecutionError, match="CANDIDATE_STRATA_MISMATCH"):
+        OS.assert_frozen_d7_strata(census, repo)
+
+
+def test_analysis_n_mismatch_fails_before_evaluator():
+    session = OS.D7OneShotSession()
+    session.identity_ok = True
+    start = _ms(2021, 3, 1, 0)
+    states = [
+        _state(start, 2021, d7_state=True, rv_bucket=0),
+        _state(start + I.HOUR_MS, 2021, d7_state=False, rv_bucket=0),
+    ]
+    arrays = OS.construct_d7_scientific_arrays(states, session=session)
+    with pytest.raises(OS.OneShotExecutionError, match="ANALYSIS_N_MISMATCH"):
+        OS.assert_scientific_array_identity(arrays)
+    assert session.evaluator_called is False
+    execute_src = inspect.getsource(OS.execute_one_shot)
+    assert execute_src.index("assert_scientific_array_identity") < execute_src.index(
+        "call_reviewed_d7_evaluator"
+    )
+
+
+def test_frozen_strata_sums_match_selector_identity():
+    frozen = OS.frozen_d7_strata(REPO)
+    assert sum(frozen["TARGET_ELIGIBLE_BY_YEAR_RV_BUCKET"].values()) == 42407
+    assert sum(frozen["CANDIDATE_BY_YEAR_RV_BUCKET"].values()) == 4545
+    assert OS.ANALYSIS_N == 42407
+    assert OS.CANDIDATE_N == 4545
+    OS.assert_frozen_d7_strata(
+        {
+            "TARGET_ELIGIBLE_BY_YEAR_RV_BUCKET": frozen[
+                "TARGET_ELIGIBLE_BY_YEAR_RV_BUCKET"
+            ],
+            "CANDIDATE_BY_YEAR_RV_BUCKET": frozen["CANDIDATE_BY_YEAR_RV_BUCKET"],
+        },
+        REPO,
+    )
