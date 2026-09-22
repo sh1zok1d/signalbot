@@ -1,8 +1,8 @@
 # Signalbot — Current Research State
 
-**Status date:** 2026-09-21  
+**Status date:** 2026-09-22  
 **Status:** `ACTIVE / CANONICAL ROUTING INDEX`  
-**Main integration baseline before this status commit:** `b25d9ca99498630183813d0ccb8c6d67b93ad915`
+**Main integration baseline before this status commit:** `21cca92a7f828be6b271bb09a76d3092ba5f44b9`
 
 This file is the compact answer to “what controls the project now?”. Frozen preregistrations/results remain authoritative for reproducing their own experiments; this file controls current routing only.
 
