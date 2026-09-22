@@ -1,0 +1,25 @@
+# Discovery Sprint 03 D11 RESULT
+
+**Classification:** `PROMISING_PROTOTYPE`
+**Execution root:** `e2852f57ee946ec8380f09fa4cf834579c40f872`
+**RESULT_PAYLOAD_SHA256:** `54e477ad6389b1ca8969a60c3d30340056f8f01662eaef27271cae92290ddbf3`
+
+Adaptive discovery on historically exposed data. Not proven alpha, not a trading edge, not a confirmed mechanism, not causal proof.
+
+```
+CLASSIFICATION = PROMISING_PROTOTYPE
+STATISTICAL_GATE = True
+PRACTICAL_GATE = True
+TEMPORAL_GATE = True
+PROTECTED_2025_OPENED = False
+PROTECTED_2026_OPENED = False
+```
+
+MEAN_EVENT_RV_6H = 0.025030946621530287
+MEAN_CONTROL_RV_6H = 0.014225531431703974
+RELATIVE = 0.7595790176066561
+MC_P = 0.00019998000199980003
+
+Unsigned scheduled-FOMC BTC vol response only. Not a FOMC trading strategy, not directional prediction, not D8 recovery validation.
+
+YEARLY_RELATIVE: 2020=0.21483636327448585; 2021=0.3689959406769159; 2022=0.9677920865431198; 2023=1.1328435329555364; 2024=1.1428753753830594

@@ -2,7 +2,7 @@
 
 **Status:** ACTIVE  
 **Updated:** 2026-09-22
-**Current phase:** `POST_D7_HETEROGENEOUS_DISCOVERY_SPRINT_03`
+**Current phase:** `POST_SPRINT03_DISCOVERY_PROGRAM_DECISION`
 
 The previous long-form roadmap is preserved in git history at `b25d9ca99498630183813d0ccb8c6d67b93ad915`. This file controls current execution order.
 
@@ -56,8 +56,8 @@ after the CORE-restore retry (adaptive discovery, not confirmatory):
 - **D5** `COMPOSED_DECISION_MECHANISM` — `NO_USEFUL_STRUCTURE`
 - **D6** `EXTERNAL_MECHANISM_BENCHMARK` — `DEFERRED` (diagnostic only, not internal discovery, never counted with MARKET-03)
 
-`INTERNAL_DISCOVERY_CARDS_EXECUTED = 5`.
-`INTERNAL_PROMISING_PROTOTYPES = 2`.
+`INTERNAL_DISCOVERY_CARDS_EXECUTED = 8`.
+`INTERNAL_PROMISING_PROTOTYPES = 3`.
 `D2_PROGRAM_CLASS = INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`.
 `D2_DECOMPOSITION_DESIGN_STATUS = FROZEN`.
 `D2_DECOMPOSITION_IMPLEMENTATION_REVIEW = PASS`.
@@ -75,21 +75,22 @@ after the CORE-restore retry (adaptive discovery, not confirmatory):
 `HETEROGENEOUS_FAMILY_ROTATION_V2 = FROZEN`.
 `DISCOVERY_SPRINT_02 = D7_EXECUTED_D8_DEFERRED`.
 `DISCOVERY_SPRINT_02_INTERNAL_CARDS = 2`.
-`DISCOVERY_SPRINT_03 = OUTCOME_BLIND_IMPLEMENTATION_FROZEN`.
+`DISCOVERY_SPRINT_03 = CANONICAL_SCIENTIFIC_EXECUTION_CONSUMED`.
 `DISCOVERY_SPRINT_03_INTERNAL_CARDS = 3`.
 `SPRINT03_SELECTION_INCOMPLETE = false`.
+`SPRINT04_HYPOTHESES_SELECTED = false`.
 `D7_STATUS = PROMISING_PROTOTYPE`.
 `D8_STATUS = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT`.
-`D9_STATUS = OUTCOME_BLIND_IMPLEMENTATION_READY`.
-`D10_STATUS = OUTCOME_BLIND_IMPLEMENTATION_READY`.
-`D11_STATUS = OUTCOME_BLIND_IMPLEMENTATION_READY`.
+`D9_STATUS = NO_USEFUL_STRUCTURE`.
+`D10_STATUS = NO_USEFUL_STRUCTURE`.
+`D11_STATUS = PROMISING_PROTOTYPE`.
 `D9_CHOSEN_ESTIMAND = RELATIVE_RESOLUTION_ATTRIBUTION`.
 `D7_CONFIRMATION_CANDIDATE = true`.
 `D7_CONFIRMATION_SELECTED_NOW = false`.
 `D8_SCIENTIFIC_EXECUTION_ELIGIBLE = false`.
 `DATA_IDENTITY_MODE = TRACKED_SNAPSHOT_FULL_MONTHLY_EXACT_BYTE_VERIFICATION`.
-`NEXT_ACTION = IMPLEMENTATION_RED_TEAM_AND_EXECUTION_DECISION`.
-`NEXT_UNIT = DISCOVERY_SPRINT_03_IMPLEMENTATION_RED_TEAM_AND_EXECUTION_DECISION`.
+`NEXT_ACTION = POST_RESULT_PROGRAM_DECISION`.
+`NEXT_UNIT = DISCOVERY_SPRINT_03_POST_RESULT_PROGRAM_DECISION`.
 
 D2 discovery remains a `PROMISING_PROTOTYPE` (adaptive discovery label). Outcome-blind
 confirmation design for RULE_1 / `RV_ABSTENTION` found calendar 2025
@@ -158,9 +159,13 @@ identity is frozen; D8 is non-executable for that card
 `DATA_IDENTITY_MODE = TRACKED_SNAPSHOT_FULL_MONTHLY_EXACT_BYTE_VERIFICATION`.
 The D7 one-shot was executed once. Classification (not reinterpreted):
 `D7_PROMISING_PROTOTYPE`. Family E is in cooldown. D8 remains deferred
-and is not a negative scientific result. Rotation V2 selects three
-Sprint 03 families D/G/H as D10/D11/D9 (outcome-blind implementation-ready,
-not executed). D9 estimand is `RELATIVE_RESOLUTION_ATTRIBUTION`
+and is not a negative scientific result. Rotation V2 selected three
+Sprint 03 families D/G/H as D10/D11/D9. The canonical scientific
+execution from `e2852f57ee946ec8380f09fa4cf834579c40f872` classified
+D9/D10 `NO_USEFUL_STRUCTURE` and D11 `PROMISING_PROTOTYPE`. Do not
+rescue D9/D10. D11 is unsigned scheduled-FOMC vol only; not D8 rescue;
+not a FOMC trading strategy. Sprint 04 is not selected here.
+D9 estimand remains `RELATIVE_RESOLUTION_ATTRIBUTION`
 (`TOTAL_CLOSURE=-s*(rp-rs)`; unclipped median SHARE; not price-discovery
 leadership). D10 is no-intercept OLS and reuses frozen pre-event `beta_t`
 at t+1. D11 is official scheduled FOMC only, calendar pinned
@@ -168,8 +173,8 @@ at t+1. D11 is official scheduled FOMC only, calendar pinned
 `RESOLUTION_IMBALANCE=-s*(rp+rs)` is rejected.
 D7 is a confirmation candidate but is not selected for confirmation now.
 `RESEARCH_DATA_DURABILITY_V1_REQUIRED = true` (not implemented here).
-`NEXT_ACTION = IMPLEMENTATION_RED_TEAM_AND_EXECUTION_DECISION`.
-`NEXT_UNIT = DISCOVERY_SPRINT_03_IMPLEMENTATION_RED_TEAM_AND_EXECUTION_DECISION`.
+`NEXT_ACTION = POST_RESULT_PROGRAM_DECISION`.
+`NEXT_UNIT = DISCOVERY_SPRINT_03_POST_RESULT_PROGRAM_DECISION`.
 
 Card identities at definition time (unchanged):
 

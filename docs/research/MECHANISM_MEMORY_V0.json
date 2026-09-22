@@ -24,7 +24,10 @@
       "D5",
       "D6",
       "D7",
-      "D8"
+      "D8",
+      "D9",
+      "D10",
+      "D11"
     ],
     "MARKET": [
       "MARKET-01",
@@ -35,6 +38,8 @@
       "MARKET-06"
     ]
   },
+  "D7_RERUN_PERFORMED": false,
+  "D8_EXECUTED": false,
   "DATE": "2026-09-22",
   "ENTRIES": {
     "B2-01": {
@@ -142,6 +147,36 @@
       "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES": "Nothing scientifically. Deferred, not rejected.",
       "WHAT_WAS_ACTUALLY_TESTED": "Adequacy gate not executed; daily GARCH cannot generate 288x5m RV_20"
     },
+    "D10": {
+      "DATA_STATE": "CORE_BTC + CORE_ETH 2020-2024 historically exposed; 2025/2026 unopened; 1h bars.parquet unopened",
+      "FUNCTION": "Persistence of ETH residual after orthogonalizing to contemporaneous BTC with frozen pre-event beta",
+      "GENERATION": "DISCOVERY",
+      "ID": "D10",
+      "INFORMATION_SOURCE": "CORE_BTC snapshot 717d37a4… and CORE_ETH snapshot 4b9c113f…",
+      "MECHANISM": "Cross-asset residual shock persistence after removing the BTC common factor",
+      "NEIGHBOR_RESCUE_WARNING": "Do not add post-hoc refractory or block bootstrap. Do not convert this null into MARKET-05 salvage or generic ETH lead-lag.",
+      "POSTHOC_RESIDUALS_IF_ANY": null,
+      "STATUS_EVIDENCE_CLASS": "NO_USEFUL_STRUCTURE",
+      "TARGET_FAMILY": "MEAN signed next-hour residual persistence vs 1:1 YEAR x SIGN_E_T x ABS_BTC_RETURN_BUCKET matched small-|e| controls",
+      "WHAT_REMAINS_OPEN": "Orthogonal families remain as already recorded. Residual calendar clustering remains a recorded discovery-stage limitation. Do not convert this null into neighbor rescue.",
+      "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES": "This residual-persistence formulation. Does not validate MARKET-05. Does not imply generic ETH lead-lag or trading alpha.",
+      "WHAT_WAS_ACTUALLY_TESTED": "Canonical one-shot; EVENT_N=4442 MATCHED_CONTROL_N=4442; MEAN_EVENT=-3.231597e-05 MEAN_CONTROL=-4.635428e-05 DELTA=1.403831e-05 (~0.14 bps); MC_P=0.455254; statistical and practical gates false; temporal gate true"
+    },
+    "D11": {
+      "DATA_STATE": "Official FOMC 2020-2024 pinned calendar + CORE_BTC; 2025/2026 unopened",
+      "FUNCTION": "Unsigned 6h BTC RV after scheduled FOMC announcements vs YEAR x WEEKDAY x UTC_HOUR non-FOMC windows",
+      "GENERATION": "DISCOVERY",
+      "ID": "D11",
+      "INFORMATION_SOURCE": "docs/research_data/D11_FOMC_OFFICIAL_V0 + CORE_BTC_BINANCE_V0",
+      "MECHANISM": "Exogenous scheduled-FOMC unsigned volatility response",
+      "NEIGHBOR_RESCUE_WARNING": "D11 positive does not rescue D8, authorize CPI/NFP/ECB substitution, or imply a FOMC trading strategy",
+      "POSTHOC_RESIDUALS_IF_ANY": null,
+      "STATUS_EVIDENCE_CLASS": "PROMISING_PROTOTYPE; adaptive discovery only; N=39 scheduled FOMC events; NOT independently replicated",
+      "TARGET_FAMILY": "POST_EVENT_RV_6H vs YEAR x WEEKDAY x UTC_HOUR matched non-FOMC controls",
+      "WHAT_REMAINS_OPEN": "Independent confirmation; N=39 is the frozen scheduled-FOMC family size. Not a directional or trading claim.",
+      "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES": "Does not rescue D8. Does not authorize CPI/NFP/ECB substitution. Does not imply profitable FOMC trading or generic macro-event alpha.",
+      "WHAT_WAS_ACTUALLY_TESTED": "Canonical one-shot; EVENT_N=39 CONTROL_N=551 MIN_CONTROLS=44; MEAN_EVENT_RV_6H=0.025031 MEAN_CONTROL_RV_6H=0.014226 RELATIVE=0.759579; MC_P=0.000200; all three gates true; yearly relative positive 2020-2024"
+    },
     "D2": {
       "DATA_STATE": "CORE_BTC and BitMEX 2017-2019 consumed for those claims; 2025/2026 sealed",
       "FUNCTION": "Filter high-RV decisions; reduce adverse-path MAE vs matched random",
@@ -183,7 +218,7 @@
       "POSTHOC_RESIDUALS_IF_ANY": null,
       "STATUS_EVIDENCE_CLASS": "ROLLING_CORRELATION_90D=NO_USEFUL_STRUCTURE; LEAD_LAG_1DAY=DEFERRED_FROM_SPRINT_01",
       "TARGET_FAMILY": "Relative correlation structure / lead-lag",
-      "WHAT_REMAINS_OPEN": "ETH residual after orthogonalizing to contemporaneous BTC with a frozen pre-event beta reused at t+1 was not tested",
+      "WHAT_REMAINS_OPEN": "D10 tested ETH residual persistence after a frozen pre-event beta and classified NO_USEFUL_STRUCTURE. Raw independent-block lead-lag remains deferred.",
       "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES": "Rolling-correlation near-neighbors; raw lead-lag without a common-factor-preserving null",
       "WHAT_WAS_ACTUALLY_TESTED": "Rolling-correlation practical excess vs null; lead-lag null would destroy common-factor dependence"
     },
@@ -243,9 +278,24 @@
       "POSTHOC_RESIDUALS_IF_ANY": null,
       "STATUS_EVIDENCE_CLASS": "DEFERRED_INSUFFICIENT_CONTROL_SUPPORT; NOT NO_USEFUL_STRUCTURE; recovery unevaluated",
       "TARGET_FAMILY": "RECOVERY_6H vs return-shock-matched non-high-activity controls",
-      "WHAT_REMAINS_OPEN": "This endogenous shock/recovery card is non-executable as frozen; other event families remain open",
+      "WHAT_REMAINS_OPEN": "This endogenous shock/recovery card is non-executable as frozen; D11 unsigned scheduled-FOMC vol response does not rescue D8. Other event families remain open only if orthogonal.",
       "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES": "Nothing scientifically. Do not reinterpret as a negative result. Do not weaken P99/P90 to rescue.",
       "WHAT_WAS_ACTUALLY_TESTED": "Selector/support census only; 1:1 return-shock controls insufficient"
+    },
+    "D9": {
+      "DATA_STATE": "MARKET-06 two-leg 5m 2022-2024 historically exposed; 2025/2026 unopened",
+      "FUNCTION": "Conditional venue-resolution attribution of actual D-closure among closing extremes",
+      "GENERATION": "DISCOVERY",
+      "ID": "D9",
+      "INFORMATION_SOURCE": "MARKET_06_OKX_BINANCE_FEASIBILITY_V0 snapshot e0403e40…",
+      "MECHANISM": "Conditional venue-resolution attribution (unclipped PERP_RESOLUTION_SHARE)",
+      "NEIGHBOR_RESCUE_WARNING": "Do not rescue with SHARE clipping, leadership relabel, or MARKET-06 MAE reuse",
+      "POSTHOC_RESIDUALS_IF_ANY": null,
+      "STATUS_EVIDENCE_CLASS": "NO_USEFUL_STRUCTURE",
+      "TARGET_FAMILY": "MEDIAN_PERP_RESOLUTION_SHARE vs 0.5 and vs YEAR x SIGN_D x RV matched closing non-extremes",
+      "WHAT_REMAINS_OPEN": "Orthogonal families remain as already recorded. Higher-resolution / third-venue price-discovery is not this card. Do not convert this null into neighbor rescue.",
+      "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES": "This SHARE-on-closing-extremes formulation as a cheap CONDITIONAL_VENUE_RESOLUTION_ATTRIBUTION mechanism. Does not close later higher-resolution price-discovery questions.",
+      "WHAT_WAS_ACTUALLY_TESTED": "Canonical one-shot from EXECUTION_ROOT e2852f57ee946ec8380f09fa4cf834579c40f872; CLOSING_EVENT_N=7184 MATCHED_CONTROL_N=7184; MEDIAN_EVENT_SHARE=0.580293 vs 0.5 (DELTA_VS_HALF=0.080293); P_HALF=0.637536 P_CONTROL=0.0019998; statistical/practical/temporal gates false"
     },
     "H01": {
       "DATA_STATE": "CORE_BTC 2020-2024 historically exposed; 2025/2026 unopened",
@@ -408,19 +458,25 @@
       "POSTHOC_RESIDUALS_IF_ANY": null,
       "STATUS_EVIDENCE_CLASS": "MARKET_06_NO_EVIDENCE; one-shot consumed; no rerun",
       "TARGET_FAMILY": "24H_DIRECTION_ALIGNED_BTC_MAE relative improvement",
-      "WHAT_REMAINS_OPEN": "Conditional venue-resolution attribution of net D-closure was not tested; not price-discovery leadership",
+      "WHAT_REMAINS_OPEN": "D9 tested 5m SHARE-on-closing-extremes conditional venue-resolution attribution and classified NO_USEFUL_STRUCTURE. Higher-resolution / third-venue price-discovery remains untested; not PRICE_DISCOVERY_LEADERSHIP.",
       "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES": "ABS_DISLOCATION_Z as BTC-path predictor; additive incremental 24h MAE on this pair",
       "WHAT_WAS_ACTUALLY_TESTED": "Daily 00:05 ABS_DISLOCATION_Z incremental MAE; G1 true, G2-G6 false; pooled relative MAE negative"
     }
   },
+  "INTERNAL_DISCOVERY_CARDS_EXECUTED": 8,
+  "INTERNAL_PROMISING_PROTOTYPES": 3,
   "KIND": "COMPACT_ACCUMULATED_RESEARCH_MAP",
   "MARKET_03_COUNTS_AS_INTERNAL_DISCOVERY": false,
+  "MARKET_07_CREATED": false,
   "NOT_A_NEW_FRAMEWORK": true,
   "PROTECTED_2025_OPENED": false,
   "PROTECTED_2026_OPENED": false,
   "SCHEMA": "signalbot_mechanism_memory_v0",
   "SCHEMA_VERSION": "0.1.0",
-  "SCIENTIFIC_OUTCOMES_COMPUTED": false,
-  "STATUS": "FROZEN_AS_OF_POST_D7",
+  "SCIENTIFIC_OUTCOMES_COMPUTED": true,
+  "SPRINT03_PROMISING_PROTOTYPES": 1,
+  "SPRINT03_TERMINAL_SCIENTIFIC_CARDS": 3,
+  "SPRINT04_HYPOTHESES_SELECTED": false,
+  "STATUS": "FROZEN_AS_OF_POST_SPRINT03",
   "UNIT": "MECHANISM_MEMORY_V0"
 }
