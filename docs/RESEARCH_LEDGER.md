@@ -5366,3 +5366,21 @@ price bytes).
 Evidence: `docs/research/POST_SPRINT03_PROGRAM_DECISION.{json,md}`,
 `docs/research/HETEROGENEOUS_FAMILY_ROTATION_V3.{json,md}`,
 `docs/research/DISCOVERY_SPRINT_04.{json,md}`.
+
+## 2026-09-22 — Discovery Sprint 04 pre-outcome amendment 1
+
+Targeted pre-outcome correction of PR #201 (`fe6f252`). No outcome
+inspected; no quote-volume profile inspected; candidate pool and
+selection unchanged.
+
+```
+D12_WINDOW_DAYS = 6 (Monday-Saturday before / after each transition Sunday)
+D12_WEEKDAY_COMPOSITION_MATCHED = true
+D12_EU_CLOCK_CONSTANT = true
+D12_PSEUDO_WINDOW_SEMANTICS_MATCH_REAL = true
+MECHANISM_MEMORY_CURRENT_THROUGH = D11
+D13_NO_POST_T_SILENT_EXCLUSION = true
+D13_NO_POST_T_CLOSE_SELECTED_N = NOT_COMPUTED_IN_THIS_UNIT
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+NEXT_UNIT = DISCOVERY_SPRINT_04_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION
+```

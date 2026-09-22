@@ -56,8 +56,14 @@ rather than to UTC?
 **Design.** US and EU change daylight-saving time on different dates. In
 2020–2024 the US fall-back always comes exactly 7 days after the EU
 fall-back, and the US spring-forward comes 14–21 days before the EU one.
-So for each of the 10 US transitions there is a 7-day-before / 7-day-after
-window in which **only the US clock changes**. If participation follows
+Every transition is a Sunday. For each of the 10 US transitions, the
+Monday–Saturday **before** and the Monday–Saturday **after** the transition
+Sunday form a 6+6-day comparison in which **only the US clock changes**:
+both windows contain exactly the same weekdays, neither contains any US or
+EU transition day, and the EU clock is constant across both. (Amended
+pre-outcome from 7+7: the EU fall transition is the Sunday just before the
+US fall transition, so a 7-day window lost a Sunday and broke weekday
+balance.) If participation follows
 the US clock, the UTC hourly volume-share profile must move one hour
 earlier after spring-forward and one hour later after fall-back.
 
@@ -66,11 +72,13 @@ earlier after spring-forward and one hour later after fall-back.
 - Index: `A = (D(0) − D(δ)) / D(0)`, where `D(L)` is the squared distance
   between the after-profile and the before-profile shifted by `L` hours,
   and `δ` is the clock-predicted shift (+1 spring, −1 fall).
-- Null: pseudo-transition Sundays with no US/EU transition within ±7 days;
-  one-sided Monte Carlo (N=10000) matched on the δ mix.
+- Null: pseudo-transition Sundays (any Sunday that is not a US/EU
+  transition) with the identical Monday–Saturday 6+6 windows; one-sided
+  Monte Carlo (N=10000) matched on the δ mix.
 - Practical: `A > 0` in ≥7 of 10 US transitions. Temporal: yearly mean
-  `A > 0` in ≥3 of 5 years. Support: ≥8 eligible US transitions, ≥100
-  pseudo Sundays.
+  `A > 0` in ≥3 of 5 years. Support: a window is eligible with ≥5 of its
+  6 days included; ≥8 eligible US transitions; ≥100 eligible pseudo
+  Sundays.
 - EU transitions: same statistic, **diagnostic only**, cannot change the
   classification.
 - Not predictive; no decision clock. Search surface: one observable, one
@@ -112,8 +120,15 @@ crypto cross-section show 1-week momentum or reversal?
   Binance spot taker fee; if the fee can't be pinned, deferred (no
   substitute). Temporal: yearly mean IC same sign in ≥3 of 5 years.
   Support: ≥200 weeks.
-- Delisting: last available close in the holding week; if none, excluded
-  and counted.
+- Terminal mark (amended pre-outcome): membership at `T` uses only data
+  through `T` and never depends on survival to `T+7d`. Full week → close at
+  `T+7d`. Disappears mid-week → final observed close inside the holding
+  week. **No close at all after `T` → never dropped, never given a zero
+  return, never marked with later relisting data**: counted in
+  `NO_POST_T_CLOSE_SELECTED_N`, and execution fails closed as
+  `DEFERRED_TERMINAL_MARK_UNRESOLVED` unless the feasibility unit freezes
+  a point-in-time terminal-mark authority before outcomes. Reference rule:
+  `scripts/research/discovery_sprint_04/d13_terminal_mark.py`.
 
 **Novelty.** First card with more than two assets and first
 market-neutral target. Not BTC-conditional prediction, not 24h MAE, not an
@@ -131,7 +146,20 @@ direction, factor/risk-premium interpretation, other horizons or venues.
 
 - D12: random seed.
 - D13: `N`, exclusion lists, pinned taker fee, random seed, first/last
-  decision Monday.
+  decision Monday, and a terminal-mark authority if
+  `NO_POST_T_CLOSE_SELECTED_N > 0`.
+
+## Pre-outcome amendment 1 (on `fe6f252`)
+
+No outcome inspected; candidate pool and selection unchanged.
+
+- **F1** D12 windows 7+7 → weekday-matched Monday–Saturday 6+6 (real and
+  pseudo). Observable, clock-shift algebra, δ sign, statistic, family and
+  claim unchanged.
+- **F2** Mechanism-memory reference corrected: `MECHANISM_MEMORY_V0` is
+  current through D11.
+- **F3** D13 no longer silently excludes a selected symbol with no post-`T`
+  close; it fails closed instead.
 
 ## Next unit
 

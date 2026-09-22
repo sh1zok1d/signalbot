@@ -54,8 +54,10 @@ bootstrap, clipping, or relabel child of either is permitted.
   `docs/research/DISCOVERY_SPRINT_04.md`.
 - Hypothesis-generation policy moves to
   `HETEROGENEOUS_FAMILY_ROTATION_V3` (V2 preserved as history).
-- `MECHANISM_MEMORY_V0` is left unchanged (frozen post-D7). A successor
-  covering D9–D13 is required input for the post-Sprint 04 decision.
+- `MECHANISM_MEMORY_V0` is left unchanged. It is frozen as of
+  post-Sprint 03 and already contains D9, D10 and D11. The post-Sprint 04
+  decision needs mechanism memory extended through the D12/D13 outcomes
+  after they execute; existing entries are not rewritten.
 
 ## Post-Sprint 04 automation checkpoint
 
@@ -85,7 +87,7 @@ information class with zero executed cards.
 | ≥6 distinct mechanism families executed | A, C, D, E, G, H + composed D5; J added by D12 |
 | ≥4 clean negatives | D3, D4 rolling, D5, D9, D10 |
 | ≥2 prototypes with distinctness assessed | 3 exist; second-moment concentration must be assessed |
-| Structured mechanism memory current through D13 | required; V0 stops at D8 |
+| Structured mechanism memory current through D13 | required; V0 is current through D11 and must be extended with D12/D13 outcomes |
 | Machine-readable anti-rescue lineage | rotation V2/V3 and card definitions |
 | Data-feasibility metadata per candidate | Sprint 03/04 candidate pools |
 | Deterministic card schema | contract fields exist; must be consolidated and validated |

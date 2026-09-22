@@ -177,9 +177,85 @@ def test_d12_dst_calendar_matches_statutory_rules_and_windows_isolate_us():
         eu = [_last_sunday(year, 3), _last_sunday(year, 10)]
         assert auth["US_TRANSITION_DAYS"][str(year)] == [d.isoformat() for d in us]
         assert auth["EU_TRANSITION_DAYS"][str(year)] == [d.isoformat() for d in eu]
-        # W=7 keeps the EU clock constant inside every US window.
-        assert (us[1] - eu[1]).days >= 7
-        assert (eu[0] - us[0]).days > 7
+
+
+
+def _d12_windows(sunday: dt.date) -> tuple[list[dt.date], list[dt.date]]:
+    before = [sunday - dt.timedelta(days=k) for k in range(6, 0, -1)]
+    after = [sunday + dt.timedelta(days=k) for k in range(1, 7)]
+    return before, after
+
+
+def _eu_in_dst(day: dt.date) -> bool:
+    return _last_sunday(day.year, 3) <= day < _last_sunday(day.year, 10)
+
+
+def _us_in_dst(day: dt.date) -> bool:
+    return _nth_sunday(day.year, 3, 2) <= day < _nth_sunday(day.year, 11, 1)
+
+
+def test_d12_card_freezes_weekday_matched_six_plus_six_windows():
+    card = _load(SPRINT)["CARDS"]["D12"]
+    assert card["WINDOW_DAYS"] == 6
+    assert card["WINDOW_WEEKDAYS"] == "MONDAY_TO_SATURDAY"
+    assert "S-6d..S-1d" in card["PRIMARY_TARGET_DEFINITION"]["WINDOWS"]
+    assert "S+1d..S+6d" in card["PRIMARY_TARGET_DEFINITION"]["WINDOWS"]
+    assert "Monday-Saturday" in card["PRIMARY_BASELINE"]
+    assert "5 of its 6 days" in card["MINIMUM_SUPPORT"]
+    assert "W=7" not in card["SEARCH_SURFACE"]
+    assert card["PRE_OUTCOME_AMENDMENTS"] == ["F1_WEEKDAY_MATCHED_6_PLUS_6_WINDOWS"]
+
+
+def test_d12_all_us_transitions_have_matched_weekdays_and_constant_eu_clock():
+    auth = _load(SPRINT)["CARDS"]["D12"]["DATASET_OR_SOURCE_AUTHORITY"]
+    us_days = {dt.date.fromisoformat(d) for v in auth["US_TRANSITION_DAYS"].values() for d in v}
+    eu_days = {dt.date.fromisoformat(d) for v in auth["EU_TRANSITION_DAYS"].values() for d in v}
+    assert len(us_days) == 10 and len(eu_days) == 10
+    for sunday in sorted(us_days):
+        assert sunday.weekday() == 6
+        before, after = _d12_windows(sunday)
+        assert [d.weekday() for d in before] == [d.weekday() for d in after] == [0, 1, 2, 3, 4, 5]
+        assert not (set(before) | set(after)) & (us_days | eu_days)
+        assert len({_eu_in_dst(d) for d in before + after}) == 1
+        assert _us_in_dst(before[-1]) != _us_in_dst(after[0])
+
+
+def test_d12_pseudo_transition_windows_use_identical_construction():
+    auth = _load(SPRINT)["CARDS"]["D12"]["DATASET_OR_SOURCE_AUTHORITY"]
+    transitions = {
+        dt.date.fromisoformat(d)
+        for key in ("US_TRANSITION_DAYS", "EU_TRANSITION_DAYS")
+        for v in auth[key].values()
+        for d in v
+    }
+    sunday = dt.date(2020, 1, 12)
+    eligible = 0
+    while sunday + dt.timedelta(days=6) <= dt.date(2024, 12, 31):
+        if sunday not in transitions:
+            before, after = _d12_windows(sunday)
+            assert [d.weekday() for d in before] == [d.weekday() for d in after]
+            assert len({_eu_in_dst(d) for d in before + after}) == 1
+            assert len({_us_in_dst(d) for d in before + after}) == 1
+            eligible += 1
+        sunday += dt.timedelta(days=7)
+    assert eligible >= 100
+
+
+def test_mechanism_memory_reference_is_current():
+    decision = _load(DECISION)
+    assert decision["MECHANISM_MEMORY_CURRENT_THROUGH"] == "D11"
+    memory = _load(REPO / "docs/research/MECHANISM_MEMORY_V0.json")
+    assert {"D9", "D10", "D11"} <= set(memory["ENTRIES"])
+    for path in (
+        DECISION,
+        SPRINT,
+        ROTATION,
+        REPO / "docs/research/POST_SPRINT03_PROGRAM_DECISION.md",
+        REPO / "docs/research/DISCOVERY_SPRINT_04.md",
+    ):
+        text = path.read_text(encoding="utf-8")
+        assert "stops at D8" not in text, path.name
+        assert "post-D7" not in text, path.name
 
 
 def test_d13_never_targets_protected_months_and_has_no_horizon_search():
@@ -189,6 +265,18 @@ def test_d13_never_targets_protected_months_and_has_no_horizon_search():
     assert card["DATA_STATUS"] == "FEASIBILITY_REQUIRED"
     assert "no alternate horizons" in card["SEARCH_SURFACE"].lower()
     assert "N" in card["VALUES_FROZEN_IN_NEXT_UNIT_BEFORE_OUTCOMES"]
+
+
+def test_d13_terminal_mark_rule_never_silently_excludes():
+    card = _load(SPRINT)["CARDS"]["D13"]
+    assert "DELISTING_RULE" not in card
+    rule = card["TERMINAL_MARK_RULE"]
+    assert "never conditioned on survival" in rule["UNIVERSE_MEMBERSHIP"]
+    assert "NOT excluded" in rule["NO_POST_T_CLOSE"]
+    assert "NOT assigned a zero return" in rule["NO_POST_T_CLOSE"]
+    assert "DEFERRED_TERMINAL_MARK_UNRESOLVED" in rule["NO_POST_T_CLOSE"]
+    assert card["NO_POST_T_CLOSE_SELECTED_N"] == "NOT_COMPUTED_IN_THIS_UNIT"
+    assert (REPO / rule["REFERENCE_IMPLEMENTATION"]).is_file()
 
 
 def test_rotation_v3_separates_whole_family_from_subfamily_and_preserves_v2():

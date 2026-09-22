@@ -569,7 +569,13 @@ def test_freeze_artifact_is_d7_only_and_unexecuted():
     assert payload["MARKET_07_CREATED"] is False
     assert payload["NEXT_UNIT"] == OS.ONE_SHOT_UNIT
     assert payload["D7_SELECTOR_DIGEST"] == I.D7_SELECTOR_DIGEST
-    assert not (REPO / OS.RESULT_JSON_REL).exists()
+    # D7 has since been executed once; the freeze artifact itself stays unexecuted.
+    result_path = REPO / OS.RESULT_JSON_REL
+    if result_path.exists():
+        result = json.loads(result_path.read_text(encoding="utf-8"))
+        assert result["ONE_SHOT"] is True
+        assert result["RERUN_AUTHORIZED"] is False
+        assert result["RUN_IDENTITY"] == payload["RUN_IDENTITY"]
     assert payload["SCIENTIFIC_OUTCOMES_COMPUTED"] is False
     assert "MU_D7_RULE" not in payload
     assert "HEAD" not in payload

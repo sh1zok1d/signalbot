@@ -11,7 +11,7 @@
       "EXPECTED_INFORMATION_GAIN": "HIGH: clean quasi-experimental identification, informative in both directions, and opens or closes a whole uncovered region cheaply",
       "FALSIFIER": "Mean US-transition A not above the pseudo-transition null, or A>0 in fewer than 7 of 10 US transitions",
       "FUNCTION": "Identification of which clock anchors participation timing (natural experiment exploiting US/EU DST date mismatch), not prediction",
-      "HORIZON": "7 UTC days before vs 7 UTC days after each transition (calendar-derived maximum that keeps the other region's clock constant)",
+      "HORIZON": "Monday-Saturday (6 UTC days) before vs Monday-Saturday after each transition Sunday (amended pre-outcome: weekday-matched 6+6)",
       "ID": "S4-C01",
       "INFORMATION_SOURCE": "Deterministic statutory DST calendars (US: second Sunday of March / first Sunday of November; EU: last Sunday of March / last Sunday of October) + existing CORE_BTC_BINANCE_V0 1m quote_volume",
       "MAIN_CONFOUNDERS": "Seasonal drift of the intraday profile across a 2-week span; holidays inside windows (e.g. Good Friday); crash days (e.g. 2020-03-12) distorting single-day profiles; US equity session vs US macro-release clock are not separable",
@@ -366,20 +366,23 @@
         "generalization to other venues or assets"
       ],
       "FUNCTION": "Identify whether the UTC timing of the intraday participation profile moves with the US clock",
-      "HORIZON": "7 UTC days each side (W=7 is the calendar-derived maximum: the US-fall/EU-fall gap is exactly 7 days in every year 2020-2024, so W=7 keeps the EU clock constant inside every US window)",
+      "HORIZON": "W = 6 UTC days each side: Monday-Saturday before and Monday-Saturday after each transition Sunday. Amended pre-outcome from W=7: the EU fall transition is exactly the Sunday before the US fall transition in every year 2020-2024, so a 7-day BEFORE window lost that Sunday and broke weekday balance. Monday-Saturday windows keep weekday composition identical, exclude every transition Sunday, and hold the EU clock constant.",
       "INFORMATION_SOURCE": "Statutory US and EU DST calendars (frozen dates below) + CORE_BTC_BINANCE_V0 1m quote_volume",
       "INTERPRETIVE_DEPENDENCY_NOT_RESCUE": "D11 matched controls on UTC hour within year, which mixes different NY-clock positions across DST. D12 is informative for designing any future D11 confirmation, but its result must not be used to re-score, rescue, or reinterpret the consumed D11 RESULT.",
       "LEGAL_TIME_RANGE": "UTC days 2020-01-01 .. 2024-12-31 inclusive. No 2025/2026 bar is opened.",
       "MATCHING_STRATA_IF_ANY": "Monte Carlo pseudo-samples match the real delta mix (5 spring-type with delta=+1, 5 fall-type with delta=-1; adjusted to the eligible real mix)",
       "MECHANISM": "BTC intraday participation is anchored to the US institutional wall clock (not UTC). If so, the UTC timing of the intraday quote-volume profile shifts by one hour exactly at US daylight-saving transitions, while the EU clock is held constant.",
-      "MINIMUM_SUPPORT": "At least 8 of 10 US transitions eligible (each window with >= 5 included days); at least 100 eligible pseudo-transition Sundays. Otherwise DEFERRED_INSUFFICIENT_SUPPORT. No window widening, no alternate W.",
+      "MINIMUM_SUPPORT": "Each window has 6 candidate days before missing-data filtering; a window is eligible iff at least 5 of its 6 days are included. At least 8 of 10 US transitions eligible; at least 100 eligible pseudo-transition Sundays (same 6+6 rule). Otherwise DEFERRED_INSUFFICIENT_SUPPORT. No window widening, no alternate W.",
       "NAME": "PARTICIPATION_CLOCK_ANCHORING_DST_NATURAL_EXPERIMENT",
       "NEAREST_PRIOR_WORK": "D3 (time-of-day as nuisance stratum), D11 (YEAR x WEEKDAY x UTC_HOUR matching; FOMC fixed on the NY clock), D7 (activity-level persistence)",
       "NEW_FAMILY_PROPOSAL": true,
       "NO_LOOKAHEAD_RULE": "Not predictive. Windows are symmetric realized intervals; no window crosses another region's transition day; pseudo-transition eligibility is determined by the calendar only, never by volume values.",
       "NULL_HYPOTHESIS": "BTC participation timing is not US-clock anchored: mean A over US transitions is not larger than mean A over pseudo-transition draws with the same delta mix",
       "PRACTICAL_GATE_DIRECTION": "A_k > 0 (predicted-direction alignment) in at least 7 of 10 eligible US transitions; scale-free sign-consistency gate",
-      "PRIMARY_BASELINE": "Pseudo-transition null: Every Sunday S in the legal range such that no US or EU transition day lies in [S-7d, S+7d] and both 7-day windows lie inside 2020-01-01..2024-12-31. For each pseudo Sunday compute A with delta=+1 and with delta=-1.",
+      "PRE_OUTCOME_AMENDMENTS": [
+        "F1_WEEKDAY_MATCHED_6_PLUS_6_WINDOWS"
+      ],
+      "PRIMARY_BASELINE": "Pseudo-transition null: Every Sunday S that is not a US or EU transition day and whose Monday-Saturday windows S-6d..S-1d and S+1d..S+6d lie inside 2020-01-01..2024-12-31. Because every US and EU transition falls on a Sunday, no clock changes inside either window. For each pseudo Sunday compute A with delta=+1 and with delta=-1.",
       "PRIMARY_STATISTIC": "MEAN_CLOCK_ANCHORING_INDEX_OVER_US_TRANSITIONS",
       "PRIMARY_TARGET": "CLOCK_ANCHORING_INDEX A_k for US transition k",
       "PRIMARY_TARGET_DEFINITION": {
@@ -389,12 +392,12 @@
         "INTERPRETATION": "A_k > 0 means the clock-predicted one-hour shift aligns the before/after profiles better than no shift",
         "PREDICTED_SHIFT": "delta = +1 at spring-forward (US clock moves one hour earlier in UTC), delta = -1 at fall-back",
         "SHIFTED_DISTANCE": "D(L) = sum over h=0..23 of (P_after(h) - P_before((h + L) mod 24))^2",
-        "WINDOWS": "BEFORE = the 7 UTC days immediately preceding the transition day; AFTER = the 7 UTC days immediately following it; the transition day and any other US/EU transition day are excluded",
+        "WINDOWS": "Every US transition is a Sunday S. BEFORE = UTC days S-6d..S-1d (Monday-Saturday immediately preceding S); AFTER = UTC days S+1d..S+6d (Monday-Saturday immediately following S). S itself is excluded. Both windows contain exactly one Monday..Saturday each (identical weekday composition), neither contains a US or EU transition day, and the EU clock is constant across both. Pseudo-transition Sundays use the identical construction.",
         "WINDOW_PROFILE": "P(h) = mean of s_d(h) over included days in the window (days weighted equally so no single day dominates)"
       },
-      "PROTECTED_BOUNDARY": "Only 2020-01..2024-12 monthly parquet files are opened; the last AFTER window (2024-11-04..2024-11-10) ends before 2025-01-01.",
-      "SEARCH_SURFACE": "One observable (quote-volume share), one window length (calendar-derived W=7), one index, one primary contrast (US), one diagnostic (EU). No alternate observables (trade count, RV), no alternate W, no hour-subset selection.",
-      "SECONDARY_DIAGNOSTIC_CANNOT_CHANGE_CLASSIFICATION": "The identical statistic around the 10 EU transitions (US clock constant inside every EU window). Reported; cannot promote or demote D12.",
+      "PROTECTED_BOUNDARY": "Only 2020-01..2024-12 monthly parquet files are opened; the last AFTER window (2024-11-04..2024-11-09) ends before 2025-01-01.",
+      "SEARCH_SURFACE": "One observable (quote-volume share), one window length (weekday-matched Monday-Saturday W=6), one index, one primary contrast (US), one diagnostic (EU). No alternate observables (trade count, RV), no alternate W, no hour-subset selection.",
+      "SECONDARY_DIAGNOSTIC_CANNOT_CHANGE_CLASSIFICATION": "The identical statistic with the identical Monday-Saturday 6+6 windows around the 10 EU transitions (US clock constant inside every EU window). Reported; cannot promote or demote D12.",
       "SELECTOR": "Each of the 10 US DST transition Sundays (primary) and each of the 10 EU transition Sundays (secondary diagnostic). Window days exclude any US or EU transition day.",
       "SOURCE_CANDIDATE": "S4-C01",
       "STATUS": "SELECTED_OUTCOME_BLIND_DEFINITION_FROZEN",
@@ -403,7 +406,9 @@
       "VALUES_FROZEN_IN_NEXT_UNIT_BEFORE_OUTCOMES": [
         "RANDOM_SEED"
       ],
-      "WHY_NOT_RESCUE": "It asks which clock organizes participation; no prior card asked this. It uses no event outcome, no volatility level, no impact proxy, no FOMC date. It is not a D11 child: its design would be identical had D11 been null."
+      "WHY_NOT_RESCUE": "It asks which clock organizes participation; no prior card asked this. It uses no event outcome, no volatility level, no impact proxy, no FOMC date. It is not a D11 child: its design would be identical had D11 been null.",
+      "WINDOW_DAYS": 6,
+      "WINDOW_WEEKDAYS": "MONDAY_TO_SATURDAY"
     },
     "D13": {
       "ALLOWED_CLAIM": "On a point-in-time, survivorship-controlled liquid Binance spot USDT panel 2020-2024, 1-week cross-sectional relative returns do / do not show momentum or reversal structure (adaptive discovery)",
@@ -419,7 +424,6 @@
       },
       "DATA_STATUS": "FEASIBILITY_REQUIRED",
       "DECISION_CLOCK": "Monday 00:00:00 UTC. Price at T = close of the Sunday daily candle ending at T.",
-      "DELISTING_RULE": "If a symbol has no close at T+7d, use its last available daily close inside the holding week; if none after T, exclude it from that week and count the exclusion. Rule frozen; counts reported.",
       "DIRECTION_NOTE": "Momentum (IC > 0) and reversal (IC < 0) are both pre-declared as structure. The sign is reported, not chosen.",
       "DISCOVERY_ID": "D13",
       "FALSIFIER": "Mean IC not different from 0 (p >= 0.05), or quintile spread below the friction floor, or year-sign instability",
@@ -429,6 +433,7 @@
         "full symbol enumeration from pinned bucket listings",
         "delisted symbols retain complete pre-delisting monthly files (survivorship control)",
         "CHECKSUM sidecar coverage for every used file",
+        "NO_POST_T_CLOSE_SELECTED_N from listing/candle-presence counts only; if > 0, either freeze a deterministic point-in-time terminal-mark authority or remain DEFERRED_TERMINAL_MARK_UNRESOLVED",
         "daily kline columns include close and quote_asset_volume with open_time in ms UTC",
         "frozen name-based exclusion lists (stablecoin/fiat bases; leveraged-token bases) derived from symbol names only",
         "universe size N from listing-age and data-completeness counts only (no returns)",
@@ -448,13 +453,17 @@
       "LEGAL_TIME_RANGE": "Decision Mondays from the first Monday with complete eligibility history on or after 2020-02-03 through the last Monday whose holding week closes on or before 2024-12-29 (Sunday close). No 2025/2026 bar.",
       "MATCHING_STRATA_IF_ANY": "None needed: rank IC within each week is market-neutral by construction",
       "MECHANISM": "Relative (market-neutral) returns among liquid Binance spot USDT assets carry cross-sectional structure: last week's relative ranking systematically predicts next week's relative ranking (momentum if positive, reversal if negative).",
-      "MINIMUM_SUPPORT": "At least 200 eligible decision weeks and N >= 20; otherwise DEFERRED_INSUFFICIENT_PANEL_SUPPORT. No threshold weakening.",
+      "MINIMUM_SUPPORT": "At least 200 eligible decision weeks and N >= 20; otherwise DEFERRED_INSUFFICIENT_PANEL_SUPPORT. NO_POST_T_CLOSE_SELECTED_N > 0 without a frozen terminal-mark authority: DEFERRED_TERMINAL_MARK_UNRESOLVED. No threshold weakening.",
       "NAME": "CROSS_SECTIONAL_WEEKLY_RELATIVE_RETURN_STRUCTURE",
       "NEAREST_PRIOR_WORK": "H05/B2-05 (BTC own flow -> BTC return), MARKET-05 / D4 / D10 (BTC-ETH two-asset only), Sprint03 C5 breadth candidate (not selected; panel absent)",
       "NEW_FAMILY_PROPOSAL": false,
       "NO_LOOKAHEAD_RULE": "Eligibility and liquidity rank use only data strictly before T; the universe is fixed at T before any holding-week return is read; N is fixed from counts before any return is computed.",
+      "NO_POST_T_CLOSE_SELECTED_N": "NOT_COMPUTED_IN_THIS_UNIT",
       "NULL_HYPOTHESIS": "Mean weekly cross-sectional rank IC equals 0",
       "PRACTICAL_GATE_DIRECTION": "Mean top-quintile minus bottom-quintile holding-week log return, ranked by formation return and signed in the direction of the mean IC, must be at least the friction floor = 4 x the pinned Binance spot standard taker fee per side (entry and exit, long and short legs). If the fee cannot be pinned from a first-party source: DEFERRED_PRACTICAL_FLOOR_NOT_PINNED; no substitute value.",
+      "PRE_OUTCOME_AMENDMENTS": [
+        "F3_NO_SILENT_EXCLUSION_TERMINAL_MARK_RULE"
+      ],
       "PRIMARY_BASELINE": "Mean weekly rank IC = 0 (no cross-sectional relative-return structure)",
       "PRIMARY_STATISTIC": "MEAN_WEEKLY_CROSS_SECTIONAL_RANK_IC",
       "PRIMARY_TARGET": "Weekly Spearman rank IC between formation return r_f = ln(C_T / C_{T-7d}) and holding return r_h = ln(C_{T+7d} / C_T) across the N eligible symbols",
@@ -471,13 +480,22 @@
       "STATUS": "SELECTED_OUTCOME_BLIND_DEFINITION_FROZEN",
       "SUBFAMILY": "TRUE_CROSS_SECTIONAL_PANEL",
       "TEMPORAL_STABILITY_REQUIREMENT": "Mean IC within a calendar year (by decision Monday) has the same sign as the pooled mean in at least 3 of 5 years (2020-2024)",
+      "TERMINAL_MARK_RULE": {
+        "FULL_WEEK": "Close of the candle opening at T+6d (price at T+7d)",
+        "INTRAWEEK_DISAPPEARANCE": "If the symbol trades during the holding week but has no candle opening at T+6d, the final observed close inside the holding week is the terminal mark",
+        "LOOKUP_WINDOW": "Only candles opening at T..T+6d are read for the terminal mark",
+        "NO_POST_T_CLOSE": "A symbol selected at T with no observed close in the holding week is NOT excluded, NOT assigned a zero return, and NOT marked with later relisting data. It is counted in NO_POST_T_CLOSE_SELECTED_N and scientific execution fails closed with DEFERRED_TERMINAL_MARK_UNRESOLVED unless the feasibility unit freezes a deterministic, point-in-time terminal-mark authority for every such case before outcomes",
+        "REFERENCE_IMPLEMENTATION": "scripts/research/discovery_sprint_04/d13_terminal_mark.py",
+        "UNIVERSE_MEMBERSHIP": "Membership at T uses only information available through T; it is never conditioned on survival to T+7d"
+      },
       "UNCERTAINTY_RULE": "Two-sided sign-flip Monte Carlo on the weekly IC series around 0, N=10000, alpha=0.05, p = (1 + #{|null mean| >= |observed|}) / (1 + N). Seed frozen in the next unit. Weekly ICs are non-overlapping; residual serial dependence is a declared limitation.",
       "VALUES_FROZEN_IN_NEXT_UNIT_BEFORE_OUTCOMES": [
         "N",
         "EXCLUSION_LISTS",
         "PINNED_TAKER_FEE",
         "RANDOM_SEED",
-        "FIRST_AND_LAST_DECISION_MONDAY"
+        "FIRST_AND_LAST_DECISION_MONDAY",
+        "TERMINAL_MARK_AUTHORITY_IF_NO_POST_T_CLOSE_SELECTED_N_GT_0"
       ],
       "WHY_NOT_RESCUE": "First card with more than two assets and first market-neutral relative-return target. Not BTC-conditional scalar prediction, not 24h MAE, not a BTC-ETH substitute, not a flow/taker child."
     }
@@ -523,6 +541,16 @@
   "PARENT_POLICY": "HETEROGENEOUS_FAMILY_ROTATION_V3",
   "PARENT_POLICY_REL": "docs/research/HETEROGENEOUS_FAMILY_ROTATION_V3.json",
   "POST_SPRINT04_AUTOMATION_MATURITY_DECISION_REQUIRED": true,
+  "PRE_OUTCOME_AMENDMENT_1": {
+    "AMENDS_HEAD": "fe6f252325e4a412694d8400476e42840b98cf60",
+    "CANDIDATE_POOL_REGENERATED": false,
+    "F1": "D12 windows changed from 7+7 to weekday-matched Monday-Saturday 6+6 for real and pseudo transitions; observable, clock-shift algebra, delta sign, statistic, family, claim unchanged",
+    "F2": "Stale mechanism-memory reference corrected: MECHANISM_MEMORY_V0 is current through D11",
+    "F3": "D13 no longer silently excludes a symbol selected at T that has no post-T close; fail closed as DEFERRED_TERMINAL_MARK_UNRESOLVED unless a point-in-time terminal-mark authority is frozen before outcomes",
+    "QUOTE_VOLUME_PROFILES_INSPECTED": false,
+    "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+    "SELECTION_CHANGED": false
+  },
   "PRODUCT_BUILD_FROZEN": true,
   "PROGRAM_DECISION_REL": "docs/research/POST_SPRINT03_PROGRAM_DECISION.json",
   "PROTECTED_2025_OPENED": false,

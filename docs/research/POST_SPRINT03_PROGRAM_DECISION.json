@@ -41,13 +41,14 @@
     "EVIDENCE_STATE_SEMANTICS": "PROMISING_PROTOTYPE / NO_USEFUL_STRUCTURE / INCONCLUSIVE_DISCOVERY / INVALID_DISCOVERY / DEFERRED_* in use",
     "EXECUTED_INTERNAL_CARDS_AT_LEAST_10": "expected 10 after Sprint04",
     "PROMISING_PROTOTYPES_AT_LEAST_2_WITH_DISTINCTNESS_ASSESSED": "3 exist; distinctness (second-moment concentration) must be assessed",
-    "STRUCTURED_MECHANISM_MEMORY_CURRENT_THROUGH_D13": "required; V0 stops at D8"
+    "STRUCTURED_MECHANISM_MEMORY_CURRENT_THROUGH_D13": "required; MECHANISM_MEMORY_V0 is current through D11 (frozen post-Sprint03) and must be extended through the D12/D13 outcomes after they execute"
   },
   "INTERNAL_DISCOVERY_CARDS_EXECUTED": 8,
   "INTERNAL_PROMISING_PROTOTYPES": 3,
   "KIND": "PROGRAM_LEVEL_DECISION",
   "MARKET_07_CREATED": false,
-  "MECHANISM_MEMORY_NOTE": "MECHANISM_MEMORY_V0 is frozen as of post-D7 and is left unchanged. A successor covering D9-D13 is required input for the post-Sprint04 automation maturity decision.",
+  "MECHANISM_MEMORY_CURRENT_THROUGH": "D11",
+  "MECHANISM_MEMORY_NOTE": "MECHANISM_MEMORY_V0 is FROZEN_AS_OF_POST_SPRINT03 and already contains D9, D10 and D11; it is left unchanged here. The post-Sprint04 automation decision needs mechanism memory extended through the D12/D13 outcomes after they execute. Existing entries are not rewritten.",
   "MECHANISM_MEMORY_V0_MODIFIED": false,
   "NAME": "POST_SPRINT03_PROGRAM_DECISION",
   "NEXT_UNIT": "DISCOVERY_SPRINT_04_BATCH_FEASIBILITY_AND_OUTCOME_BLIND_IMPLEMENTATION",
