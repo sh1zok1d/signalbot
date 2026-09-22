@@ -2,7 +2,7 @@
 
 **Status date:** 2026-09-22  
 **Status:** `ACTIVE / CANONICAL ROUTING INDEX`  
-**Main integration baseline before this status commit:** `68f5c964f7f19e7d358a3362057d6aede5eae8b1`
+**Main integration baseline before this status commit:** `310578838d1a622c69dffbe1f2f11ff6927f65e7`
 
 This file is the compact answer to “what controls the project now?”. Frozen preregistrations/results remain authoritative for reproducing their own experiments; this file controls current routing only.
 
@@ -33,17 +33,19 @@ Program-level correction is sealed in `docs/research/MARKET_PROGRAM_UPDATE_POST_
 ## Exact next unit
 
 ```
-PREVIOUS_ROUTING            = HETEROGENEOUS_FAMILY_ROTATION_V1
+PREVIOUS_ROUTING            = DISCOVERY_SPRINT_02_FEASIBILITY_AND_IMPLEMENTATION
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = DISCOVERY_SPRINT_02_FEASIBILITY_AND_IMPLEMENTATION
-NEXT_ACTION                 = SPRINT_02_NON_OUTCOME_FEASIBILITY_AND_IMPLEMENTATION
+NEXT_UNIT                   = DISCOVERY_SPRINT_02_SCIENTIFIC_EXECUTION_FREEZE
+NEXT_ACTION                 = BIND_REVIEWED_IMPLEMENTATION_BYTES_THEN_D7_ONLY
 HETEROGENEOUS_FAMILY_ROTATION_V1 = FROZEN
 DISCOVERY_SPRINT_02 = DEFINED
 DISCOVERY_SPRINT_02_INTERNAL_CARDS = 2
 D7_STATUS                   = DEFINED_NOT_EXECUTED
-D8_STATUS                   = DEFINED_NOT_EXECUTED
+D8_STATUS                   = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT
+D7_IMPLEMENTATION_STATUS    = OUTCOME_BLIND_READY
+D8_IMPLEMENTATION_STATUS    = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT
 D7_EXECUTED                 = false
 D8_EXECUTED                 = false
 SCIENTIFIC_OUTCOMES_COMPUTED = false
@@ -333,7 +335,14 @@ D8 primary control is `RETURN_SHOCK_MATCHED_NON_HIGH_ACTIVITY_CONTROL`
 (same P99 return-shock gate; fails only P90 volume). Recovery clock is
 frozen at `EVENT_DECISION_T = H+1h` with a strict
 `EVENT_DECISION_T + 6h < 2025-01-01T00:00:00Z` bound. D7 unchanged.
-`NEXT_UNIT = DISCOVERY_SPRINT_02_FEASIBILITY_AND_IMPLEMENTATION`.
+
+Sprint 02 feasibility/implementation then ran selector/support census
+only on legal CORE BTC 2020-2024. D7 is `OUTCOME_BLIND_READY`. D8 is
+`DEFERRED_INSUFFICIENT_CONTROL_SUPPORT` (event support passed; 1:1
+return-shock controls did not). No scientific outcomes. Record:
+`docs/research/DISCOVERY_SPRINT_02_FEASIBILITY.{json,md}` and
+`docs/research/DISCOVERY_SPRINT_02_IMPLEMENTATION_REVIEW.{json,md}`.
+`NEXT_UNIT = DISCOVERY_SPRINT_02_SCIENTIFIC_EXECUTION_FREEZE`.
 
 All six Discovery Sprint 01 cards (D1-D6) were converted to frozen
 `EXECUTABLE_DISCOVERY_SPEC` records (none deferred) by

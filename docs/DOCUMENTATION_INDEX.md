@@ -1,4 +1,4 @@
-> **Current routing note — 2026-09-22:** use `docs/CURRENT_RESEARCH_STATE.md` first for present lifecycle/next-unit status. Frozen experiment artifacts remain authoritative for their own semantics. Some older catalog descriptions below are historical and may retain the status they had when written. Original D2 BitMEX one-shot remains `INVALID`. Corrected execution classified `D2_BITMEX_REPLICATION_SUPPORTED`. Program class `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`. Excess path-risk decomposition one-shot is consumed: `D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT`. Sprint 02 cards D7/D8 are defined, not executed. `NEXT_UNIT = DISCOVERY_SPRINT_02_FEASIBILITY_AND_IMPLEMENTATION`.
+> **Current routing note — 2026-09-22:** use `docs/CURRENT_RESEARCH_STATE.md` first for present lifecycle/next-unit status. Frozen experiment artifacts remain authoritative for their own semantics. Some older catalog descriptions below are historical and may retain the status they had when written. Original D2 BitMEX one-shot remains `INVALID`. Corrected execution classified `D2_BITMEX_REPLICATION_SUPPORTED`. Program class `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`. Excess path-risk decomposition one-shot is consumed: `D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT`. Sprint 02 D7 is outcome-blind ready; D8 is `DEFERRED_INSUFFICIENT_CONTROL_SUPPORT`. `NEXT_UNIT = DISCOVERY_SPRINT_02_SCIENTIFIC_EXECUTION_FREEZE`.
 
 # Signalbot Documentation Index
 
@@ -19,9 +19,11 @@ For the narrative evolution, read `PROJECT_HISTORY.md`. For complete original do
 
 Read these first:
 
-| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. D2 is `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`; Sprint 02 D7/D8 defined not executed; 2025/2026 sealed; `NEXT_UNIT = DISCOVERY_SPRINT_02_FEASIBILITY_AND_IMPLEMENTATION` |
+| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. D2 is `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`; Sprint 02 D7 outcome-blind ready, D8 deferred on control support; 2025/2026 sealed; `NEXT_UNIT = DISCOVERY_SPRINT_02_SCIENTIFIC_EXECUTION_FREEZE` |
 | `research/HETEROGENEOUS_FAMILY_ROTATION_V1.md` | **HYPOTHESIS GENERATION POLICY (FROZEN)** | Families A–I; this rotation selects E (D7) and G (D8); F/H/I deferred; no MARKET-07 |
 | `research/DISCOVERY_SPRINT_02.md` | **DISCOVERY SPRINT 02 (DEFINED, NOT EXECUTED)** | Outcome-blind cards D7 `KLINE_FLOW_IMPACT_STATE` and D8 `ENDOGENOUS_SHOCK_RECOVERY`; no outcomes; 2025/2026 sealed |
+| `research/DISCOVERY_SPRINT_02_FEASIBILITY.md` | **DISCOVERY SPRINT 02 FEASIBILITY (SELECTOR/SUPPORT ONLY)** | D7 `OUTCOME_BLIND_READY`; D8 `DEFERRED_INSUFFICIENT_CONTROL_SUPPORT`; no scientific outcomes |
+| `research/DISCOVERY_SPRINT_02_IMPLEMENTATION_REVIEW.md` | **DISCOVERY SPRINT 02 IMPLEMENTATION REVIEW (OUTCOME-BLIND)** | Pure evaluators implemented; real-data path is feasibility only; next unit must bind these bytes |
 | `research/DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE.md` | **D1 PRE-EXECUTION ADJUDICATION** | D1 deferred: null generates daily returns; state observable requires 288×5m RV. Gate not executed. |
 | `research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.md` | **D2 CONFIRMATION DESIGN** | Outcome-blind 2025 confirmation design for RULE_1 / RV_ABSTENTION; underpowered single year; year-matched two-year surface still underpowered; 2025/2026 unopened |
 | `research/D2_ALTERNATIVE_INDEPENDENT_SURFACE_FEASIBILITY.md` | **D2 ALTERNATIVE SURFACE FEASIBILITY** | Pre-2020 BitMEX XBTUSD is a feasible class-A independent replication surface; D2 outcomes not computed; 2025/2026 unopened |

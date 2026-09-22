@@ -4797,3 +4797,29 @@ NEXT_UNIT = DISCOVERY_SPRINT_02_FEASIBILITY_AND_IMPLEMENTATION
 
 - next required step still: Sprint 02 non-outcome feasibility and
   implementation; do not execute D7/D8 scientific outcomes automatically
+
+## 2026-09-22 — Discovery Sprint 02 feasibility and implementation
+
+Selector/support feasibility only on legal CORE BTC 2020-2024. Scientific
+evaluators implemented as pure functions and not run on real data. D8
+thresholds were not weakened after insufficient controls.
+
+```
+D7_IMPLEMENTATION_STATUS = OUTCOME_BLIND_READY
+D8_IMPLEMENTATION_STATUS = DEFERRED_INSUFFICIENT_CONTROL_SUPPORT
+D7_STATE_N = 4545
+D8_RETAINED_EVENT_N = 408
+D8_MATCHED_PAIR_N = 14
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+NEXT_UNIT = DISCOVERY_SPRINT_02_SCIENTIFIC_EXECUTION_FREEZE
+```
+
+Evidence: `docs/research/DISCOVERY_SPRINT_02_FEASIBILITY.{json,md}`,
+`docs/research/DISCOVERY_SPRINT_02_IMPLEMENTATION_REVIEW.{json,md}`.
+
+- next required step: bind reviewed implementation bytes, then D7
+  scientific execution freeze only; do not execute D8; do not open
+  2025/2026; do not create MARKET-07
