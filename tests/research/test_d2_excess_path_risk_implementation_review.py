@@ -181,11 +181,9 @@ def test_no_execution_permit_file_was_created(review):
 
 
 def test_no_result_artifact_was_created():
-    for name in (
-        "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_RESULT.json",
-        "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_RESULT.md",
-    ):
-        assert not (REPO / "docs/research" / name).exists()
+    # Review-era artifact: that unit did not create RESULT.
+    review = json.loads((REPO / REVIEW_JSON_REL).read_text(encoding="utf-8"))
+    assert review["RESULT_CREATED"] is False
 
 
 def test_authorities_are_bound_without_drift(review):

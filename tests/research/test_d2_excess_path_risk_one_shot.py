@@ -170,11 +170,39 @@ def test_malformed_permit_fails_verify(tmp_path):
         EV.verify_tracked_permit(repo)
 
 
-def test_no_result_exists_in_permit_commit():
-    assert not (REPO / RESULT_JSON).exists()
-    assert not (REPO / RESULT_MD).exists()
-    assert EV.EXECUTION_AUTHORIZED is False
+def test_stored_result_exists_and_blocks_rerun_without_reexecution():
+    assert (REPO / RESULT_JSON).is_file()
+    assert (REPO / RESULT_MD).is_file()
+    stored = json.loads((REPO / RESULT_JSON).read_text(encoding="utf-8"))
+    assert stored["PERMIT_COMMIT"] == "29f83a102bd8ece2b078f65ef69a578a52812c7c"
+    assert stored["CLASSIFICATION"] == "D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT"
+    assert stored["ONE_SHOT"] is True
+    assert stored["EXECUTION_AUTHORIZED"] is True
+    assert stored["RERUN_AUTHORIZED"] is False
+    assert stored["REAL_DECOMPOSITION_OUTCOME_COMPUTED"] is True
+    assert stored["RUN_IDENTITY"] == FROZEN_RUN_IDENTITY
+    assert stored["EXECUTION_PERMIT_SHA256"] == file_sha256(REPO / PERMIT_REL)
+    assert stored["SELECTOR_IDENTITY_AUTHORITY_SHA256"] == (
+        FROZEN_SELECTOR_IDENTITY_AUTHORITY_SHA256
+    )
+    assert stored["CANONICAL_SELECTOR_DIGEST"] == FROZEN_CANONICAL_SELECTOR_DIGEST
+    assert stored["PROTECTED_2025_OPENED"] is False
+    assert stored["PROTECTED_2026_OPENED"] is False
+    assert stored["BITMEX_2017_2019_REUSED_FOR_NEW_TARGET"] is False
+    assert stored["MARKET_07_CREATED"] is False
+    hashed = {k: v for k, v in stored.items() if k != "RESULT_PAYLOAD_SHA256"}
+    assert stored["RESULT_PAYLOAD_SHA256"] == result_payload_sha256(hashed)
     assert EV.frozen_contract_summary(REPO)["REAL_DECOMPOSITION_OUTCOME_COMPUTED"] is False
+    called = {"n": 0}
+
+    def _boom(*args, **kwargs):
+        called["n"] += 1
+        raise AssertionError("EXECUTE_DECOMPOSITION_CALLED")
+
+    with patch.object(EV, "execute_decomposition", side_effect=_boom):
+        with pytest.raises(OS.OneShotExecutionError, match="RESULT_ALREADY_EXISTS_RERUN_FORBIDDEN"):
+            OS.execute_one_shot(repo=REPO)
+    assert called["n"] == 0
 
 
 def test_runner_import_does_not_execute():

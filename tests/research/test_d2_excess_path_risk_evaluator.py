@@ -1020,12 +1020,7 @@ def test_evaluator_module_flags_remain_review_era_with_tracked_permit_present():
     assert EV.SCIENTIFIC_KERNEL_READY is True
     assert (REPO / EV.EXECUTION_PERMIT_REL).is_file()
     assert (REPO / EV.SELECTOR_IDENTITY_AUTHORITY_REL).is_file()
-    assert not (
-        REPO / "docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_RESULT.json"
-    ).exists()
-    assert not (
-        REPO / "docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_RESULT.md"
-    ).exists()
+    # Review-era module flags stay false even after the later one-shot RESULT.
 
 
 def test_execute_decomposition_fails_without_permit(tmp_path):
