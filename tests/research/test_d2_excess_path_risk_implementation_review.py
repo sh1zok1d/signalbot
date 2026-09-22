@@ -108,12 +108,21 @@ def test_frozen_scientific_contract_is_recorded_unchanged(review):
     assert review["N_RANDOM_CONTROLS"] == 10000
     assert review["CONTROL_P95_METHOD"] == "NUMPY_LINEAR_INHERITED_FROM_D2"
     assert review["FROZEN_RULE1_N"] == 1791
+    assert review["FROZEN_RULE1_N_MEANS_CONSTRUCTED_POPULATION"] is True
     assert review["FROZEN_RULE1_YEAR_N"] == {
         "2020": 334,
         "2021": 364,
         "2022": 364,
         "2023": 364,
         "2024": 365,
+    }
+    assert review["FROZEN_SELECTOR_ABSTAIN_N"] == 163
+    assert review["FROZEN_SELECTOR_ABSTAIN_YEAR_N"] == {
+        "2020": 10,
+        "2021": 48,
+        "2022": 32,
+        "2023": 23,
+        "2024": 50,
     }
     assert review["TARGET_SPECIFIC_INELIGIBILITY"] == (
         "TARGET_ROW_INELIGIBLE_PATH_SCALE_NONPOSITIVE"
@@ -211,6 +220,8 @@ def test_markdown_mirror_states_not_executed():
     assert "D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE" in text
     assert "CANONICAL_SELECTOR_DIGEST_FROZEN" in text
     assert "EXECUTION_READY                       = False" in text
+    assert "CONSTRUCTED population, never mask.sum()" in text
+    assert "FROZEN_SELECTOR_ABSTAIN_N" in text
 
 
 def test_review_is_byte_reproducible_from_the_implementation_commit(review):

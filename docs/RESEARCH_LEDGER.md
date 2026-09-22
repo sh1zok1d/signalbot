@@ -4555,3 +4555,39 @@ Evidence: `docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_RE
 - next required step: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE`
   (create/freeze the tracked selector-identity authority bytes only;
   do not alter the reviewed scientific execution implementation)
+
+## 2026-09-22 — D2 excess path-risk selector identity census semantics
+
+Correctness repair of selector-identity machinery on the implementation-review
+unit. **No scientific window was consumed and no decomposition outcome was
+computed.** Frozen scientific formulas, comparator, gates, seed, selector,
+horizon, and target were not changed.
+
+`FROZEN_RULE1_N = 1791` / year counts `334/364/364/364/365` are the
+**constructed** RULE_1 population (`len(rows)` / `RULE_1_ROW_COUNT` /
+`YEAR_BREAKDOWN.RULE_1` from frozen
+`docs/research/discovery_results/D2_DISCOVERY_RESULT.json`, SHA
+`42ee5d7d…`). They are **not** `mask.sum()`. Historical selector/abstain
+census is frozen D2 `PRIMARY_METRICS.RV_ABSTENTION`: `ABSTAIN_COUNT = 163`,
+year counts `10/48/32/23/50`. The future selector-identity authority schema
+now binds both censuses. `RULE_1_N` remains a backwards-compatible alias
+for constructed N. Canonical runtime
+`CANONICAL_SELECTOR_DIGEST_FROZEN` is taken from the verified authority
+(must be true); the implementation-review module constant stays `false`
+because no authority artifact exists in this unit.
+
+```
+CANONICAL_SELECTOR_DIGEST_FROZEN             = false
+SELECTOR_IDENTITY_AUTHORITY_CREATED          = false
+EXECUTION_READY                              = false
+EXECUTION_AUTHORIZED                         = false
+EXECUTION_PERMIT_CREATED                     = false
+REAL_DECOMPOSITION_OUTCOME_COMPUTED          = false
+PROTECTED_2025_OPENED                        = false
+PROTECTED_2026_OPENED                        = false
+BITMEX_2017_2019_REUSED_FOR_NEW_TARGET       = false
+MARKET_07_CREATED                            = false
+RESULT_CREATED                               = false
+```
+
+- next required step: `D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_PRE_OUTCOME_SELECTOR_DIGEST_FREEZE`

@@ -384,8 +384,11 @@ def test_selector_identity_fails_closed_on_drift():
     rows, perp = make_population(years=(2020,), rows_per_year=300)
     mask = C.rv_abstention_mask(rows)
     census = EV.selector_identity(rows, mask)
-    assert census["RULE_1_ROW_COUNT"] == int(mask.sum())
-    # Synthetic census is not the frozen 1791 -> enforcement must refuse.
+    assert census["RULE_1_CONSTRUCTED_ROW_COUNT"] == len(rows)
+    assert census["SELECTOR_ABSTAIN_COUNT"] == int(mask.sum())
+    assert census["RULE_1_ROW_COUNT"] == len(rows)
+    assert census["RULE_1_N_MEANS_CONSTRUCTED_POPULATION"] is True
+    # Synthetic census is not the frozen 1791 constructed / 163 abstain.
     with pytest.raises(EV.SelectorIdentityError):
         EV.verify_selector_identity(rows, mask)
 
@@ -400,6 +403,21 @@ def test_frozen_rule_1_identity_constants_unchanged():
         "2024": 365,
     }
     assert sum(FROZEN_RULE1_YEAR_N.values()) == FROZEN_RULE1_N
+    assert EV.FROZEN_SELECTOR_ABSTAIN_N == 163
+    assert EV.FROZEN_SELECTOR_ABSTAIN_YEAR_N == {
+        "2020": 10,
+        "2021": 48,
+        "2022": 32,
+        "2023": 23,
+        "2024": 50,
+    }
+    assert sum(EV.FROZEN_SELECTOR_ABSTAIN_YEAR_N.values()) == EV.FROZEN_SELECTOR_ABSTAIN_N
+    facts = EV.verify_frozen_selector_identity_facts(REPO)
+    assert facts["RULE_1_CONSTRUCTED_N"] == 1791
+    assert facts["SELECTOR_ABSTAIN_N"] == 163
+    assert facts["FROZEN_D2_DISCOVERY_SHA256"] == (
+        "42ee5d7db19a17e62d861513759192ec78898ee9ec901902b3db58e7386966c2"
+    )
 
 
 def test_side_drift_changes_the_target_as_expected():
@@ -1070,6 +1088,10 @@ def test_contract_summary_is_outcome_blind():
     assert summary["CANONICAL_SELECTOR_DIGEST_FROZEN"] is False
     assert summary["SELECTOR_IDENTITY_AUTHORITY_PRESENT"] is False
     assert summary["SELECTOR_IDENTITY_AUTHORITY_REL"] == EV.SELECTOR_IDENTITY_AUTHORITY_REL
+    assert summary["FROZEN_RULE1_N"] == 1791
+    assert summary["FROZEN_RULE1_N_MEANS_CONSTRUCTED_POPULATION"] is True
+    assert summary["FROZEN_SELECTOR_ABSTAIN_N"] == 163
+    assert summary["SELECTOR_IDENTITY_FACTS"]["SELECTOR_ABSTAIN_N"] == 163
 
 
 # --------------------------------------------------------------------------
@@ -1182,7 +1204,9 @@ def test_selector_digest_differs_when_timestamps_differ_at_the_same_counts():
     assert digest_a != digest_b
     census_a = EV.selector_identity(rows_a, mask)
     census_b = EV.selector_identity(rows_b, mask)
-    assert census_a["RULE_1_ROW_COUNT"] == census_b["RULE_1_ROW_COUNT"] == 10
+    assert census_a["RULE_1_CONSTRUCTED_ROW_COUNT"] == census_b["RULE_1_CONSTRUCTED_ROW_COUNT"] == 10
+    assert census_a["SELECTOR_ABSTAIN_COUNT"] == census_b["SELECTOR_ABSTAIN_COUNT"] == 10
+    assert census_a["RULE_1_ROW_COUNT"] == 10
     assert census_a["RULE_1_YEAR_BREAKDOWN"] == census_b["RULE_1_YEAR_BREAKDOWN"]
     assert census_a["CENSUS_IS_NOT_EXACT_IDENTITY"] is True
     assert census_a["CANONICAL_SELECTOR_DIGEST_FROZEN"] is False
@@ -1194,9 +1218,12 @@ def test_selector_digest_differs_when_selected_timestamps_differ_at_the_same_cou
     mask_a = np.array([1, 1, 1, 1, 1, 0, 0, 0, 0, 0], dtype=bool)
     mask_b = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1], dtype=bool)
     assert int(mask_a.sum()) == int(mask_b.sum()) == 5
-    assert EV.selector_identity(rows, mask_a)["RULE_1_YEAR_BREAKDOWN"] == (
-        EV.selector_identity(rows, mask_b)["RULE_1_YEAR_BREAKDOWN"]
-    )
+    census_a = EV.selector_identity(rows, mask_a)
+    census_b = EV.selector_identity(rows, mask_b)
+    assert census_a["RULE_1_CONSTRUCTED_ROW_COUNT"] == census_b["RULE_1_CONSTRUCTED_ROW_COUNT"] == 10
+    assert census_a["SELECTOR_ABSTAIN_COUNT"] == census_b["SELECTOR_ABSTAIN_COUNT"] == 5
+    assert census_a["RULE_1_CONSTRUCTED_YEAR_BREAKDOWN"] == census_b["RULE_1_CONSTRUCTED_YEAR_BREAKDOWN"]
+    assert census_a["SELECTOR_ABSTAIN_YEAR_BREAKDOWN"] == census_b["SELECTOR_ABSTAIN_YEAR_BREAKDOWN"]
     assert EV.selector_digest(rows, mask_a) != EV.selector_digest(rows, mask_b)
 
 
@@ -1214,6 +1241,100 @@ def test_verify_selector_identity_does_not_invent_a_canonical_digest():
                 ch in "0123456789abcdef" for ch in node.value.lower()
             ):
                 raise AssertionError("GUESSED_CANONICAL_SELECTOR_DIGEST")
+
+
+def _constructed_year_ranges() -> dict[str, tuple[int, int]]:
+    ranges: dict[str, tuple[int, int]] = {}
+    cursor = 0
+    for year, count in FROZEN_RULE1_YEAR_N.items():
+        ranges[str(year)] = (cursor, cursor + int(count))
+        cursor += int(count)
+    assert cursor == int(FROZEN_RULE1_N)
+    return ranges
+
+
+def _even_indices(start: int, end: int, k: int) -> list[int]:
+    span = end - start
+    assert 0 <= k <= span
+    if k == 0:
+        return []
+    out = [start + (i * span + span // 2) // k for i in range(k)]
+    assert len(set(out)) == k
+    assert all(start <= idx < end for idx in out)
+    return out
+
+
+def frozen_split_census_selected_indices() -> list[int]:
+    """Deterministic 163 selected indices inside the 1791 constructed census."""
+
+    warmup = int(EV.RV_TRAILING_WINDOW)
+    selected: list[int] = []
+    for year, start_end in _constructed_year_ranges().items():
+        start, end = start_end
+        k = int(EV.FROZEN_SELECTOR_ABSTAIN_YEAR_N[year])
+        selected.extend(_even_indices(max(start, warmup), end, k))
+    assert len(selected) == int(EV.FROZEN_SELECTOR_ABSTAIN_N)
+    return selected
+
+
+def make_split_census_rows_and_mask() -> tuple[list[C.DiscoveryRow], np.ndarray]:
+    """len(rows)=1791 constructed, mask.sum()=163 selected. Direct flags, no RV."""
+
+    selected = set(frozen_split_census_selected_indices())
+    rows: list[C.DiscoveryRow] = []
+    t_ms = BASE_MS
+    for year, count in FROZEN_RULE1_YEAR_N.items():
+        for _ in range(int(count)):
+            rows.append(_identity_row(t_ms, int(year)))
+            t_ms += BAR_MS
+    mask = np.zeros(len(rows), dtype=bool)
+    for idx in selected:
+        mask[idx] = True
+    assert len(rows) == 1791
+    assert int(mask.sum()) == 163
+    return rows, mask
+
+
+def test_selector_identity_separates_constructed_n_from_abstain_n():
+    """FROZEN_RULE1_N is constructed len(rows), never mask.sum().
+
+    Under the old implementation this population would report RULE_1_ROW_COUNT
+    = 163 and fail verify against 1791. The repaired census must pass.
+    """
+
+    rows, mask = make_split_census_rows_and_mask()
+    census = EV.selector_identity(rows, mask)
+    assert census["RULE_1_CONSTRUCTED_ROW_COUNT"] == 1791
+    assert census["SELECTOR_ABSTAIN_COUNT"] == 163
+    assert census["RULE_1_ROW_COUNT"] == 1791
+    assert census["RULE_1_ROW_COUNT"] != int(mask.sum())
+    assert census["RULE_1_CONSTRUCTED_YEAR_BREAKDOWN"] == dict(FROZEN_RULE1_YEAR_N)
+    assert census["RULE_1_YEAR_BREAKDOWN"] == dict(FROZEN_RULE1_YEAR_N)
+    assert census["SELECTOR_ABSTAIN_YEAR_BREAKDOWN"] == dict(
+        EV.FROZEN_SELECTOR_ABSTAIN_YEAR_N
+    )
+    assert census["RULE_1_CONSTRUCTED_YEAR_BREAKDOWN"] != census[
+        "SELECTOR_ABSTAIN_YEAR_BREAKDOWN"
+    ]
+    verified = EV.verify_selector_identity(rows, mask)
+    assert verified["RULE_1_CONSTRUCTED_ROW_COUNT"] == 1791
+    assert verified["SELECTOR_ABSTAIN_COUNT"] == 163
+
+
+def test_verify_selector_identity_fails_closed_on_abstain_census_drift():
+    rows, mask = make_split_census_rows_and_mask()
+    drifted = mask.copy()
+    true_idx = int(np.flatnonzero(drifted)[0])
+    false_idx = int(np.flatnonzero(~drifted)[-1])
+    drifted[true_idx] = False
+    drifted[false_idx] = True
+    assert int(drifted.sum()) == 163
+    with pytest.raises(EV.SelectorIdentityError, match="SELECTOR_ABSTAIN_YEAR_N"):
+        EV.verify_selector_identity(rows, drifted)
+    too_few = mask.copy()
+    too_few[true_idx] = False
+    with pytest.raises(EV.SelectorIdentityError, match="SELECTOR_ABSTAIN_N"):
+        EV.verify_selector_identity(rows, too_few)
 
 
 # --------------------------------------------------------------------------
@@ -1312,6 +1433,24 @@ def test_matching_tmp_permit_verifies_without_opening_core(tmp_path):
     assert len(stored["SELECTOR_IDENTITY_AUTHORITY_SHA256"]) == 64
 
 
+def test_selector_identity_authority_payload_separates_constructed_from_abstain():
+    payload = EV.selector_identity_authority_payload(
+        canonical_selector_digest="ab" * 32,
+        design_json_sha256="cd" * 32,
+        implementation_review_json_sha256="ef" * 32,
+        run_identity="synthetic-run-identity",
+    )
+    assert payload["RULE_1_CONSTRUCTED_N"] == payload["RULE_1_N"] == 1791
+    assert payload["RULE_1_CONSTRUCTED_YEAR_N"] == dict(FROZEN_RULE1_YEAR_N)
+    assert payload["SELECTOR_ABSTAIN_N"] == 163
+    assert payload["SELECTOR_ABSTAIN_YEAR_N"] == dict(EV.FROZEN_SELECTOR_ABSTAIN_YEAR_N)
+    assert payload["RULE_1_N"] != payload["SELECTOR_ABSTAIN_N"]
+    assert payload["RULE_1_N_MEANS_CONSTRUCTED_POPULATION"] is True
+    assert payload["CANONICAL_SELECTOR_DIGEST_FROZEN"] is True
+    assert EV.CANONICAL_SELECTOR_DIGEST_FROZEN is False
+    EV.bind_selector_identity_authority_census(payload)
+
+
 @pytest.mark.parametrize(
     "field,value,token",
     [
@@ -1395,6 +1534,9 @@ def test_missing_selector_identity_authority_fails_before_core(tmp_path):
         ({"CORE_BTC_SNAPSHOT_ID": "wrong-snapshot"}, "CORE_BTC_SNAPSHOT_ID"),
         ({"DESIGN_JSON_SHA256": "0" * 64}, "DESIGN_JSON_SHA256"),
         ({"RUN_IDENTITY": "wrong-run-identity"}, "RUN_IDENTITY"),
+        ({"SELECTOR_ABSTAIN_N": 1791}, "SELECTOR_ABSTAIN_N"),
+        ({"RULE_1_CONSTRUCTED_N": 163}, "RULE_1_CONSTRUCTED_N"),
+        ({"RULE_1_N": 163}, "RULE_1_N"),
     ],
 )
 def test_selector_authority_payload_mismatch_fails_before_core(tmp_path, mutate, token):
@@ -1423,16 +1565,14 @@ def test_selector_authority_payload_mismatch_fails_before_core(tmp_path, mutate,
 
 
 def make_census_population() -> tuple[list[C.DiscoveryRow], dict[int, PerpBar]]:
-    """Synthetic RULE_1 census (1791 / year counts) without real CORE BTC.
+    """Synthetic RULE_1 constructed census 1791 / selector abstain 163.
 
     Packed onto the legal RULE_1 interval so interval verification passes.
-    RV values are increasing after a 250-row warmup so the frozen
-    rv_abstention_mask selects exactly the census rows.
+    First 250 rows are warmup (never selected). Selected rows get strictly
+    increasing RV so frozen rv_abstention_mask fires on exactly those 163
+    indices with the frozen year abstain counts.
     """
-    n_warmup = 250
-    year_n = dict(FROZEN_RULE1_YEAR_N)
-    n_selected = int(sum(year_n.values()))
-    n_rows = n_warmup + n_selected
+    n_rows = int(FROZEN_RULE1_N)
     n_bars = n_rows + FUTURE_BARS - 1
     entry = 100.0
     down_frac, up_frac = 0.02, 0.01
@@ -1443,38 +1583,33 @@ def make_census_population() -> tuple[list[C.DiscoveryRow], dict[int, PerpBar]]:
             ms, entry, entry * (1.0 + up_frac), entry * (1.0 - down_frac), entry
         )
 
+    selected = set(frozen_split_census_selected_indices())
     rows: list[C.DiscoveryRow] = []
+    rank = 0
     index = 0
-
-    def _append(*, year: int, rv: float, side: float) -> None:
-        nonlocal index
-        t_ms = BASE_MS + index * BAR_MS
-        bars = [perp[t_ms + k * BAR_MS] for k in range(FUTURE_BARS)]
-        rows.append(
-            C.DiscoveryRow(
-                t_ms=int(t_ms),
-                year=int(year),
-                rv=float(rv),
-                ret=float(0.01 * side),
-                side=float(side),
-                severity=float(arithmetic_mae(float(side), float(entry), bars)),
-                entry_open=float(entry),
-                future_closes=tuple(bar.close for bar in bars),
-            )
-        )
-        index += 1
-
-    for i in range(n_warmup):
-        _append(year=2020, rv=0.0, side=1.0 if i % 2 == 0 else -1.0)
-    rv = 1.0
-    for year_s, count in year_n.items():
+    for year_s, count in FROZEN_RULE1_YEAR_N.items():
         for j in range(int(count)):
-            _append(
-                year=int(year_s),
-                rv=rv,
-                side=1.0 if j % 2 == 0 else -1.0,
+            t_ms = BASE_MS + index * BAR_MS
+            bars = [perp[t_ms + k * BAR_MS] for k in range(FUTURE_BARS)]
+            side = 1.0 if j % 2 == 0 else -1.0
+            if index in selected:
+                rv = 1_000_000.0 + float(rank)
+                rank += 1
+            else:
+                rv = 1.0
+            rows.append(
+                C.DiscoveryRow(
+                    t_ms=int(t_ms),
+                    year=int(year_s),
+                    rv=float(rv),
+                    ret=float(0.01 * side),
+                    side=float(side),
+                    severity=float(arithmetic_mae(float(side), float(entry), bars)),
+                    entry_open=float(entry),
+                    future_closes=tuple(bar.close for bar in bars),
+                )
             )
-            rv += 1.0
+            index += 1
     return rows, perp
 
 
@@ -1492,8 +1627,11 @@ def test_canonical_orchestration_uses_synthetic_loaders_and_hard_wired_contract(
     rows, perp = make_census_population()
     mask = C.rv_abstention_mask(rows)
     census = EV.verify_selector_identity(rows, mask)
+    assert census["RULE_1_CONSTRUCTED_ROW_COUNT"] == 1791
     assert census["RULE_1_ROW_COUNT"] == 1791
-    assert census["RULE_1_YEAR_BREAKDOWN"] == dict(FROZEN_RULE1_YEAR_N)
+    assert census["SELECTOR_ABSTAIN_COUNT"] == 163
+    assert census["RULE_1_CONSTRUCTED_YEAR_BREAKDOWN"] == dict(FROZEN_RULE1_YEAR_N)
+    assert census["SELECTOR_ABSTAIN_YEAR_BREAKDOWN"] == dict(EV.FROZEN_SELECTOR_ABSTAIN_YEAR_N)
     assert census["CANONICAL_SELECTOR_DIGEST_FROZEN"] is False
     assert len(census["SELECTOR_DIGEST"]) == 64
 
@@ -1542,7 +1680,8 @@ def test_canonical_orchestration_uses_synthetic_loaders_and_hard_wired_contract(
     assert result["CORE_BTC_SNAPSHOT_ID"] == C.CORE_BTC_SNAPSHOT
     assert result["SELECTOR_DIGEST"] == census["SELECTOR_DIGEST"]
     assert result["CANONICAL_SELECTOR_DIGEST"] == census["SELECTOR_DIGEST"]
-    assert result["CANONICAL_SELECTOR_DIGEST_FROZEN"] is False
+    assert result["CANONICAL_SELECTOR_DIGEST_FROZEN"] is True
+    assert EV.CANONICAL_SELECTOR_DIGEST_FROZEN is False
     assert result["REAL_DECOMPOSITION_OUTCOME_COMPUTED"] is False
     assert result["CLASSIFICATION"] in CLASSIFICATION_ORDER
 
@@ -1562,7 +1701,11 @@ def test_canonical_orchestration_hard_wires_evaluate_kwargs():
     assert "C.DISCOVERY_END" in source
     assert "SCIENTIFIC_RV_MASK" in source
     assert "load_selector_identity_authority" in source
+    assert "authority.get(\"CANONICAL_SELECTOR_DIGEST_FROZEN\")" in source
     assert source.index("SELECTOR_DIGEST_NE_CANONICAL") < source.index(
+        "evaluate_decomposition("
+    )
+    assert source.index("bind_selector_identity_authority_census") < source.index(
         "evaluate_decomposition("
     )
 
@@ -1626,8 +1769,14 @@ def test_same_census_different_timestamps_fail_exact_identity_before_evaluate():
     mask_b = C.rv_abstention_mask(rows_b)
     census_a = EV.verify_selector_identity(rows_a, mask_a)
     census_b = EV.verify_selector_identity(rows_b, mask_b)
-    assert census_a["RULE_1_ROW_COUNT"] == census_b["RULE_1_ROW_COUNT"]
-    assert census_a["RULE_1_YEAR_BREAKDOWN"] == census_b["RULE_1_YEAR_BREAKDOWN"]
+    assert census_a["RULE_1_CONSTRUCTED_ROW_COUNT"] == census_b["RULE_1_CONSTRUCTED_ROW_COUNT"]
+    assert census_a["SELECTOR_ABSTAIN_COUNT"] == census_b["SELECTOR_ABSTAIN_COUNT"] == 163
+    assert census_a["RULE_1_CONSTRUCTED_YEAR_BREAKDOWN"] == census_b[
+        "RULE_1_CONSTRUCTED_YEAR_BREAKDOWN"
+    ]
+    assert census_a["SELECTOR_ABSTAIN_YEAR_BREAKDOWN"] == census_b[
+        "SELECTOR_ABSTAIN_YEAR_BREAKDOWN"
+    ]
     assert census_a["SELECTOR_DIGEST"] != census_b["SELECTOR_DIGEST"]
     called = {"eval": False}
 

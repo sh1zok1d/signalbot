@@ -37,6 +37,8 @@ from scripts.research.d2_excess_path_risk_beyond_vol_clustering_design import (
     CLASSIFICATION_ORDER,
     CONTROL_STRATA,
     CONTROL_YEARS,
+    D2_DISCOVERY_RESULT_REL,
+    FROZEN_D2_DISCOVERY_SHA256,
     FROZEN_RULE1_N,
     FROZEN_RULE1_YEAR_N,
     JSON_REL as DESIGN_JSON_REL,
@@ -103,6 +105,23 @@ SELECTOR_IDENTITY_AUTHORITY_UNIT = (
 SELECTOR_IDENTITY_AUTHORITY_KIND = "PRE_OUTCOME_SELECTOR_IDENTITY_AUTHORITY"
 SELECTOR_DIGEST_ALGORITHM = "SHA256_ORDERED_T_MS_AND_SELECTOR_FLAGS_V1"
 SELECTOR_DIGEST_VERSION = 1
+# Historical identity facts bound to frozen D2 discovery result SHA
+# FROZEN_D2_DISCOVERY_SHA256. FROZEN_RULE1_N is the CONSTRUCTED RULE_1
+# population (len(rows) / RULE_1_ROW_COUNT / YEAR_BREAKDOWN.RULE_1).
+# It is NEVER the selector mask sum. SELECTOR_ABSTAIN_* is
+# PRIMARY_METRICS.RV_ABSTENTION.ABSTAIN_COUNT / YEAR_ABSTAIN_COUNTS.
+# See frozen_d2_selector_identity_facts().
+FROZEN_SELECTOR_ABSTAIN_N = 163
+FROZEN_SELECTOR_ABSTAIN_YEAR_N = {
+    "2020": 10,
+    "2021": 48,
+    "2022": 32,
+    "2023": 23,
+    "2024": 50,
+}
+FROZEN_SELECTOR_ABSTAIN_PROVENANCE = (
+    "PRIMARY_METRICS.RV_ABSTENTION.ABSTAIN_COUNT/YEAR_ABSTAIN_COUNTS"
+)
 
 IMPLEMENTATION_FILES = (
     "scripts/research/d2_excess_path_risk_evaluator.py",
@@ -172,8 +191,15 @@ SELECTOR_IDENTITY_AUTHORITY_REQUIRED_KEYS = (
     "SELECTOR_DIGEST_ALGORITHM",
     "SELECTOR_DIGEST_VERSION",
     "CANONICAL_SELECTOR_DIGEST",
+    "RULE_1_CONSTRUCTED_N",
+    "RULE_1_CONSTRUCTED_YEAR_N",
     "RULE_1_N",
     "RULE_1_YEAR_N",
+    "RULE_1_N_MEANS_CONSTRUCTED_POPULATION",
+    "SELECTOR_ABSTAIN_N",
+    "SELECTOR_ABSTAIN_YEAR_N",
+    "FROZEN_D2_DISCOVERY_SHA256",
+    "SELECTOR_ABSTAIN_PROVENANCE",
     "DESIGN_JSON_SHA256",
     "IMPLEMENTATION_REVIEW_JSON_SHA256",
     "RUN_IDENTITY",
@@ -186,7 +212,7 @@ class ExecutionNotAuthorized(RuntimeError):
 
 
 class SelectorIdentityError(RuntimeError):
-    """Reconstructed RULE_1 mask is not the frozen census and/or digest."""
+    """Reconstructed RULE_1 constructed/abstain census and/or digest failed."""
 
 
 class FuturePathReconstructionError(RuntimeError):
@@ -333,25 +359,103 @@ def selector_digest(
     return C.sha256_bytes(encoded)
 
 
-def selector_identity(
+def _year_breakdown(
     rows: Sequence[C.DiscoveryRow],
-    mask: np.ndarray,
-) -> dict[str, Any]:
-    """RULE_1 mask census plus exact ordered digest. Does not modify the selector."""
-    mask_arr = np.asarray(mask, dtype=bool)
-    if mask_arr.shape[0] != len(rows):
-        raise SelectorIdentityError("MASK_ROW_SHAPE")
+    include: Sequence[bool],
+) -> dict[str, int]:
     year_counts = {year: 0 for year in CONTROL_YEARS}
-    for row, flag in zip(rows, mask_arr.tolist(), strict=True):
+    for row, flag in zip(rows, include, strict=True):
         if not flag:
             continue
         key = str(int(row.year))
         if key not in year_counts:
             raise SelectorIdentityError(f"UNEXPECTED_YEAR:{key}")
         year_counts[key] += 1
+    return year_counts
+
+
+def frozen_d2_selector_identity_facts(repo: Path) -> dict[str, Any]:
+    """Read constructed and abstain censuses from the frozen D2 result.
+
+    Does not rebuild rows, open CORE OHLC, or compute a new outcome.
+    Fails closed if the discovery-result bytes have drifted from
+    FROZEN_D2_DISCOVERY_SHA256.
+    """
+    path = repo / D2_DISCOVERY_RESULT_REL
+    digest = file_sha256(path)
+    if digest != FROZEN_D2_DISCOVERY_SHA256:
+        raise SelectorIdentityError("D2_DISCOVERY_RESULT_SHA")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    rv = (payload.get("PRIMARY_METRICS") or {}).get("RV_ABSTENTION") or {}
+    constructed_year = {
+        str(year): int((payload.get("RULE_1_YEAR_BREAKDOWN") or {}).get(year, -1))
+        for year in CONTROL_YEARS
+    }
+    abstain_year = {
+        str(year): int((rv.get("YEAR_ABSTAIN_COUNTS") or {}).get(year, -1))
+        for year in CONTROL_YEARS
+    }
     return {
-        "RULE_1_ROW_COUNT": int(mask_arr.sum()),
-        "RULE_1_YEAR_BREAKDOWN": year_counts,
+        "FROZEN_D2_DISCOVERY_SHA256": digest,
+        "RULE_1_CONSTRUCTED_N": int(payload.get("RULE_1_ROW_COUNT") or -1),
+        "RULE_1_CONSTRUCTED_YEAR_N": constructed_year,
+        "SELECTOR_ABSTAIN_N": int(rv.get("ABSTAIN_COUNT") or -1),
+        "SELECTOR_ABSTAIN_YEAR_N": abstain_year,
+        "SELECTOR_ABSTAIN_PROVENANCE": FROZEN_SELECTOR_ABSTAIN_PROVENANCE,
+        "D2_DISCOVERY_RESULT_REL": D2_DISCOVERY_RESULT_REL,
+    }
+
+
+def verify_frozen_selector_identity_facts(repo: Path) -> dict[str, Any]:
+    """Fail closed unless evaluator constants match SHA-bound D2 facts."""
+    facts = frozen_d2_selector_identity_facts(repo)
+    if int(facts["RULE_1_CONSTRUCTED_N"]) != int(FROZEN_RULE1_N):
+        raise SelectorIdentityError(
+            f"FROZEN_RULE1_N:{facts['RULE_1_CONSTRUCTED_N']}!={FROZEN_RULE1_N}"
+        )
+    if dict(facts["RULE_1_CONSTRUCTED_YEAR_N"]) != dict(FROZEN_RULE1_YEAR_N):
+        raise SelectorIdentityError(
+            f"FROZEN_RULE1_YEAR_N:{facts['RULE_1_CONSTRUCTED_YEAR_N']}"
+        )
+    if int(facts["SELECTOR_ABSTAIN_N"]) != int(FROZEN_SELECTOR_ABSTAIN_N):
+        raise SelectorIdentityError(
+            f"FROZEN_SELECTOR_ABSTAIN_N:{facts['SELECTOR_ABSTAIN_N']}"
+            f"!={FROZEN_SELECTOR_ABSTAIN_N}"
+        )
+    if dict(facts["SELECTOR_ABSTAIN_YEAR_N"]) != dict(FROZEN_SELECTOR_ABSTAIN_YEAR_N):
+        raise SelectorIdentityError(
+            f"FROZEN_SELECTOR_ABSTAIN_YEAR_N:{facts['SELECTOR_ABSTAIN_YEAR_N']}"
+        )
+    return facts
+
+
+def selector_identity(
+    rows: Sequence[C.DiscoveryRow],
+    mask: np.ndarray,
+) -> dict[str, Any]:
+    """Two-census RULE_1 identity plus exact ordered digest.
+
+    Constructed census is len(rows) / all-row year counts.
+    Selector/abstain census is mask.sum() / selected-row year counts.
+    RULE_1_ROW_COUNT is a backwards-compatible alias for the constructed
+    population and is never mask.sum(). Does not modify the selector.
+    """
+    mask_arr = np.asarray(mask, dtype=bool)
+    if mask_arr.shape[0] != len(rows):
+        raise SelectorIdentityError("MASK_ROW_SHAPE")
+    flags = [bool(flag) for flag in mask_arr.tolist()]
+    constructed_years = _year_breakdown(rows, [True] * len(rows))
+    abstain_years = _year_breakdown(rows, flags)
+    constructed_n = int(len(rows))
+    abstain_n = int(mask_arr.sum())
+    return {
+        "RULE_1_CONSTRUCTED_ROW_COUNT": constructed_n,
+        "RULE_1_CONSTRUCTED_YEAR_BREAKDOWN": constructed_years,
+        "RULE_1_ROW_COUNT": constructed_n,
+        "RULE_1_YEAR_BREAKDOWN": constructed_years,
+        "RULE_1_N_MEANS_CONSTRUCTED_POPULATION": True,
+        "SELECTOR_ABSTAIN_COUNT": abstain_n,
+        "SELECTOR_ABSTAIN_YEAR_BREAKDOWN": abstain_years,
         "SELECTOR_DIGEST": selector_digest(rows, mask_arr),
         "CANONICAL_SELECTOR_DIGEST_FROZEN": CANONICAL_SELECTOR_DIGEST_FROZEN,
         "CENSUS_IS_NOT_EXACT_IDENTITY": True,
@@ -362,18 +466,38 @@ def verify_selector_identity(
     rows: Sequence[C.DiscoveryRow],
     mask: np.ndarray,
 ) -> dict[str, Any]:
-    """Fail closed on the frozen 1791 / year census (secondary).
+    """Fail closed on frozen constructed AND historical abstain censuses.
 
-    Also returns the exact ordered selector digest. That digest is NOT frozen
-    in this unit and is therefore not compared to a guessed canonical value.
+    Constructed N/years are FROZEN_RULE1_N / FROZEN_RULE1_YEAR_N (1791 /
+    334,364,364,364,365). Selector abstain N/years are
+    FROZEN_SELECTOR_ABSTAIN_N / FROZEN_SELECTOR_ABSTAIN_YEAR_N (163 /
+    10,48,32,23,50), bound to frozen D2 PRIMARY_METRICS.RV_ABSTENTION.
+    The ordered digest is computed but not compared to a guessed canonical
+    value in this unit.
     """
     census = selector_identity(rows, mask)
+    if int(census["RULE_1_CONSTRUCTED_ROW_COUNT"]) != int(FROZEN_RULE1_N):
+        raise SelectorIdentityError(
+            f"RULE_1_CONSTRUCTED_N:{census['RULE_1_CONSTRUCTED_ROW_COUNT']}"
+            f"!={FROZEN_RULE1_N}"
+        )
+    if census["RULE_1_CONSTRUCTED_YEAR_BREAKDOWN"] != dict(FROZEN_RULE1_YEAR_N):
+        raise SelectorIdentityError(
+            f"RULE_1_CONSTRUCTED_YEAR_N:{census['RULE_1_CONSTRUCTED_YEAR_BREAKDOWN']}"
+        )
     if int(census["RULE_1_ROW_COUNT"]) != int(FROZEN_RULE1_N):
         raise SelectorIdentityError(
             f"RULE_1_N:{census['RULE_1_ROW_COUNT']}!={FROZEN_RULE1_N}"
         )
-    if census["RULE_1_YEAR_BREAKDOWN"] != dict(FROZEN_RULE1_YEAR_N):
-        raise SelectorIdentityError(f"RULE_1_YEAR_N:{census['RULE_1_YEAR_BREAKDOWN']}")
+    if int(census["SELECTOR_ABSTAIN_COUNT"]) != int(FROZEN_SELECTOR_ABSTAIN_N):
+        raise SelectorIdentityError(
+            f"SELECTOR_ABSTAIN_N:{census['SELECTOR_ABSTAIN_COUNT']}"
+            f"!={FROZEN_SELECTOR_ABSTAIN_N}"
+        )
+    if census["SELECTOR_ABSTAIN_YEAR_BREAKDOWN"] != dict(FROZEN_SELECTOR_ABSTAIN_YEAR_N):
+        raise SelectorIdentityError(
+            f"SELECTOR_ABSTAIN_YEAR_N:{census['SELECTOR_ABSTAIN_YEAR_BREAKDOWN']}"
+        )
     return census
 
 
@@ -706,7 +830,13 @@ def selector_identity_authority_payload(
     run_identity: str,
     core_btc_snapshot_id: str = C.CORE_BTC_SNAPSHOT,
 ) -> dict[str, Any]:
-    """Schema the future digest-freeze unit must write. Does not write the file."""
+    """Schema the future digest-freeze unit must write. Does not write the file.
+
+    RULE_1_N / RULE_1_YEAR_N are backwards-compatible aliases for the
+    CONSTRUCTED RULE_1 population. They are never the selector mask sum.
+    SELECTOR_ABSTAIN_* is the historical RV_ABSTENTION census from the
+    frozen D2 discovery result.
+    """
     return {
         "UNIT": SELECTOR_IDENTITY_AUTHORITY_UNIT,
         "KIND": SELECTOR_IDENTITY_AUTHORITY_KIND,
@@ -714,13 +844,69 @@ def selector_identity_authority_payload(
         "SELECTOR_DIGEST_ALGORITHM": SELECTOR_DIGEST_ALGORITHM,
         "SELECTOR_DIGEST_VERSION": int(SELECTOR_DIGEST_VERSION),
         "CANONICAL_SELECTOR_DIGEST": str(canonical_selector_digest),
+        "RULE_1_CONSTRUCTED_N": int(FROZEN_RULE1_N),
+        "RULE_1_CONSTRUCTED_YEAR_N": dict(FROZEN_RULE1_YEAR_N),
         "RULE_1_N": int(FROZEN_RULE1_N),
         "RULE_1_YEAR_N": dict(FROZEN_RULE1_YEAR_N),
+        "RULE_1_N_MEANS_CONSTRUCTED_POPULATION": True,
+        "SELECTOR_ABSTAIN_N": int(FROZEN_SELECTOR_ABSTAIN_N),
+        "SELECTOR_ABSTAIN_YEAR_N": dict(FROZEN_SELECTOR_ABSTAIN_YEAR_N),
+        "FROZEN_D2_DISCOVERY_SHA256": FROZEN_D2_DISCOVERY_SHA256,
+        "SELECTOR_ABSTAIN_PROVENANCE": FROZEN_SELECTOR_ABSTAIN_PROVENANCE,
         "DESIGN_JSON_SHA256": str(design_json_sha256),
         "IMPLEMENTATION_REVIEW_JSON_SHA256": str(implementation_review_json_sha256),
         "RUN_IDENTITY": str(run_identity),
         "CANONICAL_SELECTOR_DIGEST_FROZEN": True,
     }
+
+
+def _authority_year_map(
+    value: Any, expected: Mapping[str, int], label: str
+) -> dict[str, int]:
+    try:
+        got = {str(k): int(v) for k, v in dict(value or {}).items()}
+    except (TypeError, ValueError) as exc:
+        raise SelectorIdentityError(f"SELECTOR_AUTHORITY_MISMATCH:{label}") from exc
+    if got != {str(k): int(v) for k, v in dict(expected).items()}:
+        raise SelectorIdentityError(f"SELECTOR_AUTHORITY_MISMATCH:{label}")
+    return got
+
+
+def bind_selector_identity_authority_census(stored: Mapping[str, Any]) -> None:
+    """Fail closed on constructed vs abstain census fields in the authority."""
+    try:
+        constructed_n = int(stored.get("RULE_1_CONSTRUCTED_N"))
+        alias_n = int(stored.get("RULE_1_N"))
+        abstain_n = int(stored.get("SELECTOR_ABSTAIN_N"))
+    except (TypeError, ValueError) as exc:
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:CENSUS_N") from exc
+    if constructed_n != int(FROZEN_RULE1_N):
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:RULE_1_CONSTRUCTED_N")
+    if alias_n != int(FROZEN_RULE1_N):
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:RULE_1_N")
+    if constructed_n != alias_n:
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:RULE_1_N_NE_CONSTRUCTED")
+    if abstain_n != int(FROZEN_SELECTOR_ABSTAIN_N):
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:SELECTOR_ABSTAIN_N")
+    if stored.get("RULE_1_N_MEANS_CONSTRUCTED_POPULATION") is not True:
+        raise SelectorIdentityError(
+            "SELECTOR_AUTHORITY_MISMATCH:RULE_1_N_MEANS_CONSTRUCTED_POPULATION"
+        )
+    _authority_year_map(
+        stored.get("RULE_1_CONSTRUCTED_YEAR_N"),
+        FROZEN_RULE1_YEAR_N,
+        "RULE_1_CONSTRUCTED_YEAR_N",
+    )
+    _authority_year_map(stored.get("RULE_1_YEAR_N"), FROZEN_RULE1_YEAR_N, "RULE_1_YEAR_N")
+    _authority_year_map(
+        stored.get("SELECTOR_ABSTAIN_YEAR_N"),
+        FROZEN_SELECTOR_ABSTAIN_YEAR_N,
+        "SELECTOR_ABSTAIN_YEAR_N",
+    )
+    if str(stored.get("FROZEN_D2_DISCOVERY_SHA256")) != FROZEN_D2_DISCOVERY_SHA256:
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:FROZEN_D2_DISCOVERY_SHA256")
+    if str(stored.get("SELECTOR_ABSTAIN_PROVENANCE")) != FROZEN_SELECTOR_ABSTAIN_PROVENANCE:
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:SELECTOR_ABSTAIN_PROVENANCE")
 
 
 def _canonical_digest_hex(value: Any) -> str:
@@ -761,15 +947,7 @@ def verify_selector_identity_authority_payload(
     if version != int(SELECTOR_DIGEST_VERSION):
         raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:SELECTOR_DIGEST_VERSION")
     _canonical_digest_hex(stored.get("CANONICAL_SELECTOR_DIGEST"))
-    try:
-        rule_n = int(stored.get("RULE_1_N"))
-    except (TypeError, ValueError) as exc:
-        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:RULE_1_N") from exc
-    if rule_n != int(FROZEN_RULE1_N):
-        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:RULE_1_N")
-    year_n = stored.get("RULE_1_YEAR_N")
-    if dict(year_n or {}) != dict(FROZEN_RULE1_YEAR_N):
-        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:RULE_1_YEAR_N")
+    bind_selector_identity_authority_census(stored)
     if str(stored.get("DESIGN_JSON_SHA256")) != str(design_json_sha256):
         raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:DESIGN_JSON_SHA256")
     if str(stored.get("IMPLEMENTATION_REVIEW_JSON_SHA256")) != str(
@@ -937,10 +1115,9 @@ def canonical_orchestration(
     frozen_digest = _canonical_digest_hex(authority.get("CANONICAL_SELECTOR_DIGEST"))
     if str(authority.get("CORE_BTC_SNAPSHOT_ID")) != snapshot_id:
         raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:CORE_BTC_SNAPSHOT_ID")
-    if int(authority.get("RULE_1_N") or -1) != int(FROZEN_RULE1_N):
-        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:RULE_1_N")
-    if dict(authority.get("RULE_1_YEAR_N") or {}) != dict(FROZEN_RULE1_YEAR_N):
-        raise SelectorIdentityError("SELECTOR_AUTHORITY_MISMATCH:RULE_1_YEAR_N")
+    bind_selector_identity_authority_census(authority)
+    if authority.get("CANONICAL_SELECTOR_DIGEST_FROZEN") is not True:
+        raise SelectorIdentityError("SELECTOR_AUTHORITY_NOT_FROZEN")
     perp = load_core_bars()
     rows = build_rows_fn(perp, C.RULE1_INTERVAL_START, C.DISCOVERY_END)
     verify_constructed_rule1_interval(rows)
@@ -960,7 +1137,9 @@ def canonical_orchestration(
     )
     result["SELECTOR_DIGEST"] = census["SELECTOR_DIGEST"]
     result["CANONICAL_SELECTOR_DIGEST"] = frozen_digest
-    result["CANONICAL_SELECTOR_DIGEST_FROZEN"] = CANONICAL_SELECTOR_DIGEST_FROZEN
+    result["CANONICAL_SELECTOR_DIGEST_FROZEN"] = bool(
+        authority.get("CANONICAL_SELECTOR_DIGEST_FROZEN") is True
+    )
     result["SELECTOR_DIGEST_ALGORITHM"] = SELECTOR_DIGEST_ALGORITHM
     result["CORE_BTC_SNAPSHOT_ID"] = snapshot_id
     result["BUILD_ROWS_INTERVAL_START"] = C.RULE1_INTERVAL_START.strftime(
@@ -1055,6 +1234,12 @@ def frozen_contract_summary(repo: Path) -> dict[str, Any]:
         "CLASSIFICATION_ORDER": list(CLASSIFICATION_ORDER),
         "FROZEN_RULE1_N": int(FROZEN_RULE1_N),
         "FROZEN_RULE1_YEAR_N": dict(FROZEN_RULE1_YEAR_N),
+        "FROZEN_RULE1_N_MEANS_CONSTRUCTED_POPULATION": True,
+        "FROZEN_SELECTOR_ABSTAIN_N": int(FROZEN_SELECTOR_ABSTAIN_N),
+        "FROZEN_SELECTOR_ABSTAIN_YEAR_N": dict(FROZEN_SELECTOR_ABSTAIN_YEAR_N),
+        "FROZEN_SELECTOR_ABSTAIN_PROVENANCE": FROZEN_SELECTOR_ABSTAIN_PROVENANCE,
+        "FROZEN_D2_DISCOVERY_SHA256": FROZEN_D2_DISCOVERY_SHA256,
+        "SELECTOR_IDENTITY_FACTS": verify_frozen_selector_identity_facts(repo),
         "RV_TRAILING_WINDOW": int(RV_TRAILING_WINDOW),
         "RV_PCTL": float(RV_PCTL),
         "FUTURE_BARS": int(FUTURE_BARS),
@@ -1081,6 +1266,8 @@ __all__ = [
     "EXECUTION_AUTHORIZED",
     "EXECUTION_PERMIT_REL",
     "EXECUTION_READY",
+    "FROZEN_SELECTOR_ABSTAIN_N",
+    "FROZEN_SELECTOR_ABSTAIN_YEAR_N",
     "IMPLEMENTATION_FILES",
     "PERMIT_VERIFIER_READY",
     "REVIEW_JSON_REL",
@@ -1097,6 +1284,7 @@ __all__ = [
     "PermitAuthorityError",
     "SelectorIdentityError",
     "TargetRow",
+    "bind_selector_identity_authority_census",
     "build_target_rows",
     "canonical_orchestration",
     "compute_run_identity",
@@ -1106,6 +1294,7 @@ __all__ = [
     "evaluate_decomposition",
     "execute_decomposition",
     "frozen_contract_summary",
+    "frozen_d2_selector_identity_facts",
     "future_bars_for_row",
     "load_canonical_core_btc_bars",
     "load_selector_identity_authority",
@@ -1116,6 +1305,7 @@ __all__ = [
     "target_row_from_discovery_row",
     "tracked_permit_expected_authority",
     "verify_core_btc_snapshot_identity",
+    "verify_frozen_selector_identity_facts",
     "verify_selector_identity",
     "verify_selector_identity_authority",
     "verify_selector_identity_authority_payload",

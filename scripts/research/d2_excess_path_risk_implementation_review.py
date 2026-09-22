@@ -39,6 +39,8 @@ from scripts.research.d2_excess_path_risk_evaluator import (
     EXECUTION_AUTHORIZED,
     EXECUTION_PERMIT_REL,
     EXECUTION_READY,
+    FROZEN_SELECTOR_ABSTAIN_N,
+    FROZEN_SELECTOR_ABSTAIN_YEAR_N,
     IMPLEMENTATION_FILES,
     PERMIT_VERIFIER_READY,
     REVIEW_JSON_REL,
@@ -110,9 +112,13 @@ RED_TEAM: dict[str, dict[str, str]] = {
         "note": (
             "The selector is frozen C.rv_abstention_mask (identity-asserted), "
             "RV_TRAILING_WINDOW=250, RV_PCTL=90.0, strict >, t excluded, imported "
-            "not redefined. The 1791 / year-count census is a secondary integrity "
-            "check only. Exact identity is SHA256 of the ordered constructed-row "
-            "t_ms plus selector flags; that machinery is implemented and tested. "
+            "not redefined. Selector identity reports TWO censuses: constructed "
+            "RULE_1 N=1791 / years 334,364,364,364,365 (FROZEN_RULE1_N, never "
+            "mask.sum()) and historical selector abstain N=163 / years "
+            "10,48,32,23,50 bound to frozen D2 PRIMARY_METRICS.RV_ABSTENTION. "
+            "Those count-only censuses are secondary integrity checks only. Exact "
+            "identity is SHA256 of the ordered constructed-row t_ms plus selector "
+            "flags; that machinery is implemented and tested. "
             "canonical_orchestration compares the reconstructed digest to a tracked "
             "selector-identity authority BEFORE evaluate_decomposition. The authority "
             "artifact is NOT created in this unit "
@@ -333,6 +339,9 @@ def build_review(*, repo: Path, implementation_commit: str | None = None) -> dic
         "PRIMARY_COMPARATOR": PRIMARY_COMPARATOR,
         "FROZEN_RULE1_N": int(FROZEN_RULE1_N),
         "FROZEN_RULE1_YEAR_N": dict(FROZEN_RULE1_YEAR_N),
+        "FROZEN_RULE1_N_MEANS_CONSTRUCTED_POPULATION": True,
+        "FROZEN_SELECTOR_ABSTAIN_N": int(FROZEN_SELECTOR_ABSTAIN_N),
+        "FROZEN_SELECTOR_ABSTAIN_YEAR_N": dict(FROZEN_SELECTOR_ABSTAIN_YEAR_N),
         "CORE_BTC_SNAPSHOT": C.CORE_BTC_SNAPSHOT,
         "FINAL_IMPLEMENTATION_COMMIT": commit,
         "FINAL_IMPLEMENTATION_TREE": tree,
@@ -431,6 +440,9 @@ def build_review(*, repo: Path, implementation_commit: str | None = None) -> dic
         "N_RANDOM_CONTROLS": int(N_RANDOM_CONTROLS),
         "FROZEN_RULE1_N": int(FROZEN_RULE1_N),
         "FROZEN_RULE1_YEAR_N": dict(FROZEN_RULE1_YEAR_N),
+        "FROZEN_RULE1_N_MEANS_CONSTRUCTED_POPULATION": True,
+        "FROZEN_SELECTOR_ABSTAIN_N": int(FROZEN_SELECTOR_ABSTAIN_N),
+        "FROZEN_SELECTOR_ABSTAIN_YEAR_N": dict(FROZEN_SELECTOR_ABSTAIN_YEAR_N),
         "SURFACE": {
             "DATASET": "CORE_BTC_BINANCE_V0",
             "SNAPSHOT": C.CORE_BTC_SNAPSHOT,
@@ -501,6 +513,10 @@ def render_markdown(review: dict[str, Any]) -> str:
     year_n = ", ".join(
         f"{year}={count}" for year, count in sorted(review["FROZEN_RULE1_YEAR_N"].items())
     )
+    abstain_year_n = ", ".join(
+        f"{year}={count}"
+        for year, count in sorted(review["FROZEN_SELECTOR_ABSTAIN_YEAR_N"].items())
+    )
     return f"""# D2 excess direction-aligned path-risk — implementation review
 
 **Unit:** `{review["unit"]}`
@@ -532,7 +548,8 @@ TEMPORAL_GATE      = {review["TEMPORAL_GATE"]}
 RANDOM_SEED        = {review["RANDOM_SEED"]}
 N_RANDOM_CONTROLS  = {review["N_RANDOM_CONTROLS"]}
 CONTROL_P95_METHOD = {review["CONTROL_P95_METHOD"]}
-FROZEN_RULE1_N     = {review["FROZEN_RULE1_N"]} ({year_n})
+FROZEN_RULE1_N     = {review["FROZEN_RULE1_N"]} ({year_n})  # CONSTRUCTED population, never mask.sum()
+FROZEN_SELECTOR_ABSTAIN_N = {review["FROZEN_SELECTOR_ABSTAIN_N"]} ({abstain_year_n})
 ```
 
 Classification order is unchanged and exhaustive:
@@ -584,7 +601,8 @@ exists. `execute_decomposition` is the full dormant canonical route and
 still fails closed before any CORE BTC OHLC is read. The route requires
 the future tracked selector-identity authority (bound by permit SHA256)
 and compares the reconstructed ordered digest to that frozen digest
-before `evaluate_decomposition`. Count-only 1791/year census is secondary.
+before `evaluate_decomposition`. Constructed 1791/year census and historical
+163/year abstain census are secondary; `RULE_1_N` means constructed N.
 
 ## Red-team (F1–F20)
 
