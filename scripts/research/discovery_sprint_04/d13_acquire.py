@@ -33,6 +33,14 @@ MONTH_MIN = "2019-12"
 MONTH_MAX = "2024-12"
 PROTECTED_MONTH_RE = re.compile(r"(?:^|/)(2025|2026)-\d{2}(?:/|\.zip)")
 NS = {"s3": "http://s3.amazonaws.com/doc/2006-03-01/"}
+# Top-level symbol-prefix pages are tracked scientific enumeration authority.
+SYMBOL_ENUMERATION_LISTING_DOCS_REL = (
+    "docs/research_data/SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0/listings"
+)
+# Per-symbol ListBucket XML is acquisition runtime, not D13 snapshot identity.
+PER_SYMBOL_LISTING_ARTIFACT_REL = (
+    "artifacts/research_data/SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0/listings/per_symbol_1d"
+)
 
 
 class ProtectedYearRefused(RuntimeError):
@@ -121,6 +129,12 @@ def paginate_listings(
     dest_dir: Path,
     stem: str,
 ) -> dict[str, Any]:
+    """Page ListBucket XML to dest_dir.
+
+    Symbol-prefix enumeration pages belong under the tracked docs listings
+    directory. Per-symbol 1d pages must go to PER_SYMBOL_LISTING_ARTIFACT_REL
+    (gitignored artifacts/), never docs/. Raw XML is not D13_SNAPSHOT_ID.
+    """
     dest_dir.mkdir(parents=True, exist_ok=True)
     pages: list[dict[str, Any]] = []
     marker = ""

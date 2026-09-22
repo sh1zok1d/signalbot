@@ -69,6 +69,9 @@ def parse_kline_presence(csv_text: str) -> list[PresenceDay]:
     return out
 
 
+INDEX_LEDGER_KEYSET_MISMATCH = "INDEX_LEDGER_KEYSET_MISMATCH"
+
+
 def read_zip_presence(path: Path) -> list[PresenceDay]:
     C.assert_openable(path)
     with zipfile.ZipFile(path) as zf:
@@ -77,18 +80,113 @@ def read_zip_presence(path: Path) -> list[PresenceDay]:
     return parse_kline_presence(text)
 
 
+def load_object_ledger(*, repo: Path | None = None) -> dict[str, Any]:
+    base = repo or C.repo_root()
+    ledger_path = base / DOCS_REL / "object_ledger.json"
+    if not ledger_path.is_file():
+        raise C.MissingLocalData("D13_OBJECT_LEDGER_MISSING")
+    return json.loads(ledger_path.read_text(encoding="utf-8"))
+
+
+def load_object_key_index(*, repo: Path | None = None) -> dict[str, Any]:
+    """Provenance/acquisition metadata only. Not scientific file-set authority."""
+
+    base = repo or C.repo_root()
+    index_path = base / DOCS_REL / "object_key_index.json"
+    if not index_path.is_file():
+        raise C.MissingLocalData("D13_OBJECT_KEY_INDEX_MISSING")
+    return json.loads(index_path.read_text(encoding="utf-8"))
+
+
+def assert_ledger_key_integrity(ledger: Mapping[str, Any]) -> list[str]:
+    """Fail-closed unique legal-month ledger keys. Do not compare counts only."""
+
+    objects = ledger.get("objects")
+    if not isinstance(objects, list):
+        raise C.Sprint04IntegrityError("D13_LEDGER_OBJECTS_MISSING")
+    keys: list[str] = []
+    seen: set[str] = set()
+    for obj in objects:
+        key = obj["key"]
+        refuse_protected_object(key)
+        match = ACQ.OBJECT_RE.match(key)
+        if not match:
+            raise C.Sprint04IntegrityError(f"D13_BAD_OBJECT_KEY:{key}")
+        month = match.group(2)
+        if not ACQ.month_allowed(month):
+            raise C.Sprint04IntegrityError(f"D13_ILLEGAL_MONTH:{key}:{month}")
+        if key in seen:
+            raise C.Sprint04IntegrityError(f"D13_DUPLICATE_LEDGER_KEY:{key}")
+        seen.add(key)
+        keys.append(key)
+    unique_n = len(seen)
+    if unique_n != len(keys):
+        raise C.Sprint04IntegrityError("D13_LEDGER_DUPLICATE_KEYS")
+    if len(objects) != unique_n:
+        raise C.Sprint04IntegrityError("D13_LEDGER_COUNT_MISMATCH")
+    if int(ledger.get("n_files", -1)) != unique_n:
+        raise C.Sprint04IntegrityError("D13_LEDGER_COUNT_MISMATCH")
+    return keys
+
+
+def legal_zip_keys_from_ledger(ledger: Mapping[str, Any]) -> list[str]:
+    """Snapshot-bound scientific file-key set. Sole runtime zip authority."""
+
+    return assert_ledger_key_integrity(ledger)
+
+
+def index_legal_zip_set(index: Mapping[str, Any]) -> set[str]:
+    zips = index.get("legal_zips")
+    if not isinstance(zips, list):
+        raise C.Sprint04IntegrityError("D13_INDEX_LEGAL_ZIPS_MISSING")
+    return set(zips)
+
+
+def assert_index_ledger_keyset_equal(
+    index: Mapping[str, Any],
+    ledger: Mapping[str, Any],
+) -> None:
+    """Exact-set equality. Counts-only comparison is not sufficient."""
+
+    ledger_keys = set(legal_zip_keys_from_ledger(ledger))
+    index_keys = index_legal_zip_set(index)
+    if index_keys != ledger_keys:
+        raise C.Sprint04IntegrityError(INDEX_LEDGER_KEYSET_MISMATCH)
+
+
+def verify_index_ledger_keyset(*, repo: Path | None = None) -> dict[str, Any]:
+    """Feasibility/integrity: index provenance set must equal bound ledger set."""
+
+    index = load_object_key_index(repo=repo)
+    ledger = load_object_ledger(repo=repo)
+    assert_index_ledger_keyset_equal(index, ledger)
+    keys = legal_zip_keys_from_ledger(ledger)
+    return {
+        "IDENTITY_OK": True,
+        "LEDGER_UNIQUE_N": len(keys),
+        "INDEX_UNIQUE_N": len(index_legal_zip_set(index)),
+        "RUNTIME_FILE_AUTHORITY": "SNAPSHOT_BOUND_OBJECT_LEDGER",
+    }
+
+
+def scientific_file_keys(*, repo: Path | None = None) -> list[str]:
+    """Legal zip keys for any scientific panel loader. Ledger-bound only."""
+
+    return legal_zip_keys_from_ledger(load_object_ledger(repo=repo))
+
+
 def load_presence_panel(
     *,
     repo: Path | None = None,
     symbols: Iterable[str] | None = None,
 ) -> dict[str, dict[int, PresenceDay]]:
+    """Load presence from ledger-bound zip keys. Does not read the unbound index."""
+
     base = repo or C.repo_root()
     raw_root = base / RAW_REL
-    docs = base / DOCS_REL
-    index = json.loads((docs / "object_key_index.json").read_text(encoding="utf-8"))
     wanted = None if symbols is None else set(symbols)
     panel: dict[str, dict[int, PresenceDay]] = {}
-    for key in index["legal_zips"]:
+    for key in scientific_file_keys(repo=base):
         refuse_protected_object(key)
         match = ACQ.OBJECT_RE.match(key)
         if not match:
@@ -110,12 +208,9 @@ def load_presence_panel(
 
 def verify_local_bytes_against_ledger(*, repo: Path | None = None) -> dict[str, Any]:
     base = repo or C.repo_root()
-    docs = base / DOCS_REL
     raw_root = base / RAW_REL
-    ledger_path = docs / "object_ledger.json"
-    if not ledger_path.is_file():
-        raise C.MissingLocalData("D13_OBJECT_LEDGER_MISSING")
-    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    ledger = load_object_ledger(repo=base)
+    keys = legal_zip_keys_from_ledger(ledger)
     verified = 0
     for obj in ledger["objects"]:
         key = obj["key"]
@@ -129,7 +224,7 @@ def verify_local_bytes_against_ledger(*, repo: Path | None = None) -> dict[str, 
         if obj["checksum_verification"] != "VERIFIED":
             raise C.SnapshotIdentityError(f"D13_CHECKSUM_NOT_VERIFIED:{key}")
         verified += 1
-    if verified != ledger["n_files"]:
+    if verified != len(keys) or verified != ledger["n_files"]:
         raise C.SnapshotIdentityError("D13_LEDGER_COUNT_MISMATCH")
     return {"VERIFIED_N": verified, "IDENTITY_OK": True}
 
@@ -300,5 +395,11 @@ def parse_scientific_closes(csv_text: str) -> dict[int, float]:
 
 
 def load_price_panel_real(*_args: Any, **_kwargs: Any) -> dict[str, dict[int, float]]:
+    """Real close-price loader. Forbidden in this unit.
+
+    A later authorized implementation MUST iterate scientific_file_keys()
+    (snapshot-bound object ledger), never object_key_index.legal_zips.
+    """
+
     C.refuse_real_scientific_execution()
     raise C.RealScientificOutcomeForbidden("D13_PRICE_PANEL_GUARD")

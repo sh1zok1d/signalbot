@@ -420,7 +420,15 @@ def test_implementation_freeze_binds_hashes_and_forbids_execution():
     current = C.implementation_hashes(REPO)
     assert freeze["IMPLEMENTATION_HASHES"] == current
     for finding in freeze["RED_TEAM"].values():
-        assert finding["STATUS"] in {"CONFIRMED", "NOT_CONFIRMED"}
+        assert finding["STATUS"] in {
+            "CONFIRMED",
+            "NOT_CONFIRMED",
+            "CONFIRMED_AND_FIXED_PRE_OUTCOME",
+        }
+    assert freeze["RED_TEAM"]["F20"]["STATUS"] == "CONFIRMED_AND_FIXED_PRE_OUTCOME"
+    assert freeze["F20_STATUS"] == "CONFIRMED_AND_FIXED_PRE_OUTCOME"
+    assert freeze["D13_RUNTIME_FILE_AUTHORITY"] == "SNAPSHOT_BOUND_OBJECT_LEDGER"
+    assert freeze["DATA_DURABILITY"]["D13_INDEX_LEDGER_EXACT_SET_VERIFIED"] is True
 
 
 

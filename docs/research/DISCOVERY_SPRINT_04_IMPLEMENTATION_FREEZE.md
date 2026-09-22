@@ -30,8 +30,10 @@ Classification precedence (both cards): `IDENTITY_OK` false → `INVALID_DISCOVE
 
 `CROSS_SECTIONAL_WEEKLY_RELATIVE_RETURN_STRUCTURE` on `SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0`. 735 USDT symbols enumerated from pinned S3 listings (not live `exchangeInfo`). 18296 legal 2019-12..2024-12 zips CHECKSUM-verified; 0 errors; 0 protected files fetched. `N=82` from eligible-count minimum. `NO_POST_T_CLOSE_SELECTED_N=0`. First Monday `2020-02-03`, last Monday `2024-12-23`. Pinned Regular User spot taker fee `0.001` from first-party `www.binance.info` HTML; friction floor `0.004`. Residual weekly IC serial dependence remains a declared discovery-stage limitation. Formation/holding returns and IC were not computed.
 
-Raw zips are gitignored. Restore with `python3 -m scripts.research.discovery_sprint_04.restore_d13_panel`. Scientific execution must fail closed if local bytes do not match the ledger.
+Raw zips are gitignored. Restore with `python3 -m scripts.research.discovery_sprint_04.restore_d13_panel`. The frozen object ledger — not `object_key_index.json` and not current S3 listing state — is scientific file-set authority. Scientific execution must fail closed if local bytes do not match the ledger.
 
 ## Red team (F1–F20)
 
-All twenty failure classes are `NOT_CONFIRMED` after the KLAYUSDT microsecond-timestamp normalize fix (false-positive protected-year refuse on two legal 2024-10 rows). See the JSON `RED_TEAM` object for evidence.
+F1–F19 remain `NOT_CONFIRMED` after the KLAYUSDT microsecond-timestamp normalize fix.
+
+F20 is `CONFIRMED_AND_FIXED_PRE_OUTCOME`. Original defect: runtime file-set authority `object_key_index` was not bound to snapshot identity, so a modified/subset index could change the loaded panel while the frozen file ledger still verified. Fix: runtime scientific file set derives from the snapshot-bound object ledger; index/ledger exact-set equality is verified fail-closed (`INDEX_LEDGER_KEYSET_MISMATCH`). No scientific outcomes were inspected. See the JSON `RED_TEAM` object for evidence.

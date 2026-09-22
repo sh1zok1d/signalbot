@@ -67,6 +67,7 @@ def run_d13(*, repo: Path) -> dict[str, Any]:
     if not pin_path.is_file():
         return _blocked("D13", "DEFERRED_PRACTICAL_FLOOR_NOT_PINNED", "fee PIN.json missing")
     try:
+        P.verify_index_ledger_keyset(repo=repo)
         byte_id = P.verify_local_bytes_against_ledger(repo=repo)
     except C.MissingLocalData as exc:
         return _blocked("D13", "D13_RAW_BYTES_NOT_RESTORABLE", str(exc))

@@ -5410,3 +5410,29 @@ NEXT_UNIT = DISCOVERY_SPRINT_04_D12_D13_ONE_SHOT_SCIENTIFIC_EXECUTION_DECISION
 
 Evidence: `docs/research/DISCOVERY_SPRINT_04_IMPLEMENTATION_FREEZE.{json,md}`,
 `docs/research_data/SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0/`.
+
+## 2026-09-22 — Discovery Sprint 04 F20 pre-outcome identity repair
+
+Targeted repair on PR #202 HEAD `f6e3ecbd`. F20 confirmed: runtime file-set
+authority `object_key_index` was not bound to `D13_SNAPSHOT_ID`. Runtime
+scientific file set now derives from the snapshot-bound object ledger;
+index/ledger exact-set equality is verified fail-closed. Raw per-symbol
+ListBucket XML removed from git. Snapshot identity, ledger digest, N, fee,
+seeds, and gates unchanged. No scientific outcomes inspected. D12/D13 not
+executed.
+
+```
+F20_STATUS = CONFIRMED_AND_FIXED_PRE_OUTCOME
+D13_RUNTIME_FILE_AUTHORITY = SNAPSHOT_BOUND_OBJECT_LEDGER
+INDEX_LEDGER_EXACT_SET_VERIFIED = true
+D13_SNAPSHOT_ID = fdd698c66ce894ba981665c1b4bd5661e7a13b275368ad89f532df9bcc455acd
+D13_FILE_LEDGER_DIGEST = fc38ea13756d7da9a8500420adcb8d918bcd7632367b0d7026fd31a1636c56cd
+D13_UNIVERSE_IDENTITY_DIGEST = 6a63aaa228d581be135b317baa4354bc3c000f7d3e6597886a0abc004b81fb61
+D13_N = 82
+D12_STATUS = OUTCOME_BLIND_IMPLEMENTATION_READY
+D13_STATUS = OUTCOME_BLIND_IMPLEMENTATION_READY
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+D12_EXECUTED = false
+D13_EXECUTED = false
+NEXT_UNIT = DISCOVERY_SPRINT_04_D12_D13_ONE_SHOT_SCIENTIFIC_EXECUTION_DECISION
+```

@@ -176,29 +176,34 @@
   "D13_SYMBOL_ENUMERATION_AUTHORITY": "0a8fe9dcd4b3206fb383c10e23c5bdbbfa6d5c414491dc3536fc6b69c267dec1",
   "D13_UNIVERSE_IDENTITY_DIGEST": "6a63aaa228d581be135b317baa4354bc3c000f7d3e6597886a0abc004b81fb61",
   "D13_UNIVERSE_IDENTITY_RULE": "Name-only exclusions; listing age T-35d; closes present at T-7d and T; N=min(100, min eligible count over decision Mondays); top-N by trailing 28d quote volume strictly before T; ordered selected list frozen per Monday.",
+  "F20_STATUS": "CONFIRMED_AND_FIXED_PRE_OUTCOME",
   "D7_CONFIRMATION_EXECUTED": false,
   "D7_RERUN_PERFORMED": false,
   "D8_EXECUTED": false,
   "DATA_DURABILITY": {
+    "D13_INDEX_LEDGER_EXACT_SET_VERIFIED": true,
     "D13_LEDGER_TRACKED": true,
+    "D13_OBJECT_KEY_INDEX_IS_PROVENANCE_ONLY": true,
     "D13_OBJECT_STORAGE": "NOT_AVAILABLE",
     "D13_RAW_GITIGNORED": true,
     "D13_RESTORE": "python3 -m scripts.research.discovery_sprint_04.restore_d13_panel",
+    "D13_RUNTIME_FILE_AUTHORITY": "SNAPSHOT_BOUND_OBJECT_LEDGER",
     "D13_SCIENTIFIC_EXECUTION_FAILS_CLOSED_IF_BYTES_MISMATCH": true,
     "DEBT": "RESEARCH_DATA_DURABILITY_V1_REQUIRED remains true; D13 payload bytes are local/gitignored and restorable from pinned Vision URLs + ledger SHA256."
   },
+  "D13_RUNTIME_FILE_AUTHORITY": "SNAPSHOT_BOUND_OBJECT_LEDGER",
   "EXECUTION_AUTHORIZED": false,
   "IMPLEMENTATION_HASHES": {
     "scripts/research/discovery_sprint_04/__init__.py": "fd5b9b9a4f8c276fc081a67bf3b9b931034784f177f3ad0fd893d1b34c0a77de",
     "scripts/research/discovery_sprint_04/common.py": "516d75a90f287ba11fc967f8130515d06d488b13dd36a76a6df289e88f68b126",
     "scripts/research/discovery_sprint_04/d12.py": "a0c52fc2e309cf0a9ae018aed0bdfcb3b14d6c8f63bd20d5e8acdb0469af2b42",
     "scripts/research/discovery_sprint_04/d13.py": "d043577e40cb65311ae71fe3e9da1669ea43aeef006e0fad08fd4639358841df",
-    "scripts/research/discovery_sprint_04/d13_acquire.py": "2cd0a4fcc31a21b9d9540b73a5c561552d4a484b55da3b41f0cf64aff56695e2",
+    "scripts/research/discovery_sprint_04/d13_acquire.py": "b6433108218b3271357399945647d3f995feb5b1348b7f9bedd6c25a529d9957",
     "scripts/research/discovery_sprint_04/d13_exclusions.py": "801460e0a925fd70ec4b3bae7b87fdae44da4cdbcdc248bcd70d6236beb46e92",
-    "scripts/research/discovery_sprint_04/d13_panel.py": "70e2586e2beb09beb9e5dc548a10e5a85cc5094724594f3f90c5dad70f9883fc",
+    "scripts/research/discovery_sprint_04/d13_panel.py": "0aaabc039abd327f56adb7c956932ea217380524d8d9a6bc9351c0df6a340d3f",
     "scripts/research/discovery_sprint_04/d13_terminal_mark.py": "9b616d1b47aad5b4cf501c06bb179c0ef795490f6a423c984ffbf1cdc14e8e6b",
     "scripts/research/discovery_sprint_04/evaluate.py": "8757513365a8f6139a0918f985f62b0f43f737585575be214e1774f18f041fa1",
-    "scripts/research/discovery_sprint_04/feasibility.py": "bdd1ab40df5f121a8f5185bc4ea63a3cd8ed936e21e05ec79b608aa87d99ad63",
+    "scripts/research/discovery_sprint_04/feasibility.py": "b80255a84616a07d67b1bc99e2db47bbeaafc2ffeb5a34e790a994cf0903ff4a",
     "scripts/research/discovery_sprint_04/restore_d13_panel.py": "e3f01322c0748aa92721c78ded7eddc41439832a649a78ad525b12f6cdd33cc3"
   },
   "KIND": "OUTCOME_BLIND_BATCH_FEASIBILITY_AND_IMPLEMENTATION",
@@ -256,8 +261,11 @@
       "STATUS": "NOT_CONFIRMED"
     },
     "F20": {
-      "EVIDENCE": "IMPLEMENTATION_HASHES bind all Sprint04 scientific files; D13_SNAPSHOT_ID binds enumeration digest + ledger digest + canonicalization version. EXECUTION_AUTHORIZED remains false.",
-      "STATUS": "NOT_CONFIRMED"
+      "EVIDENCE": "Runtime scientific file set derives from snapshot-bound object_ledger.json (FILE_LEDGER_DIGEST / D13_SNAPSHOT_ID). object_key_index.json is provenance only. Feasibility verifies SET(index.legal_zips)==SET(ledger.objects[*].key) and fail-closes on INDEX_LEDGER_KEYSET_MISMATCH. Original defect: runtime file-set authority object_key_index was not bound to snapshot identity. No scientific outcomes were inspected.",
+      "FIX": "runtime scientific file set derives from snapshot-bound object ledger; index/ledger exact-set equality is verified fail-closed",
+      "ORIGINAL_DEFECT": "runtime file-set authority object_key_index was not bound to snapshot identity",
+      "SCIENTIFIC_OUTCOMES_INSPECTED": false,
+      "STATUS": "CONFIRMED_AND_FIXED_PRE_OUTCOME"
     },
     "F3": {
       "EVIDENCE": "pseudo_sundays call the same window_days helper; eligibility is the same 5-of-6 complete-day rule.",
