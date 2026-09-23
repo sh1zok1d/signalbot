@@ -28,3 +28,9 @@ def test_invalid_cards(mutation):
 @pytest.mark.parametrize('s',['oops','{"x":1,"x":2}','{"x":NaN}'])
 def test_malformed_json(s):
     with pytest.raises(ContractError):parse_json(s)
+
+
+@pytest.mark.parametrize('key',['EXPECTED_PROBABILITY_OF_SUCCESS','expected-alpha','P_SUCCESS'])
+def test_success_fields_cannot_hide_in_dynamic_search_parameters(key):
+    x=card();x['SEARCH_SURFACE']['PARAMETERS'][key]=[0.8]
+    with pytest.raises(ContractError):validate_card(x,Contexts())

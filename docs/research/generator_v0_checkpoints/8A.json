@@ -1,0 +1,46 @@
+{
+  "BASE_MAIN_SHA": "58a49d25d7a9b730db402eb5ebe7c7fa0165ff33",
+  "BOUNDARY_FLAGS": {
+    "D14_CREATED": false,
+    "MARKET_07_CREATED": false,
+    "NEW_DATA_ACQUIRED": false,
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "REAL_LLM_CALLS_MADE": false,
+    "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+    "SPRINT05_CREATED": false
+  },
+  "CHECKPOINT_ID": "CHECKPOINT_8A",
+  "COMPLETED_SCOPE": [
+    "Adversarial follow-up: reject nested success/alpha fields",
+    "Three regressions",
+    "Final mock rerun"
+  ],
+  "FILES_CHANGED": [
+    "docs/research/GENERATOR_V0_ADVERSARIAL_REVIEW.md",
+    "docs/research/generator_v0_checkpoints/8A.json",
+    "docs/research/generator_v0_checkpoints/FINAL_ACCEPTANCE.json",
+    "scripts/research/generator_v0/schema.py",
+    "tests/research/test_generator_v0_schema.py"
+  ],
+  "FOCUSED_TESTS": "504 tests passed;compileall and diff check passed;two fresh mock runs equal",
+  "HEAD": "SELF: commit introducing this immutable checkpoint record",
+  "INVARIANTS_VERIFIED": [
+    "No paid LLM calls",
+    "No scientific execution",
+    "No data acquisition",
+    "Frozen design preserved"
+  ],
+  "KNOWN_LIMITATIONS": [
+    "No real LLM call or quality evaluation performed",
+    "Independent review pending; do not merge",
+    "Semantic critic judgments remain fallible; human review required",
+    "Source-only local checkout; final CI uses full checkout",
+    "Uncertain billed attempts require reconciliation, never automatic replay"
+  ],
+  "NEXT_ACTION": "Independent draft-PR review; credential and explicit budget required for real shadow campaign",
+  "PREVIOUS_CHECKPOINT_SHA": "8048e2b13cfbc0074c17b08303acf82b813f9285",
+  "REMAINING_SCOPE": [],
+  "STATUS": "PASS",
+  "TREE": "SELF^{tree}; resolved from Git, never a self-referential embedded hash"
+}

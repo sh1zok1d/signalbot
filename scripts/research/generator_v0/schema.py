@@ -23,6 +23,20 @@ def text(value):
     return isinstance(value,str) and bool(value.strip()) and len(value)<=12000
 
 def validate_card(card, contexts):
+    # SEARCH_SURFACE has dynamic parameter names; forbidden scoring fields must
+    # be refused recursively, not only at the 27-field root.
+    forbidden={'EXPECTED_PROBABILITY_OF_SUCCESS','EXPECTED_ALPHA','EXPECTED_PNL',
+               'EXPECTED_PROFIT','SUCCESS_PROBABILITY','PROBABILITY_OF_SUCCESS',
+               'PROBABILITY_OF_POSITIVE_RESULT','P_SUCCESS'}
+    def check_keys(value):
+        if isinstance(value,dict):
+            for key,item in value.items():
+                normalized=re.sub(r'[^A-Z0-9]+','_',str(key).upper()).strip('_')
+                if normalized in forbidden:raise ContractError('forbidden nested success or alpha field')
+                check_keys(item)
+        elif isinstance(value,list):
+            for item in value:check_keys(item)
+    check_keys(card)
     d=contexts.design
     if not isinstance(card,dict) or set(card)!=set(d['CANDIDATE_SCHEMA']['REQUIRED_FIELDS']):
         raise ContractError('candidate fields differ from frozen schema')

@@ -20,7 +20,7 @@ draft for independent review. No scientific outcomes or paid calls.
 | 12 blocked distinct mechanism suppressed | Five blocked regions tested for orthogonal and blocker-resolution routes |
 | 13 D4 mixed state | Both leaf states tested; parent cannot replace leaf coverage |
 | 14 malformed JSON | Duplicate keys, nonfinite values and malformed model output fail closed; paid raw answer retained |
-| 15 unexpected fields | Exact 27-field equality, strict role schemas |
+| 15 unexpected fields | Exact 27-field equality, recursive forbidden-score fields, strict role schemas |
 | 16 missing fields | Required falsifier/schema tests |
 | 17 timeout | Fake HTTP timeout retains full reservation, no retry |
 | 18 duplicate provider candidates | Duplicate IDs/slot violation rejected; semantic duplicate test routes later card out |
@@ -47,9 +47,13 @@ draft for independent review. No scientific outcomes or paid calls.
 5. Flat CI source mapping missed future nested-package-only edits. Generator
    source or authority changes now select the complete focused suite.
 
+6. Success/alpha fields could hide inside dynamic search parameter names.
+   Recursive field checks now reject these before any critic call; three
+   nested-field regressions pass.
+
 ## Validation scope
 
-113 focused Generator V0 tests; 501 tests in the combined integration subset.
+116 focused Generator V0 tests; 504 tests in the combined integration subset.
 Subset includes Sprint03/Sprint04 metadata contracts, PR-gate routing, general
 research-harness tests, data-quality and exchange-feature unit tests. These
 use synthetic fixtures; no market experiment is executed. Compilation and
