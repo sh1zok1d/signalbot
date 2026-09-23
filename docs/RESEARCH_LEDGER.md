@@ -5925,7 +5925,7 @@ with the deterministic ordinal order authoritative. Record:
 
 No research window, hypothesis or card consumed. No paid call, no protected
 data, no scientific outcome, no v6/v7 resume, no implementation patch.
-Independent corpus (207 cards) and audit tests (43 passed) of PR #214
+Independent corpus (207 cards) and audit tests (53 passed) of PR #214
 HEAD `ddda586dc7ea4a9589bc389eef7a6306d64f3d0c`. Verdict
 `B. LIMITED OFFLINE REPAIR REQUIRED`. v7 cumulative spend independently
 4,946,750 micro-USD. Sealed v7 SHA256 unchanged.

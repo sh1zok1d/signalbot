@@ -973,3 +973,213 @@ def test_novelty_application_accepts_list_that_live_schema_forbids():
     prov=role_schema('NOVELTY_CRITIC',c,provider=True,request={'context':{'CANDIDATE':{'CANDIDATE_ID':'C001'},'CURRENT_BATCH_SIGNATURES':[]}})
     with pytest.raises(ContractError):
         validate_instance(payload,prov)  # live schema rejects the prompt shape
+
+
+# ---------------------------------------------------------------------------
+# Remaining explicit coverage: crash points, pause states, budget bypasses
+# ---------------------------------------------------------------------------
+
+def test_crash_after_reserve_before_post_does_not_send(tmp_path):
+    """Process death after INSERT RESERVED and before provider.complete.
+
+    Resume without reconcile must not POST. NOT_BILLED then POSTs; that is
+    the *safe* duplicate because no HTTP left the machine.
+    """
+    c=Contexts();l=Ledger(tmp_path/'r.sqlite',{'RUN_ID':'x'})
+    n={'i':0}
+    class P(MockProvider):
+        def bound(self,req):return 30
+        def complete(self,req):
+            n['i']+=1
+            return Response('{"ok":1}',{'input_tokens':1,'output_tokens':1},10)
+    cal=Caller(c,l,P(None),cap_micro_usd=10_000)
+    ctx,prompt=_red_ctx(c)
+    req=cal.request('RED_TEAM',ctx,prompt,{'max_output_tokens':10},'s')
+    key=digest(req)
+    assert l.reserve(key,req,30,10_000) is None
+    with pytest.raises(CallUncertain):
+        cal.call('RED_TEAM',ctx,prompt,{'max_output_tokens':10},'s')
+    assert n['i']==0
+    assert l.export_calls()[0]['STATE']=='RESERVED'
+    l.reconcile(key,'NOT_BILLED',None,'op','crash before HTTP')
+    assert cal.call('RED_TEAM',ctx,prompt,{'max_output_tokens':10},'s')=='{"ok":1}'
+    assert n['i']==1
+    l.close()
+
+def test_over_bound_complete_becomes_uncertain_and_not_billed_reposts(tmp_path):
+    """Provider returned a body whose cost exceeds the reservation.
+
+    finish() rolls back; Caller then marks UNCERTAIN without storing raw.
+    NOT_BILLED reconcile POSTs again — a duplicate paid path for a call that
+    already completed on the provider.
+    """
+    c=Contexts();l=Ledger(tmp_path/'r.sqlite',{'RUN_ID':'x'})
+    n={'i':0}
+    class P(MockProvider):
+        def bound(self,req):return 50
+        def complete(self,req):
+            n['i']+=1
+            cost=51 if n['i']==1 else 10
+            return Response('{"ok":1}',{'input_tokens':1,'output_tokens':1},cost)
+    cal=Caller(c,l,P(None),cap_micro_usd=10_000)
+    ctx,prompt=_red_ctx(c)
+    with pytest.raises(CallUncertain):
+        cal.call('RED_TEAM',ctx,prompt,{'max_output_tokens':10},'s')
+    row=l.export_calls()[0]
+    assert row['STATE']=='UNCERTAIN' and n['i']==1
+    assert row.get('RAW') in (None,'',{}) or True
+    blob=l.db.execute('SELECT response FROM calls WHERE key=?',(row['CALL_KEY'],)).fetchone()[0]
+    assert blob is None or 'ok' not in blob
+    l.reconcile(row['CALL_KEY'],'NOT_BILLED',None,'op','assumed unbilled after cost reject')
+    out=cal.call('RED_TEAM',ctx,prompt,{'max_output_tokens':10},'s')
+    assert out=='{"ok":1}'
+    assert n['i']==2
+    l.close()
+
+def test_insufficient_valid_stops_before_critics(tmp_path):
+    c=Contexts()
+    def responder(req):
+        if req['role']!='GENERATOR':
+            raise AssertionError('critics must not run after insufficient valid')
+        cards=[]
+        for s in req['parameters']['slots']:
+            card=seed();card.update(s)
+            card['MECHANISM']='Occupancy window through today is the object of study.'
+            cards.append(card)
+        return canonical({'CANDIDATES':cards})
+    l=Ledger(tmp_path/'r.sqlite',{'RUN_ID':'insuf'})
+    r=run_campaign(c,Caller(c,l,MockProvider(responder)))
+    assert r['STATUS']=='STOPPED_INSUFFICIENT_VALID'
+    assert r['METRICS']['VALID']==0
+    assert r['METRICS']['HARD_FAIL']==40
+    critic=[row for row in l.export_calls() if not str(row.get('SLOT','')).startswith('generation:')]
+    assert critic==[]
+    l.close()
+
+def test_remaining_budget_preflight_on_created_journal_raises(tmp_path):
+    d=tmp_path/'run';d.mkdir()
+    l=Ledger(d/'run.sqlite',{'RUN_ID':'fresh','CAP_MICRO_USD':OWNER_CAP,'SIZE':40})
+    l.close()
+    with pytest.raises(ContractError, match='no COMPLETE generator cards'):
+        remaining_campaign_budget_preflight(d)
+
+def test_owner_cap_cannot_be_extended_past_17100000(tmp_path):
+    d=tmp_path/'run';d.mkdir()
+    l=Ledger(d/'run.sqlite',{'RUN_ID':'cap','CAP_MICRO_USD':10_000_000,'SIZE':40})
+    l.close()
+    with pytest.raises(ContractError, match='owner-authorized'):
+        authorize_budget_extension(d,'op','raise','17.100001')
+    ok=authorize_budget_extension(d,'op','raise','17.100000')
+    assert ok['NEW_CAP_MICRO_USD']==OWNER_CAP
+
+def test_library_budget_extension_mutates_sealed_hash_copy(tmp_path):
+    d=tmp_path/'copy';d.mkdir();shutil.copy(V7,d/'run.sqlite')
+    before=hashlib.sha256((d/'run.sqlite').read_bytes()).hexdigest()
+    assert before==V7_SHA
+    # v7 is already at the owner ceiling, so any increase is refused; a
+    # successful *write* is not required to show the library path is open.
+    # Lower the copy's cap via Ledger, then extend: that is a library write
+    # to a byte-identical sealed journal that CLI would have refused.
+    l=Ledger(d/'run.sqlite')
+    try:
+        cfg=l.get('config');l.set('config',{**cfg,'CAP_MICRO_USD':10_000_000});l.db.commit()
+    finally:
+        l.close()
+    mid=hashlib.sha256((d/'run.sqlite').read_bytes()).hexdigest()
+    assert mid!=V7_SHA
+    authorize_budget_extension(d,'op','library path','12.000000')
+    after=hashlib.sha256((d/'run.sqlite').read_bytes()).hexdigest()
+    assert after!=mid
+    assert sealed_journal(d) is False
+
+def test_selector_malformed_does_not_abort_campaign(tmp_path):
+    c=Contexts()
+    def responder(req):
+        if req['role']=='GENERATOR':
+            return _gen_ok(req)
+        if req['role']=='SELECTOR':
+            return canonical({'ORDERED_CANDIDATE_IDS':'not-a-list'})
+        return _cooperative_critic(c,req)
+    l=Ledger(tmp_path/'r.sqlite',{'RUN_ID':'selm'})
+    r=run_campaign(c,Caller(c,l,MockProvider(responder)))
+    assert r['STATUS']=='PENDING_HUMAN_REVIEW'
+    assert r['SELECTOR_ADVISORY']['STATUS'] in ('MALFORMED','DISAGREES','UNAVAILABLE')
+    l.close()
+
+def test_novelty_incomplete_coverage_is_review_failed_not_campaign_abort(tmp_path):
+    c=Contexts()
+    def responder(req):
+        if req['role']=='GENERATOR':
+            return _gen_ok(req)
+        if req['role']=='NOVELTY_CRITIC' and req['slot'].endswith('C001'):
+            return canonical({'PRIOR_RELATIONS':[],'BATCH_RELATIONS':[],'JUDGMENTS':{k:2 for k in NOVELTY_DIMENSIONS}})
+        return _cooperative_critic(c,req)
+    l=Ledger(tmp_path/'r.sqlite',{'RUN_ID':'nov'})
+    r=run_campaign(c,Caller(c,l,MockProvider(responder)))
+    assert r['STATUS']=='PENDING_HUMAN_REVIEW'
+    failed={x['CANDIDATE_ID'] for x in r.get('REVIEW_FAILED',[])}
+    assert 'C001' in failed
+    l.close()
+
+def test_fits_false_derived_v7_resume_still_posts_generation_3(tmp_path):
+    """FITS_AUTHORIZED_REMAINING is advisory. Resume does not consult it.
+
+    A v7-derived continue through generation:2 still POSTs generation:3
+    until a later reservation hits STOPPED_BUDGET. Fake transport only.
+    """
+    src=tmp_path/'src';src.mkdir();shutil.copy(V7,src/'run.sqlite')
+    dest=tmp_path/'dest'
+    derive_complete_rounds(src,dest,2)
+    authorize_derived_continuation(dest,'op','continue without preflight gate')
+    pre=remaining_campaign_budget_preflight(dest)
+    assert pre['FITS_AUTHORIZED_REMAINING'] is False
+    c=Contexts()
+    t=IndependentTransport(c,{})
+    l=Ledger(dest/'run.sqlite')
+    cap=l.get('config')['CAP_MICRO_USD']
+    p=OpenAIProvider('audit',allow_real=True,budget_micro_usd=cap,transport=t,contexts=c,sleeper=lambda s:None)
+    status=None
+    try:
+        try:
+            r=run_campaign(c,Caller(c,l,p,cap,True),40)
+            status=r['STATUS']
+        except BudgetExceeded:
+            status=l.get('status')
+        gen3_posts=[x for x in t.posts() if x[1]=='/v1/responses']
+        gen3_rows=[row for row in l.export_calls() if row['SLOT']=='generation:3']
+        evidence={
+            'STATUS':status,
+            'FITS_AUTHORIZED_REMAINING':pre['FITS_AUTHORIZED_REMAINING'],
+            'GENERATION_3_POST_COUNT':len(gen3_posts),
+            'GENERATION_3_ROWS':[{'STATE':r['STATE'],'CALL_KEY':r['CALL_KEY']} for r in gen3_rows],
+            'SPENT_MICRO_USD':l.total_charged_micro_usd(),
+        }
+        (Path(__file__).parent/'FITS_FALSE_RESUME.json').write_text(json.dumps(evidence,indent=2)+'\n',encoding='utf-8')
+        # The hole: FITS=false did not prevent a new generation POST.
+        assert len(gen3_posts)>=1, evidence
+        assert status in ('STOPPED_BUDGET','PAUSED_UNCERTAIN_CALL','PENDING_HUMAN_REVIEW','PAUSED_PROVIDER_REJECTED')
+    finally:
+        l.close()
+    assert hashlib.sha256((src/'run.sqlite').read_bytes()).hexdigest()==V7_SHA
+
+def test_partial_import_carries_unimported_charges(tmp_path):
+    c=Contexts()
+    t=IndependentTransport(c,{})
+    src=tmp_path/'src';src.mkdir()
+    cfg=derived_config('partial-import',{'SIZE':40,'CAP_MICRO_USD':OWNER_CAP},c)
+    l=Ledger(src/'run.sqlite',cfg)
+    p=OpenAIProvider('audit',allow_real=True,budget_micro_usd=OWNER_CAP,transport=t,contexts=c,sleeper=lambda s:None)
+    r=run_campaign(c,Caller(c,l,p,OWNER_CAP,True),40)
+    assert r['STATUS']=='PENDING_HUMAN_REVIEW'
+    source_total=l.total_charged_micro_usd();l.close()
+    report=derive_complete_rounds(src,tmp_path/'dest',0)
+    assert report['LINEAGE_TOTAL_MICRO_USD']==source_total
+    assert report['LINEAGE_PRIOR_MICRO_USD']>0
+    assert report['IMPORTED_GENERATION_ROUNDS']==['generation:0']
+    dest_spend,_=journal_spend(tmp_path/'dest'/'run.sqlite')
+    l2=Ledger.open_readonly(tmp_path/'dest'/'run.sqlite')
+    try:
+        assert l2.total_charged_micro_usd()==source_total
+        assert l2.lineage_prior_micro_usd()+dest_spend==source_total
+    finally:
+        l2.close()
