@@ -1,9 +1,15 @@
-"""Verified Chat Completions models, prices, and role routing. Fail closed."""
+"""Verified models, prices, and role routing. Fail closed.
+
+GENERATOR transport is background Responses (`openai_provider.py`).
+Critic/selector transport remains Chat Completions at ENDPOINT.
+Role map and reasoning_effort are unchanged."""
 from decimal import Decimal
 from .context import ContractError,digest
 
 # Official pages checked 2026-09-23 without an API call:
 # https://developers.openai.com/api/docs/guides/structured-outputs
+# https://developers.openai.com/api/docs/guides/background
+# https://developers.openai.com/api/reference/resources/responses
 # https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create/
 # https://developers.openai.com/api/docs/guides/latest-model
 # https://developers.openai.com/api/docs/models/gpt-6-astra

@@ -1,12 +1,15 @@
-## Generator V0 long-running request timeout — 2026-09-23
+## Generator V0 background Responses transport — 2026-09-23
 
-`NEXT_UNIT = GENERATOR_V0_LONG_RUNNING_REQUEST_TIMEOUT`.
-Archived paid runs `artifacts/generator_v0/first-shadow` and
-`artifacts/generator_v0/first-shadow-v2` remain sealed. This unit is
-infrastructure only: raise the real Chat Completions HTTPS timeout to 600
-seconds. No new paid LLM call. No scientific interpretation, acquisition,
-Sprint05, D14, MARKET-07, or protected-data open. Frozen
-design/historical records retain their historical labels.
+`NEXT_UNIT = GENERATOR_V0_BACKGROUND_RESPONSES_TRANSPORT`.
+Archived paid runs `artifacts/generator_v0/first-shadow`,
+`artifacts/generator_v0/first-shadow-v2`, and
+`artifacts/generator_v0/first-shadow-v3` remain sealed. This unit is
+infrastructure only: GENERATOR uses `POST /v1/responses` with
+`background=true` and `store=true`; critics remain Chat Completions.
+Do not increase the synchronous timeout again. No new paid LLM call. No
+scientific interpretation, acquisition, Sprint05, D14, MARKET-07, or
+protected-data open. Frozen design/historical records retain their
+historical labels.
 
 ---
 
@@ -49,7 +52,7 @@ PREVIOUS_ROUTING            = POST_SPRINT04_AUTOMATION_MATURITY_DECISION
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = GENERATOR_V0_LONG_RUNNING_REQUEST_TIMEOUT
+NEXT_UNIT                   = GENERATOR_V0_BACKGROUND_RESPONSES_TRANSPORT
 NEXT_ACTION                 = INFRASTRUCTURE_ONLY_NO_PAID_LLM_CALL
 POST_SPRINT04_AUTOMATION_MATURITY_DECISION = HYPOTHESIS_GENERATOR_V0_INFRA_READY
 HYPOTHESIS_GENERATOR_V0_DESIGN = FROZEN_NOT_IMPLEMENTED

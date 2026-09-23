@@ -5626,3 +5626,28 @@ REQUEST_TIMEOUT_SECONDS = 600
 REAL_LLM_CALLS_MADE = false
 ARCHIVED_RUN_UNTOUCHED = true
 ```
+
+## 2026-09-23 — Generator V0 background Responses transport
+
+Infrastructure-only mixed-transport change after `first-shadow-v2` (60s)
+and `first-shadow-v3` (600s) GENERATOR calls timed out synchronously and
+correctly became UNCERTAIN. GENERATOR now uses `POST /v1/responses` with
+`background=true` and `store=true`, then bounded `GET /v1/responses/{id}`.
+Critics remain Chat Completions. Structured Outputs schema is unchanged.
+Exactly-once: POST without a `response_id` is UNCERTAIN and never
+auto-replayed; a known `response_id` is polled/resumed only. Polling GETs
+do not reserve budget. Operator wall-time expiry stays
+`BACKGROUND_SUBMITTED` / resumable, not UNCERTAIN. Fake HTTP only.
+Archived `first-shadow`, `first-shadow-v2`, and `first-shadow-v3` were
+not opened, resumed, or overwritten.
+
+```
+NEXT_UNIT = GENERATOR_V0_BACKGROUND_RESPONSES_TRANSPORT
+GENERATOR_ENDPOINT = RESPONSES
+GENERATOR_BACKGROUND = true
+BACKGROUND_STORE_POLICY = STORE_TRUE_REQUIRED_FOR_RESUME
+CRITIC_ENDPOINT = CHAT_COMPLETIONS
+REAL_LLM_CALLS_MADE = false
+ARCHIVED_RUN_UNTOUCHED = true
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+```

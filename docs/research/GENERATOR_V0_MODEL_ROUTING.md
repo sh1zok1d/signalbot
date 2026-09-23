@@ -22,8 +22,12 @@ request parameters are fail-closed. A single `--model` /
 implementation/config digest, so resume refuses routing drift.
 
 GPT-6 Astra, Sol, and Luna all support Chat Completions and Structured
-Outputs. They do not share gpt-4.1-mini sampling parameters. Every role
-sends `reasoning_effort` and never `temperature`. Astra does not support
-`none`; Selector uses Luna with `none` because deterministic ordinal
-authority remains application-side. Budget accounting uses the model
-actually selected for that call.
+Outputs. GENERATOR is the only role that uses Responses
+(`POST /v1/responses`, `background=true`, `store=true`,
+`reasoning.effort=high`). Critics remain Chat Completions with
+`reasoning_effort` as below. They do not share gpt-4.1-mini sampling
+parameters. Every critic role sends `reasoning_effort` and never
+`temperature`. Astra does not support `none`; Selector uses Luna with
+`none` because deterministic ordinal authority remains application-side.
+Budget accounting uses the model actually selected for that call.
+Polling GETs do not consume another generation reservation.
