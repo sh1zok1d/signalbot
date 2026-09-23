@@ -390,7 +390,7 @@ When adding documentation:
 - `research/GOVERNANCE_REGION_AUTHORITY_V0.json` — frozen per-signature authority, excluded from Generator/Selector.
 - `research/GENERATOR_V0_CONTEXT_PINS.json` — exact-byte context source identities.
 - `research/GENERATOR_V0_PROVIDER_VERIFICATION.md` — official API verification, Structured Outputs, and mixed-model prices.
-- `research/GENERATOR_V0_MODEL_ROUTING.md` — role → pinned Chat Completions snapshot map.
+- `research/GENERATOR_V0_MODEL_ROUTING.md` — role → stable Chat Completions model IDs and per-role reasoning_effort.
 - `research/GENERATOR_V0_ADVERSARIAL_REVIEW.md` — 25-class self-review, fixes and limits.
 - `research/generator_v0_checkpoints/` — durable checkpoint chain and compact mock evidence.
 

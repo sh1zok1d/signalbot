@@ -5,7 +5,7 @@ from scripts.research.generator_v0.openai_provider import OpenAIProvider
 from scripts.research.generator_v0.provider import Caller
 from scripts.research.generator_v0.context import Contexts,ContractError
 from scripts.research.generator_v0.ledger import Ledger
-from scripts.research.generator_v0.models import ROLE_MODEL_MAP,rates,spec
+from scripts.research.generator_v0.models import ROLE_MODEL_MAP,ROLE_REQUEST_PARAMS,rates,spec,request_params_for,model_for
 from scripts.research.generator_v0.output_schemas import openai_response_format,role_schema
 from scripts.research.generator_v0.schema import output_schema,validate_card
 from scripts.research.generator_v0.mock import MockResponder
@@ -41,13 +41,13 @@ def test_adapter_request_uses_strict_json_schema_and_role_model(tmp_path):
     assert set(card['required'])==set(c.design['CANDIDATE_SCHEMA']['REQUIRED_FIELDS'])
     assert len(card['required'])==27
     assert card['properties']['SEARCH_SURFACE']['properties']['PARAMETERS']['type']=='array'
-    assert 'temperature' not in body and body['reasoning_effort']=='medium'
+    assert 'temperature' not in body and body['reasoning_effort']=='high'
     assert body['max_completion_tokens']==100 and not body['stream'] and not body['store']
     assert headers['Authorization']=='Bearer test-credential' and timeout==60
     assert 'tools' not in body
     call=l.export_calls()[0]
     assert call['MODEL_ID']==ROLE_MODEL_MAP['GENERATOR']
-    assert call['MODEL_REQUEST_PARAMS']=={'reasoning_effort':'medium'}
+    assert call['MODEL_REQUEST_PARAMS']=={'reasoning_effort':'high'}
     assert call['COST_MICRO_USD']==cost_of('GENERATOR')
     assert 'test-credential' not in json.dumps(l.export_calls())
 
@@ -81,6 +81,31 @@ def test_budget_denies_before_http(tmp_path):
 
 def test_unknown_model_fails_closed():
     with pytest.raises(ContractError,match='unknown model'):spec('gpt-not-a-model')
+    with pytest.raises(ContractError,match='unknown model'):spec('gpt-5.4-2026-03-05')
+
+def test_gpt6_role_map_prices_and_effort():
+    assert ROLE_MODEL_MAP=={
+        'GENERATOR':'gpt-6-astra','NOVELTY_CRITIC':'gpt-6-sol','RED_TEAM':'gpt-6-sol',
+        'FEASIBILITY_CRITIC':'gpt-6-luna','SELECTOR':'gpt-6-luna',
+    }
+    assert ROLE_REQUEST_PARAMS['GENERATOR']=={'reasoning_effort':'high'}
+    assert ROLE_REQUEST_PARAMS['NOVELTY_CRITIC']==ROLE_REQUEST_PARAMS['RED_TEAM']=={'reasoning_effort':'medium'}
+    assert ROLE_REQUEST_PARAMS['FEASIBILITY_CRITIC']=={'reasoning_effort':'low'}
+    assert ROLE_REQUEST_PARAMS['SELECTOR']=={'reasoning_effort':'none'}
+    assert model_for('GENERATOR')=='gpt-6-astra'
+    assert rates('GENERATOR')==(Decimal('10.00'),Decimal('50.00'))
+    assert rates('NOVELTY_CRITIC')==rates('RED_TEAM')==(Decimal('2.00'),Decimal('10.00'))
+    assert rates('FEASIBILITY_CRITIC')==rates('SELECTOR')==(Decimal('0.10'),Decimal('0.50'))
+    assert spec('gpt-6-astra')['STRUCTURED_OUTPUTS'] is True
+    assert spec('gpt-6-sol')['STRUCTURED_OUTPUTS'] is True
+    assert spec('gpt-6-luna')['STRUCTURED_OUTPUTS'] is True
+    assert 'none' not in spec('gpt-6-astra')['REASONING_EFFORTS']
+    assert 'none' in spec('gpt-6-luna')['REASONING_EFFORTS']
+    for role in ROLE_MODEL_MAP:
+        params=request_params_for(role)
+        assert params==ROLE_REQUEST_PARAMS[role]
+        assert params['reasoning_effort'] in spec(model_for(role))['REASONING_EFFORTS']
+        assert 'temperature' not in params
 
 def _mutate_generator(contexts,mutate):
     payload=json.loads(generator_json(contexts));mutate(payload);return json.dumps(payload)
@@ -130,10 +155,11 @@ def test_each_role_schema_and_model_parameters(tmp_path):
         assert fmt==openai_response_format(role,c)
         assert fmt['json_schema']['strict'] is True
         assert fmt['json_schema']['schema']['additionalProperties'] is False
-        params=spec(body['model'])['REQUEST_PARAMS']
+        params=request_params_for(role)
+        assert params==ROLE_REQUEST_PARAMS[role]
         for key,value in params.items():assert body[key]==value
-        if 'reasoning_effort' in params:assert 'temperature' not in body
-        if 'temperature' in params:assert 'reasoning_effort' not in body
+        assert 'temperature' not in body
+        assert params['reasoning_effort'] in spec(body['model'])['REASONING_EFFORTS']
     assert {row['MODEL_ID'] for row in l.export_calls()}==set(ROLE_MODEL_MAP.values())
     expected=4*cost_of('GENERATOR')+40*cost_of('NOVELTY_CRITIC')+40*cost_of('FEASIBILITY_CRITIC')+40*cost_of('RED_TEAM')+cost_of('SELECTOR')
     assert l.db.execute('SELECT sum(cost) FROM calls').fetchone()[0]==expected
@@ -144,7 +170,7 @@ def test_resume_identity_includes_role_model_map(tmp_path):
     def fake(body,headers,timeout):
         calls.append(json.loads(body)['model'])
         return 200,envelope(generator_json(c))
-    p=provider(fake);config={'RUN_ID':'resume','ROLE_MODEL_MAP':dict(ROLE_MODEL_MAP)}
+    p=provider(fake);config={'RUN_ID':'resume','ROLE_MODEL_MAP':dict(ROLE_MODEL_MAP),'ROLE_REQUEST_PARAMS':{k:dict(v) for k,v in ROLE_REQUEST_PARAMS.items()}}
     l=Ledger(tmp_path/'r.db',config)
     caller=Caller(c,l,p,30_000_000,True)
     slots={'max_output_tokens':100,'slots':[{'CANDIDATE_ID':'C001','MECHANISM_FAMILY':'A','INFORMATION_SOURCE':'KLINES'}]}
@@ -155,6 +181,9 @@ def test_resume_identity_includes_role_model_map(tmp_path):
     assert calls==[ROLE_MODEL_MAP['GENERATOR']]
     with pytest.raises(ContractError,match='resume configuration differs'):
         Ledger(tmp_path/'r.db',{'RUN_ID':'resume','ROLE_MODEL_MAP':{'GENERATOR':'changed'}})
+    with pytest.raises(ContractError,match='resume configuration differs'):
+        drifted={k:dict(v) for k,v in ROLE_REQUEST_PARAMS.items()};drifted['GENERATOR']={'reasoning_effort':'low'}
+        Ledger(tmp_path/'r.db',{'RUN_ID':'resume','ROLE_MODEL_MAP':dict(ROLE_MODEL_MAP),'ROLE_REQUEST_PARAMS':drifted})
 
 def test_openai_role_schemas_are_strict():
     c=Contexts()

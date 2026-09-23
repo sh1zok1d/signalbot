@@ -4,9 +4,10 @@
 The archived partial paid run `artifacts/generator_v0/first-shadow` remains
 sealed (1 call, USD 0.010864, ledger `CREATED`). This unit is
 infrastructure only: OpenAI Structured Outputs plus role-specific Chat
-Completions routing. No new paid LLM call. No scientific interpretation,
-acquisition, Sprint05, D14, MARKET-07, or protected-data open. Frozen
-design/historical records retain their historical labels.
+Completions routing on GPT-6 Astra/Sol/Luna. No new paid LLM call. No
+scientific interpretation, acquisition, Sprint05, D14, MARKET-07, or
+protected-data open. Frozen design/historical records retain their
+historical labels.
 
 ---
 
