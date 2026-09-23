@@ -1,0 +1,54 @@
+{
+  "ACCESS_BOUNDARY_EXPANDED": false,
+  "BASE_MAIN_SHA": "58a49d25d7a9b730db402eb5ebe7c7fa0165ff33",
+  "BLOCKER": "GENERATOR_SIDE_RULE_MISSING_PROVENANCE_ALLOWLIST",
+  "BOUNDARY_FLAGS": {
+    "D14_CREATED": false,
+    "MARKET_07_CREATED": false,
+    "NEW_DATA_ACQUIRED": false,
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "REAL_LLM_CALLS_MADE": false,
+    "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+    "SPRINT05_CREATED": false
+  },
+  "CHECKPOINT_ID": "CHECKPOINT_0A_FROZEN_DESIGN_PROVENANCE_AMENDMENT",
+  "COMPLETED_SCOPE": [
+    "Single provenance entry",
+    "Contract test",
+    "Design amendment note"
+  ],
+  "FILES_CHANGED": [
+    "docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.json",
+    "docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.md",
+    "tests/research/test_generator_v0_design.py",
+    "docs/research/generator_v0_checkpoints/0A.json"
+  ],
+  "FOCUSED_TESTS": {
+    "command": "python -m pytest -q tests/research/test_generator_v0_design.py",
+    "git_diff_check": "PASS",
+    "passed": 19
+  },
+  "FROZEN_RULE_TEXT_CHANGED": false,
+  "GOVERNANCE_SEMANTICS_CHANGED": false,
+  "HEAD": "SELF: commit introducing this immutable checkpoint record",
+  "INVARIANTS_VERIFIED": [
+    "Exact rule text preserved",
+    "Exactly one allowlist row added",
+    "Context scanner passes",
+    "Role matrix unchanged"
+  ],
+  "KNOWN_LIMITATIONS": [
+    "Source-only checkout: docs/research_data omitted intentionally; tracked tree identities preserved",
+    "Checkpoint self identity resolved from Git to avoid impossible recursive hashes"
+  ],
+  "NEXT_ACTION": "Resume preflight on committed amendment, then implement checkpoints 1-8",
+  "PREVIOUS_CHECKPOINT_SHA": null,
+  "REMAINING_SCOPE": [
+    "Checkpoints 0 through 8 from original end-to-end mission"
+  ],
+  "RESOLUTION": "EXPLICIT_SINGLE_FIELD_ALLOWLIST_AMENDMENT",
+  "SCIENTIFIC_SEMANTICS_CHANGED": false,
+  "STATUS": "PASS",
+  "TREE": "SELF^{tree}; resolved from Git, never a self-referential embedded hash"
+}

@@ -434,6 +434,43 @@ def test_scanner_is_backstop_and_passes_assembled_blind_context():
     assert deny.search(json.dumps(_authority()["ROWS"]))
 
 
+def test_generator_side_rule_has_explicit_identity_provenance():
+    g = _load(DESIGN)
+    blind = g["BLIND_GENERATOR_CONTEXT"]
+    assert blind["GENERATOR_SIDE_RULE"] == (
+        "Avoid exact duplicates of prior-work signatures and cosmetic parameter, "
+        "window, threshold or horizon relabels of them."
+    )
+    rows = blind["STRUCTURAL_PROVENANCE_GUARD"]["FIELD_ALLOWLIST"]
+    matched = [r for r in rows if r["OUTPUT_FIELD"] == "GENERATOR_SIDE_RULE"]
+    assert matched == [{
+        "OUTPUT_FIELD": "GENERATOR_SIDE_RULE",
+        "SOURCE_ARTIFACT": "docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.json",
+        "SOURCE_FIELD": "BLIND_GENERATOR_CONTEXT.GENERATOR_SIDE_RULE",
+        "TRANSFORM": "IDENTITY",
+    }]
+    assert len(rows) == 11  # The sole authorized expansion of the ten-row freeze.
+    assert "MECHANISM_MEMORY" not in matched[0]["SOURCE_ARTIFACT"]
+    assert "RESULT" not in matched[0]["SOURCE_ARTIFACT"]
+    # This rule is mandatory, with exact bytes, in the allowed methodology bundle.
+    assembled = {
+        "BLIND_MECHANISM_MAP_V0": _blind_projection(_load(MEMORY), blind),
+        "DATA_CATALOG_V0": {
+            k: {f: v.get(f) for f in ("CONTENT", "LEGAL_RANGE", "STATUS")}
+            for k, v in g["DATA_CATALOG_V0_SEED"].items()
+        },
+        "CANDIDATE_SCHEMA": g["CANDIDATE_SCHEMA"]["REQUIRED_FIELDS"],
+        "DATA_STATUS_TAXONOMY": g["DATA_STATUS_TAXONOMY"],
+        "GENERIC_METHODOLOGY": {
+            "LESSONS": g["GENERIC_METHODOLOGY_LESSONS"],
+            "GENERATOR_SIDE_RULE": blind["GENERATOR_SIDE_RULE"],
+        },
+    }
+    assert assembled["GENERIC_METHODOLOGY"]["GENERATOR_SIDE_RULE"]
+    assert not re.search(blind["CONTEXT_SCANNER"]["DENYLIST_REGEX"],
+                         json.dumps(assembled), re.IGNORECASE)
+
+
 # Historical state/blocker language that must never appear in a projected prior-work row.
 # Applied to the blind-map projection only, not to DATA_CATALOG_V0 (current data status is
 # intentionally visible). Mechanism vocabulary such as "failed breakout", "null model" or

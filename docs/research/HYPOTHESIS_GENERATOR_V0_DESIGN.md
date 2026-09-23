@@ -270,3 +270,10 @@ observed: neutral `PRIOR_WORK_SIGNATURE` state replaces the uniform
 context matrix replaces the full-governance-context path; structural
 provenance guard made primary with the scanner as backstop. Maturity
 decision, batch size, budget cap and all boundary flags are unchanged.
+
+## Authorized provenance amendment — 2026-09-23
+
+One allowlist entry explicitly authorizes the existing `GENERATOR_SIDE_RULE`
+from this design, using `IDENTITY`, within the allowed generic-methodology
+bundle. Rule text, scientific/governance semantics, and role access remain
+unchanged. No other allowlist expansion is authorized.
