@@ -5810,6 +5810,27 @@ run/resume with a cap above USD 10 is refused. No real LLM call while
 the effective cap would exceed USD 10, and no live first-shadow-v7
 unless that preflight proves a complete remaining campaign fit.
 
+Executable remaining-budget-preflight on a TEMP derive of sealed
+`first-shadow-v6` through generation:2, after raising the dest cap to
+USD 10.000000, measured:
+
+```
+FITS_AUTHORIZED_REMAINING = false
+WORST_CASE_REMAINING_USD = 13.286520
+MIN_ADDITIONAL_AUTHORIZATION_USD = 7.066070
+MIN_TOTAL_CAP_USD = 17.066070
+generation:3 = 1.852570
+NOVELTY_CRITIC x40 = 8.164734
+FEASIBILITY_CRITIC x40 = 0.171850
+RED_TEAM x40 = 3.095374
+SELECTOR = 0.001992
+LIVE_FIRST_SHADOW_V7_CREATED = false
+```
+
+Novelty critics alone already exceed remaining authorized USD 6.220450.
+STOP without live LLM calls until additional authorization covers at
+least USD 7.066070 more (absolute cap at least USD 17.066070).
+
 ```
 NEXT_UNIT = GENERATOR_V0_LEGAL_RANGE_WRAPPERS_AND_BUDGET_EXTENSION
 OWNER_AUTHORIZED_CAMPAIGN_CAP_USD = 10.000000
