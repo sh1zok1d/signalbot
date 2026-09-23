@@ -1,11 +1,13 @@
 # Generator V0 shadow campaign
 
-Status: structured-output + role-specific routing adapter with a 600-second
-real Chat Completions timeout. Frozen scientific design is unchanged. A
-successful campaign still terminates at `PENDING_HUMAN_REVIEW`. The archived
-partial paid runs `artifacts/generator_v0/first-shadow` and
-`artifacts/generator_v0/first-shadow-v2` are sealed and the operator refuses
-to open them. One campaign generates
+Status: mixed transport. GENERATOR uses background Responses
+(`POST /v1/responses`, `background=true`, `store=true`). Critics and the
+selector remain Chat Completions with a 600-second HTTPS timeout. Frozen
+scientific design is unchanged. A successful campaign still terminates at
+`PENDING_HUMAN_REVIEW`. The archived partial paid runs
+`artifacts/generator_v0/first-shadow`, `artifacts/generator_v0/first-shadow-v2`,
+and `artifacts/generator_v0/first-shadow-v3` are sealed and the operator
+refuses to open them. One campaign generates
 research cards, applies separate critics and produces a human-review queue.
 It has no market-data reader, acquisition tool, evaluator or trading hook.
 A successful run terminates at `PENDING_HUMAN_REVIEW`.
@@ -38,8 +40,9 @@ python -m scripts.research.generator_v0 preflight --provider openai --allow-real
 
 **Canonical real shadow command**, after explicitly authorizing its
 budget and supplying the credential. Use a **new** run directory. Do not
-resume or overwrite `artifacts/generator_v0/first-shadow` or
-`artifacts/generator_v0/first-shadow-v2`.
+resume or overwrite `artifacts/generator_v0/first-shadow`,
+`artifacts/generator_v0/first-shadow-v2`, or
+`artifacts/generator_v0/first-shadow-v3`.
 
 ```bash
 python -m scripts.research.generator_v0 run --provider openai --allow-real-llm --budget-usd 10 --run-dir artifacts/generator_v0/shadow
@@ -60,7 +63,14 @@ python -m scripts.research.generator_v0 resume --provider openai --allow-real-ll
 A completed provider response is persisted before parsing and reused. A
 pending/uncertain billed attempt is never automatically replayed; preserve the
 run and reconcile with provider billing before making any later decision.
-No automatic retries exist. A malformed persisted answer remains visible as a
+GENERATOR create (`POST /v1/responses`) is exactly-once. If it fails before a
+`response_id` is known, the call is `UNCERTAIN` and is never auto-replayed.
+Once a `response_id` is committed (`BACKGROUND_SUBMITTED`), resume only
+`GET`s that id. Polling timeouts and network errors do not create a new paid
+request. If the operator wait expires while the provider is still
+`queued`/`in_progress`, the call stays `BACKGROUND_SUBMITTED` (resumable),
+not `UNCERTAIN`. Polling GETs do not reserve additional budget.
+No automatic POST retries exist. A malformed persisted answer remains visible as a
 failed run; resume does not repeatedly pay for the same malformed answer.
 Configuration, implementation or context drift refuses resume.
 
@@ -123,8 +133,14 @@ the authorized single-field provenance amendment.
 JSON mode is not used. Structured Outputs (`json_schema`, `strict: true`)
 are generated from the application role builders. Application validators
 remain the second layer. Role-specific models and prices are in
-`GENERATOR_V0_MODEL_ROUTING.md` / `models.py`. Real Chat Completions
-HTTPS timeout is `OPENAI_REQUEST_TIMEOUT_SECONDS = 600` and is part of
-run configuration identity. A `TimeoutError` after dispatch is `UNCERTAIN`
+`GENERATOR_V0_MODEL_ROUTING.md` / `models.py`. GENERATOR transport identity
+includes `GENERATOR_ENDPOINT=RESPONSES`, `GENERATOR_BACKGROUND=true`,
+`BACKGROUND_STORE_POLICY=STORE_TRUE_REQUIRED_FOR_RESUME` (official background
+retention after the short polling window requires `store=true`; local
+COMPLETE persist is followed by best-effort `DELETE`), and the polling
+policy (interval 3s, GET timeout 45s, operator wait 3600s, create timeout
+60s). Critic Chat Completions HTTPS timeout remains
+`OPENAI_REQUEST_TIMEOUT_SECONDS = 600` and is part of run configuration
+identity. A GENERATOR `TimeoutError` before `response_id` is `UNCERTAIN`
 and is never automatically replayed.
 Resumable implementation checkpoints: `generator_v0_checkpoints/`.

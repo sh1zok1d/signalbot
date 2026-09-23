@@ -47,21 +47,49 @@ class Ledger:
             if row:
                 if row[0]!=canonical(request):raise ContractError('request identity collision')
                 if row[1]=='COMPLETE':return json.loads(row[2])
+                if row[1]=='BACKGROUND_SUBMITTED':
+                    payload=json.loads(row[2]) if row[2] else {}
+                    payload['_resume_background']=True
+                    return payload
                 raise ContractError('uncertain prior attempt; manual reconciliation required, never automatic replay')
             spent=self.db.execute('SELECT COALESCE(SUM(COALESCE(cost,reserved)),0) FROM calls').fetchone()[0]
             if spent+bound>cap:raise ContractError('budget exceeded before provider call')
             self.db.execute('INSERT INTO calls(key,request,state,reserved) VALUES (?,?,?,?)',(key,canonical(request),'RESERVED',bound))
         return None
 
+    def submit_background(self,key,tracker):
+        with self.transaction():
+            row=self.db.execute('SELECT state FROM calls WHERE key=?',(key,)).fetchone()
+            if row is None or row[0] not in ('RESERVED','BACKGROUND_SUBMITTED'):raise ContractError('invalid background submit')
+            if not isinstance(tracker,dict) or not tracker.get('response_id'):raise ContractError('background response_id required')
+            self.db.execute('UPDATE calls SET state=?,response=?,error=NULL WHERE key=?',('BACKGROUND_SUBMITTED',canonical(tracker),key))
+
     def finish(self,key,response,cost,usage):
         with self.transaction():
             row=self.db.execute('SELECT reserved,state FROM calls WHERE key=?',(key,)).fetchone()
-            if row is None or row[1]!='RESERVED':raise ContractError('invalid provider completion')
+            if row is None or row[1] not in ('RESERVED','BACKGROUND_SUBMITTED'):raise ContractError('invalid provider completion')
             if type(cost)!=int or not 0<=cost<=row[0]:raise ContractError('provider cost exceeds reserved bound')
-            self.db.execute('UPDATE calls SET state=?,response=?,cost=?,usage=? WHERE key=?',('COMPLETE',canonical(response),cost,canonical(usage),key))
+            self.db.execute('UPDATE calls SET state=?,response=?,cost=?,usage=?,error=NULL WHERE key=?',('COMPLETE',canonical(response),cost,canonical(usage),key))
 
-    def failed(self,key,error,wire_sha256=None):
-        with self.transaction():self.db.execute('UPDATE calls SET state=?,error=?,response=? WHERE key=?',('UNCERTAIN',str(error)[:500],canonical({'raw_sha256':wire_sha256}) if wire_sha256 else None,key))
+    def attach_parsed(self,key,raw):
+        with self.transaction():
+            row=self.db.execute('SELECT state,response FROM calls WHERE key=?',(key,)).fetchone()
+            if row is None or row[0]!='COMPLETE' or not row[1]:raise ContractError('invalid parsed attach')
+            blob=json.loads(row[1]);blob['raw']=raw
+            self.db.execute('UPDATE calls SET response=? WHERE key=?',(canonical(blob),key))
+
+    def failed(self,key,error,wire_sha256=None,state='UNCERTAIN',envelope=None):
+        if state not in ('UNCERTAIN','FAILED'):raise ContractError('invalid failure state')
+        blob=envelope if envelope is not None else ({'raw_sha256':wire_sha256} if wire_sha256 else None)
+        with self.transaction():
+            self.db.execute('UPDATE calls SET state=?,error=?,response=? WHERE key=?',(state,str(error)[:500],canonical(blob) if blob is not None else None,key))
+
+    def export_calls(self):
+        result=[]
+        for key,request,state,reserved,response,cost,usage,error in self.db.execute('SELECT * FROM calls ORDER BY rowid'):
+            req=json.loads(request);resp=json.loads(response) if response else None
+            result.append({'CALL_KEY':key,'RUN_ID':self.get('config')['RUN_ID'],'PROMPT_VERSION':req['prompt_version'],'CONTEXT_DIGEST':digest(req['context']),'MODEL_PROVIDER':req['provider'],'MODEL_ID':req['model'],'MODEL_PARAMETERS':req['parameters'],'MODEL_REQUEST_PARAMS':req.get('model_request_params'),'RAW_RESPONSE_SHA256':(resp or {}).get('raw_sha256') if resp else None,'RESPONSE_ID':(resp or {}).get('response_id') if resp else None,'PROVIDER_STATUS':(resp or {}).get('provider_status') if resp else None,'STATE':state,'RESERVED_MICRO_USD':reserved,'COST_MICRO_USD':cost,'USAGE':json.loads(usage) if usage else None,'ERROR':error})
+        return result
 
     def save_card(self,card,decision=None):
         self.db.execute('INSERT INTO cards VALUES (?,?,?)',(card['CANDIDATE_ID'],canonical(card),canonical(decision)))
@@ -81,13 +109,6 @@ class Ledger:
             self.db.execute('UPDATE cards SET card=?,decision=NULL WHERE id=?',(canonical(card),card_id))
             self.db.execute('DELETE FROM results')
             self.set('status','MUTATED_REQUIRES_REVIEW')
-
-    def export_calls(self):
-        result=[]
-        for key,request,state,reserved,response,cost,usage,error in self.db.execute('SELECT * FROM calls ORDER BY rowid'):
-            req=json.loads(request);resp=json.loads(response) if response else None
-            result.append({'CALL_KEY':key,'RUN_ID':self.get('config')['RUN_ID'],'PROMPT_VERSION':req['prompt_version'],'CONTEXT_DIGEST':digest(req['context']),'MODEL_PROVIDER':req['provider'],'MODEL_ID':req['model'],'MODEL_PARAMETERS':req['parameters'],'MODEL_REQUEST_PARAMS':req.get('model_request_params'),'RAW_RESPONSE_SHA256':resp.get('raw_sha256') if resp else None,'STATE':state,'RESERVED_MICRO_USD':reserved,'COST_MICRO_USD':cost,'USAGE':json.loads(usage) if usage else None,'ERROR':error})
-        return result
 
 def data_gaps(survivors):
     """Input is mutually distinct Stream B survivors, after batch novelty adjudication."""
