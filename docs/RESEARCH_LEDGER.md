@@ -5609,3 +5609,20 @@ ROLE_MODEL_MAP = GENERATOR:gpt-6-astra / NOVELTY_CRITIC:gpt-6-sol / RED_TEAM:gpt
 REAL_LLM_CALLS_MADE = false
 ARCHIVED_RUN_UNTOUCHED = true
 ```
+
+## 2026-09-23 — Generator V0 long-running request timeout
+
+Infrastructure-only adapter change after `first-shadow-v2` generation:0
+timed out at the fixed 60-second HTTPS read. Real Chat Completions timeout
+is now `OPENAI_REQUEST_TIMEOUT_SECONDS = 600`, stored in run config identity.
+No retry, no streaming, no Responses/background migration. `TimeoutError`
+after dispatch remains `UNCERTAIN` and is never auto-replayed. Fake HTTP
+only. Archived `first-shadow` and `first-shadow-v2` were not resumed or
+overwritten.
+
+```
+NEXT_UNIT = GENERATOR_V0_LONG_RUNNING_REQUEST_TIMEOUT
+REQUEST_TIMEOUT_SECONDS = 600
+REAL_LLM_CALLS_MADE = false
+ARCHIVED_RUN_UNTOUCHED = true
+```

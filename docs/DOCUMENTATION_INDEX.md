@@ -20,7 +20,7 @@ For the narrative evolution, read `PROJECT_HISTORY.md`. For complete original do
 Read these first:
 
 | `SIGNALBOT_MANDATE_V1.md` | **ACTIVE / CANONICAL STRATEGIC MANDATE** | Owner-approved project objective, anti-sycophancy rule, scientific/product/commercial mandate, agent operating principles, and amendment rules. Strategic authority; frozen experiment-specific scientific authorities still govern their own semantics. |
-| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. D2 is `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`; D7 is `PROMISING_PROTOTYPE` (confirmation candidate, not selected now); D8 deferred; Sprint 03 D9/D10 `NO_USEFUL_STRUCTURE`, D11 `PROMISING_PROTOTYPE`; Sprint 04 D12 `PROMISING_PROTOTYPE`, D13 `NO_USEFUL_STRUCTURE`; 2025/2026 sealed; `NEXT_UNIT = GENERATOR_V0_STRUCTURED_OUTPUTS_AND_ROLE_ROUTING` |
+| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. D2 is `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`; D7 is `PROMISING_PROTOTYPE` (confirmation candidate, not selected now); D8 deferred; Sprint 03 D9/D10 `NO_USEFUL_STRUCTURE`, D11 `PROMISING_PROTOTYPE`; Sprint 04 D12 `PROMISING_PROTOTYPE`, D13 `NO_USEFUL_STRUCTURE`; 2025/2026 sealed; `NEXT_UNIT = GENERATOR_V0_LONG_RUNNING_REQUEST_TIMEOUT` |
 | `research/MECHANISM_MEMORY_V0.md` | **MECHANISM MEMORY V0 (EXTENDED THROUGH D13)** | Compact H01–H05 / B2-01–B2-06 / MARKET-01–06 / D1–D13 map; D12 `PROMISING_PROTOTYPE`; D13 `NO_USEFUL_STRUCTURE`; not a new framework |
 | `research/HETEROGENEOUS_FAMILY_ROTATION_V2.md` | **HYPOTHESIS GENERATION POLICY (FROZEN, CURRENT)** | Families A–I after D7; E cooldown; selected D/G/H as D10/D11/D9; true panel still absent; no MARKET-07 |
 | `research/DISCOVERY_SPRINT_03.md` | **DISCOVERY SPRINT 03 (CARD DEFINITION / IMPLEMENTATION FREEZE)** | Frozen cards D9/D10/D11; scientific outcomes live in RESULT files; do not mutate this freeze |
@@ -394,7 +394,8 @@ When adding documentation:
 - `research/GENERATOR_V0_ADVERSARIAL_REVIEW.md` — 25-class self-review, fixes and limits.
 - `research/generator_v0_checkpoints/` — durable checkpoint chain and compact mock evidence.
 
-Implementation state: `GENERATOR_V0_STRUCTURED_OUTPUTS_AND_ROLE_ROUTING`.
-The archived partial paid run `artifacts/generator_v0/first-shadow` is sealed.
+Implementation state: `GENERATOR_V0_LONG_RUNNING_REQUEST_TIMEOUT`.
+The archived partial paid runs `artifacts/generator_v0/first-shadow` and
+`artifacts/generator_v0/first-shadow-v2` are sealed.
 The original design's FROZEN_NOT_IMPLEMENTED label describes its historical
 freeze, not the current implementation state.

@@ -37,7 +37,7 @@ def main(argv=None):
     p.add_argument('--field')
     p.add_argument('--value-json')
     a=p.parse_args(argv)
-    if len(a.run_dir.parts)>=2 and a.run_dir.parts[-2:]==('generator_v0','first-shadow'):
+    if len(a.run_dir.parts)>=2 and tuple(a.run_dir.parts[-2:]) in {('generator_v0','first-shadow'),('generator_v0','first-shadow-v2')}:
         raise ContractError('archived paid run is read-only and must not be opened by this operator')
     c=Contexts();c.validate('GENERATOR',c.generator(),GENERATOR_PROMPT)
     if not 25<=a.size<=50:raise ContractError('batch size')
@@ -75,7 +75,7 @@ def main(argv=None):
         provider=MockProvider(MockResponder(c))
     if a.command=='preflight':
         info={'STATUS':'PREFLIGHT_PASS','PROVIDER':provider.provider_id,'REAL_LLM_CALLS_MADE':False,'BATCH_SIZE':a.size,'STRUCTURED_OUTPUTS_ENABLED':a.provider=='openai'}
-        if a.provider=='openai':info.update(ROLE_MODEL_MAP=dict(ROLE_MODEL_MAP),ROLE_REQUEST_PARAMS=dict(ROLE_REQUEST_PARAMS),ROUTING_DIGEST=provider.routing_digest)
+        if a.provider=='openai':info.update(ROLE_MODEL_MAP=dict(ROLE_MODEL_MAP),ROLE_REQUEST_PARAMS=dict(ROLE_REQUEST_PARAMS),ROUTING_DIGEST=provider.routing_digest,REQUEST_TIMEOUT_SECONDS=provider.request_timeout_seconds)
         print(canonical(info));return
     dbpath=a.run_dir/'run.sqlite'
     if a.command=='run' and dbpath.exists():raise ContractError('run exists; use resume')
@@ -83,7 +83,7 @@ def main(argv=None):
     a.run_dir.mkdir(parents=True,exist_ok=True)
     config={'RUN_ID':a.run_dir.name,'PROVIDER':provider.provider_id,'MODEL':provider.model_id,'SIZE':a.size,'CAP_MICRO_USD':cap,'CONTEXT_DIGEST':digest(c.generator()),'IMPLEMENTATION_DIGEST':digest({x.name:byte_digest(x) for x in sorted(Path(__file__).parent.glob('*.py'))})}
     if a.provider=='openai':
-        config.update(ROLE_MODEL_MAP=dict(ROLE_MODEL_MAP),ROLE_REQUEST_PARAMS={k:dict(v) for k,v in ROLE_REQUEST_PARAMS.items()},PRICE_TABLE=price_table(),ROUTING_DIGEST=provider.routing_digest)
+        config.update(ROLE_MODEL_MAP=dict(ROLE_MODEL_MAP),ROLE_REQUEST_PARAMS={k:dict(v) for k,v in ROLE_REQUEST_PARAMS.items()},PRICE_TABLE=price_table(),ROUTING_DIGEST=provider.routing_digest,REQUEST_TIMEOUT_SECONDS=provider.request_timeout_seconds)
     l=Ledger(dbpath,config)
     try:
         result=run_campaign(c,Caller(c,l,provider,cap,a.allow_real_llm),a.size)

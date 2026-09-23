@@ -1,7 +1,7 @@
 import json
 from decimal import Decimal,ROUND_CEILING
 import pytest
-from scripts.research.generator_v0.openai_provider import OpenAIProvider
+from scripts.research.generator_v0.openai_provider import OpenAIProvider,OPENAI_REQUEST_TIMEOUT_SECONDS,bounded_timeout
 from scripts.research.generator_v0.provider import Caller
 from scripts.research.generator_v0.context import Contexts,ContractError
 from scripts.research.generator_v0.ledger import Ledger
@@ -43,7 +43,7 @@ def test_adapter_request_uses_strict_json_schema_and_role_model(tmp_path):
     assert card['properties']['SEARCH_SURFACE']['properties']['PARAMETERS']['type']=='array'
     assert 'temperature' not in body and body['reasoning_effort']=='high'
     assert body['max_completion_tokens']==100 and not body['stream'] and not body['store']
-    assert headers['Authorization']=='Bearer test-credential' and timeout==60
+    assert headers['Authorization']=='Bearer test-credential' and timeout==OPENAI_REQUEST_TIMEOUT_SECONDS==600
     assert 'tools' not in body
     call=l.export_calls()[0]
     assert call['MODEL_ID']==ROLE_MODEL_MAP['GENERATOR']
@@ -141,6 +141,7 @@ def test_each_role_schema_and_model_parameters(tmp_path):
     from scripts.research.generator_v0.roles import NOVELTY_PROMPT,FEAS_PROMPT,RED_PROMPT,SELECTOR_PROMPT
     prompts={GENERATOR_PROMPT:'GENERATOR',NOVELTY_PROMPT:'NOVELTY_CRITIC',FEAS_PROMPT:'FEASIBILITY_CRITIC',RED_PROMPT:'RED_TEAM',SELECTOR_PROMPT:'SELECTOR'}
     def fake(body,headers,timeout):
+        assert timeout==OPENAI_REQUEST_TIMEOUT_SECONDS
         b=json.loads(body);role=prompts[b['messages'][0]['content']];seen.setdefault(role,b)
         user=json.loads(b['messages'][1]['content'])
         result=respond({'role':role,'context':user['context'],'parameters':{'slots':user.get('slots',[])}})
@@ -170,7 +171,7 @@ def test_resume_identity_includes_role_model_map(tmp_path):
     def fake(body,headers,timeout):
         calls.append(json.loads(body)['model'])
         return 200,envelope(generator_json(c))
-    p=provider(fake);config={'RUN_ID':'resume','ROLE_MODEL_MAP':dict(ROLE_MODEL_MAP),'ROLE_REQUEST_PARAMS':{k:dict(v) for k,v in ROLE_REQUEST_PARAMS.items()}}
+    p=provider(fake);config={'RUN_ID':'resume','ROLE_MODEL_MAP':dict(ROLE_MODEL_MAP),'ROLE_REQUEST_PARAMS':{k:dict(v) for k,v in ROLE_REQUEST_PARAMS.items()},'REQUEST_TIMEOUT_SECONDS':OPENAI_REQUEST_TIMEOUT_SECONDS}
     l=Ledger(tmp_path/'r.db',config)
     caller=Caller(c,l,p,30_000_000,True)
     slots={'max_output_tokens':100,'slots':[{'CANDIDATE_ID':'C001','MECHANISM_FAMILY':'A','INFORMATION_SOURCE':'KLINES'}]}
@@ -184,6 +185,8 @@ def test_resume_identity_includes_role_model_map(tmp_path):
     with pytest.raises(ContractError,match='resume configuration differs'):
         drifted={k:dict(v) for k,v in ROLE_REQUEST_PARAMS.items()};drifted['GENERATOR']={'reasoning_effort':'low'}
         Ledger(tmp_path/'r.db',{'RUN_ID':'resume','ROLE_MODEL_MAP':dict(ROLE_MODEL_MAP),'ROLE_REQUEST_PARAMS':drifted})
+    with pytest.raises(ContractError,match='resume configuration differs'):
+        Ledger(tmp_path/'r.db',{**config,'REQUEST_TIMEOUT_SECONDS':OPENAI_REQUEST_TIMEOUT_SECONDS+1})
 
 def test_openai_role_schemas_are_strict():
     c=Contexts()
@@ -197,8 +200,9 @@ def test_openai_role_schemas_are_strict():
 def test_archived_paid_run_is_not_opened_by_operator(monkeypatch):
     from scripts.research.generator_v0.__main__ import main
     monkeypatch.setenv('OPENAI_API_KEY','present')
-    with pytest.raises(ContractError,match='archived paid run'):
-        main(['preflight','--provider','openai','--allow-real-llm','--budget-usd','10','--run-dir','artifacts/generator_v0/first-shadow'])
+    for run_dir in ('artifacts/generator_v0/first-shadow','artifacts/generator_v0/first-shadow-v2'):
+        with pytest.raises(ContractError,match='archived paid run'):
+            main(['preflight','--provider','openai','--allow-real-llm','--budget-usd','10','--run-dir',run_dir])
 
 def test_ambient_key_never_enables_http(monkeypatch):
     from scripts.research.generator_v0.__main__ import main
@@ -211,3 +215,43 @@ def test_ambient_key_never_enables_http(monkeypatch):
     main(['preflight','--provider','openai','--allow-real-llm','--budget-usd','30'])
     with pytest.raises(ContractError,match='role-specific'):
         main(['preflight','--provider','openai','--allow-real-llm','--budget-usd','30','--model','gpt-4.1-mini-2025-04-14'])
+
+def test_default_timeout_is_600_and_reaches_https_transport(tmp_path):
+    seen=[]
+    def fake(body,headers,timeout):
+        seen.append(timeout);return 200,envelope(generator_json(Contexts()))
+    p=provider(fake)
+    assert p.request_timeout_seconds==OPENAI_REQUEST_TIMEOUT_SECONDS==600
+    assert bounded_timeout()==600
+    c=Contexts();l=Ledger(tmp_path/'r.db',{'RUN_ID':'timeout'});caller=Caller(c,l,p,30_000_000,True)
+    caller.call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':100,'slots':[{'CANDIDATE_ID':'C001','MECHANISM_FAMILY':'A','INFORMATION_SOURCE':'KLINES'}]},'g0')
+    assert seen==[600]
+    p2=OpenAIProvider('key',allow_real=True,budget_micro_usd=1,timeout_seconds=900,transport=lambda *a:pytest.fail('HTTP'))
+    assert p2.request_timeout_seconds==900
+    seen.clear()
+    def fake900(body,headers,timeout):
+        seen.append(timeout);return 200,envelope(generator_json(Contexts()))
+    p3=OpenAIProvider('key',allow_real=True,budget_micro_usd=30_000_000,timeout_seconds=900,transport=fake900)
+    Caller(c,Ledger(tmp_path/'r2.db',{'RUN_ID':'t900'}),p3,30_000_000,True).call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':100},'one')
+    assert seen==[900]
+
+@pytest.mark.parametrize('value',[0,-1,1801,60.0,'600',True,False])
+def test_invalid_timeout_fails_closed(value):
+    with pytest.raises(ContractError,match='invalid request timeout'):bounded_timeout(value)
+    with pytest.raises(ContractError,match='invalid request timeout'):
+        OpenAIProvider('key',allow_real=True,budget_micro_usd=1,timeout_seconds=value,transport=lambda *a:pytest.fail('network reached'))
+
+def test_timeout_error_stays_uncertain_and_cannot_replay(tmp_path):
+    calls=[]
+    def fake(*args):
+        calls.append(args[2]);raise TimeoutError()
+    c=Contexts();l=Ledger(tmp_path/'r.db',{'RUN_ID':'uncertain','REQUEST_TIMEOUT_SECONDS':600})
+    p=provider(fake);caller=Caller(c,l,p,30_000_000,True)
+    with pytest.raises(TimeoutError):caller.call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':100},'one')
+    assert calls==[600]
+    assert l.db.execute('SELECT state,cost FROM calls').fetchone()==('UNCERTAIN',None)
+    with pytest.raises(ContractError,match='uncertain prior attempt'):
+        caller.call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':100},'one')
+    with pytest.raises(ContractError,match='uncertain prior attempt'):
+        Caller(c,Ledger(tmp_path/'r.db',{'RUN_ID':'uncertain','REQUEST_TIMEOUT_SECONDS':600}),p,30_000_000,True).call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':100},'one')
+    assert calls==[600]

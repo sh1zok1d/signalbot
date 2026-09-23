@@ -1,10 +1,11 @@
 # Generator V0 shadow campaign
 
-Status: structured-output + role-specific routing adapter. Frozen scientific
-design is unchanged. A successful campaign still terminates at
-`PENDING_HUMAN_REVIEW`. The archived partial paid run
-`artifacts/generator_v0/first-shadow` is sealed and the operator refuses to
-open it. One campaign generates
+Status: structured-output + role-specific routing adapter with a 600-second
+real Chat Completions timeout. Frozen scientific design is unchanged. A
+successful campaign still terminates at `PENDING_HUMAN_REVIEW`. The archived
+partial paid runs `artifacts/generator_v0/first-shadow` and
+`artifacts/generator_v0/first-shadow-v2` are sealed and the operator refuses
+to open them. One campaign generates
 research cards, applies separate critics and produces a human-review queue.
 It has no market-data reader, acquisition tool, evaluator or trading hook.
 A successful run terminates at `PENDING_HUMAN_REVIEW`.
@@ -37,7 +38,8 @@ python -m scripts.research.generator_v0 preflight --provider openai --allow-real
 
 **Canonical real shadow command**, after explicitly authorizing its
 budget and supplying the credential. Use a **new** run directory. Do not
-resume or overwrite `artifacts/generator_v0/first-shadow`.
+resume or overwrite `artifacts/generator_v0/first-shadow` or
+`artifacts/generator_v0/first-shadow-v2`.
 
 ```bash
 python -m scripts.research.generator_v0 run --provider openai --allow-real-llm --budget-usd 10 --run-dir artifacts/generator_v0/shadow
@@ -121,5 +123,8 @@ the authorized single-field provenance amendment.
 JSON mode is not used. Structured Outputs (`json_schema`, `strict: true`)
 are generated from the application role builders. Application validators
 remain the second layer. Role-specific models and prices are in
-`GENERATOR_V0_MODEL_ROUTING.md` / `models.py`.
+`GENERATOR_V0_MODEL_ROUTING.md` / `models.py`. Real Chat Completions
+HTTPS timeout is `OPENAI_REQUEST_TIMEOUT_SECONDS = 600` and is part of
+run configuration identity. A `TimeoutError` after dispatch is `UNCERTAIN`
+and is never automatically replayed.
 Resumable implementation checkpoints: `generator_v0_checkpoints/`.
