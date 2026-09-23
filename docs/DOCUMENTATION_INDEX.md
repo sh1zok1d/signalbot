@@ -403,7 +403,9 @@ The archived partial paid runs `artifacts/generator_v0/first-shadow`,
 `artifacts/generator_v0/first-shadow-v6` are sealed.
 Offline `derive` may read `first-shadow-v6` as an immutable source and write
 a new destination through generation:2; it must not POST or mutate v6.
-Do not create live `first-shadow-v7` in this unit.
-Offline `authorize-budget-extension` may raise an existing campaign cap.
+Do not create live `first-shadow-v7` unless `remaining-budget-preflight`
+proves the complete remaining campaign fits in remaining authorized spend.
+Offline `authorize-budget-extension` may raise an existing campaign cap
+up to the owner-authorized absolute total of USD 10.000000.
 The original design's FROZEN_NOT_IMPLEMENTED label describes its historical
 freeze, not the current implementation state.

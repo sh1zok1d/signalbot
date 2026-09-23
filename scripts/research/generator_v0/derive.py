@@ -17,6 +17,9 @@ DERIVED_STATUS='DERIVED_IMPORTED_REVALIDATED'
 CONTINUATION_STATUS='DERIVED_CONTINUATION_AUTHORIZED'
 PROMPT_VERSION='generator-v0.1'
 GENERATOR_PROVIDER='OPENAI_RESPONSES'
+# Owner-authorized absolute campaign ceiling. Distinct from the technical
+# infrastructure maximum of USD 30. Live spend may not exceed this total.
+OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD=10_000_000
 
 def transport_identity(contexts):
     from .openai_provider import (
@@ -224,6 +227,8 @@ def authorize_budget_extension(run_dir,actor,reason,new_cap_usd):
                 raise ContractError('run cap missing')
             old=cfg['CAP_MICRO_USD']
             if new<=old:raise ContractError('new cap must exceed old cap')
+            if new>OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD:
+                raise ContractError('new cap exceeds owner-authorized campaign total USD 10.000000')
             spent=ledger.spent_micro_usd()
             if type(spent) is not int or spent<0:raise ContractError('invalid spent')
             if spent>new:raise ContractError('new cap below spent')
@@ -239,6 +244,98 @@ def authorize_budget_extension(run_dir,actor,reason,new_cap_usd):
             'STATUS':'BUDGET_EXTENSION_AUTHORIZED','OLD_CAP_MICRO_USD':old,'NEW_CAP_MICRO_USD':new,
             'SPENT_MICRO_USD':spent,'REMAINING_MICRO_USD':new-spent,
             'ACTOR':actor.strip(),'REASON':reason.strip(),
+            'REAL_LLM_CALLS_MADE':False,'SCIENTIFIC_OUTCOMES_COMPUTED':False,
+        }
+    finally:
+        ledger.close()
+
+def _offline_bound_provider(contexts,cap):
+    from .openai_provider import OpenAIProvider
+    def refuse(*_a,**_k):
+        raise ContractError('remaining-budget-preflight is offline')
+    return OpenAIProvider('remaining-budget-preflight',allow_real=True,budget_micro_usd=max(cap,1),contexts=contexts,transport=refuse)
+
+def _stage(name,bound):
+    return {'STAGE':name,'BOUND_MICRO_USD':bound,'BOUND_USD':str(Decimal(bound)/Decimal(1_000_000))}
+
+def remaining_campaign_budget_preflight(run_dir,contexts=None):
+    """Worst-case remaining reservation using the same bound() path as live calls. No POST."""
+    from .roles import Roles,NOVELTY_PROMPT,FEAS_PROMPT,RED_PROMPT,SELECTOR_PROMPT
+    from .context import canonical
+    dbpath=Path(run_dir)/'run.sqlite'
+    if not dbpath.exists():raise ContractError('run not found')
+    contexts=contexts or Contexts()
+    ledger=Ledger.open_readonly(dbpath)
+    try:
+        cfg=ledger.get('config')
+        if not isinstance(cfg,dict) or type(cfg.get('CAP_MICRO_USD')) is not int:
+            raise ContractError('run cap missing')
+        cap=cfg['CAP_MICRO_USD']
+        size=cfg.get('SIZE')
+        if type(size)!=int or not 25<=size<=50:raise ContractError('source batch size')
+        spent=ledger.spent_micro_usd()
+        if type(spent) is not int or spent<0:raise ContractError('invalid spent')
+        remaining_auth=cap-spent
+        provider=_offline_bound_provider(contexts,cap)
+        plan=slot_plan(size)
+        imported=[]
+        cards=[]
+        for row in _source_calls(ledger):
+            slot=row['request'].get('slot')
+            if not (isinstance(slot,str) and slot.startswith('generation:')):continue
+            if row['state']!='COMPLETE':
+                raise ContractError('source call '+str(slot)+' is '+str(row['state'])+' and cannot be budgeted')
+            round_n=int(slot.split(':',1)[1])
+            imported.append(round_n)
+            parsed=parse_json((row['response'] or {}).get('raw'));exact(parsed,{'CANDIDATES'})
+            batch=parsed['CANDIDATES']
+            if not isinstance(batch,list):raise ContractError('wrong generation round size')
+            cards.extend(batch)
+        rounds=list(range((size+9)//10))
+        missing=[n for n in rounds if n not in imported]
+        stages=[]
+        total=0
+        for round_n in missing:
+            start=round_n*10
+            req={'role':'GENERATOR','context':contexts.generator(),'prompt':GENERATOR_PROMPT,
+                 'parameters':{'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS,'slots':plan[start:start+10]}}
+            bound=provider.bound(req);total+=bound
+            stages.append(_stage('generation:'+str(round_n),bound))
+        if len(cards)<size:
+            if not cards:raise ContractError('no COMPLETE generator cards to bound remaining critics')
+            template=max(cards,key=lambda card:len(canonical(card).encode()))
+            for slot in plan[len(cards):size]:
+                proxy=json.loads(canonical(template));proxy.update(slot);cards.append(proxy)
+        if len(cards)!=size:raise ContractError('wrong generation round size')
+        roles=Roles(contexts,None)
+        critic_tot={'NOVELTY_CRITIC':0,'FEASIBILITY_CRITIC':0,'RED_TEAM':0}
+        for card in cards:
+            for role,prompt in (('NOVELTY_CRITIC',NOVELTY_PROMPT),('FEASIBILITY_CRITIC',FEAS_PROMPT),('RED_TEAM',RED_PROMPT)):
+                ctx=roles.request(role,card,cards if role=='NOVELTY_CRITIC' else None)
+                bound=provider.bound({'role':role,'context':ctx,'prompt':prompt,'parameters':{'max_output_tokens':6000}})
+                critic_tot[role]+=bound;total+=bound
+        for role,bound in critic_tot.items():
+            stages.append(_stage(role+' x'+str(size),bound))
+        selection={card['CANDIDATE_ID']:{'MECHANISM_DISTANCE':3,'INFORMATION_GAIN':3,'FEASIBILITY':3,'CHEAPNESS':3} for card in cards}
+        sanitized=[{'CANDIDATE_ID':card['CANDIDATE_ID'],'DATA_STATUS':card['DATA_STATUS']} for card in cards]
+        selector_ctx={'SANITIZED_CRITIC_OUTPUTS':sanitized,'DATA_STATUS':{card['CANDIDATE_ID']:card['DATA_STATUS'] for card in cards},'SELECTION_JUDGMENTS':selection}
+        selector_bound=provider.bound({'role':'SELECTOR','context':selector_ctx,'prompt':SELECTOR_PROMPT,'parameters':{'max_output_tokens':2000}})
+        total+=selector_bound
+        stages.append(_stage('SELECTOR',selector_bound))
+        shortfall=max(0,total-remaining_auth)
+        fits=total<=remaining_auth and cap<=OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD
+        return {
+            'STATUS':'REMAINING_BUDGET_PREFLIGHT',
+            'CAP_MICRO_USD':cap,'SPENT_MICRO_USD':spent,
+            'REMAINING_AUTHORIZED_MICRO_USD':remaining_auth,
+            'OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD':OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD,
+            'WORST_CASE_REMAINING_MICRO_USD':total,
+            'MIN_ADDITIONAL_AUTHORIZATION_MICRO_USD':shortfall,
+            'MIN_TOTAL_CAP_MICRO_USD':spent+total,
+            'FITS_AUTHORIZED_REMAINING':fits,
+            'IMPORTED_GENERATION_ROUNDS':['generation:'+str(n) for n in sorted(imported)],
+            'REMAINING_GENERATION_ROUNDS':['generation:'+str(n) for n in missing],
+            'STAGES':stages,
             'REAL_LLM_CALLS_MADE':False,'SCIENTIFIC_OUTCOMES_COMPUTED':False,
         }
     finally:

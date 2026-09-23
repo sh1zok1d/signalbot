@@ -5,7 +5,7 @@ import sqlite3
 from pathlib import Path
 import pytest
 from scripts.research.generator_v0.context import Contexts,ContractError,canonical,digest
-from scripts.research.generator_v0.derive import derive_complete_rounds,expected_generator_request,transport_identity,DERIVED_STATUS,CONTINUATION_STATUS,authorize_derived_continuation,authorize_budget_extension
+from scripts.research.generator_v0.derive import derive_complete_rounds,expected_generator_request,transport_identity,DERIVED_STATUS,CONTINUATION_STATUS,authorize_derived_continuation,authorize_budget_extension,remaining_campaign_budget_preflight,OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD
 from scripts.research.generator_v0.ledger import Ledger
 from scripts.research.generator_v0.mock import fixture,slot_plan
 from scripts.research.generator_v0.provider import Caller,MockProvider
@@ -531,26 +531,28 @@ def test_authorize_budget_extension_increases_cap_without_rewriting_calls(tmp_pa
     before_cards=l.db.execute('SELECT count(*) FROM cards').fetchone()[0]
     l.close()
     with pytest.raises(ContractError,match='offline'):
-        main(['authorize-budget-extension','--provider','openai','--allow-real-llm','--budget-usd','1','--run-dir',str(dest),'--actor','owner','--reason','go','--new-cap-usd','17.117536'])
+        main(['authorize-budget-extension','--provider','openai','--allow-real-llm','--budget-usd','1','--run-dir',str(dest),'--actor','owner','--reason','go','--new-cap-usd','10.000000'])
     with pytest.raises(ContractError,match='actor and reason required'):
-        authorize_budget_extension(dest,'','more budget','17.117536')
+        authorize_budget_extension(dest,'','more budget','10.000000')
     with pytest.raises(ContractError,match='new cap must exceed old cap'):
         authorize_budget_extension(dest,'owner','same','7.117536')
     with pytest.raises(ContractError,match='new cap must exceed old cap'):
         authorize_budget_extension(dest,'owner','down','6.000000')
+    with pytest.raises(ContractError,match='owner-authorized campaign total'):
+        authorize_budget_extension(dest,'owner','misread additional as extra','17.117536')
     with pytest.raises(ContractError,match='budget must be finite'):
         authorize_budget_extension(dest,'owner','too high','31')
     with pytest.raises(ContractError,match='new cap required'):
         authorize_budget_extension(dest,'owner','missing',None)
-    report=authorize_budget_extension(dest,'owner','owner authorized additional USD 10','17.117536')
+    report=authorize_budget_extension(dest,'owner','set absolute authorized campaign total to USD 10','10.000000')
     assert report['STATUS']=='BUDGET_EXTENSION_AUTHORIZED'
     assert report['OLD_CAP_MICRO_USD']==7117536
-    assert report['NEW_CAP_MICRO_USD']==17117536
+    assert report['NEW_CAP_MICRO_USD']==OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD==10_000_000
     assert report['SPENT_MICRO_USD']==3779550
-    assert report['REMAINING_MICRO_USD']==13337986
+    assert report['REMAINING_MICRO_USD']==6220450
     assert report['REAL_LLM_CALLS_MADE'] is False
     l=Ledger(dest/'run.sqlite')
-    assert l.get('config')['CAP_MICRO_USD']==17117536
+    assert l.get('config')['CAP_MICRO_USD']==10_000_000
     assert l.get('status')==before_status==DERIVED_STATUS
     assert l.export_calls()==before_calls
     assert l.db.execute('SELECT count(*) FROM cards').fetchone()[0]==before_cards==0
@@ -559,10 +561,44 @@ def test_authorize_budget_extension_increases_cap_without_rewriting_calls(tmp_pa
     assert 'BUDGET_EXTENSION_AUTHORIZED' in kinds
     payload=json.loads(l.db.execute("SELECT payload FROM events WHERE kind='BUDGET_EXTENSION_AUTHORIZED'").fetchone()[0])
     assert payload['OLD_CAP_MICRO_USD']==7117536
-    assert payload['NEW_CAP_MICRO_USD']==17117536
+    assert payload['NEW_CAP_MICRO_USD']==10_000_000
     assert payload['ACTOR']=='owner'
-    assert payload['REASON']=='owner authorized additional USD 10'
+    assert payload['REASON']=='set absolute authorized campaign total to USD 10'
     assert payload['TIME']
     l.close()
+    from scripts.research.generator_v0.openai_provider import HTTPS
+    monkeypatch=pytest.MonkeyPatch()
+    monkeypatch.setattr(HTTPS,'__call__',lambda *a,**k:pytest.fail('HTTP reached'))
+    try:
+        with pytest.raises(ContractError,match='offline'):
+            main(['remaining-budget-preflight','--provider','openai','--allow-real-llm','--budget-usd','10','--run-dir',str(dest)])
+        pre=remaining_campaign_budget_preflight(dest)
+    finally:
+        monkeypatch.undo()
+    assert pre['STATUS']=='REMAINING_BUDGET_PREFLIGHT'
+    assert pre['CAP_MICRO_USD']==10_000_000
+    assert pre['SPENT_MICRO_USD']==3779550
+    assert pre['REMAINING_AUTHORIZED_MICRO_USD']==6220450
+    assert pre['WORST_CASE_REMAINING_MICRO_USD']>6220450
+    assert pre['FITS_AUTHORIZED_REMAINING'] is False
+    assert pre['REAL_LLM_CALLS_MADE'] is False
+    assert pre['IMPORTED_GENERATION_ROUNDS']==['generation:0','generation:1','generation:2']
+    assert pre['REMAINING_GENERATION_ROUNDS']==['generation:3']
+    names=[row['STAGE'] for row in pre['STAGES']]
+    assert names[0]=='generation:3'
+    assert any(s.startswith('NOVELTY_CRITIC') for s in names)
+    assert any(s.startswith('RED_TEAM') for s in names)
     with pytest.raises(ContractError,match='archived paid run'):
-        main(['authorize-budget-extension','--run-dir','artifacts/generator_v0/first-shadow-v6','--actor','owner','--reason','no','--new-cap-usd','17.117536'])
+        main(['authorize-budget-extension','--run-dir','artifacts/generator_v0/first-shadow-v6','--actor','owner','--reason','no','--new-cap-usd','10.000000'])
+    with pytest.raises(ContractError,match='archived paid run'):
+        main(['remaining-budget-preflight','--run-dir','artifacts/generator_v0/first-shadow-v6'])
+
+def test_live_openai_run_refuses_cap_above_owner_authorized_total(tmp_path,monkeypatch):
+    monkeypatch.setenv('OPENAI_API_KEY','present')
+    from scripts.research.generator_v0.openai_provider import HTTPS
+    monkeypatch.setattr(HTTPS,'__call__',lambda *a,**k:pytest.fail('HTTP reached'))
+    with pytest.raises(ContractError,match='owner-authorized total'):
+        main(['run','--provider','openai','--allow-real-llm','--budget-usd','17.117536','--run-dir',str(tmp_path/'x')])
+    with pytest.raises(ContractError,match='owner-authorized total'):
+        main(['resume','--provider','openai','--allow-real-llm','--budget-usd','30','--run-dir',str(tmp_path/'y')])
+    main(['preflight','--provider','openai','--allow-real-llm','--budget-usd','30'])

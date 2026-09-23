@@ -79,24 +79,39 @@ destination and derive v7 after merge.
 
 Offline campaign-cap extension (no provider POST). Existing run required.
 Actor, reason, and explicit new cap required. The new cap must exceed the
-old cap, cannot decrease, and cannot exceed USD 30. The command rewrites
-only `CAP_MICRO_USD` and records an immutable
-`BUDGET_EXTENSION_AUTHORIZED` event (`OLD_CAP_MICRO_USD`,
+old cap, cannot decrease, cannot exceed the owner-authorized absolute
+total of USD 10.000000, and cannot exceed the technical maximum of
+USD 30. The command rewrites only `CAP_MICRO_USD` and records an
+immutable `BUDGET_EXTENSION_AUTHORIZED` event (`OLD_CAP_MICRO_USD`,
 `NEW_CAP_MICRO_USD`, `ACTOR`, `REASON`, `TIME`). Call identities,
-responses, costs, and scientific state are unchanged. Owner-authorized
-example after a post-merge v7 derive (old USD 7.117536, new USD 17.117536):
+responses, costs, and scientific state are unchanged. USD 10 is the
+authorized campaign total, not an incremental +USD 10. Example after a
+post-merge v7 derive (old USD 7.117536, new USD 10.000000):
 
 ```bash
-python -m scripts.research.generator_v0 authorize-budget-extension --run-dir artifacts/generator_v0/first-shadow-v7 --actor owner --reason "owner authorized additional USD 10" --new-cap-usd 17.117536
+python -m scripts.research.generator_v0 authorize-budget-extension --run-dir artifacts/generator_v0/first-shadow-v7 --actor owner --reason "set absolute authorized campaign total to USD 10" --new-cap-usd 10.000000
 ```
 
-Do not run that command against sealed `first-shadow-v6`.
+Do not run that command against sealed `first-shadow-v6`. A cap of
+USD 17.117536 is not authorized.
+
+Offline remaining-campaign budget preflight (no provider POST). Uses the
+same `bound()` reservation path as live `ledger.reserve`. Ungenerated
+cards are proxied by cloning the largest imported card. If
+`FITS_AUTHORIZED_REMAINING` is false, do not make a real LLM call.
+
+```bash
+python -m scripts.research.generator_v0 remaining-budget-preflight --run-dir artifacts/generator_v0/first-shadow-v7
+```
 
 ```bash
 python -m scripts.research.generator_v0 run --provider openai --allow-real-llm --budget-usd 10 --run-dir artifacts/generator_v0/shadow
 ```
 
-Budget may be lower, but cannot exceed USD 30. Mock remains the default even
+Budget may be lower. Live OpenAI run/resume cannot exceed the
+owner-authorized absolute total of USD 10.000000. Technical mock and
+offline preflight still accept the infrastructure maximum of USD 30.
+Mock remains the default even
 if API credentials exist. Every real call requires provider selection, key,
 explicit authorization and a nonzero budget. No paid request was made during
 this structured-output / routing change. Real generation quality and account

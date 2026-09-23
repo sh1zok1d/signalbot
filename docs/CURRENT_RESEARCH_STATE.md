@@ -5,12 +5,14 @@ Archived paid runs `artifacts/generator_v0/first-shadow` through
 `first-shadow-v6` remain sealed. `first-shadow-v6` is readable as an
 immutable derive source only. This unit is infrastructure only: exact
 generation:2 prose wrappers classify as their inner strict LEGAL_RANGE;
-free prose with a range stays AMBIGUOUS. Offline
-`authorize-budget-extension` may raise an existing campaign cap (never
-decrease; max USD 30) without rewriting calls, responses, costs, or
-cards. Prove derive through generation:2 on a TEMP scratch destination.
-Do not create live `first-shadow-v7` in this unit. Do not replay
-generation:2. No new paid LLM call. No scientific interpretation,
+free prose with a range stays AMBIGUOUS. Offline `authorize-budget-extension` may raise an existing campaign cap, never
+decrease, and never above the owner-authorized absolute total of USD 10.000000
+(technical infrastructure maximum remains USD 30). It does not rewrite calls,
+responses, costs, or cards. Remaining-campaign budget preflight uses the same
+`bound()` reservation path as live calls. Prove derive through generation:2 on
+a TEMP scratch destination. Do not create live `first-shadow-v7` unless that
+preflight proves the complete remaining campaign fits in the remaining
+authorized spend. Do not replay generation:2. No scientific interpretation,
 acquisition, Sprint05, D14, MARKET-07, or protected-data open. Frozen
 design/historical records retain their historical labels.
 

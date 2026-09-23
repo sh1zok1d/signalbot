@@ -11,7 +11,7 @@ from .provider import Caller,MockProvider
 from .mock import MockResponder
 from .runner import run_campaign,GENERATOR_PROMPT
 from .models import GENERATOR_MAX_OUTPUT_TOKENS
-from .derive import derive_complete_rounds,authorize_derived_continuation,authorize_budget_extension
+from .derive import derive_complete_rounds,authorize_derived_continuation,authorize_budget_extension,remaining_campaign_budget_preflight,OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD
 
 ARCHIVED_PAID_RUNS={
     ('generator_v0','first-shadow'),
@@ -36,7 +36,7 @@ def atomic_json(path,value):
 
 def main(argv=None):
     p=argparse.ArgumentParser(description='Generator V0 shadow only; stops at human review')
-    p.add_argument('command',choices=['preflight','run','resume','review','mutate','inspect','derive','authorize-derived-continuation','authorize-budget-extension'])
+    p.add_argument('command',choices=['preflight','run','resume','review','mutate','inspect','derive','authorize-derived-continuation','authorize-budget-extension','remaining-budget-preflight'])
     p.add_argument('--source-run-dir',type=Path)
     p.add_argument('--through-generation',type=int,default=1)
     p.add_argument('--provider',choices=['mock','openai'],default='mock')
@@ -75,6 +75,12 @@ def main(argv=None):
             raise ContractError('authorize-budget-extension is offline; do not authorize a provider or budget')
         report=authorize_budget_extension(a.run_dir,a.actor,a.reason,a.new_cap_usd)
         print(canonical(report));return
+    if a.command=='remaining-budget-preflight':
+        if archived_paid_run(a.run_dir):raise ContractError('archived paid run is read-only and must not be opened by this operator')
+        if a.allow_real_llm or a.provider=='openai' or Decimal(a.budget_usd)!=0:
+            raise ContractError('remaining-budget-preflight is offline; do not authorize a provider or budget')
+        report=remaining_campaign_budget_preflight(a.run_dir)
+        print(canonical(report));return
     if archived_paid_run(a.run_dir):
         raise ContractError('archived paid run is read-only and must not be opened by this operator')
     c=Contexts();c.validate('GENERATOR',c.generator(),GENERATOR_PROMPT)
@@ -102,6 +108,8 @@ def main(argv=None):
     amount=Decimal(a.budget_usd)
     if not amount.is_finite() or not 0<=amount<=30 or amount*1_000_000 != (amount*1_000_000).to_integral_value():raise ContractError('budget must be finite USD 0..30, at microdollar precision')
     cap=int(amount*1_000_000)
+    if a.command in ('run','resume') and a.provider=='openai' and cap>OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD:
+        raise ContractError('live campaign cap exceeds owner-authorized total USD 10.000000')
     if a.provider=='openai':
         from .openai_provider import OpenAIProvider
         from .models import ROLE_MODEL_MAP,ROLE_REQUEST_PARAMS,price_table

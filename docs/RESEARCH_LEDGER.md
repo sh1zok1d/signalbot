@@ -5779,7 +5779,8 @@ in addition to the v5 annotated form. The returned class is the inner
 strict range. Free prose, extra ranges, trailing years, open-ended notes,
 and digit/open-ended subjects still fail. Cards were not edited.
 `first-shadow-v6` is sealed. Offline `authorize-budget-extension` may
-raise a campaign cap (USD 7.117536 -> 17.117536 authorized) without
+raise a campaign cap (USD 7.117536 -> 17.117536 was recorded here as an
+incorrect +USD 10 reading; corrected in the next entry) without
 rewriting calls, responses, costs, or cards. Prove derive through
 generation:2 on a TEMP scratch destination. Do not create live
 `first-shadow-v7` here. F5–F8 remain deferred. No replay of generation:2.
@@ -5791,6 +5792,32 @@ LEGAL_RANGE_WRAPPERS = V5_ANNOTATED_PLUS_INSPECTED_GEN2
 BUDGET_EXTENSION_COMMAND = authorize-budget-extension
 OLD_CAP_USD = 7.117536
 NEW_CAP_USD = 17.117536
+FIRST_SHADOW_V6_SEALED = true
+REAL_LLM_CALLS_MADE = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+```
+
+## 2026-09-23 — Generator V0 owner-authorized campaign cap is USD 10 total
+
+Correction: USD 10 is the absolute maximum authorized total campaign
+budget, not a +USD 10 increment on the previous internal cap of
+USD 7.117536. `authorize-budget-extension` therefore cannot set a cap
+above USD 10.000000. After imported generation:0/1/2 spend of
+USD 3.779550, remaining authorized spend is USD 6.220450.
+`remaining-budget-preflight` computes worst-case remaining reservations
+with the same `bound()` path used before every live call. Live
+run/resume with a cap above USD 10 is refused. No real LLM call while
+the effective cap would exceed USD 10, and no live first-shadow-v7
+unless that preflight proves a complete remaining campaign fit.
+
+```
+NEXT_UNIT = GENERATOR_V0_LEGAL_RANGE_WRAPPERS_AND_BUDGET_EXTENSION
+OWNER_AUTHORIZED_CAMPAIGN_CAP_USD = 10.000000
+OLD_INTERNAL_CAP_USD = 7.117536
+NEW_CAP_USD = 10.000000
+SPENT_USD = 3.779550
+REMAINING_AUTHORIZED_USD = 6.220450
+SUPERSEDED_UNAUTHORIZED_CAP_USD = 17.117536
 FIRST_SHADOW_V6_SEALED = true
 REAL_LLM_CALLS_MADE = false
 SCIENTIFIC_OUTCOMES_COMPUTED = false

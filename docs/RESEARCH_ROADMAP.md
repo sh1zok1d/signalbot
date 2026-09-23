@@ -6,9 +6,13 @@ Archived paid runs `artifacts/generator_v0/first-shadow` through
 source only. This unit is infrastructure only: exact generation:2
 LEGAL_RANGE wrappers classify as the inner strict range; free prose with
 a range stays AMBIGUOUS. Offline `authorize-budget-extension` may raise
-an existing campaign cap (never decrease; max USD 30) without rewriting
-calls or cards. Prove derive through generation:2 on a TEMP scratch
-destination. Do not create live `first-shadow-v7` here. Do not replay
+an existing campaign cap, never decrease, and never above the
+owner-authorized absolute total of USD 10.000000 (technical max remains
+USD 30) without rewriting calls or cards. Remaining-campaign budget
+preflight uses the live `bound()` reservation path. Prove derive through
+generation:2 on a TEMP scratch destination. Do not create live
+`first-shadow-v7` unless that preflight proves the complete remaining
+campaign fits in remaining authorized spend. Do not replay
 generation:2. No new paid LLM call. No scientific interpretation,
 acquisition, Sprint05, D14, MARKET-07, or protected-data open. Frozen
 design/historical records retain their historical labels.
