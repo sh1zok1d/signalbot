@@ -28,14 +28,15 @@ from scripts.research.generator_v0.context import Contexts, ContractError, canon
 from scripts.research.generator_v0.ledger import Ledger, BudgetExceeded, CallUncertain, AttemptClosed
 from scripts.research.generator_v0.provider import (
     Caller, MockProvider, Response, ProviderFailure, BilledFailure, ProviderRejected, ProviderThrottled,
+    BackgroundPending,
 )
 from scripts.research.generator_v0.runner import run_campaign, MIN_VALID_CANDIDATES, MAX_CONTENT_ATTEMPTS, RESUMABLE_STATUSES, TERMINAL_STATUSES
-from scripts.research.generator_v0.roles import Roles, RoleContractError, NOVELTY_PROMPT, SELECTOR_PROMPT, NOVELTY_DIMENSIONS, RED_DIMENSIONS, FEAS_DIMENSIONS, RELATIONS, BATCH_RELATIONS
+from scripts.research.generator_v0.roles import Roles, RoleContractError, NOVELTY_PROMPT, SELECTOR_PROMPT, FEAS_PROMPT, NOVELTY_DIMENSIONS, RED_DIMENSIONS, FEAS_DIMENSIONS, RELATIONS, BATCH_RELATIONS
 from scripts.research.generator_v0.schema import normalize_role_output, parse_json, validate_card
 from scripts.research.generator_v0.output_schemas import role_schema, openai_response_format, responses_text_format, strict_subset_violations
 from scripts.research.generator_v0.derive import (
     derive_complete_rounds, authorize_derived_continuation, remaining_campaign_budget_preflight,
-    OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD, reconcile_call,
+    OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD, reconcile_call, authorize_budget_extension, derived_config,
 )
 from scripts.research.generator_v0.__main__ import main, refuse_sealed_or_archived, sealed_journal
 from scripts.research.generator_v0.mock import slot_plan
@@ -809,6 +810,156 @@ def test_implementer_rule_table_test_is_self_referential():
     t=(REPO/'tests/research/test_generator_v0_contract.py').read_text(encoding='utf-8')
     assert "assert '['+rule['ID']+'] '+rule['TEXT'] in prompt" in t
     assert 'LEGAL_RANGE_PATTERN' in t and 'parse_legal_range' in t
+
+def test_f11_feasibility_false_legal_range_rejects():
+    c=Contexts();card=seed()
+    l=Ledger(Path(tempfile.mkdtemp())/'r.sqlite',{'RUN_ID':'f11'})
+    payload=canonical({'DATA_STATUS':card['DATA_STATUS'],'CHECKS':{'OBSERVABLE_SUPPORTED':True,'LEGAL_RANGE':False,'POINT_IN_TIME':True,'PROVENANCE':True,'BLOCKER_RESOLVED':True},'JUDGMENTS':{k:2 for k in FEAS_DIMENSIONS},'FEASIBILITY':2,'CHEAPNESS':2})
+    roles=Roles(c,Caller(c,l,MockProvider(lambda req: payload)))
+    out=roles.feasibility(card)
+    assert out['VERDICT']=='REJECT' and out['CHECKS']['LEGAL_RANGE'] is False
+    l.close()
+
+def test_implementer_gate_test_count():
+    n=0
+    files=('test_generator_v0_contract.py','test_generator_v0_faults.py','test_generator_v0_corpus.py')
+    for name in files:
+        text=(REPO/'tests'/'research'/name).read_text(encoding='utf-8')
+        n+=sum(1 for line in text.splitlines() if line.startswith('def test_'))
+    (Path(__file__).parent/'IMPLEMENTER_GATE_TEST_COUNT.json').write_text(json.dumps({'THREE_FILE_TEST_DEFS':n,'CLAIMED':52},indent=2)+'\n')
+    assert n>=40
+
+def test_pause_provider_rejected_then_resume(tmp_path):
+    c=Contexts();l=Ledger(tmp_path/'r.sqlite',{'RUN_ID':'x'});flag={'reject':True}
+    def responder(req):
+        if req['role']=='GENERATOR':
+            return _gen_ok(req)
+        if flag['reject'] and req['role']=='FEASIBILITY_CRITIC' and req['slot'].endswith('C002'):
+            raise ProviderFailure('400',billing='NOT_BILLED',retryable=False)
+        return _cooperative_critic(c,req)
+    p=MockProvider(responder)
+    with pytest.raises(ProviderRejected):
+        run_campaign(c,Caller(c,l,p))
+    assert l.get('status')=='PAUSED_PROVIDER_REJECTED'
+    flag['reject']=False
+    r=run_campaign(c,Caller(c,l,MockProvider(responder)))
+    assert r['STATUS']=='PENDING_HUMAN_REVIEW'
+    l.close()
+
+def test_pause_throttled_then_resume(tmp_path):
+    c=Contexts();l=Ledger(tmp_path/'r.sqlite',{'RUN_ID':'x'});flag={'busy':True}
+    def responder(req):
+        if req['role']=='GENERATOR':
+            return _gen_ok(req)
+        if flag['busy'] and req['role']=='RED_TEAM' and req['slot'].endswith('C001'):
+            raise ProviderFailure('429',billing='NOT_BILLED',retryable=True)
+        return _cooperative_critic(c,req)
+    p=MockProvider(responder);p._sleep=lambda s: None
+    with pytest.raises(ProviderThrottled):
+        run_campaign(c,Caller(c,l,p))
+    assert l.get('status')=='PAUSED_PROVIDER_THROTTLED'
+    flag['busy']=False
+    r=run_campaign(c,Caller(c,l,MockProvider(responder)))
+    assert r['STATUS']=='PENDING_HUMAN_REVIEW'
+    l.close()
+
+def test_stopped_budget_then_extension_then_resume(tmp_path):
+    c=Contexts()
+    class Priced(MockProvider):
+        def bound(s,req):return 80
+        def complete(s,req):
+            raw=super().complete(req);return Response(raw.raw,raw.usage,20)
+    d=tmp_path/'run';d.mkdir()
+    def responder(req):
+        if req['role']=='GENERATOR':
+            return _gen_ok(req)
+        return _cooperative_critic(c,req)
+    l=Ledger(d/'run.sqlite',{'RUN_ID':'b','CAP_MICRO_USD':500,'SIZE':40})
+    with pytest.raises(BudgetExceeded):
+        run_campaign(c,Caller(c,l,Priced(responder),500))
+    assert l.get('status')=='STOPPED_BUDGET'
+    spent=l.total_charged_micro_usd();l.close()
+    ext=authorize_budget_extension(d,'op','continue','0.020000')
+    assert ext['NEW_CAP_MICRO_USD']==20_000
+    l=Ledger(d/'run.sqlite')
+    r=run_campaign(c,Caller(c,l,Priced(responder),20_000))
+    assert r['STATUS']=='PENDING_HUMAN_REVIEW'
+    assert l.total_charged_micro_usd()>=spent
+    l.close()
+
+def test_background_pending_resumes_same_response_id(tmp_path):
+    c=Contexts()
+    clock={'t':0};pending={'on':True}
+    class T(IndependentTransport):
+        def __call__(self,method,path,body,headers,timeout):
+            self.log.append((method,path))
+            if method=='DELETE':
+                return 200,b'{}'
+            if method=='GET':
+                rid=path.rsplit('/',1)[1]
+                if pending['on']:
+                    return 200,json.dumps({'id':rid,'status':'queued'}).encode()
+                text=self.payloads[rid]
+                return 200,json.dumps({'id':rid,'status':'completed','output_text':text,'usage':{'input_tokens':4000,'output_tokens':8000,'output_tokens_details':{'reasoning_tokens':3000}}}).encode()
+            return IndependentTransport.__call__(self,method,path,body,headers,timeout)
+    t=T(c,{})
+    l=Ledger(tmp_path/'r.sqlite',{'RUN_ID':'bg','CAP_MICRO_USD':OWNER_CAP,'SIZE':40})
+    p=OpenAIProvider('audit',allow_real=True,budget_micro_usd=OWNER_CAP,transport=t,contexts=c,
+                     sleeper=lambda s: clock.__setitem__('t',clock['t']+s),
+                     clock=lambda: clock['t'],background_max_wait_seconds=1,poll_interval_seconds=2)
+    with pytest.raises(BackgroundPending):
+        run_campaign(c,Caller(c,l,p,OWNER_CAP,True),40)
+    assert l.get('status')=='PAUSED_BACKGROUND_PENDING'
+    rows=[r for r in l.export_calls() if r['STATE']=='BACKGROUND_SUBMITTED']
+    assert len(rows)==1 and rows[0]['RESPONSE_ID']
+    rid=rows[0]['RESPONSE_ID']
+    creates_before=len([x for x in t.log if x==('POST','/v1/responses')])
+    pending['on']=False
+    r=run_campaign(c,Caller(c,l,p,OWNER_CAP,True),40)
+    assert r['STATUS']=='PENDING_HUMAN_REVIEW'
+    gen0=[row for row in l.export_calls() if row['SLOT']=='generation:0']
+    assert len(gen0)==1 and gen0[0]['STATE']=='COMPLETE' and gen0[0]['RESPONSE_ID']==rid
+    # Later rounds may POST; generation:0 must not have been created again.
+    assert gen0[0]['RESPONSE_ID']==rid
+    l.close()
+
+def test_crash_after_finish_does_not_repost(tmp_path):
+    c=Contexts();l=Ledger(tmp_path/'r.sqlite',{'RUN_ID':'x'})
+    n={'i':0}
+    class P(MockProvider):
+        def complete(self,req):
+            n['i']+=1
+            return Response('{"ok":1}',{'input_tokens':1,'output_tokens':1},0)
+    cal=Caller(c,l,P(None),cap_micro_usd=10_000)
+    ctx,prompt=_red_ctx(c)
+    assert cal.call('RED_TEAM',ctx,prompt,{'max_output_tokens':10},'s')=='{"ok":1}'
+    assert n['i']==1
+    assert cal.call('RED_TEAM',ctx,prompt,{'max_output_tokens':10},'s')=='{"ok":1}'
+    assert n['i']==1
+    l.close()
+
+def test_derive_after_partial_critic_work_does_not_refund(tmp_path):
+    c=Contexts()
+    t=IndependentTransport(c,{('NOVELTY_CRITIC','C001',1):'crash'})
+    src=tmp_path/'src';src.mkdir()
+    cfg=derived_config('partial',{'SIZE':40,'CAP_MICRO_USD':OWNER_CAP},c)
+    l=Ledger(src/'run.sqlite',cfg)
+    p=OpenAIProvider('audit',allow_real=True,budget_micro_usd=OWNER_CAP,transport=t,contexts=c,sleeper=lambda s:None)
+    with pytest.raises(AuditCrash):
+        run_campaign(c,Caller(c,l,p,OWNER_CAP,True),40)
+    source_total=l.total_charged_micro_usd();l.close()
+    report=derive_complete_rounds(src,tmp_path/'dest',3)
+    assert report['LINEAGE_TOTAL_MICRO_USD']==source_total
+    assert report['LINEAGE_PRIOR_MICRO_USD']>0
+    authorize_derived_continuation(tmp_path/'dest','op','go')
+    t2=IndependentTransport(c,{})
+    l2=Ledger(tmp_path/'dest'/'run.sqlite')
+    p2=OpenAIProvider('audit',allow_real=True,budget_micro_usd=OWNER_CAP,transport=t2,contexts=c,sleeper=lambda s:None)
+    r=run_campaign(c,Caller(c,l2,p2,OWNER_CAP,True),40)
+    assert r['STATUS']=='PENDING_HUMAN_REVIEW'
+    assert [x for x in t2.posts() if x[1]=='/v1/responses']==[]
+    assert l2.total_charged_micro_usd()>source_total
+    l2.close()
 
 def test_novelty_application_accepts_list_that_live_schema_forbids():
     c=Contexts()

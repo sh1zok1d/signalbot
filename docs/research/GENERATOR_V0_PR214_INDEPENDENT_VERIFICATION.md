@@ -42,7 +42,7 @@ A 40-slot live shadow still has offline-discoverable holes that can stop or cont
 | F10 lineage-cumulative owner ceiling | **Holds for accounting.** Independent immutable sum of v7 calls = **4,946,750** micro-USD. Derive through generation:2 preserves that total across a nested derive. Discarded generation:3 remains in `PRIOR_ATTEMPTS` with intake verdicts. **Does not hold as “the next 40-slot live path fits.”** Fresh worst case 22,144,366 > 17,100,000; v7-derived remaining worst case 17,526,750 > 12,153,250. `remaining_campaign_budget_preflight` cannot run on a fresh journal (needs COMPLETE generator cards). Derive after critic work re-pays critics (carried as prior spend, then re-run) — by design, overcount. | high (fit) / low (sum) | high |
 | F13 discarded attempts visible | **Holds** for derive `PRIOR_ATTEMPTS`. Residual: `attach_parsed` replaces `raw` with canonical JSON while `raw_sha256` stays the wire hash, so stored raw no longer hashes to the recorded SHA. | low | high |
 | F12 sealed journal non-writable by path/copy/name | **False as stated.** CLI `refuse_sealed_or_archived` keys on content hash and refuses a byte-identical copy at a foreign path. `Ledger.__init__` does not consult the registry: a library write to a sealed-hash copy succeeds and changes the hash, after which CLI treats it as a new journal. | high (archive) | high |
-| F11 / F17 | F11 feasibility range check is defined in the prompt. F17 not-billed charges 0 — independently reproduced. | — | high |
+| F11 / F17 | **F11 holds:** a feasibility answer with `LEGAL_RANGE=false` is `REJECT`. **F17 holds:** not-billed charges 0 — independently reproduced. | — | high |
 
 ---
 
@@ -56,6 +56,7 @@ A 40-slot live shadow still has offline-discoverable holes that can stop or cont
 | N04 Budget property twin | `derive.charge` / `_charge` in implementer tests | Same CASE as `CHARGE_SQL` | Property test never runs `import_complete` or real `derive_complete_rounds` except the separate v7 test | Random sequences cannot reach derive/import holes |
 | N05 Empty keyed batch object | `novelty_schema` `_batch_ids` | Strict empty object if batch-of-one | Campaign size 25–50 so unused | Low |
 | N06 `remaining_campaign_budget_preflight` on CREATED | `derive.py` | Needs imported COMPLETE cards | Operator of a fresh run | Raises `no COMPLETE generator cards to bound remaining critics` |
+| N07 Derive needs source_config transport identity | `derive.compatibility_errors` | COMPLETE OpenAI-shaped rows | source meta contains schema digest / endpoint / model | A journal whose `Ledger` config is only `{RUN_ID,CAP,SIZE}` cannot be derived even if the calls are live-shaped. Live `__main__` writes the fields; a stripped config is a derive brick wall. |
 
 ---
 
@@ -80,7 +81,21 @@ Keyed live encoding (Responses background + Chat Completions critics) through a 
 
 ## State machine
 
-Resumable statuses without a campaign result still generate. Terminal statuses post nothing. `PAUSED_UNCERTAIN_CALL` **with** an UNCERTAIN row does not auto-replay; reconcile `NOT_BILLED` then continues. `PAUSED_UNCERTAIN_CALL` **without** a row is not a pause.
+Independently driven **with the pause-causing row present** (not a status label alone):
+
+| State | Result |
+|---|---|
+| `PAUSED_UNCERTAIN_CALL` + UNCERTAIN row | No auto-replay; reconcile then continues |
+| `PAUSED_UNCERTAIN_CALL` with no row | Generation runs (implementer oracle hole) |
+| `PAUSED_PROVIDER_REJECTED` | Resume after the 400 stops POSTs the same logical critic under a new not-billed-closed skip / new attempt; campaign can finish |
+| `PAUSED_PROVIDER_THROTTLED` | 429 exhaustion; resume later finishes |
+| `STOPPED_BUDGET` | `authorize_budget_extension` then resume to `PENDING_HUMAN_REVIEW` |
+| `PAUSED_BACKGROUND_PENDING` | Same `response_id` completed; generation:0 was not created again |
+| `PENDING_HUMAN_REVIEW` / `STOPPED_INSUFFICIENT_VALID` / `MUTATED_REQUIRES_REVIEW` / `DERIVED_IMPORTED_REVALIDATED` | Posts nothing |
+| Derive after partial critic (crash on first novelty) | Lineage total conserved; generator rounds not re-POSTed; critics re-paid |
+| Crash after `finish` | COMPLETE never re-POSTed |
+
+Terminal statuses post nothing. Status-only pause is not a pause.
 
 ---
 
@@ -92,7 +107,7 @@ Random reserve/finish/fail/reconcile sequences never exceeded cap; independent c
 
 ## Implementer tests — circularity
 
-The 52-ish gate tests are not an independent oracle:
+The implementer pointed at 52 gate tests. The three files named as the repair gate (`test_generator_v0_contract.py`, `test_generator_v0_faults.py`, `test_generator_v0_corpus.py`) contain **42** `def test_` functions (parametrization expands collected cases). They are not an independent oracle:
 
 - `test_every_rule_has_one_check_and_one_prompt_line` asserts that `RULES[].TEXT` appears in the prompt generated from `RULES`. That checks rendering, not that the rule is the right rule.
 - `test_property_pattern_and_parser_agree` compiles `LEGAL_RANGE_PATTERN` and `parse_legal_range` from the **same module**.
@@ -144,7 +159,7 @@ Per-card `HARD_FAIL` / `REVIEW_FAILED`, `STOPPED_INSUFFICIENT_VALID`, billed vs 
 
 ```
 python3 -m pytest -q tests/research/audit_pr214_independent/test_independent_audit.py
-# 35 passed
+# 43 passed
 ```
 
 No full-repo pytest (environment missing unrelated deps). `git diff --check` on audit files: clean. No network. v7 SHA unchanged.
