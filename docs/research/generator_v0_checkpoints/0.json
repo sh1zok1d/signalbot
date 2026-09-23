@@ -1,0 +1,42 @@
+{
+  "BASE_MAIN_SHA": "58a49d25d7a9b730db402eb5ebe7c7fa0165ff33",
+  "BOUNDARY_FLAGS": {
+    "D14_CREATED": false,
+    "MARKET_07_CREATED": false,
+    "NEW_DATA_ACQUIRED": false,
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "REAL_LLM_CALLS_MADE": false,
+    "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+    "SPRINT05_CREATED": false
+  },
+  "CHECKPOINT_ID": "CHECKPOINT_0",
+  "COMPLETED_SCOPE": [
+    "Preflight on amended bytes",
+    "Frozen requirement mapping",
+    "Existing CLI inventory"
+  ],
+  "FILES_CHANGED": [
+    "docs/research/GENERATOR_V0_IMPLEMENTATION_PLAN.md",
+    "docs/research/generator_v0_checkpoints/0.json"
+  ],
+  "FOCUSED_TESTS": "19 design tests passed;git diff --check passed",
+  "HEAD": "SELF: commit introducing this immutable checkpoint record",
+  "INVARIANTS_VERIFIED": [
+    "No paid LLM calls",
+    "No scientific execution",
+    "No data acquisition",
+    "Frozen design preserved"
+  ],
+  "KNOWN_LIMITATIONS": [
+    "Source-only checkout: docs/research_data omitted intentionally; tracked tree identities preserved",
+    "Checkpoint self identity resolved from Git to avoid impossible recursive hashes"
+  ],
+  "NEXT_ACTION": "Continue automatically to next checkpoint",
+  "PREVIOUS_CHECKPOINT_SHA": "64e39326630d92761ff1ef062d72f204bcba42fe",
+  "REMAINING_SCOPE": [
+    "Continue next phase; final acceptance pending"
+  ],
+  "STATUS": "PASS",
+  "TREE": "SELF^{tree}; resolved from Git, never a self-referential embedded hash"
+}
