@@ -1,3 +1,17 @@
+## Generator V0 implementation readiness — 2026-09-23
+
+`NEXT_UNIT = GENERATOR_V0_REAL_SHADOW_CAMPAIGN_READY`.
+`HYPOTHESIS_GENERATOR_V0_IMPLEMENTATION_AND_SHADOW_HARNESS` implementation
+is complete in the draft implementation PR, pending independent review.
+Canonical operator instructions: `research/GENERATOR_V0_OPERATOR.md`.
+Real execution requires credentials and explicit budget authorization
+(USD 30 cap); no paid call was made. A successful campaign stops at
+`PENDING_HUMAN_REVIEW`. No science, acquisition, promotion, Sprint05, D14
+or MARKET-07 is authorized by this readiness state. Protected data remain
+unopened. Frozen design/historical records retain their historical labels.
+
+---
+
 # Signalbot — Current Research State
 
 **Status date:** 2026-09-22  

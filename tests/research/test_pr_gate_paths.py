@@ -55,3 +55,10 @@ def test_large_integration_diff_stays_on_always_list_plus_source_map():
     )
     if mapped:
         assert mapped in targets
+
+
+def test_generator_source_or_authority_selects_complete_focused_suite():
+    gate = _pr_gate()
+    expected = {str(p.relative_to(REPO)) for p in (REPO / 'tests/research').glob('test_generator_v0_*.py')}
+    for changed in ('scripts/research/generator_v0/context.py', 'docs/research/MECHANISM_MEMORY_V0.json'):
+        assert expected <= set(gate._select_targets([], [changed]))

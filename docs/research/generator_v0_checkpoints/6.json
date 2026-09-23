@@ -1,0 +1,49 @@
+{
+  "BASE_MAIN_SHA": "58a49d25d7a9b730db402eb5ebe7c7fa0165ff33",
+  "BOUNDARY_FLAGS": {
+    "D14_CREATED": false,
+    "MARKET_07_CREATED": false,
+    "NEW_DATA_ACQUIRED": false,
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "REAL_LLM_CALLS_MADE": false,
+    "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+    "SPRINT05_CREATED": false
+  },
+  "CHECKPOINT_ID": "CHECKPOINT_6",
+  "COMPLETED_SCOPE": [
+    "Concrete verified OpenAI adapter",
+    "Fake HTTP E2E",
+    "Explicit spend gates",
+    "No retries",
+    "Timeout reservations and response hashes"
+  ],
+  "FILES_CHANGED": [
+    "docs/research/GENERATOR_V0_PROVIDER_VERIFICATION.md",
+    "docs/research/generator_v0_checkpoints/6.json",
+    "scripts/research/generator_v0/__main__.py",
+    "scripts/research/generator_v0/ledger.py",
+    "scripts/research/generator_v0/openai_provider.py",
+    "scripts/research/generator_v0/provider.py",
+    "tests/research/test_generator_v0_openai.py"
+  ],
+  "FOCUSED_TESTS": "93 focused tests passed;fake HTTP only;git diff --check passed",
+  "HEAD": "SELF: commit introducing this immutable checkpoint record",
+  "INVARIANTS_VERIFIED": [
+    "No paid LLM calls",
+    "No scientific execution",
+    "No data acquisition",
+    "Frozen design preserved"
+  ],
+  "KNOWN_LIMITATIONS": [
+    "Source-only checkout: docs/research_data omitted intentionally; tracked tree identities preserved",
+    "Checkpoint self identity resolved from Git to avoid impossible recursive hashes"
+  ],
+  "NEXT_ACTION": "Continue automatically to next checkpoint",
+  "PREVIOUS_CHECKPOINT_SHA": "03accc392e735fc3bb2c2e0ebc0a923ca5ae03ee",
+  "REMAINING_SCOPE": [
+    "Continue next phase; final acceptance pending"
+  ],
+  "STATUS": "PASS",
+  "TREE": "SELF^{tree}; resolved from Git, never a self-referential embedded hash"
+}

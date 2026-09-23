@@ -381,3 +381,18 @@ When adding documentation:
 5. remove contradictory instructions from current docs;
 6. keep historical links discoverable from `PROJECT_HISTORY.md` / `history/README.md` / this index;
 7. update this index whenever authority changes.
+
+## Generator V0 implementation and shadow operation
+
+- `research/GENERATOR_V0_OPERATOR.md` — active run/preflight/resume and human audit commands.
+- `research/GENERATOR_V0_IMPLEMENTATION_PLAN.md` — requirement-to-checkpoint mapping.
+- `research/BLIND_MECHANISM_MAP_V0.json` — tracked outcome-neutral prior signatures.
+- `research/GOVERNANCE_REGION_AUTHORITY_V0.json` — frozen per-signature authority, excluded from Generator/Selector.
+- `research/GENERATOR_V0_CONTEXT_PINS.json` — exact-byte context source identities.
+- `research/GENERATOR_V0_PROVIDER_VERIFICATION.md` — official API verification and cost assumptions.
+- `research/GENERATOR_V0_ADVERSARIAL_REVIEW.md` — 25-class self-review, fixes and limits.
+- `research/generator_v0_checkpoints/` — durable checkpoint chain and compact mock evidence.
+
+Implementation state: `GENERATOR_V0_REAL_SHADOW_CAMPAIGN_READY`. The original
+design's FROZEN_NOT_IMPLEMENTED label describes its historical freeze, not
+the current implementation state. Independent PR review remains pending.

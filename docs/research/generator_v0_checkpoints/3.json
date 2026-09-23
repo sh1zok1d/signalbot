@@ -1,0 +1,47 @@
+{
+  "BASE_MAIN_SHA": "58a49d25d7a9b730db402eb5ebe7c7fa0165ff33",
+  "BOUNDARY_FLAGS": {
+    "D14_CREATED": false,
+    "MARKET_07_CREATED": false,
+    "NEW_DATA_ACQUIRED": false,
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "REAL_LLM_CALLS_MADE": false,
+    "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+    "SPRINT05_CREATED": false
+  },
+  "CHECKPOINT_ID": "CHECKPOINT_3",
+  "COMPLETED_SCOPE": [
+    "Per-role request validation",
+    "Three isolated critics",
+    "Frozen novelty decision table",
+    "D4 sub-signatures",
+    "Typed selector sanitization",
+    "Stream B preservation"
+  ],
+  "FILES_CHANGED": [
+    "docs/research/generator_v0_checkpoints/3.json",
+    "scripts/research/generator_v0/context.py",
+    "scripts/research/generator_v0/roles.py",
+    "tests/research/test_generator_v0_roles.py"
+  ],
+  "FOCUSED_TESTS": "76 focused tests passed;git diff --check passed",
+  "HEAD": "SELF: commit introducing this immutable checkpoint record",
+  "INVARIANTS_VERIFIED": [
+    "No paid LLM calls",
+    "No scientific execution",
+    "No data acquisition",
+    "Frozen design preserved"
+  ],
+  "KNOWN_LIMITATIONS": [
+    "Source-only checkout: docs/research_data omitted intentionally; tracked tree identities preserved",
+    "Checkpoint self identity resolved from Git to avoid impossible recursive hashes"
+  ],
+  "NEXT_ACTION": "Continue automatically to next checkpoint",
+  "PREVIOUS_CHECKPOINT_SHA": "58bec6df04253754cd30a6215c114664ca8b942c",
+  "REMAINING_SCOPE": [
+    "Continue next phase; final acceptance pending"
+  ],
+  "STATUS": "PASS",
+  "TREE": "SELF^{tree}; resolved from Git, never a self-referential embedded hash"
+}
