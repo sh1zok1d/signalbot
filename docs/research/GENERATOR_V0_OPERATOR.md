@@ -151,6 +151,46 @@ No automatic POST retries exist. A malformed persisted answer remains visible as
 failed run; resume does not repeatedly pay for the same malformed answer.
 Configuration, implementation or context drift refuses resume.
 
+## Contract V02, quarantine, pauses and reconciliation (pre-live repair)
+
+New generations use `GENERATOR_CONTRACT_V02` (`scripts/research/generator_v0/contract.py`):
+the generator prompt's hard rules and the validator are derived from one rule
+table. A card that breaks a rule is recorded `HARD_FAIL` and does not reach
+critics; the batch continues. A card whose critic answer breaks its contract
+twice (or is billed but unusable twice) is `REVIEW_FAILED`. Both are visible in
+`run_ledger.json` (`CANDIDATE_INTAKE`) and in the result `METRICS`. Fewer than
+25 admissible cards stops before critics (`STOPPED_INSUFFICIENT_VALID`).
+
+Historical first-shadow generation:0/1/2 cards are admitted only through the
+grandfather manifest `docs/research/GENERATOR_V0_LEGACY_V01_GRANDFATHER.json`
+(exact call keys and card digests). v7 generation:3 is not importable.
+
+Campaign pauses never lose paid work; resume replays every COMPLETE call from
+the journal without a POST.
+
+| Status | Operator action |
+|---|---|
+| `STOPPED_BUDGET` | `authorize-budget-extension` (within the owner ceiling), then `resume` |
+| `PAUSED_UNCERTAIN_CALL` | `reconcile`, then `resume` |
+| `PAUSED_PROVIDER_THROTTLED` | `resume` later |
+| `PAUSED_PROVIDER_REJECTED` | fix request/credentials, then `resume` |
+| `PAUSED_BACKGROUND_PENDING` | `resume` |
+
+```bash
+python -m scripts.research.generator_v0 reconcile --run-dir RUN --call-key KEY \
+  --resolution NOT_BILLED --actor OWNER --reason "provider logs show no request" --evidence "dashboard export"
+python -m scripts.research.generator_v0 reconcile --run-dir RUN --call-key KEY \
+  --resolution BILLED --cost-usd 0.041200 --actor OWNER --reason "usage page shows the billed attempt"
+```
+
+Spend is lineage-cumulative: `derive` carries every non-imported source charge
+(failed, uncertain and discarded calls included), and every reservation checks
+lineage + journal + new bound against the run cap. The selector call is
+advisory; the deterministic ordinal order decides the shortlist.
+
+Sealed journals (`docs/research/GENERATOR_V0_SEALED_RUNS.json`) are refused by
+content hash at any path, for every command including `inspect`.
+
 ## Artifacts and human decisions
 
 The run directory contains:

@@ -1,3 +1,17 @@
+## Generator V0 pre-live repair (offline) — 2026-09-23
+
+`NEXT_UNIT = GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW`.
+Offline repair of the audit findings behind the v4–v7 one-failure-per-run
+history: per-card quarantine instead of campaign aborts, a single V02 rule
+contract (prompt and validator derived from one table), decoding-level
+schemas, explicit provider failure classes with reconcile, an advisory
+selector, and lineage-cumulative spend (a derive from v7 keeps USD 4.946750
+charged). Completion state is `READY_FOR_INDEPENDENT_REVIEW`, not ready for a
+live shadow. No paid call, no protected data, no scientific outcome; v6/v7
+sealed and untouched. See `docs/research/GENERATOR_V0_PRE_LIVE_REPAIR.md`.
+
+---
+
 ## Generator V0 first-shadow-v7 fail-closed — 2026-09-23
 
 `NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_FAIL_CLOSED`.
@@ -16,7 +30,7 @@ historical labels.
 
 **Status:** ACTIVE  
 **Updated:** 2026-09-23
-**Current phase:** `GENERATOR_V0_FIRST_SHADOW_V7_FAIL_CLOSED`
+**Current phase:** `GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW`
 
 The previous long-form roadmap is preserved in git history at `b25d9ca99498630183813d0ccb8c6d67b93ad915`. This file controls current execution order.
 

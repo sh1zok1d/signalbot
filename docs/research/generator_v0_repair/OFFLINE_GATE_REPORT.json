@@ -1,0 +1,230 @@
+{
+  "CONTRACT": "GENERATOR_CONTRACT_V02",
+  "CORPUS": {
+    "CATEGORIES": {
+      "CATALOG": 6,
+      "MALFORMED": 31,
+      "NONCANONICAL_RANGE": 15,
+      "SAFE_BOUNDARY": 18,
+      "SAFE_BUT_NAMES_PROTECTED_YEAR": 4,
+      "SAFE_CANONICAL": 37,
+      "SAFE_LEGIT_WORDING": 8,
+      "SEMANTIC_ERROR": 4,
+      "SLOT": 4,
+      "UNSAFE_CLAIM": 8,
+      "UNSAFE_OPEN_ENDED": 16,
+      "UNSAFE_PROTECTED_SOURCE": 4,
+      "UNSAFE_PROTECTED_YEAR": 37,
+      "UNSAFE_RANGE": 7,
+      "UNSAFE_SCOPE_RECENCY": 7
+    },
+    "CORPUS_SIZE": 206,
+    "EXPECTATION_MISMATCHES": [],
+    "FALSE_NEGATIVES_SAFE_COMPLIANT": 0,
+    "RULE_HITS": {
+      "AGGREGATE_STATUS": 4,
+      "CATALOG_RANGE": 4,
+      "DATA_GAP_CLASS": 2,
+      "DATA_ROWS": 8,
+      "LEGAL_RANGE_GRAMMAR": 21,
+      "MISSING_OBSERVABLES": 3,
+      "NEAREST_TESTED_MECHANISM": 1,
+      "NO_OPEN_ENDED_WINDOW": 16,
+      "NO_PROTECTED_YEARS": 51,
+      "NO_SCORE_FIELDS": 4,
+      "NO_TRADING_CLAIM": 6,
+      "PROTECTED_FLAG": 2,
+      "PROTECTED_SOURCE": 3,
+      "READY_REQUIRES_CATALOG": 2,
+      "SCHEMA_FIELDS": 2,
+      "SCOPE_NO_RECENCY": 8,
+      "SEARCH_SURFACE": 9,
+      "SLOT_IDENTITY": 5,
+      "TEXT_FIELDS": 5
+    },
+    "SAFE_BUT_CONTRACT_VIOLATING": 46,
+    "SAFE_BUT_CONTRACT_VIOLATING_QUARANTINED": 46,
+    "SAFE_COMPLIANT": 67,
+    "SEMANTIC_ERROR_ADMITTED_FOR_RED_TEAM": 4,
+    "UNSAFE": 93,
+    "UNSAFE_ADMITTED": 0
+  },
+  "CORPUS_AUTHOR_NOTE": "The corpus was written by the implementer of the repair. An independent reviewer should add an independently written corpus before any live authorization.",
+  "DERIVE_AFTER_PARTIAL_WORK": {
+    "DERIVED_GENERATOR_POSTS": 0,
+    "DERIVED_METRICS": {
+      "CONTENT_RETRIES": {},
+      "CRITIC_COMPLETIONS": {
+        "FEASIBILITY": 39,
+        "NOVELTY": 39,
+        "RED_TEAM": 39
+      },
+      "HARD_FAIL": 1,
+      "HARD_FAIL_BY_RULE": {
+        "LEGAL_RANGE_GRAMMAR": 1
+      },
+      "HARD_FAIL_RATE": "1/40",
+      "REVIEWED": 39,
+      "REVIEW_FAILED": 0,
+      "REVIEW_FAILED_BY_ROLE": {},
+      "SELECTOR_ADVISORY": "AGREES",
+      "SLOTS": 40,
+      "VALID": 39
+    },
+    "DERIVED_SPEND": {
+      "JOURNAL_MICRO_USD": 2240000,
+      "LINEAGE_PRIOR_MICRO_USD": 210036,
+      "TOTAL_MICRO_USD": 2450036
+    },
+    "DERIVED_STATUS": "PENDING_HUMAN_REVIEW",
+    "DERIVE_LINEAGE_PRIOR_MICRO_USD": 210036,
+    "DERIVE_LINEAGE_TOTAL_MICRO_USD": 2210036,
+    "PRIOR_ATTEMPTS": 60,
+    "SOURCE_ROWS": 64,
+    "SOURCE_STATUS": "PAUSED_UNCERTAIN_CALL",
+    "SOURCE_TOTAL_MICRO_USD": 2210036
+  },
+  "NOISY_E2E": {
+    "CALL_STATES": {
+      "COMPLETE": 117,
+      "FAILED_NOT_BILLED": 3,
+      "FAILED_WITH_COST": 4,
+      "RECONCILED_BILLED": 1
+    },
+    "HARD_FAIL_IDS": [
+      "C020",
+      "C025",
+      "C037"
+    ],
+    "JOURNAL_ROWS": 125,
+    "METRICS": {
+      "CONTENT_RETRIES": {
+        "NOVELTY": 3,
+        "RED_TEAM": 1
+      },
+      "CRITIC_COMPLETIONS": {
+        "FEASIBILITY": 36,
+        "NOVELTY": 37,
+        "RED_TEAM": 35
+      },
+      "HARD_FAIL": 3,
+      "HARD_FAIL_BY_RULE": {
+        "LEGAL_RANGE_GRAMMAR": 1,
+        "NO_PROTECTED_YEARS": 1,
+        "SLOT_IDENTITY": 1
+      },
+      "HARD_FAIL_RATE": "3/40",
+      "REVIEWED": 35,
+      "REVIEW_FAILED": 2,
+      "REVIEW_FAILED_BY_ROLE": {
+        "FEASIBILITY": 1,
+        "RED_TEAM": 1
+      },
+      "SELECTOR_ADVISORY": "DISAGREES",
+      "SLOTS": 40,
+      "VALID": 37
+    },
+    "POSTS": 125,
+    "RETRY_ATTEMPTS": {
+      "CONTENT": 7,
+      "TRANSPORT": 3
+    },
+    "REVIEW_FAILED_IDS": [
+      "C009",
+      "C010"
+    ],
+    "SHORTLIST": [
+      "C011",
+      "C013",
+      "C019",
+      "C028",
+      "C033"
+    ],
+    "SPEND": {
+      "JOURNAL_MICRO_USD": 4218734,
+      "LINEAGE_PRIOR_MICRO_USD": 0,
+      "TOTAL_MICRO_USD": 4218734
+    },
+    "STATUS": "PENDING_HUMAN_REVIEW",
+    "STEPS": [
+      "CRASH: process died after POST RED_TEAM C011",
+      "PAUSED: PAUSED_UNCERTAIN_CALL",
+      "RECONCILED_BILLED",
+      "FINAL: PENDING_HUMAN_REVIEW"
+    ],
+    "STREAM_A": 15,
+    "STREAM_B": 15
+  },
+  "PROTECTED_2025_2026_OPENED": false,
+  "REAL_LLM_CALLS_MADE": false,
+  "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+  "UNIT": "GENERATOR_V0_PRE_LIVE_REPAIR_OFFLINE_GATE",
+  "V7_DERIVE_PROOF": {
+    "IMPORTED_CONTRACTS": {
+      "generation:0": "GENERATOR_CONTRACT_V01_LEGACY",
+      "generation:1": "GENERATOR_CONTRACT_V01_LEGACY",
+      "generation:2": "GENERATOR_CONTRACT_V01_LEGACY"
+    },
+    "IMPORTED_COST_MICRO_USD": 3779550,
+    "IMPORTED_GENERATION_ROUNDS": [
+      "generation:0",
+      "generation:1",
+      "generation:2"
+    ],
+    "LINEAGE_PRIOR_MICRO_USD": 1167200,
+    "LINEAGE_TOTAL_MICRO_USD": 4946750,
+    "PRIOR_ATTEMPT": {
+      "CHARGED_MICRO_USD": 1167200,
+      "INTAKE_VERDICTS": {
+        "C031": "HARD_FAIL",
+        "C032": "HARD_FAIL",
+        "C033": "HARD_FAIL",
+        "C034": "HARD_FAIL",
+        "C035": "HARD_FAIL",
+        "C036": "HARD_FAIL",
+        "C037": "VALID",
+        "C038": "HARD_FAIL",
+        "C039": "HARD_FAIL",
+        "C040": "HARD_FAIL"
+      },
+      "SLOT": "generation:3"
+    },
+    "REMAINING_MICRO_USD": 12153250,
+    "SOURCE_JOURNAL_SHA256_BEFORE_AND_AFTER": "e27eb1ce77c5152eff4e68e30c2632ad9bd575ef953b5a069775b5ff46f36457"
+  },
+  "V8_REMAINING_BUDGET_PREFLIGHT": {
+    "FITS_AUTHORIZED_REMAINING": false,
+    "FITS_WITH_CONTENT_RETRIES": false,
+    "REMAINING_AUTHORIZED_MICRO_USD": 12153250,
+    "SPENT_MICRO_USD": 4946750,
+    "STAGES": [
+      {
+        "BOUND_MICRO_USD": 2178420,
+        "BOUND_USD": "2.17842",
+        "STAGE": "generation:3"
+      },
+      {
+        "BOUND_MICRO_USD": 11278174,
+        "BOUND_USD": "11.278174",
+        "STAGE": "NOVELTY_CRITIC x40"
+      },
+      {
+        "BOUND_MICRO_USD": 172790,
+        "BOUND_USD": "0.17279",
+        "STAGE": "FEASIBILITY_CRITIC x40"
+      },
+      {
+        "BOUND_MICRO_USD": 3895374,
+        "BOUND_USD": "3.895374",
+        "STAGE": "RED_TEAM x40"
+      },
+      {
+        "BOUND_MICRO_USD": 1992,
+        "BOUND_USD": "0.001992",
+        "STAGE": "SELECTOR"
+      }
+    ],
+    "WORST_CASE_REMAINING_MICRO_USD": 17526750,
+    "WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD": 35051508
+  }
+}

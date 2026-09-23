@@ -1,3 +1,17 @@
+## Generator V0 pre-live repair (offline) — 2026-09-23
+
+`NEXT_UNIT = GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW`.
+Offline repair of the audit findings behind the v4–v7 one-failure-per-run
+history: per-card quarantine instead of campaign aborts, a single V02 rule
+contract (prompt and validator derived from one table), decoding-level
+schemas, explicit provider failure classes with reconcile, an advisory
+selector, and lineage-cumulative spend (a derive from v7 keeps USD 4.946750
+charged). Completion state is `READY_FOR_INDEPENDENT_REVIEW`, not ready for a
+live shadow. No paid call, no protected data, no scientific outcome; v6/v7
+sealed and untouched. See `docs/research/GENERATOR_V0_PRE_LIVE_REPAIR.md`.
+
+---
+
 ## Generator V0 first-shadow-v7 fail-closed — 2026-09-23
 
 `NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_FAIL_CLOSED`.
@@ -51,8 +65,8 @@ PREVIOUS_ROUTING            = POST_SPRINT04_AUTOMATION_MATURITY_DECISION
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = GENERATOR_V0_FIRST_SHADOW_V7_FAIL_CLOSED
-NEXT_ACTION                 = STOP_NO_RESUME_NO_VALIDATOR_REPAIR
+NEXT_UNIT                   = GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW
+NEXT_ACTION                 = INDEPENDENT_REVIEW_OF_OFFLINE_REPAIR_NO_LIVE_RUN
 POST_SPRINT04_AUTOMATION_MATURITY_DECISION = HYPOTHESIS_GENERATOR_V0_INFRA_READY
 HYPOTHESIS_GENERATOR_V0_DESIGN = FROZEN_NOT_IMPLEMENTED
 GENERATOR_MODE              = SHADOW_ONLY

@@ -5900,3 +5900,23 @@ FIRST_SHADOW_V6_SEALED = true
 FIRST_SHADOW_V7_SEALED = true
 AUTHORITY_JOURNAL_SHA256 = e27eb1ce77c5152eff4e68e30c2632ad9bd575ef953b5a069775b5ff46f36457
 ```
+
+### 2026-09-23 — Generator V0 pre-live repair (offline)
+
+No research window, hypothesis or card consumed. No paid call, no protected
+data, no scientific outcome. Sealed first-shadow-v6/v7 unchanged.
+
+```
+UNIT = GENERATOR_V0_PRE_LIVE_REPAIR
+COMPLETION_STATE = READY_FOR_INDEPENDENT_REVIEW
+READY_FOR_LIVE_SHADOW = false
+CONTRACT = GENERATOR_CONTRACT_V02
+LEGACY_COMPATIBILITY = A_GRANDFATHER_ONLY_LISTED_CALL_KEYS (3 calls, 30 cards)
+V7_DERIVE_LINEAGE_TOTAL_MICRO_USD = 4946750
+NEXT_UNIT = GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW
+```
+
+Outcome-blind design amendments: hard fail per candidate, MIN_VALID_CANDIDATES
+= 25, diversity controls on the attempted slot plan, advisory selector call
+with the deterministic ordinal order authoritative. Record:
+`docs/research/GENERATOR_V0_PRE_LIVE_REPAIR.{json,md}`.
